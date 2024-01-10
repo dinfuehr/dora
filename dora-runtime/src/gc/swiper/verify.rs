@@ -7,8 +7,8 @@ use crate::gc::swiper::card::{CardEntry, CardTable};
 use crate::gc::swiper::crossing::{CrossingEntry, CrossingMap};
 use crate::gc::swiper::large::LargeSpace;
 use crate::gc::swiper::old::{OldGen, OldGenProtected};
-use crate::gc::swiper::on_different_cards;
 use crate::gc::swiper::young::YoungGen;
+use crate::gc::swiper::{on_different_cards, BasePage};
 use crate::gc::swiper::{LargePage, RegularPage, CARD_SIZE};
 use crate::gc::{Address, Region};
 
@@ -83,7 +83,6 @@ pub struct Verifier<'a> {
     in_old: bool,
 
     heap: Region,
-    young_total: Region,
 
     phase: VerifierPhase,
 }
@@ -116,7 +115,6 @@ impl<'a> Verifier<'a> {
 
             in_old: false,
 
-            young_total: young.total(),
             heap,
 
             phase,
@@ -317,8 +315,11 @@ impl<'a> Verifier<'a> {
             // make sure that the size doesn't equal 1.
             assert!(object.size() != 1, "object size shouldn't be 1");
 
-            if self.young_total.contains(reference) {
-                *refs_to_young_gen += 1;
+            if self.heap.contains(reference) {
+                let page = BasePage::from_address(reference);
+                if page.is_young() {
+                    *refs_to_young_gen += 1;
+                }
             }
 
             return;

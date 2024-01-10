@@ -11,7 +11,7 @@ use crate::gc::swiper::large::LargeSpace;
 use crate::gc::swiper::old::OldGen;
 use crate::gc::swiper::young::YoungGen;
 use crate::gc::swiper::{
-    forward_minor, CardIdx, LargePage, RegularPage, YoungAlloc, CARD_SIZE, INITIAL_METADATA_OLD,
+    BasePage, CardIdx, LargePage, RegularPage, Swiper, YoungAlloc, CARD_SIZE, INITIAL_METADATA_OLD,
     LARGE_OBJECT_SIZE,
 };
 use crate::gc::tlab::{MAX_TLAB_OBJECT_SIZE, MAX_TLAB_SIZE, MIN_TLAB_SIZE};
@@ -32,6 +32,7 @@ use scoped_threadpool::Pool;
 pub struct MinorCollector<'a> {
     vm: &'a VM,
 
+    swiper: &'a Swiper,
     young: &'a YoungGen,
     old: &'a OldGen,
     large: &'a LargeSpace,
@@ -41,6 +42,7 @@ pub struct MinorCollector<'a> {
     rootset: &'a [Slot],
     _threads: &'a [Arc<DoraThread>],
     _reason: GcReason,
+    heap: Region,
 
     young_alloc: Option<YoungAlloc>,
 
@@ -59,6 +61,7 @@ pub struct MinorCollector<'a> {
 impl<'a> MinorCollector<'a> {
     pub fn new(
         vm: &'a VM,
+        swiper: &'a Swiper,
         young: &'a YoungGen,
         old: &'a OldGen,
         large: &'a LargeSpace,
@@ -74,6 +77,8 @@ impl<'a> MinorCollector<'a> {
     ) -> MinorCollector<'a> {
         MinorCollector {
             vm,
+
+            swiper,
             young,
             old,
             large,
@@ -88,6 +93,7 @@ impl<'a> MinorCollector<'a> {
             copied_size: 0,
 
             _reason: reason,
+            heap: swiper.heap,
 
             _min_heap_size: min_heap_size,
             _max_heap_size: max_heap_size,
@@ -110,8 +116,7 @@ impl<'a> MinorCollector<'a> {
 
         self.old.fill_alloc_page();
 
-        let to_committed = self.young.to_committed();
-        self.young_alloc = Some(YoungAlloc::new(to_committed));
+        self.young_alloc = Some(YoungAlloc::new(self.young.to_committed()));
 
         self.run_threads();
 
@@ -142,7 +147,6 @@ impl<'a> MinorCollector<'a> {
         }
 
         let terminator = Terminator::new(self.number_workers);
-        let young_region = self.young.total();
         let vm = self.vm;
 
         // align old generation to card boundary
@@ -150,6 +154,7 @@ impl<'a> MinorCollector<'a> {
         let age_marker = self.young.age_marker();
         assert!(self.young.from_committed().valid_top(age_marker));
 
+        let heap = self.heap;
         let card_table = self.card_table;
         let crossing_map = self.crossing_map;
         let young = self.young;
@@ -190,7 +195,6 @@ impl<'a> MinorCollector<'a> {
                 let injector = &injector;
                 let stealers = &stealers;
                 let terminator = &terminator;
-                let young_region = young_region.clone();
                 let young_alloc = &young_alloc;
 
                 scoped.execute(move || {
@@ -203,16 +207,14 @@ impl<'a> MinorCollector<'a> {
                         terminator,
 
                         vm,
+                        heap,
                         young,
                         age_marker,
                         old,
-                        young_region,
                         card_table,
                         crossing_map,
                         rootset,
                         barrier,
-
-                        from_committed: young.from_committed(),
 
                         next_root_stride,
                         strides,
@@ -258,8 +260,23 @@ impl<'a> MinorCollector<'a> {
     }
 
     fn iterate_weak_refs(&mut self) {
-        iterate_weak_roots(self.vm, |current_address| {
-            forward_minor(current_address, self.young.total())
+        iterate_weak_roots(self.vm, |object_address| {
+            if self.heap.contains(object_address) {
+                let page = BasePage::from_address(object_address);
+                if page.is_young() {
+                    let obj = object_address.to_obj();
+
+                    if let VtblptrWordKind::Fwdptr(fwdptr) = obj.header().vtblptr() {
+                        Some(fwdptr)
+                    } else {
+                        None
+                    }
+                } else {
+                    Some(object_address)
+                }
+            } else {
+                Some(object_address)
+            }
         });
     }
 }
@@ -356,6 +373,7 @@ struct CopyTask<'a> {
     terminator: &'a Terminator,
 
     vm: &'a VM,
+    heap: Region,
     young: &'a YoungGen,
     age_marker: Address,
     old: &'a OldGen,
@@ -370,9 +388,6 @@ struct CopyTask<'a> {
 
     old_pages: &'a [RegularPage],
     next_old_page_idx: &'a AtomicUsize,
-
-    young_region: Region,
-    from_committed: Region,
 
     promoted_size: usize,
     copied_size: usize,
@@ -430,7 +445,7 @@ impl<'a> CopyTask<'a> {
         for &root in roots_in_stride {
             let object_address = root.get();
 
-            if self.young.contains(object_address) {
+            if self.is_young(object_address) {
                 self.push_slot(root);
             }
         }
@@ -498,7 +513,7 @@ impl<'a> CopyTask<'a> {
         object_start.to_obj().visit_reference_fields(|slot| {
             let pointer = slot.get();
 
-            if self.young.contains(pointer) {
+            if self.is_young(pointer) {
                 self.push_slot(slot);
                 ref_to_young_gen = true;
             }
@@ -534,7 +549,7 @@ impl<'a> CopyTask<'a> {
                 object.visit_reference_fields(|slot| {
                     let pointer = slot.get();
 
-                    if self.young.contains(pointer) {
+                    if self.is_young(pointer) {
                         self.push_slot(slot);
                         ref_to_young_gen = true;
                     }
@@ -564,7 +579,7 @@ impl<'a> CopyTask<'a> {
                 } else {
                     let object = item.0;
 
-                    if self.young_region.contains(object) {
+                    if self.is_young(object) {
                         self.trace_young_object(object);
                     } else {
                         self.trace_old_object(object);
@@ -587,7 +602,7 @@ impl<'a> CopyTask<'a> {
         object.visit_reference_fields(|slot| {
             let pointer = slot.get();
 
-            if self.young_region.contains(pointer) {
+            if self.is_young(pointer) {
                 slot.set(self.evacuate_object(pointer));
             }
         });
@@ -601,11 +616,11 @@ impl<'a> CopyTask<'a> {
         object.visit_reference_fields(|slot| {
             let field_ptr = slot.get();
 
-            if self.young.contains(field_ptr) {
+            if self.is_young(field_ptr) {
                 let copied_addr = self.evacuate_object(field_ptr);
                 slot.set(copied_addr);
 
-                if self.young.contains(copied_addr) {
+                if self.is_young(copied_addr) {
                     ref_to_young_gen = true;
                 }
             }
@@ -755,11 +770,6 @@ impl<'a> CopyTask<'a> {
 
         let obj_size = obj.size_for_vtblptr(vtblptr);
 
-        debug_assert!(
-            self.from_committed.contains(obj_addr),
-            "copy objects only from from-space."
-        );
-
         // If object is old enough we copy it into the old generation
         if self.should_be_promoted(obj_addr) {
             if let Some(address) = self.promote_object(vtblptr, obj, obj_size) {
@@ -798,7 +808,6 @@ impl<'a> CopyTask<'a> {
     }
 
     fn should_be_promoted(&self, addr: Address) -> bool {
-        debug_assert!(self.from_committed.contains(addr));
         addr < self.age_marker
     }
 
@@ -925,5 +934,14 @@ impl<'a> CopyTask<'a> {
         }
 
         None
+    }
+
+    fn is_young(&self, object_address: Address) -> bool {
+        if self.heap.contains(object_address) {
+            let page = BasePage::from_address(object_address);
+            page.is_young()
+        } else {
+            false
+        }
     }
 }

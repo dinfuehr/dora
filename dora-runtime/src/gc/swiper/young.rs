@@ -90,14 +90,6 @@ impl YoungGen {
         protected.top.offset_from(start)
     }
 
-    pub fn total(&self) -> Region {
-        self.total.clone()
-    }
-
-    pub fn contains(&self, addr: Address) -> bool {
-        self.total.contains(addr)
-    }
-
     pub fn reset_after_full_gc(&self, vm: &VM) {
         self.unprotect_from();
         self.swap_semi(vm);
@@ -208,7 +200,7 @@ impl YoungGen {
         self.from_total().start().region_start(size)
     }
 
-    pub fn from_total(&self) -> Region {
+    fn from_total(&self) -> Region {
         self.semispaces[self.from_index()]
     }
 

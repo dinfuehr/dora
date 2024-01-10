@@ -23,7 +23,7 @@ use crate::gc::Collector;
 use crate::gc::GcReason;
 use crate::gc::{align_page_up, Address, Region, K};
 use crate::mem;
-use crate::object::{Obj, VtblptrWordKind, OLD_BIT, REMEMBERED_BIT};
+use crate::object::{Obj, OLD_BIT, REMEMBERED_BIT};
 use crate::os::{self, MemoryPermission, Reservation};
 use crate::safepoint;
 use crate::threads::DoraThread;
@@ -74,7 +74,6 @@ pub struct Swiper {
     crossing_map: CrossingMap,
 
     card_table_offset: usize,
-    emit_write_barrier: bool,
 
     // minimum & maximum heap size
     min_heap_size: usize,
@@ -167,8 +166,6 @@ impl Swiper {
 
         let nworkers = args.gc_workers();
 
-        let emit_write_barrier = !args.disable_barrier;
-
         let threadpool = Mutex::new(Pool::new(nworkers as u32));
 
         Swiper {
@@ -185,7 +182,6 @@ impl Swiper {
             config,
 
             card_table_offset,
-            emit_write_barrier,
 
             min_heap_size,
             max_heap_size,
@@ -251,6 +247,7 @@ impl Swiper {
             let mut pool = self.threadpool.lock();
             let mut collector = MinorCollector::new(
                 vm,
+                self,
                 &self.young,
                 &self.old,
                 &self.large,
@@ -403,7 +400,7 @@ impl Collector for Swiper {
     }
 
     fn needs_write_barrier(&self) -> bool {
-        self.emit_write_barrier
+        true
     }
 
     fn initial_metadata_value(&self) -> usize {
@@ -566,17 +563,26 @@ pub trait CommonOldGen {
     fn committed_size(&self) -> usize;
 }
 
-fn forward_minor(object: Address, young: Region) -> Option<Address> {
-    if young.contains(object) {
-        let obj = object.to_obj();
+#[derive(Clone, Copy, Debug, PartialEq, Eq, PartialOrd, Ord, Hash)]
+pub struct BasePage(Address);
 
-        if let VtblptrWordKind::Fwdptr(fwdptr) = obj.header().vtblptr() {
-            Some(fwdptr)
-        } else {
-            None
-        }
-    } else {
-        Some(object)
+impl BasePage {
+    pub fn from_address(value: Address) -> BasePage {
+        let page_start = value.to_usize() & !(PAGE_SIZE - 1);
+        let page = BasePage(page_start.into());
+        page
+    }
+
+    pub fn is_young(&self) -> bool {
+        self.base_page_header().is_young()
+    }
+
+    pub fn is_large(&self) -> bool {
+        self.base_page_header().is_large()
+    }
+
+    fn base_page_header(&self) -> &BasePageHeader {
+        unsafe { &*self.0.to_ptr::<BasePageHeader>() }
     }
 }
 
@@ -595,9 +601,9 @@ impl RegularPage {
         assert!(address.is_page_aligned());
 
         let page = RegularPage(address);
-        page.header().setup(is_young, false);
+        page.base_page_header().setup(is_young, false);
 
-        let uninit_start = page.address().offset(std::mem::size_of::<PageHeader>());
+        let uninit_start = page.address().offset(std::mem::size_of::<BasePageHeader>());
         debug_assert_eq!(uninit_start.to_usize() % mem::ptr_width_usize(), 0);
         let uninit_end = page.address().offset(PAGE_HEADER_SIZE);
         debug_assert_eq!(uninit_end.to_usize() % mem::ptr_width_usize(), 0);
@@ -645,19 +651,19 @@ impl RegularPage {
     }
 
     pub fn is_young(&self) -> bool {
-        self.header().is_young()
+        self.base_page_header().is_young()
     }
 
     pub fn is_large(&self) -> bool {
-        self.header().is_large()
+        self.base_page_header().is_large()
     }
 
     fn raw_flags(&self) -> usize {
-        self.header().raw_flags()
+        self.base_page_header().raw_flags()
     }
 
-    fn header(&self) -> &PageHeader {
-        unsafe { &*self.0.to_ptr::<PageHeader>() }
+    fn base_page_header(&self) -> &BasePageHeader {
+        unsafe { &*self.0.to_ptr::<BasePageHeader>() }
     }
 }
 
@@ -665,11 +671,11 @@ const YOUNG_BIT: usize = 1;
 const LARGE_BIT: usize = 1 << 1;
 
 #[repr(C)]
-struct PageHeader {
+struct BasePageHeader {
     flags: AtomicUsize,
 }
 
-impl PageHeader {
+impl BasePageHeader {
     fn is_young(&self) -> bool {
         (self.raw_flags() & YOUNG_BIT) != 0
     }
@@ -718,7 +724,7 @@ impl LargePage {
         assert!(address.is_page_aligned());
 
         let page = LargePage(address);
-        page.header().setup(false, true);
+        page.base_page_header().setup(false, true);
         page.large_page_header().setup(committed_size);
 
         page
@@ -729,11 +735,11 @@ impl LargePage {
     }
 
     pub fn is_young(&self) -> bool {
-        self.header().is_young()
+        self.base_page_header().is_young()
     }
 
     pub fn is_large(&self) -> bool {
-        self.header().is_large()
+        self.base_page_header().is_large()
     }
 
     pub fn object_address(&self) -> Address {
@@ -741,7 +747,7 @@ impl LargePage {
     }
 
     const fn object_offset() -> usize {
-        std::mem::size_of::<PageHeader>() + std::mem::size_of::<LargePageHeader>()
+        std::mem::size_of::<BasePageHeader>() + std::mem::size_of::<LargePageHeader>()
     }
 
     pub fn next_page(&self) -> Option<LargePage> {
@@ -771,18 +777,18 @@ impl LargePage {
     }
 
     fn raw_flags(&self) -> usize {
-        self.header().flags.load(Ordering::Relaxed)
+        self.base_page_header().flags.load(Ordering::Relaxed)
     }
 
-    fn header(&self) -> &PageHeader {
-        unsafe { &*self.address().to_ptr::<PageHeader>() }
+    fn base_page_header(&self) -> &BasePageHeader {
+        unsafe { &*self.address().to_ptr::<BasePageHeader>() }
     }
 
     fn large_page_header(&self) -> &mut LargePageHeader {
         unsafe {
             &mut *self
                 .address()
-                .offset(std::mem::size_of::<PageHeader>())
+                .offset(std::mem::size_of::<BasePageHeader>())
                 .to_mut_ptr::<LargePageHeader>()
         }
     }
