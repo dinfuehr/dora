@@ -669,6 +669,7 @@ impl RegularPage {
 
 const YOUNG_BIT: usize = 1;
 const LARGE_BIT: usize = 1 << 1;
+const SURVIVED_BIT: usize = 1 << 2;
 
 #[repr(C)]
 struct BasePageHeader {
@@ -682,6 +683,18 @@ impl BasePageHeader {
 
     fn is_large(&self) -> bool {
         (self.raw_flags() & LARGE_BIT) != 0
+    }
+
+    fn is_survived(&self) -> bool {
+        (self.raw_flags() & SURVIVED_BIT) != 0
+    }
+
+    fn add_flag(&self, flag: usize) {
+        self.set_raw_flags(self.raw_flags() | flag);
+    }
+
+    fn remove_flag(&self, flag: usize) {
+        self.set_raw_flags(self.raw_flags() & !flag);
     }
 
     fn raw_flags(&self) -> usize {

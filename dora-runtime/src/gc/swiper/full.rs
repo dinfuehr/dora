@@ -258,7 +258,7 @@ impl<'a> FullCollector<'a> {
     fn evacuate(&mut self) {
         self.old_protected.fill_alloc_page();
 
-        for page in self.young.pages() {
+        for page in self.young.to_pages() {
             self.evacuate_page(page);
         }
     }
@@ -328,7 +328,7 @@ impl<'a> FullCollector<'a> {
             });
         }
 
-        for page in self.young.pages() {
+        for page in self.young.to_pages() {
             walk_region(self.vm, page.object_area(), |obj, addr, size| {
                 fct(self, obj, addr, size);
             });
@@ -347,7 +347,7 @@ pub fn verify_marking(
         verify_marking_region(vm, page.object_area(), heap);
     }
 
-    for page in young.pages() {
+    for page in young.to_pages() {
         verify_marking_region(vm, page.object_area(), heap);
     }
 

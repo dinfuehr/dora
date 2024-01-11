@@ -230,18 +230,25 @@ impl YoungGen {
         self.current_size() * 2
     }
 
-    pub fn pages(&self) -> Vec<RegularPage> {
-        let to_committed = self.to_committed();
-        let mut pages = Vec::new();
-        let mut curr = to_committed.start();
-        while curr < to_committed.end() {
-            let page = RegularPage::from_address(curr);
-            pages.push(page);
-            curr = page.end();
-        }
-        assert_eq!(curr, to_committed.end());
-        pages
+    pub fn from_pages(&self) -> Vec<RegularPage> {
+        create_pages_for_region(self.from_committed())
     }
+
+    pub fn to_pages(&self) -> Vec<RegularPage> {
+        create_pages_for_region(self.to_committed())
+    }
+}
+
+fn create_pages_for_region(region: Region) -> Vec<RegularPage> {
+    let mut pages = Vec::new();
+    let mut curr = region.start();
+    while curr < region.end() {
+        let page = RegularPage::from_address(curr);
+        pages.push(page);
+        curr = page.end();
+    }
+    assert_eq!(curr, region.end());
+    pages
 }
 
 impl GenerationAllocator for YoungGen {

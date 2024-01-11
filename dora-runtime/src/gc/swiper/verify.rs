@@ -128,7 +128,7 @@ impl<'a> Verifier<'a> {
 
     fn verify_heap(&mut self) {
         assert!(!self.in_old);
-        for page in self.young.pages() {
+        for page in self.young.to_pages() {
             self.verify_page(page);
         }
 
