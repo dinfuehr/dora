@@ -1,9 +1,10 @@
 use parking_lot::Mutex;
 use std::sync::atomic::{AtomicUsize, Ordering};
 
-use crate::gc::{Address, Region};
+use crate::gc::{Address, Region, PAGE_SIZE};
 use crate::mem;
 use crate::os::{self, MemoryPermission, Reservation};
+use crate::vm::Flags;
 
 /// Configuration for a space.
 /// This makes it possible to use `Space` both for the
@@ -13,6 +14,15 @@ pub struct SpaceConfig {
     pub chunk: usize,
     pub limit: usize,
     pub object_alignment: usize,
+}
+
+pub fn default_readonly_space_config(flags: &Flags) -> SpaceConfig {
+    SpaceConfig {
+        executable: false,
+        chunk: PAGE_SIZE,
+        limit: flags.readonly_size(),
+        object_alignment: mem::ptr_width_usize(),
+    }
 }
 
 fn adapt_to_page_size(config: SpaceConfig) -> SpaceConfig {

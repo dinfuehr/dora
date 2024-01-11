@@ -128,6 +128,14 @@ impl<'a> Verifier<'a> {
 
     fn verify_heap(&mut self) {
         assert!(!self.in_old);
+        self.young.unprotect_from();
+        for page in self.young.from_pages() {
+            assert!(page.is_young());
+            assert!(!page.is_large());
+            assert!(!page.is_survivor());
+        }
+        self.young.protect_from();
+
         for page in self.young.to_pages() {
             self.verify_page(page);
         }

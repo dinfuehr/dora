@@ -3,10 +3,10 @@ use parking_lot::Mutex;
 use crate::gc::bump::BumpAllocator;
 use crate::gc::marking;
 use crate::gc::root::{determine_strong_roots, Slot};
-use crate::gc::space::Space;
 use crate::gc::tlab;
 use crate::gc::{
-    formatted_size, iterate_weak_roots, Address, CollectionStats, Collector, GcReason, Region,
+    default_readonly_space_config, iterate_weak_roots, Address, CollectionStats, Collector,
+    GcReason, Region, Space,
 };
 use crate::object::Obj;
 use crate::os;
@@ -18,6 +18,7 @@ pub struct MarkCompactCollector {
     heap: Region,
     alloc: BumpAllocator,
     stats: Mutex<CollectionStats>,
+    readonly: Space,
 }
 
 impl MarkCompactCollector {
@@ -32,14 +33,13 @@ impl MarkCompactCollector {
         let heap_end = heap_start.offset(heap_size);
         let heap = Region::new(heap_start, heap_end);
 
-        if args.gc_verbose {
-            println!("GC: {} {}", heap, formatted_size(heap_size));
-        }
+        let readonly_space = Space::new(default_readonly_space_config(args), "perm");
 
         MarkCompactCollector {
             heap,
             alloc: BumpAllocator::new(heap_start, heap_end),
             stats: Mutex::new(CollectionStats::new()),
+            readonly: readonly_space,
         }
     }
 }
@@ -76,6 +76,10 @@ impl Collector for MarkCompactCollector {
 
         self.collect(vm, GcReason::AllocationFailure);
         self.alloc.bump_alloc(size)
+    }
+
+    fn alloc_readonly(&self, _vm: &VM, size: usize) -> Address {
+        self.readonly.alloc(size)
     }
 
     fn collect(&self, vm: &VM, reason: GcReason) {
@@ -133,7 +137,7 @@ impl MarkCompactCollector {
         let mut mark_compact = MarkCompact {
             vm,
             heap: self.heap,
-            readonly_space: &vm.gc.readonly_space,
+            readonly_space: &self.readonly,
 
             init_top: self.alloc.top(),
             top: self.heap.start,

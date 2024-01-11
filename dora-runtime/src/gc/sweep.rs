@@ -3,11 +3,10 @@ use parking_lot::Mutex;
 use crate::gc::freelist::FreeList;
 use crate::gc::marking;
 use crate::gc::root::{determine_strong_roots, Slot};
-use crate::gc::space::Space;
 use crate::gc::tlab;
 use crate::gc::{
-    fill_region_with_free, formatted_size, iterate_weak_roots, Address, CollectionStats, Collector,
-    GcReason, Region,
+    default_readonly_space_config, fill_region_with_free, formatted_size, iterate_weak_roots,
+    Address, CollectionStats, Collector, GcReason, Region, Space,
 };
 use crate::os;
 use crate::safepoint;
@@ -18,6 +17,7 @@ pub struct SweepCollector {
     heap: Region,
     alloc: Mutex<SweepAllocator>,
     stats: Mutex<CollectionStats>,
+    readonly: Space,
 }
 
 impl SweepCollector {
@@ -36,10 +36,13 @@ impl SweepCollector {
             println!("GC: {} {}", heap, formatted_size(heap_size));
         }
 
+        let readonly_space = Space::new(default_readonly_space_config(args), "perm");
+
         SweepCollector {
             heap,
             alloc: Mutex::new(SweepAllocator::new(heap)),
             stats: Mutex::new(CollectionStats::new()),
+            readonly: readonly_space,
         }
     }
 }
@@ -76,6 +79,10 @@ impl Collector for SweepCollector {
 
         self.collect(vm, GcReason::AllocationFailure);
         self.inner_alloc(vm, size)
+    }
+
+    fn alloc_readonly(&self, _vm: &VM, size: usize) -> Address {
+        self.readonly.alloc(size)
     }
 
     fn collect(&self, vm: &VM, reason: GcReason) {
@@ -141,7 +148,7 @@ impl SweepCollector {
         let mut collector = MarkSweep {
             vm,
             heap: Region::new(start, top),
-            readonly_space: &vm.gc.readonly_space,
+            readonly_space: &self.readonly,
 
             rootset,
             reason,

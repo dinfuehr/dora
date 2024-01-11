@@ -9,7 +9,7 @@ use crate::gc::allocator::GenerationAllocator;
 use crate::gc::code::CodeSpace;
 use crate::gc::compact::MarkCompactCollector;
 use crate::gc::copy::CopyCollector;
-use crate::gc::space::{Space, SpaceConfig};
+use crate::gc::space::{default_readonly_space_config, Space};
 use crate::gc::sweep::SweepCollector;
 use crate::gc::swiper::{Swiper, CARD_SIZE};
 use crate::gc::tlab::MAX_TLAB_OBJECT_SIZE;
@@ -45,14 +45,13 @@ pub const M: usize = K * K;
 
 const CHUNK_SIZE: usize = 8 * K;
 pub const DEFAULT_CODE_SPACE_LIMIT: usize = 2 * M;
-pub const DEFAULT_READONLY_SPACE_LIMIT: usize = PAGE_SIZE;
+pub const DEFAULT_READONLY_SPACE_LIMIT: usize = PAGE_SIZE * 4;
 
 pub struct Gc {
     collector: Box<dyn Collector + Sync>,
     supports_tlab: bool,
 
     code_space: CodeSpace,
-    readonly_space: Space,
     epoch: AtomicUsize,
 
     finalizers: Mutex<Vec<(Address, Arc<DoraThread>)>>,
@@ -60,13 +59,6 @@ pub struct Gc {
 
 impl Gc {
     pub fn new(args: &Flags) -> Gc {
-        let readonly_config = SpaceConfig {
-            executable: false,
-            chunk: PAGE_SIZE,
-            limit: args.readonly_size(),
-            object_alignment: mem::ptr_width_usize(),
-        };
-
         let collector_name = args.gc.unwrap_or(CollectorName::Swiper);
 
         let collector: Box<dyn Collector + Sync> = match collector_name {
@@ -86,7 +78,6 @@ impl Gc {
             supports_tlab,
 
             code_space: CodeSpace::new(code_size),
-            readonly_space: Space::new(readonly_config, "perm"),
             epoch: AtomicUsize::new(0),
 
             finalizers: Mutex::new(Vec::new()),
@@ -114,8 +105,8 @@ impl Gc {
         self.code_space.alloc(size)
     }
 
-    pub fn alloc_readonly(&self, size: usize) -> Address {
-        self.readonly_space.alloc(size)
+    pub fn alloc_readonly(&self, vm: &VM, size: usize) -> Address {
+        self.collector.alloc_readonly(vm, size)
     }
 
     pub fn alloc(&self, vm: &VM, size: usize) -> Address {
@@ -189,6 +180,7 @@ trait Collector {
     // allocate object of given size
     fn alloc_tlab_area(&self, vm: &VM, size: usize) -> Option<Region>;
     fn alloc(&self, vm: &VM, size: usize) -> Address;
+    fn alloc_readonly(&self, vm: &VM, size: usize) -> Address;
 
     // collect garbage
     fn collect(&self, vm: &VM, reason: GcReason);

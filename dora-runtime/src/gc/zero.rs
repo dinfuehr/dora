@@ -1,5 +1,5 @@
 use crate::gc::bump::BumpAllocator;
-use crate::gc::{Address, Collector, GcReason, Region};
+use crate::gc::{default_readonly_space_config, Address, Collector, GcReason, Region, Space};
 use crate::os::{self, MemoryPermission, Reservation};
 use crate::vm::{Flags, VM};
 
@@ -8,6 +8,7 @@ pub struct ZeroCollector {
     end: Address,
     alloc: BumpAllocator,
     reservation: Reservation,
+    readonly: Space,
 }
 
 impl ZeroCollector {
@@ -20,11 +21,14 @@ impl ZeroCollector {
 
         os::commit_at(start, heap_size, MemoryPermission::ReadWrite);
 
+        let readonly_space = Space::new(default_readonly_space_config(args), "perm");
+
         ZeroCollector {
             start,
             end,
             alloc: BumpAllocator::new(start, end),
             reservation,
+            readonly: readonly_space,
         }
     }
 }
@@ -46,6 +50,10 @@ impl Collector for ZeroCollector {
 
     fn alloc(&self, _vm: &VM, size: usize) -> Address {
         self.alloc.bump_alloc(size)
+    }
+
+    fn alloc_readonly(&self, _vm: &VM, size: usize) -> Address {
+        self.readonly.alloc(size)
     }
 
     fn collect(&self, _: &VM, _: GcReason) {

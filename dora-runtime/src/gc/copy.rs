@@ -5,8 +5,8 @@ use std::sync::Arc;
 use crate::gc::bump::BumpAllocator;
 use crate::gc::tlab;
 use crate::gc::{
-    formatted_size, iterate_strong_roots, iterate_weak_roots, Address, CollectionStats, Collector,
-    GcReason, Region,
+    default_readonly_space_config, formatted_size, iterate_strong_roots, iterate_weak_roots,
+    Address, CollectionStats, Collector, GcReason, Region, Space,
 };
 use crate::mem;
 use crate::object::{Obj, VtblptrWordKind};
@@ -22,6 +22,7 @@ pub struct CopyCollector {
 
     alloc: BumpAllocator,
     stats: Mutex<CollectionStats>,
+    readonly: Space,
 }
 
 impl CopyCollector {
@@ -39,15 +40,14 @@ impl CopyCollector {
         let semi_size = heap_size / 2;
         let separator = heap_start.offset(semi_size);
 
-        if args.gc_verbose {
-            println!("GC: {}; semi size: {}", heap, formatted_size(semi_size),);
-        }
+        let readonly_space = Space::new(default_readonly_space_config(args), "perm");
 
         CopyCollector {
             total: heap,
             separator,
             alloc: BumpAllocator::new(heap_start, separator),
             stats: Mutex::new(CollectionStats::new()),
+            readonly: readonly_space,
         }
     }
 }
@@ -84,6 +84,10 @@ impl Collector for CopyCollector {
 
         self.collect(vm, GcReason::AllocationFailure);
         self.alloc.bump_alloc(size)
+    }
+
+    fn alloc_readonly(&self, _vm: &VM, size: usize) -> Address {
+        self.readonly.alloc(size)
     }
 
     fn collect(&self, vm: &VM, reason: GcReason) {

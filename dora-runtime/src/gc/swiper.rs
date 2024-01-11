@@ -18,10 +18,10 @@ use crate::gc::swiper::minor::MinorCollector;
 use crate::gc::swiper::old::OldGen;
 use crate::gc::swiper::verify::{Verifier, VerifierPhase};
 use crate::gc::swiper::young::YoungGen;
-use crate::gc::tlab;
-use crate::gc::Collector;
-use crate::gc::GcReason;
-use crate::gc::{align_page_up, Address, Region, K};
+use crate::gc::{
+    align_page_up, default_readonly_space_config, tlab, Address, Collector, GcReason, Region,
+    Space, K,
+};
 use crate::mem;
 use crate::object::{Obj, OLD_BIT, REMEMBERED_BIT};
 use crate::os::{self, MemoryPermission, Reservation};
@@ -69,6 +69,7 @@ pub struct Swiper {
     young: YoungGen,
     old: OldGen,
     large: LargeSpace,
+    readonly: Space,
 
     card_table: CardTable,
     crossing_map: CrossingMap,
@@ -168,6 +169,8 @@ impl Swiper {
 
         let threadpool = Mutex::new(Pool::new(nworkers as u32));
 
+        let readonly = Space::new(default_readonly_space_config(args), "perm");
+
         Swiper {
             heap: Region::new(heap_start, heap_end),
             reserved_area,
@@ -176,6 +179,7 @@ impl Swiper {
             young,
             old,
             large,
+            readonly,
 
             card_table,
             crossing_map,
@@ -296,7 +300,7 @@ impl Swiper {
                 &self.large,
                 &self.card_table,
                 &self.crossing_map,
-                &vm.gc.readonly_space,
+                &self.readonly,
                 rootset,
                 threads,
                 reason,
@@ -316,8 +320,6 @@ impl Swiper {
 
     fn verify(&self, vm: &VM, phase: VerifierPhase, _kind: CollectionKind, rootset: &[Slot]) {
         if vm.flags.gc_verify {
-            let readonly_space = &vm.gc.readonly_space;
-
             let mut verifier = Verifier::new(
                 vm,
                 self.heap,
@@ -327,7 +329,7 @@ impl Swiper {
                 &self.crossing_map,
                 rootset,
                 &self.large,
-                &*readonly_space,
+                &self.readonly,
                 phase,
             );
             verifier.verify();
@@ -389,6 +391,10 @@ impl Collector for Swiper {
         } else {
             self.alloc_large(vm, size)
         }
+    }
+
+    fn alloc_readonly(&self, _vm: &VM, size: usize) -> Address {
+        self.readonly.alloc(size)
     }
 
     fn collect(&self, vm: &VM, reason: GcReason) {
@@ -658,6 +664,10 @@ impl RegularPage {
         self.base_page_header().is_large()
     }
 
+    pub fn is_survivor(&self) -> bool {
+        self.base_page_header().is_large()
+    }
+
     fn raw_flags(&self) -> usize {
         self.base_page_header().raw_flags()
     }
@@ -669,7 +679,7 @@ impl RegularPage {
 
 const YOUNG_BIT: usize = 1;
 const LARGE_BIT: usize = 1 << 1;
-const SURVIVED_BIT: usize = 1 << 2;
+const SURVIVOR_BIT: usize = 1 << 2;
 
 #[repr(C)]
 struct BasePageHeader {
@@ -685,8 +695,8 @@ impl BasePageHeader {
         (self.raw_flags() & LARGE_BIT) != 0
     }
 
-    fn is_survived(&self) -> bool {
-        (self.raw_flags() & SURVIVED_BIT) != 0
+    fn is_survivor(&self) -> bool {
+        (self.raw_flags() & SURVIVOR_BIT) != 0
     }
 
     fn add_flag(&self, flag: usize) {
