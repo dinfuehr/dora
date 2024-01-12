@@ -16,12 +16,10 @@ use crate::gc::swiper::full::FullCollector;
 use crate::gc::swiper::large::LargeSpace;
 use crate::gc::swiper::minor::MinorCollector;
 use crate::gc::swiper::old::OldGen;
+use crate::gc::swiper::readonly::ReadOnlySpace;
 use crate::gc::swiper::verify::{Verifier, VerifierPhase};
 use crate::gc::swiper::young::YoungGen;
-use crate::gc::{
-    align_page_up, default_readonly_space_config, tlab, Address, Collector, GcReason, Region,
-    Space, K,
-};
+use crate::gc::{tlab, Address, Collector, GcReason, Region, K};
 use crate::mem;
 use crate::object::{Obj, OLD_BIT, REMEMBERED_BIT};
 use crate::os::{self, MemoryPermission, Reservation};
@@ -38,6 +36,7 @@ mod full;
 mod large;
 mod minor;
 pub mod old;
+mod readonly;
 mod verify;
 pub mod young;
 
@@ -59,6 +58,20 @@ pub const PAGE_HEADER_SIZE: usize = CARD_SIZE;
 pub const INITIAL_METADATA_YOUNG: usize = REMEMBERED_BIT;
 pub const INITIAL_METADATA_OLD: usize = OLD_BIT;
 
+/// round the given value up to the nearest multiple of a generation
+pub fn align_page_up(value: usize) -> usize {
+    (value + PAGE_SIZE - 1) & !(PAGE_SIZE - 1)
+}
+
+pub fn align_page_down(value: usize) -> usize {
+    value & !(PAGE_SIZE - 1)
+}
+
+/// returns true if given size is gen aligned
+pub fn is_page_aligned(size: usize) -> bool {
+    (size & (PAGE_SIZE - 1)) == 0
+}
+
 pub struct Swiper {
     // contiguous memory for young/old generation and large space
     heap: Region,
@@ -69,7 +82,7 @@ pub struct Swiper {
     young: YoungGen,
     old: OldGen,
     large: LargeSpace,
-    readonly: Space,
+    readonly: ReadOnlySpace,
 
     card_table: CardTable,
     crossing_map: CrossingMap,
@@ -169,7 +182,7 @@ impl Swiper {
 
         let threadpool = Mutex::new(Pool::new(nworkers as u32));
 
-        let readonly = Space::new(default_readonly_space_config(args), "perm");
+        let readonly = ReadOnlySpace::new(args.readonly_size());
 
         Swiper {
             heap: Region::new(heap_start, heap_end),
@@ -393,8 +406,8 @@ impl Collector for Swiper {
         }
     }
 
-    fn alloc_readonly(&self, _vm: &VM, size: usize) -> Address {
-        self.readonly.alloc(size)
+    fn alloc_readonly(&self, vm: &VM, size: usize) -> Address {
+        self.readonly.alloc(vm, size).unwrap_or(Address::null())
     }
 
     fn collect(&self, vm: &VM, reason: GcReason) {
@@ -587,6 +600,10 @@ impl BasePage {
         self.base_page_header().is_large()
     }
 
+    pub fn is_readonly(&self) -> bool {
+        self.base_page_header().is_readonly()
+    }
+
     fn base_page_header(&self) -> &BasePageHeader {
         unsafe { &*self.0.to_ptr::<BasePageHeader>() }
     }
@@ -603,11 +620,11 @@ impl RegularPage {
         page
     }
 
-    pub fn setup(address: Address, is_young: bool) -> RegularPage {
+    pub fn setup(address: Address, is_young: bool, is_readonly: bool) -> RegularPage {
         assert!(address.is_page_aligned());
 
         let page = RegularPage(address);
-        page.base_page_header().setup(is_young, false);
+        page.base_page_header().setup(is_young, false, is_readonly);
 
         let uninit_start = page.address().offset(std::mem::size_of::<BasePageHeader>());
         debug_assert_eq!(uninit_start.to_usize() % mem::ptr_width_usize(), 0);
@@ -668,6 +685,10 @@ impl RegularPage {
         self.base_page_header().is_large()
     }
 
+    pub fn is_readonly(&self) -> bool {
+        self.base_page_header().is_large()
+    }
+
     fn raw_flags(&self) -> usize {
         self.base_page_header().raw_flags()
     }
@@ -680,6 +701,7 @@ impl RegularPage {
 const YOUNG_BIT: usize = 1;
 const LARGE_BIT: usize = 1 << 1;
 const SURVIVOR_BIT: usize = 1 << 2;
+const READONLY_BIT: usize = 1 << 3;
 
 #[repr(C)]
 struct BasePageHeader {
@@ -699,6 +721,10 @@ impl BasePageHeader {
         (self.raw_flags() & SURVIVOR_BIT) != 0
     }
 
+    fn is_readonly(&self) -> bool {
+        (self.raw_flags() & READONLY_BIT) != 0
+    }
+
     fn add_flag(&self, flag: usize) {
         self.set_raw_flags(self.raw_flags() | flag);
     }
@@ -711,7 +737,7 @@ impl BasePageHeader {
         self.flags.load(Ordering::Relaxed)
     }
 
-    fn setup(&self, is_young: bool, is_large: bool) {
+    fn setup(&self, is_young: bool, is_large: bool, is_readonly: bool) {
         let mut flags = 0;
 
         if is_young {
@@ -720,6 +746,10 @@ impl BasePageHeader {
 
         if is_large {
             flags |= LARGE_BIT
+        }
+
+        if is_readonly {
+            flags |= READONLY_BIT
         }
 
         self.set_raw_flags(flags);
@@ -747,7 +777,7 @@ impl LargePage {
         assert!(address.is_page_aligned());
 
         let page = LargePage(address);
-        page.base_page_header().setup(false, true);
+        page.base_page_header().setup(false, true, false);
         page.large_page_header().setup(committed_size);
 
         page

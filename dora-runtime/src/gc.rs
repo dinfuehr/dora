@@ -11,7 +11,7 @@ use crate::gc::compact::MarkCompactCollector;
 use crate::gc::copy::CopyCollector;
 use crate::gc::space::{default_readonly_space_config, Space};
 use crate::gc::sweep::SweepCollector;
-use crate::gc::swiper::{Swiper, CARD_SIZE};
+use crate::gc::swiper::{align_page_up, is_page_aligned, Swiper, CARD_SIZE};
 use crate::gc::tlab::MAX_TLAB_OBJECT_SIZE;
 use crate::gc::zero::ZeroCollector;
 use crate::mem;
@@ -45,7 +45,7 @@ pub const M: usize = K * K;
 
 const CHUNK_SIZE: usize = 8 * K;
 pub const DEFAULT_CODE_SPACE_LIMIT: usize = 2 * M;
-pub const DEFAULT_READONLY_SPACE_LIMIT: usize = PAGE_SIZE * 4;
+pub const DEFAULT_READONLY_SPACE_LIMIT: usize = 2 * M;
 
 pub struct Gc {
     collector: Box<dyn Collector + Sync>,
@@ -473,20 +473,6 @@ impl fmt::Display for FormattedSize {
 
 fn formatted_size(size: usize) -> FormattedSize {
     FormattedSize { size }
-}
-
-/// round the given value up to the nearest multiple of a generation
-pub fn align_page_up(value: usize) -> usize {
-    (value + PAGE_SIZE - 1) & !(PAGE_SIZE - 1)
-}
-
-pub fn align_page_down(value: usize) -> usize {
-    value & !(PAGE_SIZE - 1)
-}
-
-/// returns true if given size is gen aligned
-pub fn is_page_aligned(size: usize) -> bool {
-    (size & (PAGE_SIZE - 1)) == 0
 }
 
 #[derive(Copy, Clone, PartialEq, Eq)]

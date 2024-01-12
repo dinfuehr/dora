@@ -2,14 +2,13 @@ use parking_lot::MutexGuard;
 use std::fmt;
 
 use crate::gc::root::Slot;
-use crate::gc::space::Space;
 use crate::gc::swiper::card::{CardEntry, CardTable};
 use crate::gc::swiper::crossing::{CrossingEntry, CrossingMap};
 use crate::gc::swiper::large::LargeSpace;
 use crate::gc::swiper::old::{OldGen, OldGenProtected};
 use crate::gc::swiper::young::YoungGen;
 use crate::gc::swiper::{on_different_cards, BasePage};
-use crate::gc::swiper::{LargePage, RegularPage, CARD_SIZE};
+use crate::gc::swiper::{LargePage, ReadOnlySpace, RegularPage, CARD_SIZE};
 use crate::gc::{Address, Region};
 
 use crate::mem;
@@ -78,7 +77,7 @@ pub struct Verifier<'a> {
     crossing_map: &'a CrossingMap,
     rootset: &'a [Slot],
     large: &'a LargeSpace,
-    readonly_space: &'a Space,
+    readonly_space: &'a ReadOnlySpace,
 
     in_old: bool,
 
@@ -97,7 +96,7 @@ impl<'a> Verifier<'a> {
         crossing_map: &'a CrossingMap,
         rootset: &'a [Slot],
         large: &'a LargeSpace,
-        readonly_space: &'a Space,
+        readonly_space: &'a ReadOnlySpace,
         phase: VerifierPhase,
     ) -> Verifier<'a> {
         let old_protected = old.protected();
@@ -146,7 +145,7 @@ impl<'a> Verifier<'a> {
     fn verify_roots(&self) {
         let mut refs_to_young_gen = 0;
         for root in self.rootset {
-            self.verify_reference(*root, Address::null(), &mut refs_to_young_gen);
+            self.verify_slot(*root, Address::null(), &mut refs_to_young_gen);
         }
     }
 
@@ -215,7 +214,7 @@ impl<'a> Verifier<'a> {
         assert!(!object.header().is_marked());
 
         object.visit_reference_fields(|child| {
-            self.verify_reference(child, object_address, refs_to_young_gen);
+            self.verify_slot(child, object_address, refs_to_young_gen);
         });
     }
 
@@ -299,54 +298,26 @@ impl<'a> Verifier<'a> {
         }
     }
 
-    fn verify_reference(&self, slot: Slot, container_obj: Address, refs_to_young_gen: &mut usize) {
-        let reference = slot.get();
+    fn verify_slot(&self, slot: Slot, _container_obj: Address, refs_to_young_gen: &mut usize) {
+        let referenced_object = slot.get();
 
-        if reference.is_null() {
+        if referenced_object.is_null() {
             return;
         }
 
-        if self.heap.contains(reference) || self.readonly_space.contains(reference) {
-            let object = reference.to_obj();
+        let page = BasePage::from_address(referenced_object);
+        let is_young = page.is_young();
 
-            // Verify that the address is the start of an object,
-            // for this access its size.
-            // To make sure this isn't optimized out by the compiler,
-            // make sure that the size doesn't equal 1.
-            assert!(object.size() != 1, "object size shouldn't be 1");
+        let object = referenced_object.to_obj();
 
-            if self.heap.contains(reference) {
-                let page = BasePage::from_address(reference);
-                if page.is_young() {
-                    *refs_to_young_gen += 1;
-                }
-            }
+        // Verify that the address is the start of an object,
+        // for this access its size.
+        // To make sure this isn't optimized out by the compiler,
+        // make sure that the size doesn't equal 1.
+        assert!(object.size() != 1, "object size shouldn't be 1");
 
-            return;
+        if is_young {
+            *refs_to_young_gen += 1;
         }
-
-        println!(
-            "found invalid reference to {} (at {}, in object {}) during {} phase.",
-            reference,
-            slot.address(),
-            container_obj,
-            self.phase,
-        );
-
-        if container_obj.is_non_null() {
-            let object = container_obj.to_obj();
-            let cls = object.header().vtbl().class_instance();
-            let size = object.size();
-            println!("\tsource object of {:?} (size={})", cls.kind, size);
-        }
-
-        println!("try print target object size and class:");
-
-        let object = reference.to_obj();
-        println!("\tsize {}", object.size());
-        let cls = object.header().vtbl().class_instance();
-        println!("\tclass {:?}", cls.kind);
-
-        panic!("reference neither pointing into young nor old generation.");
     }
 }

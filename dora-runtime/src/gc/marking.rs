@@ -5,17 +5,17 @@ pub fn start(rootset: &[Slot], heap: Region, perm: Region) {
     let mut marking_stack: Vec<Address> = Vec::new();
 
     for root in rootset {
-        let root_ptr = root.get();
+        let object = root.get();
 
-        if heap.contains(root_ptr) {
-            let root_obj = root_ptr.to_obj();
+        if heap.contains(object) {
+            let root_obj = object.to_obj();
 
             if !root_obj.header().is_marked() {
-                marking_stack.push(root_ptr);
+                marking_stack.push(object);
                 root_obj.header().mark();
             }
         } else {
-            debug_assert!(root_ptr.is_null() || perm.contains(root_ptr));
+            debug_assert!(object.is_null() || perm.contains(object));
         }
     }
 

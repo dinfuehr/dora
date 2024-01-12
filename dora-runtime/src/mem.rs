@@ -21,6 +21,11 @@ pub fn is_os_page_aligned(val: usize) -> bool {
     is_power_of_2_aligned(val, alignment)
 }
 
+#[inline(always)]
+pub const fn is_word_aligned(val: usize) -> bool {
+    (val % ptr_width_usize()) == 0
+}
+
 pub fn is_power_of_2_aligned(val: usize, aligned_bits: usize) -> bool {
     val == ((val >> aligned_bits) << aligned_bits)
 }

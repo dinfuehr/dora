@@ -3,16 +3,13 @@ use std::time::Instant;
 
 use parking_lot::MutexGuard;
 
-use crate::gc::space::Space;
-use crate::gc::swiper::card::CardTable;
 use crate::gc::swiper::controller::FullCollectorPhases;
-use crate::gc::swiper::crossing::CrossingMap;
-use crate::gc::swiper::large::LargeSpace;
-use crate::gc::swiper::old::{OldGen, OldGenProtected};
-use crate::gc::swiper::young::YoungGen;
-use crate::gc::swiper::RegularPage;
-use crate::gc::swiper::{walk_region, INITIAL_METADATA_OLD};
-use crate::gc::{fill_region_with, iterate_strong_roots, iterate_weak_roots, marking, Slot};
+use crate::gc::swiper::old::OldGenProtected;
+use crate::gc::swiper::{walk_region, ReadOnlySpace, INITIAL_METADATA_OLD};
+use crate::gc::swiper::{
+    BasePage, CardTable, CrossingMap, LargeSpace, OldGen, RegularPage, YoungGen,
+};
+use crate::gc::{fill_region_with, iterate_strong_roots, iterate_weak_roots, Slot};
 use crate::gc::{Address, GcReason, Region};
 use crate::object::{Obj, VtblptrWordKind};
 use crate::stdlib;
@@ -30,7 +27,7 @@ pub struct FullCollector<'a> {
     threads: &'a [Arc<DoraThread>],
     card_table: &'a CardTable,
     crossing_map: &'a CrossingMap,
-    readonly_space: &'a Space,
+    readonly_space: &'a ReadOnlySpace,
 
     top: Address,
     current_limit: Address,
@@ -53,7 +50,7 @@ impl<'a> FullCollector<'a> {
         large_space: &'a LargeSpace,
         card_table: &'a CardTable,
         crossing_map: &'a CrossingMap,
-        readonly_space: &'a Space,
+        readonly_space: &'a ReadOnlySpace,
         rootset: &'a [Slot],
         threads: &'a [Arc<DoraThread>],
         reason: GcReason,
@@ -123,10 +120,13 @@ impl<'a> FullCollector<'a> {
     }
 
     fn mark_live(&mut self) {
-        marking::start(self.rootset, self.heap, self.readonly_space.total());
+        marking(self.rootset);
 
         iterate_weak_roots(self.vm, |object_address| {
-            if self.heap.contains(object_address) {
+            let page = BasePage::from_address(object_address);
+            if page.is_readonly() {
+                Some(object_address)
+            } else {
                 let obj = object_address.to_obj();
 
                 if obj.header().is_marked() {
@@ -134,9 +134,6 @@ impl<'a> FullCollector<'a> {
                 } else {
                     None
                 }
-            } else {
-                assert!(self.readonly_space.contains(object_address));
-                Some(object_address)
             }
         });
     }
@@ -333,6 +330,53 @@ impl<'a> FullCollector<'a> {
                 fct(self, obj, addr, size);
             });
         }
+    }
+}
+
+pub fn marking(rootset: &[Slot]) {
+    let mut marking_stack: Vec<Address> = Vec::new();
+
+    for root in rootset {
+        let object = root.get();
+
+        if object.is_null() {
+            continue;
+        }
+
+        let page = BasePage::from_address(object);
+
+        if !page.is_readonly() {
+            let root_obj = object.to_obj();
+
+            if !root_obj.header().is_marked() {
+                marking_stack.push(object);
+                root_obj.header().mark();
+            }
+        }
+    }
+
+    while marking_stack.len() > 0 {
+        let object_addr = marking_stack.pop().expect("stack already empty");
+        let object = object_addr.to_obj();
+
+        object.visit_reference_fields(|field| {
+            let referenced = field.get();
+
+            if referenced.is_null() {
+                return;
+            }
+
+            let page = BasePage::from_address(referenced);
+
+            if !page.is_readonly() {
+                let field_obj = referenced.to_obj();
+
+                if !field_obj.header().is_marked() {
+                    marking_stack.push(referenced);
+                    field_obj.header().mark();
+                }
+            }
+        });
     }
 }
 

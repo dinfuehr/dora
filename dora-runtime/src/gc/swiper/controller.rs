@@ -7,8 +7,8 @@ use std::time::Instant;
 
 use crate::gc::swiper::large::LargeSpace;
 use crate::gc::swiper::young::YoungGen;
-use crate::gc::swiper::{CollectionKind, CommonOldGen, PAGE_SIZE};
-use crate::gc::{align_page_down, align_page_up, formatted_size, AllNumbers, GcReason, M};
+use crate::gc::swiper::{align_page_down, align_page_up, CollectionKind, CommonOldGen, PAGE_SIZE};
+use crate::gc::{formatted_size, AllNumbers, GcReason, M};
 use crate::stdlib;
 use crate::vm::{Flags, Trap, VM};
 
