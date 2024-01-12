@@ -229,7 +229,7 @@ pub extern "C" fn socket_bind(_addr: Handle<Str>) -> i32 {
 pub extern "C" fn socket_accept(fd: i32) -> i32 {
     parked_scope(|| {
         use std::net::TcpListener;
-        use std::os::unix::prelude::FromRawFd;
+        use std::os::unix::prelude::{FromRawFd, IntoRawFd};
 
         let listener = unsafe { TcpListener::from_raw_fd(fd) };
         let result = if let Ok((stream, _)) = listener.accept() {
