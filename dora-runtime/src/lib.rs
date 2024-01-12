@@ -5,7 +5,7 @@
 extern crate alloc;
 
 #[cfg(target_os = "windows")]
-extern crate winapi;
+extern crate windows_sys;
 
 #[macro_use]
 extern crate memoffset;

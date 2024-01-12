@@ -1,7 +1,5 @@
 use std::fs::File;
 use std::io::{Read, Write};
-use std::net::{TcpListener, TcpStream};
-use std::os::unix::prelude::{FromRawFd, IntoRawFd};
 use std::str::FromStr;
 use std::{fs, path::PathBuf};
 
@@ -87,9 +85,13 @@ fn write_file_common(name: Handle<Str>, content: Vec<u8>) -> bool {
     }
 }
 
+#[cfg(unix)]
 pub extern "C" fn socket_connect(addr: Handle<Str>) -> i32 {
     let addr = String::from(addr.content_utf8());
     parked_scope(|| {
+        use std::net::TcpStream;
+        use std::os::unix::prelude::IntoRawFd;
+
         if let Ok(stream) = TcpStream::connect(&addr) {
             stream.into_raw_fd() as i32
         } else {
@@ -98,6 +100,12 @@ pub extern "C" fn socket_connect(addr: Handle<Str>) -> i32 {
     })
 }
 
+#[cfg(windows)]
+pub extern "C" fn socket_connect(_addr: Handle<Str>) -> i32 {
+    unimplemented!()
+}
+
+#[cfg(unix)]
 pub extern "C" fn socket_write(fd: i32, array: Handle<UInt8Array>, offset: i64, len: i64) -> i64 {
     let offset = offset as usize;
     let len = len as usize;
@@ -108,6 +116,9 @@ pub extern "C" fn socket_write(fd: i32, array: Handle<UInt8Array>, offset: i64, 
 
     let buffer = Vec::from(&array.slice()[offset..offset + len]);
     parked_scope(|| {
+        use std::net::TcpStream;
+        use std::os::unix::prelude::FromRawFd;
+
         let mut stream = unsafe { TcpStream::from_raw_fd(fd) };
         let bytes = match stream.write(&buffer) {
             Ok(bytes) => bytes as i64,
@@ -118,6 +129,17 @@ pub extern "C" fn socket_write(fd: i32, array: Handle<UInt8Array>, offset: i64, 
     })
 }
 
+#[cfg(windows)]
+pub extern "C" fn socket_write(
+    _fd: i32,
+    _array: Handle<UInt8Array>,
+    _offset: i64,
+    _len: i64,
+) -> i64 {
+    unimplemented!()
+}
+
+#[cfg(unix)]
 pub extern "C" fn socket_read(
     fd: i32,
     mut array: Handle<UInt8Array>,
@@ -134,6 +156,9 @@ pub extern "C" fn socket_read(
     let mut buffer = vec![0; len];
 
     let bytes = parked_scope(|| {
+        use std::net::TcpStream;
+        use std::os::unix::prelude::FromRawFd;
+
         let mut stream = unsafe { TcpStream::from_raw_fd(fd) };
         let bytes = match stream.read(&mut buffer) {
             Ok(bytes) => bytes as i64,
@@ -154,16 +179,39 @@ pub extern "C" fn socket_read(
     bytes
 }
 
+#[cfg(windows)]
+pub extern "C" fn socket_read(
+    _fd: i32,
+    _array: Handle<UInt8Array>,
+    _offset: i64,
+    _len: i64,
+) -> i32 {
+    unimplemented!()
+}
+
+#[cfg(unix)]
 pub extern "C" fn socket_close(fd: i32) {
     parked_scope(|| {
+        use std::net::TcpStream;
+        use std::os::unix::prelude::FromRawFd;
+
         let stream = unsafe { TcpStream::from_raw_fd(fd) };
         std::mem::drop(stream)
     });
 }
 
+#[cfg(windows)]
+pub extern "C" fn socket_close(_fd: i32) {
+    unimplemented!()
+}
+
+#[cfg(unix)]
 pub extern "C" fn socket_bind(addr: Handle<Str>) -> i32 {
     let addr = String::from(addr.content_utf8());
     parked_scope(|| {
+        use std::net::TcpListener;
+        use std::os::unix::prelude::IntoRawFd;
+
         if let Ok(stream) = TcpListener::bind(&addr) {
             stream.into_raw_fd() as i32
         } else {
@@ -172,8 +220,17 @@ pub extern "C" fn socket_bind(addr: Handle<Str>) -> i32 {
     })
 }
 
+#[cfg(windows)]
+pub extern "C" fn socket_bind(_addr: Handle<Str>) -> i32 {
+    unimplemented!()
+}
+
+#[cfg(unix)]
 pub extern "C" fn socket_accept(fd: i32) -> i32 {
     parked_scope(|| {
+        use std::net::TcpListener;
+        use std::os::unix::prelude::FromRawFd;
+
         let listener = unsafe { TcpListener::from_raw_fd(fd) };
         let result = if let Ok((stream, _)) = listener.accept() {
             stream.into_raw_fd() as i32
@@ -183,4 +240,9 @@ pub extern "C" fn socket_accept(fd: i32) -> i32 {
         std::mem::forget(listener);
         result
     })
+}
+
+#[cfg(windows)]
+pub extern "C" fn socket_accept(_fd: i32) -> i32 {
+    unimplemented!()
 }

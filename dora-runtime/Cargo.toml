@@ -29,5 +29,10 @@ num_cpus = "*"
 memoffset = "*"
 num_enum = "*"
 
-[target.'cfg(windows)'.dependencies]
-winapi = { version = "*", features = ["memoryapi"] }
+[target.'cfg(windows)'.dependencies.windows-sys]
+version = "0.52"
+features = [
+    "Win32_Foundation",
+    "Win32_System_Memory",
+    "Win32_System_SystemInformation",
+]
