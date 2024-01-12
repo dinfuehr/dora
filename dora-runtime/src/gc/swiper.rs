@@ -682,11 +682,11 @@ impl RegularPage {
     }
 
     pub fn is_survivor(&self) -> bool {
-        self.base_page_header().is_large()
+        self.base_page_header().is_survivor()
     }
 
     pub fn is_readonly(&self) -> bool {
-        self.base_page_header().is_large()
+        self.base_page_header().is_readonly()
     }
 
     fn raw_flags(&self) -> usize {

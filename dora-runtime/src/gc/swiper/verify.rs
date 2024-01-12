@@ -128,14 +128,27 @@ impl<'a> Verifier<'a> {
     fn verify_heap(&mut self) {
         assert!(!self.in_old);
         for page in self.young.to_pages() {
+            assert!(page.is_young());
+            assert!(!page.is_readonly());
+
             self.verify_page(page);
         }
 
         self.in_old = true;
         for page in self.old_protected.pages() {
+            assert!(!page.is_young());
+            assert!(!page.is_readonly());
+
             self.verify_page(page);
         }
         self.in_old = false;
+
+        for page in self.readonly_space.pages() {
+            assert!(!page.is_young());
+            assert!(page.is_readonly());
+
+            self.verify_page(page);
+        }
 
         self.large.iterate_pages(|page| {
             self.verify_large_page(page);
@@ -155,7 +168,6 @@ impl<'a> Verifier<'a> {
         let mut refs_to_young_gen = 0;
         assert!(region.start.is_card_aligned());
         assert!(region.end.is_page_aligned());
-        assert_eq!(page.is_young(), !self.in_old);
         assert!(!page.is_large());
 
         if self.in_old {

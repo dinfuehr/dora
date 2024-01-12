@@ -36,6 +36,21 @@ impl ReadOnlySpace {
         let mut protected = self.allocate.lock();
         protected.alloc(vm, size)
     }
+
+    pub fn pages(&self) -> Vec<RegularPage> {
+        let protected = self.allocate.lock();
+        let mut pages = Vec::new();
+
+        let mut curr = self.total.start();
+        while curr < protected.current_limit {
+            let page = RegularPage::from_address(curr);
+            pages.push(page);
+            curr = page.end();
+        }
+        assert_eq!(curr, protected.current_limit);
+
+        pages
+    }
 }
 
 struct ReadOnlySpaceProtected {
@@ -53,7 +68,6 @@ impl ReadOnlySpaceProtected {
         }
 
         self.allocate_page(vm);
-
         self.raw_alloc(vm, size)
     }
 

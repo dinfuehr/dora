@@ -355,9 +355,9 @@ pub fn marking(rootset: &[Slot]) {
         }
     }
 
-    while marking_stack.len() > 0 {
-        let object_addr = marking_stack.pop().expect("stack already empty");
-        let object = object_addr.to_obj();
+    while let Some(address) = marking_stack.pop() {
+        debug_assert!(!BasePage::from_address(address).is_readonly());
+        let object = address.to_obj();
 
         object.visit_reference_fields(|field| {
             let referenced = field.get();
