@@ -31,7 +31,6 @@ const FWDPTR_MASK: usize = !GC_BITS_MASK;
 
 pub const MARK_BIT: usize = 1 << 0;
 pub const REMEMBERED_BIT: usize = 1 << 1;
-pub const OLD_BIT: usize = 1 << 2;
 
 struct MetadataWord(AtomicUsize);
 
@@ -79,10 +78,6 @@ impl MetadataWord {
 
     fn is_remembered(&self) -> bool {
         (self.raw() & REMEMBERED_BIT) != 0
-    }
-
-    fn is_old(&self) -> bool {
-        (self.raw() & OLD_BIT) != 0
     }
 }
 
@@ -235,11 +230,6 @@ impl Header {
     #[inline(always)]
     pub fn try_mark(&self) -> bool {
         self.metadata.try_mark()
-    }
-
-    #[inline(always)]
-    pub fn is_old(&self) -> bool {
-        self.metadata.is_old()
     }
 }
 

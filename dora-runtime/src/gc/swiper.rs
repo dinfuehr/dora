@@ -21,7 +21,7 @@ use crate::gc::swiper::verify::{Verifier, VerifierPhase};
 use crate::gc::swiper::young::YoungGen;
 use crate::gc::{tlab, Address, Collector, GcReason, Region, K};
 use crate::mem;
-use crate::object::{Obj, MARK_BIT, OLD_BIT, REMEMBERED_BIT};
+use crate::object::{Obj, MARK_BIT, REMEMBERED_BIT};
 use crate::os::{self, MemoryPermission, Reservation};
 use crate::safepoint;
 use crate::threads::DoraThread;
@@ -56,8 +56,8 @@ pub const PAGE_SIZE: usize = 64 * K;
 pub const PAGE_HEADER_SIZE: usize = CARD_SIZE;
 
 pub const INITIAL_METADATA_YOUNG: usize = REMEMBERED_BIT;
-pub const INITIAL_METADATA_OLD: usize = OLD_BIT;
-pub const INITIAL_METADATA_LARGE: usize = LARGE_BIT;
+pub const INITIAL_METADATA_OLD: usize = 0;
+pub const INITIAL_METADATA_LARGE: usize = 0;
 pub const INITIAL_METADATA_READONLY: usize = MARK_BIT;
 
 /// round the given value up to the nearest multiple of a generation
