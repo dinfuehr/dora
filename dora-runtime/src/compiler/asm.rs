@@ -915,7 +915,7 @@ impl<'a> BaselineAssembler<'a> {
         self.load_int_const(
             MachineMode::Ptr,
             tmp_reg,
-            self.vm.gc.initial_metadata_value() as i64,
+            self.vm.gc.initial_metadata_value(size as usize, false) as i64,
         );
         self.store_mem(
             MachineMode::Ptr,
@@ -949,7 +949,7 @@ impl<'a> BaselineAssembler<'a> {
         self.load_int_const(
             MachineMode::Ptr,
             tmp_reg,
-            self.vm.gc.initial_metadata_value() as i64,
+            self.vm.gc.initial_metadata_value(0, false) as i64,
         );
         self.store_mem(
             MachineMode::Ptr,

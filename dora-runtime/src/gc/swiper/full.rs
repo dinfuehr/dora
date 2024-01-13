@@ -123,17 +123,12 @@ impl<'a> FullCollector<'a> {
         marking(self.rootset);
 
         iterate_weak_roots(self.vm, |object_address| {
-            let page = BasePage::from_address(object_address);
-            if page.is_readonly() {
+            let obj = object_address.to_obj();
+
+            if obj.header().is_marked() {
                 Some(object_address)
             } else {
-                let obj = object_address.to_obj();
-
-                if obj.header().is_marked() {
-                    Some(object_address)
-                } else {
-                    None
-                }
+                None
             }
         });
     }
@@ -343,15 +338,11 @@ pub fn marking(rootset: &[Slot]) {
             continue;
         }
 
-        let page = BasePage::from_address(object);
+        let root_obj = object.to_obj();
 
-        if !page.is_readonly() {
-            let root_obj = object.to_obj();
-
-            if !root_obj.header().is_marked() {
-                marking_stack.push(object);
-                root_obj.header().mark();
-            }
+        if !root_obj.header().is_marked() {
+            marking_stack.push(object);
+            root_obj.header().mark();
         }
     }
 
@@ -366,15 +357,11 @@ pub fn marking(rootset: &[Slot]) {
                 return;
             }
 
-            let page = BasePage::from_address(referenced);
+            let field_obj = referenced.to_obj();
 
-            if !page.is_readonly() {
-                let field_obj = referenced.to_obj();
-
-                if !field_obj.header().is_marked() {
-                    marking_stack.push(referenced);
-                    field_obj.header().mark();
-                }
+            if !field_obj.header().is_marked() {
+                marking_stack.push(referenced);
+                field_obj.header().mark();
             }
         });
     }

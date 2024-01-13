@@ -171,8 +171,8 @@ impl Gc {
         self.code_space.drop_all_native_code_objects();
     }
 
-    pub fn initial_metadata_value(&self) -> usize {
-        self.collector.initial_metadata_value()
+    pub fn initial_metadata_value(&self, size: usize, is_readonly: bool) -> usize {
+        self.collector.initial_metadata_value(size, is_readonly)
     }
 }
 
@@ -195,7 +195,7 @@ trait Collector {
         false
     }
 
-    fn initial_metadata_value(&self) -> usize {
+    fn initial_metadata_value(&self, _size: usize, _is_readonly: bool) -> usize {
         0
     }
 

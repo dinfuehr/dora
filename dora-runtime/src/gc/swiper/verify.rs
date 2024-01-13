@@ -189,7 +189,7 @@ impl<'a> Verifier<'a> {
             assert!(object_end <= page.end());
 
             if !object.is_filler(self.vm) {
-                self.verify_object(curr, &mut refs_to_young_gen);
+                self.verify_object(page.as_base_page(), curr, &mut refs_to_young_gen);
             }
 
             if on_different_cards(curr, object_end) {
@@ -215,15 +215,24 @@ impl<'a> Verifier<'a> {
         assert!(!page.is_young());
         assert!(page.is_large());
         let mut refs_to_young_gen = 0;
-        self.verify_object(page.object_address(), &mut refs_to_young_gen);
+        self.verify_object(
+            page.as_base_page(),
+            page.object_address(),
+            &mut refs_to_young_gen,
+        );
         self.verify_card(page.object_address(), refs_to_young_gen);
     }
 
-    fn verify_object(&self, object_address: Address, refs_to_young_gen: &mut usize) {
+    fn verify_object(
+        &self,
+        page: BasePage,
+        object_address: Address,
+        refs_to_young_gen: &mut usize,
+    ) {
         let object = object_address.to_obj();
         assert!(object.header().metadata_fwdptr().is_null());
         assert_eq!(object.header().is_old(), self.in_old);
-        assert!(!object.header().is_marked());
+        assert_eq!(object.header().is_marked(), page.is_readonly());
 
         object.visit_reference_fields(|child| {
             self.verify_slot(child, object_address, refs_to_young_gen);

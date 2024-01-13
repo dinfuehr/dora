@@ -643,21 +643,21 @@ fn byte_array_alloc_heap(vm: &VM, len: usize) -> Ref<UInt8Array> {
         .set_vtblptr(Address::from_ptr(vtable as *const VTable));
     handle
         .header_mut()
-        .set_metadata_raw(vm.gc.initial_metadata_value());
+        .set_metadata_raw(vm.gc.initial_metadata_value(size, false));
     handle.length = len;
 
     handle
 }
 
 fn str_alloc_heap(vm: &VM, len: usize) -> Ref<Str> {
-    str_alloc(vm, len, |vm, size| vm.gc.alloc(vm, size))
+    str_alloc(vm, len, |vm, size| vm.gc.alloc(vm, size), false)
 }
 
 fn str_alloc_perm(vm: &VM, len: usize) -> Ref<Str> {
-    str_alloc(vm, len, |vm, size| vm.gc.alloc_readonly(vm, size))
+    str_alloc(vm, len, |vm, size| vm.gc.alloc_readonly(vm, size), true)
 }
 
-fn str_alloc<F>(vm: &VM, len: usize, alloc: F) -> Ref<Str>
+fn str_alloc<F>(vm: &VM, len: usize, alloc: F, is_readonly: bool) -> Ref<Str>
 where
     F: FnOnce(&VM, usize) -> Address,
 {
@@ -676,7 +676,9 @@ where
     handle
         .header()
         .set_vtblptr(Address::from_ptr(vtable as *const VTable));
-    handle.header().set_metadata_raw(0);
+    handle
+        .header()
+        .set_metadata_raw(vm.gc.initial_metadata_value(size, is_readonly));
 
     handle
 }
@@ -783,7 +785,7 @@ where
             .set_vtblptr(Address::from_ptr(vtable as *const VTable));
         handle
             .header_mut()
-            .set_metadata_raw(vm.gc.initial_metadata_value());
+            .set_metadata_raw(vm.gc.initial_metadata_value(size, false));
         handle.length = len;
 
         for i in 0..handle.len() {
@@ -825,7 +827,7 @@ pub fn alloc(vm: &VM, clsid: ClassInstanceId) -> Ref<Obj> {
     object.header().set_vtblptr(Address::from_ptr(vtable));
     object
         .header()
-        .set_metadata_raw(vm.gc.initial_metadata_value());
+        .set_metadata_raw(vm.gc.initial_metadata_value(size, false));
 
     object
 }

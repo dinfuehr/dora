@@ -21,7 +21,7 @@ use crate::gc::swiper::verify::{Verifier, VerifierPhase};
 use crate::gc::swiper::young::YoungGen;
 use crate::gc::{tlab, Address, Collector, GcReason, Region, K};
 use crate::mem;
-use crate::object::{Obj, OLD_BIT, REMEMBERED_BIT};
+use crate::object::{Obj, MARK_BIT, OLD_BIT, REMEMBERED_BIT};
 use crate::os::{self, MemoryPermission, Reservation};
 use crate::safepoint;
 use crate::threads::DoraThread;
@@ -57,6 +57,8 @@ pub const PAGE_HEADER_SIZE: usize = CARD_SIZE;
 
 pub const INITIAL_METADATA_YOUNG: usize = REMEMBERED_BIT;
 pub const INITIAL_METADATA_OLD: usize = OLD_BIT;
+pub const INITIAL_METADATA_LARGE: usize = LARGE_BIT;
+pub const INITIAL_METADATA_READONLY: usize = MARK_BIT;
 
 /// round the given value up to the nearest multiple of a generation
 pub fn align_page_up(value: usize) -> usize {
@@ -422,8 +424,15 @@ impl Collector for Swiper {
         true
     }
 
-    fn initial_metadata_value(&self) -> usize {
-        INITIAL_METADATA_YOUNG
+    fn initial_metadata_value(&self, size: usize, is_readonly: bool) -> usize {
+        if is_readonly {
+            assert!(size < LARGE_OBJECT_SIZE);
+            INITIAL_METADATA_READONLY
+        } else if size < LARGE_OBJECT_SIZE {
+            INITIAL_METADATA_YOUNG
+        } else {
+            INITIAL_METADATA_LARGE
+        }
     }
 
     fn card_table_offset(&self) -> usize {
@@ -645,6 +654,10 @@ impl RegularPage {
         page
     }
 
+    pub fn as_base_page(&self) -> BasePage {
+        BasePage(self.address())
+    }
+
     pub fn area(&self) -> Region {
         Region::new(self.address(), self.end())
     }
@@ -781,6 +794,10 @@ impl LargePage {
         page.large_page_header().setup(committed_size);
 
         page
+    }
+
+    pub fn as_base_page(&self) -> BasePage {
+        BasePage(self.address())
     }
 
     pub fn address(&self) -> Address {
