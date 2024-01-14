@@ -613,6 +613,10 @@ impl BasePage {
         self.base_page_header().is_readonly()
     }
 
+    pub fn is_survivor(&self) -> bool {
+        self.base_page_header().is_survivor()
+    }
+
     fn base_page_header(&self) -> &BasePageHeader {
         unsafe { &*self.0.to_ptr::<BasePageHeader>() }
     }

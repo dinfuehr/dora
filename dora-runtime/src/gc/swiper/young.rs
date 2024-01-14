@@ -2,7 +2,7 @@ use parking_lot::Mutex;
 
 use std::sync::atomic::{AtomicUsize, Ordering};
 
-use crate::gc::swiper::{RegularPage, PAGE_SIZE};
+use crate::gc::swiper::{RegularPage, PAGE_SIZE, SURVIVOR_BIT};
 use crate::gc::{
     fill_region, fill_region_with, is_page_aligned, Address, GenerationAllocator, Region,
 };
@@ -20,7 +20,6 @@ pub struct YoungGen {
     protect: bool,
 
     alloc: YoungAlloc,
-    age_marker: Mutex<Address>,
 }
 
 impl YoungGen {
@@ -55,7 +54,6 @@ impl YoungGen {
             current_size: AtomicUsize::new(semi_size),
             protect,
             alloc: YoungAlloc::new(committed_region),
-            age_marker: Mutex::new(to_region.start()),
         }
     }
 
@@ -97,7 +95,9 @@ impl YoungGen {
 
         self.make_pages_iterable(vm, self.to_committed().start());
 
-        *self.age_marker.lock() = self.to_committed().start();
+        for page in self.to_pages() {
+            assert!(!page.is_survivor());
+        }
     }
 
     pub fn unprotect_from(&self) {
@@ -134,10 +134,6 @@ impl YoungGen {
         }
     }
 
-    pub fn age_marker(&self) -> Address {
-        *self.age_marker.lock()
-    }
-
     pub fn swap_semi(&self, vm: &VM) {
         self.swap_indices();
 
@@ -149,11 +145,18 @@ impl YoungGen {
 
     pub fn reset_after_minor_gc(&self, vm: &VM, young_alloc: YoungAlloc) {
         let from_gc = young_alloc.protected.into_inner();
-        self.make_pages_iterable(vm, from_gc.current_limit);
-
-        *self.age_marker.lock() = from_gc.top;
+        let allocation_end = from_gc.current_limit;
+        self.make_pages_iterable(vm, allocation_end);
 
         self.alloc.reuse(from_gc);
+
+        for page in self.to_pages() {
+            assert!(!page.base_page_header().is_survivor());
+
+            if page.end() <= allocation_end {
+                page.base_page_header().add_flag(SURVIVOR_BIT);
+            }
+        }
     }
 
     pub fn resize_after_gc(&self, vm: &VM, young_size: usize) {

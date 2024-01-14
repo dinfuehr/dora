@@ -127,9 +127,20 @@ impl<'a> Verifier<'a> {
 
     fn verify_heap(&mut self) {
         assert!(!self.in_old);
+        let mut survivor_seen = true;
+
         for page in self.young.to_pages() {
             assert!(page.is_young());
             assert!(!page.is_readonly());
+            assert!(!page.is_large());
+
+            if survivor_seen {
+                if !page.is_survivor() {
+                    survivor_seen = false;
+                }
+            } else {
+                assert!(!page.is_survivor());
+            }
 
             self.verify_page(page);
         }
@@ -138,6 +149,8 @@ impl<'a> Verifier<'a> {
         for page in self.old_protected.pages() {
             assert!(!page.is_young());
             assert!(!page.is_readonly());
+            assert!(!page.is_survivor());
+            assert!(!page.is_large());
 
             self.verify_page(page);
         }
@@ -146,11 +159,15 @@ impl<'a> Verifier<'a> {
         for page in self.readonly_space.pages() {
             assert!(!page.is_young());
             assert!(page.is_readonly());
+            assert!(!page.is_survivor());
 
             self.verify_page(page);
         }
 
         self.large.iterate_pages(|page| {
+            assert!(!page.is_young());
+            assert!(page.is_large());
+
             self.verify_large_page(page);
         });
     }
@@ -212,8 +229,6 @@ impl<'a> Verifier<'a> {
     }
 
     fn verify_large_page(&self, page: LargePage) {
-        assert!(!page.is_young());
-        assert!(page.is_large());
         let mut refs_to_young_gen = 0;
         self.verify_object(
             page.as_base_page(),

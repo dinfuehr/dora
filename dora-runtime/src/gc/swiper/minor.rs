@@ -151,8 +151,6 @@ impl<'a> MinorCollector<'a> {
 
         // align old generation to card boundary
         let young_alloc = self.young_alloc.as_ref().expect("missing value");
-        let age_marker = self.young.age_marker();
-        assert!(self.young.from_committed().valid_top(age_marker));
 
         let heap = self.heap;
         let card_table = self.card_table;
@@ -209,7 +207,6 @@ impl<'a> MinorCollector<'a> {
                         vm,
                         heap,
                         young,
-                        age_marker,
                         old,
                         card_table,
                         crossing_map,
@@ -375,7 +372,6 @@ struct CopyTask<'a> {
     vm: &'a VM,
     heap: Region,
     young: &'a YoungGen,
-    age_marker: Address,
     old: &'a OldGen,
     card_table: &'a CardTable,
     crossing_map: &'a CrossingMap,
@@ -808,7 +804,8 @@ impl<'a> CopyTask<'a> {
     }
 
     fn should_be_promoted(&self, addr: Address) -> bool {
-        addr < self.age_marker
+        let page = BasePage::from_address(addr);
+        page.is_survivor()
     }
 
     fn promote_object(&mut self, vtblptr: Address, obj: &Obj, obj_size: usize) -> Option<Address> {
