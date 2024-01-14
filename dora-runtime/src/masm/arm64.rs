@@ -20,8 +20,9 @@ impl MacroAssembler {
         self.asm.add(REG_FP.into(), REG_SP.into(), REG_ZERO.into());
 
         if stacksize > 0 {
-            self.load_int_const(MachineMode::Ptr, REG_TMP1, stacksize as i64);
-            self.asm.sub(REG_SP.into(), REG_SP.into(), REG_TMP1.into());
+            let temp = self.get_scratch();
+            self.load_int_const(MachineMode::Ptr, *temp, stacksize as i64);
+            self.asm.sub(REG_SP.into(), REG_SP.into(), (*temp).into());
         }
     }
 

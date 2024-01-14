@@ -6,8 +6,8 @@ use crate::compiler::codegen::{
 };
 use crate::compiler::runtime_entry_trampoline::{NativeFct, NativeFctKind};
 use crate::cpu::{
-    has_lzcnt, has_popcnt, has_tzcnt, Reg, FREG_PARAMS, FREG_RESULT, FREG_TMP1, REG_PARAMS,
-    REG_RESULT, REG_SP, REG_TMP1, REG_TMP2, STACK_FRAME_ALIGNMENT,
+    has_lzcnt, has_popcnt, has_tzcnt, Reg, CALLEE_SAVED_REGS, FREG_PARAMS, FREG_RESULT, FREG_TMP1,
+    REG_PARAMS, REG_RESULT, REG_SP, REG_TMP1, REG_TMP2, STACK_FRAME_ALIGNMENT,
 };
 use crate::gc::Address;
 use crate::masm::{CondCode, Label, Mem};
@@ -1960,7 +1960,9 @@ impl<'a> CannonCodeGen<'a> {
         let class_instance_id = create_class_instance(self.vm, cls_id, &type_params);
         let class_instance = self.vm.class_instances.idx(class_instance_id);
 
-        self.emit_load_register(length, REG_TMP1.into());
+        let length_reg = REG_TMP1;
+        let size_reg = REG_TMP2;
+        self.emit_load_register(length, length_reg.into());
 
         let array_header_size = Header::size() as usize + mem::ptr_width_usize();
 
@@ -1968,13 +1970,13 @@ impl<'a> CannonCodeGen<'a> {
             InstanceSize::PrimitiveArray(size) | InstanceSize::StructArray(size) => {
                 assert_ne!(size, 0);
                 self.asm
-                    .determine_array_size(REG_TMP1, REG_TMP1, size, true);
-                AllocationSize::Dynamic(REG_TMP1)
+                    .determine_array_size(size_reg, length_reg, size, true);
+                AllocationSize::Dynamic(size_reg)
             }
             InstanceSize::ObjArray => {
                 self.asm
-                    .determine_array_size(REG_TMP1, REG_TMP1, mem::ptr_width(), true);
-                AllocationSize::Dynamic(REG_TMP1)
+                    .determine_array_size(size_reg, length_reg, mem::ptr_width(), true);
+                AllocationSize::Dynamic(size_reg)
             }
             InstanceSize::UnitArray => AllocationSize::Fixed(array_header_size),
             _ => unreachable!(
@@ -1983,26 +1985,27 @@ impl<'a> CannonCodeGen<'a> {
             ),
         };
 
+        // REG_TMP1 and REG_TMP2 should be restored in the slow path of the allocation.
+        assert!(CALLEE_SAVED_REGS.contains(&length_reg));
+        assert!(CALLEE_SAVED_REGS.contains(&size_reg));
+
         let gcpoint = self.create_gcpoint();
         let position = self.bytecode.offset_location(self.current_offset.to_u32());
         self.asm
             .allocate(REG_RESULT.into(), alloc_size, position, gcpoint);
 
-        // store gc object in temporary storage
+        // Store object address in bytecode register right away.
         self.emit_store_register(REG_RESULT.into(), dest);
 
-        // store length in object
-        self.emit_load_register(length, REG_TMP1.into());
-
         self.asm
-            .initialize_array_header(REG_RESULT, &*class_instance, REG_TMP1);
+            .initialize_array_header(REG_RESULT, &*class_instance, length_reg);
 
         match class_instance.size {
             InstanceSize::PrimitiveArray(size) | InstanceSize::StructArray(size) => {
-                self.emit_array_initialization(REG_RESULT, REG_TMP1, size);
+                self.emit_array_initialization(REG_RESULT, length_reg, size);
             }
             InstanceSize::ObjArray => {
-                self.emit_array_initialization(REG_RESULT, REG_TMP1, mem::ptr_width());
+                self.emit_array_initialization(REG_RESULT, length_reg, mem::ptr_width());
             }
             InstanceSize::UnitArray => {}
             _ => unreachable!(),

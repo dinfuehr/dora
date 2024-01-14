@@ -153,8 +153,8 @@ pub const CALLEE_SAVED_REGS: [Reg; 10] = [R19, R20, R21, R22, R23, R24, R25, R26
 pub static SCRATCH: [Reg; 5] = [R9, R12, R13, R14, R15];
 
 pub const REG_RESULT: Reg = R0;
-pub const REG_TMP1: Reg = R10;
-pub const REG_TMP2: Reg = R11;
+pub const REG_TMP1: Reg = R19;
+pub const REG_TMP2: Reg = R20;
 pub const REG_FP: Reg = R29;
 pub const REG_LR: Reg = R30;
 pub const REG_THREAD: Reg = R28;

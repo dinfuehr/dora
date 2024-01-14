@@ -5,7 +5,7 @@ use crate::cannon::codegen::mode;
 use crate::compiler::codegen::AnyReg;
 use crate::cpu::{
     FReg, Reg, CCALL_FREG_PARAMS, CCALL_REG_PARAMS, FREG_PARAMS, FREG_TMP1, PARAM_OFFSET, REG_FP,
-    REG_PARAMS, REG_RESULT, REG_SP, REG_THREAD, REG_TMP1,
+    REG_PARAMS, REG_RESULT, REG_SP, REG_THREAD, SCRATCH,
 };
 use crate::gc::Address;
 use crate::masm::{MacroAssembler, Mem};
@@ -54,6 +54,8 @@ struct NativeGen<'a> {
 
 impl<'a> NativeGen<'a> {
     pub fn generate(mut self) -> Arc<Code> {
+        let temp_reg = SCRATCH[0];
+
         let save_return = self.fct.return_type.is_unit();
         let dtn_size = size_of::<DoraToNativeInfo>() as i32;
 
@@ -101,14 +103,14 @@ impl<'a> NativeGen<'a> {
 
         self.masm.load_mem(
             MachineMode::Ptr,
-            REG_TMP1.into(),
+            temp_reg.into(),
             Mem::Base(REG_THREAD, ThreadLocalData::dtn_offset()),
         );
 
         self.masm.store_mem(
             MachineMode::Ptr,
             Mem::Base(REG_SP, offset_dtn + DoraToNativeInfo::last_offset()),
-            REG_TMP1.into(),
+            temp_reg.into(),
         );
 
         self.masm.store_mem(
@@ -117,24 +119,24 @@ impl<'a> NativeGen<'a> {
             REG_FP.into(),
         );
 
-        self.masm.copy_pc(REG_TMP1);
+        self.masm.copy_pc(temp_reg);
 
         self.masm.store_mem(
             MachineMode::Ptr,
             Mem::Base(REG_SP, offset_dtn + DoraToNativeInfo::pc_offset()),
-            REG_TMP1.into(),
+            temp_reg.into(),
         );
 
-        self.masm.copy_reg(MachineMode::Ptr, REG_TMP1, REG_SP);
+        self.masm.copy_reg(MachineMode::Ptr, temp_reg, REG_SP);
         if offset_dtn != 0 {
             self.masm
-                .int_add_imm(MachineMode::Ptr, REG_TMP1, REG_TMP1, offset_dtn as i64);
+                .int_add_imm(MachineMode::Ptr, temp_reg, temp_reg, offset_dtn as i64);
         }
 
         self.masm.store_mem(
             MachineMode::Ptr,
             Mem::Base(REG_THREAD, ThreadLocalData::dtn_offset()),
-            REG_TMP1.into(),
+            temp_reg.into(),
         );
 
         let mut offsets = Vec::new();
@@ -162,7 +164,7 @@ impl<'a> NativeGen<'a> {
                     let reg: AnyReg = if mode.is_float() {
                         FREG_TMP1.into()
                     } else {
-                        REG_TMP1.into()
+                        temp_reg.into()
                     };
 
                     self.masm
@@ -179,11 +181,11 @@ impl<'a> NativeGen<'a> {
                 }
                 ArgumentDestination::HandleOffset(offset) => {
                     offsets.push(sp_offset - framesize);
-                    self.masm.lea(REG_TMP1, Mem::Base(REG_SP, sp_offset));
+                    self.masm.lea(temp_reg, Mem::Base(REG_SP, sp_offset));
                     self.masm.store_mem(
                         MachineMode::Ptr,
                         Mem::Base(REG_SP, offset as i32 * mem::ptr_width()),
-                        REG_TMP1.into(),
+                        temp_reg.into(),
                     );
                 }
             }
@@ -199,14 +201,14 @@ impl<'a> NativeGen<'a> {
 
         self.masm.load_mem(
             MachineMode::Ptr,
-            REG_TMP1.into(),
+            temp_reg.into(),
             Mem::Base(REG_SP, offset_dtn + DoraToNativeInfo::last_offset()),
         );
 
         self.masm.store_mem(
             MachineMode::Ptr,
             Mem::Base(REG_THREAD, ThreadLocalData::dtn_offset()),
-            REG_TMP1.into(),
+            temp_reg.into(),
         );
 
         self.masm.epilog();

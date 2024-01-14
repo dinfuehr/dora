@@ -812,7 +812,7 @@ impl<'a> BaselineAssembler<'a> {
 
     pub fn tlab_allocate(
         &mut self,
-        dest: Reg,
+        object: Reg,
         size: AllocationSize,
         location: Location,
         gcpoint: GcPoint,
@@ -831,55 +831,43 @@ impl<'a> BaselineAssembler<'a> {
             }
         }
 
-        let tlab_next = self.masm.get_scratch();
-        let tlab_end = self.masm.get_scratch();
+        let tlab_top = self.masm.get_scratch();
+        let tlab_limit = self.masm.get_scratch();
 
         self.masm.load_mem(
             MachineMode::Ptr,
-            (*tlab_next).into(),
+            object.into(),
             Mem::Base(REG_THREAD, ThreadLocalData::tlab_top_offset()),
         );
 
         self.masm.load_mem(
             MachineMode::Ptr,
-            (*tlab_end).into(),
+            (*tlab_limit).into(),
             Mem::Base(REG_THREAD, ThreadLocalData::tlab_end_offset()),
         );
 
-        let temp;
+        self.masm.copy_reg(MachineMode::Ptr, *tlab_top, object);
 
         match size {
             AllocationSize::Fixed(size) => {
-                temp = REG_TMP1;
-                self.masm.copy_reg(MachineMode::Ptr, temp, *tlab_next);
                 self.masm
-                    .int_add_imm(MachineMode::Ptr, *tlab_next, *tlab_next, size as i64);
+                    .int_add_imm(MachineMode::Ptr, *tlab_top, *tlab_top, size as i64);
             }
 
             AllocationSize::Dynamic(reg_size) => {
-                temp = if reg_size == REG_TMP1 {
-                    REG_TMP2
-                } else {
-                    REG_TMP1
-                };
-                self.masm.copy_reg(MachineMode::Ptr, temp, *tlab_next);
                 self.masm
-                    .int_add(MachineMode::Ptr, *tlab_next, *tlab_next, reg_size);
+                    .int_add(MachineMode::Ptr, *tlab_top, *tlab_top, reg_size);
             }
         }
 
-        self.masm.cmp_reg(MachineMode::Ptr, *tlab_next, *tlab_end);
+        self.masm.cmp_reg(MachineMode::Ptr, *tlab_top, *tlab_limit);
         self.masm.jump_if(CondCode::Greater, lbl_slow_path);
 
         self.masm.store_mem(
             MachineMode::Ptr,
             Mem::Base(REG_THREAD, ThreadLocalData::tlab_top_offset()),
-            (*tlab_next).into(),
+            (*tlab_top).into(),
         );
-
-        if dest != temp {
-            self.masm.copy_reg(MachineMode::Ptr, dest, temp);
-        }
 
         let lbl_return = self.masm.create_label();
         self.masm.bind_label(lbl_return);
@@ -887,7 +875,7 @@ impl<'a> BaselineAssembler<'a> {
         self.slow_paths.push(SlowPathKind::TlabAllocationFailure(
             lbl_slow_path,
             lbl_return,
-            dest,
+            object,
             size,
             location,
             gcpoint,
@@ -933,8 +921,8 @@ impl<'a> BaselineAssembler<'a> {
         class_instance: &ClassInstance,
         length: Reg,
     ) {
-        let tmp_reg = REG_TMP2;
-        assert!(obj != length && length != tmp_reg && obj != tmp_reg);
+        let tmp_reg = self.get_scratch();
+        assert!(obj != length && length != *tmp_reg && obj != *tmp_reg);
 
         // store classptr in object
         let vtable = class_instance.vtable.read();
@@ -942,19 +930,19 @@ impl<'a> BaselineAssembler<'a> {
         let disp = self.add_addr(Address::from_ptr(vtable as *const _));
         let pos = self.pos() as i32;
 
-        self.load_constpool(tmp_reg.into(), disp + pos);
-        self.store_mem(MachineMode::Ptr, Mem::Base(obj, 0), tmp_reg.into());
+        self.load_constpool((*tmp_reg).into(), disp + pos);
+        self.store_mem(MachineMode::Ptr, Mem::Base(obj, 0), (*tmp_reg).into());
 
         // Set metadata word in header.
         self.load_int_const(
             MachineMode::Ptr,
-            tmp_reg,
+            *tmp_reg,
             self.vm.gc.initial_metadata_value(0, false) as i64,
         );
         self.store_mem(
             MachineMode::Ptr,
             Mem::Base(obj, crate::mem::ptr_width()),
-            tmp_reg.into(),
+            (*tmp_reg).into(),
         );
 
         self.store_mem(
