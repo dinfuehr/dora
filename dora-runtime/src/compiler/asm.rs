@@ -919,10 +919,11 @@ impl<'a> BaselineAssembler<'a> {
         &mut self,
         obj: Reg,
         class_instance: &ClassInstance,
-        length: Reg,
+        length_reg: Reg,
+        size_reg: Reg,
     ) {
         let tmp_reg = self.get_scratch();
-        assert!(obj != length && length != *tmp_reg && obj != *tmp_reg);
+        assert!(obj != length_reg && length_reg != *tmp_reg && obj != *tmp_reg);
 
         // store classptr in object
         let vtable = class_instance.vtable.read();
@@ -933,12 +934,8 @@ impl<'a> BaselineAssembler<'a> {
         self.load_constpool((*tmp_reg).into(), disp + pos);
         self.store_mem(MachineMode::Ptr, Mem::Base(obj, 0), (*tmp_reg).into());
 
-        // Set metadata word in header.
-        self.load_int_const(
-            MachineMode::Ptr,
-            *tmp_reg,
-            self.vm.gc.initial_metadata_value(0, false) as i64,
-        );
+        self.masm.compute_initial_metadata_value(*tmp_reg, size_reg);
+
         self.store_mem(
             MachineMode::Ptr,
             Mem::Base(obj, crate::mem::ptr_width()),
@@ -948,7 +945,7 @@ impl<'a> BaselineAssembler<'a> {
         self.store_mem(
             MachineMode::Ptr,
             Mem::Base(obj, Header::size()),
-            length.into(),
+            length_reg.into(),
         );
     }
 

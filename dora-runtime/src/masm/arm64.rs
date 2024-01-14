@@ -1,6 +1,6 @@
 use crate::compiler::codegen::AnyReg;
 use crate::cpu::*;
-use crate::gc::swiper::CARD_SIZE_BITS;
+use crate::gc::swiper::{CARD_SIZE_BITS, LARGE_OBJECT_SIZE};
 use crate::gc::Address;
 use crate::masm::{CondCode, Label, MacroAssembler, Mem};
 use crate::mem::ptr_width;
@@ -962,6 +962,12 @@ impl MacroAssembler {
             self.asm
                 .and_imm(dest.into(), dest.into(), -ptr_width() as u64);
         }
+    }
+
+    pub fn compute_initial_metadata_value(&mut self, dest: Reg, size: Reg) {
+        self.asm.cmp_imm(size.into(), LARGE_OBJECT_SIZE as u32);
+        self.asm.cset(dest.into(), Cond::LS);
+        self.asm.lsl_imm(dest.into(), dest.into(), 1);
     }
 
     pub fn array_address(&mut self, dest: Reg, obj: Reg, index: Reg, element_size: i32) {

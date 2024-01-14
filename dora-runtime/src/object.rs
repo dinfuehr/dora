@@ -228,6 +228,11 @@ impl Header {
     }
 
     #[inline(always)]
+    pub fn is_remembered(&self) -> bool {
+        self.metadata.is_remembered()
+    }
+
+    #[inline(always)]
     pub fn try_mark(&self) -> bool {
         self.metadata.try_mark()
     }

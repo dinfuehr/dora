@@ -232,6 +232,7 @@ impl<'a> Verifier<'a> {
         let object = object_address.to_obj();
         assert!(object.header().metadata_fwdptr().is_null());
         assert_eq!(object.header().is_marked(), page.is_readonly());
+        assert_eq!(object.header().is_remembered(), page.is_young());
 
         object.visit_reference_fields(|child| {
             self.verify_slot(child, object_address, refs_to_young_gen);

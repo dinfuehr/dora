@@ -1998,7 +1998,7 @@ impl<'a> CannonCodeGen<'a> {
         self.emit_store_register(REG_RESULT.into(), dest);
 
         self.asm
-            .initialize_array_header(REG_RESULT, &*class_instance, length_reg);
+            .initialize_array_header(REG_RESULT, &*class_instance, length_reg, size_reg);
 
         match class_instance.size {
             InstanceSize::PrimitiveArray(size) | InstanceSize::StructArray(size) => {
