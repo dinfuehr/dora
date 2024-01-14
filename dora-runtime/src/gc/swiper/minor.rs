@@ -11,7 +11,7 @@ use crate::gc::swiper::large::LargeSpace;
 use crate::gc::swiper::old::OldGen;
 use crate::gc::swiper::young::YoungGen;
 use crate::gc::swiper::{
-    BasePage, CardIdx, LargePage, RegularPage, Swiper, YoungAlloc, CARD_SIZE, INITIAL_METADATA_OLD,
+    BasePage, CardIdx, LargePage, RegularPage, Swiper, CARD_SIZE, INITIAL_METADATA_OLD,
     LARGE_OBJECT_SIZE,
 };
 use crate::gc::tlab::{MAX_TLAB_OBJECT_SIZE, MAX_TLAB_SIZE, MIN_TLAB_SIZE};
@@ -44,8 +44,7 @@ pub struct MinorCollector<'a> {
     _reason: GcReason,
     heap: Region,
 
-    young_alloc: Option<YoungAlloc>,
-
+    // young_alloc: Option<YoungAlloc>,
     promoted_size: usize,
     copied_size: usize,
 
@@ -87,8 +86,6 @@ impl<'a> MinorCollector<'a> {
             card_table,
             crossing_map,
 
-            young_alloc: None,
-
             promoted_size: 0,
             copied_size: 0,
 
@@ -116,14 +113,11 @@ impl<'a> MinorCollector<'a> {
 
         self.old.fill_alloc_page();
 
-        self.young_alloc = Some(YoungAlloc::new(self.young.to_committed()));
-
         self.run_threads();
 
         self.iterate_weak_refs();
 
-        let young_alloc = std::mem::replace(&mut self.young_alloc, None).expect("missing value");
-        self.young.reset_after_minor_gc(self.vm, young_alloc);
+        self.young.reset_after_minor_gc();
         self.young.protect_from();
 
         let mut config = self.config.lock();
@@ -148,9 +142,6 @@ impl<'a> MinorCollector<'a> {
 
         let terminator = Terminator::new(self.number_workers);
         let vm = self.vm;
-
-        // align old generation to card boundary
-        let young_alloc = self.young_alloc.as_ref().expect("missing value");
 
         let heap = self.heap;
         let card_table = self.card_table;
@@ -193,7 +184,6 @@ impl<'a> MinorCollector<'a> {
                 let injector = &injector;
                 let stealers = &stealers;
                 let terminator = &terminator;
-                let young_alloc = &young_alloc;
 
                 scoped.execute(move || {
                     let mut task = CopyTask {
@@ -227,7 +217,6 @@ impl<'a> MinorCollector<'a> {
                         old_lab: Lab::new(),
 
                         young_lab: Lab::new(),
-                        young_alloc,
 
                         timer: prot_timer,
                     };
@@ -392,7 +381,6 @@ struct CopyTask<'a> {
     old_lab: Lab,
 
     young_lab: Lab,
-    young_alloc: &'a YoungAlloc,
 
     timer: &'a Option<Mutex<(Timer, f32)>>,
 }
@@ -655,7 +643,7 @@ impl<'a> CopyTask<'a> {
     fn alloc_young_medium(&mut self, size: usize) -> Address {
         debug_assert!(MAX_LAB_OBJECT_SIZE <= size && size < LARGE_OBJECT_SIZE);
 
-        if let Some(region) = self.young_alloc.alloc(self.vm, size, size) {
+        if let Some(region) = self.young.allocate(self.vm, size, size) {
             region.start()
         } else {
             Address::null()
@@ -663,7 +651,7 @@ impl<'a> CopyTask<'a> {
     }
 
     fn alloc_young_lab(&mut self) -> bool {
-        if let Some(lab) = self.young_alloc.alloc(self.vm, MIN_LAB_SIZE, MAX_LAB_SIZE) {
+        if let Some(lab) = self.young.allocate(self.vm, MIN_LAB_SIZE, MAX_LAB_SIZE) {
             self.young_lab.reset(lab.start(), lab.end());
             true
         } else {

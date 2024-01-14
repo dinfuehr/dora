@@ -93,8 +93,6 @@ impl YoungGen {
         self.swap_semi(vm);
         self.protect_from();
 
-        self.make_pages_iterable(vm, self.to_committed().start());
-
         for page in self.to_pages() {
             assert!(!page.is_survivor());
         }
@@ -143,12 +141,8 @@ impl YoungGen {
         self.alloc.reset(to_committed);
     }
 
-    pub fn reset_after_minor_gc(&self, vm: &VM, young_alloc: YoungAlloc) {
-        let from_gc = young_alloc.protected.into_inner();
-        let allocation_end = from_gc.current_limit;
-        self.make_pages_iterable(vm, allocation_end);
-
-        self.alloc.reuse(from_gc);
+    pub fn reset_after_minor_gc(&self) {
+        let allocation_end = self.alloc.protected.lock().current_limit;
 
         for page in self.to_pages() {
             assert!(!page.base_page_header().is_survivor());
@@ -198,7 +192,7 @@ impl YoungGen {
         }
     }
 
-    pub fn from_committed(&self) -> Region {
+    fn from_committed(&self) -> Region {
         let size = self.current_size();
         self.from_total().start().region_start(size)
     }
@@ -211,7 +205,7 @@ impl YoungGen {
         self.from_index.load(Ordering::Relaxed)
     }
 
-    pub fn to_committed(&self) -> Region {
+    fn to_committed(&self) -> Region {
         let size = self.current_size();
         self.to_total().start().region_start(size)
     }
@@ -264,12 +258,12 @@ impl GenerationAllocator for YoungGen {
     }
 }
 
-pub struct YoungAlloc {
+struct YoungAlloc {
     protected: Mutex<YoungAllocProtected>,
 }
 
 impl YoungAlloc {
-    pub fn new(region: Region) -> YoungAlloc {
+    fn new(region: Region) -> YoungAlloc {
         assert!(region.size() > 0);
         assert_eq!(region.size() % PAGE_SIZE, 0);
         assert!(region.start().is_page_aligned());
@@ -284,7 +278,7 @@ impl YoungAlloc {
         }
     }
 
-    pub fn alloc(&self, vm: &VM, min_size: usize, max_size: usize) -> Option<Region> {
+    fn alloc(&self, vm: &VM, min_size: usize, max_size: usize) -> Option<Region> {
         let mut protected = self.protected.lock();
         protected.alloc(vm, min_size, max_size)
     }
