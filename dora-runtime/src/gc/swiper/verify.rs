@@ -79,8 +79,6 @@ pub struct Verifier<'a> {
     large: &'a LargeSpace,
     readonly_space: &'a ReadOnlySpace,
 
-    in_old: bool,
-
     heap: Region,
 
     phase: VerifierPhase,
@@ -112,8 +110,6 @@ impl<'a> Verifier<'a> {
             readonly_space,
             large,
 
-            in_old: false,
-
             heap,
 
             phase,
@@ -126,7 +122,6 @@ impl<'a> Verifier<'a> {
     }
 
     fn verify_heap(&mut self) {
-        assert!(!self.in_old);
         let mut survivor_seen = true;
 
         for page in self.young.to_pages() {
@@ -145,7 +140,6 @@ impl<'a> Verifier<'a> {
             self.verify_page(page);
         }
 
-        self.in_old = true;
         for page in self.old_protected.pages() {
             assert!(!page.is_young());
             assert!(!page.is_readonly());
@@ -154,12 +148,12 @@ impl<'a> Verifier<'a> {
 
             self.verify_page(page);
         }
-        self.in_old = false;
 
         for page in self.readonly_space.pages() {
             assert!(!page.is_young());
             assert!(page.is_readonly());
             assert!(!page.is_survivor());
+            assert!(!page.is_large());
 
             self.verify_page(page);
         }
@@ -187,7 +181,9 @@ impl<'a> Verifier<'a> {
         assert!(region.end.is_page_aligned());
         assert!(!page.is_large());
 
-        if self.in_old {
+        let in_old = !page.is_young() && !page.is_readonly();
+
+        if in_old {
             let card_idx = self.card_table.card_idx(region.start);
             assert_eq!(
                 self.crossing_map.get(card_idx),
@@ -210,7 +206,7 @@ impl<'a> Verifier<'a> {
             }
 
             if on_different_cards(curr, object_end) {
-                if self.in_old {
+                if in_old {
                     self.verify_card(curr, refs_to_young_gen);
 
                     if object_end < region.end {
