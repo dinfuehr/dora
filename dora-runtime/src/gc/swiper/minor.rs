@@ -111,8 +111,6 @@ impl<'a> MinorCollector<'a> {
         self.young.unprotect_from();
         self.young.swap_semi(self.vm);
 
-        self.old.fill_alloc_page();
-
         self.run_threads();
 
         self.iterate_weak_refs();

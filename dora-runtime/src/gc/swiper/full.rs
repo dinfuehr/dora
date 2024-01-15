@@ -248,8 +248,6 @@ impl<'a> FullCollector<'a> {
     }
 
     fn evacuate(&mut self) {
-        self.old_protected.fill_alloc_page();
-
         for page in self.young.to_pages() {
             self.evacuate_page(page);
         }

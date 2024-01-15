@@ -69,11 +69,6 @@ impl OldGen {
         let mut config = self.config.lock();
         config.grow_old(PAGE_SIZE)
     }
-
-    pub fn fill_alloc_page(&self) {
-        let mut protected = self.protected.lock();
-        protected.fill_alloc_page();
-    }
 }
 
 impl CommonOldGen for OldGen {
@@ -137,11 +132,8 @@ impl OldGenProtected {
         self.total.start <= addr && addr < self.top
     }
 
-    pub fn fill_alloc_page(&mut self) {
-        self.top = self.current_limit;
-    }
-
     pub fn clear_freelist(&mut self) {
+        self.top = self.current_limit;
         self.freelist.clear();
     }
 
