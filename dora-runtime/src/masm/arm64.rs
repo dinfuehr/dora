@@ -1334,7 +1334,7 @@ impl MacroAssembler {
         }
     }
 
-    pub fn emit_barrier(&mut self, src: Reg, card_table_offset: usize) {
+    pub fn emit_card_write_barrier(&mut self, src: Reg, card_table_offset: usize) {
         let scratch1 = self.get_scratch();
         self.asm
             .lsr_imm((*scratch1).into(), src.into(), CARD_SIZE_BITS as u32);
@@ -1348,6 +1348,8 @@ impl MacroAssembler {
             0,
         );
     }
+
+    pub fn emit_object_write_barrier(&mut self, _src: Reg) {}
 
     pub fn store_mem(&mut self, mode: MachineMode, mem: Mem, src: AnyReg) {
         match mem {

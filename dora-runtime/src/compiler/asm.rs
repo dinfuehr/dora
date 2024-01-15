@@ -334,8 +334,12 @@ impl<'a> BaselineAssembler<'a> {
         self.masm.load_false(dest);
     }
 
-    pub fn emit_barrier(&mut self, src: Reg, card_table_offset: usize) {
-        self.masm.emit_barrier(src, card_table_offset);
+    pub fn emit_card_write_barrier(&mut self, src: Reg, card_table_offset: usize) {
+        self.masm.emit_card_write_barrier(src, card_table_offset);
+    }
+
+    pub fn emit_object_write_barrier(&mut self, src: Reg) {
+        self.masm.emit_object_write_barrier(src);
     }
 
     pub fn emit_bailout(&mut self, lbl: Label, trap: Trap, location: Location) {
