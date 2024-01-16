@@ -274,7 +274,8 @@ impl AssemblerArm64 {
                         } else {
                             self.emit_u32(cls::test_and_branch(op ^ 1, bit, 2, rt));
                             assert_eq!(self.position(), jmp.offset as usize + 4);
-                            self.b_imm(distance);
+                            // Distance is off by 1 instruction in this case.
+                            self.b_imm(distance - 1);
                         }
                     }
                 }

@@ -339,7 +339,12 @@ impl<'a> BaselineAssembler<'a> {
     }
 
     pub fn emit_object_write_barrier(&mut self, src: Reg) {
-        self.masm.emit_object_write_barrier(src);
+        let lbl_slow_path = self.masm.emit_object_write_barrier(src);
+        let lbl_return = self.masm.create_and_bind_label();
+        self.slow_paths.push(SlowPathKind::ObjectWriteBarrier {
+            lbl_start: lbl_slow_path,
+            lbl_return,
+        });
     }
 
     pub fn emit_bailout(&mut self, lbl: Label, trap: Trap, location: Location) {
@@ -1122,6 +1127,13 @@ impl<'a> BaselineAssembler<'a> {
                 SlowPathKind::Safepoint(lbl_start, lbl_return, pos, gcpoint) => {
                     self.slow_path_safepoint(lbl_start, lbl_return, pos, gcpoint);
                 }
+
+                SlowPathKind::ObjectWriteBarrier {
+                    lbl_start,
+                    lbl_return,
+                } => {
+                    self.slow_path_object_write_barrier(lbl_start, lbl_return);
+                }
             }
         }
 
@@ -1173,6 +1185,13 @@ impl<'a> BaselineAssembler<'a> {
             .raw_call(self.vm.native_methods.safepoint_trampoline());
         self.masm.emit_gcpoint(gcpoint);
         self.masm.emit_position(location);
+        self.masm.jump(lbl_return);
+    }
+
+    fn slow_path_object_write_barrier(&mut self, lbl_start: Label, lbl_return: Label) {
+        self.masm
+            .emit_comment("slow path object write barrier".into());
+        self.masm.bind_label(lbl_start);
         self.masm.jump(lbl_return);
     }
 
@@ -1276,4 +1295,8 @@ enum SlowPathKind {
         Location,
         GcPoint,
     ),
+    ObjectWriteBarrier {
+        lbl_start: Label,
+        lbl_return: Label,
+    },
 }

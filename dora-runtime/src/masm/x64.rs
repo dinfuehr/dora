@@ -1075,12 +1075,12 @@ impl MacroAssembler {
         }
     }
 
-    pub fn emit_object_write_barrier(&mut self, src: Reg) {
+    pub fn emit_object_write_barrier(&mut self, src: Reg) -> Label {
         self.asm
-            .testq_ai(AsmAddress::offset(src.into(), 0), Immediate(4));
+            .testq_ai(AsmAddress::offset(src.into(), 0), Immediate(2));
         let lbl_slow_path = self.asm.create_label();
         self.asm.jcc(Condition::NotZero, lbl_slow_path);
-        self.emit_bailout(lbl_slow_path, Trap::ASSERT, Location::new(1, 1));
+        lbl_slow_path
     }
 
     pub fn store_mem(&mut self, mode: MachineMode, mem: Mem, src: AnyReg) {
