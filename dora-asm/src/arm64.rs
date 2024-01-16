@@ -149,7 +149,16 @@ struct ForwardJump {
 enum JumpKind {
     Unconditional,
     Conditional(Cond),
-    Zero(bool, bool, Register),
+    Zero {
+        sf: bool,
+        is_non_zero: bool,
+        rt: Register,
+    },
+    Test {
+        op: u32,
+        bit: u32,
+        rt: Register,
+    },
 }
 
 pub struct AssemblerArm64 {
@@ -244,8 +253,29 @@ impl AssemblerArm64 {
                         self.b_imm(distance);
                     }
 
-                    JumpKind::Zero(sf, value, rt) => {
-                        self.emit_u32(cls::cmp_branch_imm(sf as u32, value as u32, rt, distance));
+                    JumpKind::Zero {
+                        sf,
+                        is_non_zero,
+                        rt,
+                    } => {
+                        self.emit_u32(cls::cmp_branch_imm(
+                            sf as u32,
+                            is_non_zero as u32,
+                            rt,
+                            distance,
+                        ));
+                    }
+
+                    JumpKind::Test { op, bit, rt } => {
+                        if fits_i14(distance) {
+                            self.emit_u32(cls::test_and_branch(op, bit, distance, rt));
+                            assert_eq!(self.position(), jmp.offset as usize + 4);
+                            self.nop();
+                        } else {
+                            self.emit_u32(cls::test_and_branch(op ^ 1, bit, 2, rt));
+                            assert_eq!(self.position(), jmp.offset as usize + 4);
+                            self.b_imm(distance);
+                        }
                     }
                 }
             } else {
@@ -575,7 +605,11 @@ impl AssemblerArm64 {
                 self.unresolved_jumps.push(ForwardJump {
                     offset: pos,
                     label: target,
-                    kind: JumpKind::Zero(sf, value, reg),
+                    kind: JumpKind::Zero {
+                        sf,
+                        is_non_zero: value,
+                        rt: reg,
+                    },
                 });
             }
         }
@@ -2104,6 +2138,53 @@ impl AssemblerArm64 {
         self.sbfm(rd, rn, 0, 31);
     }
 
+    #[allow(dead_code)]
+    fn tbnz_imm(&mut self, rt: Register, bit: u32, imm14: i32) {
+        assert_eq!(imm14 % 4, 0);
+        self.emit_u32(cls::test_and_branch(0b1, bit, imm14 / 4, rt))
+    }
+
+    pub fn tbnz(&mut self, rt: Register, bit: u32, target: Label) {
+        self.common_tbz_tbnz(1, bit, rt, target);
+    }
+
+    #[allow(dead_code)]
+    fn tbz_imm(&mut self, rt: Register, bit: u32, imm14: i32) {
+        assert_eq!(imm14 % 4, 0);
+        self.emit_u32(cls::test_and_branch(0b0, bit, imm14 / 4, rt))
+    }
+
+    pub fn tbz(&mut self, rt: Register, bit: u32, target: Label) {
+        self.common_tbz_tbnz(0, bit, rt, target);
+    }
+
+    fn common_tbz_tbnz(&mut self, op: u32, bit: u32, rt: Register, target: Label) {
+        let target_offset = self.offset(target);
+
+        match target_offset {
+            Some(target_offset) => {
+                let diff = -(self.position() as i32 - target_offset as i32);
+                assert!(diff % 4 == 0);
+                if fits_i14(diff / 4) {
+                    self.emit_u32(cls::test_and_branch(op, bit, diff / 4, rt));
+                } else {
+                    unimplemented!();
+                }
+            }
+
+            None => {
+                let pos = self.position() as u32;
+                self.emit_u32(0);
+                self.emit_u32(0);
+                self.unresolved_jumps.push(ForwardJump {
+                    offset: pos,
+                    label: target,
+                    kind: JumpKind::Test { op, bit, rt },
+                });
+            }
+        }
+    }
+
     pub fn ubfm(&mut self, rd: Register, rn: Register, immr: u32, imms: u32) {
         self.emit_u32(cls::bitfield(1, 0b10, 1, immr, imms, rn, rd));
     }
@@ -2841,6 +2922,20 @@ mod cls {
         1u32 << 28 | op << 31 | immlo << 29 | immhi << 5 | rd.encoding()
     }
 
+    pub(super) fn test_and_branch(op: u32, bit: u32, imm14: i32, rt: Register) -> u32 {
+        assert!(fits_bit(op));
+        assert!(fits_i14(imm14));
+        assert!(rt.is_gpr_or_zero());
+        assert!(fits_u6(bit));
+
+        let imm14 = (imm14 as u32) & 0x3FFF;
+
+        let b5 = (bit >> 5) & 1;
+        let b40 = bit & 0x1F;
+
+        b5 << 31 | 0b011011 << 25 | op << 24 | b40 << 19 | imm14 << 5 | rt.encoding()
+    }
+
     pub(super) fn simd_2regs_misc(
         q: u32,
         u: u32,
@@ -2903,6 +2998,10 @@ fn fits_i7(imm: i32) -> bool {
 
 fn fits_i9(imm: i32) -> bool {
     -(1 << 8) <= imm && imm < (1 << 8)
+}
+
+fn fits_i14(imm: i32) -> bool {
+    -(1 << 14) <= imm && imm < (1 << 14)
 }
 
 fn fits_i19(imm: i32) -> bool {
@@ -3266,6 +3365,16 @@ mod tests {
         assert_emit!(0x14000000; b_imm(0));
         assert_emit!(0x17FFFFFF; b_imm(-1));
         assert_emit!(0x14000001; b_imm(1));
+    }
+
+    #[test]
+    fn test_tbnz_i() {
+        assert_emit!(0x37080000; tbnz_imm(R0, 1, 0));
+    }
+
+    #[test]
+    fn test_tbz_i() {
+        assert_emit!(0x36080000; tbz_imm(R0, 1, 0));
     }
 
     #[test]

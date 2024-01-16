@@ -1349,7 +1349,13 @@ impl MacroAssembler {
         );
     }
 
-    pub fn emit_object_write_barrier(&mut self, _src: Reg) {}
+    pub fn emit_object_write_barrier(&mut self, src: Reg) {
+        let scratch = self.get_scratch();
+        self.asm.ldr_imm((*scratch).into(), src.into(), 0);
+        let lbl_slow_path = self.asm.create_label();
+        self.asm.tbnz((*scratch).into(), 2, lbl_slow_path);
+        self.emit_bailout(lbl_slow_path, Trap::ASSERT, Location::new(1, 1));
+    }
 
     pub fn store_mem(&mut self, mode: MachineMode, mem: Mem, src: AnyReg) {
         match mem {
