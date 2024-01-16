@@ -2385,6 +2385,7 @@ impl<'a> CannonCodeGen<'a> {
                     let card_table_offset = self.vm.gc.card_table_offset();
                     self.asm
                         .emit_card_write_barrier(REG_RESULT, card_table_offset);
+                    self.asm.emit_object_write_barrier(REG_RESULT);
                 }
             }
 
@@ -2411,6 +2412,7 @@ impl<'a> CannonCodeGen<'a> {
                     let card_table_offset = self.vm.gc.card_table_offset();
                     self.asm
                         .emit_card_write_barrier(REG_RESULT, card_table_offset);
+                    self.asm.emit_object_write_barrier(REG_RESULT);
                 }
             }
 
@@ -2440,6 +2442,7 @@ impl<'a> CannonCodeGen<'a> {
                     let card_table_offset = self.vm.gc.card_table_offset();
                     self.asm
                         .emit_card_write_barrier(REG_RESULT, card_table_offset);
+                    self.asm.emit_object_write_barrier(REG_RESULT);
                 }
             }
 
@@ -2487,6 +2490,7 @@ impl<'a> CannonCodeGen<'a> {
                     let card_table_offset = self.vm.gc.card_table_offset();
                     self.asm
                         .emit_card_write_barrier(REG_RESULT, card_table_offset);
+                    self.asm.emit_object_write_barrier(REG_RESULT);
                 }
             }
         }
