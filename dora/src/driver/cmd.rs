@@ -84,6 +84,7 @@ pub struct Args {
     pub gc_stats: bool,
     pub gc_verbose: bool,
     pub gc_verify: bool,
+    pub object_write_barrier: bool,
     pub gc_worker: usize,
     gc_young_size: Option<MemSize>,
     pub gc_semi_ratio: Option<usize>,
@@ -133,6 +134,7 @@ impl Default for Args {
             gc_stats: false,
             gc_verbose: false,
             gc_verify: false,
+            object_write_barrier: false,
             gc_worker: 0,
             gc_young_size: None,
             gc_semi_ratio: None,
@@ -248,6 +250,8 @@ pub fn parse_arguments() -> Result<Args, String> {
             args.gc_verbose = true;
         } else if arg == "--gc-verify" {
             args.gc_verify = true;
+        } else if arg == "--object-write-barrier" {
+            args.object_write_barrier = true;
         } else if arg.starts_with("--gc-worker=") {
             args.gc_worker = argument_usize(arg)?;
         } else if arg.starts_with("--gc=") {
@@ -410,6 +414,7 @@ pub fn create_vm_args(args: &Args) -> VmArgs {
         gc_worker: args.gc_worker,
         gc_young_size: args.gc_young_size,
         gc_semi_ratio: args.gc_semi_ratio,
+        object_write_barrier: args.object_write_barrier,
         gc: args.gc,
         compiler: args.compiler,
         min_heap_size: args.min_heap_size,

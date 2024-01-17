@@ -250,12 +250,24 @@ impl<'a> Verifier<'a> {
             assert!(object.header().is_remembered());
         }
 
+        let mut object_has_young_ref = false;
+
         object.visit_reference_fields(|child| {
-            self.verify_slot(child, object_address, refs_to_young_gen);
+            if self.verify_slot(child, object_address, refs_to_young_gen) {
+                object_has_young_ref = true;
+            }
         });
+
+        if self.vm.flags.object_write_barrier && object_has_young_ref && !page.is_young() {
+            assert!(object.header().is_remembered());
+        }
     }
 
     fn verify_card(&self, curr: Address, refs_to_young_gen: usize) {
+        if self.vm.flags.object_write_barrier {
+            return;
+        }
+
         let curr_card = self.card_table.card_idx(curr);
 
         let expected_card_entry = if refs_to_young_gen > 0 {
@@ -335,11 +347,16 @@ impl<'a> Verifier<'a> {
         }
     }
 
-    fn verify_slot(&self, slot: Slot, _container_obj: Address, refs_to_young_gen: &mut usize) {
+    fn verify_slot(
+        &self,
+        slot: Slot,
+        _container_obj: Address,
+        refs_to_young_gen: &mut usize,
+    ) -> bool {
         let referenced_object = slot.get();
 
         if referenced_object.is_null() {
-            return;
+            return false;
         }
 
         let page = BasePage::from_address(referenced_object);
@@ -356,5 +373,7 @@ impl<'a> Verifier<'a> {
         if is_young {
             *refs_to_young_gen += 1;
         }
+
+        is_young
     }
 }

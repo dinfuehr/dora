@@ -159,6 +159,9 @@ impl<'a> MinorCollector<'a> {
         let next_root_stride = AtomicUsize::new(0);
         let next_root_stride = &next_root_stride;
 
+        let next_object_stride = AtomicUsize::new(0);
+        let next_object_stride = &next_object_stride;
+
         let strides = 4 * self.number_workers;
 
         let next_old_page_idx = AtomicUsize::new(0);
@@ -176,61 +179,84 @@ impl<'a> MinorCollector<'a> {
             None
         };
         let prot_timer = &prot_timer;
+        let added_to_remset: Mutex<Vec<Vec<Address>>> = Default::default();
+        let object_write_barrier = self.vm.flags.object_write_barrier;
 
-        self.threadpool.scoped(|scoped| {
-            for (task_id, worker) in workers.into_iter().enumerate() {
-                let injector = &injector;
-                let stealers = &stealers;
-                let terminator = &terminator;
+        {
+            let remset = self.swiper.remset.read();
+            let remset: &[Address] = &*remset;
 
-                scoped.execute(move || {
-                    let mut task = CopyTask {
-                        task_id,
-                        local: Vec::new(),
-                        worker,
-                        injector,
-                        stealers,
-                        terminator,
+            let added_to_remset = &added_to_remset;
 
-                        vm,
-                        heap,
-                        young,
-                        old,
-                        card_table,
-                        crossing_map,
-                        rootset,
-                        barrier,
+            self.threadpool.scoped(|scoped| {
+                for (task_id, worker) in workers.into_iter().enumerate() {
+                    let injector = &injector;
+                    let stealers = &stealers;
+                    let terminator = &terminator;
 
-                        next_root_stride,
-                        strides,
-                        next_large,
+                    scoped.execute(move || {
+                        let mut task = CopyTask {
+                            task_id,
+                            local: Vec::new(),
+                            worker,
+                            injector,
+                            stealers,
+                            terminator,
 
-                        next_old_page_idx,
-                        old_pages,
+                            vm,
+                            heap,
+                            young,
+                            old,
+                            card_table,
+                            crossing_map,
+                            rootset,
+                            barrier,
+                            remset,
+                            added_to_remset: Vec::new(),
+                            object_write_barrier,
 
-                        promoted_size: 0,
-                        copied_size: 0,
-                        traced: 0,
+                            next_root_stride,
+                            next_object_stride,
+                            strides,
+                            next_large,
 
-                        old_lab: Lab::new(),
+                            next_old_page_idx,
+                            old_pages,
 
-                        young_lab: Lab::new(),
+                            promoted_size: 0,
+                            copied_size: 0,
+                            traced: 0,
 
-                        timer: prot_timer,
-                    };
+                            old_lab: Lab::new(),
 
-                    task.run();
+                            young_lab: Lab::new(),
 
-                    if task.promoted_size > 0 {
-                        promoted_size.fetch_add(task.promoted_size, Ordering::Relaxed);
-                    }
+                            timer: prot_timer,
+                        };
 
-                    if task.copied_size > 0 {
-                        copied_size.fetch_add(task.copied_size, Ordering::Relaxed);
-                    }
-                });
-            }
-        });
+                        task.run();
+
+                        if task.promoted_size > 0 {
+                            promoted_size.fetch_add(task.promoted_size, Ordering::Relaxed);
+                        }
+
+                        if task.copied_size > 0 {
+                            copied_size.fetch_add(task.copied_size, Ordering::Relaxed);
+                        }
+
+                        if task.added_to_remset.is_empty() {
+                            let current = std::mem::replace(&mut task.added_to_remset, Vec::new());
+                            added_to_remset.lock().push(current);
+                        }
+                    });
+                }
+            });
+        }
+
+        let added_to_remset = added_to_remset.into_inner();
+        for mut thread_remset in added_to_remset {
+            self.swiper.remset.write().append(&mut thread_remset);
+        }
 
         if let Some(ref mutex) = prot_timer {
             let mut mutex = mutex.lock();
@@ -364,8 +390,12 @@ struct CopyTask<'a> {
     crossing_map: &'a CrossingMap,
     rootset: &'a [Slot],
     barrier: &'a Barrier,
+    object_write_barrier: bool,
+    remset: &'a [Address],
+    added_to_remset: Vec<Address>,
 
     next_root_stride: &'a AtomicUsize,
+    next_object_stride: &'a AtomicUsize,
     strides: usize,
     next_large: &'a Mutex<Option<LargePage>>,
 
@@ -386,7 +416,12 @@ struct CopyTask<'a> {
 impl<'a> CopyTask<'a> {
     fn run(&mut self) {
         self.visit_roots();
-        self.visit_dirty_cards();
+
+        if self.object_write_barrier {
+            self.visit_remembered_objects();
+        } else {
+            self.visit_dirty_cards();
+        }
 
         self.barrier();
 
@@ -436,6 +471,42 @@ impl<'a> CopyTask<'a> {
     fn visit_dirty_cards(&mut self) {
         self.visit_dirty_cards_in_old();
         self.visit_dirty_cards_in_large();
+    }
+
+    fn visit_remembered_objects(&mut self) {
+        while let Some(stride) = self.next_object_stride() {
+            self.visit_remembered_objects_in_stride(stride);
+        }
+    }
+
+    fn next_object_stride(&mut self) -> Option<usize> {
+        let stride = self.next_object_stride.fetch_add(1, Ordering::Relaxed);
+
+        if stride < self.strides {
+            Some(stride)
+        } else {
+            None
+        }
+    }
+
+    fn visit_remembered_objects_in_stride(&mut self, stride: usize) {
+        let remset_stride = self.remset.iter().skip(stride).step_by(self.strides);
+
+        for &object_address in remset_stride {
+            self.visit_remembered_object(object_address);
+        }
+    }
+
+    fn visit_remembered_object(&mut self, object_address: Address) {
+        let object = object_address.to_obj();
+
+        object.visit_reference_fields(|slot| {
+            let pointer = slot.get();
+
+            if self.is_young(pointer) {
+                self.push_slot(slot);
+            }
+        });
     }
 
     fn visit_dirty_cards_in_old(&mut self) {
@@ -564,7 +635,7 @@ impl<'a> CopyTask<'a> {
                     if self.is_young(object) {
                         self.trace_young_object(object);
                     } else {
-                        self.trace_old_object(object);
+                        self.trace_promoted_object(object);
                     }
                 }
             } else if self.terminator.try_terminate() {
@@ -590,13 +661,13 @@ impl<'a> CopyTask<'a> {
         });
     }
 
-    fn trace_old_object(&mut self, object_addr: Address) {
+    fn trace_promoted_object(&mut self, object_addr: Address) {
         let object = object_addr.to_obj();
 
         let mut ref_to_young_gen = false;
 
         object.visit_reference_fields(|slot| {
-            let field_ptr = slot.get();
+            let field_ptr: Address = slot.get();
 
             if self.is_young(field_ptr) {
                 let copied_addr = self.evacuate_object(field_ptr);
@@ -609,8 +680,13 @@ impl<'a> CopyTask<'a> {
         });
 
         if ref_to_young_gen {
-            let card_idx = self.card_table.card_idx(object_addr);
-            self.card_table.set(card_idx, CardEntry::Dirty);
+            if self.object_write_barrier {
+                assert!(object.header().try_set_remembered());
+                self.added_to_remset.push(object_addr);
+            } else {
+                let card_idx = self.card_table.card_idx(object_addr);
+                self.card_table.set(card_idx, CardEntry::Dirty);
+            }
         }
     }
 

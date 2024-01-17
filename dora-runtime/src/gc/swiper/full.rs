@@ -5,7 +5,7 @@ use parking_lot::MutexGuard;
 
 use crate::gc::swiper::controller::FullCollectorPhases;
 use crate::gc::swiper::old::OldGenProtected;
-use crate::gc::swiper::{walk_region, ReadOnlySpace, INITIAL_METADATA_OLD};
+use crate::gc::swiper::{walk_region, ReadOnlySpace, Swiper, INITIAL_METADATA_OLD};
 use crate::gc::swiper::{
     BasePage, CardTable, CrossingMap, LargeSpace, OldGen, RegularPage, YoungGen,
 };
@@ -28,6 +28,7 @@ pub struct FullCollector<'a> {
     card_table: &'a CardTable,
     crossing_map: &'a CrossingMap,
     readonly_space: &'a ReadOnlySpace,
+    swiper: &'a Swiper,
 
     top: Address,
     current_limit: Address,
@@ -44,6 +45,7 @@ pub struct FullCollector<'a> {
 impl<'a> FullCollector<'a> {
     pub fn new(
         vm: &'a VM,
+        swiper: &'a Swiper,
         heap: Region,
         young: &'a YoungGen,
         old: &'a OldGen,
@@ -61,6 +63,7 @@ impl<'a> FullCollector<'a> {
 
         FullCollector {
             vm,
+            swiper,
             heap,
             young,
             old,
@@ -117,6 +120,10 @@ impl<'a> FullCollector<'a> {
         });
 
         self.young.reset_after_full_gc(self.vm);
+
+        if self.vm.flags.object_write_barrier {
+            self.swiper.remset.write().clear();
+        }
     }
 
     fn mark_live(&mut self) {

@@ -335,8 +335,11 @@ impl<'a> BaselineAssembler<'a> {
     }
 
     pub fn emit_write_barrier(&mut self, obj: Reg) {
-        self.emit_card_write_barrier(obj);
-        self.emit_object_write_barrier(obj);
+        if self.vm.flags.object_write_barrier {
+            self.emit_object_write_barrier(obj);
+        } else {
+            self.emit_card_write_barrier(obj);
+        }
     }
 
     fn emit_card_write_barrier(&mut self, src: Reg) {

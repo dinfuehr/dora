@@ -1,4 +1,4 @@
-use parking_lot::Mutex;
+use parking_lot::{Mutex, RwLock};
 use scoped_threadpool::Pool;
 use std::fmt;
 use std::mem::size_of;
@@ -23,7 +23,7 @@ use crate::object::{Obj, MARK_BIT, REMEMBERED_BIT};
 use crate::os::{self, MemoryPermission, Reservation};
 use crate::safepoint;
 use crate::threads::DoraThread;
-use crate::vm::{Flags, VM};
+use crate::vm::{get_vm, Flags, VM};
 
 use super::tlab::{MAX_TLAB_SIZE, MIN_TLAB_SIZE};
 
@@ -86,6 +86,7 @@ pub struct Swiper {
 
     card_table: CardTable,
     crossing_map: CrossingMap,
+    remset: RwLock<Vec<Address>>,
 
     card_table_offset: usize,
 
@@ -197,6 +198,7 @@ impl Swiper {
             card_table,
             crossing_map,
             config,
+            remset: RwLock::new(Vec::new()),
 
             card_table_offset,
 
@@ -307,6 +309,7 @@ impl Swiper {
         {
             let mut collector = FullCollector::new(
                 vm,
+                self,
                 self.heap.clone(),
                 &self.young,
                 &self.old,
@@ -504,6 +507,10 @@ impl Collector for Swiper {
 
     fn setup(&self, vm: &VM) {
         self.young.setup(vm);
+    }
+
+    fn to_swiper(&self) -> &Swiper {
+        self
     }
 }
 
@@ -881,6 +888,12 @@ impl LargePageHeader {
 }
 
 pub extern "C" fn object_write_barrier_slow_path(object_address: Address) {
+    let vm = get_vm();
+    debug_assert!(vm.flags.object_write_barrier);
     let obj = object_address.to_obj();
-    obj.header().try_set_remembered();
+    if obj.header().try_set_remembered() {
+        let swiper = vm.gc.collector.to_swiper();
+        swiper.remset.write().push(object_address);
+    }
+    assert!(obj.header().is_remembered());
 }

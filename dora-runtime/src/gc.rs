@@ -219,6 +219,10 @@ trait Collector {
     fn setup(&self, _vm: &VM) {
         // Do nothing.
     }
+
+    fn to_swiper(&self) -> &Swiper {
+        unimplemented!()
+    }
 }
 
 #[derive(Copy, Clone, PartialEq, Eq, Hash)]
