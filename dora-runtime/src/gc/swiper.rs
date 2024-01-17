@@ -879,3 +879,8 @@ impl LargePageHeader {
         self.size = committed_size;
     }
 }
+
+pub extern "C" fn object_write_barrier_slow_path(object_address: Address) {
+    let obj = object_address.to_obj();
+    obj.header().try_set_remembered();
+}

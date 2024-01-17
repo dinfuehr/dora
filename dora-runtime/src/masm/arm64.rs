@@ -1349,7 +1349,7 @@ impl MacroAssembler {
         );
     }
 
-    pub fn emit_object_write_barrier(&mut self, src: Reg) -> Label {
+    pub fn emit_object_write_barrier_fast_path(&mut self, src: Reg) -> Label {
         let scratch = self.get_scratch();
         self.asm.ldr_imm((*scratch).into(), src.into(), 0);
         let lbl_slow_path = self.asm.create_label();

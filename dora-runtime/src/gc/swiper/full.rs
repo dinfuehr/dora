@@ -193,7 +193,8 @@ impl<'a> FullCollector<'a> {
 
             if object.header().is_marked() {
                 // unmark object for next collection
-                object.header().unmark();
+                object.header().clear_mark();
+                object.header().clear_remembered();
 
                 // keep object
                 false
@@ -222,7 +223,8 @@ impl<'a> FullCollector<'a> {
 
                 if object.header().is_marked() {
                     self.handle_free_region(&mut free_regions, free_start, scan);
-                    object.header().unmark();
+                    object.header().clear_mark();
+                    object.header().clear_remembered();
                     free_start = object_end;
                     live += object_size;
                 }

@@ -334,16 +334,23 @@ impl<'a> BaselineAssembler<'a> {
         self.masm.load_false(dest);
     }
 
-    pub fn emit_card_write_barrier(&mut self, src: Reg, card_table_offset: usize) {
+    pub fn emit_write_barrier(&mut self, obj: Reg) {
+        self.emit_card_write_barrier(obj);
+        self.emit_object_write_barrier(obj);
+    }
+
+    fn emit_card_write_barrier(&mut self, src: Reg) {
+        let card_table_offset = self.vm.gc.card_table_offset();
         self.masm.emit_card_write_barrier(src, card_table_offset);
     }
 
-    pub fn emit_object_write_barrier(&mut self, src: Reg) {
-        let lbl_slow_path = self.masm.emit_object_write_barrier(src);
+    fn emit_object_write_barrier(&mut self, src: Reg) {
+        let lbl_slow_path = self.masm.emit_object_write_barrier_fast_path(src);
         let lbl_return = self.masm.create_and_bind_label();
         self.slow_paths.push(SlowPathKind::ObjectWriteBarrier {
             lbl_start: lbl_slow_path,
             lbl_return,
+            object: src,
         });
     }
 
@@ -1131,8 +1138,9 @@ impl<'a> BaselineAssembler<'a> {
                 SlowPathKind::ObjectWriteBarrier {
                     lbl_start,
                     lbl_return,
+                    object,
                 } => {
-                    self.slow_path_object_write_barrier(lbl_start, lbl_return);
+                    self.slow_path_object_write_barrier(lbl_start, lbl_return, object);
                 }
             }
         }
@@ -1188,10 +1196,13 @@ impl<'a> BaselineAssembler<'a> {
         self.masm.jump(lbl_return);
     }
 
-    fn slow_path_object_write_barrier(&mut self, lbl_start: Label, lbl_return: Label) {
+    fn slow_path_object_write_barrier(&mut self, lbl_start: Label, lbl_return: Label, obj: Reg) {
         self.masm
             .emit_comment("slow path object write barrier".into());
         self.masm.bind_label(lbl_start);
+        self.masm.copy_reg(MachineMode::Ptr, REG_PARAMS[0], obj);
+        let ptr = Address::from_ptr(crate::gc::swiper::object_write_barrier_slow_path as *const u8);
+        self.masm.raw_call(ptr);
         self.masm.jump(lbl_return);
     }
 
@@ -1298,5 +1309,6 @@ enum SlowPathKind {
     ObjectWriteBarrier {
         lbl_start: Label,
         lbl_return: Label,
+        object: Reg,
     },
 }

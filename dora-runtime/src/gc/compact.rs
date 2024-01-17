@@ -251,7 +251,7 @@ impl<'a> MarkCompact<'a> {
 
                 // unmark object for next collection
                 let dest_obj = dest.to_obj();
-                dest_obj.header().unmark();
+                dest_obj.header().clear_mark();
             }
         });
     }

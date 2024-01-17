@@ -216,7 +216,7 @@ impl<'a> MarkSweep<'a> {
             if object.header().is_marked() {
                 self.add_freelist(garbage_start, scan);
                 garbage_start = Address::null();
-                object.header().unmark();
+                object.header().clear_mark();
             } else if garbage_start.is_non_null() {
                 // more garbage, do nothing
             } else {

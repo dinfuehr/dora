@@ -58,7 +58,7 @@ impl MetadataWord {
         self.set_raw(value | MARK_BIT);
     }
 
-    fn unmark(&self) {
+    fn clear_mark(&self) {
         let value = self.raw();
         self.set_raw(value & !MARK_BIT);
     }
@@ -78,6 +78,16 @@ impl MetadataWord {
 
     fn is_remembered(&self) -> bool {
         (self.raw() & REMEMBERED_BIT) != 0
+    }
+
+    fn try_set_remembered(&self) -> bool {
+        let old_value = self.0.fetch_or(REMEMBERED_BIT, Ordering::Relaxed);
+        (old_value & REMEMBERED_BIT) == 0
+    }
+
+    fn clear_remembered(&self) {
+        let value = self.raw();
+        self.set_raw(value & !REMEMBERED_BIT);
     }
 }
 
@@ -218,8 +228,8 @@ impl Header {
     }
 
     #[inline(always)]
-    pub fn unmark(&self) {
-        self.metadata.unmark();
+    pub fn clear_mark(&self) {
+        self.metadata.clear_mark();
     }
 
     #[inline(always)]
@@ -230,6 +240,16 @@ impl Header {
     #[inline(always)]
     pub fn is_remembered(&self) -> bool {
         self.metadata.is_remembered()
+    }
+
+    #[inline(always)]
+    pub fn try_set_remembered(&self) -> bool {
+        self.metadata.try_set_remembered()
+    }
+
+    #[inline(always)]
+    pub fn clear_remembered(&self) {
+        self.metadata.clear_remembered();
     }
 
     #[inline(always)]
@@ -860,7 +880,7 @@ mod tests {
         h.set_metadata_fwdptr(32.into());
         assert_eq!(true, h.is_marked());
         assert_eq!(32, h.metadata_fwdptr().to_usize());
-        h.unmark();
+        h.clear_mark();
         assert_eq!(false, h.is_marked());
         assert_eq!(32, h.metadata_fwdptr().to_usize());
     }

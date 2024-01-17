@@ -1075,7 +1075,7 @@ impl MacroAssembler {
         }
     }
 
-    pub fn emit_object_write_barrier(&mut self, src: Reg) -> Label {
+    pub fn emit_object_write_barrier_fast_path(&mut self, src: Reg) -> Label {
         self.asm
             .testq_ai(AsmAddress::offset(src.into(), 0), Immediate(2));
         let lbl_slow_path = self.asm.create_label();
