@@ -504,7 +504,7 @@ impl<'a> CopyTask<'a> {
             let pointer = slot.get();
 
             if self.is_young(pointer) {
-                self.push_slot(slot);
+                slot.set(self.evacuate_object(pointer));
             }
         });
     }
