@@ -1079,7 +1079,7 @@ impl MacroAssembler {
         self.asm
             .testq_ai(AsmAddress::offset(src.into(), 0), Immediate(2));
         let lbl_slow_path = self.asm.create_label();
-        self.asm.jcc(Condition::NotZero, lbl_slow_path);
+        self.asm.jcc(Condition::Zero, lbl_slow_path);
         lbl_slow_path
     }
 

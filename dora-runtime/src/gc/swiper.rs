@@ -338,6 +338,7 @@ impl Swiper {
         if vm.flags.gc_verify {
             let mut verifier = Verifier::new(
                 vm,
+                self,
                 self.heap,
                 &self.young,
                 &self.old,

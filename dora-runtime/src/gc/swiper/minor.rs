@@ -244,7 +244,7 @@ impl<'a> MinorCollector<'a> {
                             copied_size.fetch_add(task.copied_size, Ordering::Relaxed);
                         }
 
-                        if task.added_to_remset.is_empty() {
+                        if !task.added_to_remset.is_empty() {
                             let current = std::mem::replace(&mut task.added_to_remset, Vec::new());
                             added_to_remset.lock().push(current);
                         }

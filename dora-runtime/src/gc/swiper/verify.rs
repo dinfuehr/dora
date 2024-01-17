@@ -1,4 +1,5 @@
 use parking_lot::MutexGuard;
+use std::collections::HashSet;
 use std::fmt;
 
 use crate::gc::root::Slot;
@@ -8,7 +9,7 @@ use crate::gc::swiper::large::LargeSpace;
 use crate::gc::swiper::old::{OldGen, OldGenProtected};
 use crate::gc::swiper::young::YoungGen;
 use crate::gc::swiper::{on_different_cards, BasePage};
-use crate::gc::swiper::{LargePage, ReadOnlySpace, RegularPage, CARD_SIZE};
+use crate::gc::swiper::{LargePage, ReadOnlySpace, RegularPage, Swiper, CARD_SIZE};
 use crate::gc::{Address, Region};
 
 use crate::mem;
@@ -70,6 +71,7 @@ impl fmt::Display for VerifierPhase {
 
 pub struct Verifier<'a> {
     vm: &'a VM,
+    swiper: &'a Swiper,
     young: &'a YoungGen,
     old: &'a OldGen,
     old_protected: MutexGuard<'a, OldGenProtected>,
@@ -78,6 +80,7 @@ pub struct Verifier<'a> {
     rootset: &'a [Slot],
     large: &'a LargeSpace,
     readonly_space: &'a ReadOnlySpace,
+    minimum_remset: Vec<Address>,
 
     heap: Region,
 
@@ -87,6 +90,7 @@ pub struct Verifier<'a> {
 impl<'a> Verifier<'a> {
     pub fn new(
         vm: &'a VM,
+        swiper: &'a Swiper,
         heap: Region,
         young: &'a YoungGen,
         old: &'a OldGen,
@@ -101,6 +105,7 @@ impl<'a> Verifier<'a> {
 
         Verifier {
             vm,
+            swiper,
             young,
             old,
             old_protected,
@@ -109,6 +114,7 @@ impl<'a> Verifier<'a> {
             rootset,
             readonly_space,
             large,
+            minimum_remset: Vec::new(),
 
             heap,
 
@@ -119,6 +125,7 @@ impl<'a> Verifier<'a> {
     pub fn verify(&mut self) {
         self.verify_roots();
         self.verify_heap();
+        self.verify_remembered_set();
     }
 
     fn verify_heap(&mut self) {
@@ -173,7 +180,30 @@ impl<'a> Verifier<'a> {
         }
     }
 
-    fn verify_page(&self, page: RegularPage) {
+    fn verify_remembered_set(&self) {
+        if !self.vm.flags.object_write_barrier {
+            return;
+        }
+
+        let remset = self.swiper.remset.read();
+
+        if self.phase.is_post_full() {
+            assert!(remset.is_empty());
+        }
+
+        let mut remset_as_set = HashSet::new();
+
+        for &object in remset.iter() {
+            assert!(!BasePage::from_address(object).is_young());
+            remset_as_set.insert(object);
+        }
+
+        for object in &self.minimum_remset {
+            assert!(remset_as_set.contains(object));
+        }
+    }
+
+    fn verify_page(&mut self, page: RegularPage) {
         let region = page.object_area();
         let mut curr = region.start;
         let mut refs_to_young_gen = 0;
@@ -224,7 +254,7 @@ impl<'a> Verifier<'a> {
         assert_eq!(refs_to_young_gen, 0);
     }
 
-    fn verify_large_page(&self, page: LargePage) {
+    fn verify_large_page(&mut self, page: LargePage) {
         let mut refs_to_young_gen = 0;
         self.verify_object(
             page.as_base_page(),
@@ -235,7 +265,7 @@ impl<'a> Verifier<'a> {
     }
 
     fn verify_object(
-        &self,
+        &mut self,
         page: BasePage,
         object_address: Address,
         refs_to_young_gen: &mut usize,
@@ -260,6 +290,7 @@ impl<'a> Verifier<'a> {
 
         if self.vm.flags.object_write_barrier && object_has_young_ref && !page.is_young() {
             assert!(object.header().is_remembered());
+            self.minimum_remset.push(object_address);
         }
     }
 
