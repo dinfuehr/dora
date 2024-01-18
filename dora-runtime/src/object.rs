@@ -25,10 +25,6 @@ pub struct Header {
     metadata: MetadataWord,
 }
 
-const GC_BITS: usize = 3;
-const GC_BITS_MASK: usize = (1 << GC_BITS) - 1;
-const FWDPTR_MASK: usize = !GC_BITS_MASK;
-
 #[repr(C)]
 struct MetadataWord {
     is_marked: AtomicBool,

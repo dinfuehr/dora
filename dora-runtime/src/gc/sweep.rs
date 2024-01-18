@@ -210,12 +210,6 @@ impl<'a> MarkSweep<'a> {
 
         while scan < end {
             let object = scan.to_obj();
-
-            if object.header().raw_vtblptr().is_null() {
-                scan = scan.add_ptr(1);
-                continue;
-            }
-
             let object_size = object.size();
 
             if object.header().is_marked() {
