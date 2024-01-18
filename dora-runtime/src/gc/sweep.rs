@@ -181,7 +181,12 @@ impl<'a> MarkSweep<'a> {
     }
 
     fn mark(&mut self) {
-        marking::start(self.rootset, self.heap, self.readonly_space.total());
+        marking::start(
+            self.vm,
+            self.rootset,
+            self.heap,
+            self.readonly_space.total(),
+        );
     }
 
     fn iterate_weak_refs(&mut self) {

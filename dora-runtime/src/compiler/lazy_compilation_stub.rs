@@ -389,7 +389,7 @@ fn lazy_compile(ra: usize, receiver1: Address, receiver2: Address) -> Address {
 }
 
 fn patch_lambda_call(vm: &VM, receiver: Handle<Obj>) -> Address {
-    let vtable = receiver.header().vtbl();
+    let vtable = receiver.header().vtbl(vm.meta_space_start());
     let class_instance = vtable.class_instance();
 
     let (lambda_id, type_params) = match &class_instance.kind {
@@ -412,7 +412,7 @@ fn patch_virtual_call(
     vtable_index: u32,
     type_params: &BytecodeTypeArray,
 ) -> Address {
-    let vtable = receiver.header().vtbl();
+    let vtable = receiver.header().vtbl(vm.meta_space_start());
     let class_instance = vtable.class_instance();
 
     let fct_ptr = match &class_instance.kind {

@@ -344,7 +344,7 @@ fn thread_main(thread: &DoraThread, thread_location: Address, runner_location: A
     // before we dereference handle.
     thread.unpark(vm);
 
-    let vtable = runner_handle.header().vtbl();
+    let vtable = runner_handle.header().vtbl(vm.meta_space_start());
     let class_instance = vtable.class_instance();
 
     let (lambda_id, type_params) = match &class_instance.kind {

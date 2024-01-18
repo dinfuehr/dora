@@ -172,7 +172,12 @@ impl<'a> MarkCompact<'a> {
     }
 
     fn mark_live(&mut self) {
-        marking::start(self.rootset, self.heap, self.readonly_space.total());
+        marking::start(
+            self.vm,
+            self.rootset,
+            self.heap,
+            self.readonly_space.total(),
+        );
     }
 
     fn compute_forward(&mut self) {
@@ -199,7 +204,7 @@ impl<'a> MarkCompact<'a> {
     fn update_references(&mut self) {
         self.walk_heap(|mc, object, _addr, _object_size| {
             if object.header().is_marked() {
-                object.visit_reference_fields(|field| {
+                object.visit_reference_fields(mc.vm.meta_space_start(), |field| {
                     mc.forward_reference(field);
                 });
             }

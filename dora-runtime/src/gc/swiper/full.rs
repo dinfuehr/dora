@@ -127,7 +127,7 @@ impl<'a> FullCollector<'a> {
     }
 
     fn mark_live(&mut self) {
-        marking(self.rootset);
+        marking(self.vm, self.rootset);
 
         iterate_weak_roots(self.vm, |object_address| {
             let obj = object_address.to_obj();
@@ -141,9 +141,11 @@ impl<'a> FullCollector<'a> {
     }
 
     fn update_references(&mut self) {
+        let meta_space_start = self.vm.meta_space_start();
+
         for page in self.old_protected.pages() {
             walk_region(self.vm, page.object_area(), |object, _addr, _size| {
-                object.visit_reference_fields(|field| {
+                object.visit_reference_fields(meta_space_start, |field| {
                     self.forward_reference(field);
                 });
             });
@@ -160,7 +162,7 @@ impl<'a> FullCollector<'a> {
         self.large_space.iterate_pages(|page| {
             let object = page.object_address().to_obj();
 
-            object.visit_reference_fields(|field| {
+            object.visit_reference_fields(meta_space_start, |field| {
                 self.forward_reference(field);
             });
         });
@@ -305,7 +307,7 @@ impl<'a> FullCollector<'a> {
     fn forward_object(&mut self, object_address: Address) -> Option<Address> {
         if self.heap.contains(object_address) {
             let object = object_address.to_obj();
-            let vtblptr = object.header().vtblptr();
+            let vtblptr = object.header().vtblptr(self.vm.meta_space_start());
 
             if let VtblptrWordKind::Fwdptr(address) = vtblptr {
                 Some(address)
@@ -335,8 +337,9 @@ impl<'a> FullCollector<'a> {
     }
 }
 
-pub fn marking(rootset: &[Slot]) {
+pub fn marking(vm: &VM, rootset: &[Slot]) {
     let mut marking_stack: Vec<Address> = Vec::new();
+    let meta_space_start = vm.meta_space_start();
 
     for root in rootset {
         let object = root.get();
@@ -357,7 +360,7 @@ pub fn marking(rootset: &[Slot]) {
         debug_assert!(!BasePage::from_address(address).is_readonly());
         let object = address.to_obj();
 
-        object.visit_reference_fields(|field| {
+        object.visit_reference_fields(meta_space_start, |field| {
             let referenced = field.get();
 
             if referenced.is_null() {
@@ -390,21 +393,21 @@ pub fn verify_marking(
     }
 
     large.iterate_pages(|page| {
-        verify_marking_object(page.object_address(), heap);
+        verify_marking_object(vm, page.object_address(), heap);
     });
 }
 
 fn verify_marking_region(vm: &VM, region: Region, heap: Region) {
     walk_region(vm, region, |_obj, obj_address, _size| {
-        verify_marking_object(obj_address, heap);
+        verify_marking_object(vm, obj_address, heap);
     });
 }
 
-fn verify_marking_object(obj_address: Address, heap: Region) {
+fn verify_marking_object(vm: &VM, obj_address: Address, heap: Region) {
     let obj = obj_address.to_obj();
 
     if obj.header().is_marked() {
-        obj.visit_reference_fields(|field| {
+        obj.visit_reference_fields(vm.meta_space_start(), |field| {
             let object_addr = field.get();
 
             if heap.contains(object_addr) {

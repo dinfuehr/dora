@@ -1,7 +1,8 @@
 use crate::gc::root::Slot;
 use crate::gc::{Address, Region};
+use crate::vm::VM;
 
-pub fn start(rootset: &[Slot], heap: Region, perm: Region) {
+pub fn start(vm: &VM, rootset: &[Slot], heap: Region, perm: Region) {
     let mut marking_stack: Vec<Address> = Vec::new();
 
     for root in rootset {
@@ -23,7 +24,7 @@ pub fn start(rootset: &[Slot], heap: Region, perm: Region) {
         let object_addr = marking_stack.pop().expect("stack already empty");
         let object = object_addr.to_obj();
 
-        object.visit_reference_fields(|field| {
+        object.visit_reference_fields(vm.meta_space_start(), |field| {
             let field_addr = field.get();
 
             if heap.contains(field_addr) {

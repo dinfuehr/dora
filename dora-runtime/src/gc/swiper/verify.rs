@@ -271,7 +271,6 @@ impl<'a> Verifier<'a> {
         refs_to_young_gen: &mut usize,
     ) {
         let object = object_address.to_obj();
-        assert!(object.header().metadata_fwdptr().is_null());
         assert_eq!(object.header().is_marked(), page.is_readonly());
 
         if self.phase.is_post_full() {
@@ -282,7 +281,7 @@ impl<'a> Verifier<'a> {
 
         let mut object_has_young_ref = false;
 
-        object.visit_reference_fields(|child| {
+        object.visit_reference_fields(self.vm.meta_space_start(), |child| {
             if self.verify_slot(child, object_address, refs_to_young_gen) {
                 object_has_young_ref = true;
             }

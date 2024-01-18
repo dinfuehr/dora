@@ -182,6 +182,10 @@ impl Gc {
     pub fn initial_metadata_value(&self, size: usize, is_readonly: bool) -> usize {
         self.collector.initial_metadata_value(size, is_readonly)
     }
+
+    pub fn meta_space_start(&self) -> Address {
+        self.meta_space.start()
+    }
 }
 
 trait Collector {

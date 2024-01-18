@@ -26,7 +26,7 @@ impl MetaSpace {
         MetaSpace {
             total: Region::new(space_start, space_end),
 
-            allocate: Mutex::new(space_start),
+            allocate: Mutex::new(space_start.add_ptr(1)),
             reservation,
         }
     }

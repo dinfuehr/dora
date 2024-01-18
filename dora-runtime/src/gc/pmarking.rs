@@ -9,8 +9,9 @@ use scoped_threadpool::Pool;
 
 use crate::gc::root::Slot;
 use crate::gc::{Address, Region};
+use crate::vm::VM;
 
-pub fn start(rootset: &[Slot], heap: Region, perm: Region, threadpool: &mut Pool) {
+pub fn start(vm: &VM, rootset: &[Slot], heap: Region, perm: Region, threadpool: &mut Pool) {
     let number_workers = threadpool.thread_count() as usize;
     let mut workers = Vec::with_capacity(number_workers);
     let mut stealers = Vec::with_capacity(number_workers);
@@ -48,6 +49,7 @@ pub fn start(rootset: &[Slot], heap: Region, perm: Region, threadpool: &mut Pool
             let injector = &injector;
             let stealers = &stealers;
             let terminator = &terminator;
+            let meta_space_start = vm.meta_space_start();
 
             scoped.execute(move || {
                 let mut task = MarkingTask {
@@ -60,6 +62,7 @@ pub fn start(rootset: &[Slot], heap: Region, perm: Region, threadpool: &mut Pool
                     heap_region,
                     perm_region,
                     marked: 0,
+                    meta_space_start,
                 };
 
                 task.run();
@@ -139,6 +142,7 @@ struct MarkingTask<'a> {
     heap_region: Region,
     perm_region: Region,
     marked: usize,
+    meta_space_start: Address,
 }
 
 impl<'a> MarkingTask<'a> {
@@ -217,7 +221,7 @@ impl<'a> MarkingTask<'a> {
 
             let object = object_addr.to_obj();
 
-            object.visit_reference_fields(|field| {
+            object.visit_reference_fields(self.meta_space_start, |field| {
                 self.trace(field);
             });
         }

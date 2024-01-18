@@ -173,7 +173,7 @@ impl Header {
     }
 
     #[inline(always)]
-    pub fn vtbl(&self) -> &mut VTable {
+    pub fn vtbl(&self, _meta_space_start: Address) -> &mut VTable {
         unsafe { &mut *self.raw_vtblptr().to_mut_ptr::<VTable>() }
     }
 
@@ -183,7 +183,7 @@ impl Header {
     }
 
     #[inline(always)]
-    pub fn set_vtblptr(&self, addr: Address) {
+    pub fn set_vtblptr(&self, addr: Address, _meta_space_start: Address) {
         self.vtable.set_raw(addr.to_usize());
     }
 
@@ -193,7 +193,7 @@ impl Header {
     }
 
     #[inline(always)]
-    pub fn vtblptr(&self) -> VtblptrWordKind {
+    pub fn vtblptr(&self, _meta_space_start: Address) -> VtblptrWordKind {
         self.vtable.load()
     }
 
@@ -296,11 +296,11 @@ impl Obj {
         self.size_for_vtblptr(self.header().raw_vtblptr())
     }
 
-    pub fn visit_reference_fields<F>(&self, f: F)
+    pub fn visit_reference_fields<F>(&self, meta_space_start: Address, f: F)
     where
         F: FnMut(Slot),
     {
-        let classptr = self.header().vtbl().class_instance_ptr;
+        let classptr = self.header().vtbl(meta_space_start).class_instance_ptr;
         let cls = unsafe { &*classptr };
 
         visit_refs(self.address(), cls, None, f);
@@ -653,9 +653,10 @@ fn byte_array_alloc_heap(vm: &VM, len: usize) -> Ref<UInt8Array> {
     let vtable = cls.vtable.read();
     let vtable: &VTable = vtable.as_ref().unwrap();
     let mut handle: Ref<UInt8Array> = ptr.into();
-    handle
-        .header_mut()
-        .set_vtblptr(Address::from_ptr(vtable as *const VTable));
+    handle.header_mut().set_vtblptr(
+        Address::from_ptr(vtable as *const VTable),
+        vm.meta_space_start(),
+    );
     handle
         .header_mut()
         .set_metadata_raw(vm.gc.initial_metadata_value(size, false));
@@ -688,9 +689,10 @@ where
     let vtable = cls.vtable.read();
     let vtable: &VTable = vtable.as_ref().unwrap();
     let handle: Ref<Str> = ptr.into();
-    handle
-        .header()
-        .set_vtblptr(Address::from_ptr(vtable as *const VTable));
+    handle.header().set_vtblptr(
+        Address::from_ptr(vtable as *const VTable),
+        vm.meta_space_start(),
+    );
     handle
         .header()
         .set_metadata_raw(vm.gc.initial_metadata_value(size, is_readonly));
@@ -795,9 +797,10 @@ where
         let vtable = cls.vtable.read();
         let vtable: &VTable = vtable.as_ref().unwrap();
         let mut handle: Ref<Array<T>> = ptr.into();
-        handle
-            .header_mut()
-            .set_vtblptr(Address::from_ptr(vtable as *const VTable));
+        handle.header_mut().set_vtblptr(
+            Address::from_ptr(vtable as *const VTable),
+            vm.meta_space_start(),
+        );
         handle
             .header_mut()
             .set_metadata_raw(vm.gc.initial_metadata_value(size, false));
@@ -839,7 +842,9 @@ pub fn alloc(vm: &VM, clsid: ClassInstanceId) -> Ref<Obj> {
     let vtable = cls_def.vtable.read();
     let vtable: &VTable = vtable.as_ref().unwrap();
     let object: Ref<Obj> = ptr.into();
-    object.header().set_vtblptr(Address::from_ptr(vtable));
+    object
+        .header()
+        .set_vtblptr(Address::from_ptr(vtable), vm.meta_space_start());
     object
         .header()
         .set_metadata_raw(vm.gc.initial_metadata_value(size, false));

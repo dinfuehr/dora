@@ -276,7 +276,9 @@ impl<'a> MinorCollector<'a> {
                 if page.is_young() {
                     let obj = object_address.to_obj();
 
-                    if let VtblptrWordKind::Fwdptr(fwdptr) = obj.header().vtblptr() {
+                    if let VtblptrWordKind::Fwdptr(fwdptr) =
+                        obj.header().vtblptr(self.vm.meta_space_start())
+                    {
                         Some(fwdptr)
                     } else {
                         None
@@ -500,7 +502,7 @@ impl<'a> CopyTask<'a> {
     fn visit_remembered_object(&mut self, object_address: Address) {
         let object = object_address.to_obj();
 
-        object.visit_reference_fields(|slot| {
+        object.visit_reference_fields(self.vm.meta_space_start(), |slot| {
             let pointer = slot.get();
 
             if self.is_young(pointer) {
@@ -563,14 +565,16 @@ impl<'a> CopyTask<'a> {
             return;
         }
 
-        object_start.to_obj().visit_reference_fields(|slot| {
-            let pointer = slot.get();
+        object_start
+            .to_obj()
+            .visit_reference_fields(self.vm.meta_space_start(), |slot| {
+                let pointer = slot.get();
 
-            if self.is_young(pointer) {
-                self.push_slot(slot);
-                ref_to_young_gen = true;
-            }
-        });
+                if self.is_young(pointer) {
+                    self.push_slot(slot);
+                    ref_to_young_gen = true;
+                }
+            });
 
         self.clean_card_if_no_young_refs(card_idx, ref_to_young_gen);
     }
@@ -599,7 +603,7 @@ impl<'a> CopyTask<'a> {
             if object.is_filler(self.vm) {
                 ptr = ptr.offset(object.size());
             } else {
-                object.visit_reference_fields(|slot| {
+                object.visit_reference_fields(self.vm.meta_space_start(), |slot| {
                     let pointer = slot.get();
 
                     if self.is_young(pointer) {
@@ -652,7 +656,7 @@ impl<'a> CopyTask<'a> {
     fn trace_young_object(&mut self, object_addr: Address) {
         let object = object_addr.to_obj();
 
-        object.visit_reference_fields(|slot| {
+        object.visit_reference_fields(self.vm.meta_space_start(), |slot| {
             let pointer = slot.get();
 
             if self.is_young(pointer) {
@@ -666,7 +670,7 @@ impl<'a> CopyTask<'a> {
 
         let mut ref_to_young_gen = false;
 
-        object.visit_reference_fields(|slot| {
+        object.visit_reference_fields(self.vm.meta_space_start(), |slot| {
             let field_ptr: Address = slot.get();
 
             if self.is_young(field_ptr) {
@@ -818,7 +822,7 @@ impl<'a> CopyTask<'a> {
         let obj = obj_addr.to_obj();
 
         // Check if object was already copied
-        let vtblptr = match obj.header().vtblptr() {
+        let vtblptr = match obj.header().vtblptr(self.vm.meta_space_start()) {
             VtblptrWordKind::Fwdptr(fwd_addr) => {
                 return fwd_addr;
             }

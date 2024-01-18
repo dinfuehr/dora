@@ -317,6 +317,10 @@ impl VM {
             &BytecodeTypeArray::empty(),
         )
     }
+
+    pub fn meta_space_start(&self) -> Address {
+        self.gc.meta_space_start()
+    }
 }
 
 impl Drop for VM {

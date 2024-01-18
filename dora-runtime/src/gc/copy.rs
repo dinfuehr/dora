@@ -163,18 +163,18 @@ impl CopyCollector {
             let root_ptr = root.get();
 
             if from_space.contains(root_ptr) {
-                root.set(self.copy(root_ptr, &mut top));
+                root.set(self.copy(vm, root_ptr, &mut top));
             }
         });
 
         while scan < top {
             let object: &Obj = scan.to_obj();
 
-            object.visit_reference_fields(|field| {
+            object.visit_reference_fields(vm.meta_space_start(), |field| {
                 let field_ptr = field.get();
 
                 if from_space.contains(field_ptr) {
-                    field.set(self.copy(field_ptr, &mut top));
+                    field.set(self.copy(vm, field_ptr, &mut top));
                 }
             });
 
@@ -217,7 +217,9 @@ impl CopyCollector {
             debug_assert!(self.from_space().contains(current_address));
             let obj = current_address.to_obj();
 
-            if let VtblptrWordKind::Fwdptr(new_address) = obj.header().vtblptr() {
+            if let VtblptrWordKind::Fwdptr(new_address) =
+                obj.header().vtblptr(vm.meta_space_start())
+            {
                 debug_assert!(self.to_space().contains(new_address));
                 Some(new_address)
             } else {
@@ -226,10 +228,10 @@ impl CopyCollector {
         })
     }
 
-    fn copy(&self, obj_addr: Address, top: &mut Address) -> Address {
+    fn copy(&self, vm: &VM, obj_addr: Address, top: &mut Address) -> Address {
         let obj = obj_addr.to_obj();
 
-        if let VtblptrWordKind::Fwdptr(fwd) = obj.header().vtblptr() {
+        if let VtblptrWordKind::Fwdptr(fwd) = obj.header().vtblptr(vm.meta_space_start()) {
             return fwd;
         }
 
