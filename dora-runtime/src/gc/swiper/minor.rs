@@ -11,8 +11,7 @@ use crate::gc::swiper::large::LargeSpace;
 use crate::gc::swiper::old::OldGen;
 use crate::gc::swiper::young::YoungGen;
 use crate::gc::swiper::{
-    BasePage, CardIdx, LargePage, RegularPage, Swiper, CARD_SIZE, INITIAL_METADATA_OLD,
-    LARGE_OBJECT_SIZE,
+    BasePage, CardIdx, LargePage, RegularPage, Swiper, CARD_SIZE, LARGE_OBJECT_SIZE,
 };
 use crate::gc::tlab::{MAX_TLAB_OBJECT_SIZE, MAX_TLAB_SIZE, MIN_TLAB_SIZE};
 use crate::gc::{
@@ -685,7 +684,7 @@ impl<'a> CopyTask<'a> {
 
         if ref_to_young_gen {
             if self.object_write_barrier {
-                assert!(object.header().try_set_remembered());
+                object.header().set_remembered();
                 self.added_to_remset.push(object_addr);
             } else {
                 let card_idx = self.card_table.card_idx(object_addr);
@@ -885,10 +884,7 @@ impl<'a> CopyTask<'a> {
         }
 
         obj.copy_to(copy_addr, obj_size);
-        copy_addr
-            .to_obj()
-            .header()
-            .set_metadata_raw(INITIAL_METADATA_OLD);
+        copy_addr.to_obj().header().set_metadata_raw(false, false);
         let res = obj.header().try_install_fwdptr(vtblptr, copy_addr);
 
         match res {

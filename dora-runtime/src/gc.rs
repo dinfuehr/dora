@@ -7,7 +7,6 @@ use std::sync::Arc;
 
 use crate::gc::allocator::GenerationAllocator;
 use crate::gc::code::CodeSpace;
-use crate::gc::compact::MarkCompactCollector;
 use crate::gc::copy::CopyCollector;
 use crate::gc::metaspace::MetaSpace;
 use crate::gc::space::{default_readonly_space_config, Space};
@@ -29,7 +28,6 @@ use self::swiper::PAGE_SIZE;
 pub mod allocator;
 pub mod bump;
 pub mod code;
-pub mod compact;
 pub mod copy;
 pub mod freelist;
 pub mod marking;
@@ -66,7 +64,6 @@ impl Gc {
 
         let collector: Box<dyn Collector + Sync> = match collector_name {
             CollectorName::Zero => Box::new(ZeroCollector::new(args)),
-            CollectorName::Compact => Box::new(MarkCompactCollector::new(args)),
             CollectorName::Copy => Box::new(CopyCollector::new(args)),
             CollectorName::Sweep => Box::new(SweepCollector::new(args)),
             CollectorName::Swiper => Box::new(Swiper::new(args)),
@@ -179,7 +176,7 @@ impl Gc {
         self.code_space.drop_all_native_code_objects();
     }
 
-    pub fn initial_metadata_value(&self, size: usize, is_readonly: bool) -> usize {
+    pub fn initial_metadata_value(&self, size: usize, is_readonly: bool) -> (bool, bool) {
         self.collector.initial_metadata_value(size, is_readonly)
     }
 
@@ -207,8 +204,8 @@ trait Collector {
         false
     }
 
-    fn initial_metadata_value(&self, _size: usize, _is_readonly: bool) -> usize {
-        0
+    fn initial_metadata_value(&self, _size: usize, _is_readonly: bool) -> (bool, bool) {
+        (false, false)
     }
 
     // gives true when collector supports tlab allocation.

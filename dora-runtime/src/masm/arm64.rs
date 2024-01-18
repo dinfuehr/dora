@@ -967,7 +967,7 @@ impl MacroAssembler {
     pub fn compute_initial_metadata_value(&mut self, dest: Reg, size: Reg) {
         self.asm.cmp_imm(size.into(), LARGE_OBJECT_SIZE as u32);
         self.asm.cset(dest.into(), Cond::LS);
-        self.asm.lsl_imm(dest.into(), dest.into(), 1);
+        self.asm.lsl_imm(dest.into(), dest.into(), 8);
     }
 
     pub fn array_address(&mut self, dest: Reg, obj: Reg, index: Reg, element_size: i32) {

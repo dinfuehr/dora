@@ -19,7 +19,7 @@ use crate::gc::swiper::verify::{Verifier, VerifierPhase};
 use crate::gc::swiper::young::YoungGen;
 use crate::gc::{tlab, Address, Collector, GcReason, Region, K};
 use crate::mem;
-use crate::object::{Obj, MARK_BIT, REMEMBERED_BIT};
+use crate::object::Obj;
 use crate::os::{self, MemoryPermission, Reservation};
 use crate::safepoint;
 use crate::threads::DoraThread;
@@ -52,11 +52,6 @@ pub const CARD_REFS: usize = CARD_SIZE / size_of::<usize>();
 pub const LARGE_OBJECT_SIZE: usize = 32 * K;
 pub const PAGE_SIZE: usize = 64 * K;
 pub const PAGE_HEADER_SIZE: usize = CARD_SIZE;
-
-pub const INITIAL_METADATA_YOUNG: usize = REMEMBERED_BIT;
-pub const INITIAL_METADATA_OLD: usize = 0;
-pub const INITIAL_METADATA_LARGE: usize = 0;
-pub const INITIAL_METADATA_READONLY: usize = MARK_BIT;
 
 /// round the given value up to the nearest multiple of a generation
 pub fn align_page_up(value: usize) -> usize {
@@ -426,14 +421,14 @@ impl Collector for Swiper {
         true
     }
 
-    fn initial_metadata_value(&self, size: usize, is_readonly: bool) -> usize {
+    fn initial_metadata_value(&self, size: usize, is_readonly: bool) -> (bool, bool) {
         if is_readonly {
             assert!(size < LARGE_OBJECT_SIZE);
-            INITIAL_METADATA_READONLY
+            (true, false)
         } else if size < LARGE_OBJECT_SIZE {
-            INITIAL_METADATA_YOUNG
+            (false, true)
         } else {
-            INITIAL_METADATA_LARGE
+            (false, false)
         }
     }
 
@@ -892,9 +887,8 @@ pub extern "C" fn object_write_barrier_slow_path(object_address: Address) {
     let vm = get_vm();
     debug_assert!(vm.flags.object_write_barrier);
     let obj = object_address.to_obj();
-    if obj.header().try_set_remembered() {
-        let swiper = vm.gc.collector.to_swiper();
-        swiper.remset.write().push(object_address);
-    }
+    obj.header().set_remembered();
+    let swiper = vm.gc.collector.to_swiper();
+    swiper.remset.write().push(object_address);
     assert!(obj.header().is_remembered());
 }

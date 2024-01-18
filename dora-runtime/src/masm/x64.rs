@@ -909,7 +909,7 @@ impl MacroAssembler {
         self.asm
             .cmpq_ri(size.into(), Immediate(LARGE_OBJECT_SIZE as i64));
         self.asm.setcc_r(Condition::Below, dest.into());
-        self.asm.shll_ri(dest.into(), Immediate(1));
+        self.asm.shll_ri(dest.into(), Immediate(8));
     }
 
     pub fn array_address(&mut self, dest: Reg, obj: Reg, index: Reg, element_size: i32) {

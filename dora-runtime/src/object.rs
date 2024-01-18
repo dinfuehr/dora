@@ -5,7 +5,7 @@ use std::ops::{Deref, DerefMut};
 use std::ptr;
 use std::slice;
 use std::str;
-use std::sync::atomic::{AtomicUsize, Ordering};
+use std::sync::atomic::{AtomicBool, AtomicUsize, Ordering};
 
 use crate::gc::root::Slot;
 use crate::gc::{Address, Region};
@@ -29,70 +29,56 @@ const GC_BITS: usize = 3;
 const GC_BITS_MASK: usize = (1 << GC_BITS) - 1;
 const FWDPTR_MASK: usize = !GC_BITS_MASK;
 
-pub const MARK_BIT: usize = 1 << 0;
-pub const REMEMBERED_BIT: usize = 1 << 1;
-
-struct MetadataWord(AtomicUsize);
+#[repr(C)]
+struct MetadataWord {
+    is_marked: AtomicBool,
+    is_remembered: AtomicBool,
+    _padding1: u16,
+    _padding2: u32,
+}
 
 impl MetadataWord {
-    fn raw(&self) -> usize {
-        self.0.load(Ordering::Relaxed)
+    fn compute_word(is_marked: bool, is_remembered: bool) -> u32 {
+        is_marked as u32 | (is_remembered as u32) << 8
     }
 
-    fn set_raw(&self, value: usize) {
-        self.0.store(value, Ordering::Relaxed);
-    }
-
-    fn fwdptr(&self) -> Address {
-        (self.raw() & FWDPTR_MASK).into()
-    }
-
-    fn set_fwdptr(&self, value: Address) {
-        debug_assert_eq!(value.to_usize() & GC_BITS_MASK, 0);
-        let current = self.raw();
-        self.set_raw((current & !FWDPTR_MASK) | value.to_usize());
+    fn set_raw(&self, is_marked: bool, is_remembered: bool) {
+        self.is_marked.store(is_marked, Ordering::Relaxed);
+        self.is_remembered.store(is_remembered, Ordering::Relaxed);
     }
 
     fn mark(&self) {
-        let value = self.raw();
-        self.set_raw(value | MARK_BIT);
-    }
-
-    fn clear_mark(&self) {
-        let value = self.raw();
-        self.set_raw(value & !MARK_BIT);
+        self.is_marked.store(true, Ordering::Relaxed);
     }
 
     fn try_mark(&self) -> bool {
-        let value = self.raw();
-        if value & MARK_BIT != 0 {
-            return false;
-        }
-        self.set_raw(value | MARK_BIT);
-        true
+        !self.is_marked.swap(true, Ordering::Relaxed)
+    }
+
+    fn clear_mark(&self) {
+        self.is_marked.store(false, Ordering::Relaxed);
     }
 
     fn is_marked(&self) -> bool {
-        (self.raw() & MARK_BIT) != 0
+        self.is_marked.load(Ordering::Relaxed)
     }
 
     fn is_remembered(&self) -> bool {
-        (self.raw() & REMEMBERED_BIT) != 0
+        self.is_remembered.load(Ordering::Relaxed)
     }
 
-    fn try_set_remembered(&self) -> bool {
-        let old_value = self.0.fetch_or(REMEMBERED_BIT, Ordering::Relaxed);
-        (old_value & REMEMBERED_BIT) == 0
+    fn set_remembered(&self) {
+        self.is_remembered.store(true, Ordering::Relaxed);
     }
 
     fn clear_remembered(&self) {
-        let value = self.raw();
-        self.set_raw(value & !REMEMBERED_BIT);
+        self.is_remembered.store(false, Ordering::Relaxed);
     }
 }
 
 const FWDPTR_BIT: usize = 1;
 
+#[repr(C)]
 struct VtblptrWord(AtomicUsize);
 
 impl VtblptrWord {
@@ -163,7 +149,7 @@ pub enum VtblptrWordKind {
 
 impl Header {
     #[inline(always)]
-    pub fn size() -> i32 {
+    pub const fn size() -> i32 {
         std::mem::size_of::<Header>() as i32
     }
 
@@ -208,18 +194,8 @@ impl Header {
     }
 
     #[inline(always)]
-    pub fn set_metadata_raw(&self, value: usize) {
-        self.metadata.set_raw(value);
-    }
-
-    #[inline(always)]
-    pub fn metadata_fwdptr(&self) -> Address {
-        self.metadata.fwdptr()
-    }
-
-    #[inline(always)]
-    pub fn set_metadata_fwdptr(&self, addr: Address) {
-        self.metadata.set_fwdptr(addr);
+    pub fn set_metadata_raw(&self, is_marked: bool, is_remembered: bool) {
+        self.metadata.set_raw(is_marked, is_remembered);
     }
 
     #[inline(always)]
@@ -243,8 +219,20 @@ impl Header {
     }
 
     #[inline(always)]
-    pub fn try_set_remembered(&self) -> bool {
-        self.metadata.try_set_remembered()
+    pub fn set_remembered(&self) {
+        self.metadata.set_remembered()
+    }
+
+    pub fn compute_metadata_word(is_marked: bool, is_remembered: bool) -> u32 {
+        MetadataWord::compute_word(is_marked, is_remembered)
+    }
+
+    pub fn offset_vtable_word() -> usize {
+        offset_of!(Header, vtable)
+    }
+
+    pub fn offset_metadata_word() -> usize {
+        offset_of!(Header, metadata)
     }
 
     #[inline(always)]
@@ -657,9 +645,10 @@ fn byte_array_alloc_heap(vm: &VM, len: usize) -> Ref<UInt8Array> {
         Address::from_ptr(vtable as *const VTable),
         vm.meta_space_start(),
     );
+    let (is_marked, is_remembered) = vm.gc.initial_metadata_value(size, false);
     handle
         .header_mut()
-        .set_metadata_raw(vm.gc.initial_metadata_value(size, false));
+        .set_metadata_raw(is_marked, is_remembered);
     handle.length = len;
 
     handle
@@ -693,9 +682,8 @@ where
         Address::from_ptr(vtable as *const VTable),
         vm.meta_space_start(),
     );
-    handle
-        .header()
-        .set_metadata_raw(vm.gc.initial_metadata_value(size, is_readonly));
+    let (is_marked, is_remembered) = vm.gc.initial_metadata_value(size, is_readonly);
+    handle.header().set_metadata_raw(is_marked, is_remembered);
 
     handle
 }
@@ -801,9 +789,8 @@ where
             Address::from_ptr(vtable as *const VTable),
             vm.meta_space_start(),
         );
-        handle
-            .header_mut()
-            .set_metadata_raw(vm.gc.initial_metadata_value(size, false));
+        let (is_marked, is_remembered) = vm.gc.initial_metadata_value(size, false);
+        handle.header().set_metadata_raw(is_marked, is_remembered);
         handle.length = len;
 
         for i in 0..handle.len() {
@@ -845,9 +832,8 @@ pub fn alloc(vm: &VM, clsid: ClassInstanceId) -> Ref<Obj> {
     object
         .header()
         .set_vtblptr(Address::from_ptr(vtable), vm.meta_space_start());
-    object
-        .header()
-        .set_metadata_raw(vm.gc.initial_metadata_value(size, false));
+    let (is_marked, is_remembered) = vm.gc.initial_metadata_value(size, false);
+    object.header().set_metadata_raw(is_marked, is_remembered);
 
     object
 }
@@ -862,31 +848,4 @@ pub struct StacktraceElement {
     pub header: Header,
     pub name: Ref<Str>,
     pub line: i32,
-}
-
-#[cfg(test)]
-mod tests {
-    use std::sync::atomic::AtomicUsize;
-
-    use crate::object::{Header, MetadataWord, VtblptrWord};
-
-    #[test]
-    fn header_markbit() {
-        let h = Header {
-            vtable: VtblptrWord(AtomicUsize::new(0)),
-            metadata: MetadataWord(AtomicUsize::new(0)),
-        };
-        h.set_metadata_fwdptr(16.into());
-        assert_eq!(false, h.is_marked());
-        assert_eq!(16, h.metadata_fwdptr().to_usize());
-        h.mark();
-        assert_eq!(true, h.is_marked());
-        assert_eq!(16, h.metadata_fwdptr().to_usize());
-        h.set_metadata_fwdptr(32.into());
-        assert_eq!(true, h.is_marked());
-        assert_eq!(32, h.metadata_fwdptr().to_usize());
-        h.clear_mark();
-        assert_eq!(false, h.is_marked());
-        assert_eq!(32, h.metadata_fwdptr().to_usize());
-    }
 }

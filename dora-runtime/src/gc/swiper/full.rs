@@ -5,7 +5,7 @@ use parking_lot::MutexGuard;
 
 use crate::gc::swiper::controller::FullCollectorPhases;
 use crate::gc::swiper::old::OldGenProtected;
-use crate::gc::swiper::{walk_region, ReadOnlySpace, Swiper, INITIAL_METADATA_OLD};
+use crate::gc::swiper::{walk_region, ReadOnlySpace, Swiper};
 use crate::gc::swiper::{
     BasePage, CardTable, CrossingMap, LargeSpace, OldGen, RegularPage, YoungGen,
 };
@@ -282,7 +282,7 @@ impl<'a> FullCollector<'a> {
 
                 // Clear metadata word.
                 let new_obj = new_address.to_obj();
-                new_obj.header().set_metadata_raw(INITIAL_METADATA_OLD);
+                new_obj.header().set_metadata_raw(false, false);
 
                 self.old.update_crossing(new_address, object_end);
             } else {

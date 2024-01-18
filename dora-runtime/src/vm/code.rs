@@ -109,7 +109,7 @@ pub fn install_code(vm: &VM, code_descriptor: CodeDescriptor, kind: CodeKind) ->
         Address::from_ptr(vtable as *const VTable),
         vm.meta_space_start(),
     );
-    code_header.object_header.set_metadata_raw(0);
+    code_header.object_header.set_metadata_raw(false, false);
     code_header.length = array_length;
     code_header.native_code_object = Address::null();
 

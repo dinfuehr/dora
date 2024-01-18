@@ -258,7 +258,6 @@ pub fn parse_arguments() -> Result<Args, String> {
             let value = argument_value(arg);
             let value = match value {
                 "zero" => CollectorName::Zero,
-                "compact" => CollectorName::Compact,
                 "copy" => CollectorName::Copy,
                 "sweep" => CollectorName::Sweep,
                 "swiper" => CollectorName::Swiper,

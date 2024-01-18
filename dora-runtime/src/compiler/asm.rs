@@ -916,17 +916,19 @@ impl<'a> BaselineAssembler<'a> {
         let pos = self.pos() as i32;
 
         self.load_constpool(tmp_reg.into(), disp + pos);
-        self.store_mem(MachineMode::Ptr, Mem::Base(obj, 0), tmp_reg.into());
-
-        // Set metadata word.
-        self.load_int_const(
-            MachineMode::Ptr,
-            tmp_reg,
-            self.vm.gc.initial_metadata_value(size as usize, false) as i64,
-        );
         self.store_mem(
             MachineMode::Ptr,
-            Mem::Base(obj, crate::mem::ptr_width()),
+            Mem::Base(obj, Header::offset_vtable_word() as i32),
+            tmp_reg.into(),
+        );
+
+        // Set metadata word.
+        let (is_marked, is_remembered) = self.vm.gc.initial_metadata_value(size as usize, false);
+        let header = Header::compute_metadata_word(is_marked, is_remembered);
+        self.load_int_const(MachineMode::Int32, tmp_reg, header as i64);
+        self.store_mem(
+            MachineMode::Int32,
+            Mem::Base(obj, Header::offset_metadata_word() as i32),
             tmp_reg.into(),
         );
 
@@ -951,13 +953,17 @@ impl<'a> BaselineAssembler<'a> {
         let pos = self.pos() as i32;
 
         self.load_constpool((*tmp_reg).into(), disp + pos);
-        self.store_mem(MachineMode::Ptr, Mem::Base(obj, 0), (*tmp_reg).into());
+        self.store_mem(
+            MachineMode::Ptr,
+            Mem::Base(obj, Header::offset_vtable_word() as i32),
+            (*tmp_reg).into(),
+        );
 
         self.masm.compute_initial_metadata_value(*tmp_reg, size_reg);
 
         self.store_mem(
-            MachineMode::Ptr,
-            Mem::Base(obj, crate::mem::ptr_width()),
+            MachineMode::Int32,
+            Mem::Base(obj, Header::offset_metadata_word() as i32),
             (*tmp_reg).into(),
         );
 
