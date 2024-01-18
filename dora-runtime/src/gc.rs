@@ -9,6 +9,7 @@ use crate::gc::allocator::GenerationAllocator;
 use crate::gc::code::CodeSpace;
 use crate::gc::compact::MarkCompactCollector;
 use crate::gc::copy::CopyCollector;
+use crate::gc::metaspace::MetaSpace;
 use crate::gc::space::{default_readonly_space_config, Space};
 use crate::gc::sweep::SweepCollector;
 use crate::gc::swiper::{align_page_up, is_page_aligned, Swiper, CARD_SIZE};
@@ -32,6 +33,7 @@ pub mod compact;
 pub mod copy;
 pub mod freelist;
 pub mod marking;
+mod metaspace;
 pub mod pmarking;
 pub mod root;
 pub mod space;
@@ -52,6 +54,7 @@ pub struct Gc {
     supports_tlab: bool,
 
     code_space: CodeSpace,
+    meta_space: MetaSpace,
     epoch: AtomicUsize,
 
     finalizers: Mutex<Vec<(Address, Arc<DoraThread>)>>,
@@ -78,6 +81,7 @@ impl Gc {
             supports_tlab,
 
             code_space: CodeSpace::new(code_size),
+            meta_space: MetaSpace::new(),
             epoch: AtomicUsize::new(0),
 
             finalizers: Mutex::new(Vec::new()),
@@ -103,6 +107,10 @@ impl Gc {
 
     pub fn alloc_code(&self, size: usize) -> Address {
         self.code_space.alloc(size)
+    }
+
+    pub fn alloc_meta(&self, align: usize, size: usize) -> Address {
+        self.meta_space.alloc(align, size)
     }
 
     pub fn alloc_readonly(&self, vm: &VM, size: usize) -> Address {

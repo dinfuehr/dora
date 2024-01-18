@@ -4,12 +4,13 @@ use std::mem::align_of;
 use std::ops::{Deref, DerefMut};
 use std::{self, fmt, ptr, slice};
 
-use crate::vm::ClassInstance;
+use crate::vm::{ClassInstance, VM};
 
 pub struct VTableBox(*mut VTable);
 
 impl VTableBox {
     pub fn new(
+        _vm: &VM,
         class_instance_ptr: *const ClassInstance,
         instance_size: usize,
         element_size: usize,

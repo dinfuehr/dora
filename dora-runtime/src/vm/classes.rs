@@ -118,6 +118,7 @@ pub fn create_class_instance_with_vtable(
     };
 
     let vtable = VTableBox::new(
+        vm,
         class_instance_ptr,
         instance_size,
         element_size,
