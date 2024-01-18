@@ -134,7 +134,7 @@ impl Default for Args {
             gc_stats: false,
             gc_verbose: false,
             gc_verify: false,
-            object_write_barrier: false,
+            object_write_barrier: true,
             gc_worker: 0,
             gc_young_size: None,
             gc_semi_ratio: None,
@@ -250,8 +250,8 @@ pub fn parse_arguments() -> Result<Args, String> {
             args.gc_verbose = true;
         } else if arg == "--gc-verify" {
             args.gc_verify = true;
-        } else if arg == "--object-write-barrier" {
-            args.object_write_barrier = true;
+        } else if arg == "--card-write-barrier" {
+            args.object_write_barrier = false;
         } else if arg.starts_with("--gc-worker=") {
             args.gc_worker = argument_usize(arg)?;
         } else if arg.starts_with("--gc=") {
