@@ -1,5 +1,3 @@
-use std::alloc::{alloc, dealloc, Layout};
-
 use std::mem::align_of;
 use std::ops::{Deref, DerefMut};
 use std::{self, fmt, ptr, slice};
@@ -11,13 +9,14 @@ pub struct VTableBox(*mut VTable);
 
 impl VTableBox {
     pub fn new(
-        _vm: &VM,
+        vm: &VM,
         class_instance_ptr: *const ClassInstance,
         instance_size: usize,
         element_size: usize,
         entries: &[usize],
     ) -> VTableBox {
         let size = VTable::size_of(entries.len());
+
         let vtable = VTable {
             class_instance_ptr,
             instance_size,
@@ -25,9 +24,12 @@ impl VTableBox {
             table_length: entries.len(),
         };
 
-        let lay = Layout::from_size_align(size, align_of::<VTable>()).unwrap();
+        let address = vm.gc.alloc_meta(size, align_of::<VTable>());
+        assert!(address.is_non_null());
+
+        let ptr = address.to_mut_ptr::<VTable>();
+
         unsafe {
-            let ptr = alloc(lay) as *mut VTable;
             ptr::write(ptr, vtable);
 
             ptr::copy(
@@ -60,19 +62,6 @@ impl Deref for VTableBox {
 impl DerefMut for VTableBox {
     fn deref_mut(&mut self) -> &mut VTable {
         unsafe { &mut *self.0 }
-    }
-}
-
-impl Drop for VTableBox {
-    fn drop(&mut self) {
-        unsafe {
-            let len = (&*self.0).table_length;
-            ptr::drop_in_place(self.0);
-
-            let lay = Layout::from_size_align(VTable::size_of(len), align_of::<VTable>()).unwrap();
-
-            dealloc(self.0 as *mut _, lay);
-        }
     }
 }
 

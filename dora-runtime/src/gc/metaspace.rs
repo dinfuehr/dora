@@ -35,7 +35,7 @@ impl MetaSpace {
         self.total.start()
     }
 
-    pub fn alloc(&self, align: usize, size: usize) -> Address {
+    pub fn alloc(&self, size: usize, align: usize) -> Address {
         let mut top = self.allocate.lock();
 
         let rest = top.to_usize() % align;
