@@ -1130,6 +1130,14 @@ impl AssemblerX64 {
         self.emit_modrm_sse_registers(dest, src);
     }
 
+    pub fn testb_ai(&mut self, lhs: Address, rhs: Immediate) {
+        assert!(rhs.is_uint8());
+        self.emit_rex32_address_optional(lhs);
+        self.emit_u8(0xf6);
+        self.emit_address(0b000, lhs);
+        self.emit_u8(rhs.uint8());
+    }
+
     pub fn testl_ai(&mut self, lhs: Address, rhs: Immediate) {
         assert!(rhs.is_int32());
         self.emit_rex32_address_optional(lhs);
@@ -2164,6 +2172,14 @@ mod tests {
     fn test_testq_ar() {
         assert_emit!(0x48, 0x85, 0x47, 1; testq_ar(Address::offset(RDI, 1), RAX));
         assert_emit!(0x4D, 0x85, 0x38; testq_ar(Address::offset(R8, 0), R15));
+    }
+
+    #[test]
+    fn test_testb_ai() {
+        assert_emit!(0xf6, 0x00, 1; testb_ai(Address::offset(RAX, 0), Immediate(1)));
+        assert_emit!(0xf6, 0x40, 1, 1; testb_ai(Address::offset(RAX, 1), Immediate(1)));
+
+        assert_emit!(0x41, 0xf6, 0x40, 0x09, 128; testb_ai(Address::offset(R8, 9), Immediate(128)));
     }
 
     #[test]

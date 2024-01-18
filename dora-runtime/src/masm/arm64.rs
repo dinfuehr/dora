@@ -1351,9 +1351,13 @@ impl MacroAssembler {
 
     pub fn emit_object_write_barrier_fast_path(&mut self, src: Reg) -> Label {
         let scratch = self.get_scratch();
-        self.asm.ldr_imm((*scratch).into(), src.into(), 0);
+        self.asm.ldrb_imm(
+            (*scratch).into(),
+            src.into(),
+            Header::offset_remembered_byte() as u32,
+        );
         let lbl_slow_path = self.asm.create_label();
-        self.asm.tbz((*scratch).into(), 1, lbl_slow_path);
+        self.asm.tbz((*scratch).into(), 0, lbl_slow_path);
         lbl_slow_path
     }
 

@@ -34,6 +34,10 @@ struct MetadataWord {
 }
 
 impl MetadataWord {
+    fn offset_remembered_byte() -> usize {
+        offset_of!(MetadataWord, is_remembered)
+    }
+
     fn compute_word(is_marked: bool, is_remembered: bool) -> u32 {
         is_marked as u32 | (is_remembered as u32) << 8
     }
@@ -229,6 +233,10 @@ impl Header {
 
     pub fn offset_metadata_word() -> usize {
         offset_of!(Header, metadata)
+    }
+
+    pub fn offset_remembered_byte() -> usize {
+        offset_of!(Header, metadata) + MetadataWord::offset_remembered_byte()
     }
 
     #[inline(always)]
