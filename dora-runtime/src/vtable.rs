@@ -4,6 +4,7 @@ use std::mem::align_of;
 use std::ops::{Deref, DerefMut};
 use std::{self, fmt, ptr, slice};
 
+use crate::gc::Address;
 use crate::vm::{ClassInstance, VM};
 
 pub struct VTableBox(*mut VTable);
@@ -22,7 +23,6 @@ impl VTableBox {
             instance_size,
             element_size,
             table_length: entries.len(),
-            table: [0],
         };
 
         let lay = Layout::from_size_align(size, align_of::<VTable>()).unwrap();
@@ -30,7 +30,11 @@ impl VTableBox {
             let ptr = alloc(lay) as *mut VTable;
             ptr::write(ptr, vtable);
 
-            ptr::copy(entries.as_ptr(), &mut (&mut *ptr).table[0], entries.len());
+            ptr::copy(
+                entries.as_ptr(),
+                (&*ptr).table_ptr() as *mut _,
+                entries.len(),
+            );
 
             VTableBox(ptr)
         }
@@ -79,11 +83,10 @@ pub struct VTable {
     pub instance_size: usize,
     pub element_size: usize,
     pub table_length: usize,
-    pub table: [usize; 1],
 }
 
 impl VTable {
-    pub fn size_of(table_length: usize) -> usize {
+    pub const fn size_of(table_length: usize) -> usize {
         std::mem::size_of::<VTable>() + table_length * std::mem::size_of::<usize>()
     }
 
@@ -104,18 +107,19 @@ impl VTable {
     }
 
     pub fn table(&self) -> &[usize] {
-        let ptr: *const usize = self.table.as_ptr();
-
-        unsafe { slice::from_raw_parts(ptr, self.table_length) }
+        unsafe { slice::from_raw_parts(self.table_ptr(), self.table_length) }
     }
 
     pub fn table_mut(&self) -> &mut [usize] {
-        let ptr = self.table.as_ptr() as *mut usize;
+        unsafe { slice::from_raw_parts_mut(self.table_ptr() as *mut usize, self.table_length) }
+    }
 
-        unsafe { slice::from_raw_parts_mut(ptr, self.table_length) }
+    pub fn table_ptr(&self) -> *const usize {
+        let address = Address::from_ptr(self as *const _);
+        address.offset(std::mem::size_of::<VTable>()).to_ptr()
     }
 
     pub fn offset_of_method_table() -> i32 {
-        offset_of!(VTable, table) as i32
+        std::mem::size_of::<VTable>() as i32
     }
 }
