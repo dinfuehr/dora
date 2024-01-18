@@ -284,7 +284,8 @@ impl Obj {
     where
         F: FnMut(Slot),
     {
-        let classptr = self.header().vtbl(meta_space_start).class_instance_ptr;
+        let vtable = self.header().vtbl(meta_space_start);
+        let classptr = vtable.class_instance_ptr;
         let cls = unsafe { &*classptr };
 
         visit_refs(self.address(), cls, None, f);

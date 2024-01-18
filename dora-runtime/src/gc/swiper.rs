@@ -886,6 +886,7 @@ impl LargePageHeader {
 pub extern "C" fn object_write_barrier_slow_path(object_address: Address) {
     let vm = get_vm();
     debug_assert!(vm.flags.object_write_barrier);
+    debug_assert!(!BasePage::from_address(object_address).is_young());
     let obj = object_address.to_obj();
     obj.header().set_remembered();
     let swiper = vm.gc.collector.to_swiper();
