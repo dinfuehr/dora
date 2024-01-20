@@ -16,7 +16,6 @@ use crate::gc::{
 };
 use crate::object::{ForwardResult, Obj, VtblptrWordKind};
 use crate::threads::DoraThread;
-use crate::timer::Timer;
 use crate::vm::VM;
 
 use crossbeam_deque::{Injector, Steal, Stealer, Worker};
@@ -117,9 +116,6 @@ impl<'a> MinorCollector<'a> {
         let mut stealers = Vec::with_capacity(self.number_workers);
         let injector: Injector<WorkItem> = Injector::new();
 
-        let stats = self.vm.flags.gc_stats;
-        let timer = Timer::new(stats);
-
         for _ in 0..self.number_workers {
             let w = Worker::new_lifo();
             let s = w.stealer();
@@ -160,12 +156,6 @@ impl<'a> MinorCollector<'a> {
         let next_large = Mutex::new(head);
         let next_large = &next_large;
 
-        let prot_timer: Option<Mutex<(Timer, f32)>> = if stats {
-            Some(Mutex::new((timer, 0.0f32)))
-        } else {
-            None
-        };
-        let prot_timer = &prot_timer;
         let added_to_remset: Mutex<Vec<Vec<Address>>> = Default::default();
 
         {
@@ -215,8 +205,6 @@ impl<'a> MinorCollector<'a> {
                             old_lab: Lab::new(),
 
                             young_lab: Lab::new(),
-
-                            timer: prot_timer,
                         };
 
                         task.run();
@@ -241,13 +229,6 @@ impl<'a> MinorCollector<'a> {
         let added_to_remset = added_to_remset.into_inner();
         for mut thread_remset in added_to_remset {
             self.swiper.remset.write().append(&mut thread_remset);
-        }
-
-        if let Some(ref mutex) = prot_timer {
-            let mut mutex = mutex.lock();
-            let (ref mut timer, duration_roots) = *mutex;
-            self.phases.roots = duration_roots;
-            self.phases.tracing = timer.stop();
         }
 
         self.promoted_size = promoted_size.load(Ordering::Relaxed);
@@ -391,8 +372,6 @@ struct CopyTask<'a> {
     old_lab: Lab,
 
     young_lab: Lab,
-
-    timer: &'a Option<Mutex<(Timer, f32)>>,
 }
 
 impl<'a> CopyTask<'a> {
@@ -400,21 +379,7 @@ impl<'a> CopyTask<'a> {
         self.visit_roots();
         self.visit_remembered_objects();
 
-        self.barrier();
-
         self.trace_gray_objects();
-    }
-
-    fn barrier(&mut self) {
-        self.barrier.wait();
-
-        if self.task_id == 0 {
-            if let Some(ref mutex) = self.timer {
-                let mut mutex = mutex.lock();
-                let (ref mut timer, ref mut duration_roots) = *mutex;
-                *duration_roots = timer.stop();
-            }
-        }
     }
 
     fn visit_roots(&mut self) {

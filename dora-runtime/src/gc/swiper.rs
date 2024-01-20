@@ -390,10 +390,7 @@ impl Collector for Swiper {
             gc_percentage,
         );
 
-        println!("\nMinor:");
-        println!("\tRoots:\t\t{}", config.minor_roots());
-        println!("\tTracing:\t{}", config.minor_tracing());
-        println!("\tTotal:\t\t{}", config.minor_total());
+        println!("\nMinor:\t\t\t{}", config.minor_total());
 
         println!("\nFull:");
 
