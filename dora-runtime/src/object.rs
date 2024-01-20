@@ -82,14 +82,6 @@ const FWDPTR_BIT: usize = 1;
 struct VtblptrWord(AtomicUsize);
 
 impl VtblptrWord {
-    fn raw(&self) -> usize {
-        self.0.load(Ordering::Relaxed)
-    }
-
-    fn set_raw(&self, value: usize) {
-        self.0.store(value, Ordering::Relaxed);
-    }
-
     #[inline(always)]
     fn raw_vtblptr(&self, _meta_space_start: Address) -> Address {
         let raw_vtblptr = self.raw();
@@ -101,7 +93,7 @@ impl VtblptrWord {
         self.set_raw(value.to_usize() | FWDPTR_BIT);
     }
 
-    pub fn load(&self, _meta_space_start: Address) -> VtblptrWordKind {
+    fn load(&self, _meta_space_start: Address) -> VtblptrWordKind {
         let value = self.raw();
 
         if (value & FWDPTR_BIT) != 0 {
@@ -112,7 +104,7 @@ impl VtblptrWord {
         }
     }
 
-    pub fn try_install_fwdptr(
+    fn try_install_fwdptr(
         &self,
         expected_vtblptr: Address,
         _meta_space_start: Address,
@@ -140,6 +132,14 @@ impl VtblptrWord {
                 ForwardResult::AlreadyForwarded(forwarding_address)
             }
         }
+    }
+
+    fn raw(&self) -> usize {
+        self.0.load(Ordering::Relaxed)
+    }
+
+    fn set_raw(&self, value: usize) {
+        self.0.store(value, Ordering::Relaxed);
     }
 }
 

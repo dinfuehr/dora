@@ -903,10 +903,11 @@ impl<'a> BaselineAssembler<'a> {
         // Store classptr/vtable in object.
         let vtable = class_instance.vtable.read();
         let vtable: &VTable = vtable.as_ref().unwrap();
-        let disp = self.add_addr(Address::from_ptr(vtable as *const _));
-        let pos = self.pos() as i32;
+        let vtable = Address::from_ptr(vtable as *const _);
 
-        self.load_constpool(tmp_reg.into(), disp + pos);
+        self.masm
+            .load_int_const(MachineMode::Ptr, tmp_reg.into(), vtable.to_usize() as i64);
+
         self.store_mem(
             MachineMode::Ptr,
             Mem::Base(obj, Header::offset_vtable_word() as i32),
@@ -940,10 +941,14 @@ impl<'a> BaselineAssembler<'a> {
         // store classptr in object
         let vtable = class_instance.vtable.read();
         let vtable: &VTable = vtable.as_ref().unwrap();
-        let disp = self.add_addr(Address::from_ptr(vtable as *const _));
-        let pos = self.pos() as i32;
+        let vtable = Address::from_ptr(vtable as *const _);
 
-        self.load_constpool((*tmp_reg).into(), disp + pos);
+        self.masm.load_int_const(
+            MachineMode::Ptr,
+            (*tmp_reg).into(),
+            vtable.to_usize() as i64,
+        );
+
         self.store_mem(
             MachineMode::Ptr,
             Mem::Base(obj, Header::offset_vtable_word() as i32),
