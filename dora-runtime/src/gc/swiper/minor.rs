@@ -317,28 +317,6 @@ const LOCAL_MAXIMUM: usize = 64;
 
 struct WorkItem(Address);
 
-impl WorkItem {
-    fn slot(slot: Slot) -> WorkItem {
-        let value = slot.address().to_usize();
-        WorkItem(Address(value | 1))
-    }
-
-    fn object(object: Address) -> WorkItem {
-        debug_assert_eq!(object.to_usize() % 2, 0);
-        WorkItem(object)
-    }
-
-    fn to_slot(&self) -> Option<Slot> {
-        let value = self.0.to_usize();
-        if value & 1 != 0 {
-            let address: Address = (value & !1).into();
-            Some(Slot::at(address))
-        } else {
-            None
-        }
-    }
-}
-
 struct CopyTask<'a> {
     task_id: usize,
     local: Vec<WorkItem>,
@@ -404,8 +382,9 @@ impl<'a> CopyTask<'a> {
         for &root in roots_in_stride {
             let object_address = root.get();
 
-            if self.is_young(object_address) {
-                self.push_slot(root);
+            if object_address.is_non_null() && self.is_young(object_address) {
+                let copy = self.evacuate_object(object_address);
+                root.set(copy);
             }
         }
     }
@@ -440,7 +419,7 @@ impl<'a> CopyTask<'a> {
         object.visit_reference_fields(self.vm.meta_space_start(), |slot| {
             let pointer = slot.get();
 
-            if self.is_young(pointer) {
+            if pointer.is_non_null() && self.is_young(pointer) {
                 slot.set(self.evacuate_object(pointer));
             }
         });
@@ -464,18 +443,11 @@ impl<'a> CopyTask<'a> {
 
     fn trace_gray_objects(&mut self) {
         loop {
-            if let Some(item) = self.pop() {
-                if let Some(slot) = item.to_slot() {
-                    let copied_obj = self.evacuate_object(slot.get());
-                    slot.set(copied_obj);
+            if let Some(WorkItem(object)) = self.pop() {
+                if self.is_young(object) {
+                    self.trace_young_object(object);
                 } else {
-                    let object = item.0;
-
-                    if self.is_young(object) {
-                        self.trace_young_object(object);
-                    } else {
-                        self.trace_promoted_object(object);
-                    }
+                    self.trace_promoted_object(object);
                 }
             } else if self.terminator.try_terminate() {
                 break;
@@ -494,7 +466,7 @@ impl<'a> CopyTask<'a> {
         object.visit_reference_fields(self.vm.meta_space_start(), |slot| {
             let pointer = slot.get();
 
-            if self.is_young(pointer) {
+            if pointer.is_non_null() && self.is_young(pointer) {
                 slot.set(self.evacuate_object(pointer));
             }
         });
@@ -508,7 +480,7 @@ impl<'a> CopyTask<'a> {
         object.visit_reference_fields(self.vm.meta_space_start(), |slot| {
             let field_ptr: Address = slot.get();
 
-            if self.is_young(field_ptr) {
+            if field_ptr.is_non_null() && self.is_young(field_ptr) {
                 let copied_addr = self.evacuate_object(field_ptr);
                 slot.set(copied_addr);
 
@@ -732,12 +704,8 @@ impl<'a> CopyTask<'a> {
         }
     }
 
-    fn push_slot(&mut self, slot: Slot) {
-        self.push_item(WorkItem::slot(slot));
-    }
-
     fn push(&mut self, addr: Address) {
-        self.push_item(WorkItem::object(addr));
+        self.push_item(WorkItem(addr));
     }
 
     fn push_item(&mut self, item: WorkItem) {
@@ -825,11 +793,7 @@ impl<'a> CopyTask<'a> {
     }
 
     fn is_young(&self, object_address: Address) -> bool {
-        if self.heap.contains(object_address) {
-            let page = BasePage::from_address(object_address);
-            page.is_young()
-        } else {
-            false
-        }
+        let page = BasePage::from_address(object_address);
+        page.is_young()
     }
 }
