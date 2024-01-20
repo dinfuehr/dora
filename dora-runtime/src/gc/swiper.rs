@@ -576,9 +576,9 @@ where
         let object = scan.to_obj();
 
         if object.is_filler(vm) {
-            scan = scan.offset(object.size());
+            scan = scan.offset(object.size(vm.meta_space_start()));
         } else {
-            let object_size = object.size();
+            let object_size = object.size(vm.meta_space_start());
             fct(object, scan, object_size);
             scan = scan.offset(object_size);
         }

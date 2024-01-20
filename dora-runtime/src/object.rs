@@ -82,23 +82,31 @@ const FWDPTR_BIT: usize = 1;
 struct VtblptrWord(AtomicUsize);
 
 impl VtblptrWord {
-    pub fn raw(&self) -> usize {
+    fn raw(&self) -> usize {
         self.0.load(Ordering::Relaxed)
     }
 
-    pub fn set_raw(&self, value: usize) {
+    fn set_raw(&self, value: usize) {
         self.0.store(value, Ordering::Relaxed);
     }
 
-    pub fn install_fwdptr(&self, value: Address) {
+    #[inline(always)]
+    fn raw_vtblptr(&self, _meta_space_start: Address) -> Address {
+        let raw_vtblptr = self.raw();
+        debug_assert_eq!(raw_vtblptr & FWDPTR_BIT, 0);
+        raw_vtblptr.into()
+    }
+
+    fn install_fwdptr(&self, value: Address, _meta_space_start: Address) {
         self.set_raw(value.to_usize() | FWDPTR_BIT);
     }
 
-    pub fn load(&self) -> VtblptrWordKind {
+    pub fn load(&self, _meta_space_start: Address) -> VtblptrWordKind {
         let value = self.raw();
 
         if (value & FWDPTR_BIT) != 0 {
-            VtblptrWordKind::Fwdptr((value & !FWDPTR_BIT).into())
+            let address: Address = (value & !FWDPTR_BIT).into();
+            VtblptrWordKind::Fwdptr(address)
         } else {
             VtblptrWordKind::Vtblptr(value.into())
         }
@@ -107,6 +115,7 @@ impl VtblptrWord {
     pub fn try_install_fwdptr(
         &self,
         expected_vtblptr: Address,
+        _meta_space_start: Address,
         new_address: Address,
     ) -> ForwardResult {
         let fwd = new_address.to_usize() | 1;
@@ -123,15 +132,12 @@ impl VtblptrWord {
                 ForwardResult::Forwarded
             }
 
-            Err(forwarding_ptr) => {
+            Err(forwarding_value) => {
                 // If update fails, this needs to be a forwarding pointer
-                debug_assert!((forwarding_ptr | 1) != 0);
+                debug_assert!((forwarding_value | 1) != 0);
 
-                if (forwarding_ptr & 3) == 3 {
-                    ForwardResult::AlreadyForwarded(Address::from_ptr(self as *const _))
-                } else {
-                    ForwardResult::AlreadyForwarded((forwarding_ptr & !1).into())
-                }
+                let forwarding_address: Address = (forwarding_value & !1).into();
+                ForwardResult::AlreadyForwarded(forwarding_address)
             }
         }
     }
@@ -159,13 +165,13 @@ impl Header {
     }
 
     #[inline(always)]
-    pub fn vtbl(&self, _meta_space_start: Address) -> &mut VTable {
-        unsafe { &mut *self.raw_vtblptr().to_mut_ptr::<VTable>() }
+    pub fn vtbl(&self, meta_space_start: Address) -> &mut VTable {
+        unsafe { &mut *self.raw_vtblptr(meta_space_start).to_mut_ptr::<VTable>() }
     }
 
     #[inline(always)]
-    pub fn raw_vtblptr(&self) -> Address {
-        self.vtable.raw().into()
+    fn raw_vtblptr(&self, meta_space_start: Address) -> Address {
+        self.vtable.raw_vtblptr(meta_space_start)
     }
 
     #[inline(always)]
@@ -174,23 +180,24 @@ impl Header {
     }
 
     #[inline(always)]
-    pub fn install_fwdptr(&self, address: Address) {
-        self.vtable.install_fwdptr(address);
+    pub fn install_fwdptr(&self, address: Address, meta_space_start: Address) {
+        self.vtable.install_fwdptr(address, meta_space_start);
     }
 
     #[inline(always)]
-    pub fn vtblptr(&self, _meta_space_start: Address) -> VtblptrWordKind {
-        self.vtable.load()
+    pub fn vtblptr(&self, meta_space_start: Address) -> VtblptrWordKind {
+        self.vtable.load(meta_space_start)
     }
 
     #[inline(always)]
     pub fn try_install_fwdptr(
         &self,
+        meta_space_start: Address,
         expected_vtblptr: Address,
         new_address: Address,
     ) -> ForwardResult {
         self.vtable
-            .try_install_fwdptr(expected_vtblptr, new_address)
+            .try_install_fwdptr(expected_vtblptr, meta_space_start, new_address)
     }
 
     #[inline(always)]
@@ -284,8 +291,8 @@ impl Obj {
         determine_array_size(self, vtbl.element_size)
     }
 
-    pub fn size(&self) -> usize {
-        self.size_for_vtblptr(self.header().raw_vtblptr())
+    pub fn size(&self, meta_space_start: Address) -> usize {
+        self.size_for_vtblptr(self.header().raw_vtblptr(meta_space_start))
     }
 
     pub fn visit_reference_fields<F>(&self, meta_space_start: Address, f: F)
@@ -313,7 +320,7 @@ impl Obj {
     }
 
     pub fn is_filler(&self, vm: &VM) -> bool {
-        let vtblptr = self.header().raw_vtblptr();
+        let vtblptr = self.header().raw_vtblptr(vm.meta_space_start());
 
         vtblptr == vm.known.free_word_class_address()
             || vtblptr == vm.known.free_array_class_address()

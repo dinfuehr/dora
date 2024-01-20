@@ -192,6 +192,7 @@ impl<'a> MinorCollector<'a> {
                     let injector = &injector;
                     let stealers = &stealers;
                     let terminator = &terminator;
+                    let meta_space_start = vm.meta_space_start();
 
                     scoped.execute(move || {
                         let mut task = CopyTask {
@@ -213,6 +214,7 @@ impl<'a> MinorCollector<'a> {
                             remset,
                             added_to_remset: Vec::new(),
                             object_write_barrier,
+                            meta_space_start,
 
                             next_root_stride,
                             next_object_stride,
@@ -394,6 +396,7 @@ struct CopyTask<'a> {
     object_write_barrier: bool,
     remset: &'a [Address],
     added_to_remset: Vec<Address>,
+    meta_space_start: Address,
 
     next_root_stride: &'a AtomicUsize,
     next_object_stride: &'a AtomicUsize,
@@ -600,7 +603,7 @@ impl<'a> CopyTask<'a> {
             let object = ptr.to_obj();
 
             if object.is_filler(self.vm) {
-                ptr = ptr.offset(object.size());
+                ptr = ptr.offset(object.size(self.meta_space_start));
             } else {
                 object.visit_reference_fields(self.vm.meta_space_start(), |slot| {
                     let pointer = slot.get();
@@ -611,7 +614,7 @@ impl<'a> CopyTask<'a> {
                     }
                 });
 
-                ptr = ptr.offset(object.size());
+                ptr = ptr.offset(object.size(self.meta_space_start));
             }
         }
 
@@ -852,7 +855,9 @@ impl<'a> CopyTask<'a> {
         }
 
         obj.copy_to(copy_addr, obj_size);
-        let res = obj.header().try_install_fwdptr(vtblptr, copy_addr);
+        let res = obj
+            .header()
+            .try_install_fwdptr(self.meta_space_start, vtblptr, copy_addr);
 
         match res {
             ForwardResult::Forwarded => {
@@ -885,7 +890,9 @@ impl<'a> CopyTask<'a> {
 
         obj.copy_to(copy_addr, obj_size);
         copy_addr.to_obj().header().set_metadata_raw(false, false);
-        let res = obj.header().try_install_fwdptr(vtblptr, copy_addr);
+        let res = obj
+            .header()
+            .try_install_fwdptr(self.meta_space_start, vtblptr, copy_addr);
 
         match res {
             ForwardResult::Forwarded => {

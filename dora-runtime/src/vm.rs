@@ -325,7 +325,8 @@ impl VM {
 
 impl Drop for VM {
     fn drop(&mut self) {
-        self.gc.drop_all_native_code_objects();
+        self.gc
+            .drop_all_native_code_objects(self.meta_space_start());
     }
 }
 

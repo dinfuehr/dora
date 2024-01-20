@@ -73,7 +73,7 @@ impl CodeSpace {
         Region::new(start, end)
     }
 
-    pub fn drop_all_native_code_objects(&self) {
+    pub fn drop_all_native_code_objects(&self, meta_space_start: Address) {
         os::jit_writable();
 
         let allocated_region = self.allocated_region();
@@ -85,7 +85,7 @@ impl CodeSpace {
             code_header.drop_native_code_object();
 
             let object = current.to_obj();
-            current = current.offset(object.size())
+            current = current.offset(object.size(meta_space_start))
         }
 
         assert_eq!(current, allocated_region.end);

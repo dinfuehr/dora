@@ -178,7 +178,7 @@ impl CopyCollector {
                 }
             });
 
-            scan = scan.offset(object.size());
+            scan = scan.offset(object.size(vm.meta_space_start()));
         }
 
         self.iterate_weak_roots(vm);
@@ -236,12 +236,12 @@ impl CopyCollector {
         }
 
         let addr = *top;
-        let obj_size = obj.size();
+        let obj_size = obj.size(vm.meta_space_start());
 
         obj.copy_to(addr, obj_size);
         *top = top.offset(obj_size);
 
-        obj.header().install_fwdptr(addr);
+        obj.header().install_fwdptr(addr, vm.meta_space_start());
 
         addr
     }

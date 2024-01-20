@@ -81,6 +81,7 @@ pub struct Verifier<'a> {
     large: &'a LargeSpace,
     readonly_space: &'a ReadOnlySpace,
     minimum_remset: Vec<Address>,
+    meta_space_start: Address,
 
     heap: Region,
 
@@ -115,6 +116,7 @@ impl<'a> Verifier<'a> {
             readonly_space,
             large,
             minimum_remset: Vec::new(),
+            meta_space_start: vm.meta_space_start(),
 
             heap,
 
@@ -223,7 +225,7 @@ impl<'a> Verifier<'a> {
 
         while curr < region.end {
             let object = curr.to_obj();
-            let size = object.size();
+            let size = object.size(self.meta_space_start);
             let object_end = curr.offset(size);
 
             // Object is not supposed to cross page boundary.
@@ -398,7 +400,10 @@ impl<'a> Verifier<'a> {
         // for this access its size.
         // To make sure this isn't optimized out by the compiler,
         // make sure that the size doesn't equal 1.
-        assert!(object.size() != 1, "object size shouldn't be 1");
+        assert!(
+            object.size(self.meta_space_start) != 1,
+            "object size shouldn't be 1"
+        );
 
         if is_young {
             *refs_to_young_gen += 1;

@@ -155,7 +155,7 @@ impl SweepCollector {
             free_list: FreeList::new(),
         };
 
-        collector.collect();
+        collector.collect(vm);
 
         let mut alloc = self.alloc.lock();
         alloc.free_list = collector.free_list;
@@ -173,11 +173,11 @@ struct MarkSweep<'a> {
 }
 
 impl<'a> MarkSweep<'a> {
-    fn collect(&mut self) {
+    fn collect(&mut self, vm: &VM) {
         self.mark();
         self.iterate_weak_refs();
 
-        self.sweep();
+        self.sweep(vm);
     }
 
     fn mark(&mut self) {
@@ -201,16 +201,17 @@ impl<'a> MarkSweep<'a> {
         });
     }
 
-    fn sweep(&mut self) {
+    fn sweep(&mut self, vm: &VM) {
         let start = self.heap.start;
         let end = self.heap.end;
+        let meta_space_start = vm.meta_space_start();
 
         let mut scan = start;
         let mut garbage_start = Address::null();
 
         while scan < end {
             let object = scan.to_obj();
-            let object_size = object.size();
+            let object_size = object.size(meta_space_start);
 
             if object.header().is_marked() {
                 self.add_freelist(garbage_start, scan);
@@ -264,11 +265,11 @@ impl SweepAllocator {
             return object;
         }
 
-        let free_space = self.free_list.alloc(size);
+        let free_space = self.free_list.alloc(vm, size);
 
         if free_space.is_non_null() {
             let object = free_space.addr();
-            let free_size = free_space.size();
+            let free_size = free_space.size(vm.meta_space_start());
             assert!(size <= free_size);
 
             let free_start = object.offset(size);

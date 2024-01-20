@@ -158,11 +158,11 @@ impl OldGenProtected {
         fill_region_with(vm, self.top, self.current_limit, false);
         old.update_crossing(self.top, self.current_limit);
 
-        let free_space = self.freelist.alloc(min_size);
+        let free_space = self.freelist.alloc(vm, min_size);
 
         if free_space.is_non_null() {
             self.top = free_space.addr();
-            self.current_limit = self.top.offset(free_space.size());
+            self.current_limit = self.top.offset(free_space.size(vm.meta_space_start()));
 
             let region = self
                 .raw_alloc(min_size, max_size)

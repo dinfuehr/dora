@@ -95,7 +95,7 @@ impl FreeList {
         free_class.head = FreeSpace(addr);
     }
 
-    pub fn alloc(&mut self, size: usize) -> FreeSpace {
+    pub fn alloc(&mut self, vm: &VM, size: usize) -> FreeSpace {
         let szclass = SizeClass::next_up(size).idx();
         let last = SIZE_CLASS_HUGE.idx();
 
@@ -103,12 +103,12 @@ impl FreeList {
             let result = self.classes[class].first();
 
             if result.is_non_null() {
-                assert!(result.size() >= size);
+                assert!(result.size(vm.meta_space_start()) >= size);
                 return result;
             }
         }
 
-        self.classes[SIZE_CLASS_HUGE.idx()].find(size)
+        self.classes[SIZE_CLASS_HUGE.idx()].find(vm, size)
     }
 
     pub fn clear(&mut self) {
@@ -139,12 +139,12 @@ impl FreeListClass {
         }
     }
 
-    fn find(&mut self, minimum_size: usize) -> FreeSpace {
+    fn find(&mut self, vm: &VM, minimum_size: usize) -> FreeSpace {
         let mut curr = self.head;
         let mut prev = FreeSpace::null();
 
         while curr.is_non_null() {
-            if curr.size() >= minimum_size {
+            if curr.size(vm.meta_space_start()) >= minimum_size {
                 if prev.is_null() {
                     self.head = curr.next();
                 } else {
@@ -200,8 +200,8 @@ impl FreeSpace {
     }
 
     #[inline(always)]
-    pub fn size(self) -> usize {
+    pub fn size(self, meta_space_start: Address) -> usize {
         let obj = self.addr().to_obj();
-        obj.size() as usize
+        obj.size(meta_space_start) as usize
     }
 }

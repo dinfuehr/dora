@@ -33,6 +33,7 @@ pub struct FullCollector<'a> {
     top: Address,
     current_limit: Address,
     pages: Vec<RegularPage>,
+    metaspace_start: Address,
 
     reason: GcReason,
 
@@ -75,6 +76,7 @@ impl<'a> FullCollector<'a> {
             card_table,
             crossing_map,
             readonly_space,
+            metaspace_start: vm.meta_space_start(),
 
             top: old_total.start(),
             current_limit: old_total.start(),
@@ -225,9 +227,9 @@ impl<'a> FullCollector<'a> {
             let object = scan.to_obj();
 
             if object.is_filler(self.vm) {
-                scan = scan.offset(object.size());
+                scan = scan.offset(object.size(self.metaspace_start));
             } else {
-                let object_size = object.size();
+                let object_size = object.size(self.metaspace_start);
                 let object_end = scan.offset(object_size);
 
                 if object.header().is_marked() {
@@ -278,7 +280,9 @@ impl<'a> FullCollector<'a> {
                 let object_end = new_address.offset(size);
 
                 object.copy_to(new_address, size);
-                object.header().install_fwdptr(new_address);
+                object
+                    .header()
+                    .install_fwdptr(new_address, self.metaspace_start);
 
                 // Clear metadata word.
                 let new_obj = new_address.to_obj();

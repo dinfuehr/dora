@@ -49,7 +49,7 @@ fn iterate_roots_from_code_space<F: FnMut(Slot)>(vm: &VM, _callback: &mut F) {
 
     while current < allocated_region.end {
         let object = current.to_obj();
-        current = current.offset(object.size())
+        current = current.offset(object.size(vm.meta_space_start()))
     }
 
     assert_eq!(current, allocated_region.end);
