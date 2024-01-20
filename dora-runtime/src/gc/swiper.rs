@@ -523,11 +523,6 @@ impl RegularPage {
         page.base_page_header().setup(is_young, false, is_readonly);
 
         unsafe {
-            std::ptr::write(
-                page.object_area_start().sub_ptr(1).to_mut_ptr::<usize>(),
-                0xDEAD2BAD,
-            );
-
             std::ptr::write(page.object_area_end().to_mut_ptr::<usize>(), 0xDEAD2BAD);
         }
 
@@ -559,9 +554,7 @@ impl RegularPage {
     }
 
     pub fn object_area_start(&self) -> Address {
-        self.address()
-            .offset(std::mem::size_of::<BasePageHeader>())
-            .add_ptr(1)
+        self.address().offset(std::mem::size_of::<BasePageHeader>())
     }
 
     pub fn object_area_end(&self) -> Address {
