@@ -1,6 +1,6 @@
 use crate::compiler::codegen::AnyReg;
 use crate::cpu::*;
-use crate::gc::swiper::{CARD_SIZE_BITS, LARGE_OBJECT_SIZE};
+use crate::gc::swiper::LARGE_OBJECT_SIZE;
 use crate::gc::Address;
 use crate::masm::{CondCode, Label, MacroAssembler, Mem};
 use crate::mem::{fits_i32, ptr_width};
@@ -1039,40 +1039,6 @@ impl MacroAssembler {
 
     pub fn lea(&mut self, dest: Reg, mem: Mem) {
         self.asm.lea(dest.into(), address_from_mem(mem));
-    }
-
-    pub fn emit_card_write_barrier(&mut self, src: Reg, card_table_offset: usize) {
-        let object_offset_reg = self.get_scratch();
-        self.asm.movq_rr((*object_offset_reg).into(), src.into());
-        self.asm.shrq_ri(
-            (*object_offset_reg).into(),
-            Immediate(CARD_SIZE_BITS as i64),
-        );
-
-        // test if card table offset fits into displacement of memory store
-        if card_table_offset <= 0x7FFF_FFFF {
-            // emit mov [card_table_offset + base], 0
-            self.asm.movb_ai(
-                AsmAddress::offset((*object_offset_reg).into(), card_table_offset as i32),
-                Immediate(0),
-            );
-        } else {
-            let card_table_offset_reg = self.get_scratch();
-            self.load_int_const(
-                MachineMode::Ptr,
-                *card_table_offset_reg,
-                card_table_offset as i64,
-            );
-            self.asm.movb_ai(
-                AsmAddress::array(
-                    (*object_offset_reg).into(),
-                    (*card_table_offset_reg).into(),
-                    ScaleFactor::One,
-                    0,
-                ),
-                Immediate(0),
-            );
-        }
     }
 
     pub fn emit_object_write_barrier_fast_path(&mut self, src: Reg) -> Label {

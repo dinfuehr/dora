@@ -30,7 +30,6 @@ pub struct Flags {
     pub gc_worker: usize,
     pub gc_young_size: Option<MemSize>,
     pub gc_semi_ratio: Option<usize>,
-    pub object_write_barrier: bool,
     pub gc: Option<CollectorName>,
     pub compiler: Option<CompilerName>,
     pub min_heap_size: Option<MemSize>,

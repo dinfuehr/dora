@@ -3,16 +3,13 @@ use std::collections::HashSet;
 use std::fmt;
 
 use crate::gc::root::Slot;
-use crate::gc::swiper::card::{CardEntry, CardTable};
-use crate::gc::swiper::crossing::{CrossingEntry, CrossingMap};
 use crate::gc::swiper::large::LargeSpace;
 use crate::gc::swiper::old::{OldGen, OldGenProtected};
 use crate::gc::swiper::young::YoungGen;
-use crate::gc::swiper::{on_different_cards, BasePage};
-use crate::gc::swiper::{LargePage, ReadOnlySpace, RegularPage, Swiper, CARD_SIZE};
+use crate::gc::swiper::BasePage;
+use crate::gc::swiper::{LargePage, ReadOnlySpace, RegularPage, Swiper};
 use crate::gc::{Address, Region};
 
-use crate::mem;
 use crate::vm::VM;
 
 #[derive(Copy, Clone)]
@@ -75,8 +72,6 @@ pub struct Verifier<'a> {
     young: &'a YoungGen,
     old: &'a OldGen,
     old_protected: MutexGuard<'a, OldGenProtected>,
-    card_table: &'a CardTable,
-    crossing_map: &'a CrossingMap,
     rootset: &'a [Slot],
     large: &'a LargeSpace,
     readonly_space: &'a ReadOnlySpace,
@@ -95,8 +90,6 @@ impl<'a> Verifier<'a> {
         heap: Region,
         young: &'a YoungGen,
         old: &'a OldGen,
-        card_table: &'a CardTable,
-        crossing_map: &'a CrossingMap,
         rootset: &'a [Slot],
         large: &'a LargeSpace,
         readonly_space: &'a ReadOnlySpace,
@@ -110,8 +103,6 @@ impl<'a> Verifier<'a> {
             young,
             old,
             old_protected,
-            card_table,
-            crossing_map,
             rootset,
             readonly_space,
             large,
@@ -176,17 +167,12 @@ impl<'a> Verifier<'a> {
     }
 
     fn verify_roots(&self) {
-        let mut refs_to_young_gen = 0;
         for root in self.rootset {
-            self.verify_slot(*root, Address::null(), &mut refs_to_young_gen);
+            self.verify_slot(*root, Address::null());
         }
     }
 
     fn verify_remembered_set(&self) {
-        if !self.vm.flags.object_write_barrier {
-            return;
-        }
-
         let remset = self.swiper.remset.read();
 
         if self.phase.is_post_full() {
@@ -208,20 +194,8 @@ impl<'a> Verifier<'a> {
     fn verify_page(&mut self, page: RegularPage) {
         let region = page.object_area();
         let mut curr = region.start;
-        let mut refs_to_young_gen = 0;
-        assert!(region.start.is_card_aligned());
         assert!(region.end.is_page_aligned());
         assert!(!page.is_large());
-
-        let in_old = !page.is_young() && !page.is_readonly();
-
-        if in_old {
-            let card_idx = self.card_table.card_idx(region.start);
-            assert_eq!(
-                self.crossing_map.get(card_idx),
-                CrossingEntry::FirstObject(0),
-            );
-        }
 
         while curr < region.end {
             let object = curr.to_obj();
@@ -234,44 +208,20 @@ impl<'a> Verifier<'a> {
             assert!(object_end <= page.end());
 
             if !object.is_filler(self.vm) {
-                self.verify_object(page.as_base_page(), curr, &mut refs_to_young_gen);
-            }
-
-            if on_different_cards(curr, object_end) {
-                if in_old {
-                    self.verify_card(curr, refs_to_young_gen);
-
-                    if object_end < region.end {
-                        self.verify_crossing(curr, object_end);
-                    }
-                }
-
-                refs_to_young_gen = 0;
+                self.verify_object(page.as_base_page(), curr);
             }
 
             curr = object_end;
         }
 
         assert!(curr == region.end, "object doesn't end at region end");
-        assert_eq!(refs_to_young_gen, 0);
     }
 
     fn verify_large_page(&mut self, page: LargePage) {
-        let mut refs_to_young_gen = 0;
-        self.verify_object(
-            page.as_base_page(),
-            page.object_address(),
-            &mut refs_to_young_gen,
-        );
-        self.verify_card(page.object_address(), refs_to_young_gen);
+        self.verify_object(page.as_base_page(), page.object_address());
     }
 
-    fn verify_object(
-        &mut self,
-        page: BasePage,
-        object_address: Address,
-        refs_to_young_gen: &mut usize,
-    ) {
+    fn verify_object(&mut self, page: BasePage, object_address: Address) {
         let object = object_address.to_obj();
         assert_eq!(object.header().is_marked(), page.is_readonly());
 
@@ -284,107 +234,18 @@ impl<'a> Verifier<'a> {
         let mut object_has_young_ref = false;
 
         object.visit_reference_fields(self.vm.meta_space_start(), |child| {
-            if self.verify_slot(child, object_address, refs_to_young_gen) {
+            if self.verify_slot(child, object_address) {
                 object_has_young_ref = true;
             }
         });
 
-        if self.vm.flags.object_write_barrier && object_has_young_ref && !page.is_young() {
+        if object_has_young_ref && !page.is_young() {
             assert!(object.header().is_remembered());
             self.minimum_remset.push(object_address);
         }
     }
 
-    fn verify_card(&self, curr: Address, refs_to_young_gen: usize) {
-        if self.vm.flags.object_write_barrier {
-            return;
-        }
-
-        let curr_card = self.card_table.card_idx(curr);
-
-        let expected_card_entry = if refs_to_young_gen > 0 {
-            // full collections promote everything into old gen
-            // young gen should be empty!
-            assert!(!self.phase.is_post_full());
-
-            CardEntry::Dirty
-        } else {
-            CardEntry::Clean
-        };
-
-        let actual_card_entry = self.card_table.get(curr_card);
-
-        // In the verify-phase before the collection the card's dirty-entry isn't
-        // guaranteed to be exact. It could be `dirty` although this card doesn't
-        // actually contain any references into the young generation. But it should never
-        // be clean when there are actual references into the young generation.
-        if (self.phase.is_pre() || self.phase.is_post_minor()) && expected_card_entry.is_clean() {
-            return;
-        }
-
-        if actual_card_entry != expected_card_entry {
-            let card_text = match actual_card_entry {
-                CardEntry::Dirty => "dirty",
-                CardEntry::Clean => "clean",
-            };
-
-            let card_start = self.card_table.to_address(curr_card);
-            let card_end = card_start.offset(CARD_SIZE);
-
-            println!(
-                "CARD: {} ({}-{}) is marked {} but has {} reference(s) in phase {}.",
-                curr_card.to_usize(),
-                card_start,
-                card_end,
-                card_text,
-                refs_to_young_gen,
-                self.phase,
-            );
-
-            panic!("card table entry wrong.");
-        }
-
-        assert_eq!(actual_card_entry, expected_card_entry);
-    }
-
-    fn verify_crossing(&self, old: Address, new: Address) {
-        let new_card_idx = self.card_table.card_idx(new);
-        let old_card_idx = self.card_table.card_idx(old);
-
-        if new_card_idx == old_card_idx {
-            return;
-        }
-
-        let new_card_start = self.card_table.to_address(new_card_idx);
-
-        let offset = new.offset_from(new_card_start);
-        let offset_words = (offset / mem::ptr_width_usize()) as u8;
-
-        let middle_start = old_card_idx.to_usize() + 1;
-        let actual = self.crossing_map.get(new_card_idx);
-        let expected = CrossingEntry::FirstObject(offset_words);
-
-        if actual != expected {
-            println!("actual = {:?}", actual);
-            println!("expected = {:?}", expected);
-        }
-
-        assert_eq!(expected, actual, "crossing at end not correct.");
-
-        for c in middle_start..new_card_idx.to_usize() {
-            assert!(
-                self.crossing_map.get(c.into()) == CrossingEntry::NoRefs,
-                "middle crossing not correct."
-            );
-        }
-    }
-
-    fn verify_slot(
-        &self,
-        slot: Slot,
-        _container_obj: Address,
-        refs_to_young_gen: &mut usize,
-    ) -> bool {
+    fn verify_slot(&self, slot: Slot, _container_obj: Address) -> bool {
         let referenced_object = slot.get();
 
         if referenced_object.is_null() {
@@ -404,10 +265,6 @@ impl<'a> Verifier<'a> {
             object.size(self.meta_space_start) != 1,
             "object size shouldn't be 1"
         );
-
-        if is_young {
-            *refs_to_young_gen += 1;
-        }
 
         is_young
     }

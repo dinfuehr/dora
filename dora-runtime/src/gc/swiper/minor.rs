@@ -4,15 +4,11 @@ use std::sync::{Arc, Barrier};
 
 use crate::gc::pmarking::Terminator;
 use crate::gc::root::Slot;
-use crate::gc::swiper::card::{CardEntry, CardTable};
 use crate::gc::swiper::controller::{MinorCollectorPhases, SharedHeapConfig};
-use crate::gc::swiper::crossing::{CrossingEntry, CrossingMap};
 use crate::gc::swiper::large::LargeSpace;
 use crate::gc::swiper::old::OldGen;
 use crate::gc::swiper::young::YoungGen;
-use crate::gc::swiper::{
-    BasePage, CardIdx, LargePage, RegularPage, Swiper, CARD_SIZE, LARGE_OBJECT_SIZE,
-};
+use crate::gc::swiper::{BasePage, LargePage, RegularPage, Swiper, LARGE_OBJECT_SIZE};
 use crate::gc::tlab::{MAX_TLAB_OBJECT_SIZE, MAX_TLAB_SIZE, MIN_TLAB_SIZE};
 use crate::gc::{
     fill_region, fill_region_with, iterate_weak_roots, Address, GcReason, GenerationAllocator,
@@ -35,8 +31,6 @@ pub struct MinorCollector<'a> {
     young: &'a YoungGen,
     old: &'a OldGen,
     large: &'a LargeSpace,
-    card_table: &'a CardTable,
-    crossing_map: &'a CrossingMap,
 
     rootset: &'a [Slot],
     _threads: &'a [Arc<DoraThread>],
@@ -63,8 +57,6 @@ impl<'a> MinorCollector<'a> {
         young: &'a YoungGen,
         old: &'a OldGen,
         large: &'a LargeSpace,
-        card_table: &'a CardTable,
-        crossing_map: &'a CrossingMap,
         rootset: &'a [Slot],
         threads: &'a [Arc<DoraThread>],
         reason: GcReason,
@@ -82,8 +74,6 @@ impl<'a> MinorCollector<'a> {
             large,
             rootset,
             _threads: threads,
-            card_table,
-            crossing_map,
 
             promoted_size: 0,
             copied_size: 0,
@@ -141,8 +131,6 @@ impl<'a> MinorCollector<'a> {
         let vm = self.vm;
 
         let heap = self.heap;
-        let card_table = self.card_table;
-        let crossing_map = self.crossing_map;
         let young = self.young;
         let old = self.old;
         let rootset = self.rootset;
@@ -179,7 +167,6 @@ impl<'a> MinorCollector<'a> {
         };
         let prot_timer = &prot_timer;
         let added_to_remset: Mutex<Vec<Vec<Address>>> = Default::default();
-        let object_write_barrier = self.vm.flags.object_write_barrier;
 
         {
             let remset = self.swiper.remset.read();
@@ -207,13 +194,10 @@ impl<'a> MinorCollector<'a> {
                             heap,
                             young,
                             old,
-                            card_table,
-                            crossing_map,
                             rootset,
                             barrier,
                             remset,
                             added_to_remset: Vec::new(),
-                            object_write_barrier,
                             meta_space_start,
 
                             next_root_stride,
@@ -319,11 +303,8 @@ impl Lab {
         self.limit = Address::null();
     }
 
-    fn make_iterable_old(&mut self, vm: &VM, old: &OldGen) {
+    fn make_iterable_old(&mut self, vm: &VM) {
         fill_region_with(vm, self.top, self.limit, false);
-        if self.limit.is_non_null() {
-            old.update_crossing(self.top, self.limit);
-        }
 
         self.top = Address::null();
         self.limit = Address::null();
@@ -389,11 +370,8 @@ struct CopyTask<'a> {
     heap: Region,
     young: &'a YoungGen,
     old: &'a OldGen,
-    card_table: &'a CardTable,
-    crossing_map: &'a CrossingMap,
     rootset: &'a [Slot],
     barrier: &'a Barrier,
-    object_write_barrier: bool,
     remset: &'a [Address],
     added_to_remset: Vec<Address>,
     meta_space_start: Address,
@@ -420,12 +398,7 @@ struct CopyTask<'a> {
 impl<'a> CopyTask<'a> {
     fn run(&mut self) {
         self.visit_roots();
-
-        if self.object_write_barrier {
-            self.visit_remembered_objects();
-        } else {
-            self.visit_dirty_cards();
-        }
+        self.visit_remembered_objects();
 
         self.barrier();
 
@@ -472,11 +445,6 @@ impl<'a> CopyTask<'a> {
         }
     }
 
-    fn visit_dirty_cards(&mut self) {
-        self.visit_dirty_cards_in_old();
-        self.visit_dirty_cards_in_large();
-    }
-
     fn visit_remembered_objects(&mut self) {
         while let Some(stride) = self.next_object_stride() {
             self.visit_remembered_objects_in_stride(stride);
@@ -513,38 +481,9 @@ impl<'a> CopyTask<'a> {
         });
     }
 
-    fn visit_dirty_cards_in_old(&mut self) {
-        while let Some(page) = self.next_old_page() {
-            self.visit_dirty_cards_in_old_page(page);
-        }
-    }
-
     fn next_old_page(&mut self) -> Option<RegularPage> {
         let page_idx = self.next_old_page_idx.fetch_add(1, Ordering::Relaxed);
         self.old_pages.get(page_idx).cloned()
-    }
-
-    fn visit_dirty_cards_in_old_page(&mut self, page: RegularPage) {
-        let region = page.object_area();
-        let (start_card_idx, end_card_idx) = self.card_table.card_indices(region.start, region.end);
-
-        for card_idx in start_card_idx..end_card_idx {
-            let card_idx: CardIdx = card_idx.into();
-
-            if self.card_table.get(card_idx).is_dirty() {
-                self.visit_dirty_card(card_idx);
-            }
-        }
-    }
-
-    fn visit_dirty_cards_in_large(&mut self) {
-        loop {
-            if let Some(page) = self.next_large() {
-                self.visit_large_object(page);
-            } else {
-                break;
-            }
-        }
     }
 
     fn next_large(&mut self) -> Option<LargePage> {
@@ -555,77 +494,6 @@ impl<'a> CopyTask<'a> {
             Some(large_page)
         } else {
             None
-        }
-    }
-
-    fn visit_large_object(&mut self, page: LargePage) {
-        let object_start = page.object_address();
-        let card_idx = self.card_table.card_idx(object_start);
-        let mut ref_to_young_gen = false;
-
-        if self.card_table.get(card_idx).is_clean() {
-            return;
-        }
-
-        object_start
-            .to_obj()
-            .visit_reference_fields(self.vm.meta_space_start(), |slot| {
-                let pointer = slot.get();
-
-                if self.is_young(pointer) {
-                    self.push_slot(slot);
-                    ref_to_young_gen = true;
-                }
-            });
-
-        self.clean_card_if_no_young_refs(card_idx, ref_to_young_gen);
-    }
-
-    fn visit_dirty_card(&mut self, card_idx: CardIdx) {
-        let crossing_entry = self.crossing_map.get(card_idx);
-        let card_start = self.card_table.to_address(card_idx);
-        let card_end = card_start.offset(CARD_SIZE);
-
-        match crossing_entry {
-            CrossingEntry::NoRefs => panic!("card dirty without any refs"),
-
-            CrossingEntry::FirstObject(offset) => {
-                let first_object = card_start.add_ptr(offset as usize);
-                self.process_card(card_idx, first_object, card_end);
-            }
-        }
-    }
-
-    fn process_card(&mut self, card_idx: CardIdx, mut ptr: Address, end: Address) {
-        let mut ref_to_young_gen = false;
-
-        while ptr < end {
-            let object = ptr.to_obj();
-
-            if object.is_filler(self.vm) {
-                ptr = ptr.offset(object.size(self.meta_space_start));
-            } else {
-                object.visit_reference_fields(self.vm.meta_space_start(), |slot| {
-                    let pointer = slot.get();
-
-                    if self.is_young(pointer) {
-                        self.push_slot(slot);
-                        ref_to_young_gen = true;
-                    }
-                });
-
-                ptr = ptr.offset(object.size(self.meta_space_start));
-            }
-        }
-
-        self.clean_card_if_no_young_refs(card_idx, ref_to_young_gen);
-    }
-
-    fn clean_card_if_no_young_refs(&mut self, card_idx: CardIdx, ref_to_young_gen: bool) {
-        // if there are no references to the young generation in this card,
-        // set the card to clean.
-        if !ref_to_young_gen {
-            self.card_table.set(card_idx, CardEntry::Clean);
         }
     }
 
@@ -652,7 +520,7 @@ impl<'a> CopyTask<'a> {
         }
 
         self.young_lab.make_iterable_young(self.vm);
-        self.old_lab.make_iterable_old(self.vm, self.old);
+        self.old_lab.make_iterable_old(self.vm);
     }
 
     fn trace_young_object(&mut self, object_addr: Address) {
@@ -686,13 +554,8 @@ impl<'a> CopyTask<'a> {
         });
 
         if ref_to_young_gen {
-            if self.object_write_barrier {
-                object.header().set_remembered();
-                self.added_to_remset.push(object_addr);
-            } else {
-                let card_idx = self.card_table.card_idx(object_addr);
-                self.card_table.set(card_idx, CardEntry::Dirty);
-            }
+            object.header().set_remembered();
+            self.added_to_remset.push(object_addr);
         }
     }
 
@@ -765,7 +628,7 @@ impl<'a> CopyTask<'a> {
             return object_start;
         }
 
-        self.old_lab.make_iterable_old(self.vm, self.old);
+        self.old_lab.make_iterable_old(self.vm);
         if !self.alloc_old_lab() {
             return Address::null();
         }
@@ -779,9 +642,6 @@ impl<'a> CopyTask<'a> {
 
         if let Some(new_region) = self.old.allocate(self.vm, size, size) {
             let object_start = new_region.start();
-            let old = object_start;
-            let new = old.offset(size);
-            self.old.update_crossing(old, new);
             object_start
         } else {
             Address::null()
@@ -811,9 +671,6 @@ impl<'a> CopyTask<'a> {
         let object_start = self.old_lab.allocate(size);
 
         if let Some(object_start) = object_start {
-            let old = object_start;
-            let new = old.offset(size);
-            self.old.update_crossing(old, new);
             Some(object_start)
         } else {
             None

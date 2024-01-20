@@ -1,15 +1,12 @@
 use parking_lot::{Mutex, RwLock};
 use scoped_threadpool::Pool;
 use std::fmt;
-use std::mem::size_of;
 use std::sync::atomic::{AtomicUsize, Ordering};
 use std::sync::Arc;
 
 use crate::gc::allocator::GenerationAllocator;
 use crate::gc::root::{determine_strong_roots, Slot};
-use crate::gc::swiper::card::CardTable;
 use crate::gc::swiper::controller::{HeapController, SharedHeapConfig};
-use crate::gc::swiper::crossing::CrossingMap;
 use crate::gc::swiper::full::FullCollector;
 use crate::gc::swiper::large::LargeSpace;
 use crate::gc::swiper::minor::MinorCollector;
@@ -20,16 +17,14 @@ use crate::gc::swiper::young::YoungGen;
 use crate::gc::{tlab, Address, Collector, GcReason, Region, K};
 use crate::mem;
 use crate::object::Obj;
-use crate::os::{self, MemoryPermission, Reservation};
+use crate::os::{self, Reservation};
 use crate::safepoint;
 use crate::threads::DoraThread;
 use crate::vm::{get_vm, Flags, VM};
 
 use super::tlab::{MAX_TLAB_SIZE, MIN_TLAB_SIZE};
 
-pub mod card;
 mod controller;
-mod crossing;
 mod full;
 mod large;
 mod minor;
@@ -42,16 +37,9 @@ pub mod young;
 // young generation size = heap size / YOUNG_RATIO
 const YOUNG_RATIO: usize = 2;
 
-// heap is divided into cards of size CARD_SIZE.
-// card entry determines whether this part of the heap was modified
-// in minor collections those parts of the heap need to be analyzed
-pub const CARD_SIZE_BITS: usize = 9;
-pub const CARD_SIZE: usize = 1 << CARD_SIZE_BITS;
-pub const CARD_REFS: usize = CARD_SIZE / size_of::<usize>();
-
 pub const LARGE_OBJECT_SIZE: usize = 32 * K;
 pub const PAGE_SIZE: usize = 64 * K;
-pub const PAGE_HEADER_SIZE: usize = CARD_SIZE;
+pub const PAGE_HEADER_SIZE: usize = 512;
 
 /// round the given value up to the nearest multiple of a generation
 pub fn align_page_up(value: usize) -> usize {
@@ -79,11 +67,7 @@ pub struct Swiper {
     large: LargeSpace,
     readonly: ReadOnlySpace,
 
-    card_table: CardTable,
-    crossing_map: CrossingMap,
     remset: RwLock<Vec<Address>>,
-
-    card_table_offset: usize,
 
     // minimum & maximum heap size
     min_heap_size: usize,
@@ -104,14 +88,8 @@ impl Swiper {
 
         controller::init(&mut config, args);
 
-        // Determine size for card table.
-        let card_size = mem::os_page_align_up((4 * max_heap_size) >> CARD_SIZE_BITS);
-
-        // Determine size for crossing map.
-        let crossing_size = mem::os_page_align_up(max_heap_size >> CARD_SIZE_BITS);
-
         // Determine full reservation size.
-        let reserve_size = max_heap_size * 4 + card_size + crossing_size;
+        let reserve_size = max_heap_size * 4;
 
         // Reserve all memory.
         let reservation = os::reserve_align(reserve_size, PAGE_SIZE, false);
@@ -122,22 +100,6 @@ impl Swiper {
 
         // Reserved area contains everything.
         let reserved_area = heap_start.region_start(reserve_size);
-
-        // Determine offset to card table (card table starts right after heap).
-        // offset = card_table_start - (heap_start >> CARD_SIZE_BITS)
-        let card_table_offset = heap_end.to_usize() - (heap_start.to_usize() >> CARD_SIZE_BITS);
-
-        // Determine boundaries for card table.
-        let card_start = heap_end;
-        let card_end = card_start.offset(card_size);
-
-        os::commit_at(card_start, card_size, MemoryPermission::ReadWrite);
-
-        // Determine boundaries for crossing map.
-        let crossing_start = card_end;
-        let crossing_end = crossing_start.offset(crossing_size);
-
-        os::commit_at(crossing_start, crossing_size, MemoryPermission::ReadWrite);
 
         // Determine boundaries of young generation.
         let young_start = heap_start;
@@ -154,24 +116,10 @@ impl Swiper {
         let large_start = old_end;
         let large_end = large_start.offset(2 * max_heap_size);
 
-        let card_table = CardTable::new(
-            card_start,
-            card_end,
-            Region::new(old_start, large_end),
-            old_end,
-            max_heap_size,
-        );
-        let crossing_map = CrossingMap::new(crossing_start, crossing_end, max_heap_size);
         let young = YoungGen::new(young, semi_size, args.gc_verify);
 
         let config = Arc::new(Mutex::new(config));
-        let old = OldGen::new(
-            old_start,
-            old_end,
-            crossing_map.clone(),
-            card_table.clone(),
-            config.clone(),
-        );
+        let old = OldGen::new(old_start, old_end, config.clone());
         let large = LargeSpace::new(large_start, large_end, config.clone());
 
         let nworkers = args.gc_workers();
@@ -190,12 +138,8 @@ impl Swiper {
             large,
             readonly,
 
-            card_table,
-            crossing_map,
             config,
             remset: RwLock::new(Vec::new()),
-
-            card_table_offset,
 
             min_heap_size,
             max_heap_size,
@@ -265,8 +209,6 @@ impl Swiper {
                 &self.young,
                 &self.old,
                 &self.large,
-                &self.card_table,
-                &self.crossing_map,
                 rootset,
                 threads,
                 reason,
@@ -309,8 +251,6 @@ impl Swiper {
                 &self.young,
                 &self.old,
                 &self.large,
-                &self.card_table,
-                &self.crossing_map,
                 &self.readonly,
                 rootset,
                 threads,
@@ -337,8 +277,6 @@ impl Swiper {
                 self.heap,
                 &self.young,
                 &self.old,
-                &self.card_table,
-                &self.crossing_map,
                 rootset,
                 &self.large,
                 &self.readonly,
@@ -432,45 +370,12 @@ impl Collector for Swiper {
         }
     }
 
-    fn card_table_offset(&self) -> usize {
-        self.card_table_offset
-    }
-
     fn dump_summary(&self, runtime: f32) {
         let config = self.config.lock();
         let total_gc = config.total_minor_pause + config.total_full_pause;
         let gc_percentage = ((total_gc / runtime) * 100.0).round();
         let mutator = runtime - total_gc;
         let mutator_percentage = 100.0 - gc_percentage;
-
-        println!("GC stats: total={:.1}", runtime);
-        println!("GC stats: mutator={:.1}", mutator);
-        println!("GC stats: collection={:.1}", total_gc);
-        println!("GC stats: collection-minor={:.1}", config.total_minor_pause);
-        println!("GC stats: collection-full={:.1}", config.total_full_pause);
-
-        println!("");
-        println!(
-            "GC stats: full-collections={:.1}",
-            config.total_full_collections
-        );
-        println!("GC stats: full-total={}", config.full_total_all());
-        println!("GC stats: full-marking={}", config.full_marking_all());
-        println!("GC stats: full-sweep={}", config.full_sweep_all());
-        println!(
-            "GC stats: full-update-refs={}",
-            config.full_update_refs_all()
-        );
-        println!("GC stats: full-evacuate={}", config.full_relocate_all());
-        println!("");
-        println!(
-            "GC stats: minor-collections={:.1}",
-            config.total_minor_collections
-        );
-        println!("GC stats: minor-total={}", config.minor_total_all());
-        println!("GC stats: minor-roots={}", config.minor_roots_all());
-        println!("GC stats: minor-tracing={}", config.minor_tracing_all());
-        println!("");
 
         println!(
             "GC summary: {:.1}ms minor ({}), {:.1}ms full ({}), {:.1}ms collection, {:.1}ms mutator, {:.1}ms total ({}% mutator, {}% GC)",
@@ -508,29 +413,6 @@ impl Collector for Swiper {
     fn to_swiper(&self) -> &Swiper {
         self
     }
-}
-
-#[derive(Copy, Clone, PartialEq, Eq)]
-pub struct CardIdx(usize);
-
-impl CardIdx {
-    pub fn to_usize(self) -> usize {
-        self.0
-    }
-
-    pub fn offset(self, val: usize) -> CardIdx {
-        (self.0 + val).into()
-    }
-}
-
-impl From<usize> for CardIdx {
-    fn from(val: usize) -> CardIdx {
-        CardIdx(val)
-    }
-}
-
-fn on_different_cards(curr: Address, next: Address) -> bool {
-    (curr.to_usize() >> CARD_SIZE_BITS) != (next.to_usize() >> CARD_SIZE_BITS)
 }
 
 #[derive(Copy, Clone)]
@@ -885,7 +767,6 @@ impl LargePageHeader {
 
 pub extern "C" fn object_write_barrier_slow_path(object_address: Address) {
     let vm = get_vm();
-    debug_assert!(vm.flags.object_write_barrier);
     debug_assert!(!BasePage::from_address(object_address).is_young());
     let obj = object_address.to_obj();
     obj.header().set_remembered();

@@ -6,9 +6,7 @@ use parking_lot::MutexGuard;
 use crate::gc::swiper::controller::FullCollectorPhases;
 use crate::gc::swiper::old::OldGenProtected;
 use crate::gc::swiper::{walk_region, ReadOnlySpace, Swiper};
-use crate::gc::swiper::{
-    BasePage, CardTable, CrossingMap, LargeSpace, OldGen, RegularPage, YoungGen,
-};
+use crate::gc::swiper::{BasePage, LargeSpace, OldGen, RegularPage, YoungGen};
 use crate::gc::{fill_region_with, iterate_strong_roots, iterate_weak_roots, Slot};
 use crate::gc::{Address, GcReason, Region};
 use crate::object::{Obj, VtblptrWordKind};
@@ -25,8 +23,6 @@ pub struct FullCollector<'a> {
     large_space: &'a LargeSpace,
     rootset: &'a [Slot],
     threads: &'a [Arc<DoraThread>],
-    card_table: &'a CardTable,
-    crossing_map: &'a CrossingMap,
     readonly_space: &'a ReadOnlySpace,
     swiper: &'a Swiper,
 
@@ -51,8 +47,6 @@ impl<'a> FullCollector<'a> {
         young: &'a YoungGen,
         old: &'a OldGen,
         large_space: &'a LargeSpace,
-        card_table: &'a CardTable,
-        crossing_map: &'a CrossingMap,
         readonly_space: &'a ReadOnlySpace,
         rootset: &'a [Slot],
         threads: &'a [Arc<DoraThread>],
@@ -73,8 +67,6 @@ impl<'a> FullCollector<'a> {
             large_space,
             rootset,
             threads,
-            card_table,
-            crossing_map,
             readonly_space,
             metaspace_start: vm.meta_space_start(),
 
@@ -123,9 +115,7 @@ impl<'a> FullCollector<'a> {
 
         self.young.reset_after_full_gc(self.vm);
 
-        if self.vm.flags.object_write_barrier {
-            self.swiper.remset.write().clear();
-        }
+        self.swiper.remset.write().clear();
     }
 
     fn mark_live(&mut self) {
@@ -174,8 +164,6 @@ impl<'a> FullCollector<'a> {
         self.old_protected.clear_freelist();
 
         for page in self.old_protected.pages() {
-            self.card_table.reset_page(page);
-
             let (live, free_regions) = self.sweep_page(page);
 
             if live == 0 {
@@ -183,8 +171,6 @@ impl<'a> FullCollector<'a> {
             } else {
                 for free_region in free_regions {
                     fill_region_with(self.vm, free_region.start, free_region.end, true);
-                    self.old
-                        .update_crossing(free_region.start(), free_region.end());
 
                     self.old_protected.add_to_freelist(
                         self.vm,
@@ -197,10 +183,6 @@ impl<'a> FullCollector<'a> {
 
         self.large_space.remove_pages(|page| {
             let object = page.object_address().to_obj();
-
-            // reset cards for object, also do this for dead objects
-            // to reset card entries to clean.
-            self.card_table.reset_addr(page.object_address());
 
             if object.header().is_marked() {
                 // unmark object for next collection
@@ -277,7 +259,6 @@ impl<'a> FullCollector<'a> {
                 .allocate(self.vm, self.old, true, size, size)
             {
                 let new_address = new_region.start();
-                let object_end = new_address.offset(size);
 
                 object.copy_to(new_address, size);
                 object
@@ -287,8 +268,6 @@ impl<'a> FullCollector<'a> {
                 // Clear metadata word.
                 let new_obj = new_address.to_obj();
                 new_obj.header().set_metadata_raw(false, false);
-
-                self.old.update_crossing(new_address, object_end);
             } else {
                 stdlib::trap(Trap::OOM.int());
             }

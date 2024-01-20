@@ -11,7 +11,7 @@ use crate::gc::copy::CopyCollector;
 use crate::gc::metaspace::MetaSpace;
 use crate::gc::space::{default_readonly_space_config, Space};
 use crate::gc::sweep::SweepCollector;
-use crate::gc::swiper::{align_page_up, is_page_aligned, Swiper, CARD_SIZE};
+use crate::gc::swiper::{align_page_up, is_page_aligned, Swiper};
 use crate::gc::tlab::MAX_TLAB_OBJECT_SIZE;
 use crate::gc::zero::ZeroCollector;
 use crate::mem;
@@ -96,10 +96,6 @@ impl Gc {
 
     pub fn needs_write_barrier(&self) -> bool {
         self.collector.needs_write_barrier()
-    }
-
-    pub fn card_table_offset(&self) -> usize {
-        self.collector.card_table_offset()
     }
 
     pub fn alloc_code(&self, size: usize) -> Address {
@@ -212,11 +208,6 @@ trait Collector {
     // gives true when collector supports tlab allocation.
     fn supports_tlab(&self) -> bool;
 
-    // only need if write barriers needed
-    fn card_table_offset(&self) -> usize {
-        0
-    }
-
     // prints GC summary: minor/full collections, etc.
     fn dump_summary(&self, _runtime: f32);
 
@@ -320,16 +311,6 @@ impl Address {
     #[inline(always)]
     pub fn is_non_null(self) -> bool {
         self.0 != 0
-    }
-
-    #[inline(always)]
-    pub fn is_card_aligned(self) -> bool {
-        (self.to_usize() & (CARD_SIZE - 1)) == 0
-    }
-
-    #[inline(always)]
-    pub fn align_card(self) -> Address {
-        mem::align_usize_up(self.to_usize(), CARD_SIZE).into()
     }
 
     #[inline(always)]

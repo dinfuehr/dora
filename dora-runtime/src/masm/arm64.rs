@@ -1,6 +1,6 @@
 use crate::compiler::codegen::AnyReg;
 use crate::cpu::*;
-use crate::gc::swiper::{CARD_SIZE_BITS, LARGE_OBJECT_SIZE};
+use crate::gc::swiper::LARGE_OBJECT_SIZE;
 use crate::gc::Address;
 use crate::masm::{CondCode, Label, MacroAssembler, Mem};
 use crate::mem::ptr_width;
@@ -1332,21 +1332,6 @@ impl MacroAssembler {
 
             Mem::Offset(_, _, _) => unimplemented!(),
         }
-    }
-
-    pub fn emit_card_write_barrier(&mut self, src: Reg, card_table_offset: usize) {
-        let scratch1 = self.get_scratch();
-        self.asm
-            .lsr_imm((*scratch1).into(), src.into(), CARD_SIZE_BITS as u32);
-        let scratch2 = self.get_scratch();
-        self.load_int_const(MachineMode::Ptr, *scratch2, card_table_offset as i64);
-        self.asm.strb_reg(
-            REG_ZERO.into(),
-            (*scratch1).into(),
-            (*scratch2).into(),
-            Extend::LSL,
-            0,
-        );
     }
 
     pub fn emit_object_write_barrier_fast_path(&mut self, src: Reg) -> Label {

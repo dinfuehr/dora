@@ -3,9 +3,7 @@ use parking_lot::{Mutex, MutexGuard};
 use rand::Rng;
 
 use crate::gc::freelist::FreeList;
-use crate::gc::swiper::card::CardTable;
 use crate::gc::swiper::controller::SharedHeapConfig;
-use crate::gc::swiper::crossing::CrossingMap;
 use crate::gc::swiper::{CommonOldGen, RegularPage, PAGE_SIZE};
 use crate::gc::{fill_region, fill_region_with, is_page_aligned};
 use crate::gc::{Address, GenerationAllocator, Region};
@@ -16,27 +14,17 @@ pub struct OldGen {
     total: Region,
     protected: Mutex<OldGenProtected>,
 
-    crossing_map: CrossingMap,
-    card_table: CardTable,
     config: SharedHeapConfig,
 }
 
 impl OldGen {
-    pub fn new(
-        start: Address,
-        end: Address,
-        crossing_map: CrossingMap,
-        card_table: CardTable,
-        config: SharedHeapConfig,
-    ) -> OldGen {
+    pub fn new(start: Address, end: Address, config: SharedHeapConfig) -> OldGen {
         let total = Region::new(start, end);
 
         let old = OldGen {
             total: total.clone(),
             protected: Mutex::new(OldGenProtected::new(total)),
 
-            crossing_map,
-            card_table,
             config,
         };
 
@@ -54,11 +42,6 @@ impl OldGen {
     pub fn contains_slow(&self, addr: Address) -> bool {
         let protected = self.protected.lock();
         protected.contains(addr)
-    }
-
-    pub fn update_crossing(&self, object_start: Address, object_end: Address) {
-        self.crossing_map
-            .update(self.total.clone(), object_start, object_end);
     }
 
     pub fn protected(&self) -> MutexGuard<OldGenProtected> {
@@ -151,12 +134,10 @@ impl OldGenProtected {
     ) -> Option<Region> {
         if let Some(region) = self.raw_alloc(min_size, max_size) {
             fill_region_with(vm, self.top, self.current_limit, false);
-            old.update_crossing(self.top, self.current_limit);
             return Some(region);
         }
 
         fill_region_with(vm, self.top, self.current_limit, false);
-        old.update_crossing(self.top, self.current_limit);
 
         let free_space = self.freelist.alloc(vm, min_size);
 
@@ -169,7 +150,6 @@ impl OldGenProtected {
                 .expect("allocation failed");
 
             fill_region_with(vm, self.top, self.current_limit, false);
-            old.update_crossing(self.top, self.current_limit);
             return Some(region);
         }
 
@@ -189,7 +169,6 @@ impl OldGenProtected {
 
             // Make rest of page iterable.
             fill_region(vm, self.top, self.current_limit);
-            old.update_crossing(self.top, self.current_limit);
 
             result
         } else {
