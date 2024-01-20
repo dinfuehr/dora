@@ -109,6 +109,7 @@ impl MacroAssembler {
         vtable_index: u32,
         self_index: u32,
         lazy_compilation_site: LazyCompilationSite,
+        meta_space_start: Address,
     ) {
         let obj = REG_PARAMS[self_index as usize];
         self.test_if_nil_bailout(location, obj, Trap::NIL);
@@ -118,7 +119,24 @@ impl MacroAssembler {
         let scratch = self.get_scratch();
 
         // scratch = [obj] (load vtable)
-        self.load_mem(MachineMode::Ptr, (*scratch).into(), Mem::Base(obj, 0));
+        self.load_mem(
+            MachineMode::Int32,
+            (*scratch).into(),
+            Mem::Base(obj, Header::offset_vtable_word() as i32),
+        );
+
+        let meta_space_start_reg = REG_TMP1;
+        self.load_int_const(
+            MachineMode::IntPtr,
+            meta_space_start_reg.into(),
+            meta_space_start.to_usize() as i64,
+        );
+
+        self.asm.add(
+            (*scratch).into(),
+            (*scratch).into(),
+            meta_space_start_reg.into(),
+        );
 
         // calculate offset of VTable entry
         let disp = VTable::offset_of_method_table() + (vtable_index as i32) * ptr_width();
@@ -130,7 +148,6 @@ impl MacroAssembler {
             Mem::Base(*scratch, disp),
         );
 
-        // call *scratch
         self.asm.bl_r((*scratch).into());
         self.emit_lazy_compilation_site(lazy_compilation_site);
     }

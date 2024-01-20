@@ -112,12 +112,25 @@ impl MacroAssembler {
         vtable_index: u32,
         self_index: u32,
         lazy_compilation_site: LazyCompilationSite,
+        meta_space_start: Address,
     ) {
         let obj = REG_PARAMS[self_index as usize];
         self.test_if_nil_bailout(location, obj, Trap::NIL);
 
         // REG_RESULT = [obj] (load vtable)
-        self.load_mem(MachineMode::Ptr, REG_RESULT.into(), Mem::Base(obj, 0));
+        self.load_mem(
+            MachineMode::Int32,
+            REG_RESULT.into(),
+            Mem::Base(obj, Header::offset_vtable_word() as i32),
+        );
+
+        self.load_int_const(
+            MachineMode::IntPtr,
+            REG_TMP1,
+            meta_space_start.to_usize() as i64,
+        );
+
+        self.asm.addq_rr(REG_RESULT.into(), REG_TMP1.into());
 
         // calculate offset of VTable entry
         let disp = VTable::offset_of_method_table() + (vtable_index as i32) * ptr_width();

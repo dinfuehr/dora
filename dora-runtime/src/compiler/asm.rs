@@ -746,8 +746,13 @@ impl<'a> BaselineAssembler<'a> {
         dest: AnyReg,
         lazy_compilation_site: LazyCompilationSite,
     ) {
-        self.masm
-            .virtual_call(location, vtable_index, self_index, lazy_compilation_site);
+        self.masm.virtual_call(
+            location,
+            vtable_index,
+            self_index,
+            lazy_compilation_site,
+            self.vm.meta_space_start(),
+        );
         self.call_epilog(location, return_mode, dest, gcpoint);
     }
 
@@ -904,9 +909,10 @@ impl<'a> BaselineAssembler<'a> {
         let vtable = class_instance.vtable.read();
         let vtable: &VTable = vtable.as_ref().unwrap();
         let vtable = Address::from_ptr(vtable as *const _);
+        let vtable = vtable.offset_from(self.vm.meta_space_start());
 
         self.masm
-            .load_int_const(MachineMode::Ptr, tmp_reg.into(), vtable.to_usize() as i64);
+            .load_int_const(MachineMode::Int32, tmp_reg.into(), vtable as i64);
 
         self.store_mem(
             MachineMode::Ptr,
@@ -942,12 +948,10 @@ impl<'a> BaselineAssembler<'a> {
         let vtable = class_instance.vtable.read();
         let vtable: &VTable = vtable.as_ref().unwrap();
         let vtable = Address::from_ptr(vtable as *const _);
+        let vtable = vtable.offset_from(self.vm.meta_space_start());
 
-        self.masm.load_int_const(
-            MachineMode::Ptr,
-            (*tmp_reg).into(),
-            vtable.to_usize() as i64,
-        );
+        self.masm
+            .load_int_const(MachineMode::Int32, (*tmp_reg).into(), vtable as i64);
 
         self.store_mem(
             MachineMode::Ptr,

@@ -243,7 +243,7 @@ impl<'a> MinorCollector<'a> {
                     let obj = object_address.to_obj();
 
                     if let VtblptrWordKind::Fwdptr(fwdptr) =
-                        obj.header().vtblptr(self.vm.meta_space_start())
+                        obj.header().vtblptr_or_fwdptr(self.vm.meta_space_start())
                     {
                         Some(fwdptr)
                     } else {
@@ -618,7 +618,7 @@ impl<'a> CopyTask<'a> {
         let obj = obj_addr.to_obj();
 
         // Check if object was already copied
-        let vtblptr = match obj.header().vtblptr(self.vm.meta_space_start()) {
+        let vtblptr = match obj.header().vtblptr_or_fwdptr(self.vm.meta_space_start()) {
             VtblptrWordKind::Fwdptr(fwd_addr) => {
                 return fwd_addr;
             }

@@ -19,7 +19,6 @@ use crate::object::{Header, Obj};
 use crate::threads::DoraThread;
 use crate::vm::VM;
 use crate::vm::{CollectorName, Flags};
-use crate::vtable::VTable;
 
 pub use crate::gc::root::{iterate_strong_roots, iterate_weak_roots, Slot};
 
@@ -508,14 +507,17 @@ pub fn fill_region_with(vm: &VM, start: Address, end: Address, clear: bool) {
         // nothing to do
     } else if end.offset_from(start) == mem::ptr_width_usize() {
         unsafe {
-            *start.to_mut_ptr::<usize>() = vm.known.free_word_class_address().to_usize();
+            *start.to_mut_ptr::<usize>() = vm
+                .known
+                .free_word_class_address()
+                .offset_from(vm.meta_space_start());
         }
     } else if end.offset_from(start) == Header::size() as usize {
         // fill with object
         let vtable = vm.known.free_object_class_address();
 
         unsafe {
-            *start.to_mut_ptr::<usize>() = vtable.to_usize();
+            *start.to_mut_ptr::<usize>() = vtable.offset_from(vm.meta_space_start());
             *start.add_ptr(1).to_mut_ptr::<usize>() = 0;
         }
     } else {
@@ -529,7 +531,7 @@ pub fn fill_region_with(vm: &VM, start: Address, end: Address, clear: bool) {
         let length: usize = end.offset_from(start.offset(header_size)) / mem::ptr_width_usize();
 
         unsafe {
-            *start.to_mut_ptr::<usize>() = vtable.to_usize();
+            *start.to_mut_ptr::<usize>() = vtable.offset_from(vm.meta_space_start());
             *start.offset(mem::ptr_width_usize()).to_mut_ptr::<usize>() = 0;
             *start.offset(Header::size() as usize).to_mut_ptr::<usize>() = length;
 
@@ -550,21 +552,15 @@ pub fn fill_region_with_free(vm: &VM, start: Address, end: Address, next: Addres
         panic!("region is too small for FreeObject.");
     } else if end.offset_from(start) == Header::size() as usize {
         // fill with FreeObject
-        let cls_id = vm.known.free_object_class_instance();
-        let cls = vm.class_instances.idx(cls_id);
-        let vtable = cls.vtable.read();
-        let vtable: &VTable = vtable.as_ref().unwrap();
+        let vtable = vm.known.free_object_class_address();
 
         unsafe {
-            *start.to_mut_ptr::<usize>() = Address::from_ptr(vtable).to_usize();
+            *start.to_mut_ptr::<usize>() = vtable.offset_from(vm.meta_space_start());
             *start.add_ptr(1).to_mut_ptr::<usize>() = next.to_usize();
         }
     } else {
         // fill with FreeArray
-        let cls_id = vm.known.free_array_class_instance();
-        let cls = vm.class_instances.idx(cls_id);
-        let vtable = cls.vtable.read();
-        let vtable: &VTable = vtable.as_ref().unwrap();
+        let vtable = vm.known.free_array_class_address();
 
         // determine of header+length in bytes
         let header_size = Header::size() as usize + mem::ptr_width_usize();
@@ -573,7 +569,7 @@ pub fn fill_region_with_free(vm: &VM, start: Address, end: Address, next: Addres
         let length: usize = end.offset_from(start.offset(header_size)) / mem::ptr_width_usize();
 
         unsafe {
-            *start.to_mut_ptr::<usize>() = Address::from_ptr(vtable).to_usize();
+            *start.to_mut_ptr::<usize>() = vtable.offset_from(vm.meta_space_start());
             *start.add_ptr(1).to_mut_ptr::<usize>() = next.to_usize();
             *start.add_ptr(2).to_mut_ptr::<usize>() = length;
         }

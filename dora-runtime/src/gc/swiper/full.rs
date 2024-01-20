@@ -261,9 +261,7 @@ impl<'a> FullCollector<'a> {
                 let new_address = new_region.start();
 
                 object.copy_to(new_address, size);
-                object
-                    .header()
-                    .install_fwdptr(new_address, self.metaspace_start);
+                object.header().install_fwdptr(new_address);
 
                 // Clear metadata word.
                 let new_obj = new_address.to_obj();
@@ -290,7 +288,9 @@ impl<'a> FullCollector<'a> {
     fn forward_object(&mut self, object_address: Address) -> Option<Address> {
         if self.heap.contains(object_address) {
             let object = object_address.to_obj();
-            let vtblptr = object.header().vtblptr(self.vm.meta_space_start());
+            let vtblptr = object
+                .header()
+                .vtblptr_or_fwdptr(self.vm.meta_space_start());
 
             if let VtblptrWordKind::Fwdptr(address) = vtblptr {
                 Some(address)

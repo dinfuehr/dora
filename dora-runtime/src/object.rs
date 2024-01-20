@@ -83,44 +83,44 @@ struct VtblptrWord(AtomicUsize);
 
 impl VtblptrWord {
     #[inline(always)]
-    fn raw_vtblptr(&self, _meta_space_start: Address) -> Address {
-        let raw_vtblptr = self.raw();
-        debug_assert_eq!(raw_vtblptr & FWDPTR_BIT, 0);
-        raw_vtblptr.into()
+    fn raw_vtblptr(&self, meta_space_start: Address) -> Address {
+        let full = meta_space_start.offset(self.raw());
+        debug_assert_eq!(full.to_usize() & FWDPTR_BIT, 0);
+        full.into()
     }
 
-    fn install_fwdptr(&self, value: Address, _meta_space_start: Address) {
+    fn install_fwdptr(&self, value: Address) {
         self.set_raw(value.to_usize() | FWDPTR_BIT);
     }
 
-    fn load(&self, _meta_space_start: Address) -> VtblptrWordKind {
+    fn vtblptr_or_fwdptr(&self, meta_space_start: Address) -> VtblptrWordKind {
         let value = self.raw();
 
         if (value & FWDPTR_BIT) != 0 {
             let address: Address = (value & !FWDPTR_BIT).into();
             VtblptrWordKind::Fwdptr(address)
         } else {
-            VtblptrWordKind::Vtblptr(value.into())
+            let full = meta_space_start.offset(value);
+            VtblptrWordKind::Vtblptr(full)
         }
     }
 
     fn try_install_fwdptr(
         &self,
         expected_vtblptr: Address,
-        _meta_space_start: Address,
+        meta_space_start: Address,
         new_address: Address,
     ) -> ForwardResult {
+        let compressed_vtable = expected_vtblptr.offset_from(meta_space_start);
+
         let fwd = new_address.to_usize() | 1;
-        let result = self.0.compare_exchange(
-            expected_vtblptr.to_usize(),
-            fwd,
-            Ordering::Relaxed,
-            Ordering::Relaxed,
-        );
+        let result =
+            self.0
+                .compare_exchange(compressed_vtable, fwd, Ordering::Relaxed, Ordering::Relaxed);
 
         match result {
             Ok(value) => {
-                assert_eq!(value, expected_vtblptr.to_usize());
+                assert_eq!(value, compressed_vtable);
                 ForwardResult::Forwarded
             }
 
@@ -132,6 +132,11 @@ impl VtblptrWord {
                 ForwardResult::AlreadyForwarded(forwarding_address)
             }
         }
+    }
+
+    fn set_vtblptr(&self, vtblptr: Address, meta_space_start: Address) {
+        let compressed = vtblptr.offset_from(meta_space_start);
+        self.set_raw(compressed);
     }
 
     fn raw(&self) -> usize {
@@ -175,18 +180,18 @@ impl Header {
     }
 
     #[inline(always)]
-    pub fn set_vtblptr(&self, addr: Address, _meta_space_start: Address) {
-        self.vtable.set_raw(addr.to_usize());
+    pub fn set_vtblptr(&self, addr: Address, meta_space_start: Address) {
+        self.vtable.set_vtblptr(addr, meta_space_start);
     }
 
     #[inline(always)]
-    pub fn install_fwdptr(&self, address: Address, meta_space_start: Address) {
-        self.vtable.install_fwdptr(address, meta_space_start);
+    pub fn install_fwdptr(&self, address: Address) {
+        self.vtable.install_fwdptr(address);
     }
 
     #[inline(always)]
-    pub fn vtblptr(&self, meta_space_start: Address) -> VtblptrWordKind {
-        self.vtable.load(meta_space_start)
+    pub fn vtblptr_or_fwdptr(&self, meta_space_start: Address) -> VtblptrWordKind {
+        self.vtable.vtblptr_or_fwdptr(meta_space_start)
     }
 
     #[inline(always)]

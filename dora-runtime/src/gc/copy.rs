@@ -164,6 +164,8 @@ impl CopyCollector {
 
             if from_space.contains(root_ptr) {
                 root.set(self.copy(vm, root_ptr, &mut top));
+            } else if root_ptr.is_non_null() {
+                assert!(self.readonly.contains(root_ptr));
             }
         });
 
@@ -175,6 +177,8 @@ impl CopyCollector {
 
                 if from_space.contains(field_ptr) {
                     field.set(self.copy(vm, field_ptr, &mut top));
+                } else if field_ptr.is_non_null() {
+                    assert!(self.readonly.contains(field_ptr));
                 }
             });
 
@@ -218,7 +222,7 @@ impl CopyCollector {
             let obj = current_address.to_obj();
 
             if let VtblptrWordKind::Fwdptr(new_address) =
-                obj.header().vtblptr(vm.meta_space_start())
+                obj.header().vtblptr_or_fwdptr(vm.meta_space_start())
             {
                 debug_assert!(self.to_space().contains(new_address));
                 Some(new_address)
@@ -231,7 +235,8 @@ impl CopyCollector {
     fn copy(&self, vm: &VM, obj_addr: Address, top: &mut Address) -> Address {
         let obj = obj_addr.to_obj();
 
-        if let VtblptrWordKind::Fwdptr(fwd) = obj.header().vtblptr(vm.meta_space_start()) {
+        if let VtblptrWordKind::Fwdptr(fwd) = obj.header().vtblptr_or_fwdptr(vm.meta_space_start())
+        {
             return fwd;
         }
 
@@ -241,7 +246,7 @@ impl CopyCollector {
         obj.copy_to(addr, obj_size);
         *top = top.offset(obj_size);
 
-        obj.header().install_fwdptr(addr, vm.meta_space_start());
+        obj.header().install_fwdptr(addr);
 
         addr
     }
