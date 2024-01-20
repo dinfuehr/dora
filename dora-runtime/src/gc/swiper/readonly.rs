@@ -26,6 +26,7 @@ impl ReadOnlySpace {
             allocate: Mutex::new(ReadOnlySpaceProtected {
                 top: space_start,
                 current_limit: space_start,
+                next_page: space_start,
                 limit: space_end,
             }),
             reservation,
@@ -47,7 +48,7 @@ impl ReadOnlySpace {
             pages.push(page);
             curr = page.end();
         }
-        assert_eq!(curr, protected.current_limit);
+        assert_eq!(curr, protected.next_page);
 
         pages
     }
@@ -56,6 +57,7 @@ impl ReadOnlySpace {
 struct ReadOnlySpaceProtected {
     top: Address,
     current_limit: Address,
+    next_page: Address,
     limit: Address,
 }
 
@@ -84,14 +86,15 @@ impl ReadOnlySpaceProtected {
     }
 
     fn allocate_page(&mut self, vm: &VM) {
-        if self.current_limit < self.limit {
+        if self.next_page < self.limit {
             fill_region_with(vm, self.top, self.current_limit, false);
-            let page_start = self.current_limit;
+            let page_start = self.next_page;
             os::commit_at(page_start, PAGE_SIZE, MemoryPermission::ReadWrite);
             let page = RegularPage::setup(page_start, false, true);
             self.top = page.object_area_start();
             self.current_limit = page.object_area_end();
-            assert!(self.current_limit <= self.limit);
+            self.next_page = page.end();
+            assert!(self.next_page <= self.limit);
         }
     }
 }

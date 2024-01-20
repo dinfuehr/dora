@@ -273,6 +273,7 @@ impl YoungAlloc {
             protected: Mutex::new(YoungAllocProtected {
                 top: region.start(),
                 current_limit: region.start(),
+                next_page: region.start(),
                 limit: region.end(),
             }),
         }
@@ -287,6 +288,7 @@ impl YoungAlloc {
         let mut protected = self.protected.lock();
         protected.top = region.start();
         protected.current_limit = region.start();
+        protected.next_page = region.start();
         protected.limit = region.end();
     }
 
@@ -299,7 +301,7 @@ impl YoungAlloc {
         let mut protected = self.protected.lock();
         protected.limit = new_limit;
         assert!(protected.top <= protected.current_limit);
-        assert_eq!(protected.top.align_page_up(), protected.current_limit);
+        assert_eq!(protected.top.align_page_up(), protected.next_page);
         assert!(protected.current_limit <= protected.limit);
     }
 }
@@ -307,6 +309,7 @@ impl YoungAlloc {
 struct YoungAllocProtected {
     top: Address,
     current_limit: Address,
+    next_page: Address,
     limit: Address,
 }
 
@@ -316,12 +319,13 @@ impl YoungAllocProtected {
             return Some(region);
         }
 
-        if self.current_limit < self.limit {
+        if self.next_page < self.limit {
             fill_region_with(vm, self.top, self.current_limit, false);
-            let page = RegularPage::setup(self.current_limit, true, false);
+            let page = RegularPage::setup(self.next_page, true, false);
             self.top = page.object_area_start();
             self.current_limit = page.object_area_end();
-            assert!(self.current_limit <= self.limit);
+            self.next_page = page.end();
+            assert!(self.next_page <= self.limit);
             fill_region_with(vm, self.top, self.current_limit, false);
             let result = self.raw_alloc(vm, min_size, max_size);
             assert!(result.is_some());

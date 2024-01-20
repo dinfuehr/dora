@@ -522,20 +522,13 @@ impl RegularPage {
         let page = RegularPage(address);
         page.base_page_header().setup(is_young, false, is_readonly);
 
-        let uninit_start = page.address().offset(std::mem::size_of::<BasePageHeader>());
-        debug_assert_eq!(uninit_start.to_usize() % mem::ptr_width_usize(), 0);
-        let uninit_end = page.address().offset(PAGE_HEADER_SIZE);
-        debug_assert_eq!(uninit_end.to_usize() % mem::ptr_width_usize(), 0);
-        let length = uninit_end.offset_from(uninit_start);
-        debug_assert_eq!(length % mem::ptr_width_usize(), 0);
-
         unsafe {
-            let header = std::slice::from_raw_parts_mut(
-                uninit_start.to_mut_ptr::<usize>(),
-                length / mem::ptr_width_usize(),
+            std::ptr::write(
+                page.object_area_start().sub_ptr(1).to_mut_ptr::<usize>(),
+                0xDEAD2BAD,
             );
 
-            header.fill(0xDEAD2BAD);
+            std::ptr::write(page.object_area_end().to_mut_ptr::<usize>(), 0xDEAD2BAD);
         }
 
         page
@@ -566,11 +559,13 @@ impl RegularPage {
     }
 
     pub fn object_area_start(&self) -> Address {
-        self.address().offset(PAGE_HEADER_SIZE)
+        self.address()
+            .offset(std::mem::size_of::<BasePageHeader>())
+            .add_ptr(1)
     }
 
     pub fn object_area_end(&self) -> Address {
-        self.end()
+        self.end().sub_ptr(1)
     }
 
     pub fn is_young(&self) -> bool {

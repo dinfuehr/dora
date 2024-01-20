@@ -194,7 +194,6 @@ impl<'a> Verifier<'a> {
     fn verify_page(&mut self, page: RegularPage) {
         let region = page.object_area();
         let mut curr = region.start;
-        assert!(region.end.is_page_aligned());
         assert!(!page.is_large());
 
         while curr < region.end {
