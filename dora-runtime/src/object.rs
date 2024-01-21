@@ -47,22 +47,6 @@ impl MetadataWord {
         self.is_remembered.store(is_remembered, Ordering::Relaxed);
     }
 
-    fn mark(&self) {
-        self.is_marked.store(true, Ordering::Relaxed);
-    }
-
-    fn try_mark(&self) -> bool {
-        !self.is_marked.swap(true, Ordering::Relaxed)
-    }
-
-    fn clear_mark(&self) {
-        self.is_marked.store(false, Ordering::Relaxed);
-    }
-
-    fn is_marked(&self) -> bool {
-        self.is_marked.load(Ordering::Relaxed)
-    }
-
     fn is_remembered(&self) -> bool {
         self.is_remembered.load(Ordering::Relaxed)
     }
@@ -178,7 +162,7 @@ impl HeaderWord {
 
     fn clear_mark(&self) {
         let current = self.raw();
-        self.set_raw(current | MARK_BIT);
+        self.set_raw(current & !MARK_BIT);
     }
 
     fn is_marked(&self) -> bool {
@@ -265,17 +249,17 @@ impl Header {
 
     #[inline(always)]
     pub fn mark(&self) {
-        self.metadata.mark();
+        self.word.mark();
     }
 
     #[inline(always)]
     pub fn clear_mark(&self) {
-        self.metadata.clear_mark();
+        self.word.clear_mark();
     }
 
     #[inline(always)]
     pub fn is_marked(&self) -> bool {
-        self.metadata.is_marked()
+        self.word.is_marked()
     }
 
     #[inline(always)]
@@ -320,7 +304,7 @@ impl Header {
 
     #[inline(always)]
     pub fn try_mark(&self) -> bool {
-        self.metadata.try_mark()
+        self.word.try_mark()
     }
 }
 

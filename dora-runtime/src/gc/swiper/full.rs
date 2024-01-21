@@ -265,6 +265,7 @@ impl<'a> FullCollector<'a> {
 
                 // Clear metadata word.
                 let new_obj = new_address.to_obj();
+                new_obj.header().clear_mark();
                 new_obj.header().set_metadata_raw(false, false);
             } else {
                 stdlib::trap(Trap::OOM.int());
