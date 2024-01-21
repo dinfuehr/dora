@@ -77,6 +77,7 @@ impl MetadataWord {
 }
 
 const FWDPTR_BIT: usize = 1;
+const MARK_BIT: usize = 1 << 32;
 
 #[repr(C)]
 struct HeaderWord(AtomicUsize);
@@ -158,11 +159,30 @@ impl HeaderWord {
     fn compute_word(
         vtblptr: Address,
         meta_space_start: Address,
-        _is_marked: bool,
+        is_marked: bool,
         _is_remembered: bool,
     ) -> usize {
         let compressed = vtblptr.offset_from(meta_space_start);
-        compressed | (0xFFFF_FFFF << 32)
+        compressed | (0xFFFF_FFFE << 32) | (is_marked as usize) << 32
+    }
+
+    fn mark(&self) {
+        let current = self.raw();
+        self.set_raw(current | MARK_BIT);
+    }
+
+    fn try_mark(&self) -> bool {
+        let old_value = self.0.fetch_or(MARK_BIT, Ordering::Relaxed);
+        (old_value & MARK_BIT) == 0
+    }
+
+    fn clear_mark(&self) {
+        let current = self.raw();
+        self.set_raw(current | MARK_BIT);
+    }
+
+    fn is_marked(&self) -> bool {
+        (self.raw() & MARK_BIT) != 0
     }
 
     fn raw(&self) -> usize {
