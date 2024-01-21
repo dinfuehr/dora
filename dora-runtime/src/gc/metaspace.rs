@@ -3,8 +3,6 @@ use parking_lot::Mutex;
 use crate::gc::{Address, Region, M, PAGE_SIZE};
 use crate::os::{self, MemoryPermission, Reservation};
 
-/// Non-contiguous space of memory. Used for permanent space
-/// and code space.
 pub struct MetaSpace {
     total: Region,
 
@@ -15,7 +13,6 @@ pub struct MetaSpace {
 const TOTAL_SIZE: usize = 4 * M;
 
 impl MetaSpace {
-    /// initializes `Space` and reserves the maximum size.
     pub fn new() -> MetaSpace {
         let reservation = os::reserve_align(TOTAL_SIZE, PAGE_SIZE, false);
         let space_start = reservation.start();
@@ -26,7 +23,7 @@ impl MetaSpace {
         MetaSpace {
             total: Region::new(space_start, space_end),
 
-            allocate: Mutex::new(space_start.add_ptr(1)),
+            allocate: Mutex::new(space_start),
             reservation,
         }
     }
