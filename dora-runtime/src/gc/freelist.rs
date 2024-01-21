@@ -26,8 +26,6 @@ pub struct SizeClass(usize);
 
 impl SizeClass {
     fn next_up(size: usize) -> SizeClass {
-        assert!(size >= SIZE_SMALLEST);
-
         if size <= SIZE_SMALLEST {
             SIZE_CLASS_SMALLEST
         } else if size <= SIZE_TINY {
@@ -44,8 +42,6 @@ impl SizeClass {
     }
 
     fn next_down(size: usize) -> SizeClass {
-        assert!(size >= SIZE_SMALLEST);
-
         if size < SIZE_TINY {
             SIZE_CLASS_SMALLEST
         } else if size < SIZE_SMALL {
@@ -189,14 +185,14 @@ impl FreeSpace {
     #[inline(always)]
     pub fn next(self) -> FreeSpace {
         assert!(self.is_non_null());
-        let next = unsafe { *self.addr().add_ptr(1).to_mut_ptr::<Address>() };
+        let next = unsafe { *self.addr().add_ptr(2).to_mut_ptr::<Address>() };
         FreeSpace(next)
     }
 
     #[inline(always)]
     pub fn set_next(&self, next: FreeSpace) {
         assert!(self.is_non_null());
-        unsafe { *self.addr().add_ptr(1).to_mut_ptr::<Address>() = next.addr() }
+        unsafe { *self.addr().add_ptr(2).to_mut_ptr::<Address>() = next.addr() }
     }
 
     #[inline(always)]

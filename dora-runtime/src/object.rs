@@ -19,10 +19,6 @@ use crate::vtable::VTable;
 pub struct Header {
     // ptr to class
     word: HeaderWord,
-
-    // forwarding ptr
-    // (used during mark-compact)
-    metadata: MetadataWord,
 }
 
 #[repr(C)]
@@ -252,11 +248,6 @@ impl Header {
     }
 
     #[inline(always)]
-    pub fn set_metadata_raw(&self, is_remembered: bool) {
-        self.metadata.set_raw(is_remembered);
-    }
-
-    #[inline(always)]
     pub fn mark(&self) {
         self.word.mark();
     }
@@ -296,14 +287,6 @@ impl Header {
 
     pub fn offset_vtable_word() -> usize {
         offset_of!(Header, word)
-    }
-
-    pub fn offset_metadata_word() -> usize {
-        offset_of!(Header, metadata)
-    }
-
-    pub fn offset_remembered_byte() -> usize {
-        offset_of!(Header, metadata) + MetadataWord::offset_remembered_byte()
     }
 
     #[inline(always)]
@@ -720,7 +703,6 @@ fn byte_array_alloc_heap(vm: &VM, len: usize) -> Ref<UInt8Array> {
         is_marked,
         is_remembered,
     );
-    handle.header_mut().set_metadata_raw(is_remembered);
     handle.length = len;
 
     handle
@@ -757,7 +739,6 @@ where
         is_marked,
         is_remembered,
     );
-    handle.header().set_metadata_raw(is_remembered);
 
     handle
 }
@@ -866,7 +847,6 @@ where
             is_marked,
             is_remembered,
         );
-        handle.header().set_metadata_raw(is_remembered);
         handle.length = len;
 
         for i in 0..handle.len() {
@@ -912,7 +892,6 @@ pub fn alloc(vm: &VM, clsid: ClassInstanceId) -> Ref<Obj> {
         is_marked,
         is_remembered,
     );
-    object.header().set_metadata_raw(is_remembered);
 
     object
 }

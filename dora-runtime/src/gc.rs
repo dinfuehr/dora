@@ -570,8 +570,8 @@ pub fn fill_region_with_free(vm: &VM, start: Address, end: Address, next: Addres
 
         unsafe {
             *start.to_mut_ptr::<usize>() = vtable.offset_from(vm.meta_space_start());
-            *start.add_ptr(1).to_mut_ptr::<usize>() = next.to_usize();
-            *start.add_ptr(2).to_mut_ptr::<usize>() = length;
+            *start.add_ptr(1).to_mut_ptr::<usize>() = length;
+            *start.add_ptr(2).to_mut_ptr::<usize>() = next.to_usize();
         }
     }
 }

@@ -23,7 +23,7 @@ impl InstanceSize {
             InstanceSize::Str => None,
             InstanceSize::Fixed(value) => Some(*value),
             InstanceSize::FreeWord => Some(mem::ptr_width()),
-            InstanceSize::FreeObject => Some(Header::size()),
+            InstanceSize::FreeObject => Some(mem::ptr_width() * 2),
             InstanceSize::FreeArray => None,
             InstanceSize::StructArray(_) => None,
             InstanceSize::UnitArray => Some(Header::array_size()),

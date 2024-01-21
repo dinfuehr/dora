@@ -925,15 +925,6 @@ impl<'a> BaselineAssembler<'a> {
             tmp_reg.into(),
         );
 
-        // Set metadata word.
-        let header = Header::compute_metadata_word(is_marked, is_remembered);
-        self.load_int_const(MachineMode::Int32, tmp_reg, header as i64);
-        self.store_mem(
-            MachineMode::Int32,
-            Mem::Base(obj, Header::offset_metadata_word() as i32),
-            tmp_reg.into(),
-        );
-
         // Reset object body to zero.
         self.fill_zero(obj, false, size as usize);
     }
@@ -971,14 +962,6 @@ impl<'a> BaselineAssembler<'a> {
         self.store_mem(
             MachineMode::Ptr,
             Mem::Base(obj, Header::offset_vtable_word() as i32),
-            (*tmp_reg).into(),
-        );
-
-        self.masm.compute_initial_metadata_value(*tmp_reg, size_reg);
-
-        self.store_mem(
-            MachineMode::Int32,
-            Mem::Base(obj, Header::offset_metadata_word() as i32),
             (*tmp_reg).into(),
         );
 

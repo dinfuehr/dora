@@ -62,6 +62,7 @@ pub struct ManagedCodeHeader {
     object_header: Header,
     length: usize,
     native_code_object: Address,
+    padding: usize,
 }
 
 impl ManagedCodeHeader {
@@ -111,9 +112,9 @@ pub fn install_code(vm: &VM, code_descriptor: CodeDescriptor, kind: CodeKind) ->
         false,
         false,
     );
-    code_header.object_header.set_metadata_raw(false);
     code_header.length = array_length;
     code_header.native_code_object = Address::null();
+    code_header.padding = 0;
 
     code_descriptor.constpool.install(constpool_start.to_ptr());
 

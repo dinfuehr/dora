@@ -684,7 +684,6 @@ impl<'a> CopyTask<'a> {
 
         obj.copy_to(copy_addr, obj_size);
         copy_addr.to_obj().header().clear_remembered();
-        copy_addr.to_obj().header().set_metadata_raw(false);
         let res = obj
             .header()
             .try_install_fwdptr(self.meta_space_start, vtblptr, copy_addr);
