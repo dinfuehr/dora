@@ -45,18 +45,6 @@ impl MetadataWord {
     fn set_raw(&self, is_remembered: bool) {
         self.is_remembered.store(is_remembered, Ordering::Relaxed);
     }
-
-    fn is_remembered(&self) -> bool {
-        self.is_remembered.load(Ordering::Relaxed)
-    }
-
-    fn set_remembered(&self) {
-        self.is_remembered.store(true, Ordering::Relaxed);
-    }
-
-    fn clear_remembered(&self) {
-        self.is_remembered.store(false, Ordering::Relaxed);
-    }
 }
 
 const FWDPTR_BIT: usize = 1;
@@ -285,12 +273,12 @@ impl Header {
 
     #[inline(always)]
     pub fn is_remembered(&self) -> bool {
-        self.metadata.is_remembered()
+        self.word.is_remembered()
     }
 
     #[inline(always)]
     pub fn set_remembered(&self) {
-        self.metadata.set_remembered()
+        self.word.set_remembered()
     }
 
     pub fn compute_metadata_word(is_marked: bool, is_remembered: bool) -> u32 {
@@ -320,7 +308,7 @@ impl Header {
 
     #[inline(always)]
     pub fn clear_remembered(&self) {
-        self.metadata.clear_remembered();
+        self.word.clear_remembered();
     }
 
     #[inline(always)]

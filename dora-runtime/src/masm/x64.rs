@@ -1064,10 +1064,8 @@ impl MacroAssembler {
     }
 
     pub fn emit_object_write_barrier_fast_path(&mut self, src: Reg) -> Label {
-        self.asm.testb_ai(
-            AsmAddress::offset(src.into(), Header::offset_remembered_byte() as i32),
-            Immediate(1),
-        );
+        self.asm
+            .testb_ai(AsmAddress::offset(src.into(), 4), Immediate(2));
         let lbl_slow_path = self.asm.create_label();
         self.asm.jcc(Condition::Zero, lbl_slow_path);
         lbl_slow_path
