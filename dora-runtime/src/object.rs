@@ -18,7 +18,7 @@ use crate::vtable::VTable;
 #[repr(C)]
 pub struct Header {
     // ptr to class
-    vtable: VtblptrWord,
+    word: HeaderWord,
 
     // forwarding ptr
     // (used during mark-compact)
@@ -79,12 +79,14 @@ impl MetadataWord {
 const FWDPTR_BIT: usize = 1;
 
 #[repr(C)]
-struct VtblptrWord(AtomicUsize);
+struct HeaderWord(AtomicUsize);
 
-impl VtblptrWord {
+impl HeaderWord {
     #[inline(always)]
     fn raw_vtblptr(&self, meta_space_start: Address) -> Address {
-        let full = meta_space_start.offset(self.raw());
+        let value = self.raw();
+        let value = value & 0xFFFF_FFFF;
+        let full = meta_space_start.offset(value);
         debug_assert_eq!(full.to_usize() & FWDPTR_BIT, 0);
         full.into()
     }
@@ -100,6 +102,7 @@ impl VtblptrWord {
             let address: Address = (value & !FWDPTR_BIT).into();
             VtblptrWordKind::Fwdptr(address)
         } else {
+            let value = value & 0xFFFF_FFFF;
             let full = meta_space_start.offset(value);
             VtblptrWordKind::Vtblptr(full)
         }
@@ -111,16 +114,19 @@ impl VtblptrWord {
         meta_space_start: Address,
         new_address: Address,
     ) -> ForwardResult {
+        let current_value = self.raw();
+
         let compressed_vtable = expected_vtblptr.offset_from(meta_space_start);
+        let expected_value = current_value & (0xFFFF_FFFF << 32) | compressed_vtable;
 
         let fwd = new_address.to_usize() | 1;
         let result =
             self.0
-                .compare_exchange(compressed_vtable, fwd, Ordering::Relaxed, Ordering::Relaxed);
+                .compare_exchange(expected_value, fwd, Ordering::Relaxed, Ordering::Relaxed);
 
         match result {
             Ok(value) => {
-                assert_eq!(value, compressed_vtable);
+                assert_eq!(value, expected_value);
                 ForwardResult::Forwarded
             }
 
@@ -134,9 +140,29 @@ impl VtblptrWord {
         }
     }
 
-    fn set_vtblptr(&self, vtblptr: Address, meta_space_start: Address) {
+    fn set_vtblptr(
+        &self,
+        vtblptr: Address,
+        meta_space_start: Address,
+        is_marked: bool,
+        is_remembered: bool,
+    ) {
+        self.set_raw(HeaderWord::compute_word(
+            vtblptr,
+            meta_space_start,
+            is_marked,
+            is_remembered,
+        ));
+    }
+
+    fn compute_word(
+        vtblptr: Address,
+        meta_space_start: Address,
+        _is_marked: bool,
+        _is_remembered: bool,
+    ) -> usize {
         let compressed = vtblptr.offset_from(meta_space_start);
-        self.set_raw(compressed);
+        compressed | (0xFFFF_FFFF << 32)
     }
 
     fn raw(&self) -> usize {
@@ -176,22 +202,29 @@ impl Header {
 
     #[inline(always)]
     fn raw_vtblptr(&self, meta_space_start: Address) -> Address {
-        self.vtable.raw_vtblptr(meta_space_start)
+        self.word.raw_vtblptr(meta_space_start)
     }
 
     #[inline(always)]
-    pub fn set_vtblptr(&self, addr: Address, meta_space_start: Address) {
-        self.vtable.set_vtblptr(addr, meta_space_start);
+    pub fn set_vtblptr(
+        &self,
+        addr: Address,
+        meta_space_start: Address,
+        is_marked: bool,
+        is_remembered: bool,
+    ) {
+        self.word
+            .set_vtblptr(addr, meta_space_start, is_marked, is_remembered);
     }
 
     #[inline(always)]
     pub fn install_fwdptr(&self, address: Address) {
-        self.vtable.install_fwdptr(address);
+        self.word.install_fwdptr(address);
     }
 
     #[inline(always)]
     pub fn vtblptr_or_fwdptr(&self, meta_space_start: Address) -> VtblptrWordKind {
-        self.vtable.vtblptr_or_fwdptr(meta_space_start)
+        self.word.vtblptr_or_fwdptr(meta_space_start)
     }
 
     #[inline(always)]
@@ -201,7 +234,7 @@ impl Header {
         expected_vtblptr: Address,
         new_address: Address,
     ) -> ForwardResult {
-        self.vtable
+        self.word
             .try_install_fwdptr(expected_vtblptr, meta_space_start, new_address)
     }
 
@@ -239,8 +272,17 @@ impl Header {
         MetadataWord::compute_word(is_marked, is_remembered)
     }
 
+    pub fn compute_header_word(
+        vtblptr: Address,
+        meta_space_start: Address,
+        is_marked: bool,
+        is_remembered: bool,
+    ) -> usize {
+        HeaderWord::compute_word(vtblptr, meta_space_start, is_marked, is_remembered)
+    }
+
     pub fn offset_vtable_word() -> usize {
-        offset_of!(Header, vtable)
+        offset_of!(Header, word)
     }
 
     pub fn offset_metadata_word() -> usize {
@@ -658,11 +700,13 @@ fn byte_array_alloc_heap(vm: &VM, len: usize) -> Ref<UInt8Array> {
     let vtable = cls.vtable.read();
     let vtable: &VTable = vtable.as_ref().unwrap();
     let mut handle: Ref<UInt8Array> = ptr.into();
+    let (is_marked, is_remembered) = vm.gc.initial_metadata_value(size, false);
     handle.header_mut().set_vtblptr(
         Address::from_ptr(vtable as *const VTable),
         vm.meta_space_start(),
+        is_marked,
+        is_remembered,
     );
-    let (is_marked, is_remembered) = vm.gc.initial_metadata_value(size, false);
     handle
         .header_mut()
         .set_metadata_raw(is_marked, is_remembered);
@@ -695,11 +739,13 @@ where
     let vtable = cls.vtable.read();
     let vtable: &VTable = vtable.as_ref().unwrap();
     let handle: Ref<Str> = ptr.into();
+    let (is_marked, is_remembered) = vm.gc.initial_metadata_value(size, is_readonly);
     handle.header().set_vtblptr(
         Address::from_ptr(vtable as *const VTable),
         vm.meta_space_start(),
+        is_marked,
+        is_remembered,
     );
-    let (is_marked, is_remembered) = vm.gc.initial_metadata_value(size, is_readonly);
     handle.header().set_metadata_raw(is_marked, is_remembered);
 
     handle
@@ -802,11 +848,13 @@ where
         let vtable = cls.vtable.read();
         let vtable: &VTable = vtable.as_ref().unwrap();
         let mut handle: Ref<Array<T>> = ptr.into();
+        let (is_marked, is_remembered) = vm.gc.initial_metadata_value(size, false);
         handle.header_mut().set_vtblptr(
             Address::from_ptr(vtable as *const VTable),
             vm.meta_space_start(),
+            is_marked,
+            is_remembered,
         );
-        let (is_marked, is_remembered) = vm.gc.initial_metadata_value(size, false);
         handle.header().set_metadata_raw(is_marked, is_remembered);
         handle.length = len;
 
@@ -846,10 +894,13 @@ pub fn alloc(vm: &VM, clsid: ClassInstanceId) -> Ref<Obj> {
     let vtable = cls_def.vtable.read();
     let vtable: &VTable = vtable.as_ref().unwrap();
     let object: Ref<Obj> = ptr.into();
-    object
-        .header()
-        .set_vtblptr(Address::from_ptr(vtable), vm.meta_space_start());
     let (is_marked, is_remembered) = vm.gc.initial_metadata_value(size, false);
+    object.header().set_vtblptr(
+        Address::from_ptr(vtable),
+        vm.meta_space_start(),
+        is_marked,
+        is_remembered,
+    );
     object.header().set_metadata_raw(is_marked, is_remembered);
 
     object

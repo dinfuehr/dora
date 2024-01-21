@@ -909,10 +909,20 @@ impl<'a> BaselineAssembler<'a> {
         let vtable = class_instance.vtable.read();
         let vtable: &VTable = vtable.as_ref().unwrap();
         let vtable = Address::from_ptr(vtable as *const _);
-        let vtable = vtable.offset_from(self.vm.meta_space_start());
 
-        self.masm
-            .load_int_const(MachineMode::Int32, tmp_reg.into(), vtable as i64);
+        let (is_marked, is_remembered) = self.vm.gc.initial_metadata_value(size as usize, false);
+        let header_word_value = Header::compute_header_word(
+            vtable,
+            self.vm.meta_space_start(),
+            is_marked,
+            is_remembered,
+        );
+
+        self.masm.load_int_const(
+            MachineMode::IntPtr,
+            tmp_reg.into(),
+            header_word_value as i64,
+        );
 
         self.store_mem(
             MachineMode::Ptr,
@@ -921,7 +931,6 @@ impl<'a> BaselineAssembler<'a> {
         );
 
         // Set metadata word.
-        let (is_marked, is_remembered) = self.vm.gc.initial_metadata_value(size as usize, false);
         let header = Header::compute_metadata_word(is_marked, is_remembered);
         self.load_int_const(MachineMode::Int32, tmp_reg, header as i64);
         self.store_mem(
@@ -948,10 +957,15 @@ impl<'a> BaselineAssembler<'a> {
         let vtable = class_instance.vtable.read();
         let vtable: &VTable = vtable.as_ref().unwrap();
         let vtable = Address::from_ptr(vtable as *const _);
-        let vtable = vtable.offset_from(self.vm.meta_space_start());
 
-        self.masm
-            .load_int_const(MachineMode::Int32, (*tmp_reg).into(), vtable as i64);
+        let header_word_value =
+            Header::compute_header_word(vtable, self.vm.meta_space_start(), false, false);
+
+        self.masm.load_int_const(
+            MachineMode::IntPtr,
+            (*tmp_reg).into(),
+            header_word_value as i64,
+        );
 
         self.store_mem(
             MachineMode::Ptr,
