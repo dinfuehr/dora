@@ -5,7 +5,7 @@ use crate::gc::Address;
 use crate::masm::{CondCode, Label, MacroAssembler, Mem};
 use crate::mem::{fits_i32, ptr_width};
 use crate::mode::MachineMode;
-use crate::object::{offset_of_array_data, offset_of_array_length, Header};
+use crate::object::{offset_of_array_data, offset_of_array_length, Header, REMEMBERED_BIT_SHIFT};
 use crate::threads::ThreadLocalData;
 use crate::vm::{get_vm, LazyCompilationSite, Trap};
 use crate::vtable::VTable;
@@ -923,6 +923,15 @@ impl MacroAssembler {
             .cmpq_ri(size.into(), Immediate(LARGE_OBJECT_SIZE as i64));
         self.asm.setcc_r(Condition::Below, dest.into());
         self.asm.shll_ri(dest.into(), Immediate(8));
+    }
+
+    pub fn compute_metadata_word(&mut self, dest: Reg, size: Reg) {
+        self.asm.xorl_rr(dest.into(), dest.into());
+        self.asm
+            .cmpq_ri(size.into(), Immediate(LARGE_OBJECT_SIZE as i64));
+        self.asm.setcc_r(Condition::Below, dest.into());
+        self.asm
+            .shlq_ri(dest.into(), Immediate(REMEMBERED_BIT_SHIFT as i64));
     }
 
     pub fn array_address(&mut self, dest: Reg, obj: Reg, index: Reg, element_size: i32) {

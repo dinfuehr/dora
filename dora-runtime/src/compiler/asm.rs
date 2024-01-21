@@ -962,6 +962,12 @@ impl<'a> BaselineAssembler<'a> {
             header_word_value as i64,
         );
 
+        let metadata_reg = self.get_scratch();
+        self.masm.compute_metadata_word(*metadata_reg, size_reg);
+
+        self.masm
+            .int_or(MachineMode::Ptr, *tmp_reg, *tmp_reg, *metadata_reg);
+
         self.store_mem(
             MachineMode::Ptr,
             Mem::Base(obj, Header::offset_vtable_word() as i32),

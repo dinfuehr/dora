@@ -5,7 +5,7 @@ use crate::gc::Address;
 use crate::masm::{CondCode, Label, MacroAssembler, Mem};
 use crate::mem::ptr_width;
 use crate::mode::MachineMode;
-use crate::object::{offset_of_array_data, offset_of_array_length, Header};
+use crate::object::{offset_of_array_data, offset_of_array_length, Header, REMEMBERED_BIT_SHIFT};
 use crate::threads::ThreadLocalData;
 use crate::vm::{get_vm, LazyCompilationSite, Trap};
 use crate::vtable::VTable;
@@ -518,7 +518,7 @@ impl MacroAssembler {
                 self.asm
                     .orr_sh_w(dest.into(), lhs.into(), rhs.into(), Shift::LSL, 0)
             }
-            MachineMode::Int64 => {
+            MachineMode::Int64 | MachineMode::Ptr => {
                 self.asm
                     .orr_sh(dest.into(), lhs.into(), rhs.into(), Shift::LSL, 0)
             }
@@ -985,6 +985,13 @@ impl MacroAssembler {
         self.asm.cmp_imm(size.into(), LARGE_OBJECT_SIZE as u32);
         self.asm.cset(dest.into(), Cond::LS);
         self.asm.lsl_imm(dest.into(), dest.into(), 8);
+    }
+
+    pub fn compute_metadata_word(&mut self, dest: Reg, size: Reg) {
+        self.asm.cmp_imm(size.into(), LARGE_OBJECT_SIZE as u32);
+        self.asm.cset(dest.into(), Cond::LS);
+        self.asm
+            .lsl_imm(dest.into(), dest.into(), REMEMBERED_BIT_SHIFT as u32);
     }
 
     pub fn array_address(&mut self, dest: Reg, obj: Reg, index: Reg, element_size: i32) {

@@ -60,8 +60,12 @@ impl MetadataWord {
 }
 
 const FWDPTR_BIT: usize = 1;
-const MARK_BIT: usize = 1 << 32;
-const REMEMBERED_BIT: usize = 1 << 33;
+
+const MARK_BIT_SHIFT: usize = 32;
+const MARK_BIT: usize = 1 << MARK_BIT_SHIFT;
+
+pub const REMEMBERED_BIT_SHIFT: usize = 33;
+const REMEMBERED_BIT: usize = 1 << REMEMBERED_BIT_SHIFT;
 
 #[repr(C)]
 struct HeaderWord(AtomicUsize);
@@ -149,8 +153,8 @@ impl HeaderWord {
         let compressed = vtblptr.offset_from(meta_space_start);
         compressed
             | (0xFFFF_FFFC << 32)
-            | (is_marked as usize) << 32
-            | (is_remembered as usize) << 33
+            | (is_marked as usize) << MARK_BIT_SHIFT
+            | (is_remembered as usize) << REMEMBERED_BIT_SHIFT
     }
 
     fn mark(&self) {
