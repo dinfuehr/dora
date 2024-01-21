@@ -552,31 +552,21 @@ pub fn fill_region_with(vm: &VM, start: Address, end: Address, clear: bool) {
 }
 
 pub fn fill_region_with_free(vm: &VM, start: Address, end: Address, next: Address) {
-    if start == end || end.offset_from(start) == mem::ptr_width_usize() {
-        panic!("region is too small for FreeObject.");
-    } else if end.offset_from(start) == Header::size() as usize {
-        // fill with FreeObject
-        let vtable = vm.known.free_object_class_address();
+    assert!(end.offset_from(start) > 2 * mem::ptr_width_usize());
 
-        unsafe {
-            *start.to_mut_ptr::<usize>() = vtable.offset_from(vm.meta_space_start());
-            *start.add_ptr(1).to_mut_ptr::<usize>() = next.to_usize();
-        }
-    } else {
-        // fill with FreeArray
-        let vtable = vm.known.free_array_class_address();
+    // fill with FreeArray
+    let vtable = vm.known.free_array_class_address();
 
-        // determine of header+length in bytes
-        let header_size = Header::size() as usize + mem::ptr_width_usize();
+    // determine of header+length in bytes
+    let header_size = Header::size() as usize + mem::ptr_width_usize();
 
-        // calculate array length
-        let length: usize = end.offset_from(start.offset(header_size)) / mem::ptr_width_usize();
+    // calculate array length
+    let length: usize = end.offset_from(start.offset(header_size)) / mem::ptr_width_usize();
 
-        unsafe {
-            *start.to_mut_ptr::<usize>() = vtable.offset_from(vm.meta_space_start());
-            *start.add_ptr(1).to_mut_ptr::<usize>() = length;
-            *start.add_ptr(2).to_mut_ptr::<usize>() = next.to_usize();
-        }
+    unsafe {
+        *start.to_mut_ptr::<usize>() = vtable.offset_from(vm.meta_space_start());
+        *start.add_ptr(1).to_mut_ptr::<usize>() = length;
+        *start.add_ptr(2).to_mut_ptr::<usize>() = next.to_usize();
     }
 }
 

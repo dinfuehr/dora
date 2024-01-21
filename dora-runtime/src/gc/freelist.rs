@@ -78,7 +78,7 @@ impl FreeList {
     }
 
     pub fn add(&mut self, vm: &VM, addr: Address, size: usize) {
-        if size < SIZE_SMALLEST {
+        if size <= SIZE_SMALLEST {
             fill_region(vm, addr, addr.offset(size));
             return;
         }
