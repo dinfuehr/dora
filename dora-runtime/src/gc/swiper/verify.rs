@@ -77,6 +77,7 @@ pub struct Verifier<'a> {
     readonly_space: &'a ReadOnlySpace,
     minimum_remset: Vec<Address>,
     meta_space_start: Address,
+    meta_space_size: usize,
 
     heap: Region,
 
@@ -108,6 +109,7 @@ impl<'a> Verifier<'a> {
             large,
             minimum_remset: Vec::new(),
             meta_space_start: vm.meta_space_start(),
+            meta_space_size: vm.meta_space_size(),
 
             heap,
 
@@ -222,6 +224,9 @@ impl<'a> Verifier<'a> {
 
     fn verify_object(&mut self, page: BasePage, object_address: Address) {
         let object = object_address.to_obj();
+        assert!(object.header().compressed_vtblptr() < self.meta_space_size);
+        assert_eq!(object.header().compressed_vtblptr() & 1, 0);
+        assert_eq!(object.header().sentinel(), 0xFFFF_FFFC);
         assert_eq!(object.header().is_marked(), page.is_readonly());
 
         if self.phase.is_post_full() {

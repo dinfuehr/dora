@@ -209,6 +209,14 @@ impl Header {
         unsafe { &mut *self.raw_vtblptr(meta_space_start).to_mut_ptr::<VTable>() }
     }
 
+    pub fn compressed_vtblptr(&self) -> usize {
+        self.word.raw() & 0xFFFF_FFFF
+    }
+
+    pub fn sentinel(&self) -> usize {
+        (self.word.raw() >> 32) & 0xFFFF_FFFC
+    }
+
     #[inline(always)]
     fn raw_vtblptr(&self, meta_space_start: Address) -> Address {
         self.word.raw_vtblptr(meta_space_start)

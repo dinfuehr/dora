@@ -179,6 +179,10 @@ impl Gc {
     pub fn meta_space_start(&self) -> Address {
         self.meta_space.start()
     }
+
+    pub fn meta_space_size(&self) -> usize {
+        self.meta_space.size()
+    }
 }
 
 trait Collector {

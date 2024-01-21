@@ -321,6 +321,10 @@ impl VM {
     pub fn meta_space_start(&self) -> Address {
         self.gc.meta_space_start()
     }
+
+    pub fn meta_space_size(&self) -> usize {
+        self.gc.meta_space_size()
+    }
 }
 
 impl Drop for VM {
