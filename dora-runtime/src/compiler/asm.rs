@@ -19,7 +19,6 @@ use crate::vm::{
     create_enum_instance, create_struct_instance, get_concrete_tuple_bty_array, ClassInstance,
     CodeDescriptor, EnumLayout, GcPoint, LazyCompilationSite, Trap, INITIALIZED, VM,
 };
-use crate::vtable::VTable;
 use dora_bytecode::{BytecodeType, BytecodeTypeArray, FunctionId, GlobalId, Location, StructId};
 
 pub struct BaselineAssembler<'a> {
@@ -906,13 +905,9 @@ impl<'a> BaselineAssembler<'a> {
         let tmp_reg = if obj == REG_TMP1 { REG_TMP2 } else { REG_TMP1 };
 
         // Store classptr/vtable in object.
-        let vtable = class_instance.vtable.read();
-        let vtable: &VTable = vtable.as_ref().unwrap();
-        let vtable = Address::from_ptr(vtable as *const _);
-
         let (is_marked, is_remembered) = self.vm.gc.initial_metadata_value(size as usize, false);
         let header_word_value = Header::compute_header_word(
-            vtable,
+            class_instance.vtblptr(),
             self.vm.meta_space_start(),
             is_marked,
             is_remembered,
@@ -954,12 +949,12 @@ impl<'a> BaselineAssembler<'a> {
         assert!(obj != length_reg && length_reg != *tmp_reg && obj != *tmp_reg);
 
         // store classptr in object
-        let vtable = class_instance.vtable.read();
-        let vtable: &VTable = vtable.as_ref().unwrap();
-        let vtable = Address::from_ptr(vtable as *const _);
-
-        let header_word_value =
-            Header::compute_header_word(vtable, self.vm.meta_space_start(), false, false);
+        let header_word_value = Header::compute_header_word(
+            class_instance.vtblptr(),
+            self.vm.meta_space_start(),
+            false,
+            false,
+        );
 
         self.masm.load_int_const(
             MachineMode::IntPtr,

@@ -105,13 +105,13 @@ pub fn install_code(vm: &VM, code_descriptor: CodeDescriptor, kind: CodeKind) ->
 
     let code_header = object_start.to_mut_ptr::<ManagedCodeHeader>();
     let code_header = unsafe { &mut *code_header };
-    code_header.object_header.set_vtblptr(
+    code_header.object_header.setup_header_word(
         Address::from_ptr(vtable as *const VTable),
         vm.meta_space_start(),
         false,
         false,
     );
-    code_header.object_header.set_metadata_raw(false, false);
+    code_header.object_header.set_metadata_raw(false);
     code_header.length = array_length;
     code_header.native_code_object = Address::null();
 

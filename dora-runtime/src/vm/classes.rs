@@ -1,9 +1,10 @@
 use parking_lot::RwLock;
 
+use crate::gc::Address;
 use crate::size::InstanceSize;
 use crate::utils::Id;
 use crate::vm::{add_ref_fields, VM};
-use crate::vtable::VTableBox;
+use crate::vtable::{VTable, VTableBox};
 use dora_bytecode::{BytecodeType, BytecodeTypeArray, ClassId, EnumId, FunctionId, TraitId};
 
 #[derive(Copy, Clone, Debug, PartialEq, Eq)]
@@ -71,6 +72,12 @@ impl ClassInstance {
             ShapeKind::Class(cls_id, _) => Some(*cls_id),
             _ => None,
         }
+    }
+
+    pub fn vtblptr(&self) -> Address {
+        let vtable = self.vtable.read();
+        let vtable: &VTable = vtable.as_ref().unwrap();
+        Address::from_ptr(vtable as *const _)
     }
 }
 
