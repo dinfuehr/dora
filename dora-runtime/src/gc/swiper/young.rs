@@ -122,7 +122,7 @@ impl YoungGen {
     pub fn allocated_size(&self) -> usize {
         let protected = self.alloc.protected.lock();
         let to_committed = self.to_committed();
-        protected.current_limit.offset_from(to_committed.start())
+        protected.next_page.offset_from(to_committed.start())
     }
 
     pub fn protect_from(&self) {

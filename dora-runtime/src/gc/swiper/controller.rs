@@ -95,6 +95,7 @@ pub fn stop(
     };
 
     let min_semi_size = young.allocated_size();
+    assert_eq!(min_semi_size % PAGE_SIZE, 0);
 
     let rest = config.max_heap_size - config.old_size;
     let target_young_size = rest / 2;
