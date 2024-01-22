@@ -8,6 +8,7 @@ use crate::gc::allocator::GenerationAllocator;
 use crate::gc::root::{determine_strong_roots, Slot};
 use crate::gc::swiper::controller::{HeapController, SharedHeapConfig};
 use crate::gc::swiper::full::FullCollector;
+use crate::gc::swiper::heap::MixedHeap;
 use crate::gc::swiper::large::LargeSpace;
 use crate::gc::swiper::minor::MinorCollector;
 use crate::gc::swiper::old::OldGen;
@@ -26,6 +27,7 @@ use super::tlab::{MAX_TLAB_SIZE, MIN_TLAB_SIZE};
 
 mod controller;
 mod full;
+mod heap;
 mod large;
 mod minor;
 pub mod old;
@@ -66,6 +68,7 @@ pub struct Swiper {
     old: OldGen,
     large: LargeSpace,
     readonly: ReadOnlySpace,
+    mixed_heap: MixedHeap,
 
     remset: RwLock<Vec<Address>>,
 
@@ -89,14 +92,14 @@ impl Swiper {
         controller::init(&mut config, args);
 
         // Determine full reservation size.
-        let reserve_size = max_heap_size * 4;
+        let reserve_size = max_heap_size * 8;
 
         // Reserve all memory.
         let reservation = os::reserve_align(reserve_size, PAGE_SIZE, false);
         let heap_start = reservation.start();
 
         // Heap is young, old generation & large space.
-        let heap_end = heap_start.offset(4 * max_heap_size);
+        let heap_end = heap_start.offset(reserve_size);
 
         // Reserved area contains everything.
         let reserved_area = heap_start.region_start(reserve_size);
@@ -116,11 +119,17 @@ impl Swiper {
         let large_start = old_end;
         let large_end = large_start.offset(2 * max_heap_size);
 
-        let young = YoungGen::new(young, semi_size, args.gc_verify);
+        let mixed_heap_start = large_end;
+        let mixed_heap_end = heap_end;
+        let mixed_heap_region = Region::new(mixed_heap_start, mixed_heap_end);
+        assert_eq!(mixed_heap_region.size(), 4 * max_heap_size);
 
         let config = Arc::new(Mutex::new(config));
+
+        let young = YoungGen::new(young, semi_size, args.gc_verify);
         let old = OldGen::new(old_start, old_end, config.clone());
         let large = LargeSpace::new(large_start, large_end, config.clone());
+        let mixed_heap = MixedHeap::new(mixed_heap_region);
 
         let nworkers = args.gc_workers();
 
@@ -137,6 +146,7 @@ impl Swiper {
             old,
             large,
             readonly,
+            mixed_heap,
 
             config,
             remset: RwLock::new(Vec::new()),
