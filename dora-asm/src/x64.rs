@@ -630,6 +630,12 @@ impl AssemblerX64 {
         self.emit_modrm_registers(dest, src);
     }
 
+    pub fn mfence(&mut self) {
+        self.emit_u8(0x0f);
+        self.emit_u8(0xae);
+        self.emit_u8(0xf0);
+    }
+
     pub fn movb_ai(&mut self, dest: Address, src: Immediate) {
         assert!(src.is_int8() || src.is_uint8());
         self.emit_rex32_address_optional(dest);
@@ -2883,5 +2889,10 @@ mod tests {
         assert_emit!(0x05, 0x80, 0x00, 0x00, 0x00; addl_ri(RAX, Immediate(128))); // add eax, 128
         assert_emit!(0x81, 0xc1, 0x80, 0x00, 0x00, 0x00; addl_ri(RCX, Immediate(128)));
         // add ecx, 128
+    }
+
+    #[test]
+    fn test_mfence() {
+        assert_emit!(0x0f, 0xae, 0xf0; mfence);
     }
 }

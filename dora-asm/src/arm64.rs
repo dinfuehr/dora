@@ -716,6 +716,14 @@ impl AssemblerArm64 {
         self.emit_u32(cls::csel(0, 1, 0, rm, cond, 0, rn, rd));
     }
 
+    pub fn dmb_ish(&mut self) {
+        self.dmb(0b1011);
+    }
+
+    pub fn dmb(&mut self, imm: u32) {
+        self.emit_u32(cls::system_cls(0, 0b00, 0b011, 0b0011, imm, 0b101, 0b11111));
+    }
+
     pub fn eon_sh(&mut self, rd: Register, rn: Register, rm: Register, shift: Shift, imm6: u32) {
         self.emit_u32(cls::logical_shreg(1, 0b10, shift, 1, rm, imm6, rn, rd));
     }
@@ -2967,6 +2975,32 @@ mod cls {
         0xD503201F | imm << 5
     }
 
+    pub(super) fn system_cls(
+        l: u32,
+        op0: u32,
+        op1: u32,
+        crn: u32,
+        crm: u32,
+        op2: u32,
+        rt: u32,
+    ) -> u32 {
+        assert!(fits_bit(l));
+        assert!(fits_u2(op0));
+        assert!(fits_u3(op1));
+        assert!(fits_u4(crn));
+        assert!(fits_u4(crm));
+        assert!(fits_u3(op2));
+
+        0b1101_0101_00 << 22
+            | l << 21
+            | op0 << 19
+            | op1 << 16
+            | crn << 12
+            | crm << 8
+            | op2 << 5
+            | rt
+    }
+
     pub(super) fn uncond_branch_imm(op: u32, imm26: i32) -> u32 {
         assert!(fits_bit(op));
         assert!(fits_i26(imm26));
@@ -4228,5 +4262,10 @@ mod tests {
     fn test_udiv() {
         assert_emit!(0x9ac20820; udiv(R0, R1, R2)); // udiv x0, x1, x2
         assert_emit!(0x1ac50883; udiv_w(R3, R4, R5)); // udiv w3, w4, w5
+    }
+
+    #[test]
+    fn test_dmb_ish() {
+        assert_emit!(0xd5033bbf; dmb_ish());
     }
 }
