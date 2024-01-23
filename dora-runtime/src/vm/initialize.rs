@@ -18,32 +18,32 @@ fn create_special_classes(vm: &mut VM) {
     let free_word_class_id = create_class_instance_with_vtable(
         vm,
         ShapeKind::Builtin,
-        InstanceSize::FreeWord,
+        InstanceSize::FillerWord,
         Vec::new(),
         0,
     );
-    vm.known.free_word_class_instance_id = Some(free_word_class_id);
-    vm.known.free_word_class_address = address_from_class_instance_id(vm, free_word_class_id);
+    vm.known.filler_word_class_instance_id = Some(free_word_class_id);
+    vm.known.filler_word_class_address = address_from_class_instance_id(vm, free_word_class_id);
 
-    let free_object_class_id = create_class_instance_with_vtable(
+    let filler_array_class_id = create_class_instance_with_vtable(
         vm,
         ShapeKind::Builtin,
-        InstanceSize::FreeObject,
+        InstanceSize::FillerArray,
         Vec::new(),
         0,
     );
-    vm.known.free_object_class_instance_id = Some(free_object_class_id);
-    vm.known.free_object_class_address = address_from_class_instance_id(vm, free_object_class_id);
+    vm.known.filler_array_class_instance_id = Some(filler_array_class_id);
+    vm.known.filler_array_class_address = address_from_class_instance_id(vm, filler_array_class_id);
 
-    let free_array_class_id = create_class_instance_with_vtable(
+    let free_space_class_id = create_class_instance_with_vtable(
         vm,
         ShapeKind::Builtin,
-        InstanceSize::FreeArray,
+        InstanceSize::FreeSpace,
         Vec::new(),
         0,
     );
-    vm.known.free_array_class_instance_id = Some(free_array_class_id);
-    vm.known.free_array_class_address = address_from_class_instance_id(vm, free_array_class_id);
+    vm.known.free_space_class_instance_id = Some(free_space_class_id);
+    vm.known.free_space_class_address = address_from_class_instance_id(vm, free_space_class_id);
 
     let code_class_id = create_class_instance_with_vtable(
         vm,

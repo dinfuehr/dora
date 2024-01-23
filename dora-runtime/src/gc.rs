@@ -507,31 +507,18 @@ pub fn fill_region(vm: &VM, start: Address, end: Address) {
 }
 
 pub fn fill_region_with(vm: &VM, start: Address, end: Address, clear: bool) {
-    if start == end {
-        // nothing to do
-    } else if end.offset_from(start) == mem::ptr_width_usize() {
-        unsafe {
-            *start.to_mut_ptr::<usize>() = vm
-                .known
-                .free_word_class_address()
-                .offset_from(vm.meta_space_start());
-        }
-    } else if end.offset_from(start) == Header::size() as usize {
-        // fill with object
-        let vtable = vm.known.free_object_class_address();
+    let size = end.offset_from(start);
+
+    if size == mem::ptr_width_usize() {
+        let vtable = vm.known.filler_word_class_address();
 
         unsafe {
-            *start.to_mut_ptr::<usize>() = vtable.offset_from(vm.meta_space_start());
-            *start.add_ptr(1).to_mut_ptr::<usize>() = 0;
+            *start.to_mut_ptr::<usize>() =
+                Header::compute_header_word(vtable, vm.meta_space_start(), false, false);
         }
-    } else {
-        // fill with free array
-        let vtable = vm.known.free_array_class_address();
-
-        // determine of header+length in bytes
+    } else if size > mem::ptr_width_usize() {
+        let vtable = vm.known.filler_array_class_address();
         let header_size = Header::size() as usize + mem::ptr_width_usize();
-
-        // calculate array length
         let length: usize = end.offset_from(start.offset(header_size)) / mem::ptr_width_usize();
 
         unsafe {
@@ -551,11 +538,11 @@ pub fn fill_region_with(vm: &VM, start: Address, end: Address, clear: bool) {
     }
 }
 
-pub fn fill_region_with_free(vm: &VM, start: Address, end: Address, next: Address) {
+pub fn setup_free_space(vm: &VM, start: Address, end: Address, next: Address) {
     assert!(end.offset_from(start) > 2 * mem::ptr_width_usize());
 
     // fill with FreeArray
-    let vtable = vm.known.free_array_class_address();
+    let vtable = vm.known.free_space_class_address();
 
     // determine of header+length in bytes
     let header_size = Header::size() as usize + mem::ptr_width_usize();

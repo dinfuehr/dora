@@ -5,8 +5,8 @@ use crate::gc::marking;
 use crate::gc::root::{determine_strong_roots, Slot};
 use crate::gc::tlab;
 use crate::gc::{
-    default_readonly_space_config, fill_region_with_free, formatted_size, iterate_weak_roots,
-    Address, CollectionStats, Collector, GcReason, Region, Space,
+    default_readonly_space_config, formatted_size, iterate_weak_roots, setup_free_space, Address,
+    CollectionStats, Collector, GcReason, Region, Space,
 };
 use crate::os;
 use crate::safepoint;
@@ -276,7 +276,7 @@ impl SweepAllocator {
             let free_end = object.offset(free_size);
             let new_free_size = free_end.offset_from(free_start);
 
-            fill_region_with_free(vm, free_start, free_end, Address::null());
+            setup_free_space(vm, free_start, free_end, Address::null());
             self.free_list.add(vm, free_start, new_free_size);
             return object;
         }

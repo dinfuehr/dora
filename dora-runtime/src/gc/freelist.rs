@@ -1,4 +1,4 @@
-use crate::gc::{fill_region, fill_region_with_free, Address, K};
+use crate::gc::{fill_region, setup_free_space, Address, K};
 use crate::vm::VM;
 
 pub const SIZE_CLASSES: usize = 6;
@@ -87,7 +87,7 @@ impl FreeList {
         let szclass = SizeClass::next_down(size);
 
         let free_class = &mut self.classes[szclass.idx()];
-        fill_region_with_free(vm, addr, addr.offset(size), free_class.head.addr());
+        setup_free_space(vm, addr, addr.offset(size), free_class.head.addr());
         free_class.head = FreeSpace(addr);
     }
 

@@ -373,9 +373,9 @@ impl Obj {
     pub fn is_filler(&self, vm: &VM) -> bool {
         let vtblptr = self.header().raw_vtblptr(vm.meta_space_start());
 
-        vtblptr == vm.known.free_word_class_address()
-            || vtblptr == vm.known.free_array_class_address()
-            || vtblptr == vm.known.free_object_class_address()
+        vtblptr == vm.known.filler_word_class_address()
+            || vtblptr == vm.known.filler_array_class_address()
+            || vtblptr == vm.known.free_space_class_address()
     }
 }
 
@@ -394,7 +394,7 @@ where
 
         InstanceSize::UnitArray | InstanceSize::PrimitiveArray(_) | InstanceSize::Str => {}
 
-        InstanceSize::FreeWord | InstanceSize::FreeObject | InstanceSize::FreeArray => {
+        InstanceSize::FillerWord | InstanceSize::FillerArray | InstanceSize::FreeSpace => {
             unreachable!()
         }
 
