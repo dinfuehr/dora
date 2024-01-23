@@ -535,9 +535,9 @@ pub fn fill_region_with(vm: &VM, start: Address, end: Address, clear: bool) {
         let length: usize = end.offset_from(start.offset(header_size)) / mem::ptr_width_usize();
 
         unsafe {
-            *start.to_mut_ptr::<usize>() = vtable.offset_from(vm.meta_space_start());
-            *start.offset(mem::ptr_width_usize()).to_mut_ptr::<usize>() = 0;
-            *start.offset(Header::size() as usize).to_mut_ptr::<usize>() = length;
+            *start.to_mut_ptr::<usize>() =
+                Header::compute_header_word(vtable, vm.meta_space_start(), false, false);
+            *start.add_ptr(1).to_mut_ptr::<usize>() = length;
 
             if clear && cfg!(debug_assertions) {
                 for idx in 0..length {
@@ -564,7 +564,8 @@ pub fn fill_region_with_free(vm: &VM, start: Address, end: Address, next: Addres
     let length: usize = end.offset_from(start.offset(header_size)) / mem::ptr_width_usize();
 
     unsafe {
-        *start.to_mut_ptr::<usize>() = vtable.offset_from(vm.meta_space_start());
+        *start.to_mut_ptr::<usize>() =
+            Header::compute_header_word(vtable, vm.meta_space_start(), false, false);
         *start.add_ptr(1).to_mut_ptr::<usize>() = length;
         *start.add_ptr(2).to_mut_ptr::<usize>() = next.to_usize();
     }
