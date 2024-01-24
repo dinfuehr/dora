@@ -92,7 +92,7 @@ impl Swiper {
         controller::init(&mut config, args);
 
         // Determine full reservation size.
-        let reserve_size = max_heap_size * 8;
+        let reserve_size = max_heap_size * 5;
 
         // Reserve all memory.
         let reservation = os::reserve_align(reserve_size, PAGE_SIZE, false);
@@ -109,26 +109,18 @@ impl Swiper {
         let young_end = young_start.offset(max_heap_size);
         let young = Region::new(young_start, young_end);
 
-        // Determine boundaries of old generation.
-        let old_start = young_end;
-        let old_end = old_start.offset(max_heap_size);
-
-        let semi_size = config.semi_size;
-
-        // Determine large object space.
-        let large_start = old_end;
-        let large_end = large_start.offset(2 * max_heap_size);
-
-        let mixed_heap_start = large_end;
+        let mixed_heap_start = young_end;
         let mixed_heap_end = heap_end;
         let mixed_heap_region = Region::new(mixed_heap_start, mixed_heap_end);
         assert_eq!(mixed_heap_region.size(), 4 * max_heap_size);
+        assert_eq!(mixed_heap_end, reserved_area.end());
 
+        let semi_size = config.semi_size;
         let config = Arc::new(Mutex::new(config));
 
         let young = YoungGen::new(young, semi_size, args.gc_verify);
-        let old = OldGen::new(old_start, old_end, config.clone());
-        let large = LargeSpace::new(large_start, large_end, config.clone());
+        let old = OldGen::new(config.clone());
+        let large = LargeSpace::new(config.clone());
         let mixed_heap = MixedHeap::new(mixed_heap_region, config.clone());
 
         let nworkers = args.gc_workers();
@@ -483,11 +475,6 @@ where
     }
 
     assert_eq!(scan, region.end);
-}
-
-pub trait CommonOldGen {
-    fn active_size(&self) -> usize;
-    fn committed_size(&self) -> usize;
 }
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq, PartialOrd, Ord, Hash)]

@@ -7,12 +7,13 @@ use std::time::Instant;
 
 use crate::gc::swiper::large::LargeSpace;
 use crate::gc::swiper::young::YoungGen;
-use crate::gc::swiper::{align_page_down, align_page_up, CollectionKind, CommonOldGen, PAGE_SIZE};
+use crate::gc::swiper::{align_page_down, align_page_up, CollectionKind, PAGE_SIZE};
 use crate::gc::{formatted_size, AllNumbers, GcReason, M};
 use crate::stdlib;
 use crate::vm::{Flags, Trap, VM};
 
 use super::heap::MixedHeap;
+use super::old::OldGen;
 
 pub fn init(config: &mut HeapController, args: &Flags) {
     assert!(config.min_heap_size <= config.max_heap_size);
@@ -64,7 +65,7 @@ pub fn start(
     config: &SharedHeapConfig,
     mixed_heap: &MixedHeap,
     young: &YoungGen,
-    old: &dyn CommonOldGen,
+    old: &OldGen,
     large: &LargeSpace,
 ) {
     let mut config = config.lock();
@@ -79,7 +80,7 @@ pub fn stop(
     kind: CollectionKind,
     mixed_heap: &MixedHeap,
     young: &YoungGen,
-    old: &dyn CommonOldGen,
+    old: &OldGen,
     large: &LargeSpace,
     args: &Flags,
     reason: GcReason,
@@ -176,7 +177,7 @@ fn print(config: &HeapController, kind: CollectionKind, reason: GcReason, gc_dur
 fn memory_size(
     mixed_heap: &MixedHeap,
     young: &YoungGen,
-    old: &dyn CommonOldGen,
+    old: &OldGen,
     _large: &LargeSpace,
 ) -> usize {
     young.allocated_size() + old.committed_size() + mixed_heap.committed_size()

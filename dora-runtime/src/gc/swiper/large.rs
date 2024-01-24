@@ -2,25 +2,18 @@ use parking_lot::Mutex;
 
 use crate::gc::swiper::controller::SharedHeapConfig;
 use crate::gc::swiper::LargePage;
-use crate::gc::{is_page_aligned, Address, Region};
+use crate::gc::Address;
 
 use super::heap::MixedHeap;
 
 pub struct LargeSpace {
-    total: Region,
     space: Mutex<LargeSpaceProtected>,
     config: SharedHeapConfig,
 }
 
 impl LargeSpace {
-    pub fn new(start: Address, end: Address, config: SharedHeapConfig) -> LargeSpace {
-        let total = Region::new(start, end);
-        assert!(is_page_aligned(total.size()));
-        assert!(start.is_page_aligned());
-        assert!(end.is_page_aligned());
-
+    pub fn new(config: SharedHeapConfig) -> LargeSpace {
         LargeSpace {
-            total,
             space: Mutex::new(LargeSpaceProtected { head: None }),
             config,
         }
@@ -43,12 +36,12 @@ impl LargeSpace {
         space.visit_pages(f);
     }
 
-    pub fn remove_pages<F>(&self, mixed_heap: &MixedHeap, f: F)
+    pub fn remove_pages<F>(&self, mixed_heap: &MixedHeap, merge_if_necessary: bool, f: F)
     where
         F: FnMut(LargePage) -> bool,
     {
         let mut space = self.space.lock();
-        space.remove_pages(mixed_heap, f);
+        space.remove_pages(mixed_heap, merge_if_necessary, f);
     }
 }
 
@@ -81,7 +74,7 @@ impl LargeSpaceProtected {
         }
     }
 
-    fn remove_pages<F>(&mut self, mixed_heap: &MixedHeap, mut f: F)
+    fn remove_pages<F>(&mut self, mixed_heap: &MixedHeap, merge_if_necessary: bool, mut f: F)
     where
         F: FnMut(LargePage) -> bool,
     {
@@ -119,7 +112,7 @@ impl LargeSpaceProtected {
             self.head = None;
         }
 
-        if freed {
+        if freed && merge_if_necessary {
             mixed_heap.merge_free_regions();
         }
     }

@@ -1,9 +1,12 @@
 use parking_lot::Mutex;
 
-use crate::gc::swiper::{align_page_up, is_page_aligned, LargePage, SharedHeapConfig};
-use crate::gc::Region;
+use crate::gc::swiper::{align_page_up, is_page_aligned, LargePage, RegularPage, SharedHeapConfig};
+use crate::gc::{fill_region, Region};
 use crate::mem::is_os_page_aligned;
 use crate::os::{self, MemoryPermission};
+use crate::vm::VM;
+
+use super::PAGE_SIZE;
 
 pub struct MixedHeap {
     total: Region,
@@ -39,6 +42,22 @@ impl MixedHeap {
         self.protected.lock().free_large_page(page);
     }
 
+    pub fn alloc_regular_page(&self, vm: &VM, in_gc: bool) -> Option<RegularPage> {
+        if !in_gc {
+            let mut config = self.config.lock();
+
+            if !config.grow_old(PAGE_SIZE) {
+                return None;
+            }
+        }
+
+        self.protected.lock().alloc_regular_page(vm)
+    }
+
+    pub fn free_regular_page(&self, page: RegularPage) {
+        self.protected.lock().free_regular_page(page)
+    }
+
     pub fn merge_free_regions(&self) {
         self.protected.lock().merge_free_regions();
     }
@@ -61,6 +80,18 @@ impl MixedHeapProtected {
             os::commit_at(region.start(), committed_size, MemoryPermission::ReadWrite);
             let page = LargePage::setup(region.start(), committed_size);
             self.committed_size += committed_size;
+            Some(page)
+        } else {
+            None
+        }
+    }
+
+    fn alloc_regular_page(&mut self, vm: &VM) -> Option<RegularPage> {
+        if let Some(region) = self.alloc_pages(PAGE_SIZE) {
+            os::commit_at(region.start(), PAGE_SIZE, MemoryPermission::ReadWrite);
+            let page = RegularPage::setup(region.start(), false, false);
+            fill_region(vm, page.object_area_start(), page.object_area_end());
+            self.committed_size += PAGE_SIZE;
             Some(page)
         } else {
             None
@@ -99,6 +130,12 @@ impl MixedHeapProtected {
         self.elements
             .push(page.address().region_start(reserved_size));
         self.committed_size -= committed_size;
+    }
+
+    fn free_regular_page(&mut self, page: RegularPage) {
+        os::discard(page.address(), PAGE_SIZE);
+        self.elements.push(page.address().region_start(PAGE_SIZE));
+        self.committed_size -= PAGE_SIZE;
     }
 
     fn merge_free_regions(&mut self) {

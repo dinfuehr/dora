@@ -23,6 +23,8 @@ use rand::distributions::{Distribution, Uniform};
 use rand::thread_rng;
 use scoped_threadpool::Pool;
 
+use super::heap::MixedHeap;
+
 pub struct MinorCollector<'a> {
     vm: &'a VM,
 
@@ -127,6 +129,7 @@ impl<'a> MinorCollector<'a> {
         let vm = self.vm;
 
         let heap = self.heap;
+        let mixed_heap = &self.swiper.mixed_heap;
         let young = self.young;
         let old = self.old;
         let rootset = self.rootset;
@@ -172,6 +175,7 @@ impl<'a> MinorCollector<'a> {
                             terminator,
 
                             vm,
+                            mixed_heap,
                             heap,
                             young,
                             old,
@@ -314,6 +318,7 @@ struct CopyTask<'a> {
 
     vm: &'a VM,
     heap: Region,
+    mixed_heap: &'a MixedHeap,
     young: &'a YoungGen,
     old: &'a OldGen,
     rootset: &'a [Slot],

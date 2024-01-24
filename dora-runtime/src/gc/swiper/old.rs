@@ -1,29 +1,22 @@
-use fixedbitset::FixedBitSet;
 use parking_lot::{Mutex, MutexGuard};
-use rand::Rng;
 
 use crate::gc::freelist::FreeList;
 use crate::gc::swiper::controller::SharedHeapConfig;
-use crate::gc::swiper::{CommonOldGen, RegularPage, PAGE_SIZE};
-use crate::gc::{fill_region, fill_region_with, is_page_aligned};
+use crate::gc::swiper::{RegularPage, PAGE_SIZE};
+use crate::gc::{fill_region, fill_region_with};
 use crate::gc::{Address, GenerationAllocator, Region};
-use crate::os::{self, MemoryPermission};
 use crate::vm::VM;
 
 pub struct OldGen {
-    total: Region,
     protected: Mutex<OldGenProtected>,
 
     config: SharedHeapConfig,
 }
 
 impl OldGen {
-    pub fn new(start: Address, end: Address, config: SharedHeapConfig) -> OldGen {
-        let total = Region::new(start, end);
-
+    pub fn new(config: SharedHeapConfig) -> OldGen {
         let old = OldGen {
-            total: total.clone(),
-            protected: Mutex::new(OldGenProtected::new(total)),
+            protected: Mutex::new(OldGenProtected::new()),
 
             config,
         };
@@ -31,36 +24,11 @@ impl OldGen {
         old
     }
 
-    pub fn total(&self) -> Region {
-        self.total.clone()
-    }
-
-    pub fn total_start(&self) -> Address {
-        self.total.start
-    }
-
-    pub fn contains_slow(&self, addr: Address) -> bool {
-        let protected = self.protected.lock();
-        protected.contains(addr)
-    }
-
     pub fn protected(&self) -> MutexGuard<OldGenProtected> {
         self.protected.lock()
     }
 
-    fn can_add_page(&self) -> bool {
-        let mut config = self.config.lock();
-        config.grow_old(PAGE_SIZE)
-    }
-}
-
-impl CommonOldGen for OldGen {
-    fn active_size(&self) -> usize {
-        let protected = self.protected.lock();
-        protected.active_size()
-    }
-
-    fn committed_size(&self) -> usize {
+    pub fn committed_size(&self) -> usize {
         let protected = self.protected.lock();
         protected.size
     }
@@ -69,7 +37,7 @@ impl CommonOldGen for OldGen {
 impl GenerationAllocator for OldGen {
     fn allocate(&self, vm: &VM, min_size: usize, max_size: usize) -> Option<Region> {
         let mut protected = self.protected.lock();
-        protected.allocate(vm, self, false, min_size, max_size)
+        protected.allocate(vm, false, min_size, max_size)
     }
 
     fn free(&self, _region: Region) {
@@ -78,41 +46,26 @@ impl GenerationAllocator for OldGen {
 }
 
 pub struct OldGenProtected {
-    total: Region,
     size: usize,
     top: Address,
     current_limit: Address,
     pages: Vec<RegularPage>,
-    free_pages: FixedBitSet,
-    num_pages: usize,
     freelist: FreeList,
 }
 
 impl OldGenProtected {
-    fn new(total: Region) -> OldGenProtected {
-        assert!(is_page_aligned(total.size()));
-        let num_pages = total.size() / PAGE_SIZE;
-        let mut free_pages = FixedBitSet::with_capacity(num_pages);
-        free_pages.set_range(.., true);
-
+    fn new() -> OldGenProtected {
         OldGenProtected {
-            total: total.clone(),
             size: 0,
-            top: total.start(),
-            current_limit: total.start(),
+            top: Address::null(),
+            current_limit: Address::null(),
             pages: Vec::new(),
-            free_pages,
-            num_pages,
             freelist: FreeList::new(),
         }
     }
 
     pub fn pages(&self) -> Vec<RegularPage> {
         self.pages.clone()
-    }
-
-    pub fn contains(&self, addr: Address) -> bool {
-        self.total.start <= addr && addr < self.top
     }
 
     pub fn clear_freelist(&mut self) {
@@ -127,8 +80,7 @@ impl OldGenProtected {
     pub fn allocate(
         &mut self,
         vm: &VM,
-        old: &OldGen,
-        is_gc: bool,
+        in_gc: bool,
         min_size: usize,
         max_size: usize,
     ) -> Option<Region> {
@@ -153,11 +105,7 @@ impl OldGenProtected {
             return Some(region);
         }
 
-        if !is_gc && !old.can_add_page() {
-            return None;
-        }
-
-        if let Some(page) = self.allocate_page(vm) {
+        if let Some(page) = self.allocate_page(vm, in_gc) {
             self.pages.push(page);
             self.pages.sort();
             self.size += PAGE_SIZE;
@@ -176,7 +124,7 @@ impl OldGenProtected {
         }
     }
 
-    pub fn free_page(&mut self, page: RegularPage) {
+    pub fn free_page(&mut self, vm: &VM, page: RegularPage) {
         let idx = self
             .pages
             .iter()
@@ -184,46 +132,20 @@ impl OldGenProtected {
             .expect("missing page");
         self.pages.swap_remove(idx);
         self.size -= PAGE_SIZE;
-        let page_idx = page.address().offset_from(self.total.start()) / PAGE_SIZE;
-        self.free_pages.insert(page_idx);
-        os::discard(page.address(), page.size());
+
+        vm.gc
+            .collector
+            .to_swiper()
+            .mixed_heap
+            .free_regular_page(page);
     }
 
-    pub fn active_size(&self) -> usize {
-        self.top.offset_from(self.total.start())
-    }
-
-    fn allocate_page(&mut self, vm: &VM) -> Option<RegularPage> {
-        if let Some(page_idx) = self.select_free_page() {
-            let page_start = self.total.start().offset(page_idx * PAGE_SIZE);
-            assert!(self.total.contains(page_start));
-            assert!(self.free_pages.contains(page_idx));
-            self.free_pages.set(page_idx, false);
-            os::commit_at(page_start, PAGE_SIZE, MemoryPermission::ReadWrite);
-            let page = RegularPage::setup(page_start, false, false);
-            fill_region(vm, page.object_area_start(), page.object_area_end());
-            Some(page)
-        } else {
-            None
-        }
-    }
-
-    fn select_free_page(&mut self) -> Option<usize> {
-        let mut rng = rand::thread_rng();
-
-        for _ in 0..3 {
-            let page_idx = rng.gen_range(0..self.num_pages);
-
-            if self.free_pages.contains(page_idx) {
-                return Some(page_idx);
-            }
-        }
-
-        if let Some(first_page) = self.free_pages.ones().next() {
-            Some(first_page)
-        } else {
-            None
-        }
+    fn allocate_page(&mut self, vm: &VM, in_gc: bool) -> Option<RegularPage> {
+        vm.gc
+            .collector
+            .to_swiper()
+            .mixed_heap
+            .alloc_regular_page(vm, in_gc)
     }
 
     fn raw_alloc(&mut self, min_size: usize, max_size: usize) -> Option<Region> {

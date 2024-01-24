@@ -26,8 +26,6 @@ pub struct FullCollector<'a> {
     readonly_space: &'a ReadOnlySpace,
     swiper: &'a Swiper,
 
-    top: Address,
-    current_limit: Address,
     pages: Vec<RegularPage>,
     metaspace_start: Address,
 
@@ -54,8 +52,6 @@ impl<'a> FullCollector<'a> {
         min_heap_size: usize,
         max_heap_size: usize,
     ) -> FullCollector<'a> {
-        let old_total = old.total();
-
         FullCollector {
             vm,
             swiper,
@@ -69,9 +65,6 @@ impl<'a> FullCollector<'a> {
             threads,
             readonly_space,
             metaspace_start: vm.meta_space_start(),
-
-            top: old_total.start(),
-            current_limit: old_total.start(),
 
             reason,
 
@@ -162,12 +155,14 @@ impl<'a> FullCollector<'a> {
 
     fn sweep(&mut self) {
         self.old_protected.clear_freelist();
+        let mut freed_page = false;
 
         for page in self.old_protected.pages() {
             let (live, free_regions) = self.sweep_page(page);
 
             if live == 0 {
-                self.old_protected.free_page(page);
+                self.old_protected.free_page(self.vm, page);
+                freed_page = true;
             } else {
                 for free_region in free_regions {
                     fill_region_with(self.vm, free_region.start, free_region.end, true);
@@ -182,7 +177,7 @@ impl<'a> FullCollector<'a> {
         }
 
         self.large_space
-            .remove_pages(&self.swiper.mixed_heap, |page| {
+            .remove_pages(&self.swiper.mixed_heap, false, |page| {
                 let object = page.object_address().to_obj();
 
                 if object.header().is_marked() {
@@ -193,10 +188,16 @@ impl<'a> FullCollector<'a> {
                     // keep object
                     false
                 } else {
+                    freed_page = true;
+
                     // Drop  unmarked large object.
                     true
                 }
             });
+
+        if freed_page {
+            self.swiper.mixed_heap.merge_free_regions();
+        }
     }
 
     fn sweep_page(&mut self, page: RegularPage) -> (usize, Vec<Region>) {
@@ -255,10 +256,7 @@ impl<'a> FullCollector<'a> {
                 return;
             }
 
-            if let Some(new_region) = self
-                .old_protected
-                .allocate(self.vm, self.old, true, size, size)
-            {
+            if let Some(new_region) = self.old_protected.allocate(self.vm, true, size, size) {
                 let new_address = new_region.start();
 
                 object.copy_to(new_address, size);
