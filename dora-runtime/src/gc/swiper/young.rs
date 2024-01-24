@@ -82,12 +82,6 @@ impl YoungGen {
         self.commit_semi_space(vm, self.semispaces[1], 0, semi_size);
     }
 
-    pub fn object_size(&self) -> usize {
-        let protected = self.alloc.protected.lock();
-        let start = self.to_total().start();
-        protected.top.offset_from(start)
-    }
-
     pub fn reset_after_full_gc(&self, vm: &VM) {
         self.unprotect_from();
         self.swap_semi(vm);
@@ -100,13 +94,9 @@ impl YoungGen {
 
     pub fn unprotect_from(&self) {
         if cfg!(debug_assertions) || self.protect {
-            let from_space = self.from_committed();
-
-            os::protect(
-                from_space.start,
-                from_space.size(),
-                MemoryPermission::ReadWrite,
-            );
+            for page in self.from_pages() {
+                os::protect(page.address(), page.size(), MemoryPermission::ReadWrite);
+            }
         }
     }
 
@@ -127,8 +117,9 @@ impl YoungGen {
 
     pub fn protect_from(&self) {
         if cfg!(debug_assertions) || self.protect {
-            let from_space = self.from_committed();
-            os::protect(from_space.start, from_space.size(), MemoryPermission::None);
+            for page in self.from_pages() {
+                os::protect(page.address(), page.size(), MemoryPermission::None);
+            }
         }
     }
 
@@ -240,7 +231,7 @@ fn create_pages_for_region(region: Region) -> Vec<RegularPage> {
     let mut pages = Vec::new();
     let mut curr = region.start();
     while curr < region.end() {
-        let page = RegularPage::from_address(curr);
+        let page = RegularPage::from_address_unsafe(curr);
         pages.push(page);
         curr = page.end();
     }

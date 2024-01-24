@@ -519,6 +519,12 @@ impl RegularPage {
         page
     }
 
+    pub fn from_address_unsafe(value: Address) -> RegularPage {
+        let page_start = value.to_usize() & !(PAGE_SIZE - 1);
+        let page = RegularPage(page_start.into());
+        page
+    }
+
     pub fn setup(address: Address, is_young: bool, is_readonly: bool) -> RegularPage {
         assert!(address.is_page_aligned());
 
