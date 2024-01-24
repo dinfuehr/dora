@@ -8,7 +8,7 @@ use crate::gc::swiper::controller::{MinorCollectorPhases, SharedHeapConfig};
 use crate::gc::swiper::large::LargeSpace;
 use crate::gc::swiper::old::OldGen;
 use crate::gc::swiper::young::YoungGen;
-use crate::gc::swiper::{BasePage, LargePage, RegularPage, Swiper, LARGE_OBJECT_SIZE};
+use crate::gc::swiper::{BasePage, Swiper, LARGE_OBJECT_SIZE};
 use crate::gc::tlab::{MAX_TLAB_OBJECT_SIZE, MAX_TLAB_SIZE, MIN_TLAB_SIZE};
 use crate::gc::{
     fill_region, fill_region_with, iterate_weak_roots, Address, GcReason, GenerationAllocator,
@@ -147,15 +147,6 @@ impl<'a> MinorCollector<'a> {
 
         let strides = 4 * self.number_workers;
 
-        let next_old_page_idx = AtomicUsize::new(0);
-        let next_old_page_idx = &next_old_page_idx;
-        let old_pages = self.old.protected().pages();
-        let old_pages = &old_pages;
-
-        let head = self.large.head();
-        let next_large = Mutex::new(head);
-        let next_large = &next_large;
-
         let added_to_remset: Mutex<Vec<Vec<Address>>> = Default::default();
 
         {
@@ -193,10 +184,6 @@ impl<'a> MinorCollector<'a> {
                             next_root_stride,
                             next_object_stride,
                             strides,
-                            next_large,
-
-                            next_old_page_idx,
-                            old_pages,
 
                             promoted_size: 0,
                             copied_size: 0,
@@ -338,10 +325,6 @@ struct CopyTask<'a> {
     next_root_stride: &'a AtomicUsize,
     next_object_stride: &'a AtomicUsize,
     strides: usize,
-    next_large: &'a Mutex<Option<LargePage>>,
-
-    old_pages: &'a [RegularPage],
-    next_old_page_idx: &'a AtomicUsize,
 
     promoted_size: usize,
     copied_size: usize,
@@ -423,22 +406,6 @@ impl<'a> CopyTask<'a> {
                 slot.set(self.evacuate_object(pointer));
             }
         });
-    }
-
-    fn next_old_page(&mut self) -> Option<RegularPage> {
-        let page_idx = self.next_old_page_idx.fetch_add(1, Ordering::Relaxed);
-        self.old_pages.get(page_idx).cloned()
-    }
-
-    fn next_large(&mut self) -> Option<LargePage> {
-        let mut next_large = self.next_large.lock();
-
-        if let Some(large_page) = *next_large {
-            *next_large = large_page.next_page();
-            Some(large_page)
-        } else {
-            None
-        }
     }
 
     fn trace_gray_objects(&mut self) {

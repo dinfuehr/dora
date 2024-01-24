@@ -12,6 +12,8 @@ use crate::gc::{formatted_size, AllNumbers, GcReason, M};
 use crate::stdlib;
 use crate::vm::{Flags, Trap, VM};
 
+use super::heap::MixedHeap;
+
 pub fn init(config: &mut HeapController, args: &Flags) {
     assert!(config.min_heap_size <= config.max_heap_size);
 
@@ -60,6 +62,7 @@ pub fn choose_collection_kind(
 
 pub fn start(
     config: &SharedHeapConfig,
+    mixed_heap: &MixedHeap,
     young: &YoungGen,
     old: &dyn CommonOldGen,
     large: &LargeSpace,
@@ -67,13 +70,14 @@ pub fn start(
     let mut config = config.lock();
 
     config.gc_start = Some(Instant::now());
-    config.start_memory_size = memory_size(young, old, large);
+    config.start_memory_size = memory_size(mixed_heap, young, old, large);
 }
 
 pub fn stop(
     vm: &VM,
     config: &SharedHeapConfig,
     kind: CollectionKind,
+    mixed_heap: &MixedHeap,
     young: &YoungGen,
     old: &dyn CommonOldGen,
     large: &LargeSpace,
@@ -85,7 +89,7 @@ pub fn stop(
     let gc_duration = config.gc_start.expect("not started").elapsed();
     let gc_duration_ms = gc_duration.as_secs_f32() * 1000.0f32;
 
-    let old_size = old.committed_size() + large.committed_size();
+    let old_size = old.committed_size() + mixed_heap.committed_size();
     config.old_size = old_size;
 
     let max_young_size = if let Some(young_size) = args.young_size() {
@@ -111,7 +115,7 @@ pub fn stop(
     config.old_limit = config.max_heap_size - young_size;
     assert!(config.old_limit >= old_size);
 
-    config.end_memory_size = memory_size(young, old, large);
+    config.end_memory_size = memory_size(mixed_heap, young, old, large);
 
     assert!(young_size + config.old_limit <= config.max_heap_size);
 
@@ -169,8 +173,13 @@ fn print(config: &HeapController, kind: CollectionKind, reason: GcReason, gc_dur
     }
 }
 
-fn memory_size(young: &YoungGen, old: &dyn CommonOldGen, large: &LargeSpace) -> usize {
-    young.allocated_size() + old.committed_size() + large.committed_size()
+fn memory_size(
+    mixed_heap: &MixedHeap,
+    young: &YoungGen,
+    old: &dyn CommonOldGen,
+    _large: &LargeSpace,
+) -> usize {
+    young.allocated_size() + old.committed_size() + mixed_heap.committed_size()
 }
 
 pub struct HeapController {

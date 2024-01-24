@@ -129,7 +129,7 @@ impl Swiper {
         let young = YoungGen::new(young, semi_size, args.gc_verify);
         let old = OldGen::new(old_start, old_end, config.clone());
         let large = LargeSpace::new(large_start, large_end, config.clone());
-        let mixed_heap = MixedHeap::new(mixed_heap_region);
+        let mixed_heap = MixedHeap::new(mixed_heap_region, config.clone());
 
         let nworkers = args.gc_workers();
 
@@ -170,7 +170,13 @@ impl Swiper {
         reason: GcReason,
     ) -> CollectionKind {
         safepoint::stop_the_world(vm, |threads| {
-            controller::start(&self.config, &self.young, &self.old, &self.large);
+            controller::start(
+                &self.config,
+                &self.mixed_heap,
+                &self.young,
+                &self.old,
+                &self.large,
+            );
 
             tlab::make_iterable_all(vm, threads);
             let rootset = determine_strong_roots(vm, threads);
@@ -191,6 +197,7 @@ impl Swiper {
                 vm,
                 &self.config,
                 kind,
+                &self.mixed_heap,
                 &self.young,
                 &self.old,
                 &self.large,
@@ -310,13 +317,15 @@ impl Swiper {
     }
 
     fn alloc_large(&self, vm: &VM, size: usize) -> Address {
-        if let Some(address) = self.large.alloc(size) {
+        if let Some(address) = self.large.alloc(&self.mixed_heap, size) {
             return address;
         }
 
         self.perform_collection(vm, CollectionKind::Full, GcReason::AllocationFailure);
 
-        self.large.alloc(size).unwrap_or(Address::null())
+        self.large
+            .alloc(&self.mixed_heap, size)
+            .unwrap_or(Address::null())
     }
 }
 

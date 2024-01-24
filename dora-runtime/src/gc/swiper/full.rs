@@ -181,21 +181,22 @@ impl<'a> FullCollector<'a> {
             }
         }
 
-        self.large_space.remove_pages(|page| {
-            let object = page.object_address().to_obj();
+        self.large_space
+            .remove_pages(&self.swiper.mixed_heap, |page| {
+                let object = page.object_address().to_obj();
 
-            if object.header().is_marked() {
-                // unmark object for next collection
-                object.header().clear_mark();
-                object.header().clear_remembered();
+                if object.header().is_marked() {
+                    // unmark object for next collection
+                    object.header().clear_mark();
+                    object.header().clear_remembered();
 
-                // keep object
-                false
-            } else {
-                // Drop  unmarked large object.
-                true
-            }
-        });
+                    // keep object
+                    false
+                } else {
+                    // Drop  unmarked large object.
+                    true
+                }
+            });
     }
 
     fn sweep_page(&mut self, page: RegularPage) -> (usize, Vec<Region>) {
