@@ -54,8 +54,8 @@ impl YoungGen {
             current_semi_size: AtomicUsize::new(semi_size),
             protect,
             protected: Mutex::new(YoungGenProtected {
-                top: committed_region.start(),
-                current_limit: committed_region.start(),
+                top: Address::null(),
+                current_limit: Address::null(),
                 next_page: committed_region.start(),
                 limit: committed_region.end(),
 
