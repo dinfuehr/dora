@@ -68,19 +68,14 @@ impl YoungGen {
         self.commit(vm, self.current_semi_size());
         self.protect_from();
 
-        let to_committed = self.to_committed();
-        self.make_pages_iterable(vm, to_committed.start());
+        let protected = self.protected.lock();
+        self.make_pages_iterable(vm, &protected.pages[self.to_index()]);
     }
 
-    fn make_pages_iterable(&self, vm: &VM, start: Address) {
-        let to_committed = self.to_committed();
-        assert!(to_committed.valid_top(start));
-        let mut curr = start;
-
-        while curr < to_committed.end() {
-            let page = RegularPage::setup(curr, true, false);
+    fn make_pages_iterable(&self, vm: &VM, pages: &[RegularPage]) {
+        for &page in pages {
+            let page = RegularPage::setup(page.address(), true, false);
             fill_region_with(vm, page.object_area_start(), page.object_area_end(), true);
-            curr = page.end();
         }
     }
 
@@ -133,10 +128,11 @@ impl YoungGen {
     pub fn swap_semi(&self, vm: &VM) {
         self.swap_indices();
 
-        let to_committed = self.to_committed();
-        self.make_pages_iterable(vm, to_committed.start());
-
         let mut protected = self.protected.lock();
+
+        self.make_pages_iterable(vm, &protected.pages[self.to_index()]);
+
+        let to_committed = self.to_committed();
         protected.top = to_committed.start();
         protected.current_limit = to_committed.start();
         protected.next_page = to_committed.start();
@@ -173,11 +169,16 @@ impl YoungGen {
 
     fn commit_semi_space(&self, vm: &VM, semi_space_idx: usize, old_size: usize, new_size: usize) {
         let space = self.semispaces[semi_space_idx];
+        assert!(is_page_aligned(old_size));
         assert!(is_page_aligned(new_size));
 
         if old_size == new_size {
             return;
         }
+
+        let mut protected = self.protected.lock();
+        let space_pages = &mut protected.pages[semi_space_idx];
+        assert_eq!(space_pages.len(), old_size / PAGE_SIZE);
 
         if old_size < new_size {
             let size = new_size - old_size;
@@ -190,14 +191,26 @@ impl YoungGen {
 
                 let page = RegularPage::setup(curr, true, false);
                 fill_region(vm, page.object_area_start(), page.object_area_end());
+                space_pages.push(page);
                 curr = page.end();
             }
         } else {
             assert!(new_size < old_size);
-            let size = old_size - new_size;
-            let start = space.start().offset(new_size);
-            os::discard(start, size);
+            let target_pages = new_size / PAGE_SIZE;
+
+            while space_pages.len() > target_pages {
+                let page = space_pages.pop().expect("missing page");
+                os::discard(page.address(), page.size());
+            }
+
+            if new_size > 0 {
+                let new_end = space.start().offset(new_size);
+                assert_eq!(space_pages.first().unwrap().address(), space.start());
+                assert_eq!(space_pages.last().unwrap().end(), new_end)
+            }
         }
+
+        assert_eq!(space_pages.len(), new_size / PAGE_SIZE);
     }
 
     fn from_committed(&self) -> Region {
@@ -235,7 +248,7 @@ impl YoungGen {
         self.current_semi_size() * 2
     }
 
-    pub fn from_pages(&self) -> Vec<RegularPage> {
+    fn from_pages(&self) -> Vec<RegularPage> {
         create_pages_for_region(self.from_committed())
     }
 
