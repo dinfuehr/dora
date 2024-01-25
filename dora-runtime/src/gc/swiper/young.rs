@@ -58,6 +58,8 @@ impl YoungGen {
                 current_limit: committed_region.start(),
                 next_page: committed_region.start(),
                 limit: committed_region.end(),
+
+                pages: [Vec::new(), Vec::new()],
             }),
         }
     }
@@ -83,8 +85,8 @@ impl YoungGen {
     }
 
     fn commit(&self, vm: &VM, semi_size: usize) {
-        self.commit_semi_space(vm, self.semispaces[0], 0, semi_size);
-        self.commit_semi_space(vm, self.semispaces[1], 0, semi_size);
+        self.commit_semi_space(vm, 0, 0, semi_size);
+        self.commit_semi_space(vm, 1, 0, semi_size);
     }
 
     pub fn reset_after_full_gc(&self, vm: &VM) {
@@ -159,8 +161,8 @@ impl YoungGen {
         let old_semi_size = self.current_semi_size();
         self.set_current_semi_size(new_semi_size);
 
-        self.commit_semi_space(vm, self.semispaces[0], old_semi_size, new_semi_size);
-        self.commit_semi_space(vm, self.semispaces[1], old_semi_size, new_semi_size);
+        self.commit_semi_space(vm, 0, old_semi_size, new_semi_size);
+        self.commit_semi_space(vm, 1, old_semi_size, new_semi_size);
 
         let mut protected = self.protected.lock();
         protected.limit = self.to_committed().end();
@@ -169,7 +171,8 @@ impl YoungGen {
         assert!(protected.current_limit <= protected.limit);
     }
 
-    fn commit_semi_space(&self, vm: &VM, space: Region, old_size: usize, new_size: usize) {
+    fn commit_semi_space(&self, vm: &VM, semi_space_idx: usize, old_size: usize, new_size: usize) {
+        let space = self.semispaces[semi_space_idx];
         assert!(is_page_aligned(new_size));
 
         if old_size == new_size {
@@ -180,10 +183,11 @@ impl YoungGen {
             let size = new_size - old_size;
             let start = space.start().offset(old_size);
             let end = start.offset(size);
-            os::commit_at(start, size, MemoryPermission::ReadWrite);
 
             let mut curr = start;
             while curr < end {
+                os::commit_at(curr, PAGE_SIZE, MemoryPermission::ReadWrite);
+
                 let page = RegularPage::setup(curr, true, false);
                 fill_region(vm, page.object_area_start(), page.object_area_end());
                 curr = page.end();
@@ -268,6 +272,8 @@ struct YoungGenProtected {
     current_limit: Address,
     next_page: Address,
     limit: Address,
+
+    pages: [Vec<RegularPage>; 2],
 }
 
 impl YoungGenProtected {
