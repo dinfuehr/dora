@@ -504,7 +504,9 @@ impl RegularPage {
     pub fn promote(&self) {
         assert!(self.is_young());
         self.base_page_header().remove_flag(YOUNG_BIT);
+        self.base_page_header().remove_flag(SURVIVOR_BIT);
         assert!(!self.is_young());
+        assert!(!self.is_survivor());
     }
 
     pub fn as_base_page(&self) -> BasePage {
