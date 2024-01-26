@@ -1,10 +1,9 @@
-use parking_lot::MutexGuard;
 use std::collections::HashSet;
 use std::fmt;
 
 use crate::gc::root::Slot;
 use crate::gc::swiper::large::LargeSpace;
-use crate::gc::swiper::old::{OldGen, OldGenProtected};
+use crate::gc::swiper::old::OldGen;
 use crate::gc::swiper::young::YoungGen;
 use crate::gc::swiper::BasePage;
 use crate::gc::swiper::{LargePage, ReadOnlySpace, RegularPage, Swiper};
@@ -71,7 +70,6 @@ pub struct Verifier<'a> {
     swiper: &'a Swiper,
     young: &'a YoungGen,
     old: &'a OldGen,
-    old_protected: MutexGuard<'a, OldGenProtected>,
     rootset: &'a [Slot],
     large: &'a LargeSpace,
     readonly_space: &'a ReadOnlySpace,
@@ -93,14 +91,11 @@ impl<'a> Verifier<'a> {
         readonly_space: &'a ReadOnlySpace,
         phase: VerifierPhase,
     ) -> Verifier<'a> {
-        let old_protected = old.protected();
-
         Verifier {
             vm,
             swiper,
             young,
             old,
-            old_protected,
             rootset,
             readonly_space,
             large,
@@ -137,7 +132,7 @@ impl<'a> Verifier<'a> {
             self.verify_page(page);
         }
 
-        for page in self.old_protected.pages() {
+        for page in self.old.pages() {
             assert!(!page.is_young());
             assert!(!page.is_readonly());
             assert!(!page.is_survivor());

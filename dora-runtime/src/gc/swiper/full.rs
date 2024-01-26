@@ -1,28 +1,23 @@
 use std::sync::Arc;
 use std::time::Instant;
 
-use parking_lot::MutexGuard;
-
 use crate::gc::swiper::controller::FullCollectorPhases;
-use crate::gc::swiper::old::OldGenProtected;
-use crate::gc::swiper::{walk_region, ReadOnlySpace, Swiper};
+use crate::gc::swiper::{walk_region, Swiper};
 use crate::gc::swiper::{BasePage, LargeSpace, OldGen, RegularPage, YoungGen};
-use crate::gc::{fill_region, iterate_strong_roots, iterate_weak_roots, Slot};
+use crate::gc::{iterate_weak_roots, Slot};
 use crate::gc::{Address, GcReason, Region};
-use crate::object::{Obj, VtblptrWordKind};
-use crate::stdlib;
 use crate::threads::DoraThread;
-use crate::vm::{Trap, VM};
+use crate::vm::VM;
+
+use super::get_swiper;
 
 pub struct FullCollector<'a> {
     vm: &'a VM,
     young: &'a YoungGen,
     old: &'a OldGen,
-    old_protected: MutexGuard<'a, OldGenProtected>,
     large_space: &'a LargeSpace,
     rootset: &'a [Slot],
     threads: &'a [Arc<DoraThread>],
-    readonly_space: &'a ReadOnlySpace,
     swiper: &'a Swiper,
 
     pages: Vec<RegularPage>,
@@ -43,7 +38,6 @@ impl<'a> FullCollector<'a> {
         young: &'a YoungGen,
         old: &'a OldGen,
         large_space: &'a LargeSpace,
-        readonly_space: &'a ReadOnlySpace,
         rootset: &'a [Slot],
         threads: &'a [Arc<DoraThread>],
         reason: GcReason,
@@ -55,12 +49,10 @@ impl<'a> FullCollector<'a> {
             swiper,
             young,
             old,
-            old_protected: old.protected(),
             pages: Vec::new(),
             large_space,
             rootset,
             threads,
-            readonly_space,
             metaspace_start: vm.meta_space_start(),
 
             reason,
@@ -82,30 +74,14 @@ impl<'a> FullCollector<'a> {
         });
 
         if self.vm.flags.gc_verify {
-            verify_marking(self.vm, self.young, &*self.old_protected, self.large_space);
+            verify_marking(self.vm, self.young, self.old, self.large_space);
         }
 
-        let promote_young_pages = true;
-
-        if promote_young_pages {
-            for page in self.young.take_over_to_pages() {
-                self.old_protected.promote_page(self.vm, page);
-            }
-        }
+        self.old.promote_pages(self.vm, self.young);
 
         self.phases.sweep = measure(self.vm, || {
             self.sweep();
         });
-
-        if !promote_young_pages {
-            self.phases.evacuate = measure(self.vm, || {
-                self.evacuate();
-            });
-
-            self.phases.update_refs = measure(self.vm, || {
-                self.update_references();
-            });
-        }
 
         self.young.reset_after_full_gc(self.vm);
 
@@ -126,194 +102,94 @@ impl<'a> FullCollector<'a> {
         });
     }
 
-    fn update_references(&mut self) {
-        let meta_space_start = self.vm.meta_space_start();
-
-        for page in self.old_protected.pages() {
-            walk_region(self.vm, page.object_area(), |object, _addr, _size| {
-                object.visit_reference_fields(meta_space_start, |field| {
-                    self.forward_reference(field);
-                });
-            });
-        }
-
-        iterate_strong_roots(self.vm, self.threads, |slot| {
-            self.forward_reference(slot);
-        });
-
-        iterate_weak_roots(self.vm, |object_address| {
-            self.forward_object(object_address).or(Some(object_address))
-        });
-
-        self.large_space.iterate_pages(|page| {
-            let object = page.object_address().to_obj();
-
-            object.visit_reference_fields(meta_space_start, |field| {
-                self.forward_reference(field);
-            });
-        });
-    }
-
     fn sweep(&mut self) {
-        self.old_protected.clear_freelist();
+        self.old.clear_freelist();
         let mut freed_page = false;
 
-        for page in self.old_protected.pages() {
-            let (live, free_regions) = self.sweep_page(page);
-
-            if live == 0 {
-                self.old_protected.free_page(self.vm, page);
+        for page in self.old.pages() {
+            if sweep_page(self.vm, page) {
                 freed_page = true;
-            } else {
-                for free_region in free_regions {
-                    fill_region(self.vm, free_region.start, free_region.end);
-
-                    self.old_protected.add_to_freelist(
-                        self.vm,
-                        free_region.start,
-                        free_region.size(),
-                    );
-                }
             }
         }
-
-        self.large_space
-            .remove_pages(&self.swiper.heap, false, |page| {
-                let object = page.object_address().to_obj();
-
-                if object.header().is_marked() {
-                    // unmark object for next collection
-                    object.header().clear_mark();
-                    object.header().clear_remembered();
-
-                    // keep object
-                    false
-                } else {
-                    freed_page = true;
-
-                    // Drop  unmarked large object.
-                    true
-                }
-            });
 
         if freed_page {
             self.swiper.heap.merge_free_regions();
         }
-    }
 
-    fn sweep_page(&mut self, page: RegularPage) -> (usize, Vec<Region>) {
-        let region = page.object_area();
-        let mut scan = region.start;
-        let mut free_start = region.start;
-        let mut live = 0;
-        let mut free_regions = Vec::new();
+        self.large_space.remove_pages(&self.swiper.heap, |page| {
+            let object = page.object_address().to_obj();
 
-        while scan < region.end {
-            let object = scan.to_obj();
+            if object.header().is_marked() {
+                // unmark object for next collection
+                object.header().clear_mark();
+                object.header().clear_remembered();
 
-            if object.is_filler(self.vm) {
-                scan = scan.offset(object.size(self.metaspace_start));
+                // keep object
+                false
             } else {
-                let object_size = object.size(self.metaspace_start);
-                let object_end = scan.offset(object_size);
-
-                if object.header().is_marked() {
-                    self.handle_free_region(&mut free_regions, free_start, scan);
-                    object.header().clear_mark();
-                    object.header().clear_remembered();
-                    free_start = object_end;
-                    live += object_size;
-                }
-
-                scan = object_end
-            }
-        }
-
-        self.handle_free_region(&mut free_regions, free_start, scan);
-        assert_eq!(scan, region.end);
-
-        (live, free_regions)
-    }
-
-    fn handle_free_region(&mut self, free_regions: &mut Vec<Region>, start: Address, end: Address) {
-        assert!(start <= end);
-
-        if start == end {
-            return;
-        }
-
-        free_regions.push(Region::new(start, end));
-    }
-
-    fn evacuate(&mut self) {
-        for page in self.young.to_pages() {
-            self.evacuate_page(page);
-        }
-    }
-
-    fn evacuate_page(&mut self, page: RegularPage) {
-        walk_region(self.vm, page.object_area(), |object, _address, size| {
-            if !object.header().is_marked() {
-                return;
-            }
-
-            if let Some(new_region) = self.old_protected.allocate(self.vm, true, size, size) {
-                let new_address = new_region.start();
-
-                object.copy_to(new_address, size);
-                object.header().install_fwdptr(new_address);
-
-                // Clear metadata word.
-                let new_obj = new_address.to_obj();
-                new_obj.header().clear_mark();
-                new_obj.header().clear_remembered();
-            } else {
-                stdlib::trap(Trap::OOM.int());
+                // Drop  unmarked large object.
+                true
             }
         });
     }
+}
 
-    fn forward_reference(&mut self, slot: Slot) {
-        let object_address = slot.get();
+fn sweep_page(vm: &VM, page: RegularPage) -> bool {
+    let old = &get_swiper(vm).old;
+    let (live, free_regions) = sweep_page_for_free_memory(vm, page);
 
-        if object_address.is_null() {
-            return;
-        }
-
-        if let Some(forwarded) = self.forward_object(object_address) {
-            slot.set(forwarded);
-        }
+    if live == 0 {
+        old.free_page(vm, page);
+        true
+    } else {
+        old.add_to_free_list(vm, free_regions);
+        false
     }
+}
 
-    fn forward_object(&mut self, object_address: Address) -> Option<Address> {
-        let object = object_address.to_obj();
-        let vtblptr = object
-            .header()
-            .vtblptr_or_fwdptr(self.vm.meta_space_start());
+fn sweep_page_for_free_memory(vm: &VM, page: RegularPage) -> (usize, Vec<Region>) {
+    let region = page.object_area();
+    let mut scan = region.start;
+    let mut free_start = region.start;
+    let mut live = 0;
+    let mut free_regions = Vec::new();
+    let metaspace_start = vm.meta_space_start();
 
-        if let VtblptrWordKind::Fwdptr(address) = vtblptr {
-            Some(address)
+    while scan < region.end {
+        let object = scan.to_obj();
+
+        if object.is_filler(vm) {
+            scan = scan.offset(object.size(metaspace_start));
         } else {
-            None
+            let object_size = object.size(metaspace_start);
+            let object_end = scan.offset(object_size);
+
+            if object.header().is_marked() {
+                handle_free_region(&mut free_regions, free_start, scan);
+                object.header().clear_mark();
+                object.header().clear_remembered();
+                free_start = object_end;
+                live += object_size;
+            }
+
+            scan = object_end
         }
     }
 
-    fn walk_old_and_young<F>(&mut self, mut fct: F)
-    where
-        F: FnMut(&mut FullCollector, &Obj, Address, usize),
-    {
-        for page in self.old_protected.pages() {
-            walk_region(self.vm, page.object_area(), |obj, addr, size| {
-                fct(self, obj, addr, size);
-            });
-        }
+    handle_free_region(&mut free_regions, free_start, scan);
+    assert_eq!(scan, region.end);
 
-        for page in self.young.to_pages() {
-            walk_region(self.vm, page.object_area(), |obj, addr, size| {
-                fct(self, obj, addr, size);
-            });
-        }
+    (live, free_regions)
+}
+
+fn handle_free_region(free_regions: &mut Vec<Region>, start: Address, end: Address) {
+    assert!(start <= end);
+
+    if start == end {
+        return;
     }
+
+    free_regions.push(Region::new(start, end));
 }
 
 pub fn marking(vm: &VM, rootset: &[Slot]) {
@@ -356,13 +232,8 @@ pub fn marking(vm: &VM, rootset: &[Slot]) {
     }
 }
 
-pub fn verify_marking(
-    vm: &VM,
-    young: &YoungGen,
-    old_protected: &OldGenProtected,
-    large: &LargeSpace,
-) {
-    for page in old_protected.pages() {
+pub fn verify_marking(vm: &VM, young: &YoungGen, old: &OldGen, large: &LargeSpace) {
+    for page in old.pages() {
         verify_marking_region(vm, page.object_area());
     }
 

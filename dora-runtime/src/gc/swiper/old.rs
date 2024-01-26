@@ -1,4 +1,4 @@
-use parking_lot::{Mutex, MutexGuard};
+use parking_lot::Mutex;
 
 use crate::gc::fill_region;
 use crate::gc::freelist::FreeList;
@@ -6,6 +6,8 @@ use crate::gc::swiper::controller::SharedHeapConfig;
 use crate::gc::swiper::{get_swiper, RegularPage};
 use crate::gc::{Address, GenerationAllocator, Region};
 use crate::vm::VM;
+
+use super::young::YoungGen;
 
 pub struct OldGen {
     protected: Mutex<OldGenProtected>,
@@ -24,8 +26,32 @@ impl OldGen {
         old
     }
 
-    pub fn protected(&self) -> MutexGuard<OldGenProtected> {
-        self.protected.lock()
+    pub fn pages(&self) -> Vec<RegularPage> {
+        self.protected.lock().pages()
+    }
+
+    pub fn clear_freelist(&self) {
+        self.protected.lock().clear_freelist();
+    }
+
+    pub fn free_page(&self, vm: &VM, page: RegularPage) {
+        self.protected.lock().free_page(vm, page);
+    }
+
+    pub fn add_to_free_list(&self, vm: &VM, free_regions: Vec<Region>) {
+        let mut protected = self.protected.lock();
+
+        for free_region in free_regions {
+            fill_region(vm, free_region.start, free_region.end);
+            protected.add_to_freelist(vm, free_region.start, free_region.size());
+        }
+    }
+
+    pub fn promote_pages(&self, vm: &VM, young: &YoungGen) {
+        let mut protected = self.protected.lock();
+        for page in young.take_over_to_pages() {
+            protected.promote_page(vm, page);
+        }
     }
 }
 
@@ -40,7 +66,7 @@ impl GenerationAllocator for OldGen {
     }
 }
 
-pub struct OldGenProtected {
+struct OldGenProtected {
     top: Address,
     limit: Address,
     pages: Vec<RegularPage>,
@@ -57,26 +83,26 @@ impl OldGenProtected {
         }
     }
 
-    pub fn pages(&self) -> Vec<RegularPage> {
+    fn pages(&self) -> Vec<RegularPage> {
         self.pages.clone()
     }
 
-    pub fn clear_freelist(&mut self) {
+    fn clear_freelist(&mut self) {
         self.top = self.limit;
         self.freelist.clear();
     }
 
-    pub fn add_to_freelist(&mut self, vm: &VM, start: Address, size: usize) {
+    fn add_to_freelist(&mut self, vm: &VM, start: Address, size: usize) {
         self.freelist.add(vm, start, size);
     }
 
-    pub fn promote_page(&mut self, vm: &VM, page: RegularPage) {
+    fn promote_page(&mut self, vm: &VM, page: RegularPage) {
         page.promote();
         self.pages.push(page);
         get_swiper(vm).heap.promote_page(page);
     }
 
-    pub fn allocate(
+    fn allocate(
         &mut self,
         vm: &VM,
         in_gc: bool,
@@ -122,7 +148,7 @@ impl OldGenProtected {
         }
     }
 
-    pub fn free_page(&mut self, vm: &VM, page: RegularPage) {
+    fn free_page(&mut self, vm: &VM, page: RegularPage) {
         let idx = self
             .pages
             .iter()

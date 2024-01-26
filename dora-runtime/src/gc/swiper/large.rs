@@ -36,12 +36,12 @@ impl LargeSpace {
         space.visit_pages(f);
     }
 
-    pub fn remove_pages<F>(&self, heap: &Heap, merge_if_necessary: bool, f: F)
+    pub fn remove_pages<F>(&self, heap: &Heap, f: F)
     where
         F: FnMut(LargePage) -> bool,
     {
         let mut space = self.space.lock();
-        space.remove_pages(heap, merge_if_necessary, f);
+        space.remove_pages(heap, f);
     }
 }
 
@@ -74,7 +74,7 @@ impl LargeSpaceProtected {
         }
     }
 
-    fn remove_pages<F>(&mut self, heap: &Heap, merge_if_necessary: bool, mut f: F)
+    fn remove_pages<F>(&mut self, heap: &Heap, mut f: F)
     where
         F: FnMut(LargePage) -> bool,
     {
@@ -112,7 +112,7 @@ impl LargeSpaceProtected {
             self.head = None;
         }
 
-        if freed && merge_if_necessary {
+        if freed {
             heap.merge_free_regions();
         }
     }

@@ -243,24 +243,6 @@ impl HeapController {
         AllNumbers(self.full_phases.iter().map(|x| x.sweep).collect())
     }
 
-    pub fn full_update_refs(&self) -> Numbers {
-        let values: Vec<_> = self.full_phases.iter().map(|x| x.update_refs).collect();
-        calculate_numbers(&values)
-    }
-
-    pub fn full_update_refs_all(&self) -> AllNumbers {
-        AllNumbers(self.full_phases.iter().map(|x| x.update_refs).collect())
-    }
-
-    pub fn full_relocate(&self) -> Numbers {
-        let values: Vec<_> = self.full_phases.iter().map(|x| x.evacuate).collect();
-        calculate_numbers(&values)
-    }
-
-    pub fn full_relocate_all(&self) -> AllNumbers {
-        AllNumbers(self.full_phases.iter().map(|x| x.evacuate).collect())
-    }
-
     pub fn full_total(&self) -> Numbers {
         let values: Vec<_> = self.full_phases.iter().map(|x| x.total).collect();
         calculate_numbers(&values)
@@ -366,9 +348,6 @@ pub type SharedHeapConfig = Arc<Mutex<HeapController>>;
 pub struct FullCollectorPhases {
     pub marking: f32,
     pub sweep: f32,
-    pub evacuate: f32,
-    pub update_refs: f32,
-    pub reset_cards: f32,
     pub total: f32,
 }
 
@@ -377,9 +356,6 @@ impl FullCollectorPhases {
         FullCollectorPhases {
             marking: 0f32,
             sweep: 0f32,
-            update_refs: 0f32,
-            evacuate: 0f32,
-            reset_cards: 0f32,
             total: 0f32,
         }
     }

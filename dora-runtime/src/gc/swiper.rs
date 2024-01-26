@@ -229,7 +229,6 @@ impl Swiper {
                 &self.young,
                 &self.old,
                 &self.large,
-                &self.readonly,
                 rootset,
                 threads,
                 reason,
@@ -375,8 +374,6 @@ impl Collector for Swiper {
 
         println!("\tMarking:\t{}", config.full_marking());
         println!("\tSweep:\t\t{}", config.full_sweep());
-        println!("\tUpdate Refs:\t{}", config.full_update_refs());
-        println!("\tEvacuate:\t{}", config.full_relocate());
         println!("\tTotal:\t\t{}", config.full_total());
 
         println!("");
