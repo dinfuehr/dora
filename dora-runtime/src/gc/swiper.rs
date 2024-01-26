@@ -157,15 +157,7 @@ impl Swiper {
                 }
             };
 
-            controller::stop(
-                vm,
-                &self.config,
-                kind,
-                &self.heap,
-                &self.young,
-                &vm.flags,
-                reason,
-            );
+            controller::stop(vm, &self.config, kind, &self.heap, &self.young, &vm.flags);
 
             kind
         })

@@ -7,7 +7,7 @@ use std::time::Instant;
 
 use crate::gc::swiper::young::YoungGen;
 use crate::gc::swiper::{align_page_down, align_page_up, CollectionKind, Heap, PAGE_SIZE};
-use crate::gc::{formatted_size, AllNumbers, GcReason, M};
+use crate::gc::{formatted_size, AllNumbers, M};
 use crate::stdlib;
 use crate::vm::{Flags, Trap, VM};
 
@@ -67,7 +67,6 @@ pub fn stop(
     heap: &Heap,
     young: &YoungGen,
     args: &Flags,
-    reason: GcReason,
 ) {
     let mut config = config.lock();
 
@@ -127,17 +126,22 @@ pub fn stop(
     }
 
     if args.gc_verbose {
-        print(&*config, kind, reason, gc_duration_ms);
+        print(vm, &*config, kind, gc_duration_ms);
     }
 }
 
-fn print(config: &HeapController, kind: CollectionKind, reason: GcReason, gc_duration: f32) {
+fn print(vm: &VM, config: &HeapController, kind: CollectionKind, gc_duration: f32) {
+    let timestamp = config
+        .gc_start
+        .expect("missing timestamp")
+        .duration_since(vm.startup_time());
+
     match kind {
         CollectionKind::Minor => {
             println!(
-                "GC: {} ({}) {} -> {}; {:.2} ms; {} promoted; {} copied; {} garbage",
-                kind,
-                reason,
+                "[{}.{:03}] Minor GC: {} -> {}; {:.2} ms; {} promoted; {} copied; {} garbage",
+                timestamp.as_secs(),
+                timestamp.subsec_millis(),
                 formatted_size(config.start_memory_size),
                 formatted_size(config.end_memory_size),
                 gc_duration,
@@ -149,9 +153,9 @@ fn print(config: &HeapController, kind: CollectionKind, reason: GcReason, gc_dur
 
         CollectionKind::Full => {
             println!(
-                "GC: {} ({}) {} -> {}; {:.2} ms",
-                kind,
-                reason,
+                "[{}.{:03}] Full GC: {} -> {}; {:.2} ms",
+                timestamp.as_secs(),
+                timestamp.subsec_millis(),
                 formatted_size(config.start_memory_size),
                 formatted_size(config.end_memory_size),
                 gc_duration,

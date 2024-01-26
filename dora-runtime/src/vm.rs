@@ -4,7 +4,8 @@ use std::collections::HashMap;
 use std::mem;
 use std::ptr;
 use std::sync::atomic::{AtomicU8, Ordering};
-use std::sync::Arc;
+use std::sync::{Arc, OnceLock};
+use std::time::Instant;
 
 use crate::compiler;
 use crate::gc::{Address, Gc};
@@ -145,6 +146,7 @@ pub struct VM {
     pub threads: Threads,
     pub wait_lists: WaitLists,
     pub state: AtomicU8,
+    pub startup_time: OnceLock<Instant>,
 }
 
 impl VM {
@@ -172,6 +174,7 @@ impl VM {
             threads: Threads::new(),
             wait_lists: WaitLists::new(),
             state: AtomicU8::new(VmState::Running.into()),
+            startup_time: OnceLock::new(),
         });
 
         vm.setup();
@@ -189,9 +192,17 @@ impl VM {
         VmState::try_from(old_state).expect("invalid state")
     }
 
+    pub fn startup_time(&self) -> Instant {
+        self.startup_time.get().expect("time missing").clone()
+    }
+
     fn setup(&mut self) {
         // ensure this data is only created during execution
         assert!(self.compilation_database.is_empty());
+
+        self.startup_time
+            .set(Instant::now())
+            .expect("already initialized");
 
         initialize::setup(self);
 
