@@ -503,10 +503,6 @@ impl fmt::Display for GcReason {
 }
 
 pub fn fill_region(vm: &VM, start: Address, end: Address) {
-    fill_region_with(vm, start, end, true);
-}
-
-pub fn fill_region_with(vm: &VM, start: Address, end: Address, clear: bool) {
     let size = end.offset_from(start);
 
     if size == mem::ptr_width_usize() {
@@ -525,15 +521,6 @@ pub fn fill_region_with(vm: &VM, start: Address, end: Address, clear: bool) {
             *start.to_mut_ptr::<usize>() =
                 Header::compute_header_word(vtable, vm.meta_space_start(), false, false);
             *start.add_ptr(1).to_mut_ptr::<usize>() = length;
-
-            if clear && cfg!(debug_assertions) {
-                for idx in 0..length {
-                    *start
-                        .offset(Header::size() as usize)
-                        .add_ptr(idx + 1)
-                        .to_mut_ptr::<usize>() = 0xBADDCAFE;
-                }
-            }
         }
     }
 }

@@ -5,15 +5,11 @@ use std::fmt;
 use std::sync::Arc;
 use std::time::Instant;
 
-use crate::gc::swiper::large::LargeSpace;
 use crate::gc::swiper::young::YoungGen;
-use crate::gc::swiper::{align_page_down, align_page_up, CollectionKind, PAGE_SIZE};
+use crate::gc::swiper::{align_page_down, align_page_up, CollectionKind, Heap, PAGE_SIZE};
 use crate::gc::{formatted_size, AllNumbers, GcReason, M};
 use crate::stdlib;
 use crate::vm::{Flags, Trap, VM};
-
-use super::heap::MixedHeap;
-use super::old::OldGen;
 
 pub fn init(config: &mut HeapController, args: &Flags) {
     assert!(config.min_heap_size <= config.max_heap_size);
@@ -30,7 +26,7 @@ pub fn init(config: &mut HeapController, args: &Flags) {
     let young_size = max(young_size, 2 * PAGE_SIZE);
     let young_size = align_page_up(young_size / 2) * 2;
 
-    config.semi_size = young_size;
+    config.young_size = young_size;
 
     let max_old_limit = config.max_heap_size - young_size;
     let min_old_limit = if config.min_heap_size > young_size {
@@ -47,12 +43,8 @@ pub fn init(config: &mut HeapController, args: &Flags) {
     config.old_limit = old_limit;
 }
 
-pub fn choose_collection_kind(
-    _config: &SharedHeapConfig,
-    _args: &Flags,
-    young: &YoungGen,
-) -> CollectionKind {
-    let young_size = young.committed_size();
+pub fn choose_collection_kind(heap: &Heap) -> CollectionKind {
+    let (young_size, _, _) = heap.committed_sizes();
 
     return if young_size <= M {
         CollectionKind::Full
@@ -61,27 +53,19 @@ pub fn choose_collection_kind(
     };
 }
 
-pub fn start(
-    config: &SharedHeapConfig,
-    mixed_heap: &MixedHeap,
-    young: &YoungGen,
-    old: &OldGen,
-    large: &LargeSpace,
-) {
+pub fn start(config: &SharedHeapConfig, heap: &Heap) {
     let mut config = config.lock();
 
     config.gc_start = Some(Instant::now());
-    config.start_memory_size = memory_size(mixed_heap, young, old, large);
+    config.start_memory_size = heap.committed_size();
 }
 
 pub fn stop(
     vm: &VM,
     config: &SharedHeapConfig,
     kind: CollectionKind,
-    mixed_heap: &MixedHeap,
+    heap: &Heap,
     young: &YoungGen,
-    old: &OldGen,
-    large: &LargeSpace,
     args: &Flags,
     reason: GcReason,
 ) {
@@ -90,7 +74,8 @@ pub fn stop(
     let gc_duration = config.gc_start.expect("not started").elapsed();
     let gc_duration_ms = gc_duration.as_secs_f32() * 1000.0f32;
 
-    let old_size = old.committed_size() + mixed_heap.committed_size();
+    let (_young_size, old_space_size, large_space_size) = heap.committed_sizes();
+    let old_size = old_space_size + large_space_size;
     config.old_size = old_size;
 
     let max_young_size = if let Some(young_size) = args.young_size() {
@@ -106,6 +91,7 @@ pub fn stop(
     let target_young_size = rest / 2;
     let target_young_size = min(target_young_size, max_young_size);
     let target_young_size = max(target_young_size, 2 * min_semi_size);
+    let target_young_size = max(target_young_size, 2 * PAGE_SIZE);
     let young_size = align_page_down(target_young_size / 2) * 2;
 
     if old_size + young_size > config.max_heap_size {
@@ -116,7 +102,7 @@ pub fn stop(
     config.old_limit = config.max_heap_size - young_size;
     assert!(config.old_limit >= old_size);
 
-    config.end_memory_size = memory_size(mixed_heap, young, old, large);
+    config.end_memory_size = heap.committed_size();
 
     assert!(young_size + config.old_limit <= config.max_heap_size);
 
@@ -174,20 +160,11 @@ fn print(config: &HeapController, kind: CollectionKind, reason: GcReason, gc_dur
     }
 }
 
-fn memory_size(
-    mixed_heap: &MixedHeap,
-    young: &YoungGen,
-    old: &OldGen,
-    _large: &LargeSpace,
-) -> usize {
-    young.allocated_size() + old.committed_size() + mixed_heap.committed_size()
-}
-
 pub struct HeapController {
     min_heap_size: usize,
     max_heap_size: usize,
 
-    pub semi_size: usize,
+    pub young_size: usize,
     pub old_size: usize,
     pub old_limit: usize,
 
@@ -217,7 +194,7 @@ impl HeapController {
             min_heap_size,
             max_heap_size,
 
-            semi_size: 0,
+            young_size: 0,
             old_size: 0,
             old_limit: 0,
 

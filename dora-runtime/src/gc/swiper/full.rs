@@ -7,7 +7,7 @@ use crate::gc::swiper::controller::FullCollectorPhases;
 use crate::gc::swiper::old::OldGenProtected;
 use crate::gc::swiper::{walk_region, ReadOnlySpace, Swiper};
 use crate::gc::swiper::{BasePage, LargeSpace, OldGen, RegularPage, YoungGen};
-use crate::gc::{fill_region_with, iterate_strong_roots, iterate_weak_roots, Slot};
+use crate::gc::{fill_region, iterate_strong_roots, iterate_weak_roots, Slot};
 use crate::gc::{Address, GcReason, Region};
 use crate::object::{Obj, VtblptrWordKind};
 use crate::stdlib;
@@ -16,7 +16,6 @@ use crate::vm::{Trap, VM};
 
 pub struct FullCollector<'a> {
     vm: &'a VM,
-    heap: Region,
     young: &'a YoungGen,
     old: &'a OldGen,
     old_protected: MutexGuard<'a, OldGenProtected>,
@@ -41,7 +40,6 @@ impl<'a> FullCollector<'a> {
     pub fn new(
         vm: &'a VM,
         swiper: &'a Swiper,
-        heap: Region,
         young: &'a YoungGen,
         old: &'a OldGen,
         large_space: &'a LargeSpace,
@@ -55,7 +53,6 @@ impl<'a> FullCollector<'a> {
         FullCollector {
             vm,
             swiper,
-            heap,
             young,
             old,
             old_protected: old.protected(),
@@ -85,26 +82,30 @@ impl<'a> FullCollector<'a> {
         });
 
         if self.vm.flags.gc_verify {
-            verify_marking(
-                self.vm,
-                self.young,
-                &*self.old_protected,
-                self.large_space,
-                self.heap,
-            );
+            verify_marking(self.vm, self.young, &*self.old_protected, self.large_space);
+        }
+
+        let promote_young_pages = true;
+
+        if promote_young_pages {
+            for page in self.young.take_over_to_pages() {
+                self.old_protected.promote_page(self.vm, page);
+            }
         }
 
         self.phases.sweep = measure(self.vm, || {
             self.sweep();
         });
 
-        self.phases.evacuate = measure(self.vm, || {
-            self.evacuate();
-        });
+        if !promote_young_pages {
+            self.phases.evacuate = measure(self.vm, || {
+                self.evacuate();
+            });
 
-        self.phases.update_refs = measure(self.vm, || {
-            self.update_references();
-        });
+            self.phases.update_refs = measure(self.vm, || {
+                self.update_references();
+            });
+        }
 
         self.young.reset_after_full_gc(self.vm);
 
@@ -165,7 +166,7 @@ impl<'a> FullCollector<'a> {
                 freed_page = true;
             } else {
                 for free_region in free_regions {
-                    fill_region_with(self.vm, free_region.start, free_region.end, true);
+                    fill_region(self.vm, free_region.start, free_region.end);
 
                     self.old_protected.add_to_freelist(
                         self.vm,
@@ -177,7 +178,7 @@ impl<'a> FullCollector<'a> {
         }
 
         self.large_space
-            .remove_pages(&self.swiper.mixed_heap, false, |page| {
+            .remove_pages(&self.swiper.heap, false, |page| {
                 let object = page.object_address().to_obj();
 
                 if object.header().is_marked() {
@@ -196,7 +197,7 @@ impl<'a> FullCollector<'a> {
             });
 
         if freed_page {
-            self.swiper.mixed_heap.merge_free_regions();
+            self.swiper.heap.merge_free_regions();
         }
     }
 
@@ -280,23 +281,18 @@ impl<'a> FullCollector<'a> {
         }
 
         if let Some(forwarded) = self.forward_object(object_address) {
-            debug_assert!(self.heap.contains(forwarded));
             slot.set(forwarded);
         }
     }
 
     fn forward_object(&mut self, object_address: Address) -> Option<Address> {
-        if self.heap.contains(object_address) {
-            let object = object_address.to_obj();
-            let vtblptr = object
-                .header()
-                .vtblptr_or_fwdptr(self.vm.meta_space_start());
+        let object = object_address.to_obj();
+        let vtblptr = object
+            .header()
+            .vtblptr_or_fwdptr(self.vm.meta_space_start());
 
-            if let VtblptrWordKind::Fwdptr(address) = vtblptr {
-                Some(address)
-            } else {
-                None
-            }
+        if let VtblptrWordKind::Fwdptr(address) = vtblptr {
+            Some(address)
         } else {
             None
         }
@@ -365,37 +361,38 @@ pub fn verify_marking(
     young: &YoungGen,
     old_protected: &OldGenProtected,
     large: &LargeSpace,
-    heap: Region,
 ) {
     for page in old_protected.pages() {
-        verify_marking_region(vm, page.object_area(), heap);
+        verify_marking_region(vm, page.object_area());
     }
 
     for page in young.to_pages() {
-        verify_marking_region(vm, page.object_area(), heap);
+        verify_marking_region(vm, page.object_area());
     }
 
     large.iterate_pages(|page| {
-        verify_marking_object(vm, page.object_address(), heap);
+        verify_marking_object(vm, page.object_address());
     });
 }
 
-fn verify_marking_region(vm: &VM, region: Region, heap: Region) {
+fn verify_marking_region(vm: &VM, region: Region) {
     walk_region(vm, region, |_obj, obj_address, _size| {
-        verify_marking_object(vm, obj_address, heap);
+        verify_marking_object(vm, obj_address);
     });
 }
 
-fn verify_marking_object(vm: &VM, obj_address: Address, heap: Region) {
+fn verify_marking_object(vm: &VM, obj_address: Address) {
     let obj = obj_address.to_obj();
 
     if obj.header().is_marked() {
         obj.visit_reference_fields(vm.meta_space_start(), |field| {
             let object_addr = field.get();
 
-            if heap.contains(object_addr) {
-                assert!(object_addr.to_obj().header().is_marked());
+            if object_addr.is_null() {
+                return;
             }
+
+            assert!(object_addr.to_obj().header().is_marked());
         });
     }
 }

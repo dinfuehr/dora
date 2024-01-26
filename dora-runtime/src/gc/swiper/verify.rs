@@ -8,7 +8,7 @@ use crate::gc::swiper::old::{OldGen, OldGenProtected};
 use crate::gc::swiper::young::YoungGen;
 use crate::gc::swiper::BasePage;
 use crate::gc::swiper::{LargePage, ReadOnlySpace, RegularPage, Swiper};
-use crate::gc::{Address, Region};
+use crate::gc::Address;
 
 use crate::vm::VM;
 
@@ -79,8 +79,6 @@ pub struct Verifier<'a> {
     meta_space_start: Address,
     meta_space_size: usize,
 
-    heap: Region,
-
     phase: VerifierPhase,
 }
 
@@ -88,7 +86,6 @@ impl<'a> Verifier<'a> {
     pub fn new(
         vm: &'a VM,
         swiper: &'a Swiper,
-        heap: Region,
         young: &'a YoungGen,
         old: &'a OldGen,
         rootset: &'a [Slot],
@@ -110,8 +107,6 @@ impl<'a> Verifier<'a> {
             minimum_remset: Vec::new(),
             meta_space_start: vm.meta_space_start(),
             meta_space_size: vm.meta_space_size(),
-
-            heap,
 
             phase,
         }

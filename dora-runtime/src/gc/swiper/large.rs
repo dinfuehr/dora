@@ -4,7 +4,7 @@ use crate::gc::swiper::controller::SharedHeapConfig;
 use crate::gc::swiper::LargePage;
 use crate::gc::Address;
 
-use super::heap::MixedHeap;
+use super::heap::Heap;
 
 pub struct LargeSpace {
     space: Mutex<LargeSpaceProtected>,
@@ -19,8 +19,8 @@ impl LargeSpace {
         }
     }
 
-    pub fn alloc(&self, mixed_heap: &MixedHeap, object_size: usize) -> Option<Address> {
-        if let Some(page) = mixed_heap.alloc_large_page(object_size) {
+    pub fn alloc(&self, heap: &Heap, object_size: usize) -> Option<Address> {
+        if let Some(page) = heap.alloc_large_page(object_size) {
             self.space.lock().append_page(page);
             Some(page.object_address())
         } else {
@@ -36,12 +36,12 @@ impl LargeSpace {
         space.visit_pages(f);
     }
 
-    pub fn remove_pages<F>(&self, mixed_heap: &MixedHeap, merge_if_necessary: bool, f: F)
+    pub fn remove_pages<F>(&self, heap: &Heap, merge_if_necessary: bool, f: F)
     where
         F: FnMut(LargePage) -> bool,
     {
         let mut space = self.space.lock();
-        space.remove_pages(mixed_heap, merge_if_necessary, f);
+        space.remove_pages(heap, merge_if_necessary, f);
     }
 }
 
@@ -74,7 +74,7 @@ impl LargeSpaceProtected {
         }
     }
 
-    fn remove_pages<F>(&mut self, mixed_heap: &MixedHeap, merge_if_necessary: bool, mut f: F)
+    fn remove_pages<F>(&mut self, heap: &Heap, merge_if_necessary: bool, mut f: F)
     where
         F: FnMut(LargePage) -> bool,
     {
@@ -89,7 +89,7 @@ impl LargeSpaceProtected {
 
             if remove {
                 freed = true;
-                mixed_heap.free_large_page(page);
+                heap.free_large_page(page);
             } else {
                 if let Some(prev) = prev {
                     prev.set_next_page(Some(page));
@@ -113,7 +113,7 @@ impl LargeSpaceProtected {
         }
 
         if freed && merge_if_necessary {
-            mixed_heap.merge_free_regions();
+            heap.merge_free_regions();
         }
     }
 }

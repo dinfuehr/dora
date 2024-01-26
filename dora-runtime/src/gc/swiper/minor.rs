@@ -10,10 +10,7 @@ use crate::gc::swiper::old::OldGen;
 use crate::gc::swiper::young::YoungGen;
 use crate::gc::swiper::{BasePage, Swiper, LARGE_OBJECT_SIZE};
 use crate::gc::tlab::{MAX_TLAB_OBJECT_SIZE, MAX_TLAB_SIZE, MIN_TLAB_SIZE};
-use crate::gc::{
-    fill_region, fill_region_with, iterate_weak_roots, Address, GcReason, GenerationAllocator,
-    Region,
-};
+use crate::gc::{fill_region, iterate_weak_roots, Address, GcReason, GenerationAllocator};
 use crate::object::{ForwardResult, Obj, VtblptrWordKind};
 use crate::threads::DoraThread;
 use crate::vm::VM;
@@ -34,7 +31,6 @@ pub struct MinorCollector<'a> {
     rootset: &'a [Slot],
     _threads: &'a [Arc<DoraThread>],
     _reason: GcReason,
-    heap: Region,
 
     // young_alloc: Option<YoungAlloc>,
     promoted_size: usize,
@@ -78,7 +74,6 @@ impl<'a> MinorCollector<'a> {
             copied_size: 0,
 
             _reason: reason,
-            heap: swiper.heap,
 
             _min_heap_size: min_heap_size,
             _max_heap_size: max_heap_size,
@@ -126,7 +121,6 @@ impl<'a> MinorCollector<'a> {
         let terminator = Terminator::new(self.number_workers);
         let vm = self.vm;
 
-        let heap = self.heap;
         let young = self.young;
         let old = self.old;
         let rootset = self.rootset;
@@ -172,7 +166,6 @@ impl<'a> MinorCollector<'a> {
                             terminator,
 
                             vm,
-                            heap,
                             young,
                             old,
                             rootset,
@@ -224,20 +217,16 @@ impl<'a> MinorCollector<'a> {
 
     fn iterate_weak_refs(&mut self) {
         iterate_weak_roots(self.vm, |object_address| {
-            if self.heap.contains(object_address) {
-                let page = BasePage::from_address(object_address);
-                if page.is_young() {
-                    let obj = object_address.to_obj();
+            let page = BasePage::from_address(object_address);
+            if page.is_young() {
+                let obj = object_address.to_obj();
 
-                    if let VtblptrWordKind::Fwdptr(fwdptr) =
-                        obj.header().vtblptr_or_fwdptr(self.vm.meta_space_start())
-                    {
-                        Some(fwdptr)
-                    } else {
-                        None
-                    }
+                if let VtblptrWordKind::Fwdptr(fwdptr) =
+                    obj.header().vtblptr_or_fwdptr(self.vm.meta_space_start())
+                {
+                    Some(fwdptr)
                 } else {
-                    Some(object_address)
+                    None
                 }
             } else {
                 Some(object_address)
@@ -265,14 +254,14 @@ impl Lab {
     }
 
     fn make_iterable_young(&mut self, vm: &VM) {
-        fill_region_with(vm, self.top, self.limit, false);
+        fill_region(vm, self.top, self.limit);
 
         self.top = Address::null();
         self.limit = Address::null();
     }
 
     fn make_iterable_old(&mut self, vm: &VM) {
-        fill_region_with(vm, self.top, self.limit, false);
+        fill_region(vm, self.top, self.limit);
 
         self.top = Address::null();
         self.limit = Address::null();
@@ -313,7 +302,6 @@ struct CopyTask<'a> {
     terminator: &'a Terminator,
 
     vm: &'a VM,
-    heap: Region,
     young: &'a YoungGen,
     old: &'a OldGen,
     rootset: &'a [Slot],

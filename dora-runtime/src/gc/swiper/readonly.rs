@@ -1,7 +1,7 @@
 use parking_lot::Mutex;
 
 use crate::gc::swiper::{RegularPage, LARGE_OBJECT_SIZE};
-use crate::gc::{fill_region_with, is_page_aligned, Address, Region, PAGE_SIZE};
+use crate::gc::{fill_region, is_page_aligned, Address, Region, PAGE_SIZE};
 use crate::os::{self, MemoryPermission, Reservation};
 use crate::vm::VM;
 
@@ -78,7 +78,7 @@ impl ReadOnlySpaceProtected {
             let alloc_start = self.top;
             let alloc_end = alloc_start.offset(size);
             self.top = alloc_end;
-            fill_region_with(vm, self.top, self.current_limit, false);
+            fill_region(vm, self.top, self.current_limit);
             Some(alloc_start)
         } else {
             None
@@ -87,7 +87,7 @@ impl ReadOnlySpaceProtected {
 
     fn allocate_page(&mut self, vm: &VM) {
         if self.next_page < self.limit {
-            fill_region_with(vm, self.top, self.current_limit, false);
+            fill_region(vm, self.top, self.current_limit);
             let page_start = self.next_page;
             os::commit_at(page_start, PAGE_SIZE, MemoryPermission::ReadWrite);
             let page = RegularPage::setup(page_start, false, true);

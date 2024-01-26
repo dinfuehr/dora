@@ -8,7 +8,7 @@ use crate::gc::allocator::GenerationAllocator;
 use crate::gc::root::{determine_strong_roots, Slot};
 use crate::gc::swiper::controller::{HeapController, SharedHeapConfig};
 use crate::gc::swiper::full::FullCollector;
-use crate::gc::swiper::heap::MixedHeap;
+use crate::gc::swiper::heap::Heap;
 use crate::gc::swiper::large::LargeSpace;
 use crate::gc::swiper::minor::MinorCollector;
 use crate::gc::swiper::old::OldGen;
@@ -57,18 +57,16 @@ pub fn is_page_aligned(size: usize) -> bool {
     (size & (PAGE_SIZE - 1)) == 0
 }
 
+fn get_swiper(vm: &VM) -> &Swiper {
+    vm.gc.collector.to_swiper()
+}
+
 pub struct Swiper {
-    // contiguous memory for young/old generation and large space
-    heap: Region,
-
-    // contains heap and also card table and crossing map
-    reserved_area: Region,
-
     young: YoungGen,
     old: OldGen,
     large: LargeSpace,
     readonly: ReadOnlySpace,
-    mixed_heap: MixedHeap,
+    heap: Heap,
 
     remset: RwLock<Vec<Address>>,
 
@@ -92,36 +90,18 @@ impl Swiper {
         controller::init(&mut config, args);
 
         // Determine full reservation size.
-        let reserve_size = max_heap_size * 5;
+        let reserve_size = max_heap_size * 4;
 
         // Reserve all memory.
         let reservation = os::reserve_align(reserve_size, PAGE_SIZE, false);
-        let heap_start = reservation.start();
+        let heap_region = reservation.start().region_start(reserve_size);
 
-        // Heap is young, old generation & large space.
-        let heap_end = heap_start.offset(reserve_size);
-
-        // Reserved area contains everything.
-        let reserved_area = heap_start.region_start(reserve_size);
-
-        // Determine boundaries of young generation.
-        let young_start = heap_start;
-        let young_end = young_start.offset(max_heap_size);
-        let young = Region::new(young_start, young_end);
-
-        let mixed_heap_start = young_end;
-        let mixed_heap_end = heap_end;
-        let mixed_heap_region = Region::new(mixed_heap_start, mixed_heap_end);
-        assert_eq!(mixed_heap_region.size(), 4 * max_heap_size);
-        assert_eq!(mixed_heap_end, reserved_area.end());
-
-        let semi_size = config.semi_size;
         let config = Arc::new(Mutex::new(config));
 
-        let young = YoungGen::new(young, semi_size, args.gc_verify);
+        let young = YoungGen::new(args.gc_verify);
         let old = OldGen::new(config.clone());
         let large = LargeSpace::new(config.clone());
-        let mixed_heap = MixedHeap::new(mixed_heap_region, config.clone());
+        let heap = Heap::new(heap_region, config.clone());
 
         let nworkers = args.gc_workers();
 
@@ -130,15 +110,13 @@ impl Swiper {
         let readonly = ReadOnlySpace::new(args.readonly_size());
 
         Swiper {
-            heap: Region::new(heap_start, heap_end),
-            reserved_area,
             reservation,
 
             young,
             old,
             large,
             readonly,
-            mixed_heap,
+            heap,
 
             config,
             remset: RwLock::new(Vec::new()),
@@ -151,7 +129,7 @@ impl Swiper {
     }
 
     fn perform_collection_and_choose(&self, vm: &VM, reason: GcReason) -> CollectionKind {
-        let kind = controller::choose_collection_kind(&self.config, &vm.flags, &self.young);
+        let kind = controller::choose_collection_kind(&self.heap);
         self.perform_collection(vm, kind, reason)
     }
 
@@ -162,13 +140,7 @@ impl Swiper {
         reason: GcReason,
     ) -> CollectionKind {
         safepoint::stop_the_world(vm, |threads| {
-            controller::start(
-                &self.config,
-                &self.mixed_heap,
-                &self.young,
-                &self.old,
-                &self.large,
-            );
+            controller::start(&self.config, &self.heap);
 
             tlab::make_iterable_all(vm, threads);
             let rootset = determine_strong_roots(vm, threads);
@@ -189,10 +161,8 @@ impl Swiper {
                 vm,
                 &self.config,
                 kind,
-                &self.mixed_heap,
+                &self.heap,
                 &self.young,
-                &self.old,
-                &self.large,
                 &vm.flags,
                 reason,
             );
@@ -256,7 +226,6 @@ impl Swiper {
             let mut collector = FullCollector::new(
                 vm,
                 self,
-                self.heap.clone(),
                 &self.young,
                 &self.old,
                 &self.large,
@@ -283,7 +252,6 @@ impl Swiper {
             let mut verifier = Verifier::new(
                 vm,
                 self,
-                self.heap,
                 &self.young,
                 &self.old,
                 rootset,
@@ -309,14 +277,14 @@ impl Swiper {
     }
 
     fn alloc_large(&self, vm: &VM, size: usize) -> Address {
-        if let Some(address) = self.large.alloc(&self.mixed_heap, size) {
+        if let Some(address) = self.large.alloc(&self.heap, size) {
             return address;
         }
 
         self.perform_collection(vm, CollectionKind::Full, GcReason::AllocationFailure);
 
         self.large
-            .alloc(&self.mixed_heap, size)
+            .alloc(&self.heap, size)
             .unwrap_or(Address::null())
     }
 }
@@ -415,7 +383,8 @@ impl Collector for Swiper {
     }
 
     fn setup(&self, vm: &VM) {
-        self.young.setup(vm);
+        let semi_size = self.config.lock().young_size;
+        self.young.setup(vm, semi_size);
     }
 
     fn to_swiper(&self) -> &Swiper {
@@ -519,12 +488,6 @@ impl RegularPage {
         page
     }
 
-    pub fn from_address_unsafe(value: Address) -> RegularPage {
-        let page_start = value.to_usize() & !(PAGE_SIZE - 1);
-        let page = RegularPage(page_start.into());
-        page
-    }
-
     pub fn setup(address: Address, is_young: bool, is_readonly: bool) -> RegularPage {
         assert!(address.is_page_aligned());
 
@@ -536,6 +499,12 @@ impl RegularPage {
         }
 
         page
+    }
+
+    pub fn promote(&self) {
+        assert!(self.is_young());
+        self.base_page_header().remove_flag(YOUNG_BIT);
+        assert!(!self.is_young());
     }
 
     pub fn as_base_page(&self) -> BasePage {
@@ -767,7 +736,7 @@ pub extern "C" fn object_write_barrier_slow_path(object_address: Address) {
     debug_assert!(!BasePage::from_address(object_address).is_young());
     let obj = object_address.to_obj();
     obj.header().set_remembered();
-    let swiper = vm.gc.collector.to_swiper();
+    let swiper = get_swiper(vm);
     swiper.remset.write().push(object_address);
     assert!(obj.header().is_remembered());
 }
