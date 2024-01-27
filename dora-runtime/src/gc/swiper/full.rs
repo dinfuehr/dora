@@ -7,9 +7,7 @@ use crate::gc::swiper::{BasePage, LargeSpace, OldGen, RegularPage, YoungGen};
 use crate::gc::{iterate_weak_roots, Slot};
 use crate::gc::{Address, GcReason, Region};
 use crate::threads::DoraThread;
-use crate::vm::{get_vm, VM};
-
-use super::get_swiper;
+use crate::vm::VM;
 
 pub struct FullCollector<'a> {
     vm: &'a VM,
@@ -105,17 +103,7 @@ impl<'a> FullCollector<'a> {
     fn sweep(&mut self) {
         self.old.clear_freelist();
 
-        let workers = self.vm.flags.gc_workers();
-        self.swiper.sweeper.reset(self.old.pages(), workers);
-
-        for _ in 0..workers {
-            self.swiper.concurrent_threadpool.execute(move || {
-                let vm = get_vm();
-                let swiper = get_swiper(vm);
-                swiper.sweeper.sweep_task(vm);
-            });
-        }
-
+        self.swiper.sweeper.start(self.old.pages(), self.vm);
         self.swiper.sweeper.join();
 
         self.large_space.remove_pages(&self.swiper.heap, |page| {

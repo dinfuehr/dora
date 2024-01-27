@@ -4,7 +4,7 @@ use std::sync::atomic::{AtomicBool, AtomicUsize, Ordering};
 
 use crate::gc::swiper::{get_swiper, RegularPage};
 use crate::gc::{Address, Region};
-use crate::vm::VM;
+use crate::vm::{get_vm, VM};
 
 pub struct Sweeper {
     pages_to_sweep: RwLock<Vec<RegularPage>>,
@@ -29,7 +29,22 @@ impl Sweeper {
         self.in_progress.load(Ordering::SeqCst)
     }
 
-    pub fn reset(&self, pages: Vec<RegularPage>, workers: usize) {
+    pub fn start(&self, pages: Vec<RegularPage>, vm: &VM) {
+        let workers = vm.flags.gc_workers();
+        self.reset(pages, workers);
+
+        let swiper = get_swiper(vm);
+
+        for _ in 0..workers {
+            swiper.concurrent_threadpool.execute(move || {
+                let vm = get_vm();
+                let swiper = get_swiper(vm);
+                swiper.sweeper.sweep_task(vm);
+            });
+        }
+    }
+
+    fn reset(&self, pages: Vec<RegularPage>, workers: usize) {
         let mut pages_to_sweep = self.pages_to_sweep.try_write().expect("lock failed");
         *pages_to_sweep = pages;
         self.next_page_idx.store(0, Ordering::Relaxed);
@@ -42,7 +57,7 @@ impl Sweeper {
         self.decrement_workers();
     }
 
-    pub fn sweep_pages(&self, vm: &VM) {
+    fn sweep_pages(&self, vm: &VM) {
         let pages_to_sweep = self.pages_to_sweep.try_read().expect("lock failed");
 
         while let Some(&page) = pages_to_sweep.get(self.next_page_idx()) {
@@ -50,13 +65,14 @@ impl Sweeper {
         }
     }
 
-    pub fn decrement_workers(&self) {
+    fn decrement_workers(&self) {
         let mut running = self.running_workers.lock();
         assert!(*running > 0);
         *running -= 1;
 
         if *running == 0 {
             self.worker_joined.notify_all();
+            self.in_progress.store(false, Ordering::SeqCst);
         }
     }
 
@@ -66,8 +82,6 @@ impl Sweeper {
         while *running > 0 {
             self.worker_joined.wait(&mut running);
         }
-
-        self.in_progress.store(false, Ordering::SeqCst);
     }
 
     fn next_page_idx(&self) -> usize {
