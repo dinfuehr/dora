@@ -139,7 +139,7 @@ fn print(vm: &VM, config: &HeapController, kind: CollectionKind, gc_duration: f3
     match kind {
         CollectionKind::Minor => {
             println!(
-                "[{}.{:03}] Minor GC: {} -> {}; {:.2} ms; {} promoted; {} copied; {} garbage",
+                "[{}.{:03}] Minor GC: {} -> {}; {:.2} ms; {} promoted; {} copied",
                 timestamp.as_secs(),
                 timestamp.subsec_millis(),
                 formatted_size(config.start_memory_size),
@@ -147,7 +147,6 @@ fn print(vm: &VM, config: &HeapController, kind: CollectionKind, gc_duration: f3
                 gc_duration,
                 formatted_size(config.minor_promoted),
                 formatted_size(config.minor_copied),
-                formatted_size(config.minor_dead),
             );
         }
 
@@ -179,7 +178,6 @@ pub struct HeapController {
 
     pub minor_promoted: usize,
     pub minor_copied: usize,
-    pub minor_dead: usize,
 
     pub total_minor_collections: usize,
     pub total_minor_pause: f32,
@@ -209,7 +207,6 @@ impl HeapController {
 
             minor_promoted: 0,
             minor_copied: 0,
-            minor_dead: 0,
 
             total_minor_collections: 0,
             total_minor_pause: 0f32,
