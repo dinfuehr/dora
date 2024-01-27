@@ -104,17 +104,20 @@ impl<'a> FullCollector<'a> {
 
     fn sweep(&mut self) {
         self.old.clear_freelist();
-        let mut freed_page = false;
 
-        for page in self.old.pages() {
-            if sweep_page(self.vm, page) {
-                freed_page = true;
+        self.swiper.sweeper.reset(self.old.pages());
+
+        let mut threadpool = self.swiper.threadpool.lock();
+
+        threadpool.scoped(|tp| {
+            for _ in 0..4 {
+                tp.execute(|| {
+                    while let Some(page) = self.swiper.sweeper.next_page() {
+                        sweep_page(self.vm, page);
+                    }
+                });
             }
-        }
-
-        if freed_page {
-            self.swiper.heap.merge_free_regions();
-        }
+        });
 
         self.large_space.remove_pages(&self.swiper.heap, |page| {
             let object = page.object_address().to_obj();
@@ -135,11 +138,13 @@ impl<'a> FullCollector<'a> {
 }
 
 fn sweep_page(vm: &VM, page: RegularPage) -> bool {
-    let old = &get_swiper(vm).old;
+    let swiper = get_swiper(vm);
+    let old = &swiper.old;
     let (live, free_regions) = sweep_page_for_free_memory(vm, page);
 
     if live == 0 {
         old.free_page(vm, page);
+        swiper.heap.merge_free_regions();
         true
     } else {
         old.add_to_free_list(vm, free_regions);

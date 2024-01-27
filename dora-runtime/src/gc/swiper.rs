@@ -68,6 +68,7 @@ pub struct Swiper {
     readonly: ReadOnlySpace,
     heap: Heap,
 
+    sweeper: Sweeper,
     remset: RwLock<Vec<Address>>,
 
     // minimum & maximum heap size
@@ -119,6 +120,7 @@ impl Swiper {
             heap,
 
             config,
+            sweeper: Sweeper::new(),
             remset: RwLock::new(Vec::new()),
 
             min_heap_size,
@@ -719,6 +721,32 @@ impl LargePageHeader {
         self.prev = Address::null();
         self.next = Address::null();
         self.size = committed_size;
+    }
+}
+
+struct Sweeper {
+    pages_to_sweep: RwLock<Vec<RegularPage>>,
+    next_page_idx: AtomicUsize,
+}
+
+impl Sweeper {
+    fn new() -> Sweeper {
+        Sweeper {
+            pages_to_sweep: RwLock::new(Vec::new()),
+            next_page_idx: AtomicUsize::new(0),
+        }
+    }
+
+    fn reset(&self, pages: Vec<RegularPage>) {
+        let mut pages_to_sweep = self.pages_to_sweep.try_write().expect("lock failed");
+        *pages_to_sweep = pages;
+        self.next_page_idx.store(0, Ordering::Relaxed);
+    }
+
+    fn next_page(&self) -> Option<RegularPage> {
+        let pages_to_sweep = self.pages_to_sweep.try_read().expect("lock failed");
+        let next_page_idx = self.next_page_idx.fetch_add(1, Ordering::Relaxed);
+        pages_to_sweep.get(next_page_idx).cloned()
     }
 }
 
