@@ -99,14 +99,11 @@ impl YoungGen {
     }
 
     pub fn reset_after_minor_gc(&self) {
-        let allocation_end = self.protected.lock().limit;
+        let next_page_idx = self.protected.lock().next_page_idx;
 
-        for page in self.to_pages() {
+        for page in self.to_pages().iter().take(next_page_idx) {
             assert!(!page.base_page_header().is_survivor());
-
-            if page.end() <= allocation_end {
-                page.base_page_header().add_flag(SURVIVOR_BIT);
-            }
+            page.base_page_header().add_flag(SURVIVOR_BIT);
         }
     }
 
