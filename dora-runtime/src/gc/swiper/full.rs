@@ -7,7 +7,7 @@ use crate::gc::swiper::{BasePage, LargeSpace, OldGen, RegularPage, YoungGen};
 use crate::gc::{iterate_weak_roots, Slot};
 use crate::gc::{Address, GcReason, Region};
 use crate::threads::DoraThread;
-use crate::vm::VM;
+use crate::vm::{get_vm, VM};
 
 use super::get_swiper;
 
@@ -105,19 +105,18 @@ impl<'a> FullCollector<'a> {
     fn sweep(&mut self) {
         self.old.clear_freelist();
 
-        self.swiper.sweeper.reset(self.old.pages());
+        let workers = self.vm.flags.gc_workers();
+        self.swiper.sweeper.reset(self.old.pages(), workers);
 
-        let mut threadpool = self.swiper.threadpool.lock();
+        for _ in 0..workers {
+            self.swiper.concurrent_threadpool.execute(move || {
+                let vm = get_vm();
+                let swiper = get_swiper(vm);
+                swiper.sweeper.sweep_task(vm);
+            });
+        }
 
-        threadpool.scoped(|tp| {
-            for _ in 0..4 {
-                tp.execute(|| {
-                    while let Some(page) = self.swiper.sweeper.next_page() {
-                        sweep_page(self.vm, page);
-                    }
-                });
-            }
-        });
+        self.swiper.sweeper.join();
 
         self.large_space.remove_pages(&self.swiper.heap, |page| {
             let object = page.object_address().to_obj();
@@ -135,66 +134,6 @@ impl<'a> FullCollector<'a> {
             }
         });
     }
-}
-
-fn sweep_page(vm: &VM, page: RegularPage) -> bool {
-    let swiper = get_swiper(vm);
-    let old = &swiper.old;
-    let (live, free_regions) = sweep_page_for_free_memory(vm, page);
-
-    if live == 0 {
-        old.free_page(vm, page);
-        swiper.heap.merge_free_regions();
-        true
-    } else {
-        old.add_to_free_list(vm, free_regions);
-        false
-    }
-}
-
-fn sweep_page_for_free_memory(vm: &VM, page: RegularPage) -> (usize, Vec<Region>) {
-    let region = page.object_area();
-    let mut scan = region.start;
-    let mut free_start = region.start;
-    let mut live = 0;
-    let mut free_regions = Vec::new();
-    let metaspace_start = vm.meta_space_start();
-
-    while scan < region.end {
-        let object = scan.to_obj();
-
-        if object.is_filler(vm) {
-            scan = scan.offset(object.size(metaspace_start));
-        } else {
-            let object_size = object.size(metaspace_start);
-            let object_end = scan.offset(object_size);
-
-            if object.header().is_marked() {
-                handle_free_region(&mut free_regions, free_start, scan);
-                object.header().clear_mark();
-                object.header().clear_remembered();
-                free_start = object_end;
-                live += object_size;
-            }
-
-            scan = object_end
-        }
-    }
-
-    handle_free_region(&mut free_regions, free_start, scan);
-    assert_eq!(scan, region.end);
-
-    (live, free_regions)
-}
-
-fn handle_free_region(free_regions: &mut Vec<Region>, start: Address, end: Address) {
-    assert!(start <= end);
-
-    if start == end {
-        return;
-    }
-
-    free_regions.push(Region::new(start, end));
 }
 
 pub fn marking(vm: &VM, rootset: &[Slot]) {

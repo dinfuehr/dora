@@ -3,6 +3,7 @@ use scoped_threadpool::Pool;
 use std::fmt;
 use std::sync::atomic::{AtomicUsize, Ordering};
 use std::sync::Arc;
+use threadpool::ThreadPool;
 
 use crate::gc::allocator::GenerationAllocator;
 use crate::gc::root::{determine_strong_roots, Slot};
@@ -13,6 +14,7 @@ use crate::gc::swiper::large::LargeSpace;
 use crate::gc::swiper::minor::MinorCollector;
 use crate::gc::swiper::old::OldGen;
 use crate::gc::swiper::readonly::ReadOnlySpace;
+use crate::gc::swiper::sweeper::Sweeper;
 use crate::gc::swiper::verify::{Verifier, VerifierPhase};
 use crate::gc::swiper::young::YoungGen;
 use crate::gc::{tlab, Address, Collector, GcReason, Region, K};
@@ -32,6 +34,7 @@ mod large;
 mod minor;
 pub mod old;
 mod readonly;
+mod sweeper;
 mod verify;
 pub mod young;
 
@@ -76,6 +79,7 @@ pub struct Swiper {
     max_heap_size: usize,
 
     threadpool: Mutex<Pool>,
+    concurrent_threadpool: ThreadPool,
     config: SharedHeapConfig,
 
     reservation: Reservation,
@@ -107,6 +111,7 @@ impl Swiper {
         let nworkers = args.gc_workers();
 
         let threadpool = Mutex::new(Pool::new(nworkers as u32));
+        let concurrent_threadpool = ThreadPool::new(nworkers);
 
         let readonly = ReadOnlySpace::new(args.readonly_size());
 
@@ -127,6 +132,7 @@ impl Swiper {
             max_heap_size,
 
             threadpool,
+            concurrent_threadpool,
         }
     }
 
@@ -721,32 +727,6 @@ impl LargePageHeader {
         self.prev = Address::null();
         self.next = Address::null();
         self.size = committed_size;
-    }
-}
-
-struct Sweeper {
-    pages_to_sweep: RwLock<Vec<RegularPage>>,
-    next_page_idx: AtomicUsize,
-}
-
-impl Sweeper {
-    fn new() -> Sweeper {
-        Sweeper {
-            pages_to_sweep: RwLock::new(Vec::new()),
-            next_page_idx: AtomicUsize::new(0),
-        }
-    }
-
-    fn reset(&self, pages: Vec<RegularPage>) {
-        let mut pages_to_sweep = self.pages_to_sweep.try_write().expect("lock failed");
-        *pages_to_sweep = pages;
-        self.next_page_idx.store(0, Ordering::Relaxed);
-    }
-
-    fn next_page(&self) -> Option<RegularPage> {
-        let pages_to_sweep = self.pages_to_sweep.try_read().expect("lock failed");
-        let next_page_idx = self.next_page_idx.fetch_add(1, Ordering::Relaxed);
-        pages_to_sweep.get(next_page_idx).cloned()
     }
 }
 
