@@ -116,6 +116,44 @@ impl OldGenProtected {
 
         fill_region(vm, self.top, self.limit);
 
+        if let Some(region) = self.try_free_list(vm, min_size, max_size) {
+            return Some(region);
+        }
+
+        let swiper = get_swiper(vm);
+
+        if swiper.sweeper.in_progress() {
+            swiper.sweeper.sweep_in_allocation(vm);
+
+            if let Some(region) = self.try_free_list(vm, min_size, max_size) {
+                return Some(region);
+            }
+
+            swiper.sweeper.sweep_to_end(vm);
+
+            if let Some(region) = self.try_free_list(vm, min_size, max_size) {
+                return Some(region);
+            }
+        }
+
+        if let Some(region) = self.try_add_page(vm, in_gc, min_size, max_size) {
+            return Some(region);
+        }
+
+        swiper.sweeper.sweep_to_end(vm);
+
+        if let Some(region) = self.try_free_list(vm, min_size, max_size) {
+            return Some(region);
+        }
+
+        if let Some(region) = self.try_add_page(vm, in_gc, min_size, max_size) {
+            return Some(region);
+        }
+
+        None
+    }
+
+    fn try_free_list(&mut self, vm: &VM, min_size: usize, max_size: usize) -> Option<Region> {
         let free_space = self.freelist.alloc(vm, min_size);
 
         if free_space.is_non_null() {
@@ -127,12 +165,21 @@ impl OldGenProtected {
                 .expect("allocation failed");
 
             fill_region(vm, self.top, self.limit);
-            return Some(region);
+            Some(region)
+        } else {
+            None
         }
+    }
 
+    fn try_add_page(
+        &mut self,
+        vm: &VM,
+        in_gc: bool,
+        min_size: usize,
+        max_size: usize,
+    ) -> Option<Region> {
         if let Some(page) = self.allocate_page(vm, in_gc) {
             self.pages.push(page);
-            self.pages.sort();
 
             self.top = page.object_area_start();
             self.limit = page.object_area_end();

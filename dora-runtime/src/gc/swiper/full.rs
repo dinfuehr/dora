@@ -67,6 +67,8 @@ impl<'a> FullCollector<'a> {
     }
 
     pub fn collect(&mut self) {
+        self.swiper.sweeper.sweep_to_end(self.vm);
+
         self.phases.marking = measure(self.vm, || {
             self.mark_live();
         });

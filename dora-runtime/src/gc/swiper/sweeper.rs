@@ -57,6 +57,25 @@ impl Sweeper {
         self.decrement_workers();
     }
 
+    pub fn sweep_in_allocation(&self, vm: &VM) {
+        let pages_to_sweep = self.pages_to_sweep.try_read().expect("lock failed");
+
+        while let Some(&page) = pages_to_sweep.get(self.next_page_idx()) {
+            if !sweep_page(vm, page) {
+                return;
+            }
+        }
+    }
+
+    pub fn sweep_to_end(&self, vm: &VM) {
+        if !self.in_progress() {
+            return;
+        }
+
+        self.sweep_pages(vm);
+        self.join();
+    }
+
     fn sweep_pages(&self, vm: &VM) {
         let pages_to_sweep = self.pages_to_sweep.try_read().expect("lock failed");
 
