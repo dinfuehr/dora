@@ -11,9 +11,8 @@ pub fn start(vm: &VM, rootset: &[Slot], heap: Region, perm: Region) {
         if heap.contains(object) {
             let root_obj = object.to_obj();
 
-            if !root_obj.header().is_marked() {
+            if root_obj.header().try_mark() {
                 marking_stack.push(object);
-                root_obj.header().mark();
             }
         } else {
             debug_assert!(object.is_null() || perm.contains(object));
@@ -30,9 +29,8 @@ pub fn start(vm: &VM, rootset: &[Slot], heap: Region, perm: Region) {
             if heap.contains(field_addr) {
                 let field_obj = field_addr.to_obj();
 
-                if !field_obj.header().is_marked() {
+                if field_obj.header().try_mark() {
                     marking_stack.push(field_addr);
-                    field_obj.header().mark();
                 }
             } else {
                 debug_assert!(field_addr.is_null() || perm.contains(field_addr));

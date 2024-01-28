@@ -30,8 +30,7 @@ pub fn start(vm: &VM, rootset: &[Slot], heap: Region, perm: Region, threadpool: 
         if heap.contains(root_ptr) {
             let root_obj = root_ptr.to_obj();
 
-            if !root_obj.header().is_marked() {
-                root_obj.header().mark();
+            if root_obj.header().try_mark() {
                 injector.push(root_ptr);
             }
         } else {

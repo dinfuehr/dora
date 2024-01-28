@@ -141,25 +141,30 @@ impl HeaderWord {
             | (is_remembered as usize) << REMEMBERED_BIT_SHIFT
     }
 
-    fn mark(&self) -> bool {
-        let current = self.raw();
-        if current & MARK_BIT == 0 {
-            let current = current & !REMEMBERED_BIT;
-            self.set_raw(current | MARK_BIT);
-            true
-        } else {
-            false
+    fn try_mark(&self) -> bool {
+        let mut current = self.raw();
+        loop {
+            if current & MARK_BIT == 0 {
+                let next = (current & !REMEMBERED_BIT) | MARK_BIT;
+                let result = self.0.compare_exchange_weak(
+                    current,
+                    next,
+                    Ordering::Relaxed,
+                    Ordering::Relaxed,
+                );
+
+                match result {
+                    Ok(_) => return true,
+                    Err(actual) => current = actual,
+                }
+            } else {
+                return false;
+            }
         }
     }
 
-    fn try_mark(&self) -> bool {
-        let old_value = self.0.fetch_or(MARK_BIT, Ordering::Relaxed);
-        (old_value & MARK_BIT) == 0
-    }
-
     fn clear_mark(&self) {
-        let current = self.raw();
-        self.set_raw(current & !MARK_BIT);
+        self.0.fetch_and(!MARK_BIT, Ordering::Relaxed);
     }
 
     fn is_marked(&self) -> bool {
@@ -262,8 +267,8 @@ impl Header {
     }
 
     #[inline(always)]
-    pub fn mark(&self) -> bool {
-        self.word.mark()
+    pub fn try_mark(&self) -> bool {
+        self.word.try_mark()
     }
 
     #[inline(always)]
@@ -306,11 +311,6 @@ impl Header {
     #[inline(always)]
     pub fn clear_remembered(&self) {
         self.word.clear_remembered();
-    }
-
-    #[inline(always)]
-    pub fn try_mark(&self) -> bool {
-        self.word.try_mark()
     }
 }
 

@@ -110,9 +110,10 @@ impl<'a> FullCollector<'a> {
             let object = page.object_address().to_obj();
 
             if object.header().is_marked() {
+                assert!(!object.header().is_remembered());
+
                 // unmark object for next collection
                 object.header().clear_mark();
-                object.header().clear_remembered();
 
                 // keep object
                 false
@@ -137,7 +138,7 @@ pub fn marking(vm: &VM, rootset: &[Slot]) {
 
         let root_obj = object.to_obj();
 
-        if root_obj.header().mark() {
+        if root_obj.header().try_mark() {
             marking_stack.push(object);
         }
     }
@@ -155,7 +156,7 @@ pub fn marking(vm: &VM, rootset: &[Slot]) {
 
             let field_obj = referenced.to_obj();
 
-            if field_obj.header().mark() {
+            if field_obj.header().try_mark() {
                 marking_stack.push(referenced);
             }
         });
