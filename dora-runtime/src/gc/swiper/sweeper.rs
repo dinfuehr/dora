@@ -60,10 +60,8 @@ impl Sweeper {
     pub fn sweep_in_allocation(&self, vm: &VM) {
         let pages_to_sweep = self.pages_to_sweep.try_read().expect("lock failed");
 
-        while let Some(&page) = pages_to_sweep.get(self.next_page_idx()) {
-            if !sweep_page(vm, page) {
-                return;
-            }
+        if let Some(&page) = pages_to_sweep.get(self.next_page_idx()) {
+            sweep_page(vm, page);
         }
     }
 
@@ -108,19 +106,13 @@ impl Sweeper {
     }
 }
 
-fn sweep_page(vm: &VM, page: RegularPage) -> bool {
+fn sweep_page(vm: &VM, page: RegularPage) {
     let swiper = get_swiper(vm);
     let old = &swiper.old;
     let (live, free_regions) = sweep_page_for_free_memory(vm, page);
+    assert!(live > 0);
 
-    if live == 0 {
-        old.free_page(vm, page);
-        swiper.heap.merge_free_regions();
-        true
-    } else {
-        old.add_to_free_list(vm, free_regions);
-        false
-    }
+    old.add_to_free_list(vm, free_regions);
 }
 
 fn sweep_page_for_free_memory(vm: &VM, page: RegularPage) -> (usize, Vec<Region>) {

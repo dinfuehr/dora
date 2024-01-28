@@ -1,7 +1,7 @@
 use parking_lot::Mutex;
 
 use crate::gc::swiper::{align_page_up, is_page_aligned, LargePage, RegularPage, SharedHeapConfig};
-use crate::gc::{fill_region, Region};
+use crate::gc::{fill_region, Address, Region};
 use crate::mem::is_os_page_aligned;
 use crate::os::{self, MemoryPermission};
 use crate::vm::VM;
@@ -10,14 +10,21 @@ use super::PAGE_SIZE;
 
 pub struct Heap {
     total: Region,
+    pages: usize,
     config: SharedHeapConfig,
     protected: Mutex<MixedHeapProtected>,
 }
 
 impl Heap {
     pub fn new(total: Region, config: SharedHeapConfig) -> Heap {
+        assert!(total.start().is_page_aligned());
+        assert!(total.end().is_page_aligned());
+        assert!(is_page_aligned(total.size()));
+        let pages = total.size() / PAGE_SIZE;
+
         Heap {
             total,
+            pages,
             config,
             protected: Mutex::new(MixedHeapProtected {
                 elements: vec![total],
@@ -27,6 +34,14 @@ impl Heap {
                 committed_size_large: 0,
             }),
         }
+    }
+
+    pub fn pages(&self) -> usize {
+        self.pages
+    }
+
+    pub fn start_address(&self) -> Address {
+        self.total.start()
     }
 
     pub fn alloc_large_page(&self, object_size: usize) -> Option<LargePage> {
