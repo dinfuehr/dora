@@ -137,9 +137,8 @@ pub fn marking(vm: &VM, rootset: &[Slot]) {
 
         let root_obj = object.to_obj();
 
-        if !root_obj.header().is_marked() {
+        if root_obj.header().mark() {
             marking_stack.push(object);
-            root_obj.header().mark();
         }
     }
 
@@ -156,9 +155,8 @@ pub fn marking(vm: &VM, rootset: &[Slot]) {
 
             let field_obj = referenced.to_obj();
 
-            if !field_obj.header().is_marked() {
+            if field_obj.header().mark() {
                 marking_stack.push(referenced);
-                field_obj.header().mark();
             }
         });
     }

@@ -141,9 +141,15 @@ impl HeaderWord {
             | (is_remembered as usize) << REMEMBERED_BIT_SHIFT
     }
 
-    fn mark(&self) {
+    fn mark(&self) -> bool {
         let current = self.raw();
-        self.set_raw(current | MARK_BIT);
+        if current & MARK_BIT == 0 {
+            let current = current & !REMEMBERED_BIT;
+            self.set_raw(current | MARK_BIT);
+            true
+        } else {
+            false
+        }
     }
 
     fn try_mark(&self) -> bool {
@@ -256,8 +262,8 @@ impl Header {
     }
 
     #[inline(always)]
-    pub fn mark(&self) {
-        self.word.mark();
+    pub fn mark(&self) -> bool {
+        self.word.mark()
     }
 
     #[inline(always)]

@@ -124,7 +124,7 @@ fn sweep_page_for_free_memory(vm: &VM, page: RegularPage) -> (usize, Vec<Region>
             if object.header().is_marked() {
                 handle_free_region(&mut free_regions, free_start, scan);
                 object.header().clear_mark();
-                object.header().clear_remembered();
+                assert!(!object.header().is_remembered());
                 free_start = object_end;
                 live += object_size;
             }
