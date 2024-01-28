@@ -182,6 +182,10 @@ impl VM {
         vm
     }
 
+    pub fn shutdown(&self) {
+        self.gc.shutdown(self);
+    }
+
     pub fn state(&self) -> VmState {
         let state = self.state.load(Ordering::Relaxed);
         VmState::try_from(state).expect("invalid state")

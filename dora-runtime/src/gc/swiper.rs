@@ -372,6 +372,7 @@ impl Collector for Swiper {
 
         println!("\nFull:");
 
+        println!("\tComplete:\t{}", config.full_complete());
         println!("\tMarking:\t{}", config.full_marking());
         println!("\tSweep:\t\t{}", config.full_sweep());
         println!("\tTotal:\t\t{}", config.full_total());
@@ -382,6 +383,10 @@ impl Collector for Swiper {
     fn setup(&self, vm: &VM) {
         let semi_size = self.config.lock().young_size;
         self.young.setup(vm, semi_size);
+    }
+
+    fn shutdown(&self, _vm: &VM) {
+        self.sweeper.join();
     }
 
     fn to_swiper(&self) -> &Swiper {

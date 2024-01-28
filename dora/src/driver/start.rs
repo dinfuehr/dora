@@ -95,6 +95,7 @@ pub fn start() -> i32 {
     };
 
     vm.threads.join_all();
+    vm.shutdown();
 
     if vm.flags.gc_stats {
         let duration = timer.expect("missing timer").elapsed();

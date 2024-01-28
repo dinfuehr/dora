@@ -67,7 +67,9 @@ impl<'a> FullCollector<'a> {
     }
 
     pub fn collect(&mut self) {
-        self.swiper.sweeper.sweep_to_end(self.vm);
+        self.phases.complete = measure(self.vm, || {
+            self.swiper.sweeper.sweep_in_allocation_to_end(self.vm);
+        });
 
         self.phases.marking = measure(self.vm, || {
             self.mark_live();
@@ -106,7 +108,10 @@ impl<'a> FullCollector<'a> {
         self.old.clear_freelist();
 
         self.swiper.sweeper.start(self.old.pages(), self.vm);
-        self.swiper.sweeper.join();
+
+        if self.vm.flags.gc_verify {
+            self.swiper.sweeper.join();
+        }
 
         self.large_space.remove_pages(&self.swiper.heap, |page| {
             let object = page.object_address().to_obj();

@@ -163,6 +163,10 @@ impl Gc {
         self.collector.minor_collect(vm, reason);
     }
 
+    pub fn shutdown(&self, vm: &VM) {
+        self.collector.shutdown(vm);
+    }
+
     pub fn dump_summary(&self, runtime: f32) {
         self.collector.dump_summary(runtime);
     }
@@ -221,6 +225,10 @@ trait Collector {
 
     // Invoked once right after VM was created.
     fn setup(&self, _vm: &VM) {
+        // Do nothing.
+    }
+
+    fn shutdown(&self, _vm: &VM) {
         // Do nothing.
     }
 

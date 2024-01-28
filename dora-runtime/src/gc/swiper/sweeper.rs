@@ -67,7 +67,7 @@ impl Sweeper {
         }
     }
 
-    pub fn sweep_to_end(&self, vm: &VM) {
+    pub fn sweep_in_allocation_to_end(&self, vm: &VM) {
         if !self.in_progress() {
             return;
         }
@@ -143,7 +143,6 @@ fn sweep_page_for_free_memory(vm: &VM, page: RegularPage) -> (usize, Vec<Region>
             if object.header().is_marked() {
                 handle_free_region(&mut free_regions, free_start, scan);
                 object.header().clear_mark();
-                assert!(!object.header().is_remembered());
                 free_start = object_end;
                 live += object_size;
             }

@@ -53,12 +53,69 @@ impl OldGen {
             protected.promote_page(vm, page);
         }
     }
+
+    fn bump_alloc(&self, vm: &VM, min_size: usize, max_size: usize) -> Option<Region> {
+        self.protected.lock().bump_alloc(vm, min_size, max_size)
+    }
+
+    fn try_free_list(&self, vm: &VM, min_size: usize, max_size: usize) -> Option<Region> {
+        self.protected.lock().try_free_list(vm, min_size, max_size)
+    }
+
+    fn try_add_page(
+        &self,
+        vm: &VM,
+        in_gc: bool,
+        min_size: usize,
+        max_size: usize,
+    ) -> Option<Region> {
+        self.protected
+            .lock()
+            .try_add_page(vm, in_gc, min_size, max_size)
+    }
 }
 
 impl GenerationAllocator for OldGen {
     fn allocate(&self, vm: &VM, min_size: usize, max_size: usize) -> Option<Region> {
-        let mut protected = self.protected.lock();
-        protected.allocate(vm, false, min_size, max_size)
+        if let Some(region) = self.bump_alloc(vm, min_size, max_size) {
+            return Some(region);
+        }
+
+        if let Some(region) = self.try_free_list(vm, min_size, max_size) {
+            return Some(region);
+        }
+
+        let swiper = get_swiper(vm);
+
+        if swiper.sweeper.in_progress() {
+            swiper.sweeper.sweep_in_allocation(vm);
+
+            if let Some(region) = self.try_free_list(vm, min_size, max_size) {
+                return Some(region);
+            }
+
+            swiper.sweeper.sweep_in_allocation_to_end(vm);
+
+            if let Some(region) = self.try_free_list(vm, min_size, max_size) {
+                return Some(region);
+            }
+        }
+
+        if let Some(region) = self.try_add_page(vm, false, min_size, max_size) {
+            return Some(region);
+        }
+
+        swiper.sweeper.sweep_in_allocation_to_end(vm);
+
+        if let Some(region) = self.try_free_list(vm, min_size, max_size) {
+            return Some(region);
+        }
+
+        if let Some(region) = self.try_add_page(vm, false, min_size, max_size) {
+            return Some(region);
+        }
+
+        None
     }
 
     fn free(&self, _region: Region) {
@@ -102,57 +159,6 @@ impl OldGenProtected {
         get_swiper(vm).heap.promote_page(page);
     }
 
-    fn allocate(
-        &mut self,
-        vm: &VM,
-        in_gc: bool,
-        min_size: usize,
-        max_size: usize,
-    ) -> Option<Region> {
-        if let Some(region) = self.raw_alloc(min_size, max_size) {
-            fill_region(vm, self.top, self.limit);
-            return Some(region);
-        }
-
-        fill_region(vm, self.top, self.limit);
-
-        if let Some(region) = self.try_free_list(vm, min_size, max_size) {
-            return Some(region);
-        }
-
-        let swiper = get_swiper(vm);
-
-        if swiper.sweeper.in_progress() {
-            swiper.sweeper.sweep_in_allocation(vm);
-
-            if let Some(region) = self.try_free_list(vm, min_size, max_size) {
-                return Some(region);
-            }
-
-            swiper.sweeper.sweep_to_end(vm);
-
-            if let Some(region) = self.try_free_list(vm, min_size, max_size) {
-                return Some(region);
-            }
-        }
-
-        if let Some(region) = self.try_add_page(vm, in_gc, min_size, max_size) {
-            return Some(region);
-        }
-
-        swiper.sweeper.sweep_to_end(vm);
-
-        if let Some(region) = self.try_free_list(vm, min_size, max_size) {
-            return Some(region);
-        }
-
-        if let Some(region) = self.try_add_page(vm, in_gc, min_size, max_size) {
-            return Some(region);
-        }
-
-        None
-    }
-
     fn try_free_list(&mut self, vm: &VM, min_size: usize, max_size: usize) -> Option<Region> {
         let free_space = self.freelist.alloc(vm, min_size);
 
@@ -161,7 +167,7 @@ impl OldGenProtected {
             self.limit = self.top.offset(free_space.size(vm.meta_space_start()));
 
             let region = self
-                .raw_alloc(min_size, max_size)
+                .bump_alloc(vm, min_size, max_size)
                 .expect("allocation failed");
 
             fill_region(vm, self.top, self.limit);
@@ -183,7 +189,7 @@ impl OldGenProtected {
 
             self.top = page.object_area_start();
             self.limit = page.object_area_end();
-            let result = self.raw_alloc(min_size, max_size);
+            let result = self.bump_alloc(vm, min_size, max_size);
             assert!(result.is_some());
 
             // Make rest of page iterable.
@@ -210,13 +216,14 @@ impl OldGenProtected {
         get_swiper(vm).heap.alloc_regular_old_page(vm, in_gc)
     }
 
-    fn raw_alloc(&mut self, min_size: usize, max_size: usize) -> Option<Region> {
+    fn bump_alloc(&mut self, vm: &VM, min_size: usize, max_size: usize) -> Option<Region> {
         if self.top.offset(min_size) <= self.limit {
             let alloc_start = self.top;
             let alloc_end = alloc_start.offset(max_size).min(self.limit);
             let alloc = Region::new(alloc_start, alloc_end);
             debug_assert!(alloc.size() >= min_size && alloc.size() <= max_size);
             self.top = alloc_end;
+            fill_region(vm, self.top, self.limit);
             Some(alloc)
         } else {
             None

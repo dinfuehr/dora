@@ -226,6 +226,11 @@ impl HeapController {
         self.minor_phases.push(phases);
     }
 
+    pub fn full_complete(&self) -> Numbers {
+        let values: Vec<_> = self.full_phases.iter().map(|x| x.complete).collect();
+        calculate_numbers(&values)
+    }
+
     pub fn full_marking(&self) -> Numbers {
         let values: Vec<_> = self.full_phases.iter().map(|x| x.marking).collect();
         calculate_numbers(&values)
@@ -347,6 +352,7 @@ pub type SharedHeapConfig = Arc<Mutex<HeapController>>;
 
 #[derive(Clone)]
 pub struct FullCollectorPhases {
+    pub complete: f32,
     pub marking: f32,
     pub sweep: f32,
     pub total: f32,
@@ -355,6 +361,7 @@ pub struct FullCollectorPhases {
 impl FullCollectorPhases {
     pub fn new() -> FullCollectorPhases {
         FullCollectorPhases {
+            complete: 0f32,
             marking: 0f32,
             sweep: 0f32,
             total: 0f32,
