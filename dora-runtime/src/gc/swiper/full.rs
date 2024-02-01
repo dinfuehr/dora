@@ -1,4 +1,3 @@
-use std::sync::atomic::{AtomicUsize, Ordering};
 use std::sync::Arc;
 use std::time::Instant;
 
@@ -21,7 +20,7 @@ pub struct FullCollector<'a> {
 
     pages: Vec<RegularPage>,
     metaspace_start: Address,
-    live_bytes: Vec<AtomicUsize>,
+    live_bytes: Vec<bool>,
 
     reason: GcReason,
 
@@ -115,9 +114,9 @@ impl<'a> FullCollector<'a> {
 
         for page in self.old.pages() {
             let page_id = page.address().offset_from(heap_start) / PAGE_SIZE;
-            let live_bytes = self.live_bytes[page_id].load(Ordering::Relaxed);
+            let live_bytes = self.live_bytes[page_id];
 
-            if live_bytes > 0 {
+            if live_bytes {
                 pages_to_sweep.push(page);
             } else {
                 self.old.free_page(self.vm, page);
@@ -163,14 +162,14 @@ impl MarkingTask {
         }
     }
 
-    fn mark(mut self, vm: &VM, swiper: &Swiper, rootset: &[Slot]) -> Vec<AtomicUsize> {
+    fn mark(mut self, vm: &VM, swiper: &Swiper, rootset: &[Slot]) -> Vec<bool> {
         let meta_space_start = vm.meta_space_start();
         let pages = swiper.heap.pages();
         let heap_start = swiper.heap.start_address();
-        let mut live_bytes: Vec<AtomicUsize> = Vec::with_capacity(pages);
+        let mut live_bytes: Vec<bool> = Vec::with_capacity(pages);
 
         for _ in 0..pages {
-            live_bytes.push(AtomicUsize::new(0));
+            live_bytes.push(false);
         }
 
         for root in rootset {
@@ -191,10 +190,8 @@ impl MarkingTask {
             debug_assert!(!BasePage::from_address(address).is_readonly());
             let object = address.to_obj();
 
-            let size = object.size(meta_space_start);
-
             let page_id = address.offset_from(heap_start) / PAGE_SIZE;
-            live_bytes[page_id].fetch_add(size, Ordering::Relaxed);
+            live_bytes[page_id] = true;
 
             object.visit_reference_fields(meta_space_start, |field| {
                 let referenced = field.get();
