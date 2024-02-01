@@ -37,7 +37,7 @@ impl Worklist {
         other.tail = ptr::null_mut();
     }
 
-    fn push_segment(&mut self, segment: WorklistSegment) {
+    pub fn push_segment(&mut self, segment: WorklistSegment) {
         let ptr = segment.ptr.as_ptr();
         std::mem::forget(segment);
 
@@ -52,7 +52,7 @@ impl Worklist {
         debug_assert!(self.tail().next.is_null());
     }
 
-    fn pop_segment(&mut self) -> Option<WorklistSegment> {
+    pub fn pop_segment(&mut self) -> Option<WorklistSegment> {
         if self.head.is_null() {
             None
         } else {
@@ -239,6 +239,30 @@ mod tests {
         }
 
         assert_eq!(popped, SEGMENTS);
+    }
+
+    #[test]
+    fn append_worklist() {
+        for (target_segments, source_segments) in [(0, 0), (0, 1), (1, 0), (1, 1)] {
+            let mut source = Worklist::new();
+            for _ in 0..source_segments {
+                source.push_segment(WorklistSegment::new());
+            }
+
+            let mut target = Worklist::new();
+            for _ in 0..target_segments {
+                target.push_segment(WorklistSegment::new());
+            }
+
+            target.append(&mut source);
+            let mut segments = 0;
+
+            while let Some(_) = target.pop_segment() {
+                segments += 1;
+            }
+
+            assert_eq!(segments, target_segments + source_segments);
+        }
     }
 
     #[test]

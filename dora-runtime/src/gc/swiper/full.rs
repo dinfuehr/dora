@@ -5,6 +5,7 @@ use std::time::Instant;
 use crate::gc::swiper::controller::FullCollectorPhases;
 use crate::gc::swiper::{walk_region, Swiper, PAGE_SIZE};
 use crate::gc::swiper::{BasePage, LargeSpace, OldGen, RegularPage, YoungGen};
+use crate::gc::worklist::{Worklist, WorklistSegment};
 use crate::gc::{iterate_weak_roots, Address, GcReason, Region, Slot};
 use crate::threads::DoraThread;
 use crate::vm::VM;
@@ -93,7 +94,7 @@ impl<'a> FullCollector<'a> {
     }
 
     fn mark_live(&mut self) {
-        self.live_bytes = marking(self.vm, self.swiper, self.rootset);
+        self.live_bytes = MarkingTask::new().mark(self.vm, self.swiper, self.rootset);
 
         iterate_weak_roots(self.vm, |object_address| {
             let obj = object_address.to_obj();
@@ -149,56 +150,90 @@ impl<'a> FullCollector<'a> {
     }
 }
 
-pub fn marking(vm: &VM, swiper: &Swiper, rootset: &[Slot]) -> Vec<AtomicUsize> {
-    let mut marking_stack: Vec<Address> = Vec::new();
-    let meta_space_start = vm.meta_space_start();
-    let pages = swiper.heap.pages();
-    let heap_start = swiper.heap.start_address();
-    let mut live_bytes: Vec<AtomicUsize> = Vec::with_capacity(pages);
+struct MarkingTask {
+    global_worklist: Worklist,
+    segment: WorklistSegment,
+}
 
-    for _ in 0..pages {
-        live_bytes.push(AtomicUsize::new(0));
-    }
-
-    for root in rootset {
-        let object = root.get();
-
-        if object.is_null() {
-            continue;
-        }
-
-        let root_obj = object.to_obj();
-
-        if root_obj.header().try_mark() {
-            marking_stack.push(object);
+impl MarkingTask {
+    fn new() -> MarkingTask {
+        MarkingTask {
+            global_worklist: Worklist::new(),
+            segment: WorklistSegment::new(),
         }
     }
 
-    while let Some(address) = marking_stack.pop() {
-        debug_assert!(!BasePage::from_address(address).is_readonly());
-        let object = address.to_obj();
+    fn mark(mut self, vm: &VM, swiper: &Swiper, rootset: &[Slot]) -> Vec<AtomicUsize> {
+        let meta_space_start = vm.meta_space_start();
+        let pages = swiper.heap.pages();
+        let heap_start = swiper.heap.start_address();
+        let mut live_bytes: Vec<AtomicUsize> = Vec::with_capacity(pages);
 
-        let size = object.size(meta_space_start);
+        for _ in 0..pages {
+            live_bytes.push(AtomicUsize::new(0));
+        }
 
-        let page_id = address.offset_from(heap_start) / PAGE_SIZE;
-        live_bytes[page_id].fetch_add(size, Ordering::Relaxed);
+        for root in rootset {
+            let object = root.get();
 
-        object.visit_reference_fields(meta_space_start, |field| {
-            let referenced = field.get();
-
-            if referenced.is_null() {
-                return;
+            if object.is_null() {
+                continue;
             }
 
-            let field_obj = referenced.to_obj();
+            let root_obj = object.to_obj();
 
-            if field_obj.header().try_mark() {
-                marking_stack.push(referenced);
+            if root_obj.header().try_mark() {
+                self.push(object);
             }
-        });
+        }
+
+        while let Some(address) = self.pop() {
+            debug_assert!(!BasePage::from_address(address).is_readonly());
+            let object = address.to_obj();
+
+            let size = object.size(meta_space_start);
+
+            let page_id = address.offset_from(heap_start) / PAGE_SIZE;
+            live_bytes[page_id].fetch_add(size, Ordering::Relaxed);
+
+            object.visit_reference_fields(meta_space_start, |field| {
+                let referenced = field.get();
+
+                if referenced.is_null() {
+                    return;
+                }
+
+                let field_obj = referenced.to_obj();
+
+                if field_obj.header().try_mark() {
+                    self.push(referenced);
+                }
+            });
+        }
+
+        live_bytes
     }
 
-    live_bytes
+    fn push(&mut self, address: Address) {
+        if !self.segment.push(address) {
+            let segment = std::mem::replace(&mut self.segment, WorklistSegment::new());
+            self.global_worklist.push_segment(segment);
+            assert!(self.segment.push(address));
+        }
+    }
+
+    fn pop(&mut self) -> Option<Address> {
+        if let Some(object) = self.segment.pop() {
+            Some(object)
+        } else {
+            if let Some(segment) = self.global_worklist.pop_segment() {
+                self.segment = segment;
+                self.segment.pop()
+            } else {
+                None
+            }
+        }
+    }
 }
 
 pub fn verify_marking(vm: &VM, young: &YoungGen, old: &OldGen, large: &LargeSpace) {
