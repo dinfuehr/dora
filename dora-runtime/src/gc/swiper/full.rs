@@ -1,7 +1,9 @@
 use std::sync::Arc;
 use std::time::Instant;
 
-use crate::gc::swiper::controller::FullCollectorPhases;
+use fixedbitset::FixedBitSet;
+
+use crate::gc::swiper::controller::FullCollectorStats;
 use crate::gc::swiper::{walk_region, Swiper, PAGE_SIZE};
 use crate::gc::swiper::{BasePage, LargeSpace, OldGen, RegularPage, YoungGen};
 use crate::gc::worklist::{Worklist, WorklistSegment};
@@ -20,14 +22,14 @@ pub struct FullCollector<'a> {
 
     pages: Vec<RegularPage>,
     metaspace_start: Address,
-    live_bytes: Vec<bool>,
+    live_pages: FixedBitSet,
 
     reason: GcReason,
 
     min_heap_size: usize,
     max_heap_size: usize,
 
-    phases: FullCollectorPhases,
+    phases: FullCollectorStats,
 }
 
 impl<'a> FullCollector<'a> {
@@ -53,18 +55,18 @@ impl<'a> FullCollector<'a> {
             rootset,
             threads,
             metaspace_start: vm.meta_space_start(),
-            live_bytes: Vec::new(),
+            live_pages: FixedBitSet::new(),
 
             reason,
 
             min_heap_size,
             max_heap_size,
 
-            phases: FullCollectorPhases::new(),
+            phases: FullCollectorStats::new(),
         }
     }
 
-    pub fn phases(&self) -> FullCollectorPhases {
+    pub fn phases(&self) -> FullCollectorStats {
         self.phases.clone()
     }
 
@@ -93,7 +95,10 @@ impl<'a> FullCollector<'a> {
     }
 
     fn mark_live(&mut self) {
-        self.live_bytes = MarkingTask::new().mark(self.vm, self.swiper, self.rootset);
+        let (marked_bytes, live_pages) =
+            MarkingTask::new().mark(self.vm, self.swiper, self.rootset);
+        self.phases.marked_bytes = marked_bytes;
+        self.live_pages = live_pages;
 
         iterate_weak_roots(self.vm, |object_address| {
             let obj = object_address.to_obj();
@@ -114,9 +119,8 @@ impl<'a> FullCollector<'a> {
 
         for page in self.old.pages() {
             let page_id = page.address().offset_from(heap_start) / PAGE_SIZE;
-            let live_bytes = self.live_bytes[page_id];
 
-            if live_bytes {
+            if self.live_pages[page_id] {
                 pages_to_sweep.push(page);
             } else {
                 self.old.free_page(self.vm, page);
@@ -162,15 +166,12 @@ impl MarkingTask {
         }
     }
 
-    fn mark(mut self, vm: &VM, swiper: &Swiper, rootset: &[Slot]) -> Vec<bool> {
+    fn mark(mut self, vm: &VM, swiper: &Swiper, rootset: &[Slot]) -> (usize, FixedBitSet) {
         let meta_space_start = vm.meta_space_start();
         let pages = swiper.heap.pages();
         let heap_start = swiper.heap.start_address();
-        let mut live_bytes: Vec<bool> = Vec::with_capacity(pages);
-
-        for _ in 0..pages {
-            live_bytes.push(false);
-        }
+        let mut live_pages = FixedBitSet::with_capacity(pages);
+        let mut marked_bytes = 0;
 
         for root in rootset {
             let object = root.get();
@@ -191,7 +192,9 @@ impl MarkingTask {
             let object = address.to_obj();
 
             let page_id = address.offset_from(heap_start) / PAGE_SIZE;
-            live_bytes[page_id] = true;
+            live_pages.set(page_id, true);
+
+            marked_bytes += object.size(meta_space_start);
 
             object.visit_reference_fields(meta_space_start, |field| {
                 let referenced = field.get();
@@ -208,7 +211,7 @@ impl MarkingTask {
             });
         }
 
-        live_bytes
+        (marked_bytes, live_pages)
     }
 
     fn push(&mut self, address: Address) {
