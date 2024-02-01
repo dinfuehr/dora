@@ -3,9 +3,11 @@ use std::time::Instant;
 
 use fixedbitset::FixedBitSet;
 
-use crate::gc::swiper::controller::FullCollectorStats;
-use crate::gc::swiper::{walk_region, Swiper, PAGE_SIZE};
-use crate::gc::swiper::{BasePage, LargeSpace, OldGen, RegularPage, YoungGen};
+use crate::gc::swiper::controller::FullCollectorPhases;
+use crate::gc::swiper::{
+    walk_region, BasePage, LargeSpace, OldGen, RegularPage, SharedHeapConfig, Swiper, YoungGen,
+    PAGE_SIZE,
+};
 use crate::gc::worklist::{Worklist, WorklistSegment};
 use crate::gc::{iterate_weak_roots, Address, GcReason, Region, Slot};
 use crate::threads::DoraThread;
@@ -29,7 +31,8 @@ pub struct FullCollector<'a> {
     min_heap_size: usize,
     max_heap_size: usize,
 
-    phases: FullCollectorStats,
+    config: &'a SharedHeapConfig,
+    phases: FullCollectorPhases,
 }
 
 impl<'a> FullCollector<'a> {
@@ -62,11 +65,12 @@ impl<'a> FullCollector<'a> {
             min_heap_size,
             max_heap_size,
 
-            phases: FullCollectorStats::new(),
+            config: &swiper.config,
+            phases: FullCollectorPhases::new(),
         }
     }
 
-    pub fn phases(&self) -> FullCollectorStats {
+    pub fn phases(&self) -> FullCollectorPhases {
         self.phases.clone()
     }
 
@@ -97,7 +101,7 @@ impl<'a> FullCollector<'a> {
     fn mark_live(&mut self) {
         let (marked_bytes, live_pages) =
             MarkingTask::new().mark(self.vm, self.swiper, self.rootset);
-        self.phases.marked_bytes = marked_bytes;
+        self.config.lock().marked_bytes = marked_bytes;
         self.live_pages = live_pages;
 
         iterate_weak_roots(self.vm, |object_address| {
@@ -117,11 +121,14 @@ impl<'a> FullCollector<'a> {
         let mut pages_to_sweep = Vec::new();
         let heap_start = self.swiper.heap.start_address();
 
+        let mut computed_old_committed_size = 0;
+
         for page in self.old.pages() {
             let page_id = page.address().offset_from(heap_start) / PAGE_SIZE;
 
             if self.live_pages[page_id] {
                 pages_to_sweep.push(page);
+                computed_old_committed_size += page.size();
             } else {
                 self.old.free_page(self.vm, page);
             }
@@ -134,11 +141,14 @@ impl<'a> FullCollector<'a> {
             self.swiper.sweeper.join();
         }
 
+        let mut computed_large_committed_size = 0;
+
         self.large_space.remove_pages(&self.swiper.heap, |page| {
             let object = page.object_address().to_obj();
 
             if object.header().is_marked() {
                 assert!(!object.header().is_remembered());
+                computed_large_committed_size += page.committed_size();
 
                 // unmark object for next collection
                 object.header().clear_mark();
@@ -150,6 +160,12 @@ impl<'a> FullCollector<'a> {
                 true
             }
         });
+
+        let (_young_committed_size, old_committed_size, large_committed_size) =
+            self.swiper.heap.committed_sizes();
+
+        assert_eq!(computed_old_committed_size, old_committed_size);
+        assert_eq!(computed_large_committed_size, large_committed_size);
     }
 }
 

@@ -158,7 +158,7 @@ fn print(vm: &VM, config: &HeapController, kind: CollectionKind, gc_duration: f3
                 formatted_size(config.start_memory_size),
                 formatted_size(config.end_memory_size),
                 gc_duration,
-                formatted_size(config.full_phases.last().expect("missing").marked_bytes),
+                formatted_size(config.marked_bytes),
             );
         }
     }
@@ -176,6 +176,7 @@ pub struct HeapController {
 
     start_memory_size: usize,
     end_memory_size: usize,
+    pub marked_bytes: usize,
 
     pub minor_promoted: usize,
     pub minor_copied: usize,
@@ -185,7 +186,7 @@ pub struct HeapController {
     pub total_full_collections: usize,
     pub total_full_pause: f32,
 
-    full_phases: Vec<FullCollectorStats>,
+    full_phases: Vec<FullCollectorPhases>,
     minor_phases: Vec<MinorCollectorPhases>,
 }
 
@@ -206,6 +207,7 @@ impl HeapController {
             start_memory_size: 0,
             end_memory_size: 0,
 
+            marked_bytes: 0,
             minor_promoted: 0,
             minor_copied: 0,
 
@@ -219,7 +221,7 @@ impl HeapController {
         }
     }
 
-    pub fn add_full(&mut self, phases: FullCollectorStats) {
+    pub fn add_full(&mut self, phases: FullCollectorPhases) {
         self.full_phases.push(phases);
     }
 
@@ -352,18 +354,16 @@ fn calculate_numbers(data: &[f32]) -> Numbers {
 pub type SharedHeapConfig = Arc<Mutex<HeapController>>;
 
 #[derive(Clone)]
-pub struct FullCollectorStats {
-    pub marked_bytes: usize,
+pub struct FullCollectorPhases {
     pub complete: f32,
     pub marking: f32,
     pub sweep: f32,
     pub total: f32,
 }
 
-impl FullCollectorStats {
-    pub fn new() -> FullCollectorStats {
-        FullCollectorStats {
-            marked_bytes: 0,
+impl FullCollectorPhases {
+    pub fn new() -> FullCollectorPhases {
+        FullCollectorPhases {
             complete: 0f32,
             marking: 0f32,
             sweep: 0f32,

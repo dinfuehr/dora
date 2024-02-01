@@ -140,36 +140,28 @@ impl Swiper {
 
     fn perform_collection_and_choose(&self, vm: &VM, reason: GcReason) -> CollectionKind {
         let kind = controller::choose_collection_kind(&self.heap);
-        self.perform_collection(vm, kind, reason)
+        self.perform_collection(vm, kind, reason);
+        kind
     }
 
-    fn perform_collection(
-        &self,
-        vm: &VM,
-        kind: CollectionKind,
-        reason: GcReason,
-    ) -> CollectionKind {
+    fn perform_collection(&self, vm: &VM, kind: CollectionKind, reason: GcReason) {
         safepoint::stop_the_world(vm, |threads| {
             controller::start(&self.config, &self.heap);
 
             tlab::make_iterable_all(vm, threads);
             let rootset = determine_strong_roots(vm, threads);
 
-            let kind = match kind {
+            match kind {
                 CollectionKind::Minor => {
                     self.minor_collect(vm, reason, &rootset, threads);
-                    CollectionKind::Minor
                 }
 
                 CollectionKind::Full => {
                     self.full_collect(vm, reason, threads, &rootset);
-                    CollectionKind::Full
                 }
-            };
+            }
 
             controller::stop(vm, &self.config, kind, &self.heap, &self.young, &vm.flags);
-
-            kind
         })
     }
 
