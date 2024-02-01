@@ -62,16 +62,8 @@ impl OldGen {
         self.protected.lock().try_free_list(vm, min_size, max_size)
     }
 
-    fn try_add_page(
-        &self,
-        vm: &VM,
-        in_gc: bool,
-        min_size: usize,
-        max_size: usize,
-    ) -> Option<Region> {
-        self.protected
-            .lock()
-            .try_add_page(vm, in_gc, min_size, max_size)
+    fn try_add_page(&self, vm: &VM, min_size: usize, max_size: usize) -> Option<Region> {
+        self.protected.lock().try_add_page(vm, min_size, max_size)
     }
 }
 
@@ -93,15 +85,9 @@ impl GenerationAllocator for OldGen {
             if let Some(region) = self.try_free_list(vm, min_size, max_size) {
                 return Some(region);
             }
-
-            swiper.sweeper.sweep_in_allocation_to_end(vm);
-
-            if let Some(region) = self.try_free_list(vm, min_size, max_size) {
-                return Some(region);
-            }
         }
 
-        if let Some(region) = self.try_add_page(vm, false, min_size, max_size) {
+        if let Some(region) = self.try_add_page(vm, min_size, max_size) {
             return Some(region);
         }
 
@@ -111,7 +97,7 @@ impl GenerationAllocator for OldGen {
             return Some(region);
         }
 
-        if let Some(region) = self.try_add_page(vm, false, min_size, max_size) {
+        if let Some(region) = self.try_add_page(vm, min_size, max_size) {
             return Some(region);
         }
 
@@ -177,14 +163,8 @@ impl OldGenProtected {
         }
     }
 
-    fn try_add_page(
-        &mut self,
-        vm: &VM,
-        in_gc: bool,
-        min_size: usize,
-        max_size: usize,
-    ) -> Option<Region> {
-        if let Some(page) = self.allocate_page(vm, in_gc) {
+    fn try_add_page(&mut self, vm: &VM, min_size: usize, max_size: usize) -> Option<Region> {
+        if let Some(page) = self.allocate_page(vm) {
             self.pages.push(page);
 
             self.top = page.object_area_start();
@@ -212,8 +192,8 @@ impl OldGenProtected {
         get_swiper(vm).heap.free_regular_old_page(page);
     }
 
-    fn allocate_page(&mut self, vm: &VM, in_gc: bool) -> Option<RegularPage> {
-        get_swiper(vm).heap.alloc_regular_old_page(vm, in_gc)
+    fn allocate_page(&mut self, vm: &VM) -> Option<RegularPage> {
+        get_swiper(vm).heap.alloc_regular_old_page(vm)
     }
 
     fn bump_alloc(&mut self, vm: &VM, min_size: usize, max_size: usize) -> Option<Region> {

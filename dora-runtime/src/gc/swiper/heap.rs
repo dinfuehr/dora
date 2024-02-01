@@ -28,10 +28,11 @@ impl Heap {
             config,
             protected: Mutex::new(MixedHeapProtected {
                 elements: vec![total],
-                committed_size: 0,
-                committed_size_young: 0,
-                committed_size_old: 0,
-                committed_size_large: 0,
+                committed_sizes: CommittedSizes {
+                    young: 0,
+                    old: 0,
+                    large: 0,
+                },
             }),
         }
     }
@@ -60,13 +61,11 @@ impl Heap {
         self.protected.lock().free_large_page(page);
     }
 
-    pub fn alloc_regular_old_page(&self, vm: &VM, in_gc: bool) -> Option<RegularPage> {
-        if !in_gc {
-            let mut config = self.config.lock();
+    pub fn alloc_regular_old_page(&self, vm: &VM) -> Option<RegularPage> {
+        let mut config = self.config.lock();
 
-            if !config.grow_old(PAGE_SIZE) {
-                return None;
-            }
+        if !config.grow_old(PAGE_SIZE) {
+            return None;
         }
 
         self.protected.lock().alloc_regular_page(vm, false, false)
@@ -90,30 +89,36 @@ impl Heap {
 
     pub fn promote_page(&self, _page: RegularPage) {
         let mut protected = self.protected.lock();
-        protected.committed_size_young -= PAGE_SIZE;
-        protected.committed_size_old += PAGE_SIZE;
+        protected.committed_sizes.young -= PAGE_SIZE;
+        protected.committed_sizes.old += PAGE_SIZE;
     }
 
     pub fn committed_size(&self) -> usize {
-        self.protected.lock().committed_size
+        self.protected.lock().committed_sizes.total()
     }
 
-    pub fn committed_sizes(&self) -> (usize, usize, usize) {
+    pub fn committed_sizes(&self) -> CommittedSizes {
         let protected = self.protected.lock();
-        (
-            protected.committed_size_young,
-            protected.committed_size_old,
-            protected.committed_size_large,
-        )
+        protected.committed_sizes.clone()
+    }
+}
+
+#[derive(Clone)]
+pub struct CommittedSizes {
+    pub young: usize,
+    pub old: usize,
+    pub large: usize,
+}
+
+impl CommittedSizes {
+    fn total(&self) -> usize {
+        self.young + self.old + self.large
     }
 }
 
 struct MixedHeapProtected {
     elements: Vec<Region>,
-    committed_size: usize,
-    committed_size_young: usize,
-    committed_size_old: usize,
-    committed_size_large: usize,
+    committed_sizes: CommittedSizes,
 }
 
 impl MixedHeapProtected {
@@ -123,8 +128,7 @@ impl MixedHeapProtected {
         if let Some(region) = self.alloc_pages(reserved_size) {
             os::commit_at(region.start(), committed_size, MemoryPermission::ReadWrite);
             let page = LargePage::setup(region.start(), committed_size);
-            self.committed_size += committed_size;
-            self.committed_size_large += committed_size;
+            self.committed_sizes.large += committed_size;
             Some(page)
         } else {
             None
@@ -141,13 +145,11 @@ impl MixedHeapProtected {
             os::commit_at(region.start(), PAGE_SIZE, MemoryPermission::ReadWrite);
             let page = RegularPage::setup(region.start(), is_young, is_readonly);
             fill_region(vm, page.object_area_start(), page.object_area_end());
-            self.committed_size += PAGE_SIZE;
             if is_young {
-                self.committed_size_young += PAGE_SIZE;
+                self.committed_sizes.young += PAGE_SIZE;
             } else {
-                self.committed_size_old += PAGE_SIZE;
+                self.committed_sizes.old += PAGE_SIZE;
             }
-            self.verify_committed_sizes();
             Some(page)
         } else {
             None
@@ -185,23 +187,18 @@ impl MixedHeapProtected {
         os::discard(page.address(), committed_size);
         self.elements
             .push(page.address().region_start(reserved_size));
-        self.committed_size -= committed_size;
-        self.committed_size_large -= committed_size;
-        self.verify_committed_sizes();
+        self.committed_sizes.large -= committed_size;
     }
 
     fn free_regular_page(&mut self, page: RegularPage, is_young: bool) {
         os::discard(page.address(), PAGE_SIZE);
         self.elements.push(page.address().region_start(PAGE_SIZE));
-        self.committed_size -= PAGE_SIZE;
 
         if is_young {
-            self.committed_size_young -= PAGE_SIZE;
+            self.committed_sizes.young -= PAGE_SIZE;
         } else {
-            self.committed_size_old -= PAGE_SIZE;
+            self.committed_sizes.old -= PAGE_SIZE;
         }
-
-        self.verify_committed_sizes();
     }
 
     fn merge_free_regions(&mut self) {
@@ -221,12 +218,5 @@ impl MixedHeapProtected {
         }
 
         self.elements.truncate(last_element + 1);
-    }
-
-    fn verify_committed_sizes(&self) {
-        assert_eq!(
-            self.committed_size,
-            self.committed_size_young + self.committed_size_old + self.committed_size_large
-        );
     }
 }

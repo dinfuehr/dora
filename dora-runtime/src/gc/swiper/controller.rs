@@ -44,7 +44,7 @@ pub fn init(config: &mut HeapController, args: &Flags) {
 }
 
 pub fn choose_collection_kind(heap: &Heap) -> CollectionKind {
-    let (young_size, _, _) = heap.committed_sizes();
+    let young_size = heap.committed_sizes().young;
 
     return if young_size <= M {
         CollectionKind::Full
@@ -73,8 +73,8 @@ pub fn stop(
     let gc_duration = config.gc_start.expect("not started").elapsed();
     let gc_duration_ms = gc_duration.as_secs_f32() * 1000.0f32;
 
-    let (_young_size, old_space_size, large_space_size) = heap.committed_sizes();
-    let old_size = old_space_size + large_space_size;
+    let committed_sizes = heap.committed_sizes();
+    let old_size = committed_sizes.old + committed_sizes.large;
     config.old_size = old_size;
 
     let max_young_size = if let Some(young_size) = args.young_size() {

@@ -161,11 +161,10 @@ impl<'a> FullCollector<'a> {
             }
         });
 
-        let (_young_committed_size, old_committed_size, large_committed_size) =
-            self.swiper.heap.committed_sizes();
+        let committed_sizes = self.swiper.heap.committed_sizes();
 
-        assert_eq!(computed_old_committed_size, old_committed_size);
-        assert_eq!(computed_large_committed_size, large_committed_size);
+        assert_eq!(computed_old_committed_size, committed_sizes.old);
+        assert_eq!(computed_large_committed_size, committed_sizes.large);
     }
 }
 
