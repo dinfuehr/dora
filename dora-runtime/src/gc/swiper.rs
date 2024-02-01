@@ -17,7 +17,7 @@ use crate::gc::swiper::readonly::ReadOnlySpace;
 use crate::gc::swiper::sweeper::Sweeper;
 use crate::gc::swiper::verify::{Verifier, VerifierPhase};
 use crate::gc::swiper::young::YoungGen;
-use crate::gc::{tlab, Address, Collector, GcReason, Region, K};
+use crate::gc::{tlab, Address, Collector, GcReason, Region, Worklist, K};
 use crate::mem;
 use crate::object::Obj;
 use crate::os::{self, Reservation};
@@ -73,6 +73,7 @@ pub struct Swiper {
 
     sweeper: Sweeper,
     remset: RwLock<Vec<Address>>,
+    remset2: RwLock<Worklist>,
 
     // minimum & maximum heap size
     min_heap_size: usize,
@@ -127,6 +128,7 @@ impl Swiper {
             config,
             sweeper: Sweeper::new(),
             remset: RwLock::new(Vec::new()),
+            remset2: RwLock::new(Worklist::new()),
 
             min_heap_size,
             max_heap_size,
@@ -313,7 +315,7 @@ impl Collector for Swiper {
         None
     }
 
-    fn alloc(&self, vm: &VM, size: usize) -> Address {
+    fn alloc_object(&self, vm: &VM, size: usize) -> Address {
         if size < LARGE_OBJECT_SIZE {
             self.alloc_normal(vm, size)
         } else {

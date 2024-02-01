@@ -13,6 +13,7 @@ use crate::gc::space::{default_readonly_space_config, Space};
 use crate::gc::sweep::SweepCollector;
 use crate::gc::swiper::{align_page_up, is_page_aligned, Swiper};
 use crate::gc::tlab::MAX_TLAB_OBJECT_SIZE;
+use crate::gc::worklist::Worklist;
 use crate::gc::zero::ZeroCollector;
 use crate::mem;
 use crate::object::{Header, Obj};
@@ -37,6 +38,7 @@ pub mod space;
 pub mod sweep;
 pub mod swiper;
 pub mod tlab;
+pub mod worklist;
 pub mod zero;
 
 pub const K: usize = 1024;
@@ -121,7 +123,7 @@ impl Gc {
         if size < MAX_TLAB_OBJECT_SIZE && self.supports_tlab {
             self.alloc_in_lab(vm, size)
         } else {
-            self.collector.alloc(vm, size)
+            self.collector.alloc_object(vm, size)
         }
     }
 
@@ -192,7 +194,7 @@ impl Gc {
 trait Collector {
     // allocate object of given size
     fn alloc_tlab_area(&self, vm: &VM, size: usize) -> Option<Region>;
-    fn alloc(&self, vm: &VM, size: usize) -> Address;
+    fn alloc_object(&self, vm: &VM, size: usize) -> Address;
     fn alloc_readonly(&self, vm: &VM, size: usize) -> Address;
 
     // collect garbage
