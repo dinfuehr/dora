@@ -14,9 +14,6 @@ const SEGMENT_ENTRY_CAPACITY: usize =
 pub struct Worklist {
     head: *mut SegmentHeader,
     tail: *mut SegmentHeader,
-
-    next: *mut Address,
-    limit: *mut Address,
 }
 
 impl Worklist {
@@ -24,9 +21,6 @@ impl Worklist {
         Worklist {
             head: ptr::null_mut(),
             tail: ptr::null_mut(),
-
-            next: ptr::null_mut(),
-            limit: ptr::null_mut(),
         }
     }
 
@@ -41,36 +35,6 @@ impl Worklist {
 
         other.head = ptr::null_mut();
         other.tail = ptr::null_mut();
-
-        self.next = ptr::null_mut();
-        self.limit = ptr::null_mut();
-    }
-
-    pub fn push(&mut self, address: Address) {
-        if self.next < self.limit {
-            unsafe {
-                ptr::write(self.next, address);
-                self.next = self.next.add(1);
-            }
-        } else {
-            let new_segment = alloc_segment();
-
-            if self.head.is_null() {
-                self.head = new_segment.as_ptr();
-                self.tail = new_segment.as_ptr();
-            } else {
-                self.tail_mut().next = new_segment.as_ptr();
-                self.tail = new_segment.as_ptr();
-            }
-
-            unsafe {
-                ptr::write((*new_segment.as_ptr()).data_raw_mut(), address);
-                self.next = (*new_segment.as_ptr()).data_raw_mut().add(1);
-                self.limit = (*new_segment.as_ptr()).limit_raw_mut();
-            }
-
-            debug_assert!(self.next < self.limit);
-        }
     }
 
     fn push_segment(&mut self, segment: WorklistSegment) {
@@ -94,9 +58,14 @@ impl Worklist {
         } else {
             let result = self.head;
             let new_head = self.head().next;
+
             self.head = new_head;
             if new_head.is_null() {
                 self.tail = ptr::null_mut();
+            }
+
+            unsafe {
+                (*result).next = ptr::null_mut();
             }
 
             Some(WorklistSegment {
@@ -122,11 +91,11 @@ impl Worklist {
     }
 
     fn head(&self) -> &SegmentHeader {
-        unsafe { &*self.tail }
+        unsafe { &*self.head }
     }
 
     fn head_mut(&mut self) -> &mut SegmentHeader {
-        unsafe { &mut *self.tail }
+        unsafe { &mut *self.head }
     }
 
     fn tail(&self) -> &SegmentHeader {
@@ -163,8 +132,8 @@ impl WorklistSegment {
         unsafe { self.ptr.as_mut().pop() }
     }
 
-    pub fn len(&mut self) -> usize {
-        unsafe { self.ptr.as_mut().len() }
+    pub fn len(&self) -> usize {
+        unsafe { self.ptr.as_ref().len() }
     }
 }
 
@@ -249,45 +218,27 @@ mod tests {
     use super::{Worklist, WorklistSegment, SEGMENT_ENTRY_CAPACITY};
 
     #[test]
-    fn push_into_worklist() {
-        for size in [
-            SEGMENT_ENTRY_CAPACITY + 1,
-            SEGMENT_ENTRY_CAPACITY * 2 + 1,
-            SEGMENT_ENTRY_CAPACITY * 3 + 1,
-        ] {
-            let mut vec = Worklist::new();
+    fn segments_in_worklist() {
+        let mut worklist = Worklist::new();
+        const SEGMENTS: usize = 10;
+
+        for size in 0..SEGMENTS {
+            let mut seg = WorklistSegment::new();
             for _ in 0..size {
-                vec.push(Address::null());
+                seg.push(Address::null());
             }
+            assert_eq!(seg.len(), size);
+            worklist.push_segment(seg);
         }
-    }
 
-    #[test]
-    fn append_to_worklist() {
-        for size in [
-            SEGMENT_ENTRY_CAPACITY + 1,
-            SEGMENT_ENTRY_CAPACITY * 2 + 1,
-            SEGMENT_ENTRY_CAPACITY * 3 + 1,
-        ] {
-            let mut vec = Worklist::new();
-            for _ in 0..size {
-                vec.push(Address::null());
-            }
+        let mut popped = 0;
 
-            for size in [0, 1, SEGMENT_ENTRY_CAPACITY, SEGMENT_ENTRY_CAPACITY + 1] {
-                let mut target = Worklist::new();
-
-                for _ in 0..size {
-                    target.push(Address::null());
-                }
-
-                target.append(&mut vec);
-            }
-
-            for _ in 0..size {
-                vec.push(Address::null());
-            }
+        while let Some(seg) = worklist.pop_segment() {
+            assert_eq!(seg.len(), popped);
+            popped += 1;
         }
+
+        assert_eq!(popped, SEGMENTS);
     }
 
     #[test]

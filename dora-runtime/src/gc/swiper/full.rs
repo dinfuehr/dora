@@ -5,8 +5,7 @@ use std::time::Instant;
 use crate::gc::swiper::controller::FullCollectorPhases;
 use crate::gc::swiper::{walk_region, Swiper, PAGE_SIZE};
 use crate::gc::swiper::{BasePage, LargeSpace, OldGen, RegularPage, YoungGen};
-use crate::gc::{iterate_weak_roots, Slot};
-use crate::gc::{Address, GcReason, Region};
+use crate::gc::{iterate_weak_roots, Address, GcReason, Region, Slot};
 use crate::threads::DoraThread;
 use crate::vm::VM;
 
