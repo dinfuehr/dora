@@ -16,8 +16,9 @@ use crate::size::InstanceSize;
 use crate::stdlib;
 use crate::threads::ThreadLocalData;
 use crate::vm::{
-    create_enum_instance, create_struct_instance, get_concrete_tuple_bty_array, ClassInstance,
-    CodeDescriptor, EnumLayout, GcPoint, LazyCompilationSite, Trap, INITIALIZED, VM,
+    create_enum_instance, create_struct_instance, get_concrete_tuple_bty,
+    get_concrete_tuple_bty_array, ClassInstance, CodeDescriptor, EnumLayout, GcPoint,
+    LazyCompilationSite, Trap, INITIALIZED, VM,
 };
 use dora_bytecode::{BytecodeType, BytecodeTypeArray, FunctionId, GlobalId, Location, StructId};
 
@@ -229,6 +230,116 @@ impl<'a> BaselineAssembler<'a> {
 
     pub fn store_zero(&mut self, mode: MachineMode, mem: Mem) {
         self.masm.store_zero(mode, mem);
+    }
+
+    pub fn store_field(
+        &mut self,
+        obj: RegOrOffset,
+        obj_reg: Reg,
+        offset: i32,
+        value: RegOrOffset,
+        ty: BytecodeType,
+    ) {
+        match &ty {
+            BytecodeType::Unit => {
+                // nothing to do
+            }
+
+            BytecodeType::Tuple(subtypes) => {
+                self.copy_tuple(
+                    subtypes.clone(),
+                    RegOrOffset::RegWithOffset(obj_reg, offset),
+                    value,
+                );
+
+                if self.vm.gc.needs_write_barrier()
+                    && get_concrete_tuple_bty(self.vm, &ty).contains_references()
+                {
+                    self.load_mem(MachineMode::Ptr, obj_reg.into(), obj.mem());
+                    self.emit_write_barrier(obj_reg, REG_TMP1);
+                }
+            }
+
+            BytecodeType::Struct(struct_id, type_params) => {
+                self.copy_struct(
+                    *struct_id,
+                    type_params.clone(),
+                    RegOrOffset::RegWithOffset(obj_reg, offset),
+                    value,
+                );
+
+                let struct_instance_id =
+                    create_struct_instance(self.vm, *struct_id, type_params.clone());
+                let struct_instance = self.vm.struct_instances.idx(struct_instance_id);
+
+                if self.vm.gc.needs_write_barrier() && struct_instance.contains_references() {
+                    self.load_mem(MachineMode::Ptr, obj_reg.into(), obj.mem());
+                    self.emit_write_barrier(obj_reg, REG_TMP1);
+                }
+            }
+
+            BytecodeType::Enum(enum_id, type_params) => {
+                let value_reg = if obj_reg == REG_TMP1 {
+                    REG_TMP2
+                } else {
+                    REG_TMP1
+                };
+
+                let enum_instance_id = create_enum_instance(self.vm, *enum_id, type_params.clone());
+                let enum_instance = self.vm.enum_instances.idx(enum_instance_id);
+
+                let mode = match enum_instance.layout {
+                    EnumLayout::Int => MachineMode::Int32,
+                    EnumLayout::Ptr | EnumLayout::Tagged => MachineMode::Ptr,
+                };
+
+                self.load_mem(mode, value_reg.into(), value.mem());
+                self.store_mem(mode, Mem::Base(obj_reg, offset), value_reg.into());
+
+                if self.vm.gc.needs_write_barrier() && mode == MachineMode::Ptr {
+                    self.load_mem(MachineMode::Ptr, obj_reg.into(), obj.mem());
+                    self.emit_write_barrier(obj_reg, REG_TMP1);
+                }
+            }
+
+            BytecodeType::TypeAlias(..)
+            | BytecodeType::TypeParam(_)
+            | BytecodeType::Class(_, _)
+            | BytecodeType::Lambda(_, _)
+            | BytecodeType::This => {
+                unreachable!()
+            }
+            BytecodeType::UInt8
+            | BytecodeType::Bool
+            | BytecodeType::Char
+            | BytecodeType::Int32
+            | BytecodeType::Int64
+            | BytecodeType::Float32
+            | BytecodeType::Float64 => {
+                let value_reg = result_reg(self.vm, ty.clone());
+                let mode = mode(self.vm, ty.clone());
+
+                self.load_mem(mode, value_reg.into(), value.mem());
+                self.store_mem(mode, Mem::Base(obj_reg, offset), value_reg);
+            }
+
+            BytecodeType::Ptr | BytecodeType::Trait(_, _) => {
+                let value_reg = if obj_reg == REG_TMP1 {
+                    REG_TMP2
+                } else {
+                    REG_TMP1
+                };
+                let mode = MachineMode::Ptr;
+
+                self.load_mem(mode, value_reg.into(), value.mem());
+                self.store_mem(mode, Mem::Base(obj_reg, offset), value_reg.into());
+
+                if self.vm.gc.needs_write_barrier() {
+                    self.load_mem(MachineMode::Ptr, obj_reg.into(), obj.mem());
+                    self.emit_write_barrier(obj_reg, value_reg);
+                }
+            }
+        }
     }
 
     pub fn lea(&mut self, dest: Reg, mem: Mem) {
@@ -1296,6 +1407,14 @@ impl<'a> BaselineAssembler<'a> {
         self.masm.raw_call(self.vm.native_methods.trap_trampoline());
         self.masm.emit_gcpoint(GcPoint::new());
         self.masm.emit_position(location);
+    }
+}
+
+fn result_reg(vm: &VM, bytecode_type: BytecodeType) -> AnyReg {
+    if mode(vm, bytecode_type).is_float() {
+        FREG_RESULT.into()
+    } else {
+        REG_RESULT.into()
     }
 }
 

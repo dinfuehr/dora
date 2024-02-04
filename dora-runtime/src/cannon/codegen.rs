@@ -1379,117 +1379,11 @@ impl<'a> CannonCodeGen<'a> {
         let bytecode_type = self.specialize_register_type(src);
         assert_eq!(bytecode_type, register_ty(field.ty.clone()));
 
-        self.emit_store_field_raw(obj, obj_reg, field.offset, src);
-    }
-
-    fn emit_store_field_raw(&mut self, obj: Register, obj_reg: Reg, offset: i32, value: Register) {
-        let ty = self.specialize_register_type(value);
-
-        match &ty {
-            BytecodeType::Unit => {
-                // nothing to do
-            }
-
-            BytecodeType::Tuple(subtypes) => {
-                let src_offset = self.register_offset(value);
-                self.asm.copy_tuple(
-                    subtypes.clone(),
-                    RegOrOffset::RegWithOffset(obj_reg, offset),
-                    RegOrOffset::Offset(src_offset),
-                );
-
-                if self.vm.gc.needs_write_barrier()
-                    && get_concrete_tuple_bty(self.vm, &ty).contains_references()
-                {
-                    self.emit_load_register(obj, obj_reg.into());
-                    self.asm.emit_write_barrier(obj_reg, REG_TMP1);
-                }
-            }
-
-            BytecodeType::Struct(struct_id, type_params) => {
-                let src_offset = self.register_offset(value);
-                self.asm.copy_struct(
-                    *struct_id,
-                    type_params.clone(),
-                    RegOrOffset::RegWithOffset(obj_reg, offset),
-                    RegOrOffset::Offset(src_offset),
-                );
-
-                let struct_instance_id =
-                    create_struct_instance(self.vm, *struct_id, type_params.clone());
-                let struct_instance = self.vm.struct_instances.idx(struct_instance_id);
-
-                if self.vm.gc.needs_write_barrier() && struct_instance.contains_references() {
-                    self.emit_load_register(obj, obj_reg.into());
-                    self.asm.emit_write_barrier(obj_reg, REG_TMP1);
-                }
-            }
-
-            BytecodeType::Enum(enum_id, type_params) => {
-                let value_reg = if obj_reg == REG_TMP1 {
-                    REG_TMP2
-                } else {
-                    REG_TMP1
-                };
-
-                let enum_instance_id = create_enum_instance(self.vm, *enum_id, type_params.clone());
-                let enum_instance = self.vm.enum_instances.idx(enum_instance_id);
-
-                let mode = match enum_instance.layout {
-                    EnumLayout::Int => MachineMode::Int32,
-                    EnumLayout::Ptr | EnumLayout::Tagged => MachineMode::Ptr,
-                };
-
-                self.emit_load_register_as(value, value_reg.into(), mode);
-                self.asm
-                    .store_mem(mode, Mem::Base(obj_reg, offset), value_reg.into());
-
-                if self.vm.gc.needs_write_barrier() && mode == MachineMode::Ptr {
-                    self.emit_load_register(obj, obj_reg.into());
-                    self.asm.emit_write_barrier(obj_reg, REG_TMP1);
-                }
-            }
-
-            BytecodeType::TypeAlias(..)
-            | BytecodeType::TypeParam(_)
-            | BytecodeType::Class(_, _)
-            | BytecodeType::Lambda(_, _)
-            | BytecodeType::This => {
-                unreachable!()
-            }
-            BytecodeType::UInt8
-            | BytecodeType::Bool
-            | BytecodeType::Char
-            | BytecodeType::Int32
-            | BytecodeType::Int64
-            | BytecodeType::Float32
-            | BytecodeType::Float64 => {
-                let value_reg = result_reg(self.vm, ty.clone());
-                let mode = mode(self.vm, ty.clone());
-
-                self.emit_load_register(value, value_reg.into());
-                self.asm
-                    .store_mem(mode, Mem::Base(obj_reg, offset), value_reg);
-            }
-
-            BytecodeType::Ptr | BytecodeType::Trait(_, _) => {
-                let value_reg = if obj_reg == REG_TMP1 {
-                    REG_TMP2
-                } else {
-                    REG_TMP1
-                };
-                let mode = MachineMode::Ptr;
-
-                self.emit_load_register(value, value_reg.into());
-                self.asm
-                    .store_mem(mode, Mem::Base(obj_reg, offset), value_reg.into());
-
-                if self.vm.gc.needs_write_barrier() {
-                    self.emit_load_register(obj, obj_reg.into());
-                    self.asm.emit_write_barrier(obj_reg, value_reg);
-                }
-            }
-        }
+        let ty = self.specialize_register_type(src);
+        let obj = RegOrOffset::Offset(self.register_offset(obj));
+        let src_reg = RegOrOffset::Offset(self.register_offset(src));
+        self.asm
+            .store_field(obj, obj_reg, field.offset, src_reg, ty);
     }
 
     fn emit_load_global(&mut self, dest: Register, global_id: GlobalId) {
@@ -1948,7 +1842,11 @@ impl<'a> CannonCodeGen<'a> {
 
         // Initialize all class fields.
         for (&argument, field) in arguments.iter().zip(class_instance.fields.iter()) {
-            self.emit_store_field_raw(dest, obj_reg, field.offset, argument);
+            let ty = self.specialize_register_type(argument);
+            let dest = RegOrOffset::Offset(self.register_offset(dest));
+            let argument = RegOrOffset::Offset(self.register_offset(argument));
+            self.asm
+                .store_field(dest, obj_reg, field.offset, argument, ty);
         }
     }
 
