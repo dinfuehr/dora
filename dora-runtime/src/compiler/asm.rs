@@ -4,8 +4,8 @@ use crate::cannon::codegen::{mode, result_passed_as_argument, result_reg_mode, s
 use crate::compiler::codegen::{ensure_runtime_entry_trampoline, AllocationSize, AnyReg};
 use crate::compiler::runtime_entry_trampoline::{NativeFct, NativeFctKind};
 use crate::cpu::{
-    FReg, Reg, FREG_RESULT, REG_PARAMS, REG_RESULT, REG_SP, REG_THREAD, REG_TMP1, REG_TMP2,
-    STACK_FRAME_ALIGNMENT,
+    FReg, Reg, FREG_RESULT, FREG_TMP1, REG_PARAMS, REG_RESULT, REG_SP, REG_THREAD, REG_TMP1,
+    REG_TMP2, STACK_FRAME_ALIGNMENT,
 };
 use crate::gc::tlab::MAX_TLAB_OBJECT_SIZE;
 use crate::gc::Address;
@@ -159,8 +159,9 @@ impl<'a> BaselineAssembler<'a> {
                     EnumLayout::Ptr | EnumLayout::Tagged => MachineMode::Ptr,
                 };
 
-                self.load_mem(mode, REG_RESULT.into(), src.mem());
-                self.store_mem(mode, dest.mem(), REG_RESULT.into());
+                let reg = self.get_scratch();
+                self.load_mem(mode, (*reg).into(), src.mem());
+                self.store_mem(mode, dest.mem(), (*reg).into());
             }
 
             BytecodeType::Struct(struct_id, type_params) => {
@@ -175,24 +176,29 @@ impl<'a> BaselineAssembler<'a> {
             | BytecodeType::Trait(_, _)
             | BytecodeType::Class(_, _)
             | BytecodeType::Lambda(_, _) => {
-                let mode = MachineMode::Ptr;
-                let reg = REG_RESULT;
-                self.load_mem(mode, reg.into(), src.mem());
-                self.test_if_nil_bailout(Location::new(1, 1), reg, Trap::ILLEGAL);
-                self.store_mem(mode, dest.mem(), reg.into());
+                let mode: MachineMode = MachineMode::Ptr;
+                let reg = self.get_scratch();
+                self.load_mem(mode, (*reg).into(), src.mem());
+                self.test_if_nil_bailout(Location::new(1, 1), *reg, Trap::ILLEGAL);
+                self.store_mem(mode, dest.mem(), (*reg).into());
             }
 
             BytecodeType::UInt8
             | BytecodeType::Bool
             | BytecodeType::Char
             | BytecodeType::Int32
-            | BytecodeType::Int64
-            | BytecodeType::Float32
-            | BytecodeType::Float64 => {
+            | BytecodeType::Int64 => {
                 let mode = mode(self.vm, ty);
                 let reg = result_reg_mode(mode);
                 self.load_mem(mode, reg, src.mem());
                 self.store_mem(mode, dest.mem(), reg);
+            }
+
+            BytecodeType::Float32 | BytecodeType::Float64 => {
+                let mode = mode(self.vm, ty);
+                let reg = FREG_TMP1;
+                self.load_mem(mode, reg.into(), src.mem());
+                self.store_mem(mode, dest.mem(), reg.into());
             }
         }
     }
@@ -279,11 +285,7 @@ impl<'a> BaselineAssembler<'a> {
             }
 
             BytecodeType::Enum(enum_id, type_params) => {
-                let value_reg = if obj_reg == REG_TMP1 {
-                    REG_TMP2
-                } else {
-                    REG_TMP1
-                };
+                let value_reg = self.masm.get_scratch();
 
                 let enum_instance_id = create_enum_instance(self.vm, *enum_id, type_params.clone());
                 let enum_instance = self.vm.enum_instances.idx(enum_instance_id);
@@ -293,12 +295,12 @@ impl<'a> BaselineAssembler<'a> {
                     EnumLayout::Ptr | EnumLayout::Tagged => MachineMode::Ptr,
                 };
 
-                self.load_mem(mode, value_reg.into(), value.mem());
-                self.store_mem(mode, Mem::Base(obj_reg, offset), value_reg.into());
+                self.load_mem(mode, (*value_reg).into(), value.mem());
+                self.store_mem(mode, Mem::Base(obj_reg, offset), (*value_reg).into());
 
                 if self.vm.gc.needs_write_barrier() && mode == MachineMode::Ptr {
                     self.load_mem(MachineMode::Ptr, obj_reg.into(), obj.mem());
-                    self.emit_write_barrier(obj_reg, REG_TMP1);
+                    self.emit_write_barrier(obj_reg, (*value_reg).into());
                 }
             }
 
@@ -309,34 +311,37 @@ impl<'a> BaselineAssembler<'a> {
             | BytecodeType::This => {
                 unreachable!()
             }
+
             BytecodeType::UInt8
             | BytecodeType::Bool
             | BytecodeType::Char
             | BytecodeType::Int32
-            | BytecodeType::Int64
-            | BytecodeType::Float32
-            | BytecodeType::Float64 => {
-                let value_reg = result_reg(self.vm, ty.clone());
+            | BytecodeType::Int64 => {
+                let value_reg = self.masm.get_scratch();
+                let mode = mode(self.vm, ty.clone());
+
+                self.load_mem(mode, (*value_reg).into(), value.mem());
+                self.store_mem(mode, Mem::Base(obj_reg, offset), (*value_reg).into());
+            }
+
+            BytecodeType::Float32 | BytecodeType::Float64 => {
+                let value_reg = FREG_TMP1;
                 let mode = mode(self.vm, ty.clone());
 
                 self.load_mem(mode, value_reg.into(), value.mem());
-                self.store_mem(mode, Mem::Base(obj_reg, offset), value_reg);
+                self.store_mem(mode, Mem::Base(obj_reg, offset), value_reg.into());
             }
 
             BytecodeType::Ptr | BytecodeType::Trait(_, _) => {
-                let value_reg = if obj_reg == REG_TMP1 {
-                    REG_TMP2
-                } else {
-                    REG_TMP1
-                };
+                let value_reg = self.masm.get_scratch();
                 let mode = MachineMode::Ptr;
 
-                self.load_mem(mode, value_reg.into(), value.mem());
-                self.store_mem(mode, Mem::Base(obj_reg, offset), value_reg.into());
+                self.load_mem(mode, (*value_reg).into(), value.mem());
+                self.store_mem(mode, Mem::Base(obj_reg, offset), (*value_reg).into());
 
                 if self.vm.gc.needs_write_barrier() {
                     self.load_mem(MachineMode::Ptr, obj_reg.into(), obj.mem());
-                    self.emit_write_barrier(obj_reg, value_reg);
+                    self.emit_write_barrier(obj_reg, (*value_reg).into());
                 }
             }
         }
