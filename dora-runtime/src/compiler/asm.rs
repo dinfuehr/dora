@@ -333,17 +333,17 @@ impl<'a> BaselineAssembler<'a> {
         self.masm.load_false(dest);
     }
 
-    pub fn emit_write_barrier(&mut self, obj: Reg) {
-        self.emit_object_write_barrier(obj);
+    pub fn emit_write_barrier(&mut self, host: Reg, value: Reg) {
+        self.emit_object_write_barrier(host, value);
     }
 
-    fn emit_object_write_barrier(&mut self, src: Reg) {
-        let lbl_slow_path = self.masm.emit_object_write_barrier_fast_path(src);
+    fn emit_object_write_barrier(&mut self, host: Reg, _value: Reg) {
+        let lbl_slow_path = self.masm.emit_object_write_barrier_fast_path(host);
         let lbl_return = self.masm.create_and_bind_label();
         self.slow_paths.push(SlowPathKind::ObjectWriteBarrier {
             lbl_start: lbl_slow_path,
             lbl_return,
-            object: src,
+            object: host,
         });
     }
 

@@ -1472,7 +1472,7 @@ impl<'a> CannonCodeGen<'a> {
 
         if self.vm.gc.needs_write_barrier() && needs_write_barrier {
             self.emit_load_register(obj, REG_RESULT.into());
-            self.asm.emit_write_barrier(REG_RESULT);
+            self.asm.emit_write_barrier(REG_RESULT, REG_TMP1);
         }
     }
 
@@ -2372,7 +2372,7 @@ impl<'a> CannonCodeGen<'a> {
 
                 if self.vm.gc.needs_write_barrier() && needs_write_barrier {
                     self.emit_load_register(arr, REG_RESULT.into());
-                    self.asm.emit_write_barrier(REG_RESULT);
+                    self.asm.emit_write_barrier(REG_RESULT, REG_TMP1);
                 }
             }
 
@@ -2396,7 +2396,7 @@ impl<'a> CannonCodeGen<'a> {
 
                 if self.vm.gc.needs_write_barrier() && needs_write_barrier {
                     self.emit_load_register(arr, REG_RESULT.into());
-                    self.asm.emit_write_barrier(REG_RESULT);
+                    self.asm.emit_write_barrier(REG_RESULT, REG_TMP1);
                 }
             }
 
@@ -2423,7 +2423,7 @@ impl<'a> CannonCodeGen<'a> {
 
                 if self.vm.gc.needs_write_barrier() && needs_write_barrier {
                     self.emit_load_register(arr, REG_RESULT.into());
-                    self.asm.emit_write_barrier(REG_RESULT);
+                    self.asm.emit_write_barrier(REG_RESULT, REG_TMP1);
                 }
             }
 
@@ -2468,7 +2468,7 @@ impl<'a> CannonCodeGen<'a> {
 
                 if self.vm.gc.needs_write_barrier() && needs_write_barrier {
                     self.emit_load_register(arr, REG_RESULT.into());
-                    self.asm.emit_write_barrier(REG_RESULT);
+                    self.asm.emit_write_barrier(REG_RESULT, REG_TMP1);
                 }
             }
         }
