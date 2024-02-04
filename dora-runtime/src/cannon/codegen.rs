@@ -1384,12 +1384,10 @@ impl<'a> CannonCodeGen<'a> {
 
     fn emit_store_field_raw(&mut self, obj: Register, obj_reg: Reg, offset: i32, value: Register) {
         let ty = self.specialize_register_type(value);
-        let needs_write_barrier;
 
         match &ty {
             BytecodeType::Unit => {
                 // nothing to do
-                needs_write_barrier = false;
             }
 
             BytecodeType::Tuple(subtypes) => {
@@ -1400,7 +1398,12 @@ impl<'a> CannonCodeGen<'a> {
                     RegOrOffset::Offset(src_offset),
                 );
 
-                needs_write_barrier = get_concrete_tuple_bty(self.vm, &ty).contains_references()
+                if self.vm.gc.needs_write_barrier()
+                    && get_concrete_tuple_bty(self.vm, &ty).contains_references()
+                {
+                    self.emit_load_register(obj, obj_reg.into());
+                    self.asm.emit_write_barrier(obj_reg, REG_TMP1);
+                }
             }
 
             BytecodeType::Struct(struct_id, type_params) => {
@@ -1415,10 +1418,20 @@ impl<'a> CannonCodeGen<'a> {
                 let struct_instance_id =
                     create_struct_instance(self.vm, *struct_id, type_params.clone());
                 let struct_instance = self.vm.struct_instances.idx(struct_instance_id);
-                needs_write_barrier = struct_instance.contains_references();
+
+                if self.vm.gc.needs_write_barrier() && struct_instance.contains_references() {
+                    self.emit_load_register(obj, obj_reg.into());
+                    self.asm.emit_write_barrier(obj_reg, REG_TMP1);
+                }
             }
 
             BytecodeType::Enum(enum_id, type_params) => {
+                let value_reg = if obj_reg == REG_TMP1 {
+                    REG_TMP2
+                } else {
+                    REG_TMP1
+                };
+
                 let enum_instance_id = create_enum_instance(self.vm, *enum_id, type_params.clone());
                 let enum_instance = self.vm.enum_instances.idx(enum_instance_id);
 
@@ -1427,11 +1440,14 @@ impl<'a> CannonCodeGen<'a> {
                     EnumLayout::Ptr | EnumLayout::Tagged => MachineMode::Ptr,
                 };
 
-                self.emit_load_register_as(value, REG_RESULT.into(), mode);
+                self.emit_load_register_as(value, value_reg.into(), mode);
                 self.asm
-                    .store_mem(mode, Mem::Base(obj_reg, offset), REG_RESULT.into());
+                    .store_mem(mode, Mem::Base(obj_reg, offset), value_reg.into());
 
-                needs_write_barrier = mode == MachineMode::Ptr;
+                if self.vm.gc.needs_write_barrier() && mode == MachineMode::Ptr {
+                    self.emit_load_register(obj, obj_reg.into());
+                    self.asm.emit_write_barrier(obj_reg, REG_TMP1);
+                }
             }
 
             BytecodeType::TypeAlias(..)
@@ -1454,25 +1470,25 @@ impl<'a> CannonCodeGen<'a> {
                 self.emit_load_register(value, value_reg.into());
                 self.asm
                     .store_mem(mode, Mem::Base(obj_reg, offset), value_reg);
-
-                needs_write_barrier = false;
             }
 
             BytecodeType::Ptr | BytecodeType::Trait(_, _) => {
-                let value_reg = REG_RESULT;
+                let value_reg = if obj_reg == REG_TMP1 {
+                    REG_TMP2
+                } else {
+                    REG_TMP1
+                };
                 let mode = MachineMode::Ptr;
 
                 self.emit_load_register(value, value_reg.into());
                 self.asm
                     .store_mem(mode, Mem::Base(obj_reg, offset), value_reg.into());
 
-                needs_write_barrier = true;
+                if self.vm.gc.needs_write_barrier() {
+                    self.emit_load_register(obj, obj_reg.into());
+                    self.asm.emit_write_barrier(obj_reg, value_reg);
+                }
             }
-        }
-
-        if self.vm.gc.needs_write_barrier() && needs_write_barrier {
-            self.emit_load_register(obj, REG_RESULT.into());
-            self.asm.emit_write_barrier(REG_RESULT, REG_TMP1);
         }
     }
 
