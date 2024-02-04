@@ -17,15 +17,14 @@ use crate::gc::swiper::readonly::ReadOnlySpace;
 use crate::gc::swiper::sweeper::Sweeper;
 use crate::gc::swiper::verify::{Verifier, VerifierPhase};
 use crate::gc::swiper::young::YoungGen;
-use crate::gc::{tlab, Address, Collector, GcReason, Region, Worklist, K};
+use crate::gc::tlab::{MAX_TLAB_SIZE, MIN_TLAB_SIZE};
+use crate::gc::{tlab, Address, Collector, GcReason, Region, Worklist, WorklistSegment, K};
 use crate::mem;
 use crate::object::Obj;
 use crate::os::{self, Reservation};
 use crate::safepoint;
 use crate::threads::DoraThread;
 use crate::vm::{get_vm, Flags, VM};
-
-use super::tlab::{MAX_TLAB_SIZE, MIN_TLAB_SIZE};
 
 mod controller;
 mod full;
@@ -60,7 +59,7 @@ pub fn is_page_aligned(size: usize) -> bool {
     (size & (PAGE_SIZE - 1)) == 0
 }
 
-fn get_swiper(vm: &VM) -> &Swiper {
+pub fn get_swiper(vm: &VM) -> &Swiper {
     vm.gc.collector.to_swiper()
 }
 
@@ -279,6 +278,10 @@ impl Swiper {
         self.large
             .alloc(&self.heap, size)
             .unwrap_or(Address::null())
+    }
+
+    pub fn add_remset_segment(&self, segment: WorklistSegment) {
+        self.remset2.write().push_segment(segment);
     }
 }
 

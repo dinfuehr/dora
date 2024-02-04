@@ -13,7 +13,7 @@ use crate::gc::space::{default_readonly_space_config, Space};
 use crate::gc::sweep::SweepCollector;
 use crate::gc::swiper::{align_page_up, is_page_aligned, Swiper};
 use crate::gc::tlab::MAX_TLAB_OBJECT_SIZE;
-use crate::gc::worklist::Worklist;
+pub use crate::gc::worklist::{Worklist, WorklistSegment};
 use crate::gc::zero::ZeroCollector;
 use crate::mem;
 use crate::object::{Header, Obj};

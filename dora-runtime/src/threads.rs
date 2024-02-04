@@ -1,3 +1,5 @@
+use std::cell::UnsafeCell;
+
 use parking_lot::{Condvar, Mutex};
 use std::cell::RefCell;
 use std::convert::From;
@@ -5,7 +7,8 @@ use std::ptr;
 use std::sync::atomic::{AtomicBool, AtomicU8, AtomicUsize, Ordering};
 use std::sync::Arc;
 
-use crate::gc::{tlab, Address, Region, K};
+use crate::gc::swiper::get_swiper;
+use crate::gc::{tlab, Address, Region, WorklistSegment, K};
 use crate::handle::HandleMemory;
 use crate::object::{alloc, Header, Ref};
 use crate::stack::DoraToNativeInfo;
@@ -146,6 +149,7 @@ pub struct DoraThread {
     join_data: JoinData,
     blocking_data: BlockingData,
     index_in_thread_list: AtomicUsize,
+    remset: UnsafeCell<Option<WorklistSegment>>,
 }
 
 unsafe impl Sync for DoraThread {}
@@ -164,6 +168,7 @@ impl DoraThread {
             join_data: JoinData::new(),
             blocking_data: BlockingData::new(),
             index_in_thread_list: AtomicUsize::new(usize::MAX),
+            remset: UnsafeCell::new(None),
         })
     }
 
@@ -340,6 +345,23 @@ impl DoraThread {
                 self.join_data.cv_stopped.wait(&mut running);
             }
         });
+    }
+
+    fn add_to_remset(&self, address: Address) {
+        let remset_segment = unsafe { &mut *self.remset.get() };
+
+        if remset_segment.is_none() {
+            let mut segment = WorklistSegment::new();
+            segment.push(address);
+            *remset_segment = Some(segment);
+        } else {
+            let remset_segment = remset_segment.as_mut().expect("missing segment");
+            if !remset_segment.push(address) {
+                let swiper = get_swiper(get_vm());
+                let full_segment = std::mem::replace(remset_segment, WorklistSegment::new());
+                swiper.add_remset_segment(full_segment);
+            }
+        }
     }
 }
 
