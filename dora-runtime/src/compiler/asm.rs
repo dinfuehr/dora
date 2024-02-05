@@ -11,13 +11,14 @@ use crate::gc::tlab::MAX_TLAB_OBJECT_SIZE;
 use crate::gc::Address;
 use crate::masm::{CondCode, Label, MacroAssembler, Mem, ScratchReg};
 use crate::mode::MachineMode;
-use crate::object::Header;
+use crate::object::{offset_of_array_data, Header};
 use crate::size::InstanceSize;
 use crate::stdlib;
 use crate::threads::ThreadLocalData;
 use crate::vm::{
-    create_enum_instance, create_struct_instance, get_concrete_tuple_bty_array, ClassInstance,
-    CodeDescriptor, EnumLayout, GcPoint, LazyCompilationSite, Trap, INITIALIZED, VM,
+    create_enum_instance, create_struct_instance, get_concrete_tuple_bty,
+    get_concrete_tuple_bty_array, ClassInstance, CodeDescriptor, EnumLayout, GcPoint,
+    LazyCompilationSite, Trap, INITIALIZED, VM,
 };
 use dora_bytecode::{BytecodeType, BytecodeTypeArray, FunctionId, GlobalId, Location, StructId};
 
@@ -343,6 +344,127 @@ impl<'a> BaselineAssembler<'a> {
 
                 if self.vm.gc.needs_write_barrier() {
                     self.emit_write_barrier(host_reg, (*value_reg).into());
+                }
+            }
+        }
+    }
+
+    pub fn store_array(
+        &mut self,
+        reload_arr: RegOrOffset,
+        arr_reg: Reg,
+        idx_reg: Reg,
+        value: RegOrOffset,
+        ty: BytecodeType,
+    ) {
+        match ty {
+            BytecodeType::Unit => {}
+
+            BytecodeType::Tuple(ref subtypes) => {
+                let tuple = get_concrete_tuple_bty(self.vm, &ty);
+                let element_size = tuple.size();
+                self.array_address(idx_reg, arr_reg, idx_reg, element_size);
+
+                self.copy_tuple(subtypes.clone(), RegOrOffset::Reg(REG_TMP1), value);
+
+                let needs_write_barrier = tuple.contains_references();
+
+                if self.vm.gc.needs_write_barrier() && needs_write_barrier {
+                    let reg = self.get_scratch();
+                    self.load_mem(MachineMode::Ptr, (*reg).into(), reload_arr.mem());
+                    self.emit_write_barrier(*reg, REG_TMP1);
+                }
+            }
+
+            BytecodeType::Struct(struct_id, type_params) => {
+                let struct_instance_id =
+                    create_struct_instance(self.vm, struct_id, type_params.clone());
+                let struct_instance = self.vm.struct_instances.idx(struct_instance_id);
+
+                self.array_address(idx_reg, arr_reg, idx_reg, struct_instance.size);
+
+                self.copy_struct(
+                    struct_id,
+                    type_params.clone(),
+                    RegOrOffset::Reg(idx_reg),
+                    value,
+                );
+
+                let needs_write_barrier = struct_instance.contains_references();
+
+                if self.vm.gc.needs_write_barrier() && needs_write_barrier {
+                    let reg = self.get_scratch();
+                    self.load_mem(MachineMode::Ptr, (*reg).into(), reload_arr.mem());
+                    self.emit_write_barrier(*reg, REG_TMP1);
+                }
+            }
+
+            BytecodeType::Enum(enum_id, type_params) => {
+                let enum_instance_id = create_enum_instance(self.vm, enum_id, type_params);
+                let enum_instance = self.vm.enum_instances.idx(enum_instance_id);
+
+                let mode = match enum_instance.layout {
+                    EnumLayout::Int => MachineMode::Int32,
+                    EnumLayout::Ptr | EnumLayout::Tagged => MachineMode::Ptr,
+                };
+
+                let value_reg = REG_TMP2.into();
+
+                self.load_mem(mode, value_reg, value.mem());
+
+                self.store_mem(
+                    mode,
+                    Mem::Index(arr_reg, idx_reg, mode.size(), offset_of_array_data()),
+                    value_reg,
+                );
+
+                let needs_write_barrier = mode == MachineMode::Ptr;
+
+                if self.vm.gc.needs_write_barrier() && needs_write_barrier {
+                    let reg = self.get_scratch();
+                    self.load_mem(MachineMode::Ptr, (*reg).into(), reload_arr.mem());
+                    self.emit_write_barrier(*reg, value_reg.reg());
+                }
+            }
+
+            BytecodeType::TypeAlias(..)
+            | BytecodeType::TypeParam(_)
+            | BytecodeType::Class(_, _)
+            | BytecodeType::Lambda(_, _)
+            | BytecodeType::This => {
+                unreachable!()
+            }
+            BytecodeType::UInt8
+            | BytecodeType::Int32
+            | BytecodeType::Bool
+            | BytecodeType::Char
+            | BytecodeType::Int64
+            | BytecodeType::Float32
+            | BytecodeType::Float64
+            | BytecodeType::Ptr
+            | BytecodeType::Trait(_, _) => {
+                let src_mode = mode(self.vm, ty.clone());
+
+                let value_reg: AnyReg = if src_mode.is_float() {
+                    FREG_RESULT.into()
+                } else {
+                    REG_TMP2.into()
+                };
+
+                self.load_mem(src_mode, value_reg, value.mem());
+
+                self.store_mem(
+                    src_mode,
+                    Mem::Index(arr_reg, idx_reg, src_mode.size(), offset_of_array_data()),
+                    value_reg,
+                );
+
+                let needs_write_barrier = ty.is_ptr();
+
+                if self.vm.gc.needs_write_barrier() && needs_write_barrier {
+                    let reg = self.get_scratch();
+                    self.load_mem(MachineMode::Ptr, (*reg).into(), reload_arr.mem());
+                    self.emit_write_barrier(*reg, value_reg.reg());
                 }
             }
         }

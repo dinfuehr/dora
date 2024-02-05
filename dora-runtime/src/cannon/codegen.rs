@@ -13,7 +13,7 @@ use crate::gc::Address;
 use crate::masm::{CondCode, Label, Mem};
 use crate::mem::{self, align_i32};
 use crate::mode::MachineMode;
-use crate::object::{offset_of_array_data, Header, Str};
+use crate::object::{Header, Str};
 use crate::size::InstanceSize;
 use crate::stdlib;
 use crate::vm::{
@@ -2261,127 +2261,8 @@ impl<'a> CannonCodeGen<'a> {
         }
 
         let src_type = self.specialize_register_type(src);
-
-        match src_type {
-            BytecodeType::Unit => {}
-
-            BytecodeType::Tuple(ref subtypes) => {
-                let tuple = get_concrete_tuple_bty(self.vm, &src_type);
-                let element_size = tuple.size();
-                self.asm
-                    .array_address(REG_TMP1, REG_RESULT, REG_TMP1, element_size);
-                let src_offset = self.register_offset(src);
-
-                self.asm.copy_tuple(
-                    subtypes.clone(),
-                    RegOrOffset::Reg(REG_TMP1),
-                    RegOrOffset::Offset(src_offset),
-                );
-
-                let needs_write_barrier = tuple.contains_references();
-
-                if self.vm.gc.needs_write_barrier() && needs_write_barrier {
-                    self.emit_load_register(arr, REG_RESULT.into());
-                    self.asm.emit_write_barrier(REG_RESULT, REG_TMP1);
-                }
-            }
-
-            BytecodeType::Struct(struct_id, type_params) => {
-                let struct_instance_id =
-                    create_struct_instance(self.vm, struct_id, type_params.clone());
-                let struct_instance = self.vm.struct_instances.idx(struct_instance_id);
-
-                self.asm
-                    .array_address(REG_TMP1, REG_RESULT, REG_TMP1, struct_instance.size);
-                let src_offset = self.register_offset(src);
-
-                self.asm.copy_struct(
-                    struct_id,
-                    type_params.clone(),
-                    RegOrOffset::Reg(REG_TMP1),
-                    RegOrOffset::Offset(src_offset),
-                );
-
-                let needs_write_barrier = struct_instance.contains_references();
-
-                if self.vm.gc.needs_write_barrier() && needs_write_barrier {
-                    self.emit_load_register(arr, REG_RESULT.into());
-                    self.asm.emit_write_barrier(REG_RESULT, REG_TMP1);
-                }
-            }
-
-            BytecodeType::Enum(enum_id, type_params) => {
-                let enum_instance_id = create_enum_instance(self.vm, enum_id, type_params);
-                let enum_instance = self.vm.enum_instances.idx(enum_instance_id);
-
-                let mode = match enum_instance.layout {
-                    EnumLayout::Int => MachineMode::Int32,
-                    EnumLayout::Ptr | EnumLayout::Tagged => MachineMode::Ptr,
-                };
-
-                let value_reg = REG_TMP2.into();
-
-                self.emit_load_register_as(src, value_reg, mode);
-
-                self.asm.store_mem(
-                    mode,
-                    Mem::Index(REG_RESULT, REG_TMP1, mode.size(), offset_of_array_data()),
-                    value_reg,
-                );
-
-                let needs_write_barrier = mode == MachineMode::Ptr;
-
-                if self.vm.gc.needs_write_barrier() && needs_write_barrier {
-                    self.emit_load_register(arr, REG_RESULT.into());
-                    self.asm.emit_write_barrier(REG_RESULT, REG_TMP1);
-                }
-            }
-
-            BytecodeType::TypeAlias(..)
-            | BytecodeType::TypeParam(_)
-            | BytecodeType::Class(_, _)
-            | BytecodeType::Lambda(_, _)
-            | BytecodeType::This => {
-                unreachable!()
-            }
-            BytecodeType::UInt8
-            | BytecodeType::Int32
-            | BytecodeType::Bool
-            | BytecodeType::Char
-            | BytecodeType::Int64
-            | BytecodeType::Float32
-            | BytecodeType::Float64
-            | BytecodeType::Ptr
-            | BytecodeType::Trait(_, _) => {
-                let src_mode = mode(self.vm, src_type.clone());
-
-                let value_reg: AnyReg = if src_mode.is_float() {
-                    FREG_RESULT.into()
-                } else {
-                    REG_TMP2.into()
-                };
-
-                self.emit_load_register(src, value_reg.into());
-
-                self.asm.store_mem(
-                    src_mode,
-                    Mem::Index(
-                        REG_RESULT,
-                        REG_TMP1,
-                        src_mode.size(),
-                        offset_of_array_data(),
-                    ),
-                    value_reg,
-                );
-
-                let needs_write_barrier = src_type.is_ptr();
-
-                if self.vm.gc.needs_write_barrier() && needs_write_barrier {
-                    self.emit_load_register(arr, REG_RESULT.into());
-                    self.asm.emit_write_barrier(REG_RESULT, REG_TMP1);
-                }
-            }
-        }
+        self.asm
+            .store_array(self.reg(arr), REG_RESULT, REG_TMP1, self.reg(src), src_type);
     }
 
     fn emit_load_array(&mut self, dest: Register, arr: Register, idx: Register) {
