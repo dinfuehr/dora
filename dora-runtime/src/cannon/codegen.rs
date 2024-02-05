@@ -2261,8 +2261,13 @@ impl<'a> CannonCodeGen<'a> {
         }
 
         let src_type = self.specialize_register_type(src);
+
+        let element_size = size(self.vm, src_type.clone());
         self.asm
-            .store_array(self.reg(arr), REG_RESULT, REG_TMP1, self.reg(src), src_type);
+            .array_address(REG_TMP1, REG_RESULT, REG_TMP1, element_size);
+
+        self.asm
+            .store_array(REG_RESULT, REG_TMP1, 0, self.reg(src), src_type);
     }
 
     fn emit_load_array(&mut self, dest: Register, arr: Register, idx: Register) {
