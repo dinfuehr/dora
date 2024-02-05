@@ -183,15 +183,16 @@ impl<'a> BaselineAssembler<'a> {
                 self.store_mem(mode, dest.mem(), (*reg).into());
             }
 
-            BytecodeType::UInt8
-            | BytecodeType::Bool
-            | BytecodeType::Char
+            BytecodeType::Char
             | BytecodeType::Int32
-            | BytecodeType::Int64 => {
+            | BytecodeType::Int64
+            | BytecodeType::Bool
+            | BytecodeType::UInt8 => {
+                self.emit_comment(format!("broken copy bytecode {:?}", ty));
                 let mode = mode(self.vm, ty);
-                let reg = result_reg_mode(mode);
-                self.load_mem(mode, reg, src.mem());
-                self.store_mem(mode, dest.mem(), reg);
+                let reg = self.masm.get_scratch();
+                self.load_mem(mode, (*reg).into(), src.mem());
+                self.store_mem(mode, dest.mem(), (*reg).into());
             }
 
             BytecodeType::Float32 | BytecodeType::Float64 => {
@@ -1379,11 +1380,8 @@ impl<'a> BaselineAssembler<'a> {
         let disp = self.masm.add_addr(address_value);
         let pos = self.masm.pos() as i32;
         self.masm.load_constpool(REG_TMP1, disp + pos);
-        self.masm
-            .store_mem(MachineMode::Ptr, Mem::Base(REG_TMP1, 0), REG_RESULT.into());
 
         if store_result_on_stack {
-            self.copy_reg(MachineMode::Ptr, REG_PARAMS[0], REG_SP);
             self.copy_bytecode_ty(
                 ty.clone(),
                 RegOrOffset::Reg(REG_TMP1),
