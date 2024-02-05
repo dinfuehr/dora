@@ -4,8 +4,8 @@ use crate::cannon::codegen::{mode, result_passed_as_argument, result_reg_mode, s
 use crate::compiler::codegen::{ensure_runtime_entry_trampoline, AllocationSize, AnyReg};
 use crate::compiler::runtime_entry_trampoline::{NativeFct, NativeFctKind};
 use crate::cpu::{
-    FReg, Reg, FREG_RESULT, FREG_TMP1, REG_PARAMS, REG_RESULT, REG_SP, REG_THREAD, REG_TMP1,
-    REG_TMP2, STACK_FRAME_ALIGNMENT,
+    FReg, Reg, FREG_RESULT, REG_PARAMS, REG_RESULT, REG_SP, REG_THREAD, REG_TMP1, REG_TMP2,
+    STACK_FRAME_ALIGNMENT,
 };
 use crate::gc::tlab::MAX_TLAB_OBJECT_SIZE;
 use crate::gc::Address;
@@ -195,10 +195,15 @@ impl<'a> BaselineAssembler<'a> {
             }
 
             BytecodeType::Float32 | BytecodeType::Float64 => {
-                let mode = mode(self.vm, ty);
-                let reg = FREG_TMP1;
-                self.load_mem(mode, reg.into(), src.mem());
-                self.store_mem(mode, dest.mem(), reg.into());
+                let value_reg = self.masm.get_scratch();
+                let mode = if ty == BytecodeType::Float32 {
+                    MachineMode::Int32
+                } else {
+                    MachineMode::Int64
+                };
+
+                self.load_mem(mode, (*value_reg).into(), src.mem());
+                self.store_mem(mode, dest.mem(), (*value_reg).into());
             }
         }
     }
@@ -325,11 +330,15 @@ impl<'a> BaselineAssembler<'a> {
             }
 
             BytecodeType::Float32 | BytecodeType::Float64 => {
-                let value_reg = FREG_TMP1;
-                let mode = mode(self.vm, ty.clone());
+                let value_reg = self.masm.get_scratch();
+                let mode = if ty == BytecodeType::Float32 {
+                    MachineMode::Int32
+                } else {
+                    MachineMode::Int64
+                };
 
-                self.load_mem(mode, value_reg.into(), value.mem());
-                self.store_mem(mode, Mem::Base(obj_reg, offset), value_reg.into());
+                self.load_mem(mode, (*value_reg).into(), value.mem());
+                self.store_mem(mode, Mem::Base(obj_reg, offset), (*value_reg).into());
             }
 
             BytecodeType::Ptr | BytecodeType::Trait(_, _) => {
