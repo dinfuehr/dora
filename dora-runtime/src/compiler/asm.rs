@@ -562,13 +562,14 @@ impl<'a> BaselineAssembler<'a> {
         self.emit_object_write_barrier(host, value);
     }
 
-    fn emit_object_write_barrier(&mut self, host: Reg, _value: Reg) {
+    fn emit_object_write_barrier(&mut self, host: Reg, value: Reg) {
         let lbl_slow_path = self.masm.emit_object_write_barrier_fast_path(host);
         let lbl_return = self.masm.create_and_bind_label();
         self.slow_paths.push(SlowPathKind::ObjectWriteBarrier {
             lbl_start: lbl_slow_path,
             lbl_return,
             object: host,
+            value,
         });
     }
 
@@ -1371,8 +1372,9 @@ impl<'a> BaselineAssembler<'a> {
                     lbl_start,
                     lbl_return,
                     object,
+                    value,
                 } => {
-                    self.slow_path_object_write_barrier(lbl_start, lbl_return, object);
+                    self.slow_path_object_write_barrier(lbl_start, lbl_return, object, value);
                 }
             }
         }
@@ -1428,11 +1430,18 @@ impl<'a> BaselineAssembler<'a> {
         self.masm.jump(lbl_return);
     }
 
-    fn slow_path_object_write_barrier(&mut self, lbl_start: Label, lbl_return: Label, obj: Reg) {
+    fn slow_path_object_write_barrier(
+        &mut self,
+        lbl_start: Label,
+        lbl_return: Label,
+        obj: Reg,
+        value: Reg,
+    ) {
         self.masm
             .emit_comment("slow path object write barrier".into());
         self.masm.bind_label(lbl_start);
         self.masm.copy_reg(MachineMode::Ptr, REG_PARAMS[0], obj);
+        self.masm.copy_reg(MachineMode::Ptr, REG_PARAMS[1], value);
         let ptr = Address::from_ptr(crate::gc::swiper::object_write_barrier_slow_path as *const u8);
         self.masm.raw_call(ptr);
         self.masm.jump(lbl_return);
@@ -1547,5 +1556,6 @@ enum SlowPathKind {
         lbl_start: Label,
         lbl_return: Label,
         object: Reg,
+        value: Reg,
     },
 }
