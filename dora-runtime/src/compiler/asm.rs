@@ -4,7 +4,7 @@ use crate::cannon::codegen::{mode, result_passed_as_argument, result_reg_mode, s
 use crate::compiler::codegen::{ensure_runtime_entry_trampoline, AllocationSize, AnyReg};
 use crate::compiler::runtime_entry_trampoline::{NativeFct, NativeFctKind};
 use crate::cpu::{
-    FReg, Reg, FREG_RESULT, REG_PARAMS, REG_RESULT, REG_SP, REG_THREAD, REG_TMP1, REG_TMP2,
+    FReg, Reg, FREG_RESULT, REG_PARAMS, REG_RESULT, REG_SP, REG_THREAD, REG_TMP1,
     STACK_FRAME_ALIGNMENT,
 };
 use crate::gc::tlab::MAX_TLAB_OBJECT_SIZE;
@@ -390,6 +390,8 @@ impl<'a> BaselineAssembler<'a> {
             }
 
             BytecodeType::Enum(enum_id, type_params) => {
+                let value_reg = self.get_scratch();
+
                 let enum_instance_id = create_enum_instance(self.vm, enum_id, type_params);
                 let enum_instance = self.vm.enum_instances.idx(enum_instance_id);
 
@@ -398,14 +400,10 @@ impl<'a> BaselineAssembler<'a> {
                     EnumLayout::Ptr | EnumLayout::Tagged => MachineMode::Ptr,
                 };
 
-                let value_reg = self.get_scratch();
-
                 self.load_mem(mode, (*value_reg).into(), value.mem());
                 self.store_mem(mode, Mem::Base(element_reg, offset), (*value_reg).into());
 
-                let needs_write_barrier = mode == MachineMode::Ptr;
-
-                if self.vm.gc.needs_write_barrier() && needs_write_barrier {
+                if self.vm.gc.needs_write_barrier() && mode == MachineMode::Ptr {
                     self.emit_write_barrier(arr_reg, *value_reg);
                 }
             }
@@ -1134,7 +1132,7 @@ impl<'a> BaselineAssembler<'a> {
             _ => unreachable!(),
         };
 
-        let tmp_reg = if obj == REG_TMP1 { REG_TMP2 } else { REG_TMP1 };
+        let tmp_reg = self.get_scratch();
 
         // Store classptr/vtable in object.
         let (is_marked, is_remembered) = self.vm.gc.initial_metadata_value(size as usize, false);
@@ -1147,14 +1145,14 @@ impl<'a> BaselineAssembler<'a> {
 
         self.masm.load_int_const(
             MachineMode::IntPtr,
-            tmp_reg.into(),
+            (*tmp_reg).into(),
             header_word_value as i64,
         );
 
         self.store_mem(
             MachineMode::Ptr,
             Mem::Base(obj, Header::offset_vtable_word() as i32),
-            tmp_reg.into(),
+            (*tmp_reg).into(),
         );
 
         // Reset object body to zero.

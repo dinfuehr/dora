@@ -917,12 +917,8 @@ impl MacroAssembler {
         }
     }
 
-    pub fn compute_initial_metadata_value(&mut self, dest: Reg, size: Reg) {
-        self.asm.xorl_rr(dest.into(), dest.into());
-        self.asm
-            .cmpq_ri(size.into(), Immediate(LARGE_OBJECT_SIZE as i64));
-        self.asm.setcc_r(Condition::Below, dest.into());
-        self.asm.shll_ri(dest.into(), Immediate(8));
+    pub fn fence(&mut self) {
+        self.asm.mfence();
     }
 
     pub fn compute_metadata_word(&mut self, dest: Reg, size: Reg) {
