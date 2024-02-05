@@ -1,6 +1,6 @@
 use parking_lot::Mutex;
 
-use crate::gc::{Address, Region, K};
+use crate::gc::{Address, Region, K, M};
 use crate::mem;
 use crate::os::{self, MemoryPermission, Reservation};
 use crate::vm::{ManagedCodeHeader, CODE_ALIGNMENT};
@@ -23,7 +23,7 @@ struct AllocData {
 
 impl CodeSpace {
     pub fn new(limit: usize) -> CodeSpace {
-        let reservation = os::reserve_align(limit, 0, true);
+        let reservation = os::reserve_align(limit, M, true);
         let space_start = reservation.start();
         let space_end = space_start.offset(limit);
 

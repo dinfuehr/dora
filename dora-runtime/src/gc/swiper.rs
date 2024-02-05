@@ -732,11 +732,18 @@ impl LargePageHeader {
     }
 }
 
-pub extern "C" fn object_write_barrier_slow_path(object_address: Address, _value_address: Address) {
+pub extern "C" fn object_write_barrier_slow_path(object_address: Address, value_address: Address) {
     let vm = get_vm();
     debug_assert!(!BasePage::from_address(object_address).is_young());
     let obj = object_address.to_obj();
     obj.header().set_remembered();
+
+    if value_address.is_non_null() {
+        let value = value_address.to_obj();
+        debug_assert_eq!(value.header().compressed_vtblptr() & 1, 0);
+        debug_assert_eq!(value.header().sentinel(), 0xFFFF_FFFC);
+    }
+
     let swiper = get_swiper(vm);
     swiper.remset.write().push(object_address);
     assert!(obj.header().is_remembered());
