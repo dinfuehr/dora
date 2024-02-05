@@ -1380,10 +1380,8 @@ impl<'a> CannonCodeGen<'a> {
         assert_eq!(bytecode_type, register_ty(field.ty.clone()));
 
         let ty = self.specialize_register_type(src);
-        let obj = self.reg(obj);
         let src_reg = self.reg(src);
-        self.asm
-            .store_field(obj, obj_reg, field.offset, src_reg, ty);
+        self.asm.store_field(obj_reg, field.offset, src_reg, ty);
     }
 
     fn emit_load_global(&mut self, dest: Register, global_id: GlobalId) {
@@ -1843,10 +1841,8 @@ impl<'a> CannonCodeGen<'a> {
         // Initialize all class fields.
         for (&argument, field) in arguments.iter().zip(class_instance.fields.iter()) {
             let ty = self.specialize_register_type(argument);
-            let dest = self.reg(dest);
             let argument = self.reg(argument);
-            self.asm
-                .store_field(dest, obj_reg, field.offset, argument, ty);
+            self.asm.store_field(obj_reg, field.offset, argument, ty);
         }
     }
 
