@@ -1064,10 +1064,28 @@ impl MacroAssembler {
     }
 
     pub fn emit_object_write_barrier_fast_path(&mut self, host: Reg) -> Label {
-        self.asm
-            .testb_ai(AsmAddress::offset(host.into(), 4), Immediate(2));
+        let remembered_bit_index =
+            (REMEMBERED_BIT_SHIFT - Header::offset_metadata_word() * 8) as u32;
+
+        self.asm.testb_ai(
+            AsmAddress::offset(host.into(), Header::offset_metadata_word() as i32),
+            Immediate(1 << remembered_bit_index),
+        );
         let lbl_slow_path = self.asm.create_label();
         self.asm.jcc(Condition::Zero, lbl_slow_path);
+        lbl_slow_path
+    }
+
+    pub fn emit_marking_barrier_fast_path(&mut self) -> Label {
+        self.asm.cmpb_ai(
+            AsmAddress::offset(
+                REG_THREAD.into(),
+                ThreadLocalData::concurrent_marking_offset(),
+            ),
+            Immediate(0),
+        );
+        let lbl_slow_path = self.asm.create_label();
+        self.asm.jcc(Condition::NotZero, lbl_slow_path);
         lbl_slow_path
     }
 

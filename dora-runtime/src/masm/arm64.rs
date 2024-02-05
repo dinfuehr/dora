@@ -206,10 +206,11 @@ impl MacroAssembler {
     }
 
     pub fn test_and_jump_if(&mut self, cond: CondCode, reg: Reg, lbl: Label) {
-        assert!(cond == CondCode::Zero || cond == CondCode::NonZero);
-
-        self.asm.cmp_imm(reg.into(), 0);
-        self.jump_if(cond, lbl);
+        match cond {
+            CondCode::Zero => self.asm.cbz(reg.into(), lbl),
+            CondCode::NonZero => self.asm.cbnz(reg.into(), lbl),
+            _ => unreachable!(),
+        }
     }
 
     pub fn jump_if(&mut self, cond: CondCode, target: Label) {
@@ -1360,9 +1361,29 @@ impl MacroAssembler {
 
     pub fn emit_object_write_barrier_fast_path(&mut self, host: Reg) -> Label {
         let scratch = self.get_scratch();
-        self.asm.ldrb_imm((*scratch).into(), host.into(), 4);
+        self.asm.ldrb_imm(
+            (*scratch).into(),
+            host.into(),
+            Header::offset_metadata_word() as u32,
+        );
         let lbl_slow_path = self.asm.create_label();
-        self.asm.tbz((*scratch).into(), 1, lbl_slow_path);
+        self.asm.tbz(
+            (*scratch).into(),
+            (REMEMBERED_BIT_SHIFT - Header::offset_metadata_word() * 8) as u32,
+            lbl_slow_path,
+        );
+        lbl_slow_path
+    }
+
+    pub fn emit_marking_barrier_fast_path(&mut self) -> Label {
+        let scratch = self.get_scratch();
+        self.asm.ldrb_imm(
+            (*scratch).into(),
+            REG_THREAD.into(),
+            ThreadLocalData::concurrent_marking_offset() as u32,
+        );
+        let lbl_slow_path = self.asm.create_label();
+        self.asm.cbnz((*scratch).into(), lbl_slow_path);
         lbl_slow_path
     }
 

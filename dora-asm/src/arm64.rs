@@ -258,12 +258,26 @@ impl AssemblerArm64 {
                         is_non_zero,
                         rt,
                     } => {
-                        self.emit_u32(cls::cmp_branch_imm(
-                            sf as u32,
-                            is_non_zero as u32,
-                            rt,
-                            distance,
-                        ));
+                        if fits_i19(distance) {
+                            self.emit_u32(cls::cmp_branch_imm(
+                                sf as u32,
+                                is_non_zero as u32,
+                                rt,
+                                distance,
+                            ));
+                            assert_eq!(self.position(), jmp.offset as usize + 4);
+                            self.nop();
+                        } else {
+                            self.emit_u32(cls::cmp_branch_imm(
+                                sf as u32,
+                                (is_non_zero as u32) ^ 1,
+                                rt,
+                                2,
+                            ));
+                            assert_eq!(self.position(), jmp.offset as usize + 4);
+                            // Distance is off by 1 instruction in this case.
+                            self.b_imm(distance - 1);
+                        }
                     }
 
                     JumpKind::Test { op, bit, rt } => {
@@ -589,26 +603,43 @@ impl AssemblerArm64 {
         self.common_cbz_cbnz(false, false, reg, target);
     }
 
-    fn common_cbz_cbnz(&mut self, sf: bool, value: bool, reg: Register, target: Label) {
+    fn common_cbz_cbnz(&mut self, sf: bool, is_non_zero: bool, reg: Register, target: Label) {
         let target_offset = self.offset(target);
 
         match target_offset {
             Some(target_offset) => {
                 let diff = -(self.position() as i32 - target_offset as i32);
                 assert!(diff % 4 == 0);
+                let diff = diff / 4;
 
-                self.emit_u32(cls::cmp_branch_imm(sf as u32, value as u32, reg, diff));
+                if fits_i19(diff) {
+                    self.emit_u32(cls::cmp_branch_imm(
+                        sf as u32,
+                        is_non_zero as u32,
+                        reg,
+                        diff,
+                    ));
+                } else {
+                    self.emit_u32(cls::cmp_branch_imm(
+                        sf as u32,
+                        (is_non_zero as u32) ^ 1,
+                        reg,
+                        2,
+                    ));
+                    self.b_imm(diff - 1);
+                }
             }
 
             None => {
                 let pos = self.position() as u32;
+                self.emit_u32(0);
                 self.emit_u32(0);
                 self.unresolved_jumps.push(ForwardJump {
                     offset: pos,
                     label: target,
                     kind: JumpKind::Zero {
                         sf,
-                        is_non_zero: value,
+                        is_non_zero,
                         rt: reg,
                     },
                 });
@@ -2174,8 +2205,9 @@ impl AssemblerArm64 {
             Some(target_offset) => {
                 let diff = -(self.position() as i32 - target_offset as i32);
                 assert!(diff % 4 == 0);
-                if fits_i14(diff / 4) {
-                    self.emit_u32(cls::test_and_branch(op, bit, diff / 4, rt));
+                let diff = diff / 4;
+                if fits_i14(diff) {
+                    self.emit_u32(cls::test_and_branch(op, bit, diff, rt));
                 } else {
                     unimplemented!();
                 }

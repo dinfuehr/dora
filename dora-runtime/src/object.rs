@@ -5,7 +5,7 @@ use std::ops::{Deref, DerefMut};
 use std::ptr;
 use std::slice;
 use std::str;
-use std::sync::atomic::{AtomicBool, AtomicUsize, Ordering};
+use std::sync::atomic::{AtomicUsize, Ordering};
 
 use crate::gc::root::Slot;
 use crate::gc::{Address, Region};
@@ -21,34 +21,13 @@ pub struct Header {
     word: HeaderWord,
 }
 
-#[repr(C)]
-struct MetadataWord {
-    _padding0: AtomicBool,
-    is_remembered: AtomicBool,
-    _padding1: u16,
-    _padding2: u32,
-}
-
-impl MetadataWord {
-    fn offset_remembered_byte() -> usize {
-        offset_of!(MetadataWord, is_remembered)
-    }
-
-    fn compute_word(is_marked: bool, is_remembered: bool) -> u32 {
-        is_marked as u32 | (is_remembered as u32) << 8
-    }
-
-    fn set_raw(&self, is_remembered: bool) {
-        self.is_remembered.store(is_remembered, Ordering::Relaxed);
-    }
-}
-
 const FWDPTR_BIT: usize = 1;
+const METADATA_OFFSET: usize = 4;
 
-const MARK_BIT_SHIFT: usize = 32;
+const MARK_BIT_SHIFT: usize = METADATA_OFFSET * 8;
 const MARK_BIT: usize = 1 << MARK_BIT_SHIFT;
 
-pub const REMEMBERED_BIT_SHIFT: usize = 33;
+pub const REMEMBERED_BIT_SHIFT: usize = MARK_BIT_SHIFT + 1;
 const REMEMBERED_BIT: usize = 1 << REMEMBERED_BIT_SHIFT;
 
 #[repr(C)]
@@ -291,10 +270,6 @@ impl Header {
         self.word.set_remembered()
     }
 
-    pub fn compute_metadata_word(is_marked: bool, is_remembered: bool) -> u32 {
-        MetadataWord::compute_word(is_marked, is_remembered)
-    }
-
     pub fn compute_header_word(
         vtblptr: Address,
         meta_space_start: Address,
@@ -306,6 +281,10 @@ impl Header {
 
     pub fn offset_vtable_word() -> usize {
         offset_of!(Header, word)
+    }
+
+    pub fn offset_metadata_word() -> usize {
+        METADATA_OFFSET
     }
 
     #[inline(always)]
