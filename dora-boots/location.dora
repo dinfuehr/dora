@@ -126,7 +126,11 @@ fn setLocationConstraints(inst: Inst, codegen: CodeGen, ci: CompilationInfo, arg
             codegen.setLocationConstraintsReturn(inst, loc);
         },
 
-        Op::InvokeStatic => {
+        Op::InvokeStatic
+        | Op::InvokeDirect
+        | Op::InvokeVirtual
+        | Op::InvokeLambda
+         => {
             setLocationConstraintsInvokeStatic(inst, loc, codegen, ci);
         },
 

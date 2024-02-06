@@ -605,6 +605,9 @@ pub enum Op {
     Sar,
 
     InvokeStatic,
+    InvokeDirect,
+    InvokeVirtual,
+    InvokeLambda,
 
     TestIdentity,
     Equal,
@@ -691,6 +694,9 @@ pub fn opName(op: Op): String {
         Op::Shr => "Shr",
         Op::Sar => "Sar",
         Op::InvokeStatic => "InvokeStatic",
+        Op::InvokeDirect => "InvokeDirect",
+        Op::InvokeVirtual => "InvokeVirtual",
+        Op::InvokeLambda => "InvokeLambda",
         Op::TestIdentity => "TestIdentity",
         Op::Equal => "Equal",
         Op::NotEqual => "NotEqual",
@@ -856,6 +862,9 @@ impl Inst {
             Op::Shr => self.ty,
             Op::Sar => self.ty,
             Op::InvokeStatic => self.ty,
+            Op::InvokeDirect => self.ty,
+            Op::InvokeVirtual => self.ty,
+            Op::InvokeLambda => self.ty,
             Op::TestIdentity => Type::Bool,
             Op::Equal => Type::Bool,
             Op::NotEqual => Type::Bool,
@@ -1104,6 +1113,8 @@ impl Inst {
     pub fn isCall(): Bool {
         match self.op() {
             Op::InvokeStatic => true,
+            Op::InvokeDirect => true,
+            Op::InvokeVirtual => true,
             _ => false,
         }
     }
@@ -1245,6 +1256,9 @@ impl Inst {
             Op::Shr => false,
             Op::Sar => false,
             Op::InvokeStatic => true,
+            Op::InvokeDirect => true,
+            Op::InvokeVirtual => true,
+            Op::InvokeLambda => true,
             Op::TestIdentity => false,
             Op::Equal => false,
             Op::NotEqual => false,
@@ -1290,6 +1304,13 @@ enum InstExtraData {
     FunctionInfo(FunctionInfo),
     If(Block, Block),
     Goto(Block),
+}
+
+pub enum CallKind {
+    Static,
+    Direct,
+    Virtual,
+    Lambda,
 }
 
 pub class LiveRange {
