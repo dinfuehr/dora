@@ -877,7 +877,7 @@ impl Inst {
             Op::ArrayGet => self.ty,
             Op::ArraySet => unreachable[Type](),
             Op::ArrayLength => Type::Int64,
-            Op::LoadField => unreachable[Type](),
+            Op::LoadField => self.ty,
             Op::StoreField => unreachable[Type](),
             Op::Arg => self.ty,
             Op::Move => self.ty,
@@ -903,6 +903,13 @@ impl Inst {
         match self.extra {
             InstExtraData::FunctionInfo(info) => info,
             _ => unreachable[FunctionInfo](),
+        }
+    }
+
+    pub fn getFieldInfo(): FieldInfo {
+        match self.extra {
+            InstExtraData::FieldInfo(info) => info,
+            _ => unreachable[FieldInfo](),
         }
     }
 
@@ -1857,6 +1864,7 @@ pub fn createLoadFieldInst(obj: Inst, field: FieldInfo, ty: Type): Inst {
     inst._op = Some(Op::LoadField);
     inst.ty = ty;
     inst.addInput(obj);
+    inst.extra = InstExtraData::FieldInfo(field);
     inst
 }
 

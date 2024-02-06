@@ -1,6 +1,7 @@
 use std::collections::VecIter;
 
 use package::bytecode::{BytecodeFunction, BytecodeType, ConstPoolId, FctId, Location};
+use package::bytecode::data::{ClassId, FieldId};
 use package::deserializer::decodeBytecodeFunction;
 use package::deserializer::decodeCompilationInfo;
 use package::deserializer::decodeConfig;
@@ -28,6 +29,10 @@ pub fn getFunctionAddress(fct_id: FctId, type_params: Array[BytecodeType]): Addr
     writer.emitInt32(fct_id.value);
     encodeBytecodeTypeArray(writer, type_params);
     Address(getFunctionAddressRaw(writer.toArray()))
+}
+
+pub fn getFieldOffset(cls_id: ClassId, type_params: Array[BytecodeType], field_id: FieldId): Int32 {
+    8i32
 }
 
 pub class Config {

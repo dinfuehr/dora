@@ -5,7 +5,7 @@ use package::assembler::x64::{XMM0, XMM1, XMM2, XMM3, XMM4, XMM5, XMM6, XMM7, XM
 use package::assembler::{FloatRegister, Label, Register, RegSet};
 use package::bytecode::data::{ConstPoolId, Location};
 use package::codegen::{CODE_SIZE_ALIGNMENT, CodeGen};
-use package::interface::{Address, Architecture, CompilationInfo, ConstPool, ConstPoolEntry, ConstPoolValue, config, getFunctionAddress, LazyCompilationSite, LazyCompilationSiteDirect, TRAP_DIV0, TRAP_OVERFLOW};
+use package::interface::{Address, Architecture, CompilationInfo, ConstPool, ConstPoolEntry, ConstPoolValue, config, getFunctionAddress, LazyCompilationSite, LazyCompilationSiteDirect, TRAP_DIV0, TRAP_OVERFLOW, getFieldOffset};
 use package::interface::{THREAD_LOCAL_DATA_STACK_LIMIT_OFFSET, THREAD_LOCAL_DATA_STATE_OFFSET};
 use package::location::{useInputFloatRegisterFixed, useInputRegister, useInputRegisterFixed, useOutputRegisterFixed, useOutputSameAsFirstInput, useTempRegisterFixed};
 use package::graph::{Inst, Op, LocationData, Type};
@@ -732,6 +732,17 @@ impl CodeGen for CodeGenX64 {
 
         self.lazyCompilation.insert(pos, LazyCompilationSite::Direct(site));
         self.locations.insert(pos, location);
+    }
+
+    fn emitLoadField(inst: Inst) {
+        let field_info = inst.getFieldInfo();
+        let offset = getFieldOffset(field_info.cls_id, field_info.type_params, field_info.field_id);
+
+        let loc = inst.getLocationData();
+        let src = loc.getInput(0).getRegister();
+        let dest = loc.getOutput().getRegister();
+
+        self.asm.movq_ra(dest, AsmAddress::offset(src, offset));
     }
 
     fn finalize(): CodeDescriptor {

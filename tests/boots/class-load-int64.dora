@@ -1,0 +1,10 @@
+//= boots
+
+fn main() {
+    assert(f(Foo(10)) == 10);
+    assert(f(Foo(17)) == 17);
+}
+
+class Foo(val: Int64)
+
+@optimizeImmediately fn f(x: Foo): Int64 { x.val }

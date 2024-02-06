@@ -1,5 +1,5 @@
 use package::bytecode::{ConstPoolId, Location};
-use package::interface::{Address, Architecture, CompilationInfo, ConstPool, ConstPoolEntry, ConstPoolValue, config, TRAP_DIV0, TRAP_OVERFLOW, getFunctionAddress};
+use package::interface::{Address, Architecture, CompilationInfo, ConstPool, ConstPoolEntry, ConstPoolValue, config, TRAP_DIV0, TRAP_OVERFLOW, getFunctionAddress, getFieldOffset};
 use package::interface::{THREAD_LOCAL_DATA_STACK_LIMIT_OFFSET, THREAD_LOCAL_DATA_STATE_OFFSET};
 use package::codegen::{CODE_SIZE_ALIGNMENT, CodeGen};
 use package::assembler::arm64::{F0, F1, F2, F3, F4, F5, F6, F7, F31};
@@ -709,6 +709,17 @@ impl CodeGen for CodeGenArm64 {
 
         self.lazyCompilation.insert(pos, LazyCompilationSite::Direct(site));
         self.locations.insert(pos, location);
+    }
+
+    fn emitLoadField(inst: Inst) {
+        let field_info = inst.getFieldInfo();
+        let offset = getFieldOffset(field_info.cls_id, field_info.type_params, field_info.field_id);
+
+        let loc = inst.getLocationData();
+        let src = loc.getInput(0).getRegister();
+        let dest = loc.getOutput().getRegister();
+
+        self.asm.ldr_imm(dest, src, 8i32);
     }
 
     fn finalize(): CodeDescriptor {
