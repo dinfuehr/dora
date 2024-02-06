@@ -1313,6 +1313,17 @@ pub enum CallKind {
     Lambda,
 }
 
+impl CallKind {
+    fn toOp(): Op {
+        match self {
+            CallKind::Static => Op::InvokeStatic,
+            CallKind::Direct => Op::InvokeDirect,
+            CallKind::Virtual => Op::InvokeVirtual,
+            CallKind::Lambda => Op::InvokeLambda,
+        }
+    }
+}
+
 pub class LiveRange {
     start: Int32,
     end: Int32,
@@ -1895,7 +1906,7 @@ pub fn createGotoInst(block: Block): Inst {
     inst
 }
 
-pub fn createInvokeStaticInst(info: FunctionInfo, args: Vec[Inst], return_ty: Type): Inst {
+pub fn createCall(info: FunctionInfo, kind: CallKind, args: Vec[Inst], return_ty: Type): Inst {
     let inst = Inst::new();
     inst._op = Some(Op::InvokeStatic);
     inst.extra = InstExtraData::FunctionInfo(info);

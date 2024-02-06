@@ -1,0 +1,24 @@
+//= boots
+
+let mut counter: Int64 = 0;
+
+fn main() {
+    f(12, 14);
+    assert(counter == 2);
+}
+
+@optimizeImmediately fn f(x: Int64, y: Int64) {
+    g(x);
+    g(y);
+}
+
+fn g(x: Int64) {
+    if counter == 0 {
+        assert(x == 12);
+    } else {
+        assert(counter == 1);
+        assert(x == 14);
+    }
+
+    counter = counter + 1;
+}
