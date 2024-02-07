@@ -135,11 +135,11 @@ fn setLocationConstraints(inst: Inst, codegen: CodeGen, ci: CompilationInfo, arg
         },
 
         Op::LoadField => {
+            useInputRegister(inst, 0);
+
             if inst.getValueType().isAnyFloat() {
-                useInputFloatRegister(inst, 0);
                 useOutputFloatRegister(inst);
             } else {
-                useInputRegister(inst, 0);
                 useOutputRegister(inst);
             }
         },

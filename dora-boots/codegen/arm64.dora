@@ -613,7 +613,7 @@ impl CodeGen for CodeGenArm64 {
                 if ty == Type::Int64 || ty == Type::Ptr {
                     self.asm.mov(dest.getRegister(), src.getRegister());
                 } else {
-                    assert(ty == Type::Int32 || ty == Type::Bool);
+                    assert(ty == Type::UInt8 || ty == Type::Int32 || ty == Type::Bool);
                     self.asm.mov_w(dest.getRegister(), src.getRegister());
                 }
             } else {
@@ -717,9 +717,39 @@ impl CodeGen for CodeGenArm64 {
 
         let loc = inst.getLocationData();
         let src = loc.getInput(0).getRegister();
-        let dest = loc.getOutput().getRegister();
 
-        self.asm.ldr_imm(dest, src, offset);
+        let ty = inst.getValueType();
+
+        match ty {
+            Type::Bool | Type::UInt8 => {
+                let dest = loc.getOutput().getRegister();
+                self.asm.ldrb_imm(dest, src, offset);
+            },
+
+            Type::Int32 => {
+                let dest = loc.getOutput().getRegister();
+                self.asm.ldr_imm_w(dest, src, offset);
+            },
+
+            Type::Ptr | Type::Int64 => {
+                let dest = loc.getOutput().getRegister();
+                self.asm.ldr_imm(dest, src, offset);
+            },
+
+            Type::Float32 => {
+                let dest = loc.getOutput().getFloatRegister();
+                self.asm.ldr_imm_s(dest, src, offset);
+            },
+
+            Type::Float64 => {
+                let dest = loc.getOutput().getFloatRegister();
+                self.asm.ldr_imm_d(dest, src, offset);
+            },
+
+            _ => {
+                unimplemented();
+            }
+        }
     }
 
     fn finalize(): CodeDescriptor {

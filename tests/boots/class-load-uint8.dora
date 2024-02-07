@@ -1,0 +1,13 @@
+//= boots
+
+fn main() {
+    assert(geta(Foo(10u8, 12u8)) == 10u8);
+    assert(getb(Foo(10u8, 12u8)) == 12u8);
+    assert(geta(Foo(17u8, 14u8)) == 17u8);
+    assert(getb(Foo(17u8, 14u8)) == 14u8);
+}
+
+class Foo(a: UInt8, b: UInt8)
+
+@optimizeImmediately fn geta(x: Foo): UInt8 { x.a }
+@optimizeImmediately fn getb(x: Foo): UInt8 { x.b }

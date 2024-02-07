@@ -1,0 +1,13 @@
+//= boots
+
+fn main() {
+    assert(geta(Foo(10i32, 12i32)) == 10i32);
+    assert(getb(Foo(10i32, 12i32)) == 12i32);
+    assert(geta(Foo(17i32, 14i32)) == 17i32);
+    assert(getb(Foo(17i32, 14i32)) == 14i32);
+}
+
+class Foo(a: Int32, b: Int32)
+
+@optimizeImmediately fn geta(x: Foo): Int32 { x.a }
+@optimizeImmediately fn getb(x: Foo): Int32 { x.b }
