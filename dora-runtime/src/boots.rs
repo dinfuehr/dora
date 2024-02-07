@@ -13,7 +13,7 @@ use crate::gc::Address;
 use crate::handle::{create_handle, Handle};
 use crate::object::{Ref, UInt8Array};
 use crate::threads::current_thread;
-use crate::vm::{get_vm, CodeDescriptor, VM};
+use crate::vm::{create_class_instance, get_vm, CodeDescriptor, VM};
 
 use self::deserializer::decode_bytecode_type_array;
 use self::serializer::allocate_encoded_system_config;
@@ -104,12 +104,15 @@ pub fn get_field_offset(data: Handle<UInt8Array>) -> u32 {
 }
 
 fn get_field_offset_raw(
-    _vm: &VM,
-    _cls_id: ClassId,
-    _type_params: BytecodeTypeArray,
-    _field_id: u32,
+    vm: &VM,
+    cls_id: ClassId,
+    type_params: BytecodeTypeArray,
+    field_id: u32,
 ) -> u32 {
-    8
+    let class_instance_id = create_class_instance(vm, cls_id, &type_params);
+    let cls = vm.class_instances.idx(class_instance_id);
+    let field = &cls.fields[field_id as usize];
+    field.offset.try_into().expect("overflow")
 }
 
 pub fn get_system_config() -> Ref<UInt8Array> {

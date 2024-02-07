@@ -719,7 +719,7 @@ impl CodeGen for CodeGenArm64 {
         let src = loc.getInput(0).getRegister();
         let dest = loc.getOutput().getRegister();
 
-        self.asm.ldr_imm(dest, src, 8i32);
+        self.asm.ldr_imm(dest, src, offset);
     }
 
     fn finalize(): CodeDescriptor {
