@@ -1,7 +1,8 @@
 use std::mem;
 use std::ptr;
 
-use dora_bytecode::FunctionId;
+use dora_bytecode::BytecodeTypeArray;
+use dora_bytecode::{ClassId, FunctionId};
 
 use crate::boots::deserializer::{decode_code_descriptor, ByteReader};
 use crate::boots::serializer::allocate_encoded_compilation_info;
@@ -78,6 +79,37 @@ pub fn get_function_address(data: Handle<UInt8Array>) -> Address {
     assert!(!reader.has_more());
 
     get_function_address_raw(vm, fct_id, type_params)
+}
+
+pub fn get_field_offset(data: Handle<UInt8Array>) -> u32 {
+    let vm = get_vm();
+
+    let mut serialized_data = vec![0; data.len()];
+
+    unsafe {
+        ptr::copy_nonoverlapping(
+            data.data() as *mut u8,
+            serialized_data.as_mut_ptr(),
+            data.len(),
+        );
+    }
+
+    let mut reader = ByteReader::new(serialized_data);
+    let cls_id = ClassId(reader.read_u32());
+    let type_params = decode_bytecode_type_array(&mut reader);
+    let field_id = reader.read_u32();
+    assert!(!reader.has_more());
+
+    get_field_offset_raw(vm, cls_id, type_params, field_id)
+}
+
+fn get_field_offset_raw(
+    _vm: &VM,
+    _cls_id: ClassId,
+    _type_params: BytecodeTypeArray,
+    _field_id: u32,
+) -> u32 {
+    8
 }
 
 pub fn get_system_config() -> Ref<UInt8Array> {

@@ -458,21 +458,29 @@ fn resolve_atomic_int64(sa: &mut Sema, stdlib_id: ModuleDefinitionId) {
 }
 
 fn resolve_boots(sa: &mut Sema) {
-    if sa.has_boots_package() {
-        let boots_module_id = sa.boots_module_id();
-        native_fct(
-            sa,
-            boots_module_id,
-            "getSystemConfig",
-            NativeFunction::BootsGetSystemConfig,
-        );
-        native_fct(
-            sa,
-            boots_module_id,
-            "getFunctionAddressRaw",
-            NativeFunction::BootsGetFunctionAddress,
-        );
+    if !sa.has_boots_package() {
+        return;
     }
+
+    let boots_module_id = sa.boots_module_id();
+    native_fct(
+        sa,
+        boots_module_id,
+        "getSystemConfig",
+        NativeFunction::BootsGetSystemConfig,
+    );
+    native_fct(
+        sa,
+        boots_module_id,
+        "getFunctionAddressRaw",
+        NativeFunction::BootsGetFunctionAddress,
+    );
+    native_fct(
+        sa,
+        boots_module_id,
+        "getFieldOffsetRaw",
+        NativeFunction::BootsGetFieldOffset,
+    );
 }
 
 fn resolve_thread(sa: &mut Sema, stdlib_id: ModuleDefinitionId) {

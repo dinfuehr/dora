@@ -23,6 +23,7 @@ pub const TRAP_OVERFLOW: Int32 = 9i32;
 
 @internal pub fn getSystemConfig(): Array[UInt8];
 @internal pub fn getFunctionAddressRaw(data: Array[UInt8]): Int64;
+@internal pub fn getFieldOffsetRaw(data: Array[UInt8]): Int32;
 
 pub fn getFunctionAddress(fct_id: FctId, type_params: Array[BytecodeType]): Address {
     let writer = ByteWriter::new();
@@ -32,7 +33,11 @@ pub fn getFunctionAddress(fct_id: FctId, type_params: Array[BytecodeType]): Addr
 }
 
 pub fn getFieldOffset(cls_id: ClassId, type_params: Array[BytecodeType], field_id: FieldId): Int32 {
-    8i32
+    let writer = ByteWriter::new();
+    writer.emitInt32(cls_id.value);
+    encodeBytecodeTypeArray(writer, type_params);
+    writer.emitInt32(field_id.value);
+    getFieldOffsetRaw(writer.toArray())
 }
 
 pub class Config {

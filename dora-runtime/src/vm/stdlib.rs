@@ -177,6 +177,10 @@ pub fn connect_native_functions_to_implementation(vm: &mut VM) {
             NativeFunction::BootsGetFunctionAddress,
             boots::get_function_address as *const u8,
         ),
+        (
+            NativeFunction::BootsGetFieldOffset,
+            boots::get_field_offset as *const u8,
+        ),
     ]);
 
     for (fct_id, fct) in vm.program.functions.iter().enumerate() {
@@ -197,6 +201,10 @@ pub fn connect_native_functions_to_implementation(vm: &mut VM) {
 
         assert!(mappings
             .remove(&NativeFunction::BootsGetFunctionAddress)
+            .is_some());
+
+        assert!(mappings
+            .remove(&NativeFunction::BootsGetFieldOffset)
             .is_some());
     }
 
