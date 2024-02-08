@@ -192,6 +192,11 @@ fn emitInst(codegen: CodeGen, inst: Inst) {
             codegen.emitLoadField(inst);
         },
 
+        Op::StoreField => {
+            codegen.emitComment("StoreField");
+            codegen.emitStoreField(inst);
+        },
+
         _ => {
             println("unsupported op ${inst.op().name()}");
             unreachable[()]();
@@ -261,6 +266,7 @@ pub trait CodeGen {
     fn emitCompare(inst: Inst);
     fn emitInvokeStatic(inst: Inst);
     fn emitLoadField(inst: Inst);
+    fn emitStoreField(inst: Inst);
 
     fn emitComment(comment: String);
 }

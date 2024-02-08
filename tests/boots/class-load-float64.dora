@@ -1,0 +1,13 @@
+//= boots
+
+fn main() {
+    assert(geta(Foo(10.5, 11.0)) == 10.5);
+    assert(getb(Foo(10.5, 11.0)) == 11.0);
+    assert(geta(Foo(17.5, 14.0)) == 17.5);
+    assert(getb(Foo(17.5, 14.0)) == 14.0);
+}
+
+class Foo(a: Float64, b: Float64)
+
+@optimizeImmediately fn geta(x: Foo): Float64 { x.a }
+@optimizeImmediately fn getb(x: Foo): Float64 { x.b }

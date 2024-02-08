@@ -894,7 +894,8 @@ impl Inst {
             | Op::GreaterOrEqual
             | Op::Less
             | Op::LessOrEqual
-            | Op::ArraySet => self.ty,
+            | Op::ArraySet
+            | Op::StoreField => self.ty,
             _ => self.getValueType(),
         }
     }
@@ -1868,11 +1869,13 @@ pub fn createLoadFieldInst(obj: Inst, field: FieldInfo, ty: Type): Inst {
     inst
 }
 
-pub fn createStoreFieldInst(obj: Inst, field: FieldInfo, value: Inst): Inst {
+pub fn createStoreFieldInst(obj: Inst, field: FieldInfo, value: Inst, ty: Type): Inst {
     let inst = Inst::new();
     inst._op = Some(Op::StoreField);
+    inst.ty = ty;
     inst.addInput(obj);
     inst.addInput(value);
+    inst.extra = InstExtraData::FieldInfo(field);
     inst
 }
 

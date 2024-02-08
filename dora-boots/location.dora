@@ -144,6 +144,16 @@ fn setLocationConstraints(inst: Inst, codegen: CodeGen, ci: CompilationInfo, arg
             }
         },
 
+        Op::StoreField => {
+            useInputRegister(inst, 0);
+
+            if inst.getOperationType().isAnyFloat() {
+                useInputFloatRegister(inst, 1);
+            } else {
+                useInputRegister(inst, 1);
+            }
+        },
+
         _ => {
             println("unsupported op ${inst.op().name()}");
             unreachable[()]();

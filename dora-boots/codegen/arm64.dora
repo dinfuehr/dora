@@ -752,6 +752,52 @@ impl CodeGen for CodeGenArm64 {
         }
     }
 
+    fn emitStoreField(inst: Inst) {
+        let field_info = inst.getFieldInfo();
+        let offset = getFieldOffset(field_info.cls_id, field_info.type_params, field_info.field_id);
+
+        let loc = inst.getLocationData();
+        let obj = loc.getInput(0).getRegister();
+
+        let ty = inst.getOperationType();
+
+        match ty {
+            Type::Bool | Type::UInt8 => {
+                let src = loc.getInput(1).getRegister();
+                self.asm.strb_imm(src, obj, offset);
+            },
+
+            Type::Int32 => {
+                let src = loc.getInput(1).getRegister();
+                self.asm.str_imm_w(src, obj, offset);
+            },
+
+            Type::Int64 => {
+                let src = loc.getInput(1).getRegister();
+                self.asm.str_imm(src, obj, offset);
+            },
+
+            Type::Ptr => {
+                let src = loc.getInput(1).getRegister();
+                self.asm.str_imm(src, obj, offset);
+            },
+
+            Type::Float32 => {
+                let src = loc.getInput(1).getFloatRegister();
+                self.asm.str_imm_s(src, obj, offset);
+            },
+
+            Type::Float64 => {
+                let src = loc.getInput(1).getFloatRegister();
+                self.asm.str_imm_d(src, obj, offset);
+            },
+
+            _ => {
+                unimplemented();
+            }
+        }
+    }
+
     fn finalize(): CodeDescriptor {
         self.emitDeferredCode();
         self.asm.resolveJumps();
