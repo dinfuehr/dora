@@ -111,6 +111,7 @@ enum JumpKind {
     Unconditional(Bool),
     Conditional(Cond),
     Zero(Bool, Bool, Register),
+    Test(Bool, Int32, Register),
 }
 
 pub enum Cond {
@@ -2056,6 +2057,39 @@ impl AssemblerArm64 {
         self.emit(encoding::bitfield(1i32, 0b10i32, 1i32, immr, imms, rn, rd));
     }
 
+    pub fn tbnz(rt: Register, bit: Int32, target: Label) {
+        self.common_tbz_tbnz(true, bit, rt, target);
+    }
+
+    pub fn tbz(rt: Register, bit: Int32, target: Label) {
+        self.common_tbz_tbnz(false, bit, rt, target);
+    }
+
+    fn common_tbz_tbnz(is_non_zero: Bool, bit: Int32, rt: Register, target: Label) {
+        if target.isBound() {
+            let diff = target.offset - self.buffer.position();
+            assert(diff % 4 == 0);
+            let diff = diff / 4;
+            let diff = diff.toInt32();
+
+            if encoding::fitsI14(diff) {
+                self.emit(encoding::test_and_branch(is_non_zero, bit, diff, rt));
+            } else {
+                unimplemented();
+            }
+        } else {
+            let pos = self.buffer.position();
+            self.emit(0i32);
+            self.emit(0i32);
+
+            self.jumps.push(ForwardJump(
+                pos,
+                target,
+                JumpKind::Test(is_non_zero, bit, rt),
+            ));
+        }
+    }
+
     pub fn ubfm_w(rd: Register, rn: Register, immr: Int32, imms: Int32) {
         self.emit(encoding::bitfield(0i32, 0b10i32, 0i32, immr, imms, rn, rd));
     }
@@ -2122,6 +2156,18 @@ impl AssemblerArm64 {
                     let inst = encoding::cmp_branch_imm(sf.toInt32(), value.toInt32(), rt, distance);
                     self.emit(inst);
                     self.nop();
+                },
+
+                JumpKind::Test(is_non_zero, bit, reg) => {
+                    if encoding::fitsI14(distance) {
+                        self.emit(encoding::test_and_branch(is_non_zero, bit, distance, reg));
+                        self.nop();
+                    } else {
+                        self.emit(encoding::test_and_branch(!is_non_zero, bit, 2i32, reg));
+                        // Distance is off  by 1 instruction here.
+                        let inst = encoding::uncond_branch_imm(0i32, distance - 1i32);
+                        self.emit(inst);
+                    }
                 }
             }
         }
@@ -3062,6 +3108,20 @@ mod encoding {
         0xD503201Fi32 | imm << 5i32
     }
 
+    pub fn test_and_branch(is_non_zero: Bool, bit: Int32, imm14: Int32, rt: Register): Int32 {
+        assert(fitsI14(imm14));
+        assert(rt.isGprOrZero());
+        assert(fitsU6(bit));
+
+        let imm14 = imm14 & 0x3FFFi32;
+
+        let b5 = (bit >> 5i32) & 1i32;
+        let b40 = bit & 0x1Fi32;
+        let op = is_non_zero.toInt32();
+
+        b5 << 31i32 | 0b011011i32 << 25i32 | op << 24i32 | b40 << 19i32 | imm14 << 5i32 | rt.encoding()
+    }
+
     pub fn uncond_branch_imm(op: Int32, imm26: Int32): Int32 {
         assert(fitsBit(op));
         assert(fitsI26(imm26));
@@ -3088,6 +3148,10 @@ mod encoding {
 
     fn fitsI9(value: Int32): Bool {
         fitsSigned(value, 9i32)
+    }
+
+    pub fn fitsI14(value: Int32): Bool {
+        fitsSigned(value, 14i32)
     }
 
     fn fitsI19(value: Int32): Bool {
@@ -3300,6 +3364,36 @@ mod tests {
             buffer,
             0xd503201fi32,
             0xb4fffff1i32,
+        );
+    }
+
+    @Test
+    fn test_tbz_backward() {
+        let asm = AssemblerArm64::new();
+        let target = asm.buffer.createAndBindLabel();
+        asm.nop();
+        asm.tbz(R17, 1i32, target);
+        let buffer = asm.finalizeTesting();
+
+        assertAsm32(
+            buffer,
+            0xd503201fi32,
+            0x360ffff1i32,
+        );
+    }
+
+    @Test
+    fn test_tbz_forward() {
+        let asm = AssemblerArm64::new();
+        let target = asm.buffer.createLabel();
+        asm.tbz(R11, 2i32, target);
+        asm.bindLabel(target);
+        let buffer = asm.finalizeTesting();
+
+        assertAsm32(
+            buffer,
+            0x3610004bi32,
+            0xd503201fi32,
         );
     }
 

@@ -139,6 +139,19 @@ impl CodeGenX64 {
             self.trap(REG_TEMP, TRAP_OVERFLOW, self.ci.bc.getLocationAt(inst.bytecode_position()));
         });
     }
+
+    fn emitWriteBarrier(host: Register, value: Register) {
+        let lbl_slow_path = self.asm.createLabel();
+
+        self.asm.testb_ai(AsmAddress::offset(host, 4i32), Immediate(2));
+        self.asm.jcc(Condition::Zero, lbl_slow_path);
+
+        self.deferred.push(|| {
+            self.emitComment("write barrier slow path");
+            self.asm.bindLabel(lbl_slow_path);
+            self.asm.int3();
+        });
+    }
 }
 
 impl CodeGen for CodeGenX64 {
@@ -803,6 +816,7 @@ impl CodeGen for CodeGenX64 {
             Type::Ptr => {
                 let src = loc.getInput(1).getRegister();
                 self.asm.movq_ar(AsmAddress::offset(obj, offset), src);
+                self.emitWriteBarrier(obj, src);
             },
 
             Type::Float32 => {
