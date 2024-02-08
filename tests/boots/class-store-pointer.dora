@@ -1,13 +1,18 @@
 //= boots
 
 fn main() {
-    let foo = Foo(Bar(0));
-    f(foo, Bar(12));
-    assert(foo.bar.val == 12);
+    let foo1 = Foo(Bar(0));
+    let foo2 = Foo(Bar(0));
 
-    let foo = Foo(Bar(0));
-    f(foo, Bar(17));
-    assert(foo.bar.val == 17);
+    std::forceCollect();
+
+    f(foo1, Bar(12));
+    assert(foo1.bar.val == 12);
+
+    f(foo2, Bar(17));
+    assert(foo2.bar.val == 17);
+
+    std::forceCollect();
 }
 
 class Foo(bar: Bar)

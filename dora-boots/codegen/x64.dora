@@ -145,12 +145,40 @@ impl CodeGenX64 {
 
         self.asm.testb_ai(AsmAddress::offset(host, 4i32), Immediate(2));
         self.asm.jcc(Condition::Zero, lbl_slow_path);
+        let lbl_return = self.asm.createAndBindLabel();
 
         self.deferred.push(|| {
             self.emitComment("write barrier slow path");
             self.asm.bindLabel(lbl_slow_path);
-            self.asm.int3();
+            self.asm.testq_rr(value, value);
+            self.asm.jcc(Condition::Zero, lbl_return);
+            self.saveAllocatableRegisters();
+            self.asm.movq_rr(CCALL_REG_PARAMS(0), host);
+            self.asm.movq_rr(CCALL_REG_PARAMS(1), value);
+            self.asm.movq_ri(REG_TEMP, Immediate(config.object_write_barrier_slow_path.toInt64()));
+            self.asm.call_r(REG_TEMP);
+            self.restoreAllocatableRegisters();
+            self.asm.jmp(lbl_return);
         });
+    }
+
+    fn saveAllocatableRegisters() {
+        for reg in ALLOCATABLE_REGS {
+            self.asm.pushq_r(reg);
+        }
+    }
+
+    fn restoreAllocatableRegisters() {
+        let mut regs = Vec[Register]::new();
+
+        for reg in ALLOCATABLE_REGS {
+            regs.push(reg);
+        }
+
+        while !regs.isEmpty() {
+            let reg = regs.pop().getOrPanic();
+            self.asm.popq_r(reg);
+        }
     }
 }
 

@@ -162,12 +162,51 @@ impl CodeGenArm64 {
 
         self.asm.ldrb_imm(scratch, host, 4i32);
         self.asm.tbz(scratch, 1i32, lbl_slow_path);
+        let lbl_return = self.asm.createAndBindLabel();
 
         self.deferred.push(|| {
             self.emitComment("write barrier slow path");
             self.asm.bindLabel(lbl_slow_path);
-            self.asm.brk(0i32);
+            self.asm.cbz(value, lbl_return);
+            self.saveAllocatableRegisters();
+            self.asm.mov(CCALL_REG_PARAMS(0), host);
+            self.asm.mov(CCALL_REG_PARAMS(1), value);
+            self.mov_imm(REG_TEMP, config.object_write_barrier_slow_path.toInt64());
+            self.asm.bl_r(REG_TEMP);
+            self.restoreAllocatableRegisters();
+            self.asm.b(lbl_return);
         });
+    }
+
+    fn saveAllocatableRegisters() {
+        let regs = ALLOCATABLE_REGS.toArray();
+        let mut idx = 0;
+
+        while idx + 1 < regs.size() {
+            self.asm.stp_pre(regs(idx), regs(idx+1), REG_SP, -16i32);
+            idx = idx + 2;
+        }
+
+        if idx < regs.size() {
+            self.asm.stp_pre(regs(idx), REG_ZERO, REG_SP, -16i32);
+        }
+    }
+
+    fn restoreAllocatableRegisters() {
+        let regs = ALLOCATABLE_REGS.toArray();
+        let mut idx = regs.size() - 1;
+
+        if idx % 2 == 0 {
+            self.asm.ldp_post(regs(idx), REG_ZERO, REG_SP, 16i32);
+            idx = idx - 2;
+        } else {
+            idx = idx - 1;
+        }
+
+        while idx >= 0 {
+            self.asm.ldp_post(regs(idx), regs(idx+1), REG_SP, 16i32);
+            idx = idx - 2;
+        }
     }
 }
 

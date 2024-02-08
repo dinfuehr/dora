@@ -2863,7 +2863,7 @@ mod encoding {
         assert(fitsBit(v));
         assert(fitsBit(l));
         assert(fitsI7(imm7));
-        assert(rt2.isGpr());
+        assert(rt2.isGprOrZero());
         assert(rn.isGprOrSp());
         assert(rt.isGpr());
 
@@ -2873,7 +2873,7 @@ mod encoding {
             | 0b001i32 << 23i32
             | l << 22i32
             | (imm7 & 0x7Fi32) << 15i32
-            | rt2.encoding() << 10i32
+            | rt2.encodingZero() << 10i32
             | rn.encodingSp() << 5i32
             | rt.encoding()
     }
@@ -2891,7 +2891,7 @@ mod encoding {
         assert(fitsBit(v));
         assert(fitsBit(l));
         assert(fitsI7(imm7));
-        assert(rt2.isGpr());
+        assert(rt2.isGprOrZero());
         assert(rn.isGprOrSp());
         assert(rt.isGpr());
 
@@ -2901,7 +2901,7 @@ mod encoding {
             | 0b011i32 << 23i32
             | l << 22i32
             | (imm7 & 0x7Fi32) << 15i32
-            | rt2.encoding() << 10i32
+            | rt2.encodingZero() << 10i32
             | rn.encodingSp() << 5i32
             | rt.encoding()
     }

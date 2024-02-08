@@ -400,4 +400,57 @@ impl[T: RegisterType] RegSet[T] {
             self.value,
         )
     }
+
+    pub fn toArray(): Array[T] {
+        let count = self.value.countOneBits().toInt64();
+        let result = Array[T]::fill(count, T::fromInt32(0i32));
+        let iter = self.iter();
+
+        for idx in std::range(0, count) {
+            result(idx) = iter.next().getOrPanic();
+        }
+
+        assert(iter.next().isNone());
+        result
+    }
+}
+
+impl[T: RegisterType] std::traits::IntoIterator for RegSet[T] {
+    type IteratorType = RegSetIterator[T];
+    fn iter(): IteratorType {
+        RegSetIterator(self.value, 0i32)
+    }
+}
+
+pub class RegSetIterator[T: RegisterType] {
+    value: Int64,
+    idx: Int32,
+}
+
+impl[T: RegisterType] Iterator for RegSetIterator[T] {
+    type Item = T;
+
+    fn next(): Option[T] {
+        while self.value != 0 {
+            let idx = self.value.countZeroBitsTrailing();
+            self.value = self.value & !(1 << idx);
+            return Some[T](T::fromInt32(idx));
+        }
+
+        None
+    }
+}
+
+mod tests {
+    use super::{RegSet, Register};
+
+    @Test
+    fn iterateRegSet() {
+        let regset = RegSet[Register]::new(Register(1u8), Register(15u8), Register(63u8));
+        let iter = regset.iter();
+        assert(iter.next().getOrPanic().value == 1u8);
+        assert(iter.next().getOrPanic().value == 15u8);
+        assert(iter.next().getOrPanic().value == 63u8);
+        assert(iter.next().isNone());
+    }
 }
