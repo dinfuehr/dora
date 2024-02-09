@@ -3,7 +3,7 @@ use std::collections::{HashMap, HashSet};
 use package::assembler::{FloatRegister, RegMap, RegSet, Register, RegisterType};
 use package::codegen::CodeGen;
 use package::codegen::STACK_FRAME_ALIGNMENT;
-use package::graph::{createGotoInst, createMoveInst, Block, Edge, Graph, Inst, Operand, LocationData, Op, Location, opName, Policy, RegisterTrackers, Type};
+use package::graph::{createGotoInst, createMoveInst, Block, Edge, Graph, Inst, Operand, LocationData, Op, Location, opName, Policy, RegisterSnapshot, RegisterTrackers, Type};
 use package::interface::CompilationInfo;
 use package::location::ensureLocationData;
 use package::ssa_destruction::ssaDestruction;
@@ -52,7 +52,7 @@ impl SimpleRegisterAllocator {
 
     fn allocateBlock(block: Block) {
         self.initializeRegisters(block);
-        block.setTrackerIn(self.snapshotRegisters());
+        block.setTrackerIn(self.snapshotRegisterTrackers());
 
         for inst in block.phisIterator() {
             self.allocatePhi(inst);
@@ -62,11 +62,21 @@ impl SimpleRegisterAllocator {
             self.allocateInstruction(inst);
         }
 
-        block.setTrackerOut(self.snapshotRegisters());
+        block.setTrackerOut(self.snapshotRegisterTrackers());
     }
 
-    fn snapshotRegisters(): RegisterTrackers {
+    fn snapshotRegisterTrackers(): RegisterTrackers {
         RegisterTrackers(self.registers().clone(), self.float_registers().clone())
+    }
+
+    fn snapshotRegisters(inst: Inst) {
+        let loc_data = inst.getLocationData();
+        let snapshot = self.createRegisterSnapshot();
+        loc_data.setRegisterSnapshot(snapshot);
+    }
+
+    fn createRegisterSnapshot(): RegisterSnapshot {
+        RegisterSnapshot(self.registers().snapshot(), self.float_registers().snapshot())
     }
 
     fn initializeRegisters(block: Block) {
@@ -168,6 +178,10 @@ impl SimpleRegisterAllocator {
         }
 
         self.allocateOutputRegister(inst);
+
+        if inst.needsRegisterSnapshot() {
+            self.snapshotRegisters(inst);
+        }
 
         self.registers().protected.clear();
         self.float_registers().protected.clear();
@@ -634,5 +648,9 @@ impl[T: RegisterType] RegisterTracker[T] {
             self.data.clone(),
             self.locations.clone(),
         )
+    }
+
+    fn snapshot(): RegSet[T] {
+        self.allocatable.difference(self.free)
     }
 }

@@ -4,7 +4,7 @@ use std::Hash;
 use std::Stringable;
 use std::traits::Iterator;
 
-use package::assembler::{FloatRegister, Label, Register, RegMap};
+use package::assembler::{FloatRegister, Label, Register, RegMap, RegSet};
 use package::bytecode::data::{BytecodeType, ClassId, FctId, FieldId, GlobalId};
 use package::dominator::buildDominatorTree;
 use package::regalloc::RegisterTracker;
@@ -1127,6 +1127,13 @@ impl Inst {
         }
     }
 
+    pub fn needsRegisterSnapshot(): Bool {
+        match self.op() {
+            Op::StoreField => true,
+            _ => false,
+        }
+    }
+
     pub fn isTerminator(): Bool {
         match self.op() {
             Op::Goto => true,
@@ -1332,6 +1339,11 @@ impl CallKind {
     }
 }
 
+pub class RegisterSnapshot {
+    pub gp: RegSet[Register],
+    pub fp: RegSet[FloatRegister],
+}
+
 pub class LiveRange {
     start: Int32,
     end: Int32,
@@ -1343,6 +1355,7 @@ pub class LocationData {
     output: Option[Operand],
     hint: Location,
     spill_slot: Option[Int32],
+    snapshot: Option[RegisterSnapshot],
 }
 
 impl LocationData {
@@ -1356,6 +1369,7 @@ impl LocationData {
             None[Operand],
             Location::None,
             None[Int32],
+            None[RegisterSnapshot],
         )
     }
 
@@ -1368,6 +1382,7 @@ impl LocationData {
             None[Operand],
             Location::None,
             None[Int32],
+            None[RegisterSnapshot],
         )
     }
 
@@ -1438,6 +1453,15 @@ impl LocationData {
 
     pub fn getHint(): Location {
         self.hint
+    }
+
+    pub fn setRegisterSnapshot(snapshot: RegisterSnapshot) {
+        assert(self.snapshot.isNone());
+        self.snapshot = Some[RegisterSnapshot](snapshot);
+    }
+
+    pub fn getRegisterSnapshot(): RegisterSnapshot {
+        self.snapshot.getOrPanic()
     }
 }
 

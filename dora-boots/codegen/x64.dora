@@ -8,7 +8,7 @@ use package::codegen::{CODE_SIZE_ALIGNMENT, CodeGen};
 use package::interface::{Address, Architecture, CompilationInfo, ConstPool, ConstPoolEntry, ConstPoolValue, config, getFunctionAddress, LazyCompilationSite, LazyCompilationSiteDirect, TRAP_DIV0, TRAP_OVERFLOW, getFieldOffset};
 use package::interface::{THREAD_LOCAL_DATA_STACK_LIMIT_OFFSET, THREAD_LOCAL_DATA_STATE_OFFSET};
 use package::location::{useInputFloatRegisterFixed, useInputRegister, useInputRegisterFixed, useOutputRegisterFixed, useOutputSameAsFirstInput, useTempRegisterFixed};
-use package::graph::{Inst, Op, LocationData, Type};
+use package::graph::{Inst, Op, LocationData, RegisterSnapshot, Type};
 use package::{CodeDescriptor, CommentTable, GcPointTable, LazyCompilationData, LocationTable};
 
 let REG_PARAMS: Array[Register] = Array[Register]::new(RDI, RSI, RDX, RCX, R8, R9);
@@ -140,7 +140,7 @@ impl CodeGenX64 {
         });
     }
 
-    fn emitWriteBarrier(host: Register, value: Register) {
+    fn emitWriteBarrier(host: Register, value: Register, snapshot: RegisterSnapshot) {
         let lbl_slow_path = self.asm.createLabel();
 
         self.asm.testb_ai(AsmAddress::offset(host, 4i32), Immediate(2));
@@ -152,26 +152,26 @@ impl CodeGenX64 {
             self.asm.bindLabel(lbl_slow_path);
             self.asm.testq_rr(value, value);
             self.asm.jcc(Condition::Zero, lbl_return);
-            self.saveAllocatableRegisters();
+            self.saveRegistersForCall(snapshot);
             self.asm.movq_rr(CCALL_REG_PARAMS(0), host);
             self.asm.movq_rr(CCALL_REG_PARAMS(1), value);
             self.asm.movq_ri(REG_TEMP, Immediate(config.object_write_barrier_slow_path.toInt64()));
             self.asm.call_r(REG_TEMP);
-            self.restoreAllocatableRegisters();
+            self.restoreRegistersForCall(snapshot);
             self.asm.jmp(lbl_return);
         });
     }
 
-    fn saveAllocatableRegisters() {
-        for reg in ALLOCATABLE_REGS {
+    fn saveRegistersForCall(snapshot: RegisterSnapshot) {
+        for reg in snapshot.gp.toArray() {
             self.asm.pushq_r(reg);
         }
     }
 
-    fn restoreAllocatableRegisters() {
+    fn restoreRegistersForCall(snapshot: RegisterSnapshot) {
         let mut regs = Vec[Register]::new();
 
-        for reg in ALLOCATABLE_REGS {
+        for reg in snapshot.gp.toArray() {
             regs.push(reg);
         }
 
@@ -844,7 +844,7 @@ impl CodeGen for CodeGenX64 {
             Type::Ptr => {
                 let src = loc.getInput(1).getRegister();
                 self.asm.movq_ar(AsmAddress::offset(obj, offset), src);
-                self.emitWriteBarrier(obj, src);
+                self.emitWriteBarrier(obj, src, loc.getRegisterSnapshot());
             },
 
             Type::Float32 => {

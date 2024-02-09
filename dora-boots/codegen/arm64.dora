@@ -10,7 +10,7 @@ use package::assembler::arm64::{R15, R16, R19, R20, R21, R22, R23};
 use package::assembler::arm64::{R24, R25, R26, R27, R28};
 use package::assembler::arm64::{REG_FP, REG_SP, REG_LR, REG_ZERO};
 use package::assembler::{FloatRegister, Label, RegSet, Register};
-use package::graph::{Inst, Op, LocationData, Type};
+use package::graph::{Inst, Op, LocationData, RegisterSnapshot, Type};
 use package::location::{useInputFloatRegisterFixed, useInputRegister, useInputRegisterFixed, useOutputRegister};
 use package::{CodeDescriptor, CommentTable, GcPointTable, LazyCompilationData, LazyCompilationSite, LazyCompilationSiteDirect, LocationTable};
 
@@ -157,7 +157,7 @@ impl CodeGenArm64 {
         });
     }
 
-    fn emitWriteBarrier(host: Register, value: Register, scratch: Register) {
+    fn emitWriteBarrier(host: Register, value: Register, scratch: Register, snapshot: RegisterSnapshot) {
         let lbl_slow_path = self.asm.createLabel();
 
         self.asm.ldrb_imm(scratch, host, 4i32);
@@ -168,18 +168,18 @@ impl CodeGenArm64 {
             self.emitComment("write barrier slow path");
             self.asm.bindLabel(lbl_slow_path);
             self.asm.cbz(value, lbl_return);
-            self.saveAllocatableRegisters();
+            self.saveRegistersForCall(snapshot);
             self.asm.mov(CCALL_REG_PARAMS(0), host);
             self.asm.mov(CCALL_REG_PARAMS(1), value);
             self.mov_imm(REG_TEMP, config.object_write_barrier_slow_path.toInt64());
             self.asm.bl_r(REG_TEMP);
-            self.restoreAllocatableRegisters();
+            self.restoreRegistersForCall(snapshot);
             self.asm.b(lbl_return);
         });
     }
 
-    fn saveAllocatableRegisters() {
-        let regs = ALLOCATABLE_REGS.toArray();
+    fn saveRegistersForCall(snapshot: RegisterSnapshot) {
+        let regs = snapshot.gp.toArray();
         let mut idx = 0;
 
         while idx + 1 < regs.size() {
@@ -192,8 +192,8 @@ impl CodeGenArm64 {
         }
     }
 
-    fn restoreAllocatableRegisters() {
-        let regs = ALLOCATABLE_REGS.toArray();
+    fn restoreRegistersForCall(snapshot: RegisterSnapshot) {
+        let regs = snapshot.gp.toArray();
         let mut idx = regs.size() - 1;
 
         if idx % 2 == 0 {
@@ -832,7 +832,7 @@ impl CodeGen for CodeGenArm64 {
             Type::Ptr => {
                 let src = loc.getInput(1).getRegister();
                 self.asm.str_imm(src, obj, offset);
-                self.emitWriteBarrier(obj, src, REG_TEMP);
+                self.emitWriteBarrier(obj, src, REG_TEMP, loc.getRegisterSnapshot());
             },
 
             Type::Float32 => {
