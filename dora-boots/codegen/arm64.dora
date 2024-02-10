@@ -192,6 +192,19 @@ impl CodeGenArm64 {
             let rt2 = regs.popLowestIndex().getOrPanic();
             self.asm.stp_pre(rt, rt2, REG_SP, -16i32);
         }
+
+        let regs = snapshot.fp.clone();
+
+        if regs.size() % 2 != 0 {
+            assert(!regs.contains(FREG_TEMP));
+            regs.add(FREG_TEMP);
+        }
+
+        while !regs.isEmpty() {
+            let rt = regs.popLowestIndex().getOrPanic();
+            let rt2 = regs.popLowestIndex().getOrPanic();
+            self.asm.stp_pre_d(rt, rt2, REG_SP, -16i32);
+        }
     }
 
     fn restoreRegistersForCall(snapshot: RegisterSnapshot) {
@@ -207,6 +220,19 @@ impl CodeGenArm64 {
             let rt2 = regs.popHighestIndex().getOrPanic();
             let rt = regs.popHighestIndex().getOrPanic();
             self.asm.ldp_post(rt, rt2, REG_SP, 16i32);
+        }
+
+        let regs = snapshot.fp.clone();
+
+        if regs.size() % 2 != 0 {
+            assert(!regs.contains(FREG_TEMP));
+            regs.add(FREG_TEMP);
+        }
+
+        while !regs.isEmpty() {
+            let rt2 = regs.popHighestIndex().getOrPanic();
+            let rt = regs.popHighestIndex().getOrPanic();
+            self.asm.ldp_post_d(rt, rt2, REG_SP, 16i32);
         }
     }
 }

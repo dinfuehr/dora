@@ -169,6 +169,20 @@ impl CodeGenX64 {
             let reg = regs.popLowestIndex().getOrPanic();
             self.asm.pushq_r(reg);
         }
+
+        let regs = snapshot.fp.clone();
+
+        if !regs.isEmpty() {
+            let size = regs.size() * 8;
+            self.asm.subq_ri(RSP, Immediate(size));
+            let mut offset = 0i32;
+
+            while !regs.isEmpty() {
+                let reg = regs.popLowestIndex().getOrPanic();
+                self.asm.movsd_ar(AsmAddress::offset(RSP, offset), reg);
+                offset = offset + 8i32;
+            }
+        }
     }
 
     fn restoreRegistersForCall(snapshot: RegisterSnapshot) {
@@ -177,6 +191,21 @@ impl CodeGenX64 {
         while !regs.isEmpty() {
             let reg = regs.popHighestIndex().getOrPanic();
             self.asm.popq_r(reg);
+        }
+
+        let regs = snapshot.fp.clone();
+
+        if !regs.isEmpty() {
+            let mut offset = 0i32;
+
+            while !regs.isEmpty() {
+                let reg = regs.popLowestIndex().getOrPanic();
+                self.asm.movsd_ra(reg, AsmAddress::offset(RSP, offset));
+                offset = offset + 8i32;
+            }
+
+            let size = regs.size() * 8;
+            self.asm.addq_ri(RSP, Immediate(size));
         }
     }
 }
