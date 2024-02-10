@@ -1,0 +1,15 @@
+//= boots
+
+fn main() {
+    let foo = Foo(10u8);
+    f(foo, 12u8);
+    assert(foo.val == 12u8);
+
+    let foo = Foo(10u8);
+    f(foo, 17u8);
+    assert(foo.val == 17u8);
+}
+
+class Foo(val: UInt8)
+
+@optimizeImmediately fn f(x: Foo, y: UInt8) { x.val = y; }

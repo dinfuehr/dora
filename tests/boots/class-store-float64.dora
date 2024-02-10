@@ -1,0 +1,15 @@
+//= boots
+
+fn main() {
+    let foo = Foo(10.0);
+    f(foo, 12.0);
+    assert(foo.val == 12.0);
+
+    let foo = Foo(10.0);
+    f(foo, 17.0);
+    assert(foo.val == 17.0);
+}
+
+class Foo(val: Float64)
+
+@optimizeImmediately fn f(x: Foo, y: Float64) { x.val = y; }
