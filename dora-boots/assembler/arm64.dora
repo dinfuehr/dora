@@ -1018,6 +1018,13 @@ impl AssemblerArm64 {
         self.emit(encoding::ldst_pair_post(0b10i32, 0i32, 1i32, imm, rt2, rn, rt));
     }
 
+    pub fn ldp_post_d(rt: FloatRegister, rt2: FloatRegister, rn: Register, imm: Int32) {
+        assert(imm % 8i32 == 0i32);
+        assert(imm != 0i32);
+        let imm = imm / 8i32;
+        self.emit(encoding::ldst_pair_post_float(0b01i32, 1i32, 1i32, imm, rt2, rn, rt));
+    }
+
     pub fn ldp_post_w(rt: Register, rt2: Register, rn: Register, imm: Int32) {
         assert(imm % 4i32 == 0i32);
         assert(imm != 0i32);
@@ -1598,6 +1605,13 @@ impl AssemblerArm64 {
         assert(imm != 0i32);
         let imm = imm / 8i32;
         self.emit(encoding::ldst_pair_pre(0b10i32, 0i32, 0i32, imm, rt2, rn, rt));
+    }
+
+    pub fn stp_pre_d(rt: FloatRegister, rt2: FloatRegister, rn: Register, imm: Int32) {
+        assert(imm % 8i32 == 0i32);
+        assert(imm != 0i32);
+        let imm = imm / 8i32;
+        self.emit(encoding::ldst_pair_pre_float(0b01i32, 1i32, 0i32, imm, rt2, rn, rt));
     }
 
     pub fn stp_pre_w(rt: Register, rt2: Register, rn: Register, imm: Int32) {
@@ -2878,6 +2892,33 @@ mod encoding {
             | rt.encoding()
     }
 
+    pub fn ldst_pair_post_float(
+        opc: Int32,
+        v: Int32,
+        l: Int32,
+        imm7: Int32,
+        rt2: FloatRegister,
+        rn: Register,
+        rt: FloatRegister,
+    ): Int32 {
+        assert(fitsU2(opc));
+        assert(fitsBit(v));
+        assert(fitsBit(l));
+        assert(fitsI7(imm7));
+        assert(rn.isGprOrSp());
+
+        opc << 30i32
+            | 0b101i32 << 27i32
+            | v << 26i32
+            | 0b001i32 << 23i32
+            | l << 22i32
+            | (imm7 & 0x7Fi32) << 15i32
+            | rt2.encoding() << 10i32
+            | rn.encodingSp() << 5i32
+            | rt.encoding()
+    }
+
+
     pub fn ldst_pair_pre(
         opc: Int32,
         v: Int32,
@@ -2902,6 +2943,32 @@ mod encoding {
             | l << 22i32
             | (imm7 & 0x7Fi32) << 15i32
             | rt2.encodingZero() << 10i32
+            | rn.encodingSp() << 5i32
+            | rt.encoding()
+    }
+
+    pub fn ldst_pair_pre_float(
+        opc: Int32,
+        v: Int32,
+        l: Int32,
+        imm7: Int32,
+        rt2: FloatRegister,
+        rn: Register,
+        rt: FloatRegister,
+    ): Int32 {
+        assert(fitsU2(opc));
+        assert(fitsBit(v));
+        assert(fitsBit(l));
+        assert(fitsI7(imm7));
+        assert(rn.isGprOrSp());
+
+        opc << 30i32
+            | 0b101i32 << 27i32
+            | v << 26i32
+            | 0b011i32 << 23i32
+            | l << 22i32
+            | (imm7 & 0x7Fi32) << 15i32
+            | rt2.encoding() << 10i32
             | rn.encodingSp() << 5i32
             | rt.encoding()
     }
@@ -3222,7 +3289,7 @@ mod tests {
         R0, R1, R2, R3, R4, R5, R6, R7, R8, R9, R10,
         R11, R17, R27, R28, R29, R30
     };
-    use super::{F0, F1, F2, F3, F4, F5};
+    use super::{F0, F1, F2, F3, F4, F5, F31};
 
     @Test
     fn test_asm_ret() {
@@ -4558,6 +4625,7 @@ mod tests {
         asm.ldp_post(R0, R1, R2, 16i32);
         asm.ldp_post_w(R3, R4, R5, 4i32);
         asm.ldp_post_w(R3, R4, R5, 8i32);
+        asm.ldp_post_d(F0, F31, REG_SP, -16i32);
         let buffer = asm.finalizeTesting();
 
         assertAsm32(
@@ -4570,6 +4638,8 @@ mod tests {
             0x28c090a3i32,
             // ldp w3, w4, [x5], #8
             0x28c110a3i32,
+            // ldp d0, d31, [sp], #-16
+            0x6cff7fe0i32,
         );
     }
 
@@ -4732,6 +4802,7 @@ mod tests {
         let asm = AssemblerArm64::new();
         asm.stp_pre(R0, R1, R2, 16i32);
         asm.stp_pre_w(R3, R4, R5, 4i32);
+        asm.stp_pre_d(F0, F31, REG_SP, -16i32);
         let buffer = asm.finalizeTesting();
 
         assertAsm32(
@@ -4740,6 +4811,8 @@ mod tests {
             0xa9810440i32,
             // stp w3, w4, [x5, #4]!
             0x298090a3i32,
+            // stp d0, d31, [sp, #-16]!
+            0x6dbf7fe0i32,
         );
     }
 
