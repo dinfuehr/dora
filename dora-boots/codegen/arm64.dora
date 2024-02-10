@@ -179,33 +179,34 @@ impl CodeGenArm64 {
     }
 
     fn saveRegistersForCall(snapshot: RegisterSnapshot) {
-        let regs = snapshot.gp.toArray();
-        let mut idx = 0;
+        let regs = snapshot.gp.clone();
 
-        while idx + 1 < regs.size() {
-            self.asm.stp_pre(regs(idx), regs(idx+1), REG_SP, -16i32);
-            idx = idx + 2;
+        if regs.size() % 2 != 0 {
+            let zero = Register(31u8);
+            assert(!regs.contains(zero));
+            regs.add(zero);
         }
 
-        if idx < regs.size() {
-            self.asm.stp_pre(regs(idx), REG_ZERO, REG_SP, -16i32);
+        while !regs.isEmpty() {
+            let rt = regs.popLowestIndex().getOrPanic();
+            let rt2 = regs.popLowestIndex().getOrPanic();
+            self.asm.stp_pre(rt, rt2, REG_SP, -16i32);
         }
     }
 
     fn restoreRegistersForCall(snapshot: RegisterSnapshot) {
-        let regs = snapshot.gp.toArray();
-        let mut idx = regs.size() - 1;
+        let regs = snapshot.gp.clone();
 
-        if idx % 2 == 0 {
-            self.asm.ldp_post(regs(idx), REG_ZERO, REG_SP, 16i32);
-            idx = idx - 2;
-        } else {
-            idx = idx - 1;
+        if regs.size() % 2 != 0 {
+            let zero = Register(31u8);
+            assert(!regs.contains(zero));
+            regs.add(zero);
         }
 
-        while idx >= 0 {
-            self.asm.ldp_post(regs(idx), regs(idx+1), REG_SP, 16i32);
-            idx = idx - 2;
+        while !regs.isEmpty() {
+            let rt2 = regs.popHighestIndex().getOrPanic();
+            let rt = regs.popHighestIndex().getOrPanic();
+            self.asm.ldp_post(rt, rt2, REG_SP, 16i32);
         }
     }
 }

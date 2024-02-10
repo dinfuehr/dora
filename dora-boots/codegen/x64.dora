@@ -163,20 +163,19 @@ impl CodeGenX64 {
     }
 
     fn saveRegistersForCall(snapshot: RegisterSnapshot) {
-        for reg in snapshot.gp.toArray() {
+        let regs = snapshot.gp.clone();
+
+        while !regs.isEmpty() {
+            let reg = regs.popLowestIndex().getOrPanic();
             self.asm.pushq_r(reg);
         }
     }
 
     fn restoreRegistersForCall(snapshot: RegisterSnapshot) {
-        let mut regs = Vec[Register]::new();
-
-        for reg in snapshot.gp.toArray() {
-            regs.push(reg);
-        }
+        let regs = snapshot.gp.clone();
 
         while !regs.isEmpty() {
-            let reg = regs.pop().getOrPanic();
+            let reg = regs.popHighestIndex().getOrPanic();
             self.asm.popq_r(reg);
         }
     }

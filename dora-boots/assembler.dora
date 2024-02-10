@@ -365,6 +365,29 @@ impl[T: RegisterType] RegSet[T] {
         self.value == 0
     }
 
+    pub fn popLowestIndex(): Option[T] {
+        let idx = self.value.countZeroBitsTrailing();
+
+        if idx == 64i32 {
+            None[T]
+        } else {
+            self.value = self.value & !(1 << idx);
+            return Some[T](T::fromInt32(idx));
+        }
+    }
+
+    pub fn popHighestIndex(): Option[T] {
+        let idx = self.value.countZeroBitsLeading();
+
+        if idx == 64i32 {
+            None[T]
+        } else {
+            let idx = 63i32 - idx;
+            self.value = self.value & !(1 << idx);
+            return Some[T](T::fromInt32(idx));
+        }
+    }
+
     pub fn first(): Option[T] {
         let idx = self.value.countZeroBitsTrailing();
 
@@ -401,8 +424,12 @@ impl[T: RegisterType] RegSet[T] {
         )
     }
 
+    pub fn size(): Int64 {
+        self.value.countOneBits().toInt64()
+    }
+
     pub fn toArray(): Array[T] {
-        let count = self.value.countOneBits().toInt64();
+        let count = self.size();
         let result = Array[T]::fill(count, T::fromInt32(0i32));
         let iter = self.iter();
 
@@ -452,5 +479,23 @@ mod tests {
         assert(iter.next().getOrPanic().value == 15u8);
         assert(iter.next().getOrPanic().value == 63u8);
         assert(iter.next().isNone());
+    }
+
+    @Test
+    fn popLowestIndexFromRegSet() {
+        let regset = RegSet[Register]::new(Register(1u8), Register(15u8), Register(63u8));
+        assert(regset.popLowestIndex().getOrPanic().value == 1u8);
+        assert(regset.popLowestIndex().getOrPanic().value == 15u8);
+        assert(regset.popLowestIndex().getOrPanic().value == 63u8);
+        assert(regset.popLowestIndex().isNone());
+    }
+
+    @Test
+    fn popHighestIndexFromRegSet() {
+        let regset = RegSet[Register]::new(Register(1u8), Register(15u8), Register(63u8));
+        assert(regset.popHighestIndex().getOrPanic().value == 63u8);
+        assert(regset.popHighestIndex().getOrPanic().value == 15u8);
+        assert(regset.popHighestIndex().getOrPanic().value == 1u8);
+        assert(regset.popHighestIndex().isNone());
     }
 }
