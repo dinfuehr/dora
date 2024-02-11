@@ -452,6 +452,9 @@ impl SsaGen {
             BytecodeInstruction::InvokeStatic(dest, idx) => {
                 self.emitCall(dest, CallKind::Static, idx);
             },
+            BytecodeInstruction::InvokeLambda(dest, idx) => {
+                unimplemented();
+            },
             BytecodeInstruction::InvokeGenericStatic(dest, idx) => {
                 unimplemented();
             },
@@ -460,6 +463,9 @@ impl SsaGen {
             },
 
             BytecodeInstruction::NewObject(dest, idx) => {
+                unimplemented();
+            },
+            BytecodeInstruction::NewObjectInitialized(dest, idx) => {
                 unimplemented();
             },
             BytecodeInstruction::NewArray(dest, idx, length) => {
@@ -488,6 +494,9 @@ impl SsaGen {
             },
             BytecodeInstruction::StoreArray(src, arr, idx) => {
                 self.emitStoreArray(src, arr, idx);
+            },
+            BytecodeInstruction::LoadTraitObjectValue(dest, src) => {
+                unimplemented();
             },
             BytecodeInstruction::Ret(opnd) => {
                 let ty = self.bc.registers(opnd.value.toInt64());

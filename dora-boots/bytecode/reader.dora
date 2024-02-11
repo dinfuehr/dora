@@ -236,10 +236,21 @@ impl BytecodeIterator {
             let fct = self.readConstPoolId();
             BytecodeInstruction::InvokeStatic(dest, fct)
 
+        } else if opcode == opc::BC_INVOKE_LAMBDA {
+            let dest = self.readRegister();
+            let fct = self.readConstPoolId();
+            BytecodeInstruction::InvokeLambda(dest, fct)
+
         } else if opcode == opc::BC_NEW_OBJECT {
             let dest = self.readRegister();
             let idx = self.readConstPoolId();
             BytecodeInstruction::NewObject(dest, idx)
+
+        } else if opcode == opc::BC_NEW_OBJECT_INITIALIZED {
+            let dest = self.readRegister();
+            let idx = self.readConstPoolId();
+            BytecodeInstruction::NewObjectInitialized(dest, idx)
+
         } else if opcode == opc::BC_NEW_ARRAY {
             let dest = self.readRegister();
             let idx = self.readConstPoolId();
@@ -266,6 +277,11 @@ impl BytecodeIterator {
             let arr = self.readRegister();
             let idx = self.readRegister();
             BytecodeInstruction::StoreArray(src, arr, idx)
+
+        } else if opcode == opc::BC_LOAD_TRAIT_OBJECT_VALUE {
+            let dest = self.readRegister();
+            let src = self.readRegister();
+            BytecodeInstruction::ArrayLength(dest, src)
 
         } else if opcode == opc::BC_RET {
             let opnd = self.readRegister();

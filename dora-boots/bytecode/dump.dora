@@ -192,6 +192,9 @@ impl BytecodeDumper {
             BytecodeInstruction::InvokeStatic(dest, idx) => {
                 self.emitReg1AndIdx("InvokeStatic", dest, idx);
             },
+            BytecodeInstruction::InvokeLambda(dest, idx) => {
+                self.emitReg1AndIdx("InvokeLambda", dest, idx);
+            },
             BytecodeInstruction::InvokeGenericStatic(dest, idx) => {
                 self.emitReg1AndIdx("InvokeGenericStatic", dest, idx);
             },
@@ -201,6 +204,9 @@ impl BytecodeDumper {
 
             BytecodeInstruction::NewObject(dest, idx) => {
                 self.emitReg1AndIdx("NewObject", dest, idx);
+            },
+            BytecodeInstruction::NewObjectInitialized(dest, idx) => {
+                self.emitReg1AndIdx("NewObjectInitialized", dest, idx);
             },
             BytecodeInstruction::NewArray(dest, idx, length) => {
                 self.emitRegIdxReg("NewArray", dest, idx, length);
@@ -228,6 +234,9 @@ impl BytecodeDumper {
             },
             BytecodeInstruction::StoreArray(src, arr, index) => {
                 self.emitReg3("StoreArray", src, arr, index);
+            },
+            BytecodeInstruction::LoadTraitObjectValue(dest, src) => {
+                self.emitReg2("LoadTraitObjectValue", dest, src);
             },
             BytecodeInstruction::Ret(opnd) => {
                 self.emitReg1("Ret", opnd);

@@ -59,10 +59,12 @@ pub enum BytecodeInstruction {
     InvokeDirect(BytecodeRegister, ConstPoolId),
     InvokeVirtual(BytecodeRegister, ConstPoolId),
     InvokeStatic(BytecodeRegister, ConstPoolId),
+    InvokeLambda(BytecodeRegister, ConstPoolId),
     InvokeGenericStatic(BytecodeRegister, ConstPoolId),
     InvokeGenericDirect(BytecodeRegister, ConstPoolId),
 
     NewObject(BytecodeRegister, ConstPoolId),
+    NewObjectInitialized(BytecodeRegister, ConstPoolId),
     NewArray(BytecodeRegister, ConstPoolId, BytecodeRegister),
     NewTuple(BytecodeRegister, ConstPoolId),
     NewEnum(BytecodeRegister, ConstPoolId),
@@ -74,6 +76,8 @@ pub enum BytecodeInstruction {
 
     LoadArray(BytecodeRegister, BytecodeRegister, BytecodeRegister),
     StoreArray(BytecodeRegister, BytecodeRegister, BytecodeRegister),
+
+    LoadTraitObjectValue(BytecodeRegister, BytecodeRegister),
 
     Ret(BytecodeRegister),
 }
