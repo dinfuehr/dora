@@ -1,6 +1,6 @@
 use package::bytecode::{ConstPoolId, Location};
 use package::interface::{Address, Architecture, CompilationInfo, ConstPool, ConstPoolEntry, ConstPoolValue, config, TRAP_DIV0, TRAP_OVERFLOW, getFunctionAddress, getFieldOffset};
-use package::interface::{THREAD_LOCAL_DATA_STACK_LIMIT_OFFSET, THREAD_LOCAL_DATA_STATE_OFFSET};
+use package::interface::{THREAD_LOCAL_DATA_STACK_LIMIT_OFFSET, THREAD_LOCAL_DATA_STATE_OFFSET, THREAD_LOCAL_DATA_MARKING_OFFSET};
 use package::codegen::{CODE_SIZE_ALIGNMENT, CodeGen};
 use package::assembler::arm64::{F0, F1, F2, F3, F4, F5, F6, F7, F31};
 use package::assembler::arm64::{AssemblerArm64, Cond, Extend, Shift, registerName};
@@ -158,15 +158,26 @@ impl CodeGenArm64 {
     }
 
     fn emitWriteBarrier(host: Register, value: Register, scratch: Register, snapshot: RegisterSnapshot) {
-        let lbl_slow_path = self.asm.createLabel();
+        let lbl_object_slow_path = self.asm.createLabel();
+        let lbl_marking_slow_path = self.asm.createLabel();
+
+        self.asm.ldrb_imm(scratch, REG_THREAD, THREAD_LOCAL_DATA_MARKING_OFFSET);
+        self.asm.cbnz_w(scratch, lbl_marking_slow_path);
 
         self.asm.ldrb_imm(scratch, host, 4i32);
-        self.asm.tbz(scratch, 1i32, lbl_slow_path);
+        self.asm.tbz(scratch, 1i32, lbl_object_slow_path);
         let lbl_return = self.asm.createAndBindLabel();
 
         self.deferred.push(|| {
-            self.emitComment("write barrier slow path");
-            self.asm.bindLabel(lbl_slow_path);
+            self.emitComment("marking barrier slow path");
+            self.asm.bindLabel(lbl_marking_slow_path);
+            self.asm.brk(0i32);
+            self.asm.b(lbl_return);
+        });
+
+        self.deferred.push(|| {
+            self.emitComment("object barrier slow path");
+            self.asm.bindLabel(lbl_object_slow_path);
             self.asm.cbz(value, lbl_return);
             self.saveRegistersForCall(snapshot);
             self.asm.mov(CCALL_REG_PARAMS(0), host);

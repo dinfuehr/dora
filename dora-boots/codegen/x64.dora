@@ -6,7 +6,7 @@ use package::assembler::{FloatRegister, Label, Register, RegSet};
 use package::bytecode::data::{ConstPoolId, Location};
 use package::codegen::{CODE_SIZE_ALIGNMENT, CodeGen};
 use package::interface::{Address, Architecture, CompilationInfo, ConstPool, ConstPoolEntry, ConstPoolValue, config, getFunctionAddress, LazyCompilationSite, LazyCompilationSiteDirect, TRAP_DIV0, TRAP_OVERFLOW, getFieldOffset};
-use package::interface::{THREAD_LOCAL_DATA_STACK_LIMIT_OFFSET, THREAD_LOCAL_DATA_STATE_OFFSET};
+use package::interface::{THREAD_LOCAL_DATA_STACK_LIMIT_OFFSET, THREAD_LOCAL_DATA_STATE_OFFSET, THREAD_LOCAL_DATA_MARKING_OFFSET};
 use package::location::{useInputFloatRegisterFixed, useInputRegister, useInputRegisterFixed, useOutputRegisterFixed, useOutputSameAsFirstInput, useTempRegisterFixed};
 use package::graph::{Inst, Op, LocationData, RegisterSnapshot, Type};
 use package::{CodeDescriptor, CommentTable, GcPointTable, LazyCompilationData, LocationTable};
@@ -141,15 +141,26 @@ impl CodeGenX64 {
     }
 
     fn emitWriteBarrier(host: Register, value: Register, snapshot: RegisterSnapshot) {
-        let lbl_slow_path = self.asm.createLabel();
+        let lbl_object_slow_path = self.asm.createLabel();
+        let lbl_marking_slow_path = self.asm.createLabel();
+
+        self.asm.cmpb_ai(AsmAddress::offset(REG_THREAD, THREAD_LOCAL_DATA_MARKING_OFFSET), Immediate(0));
+        self.asm.jcc(Condition::NotZero, lbl_marking_slow_path);
 
         self.asm.testb_ai(AsmAddress::offset(host, 4i32), Immediate(2));
-        self.asm.jcc(Condition::Zero, lbl_slow_path);
+        self.asm.jcc(Condition::Zero, lbl_object_slow_path);
         let lbl_return = self.asm.createAndBindLabel();
 
         self.deferred.push(|| {
-            self.emitComment("write barrier slow path");
-            self.asm.bindLabel(lbl_slow_path);
+            self.emitComment("marking barrier slow path");
+            self.asm.bindLabel(lbl_marking_slow_path);
+            self.asm.int3();
+            self.asm.jmp(lbl_return);
+        });
+
+        self.deferred.push(|| {
+            self.emitComment("object barrier slow path");
+            self.asm.bindLabel(lbl_object_slow_path);
             self.asm.testq_rr(value, value);
             self.asm.jcc(Condition::Zero, lbl_return);
             self.saveRegistersForCall(snapshot);
