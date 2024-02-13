@@ -470,7 +470,7 @@ fn testSsaGenLoadArrayElementInt32() {
   %1: Arg.Int64(1) [%3, %4]
   %2: ArrayLength %0 [%3]
   %3: BoundsCheck %1, %2
-  %4: ArrayGet.Int32 %0, %1 [%5]
+  %4: LoadArray.Int32 %0, %1 [%5]
   %5: Ret.Int32 %4
 ");
 }
@@ -493,7 +493,7 @@ fn testSsaGenStoreArrayElementInt32() {
   %2: Arg.Int32(2) [%5]
   %3: ArrayLength %0 [%4]
   %4: BoundsCheck %1, %3
-  %5: ArraySet.Int32 %0, %1, %2
+  %5: StoreArray %0, %1, %2
   %6: Ret.Void
 ");
 }

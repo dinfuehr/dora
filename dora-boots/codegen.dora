@@ -197,6 +197,26 @@ fn emitInst(codegen: CodeGen, inst: Inst) {
             codegen.emitStoreField(inst);
         },
 
+        Op::ArrayLength => {
+            codegen.emitComment("ArrayLength");
+            codegen.emitArrayLength(inst);
+        },
+
+        Op::BoundsCheck => {
+            codegen.emitComment("BoundsCheck");
+            codegen.emitBoundsCheck(inst);
+        },
+
+        Op::LoadArray => {
+            codegen.emitComment("LoadArray");
+            codegen.emitLoadArray(inst);
+        },
+
+        Op::StoreArray => {
+            codegen.emitComment("StoreArray");
+            codegen.emitStoreArray(inst);
+        },
+
         _ => {
             println("unsupported op ${inst.op().name()}");
             unreachable[()]();
@@ -267,6 +287,10 @@ pub trait CodeGen {
     fn emitInvokeStatic(inst: Inst);
     fn emitLoadField(inst: Inst);
     fn emitStoreField(inst: Inst);
+    fn emitArrayLength(inst: Inst);
+    fn emitBoundsCheck(inst: Inst);
+    fn emitLoadArray(inst: Inst);
+    fn emitStoreArray(inst: Inst);
 
     fn emitComment(comment: String);
 }

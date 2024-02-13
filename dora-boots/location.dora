@@ -154,6 +154,28 @@ fn setLocationConstraints(inst: Inst, codegen: CodeGen, ci: CompilationInfo, arg
             }
         },
 
+        Op::ArrayLength => {
+            useInputRegister(inst, 0);
+            useOutputRegister(inst);
+        },
+
+        Op::BoundsCheck => {
+            useInputRegister(inst, 0);
+            useInputRegister(inst, 1);
+        },
+
+        Op::LoadArray => {
+            useInputRegister(inst, 0);
+            useInputRegister(inst, 1);
+            useOutputRegister(inst);
+        },
+
+        Op::StoreArray => {
+            useInputRegister(inst, 0);
+            useInputRegister(inst, 1);
+            useInputRegister(inst, 2);
+        },
+
         _ => {
             println("unsupported op ${inst.op().name()}");
             unreachable[()]();

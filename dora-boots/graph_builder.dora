@@ -14,8 +14,8 @@ use package::graph::createFloat64Const;
 use package::graph::createIfInst;
 use package::graph::createArrayLength;
 use package::graph::createBoundsCheck;
-use package::graph::createArrayGet;
-use package::graph::createArraySet;
+use package::graph::createLoadArray;
+use package::graph::createStoreArray;
 use package::graph::createReturnInst;
 use package::graph::createReturnVoidInst;
 use package::graph::createGotoInst;
@@ -487,7 +487,11 @@ impl SsaGen {
                 unimplemented();
             },
             BytecodeInstruction::ArrayLength(dest, src) => {
-                unimplemented();
+                let srcInst = self.readVariable(src, self.current());
+                let destInst = createArrayLength(srcInst);
+                destInst.set_bytecode_position(self.offset);
+                self.current().appendInst(destInst);
+                self.writeVariable(dest, self.current(), destInst);
             },
             BytecodeInstruction::LoadArray(dest, arr, idx) => {
                 self.emitLoadArray(dest, arr, idx);
@@ -745,12 +749,15 @@ impl SsaGen {
         self.current().appendInst(arrayLengthInst);
 
         let boundsCheckInst = createBoundsCheck(idxInst, arrayLengthInst);
+        boundsCheckInst.set_bytecode_position(self.offset);
         self.current().appendInst(boundsCheckInst);
 
-        let arrayGetInst = createArrayGet(arrInst, idxInst, Type::Int32);
-        self.current().appendInst(arrayGetInst);
+        let destType = self.bc.registers(dest.value.toInt64());
+        let destType = Type::fromBytecodeType(destType);
+        let arrayLoadInst = createLoadArray(arrInst, idxInst, destType);
+        self.current().appendInst(arrayLoadInst);
 
-        self.writeVariable(dest, self.current(), arrayGetInst);
+        self.writeVariable(dest, self.current(), arrayLoadInst);
     }
 
     fn emitStoreArray(src: BytecodeRegister, arr: BytecodeRegister, idx: BytecodeRegister) {
@@ -762,10 +769,11 @@ impl SsaGen {
         self.current().appendInst(arrayLengthInst);
 
         let boundsCheckInst = createBoundsCheck(idxInst, arrayLengthInst);
+        boundsCheckInst.set_bytecode_position(self.offset);
         self.current().appendInst(boundsCheckInst);
 
-        let arraySetInst = createArraySet(arrInst, idxInst, srcInst, srcInst.getValueType());
-        self.current().appendInst(arraySetInst);
+        let arrayStoreInst = createStoreArray(arrInst, idxInst, srcInst, srcInst.getValueType());
+        self.current().appendInst(arrayStoreInst);
     }
 
     fn emitRet(opnd: BytecodeRegister, ty: Type) {

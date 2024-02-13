@@ -1,0 +1,13 @@
+//= boots
+
+fn main() {
+    let arr = Array[Int64]::newDefault(100);
+    arr(47) = 12;
+    assert(f(arr, 46) == 0);
+    assert(f(arr, 47) == 12);
+    assert(f(arr, 48) == 0);
+}
+
+class Foo(val: Int64)
+
+@optimizeImmediately fn f(x: Array[Int64], idx: Int64): Int64 { x(idx) }

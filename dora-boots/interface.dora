@@ -91,6 +91,13 @@ pub const THREAD_LOCAL_DATA_HANDLE_OFFSET: Int32 = 32;
 pub const THREAD_LOCAL_DATA_MARKING_OFFSET: Int32 = 40;
 pub const THREAD_LOCAL_DATA_STATE_OFFSET: Int32 = 41;
 
+pub const OBJECT_VTABLE_OFFSET: Int32 = 0;
+pub const OBJECT_METADATA_OFFSET: Int32 = 4;
+pub const OBJECT_HEADER_LENGTH: Int32 = 8;
+pub const ARRAY_HEADER_LENGTH: Int32 = 16;
+
+pub const METADATA_REMEMBERED_BIT: Int32 = 1;
+
 pub class CodeDescriptor {
     pub constPool: ConstPool,
     pub code: Array[UInt8],

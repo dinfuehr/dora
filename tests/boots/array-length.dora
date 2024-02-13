@@ -1,0 +1,10 @@
+//= boots
+
+fn main() {
+    assert(f(Array[Int64]::newDefault(100)) == 100);
+    assert(f(Array[Int64]::newDefault(47)) == 47);
+}
+
+class Foo(val: Int64)
+
+@optimizeImmediately fn f(x: Array[Int64]): Int64 { x.size() }

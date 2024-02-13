@@ -1,6 +1,7 @@
 use package::bytecode::{ConstPoolId, Location};
-use package::interface::{Address, Architecture, CompilationInfo, ConstPool, ConstPoolEntry, ConstPoolValue, config, TRAP_DIV0, TRAP_OVERFLOW, getFunctionAddress, getFieldOffset};
-use package::interface::{THREAD_LOCAL_DATA_STACK_LIMIT_OFFSET, THREAD_LOCAL_DATA_STATE_OFFSET, THREAD_LOCAL_DATA_MARKING_OFFSET};
+use package::interface::{Address, Architecture, CompilationInfo, ConstPool, ConstPoolEntry, ConstPoolValue, config, getFunctionAddress, getFieldOffset};
+use package::interface::{THREAD_LOCAL_DATA_STACK_LIMIT_OFFSET, THREAD_LOCAL_DATA_STATE_OFFSET, THREAD_LOCAL_DATA_MARKING_OFFSET, OBJECT_HEADER_LENGTH, OBJECT_METADATA_OFFSET, METADATA_REMEMBERED_BIT, ARRAY_HEADER_LENGTH};
+use package::interface::{TRAP_DIV0, TRAP_OVERFLOW, TRAP_INDEX_OUT_OF_BOUNDS};
 use package::codegen::{CODE_SIZE_ALIGNMENT, CodeGen};
 use package::assembler::arm64::{F0, F1, F2, F3, F4, F5, F6, F7, F31};
 use package::assembler::arm64::{AssemblerArm64, Cond, Extend, Shift, registerName};
@@ -164,8 +165,8 @@ impl CodeGenArm64 {
         self.asm.ldrb_imm(scratch, REG_THREAD, THREAD_LOCAL_DATA_MARKING_OFFSET);
         self.asm.cbnz_w(scratch, lbl_marking_slow_path);
 
-        self.asm.ldrb_imm(scratch, host, 4i32);
-        self.asm.tbz(scratch, 1i32, lbl_object_slow_path);
+        self.asm.ldrb_imm(scratch, host, OBJECT_METADATA_OFFSET);
+        self.asm.tbz(scratch, METADATA_REMEMBERED_BIT, lbl_object_slow_path);
         let lbl_return = self.asm.createAndBindLabel();
 
         self.deferred.push(|| {
@@ -887,6 +888,75 @@ impl CodeGen for CodeGenArm64 {
                 unimplemented();
             }
         }
+    }
+
+    fn emitArrayLength(inst: Inst) {
+        let loc = inst.getLocationData();
+        let arr = loc.getInput(0).getRegister();
+
+        let dest = loc.getOutput().getRegister();
+        self.asm.ldr_imm(dest, arr, OBJECT_HEADER_LENGTH);
+    }
+
+    fn emitBoundsCheck(inst: Inst) {
+        let loc = inst.getLocationData();
+        let idx = loc.getInput(0).getRegister();
+        let length = loc.getInput(1).getRegister();
+
+        let label_oob = self.asm.createLabel();
+
+        self.asm.cmp(idx, length);
+        self.asm.bc(Cond::HS, label_oob);
+
+        self.deferred.push(|| {
+            self.emitComment("slow path for BoundsCheck");
+            self.asm.bindLabel(label_oob);
+            self.trap(REG_TEMP, TRAP_INDEX_OUT_OF_BOUNDS, self.ci.bc.getLocationAt(inst.bytecode_position()));
+        });
+    }
+
+    fn emitLoadArray(inst: Inst) {
+        let loc = inst.getLocationData();
+        let array = loc.getInput(0).getRegister();
+        let idx = loc.getInput(1).getRegister();
+
+        let ty = inst.getOperationType();
+
+        match ty {
+            Type::Bool | Type::UInt8 => {
+                unimplemented();
+            },
+
+            Type::Int32 => {
+                unimplemented();
+            },
+
+            Type::Int64 => {
+                let dest = loc.getOutput().getRegister();
+                self.asm.add_imm(REG_TEMP, array, ARRAY_HEADER_LENGTH);
+                self.asm.ldr_reg(dest, REG_TEMP, idx, Extend::LSL, 3i32);
+            },
+
+            Type::Ptr => {
+                unimplemented();
+            },
+
+            Type::Float32 => {
+                unimplemented();
+            },
+
+            Type::Float64 => {
+                unimplemented();
+            },
+
+            _ => {
+                unimplemented();
+            }
+        }
+    }
+
+    fn emitStoreArray(inst: Inst) {
+        unimplemented();
     }
 
     fn finalize(): CodeDescriptor {

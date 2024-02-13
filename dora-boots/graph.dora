@@ -619,13 +619,14 @@ pub enum Op {
 
     Phi,
     DivZeroCheck,
-    ArrayGet,
-    ArraySet,
     ArrayLength,
 
     LoadField,
     StoreField,
     Arg,
+
+    LoadArray,
+    StoreArray,
 
     Move,
     MoveImmediate,
@@ -706,11 +707,11 @@ pub fn opName(op: Op): String {
         Op::LessOrEqual => "LessOrEqual",
         Op::Phi => "Phi",
         Op::DivZeroCheck => "DivZeroCheck",
-        Op::ArrayGet => "ArrayGet",
-        Op::ArraySet => "ArraySet",
         Op::ArrayLength => "ArrayLength",
         Op::LoadField => "LoadField",
         Op::StoreField => "StoreField",
+        Op::LoadArray => "LoadArray",
+        Op::StoreArray => "StoreArray",
         Op::Arg => "Arg",
         Op::Move => "Move",
         Op::MoveImmediate => "MoveImmediate",
@@ -874,11 +875,11 @@ impl Inst {
             Op::LessOrEqual => Type::Bool,
             Op::Phi => self.ty,
             Op::DivZeroCheck => unreachable[Type](),
-            Op::ArrayGet => self.ty,
-            Op::ArraySet => unreachable[Type](),
             Op::ArrayLength => Type::Int64,
             Op::LoadField => self.ty,
             Op::StoreField => unreachable[Type](),
+            Op::LoadArray => self.ty,
+            Op::StoreArray => unreachable[Type](),
             Op::Arg => self.ty,
             Op::Move => self.ty,
             Op::MoveImmediate => self.ty,
@@ -894,8 +895,8 @@ impl Inst {
             | Op::GreaterOrEqual
             | Op::Less
             | Op::LessOrEqual
-            | Op::ArraySet
-            | Op::StoreField => self.ty,
+            | Op::StoreField
+            | Op::StoreArray => self.ty,
             _ => self.getValueType(),
         }
     }
@@ -1283,11 +1284,11 @@ impl Inst {
             Op::LessOrEqual => false,
             Op::Phi => true,
             Op::DivZeroCheck => true,
-            Op::ArrayGet => false,
-            Op::ArraySet => true,
             Op::ArrayLength => false,
             Op::LoadField => false,
             Op::StoreField => true,
+            Op::LoadArray => false,
+            Op::StoreArray => true,
             Op::Arg => false,
             Op::Move => false,
             Op::MoveImmediate => false,
@@ -1846,18 +1847,18 @@ pub fn createDivZeroCheck(value: Inst): Inst {
     inst
 }
 
-pub fn createArrayGet(array: Inst, index: Inst, ty: Type): Inst {
+pub fn createLoadArray(array: Inst, index: Inst, ty: Type): Inst {
     let inst = Inst::new();
-    inst._op = Some(Op::ArrayGet);
+    inst._op = Some(Op::LoadArray);
     inst.ty = ty;
     inst.addInput(array);
     inst.addInput(index);
     inst
 }
 
-pub fn createArraySet(array: Inst, index: Inst, value: Inst, ty: Type): Inst {
+pub fn createStoreArray(array: Inst, index: Inst, value: Inst, ty: Type): Inst {
     let inst = Inst::new();
-    inst._op = Some(Op::ArraySet);
+    inst._op = Some(Op::StoreArray);
     inst.ty = ty;
     inst.addInput(array);
     inst.addInput(index);
