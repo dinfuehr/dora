@@ -924,29 +924,33 @@ impl CodeGen for CodeGenArm64 {
 
         match ty {
             Type::Bool | Type::UInt8 => {
-                unimplemented();
+                let dest = loc.getOutput().getRegister();
+                self.asm.add_imm(REG_TEMP, array, ARRAY_HEADER_LENGTH);
+                self.asm.ldr_reg_w(dest, REG_TEMP, idx, Extend::LSL, 0i32);
             },
 
             Type::Int32 => {
-                unimplemented();
+                let dest = loc.getOutput().getRegister();
+                self.asm.add_imm(REG_TEMP, array, ARRAY_HEADER_LENGTH);
+                self.asm.ldr_reg_w(dest, REG_TEMP, idx, Extend::LSL, 2i32);
             },
 
-            Type::Int64 => {
+            Type::Int64 | Type::Ptr => {
                 let dest = loc.getOutput().getRegister();
                 self.asm.add_imm(REG_TEMP, array, ARRAY_HEADER_LENGTH);
                 self.asm.ldr_reg(dest, REG_TEMP, idx, Extend::LSL, 3i32);
             },
 
-            Type::Ptr => {
-                unimplemented();
-            },
-
             Type::Float32 => {
-                unimplemented();
+                let dest = loc.getOutput().getFloatRegister();
+                self.asm.add_imm(REG_TEMP, array, ARRAY_HEADER_LENGTH);
+                self.asm.ldr_reg_s(dest, REG_TEMP, idx, Extend::LSL, 2i32);
             },
 
             Type::Float64 => {
-                unimplemented();
+                let dest = loc.getOutput().getFloatRegister();
+                self.asm.add_imm(REG_TEMP, array, ARRAY_HEADER_LENGTH);
+                self.asm.ldr_reg_d(dest, REG_TEMP, idx, Extend::LSL, 3i32);
             },
 
             _ => {

@@ -937,28 +937,28 @@ impl CodeGen for CodeGenX64 {
 
         match ty {
             Type::Bool | Type::UInt8 => {
-                unimplemented();
+                let dest = loc.getOutput().getRegister();
+                self.asm.movq_ra(dest, AsmAddress::array(array, idx, ScaleFactor::One, ARRAY_HEADER_LENGTH));
             },
 
             Type::Int32 => {
-                unimplemented();
+                let dest = loc.getOutput().getRegister();
+                self.asm.movq_ra(dest, AsmAddress::array(array, idx, ScaleFactor::Four, ARRAY_HEADER_LENGTH));
             },
 
-            Type::Int64 => {
+            Type::Int64 | Type::Ptr => {
                 let dest = loc.getOutput().getRegister();
                 self.asm.movq_ra(dest, AsmAddress::array(array, idx, ScaleFactor::Eight, ARRAY_HEADER_LENGTH));
             },
 
-            Type::Ptr => {
-                unimplemented();
-            },
-
             Type::Float32 => {
-                unimplemented();
+                let dest = loc.getOutput().getFloatRegister();
+                self.asm.movss_ra(dest, AsmAddress::array(array, idx, ScaleFactor::Four, ARRAY_HEADER_LENGTH));
             },
 
             Type::Float64 => {
-                unimplemented();
+                let dest = loc.getOutput().getFloatRegister();
+                self.asm.movsd_ra(dest, AsmAddress::array(array, idx, ScaleFactor::Eight, ARRAY_HEADER_LENGTH));
             },
 
             _ => {
