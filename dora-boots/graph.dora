@@ -630,6 +630,8 @@ pub enum Op {
 
     Move,
     MoveImmediate,
+
+    NewObject,
 }
 
 impl Op {
@@ -715,6 +717,7 @@ pub fn opName(op: Op): String {
         Op::Arg => "Arg",
         Op::Move => "Move",
         Op::MoveImmediate => "MoveImmediate",
+        Op::NewObject => "NewObject",
     }
 }
 
@@ -883,6 +886,7 @@ impl Inst {
             Op::Arg => self.ty,
             Op::Move => self.ty,
             Op::MoveImmediate => self.ty,
+            Op::NewObject => Type::Ptr,
         }
     }
 
@@ -912,6 +916,13 @@ impl Inst {
         match self.extra {
             InstExtraData::FieldInfo(info) => info,
             _ => unreachable[FieldInfo](),
+        }
+    }
+
+    pub fn getClassInfo(): ClassInfo {
+        match self.extra {
+            InstExtraData::ClassInfo(info) => info,
+            _ => unreachable[ClassInfo](),
         }
     }
 
@@ -1292,6 +1303,7 @@ impl Inst {
             Op::Arg => false,
             Op::Move => false,
             Op::MoveImmediate => false,
+            Op::NewObject => false,
         }
     }
 }
@@ -1318,6 +1330,7 @@ enum InstExtraData {
     None,
     FieldInfo(FieldInfo),
     FunctionInfo(FunctionInfo),
+    ClassInfo(ClassInfo),
     If(Block, Block),
     Goto(Block),
 }
@@ -1397,10 +1410,6 @@ impl LocationData {
         self.inputs(idx) = Some[Operand](operand);
     }
 
-    pub fn setTemp(operand: Operand) {
-        self.temps.push(operand);
-    }
-
     pub fn hasOutput(): Bool {
         self.output.isSome()
     }
@@ -1430,8 +1439,8 @@ impl LocationData {
         self.temps.get(idx)
     }
 
-    pub fn addTemp(temp: Operand) {
-        self.temps.push(temp);
+    pub fn addTemp(opnd: Operand) {
+        self.temps.push(opnd);
     }
 
     pub fn setSpillSlot(slot: Int32) {
@@ -1885,6 +1894,11 @@ pub class FunctionInfo {
     pub type_params: Array[BytecodeType],
 }
 
+pub class ClassInfo {
+    pub class_id: ClassId,
+    pub type_params: Array[BytecodeType],
+}
+
 pub fn createLoadFieldInst(obj: Inst, field: FieldInfo, ty: Type): Inst {
     let inst = Inst::new();
     inst._op = Some(Op::LoadField);
@@ -1951,6 +1965,14 @@ pub fn createCall(info: FunctionInfo, kind: CallKind, args: Vec[Inst], return_ty
     for arg in args {
         inst.addInput(arg);
     }
+
+    inst
+}
+
+pub fn createNewObject(info: ClassInfo): Inst {
+    let inst = Inst::new();
+    inst._op = Some(Op::NewObject);
+    inst.extra = InstExtraData::ClassInfo(info);
 
     inst
 }

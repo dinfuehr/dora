@@ -12,6 +12,7 @@ use crate::compiler::codegen::CompilationData;
 use crate::gc::Address;
 use crate::handle::{create_handle, Handle};
 use crate::object::{Ref, UInt8Array};
+use crate::size::InstanceSize;
 use crate::threads::current_thread;
 use crate::vm::{create_class_instance, get_vm, CodeDescriptor, VM};
 
@@ -79,6 +80,37 @@ pub fn get_function_address(data: Handle<UInt8Array>) -> Address {
     assert!(!reader.has_more());
 
     get_function_address_raw(vm, fct_id, type_params)
+}
+
+pub fn get_class_size(data: Handle<UInt8Array>) -> u32 {
+    let vm = get_vm();
+
+    let mut serialized_data = vec![0; data.len()];
+
+    unsafe {
+        ptr::copy_nonoverlapping(
+            data.data() as *mut u8,
+            serialized_data.as_mut_ptr(),
+            data.len(),
+        );
+    }
+
+    let mut reader = ByteReader::new(serialized_data);
+    let cls_id = ClassId(reader.read_u32());
+    let type_params = decode_bytecode_type_array(&mut reader);
+    assert!(!reader.has_more());
+
+    get_class_size_raw(vm, cls_id, type_params)
+}
+
+fn get_class_size_raw(vm: &VM, cls_id: ClassId, type_params: BytecodeTypeArray) -> u32 {
+    let class_instance_id = create_class_instance(vm, cls_id, &type_params);
+    let cls = vm.class_instances.idx(class_instance_id);
+
+    match cls.size {
+        InstanceSize::Fixed(size) => size as u32,
+        _ => unreachable!(),
+    }
 }
 
 pub fn get_field_offset(data: Handle<UInt8Array>) -> u32 {

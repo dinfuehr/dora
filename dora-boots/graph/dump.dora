@@ -299,6 +299,7 @@ fn dumpInstName(inst: Inst): String {
         Op::Arg => "Arg.${inst.getValueType()}(${inst.getArgIndex()})",
         Op::Move => "Move.${inst.getValueType()}",
         Op::MoveImmediate => "MoveImmediate.${inst.getValueType()}",
+        Op::NewObject => "NewObject",
     }
 }
 

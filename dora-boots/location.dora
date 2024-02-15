@@ -186,6 +186,11 @@ fn setLocationConstraints(inst: Inst, codegen: CodeGen, ci: CompilationInfo, arg
             }
         },
 
+        Op::NewObject => {
+            useOutputRegister(inst);
+            addTempRegister(inst);
+        },
+
         _ => {
             println("unsupported op ${inst.op().name()}");
             unreachable[()]();
@@ -301,9 +306,14 @@ pub fn useOutputSameAsFirstInput(inst: Inst) {
     loc.setOutput(Operand::new(Policy::SameAsFirstInput, Location::None));
 }
 
-pub fn useTempRegisterFixed(inst: Inst, reg: Register) {
+pub fn addTempRegister(inst: Inst) {
     let loc = inst.getLocationData();
-    loc.setTemp(Operand::new(Policy::FixedReg, Location::Reg(reg)));
+    loc.addTemp(Operand::new(Policy::AnyReg, Location::None));
+}
+
+pub fn addTempRegisterFixed(inst: Inst, reg: Register) {
+    let loc = inst.getLocationData();
+    loc.addTemp(Operand::new(Policy::FixedReg, Location::Reg(reg)));
 }
 
 fn applyHint(inst: Inst, location: Location) {

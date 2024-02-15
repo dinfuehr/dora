@@ -28,8 +28,9 @@ use package::graph::createUnaryInst;
 use package::graph::createUndefInst;
 use package::graph::createPhiInst;
 use package::graph::createArgInst;
+use package::graph::createNewObject;
 use package::graph::ty::Type;
-use package::graph::{FieldInfo, FunctionInfo, CallKind};
+use package::graph::{ClassInfo, FieldInfo, FunctionInfo, CallKind};
 use package::bytecode::data::{BytecodeFunction, BytecodeRegister, BytecodeType, ClassId, FctId, FieldId};
 use package::bytecode::data::{ConstPoolId, ConstPoolEntry, GlobalId};
 use package::bytecode::instruction::BytecodeInstruction;
@@ -466,7 +467,7 @@ impl SsaGen {
                 unimplemented();
             },
             BytecodeInstruction::NewObjectInitialized(dest, idx) => {
-                unimplemented();
+                self.emitNewObjectInitialized(dest, idx);
             },
             BytecodeInstruction::NewArray(dest, idx, length) => {
                 unimplemented();
@@ -815,6 +816,21 @@ impl SsaGen {
         if !ty.isUnit() {
             self.writeVariable(dest, self.current(), inst);
         }
+    }
+
+    fn emitNewObjectInitialized(dest: BytecodeRegister, idx: ConstPoolId) {
+        let (class_id, type_params) = match self.bc.constPool(idx) {
+            ConstPoolEntry::Class(fct_id, type_params) => (fct_id, type_params),
+            _ => unreachable[(ClassId, Array[BytecodeType])](),
+        };
+
+        let info = ClassInfo(class_id, type_params);
+
+        let inst = graph::createNewObject(info);
+        inst.set_bytecode_position(self.offset);
+        self.current().appendInst(inst);
+
+        self.writeVariable(dest, self.current(), inst);
     }
 }
 

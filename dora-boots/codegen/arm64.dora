@@ -1,6 +1,7 @@
 use package::bytecode::{ConstPoolId, Location};
-use package::interface::{Address, Architecture, CompilationInfo, ConstPool, ConstPoolEntry, ConstPoolValue, config, getFunctionAddress, getFieldOffset};
+use package::interface::{Address, Architecture, CompilationInfo, ConstPool, ConstPoolEntry, ConstPoolValue, config, getFunctionAddress, getFieldOffset, getClassSize};
 use package::interface::{THREAD_LOCAL_DATA_STACK_LIMIT_OFFSET, THREAD_LOCAL_DATA_STATE_OFFSET, THREAD_LOCAL_DATA_MARKING_OFFSET, OBJECT_HEADER_LENGTH, OBJECT_METADATA_OFFSET, METADATA_REMEMBERED_BIT, ARRAY_HEADER_LENGTH};
+use package::interface::{THREAD_LOCAL_DATA_TLAB_TOP_OFFSET, THREAD_LOCAL_DATA_TLAB_END_OFFSET};
 use package::interface::{TRAP_DIV0, TRAP_OVERFLOW, TRAP_INDEX_OUT_OF_BOUNDS};
 use package::codegen::{CODE_SIZE_ALIGNMENT, CodeGen};
 use package::assembler::arm64::{F0, F1, F2, F3, F4, F5, F6, F7, F31};
@@ -186,6 +187,26 @@ impl CodeGenArm64 {
             self.mov_imm(REG_TEMP, config.object_write_barrier_slow_path.toInt64());
             self.asm.bl_r(REG_TEMP);
             self.restoreRegistersForCall(snapshot);
+            self.asm.b(lbl_return);
+        });
+    }
+
+    fn emitObjectAllocate(obj: Register, size: Int32, tmp1: Register, tmp2: Register) {
+        let lbl_alloc_slow_path = self.asm.createLabel();
+
+        self.asm.ldr_imm(obj, REG_THREAD, THREAD_LOCAL_DATA_TLAB_TOP_OFFSET);
+        self.asm.ldr_imm(tmp1, REG_THREAD, THREAD_LOCAL_DATA_TLAB_END_OFFSET);
+
+        self.asm.add_imm(tmp2, obj, size);
+        self.asm.cmp(tmp2, tmp1);
+        self.asm.bc(Cond::GT, lbl_alloc_slow_path);
+        self.asm.str_imm(tmp2, REG_THREAD, THREAD_LOCAL_DATA_TLAB_TOP_OFFSET);
+        let lbl_return = self.asm.createAndBindLabel();
+
+        self.deferred.push(|| {
+            self.emitComment("allocation slow path");
+            self.asm.bindLabel(lbl_alloc_slow_path);
+            self.asm.brk(0i32);
             self.asm.b(lbl_return);
         });
     }
@@ -1010,6 +1031,16 @@ impl CodeGen for CodeGenArm64 {
                 unimplemented();
             }
         }
+    }
+
+    fn emitNewObject(inst: Inst) {
+        let loc = inst.getLocationData();
+        let obj = loc.getOutput().getRegister();
+        let class_info = inst.getClassInfo();
+        let size = getClassSize(class_info.class_id, class_info.type_params);
+
+        let tmp = loc.getTemp(0).getRegister();
+        self.emitObjectAllocate(obj, size, REG_TEMP, tmp);
     }
 
     fn finalize(): CodeDescriptor {

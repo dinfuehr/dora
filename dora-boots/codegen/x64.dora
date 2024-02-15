@@ -8,7 +8,7 @@ use package::codegen::{CODE_SIZE_ALIGNMENT, CodeGen};
 use package::interface::{Address, Architecture, CompilationInfo, ConstPool, ConstPoolEntry, ConstPoolValue, config, getFunctionAddress, LazyCompilationSite, LazyCompilationSiteDirect, getFieldOffset};
 use package::interface::{TRAP_DIV0, TRAP_OVERFLOW, TRAP_INDEX_OUT_OF_BOUNDS};
 use package::interface::{THREAD_LOCAL_DATA_STACK_LIMIT_OFFSET, THREAD_LOCAL_DATA_STATE_OFFSET, THREAD_LOCAL_DATA_MARKING_OFFSET, OBJECT_HEADER_LENGTH, OBJECT_METADATA_OFFSET, METADATA_REMEMBERED_BIT, ARRAY_HEADER_LENGTH};
-use package::location::{useInputFloatRegisterFixed, useInputRegister, useInputRegisterFixed, useOutputRegisterFixed, useOutputSameAsFirstInput, useTempRegisterFixed};
+use package::location::{useInputFloatRegisterFixed, useInputRegister, useInputRegisterFixed, useOutputRegisterFixed, useOutputSameAsFirstInput, addTempRegisterFixed};
 use package::graph::{Inst, Op, LocationData, RegisterSnapshot, Type};
 use package::{CodeDescriptor, CommentTable, GcPointTable, LazyCompilationData, LocationTable};
 
@@ -587,14 +587,14 @@ impl CodeGen for CodeGenX64 {
         useInputRegister(inst, 0);
         useInputRegister(inst, 1);
         useOutputRegisterFixed(inst, RAX);
-        useTempRegisterFixed(inst, RDX);
+        addTempRegisterFixed(inst, RDX);
     }
 
     fn setLocationConstraintsCheckedMod(inst: Inst, loc: LocationData) {
         useInputRegister(inst, 0);
         useInputRegister(inst, 1);
         useOutputRegisterFixed(inst, RDX);
-        useTempRegisterFixed(inst, RAX);
+        addTempRegisterFixed(inst, RAX);
     }
 
     fn setLocationConstraintsReturn(inst: Inst, loc: LocationData) {
@@ -1010,6 +1010,10 @@ impl CodeGen for CodeGenX64 {
                 unimplemented();
             }
         }
+    }
+
+    fn emitNewObject(inst: Inst) {
+        unimplemented();
     }
 
     fn finalize(): CodeDescriptor {

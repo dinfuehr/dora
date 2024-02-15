@@ -1,0 +1,11 @@
+//= boots
+//= ignore
+
+fn main() {
+    let foo = getfoo();
+    std::forceCollect();
+}
+
+class Foo
+
+@optimizeImmediately fn getfoo(): Foo { Foo() }

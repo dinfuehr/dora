@@ -481,6 +481,12 @@ fn resolve_boots(sa: &mut Sema) {
         "getFieldOffsetRaw",
         NativeFunction::BootsGetFieldOffset,
     );
+    native_fct(
+        sa,
+        boots_module_id,
+        "getClassSizeRaw",
+        NativeFunction::BootsGetClassSize,
+    );
 }
 
 fn resolve_thread(sa: &mut Sema, stdlib_id: ModuleDefinitionId) {
