@@ -2918,7 +2918,6 @@ mod encoding {
             | rt.encoding()
     }
 
-
     pub fn ldst_pair_pre(
         opc: Int32,
         v: Int32,

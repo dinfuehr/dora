@@ -178,7 +178,12 @@ fn setLocationConstraints(inst: Inst, codegen: CodeGen, ci: CompilationInfo, arg
         Op::StoreArray => {
             useInputRegister(inst, 0);
             useInputRegister(inst, 1);
-            useInputRegister(inst, 2);
+
+            if inst.getOperationType().isAnyFloat() {
+                useInputFloatRegister(inst, 2);
+            } else {
+                useInputRegister(inst, 2);
+            }
         },
 
         _ => {

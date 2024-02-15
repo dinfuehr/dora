@@ -968,7 +968,48 @@ impl CodeGen for CodeGenX64 {
     }
 
     fn emitStoreArray(inst: Inst) {
-        unimplemented();
+        let loc = inst.getLocationData();
+        let array = loc.getInput(0).getRegister();
+        let idx = loc.getInput(1).getRegister();
+
+        let ty = inst.getOperationType();
+
+        match ty {
+            Type::Bool | Type::UInt8 => {
+                let value = loc.getInput(2).getRegister();
+                self.asm.movq_ar(AsmAddress::array(array, idx, ScaleFactor::One, ARRAY_HEADER_LENGTH), value);
+            },
+
+            Type::Int32 => {
+                let value = loc.getInput(2).getRegister();
+                self.asm.movq_ar(AsmAddress::array(array, idx, ScaleFactor::Four, ARRAY_HEADER_LENGTH), value);
+            },
+
+            Type::Int64 => {
+                let value = loc.getInput(2).getRegister();
+                self.asm.movq_ar(AsmAddress::array(array, idx, ScaleFactor::Eight, ARRAY_HEADER_LENGTH), value);
+            },
+
+            Type::Ptr => {
+                let value = loc.getInput(2).getRegister();
+                self.asm.movq_ar(AsmAddress::array(array, idx, ScaleFactor::Eight, ARRAY_HEADER_LENGTH), value);
+                self.emitWriteBarrier(array, value, loc.getRegisterSnapshot());
+            },
+
+            Type::Float32 => {
+                let value = loc.getInput(2).getFloatRegister();
+                self.asm.movss_ar(AsmAddress::array(array, idx, ScaleFactor::Four, ARRAY_HEADER_LENGTH), value);
+            },
+
+            Type::Float64 => {
+                let value = loc.getInput(2).getFloatRegister();
+                self.asm.movsd_ar(AsmAddress::array(array, idx, ScaleFactor::Eight, ARRAY_HEADER_LENGTH), value);
+            },
+
+            _ => {
+                unimplemented();
+            }
+        }
     }
 
     fn finalize(): CodeDescriptor {

@@ -1,0 +1,14 @@
+//= boots
+
+fn main() {
+    let arr = Array[UInt8]::newDefault(100);
+    f(arr, 47, 12u8);
+    assert(arr(46) == 0u8);
+    assert(arr(47) == 12u8);
+    assert(arr(48) == 0u8);
+}
+
+@optimizeImmediately
+fn f(x: Array[UInt8], idx: Int64, value: UInt8) {
+    x(idx) = value;
+}

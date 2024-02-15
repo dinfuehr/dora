@@ -1130,7 +1130,7 @@ impl Inst {
 
     pub fn needsRegisterSnapshot(): Bool {
         match self.op() {
-            Op::StoreField => true,
+            Op::StoreField | Op::StoreArray => true,
             _ => false,
         }
     }
