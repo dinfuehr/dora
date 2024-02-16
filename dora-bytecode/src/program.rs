@@ -290,6 +290,7 @@ pub enum NativeFunction {
     BootsGetFunctionAddress,
     BootsGetFieldOffset,
     BootsGetClassSize,
+    BootsGetClassPointer,
 }
 
 #[derive(Copy, Clone, Debug, PartialEq, Eq, Decode, Encode)]

@@ -1,5 +1,5 @@
 use package::bytecode::{ConstPoolId, Location};
-use package::interface::{Address, Architecture, CompilationInfo, ConstPool, ConstPoolEntry, ConstPoolValue, config, getFunctionAddress, getFieldOffset, getClassSize};
+use package::interface::{Address, Architecture, CompilationInfo, ConstPool, ConstPoolEntry, ConstPoolValue, config, getFunctionAddress, getFieldOffset, getClassSize, getClassPointer};
 use package::interface::{THREAD_LOCAL_DATA_STACK_LIMIT_OFFSET, THREAD_LOCAL_DATA_STATE_OFFSET, THREAD_LOCAL_DATA_MARKING_OFFSET, OBJECT_HEADER_LENGTH, OBJECT_METADATA_OFFSET, METADATA_REMEMBERED_BIT, ARRAY_HEADER_LENGTH};
 use package::interface::{THREAD_LOCAL_DATA_TLAB_TOP_OFFSET, THREAD_LOCAL_DATA_TLAB_END_OFFSET};
 use package::interface::{TRAP_DIV0, TRAP_OVERFLOW, TRAP_INDEX_OUT_OF_BOUNDS};
@@ -42,6 +42,10 @@ let ALLOCATABLE_REGS: RegSet[Register] = RegSet[Register]::new(
 
 // The last register F31 is used as FREG_TEMP.
 let ALLOCATABLE_FREGS: RegSet[FloatRegister] = RegSet[FloatRegister]::firstN(31i32);
+
+let CALLEE_SAVED_REGS: RegSet[Register] = RegSet[Register]::new(
+    R19, R20, R21, R22, R23, R24, R25, R26, R27, R28
+);
 
 pub class CodeGenArm64 {
     ci: CompilationInfo,
@@ -191,7 +195,7 @@ impl CodeGenArm64 {
         });
     }
 
-    fn emitObjectAllocate(obj: Register, size: Int32, tmp1: Register, tmp2: Register) {
+    fn emitObjectAllocate(obj: Register, size: Int32, tmp1: Register, tmp2: Register, snapshot: RegisterSnapshot) {
         let lbl_alloc_slow_path = self.asm.createLabel();
 
         self.asm.ldr_imm(obj, REG_THREAD, THREAD_LOCAL_DATA_TLAB_TOP_OFFSET);
@@ -203,16 +207,32 @@ impl CodeGenArm64 {
         self.asm.str_imm(tmp2, REG_THREAD, THREAD_LOCAL_DATA_TLAB_TOP_OFFSET);
         let lbl_return = self.asm.createAndBindLabel();
 
+        assert(snapshot.gp.remove(obj));
+
         self.deferred.push(|| {
             self.emitComment("allocation slow path");
             self.asm.bindLabel(lbl_alloc_slow_path);
-            self.asm.brk(0i32);
+            self.saveRegistersForCall(snapshot);
+            self.mov_imm(CCALL_REG_PARAMS(0), size.toInt64());
+            self.mov_imm(REG_TEMP, config.allocation_slow_path.toInt64());
+            self.asm.bl_r(REG_TEMP);
+            self.asm.mov(obj, R0);
+            self.restoreRegistersForCall(snapshot);
             self.asm.b(lbl_return);
         });
     }
 
+    fn emitObjectInitialization(obj: Register, classptr: Address, tmp: Register) {
+        let metadata_part = 0xFF_FF_FF_FCi32 | 1i32 << METADATA_REMEMBERED_BIT;
+        let classptr_part = classptr.value - config.meta_space_start.value;
+
+        let header_word = metadata_part.toInt64() << 32i32 | classptr_part;
+        self.mov_imm(tmp, header_word);
+        self.asm.str_imm(tmp, obj, 0i32);
+    }
+
     fn saveRegistersForCall(snapshot: RegisterSnapshot) {
-        let regs = snapshot.gp.clone();
+        let regs = snapshot.gp.clone().difference(CALLEE_SAVED_REGS);
 
         if regs.size() % 2 != 0 {
             let zero = REG_ZERO;
@@ -241,7 +261,7 @@ impl CodeGenArm64 {
     }
 
     fn restoreRegistersForCall(snapshot: RegisterSnapshot) {
-        let regs = snapshot.gp.clone();
+        let regs = snapshot.gp.clone().difference(CALLEE_SAVED_REGS);
 
         if regs.size() % 2 != 0 {
             let zero = REG_ZERO;
@@ -1040,7 +1060,10 @@ impl CodeGen for CodeGenArm64 {
         let size = getClassSize(class_info.class_id, class_info.type_params);
 
         let tmp = loc.getTemp(0).getRegister();
-        self.emitObjectAllocate(obj, size, REG_TEMP, tmp);
+        self.emitObjectAllocate(obj, size, REG_TEMP, tmp, loc.getRegisterSnapshot());
+
+        let classptr = getClassPointer(class_info.class_id, class_info.type_params);
+        self.emitObjectInitialization(obj, classptr, REG_TEMP);
     }
 
     fn finalize(): CodeDescriptor {

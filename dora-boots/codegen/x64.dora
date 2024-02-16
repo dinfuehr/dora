@@ -5,9 +5,9 @@ use package::assembler::x64::{XMM0, XMM1, XMM2, XMM3, XMM4, XMM5, XMM6, XMM7, XM
 use package::assembler::{FloatRegister, Label, Register, RegSet};
 use package::bytecode::data::{ConstPoolId, Location};
 use package::codegen::{CODE_SIZE_ALIGNMENT, CodeGen};
-use package::interface::{Address, Architecture, CompilationInfo, ConstPool, ConstPoolEntry, ConstPoolValue, config, getFunctionAddress, LazyCompilationSite, LazyCompilationSiteDirect, getFieldOffset};
+use package::interface::{Address, Architecture, CompilationInfo, ConstPool, ConstPoolEntry, ConstPoolValue, config, getFunctionAddress, LazyCompilationSite, LazyCompilationSiteDirect, getFieldOffset, getClassSize, getClassPointer};
 use package::interface::{TRAP_DIV0, TRAP_OVERFLOW, TRAP_INDEX_OUT_OF_BOUNDS};
-use package::interface::{THREAD_LOCAL_DATA_STACK_LIMIT_OFFSET, THREAD_LOCAL_DATA_STATE_OFFSET, THREAD_LOCAL_DATA_MARKING_OFFSET, OBJECT_HEADER_LENGTH, OBJECT_METADATA_OFFSET, METADATA_REMEMBERED_BIT, ARRAY_HEADER_LENGTH};
+use package::interface::{THREAD_LOCAL_DATA_TLAB_TOP_OFFSET, THREAD_LOCAL_DATA_TLAB_END_OFFSET, THREAD_LOCAL_DATA_STACK_LIMIT_OFFSET, THREAD_LOCAL_DATA_STATE_OFFSET, THREAD_LOCAL_DATA_MARKING_OFFSET, OBJECT_HEADER_LENGTH, OBJECT_METADATA_OFFSET, METADATA_REMEMBERED_BIT, ARRAY_HEADER_LENGTH};
 use package::location::{useInputFloatRegisterFixed, useInputRegister, useInputRegisterFixed, useOutputRegisterFixed, useOutputSameAsFirstInput, addTempRegisterFixed};
 use package::graph::{Inst, Op, LocationData, RegisterSnapshot, Type};
 use package::{CodeDescriptor, CommentTable, GcPointTable, LazyCompilationData, LocationTable};
@@ -35,6 +35,13 @@ let ALLOCATABLE_REGS: RegSet[Register] = RegSet[Register]::new(
 
 // The last register XMM15 is used as FREG_TEMP.
 let ALLOCATABLE_FREGS: RegSet[FloatRegister] = RegSet[FloatRegister]::firstN(15i32);
+
+let CALLEE_SAVED_REGS: RegSet[Register] = if config.isWindows {
+    RegSet[Register]::new(RBX, RDI, RSI, R12, R13, R14, R15)
+} else {
+    assert(config.isUnix);
+    RegSet[Register]::new(RBX, R12, R13, R14, R15)
+};
 
 fn msb(reg: FloatRegister): Bool {
     ((reg.value.toInt64() >> 3i32) & 1) != 0
@@ -174,8 +181,44 @@ impl CodeGenX64 {
         });
     }
 
+    fn emitObjectAllocate(obj: Register, size: Int32, tmp1: Register, tmp2: Register, snapshot: RegisterSnapshot) {
+        let lbl_alloc_slow_path = self.asm.createLabel();
+
+        self.asm.movq_ra(obj, AsmAddress::offset(REG_THREAD, THREAD_LOCAL_DATA_TLAB_TOP_OFFSET));
+        self.asm.movq_ra(tmp1, AsmAddress::offset(REG_THREAD, THREAD_LOCAL_DATA_TLAB_END_OFFSET));
+
+        self.asm.lea(tmp2, AsmAddress::offset(obj, size));
+        self.asm.cmpq_rr(tmp2, tmp1);
+        self.asm.jcc(Condition::Greater, lbl_alloc_slow_path);
+        self.asm.movq_ar(AsmAddress::offset(REG_THREAD, THREAD_LOCAL_DATA_TLAB_TOP_OFFSET), tmp2);
+        let lbl_return = self.asm.createAndBindLabel();
+
+        assert(snapshot.gp.remove(obj));
+
+        self.deferred.push(|| {
+            self.emitComment("allocation slow path");
+            self.asm.bindLabel(lbl_alloc_slow_path);
+            self.saveRegistersForCall(snapshot);
+            self.asm.movq_ri(CCALL_REG_PARAMS(0), Immediate(size.toInt64()));
+            self.asm.movq_ri(REG_TEMP, Immediate(config.allocation_slow_path.toInt64()));
+            self.asm.call_r(REG_TEMP);
+            self.asm.movq_rr(obj, RAX);
+            self.restoreRegistersForCall(snapshot);
+            self.asm.jmp(lbl_return);
+        });
+    }
+
+    fn emitObjectInitialization(obj: Register, classptr: Address, tmp: Register) {
+        let metadata_part = 0xFF_FF_FF_FCi32 | 1i32 << METADATA_REMEMBERED_BIT;
+        let classptr_part = classptr.value - config.meta_space_start.value;
+
+        let header_word = metadata_part.toInt64() << 32i32 | classptr_part;
+        self.asm.movq_ri(tmp, Immediate(header_word));
+        self.asm.movq_ar(AsmAddress::offset(obj, 0i32), tmp);
+    }
+
     fn saveRegistersForCall(snapshot: RegisterSnapshot) {
-        let regs = snapshot.gp.clone();
+        let regs = snapshot.gp.clone().difference(CALLEE_SAVED_REGS);
 
         while !regs.isEmpty() {
             let reg = regs.popLowestIndex().getOrPanic();
@@ -198,7 +241,7 @@ impl CodeGenX64 {
     }
 
     fn restoreRegistersForCall(snapshot: RegisterSnapshot) {
-        let regs = snapshot.gp.clone();
+        let regs = snapshot.gp.clone().difference(CALLEE_SAVED_REGS);
 
         while !regs.isEmpty() {
             let reg = regs.popHighestIndex().getOrPanic();
@@ -1013,7 +1056,16 @@ impl CodeGen for CodeGenX64 {
     }
 
     fn emitNewObject(inst: Inst) {
-        unimplemented();
+        let loc = inst.getLocationData();
+        let obj = loc.getOutput().getRegister();
+        let class_info = inst.getClassInfo();
+        let size = getClassSize(class_info.class_id, class_info.type_params);
+
+        let tmp = loc.getTemp(0).getRegister();
+        self.emitObjectAllocate(obj, size, REG_TEMP, tmp, loc.getRegisterSnapshot());
+
+        let classptr = getClassPointer(class_info.class_id, class_info.type_params);
+        self.emitObjectInitialization(obj, classptr, REG_TEMP);
     }
 
     fn finalize(): CodeDescriptor {

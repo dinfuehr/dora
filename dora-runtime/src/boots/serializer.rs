@@ -24,6 +24,11 @@ fn encode_system_config(vm: &VM, buffer: &mut ByteBuffer) {
     buffer.emit_address(vm.native_methods.trap_trampoline());
     let ptr = Address::from_ptr(crate::gc::swiper::object_write_barrier_slow_path as *const u8);
     buffer.emit_address(ptr);
+    let ptr = Address::from_ptr(crate::stdlib::gc_alloc as *const u8);
+    buffer.emit_address(ptr);
+    buffer.emit_address(vm.meta_space_start());
+    buffer.emit_bool(cfg!(target_family = "windows"));
+    buffer.emit_bool(cfg!(target_family = "unix"));
 }
 
 pub fn allocate_encoded_compilation_info(vm: &VM, compilation_data: &CompilationData) -> Ref<Obj> {

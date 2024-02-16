@@ -25,6 +25,7 @@ pub const TRAP_OVERFLOW: Int32 = 9i32;
 @internal pub fn getFunctionAddressRaw(data: Array[UInt8]): Int64;
 @internal pub fn getFieldOffsetRaw(data: Array[UInt8]): Int32;
 @internal pub fn getClassSizeRaw(data: Array[UInt8]): Int32;
+@internal pub fn getClassPointerRaw(data: Array[UInt8]): Int64;
 
 pub fn getFunctionAddress(fct_id: FctId, type_params: Array[BytecodeType]): Address {
     let writer = ByteWriter::new();
@@ -48,11 +49,22 @@ pub fn getClassSize(cls_id: ClassId, type_params: Array[BytecodeType]): Int32 {
     getClassSizeRaw(writer.toArray())
 }
 
+pub fn getClassPointer(cls_id: ClassId, type_params: Array[BytecodeType]): Address {
+    let writer = ByteWriter::new();
+    writer.emitInt32(cls_id.value);
+    encodeBytecodeTypeArray(writer, type_params);
+    Address(getClassPointerRaw(writer.toArray()))
+}
+
 pub class Config {
     pub architecture: Architecture,
     pub safepoint_trampoline: Address,
     pub trap_trampoline: Address,
     pub object_write_barrier_slow_path: Address,
+    pub allocation_slow_path: Address,
+    pub meta_space_start: Address,
+    pub isWindows: Bool,
+    pub isUnix: Bool,
 }
 
 pub let config: Config = decodeConfig(getSystemConfig());
@@ -104,6 +116,7 @@ pub const OBJECT_METADATA_OFFSET: Int32 = 4;
 pub const OBJECT_HEADER_LENGTH: Int32 = 8;
 pub const ARRAY_HEADER_LENGTH: Int32 = 16;
 
+pub const METADATA_MARK_BIT: Int32 = 0;
 pub const METADATA_REMEMBERED_BIT: Int32 = 1;
 
 pub class CodeDescriptor {

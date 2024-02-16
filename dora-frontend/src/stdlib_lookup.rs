@@ -487,6 +487,12 @@ fn resolve_boots(sa: &mut Sema) {
         "getClassSizeRaw",
         NativeFunction::BootsGetClassSize,
     );
+    native_fct(
+        sa,
+        boots_module_id,
+        "getClassPointerRaw",
+        NativeFunction::BootsGetClassPointer,
+    );
 }
 
 fn resolve_thread(sa: &mut Sema, stdlib_id: ModuleDefinitionId) {

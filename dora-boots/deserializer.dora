@@ -9,6 +9,10 @@ pub fn decodeConfig(encoded: Array[UInt8]): Config {
     let safepoint_trampoline = reader.readAddress();
     let trap_trampoline = reader.readAddress();
     let object_write_barrier_slow_path = reader.readAddress();
+    let allocation_slow_path = reader.readAddress();
+    let meta_space_start = reader.readAddress();
+    let is_windows = reader.readBool();
+    let is_unix = reader.readBool();
     assert(!reader.moreBytes());
 
     Config(
@@ -16,6 +20,10 @@ pub fn decodeConfig(encoded: Array[UInt8]): Config {
         safepoint_trampoline,
         trap_trampoline,
         object_write_barrier_slow_path,
+        allocation_slow_path,
+        meta_space_start,
+        is_windows,
+        is_unix,
     )
 }
 

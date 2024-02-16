@@ -185,6 +185,10 @@ pub fn connect_native_functions_to_implementation(vm: &mut VM) {
             NativeFunction::BootsGetClassSize,
             boots::get_class_size as *const u8,
         ),
+        (
+            NativeFunction::BootsGetClassPointer,
+            boots::get_class_pointer as *const u8,
+        ),
     ]);
 
     for (fct_id, fct) in vm.program.functions.iter().enumerate() {
@@ -213,6 +217,10 @@ pub fn connect_native_functions_to_implementation(vm: &mut VM) {
 
         assert!(mappings
             .remove(&NativeFunction::BootsGetClassSize)
+            .is_some());
+
+        assert!(mappings
+            .remove(&NativeFunction::BootsGetClassPointer)
             .is_some());
     }
 

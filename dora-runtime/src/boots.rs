@@ -113,6 +113,33 @@ fn get_class_size_raw(vm: &VM, cls_id: ClassId, type_params: BytecodeTypeArray) 
     }
 }
 
+pub fn get_class_pointer(data: Handle<UInt8Array>) -> Address {
+    let vm = get_vm();
+
+    let mut serialized_data = vec![0; data.len()];
+
+    unsafe {
+        ptr::copy_nonoverlapping(
+            data.data() as *mut u8,
+            serialized_data.as_mut_ptr(),
+            data.len(),
+        );
+    }
+
+    let mut reader = ByteReader::new(serialized_data);
+    let cls_id = ClassId(reader.read_u32());
+    let type_params = decode_bytecode_type_array(&mut reader);
+    assert!(!reader.has_more());
+
+    get_class_pointer_raw(vm, cls_id, type_params)
+}
+
+fn get_class_pointer_raw(vm: &VM, cls_id: ClassId, type_params: BytecodeTypeArray) -> Address {
+    let class_instance_id = create_class_instance(vm, cls_id, &type_params);
+    let cls = vm.class_instances.idx(class_instance_id);
+    cls.vtblptr()
+}
+
 pub fn get_field_offset(data: Handle<UInt8Array>) -> u32 {
     let vm = get_vm();
 
