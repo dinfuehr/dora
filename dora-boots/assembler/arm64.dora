@@ -2221,6 +2221,10 @@ pub fn fitsMovz(mut imm: Int64, register_size: Int64): Option[(Int64, Int64)] {
     Some((value, shift))
 }
 
+pub fn fitsMovn(imm: Int64, register_size: Int64): Option[(Int64, Int64)] {
+    fitsMovz(!imm, register_size)
+}
+
 impl Register {
     fn isGpr(): Bool {
         self.value <= 30u8
@@ -3315,7 +3319,7 @@ mod tests {
         R11, R17, R27, R28, R29, R30
     };
     use super::{F0, F1, F2, F3, F4, F5, F31};
-    use super::fitsMovz;
+    use super::{fitsMovz, fitsMovn};
 
     @Test
     fn test_asm_ret() {
@@ -5582,5 +5586,22 @@ mod tests {
         assert(value == 1 && shift == 48);
 
         assert(fitsMovz(1 | (1 << 16i32), 64).isNone());
+    }
+
+    @Test
+    fn testFitsMovn() {
+        let (value, shift) = fitsMovn(-1, 64).getOrPanic();
+        assert(value == 0 && shift == 0);
+
+        let (value, shift) = fitsMovn(!(1 << 16i32), 64).getOrPanic();
+        assert(value == 1 && shift == 16);
+
+        let (value, shift) = fitsMovn(!(1 << 32i32), 64).getOrPanic();
+        assert(value == 1 && shift == 32);
+
+        let (value, shift) = fitsMovn(!(1 << 48i32), 64).getOrPanic();
+        assert(value == 1 && shift == 48);
+
+        assert(fitsMovn(!(1 | (1 << 16i32)), 64).isNone());
     }
 }

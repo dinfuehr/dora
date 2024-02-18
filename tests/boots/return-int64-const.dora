@@ -5,7 +5,10 @@ fn main() {
     assert(x == 12);
     let x = g();
     assert(x == 13);
+    let x = h();
+    assert(x == -1);
 }
 
 @optimizeImmediately fn f(): Int64 { 12 }
 @optimizeImmediately fn g(): Int64 { 13 }
+@optimizeImmediately fn h(): Int64 { -1 }
