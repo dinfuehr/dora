@@ -2195,6 +2195,32 @@ impl AssemblerArm64 {
     }
 }
 
+pub fn fitsMovz(mut imm: Int64, register_size: Int64): Option[(Int64, Int64)] {
+    assert(register_size == 32 || register_size == 64);
+
+    let mut non_empty: Bool = false;
+    let mut value: Int64 = 0;
+    let mut shift: Int64 = 0;
+
+    for idx in std::range(0, register_size / 16) {
+        let half_word = imm & 0xFF_FF;
+
+        if half_word != 0 {
+            if !non_empty {
+                value = half_word;
+                shift = idx * 16;
+                non_empty = true;
+            } else {
+                return None;
+            }
+        }
+
+        imm = imm >> 16i32;
+    }
+
+    Some((value, shift))
+}
+
 impl Register {
     fn isGpr(): Bool {
         self.value <= 30u8
@@ -3289,6 +3315,7 @@ mod tests {
         R11, R17, R27, R28, R29, R30
     };
     use super::{F0, F1, F2, F3, F4, F5, F31};
+    use super::fitsMovz;
 
     @Test
     fn test_asm_ret() {
@@ -5538,5 +5565,22 @@ mod tests {
             println("");
             std::fatalError("broken assertion");
         }
+    }
+
+    @Test
+    fn testFitsMovz() {
+        let (value, shift) = fitsMovz(0, 64).getOrPanic();
+        assert(value == 0 && shift == 0);
+
+        let (value, shift) = fitsMovz(1 << 16i32, 64).getOrPanic();
+        assert(value == 1 && shift == 16);
+
+        let (value, shift) = fitsMovz(1 << 32i32, 64).getOrPanic();
+        assert(value == 1 && shift == 32);
+
+        let (value, shift) = fitsMovz(1 << 48i32, 64).getOrPanic();
+        assert(value == 1 && shift == 48);
+
+        assert(fitsMovz(1 | (1 << 16i32), 64).isNone());
     }
 }
