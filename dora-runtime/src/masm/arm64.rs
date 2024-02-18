@@ -28,7 +28,7 @@ impl MacroAssembler {
 
     pub fn check_stack_limit(&mut self, lbl_overflow: Label) {
         let offset = ThreadLocalData::stack_limit_offset() as u32;
-        self.asm.ldr_imm(
+        self.asm.ldr(
             REG_TMP1.into(),
             MemOperand::offset(REG_THREAD.into(), offset as i64),
         );
@@ -1203,15 +1203,10 @@ impl MacroAssembler {
                         Extend::LSL,
                         2,
                     ),
-                    MachineMode::IntPtr | MachineMode::Int64 | MachineMode::Ptr => {
-                        self.asm.ldr_reg(
-                            dest.reg().into(),
-                            (*scratch).into(),
-                            index.into(),
-                            Extend::LSL,
-                            3,
-                        )
-                    }
+                    MachineMode::IntPtr | MachineMode::Int64 | MachineMode::Ptr => self.asm.ldr(
+                        dest.reg().into(),
+                        MemOperand::regoffset((*scratch).into(), index.into(), Extend::LSL, 3),
+                    ),
                     MachineMode::Float32 => self.asm.ldr_reg_s(
                         dest.freg().into(),
                         (*scratch).into(),
@@ -1246,7 +1241,7 @@ impl MacroAssembler {
             match mode {
                 MachineMode::Int8 => self.asm.ldrb_imm(dest.reg().into(), base.into(), disp),
                 MachineMode::Int32 => self.asm.ldr_imm_w(dest.reg().into(), base.into(), disp),
-                MachineMode::IntPtr | MachineMode::Int64 | MachineMode::Ptr => self.asm.ldr_imm(
+                MachineMode::IntPtr | MachineMode::Int64 | MachineMode::Ptr => self.asm.ldr(
                     dest.reg().into(),
                     MemOperand::offset(base.into(), disp as i64),
                 ),
@@ -1281,12 +1276,9 @@ impl MacroAssembler {
                     Extend::LSL,
                     0,
                 ),
-                MachineMode::IntPtr | MachineMode::Int64 | MachineMode::Ptr => self.asm.ldr_reg(
+                MachineMode::IntPtr | MachineMode::Int64 | MachineMode::Ptr => self.asm.ldr(
                     dest.reg().into(),
-                    base.into(),
-                    (*scratch).into(),
-                    Extend::LSL,
-                    0,
+                    MemOperand::regoffset(base.into(), (*scratch).into(), Extend::LSL, 0),
                 ),
                 MachineMode::Float32 => self.asm.ldr_reg_s(
                     dest.freg().into(),

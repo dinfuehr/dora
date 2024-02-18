@@ -161,14 +161,36 @@ enum JumpKind {
     },
 }
 
-pub struct MemOperand {
-    base: Register,
-    offset: i64,
+pub enum MemOperand {
+    Immediate {
+        base: Register,
+        offset: i64,
+    },
+    RegOffset {
+        base: Register,
+        regoffset: Register,
+        extend: Extend,
+        shiftamount: u32,
+    },
 }
 
 impl MemOperand {
     pub fn offset(base: Register, offset: i64) -> MemOperand {
-        MemOperand { base, offset }
+        MemOperand::Immediate { base, offset }
+    }
+
+    pub fn regoffset(
+        base: Register,
+        regoffset: Register,
+        extend: Extend,
+        shiftamount: u32,
+    ) -> MemOperand {
+        MemOperand::RegOffset {
+            base,
+            regoffset,
+            extend,
+            shiftamount,
+        }
     }
 }
 
@@ -1188,18 +1210,47 @@ impl AssemblerArm64 {
         self.emit_u32(cls::ldst_pair_post(0b00, 0, 1, imm7, rt2, rn, rt));
     }
 
-    pub fn ldr_imm(&mut self, rt: Register, opnd: MemOperand) {
-        assert!(rt.is_gpr());
-        assert_eq!(opnd.offset % 8, 0);
-        let offset = opnd.offset / 8;
-        self.emit_u32(cls::ldst_regimm(
-            0b11,
-            0,
-            0b01,
-            offset as u32,
-            opnd.base,
-            rt.encoding(),
-        ));
+    pub fn ldr(&mut self, rt: Register, opnd: MemOperand) {
+        match opnd {
+            MemOperand::Immediate { base, offset } => {
+                assert!(rt.is_gpr());
+                assert_eq!(offset % 8, 0);
+                let offset = offset / 8;
+                self.emit_u32(cls::ldst_regimm(
+                    0b11,
+                    0,
+                    0b01,
+                    offset as u32,
+                    base,
+                    rt.encoding(),
+                ));
+            }
+
+            MemOperand::RegOffset {
+                base,
+                regoffset,
+                extend,
+                shiftamount,
+            } => {
+                assert!(rt.is_gpr());
+                let amount = if shiftamount == 0 {
+                    0
+                } else {
+                    assert_eq!(shiftamount, 3);
+                    1
+                };
+                self.emit_u32(cls::ldst_regoffset(
+                    0b11,
+                    0,
+                    0b01,
+                    regoffset,
+                    extend,
+                    amount,
+                    base,
+                    rt.encoding(),
+                ));
+            }
+        }
     }
 
     pub fn ldrb_imm(&mut self, rt: Register, rn: Register, imm12: u32) {
@@ -1231,33 +1282,6 @@ impl AssemblerArm64 {
         assert_eq!(imm % 4, 0);
         let imm = imm / 4;
         self.emit_u32(cls::ldst_regimm(0b10, 0, 0b01, imm, rn, rt.encoding()));
-    }
-
-    pub fn ldr_reg(
-        &mut self,
-        rt: Register,
-        rn: Register,
-        rm: Register,
-        extend: Extend,
-        amount: u32,
-    ) {
-        assert!(rt.is_gpr());
-        let amount = if amount == 0 {
-            0
-        } else {
-            assert_eq!(amount, 3);
-            1
-        };
-        self.emit_u32(cls::ldst_regoffset(
-            0b11,
-            0,
-            0b01,
-            rm,
-            extend,
-            amount,
-            rn,
-            rt.encoding(),
-        ));
     }
 
     pub fn ldrb_reg(
@@ -3881,12 +3905,12 @@ mod tests {
         assert_emit!(0xb86858e6; ldr_reg_w(R6, R7, R8, Extend::UXTW, 2));
         assert_emit!(0xb86bd949; ldr_reg_w(R9, R10, R11, Extend::SXTW, 2));
 
-        assert_emit!(0xf8626820; ldr_reg(R0, R1, R2, Extend::LSL, 0));
-        assert_emit!(0xf8657883; ldr_reg(R3, R4, R5, Extend::LSL, 3));
-        assert_emit!(0xf86858e6; ldr_reg(R6, R7, R8, Extend::UXTW, 3));
-        assert_emit!(0xf86bd949; ldr_reg(R9, R10, R11, Extend::SXTW, 3));
+        assert_emit!(0xf8626820; ldr(R0, MemOperand::regoffset(R1, R2, Extend::LSL, 0)));
+        assert_emit!(0xf8657883; ldr(R3, MemOperand::regoffset(R4, R5, Extend::LSL, 3)));
+        assert_emit!(0xf86858e6; ldr(R6, MemOperand::regoffset(R7, R8, Extend::UXTW, 3)));
+        assert_emit!(0xf86bd949; ldr(R9, MemOperand::regoffset(R10, R11, Extend::SXTW, 3)));
 
-        assert_emit!(0xf8627820; ldr_reg(R0, R1, R2, Extend::LSL, 3)); // ldr x0, [x1, x2, lsl #3]
+        assert_emit!(0xf8627820; ldr(R0, MemOperand::regoffset(R1, R2, Extend::LSL, 3))); // ldr x0, [x1, x2, lsl #3]
         assert_emit!(0x38626820; ldrb_reg(R0, R1, R2, Extend::LSL, 0)); // ldrb w0, [x1, x2]
         assert_emit!(0x78627820; ldrh_reg(R0, R1, R2, Extend::LSL, 1)); // ldrh w0, [x1, x2, lsl #1]
         assert_emit!(0xb8627820; ldr_reg_w(R0, R1, R2, Extend::LSL, 2)); // ldr w0, [x1, x2, lsl #2]
@@ -3896,7 +3920,7 @@ mod tests {
 
     #[test]
     fn test_ldr_imm() {
-        assert_emit!(0xf9400820; ldr_imm(R0, MemOperand::offset(R1, 16))); // ldr x0, [x1, #16]
+        assert_emit!(0xf9400820; ldr(R0, MemOperand::offset(R1, 16))); // ldr x0, [x1, #16]
         assert_emit!(0x39406420; ldrb_imm(R0, R1, 25)); // ldrb w0, [x1, #25]
         assert_emit!(0x79402420; ldrh_imm(R0, R1, 18)); // ldrh w0, [x1, #18]
         assert_emit!(0xb9400c20; ldr_imm_w(R0, R1, 12)); // ldr w0, [x1, #12]
