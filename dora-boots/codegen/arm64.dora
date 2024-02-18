@@ -113,8 +113,22 @@ impl CodeGenArm64 {
     }
 
     fn mov_imm_w(dest: Register, imm: Int32) {
-        self.asm.movz_w(dest, imm & 0xFF_FFi32, 0i32);
-        self.asm.movk_w(dest, (imm >> 16i32) & 0xFF_FFi32, 16i32);
+        let fits_movz = fitsMovz(imm.toInt64(), 32);
+
+        if fits_movz.isSome() {
+            let (value, shift) = fits_movz.getOrPanic();
+            self.asm.movz(dest, value.toInt32(), shift.toInt32());
+        } else {
+            let fits_movn = fitsMovn(imm.toInt64(), 32);
+
+            if fits_movn.isSome() {
+                let (value, shift) = fits_movn.getOrPanic();
+                self.asm.movn(dest, value.toInt32(), shift.toInt32());
+            } else {
+                self.asm.movz_w(dest, imm & 0xFF_FFi32, 0i32);
+                self.asm.movk_w(dest, (imm >> 16i32) & 0xFF_FFi32, 16i32);
+            }
+        }
     }
 
     fn mov_imm_f32(dest: FloatRegister, scratch: Register, value: Float32) {

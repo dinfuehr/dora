@@ -5,7 +5,10 @@ fn main() {
     assert(x == 12i32);
     let x = g();
     assert(x == 13i32);
+    let x = h();
+    assert(x == -1i32);
 }
 
 @optimizeImmediately fn f(): Int32 { 12i32 }
 @optimizeImmediately fn g(): Int32 { 13i32 }
+@optimizeImmediately fn h(): Int32 { -1i32 }
