@@ -847,7 +847,7 @@ impl AssemblerX64 {
         self.emitModRmOpcode(0b000i32, reg);
     }
 
-    fn rolq_r(reg: Register) {
+    pub fn rolq_r(reg: Register) {
         self.emitRex64RmField(reg);
         self.emitByte(0xD3u8);
         self.emitModRmOpcode(0b000i32, reg);

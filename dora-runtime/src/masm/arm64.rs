@@ -10,7 +10,7 @@ use crate::threads::ThreadLocalData;
 use crate::vm::{get_vm, LazyCompilationSite, Trap};
 use crate::vtable::VTable;
 pub use dora_asm::arm64::AssemblerArm64 as Assembler;
-use dora_asm::arm64::{self as asm, Cond, Extend, NeonRegister, Shift};
+use dora_asm::arm64::{self as asm, Cond, Extend, MemOperand, NeonRegister, Shift};
 use dora_bytecode::{BytecodeTypeArray, FunctionId, Location};
 
 impl MacroAssembler {
@@ -28,7 +28,10 @@ impl MacroAssembler {
 
     pub fn check_stack_limit(&mut self, lbl_overflow: Label) {
         let offset = ThreadLocalData::stack_limit_offset() as u32;
-        self.asm.ldr_imm(REG_TMP1.into(), REG_THREAD.into(), offset);
+        self.asm.ldr_imm(
+            REG_TMP1.into(),
+            MemOperand::offset(REG_THREAD.into(), offset as i64),
+        );
         self.asm
             .cmp_ext(REG_SP.into(), REG_TMP1.into(), Extend::UXTX, 0);
         self.asm.bc(Cond::CC, lbl_overflow);
@@ -1243,9 +1246,10 @@ impl MacroAssembler {
             match mode {
                 MachineMode::Int8 => self.asm.ldrb_imm(dest.reg().into(), base.into(), disp),
                 MachineMode::Int32 => self.asm.ldr_imm_w(dest.reg().into(), base.into(), disp),
-                MachineMode::IntPtr | MachineMode::Int64 | MachineMode::Ptr => {
-                    self.asm.ldr_imm(dest.reg().into(), base.into(), disp)
-                }
+                MachineMode::IntPtr | MachineMode::Int64 | MachineMode::Ptr => self.asm.ldr_imm(
+                    dest.reg().into(),
+                    MemOperand::offset(base.into(), disp as i64),
+                ),
                 MachineMode::Float32 => self.asm.ldr_imm_s(dest.freg().into(), base.into(), disp),
                 MachineMode::Float64 => self.asm.ldr_imm_d(dest.freg().into(), base.into(), disp),
             }

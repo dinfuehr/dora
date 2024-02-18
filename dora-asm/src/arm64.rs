@@ -161,6 +161,17 @@ enum JumpKind {
     },
 }
 
+pub struct MemOperand {
+    base: Register,
+    offset: i64,
+}
+
+impl MemOperand {
+    pub fn offset(base: Register, offset: i64) -> MemOperand {
+        MemOperand { base, offset }
+    }
+}
+
 pub struct AssemblerArm64 {
     unresolved_jumps: Vec<ForwardJump>,
     buffer: AssemblerBuffer,
@@ -1177,11 +1188,18 @@ impl AssemblerArm64 {
         self.emit_u32(cls::ldst_pair_post(0b00, 0, 1, imm7, rt2, rn, rt));
     }
 
-    pub fn ldr_imm(&mut self, rt: Register, rn: Register, imm: u32) {
+    pub fn ldr_imm(&mut self, rt: Register, opnd: MemOperand) {
         assert!(rt.is_gpr());
-        assert_eq!(imm % 8, 0);
-        let imm = imm / 8;
-        self.emit_u32(cls::ldst_regimm(0b11, 0, 0b01, imm, rn, rt.encoding()));
+        assert_eq!(opnd.offset % 8, 0);
+        let offset = opnd.offset / 8;
+        self.emit_u32(cls::ldst_regimm(
+            0b11,
+            0,
+            0b01,
+            offset as u32,
+            opnd.base,
+            rt.encoding(),
+        ));
     }
 
     pub fn ldrb_imm(&mut self, rt: Register, rn: Register, imm12: u32) {
@@ -3878,7 +3896,7 @@ mod tests {
 
     #[test]
     fn test_ldr_imm() {
-        assert_emit!(0xf9400820; ldr_imm(R0, R1, 16)); // ldr x0, [x1, #16]
+        assert_emit!(0xf9400820; ldr_imm(R0, MemOperand::offset(R1, 16))); // ldr x0, [x1, #16]
         assert_emit!(0x39406420; ldrb_imm(R0, R1, 25)); // ldrb w0, [x1, #25]
         assert_emit!(0x79402420; ldrh_imm(R0, R1, 18)); // ldrh w0, [x1, #18]
         assert_emit!(0xb9400c20; ldr_imm_w(R0, R1, 12)); // ldr w0, [x1, #12]
