@@ -1580,7 +1580,8 @@ impl MacroAssembler {
     }
 
     pub fn debug(&mut self) {
-        self.asm.brk(0);
+        // This special immediate tells the debugger to skip over this instruction.
+        self.asm.brk(0xF000);
     }
 
     pub fn load_int_const(&mut self, mode: MachineMode, dest: Reg, imm: i64) {
