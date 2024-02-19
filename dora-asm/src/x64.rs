@@ -636,6 +636,13 @@ impl AssemblerX64 {
         self.emit_u8(0xf0);
     }
 
+    pub fn movaps(&mut self, dest: Address, src: XmmRegister) {
+        self.emit_rex_sse_address_optional(src, dest);
+        self.emit_u8(0x0f);
+        self.emit_u8(0x29);
+        self.emit_address(src.low_bits(), dest);
+    }
+
     pub fn movb_ai(&mut self, dest: Address, src: Immediate) {
         assert!(src.is_int8() || src.is_uint8());
         self.emit_rex32_address_optional(dest);
@@ -2894,5 +2901,12 @@ mod tests {
     #[test]
     fn test_mfence() {
         assert_emit!(0x0f, 0xae, 0xf0; mfence);
+    }
+
+    #[test]
+    fn test_movaps() {
+        assert_emit!(0x0f, 0x29, 0x45, 16; movaps(Address::offset(RBP, 16), XMM0));
+        assert_emit!(0x44, 0x0f, 0x29, 0x45, 16; movaps(Address::offset(RBP, 16), XMM8));
+        assert_emit!(0x41, 0x0f, 0x29, 0x7d, 16; movaps(Address::offset(R13, 16), XMM7));
     }
 }
