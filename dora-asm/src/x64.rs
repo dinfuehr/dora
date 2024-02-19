@@ -636,7 +636,7 @@ impl AssemblerX64 {
         self.emit_u8(0xf0);
     }
 
-    pub fn movaps(&mut self, dest: Address, src: XmmRegister) {
+    pub fn movaps_ar(&mut self, dest: Address, src: XmmRegister) {
         self.emit_rex_sse_address_optional(src, dest);
         self.emit_u8(0x0f);
         self.emit_u8(0x29);
@@ -2905,8 +2905,8 @@ mod tests {
 
     #[test]
     fn test_movaps() {
-        assert_emit!(0x0f, 0x29, 0x45, 16; movaps(Address::offset(RBP, 16), XMM0));
-        assert_emit!(0x44, 0x0f, 0x29, 0x45, 16; movaps(Address::offset(RBP, 16), XMM8));
-        assert_emit!(0x41, 0x0f, 0x29, 0x7d, 16; movaps(Address::offset(R13, 16), XMM7));
+        assert_emit!(0x0f, 0x29, 0x45, 16; movaps_ar(Address::offset(RBP, 16), XMM0));
+        assert_emit!(0x44, 0x0f, 0x29, 0x45, 16; movaps_ar(Address::offset(RBP, 16), XMM8));
+        assert_emit!(0x41, 0x0f, 0x29, 0x7d, 16; movaps_ar(Address::offset(R13, 16), XMM7));
     }
 }
