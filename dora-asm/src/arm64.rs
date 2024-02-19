@@ -1770,6 +1770,16 @@ impl AssemblerArm64 {
         self.emit_u32(cls::ldst_pair(0b00, 0, 0, imm7, rt2, rn, rt));
     }
 
+    pub fn stp_post(&mut self, rt: Register, rt2: Register, rn: Register, imm7: i32) {
+        assert!(imm7 % 8 == 0);
+        self.emit_u32(cls::ldst_pair_post(0b10, 0, 0, imm7 / 8, rt2, rn, rt));
+    }
+
+    pub fn stp_post_w(&mut self, rt: Register, rt2: Register, rn: Register, imm7: i32) {
+        assert!(imm7 % 4 == 0);
+        self.emit_u32(cls::ldst_pair_post(0b00, 0, 0, imm7 / 4, rt2, rn, rt));
+    }
+
     pub fn stp_pre(&mut self, rt: Register, rt2: Register, rn: Register, imm7: i32) {
         self.emit_u32(cls::ldst_pair_pre(0b10, 0, 0, imm7, rt2, rn, rt));
     }
@@ -2783,9 +2793,9 @@ mod cls {
         assert!(fits_bit(v));
         assert!(fits_bit(l));
         assert!(fits_i7(imm7));
-        assert!(rt2.is_gpr());
+        assert!(rt2.is_gpr_or_zero());
         assert!(rn.is_gpr_or_sp());
-        assert!(rt.is_gpr());
+        assert!(rt.is_gpr_or_zero());
 
         let imm7 = (imm7 as u32) & 0x7F;
 
@@ -2795,9 +2805,9 @@ mod cls {
             | 0b001u32 << 23
             | l << 22
             | imm7 << 15
-            | rt2.encoding() << 10
+            | rt2.encoding_zero() << 10
             | rn.encoding_sp() << 5
-            | rt.encoding()
+            | rt.encoding_zero()
     }
 
     pub(super) fn ldst_pair_pre(
@@ -3730,6 +3740,9 @@ mod tests {
     fn test_ldst_pair_post() {
         assert_emit!(0xa8fe7bfd; ldp_post(REG_FP, REG_LR, REG_SP, -4));
         assert_emit!(0x28c40440; ldp_post_w(R0, R1, R2, 8));
+
+        assert_emit!(0xa8817fff; stp_post(REG_ZERO, REG_ZERO, REG_SP, 16)); // stp xzr, xzr, [sp], #0x10
+        assert_emit!(0xa8817e1f; stp_post(REG_ZERO, REG_ZERO, R16, 16)); // stp xzr, xzr, [x16], #0x10
     }
 
     #[test]

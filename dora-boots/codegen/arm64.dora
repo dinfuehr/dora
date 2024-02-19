@@ -250,7 +250,7 @@ impl CodeGenArm64 {
         });
     }
 
-    fn emitObjectInitialization(obj: Register, size: Int32, classptr: Address, tmp: Register) {
+    fn emitObjectInitialization(obj: Register, size: Int64, classptr: Address, tmp: Register) {
         let metadata_part = 0xFF_FF_FF_FCi32 | 1i32 << METADATA_REMEMBERED_BIT;
         let classptr_part = classptr.value - config.meta_space_start.value;
 
@@ -258,11 +258,25 @@ impl CodeGenArm64 {
         self.mov_imm(tmp, header_word);
         self.asm.str_imm(tmp, obj, 0i32);
 
-        let size = size.toInt64();
-        assert(size % 8 == 0);
-        for word_offset in std::range(OBJECT_HEADER_LENGTH.toInt64() / 8, size / 8) {
-            self.asm.str_imm(REG_ZERO, obj, word_offset.toInt32() * 8i32);
+        if size > OBJECT_HEADER_LENGTH.toInt64() {
+            assert(size % 8 == 0);
+            self.asm.add_imm(tmp, obj, OBJECT_HEADER_LENGTH);
+            self.zeroMemory(tmp, (size - OBJECT_HEADER_LENGTH.toInt64()) / 8);
         }
+    }
+
+    fn zeroMemory(ptr: Register, mut words: Int64) {
+        while words >= 2 {
+            self.asm.stp_post(REG_ZERO, REG_ZERO, ptr, 16i32);
+            words = words - 2;
+        }
+
+        if words > 0 {
+            self.asm.str_imm(REG_ZERO, ptr, 0i32);
+            words = words - 1;
+        }
+
+        assert(words == 0);
     }
 
     fn saveRegistersForCall(snapshot: RegisterSnapshot) {
@@ -1097,7 +1111,7 @@ impl CodeGen for CodeGenArm64 {
         self.emitObjectAllocate(obj, size, REG_TEMP, tmp, loc.getRegisterSnapshot());
 
         let classptr = getClassPointer(class_info.class_id, class_info.type_params);
-        self.emitObjectInitialization(obj, size, classptr, REG_TEMP);
+        self.emitObjectInitialization(obj, size.toInt64(), classptr, REG_TEMP);
     }
 
     fn finalize(): CodeDescriptor {

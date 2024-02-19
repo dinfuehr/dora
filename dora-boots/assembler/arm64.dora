@@ -1600,6 +1600,20 @@ impl AssemblerArm64 {
         self.emit(encoding::ldst_pair(0b00i32, 0i32, 0i32, imm, rt2, rn, rt));
     }
 
+    pub fn stp_post(rt: Register, rt2: Register, rn: Register, imm: Int32) {
+        assert(imm % 8i32 == 0i32);
+        assert(imm != 0i32);
+        let imm = imm / 8i32;
+        self.emit(encoding::ldst_pair_post(0b10i32, 0i32, 0i32, imm, rt2, rn, rt));
+    }
+
+    pub fn stp_post_w(rt: Register, rt2: Register, rn: Register, imm: Int32) {
+        assert(imm % 4i32 == 0i32);
+        assert(imm != 0i32);
+        let imm = imm / 4i32;
+        self.emit(encoding::ldst_pair_post(0b00i32, 0i32, 0i32, imm, rt2, rn, rt));
+    }
+
     pub fn stp_pre(rt: Register, rt2: Register, rn: Register, imm: Int32) {
         assert(imm % 8i32 == 0i32);
         assert(imm != 0i32);
@@ -2909,7 +2923,7 @@ mod encoding {
         assert(fitsI7(imm7));
         assert(rt2.isGprOrZero());
         assert(rn.isGprOrSp());
-        assert(rt.isGpr());
+        assert(rt.isGprOrZero());
 
         opc << 30i32
             | 0b101i32 << 27i32
@@ -2919,7 +2933,7 @@ mod encoding {
             | (imm7 & 0x7Fi32) << 15i32
             | rt2.encodingZero() << 10i32
             | rn.encodingSp() << 5i32
-            | rt.encoding()
+            | rt.encodingZero()
     }
 
     pub fn ldst_pair_post_float(
@@ -3316,7 +3330,7 @@ mod tests {
     use super::{REG_ZERO, REG_SP};
     use super::{
         R0, R1, R2, R3, R4, R5, R6, R7, R8, R9, R10,
-        R11, R17, R27, R28, R29, R30
+        R11, R16, R17, R27, R28, R29, R30
     };
     use super::{F0, F1, F2, F3, F4, F5, F31};
     use super::{fitsMovz, fitsMovn};
@@ -4824,6 +4838,22 @@ mod tests {
             0xa9010440i32,
             // stp w3, w4, [x5, #4]
             0x290090a3i32,
+        );
+    }
+
+    @Test
+    fn test_stp_post() {
+        let asm = AssemblerArm64::new();
+        asm.stp_post(REG_ZERO, REG_ZERO, REG_SP, 16i32);
+        asm.stp_post(REG_ZERO, REG_ZERO, R16, 16i32);
+        let buffer = asm.finalizeTesting();
+
+        assertAsm32(
+            buffer,
+            // stp xzr, xzr, [sp], #0x10
+            0xa8817fffi32,
+            // stp xzr, xzr, [x16], #0x10
+            0xa8817e1fi32,
         );
     }
 
