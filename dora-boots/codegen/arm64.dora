@@ -250,13 +250,19 @@ impl CodeGenArm64 {
         });
     }
 
-    fn emitObjectInitialization(obj: Register, classptr: Address, tmp: Register) {
+    fn emitObjectInitialization(obj: Register, size: Int32, classptr: Address, tmp: Register) {
         let metadata_part = 0xFF_FF_FF_FCi32 | 1i32 << METADATA_REMEMBERED_BIT;
         let classptr_part = classptr.value - config.meta_space_start.value;
 
         let header_word = metadata_part.toInt64() << 32i32 | classptr_part;
         self.mov_imm(tmp, header_word);
         self.asm.str_imm(tmp, obj, 0i32);
+
+        let size = size.toInt64();
+        assert(size % 8 == 0);
+        for word_offset in std::range(OBJECT_HEADER_LENGTH.toInt64() / 8, size / 8) {
+            self.asm.str_imm(REG_ZERO, obj, word_offset.toInt32() * 8i32);
+        }
     }
 
     fn saveRegistersForCall(snapshot: RegisterSnapshot) {
@@ -356,7 +362,7 @@ impl CodeGen for CodeGenArm64 {
     }
 
     fn emitDebug() {
-        self.asm.brk(0i32);
+        self.asm.brk(0xF0_00i32);
     }
 
     fn emitProlog(stackSize: Int32) {
@@ -1091,7 +1097,7 @@ impl CodeGen for CodeGenArm64 {
         self.emitObjectAllocate(obj, size, REG_TEMP, tmp, loc.getRegisterSnapshot());
 
         let classptr = getClassPointer(class_info.class_id, class_info.type_params);
-        self.emitObjectInitialization(obj, classptr, REG_TEMP);
+        self.emitObjectInitialization(obj, size, classptr, REG_TEMP);
     }
 
     fn finalize(): CodeDescriptor {

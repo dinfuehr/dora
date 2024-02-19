@@ -826,11 +826,32 @@ impl SsaGen {
 
         let info = ClassInfo(class_id, type_params);
 
-        let inst = graph::createNewObject(info);
-        inst.set_bytecode_position(self.offset);
-        self.current().appendInst(inst);
+        let objInst = graph::createNewObject(info);
+        objInst.set_bytecode_position(self.offset);
+        self.current().appendInst(objInst);
 
-        self.writeVariable(dest, self.current(), inst);
+        self.writeVariable(dest, self.current(), objInst);
+        let mut field_id = 0i32;
+
+        for reg in self.pushed_registers {
+            let arg = self.readVariable(reg, self.current());
+            let argTy = Type::fromBytecodeType(self.bc.registers(reg.value.toInt64()));
+
+            let fieldInfo = FieldInfo(
+                class_id,
+                type_params,
+                FieldId(field_id),
+                None[Int32]
+            );
+
+            let destInst = graph::createStoreFieldInst(objInst, fieldInfo, arg, argTy);
+            destInst.set_bytecode_position(self.offset);
+            self.current().appendInst(destInst);
+
+            field_id = field_id + 1i32;
+        }
+
+        self.pushed_registers.clear();
     }
 }
 

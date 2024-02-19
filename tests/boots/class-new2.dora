@@ -1,0 +1,12 @@
+//= boots
+
+fn main() {
+    let foo = getfoo();
+    std::forceCollect();
+    assert(foo.a == 1);
+    assert(foo.b == 2);
+}
+
+class Foo(a: Int64, b: Int64)
+
+@optimizeImmediately fn getfoo(): Foo { Foo(1, 2) }
