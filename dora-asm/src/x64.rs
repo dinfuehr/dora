@@ -849,6 +849,13 @@ impl AssemblerX64 {
         self.emit_modrm_registers(dest, src);
     }
 
+    pub fn movups_ar(&mut self, dest: Address, src: XmmRegister) {
+        self.emit_rex_sse_address_optional(src, dest);
+        self.emit_u8(0x0f);
+        self.emit_u8(0x11);
+        self.emit_address(src.low_bits(), dest);
+    }
+
     pub fn movzxb_rr(&mut self, dest: Register, src: Register) {
         self.emit_rex32_byte_optional(dest, src);
         self.emit_u8(0x0f);
@@ -2904,9 +2911,16 @@ mod tests {
     }
 
     #[test]
-    fn test_movaps() {
+    fn test_movaps_ar() {
         assert_emit!(0x0f, 0x29, 0x45, 16; movaps_ar(Address::offset(RBP, 16), XMM0));
         assert_emit!(0x44, 0x0f, 0x29, 0x45, 16; movaps_ar(Address::offset(RBP, 16), XMM8));
         assert_emit!(0x41, 0x0f, 0x29, 0x7d, 16; movaps_ar(Address::offset(R13, 16), XMM7));
+    }
+
+    #[test]
+    fn test_movups_ar() {
+        assert_emit!(0x0f, 0x11, 0x45, 16; movups_ar(Address::offset(RBP, 16), XMM0));
+        assert_emit!(0x44, 0x0f, 0x11, 0x45, 16; movups_ar(Address::offset(RBP, 16), XMM8));
+        assert_emit!(0x41, 0x0f, 0x11, 0x7d, 16; movups_ar(Address::offset(R13, 16), XMM7));
     }
 }

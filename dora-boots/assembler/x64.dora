@@ -527,6 +527,13 @@ impl AssemblerX64 {
         self.emitModRmReg(dest, src);
     }
 
+    pub fn movaps_ar(dest: Address, src: FloatRegister) {
+        self.emitRexSseAddressOptional(src, dest);
+        self.emitByte(0x0fu8);
+        self.emitByte(0x29u8);
+        self.emitAddress(src.lowBits(), dest);
+    }
+
     pub fn movb_ai(dest: Address, src: Immediate) {
         assert(src.isInt8() || src.isUInt8());
         self.emitRex32AddressOptional(dest);
@@ -731,6 +738,13 @@ impl AssemblerX64 {
         self.emitRex64ModRm(dest, src);
         self.emitByte(0x63u8);
         self.emitModRmReg(dest, src);
+    }
+
+    pub fn movups_ar(dest: Address, src: FloatRegister) {
+        self.emitRexSseAddressOptional(src, dest);
+        self.emitByte(0x0fu8);
+        self.emitByte(0x11u8);
+        self.emitAddress(src.lowBits(), dest);
     }
 
     pub fn movzxb_ra(dest: Register, src: Address) {
@@ -4019,6 +4033,32 @@ mod tests {
         assertAsm(buffer, 0x41u8, 0x86u8, 0x3fu8); // xchg byte ptr [r15], dil
         assertAsm(buffer, 0x44u8, 0x86u8, 0x3fu8); // xchg byte ptr [rdi], r15b
         assertAsmEnd(buffer);
+    }
+
+    @Test
+    fn movaps_ar() {
+        let asm = AssemblerX64::new();
+        asm.movaps_ar(Address::offset(RBP, 16i32), XMM0);
+        asm.movaps_ar(Address::offset(RBP, 16i32), XMM8);
+        asm.movaps_ar(Address::offset(R13, 16i32), XMM7);
+        let buffer = asm.finalizeTesting();
+
+        assertAsm(buffer, 0x0fu8, 0x29u8, 0x45u8, 16u8);
+        assertAsm(buffer, 0x44u8, 0x0fu8, 0x29u8, 0x45u8, 16u8);
+        assertAsm(buffer, 0x41u8, 0x0fu8, 0x29u8, 0x7du8, 16u8);
+    }
+
+    @Test
+    fn movups_ar() {
+        let asm = AssemblerX64::new();
+        asm.movups_ar(Address::offset(RBP, 16i32), XMM0);
+        asm.movups_ar(Address::offset(RBP, 16i32), XMM8);
+        asm.movups_ar(Address::offset(R13, 16i32), XMM7);
+        let buffer = asm.finalizeTesting();
+
+        assertAsm(buffer, 0x0fu8, 0x11u8, 0x45u8, 16u8);
+        assertAsm(buffer, 0x44u8, 0x0fu8, 0x11u8, 0x45u8, 16u8);
+        assertAsm(buffer, 0x41u8, 0x0fu8, 0x11u8, 0x7du8, 16u8);
     }
 
     @Test

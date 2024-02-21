@@ -208,7 +208,7 @@ impl CodeGenX64 {
         });
     }
 
-    fn emitObjectInitialization(obj: Register, size: Int32, classptr: Address, tmp1: Register, tmp2: Register) {
+    fn emitObjectInitialization(obj: Register, size: Int32, classptr: Address, tmp1: Register, tmp2: FloatRegister) {
         let metadata_part = 0xFF_FF_FF_FCi32 | 1i32 << METADATA_REMEMBERED_BIT;
         let classptr_part = classptr.value - config.meta_space_start.value;
 
@@ -224,12 +224,22 @@ impl CodeGenX64 {
         }
     }
 
-    fn zeroMemory(ptr: Register, words: Int64, tmp: Register) {
-        self.asm.xorq_rr(tmp, tmp);
+    fn zeroMemory(ptr: Register, words: Int64, tmp: FloatRegister) {
+        self.asm.xorps_rr(tmp, tmp);
 
-        for idx in std::range(0, words) {
-            self.asm.movq_ar(AsmAddress::offset(ptr, idx.toInt32() * 8i32), tmp);
+        let mut idx = 0;
+
+        while idx + 1 < words {
+            self.asm.movups_ar(AsmAddress::offset(ptr, idx.toInt32() * 8i32), tmp);
+            idx = idx + 2;
         }
+
+        if idx < words {
+            self.asm.movsd_ar(AsmAddress::offset(ptr, idx.toInt32() * 8i32), tmp);
+            idx = idx + 1;
+        }
+
+        assert(idx == words);
     }
 
     fn saveRegistersForCall(snapshot: RegisterSnapshot) {
@@ -1080,7 +1090,7 @@ impl CodeGen for CodeGenX64 {
         self.emitObjectAllocate(obj, size, REG_TEMP, tmp, loc.getRegisterSnapshot());
 
         let classptr = getClassPointer(class_info.class_id, class_info.type_params);
-        self.emitObjectInitialization(obj, size, classptr, REG_TEMP, tmp);
+        self.emitObjectInitialization(obj, size, classptr, REG_TEMP, FREG_TEMP);
     }
 
     fn finalize(): CodeDescriptor {
