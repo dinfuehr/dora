@@ -225,6 +225,7 @@ impl CodeGenX64 {
     }
 
     fn zeroMemory(ptr: Register, words: Int64, tmp: FloatRegister) {
+        self.emitComment("zero memory of fixed length");
         self.asm.xorps_rr(tmp, tmp);
 
         let mut idx = 0;
@@ -240,6 +241,23 @@ impl CodeGenX64 {
         }
 
         assert(idx == words);
+    }
+
+    fn zeroMemoryDynamic(ptr: Register, words: Register, tmp: FloatRegister) {
+        self.emitComment("zero memory with dynamic length");
+        let done = self.asm.createLabel();
+
+        self.asm.testq_rr(words, words);
+        self.asm.jcc(Condition::Zero, done);
+
+        self.asm.xorps_rr(tmp, tmp);
+
+        let loop = self.asm.createAndBindLabel();
+        self.asm.movsd_ar(AsmAddress::array(ptr, words, ScaleFactor::Eight, -8i32), tmp);
+        self.asm.subq_ri(words, Immediate(1));
+        self.asm.jcc(Condition::NotZero, loop);
+
+        self.asm.bindLabel(done);
     }
 
     fn saveRegistersForCall(snapshot: RegisterSnapshot) {

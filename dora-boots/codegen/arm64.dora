@@ -266,6 +266,8 @@ impl CodeGenArm64 {
     }
 
     fn zeroMemory(ptr: Register, mut words: Int64) {
+        self.emitComment("zero memory of fixed length");
+
         while words >= 2 {
             self.asm.stp_post(REG_ZERO, REG_ZERO, ptr, 16i32);
             words = words - 2;
@@ -277,6 +279,22 @@ impl CodeGenArm64 {
         }
 
         assert(words == 0);
+    }
+
+    fn zeroMemoryDynamic(ptr: Register, words: Register) {
+        self.emitComment("zero memory with dynamic length");
+        let done = self.asm.createLabel();
+
+        self.asm.cbz(words, done);
+        self.asm.add(words, words, ptr);
+
+        let loop = self.asm.createAndBindLabel();
+        self.asm.sub_imm(words, words, 8i32);
+        self.asm.str_imm(REG_ZERO, words, 0i32);
+        self.asm.cmp(words, ptr);
+        self.asm.bc(Cond::NE, loop);
+
+        self.asm.bindLabel(done);
     }
 
     fn saveRegistersForCall(snapshot: RegisterSnapshot) {
