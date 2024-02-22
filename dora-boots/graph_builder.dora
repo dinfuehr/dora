@@ -372,7 +372,10 @@ impl SsaGen {
                 unimplemented();
             },
             BytecodeInstruction::ConstChar(dest, idx) => {
-                unimplemented();
+                let value = self.bc.constPool(idx).toChar().getOrPanic();
+                let inst = createInt32Const(value.toInt32());
+                self.current().appendInst(inst);
+                self.writeVariable(dest, self.current(), inst);
             },
             BytecodeInstruction::ConstInt32(dest, idx) => {
                 let value = self.bc.constPool(idx).toInt32().getOrPanic();
@@ -470,7 +473,7 @@ impl SsaGen {
                 self.emitNewObjectInitialized(dest, idx);
             },
             BytecodeInstruction::NewArray(dest, idx, length) => {
-                unimplemented();
+                self.emitNewArray(dest, idx, length);
             },
             BytecodeInstruction::NewTuple(dest, idx) => {
                 unimplemented();
@@ -820,7 +823,7 @@ impl SsaGen {
 
     fn emitNewObjectInitialized(dest: BytecodeRegister, idx: ConstPoolId) {
         let (class_id, type_params) = match self.bc.constPool(idx) {
-            ConstPoolEntry::Class(fct_id, type_params) => (fct_id, type_params),
+            ConstPoolEntry::Class(class_id, type_params) => (class_id, type_params),
             _ => unreachable[(ClassId, Array[BytecodeType])](),
         };
 
@@ -852,6 +855,22 @@ impl SsaGen {
         }
 
         self.pushed_registers.clear();
+    }
+
+    fn emitNewArray(dest: BytecodeRegister, idx: ConstPoolId, length: BytecodeRegister) {
+        let (class_id, type_params) = match self.bc.constPool(idx) {
+            ConstPoolEntry::Class(class_id, type_params) => (class_id, type_params),
+            _ => unreachable[(ClassId, Array[BytecodeType])](),
+        };
+
+        let info = ClassInfo(class_id, type_params);
+        let lengthInst = self.readVariable(length, self.current());
+
+        let objInst = graph::createNewArray(info, lengthInst);
+        objInst.set_bytecode_position(self.offset);
+        self.current().appendInst(objInst);
+
+        self.writeVariable(dest, self.current(), objInst);
     }
 }
 

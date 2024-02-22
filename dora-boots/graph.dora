@@ -632,6 +632,7 @@ pub enum Op {
     MoveImmediate,
 
     NewObject,
+    NewArray,
 }
 
 impl Op {
@@ -718,6 +719,7 @@ pub fn opName(op: Op): String {
         Op::Move => "Move",
         Op::MoveImmediate => "MoveImmediate",
         Op::NewObject => "NewObject",
+        Op::NewArray => "NewArray",
     }
 }
 
@@ -887,6 +889,7 @@ impl Inst {
             Op::Move => self.ty,
             Op::MoveImmediate => self.ty,
             Op::NewObject => Type::Ptr,
+            Op::NewArray => Type::Ptr,
         }
     }
 
@@ -1304,6 +1307,7 @@ impl Inst {
             Op::Move => false,
             Op::MoveImmediate => false,
             Op::NewObject => false,
+            Op::NewArray => false,
         }
     }
 }
@@ -1973,6 +1977,15 @@ pub fn createNewObject(info: ClassInfo): Inst {
     let inst = Inst::new();
     inst._op = Some(Op::NewObject);
     inst.extra = InstExtraData::ClassInfo(info);
+
+    inst
+}
+
+pub fn createNewArray(info: ClassInfo, length: Inst): Inst {
+    let inst = Inst::new();
+    inst._op = Some(Op::NewObject);
+    inst.extra = InstExtraData::ClassInfo(info);
+    inst.addInput(length);
 
     inst
 }

@@ -1,0 +1,11 @@
+//= boots
+
+fn main() {
+    let foo = getfoo(10);
+    std::forceCollect();
+    for idx in std::range(0, 10) {
+        assert(foo(idx) == 0);
+    }
+}
+
+@optimizeImmediately fn getfoo(length: Int64): Array[Int64] { Array[Int64]::zero(length) }

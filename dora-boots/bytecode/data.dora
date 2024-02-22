@@ -74,6 +74,13 @@ pub enum ConstPoolEntry {
 }
 
 impl ConstPoolEntry {
+    pub fn toChar(): Option[Char] {
+        match self {
+            ConstPoolEntry::Char(value) => Some(value),
+            _ => None,
+        }
+    }
+
     pub fn toInt32(): Option[Int32] {
         match self {
             ConstPoolEntry::Int32(value) => Some(value),

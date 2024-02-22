@@ -300,6 +300,7 @@ fn dumpInstName(inst: Inst): String {
         Op::Move => "Move.${inst.getValueType()}",
         Op::MoveImmediate => "MoveImmediate.${inst.getValueType()}",
         Op::NewObject => "NewObject",
+        Op::NewArray => "NewArray",
     }
 }
 

@@ -1,0 +1,14 @@
+//= boots
+
+fn main() {
+    let x = f();
+    assert(x == 'f');
+    let x = g();
+    assert(x == 'g');
+    let x = h();
+    assert(x == 'h');
+}
+
+@optimizeImmediately fn f(): Char { 'f' }
+@optimizeImmediately fn g(): Char { 'g' }
+@optimizeImmediately fn h(): Char { 'h' }
