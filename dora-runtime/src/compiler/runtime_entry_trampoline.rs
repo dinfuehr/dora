@@ -5,7 +5,7 @@ use crate::cannon::codegen::mode;
 use crate::compiler::codegen::AnyReg;
 use crate::cpu::{
     FReg, Reg, CCALL_FREG_PARAMS, CCALL_REG_PARAMS, FREG_PARAMS, FREG_TMP1, PARAM_OFFSET, REG_FP,
-    REG_PARAMS, REG_RESULT, REG_SP, REG_THREAD, SCRATCH,
+    REG_PARAMS, REG_RESULT, REG_SP, REG_THREAD, SCRATCH, STACK_FRAME_ALIGNMENT,
 };
 use crate::gc::Address;
 use crate::masm::{MacroAssembler, Mem};
@@ -67,7 +67,7 @@ impl<'a> NativeGen<'a> {
         let offset_dtn = offset_temporaries + temporaries as i32 * mem::ptr_width();
         let offset_return = offset_dtn + dtn_size;
         let framesize = offset_return + if save_return { mem::ptr_width() } else { 0 };
-        let framesize = mem::align_i32(framesize, 16);
+        let framesize = mem::align_i32(framesize, STACK_FRAME_ALIGNMENT as i32);
 
         if self.dbg || self.vm.flags.emit_debug_native {
             self.masm.debug();

@@ -448,7 +448,7 @@ impl SsaGen {
             },
 
             BytecodeInstruction::InvokeDirect(dest, idx) => {
-                unimplemented();
+                self.emitCall(dest, CallKind::Direct, idx);
             },
             BytecodeInstruction::InvokeVirtual(dest, idx) => {
                 unimplemented();

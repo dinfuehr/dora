@@ -354,6 +354,25 @@ impl CodeGenArm64 {
             self.asm.ldp_post_d(rt, rt2, REG_SP, 16i32);
         }
     }
+
+    fn emitInvokeCommon(inst: Inst) {
+        let fct_info = inst.getFunctionInfo();
+        let address = getFunctionAddress(fct_info.fct_id, fct_info.type_params);
+        let cp_entry = self.constPool.push(ConstPoolValue::Address(address));
+        self.loadConstPool(REG_TEMP, cp_entry);
+        self.asm.bl_r(REG_TEMP);
+
+        let pos = self.asm.position();
+        let site = LazyCompilationSiteDirect(
+            fct_info.fct_id,
+            fct_info.type_params,
+            pos + cp_entry.disp,
+        );
+        let location = self.ci.bc.getLocationAt(inst.bytecode_position());
+
+        self.lazyCompilation.insert(pos, LazyCompilationSite::Direct(site));
+        self.locations.insert(pos, location);
+    }
 }
 
 impl CodeGen for CodeGenArm64 {
@@ -469,9 +488,13 @@ impl CodeGen for CodeGenArm64 {
 
             if ty == Type::Int32 {
                 self.asm.stur_w(reg, REG_FP, slot);
-            } else {
+            } else if ty == Type::Int64 {
                 assert(ty == Type::Int64);
                 self.asm.stur(reg, REG_FP, slot);
+            } else if ty == Type::Ptr {
+                self.asm.stur(reg, REG_FP, slot);
+            } else {
+                unimplemented();
             }
         }
     }
@@ -891,22 +914,11 @@ impl CodeGen for CodeGenArm64 {
     }
 
     fn emitInvokeStatic(inst: Inst) {
-        let fct_info = inst.getFunctionInfo();
-        let address = getFunctionAddress(fct_info.fct_id, fct_info.type_params);
-        let cp_entry = self.constPool.push(ConstPoolValue::Address(address));
-        self.loadConstPool(REG_TEMP, cp_entry);
-        self.asm.bl_r(REG_TEMP);
+        self.emitInvokeCommon(inst);
+    }
 
-        let pos = self.asm.position();
-        let site = LazyCompilationSiteDirect(
-            fct_info.fct_id,
-            fct_info.type_params,
-            pos + cp_entry.disp,
-        );
-        let location = self.ci.bc.getLocationAt(inst.bytecode_position());
-
-        self.lazyCompilation.insert(pos, LazyCompilationSite::Direct(site));
-        self.locations.insert(pos, location);
+    fn emitInvokeDirect(inst: Inst) {
+        self.emitInvokeCommon(inst);
     }
 
     fn emitLoadField(inst: Inst) {
