@@ -30,7 +30,7 @@ use package::graph::createPhiInst;
 use package::graph::createArgInst;
 use package::graph::createNewObject;
 use package::graph::ty::Type;
-use package::graph::{ClassInfo, FieldInfo, FunctionInfo, CallKind, VirtualFunctionInfo};
+use package::graph::{ClassInfo, FieldInfo, FunctionInfo, CallKind, VirtualFunctionInfo, LambdaFunctionInfo};
 use package::bytecode::data::{BytecodeFunction, BytecodeRegister, BytecodeType, ClassId, FctId, FieldId};
 use package::bytecode::data::{ConstPoolId, ConstPoolEntry, GlobalId};
 use package::bytecode::instruction::BytecodeInstruction;
@@ -457,7 +457,7 @@ impl SsaGen {
                 self.emitCall(dest, CallKind::Static, idx);
             },
             BytecodeInstruction::InvokeLambda(dest, idx) => {
-                unimplemented();
+                self.emitLambdaCall(dest, idx);
             },
             BytecodeInstruction::InvokeGenericStatic(dest, idx) => {
                 unimplemented();
@@ -841,6 +841,34 @@ impl SsaGen {
         let info = VirtualFunctionInfo(trait_object_ty, fct_id, type_params);
 
         let inst = graph::createVirtualCall(info, args, ty);
+        inst.set_bytecode_position(self.offset);
+        self.current().appendInst(inst);
+
+        if !ty.isUnit() {
+            self.writeVariable(dest, self.current(), inst);
+        }
+    }
+
+    fn emitLambdaCall(dest: BytecodeRegister, idx: ConstPoolId) {
+        let args = Vec[Inst]::new();
+
+        for reg in self.pushed_registers {
+            let arg = self.readVariable(reg, self.current());
+            args.push(arg);
+        }
+
+        self.pushed_registers.clear();
+
+        let ty = Type::fromBytecodeType(self.bc.registers(dest.value.toInt64()));
+
+        let (params, return_type) = match self.bc.constPool(idx) {
+            ConstPoolEntry::Lambda(params, return_type) => (params, return_type),
+            _ => unreachable[(Array[BytecodeType], BytecodeType)](),
+        };
+
+        let info = LambdaFunctionInfo(params, return_type);
+
+        let inst = graph::createLambdaCall(info, args, ty);
         inst.set_bytecode_position(self.offset);
         self.current().appendInst(inst);
 

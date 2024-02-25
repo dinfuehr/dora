@@ -922,6 +922,13 @@ impl Inst {
         }
     }
 
+    pub fn getLambdaFunctionInfo(): LambdaFunctionInfo {
+        match self.extra {
+            InstExtraData::LambdaFunctionInfo(info) => info,
+            _ => unreachable[LambdaFunctionInfo](),
+        }
+    }
+
     pub fn getFieldInfo(): FieldInfo {
         match self.extra {
             InstExtraData::FieldInfo(info) => info,
@@ -1342,6 +1349,7 @@ enum InstExtraData {
     FieldInfo(FieldInfo),
     FunctionInfo(FunctionInfo),
     VirtualFunctionInfo(VirtualFunctionInfo),
+    LambdaFunctionInfo(LambdaFunctionInfo),
     ClassInfo(ClassInfo),
     If(Block, Block),
     Goto(Block),
@@ -1912,6 +1920,11 @@ pub class VirtualFunctionInfo {
     pub type_params: Array[BytecodeType],
 }
 
+pub class LambdaFunctionInfo {
+    pub params: Array[BytecodeType],
+    pub return_type: BytecodeType,
+}
+
 pub class ClassInfo {
     pub class_id: ClassId,
     pub type_params: Array[BytecodeType],
@@ -1996,6 +2009,19 @@ pub fn createVirtualCall(info: VirtualFunctionInfo,  args: Vec[Inst], return_ty:
     let inst = Inst::new();
     inst._op = Some(Op::InvokeVirtual);
     inst.extra = InstExtraData::VirtualFunctionInfo(info);
+    inst.ty = return_ty;
+
+    for arg in args {
+        inst.addInput(arg);
+    }
+
+    inst
+}
+
+pub fn createLambdaCall(info: LambdaFunctionInfo,  args: Vec[Inst], return_ty: Type): Inst {
+    let inst = Inst::new();
+    inst._op = Some(Op::InvokeLambda);
+    inst.extra = InstExtraData::LambdaFunctionInfo(info);
     inst.ty = return_ty;
 
     for arg in args {

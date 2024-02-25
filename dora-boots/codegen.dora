@@ -197,6 +197,11 @@ fn emitInst(codegen: CodeGen, inst: Inst) {
             codegen.emitInvokeVirtual(inst);
         },
 
+        Op::InvokeLambda => {
+            codegen.emitComment("InvokeLambda");
+            codegen.emitInvokeLambda(inst);
+        },
+
         Op::LoadField => {
             codegen.emitComment("LoadField");
             codegen.emitLoadField(inst);
@@ -302,6 +307,7 @@ pub trait CodeGen {
     fn emitInvokeStatic(inst: Inst);
     fn emitInvokeDirect(inst: Inst);
     fn emitInvokeVirtual(inst: Inst);
+    fn emitInvokeLambda(inst: Inst);
     fn emitLoadField(inst: Inst);
     fn emitStoreField(inst: Inst);
     fn emitArrayLength(inst: Inst);

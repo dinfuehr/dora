@@ -246,7 +246,7 @@ fn setLocationConstraintsCall(inst: Inst, loc: LocationData, codegen: CodeGen, c
         idx = idx + 1;
     }
 
-    if inst.op() == Op::InvokeVirtual {
+    if inst.op() == Op::InvokeVirtual || inst.op() == Op::InvokeLambda {
         addTempRegister(inst);
     }
 

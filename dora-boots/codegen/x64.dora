@@ -10,7 +10,7 @@ use package::interface::{TRAP_DIV0, TRAP_OVERFLOW, TRAP_INDEX_OUT_OF_BOUNDS};
 use package::interface::{THREAD_LOCAL_DATA_TLAB_TOP_OFFSET, THREAD_LOCAL_DATA_TLAB_END_OFFSET, THREAD_LOCAL_DATA_STACK_LIMIT_OFFSET, THREAD_LOCAL_DATA_STATE_OFFSET, THREAD_LOCAL_DATA_MARKING_OFFSET, OBJECT_HEADER_LENGTH, OBJECT_METADATA_OFFSET, METADATA_REMEMBERED_BIT, ARRAY_HEADER_LENGTH};
 use package::location::{useInputFloatRegisterFixed, useInputRegister, useInputRegisterFixed, useOutputRegisterFixed, useOutputSameAsFirstInput, addTempRegisterFixed};
 use package::graph::{Inst, Op, LocationData, RegisterSnapshot, Type};
-use package::{CodeDescriptor, CommentTable, GcPointTable, LazyCompilationData, LazyCompilationSiteVirtual, LocationTable};
+use package::{CodeDescriptor, CommentTable, GcPointTable, LazyCompilationData, LazyCompilationSiteVirtual, LazyCompilationSiteLambda, LocationTable};
 
 let REG_PARAMS: Array[Register] = Array[Register]::new(RDI, RSI, RDX, RCX, R8, R9);
 let FLOAT_REG_PARAMS: Array[FloatRegister] = Array[FloatRegister]::new(XMM0, XMM1, XMM2, XMM3, XMM4, XMM5, XMM6, XMM7);
@@ -323,6 +323,23 @@ impl CodeGenX64 {
         let location = self.ci.bc.getLocationAt(inst.bytecode_position());
 
         self.lazyCompilation.insert(pos, LazyCompilationSite::Direct(site));
+        self.locations.insert(pos, location);
+    }
+
+    fn emitVirtualCall(obj: Register, tmp1: Register, tmp2: Register, inst: Inst, vtable_index: Int32, site: LazyCompilationSite) {
+        self.asm.movl_ra(tmp1, AsmAddress::offset(obj, 0i32));
+
+        self.asm.movq_ri(tmp2, Immediate(config.meta_space_start.value));
+        self.asm.addq_rr(tmp1, tmp2);
+
+        let vtable_entry_offset = 32i32 + vtable_index * 8i32;
+        self.asm.movq_ra(tmp1, AsmAddress::offset(tmp1, vtable_entry_offset));
+        self.asm.call_r(tmp1);
+
+        let pos = self.asm.position();
+        let location = self.ci.bc.getLocationAt(inst.bytecode_position());
+
+        self.lazyCompilation.insert(pos, site);
         self.locations.insert(pos, location);
     }
 }
@@ -920,27 +937,33 @@ impl CodeGen for CodeGenX64 {
         let obj = loc.getInput(0).getRegister();
         let tmp = loc.getTemp(0).getRegister();
 
-        self.asm.movl_ra(REG_TEMP, AsmAddress::offset(obj, 0i32));
-
-        self.asm.movq_ri(tmp, Immediate(config.meta_space_start.value));
-        self.asm.addq_rr(REG_TEMP, tmp);
-
-        let vtable_index = getFunctionVtableIndex(fct_info.fct_id);
-        let vtable_entry_offset = 32i32 + vtable_index * 8i32;
-        self.asm.movq_ra(REG_TEMP, AsmAddress::offset(REG_TEMP, vtable_entry_offset));
-        self.asm.call_r(REG_TEMP);
-
-        let pos = self.asm.position();
         let site = LazyCompilationSiteVirtual(
             true,
             fct_info.fct_id,
             fct_info.type_params,
             fct_info.trait_object_ty,
         );
-        let location = self.ci.bc.getLocationAt(inst.bytecode_position());
+        let site = LazyCompilationSite::Virtual(site);
 
-        self.lazyCompilation.insert(pos, LazyCompilationSite::Virtual(site));
-        self.locations.insert(pos, location);
+        let vtable_index = getFunctionVtableIndex(fct_info.fct_id);
+
+        self.emitVirtualCall(obj, REG_TEMP, tmp, inst, vtable_index, site);
+    }
+
+    fn emitInvokeLambda(inst: Inst) {
+        let fct_info = inst.getLambdaFunctionInfo();
+        let loc = inst.getLocationData();
+        let obj = loc.getInput(0).getRegister();
+        let tmp = loc.getTemp(0).getRegister();
+
+        let site = LazyCompilationSiteLambda(
+            true,
+            fct_info.params,
+            fct_info.return_type,
+        );
+        let site = LazyCompilationSite::Lambda(site);
+
+        self.emitVirtualCall(obj, REG_TEMP, tmp, inst, 0i32, site);
     }
 
     fn emitLoadField(inst: Inst) {

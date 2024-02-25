@@ -1,0 +1,13 @@
+//= boots
+
+fn main() {
+    let get42 = ||: Int64 { 42 };
+    assert(f(get42) == 42);
+
+    let get27 = ||: Int64 { 27 };
+    assert(f(get27) == 27);
+}
+
+@optimizeImmediately fn f(bar: (): Int64): Int64 {
+    bar()
+}
