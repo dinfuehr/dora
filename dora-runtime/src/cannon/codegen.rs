@@ -2490,7 +2490,6 @@ impl<'a> CannonCodeGen<'a> {
             self_index == 0,
             trait_object_ty,
             fct_id,
-            vtable_index,
             type_params.clone(),
         );
 

@@ -416,7 +416,7 @@ impl LazyCompilationData {
 #[derive(Clone, Debug)]
 pub enum LazyCompilationSite {
     Direct(FunctionId, i32, BytecodeTypeArray),
-    Virtual(bool, BytecodeType, FunctionId, u32, BytecodeTypeArray),
+    Virtual(bool, BytecodeType, FunctionId, BytecodeTypeArray),
     Lambda(bool, BytecodeTypeArray, BytecodeType),
 }
 

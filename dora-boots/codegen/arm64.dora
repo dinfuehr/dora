@@ -14,7 +14,7 @@ use package::assembler::arm64::{REG_FP, REG_SP, REG_LR, REG_ZERO};
 use package::assembler::{FloatRegister, Label, RegSet, Register};
 use package::graph::{Inst, Op, LocationData, RegisterSnapshot, Type};
 use package::location::{useInputFloatRegisterFixed, useInputRegister, useInputRegisterFixed, useOutputRegister};
-use package::{CodeDescriptor, CommentTable, GcPointTable, LazyCompilationData, LazyCompilationSite, LazyCompilationSiteDirect, LocationTable};
+use package::{CodeDescriptor, CommentTable, GcPointTable, LazyCompilationData, LazyCompilationSite, LazyCompilationSiteDirect, LazyCompilationSiteVirtual, LocationTable};
 
 let REG_PARAMS: Array[Register] = Array[Register]::new(R0, R1, R2, R3, R4, R5, R6, R7);
 let FLOAT_REG_PARAMS: Array[FloatRegister] = Array[FloatRegister]::new(F0, F1, F2, F3, F4, F5, F6, F7);
@@ -486,7 +486,9 @@ impl CodeGen for CodeGenArm64 {
         } else {
             let reg = loc.getOutput().getRegister();
 
-            if ty == Type::Int32 {
+            if ty == Type::UInt8 {
+                self.asm.sturb(reg, REG_FP, slot);
+            } else if ty == Type::Int32 {
                 self.asm.stur_w(reg, REG_FP, slot);
             } else if ty == Type::Int64 {
                 assert(ty == Type::Int64);
@@ -845,8 +847,8 @@ impl CodeGen for CodeGenArm64 {
                 } else if ty == Type::Int32 {
                     self.asm.ldur_w(dest.getRegister(), REG_FP, src.getStack());
                 } else {
-                    assert(ty == Type::Bool);
-                    self.asm.ldrb_imm(dest.getRegister(), REG_FP, src.getStack());
+                    assert(ty == Type::Bool || ty == Type::UInt8);
+                    self.asm.ldurb(dest.getRegister(), REG_FP, src.getStack());
                 }
             }
         } else if dest.isFloatRegister() {
@@ -919,6 +921,33 @@ impl CodeGen for CodeGenArm64 {
 
     fn emitInvokeDirect(inst: Inst) {
         self.emitInvokeCommon(inst);
+    }
+
+    fn emitInvokeVirtual(inst: Inst) {
+        let fct_info = inst.getVirtualFunctionInfo();
+        let loc = inst.getLocationData();
+        let obj = loc.getInput(0).getRegister();
+        let tmp = loc.getTemp(0).getRegister();
+
+        self.asm.ldr_imm_w(REG_TEMP, obj, 0i32);
+
+        self.mov_imm(tmp, config.meta_space_start.value);
+        self.asm.add(REG_TEMP, REG_TEMP, tmp);
+
+        self.asm.ldr_imm(REG_TEMP, REG_TEMP, 32i32);
+        self.asm.bl_r(REG_TEMP);
+
+        let pos = self.asm.position();
+        let site = LazyCompilationSiteVirtual(
+            true,
+            fct_info.fct_id,
+            fct_info.type_params,
+            fct_info.trait_object_ty,
+        );
+        let location = self.ci.bc.getLocationAt(inst.bytecode_position());
+
+        self.lazyCompilation.insert(pos, LazyCompilationSite::Virtual(site));
+        self.locations.insert(pos, location);
     }
 
     fn emitLoadField(inst: Inst) {

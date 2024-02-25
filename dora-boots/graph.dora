@@ -915,6 +915,13 @@ impl Inst {
         }
     }
 
+    pub fn getVirtualFunctionInfo(): VirtualFunctionInfo {
+        match self.extra {
+            InstExtraData::VirtualFunctionInfo(info) => info,
+            _ => unreachable[VirtualFunctionInfo](),
+        }
+    }
+
     pub fn getFieldInfo(): FieldInfo {
         match self.extra {
             InstExtraData::FieldInfo(info) => info,
@@ -1334,6 +1341,7 @@ enum InstExtraData {
     None,
     FieldInfo(FieldInfo),
     FunctionInfo(FunctionInfo),
+    VirtualFunctionInfo(VirtualFunctionInfo),
     ClassInfo(ClassInfo),
     If(Block, Block),
     Goto(Block),
@@ -1898,6 +1906,12 @@ pub class FunctionInfo {
     pub type_params: Array[BytecodeType],
 }
 
+pub class VirtualFunctionInfo {
+    pub trait_object_ty: BytecodeType,
+    pub fct_id: FctId,
+    pub type_params: Array[BytecodeType],
+}
+
 pub class ClassInfo {
     pub class_id: ClassId,
     pub type_params: Array[BytecodeType],
@@ -1969,6 +1983,19 @@ pub fn createCall(info: FunctionInfo, kind: CallKind, args: Vec[Inst], return_ty
     };
     inst._op = Some(op);
     inst.extra = InstExtraData::FunctionInfo(info);
+    inst.ty = return_ty;
+
+    for arg in args {
+        inst.addInput(arg);
+    }
+
+    inst
+}
+
+pub fn createVirtualCall(info: VirtualFunctionInfo,  args: Vec[Inst], return_ty: Type): Inst {
+    let inst = Inst::new();
+    inst._op = Some(Op::InvokeVirtual);
+    inst.extra = InstExtraData::VirtualFunctionInfo(info);
     inst.ty = return_ty;
 
     for arg in args {

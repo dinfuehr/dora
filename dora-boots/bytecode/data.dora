@@ -60,7 +60,7 @@ pub enum ConstPoolEntry {
     Class(ClassId, Array[BytecodeType]),
     Field(ClassId, Array[BytecodeType], FieldId),
     Fct(FctId, Array[BytecodeType]),
-    TraitObjectMethod(BytecodeType, Int32, Array[BytecodeType]),
+    TraitObjectMethod(BytecodeType, FctId, Array[BytecodeType]),
     Generic(Int32, FctId, Array[BytecodeType]),
     Enum(EnumId, Array[BytecodeType]),
     EnumVariant(EnumId, Array[BytecodeType], Int32),

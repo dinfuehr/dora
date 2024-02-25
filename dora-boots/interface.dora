@@ -241,7 +241,6 @@ pub struct LazyCompilationSiteVirtual {
     pub receiver_is_first: Bool,
     pub fct_id: FctId,
     pub type_params: Array[BytecodeType],
-    pub vtable_index: Int32,
     pub trait_object_ty: BytecodeType,
 }
 

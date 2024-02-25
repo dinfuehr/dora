@@ -120,15 +120,8 @@ fn decode_lazy_compilation_site(reader: &mut ByteReader) -> LazyCompilationSite 
             let receiver_is_first = reader.read_bool();
             let fct_id = FunctionId(reader.read_u32());
             let type_params = decode_bytecode_type_array(reader);
-            let vtable_index = reader.read_u32();
             let trait_object_ty = decode_bytecode_type(reader);
-            LazyCompilationSite::Virtual(
-                receiver_is_first,
-                trait_object_ty,
-                fct_id,
-                vtable_index,
-                type_params,
-            )
+            LazyCompilationSite::Virtual(receiver_is_first, trait_object_ty, fct_id, type_params)
         }
         LazyCompilationSiteKind::Lambda => {
             let receiver_is_first = reader.read_bool();

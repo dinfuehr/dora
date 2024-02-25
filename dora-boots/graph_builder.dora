@@ -30,7 +30,7 @@ use package::graph::createPhiInst;
 use package::graph::createArgInst;
 use package::graph::createNewObject;
 use package::graph::ty::Type;
-use package::graph::{ClassInfo, FieldInfo, FunctionInfo, CallKind};
+use package::graph::{ClassInfo, FieldInfo, FunctionInfo, CallKind, VirtualFunctionInfo};
 use package::bytecode::data::{BytecodeFunction, BytecodeRegister, BytecodeType, ClassId, FctId, FieldId};
 use package::bytecode::data::{ConstPoolId, ConstPoolEntry, GlobalId};
 use package::bytecode::instruction::BytecodeInstruction;
@@ -451,7 +451,7 @@ impl SsaGen {
                 self.emitCall(dest, CallKind::Direct, idx);
             },
             BytecodeInstruction::InvokeVirtual(dest, idx) => {
-                unimplemented();
+                self.emitVirtualCall(dest, idx);
             },
             BytecodeInstruction::InvokeStatic(dest, idx) => {
                 self.emitCall(dest, CallKind::Static, idx);
@@ -813,6 +813,34 @@ impl SsaGen {
         let info = FunctionInfo(fct_id, type_params);
 
         let inst = graph::createCall(info, kind, args, ty);
+        inst.set_bytecode_position(self.offset);
+        self.current().appendInst(inst);
+
+        if !ty.isUnit() {
+            self.writeVariable(dest, self.current(), inst);
+        }
+    }
+
+    fn emitVirtualCall(dest: BytecodeRegister, idx: ConstPoolId) {
+        let args = Vec[Inst]::new();
+
+        for reg in self.pushed_registers {
+            let arg = self.readVariable(reg, self.current());
+            args.push(arg);
+        }
+
+        self.pushed_registers.clear();
+
+        let ty = Type::fromBytecodeType(self.bc.registers(dest.value.toInt64()));
+
+        let (trait_object_ty, fct_id, type_params) = match self.bc.constPool(idx) {
+            ConstPoolEntry::TraitObjectMethod(trait_object_ty, fct_id, type_params) => (trait_object_ty, fct_id, type_params),
+            _ => unreachable[(BytecodeType, FctId, Array[BytecodeType])](),
+        };
+
+        let info = VirtualFunctionInfo(trait_object_ty, fct_id, type_params);
+
+        let inst = graph::createVirtualCall(info, args, ty);
         inst.set_bytecode_position(self.offset);
         self.current().appendInst(inst);
 

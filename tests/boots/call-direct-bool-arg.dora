@@ -1,0 +1,19 @@
+//= boots
+
+fn main() {
+    let foo = Foo(47u8);
+    assert(f(foo, 2u8) == 2u8);
+}
+
+@optimizeImmediately fn f(foo: Foo, x: UInt8): UInt8 {
+    foo.g(x);
+    x
+}
+
+class Foo(value: UInt8)
+
+impl Foo {
+    fn g(x: UInt8): UInt8 {
+        self.value
+    }
+}

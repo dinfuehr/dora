@@ -84,7 +84,6 @@ fn encodeLazyCompilationSite(writer: ByteWriter, site: LazyCompilationSite) {
             writer.emitBool(site.receiver_is_first);
             writer.emitInt32(site.fct_id.value);
             encodeBytecodeTypeArray(writer, site.type_params);
-            writer.emitInt32(site.vtable_index);
             encodeBytecodeType(writer, site.trait_object_ty);
         },
 

@@ -89,6 +89,7 @@ impl Type {
             BytecodeType::Float32 => Type::Float32,
             BytecodeType::Float64 => Type::Float64,
             BytecodeType::Ptr => Type::Ptr,
+            BytecodeType::Trait(_, _) => Type::Ptr,
             _ => unreachable[Type](),
         }
     }

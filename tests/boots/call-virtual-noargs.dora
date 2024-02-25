@@ -1,0 +1,23 @@
+//= boots
+//= ignore
+
+fn main() {
+    let foo = Foo(47);
+    assert(f(foo as Bar) == 47);
+}
+
+@optimizeImmediately fn f(bar: Bar): Int64 {
+    bar.bar()
+}
+
+trait Bar {
+    fn bar(): Int64;
+}
+
+class Foo(value: Int64)
+
+impl Bar for Foo {
+    fn bar(): Int64 {
+        self.value
+    }
+}

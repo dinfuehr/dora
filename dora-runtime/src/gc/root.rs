@@ -194,13 +194,7 @@ where
             (params, fct.is_variadic, return_type)
         }
 
-        LazyCompilationSite::Virtual(
-            _receiver_is_first,
-            trait_object_ty,
-            fct_id,
-            _,
-            type_params,
-        ) => {
+        LazyCompilationSite::Virtual(_receiver_is_first, trait_object_ty, fct_id, type_params) => {
             let fct = &vm.program.functions[fct_id.0 as usize];
             let mut params = fct.params.clone();
             assert_eq!(params[0], BytecodeType::This);

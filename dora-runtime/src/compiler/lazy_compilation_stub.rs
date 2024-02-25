@@ -371,7 +371,11 @@ fn lazy_compile(ra: usize, receiver1: Address, receiver2: Address) -> Address {
                 patch_direct_call(vm, ra, fct_id, type_params, disp)
             }
 
-            LazyCompilationSite::Virtual(_, _, fct_id, vtable_index, ref type_params) => {
+            LazyCompilationSite::Virtual(_, _, fct_id, ref type_params) => {
+                let vtable_index = vm.program.functions[fct_id.0 as usize]
+                    .vtable_index
+                    .expect("missing vtable_index");
+
                 patch_virtual_call(
                     vm,
                     receiver.expect("missing handle"),
