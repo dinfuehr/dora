@@ -478,6 +478,12 @@ fn resolve_boots(sa: &mut Sema) {
     native_fct(
         sa,
         boots_module_id,
+        "getFunctionVtableIndexRaw",
+        NativeFunction::BootsGetFunctionVtableIndex,
+    );
+    native_fct(
+        sa,
+        boots_module_id,
         "getFieldOffsetRaw",
         NativeFunction::BootsGetFieldOffset,
     );

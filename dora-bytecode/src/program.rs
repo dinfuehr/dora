@@ -288,6 +288,7 @@ pub enum NativeFunction {
     StringClone,
     BootsGetSystemConfig,
     BootsGetFunctionAddress,
+    BootsGetFunctionVtableIndex,
     BootsGetFieldOffset,
     BootsGetClassSize,
     BootsGetClassPointer,

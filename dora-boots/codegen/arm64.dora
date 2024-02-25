@@ -1,5 +1,5 @@
 use package::bytecode::{ConstPoolId, Location};
-use package::interface::{Address, Architecture, CompilationInfo, ConstPool, ConstPoolEntry, ConstPoolValue, config, getFunctionAddress, getFieldOffset, getClassSize, getClassPointer};
+use package::interface::{Address, Architecture, CompilationInfo, ConstPool, ConstPoolEntry, ConstPoolValue, config, getFunctionAddress, getFieldOffset, getClassSize, getClassPointer, getFunctionVtableIndex};
 use package::interface::{THREAD_LOCAL_DATA_STACK_LIMIT_OFFSET, THREAD_LOCAL_DATA_STATE_OFFSET, THREAD_LOCAL_DATA_MARKING_OFFSET, OBJECT_HEADER_LENGTH, OBJECT_METADATA_OFFSET, METADATA_REMEMBERED_BIT, ARRAY_HEADER_LENGTH};
 use package::interface::{THREAD_LOCAL_DATA_TLAB_TOP_OFFSET, THREAD_LOCAL_DATA_TLAB_END_OFFSET};
 use package::interface::{TRAP_DIV0, TRAP_OVERFLOW, TRAP_INDEX_OUT_OF_BOUNDS};
@@ -934,7 +934,9 @@ impl CodeGen for CodeGenArm64 {
         self.mov_imm(tmp, config.meta_space_start.value);
         self.asm.add(REG_TEMP, REG_TEMP, tmp);
 
-        self.asm.ldr_imm(REG_TEMP, REG_TEMP, 32i32);
+        let vtable_index = getFunctionVtableIndex(fct_info.fct_id);
+        let vtable_entry_offset = 32i32 + vtable_index * 8i32;
+        self.asm.ldr_imm(REG_TEMP, REG_TEMP, vtable_entry_offset);
         self.asm.bl_r(REG_TEMP);
 
         let pos = self.asm.position();

@@ -178,6 +178,10 @@ pub fn connect_native_functions_to_implementation(vm: &mut VM) {
             boots::get_function_address as *const u8,
         ),
         (
+            NativeFunction::BootsGetFunctionVtableIndex,
+            boots::get_function_vtable_index as *const u8,
+        ),
+        (
             NativeFunction::BootsGetFieldOffset,
             boots::get_field_offset as *const u8,
         ),
@@ -209,6 +213,10 @@ pub fn connect_native_functions_to_implementation(vm: &mut VM) {
 
         assert!(mappings
             .remove(&NativeFunction::BootsGetFunctionAddress)
+            .is_some());
+
+        assert!(mappings
+            .remove(&NativeFunction::BootsGetFunctionVtableIndex)
             .is_some());
 
         assert!(mappings

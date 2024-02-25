@@ -23,6 +23,7 @@ pub const TRAP_OVERFLOW: Int32 = 9i32;
 
 @internal pub fn getSystemConfig(): Array[UInt8];
 @internal pub fn getFunctionAddressRaw(data: Array[UInt8]): Int64;
+@internal pub fn getFunctionVtableIndexRaw(fct_id: Int32): Int32;
 @internal pub fn getFieldOffsetRaw(data: Array[UInt8]): Int32;
 @internal pub fn getClassSizeRaw(data: Array[UInt8]): Int32;
 @internal pub fn getClassPointerRaw(data: Array[UInt8]): Int64;
@@ -32,6 +33,10 @@ pub fn getFunctionAddress(fct_id: FctId, type_params: Array[BytecodeType]): Addr
     writer.emitInt32(fct_id.value);
     encodeBytecodeTypeArray(writer, type_params);
     Address(getFunctionAddressRaw(writer.toArray()))
+}
+
+pub fn getFunctionVtableIndex(fct_id: FctId): Int32 {
+    getFunctionVtableIndexRaw(fct_id.value)
 }
 
 pub fn getFieldOffset(cls_id: ClassId, type_params: Array[BytecodeType], field_id: FieldId): Int32 {

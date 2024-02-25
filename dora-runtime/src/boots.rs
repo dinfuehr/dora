@@ -82,6 +82,13 @@ pub fn get_function_address(data: Handle<UInt8Array>) -> Address {
     get_function_address_raw(vm, fct_id, type_params)
 }
 
+pub fn get_function_vtable_index(fct_id: FunctionId) -> u32 {
+    let vm = get_vm();
+    vm.program.functions[fct_id.0 as usize]
+        .vtable_index
+        .expect("vtable_index missing")
+}
+
 pub fn get_class_size(data: Handle<UInt8Array>) -> u32 {
     let vm = get_vm();
 
