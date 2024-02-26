@@ -178,6 +178,10 @@ pub fn connect_native_functions_to_implementation(vm: &mut VM) {
             boots::get_function_address as *const u8,
         ),
         (
+            NativeFunction::BootsGetClassInstanceIdForLambda,
+            boots::get_class_instance_id_for_lambda as *const u8,
+        ),
+        (
             NativeFunction::BootsGetFunctionVtableIndex,
             boots::get_function_vtable_index as *const u8,
         ),
@@ -213,6 +217,10 @@ pub fn connect_native_functions_to_implementation(vm: &mut VM) {
 
         assert!(mappings
             .remove(&NativeFunction::BootsGetFunctionAddress)
+            .is_some());
+
+        assert!(mappings
+            .remove(&NativeFunction::BootsGetClassInstanceIdForLambda)
             .is_some());
 
         assert!(mappings

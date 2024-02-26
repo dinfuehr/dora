@@ -8,6 +8,7 @@ use package::assembler::{FloatRegister, Label, Register, RegMap, RegSet};
 use package::bytecode::data::{BytecodeType, ClassId, FctId, FieldId, GlobalId};
 use package::dominator::buildDominatorTree;
 use package::regalloc::RegisterTracker;
+use package::interface::ClassInstanceId;
 
 pub use package::graph::ty::Type;
 
@@ -1351,6 +1352,7 @@ enum InstExtraData {
     VirtualFunctionInfo(VirtualFunctionInfo),
     LambdaFunctionInfo(LambdaFunctionInfo),
     ClassInfo(ClassInfo),
+    ClassInstanceInfo(ClassInstanceId),
     If(Block, Block),
     Goto(Block),
 }
@@ -2035,6 +2037,14 @@ pub fn createNewObject(info: ClassInfo): Inst {
     let inst = Inst::new();
     inst._op = Some(Op::NewObject);
     inst.extra = InstExtraData::ClassInfo(info);
+
+    inst
+}
+
+pub fn createNewObjectForClassInstanceId(id: ClassInstanceId): Inst {
+    let inst = Inst::new();
+    inst._op = Some(Op::NewObject);
+    inst.extra = InstExtraData::ClassInstanceInfo(id);
 
     inst
 }

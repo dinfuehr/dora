@@ -35,6 +35,7 @@ use package::bytecode::data::{BytecodeFunction, BytecodeRegister, BytecodeType, 
 use package::bytecode::data::{ConstPoolId, ConstPoolEntry, GlobalId};
 use package::bytecode::instruction::BytecodeInstruction;
 use package::bytecode::reader::BytecodeIterator;
+use package::interface::{getClassInstanceIdForLambda, OBJECT_HEADER_LENGTH};
 
 pub fn createGraph(bc: BytecodeFunction): Graph {
     let graph = Graph::new();
@@ -488,7 +489,7 @@ impl SsaGen {
                 unimplemented();
             },
             BytecodeInstruction::NewLambda(dest, idx) => {
-                unimplemented();
+                self.emitNewLambda(dest, idx);
             },
             BytecodeInstruction::ArrayLength(dest, src) => {
                 let srcInst = self.readVariable(src, self.current());
@@ -908,6 +909,39 @@ impl SsaGen {
             self.current().appendInst(destInst);
 
             field_id = field_id + 1i32;
+        }
+
+        self.pushed_registers.clear();
+    }
+
+    fn emitNewLambda(dest: BytecodeRegister, idx: ConstPoolId) {
+        let (fct_id, type_params) = match self.bc.constPool(idx) {
+            ConstPoolEntry::Fct(fct_id, type_params) => (fct_id, type_params),
+            _ => unreachable[(FctId, Array[BytecodeType])](),
+        };
+
+        let class_instance_id = getClassInstanceIdForLambda(fct_id, type_params);
+
+        let objInst = graph::createNewObjectForClassInstanceId(class_instance_id);
+        objInst.set_bytecode_position(self.offset);
+        self.current().appendInst(objInst);
+
+        if !self.pushed_registers.isEmpty() {
+            assert(self.pushed_registers.size() == 1);
+            let reg = self.pushed_registers.first().getOrPanic();
+            let arg = self.readVariable(reg, self.current());
+            let argTy = Type::fromBytecodeType(self.bc.registers(reg.value.toInt64()));
+
+            let fieldInfo = FieldInfo(
+                ClassId(0i32),
+                Array[BytecodeType]::new(),
+                FieldId(0i32),
+                Some[Int32](OBJECT_HEADER_LENGTH)
+            );
+
+            let destInst = graph::createStoreFieldInst(objInst, fieldInfo, arg, argTy);
+            destInst.set_bytecode_position(self.offset);
+            self.current().appendInst(destInst);
         }
 
         self.pushed_registers.clear();

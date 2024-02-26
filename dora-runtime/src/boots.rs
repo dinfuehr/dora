@@ -89,6 +89,28 @@ pub fn get_function_vtable_index(fct_id: FunctionId) -> u32 {
         .expect("vtable_index missing")
 }
 
+pub fn get_class_instance_id_for_lambda(data: Handle<UInt8Array>) -> u32 {
+    let vm = get_vm();
+
+    let mut serialized_data = vec![0; data.len()];
+
+    unsafe {
+        ptr::copy_nonoverlapping(
+            data.data() as *mut u8,
+            serialized_data.as_mut_ptr(),
+            data.len(),
+        );
+    }
+
+    let mut reader = ByteReader::new(serialized_data);
+    let fct_id = FunctionId(reader.read_u32());
+    let type_params = decode_bytecode_type_array(&mut reader);
+    assert!(!reader.has_more());
+
+    let id = crate::vm::ensure_class_instance_for_lambda(vm, fct_id, type_params).to_usize();
+    id.try_into().expect("overflow")
+}
+
 pub fn get_class_size(data: Handle<UInt8Array>) -> u32 {
     let vm = get_vm();
 
