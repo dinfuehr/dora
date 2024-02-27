@@ -716,6 +716,13 @@ impl[T] Option[T] {
     }
   }
 
+  pub fn unwrapOrElse(alt: (): T): T {
+    match self {
+      Some(value) => value,
+      None => alt(),
+    }
+  }
+
   pub fn has(val: T): Bool {
     match self {
       Some(actual) => actual === val,

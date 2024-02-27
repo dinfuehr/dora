@@ -35,7 +35,7 @@ use package::bytecode::data::{BytecodeFunction, BytecodeRegister, BytecodeType, 
 use package::bytecode::data::{ConstPoolId, ConstPoolEntry, GlobalId};
 use package::bytecode::instruction::BytecodeInstruction;
 use package::bytecode::reader::BytecodeIterator;
-use package::interface::{getClassInstanceIdForLambda, OBJECT_HEADER_LENGTH};
+use package::interface::{getClassPointerForLambda, OBJECT_HEADER_LENGTH};
 
 pub fn createGraph(bc: BytecodeFunction): Graph {
     let graph = Graph::new();
@@ -468,10 +468,10 @@ impl SsaGen {
             },
 
             BytecodeInstruction::NewObject(dest, idx) => {
-                unimplemented();
+                self.emitNewObject(dest, idx);
             },
             BytecodeInstruction::NewObjectInitialized(dest, idx) => {
-                self.emitNewObjectInitialized(dest, idx);
+                self.emitNewObject(dest, idx);
             },
             BytecodeInstruction::NewArray(dest, idx, length) => {
                 self.emitNewArray(dest, idx, length);
@@ -878,7 +878,7 @@ impl SsaGen {
         }
     }
 
-    fn emitNewObjectInitialized(dest: BytecodeRegister, idx: ConstPoolId) {
+    fn emitNewObject(dest: BytecodeRegister, idx: ConstPoolId) {
         let (class_id, type_params) = match self.bc.constPool(idx) {
             ConstPoolEntry::Class(class_id, type_params) => (class_id, type_params),
             _ => unreachable[(ClassId, Array[BytecodeType])](),
@@ -920,11 +920,13 @@ impl SsaGen {
             _ => unreachable[(FctId, Array[BytecodeType])](),
         };
 
-        let class_instance_id = getClassInstanceIdForLambda(fct_id, type_params);
+        let info = FunctionInfo(fct_id, type_params);
 
-        let objInst = graph::createNewObjectForClassInstanceId(class_instance_id);
+        let objInst = graph::createNewLambda(info);
         objInst.set_bytecode_position(self.offset);
         self.current().appendInst(objInst);
+
+        self.writeVariable(dest, self.current(), objInst);
 
         if !self.pushed_registers.isEmpty() {
             assert(self.pushed_registers.size() == 1);

@@ -8,7 +8,7 @@ use package::graph::{createGotoInst, Block, Edge, Graph, Inst, LocationData, Op,
 use package::graph::dump::dumpGraph;
 use package::graph_builder::createGraph;
 use package::interface::{Architecture, CodeDescriptor, CommentTable, CompilationInfo, GcPointTable, GcPoint, LazyCompilationData, LazyCompilationSite, LazyCompilationSiteDirect, LazyCompilationSiteVirtual, LazyCompilationSiteLambda, LocationTable};
-use package::interface::{compile, config, getSystemConfig, getFunctionAddressRaw, getFieldOffsetRaw, getClassSizeRaw, getClassPointerRaw, getFunctionVtableIndexRaw, getClassInstanceIdForLambdaRaw};
+use package::interface::{compile, config, getSystemConfig, getFunctionAddressRaw, getFieldOffsetRaw, getClassSizeRaw, getClassPointerRaw, getFunctionVtableIndexRaw, getClassPointerForLambdaRaw};
 use package::regalloc::performRegisterAllocation;
 use package::liveness::computeLiveness;
 

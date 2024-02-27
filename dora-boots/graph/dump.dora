@@ -301,6 +301,7 @@ fn dumpInstName(inst: Inst): String {
         Op::MoveImmediate => "MoveImmediate.${inst.getValueType()}",
         Op::NewObject => "NewObject",
         Op::NewArray => "NewArray",
+        Op::NewLambda => "NewLambda",
     }
 }
 

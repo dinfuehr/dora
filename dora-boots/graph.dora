@@ -8,7 +8,6 @@ use package::assembler::{FloatRegister, Label, Register, RegMap, RegSet};
 use package::bytecode::data::{BytecodeType, ClassId, FctId, FieldId, GlobalId};
 use package::dominator::buildDominatorTree;
 use package::regalloc::RegisterTracker;
-use package::interface::ClassInstanceId;
 
 pub use package::graph::ty::Type;
 
@@ -634,6 +633,7 @@ pub enum Op {
 
     NewObject,
     NewArray,
+    NewLambda,
 }
 
 impl Op {
@@ -721,6 +721,7 @@ pub fn opName(op: Op): String {
         Op::MoveImmediate => "MoveImmediate",
         Op::NewObject => "NewObject",
         Op::NewArray => "NewArray",
+        Op::NewLambda => "NewLambda",
     }
 }
 
@@ -891,6 +892,7 @@ impl Inst {
             Op::MoveImmediate => self.ty,
             Op::NewObject => Type::Ptr,
             Op::NewArray => Type::Ptr,
+            Op::NewLambda => Type::Ptr,
         }
     }
 
@@ -1159,7 +1161,7 @@ impl Inst {
 
     pub fn needsRegisterSnapshot(): Bool {
         match self.op() {
-            Op::StoreField | Op::StoreArray | Op::NewObject => true,
+            Op::StoreField | Op::StoreArray | Op::NewObject | Op::NewLambda => true,
             _ => false,
         }
     }
@@ -1323,6 +1325,7 @@ impl Inst {
             Op::MoveImmediate => false,
             Op::NewObject => false,
             Op::NewArray => false,
+            Op::NewLambda => false,
         }
     }
 }
@@ -1352,7 +1355,6 @@ enum InstExtraData {
     VirtualFunctionInfo(VirtualFunctionInfo),
     LambdaFunctionInfo(LambdaFunctionInfo),
     ClassInfo(ClassInfo),
-    ClassInstanceInfo(ClassInstanceId),
     If(Block, Block),
     Goto(Block),
 }
@@ -2041,10 +2043,10 @@ pub fn createNewObject(info: ClassInfo): Inst {
     inst
 }
 
-pub fn createNewObjectForClassInstanceId(id: ClassInstanceId): Inst {
+pub fn createNewLambda(info: FunctionInfo): Inst {
     let inst = Inst::new();
-    inst._op = Some(Op::NewObject);
-    inst.extra = InstExtraData::ClassInstanceInfo(id);
+    inst._op = Some(Op::NewLambda);
+    inst.extra = InstExtraData::FunctionInfo(info);
 
     inst
 }

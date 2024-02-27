@@ -292,7 +292,7 @@ pub enum NativeFunction {
     BootsGetFieldOffset,
     BootsGetClassSize,
     BootsGetClassPointer,
-    BootsGetClassInstanceIdForLambda,
+    BootsGetClassPointerForLambda,
 }
 
 #[derive(Copy, Clone, Debug, PartialEq, Eq, Decode, Encode)]

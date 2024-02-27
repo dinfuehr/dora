@@ -1,6 +1,6 @@
 use package::bytecode::{ConstPoolId, Location};
-use package::interface::{Address, Architecture, CompilationInfo, ConstPool, ConstPoolEntry, ConstPoolValue, config, getFunctionAddress, getFieldOffset, getClassSize, getClassPointer, getFunctionVtableIndex};
-use package::interface::{THREAD_LOCAL_DATA_STACK_LIMIT_OFFSET, THREAD_LOCAL_DATA_STATE_OFFSET, THREAD_LOCAL_DATA_MARKING_OFFSET, OBJECT_HEADER_LENGTH, OBJECT_METADATA_OFFSET, METADATA_REMEMBERED_BIT, ARRAY_HEADER_LENGTH};
+use package::interface::{Address, Architecture, CompilationInfo, ConstPool, ConstPoolEntry, ConstPoolValue, config, getFunctionAddress, getFieldOffset, getClassSize, getClassPointer, getClassPointerForLambda, getFunctionVtableIndex};
+use package::interface::{THREAD_LOCAL_DATA_STACK_LIMIT_OFFSET, THREAD_LOCAL_DATA_STATE_OFFSET, THREAD_LOCAL_DATA_MARKING_OFFSET, OBJECT_HEADER_LENGTH, OBJECT_METADATA_OFFSET, METADATA_REMEMBERED_BIT, ARRAY_HEADER_LENGTH, LAMBDA_SIZE};
 use package::interface::{THREAD_LOCAL_DATA_TLAB_TOP_OFFSET, THREAD_LOCAL_DATA_TLAB_END_OFFSET};
 use package::interface::{TRAP_DIV0, TRAP_OVERFLOW, TRAP_INDEX_OUT_OF_BOUNDS};
 use package::codegen::{CODE_SIZE_ALIGNMENT, CodeGen};
@@ -250,7 +250,7 @@ impl CodeGenArm64 {
         });
     }
 
-    fn emitObjectInitialization(obj: Register, size: Int64, classptr: Address, tmp: Register) {
+    fn emitObjectInitialization(obj: Register, size: Int32, classptr: Address, tmp: Register) {
         let metadata_part = 0xFF_FF_FF_FCi32 | 1i32 << METADATA_REMEMBERED_BIT;
         let classptr_part = classptr.value - config.meta_space_start.value;
 
@@ -258,10 +258,10 @@ impl CodeGenArm64 {
         self.mov_imm(tmp, header_word);
         self.asm.str_imm(tmp, obj, 0i32);
 
-        if size > OBJECT_HEADER_LENGTH.toInt64() {
-            assert(size % 8 == 0);
+        if size > OBJECT_HEADER_LENGTH {
+            assert(size % 8i32 == 0i32);
             self.asm.add_imm(tmp, obj, OBJECT_HEADER_LENGTH);
-            self.zeroMemory(tmp, (size - OBJECT_HEADER_LENGTH.toInt64()) / 8);
+            self.zeroMemory(tmp, (size.toInt64() - OBJECT_HEADER_LENGTH.toInt64()) / 8);
         }
     }
 
@@ -1018,7 +1018,9 @@ impl CodeGen for CodeGenArm64 {
 
     fn emitStoreField(inst: Inst) {
         let field_info = inst.getFieldInfo();
-        let offset = getFieldOffset(field_info.cls_id, field_info.type_params, field_info.field_id);
+        let offset = field_info.offset.unwrapOrElse(||: Int32 {
+            getFieldOffset(field_info.cls_id, field_info.type_params, field_info.field_id)
+        });
 
         let loc = inst.getLocationData();
         let obj = loc.getInput(0).getRegister();
@@ -1195,7 +1197,20 @@ impl CodeGen for CodeGenArm64 {
         self.emitObjectAllocate(obj, size, REG_TEMP, tmp, loc.getRegisterSnapshot());
 
         let classptr = getClassPointer(class_info.class_id, class_info.type_params);
-        self.emitObjectInitialization(obj, size.toInt64(), classptr, REG_TEMP);
+        self.emitObjectInitialization(obj, size, classptr, REG_TEMP);
+    }
+
+    fn emitNewLambda(inst: Inst) {
+        let loc = inst.getLocationData();
+        let obj = loc.getOutput().getRegister();
+        let class_info = inst.getFunctionInfo();
+        let size = LAMBDA_SIZE;
+
+        let tmp = loc.getTemp(0).getRegister();
+        self.emitObjectAllocate(obj, size, REG_TEMP, tmp, loc.getRegisterSnapshot());
+
+        let classptr = getClassPointerForLambda(class_info.fct_id, class_info.type_params);
+        self.emitObjectInitialization(obj, size, classptr, REG_TEMP);
     }
 
     fn finalize(): CodeDescriptor {

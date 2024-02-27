@@ -5,8 +5,8 @@ use package::assembler::x64::{XMM0, XMM1, XMM2, XMM3, XMM4, XMM5, XMM6, XMM7, XM
 use package::assembler::{FloatRegister, Label, Register, RegSet};
 use package::bytecode::data::{ConstPoolId, Location};
 use package::codegen::{CODE_SIZE_ALIGNMENT, CodeGen};
-use package::interface::{Address, Architecture, CompilationInfo, ConstPool, ConstPoolEntry, ConstPoolValue, config, getFunctionAddress, LazyCompilationSite, LazyCompilationSiteDirect, getFieldOffset, getClassSize, getClassPointer, getFunctionVtableIndex};
-use package::interface::{TRAP_DIV0, TRAP_OVERFLOW, TRAP_INDEX_OUT_OF_BOUNDS};
+use package::interface::{Address, Architecture, CompilationInfo, ConstPool, ConstPoolEntry, ConstPoolValue, config, getFunctionAddress, LazyCompilationSite, LazyCompilationSiteDirect, getFieldOffset, getClassSize, getClassPointer, getClassPointerForLambda, getFunctionVtableIndex};
+use package::interface::{TRAP_DIV0, TRAP_OVERFLOW, TRAP_INDEX_OUT_OF_BOUNDS, LAMBDA_SIZE};
 use package::interface::{THREAD_LOCAL_DATA_TLAB_TOP_OFFSET, THREAD_LOCAL_DATA_TLAB_END_OFFSET, THREAD_LOCAL_DATA_STACK_LIMIT_OFFSET, THREAD_LOCAL_DATA_STATE_OFFSET, THREAD_LOCAL_DATA_MARKING_OFFSET, OBJECT_HEADER_LENGTH, OBJECT_METADATA_OFFSET, METADATA_REMEMBERED_BIT, ARRAY_HEADER_LENGTH};
 use package::location::{useInputFloatRegisterFixed, useInputRegister, useInputRegisterFixed, useOutputRegisterFixed, useOutputSameAsFirstInput, addTempRegisterFixed};
 use package::graph::{Inst, Op, LocationData, RegisterSnapshot, Type};
@@ -1009,7 +1009,9 @@ impl CodeGen for CodeGenX64 {
 
     fn emitStoreField(inst: Inst) {
         let field_info = inst.getFieldInfo();
-        let offset = getFieldOffset(field_info.cls_id, field_info.type_params, field_info.field_id);
+        let offset = field_info.offset.unwrapOrElse(||: Int32 {
+            getFieldOffset(field_info.cls_id, field_info.type_params, field_info.field_id)
+        });
 
         let loc = inst.getLocationData();
         let obj = loc.getInput(0).getRegister();
@@ -1173,6 +1175,19 @@ impl CodeGen for CodeGenX64 {
         self.emitObjectAllocate(obj, size, REG_TEMP, tmp, loc.getRegisterSnapshot());
 
         let classptr = getClassPointer(class_info.class_id, class_info.type_params);
+        self.emitObjectInitialization(obj, size, classptr, REG_TEMP, FREG_TEMP);
+    }
+
+    fn emitNewLambda(inst: Inst) {
+        let loc = inst.getLocationData();
+        let obj = loc.getOutput().getRegister();
+        let class_info = inst.getFunctionInfo();
+        let size = LAMBDA_SIZE;
+
+        let tmp = loc.getTemp(0).getRegister();
+        self.emitObjectAllocate(obj, size, REG_TEMP, tmp, loc.getRegisterSnapshot());
+
+        let classptr = getClassPointerForLambda(class_info.fct_id, class_info.type_params);
         self.emitObjectInitialization(obj, size, classptr, REG_TEMP, FREG_TEMP);
     }
 

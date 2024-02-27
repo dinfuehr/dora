@@ -1,0 +1,10 @@
+//= boots
+
+fn main() {
+    let x = f(12);
+    assert(x() == 12);
+}
+
+@optimizeImmediately fn f(a: Int64): (): Int64 {
+    ||: Int64 { a }
+}

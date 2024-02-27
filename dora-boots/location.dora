@@ -186,7 +186,7 @@ fn setLocationConstraints(inst: Inst, codegen: CodeGen, ci: CompilationInfo, arg
             }
         },
 
-        Op::NewObject => {
+        Op::NewObject | Op::NewLambda => {
             useOutputRegister(inst);
             addTempRegister(inst);
         },

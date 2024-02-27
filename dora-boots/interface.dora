@@ -27,7 +27,7 @@ pub const TRAP_OVERFLOW: Int32 = 9i32;
 @internal pub fn getFieldOffsetRaw(data: Array[UInt8]): Int32;
 @internal pub fn getClassSizeRaw(data: Array[UInt8]): Int32;
 @internal pub fn getClassPointerRaw(data: Array[UInt8]): Int64;
-@internal pub fn getClassInstanceIdForLambdaRaw(data: Array[UInt8]): Int32;
+@internal pub fn getClassPointerForLambdaRaw(data: Array[UInt8]): Int64;
 
 pub fn getFunctionAddress(fct_id: FctId, type_params: Array[BytecodeType]): Address {
     let writer = ByteWriter::new();
@@ -36,11 +36,11 @@ pub fn getFunctionAddress(fct_id: FctId, type_params: Array[BytecodeType]): Addr
     Address(getFunctionAddressRaw(writer.toArray()))
 }
 
-pub fn getClassInstanceIdForLambda(fct_id: FctId, type_params: Array[BytecodeType]): ClassInstanceId {
+pub fn getClassPointerForLambda(fct_id: FctId, type_params: Array[BytecodeType]): Address {
     let writer = ByteWriter::new();
     writer.emitInt32(fct_id.value);
     encodeBytecodeTypeArray(writer, type_params);
-    ClassInstanceId(getClassInstanceIdForLambdaRaw(writer.toArray()))
+    Address(getClassPointerForLambdaRaw(writer.toArray()))
 }
 
 pub fn getFunctionVtableIndex(fct_id: FctId): Int32 {
@@ -128,6 +128,7 @@ pub const OBJECT_VTABLE_OFFSET: Int32 = 0;
 pub const OBJECT_METADATA_OFFSET: Int32 = 4;
 pub const OBJECT_HEADER_LENGTH: Int32 = 8;
 pub const ARRAY_HEADER_LENGTH: Int32 = 16;
+pub const LAMBDA_SIZE: Int32 = 16;
 
 pub const METADATA_MARK_BIT: Int32 = 0;
 pub const METADATA_REMEMBERED_BIT: Int32 = 1;
@@ -361,5 +362,3 @@ impl ConstPoolValue {
         }
     }
 }
-
-pub struct ClassInstanceId(value: Int32)
