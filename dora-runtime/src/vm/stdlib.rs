@@ -169,6 +169,9 @@ pub fn connect_native_functions_to_implementation(vm: &mut VM) {
             stdlib::io::socket_accept as *const u8,
         ),
         (NativeFunction::StringClone, stdlib::str_clone as *const u8),
+    ]);
+
+    let boots_mappings: HashMap<NativeFunction, *const u8> = HashMap::from([
         (
             NativeFunction::BootsGetSystemConfig,
             boots::get_system_config as *const u8,
@@ -199,6 +202,12 @@ pub fn connect_native_functions_to_implementation(vm: &mut VM) {
         ),
     ]);
 
+    if vm.program.boots_package_id.is_some() {
+        for (nf, address) in boots_mappings {
+            assert!(mappings.insert(nf, address).is_none());
+        }
+    }
+
     for (fct_id, fct) in vm.program.functions.iter().enumerate() {
         let fct_id = FunctionId(fct_id as u32);
 
@@ -206,38 +215,10 @@ pub fn connect_native_functions_to_implementation(vm: &mut VM) {
             if let Some(ptr) = mappings.remove(&native_function) {
                 let old = vm.native_methods.insert(fct_id, Address::from_ptr(ptr));
                 assert!(old.is_none());
+            } else {
+                panic!("unknown native function {}", fct.name);
             }
         }
-    }
-
-    if vm.program.boots_package_id.is_none() {
-        assert!(mappings
-            .remove(&NativeFunction::BootsGetSystemConfig)
-            .is_some());
-
-        assert!(mappings
-            .remove(&NativeFunction::BootsGetFunctionAddress)
-            .is_some());
-
-        assert!(mappings
-            .remove(&NativeFunction::BootsGetClassPointerForLambda)
-            .is_some());
-
-        assert!(mappings
-            .remove(&NativeFunction::BootsGetFunctionVtableIndex)
-            .is_some());
-
-        assert!(mappings
-            .remove(&NativeFunction::BootsGetFieldOffset)
-            .is_some());
-
-        assert!(mappings
-            .remove(&NativeFunction::BootsGetClassSize)
-            .is_some());
-
-        assert!(mappings
-            .remove(&NativeFunction::BootsGetClassPointer)
-            .is_some());
     }
 
     assert!(mappings.is_empty());
