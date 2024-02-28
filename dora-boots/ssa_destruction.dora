@@ -33,7 +33,7 @@ fn processLiveRegisters[T: RegisterType](registers: RegisterTracker[T], predeces
         let value = if instRegister.isSome() {
             instRegister.getOrPanic().toLocation()
         } else {
-            Location::Stack(inst.getLocationData().getSpillSlot())
+            Location::Stack(true, inst.getLocationData().getSpillSlot())
         };
 
         moves.add(inst.getValueType(), reg.toLocation(), value);
@@ -56,7 +56,7 @@ fn processPhis(block: Block, predecessorEdge: Edge, predecessor_registers: Regis
 fn processPhi[T: RegisterType](phi: Inst, predecessorEdge: Edge, predecessor_registers: RegisterTracker[T], moves: ParallelMoveResolver) {
     let loc = phi.getLocationData();
     let dest = if loc.hasSpillSlot() {
-        Location::Stack(loc.getSpillSlot())
+        Location::Stack(true, loc.getSpillSlot())
     } else {
         loc.getOutput().getLocation()
     };
@@ -67,7 +67,7 @@ fn processPhi[T: RegisterType](phi: Inst, predecessorEdge: Edge, predecessor_reg
     let value = if valueRegister.isSome() {
         valueRegister.getOrPanic().toLocation()
     } else {
-        Location::Stack(value.getLocationData().getSpillSlot())
+        Location::Stack(true, value.getLocationData().getSpillSlot())
     };
 
     moves.add(phi.getValueType(), dest, value);
@@ -334,5 +334,5 @@ fn f(value: Int64): Location {
 }
 
 fn s(value: Int64): Location {
-    Location::Stack(value.toInt32())
+    Location::Stack(true, value.toInt32())
 }

@@ -1503,7 +1503,7 @@ pub enum Location {
     None,
     Reg(Register),
     FloatReg(FloatRegister),
-    Stack(Int32),
+    Stack(Bool, Int32),
 }
 
 impl Location {
@@ -1544,15 +1544,15 @@ impl Location {
 
     pub fn isStack(): Bool {
         match self {
-            Location::Stack(slot) => true,
+            Location::Stack(fp_relative, slot) => true,
             _ => false,
         }
     }
 
-    pub fn getStack(): Int32 {
+    pub fn getStack(): (Bool, Int32) {
         match self {
-            Location::Stack(slot) => slot,
-            _ => unreachable[Int32](),
+            Location::Stack(fp_relative, slot) => (fp_relative, slot),
+            _ => unreachable[(Bool, Int32)](),
         }
     }
 }
@@ -1569,8 +1569,13 @@ impl Equals for Location {
             Location::FloatReg(reg) => {
                 other.isFloatRegister() && reg == other.getFloatRegister()
             },
-            Location::Stack(slot) => {
-                other.isStack() && slot == other.getStack()
+            Location::Stack(fp_relative, slot) => {
+                if other.isStack() {
+                    let (other_fp, other_slot) = other.getStack();
+                    fp_relative == other_fp && slot == other_slot
+                } else {
+                    false
+                }
             },
         }
     }
@@ -1582,7 +1587,7 @@ impl Hash for Location {
             Location::None => 1i32,
             Location::Reg(reg) => reg.value.toInt32() << 1i32,
             Location::FloatReg(reg) => reg.value.toInt32() << 1i32,
-            Location::Stack(slot) => slot << 1i32 + 1i32,
+            Location::Stack(fp_relative, slot) => slot << 1i32 + 1i32,
         }
     }
 }
@@ -1593,7 +1598,13 @@ impl Stringable for Location {
             Location::None => "None",
             Location::Reg(reg) => "Reg(${reg.value})",
             Location::FloatReg(reg) => "FloatReg(${reg.value})",
-            Location::Stack(slot) => "Stack(${slot})",
+            Location::Stack(fp_relative, slot) => {
+                if fp_relative {
+                    "Stack(${slot})"
+                } else {
+                    "Stack(sp:${slot})"
+                }
+            }
         }
     }
 }
@@ -1695,13 +1706,13 @@ impl Operand {
         self.location.isStack()
     }
 
-    pub fn getStack(): Int32 {
+    pub fn getStack(): (Bool, Int32) {
         self.location.getStack()
     }
 
-    pub fn setStack(slot: Int32) {
+    pub fn setStack(fp_relative: Bool, slot: Int32) {
         assert(self.location.isNone());
-        self.location = Location::Stack(slot);
+        self.location = Location::Stack(fp_relative, slot);
     }
 }
 

@@ -227,20 +227,29 @@ fn computeArgumentLocations(codegen: CodeGen, ci: CompilationInfo): Array[Locati
     locations
 }
 
-fn setLocationConstraintsCall(inst: Inst, loc: LocationData, codegen: CodeGen, ci: CompilationInfo) {
+fn setLocationConstraintsCall(inst: Inst, loc: LocationData, codegen: CodeGen, ci: CompilationInfo): Int32 {
     let mut idx = 0;
     let mut gp_idx = 0;
     let mut fp_idx = 0;
+    let mut next_sp_offset: Int32 = 0;
 
     let gp_regs = codegen.argumentRegisters();
     let fp_regs = codegen.argumentFloatRegisters();
 
     for input in inst.getInputs() {
         if input.getValue().getValueType().isAnyFloat() {
-            useInputFloatRegisterFixed(inst, idx, fp_regs(fp_idx));
+            if fp_idx < fp_regs.size() {
+                useInputFloatRegisterFixed(inst, idx, fp_regs(fp_idx));
+            } else {
+                unimplemented();
+            }
             fp_idx = fp_idx + 1;
         } else {
-            useInputRegisterFixed(inst, idx, gp_regs(gp_idx));
+            if gp_idx < gp_regs.size() {
+                useInputRegisterFixed(inst, idx, gp_regs(gp_idx));
+            } else {
+                unimplemented();
+            }
             gp_idx = gp_idx + 1;
         }
         idx = idx + 1;
@@ -261,6 +270,8 @@ fn setLocationConstraintsCall(inst: Inst, loc: LocationData, codegen: CodeGen, c
             useOutputRegisterFixed(inst, reg);
         }
     }
+
+    next_sp_offset
 }
 
 pub fn useOutputRegister(inst: Inst) {

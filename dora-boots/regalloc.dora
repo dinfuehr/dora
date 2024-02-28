@@ -23,6 +23,7 @@ class SimpleRegisterAllocator {
     registers: Option[RegisterTracker[Register]],
     float_registers: Option[RegisterTracker[FloatRegister]],
     currentStackSize: Int32,
+    maxOutgoingArgsSize: Int32,
     refs: Vec[Int32],
     currentInst: Option[Inst],
 }
@@ -35,6 +36,7 @@ impl SimpleRegisterAllocator {
             None[RegisterTracker[Register]],
             None[RegisterTracker[FloatRegister]],
             0i32,
+            0i32,
             Vec[Int32]::new(),
             None[Inst],
         )
@@ -46,8 +48,10 @@ impl SimpleRegisterAllocator {
         }
 
         let stack_alignment = STACK_FRAME_ALIGNMENT.toInt32();
-        self.currentStackSize = (self.currentStackSize + (stack_alignment - 1i32)) & stack_alignment;
-        self.graph.setStackSize(self.currentStackSize);
+
+        let finalStackSize = self.currentStackSize + self.maxOutgoingArgsSize;
+        let finalAlignedStackSize = (finalStackSize + (stack_alignment - 1i32)) & stack_alignment;
+        self.graph.setStackSize(finalAlignedStackSize);
     }
 
     fn allocateBlock(block: Block) {
@@ -398,7 +402,7 @@ impl SimpleRegisterAllocator {
             Location::None => unreachable[()](),
             Location::Reg(reg) => self.registers().freeRegister(reg),
             Location::FloatReg(reg) => self.float_registers().freeRegister(reg),
-            Location::Stack(slot) => unreachable[()](),
+            Location::Stack(fp_relative, slot) => unreachable[()](),
         }
     }
 
@@ -439,7 +443,7 @@ impl SimpleRegisterAllocator {
 
     fn emitReloadInst(dest: Location, value: Inst) {
         let slot = value.getLocationData().getSpillSlot();
-        let inst = createMoveInst(value.getValueType(), dest, Location::Stack(slot));
+        let inst = createMoveInst(value.getValueType(), dest, Location::Stack(true, slot));
         self.currentInst.getOrPanic().insertBefore(inst);
     }
 
@@ -495,7 +499,7 @@ impl SimpleRegisterAllocator {
             current.getOrPanic().toLocation()
         } else {
             let slot = inst.getLocationData().getSpillSlot();
-            Location::Stack(slot)
+            Location::Stack(true, slot)
         };
 
         let inst = createMoveInst(inst.getValueType(), dest.toLocation(), source);

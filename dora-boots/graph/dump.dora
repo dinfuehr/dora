@@ -224,7 +224,14 @@ impl GraphDumper {
                 }
             },
 
-            Location::Stack(slot) => "FP${slot}",
+            Location::Stack(fp_relative, slot) => {
+                if fp_relative {
+                    "FP:${slot}"
+                } else {
+                    "SP:${slot}"
+                }
+            },
+
             Location::None => "NONE",
         };
 
