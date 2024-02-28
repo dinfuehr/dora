@@ -2212,16 +2212,20 @@ impl<'a> CannonCodeGen<'a> {
         // Store context pointer.
         if arguments.is_empty() {
             self.asm.load_int_const(MachineMode::Ptr, REG_RESULT, 0);
+            self.asm.store_mem(
+                MachineMode::Ptr,
+                Mem::Base(object_reg, Header::size()),
+                REG_RESULT.into(),
+            );
         } else {
             assert_eq!(arguments.len(), 1);
-            self.emit_load_register(arguments[0], REG_RESULT.into());
+            self.asm.store_field(
+                object_reg,
+                Header::size(),
+                self.reg(arguments[0]),
+                BytecodeType::Ptr,
+            );
         }
-
-        self.asm.store_mem(
-            MachineMode::Ptr,
-            Mem::Base(object_reg, Header::size()),
-            REG_RESULT.into(),
-        );
     }
 
     fn emit_array_length(&mut self, dest: Register, arr: Register) {

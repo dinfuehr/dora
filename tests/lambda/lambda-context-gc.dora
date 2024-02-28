@@ -1,0 +1,12 @@
+//= vm-args "--gc=swiper --gc-verify"
+
+fn main() {
+    let x = f(12);
+    std::forceCollect();
+    assert(x() == 12);
+}
+
+fn f(a: Int64): (): Int64 {
+    std::forceCollect();
+    ||: Int64 { a }
+}
