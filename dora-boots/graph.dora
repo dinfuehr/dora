@@ -1657,6 +1657,7 @@ pub enum Policy {
     AnyFloatReg,
     FixedFloatReg,
     FixedStack,
+    FixedFloatStack,
 }
 
 impl Policy {
@@ -1684,12 +1685,39 @@ impl Policy {
         self == Policy::FixedStack
     }
 
+    pub fn isFixedFloatStack(): Bool {
+        self == Policy::FixedStack
+    }
+
+    pub fn isAnyFixedStack(): Bool {
+        self == Policy::FixedStack || self == Policy::FixedFloatStack
+    }
+
     pub fn isAnyFixed(): Bool {
-        self == Policy::FixedReg || self == Policy::FixedFloatReg || self == Policy::FixedStack
+        self == Policy::FixedReg || self == Policy::FixedFloatReg || self == Policy::FixedStack || self == Policy::FixedFloatStack
+    }
+
+    pub fn isAnyFixedReg(): Bool {
+        self == Policy::FixedReg || self == Policy::FixedFloatReg
     }
 
     pub fn isAnyArbitraryReg(): Bool {
         self == Policy::AnyReg || self == Policy::AnyFloatReg
+    }
+}
+
+impl Stringable for Policy {
+    fn toString(): String {
+        match self {
+            Policy::None => "None",
+            Policy::SameAsFirstInput => "SameAsFirstInput",
+            Policy::AnyReg => "AnyReg",
+            Policy::FixedReg => "FixedReg",
+            Policy::AnyFloatReg => "AnyFloatReg",
+            Policy::FixedFloatReg => "FixedFloatReg",
+            Policy::FixedStack => "FixedStack",
+            Policy::FixedFloatStack => "FixedFloatStack",
+        }
     }
 }
 

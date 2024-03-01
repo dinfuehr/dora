@@ -143,6 +143,10 @@ impl GraphDumper {
                 }
                 self.buffer.append(")");
             }
+
+            if !loc.getHint().isNone() {
+                self.buffer.append(" (hint ${loc.getHint()})");
+            }
         }
 
         if inst.hasUses() {
@@ -209,6 +213,7 @@ impl GraphDumper {
             Policy::FixedFloatReg => "FIX_FP",
             Policy::SameAsFirstInput => "SAFI",
             Policy::FixedStack => "FIX_STACK",
+            Policy::FixedFloatStack => "FIX_FLOAT_STACK",
         };
 
         let name = match operand.getLocation() {

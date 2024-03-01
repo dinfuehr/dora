@@ -898,26 +898,26 @@ impl CodeGen for CodeGenArm64 {
         } else {
             // Spill
             assert(dest.isStack());
-            let slot = src.getStack();
-            assert(slot.isFp());
+            let slot = dest.getStack();
+            let stack_reg = if slot.isFp() { REG_FP } else { REG_SP };
             let offset = slot.getOffset();
 
             if src.isFloatRegister() {
                 if ty == Type::Float32 {
-                    self.asm.str_imm_s(src.getFloatRegister(), REG_FP, offset);
+                    self.asm.str_imm_s(src.getFloatRegister(), stack_reg, offset);
                 } else {
                     assert(ty == Type::Float64);
-                    self.asm.str_imm_d(src.getFloatRegister(), REG_FP, offset);
+                    self.asm.str_imm_d(src.getFloatRegister(), stack_reg, offset);
                 }
             } else {
                 assert(src.isRegister());
                 if ty == Type::Int64 || ty == Type::Ptr {
-                    self.asm.stur(src.getRegister(), REG_FP, offset);
+                    self.asm.stur(src.getRegister(), stack_reg, offset);
                 } else if ty == Type::Int32 {
-                    self.asm.stur_w(src.getRegister(), REG_FP, offset);
+                    self.asm.stur_w(src.getRegister(), stack_reg, offset);
                 } else {
                     assert(ty == Type::Bool);
-                    self.asm.strb_imm(src.getRegister(), REG_FP, offset);
+                    self.asm.strb_imm(src.getRegister(), stack_reg, offset);
                 }
             }
         }

@@ -11,8 +11,14 @@ use package::ssa_destruction::ssaDestruction;
 pub fn performRegisterAllocation(graph: Graph, codegen: CodeGen, ci: CompilationInfo) {
     let maxOutgoingArgsSize = ensureLocationData(graph, codegen, ci);
 
-    let allocator = SimpleRegisterAllocator::new(graph, codegen, maxOutgoingArgsSize);
+    let allocator = SimpleRegisterAllocator::new(graph, codegen);
     allocator.allocateRegisters();
+
+    let stack_alignment = STACK_FRAME_ALIGNMENT.toInt32();
+
+    let finalStackSize = allocator.currentStackSize + maxOutgoingArgsSize;
+    let finalAlignedStackSize = (finalStackSize + (stack_alignment - 1i32)) & !(stack_alignment - 1i32);
+    graph.setStackSize(finalAlignedStackSize);
 
     ssaDestruction(graph, codegen);
 }
@@ -23,20 +29,18 @@ class SimpleRegisterAllocator {
     registers: Option[RegisterTracker[Register]],
     float_registers: Option[RegisterTracker[FloatRegister]],
     currentStackSize: Int32,
-    maxOutgoingArgsSize: Int32,
     refs: Vec[Int32],
     currentInst: Option[Inst],
 }
 
 impl SimpleRegisterAllocator {
-    static fn new(graph: Graph, codegen: CodeGen, maxOutgoingArgsSize: Int32): SimpleRegisterAllocator {
+    static fn new(graph: Graph, codegen: CodeGen): SimpleRegisterAllocator {
         SimpleRegisterAllocator(
             graph,
             codegen,
             None[RegisterTracker[Register]],
             None[RegisterTracker[FloatRegister]],
             0i32,
-            maxOutgoingArgsSize,
             Vec[Int32]::new(),
             None[Inst],
         )
@@ -46,12 +50,6 @@ impl SimpleRegisterAllocator {
         for block in self.graph.reversePostOrderIterator() {
             self.allocateBlock(block);
         }
-
-        let stack_alignment = STACK_FRAME_ALIGNMENT.toInt32();
-
-        let finalStackSize = self.currentStackSize + self.maxOutgoingArgsSize;
-        let finalAlignedStackSize = (finalStackSize + (stack_alignment - 1i32)) & stack_alignment;
-        self.graph.setStackSize(finalAlignedStackSize);
     }
 
     fn allocateBlock(block: Block) {
@@ -219,13 +217,13 @@ impl SimpleRegisterAllocator {
             let idx = input.getIdx().toInt64();
             let loc = loc_data.getInput(idx);
 
-            if loc.getPolicy().isAnyFixed() {
+            if loc.getPolicy().isAnyFixedReg() {
                 self.allocateFixedRegister(loc.getPolicy(), loc.getLocation(), input.getValue());
             }
         }
 
         for temp in loc_data.getTemps() {
-            if temp.getPolicy().isAnyFixed() {
+            if temp.getPolicy().isAnyFixedReg() {
                 self.allocateFixedTempRegister(temp.getPolicy(), temp.getLocation());
             }
         }
@@ -254,7 +252,14 @@ impl SimpleRegisterAllocator {
 
             if input_loc.getPolicy().isAnyArbitraryReg() {
                 let register = self.allocateArbitraryRegister(input_loc.getPolicy(), input.getValue());
-                loc_data.getInput(idx).setLocation(register);
+                input_loc.setLocation(register);
+            } else if input_loc.getPolicy().isAnyFixedStack() {
+                assert(input_loc.hasStack());
+                let dest = Location::Stack(input_loc.getStack());
+                let policy = if input_loc.getPolicy().isFixedStack() { Policy::AnyReg } else { Policy::AnyFloatReg };
+                let src = self.allocateArbitraryRegister(policy, input.getValue());
+                let inst = createMoveInst(input.getValue().getValueType(), dest, src);
+                self.currentInst.getOrPanic().insertBefore(inst);
             }
         }
 
@@ -279,7 +284,7 @@ impl SimpleRegisterAllocator {
             return;
         }
 
-        if output.getPolicy().isFixedStack() {
+        if output.getPolicy().isAnyFixedStack() {
             let slot = output.getStack();
             assert(slot.isFp());
             loc_data.setSpillSlot(slot.getOffset());
@@ -309,11 +314,14 @@ impl SimpleRegisterAllocator {
         }
 
         let output = loc_data.getOutput();
+        let hint = loc_data.getHint();
 
         if output.getPolicy().isAnyFloatReg() {
-            self.allocateOutputRegisterGeneric[FloatRegister](self.float_registers(), inst, output);
+            let hint = if hint.isFloatRegister() { Some[FloatRegister](hint.getFloatRegister()) } else { None[FloatRegister] };
+            self.allocateOutputRegisterGeneric[FloatRegister](self.float_registers(), hint, inst, output);
         } else if output.getPolicy().isAnyReg() {
-            self.allocateOutputRegisterGeneric[Register](self.registers(), inst, output);
+            let hint = if hint.isRegister() { Some[Register](hint.getRegister()) } else { None[Register] };
+            self.allocateOutputRegisterGeneric[Register](self.registers(), hint, inst, output);
         } else if output.getPolicy().isSameAsFirstInput() {
             self.allocateOutputRegisterSameAsFirstInput(inst, loc_data, output);
         }
@@ -333,7 +341,18 @@ impl SimpleRegisterAllocator {
         output.setRegister(dest);
     }
 
-    fn allocateOutputRegisterGeneric[T: RegisterType](registers: RegisterTracker[T], inst: Inst, output: Operand) {
+    fn allocateOutputRegisterGeneric[T: RegisterType](registers: RegisterTracker[T], hint: Option[T], inst: Inst, output: Operand) {
+        let loc_data = inst.getLocationData();
+
+        if hint.isSome() {
+            let hint = hint.getOrPanic();
+
+            if registers.allocateFixedRegister(hint, inst) {
+                output.setLocation(hint.toLocation());
+                return;
+            }
+        }
+
         let register = registers.allocateRegister(inst);
 
         if register.isSome() {
@@ -365,7 +384,7 @@ impl SimpleRegisterAllocator {
             _ => unreachable[(Int32, Int32)](),
         };
 
-        self.currentStackSize = (self.currentStackSize + (alignment - 1i32)) & alignment;
+        self.currentStackSize = (self.currentStackSize + (alignment - 1i32)) & !(alignment - 1i32);
         self.currentStackSize = self.currentStackSize + size;
 
         let offset = -self.currentStackSize;

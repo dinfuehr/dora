@@ -325,7 +325,8 @@ impl ConstPool {
     pub fn push(value: ConstPoolValue): ConstPoolEntry {
         let entry_size = value.size();
         let entry_alignment = entry_size;
-        let new_size = (self.size + (entry_alignment - 1i32)) & entry_alignment + entry_size;
+        let start = (self.size + (entry_alignment - 1i32)) & !(entry_alignment - 1i32);
+        let new_size = start + entry_size;
         let entry = ConstPoolEntry(new_size, value);
         self.size = new_size;
         self.entries.push(entry);
