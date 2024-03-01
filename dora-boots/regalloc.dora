@@ -236,9 +236,10 @@ impl SimpleRegisterAllocator {
 
         if newReg.isSome() {
             let newReg = newReg.getOrPanic();
-            let inst = createMoveInst(inst.getValueType(), newReg.toLocation(), reg.toLocation());
-            self.currentInst.getOrPanic().insertBefore(inst);
+            let moveInst = createMoveInst(inst.getValueType(), newReg.toLocation(), reg.toLocation());
+            self.currentInst.getOrPanic().insertBefore(moveInst);
         } else {
+            registers.locations.remove(inst);
             self.spill(inst);
         }
     }
@@ -256,8 +257,7 @@ impl SimpleRegisterAllocator {
             } else if input_loc.getPolicy().isAnyFixedStack() {
                 assert(input_loc.hasStack());
                 let dest = Location::Stack(input_loc.getStack());
-                let policy = if input_loc.getPolicy().isFixedStack() { Policy::AnyReg } else { Policy::AnyFloatReg };
-                let src = self.allocateArbitraryRegister(policy, input.getValue());
+                let src = self.getInstLocation(input.getValue());
                 let inst = createMoveInst(input.getValue().getValueType(), dest, src);
                 self.currentInst.getOrPanic().insertBefore(inst);
             }
@@ -268,6 +268,30 @@ impl SimpleRegisterAllocator {
                 let register = self.allocateArbitraryTempRegister(loc.getPolicy());
                 loc.setLocation(register);
             }
+        }
+    }
+
+    fn getInstLocation(inst: Inst): Location {
+        let location = if inst.getValueType().isAnyFloat() {
+            self.getInstRegisterGeneric[FloatRegister](self.float_registers(), inst)
+        } else {
+            self.getInstRegisterGeneric[Register](self.registers(), inst)
+        };
+
+        if location.isNone() {
+            Location::fp(inst.getLocationData().getSpillSlot())
+        } else {
+            location
+        }
+    }
+
+    fn getInstRegisterGeneric[T: RegisterType](registers: RegisterTracker[T], inst: Inst): Location {
+        let register = registers.getRegister(inst);
+
+        if register.isSome() {
+            register.getOrPanic().toLocation()
+        } else {
+            Location::None
         }
     }
 
@@ -607,14 +631,14 @@ impl[T: RegisterType] RegisterTracker[T] {
         }
     }
 
-    fn allocateRegister(value: Inst): Option[T] {
+    fn allocateRegister(inst: Inst): Option[T] {
         let result = self.free.first();
 
         if result.isSome() {
             let reg = result.getOrPanic();
             self.free.remove(reg);
-            self.data.pick(reg, value);
-            self.locations.insert(value, reg);
+            self.data.pick(reg, inst);
+            self.locations.insert(inst, reg);
         }
 
         result

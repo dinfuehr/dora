@@ -897,8 +897,7 @@ impl CodeGen for CodeGenX64 {
                     assert(ty == Type::Float64);
                     self.asm.movsd_ar(AsmAddress::offset(stack_reg, offset), src.getFloatRegister());
                 }
-            } else {
-                assert(src.isRegister());
+            } else if src.isRegister() {
                 if ty == Type::Int64 || ty == Type::Ptr {
                     self.asm.movq_ar(AsmAddress::offset(stack_reg, offset), src.getRegister());
                 } else if ty == Type::Int32 {
@@ -906,6 +905,17 @@ impl CodeGen for CodeGenX64 {
                 } else {
                     assert(ty == Type::Bool);
                     self.asm.movb_ar(AsmAddress::offset(stack_reg, offset), src.getRegister());
+                }
+            } else {
+                let src_slot = src.getStack();
+                assert(src_slot.isFp());
+                let src_offset = src_slot.getOffset();
+
+                if ty == Type::Int64 {
+                    self.asm.movq_ra(REG_TEMP, AsmAddress::offset(RBP, src_offset));
+                    self.asm.movq_ar(AsmAddress::offset(stack_reg, offset), REG_TEMP);
+                } else {
+                    unimplemented();
                 }
             }
         }
