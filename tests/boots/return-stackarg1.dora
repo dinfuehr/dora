@@ -1,0 +1,14 @@
+//= boots
+
+fn main() {
+    let x = f(0, 1, 2, 3, 4, 5, 6, 7, 8);
+    assert(x == 8);
+
+    let x = f(0, 1, 2, 3, 4, 5, 6, 7, 17);
+    assert(x == 17);
+}
+
+@optimizeImmediately fn f(a0: Int64, a1: Int64, a2: Int64, a3: Int64, a4: Int64,
+                          a5: Int64, a6: Int64, a7: Int64, a8: Int64): Int64 {
+    a8
+}

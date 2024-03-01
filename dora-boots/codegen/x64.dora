@@ -6,7 +6,7 @@ use package::assembler::{FloatRegister, Label, Register, RegSet};
 use package::bytecode::data::{ConstPoolId, Location};
 use package::codegen::{CODE_SIZE_ALIGNMENT, CodeGen};
 use package::interface::{Address, Architecture, CompilationInfo, ConstPool, ConstPoolEntry, ConstPoolValue, config, getFunctionAddress, LazyCompilationSite, LazyCompilationSiteDirect, getFieldOffset, getClassSize, getClassPointer, getClassPointerForLambda, getFunctionVtableIndex};
-use package::interface::{TRAP_DIV0, TRAP_OVERFLOW, TRAP_INDEX_OUT_OF_BOUNDS, LAMBDA_SIZE};
+use package::interface::{TRAP_DIV0, TRAP_OVERFLOW, TRAP_INDEX_OUT_OF_BOUNDS, LAMBDA_SIZE, PTR_SIZE};
 use package::interface::{THREAD_LOCAL_DATA_TLAB_TOP_OFFSET, THREAD_LOCAL_DATA_TLAB_END_OFFSET, THREAD_LOCAL_DATA_STACK_LIMIT_OFFSET, THREAD_LOCAL_DATA_STATE_OFFSET, THREAD_LOCAL_DATA_MARKING_OFFSET, OBJECT_HEADER_LENGTH, OBJECT_METADATA_OFFSET, METADATA_REMEMBERED_BIT, ARRAY_HEADER_LENGTH};
 use package::location::{useInputFloatRegisterFixed, useInputRegister, useInputRegisterFixed, useOutputRegisterFixed, useOutputSameAsFirstInput, addTempRegisterFixed};
 use package::graph::{Inst, Op, LocationData, RegisterSnapshot, Type};
@@ -218,9 +218,9 @@ impl CodeGenX64 {
 
         if size > OBJECT_HEADER_LENGTH {
             let size = size.toInt64();
-            assert(size % 8 == 0);
+            assert(size % PTR_SIZE.toInt64() == 0);
             self.asm.lea(tmp1, AsmAddress::offset(obj, OBJECT_HEADER_LENGTH));
-            self.zeroMemory(tmp1, (size - OBJECT_HEADER_LENGTH.toInt64()) / 8, tmp2);
+            self.zeroMemory(tmp1, (size - OBJECT_HEADER_LENGTH.toInt64()) / PTR_SIZE.toInt64(), tmp2);
         }
     }
 
@@ -231,12 +231,12 @@ impl CodeGenX64 {
         let mut idx = 0;
 
         while idx + 1 < words {
-            self.asm.movups_ar(AsmAddress::offset(ptr, idx.toInt32() * 8i32), tmp);
+            self.asm.movups_ar(AsmAddress::offset(ptr, idx.toInt32() * PTR_SIZE), tmp);
             idx = idx + 2;
         }
 
         if idx < words {
-            self.asm.movsd_ar(AsmAddress::offset(ptr, idx.toInt32() * 8i32), tmp);
+            self.asm.movsd_ar(AsmAddress::offset(ptr, idx.toInt32() * PTR_SIZE), tmp);
             idx = idx + 1;
         }
 
@@ -253,7 +253,7 @@ impl CodeGenX64 {
         self.asm.xorps_rr(tmp, tmp);
 
         let loop = self.asm.createAndBindLabel();
-        self.asm.movsd_ar(AsmAddress::array(ptr, words, ScaleFactor::Eight, -8i32), tmp);
+        self.asm.movsd_ar(AsmAddress::array(ptr, words, ScaleFactor::Eight, -PTR_SIZE), tmp);
         self.asm.subq_ri(words, Immediate(1));
         self.asm.jcc(Condition::NotZero, loop);
 
@@ -271,14 +271,14 @@ impl CodeGenX64 {
         let regs = snapshot.fp.clone();
 
         if !regs.isEmpty() {
-            let size = regs.size() * 8;
+            let size = regs.size() * PTR_SIZE.toInt64();
             self.asm.subq_ri(RSP, Immediate(size));
             let mut offset = 0i32;
 
             while !regs.isEmpty() {
                 let reg = regs.popLowestIndex().getOrPanic();
                 self.asm.movsd_ar(AsmAddress::offset(RSP, offset), reg);
-                offset = offset + 8i32;
+                offset = offset + PTR_SIZE;
             }
         }
     }
@@ -299,10 +299,10 @@ impl CodeGenX64 {
             while !regs.isEmpty() {
                 let reg = regs.popLowestIndex().getOrPanic();
                 self.asm.movsd_ra(reg, AsmAddress::offset(RSP, offset));
-                offset = offset + 8i32;
+                offset = offset + PTR_SIZE;
             }
 
-            let size = regs.size() * 8;
+            let size = regs.size() * PTR_SIZE.toInt64();
             self.asm.addq_ri(RSP, Immediate(size));
         }
     }
@@ -332,7 +332,7 @@ impl CodeGenX64 {
         self.asm.movq_ri(tmp2, Immediate(config.meta_space_start.value));
         self.asm.addq_rr(tmp1, tmp2);
 
-        let vtable_entry_offset = 32i32 + vtable_index * 8i32;
+        let vtable_entry_offset = 32i32 + vtable_index * PTR_SIZE;
         self.asm.movq_ra(tmp1, AsmAddress::offset(tmp1, vtable_entry_offset));
         self.asm.call_r(tmp1);
 
@@ -847,8 +847,9 @@ impl CodeGen for CodeGenX64 {
             } else {
                 // Reload
                 assert(src.isStack());
-                let (fp, offset) = src.getStack();
-                assert(fp);
+                let slot = src.getStack();
+                assert(slot.isFp());
+                let offset = slot.getOffset();
 
                 if ty == Type::Int64 || ty == Type::Ptr {
                     self.asm.movq_ra(dest.getRegister(), AsmAddress::offset(RBP, offset));
@@ -871,21 +872,23 @@ impl CodeGen for CodeGenX64 {
             } else {
                 // Reload
                 assert(src.isStack());
-                let (fp, offset) = src.getStack();
-                assert(fp);
+                let slot = src.getStack();
+                assert(slot.isFp());
+                let offset = slot.getOffset();
 
                 if ty == Type::Float32 {
                     self.asm.movss_ra(dest.getFloatRegister(), AsmAddress::offset(RBP, offset));
                 } else {
                     assert(ty == Type::Float64);
-                    self.asm.movss_ra(dest.getFloatRegister(), AsmAddress::offset(RBP, offset));
+                    self.asm.movsd_ra(dest.getFloatRegister(), AsmAddress::offset(RBP, offset));
                 }
             }
         } else {
             // Spill
             assert(dest.isStack());
-            let (fp, offset) = src.getStack();
-            assert(fp);
+            let slot = src.getStack();
+            assert(slot.isFp());
+            let offset = slot.getOffset();
 
             if src.isFloatRegister() {
                 if ty == Type::Float32 {

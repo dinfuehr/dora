@@ -208,6 +208,7 @@ impl GraphDumper {
             Policy::FixedReg => "FIX_GP",
             Policy::FixedFloatReg => "FIX_FP",
             Policy::SameAsFirstInput => "SAFI",
+            Policy::FixedStack => "FIX_STACK",
         };
 
         let name = match operand.getLocation() {
@@ -224,11 +225,11 @@ impl GraphDumper {
                 }
             },
 
-            Location::Stack(fp_relative, slot) => {
-                if fp_relative {
-                    "FP:${slot}"
+            Location::Stack(slot) => {
+                if slot.isFp() {
+                    "FP:${slot.getOffset()}"
                 } else {
-                    "SP:${slot}"
+                    "SP:${slot.getOffset()}"
                 }
             },
 

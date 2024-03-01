@@ -9,9 +9,9 @@ use package::location::ensureLocationData;
 use package::ssa_destruction::ssaDestruction;
 
 pub fn performRegisterAllocation(graph: Graph, codegen: CodeGen, ci: CompilationInfo) {
-    ensureLocationData(graph, codegen, ci);
+    let maxOutgoingArgsSize = ensureLocationData(graph, codegen, ci);
 
-    let allocator = SimpleRegisterAllocator::new(graph, codegen);
+    let allocator = SimpleRegisterAllocator::new(graph, codegen, maxOutgoingArgsSize);
     allocator.allocateRegisters();
 
     ssaDestruction(graph, codegen);
@@ -29,14 +29,14 @@ class SimpleRegisterAllocator {
 }
 
 impl SimpleRegisterAllocator {
-    static fn new(graph: Graph, codegen: CodeGen): SimpleRegisterAllocator {
+    static fn new(graph: Graph, codegen: CodeGen, maxOutgoingArgsSize: Int32): SimpleRegisterAllocator {
         SimpleRegisterAllocator(
             graph,
             codegen,
             None[RegisterTracker[Register]],
             None[RegisterTracker[FloatRegister]],
             0i32,
-            0i32,
+            maxOutgoingArgsSize,
             Vec[Int32]::new(),
             None[Inst],
         )
@@ -279,9 +279,13 @@ impl SimpleRegisterAllocator {
             return;
         }
 
-        if output.getPolicy().isFixedReg() {
+        if output.getPolicy().isFixedStack() {
+            let slot = output.getStack();
+            assert(slot.isFp());
+            loc_data.setSpillSlot(slot.getOffset());
+        } else if output.getPolicy().isFixedReg() {
             self.allocateFixedOutputRegisterGeneric[Register](output.getRegister(), self.registers(), inst);
-        } else {
+        } else if output.getPolicy().isFixedFloatReg() {
             assert(output.getPolicy().isFixedFloatReg());
             self.allocateFixedOutputRegisterGeneric[FloatRegister](output.getFloatRegister(), self.float_registers(), inst);
         }
@@ -388,7 +392,7 @@ impl SimpleRegisterAllocator {
             }
         }
 
-        if loc_data.hasOutput() && !inst.hasUses() {
+        if loc_data.hasOutput() && !inst.hasUses() && !loc_data.getOutput().hasStack() {
             self.freeRegisterInLocation(loc_data.getOutput().getLocation());
         }
 
@@ -402,7 +406,7 @@ impl SimpleRegisterAllocator {
             Location::None => unreachable[()](),
             Location::Reg(reg) => self.registers().freeRegister(reg),
             Location::FloatReg(reg) => self.float_registers().freeRegister(reg),
-            Location::Stack(fp_relative, slot) => unreachable[()](),
+            Location::Stack(slot) => unreachable[()](),
         }
     }
 
@@ -443,7 +447,7 @@ impl SimpleRegisterAllocator {
 
     fn emitReloadInst(dest: Location, value: Inst) {
         let slot = value.getLocationData().getSpillSlot();
-        let inst = createMoveInst(value.getValueType(), dest, Location::Stack(true, slot));
+        let inst = createMoveInst(value.getValueType(), dest, Location::fp(slot));
         self.currentInst.getOrPanic().insertBefore(inst);
     }
 
@@ -499,7 +503,7 @@ impl SimpleRegisterAllocator {
             current.getOrPanic().toLocation()
         } else {
             let slot = inst.getLocationData().getSpillSlot();
-            Location::Stack(true, slot)
+            Location::fp(slot)
         };
 
         let inst = createMoveInst(inst.getValueType(), dest.toLocation(), source);

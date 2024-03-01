@@ -2,7 +2,7 @@ use package::bytecode::{ConstPoolId, Location};
 use package::interface::{Address, Architecture, CompilationInfo, ConstPool, ConstPoolEntry, ConstPoolValue, config, getFunctionAddress, getFieldOffset, getClassSize, getClassPointer, getClassPointerForLambda, getFunctionVtableIndex};
 use package::interface::{THREAD_LOCAL_DATA_STACK_LIMIT_OFFSET, THREAD_LOCAL_DATA_STATE_OFFSET, THREAD_LOCAL_DATA_MARKING_OFFSET, OBJECT_HEADER_LENGTH, OBJECT_METADATA_OFFSET, METADATA_REMEMBERED_BIT, ARRAY_HEADER_LENGTH, LAMBDA_SIZE};
 use package::interface::{THREAD_LOCAL_DATA_TLAB_TOP_OFFSET, THREAD_LOCAL_DATA_TLAB_END_OFFSET};
-use package::interface::{TRAP_DIV0, TRAP_OVERFLOW, TRAP_INDEX_OUT_OF_BOUNDS};
+use package::interface::{TRAP_DIV0, TRAP_OVERFLOW, TRAP_INDEX_OUT_OF_BOUNDS, PTR_SIZE};
 use package::codegen::{CODE_SIZE_ALIGNMENT, CodeGen};
 use package::assembler::arm64::{F0, F1, F2, F3, F4, F5, F6, F7, F31};
 use package::assembler::arm64::{AssemblerArm64, Cond, Extend, Shift, registerName, fitsMovz, fitsMovn};
@@ -259,9 +259,9 @@ impl CodeGenArm64 {
         self.asm.str_imm(tmp, obj, 0i32);
 
         if size > OBJECT_HEADER_LENGTH {
-            assert(size % 8i32 == 0i32);
+            assert(size % PTR_SIZE == 0i32);
             self.asm.add_imm(tmp, obj, OBJECT_HEADER_LENGTH);
-            self.zeroMemory(tmp, (size.toInt64() - OBJECT_HEADER_LENGTH.toInt64()) / 8);
+            self.zeroMemory(tmp, (size.toInt64() - OBJECT_HEADER_LENGTH.toInt64()) / PTR_SIZE.toInt64());
         }
     }
 
@@ -289,7 +289,7 @@ impl CodeGenArm64 {
         self.asm.add(words, words, ptr);
 
         let loop = self.asm.createAndBindLabel();
-        self.asm.sub_imm(words, words, 8i32);
+        self.asm.sub_imm(words, words, PTR_SIZE);
         self.asm.str_imm(REG_ZERO, words, 0i32);
         self.asm.cmp(words, ptr);
         self.asm.bc(Cond::NE, loop);
@@ -380,7 +380,7 @@ impl CodeGenArm64 {
         self.mov_imm(tmp2, config.meta_space_start.value);
         self.asm.add(tmp1, tmp1, tmp2);
 
-        let vtable_entry_offset = 32i32 + vtable_index * 8i32;
+        let vtable_entry_offset = 32i32 + vtable_index * PTR_SIZE;
         self.asm.ldr_imm(REG_TEMP, REG_TEMP, vtable_entry_offset);
         self.asm.bl_r(REG_TEMP);
 
@@ -859,8 +859,9 @@ impl CodeGen for CodeGenArm64 {
             } else {
                 // Reload
                 assert(src.isStack());
-                let (fp, offset) = src.getStack();
-                assert(fp);
+                let slot = src.getStack();
+                assert(slot.isFp());
+                let offset = slot.getOffset();
 
                 if ty == Type::Int64 || ty == Type::Ptr {
                     self.asm.ldur(dest.getRegister(), REG_FP, offset);
@@ -883,8 +884,9 @@ impl CodeGen for CodeGenArm64 {
             } else {
                 // Reload
                 assert(src.isStack());
-                let (fp, offset) = src.getStack();
-                assert(fp);
+                let slot = src.getStack();
+                assert(slot.isFp());
+                let offset = slot.getOffset();
 
                 if ty == Type::Float32 {
                     self.asm.ldr_imm_s(dest.getFloatRegister(), REG_FP, offset);
@@ -896,8 +898,9 @@ impl CodeGen for CodeGenArm64 {
         } else {
             // Spill
             assert(dest.isStack());
-            let (fp, offset) = src.getStack();
-            assert(fp);
+            let slot = src.getStack();
+            assert(slot.isFp());
+            let offset = slot.getOffset();
 
             if src.isFloatRegister() {
                 if ty == Type::Float32 {

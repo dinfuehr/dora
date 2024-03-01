@@ -116,6 +116,7 @@ pub enum Architecture {
     Arm64,
 }
 
+pub const PTR_SIZE: Int32 = 8;
 pub const THREAD_LOCAL_DATA_TLAB_TOP_OFFSET: Int32 = 0;
 pub const THREAD_LOCAL_DATA_TLAB_END_OFFSET: Int32 = 8;
 pub const THREAD_LOCAL_DATA_STACK_LIMIT_OFFSET: Int32 = 16;
