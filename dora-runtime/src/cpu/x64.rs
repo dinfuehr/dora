@@ -82,6 +82,13 @@ pub const CALLEE_SAVED_REGS: [Reg; 5] = [RBX, R12, R13, R14, R15];
 #[cfg(target_family = "windows")]
 pub const CALLEE_SAVED_REGS: [Reg; 7] = [RBX, RDI, RSI, R12, R13, R14, R15];
 
+#[cfg(target_family = "unix")]
+pub const CALLEE_SAVED_FREGS: [FReg; 0] = [];
+#[cfg(target_family = "windows")]
+pub const CALLEE_SAVED_FREGS: [FReg; 10] = [
+    XMM6, XMM7, XMM8, XMM9, XMM10, XMM11, XMM12, XMM13, XMM14, XMM15,
+];
+
 pub const STACK_FRAME_ALIGNMENT: usize = 16;
 
 pub const RAX: Reg = Reg(0);

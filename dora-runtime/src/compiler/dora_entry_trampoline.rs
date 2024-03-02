@@ -1,8 +1,8 @@
 use std::sync::Arc;
 
 use crate::cpu::{
-    CALLEE_SAVED_REGS, CCALL_REG_PARAMS, REG_FP, REG_PARAMS, REG_THREAD, REG_TMP1,
-    STACK_FRAME_ALIGNMENT,
+    CALLEE_SAVED_FREGS, CALLEE_SAVED_REGS, CCALL_REG_PARAMS, REG_FP, REG_PARAMS, REG_THREAD,
+    REG_TMP1, STACK_FRAME_ALIGNMENT,
 };
 use crate::masm::{MacroAssembler, Mem};
 use crate::mem;
@@ -34,8 +34,10 @@ const FP_CALLER_FP_OFFSET: i32 = 0;
 
 const FRAME_CALLEE_REGS_SIZE: i32 = (CALLEE_SAVED_REGS.len() as i32) * mem::ptr_width();
 const FP_CALLEE_REGS_OFFSET: i32 = FP_CALLER_FP_OFFSET - FRAME_CALLEE_REGS_SIZE;
+const FRAME_CALLEE_FREGS_SIZE: i32 = (CALLEE_SAVED_FREGS.len() as i32) * mem::ptr_width();
+const FP_CALLEE_FREGS_OFFSET: i32 = FP_CALLEE_REGS_OFFSET - FRAME_CALLEE_REGS_SIZE;
 
-const UNALIGNED_FRAME_SIZE: i32 = FP_CALLER_FP_OFFSET - FP_CALLEE_REGS_OFFSET;
+const UNALIGNED_FRAME_SIZE: i32 = FP_CALLER_FP_OFFSET - FP_CALLEE_FREGS_OFFSET;
 const FRAME_SIZE: i32 = mem::align_i32(UNALIGNED_FRAME_SIZE, STACK_FRAME_ALIGNMENT as i32);
 
 struct DoraEntryGen<'a> {
@@ -84,6 +86,17 @@ impl<'a> DoraEntryGen<'a> {
                 reg.into(),
             );
         }
+
+        for (idx, &reg) in CALLEE_SAVED_FREGS.iter().enumerate() {
+            self.masm.store_mem(
+                MachineMode::Float64,
+                Mem::Base(
+                    REG_FP,
+                    FP_CALLEE_FREGS_OFFSET + (idx as i32) * mem::ptr_width(),
+                ),
+                reg.into(),
+            );
+        }
     }
 
     pub fn load_callee_saved_regs(&mut self) {
@@ -94,6 +107,17 @@ impl<'a> DoraEntryGen<'a> {
                 Mem::Base(
                     REG_FP,
                     FP_CALLEE_REGS_OFFSET + (idx as i32) * mem::ptr_width(),
+                ),
+            );
+        }
+
+        for (idx, &reg) in CALLEE_SAVED_FREGS.iter().enumerate() {
+            self.masm.load_mem(
+                MachineMode::Float64,
+                reg.into(),
+                Mem::Base(
+                    REG_FP,
+                    FP_CALLEE_FREGS_OFFSET + (idx as i32) * mem::ptr_width(),
                 ),
             );
         }
