@@ -454,9 +454,9 @@ impl CodeGen for CodeGenX64 {
         } else {
             let reg = loc.getOutput().getRegister();
 
-            if ty == Type::UInt8 {
+            if ty == Type::UInt8 || ty == Type::Bool {
                 self.asm.movb_ar(AsmAddress::offset(RBP, slot), reg);
-            } else if ty == Type::Int32 {
+            } else if ty == Type::Int32 || ty == Type::Char {
                 self.asm.movl_ar(AsmAddress::offset(RBP, slot), reg);
             } else if ty == Type::Int64 {
                 self.asm.movq_ar(AsmAddress::offset(RBP, slot), reg);
@@ -911,7 +911,13 @@ impl CodeGen for CodeGenX64 {
                 assert(src_slot.isFp());
                 let src_offset = src_slot.getOffset();
 
-                if ty == Type::Int64 {
+                if ty == Type::UInt8 {
+                    self.asm.movb_ra(REG_TEMP, AsmAddress::offset(RBP, src_offset));
+                    self.asm.movb_ar(AsmAddress::offset(stack_reg, offset), REG_TEMP);
+                } else if ty == Type::Int32 || ty == Type::Char {
+                    self.asm.movl_ra(REG_TEMP, AsmAddress::offset(RBP, src_offset));
+                    self.asm.movl_ar(AsmAddress::offset(stack_reg, offset), REG_TEMP);
+                } else if ty == Type::Int64 || ty == Type::Ptr {
                     self.asm.movq_ra(REG_TEMP, AsmAddress::offset(RBP, src_offset));
                     self.asm.movq_ar(AsmAddress::offset(stack_reg, offset), REG_TEMP);
                 } else {
