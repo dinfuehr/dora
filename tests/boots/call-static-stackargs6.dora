@@ -1,0 +1,39 @@
+//= boots
+
+fn main() {
+    f();
+}
+
+@optimizeImmediately fn f() {
+    g(0.0, 1.0, 2.0, 3.0,
+      4.0, 5.0, 6.0, 7.0,
+      8.0, 9.0, 10.0, 11.0,
+      12.0, 13.0, 14.0, 15.0,
+      16.0, 17.0, 18.0);
+}
+
+fn g(a0: Float64, a1: Float64, a2: Float64, a3: Float64,
+     a4: Float64, a5: Float64, a6: Float64, a7: Float64,
+     a8: Float64, a9: Float64, a10: Float64, a11: Float64,
+     a12: Float64, a13: Float64, a14: Float64, a15: Float64,
+     a16: Float64, a17: Float64, a18: Float64) {
+    assert(a0 == 0.0);
+    assert(a1 == 1.0);
+    assert(a2 == 2.0);
+    assert(a3 == 3.0);
+    assert(a4 == 4.0);
+    assert(a5 == 5.0);
+    assert(a6 == 6.0);
+    assert(a7 == 7.0);
+    assert(a8 == 8.0);
+    assert(a9 == 9.0);
+    assert(a10 == 10.0);
+    assert(a11 == 11.0);
+    assert(a12 == 12.0);
+    assert(a13 == 13.0);
+    assert(a14 == 14.0);
+    assert(a15 == 15.0);
+    assert(a16 == 16.0);
+    assert(a17 == 17.0);
+    assert(a18 == 18.0);
+}

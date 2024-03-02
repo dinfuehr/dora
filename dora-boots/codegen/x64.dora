@@ -34,7 +34,8 @@ let ALLOCATABLE_REGS: RegSet[Register] = RegSet[Register]::new(
 );
 
 // The last register XMM15 is used as FREG_TEMP.
-let ALLOCATABLE_FREGS: RegSet[FloatRegister] = RegSet[FloatRegister]::firstN(15i32);
+// Only use 10 registers for now for testing (otherwise 15).
+let ALLOCATABLE_FREGS: RegSet[FloatRegister] = RegSet[FloatRegister]::firstN(10i32);
 
 let CALLEE_SAVED_REGS: RegSet[Register] = if config.isWindows {
     RegSet[Register]::new(RBX, RDI, RSI, R12, R13, R14, R15)
@@ -914,10 +915,10 @@ impl CodeGen for CodeGenX64 {
                 if ty == Type::UInt8 || ty == Type::Bool {
                     self.asm.movb_ra(REG_TEMP, AsmAddress::offset(RBP, src_offset));
                     self.asm.movb_ar(AsmAddress::offset(stack_reg, offset), REG_TEMP);
-                } else if ty == Type::Int32 || ty == Type::Char {
+                } else if ty == Type::Int32 || ty == Type::Char || ty == Type::Float32 {
                     self.asm.movl_ra(REG_TEMP, AsmAddress::offset(RBP, src_offset));
                     self.asm.movl_ar(AsmAddress::offset(stack_reg, offset), REG_TEMP);
-                } else if ty == Type::Int64 || ty == Type::Ptr {
+                } else if ty == Type::Int64 || ty == Type::Ptr || ty == Type::Float64 {
                     self.asm.movq_ra(REG_TEMP, AsmAddress::offset(RBP, src_offset));
                     self.asm.movq_ar(AsmAddress::offset(stack_reg, offset), REG_TEMP);
                 } else {

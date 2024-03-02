@@ -1,0 +1,39 @@
+//= boots
+
+fn main() {
+    f();
+}
+
+@optimizeImmediately fn f() {
+    g(0.0f32, 1.0f32, 2.0f32, 3.0f32,
+      4.0f32, 5.0f32, 6.0f32, 7.0f32,
+      8.0f32, 9.0f32, 10.0f32, 11.0f32,
+      12.0f32, 13.0f32, 14.0f32, 15.0f32,
+      16.0f32, 17.0f32, 18.0f32);
+}
+
+fn g(a0: Float32, a1: Float32, a2: Float32, a3: Float32,
+     a4: Float32, a5: Float32, a6: Float32, a7: Float32,
+     a8: Float32, a9: Float32, a10: Float32, a11: Float32,
+     a12: Float32, a13: Float32, a14: Float32, a15: Float32,
+     a16: Float32, a17: Float32, a18: Float32) {
+    assert(a0 == 0.0f32);
+    assert(a1 == 1.0f32);
+    assert(a2 == 2.0f32);
+    assert(a3 == 3.0f32);
+    assert(a4 == 4.0f32);
+    assert(a5 == 5.0f32);
+    assert(a6 == 6.0f32);
+    assert(a7 == 7.0f32);
+    assert(a8 == 8.0f32);
+    assert(a9 == 9.0f32);
+    assert(a10 == 10.0f32);
+    assert(a11 == 11.0f32);
+    assert(a12 == 12.0f32);
+    assert(a13 == 13.0f32);
+    assert(a14 == 14.0f32);
+    assert(a15 == 15.0f32);
+    assert(a16 == 16.0f32);
+    assert(a17 == 17.0f32);
+    assert(a18 == 18.0f32);
+}

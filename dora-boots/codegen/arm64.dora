@@ -41,7 +41,8 @@ let ALLOCATABLE_REGS: RegSet[Register] = RegSet[Register]::new(
 );
 
 // The last register F31 is used as FREG_TEMP.
-let ALLOCATABLE_FREGS: RegSet[FloatRegister] = RegSet[FloatRegister]::firstN(31i32);
+// Only use 10 registers for now for testing (otherwise 31).
+let ALLOCATABLE_FREGS: RegSet[FloatRegister] = RegSet[FloatRegister]::firstN(10i32);
 
 let CALLEE_SAVED_REGS: RegSet[Register] = RegSet[Register]::new(
     R19, R20, R21, R22, R23, R24, R25, R26, R27, R28
@@ -890,10 +891,10 @@ impl CodeGen for CodeGenArm64 {
                 let offset = slot.getOffset();
 
                 if ty == Type::Float32 {
-                    self.asm.ldr_imm_s(dest.getFloatRegister(), REG_FP, offset);
+                    self.asm.ldur_s(dest.getFloatRegister(), REG_FP, offset);
                 } else {
                     assert(ty == Type::Float64);
-                    self.asm.ldr_imm_d(dest.getFloatRegister(), REG_FP, offset);
+                    self.asm.ldur_d(dest.getFloatRegister(), REG_FP, offset);
                 }
             }
         } else {
@@ -930,10 +931,10 @@ impl CodeGen for CodeGenArm64 {
                 if ty == Type::UInt8 || ty == Type::Bool {
                     self.asm.ldurb(REG_TEMP, REG_FP, src_offset);
                     self.asm.sturb(REG_TEMP, stack_reg, offset);
-                } else if ty == Type::Int32 || ty == Type::Char {
+                } else if ty == Type::Int32 || ty == Type::Char || ty == Type::Float32 {
                     self.asm.ldur_w(REG_TEMP, REG_FP, src_offset);
                     self.asm.stur_w(REG_TEMP, stack_reg, offset);
-                } else if ty == Type::Int64 || ty == Type::Ptr {
+                } else if ty == Type::Int64 || ty == Type::Ptr || ty == Type::Float64 {
                     self.asm.ldur(REG_TEMP, REG_FP, src_offset);
                     self.asm.stur(REG_TEMP, stack_reg, offset);
                 } else {
