@@ -29,12 +29,12 @@ let ALLOCATABLE_REGS: RegSet[Register] = RegSet[Register]::new(
     R0 , R1 , R2 , R3 ,
     R4 , R5 , R6 , R7 ,
     R8 , R9 , R10, R11,
-    R12, R13, R14, R15,
-                   R19,
+    // R12, R13, R14, R15, (disabled for testing for now)
+    //                R19, (disabled for testing for now)
     // R16 is REG_TEMP
     // R17 and R18 are platform registers
-    R20, R21, R22, R23,
-    R24, R25, R26, R27,
+    // R20, R21, R22, R23, (disabled for testing for now)
+    // R24, R25, R26, R27, (disabled for testing for now)
     // R28 is REG_THREAD
     // R29 is FP
     // R30 is LR
@@ -910,14 +910,32 @@ impl CodeGen for CodeGenArm64 {
                     assert(ty == Type::Float64);
                     self.asm.str_imm_d(src.getFloatRegister(), stack_reg, offset);
                 }
-            } else {
-                assert(src.isRegister());
+            } else if src.isRegister() {
+                let src = src.getRegister();
+
                 if ty == Type::Int64 || ty == Type::Ptr {
-                    self.asm.stur(src.getRegister(), stack_reg, offset);
+                    self.asm.stur(src, stack_reg, offset);
                 } else if ty == Type::Int32 || ty == Type::Char {
-                    self.asm.stur_w(src.getRegister(), stack_reg, offset);
+                    self.asm.stur_w(src, stack_reg, offset);
                 } else if ty == Type::Bool || ty == Type::UInt8 {
-                    self.asm.strb_imm(src.getRegister(), stack_reg, offset);
+                    self.asm.strb_imm(src, stack_reg, offset);
+                } else {
+                    unimplemented();
+                }
+            } else {
+                let src_slot = src.getStack();
+                assert(src_slot.isFp());
+                let src_offset = src_slot.getOffset();
+
+                if ty == Type::UInt8 || ty == Type::Bool {
+                    self.asm.ldurb(REG_TEMP, REG_FP, src_offset);
+                    self.asm.sturb(REG_TEMP, stack_reg, offset);
+                } else if ty == Type::Int32 || ty == Type::Char {
+                    self.asm.ldur_w(REG_TEMP, REG_FP, src_offset);
+                    self.asm.stur_w(REG_TEMP, stack_reg, offset);
+                } else if ty == Type::Int64 || ty == Type::Ptr {
+                    self.asm.ldur(REG_TEMP, REG_FP, src_offset);
+                    self.asm.stur(REG_TEMP, stack_reg, offset);
                 } else {
                     unimplemented();
                 }
