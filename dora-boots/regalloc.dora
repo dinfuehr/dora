@@ -188,7 +188,9 @@ impl SimpleRegisterAllocator {
         self.registers().protected.clear();
         self.float_registers().protected.clear();
 
-        self.freeDeadValues(inst);
+        self.freeDeadInputs(inst);
+        self.freeDeadOutput(inst);
+        self.freeDeadTemps(inst);
         self.currentInst = None[Inst];
     }
 
@@ -421,7 +423,23 @@ impl SimpleRegisterAllocator {
         offset
     }
 
-    fn freeDeadValues(inst: Inst) {
+    fn freeDeadOutput(inst: Inst) {
+        let loc_data = inst.getLocationData();
+
+        if loc_data.hasOutput() && !inst.hasUses() && !loc_data.getOutput().hasStack() {
+            self.freeRegisterInLocation(loc_data.getOutput().getLocation());
+        }
+    }
+
+    fn freeDeadTemps(inst: Inst) {
+        let loc_data = inst.getLocationData();
+
+        for temp in loc_data.getTemps() {
+            self.freeRegisterInLocation(temp.getLocation());
+        }
+    }
+
+    fn freeDeadInputs(inst: Inst) {
         let loc_data = inst.getLocationData();
 
         for input in inst.getInputs() {
@@ -434,14 +452,6 @@ impl SimpleRegisterAllocator {
                 self.registers().free(value);
                 self.float_registers().free(value);
             }
-        }
-
-        if loc_data.hasOutput() && !inst.hasUses() && !loc_data.getOutput().hasStack() {
-            self.freeRegisterInLocation(loc_data.getOutput().getLocation());
-        }
-
-        for temp in loc_data.getTemps() {
-            self.freeRegisterInLocation(temp.getLocation());
         }
     }
 
