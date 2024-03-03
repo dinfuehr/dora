@@ -174,23 +174,27 @@ impl SimpleRegisterAllocator {
         self.allocateFixedInputs(inst);
         self.allocateFixedTemps(inst);
         self.allocateFixedOutputRegister(inst);
+
         self.allocateArbitraryInputs(inst);
         self.allocateArbitraryTemps(inst);
-
-        if inst.isCall() {
-            self.spillLiveRegisters(inst);
-        }
-
         self.allocateOutputRegister(inst);
 
         if inst.needsRegisterSnapshot() {
             self.snapshotRegisters(inst);
         }
 
+        // Free inputs that are dead after this call before
+        // spilling live registers for calls. This avoids spilling
+        // of registers that are dead after the call.
+        self.freeDeadInputs(inst);
+
+        if inst.isCall() {
+            self.spillLiveRegisters(inst);
+        }
+
         self.registers().protected.clear();
         self.float_registers().protected.clear();
 
-        self.freeDeadInputs(inst);
         self.freeDeadOutput(inst);
         self.freeDeadTemps(inst);
         self.currentInst = None[Inst];
