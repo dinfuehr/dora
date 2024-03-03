@@ -313,6 +313,7 @@ impl SimpleRegisterAllocator {
             return;
         }
 
+        assert(loc_data.outputOverlaps());
         let output = loc_data.getOutput();
 
         if !output.getPolicy().isAnyFixed() {

@@ -1391,6 +1391,7 @@ pub class LocationData {
     inputs: Array[Option[Operand]],
     temps: Vec[Operand],
     output: Option[Operand],
+    output_overlaps: Bool,
     hint: Location,
     spill_slot: Option[Int32],
     snapshot: Option[RegisterSnapshot],
@@ -1405,6 +1406,7 @@ impl LocationData {
             inputs,
             Vec[Operand]::new(),
             None[Operand],
+            true,
             Location::None,
             None[Int32],
             None[RegisterSnapshot],
@@ -1418,20 +1420,26 @@ impl LocationData {
             inputs,
             Vec[Operand]::new(),
             None[Operand],
+            true,
             Location::None,
             None[Int32],
             None[RegisterSnapshot],
         )
     }
 
-    pub fn setOutput(operand: Operand) {
+    pub fn setOutput(operand: Operand, overlaps: Bool) {
         assert(self.output.isNone());
         self.output = Some(operand);
+        self.output_overlaps = overlaps;
     }
 
     pub fn setInput(idx: Int64, operand: Operand) {
         assert(self.inputs(idx).isNone());
         self.inputs(idx) = Some[Operand](operand);
+    }
+
+    pub fn outputOverlaps(): Bool {
+        self.output_overlaps
     }
 
     pub fn hasOutput(): Bool {

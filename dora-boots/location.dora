@@ -311,22 +311,22 @@ fn annotateCall(inst: Inst, loc: LocationData, codegen: CodeGen, ci: Compilation
 
 pub fn useOutputRegister(inst: Inst) {
     let loc = inst.getLocationData();
-    loc.setOutput(Operand::new(Policy::AnyReg, Location::None));
+    loc.setOutput(Operand::new(Policy::AnyReg, Location::None), true);
 }
 
 pub fn useOutputRegisterFixed(inst: Inst, reg: Register) {
     let loc = inst.getLocationData();
-    loc.setOutput(Operand::new(Policy::FixedReg, Location::Reg(reg)));
+    loc.setOutput(Operand::new(Policy::FixedReg, Location::Reg(reg)), true);
 }
 
 pub fn useOutputFloatRegister(inst: Inst) {
     let loc = inst.getLocationData();
-    loc.setOutput(Operand::new(Policy::AnyFloatReg, Location::None));
+    loc.setOutput(Operand::new(Policy::AnyFloatReg, Location::None), true);
 }
 
 pub fn useOutputFloatRegisterFixed(inst: Inst, reg: FloatRegister) {
     let loc = inst.getLocationData();
-    loc.setOutput(Operand::new(Policy::FixedFloatReg, Location::FloatReg(reg)));
+    loc.setOutput(Operand::new(Policy::FixedFloatReg, Location::FloatReg(reg)), true);
 }
 
 pub fn useInputRegister(inst: Inst, idx: Int64) {
@@ -363,19 +363,19 @@ pub fn useInputFloatStack(inst: Inst, idx: Int64, stack: StackSlot) {
 
 pub fn useOutputSameAsFirstInput(inst: Inst) {
     let loc = inst.getLocationData();
-    loc.setOutput(Operand::new(Policy::SameAsFirstInput, Location::None));
+    loc.setOutput(Operand::new(Policy::SameAsFirstInput, Location::None), true);
 }
 
 pub fn useOutputFloatStack(inst: Inst, stack: Location) {
     assert(stack.isStack());
     let loc = inst.getLocationData();
-    loc.setOutput(Operand::new(Policy::FixedFloatStack, stack));
+    loc.setOutput(Operand::new(Policy::FixedFloatStack, stack), true);
 }
 
 pub fn useOutputStack(inst: Inst, stack: Location) {
     assert(stack.isStack());
     let loc = inst.getLocationData();
-    loc.setOutput(Operand::new(Policy::FixedStack, stack));
+    loc.setOutput(Operand::new(Policy::FixedStack, stack), true);
 }
 
 pub fn addTempRegister(inst: Inst) {
