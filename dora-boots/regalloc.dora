@@ -171,9 +171,11 @@ impl SimpleRegisterAllocator {
         assert(self.float_registers().protected.isEmpty());
 
         self.currentInst = Some(inst);
-        self.allocateFixedRegisters(inst);
+        self.allocateFixedInputs(inst);
+        self.allocateFixedTemps(inst);
         self.allocateFixedOutputRegister(inst);
-        self.allocateArbitraryRegisters(inst);
+        self.allocateArbitraryInputs(inst);
+        self.allocateArbitraryTemps(inst);
 
         if inst.isCall() {
             self.spillLiveRegisters(inst);
@@ -211,8 +213,7 @@ impl SimpleRegisterAllocator {
         }
     }
 
-    fn allocateFixedRegisters(inst: Inst) {
-        assert(self.registers().protected.isEmpty());
+    fn allocateFixedInputs(inst: Inst) {
         let loc_data = inst.getLocationData();
         
         for input in inst.getInputs() {
@@ -223,6 +224,10 @@ impl SimpleRegisterAllocator {
                 self.allocateFixedRegister(loc.getPolicy(), loc.getLocation(), input.getValue());
             }
         }
+    }
+
+    fn allocateFixedTemps(inst: Inst) {
+        let loc_data = inst.getLocationData();
 
         for temp in loc_data.getTemps() {
             if temp.getPolicy().isAnyFixedReg() {
@@ -246,7 +251,7 @@ impl SimpleRegisterAllocator {
         }
     }
 
-    fn allocateArbitraryRegisters(inst: Inst) {
+    fn allocateArbitraryInputs(inst: Inst) {
         let loc_data = inst.getLocationData();
 
         for input in inst.getInputs() {
@@ -264,6 +269,10 @@ impl SimpleRegisterAllocator {
                 self.currentInst.getOrPanic().insertBefore(inst);
             }
         }
+    }
+
+    fn allocateArbitraryTemps(inst: Inst) {
+        let loc_data = inst.getLocationData();
 
         for loc in loc_data.getTemps() {
             if loc.getPolicy().isAnyArbitraryReg() {
