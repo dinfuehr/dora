@@ -173,11 +173,11 @@ impl SimpleRegisterAllocator {
         self.currentInst = Some(inst);
         self.allocateFixedInputs(inst);
         self.allocateFixedTemps(inst);
-        self.allocateFixedOutputRegister(inst);
+        self.allocateFixedOutput(inst);
 
         self.allocateArbitraryInputs(inst);
         self.allocateArbitraryTemps(inst);
-        self.allocateOutputRegister(inst);
+        self.allocateArbitraryOutput(inst);
 
         if inst.needsRegisterSnapshot() {
             self.snapshotRegisters(inst);
@@ -187,6 +187,8 @@ impl SimpleRegisterAllocator {
         // spilling live registers for calls. This avoids spilling
         // of registers that are dead after the call.
         self.freeDeadInputs(inst);
+        self.freeDeadOutput(inst);
+        self.freeDeadTemps(inst);
 
         if inst.isCall() {
             self.spillLiveRegisters(inst);
@@ -195,8 +197,6 @@ impl SimpleRegisterAllocator {
         self.registers().protected.clear();
         self.float_registers().protected.clear();
 
-        self.freeDeadOutput(inst);
-        self.freeDeadTemps(inst);
         self.currentInst = None[Inst];
     }
 
@@ -310,7 +310,7 @@ impl SimpleRegisterAllocator {
         }
     }
 
-    fn allocateFixedOutputRegister(inst: Inst) {
+    fn allocateFixedOutput(inst: Inst) {
         let loc_data = inst.getLocationData();
 
         if !loc_data.hasOutput() {
@@ -346,7 +346,7 @@ impl SimpleRegisterAllocator {
         registers.protect(dest);
     }
 
-    fn allocateOutputRegister(inst: Inst) {
+    fn allocateArbitraryOutput(inst: Inst) {
         let loc_data = inst.getLocationData();
 
         if !loc_data.hasOutput() {
@@ -472,8 +472,8 @@ impl SimpleRegisterAllocator {
     fn freeRegisterInLocation(location: Location) {
         match location {
             Location::None => unreachable[()](),
-            Location::Reg(reg) => self.registers().freeRegister(reg),
-            Location::FloatReg(reg) => self.float_registers().freeRegister(reg),
+            Location::Reg(reg) => self.registers().freeRegisterRaw(reg),
+            Location::FloatReg(reg) => self.float_registers().freeRegisterRaw(reg),
             Location::Stack(slot) => unreachable[()](),
         }
     }
