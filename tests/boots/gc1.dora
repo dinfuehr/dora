@@ -1,0 +1,9 @@
+//= boots
+
+fn main() {
+    f();
+}
+
+@optimizeImmediately fn f() {
+    std::forceCollect();
+}

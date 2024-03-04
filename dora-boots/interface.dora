@@ -276,6 +276,15 @@ impl GcPointTable {
         )
     }
 
+    pub fn insert(offset: Int32, point: GcPoint) {
+        if self.entries.last().isSome() {
+            let last = self.entries.last().getOrPanic();
+            assert(last.0 <= offset);
+        }
+
+        self.entries.push((offset, point));
+    }
+
     pub fn size(): Int64 {
         self.entries.size()
     }
@@ -293,6 +302,12 @@ pub class GcPoint {
 }
 
 impl GcPoint {
+    pub static fn new(): GcPoint {
+        GcPoint(
+            Vec[Int32]::new(),
+        )
+    }
+
     pub fn size(): Int64 {
         self.offsets.size()
     }

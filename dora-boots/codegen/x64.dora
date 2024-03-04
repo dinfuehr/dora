@@ -10,7 +10,7 @@ use package::interface::{TRAP_DIV0, TRAP_OVERFLOW, TRAP_INDEX_OUT_OF_BOUNDS, LAM
 use package::interface::{THREAD_LOCAL_DATA_TLAB_TOP_OFFSET, THREAD_LOCAL_DATA_TLAB_END_OFFSET, THREAD_LOCAL_DATA_STACK_LIMIT_OFFSET, THREAD_LOCAL_DATA_STATE_OFFSET, THREAD_LOCAL_DATA_MARKING_OFFSET, OBJECT_HEADER_LENGTH, OBJECT_METADATA_OFFSET, METADATA_REMEMBERED_BIT, ARRAY_HEADER_LENGTH};
 use package::location::{useInputFloatRegisterFixed, useInputRegister, useInputRegisterFixed, useOutputRegisterFixed, useOutputSameAsFirstInput, addTempRegisterFixed};
 use package::graph::{Inst, Op, LocationData, RegisterSnapshot, Type};
-use package::{CodeDescriptor, CommentTable, GcPointTable, LazyCompilationData, LazyCompilationSiteVirtual, LazyCompilationSiteLambda, LocationTable};
+use package::{CodeDescriptor, CommentTable, GcPoint, GcPointTable, LazyCompilationData, LazyCompilationSiteVirtual, LazyCompilationSiteLambda, LocationTable};
 
 let REG_PARAMS: Array[Register] = Array[Register]::new(RDI, RSI, RDX, RCX, R8, R9);
 let FLOAT_REG_PARAMS: Array[FloatRegister] = Array[FloatRegister]::new(XMM0, XMM1, XMM2, XMM3, XMM4, XMM5, XMM6, XMM7);
@@ -336,6 +336,7 @@ impl CodeGenX64 {
 
         self.lazyCompilation.insert(pos, LazyCompilationSite::Direct(site));
         self.locations.insert(pos, location);
+        self.gcPoints.insert(pos, GcPoint::new());
     }
 
     fn emitVirtualCall(obj: Register, tmp1: Register, tmp2: Register, inst: Inst, vtable_index: Int32, site: LazyCompilationSite) {
@@ -353,6 +354,7 @@ impl CodeGenX64 {
 
         self.lazyCompilation.insert(pos, site);
         self.locations.insert(pos, location);
+        self.gcPoints.insert(pos, GcPoint::new());
     }
 }
 
