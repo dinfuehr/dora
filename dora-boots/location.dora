@@ -44,13 +44,13 @@ impl LocationAnnotation {
 
                 if inst.getValueType().isAnyFloat() {
                     if location.isFloatRegister() {
-                        useOutputFloatRegisterFixed(inst, location.getFloatRegister());
+                        useOutputFloatRegisterFixed(inst, location.getFloatRegister(), false);
                     } else  {
                         useOutputFloatStack(inst, location);
                     }
                 } else {
                     if location.isRegister() {
-                        useOutputRegisterFixed(inst, location.getRegister());
+                        useOutputRegisterFixed(inst, location.getRegister(), false);
                     } else  {
                         useOutputStack(inst, location);
                     }
@@ -296,13 +296,15 @@ fn annotateCall(inst: Inst, loc: LocationData, codegen: CodeGen, ci: Compilation
 
     let ty = inst.getValueType();
 
-    if !ty.isUnit() {
+    if ty.isUnit() {
+        inst.getLocationData().setOutputOverlaps(false);
+    } else {
         if ty.isAnyFloat() {
             let reg = codegen.getFloatReturnRegister();
-            useOutputFloatRegisterFixed(inst, reg);
+            useOutputFloatRegisterFixed(inst, reg, false);
         } else {
             let reg = codegen.getReturnRegister();
-            useOutputRegisterFixed(inst, reg);
+            useOutputRegisterFixed(inst, reg, false);
         }
     }
 
@@ -314,9 +316,9 @@ pub fn useOutputRegister(inst: Inst) {
     loc.setOutput(Operand::new(Policy::AnyReg, Location::None), true);
 }
 
-pub fn useOutputRegisterFixed(inst: Inst, reg: Register) {
+pub fn useOutputRegisterFixed(inst: Inst, reg: Register, output_overlaps: Bool) {
     let loc = inst.getLocationData();
-    loc.setOutput(Operand::new(Policy::FixedReg, Location::Reg(reg)), true);
+    loc.setOutput(Operand::new(Policy::FixedReg, Location::Reg(reg)), output_overlaps);
 }
 
 pub fn useOutputFloatRegister(inst: Inst) {
@@ -324,9 +326,9 @@ pub fn useOutputFloatRegister(inst: Inst) {
     loc.setOutput(Operand::new(Policy::AnyFloatReg, Location::None), true);
 }
 
-pub fn useOutputFloatRegisterFixed(inst: Inst, reg: FloatRegister) {
+pub fn useOutputFloatRegisterFixed(inst: Inst, reg: FloatRegister, output_overlaps: Bool) {
     let loc = inst.getLocationData();
-    loc.setOutput(Operand::new(Policy::FixedFloatReg, Location::FloatReg(reg)), true);
+    loc.setOutput(Operand::new(Policy::FixedFloatReg, Location::FloatReg(reg)), output_overlaps);
 }
 
 pub fn useInputRegister(inst: Inst, idx: Int64) {

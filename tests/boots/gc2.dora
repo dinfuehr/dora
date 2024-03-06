@@ -1,0 +1,22 @@
+//= boots
+
+fn main() {
+    let foo = Foo(47);
+    f(foo as Bar);
+}
+
+@optimizeImmediately fn f(bar: Bar) {
+    bar.bar();
+}
+
+trait Bar {
+    fn bar();
+}
+
+class Foo(value: Int64)
+
+impl Bar for Foo {
+    fn bar() {
+        std::forceCollect();
+    }
+}

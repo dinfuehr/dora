@@ -727,14 +727,14 @@ impl CodeGen for CodeGenX64 {
     fn setLocationConstraintsCheckedDiv(inst: Inst, loc: LocationData) {
         useInputRegister(inst, 0);
         useInputRegister(inst, 1);
-        useOutputRegisterFixed(inst, RAX);
+        useOutputRegisterFixed(inst, RAX, true);
         addTempRegisterFixed(inst, RDX);
     }
 
     fn setLocationConstraintsCheckedMod(inst: Inst, loc: LocationData) {
         useInputRegister(inst, 0);
         useInputRegister(inst, 1);
-        useOutputRegisterFixed(inst, RDX);
+        useOutputRegisterFixed(inst, RDX, true);
         addTempRegisterFixed(inst, RAX);
     }
 

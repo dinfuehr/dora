@@ -663,6 +663,12 @@ impl Op {
     }
 }
 
+impl Stringable for Op {
+    fn toString(): String {
+        opName(self)
+    }
+}
+
 pub fn opName(op: Op): String {
     match op {
         Op::NullConst => "Const.Null",
@@ -1440,6 +1446,10 @@ impl LocationData {
 
     pub fn outputOverlaps(): Bool {
         self.output_overlaps
+    }
+
+    pub fn setOutputOverlaps(overlaps: Bool) {
+        self.output_overlaps = overlaps;
     }
 
     pub fn hasOutput(): Bool {

@@ -171,27 +171,46 @@ impl SimpleRegisterAllocator {
         assert(self.float_registers().protected.isEmpty());
 
         self.currentInst = Some(inst);
-        self.allocateFixedInputs(inst);
-        self.allocateFixedTemps(inst);
-        self.allocateFixedOutput(inst);
+        let outputOverlaps = inst.getLocationData().outputOverlaps();
 
-        self.allocateArbitraryInputs(inst);
-        self.allocateArbitraryTemps(inst);
-        self.allocateArbitraryOutput(inst);
+        if outputOverlaps {
+            self.allocateFixedInputs(inst);
+            self.allocateFixedTemps(inst);
+            self.allocateFixedOutput(inst);
 
-        if inst.needsRegisterSnapshot() {
-            self.snapshotRegisters(inst);
-        }
+            self.allocateArbitraryInputs(inst);
+            self.allocateArbitraryTemps(inst);
+            self.allocateArbitraryOutput(inst);
 
-        // Free inputs that are dead after this call before
-        // spilling live registers for calls. This avoids spilling
-        // of registers that are dead after the call.
-        self.freeDeadInputs(inst);
-        self.freeDeadOutput(inst);
-        self.freeDeadTemps(inst);
+            if inst.needsRegisterSnapshot() {
+                self.snapshotRegisters(inst);
+            }
 
-        if inst.isCall() {
-            self.spillLiveRegisters(inst);
+            self.freeDeadInputs(inst);
+            self.freeDeadOutput(inst);
+            self.freeDeadTemps(inst);
+
+            assert(!inst.isCall());
+        } else {
+            self.allocateFixedInputs(inst);
+            self.allocateFixedTemps(inst);
+
+            self.allocateArbitraryInputs(inst);
+            self.allocateArbitraryTemps(inst);
+
+            self.freeDeadInputs(inst);
+            self.freeDeadTemps(inst);
+
+            assert(!inst.needsRegisterSnapshot());
+
+            if inst.isCall() {
+                self.spillLiveRegisters();
+            }
+
+            self.allocateFixedOutput(inst);
+            self.allocateArbitraryOutput(inst);
+
+            self.freeDeadOutput(inst);
         }
 
         self.registers().protected.clear();
@@ -200,18 +219,13 @@ impl SimpleRegisterAllocator {
         self.currentInst = None[Inst];
     }
 
-    fn spillLiveRegisters(call: Inst) {
-        self.spillLiveRegistersGeneric[Register](self.registers(), call);
-        self.spillLiveRegistersGeneric[FloatRegister](self.float_registers(), call);
+    fn spillLiveRegisters() {
+        self.spillLiveRegistersGeneric[Register](self.registers());
+        self.spillLiveRegistersGeneric[FloatRegister](self.float_registers());
     }
 
-    fn spillLiveRegistersGeneric[T: RegisterType](registers: RegisterTracker[T], call: Inst) {
+    fn spillLiveRegistersGeneric[T: RegisterType](registers: RegisterTracker[T]) {
         for (reg, inst) in registers.data {
-            if call === inst {
-                // Do not spill output of call instruction.
-                continue;
-            }
-
             self.spill(inst);
             registers.freeRegisterRaw(reg);
         }
@@ -317,7 +331,6 @@ impl SimpleRegisterAllocator {
             return;
         }
 
-        assert(loc_data.outputOverlaps());
         let output = loc_data.getOutput();
 
         if !output.getPolicy().isAnyFixed() {
