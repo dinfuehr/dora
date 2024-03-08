@@ -196,7 +196,7 @@ impl GraphDumper {
 
         let loc = inst.getLocationData();
 
-        if !loc.hasInput(idx) {
+        if !loc.hasInputAt(idx) {
             return;
         }
 

@@ -1465,12 +1465,20 @@ impl LocationData {
         self.output = Some(Operand(Policy::None, operand));
     }
 
-    pub fn hasInput(idx: Int64): Bool {
+    pub fn hasInputAt(idx: Int64): Bool {
         self.inputs(idx).isSome()
+    }
+
+    pub fn hasInput(): Bool {
+        !self.inputs.isEmpty()
     }
 
     pub fn getInput(idx: Int64): Operand {
         self.inputs.get(idx).getOrPanic()
+    }
+
+    pub fn hasTemp(): Bool {
+        !self.temps.isEmpty()
     }
 
     pub fn getTemps(): Vec[Operand] {

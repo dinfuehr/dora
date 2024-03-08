@@ -529,31 +529,31 @@ impl CodeGen for CodeGenArm64 {
     fn setLocationConstraintsCheckedAdd(inst: Inst, loc: LocationData) {
         useInputRegister(inst, 0);
         useInputRegister(inst, 1);
-        useOutputRegister(inst);
+        useOutputRegister(inst, true);
     }
 
     fn setLocationConstraintsCheckedSub(inst: Inst, loc: LocationData) {
         useInputRegister(inst, 0);
         useInputRegister(inst, 1);
-        useOutputRegister(inst);
+        useOutputRegister(inst, true);
     }
 
     fn setLocationConstraintsCheckedMul(inst: Inst, loc: LocationData) {
         useInputRegister(inst, 0);
         useInputRegister(inst, 1);
-        useOutputRegister(inst);
+        useOutputRegister(inst, true);
     }
 
     fn setLocationConstraintsCheckedDiv(inst: Inst, loc: LocationData) {
         useInputRegister(inst, 0);
         useInputRegister(inst, 1);
-        useOutputRegister(inst);
+        useOutputRegister(inst, true);
     }
 
     fn setLocationConstraintsCheckedMod(inst: Inst, loc: LocationData) {
         useInputRegister(inst, 0);
         useInputRegister(inst, 1);
-        useOutputRegister(inst);
+        useOutputRegister(inst, true);
     }
 
     fn setLocationConstraintsReturn(inst: Inst, loc: LocationData) {
