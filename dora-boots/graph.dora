@@ -7,6 +7,7 @@ use std::traits::Iterator;
 use package::assembler::{FloatRegister, Label, Register, RegMap, RegSet};
 use package::bytecode::data::{BytecodeType, ClassId, FctId, FieldId, GlobalId};
 use package::dominator::buildDominatorTree;
+use package::interface::GcPoint;
 use package::regalloc::RegisterTracker;
 
 pub use package::graph::ty::Type;
@@ -1161,6 +1162,7 @@ impl Inst {
             Op::InvokeStatic => true,
             Op::InvokeDirect => true,
             Op::InvokeVirtual => true,
+            Op::InvokeLambda => true,
             _ => false,
         }
     }
@@ -1401,6 +1403,7 @@ pub class LocationData {
     hint: Location,
     spill_slot: Option[Int32],
     snapshot: Option[RegisterSnapshot],
+    gc_point: Option[GcPoint],
 }
 
 impl LocationData {
@@ -1416,6 +1419,7 @@ impl LocationData {
             Location::None,
             None[Int32],
             None[RegisterSnapshot],
+            None[GcPoint],
         )
     }
 
@@ -1430,6 +1434,7 @@ impl LocationData {
             Location::None,
             None[Int32],
             None[RegisterSnapshot],
+            None[GcPoint],
         )
     }
 
@@ -1522,6 +1527,14 @@ impl LocationData {
 
     pub fn getRegisterSnapshot(): RegisterSnapshot {
         self.snapshot.getOrPanic()
+    }
+
+    pub fn setGcPoint(point: GcPoint) {
+        self.gc_point = Some[GcPoint](point);
+    }
+
+    pub fn getGcPoint(): GcPoint {
+        self.gc_point.getOrPanic()
     }
 }
 

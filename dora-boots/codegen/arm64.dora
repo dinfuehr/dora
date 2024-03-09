@@ -377,7 +377,7 @@ impl CodeGenArm64 {
 
         self.lazyCompilation.insert(pos, LazyCompilationSite::Direct(site));
         self.locations.insert(pos, location);
-        self.gcPoints.insert(pos, GcPoint::new());
+        self.gcPoints.insert(pos, inst.getLocationData().getGcPoint());
     }
 
     fn emitVirtualCall(obj: Register, tmp1: Register, tmp2: Register, inst: Inst, vtable_index: Int32, site: LazyCompilationSite) {
@@ -395,7 +395,7 @@ impl CodeGenArm64 {
 
         self.lazyCompilation.insert(pos, site);
         self.locations.insert(pos, location);
-        self.gcPoints.insert(pos, GcPoint::new());
+        self.gcPoints.insert(pos, inst.getLocationData().getGcPoint());
     }
 }
 

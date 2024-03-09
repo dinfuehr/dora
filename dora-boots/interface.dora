@@ -308,6 +308,10 @@ impl GcPoint {
         )
     }
 
+    pub static fn from(offsets: Vec[Int32]): GcPoint {
+        GcPoint(offsets)
+    }
+
     pub fn size(): Int64 {
         self.offsets.size()
     }

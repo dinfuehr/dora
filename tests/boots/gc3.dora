@@ -1,0 +1,12 @@
+//= boots
+
+fn main() {
+    let arg = "test";
+    let result = f(arg);
+    assert(arg === result);
+}
+
+@optimizeImmediately fn f(a: String): String {
+    std::forceCollect();
+    a
+}
