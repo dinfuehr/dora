@@ -1,5 +1,5 @@
 use package::bytecode::{ConstPoolId, Location};
-use package::interface::{Address, Architecture, CompilationInfo, ConstPool, ConstPoolEntry, ConstPoolValue, config, getFunctionAddress, getFieldOffset, getClassSize, getClassPointer, getClassPointerForLambda, getFunctionVtableIndex};
+use package::interface::{Address, Architecture, CompilationInfo, ConstPool, ConstPoolEntry, ConstPoolValue, config, getFunctionAddress, getFieldOffset, getClassSize, getClassPointer, getClassPointerForLambda, getFunctionVtableIndex, getGlobalValueAddress};
 use package::interface::{THREAD_LOCAL_DATA_STACK_LIMIT_OFFSET, THREAD_LOCAL_DATA_STATE_OFFSET, THREAD_LOCAL_DATA_MARKING_OFFSET, OBJECT_HEADER_LENGTH, OBJECT_METADATA_OFFSET, METADATA_REMEMBERED_BIT, ARRAY_HEADER_LENGTH, LAMBDA_SIZE};
 use package::interface::{THREAD_LOCAL_DATA_TLAB_TOP_OFFSET, THREAD_LOCAL_DATA_TLAB_END_OFFSET};
 use package::interface::{TRAP_DIV0, TRAP_OVERFLOW, TRAP_INDEX_OUT_OF_BOUNDS, PTR_SIZE};
@@ -1249,6 +1249,31 @@ impl CodeGen for CodeGenArm64 {
 
         let classptr = getClassPointerForLambda(class_info.fct_id, class_info.type_params);
         self.emitObjectInitialization(obj, size, classptr, REG_TEMP);
+    }
+
+    fn emitLoadGlobal(inst: Inst) {
+        let loc = inst.getLocationData();
+
+        let global_id = inst.getGlobalId();
+        let value_address = getGlobalValueAddress(global_id);
+        self.mov_imm(REG_TEMP, value_address.value);
+
+        let ty = inst.getValueType();
+
+        match ty {
+            Type::Int32 => {
+                let dest = loc.getOutput().getRegister();
+                self.asm.ldr_imm_w(dest, REG_TEMP, 0i32);
+            },
+
+            _ => {
+                unimplemented();
+            }
+        }
+    }
+
+    fn emitStoreGlobal(inst: Inst) {
+        unimplemented();
     }
 
     fn finalize(): CodeDescriptor {

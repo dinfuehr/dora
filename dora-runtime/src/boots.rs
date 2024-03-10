@@ -2,7 +2,7 @@ use std::mem;
 use std::ptr;
 
 use dora_bytecode::BytecodeTypeArray;
-use dora_bytecode::{ClassId, FunctionId};
+use dora_bytecode::{ClassId, FunctionId, GlobalId};
 
 use crate::boots::deserializer::{decode_code_descriptor, ByteReader};
 use crate::boots::serializer::allocate_encoded_compilation_info;
@@ -110,6 +110,17 @@ pub fn get_class_pointer_for_lambda(data: Handle<UInt8Array>) -> Address {
     let id = crate::vm::ensure_class_instance_for_lambda(vm, fct_id, type_params);
     let cls = vm.class_instances.idx(id);
     cls.vtblptr()
+}
+
+pub fn get_global_value_address(id: u32) -> Address {
+    let vm = get_vm();
+
+    let global_id = GlobalId(id);
+
+    vm.global_variable_memory
+        .as_ref()
+        .unwrap()
+        .address_value(global_id)
 }
 
 pub fn get_class_size(data: Handle<UInt8Array>) -> u32 {

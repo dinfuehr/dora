@@ -242,6 +242,11 @@ fn emitInst(codegen: CodeGen, inst: Inst) {
             codegen.emitNewLambda(inst);
         },
 
+        Op::LoadGlobal => {
+            codegen.emitComment("LoadGlobal");
+            codegen.emitLoadGlobal(inst);
+        },
+
         _ => {
             println("unsupported op ${inst.op().name()}");
             unreachable[()]();
@@ -321,6 +326,8 @@ pub trait CodeGen {
     fn emitStoreArray(inst: Inst);
     fn emitNewObject(inst: Inst);
     fn emitNewLambda(inst: Inst);
+    fn emitLoadGlobal(inst: Inst);
+    fn emitStoreGlobal(inst: Inst);
 
     fn emitComment(comment: String);
 }

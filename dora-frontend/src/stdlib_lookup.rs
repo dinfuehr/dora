@@ -505,6 +505,12 @@ fn resolve_boots(sa: &mut Sema) {
         "getClassPointerRaw",
         NativeFunction::BootsGetClassPointer,
     );
+    native_fct(
+        sa,
+        boots_module_id,
+        "getGlobalValueAddressRaw",
+        NativeFunction::BootsGetGlobalValueAddressRaw,
+    );
 }
 
 fn resolve_thread(sa: &mut Sema, stdlib_id: ModuleDefinitionId) {

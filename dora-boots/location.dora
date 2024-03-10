@@ -220,6 +220,10 @@ impl LocationAnnotation {
                 useOutputRegister(inst, true);
             },
 
+            Op::LoadGlobal => {
+                useOutputRegister(inst,  false);
+            },
+
             _ => {
                 println("unsupported op ${inst.op().name()}");
                 unreachable[()]();

@@ -1,0 +1,13 @@
+//= boots
+//= ignore
+
+let g: Int32 = 10;
+
+fn main() {
+    assert(g == 10i32);
+    assert(getg() == 10i32);
+}
+
+@optimizeImmediately fn getg(): Int32 {
+    g
+}

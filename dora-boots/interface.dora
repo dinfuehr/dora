@@ -1,7 +1,7 @@
 use std::collections::VecIter;
 
 use package::bytecode::{BytecodeFunction, BytecodeType, ConstPoolId, FctId, Location};
-use package::bytecode::data::{ClassId, FieldId};
+use package::bytecode::data::{ClassId, FieldId, GlobalId};
 use package::deserializer::decodeBytecodeFunction;
 use package::deserializer::decodeCompilationInfo;
 use package::deserializer::decodeConfig;
@@ -28,6 +28,7 @@ pub const TRAP_OVERFLOW: Int32 = 9i32;
 @internal pub fn getClassSizeRaw(data: Array[UInt8]): Int32;
 @internal pub fn getClassPointerRaw(data: Array[UInt8]): Int64;
 @internal pub fn getClassPointerForLambdaRaw(data: Array[UInt8]): Int64;
+@internal pub fn getGlobalValueAddressRaw(id: Int32): Int64;
 
 pub fn getFunctionAddress(fct_id: FctId, type_params: Array[BytecodeType]): Address {
     let writer = ByteWriter::new();
@@ -67,6 +68,10 @@ pub fn getClassPointer(cls_id: ClassId, type_params: Array[BytecodeType]): Addre
     writer.emitInt32(cls_id.value);
     encodeBytecodeTypeArray(writer, type_params);
     Address(getClassPointerRaw(writer.toArray()))
+}
+
+pub fn getGlobalValueAddress(id: GlobalId): Address {
+    Address(getGlobalValueAddressRaw(id.value))
 }
 
 pub class Config {

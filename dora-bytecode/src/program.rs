@@ -293,6 +293,7 @@ pub enum NativeFunction {
     BootsGetClassSize,
     BootsGetClassPointer,
     BootsGetClassPointerForLambda,
+    BootsGetGlobalValueAddressRaw,
 }
 
 #[derive(Copy, Clone, Debug, PartialEq, Eq, Decode, Encode)]

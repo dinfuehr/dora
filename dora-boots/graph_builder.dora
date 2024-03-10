@@ -349,10 +349,10 @@ impl SsaGen {
             },
 
             BytecodeInstruction::LoadGlobal(dest, global_id) => {
-                unimplemented();
+                self.emitLoadGlobal(dest, global_id);
             },
             BytecodeInstruction::StoreGlobal(src, global_id) => {
-                unimplemented();
+                self.emitStoreGlobal(src, global_id);
             },
 
             BytecodeInstruction::PushRegister(src) => {
@@ -694,15 +694,21 @@ impl SsaGen {
         self.writeVariable(dest, self.current(), srcInst);
     }
 
-    fn emitLoadGlobal(dest: BytecodeRegister, glob: GlobalId, ty: Type) {
-        let globInst = createLoadGlobalInst(ty, glob);
+    fn emitLoadGlobal(dest: BytecodeRegister, glob: GlobalId) {
+        let destType = self.bc.registers(dest.value.toInt64());
+        let destType = Type::fromBytecodeType(destType);
+
+        let globInst = createLoadGlobalInst(destType, glob);
         self.current().appendInst(globInst);
         self.writeVariable(dest, self.current(), globInst);
     }
 
-    fn emitStoreGlobal(src: BytecodeRegister, glob: GlobalId, ty: Type) {
+    fn emitStoreGlobal(src: BytecodeRegister, glob: GlobalId) {
+        let srcType = self.bc.registers(src.value.toInt64());
+        let srcType = Type::fromBytecodeType(srcType);
+
         let srcInst = self.readVariable(src, self.current());
-        let globInst = createStoreGlobalInst(ty, glob, srcInst);
+        let globInst = createStoreGlobalInst(srcType, glob, srcInst);
         self.current().appendInst(globInst);
     }
 

@@ -185,6 +185,10 @@ pub fn connect_native_functions_to_implementation(vm: &mut VM) {
             boots::get_class_pointer_for_lambda as *const u8,
         ),
         (
+            NativeFunction::BootsGetGlobalValueAddressRaw,
+            boots::get_global_value_address as *const u8,
+        ),
+        (
             NativeFunction::BootsGetFunctionVtableIndex,
             boots::get_function_vtable_index as *const u8,
         ),

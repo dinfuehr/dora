@@ -1230,6 +1230,14 @@ impl CodeGen for CodeGenX64 {
         self.emitObjectInitialization(obj, size, classptr, REG_TEMP, FREG_TEMP);
     }
 
+    fn emitLoadGlobal(inst: Inst) {
+        unimplemented();
+    }
+
+    fn emitStoreGlobal(inst: Inst) {
+        unimplemented();
+    }
+
     fn finalize(): CodeDescriptor {
         self.emitDeferredCode();
         self.asm.resolveJumps();
