@@ -236,11 +236,6 @@ pub enum InternalFunction {
 #[derive(Copy, Clone, Debug, PartialEq, Eq, Hash, Decode, Encode)]
 #[allow(dead_code)]
 pub enum NativeFunction {
-    FatalError,
-    Abort,
-    Exit,
-    Print,
-    PrintLn,
     Argc,
     Argv,
     ForceCollect,

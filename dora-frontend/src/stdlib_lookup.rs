@@ -357,13 +357,8 @@ fn lookup_ordering(sa: &mut Sema, stdlib_id: ModuleDefinitionId) {
 }
 
 fn resolve_freestanding_stdlib(sa: &mut Sema, stdlib_id: ModuleDefinitionId) {
-    native_fct(sa, stdlib_id, "fatalError", NativeFunction::FatalError);
-    native_fct(sa, stdlib_id, "abort", NativeFunction::Abort);
-    native_fct(sa, stdlib_id, "exit", NativeFunction::Exit);
     intrinsic_fct(sa, stdlib_id, "unreachable", Intrinsic::Unreachable);
 
-    native_fct(sa, stdlib_id, "print", NativeFunction::Print);
-    native_fct(sa, stdlib_id, "println", NativeFunction::PrintLn);
     let fid = intrinsic_fct(sa, stdlib_id, "assert", Intrinsic::Assert);
     sa.known.functions.assert = Some(fid);
     intrinsic_fct(sa, stdlib_id, "debug", Intrinsic::Debug);

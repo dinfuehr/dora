@@ -7,15 +7,46 @@ use crate::stdlib;
 use crate::vm::VM;
 use dora_bytecode::program::InternalClass;
 use dora_bytecode::program::InternalFunction;
-use dora_bytecode::{ClassId, FunctionId, NativeFunction};
+use dora_bytecode::ModuleId;
+use dora_bytecode::{ClassId, FunctionId, NativeFunction, PackageId};
 
 pub fn connect_native_functions_to_implementation(vm: &mut VM) {
+    native_fct(
+        vm,
+        vm.program.stdlib_package_id,
+        "abort",
+        stdlib::abort as *const u8,
+    );
+
+    native_fct(
+        vm,
+        vm.program.stdlib_package_id,
+        "exit",
+        stdlib::exit as *const u8,
+    );
+
+    native_fct(
+        vm,
+        vm.program.stdlib_package_id,
+        "fatalError",
+        stdlib::fatal_error as *const u8,
+    );
+
+    native_fct(
+        vm,
+        vm.program.stdlib_package_id,
+        "print",
+        stdlib::print as *const u8,
+    );
+
+    native_fct(
+        vm,
+        vm.program.stdlib_package_id,
+        "println",
+        stdlib::println as *const u8,
+    );
+
     let mut mappings: HashMap<NativeFunction, *const u8> = HashMap::from([
-        (NativeFunction::Abort, stdlib::abort as *const u8),
-        (NativeFunction::Exit, stdlib::exit as *const u8),
-        (NativeFunction::FatalError, stdlib::fatal_error as *const u8),
-        (NativeFunction::Print, stdlib::print as *const u8),
-        (NativeFunction::PrintLn, stdlib::println as *const u8),
         (NativeFunction::Argc, stdlib::argc as *const u8),
         (NativeFunction::Argv, stdlib::argv as *const u8),
         (
@@ -227,13 +258,30 @@ pub fn connect_native_functions_to_implementation(vm: &mut VM) {
             if let Some(ptr) = mappings.remove(&native_function) {
                 let old = vm.native_methods.insert(fct_id, Address::from_ptr(ptr));
                 assert!(old.is_none());
-            } else {
+            } else if vm.native_methods.get(fct_id).is_none() {
                 panic!("unknown native function {}", fct.name);
             }
         }
     }
 
     assert!(mappings.is_empty());
+}
+
+fn native_fct(vm: &mut VM, package_id: PackageId, name: &str, ptr: *const u8) {
+    let package = &vm.program.packages[package_id.0 as usize];
+    let fct_id = lookup_fct(vm, package.root_module_id, name);
+    let old = vm.native_methods.insert(fct_id, Address::from_ptr(ptr));
+    assert!(old.is_none());
+}
+
+fn lookup_fct(vm: &mut VM, module_id: ModuleId, name: &str) -> FunctionId {
+    for (id, fct) in vm.program.functions.iter().enumerate() {
+        if fct.module_id == module_id && fct.name == name {
+            return FunctionId(id.try_into().expect("overflow"));
+        }
+    }
+
+    panic!("function {} not found.", name)
 }
 
 pub fn lookup_known_classes(vm: &mut VM) {
