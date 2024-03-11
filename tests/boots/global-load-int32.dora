@@ -1,5 +1,4 @@
 //= boots
-//= ignore
 
 let g: Int32 = 10;
 

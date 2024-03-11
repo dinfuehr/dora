@@ -5,7 +5,7 @@ use package::assembler::x64::{XMM0, XMM1, XMM2, XMM3, XMM4, XMM5, XMM6, XMM7, XM
 use package::assembler::{FloatRegister, Label, Register, RegSet};
 use package::bytecode::data::{ConstPoolId, Location};
 use package::codegen::{CODE_SIZE_ALIGNMENT, CodeGen};
-use package::interface::{Address, Architecture, CompilationInfo, ConstPool, ConstPoolEntry, ConstPoolValue, config, getFunctionAddress, LazyCompilationSite, LazyCompilationSiteDirect, getFieldOffset, getClassSize, getClassPointer, getClassPointerForLambda, getFunctionVtableIndex};
+use package::interface::{Address, Architecture, CompilationInfo, ConstPool, ConstPoolEntry, ConstPoolValue, config, getFunctionAddress, LazyCompilationSite, LazyCompilationSiteDirect, getFieldOffset, getClassSize, getClassPointer, getClassPointerForLambda, getFunctionVtableIndex, getGlobalValueAddress};
 use package::interface::{TRAP_DIV0, TRAP_OVERFLOW, TRAP_INDEX_OUT_OF_BOUNDS, LAMBDA_SIZE, PTR_SIZE};
 use package::interface::{THREAD_LOCAL_DATA_TLAB_TOP_OFFSET, THREAD_LOCAL_DATA_TLAB_END_OFFSET, THREAD_LOCAL_DATA_STACK_LIMIT_OFFSET, THREAD_LOCAL_DATA_STATE_OFFSET, THREAD_LOCAL_DATA_MARKING_OFFSET, OBJECT_HEADER_LENGTH, OBJECT_METADATA_OFFSET, METADATA_REMEMBERED_BIT, ARRAY_HEADER_LENGTH};
 use package::location::{useInputFloatRegisterFixed, useInputRegister, useInputRegisterFixed, useOutputRegisterFixed, useOutputSameAsFirstInput, addTempRegisterFixed};
@@ -1231,7 +1231,24 @@ impl CodeGen for CodeGenX64 {
     }
 
     fn emitLoadGlobal(inst: Inst) {
-        unimplemented();
+        let loc = inst.getLocationData();
+
+        let global_id = inst.getGlobalId();
+        let value_address = getGlobalValueAddress(global_id);
+        self.asm.movq_ri(REG_TEMP, Immediate(value_address.value));
+
+        let ty = inst.getValueType();
+
+        match ty {
+            Type::Int32 => {
+                let dest = loc.getOutput().getRegister();
+                self.asm.movl_ra(dest, AsmAddress::offset(REG_TEMP, 0i32));
+            },
+
+            _ => {
+                unimplemented();
+            }
+        }
     }
 
     fn emitStoreGlobal(inst: Inst) {
