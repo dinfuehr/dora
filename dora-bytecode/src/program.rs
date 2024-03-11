@@ -281,16 +281,6 @@ pub enum NativeFunction {
     SocketBind,
     SocketAccept,
     StringClone,
-    BootsGetSystemConfig,
-    BootsGetFunctionAddress,
-    BootsGetFunctionVtableIndex,
-    BootsGetFieldOffset,
-    BootsGetClassSize,
-    BootsGetClassPointer,
-    BootsGetClassPointerForLambda,
-    BootsGetGlobalValueAddressRaw,
-    BootsGetGlobalStateAddressRaw,
-    BootsHasGlobalInitialValueRaw,
 }
 
 #[derive(Copy, Clone, Debug, PartialEq, Eq, Decode, Encode)]

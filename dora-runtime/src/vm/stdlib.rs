@@ -11,40 +11,11 @@ use dora_bytecode::ModuleId;
 use dora_bytecode::{ClassId, FunctionId, NativeFunction, PackageId};
 
 pub fn connect_native_functions_to_implementation(vm: &mut VM) {
-    native_fct(
-        vm,
-        vm.program.stdlib_package_id,
-        "abort",
-        stdlib::abort as *const u8,
-    );
-
-    native_fct(
-        vm,
-        vm.program.stdlib_package_id,
-        "exit",
-        stdlib::exit as *const u8,
-    );
-
-    native_fct(
-        vm,
-        vm.program.stdlib_package_id,
-        "fatalError",
-        stdlib::fatal_error as *const u8,
-    );
-
-    native_fct(
-        vm,
-        vm.program.stdlib_package_id,
-        "print",
-        stdlib::print as *const u8,
-    );
-
-    native_fct(
-        vm,
-        vm.program.stdlib_package_id,
-        "println",
-        stdlib::println as *const u8,
-    );
+    native_fct(vm, "stdlib::abort", stdlib::abort as *const u8);
+    native_fct(vm, "stdlib::exit", stdlib::exit as *const u8);
+    native_fct(vm, "stdlib::fatalError", stdlib::fatal_error as *const u8);
+    native_fct(vm, "stdlib::print", stdlib::print as *const u8);
+    native_fct(vm, "stdlib::println", stdlib::println as *const u8);
 
     let mut mappings: HashMap<NativeFunction, *const u8> = HashMap::from([
         (NativeFunction::Argc, stdlib::argc as *const u8),
@@ -202,55 +173,66 @@ pub fn connect_native_functions_to_implementation(vm: &mut VM) {
         (NativeFunction::StringClone, stdlib::str_clone as *const u8),
     ]);
 
-    let boots_mappings: HashMap<NativeFunction, *const u8> = HashMap::from([
-        (
-            NativeFunction::BootsGetSystemConfig,
-            boots::get_system_config as *const u8,
-        ),
-        (
-            NativeFunction::BootsGetFunctionAddress,
-            boots::get_function_address as *const u8,
-        ),
-        (
-            NativeFunction::BootsGetClassPointerForLambda,
-            boots::get_class_pointer_for_lambda as *const u8,
-        ),
-        (
-            NativeFunction::BootsGetGlobalValueAddressRaw,
-            boots::get_global_value_address as *const u8,
-        ),
-        (
-            NativeFunction::BootsGetGlobalStateAddressRaw,
-            boots::get_global_state_address as *const u8,
-        ),
-        (
-            NativeFunction::BootsHasGlobalInitialValueRaw,
-            boots::has_global_initial_value as *const u8,
-        ),
-        (
-            NativeFunction::BootsGetFunctionVtableIndex,
-            boots::get_function_vtable_index as *const u8,
-        ),
-        (
-            NativeFunction::BootsGetFieldOffset,
-            boots::get_field_offset as *const u8,
-        ),
-        (
-            NativeFunction::BootsGetClassSize,
-            boots::get_class_size as *const u8,
-        ),
-    ]);
-
     if vm.program.boots_package_id.is_some() {
-        native_fct2(
+        native_fct(
             vm,
             "boots::interface::getClassPointerRaw",
             boots::get_class_pointer as *const u8,
         );
 
-        for (nf, address) in boots_mappings {
-            assert!(mappings.insert(nf, address).is_none());
-        }
+        native_fct(
+            vm,
+            "boots::interface::getClassSizeRaw",
+            boots::get_class_size as *const u8,
+        );
+
+        native_fct(
+            vm,
+            "boots::interface::getFieldOffsetRaw",
+            boots::get_field_offset as *const u8,
+        );
+
+        native_fct(
+            vm,
+            "boots::interface::getFunctionVtableIndexRaw",
+            boots::get_function_vtable_index as *const u8,
+        );
+
+        native_fct(
+            vm,
+            "boots::interface::hasGlobalInitialValueRaw",
+            boots::has_global_initial_value as *const u8,
+        );
+
+        native_fct(
+            vm,
+            "boots::interface::getGlobalValueAddressRaw",
+            boots::get_global_value_address as *const u8,
+        );
+
+        native_fct(
+            vm,
+            "boots::interface::getGlobalStateAddressRaw",
+            boots::get_global_state_address as *const u8,
+        );
+
+        native_fct(
+            vm,
+            "boots::interface::getSystemConfig",
+            boots::get_system_config as *const u8,
+        );
+
+        native_fct(
+            vm,
+            "boots::interface::getFunctionAddressRaw",
+            boots::get_function_address as *const u8,
+        );
+
+        native_fct(
+            vm,
+            "boots::interface::getClassPointerForLambdaRaw",
+            boots::get_class_pointer_for_lambda as *const u8,
+        );
     }
 
     for (fct_id, fct) in vm.program.functions.iter().enumerate() {
@@ -269,14 +251,7 @@ pub fn connect_native_functions_to_implementation(vm: &mut VM) {
     assert!(mappings.is_empty());
 }
 
-fn native_fct(vm: &mut VM, package_id: PackageId, name: &str, ptr: *const u8) {
-    let package = &vm.program.packages[package_id.0 as usize];
-    let fct_id = lookup_fct(vm, package.root_module_id, name).expect("missing function");
-    let old = vm.native_methods.insert(fct_id, Address::from_ptr(ptr));
-    assert!(old.is_none());
-}
-
-fn native_fct2(vm: &mut VM, full_path: &str, ptr: *const u8) {
+fn native_fct(vm: &mut VM, full_path: &str, ptr: *const u8) {
     let mut components = full_path.split("::");
 
     let package_name = components.next().expect("missing package name");
@@ -315,6 +290,11 @@ fn native_fct2(vm: &mut VM, full_path: &str, ptr: *const u8) {
     };
 
     let old = vm.native_methods.insert(fct_id, Address::from_ptr(ptr));
+
+    if old.is_some() {
+        panic!("function {} was already initialized", full_path);
+    }
+
     assert!(old.is_none());
 }
 

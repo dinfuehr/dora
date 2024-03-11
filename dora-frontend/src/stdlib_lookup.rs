@@ -340,7 +340,6 @@ pub fn resolve_internal_functions(sa: &mut Sema) {
 
     resolve_atomic_int32(sa, stdlib_id);
     resolve_atomic_int64(sa, stdlib_id);
-    resolve_boots(sa);
 
     lookup_ordering(sa, stdlib_id);
 }
@@ -449,74 +448,6 @@ fn resolve_atomic_int64(sa: &mut Sema, stdlib_id: ModuleDefinitionId) {
         "thread::AtomicInt64",
         "fetchAdd",
         Intrinsic::AtomicInt64FetchAdd,
-    );
-}
-
-fn resolve_boots(sa: &mut Sema) {
-    if !sa.has_boots_package() {
-        return;
-    }
-
-    let boots_module_id = sa.boots_module_id();
-    native_fct(
-        sa,
-        boots_module_id,
-        "getSystemConfig",
-        NativeFunction::BootsGetSystemConfig,
-    );
-    native_fct(
-        sa,
-        boots_module_id,
-        "getFunctionAddressRaw",
-        NativeFunction::BootsGetFunctionAddress,
-    );
-    native_fct(
-        sa,
-        boots_module_id,
-        "getClassPointerForLambdaRaw",
-        NativeFunction::BootsGetClassPointerForLambda,
-    );
-    native_fct(
-        sa,
-        boots_module_id,
-        "getFunctionVtableIndexRaw",
-        NativeFunction::BootsGetFunctionVtableIndex,
-    );
-    native_fct(
-        sa,
-        boots_module_id,
-        "getFieldOffsetRaw",
-        NativeFunction::BootsGetFieldOffset,
-    );
-    native_fct(
-        sa,
-        boots_module_id,
-        "getClassSizeRaw",
-        NativeFunction::BootsGetClassSize,
-    );
-    native_fct(
-        sa,
-        boots_module_id,
-        "getClassPointerRaw",
-        NativeFunction::BootsGetClassPointer,
-    );
-    native_fct(
-        sa,
-        boots_module_id,
-        "getGlobalValueAddressRaw",
-        NativeFunction::BootsGetGlobalValueAddressRaw,
-    );
-    native_fct(
-        sa,
-        boots_module_id,
-        "getGlobalStateAddressRaw",
-        NativeFunction::BootsGetGlobalStateAddressRaw,
-    );
-    native_fct(
-        sa,
-        boots_module_id,
-        "hasGlobalInitialValueRaw",
-        NativeFunction::BootsHasGlobalInitialValueRaw,
     );
 }
 
