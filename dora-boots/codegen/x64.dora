@@ -1250,7 +1250,7 @@ impl CodeGen for CodeGenX64 {
                 self.asm.movl_ra(dest, AsmAddress::offset(REG_TEMP, 0i32));
             },
 
-            Type::Int64 => {
+            Type::Int64 | Type::Ptr => {
                 let dest = loc.getOutput().getRegister();
                 self.asm.movq_ra(dest, AsmAddress::offset(REG_TEMP, 0i32));
             },

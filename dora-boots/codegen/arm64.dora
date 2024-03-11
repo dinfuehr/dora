@@ -1282,7 +1282,7 @@ impl CodeGen for CodeGenArm64 {
                 self.asm.ldr_imm_w(dest, REG_TEMP, 0i32);
             },
 
-            Type::Int64 => {
+            Type::Int64 | Type::Ptr => {
                 let dest = loc.getOutput().getRegister();
                 self.asm.ldr_imm(dest, REG_TEMP, 0i32);
             },
