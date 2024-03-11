@@ -30,6 +30,7 @@ pub const TRAP_OVERFLOW: Int32 = 9i32;
 @internal pub fn getClassPointerForLambdaRaw(data: Array[UInt8]): Int64;
 @internal pub fn getGlobalValueAddressRaw(id: Int32): Int64;
 @internal pub fn getGlobalStateAddressRaw(id: Int32): Int64;
+@internal pub fn hasGlobalInitialValueRaw(id: Int32): Bool;
 
 pub fn getFunctionAddress(fct_id: FctId, type_params: Array[BytecodeType]): Address {
     let writer = ByteWriter::new();
@@ -77,6 +78,10 @@ pub fn getGlobalValueAddress(id: GlobalId): Address {
 
 pub fn getGlobalStateAddress(id: GlobalId): Address {
     Address(getGlobalStateAddressRaw(id.value))
+}
+
+pub fn hasGlobalInitialValue(id: GlobalId): Bool {
+    hasGlobalInitialValueRaw(id.value)
 }
 
 pub class Config {

@@ -517,6 +517,12 @@ fn resolve_boots(sa: &mut Sema) {
         "getGlobalStateAddressRaw",
         NativeFunction::BootsGetGlobalStateAddressRaw,
     );
+    native_fct(
+        sa,
+        boots_module_id,
+        "hasGlobalInitialValueRaw",
+        NativeFunction::BootsHasGlobalInitialValueRaw,
+    );
 }
 
 fn resolve_thread(sa: &mut Sema, stdlib_id: ModuleDefinitionId) {

@@ -134,6 +134,12 @@ pub fn get_global_state_address(id: u32) -> Address {
         .address_init(global_id)
 }
 
+pub fn has_global_initial_value(id: u32) -> bool {
+    let vm = get_vm();
+
+    vm.program.globals[id as usize].initial_value.is_some()
+}
+
 pub fn get_class_size(data: Handle<UInt8Array>) -> u32 {
     let vm = get_vm();
 

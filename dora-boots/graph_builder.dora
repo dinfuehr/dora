@@ -35,7 +35,7 @@ use package::bytecode::data::{BytecodeFunction, BytecodeRegister, BytecodeType, 
 use package::bytecode::data::{ConstPoolId, ConstPoolEntry, GlobalId};
 use package::bytecode::instruction::BytecodeInstruction;
 use package::bytecode::reader::BytecodeIterator;
-use package::interface::{getClassPointerForLambda, OBJECT_HEADER_LENGTH};
+use package::interface::{OBJECT_HEADER_LENGTH, hasGlobalInitialValue};
 
 pub fn createGraph(bc: BytecodeFunction): Graph {
     let graph = Graph::new();
@@ -698,8 +698,10 @@ impl SsaGen {
         let destType = self.bc.registers(dest.value.toInt64());
         let destType = Type::fromBytecodeType(destType);
 
-        let inst = graph::createEnsureGlobalInitializedInst(glob);
-        self.current().appendInst(inst);
+        if hasGlobalInitialValue(glob) {
+            let inst = graph::createEnsureGlobalInitializedInst(glob);
+            self.current().appendInst(inst);
+        }
 
         let globInst = createLoadGlobalInst(destType, glob);
         self.current().appendInst(globInst);
