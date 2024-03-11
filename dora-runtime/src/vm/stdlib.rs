@@ -239,13 +239,15 @@ pub fn connect_native_functions_to_implementation(vm: &mut VM) {
             NativeFunction::BootsGetClassSize,
             boots::get_class_size as *const u8,
         ),
-        (
-            NativeFunction::BootsGetClassPointer,
-            boots::get_class_pointer as *const u8,
-        ),
     ]);
 
     if vm.program.boots_package_id.is_some() {
+        native_fct2(
+            vm,
+            "boots::interface::getClassPointerRaw",
+            boots::get_class_pointer as *const u8,
+        );
+
         for (nf, address) in boots_mappings {
             assert!(mappings.insert(nf, address).is_none());
         }
@@ -269,19 +271,81 @@ pub fn connect_native_functions_to_implementation(vm: &mut VM) {
 
 fn native_fct(vm: &mut VM, package_id: PackageId, name: &str, ptr: *const u8) {
     let package = &vm.program.packages[package_id.0 as usize];
-    let fct_id = lookup_fct(vm, package.root_module_id, name);
+    let fct_id = lookup_fct(vm, package.root_module_id, name).expect("missing function");
     let old = vm.native_methods.insert(fct_id, Address::from_ptr(ptr));
     assert!(old.is_none());
 }
 
-fn lookup_fct(vm: &mut VM, module_id: ModuleId, name: &str) -> FunctionId {
-    for (id, fct) in vm.program.functions.iter().enumerate() {
-        if fct.module_id == module_id && fct.name == name {
-            return FunctionId(id.try_into().expect("overflow"));
+fn native_fct2(vm: &mut VM, full_path: &str, ptr: *const u8) {
+    let mut components = full_path.split("::");
+
+    let package_name = components.next().expect("missing package name");
+    let package_id = match lookup_package(vm, package_name) {
+        Some(package_id) => package_id,
+        None => {
+            panic!("unknown package {} in path {}", package_name, full_path);
+        }
+    };
+
+    let mut path = Vec::new();
+
+    while let Some(component) = components.next() {
+        path.push(component);
+    }
+
+    let fct_name = path.pop().expect("missing function name");
+
+    let package = &vm.program.packages[package_id.0 as usize];
+    let mut module_id = package.root_module_id;
+
+    for component in path {
+        module_id = match lookup_module(vm, module_id, component) {
+            Some(next_module_id) => next_module_id,
+            None => {
+                panic!("unknown module {} in path {}", component, full_path);
+            }
+        };
+    }
+
+    let fct_id = match lookup_fct(vm, module_id, fct_name) {
+        Some(fct_id) => fct_id,
+        None => {
+            panic!("unknown function {} in path {}", fct_name, full_path);
+        }
+    };
+
+    let old = vm.native_methods.insert(fct_id, Address::from_ptr(ptr));
+    assert!(old.is_none());
+}
+
+fn lookup_package(vm: &VM, name: &str) -> Option<PackageId> {
+    for (id, package) in vm.program.packages.iter().enumerate() {
+        if package.name == name {
+            return Some(PackageId(id.try_into().expect("overflow")));
         }
     }
 
-    panic!("function {} not found.", name)
+    None
+}
+
+fn lookup_module(vm: &VM, module_id: ModuleId, name: &str) -> Option<ModuleId> {
+    for (id, module) in vm.program.modules.iter().enumerate() {
+        if module.parent_id == Some(module_id) && module.name == name {
+            return Some(ModuleId(id.try_into().expect("overflow")));
+        }
+    }
+
+    None
+}
+
+fn lookup_fct(vm: &VM, module_id: ModuleId, name: &str) -> Option<FunctionId> {
+    for (id, fct) in vm.program.functions.iter().enumerate() {
+        if fct.module_id == module_id && fct.name == name {
+            return Some(FunctionId(id.try_into().expect("overflow")));
+        }
+    }
+
+    None
 }
 
 pub fn lookup_known_classes(vm: &mut VM) {
