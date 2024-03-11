@@ -1,0 +1,12 @@
+//= boots
+
+let g: Float32 = 12.5f32;
+
+fn main() {
+    assert(g == 12.5f32);
+    assert(getg() == 12.5f32);
+}
+
+@optimizeImmediately fn getg(): Float32 {
+    g
+}

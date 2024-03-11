@@ -1240,9 +1240,30 @@ impl CodeGen for CodeGenX64 {
         let ty = inst.getValueType();
 
         match ty {
+            Type::UInt8 | Type::Bool => {
+                let dest = loc.getOutput().getRegister();
+                self.asm.movb_ra(dest, AsmAddress::offset(REG_TEMP, 0i32));
+            },
+
             Type::Int32 => {
                 let dest = loc.getOutput().getRegister();
                 self.asm.movl_ra(dest, AsmAddress::offset(REG_TEMP, 0i32));
+            },
+
+            Type::Int64 => {
+                let dest = loc.getOutput().getRegister();
+                self.asm.movq_ra(dest, AsmAddress::offset(REG_TEMP, 0i32));
+            },
+
+            Type::Float32 => {
+                let dest = loc.getOutput().getFloatRegister();
+                self.asm.movss_ra(dest, AsmAddress::offset(REG_TEMP, 0i32));
+
+            },
+
+            Type::Float64 => {
+                let dest = loc.getOutput().getFloatRegister();
+                self.asm.movsd_ra(dest, AsmAddress::offset(REG_TEMP, 0i32));
             },
 
             _ => {

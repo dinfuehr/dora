@@ -1,0 +1,12 @@
+//= boots
+
+let g: Int64 = 10;
+
+fn main() {
+    assert(g == 10);
+    assert(getg() == 10);
+}
+
+@optimizeImmediately fn getg(): Int64 {
+    g
+}

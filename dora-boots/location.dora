@@ -221,7 +221,11 @@ impl LocationAnnotation {
             },
 
             Op::LoadGlobal => {
-                useOutputRegister(inst,  false);
+                if inst.getOperationType().isAnyFloat() {
+                    useOutputFloatRegister(inst,  false);
+                } else {
+                    useOutputRegister(inst,  false);
+                }
             },
 
             _ => {

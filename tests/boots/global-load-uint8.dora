@@ -1,0 +1,12 @@
+//= boots
+
+let g: UInt8 = 10u8;
+
+fn main() {
+    assert(g == 10u8);
+    assert(getg() == 10u8);
+}
+
+@optimizeImmediately fn getg(): UInt8 {
+    g
+}
