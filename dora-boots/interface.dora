@@ -29,6 +29,7 @@ pub const TRAP_OVERFLOW: Int32 = 9i32;
 @internal pub fn getClassPointerRaw(data: Array[UInt8]): Int64;
 @internal pub fn getClassPointerForLambdaRaw(data: Array[UInt8]): Int64;
 @internal pub fn getGlobalValueAddressRaw(id: Int32): Int64;
+@internal pub fn getGlobalStateAddressRaw(id: Int32): Int64;
 
 pub fn getFunctionAddress(fct_id: FctId, type_params: Array[BytecodeType]): Address {
     let writer = ByteWriter::new();
@@ -72,6 +73,10 @@ pub fn getClassPointer(cls_id: ClassId, type_params: Array[BytecodeType]): Addre
 
 pub fn getGlobalValueAddress(id: GlobalId): Address {
     Address(getGlobalValueAddressRaw(id.value))
+}
+
+pub fn getGlobalStateAddress(id: GlobalId): Address {
+    Address(getGlobalStateAddressRaw(id.value))
 }
 
 pub class Config {
@@ -138,6 +143,10 @@ pub const LAMBDA_SIZE: Int32 = 16;
 
 pub const METADATA_MARK_BIT: Int32 = 0;
 pub const METADATA_REMEMBERED_BIT: Int32 = 1;
+
+pub const GLOBAL_STATE_UNINITIALIZED: Int32 = 0;
+pub const GLOBAL_STATE_RUNNING: Int32 = 1;
+pub const GLOBAL_STATE_INITIALIZED: Int32 = 2;
 
 pub class CodeDescriptor {
     pub constPool: ConstPool,

@@ -123,6 +123,17 @@ pub fn get_global_value_address(id: u32) -> Address {
         .address_value(global_id)
 }
 
+pub fn get_global_state_address(id: u32) -> Address {
+    let vm = get_vm();
+
+    let global_id = GlobalId(id);
+
+    vm.global_variable_memory
+        .as_ref()
+        .unwrap()
+        .address_init(global_id)
+}
+
 pub fn get_class_size(data: Handle<UInt8Array>) -> u32 {
     let vm = get_vm();
 

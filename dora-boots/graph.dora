@@ -574,8 +574,10 @@ pub enum Op {
     Float32Const,
     Float64Const,
 
+    EnsureGlobalInitialized,
     LoadGlobal,
     StoreGlobal,
+    MarkGlobalInitialized,
 
     Undef,
 
@@ -679,8 +681,10 @@ pub fn opName(op: Op): String {
         Op::Int64Const => "Const.Int64",
         Op::Float32Const => "Const.Float32",
         Op::Float64Const => "Const.Float64",
+        Op::EnsureGlobalInitialized => "EnsureGlobalInitialized",
         Op::LoadGlobal => "LoadGlobal",
         Op::StoreGlobal => "StoreGlobal",
+        Op::MarkGlobalInitialized => "MarkGlobalInitialized",
         Op::Undef => "Undef",
         Op::BoundsCheck => "BoundsCheck",
         Op::Goto => "Goto",
@@ -850,8 +854,10 @@ impl Inst {
             Op::Int64Const => Type::Int64,
             Op::Float32Const => Type::Float32,
             Op::Float64Const => Type::Float64,
+            Op::EnsureGlobalInitialized => unreachable[Type](),
             Op::LoadGlobal => self.ty,
             Op::StoreGlobal => self.ty,
+            Op::MarkGlobalInitialized => unreachable[Type](),
             Op::Undef => unreachable[Type](),
             Op::BoundsCheck => Type::Unit,
             Op::Goto => unreachable[Type](),
@@ -1193,7 +1199,9 @@ impl Inst {
 
         assert(
             op == Op::LoadGlobal ||
-            op == Op::StoreGlobal
+            op == Op::StoreGlobal ||
+            op == Op::EnsureGlobalInitialized ||
+            op == Op::MarkGlobalInitialized
         );
 
         GlobalId(self.aux.toInt32())
@@ -1284,8 +1292,10 @@ impl Inst {
             Op::Int64Const => false,
             Op::Float32Const => false,
             Op::Float64Const => false,
+            Op::EnsureGlobalInitialized => true,
             Op::LoadGlobal => true,
             Op::StoreGlobal => true,
+            Op::MarkGlobalInitialized => true,
             Op::Undef => false,
             Op::BoundsCheck => true,
             Op::Goto => true,
@@ -1928,6 +1938,13 @@ pub fn createFloat64Const(value: Float64): Inst {
     let inst = Inst::new();
     inst._op = Some(Op::Float64Const);
     inst.aux = value.asInt64();
+    inst
+}
+
+pub fn createEnsureGlobalInitializedInst(global: GlobalId): Inst {
+    let inst = Inst::new();
+    inst._op = Some(Op::EnsureGlobalInitialized);
+    inst.aux = global.value.toInt64();
     inst
 }
 

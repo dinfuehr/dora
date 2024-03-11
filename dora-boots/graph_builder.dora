@@ -698,6 +698,9 @@ impl SsaGen {
         let destType = self.bc.registers(dest.value.toInt64());
         let destType = Type::fromBytecodeType(destType);
 
+        let inst = graph::createEnsureGlobalInitializedInst(glob);
+        self.current().appendInst(inst);
+
         let globInst = createLoadGlobalInst(destType, glob);
         self.current().appendInst(globInst);
         self.writeVariable(dest, self.current(), globInst);

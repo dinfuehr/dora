@@ -189,6 +189,10 @@ pub fn connect_native_functions_to_implementation(vm: &mut VM) {
             boots::get_global_value_address as *const u8,
         ),
         (
+            NativeFunction::BootsGetGlobalStateAddressRaw,
+            boots::get_global_state_address as *const u8,
+        ),
+        (
             NativeFunction::BootsGetFunctionVtableIndex,
             boots::get_function_vtable_index as *const u8,
         ),

@@ -228,6 +228,10 @@ impl LocationAnnotation {
                 }
             },
 
+            Op::EnsureGlobalInitialized => {
+                addTempRegister(inst);
+            },
+
             _ => {
                 println("unsupported op ${inst.op().name()}");
                 unreachable[()]();

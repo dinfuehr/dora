@@ -255,8 +255,10 @@ fn dumpInstName(inst: Inst): String {
         Op::Int64Const => "Const.Int64(#${inst.getValueAsInt64()})",
         Op::Float32Const => "Const.Float32(#${inst.getValueAsFloat32()})",
         Op::Float64Const => "Const.Float64(#${inst.getValueAsFloat64()})",
+        Op::EnsureGlobalInitialized => "EnsureGlobalInitialized(${inst.getGlobalId().value})",
         Op::LoadGlobal => "LoadGlobal.${inst.getValueType()}(${inst.getGlobalId().value})",
         Op::StoreGlobal => "StoreGlobal.${inst.getValueType()}(${inst.getGlobalId().value})",
+        Op::MarkGlobalInitialized => "MarkGlobalInitialized(${inst.getGlobalId().value})",
         Op::Undef => "Undef",
         Op::BoundsCheck => "BoundsCheck",
         Op::Goto => {
