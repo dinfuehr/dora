@@ -1,7 +1,7 @@
 use std::collections::HashMap;
 
 use crate::Sema;
-use dora_bytecode::program::{AliasData, ClassLayout, ImplData, InternalClass, InternalFunction};
+use dora_bytecode::program::{AliasData, ImplData};
 use dora_bytecode::{
     ClassData, ClassField, EnumData, EnumVariant, FunctionData, FunctionId, FunctionKind,
     GlobalData, ImplId, ModuleData, ModuleId, PackageData, PackageId, Program, SourceFileData,
@@ -135,14 +135,6 @@ fn create_functions(sa: &Sema, e: &mut Emitter) -> Vec<FunctionData> {
     for (_id, fct) in sa.fcts.iter() {
         let name = sa.interner.str(fct.name).to_string();
 
-        let internal_function = if Some(fct.id()) == sa.known.functions.compile {
-            Some(InternalFunction::BootsCompile)
-        } else if fct.id() == sa.known.functions.stacktrace_retrieve() {
-            Some(InternalFunction::StacktraceRetrieve)
-        } else {
-            None
-        };
-
         let kind = match fct.parent {
             FctParent::Extension(..) => FunctionKind::Method,
             FctParent::Function => FunctionKind::Lambda,
@@ -168,7 +160,6 @@ fn create_functions(sa: &Sema, e: &mut Emitter) -> Vec<FunctionData> {
             return_type: fct.return_type_bty(),
             native: fct.native_function.get().cloned(),
             intrinsic: fct.intrinsic.get().cloned(),
-            internal: internal_function,
             is_test: fct.is_test,
             vtable_index: fct.vtable_index.get().cloned(),
             is_optimize_immediately: fct.is_optimize_immediately,
@@ -198,7 +189,6 @@ fn create_functions(sa: &Sema, e: &mut Emitter) -> Vec<FunctionData> {
             return_type: bty_from_ty(global.ty()),
             native: None,
             intrinsic: None,
-            internal: None,
             is_test: false,
             vtable_index: None,
             is_optimize_immediately: false,
@@ -249,39 +239,15 @@ fn create_classes(sa: &Sema) -> Vec<ClassData> {
     for (_class_id, class) in sa.classes.iter() {
         let name = sa.interner.str(class.name).to_string();
 
-        let internal_class = if class.is_array {
-            Some(InternalClass::Array)
-        } else if class.is_str {
-            Some(InternalClass::String)
-        } else if class.id() == sa.known.classes.thread() {
-            Some(InternalClass::Thread)
-        } else if class.id() == sa.known.classes.stacktrace_element() {
-            Some(InternalClass::StacktraceElement)
-        } else {
-            None
-        };
-
         result.push(ClassData {
             module_id: convert_module_id(class.module_id),
             name,
             type_params: create_type_params(sa, class.type_params()),
-            layout: create_class_layout(&*class),
             fields: create_class_fields(sa, &*class),
-            internal: internal_class,
         })
     }
 
     result
-}
-
-fn create_class_layout(class: &ClassDefinition) -> ClassLayout {
-    if class.is_array {
-        ClassLayout::Array
-    } else if class.is_str {
-        ClassLayout::String
-    } else {
-        ClassLayout::Regular
-    }
 }
 
 fn create_class_fields(sa: &Sema, class: &ClassDefinition) -> Vec<ClassField> {

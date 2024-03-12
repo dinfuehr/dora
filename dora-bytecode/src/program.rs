@@ -35,7 +35,6 @@ pub struct FunctionData {
     pub params: Vec<BytecodeType>,
     pub return_type: BytecodeType,
     pub native: Option<NativeFunction>,
-    pub internal: Option<InternalFunction>,
     pub intrinsic: Option<Intrinsic>,
     pub vtable_index: Option<u32>,
     pub is_test: bool,
@@ -73,39 +72,7 @@ pub struct ClassData {
     pub module_id: ModuleId,
     pub name: String,
     pub type_params: TypeParamData,
-    pub layout: ClassLayout,
     pub fields: Vec<ClassField>,
-    pub internal: Option<InternalClass>,
-}
-
-#[derive(Debug, Decode, Encode)]
-pub enum ClassLayout {
-    Regular,
-    Array,
-    String,
-}
-
-impl ClassLayout {
-    pub fn is_regular(&self) -> bool {
-        match self {
-            ClassLayout::Regular => true,
-            _ => false,
-        }
-    }
-
-    pub fn is_array(&self) -> bool {
-        match self {
-            ClassLayout::Array => true,
-            _ => false,
-        }
-    }
-
-    pub fn is_string(&self) -> bool {
-        match self {
-            ClassLayout::String => true,
-            _ => false,
-        }
-    }
 }
 
 #[derive(Debug, Decode, Encode)]
@@ -217,20 +184,6 @@ pub struct Program {
     pub program_package_id: PackageId,
     pub boots_package_id: Option<PackageId>,
     pub main_fct_id: Option<FunctionId>,
-}
-
-#[derive(Copy, Clone, Debug, PartialEq, Eq, Hash, Decode, Encode)]
-pub enum InternalClass {
-    Array,
-    String,
-    Thread,
-    StacktraceElement,
-}
-
-#[derive(Copy, Clone, Debug, PartialEq, Eq, Hash, Decode, Encode)]
-pub enum InternalFunction {
-    StacktraceRetrieve,
-    BootsCompile,
 }
 
 #[derive(Copy, Clone, Debug, PartialEq, Eq, Hash, Decode, Encode)]

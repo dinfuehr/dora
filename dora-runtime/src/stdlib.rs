@@ -17,6 +17,20 @@ use crate::threads::{
 };
 use crate::vm::{get_vm, stack_pointer, ManagedCondition, ManagedMutex, ShapeKind, Trap};
 
+pub const STDLIB_NATIVE_FUNCTIONS: &[(&'static str, *const u8)] = &[
+    ("stdlib::abort", abort as *const u8),
+    ("stdlib::exit", exit as *const u8),
+    ("stdlib::fatalError", fatal_error as *const u8),
+    ("stdlib::print", print as *const u8),
+    ("stdlib::println", println as *const u8),
+    ("stdlib::argc", argc as *const u8),
+    ("stdlib::argv", argv as *const u8),
+    ("stdlib::forceCollect", gc_collect as *const u8),
+    ("stdlib::forceMinorCollect", gc_minor_collect as *const u8),
+    ("stdlib::timestamp", timestamp as *const u8),
+    ("stdlib::sleep", sleep as *const u8),
+];
+
 pub mod io;
 
 pub extern "C" fn uint8_to_string(val: u8) -> Ref<Str> {
@@ -91,12 +105,12 @@ pub extern "C" fn fatal_error(msg: Handle<Str>) {
     std::process::exit(1);
 }
 
-pub extern "C" fn abort() {
+extern "C" fn abort() {
     eprintln!("program aborted.");
     std::process::exit(1);
 }
 
-pub extern "C" fn exit(status: i32) {
+extern "C" fn exit(status: i32) {
     std::process::exit(status);
 }
 
@@ -113,20 +127,20 @@ pub extern "C" fn unreachable() {
     std::process::exit(1);
 }
 
-pub extern "C" fn timestamp() -> u64 {
+extern "C" fn timestamp() -> u64 {
     use std::time::{SystemTime, UNIX_EPOCH};
     let timestamp = SystemTime::now();
     timestamp.duration_since(UNIX_EPOCH).unwrap().as_millis() as u64
 }
 
-pub extern "C" fn println(val: Handle<Str>) {
+extern "C" fn println(val: Handle<Str>) {
     let stdout = std::io::stdout();
     let mut handle = stdout.lock();
     handle.write(val.content()).unwrap();
     handle.write(b"\n").unwrap();
 }
 
-pub extern "C" fn sleep(seconds: i32) {
+extern "C" fn sleep(seconds: i32) {
     assert!(seconds >= 0);
     thread::sleep(Duration::from_secs(seconds as u64));
 }
@@ -169,23 +183,23 @@ pub extern "C" fn gc_alloc(size: usize) -> *mut Obj {
     vm.gc.alloc(vm, size).to_mut_ptr()
 }
 
-pub extern "C" fn gc_collect() {
+extern "C" fn gc_collect() {
     let vm = get_vm();
     vm.gc.collect(vm, GcReason::ForceCollect);
 }
 
-pub extern "C" fn gc_minor_collect() {
+extern "C" fn gc_minor_collect() {
     let vm = get_vm();
     vm.gc.minor_collect(vm, GcReason::ForceMinorCollect);
 }
 
-pub extern "C" fn argc() -> i32 {
+extern "C" fn argc() -> i32 {
     let vm = get_vm();
 
     vm.program_args.len() as i32
 }
 
-pub extern "C" fn argv(ind: i32) -> Ref<Str> {
+extern "C" fn argv(ind: i32) -> Ref<Str> {
     let vm = get_vm();
 
     if ind >= 0 && (ind as usize) < vm.program_args.len() {

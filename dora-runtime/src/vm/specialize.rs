@@ -313,10 +313,9 @@ fn create_specialized_class(
 ) -> ClassInstanceId {
     debug_assert!(type_params.iter().all(|ty| ty.is_concrete_type()));
 
-    if cls.layout.is_array() || cls.layout.is_string() {
+    if vm.known.array_class_id() == cls_id || vm.known.string_class_id() == cls_id {
         create_specialized_class_array(vm, cls_id, cls, type_params)
     } else {
-        assert!(cls.layout.is_regular());
         create_specialized_class_regular(vm, cls_id, cls, type_params)
     }
 }
@@ -377,11 +376,10 @@ fn create_specialized_class_array(
     cls: &ClassData,
     type_params: &BytecodeTypeArray,
 ) -> ClassInstanceId {
-    assert!(cls.layout.is_array() || cls.layout.is_string());
-
     assert!(cls.fields.is_empty());
 
-    let size = if cls.layout.is_array() {
+    let size = if vm.known.array_class_id() == cls_id {
+        assert_eq!(type_params.len(), 1);
         let element_ty = type_params[0].clone();
 
         match element_ty {
@@ -426,7 +424,7 @@ fn create_specialized_class_array(
             }
         }
     } else {
-        assert!(cls.layout.is_string());
+        assert!(type_params.is_empty());
         InstanceSize::Str
     };
 

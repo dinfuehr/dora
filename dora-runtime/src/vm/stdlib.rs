@@ -3,30 +3,11 @@ use std::collections::HashMap;
 use crate::boots::BOOTS_NATIVE_FUNCTIONS;
 use crate::gc::Address;
 use crate::stack;
-use crate::stdlib;
 use crate::stdlib::io::IO_NATIVE_FUNCTIONS;
+use crate::stdlib::{self, STDLIB_NATIVE_FUNCTIONS};
 use crate::vm::VM;
-use dora_bytecode::program::InternalClass;
-use dora_bytecode::program::InternalFunction;
 use dora_bytecode::ModuleId;
 use dora_bytecode::{ClassId, FunctionId, NativeFunction, PackageId};
-
-const STDLIB_NATIVE_FUNCTIONS: &[(&'static str, *const u8)] = &[
-    ("stdlib::abort", stdlib::abort as *const u8),
-    ("stdlib::exit", stdlib::exit as *const u8),
-    ("stdlib::fatalError", stdlib::fatal_error as *const u8),
-    ("stdlib::print", stdlib::print as *const u8),
-    ("stdlib::println", stdlib::println as *const u8),
-    ("stdlib::argc", stdlib::argc as *const u8),
-    ("stdlib::argv", stdlib::argv as *const u8),
-    ("stdlib::forceCollect", stdlib::gc_collect as *const u8),
-    (
-        "stdlib::forceMinorCollect",
-        stdlib::gc_minor_collect as *const u8,
-    ),
-    ("stdlib::timestamp", stdlib::timestamp as *const u8),
-    ("stdlib::sleep", stdlib::sleep as *const u8),
-];
 
 pub fn connect_native_functions_to_implementation(vm: &mut VM) {
     for (path, ptr) in STDLIB_NATIVE_FUNCTIONS {
@@ -164,6 +145,18 @@ pub fn connect_native_functions_to_implementation(vm: &mut VM) {
 }
 
 fn native_fct(vm: &mut VM, full_path: &str, ptr: *const u8) {
+    let fct_id = find_fct(vm, full_path);
+
+    let old = vm.native_methods.insert(fct_id, Address::from_ptr(ptr));
+
+    if old.is_some() {
+        panic!("function {} was already initialized", full_path);
+    }
+
+    assert!(old.is_none());
+}
+
+fn find_fct(vm: &VM, full_path: &str) -> FunctionId {
     let mut components = full_path.split("::");
 
     let package_name = components.next().expect("missing package name");
@@ -194,20 +187,51 @@ fn native_fct(vm: &mut VM, full_path: &str, ptr: *const u8) {
         };
     }
 
-    let fct_id = match lookup_fct(vm, module_id, fct_name) {
+    match lookup_fct(vm, module_id, fct_name) {
         Some(fct_id) => fct_id,
         None => {
             panic!("unknown function {} in path {}", fct_name, full_path);
         }
+    }
+}
+
+fn find_class(vm: &VM, full_path: &str) -> ClassId {
+    let mut components = full_path.split("::");
+
+    let package_name = components.next().expect("missing package name");
+    let package_id = match lookup_package(vm, package_name) {
+        Some(package_id) => package_id,
+        None => {
+            panic!("unknown package {} in path {}", package_name, full_path);
+        }
     };
 
-    let old = vm.native_methods.insert(fct_id, Address::from_ptr(ptr));
+    let mut path = Vec::new();
 
-    if old.is_some() {
-        panic!("function {} was already initialized", full_path);
+    while let Some(component) = components.next() {
+        path.push(component);
     }
 
-    assert!(old.is_none());
+    let fct_name = path.pop().expect("missing function name");
+
+    let package = &vm.program.packages[package_id.0 as usize];
+    let mut module_id = package.root_module_id;
+
+    for component in path {
+        module_id = match lookup_module(vm, module_id, component) {
+            Some(next_module_id) => next_module_id,
+            None => {
+                panic!("unknown module {} in path {}", component, full_path);
+            }
+        };
+    }
+
+    match lookup_class(vm, module_id, fct_name) {
+        Some(fct_id) => fct_id,
+        None => {
+            panic!("unknown function {} in path {}", fct_name, full_path);
+        }
+    }
 }
 
 fn lookup_package(vm: &VM, name: &str) -> Option<PackageId> {
@@ -240,36 +264,27 @@ fn lookup_fct(vm: &VM, module_id: ModuleId, name: &str) -> Option<FunctionId> {
     None
 }
 
-pub fn lookup_known_classes(vm: &mut VM) {
-    for (cls_id, cls) in vm.program.classes.iter().enumerate() {
-        let cls_id = ClassId(cls_id as u32);
-
-        if let Some(internal_class) = cls.internal {
-            match internal_class {
-                InternalClass::Array => vm.known.array_class_id = Some(cls_id),
-                InternalClass::String => vm.known.string_class_id = Some(cls_id),
-                InternalClass::Thread => vm.known.thread_class_id = Some(cls_id),
-                InternalClass::StacktraceElement => {
-                    vm.known.stacktrace_element_class_id = Some(cls_id)
-                }
-            }
+fn lookup_class(vm: &VM, module_id: ModuleId, name: &str) -> Option<ClassId> {
+    for (id, class) in vm.program.classes.iter().enumerate() {
+        if class.module_id == module_id && class.name == name {
+            return Some(ClassId(id.try_into().expect("overflow")));
         }
     }
+
+    None
+}
+
+pub fn lookup_known_classes(vm: &mut VM) {
+    vm.known.array_class_id = Some(find_class(vm, "stdlib::collections::Array"));
+    vm.known.string_class_id = Some(find_class(vm, "stdlib::string::String"));
+    vm.known.thread_class_id = Some(find_class(vm, "stdlib::thread::Thread"));
+    vm.known.stacktrace_element_class_id = Some(find_class(vm, "stdlib::StacktraceElement"));
 }
 
 pub fn lookup_known_functions(vm: &mut VM) {
-    for (fct_id, fct) in vm.program.functions.iter().enumerate() {
-        let fct_id = FunctionId(fct_id as u32);
-
-        if let Some(internal_function) = fct.internal {
-            match internal_function {
-                InternalFunction::BootsCompile => {
-                    vm.known.boots_compile_fct_id = Some(fct_id);
-                }
-                InternalFunction::StacktraceRetrieve => {
-                    vm.known.stacktrace_retrieve_fct_id = Some(fct_id);
-                }
-            }
-        }
+    if vm.program.boots_package_id.is_some() {
+        vm.known.boots_compile_fct_id = Some(find_fct(vm, "boots::interface::compile"));
     }
+
+    vm.known.stacktrace_retrieve_fct_id = Some(find_fct(vm, "stdlib::retrieveStacktrace"));
 }

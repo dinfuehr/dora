@@ -145,18 +145,15 @@ fn build_ref_fields(
 ) -> Vec<i32> {
     match &kind {
         ShapeKind::Class(cls_id, type_params) => {
-            let cls = &vm.program.classes[cls_id.0 as usize];
-
-            if cls.layout.is_array() {
+            if vm.known.array_class_id() == *cls_id {
                 if size == InstanceSize::ObjArray {
                     Vec::new()
                 } else {
                     create_array_ref_fields(vm, type_params[0].clone())
                 }
-            } else if cls.layout.is_string() {
+            } else if vm.known.string_class_id() == *cls_id {
                 Vec::new()
             } else {
-                assert!(cls.layout.is_regular());
                 let ref_fields = Vec::new();
                 create_ref_fields(vm, &fields, ref_fields)
             }
