@@ -23,6 +23,49 @@ mod data;
 mod deserializer;
 mod serializer;
 
+pub const BOOTS_NATIVE_FUNCTIONS: &[(&'static str, *const u8)] = &[
+    (
+        "boots::interface::getClassPointerRaw",
+        get_class_pointer as *const u8,
+    ),
+    (
+        "boots::interface::getClassSizeRaw",
+        get_class_size as *const u8,
+    ),
+    (
+        "boots::interface::getFieldOffsetRaw",
+        get_field_offset as *const u8,
+    ),
+    (
+        "boots::interface::getFunctionVtableIndexRaw",
+        get_function_vtable_index as *const u8,
+    ),
+    (
+        "boots::interface::hasGlobalInitialValueRaw",
+        has_global_initial_value as *const u8,
+    ),
+    (
+        "boots::interface::getGlobalValueAddressRaw",
+        get_global_value_address as *const u8,
+    ),
+    (
+        "boots::interface::getGlobalStateAddressRaw",
+        get_global_state_address as *const u8,
+    ),
+    (
+        "boots::interface::getSystemConfig",
+        get_system_config as *const u8,
+    ),
+    (
+        "boots::interface::getFunctionAddressRaw",
+        get_function_address as *const u8,
+    ),
+    (
+        "boots::interface::getClassPointerForLambdaRaw",
+        get_class_pointer_for_lambda as *const u8,
+    ),
+];
+
 pub fn compile(
     vm: &VM,
     compilation_data: CompilationData,
@@ -61,7 +104,7 @@ pub fn compile(
     code
 }
 
-pub fn get_function_address(data: Handle<UInt8Array>) -> Address {
+extern "C" fn get_function_address(data: Handle<UInt8Array>) -> Address {
     let vm = get_vm();
 
     let mut serialized_data = vec![0; data.len()];
@@ -82,14 +125,14 @@ pub fn get_function_address(data: Handle<UInt8Array>) -> Address {
     get_function_address_raw(vm, fct_id, type_params)
 }
 
-pub fn get_function_vtable_index(fct_id: FunctionId) -> u32 {
+extern "C" fn get_function_vtable_index(fct_id: u32) -> u32 {
     let vm = get_vm();
-    vm.program.functions[fct_id.0 as usize]
+    vm.program.functions[fct_id as usize]
         .vtable_index
         .expect("vtable_index missing")
 }
 
-pub fn get_class_pointer_for_lambda(data: Handle<UInt8Array>) -> Address {
+extern "C" fn get_class_pointer_for_lambda(data: Handle<UInt8Array>) -> Address {
     let vm = get_vm();
 
     let mut serialized_data = vec![0; data.len()];
@@ -112,7 +155,7 @@ pub fn get_class_pointer_for_lambda(data: Handle<UInt8Array>) -> Address {
     cls.vtblptr()
 }
 
-pub fn get_global_value_address(id: u32) -> Address {
+extern "C" fn get_global_value_address(id: u32) -> Address {
     let vm = get_vm();
 
     let global_id = GlobalId(id);
@@ -123,7 +166,7 @@ pub fn get_global_value_address(id: u32) -> Address {
         .address_value(global_id)
 }
 
-pub fn get_global_state_address(id: u32) -> Address {
+extern "C" fn get_global_state_address(id: u32) -> Address {
     let vm = get_vm();
 
     let global_id = GlobalId(id);
@@ -134,13 +177,13 @@ pub fn get_global_state_address(id: u32) -> Address {
         .address_init(global_id)
 }
 
-pub fn has_global_initial_value(id: u32) -> bool {
+extern "C" fn has_global_initial_value(id: u32) -> bool {
     let vm = get_vm();
 
     vm.program.globals[id as usize].initial_value.is_some()
 }
 
-pub fn get_class_size(data: Handle<UInt8Array>) -> u32 {
+extern "C" fn get_class_size(data: Handle<UInt8Array>) -> u32 {
     let vm = get_vm();
 
     let mut serialized_data = vec![0; data.len()];
@@ -171,7 +214,7 @@ fn get_class_size_raw(vm: &VM, cls_id: ClassId, type_params: BytecodeTypeArray) 
     }
 }
 
-pub fn get_class_pointer(data: Handle<UInt8Array>) -> Address {
+extern "C" fn get_class_pointer(data: Handle<UInt8Array>) -> Address {
     let vm = get_vm();
 
     let mut serialized_data = vec![0; data.len()];
@@ -198,7 +241,7 @@ fn get_class_pointer_raw(vm: &VM, cls_id: ClassId, type_params: BytecodeTypeArra
     cls.vtblptr()
 }
 
-pub fn get_field_offset(data: Handle<UInt8Array>) -> u32 {
+extern "C" fn get_field_offset(data: Handle<UInt8Array>) -> u32 {
     let vm = get_vm();
 
     let mut serialized_data = vec![0; data.len()];
@@ -232,7 +275,7 @@ fn get_field_offset_raw(
     field.offset.try_into().expect("overflow")
 }
 
-pub fn get_system_config() -> Ref<UInt8Array> {
+extern "C" fn get_system_config() -> Ref<UInt8Array> {
     let vm = get_vm();
     allocate_encoded_system_config(vm)
 }

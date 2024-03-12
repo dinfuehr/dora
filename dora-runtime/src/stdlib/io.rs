@@ -8,7 +8,32 @@ use crate::object::{byte_array_from_buffer, Ref, Str, UInt8Array};
 use crate::threads::parked_scope;
 use crate::vm::get_vm;
 
-pub extern "C" fn read_file_as_string(name: Handle<Str>) -> Ref<Str> {
+pub const IO_NATIVE_FUNCTIONS: &[(&'static str, *const u8)] = &[
+    ("stdlib::io::socketConnect", socket_connect as *const u8),
+    ("stdlib::io::socketClose", socket_close as *const u8),
+    ("stdlib::io::socketWrite", socket_write as *const u8),
+    ("stdlib::io::socketRead", socket_read as *const u8),
+    ("stdlib::io::socketBind", socket_bind as *const u8),
+    ("stdlib::io::socketAccept", socket_accept as *const u8),
+    (
+        "stdlib::io::readFileAsString",
+        read_file_as_string as *const u8,
+    ),
+    (
+        "stdlib::io::readFileAsBytes",
+        read_file_as_bytes as *const u8,
+    ),
+    (
+        "stdlib::io::writeFileAsString",
+        write_file_as_string as *const u8,
+    ),
+    (
+        "stdlib::io::writeFileAsBytes",
+        write_file_as_bytes as *const u8,
+    ),
+];
+
+extern "C" fn read_file_as_string(name: Handle<Str>) -> Ref<Str> {
     handle_scope(|| {
         let path = PathBuf::from_str(name.content_utf8());
         if path.is_err() {
@@ -26,7 +51,7 @@ pub extern "C" fn read_file_as_string(name: Handle<Str>) -> Ref<Str> {
     })
 }
 
-pub extern "C" fn read_file_as_bytes(name: Handle<Str>) -> Ref<UInt8Array> {
+extern "C" fn read_file_as_bytes(name: Handle<Str>) -> Ref<UInt8Array> {
     handle_scope(|| {
         let path = PathBuf::from_str(name.content_utf8());
         if path.is_err() {
@@ -57,11 +82,11 @@ pub extern "C" fn read_file_as_bytes(name: Handle<Str>) -> Ref<UInt8Array> {
     })
 }
 
-pub extern "C" fn write_file_as_string(name: Handle<Str>, content: Handle<Str>) -> bool {
+extern "C" fn write_file_as_string(name: Handle<Str>, content: Handle<Str>) -> bool {
     write_file_common(name, Vec::from(content.content_utf8()))
 }
 
-pub extern "C" fn write_file_as_bytes(name: Handle<Str>, content: Handle<UInt8Array>) -> bool {
+extern "C" fn write_file_as_bytes(name: Handle<Str>, content: Handle<UInt8Array>) -> bool {
     write_file_common(name, Vec::from(content.slice()))
 }
 
@@ -86,7 +111,7 @@ fn write_file_common(name: Handle<Str>, content: Vec<u8>) -> bool {
 }
 
 #[cfg(unix)]
-pub extern "C" fn socket_connect(addr: Handle<Str>) -> i32 {
+extern "C" fn socket_connect(addr: Handle<Str>) -> i32 {
     let addr = String::from(addr.content_utf8());
     parked_scope(|| {
         use std::net::TcpStream;
@@ -101,12 +126,12 @@ pub extern "C" fn socket_connect(addr: Handle<Str>) -> i32 {
 }
 
 #[cfg(windows)]
-pub extern "C" fn socket_connect(_addr: Handle<Str>) -> i32 {
+extern "C" fn socket_connect(_addr: Handle<Str>) -> i32 {
     unimplemented!()
 }
 
 #[cfg(unix)]
-pub extern "C" fn socket_write(fd: i32, array: Handle<UInt8Array>, offset: i64, len: i64) -> i64 {
+extern "C" fn socket_write(fd: i32, array: Handle<UInt8Array>, offset: i64, len: i64) -> i64 {
     let offset = offset as usize;
     let len = len as usize;
 
@@ -130,22 +155,12 @@ pub extern "C" fn socket_write(fd: i32, array: Handle<UInt8Array>, offset: i64, 
 }
 
 #[cfg(windows)]
-pub extern "C" fn socket_write(
-    _fd: i32,
-    _array: Handle<UInt8Array>,
-    _offset: i64,
-    _len: i64,
-) -> i64 {
+extern "C" fn socket_write(_fd: i32, _array: Handle<UInt8Array>, _offset: i64, _len: i64) -> i64 {
     unimplemented!()
 }
 
 #[cfg(unix)]
-pub extern "C" fn socket_read(
-    fd: i32,
-    mut array: Handle<UInt8Array>,
-    offset: i64,
-    len: i64,
-) -> i64 {
+extern "C" fn socket_read(fd: i32, mut array: Handle<UInt8Array>, offset: i64, len: i64) -> i64 {
     let offset = offset as usize;
     let len = len as usize;
 
@@ -180,17 +195,12 @@ pub extern "C" fn socket_read(
 }
 
 #[cfg(windows)]
-pub extern "C" fn socket_read(
-    _fd: i32,
-    _array: Handle<UInt8Array>,
-    _offset: i64,
-    _len: i64,
-) -> i32 {
+extern "C" fn socket_read(_fd: i32, _array: Handle<UInt8Array>, _offset: i64, _len: i64) -> i32 {
     unimplemented!()
 }
 
 #[cfg(unix)]
-pub extern "C" fn socket_close(fd: i32) {
+extern "C" fn socket_close(fd: i32) {
     parked_scope(|| {
         use std::net::TcpStream;
         use std::os::unix::prelude::FromRawFd;
@@ -201,12 +211,12 @@ pub extern "C" fn socket_close(fd: i32) {
 }
 
 #[cfg(windows)]
-pub extern "C" fn socket_close(_fd: i32) {
+extern "C" fn socket_close(_fd: i32) {
     unimplemented!()
 }
 
 #[cfg(unix)]
-pub extern "C" fn socket_bind(addr: Handle<Str>) -> i32 {
+extern "C" fn socket_bind(addr: Handle<Str>) -> i32 {
     let addr = String::from(addr.content_utf8());
     parked_scope(|| {
         use std::net::TcpListener;
@@ -221,12 +231,12 @@ pub extern "C" fn socket_bind(addr: Handle<Str>) -> i32 {
 }
 
 #[cfg(windows)]
-pub extern "C" fn socket_bind(_addr: Handle<Str>) -> i32 {
+extern "C" fn socket_bind(_addr: Handle<Str>) -> i32 {
     unimplemented!()
 }
 
 #[cfg(unix)]
-pub extern "C" fn socket_accept(fd: i32) -> i32 {
+extern "C" fn socket_accept(fd: i32) -> i32 {
     parked_scope(|| {
         use std::net::TcpListener;
         use std::os::unix::prelude::{FromRawFd, IntoRawFd};
@@ -243,6 +253,6 @@ pub extern "C" fn socket_accept(fd: i32) -> i32 {
 }
 
 #[cfg(windows)]
-pub extern "C" fn socket_accept(_fd: i32) -> i32 {
+extern "C" fn socket_accept(_fd: i32) -> i32 {
     unimplemented!()
 }

@@ -1,35 +1,43 @@
 use std::collections::HashMap;
 
-use crate::boots;
+use crate::boots::BOOTS_NATIVE_FUNCTIONS;
 use crate::gc::Address;
 use crate::stack;
 use crate::stdlib;
+use crate::stdlib::io::IO_NATIVE_FUNCTIONS;
 use crate::vm::VM;
 use dora_bytecode::program::InternalClass;
 use dora_bytecode::program::InternalFunction;
 use dora_bytecode::ModuleId;
 use dora_bytecode::{ClassId, FunctionId, NativeFunction, PackageId};
 
+const STDLIB_NATIVE_FUNCTIONS: &[(&'static str, *const u8)] = &[
+    ("stdlib::abort", stdlib::abort as *const u8),
+    ("stdlib::exit", stdlib::exit as *const u8),
+    ("stdlib::fatalError", stdlib::fatal_error as *const u8),
+    ("stdlib::print", stdlib::print as *const u8),
+    ("stdlib::println", stdlib::println as *const u8),
+    ("stdlib::argc", stdlib::argc as *const u8),
+    ("stdlib::argv", stdlib::argv as *const u8),
+    ("stdlib::forceCollect", stdlib::gc_collect as *const u8),
+    (
+        "stdlib::forceMinorCollect",
+        stdlib::gc_minor_collect as *const u8,
+    ),
+    ("stdlib::timestamp", stdlib::timestamp as *const u8),
+    ("stdlib::sleep", stdlib::sleep as *const u8),
+];
+
 pub fn connect_native_functions_to_implementation(vm: &mut VM) {
-    native_fct(vm, "stdlib::abort", stdlib::abort as *const u8);
-    native_fct(vm, "stdlib::exit", stdlib::exit as *const u8);
-    native_fct(vm, "stdlib::fatalError", stdlib::fatal_error as *const u8);
-    native_fct(vm, "stdlib::print", stdlib::print as *const u8);
-    native_fct(vm, "stdlib::println", stdlib::println as *const u8);
+    for (path, ptr) in STDLIB_NATIVE_FUNCTIONS {
+        native_fct(vm, path, *ptr);
+    }
+
+    for (path, ptr) in IO_NATIVE_FUNCTIONS {
+        native_fct(vm, path, *ptr);
+    }
 
     let mut mappings: HashMap<NativeFunction, *const u8> = HashMap::from([
-        (NativeFunction::Argc, stdlib::argc as *const u8),
-        (NativeFunction::Argv, stdlib::argv as *const u8),
-        (
-            NativeFunction::ForceCollect,
-            stdlib::gc_collect as *const u8,
-        ),
-        (
-            NativeFunction::ForceMinorCollect,
-            stdlib::gc_minor_collect as *const u8,
-        ),
-        (NativeFunction::Timestamp, stdlib::timestamp as *const u8),
-        (NativeFunction::Sleep, stdlib::sleep as *const u8),
         (
             NativeFunction::UInt8ToString,
             stdlib::uint8_to_string as *const u8,
@@ -130,109 +138,13 @@ pub fn connect_native_functions_to_implementation(vm: &mut VM) {
             NativeFunction::ConditionWakupAll,
             stdlib::condition_wakeup_all as *const u8,
         ),
-        (
-            NativeFunction::ReadFileAsString,
-            stdlib::io::read_file_as_string as *const u8,
-        ),
-        (
-            NativeFunction::ReadFileAsBytes,
-            stdlib::io::read_file_as_bytes as *const u8,
-        ),
-        (
-            NativeFunction::WriteFileAsString,
-            stdlib::io::write_file_as_string as *const u8,
-        ),
-        (
-            NativeFunction::WriteFileAsBytes,
-            stdlib::io::write_file_as_bytes as *const u8,
-        ),
-        (
-            NativeFunction::SocketConnect,
-            stdlib::io::socket_connect as *const u8,
-        ),
-        (
-            NativeFunction::SocketClose,
-            stdlib::io::socket_close as *const u8,
-        ),
-        (
-            NativeFunction::SocketWrite,
-            stdlib::io::socket_write as *const u8,
-        ),
-        (
-            NativeFunction::SocketRead,
-            stdlib::io::socket_read as *const u8,
-        ),
-        (
-            NativeFunction::SocketBind,
-            stdlib::io::socket_bind as *const u8,
-        ),
-        (
-            NativeFunction::SocketAccept,
-            stdlib::io::socket_accept as *const u8,
-        ),
         (NativeFunction::StringClone, stdlib::str_clone as *const u8),
     ]);
 
     if vm.program.boots_package_id.is_some() {
-        native_fct(
-            vm,
-            "boots::interface::getClassPointerRaw",
-            boots::get_class_pointer as *const u8,
-        );
-
-        native_fct(
-            vm,
-            "boots::interface::getClassSizeRaw",
-            boots::get_class_size as *const u8,
-        );
-
-        native_fct(
-            vm,
-            "boots::interface::getFieldOffsetRaw",
-            boots::get_field_offset as *const u8,
-        );
-
-        native_fct(
-            vm,
-            "boots::interface::getFunctionVtableIndexRaw",
-            boots::get_function_vtable_index as *const u8,
-        );
-
-        native_fct(
-            vm,
-            "boots::interface::hasGlobalInitialValueRaw",
-            boots::has_global_initial_value as *const u8,
-        );
-
-        native_fct(
-            vm,
-            "boots::interface::getGlobalValueAddressRaw",
-            boots::get_global_value_address as *const u8,
-        );
-
-        native_fct(
-            vm,
-            "boots::interface::getGlobalStateAddressRaw",
-            boots::get_global_state_address as *const u8,
-        );
-
-        native_fct(
-            vm,
-            "boots::interface::getSystemConfig",
-            boots::get_system_config as *const u8,
-        );
-
-        native_fct(
-            vm,
-            "boots::interface::getFunctionAddressRaw",
-            boots::get_function_address as *const u8,
-        );
-
-        native_fct(
-            vm,
-            "boots::interface::getClassPointerForLambdaRaw",
-            boots::get_class_pointer_for_lambda as *const u8,
-        );
+        for (path, ptr) in BOOTS_NATIVE_FUNCTIONS {
+            native_fct(vm, path, *ptr);
+        }
     }
 
     for (fct_id, fct) in vm.program.functions.iter().enumerate() {

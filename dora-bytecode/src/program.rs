@@ -236,12 +236,6 @@ pub enum InternalFunction {
 #[derive(Copy, Clone, Debug, PartialEq, Eq, Hash, Decode, Encode)]
 #[allow(dead_code)]
 pub enum NativeFunction {
-    Argc,
-    Argv,
-    ForceCollect,
-    Timestamp,
-    ForceMinorCollect,
-    Sleep,
     UInt8ToString,
     CharToString,
     Int32ToString,
@@ -270,16 +264,6 @@ pub enum NativeFunction {
     ConditionBlock,
     ConditionWakupOne,
     ConditionWakupAll,
-    ReadFileAsString,
-    ReadFileAsBytes,
-    WriteFileAsString,
-    WriteFileAsBytes,
-    SocketConnect,
-    SocketClose,
-    SocketWrite,
-    SocketRead,
-    SocketBind,
-    SocketAccept,
     StringClone,
 }
 

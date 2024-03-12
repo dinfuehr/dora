@@ -336,8 +336,6 @@ pub fn resolve_internal_functions(sa: &mut Sema) {
     resolve_mutex(sa, stdlib_id);
     resolve_condition(sa, stdlib_id);
 
-    resolve_io(sa, stdlib_id);
-
     resolve_atomic_int32(sa, stdlib_id);
     resolve_atomic_int64(sa, stdlib_id);
 
@@ -361,17 +359,6 @@ fn resolve_freestanding_stdlib(sa: &mut Sema, stdlib_id: ModuleDefinitionId) {
     let fid = intrinsic_fct(sa, stdlib_id, "assert", Intrinsic::Assert);
     sa.known.functions.assert = Some(fid);
     intrinsic_fct(sa, stdlib_id, "debug", Intrinsic::Debug);
-    native_fct(sa, stdlib_id, "argc", NativeFunction::Argc);
-    native_fct(sa, stdlib_id, "argv", NativeFunction::Argv);
-    native_fct(sa, stdlib_id, "forceCollect", NativeFunction::ForceCollect);
-    native_fct(sa, stdlib_id, "timestamp", NativeFunction::Timestamp);
-    native_fct(
-        sa,
-        stdlib_id,
-        "forceMinorCollect",
-        NativeFunction::ForceMinorCollect,
-    );
-    native_fct(sa, stdlib_id, "sleep", NativeFunction::Sleep);
     intrinsic_fct(sa, stdlib_id, "unsafeKillRefs", Intrinsic::UnsafeKillRefs);
 }
 
@@ -591,68 +578,6 @@ fn resolve_stacktrace(sa: &Sema, stdlib_id: ModuleDefinitionId) {
         "Stacktrace",
         "getStacktraceElement",
         NativeFunction::GetStackTraceElement,
-    );
-}
-
-fn resolve_io(sa: &mut Sema, stdlib_id: ModuleDefinitionId) {
-    native_fct(
-        sa,
-        stdlib_id,
-        "io::readFileAsString",
-        NativeFunction::ReadFileAsString,
-    );
-
-    native_fct(
-        sa,
-        stdlib_id,
-        "io::readFileAsBytes",
-        NativeFunction::ReadFileAsBytes,
-    );
-
-    native_fct(
-        sa,
-        stdlib_id,
-        "io::writeFileAsString",
-        NativeFunction::WriteFileAsString,
-    );
-
-    native_fct(
-        sa,
-        stdlib_id,
-        "io::writeFileAsBytes",
-        NativeFunction::WriteFileAsBytes,
-    );
-
-    native_fct(
-        sa,
-        stdlib_id,
-        "io::socketConnect",
-        NativeFunction::SocketConnect,
-    );
-
-    native_fct(
-        sa,
-        stdlib_id,
-        "io::socketClose",
-        NativeFunction::SocketClose,
-    );
-
-    native_fct(
-        sa,
-        stdlib_id,
-        "io::socketWrite",
-        NativeFunction::SocketWrite,
-    );
-
-    native_fct(sa, stdlib_id, "io::socketRead", NativeFunction::SocketRead);
-
-    native_fct(sa, stdlib_id, "io::socketBind", NativeFunction::SocketBind);
-
-    native_fct(
-        sa,
-        stdlib_id,
-        "io::socketAccept",
-        NativeFunction::SocketAccept,
     );
 }
 
