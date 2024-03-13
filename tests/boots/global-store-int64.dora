@@ -1,0 +1,13 @@
+//= boots
+//= ignore
+
+let mut g: Int64 = 1;
+
+fn main() {
+    setg(12);
+    assert(g == 12);
+}
+
+@optimizeImmediately fn setg(value: Int64) {
+    g = value;
+}
