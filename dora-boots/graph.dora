@@ -919,7 +919,8 @@ impl Inst {
             | Op::Less
             | Op::LessOrEqual
             | Op::StoreField
-            | Op::StoreArray => self.ty,
+            | Op::StoreArray
+            | Op::EnsureGlobalInitialized => self.ty,
             _ => self.getValueType(),
         }
     }
@@ -1941,9 +1942,10 @@ pub fn createFloat64Const(value: Float64): Inst {
     inst
 }
 
-pub fn createEnsureGlobalInitializedInst(global: GlobalId): Inst {
+pub fn createEnsureGlobalInitializedInst(global: GlobalId, ty: Type): Inst {
     let inst = Inst::new();
     inst._op = Some(Op::EnsureGlobalInitialized);
+    inst.ty = ty;
     inst.aux = global.value.toInt64();
     inst
 }

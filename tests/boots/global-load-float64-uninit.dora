@@ -1,0 +1,11 @@
+//= boots
+
+let g: Float64 = 12.5;
+
+fn main() {
+    assert(getg() == 12.5);
+}
+
+@optimizeImmediately fn getg(): Float64 {
+    g
+}

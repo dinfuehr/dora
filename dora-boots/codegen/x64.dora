@@ -1,3 +1,4 @@
+use package::bytecode::{BytecodeType, FctId};
 use package::assembler::x64::{AssemblerX64, Address as AsmAddress, Condition, Immediate, ScaleFactor, registerName};
 use package::assembler::x64::{RAX, RDI, RDX, RCX, RSI, RBP, RSP, RBX};
 use package::assembler::x64::{R8, R9, R10, R11, R12, R13, R14, R15};
@@ -5,7 +6,7 @@ use package::assembler::x64::{XMM0, XMM1, XMM2, XMM3, XMM4, XMM5, XMM6, XMM7, XM
 use package::assembler::{FloatRegister, Label, Register, RegSet};
 use package::bytecode::data::{ConstPoolId, Location};
 use package::codegen::{CODE_SIZE_ALIGNMENT, CodeGen};
-use package::interface::{Address, Architecture, CompilationInfo, ConstPool, ConstPoolEntry, ConstPoolValue, config, getFunctionAddress, LazyCompilationSite, LazyCompilationSiteDirect, getFieldOffset, getClassSize, getClassPointer, getClassPointerForLambda, getFunctionVtableIndex, getGlobalValueAddress, getGlobalStateAddress};
+use package::interface::{Address, Architecture, CompilationInfo, ConstPool, ConstPoolEntry, ConstPoolValue, config, getFunctionAddress, LazyCompilationSite, LazyCompilationSiteDirect, getFieldOffset, getClassSize, getClassPointer, getClassPointerForLambda, getFunctionVtableIndex, getGlobalValueAddress, getGlobalStateAddress, getGlobalInitializerFunctionId};
 use package::interface::{TRAP_DIV0, TRAP_OVERFLOW, TRAP_INDEX_OUT_OF_BOUNDS, LAMBDA_SIZE, PTR_SIZE, GLOBAL_STATE_INITIALIZED};
 use package::interface::{THREAD_LOCAL_DATA_TLAB_TOP_OFFSET, THREAD_LOCAL_DATA_TLAB_END_OFFSET, THREAD_LOCAL_DATA_STACK_LIMIT_OFFSET, THREAD_LOCAL_DATA_STATE_OFFSET, THREAD_LOCAL_DATA_MARKING_OFFSET, OBJECT_HEADER_LENGTH, OBJECT_METADATA_OFFSET, METADATA_REMEMBERED_BIT, ARRAY_HEADER_LENGTH};
 use package::location::{useInputFloatRegisterFixed, useInputRegister, useInputRegisterFixed, useOutputRegisterFixed, useOutputSameAsFirstInput, addTempRegisterFixed};
@@ -321,22 +322,26 @@ impl CodeGenX64 {
 
     fn emitInvokeCommon(inst: Inst) {
         let fct_info = inst.getFunctionInfo();
-        let address = getFunctionAddress(fct_info.fct_id, fct_info.type_params);
+        self.emitCall(fct_info.fct_id, fct_info.type_params, inst.bytecode_position(), inst.getLocationData().getGcPoint());
+    }
+
+    fn emitCall(fct_id: FctId, type_params: Array[BytecodeType], bytecode_position: Int32, gc_point: GcPoint) {
+        let address = getFunctionAddress(fct_id, type_params);
         let cp_entry = self.constPool.push(ConstPoolValue::Address(address));
         self.loadConstPool(REG_TEMP, cp_entry);
         self.asm.call_r(REG_TEMP);
 
         let pos = self.asm.position();
         let site = LazyCompilationSiteDirect(
-            fct_info.fct_id,
-            fct_info.type_params,
+            fct_id,
+            type_params,
             pos + cp_entry.disp,
         );
-        let location = self.ci.bc.getLocationAt(inst.bytecode_position());
+        let location = self.ci.bc.getLocationAt(bytecode_position);
 
         self.lazyCompilation.insert(pos, LazyCompilationSite::Direct(site));
         self.locations.insert(pos, location);
-        self.gcPoints.insert(pos, inst.getLocationData().getGcPoint());
+        self.gcPoints.insert(pos, gc_point);
     }
 
     fn emitVirtualCall(obj: Register, tmp1: Register, tmp2: Register, inst: Inst, vtable_index: Int32, site: LazyCompilationSite) {
@@ -1292,7 +1297,46 @@ impl CodeGen for CodeGenX64 {
         self.deferred.push(|| {
             self.emitComment("slow path for global initializer");
             self.asm.bindLabel(lbl_global_slow_path);
-            self.emitDebug();
+
+            // Compute initial value.
+            let fct_id = getGlobalInitializerFunctionId(global_id);
+            let type_params = Array[BytecodeType]::new();
+            self.emitCall(fct_id, type_params, inst.bytecode_position(), GcPoint::new());
+
+            // Store initial value in global variable.
+            let value_address = getGlobalValueAddress(global_id);
+            self.asm.movq_ri(REG_TEMP, Immediate(value_address.value));
+
+            match inst.getOperationType() {
+                Type::UInt8 | Type::Bool => {
+                    self.asm.movb_ar(AsmAddress::offset(REG_TEMP, 0i32), RAX);
+                },
+
+                Type::Int32 | Type::Char => {
+                    self.asm.movl_ar(AsmAddress::offset(REG_TEMP, 0i32), RAX);
+                },
+
+                Type::Int64 | Type::Ptr => {
+                    self.asm.movq_ar(AsmAddress::offset(REG_TEMP, 0i32), RAX);
+                },
+
+                Type::Float32 => {
+                    self.asm.movss_ar(AsmAddress::offset(REG_TEMP, 0i32), XMM0);
+                },
+
+                Type::Float64 => {
+                    self.asm.movsd_ar(AsmAddress::offset(REG_TEMP, 0i32), XMM0);
+                },
+
+                _ => {
+                    unimplemented();
+                }
+            }
+
+            // Set global variable state to INITIALIZED.
+            self.asm.movq_ri(REG_TEMP, Immediate(state_address.value));
+            self.asm.movb_ai(AsmAddress::offset(REG_TEMP, 0i32), Immediate(GLOBAL_STATE_INITIALIZED.toInt64()));
+
             self.asm.jmp(lbl_return);
         });
     }

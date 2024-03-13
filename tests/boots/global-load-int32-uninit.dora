@@ -1,0 +1,11 @@
+//= boots
+
+let g: Int32 = 10;
+
+fn main() {
+    assert(getg() == 10i32);
+}
+
+@optimizeImmediately fn getg(): Int32 {
+    g
+}

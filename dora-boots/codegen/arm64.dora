@@ -1,5 +1,5 @@
-use package::bytecode::{ConstPoolId, Location};
-use package::interface::{Address, Architecture, CompilationInfo, ConstPool, ConstPoolEntry, ConstPoolValue, config, getFunctionAddress, getFieldOffset, getClassSize, getClassPointer, getClassPointerForLambda, getFunctionVtableIndex, getGlobalValueAddress, getGlobalStateAddress};
+use package::bytecode::{ConstPoolId, Location, FctId, BytecodeType};
+use package::interface::{Address, Architecture, CompilationInfo, ConstPool, ConstPoolEntry, ConstPoolValue, config, getFunctionAddress, getFieldOffset, getClassSize, getClassPointer, getClassPointerForLambda, getFunctionVtableIndex, getGlobalValueAddress, getGlobalStateAddress, getGlobalInitializerFunctionId};
 use package::interface::{THREAD_LOCAL_DATA_STACK_LIMIT_OFFSET, THREAD_LOCAL_DATA_STATE_OFFSET, THREAD_LOCAL_DATA_MARKING_OFFSET, OBJECT_HEADER_LENGTH, OBJECT_METADATA_OFFSET, METADATA_REMEMBERED_BIT, ARRAY_HEADER_LENGTH, LAMBDA_SIZE};
 use package::interface::{THREAD_LOCAL_DATA_TLAB_TOP_OFFSET, THREAD_LOCAL_DATA_TLAB_END_OFFSET};
 use package::interface::{TRAP_DIV0, TRAP_OVERFLOW, TRAP_INDEX_OUT_OF_BOUNDS, PTR_SIZE, GLOBAL_STATE_INITIALIZED};
@@ -373,22 +373,26 @@ impl CodeGenArm64 {
 
     fn emitInvokeCommon(inst: Inst) {
         let fct_info = inst.getFunctionInfo();
-        let address = getFunctionAddress(fct_info.fct_id, fct_info.type_params);
+        self.emitCall(fct_info.fct_id, fct_info.type_params, inst.bytecode_position(), inst.getLocationData().getGcPoint());
+    }
+
+    fn emitCall(fct_id: FctId, type_params: Array[BytecodeType], bytecode_position: Int32, gc_point: GcPoint) {
+        let address = getFunctionAddress(fct_id, type_params);
         let cp_entry = self.constPool.push(ConstPoolValue::Address(address));
         self.loadConstPool(REG_TEMP, cp_entry);
         self.asm.bl_r(REG_TEMP);
 
         let pos = self.asm.position();
         let site = LazyCompilationSiteDirect(
-            fct_info.fct_id,
-            fct_info.type_params,
+            fct_id,
+            type_params,
             pos + cp_entry.disp,
         );
-        let location = self.ci.bc.getLocationAt(inst.bytecode_position());
+        let location = self.ci.bc.getLocationAt(bytecode_position);
 
         self.lazyCompilation.insert(pos, LazyCompilationSite::Direct(site));
         self.locations.insert(pos, location);
-        self.gcPoints.insert(pos, inst.getLocationData().getGcPoint());
+        self.gcPoints.insert(pos, gc_point);
     }
 
     fn emitVirtualCall(obj: Register, tmp1: Register, tmp2: Register, inst: Inst, vtable_index: Int32, site: LazyCompilationSite) {
@@ -1326,7 +1330,47 @@ impl CodeGen for CodeGenArm64 {
         self.deferred.push(|| {
             self.emitComment("slow path for global initializer");
             self.asm.bindLabel(lbl_global_slow_path);
-            self.emitDebug();
+
+            // Compute initial value.
+            let fct_id = getGlobalInitializerFunctionId(global_id);
+            let type_params = Array[BytecodeType]::new();
+            self.emitCall(fct_id, type_params, inst.bytecode_position(), GcPoint::new());
+
+            // Store initial value in global variable.
+            let value_address = getGlobalValueAddress(global_id);
+            self.mov_imm(REG_TEMP, value_address.value);
+
+            match inst.getOperationType() {
+                Type::UInt8 | Type::Bool => {
+                    self.asm.strb_imm(R0, REG_TEMP, 0i32);
+                },
+
+                Type::Int32 | Type::Char => {
+                    self.asm.str_imm_w(R0, REG_TEMP, 0i32);
+                },
+
+                Type::Int64 | Type::Ptr => {
+                    self.asm.str_imm(R0, REG_TEMP, 0i32);
+                },
+
+                Type::Float32 => {
+                    self.asm.str_imm_s(F0, REG_TEMP, 0i32);
+                },
+
+                Type::Float64 => {
+                    self.asm.str_imm_d(F0, REG_TEMP, 0i32);
+                },
+
+                _ => {
+                    unimplemented();
+                }
+            }
+
+            // Set global variable state to INITIALIZED.
+            self.mov_imm(REG_TEMP, state_address.value);
+            self.asm.movz(tmp, GLOBAL_STATE_INITIALIZED, 0i32);
+            self.asm.strb_imm(tmp, REG_TEMP, 0i32);
+
             self.asm.b(lbl_return);
         });
     }

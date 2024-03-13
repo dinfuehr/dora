@@ -1,0 +1,13 @@
+//= boots
+
+let g: Foo = Foo(10);
+
+fn main() {
+    assert(getg().value == 10);
+}
+
+class Foo(value: Int64)
+
+@optimizeImmediately fn getg(): Foo {
+    g
+}

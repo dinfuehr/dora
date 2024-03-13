@@ -699,8 +699,9 @@ impl SsaGen {
         let destType = Type::fromBytecodeType(destType);
 
         if hasGlobalInitialValue(glob) {
-            let inst = graph::createEnsureGlobalInitializedInst(glob);
+            let inst = graph::createEnsureGlobalInitializedInst(glob, destType);
             self.current().appendInst(inst);
+            inst.set_bytecode_position(self.offset);
         }
 
         let globInst = createLoadGlobalInst(destType, glob);

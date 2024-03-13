@@ -53,6 +53,10 @@ pub const BOOTS_NATIVE_FUNCTIONS: &[(&'static str, *const u8)] = &[
         get_global_state_address as *const u8,
     ),
     (
+        "boots::interface::getGlobalInitializerFunctionIdRaw",
+        get_global_initializer_function_id as *const u8,
+    ),
+    (
         "boots::interface::getSystemConfig",
         get_system_config as *const u8,
     ),
@@ -175,6 +179,15 @@ extern "C" fn get_global_state_address(id: u32) -> Address {
         .as_ref()
         .unwrap()
         .address_init(global_id)
+}
+
+extern "C" fn get_global_initializer_function_id(id: u32) -> u32 {
+    let vm = get_vm();
+
+    vm.program.globals[id as usize]
+        .initial_value
+        .expect("missing initializer")
+        .0
 }
 
 extern "C" fn has_global_initial_value(id: u32) -> bool {
