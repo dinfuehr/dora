@@ -1,7 +1,7 @@
 use package::assembler::{FloatRegister, Register};
 use package::codegen::CodeGen;
 use package::graph::{Graph, Inst, Location, LocationData, Op, Operand, Policy, StackSlot, Type};
-use package::interface::{config, CompilationInfo, PTR_SIZE};
+use package::interface::{config, CompilationInfo, PTR_SIZE, Architecture};
 
 pub fn ensureLocationData(graph: Graph, codegen: CodeGen, ci: CompilationInfo): Int32 {
     let argumentLocations = computeArgumentLocations(codegen, ci);
@@ -230,6 +230,20 @@ impl LocationAnnotation {
 
             Op::EnsureGlobalInitialized => {
                 addTempRegister(inst);
+            },
+
+            Op::StoreGlobal => {
+                if inst.getOperationType().isAnyFloat() {
+                    useInputFloatRegister(inst, 0);
+                } else {
+                    useInputRegister(inst, 0);
+                }
+            },
+
+            Op::MarkGlobalInitialized => {
+                if config.architecture == Architecture::Arm64 {
+                    addTempRegister(inst);
+                }
             },
 
             _ => {

@@ -1277,10 +1277,6 @@ impl CodeGen for CodeGenX64 {
         }
     }
 
-    fn emitStoreGlobal(inst: Inst) {
-        unimplemented();
-    }
-
     fn emitEnsureGlobalInitialized(inst: Inst) {
         let loc = inst.getLocationData();
         let tmp = loc.getTemp(0).getRegister();
@@ -1341,8 +1337,52 @@ impl CodeGen for CodeGenX64 {
         });
     }
 
+    fn emitStoreGlobal(inst: Inst) {
+        let loc = inst.getLocationData();
+
+        let global_id = inst.getGlobalId();
+
+        let value_address = getGlobalValueAddress(global_id);
+        self.asm.movq_ri(REG_TEMP, Immediate(value_address.value));
+
+        match inst.getOperationType() {
+            Type::UInt8 | Type::Bool => {
+                let src = loc.getInput(0).getRegister();
+                self.asm.movb_ar(AsmAddress::offset(REG_TEMP, 0i32), src);
+            },
+
+            Type::Int32 | Type::Char => {
+                let src = loc.getInput(0).getRegister();
+                self.asm.movl_ar(AsmAddress::offset(REG_TEMP, 0i32), src);
+            },
+
+            Type::Int64 | Type::Ptr => {
+                let src = loc.getInput(0).getRegister();
+                self.asm.movq_ar(AsmAddress::offset(REG_TEMP, 0i32), src);
+            },
+
+            Type::Float32 => {
+                let src = loc.getInput(0).getFloatRegister();
+                self.asm.movss_ar(AsmAddress::offset(REG_TEMP, 0i32), src);
+            },
+
+            Type::Float64 => {
+                let src = loc.getInput(0).getFloatRegister();
+                self.asm.movsd_ar(AsmAddress::offset(REG_TEMP, 0i32), src);
+            },
+
+            _ => {
+                unimplemented();
+            }
+        }
+    }
+
     fn emitMarkGlobalInitialized(inst: Inst) {
-        unimplemented();
+        let global_id = inst.getGlobalId();
+
+        let state_address = getGlobalStateAddress(global_id);
+        self.asm.movq_ri(REG_TEMP, Immediate(state_address.value));
+        self.asm.movb_ai(AsmAddress::offset(REG_TEMP, 0i32), Immediate(GLOBAL_STATE_INITIALIZED.toInt64()));
     }
 
     fn finalize(): CodeDescriptor {

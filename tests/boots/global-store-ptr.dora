@@ -1,0 +1,14 @@
+//= boots
+
+let mut g: Foo = Foo(1);
+
+fn main() {
+    setg(Foo(12));
+    assert(g.value == 12);
+}
+
+class Foo(value: Int64)
+
+@optimizeImmediately fn setg(value: Foo) {
+    g = value;
+}

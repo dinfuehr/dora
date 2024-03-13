@@ -252,6 +252,16 @@ fn emitInst(codegen: CodeGen, inst: Inst) {
             codegen.emitLoadGlobal(inst);
         },
 
+        Op::StoreGlobal => {
+            codegen.emitComment("StoreGlobal");
+            codegen.emitStoreGlobal(inst);
+        },
+
+        Op::MarkGlobalInitialized => {
+            codegen.emitComment("MarkGlobalInitialized");
+            codegen.emitMarkGlobalInitialized(inst);
+        },
+
         _ => {
             println("unsupported op ${inst.op().name()}");
             unreachable[()]();

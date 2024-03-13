@@ -1308,10 +1308,6 @@ impl CodeGen for CodeGenArm64 {
         }
     }
 
-    fn emitStoreGlobal(inst: Inst) {
-        unimplemented();
-    }
-
     fn emitEnsureGlobalInitialized(inst: Inst) {
         let loc = inst.getLocationData();
         let tmp = loc.getTemp(0).getRegister();
@@ -1375,8 +1371,57 @@ impl CodeGen for CodeGenArm64 {
         });
     }
 
+    fn emitStoreGlobal(inst: Inst) {
+        let loc = inst.getLocationData();
+
+        let global_id = inst.getGlobalId();
+
+        let value_address = getGlobalValueAddress(global_id);
+        self.mov_imm(REG_TEMP, value_address.value);
+
+        match inst.getOperationType() {
+            Type::UInt8 | Type::Bool => {
+                let src = loc.getInput(0).getRegister();
+                self.asm.strb_imm(src, REG_TEMP, 0i32);
+            },
+
+            Type::Int32 | Type::Char => {
+                let src = loc.getInput(0).getRegister();
+                self.asm.str_imm_w(src, REG_TEMP, 0i32);
+            },
+
+            Type::Int64 | Type::Ptr => {
+                let src = loc.getInput(0).getRegister();
+                self.asm.str_imm(src, REG_TEMP, 0i32);
+            },
+
+            Type::Float32 => {
+                let src = loc.getInput(0).getFloatRegister();
+                self.asm.str_imm_s(src, REG_TEMP, 0i32);
+            },
+
+            Type::Float64 => {
+                let src = loc.getInput(0).getFloatRegister();
+                self.asm.str_imm_d(src, REG_TEMP, 0i32);
+            },
+
+            _ => {
+                unimplemented();
+            }
+        }
+    }
+
     fn emitMarkGlobalInitialized(inst: Inst) {
-        unimplemented();
+        let loc = inst.getLocationData();
+        let tmp = loc.getTemp(0).getRegister();
+
+        let global_id = inst.getGlobalId();
+
+        // Store initial value in global variable.
+        let state_address = getGlobalStateAddress(global_id);
+        self.mov_imm(REG_TEMP, state_address.value);
+        self.asm.movz(tmp, GLOBAL_STATE_INITIALIZED, 0i32);
+        self.asm.strb_imm(tmp, REG_TEMP, 0i32);
     }
 
     fn finalize(): CodeDescriptor {

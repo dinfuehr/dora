@@ -1,0 +1,12 @@
+//= boots
+
+let mut g: UInt8 = 1u8;
+
+fn main() {
+    setg(12u8);
+    assert(g == 12u8);
+}
+
+@optimizeImmediately fn setg(value: UInt8) {
+    g = value;
+}

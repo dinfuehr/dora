@@ -1950,6 +1950,13 @@ pub fn createEnsureGlobalInitializedInst(global: GlobalId, ty: Type): Inst {
     inst
 }
 
+pub fn createMarkGlobalInitialized(global: GlobalId): Inst {
+    let inst = Inst::new();
+    inst._op = Some(Op::MarkGlobalInitialized);
+    inst.aux = global.value.toInt64();
+    inst
+}
+
 pub fn createLoadGlobalInst(ty: Type, global: GlobalId): Inst {
     let inst = Inst::new();
     inst._op = Some(Op::LoadGlobal);

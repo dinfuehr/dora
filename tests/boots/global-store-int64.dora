@@ -1,5 +1,4 @@
 //= boots
-//= ignore
 
 let mut g: Int64 = 1;
 

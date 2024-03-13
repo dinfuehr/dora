@@ -716,6 +716,11 @@ impl SsaGen {
         let srcInst = self.readVariable(src, self.current());
         let globInst = createStoreGlobalInst(srcType, glob, srcInst);
         self.current().appendInst(globInst);
+
+        if hasGlobalInitialValue(glob) {
+            let inst = graph::createMarkGlobalInitialized(glob);
+            self.current().appendInst(inst);
+        }
     }
 
     fn emitTest(dest: BytecodeRegister, lhs: BytecodeRegister, rhs: BytecodeRegister, op: Op) {

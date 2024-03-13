@@ -1,0 +1,12 @@
+//= boots
+
+let mut g: Int32 = 1i32;
+
+fn main() {
+    setg(12i32);
+    assert(g == 12i32);
+}
+
+@optimizeImmediately fn setg(value: Int32) {
+    g = value;
+}
