@@ -13,6 +13,7 @@ pub fn decodeConfig(encoded: Array[UInt8]): Config {
     let meta_space_start = reader.readAddress();
     let is_windows = reader.readBool();
     let is_unix = reader.readBool();
+    let needs_write_barrier = reader.readBool();
     assert(!reader.moreBytes());
 
     Config(
@@ -24,6 +25,7 @@ pub fn decodeConfig(encoded: Array[UInt8]): Config {
         meta_space_start,
         is_windows,
         is_unix,
+        needs_write_barrier,
     )
 }
 

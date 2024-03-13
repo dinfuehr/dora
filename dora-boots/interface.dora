@@ -98,6 +98,7 @@ pub class Config {
     pub meta_space_start: Address,
     pub isWindows: Bool,
     pub isUnix: Bool,
+    pub needsWriteBarrier: Bool,
 }
 
 pub let config: Config = decodeConfig(getSystemConfig());

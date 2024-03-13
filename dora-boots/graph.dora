@@ -1176,7 +1176,11 @@ impl Inst {
 
     pub fn needsRegisterSnapshot(): Bool {
         match self.op() {
-            Op::StoreField | Op::StoreArray | Op::NewObject | Op::NewLambda => true,
+            Op::StoreField |
+            Op::StoreArray |
+            Op::NewObject |
+            Op::NewLambda |
+            Op::EnsureGlobalInitialized => true,
             _ => false,
         }
     }

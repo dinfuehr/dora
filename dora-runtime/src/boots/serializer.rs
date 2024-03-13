@@ -29,6 +29,7 @@ fn encode_system_config(vm: &VM, buffer: &mut ByteBuffer) {
     buffer.emit_address(vm.meta_space_start());
     buffer.emit_bool(cfg!(target_family = "windows"));
     buffer.emit_bool(cfg!(target_family = "unix"));
+    buffer.emit_bool(vm.gc.needs_write_barrier());
 }
 
 pub fn allocate_encoded_compilation_info(vm: &VM, compilation_data: &CompilationData) -> Ref<Obj> {

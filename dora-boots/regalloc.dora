@@ -176,7 +176,8 @@ impl SimpleRegisterAllocator {
         if outputOverlaps {
             if inst.needsRegisterSnapshot() {
                 assert(inst.op() == Op::NewObject
-                       || inst.op() == Op::NewLambda);
+                       || inst.op() == Op::NewLambda
+                       || inst.op() == Op::EnsureGlobalInitialized);
                 assert(!inst.getLocationData().hasInput());
                 self.snapshotRegisters(inst);
             }

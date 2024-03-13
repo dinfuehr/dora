@@ -162,6 +162,8 @@ impl CodeGenX64 {
     }
 
     fn emitWriteBarrier(host: Register, value: Register, snapshot: RegisterSnapshot) {
+        assert(config.needsWriteBarrier);
+
         let lbl_object_slow_path = self.asm.createLabel();
         let lbl_marking_slow_path = self.asm.createLabel();
 
@@ -1081,7 +1083,9 @@ impl CodeGen for CodeGenX64 {
             Type::Ptr => {
                 let src = loc.getInput(1).getRegister();
                 self.asm.movq_ar(AsmAddress::offset(obj, offset), src);
-                self.emitWriteBarrier(obj, src, loc.getRegisterSnapshot());
+                if config.needsWriteBarrier {
+                    self.emitWriteBarrier(obj, src, loc.getRegisterSnapshot());
+                }
             },
 
             Type::Float32 => {
@@ -1190,7 +1194,9 @@ impl CodeGen for CodeGenX64 {
             Type::Ptr => {
                 let value = loc.getInput(2).getRegister();
                 self.asm.movq_ar(AsmAddress::array(array, idx, ScaleFactor::Eight, ARRAY_HEADER_LENGTH), value);
-                self.emitWriteBarrier(array, value, loc.getRegisterSnapshot());
+                if config.needsWriteBarrier {
+                    self.emitWriteBarrier(array, value, loc.getRegisterSnapshot());
+                }
             },
 
             Type::Float32 => {
@@ -1290,9 +1296,13 @@ impl CodeGen for CodeGenX64 {
         self.asm.jcc(Condition::NotEqual, lbl_global_slow_path);
         let lbl_return = self.asm.createAndBindLabel();
 
+        let snapshot = loc.getRegisterSnapshot();
+
         self.deferred.push(|| {
             self.emitComment("slow path for global initializer");
             self.asm.bindLabel(lbl_global_slow_path);
+
+            self.saveRegistersForCall(snapshot);
 
             // Compute initial value.
             let fct_id = getGlobalInitializerFunctionId(global_id);
@@ -1332,6 +1342,8 @@ impl CodeGen for CodeGenX64 {
             // Set global variable state to INITIALIZED.
             self.asm.movq_ri(REG_TEMP, Immediate(state_address.value));
             self.asm.movb_ai(AsmAddress::offset(REG_TEMP, 0i32), Immediate(GLOBAL_STATE_INITIALIZED.toInt64()));
+
+            self.restoreRegistersForCall(snapshot);
 
             self.asm.jmp(lbl_return);
         });

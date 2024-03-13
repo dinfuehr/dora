@@ -1099,7 +1099,9 @@ impl CodeGen for CodeGenArm64 {
             Type::Ptr => {
                 let src = loc.getInput(1).getRegister();
                 self.asm.str_imm(src, obj, offset);
-                self.emitWriteBarrier(obj, src, REG_TEMP, loc.getRegisterSnapshot());
+                if config.needsWriteBarrier {
+                    self.emitWriteBarrier(obj, src, REG_TEMP, loc.getRegisterSnapshot());
+                }
             },
 
             Type::Float32 => {
@@ -1217,7 +1219,9 @@ impl CodeGen for CodeGenArm64 {
                 let value = loc.getInput(2).getRegister();
                 self.asm.add_imm(REG_TEMP, array, ARRAY_HEADER_LENGTH);
                 self.asm.str_reg(value, REG_TEMP, idx, Extend::LSL, 3i32);
-                self.emitWriteBarrier(array, value, REG_TEMP, loc.getRegisterSnapshot());
+                if config.needsWriteBarrier {
+                    self.emitWriteBarrier(array, value, REG_TEMP, loc.getRegisterSnapshot());
+                }
             },
 
             Type::Float32 => {
@@ -1323,9 +1327,13 @@ impl CodeGen for CodeGenArm64 {
         self.asm.bc(Cond::NE, lbl_global_slow_path);
         let lbl_return = self.asm.createAndBindLabel();
 
+        let snapshot = loc.getRegisterSnapshot();
+
         self.deferred.push(|| {
             self.emitComment("slow path for global initializer");
             self.asm.bindLabel(lbl_global_slow_path);
+
+            self.saveRegistersForCall(snapshot);
 
             // Compute initial value.
             let fct_id = getGlobalInitializerFunctionId(global_id);
@@ -1366,6 +1374,8 @@ impl CodeGen for CodeGenArm64 {
             self.mov_imm(REG_TEMP, state_address.value);
             self.asm.movz(tmp, GLOBAL_STATE_INITIALIZED, 0i32);
             self.asm.strb_imm(tmp, REG_TEMP, 0i32);
+
+            self.restoreRegistersForCall(snapshot);
 
             self.asm.b(lbl_return);
         });

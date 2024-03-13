@@ -692,9 +692,11 @@ def parse_test_file(file)
         test_case.args = arguments[1..-1].join(" ")
 
       when "vm-args"
-        test_case.vm_args = arguments[1..-1].join(" ")
+        test_case.vm_args += " " unless test_case.vm_args.empty?
+        test_case.vm_args += arguments[1..-1].join(" ")
 
       when "boots"
+        test_case.vm_args += " " unless test_case.vm_args.empty?
         test_case.vm_args += '--package boots dora-boots/boots.dora --gc-verify'
 
       when "timeout"
