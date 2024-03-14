@@ -14,6 +14,7 @@ pub fn decodeConfig(encoded: Array[UInt8]): Config {
     let is_windows = reader.readBool();
     let is_unix = reader.readBool();
     let needs_write_barrier = reader.readBool();
+    let use_tlab = reader.readBool();
     assert(!reader.moreBytes());
 
     Config(
@@ -26,6 +27,7 @@ pub fn decodeConfig(encoded: Array[UInt8]): Config {
         is_windows,
         is_unix,
         needs_write_barrier,
+        use_tlab,
     )
 }
 

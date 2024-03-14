@@ -1,0 +1,11 @@
+//= boots
+//= vm-args "--gc=copy --disable-tlab --gc-stress"
+
+fn main() {
+    let foo = getfoo();
+    std::forceCollect();
+}
+
+class Foo
+
+@optimizeImmediately fn getfoo(): Foo { Foo() }

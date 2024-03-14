@@ -210,7 +210,7 @@ impl CodeGenArm64 {
         });
     }
 
-    fn emitWriteBarrier(host: Register, value: Register, scratch: Register, snapshot: RegisterSnapshot) {
+    fn emitWriteBarrier(host: Register, value: Register, scratch: Register, snapshot: RegisterTrackers) {
         let lbl_object_slow_path = self.asm.createLabel();
         let lbl_marking_slow_path = self.asm.createLabel();
 
@@ -232,7 +232,7 @@ impl CodeGenArm64 {
             self.emitComment("object barrier slow path");
             self.asm.bindLabel(lbl_object_slow_path);
             self.asm.cbz(value, lbl_return);
-            self.saveRegistersForCall(snapshot);
+            self.saveRegistersForCall(snapshot, GcPoint::new());
             self.asm.mov(CCALL_REG_PARAMS(0), host);
             self.asm.mov(CCALL_REG_PARAMS(1), value);
             self.mov_imm(REG_TEMP, config.object_write_barrier_slow_path.toInt64());
@@ -242,27 +242,32 @@ impl CodeGenArm64 {
         });
     }
 
-    fn emitObjectAllocate(obj: Register, size: Int32, tmp1: Register, tmp2: Register, snapshot: RegisterSnapshot) {
+    fn emitObjectAllocate(obj: Register, size: Int32, tmp1: Register, tmp2: Register, snapshot: RegisterTrackers, gc_point: GcPoint) {
         let lbl_alloc_slow_path = self.asm.createLabel();
 
-        self.asm.ldr_imm(obj, REG_THREAD, THREAD_LOCAL_DATA_TLAB_TOP_OFFSET);
-        self.asm.ldr_imm(tmp1, REG_THREAD, THREAD_LOCAL_DATA_TLAB_END_OFFSET);
+        if config.useTlab {
+            self.asm.ldr_imm(obj, REG_THREAD, THREAD_LOCAL_DATA_TLAB_TOP_OFFSET);
+            self.asm.ldr_imm(tmp1, REG_THREAD, THREAD_LOCAL_DATA_TLAB_END_OFFSET);
 
-        self.asm.add_imm(tmp2, obj, size);
-        self.asm.cmp(tmp2, tmp1);
-        self.asm.bc(Cond::GT, lbl_alloc_slow_path);
-        self.asm.str_imm(tmp2, REG_THREAD, THREAD_LOCAL_DATA_TLAB_TOP_OFFSET);
+            self.asm.add_imm(tmp2, obj, size);
+            self.asm.cmp(tmp2, tmp1);
+            self.asm.bc(Cond::GT, lbl_alloc_slow_path);
+            self.asm.str_imm(tmp2, REG_THREAD, THREAD_LOCAL_DATA_TLAB_TOP_OFFSET);
+        } else {
+            self.asm.b(lbl_alloc_slow_path);
+        }
+
         let lbl_return = self.asm.createAndBindLabel();
-
-        assert(snapshot.gp.remove(obj));
 
         self.deferred.push(|| {
             self.emitComment("allocation slow path");
             self.asm.bindLabel(lbl_alloc_slow_path);
-            self.saveRegistersForCall(snapshot);
+            let gc_point = self.saveRegistersForCall(snapshot, gc_point);
             self.mov_imm(CCALL_REG_PARAMS(0), size.toInt64());
             self.mov_imm(REG_TEMP, config.allocation_slow_path.toInt64());
             self.asm.bl_r(REG_TEMP);
+            let pos = self.asm.position();
+            self.gcPoints.insert(pos, gc_point);
             self.asm.mov(obj, R0);
             self.restoreRegistersForCall(snapshot);
             self.asm.b(lbl_return);
@@ -316,65 +321,7 @@ impl CodeGenArm64 {
         self.asm.bindLabel(done);
     }
 
-    fn saveRegistersForCall(snapshot: RegisterSnapshot) {
-        let regs = snapshot.gp.clone().difference(CALLEE_SAVED_REGS);
-
-        if regs.size() % 2 != 0 {
-            let zero = REG_ZERO;
-            assert(!regs.contains(zero));
-            regs.add(zero);
-        }
-
-        while !regs.isEmpty() {
-            let rt = regs.popLowestIndex().getOrPanic();
-            let rt2 = regs.popLowestIndex().getOrPanic();
-            self.asm.stp_pre(rt, rt2, REG_SP, -16i32);
-        }
-
-        let regs = snapshot.fp.clone();
-
-        if regs.size() % 2 != 0 {
-            assert(!regs.contains(FREG_TEMP));
-            regs.add(FREG_TEMP);
-        }
-
-        while !regs.isEmpty() {
-            let rt = regs.popLowestIndex().getOrPanic();
-            let rt2 = regs.popLowestIndex().getOrPanic();
-            self.asm.stp_pre_d(rt, rt2, REG_SP, -16i32);
-        }
-    }
-
-    fn restoreRegistersForCall(snapshot: RegisterSnapshot) {
-        let regs = snapshot.gp.clone().difference(CALLEE_SAVED_REGS);
-
-        if regs.size() % 2 != 0 {
-            let zero = REG_ZERO;
-            assert(!regs.contains(zero));
-            regs.add(zero);
-        }
-
-        while !regs.isEmpty() {
-            let rt2 = regs.popHighestIndex().getOrPanic();
-            let rt = regs.popHighestIndex().getOrPanic();
-            self.asm.ldp_post(rt, rt2, REG_SP, 16i32);
-        }
-
-        let regs = snapshot.fp.clone();
-
-        if regs.size() % 2 != 0 {
-            assert(!regs.contains(FREG_TEMP));
-            regs.add(FREG_TEMP);
-        }
-
-        while !regs.isEmpty() {
-            let rt2 = regs.popHighestIndex().getOrPanic();
-            let rt = regs.popHighestIndex().getOrPanic();
-            self.asm.ldp_post_d(rt, rt2, REG_SP, 16i32);
-        }
-    }
-
-    fn saveRegistersForCall2(snapshot: RegisterTrackers, gc_point: GcPoint): GcPoint {
+    fn saveRegistersForCall(snapshot: RegisterTrackers, gc_point: GcPoint): GcPoint {
         let used = snapshot.gp.snapshot();
         let mut save: Option[Register] = None[Register];
         let mut fp_offset = -self.graph.getStackSize();
@@ -424,7 +371,7 @@ impl CodeGenArm64 {
         gc_point
     }
 
-    fn restoreRegistersForCall2(snapshot: RegisterTrackers) {
+    fn restoreRegistersForCall(snapshot: RegisterTrackers) {
         let regs = snapshot.fp.snapshot();
 
         if regs.size() % 2 != 0 {
@@ -1198,7 +1145,7 @@ impl CodeGen for CodeGenArm64 {
                 let src = loc.getInput(1).getRegister();
                 self.asm.str_imm(src, obj, offset);
                 if config.needsWriteBarrier {
-                    self.emitWriteBarrier(obj, src, REG_TEMP, loc.getRegisterSnapshot());
+                    self.emitWriteBarrier(obj, src, REG_TEMP, loc.getRegisterTrackers());
                 }
             },
 
@@ -1318,7 +1265,7 @@ impl CodeGen for CodeGenArm64 {
                 self.asm.add_imm(REG_TEMP, array, ARRAY_HEADER_LENGTH);
                 self.asm.str_reg(value, REG_TEMP, idx, Extend::LSL, 3i32);
                 if config.needsWriteBarrier {
-                    self.emitWriteBarrier(array, value, REG_TEMP, loc.getRegisterSnapshot());
+                    self.emitWriteBarrier(array, value, REG_TEMP, loc.getRegisterTrackers());
                 }
             },
 
@@ -1349,7 +1296,7 @@ impl CodeGen for CodeGenArm64 {
         let size = getClassSize(class_info.class_id, class_info.type_params);
 
         let tmp = loc.getTemp(0).getRegister();
-        self.emitObjectAllocate(obj, size, REG_TEMP, tmp, loc.getRegisterSnapshot());
+        self.emitObjectAllocate(obj, size, REG_TEMP, tmp, loc.getRegisterTrackers(), loc.getGcPoint());
 
         let classptr = getClassPointer(class_info.class_id, class_info.type_params);
         self.emitObjectInitialization(obj, size, classptr, REG_TEMP);
@@ -1362,7 +1309,7 @@ impl CodeGen for CodeGenArm64 {
         let size = LAMBDA_SIZE;
 
         let tmp = loc.getTemp(0).getRegister();
-        self.emitObjectAllocate(obj, size, REG_TEMP, tmp, loc.getRegisterSnapshot());
+        self.emitObjectAllocate(obj, size, REG_TEMP, tmp, loc.getRegisterTrackers(), loc.getGcPoint());
 
         let classptr = getClassPointerForLambda(class_info.fct_id, class_info.type_params);
         self.emitObjectInitialization(obj, size, classptr, REG_TEMP);
@@ -1432,7 +1379,7 @@ impl CodeGen for CodeGenArm64 {
             self.emitComment("slow path for global initializer");
             self.asm.bindLabel(lbl_global_slow_path);
 
-            let gc_point = self.saveRegistersForCall2(trackers, loc.getGcPoint().clone());
+            let gc_point = self.saveRegistersForCall(trackers, loc.getGcPoint().clone());
 
             // Compute initial value.
             let fct_id = getGlobalInitializerFunctionId(global_id);
@@ -1474,7 +1421,7 @@ impl CodeGen for CodeGenArm64 {
             self.asm.movz(tmp, GLOBAL_STATE_INITIALIZED, 0i32);
             self.asm.strb_imm(tmp, REG_TEMP, 0i32);
 
-            self.restoreRegistersForCall2(trackers);
+            self.restoreRegistersForCall(trackers);
 
             self.asm.b(lbl_return);
         });

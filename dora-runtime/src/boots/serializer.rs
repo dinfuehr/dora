@@ -30,6 +30,7 @@ fn encode_system_config(vm: &VM, buffer: &mut ByteBuffer) {
     buffer.emit_bool(cfg!(target_family = "windows"));
     buffer.emit_bool(cfg!(target_family = "unix"));
     buffer.emit_bool(vm.gc.needs_write_barrier());
+    buffer.emit_bool(!vm.flags.disable_tlab);
 }
 
 pub fn allocate_encoded_compilation_info(vm: &VM, compilation_data: &CompilationData) -> Ref<Obj> {

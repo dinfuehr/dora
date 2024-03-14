@@ -183,6 +183,7 @@ impl SimpleRegisterAllocator {
                        || inst.op() == Op::NewLambda);
                 assert(!inst.getLocationData().hasInput());
                 self.snapshotRegisters(inst);
+                self.attachGcPoint(inst);
             }
 
             self.allocateFixedInputs(inst);

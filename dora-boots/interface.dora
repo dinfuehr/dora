@@ -99,6 +99,7 @@ pub class Config {
     pub isWindows: Bool,
     pub isUnix: Bool,
     pub needsWriteBarrier: Bool,
+    pub useTlab: Bool,
 }
 
 pub let config: Config = decodeConfig(getSystemConfig());
