@@ -1,4 +1,5 @@
 //= boots
+//= ignore
 
 let g: Int64 = {
     std::forceCollect(); 12
