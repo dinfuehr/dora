@@ -418,7 +418,7 @@ impl CodeGenArm64 {
         while !regs.isEmpty() {
             let rt2 = regs.popHighestIndex().getOrPanic();
             let rt = regs.popHighestIndex().getOrPanic();
-            self.asm.ldp_post_d(rt, rt2, REG_SP, 16i32);
+            self.asm.stp_pre_d(rt, rt2, REG_SP, -16i32);
         }
 
         gc_point

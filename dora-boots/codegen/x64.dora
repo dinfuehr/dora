@@ -387,6 +387,7 @@ impl CodeGenX64 {
 
         if !regs.isEmpty() {
             let mut offset = 0i32;
+            let count = regs.size();
 
             while !regs.isEmpty() {
                 let reg = regs.popLowestIndex().getOrPanic();
@@ -394,7 +395,7 @@ impl CodeGenX64 {
                 offset = offset + PTR_SIZE;
             }
 
-            let size = regs.size() * PTR_SIZE.toInt64();
+            let size = count * PTR_SIZE.toInt64();
             self.asm.addq_ri(RSP, Immediate(size));
         }
 
