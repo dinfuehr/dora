@@ -340,6 +340,14 @@ impl GcPoint {
     pub fn size(): Int64 {
         self.offsets.size()
     }
+
+    pub fn clone(): GcPoint {
+        GcPoint::from(self.offsets.clone())
+    }
+
+    pub fn add(offset: Int32) {
+        self.offsets.push(offset);
+    }
 }
 
 impl std::traits::IntoIterator for GcPoint {

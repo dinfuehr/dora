@@ -31,7 +31,7 @@ mod ssa_destruction;
 
 pub fn compileFunction(ci: CompilationInfo): CodeDescriptor {
     let graph = createGraph(ci.bc);
-    let codegen = createCodeGen(ci);
+    let codegen = createCodeGen(ci, graph);
 
     if (ci.emitGraph) {
         println("after graph building:");

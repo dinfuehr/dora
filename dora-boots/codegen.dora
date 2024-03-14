@@ -12,10 +12,10 @@ pub mod x64;
 const CODE_SIZE_ALIGNMENT: Int64 = 16;
 pub const STACK_FRAME_ALIGNMENT: Int64 = 16;
 
-pub fn createCodeGen(ci: CompilationInfo): CodeGen {
+pub fn createCodeGen(ci: CompilationInfo, graph: Graph): CodeGen {
     match config.architecture {
-        Architecture::X64 => CodeGenX64::new(ci) as CodeGen,
-        Architecture::Arm64 => CodeGenArm64::new(ci) as CodeGen,
+        Architecture::X64 => CodeGenX64::new(ci, graph) as CodeGen,
+        Architecture::Arm64 => CodeGenArm64::new(ci, graph) as CodeGen,
     }
 }
 

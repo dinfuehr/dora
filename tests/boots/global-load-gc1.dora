@@ -1,5 +1,4 @@
 //= boots
-//= ignore
 
 let g: Int64 = {
     std::forceCollect(); 12
@@ -13,5 +12,5 @@ class Foo(value: Int64)
 
 @optimizeImmediately fn getg(x: Foo): Int64 {
     let result = g;
-    x.value + g
+    x.value + result
 }

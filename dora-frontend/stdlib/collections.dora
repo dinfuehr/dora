@@ -1141,6 +1141,10 @@ impl[T] Vec[T] {
   pub fn enumerate(): VecEnumerator[T] {
     VecEnumerator[T]::new(self)
   }
+
+  pub fn clone(): Vec[T] {
+    Vec[T](self.array.clone(), self.len)
+  }
 }
 
 impl[T] IntoIterator for Vec[T] {

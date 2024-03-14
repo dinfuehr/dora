@@ -10,7 +10,8 @@ use package::interface::{Address, Architecture, CompilationInfo, ConstPool, Cons
 use package::interface::{TRAP_DIV0, TRAP_OVERFLOW, TRAP_INDEX_OUT_OF_BOUNDS, LAMBDA_SIZE, PTR_SIZE, GLOBAL_STATE_INITIALIZED};
 use package::interface::{THREAD_LOCAL_DATA_TLAB_TOP_OFFSET, THREAD_LOCAL_DATA_TLAB_END_OFFSET, THREAD_LOCAL_DATA_STACK_LIMIT_OFFSET, THREAD_LOCAL_DATA_STATE_OFFSET, THREAD_LOCAL_DATA_MARKING_OFFSET, OBJECT_HEADER_LENGTH, OBJECT_METADATA_OFFSET, METADATA_REMEMBERED_BIT, ARRAY_HEADER_LENGTH};
 use package::location::{useInputFloatRegisterFixed, useInputRegister, useInputRegisterFixed, useOutputRegisterFixed, useOutputSameAsFirstInput, addTempRegisterFixed};
-use package::graph::{Inst, Op, LocationData, RegisterSnapshot, Type};
+use package::graph::{Graph, Inst, Op, LocationData, RegisterSnapshot, RegisterTrackers, Type};
+use package::regalloc::isReference;
 use package::{CodeDescriptor, CommentTable, GcPoint, GcPointTable, LazyCompilationData, LazyCompilationSiteVirtual, LazyCompilationSiteLambda, LocationTable};
 
 let REG_PARAMS: Array[Register] = Array[Register]::new(RDI, RSI, RDX, RCX, R8, R9);
@@ -63,6 +64,7 @@ fn msb(reg: FloatRegister): Bool {
 pub class CodeGenX64 {
     ci: CompilationInfo,
     asm: AssemblerX64,
+    graph: Graph,
     constPool: ConstPool,
     locations: LocationTable,
     lazyCompilation: LazyCompilationData,
@@ -72,10 +74,11 @@ pub class CodeGenX64 {
 }
 
 impl CodeGenX64 {
-    pub static fn new(ci: CompilationInfo): CodeGenX64 {
+    pub static fn new(ci: CompilationInfo, graph: Graph): CodeGenX64 {
         CodeGenX64(
             ci,
             AssemblerX64::new(),
+            graph,
             ConstPool::new(),
             LocationTable::new(),
             LazyCompilationData::new(),
@@ -319,6 +322,82 @@ impl CodeGenX64 {
 
             let size = regs.size() * PTR_SIZE.toInt64();
             self.asm.addq_ri(RSP, Immediate(size));
+        }
+    }
+
+    fn saveRegistersForCall2(snapshot: RegisterTrackers, gc_point: GcPoint): GcPoint {
+        let used = snapshot.gp.snapshot();
+        let mut fp_offset = -self.graph.getStackSize();
+
+        for reg in used {
+            // Temporaries are not part of the snapshot, so we should
+            // always be able to find an Inst.
+            let inst = snapshot.gp.data.get(reg).getOrPanic();
+
+            // If Inst is already spilled, we can reload it from
+            // there.
+            if inst.getLocationData().hasSpillSlot() {
+                continue;
+            }
+
+            fp_offset = fp_offset - PTR_SIZE;
+
+            if isReference(inst.getValueType()) {
+                gc_point.add(fp_offset);
+            }
+
+            self.asm.pushq_r(reg);
+        }
+
+        let regs = snapshot.fp.snapshot();
+
+        if !regs.isEmpty() {
+            let size = regs.size() * PTR_SIZE.toInt64();
+            self.asm.subq_ri(RSP, Immediate(size));
+            let mut offset = 0i32;
+
+            while !regs.isEmpty() {
+                let reg = regs.popLowestIndex().getOrPanic();
+                self.asm.movsd_ar(AsmAddress::offset(RSP, offset), reg);
+                offset = offset + PTR_SIZE;
+            }
+        }
+
+        gc_point
+    }
+
+    fn restoreRegistersForCall2(snapshot: RegisterTrackers) {
+        let regs = snapshot.fp.snapshot();
+
+        if !regs.isEmpty() {
+            let mut offset = 0i32;
+
+            while !regs.isEmpty() {
+                let reg = regs.popLowestIndex().getOrPanic();
+                self.asm.movsd_ra(reg, AsmAddress::offset(RSP, offset));
+                offset = offset + PTR_SIZE;
+            }
+
+            let size = regs.size() * PTR_SIZE.toInt64();
+            self.asm.addq_ri(RSP, Immediate(size));
+        }
+
+        let used = snapshot.gp.snapshot();
+        let mut fp_offset = -self.graph.getStackSize();
+
+        for reg in used {
+            // Temporaries are not part of the snapshot, so we should
+            // always be able to find an Inst.
+            let inst = snapshot.gp.data.get(reg).getOrPanic();
+
+            // If Inst is already spilled, we can reload it from
+            // there.
+            if inst.getLocationData().hasSpillSlot() {
+                self.asm.movq_ra(reg, AsmAddress::offset(RBP, inst.getLocationData().getSpillSlot()));
+                continue;
+            }
+
+            self.asm.popq_r(reg);
         }
     }
 
@@ -1296,18 +1375,18 @@ impl CodeGen for CodeGenX64 {
         self.asm.jcc(Condition::NotEqual, lbl_global_slow_path);
         let lbl_return = self.asm.createAndBindLabel();
 
-        let snapshot = loc.getRegisterSnapshot();
+        let trackers = loc.getRegisterTrackers();
 
         self.deferred.push(|| {
             self.emitComment("slow path for global initializer");
             self.asm.bindLabel(lbl_global_slow_path);
 
-            self.saveRegistersForCall(snapshot);
+            let gc_point = self.saveRegistersForCall2(trackers, loc.getGcPoint().clone());
 
             // Compute initial value.
             let fct_id = getGlobalInitializerFunctionId(global_id);
             let type_params = Array[BytecodeType]::new();
-            self.emitCall(fct_id, type_params, inst.bytecode_position(), GcPoint::new());
+            self.emitCall(fct_id, type_params, inst.bytecode_position(), gc_point);
 
             // Store initial value in global variable.
             let value_address = getGlobalValueAddress(global_id);
@@ -1343,7 +1422,7 @@ impl CodeGen for CodeGenX64 {
             self.asm.movq_ri(REG_TEMP, Immediate(state_address.value));
             self.asm.movb_ai(AsmAddress::offset(REG_TEMP, 0i32), Immediate(GLOBAL_STATE_INITIALIZED.toInt64()));
 
-            self.restoreRegistersForCall(snapshot);
+            self.restoreRegistersForCall2(trackers);
 
             self.asm.jmp(lbl_return);
         });

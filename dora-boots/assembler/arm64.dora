@@ -2977,7 +2977,7 @@ mod encoding {
         assert(fitsI7(imm7));
         assert(rt2.isGprOrZero());
         assert(rn.isGprOrSp());
-        assert(rt.isGpr());
+        assert(rt.isGprOrZero());
 
         opc << 30i32
             | 0b101i32 << 27i32
@@ -2987,7 +2987,7 @@ mod encoding {
             | (imm7 & 0x7Fi32) << 15i32
             | rt2.encodingZero() << 10i32
             | rn.encodingSp() << 5i32
-            | rt.encoding()
+            | rt.encodingZero()
     }
 
     pub fn ldst_pair_pre_float(

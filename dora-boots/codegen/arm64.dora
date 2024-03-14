@@ -12,7 +12,8 @@ use package::assembler::arm64::{R15, R16, R19, R20, R21, R22, R23};
 use package::assembler::arm64::{R24, R25, R26, R27, R28};
 use package::assembler::arm64::{REG_FP, REG_SP, REG_LR, REG_ZERO};
 use package::assembler::{FloatRegister, Label, RegSet, Register};
-use package::graph::{Inst, Op, LocationData, RegisterSnapshot, Type};
+use package::graph::{Graph, Inst, Op, LocationData, RegisterSnapshot, RegisterTrackers, Type};
+use package::regalloc::isReference;
 use package::location::{useInputFloatRegisterFixed, useInputRegister, useInputRegisterFixed, useOutputRegister};
 use package::{CodeDescriptor, CommentTable, GcPoint, GcPointTable, LazyCompilationData, LazyCompilationSite, LazyCompilationSiteDirect, LazyCompilationSiteVirtual, LazyCompilationSiteLambda, LocationTable};
 
@@ -55,6 +56,7 @@ let CALLEE_SAVED_FREGS: RegSet[FloatRegister] = RegSet[FloatRegister]::new(
 pub class CodeGenArm64 {
     ci: CompilationInfo,
     asm: AssemblerArm64,
+    graph: Graph,
     constPool: ConstPool,
     lazyCompilation: LazyCompilationData,
     gcPoints: GcPointTable,
@@ -64,10 +66,11 @@ pub class CodeGenArm64 {
 }
 
 impl CodeGenArm64 {
-    pub static fn new(ci: CompilationInfo): CodeGenArm64 {
+    pub static fn new(ci: CompilationInfo, graph: Graph): CodeGenArm64 {
         CodeGenArm64(
             ci,
             AssemblerArm64::new(),
+            graph,
             ConstPool::new(),
             LazyCompilationData::new(),
             GcPointTable::new(),
@@ -368,6 +371,101 @@ impl CodeGenArm64 {
             let rt2 = regs.popHighestIndex().getOrPanic();
             let rt = regs.popHighestIndex().getOrPanic();
             self.asm.ldp_post_d(rt, rt2, REG_SP, 16i32);
+        }
+    }
+
+    fn saveRegistersForCall2(snapshot: RegisterTrackers, gc_point: GcPoint): GcPoint {
+        let used = snapshot.gp.snapshot();
+        let mut save: Option[Register] = None[Register];
+        let mut fp_offset = -self.graph.getStackSize();
+
+        for reg in used {
+            // Temporaries are not part of the snapshot, so we should
+            // always be able to find an Inst.
+            let inst = snapshot.gp.data.get(reg).getOrPanic();
+
+            // If Inst is already spilled, we can reload it from
+            // there.
+            if inst.getLocationData().hasSpillSlot() {
+                continue;
+            }
+
+            fp_offset = fp_offset - PTR_SIZE;
+
+            if isReference(inst.getValueType()) {
+                gc_point.add(fp_offset);
+            }
+
+            if save.isNone() {
+                save = Some[Register](reg);
+            } else {
+                self.asm.stp_pre(reg, save.getOrPanic(), REG_SP, -16i32);
+                save = None[Register];
+            }
+        }
+
+        if save.isSome() {
+            self.asm.stp_pre(REG_ZERO, save.getOrPanic(), REG_SP, -16i32);
+        }
+
+        let regs = snapshot.fp.snapshot();
+
+        if regs.size() % 2 != 0 {
+            assert(!regs.contains(FREG_TEMP));
+            regs.add(FREG_TEMP);
+        }
+
+        while !regs.isEmpty() {
+            let rt2 = regs.popHighestIndex().getOrPanic();
+            let rt = regs.popHighestIndex().getOrPanic();
+            self.asm.ldp_post_d(rt, rt2, REG_SP, 16i32);
+        }
+
+        gc_point
+    }
+
+    fn restoreRegistersForCall2(snapshot: RegisterTrackers) {
+        let regs = snapshot.fp.snapshot();
+
+        if regs.size() % 2 != 0 {
+            assert(!regs.contains(FREG_TEMP));
+            regs.add(FREG_TEMP);
+        }
+
+        while !regs.isEmpty() {
+            let rt2 = regs.popHighestIndex().getOrPanic();
+            let rt = regs.popHighestIndex().getOrPanic();
+            self.asm.ldp_post_d(rt, rt2, REG_SP, 16i32);
+        }
+
+        let used = snapshot.gp.snapshot();
+        let mut save: Option[Register] = None[Register];
+        let mut fp_offset = -self.graph.getStackSize();
+
+        for reg in used {
+            // Temporaries are not part of the snapshot, so we should
+            // always be able to find an Inst.
+            let inst = snapshot.gp.data.get(reg).getOrPanic();
+
+            // If Inst is already spilled, we can reload it from
+            // there.
+            if inst.getLocationData().hasSpillSlot() {
+                self.asm.ldur(reg, REG_FP, inst.getLocationData().getSpillSlot());
+                continue;
+            }
+
+            fp_offset = fp_offset - PTR_SIZE;
+
+            if save.isNone() {
+                save = Some[Register](reg);
+            } else {
+                self.asm.ldp_post(reg, save.getOrPanic(), REG_SP, 16i32);
+                save = None[Register];
+            }
+        }
+
+        if save.isSome() {
+            self.asm.ldp_post(REG_ZERO, save.getOrPanic(), REG_SP, 16i32);
         }
     }
 
@@ -1328,17 +1426,18 @@ impl CodeGen for CodeGenArm64 {
         let lbl_return = self.asm.createAndBindLabel();
 
         let snapshot = loc.getRegisterSnapshot();
+        let trackers = loc.getRegisterTrackers();
 
         self.deferred.push(|| {
             self.emitComment("slow path for global initializer");
             self.asm.bindLabel(lbl_global_slow_path);
 
-            self.saveRegistersForCall(snapshot);
+            let gc_point = self.saveRegistersForCall2(trackers, loc.getGcPoint().clone());
 
             // Compute initial value.
             let fct_id = getGlobalInitializerFunctionId(global_id);
             let type_params = Array[BytecodeType]::new();
-            self.emitCall(fct_id, type_params, inst.bytecode_position(), GcPoint::new());
+            self.emitCall(fct_id, type_params, inst.bytecode_position(), gc_point);
 
             // Store initial value in global variable.
             let value_address = getGlobalValueAddress(global_id);
@@ -1375,7 +1474,7 @@ impl CodeGen for CodeGenArm64 {
             self.asm.movz(tmp, GLOBAL_STATE_INITIALIZED, 0i32);
             self.asm.strb_imm(tmp, REG_TEMP, 0i32);
 
-            self.restoreRegistersForCall(snapshot);
+            self.restoreRegistersForCall2(trackers);
 
             self.asm.b(lbl_return);
         });

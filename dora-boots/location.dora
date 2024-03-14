@@ -230,6 +230,7 @@ impl LocationAnnotation {
 
             Op::EnsureGlobalInitialized => {
                 addTempRegister(inst);
+                setOutputOverlaps(inst, false);
             },
 
             Op::StoreGlobal => {

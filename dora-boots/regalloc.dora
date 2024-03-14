@@ -73,8 +73,12 @@ impl SimpleRegisterAllocator {
 
     fn snapshotRegisters(inst: Inst) {
         let loc_data = inst.getLocationData();
+
         let snapshot = self.createRegisterSnapshot();
         loc_data.setRegisterSnapshot(snapshot);
+
+        let snapshot = self.snapshotRegisterTrackers();
+        loc_data.setRegisterTrackers(snapshot);
     }
 
     fn createRegisterSnapshot(): RegisterSnapshot {
@@ -176,8 +180,7 @@ impl SimpleRegisterAllocator {
         if outputOverlaps {
             if inst.needsRegisterSnapshot() {
                 assert(inst.op() == Op::NewObject
-                       || inst.op() == Op::NewLambda
-                       || inst.op() == Op::EnsureGlobalInitialized);
+                       || inst.op() == Op::NewLambda);
                 assert(!inst.getLocationData().hasInput());
                 self.snapshotRegisters(inst);
             }
@@ -207,10 +210,11 @@ impl SimpleRegisterAllocator {
 
             if inst.needsRegisterSnapshot() {
                 assert(inst.op() == Op::StoreField
-                       || inst.op() == Op::StoreArray);
+                       || inst.op() == Op::StoreArray
+                       || inst.op() == Op::EnsureGlobalInitialized);
                 assert(!inst.getLocationData().hasOutput());
-                assert(!inst.getLocationData().hasTemp());
                 self.snapshotRegisters(inst);
+                self.attachGcPoint(inst);
             }
 
             if inst.isCall() {
@@ -645,7 +649,7 @@ impl SimpleRegisterAllocator {
     }
 }
 
-fn isReference(ty: Type): Bool {
+pub fn isReference(ty: Type): Bool {
     ty == Type::Ptr
 }
 
@@ -770,7 +774,7 @@ impl[T: RegisterType] RegisterTracker[T] {
         )
     }
 
-    fn snapshot(): RegSet[T] {
+    pub fn snapshot(): RegSet[T] {
         self.allocatable.difference(self.free)
     }
 }
