@@ -5,7 +5,7 @@ use package::assembler::x64::{R8, R9, R10, R11, R12, R13, R14, R15};
 use package::assembler::x64::{XMM0, XMM1, XMM2, XMM3, XMM4, XMM5, XMM6, XMM7, XMM8, XMM9, XMM10, XMM11, XMM12, XMM13, XMM14, XMM15};
 use package::assembler::{FloatRegister, Label, Register, RegSet};
 use package::bytecode::data::{ConstPoolId, Location};
-use package::codegen::{CODE_SIZE_ALIGNMENT, CodeGen};
+use package::codegen::{CODE_SIZE_ALIGNMENT, STACK_FRAME_ALIGNMENT, CodeGen};
 use package::interface::{Address, Architecture, CompilationInfo, ConstPool, ConstPoolEntry, ConstPoolValue, config, getFunctionAddress, LazyCompilationSite, LazyCompilationSiteDirect, getFieldOffset, getClassSize, getClassPointer, getClassPointerForLambda, getFunctionVtableIndex, getGlobalValueAddress, getGlobalStateAddress, getGlobalInitializerFunctionId};
 use package::interface::{TRAP_DIV0, TRAP_OVERFLOW, TRAP_INDEX_OUT_OF_BOUNDS, LAMBDA_SIZE, PTR_SIZE, GLOBAL_STATE_INITIALIZED};
 use package::interface::{THREAD_LOCAL_DATA_TLAB_TOP_OFFSET, THREAD_LOCAL_DATA_TLAB_END_OFFSET, THREAD_LOCAL_DATA_STACK_LIMIT_OFFSET, THREAD_LOCAL_DATA_STATE_OFFSET, THREAD_LOCAL_DATA_MARKING_OFFSET, OBJECT_HEADER_LENGTH, OBJECT_METADATA_OFFSET, METADATA_REMEMBERED_BIT, ARRAY_HEADER_LENGTH};
@@ -325,9 +325,9 @@ impl CodeGenX64 {
         }
     }
 
-    fn saveRegistersForCall2(snapshot: RegisterTrackers, gc_point: GcPoint): GcPoint {
+    fn saveRegistersForCall2(snapshot: RegisterTrackers, gc_point: GcPoint): (GcPoint, Int32) {
         let used = snapshot.gp.snapshot();
-        let mut fp_offset = -self.graph.getStackSize();
+        let mut extendedSize: Int32 = 0i32;
 
         for reg in used {
             // Temporaries are not part of the snapshot, so we should
@@ -340,9 +340,10 @@ impl CodeGenX64 {
                 continue;
             }
 
-            fp_offset = fp_offset - PTR_SIZE;
+            extendedSize = extendedSize + PTR_SIZE;
 
             if isReference(inst.getValueType()) {
+                let fp_offset = -(self.graph.getStackSize() + extendedSize);
                 gc_point.add(fp_offset);
             }
 
@@ -352,8 +353,9 @@ impl CodeGenX64 {
         let regs = snapshot.fp.snapshot();
 
         if !regs.isEmpty() {
-            let size = regs.size() * PTR_SIZE.toInt64();
-            self.asm.subq_ri(RSP, Immediate(size));
+            let size = regs.size().toInt32() * PTR_SIZE;
+            extendedSize = extendedSize + size;
+            self.asm.subq_ri(RSP, Immediate(size.toInt64()));
             let mut offset = 0i32;
 
             while !regs.isEmpty() {
@@ -361,12 +363,26 @@ impl CodeGenX64 {
                 self.asm.movsd_ar(AsmAddress::offset(RSP, offset), reg);
                 offset = offset + PTR_SIZE;
             }
-        }
+        };
 
-        gc_point
+        let alignment = if (extendedSize.toInt64() % STACK_FRAME_ALIGNMENT) != 0 {
+            extendedSize = extendedSize + PTR_SIZE;
+            self.asm.subq_ri(RSP, Immediate(PTR_SIZE.toInt64()));
+            assert(extendedSize.toInt64() % STACK_FRAME_ALIGNMENT == 0);
+            PTR_SIZE
+        } else {
+            0i32
+        };
+
+        (gc_point, alignment)
     }
 
-    fn restoreRegistersForCall2(snapshot: RegisterTrackers) {
+    fn restoreRegistersForCall2(snapshot: RegisterTrackers, alignment: Int32) {
+        if alignment != 0i32 {
+            assert(alignment == PTR_SIZE);
+            self.asm.addq_ri(RSP, Immediate(PTR_SIZE.toInt64()));
+        }
+
         let regs = snapshot.fp.snapshot();
 
         if !regs.isEmpty() {
@@ -383,7 +399,6 @@ impl CodeGenX64 {
         }
 
         let used = snapshot.gp.snapshot();
-        let mut fp_offset = -self.graph.getStackSize();
 
         for reg in used {
             // Temporaries are not part of the snapshot, so we should
@@ -1381,7 +1396,7 @@ impl CodeGen for CodeGenX64 {
             self.emitComment("slow path for global initializer");
             self.asm.bindLabel(lbl_global_slow_path);
 
-            let gc_point = self.saveRegistersForCall2(trackers, loc.getGcPoint().clone());
+            let (gc_point, alignment) = self.saveRegistersForCall2(trackers, loc.getGcPoint().clone());
 
             // Compute initial value.
             let fct_id = getGlobalInitializerFunctionId(global_id);
@@ -1422,7 +1437,7 @@ impl CodeGen for CodeGenX64 {
             self.asm.movq_ri(REG_TEMP, Immediate(state_address.value));
             self.asm.movb_ai(AsmAddress::offset(REG_TEMP, 0i32), Immediate(GLOBAL_STATE_INITIALIZED.toInt64()));
 
-            self.restoreRegistersForCall2(trackers);
+            self.restoreRegistersForCall2(trackers, alignment);
 
             self.asm.jmp(lbl_return);
         });

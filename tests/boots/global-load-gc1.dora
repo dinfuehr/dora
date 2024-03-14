@@ -1,5 +1,4 @@
 //= boots
-//= platform "arch == 'arm64'"
 
 let g: Int64 = {
     std::forceCollect(); 12
