@@ -11,6 +11,7 @@ use crate::cannon::CompilationFlags;
 use crate::compiler::codegen::CompilationData;
 use crate::gc::Address;
 use crate::handle::{create_handle, Handle};
+use crate::object::Str;
 use crate::object::{Ref, UInt8Array};
 use crate::size::InstanceSize;
 use crate::threads::current_thread;
@@ -67,6 +68,10 @@ pub const BOOTS_NATIVE_FUNCTIONS: &[(&'static str, *const u8)] = &[
     (
         "boots::interface::getClassPointerForLambdaRaw",
         get_class_pointer_for_lambda as *const u8,
+    ),
+    (
+        "boots::interface::getReadOnlyStringAddressRaw",
+        get_read_only_string_address_raw as *const u8,
     ),
 ];
 
@@ -291,4 +296,13 @@ fn get_field_offset_raw(
 extern "C" fn get_system_config() -> Ref<UInt8Array> {
     let vm = get_vm();
     allocate_encoded_system_config(vm)
+}
+
+extern "C" fn get_read_only_string_address_raw(data: Handle<Str>) -> Address {
+    let vm = get_vm();
+    let content = data.content();
+    let content = content.to_vec();
+
+    let handle = Str::from_buffer_in_perm(vm, &content);
+    handle.address()
 }

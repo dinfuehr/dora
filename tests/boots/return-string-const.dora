@@ -1,0 +1,24 @@
+//= boots
+//= vm-args --gc=copy
+
+fn main() {
+    let x = f();
+    assert(x == "foo");
+    let x = g();
+    assert(x == "bar");
+    let x = h();
+    assert(x == "baz");
+
+    std::forceCollect();
+
+    let x = f();
+    assert(x == "foo");
+    let x = g();
+    assert(x == "bar");
+    let x = h();
+    assert(x == "baz");
+}
+
+@optimizeImmediately fn f(): String { "foo" }
+@optimizeImmediately fn g(): String { "bar" }
+@optimizeImmediately fn h(): String { "baz" }

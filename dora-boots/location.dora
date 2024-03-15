@@ -64,7 +64,8 @@ impl LocationAnnotation {
 
             Op::UInt8Const
             | Op::Int32Const
-            | Op::Int64Const => {
+            | Op::Int64Const
+            | Op::StringConst => {
                 useOutputRegister(inst, false);
             },
 

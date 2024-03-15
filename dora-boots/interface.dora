@@ -32,6 +32,7 @@ pub const TRAP_OVERFLOW: Int32 = 9i32;
 @internal pub fn getGlobalStateAddressRaw(id: Int32): Int64;
 @internal pub fn hasGlobalInitialValueRaw(id: Int32): Bool;
 @internal pub fn getGlobalInitializerFunctionIdRaw(id: Int32): Int32;
+@internal pub fn getReadOnlyStringAddressRaw(id: String): Int64;
 
 pub fn getFunctionAddress(fct_id: FctId, type_params: Array[BytecodeType]): Address {
     let writer = ByteWriter::new();
@@ -89,6 +90,10 @@ pub fn getGlobalInitializerFunctionId(id: GlobalId): FctId {
     FctId(getGlobalInitializerFunctionIdRaw(id.value))
 }
 
+pub fn getReadOnlyStringAddress(value: String): Address {
+    Address(getReadOnlyStringAddressRaw(value))
+}
+
 pub class Config {
     pub architecture: Architecture,
     pub safepoint_trampoline: Address,
@@ -117,6 +122,10 @@ pub fn compile(encoded: Array[UInt8]): Array[UInt8] {
 pub struct Address(pub value: Int64)
 
 impl Address {
+    pub static fn null(): Address {
+        Address(0)
+    }
+
     pub fn toInt64(): Int64 {
         self.value
     }

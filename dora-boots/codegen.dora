@@ -97,6 +97,11 @@ fn emitInst(codegen: CodeGen, inst: Inst) {
             codegen.emitFloat64Const(inst);
         },
 
+        Op::StringConst => {
+            codegen.emitComment("StringConst");
+            codegen.emitStringConst(inst);
+        },
+
         Op::Add => {
             codegen.emitComment("Add");
             codegen.emitAdd(inst);
@@ -318,6 +323,7 @@ pub trait CodeGen {
     fn emitInt64Const(inst: Inst);
     fn emitFloat32Const(inst: Inst);
     fn emitFloat64Const(inst: Inst);
+    fn emitStringConst(inst: Inst);
     fn emitAdd(inst: Inst);
     fn emitSub(inst: Inst);
     fn emitMul(inst: Inst);

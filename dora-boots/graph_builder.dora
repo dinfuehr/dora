@@ -406,7 +406,10 @@ impl SsaGen {
                 self.writeVariable(dest, self.current(), inst);
             },
             BytecodeInstruction::ConstString(dest, idx) => {
-                unimplemented();
+                let value = self.bc.constPool(idx).toString().getOrPanic();
+                let inst = graph::createStringConst(value);
+                self.current().appendInst(inst);
+                self.writeVariable(dest, self.current(), inst);
             },
 
             BytecodeInstruction::TestIdentity(dest, lhs, rhs) => {

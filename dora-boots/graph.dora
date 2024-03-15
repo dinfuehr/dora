@@ -574,6 +574,7 @@ pub enum Op {
 
     Float32Const,
     Float64Const,
+    StringConst,
 
     EnsureGlobalInitialized,
     LoadGlobal,
@@ -683,6 +684,7 @@ pub fn opName(op: Op): String {
         Op::Int64Const => "Const.Int64",
         Op::Float32Const => "Const.Float32",
         Op::Float64Const => "Const.Float64",
+        Op::StringConst => "Const.String",
         Op::EnsureGlobalInitialized => "EnsureGlobalInitialized",
         Op::LoadGlobal => "LoadGlobal",
         Op::StoreGlobal => "StoreGlobal",
@@ -857,6 +859,7 @@ impl Inst {
             Op::Int64Const => Type::Int64,
             Op::Float32Const => Type::Float32,
             Op::Float64Const => Type::Float64,
+            Op::StringConst => Type::Ptr,
             Op::EnsureGlobalInitialized => unreachable[Type](),
             Op::LoadGlobal => self.ty,
             Op::StoreGlobal => self.ty,
@@ -1220,6 +1223,13 @@ impl Inst {
         self.aux.toUInt8()
     }
 
+    pub fn getValueAsString(): String {
+        match self.extra {
+            InstExtraData::String(value) => value,
+            _ => unreachable[String](),
+        }
+    }
+
     pub fn getValueAsInt32(): Int32 {
         assert(self.op() == Op::Int32Const);
         self.aux.toInt32()
@@ -1306,6 +1316,7 @@ impl Inst {
             Op::Int64Const => false,
             Op::Float32Const => false,
             Op::Float64Const => false,
+            Op::StringConst => false,
             Op::EnsureGlobalInitialized => true,
             Op::LoadGlobal => true,
             Op::StoreGlobal => true,
@@ -1389,6 +1400,7 @@ enum InstExtraData {
     ClassInfo(ClassInfo),
     If(Block, Block),
     Goto(Block),
+    String(String),
 }
 
 pub enum CallKind {
@@ -1943,6 +1955,13 @@ pub fn createUInt8Const(value: UInt8): Inst {
     let inst = Inst::new();
     inst._op = Some(Op::UInt8Const);
     inst.aux = value.toInt64();
+    inst
+}
+
+pub fn createStringConst(value: String): Inst {
+    let inst = Inst::new();
+    inst._op = Some(Op::StringConst);
+    inst.extra = InstExtraData::String(value);
     inst
 }
 
