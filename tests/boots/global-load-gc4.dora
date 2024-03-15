@@ -1,0 +1,17 @@
+//= boots
+//= vm-args --gc=copy --gc-stress
+
+let g: Float64 = {
+    std::forceCollect(); 12.5
+};
+
+fn main() {
+    assert(getg(Foo(7.5), 2.25, 1.75) == 24.0);
+}
+
+class Foo(value: Float64)
+
+@optimizeImmediately fn getg(x: Foo, y: Float64, z: Float64): Float64 {
+    let result = g;
+    x.value + y + result + z
+}
