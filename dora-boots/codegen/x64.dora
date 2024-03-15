@@ -541,6 +541,12 @@ impl CodeGen for CodeGenX64 {
         }
     }
 
+    fn emitUInt8Const(inst: Inst) {
+        let loc = inst.getLocationData();
+        let register = loc.getOutput().getRegister();
+        self.asm.movl_ri(register, Immediate(inst.getValueAsUInt8().toInt64()));
+    }
+
     fn emitInt32Const(inst: Inst) {
         let loc = inst.getLocationData();
         let register = loc.getOutput().getRegister();

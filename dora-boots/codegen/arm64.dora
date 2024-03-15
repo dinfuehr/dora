@@ -638,6 +638,12 @@ impl CodeGen for CodeGenArm64 {
         self.asm.movz_w(register, 0i32, 0i32);
     }
 
+    fn emitUInt8Const(inst: Inst) {
+        let loc = inst.getLocationData();
+        let register = loc.getOutput().getRegister();
+        self.asm.movz_w(register, inst.getValueAsUInt8().toInt32(), 0i32);
+    }
+
     fn emitInt32Const(inst: Inst) {
         let loc = inst.getLocationData();
         let register = loc.getOutput().getRegister();

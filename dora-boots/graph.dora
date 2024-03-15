@@ -568,6 +568,7 @@ pub enum Op {
     TrueConst,
     FalseConst,
     
+    UInt8Const,
     Int32Const,
     Int64Const,
 
@@ -677,6 +678,7 @@ pub fn opName(op: Op): String {
         Op::NullConst => "Const.Null",
         Op::TrueConst => "Const.True",
         Op::FalseConst => "Const.False",
+        Op::UInt8Const => "Const.UInt8",
         Op::Int32Const => "Const.Int32",
         Op::Int64Const => "Const.Int64",
         Op::Float32Const => "Const.Float32",
@@ -850,6 +852,7 @@ impl Inst {
             Op::NullConst => Type::Ptr,
             Op::TrueConst => Type::Bool,
             Op::FalseConst => Type::Bool,
+            Op::UInt8Const => Type::UInt8,
             Op::Int32Const => Type::Int32,
             Op::Int64Const => Type::Int64,
             Op::Float32Const => Type::Float32,
@@ -1212,6 +1215,11 @@ impl Inst {
         GlobalId(self.aux.toInt32())
     }
 
+    pub fn getValueAsUInt8(): UInt8 {
+        assert(self.op() == Op::UInt8Const);
+        self.aux.toUInt8()
+    }
+
     pub fn getValueAsInt32(): Int32 {
         assert(self.op() == Op::Int32Const);
         self.aux.toInt32()
@@ -1293,6 +1301,7 @@ impl Inst {
             Op::NullConst => false,
             Op::TrueConst => false,
             Op::FalseConst => false,
+            Op::UInt8Const => false,
             Op::Int32Const => false,
             Op::Int64Const => false,
             Op::Float32Const => false,
@@ -1927,6 +1936,13 @@ pub fn createBoolConst(value: Bool): Inst {
         Op::FalseConst
     };
     inst._op = Some(op);
+    inst
+}
+
+pub fn createUInt8Const(value: UInt8): Inst {
+    let inst = Inst::new();
+    inst._op = Some(Op::UInt8Const);
+    inst.aux = value.toInt64();
     inst
 }
 

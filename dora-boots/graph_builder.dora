@@ -370,7 +370,9 @@ impl SsaGen {
                 self.writeVariable(dest, self.current(), inst);
             },
             BytecodeInstruction::ConstUInt8(dest, value) => {
-                unimplemented();
+                let inst = graph::createUInt8Const(value);
+                self.current().appendInst(inst);
+                self.writeVariable(dest, self.current(), inst);
             },
             BytecodeInstruction::ConstChar(dest, idx) => {
                 let value = self.bc.constPool(idx).toChar().getOrPanic();
