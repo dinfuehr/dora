@@ -37,7 +37,7 @@ use package::bytecode::instruction::BytecodeInstruction;
 use package::bytecode::reader::BytecodeIterator;
 use package::interface::{OBJECT_HEADER_LENGTH, hasGlobalInitialValue};
 
-pub fn createGraph(bc: BytecodeFunction): Graph {
+pub fn createGraph(bc: BytecodeFunction, typeParams: Array[BytecodeType]): Graph {
     let graph = Graph::new();
 
     // Create basic blocks for the bytecode.
@@ -47,7 +47,7 @@ pub fn createGraph(bc: BytecodeFunction): Graph {
     createEdges(graph, bc, blockMap);
 
     // Fill basic blocks with instructions.
-    let ssagen = SsaGen::new(graph, bc, blockMap);
+    let ssagen = SsaGen::new(graph, bc, blockMap, typeParams);
     ssagen.run();
 
     graph
@@ -56,6 +56,7 @@ pub fn createGraph(bc: BytecodeFunction): Graph {
 class SsaGen {
     graph: Graph,
     bc: BytecodeFunction,
+    typeParams: Array[BytecodeType],
     blockMap: BlockMap,
     currentBlock: Option[Block],
     offset: Int32,
@@ -75,10 +76,11 @@ class SsaGen {
 }
 
 impl SsaGen {
-    static fn new(graph: Graph, bc: BytecodeFunction, blockMap: BlockMap): SsaGen {
+    static fn new(graph: Graph, bc: BytecodeFunction, blockMap: BlockMap, typeParams: Array[BytecodeType]): SsaGen {
         SsaGen(
             graph,
             bc,
+            typeParams,
             blockMap,
             None[Block],
             0i32,

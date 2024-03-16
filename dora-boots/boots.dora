@@ -30,7 +30,7 @@ mod serializer;
 mod ssa_destruction;
 
 pub fn compileFunction(ci: CompilationInfo): CodeDescriptor {
-    let graph = createGraph(ci.bc);
+    let graph = createGraph(ci.bc, ci.typeParams);
     let codegen = createCodeGen(ci, graph);
 
     if (ci.emitGraph) {

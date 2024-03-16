@@ -1,12 +1,16 @@
 use package::bytecode::builder::BytecodeBuilder;
 use package::bytecode::data::BytecodeFunction;
 use package::bytecode::data::BytecodeType;
-use package::graph_builder::createGraph;
-use package::graph::Block;
+use package::graph_builder;
+use package::graph::{Block, Graph};
 use package::graph::dump::dumpGraph;
 use package::graph_builder_tests::bcSsaGenWhileCountDown;
 use package::graph_builder_tests::bcSsaGenIfReturnInBothBranches;
 use package::interface::Architecture;
+
+fn createGraph(fct: BytecodeFunction): Graph {
+  graph_builder::createGraph(fct, Array[BytecodeType]::new())
+}
 
 fn assertDominatedBlocks(fct: BytecodeFunction, idoms: Int32...) {
     let graph = createGraph(fct);
