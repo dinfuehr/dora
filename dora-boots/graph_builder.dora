@@ -125,7 +125,8 @@ impl SsaGen {
         let mut i = 0i32;
         let entryBlock = self.graph.getEntryBlock();
         while i < self.bc.arguments {
-            let ty = Type::fromBytecodeType(self.bc.registers(i.toInt64()));
+            let ty = self.regId(i.toInt64());
+            let ty = Type::fromBytecodeType(ty);
             let argInst = createArgInst(i, ty);
             entryBlock.appendInst(argInst);
             self.writeVariable(BytecodeRegister(i), entryBlock, argInst);
@@ -150,8 +151,7 @@ impl SsaGen {
     }
 
     fn readVariableRecursive(register: BytecodeRegister, block: Block): Inst {
-        let ty = self.bc.registers(register.value.toInt64());
-        let ty = Type::fromBytecodeType(ty);
+        let ty = self.regGraphTy(register);
 
         let value: Inst = if !self.sealedBlocks.contains(block.id().toInt64()) {
             // While all blocks are created with predecessors and successors before
@@ -255,49 +255,45 @@ impl SsaGen {
         self.blockTerminated = false;
     }
 
-    fn getRegisterType(reg: BytecodeRegister): BytecodeType {
-        self.bc.registers(reg.value.toInt64())
-    }
-
     fn processInstruction(inst: BytecodeInstruction) {
        match inst {
             BytecodeInstruction::Add(dest, lhs, rhs) => {
-                if self.getRegisterType(dest).isAnyFloat() {
+                if self.reg(dest).isAnyFloat() {
                     self.emitBin(dest, lhs, rhs, Op::Add);
                 } else {
                     self.emitBin(dest, lhs, rhs, Op::CheckedAdd);
                 }
             },
             BytecodeInstruction::Sub(dest, lhs, rhs) => {
-                if self.getRegisterType(dest).isAnyFloat() {
+                if self.reg(dest).isAnyFloat() {
                     self.emitBin(dest, lhs, rhs, Op::Sub);
                 } else {
                     self.emitBin(dest, lhs, rhs, Op::CheckedSub);
                 }
             },
             BytecodeInstruction::Neg(dest, src) => {
-                if self.getRegisterType(dest).isAnyFloat() {
+                if self.reg(dest).isAnyFloat() {
                     self.emitUn(dest, src, Op::Neg);
                 } else {
                     self.emitUn(dest, src, Op::CheckedNeg);
                 }
             },
             BytecodeInstruction::Mul(dest, lhs, rhs) => {
-                if self.getRegisterType(dest).isAnyFloat() {
+                if self.reg(dest).isAnyFloat() {
                     self.emitBin(dest, lhs, rhs, Op::Mul);
                 } else {
                     self.emitBin(dest, lhs, rhs, Op::CheckedMul);
                 }
             },
             BytecodeInstruction::Div(dest, lhs, rhs) => {
-                if self.getRegisterType(dest).isAnyFloat() {
+                if self.reg(dest).isAnyFloat() {
                     self.emitDivMod(dest, lhs, rhs, Op::Div);
                 } else {
                     self.emitDivMod(dest, lhs, rhs, Op::CheckedDiv);
                 }
             },
             BytecodeInstruction::Mod(dest, lhs, rhs) => {
-                if self.getRegisterType(dest).isAnyFloat() {
+                if self.reg(dest).isAnyFloat() {
                     self.emitDivMod(dest, lhs, rhs, Op::Mod);
                 } else {
                     self.emitDivMod(dest, lhs, rhs, Op::CheckedMod);
@@ -515,8 +511,7 @@ impl SsaGen {
                 unimplemented();
             },
             BytecodeInstruction::Ret(opnd) => {
-                let ty = self.bc.registers(opnd.value.toInt64());
-                let ty = Type::fromBytecodeType(ty);
+                let ty = self.regGraphTy(opnd);
                 self.emitRet(opnd, ty);
             },
         }
@@ -581,8 +576,7 @@ impl SsaGen {
 
     fn emitLoadField(dest: BytecodeRegister, obj: BytecodeRegister, idx: ConstPoolId) {
         let objInst = self.readVariable(obj, self.current());
-        let destType = self.bc.registers(dest.value.toInt64());
-        let destType = Type::fromBytecodeType(destType);
+        let destType = self.regGraphTy(dest);
 
         let (cls_id, type_params, field_id) = match self.bc.constPool(idx) {
             ConstPoolEntry::Field(cls_id, type_params, field_id) => (cls_id, type_params, field_id),
@@ -604,8 +598,7 @@ impl SsaGen {
 
     fn emitStoreField(src: BytecodeRegister, obj: BytecodeRegister, idx: ConstPoolId) {
         let srcInst = self.readVariable(src, self.current());
-        let srcType = self.bc.registers(src.value.toInt64());
-        let srcType = Type::fromBytecodeType(srcType);
+        let srcType = self.regGraphTy(src);
 
         let objInst = self.readVariable(obj, self.current());
 
@@ -627,7 +620,7 @@ impl SsaGen {
     }
 
     fn emitBin(dest: BytecodeRegister, lhs: BytecodeRegister, rhs: BytecodeRegister, op: Op) {
-        let registerType = self.bc.registers(lhs.value.toInt64());
+        let registerType = self.reg(lhs);
 
         let ty = match registerType {
             BytecodeType::Int32 => Type::int32(),
@@ -653,7 +646,7 @@ impl SsaGen {
     }
 
     fn emitUn(dest: BytecodeRegister, src: BytecodeRegister, op: Op) {
-        let registerType = self.bc.registers(dest.value.toInt64());
+        let registerType = self.reg(dest);
 
         let ty = match registerType {
             BytecodeType::Int32 => Type::int32(),
@@ -671,7 +664,7 @@ impl SsaGen {
     }
 
     fn emitDivMod(dest: BytecodeRegister, lhs: BytecodeRegister, rhs: BytecodeRegister, op: Op) {
-        let registerType = self.bc.registers(dest.value.toInt64());
+        let registerType = self.reg(dest);
 
         let ty = match registerType {
             BytecodeType::Int32 => Type::int32(),
@@ -702,8 +695,7 @@ impl SsaGen {
     }
 
     fn emitLoadGlobal(dest: BytecodeRegister, glob: GlobalId) {
-        let destType = self.bc.registers(dest.value.toInt64());
-        let destType = Type::fromBytecodeType(destType);
+        let destType = self.regGraphTy(dest);
 
         if hasGlobalInitialValue(glob) {
             let inst = graph::createEnsureGlobalInitializedInst(glob, destType);
@@ -717,8 +709,7 @@ impl SsaGen {
     }
 
     fn emitStoreGlobal(src: BytecodeRegister, glob: GlobalId) {
-        let srcType = self.bc.registers(src.value.toInt64());
-        let srcType = Type::fromBytecodeType(srcType);
+        let srcType = self.regGraphTy(src);
 
         let srcInst = self.readVariable(src, self.current());
         let globInst = createStoreGlobalInst(srcType, glob, srcInst);
@@ -731,7 +722,7 @@ impl SsaGen {
     }
 
     fn emitTest(dest: BytecodeRegister, lhs: BytecodeRegister, rhs: BytecodeRegister, op: Op) {
-        let registerType = self.bc.registers(lhs.value.toInt64());
+        let registerType = self.reg(lhs);
 
         let ty = match registerType {
             BytecodeType::Int32 => Type::int32(),
@@ -781,8 +772,7 @@ impl SsaGen {
         boundsCheckInst.set_bytecode_position(self.offset);
         self.current().appendInst(boundsCheckInst);
 
-        let destType = self.bc.registers(dest.value.toInt64());
-        let destType = Type::fromBytecodeType(destType);
+        let destType = self.regGraphTy(dest);
         let arrayLoadInst = createLoadArray(arrInst, idxInst, destType);
         self.current().appendInst(arrayLoadInst);
 
@@ -828,7 +818,7 @@ impl SsaGen {
 
         self.pushed_registers.clear();
 
-        let ty = Type::fromBytecodeType(self.bc.registers(dest.value.toInt64()));
+        let ty = self.regGraphTy(dest);
 
         let (fct_id, type_params) = match self.bc.constPool(idx) {
             ConstPoolEntry::Fct(fct_id, type_params) => (fct_id, type_params),
@@ -856,7 +846,7 @@ impl SsaGen {
 
         self.pushed_registers.clear();
 
-        let ty = Type::fromBytecodeType(self.bc.registers(dest.value.toInt64()));
+        let ty = self.regGraphTy(dest);
 
         let (trait_object_ty, fct_id, type_params) = match self.bc.constPool(idx) {
             ConstPoolEntry::TraitObjectMethod(trait_object_ty, fct_id, type_params) => (trait_object_ty, fct_id, type_params),
@@ -884,7 +874,7 @@ impl SsaGen {
 
         self.pushed_registers.clear();
 
-        let ty = Type::fromBytecodeType(self.bc.registers(dest.value.toInt64()));
+        let ty = self.regGraphTy(dest);
 
         let (params, return_type) = match self.bc.constPool(idx) {
             ConstPoolEntry::Lambda(params, return_type) => (params, return_type),
@@ -919,7 +909,7 @@ impl SsaGen {
 
         for reg in self.pushed_registers {
             let arg = self.readVariable(reg, self.current());
-            let argTy = Type::fromBytecodeType(self.bc.registers(reg.value.toInt64()));
+            let argTy = self.regGraphTy(reg);
 
             let fieldInfo = FieldInfo(
                 class_id,
@@ -956,7 +946,7 @@ impl SsaGen {
             assert(self.pushed_registers.size() == 1);
             let reg = self.pushed_registers.first().getOrPanic();
             let arg = self.readVariable(reg, self.current());
-            let argTy = Type::fromBytecodeType(self.bc.registers(reg.value.toInt64()));
+            let argTy = self.regGraphTy(reg);
 
             let fieldInfo = FieldInfo(
                 ClassId(0i32),
@@ -987,6 +977,19 @@ impl SsaGen {
         self.current().appendInst(objInst);
 
         self.writeVariable(dest, self.current(), objInst);
+    }
+
+    fn regGraphTy(id: BytecodeRegister): Type {
+        Type::fromBytecodeType(self.reg(id))
+    }
+
+    fn reg(id: BytecodeRegister): BytecodeType {
+        self.regId(id.value.toInt64())
+    }
+
+    fn regId(id: Int64): BytecodeType {
+        let ty = self.bc.registers(id);
+        ty.specialize(self.typeParams)
     }
 }
 

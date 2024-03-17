@@ -203,6 +203,9 @@ fn encodeBytecodeType(writer: ByteWriter, ty: BytecodeType) {
             writer.emitByte(opc::BC_TYPE_LAMBDA.toUInt8());
             encodeBytecodeTypeArray(writer, params);
             encodeBytecodeType(writer, ret);
+        },
+        BytecodeType::TypeAlias(id) => {
+            unimplemented();
         }
     }
 }

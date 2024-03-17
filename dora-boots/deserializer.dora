@@ -1,5 +1,5 @@
 use package::interface::{Address, CompilationInfo, Config};
-use package::bytecode::data::{BytecodeFunction, BytecodeType, ClassId, ConstPoolEntry, EnumId, FctId, FieldId, Location, StructId, StructFieldId, TraitId};
+use package::bytecode::data::{AliasId, BytecodeFunction, BytecodeType, ClassId, ConstPoolEntry, EnumId, FctId, FieldId, Location, StructId, StructFieldId, TraitId};
 use package::bytecode::opcode as opc;
 use package::interface::Architecture;
 
@@ -115,6 +115,9 @@ fn decodeBytecodeType(reader: ByteReader): BytecodeType {
     } else if opcode == opc::BC_TYPE_TYPE_PARAM {
         let idx = reader.readId();
         BytecodeType::TypeParam(idx)
+    } else if opcode == opc::BC_TYPE_TYPE_ALIAS {
+        let alias_id = AliasId(reader.readId());
+        BytecodeType::TypeAlias(alias_id)
     } else {
         println("unknown bytecode type opcode = ${opcode}");
         unreachable[BytecodeType]()

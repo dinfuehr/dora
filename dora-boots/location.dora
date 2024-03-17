@@ -269,6 +269,7 @@ fn computeArgumentLocations(codegen: CodeGen, ci: CompilationInfo): Array[Locati
 
     for idx in std::range(0, arguments) {
         let ty = ci.bc.registers(idx);
+        let ty = ty.specialize(ci.typeParams);
         let ty = Type::fromBytecodeType(ty);
 
         if ty.isAnyFloat() {

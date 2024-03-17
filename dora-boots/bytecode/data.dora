@@ -157,6 +157,7 @@ pub struct ConstPoolId(pub value: Int32)
 pub struct StructId(pub value: Int32)
 pub struct StructFieldId(pub value: Int32)
 pub struct TraitId(pub value: Int32)
+pub struct AliasId(pub value: Int32)
 
 impl ConstPoolId {
     fn equals(rhs: ConstPoolId): Bool {
@@ -184,6 +185,7 @@ pub enum BytecodeType {
     Tuple(Array[BytecodeType]),
     TypeParam(Int32),
     Lambda(Array[BytecodeType], BytecodeType),
+    TypeAlias(AliasId),
 }
 
 impl BytecodeType {
@@ -191,6 +193,68 @@ impl BytecodeType {
         match self {
             BytecodeType::Float32 | BytecodeType::Float64 => true,
             _ => false,
+        }
+    }
+
+    pub fn isGeneric(): Bool {
+        match self {
+            BytecodeType::Unit
+            | BytecodeType::Ptr
+            | BytecodeType::UInt8
+            | BytecodeType::Bool
+            | BytecodeType::Char
+            | BytecodeType::Int32
+            | BytecodeType::Int64
+            | BytecodeType::Float32
+            | BytecodeType::Float64
+            | BytecodeType::This => false,
+            BytecodeType::Struct(struct_id, type_params) => type_params.isGeneric(),
+            BytecodeType::Enum(enum_id, type_params) => type_params.isGeneric(),
+            BytecodeType::Class(class_id, type_params) => type_params.isGeneric(),
+            BytecodeType::Trait(trait_id, type_params) => type_params.isGeneric(),
+            BytecodeType::Tuple(subtypes) => subtypes.isGeneric(),
+            BytecodeType::TypeParam(idx) => true,
+            BytecodeType::Lambda(params, ret) => params.isGeneric() || ret.isGeneric(),
+            BytecodeType::TypeAlias(alias_id) => unreachable[Bool](),
+        }
+    }
+
+    pub fn specialize(type_params: Array[BytecodeType]): BytecodeType {
+        if type_params.isEmpty() || !self.isGeneric() {
+            return self;
+        }
+
+        match self {
+            BytecodeType::Unit
+            | BytecodeType::Ptr
+            | BytecodeType::UInt8
+            | BytecodeType::Bool
+            | BytecodeType::Char
+            | BytecodeType::Int32
+            | BytecodeType::Int64
+            | BytecodeType::Float32
+            | BytecodeType::Float64
+            | BytecodeType::This => self,
+            BytecodeType::Struct(struct_id, struct_type_params) => {
+                BytecodeType::Struct(struct_id, struct_type_params.specialize(type_params))
+            },
+            BytecodeType::Enum(enum_id, enum_type_params) => {
+                BytecodeType::Enum(enum_id, enum_type_params.specialize(type_params))
+            },
+            BytecodeType::Class(class_id, class_type_params) => {
+                BytecodeType::Class(class_id, class_type_params.specialize(type_params))
+            },
+            BytecodeType::Trait(trait_id, trait_type_params) => {
+                BytecodeType::Trait(trait_id, trait_type_params.specialize(type_params))
+            },
+            BytecodeType::Tuple(subtypes) => {
+                BytecodeType::Tuple(subtypes.specialize(type_params))
+            },
+            BytecodeType::TypeParam(idx) => type_params(idx.toInt64()),
+            BytecodeType::Lambda(params, ret) => {
+                BytecodeType::Lambda(params.specialize(type_params), ret.specialize(type_params))
+            },
+            BytecodeType::TypeAlias(alias_id) => unreachable[BytecodeType](),
         }
     }
 }
@@ -215,7 +279,34 @@ impl Stringable for BytecodeType {
             BytecodeType::Tuple(types) => "Tuple(<type params>)",
             BytecodeType::TypeParam(idx) => "TypeParam(${idx})",
             BytecodeType::Lambda(_, _) => "Lambda(<params>, <return ty>)",
+            BytecodeType::TypeAlias(id) => "TypeAlias(${id.value})",
         }
+    }
+}
+
+impl Array[BytecodeType] {
+    fn isGeneric(): Bool {
+        for value in self {
+            if !value.isGeneric() {
+                return false;
+            }
+        }
+
+        true
+    }
+
+    fn specialize(type_params: Array[BytecodeType]): Array[BytecodeType] {
+        if type_params.isEmpty() || !self.isGeneric() {
+            return self;
+        }
+
+        let result = Array[BytecodeType]::fill(self.size(), BytecodeType::Unit);
+
+        for idx in std::range(0, self.size()) {
+            result(idx) = self(idx).specialize(type_params);
+        }
+
+        result
     }
 }
 
