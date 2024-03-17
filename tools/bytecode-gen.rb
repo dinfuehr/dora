@@ -25,11 +25,15 @@ def read_const_pool_entry_kinds
     read_enum("ConstPoolEntryKind")
 end
 
+def read_intrinsics
+    read_enum("Intrinsic")
+end
+
 def read_enum(name)
     values = []
     parse_line = false
 
-    input_files = ['dora-bytecode/src/data.rs', 'dora-runtime/src/boots/data.rs']
+    input_files = ['dora-bytecode/src/data.rs', 'dora-bytecode/src/program.rs', 'dora-runtime/src/boots/data.rs']
 
     for input_file in input_files
         File.open(input_file).each_line do |line|
@@ -110,6 +114,14 @@ def output
         end
 
         f.puts
+        code = 0
+
+        for opcode in read_intrinsics
+            f.puts "pub const INTRINSIC_#{snake_case(opcode)}: Int32 = #{code};"
+            code += 1
+        end
+
+        f.puts
         f.puts "pub fn bytecodeName(opcode: Int32): String {"
 
         for bytecode in bytecodes
@@ -129,6 +141,15 @@ def output
         f.puts "  unreachable[String]()"
         f.puts "}"
 
+        f.puts
+        f.puts "pub fn intrinsicName(opcode: Int32): String {"
+
+        for bytecode in read_intrinsics
+            f.puts "  if opcode == INTRINSIC_#{snake_case(bytecode)} { return #{bytecode.inspect}; }"
+        end
+
+        f.puts "  unreachable[String]()"
+        f.puts "}"
         f.puts
         code = 0
 

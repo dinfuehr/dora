@@ -9,7 +9,7 @@ use package::deserializer::ByteReader;
 use package::codegen::x64::CodeGenX64;
 use package::codegen::arm64::CodeGenArm64;
 use package::compileFunction;
-use package::serializer::{ByteWriter, encodeBytecodeTypeArray, encodeCodeDescriptor};
+use package::serializer::{ByteWriter, encodeBytecodeType, encodeBytecodeTypeArray, encodeCodeDescriptor};
 
 pub const TRAP_DIV0: Int32 = 1i32;
 pub const TRAP_ASSERT: Int32 = 2i32;
@@ -33,6 +33,8 @@ pub const TRAP_OVERFLOW: Int32 = 9i32;
 @internal pub fn hasGlobalInitialValueRaw(id: Int32): Bool;
 @internal pub fn getGlobalInitializerFunctionIdRaw(id: Int32): Int32;
 @internal pub fn getReadOnlyStringAddressRaw(id: String): Int64;
+@internal pub fn findTraitImplRaw(data: Array[UInt8]): Int32;
+@internal pub fn getIntrinsicForFunctionRaw(id: Int32): Int32;
 
 pub fn getFunctionAddress(fct_id: FctId, type_params: Array[BytecodeType]): Address {
     let writer = ByteWriter::new();
@@ -92,6 +94,18 @@ pub fn getGlobalInitializerFunctionId(id: GlobalId): FctId {
 
 pub fn getReadOnlyStringAddress(value: String): Address {
     Address(getReadOnlyStringAddressRaw(value))
+}
+
+pub fn findTraitImpl(trait_fct_id: FctId, trait_type_params: Array[BytecodeType], object_ty: BytecodeType): FctId {
+    let writer = ByteWriter::new();
+    writer.emitInt32(trait_fct_id.value);
+    encodeBytecodeTypeArray(writer, trait_type_params);
+    encodeBytecodeType(writer, object_ty);
+    FctId(findTraitImplRaw(writer.toArray()))
+}
+
+pub fn getIntrinsicForFunction(fct_id: FctId): Int32 {
+    getIntrinsicForFunctionRaw(fct_id.value)
 }
 
 pub class Config {

@@ -61,7 +61,7 @@ mod extensions;
 mod flags;
 mod functions;
 mod globals;
-mod impls;
+pub mod impls;
 mod initialize;
 mod known;
 mod modules;

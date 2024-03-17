@@ -31,7 +31,10 @@ pub fn generate_fct(vm: &VM, fct_id: FunctionId, type_params: &BytecodeTypeArray
         CompilerName::Cannon
     };
 
-    let bytecode_fct = program_fct.bytecode.as_ref().expect("bytecode missing");
+    let bytecode_fct = program_fct
+        .bytecode
+        .as_ref()
+        .expect("bytecode for function missing");
 
     let emit_bytecode = should_emit_bytecode(vm, fct_id, compiler);
 

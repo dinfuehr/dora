@@ -1,8 +1,7 @@
 use std::mem;
 use std::ptr;
 
-use dora_bytecode::BytecodeTypeArray;
-use dora_bytecode::{ClassId, FunctionId, GlobalId};
+use dora_bytecode::{BytecodeType, BytecodeTypeArray, ClassId, FunctionId, FunctionKind, GlobalId};
 
 use crate::boots::deserializer::{decode_code_descriptor, ByteReader};
 use crate::boots::serializer::allocate_encoded_compilation_info;
@@ -15,9 +14,10 @@ use crate::object::Str;
 use crate::object::{Ref, UInt8Array};
 use crate::size::InstanceSize;
 use crate::threads::current_thread;
+use crate::vm::impls;
 use crate::vm::{create_class_instance, get_vm, CodeDescriptor, VM};
 
-use self::deserializer::decode_bytecode_type_array;
+use self::deserializer::{decode_bytecode_type, decode_bytecode_type_array};
 use self::serializer::allocate_encoded_system_config;
 
 mod data;
@@ -72,6 +72,14 @@ pub const BOOTS_NATIVE_FUNCTIONS: &[(&'static str, *const u8)] = &[
     (
         "boots::interface::getReadOnlyStringAddressRaw",
         get_read_only_string_address_raw as *const u8,
+    ),
+    (
+        "boots::interface::findTraitImplRaw",
+        find_trait_impl_raw as *const u8,
+    ),
+    (
+        "boots::interface::getIntrinsicForFunctionRaw",
+        get_intrinsic_for_function_raw as *const u8,
     ),
 ];
 
@@ -305,4 +313,41 @@ extern "C" fn get_read_only_string_address_raw(data: Handle<Str>) -> Address {
 
     let handle = Str::from_buffer_in_perm(vm, &content);
     handle.address()
+}
+
+extern "C" fn find_trait_impl_raw(data: Handle<UInt8Array>) -> u32 {
+    let vm = get_vm();
+
+    let mut serialized_data = vec![0; data.len()];
+
+    unsafe {
+        ptr::copy_nonoverlapping(
+            data.data() as *mut u8,
+            serialized_data.as_mut_ptr(),
+            data.len(),
+        );
+    }
+
+    let mut reader = ByteReader::new(serialized_data);
+    let trait_fct_id = FunctionId(reader.read_u32());
+    let trait_type_params = decode_bytecode_type_array(&mut reader);
+    let object_ty = decode_bytecode_type(&mut reader);
+    assert!(!reader.has_more());
+
+    let trait_fct = &vm.program.functions[trait_fct_id.0 as usize];
+    let trait_id = match trait_fct.kind {
+        FunctionKind::Trait(trait_id) => trait_id,
+        _ => unreachable!(),
+    };
+
+    let trait_ty = BytecodeType::Trait(trait_id, trait_type_params);
+    let callee_id = impls::find_trait_impl(vm, trait_fct_id, trait_ty, object_ty);
+
+    callee_id.0
+}
+
+extern "C" fn get_intrinsic_for_function_raw(id: u32) -> i32 {
+    let vm = get_vm();
+    let fct = &vm.program.functions[id as usize];
+    fct.intrinsic.map(|i| i as u32 as i32).unwrap_or(-1)
 }

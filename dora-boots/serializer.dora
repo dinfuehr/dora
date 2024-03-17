@@ -139,7 +139,7 @@ pub fn encodeBytecodeTypeArray(writer: ByteWriter, types: Array[BytecodeType]) {
     }
 }
 
-fn encodeBytecodeType(writer: ByteWriter, ty: BytecodeType) {
+pub fn encodeBytecodeType(writer: ByteWriter, ty: BytecodeType) {
     match ty {
         BytecodeType::Unit => {
             writer.emitByte(opc::BC_TYPE_UNIT.toUInt8());

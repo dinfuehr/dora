@@ -132,7 +132,7 @@ fn decode_lazy_compilation_site(reader: &mut ByteReader) -> LazyCompilationSite 
     }
 }
 
-fn decode_bytecode_type(reader: &mut ByteReader) -> BytecodeType {
+pub fn decode_bytecode_type(reader: &mut ByteReader) -> BytecodeType {
     let kind = BytecodeTypeKind::try_from(reader.read_u8()).expect("wrong kind");
 
     match kind {

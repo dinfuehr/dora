@@ -1,6 +1,7 @@
 use std::HashMap;
 use std::BitSet;
 
+use package::bytecode::opcode as opc;
 use package::graph;
 use package::graph::Graph;
 use package::graph::Block;
@@ -35,7 +36,7 @@ use package::bytecode::data::{BytecodeFunction, BytecodeRegister, BytecodeType, 
 use package::bytecode::data::{ConstPoolId, ConstPoolEntry, GlobalId};
 use package::bytecode::instruction::BytecodeInstruction;
 use package::bytecode::reader::BytecodeIterator;
-use package::interface::{OBJECT_HEADER_LENGTH, hasGlobalInitialValue};
+use package::interface::{OBJECT_HEADER_LENGTH, hasGlobalInitialValue, findTraitImpl, getIntrinsicForFunction};
 
 pub fn createGraph(bc: BytecodeFunction, typeParams: Array[BytecodeType]): Graph {
     let graph = Graph::new();
@@ -452,13 +453,13 @@ impl SsaGen {
             },
 
             BytecodeInstruction::InvokeDirect(dest, idx) => {
-                self.emitCall(dest, CallKind::Direct, idx);
+                self.emitInvokeDirect(dest, idx);
             },
             BytecodeInstruction::InvokeVirtual(dest, idx) => {
                 self.emitVirtualCall(dest, idx);
             },
             BytecodeInstruction::InvokeStatic(dest, idx) => {
-                self.emitCall(dest, CallKind::Static, idx);
+                self.emitInvokeStatic(dest, idx);
             },
             BytecodeInstruction::InvokeLambda(dest, idx) => {
                 self.emitLambdaCall(dest, idx);
@@ -467,7 +468,7 @@ impl SsaGen {
                 unimplemented();
             },
             BytecodeInstruction::InvokeGenericDirect(dest, idx) => {
-                unimplemented();
+                self.emitInvokeGenericDirect(dest, idx);
             },
 
             BytecodeInstruction::NewObject(dest, idx) => {
@@ -808,7 +809,25 @@ impl SsaGen {
         }
     }
 
-    fn emitCall(dest: BytecodeRegister, kind: CallKind, idx: ConstPoolId) {
+    fn emitInvokeDirect(dest: BytecodeRegister, idx: ConstPoolId) {
+        let (fct_id, type_params) = match self.bc.constPool(idx) {
+            ConstPoolEntry::Fct(fct_id, type_params) => (fct_id, type_params),
+            _ => unreachable[(FctId, Array[BytecodeType])](),
+        };
+
+        self.emitCall(dest, CallKind::Direct, fct_id, type_params);
+    }
+
+    fn emitInvokeStatic(dest: BytecodeRegister, idx: ConstPoolId) {
+        let (fct_id, type_params) = match self.bc.constPool(idx) {
+            ConstPoolEntry::Fct(fct_id, type_params) => (fct_id, type_params),
+            _ => unreachable[(FctId, Array[BytecodeType])](),
+        };
+
+        self.emitCall(dest, CallKind::Static, fct_id, type_params);
+    }
+
+    fn emitCall(dest: BytecodeRegister, kind: CallKind, fct_id: FctId, type_params: Array[BytecodeType]) {
         let args = Vec[Inst]::new();
 
         for reg in self.pushed_registers {
@@ -819,12 +838,6 @@ impl SsaGen {
         self.pushed_registers.clear();
 
         let ty = self.regGraphTy(dest);
-
-        let (fct_id, type_params) = match self.bc.constPool(idx) {
-            ConstPoolEntry::Fct(fct_id, type_params) => (fct_id, type_params),
-            _ => unreachable[(FctId, Array[BytecodeType])](),
-        };
-
         let info = FunctionInfo(fct_id, type_params);
 
         let inst = graph::createCall(info, kind, args, ty);
@@ -889,6 +902,40 @@ impl SsaGen {
 
         if !ty.isUnit() {
             self.writeVariable(dest, self.current(), inst);
+        }
+    }
+
+    fn emitInvokeGenericDirect(dest: BytecodeRegister, idx: ConstPoolId) {
+        let args = self.pushed_registers.toArray();
+        self.pushed_registers.clear();
+
+        let ty = self.regGraphTy(dest);
+
+        let (type_param_idx, trait_fct_id, trait_type_params) = match self.bc.constPool(idx) {
+            ConstPoolEntry::Generic(type_param_idx, trait_fct_id, trait_type_params) => (type_param_idx, trait_fct_id, trait_type_params),
+            _ => unreachable[(Int32, FctId, Array[BytecodeType])](),
+        };
+
+        let object_ty = self.typeParams(type_param_idx.toInt64());
+        let callee_id = findTraitImpl(trait_fct_id, trait_type_params, object_ty);
+
+        let intrinsic = getIntrinsicForFunction(callee_id);
+
+        if intrinsic >= 0i32 {
+            self.emitIntrinsic(intrinsic, dest, args);
+        } else {
+            self.emitCall(dest, CallKind::Direct, callee_id, Array[BytecodeType]::new());
+        }
+    }
+
+    fn emitIntrinsic(intrinsic: Int32, dest: BytecodeRegister, args: Array[BytecodeRegister]) {
+        if intrinsic == opc::INTRINSIC_INT64_ADD {
+            self.emitBin(dest, args(0), args(1), Op::CheckedAdd);
+        } else if intrinsic == opc::INTRINSIC_FLOAT64_ADD {
+            self.emitBin(dest, args(0), args(1), Op::Add);
+        } else {
+            let name = opc::intrinsicName(intrinsic);
+            std::fatalError("unknown intrinsic ${name}");
         }
     }
 
