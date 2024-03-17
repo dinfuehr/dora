@@ -1,0 +1,11 @@
+//= boots
+//= ignore
+
+fn main() {
+    assert(add[Int64](2, 3) == 5);
+    assert(add[Float64](17.0, 3.0) == 20.0);
+}
+
+@optimizeImmediately fn add[T: std::traits::Add](a: T, b: T): T {
+    a + b
+}

@@ -241,6 +241,16 @@ impl BytecodeIterator {
             let fct = self.readConstPoolId();
             BytecodeInstruction::InvokeLambda(dest, fct)
 
+        } else if opcode == opc::BC_INVOKE_GENERIC_DIRECT {
+            let dest = self.readRegister();
+            let fct = self.readConstPoolId();
+            BytecodeInstruction::InvokeGenericDirect(dest, fct)
+
+        } else if opcode == opc::BC_INVOKE_GENERIC_STATIC {
+            let dest = self.readRegister();
+            let fct = self.readConstPoolId();
+            BytecodeInstruction::InvokeGenericStatic(dest, fct)
+
         } else if opcode == opc::BC_NEW_OBJECT {
             let dest = self.readRegister();
             let idx = self.readConstPoolId();

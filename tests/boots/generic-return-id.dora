@@ -1,9 +1,5 @@
 //= boots
 
-let g: Float64 = {
-    std::forceCollect(); 12.5
-};
-
 fn main() {
     assert(id[Int64](2) == 2);
     assert(id[Float64](17.0) == 17.0);
