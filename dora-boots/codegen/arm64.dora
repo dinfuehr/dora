@@ -679,18 +679,33 @@ impl CodeGen for CodeGenArm64 {
 
     fn emitAdd(inst: Inst) {
         let loc = inst.getLocationData();
-        let lhs = loc.getInput(0).getFloatRegister();
-        let rhs = loc.getInput(1).getFloatRegister();
-        let output = loc.getOutput().getFloatRegister();
-
         let ty = inst.getValueType();
 
-        if ty == Type::Float32 {
-            self.asm.fadd_s(output, lhs, rhs);
+        if ty.isAnyFloat() {
+            let lhs = loc.getInput(0).getFloatRegister();
+            let rhs = loc.getInput(1).getFloatRegister();
+            let output = loc.getOutput().getFloatRegister();
+
+            if ty == Type::Float32 {
+                self.asm.fadd_s(output, lhs, rhs);
+            } else {
+                assert(ty == Type::Float64);
+                self.asm.fadd_d(output, lhs, rhs);
+            }
         } else {
-            assert(ty == Type::Float64);
-            self.asm.fadd_d(output, lhs, rhs);
+            let lhs = loc.getInput(0).getRegister();
+            let rhs = loc.getInput(1).getRegister();
+            let output = loc.getOutput().getRegister();
+
+            if ty == Type::Int32 {
+                self.asm.add_w(output, lhs, rhs);
+            } else {
+                assert(ty == Type::Int64);
+                self.asm.add(output, lhs, rhs);
+            }
         }
+
+
     }
 
     fn emitSub(inst: Inst) {

@@ -815,7 +815,15 @@ impl SsaGen {
             _ => unreachable[(FctId, Array[BytecodeType])](),
         };
 
-        self.emitCall(dest, CallKind::Direct, fct_id, type_params);
+        let intrinsic = getIntrinsicForFunction(fct_id);
+
+        if intrinsic >= 0i32 {
+            let args = self.pushed_registers.toArray();
+            self.pushed_registers.clear();
+            self.emitIntrinsic(intrinsic, dest, args);
+        } else {
+            self.emitCall(dest, CallKind::Direct, fct_id, type_params);
+        }
     }
 
     fn emitInvokeStatic(dest: BytecodeRegister, idx: ConstPoolId) {
@@ -930,6 +938,8 @@ impl SsaGen {
     fn emitIntrinsic(intrinsic: Int32, dest: BytecodeRegister, args: Array[BytecodeRegister]) {
         if intrinsic == opc::INTRINSIC_INT64_ADD {
             self.emitBin(dest, args(0), args(1), Op::CheckedAdd);
+        } else if intrinsic == opc::INTRINSIC_INT64_ADD_UNCHECKED || intrinsic == opc::INTRINSIC_INT32_ADD_UNCHECKED {
+            self.emitBin(dest, args(0), args(1), Op::Add);
         } else if intrinsic == opc::INTRINSIC_FLOAT64_ADD {
             self.emitBin(dest, args(0), args(1), Op::Add);
         } else {

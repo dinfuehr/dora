@@ -67,6 +67,7 @@ pub struct Args {
     pub emit_graph: Option<String>,
     pub emit_bytecode: Option<String>,
     pub emit_bytecode_compiler: Option<String>,
+    pub emit_bytecode_boots: bool,
     pub emit_compiler: bool,
     pub emit_stubs: bool,
     pub enable_perf: bool,
@@ -116,6 +117,7 @@ impl Default for Args {
             emit_graph: None,
             emit_bytecode: None,
             emit_bytecode_compiler: None,
+            emit_bytecode_boots: false,
             emit_compiler: false,
             emit_stubs: false,
             emit_debug: None,
@@ -218,6 +220,8 @@ pub fn parse_arguments() -> Result<Args, String> {
             args.emit_bytecode_compiler = Some("all".into());
         } else if arg.starts_with("--emit-bytecode-compiler=") {
             args.emit_bytecode_compiler = Some(argument_value(arg).into());
+        } else if arg == "--emit-bytecode-boots" {
+            args.emit_bytecode_boots = true;
         } else if arg == "--emit-stubs" {
             args.emit_stubs = true;
         } else if arg.starts_with("--emit-debug=") {
@@ -389,6 +393,7 @@ pub fn create_vm_args(args: &Args) -> VmArgs {
         emit_asm: args.emit_asm.clone(),
         emit_asm_boots: args.emit_asm_boots,
         emit_asm_file: args.emit_asm_file,
+        emit_bytecode_boots: args.emit_bytecode_boots,
         emit_bytecode_compiler: args.emit_bytecode_compiler.clone(),
         emit_compiler: args.emit_compiler,
         emit_graph: args.emit_graph.clone(),

@@ -594,19 +594,34 @@ impl CodeGen for CodeGenX64 {
 
     fn emitAdd(inst: Inst) {
         let loc = inst.getLocationData();
-        let lhs = loc.getInput(0).getFloatRegister();
-        let rhs = loc.getInput(1).getFloatRegister();
-        let output = loc.getOutput().getFloatRegister();
-
         let ty = inst.getValueType();
 
-        if ty == Type::Float32 {
-            self.asm.movss_rr(output, lhs);
-            self.asm.addss_rr(output, rhs);
+        if ty.isAnyFloat() {
+            let lhs = loc.getInput(0).getFloatRegister();
+            let rhs = loc.getInput(1).getFloatRegister();
+            let output = loc.getOutput().getFloatRegister();
+
+            if ty == Type::Float32 {
+                self.asm.movss_rr(output, lhs);
+                self.asm.addss_rr(output, rhs);
+            } else {
+                assert(ty == Type::Float64);
+                self.asm.movsd_rr(output, lhs);
+                self.asm.addsd_rr(output, rhs);
+            }
         } else {
-            assert(ty == Type::Float64);
-            self.asm.movsd_rr(output, lhs);
-            self.asm.addsd_rr(output, rhs);
+            let lhs = loc.getInput(0).getRegister();
+            let rhs = loc.getInput(1).getRegister();
+            let output = loc.getOutput().getRegister();
+
+            if ty == Type::Int32 {
+                self.asm.movl_rr(output, lhs);
+                self.asm.addl_rr(output, rhs);
+            } else {
+                assert(ty == Type::Int64);
+                self.asm.movq_rr(output, lhs);
+                self.asm.addq_rr(output, rhs);
+            }
         }
     }
 

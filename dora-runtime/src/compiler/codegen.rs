@@ -213,9 +213,13 @@ pub fn should_emit_debug(vm: &VM, fct_id: FunctionId) -> bool {
     }
 }
 
-pub fn should_emit_bytecode(vm: &VM, fct_id: FunctionId, _compiler: CompilerName) -> bool {
+pub fn should_emit_bytecode(vm: &VM, fct_id: FunctionId, compiler: CompilerName) -> bool {
     if !disassembler::supported() {
         return false;
+    }
+
+    if compiler == CompilerName::Boots && vm.flags.emit_bytecode_boots {
+        return true;
     }
 
     if let Some(ref dbg_names) = vm.flags.emit_bytecode_compiler {
