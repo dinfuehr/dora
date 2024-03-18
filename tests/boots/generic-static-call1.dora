@@ -1,0 +1,26 @@
+//= boots
+
+fn main() {
+    assert(f[Int64]() == 1);
+    assert(f[Float64]() == 0);
+}
+
+@optimizeImmediately fn f[T: Foo](): Int64 {
+    T::foo()
+}
+
+trait Foo {
+    static fn foo(): Int64;
+}
+
+impl Foo for Int64 {
+    static fn foo(): Int64 {
+        1
+    }
+}
+
+impl Foo for Float64 {
+    static fn foo(): Int64 {
+        0
+    }
+}
