@@ -1,0 +1,10 @@
+//= boots
+
+fn main() {
+    let t = mythread();
+    assert(std::Thread::current() === t);
+}
+
+@optimizeImmediately fn mythread(): std::Thread {
+    std::Thread::current()
+}

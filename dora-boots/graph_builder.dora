@@ -465,7 +465,7 @@ impl SsaGen {
                 self.emitLambdaCall(dest, idx);
             },
             BytecodeInstruction::InvokeGenericStatic(dest, idx) => {
-                unimplemented();
+                self.emitInvokeGenericStatic(dest, idx);
             },
             BytecodeInstruction::InvokeGenericDirect(dest, idx) => {
                 self.emitInvokeGenericDirect(dest, idx);
@@ -832,7 +832,15 @@ impl SsaGen {
             _ => unreachable[(FctId, Array[BytecodeType])](),
         };
 
-        self.emitCall(dest, CallKind::Static, fct_id, type_params);
+        let intrinsic = getIntrinsicForFunction(fct_id);
+
+        if intrinsic >= 0i32 {
+            let args = self.pushed_registers.toArray();
+            self.pushed_registers.clear();
+            self.emitIntrinsic(intrinsic, dest, args);
+        } else {
+            self.emitCall(dest, CallKind::Static, fct_id, type_params);
+        }
     }
 
     fn emitCall(dest: BytecodeRegister, kind: CallKind, fct_id: FctId, type_params: Array[BytecodeType]) {
@@ -913,6 +921,28 @@ impl SsaGen {
         }
     }
 
+    fn emitInvokeGenericStatic(dest: BytecodeRegister, idx: ConstPoolId) {
+        let ty = self.regGraphTy(dest);
+
+        let (type_param_idx, trait_fct_id, trait_type_params) = match self.bc.constPool(idx) {
+            ConstPoolEntry::Generic(type_param_idx, trait_fct_id, trait_type_params) => (type_param_idx, trait_fct_id, trait_type_params),
+            _ => unreachable[(Int32, FctId, Array[BytecodeType])](),
+        };
+
+        let object_ty = self.typeParams(type_param_idx.toInt64());
+        let callee_id = findTraitImpl(trait_fct_id, trait_type_params, object_ty);
+
+        let intrinsic = getIntrinsicForFunction(callee_id);
+
+        if intrinsic >= 0i32 {
+            let args = self.pushed_registers.toArray();
+            self.pushed_registers.clear();
+            self.emitIntrinsic(intrinsic, dest, args);
+        } else {
+            self.emitCall(dest, CallKind::Direct, callee_id, Array[BytecodeType]::new());
+        }
+    }
+
     fn emitInvokeGenericDirect(dest: BytecodeRegister, idx: ConstPoolId) {
         let ty = self.regGraphTy(dest);
 
@@ -936,12 +966,16 @@ impl SsaGen {
     }
 
     fn emitIntrinsic(intrinsic: Int32, dest: BytecodeRegister, args: Array[BytecodeRegister]) {
-        if intrinsic == opc::INTRINSIC_INT64_ADD {
+        if intrinsic == opc::INTRINSIC_INT64_ADD || intrinsic == opc::INTRINSIC_INT32_ADD {
             self.emitBin(dest, args(0), args(1), Op::CheckedAdd);
         } else if intrinsic == opc::INTRINSIC_INT64_ADD_UNCHECKED || intrinsic == opc::INTRINSIC_INT32_ADD_UNCHECKED {
             self.emitBin(dest, args(0), args(1), Op::Add);
-        } else if intrinsic == opc::INTRINSIC_FLOAT64_ADD {
+        } else if intrinsic == opc::INTRINSIC_FLOAT64_ADD || intrinsic == opc::INTRINSIC_FLOAT32_ADD {
             self.emitBin(dest, args(0), args(1), Op::Add);
+        } else if intrinsic == opc::INTRINSIC_THREAD_CURRENT {
+            let inst = graph::createThreadCurrentInst();
+            self.current().appendInst(inst);
+            self.writeVariable(dest, self.current(), inst);
         } else {
             let name = opc::intrinsicName(intrinsic);
             std::fatalError("unknown intrinsic ${name}");

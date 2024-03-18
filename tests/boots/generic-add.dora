@@ -2,7 +2,9 @@
 
 fn main() {
     assert(add[Int64](2, 3) == 5);
+    assert(add[Int32](2i32, 3i32) == 5i32);
     assert(add[Float64](17.0, 3.0) == 20.0);
+    assert(add[Float32](17.0f32, 3.0f32) == 20.0f32);
 }
 
 @optimizeImmediately fn add[T: std::traits::Add](a: T, b: T): T {

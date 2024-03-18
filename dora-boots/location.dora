@@ -249,6 +249,10 @@ impl LocationAnnotation {
                 }
             },
 
+            Op::ThreadCurrent => {
+                useOutputRegister(inst, false);
+            },
+
             _ => {
                 println("unsupported op ${inst.op().name()}");
                 unreachable[()]();

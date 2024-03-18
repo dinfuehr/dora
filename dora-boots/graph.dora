@@ -639,6 +639,8 @@ pub enum Op {
     NewObject,
     NewArray,
     NewLambda,
+
+    ThreadCurrent,
 }
 
 impl Op {
@@ -737,6 +739,7 @@ pub fn opName(op: Op): String {
         Op::NewObject => "NewObject",
         Op::NewArray => "NewArray",
         Op::NewLambda => "NewLambda",
+        Op::ThreadCurrent => "ThreadCurrent",
     }
 }
 
@@ -912,6 +915,7 @@ impl Inst {
             Op::NewObject => Type::Ptr,
             Op::NewArray => Type::Ptr,
             Op::NewLambda => Type::Ptr,
+            Op::ThreadCurrent => Type::Ptr,
         }
     }
 
@@ -1369,6 +1373,7 @@ impl Inst {
             Op::NewObject => false,
             Op::NewArray => false,
             Op::NewLambda => false,
+            Op::ThreadCurrent => false,
         }
     }
 }
@@ -1930,6 +1935,13 @@ pub fn createMoveInst(ty: Type, dest: Location, source: Location): Inst {
     loc.output = Some(Operand(Policy::None, dest));
     loc.inputs(0) = Some[Operand](Operand(Policy::None, source));
     inst.setLocationData(loc);
+
+    inst
+}
+
+pub fn createThreadCurrentInst(): Inst {
+    let inst = Inst::new();
+    inst._op = Some(Op::ThreadCurrent);
 
     inst
 }

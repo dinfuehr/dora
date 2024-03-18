@@ -319,6 +319,7 @@ fn dumpInstName(inst: Inst): String {
         Op::NewObject => "NewObject",
         Op::NewArray => "NewArray",
         Op::NewLambda => "NewLambda",
+        Op::ThreadCurrent => "ThreadCurrent",
     }
 }
 

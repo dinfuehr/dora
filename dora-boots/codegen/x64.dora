@@ -8,7 +8,7 @@ use package::bytecode::data::{ConstPoolId, Location};
 use package::codegen::{CODE_SIZE_ALIGNMENT, STACK_FRAME_ALIGNMENT, CodeGen};
 use package::interface::{Address, Architecture, CompilationInfo, ConstPool, ConstPoolEntry, ConstPoolValue, config, getFunctionAddress, LazyCompilationSite, LazyCompilationSiteDirect, getFieldOffset, getClassSize, getClassPointer, getClassPointerForLambda, getFunctionVtableIndex, getGlobalValueAddress, getGlobalStateAddress, getGlobalInitializerFunctionId, getReadOnlyStringAddress};
 use package::interface::{TRAP_DIV0, TRAP_OVERFLOW, TRAP_INDEX_OUT_OF_BOUNDS, LAMBDA_SIZE, PTR_SIZE, GLOBAL_STATE_INITIALIZED};
-use package::interface::{THREAD_LOCAL_DATA_TLAB_TOP_OFFSET, THREAD_LOCAL_DATA_TLAB_END_OFFSET, THREAD_LOCAL_DATA_STACK_LIMIT_OFFSET, THREAD_LOCAL_DATA_STATE_OFFSET, THREAD_LOCAL_DATA_MARKING_OFFSET, OBJECT_HEADER_LENGTH, OBJECT_METADATA_OFFSET, METADATA_REMEMBERED_BIT, ARRAY_HEADER_LENGTH};
+use package::interface::{THREAD_LOCAL_DATA_TLAB_TOP_OFFSET, THREAD_LOCAL_DATA_TLAB_END_OFFSET, THREAD_LOCAL_DATA_STACK_LIMIT_OFFSET, THREAD_LOCAL_DATA_STATE_OFFSET, THREAD_LOCAL_DATA_MARKING_OFFSET, OBJECT_HEADER_LENGTH, OBJECT_METADATA_OFFSET, METADATA_REMEMBERED_BIT, ARRAY_HEADER_LENGTH, THREAD_LOCAL_DATA_MANAGED_THREAD_HANDLE_OFFSET};
 use package::location::{useInputFloatRegisterFixed, useInputRegister, useInputRegisterFixed, useOutputRegisterFixed, useOutputSameAsFirstInput, addTempRegisterFixed};
 use package::graph::{Graph, Inst, Op, LocationData, RegisterSnapshot, RegisterTrackers, Type};
 use package::regalloc::isReference;
@@ -1477,6 +1477,13 @@ impl CodeGen for CodeGenX64 {
         let state_address = getGlobalStateAddress(global_id);
         self.asm.movq_ri(REG_TEMP, Immediate(state_address.value));
         self.asm.movb_ai(AsmAddress::offset(REG_TEMP, 0i32), Immediate(GLOBAL_STATE_INITIALIZED.toInt64()));
+    }
+
+    fn emitThreadCurrent(inst: Inst) {
+        let loc = inst.getLocationData();
+        let dest = loc.getOutput().getRegister();
+        self.asm.movq_ra(REG_TEMP, AsmAddress::offset(REG_THREAD, THREAD_LOCAL_DATA_MANAGED_THREAD_HANDLE_OFFSET));
+        self.asm.movq_ra(dest, AsmAddress::offset(REG_TEMP, 0i32));
     }
 
     fn finalize(): CodeDescriptor {

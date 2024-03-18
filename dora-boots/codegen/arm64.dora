@@ -1,7 +1,7 @@
 use package::bytecode::{ConstPoolId, Location, FctId, BytecodeType};
 use package::interface::{Address, Architecture, CompilationInfo, ConstPool, ConstPoolEntry, ConstPoolValue, config, getFunctionAddress, getFieldOffset, getClassSize, getClassPointer, getClassPointerForLambda, getFunctionVtableIndex, getGlobalValueAddress, getGlobalStateAddress, getGlobalInitializerFunctionId, getReadOnlyStringAddress};
 use package::interface::{THREAD_LOCAL_DATA_STACK_LIMIT_OFFSET, THREAD_LOCAL_DATA_STATE_OFFSET, THREAD_LOCAL_DATA_MARKING_OFFSET, OBJECT_HEADER_LENGTH, OBJECT_METADATA_OFFSET, METADATA_REMEMBERED_BIT, ARRAY_HEADER_LENGTH, LAMBDA_SIZE};
-use package::interface::{THREAD_LOCAL_DATA_TLAB_TOP_OFFSET, THREAD_LOCAL_DATA_TLAB_END_OFFSET};
+use package::interface::{THREAD_LOCAL_DATA_TLAB_TOP_OFFSET, THREAD_LOCAL_DATA_TLAB_END_OFFSET, THREAD_LOCAL_DATA_MANAGED_THREAD_HANDLE_OFFSET};
 use package::interface::{TRAP_DIV0, TRAP_OVERFLOW, TRAP_INDEX_OUT_OF_BOUNDS, PTR_SIZE, GLOBAL_STATE_INITIALIZED};
 use package::codegen::{CODE_SIZE_ALIGNMENT, CodeGen};
 use package::assembler::arm64::{F0, F1, F2, F3, F4, F5, F6, F7, F8, F9, F10, F11, F12, F13, F14, F15, F31};
@@ -1508,6 +1508,13 @@ impl CodeGen for CodeGenArm64 {
         self.mov_imm(REG_TEMP, state_address.value);
         self.asm.movz(tmp, GLOBAL_STATE_INITIALIZED, 0i32);
         self.asm.strb_imm(tmp, REG_TEMP, 0i32);
+    }
+
+    fn emitThreadCurrent(inst: Inst) {
+        let loc = inst.getLocationData();
+        let dest = loc.getOutput().getRegister();
+        self.asm.ldr_imm(REG_TEMP, REG_THREAD, THREAD_LOCAL_DATA_MANAGED_THREAD_HANDLE_OFFSET);
+        self.asm.ldr_imm(dest, REG_TEMP, 0i32);
     }
 
     fn finalize(): CodeDescriptor {
