@@ -1,0 +1,26 @@
+//= boots
+
+fn main() {
+    assert(f[Int64](1, 2) == 2);
+    assert(f[Float64](3, 2.5) == 10);
+}
+
+@optimizeImmediately fn f[T: Foo](x: Int64, a: T): Int64 {
+    a.foo()
+}
+
+trait Foo {
+    fn foo(): Int64;
+}
+
+impl Foo for Int64 {
+    fn foo(): Int64 {
+        self
+    }
+}
+
+impl Foo for Float64 {
+    fn foo(): Int64 {
+        (self * 4.0).toInt64()
+    }
+}

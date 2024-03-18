@@ -906,9 +906,6 @@ impl SsaGen {
     }
 
     fn emitInvokeGenericDirect(dest: BytecodeRegister, idx: ConstPoolId) {
-        let args = self.pushed_registers.toArray();
-        self.pushed_registers.clear();
-
         let ty = self.regGraphTy(dest);
 
         let (type_param_idx, trait_fct_id, trait_type_params) = match self.bc.constPool(idx) {
@@ -922,6 +919,8 @@ impl SsaGen {
         let intrinsic = getIntrinsicForFunction(callee_id);
 
         if intrinsic >= 0i32 {
+            let args = self.pushed_registers.toArray();
+            self.pushed_registers.clear();
             self.emitIntrinsic(intrinsic, dest, args);
         } else {
             self.emitCall(dest, CallKind::Direct, callee_id, Array[BytecodeType]::new());
