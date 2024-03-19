@@ -483,7 +483,7 @@ impl SsaGen {
                 self.emitStoreArray(src, arr, idx);
             },
             BytecodeInstruction::LoadTraitObjectValue(dest, src) => {
-                unimplemented();
+                self.emitLoadTraitObjectValue(dest, src);
             },
             BytecodeInstruction::Ret(opnd) => {
                 let ty = self.regGraphTy(opnd);
@@ -558,14 +558,13 @@ impl SsaGen {
             _ => unreachable[(ClassId, Array[BytecodeType], FieldId)](),
         };
 
-        let fieldInfo = FieldInfo(
+        let info = FieldInfo(
             cls_id,
             type_params,
             field_id,
-            None[Int32]
         );
-
-        let destInst = graph::createLoadFieldInst(objInst, fieldInfo, destType);
+        let info = InstExtraData::FieldInfo(info);
+        let destInst = graph::createLoadFieldInst(objInst, info, destType);
         destInst.set_bytecode_position(self.offset);
         self.current().appendInst(destInst);
         self.writeVariable(dest, self.current(), destInst);
@@ -582,14 +581,13 @@ impl SsaGen {
             _ => unreachable[(ClassId, Array[BytecodeType], FieldId)](),
         };
 
-        let fieldInfo = FieldInfo(
+        let info = FieldInfo(
             cls_id,
             type_params,
             field_id,
-            None[Int32]
         );
-
-        let destInst = graph::createStoreFieldInst(objInst, fieldInfo, srcInst, srcType);
+        let info = InstExtraData::FieldInfo(info);
+        let destInst = graph::createStoreFieldInst(objInst, info, srcInst, srcType);
         destInst.set_bytecode_position(self.offset);
         self.current().appendInst(destInst);
     }
@@ -768,6 +766,17 @@ impl SsaGen {
 
         let arrayStoreInst = graph::createStoreArray(arrInst, idxInst, srcInst, srcInst.getValueType());
         self.current().appendInst(arrayStoreInst);
+    }
+
+    fn emitLoadTraitObjectValue(dest: BytecodeRegister, src: BytecodeRegister) {
+        let srcInst = self.readVariable(src, self.current());
+        let destType = self.regGraphTy(dest);
+
+        let info = InstExtraData::FieldOffsetInfo(OBJECT_HEADER_LENGTH);
+        let loadInst = graph::createLoadFieldInst(srcInst, info, destType);
+        self.current().appendInst(loadInst);
+
+        self.writeVariable(dest, self.current(), loadInst);
     }
 
     fn emitRet(opnd: BytecodeRegister, ty: Type) {
@@ -958,14 +967,13 @@ impl SsaGen {
             let arg = self.readVariable(reg, self.current());
             let argTy = self.regGraphTy(reg);
 
-            let fieldInfo = FieldInfo(
+            let info = FieldInfo(
                 class_id,
                 type_params,
                 FieldId(field_id),
-                None[Int32]
             );
-
-            let destInst = graph::createStoreFieldInst(objInst, fieldInfo, arg, argTy);
+            let info = InstExtraData::FieldInfo(info);
+            let destInst = graph::createStoreFieldInst(objInst, info, arg, argTy);
             destInst.set_bytecode_position(self.offset);
             self.current().appendInst(destInst);
 
@@ -995,14 +1003,8 @@ impl SsaGen {
             let arg = self.readVariable(reg, self.current());
             let argTy = self.regGraphTy(reg);
 
-            let fieldInfo = FieldInfo(
-                ClassId(0i32),
-                Array[BytecodeType]::new(),
-                FieldId(0i32),
-                Some[Int32](OBJECT_HEADER_LENGTH)
-            );
-
-            let destInst = graph::createStoreFieldInst(objInst, fieldInfo, arg, argTy);
+            let info = InstExtraData::FieldOffsetInfo(OBJECT_HEADER_LENGTH);
+            let destInst = graph::createStoreFieldInst(objInst, info, arg, argTy);
             destInst.set_bytecode_position(self.offset);
             self.current().appendInst(destInst);
         }
@@ -1027,14 +1029,8 @@ impl SsaGen {
         let argInst = self.readVariable(obj, self.current());
         let argTy = self.regGraphTy(obj);
 
-        let fieldInfo = FieldInfo(
-            ClassId(0i32),
-            Array[BytecodeType]::new(),
-            FieldId(0i32),
-            Some[Int32](OBJECT_HEADER_LENGTH)
-        );
-
-        let storeInst = graph::createStoreFieldInst(objInst, fieldInfo, argInst, argTy);
+        let info = InstExtraData::FieldOffsetInfo(OBJECT_HEADER_LENGTH);
+        let storeInst = graph::createStoreFieldInst(objInst, info, argInst, argTy);
         storeInst.set_bytecode_position(self.offset);
         self.current().appendInst(storeInst);
     }

@@ -971,10 +971,25 @@ impl Inst {
         }
     }
 
+    pub fn hasFieldInfo(): Bool {
+        self.extra.isFieldInfo()
+    }
+
     pub fn getFieldInfo(): FieldInfo {
         match self.extra {
             InstExtraData::FieldInfo(info) => info,
             _ => unreachable[FieldInfo](),
+        }
+    }
+
+    pub fn hasFieldOffsetInfo(): Bool {
+        self.extra.isFieldOffsetInfo()
+    }
+
+    pub fn getFieldOffsetInfo(): Int32 {
+        match self.extra {
+            InstExtraData::FieldOffsetInfo(offset) => offset,
+            _ => unreachable[Int32](),
         }
     }
 
@@ -1418,6 +1433,7 @@ impl Stringable for Inst {
 pub enum InstExtraData {
     None,
     FieldInfo(FieldInfo),
+    FieldOffsetInfo(Int32),
     FunctionInfo(FunctionInfo),
     VirtualFunctionInfo(VirtualFunctionInfo),
     LambdaFunctionInfo(LambdaFunctionInfo),
@@ -1439,6 +1455,20 @@ impl InstExtraData {
     fn isFunctionInfo(): Bool {
         match self {
             InstExtraData::FunctionInfo(_) => true,
+            _ => false,
+        }
+    }
+
+    fn isFieldInfo(): Bool {
+        match self {
+            InstExtraData::FieldInfo(_) => true,
+            _ => false,
+        }
+    }
+
+    fn isFieldOffsetInfo(): Bool {
+        match self {
+            InstExtraData::FieldOffsetInfo(_) => true,
             _ => false,
         }
     }
@@ -2165,7 +2195,6 @@ pub class FieldInfo {
     pub cls_id: ClassId,
     pub type_params: Array[BytecodeType],
     pub field_id: FieldId,
-    pub offset: Option[Int32],
 }
 
 pub class FunctionInfo {
@@ -2195,22 +2224,22 @@ pub class ClassInfo {
     pub type_params: Array[BytecodeType],
 }
 
-pub fn createLoadFieldInst(obj: Inst, field: FieldInfo, ty: Type): Inst {
+pub fn createLoadFieldInst(obj: Inst, field: InstExtraData, ty: Type): Inst {
     let inst = Inst::new();
     inst._op = Some(Op::LoadField);
     inst.ty = ty;
     inst.addInput(obj);
-    inst.extra = InstExtraData::FieldInfo(field);
+    inst.extra = field;
     inst
 }
 
-pub fn createStoreFieldInst(obj: Inst, field: FieldInfo, value: Inst, ty: Type): Inst {
+pub fn createStoreFieldInst(obj: Inst, field: InstExtraData, value: Inst, ty: Type): Inst {
     let inst = Inst::new();
     inst._op = Some(Op::StoreField);
     inst.ty = ty;
     inst.addInput(obj);
     inst.addInput(value);
-    inst.extra = InstExtraData::FieldInfo(field);
+    inst.extra = field;
     inst
 }
 

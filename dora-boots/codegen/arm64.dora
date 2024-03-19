@@ -323,7 +323,7 @@ impl CodeGenArm64 {
 
     fn saveRegistersForCall(snapshot: RegisterTrackers, gc_point: GcPoint): GcPoint {
         let used = snapshot.gp.snapshot();
-        let mut save: Option[Register] = None[Register];
+        let regs_to_push = RegSet[Register]::new();
         let mut fp_offset = -self.graph.getStackSize();
 
         for reg in used {
@@ -343,17 +343,21 @@ impl CodeGenArm64 {
                 gc_point.add(fp_offset);
             }
 
-            if save.isNone() {
-                save = Some[Register](reg);
-            } else {
-                self.asm.stp_pre(reg, save.getOrPanic(), REG_SP, -16i32);
-                save = None[Register];
-            }
+            regs_to_push.add(reg);
         }
 
-        if save.isSome() {
-            self.asm.stp_pre(REG_ZERO, save.getOrPanic(), REG_SP, -16i32);
+        while regs_to_push.size() > 1 {
+            let rt2 = regs_to_push.popLowestIndex().getOrPanic();
+            let rt = regs_to_push.popLowestIndex().getOrPanic();
+            self.asm.stp_pre(rt, rt2, REG_SP, -16i32);
         }
+
+        if !regs_to_push.isEmpty() {
+            let reg = regs_to_push.popLowestIndex().getOrPanic();
+            self.asm.stp_pre(REG_ZERO, reg, REG_SP, -16i32);
+        }
+
+        assert(regs_to_push.isEmpty());
 
         let regs = snapshot.fp.snapshot();
 
@@ -363,9 +367,9 @@ impl CodeGenArm64 {
         }
 
         while !regs.isEmpty() {
-            let rt2 = regs.popHighestIndex().getOrPanic();
-            let rt = regs.popHighestIndex().getOrPanic();
-            self.asm.stp_pre_d(rt, rt2, REG_SP, -16i32);
+            let r1 = regs.popLowestIndex().getOrPanic();
+            let r2 = regs.popLowestIndex().getOrPanic();
+            self.asm.stp_pre_d(r2, r1, REG_SP, -16i32);
         }
 
         gc_point
@@ -380,14 +384,13 @@ impl CodeGenArm64 {
         }
 
         while !regs.isEmpty() {
-            let rt2 = regs.popHighestIndex().getOrPanic();
-            let rt = regs.popHighestIndex().getOrPanic();
-            self.asm.ldp_post_d(rt, rt2, REG_SP, 16i32);
+            let r1 = regs.popHighestIndex().getOrPanic();
+            let r2 = regs.popHighestIndex().getOrPanic();
+            self.asm.ldp_post_d(r1, r2, REG_SP, 16i32);
         }
 
         let used = snapshot.gp.snapshot();
-        let mut save: Option[Register] = None[Register];
-        let mut fp_offset = -self.graph.getStackSize();
+        let regs_to_pop = RegSet[Register]::new();
 
         for reg in used {
             // Temporaries are not part of the snapshot, so we should
@@ -401,18 +404,18 @@ impl CodeGenArm64 {
                 continue;
             }
 
-            fp_offset = fp_offset - PTR_SIZE;
-
-            if save.isNone() {
-                save = Some[Register](reg);
-            } else {
-                self.asm.ldp_post(reg, save.getOrPanic(), REG_SP, 16i32);
-                save = None[Register];
-            }
+            regs_to_pop.add(reg);
         }
 
-        if save.isSome() {
-            self.asm.ldp_post(REG_ZERO, save.getOrPanic(), REG_SP, 16i32);
+        if regs_to_pop.size() % 2 != 0 {
+            let reg = regs_to_pop.popHighestIndex().getOrPanic();
+            self.asm.ldp_post(REG_ZERO, reg, REG_SP, 16i32);
+        }
+
+        while !regs_to_pop.isEmpty() {
+            let r1 = regs_to_pop.popHighestIndex().getOrPanic();
+            let r2 = regs_to_pop.popHighestIndex().getOrPanic();
+            self.asm.ldp_post(r1, r2, REG_SP, 16i32);
         }
     }
 
@@ -1104,8 +1107,14 @@ impl CodeGen for CodeGenArm64 {
     }
 
     fn emitLoadField(inst: Inst) {
-        let field_info = inst.getFieldInfo();
-        let offset = getFieldOffset(field_info.cls_id, field_info.type_params, field_info.field_id);
+        let offset = if inst.hasFieldInfo() {
+            let field_info = inst.getFieldInfo();
+            getFieldOffset(field_info.cls_id, field_info.type_params, field_info.field_id)
+        } else if inst.hasFieldOffsetInfo() {
+            inst.getFieldOffsetInfo()
+        } else {
+            unreachable[Int32]()
+        };
 
         let loc = inst.getLocationData();
         let src = loc.getInput(0).getRegister();
@@ -1145,10 +1154,14 @@ impl CodeGen for CodeGenArm64 {
     }
 
     fn emitStoreField(inst: Inst) {
-        let field_info = inst.getFieldInfo();
-        let offset = field_info.offset.unwrapOrElse(||: Int32 {
+        let offset = if inst.hasFieldInfo() {
+            let field_info = inst.getFieldInfo();
             getFieldOffset(field_info.cls_id, field_info.type_params, field_info.field_id)
-        });
+        } else if inst.hasFieldOffsetInfo() {
+            inst.getFieldOffsetInfo()
+        } else {
+            unreachable[Int32]()
+        };
 
         let loc = inst.getLocationData();
         let obj = loc.getInput(0).getRegister();

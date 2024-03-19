@@ -285,6 +285,7 @@ impl CodeGenX64 {
         let used = snapshot.gp.snapshot();
         let gc_point = gc_point.clone();
         let mut extendedSize: Int32 = 0i32;
+        let regs_to_push = RegSet[Register]::new();
 
         for reg in used {
             // Temporaries are not part of the snapshot, so we should
@@ -304,6 +305,11 @@ impl CodeGenX64 {
                 gc_point.add(fp_offset);
             }
 
+            regs_to_push.add(reg);
+        }
+
+        while !regs_to_push.isEmpty() {
+            let reg = regs_to_push.popLowestIndex().getOrPanic();
             self.asm.pushq_r(reg);
         }
 
@@ -357,6 +363,7 @@ impl CodeGenX64 {
         }
 
         let used = snapshot.gp.snapshot();
+        let regs_to_pop = RegSet[Register]::new();
 
         for reg in used {
             // Temporaries are not part of the snapshot, so we should
@@ -370,6 +377,11 @@ impl CodeGenX64 {
                 continue;
             }
 
+            regs_to_pop.add(reg);
+        }
+
+        while !regs_to_pop.isEmpty() {
+            let reg = regs_to_pop.popHighestIndex().getOrPanic();
             self.asm.popq_r(reg);
         }
     }
@@ -1095,8 +1107,14 @@ impl CodeGen for CodeGenX64 {
     }
 
     fn emitLoadField(inst: Inst) {
-        let field_info = inst.getFieldInfo();
-        let offset = getFieldOffset(field_info.cls_id, field_info.type_params, field_info.field_id);
+        let offset = if inst.hasFieldInfo() {
+            let field_info = inst.getFieldInfo();
+            getFieldOffset(field_info.cls_id, field_info.type_params, field_info.field_id)
+        } else if inst.hasFieldOffsetInfo() {
+            inst.getFieldOffsetInfo()
+        } else {
+            unreachable[Int32]()
+        };
 
         let loc = inst.getLocationData();
         let src = loc.getInput(0).getRegister();
@@ -1136,10 +1154,14 @@ impl CodeGen for CodeGenX64 {
     }
 
     fn emitStoreField(inst: Inst) {
-        let field_info = inst.getFieldInfo();
-        let offset = field_info.offset.unwrapOrElse(||: Int32 {
+        let offset = if inst.hasFieldInfo() {
+            let field_info = inst.getFieldInfo();
             getFieldOffset(field_info.cls_id, field_info.type_params, field_info.field_id)
-        });
+        } else if inst.hasFieldOffsetInfo() {
+            inst.getFieldOffsetInfo()
+        } else {
+            unreachable[Int32]()
+        };
 
         let loc = inst.getLocationData();
         let obj = loc.getInput(0).getRegister();

@@ -1,4 +1,5 @@
 //= boots
+//= vm-args "--disable-tlab"
 
 fn main() {
     let foo = getfoo();

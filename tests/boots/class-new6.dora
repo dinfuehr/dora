@@ -1,0 +1,16 @@
+//= boots
+//= vm-args "--disable-tlab"
+
+fn main() {
+    let foo = getfoo();
+    std::forceCollect();
+    assert(foo.a == 1.0);
+    assert(foo.b == 2.0);
+    assert(foo.c == 3.0);
+    assert(foo.d == 4.0);
+    assert(foo.e == 5.0);
+}
+
+class Foo(a: Float64, b: Float64, c: Float64, d: Float64, e: Float64)
+
+@optimizeImmediately fn getfoo(): Foo { Foo(1.0, 2.0, 3.0, 4.0, 5.0) }

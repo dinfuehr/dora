@@ -26,7 +26,7 @@ use crate::vm::{
 use dora_bytecode::{
     read, BytecodeFunction, BytecodeOffset, BytecodeType, BytecodeTypeArray, BytecodeVisitor,
     ConstPoolEntry, ConstPoolIdx, FunctionId, FunctionKind, GlobalId, Intrinsic, Location,
-    Register, TraitId,
+    Register,
 };
 
 use super::CompilationFlags;
@@ -2105,8 +2105,6 @@ impl<'a> CannonCodeGen<'a> {
             }
             _ => unreachable!(),
         };
-
-        let trait_id = TraitId(trait_id.0);
 
         let type_params = self.specialize_bty_array(type_params);
         debug_assert!(type_params.iter().all(|ty| ty.is_concrete_type()));

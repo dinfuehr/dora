@@ -1,5 +1,4 @@
 //= boots
-//= ignore
 
 fn main() {
     let foo = getfoo(Foo(12));
