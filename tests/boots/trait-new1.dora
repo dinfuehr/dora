@@ -1,0 +1,21 @@
+//= boots
+//= ignore
+
+fn main() {
+    let foo = getfoo(Foo(12));
+    assert(foo.get() == 12);
+}
+
+class Foo(value: Int64)
+
+trait Bar {
+    fn get(): Int64;
+}
+
+impl Bar for Foo {
+    fn get(): Int64 {
+        self.value
+    }
+}
+
+@optimizeImmediately fn getfoo(x: Foo): Bar { x as Bar }
