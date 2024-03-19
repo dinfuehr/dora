@@ -134,8 +134,15 @@ pub fn generate_thunk(
         CompilerName::Cannon
     };
 
+    let emit_bytecode = should_emit_bytecode(vm, trait_fct_id, compiler);
+
+    if emit_bytecode {
+        dump_stdout(&vm.program, trait_fct, &bytecode_fct);
+    }
+
     let emit_debug = should_emit_debug(vm, trait_fct_id);
     let emit_asm = should_emit_asm(vm, trait_fct_id, compiler);
+    let emit_graph = should_emit_graph(vm, trait_fct_id);
     let mut start = None;
 
     if vm.flags.emit_compiler {
@@ -160,15 +167,23 @@ pub fn generate_thunk(
 
         emit_debug,
         emit_code_comments: emit_asm,
-        emit_graph: false,
+        emit_graph,
     };
 
-    let code_descriptor = match compiler {
-        CompilerName::Cannon => cannon::compile(vm, compilation_data, CompilationFlags::jit()),
-        CompilerName::Boots => unimplemented!(),
+    let flags = CompilationFlags::jit();
+
+    let (code_descriptor, kind) = match compiler {
+        CompilerName::Cannon => (
+            cannon::compile(vm, compilation_data, flags),
+            CodeKind::BaselineFct(trait_fct_id),
+        ),
+        CompilerName::Boots => (
+            boots::compile(vm, compilation_data, flags),
+            CodeKind::OptimizedFct(trait_fct_id),
+        ),
     };
 
-    let code = install_code(vm, code_descriptor, CodeKind::BaselineFct(trait_fct_id));
+    let code = install_code(vm, code_descriptor, kind);
 
     // We need to insert into CodeMap before releasing the compilation-lock. Otherwise
     // another thread could run that function while the function can't be found in the

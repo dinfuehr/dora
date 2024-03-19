@@ -818,7 +818,7 @@ fn find_elements_in_trait(
                     sa,
                     trait_.file_id,
                     &method_node.modifiers,
-                    &[Annotation::Static],
+                    &[Annotation::Static, Annotation::OptimizeImmediately],
                 );
 
                 let fct = FctDefinition::new(

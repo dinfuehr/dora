@@ -296,7 +296,7 @@ impl BytecodeIterator {
         } else if opcode == opc::BC_LOAD_TRAIT_OBJECT_VALUE {
             let dest = self.readRegister();
             let src = self.readRegister();
-            BytecodeInstruction::ArrayLength(dest, src)
+            BytecodeInstruction::LoadTraitObjectValue(dest, src)
 
         } else if opcode == opc::BC_RET {
             let opnd = self.readRegister();
