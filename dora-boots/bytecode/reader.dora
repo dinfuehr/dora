@@ -270,6 +270,11 @@ impl BytecodeIterator {
             let dest = self.readRegister();
             let idx = self.readConstPoolId();
             BytecodeInstruction::NewLambda(dest, idx)
+        } else if opcode == opc::BC_NEW_TRAIT_OBJECT {
+            let dest = self.readRegister();
+            let idx = self.readConstPoolId();
+            let obj = self.readRegister();
+            BytecodeInstruction::NewTraitObject(dest, idx, obj)
 
         } else if opcode == opc::BC_ARRAY_LENGTH {
             let dest = self.readRegister();

@@ -3,37 +3,11 @@ use std::BitSet;
 
 use package::bytecode::opcode as opc;
 use package::graph;
-use package::graph::Graph;
-use package::graph::Block;
-use package::graph::Inst;
-use package::graph::Op;
-use package::graph::createBoolConst;
-use package::graph::createInt32Const;
-use package::graph::createInt64Const;
-use package::graph::createFloat32Const;
-use package::graph::createFloat64Const;
-use package::graph::createIfInst;
-use package::graph::createArrayLength;
-use package::graph::createBoundsCheck;
-use package::graph::createLoadArray;
-use package::graph::createStoreArray;
-use package::graph::createReturnInst;
-use package::graph::createReturnVoidInst;
-use package::graph::createGotoInst;
-use package::graph::createTestInst;
-use package::graph::createStoreGlobalInst;
-use package::graph::createLoadGlobalInst;
-use package::graph::createBinaryInst;
-use package::graph::createDivZeroCheck;
-use package::graph::createUnaryInst;
-use package::graph::createUndefInst;
-use package::graph::createPhiInst;
-use package::graph::createArgInst;
-use package::graph::createNewObject;
+use package::graph::{Block, Graph, Inst, InstExtraData, Op};
 use package::graph::ty::Type;
-use package::graph::{ClassInfo, FieldInfo, FunctionInfo, CallKind, VirtualFunctionInfo, LambdaFunctionInfo};
+use package::graph::{ClassInfo, FieldInfo, FunctionInfo, CallKind, VirtualFunctionInfo, LambdaFunctionInfo, TraitObjectInfo};
 use package::bytecode::data::{BytecodeFunction, BytecodeRegister, BytecodeType, ClassId, FctId, FieldId};
-use package::bytecode::data::{ConstPoolId, ConstPoolEntry, GlobalId};
+use package::bytecode::data::{ConstPoolId, ConstPoolEntry, GlobalId, TraitId};
 use package::bytecode::instruction::BytecodeInstruction;
 use package::bytecode::reader::BytecodeIterator;
 use package::interface::{OBJECT_HEADER_LENGTH, hasGlobalInitialValue, findTraitImpl, getIntrinsicForFunction};
@@ -128,7 +102,7 @@ impl SsaGen {
         while i < self.bc.arguments {
             let ty = self.regId(i.toInt64());
             let ty = Type::fromBytecodeType(ty);
-            let argInst = createArgInst(i, ty);
+            let argInst = graph::createArgInst(i, ty);
             entryBlock.appendInst(argInst);
             self.writeVariable(BytecodeRegister(i), entryBlock, argInst);
             i = i + 1i32;
@@ -161,7 +135,7 @@ impl SsaGen {
             // In this case the while header is filled before the while body. If we wouldn't
             // handle unsealed blocks we wouldn't create a Phi instruction, since the
             // while body predecessor is still empty.
-            let incomplete = createPhiInst(ty);
+            let incomplete = graph::createPhiInst(ty);
             block.appendPhi(incomplete);
 
             if self.incompletePhis.contains(block) {
@@ -176,7 +150,7 @@ impl SsaGen {
         } else if block.predecessors.size() == 1i64 {
             self.readVariable(register, block.predecessors.first().getOrPanic().source)
         } else {
-            let phi = createPhiInst(ty);
+            let phi = graph::createPhiInst(ty);
             block.appendPhi(phi);
             self.writeVariable(register, block, phi);
             self.addPhiOperands(register, phi)
@@ -213,7 +187,7 @@ impl SsaGen {
         }
 
         if same.isNone() {
-            same = Some(createUndefInst());
+            same = Some(graph::createUndefInst());
         }
 
         let users = phi.users();
@@ -359,12 +333,12 @@ impl SsaGen {
             },
             
             BytecodeInstruction::ConstTrue(dest) => {
-                let inst = createBoolConst(true);
+                let inst = graph::createBoolConst(true);
                 self.current().appendInst(inst);
                 self.writeVariable(dest, self.current(), inst);
             },
             BytecodeInstruction::ConstFalse(dest) => {
-                let inst = createBoolConst(false);
+                let inst = graph::createBoolConst(false);
                 self.current().appendInst(inst);
                 self.writeVariable(dest, self.current(), inst);
             },
@@ -375,32 +349,32 @@ impl SsaGen {
             },
             BytecodeInstruction::ConstChar(dest, idx) => {
                 let value = self.bc.constPool(idx).toChar().getOrPanic();
-                let inst = createInt32Const(value.toInt32());
+                let inst = graph::createInt32Const(value.toInt32());
                 self.current().appendInst(inst);
                 self.writeVariable(dest, self.current(), inst);
             },
             BytecodeInstruction::ConstInt32(dest, idx) => {
                 let value = self.bc.constPool(idx).toInt32().getOrPanic();
-                let inst = createInt32Const(value);
+                let inst = graph::createInt32Const(value);
                 self.current().appendInst(inst);
                 self.writeVariable(dest, self.current(), inst);
             },
             BytecodeInstruction::ConstInt64(dest, idx) => {
                 let value = self.bc.constPool(idx).toInt64().getOrPanic();
-                let inst = createInt64Const(value);
+                let inst = graph::createInt64Const(value);
                 self.current().appendInst(inst);
                 self.writeVariable(dest, self.current(), inst);
             },
             BytecodeInstruction::ConstFloat32(dest, idx) => {
                 let value = self.bc.constPool(idx).toFloat32().getOrPanic();
-                let inst = createFloat32Const(value);
+                let inst = graph::createFloat32Const(value);
                 self.current().appendInst(inst);
                 self.writeVariable(dest, self.current(), inst);
 
             },
             BytecodeInstruction::ConstFloat64(dest, idx) => {
                 let value = self.bc.constPool(idx).toFloat64().getOrPanic();
-                let inst = createFloat64Const(value);
+                let inst = graph::createFloat64Const(value);
                 self.current().appendInst(inst);
                 self.writeVariable(dest, self.current(), inst);
             },
@@ -435,7 +409,7 @@ impl SsaGen {
 
             BytecodeInstruction::JumpLoop(distance) => {
                 let targetBlock = self.blockMap.blockAt((self.offset - distance).toInt64()).getOrPanic();
-                let gotoInst = createGotoInst(targetBlock);
+                let gotoInst = graph::createGotoInst(targetBlock);
                 self.current().appendInst(gotoInst);
                 self.markBlockTerminated();
             },
@@ -490,14 +464,14 @@ impl SsaGen {
                 unimplemented();
             },
             BytecodeInstruction::NewTraitObject(dest, idx, obj) => {
-                unimplemented();
+                self.emitNewTraitObject(dest, idx, obj);
             },
             BytecodeInstruction::NewLambda(dest, idx) => {
                 self.emitNewLambda(dest, idx);
             },
             BytecodeInstruction::ArrayLength(dest, src) => {
                 let srcInst = self.readVariable(src, self.current());
-                let destInst = createArrayLength(srcInst);
+                let destInst = graph::createArrayLength(srcInst);
                 destInst.set_bytecode_position(self.offset);
                 self.current().appendInst(destInst);
                 self.writeVariable(dest, self.current(), destInst);
@@ -522,7 +496,7 @@ impl SsaGen {
         let block = self.current();
 
         if !self.blockTerminated {
-            let gotoInst = createGotoInst(next.getOrPanic());
+            let gotoInst = graph::createGotoInst(next.getOrPanic());
             block.appendInst(gotoInst);
         }
 
@@ -640,7 +614,7 @@ impl SsaGen {
             rhsInst = tmp;
         }
 
-        let destInst = createBinaryInst(op, ty, lhsInst, rhsInst);
+        let destInst = graph::createBinaryInst(op, ty, lhsInst, rhsInst);
         destInst.set_bytecode_position(self.offset);
         self.current().appendInst(destInst);
         self.writeVariable(dest, self.current(), destInst);
@@ -658,7 +632,7 @@ impl SsaGen {
         };
 
         let srcInst = self.readVariable(src, self.current());
-        let destInst = createUnaryInst(op, ty, srcInst);
+        let destInst = graph::createUnaryInst(op, ty, srcInst);
         destInst.set_bytecode_position(self.offset);
         self.current().appendInst(destInst);
         self.writeVariable(dest, self.current(), destInst);
@@ -679,12 +653,12 @@ impl SsaGen {
         let rhsInst = self.readVariable(rhs, self.current());
 
         if !registerType.isAnyFloat() {
-            let divZeroCheck = createDivZeroCheck(rhsInst);
+            let divZeroCheck = graph::createDivZeroCheck(rhsInst);
             divZeroCheck.set_bytecode_position(self.offset);
             self.current().appendInst(divZeroCheck);
         }
 
-        let destInst = createBinaryInst(op, ty, lhsInst, rhsInst);
+        let destInst = graph::createBinaryInst(op, ty, lhsInst, rhsInst);
         destInst.set_bytecode_position(self.offset);
         self.current().appendInst(destInst);
         self.writeVariable(dest, self.current(), destInst);
@@ -704,7 +678,7 @@ impl SsaGen {
             inst.set_bytecode_position(self.offset);
         }
 
-        let globInst = createLoadGlobalInst(destType, glob);
+        let globInst = graph::createLoadGlobalInst(destType, glob);
         self.current().appendInst(globInst);
         self.writeVariable(dest, self.current(), globInst);
     }
@@ -713,7 +687,7 @@ impl SsaGen {
         let srcType = self.regGraphTy(src);
 
         let srcInst = self.readVariable(src, self.current());
-        let globInst = createStoreGlobalInst(srcType, glob, srcInst);
+        let globInst = graph::createStoreGlobalInst(srcType, glob, srcInst);
         self.current().appendInst(globInst);
 
         if hasGlobalInitialValue(glob) {
@@ -735,14 +709,14 @@ impl SsaGen {
 
         let lhsInst = self.readVariable(lhs, self.current());
         let rhsInst = self.readVariable(rhs, self.current());
-        let destInst = createTestInst(op, ty, lhsInst, rhsInst);
+        let destInst = graph::createTestInst(op, ty, lhsInst, rhsInst);
         self.current().appendInst(destInst);
         self.writeVariable(dest, self.current(), destInst);
     }
 
     fn emitJump(offset: Int32) {
         let targetBlock = self.blockMap.blockAt((self.offset + offset).toInt64()).getOrPanic();
-        let gotoInst = createGotoInst(targetBlock);
+        let gotoInst = graph::createGotoInst(targetBlock);
         self.current().appendInst(gotoInst);
         self.markBlockTerminated();
     }
@@ -753,9 +727,9 @@ impl SsaGen {
         let fallthroughBlock = self.blockMap.nextBlockAt((self.offset+1i32).toInt64()).getOrPanic();
 
         let cond = if value {
-            createIfInst(opndInst, targetBlock, fallthroughBlock)
+            graph::createIfInst(opndInst, targetBlock, fallthroughBlock)
         } else {
-            createIfInst(opndInst, fallthroughBlock, targetBlock)
+            graph::createIfInst(opndInst, fallthroughBlock, targetBlock)
         };
 
         self.current().appendInst(cond);
@@ -766,15 +740,15 @@ impl SsaGen {
         let arrInst = self.readVariable(arr, self.current());
         let idxInst = self.readVariable(idx, self.current());
 
-        let arrayLengthInst = createArrayLength(arrInst);
+        let arrayLengthInst = graph::createArrayLength(arrInst);
         self.current().appendInst(arrayLengthInst);
 
-        let boundsCheckInst = createBoundsCheck(idxInst, arrayLengthInst);
+        let boundsCheckInst = graph::createBoundsCheck(idxInst, arrayLengthInst);
         boundsCheckInst.set_bytecode_position(self.offset);
         self.current().appendInst(boundsCheckInst);
 
         let destType = self.regGraphTy(dest);
-        let arrayLoadInst = createLoadArray(arrInst, idxInst, destType);
+        let arrayLoadInst = graph::createLoadArray(arrInst, idxInst, destType);
         self.current().appendInst(arrayLoadInst);
 
         self.writeVariable(dest, self.current(), arrayLoadInst);
@@ -785,25 +759,25 @@ impl SsaGen {
         let arrInst = self.readVariable(arr, self.current());
         let idxInst = self.readVariable(idx, self.current());
 
-        let arrayLengthInst = createArrayLength(arrInst);
+        let arrayLengthInst = graph::createArrayLength(arrInst);
         self.current().appendInst(arrayLengthInst);
 
-        let boundsCheckInst = createBoundsCheck(idxInst, arrayLengthInst);
+        let boundsCheckInst = graph::createBoundsCheck(idxInst, arrayLengthInst);
         boundsCheckInst.set_bytecode_position(self.offset);
         self.current().appendInst(boundsCheckInst);
 
-        let arrayStoreInst = createStoreArray(arrInst, idxInst, srcInst, srcInst.getValueType());
+        let arrayStoreInst = graph::createStoreArray(arrInst, idxInst, srcInst, srcInst.getValueType());
         self.current().appendInst(arrayStoreInst);
     }
 
     fn emitRet(opnd: BytecodeRegister, ty: Type) {
         if ty.isUnit() {
-            let inst = createReturnVoidInst();
+            let inst = graph::createReturnVoidInst();
             self.current().appendInst(inst);
             self.markBlockTerminated();
         } else {
             let value = self.readVariable(opnd, self.current());
-            let inst = createReturnInst(value, ty);
+            let inst = graph::createReturnInst(value, ty);
             self.current().appendInst(inst);
             self.markBlockTerminated();
         }
@@ -972,7 +946,7 @@ impl SsaGen {
         };
 
         let info = ClassInfo(class_id, type_params);
-
+        let info = InstExtraData::ClassInfo(info);
         let objInst = graph::createNewObject(info);
         objInst.set_bytecode_position(self.offset);
         self.current().appendInst(objInst);
@@ -1008,8 +982,8 @@ impl SsaGen {
         };
 
         let info = FunctionInfo(fct_id, type_params);
-
-        let objInst = graph::createNewLambda(info);
+        let info = InstExtraData::FunctionInfo(info);
+        let objInst = graph::createNewObject(info);
         objInst.set_bytecode_position(self.offset);
         self.current().appendInst(objInst);
 
@@ -1034,6 +1008,35 @@ impl SsaGen {
         }
 
         self.pushed_registers.clear();
+    }
+
+    fn emitNewTraitObject(dest: BytecodeRegister, idx: ConstPoolId, obj: BytecodeRegister) {
+        let (trait_id, type_params, object_ty) = match self.bc.constPool(idx) {
+            ConstPoolEntry::Trait(trait_id, type_params, object_ty) => (trait_id, type_params, object_ty),
+            _ => unreachable[(TraitId, Array[BytecodeType], BytecodeType)](),
+        };
+
+        let info = TraitObjectInfo(trait_id, type_params, object_ty);
+        let info = InstExtraData::TraitObjectInfo(info);
+        let objInst = graph::createNewObject(info);
+        objInst.set_bytecode_position(self.offset);
+        self.current().appendInst(objInst);
+
+        self.writeVariable(dest, self.current(), objInst);
+
+        let argInst = self.readVariable(obj, self.current());
+        let argTy = self.regGraphTy(obj);
+
+        let fieldInfo = FieldInfo(
+            ClassId(0i32),
+            Array[BytecodeType]::new(),
+            FieldId(0i32),
+            Some[Int32](OBJECT_HEADER_LENGTH)
+        );
+
+        let storeInst = graph::createStoreFieldInst(objInst, fieldInfo, argInst, argTy);
+        storeInst.set_bytecode_position(self.offset);
+        self.current().appendInst(storeInst);
     }
 
     fn emitNewArray(dest: BytecodeRegister, idx: ConstPoolId, length: BytecodeRegister) {

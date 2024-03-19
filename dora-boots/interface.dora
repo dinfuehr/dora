@@ -9,6 +9,7 @@ use package::deserializer::ByteReader;
 use package::codegen::x64::CodeGenX64;
 use package::codegen::arm64::CodeGenArm64;
 use package::compileFunction;
+use package::graph::TraitObjectInfo;
 use package::serializer::{ByteWriter, encodeBytecodeType, encodeBytecodeTypeArray, encodeCodeDescriptor};
 
 pub const TRAP_DIV0: Int32 = 1i32;
@@ -28,6 +29,8 @@ pub const TRAP_OVERFLOW: Int32 = 9i32;
 @internal pub fn getClassSizeRaw(data: Array[UInt8]): Int32;
 @internal pub fn getClassPointerRaw(data: Array[UInt8]): Int64;
 @internal pub fn getClassPointerForLambdaRaw(data: Array[UInt8]): Int64;
+@internal pub fn getClassSizeForTraitObjectRaw(data: Array[UInt8]): Int32;
+@internal pub fn getClassPointerForTraitObjectRaw(data: Array[UInt8]): Int64;
 @internal pub fn getGlobalValueAddressRaw(id: Int32): Int64;
 @internal pub fn getGlobalStateAddressRaw(id: Int32): Int64;
 @internal pub fn hasGlobalInitialValueRaw(id: Int32): Bool;
@@ -48,6 +51,22 @@ pub fn getClassPointerForLambda(fct_id: FctId, type_params: Array[BytecodeType])
     writer.emitInt32(fct_id.value);
     encodeBytecodeTypeArray(writer, type_params);
     Address(getClassPointerForLambdaRaw(writer.toArray()))
+}
+
+pub fn getClassSizeForTraitObject(info: TraitObjectInfo): Int32 {
+    let writer = ByteWriter::new();
+    writer.emitInt32(info.trait_id.value);
+    encodeBytecodeTypeArray(writer, info.type_params);
+    encodeBytecodeType(writer, info.object_ty);
+    getClassSizeForTraitObjectRaw(writer.toArray())
+}
+
+pub fn getClassPointerForTraitObject(info: TraitObjectInfo): Address {
+    let writer = ByteWriter::new();
+    writer.emitInt32(info.trait_id.value);
+    encodeBytecodeTypeArray(writer, info.type_params);
+    encodeBytecodeType(writer, info.object_ty);
+    Address(getClassPointerForTraitObjectRaw(writer.toArray()))
 }
 
 pub fn getFunctionVtableIndex(fct_id: FctId): Int32 {

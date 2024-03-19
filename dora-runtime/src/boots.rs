@@ -1,7 +1,9 @@
 use std::mem;
 use std::ptr;
 
-use dora_bytecode::{BytecodeType, BytecodeTypeArray, ClassId, FunctionId, FunctionKind, GlobalId};
+use dora_bytecode::{
+    BytecodeType, BytecodeTypeArray, ClassId, FunctionId, FunctionKind, GlobalId, TraitId,
+};
 
 use crate::boots::deserializer::{decode_code_descriptor, ByteReader};
 use crate::boots::serializer::allocate_encoded_compilation_info;
@@ -68,6 +70,14 @@ pub const BOOTS_NATIVE_FUNCTIONS: &[(&'static str, *const u8)] = &[
     (
         "boots::interface::getClassPointerForLambdaRaw",
         get_class_pointer_for_lambda as *const u8,
+    ),
+    (
+        "boots::interface::getClassPointerForTraitObjectRaw",
+        get_class_pointer_for_trait_object_raw as *const u8,
+    ),
+    (
+        "boots::interface::getClassSizeForTraitObjectRaw",
+        get_class_size_for_trait_object_raw as *const u8,
     ),
     (
         "boots::interface::getReadOnlyStringAddressRaw",
@@ -170,6 +180,60 @@ extern "C" fn get_class_pointer_for_lambda(data: Handle<UInt8Array>) -> Address 
     let id = crate::vm::ensure_class_instance_for_lambda(vm, fct_id, type_params);
     let cls = vm.class_instances.idx(id);
     cls.vtblptr()
+}
+
+extern "C" fn get_class_pointer_for_trait_object_raw(data: Handle<UInt8Array>) -> Address {
+    let vm = get_vm();
+
+    let mut serialized_data = vec![0; data.len()];
+
+    unsafe {
+        ptr::copy_nonoverlapping(
+            data.data() as *mut u8,
+            serialized_data.as_mut_ptr(),
+            data.len(),
+        );
+    }
+
+    let mut reader = ByteReader::new(serialized_data);
+    let trait_id = TraitId(reader.read_u32());
+    let type_params = decode_bytecode_type_array(&mut reader);
+    let object_ty = decode_bytecode_type(&mut reader);
+    assert!(!reader.has_more());
+
+    let id =
+        crate::vm::ensure_class_instance_for_trait_object(vm, trait_id, &type_params, object_ty);
+    let cls = vm.class_instances.idx(id);
+    cls.vtblptr()
+}
+
+extern "C" fn get_class_size_for_trait_object_raw(data: Handle<UInt8Array>) -> i32 {
+    let vm = get_vm();
+
+    let mut serialized_data = vec![0; data.len()];
+
+    unsafe {
+        ptr::copy_nonoverlapping(
+            data.data() as *mut u8,
+            serialized_data.as_mut_ptr(),
+            data.len(),
+        );
+    }
+
+    let mut reader = ByteReader::new(serialized_data);
+    let trait_id = TraitId(reader.read_u32());
+    let type_params = decode_bytecode_type_array(&mut reader);
+    let object_ty = decode_bytecode_type(&mut reader);
+    assert!(!reader.has_more());
+
+    let id =
+        crate::vm::ensure_class_instance_for_trait_object(vm, trait_id, &type_params, object_ty);
+    let cls = vm.class_instances.idx(id);
+
+    match cls.size {
+        InstanceSize::Fixed(size) => size,
+        _ => unreachable!(),
+    }
 }
 
 extern "C" fn get_global_value_address(id: u32) -> Address {

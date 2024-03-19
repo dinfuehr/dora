@@ -1,5 +1,5 @@
 use package::bytecode::{ConstPoolId, Location, FctId, BytecodeType};
-use package::interface::{Address, Architecture, CompilationInfo, ConstPool, ConstPoolEntry, ConstPoolValue, config, getFunctionAddress, getFieldOffset, getClassSize, getClassPointer, getClassPointerForLambda, getFunctionVtableIndex, getGlobalValueAddress, getGlobalStateAddress, getGlobalInitializerFunctionId, getReadOnlyStringAddress};
+use package::interface::{Address, Architecture, CompilationInfo, ConstPool, ConstPoolEntry, ConstPoolValue, config, getFunctionAddress, getFieldOffset, getClassSize, getClassPointer, getClassPointerForLambda, getFunctionVtableIndex, getGlobalValueAddress, getGlobalStateAddress, getGlobalInitializerFunctionId, getReadOnlyStringAddress, getClassSizeForTraitObject, getClassPointerForTraitObject};
 use package::interface::{THREAD_LOCAL_DATA_STACK_LIMIT_OFFSET, THREAD_LOCAL_DATA_STATE_OFFSET, THREAD_LOCAL_DATA_MARKING_OFFSET, OBJECT_HEADER_LENGTH, OBJECT_METADATA_OFFSET, METADATA_REMEMBERED_BIT, ARRAY_HEADER_LENGTH, LAMBDA_SIZE};
 use package::interface::{THREAD_LOCAL_DATA_TLAB_TOP_OFFSET, THREAD_LOCAL_DATA_TLAB_END_OFFSET, THREAD_LOCAL_DATA_MANAGED_THREAD_HANDLE_OFFSET};
 use package::interface::{TRAP_DIV0, TRAP_OVERFLOW, TRAP_INDEX_OUT_OF_BOUNDS, PTR_SIZE, GLOBAL_STATE_INITIALIZED};
@@ -1322,26 +1322,29 @@ impl CodeGen for CodeGenArm64 {
     fn emitNewObject(inst: Inst) {
         let loc = inst.getLocationData();
         let obj = loc.getOutput().getRegister();
-        let class_info = inst.getClassInfo();
-        let size = getClassSize(class_info.class_id, class_info.type_params);
+
+        let mut size = -1i32;
+        let mut classptr = Address::null();
+
+        if inst.hasClassInfo() {
+            let info = inst.getClassInfo();
+            size = getClassSize(info.class_id, info.type_params);
+            classptr = getClassPointer(info.class_id, info.type_params);
+        } else if inst.hasFunctionInfo() {
+            let info = inst.getFunctionInfo();
+            size = LAMBDA_SIZE;
+            classptr = getClassPointerForLambda(info.fct_id, info.type_params);
+        } else if inst.hasTraitObjectInfo() {
+            let info = inst.getTraitObjectInfo();
+            size = getClassSizeForTraitObject(info);
+            classptr = getClassPointerForTraitObject(info);
+        } else {
+            unreachable[()]();
+        };
 
         let tmp = loc.getTemp(0).getRegister();
         self.emitObjectAllocate(obj, size, REG_TEMP, tmp, loc.getRegisterTrackers(), loc.getGcPoint());
 
-        let classptr = getClassPointer(class_info.class_id, class_info.type_params);
-        self.emitObjectInitialization(obj, size, classptr, REG_TEMP);
-    }
-
-    fn emitNewLambda(inst: Inst) {
-        let loc = inst.getLocationData();
-        let obj = loc.getOutput().getRegister();
-        let class_info = inst.getFunctionInfo();
-        let size = LAMBDA_SIZE;
-
-        let tmp = loc.getTemp(0).getRegister();
-        self.emitObjectAllocate(obj, size, REG_TEMP, tmp, loc.getRegisterTrackers(), loc.getGcPoint());
-
-        let classptr = getClassPointerForLambda(class_info.fct_id, class_info.type_params);
         self.emitObjectInitialization(obj, size, classptr, REG_TEMP);
     }
 

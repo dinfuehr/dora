@@ -5,7 +5,7 @@ use std::Stringable;
 use std::traits::Iterator;
 
 use package::assembler::{FloatRegister, Label, Register, RegMap, RegSet};
-use package::bytecode::data::{BytecodeType, ClassId, FctId, FieldId, GlobalId};
+use package::bytecode::data::{BytecodeType, ClassId, FctId, FieldId, GlobalId, TraitId};
 use package::dominator::buildDominatorTree;
 use package::interface::GcPoint;
 use package::regalloc::RegisterTracker;
@@ -935,10 +935,25 @@ impl Inst {
         }
     }
 
+    pub fn hasFunctionInfo(): Bool {
+        self.extra.isFunctionInfo()
+    }
+
     pub fn getFunctionInfo(): FunctionInfo {
         match self.extra {
             InstExtraData::FunctionInfo(info) => info,
             _ => unreachable[FunctionInfo](),
+        }
+    }
+
+    pub fn hasTraitObjectInfo(): Bool {
+        self.extra.isTraitObjectInfo()
+    }
+
+    pub fn getTraitObjectInfo(): TraitObjectInfo {
+        match self.extra {
+            InstExtraData::TraitObjectInfo(info) => info,
+            _ => unreachable[TraitObjectInfo](),
         }
     }
 
@@ -961,6 +976,10 @@ impl Inst {
             InstExtraData::FieldInfo(info) => info,
             _ => unreachable[FieldInfo](),
         }
+    }
+
+    pub fn hasClassInfo(): Bool {
+        self.extra.isClassInfo()
     }
 
     pub fn getClassInfo(): ClassInfo {
@@ -1396,16 +1415,40 @@ impl Stringable for Inst {
     }
 }
 
-enum InstExtraData {
+pub enum InstExtraData {
     None,
     FieldInfo(FieldInfo),
     FunctionInfo(FunctionInfo),
     VirtualFunctionInfo(VirtualFunctionInfo),
     LambdaFunctionInfo(LambdaFunctionInfo),
     ClassInfo(ClassInfo),
+    TraitObjectInfo(TraitObjectInfo),
     If(Block, Block),
     Goto(Block),
     String(String),
+}
+
+impl InstExtraData {
+    fn isClassInfo(): Bool {
+        match self {
+            InstExtraData::ClassInfo(_) => true,
+            _ => false,
+        }
+    }
+
+    fn isFunctionInfo(): Bool {
+        match self {
+            InstExtraData::FunctionInfo(_) => true,
+            _ => false,
+        }
+    }
+
+    fn isTraitObjectInfo(): Bool {
+        match self {
+            InstExtraData::TraitObjectInfo(_) => true,
+            _ => false,
+        }
+    }
 }
 
 pub enum CallKind {
@@ -2130,6 +2173,12 @@ pub class FunctionInfo {
     pub type_params: Array[BytecodeType],
 }
 
+pub class TraitObjectInfo {
+    pub trait_id: TraitId,
+    pub type_params: Array[BytecodeType],
+    pub object_ty: BytecodeType,
+}
+
 pub class VirtualFunctionInfo {
     pub trait_object_ty: BytecodeType,
     pub fct_id: FctId,
@@ -2247,10 +2296,10 @@ pub fn createLambdaCall(info: LambdaFunctionInfo,  args: Vec[Inst], return_ty: T
     inst
 }
 
-pub fn createNewObject(info: ClassInfo): Inst {
+pub fn createNewObject(extra: InstExtraData): Inst {
     let inst = Inst::new();
     inst._op = Some(Op::NewObject);
-    inst.extra = InstExtraData::ClassInfo(info);
+    inst.extra = extra;
 
     inst
 }
