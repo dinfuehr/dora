@@ -52,7 +52,7 @@ impl LocationAnnotation {
                     if location.isRegister() {
                         useOutputRegisterFixed(inst, location.getRegister(), false);
                     } else  {
-                        useOutputStack(inst, location);
+                        useOutputFixedStack(inst, location);
                     }
                 }
             },
@@ -253,6 +253,22 @@ impl LocationAnnotation {
                 useOutputRegister(inst, false);
             },
 
+            Op::AllocStruct => {
+                useOutputRegister(inst, false);
+            },
+
+            Op::StoreMemory => {
+                useInputRegister(inst, 0);
+
+                if inst.getOperationType().isAnyFloat() {
+                    useInputFloatRegister(inst, 1);
+                } else {
+                    useInputRegister(inst, 1);
+                }
+
+                setOutputOverlaps(inst, false);
+            },
+
             _ => {
                 println("unsupported op ${inst.op().name()}");
                 unreachable[()]();
@@ -414,10 +430,15 @@ pub fn useOutputFloatStack(inst: Inst, stack: Location) {
     loc.setOutput(Operand::new(Policy::FixedFloatStack, stack), true);
 }
 
-pub fn useOutputStack(inst: Inst, stack: Location) {
+pub fn useOutputFixedStack(inst: Inst, stack: Location) {
     assert(stack.isStack());
     let loc = inst.getLocationData();
     loc.setOutput(Operand::new(Policy::FixedStack, stack), true);
+}
+
+pub fn useOutputStack(inst: Inst) {
+    let loc = inst.getLocationData();
+    loc.setOutput(Operand::new(Policy::AnyStack, Location::None), true);
 }
 
 pub fn addTempRegister(inst: Inst) {

@@ -1533,6 +1533,10 @@ impl CodeGen for CodeGenArm64 {
         self.asm.ldr_imm(dest, REG_TEMP, 0i32);
     }
 
+    fn emitAllocStruct(inst: Inst) {
+        unimplemented();
+    }
+
     fn finalize(): CodeDescriptor {
         self.emitDeferredCode();
         self.asm.resolveJumps();

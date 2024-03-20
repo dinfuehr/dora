@@ -5,9 +5,9 @@ use package::bytecode::opcode as opc;
 use package::graph;
 use package::graph::{Block, Graph, Inst, InstExtraData, Op};
 use package::graph::ty::Type;
-use package::graph::{ClassInfo, FieldInfo, FunctionInfo, CallKind, VirtualFunctionInfo, LambdaFunctionInfo, TraitObjectInfo};
+use package::graph::{ClassInfo, FieldInfo, FunctionInfo, CallKind, VirtualFunctionInfo, LambdaFunctionInfo, StructInfo, TraitObjectInfo};
 use package::bytecode::data::{BytecodeFunction, BytecodeRegister, BytecodeType, ClassId, FctId, FieldId};
-use package::bytecode::data::{ConstPoolId, ConstPoolEntry, GlobalId, TraitId};
+use package::bytecode::data::{ConstPoolId, ConstPoolEntry, GlobalId, StructId, TraitId};
 use package::bytecode::instruction::BytecodeInstruction;
 use package::bytecode::reader::BytecodeIterator;
 use package::interface::{OBJECT_HEADER_LENGTH, hasGlobalInitialValue, findTraitImpl, getIntrinsicForFunction};
@@ -461,7 +461,7 @@ impl SsaGen {
                 unimplemented();
             },
             BytecodeInstruction::NewStruct(dest, idx) => {
-                unimplemented();
+                self.emitNewStruct(dest, idx);
             },
             BytecodeInstruction::NewTraitObject(dest, idx, obj) => {
                 self.emitNewTraitObject(dest, idx, obj);
@@ -1033,6 +1033,27 @@ impl SsaGen {
         let storeInst = graph::createStoreFieldInst(objInst, info, argInst, argTy);
         storeInst.set_bytecode_position(self.offset);
         self.current().appendInst(storeInst);
+    }
+
+    fn emitNewStruct(dest: BytecodeRegister, idx: ConstPoolId) {
+        let (struct_id, type_params) = match self.bc.constPool(idx) {
+            ConstPoolEntry::Struct(struct_id, type_params) => (struct_id, type_params),
+            _ => unreachable[(StructId, Array[BytecodeType])](),
+        };
+
+        let info = StructInfo(struct_id, type_params);
+        let allocInst = graph::createAllocStruct(info);
+        self.current().appendInst(allocInst);
+
+        self.writeVariable(dest, self.current(), allocInst);
+
+        for reg in self.pushed_registers {
+            let arg = self.readVariable(reg, self.current());
+            let storeInst = graph::createStoreMemory(allocInst, 0i32, arg, Type::Int32);
+            self.current().appendInst(storeInst);
+        }
+
+        self.pushed_registers.clear();
     }
 
     fn emitNewArray(dest: BytecodeRegister, idx: ConstPoolId, length: BytecodeRegister) {

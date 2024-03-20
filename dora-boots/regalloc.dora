@@ -477,6 +477,10 @@ impl SimpleRegisterAllocator {
         offset
     }
 
+    fn allocateStruct(): Int32 {
+        0
+    }
+
     fn freeDeadOutput(inst: Inst) {
         let loc_data = inst.getLocationData();
 

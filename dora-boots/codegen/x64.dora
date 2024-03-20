@@ -1511,6 +1511,10 @@ impl CodeGen for CodeGenX64 {
         self.asm.movq_ra(dest, AsmAddress::offset(REG_TEMP, 0i32));
     }
 
+    fn emitAllocStruct(inst: Inst) {
+        unimplemented();
+    }
+
     fn finalize(): CodeDescriptor {
         self.emitDeferredCode();
         self.asm.resolveJumps();

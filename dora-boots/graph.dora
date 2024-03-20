@@ -5,7 +5,7 @@ use std::Stringable;
 use std::traits::Iterator;
 
 use package::assembler::{FloatRegister, Label, Register, RegMap, RegSet};
-use package::bytecode::data::{BytecodeType, ClassId, FctId, FieldId, GlobalId, TraitId};
+use package::bytecode::data::{BytecodeType, ClassId, FctId, FieldId, GlobalId, StructId, TraitId};
 use package::dominator::buildDominatorTree;
 use package::interface::GcPoint;
 use package::regalloc::RegisterTracker;
@@ -640,6 +640,9 @@ pub enum Op {
     NewArray,
     NewLambda,
 
+    AllocStruct,
+    StoreMemory,
+
     ThreadCurrent,
 }
 
@@ -739,6 +742,8 @@ pub fn opName(op: Op): String {
         Op::NewObject => "NewObject",
         Op::NewArray => "NewArray",
         Op::NewLambda => "NewLambda",
+        Op::AllocStruct => "AllocStruct",
+        Op::StoreMemory => "StoreMemory",
         Op::ThreadCurrent => "ThreadCurrent",
     }
 }
@@ -915,6 +920,8 @@ impl Inst {
             Op::NewObject => Type::Ptr,
             Op::NewArray => Type::Ptr,
             Op::NewLambda => Type::Ptr,
+            Op::AllocStruct => Type::Address,
+            Op::StoreMemory => unreachable[Type](),
             Op::ThreadCurrent => Type::Ptr,
         }
     }
@@ -930,7 +937,8 @@ impl Inst {
             | Op::LessOrEqual
             | Op::StoreField
             | Op::StoreArray
-            | Op::EnsureGlobalInitialized => self.ty,
+            | Op::EnsureGlobalInitialized
+            | Op::StoreMemory => self.ty,
             _ => self.getValueType(),
         }
     }
@@ -979,6 +987,13 @@ impl Inst {
         match self.extra {
             InstExtraData::FieldInfo(info) => info,
             _ => unreachable[FieldInfo](),
+        }
+    }
+
+    pub fn getStructInfo(): StructInfo {
+        match self.extra {
+            InstExtraData::StructInfo(info) => info,
+            _ => unreachable[StructInfo](),
         }
     }
 
@@ -1407,6 +1422,8 @@ impl Inst {
             Op::NewObject => false,
             Op::NewArray => false,
             Op::NewLambda => false,
+            Op::AllocStruct => false,
+            Op::StoreMemory => true,
             Op::ThreadCurrent => false,
         }
     }
@@ -1438,6 +1455,7 @@ pub enum InstExtraData {
     VirtualFunctionInfo(VirtualFunctionInfo),
     LambdaFunctionInfo(LambdaFunctionInfo),
     ClassInfo(ClassInfo),
+    StructInfo(StructInfo),
     TraitObjectInfo(TraitObjectInfo),
     If(Block, Block),
     Goto(Block),
@@ -1823,6 +1841,7 @@ pub enum Policy {
     FixedFloatReg,
     FixedStack,
     FixedFloatStack,
+    AnyStack,
 }
 
 impl Policy {
@@ -1854,6 +1873,10 @@ impl Policy {
         self == Policy::FixedStack
     }
 
+    pub fn isAnyStack(): Bool {
+        self == Policy::AnyStack
+    }
+
     pub fn isAnyFixedStack(): Bool {
         self == Policy::FixedStack || self == Policy::FixedFloatStack
     }
@@ -1882,6 +1905,7 @@ impl Stringable for Policy {
             Policy::FixedFloatReg => "FixedFloatReg",
             Policy::FixedStack => "FixedStack",
             Policy::FixedFloatStack => "FixedFloatStack",
+            Policy::AnyStack => "AnyStack",
         }
     }
 }
@@ -2224,6 +2248,11 @@ pub class ClassInfo {
     pub type_params: Array[BytecodeType],
 }
 
+pub struct StructInfo {
+    pub struct_id: StructId,
+    pub type_params: Array[BytecodeType],
+}
+
 pub fn createLoadFieldInst(obj: Inst, field: InstExtraData, ty: Type): Inst {
     let inst = Inst::new();
     inst._op = Some(Op::LoadField);
@@ -2329,6 +2358,25 @@ pub fn createNewObject(extra: InstExtraData): Inst {
     let inst = Inst::new();
     inst._op = Some(Op::NewObject);
     inst.extra = extra;
+
+    inst
+}
+
+pub fn createAllocStruct(info: StructInfo): Inst {
+    let inst = Inst::new();
+    inst._op = Some(Op::AllocStruct);
+    inst.extra = InstExtraData::StructInfo(info);
+
+    inst
+}
+
+pub fn createStoreMemory(obj: Inst, field: Int32, value: Inst, ty: Type): Inst {
+    let inst = Inst::new();
+    inst._op = Some(Op::StoreMemory);
+    inst.aux = field.toInt64();
+    inst.addInput(obj);
+    inst.addInput(value);
+    inst.ty = ty;
 
     inst
 }

@@ -214,6 +214,7 @@ impl GraphDumper {
             Policy::SameAsFirstInput => "SAFI",
             Policy::FixedStack => "FIX_STACK",
             Policy::FixedFloatStack => "FIX_FLOAT_STACK",
+            Policy::AnyStack => "STACK",
         };
 
         let name = match operand.getLocation() {
@@ -319,6 +320,8 @@ fn dumpInstName(inst: Inst): String {
         Op::NewObject => "NewObject",
         Op::NewArray => "NewArray",
         Op::NewLambda => "NewLambda",
+        Op::AllocStruct => "AllocStruct",
+        Op::StoreMemory => "StoreMemory",
         Op::ThreadCurrent => "ThreadCurrent",
     }
 }

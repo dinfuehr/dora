@@ -12,6 +12,7 @@ pub enum Type {
     Float32,
     Float64,
     Ptr,
+    Address,
 }
 
 impl Type {
@@ -107,6 +108,7 @@ impl Stringable for Type {
             Type::Float32 => "Float32",
             Type::Float64 => "Float64",
             Type::Ptr => "Ptr",
+            Type::Address => "Address",
         }
     }
 }
