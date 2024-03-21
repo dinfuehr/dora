@@ -1,5 +1,4 @@
 //= boots
-//= ignore
 
 fn main() {
     let foo = Foo(1, 2);
@@ -14,5 +13,5 @@ struct Foo(a: Int64, b: Int64)
 }
 
 @optimizeImmediately fn getb(x: Foo): Int64 {
-    x.a
+    x.b
 }

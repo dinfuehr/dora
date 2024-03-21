@@ -10,7 +10,7 @@ use package::bytecode::data::{BytecodeFunction, BytecodeRegister, BytecodeType, 
 use package::bytecode::data::{ConstPoolId, ConstPoolEntry, GlobalId, StructId, StructFieldId, TraitId};
 use package::bytecode::instruction::BytecodeInstruction;
 use package::bytecode::reader::BytecodeIterator;
-use package::interface::{OBJECT_HEADER_LENGTH, hasGlobalInitialValue, findTraitImpl, getIntrinsicForFunction};
+use package::interface as iface;
 
 pub fn createGraph(bc: BytecodeFunction, typeParams: Array[BytecodeType]): Graph {
     let graph = Graph::new();
@@ -101,7 +101,7 @@ impl SsaGen {
         let entryBlock = self.graph.getEntryBlock();
         while i < self.bc.arguments {
             let ty = self.regId(i.toInt64());
-            let ty = if ty.isStruct() {
+            let ty = if ty.isStruct() || ty.isTuple() {
                 Type::Address
             } else {
                 Type::fromBytecodeType(ty)
@@ -305,7 +305,7 @@ impl SsaGen {
             },
 
             BytecodeInstruction::LoadTupleElement(dest, src, idx)  => {
-                unimplemented();
+                self.emitLoadTupleElement(dest, src, idx);
             },
             BytecodeInstruction::LoadEnumElement(dest, src, idx) => {                
                 unimplemented();
@@ -605,7 +605,25 @@ impl SsaGen {
             _ => unreachable[(StructId, Array[BytecodeType], StructFieldId)](),
         };
 
-        let destInst = graph::createLoadMemoryInst(srcInst, 0i32, destType);
+        let offset = iface::getStructFieldOffset(struct_id, type_params, field_id);
+        let destInst = graph::createLoadMemoryInst(srcInst, offset, destType);
+        self.current().appendInst(destInst);
+        self.writeVariable(dest, self.current(), destInst);
+    }
+
+    fn emitLoadTupleElement(dest: BytecodeRegister, src: BytecodeRegister, idx: ConstPoolId) {
+        let srcInst = self.readVariable(src, self.current());
+        let destType = self.regGraphTy(dest);
+
+        let (tuple_ty, subtype_idx) = match self.bc.constPool(idx) {
+            ConstPoolEntry::TupleElement(tuple_ty, subtype_idx) => (tuple_ty, subtype_idx),
+            _ => unreachable[(BytecodeType, Int32)](),
+        };
+
+        assert(tuple_ty.isTuple());
+
+        let offset = iface::getTupleElementOffset(tuple_ty, subtype_idx);
+        let destInst = graph::createLoadMemoryInst(srcInst, offset, destType);
         self.current().appendInst(destInst);
         self.writeVariable(dest, self.current(), destInst);
     }
@@ -688,7 +706,7 @@ impl SsaGen {
     fn emitLoadGlobal(dest: BytecodeRegister, glob: GlobalId) {
         let destType = self.regGraphTy(dest);
 
-        if hasGlobalInitialValue(glob) {
+        if iface::hasGlobalInitialValue(glob) {
             let inst = graph::createEnsureGlobalInitializedInst(glob, destType);
             self.current().appendInst(inst);
             inst.set_bytecode_position(self.offset);
@@ -706,7 +724,7 @@ impl SsaGen {
         let globInst = graph::createStoreGlobalInst(srcType, glob, srcInst);
         self.current().appendInst(globInst);
 
-        if hasGlobalInitialValue(glob) {
+        if iface::hasGlobalInitialValue(glob) {
             let inst = graph::createMarkGlobalInitialized(glob);
             self.current().appendInst(inst);
         }
@@ -790,7 +808,7 @@ impl SsaGen {
         let srcInst = self.readVariable(src, self.current());
         let destType = self.regGraphTy(dest);
 
-        let info = InstExtraData::FieldOffsetInfo(OBJECT_HEADER_LENGTH);
+        let info = InstExtraData::FieldOffsetInfo(iface::OBJECT_HEADER_LENGTH);
         let loadInst = graph::createLoadFieldInst(srcInst, info, destType);
         self.current().appendInst(loadInst);
 
@@ -816,7 +834,7 @@ impl SsaGen {
             _ => unreachable[(FctId, Array[BytecodeType])](),
         };
 
-        let intrinsic = getIntrinsicForFunction(fct_id);
+        let intrinsic = iface::getIntrinsicForFunction(fct_id);
 
         if intrinsic >= 0i32 {
             let args = self.pushed_registers.toArray();
@@ -833,7 +851,7 @@ impl SsaGen {
             _ => unreachable[(FctId, Array[BytecodeType])](),
         };
 
-        let intrinsic = getIntrinsicForFunction(fct_id);
+        let intrinsic = iface::getIntrinsicForFunction(fct_id);
 
         if intrinsic >= 0i32 {
             let args = self.pushed_registers.toArray();
@@ -931,9 +949,9 @@ impl SsaGen {
         };
 
         let object_ty = self.typeParams(type_param_idx.toInt64());
-        let callee_id = findTraitImpl(trait_fct_id, trait_type_params, object_ty);
+        let callee_id = iface::findTraitImpl(trait_fct_id, trait_type_params, object_ty);
 
-        let intrinsic = getIntrinsicForFunction(callee_id);
+        let intrinsic = iface::getIntrinsicForFunction(callee_id);
 
         if intrinsic >= 0i32 {
             let args = self.pushed_registers.toArray();
@@ -1021,7 +1039,7 @@ impl SsaGen {
             let arg = self.readVariable(reg, self.current());
             let argTy = self.regGraphTy(reg);
 
-            let info = InstExtraData::FieldOffsetInfo(OBJECT_HEADER_LENGTH);
+            let info = InstExtraData::FieldOffsetInfo(iface::OBJECT_HEADER_LENGTH);
             let destInst = graph::createStoreFieldInst(objInst, info, arg, argTy);
             destInst.set_bytecode_position(self.offset);
             self.current().appendInst(destInst);
@@ -1047,7 +1065,7 @@ impl SsaGen {
         let argInst = self.readVariable(obj, self.current());
         let argTy = self.regGraphTy(obj);
 
-        let info = InstExtraData::FieldOffsetInfo(OBJECT_HEADER_LENGTH);
+        let info = InstExtraData::FieldOffsetInfo(iface::OBJECT_HEADER_LENGTH);
         let storeInst = graph::createStoreFieldInst(objInst, info, argInst, argTy);
         storeInst.set_bytecode_position(self.offset);
         self.current().appendInst(storeInst);

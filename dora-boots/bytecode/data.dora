@@ -226,6 +226,13 @@ impl BytecodeType {
         }
     }
 
+    pub fn isTuple(): Bool {
+        match self {
+            BytecodeType::Tuple(_) => true,
+            _ => false,
+        }
+    }
+
     pub fn specialize(type_params: Array[BytecodeType]): BytecodeType {
         if type_params.isEmpty() || !self.isGeneric() {
             return self;

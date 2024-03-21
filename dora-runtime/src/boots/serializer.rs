@@ -272,7 +272,7 @@ fn encode_constpool_entry(vm: &VM, const_entry: &ConstPoolEntry, buffer: &mut By
         }
         &ConstPoolEntry::TupleElement(ref tuple_ty, element_idx) => {
             buffer.emit_u8(ConstPoolOpcode::TupleElement.into());
-            encode_bytecode_type_array(vm, &tuple_ty.tuple_subtypes(), buffer);
+            encode_bytecode_type(vm, tuple_ty, buffer);
             buffer.emit_id(element_idx as usize);
         }
         &ConstPoolEntry::Tuple(ref source_type_array) => {

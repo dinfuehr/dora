@@ -1,0 +1,17 @@
+//= boots
+
+fn main() {
+    let foo = (1, 2);
+    assert(geta(foo) == 1);
+    assert(getb(foo) == 2);
+}
+
+struct Foo(a: Int64, b: Int64)
+
+@optimizeImmediately fn geta(x: (Int64, Int64)): Int64 {
+    x.0
+}
+
+@optimizeImmediately fn getb(x: (Int64, Int64)): Int64 {
+    x.1
+}
