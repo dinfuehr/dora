@@ -253,7 +253,7 @@ impl LocationAnnotation {
                 useOutputRegister(inst, false);
             },
 
-            Op::AllocStruct => {
+            Op::AllocateStruct => {
                 useOutputRegister(inst, false);
             },
 

@@ -320,7 +320,7 @@ fn dumpInstName(inst: Inst): String {
         Op::NewObject => "NewObject",
         Op::NewArray => "NewArray",
         Op::NewLambda => "NewLambda",
-        Op::AllocStruct => "AllocStruct",
+        Op::AllocateStruct => "AllocateStruct",
         Op::LoadMemory => "LoadMemory",
         Op::StoreMemory => "StoreMemory",
         Op::ThreadCurrent => "ThreadCurrent",
