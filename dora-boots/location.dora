@@ -257,6 +257,16 @@ impl LocationAnnotation {
                 useOutputRegister(inst, false);
             },
 
+            Op::LoadMemory => {
+                useInputRegister(inst, 0);
+
+                if inst.getValueType().isAnyFloat() {
+                    useOutputFloatRegister(inst, true);
+                } else {
+                    useOutputRegister(inst, true);
+                }
+            },
+
             Op::StoreMemory => {
                 useInputRegister(inst, 0);
 
@@ -290,7 +300,11 @@ fn computeArgumentLocations(codegen: CodeGen, ci: CompilationInfo): Array[Locati
     for idx in std::range(0, arguments) {
         let ty = ci.bc.registers(idx);
         let ty = ty.specialize(ci.typeParams);
-        let ty = Type::fromBytecodeType(ty);
+        let ty = if ty.isStruct() {
+            Type::Address
+        } else {
+            Type::fromBytecodeType(ty)
+        };
 
         if ty.isAnyFloat() {
             if fp_idx < fp_argument_registers.size() {

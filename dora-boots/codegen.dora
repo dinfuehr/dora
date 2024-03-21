@@ -277,6 +277,16 @@ fn emitInst(codegen: CodeGen, inst: Inst) {
             codegen.emitAllocStruct(inst);
         },
 
+        Op::LoadMemory => {
+            codegen.emitComment("LoadMemory");
+            codegen.emitLoadMemory(inst);
+        },
+
+        Op::StoreMemory => {
+            codegen.emitComment("StoreMemory");
+            codegen.emitStoreMemory(inst);
+        },
+
         _ => {
             println("unsupported op ${inst.op().name()}");
             unreachable[()]();
@@ -363,6 +373,8 @@ pub trait CodeGen {
     fn emitMarkGlobalInitialized(inst: Inst);
     fn emitThreadCurrent(inst: Inst);
     fn emitAllocStruct(inst: Inst);
+    fn emitLoadMemory(inst: Inst);
+    fn emitStoreMemory(inst: Inst);
 
     fn emitComment(comment: String);
 }

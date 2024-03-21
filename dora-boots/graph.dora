@@ -641,6 +641,7 @@ pub enum Op {
     NewLambda,
 
     AllocStruct,
+    LoadMemory,
     StoreMemory,
 
     ThreadCurrent,
@@ -743,6 +744,7 @@ pub fn opName(op: Op): String {
         Op::NewArray => "NewArray",
         Op::NewLambda => "NewLambda",
         Op::AllocStruct => "AllocStruct",
+        Op::LoadMemory => "LoadMemory",
         Op::StoreMemory => "StoreMemory",
         Op::ThreadCurrent => "ThreadCurrent",
     }
@@ -921,6 +923,7 @@ impl Inst {
             Op::NewArray => Type::Ptr,
             Op::NewLambda => Type::Ptr,
             Op::AllocStruct => Type::Address,
+            Op::LoadMemory => self.ty,
             Op::StoreMemory => unreachable[Type](),
             Op::ThreadCurrent => Type::Ptr,
         }
@@ -1258,6 +1261,11 @@ impl Inst {
         self.aux.toInt32()
     }
 
+    pub fn getOffset(): Int32 {
+        assert(self.op() == Op::LoadMemory || self.op() == Op::StoreMemory);
+        self.aux.toInt32()
+    }
+
     pub fn getGlobalId(): GlobalId {
         let op = self.op();
 
@@ -1423,6 +1431,7 @@ impl Inst {
             Op::NewArray => false,
             Op::NewLambda => false,
             Op::AllocStruct => false,
+            Op::LoadMemory => false,
             Op::StoreMemory => true,
             Op::ThreadCurrent => false,
         }
@@ -2367,6 +2376,15 @@ pub fn createAllocStruct(info: StructInfo): Inst {
     inst._op = Some(Op::AllocStruct);
     inst.extra = InstExtraData::StructInfo(info);
 
+    inst
+}
+
+pub fn createLoadMemoryInst(obj: Inst, field: Int32, ty: Type): Inst {
+    let inst = Inst::new();
+    inst._op = Some(Op::LoadMemory);
+    inst.ty = ty;
+    inst.addInput(obj);
+    inst.aux = field.toInt64();
     inst
 }
 

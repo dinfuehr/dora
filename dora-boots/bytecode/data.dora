@@ -219,6 +219,13 @@ impl BytecodeType {
         }
     }
 
+    pub fn isStruct(): Bool {
+        match self {
+            BytecodeType::Struct(_, _) => true,
+            _ => false,
+        }
+    }
+
     pub fn specialize(type_params: Array[BytecodeType]): BytecodeType {
         if type_params.isEmpty() || !self.isGeneric() {
             return self;

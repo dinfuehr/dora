@@ -1537,6 +1537,49 @@ impl CodeGen for CodeGenArm64 {
         unimplemented();
     }
 
+    fn emitLoadMemory(inst: Inst) {
+        let loc = inst.getLocationData();
+        let src = loc.getInput(0).getRegister();
+        let offset = inst.getOffset();
+
+        let ty = inst.getValueType();
+
+        match ty {
+            Type::Bool | Type::UInt8 => {
+                let dest = loc.getOutput().getRegister();
+                self.asm.ldrb_imm(dest, src, offset);
+            },
+
+            Type::Int32 => {
+                let dest = loc.getOutput().getRegister();
+                self.asm.ldr_imm_w(dest, src, offset);
+            },
+
+            Type::Ptr | Type::Int64 => {
+                let dest = loc.getOutput().getRegister();
+                self.asm.ldr_imm(dest, src, offset);
+            },
+
+            Type::Float32 => {
+                let dest = loc.getOutput().getFloatRegister();
+                self.asm.ldr_imm_s(dest, src, offset);
+            },
+
+            Type::Float64 => {
+                let dest = loc.getOutput().getFloatRegister();
+                self.asm.ldr_imm_d(dest, src, offset);
+            },
+
+            _ => {
+                unimplemented();
+            }
+        }
+    }
+
+    fn emitStoreMemory(inst: Inst) {
+        unimplemented();
+    }
+
     fn finalize(): CodeDescriptor {
         self.emitDeferredCode();
         self.asm.resolveJumps();
