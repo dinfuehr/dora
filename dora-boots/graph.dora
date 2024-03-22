@@ -1850,7 +1850,6 @@ pub enum Policy {
     FixedFloatReg,
     FixedStack,
     FixedFloatStack,
-    AnyStack,
 }
 
 impl Policy {
@@ -1882,10 +1881,6 @@ impl Policy {
         self == Policy::FixedStack
     }
 
-    pub fn isAnyStack(): Bool {
-        self == Policy::AnyStack
-    }
-
     pub fn isAnyFixedStack(): Bool {
         self == Policy::FixedStack || self == Policy::FixedFloatStack
     }
@@ -1914,7 +1909,6 @@ impl Stringable for Policy {
             Policy::FixedFloatReg => "FixedFloatReg",
             Policy::FixedStack => "FixedStack",
             Policy::FixedFloatStack => "FixedFloatStack",
-            Policy::AnyStack => "AnyStack",
         }
     }
 }

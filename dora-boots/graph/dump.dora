@@ -214,7 +214,6 @@ impl GraphDumper {
             Policy::SameAsFirstInput => "SAFI",
             Policy::FixedStack => "FIX_STACK",
             Policy::FixedFloatStack => "FIX_FLOAT_STACK",
-            Policy::AnyStack => "STACK",
         };
 
         let name = match operand.getLocation() {

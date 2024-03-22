@@ -450,11 +450,6 @@ pub fn useOutputFixedStack(inst: Inst, stack: Location) {
     loc.setOutput(Operand::new(Policy::FixedStack, stack), true);
 }
 
-pub fn useOutputStack(inst: Inst) {
-    let loc = inst.getLocationData();
-    loc.setOutput(Operand::new(Policy::AnyStack, Location::None), true);
-}
-
 pub fn addTempRegister(inst: Inst) {
     let loc = inst.getLocationData();
     loc.addTemp(Operand::new(Policy::AnyReg, Location::None));
