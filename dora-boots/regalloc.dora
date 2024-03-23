@@ -226,6 +226,10 @@ impl SimpleRegisterAllocator {
             self.allocateFixedOutput(inst);
             self.allocateArbitraryOutput(inst);
 
+            if inst.op() == Op::AllocateStack {
+                unimplemented();
+            }
+
             self.freeDeadOutput(inst);
         }
 

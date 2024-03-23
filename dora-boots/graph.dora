@@ -640,7 +640,7 @@ pub enum Op {
     NewArray,
     NewLambda,
 
-    AllocateStruct,
+    AllocateStack,
     LoadMemory,
     StoreMemory,
 
@@ -743,7 +743,7 @@ pub fn opName(op: Op): String {
         Op::NewObject => "NewObject",
         Op::NewArray => "NewArray",
         Op::NewLambda => "NewLambda",
-        Op::AllocateStruct => "AllocateStruct",
+        Op::AllocateStack => "AllocateStack",
         Op::LoadMemory => "LoadMemory",
         Op::StoreMemory => "StoreMemory",
         Op::ThreadCurrent => "ThreadCurrent",
@@ -922,7 +922,7 @@ impl Inst {
             Op::NewObject => Type::Ptr,
             Op::NewArray => Type::Ptr,
             Op::NewLambda => Type::Ptr,
-            Op::AllocateStruct => Type::Address,
+            Op::AllocateStack => Type::Address,
             Op::LoadMemory => self.ty,
             Op::StoreMemory => unreachable[Type](),
             Op::ThreadCurrent => Type::Ptr,
@@ -1430,7 +1430,7 @@ impl Inst {
             Op::NewObject => false,
             Op::NewArray => false,
             Op::NewLambda => false,
-            Op::AllocateStruct => false,
+            Op::AllocateStack => false,
             Op::LoadMemory => false,
             Op::StoreMemory => true,
             Op::ThreadCurrent => false,
@@ -2365,9 +2365,9 @@ pub fn createNewObject(extra: InstExtraData): Inst {
     inst
 }
 
-pub fn createAllocStruct(info: StructInfo): Inst {
+pub fn createAllocateStack(info: StructInfo): Inst {
     let inst = Inst::new();
-    inst._op = Some(Op::AllocateStruct);
+    inst._op = Some(Op::AllocateStack);
     inst.extra = InstExtraData::StructInfo(info);
 
     inst

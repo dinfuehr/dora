@@ -1078,7 +1078,7 @@ impl SsaGen {
         };
 
         let info = StructInfo(struct_id, type_params);
-        let allocInst = graph::createAllocStruct(info);
+        let allocInst = graph::createAllocateStack(info);
         self.current().appendInst(allocInst);
 
         self.writeVariable(dest, self.current(), allocInst);

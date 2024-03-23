@@ -1511,7 +1511,7 @@ impl CodeGen for CodeGenX64 {
         self.asm.movq_ra(dest, AsmAddress::offset(REG_TEMP, 0i32));
     }
 
-    fn emitAllocateStruct(inst: Inst) {
+    fn emitAllocateStack(inst: Inst) {
         unimplemented();
     }
 

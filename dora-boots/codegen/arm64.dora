@@ -1533,7 +1533,7 @@ impl CodeGen for CodeGenArm64 {
         self.asm.ldr_imm(dest, REG_TEMP, 0i32);
     }
 
-    fn emitAllocateStruct(inst: Inst) {
+    fn emitAllocateStack(inst: Inst) {
         let loc = inst.getLocationData();
         let dest = loc.getOutput().getRegister();
         unimplemented();
