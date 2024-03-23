@@ -1512,7 +1512,10 @@ impl CodeGen for CodeGenX64 {
     }
 
     fn emitAllocateStack(inst: Inst) {
-        unimplemented();
+        let loc = inst.getLocationData();
+        let dest = loc.getOutput().getRegister();
+        self.asm.movq_rr(dest, RBP);
+        self.asm.addq_ri(dest, Immediate(loc.getStackSlot().toInt64()));
     }
 
     fn emitLoadMemory(inst: Inst) {
@@ -1555,7 +1558,50 @@ impl CodeGen for CodeGenX64 {
     }
 
     fn emitStoreMemory(inst: Inst) {
-        unimplemented();
+        let loc = inst.getLocationData();
+        let obj = loc.getInput(0).getRegister();
+
+        let ty = inst.getOperationType();
+        let offset = inst.getOffset();
+
+        match ty {
+            Type::Bool | Type::UInt8 => {
+                let src = loc.getInput(1).getRegister();
+                self.asm.movb_ar(AsmAddress::offset(obj, offset), src);
+            },
+
+            Type::Int32 => {
+                let src = loc.getInput(1).getRegister();
+                self.asm.movl_ar(AsmAddress::offset(obj, offset), src);
+            },
+
+            Type::Int64 => {
+                let src = loc.getInput(1).getRegister();
+                self.asm.movq_ar(AsmAddress::offset(obj, offset), src);
+            },
+
+            Type::Ptr => {
+                let src = loc.getInput(1).getRegister();
+                self.asm.movq_ar(AsmAddress::offset(obj, offset), src);
+                if config.needsWriteBarrier {
+                    self.emitWriteBarrier(obj, src, loc.getRegisterTrackers());
+                }
+            },
+
+            Type::Float32 => {
+                let src = loc.getInput(1).getFloatRegister();
+                self.asm.movss_ar(AsmAddress::offset(obj, offset), src);
+            },
+
+            Type::Float64 => {
+                let src = loc.getInput(1).getFloatRegister();
+                self.asm.movsd_ar(AsmAddress::offset(obj, offset), src);
+            },
+
+            _ => {
+                unimplemented();
+            }
+        }
     }
 
     fn finalize(): CodeDescriptor {

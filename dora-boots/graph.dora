@@ -1543,6 +1543,7 @@ pub class LocationData {
     output_overlaps: Bool,
     hint: Location,
     spill_slot: Option[Int32],
+    stack_slot: Option[Int32],
     snapshot: Option[RegisterSnapshot],
     trackers: Option[RegisterTrackers],
     gc_point: Option[GcPoint],
@@ -1560,6 +1561,7 @@ impl LocationData {
             true,
             Location::None,
             None[Int32],
+            None[Int32],
             None[RegisterSnapshot],
             None[RegisterTrackers],
             None[GcPoint],
@@ -1575,6 +1577,7 @@ impl LocationData {
             None[Operand],
             true,
             Location::None,
+            None[Int32],
             None[Int32],
             None[RegisterSnapshot],
             None[RegisterTrackers],
@@ -1640,6 +1643,15 @@ impl LocationData {
 
     pub fn addTemp(opnd: Operand) {
         self.temps.push(opnd);
+    }
+
+    pub fn setStackSlot(offset: Int32) {
+        assert(self.stack_slot.isNone());
+        self.stack_slot = Some(offset);
+    }
+
+    pub fn getStackSlot(): Int32 {
+        self.stack_slot.getOrPanic()
     }
 
     pub fn setSpillSlot(slot: Int32) {

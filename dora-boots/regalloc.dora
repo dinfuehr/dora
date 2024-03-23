@@ -227,7 +227,7 @@ impl SimpleRegisterAllocator {
             self.allocateArbitraryOutput(inst);
 
             if inst.op() == Op::AllocateStack {
-                unimplemented();
+                self.allocateStack(inst);
             }
 
             self.freeDeadOutput(inst);
@@ -481,8 +481,17 @@ impl SimpleRegisterAllocator {
         offset
     }
 
-    fn allocateStruct(): Int32 {
-        0
+    fn allocateStack(inst: Inst) {
+        let loc = inst.getLocationData();
+
+        let size = 16i32;
+        let alignment = 8i32;
+
+        self.currentStackSize = (self.currentStackSize + (alignment - 1i32)) & !(alignment - 1i32);
+        self.currentStackSize = self.currentStackSize + size;
+
+        let offset = -self.currentStackSize;
+        loc.setStackSlot(offset);
     }
 
     fn freeDeadOutput(inst: Inst) {

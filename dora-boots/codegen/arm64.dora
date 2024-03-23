@@ -1536,7 +1536,9 @@ impl CodeGen for CodeGenArm64 {
     fn emitAllocateStack(inst: Inst) {
         let loc = inst.getLocationData();
         let dest = loc.getOutput().getRegister();
-        unimplemented();
+        self.asm.mov(dest, REG_FP);
+        self.mov_imm(REG_TEMP, loc.getStackSlot().toInt64());
+        self.asm.add(dest, dest, REG_TEMP);
     }
 
     fn emitLoadMemory(inst: Inst) {
@@ -1579,7 +1581,50 @@ impl CodeGen for CodeGenArm64 {
     }
 
     fn emitStoreMemory(inst: Inst) {
-        unimplemented();
+        let loc = inst.getLocationData();
+        let obj = loc.getInput(0).getRegister();
+        let offset = inst.getOffset();
+
+        let ty = inst.getOperationType();
+
+        match ty {
+            Type::Bool | Type::UInt8 => {
+                let src = loc.getInput(1).getRegister();
+                self.asm.strb_imm(src, obj, offset);
+            },
+
+            Type::Int32 => {
+                let src = loc.getInput(1).getRegister();
+                self.asm.str_imm_w(src, obj, offset);
+            },
+
+            Type::Int64 => {
+                let src = loc.getInput(1).getRegister();
+                self.asm.str_imm(src, obj, offset);
+            },
+
+            Type::Ptr => {
+                let src = loc.getInput(1).getRegister();
+                self.asm.str_imm(src, obj, offset);
+                if config.needsWriteBarrier {
+                    self.emitWriteBarrier(obj, src, REG_TEMP, loc.getRegisterTrackers());
+                }
+            },
+
+            Type::Float32 => {
+                let src = loc.getInput(1).getFloatRegister();
+                self.asm.str_imm_s(src, obj, offset);
+            },
+
+            Type::Float64 => {
+                let src = loc.getInput(1).getFloatRegister();
+                self.asm.str_imm_d(src, obj, offset);
+            },
+
+            _ => {
+                unimplemented();
+            }
+        }
     }
 
     fn finalize(): CodeDescriptor {

@@ -1082,11 +1082,14 @@ impl SsaGen {
         self.current().appendInst(allocInst);
 
         self.writeVariable(dest, self.current(), allocInst);
+        let mut fieldId = 0i32;
 
         for reg in self.pushed_registers {
             let arg = self.readVariable(reg, self.current());
-            let storeInst = graph::createStoreMemory(allocInst, 0i32, arg, Type::Int32);
+            let offset = iface::getStructFieldOffset(struct_id, type_params, StructFieldId(fieldId));
+            let storeInst = graph::createStoreMemory(allocInst, offset, arg, Type::Int32);
             self.current().appendInst(storeInst);
+            fieldId = fieldId + 1i32;
         }
 
         self.pushed_registers.clear();
