@@ -22,6 +22,7 @@ use crate::vm::{
 };
 
 use self::deserializer::{decode_bytecode_type, decode_bytecode_type_array};
+use self::serializer::allocate_encoded_struct_data;
 use self::serializer::allocate_encoded_system_config;
 
 mod data;
@@ -100,6 +101,10 @@ pub const BOOTS_NATIVE_FUNCTIONS: &[(&'static str, *const u8)] = &[
     (
         "boots::interface::getTupleElementOffsetRaw",
         get_tuple_element_offset_raw as *const u8,
+    ),
+    (
+        "boots::interface::getStructDataRaw",
+        get_struct_data_raw as *const u8,
     ),
 ];
 
@@ -470,4 +475,11 @@ extern "C" fn get_tuple_element_offset_raw(data: Handle<UInt8Array>) -> i32 {
 
     let tuple = get_concrete_tuple_bty(vm, &tuple_ty);
     tuple.offsets()[subtype_idx as usize]
+}
+
+extern "C" fn get_struct_data_raw(id: u32) -> Address {
+    let vm = get_vm();
+
+    let struct_ = &vm.program.structs[id as usize];
+    allocate_encoded_struct_data(vm, &struct_).address()
 }

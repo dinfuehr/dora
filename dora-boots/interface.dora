@@ -40,6 +40,7 @@ pub const TRAP_OVERFLOW: Int32 = 9i32;
 @internal pub fn getIntrinsicForFunctionRaw(id: Int32): Int32;
 @internal pub fn getStructFieldOffsetRaw(data: Array[UInt8]): Int32;
 @internal pub fn getTupleElementOffsetRaw(data: Array[UInt8]): Int32;
+@internal pub fn getStructDataRaw(id: Int32): Array[UInt8];
 
 pub fn getFunctionAddress(fct_id: FctId, type_params: Array[BytecodeType]): Address {
     let writer = ByteWriter::new();
@@ -137,6 +138,14 @@ pub fn getStructFieldOffset(struct_id: StructId, type_params: Array[BytecodeType
     getStructFieldOffsetRaw(writer.toArray())
 }
 
+pub fn getStructData(struct_id: StructId) {
+    let encoded = getStructDataRaw(struct_id.value);
+    let reader = ByteReader::new(encoded);
+    let type_params = reader.readInt32();
+    let ci = decodeCompilationInfo(reader);
+    assert(!reader.moreBytes());
+}
+
 pub fn getTupleElementOffset(tuple_ty: BytecodeType, subtype_idx: Int32): Int32 {
     let writer = ByteWriter::new();
     encodeBytecodeType(writer, tuple_ty);
@@ -191,6 +200,11 @@ pub class CompilationInfo(
     pub emitGraph: Bool,
     pub emitCodeComments: Bool,
 )
+
+pub class StructData {
+    pub typeParams: Int32,
+    pub fields: Array[BytecodeType],
+}
 
 pub enum Architecture {
     X64,

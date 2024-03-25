@@ -227,7 +227,7 @@ impl SimpleRegisterAllocator {
             self.allocateArbitraryOutput(inst);
 
             if inst.op() == Op::AllocateStack {
-                self.allocateStack(inst);
+                self.allocateStackSlot(inst);
             }
 
             self.freeDeadOutput(inst);
@@ -468,10 +468,7 @@ impl SimpleRegisterAllocator {
             _ => unreachable[(Int32, Int32)](),
         };
 
-        self.currentStackSize = (self.currentStackSize + (alignment - 1i32)) & !(alignment - 1i32);
-        self.currentStackSize = self.currentStackSize + size;
-
-        let offset = -self.currentStackSize;
+        let offset = self.allocateStackSpace(size, alignment);
 
         if isReference(ty) {
             assert(!self.refs.contains(offset));
@@ -481,17 +478,21 @@ impl SimpleRegisterAllocator {
         offset
     }
 
-    fn allocateStack(inst: Inst) {
+    fn allocateStackSlot(inst: Inst) {
         let loc = inst.getLocationData();
 
         let size = 16i32;
         let alignment = 8i32;
+        let offset = self.allocateStackSpace(size, alignment);
 
+        loc.setStackSlot(offset);
+    }
+
+    fn allocateStackSpace(size: Int32, alignment: Int32): Int32 {
         self.currentStackSize = (self.currentStackSize + (alignment - 1i32)) & !(alignment - 1i32);
         self.currentStackSize = self.currentStackSize + size;
 
-        let offset = -self.currentStackSize;
-        loc.setStackSlot(offset);
+        -self.currentStackSize
     }
 
     fn freeDeadOutput(inst: Inst) {

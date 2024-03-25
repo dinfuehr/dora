@@ -1,4 +1,4 @@
-use package::interface::{Address, CompilationInfo, Config};
+use package::interface::{Address, CompilationInfo, Config, StructData};
 use package::bytecode::data::{AliasId, BytecodeFunction, BytecodeType, ClassId, ConstPoolEntry, EnumId, FctId, FieldId, Location, StructId, StructFieldId, TraitId};
 use package::bytecode::opcode as opc;
 use package::interface::Architecture;
@@ -39,6 +39,12 @@ pub fn decodeCompilationInfo(reader: ByteReader): CompilationInfo {
     let emitGraph = reader.readBool();
     let emitCodeComments = reader.readBool();
     CompilationInfo(bc, typeParams, loc, emitDebug, emitGraph, emitCodeComments)
+}
+
+pub fn decodeStructData(reader: ByteReader): StructData {
+    let typeParams = reader.readInt32();
+    let types = decodeBytecodeTypeArray(reader);
+    StructData(typeParams, types)
 }
 
 pub fn decodeBytecodeFunction(reader: ByteReader): BytecodeFunction {

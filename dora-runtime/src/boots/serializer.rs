@@ -8,7 +8,7 @@ use crate::gc::Address;
 use crate::object::{byte_array_from_buffer, Obj, Ref, UInt8Array};
 use crate::vm::VM;
 use dora_bytecode::{
-    BytecodeFunction, BytecodeTypeArray, ConstPoolEntry, ConstPoolOpcode, Location,
+    BytecodeFunction, BytecodeTypeArray, ConstPoolEntry, ConstPoolOpcode, Location, StructData,
 };
 use dora_bytecode::{BytecodeType, BytecodeTypeKind};
 
@@ -46,6 +46,25 @@ fn encode_compilation_info(vm: &VM, compilation_data: &CompilationData, buffer: 
     buffer.emit_bool(compilation_data.emit_debug);
     buffer.emit_bool(compilation_data.emit_graph);
     buffer.emit_bool(compilation_data.emit_code_comments);
+}
+
+pub fn allocate_encoded_struct_data(vm: &VM, struct_: &StructData) -> Ref<Obj> {
+    let mut buffer = ByteBuffer::new();
+    encode_struct_data(vm, struct_, &mut buffer);
+    byte_array_from_buffer(vm, buffer.data()).cast()
+}
+
+fn encode_struct_data(vm: &VM, struct_: &StructData, buffer: &mut ByteBuffer) {
+    let count = struct_.type_params.names.len() as u32;
+    buffer.emit_u32(count);
+
+    let types = struct_
+        .fields
+        .iter()
+        .map(|f| f.ty.clone())
+        .collect::<Vec<_>>();
+    let types = BytecodeTypeArray::new(types);
+    encode_bytecode_type_array(vm, &types, buffer);
 }
 
 fn encode_bytecode_function(vm: &VM, bytecode_fct: &BytecodeFunction, buffer: &mut ByteBuffer) {
