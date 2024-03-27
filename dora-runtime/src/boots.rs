@@ -477,9 +477,9 @@ extern "C" fn get_tuple_element_offset_raw(data: Handle<UInt8Array>) -> i32 {
     tuple.offsets()[subtype_idx as usize]
 }
 
-extern "C" fn get_struct_data_raw(id: u32) -> Address {
+extern "C" fn get_struct_data_raw(id: u32) -> Ref<UInt8Array> {
     let vm = get_vm();
 
     let struct_ = &vm.program.structs[id as usize];
-    allocate_encoded_struct_data(vm, &struct_).address()
+    allocate_encoded_struct_data(vm, &struct_)
 }

@@ -490,8 +490,7 @@ impl SsaGen {
                 self.emitLoadTraitObjectValue(dest, src);
             },
             BytecodeInstruction::Ret(opnd) => {
-                let ty = self.regGraphTy(opnd);
-                self.emitRet(opnd, ty);
+                self.emitRet(opnd);
             },
         }
     }
@@ -815,13 +814,19 @@ impl SsaGen {
         self.writeVariable(dest, self.current(), loadInst);
     }
 
-    fn emitRet(opnd: BytecodeRegister, ty: Type) {
+    fn emitRet(opnd: BytecodeRegister) {
+        let ty = self.reg(opnd);
+
         if ty.isUnit() {
             let inst = graph::createReturnVoidInst();
             self.current().appendInst(inst);
             self.markBlockTerminated();
+        } else if ty.isStruct() {
+            let value = self.readVariable(opnd, self.current());
+            unimplemented();
         } else {
             let value = self.readVariable(opnd, self.current());
+            let ty = Type::fromBytecodeType(ty);
             let inst = graph::createReturnInst(value, ty);
             self.current().appendInst(inst);
             self.markBlockTerminated();
@@ -1109,6 +1114,10 @@ impl SsaGen {
         self.current().appendInst(objInst);
 
         self.writeVariable(dest, self.current(), objInst);
+    }
+
+    fn copyStruct(ty: BytecodeType, dest: Inst, src: Inst) {
+        unimplemented();
     }
 
     fn regGraphTy(id: BytecodeRegister): Type {

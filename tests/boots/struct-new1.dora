@@ -7,6 +7,6 @@ fn main() {
 
 struct Foo(a: Int64, b: Int64)
 
-@optimizeImmediately fn makefoo(a: Int64, b: Int64) {
-    Foo(a, b);
+@optimizeImmediately fn makefoo(a: Int64, b: Int64): Foo {
+    Foo(a, b)
 }

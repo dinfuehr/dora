@@ -219,6 +219,13 @@ impl BytecodeType {
         }
     }
 
+    pub fn isUnit(): Bool {
+        match self {
+            BytecodeType::Unit => true,
+            _ => false,
+        }
+    }
+
     pub fn isStruct(): Bool {
         match self {
             BytecodeType::Struct(_, _) => true,

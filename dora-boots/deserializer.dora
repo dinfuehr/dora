@@ -34,11 +34,12 @@ pub fn decodeConfig(encoded: Array[UInt8]): Config {
 pub fn decodeCompilationInfo(reader: ByteReader): CompilationInfo {
     let bc = decodeBytecodeFunction(reader);
     let typeParams = decodeTypeParams(reader);
+    let returnType = decodeBytecodeType(reader);
     let loc = decodeLocation(reader);
     let emitDebug = reader.readBool();
     let emitGraph = reader.readBool();
     let emitCodeComments = reader.readBool();
-    CompilationInfo(bc, typeParams, loc, emitDebug, emitGraph, emitCodeComments)
+    CompilationInfo(bc, typeParams, returnType, loc, emitDebug, emitGraph, emitCodeComments)
 }
 
 pub fn decodeStructData(reader: ByteReader): StructData {
@@ -121,6 +122,10 @@ fn decodeBytecodeType(reader: ByteReader): BytecodeType {
     } else if opcode == opc::BC_TYPE_TYPE_PARAM {
         let idx = reader.readId();
         BytecodeType::TypeParam(idx)
+    } else if opcode == opc::BC_TYPE_LAMBDA {
+        let params = decodeBytecodeTypeArray(reader);
+        let returnType = decodeBytecodeType(reader);
+        BytecodeType::Lambda(params, returnType)
     } else if opcode == opc::BC_TYPE_TYPE_ALIAS {
         let alias_id = AliasId(reader.readId());
         BytecodeType::TypeAlias(alias_id)

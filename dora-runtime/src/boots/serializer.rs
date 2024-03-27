@@ -42,13 +42,14 @@ pub fn allocate_encoded_compilation_info(vm: &VM, compilation_data: &Compilation
 fn encode_compilation_info(vm: &VM, compilation_data: &CompilationData, buffer: &mut ByteBuffer) {
     encode_bytecode_function(vm, &compilation_data.bytecode_fct, buffer);
     encode_type_params(vm, &compilation_data.type_params, buffer);
+    encode_bytecode_type(vm, &compilation_data.return_type, buffer);
     encode_location(&compilation_data.loc, buffer);
     buffer.emit_bool(compilation_data.emit_debug);
     buffer.emit_bool(compilation_data.emit_graph);
     buffer.emit_bool(compilation_data.emit_code_comments);
 }
 
-pub fn allocate_encoded_struct_data(vm: &VM, struct_: &StructData) -> Ref<Obj> {
+pub fn allocate_encoded_struct_data(vm: &VM, struct_: &StructData) -> Ref<UInt8Array> {
     let mut buffer = ByteBuffer::new();
     encode_struct_data(vm, struct_, &mut buffer);
     byte_array_from_buffer(vm, buffer.data()).cast()

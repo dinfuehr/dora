@@ -195,6 +195,7 @@ pub let trap_trampoline: Address = Address(0);
 pub class CompilationInfo(
     pub bc: BytecodeFunction,
     pub typeParams: Array[BytecodeType],
+    pub returnType: BytecodeType,
     pub loc: Location,
     pub emitDebug: Bool,
     pub emitGraph: Bool,
