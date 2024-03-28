@@ -11,24 +11,26 @@ use package::bytecode::data::{ConstPoolId, ConstPoolEntry, GlobalId, StructId, S
 use package::bytecode::instruction::BytecodeInstruction;
 use package::bytecode::reader::BytecodeIterator;
 use package::interface as iface;
+use package::interface::CompilationInfo;
 
-pub fn createGraph(bc: BytecodeFunction, typeParams: Array[BytecodeType]): Graph {
+pub fn createGraph(ci: CompilationInfo): Graph {
     let graph = Graph::new();
 
     // Create basic blocks for the bytecode.
-    let blockMap = createBlocks(graph, bc);
+    let blockMap = createBlocks(graph, ci.bc);
 
     // Create edges for the blocks.
-    createEdges(graph, bc, blockMap);
+    createEdges(graph, ci.bc, blockMap);
 
     // Fill basic blocks with instructions.
-    let ssagen = SsaGen::new(graph, bc, blockMap, typeParams);
+    let ssagen = SsaGen::new(ci, graph, ci.bc, blockMap, ci.typeParams);
     ssagen.run();
 
     graph
 }
 
 class SsaGen {
+    ci: CompilationInfo,
     graph: Graph,
     bc: BytecodeFunction,
     typeParams: Array[BytecodeType],
@@ -37,6 +39,8 @@ class SsaGen {
     offset: Int32,
     currentDef: Array[HashMap[Block, Inst]],
     blockTerminated: Bool,
+
+    returnValueArgInst: Option[Inst],
 
     pushed_registers: Vec[BytecodeRegister],
 
@@ -51,8 +55,9 @@ class SsaGen {
 }
 
 impl SsaGen {
-    static fn new(graph: Graph, bc: BytecodeFunction, blockMap: BlockMap, typeParams: Array[BytecodeType]): SsaGen {
+    static fn new(ci: CompilationInfo, graph: Graph, bc: BytecodeFunction, blockMap: BlockMap, typeParams: Array[BytecodeType]): SsaGen {
         SsaGen(
+            ci,
             graph,
             bc,
             typeParams,
@@ -61,6 +66,7 @@ impl SsaGen {
             0i32,
             Array[HashMap[Block, Inst]]::new(),
             false,
+            None[Inst],
             Vec[BytecodeRegister]::new(),
             BitSet::new(0),
             BitSet::new(0),
@@ -97,19 +103,30 @@ impl SsaGen {
     }
 
     fn setupArguments() {
-        let mut i = 0i32;
+        let mut argIdx = 0i32;
         let entryBlock = self.graph.getEntryBlock();
-        while i < self.bc.arguments {
-            let ty = self.regId(i.toInt64());
+        let retTy = self.ci.returnType;
+
+        if retTy.isStruct() || retTy.isTuple() {
+            let argInst = graph::createArgInst(argIdx, Type::Address);
+            argIdx = argIdx + 1i32;
+            entryBlock.appendInst(argInst);
+            self.returnValueArgInst = Some[Inst](argInst);
+        }
+
+        let mut regIdx = 0i32;
+        while regIdx < self.bc.arguments {
+            let ty = self.regId(regIdx);
             let ty = if ty.isStruct() || ty.isTuple() {
                 Type::Address
             } else {
                 Type::fromBytecodeType(ty)
             };
-            let argInst = graph::createArgInst(i, ty);
+            let argInst = graph::createArgInst(argIdx, ty);
             entryBlock.appendInst(argInst);
-            self.writeVariable(BytecodeRegister(i), entryBlock, argInst);
-            i = i + 1i32;
+            self.writeVariable(BytecodeRegister(regIdx), entryBlock, argInst);
+            argIdx = argIdx + 1i32;
+            regIdx = regIdx + 1i32;
         }
     }
 
@@ -799,7 +816,7 @@ impl SsaGen {
         boundsCheckInst.set_bytecode_position(self.offset);
         self.current().appendInst(boundsCheckInst);
 
-        let arrayStoreInst = graph::createStoreArray(arrInst, idxInst, srcInst, srcInst.getValueType());
+        let arrayStoreInst = graph::createStoreArrayInst(arrInst, idxInst, srcInst, srcInst.getValueType());
         self.current().appendInst(arrayStoreInst);
     }
 
@@ -820,17 +837,20 @@ impl SsaGen {
         if ty.isUnit() {
             let inst = graph::createReturnVoidInst();
             self.current().appendInst(inst);
-            self.markBlockTerminated();
         } else if ty.isStruct() {
-            let value = self.readVariable(opnd, self.current());
-            unimplemented();
+            let src = self.readVariable(opnd, self.current());
+            let dest = self.returnValueArgInst.getOrPanic();
+            self.copyStruct(ty, dest, src);
+            let inst = graph::createReturnVoidInst();
+            self.current().appendInst(inst);
         } else {
             let value = self.readVariable(opnd, self.current());
             let ty = Type::fromBytecodeType(ty);
             let inst = graph::createReturnInst(value, ty);
             self.current().appendInst(inst);
-            self.markBlockTerminated();
         }
+
+        self.markBlockTerminated();
     }
 
     fn emitInvokeDirect(dest: BytecodeRegister, idx: ConstPoolId) {
@@ -1089,10 +1109,16 @@ impl SsaGen {
         self.writeVariable(dest, self.current(), allocInst);
         let mut fieldId = 0i32;
 
-        for reg in self.pushed_registers {
+        let structData = iface::getStructData(struct_id);
+        assert(structData.fields.size() == self.pushed_registers.size());
+
+        for idx in std::range(0, structData.fields.size()) {
+            let reg = self.pushed_registers(idx);
+            let fieldTy = structData.fields(idx);
+            let fieldTy = Type::fromBytecodeType(fieldTy);
             let arg = self.readVariable(reg, self.current());
             let offset = iface::getStructFieldOffset(struct_id, type_params, StructFieldId(fieldId));
-            let storeInst = graph::createStoreMemory(allocInst, offset, arg, Type::Int32);
+            let storeInst = graph::createStoreMemoryInst(allocInst, offset, arg, fieldTy);
             self.current().appendInst(storeInst);
             fieldId = fieldId + 1i32;
         }
@@ -1117,7 +1143,22 @@ impl SsaGen {
     }
 
     fn copyStruct(ty: BytecodeType, dest: Inst, src: Inst) {
-        unimplemented();
+        let (struct_id, type_params) = match ty {
+            BytecodeType::Struct(struct_id, type_params) => (struct_id, type_params),
+            _ => unreachable[(StructId, Array[BytecodeType])](),
+        };
+
+        let structData = iface::getStructData(struct_id);
+        let mut offset = 0i32;
+
+        for fieldTy in structData.fields {
+            let ty = Type::fromBytecodeType(fieldTy);
+            let inst = graph::createLoadMemoryInst(src, offset, ty);
+            self.current().appendInst(inst);
+            let inst = graph::createStoreMemoryInst(dest, offset, inst, ty);
+            self.current().appendInst(inst);
+            offset = offset + 8i32;
+        }
     }
 
     fn regGraphTy(id: BytecodeRegister): Type {
@@ -1125,11 +1166,11 @@ impl SsaGen {
     }
 
     fn reg(id: BytecodeRegister): BytecodeType {
-        self.regId(id.value.toInt64())
+        self.regId(id.value)
     }
 
-    fn regId(id: Int64): BytecodeType {
-        let ty = self.bc.registers(id);
+    fn regId(id: Int32): BytecodeType {
+        let ty = self.bc.registers(id.toInt64());
         ty.specialize(self.typeParams)
     }
 }

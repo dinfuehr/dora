@@ -289,13 +289,21 @@ impl LocationAnnotation {
 
 fn computeArgumentLocations(codegen: CodeGen, ci: CompilationInfo): Array[Location] {
     let arguments = ci.bc.arguments.toInt64();
-    let locations = Array[Location]::fill(arguments, Location::None);
+    let locations = Vec[Location]::new();
+    locations.reserve(arguments);
     let mut gp_idx = 0;
     let mut fp_idx = 0;
     let mut next_fp_offset = PTR_SIZE * 2i32;
 
     let gp_argument_registers = codegen.argumentRegisters();
     let fp_argument_registers = codegen.argumentFloatRegisters();
+
+    let retTy = ci.returnType;
+
+    if retTy.isStruct() || retTy.isTuple() {
+        locations.push(gp_argument_registers(gp_idx).toLocation());
+        gp_idx = gp_idx + 1;
+    }
 
     for idx in std::range(0, arguments) {
         let ty = ci.bc.registers(idx);
@@ -308,17 +316,17 @@ fn computeArgumentLocations(codegen: CodeGen, ci: CompilationInfo): Array[Locati
 
         if ty.isAnyFloat() {
             if fp_idx < fp_argument_registers.size() {
-                locations(idx) = fp_argument_registers(fp_idx).toLocation();
+                locations.push(fp_argument_registers(fp_idx).toLocation());
             } else {
-                locations(idx) = Location::fp(next_fp_offset);
+                locations.push(Location::fp(next_fp_offset));
                 next_fp_offset = next_fp_offset + PTR_SIZE;
             }
             fp_idx = fp_idx + 1;
         } else {
             if gp_idx < gp_argument_registers.size() {
-                locations(idx) = gp_argument_registers(gp_idx).toLocation();
+                locations.push(gp_argument_registers(gp_idx).toLocation());
             } else {
-                locations(idx) = Location::fp(next_fp_offset);
+                locations.push(Location::fp(next_fp_offset));
                 next_fp_offset = next_fp_offset + PTR_SIZE;
             }
 
@@ -327,7 +335,7 @@ fn computeArgumentLocations(codegen: CodeGen, ci: CompilationInfo): Array[Locati
     }
 
 
-    locations
+    locations.toArray()
 }
 
 fn annotateCall(inst: Inst, loc: LocationData, codegen: CodeGen, ci: CompilationInfo): Int32 {

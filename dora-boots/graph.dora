@@ -2213,7 +2213,7 @@ pub fn createLoadArray(array: Inst, index: Inst, ty: Type): Inst {
     inst
 }
 
-pub fn createStoreArray(array: Inst, index: Inst, value: Inst, ty: Type): Inst {
+pub fn createStoreArrayInst(array: Inst, index: Inst, value: Inst, ty: Type): Inst {
     let inst = Inst::new();
     inst._op = Some(Op::StoreArray);
     inst.ty = ty;
@@ -2394,7 +2394,7 @@ pub fn createLoadMemoryInst(obj: Inst, field: Int32, ty: Type): Inst {
     inst
 }
 
-pub fn createStoreMemory(obj: Inst, field: Int32, value: Inst, ty: Type): Inst {
+pub fn createStoreMemoryInst(obj: Inst, field: Int32, value: Inst, ty: Type): Inst {
     let inst = Inst::new();
     inst._op = Some(Op::StoreMemory);
     inst.aux = field.toInt64();

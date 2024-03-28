@@ -7,9 +7,11 @@ use package::bytecode::builder::BytecodeBuilder;
 use package::graph_builder;
 use package::graph::dump::assertGraph;
 use package::graph::Graph;
+use package::interface::CompilationInfo;
 
 fn createGraph(fct: BytecodeFunction): Graph {
-  graph_builder::createGraph(fct, Array[BytecodeType]::new())
+  let ci = CompilationInfo::newForTesting(fct, Array[BytecodeType]::new());
+  graph_builder::createGraph(ci)
 }
 
 @Test

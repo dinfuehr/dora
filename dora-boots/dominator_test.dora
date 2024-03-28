@@ -6,10 +6,11 @@ use package::graph::{Block, Graph};
 use package::graph::dump::dumpGraph;
 use package::graph_builder_tests::bcSsaGenWhileCountDown;
 use package::graph_builder_tests::bcSsaGenIfReturnInBothBranches;
-use package::interface::Architecture;
+use package::interface::{Architecture, CompilationInfo};
 
 fn createGraph(fct: BytecodeFunction): Graph {
-  graph_builder::createGraph(fct, Array[BytecodeType]::new())
+    let ci = CompilationInfo::newForTesting(fct, Array[BytecodeType]::new());
+    graph_builder::createGraph(ci)
 }
 
 fn assertDominatedBlocks(fct: BytecodeFunction, idoms: Int32...) {

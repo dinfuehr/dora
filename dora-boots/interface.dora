@@ -3,7 +3,7 @@ use std::collections::VecIter;
 use package::bytecode::{BytecodeFunction, BytecodeType, ConstPoolId, FctId, Location};
 use package::bytecode::data::{ClassId, FieldId, GlobalId, StructId, StructFieldId};
 use package::deserializer::decodeBytecodeFunction;
-use package::deserializer::decodeCompilationInfo;
+use package::deserializer::{decodeCompilationInfo, decodeStructData};
 use package::deserializer::decodeConfig;
 use package::deserializer::ByteReader;
 use package::codegen::x64::CodeGenX64;
@@ -138,12 +138,12 @@ pub fn getStructFieldOffset(struct_id: StructId, type_params: Array[BytecodeType
     getStructFieldOffsetRaw(writer.toArray())
 }
 
-pub fn getStructData(struct_id: StructId) {
+pub fn getStructData(struct_id: StructId): StructData {
     let encoded = getStructDataRaw(struct_id.value);
     let reader = ByteReader::new(encoded);
-    let type_params = reader.readInt32();
-    let ci = decodeCompilationInfo(reader);
+    let structData = decodeStructData(reader);
     assert(!reader.moreBytes());
+    structData
 }
 
 pub fn getTupleElementOffset(tuple_ty: BytecodeType, subtype_idx: Int32): Int32 {
@@ -201,6 +201,20 @@ pub class CompilationInfo(
     pub emitGraph: Bool,
     pub emitCodeComments: Bool,
 )
+
+impl CompilationInfo {
+    pub static fn newForTesting(bc: BytecodeFunction, typeParams: Array[BytecodeType]): CompilationInfo {
+        CompilationInfo(
+            bc,
+            typeParams,
+            BytecodeType::Unit,
+            Location(0i32, 0i32),
+            false,
+            false,
+            false,
+        )
+    }
+}
 
 pub class StructData {
     pub typeParams: Int32,

@@ -1,8 +1,9 @@
 //= boots
-//= ignore
 
 fn main() {
-    makefoo(1, 2);
+    let f = makefoo(1, 2);
+    assert(f.a == 1);
+    assert(f.b == 2);
 }
 
 struct Foo(a: Int64, b: Int64)
