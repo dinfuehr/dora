@@ -1004,6 +1004,17 @@ impl Inst {
         }
     }
 
+    pub fn hasTupleInfo(): Bool {
+        self.extra.isTupleInfo()
+    }
+
+    pub fn getTupleInfo(): TupleInfo {
+        match self.extra {
+            InstExtraData::TupleInfo(info) => info,
+            _ => unreachable[TupleInfo](),
+        }
+    }
+
     pub fn hasFieldOffsetInfo(): Bool {
         self.extra.isFieldOffsetInfo()
     }
@@ -1469,6 +1480,7 @@ pub enum InstExtraData {
     LambdaFunctionInfo(LambdaFunctionInfo),
     ClassInfo(ClassInfo),
     StructInfo(StructInfo),
+    TupleInfo(TupleInfo),
     TraitObjectInfo(TraitObjectInfo),
     If(Block, Block),
     Goto(Block),
@@ -1507,6 +1519,13 @@ impl InstExtraData {
     fn isStructInfo(): Bool {
         match self {
             InstExtraData::StructInfo(_) => true,
+            _ => false,
+        }
+    }
+
+    fn isTupleInfo(): Bool {
+        match self {
+            InstExtraData::TupleInfo(_) => true,
             _ => false,
         }
     }
@@ -2279,6 +2298,10 @@ pub struct StructInfo {
     pub type_params: Array[BytecodeType],
 }
 
+pub struct TupleInfo {
+    pub subtypes: Array[BytecodeType],
+}
+
 pub fn createLoadFieldInst(obj: Inst, field: InstExtraData, ty: Type): Inst {
     let inst = Inst::new();
     inst._op = Some(Op::LoadField);
@@ -2388,10 +2411,10 @@ pub fn createNewObject(extra: InstExtraData): Inst {
     inst
 }
 
-pub fn createAllocateStack(info: StructInfo): Inst {
+pub fn createAllocateStack(extra: InstExtraData): Inst {
     let inst = Inst::new();
     inst._op = Some(Op::AllocateStack);
-    inst.extra = InstExtraData::StructInfo(info);
+    inst.extra = extra;
 
     inst
 }

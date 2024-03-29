@@ -289,6 +289,10 @@ impl BytecodeIterator {
             let dest = self.readRegister();
             let idx = self.readConstPoolId();
             BytecodeInstruction::NewStruct(dest, idx)
+        } else if opcode == opc::BC_NEW_TUPLE {
+            let dest = self.readRegister();
+            let idx = self.readConstPoolId();
+            BytecodeInstruction::NewTuple(dest, idx)
 
         } else if opcode == opc::BC_ARRAY_LENGTH {
             let dest = self.readRegister();

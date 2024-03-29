@@ -487,6 +487,10 @@ impl SimpleRegisterAllocator {
             let structInfo = inst.getStructInfo();
             let structLayout = computeStructLayout(structInfo.struct_id, structInfo.type_params);
             (structLayout.size, structLayout.alignment)
+        } else if inst.hasTupleInfo() {
+            let tupleInfo = inst.getTupleInfo();
+            let tupleLayout = computeTupleLayout(tupleInfo.subtypes);
+            (tupleLayout.size, tupleLayout.alignment)
         } else {
             unreachable[(Int32, Int32)]()
         };

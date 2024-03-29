@@ -5,7 +5,7 @@ use package::bytecode::opcode as opc;
 use package::graph;
 use package::graph::{Block, Graph, Inst, InstExtraData, Op};
 use package::graph::ty::Type;
-use package::graph::{ClassInfo, FieldInfo, FunctionInfo, CallKind, VirtualFunctionInfo, LambdaFunctionInfo, StructInfo, TraitObjectInfo};
+use package::graph::{ClassInfo, FieldInfo, FunctionInfo, CallKind, VirtualFunctionInfo, LambdaFunctionInfo, StructInfo, TupleInfo, TraitObjectInfo};
 use package::bytecode::data::{BytecodeFunction, BytecodeRegister, BytecodeType, ClassId, FctId, FieldId};
 use package::bytecode::data::{ConstPoolId, ConstPoolEntry, GlobalId, StructId, StructFieldId, TraitId};
 use package::bytecode::instruction::BytecodeInstruction;
@@ -477,7 +477,7 @@ impl SsaGen {
                 self.emitNewArray(dest, idx, length);
             },
             BytecodeInstruction::NewTuple(dest, idx) => {
-                unimplemented();
+                self.emitNewTuple(dest, idx);
             },
             BytecodeInstruction::NewEnum(dest, idx) => {
                 unimplemented();
@@ -845,6 +845,12 @@ impl SsaGen {
             self.copyStruct(ty, dest, 0i32, src, 0i32);
             let inst = graph::createReturnVoidInst();
             self.current().appendInst(inst);
+        } else if ty.isTuple() {
+            let src = self.readVariable(opnd, self.current());
+            let dest = self.returnValueArgInst.getOrPanic();
+            self.copyTuple(ty, dest, 0i32, src, 0i32);
+            let inst = graph::createReturnVoidInst();
+            self.current().appendInst(inst);
         } else {
             let value = self.readVariable(opnd, self.current());
             let ty = Type::fromBytecodeType(ty);
@@ -1105,6 +1111,7 @@ impl SsaGen {
         };
 
         let info = StructInfo(struct_id, type_params);
+        let info = InstExtraData::StructInfo(info);
         let allocInst = graph::createAllocateStack(info);
         self.current().appendInst(allocInst);
 
@@ -1117,6 +1124,36 @@ impl SsaGen {
         for idx in std::range(0, structLayout.fields.size()) {
             let reg = self.pushed_registers(idx);
             let field = structLayout.fields(idx);
+            let fieldTy = Type::fromBytecodeType(field.ty);
+            let arg = self.readVariable(reg, self.current());
+            let storeInst = graph::createStoreMemoryInst(allocInst, field.offset, arg, fieldTy);
+            self.current().appendInst(storeInst);
+            fieldId = fieldId + 1i32;
+        }
+
+        self.pushed_registers.clear();
+    }
+
+    fn emitNewTuple(dest: BytecodeRegister, idx: ConstPoolId) {
+        let subtypes = match self.bc.constPool(idx) {
+            ConstPoolEntry::Tuple(subtypes) => subtypes,
+            _ => unreachable[Array[BytecodeType]](),
+        };
+
+        let info = TupleInfo(subtypes);
+        let info = InstExtraData::TupleInfo(info);
+        let allocInst = graph::createAllocateStack(info);
+        self.current().appendInst(allocInst);
+
+        self.writeVariable(dest, self.current(), allocInst);
+        let mut fieldId = 0i32;
+
+        let tupleLayout = computeTupleLayout(subtypes);
+        assert(tupleLayout.fields.size() == self.pushed_registers.size());
+
+        for idx in std::range(0, tupleLayout.fields.size()) {
+            let reg = self.pushed_registers(idx);
+            let field = tupleLayout.fields(idx);
             let fieldTy = Type::fromBytecodeType(field.ty);
             let arg = self.readVariable(reg, self.current());
             let storeInst = graph::createStoreMemoryInst(allocInst, field.offset, arg, fieldTy);
