@@ -12,6 +12,7 @@ use package::bytecode::instruction::BytecodeInstruction;
 use package::bytecode::reader::BytecodeIterator;
 use package::interface as iface;
 use package::interface::CompilationInfo;
+use package::regalloc::computeStructLayout;
 
 pub fn createGraph(ci: CompilationInfo): Graph {
     let graph = Graph::new();
@@ -621,8 +622,9 @@ impl SsaGen {
             _ => unreachable[(StructId, Array[BytecodeType], StructFieldId)](),
         };
 
-        let offset = iface::getStructFieldOffset(struct_id, type_params, field_id);
-        let destInst = graph::createLoadMemoryInst(srcInst, offset, destType);
+        let structLayout = computeStructLayout(struct_id, type_params);
+        let field = structLayout.fields(field_id.value.toInt64());
+        let destInst = graph::createLoadMemoryInst(srcInst, field.offset, destType);
         self.current().appendInst(destInst);
         self.writeVariable(dest, self.current(), destInst);
     }
@@ -840,7 +842,7 @@ impl SsaGen {
         } else if ty.isStruct() {
             let src = self.readVariable(opnd, self.current());
             let dest = self.returnValueArgInst.getOrPanic();
-            self.copyStruct(ty, dest, src);
+            self.copyStruct(ty, dest, 0i32, src, 0i32);
             let inst = graph::createReturnVoidInst();
             self.current().appendInst(inst);
         } else {
@@ -1109,16 +1111,15 @@ impl SsaGen {
         self.writeVariable(dest, self.current(), allocInst);
         let mut fieldId = 0i32;
 
-        let structData = iface::getStructData(struct_id);
-        assert(structData.fields.size() == self.pushed_registers.size());
+        let structLayout = computeStructLayout(struct_id, type_params);
+        assert(structLayout.fields.size() == self.pushed_registers.size());
 
-        for idx in std::range(0, structData.fields.size()) {
+        for idx in std::range(0, structLayout.fields.size()) {
             let reg = self.pushed_registers(idx);
-            let fieldTy = structData.fields(idx);
-            let fieldTy = Type::fromBytecodeType(fieldTy);
+            let field = structLayout.fields(idx);
+            let fieldTy = Type::fromBytecodeType(field.ty);
             let arg = self.readVariable(reg, self.current());
-            let offset = iface::getStructFieldOffset(struct_id, type_params, StructFieldId(fieldId));
-            let storeInst = graph::createStoreMemoryInst(allocInst, offset, arg, fieldTy);
+            let storeInst = graph::createStoreMemoryInst(allocInst, field.offset, arg, fieldTy);
             self.current().appendInst(storeInst);
             fieldId = fieldId + 1i32;
         }
@@ -1142,22 +1143,20 @@ impl SsaGen {
         self.writeVariable(dest, self.current(), objInst);
     }
 
-    fn copyStruct(ty: BytecodeType, dest: Inst, src: Inst) {
+    fn copyStruct(ty: BytecodeType, dest: Inst, destOffset: Int32, src: Inst, srcOffset: Int32) {
         let (struct_id, type_params) = match ty {
             BytecodeType::Struct(struct_id, type_params) => (struct_id, type_params),
             _ => unreachable[(StructId, Array[BytecodeType])](),
         };
 
-        let structData = iface::getStructData(struct_id);
-        let mut offset = 0i32;
+        let structLayout = computeStructLayout(struct_id, type_params);
 
-        for fieldTy in structData.fields {
-            let ty = Type::fromBytecodeType(fieldTy);
-            let inst = graph::createLoadMemoryInst(src, offset, ty);
+        for field in structLayout.fields {
+            let ty = Type::fromBytecodeType(field.ty);
+            let inst = graph::createLoadMemoryInst(src, srcOffset + field.offset, ty);
             self.current().appendInst(inst);
-            let inst = graph::createStoreMemoryInst(dest, offset, inst, ty);
+            let inst = graph::createStoreMemoryInst(dest, destOffset + field.offset, inst, ty);
             self.current().appendInst(inst);
-            offset = offset + 8i32;
         }
     }
 

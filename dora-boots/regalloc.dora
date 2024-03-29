@@ -1,10 +1,12 @@
 use std::collections::{HashMap, HashSet};
 
 use package::assembler::{FloatRegister, RegMap, RegSet, Register, RegisterType};
+use package::bytecode::data::{StructId, BytecodeType};
 use package::codegen::CodeGen;
 use package::codegen::STACK_FRAME_ALIGNMENT;
 use package::graph::{createGotoInst, createMoveInst, Block, Edge, Graph, Inst, Operand, LocationData, Op, Location, opName, Policy, RegisterSnapshot, RegisterTrackers, Type};
 use package::interface::{CompilationInfo, GcPoint};
+use package::interface as iface;
 use package::location::ensureLocationData;
 use package::ssa_destruction::ssaDestruction;
 
@@ -481,6 +483,14 @@ impl SimpleRegisterAllocator {
     fn allocateStackSlot(inst: Inst) {
         let loc = inst.getLocationData();
 
+        let (size, alignment) = if inst.hasStructInfo() {
+            let structInfo = inst.getStructInfo();
+            let structLayout = computeStructLayout(structInfo.struct_id, structInfo.type_params);
+            (structLayout.size, structLayout.alignment)
+        } else {
+            unreachable[(Int32, Int32)]()
+        };
+
         let size = 16i32;
         let alignment = 8i32;
         let offset = self.allocateStackSpace(size, alignment);
@@ -795,5 +805,45 @@ impl[T: RegisterType] RegisterTracker[T] {
 
     pub fn snapshot(): RegSet[T] {
         self.allocatable.difference(self.free)
+    }
+}
+
+pub class StructLayout {
+    pub size: Int32,
+    pub alignment: Int32,
+    pub fields: Array[StructFieldLayout],
+}
+
+pub struct StructFieldLayout {
+    pub ty: BytecodeType,
+    pub offset: Int32,
+}
+
+pub fn computeStructLayout(struct_id: StructId, type_params: Array[BytecodeType]): StructLayout {
+    let structData = iface::getStructData(struct_id);
+    let mut struct_size = 0i32;
+    let mut struct_align = 0i32;
+    let mut fields = Vec[StructFieldLayout]::new();
+    fields.reserve(structData.fields.size());
+
+    for fieldTy in structData.fields {
+        let fieldTy = fieldTy.specialize(type_params);
+        let (field_size, field_align) = computeTypeSize(fieldTy);
+
+        let offset = (struct_size + (field_align - 1i32)) & !(field_align - 1i32);
+        fields.push(StructFieldLayout(fieldTy, offset));
+
+        struct_size = offset + field_size;
+        struct_align = Int32::max(struct_align, field_align);
+    };
+
+    StructLayout(struct_size, struct_align, fields.toArray())
+}
+
+fn computeTypeSize(ty: BytecodeType): (Int32, Int32) {
+    match ty {
+        BytecodeType::Int32 => (4i32, 4i32),
+        BytecodeType::Int64 => (8i32, 8i32),
+        _ => unreachable[(Int32, Int32)](),
     }
 }

@@ -993,6 +993,10 @@ impl Inst {
         }
     }
 
+    pub fn hasStructInfo(): Bool {
+        self.extra.isStructInfo()
+    }
+
     pub fn getStructInfo(): StructInfo {
         match self.extra {
             InstExtraData::StructInfo(info) => info,
@@ -1496,6 +1500,13 @@ impl InstExtraData {
     fn isFieldOffsetInfo(): Bool {
         match self {
             InstExtraData::FieldOffsetInfo(_) => true,
+            _ => false,
+        }
+    }
+
+    fn isStructInfo(): Bool {
+        match self {
+            InstExtraData::StructInfo(_) => true,
             _ => false,
         }
     }
