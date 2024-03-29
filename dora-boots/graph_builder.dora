@@ -12,7 +12,7 @@ use package::bytecode::instruction::BytecodeInstruction;
 use package::bytecode::reader::BytecodeIterator;
 use package::interface as iface;
 use package::interface::CompilationInfo;
-use package::regalloc::computeStructLayout;
+use package::regalloc::{computeStructLayout, computeTupleLayout};
 
 pub fn createGraph(ci: CompilationInfo): Graph {
     let graph = Graph::new();
@@ -1141,6 +1141,23 @@ impl SsaGen {
         self.current().appendInst(objInst);
 
         self.writeVariable(dest, self.current(), objInst);
+    }
+
+    fn copyTuple(ty: BytecodeType, dest: Inst, destOffset: Int32, src: Inst, srcOffset: Int32) {
+        let subtypes = match ty {
+            BytecodeType::Tuple(subtypes) => subtypes,
+            _ => unreachable[Array[BytecodeType]](),
+        };
+
+        let tupleLayout = computeTupleLayout(subtypes);
+
+        for field in tupleLayout.fields {
+            let ty = Type::fromBytecodeType(field.ty);
+            let inst = graph::createLoadMemoryInst(src, srcOffset + field.offset, ty);
+            self.current().appendInst(inst);
+            let inst = graph::createStoreMemoryInst(dest, destOffset + field.offset, inst, ty);
+            self.current().appendInst(inst);
+        }
     }
 
     fn copyStruct(ty: BytecodeType, dest: Inst, destOffset: Int32, src: Inst, srcOffset: Int32) {

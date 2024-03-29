@@ -1,0 +1,13 @@
+//= boots
+
+fn main() {
+    let f = makefoo(1.0f32, 2.0f32);
+    assert(f.a == 1.0f32);
+    assert(f.b == 2.0f32);
+}
+
+struct Foo(a: Float32, b: Float32)
+
+@optimizeImmediately fn makefoo(a: Float32, b: Float32): Foo {
+    Foo(a, b)
+}

@@ -808,42 +808,62 @@ impl[T: RegisterType] RegisterTracker[T] {
     }
 }
 
-pub class StructLayout {
+pub class RecordLayout {
     pub size: Int32,
     pub alignment: Int32,
-    pub fields: Array[StructFieldLayout],
+    pub fields: Array[RecordField],
 }
 
-pub struct StructFieldLayout {
+pub struct RecordField {
     pub ty: BytecodeType,
     pub offset: Int32,
 }
 
-pub fn computeStructLayout(struct_id: StructId, type_params: Array[BytecodeType]): StructLayout {
-    let structData = iface::getStructData(struct_id);
+pub fn computeTupleLayout(subtypes: Array[BytecodeType]): RecordLayout {
     let mut struct_size = 0i32;
     let mut struct_align = 0i32;
-    let mut fields = Vec[StructFieldLayout]::new();
-    fields.reserve(structData.fields.size());
+    let mut fields = Vec[RecordField]::new();
+    fields.reserve(subtypes.size());
 
-    for fieldTy in structData.fields {
-        let fieldTy = fieldTy.specialize(type_params);
-        let (field_size, field_align) = computeTypeSize(fieldTy);
+    for subtype in subtypes {
+        let (field_size, field_align) = computeTypeSize(subtype);
 
         let offset = (struct_size + (field_align - 1i32)) & !(field_align - 1i32);
-        fields.push(StructFieldLayout(fieldTy, offset));
+        fields.push(RecordField(subtype, offset));
 
         struct_size = offset + field_size;
         struct_align = Int32::max(struct_align, field_align);
     };
 
-    StructLayout(struct_size, struct_align, fields.toArray())
+    RecordLayout(struct_size, struct_align, fields.toArray())
+}
+
+pub fn computeStructLayout(struct_id: StructId, type_params: Array[BytecodeType]): RecordLayout {
+    let structData = iface::getStructData(struct_id);
+    let mut struct_size = 0i32;
+    let mut struct_align = 0i32;
+    let mut fields = Vec[RecordField]::new();
+    fields.reserve(structData.fields.size());
+
+    for fieldTy in structData.fields {
+        let (field_size, field_align) = computeTypeSize(fieldTy);
+
+        let offset = (struct_size + (field_align - 1i32)) & !(field_align - 1i32);
+        fields.push(RecordField(fieldTy, offset));
+
+        struct_size = offset + field_size;
+        struct_align = Int32::max(struct_align, field_align);
+    };
+
+    RecordLayout(struct_size, struct_align, fields.toArray())
 }
 
 fn computeTypeSize(ty: BytecodeType): (Int32, Int32) {
     match ty {
-        BytecodeType::Int32 => (4i32, 4i32),
-        BytecodeType::Int64 => (8i32, 8i32),
+        BytecodeType::Float32
+        | BytecodeType::Int32 => (4i32, 4i32),
+        BytecodeType::Int64
+        | BytecodeType::Float64 => (8i32, 8i32),
         _ => unreachable[(Int32, Int32)](),
     }
 }
