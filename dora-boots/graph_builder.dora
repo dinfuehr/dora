@@ -640,7 +640,13 @@ impl SsaGen {
 
         assert(tuple_ty.isTuple());
 
-        let offset = iface::getTupleElementOffset(tuple_ty, subtype_idx);
+        let subtypes = match tuple_ty {
+            BytecodeType::Tuple(subtypes) => subtypes,
+            _ => unreachable[Array[BytecodeType]](),
+        };
+
+        let tupleLayout = computeTupleLayout(subtypes);
+        let offset = tupleLayout.fields(subtype_idx.toInt64()).offset;
         let destInst = graph::createLoadMemoryInst(srcInst, offset, destType);
         self.current().appendInst(destInst);
         self.writeVariable(dest, self.current(), destInst);
