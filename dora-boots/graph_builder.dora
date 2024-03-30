@@ -903,6 +903,34 @@ impl SsaGen {
 
     fn emitCall(dest: BytecodeRegister, kind: CallKind, fct_id: FctId, type_params: Array[BytecodeType]) {
         let args = Vec[Inst]::new();
+        args.reserve(self.pushed_registers.size());
+        let destTy = self.reg(dest);
+
+        let valueTy = if destTy.isStruct() || destTy.isTuple() {
+            let info = match destTy {
+                BytecodeType::Struct(struct_id, type_params) => {
+                    let info = StructInfo(struct_id, type_params);
+                    InstExtraData::StructInfo(info)
+                },
+
+                BytecodeType::Tuple(subtypes) => {
+                    let info = TupleInfo(subtypes);
+                    InstExtraData::TupleInfo(info)
+                },
+
+                _ => unreachable[InstExtraData](),
+            };
+
+            let allocInst = graph::createAllocateStack(info);
+            self.current().appendInst(allocInst);
+            args.push(allocInst);
+
+            self.writeVariable(dest, self.current(), allocInst);
+
+            Type::Unit
+        } else {
+            Type::fromBytecodeType(destTy)
+        };
 
         for reg in self.pushed_registers {
             let arg = self.readVariable(reg, self.current());
@@ -911,14 +939,13 @@ impl SsaGen {
 
         self.pushed_registers.clear();
 
-        let ty = self.regGraphTy(dest);
         let info = FunctionInfo(fct_id, type_params);
 
-        let inst = graph::createCall(info, kind, args, ty);
+        let inst = graph::createCall(info, kind, args, valueTy);
         inst.set_bytecode_position(self.offset);
         self.current().appendInst(inst);
 
-        if !ty.isUnit() {
+        if !valueTy.isUnit() {
             self.writeVariable(dest, self.current(), inst);
         }
     }

@@ -1,0 +1,16 @@
+//= boots
+
+fn main() {
+    let foo = f();
+    assert(foo.0 == 1);
+    assert(foo.1 == 2);
+}
+
+@optimizeImmediately fn f(): (Int64, Int64) {
+    let foo = g();
+    foo
+}
+
+fn g(): (Int64, Int64) {
+    (1, 2)
+}

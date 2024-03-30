@@ -543,9 +543,7 @@ impl CodeGen for CodeGenX64 {
                 self.asm.movb_ar(AsmAddress::offset(RBP, slot), reg);
             } else if ty == Type::Int32 || ty == Type::Char {
                 self.asm.movl_ar(AsmAddress::offset(RBP, slot), reg);
-            } else if ty == Type::Int64 {
-                self.asm.movq_ar(AsmAddress::offset(RBP, slot), reg);
-            } else if ty == Type::Ptr {
+            } else if ty == Type::Int64 || ty == Type::Address || ty == Type::Ptr {
                 self.asm.movq_ar(AsmAddress::offset(RBP, slot), reg);
             } else {
                 unimplemented();
@@ -953,7 +951,7 @@ impl CodeGen for CodeGenX64 {
         if dest.isRegister() {
             if src.isRegister() {
                 // Register-to-Register
-                if ty == Type::Int64 || ty == Type::Ptr {
+                if ty == Type::Int64 || ty == Type::Ptr || ty == Type::Address {
                     self.asm.movq_rr(dest.getRegister(), src.getRegister());
                 } else {
                     assert(ty == Type::Int32 || ty == Type::Bool);
@@ -966,7 +964,7 @@ impl CodeGen for CodeGenX64 {
                 assert(slot.isFp());
                 let offset = slot.getOffset();
 
-                if ty == Type::Int64 || ty == Type::Ptr {
+                if ty == Type::Int64 || ty == Type::Ptr || ty == Type::Address {
                     self.asm.movq_ra(dest.getRegister(), AsmAddress::offset(RBP, offset));
                 } else if ty == Type::Int32 {
                     self.asm.movl_ra(dest.getRegister(), AsmAddress::offset(RBP, offset));

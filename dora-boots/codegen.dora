@@ -294,8 +294,6 @@ fn emitInst(codegen: CodeGen, inst: Inst) {
     }
 }
 
-
-
 pub trait CodeGen {
     fn allocatableRegisters(): RegSet[Register];
     fn allocatableFloatRegisters(): RegSet[FloatRegister];
