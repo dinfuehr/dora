@@ -1,0 +1,13 @@
+//= boots
+
+fn main() {
+    let f = makefoo(1u8, 2u8);
+    assert(f.a == 1u8);
+    assert(f.b == 2u8);
+}
+
+struct Foo(a: UInt8, b: UInt8)
+
+@optimizeImmediately fn makefoo(a: UInt8, b: UInt8): Foo {
+    Foo(a, b)
+}

@@ -1,0 +1,13 @@
+//= boots
+
+fn main() {
+    let f = makefoo(true, false);
+    assert(f.a);
+    assert(!f.b);
+}
+
+struct Foo(a: Bool, b: Bool)
+
+@optimizeImmediately fn makefoo(a: Bool, b: Bool): Foo {
+    Foo(a, b)
+}

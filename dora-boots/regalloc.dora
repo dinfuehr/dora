@@ -495,8 +495,6 @@ impl SimpleRegisterAllocator {
             unreachable[(Int32, Int32)]()
         };
 
-        let size = 16i32;
-        let alignment = 8i32;
         let offset = self.allocateStackSpace(size, alignment);
 
         loc.setStackSlot(offset);
@@ -864,8 +862,10 @@ pub fn computeStructLayout(struct_id: StructId, type_params: Array[BytecodeType]
 
 fn computeTypeSize(ty: BytecodeType): (Int32, Int32) {
     match ty {
+        BytecodeType::Bool | BytecodeType::UInt8 => (1i32, 1i32),
         BytecodeType::Float32
-        | BytecodeType::Int32 => (4i32, 4i32),
+        | BytecodeType::Int32
+        | BytecodeType::Char => (4i32, 4i32),
         BytecodeType::Int64
         | BytecodeType::Float64 => (8i32, 8i32),
         _ => unreachable[(Int32, Int32)](),

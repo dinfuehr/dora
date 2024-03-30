@@ -1529,7 +1529,7 @@ impl CodeGen for CodeGenX64 {
                 self.asm.movb_ra(dest, AsmAddress::offset(src, offset));
             },
 
-            Type::Int32 => {
+            Type::Int32 | Type::Char => {
                 let dest = loc.getOutput().getRegister();
                 self.asm.movl_ra(dest, AsmAddress::offset(src, offset));
             },
@@ -1568,7 +1568,7 @@ impl CodeGen for CodeGenX64 {
                 self.asm.movb_ar(AsmAddress::offset(obj, offset), src);
             },
 
-            Type::Int32 => {
+            Type::Int32 | Type::Char => {
                 let src = loc.getInput(1).getRegister();
                 self.asm.movl_ar(AsmAddress::offset(obj, offset), src);
             },

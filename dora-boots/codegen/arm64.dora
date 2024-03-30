@@ -1551,7 +1551,7 @@ impl CodeGen for CodeGenArm64 {
                 self.asm.ldrb_imm(dest, src, offset);
             },
 
-            Type::Int32 => {
+            Type::Int32 | Type::Char => {
                 let dest = loc.getOutput().getRegister();
                 self.asm.ldr_imm_w(dest, src, offset);
             },
@@ -1590,7 +1590,7 @@ impl CodeGen for CodeGenArm64 {
                 self.asm.strb_imm(src, obj, offset);
             },
 
-            Type::Int32 => {
+            Type::Int32 | Type::Char => {
                 let src = loc.getInput(1).getRegister();
                 self.asm.str_imm_w(src, obj, offset);
             },
