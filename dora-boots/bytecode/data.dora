@@ -306,17 +306,17 @@ impl Stringable for BytecodeType {
 }
 
 impl Array[BytecodeType] {
-    fn isGeneric(): Bool {
+    pub fn isGeneric(): Bool {
         for value in self {
-            if !value.isGeneric() {
-                return false;
+            if value.isGeneric() {
+                return true;
             }
         }
 
-        true
+        false
     }
 
-    fn specialize(type_params: Array[BytecodeType]): Array[BytecodeType] {
+    pub fn specialize(type_params: Array[BytecodeType]): Array[BytecodeType] {
         if type_params.isEmpty() || !self.isGeneric() {
             return self;
         }

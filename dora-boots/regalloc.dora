@@ -822,6 +822,8 @@ pub struct RecordField {
 }
 
 pub fn computeTupleLayout(subtypes: Array[BytecodeType]): RecordLayout {
+    assert(!subtypes.isGeneric());
+
     let mut struct_size = 0i32;
     let mut struct_align = 0i32;
     let mut fields = Vec[RecordField]::new();
@@ -841,6 +843,8 @@ pub fn computeTupleLayout(subtypes: Array[BytecodeType]): RecordLayout {
 }
 
 pub fn computeStructLayout(struct_id: StructId, type_params: Array[BytecodeType]): RecordLayout {
+    assert(!type_params.isGeneric());
+
     let structData = iface::getStructData(struct_id);
     let mut struct_size = 0i32;
     let mut struct_align = 0i32;
