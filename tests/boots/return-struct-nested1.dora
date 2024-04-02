@@ -1,0 +1,15 @@
+//= boots
+
+fn main() {
+    let f = makefoo(1, 2, 3);
+    assert(f.a == 1);
+    assert(f.bar.b == 2);
+    assert(f.bar.c == 3);
+}
+
+struct Foo(a: Int64, bar: Bar)
+struct Bar(b: Int64, c: Int64)
+
+@optimizeImmediately fn makefoo(a: Int64, b: Int64, c: Int64): Foo {
+    Foo(a, Bar(b, c))
+}

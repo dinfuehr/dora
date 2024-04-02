@@ -1157,10 +1157,10 @@ impl SsaGen {
         for idx in std::range(0, structLayout.fields.size()) {
             let reg = self.pushed_registers(idx);
             let field = structLayout.fields(idx);
-            let fieldTy = Type::fromBytecodeType(field.ty);
             let arg = self.readVariable(reg, self.current());
-            let storeInst = graph::createStoreMemoryInst(allocInst, field.offset, arg, fieldTy);
-            self.current().appendInst(storeInst);
+
+            self.setValue(field.ty, allocInst, field.offset, arg);
+
             fieldId = fieldId + 1i32;
         }
 
@@ -1187,10 +1187,10 @@ impl SsaGen {
         for idx in std::range(0, tupleLayout.fields.size()) {
             let reg = self.pushed_registers(idx);
             let field = tupleLayout.fields(idx);
-            let fieldTy = Type::fromBytecodeType(field.ty);
             let arg = self.readVariable(reg, self.current());
-            let storeInst = graph::createStoreMemoryInst(allocInst, field.offset, arg, fieldTy);
-            self.current().appendInst(storeInst);
+
+            self.setValue(field.ty, allocInst, field.offset, arg);
+
             fieldId = fieldId + 1i32;
         }
 
@@ -1213,6 +1213,32 @@ impl SsaGen {
         self.writeVariable(dest, self.current(), objInst);
     }
 
+    fn setValue(ty: BytecodeType, dest: Inst, destOffset: Int32, value: Inst) {
+        if ty.isStruct() {
+            self.copyStruct(ty, dest, destOffset, value, 0i32);
+        } else if ty.isTuple() {
+            self.copyTuple(ty, dest, destOffset, value, 0i32);
+        } else {
+            let ty = Type::fromBytecodeType(ty);
+            let inst = graph::createStoreMemoryInst(dest, destOffset, value, ty);
+            self.current().appendInst(inst);
+        }
+    }
+
+    fn copyValue(ty: BytecodeType, dest: Inst, destOffset: Int32, src: Inst, srcOffset: Int32) {
+        if ty.isStruct() {
+            self.copyStruct(ty, dest, destOffset, src, srcOffset);
+        } else if ty.isTuple() {
+            self.copyTuple(ty, dest, destOffset, src, srcOffset);
+        } else {
+            let ty = Type::fromBytecodeType(ty);
+            let inst = graph::createLoadMemoryInst(src, srcOffset, ty);
+            self.current().appendInst(inst);
+            let inst = graph::createStoreMemoryInst(dest, destOffset, inst, ty);
+            self.current().appendInst(inst);
+        }
+    }
+
     fn copyTuple(ty: BytecodeType, dest: Inst, destOffset: Int32, src: Inst, srcOffset: Int32) {
         let subtypes = match ty {
             BytecodeType::Tuple(subtypes) => subtypes,
@@ -1222,11 +1248,7 @@ impl SsaGen {
         let tupleLayout = computeTupleLayout(subtypes);
 
         for field in tupleLayout.fields {
-            let ty = Type::fromBytecodeType(field.ty);
-            let inst = graph::createLoadMemoryInst(src, srcOffset + field.offset, ty);
-            self.current().appendInst(inst);
-            let inst = graph::createStoreMemoryInst(dest, destOffset + field.offset, inst, ty);
-            self.current().appendInst(inst);
+            self.copyValue(field.ty, dest, destOffset + field.offset, src, srcOffset + field.offset);
         }
     }
 
@@ -1239,11 +1261,7 @@ impl SsaGen {
         let structLayout = computeStructLayout(struct_id, type_params);
 
         for field in structLayout.fields {
-            let ty = Type::fromBytecodeType(field.ty);
-            let inst = graph::createLoadMemoryInst(src, srcOffset + field.offset, ty);
-            self.current().appendInst(inst);
-            let inst = graph::createStoreMemoryInst(dest, destOffset + field.offset, inst, ty);
-            self.current().appendInst(inst);
+            self.copyValue(field.ty, dest, destOffset + field.offset, src, srcOffset + field.offset);
         }
     }
 

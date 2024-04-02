@@ -872,6 +872,14 @@ fn computeTypeSize(ty: BytecodeType): (Int32, Int32) {
         | BytecodeType::Char => (4i32, 4i32),
         BytecodeType::Int64
         | BytecodeType::Float64 => (8i32, 8i32),
+        BytecodeType::Struct(struct_id, type_params) => {
+            let layout = computeStructLayout(struct_id, type_params);
+            (layout.size, layout.alignment)
+        },
+        BytecodeType::Tuple(subtypes) => {
+            let layout = computeTupleLayout(subtypes);
+            (layout.size, layout.alignment)
+        },
         _ => unreachable[(Int32, Int32)](),
     }
 }
