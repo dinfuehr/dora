@@ -5,7 +5,7 @@ use package::bytecode::opcode as opc;
 use package::graph;
 use package::graph::{Block, Graph, Inst, InstExtraData, Op};
 use package::graph::ty::Type;
-use package::graph::{ClassInfo, FieldInfo, FunctionInfo, CallKind, VirtualFunctionInfo, LambdaFunctionInfo, StructInfo, TupleInfo, TraitObjectInfo};
+use package::graph::{ClassInfo, FunctionInfo, CallKind, VirtualFunctionInfo, LambdaFunctionInfo, StructInfo, TupleInfo, TraitObjectInfo};
 use package::bytecode::data::{BytecodeFunction, BytecodeRegister, BytecodeType, ClassId, FctId, FieldId};
 use package::bytecode::data::{ConstPoolId, ConstPoolEntry, GlobalId, StructId, StructFieldId, TraitId};
 use package::bytecode::instruction::BytecodeInstruction;
@@ -572,28 +572,21 @@ impl SsaGen {
 
     fn emitLoadField(dest: BytecodeRegister, obj: BytecodeRegister, idx: ConstPoolId) {
         let objInst = self.readVariable(obj, self.current());
-        let destType = self.regGraphTy(dest);
+        let destType = self.reg(dest);
 
         let (cls_id, type_params, field_id) = match self.bc.constPool(idx) {
             ConstPoolEntry::Field(cls_id, type_params, field_id) => (cls_id, type_params, field_id),
             _ => unreachable[(ClassId, Array[BytecodeType], FieldId)](),
         };
 
-        let info = FieldInfo(
-            cls_id,
-            type_params,
-            field_id,
-        );
-        let info = InstExtraData::FieldInfo(info);
-        let destInst = graph::createLoadFieldInst(objInst, info, destType);
-        destInst.set_bytecode_position(self.offset);
-        self.current().appendInst(destInst);
-        self.writeVariable(dest, self.current(), destInst);
+        let offset = iface::getFieldOffset(cls_id, type_params, field_id);
+        let value = self.loadField(destType, objInst, offset);
+        self.writeVariable(dest, self.current(), value);
     }
 
     fn emitStoreField(src: BytecodeRegister, obj: BytecodeRegister, idx: ConstPoolId) {
         let srcInst = self.readVariable(src, self.current());
-        let srcType = self.regGraphTy(src);
+        let srcType = self.reg(src);
 
         let objInst = self.readVariable(obj, self.current());
 
@@ -602,15 +595,8 @@ impl SsaGen {
             _ => unreachable[(ClassId, Array[BytecodeType], FieldId)](),
         };
 
-        let info = FieldInfo(
-            cls_id,
-            type_params,
-            field_id,
-        );
-        let info = InstExtraData::FieldInfo(info);
-        let destInst = graph::createStoreFieldInst(objInst, info, srcInst, srcType);
-        destInst.set_bytecode_position(self.offset);
-        self.current().appendInst(destInst);
+        let offset = iface::getFieldOffset(cls_id, type_params, field_id);
+        self.storeField(srcType, objInst, offset, srcInst);
     }
 
     fn emitLoadStructField(dest: BytecodeRegister, src: BytecodeRegister, idx: ConstPoolId) {
@@ -1069,12 +1055,8 @@ impl SsaGen {
             let arg = self.readVariable(reg, self.current());
             let argTy = self.regGraphTy(reg);
 
-            let info = FieldInfo(
-                class_id,
-                type_params,
-                FieldId(field_id),
-            );
-            let info = InstExtraData::FieldInfo(info);
+            let offset = iface::getFieldOffset(class_id, type_params, FieldId(field_id));
+            let info = InstExtraData::FieldOffsetInfo(offset);
             let destInst = graph::createStoreFieldInst(objInst, info, arg, argTy);
             destInst.set_bytecode_position(self.offset);
             self.current().appendInst(destInst);
@@ -1159,7 +1141,7 @@ impl SsaGen {
             let field = structLayout.fields(idx);
             let arg = self.readVariable(reg, self.current());
 
-            self.setValue(field.ty, allocInst, field.offset, arg);
+            self.storeField(field.ty, allocInst, field.offset, arg);
 
             fieldId = fieldId + 1i32;
         }
@@ -1189,7 +1171,7 @@ impl SsaGen {
             let field = tupleLayout.fields(idx);
             let arg = self.readVariable(reg, self.current());
 
-            self.setValue(field.ty, allocInst, field.offset, arg);
+            self.storeField(field.ty, allocInst, field.offset, arg);
 
             fieldId = fieldId + 1i32;
         }
@@ -1213,7 +1195,43 @@ impl SsaGen {
         self.writeVariable(dest, self.current(), objInst);
     }
 
-    fn setValue(ty: BytecodeType, dest: Inst, destOffset: Int32, value: Inst) {
+    fn loadField(ty: BytecodeType, src: Inst, srcOffset: Int32): Inst {
+        if ty.isStruct() {
+            let (struct_id, type_params) = match ty {
+                BytecodeType::Struct(struct_id, type_params) => (struct_id, type_params),
+                _ => unreachable[(StructId, Array[BytecodeType])](),
+            };
+
+            let info = StructInfo(struct_id, type_params);
+            let info = InstExtraData::StructInfo(info);
+            let dest = graph::createAllocateStack(info);
+            self.current().appendInst(dest);
+            self.copyStruct(ty, dest, 0i32, src, srcOffset);
+            dest
+
+        } else if ty.isTuple() {
+            let subtypes = match ty {
+                BytecodeType::Tuple(subtypes) => subtypes,
+                _ => unreachable[Array[BytecodeType]](),
+            };
+
+            let info = TupleInfo(subtypes);
+            let info = InstExtraData::TupleInfo(info);
+            let dest = graph::createAllocateStack(info);
+            self.current().appendInst(dest);
+            self.copyTuple(ty, dest, 0i32, src, srcOffset);
+            dest
+
+        } else {
+            let ty = Type::fromBytecodeType(ty);
+            let inst = graph::createLoadMemoryInst(src, srcOffset, ty);
+            inst.set_bytecode_position(self.offset);
+            self.current().appendInst(inst);
+            inst
+        }
+    }
+
+    fn storeField(ty: BytecodeType, dest: Inst, destOffset: Int32, value: Inst) {
         if ty.isStruct() {
             self.copyStruct(ty, dest, destOffset, value, 0i32);
         } else if ty.isTuple() {
@@ -1225,7 +1243,7 @@ impl SsaGen {
         }
     }
 
-    fn copyValue(ty: BytecodeType, dest: Inst, destOffset: Int32, src: Inst, srcOffset: Int32) {
+    fn copyField(ty: BytecodeType, dest: Inst, destOffset: Int32, src: Inst, srcOffset: Int32) {
         if ty.isStruct() {
             self.copyStruct(ty, dest, destOffset, src, srcOffset);
         } else if ty.isTuple() {
@@ -1248,7 +1266,7 @@ impl SsaGen {
         let tupleLayout = computeTupleLayout(subtypes);
 
         for field in tupleLayout.fields {
-            self.copyValue(field.ty, dest, destOffset + field.offset, src, srcOffset + field.offset);
+            self.copyField(field.ty, dest, destOffset + field.offset, src, srcOffset + field.offset);
         }
     }
 
@@ -1261,7 +1279,7 @@ impl SsaGen {
         let structLayout = computeStructLayout(struct_id, type_params);
 
         for field in structLayout.fields {
-            self.copyValue(field.ty, dest, destOffset + field.offset, src, srcOffset + field.offset);
+            self.copyField(field.ty, dest, destOffset + field.offset, src, srcOffset + field.offset);
         }
     }
 

@@ -1,0 +1,12 @@
+//= boots
+
+fn main() {
+    let bar = f(Foo(Bar(1, 2)));
+    assert(bar.a == 1);
+    assert(bar.b == 2);
+}
+
+class Foo(bar: Bar)
+struct Bar(a: Int64, b: Int64)
+
+@optimizeImmediately fn f(x: Foo): Bar { x.bar }

@@ -1105,10 +1105,7 @@ impl CodeGen for CodeGenX64 {
     }
 
     fn emitLoadField(inst: Inst) {
-        let offset = if inst.hasFieldInfo() {
-            let field_info = inst.getFieldInfo();
-            getFieldOffset(field_info.cls_id, field_info.type_params, field_info.field_id)
-        } else if inst.hasFieldOffsetInfo() {
+        let offset = if inst.hasFieldOffsetInfo() {
             inst.getFieldOffsetInfo()
         } else {
             unreachable[Int32]()
@@ -1152,10 +1149,7 @@ impl CodeGen for CodeGenX64 {
     }
 
     fn emitStoreField(inst: Inst) {
-        let offset = if inst.hasFieldInfo() {
-            let field_info = inst.getFieldInfo();
-            getFieldOffset(field_info.cls_id, field_info.type_params, field_info.field_id)
-        } else if inst.hasFieldOffsetInfo() {
+        let offset = if inst.hasFieldOffsetInfo() {
             inst.getFieldOffsetInfo()
         } else {
             unreachable[Int32]()
@@ -1581,7 +1575,8 @@ impl CodeGen for CodeGenX64 {
             Type::Ptr => {
                 let src = loc.getInput(1).getRegister();
                 self.asm.movq_ar(AsmAddress::offset(obj, offset), src);
-                if config.needsWriteBarrier {
+                let objTy = inst.getInput(0).getValue().getValueType();
+                if config.needsWriteBarrier && objTy == Type::Ptr {
                     self.emitWriteBarrier(obj, src, loc.getRegisterTrackers());
                 }
             },

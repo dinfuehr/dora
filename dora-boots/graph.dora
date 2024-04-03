@@ -982,17 +982,6 @@ impl Inst {
         }
     }
 
-    pub fn hasFieldInfo(): Bool {
-        self.extra.isFieldInfo()
-    }
-
-    pub fn getFieldInfo(): FieldInfo {
-        match self.extra {
-            InstExtraData::FieldInfo(info) => info,
-            _ => unreachable[FieldInfo](),
-        }
-    }
-
     pub fn hasStructInfo(): Bool {
         self.extra.isStructInfo()
     }
@@ -1255,6 +1244,7 @@ impl Inst {
         match self.op() {
             Op::StoreField |
             Op::StoreArray |
+            Op::StoreMemory |
             Op::NewObject |
             Op::NewLambda |
             Op::EnsureGlobalInitialized => true,
@@ -1473,7 +1463,6 @@ impl Stringable for Inst {
 
 pub enum InstExtraData {
     None,
-    FieldInfo(FieldInfo),
     FieldOffsetInfo(Int32),
     FunctionInfo(FunctionInfo),
     VirtualFunctionInfo(VirtualFunctionInfo),
@@ -1498,13 +1487,6 @@ impl InstExtraData {
     fn isFunctionInfo(): Bool {
         match self {
             InstExtraData::FunctionInfo(_) => true,
-            _ => false,
-        }
-    }
-
-    fn isFieldInfo(): Bool {
-        match self {
-            InstExtraData::FieldInfo(_) => true,
             _ => false,
         }
     }
@@ -2258,12 +2240,6 @@ pub fn createArrayLength(array: Inst): Inst {
     inst._op = Some(Op::ArrayLength);
     inst.addInput(array);
     inst
-}
-
-pub class FieldInfo {
-    pub cls_id: ClassId,
-    pub type_params: Array[BytecodeType],
-    pub field_id: FieldId,
 }
 
 pub class FunctionInfo {
