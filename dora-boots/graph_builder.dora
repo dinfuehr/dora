@@ -11,7 +11,7 @@ use package::bytecode::data::{ConstPoolId, ConstPoolEntry, GlobalId, StructId, S
 use package::bytecode::instruction::BytecodeInstruction;
 use package::bytecode::reader::BytecodeIterator;
 use package::interface as iface;
-use package::interface::CompilationInfo;
+use package::interface::{config, CompilationInfo};
 use package::regalloc::{computeStructLayout, computeTupleLayout};
 
 pub fn createGraph(ci: CompilationInfo): Graph {
@@ -596,7 +596,7 @@ impl SsaGen {
         };
 
         let offset = iface::getFieldOffset(cls_id, type_params, field_id);
-        self.storeField(srcType, objInst, offset, srcInst);
+        self.storeField(srcType, objInst, offset, srcInst, true);
     }
 
     fn emitLoadStructField(dest: BytecodeRegister, src: BytecodeRegister, idx: ConstPoolId) {
@@ -610,7 +610,7 @@ impl SsaGen {
 
         let structLayout = computeStructLayout(struct_id, type_params);
         let field = structLayout.fields(field_id.value.toInt64());
-        let destInst = graph::createLoadMemoryInst(srcInst, field.offset, destType);
+        let destInst = graph::createLoadInst(srcInst, field.offset, destType);
         self.current().appendInst(destInst);
         self.writeVariable(dest, self.current(), destInst);
     }
@@ -633,7 +633,7 @@ impl SsaGen {
 
         let tupleLayout = computeTupleLayout(subtypes);
         let offset = tupleLayout.fields(subtype_idx.toInt64()).offset;
-        let destInst = graph::createLoadMemoryInst(srcInst, offset, destType);
+        let destInst = graph::createLoadInst(srcInst, offset, destType);
         self.current().appendInst(destInst);
         self.writeVariable(dest, self.current(), destInst);
     }
@@ -834,13 +834,13 @@ impl SsaGen {
         } else if ty.isStruct() {
             let src = self.readVariable(opnd, self.current());
             let dest = self.returnValueArgInst.getOrPanic();
-            self.copyStruct(ty, dest, 0i32, src, 0i32);
+            self.copyStruct(ty, dest, 0i32, src, 0i32, false);
             let inst = graph::createReturnVoidInst();
             self.current().appendInst(inst);
         } else if ty.isTuple() {
             let src = self.readVariable(opnd, self.current());
             let dest = self.returnValueArgInst.getOrPanic();
-            self.copyTuple(ty, dest, 0i32, src, 0i32);
+            self.copyTuple(ty, dest, 0i32, src, 0i32, false);
             let inst = graph::createReturnVoidInst();
             self.current().appendInst(inst);
         } else {
@@ -1141,7 +1141,7 @@ impl SsaGen {
             let field = structLayout.fields(idx);
             let arg = self.readVariable(reg, self.current());
 
-            self.storeField(field.ty, allocInst, field.offset, arg);
+            self.storeField(field.ty, allocInst, field.offset, arg, false);
 
             fieldId = fieldId + 1i32;
         }
@@ -1171,7 +1171,7 @@ impl SsaGen {
             let field = tupleLayout.fields(idx);
             let arg = self.readVariable(reg, self.current());
 
-            self.storeField(field.ty, allocInst, field.offset, arg);
+            self.storeField(field.ty, allocInst, field.offset, arg, false);
 
             fieldId = fieldId + 1i32;
         }
@@ -1206,7 +1206,7 @@ impl SsaGen {
             let info = InstExtraData::StructInfo(info);
             let dest = graph::createAllocateStack(info);
             self.current().appendInst(dest);
-            self.copyStruct(ty, dest, 0i32, src, srcOffset);
+            self.copyStruct(ty, dest, 0i32, src, srcOffset, false);
             dest
 
         } else if ty.isTuple() {
@@ -1219,45 +1219,50 @@ impl SsaGen {
             let info = InstExtraData::TupleInfo(info);
             let dest = graph::createAllocateStack(info);
             self.current().appendInst(dest);
-            self.copyTuple(ty, dest, 0i32, src, srcOffset);
+            self.copyTuple(ty, dest, 0i32, src, srcOffset, false);
             dest
 
         } else {
             let ty = Type::fromBytecodeType(ty);
-            let inst = graph::createLoadMemoryInst(src, srcOffset, ty);
+            let inst = graph::createLoadInst(src, srcOffset, ty);
             inst.set_bytecode_position(self.offset);
             self.current().appendInst(inst);
             inst
         }
     }
 
-    fn storeField(ty: BytecodeType, dest: Inst, destOffset: Int32, value: Inst) {
+    fn storeField(ty: BytecodeType, dest: Inst, destOffset: Int32, value: Inst, heap: Bool) {
         if ty.isStruct() {
-            self.copyStruct(ty, dest, destOffset, value, 0i32);
+            self.copyStruct(ty, dest, destOffset, value, 0i32, heap);
         } else if ty.isTuple() {
-            self.copyTuple(ty, dest, destOffset, value, 0i32);
+            self.copyTuple(ty, dest, destOffset, value, 0i32, heap);
+        } else if heap && config.needsWriteBarrier && ty.isPtr() {
+            let ty = Type::fromBytecodeType(ty);
+            let inst = graph::createStoreInst(dest, destOffset, value, ty);
+            self.current().appendInst(inst);
         } else {
             let ty = Type::fromBytecodeType(ty);
-            let inst = graph::createStoreMemoryInst(dest, destOffset, value, ty);
+            let inst = graph::createStoreInst(dest, destOffset, value, ty);
             self.current().appendInst(inst);
         }
     }
 
-    fn copyField(ty: BytecodeType, dest: Inst, destOffset: Int32, src: Inst, srcOffset: Int32) {
+    fn copyField(ty: BytecodeType, dest: Inst, destOffset: Int32, src: Inst, srcOffset: Int32, heap: Bool) {
         if ty.isStruct() {
-            self.copyStruct(ty, dest, destOffset, src, srcOffset);
+            self.copyStruct(ty, dest, destOffset, src, srcOffset, heap);
         } else if ty.isTuple() {
-            self.copyTuple(ty, dest, destOffset, src, srcOffset);
+            self.copyTuple(ty, dest, destOffset, src, srcOffset, heap);
         } else {
             let ty = Type::fromBytecodeType(ty);
-            let inst = graph::createLoadMemoryInst(src, srcOffset, ty);
+            let inst = graph::createLoadInst(src, srcOffset, ty);
             self.current().appendInst(inst);
-            let inst = graph::createStoreMemoryInst(dest, destOffset, inst, ty);
+            let inst = graph::createStoreInst(dest, destOffset, inst, ty);
             self.current().appendInst(inst);
+            assert(!heap);
         }
     }
 
-    fn copyTuple(ty: BytecodeType, dest: Inst, destOffset: Int32, src: Inst, srcOffset: Int32) {
+    fn copyTuple(ty: BytecodeType, dest: Inst, destOffset: Int32, src: Inst, srcOffset: Int32, heap: Bool) {
         let subtypes = match ty {
             BytecodeType::Tuple(subtypes) => subtypes,
             _ => unreachable[Array[BytecodeType]](),
@@ -1266,11 +1271,11 @@ impl SsaGen {
         let tupleLayout = computeTupleLayout(subtypes);
 
         for field in tupleLayout.fields {
-            self.copyField(field.ty, dest, destOffset + field.offset, src, srcOffset + field.offset);
+            self.copyField(field.ty, dest, destOffset + field.offset, src, srcOffset + field.offset, heap);
         }
     }
 
-    fn copyStruct(ty: BytecodeType, dest: Inst, destOffset: Int32, src: Inst, srcOffset: Int32) {
+    fn copyStruct(ty: BytecodeType, dest: Inst, destOffset: Int32, src: Inst, srcOffset: Int32, heap: Bool) {
         let (struct_id, type_params) = match ty {
             BytecodeType::Struct(struct_id, type_params) => (struct_id, type_params),
             _ => unreachable[(StructId, Array[BytecodeType])](),
@@ -1279,7 +1284,7 @@ impl SsaGen {
         let structLayout = computeStructLayout(struct_id, type_params);
 
         for field in structLayout.fields {
-            self.copyField(field.ty, dest, destOffset + field.offset, src, srcOffset + field.offset);
+            self.copyField(field.ty, dest, destOffset + field.offset, src, srcOffset + field.offset, heap);
         }
     }
 

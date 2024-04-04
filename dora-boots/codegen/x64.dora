@@ -1510,7 +1510,7 @@ impl CodeGen for CodeGenX64 {
         self.asm.addq_ri(dest, Immediate(loc.getStackSlot().toInt64()));
     }
 
-    fn emitLoadMemory(inst: Inst) {
+    fn emitLoad(inst: Inst) {
         let loc = inst.getLocationData();
         let src = loc.getInput(0).getRegister();
         let offset = inst.getOffset();
@@ -1549,7 +1549,7 @@ impl CodeGen for CodeGenX64 {
         }
     }
 
-    fn emitStoreMemory(inst: Inst) {
+    fn emitStore(inst: Inst) {
         let loc = inst.getLocationData();
         let obj = loc.getInput(0).getRegister();
 
@@ -1595,6 +1595,21 @@ impl CodeGen for CodeGenX64 {
                 unimplemented();
             }
         }
+    }
+
+    fn emitStoreWb(inst: Inst) {
+        let loc = inst.getLocationData();
+        let obj = loc.getInput(0).getRegister();
+        let offset = inst.getOffset();
+
+        let ty = inst.getOperationType();
+        assert(ty == Type::Ptr);
+        assert(config.needsWriteBarrier);
+
+        let src = loc.getInput(1).getRegister();
+        self.asm.movq_ar(AsmAddress::offset(obj, offset), src);
+        let objTy = inst.getInput(0).getValue().getValueType();
+        self.emitWriteBarrier(obj, src, loc.getRegisterTrackers());
     }
 
     fn finalize(): CodeDescriptor {

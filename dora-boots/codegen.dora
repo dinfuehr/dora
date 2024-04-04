@@ -277,14 +277,19 @@ fn emitInst(codegen: CodeGen, inst: Inst) {
             codegen.emitAllocateStack(inst);
         },
 
-        Op::LoadMemory => {
-            codegen.emitComment("LoadMemory");
-            codegen.emitLoadMemory(inst);
+        Op::Load => {
+            codegen.emitComment("Load");
+            codegen.emitLoad(inst);
         },
 
-        Op::StoreMemory => {
-            codegen.emitComment("StoreMemory");
-            codegen.emitStoreMemory(inst);
+        Op::Store => {
+            codegen.emitComment("Store");
+            codegen.emitStore(inst);
+        },
+
+        Op::StoreWb => {
+            codegen.emitComment("StoreWb");
+            codegen.emitStoreWb(inst);
         },
 
         _ => {
@@ -371,8 +376,9 @@ pub trait CodeGen {
     fn emitMarkGlobalInitialized(inst: Inst);
     fn emitThreadCurrent(inst: Inst);
     fn emitAllocateStack(inst: Inst);
-    fn emitLoadMemory(inst: Inst);
-    fn emitStoreMemory(inst: Inst);
+    fn emitLoad(inst: Inst);
+    fn emitStore(inst: Inst);
+    fn emitStoreWb(inst: Inst);
 
     fn emitComment(comment: String);
 }

@@ -257,7 +257,7 @@ impl LocationAnnotation {
                 useOutputRegister(inst, false);
             },
 
-            Op::LoadMemory => {
+            Op::Load => {
                 useInputRegister(inst, 0);
 
                 if inst.getValueType().isAnyFloat() {
@@ -267,7 +267,7 @@ impl LocationAnnotation {
                 }
             },
 
-            Op::StoreMemory => {
+            Op::Store => {
                 useInputRegister(inst, 0);
 
                 if inst.getOperationType().isAnyFloat() {

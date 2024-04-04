@@ -641,8 +641,9 @@ pub enum Op {
     NewLambda,
 
     AllocateStack,
-    LoadMemory,
-    StoreMemory,
+    Load,
+    Store,
+    StoreWb,
 
     ThreadCurrent,
 }
@@ -744,8 +745,9 @@ pub fn opName(op: Op): String {
         Op::NewArray => "NewArray",
         Op::NewLambda => "NewLambda",
         Op::AllocateStack => "AllocateStack",
-        Op::LoadMemory => "LoadMemory",
-        Op::StoreMemory => "StoreMemory",
+        Op::Load => "Load",
+        Op::Store => "Store",
+        Op::StoreWb => "StoreWb",
         Op::ThreadCurrent => "ThreadCurrent",
     }
 }
@@ -923,8 +925,8 @@ impl Inst {
             Op::NewArray => Type::Ptr,
             Op::NewLambda => Type::Ptr,
             Op::AllocateStack => Type::Address,
-            Op::LoadMemory => self.ty,
-            Op::StoreMemory => unreachable[Type](),
+            Op::Load => self.ty,
+            Op::Store | Op::StoreWb => unreachable[Type](),
             Op::ThreadCurrent => Type::Ptr,
         }
     }
@@ -941,7 +943,7 @@ impl Inst {
             | Op::StoreField
             | Op::StoreArray
             | Op::EnsureGlobalInitialized
-            | Op::StoreMemory => self.ty,
+            | Op::Store => self.ty,
             _ => self.getValueType(),
         }
     }
@@ -1244,7 +1246,7 @@ impl Inst {
         match self.op() {
             Op::StoreField |
             Op::StoreArray |
-            Op::StoreMemory |
+            Op::Store |
             Op::NewObject |
             Op::NewLambda |
             Op::EnsureGlobalInitialized => true,
@@ -1267,7 +1269,7 @@ impl Inst {
     }
 
     pub fn getOffset(): Int32 {
-        assert(self.op() == Op::LoadMemory || self.op() == Op::StoreMemory);
+        assert(self.op() == Op::Load || self.op() == Op::Store  || self.op() == Op::StoreWb);
         self.aux.toInt32()
     }
 
@@ -1436,8 +1438,8 @@ impl Inst {
             Op::NewArray => false,
             Op::NewLambda => false,
             Op::AllocateStack => false,
-            Op::LoadMemory => false,
-            Op::StoreMemory => true,
+            Op::Load => false,
+            Op::Store | Op::StoreWb => true,
             Op::ThreadCurrent => false,
         }
     }
@@ -2395,18 +2397,29 @@ pub fn createAllocateStack(extra: InstExtraData): Inst {
     inst
 }
 
-pub fn createLoadMemoryInst(obj: Inst, field: Int32, ty: Type): Inst {
+pub fn createLoadInst(obj: Inst, field: Int32, ty: Type): Inst {
     let inst = Inst::new();
-    inst._op = Some(Op::LoadMemory);
+    inst._op = Some(Op::Load);
     inst.ty = ty;
     inst.addInput(obj);
     inst.aux = field.toInt64();
     inst
 }
 
-pub fn createStoreMemoryInst(obj: Inst, field: Int32, value: Inst, ty: Type): Inst {
+pub fn createStoreInst(obj: Inst, field: Int32, value: Inst, ty: Type): Inst {
     let inst = Inst::new();
-    inst._op = Some(Op::StoreMemory);
+    inst._op = Some(Op::Store);
+    inst.aux = field.toInt64();
+    inst.addInput(obj);
+    inst.addInput(value);
+    inst.ty = ty;
+
+    inst
+}
+
+pub fn createStoreWbInst(obj: Inst, field: Int32, value: Inst, ty: Type): Inst {
+    let inst = Inst::new();
+    inst._op = Some(Op::Store);
     inst.aux = field.toInt64();
     inst.addInput(obj);
     inst.addInput(value);

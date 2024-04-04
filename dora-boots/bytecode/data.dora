@@ -196,6 +196,13 @@ impl BytecodeType {
         }
     }
 
+    pub fn isPtr(): Bool {
+        match self {
+            BytecodeType::Ptr => true,
+            _ => false,
+        }
+    }
+
     pub fn isGeneric(): Bool {
         match self {
             BytecodeType::Unit
