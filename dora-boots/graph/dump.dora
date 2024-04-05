@@ -320,9 +320,9 @@ fn dumpInstName(inst: Inst): String {
         Op::NewArray => "NewArray",
         Op::NewLambda => "NewLambda",
         Op::AllocateStack => "AllocateStack",
-        Op::Load => "LoadMemory(${inst.getOffset()})",
-        Op::Store => "StoreMemory(${inst.getOffset()})",
-        Op::StoreWb => "StoreMemory(${inst.getOffset()})",
+        Op::Load => "Load(${inst.getOffset()})",
+        Op::Store => "Store(${inst.getOffset()})",
+        Op::StoreWb => "StoreWb(${inst.getOffset()})",
         Op::ThreadCurrent => "ThreadCurrent",
     }
 }

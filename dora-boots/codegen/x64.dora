@@ -1171,17 +1171,9 @@ impl CodeGen for CodeGenX64 {
                 self.asm.movl_ar(AsmAddress::offset(obj, offset), src);
             },
 
-            Type::Int64 => {
+            Type::Int64 | Type::Ptr => {
                 let src = loc.getInput(1).getRegister();
                 self.asm.movq_ar(AsmAddress::offset(obj, offset), src);
-            },
-
-            Type::Ptr => {
-                let src = loc.getInput(1).getRegister();
-                self.asm.movq_ar(AsmAddress::offset(obj, offset), src);
-                if config.needsWriteBarrier {
-                    self.emitWriteBarrier(obj, src, loc.getRegisterTrackers());
-                }
             },
 
             Type::Float32 => {

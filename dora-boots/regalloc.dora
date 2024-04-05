@@ -215,6 +215,7 @@ impl SimpleRegisterAllocator {
                 assert(inst.op() == Op::StoreField
                        || inst.op() == Op::StoreArray
                        || inst.op() == Op::Store
+                       || inst.op() == Op::StoreWb
                        || inst.op() == Op::EnsureGlobalInitialized);
                 assert(!inst.getLocationData().hasOutput());
                 self.snapshotRegisters(inst);

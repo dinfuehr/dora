@@ -1589,17 +1589,9 @@ impl CodeGen for CodeGenArm64 {
                 self.asm.str_imm_w(src, obj, offset);
             },
 
-            Type::Int64 => {
+            Type::Int64 | Type::Ptr => {
                 let src = loc.getInput(1).getRegister();
                 self.asm.str_imm(src, obj, offset);
-            },
-
-            Type::Ptr => {
-                let src = loc.getInput(1).getRegister();
-                self.asm.str_imm(src, obj, offset);
-                if config.needsWriteBarrier {
-                    self.emitWriteBarrier(obj, src, REG_TEMP, loc.getRegisterTrackers());
-                }
             },
 
             Type::Float32 => {
