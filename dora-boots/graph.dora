@@ -627,7 +627,6 @@ pub enum Op {
     ArrayLength,
 
     LoadField,
-    StoreField,
     Arg,
 
     LoadArray,
@@ -735,7 +734,6 @@ pub fn opName(op: Op): String {
         Op::DivZeroCheck => "DivZeroCheck",
         Op::ArrayLength => "ArrayLength",
         Op::LoadField => "LoadField",
-        Op::StoreField => "StoreField",
         Op::LoadArray => "LoadArray",
         Op::StoreArray => "StoreArray",
         Op::Arg => "Arg",
@@ -915,7 +913,6 @@ impl Inst {
             Op::DivZeroCheck => unreachable[Type](),
             Op::ArrayLength => Type::Int64,
             Op::LoadField => self.ty,
-            Op::StoreField => unreachable[Type](),
             Op::LoadArray => self.ty,
             Op::StoreArray => unreachable[Type](),
             Op::Arg => self.ty,
@@ -940,7 +937,6 @@ impl Inst {
             | Op::GreaterOrEqual
             | Op::Less
             | Op::LessOrEqual
-            | Op::StoreField
             | Op::StoreArray
             | Op::EnsureGlobalInitialized
             | Op::Store
@@ -1245,7 +1241,6 @@ impl Inst {
 
     pub fn needsRegisterSnapshot(): Bool {
         match self.op() {
-            Op::StoreField |
             Op::StoreArray |
             Op::Store |
             Op::StoreWb |
@@ -1430,7 +1425,6 @@ impl Inst {
             Op::DivZeroCheck => true,
             Op::ArrayLength => false,
             Op::LoadField => false,
-            Op::StoreField => true,
             Op::LoadArray => false,
             Op::StoreArray => true,
             Op::Arg => false,
@@ -2287,16 +2281,6 @@ pub fn createLoadFieldInst(obj: Inst, field: InstExtraData, ty: Type): Inst {
     inst._op = Some(Op::LoadField);
     inst.ty = ty;
     inst.addInput(obj);
-    inst.extra = field;
-    inst
-}
-
-pub fn createStoreFieldInst(obj: Inst, field: InstExtraData, value: Inst, ty: Type): Inst {
-    let inst = Inst::new();
-    inst._op = Some(Op::StoreField);
-    inst.ty = ty;
-    inst.addInput(obj);
-    inst.addInput(value);
     inst.extra = field;
     inst
 }

@@ -1148,50 +1148,6 @@ impl CodeGen for CodeGenX64 {
         }
     }
 
-    fn emitStoreField(inst: Inst) {
-        let offset = if inst.hasFieldOffsetInfo() {
-            inst.getFieldOffsetInfo()
-        } else {
-            unreachable[Int32]()
-        };
-
-        let loc = inst.getLocationData();
-        let obj = loc.getInput(0).getRegister();
-
-        let ty = inst.getOperationType();
-
-        match ty {
-            Type::Bool | Type::UInt8 => {
-                let src = loc.getInput(1).getRegister();
-                self.asm.movb_ar(AsmAddress::offset(obj, offset), src);
-            },
-
-            Type::Int32 => {
-                let src = loc.getInput(1).getRegister();
-                self.asm.movl_ar(AsmAddress::offset(obj, offset), src);
-            },
-
-            Type::Int64 | Type::Ptr => {
-                let src = loc.getInput(1).getRegister();
-                self.asm.movq_ar(AsmAddress::offset(obj, offset), src);
-            },
-
-            Type::Float32 => {
-                let src = loc.getInput(1).getFloatRegister();
-                self.asm.movss_ar(AsmAddress::offset(obj, offset), src);
-            },
-
-            Type::Float64 => {
-                let src = loc.getInput(1).getFloatRegister();
-                self.asm.movsd_ar(AsmAddress::offset(obj, offset), src);
-            },
-
-            _ => {
-                unimplemented();
-            }
-        }
-    }
-
     fn emitArrayLength(inst: Inst) {
         let loc = inst.getLocationData();
         let arr = loc.getInput(0).getRegister();

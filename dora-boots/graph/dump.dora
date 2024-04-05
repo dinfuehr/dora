@@ -310,7 +310,6 @@ fn dumpInstName(inst: Inst): String {
         Op::DivZeroCheck => "DivZeroCheck",
         Op::ArrayLength => "ArrayLength",
         Op::LoadField => "LoadField.${inst.getValueType()}",
-        Op::StoreField => "StoreField",
         Op::LoadArray => "LoadArray.${inst.getValueType()}",
         Op::StoreArray => "StoreArray",
         Op::Arg => "Arg.${inst.getValueType()}(${inst.getArgIndex()})",

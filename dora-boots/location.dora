@@ -169,18 +169,6 @@ impl LocationAnnotation {
                 }
             },
 
-            Op::StoreField => {
-                useInputRegister(inst, 0);
-
-                if inst.getOperationType().isAnyFloat() {
-                    useInputFloatRegister(inst, 1);
-                } else {
-                    useInputRegister(inst, 1);
-                }
-
-                setOutputOverlaps(inst, false);
-            },
-
             Op::ArrayLength => {
                 useInputRegister(inst, 0);
                 useOutputRegister(inst, true);

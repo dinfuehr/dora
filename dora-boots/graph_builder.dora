@@ -1053,14 +1053,10 @@ impl SsaGen {
 
         for reg in self.pushed_registers {
             let arg = self.readVariable(reg, self.current());
-            let argTy = self.regGraphTy(reg);
+            let argTy = self.reg(reg);
 
             let offset = iface::getFieldOffset(class_id, type_params, FieldId(field_id));
-            let info = InstExtraData::FieldOffsetInfo(offset);
-            let destInst = graph::createStoreFieldInst(objInst, info, arg, argTy);
-            destInst.set_bytecode_position(self.offset);
-            self.current().appendInst(destInst);
-
+            self.storeField(argTy, objInst, offset, arg, true);
             field_id = field_id + 1i32;
         }
 
@@ -1085,12 +1081,10 @@ impl SsaGen {
             assert(self.pushed_registers.size() == 1);
             let reg = self.pushed_registers.first().getOrPanic();
             let arg = self.readVariable(reg, self.current());
-            let argTy = self.regGraphTy(reg);
+            let argTy = self.reg(reg);
 
-            let info = InstExtraData::FieldOffsetInfo(iface::OBJECT_HEADER_LENGTH);
-            let destInst = graph::createStoreFieldInst(objInst, info, arg, argTy);
-            destInst.set_bytecode_position(self.offset);
-            self.current().appendInst(destInst);
+            let offset = iface::OBJECT_HEADER_LENGTH;
+            self.storeField(argTy, objInst, offset, arg, true);
         }
 
         self.pushed_registers.clear();
@@ -1110,13 +1104,11 @@ impl SsaGen {
 
         self.writeVariable(dest, self.current(), objInst);
 
-        let argInst = self.readVariable(obj, self.current());
-        let argTy = self.regGraphTy(obj);
+        let arg = self.readVariable(obj, self.current());
+        let argTy = self.reg(obj);
 
-        let info = InstExtraData::FieldOffsetInfo(iface::OBJECT_HEADER_LENGTH);
-        let storeInst = graph::createStoreFieldInst(objInst, info, argInst, argTy);
-        storeInst.set_bytecode_position(self.offset);
-        self.current().appendInst(storeInst);
+        let offset = iface::OBJECT_HEADER_LENGTH;
+        self.storeField(argTy, objInst, offset, arg, true);
     }
 
     fn emitNewStruct(dest: BytecodeRegister, idx: ConstPoolId) {

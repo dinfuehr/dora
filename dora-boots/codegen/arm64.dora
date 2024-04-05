@@ -1147,58 +1147,6 @@ impl CodeGen for CodeGenArm64 {
         }
     }
 
-    fn emitStoreField(inst: Inst) {
-        let offset = if inst.hasFieldOffsetInfo() {
-            inst.getFieldOffsetInfo()
-        } else {
-            unreachable[Int32]()
-        };
-
-        let loc = inst.getLocationData();
-        let obj = loc.getInput(0).getRegister();
-
-        let ty = inst.getOperationType();
-
-        match ty {
-            Type::Bool | Type::UInt8 => {
-                let src = loc.getInput(1).getRegister();
-                self.asm.strb_imm(src, obj, offset);
-            },
-
-            Type::Int32 => {
-                let src = loc.getInput(1).getRegister();
-                self.asm.str_imm_w(src, obj, offset);
-            },
-
-            Type::Int64 => {
-                let src = loc.getInput(1).getRegister();
-                self.asm.str_imm(src, obj, offset);
-            },
-
-            Type::Ptr => {
-                let src = loc.getInput(1).getRegister();
-                self.asm.str_imm(src, obj, offset);
-                if config.needsWriteBarrier {
-                    self.emitWriteBarrier(obj, src, REG_TEMP, loc.getRegisterTrackers());
-                }
-            },
-
-            Type::Float32 => {
-                let src = loc.getInput(1).getFloatRegister();
-                self.asm.str_imm_s(src, obj, offset);
-            },
-
-            Type::Float64 => {
-                let src = loc.getInput(1).getFloatRegister();
-                self.asm.str_imm_d(src, obj, offset);
-            },
-
-            _ => {
-                unimplemented();
-            }
-        }
-    }
-
     fn emitArrayLength(inst: Inst) {
         let loc = inst.getLocationData();
         let arr = loc.getInput(0).getRegister();

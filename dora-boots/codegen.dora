@@ -217,11 +217,6 @@ fn emitInst(codegen: CodeGen, inst: Inst) {
             codegen.emitLoadField(inst);
         },
 
-        Op::StoreField => {
-            codegen.emitComment("StoreField");
-            codegen.emitStoreField(inst);
-        },
-
         Op::ArrayLength => {
             codegen.emitComment("ArrayLength");
             codegen.emitArrayLength(inst);
@@ -364,7 +359,6 @@ pub trait CodeGen {
     fn emitInvokeVirtual(inst: Inst);
     fn emitInvokeLambda(inst: Inst);
     fn emitLoadField(inst: Inst);
-    fn emitStoreField(inst: Inst);
     fn emitArrayLength(inst: Inst);
     fn emitBoundsCheck(inst: Inst);
     fn emitLoadArray(inst: Inst);
