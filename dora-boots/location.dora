@@ -159,16 +159,6 @@ impl LocationAnnotation {
                 self.maxOutgoingArgsSize = Int32::max(self.maxOutgoingArgsSize, outgoingArgsSize);
             },
 
-            Op::LoadField => {
-                useInputRegister(inst, 0);
-
-                if inst.getValueType().isAnyFloat() {
-                    useOutputFloatRegister(inst, true);
-                } else {
-                    useOutputRegister(inst, true);
-                }
-            },
-
             Op::ArrayLength => {
                 useInputRegister(inst, 0);
                 useOutputRegister(inst, true);

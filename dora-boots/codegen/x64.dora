@@ -1104,50 +1104,6 @@ impl CodeGen for CodeGenX64 {
         self.emitVirtualCall(obj, REG_TEMP, tmp, inst, 0i32, site);
     }
 
-    fn emitLoadField(inst: Inst) {
-        let offset = if inst.hasFieldOffsetInfo() {
-            inst.getFieldOffsetInfo()
-        } else {
-            unreachable[Int32]()
-        };
-
-        let loc = inst.getLocationData();
-        let src = loc.getInput(0).getRegister();
-
-        let ty = inst.getValueType();
-
-        match ty {
-            Type::Bool | Type::UInt8 => {
-                let dest = loc.getOutput().getRegister();
-                self.asm.movb_ra(dest, AsmAddress::offset(src, offset));
-            },
-
-            Type::Int32 => {
-                let dest = loc.getOutput().getRegister();
-                self.asm.movl_ra(dest, AsmAddress::offset(src, offset));
-            },
-
-            Type::Ptr | Type::Int64 => {
-                let dest = loc.getOutput().getRegister();
-                self.asm.movq_ra(dest, AsmAddress::offset(src, offset));
-            },
-
-            Type::Float32 => {
-                let dest = loc.getOutput().getFloatRegister();
-                self.asm.movss_ra(dest, AsmAddress::offset(src, offset));
-            },
-
-            Type::Float64 => {
-                let dest = loc.getOutput().getFloatRegister();
-                self.asm.movsd_ra(dest, AsmAddress::offset(src, offset));
-            },
-
-            _ => {
-                unimplemented();
-            }
-        }
-    }
-
     fn emitArrayLength(inst: Inst) {
         let loc = inst.getLocationData();
         let arr = loc.getInput(0).getRegister();

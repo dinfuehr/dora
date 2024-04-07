@@ -818,11 +818,10 @@ impl SsaGen {
         let srcInst = self.readVariable(src, self.current());
         let destType = self.regGraphTy(dest);
 
-        let info = InstExtraData::FieldOffsetInfo(iface::OBJECT_HEADER_LENGTH);
-        let loadInst = graph::createLoadFieldInst(srcInst, info, destType);
-        self.current().appendInst(loadInst);
+        let offset = iface::OBJECT_HEADER_LENGTH;
+        let value = self.loadField(BytecodeType::Ptr, srcInst, offset);
 
-        self.writeVariable(dest, self.current(), loadInst);
+        self.writeVariable(dest, self.current(), value);
     }
 
     fn emitRet(opnd: BytecodeRegister) {

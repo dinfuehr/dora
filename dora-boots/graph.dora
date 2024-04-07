@@ -626,7 +626,6 @@ pub enum Op {
     DivZeroCheck,
     ArrayLength,
 
-    LoadField,
     Arg,
 
     LoadArray,
@@ -733,7 +732,6 @@ pub fn opName(op: Op): String {
         Op::Phi => "Phi",
         Op::DivZeroCheck => "DivZeroCheck",
         Op::ArrayLength => "ArrayLength",
-        Op::LoadField => "LoadField",
         Op::LoadArray => "LoadArray",
         Op::StoreArray => "StoreArray",
         Op::Arg => "Arg",
@@ -912,7 +910,6 @@ impl Inst {
             Op::Phi => self.ty,
             Op::DivZeroCheck => unreachable[Type](),
             Op::ArrayLength => Type::Int64,
-            Op::LoadField => self.ty,
             Op::LoadArray => self.ty,
             Op::StoreArray => unreachable[Type](),
             Op::Arg => self.ty,
@@ -1424,7 +1421,6 @@ impl Inst {
             Op::Phi => true,
             Op::DivZeroCheck => true,
             Op::ArrayLength => false,
-            Op::LoadField => false,
             Op::LoadArray => false,
             Op::StoreArray => true,
             Op::Arg => false,
@@ -2274,15 +2270,6 @@ pub struct StructInfo {
 
 pub struct TupleInfo {
     pub subtypes: Array[BytecodeType],
-}
-
-pub fn createLoadFieldInst(obj: Inst, field: InstExtraData, ty: Type): Inst {
-    let inst = Inst::new();
-    inst._op = Some(Op::LoadField);
-    inst.ty = ty;
-    inst.addInput(obj);
-    inst.extra = field;
-    inst
 }
 
 pub fn createArgInst(index: Int32, ty: Type): Inst {

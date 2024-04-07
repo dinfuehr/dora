@@ -1103,50 +1103,6 @@ impl CodeGen for CodeGenArm64 {
         self.emitVirtualCall(obj, REG_TEMP, tmp, inst, 0i32, site);
     }
 
-    fn emitLoadField(inst: Inst) {
-        let offset = if inst.hasFieldOffsetInfo() {
-            inst.getFieldOffsetInfo()
-        } else {
-            unreachable[Int32]()
-        };
-
-        let loc = inst.getLocationData();
-        let src = loc.getInput(0).getRegister();
-
-        let ty = inst.getValueType();
-
-        match ty {
-            Type::Bool | Type::UInt8 => {
-                let dest = loc.getOutput().getRegister();
-                self.asm.ldrb_imm(dest, src, offset);
-            },
-
-            Type::Int32 => {
-                let dest = loc.getOutput().getRegister();
-                self.asm.ldr_imm_w(dest, src, offset);
-            },
-
-            Type::Ptr | Type::Int64 => {
-                let dest = loc.getOutput().getRegister();
-                self.asm.ldr_imm(dest, src, offset);
-            },
-
-            Type::Float32 => {
-                let dest = loc.getOutput().getFloatRegister();
-                self.asm.ldr_imm_s(dest, src, offset);
-            },
-
-            Type::Float64 => {
-                let dest = loc.getOutput().getFloatRegister();
-                self.asm.ldr_imm_d(dest, src, offset);
-            },
-
-            _ => {
-                unimplemented();
-            }
-        }
-    }
-
     fn emitArrayLength(inst: Inst) {
         let loc = inst.getLocationData();
         let arr = loc.getInput(0).getRegister();
