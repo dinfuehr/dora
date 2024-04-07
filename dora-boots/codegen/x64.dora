@@ -1186,17 +1186,9 @@ impl CodeGen for CodeGenX64 {
                 self.asm.movq_ar(AsmAddress::array(array, idx, ScaleFactor::Four, ARRAY_HEADER_LENGTH), value);
             },
 
-            Type::Int64 => {
+            Type::Int64 | Type::Ptr => {
                 let value = loc.getInput(2).getRegister();
                 self.asm.movq_ar(AsmAddress::array(array, idx, ScaleFactor::Eight, ARRAY_HEADER_LENGTH), value);
-            },
-
-            Type::Ptr => {
-                let value = loc.getInput(2).getRegister();
-                self.asm.movq_ar(AsmAddress::array(array, idx, ScaleFactor::Eight, ARRAY_HEADER_LENGTH), value);
-                if config.needsWriteBarrier {
-                    self.emitWriteBarrier(array, value, loc.getRegisterTrackers());
-                }
             },
 
             Type::Float32 => {
@@ -1471,18 +1463,9 @@ impl CodeGen for CodeGenX64 {
                 self.asm.movl_ar(AsmAddress::offset(obj, offset), src);
             },
 
-            Type::Int64 => {
+            Type::Int64 | Type::Ptr => {
                 let src = loc.getInput(1).getRegister();
                 self.asm.movq_ar(AsmAddress::offset(obj, offset), src);
-            },
-
-            Type::Ptr => {
-                let src = loc.getInput(1).getRegister();
-                self.asm.movq_ar(AsmAddress::offset(obj, offset), src);
-                let objTy = inst.getInput(0).getValue().getValueType();
-                if config.needsWriteBarrier && objTy == Type::Ptr {
-                    self.emitWriteBarrier(obj, src, loc.getRegisterTrackers());
-                }
             },
 
             Type::Float32 => {
@@ -1514,6 +1497,20 @@ impl CodeGen for CodeGenX64 {
         self.asm.movq_ar(AsmAddress::offset(obj, offset), src);
         let objTy = inst.getInput(0).getValue().getValueType();
         self.emitWriteBarrier(obj, src, loc.getRegisterTrackers());
+    }
+
+    fn emitStoreArrayWb(inst: Inst) {
+        let loc = inst.getLocationData();
+        let array = loc.getInput(0).getRegister();
+        let idx = loc.getInput(1).getRegister();
+
+        let ty = inst.getOperationType();
+        assert(ty == Type::Ptr);
+        assert(config.needsWriteBarrier);
+
+        let value = loc.getInput(2).getRegister();
+        self.asm.movq_ar(AsmAddress::array(array, idx, ScaleFactor::Eight, ARRAY_HEADER_LENGTH), value);
+        self.emitWriteBarrier(array, value, loc.getRegisterTrackers());
     }
 
     fn finalize(): CodeDescriptor {

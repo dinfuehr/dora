@@ -1192,19 +1192,10 @@ impl CodeGen for CodeGenArm64 {
                 self.asm.str_reg_w(value, REG_TEMP, idx, Extend::LSL, 2i32);
             },
 
-            Type::Int64 => {
+            Type::Int64 | Type::Ptr => {
                 let value = loc.getInput(2).getRegister();
                 self.asm.add_imm(REG_TEMP, array, ARRAY_HEADER_LENGTH);
                 self.asm.str_reg(value, REG_TEMP, idx, Extend::LSL, 3i32);
-            },
-
-            Type::Ptr => {
-                let value = loc.getInput(2).getRegister();
-                self.asm.add_imm(REG_TEMP, array, ARRAY_HEADER_LENGTH);
-                self.asm.str_reg(value, REG_TEMP, idx, Extend::LSL, 3i32);
-                if config.needsWriteBarrier {
-                    self.emitWriteBarrier(array, value, REG_TEMP, loc.getRegisterTrackers());
-                }
             },
 
             Type::Float32 => {
@@ -1526,6 +1517,21 @@ impl CodeGen for CodeGenArm64 {
         let src = loc.getInput(1).getRegister();
         self.asm.str_imm(src, obj, offset);
         self.emitWriteBarrier(obj, src, REG_TEMP, loc.getRegisterTrackers());
+    }
+
+    fn emitStoreArrayWb(inst: Inst) {
+        let loc = inst.getLocationData();
+        let array = loc.getInput(0).getRegister();
+        let idx = loc.getInput(1).getRegister();
+
+        let ty = inst.getOperationType();
+        assert(ty == Type::Ptr);
+        assert(config.needsWriteBarrier);
+
+        let value = loc.getInput(2).getRegister();
+        self.asm.add_imm(REG_TEMP, array, ARRAY_HEADER_LENGTH);
+        self.asm.str_reg(value, REG_TEMP, idx, Extend::LSL, 3i32);
+        self.emitWriteBarrier(array, value, REG_TEMP, loc.getRegisterTrackers());
     }
 
     fn finalize(): CodeDescriptor {

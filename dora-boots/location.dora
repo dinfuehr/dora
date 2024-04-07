@@ -263,6 +263,13 @@ impl LocationAnnotation {
                 setOutputOverlaps(inst, false);
             },
 
+            Op::StoreArrayWb => {
+                useInputRegister(inst, 0);
+                useInputRegister(inst, 1);
+                useInputRegister(inst, 2);
+                setOutputOverlaps(inst, false);
+            },
+
             _ => {
                 println("unsupported op ${inst.op().name()}");
                 unreachable[()]();

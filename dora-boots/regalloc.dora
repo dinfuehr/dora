@@ -212,8 +212,7 @@ impl SimpleRegisterAllocator {
             self.freeDeadTemps(inst);
 
             if inst.needsRegisterSnapshot() {
-                assert(inst.op() == Op::StoreArray
-                       || inst.op() == Op::Store
+                assert(inst.op() == Op::StoreArrayWb
                        || inst.op() == Op::StoreWb
                        || inst.op() == Op::EnsureGlobalInitialized);
                 assert(!inst.getLocationData().hasOutput());

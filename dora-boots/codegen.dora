@@ -282,6 +282,11 @@ fn emitInst(codegen: CodeGen, inst: Inst) {
             codegen.emitStoreWb(inst);
         },
 
+        Op::StoreArrayWb => {
+            codegen.emitComment("StoreArrayWb");
+            codegen.emitStoreArrayWb(inst);
+        },
+
         _ => {
             println("unsupported op ${inst.op().name()}");
             unreachable[()]();
@@ -367,6 +372,7 @@ pub trait CodeGen {
     fn emitLoad(inst: Inst);
     fn emitStore(inst: Inst);
     fn emitStoreWb(inst: Inst);
+    fn emitStoreArrayWb(inst: Inst);
 
     fn emitComment(comment: String);
 }

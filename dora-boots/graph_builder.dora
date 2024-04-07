@@ -802,6 +802,7 @@ impl SsaGen {
         let srcInst = self.readVariable(src, self.current());
         let arrInst = self.readVariable(arr, self.current());
         let idxInst = self.readVariable(idx, self.current());
+        let srcType = self.reg(src);
 
         let arrayLengthInst = graph::createArrayLength(arrInst);
         self.current().appendInst(arrayLengthInst);
@@ -810,8 +811,13 @@ impl SsaGen {
         boundsCheckInst.set_bytecode_position(self.offset);
         self.current().appendInst(boundsCheckInst);
 
-        let arrayStoreInst = graph::createStoreArrayInst(arrInst, idxInst, srcInst, srcInst.getValueType());
-        self.current().appendInst(arrayStoreInst);
+        if srcType.isPtr() && config.needsWriteBarrier {
+            let inst = graph::createStoreArrayWbInst(arrInst, idxInst, srcInst, srcInst.getValueType());
+            self.current().appendInst(inst);
+        } else {
+            let inst = graph::createStoreArrayInst(arrInst, idxInst, srcInst, srcInst.getValueType());
+            self.current().appendInst(inst);
+        }
     }
 
     fn emitLoadTraitObjectValue(dest: BytecodeRegister, src: BytecodeRegister) {

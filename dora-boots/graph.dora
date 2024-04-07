@@ -642,6 +642,7 @@ pub enum Op {
     Load,
     Store,
     StoreWb,
+    StoreArrayWb,
 
     ThreadCurrent,
 }
@@ -744,6 +745,7 @@ pub fn opName(op: Op): String {
         Op::Load => "Load",
         Op::Store => "Store",
         Op::StoreWb => "StoreWb",
+        Op::StoreArrayWb => "StoreArrayWb",
         Op::ThreadCurrent => "ThreadCurrent",
     }
 }
@@ -920,7 +922,7 @@ impl Inst {
             Op::NewLambda => Type::Ptr,
             Op::AllocateStack => Type::Address,
             Op::Load => self.ty,
-            Op::Store | Op::StoreWb => unreachable[Type](),
+            Op::Store | Op::StoreWb | Op::StoreArrayWb => unreachable[Type](),
             Op::ThreadCurrent => Type::Ptr,
         }
     }
@@ -937,7 +939,8 @@ impl Inst {
             | Op::StoreArray
             | Op::EnsureGlobalInitialized
             | Op::Store
-            | Op::StoreWb => self.ty,
+            | Op::StoreWb
+            | Op::StoreArrayWb => self.ty,
             _ => self.getValueType(),
         }
     }
@@ -1238,9 +1241,8 @@ impl Inst {
 
     pub fn needsRegisterSnapshot(): Bool {
         match self.op() {
-            Op::StoreArray |
-            Op::Store |
             Op::StoreWb |
+            Op::StoreArrayWb |
             Op::NewObject |
             Op::NewLambda |
             Op::EnsureGlobalInitialized => true,
@@ -1431,7 +1433,7 @@ impl Inst {
             Op::NewLambda => false,
             Op::AllocateStack => false,
             Op::Load => false,
-            Op::Store | Op::StoreWb => true,
+            Op::Store | Op::StoreWb | Op::StoreArrayWb => true,
             Op::ThreadCurrent => false,
         }
     }
@@ -2222,6 +2224,16 @@ pub fn createLoadArray(array: Inst, index: Inst, ty: Type): Inst {
 pub fn createStoreArrayInst(array: Inst, index: Inst, value: Inst, ty: Type): Inst {
     let inst = Inst::new();
     inst._op = Some(Op::StoreArray);
+    inst.ty = ty;
+    inst.addInput(array);
+    inst.addInput(index);
+    inst.addInput(value);
+    inst
+}
+
+pub fn createStoreArrayWbInst(array: Inst, index: Inst, value: Inst, ty: Type): Inst {
+    let inst = Inst::new();
+    inst._op = Some(Op::StoreArrayWb);
     inst.ty = ty;
     inst.addInput(array);
     inst.addInput(index);
