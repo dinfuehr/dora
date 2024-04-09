@@ -1,0 +1,18 @@
+//= boots
+
+fn main() {
+    let foo = Foo(Bar(MyInt(1), MyInt(2)));
+    std::forceCollect();
+
+    f(foo, Bar(MyInt(3), MyInt(4)));
+    std::forceCollect();
+
+    assert(foo.bar.a.value == 3);
+    assert(foo.bar.b.value == 4);
+}
+
+class Foo(bar: Bar)
+struct Bar(a: MyInt, b: MyInt)
+class MyInt(value: Int64)
+
+@optimizeImmediately fn f(x: Foo, bar: Bar) { x.bar = bar; }

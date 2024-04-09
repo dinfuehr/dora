@@ -1249,13 +1249,41 @@ impl SsaGen {
             self.copyStruct(ty, dest, destOffset, src, srcOffset, heap);
         } else if ty.isTuple() {
             self.copyTuple(ty, dest, destOffset, src, srcOffset, heap);
+        } else if heap && config.needsWriteBarrier && self.isReference(ty) {
+            let ty = Type::Ptr;
+            let value = graph::createLoadInst(src, srcOffset, ty);
+            self.current().appendInst(value);
+            let inst = graph::createStoreWbInst(dest, destOffset, value, ty);
+            self.current().appendInst(inst);
         } else {
             let ty = Type::fromBytecodeType(ty);
-            let inst = graph::createLoadInst(src, srcOffset, ty);
+            let value = graph::createLoadInst(src, srcOffset, ty);
+            self.current().appendInst(value);
+            let inst = graph::createStoreInst(dest, destOffset, value, ty);
             self.current().appendInst(inst);
-            let inst = graph::createStoreInst(dest, destOffset, inst, ty);
-            self.current().appendInst(inst);
-            assert(!heap);
+        }
+    }
+
+    fn isReference(ty: BytecodeType): Bool {
+        match ty {
+            BytecodeType::Unit
+            | BytecodeType::Bool
+            | BytecodeType::UInt8
+            | BytecodeType::Float32
+            | BytecodeType::Int32
+            | BytecodeType::Char
+            | BytecodeType::Int64
+            | BytecodeType::Float64 => false,
+            BytecodeType::Class(_, _)
+            | BytecodeType::Ptr
+            | BytecodeType::Lambda(_, _)
+            | BytecodeType::Trait(_, _) => true,
+            BytecodeType::Struct(_, _)
+            | BytecodeType::Tuple(_)
+            | BytecodeType::This
+            | BytecodeType::TypeParam(_) => unreachable[Bool](),
+            BytecodeType::Enum(_, _) => unreachable[Bool](),
+            BytecodeType::TypeAlias(_) => unreachable[Bool](),
         }
     }
 

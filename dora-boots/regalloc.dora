@@ -814,6 +814,7 @@ pub class RecordLayout {
     pub size: Int32,
     pub alignment: Int32,
     pub fields: Array[RecordField],
+    pub refs: Array[Int32],
 }
 
 pub struct RecordField {
@@ -826,10 +827,17 @@ pub fn computeTupleLayout(subtypes: Array[BytecodeType]): RecordLayout {
 
     let mut struct_size = 0i32;
     let mut struct_align = 0i32;
-    let mut fields = Vec[RecordField]::new();
+    let fields = Vec[RecordField]::new();
+    let refs = Vec[Int32]::new();
     fields.reserve(subtypes.size());
 
     for subtype in subtypes {
+        assert(!subtype.isGeneric());
+
+        if subtype.isUnit() {
+            continue;
+        }
+
         let (field_size, field_align) = computeTypeSize(subtype);
 
         let offset = (struct_size + (field_align - 1i32)) & !(field_align - 1i32);
@@ -839,7 +847,7 @@ pub fn computeTupleLayout(subtypes: Array[BytecodeType]): RecordLayout {
         struct_align = Int32::max(struct_align, field_align);
     };
 
-    RecordLayout(struct_size, struct_align, fields.toArray())
+    RecordLayout(struct_size, struct_align, fields.toArray(), refs.toArray())
 }
 
 pub fn computeStructLayout(struct_id: StructId, type_params: Array[BytecodeType]): RecordLayout {
@@ -848,10 +856,17 @@ pub fn computeStructLayout(struct_id: StructId, type_params: Array[BytecodeType]
     let structData = iface::getStructData(struct_id);
     let mut struct_size = 0i32;
     let mut struct_align = 0i32;
-    let mut fields = Vec[RecordField]::new();
+    let fields = Vec[RecordField]::new();
+    let refs = Vec[Int32]::new();
     fields.reserve(structData.fields.size());
 
     for fieldTy in structData.fields {
+        assert(!fieldTy.isGeneric());
+
+        if fieldTy.isUnit() {
+            continue;
+        }
+
         let (field_size, field_align) = computeTypeSize(fieldTy);
 
         let offset = (struct_size + (field_align - 1i32)) & !(field_align - 1i32);
@@ -861,7 +876,7 @@ pub fn computeStructLayout(struct_id: StructId, type_params: Array[BytecodeType]
         struct_align = Int32::max(struct_align, field_align);
     };
 
-    RecordLayout(struct_size, struct_align, fields.toArray())
+    RecordLayout(struct_size, struct_align, fields.toArray(), refs.toArray())
 }
 
 fn computeTypeSize(ty: BytecodeType): (Int32, Int32) {
@@ -871,7 +886,8 @@ fn computeTypeSize(ty: BytecodeType): (Int32, Int32) {
         | BytecodeType::Int32
         | BytecodeType::Char => (4i32, 4i32),
         BytecodeType::Int64
-        | BytecodeType::Float64 => (8i32, 8i32),
+        | BytecodeType::Float64
+        | BytecodeType::Class(_, _) => (8i32, 8i32),
         BytecodeType::Struct(struct_id, type_params) => {
             let layout = computeStructLayout(struct_id, type_params);
             (layout.size, layout.alignment)
@@ -880,6 +896,10 @@ fn computeTypeSize(ty: BytecodeType): (Int32, Int32) {
             let layout = computeTupleLayout(subtypes);
             (layout.size, layout.alignment)
         },
-        _ => unreachable[(Int32, Int32)](),
+        BytecodeType::Ptr
+        | BytecodeType::Enum(_, _)
+        | BytecodeType::Lambda(_, _)
+        | BytecodeType::Trait(_, _)
+        | _ => unreachable[(Int32, Int32)](),
     }
 }

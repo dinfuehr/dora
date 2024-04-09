@@ -1,0 +1,13 @@
+//= boots
+
+fn main() {
+    let foo = Foo(Bar(1, 2));
+    let bar = f(foo, Bar(3, 4));
+    assert(foo.bar.a == 3);
+    assert(foo.bar.b == 4);
+}
+
+class Foo(bar: Bar)
+struct Bar(a: Int64, b: Int64)
+
+@optimizeImmediately fn f(x: Foo, bar: Bar) { x.bar = bar; }
