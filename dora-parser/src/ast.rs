@@ -1970,6 +1970,10 @@ impl ExprCallType {
     pub fn object_or_callee(&self) -> &ExprData {
         self.object().unwrap_or(&self.callee)
     }
+
+    pub fn callee(&self) -> &ExprData {
+        &self.callee
+    }
 }
 
 #[derive(Clone, Debug)]

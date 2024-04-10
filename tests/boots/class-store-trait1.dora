@@ -1,0 +1,31 @@
+//= boots
+
+fn main() {
+    let bar1 = 2i64 as Bar;
+    let foo1 = Foo(bar1);
+    assert(foo1.bar.get() == 2);
+    let foo2 = Foo(bar1);
+    assert(foo1.bar.get() == 2);
+
+    std::forceCollect();
+    let bar2 = 17i64 as Bar;
+
+    f(foo1, bar2);
+    assert(foo1.bar.get() == 17);
+
+    f(foo2, bar2);
+    assert(foo2.bar.get() == 17);
+
+    std::forceCollect();
+}
+
+class Foo(bar: Bar)
+trait Bar {
+    fn get(): Int64;
+}
+
+impl Bar for Int64 {
+    fn get(): Int64 { self }
+}
+
+@optimizeImmediately fn f(x: Foo, y: Bar) { x.bar = y; }

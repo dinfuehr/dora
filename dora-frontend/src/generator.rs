@@ -1326,7 +1326,7 @@ impl<'a> AstBytecodeGen<'a> {
     ) -> Register {
         let mut arguments = Vec::new();
 
-        let lambda_object = gen_expr(self, node.object_or_callee(), DataDest::Alloc);
+        let lambda_object = gen_expr(self, node.callee(), DataDest::Alloc);
         arguments.push(lambda_object);
 
         for arg in &node.args {

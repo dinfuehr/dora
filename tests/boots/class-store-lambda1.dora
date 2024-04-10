@@ -1,0 +1,24 @@
+//= boots
+
+fn main() {
+    let lambda1 = |x: Int64|: Int64 { 0 };
+    let foo1 = Foo(lambda1);
+    assert(foo1.lambda(12) == 0);
+    let foo2 = Foo(lambda1);
+    assert(foo1.lambda(17) == 0);
+
+    std::forceCollect();
+    let lambda2 = |x: Int64|: Int64 { x };
+
+    f(foo1, lambda2);
+    assert(foo1.lambda(12) == 12);
+
+    f(foo2, lambda2);
+    assert(foo2.lambda(17) == 17);
+
+    std::forceCollect();
+}
+
+class Foo(lambda: (Int64): Int64)
+
+@optimizeImmediately fn f(x: Foo, y: (Int64): Int64) { x.lambda = y; }
