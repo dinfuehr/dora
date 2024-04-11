@@ -809,13 +809,7 @@ impl SsaGen {
         boundsCheckInst.set_bytecode_position(self.offset);
         self.current().appendInst(boundsCheckInst);
 
-        if srcType.isPtr() && config.needsWriteBarrier {
-            let inst = graph::createStoreArrayWbInst(arrInst, idxInst, srcInst, srcInst.getValueType());
-            self.current().appendInst(inst);
-        } else {
-            let inst = graph::createStoreArrayInst(arrInst, idxInst, srcInst, srcInst.getValueType());
-            self.current().appendInst(inst);
-        }
+        self.storeArray(srcType, arrInst, idxInst, srcInst);
     }
 
     fn emitLoadTraitObjectValue(dest: BytecodeRegister, src: BytecodeRegister) {
@@ -1268,6 +1262,21 @@ impl SsaGen {
             let inst = graph::createLoadArrayInst(arr, index, ty);
             self.current().appendInst(inst);
             inst
+        }
+    }
+
+    fn storeArray(ty: BytecodeType, arr: Inst, index: Inst, value: Inst) {
+        if ty.isStruct() {
+            unimplemented();
+        } else if ty.isTuple() {
+            unimplemented();
+        } else if self.isReference(ty) && config.needsWriteBarrier {
+            let inst = graph::createStoreArrayWbInst(arr, index, value, Type::Ptr);
+            self.current().appendInst(inst);
+        } else {
+            let ty = Type::fromBytecodeType(ty);
+            let inst = graph::createStoreArrayInst(arr, index, value, ty);
+            self.current().appendInst(inst);
         }
     }
 
