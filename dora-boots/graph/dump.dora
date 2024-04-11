@@ -311,6 +311,7 @@ fn dumpInstName(inst: Inst): String {
         Op::ArrayLength => "ArrayLength",
         Op::LoadArray => "LoadArray.${inst.getValueType()}",
         Op::StoreArray => "StoreArray",
+        Op::GetElementPtr => "GetElementPtr",
         Op::Arg => "Arg.${inst.getValueType()}(${inst.getArgIndex()})",
         Op::Move => "Move.${inst.getValueType()}",
         Op::MoveImmediate => "MoveImmediate.${inst.getValueType()}",

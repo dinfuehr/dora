@@ -697,7 +697,7 @@ impl SsaGen {
         let rhsInst = self.readVariable(rhs, self.current());
 
         if !registerType.isAnyFloat() {
-            let divZeroCheck = graph::createDivZeroCheck(rhsInst);
+            let divZeroCheck = graph::createDivZeroCheckInst(rhsInst);
             divZeroCheck.set_bytecode_position(self.offset);
             self.current().appendInst(divZeroCheck);
         }
@@ -787,15 +787,13 @@ impl SsaGen {
         let arrayLengthInst = graph::createArrayLength(arrInst);
         self.current().appendInst(arrayLengthInst);
 
-        let boundsCheckInst = graph::createBoundsCheck(idxInst, arrayLengthInst);
+        let boundsCheckInst = graph::createBoundsCheckInst(idxInst, arrayLengthInst);
         boundsCheckInst.set_bytecode_position(self.offset);
         self.current().appendInst(boundsCheckInst);
 
-        let destType = self.regGraphTy(dest);
-        let arrayLoadInst = graph::createLoadArray(arrInst, idxInst, destType);
-        self.current().appendInst(arrayLoadInst);
-
-        self.writeVariable(dest, self.current(), arrayLoadInst);
+        let destTy = self.reg(dest);
+        let result = self.loadArray(destTy, arrInst, idxInst);
+        self.writeVariable(dest, self.current(), result);
     }
 
     fn emitStoreArray(src: BytecodeRegister, arr: BytecodeRegister, idx: BytecodeRegister) {
@@ -807,7 +805,7 @@ impl SsaGen {
         let arrayLengthInst = graph::createArrayLength(arrInst);
         self.current().appendInst(arrayLengthInst);
 
-        let boundsCheckInst = graph::createBoundsCheck(idxInst, arrayLengthInst);
+        let boundsCheckInst = graph::createBoundsCheckInst(idxInst, arrayLengthInst);
         boundsCheckInst.set_bytecode_position(self.offset);
         self.current().appendInst(boundsCheckInst);
 
@@ -1223,6 +1221,36 @@ impl SsaGen {
             let ty = Type::fromBytecodeType(ty);
             let inst = graph::createLoadInst(src, srcOffset, ty);
             inst.set_bytecode_position(self.offset);
+            self.current().appendInst(inst);
+            inst
+        }
+    }
+
+    fn loadArray(ty: BytecodeType, arr: Inst, index: Inst): Inst {
+        if ty.isStruct() {
+            let (struct_id, type_params) = match ty {
+                BytecodeType::Struct(struct_id, type_params) => (struct_id, type_params),
+                _ => unreachable[(StructId, Array[BytecodeType])](),
+            };
+
+            let info = StructInfo(struct_id, type_params);
+            let info = InstExtraData::StructInfo(info);
+            let dest = graph::createAllocateStack(info);
+            self.current().appendInst(dest);
+
+            let structLayout = computeStructLayout(struct_id, type_params);
+            let src = graph::createGetElementPtrInst(arr, index, structLayout.size.toInt64());
+            self.current().appendInst(src);
+
+            self.copyStruct(ty, dest, 0i32, src, 0i32, false);
+            dest
+
+        } else if ty.isTuple() {
+            unreachable[Inst]()
+
+        } else {
+            let ty = Type::fromBytecodeType(ty);
+            let inst = graph::createLoadArrayInst(arr, index, ty);
             self.current().appendInst(inst);
             inst
         }

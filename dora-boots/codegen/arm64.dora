@@ -1218,6 +1218,18 @@ impl CodeGen for CodeGenArm64 {
         }
     }
 
+    fn emitGetElementPtr(inst: Inst) {
+        let loc = inst.getLocationData();
+        let array = loc.getInput(0).getRegister();
+        let idx = loc.getInput(1).getRegister();
+
+        let dest = loc.getOutput().getRegister();
+        let element_size = inst.getElementSize();
+        self.mov_imm(REG_TEMP, element_size);
+        self.asm.madd(dest, idx, REG_TEMP, array);
+        self.asm.add_imm(dest, dest, ARRAY_HEADER_LENGTH);
+    }
+
     fn emitNewObject(inst: Inst) {
         let loc = inst.getLocationData();
         let obj = loc.getOutput().getRegister();

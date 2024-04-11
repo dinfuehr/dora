@@ -1207,6 +1207,18 @@ impl CodeGen for CodeGenX64 {
         }
     }
 
+    fn emitGetElementPtr(inst: Inst) {
+        let loc = inst.getLocationData();
+        let array = loc.getInput(0).getRegister();
+        let idx = loc.getInput(1).getRegister();
+
+        let dest = loc.getOutput().getRegister();
+        let element_size = inst.getElementSize();
+        self.asm.movq_ri(REG_TEMP, Immediate(element_size));
+        self.asm.imulq_rr(REG_TEMP, idx);
+        self.asm.lea(dest, AsmAddress::array(REG_TEMP, array, ScaleFactor::One, ARRAY_HEADER_LENGTH));
+    }
+
     fn emitNewObject(inst: Inst) {
         let loc = inst.getLocationData();
         let obj = loc.getOutput().getRegister();

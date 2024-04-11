@@ -287,6 +287,11 @@ fn emitInst(codegen: CodeGen, inst: Inst) {
             codegen.emitStoreArrayWb(inst);
         },
 
+        Op::GetElementPtr => {
+            codegen.emitComment("GetElementPtr");
+            codegen.emitGetElementPtr(inst);
+        },
+
         _ => {
             println("unsupported op ${inst.op().name()}");
             unreachable[()]();
@@ -362,6 +367,7 @@ pub trait CodeGen {
     fn emitBoundsCheck(inst: Inst);
     fn emitLoadArray(inst: Inst);
     fn emitStoreArray(inst: Inst);
+    fn emitGetElementPtr(inst: Inst);
     fn emitNewObject(inst: Inst);
     fn emitLoadGlobal(inst: Inst);
     fn emitStoreGlobal(inst: Inst);

@@ -630,6 +630,7 @@ pub enum Op {
 
     LoadArray,
     StoreArray,
+    GetElementPtr,
 
     Move,
     MoveImmediate,
@@ -735,6 +736,7 @@ pub fn opName(op: Op): String {
         Op::ArrayLength => "ArrayLength",
         Op::LoadArray => "LoadArray",
         Op::StoreArray => "StoreArray",
+        Op::GetElementPtr => "GetElementPtr",
         Op::Arg => "Arg",
         Op::Move => "Move",
         Op::MoveImmediate => "MoveImmediate",
@@ -914,6 +916,7 @@ impl Inst {
             Op::ArrayLength => Type::Int64,
             Op::LoadArray => self.ty,
             Op::StoreArray => unreachable[Type](),
+            Op::GetElementPtr => Type::Address,
             Op::Arg => self.ty,
             Op::Move => self.ty,
             Op::MoveImmediate => self.ty,
@@ -1294,6 +1297,11 @@ impl Inst {
         }
     }
 
+    pub fn getElementSize(): Int64 {
+        assert(self.op() == Op::GetElementPtr);
+        self.aux
+    }
+
     pub fn getValueAsInt32(): Int32 {
         assert(self.op() == Op::Int32Const);
         self.aux.toInt32()
@@ -1425,6 +1433,7 @@ impl Inst {
             Op::ArrayLength => false,
             Op::LoadArray => false,
             Op::StoreArray => true,
+            Op::GetElementPtr => false,
             Op::Arg => false,
             Op::Move => false,
             Op::MoveImmediate => false,
@@ -2197,7 +2206,7 @@ pub fn createPhiInst(ty: Type): Inst {
     inst
 }
 
-pub fn createBoundsCheck(index: Inst, length: Inst): Inst {
+pub fn createBoundsCheckInst(index: Inst, length: Inst): Inst {
     let inst = Inst::new();
     inst._op = Some(Op::BoundsCheck);
     inst.addInput(index);
@@ -2205,14 +2214,14 @@ pub fn createBoundsCheck(index: Inst, length: Inst): Inst {
     inst
 }
 
-pub fn createDivZeroCheck(value: Inst): Inst {
+pub fn createDivZeroCheckInst(value: Inst): Inst {
     let inst = Inst::new();
     inst._op = Some(Op::DivZeroCheck);
     inst.addInput(value);
     inst
 }
 
-pub fn createLoadArray(array: Inst, index: Inst, ty: Type): Inst {
+pub fn createLoadArrayInst(array: Inst, index: Inst, ty: Type): Inst {
     let inst = Inst::new();
     inst._op = Some(Op::LoadArray);
     inst.ty = ty;
@@ -2228,6 +2237,15 @@ pub fn createStoreArrayInst(array: Inst, index: Inst, value: Inst, ty: Type): In
     inst.addInput(array);
     inst.addInput(index);
     inst.addInput(value);
+    inst
+}
+
+pub fn createGetElementPtrInst(array: Inst, index: Inst, size: Int64): Inst {
+    let inst = Inst::new();
+    inst._op = Some(Op::GetElementPtr);
+    inst.addInput(array);
+    inst.addInput(index);
+    inst.aux = size;
     inst
 }
 
