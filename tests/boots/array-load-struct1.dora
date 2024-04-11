@@ -1,5 +1,4 @@
 //= boots
-//= ignore
 
 fn main() {
     let arr = Array[Foo]::fill(100, Foo(1, 2));

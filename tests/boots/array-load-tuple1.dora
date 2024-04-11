@@ -1,0 +1,23 @@
+//= boots
+
+fn main() {
+    let arr = Array[(Int64, Int64, Int64)]::fill(100, (1, 2, 3));
+    arr(47) = (4, 5, 6);
+
+    let foo = f(arr, 46);
+    assert(foo.0 == 1);
+    assert(foo.1 == 2);
+    assert(foo.2 == 3);
+
+    let foo = f(arr, 47);
+    assert(foo.0 == 4);
+    assert(foo.1 == 5);
+    assert(foo.2 == 6);
+
+    let foo = f(arr, 48);
+    assert(foo.0 == 1);
+    assert(foo.1 == 2);
+    assert(foo.2 == 3);
+}
+
+@optimizeImmediately fn f(x: Array[(Int64, Int64, Int64)], idx: Int64): (Int64, Int64, Int64) { x(idx) }

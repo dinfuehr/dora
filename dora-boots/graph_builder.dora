@@ -1246,7 +1246,22 @@ impl SsaGen {
             dest
 
         } else if ty.isTuple() {
-            unreachable[Inst]()
+            let subtypes = match ty {
+                BytecodeType::Tuple(subtypes) => subtypes,
+                _ => unreachable[Array[BytecodeType]](),
+            };
+
+            let info = TupleInfo(subtypes);
+            let info = InstExtraData::TupleInfo(info);
+            let dest = graph::createAllocateStack(info);
+            self.current().appendInst(dest);
+
+            let tupleLayout = computeTupleLayout(subtypes);
+            let src = graph::createGetElementPtrInst(arr, index, tupleLayout.size.toInt64());
+            self.current().appendInst(src);
+
+            self.copyTuple(ty, dest, 0i32, src, 0i32, false);
+            dest
 
         } else {
             let ty = Type::fromBytecodeType(ty);
