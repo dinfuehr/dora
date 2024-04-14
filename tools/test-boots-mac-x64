@@ -2,5 +2,5 @@
 
 set -e
 
-cargo run -p dora --target x86_64-apple-darwin -- test dora-boots/boots.dora --gc-verify
+cargo run -p dora --target x86_64-apple-darwin -- test-boots --package boots dora-boots/boots.dora --gc-verify
 ruby tools/tester.rb  --binary target/x86_64-apple-darwin/debug/dora tests/boots

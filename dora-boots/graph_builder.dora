@@ -1270,7 +1270,7 @@ impl SsaGen {
             unimplemented();
         } else if ty.isTuple() {
             unimplemented();
-        } else if self.isReference(ty) && config.needsWriteBarrier {
+        } else if config.needsWriteBarrier && self.isReference(ty) {
             let inst = graph::createStoreArrayWbInst(arr, index, value, Type::Ptr);
             self.current().appendInst(inst);
         } else {
