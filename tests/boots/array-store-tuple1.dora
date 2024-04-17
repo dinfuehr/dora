@@ -1,0 +1,22 @@
+//= boots
+
+fn main() {
+    let arr = Array[(Int64, Bar)]::fill(100, (0, Bar(1)));
+    std::forceCollect();
+
+    f(arr, 47, (3, Bar(4)));
+    assert(arr(46).0 == 0);
+    assert(arr(46).1.value == 1);
+
+    assert(arr(47).0 == 3);
+    assert(arr(47).1.value == 4);
+
+    assert(arr(48).0 == 0);
+    assert(arr(48).1.value == 1);
+
+    std::forceCollect();
+}
+
+class Bar(value: Int64)
+
+@optimizeImmediately fn f(x: Array[(Int64, Bar)], idx: Int64, foo: (Int64, Bar)) { x(idx) = foo; }

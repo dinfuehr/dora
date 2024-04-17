@@ -1278,7 +1278,16 @@ impl SsaGen {
 
             self.storeArrayNested(ty, arr, dest, 0i32, value, 0i32);
         } else if ty.isTuple() {
-            unimplemented();
+            let subtypes = match ty {
+                BytecodeType::Tuple(subtypes) => subtypes,
+                _ => unreachable[Array[BytecodeType]](),
+            };
+
+            let tupleLayout = computeTupleLayout(subtypes);
+            let dest = graph::createGetElementPtrInst(arr, index, tupleLayout.size.toInt64());
+            self.current().appendInst(dest);
+
+            self.storeArrayNested(ty, arr, dest, 0i32, value, 0i32);
         } else if config.needsWriteBarrier && self.isReference(ty) {
             let inst = graph::createStoreArrayWbInst(arr, index, value, Type::Ptr);
             self.current().appendInst(inst);
@@ -1302,7 +1311,16 @@ impl SsaGen {
                 self.storeArrayNested(field.ty, array, dest, destOffset + field.offset, src, srcOffset + field.offset);
             }
         } else if ty.isTuple() {
-            unimplemented();
+            let subtypes = match ty {
+                BytecodeType::Tuple(subtypes) => subtypes,
+                _ => unreachable[Array[BytecodeType]](),
+            };
+
+            let tupleLayout = computeTupleLayout(subtypes);
+
+            for field in tupleLayout.fields {
+                self.storeArrayNested(field.ty, array, dest, destOffset + field.offset, src, srcOffset + field.offset);
+            }
         } else if config.needsWriteBarrier && self.isReference(ty) {
             let ty = Type::Ptr;
             let value = graph::createLoadInst(src, srcOffset, ty);
