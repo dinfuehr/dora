@@ -323,6 +323,7 @@ fn dumpInstName(inst: Inst): String {
         Op::Store => "Store(${inst.getOffset()})",
         Op::StoreWb => "StoreWb(${inst.getOffset()})",
         Op::StoreArrayWb => "StoreArrayWb",
+        Op::StoreArrayAddressWb => "StoreArrayAddressWb",
         Op::ThreadCurrent => "ThreadCurrent",
     }
 }

@@ -1546,6 +1546,21 @@ impl CodeGen for CodeGenArm64 {
         self.emitWriteBarrier(array, value, REG_TEMP, loc.getRegisterTrackers());
     }
 
+    fn emitStoreArrayAddressWb(inst: Inst) {
+        let loc = inst.getLocationData();
+        let array = loc.getInput(0).getRegister();
+        let dest = loc.getInput(1).getRegister();
+        let offset = inst.getOffset();
+
+        let ty = inst.getOperationType();
+        assert(ty == Type::Ptr);
+        assert(config.needsWriteBarrier);
+
+        let src = loc.getInput(2).getRegister();
+        self.asm.str_imm(src, dest, offset);
+        self.emitWriteBarrier(array, src, REG_TEMP, loc.getRegisterTrackers());
+    }
+
     fn finalize(): CodeDescriptor {
         self.emitDeferredCode();
         self.asm.resolveJumps();

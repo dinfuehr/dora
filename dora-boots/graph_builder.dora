@@ -1267,7 +1267,16 @@ impl SsaGen {
 
     fn storeArray(ty: BytecodeType, arr: Inst, index: Inst, value: Inst) {
         if ty.isStruct() {
-            unimplemented();
+            let (struct_id, type_params) = match ty {
+                BytecodeType::Struct(struct_id, type_params) => (struct_id, type_params),
+                _ => unreachable[(StructId, Array[BytecodeType])](),
+            };
+
+            let structLayout = computeStructLayout(struct_id, type_params);
+            let dest = graph::createGetElementPtrInst(arr, index, structLayout.size.toInt64());
+            self.current().appendInst(dest);
+
+            self.storeArrayNested(ty, arr, dest, 0i32, value, 0i32);
         } else if ty.isTuple() {
             unimplemented();
         } else if config.needsWriteBarrier && self.isReference(ty) {
@@ -1276,6 +1285,38 @@ impl SsaGen {
         } else {
             let ty = Type::fromBytecodeType(ty);
             let inst = graph::createStoreArrayInst(arr, index, value, ty);
+            self.current().appendInst(inst);
+        }
+    }
+
+    fn storeArrayNested(ty: BytecodeType, array: Inst, dest: Inst, destOffset: Int32, src: Inst, srcOffset: Int32) {
+        if ty.isStruct() {
+            let (struct_id, type_params) = match ty {
+                BytecodeType::Struct(struct_id, type_params) => (struct_id, type_params),
+                _ => unreachable[(StructId, Array[BytecodeType])](),
+            };
+
+            let structLayout = computeStructLayout(struct_id, type_params);
+
+            for field in structLayout.fields {
+                self.storeArrayNested(field.ty, array, dest, destOffset + field.offset, src, srcOffset + field.offset);
+            }
+        } else if ty.isTuple() {
+            unimplemented();
+        } else if config.needsWriteBarrier && self.isReference(ty) {
+            let ty = Type::Ptr;
+            let value = graph::createLoadInst(src, srcOffset, ty);
+            self.current().appendInst(value);
+
+            let inst = graph::createStoreArrayAddressWbInst(array, dest, destOffset, value, ty);
+            self.current().appendInst(inst);
+        } else {
+            let ty = Type::fromBytecodeType(ty);
+
+            let value = graph::createLoadInst(src, srcOffset, ty);
+            self.current().appendInst(value);
+
+            let inst = graph::createStoreInst(dest, destOffset, value, ty);
             self.current().appendInst(inst);
         }
     }

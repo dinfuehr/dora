@@ -287,6 +287,11 @@ fn emitInst(codegen: CodeGen, inst: Inst) {
             codegen.emitStoreArrayWb(inst);
         },
 
+        Op::StoreArrayAddressWb => {
+            codegen.emitComment("StoreArrayAddressWb");
+            codegen.emitStoreArrayAddressWb(inst);
+        },
+
         Op::GetElementPtr => {
             codegen.emitComment("GetElementPtr");
             codegen.emitGetElementPtr(inst);
@@ -379,6 +384,7 @@ pub trait CodeGen {
     fn emitStore(inst: Inst);
     fn emitStoreWb(inst: Inst);
     fn emitStoreArrayWb(inst: Inst);
+    fn emitStoreArrayAddressWb(inst: Inst);
 
     fn emitComment(comment: String);
 }

@@ -270,6 +270,13 @@ impl LocationAnnotation {
                 setOutputOverlaps(inst, false);
             },
 
+            Op::StoreArrayAddressWb => {
+                useInputRegister(inst, 0);
+                useInputRegister(inst, 1);
+                useInputRegister(inst, 2);
+                setOutputOverlaps(inst, false);
+            },
+
             Op::GetElementPtr => {
                 useInputRegister(inst, 0);
                 useInputRegister(inst, 1);

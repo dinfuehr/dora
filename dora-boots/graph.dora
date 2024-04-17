@@ -644,6 +644,7 @@ pub enum Op {
     Store,
     StoreWb,
     StoreArrayWb,
+    StoreArrayAddressWb,
 
     ThreadCurrent,
 }
@@ -748,6 +749,7 @@ pub fn opName(op: Op): String {
         Op::Store => "Store",
         Op::StoreWb => "StoreWb",
         Op::StoreArrayWb => "StoreArrayWb",
+        Op::StoreArrayAddressWb => "StoreArrayAddressWb",
         Op::ThreadCurrent => "ThreadCurrent",
     }
 }
@@ -925,7 +927,10 @@ impl Inst {
             Op::NewLambda => Type::Ptr,
             Op::AllocateStack => Type::Address,
             Op::Load => self.ty,
-            Op::Store | Op::StoreWb | Op::StoreArrayWb => unreachable[Type](),
+            Op::Store
+            | Op::StoreWb
+            | Op::StoreArrayWb
+            | Op::StoreArrayAddressWb => unreachable[Type](),
             Op::ThreadCurrent => Type::Ptr,
         }
     }
@@ -943,7 +948,8 @@ impl Inst {
             | Op::EnsureGlobalInitialized
             | Op::Store
             | Op::StoreWb
-            | Op::StoreArrayWb => self.ty,
+            | Op::StoreArrayWb
+            | Op::StoreArrayAddressWb => self.ty,
             _ => self.getValueType(),
         }
     }
@@ -1246,6 +1252,7 @@ impl Inst {
         match self.op() {
             Op::StoreWb |
             Op::StoreArrayWb |
+            Op::StoreArrayAddressWb |
             Op::NewObject |
             Op::NewLambda |
             Op::EnsureGlobalInitialized => true,
@@ -1268,7 +1275,7 @@ impl Inst {
     }
 
     pub fn getOffset(): Int32 {
-        assert(self.op() == Op::Load || self.op() == Op::Store  || self.op() == Op::StoreWb);
+        assert(self.op() == Op::Load || self.op() == Op::Store  || self.op() == Op::StoreWb || self.op() == Op::StoreArrayAddressWb);
         self.aux.toInt32()
     }
 
@@ -1442,7 +1449,10 @@ impl Inst {
             Op::NewLambda => false,
             Op::AllocateStack => false,
             Op::Load => false,
-            Op::Store | Op::StoreWb | Op::StoreArrayWb => true,
+            Op::Store
+            | Op::StoreWb
+            | Op::StoreArrayWb
+            | Op::StoreArrayAddressWb => true,
             Op::ThreadCurrent => false,
         }
     }
@@ -2256,6 +2266,17 @@ pub fn createStoreArrayWbInst(array: Inst, index: Inst, value: Inst, ty: Type): 
     inst.addInput(array);
     inst.addInput(index);
     inst.addInput(value);
+    inst
+}
+
+pub fn createStoreArrayAddressWbInst(array: Inst, dest: Inst, destOffset: Int32, value: Inst, ty: Type): Inst {
+    let inst = Inst::new();
+    inst._op = Some(Op::StoreArrayAddressWb);
+    inst.ty = ty;
+    inst.addInput(array);
+    inst.addInput(dest);
+    inst.addInput(value);
+    inst.aux = destOffset.toInt64();
     inst
 }
 
