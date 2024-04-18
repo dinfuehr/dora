@@ -198,6 +198,7 @@ impl LocationAnnotation {
             Op::NewObject | Op::NewLambda => {
                 addTempRegister(inst);
                 useOutputRegister(inst, true);
+                needsRegisterSnapshot(inst);
             },
 
             Op::LoadGlobal => {
@@ -211,6 +212,7 @@ impl LocationAnnotation {
             Op::EnsureGlobalInitialized => {
                 addTempRegister(inst);
                 setOutputOverlaps(inst, false);
+                needsRegisterSnapshot(inst);
             },
 
             Op::StoreGlobal => {
@@ -261,6 +263,7 @@ impl LocationAnnotation {
                 useInputRegister(inst, 0);
                 useInputRegister(inst, 1);
                 setOutputOverlaps(inst, false);
+                needsRegisterSnapshot(inst);
             },
 
             Op::StoreArrayWb => {
@@ -268,6 +271,7 @@ impl LocationAnnotation {
                 useInputRegister(inst, 1);
                 useInputRegister(inst, 2);
                 setOutputOverlaps(inst, false);
+                needsRegisterSnapshot(inst);
             },
 
             Op::StoreArrayAddressWb => {
@@ -275,6 +279,7 @@ impl LocationAnnotation {
                 useInputRegister(inst, 1);
                 useInputRegister(inst, 2);
                 setOutputOverlaps(inst, false);
+                needsRegisterSnapshot(inst);
             },
 
             Op::GetElementPtr => {
@@ -475,6 +480,11 @@ pub fn addTempRegisterFixed(inst: Inst, reg: Register) {
 pub fn setOutputOverlaps(inst: Inst, overlaps: Bool) {
     let loc = inst.getLocationData();
     loc.setOutputOverlaps(overlaps)
+}
+
+pub fn needsRegisterSnapshot(inst: Inst) {
+    let loc = inst.getLocationData();
+    loc.setNeedsRegisterSnapshot();
 }
 
 fn applyHint(inst: Inst, location: Location) {

@@ -180,7 +180,7 @@ impl SimpleRegisterAllocator {
         let outputOverlaps = inst.getLocationData().outputOverlaps();
 
         if outputOverlaps {
-            if inst.needsRegisterSnapshot() {
+            if inst.getLocationData().needsRegisterSnapshot() {
                 assert(inst.op() == Op::NewObject
                        || inst.op() == Op::NewLambda);
                 assert(!inst.getLocationData().hasInput());
@@ -211,7 +211,7 @@ impl SimpleRegisterAllocator {
             self.freeDeadInputs(inst);
             self.freeDeadTemps(inst);
 
-            if inst.needsRegisterSnapshot() {
+            if inst.getLocationData().needsRegisterSnapshot() {
                 assert(inst.op() == Op::StoreArrayWb
                        || inst.op() == Op::StoreArrayAddressWb
                        || inst.op() == Op::StoreWb
@@ -825,43 +825,23 @@ pub struct RecordField {
 
 pub fn computeTupleLayout(subtypes: Array[BytecodeType]): RecordLayout {
     assert(!subtypes.isGeneric());
-
-    let mut struct_size = 0i32;
-    let mut struct_align = 0i32;
-    let fields = Vec[RecordField]::new();
-    let refs = Vec[Int32]::new();
-    fields.reserve(subtypes.size());
-
-    for subtype in subtypes {
-        assert(!subtype.isGeneric());
-
-        if subtype.isUnit() {
-            continue;
-        }
-
-        let (field_size, field_align) = computeTypeSize(subtype);
-
-        let offset = (struct_size + (field_align - 1i32)) & !(field_align - 1i32);
-        fields.push(RecordField(subtype, offset));
-
-        struct_size = offset + field_size;
-        struct_align = Int32::max(struct_align, field_align);
-    };
-
-    RecordLayout(struct_size, struct_align, fields.toArray(), refs.toArray())
+    computeRecordLayout(subtypes)
 }
 
 pub fn computeStructLayout(struct_id: StructId, type_params: Array[BytecodeType]): RecordLayout {
     assert(!type_params.isGeneric());
-
     let structData = iface::getStructData(struct_id);
-    let mut struct_size = 0i32;
-    let mut struct_align = 0i32;
+    computeRecordLayout(structData.fields)
+}
+
+fn computeRecordLayout(fieldTypes: Array[BytecodeType]): RecordLayout {
+    let mut record_size = 0i32;
+    let mut record_align = 0i32;
     let fields = Vec[RecordField]::new();
     let refs = Vec[Int32]::new();
-    fields.reserve(structData.fields.size());
+    fields.reserve(fields.size());
 
-    for fieldTy in structData.fields {
+    for fieldTy in fieldTypes {
         assert(!fieldTy.isGeneric());
 
         if fieldTy.isUnit() {
@@ -870,14 +850,14 @@ pub fn computeStructLayout(struct_id: StructId, type_params: Array[BytecodeType]
 
         let (field_size, field_align) = computeTypeSize(fieldTy);
 
-        let offset = (struct_size + (field_align - 1i32)) & !(field_align - 1i32);
+        let offset = (record_size + (field_align - 1i32)) & !(field_align - 1i32);
         fields.push(RecordField(fieldTy, offset));
 
-        struct_size = offset + field_size;
-        struct_align = Int32::max(struct_align, field_align);
+        record_size = offset + field_size;
+        record_align = Int32::max(record_align, field_align);
     };
 
-    RecordLayout(struct_size, struct_align, fields.toArray(), refs.toArray())
+    RecordLayout(record_size, record_align, fields.toArray(), refs.toArray())
 }
 
 fn computeTypeSize(ty: BytecodeType): (Int32, Int32) {

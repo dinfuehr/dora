@@ -1248,18 +1248,6 @@ impl Inst {
         }
     }
 
-    pub fn needsRegisterSnapshot(): Bool {
-        match self.op() {
-            Op::StoreWb |
-            Op::StoreArrayWb |
-            Op::StoreArrayAddressWb |
-            Op::NewObject |
-            Op::NewLambda |
-            Op::EnsureGlobalInitialized => true,
-            _ => false,
-        }
-    }
-
     pub fn isTerminator(): Bool {
         match self.op() {
             Op::Goto => true,
@@ -1571,6 +1559,7 @@ pub class LocationData {
     hint: Location,
     spill_slot: Option[Int32],
     stack_slot: Option[Int32],
+    needsRegisterSnapshot: Bool,
     snapshot: Option[RegisterSnapshot],
     trackers: Option[RegisterTrackers],
     gc_point: Option[GcPoint],
@@ -1589,6 +1578,7 @@ impl LocationData {
             Location::None,
             None[Int32],
             None[Int32],
+            false,
             None[RegisterSnapshot],
             None[RegisterTrackers],
             None[GcPoint],
@@ -1606,10 +1596,19 @@ impl LocationData {
             Location::None,
             None[Int32],
             None[Int32],
+            false,
             None[RegisterSnapshot],
             None[RegisterTrackers],
             None[GcPoint],
         )
+    }
+
+    pub fn setNeedsRegisterSnapshot() {
+        self.needsRegisterSnapshot = true;
+    }
+
+    pub fn needsRegisterSnapshot(): Bool {
+        self.needsRegisterSnapshot
     }
 
     pub fn setOutput(operand: Operand, overlaps: Bool) {
