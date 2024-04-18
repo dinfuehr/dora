@@ -1565,8 +1565,7 @@ pub class LocationData {
     spill_slot: Option[Int32],
     stack_slot: Option[Int32],
     needsRegisterSnapshot: Bool,
-    snapshot: Option[RegisterSnapshot],
-    trackers: Option[RegisterTrackers],
+    snapshot: Option[RegisterTrackers],
     gc_point: Option[GcPoint],
 }
 
@@ -1584,7 +1583,6 @@ impl LocationData {
             None[Int32],
             None[Int32],
             false,
-            None[RegisterSnapshot],
             None[RegisterTrackers],
             None[GcPoint],
         )
@@ -1602,7 +1600,6 @@ impl LocationData {
             None[Int32],
             None[Int32],
             false,
-            None[RegisterSnapshot],
             None[RegisterTrackers],
             None[GcPoint],
         )
@@ -1707,22 +1704,13 @@ impl LocationData {
         self.hint
     }
 
-    pub fn setRegisterSnapshot(snapshot: RegisterSnapshot) {
+    pub fn setRegisterSnapshot(snapshot: RegisterTrackers) {
         assert(self.snapshot.isNone());
-        self.snapshot = Some[RegisterSnapshot](snapshot);
+        self.snapshot = Some[RegisterTrackers](snapshot);
     }
 
-    pub fn getRegisterSnapshot(): RegisterSnapshot {
+    pub fn getRegisterSnapshot(): RegisterTrackers {
         self.snapshot.getOrPanic()
-    }
-
-    pub fn setRegisterTrackers(snapshot: RegisterTrackers) {
-        assert(self.trackers.isNone());
-        self.trackers = Some[RegisterTrackers](snapshot);
-    }
-
-    pub fn getRegisterTrackers(): RegisterTrackers {
-        self.trackers.getOrPanic()
     }
 
     pub fn setGcPoint(point: GcPoint) {

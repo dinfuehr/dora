@@ -1243,7 +1243,7 @@ impl CodeGen for CodeGenX64 {
         };
 
         let tmp = loc.getTemp(0).getRegister();
-        self.emitObjectAllocate(obj, size, REG_TEMP, tmp, loc.getRegisterTrackers(), loc.getGcPoint());
+        self.emitObjectAllocate(obj, size, REG_TEMP, tmp, loc.getRegisterSnapshot(), loc.getGcPoint());
 
         self.emitObjectInitialization(obj, size, classptr, REG_TEMP, FREG_TEMP);
     }
@@ -1307,13 +1307,13 @@ impl CodeGen for CodeGenX64 {
         self.asm.jcc(Condition::NotEqual, lbl_global_slow_path);
         let lbl_return = self.asm.createAndBindLabel();
 
-        let trackers = loc.getRegisterTrackers();
+        let snapshot = loc.getRegisterSnapshot();
 
         self.deferred.push(|| {
             self.emitComment("slow path for global initializer");
             self.asm.bindLabel(lbl_global_slow_path);
 
-            let (gc_point, alignment) = self.saveRegistersForCall(trackers, loc.getGcPoint());
+            let (gc_point, alignment) = self.saveRegistersForCall(snapshot, loc.getGcPoint());
 
             // Compute initial value.
             let fct_id = getGlobalInitializerFunctionId(global_id);
@@ -1354,7 +1354,7 @@ impl CodeGen for CodeGenX64 {
             self.asm.movq_ri(REG_TEMP, Immediate(state_address.value));
             self.asm.movb_ai(AsmAddress::offset(REG_TEMP, 0i32), Immediate(GLOBAL_STATE_INITIALIZED.toInt64()));
 
-            self.restoreRegistersForCall(trackers, alignment);
+            self.restoreRegistersForCall(snapshot, alignment);
 
             self.asm.jmp(lbl_return);
         });
@@ -1512,7 +1512,7 @@ impl CodeGen for CodeGenX64 {
         let src = loc.getInput(1).getRegister();
         self.asm.movq_ar(AsmAddress::offset(obj, offset), src);
         let objTy = inst.getInput(0).getValue().getValueType();
-        self.emitWriteBarrier(obj, src, loc.getRegisterTrackers());
+        self.emitWriteBarrier(obj, src, loc.getRegisterSnapshot());
     }
 
     fn emitStoreArrayWb(inst: Inst) {
@@ -1526,7 +1526,7 @@ impl CodeGen for CodeGenX64 {
 
         let value = loc.getInput(2).getRegister();
         self.asm.movq_ar(AsmAddress::array(array, idx, ScaleFactor::Eight, ARRAY_HEADER_LENGTH), value);
-        self.emitWriteBarrier(array, value, loc.getRegisterTrackers());
+        self.emitWriteBarrier(array, value, loc.getRegisterSnapshot());
     }
 
     fn emitStoreArrayAddressWb(inst: Inst) {
@@ -1542,7 +1542,7 @@ impl CodeGen for CodeGenX64 {
         let src = loc.getInput(2).getRegister();
         self.asm.movq_ar(AsmAddress::offset(dest, offset), src);
         let objTy = inst.getInput(0).getValue().getValueType();
-        self.emitWriteBarrier(array, src, loc.getRegisterTrackers());
+        self.emitWriteBarrier(array, src, loc.getRegisterSnapshot());
     }
 
     fn finalize(): CodeDescriptor {

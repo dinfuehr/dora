@@ -76,11 +76,8 @@ impl SimpleRegisterAllocator {
     fn snapshotRegisters(inst: Inst) {
         let loc_data = inst.getLocationData();
 
-        let snapshot = self.createRegisterSnapshot();
-        loc_data.setRegisterSnapshot(snapshot);
-
         let snapshot = self.snapshotRegisterTrackers();
-        loc_data.setRegisterTrackers(snapshot);
+        loc_data.setRegisterSnapshot(snapshot);
     }
 
     fn createRegisterSnapshot(): RegisterSnapshot {
