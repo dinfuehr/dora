@@ -209,6 +209,11 @@ impl LocationAnnotation {
                 }
             },
 
+            Op::GetGlobalAddress => {
+                useOutputRegister(inst, true);
+                setOutputOverlaps(inst, false);
+            },
+
             Op::EnsureGlobalInitialized => {
                 addTempRegister(inst);
                 setOutputOverlaps(inst, false);

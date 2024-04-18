@@ -91,7 +91,10 @@ impl Type {
             BytecodeType::Float64 => Type::Float64,
             BytecodeType::Ptr => Type::Ptr,
             BytecodeType::Trait(_, _) => Type::Ptr,
-            _ => unreachable[Type](),
+            _ => {
+                println("unsupported type ${ty}");
+                unreachable[Type]()
+            }
         }
     }
 }

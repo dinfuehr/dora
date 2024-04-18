@@ -841,6 +841,15 @@ fn computeRecordLayout(fieldTypes: Array[BytecodeType]): RecordLayout {
     let refs = Vec[Int32]::new();
     fields.reserve(fields.size());
 
+    let addField = |size: Int32, align: Int32, ty: BytecodeType|: Int32 {
+        let offset = (record_size + (align - 1i32)) & !(align - 1i32);
+        fields.push(RecordField(ty, offset));
+
+        record_size = offset + size;
+        record_align = Int32::max(record_align, align);
+        offset
+    };
+
     for fieldTy in fieldTypes {
         assert(!fieldTy.isGeneric());
 
@@ -848,39 +857,40 @@ fn computeRecordLayout(fieldTypes: Array[BytecodeType]): RecordLayout {
             continue;
         }
 
-        let (field_size, field_align) = computeTypeSize(fieldTy);
-
-        let offset = (record_size + (field_align - 1i32)) & !(field_align - 1i32);
-        fields.push(RecordField(fieldTy, offset));
-
-        record_size = offset + field_size;
-        record_align = Int32::max(record_align, field_align);
+        match fieldTy {
+            BytecodeType::Bool | BytecodeType::UInt8 => {
+                addField(1i32, 1i32, fieldTy);
+            },
+            BytecodeType::Float32
+            | BytecodeType::Int32
+            | BytecodeType::Char => {
+                addField(4i32, 4i32, fieldTy);
+            },
+            BytecodeType::Int64
+            | BytecodeType::Float64 => {
+                addField(8i32, 8i32, fieldTy);
+            },
+            BytecodeType::Class(_, _) => {
+                addField(8i32, 8i32, fieldTy);
+            },
+            BytecodeType::Struct(struct_id, type_params) => {
+                let layout = computeStructLayout(struct_id, type_params);
+                addField(layout.size, layout.alignment, fieldTy);
+            },
+            BytecodeType::Tuple(subtypes) => {
+                let layout = computeTupleLayout(subtypes);
+                addField(layout.size, layout.alignment, fieldTy);
+            },
+            BytecodeType::Ptr
+            | BytecodeType::Enum(_, _)
+            | BytecodeType::Lambda(_, _)
+            | BytecodeType::Trait(_, _)
+            | _ => {
+                unimplemented();
+            }
+        }
     };
 
     RecordLayout(record_size, record_align, fields.toArray(), refs.toArray())
 }
 
-fn computeTypeSize(ty: BytecodeType): (Int32, Int32) {
-    match ty {
-        BytecodeType::Bool | BytecodeType::UInt8 => (1i32, 1i32),
-        BytecodeType::Float32
-        | BytecodeType::Int32
-        | BytecodeType::Char => (4i32, 4i32),
-        BytecodeType::Int64
-        | BytecodeType::Float64
-        | BytecodeType::Class(_, _) => (8i32, 8i32),
-        BytecodeType::Struct(struct_id, type_params) => {
-            let layout = computeStructLayout(struct_id, type_params);
-            (layout.size, layout.alignment)
-        },
-        BytecodeType::Tuple(subtypes) => {
-            let layout = computeTupleLayout(subtypes);
-            (layout.size, layout.alignment)
-        },
-        BytecodeType::Ptr
-        | BytecodeType::Enum(_, _)
-        | BytecodeType::Lambda(_, _)
-        | BytecodeType::Trait(_, _)
-        | _ => unreachable[(Int32, Int32)](),
-    }
-}

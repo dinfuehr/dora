@@ -1301,6 +1301,15 @@ impl CodeGen for CodeGenArm64 {
         }
     }
 
+    fn emitGetGlobalAddress(inst: Inst) {
+        let loc = inst.getLocationData();
+        let dest = loc.getOutput().getRegister();
+
+        let global_id = inst.getGlobalId();
+        let value_address = getGlobalValueAddress(global_id);
+        self.mov_imm(dest, value_address.value);
+    }
+
     fn emitEnsureGlobalInitialized(inst: Inst) {
         let loc = inst.getLocationData();
         let tmp = loc.getTemp(0).getRegister();

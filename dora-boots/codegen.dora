@@ -247,6 +247,11 @@ fn emitInst(codegen: CodeGen, inst: Inst) {
             codegen.emitLoadGlobal(inst);
         },
 
+        Op::GetGlobalAddress => {
+            codegen.emitComment("GetGlobalAddress");
+            codegen.emitGetGlobalAddress(inst);
+        },
+
         Op::StoreGlobal => {
             codegen.emitComment("StoreGlobal");
             codegen.emitStoreGlobal(inst);
@@ -375,6 +380,7 @@ pub trait CodeGen {
     fn emitGetElementPtr(inst: Inst);
     fn emitNewObject(inst: Inst);
     fn emitLoadGlobal(inst: Inst);
+    fn emitGetGlobalAddress(inst: Inst);
     fn emitStoreGlobal(inst: Inst);
     fn emitEnsureGlobalInitialized(inst: Inst);
     fn emitMarkGlobalInitialized(inst: Inst);

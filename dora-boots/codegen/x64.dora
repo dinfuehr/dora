@@ -1290,6 +1290,10 @@ impl CodeGen for CodeGenX64 {
         }
     }
 
+    fn emitGetGlobalAddress(inst: Inst) {
+        unimplemented();
+    }
+
     fn emitEnsureGlobalInitialized(inst: Inst) {
         let loc = inst.getLocationData();
         let tmp = loc.getTemp(0).getRegister();

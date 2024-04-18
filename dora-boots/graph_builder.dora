@@ -714,17 +714,17 @@ impl SsaGen {
     }
 
     fn emitLoadGlobal(dest: BytecodeRegister, glob: GlobalId) {
-        let destType = self.regGraphTy(dest);
+        let destType = self.reg(dest);
 
         if iface::hasGlobalInitialValue(glob) {
-            let inst = graph::createEnsureGlobalInitializedInst(glob, destType);
+            let ty = Type::fromBytecodeType(destType);
+            let inst = graph::createEnsureGlobalInitializedInst(glob, ty);
             self.current().appendInst(inst);
             inst.set_bytecode_position(self.offset);
         }
 
-        let globInst = graph::createLoadGlobalInst(destType, glob);
-        self.current().appendInst(globInst);
-        self.writeVariable(dest, self.current(), globInst);
+        let value = self.loadGlobal(destType, glob);
+        self.writeVariable(dest, self.current(), value);
     }
 
     fn emitStoreGlobal(src: BytecodeRegister, glob: GlobalId) {
@@ -1184,6 +1184,47 @@ impl SsaGen {
         self.writeVariable(dest, self.current(), objInst);
     }
 
+    fn loadGlobal(ty: BytecodeType, id: GlobalId): Inst {
+        if ty.isStruct() {
+            let (struct_id, type_params) = match ty {
+                BytecodeType::Struct(struct_id, type_params) => (struct_id, type_params),
+                _ => unreachable[(StructId, Array[BytecodeType])](),
+            };
+
+            let info = StructInfo(struct_id, type_params);
+            let info = InstExtraData::StructInfo(info);
+            let dest = graph::createAllocateStack(info);
+            self.current().appendInst(dest);
+            let src = graph::createGetGlobalAddressInst(id);
+            self.current().appendInst(src);
+            self.copyStruct(ty, dest, 0i32, src, 0i32, false);
+            dest
+
+        } else if ty.isTuple() {
+            let subtypes = match ty {
+                BytecodeType::Tuple(subtypes) => subtypes,
+                _ => unreachable[Array[BytecodeType]](),
+            };
+
+            let info = TupleInfo(subtypes);
+            let info = InstExtraData::TupleInfo(info);
+            let dest = graph::createAllocateStack(info);
+            self.current().appendInst(dest);
+            let src = graph::createGetGlobalAddressInst(id);
+            self.current().appendInst(src);
+            self.copyTuple(ty, dest, 0i32, src, 0i32, false);
+            unimplemented();
+
+            dest
+
+        } else {
+            let ty = Type::fromBytecodeType(ty);
+            let inst = graph::createLoadGlobalInst(ty, id);
+            self.current().appendInst(inst);
+            inst
+        }
+    }
+
     fn loadField(ty: BytecodeType, src: Inst, srcOffset: Int32): Inst {
         if ty.isStruct() {
             let (struct_id, type_params) = match ty {
@@ -1360,12 +1401,17 @@ impl SsaGen {
             self.copyStruct(ty, dest, destOffset, src, srcOffset, heap);
         } else if ty.isTuple() {
             self.copyTuple(ty, dest, destOffset, src, srcOffset, heap);
-        } else if heap && config.needsWriteBarrier && self.isReference(ty) {
+        } else if self.isReference(ty) {
             let ty = Type::Ptr;
             let value = graph::createLoadInst(src, srcOffset, ty);
             self.current().appendInst(value);
-            let inst = graph::createStoreWbInst(dest, destOffset, value, ty);
-            self.current().appendInst(inst);
+            if heap && config.needsWriteBarrier {
+                let inst = graph::createStoreWbInst(dest, destOffset, value, ty);
+                self.current().appendInst(inst);
+            } else {
+                let inst = graph::createStoreInst(dest, destOffset, value, ty);
+                self.current().appendInst(inst);
+            }
         } else {
             let ty = Type::fromBytecodeType(ty);
             let value = graph::createLoadInst(src, srcOffset, ty);

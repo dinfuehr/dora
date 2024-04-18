@@ -578,6 +578,7 @@ pub enum Op {
 
     EnsureGlobalInitialized,
     LoadGlobal,
+    GetGlobalAddress,
     StoreGlobal,
     MarkGlobalInitialized,
 
@@ -695,6 +696,7 @@ pub fn opName(op: Op): String {
         Op::StringConst => "Const.String",
         Op::EnsureGlobalInitialized => "EnsureGlobalInitialized",
         Op::LoadGlobal => "LoadGlobal",
+        Op::GetGlobalAddress => "GetGlobalAddress",
         Op::StoreGlobal => "StoreGlobal",
         Op::MarkGlobalInitialized => "MarkGlobalInitialized",
         Op::Undef => "Undef",
@@ -876,6 +878,7 @@ impl Inst {
             Op::StringConst => Type::Ptr,
             Op::EnsureGlobalInitialized => unreachable[Type](),
             Op::LoadGlobal => self.ty,
+            Op::GetGlobalAddress => Type::Address,
             Op::StoreGlobal => self.ty,
             Op::MarkGlobalInitialized => unreachable[Type](),
             Op::Undef => unreachable[Type](),
@@ -1274,7 +1277,8 @@ impl Inst {
             op == Op::LoadGlobal ||
             op == Op::StoreGlobal ||
             op == Op::EnsureGlobalInitialized ||
-            op == Op::MarkGlobalInitialized
+            op == Op::MarkGlobalInitialized ||
+            op == Op::GetGlobalAddress
         );
 
         GlobalId(self.aux.toInt32())
@@ -1386,6 +1390,7 @@ impl Inst {
             Op::StringConst => false,
             Op::EnsureGlobalInitialized => true,
             Op::LoadGlobal => true,
+            Op::GetGlobalAddress => false,
             Op::StoreGlobal => true,
             Op::MarkGlobalInitialized => true,
             Op::Undef => false,
@@ -2146,8 +2151,8 @@ pub fn createFloat64Const(value: Float64): Inst {
 pub fn createEnsureGlobalInitializedInst(global: GlobalId, ty: Type): Inst {
     let inst = Inst::new();
     inst._op = Some(Op::EnsureGlobalInitialized);
-    inst.ty = ty;
     inst.aux = global.value.toInt64();
+    inst.ty = ty;
     inst
 }
 
@@ -2162,6 +2167,13 @@ pub fn createLoadGlobalInst(ty: Type, global: GlobalId): Inst {
     let inst = Inst::new();
     inst._op = Some(Op::LoadGlobal);
     inst.ty = ty;
+    inst.aux = global.value.toInt64();
+    inst
+}
+
+pub fn createGetGlobalAddressInst(global: GlobalId): Inst {
+    let inst = Inst::new();
+    inst._op = Some(Op::GetGlobalAddress);
     inst.aux = global.value.toInt64();
     inst
 }
