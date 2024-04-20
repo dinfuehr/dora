@@ -481,19 +481,22 @@ impl SimpleRegisterAllocator {
     fn allocateStackSlot(inst: Inst) {
         let loc = inst.getLocationData();
 
-        let (size, alignment) = if inst.hasStructInfo() {
+        let layout = if inst.hasStructInfo() {
             let structInfo = inst.getStructInfo();
-            let structLayout = computeStructLayout(structInfo.struct_id, structInfo.type_params);
-            (structLayout.size, structLayout.alignment)
+            computeStructLayout(structInfo.struct_id, structInfo.type_params)
         } else if inst.hasTupleInfo() {
             let tupleInfo = inst.getTupleInfo();
-            let tupleLayout = computeTupleLayout(tupleInfo.subtypes);
-            (tupleLayout.size, tupleLayout.alignment)
+            computeTupleLayout(tupleInfo.subtypes)
         } else {
-            unreachable[(Int32, Int32)]()
+            unreachable[RecordLayout]()
         };
 
-        let offset = self.allocateStackSpace(size, alignment);
+        let offset = self.allocateStackSpace(layout.size, layout.alignment);
+
+        for ref in layout.refs {
+            assert(!self.refs.contains(offset + ref));
+            self.refs.insert(offset + ref);
+        }
 
         loc.setStackSlot(offset);
     }
@@ -535,7 +538,24 @@ impl SimpleRegisterAllocator {
                 self.float_registers().free(value);
                 let value_loc = value.getLocationData();
 
-                if isReference(value.getValueType()) && value_loc.hasSpillSlot() {
+                if value.op() == Op::AllocateStack {
+                    let layout = if value.hasStructInfo() {
+                        let structInfo = value.getStructInfo();
+                        computeStructLayout(structInfo.struct_id, structInfo.type_params)
+                    } else if value.hasTupleInfo() {
+                        let tupleInfo = value.getTupleInfo();
+                        computeTupleLayout(tupleInfo.subtypes)
+                    } else {
+                        unreachable[RecordLayout]()
+                    };
+
+                    let offset = value_loc.getStackSlot();
+
+                    for ref in layout.refs {
+                        assert(self.refs.remove(offset + ref));
+                    }
+
+                } else if isReference(value.getValueType()) && value_loc.hasSpillSlot() {
                     assert(self.refs.remove(value_loc.getSpillSlot()));
                 }
             }
@@ -867,7 +887,8 @@ fn computeRecordLayout(fieldTypes: Array[BytecodeType]): RecordLayout {
                 addField(8i32, 8i32, fieldTy);
             },
             BytecodeType::Class(_, _) => {
-                addField(8i32, 8i32, fieldTy);
+                let offset = addField(8i32, 8i32, fieldTy);
+                refs.push(offset);
             },
             BytecodeType::Struct(struct_id, type_params) => {
                 let layout = computeStructLayout(struct_id, type_params);

@@ -1385,10 +1385,15 @@ impl SsaGen {
             self.copyStruct(ty, dest, destOffset, value, 0i32, heap);
         } else if ty.isTuple() {
             self.copyTuple(ty, dest, destOffset, value, 0i32, heap);
-        } else if heap && config.needsWriteBarrier && self.isReference(ty) {
-            let ty = Type::fromBytecodeType(ty);
-            let inst = graph::createStoreWbInst(dest, destOffset, value, ty);
-            self.current().appendInst(inst);
+        } else if self.isReference(ty) {
+            let ty = Type::Ptr;
+            if heap && config.needsWriteBarrier {
+                let inst = graph::createStoreWbInst(dest, destOffset, value, ty);
+                self.current().appendInst(inst);
+            } else {
+                let inst = graph::createStoreInst(dest, destOffset, value, ty);
+                self.current().appendInst(inst);
+            }
         } else {
             let ty = Type::fromBytecodeType(ty);
             let inst = graph::createStoreInst(dest, destOffset, value, ty);
