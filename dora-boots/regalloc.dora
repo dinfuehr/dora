@@ -850,11 +850,10 @@ fn computeRecordLayout(fieldTypes: Array[BytecodeType]): RecordLayout {
     for fieldTy in fieldTypes {
         assert(!fieldTy.isGeneric());
 
-        if fieldTy.isUnit() {
-            continue;
-        }
-
         match fieldTy {
+            BytecodeType::Unit => {
+                addField(0i32, 1i32, fieldTy);
+            },
             BytecodeType::Bool | BytecodeType::UInt8 => {
                 addField(1i32, 1i32, fieldTy);
             },
