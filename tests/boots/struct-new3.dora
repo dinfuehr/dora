@@ -1,0 +1,21 @@
+//= boots
+//= vm-args --gc=copy --gc-stress
+
+fn main() {
+    let foo = getfoo();
+    assert(foo.a.value == 1);
+    assert(foo.b.0.value == 2);
+    assert(foo.b.1.value == 3);
+}
+
+struct Foo(a: Value, b: (Value, Value))
+class Value(value: Int64)
+
+@optimizeImmediately fn getfoo(): Foo {
+    let a = Value(1);
+    let b = Value(2);
+    let c = Value(3);
+    let foo = Foo(a, (b, c));
+    std::forceCollect();
+    foo
+}

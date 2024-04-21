@@ -5,7 +5,7 @@ use package::bytecode::opcode as opc;
 use package::graph;
 use package::graph::{Block, Graph, Inst, InstExtraData, Op};
 use package::graph::ty::Type;
-use package::graph::{ClassInfo, FunctionInfo, CallKind, VirtualFunctionInfo, LambdaFunctionInfo, StructInfo, TupleInfo, TraitObjectInfo};
+use package::graph::{ClassInfo, FunctionInfo, CallKind, VirtualFunctionInfo, LambdaFunctionInfo, TraitObjectInfo};
 use package::bytecode::data::{BytecodeFunction, BytecodeRegister, BytecodeType, ClassId, FctId, FieldId};
 use package::bytecode::data::{ConstPoolId, ConstPoolEntry, GlobalId, StructId, StructFieldId, TraitId};
 use package::bytecode::instruction::BytecodeInstruction;
@@ -493,7 +493,7 @@ impl SsaGen {
             },
             BytecodeInstruction::ArrayLength(dest, src) => {
                 let srcInst = self.readVariable(src, self.current());
-                let destInst = graph::createArrayLength(srcInst);
+                let destInst = graph::createArrayLengthInst(srcInst);
                 destInst.set_bytecode_position(self.offset);
                 self.current().appendInst(destInst);
                 self.writeVariable(dest, self.current(), destInst);
@@ -735,7 +735,7 @@ impl SsaGen {
         self.current().appendInst(globInst);
 
         if iface::hasGlobalInitialValue(glob) {
-            let inst = graph::createMarkGlobalInitialized(glob);
+            let inst = graph::createMarkGlobalInitializedInst(glob);
             self.current().appendInst(inst);
         }
     }
@@ -784,7 +784,7 @@ impl SsaGen {
         let arrInst = self.readVariable(arr, self.current());
         let idxInst = self.readVariable(idx, self.current());
 
-        let arrayLengthInst = graph::createArrayLength(arrInst);
+        let arrayLengthInst = graph::createArrayLengthInst(arrInst);
         self.current().appendInst(arrayLengthInst);
 
         let boundsCheckInst = graph::createBoundsCheckInst(idxInst, arrayLengthInst);
@@ -802,7 +802,7 @@ impl SsaGen {
         let idxInst = self.readVariable(idx, self.current());
         let srcType = self.reg(src);
 
-        let arrayLengthInst = graph::createArrayLength(arrInst);
+        let arrayLengthInst = graph::createArrayLengthInst(arrInst);
         self.current().appendInst(arrayLengthInst);
 
         let boundsCheckInst = graph::createBoundsCheckInst(idxInst, arrayLengthInst);
@@ -892,19 +892,19 @@ impl SsaGen {
         let valueTy = if destTy.isStruct() || destTy.isTuple() {
             let info = match destTy {
                 BytecodeType::Struct(struct_id, type_params) => {
-                    let info = StructInfo(struct_id, type_params);
-                    InstExtraData::StructInfo(info)
+                    let layout = computeStructLayout(struct_id, type_params);
+                    InstExtraData::RecordLayout(layout)
                 },
 
                 BytecodeType::Tuple(subtypes) => {
-                    let info = TupleInfo(subtypes);
-                    InstExtraData::TupleInfo(info)
+                    let layout = computeTupleLayout(subtypes);
+                    InstExtraData::RecordLayout(layout)
                 },
 
                 _ => unreachable[InstExtraData](),
             };
 
-            let allocInst = graph::createAllocateStack(info);
+            let allocInst = graph::createAllocateStackInst(info);
             self.current().appendInst(allocInst);
             args.push(allocInst);
 
@@ -924,7 +924,7 @@ impl SsaGen {
 
         let info = FunctionInfo(fct_id, type_params);
 
-        let inst = graph::createCall(info, kind, args, valueTy);
+        let inst = graph::createCallInst(info, kind, args, valueTy);
         inst.set_bytecode_position(self.offset);
         self.current().appendInst(inst);
 
@@ -952,7 +952,7 @@ impl SsaGen {
 
         let info = VirtualFunctionInfo(trait_object_ty, fct_id, type_params);
 
-        let inst = graph::createVirtualCall(info, args, ty);
+        let inst = graph::createVirtualCallInst(info, args, ty);
         inst.set_bytecode_position(self.offset);
         self.current().appendInst(inst);
 
@@ -980,7 +980,7 @@ impl SsaGen {
 
         let info = LambdaFunctionInfo(params, return_type);
 
-        let inst = graph::createLambdaCall(info, args, ty);
+        let inst = graph::createLambdaCallInst(info, args, ty);
         inst.set_bytecode_position(self.offset);
         self.current().appendInst(inst);
 
@@ -1041,7 +1041,7 @@ impl SsaGen {
 
         let info = ClassInfo(class_id, type_params);
         let info = InstExtraData::ClassInfo(info);
-        let objInst = graph::createNewObject(info);
+        let objInst = graph::createNewObjectInst(info);
         objInst.set_bytecode_position(self.offset);
         self.current().appendInst(objInst);
 
@@ -1068,7 +1068,7 @@ impl SsaGen {
 
         let info = FunctionInfo(fct_id, type_params);
         let info = InstExtraData::FunctionInfo(info);
-        let objInst = graph::createNewObject(info);
+        let objInst = graph::createNewObjectInst(info);
         objInst.set_bytecode_position(self.offset);
         self.current().appendInst(objInst);
 
@@ -1095,7 +1095,7 @@ impl SsaGen {
 
         let info = TraitObjectInfo(trait_id, type_params, object_ty);
         let info = InstExtraData::TraitObjectInfo(info);
-        let objInst = graph::createNewObject(info);
+        let objInst = graph::createNewObjectInst(info);
         objInst.set_bytecode_position(self.offset);
         self.current().appendInst(objInst);
 
@@ -1113,21 +1113,20 @@ impl SsaGen {
             ConstPoolEntry::Struct(struct_id, type_params) => (struct_id, type_params),
             _ => unreachable[(StructId, Array[BytecodeType])](),
         };
+        let layout = computeStructLayout(struct_id, type_params);
 
-        let info = StructInfo(struct_id, type_params);
-        let info = InstExtraData::StructInfo(info);
-        let allocInst = graph::createAllocateStack(info);
+        let info = InstExtraData::RecordLayout(layout);
+        let allocInst = graph::createAllocateStackInst(info);
         self.current().appendInst(allocInst);
 
         self.writeVariable(dest, self.current(), allocInst);
         let mut fieldId = 0i32;
 
-        let structLayout = computeStructLayout(struct_id, type_params);
-        assert(structLayout.fields.size() == self.pushed_registers.size());
+        assert(layout.fields.size() == self.pushed_registers.size());
 
-        for idx in std::range(0, structLayout.fields.size()) {
+        for idx in std::range(0, layout.fields.size()) {
             let reg = self.pushed_registers(idx);
-            let field = structLayout.fields(idx);
+            let field = layout.fields(idx);
             let arg = self.readVariable(reg, self.current());
 
             self.storeField(field.ty, allocInst, field.offset, arg, false);
@@ -1143,21 +1142,20 @@ impl SsaGen {
             ConstPoolEntry::Tuple(subtypes) => subtypes,
             _ => unreachable[Array[BytecodeType]](),
         };
+        let layout = computeTupleLayout(subtypes);
 
-        let info = TupleInfo(subtypes);
-        let info = InstExtraData::TupleInfo(info);
-        let allocInst = graph::createAllocateStack(info);
+        let info = InstExtraData::RecordLayout(layout);
+        let allocInst = graph::createAllocateStackInst(info);
         self.current().appendInst(allocInst);
 
         self.writeVariable(dest, self.current(), allocInst);
         let mut fieldId = 0i32;
 
-        let tupleLayout = computeTupleLayout(subtypes);
-        assert(tupleLayout.fields.size() == self.pushed_registers.size());
+        assert(layout.fields.size() == self.pushed_registers.size());
 
-        for idx in std::range(0, tupleLayout.fields.size()) {
+        for idx in std::range(0, layout.fields.size()) {
             let reg = self.pushed_registers(idx);
-            let field = tupleLayout.fields(idx);
+            let field = layout.fields(idx);
             let arg = self.readVariable(reg, self.current());
 
             self.storeField(field.ty, allocInst, field.offset, arg, false);
@@ -1177,7 +1175,7 @@ impl SsaGen {
         let info = ClassInfo(class_id, type_params);
         let lengthInst = self.readVariable(length, self.current());
 
-        let objInst = graph::createNewArray(info, lengthInst);
+        let objInst = graph::createNewArrayInst(info, lengthInst);
         objInst.set_bytecode_position(self.offset);
         self.current().appendInst(objInst);
 
@@ -1190,10 +1188,10 @@ impl SsaGen {
                 BytecodeType::Struct(struct_id, type_params) => (struct_id, type_params),
                 _ => unreachable[(StructId, Array[BytecodeType])](),
             };
+            let layout = computeStructLayout(struct_id, type_params);
 
-            let info = StructInfo(struct_id, type_params);
-            let info = InstExtraData::StructInfo(info);
-            let dest = graph::createAllocateStack(info);
+            let info = InstExtraData::RecordLayout(layout);
+            let dest = graph::createAllocateStackInst(info);
             self.current().appendInst(dest);
             let src = graph::createGetGlobalAddressInst(id);
             self.current().appendInst(src);
@@ -1205,10 +1203,10 @@ impl SsaGen {
                 BytecodeType::Tuple(subtypes) => subtypes,
                 _ => unreachable[Array[BytecodeType]](),
             };
+            let layout = computeTupleLayout(subtypes);
 
-            let info = TupleInfo(subtypes);
-            let info = InstExtraData::TupleInfo(info);
-            let dest = graph::createAllocateStack(info);
+            let info = InstExtraData::RecordLayout(layout);
+            let dest = graph::createAllocateStackInst(info);
             self.current().appendInst(dest);
             let src = graph::createGetGlobalAddressInst(id);
             self.current().appendInst(src);
@@ -1231,10 +1229,10 @@ impl SsaGen {
                 BytecodeType::Struct(struct_id, type_params) => (struct_id, type_params),
                 _ => unreachable[(StructId, Array[BytecodeType])](),
             };
+            let layout = computeStructLayout(struct_id, type_params);
 
-            let info = StructInfo(struct_id, type_params);
-            let info = InstExtraData::StructInfo(info);
-            let dest = graph::createAllocateStack(info);
+            let info = InstExtraData::RecordLayout(layout);
+            let dest = graph::createAllocateStackInst(info);
             self.current().appendInst(dest);
             self.copyStruct(ty, dest, 0i32, src, srcOffset, false);
             dest
@@ -1244,10 +1242,10 @@ impl SsaGen {
                 BytecodeType::Tuple(subtypes) => subtypes,
                 _ => unreachable[Array[BytecodeType]](),
             };
+            let layout = computeTupleLayout(subtypes);
 
-            let info = TupleInfo(subtypes);
-            let info = InstExtraData::TupleInfo(info);
-            let dest = graph::createAllocateStack(info);
+            let info = InstExtraData::RecordLayout(layout);
+            let dest = graph::createAllocateStackInst(info);
             self.current().appendInst(dest);
             self.copyTuple(ty, dest, 0i32, src, srcOffset, false);
             dest
@@ -1267,14 +1265,13 @@ impl SsaGen {
                 BytecodeType::Struct(struct_id, type_params) => (struct_id, type_params),
                 _ => unreachable[(StructId, Array[BytecodeType])](),
             };
+            let layout = computeStructLayout(struct_id, type_params);
 
-            let info = StructInfo(struct_id, type_params);
-            let info = InstExtraData::StructInfo(info);
-            let dest = graph::createAllocateStack(info);
+            let info = InstExtraData::RecordLayout(layout);
+            let dest = graph::createAllocateStackInst(info);
             self.current().appendInst(dest);
 
-            let structLayout = computeStructLayout(struct_id, type_params);
-            let src = graph::createGetElementPtrInst(arr, index, structLayout.size.toInt64());
+            let src = graph::createGetElementPtrInst(arr, index, layout.size.toInt64());
             self.current().appendInst(src);
 
             self.copyStruct(ty, dest, 0i32, src, 0i32, false);
@@ -1286,13 +1283,12 @@ impl SsaGen {
                 _ => unreachable[Array[BytecodeType]](),
             };
 
-            let info = TupleInfo(subtypes);
-            let info = InstExtraData::TupleInfo(info);
-            let dest = graph::createAllocateStack(info);
+            let layout = computeTupleLayout(subtypes);
+            let info = InstExtraData::RecordLayout(layout);
+            let dest = graph::createAllocateStackInst(info);
             self.current().appendInst(dest);
 
-            let tupleLayout = computeTupleLayout(subtypes);
-            let src = graph::createGetElementPtrInst(arr, index, tupleLayout.size.toInt64());
+            let src = graph::createGetElementPtrInst(arr, index, layout.size.toInt64());
             self.current().appendInst(src);
 
             self.copyTuple(ty, dest, 0i32, src, 0i32, false);

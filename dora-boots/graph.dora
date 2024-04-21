@@ -8,7 +8,7 @@ use package::assembler::{FloatRegister, Label, Register, RegMap, RegSet};
 use package::bytecode::data::{BytecodeType, ClassId, FctId, FieldId, GlobalId, StructId, TraitId};
 use package::dominator::buildDominatorTree;
 use package::interface::GcPoint;
-use package::regalloc::RegisterTracker;
+use package::regalloc::{RegisterTracker, RecordLayout};
 
 pub use package::graph::ty::Type;
 
@@ -993,25 +993,14 @@ impl Inst {
         }
     }
 
-    pub fn hasStructInfo(): Bool {
-        self.extra.isStructInfo()
+    pub fn hasRecordLayout(): Bool {
+        self.extra.isRecordLayout()
     }
 
-    pub fn getStructInfo(): StructInfo {
+    pub fn getRecordLayout(): RecordLayout {
         match self.extra {
-            InstExtraData::StructInfo(info) => info,
-            _ => unreachable[StructInfo](),
-        }
-    }
-
-    pub fn hasTupleInfo(): Bool {
-        self.extra.isTupleInfo()
-    }
-
-    pub fn getTupleInfo(): TupleInfo {
-        match self.extra {
-            InstExtraData::TupleInfo(info) => info,
-            _ => unreachable[TupleInfo](),
+            InstExtraData::RecordLayout(layout) => layout,
+            _ => unreachable[RecordLayout](),
         }
     }
 
@@ -1476,8 +1465,7 @@ pub enum InstExtraData {
     VirtualFunctionInfo(VirtualFunctionInfo),
     LambdaFunctionInfo(LambdaFunctionInfo),
     ClassInfo(ClassInfo),
-    StructInfo(StructInfo),
-    TupleInfo(TupleInfo),
+    RecordLayout(RecordLayout),
     TraitObjectInfo(TraitObjectInfo),
     If(Block, Block),
     Goto(Block),
@@ -1506,16 +1494,9 @@ impl InstExtraData {
         }
     }
 
-    fn isStructInfo(): Bool {
+    fn isRecordLayout(): Bool {
         match self {
-            InstExtraData::StructInfo(_) => true,
-            _ => false,
-        }
-    }
-
-    fn isTupleInfo(): Bool {
-        match self {
-            InstExtraData::TupleInfo(_) => true,
+            InstExtraData::RecordLayout(_) => true,
             _ => false,
         }
     }
@@ -2144,7 +2125,7 @@ pub fn createEnsureGlobalInitializedInst(global: GlobalId, ty: Type): Inst {
     inst
 }
 
-pub fn createMarkGlobalInitialized(global: GlobalId): Inst {
+pub fn createMarkGlobalInitializedInst(global: GlobalId): Inst {
     let inst = Inst::new();
     inst._op = Some(Op::MarkGlobalInitialized);
     inst.aux = global.value.toInt64();
@@ -2279,7 +2260,7 @@ pub fn createStoreArrayAddressWbInst(array: Inst, dest: Inst, destOffset: Int32,
     inst
 }
 
-pub fn createArrayLength(array: Inst): Inst {
+pub fn createArrayLengthInst(array: Inst): Inst {
     let inst = Inst::new();
     inst._op = Some(Op::ArrayLength);
     inst.addInput(array);
@@ -2311,15 +2292,6 @@ pub class LambdaFunctionInfo {
 pub class ClassInfo {
     pub class_id: ClassId,
     pub type_params: Array[BytecodeType],
-}
-
-pub struct StructInfo {
-    pub struct_id: StructId,
-    pub type_params: Array[BytecodeType],
-}
-
-pub struct TupleInfo {
-    pub subtypes: Array[BytecodeType],
 }
 
 pub fn createArgInst(index: Int32, ty: Type): Inst {
@@ -2360,7 +2332,7 @@ pub fn createGotoInst(block: Block): Inst {
     inst
 }
 
-pub fn createCall(info: FunctionInfo, kind: CallKind, args: Vec[Inst], return_ty: Type): Inst {
+pub fn createCallInst(info: FunctionInfo, kind: CallKind, args: Vec[Inst], return_ty: Type): Inst {
     let inst = Inst::new();
     let op = match kind {
         CallKind::Static => Op::InvokeStatic,
@@ -2378,7 +2350,7 @@ pub fn createCall(info: FunctionInfo, kind: CallKind, args: Vec[Inst], return_ty
     inst
 }
 
-pub fn createVirtualCall(info: VirtualFunctionInfo,  args: Vec[Inst], return_ty: Type): Inst {
+pub fn createVirtualCallInst(info: VirtualFunctionInfo,  args: Vec[Inst], return_ty: Type): Inst {
     let inst = Inst::new();
     inst._op = Some(Op::InvokeVirtual);
     inst.extra = InstExtraData::VirtualFunctionInfo(info);
@@ -2391,7 +2363,7 @@ pub fn createVirtualCall(info: VirtualFunctionInfo,  args: Vec[Inst], return_ty:
     inst
 }
 
-pub fn createLambdaCall(info: LambdaFunctionInfo,  args: Vec[Inst], return_ty: Type): Inst {
+pub fn createLambdaCallInst(info: LambdaFunctionInfo,  args: Vec[Inst], return_ty: Type): Inst {
     let inst = Inst::new();
     inst._op = Some(Op::InvokeLambda);
     inst.extra = InstExtraData::LambdaFunctionInfo(info);
@@ -2404,7 +2376,7 @@ pub fn createLambdaCall(info: LambdaFunctionInfo,  args: Vec[Inst], return_ty: T
     inst
 }
 
-pub fn createNewObject(extra: InstExtraData): Inst {
+pub fn createNewObjectInst(extra: InstExtraData): Inst {
     let inst = Inst::new();
     inst._op = Some(Op::NewObject);
     inst.extra = extra;
@@ -2412,7 +2384,7 @@ pub fn createNewObject(extra: InstExtraData): Inst {
     inst
 }
 
-pub fn createAllocateStack(extra: InstExtraData): Inst {
+pub fn createAllocateStackInst(extra: InstExtraData): Inst {
     let inst = Inst::new();
     inst._op = Some(Op::AllocateStack);
     inst.extra = extra;
@@ -2451,15 +2423,7 @@ pub fn createStoreWbInst(obj: Inst, field: Int32, value: Inst, ty: Type): Inst {
     inst
 }
 
-pub fn createNewLambda(info: FunctionInfo): Inst {
-    let inst = Inst::new();
-    inst._op = Some(Op::NewLambda);
-    inst.extra = InstExtraData::FunctionInfo(info);
-
-    inst
-}
-
-pub fn createNewArray(info: ClassInfo, length: Inst): Inst {
+pub fn createNewArrayInst(info: ClassInfo, length: Inst): Inst {
     let inst = Inst::new();
     inst._op = Some(Op::NewObject);
     inst.extra = InstExtraData::ClassInfo(info);

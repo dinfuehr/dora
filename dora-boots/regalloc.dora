@@ -482,22 +482,12 @@ impl SimpleRegisterAllocator {
     }
 
     fn allocateStackSlot(inst: Inst) {
-        let loc = inst.getLocationData();
-
-        let layout = if inst.hasStructInfo() {
-            let structInfo = inst.getStructInfo();
-            computeStructLayout(structInfo.struct_id, structInfo.type_params)
-        } else if inst.hasTupleInfo() {
-            let tupleInfo = inst.getTupleInfo();
-            computeTupleLayout(tupleInfo.subtypes)
-        } else {
-            unreachable[RecordLayout]()
-        };
+        let layout = inst.getRecordLayout();
 
         let offset = self.allocateStackSpace(layout.size, layout.alignment);
         self.addRecordLayoutToGcPoint(offset, layout);
 
-        loc.setStackSlot(offset);
+        inst.getLocationData().setStackSlot(offset);
     }
 
     fn allocateStackSpace(size: Int32, alignment: Int32): Int32 {
@@ -551,16 +541,7 @@ impl SimpleRegisterAllocator {
         let loc = inst.getLocationData();
 
         if inst.op() == Op::AllocateStack {
-            let layout = if inst.hasStructInfo() {
-                let structInfo = inst.getStructInfo();
-                computeStructLayout(structInfo.struct_id, structInfo.type_params)
-            } else if inst.hasTupleInfo() {
-                let tupleInfo = inst.getTupleInfo();
-                computeTupleLayout(tupleInfo.subtypes)
-            } else {
-                unreachable[RecordLayout]()
-            };
-
+            let layout = inst.getRecordLayout();
             let offset = loc.getStackSlot();
 
             for ref in layout.refs {
@@ -909,7 +890,10 @@ fn computeRecordLayout(fieldTypes: Array[BytecodeType]): RecordLayout {
             },
             BytecodeType::Tuple(subtypes) => {
                 let layout = computeTupleLayout(subtypes);
-                addField(layout.size, layout.alignment, fieldTy);
+                let offset = addField(layout.size, layout.alignment, fieldTy);
+                for ref in layout.refs {
+                    refs.push(offset + ref);
+                }
             },
             BytecodeType::Ptr
             | BytecodeType::Enum(_, _)
