@@ -1,0 +1,18 @@
+//= boots
+//= vm-args --gc=copy --gc-stress
+
+fn main() {
+    let foo = getfoo();
+    assert(foo.0.value == 1);
+    assert(foo.1.value == 2);
+}
+
+class Value(value: Int64)
+
+@optimizeImmediately fn getfoo(): (Value, Value) {
+    let a = Value(1);
+    let b = Value(2);
+    let foo = (a, b);
+    std::forceCollect();
+    foo
+}
