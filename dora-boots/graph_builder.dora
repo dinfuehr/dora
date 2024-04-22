@@ -902,8 +902,7 @@ impl SsaGen {
                 _ => unreachable[RecordLayout](),
             };
 
-            let info = InstExtraData::RecordLayout(layout);
-            let allocInst = graph::createAllocateStackInst(info);
+            let allocInst = graph::createAllocateStackInst(layout);
             self.current().appendInst(allocInst);
             args.push(allocInst);
 
@@ -1117,8 +1116,7 @@ impl SsaGen {
         };
         let layout = computeStructLayout(struct_id, type_params);
 
-        let info = InstExtraData::RecordLayout(layout);
-        let allocInst = graph::createAllocateStackInst(info);
+        let allocInst = graph::createAllocateStackInst(layout);
         self.current().appendInst(allocInst);
 
         self.writeVariable(dest, self.current(), allocInst);
@@ -1146,8 +1144,7 @@ impl SsaGen {
         };
         let layout = computeTupleLayout(subtypes);
 
-        let info = InstExtraData::RecordLayout(layout);
-        let allocInst = graph::createAllocateStackInst(info);
+        let allocInst = graph::createAllocateStackInst(layout);
         self.current().appendInst(allocInst);
 
         self.writeVariable(dest, self.current(), allocInst);
@@ -1192,8 +1189,7 @@ impl SsaGen {
             };
             let layout = computeStructLayout(struct_id, type_params);
 
-            let info = InstExtraData::RecordLayout(layout);
-            let dest = graph::createAllocateStackInst(info);
+            let dest = graph::createAllocateStackInst(layout);
             self.current().appendInst(dest);
             let src = graph::createGetGlobalAddressInst(id);
             self.current().appendInst(src);
@@ -1207,8 +1203,7 @@ impl SsaGen {
             };
             let layout = computeTupleLayout(subtypes);
 
-            let info = InstExtraData::RecordLayout(layout);
-            let dest = graph::createAllocateStackInst(info);
+            let dest = graph::createAllocateStackInst(layout);
             self.current().appendInst(dest);
             let src = graph::createGetGlobalAddressInst(id);
             self.current().appendInst(src);
@@ -1233,8 +1228,7 @@ impl SsaGen {
             };
             let layout = computeStructLayout(struct_id, type_params);
 
-            let info = InstExtraData::RecordLayout(layout);
-            let dest = graph::createAllocateStackInst(info);
+            let dest = graph::createAllocateStackInst(layout);
             self.current().appendInst(dest);
             self.copyStruct(ty, dest, 0i32, src, srcOffset, false);
             dest
@@ -1246,8 +1240,7 @@ impl SsaGen {
             };
             let layout = computeTupleLayout(subtypes);
 
-            let info = InstExtraData::RecordLayout(layout);
-            let dest = graph::createAllocateStackInst(info);
+            let dest = graph::createAllocateStackInst(layout);
             self.current().appendInst(dest);
             self.copyTuple(ty, dest, 0i32, src, srcOffset, false);
             dest
@@ -1269,8 +1262,7 @@ impl SsaGen {
             };
             let layout = computeStructLayout(struct_id, type_params);
 
-            let info = InstExtraData::RecordLayout(layout);
-            let dest = graph::createAllocateStackInst(info);
+            let dest = graph::createAllocateStackInst(layout);
             self.current().appendInst(dest);
 
             let src = graph::createGetElementPtrInst(arr, index, layout.size.toInt64());
@@ -1286,8 +1278,7 @@ impl SsaGen {
             };
 
             let layout = computeTupleLayout(subtypes);
-            let info = InstExtraData::RecordLayout(layout);
-            let dest = graph::createAllocateStackInst(info);
+            let dest = graph::createAllocateStackInst(layout);
             self.current().appendInst(dest);
 
             let src = graph::createGetElementPtrInst(arr, index, layout.size.toInt64());

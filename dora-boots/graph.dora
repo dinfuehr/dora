@@ -2384,10 +2384,10 @@ pub fn createNewObjectInst(extra: InstExtraData): Inst {
     inst
 }
 
-pub fn createAllocateStackInst(extra: InstExtraData): Inst {
+pub fn createAllocateStackInst(layout: RecordLayout): Inst {
     let inst = Inst::new();
     inst._op = Some(Op::AllocateStack);
-    inst.extra = extra;
+    inst.extra = InstExtraData::RecordLayout(layout);
 
     inst
 }
