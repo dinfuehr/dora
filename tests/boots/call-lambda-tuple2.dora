@@ -1,0 +1,20 @@
+//= boots
+//= ignore
+
+fn main() {
+    let lambda = ||: (Value, Value) {
+        std::forceCollect();
+        (Value(1), Value(2))
+    };
+    let foo = f(lambda);
+    assert(foo.0.value == 1);
+    assert(foo.1.value == 2);
+}
+
+class Value(value: Int64)
+
+@optimizeImmediately fn f(lambda: (): (Value, Value)): (Value, Value) {
+    let foo = lambda();
+    std::forceCollect();
+    foo
+}

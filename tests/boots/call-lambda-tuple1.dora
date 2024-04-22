@@ -1,0 +1,16 @@
+//= boots
+//= ignore
+
+fn main() {
+    let lambda = ||: (Int64, Int64) {
+        (1, 2)
+    };
+    let foo = f(lambda);
+    assert(foo.0 == 1);
+    assert(foo.1 == 2);
+}
+
+@optimizeImmediately fn f(lambda: (): (Int64, Int64)): (Int64, Int64) {
+    let foo = lambda();
+    foo
+}

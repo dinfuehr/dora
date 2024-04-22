@@ -1,0 +1,30 @@
+//= boots
+//= ignore
+
+fn main() {
+    let foo = Foo(47);
+    let result = f(foo as Bar);
+    assert(result.0.value == 1);
+    assert(result.1.value == 2);
+}
+
+class Value(value: Int64)
+
+@optimizeImmediately fn f(bar: Bar): (Value, Value) {
+    let result = bar.bar();
+    std::forceCollect();
+    result
+}
+
+trait Bar {
+    fn bar(): (Value, Value);
+}
+
+class Foo(value: Int64)
+
+impl Bar for Foo {
+    fn bar(): (Value, Value) {
+        std::forceCollect();
+        (Value(1), Value(2))
+    }
+}
