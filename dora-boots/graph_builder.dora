@@ -12,7 +12,7 @@ use package::bytecode::instruction::BytecodeInstruction;
 use package::bytecode::reader::BytecodeIterator;
 use package::interface as iface;
 use package::interface::{config, CompilationInfo};
-use package::regalloc::{computeStructLayout, computeTupleLayout};
+use package::regalloc::{computeStructLayout, computeTupleLayout, RecordLayout};
 
 pub fn createGraph(ci: CompilationInfo): Graph {
     let graph = Graph::new();
@@ -452,13 +452,13 @@ impl SsaGen {
                 self.emitInvokeDirect(dest, idx);
             },
             BytecodeInstruction::InvokeVirtual(dest, idx) => {
-                self.emitVirtualCall(dest, idx);
+                self.emitInvokeVirtual(dest, idx, CallKind::Virtual);
             },
             BytecodeInstruction::InvokeStatic(dest, idx) => {
                 self.emitInvokeStatic(dest, idx);
             },
             BytecodeInstruction::InvokeLambda(dest, idx) => {
-                self.emitLambdaCall(dest, idx);
+                self.emitInvokeVirtual(dest, idx, CallKind::Lambda);
             },
             BytecodeInstruction::InvokeGenericStatic(dest, idx) => {
                 self.emitInvokeGeneric(dest, idx, CallKind::Static);
@@ -890,23 +890,32 @@ impl SsaGen {
         let destTy = self.reg(dest);
 
         let valueTy = if destTy.isStruct() || destTy.isTuple() {
-            let info = match destTy {
+            let layout = match destTy {
                 BytecodeType::Struct(struct_id, type_params) => {
-                    let layout = computeStructLayout(struct_id, type_params);
-                    InstExtraData::RecordLayout(layout)
+                    computeStructLayout(struct_id, type_params)
                 },
 
                 BytecodeType::Tuple(subtypes) => {
-                    let layout = computeTupleLayout(subtypes);
-                    InstExtraData::RecordLayout(layout)
+                    computeTupleLayout(subtypes)
                 },
 
-                _ => unreachable[InstExtraData](),
+                _ => unreachable[RecordLayout](),
             };
 
+            let info = InstExtraData::RecordLayout(layout);
             let allocInst = graph::createAllocateStackInst(info);
             self.current().appendInst(allocInst);
             args.push(allocInst);
+
+            if layout.refs.size() > 0 {
+                let zero = graph::createInt64Const(0);
+                self.current().appendInst(zero);
+
+                for ref in layout.refs {
+                    let inst = graph::createStoreInst(allocInst, ref, zero, Type::Ptr);
+                    self.current().appendInst(inst);
+                }
+            }
 
             self.writeVariable(dest, self.current(), allocInst);
 
@@ -933,7 +942,7 @@ impl SsaGen {
         }
     }
 
-    fn emitVirtualCall(dest: BytecodeRegister, idx: ConstPoolId) {
+    fn emitInvokeVirtual(dest: BytecodeRegister, idx: ConstPoolId, kind: CallKind) {
         let args = Vec[Inst]::new();
 
         for reg in self.pushed_registers {
@@ -945,44 +954,37 @@ impl SsaGen {
 
         let ty = self.regGraphTy(dest);
 
-        let (trait_object_ty, fct_id, type_params) = match self.bc.constPool(idx) {
-            ConstPoolEntry::TraitObjectMethod(trait_object_ty, fct_id, type_params) => (trait_object_ty, fct_id, type_params),
-            _ => unreachable[(BytecodeType, FctId, Array[BytecodeType])](),
+        let inst = match kind {
+            CallKind::Virtual => {
+                let (trait_object_ty, fct_id, type_params) = match self.bc.constPool(idx) {
+                    ConstPoolEntry::TraitObjectMethod(trait_object_ty, fct_id, type_params) => (trait_object_ty, fct_id, type_params),
+                    _ => unreachable[(BytecodeType, FctId, Array[BytecodeType])](),
+                };
+
+                let info = VirtualFunctionInfo(trait_object_ty, fct_id, type_params);
+
+                let inst = graph::createVirtualCallInst(info, args, ty);
+                inst.set_bytecode_position(self.offset);
+                self.current().appendInst(inst);
+                inst
+            },
+
+            CallKind::Lambda => {
+                let (params, return_type) = match self.bc.constPool(idx) {
+                    ConstPoolEntry::Lambda(params, return_type) => (params, return_type),
+                    _ => unreachable[(Array[BytecodeType], BytecodeType)](),
+                };
+
+                let info = LambdaFunctionInfo(params, return_type);
+
+                let inst = graph::createLambdaCallInst(info, args, ty);
+                inst.set_bytecode_position(self.offset);
+                self.current().appendInst(inst);
+                inst
+            },
+
+            _ => unreachable[Inst](),
         };
-
-        let info = VirtualFunctionInfo(trait_object_ty, fct_id, type_params);
-
-        let inst = graph::createVirtualCallInst(info, args, ty);
-        inst.set_bytecode_position(self.offset);
-        self.current().appendInst(inst);
-
-        if !ty.isUnit() {
-            self.writeVariable(dest, self.current(), inst);
-        }
-    }
-
-    fn emitLambdaCall(dest: BytecodeRegister, idx: ConstPoolId) {
-        let args = Vec[Inst]::new();
-
-        for reg in self.pushed_registers {
-            let arg = self.readVariable(reg, self.current());
-            args.push(arg);
-        }
-
-        self.pushed_registers.clear();
-
-        let ty = self.regGraphTy(dest);
-
-        let (params, return_type) = match self.bc.constPool(idx) {
-            ConstPoolEntry::Lambda(params, return_type) => (params, return_type),
-            _ => unreachable[(Array[BytecodeType], BytecodeType)](),
-        };
-
-        let info = LambdaFunctionInfo(params, return_type);
-
-        let inst = graph::createLambdaCallInst(info, args, ty);
-        inst.set_bytecode_position(self.offset);
-        self.current().appendInst(inst);
 
         if !ty.isUnit() {
             self.writeVariable(dest, self.current(), inst);

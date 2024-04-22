@@ -1,4 +1,5 @@
 //= boots
+//= vm-args --gc=copy --gc-stress
 
 fn main() {
     let foo = f();
