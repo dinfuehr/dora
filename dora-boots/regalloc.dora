@@ -864,37 +864,37 @@ fn computeRecordLayout(fieldTypes: Array[BytecodeType]): RecordLayout {
         match fieldTy {
             BytecodeType::Unit => {
                 addField(0i32, 1i32, fieldTy);
-            },
+            }
             BytecodeType::Bool | BytecodeType::UInt8 => {
                 addField(1i32, 1i32, fieldTy);
-            },
+            }
             BytecodeType::Float32
             | BytecodeType::Int32
             | BytecodeType::Char => {
                 addField(4i32, 4i32, fieldTy);
-            },
+            }
             BytecodeType::Int64
             | BytecodeType::Float64 => {
                 addField(8i32, 8i32, fieldTy);
-            },
+            }
             BytecodeType::Class(_, _) => {
                 let offset = addField(8i32, 8i32, fieldTy);
                 refs.push(offset);
-            },
+            }
             BytecodeType::Struct(struct_id, type_params) => {
                 let layout = computeStructLayout(struct_id, type_params);
                 let offset = addField(layout.size, layout.alignment, fieldTy);
                 for ref in layout.refs {
                     refs.push(offset + ref);
                 }
-            },
+            }
             BytecodeType::Tuple(subtypes) => {
                 let layout = computeTupleLayout(subtypes);
                 let offset = addField(layout.size, layout.alignment, fieldTy);
                 for ref in layout.refs {
                     refs.push(offset + ref);
                 }
-            },
+            }
             BytecodeType::Ptr
             | BytecodeType::Enum(_, _)
             | BytecodeType::Lambda(_, _)
