@@ -903,8 +903,7 @@ fn computeRecordLayout(fieldTypes: Array[BytecodeType]): RecordLayout {
                 unimplemented();
             }
         }
-    };
+    }
 
     RecordLayout(record_size, record_align, fields.toArray(), refs.toArray())
 }
-

@@ -1362,19 +1362,21 @@ impl Parser {
 
         let expr = self.parse_expression();
         let mut cases = Vec::new();
-        let mut comma = true;
 
         self.expect(L_BRACE);
 
         while !self.is(R_BRACE) && !self.is_eof() {
-            if !comma {
-                self.report_error(ParseError::ExpectedToken(",".into()));
-            }
-
             let case = self.parse_match_case();
+            let is_block = case.value.is_block();
             cases.push(case);
 
-            comma = self.eat(COMMA);
+            if !self.is(R_BRACE) {
+                if is_block {
+                    self.eat(COMMA);
+                } else {
+                    self.expect(COMMA);
+                }
+            }
         }
 
         self.expect(R_BRACE);
@@ -3563,6 +3565,7 @@ mod tests {
         parse_expr("match x { }");
         parse_expr("match x { A(x, b) => 1, B => 2 }");
         parse_expr("match x { A(x, b) => 1, B | C => 2 }");
+        parse_expr("match x { A(x, b) => { 1 } B | C => { 2 } }");
     }
 
     #[test]
