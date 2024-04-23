@@ -1070,14 +1070,15 @@ impl CodeGen for CodeGenArm64 {
 
     fn emitInvokeVirtual(inst: Inst) {
         let fct_info = inst.getVirtualFunctionInfo();
+        let receiver_idx = if fct_info.receiver_is_first { 0 } else { 1 };
         let loc = inst.getLocationData();
-        let obj = loc.getInput(0).getRegister();
+        let obj = loc.getInput(receiver_idx).getRegister();
         let tmp = loc.getTemp(0).getRegister();
 
         let vtable_index = getFunctionVtableIndex(fct_info.fct_id);
 
         let site = LazyCompilationSiteVirtual(
-            true,
+            fct_info.receiver_is_first,
             fct_info.fct_id,
             fct_info.type_params,
             fct_info.trait_object_ty,
@@ -1089,12 +1090,13 @@ impl CodeGen for CodeGenArm64 {
 
     fn emitInvokeLambda(inst: Inst) {
         let fct_info = inst.getLambdaFunctionInfo();
+        let receiver_idx = if fct_info.receiver_is_first { 0 } else { 1 };
         let loc = inst.getLocationData();
-        let obj = loc.getInput(0).getRegister();
+        let obj = loc.getInput(receiver_idx).getRegister();
         let tmp = loc.getTemp(0).getRegister();
 
         let site = LazyCompilationSiteLambda(
-            true,
+            fct_info.receiver_is_first,
             fct_info.params,
             fct_info.return_type,
         );

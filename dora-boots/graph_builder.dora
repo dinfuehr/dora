@@ -877,7 +877,75 @@ impl SsaGen {
         args.reserve(self.pushed_registers.size());
         let destTy = self.reg(dest);
 
-        let valueTy = if destTy.isStruct() || destTy.isTuple() {
+        let returnTy = self.prepareReturnValue(dest, destTy, args);
+
+        for reg in self.pushed_registers {
+            let arg = self.readVariable(reg, self.current());
+            args.push(arg);
+        }
+
+        self.pushed_registers.clear();
+
+        let info = FunctionInfo(fct_id, type_params);
+
+        let inst = graph::createCallInst(info, kind, args, returnTy);
+        inst.set_bytecode_position(self.offset);
+        self.current().appendInst(inst);
+
+        if !returnTy.isUnit() {
+            self.writeVariable(dest, self.current(), inst);
+        }
+    }
+
+    fn emitInvokeVirtual(dest: BytecodeRegister, idx: ConstPoolId, kind: CallKind) {
+        let args = Vec[Inst]::new();
+        args.reserve(self.pushed_registers.size());
+        let destTy = self.reg(dest);
+
+        let returnTy = self.prepareReturnValue(dest, destTy, args);
+        let receiver_is_first = args.size() == 0;
+
+        for reg in self.pushed_registers {
+            let arg = self.readVariable(reg, self.current());
+            args.push(arg);
+        }
+
+        self.pushed_registers.clear();
+
+        let inst = match kind {
+            CallKind::Virtual => {
+                let (trait_object_ty, fct_id, type_params) = match self.bc.constPool(idx) {
+                    ConstPoolEntry::TraitObjectMethod(trait_object_ty, fct_id, type_params) => (trait_object_ty, fct_id, type_params),
+                    _ => unreachable[(BytecodeType, FctId, Array[BytecodeType])](),
+                };
+
+                let info = VirtualFunctionInfo(trait_object_ty, fct_id, type_params, receiver_is_first);
+                graph::createVirtualCallInst(info, args, returnTy)
+            }
+
+            CallKind::Lambda => {
+                let (params, return_type) = match self.bc.constPool(idx) {
+                    ConstPoolEntry::Lambda(params, return_type) => (params, return_type),
+                    _ => unreachable[(Array[BytecodeType], BytecodeType)](),
+                };
+
+                let info = LambdaFunctionInfo(params, return_type, receiver_is_first);
+                graph::createLambdaCallInst(info, args, returnTy)
+            }
+
+            _ => unreachable[Inst](),
+        };
+
+        inst.set_bytecode_position(self.offset);
+        self.current().appendInst(inst);
+
+        if !returnTy.isUnit() {
+            self.writeVariable(dest, self.current(), inst);
+        }
+    }
+
+    fn prepareReturnValue(dest: BytecodeRegister, destTy: BytecodeType, args: Vec[Inst]): Type {
+        if destTy.isStruct() || destTy.isTuple() {
             let layout = match destTy {
                 BytecodeType::Struct(struct_id, type_params) => {
                     computeStructLayout(struct_id, type_params)
@@ -909,72 +977,6 @@ impl SsaGen {
             Type::Unit
         } else {
             Type::fromBytecodeType(destTy)
-        };
-
-        for reg in self.pushed_registers {
-            let arg = self.readVariable(reg, self.current());
-            args.push(arg);
-        }
-
-        self.pushed_registers.clear();
-
-        let info = FunctionInfo(fct_id, type_params);
-
-        let inst = graph::createCallInst(info, kind, args, valueTy);
-        inst.set_bytecode_position(self.offset);
-        self.current().appendInst(inst);
-
-        if !valueTy.isUnit() {
-            self.writeVariable(dest, self.current(), inst);
-        }
-    }
-
-    fn emitInvokeVirtual(dest: BytecodeRegister, idx: ConstPoolId, kind: CallKind) {
-        let args = Vec[Inst]::new();
-
-        for reg in self.pushed_registers {
-            let arg = self.readVariable(reg, self.current());
-            args.push(arg);
-        }
-
-        self.pushed_registers.clear();
-
-        let ty = self.regGraphTy(dest);
-
-        let inst = match kind {
-            CallKind::Virtual => {
-                let (trait_object_ty, fct_id, type_params) = match self.bc.constPool(idx) {
-                    ConstPoolEntry::TraitObjectMethod(trait_object_ty, fct_id, type_params) => (trait_object_ty, fct_id, type_params),
-                    _ => unreachable[(BytecodeType, FctId, Array[BytecodeType])](),
-                };
-
-                let info = VirtualFunctionInfo(trait_object_ty, fct_id, type_params);
-
-                let inst = graph::createVirtualCallInst(info, args, ty);
-                inst.set_bytecode_position(self.offset);
-                self.current().appendInst(inst);
-                inst
-            }
-
-            CallKind::Lambda => {
-                let (params, return_type) = match self.bc.constPool(idx) {
-                    ConstPoolEntry::Lambda(params, return_type) => (params, return_type),
-                    _ => unreachable[(Array[BytecodeType], BytecodeType)](),
-                };
-
-                let info = LambdaFunctionInfo(params, return_type);
-
-                let inst = graph::createLambdaCallInst(info, args, ty);
-                inst.set_bytecode_position(self.offset);
-                self.current().appendInst(inst);
-                inst
-            }
-
-            _ => unreachable[Inst](),
-        };
-
-        if !ty.isUnit() {
-            self.writeVariable(dest, self.current(), inst);
         }
     }
 

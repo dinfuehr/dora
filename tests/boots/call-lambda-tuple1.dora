@@ -1,5 +1,4 @@
 //= boots
-//= ignore
 
 fn main() {
     let lambda = ||: (Int64, Int64) {
