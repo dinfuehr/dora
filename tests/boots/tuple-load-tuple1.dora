@@ -1,0 +1,12 @@
+//= boots
+
+fn main() {
+    let foo = (1, (2, 3));
+    let snd = getsnd(foo);
+    assert(snd.0 == 2);
+    assert(snd.1 == 3);
+}
+
+@optimizeImmediately fn getsnd(x: (Int64, (Int64, Int64))): (Int64, Int64) {
+    x.1
+}

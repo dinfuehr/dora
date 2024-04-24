@@ -605,7 +605,7 @@ impl SsaGen {
 
     fn emitLoadTupleElement(dest: BytecodeRegister, src: BytecodeRegister, idx: ConstPoolId) {
         let srcInst = self.readVariable(src, self.current());
-        let destType = self.regGraphTy(dest);
+        let destTy = self.reg(dest);
 
         let (tuple_ty, subtype_idx) = match self.bc.constPool(idx) {
             ConstPoolEntry::TupleElement(tuple_ty, subtype_idx) => (tuple_ty, subtype_idx),
@@ -621,9 +621,9 @@ impl SsaGen {
 
         let tupleLayout = computeTupleLayout(subtypes);
         let offset = tupleLayout.fields(subtype_idx.toInt64()).offset;
-        let destInst = graph::createLoadInst(srcInst, offset, destType);
-        self.current().appendInst(destInst);
-        self.writeVariable(dest, self.current(), destInst);
+
+        let inst = self.loadField(destTy, srcInst, offset);
+        self.writeVariable(dest, self.current(), inst);
     }
 
     fn emitBin(dest: BytecodeRegister, lhs: BytecodeRegister, rhs: BytecodeRegister, op: Op) {
