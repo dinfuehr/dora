@@ -589,7 +589,7 @@ impl SsaGen {
 
     fn emitLoadStructField(dest: BytecodeRegister, src: BytecodeRegister, idx: ConstPoolId) {
         let srcInst = self.readVariable(src, self.current());
-        let destType = self.regGraphTy(dest);
+        let destTy = self.reg(dest);
 
         let (struct_id, type_params, field_id) = match self.bc.constPool(idx) {
             ConstPoolEntry::StructField(struct_id, type_params, field_id) => (struct_id, type_params, field_id),
@@ -598,9 +598,9 @@ impl SsaGen {
 
         let structLayout = computeStructLayout(struct_id, type_params);
         let field = structLayout.fields(field_id.value.toInt64());
-        let destInst = graph::createLoadInst(srcInst, field.offset, destType);
-        self.current().appendInst(destInst);
-        self.writeVariable(dest, self.current(), destInst);
+
+        let inst = self.loadField(destTy, srcInst, field.offset);
+        self.writeVariable(dest, self.current(), inst);
     }
 
     fn emitLoadTupleElement(dest: BytecodeRegister, src: BytecodeRegister, idx: ConstPoolId) {
