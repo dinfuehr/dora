@@ -6,13 +6,13 @@ use package::graph;
 use package::graph::{Block, Graph, Inst, InstExtraData, Op};
 use package::graph::ty::Type;
 use package::graph::{ClassInfo, FunctionInfo, CallKind, VirtualFunctionInfo, LambdaFunctionInfo, TraitObjectInfo};
-use package::bytecode::data::{BytecodeFunction, BytecodeRegister, BytecodeType, ClassId, FctId, FieldId};
+use package::bytecode::data::{BytecodeFunction, BytecodeRegister, BytecodeType, ClassId, EnumId, FctId, FieldId};
 use package::bytecode::data::{ConstPoolId, ConstPoolEntry, GlobalId, StructId, StructFieldId, TraitId};
 use package::bytecode::instruction::BytecodeInstruction;
 use package::bytecode::reader::BytecodeIterator;
 use package::interface as iface;
 use package::interface::{config, CompilationInfo};
-use package::regalloc::{computeStructLayout, computeTupleLayout, RecordLayout};
+use package::regalloc::{computeEnumLayout, computeStructLayout, computeTupleLayout, RecordLayout};
 
 pub fn createGraph(ci: CompilationInfo): Graph {
     let graph = Graph::new();
@@ -468,7 +468,7 @@ impl SsaGen {
                 self.emitNewTuple(dest, idx);
             }
             BytecodeInstruction::NewEnum(dest, idx) => {
-                unimplemented();
+                self.emitNewEnum(dest, idx);
             }
             BytecodeInstruction::NewStruct(dest, idx) => {
                 self.emitNewStruct(dest, idx);
@@ -1131,6 +1131,16 @@ impl SsaGen {
         }
 
         self.pushed_registers.clear();
+    }
+
+    fn emitNewEnum(dest: BytecodeRegister, idx: ConstPoolId) {
+        let (enum_id, type_params, variant) = match self.bc.constPool(idx) {
+            ConstPoolEntry::EnumVariant(enum_id, type_params, variant) => (enum_id, type_params, variant),
+            _ => unreachable[(EnumId, Array[BytecodeType], Int32)](),
+        };
+        let layout = computeEnumLayout(enum_id, type_params);
+        assert(self.pushed_registers.isEmpty());
+        unimplemented();
     }
 
     fn emitNewTuple(dest: BytecodeRegister, idx: ConstPoolId) {

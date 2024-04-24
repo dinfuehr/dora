@@ -95,6 +95,10 @@ pub const BOOTS_NATIVE_FUNCTIONS: &[(&'static str, *const u8)] = &[
         "boots::interface::getStructDataRaw",
         get_struct_data_raw as *const u8,
     ),
+    (
+        "boots::interface::getEnumDataRaw",
+        get_enum_data_raw as *const u8,
+    ),
 ];
 
 pub fn compile(
@@ -421,6 +425,13 @@ extern "C" fn get_intrinsic_for_function_raw(id: u32) -> i32 {
 }
 
 extern "C" fn get_struct_data_raw(id: u32) -> Ref<UInt8Array> {
+    let vm = get_vm();
+
+    let struct_ = &vm.program.structs[id as usize];
+    allocate_encoded_struct_data(vm, &struct_)
+}
+
+extern "C" fn get_enum_data_raw(id: u32) -> Ref<UInt8Array> {
     let vm = get_vm();
 
     let struct_ = &vm.program.structs[id as usize];

@@ -1,9 +1,9 @@
 use std::collections::VecIter;
 
 use package::bytecode::{BytecodeFunction, BytecodeType, ConstPoolId, FctId, Location};
-use package::bytecode::data::{ClassId, FieldId, GlobalId, StructId, StructFieldId};
+use package::bytecode::data::{ClassId, EnumId, FieldId, GlobalId, StructId, StructFieldId};
 use package::deserializer::decodeBytecodeFunction;
-use package::deserializer::{decodeCompilationInfo, decodeStructData};
+use package::deserializer::{decodeCompilationInfo, decodeStructData, decodeEnumData};
 use package::deserializer::decodeConfig;
 use package::deserializer::ByteReader;
 use package::codegen::x64::CodeGenX64;
@@ -39,6 +39,7 @@ pub const TRAP_OVERFLOW: Int32 = 9i32;
 @internal pub fn findTraitImplRaw(data: Array[UInt8]): Int32;
 @internal pub fn getIntrinsicForFunctionRaw(id: Int32): Int32;
 @internal pub fn getStructDataRaw(id: Int32): Array[UInt8];
+@internal pub fn getEnumDataRaw(id: Int32): Array[UInt8];
 
 pub fn getFunctionAddress(fct_id: FctId, type_params: Array[BytecodeType]): Address {
     let writer = ByteWriter::new();
@@ -136,6 +137,14 @@ pub fn getStructData(struct_id: StructId): StructData {
     structData
 }
 
+pub fn getEnumData(enum_id: EnumId): EnumData {
+    let encoded = getEnumDataRaw(enum_id.value);
+    let reader = ByteReader::new(encoded);
+    let enumData = decodeEnumData(reader);
+    assert(!reader.moreBytes());
+    enumData
+}
+
 pub class Config {
     pub architecture: Architecture,
     pub safepoint_trampoline: Address,
@@ -201,6 +210,15 @@ impl CompilationInfo {
 
 pub class StructData {
     pub typeParams: Int32,
+    pub fields: Array[BytecodeType],
+}
+
+pub class EnumData {
+    pub typeParams: Int32,
+    pub variants: Array[EnumVariantData],
+}
+
+pub class EnumVariantData {
     pub fields: Array[BytecodeType],
 }
 

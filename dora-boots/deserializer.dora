@@ -1,4 +1,4 @@
-use package::interface::{Address, CompilationInfo, Config, StructData};
+use package::interface::{Address, CompilationInfo, Config, StructData, EnumData, EnumVariantData};
 use package::bytecode::data::{AliasId, BytecodeFunction, BytecodeType, ClassId, ConstPoolEntry, EnumId, FctId, FieldId, Location, StructId, StructFieldId, TraitId};
 use package::bytecode::opcode as opc;
 use package::interface::Architecture;
@@ -46,6 +46,31 @@ pub fn decodeStructData(reader: ByteReader): StructData {
     let typeParams = reader.readInt32();
     let types = decodeBytecodeTypeArray(reader);
     StructData(typeParams, types)
+}
+
+pub fn decodeEnumData(reader: ByteReader): EnumData {
+    let typeParams = reader.readInt32();
+    let variants = decodeEnumVariants(reader);
+    EnumData(typeParams, variants)
+}
+
+fn decodeEnumVariants(reader: ByteReader): Array[EnumVariantData] {
+    let size = reader.readInt32().toInt64();
+    let data = Vec[EnumVariantData]::new();
+
+    let mut i = 0i64;
+
+    while i < size {
+        data.push(decodeEnumVariantData(reader));
+        i = i + 1i64;
+    }
+
+    data.toArray()
+}
+
+fn decodeEnumVariantData(reader: ByteReader): EnumVariantData {
+    let fields = decodeBytecodeTypeArray(reader);
+    EnumVariantData(fields)
 }
 
 pub fn decodeBytecodeFunction(reader: ByteReader): BytecodeFunction {

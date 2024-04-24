@@ -8,7 +8,8 @@ use crate::gc::Address;
 use crate::object::{byte_array_from_buffer, Obj, Ref, UInt8Array};
 use crate::vm::VM;
 use dora_bytecode::{
-    BytecodeFunction, BytecodeTypeArray, ConstPoolEntry, ConstPoolOpcode, Location, StructData,
+    BytecodeFunction, BytecodeTypeArray, ConstPoolEntry, ConstPoolOpcode, EnumData, Location,
+    StructData,
 };
 use dora_bytecode::{BytecodeType, BytecodeTypeKind};
 
@@ -68,6 +69,24 @@ fn encode_struct_data(vm: &VM, struct_: &StructData, buffer: &mut ByteBuffer) {
     encode_bytecode_type_array(vm, &types, buffer);
 }
 
+pub fn allocate_encoded_enum_data(vm: &VM, enum_: &EnumData) -> Ref<UInt8Array> {
+    let mut buffer = ByteBuffer::new();
+    encode_enum_data(vm, enum_, &mut buffer);
+    byte_array_from_buffer(vm, buffer.data()).cast()
+}
+
+fn encode_enum_data(vm: &VM, enum_: &EnumData, buffer: &mut ByteBuffer) {
+    let count = enum_.type_params.names.len() as u32;
+    buffer.emit_u32(count);
+
+    let variants = enum_.variants.len();
+    buffer.emit_u32(variants as u32);
+
+    for variant in &enum_.variants {
+        encode_bytecode_type_slice(vm, &variant.arguments, buffer);
+    }
+}
+
 fn encode_bytecode_function(vm: &VM, bytecode_fct: &BytecodeFunction, buffer: &mut ByteBuffer) {
     encode_bytecode_array(bytecode_fct, buffer);
     encode_constpool_array(vm, bytecode_fct, buffer);
@@ -119,6 +138,14 @@ fn encode_bytecode_type_array(vm: &VM, sta: &BytecodeTypeArray, buffer: &mut Byt
 
     for ty in sta.iter() {
         encode_bytecode_type(vm, &ty, buffer);
+    }
+}
+
+fn encode_bytecode_type_slice(vm: &VM, sta: &[BytecodeType], buffer: &mut ByteBuffer) {
+    buffer.emit_u32(sta.len() as u32);
+
+    for ty in sta.iter() {
+        encode_bytecode_type(vm, ty, buffer);
     }
 }
 

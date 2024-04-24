@@ -1,0 +1,12 @@
+//= boots
+//= ignore
+
+fn main() {
+    assert(f() == Foo::A);
+}
+
+enum Foo { A, B, C }
+
+@optimizeImmediately fn f(): Foo {
+    Foo::A
+}
