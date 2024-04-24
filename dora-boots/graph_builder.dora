@@ -705,7 +705,13 @@ impl SsaGen {
         let destType = self.reg(dest);
 
         if iface::hasGlobalInitialValue(glob) {
-            let ty = Type::fromBytecodeType(destType);
+            let ty = if destType.isStruct() || destType.isTuple() {
+                Type::Address
+            } else {
+                let ty = Type::fromBytecodeType(destType);
+                assert(ty != Type::Address);
+                ty
+            };
             let inst = graph::createEnsureGlobalInitializedInst(glob, ty);
             self.current().appendInst(inst);
             inst.set_bytecode_position(self.offset);

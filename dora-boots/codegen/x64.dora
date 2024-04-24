@@ -1293,7 +1293,12 @@ impl CodeGen for CodeGenX64 {
     }
 
     fn emitGetGlobalAddress(inst: Inst) {
-        unimplemented();
+        let loc = inst.getLocationData();
+        let dest = loc.getOutput().getRegister();
+
+        let global_id = inst.getGlobalId();
+        let value_address = getGlobalValueAddress(global_id);
+        self.asm.movq_ri(dest, Immediate(value_address.value));
     }
 
     fn emitEnsureGlobalInitialized(inst: Inst) {
@@ -1316,39 +1321,47 @@ impl CodeGen for CodeGenX64 {
             self.asm.bindLabel(lbl_global_slow_path);
 
             let (gc_point, alignment) = self.saveRegistersForCall(snapshot, loc.getGcPoint());
+            let ty = inst.getOperationType();
+            let value_address = getGlobalValueAddress(global_id);
+
+            if ty == Type::Address {
+                // Pass address of global to function as first argument.
+                self.asm.movq_ri(REG_PARAMS(0), Immediate(value_address.value));
+            }
 
             // Compute initial value.
             let fct_id = getGlobalInitializerFunctionId(global_id);
             let type_params = Array[BytecodeType]::new();
             self.emitCall(fct_id, type_params, inst.bytecode_position(), gc_point);
 
-            // Store initial value in global variable.
-            let value_address = getGlobalValueAddress(global_id);
-            self.asm.movq_ri(REG_TEMP, Immediate(value_address.value));
+            if ty != Type::Address {
+                // Store initial value in global variable.
+                self.asm.movq_ri(REG_TEMP, Immediate(value_address.value));
 
-            match inst.getOperationType() {
-                Type::UInt8 | Type::Bool => {
-                    self.asm.movb_ar(AsmAddress::offset(REG_TEMP, 0i32), RAX);
-                },
+                match inst.getOperationType() {
+                    Type::UInt8 | Type::Bool => {
+                        self.asm.movb_ar(AsmAddress::offset(REG_TEMP, 0i32), RAX);
+                    },
 
-                Type::Int32 | Type::Char => {
-                    self.asm.movl_ar(AsmAddress::offset(REG_TEMP, 0i32), RAX);
-                },
+                    Type::Int32 | Type::Char => {
+                        self.asm.movl_ar(AsmAddress::offset(REG_TEMP, 0i32), RAX);
+                    },
 
-                Type::Int64 | Type::Ptr => {
-                    self.asm.movq_ar(AsmAddress::offset(REG_TEMP, 0i32), RAX);
-                },
+                    Type::Int64 | Type::Ptr => {
+                        self.asm.movq_ar(AsmAddress::offset(REG_TEMP, 0i32), RAX);
+                    },
 
-                Type::Float32 => {
-                    self.asm.movss_ar(AsmAddress::offset(REG_TEMP, 0i32), XMM0);
-                },
+                    Type::Float32 => {
+                        self.asm.movss_ar(AsmAddress::offset(REG_TEMP, 0i32), XMM0);
+                    },
 
-                Type::Float64 => {
-                    self.asm.movsd_ar(AsmAddress::offset(REG_TEMP, 0i32), XMM0);
-                },
+                    Type::Float64 => {
+                        self.asm.movsd_ar(AsmAddress::offset(REG_TEMP, 0i32), XMM0);
+                    },
 
-                _ => {
-                    unimplemented();
+                    _ => {
+                        unimplemented();
+                    }
                 }
             }
 

@@ -1,5 +1,4 @@
 //= boots
-//= ignore
 
 let g: Foo = Foo(10, Bar(11));
 
