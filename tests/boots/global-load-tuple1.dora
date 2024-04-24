@@ -1,0 +1,18 @@
+//= boots
+
+let g: (Int64, Bar) = {
+    std::forceCollect();
+    (10, Bar(11))
+};
+
+fn main() {
+    let local_g = getg();
+    assert(local_g.0 == 10);
+    assert(local_g.1.value == 11);
+}
+
+class Bar(value: Int64)
+
+@optimizeImmediately fn getg(): (Int64, Bar) {
+    g
+}

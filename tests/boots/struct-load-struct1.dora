@@ -1,0 +1,16 @@
+//= boots
+//= ignore
+
+fn main() {
+    let foo = Foo(1, Bar(2, 3));
+    let bar = getbar(foo);
+    assert(bar.b == 2);
+    assert(bar.c == 3);
+}
+
+struct Foo(a: Int64, bar: Bar)
+struct Bar(b: Int64, c: Int64)
+
+@optimizeImmediately fn getbar(x: Foo): Bar {
+    x.bar
+}

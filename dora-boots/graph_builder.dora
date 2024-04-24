@@ -1204,7 +1204,6 @@ impl SsaGen {
             let src = graph::createGetGlobalAddressInst(id);
             self.current().appendInst(src);
             self.copyTuple(ty, dest, 0i32, src, 0i32, false);
-            unimplemented();
 
             dest
 
