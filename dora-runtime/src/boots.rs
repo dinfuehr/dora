@@ -19,8 +19,6 @@ use crate::threads::current_thread;
 use crate::vm::{create_class_instance, get_vm, impls, CodeDescriptor, VM};
 
 use self::deserializer::{decode_bytecode_type, decode_bytecode_type_array};
-use self::serializer::allocate_encoded_struct_data;
-use self::serializer::allocate_encoded_system_config;
 
 mod data;
 mod deserializer;
@@ -375,7 +373,7 @@ fn get_field_offset_raw(
 
 extern "C" fn get_system_config() -> Ref<UInt8Array> {
     let vm = get_vm();
-    allocate_encoded_system_config(vm)
+    serializer::allocate_encoded_system_config(vm)
 }
 
 extern "C" fn get_read_only_string_address_raw(data: Handle<Str>) -> Address {
@@ -428,12 +426,12 @@ extern "C" fn get_struct_data_raw(id: u32) -> Ref<UInt8Array> {
     let vm = get_vm();
 
     let struct_ = &vm.program.structs[id as usize];
-    allocate_encoded_struct_data(vm, &struct_)
+    serializer::allocate_encoded_struct_data(vm, &struct_)
 }
 
 extern "C" fn get_enum_data_raw(id: u32) -> Ref<UInt8Array> {
     let vm = get_vm();
 
-    let struct_ = &vm.program.structs[id as usize];
-    allocate_encoded_struct_data(vm, &struct_)
+    let enum_ = &vm.program.enums[id as usize];
+    serializer::allocate_encoded_enum_data(vm, &enum_)
 }

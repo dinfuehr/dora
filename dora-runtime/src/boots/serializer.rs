@@ -65,8 +65,7 @@ fn encode_struct_data(vm: &VM, struct_: &StructData, buffer: &mut ByteBuffer) {
         .iter()
         .map(|f| f.ty.clone())
         .collect::<Vec<_>>();
-    let types = BytecodeTypeArray::new(types);
-    encode_bytecode_type_array(vm, &types, buffer);
+    encode_bytecode_type_slice(vm, &types, buffer);
 }
 
 pub fn allocate_encoded_enum_data(vm: &VM, enum_: &EnumData) -> Ref<UInt8Array> {
