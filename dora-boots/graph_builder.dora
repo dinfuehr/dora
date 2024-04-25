@@ -12,7 +12,7 @@ use package::bytecode::instruction::BytecodeInstruction;
 use package::bytecode::reader::BytecodeIterator;
 use package::interface as iface;
 use package::interface::{config, CompilationInfo};
-use package::regalloc::{computeEnumLayout, computeStructLayout, computeTupleLayout, RecordLayout};
+use package::regalloc::{computeEnumLayout, computeStructLayout, computeTupleLayout, EnumLayout, RecordLayout};
 
 pub fn createGraph(ci: CompilationInfo): Graph {
     let graph = Graph::new();
@@ -834,6 +834,16 @@ impl SsaGen {
             self.copyTuple(ty, dest, 0i32, src, 0i32, false);
             let inst = graph::createReturnVoidInst();
             self.current().appendInst(inst);
+        } else if ty.isEnum() {
+            let (enum_id, type_params) = match ty {
+                BytecodeType::Enum(enum_id, type_params) => (enum_id, type_params),
+                _ => unreachable[(EnumId, Array[BytecodeType])](),
+            };
+            let layout = computeEnumLayout(enum_id, type_params);
+            assert(layout == EnumLayout::Int32);
+            let value = self.readVariable(opnd, self.current());
+            let inst = graph::createReturnInst(value, Type::Int32);
+            self.current().appendInst(inst);
         } else {
             let value = self.readVariable(opnd, self.current());
             let ty = Type::fromBytecodeType(ty);
@@ -1140,7 +1150,11 @@ impl SsaGen {
         };
         let layout = computeEnumLayout(enum_id, type_params);
         assert(self.pushed_registers.isEmpty());
-        unimplemented();
+        assert(layout == EnumLayout::Int32);
+
+        let inst = graph::createInt32Const(variant);
+        self.current().appendInst(inst);
+        self.writeVariable(dest, self.current(), inst);
     }
 
     fn emitNewTuple(dest: BytecodeRegister, idx: ConstPoolId) {

@@ -1,12 +1,21 @@
 //= boots
-//= ignore
 
 fn main() {
     assert(f() == Foo::A);
+    assert(g() == Foo::B);
+    assert(h() == Foo::C);
 }
 
 enum Foo { A, B, C }
 
 @optimizeImmediately fn f(): Foo {
     Foo::A
+}
+
+@optimizeImmediately fn g(): Foo {
+    Foo::B
+}
+
+@optimizeImmediately fn h(): Foo {
+    Foo::C
 }
