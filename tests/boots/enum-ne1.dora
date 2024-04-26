@@ -1,0 +1,12 @@
+//= boots
+
+fn main() {
+    assert(!f(Foo::A, Foo::A));
+    assert(f(Foo::A, Foo::B));
+}
+
+enum Foo { A, B, C }
+
+@optimizeImmediately fn f(a: Foo, b: Foo): Bool {
+    a != b
+}

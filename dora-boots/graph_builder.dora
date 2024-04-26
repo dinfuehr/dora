@@ -120,6 +120,14 @@ impl SsaGen {
             let ty = self.regId(regIdx);
             let ty = if ty.isStruct() || ty.isTuple() {
                 Type::Address
+            } else if ty.isEnum() {
+                let (enum_id, type_params) = match ty {
+                    BytecodeType::Enum(enum_id, type_params) => (enum_id, type_params),
+                    _ => unreachable[(EnumId, Array[BytecodeType])](),
+                };
+                let layout = computeEnumLayout(enum_id, type_params);
+                assert(layout == EnumLayout::Int32);
+                Type::Int32
             } else {
                 Type::fromBytecodeType(ty)
             };
@@ -634,6 +642,12 @@ impl SsaGen {
             BytecodeType::Int64 => Type::int64(),
             BytecodeType::Float32 => Type::float32(),
             BytecodeType::Float64 => Type::float64(),
+            BytecodeType::Enum(enum_id, type_params) => {
+                assert(op == Op::Equal || op == Op::NotEqual);
+                let layout = computeEnumLayout(enum_id, type_params);
+                assert(layout == EnumLayout::Int32);
+                Type::Int32
+            }
             _ => unreachable[Type](),
         };
 

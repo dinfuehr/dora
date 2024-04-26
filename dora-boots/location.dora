@@ -324,6 +324,10 @@ fn computeArgumentLocations(codegen: CodeGen, ci: CompilationInfo): Array[Locati
         let ty = ty.specialize(ci.typeParams);
         let ty = if ty.isStruct() || ty.isTuple() {
             Type::Address
+        } else if ty.isEnum() {
+            // Enum could be implemented through Int32 or Ptr, but all
+            // here matters is that it is not float.
+            Type::Ptr
         } else {
             Type::fromBytecodeType(ty)
         };
