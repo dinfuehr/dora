@@ -12,7 +12,7 @@ use package::bytecode::instruction::BytecodeInstruction;
 use package::bytecode::reader::BytecodeIterator;
 use package::interface as iface;
 use package::interface::{config, CompilationInfo};
-use package::regalloc::{computeEnumLayout, computeStructLayout, computeTupleLayout, EnumLayout, RecordLayout};
+use package::regalloc::{computeEnumLayout, computeStructLayout, computeTupleLayout, EnumLayout, isReference, RecordLayout};
 
 pub fn createGraph(ci: CompilationInfo): Graph {
     let graph = Graph::new();
@@ -867,9 +867,12 @@ impl SsaGen {
                 _ => unreachable[(EnumId, Array[BytecodeType])](),
             };
             let layout = computeEnumLayout(enum_id, type_params);
-            assert(layout == EnumLayout::Int32);
+            let ty = match layout {
+                EnumLayout::Int32 => Type::Int32,
+                EnumLayout::Ptr | EnumLayout::Tagged => Type::Ptr
+            };
             let value = self.readVariable(opnd, self.current());
-            let inst = graph::createReturnInst(value, Type::Int32);
+            let inst = graph::createReturnInst(value, ty);
             self.current().appendInst(inst);
         } else {
             let value = self.readVariable(opnd, self.current());
@@ -1006,7 +1009,7 @@ impl SsaGen {
             args.push(allocInst);
 
             if layout.refs.size() > 0 {
-                let zero = graph::createInt64Const(0);
+                let zero = graph::createNullConst();
                 self.current().appendInst(zero);
 
                 for ref in layout.refs {
@@ -1176,12 +1179,32 @@ impl SsaGen {
             _ => unreachable[(EnumId, Array[BytecodeType], Int32)](),
         };
         let layout = computeEnumLayout(enum_id, type_params);
-        assert(self.pushed_registers.isEmpty());
-        assert(layout == EnumLayout::Int32);
 
-        let inst = graph::createInt32Const(variant);
-        self.current().appendInst(inst);
-        self.writeVariable(dest, self.current(), inst);
+        match layout {
+            EnumLayout::Int32 => {
+                assert(self.pushed_registers.isEmpty());
+                let inst = graph::createInt32Const(variant);
+                self.current().appendInst(inst);
+                self.writeVariable(dest, self.current(), inst);
+            }
+
+            EnumLayout::Ptr => {
+                if self.pushed_registers.isEmpty() {
+                    let inst = graph::createNullConst();
+                    self.current().appendInst(inst);
+                    self.writeVariable(dest, self.current(), inst);
+                } else {
+                    assert(self.pushed_registers.size() == 1);
+                    let reg = self.pushed_registers(0);
+                    let src = self.readVariable(reg, self.current());
+                    self.writeVariable(dest, self.current(), src);
+                }
+            }
+
+            EnumLayout::Tagged => {
+                unimplemented();
+            }
+        }
     }
 
     fn emitNewTuple(dest: BytecodeRegister, idx: ConstPoolId) {
@@ -1364,7 +1387,7 @@ impl SsaGen {
             self.current().appendInst(dest);
 
             self.storeArrayNested(ty, arr, dest, 0i32, value, 0i32);
-        } else if config.needsWriteBarrier && self.isReference(ty) {
+        } else if config.needsWriteBarrier && isReference(ty) {
             let inst = graph::createStoreArrayWbInst(arr, index, value, Type::Ptr);
             self.current().appendInst(inst);
         } else {
@@ -1397,7 +1420,7 @@ impl SsaGen {
             for field in tupleLayout.fields {
                 self.storeArrayNested(field.ty, array, dest, destOffset + field.offset, src, srcOffset + field.offset);
             }
-        } else if config.needsWriteBarrier && self.isReference(ty) {
+        } else if config.needsWriteBarrier && isReference(ty) {
             let ty = Type::Ptr;
             let value = graph::createLoadInst(src, srcOffset, ty);
             self.current().appendInst(value);
@@ -1420,7 +1443,7 @@ impl SsaGen {
             self.copyStruct(ty, dest, destOffset, value, 0i32, heap);
         } else if ty.isTuple() {
             self.copyTuple(ty, dest, destOffset, value, 0i32, heap);
-        } else if self.isReference(ty) {
+        } else if isReference(ty) {
             let ty = Type::Ptr;
             if heap && config.needsWriteBarrier {
                 let inst = graph::createStoreWbInst(dest, destOffset, value, ty);
@@ -1441,7 +1464,7 @@ impl SsaGen {
             self.copyStruct(ty, dest, destOffset, src, srcOffset, heap);
         } else if ty.isTuple() {
             self.copyTuple(ty, dest, destOffset, src, srcOffset, heap);
-        } else if self.isReference(ty) {
+        } else if isReference(ty) {
             let ty = Type::Ptr;
             let value = graph::createLoadInst(src, srcOffset, ty);
             self.current().appendInst(value);
@@ -1458,29 +1481,6 @@ impl SsaGen {
             self.current().appendInst(value);
             let inst = graph::createStoreInst(dest, destOffset, value, ty);
             self.current().appendInst(inst);
-        }
-    }
-
-    fn isReference(ty: BytecodeType): Bool {
-        match ty {
-            BytecodeType::Unit
-            | BytecodeType::Bool
-            | BytecodeType::UInt8
-            | BytecodeType::Float32
-            | BytecodeType::Int32
-            | BytecodeType::Char
-            | BytecodeType::Int64
-            | BytecodeType::Float64 => false,
-            BytecodeType::Class(_, _)
-            | BytecodeType::Ptr
-            | BytecodeType::Lambda(_, _)
-            | BytecodeType::Trait(_, _) => true,
-            BytecodeType::Struct(_, _)
-            | BytecodeType::Tuple(_)
-            | BytecodeType::This
-            | BytecodeType::TypeParam(_) => unreachable[Bool](),
-            BytecodeType::Enum(_, _) => unreachable[Bool](),
-            BytecodeType::TypeAlias(_) => unreachable[Bool](),
         }
     }
 

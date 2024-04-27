@@ -300,7 +300,7 @@ impl CodeGenX64 {
 
             extendedSize = extendedSize + PTR_SIZE;
 
-            if isReference(inst.getValueType()) {
+            if inst.getValueType().isReference() {
                 let fp_offset = -(self.graph.getStackSize() + extendedSize);
                 gc_point.add(fp_offset);
             }
@@ -567,6 +567,12 @@ impl CodeGen for CodeGenX64 {
         let loc = inst.getLocationData();
         let register = loc.getOutput().getRegister();
         self.asm.movq_ri(register, Immediate(inst.getValueAsInt64()));
+    }
+
+    fn emitNullConst(inst: Inst) {
+        let loc = inst.getLocationData();
+        let register = loc.getOutput().getRegister();
+        self.asm.xorl_rr(register, register);
     }
 
     fn emitFloat32Const(inst: Inst) {

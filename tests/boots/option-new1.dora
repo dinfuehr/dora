@@ -1,0 +1,11 @@
+//= boots
+
+fn main() {
+    assert(f().isNone());
+}
+
+class Foo(value: Int64)
+
+@optimizeImmediately fn f(): Option[Foo] {
+    None
+}

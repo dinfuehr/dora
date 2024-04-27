@@ -1,0 +1,12 @@
+//= boots
+
+fn main() {
+    let foo = Foo(10);
+    assert(f(foo).isSome());
+}
+
+class Foo(value: Int64)
+
+@optimizeImmediately fn f(value: Foo): Option[Foo] {
+    Some[Foo](value)
+}

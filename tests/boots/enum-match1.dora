@@ -3,6 +3,11 @@
 fn main() {
     assert(isA(Foo::A));
     assert(!isA(Foo::B));
+    assert(!isA(Foo::C));
+
+    assert(!isB(Foo::A));
+    assert(isB(Foo::B));
+    assert(!isB(Foo::C));
 }
 
 enum Foo { A, B, C }
@@ -10,6 +15,13 @@ enum Foo { A, B, C }
 @optimizeImmediately fn isA(f: Foo): Bool {
     match f {
         Foo::A => true,
+        _ => false,
+    }
+}
+
+@optimizeImmediately fn isB(f: Foo): Bool {
+    match f {
+        Foo::B => true,
         _ => false,
     }
 }

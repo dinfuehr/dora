@@ -5,7 +5,7 @@ use package::bytecode::data::{EnumId, StructId, BytecodeType};
 use package::codegen::CodeGen;
 use package::codegen::STACK_FRAME_ALIGNMENT;
 use package::graph::{createGotoInst, createMoveInst, Block, Edge, Graph, Inst, Operand, LocationData, Op, Location, opName, Policy, RegisterSnapshot, RegisterTrackers, Type};
-use package::interface::{CompilationInfo, GcPoint};
+use package::interface::{CompilationInfo, EnumData, GcPoint};
 use package::interface as iface;
 use package::location::ensureLocationData;
 use package::ssa_destruction::ssaDestruction;
@@ -475,7 +475,7 @@ impl SimpleRegisterAllocator {
     }
 
     fn addSpillSlotToGcPoint(offset: Int32, ty: Type) {
-        if isReference(ty) {
+        if ty.isReference() {
             assert(!self.refs.contains(offset));
             self.refs.insert(offset);
         }
@@ -548,7 +548,7 @@ impl SimpleRegisterAllocator {
                 assert(self.refs.remove(offset + ref));
             }
 
-        } else if isReference(inst.getValueType()) && loc.hasSpillSlot() {
+        } else if inst.getValueType().isReference() && loc.hasSpillSlot() {
             assert(self.refs.remove(loc.getSpillSlot()));
         }
     }
@@ -687,10 +687,6 @@ impl SimpleRegisterAllocator {
     fn float_registers(): RegisterTracker[FloatRegister] {
         self.float_registers.getOrPanic()
     }
-}
-
-pub fn isReference(ty: Type): Bool {
-    ty == Type::Ptr
 }
 
 pub class RegisterTracker[T: RegisterType] {
@@ -917,9 +913,74 @@ fn computeRecordLayout(fieldTypes: Array[BytecodeType]): RecordLayout {
 pub fn computeEnumLayout(enum_id: EnumId, type_params: Array[BytecodeType]): EnumLayout {
     let enumData = iface::getEnumData(enum_id);
 
-    for variant in enumData.variants {
-        assert(variant.fields.isEmpty());
+    if isSimpleEnumeration(enumData) {
+        EnumLayout::Int32
+    } else if isPointerOrNull(enumData, type_params) {
+        EnumLayout::Ptr
+    } else {
+        unreachable[EnumLayout]()
+    }
+}
+
+fn isSimpleEnumeration(enum_data: EnumData): Bool {
+    for variant in enum_data.variants {
+        if !variant.fields.isEmpty() {
+            return false;
+        }
     }
 
-    EnumLayout::Int32
+    true
+}
+
+fn isPointerOrNull(enum_data: EnumData, type_params: Array[BytecodeType]): Bool {
+    if enum_data.variants.size() != 2 {
+        return false;
+    }
+
+    let first_is_empty = enum_data.variants(0).fields.isEmpty();
+    let null_variant = if first_is_empty {
+        enum_data.variants(0)
+    } else {
+        enum_data.variants(1)
+    };
+
+    let ptr_variant = if first_is_empty {
+        enum_data.variants(1)
+    } else {
+        enum_data.variants(0)
+    };
+
+    if null_variant.fields.size() != 0 {
+        return false;
+    }
+
+    if ptr_variant.fields.size() != 1 {
+        return false;
+    }
+
+    let ty = ptr_variant.fields(0).specialize(type_params);
+    isReference(ty)
+}
+
+pub fn isReference(ty: BytecodeType): Bool {
+    match ty {
+        BytecodeType::Unit
+        | BytecodeType::Bool
+        | BytecodeType::UInt8
+        | BytecodeType::Float32
+        | BytecodeType::Int32
+        | BytecodeType::Char
+        | BytecodeType::Int64
+        | BytecodeType::Float64 => false,
+        BytecodeType::Class(_, _)
+        | BytecodeType::Ptr
+        | BytecodeType::Lambda(_, _)
+        | BytecodeType::Trait(_, _) => true,
+        BytecodeType::Struct(_, _)
+        | BytecodeType::Tuple(_)
+        | BytecodeType::This
+        | BytecodeType::TypeParam(_) => unreachable[Bool](),
+        BytecodeType::Enum(_, _) => unreachable[Bool](),
+        BytecodeType::TypeAlias(_) => unreachable[Bool](),
+    }
 }

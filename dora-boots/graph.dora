@@ -2058,7 +2058,7 @@ pub fn createThreadCurrentInst(): Inst {
     inst
 }
 
-pub fn createNullConst(value: UInt8): Inst {
+pub fn createNullConst(): Inst {
     let inst = Inst::new();
     inst._op = Some(Op::NullConst);
     inst
