@@ -1,0 +1,16 @@
+//= boots
+//= ignore
+
+fn main() {
+    assert(f(Some[Foo](Foo(10)), 12) == 10);
+    assert(f(None[Foo], 12) == 12);
+}
+
+class Foo(value: Int64)
+
+@optimizeImmediately fn f(value: Option[Foo], alt: Int64): Int64 {
+    match value {
+        Some(foo) => foo.value,
+        None => alt,
+    }
+}

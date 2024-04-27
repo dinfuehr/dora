@@ -126,8 +126,10 @@ impl SsaGen {
                     _ => unreachable[(EnumId, Array[BytecodeType])](),
                 };
                 let layout = computeEnumLayout(enum_id, type_params);
-                assert(layout == EnumLayout::Int32);
-                Type::Int32
+                match layout {
+                    EnumLayout::Int32 => Type::Int32,
+                    EnumLayout::Ptr | EnumLayout::Tagged => Type::Ptr,
+                }
             } else {
                 Type::fromBytecodeType(ty)
             };
@@ -641,10 +643,21 @@ impl SsaGen {
         };
 
         let layout = computeEnumLayout(enum_id, type_params);
-        assert(layout == EnumLayout::Int32);
 
-        let inst = self.readVariable(src, self.current());
-        self.writeVariable(dest, self.current(), inst);
+        match layout {
+            EnumLayout::Int32 => {
+                let inst = self.readVariable(src, self.current());
+                self.writeVariable(dest, self.current(), inst);
+            }
+
+            EnumLayout::Ptr => {
+                unimplemented();
+            }
+
+            EnumLayout::Tagged => {
+                unimplemented();
+            }
+        }
     }
 
     fn emitBin(dest: BytecodeRegister, lhs: BytecodeRegister, rhs: BytecodeRegister, op: Op) {
