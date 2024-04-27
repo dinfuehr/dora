@@ -1,5 +1,4 @@
 //= boots
-//= ignore
 
 fn main() {
     assert(isA(Foo::A));

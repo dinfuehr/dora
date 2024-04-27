@@ -4463,6 +4463,7 @@ pub enum Bytecode {
 
     LoadTupleElement(Register, Register, ConstPoolIdx),
     LoadStructField(Register, Register, ConstPoolIdx),
+    LoadEnumVariant(Register, Register, ConstPoolIdx),
 
     LoadField(Register, Register, ConstPoolIdx),
     StoreField(Register, Register, ConstPoolIdx),
@@ -4633,6 +4634,10 @@ impl<'a> BytecodeVisitor for BytecodeArrayBuilder<'a> {
 
     fn visit_mov(&mut self, dest: Register, src: Register) {
         self.emit(Bytecode::Mov(dest, src));
+    }
+
+    fn visit_load_enum_variant(&mut self, dest: Register, src: Register, idx: ConstPoolIdx) {
+        self.emit(Bytecode::LoadEnumVariant(dest, src, idx));
     }
 
     fn visit_load_tuple_element(&mut self, src: Register, dest: Register, idx: ConstPoolIdx) {

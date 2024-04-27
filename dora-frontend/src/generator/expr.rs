@@ -287,7 +287,6 @@ pub(super) fn gen_match(
         }
     }
 
-    g.builder.emit_jump(end_lbl);
     idx = 0;
 
     for case in &node.cases {
