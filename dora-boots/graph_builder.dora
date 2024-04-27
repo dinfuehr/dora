@@ -335,7 +335,7 @@ impl SsaGen {
                 unimplemented();
             }
             BytecodeInstruction::LoadEnumVariant(dest, src, idx) => {
-                unimplemented();
+                self.emitLoadEnumVariant(dest, src, idx);
             }
             BytecodeInstruction::LoadStructField(dest, src, idx) => {
                 self.emitLoadStructField(dest, src, idx);
@@ -631,6 +631,19 @@ impl SsaGen {
         let offset = tupleLayout.fields(subtype_idx.toInt64()).offset;
 
         let inst = self.loadField(destTy, srcInst, offset);
+        self.writeVariable(dest, self.current(), inst);
+    }
+
+    fn emitLoadEnumVariant(dest: BytecodeRegister, src: BytecodeRegister, idx: ConstPoolId) {
+        let (enum_id, type_params) = match self.bc.constPool(idx) {
+            ConstPoolEntry::Enum(enum_id, type_params) => (enum_id, type_params),
+            _ => unreachable[(EnumId, Array[BytecodeType])](),
+        };
+
+        let layout = computeEnumLayout(enum_id, type_params);
+        assert(layout == EnumLayout::Int32);
+
+        let inst = self.readVariable(src, self.current());
         self.writeVariable(dest, self.current(), inst);
     }
 
