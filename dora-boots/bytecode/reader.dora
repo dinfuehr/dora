@@ -132,6 +132,11 @@ impl BytecodeIterator {
             let obj = self.readRegister();
             let idx = self.readConstPoolId();
             BytecodeInstruction::StoreField(src, obj, idx)
+        } else if opcode == opc::BC_LOAD_ENUM_VARIANT {
+            let dest = self.readRegister();
+            let src = self.readRegister();
+            let idx = self.readConstPoolId();
+            BytecodeInstruction::LoadEnumVariant(dest, src, idx)
 
         } else if opcode == opc::BC_LOAD_GLOBAL {
             let dest = self.readRegister();

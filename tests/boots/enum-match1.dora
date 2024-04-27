@@ -1,0 +1,16 @@
+//= boots
+//= ignore
+
+fn main() {
+    assert(isA(Foo::A));
+    assert(!isA(Foo::B));
+}
+
+enum Foo { A, B, C }
+
+@optimizeImmediately fn isA(f: Foo): Bool {
+    match f {
+        Foo::A => true,
+        _ => false,
+    }
+}
