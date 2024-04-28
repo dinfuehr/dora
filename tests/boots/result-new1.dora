@@ -1,0 +1,14 @@
+//= boots
+//= ignore
+
+fn main() {
+    let foo = Foo(10);
+    assert(f(foo).isOk());
+}
+
+class Foo(value: Int64)
+class Bar(value: Int64)
+
+@optimizeImmediately fn f(foo: Foo): Result[Foo, Bar] {
+    Ok[Foo, Bar](foo)
+}

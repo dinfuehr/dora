@@ -1259,9 +1259,33 @@ impl SsaGen {
             }
 
             EnumLayout::Tagged => {
+                let (enum_id, type_params, variant) = match self.bc.constPool(idx) {
+                    ConstPoolEntry::EnumVariant(enum_id, type_params, variant) => (enum_id, type_params, variant),
+                    _ => unreachable[(EnumId, Array[BytecodeType], Int32)](),
+                };
+
+                let info = InstExtraData::None;
+                let objInst = graph::createNewObjectInst(info);
+                objInst.set_bytecode_position(self.offset);
+                self.current().appendInst(objInst);
+
+                self.writeVariable(dest, self.current(), objInst);
+                let mut field_id = 0i32;
+
+                for reg in self.pushed_registers {
+                    let arg = self.readVariable(reg, self.current());
+                    let argTy = self.reg(reg);
+
+                    let offset = 0i32;
+                    self.storeField(argTy, objInst, offset, arg, true);
+                    field_id = field_id + 1i32;
+                }
+
                 unimplemented();
             }
         }
+
+        self.pushed_registers.clear();
     }
 
     fn emitNewTuple(dest: BytecodeRegister, idx: ConstPoolId) {
