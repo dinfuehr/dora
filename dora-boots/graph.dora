@@ -7,7 +7,7 @@ use std::traits::Iterator;
 use package::assembler::{FloatRegister, Label, Register, RegMap, RegSet};
 use package::bytecode::data::{BytecodeType, ClassId, FctId, FieldId, GlobalId, StructId, TraitId};
 use package::dominator::buildDominatorTree;
-use package::interface::GcPoint;
+use package::interface::{Address, GcPoint};
 use package::regalloc::{RegisterTracker, RecordLayout};
 
 pub use package::graph::ty::Type;
@@ -1465,6 +1465,7 @@ pub enum InstExtraData {
     VirtualFunctionInfo(VirtualFunctionInfo),
     LambdaFunctionInfo(LambdaFunctionInfo),
     ClassInfo(ClassInfo),
+    AllocationData(Address, Int32),
     RecordLayout(RecordLayout),
     TraitObjectInfo(TraitObjectInfo),
     If(Block, Block),
