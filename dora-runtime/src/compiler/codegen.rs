@@ -42,7 +42,7 @@ pub fn generate_fct(vm: &VM, fct_id: FunctionId, type_params: &BytecodeTypeArray
         dump_stdout(&vm.program, program_fct, &bytecode_fct);
     }
 
-    let emit_debug = should_emit_debug(vm, fct_id);
+    let emit_debug = should_emit_debug(vm, fct_id, compiler);
     let emit_asm = should_emit_asm(vm, fct_id, compiler);
     let emit_graph = should_emit_graph(vm, fct_id);
     let mut start = None;
@@ -140,7 +140,7 @@ pub fn generate_thunk(
         dump_stdout(&vm.program, trait_fct, &bytecode_fct);
     }
 
-    let emit_debug = should_emit_debug(vm, trait_fct_id);
+    let emit_debug = should_emit_debug(vm, trait_fct_id, compiler);
     let emit_asm = should_emit_asm(vm, trait_fct_id, compiler);
     let emit_graph = should_emit_graph(vm, trait_fct_id);
     let mut start = None;
@@ -220,7 +220,11 @@ pub fn generate_bytecode(vm: &VM, compilation_data: CompilationData) -> CodeDesc
     cannon::compile(vm, compilation_data, CompilationFlags::jit())
 }
 
-pub fn should_emit_debug(vm: &VM, fct_id: FunctionId) -> bool {
+pub fn should_emit_debug(vm: &VM, fct_id: FunctionId, compiler: CompilerName) -> bool {
+    if compiler == CompilerName::Boots && vm.flags.emit_debug_boots {
+        return true;
+    }
+
     if let Some(ref dbg_names) = vm.flags.emit_debug {
         fct_pattern_match(vm, fct_id, dbg_names)
     } else {
@@ -350,7 +354,7 @@ pub fn ensure_runtime_entry_trampoline(
             instruction_start
         } else {
             let dbg = if let Some(fct_id) = fct_id {
-                should_emit_debug(vm, fct_id)
+                should_emit_debug(vm, fct_id, CompilerName::Cannon)
             } else {
                 false
             };

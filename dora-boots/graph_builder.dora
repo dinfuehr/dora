@@ -128,7 +128,7 @@ impl SsaGen {
                 let layout = computeEnumLayout(enum_id, type_params);
                 match layout {
                     EnumLayout::Int32 => Type::Int32,
-                    EnumLayout::Ptr | EnumLayout::Tagged => Type::Ptr,
+                    EnumLayout::PtrOrNull(_) | EnumLayout::Tagged => Type::Ptr,
                 }
             } else {
                 Type::fromBytecodeType(ty)
@@ -334,7 +334,7 @@ impl SsaGen {
                 self.emitLoadTupleElement(dest, src, idx);
             }
             BytecodeInstruction::LoadEnumElement(dest, src, idx) => {                
-                unimplemented();
+                self.emitLoadEnumElement(dest, src, idx);
             }
             BytecodeInstruction::LoadEnumVariant(dest, src, idx) => {
                 self.emitLoadEnumVariant(dest, src, idx);
@@ -650,8 +650,52 @@ impl SsaGen {
                 self.writeVariable(dest, self.current(), inst);
             }
 
-            EnumLayout::Ptr => {
+            EnumLayout::PtrOrNull(layout) => {
+                let src = self.readVariable(src, self.current());
+
+                let zero = graph::createNullConst();
+                self.current().appendInst(zero);
+
+                let op = if layout.null_is_first {
+                    Op::NotEqual
+                } else {
+                    Op::Equal
+                };
+
+                let result = graph::createBinaryInst(op, Type::Ptr, src, zero);
+                result.set_bytecode_position(self.offset);
+                self.current().appendInst(result);
+
+                self.writeVariable(dest, self.current(), result);
+            }
+
+            EnumLayout::Tagged => {
                 unimplemented();
+            }
+        }
+    }
+
+    fn emitLoadEnumElement(dest: BytecodeRegister, src: BytecodeRegister, idx: ConstPoolId) {
+        let (enum_id, type_params, variant, field_id) = match self.bc.constPool(idx) {
+            ConstPoolEntry::EnumElement(enum_id, type_params, variant, field_id) => (enum_id, type_params, variant, field_id),
+            _ => unreachable[(EnumId, Array[BytecodeType], Int32, Int32)](),
+        };
+
+        let layout = computeEnumLayout(enum_id, type_params);
+
+        match layout {
+            EnumLayout::Int32 => {
+                unreachable[()]();
+            }
+
+            EnumLayout::PtrOrNull(layout) => {
+                let src = self.readVariable(src, self.current());
+
+                let null_idx = if layout.null_is_first { 0i32 } else { 1i32 };
+                assert(variant != null_idx);
+                assert(field_id == 0i32);
+
+                self.writeVariable(dest, self.current(), src);
             }
 
             EnumLayout::Tagged => {
@@ -671,7 +715,7 @@ impl SsaGen {
             BytecodeType::Enum(enum_id, type_params) => {
                 assert(op == Op::Equal || op == Op::NotEqual);
                 let layout = computeEnumLayout(enum_id, type_params);
-                assert(layout == EnumLayout::Int32);
+                assert(layout.isInt32());
                 Type::Int32
             }
             _ => unreachable[Type](),
@@ -882,7 +926,7 @@ impl SsaGen {
             let layout = computeEnumLayout(enum_id, type_params);
             let ty = match layout {
                 EnumLayout::Int32 => Type::Int32,
-                EnumLayout::Ptr | EnumLayout::Tagged => Type::Ptr
+                EnumLayout::PtrOrNull(_) | EnumLayout::Tagged => Type::Ptr
             };
             let value = self.readVariable(opnd, self.current());
             let inst = graph::createReturnInst(value, ty);
@@ -1201,7 +1245,7 @@ impl SsaGen {
                 self.writeVariable(dest, self.current(), inst);
             }
 
-            EnumLayout::Ptr => {
+            EnumLayout::PtrOrNull(_) => {
                 if self.pushed_registers.isEmpty() {
                     let inst = graph::createNullConst();
                     self.current().appendInst(inst);
@@ -1524,7 +1568,37 @@ impl SsaGen {
     }
 
     fn regGraphTy(id: BytecodeRegister): Type {
-        Type::fromBytecodeType(self.reg(id))
+        let ty = self.reg(id);
+        self.graphTy(ty)
+    }
+
+    fn graphTy(ty: BytecodeType): Type {
+        match ty {
+            BytecodeType::Unit => unreachable[Type](),
+            BytecodeType::Bool => Type::Bool,
+            BytecodeType::UInt8 => Type::UInt8,
+            BytecodeType::Float32 => Type::Float32,
+            BytecodeType::Int32 => Type::Int32,
+            BytecodeType::Char => Type::Char,
+            BytecodeType::Int64 => Type::Int64,
+            BytecodeType::Float64 => Type::Float64,
+            BytecodeType::Class(_, _)
+            | BytecodeType::Ptr
+            | BytecodeType::Lambda(_, _)
+            | BytecodeType::Trait(_, _) => Type::Ptr,
+            BytecodeType::Enum(enum_id, type_params) => {
+                let layout = computeEnumLayout(enum_id, type_params);
+                match layout {
+                    EnumLayout::Int32 => Type::Int32,
+                    EnumLayout::PtrOrNull(_) | EnumLayout::Tagged => Type::Ptr,
+                }
+            }
+            BytecodeType::Struct(_, _)
+            | BytecodeType::Tuple(_)
+            | BytecodeType::This
+            | BytecodeType::TypeParam(_) => unreachable[Type](),
+            BytecodeType::TypeAlias(_) => unreachable[Type](),
+        }
     }
 
     fn reg(id: BytecodeRegister): BytecodeType {

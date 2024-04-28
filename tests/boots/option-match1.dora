@@ -1,16 +1,15 @@
 //= boots
-//= ignore
 
 fn main() {
-    assert(f(Some[Foo](Foo(10)), 12) == 10);
-    assert(f(None[Foo], 12) == 12);
+    assert(!isNone(Some[Foo](Foo(10))));
+    assert(isNone(None[Foo]));
 }
 
 class Foo(value: Int64)
 
-@optimizeImmediately fn f(value: Option[Foo], alt: Int64): Int64 {
+@optimizeImmediately fn isNone(value: Option[Foo]): Bool {
     match value {
-        Some(foo) => foo.value,
-        None => alt,
+        None => true,
+        _ => false,
     }
 }

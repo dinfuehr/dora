@@ -1,0 +1,15 @@
+//= boots
+
+fn main() {
+    assert(isSome(Some[Foo](Foo(10))));
+    assert(!isSome(None[Foo]));
+}
+
+class Foo(value: Int64)
+
+@optimizeImmediately fn isSome(value: Option[Foo]): Bool {
+    match value {
+        Some(_) => true,
+        _ => false,
+    }
+}

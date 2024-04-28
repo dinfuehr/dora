@@ -18,6 +18,7 @@ pub struct Flags {
     pub enable_perf: bool,
     pub omit_bounds_check: bool,
     pub emit_debug: Option<String>,
+    pub emit_debug_boots: bool,
     pub emit_debug_native: bool,
     pub emit_debug_compile: bool,
     pub emit_debug_entry: bool,

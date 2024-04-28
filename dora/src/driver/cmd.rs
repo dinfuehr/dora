@@ -25,6 +25,7 @@ Options:
     --emit-debug-native     Emits debug instruction at beginning of native stub.
     --emit-debug-compile    Emits debug instruction at beginning of compile stub.
     --emit-debug-entry      Emits debug instruction at beginning of entry stub.
+    --emit-debug-boots      Emits debug instruction at beginning of boots function.
     --omit-bounds-check     Omit array index out of bounds checks.
     --check                 Only type check given program.
     --asm-syntax TYPE       Emits assembly with Intel or AT&T syntax.
@@ -77,6 +78,7 @@ pub struct Args {
     pub emit_debug: Option<String>,
     pub emit_debug_native: bool,
     pub emit_debug_compile: bool,
+    pub emit_debug_boots: bool,
     pub emit_debug_entry: bool,
     pub gc_events: bool,
     pub gc_stress: bool,
@@ -123,6 +125,7 @@ impl Default for Args {
             emit_debug: None,
             emit_debug_compile: false,
             emit_debug_native: false,
+            emit_debug_boots: false,
             emit_debug_entry: false,
             enable_perf: false,
             omit_bounds_check: false,
@@ -238,6 +241,8 @@ pub fn parse_arguments() -> Result<Args, String> {
             args.emit_debug = Some(argument_value(arg).into());
         } else if arg == "--emit-compiler" {
             args.emit_compiler = true;
+        } else if arg == "--emit-debug-boots" {
+            args.emit_debug_boots = true;
         } else if arg == "--emit-debug-native" {
             args.emit_debug_native = true;
         } else if arg == "--emit-debug-compile" {
@@ -411,6 +416,7 @@ pub fn create_vm_args(args: &Args) -> VmArgs {
         enable_perf: args.enable_perf,
         omit_bounds_check: args.omit_bounds_check,
         emit_debug: args.emit_debug.clone(),
+        emit_debug_boots: args.emit_debug_boots,
         emit_debug_native: args.emit_debug_native,
         emit_debug_compile: args.emit_debug_compile,
         emit_debug_entry: args.emit_debug_entry,

@@ -829,8 +829,21 @@ pub struct RecordField {
 
 pub enum EnumLayout {
     Int32,
-    Ptr,
+    PtrOrNull(EnumPtrOrNullLayout),
     Tagged,
+}
+
+impl EnumLayout {
+    pub fn isInt32(): Bool {
+        match self {
+            EnumLayout::Int32 => true,
+            _ => false,
+        }
+    }
+}
+
+pub struct EnumPtrOrNullLayout {
+    pub null_is_first: Bool,
 }
 
 pub fn computeTupleLayout(subtypes: Array[BytecodeType]): RecordLayout {
@@ -916,7 +929,8 @@ pub fn computeEnumLayout(enum_id: EnumId, type_params: Array[BytecodeType]): Enu
     if isSimpleEnumeration(enumData) {
         EnumLayout::Int32
     } else if isPointerOrNull(enumData, type_params) {
-        EnumLayout::Ptr
+        let null_is_first = enumData.variants(0).fields.isEmpty();
+        EnumLayout::PtrOrNull(EnumPtrOrNullLayout(null_is_first))
     } else {
         unreachable[EnumLayout]()
     }
