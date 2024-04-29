@@ -979,6 +979,17 @@ impl Inst {
         }
     }
 
+    pub fn hasAllocationData(): Bool {
+        self.extra.isAllocationData()
+    }
+
+    pub fn getAllocationData(): AllocationData {
+        match self.extra {
+            InstExtraData::AllocationData(data) => data,
+            _ => unreachable[AllocationData](),
+        }
+    }
+
     pub fn getVirtualFunctionInfo(): VirtualFunctionInfo {
         match self.extra {
             InstExtraData::VirtualFunctionInfo(info) => info,
@@ -1465,7 +1476,7 @@ pub enum InstExtraData {
     VirtualFunctionInfo(VirtualFunctionInfo),
     LambdaFunctionInfo(LambdaFunctionInfo),
     ClassInfo(ClassInfo),
-    AllocationData(Address, Int32),
+    AllocationData(AllocationData),
     RecordLayout(RecordLayout),
     TraitObjectInfo(TraitObjectInfo),
     If(Block, Block),
@@ -1505,6 +1516,13 @@ impl InstExtraData {
     fn isTraitObjectInfo(): Bool {
         match self {
             InstExtraData::TraitObjectInfo(_) => true,
+            _ => false,
+        }
+    }
+
+    fn isAllocationData(): Bool {
+        match self {
+            InstExtraData::AllocationData(_) => true,
             _ => false,
         }
     }
@@ -2277,6 +2295,11 @@ pub class TraitObjectInfo {
     pub trait_id: TraitId,
     pub type_params: Array[BytecodeType],
     pub object_ty: BytecodeType,
+}
+
+pub struct AllocationData {
+    pub classptr: Address,
+    pub size: Int32,
 }
 
 pub class VirtualFunctionInfo {

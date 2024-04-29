@@ -1257,6 +1257,10 @@ impl CodeGen for CodeGenArm64 {
             let info = inst.getTraitObjectInfo();
             size = getClassSizeForTraitObject(info);
             classptr = getClassPointerForTraitObject(info);
+        } else if inst.hasAllocationData() {
+            let data = inst.getAllocationData();
+            size = data.size;
+            classptr = data.classptr;
         } else {
             unreachable[()]();
         };

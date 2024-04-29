@@ -1,0 +1,16 @@
+//= boots
+
+fn main() {
+    assert(f(Ok[Foo, Bar](Foo(10))) == 10);
+    assert(f(Err[Foo, Bar](Bar(1))) == 1);
+}
+
+class Foo(value: Int64)
+class Bar(value: Int64)
+
+@optimizeImmediately fn f(value: Result[Foo, Bar]): Int64 {
+    match value {
+        Ok(foo) => foo.value,
+        Err(bar) => bar.value,
+    }
+}

@@ -2,21 +2,23 @@ use std::mem;
 use std::ptr;
 
 use dora_bytecode::{
-    BytecodeType, BytecodeTypeArray, ClassId, FunctionId, FunctionKind, GlobalId, TraitId,
+    BytecodeType, BytecodeTypeArray, ClassId, EnumId, FunctionId, FunctionKind, GlobalId, TraitId,
 };
 
 use crate::boots::deserializer::{decode_code_descriptor, ByteReader};
-use crate::boots::serializer::allocate_encoded_compilation_info;
+use crate::boots::serializer::{allocate_encoded_compilation_info, ByteBuffer};
 use crate::cannon::codegen::get_function_address as get_function_address_raw;
 use crate::cannon::CompilationFlags;
 use crate::compiler::codegen::CompilationData;
 use crate::gc::Address;
 use crate::handle::{create_handle, Handle};
-use crate::object::Str;
-use crate::object::{Ref, UInt8Array};
+use crate::object::{byte_array_from_buffer, Ref, Str, UInt8Array};
 use crate::size::InstanceSize;
 use crate::threads::current_thread;
-use crate::vm::{create_class_instance, get_vm, impls, CodeDescriptor, VM};
+use crate::vm::{
+    create_class_instance, create_enum_instance, ensure_class_instance_for_enum_variant, get_vm,
+    impls, CodeDescriptor, VM,
+};
 
 use self::deserializer::{decode_bytecode_type, decode_bytecode_type_array};
 
@@ -96,6 +98,14 @@ pub const BOOTS_NATIVE_FUNCTIONS: &[(&'static str, *const u8)] = &[
     (
         "boots::interface::getEnumDataRaw",
         get_enum_data_raw as *const u8,
+    ),
+    (
+        "boots::interface::getClassDataForEnumVariantRaw",
+        get_class_data_for_enum_variant_raw as *const u8,
+    ),
+    (
+        "boots::interface::getFieldOffsetForEnumVariantRaw",
+        get_field_offset_for_enum_variant_raw as *const u8,
     ),
 ];
 
@@ -434,4 +444,80 @@ extern "C" fn get_enum_data_raw(id: u32) -> Ref<UInt8Array> {
 
     let enum_ = &vm.program.enums[id as usize];
     serializer::allocate_encoded_enum_data(vm, &enum_)
+}
+
+extern "C" fn get_class_data_for_enum_variant_raw(data: Handle<UInt8Array>) -> Ref<UInt8Array> {
+    let vm = get_vm();
+    let mut serialized_data = vec![0; data.len()];
+
+    unsafe {
+        ptr::copy_nonoverlapping(
+            data.data() as *mut u8,
+            serialized_data.as_mut_ptr(),
+            data.len(),
+        );
+    }
+
+    let mut reader = ByteReader::new(serialized_data);
+    let enum_id = EnumId(reader.read_u32());
+    let type_params = decode_bytecode_type_array(&mut reader);
+    let variant_id = reader.read_u32();
+    assert!(!reader.has_more());
+
+    let enum_ = &vm.program.enums[enum_id.0 as usize];
+
+    let enum_instance_id = create_enum_instance(vm, enum_id, type_params.clone());
+    let enum_instance = vm.enum_instances.idx(enum_instance_id);
+
+    let cls_def_id =
+        ensure_class_instance_for_enum_variant(vm, &*enum_instance, &*enum_, variant_id);
+
+    let cls = vm.class_instances.idx(cls_def_id);
+
+    let alloc_size = match cls.size {
+        InstanceSize::Fixed(size) => size as usize,
+        _ => unreachable!(
+            "class size type {:?} for new object not supported",
+            cls.size
+        ),
+    };
+
+    let mut buffer = ByteBuffer::new();
+    buffer.emit_address(cls.vtblptr());
+    buffer.emit_u32(alloc_size as u32);
+    byte_array_from_buffer(vm, buffer.data()).cast()
+}
+
+extern "C" fn get_field_offset_for_enum_variant_raw(data: Handle<UInt8Array>) -> i32 {
+    let vm = get_vm();
+
+    let mut serialized_data = vec![0; data.len()];
+
+    unsafe {
+        ptr::copy_nonoverlapping(
+            data.data() as *mut u8,
+            serialized_data.as_mut_ptr(),
+            data.len(),
+        );
+    }
+
+    let mut reader = ByteReader::new(serialized_data);
+    let enum_id = EnumId(reader.read_u32());
+    let type_params = decode_bytecode_type_array(&mut reader);
+    let variant_id = reader.read_u32();
+    let field_id = reader.read_u32();
+    assert!(!reader.has_more());
+
+    let enum_ = &vm.program.enums[enum_id.0 as usize];
+
+    let enum_instance_id = create_enum_instance(vm, enum_id, type_params.clone());
+    let enum_instance = vm.enum_instances.idx(enum_instance_id);
+
+    let cls_def_id =
+        ensure_class_instance_for_enum_variant(vm, &*enum_instance, &*enum_, variant_id);
+
+    let field_id = enum_instance.field_id(&*enum_, variant_id, field_id);
+
+    let cls = vm.class_instances.idx(cls_def_id);
+    cls.fields[field_id as usize].offset
 }

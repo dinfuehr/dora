@@ -3,7 +3,7 @@ use std::BitSet;
 
 use package::bytecode::opcode as opc;
 use package::graph;
-use package::graph::{Block, Graph, Inst, InstExtraData, Op};
+use package::graph::{AllocationData, Block, Graph, Inst, InstExtraData, Op};
 use package::graph::ty::Type;
 use package::graph::{ClassInfo, FunctionInfo, CallKind, VirtualFunctionInfo, LambdaFunctionInfo, TraitObjectInfo};
 use package::bytecode::data::{BytecodeFunction, BytecodeRegister, BytecodeType, ClassId, EnumId, FctId, FieldId};
@@ -682,8 +682,8 @@ impl SsaGen {
     }
 
     fn emitLoadEnumElement(dest: BytecodeRegister, src: BytecodeRegister, idx: ConstPoolId) {
-        let (enum_id, type_params, variant, field_id) = match self.bc.constPool(idx) {
-            ConstPoolEntry::EnumElement(enum_id, type_params, variant, field_id) => (enum_id, type_params, variant, field_id),
+        let (enum_id, type_params, variant_id, field_id) = match self.bc.constPool(idx) {
+            ConstPoolEntry::EnumElement(enum_id, type_params, variant_id, field_id) => (enum_id, type_params, variant_id, field_id),
             _ => unreachable[(EnumId, Array[BytecodeType], Int32, Int32)](),
         };
 
@@ -698,14 +698,20 @@ impl SsaGen {
                 let src = self.readVariable(src, self.current());
 
                 let null_idx = if layout.null_is_first { 0i32 } else { 1i32 };
-                assert(variant != null_idx);
+                assert(variant_id != null_idx);
                 assert(field_id == 0i32);
 
                 self.writeVariable(dest, self.current(), src);
             }
 
             EnumLayout::Tagged => {
-                unimplemented();
+                let destTy = self.reg(dest);
+                let src = self.readVariable(src, self.current());
+
+                let offset = iface::getFieldOffsetForEnumVariant(enum_id, type_params, variant_id, field_id);
+                let result = self.loadField(destTy, src, offset);
+
+                self.writeVariable(dest, self.current(), result);
             }
         }
     }
@@ -1265,12 +1271,15 @@ impl SsaGen {
             }
 
             EnumLayout::Tagged => {
-                let (enum_id, type_params, variant) = match self.bc.constPool(idx) {
+                let (enum_id, type_params, variant_id) = match self.bc.constPool(idx) {
                     ConstPoolEntry::EnumVariant(enum_id, type_params, variant) => (enum_id, type_params, variant),
                     _ => unreachable[(EnumId, Array[BytecodeType], Int32)](),
                 };
 
-                let info = InstExtraData::None;
+                let (classptr, size) = iface::getClassDataForEnumVariant(enum_id, type_params, variant_id);
+
+                let data = AllocationData(classptr, size);
+                let info = InstExtraData::AllocationData(data);
                 let objInst = graph::createNewObjectInst(info);
                 objInst.set_bytecode_position(self.offset);
                 self.current().appendInst(objInst);
@@ -1278,16 +1287,18 @@ impl SsaGen {
                 self.writeVariable(dest, self.current(), objInst);
                 let mut field_id = 0i32;
 
+                let variant_id_inst = graph::createInt32Const(variant_id);
+                self.current().appendInst(variant_id_inst);
+                self.storeField(BytecodeType::Int32, objInst, iface::OBJECT_HEADER_LENGTH, variant_id_inst, true);
+
                 for reg in self.pushed_registers {
                     let arg = self.readVariable(reg, self.current());
                     let argTy = self.reg(reg);
 
-                    let offset = 0i32;
+                    let offset = iface::getFieldOffsetForEnumVariant(enum_id, type_params, variant_id, field_id);
                     self.storeField(argTy, objInst, offset, arg, true);
                     field_id = field_id + 1i32;
                 }
-
-                unimplemented();
             }
         }
 
