@@ -936,7 +936,7 @@ pub fn computeEnumLayout(enum_id: EnumId, type_params: Array[BytecodeType]): Enu
         let null_is_first = enumData.variants(0).fields.isEmpty();
         EnumLayout::PtrOrNull(EnumPtrOrNullLayout(null_is_first))
     } else {
-        unreachable[EnumLayout]()
+        EnumLayout::Tagged
     }
 }
 

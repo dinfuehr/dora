@@ -1,0 +1,17 @@
+//= boots
+
+fn main() {
+    assert(getVariant(Foo::A(12)) == 0);
+    assert(getVariant(Foo::B("hello")) == 1);
+    assert(getVariant(Foo::C(3.14)) == 2);
+}
+
+enum Foo { A(Int64), B(String), C(Float64) }
+
+@optimizeImmediately fn getVariant(f: Foo): Int64 {
+    match f {
+        Foo::A(_) => 0,
+        Foo::B(_) => 1,
+        Foo::C(_) => 2,
+    }
+}

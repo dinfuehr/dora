@@ -670,7 +670,13 @@ impl SsaGen {
             }
 
             EnumLayout::Tagged => {
-                unimplemented();
+                let src = self.readVariable(src, self.current());
+
+                let inst = graph::createLoadInst(src, iface::OBJECT_HEADER_LENGTH, Type::Int32);
+                inst.set_bytecode_position(self.offset);
+                self.current().appendInst(inst);
+
+                self.writeVariable(dest, self.current(), inst);
             }
         }
     }
