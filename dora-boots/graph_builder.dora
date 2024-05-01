@@ -964,7 +964,7 @@ impl SsaGen {
         if intrinsic >= 0i32 {
             let args = self.pushed_registers.toArray();
             self.pushed_registers.clear();
-            self.emitIntrinsic(intrinsic, dest, args);
+            self.emitIntrinsic(intrinsic, dest, args, idx);
         } else {
             self.emitCall(dest, CallKind::Direct, fct_id, type_params);
         }
@@ -981,7 +981,7 @@ impl SsaGen {
         if intrinsic >= 0i32 {
             let args = self.pushed_registers.toArray();
             self.pushed_registers.clear();
-            self.emitIntrinsic(intrinsic, dest, args);
+            self.emitIntrinsic(intrinsic, dest, args, idx);
         } else {
             self.emitCall(dest, CallKind::Static, fct_id, type_params);
         }
@@ -1111,13 +1111,13 @@ impl SsaGen {
         if intrinsic >= 0i32 {
             let args = self.pushed_registers.toArray();
             self.pushed_registers.clear();
-            self.emitIntrinsic(intrinsic, dest, args);
+            self.emitIntrinsic(intrinsic, dest, args, idx);
         } else {
             self.emitCall(dest, kind, callee_id, Array[BytecodeType]::new());
         }
     }
 
-    fn emitIntrinsic(intrinsic: Int32, dest: BytecodeRegister, args: Array[BytecodeRegister]) {
+    fn emitIntrinsic(intrinsic: Int32, dest: BytecodeRegister, args: Array[BytecodeRegister], idx: ConstPoolId) {
         if intrinsic == opc::INTRINSIC_INT64_ADD || intrinsic == opc::INTRINSIC_INT32_ADD {
             self.emitBin(dest, args(0), args(1), Op::CheckedAdd);
         } else if intrinsic == opc::INTRINSIC_INT64_ADD_UNCHECKED || intrinsic == opc::INTRINSIC_INT32_ADD_UNCHECKED {
@@ -1126,6 +1126,14 @@ impl SsaGen {
             self.emitBin(dest, args(0), args(1), Op::Add);
         } else if intrinsic == opc::INTRINSIC_THREAD_CURRENT {
             self.emitIntrinsicThreadCurrent(dest, args);
+        } else if intrinsic == opc::INTRINSIC_UNREACHABLE {
+            let (fct_id, type_params) = match self.bc.constPool(idx) {
+                ConstPoolEntry::Fct(fct_id, type_params) => (fct_id, type_params),
+                _ => unreachable[(FctId, Array[BytecodeType])](),
+            };
+            self.emitCall(dest, CallKind::Static, fct_id, type_params);
+            let inst = graph::createAbortInst();
+            self.current().appendInst(inst);
         } else {
             let name = opc::intrinsicName(intrinsic);
             std::fatalError("unknown intrinsic ${name}");

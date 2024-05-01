@@ -1590,6 +1590,10 @@ impl CodeGen for CodeGenArm64 {
         self.emitWriteBarrier(array, src, REG_TEMP, loc.getRegisterSnapshot());
     }
 
+    fn emitAbort(inst: Inst) {
+        self.emitDebug();
+    }
+
     fn finalize(): CodeDescriptor {
         self.emitDeferredCode();
         self.asm.resolveJumps();

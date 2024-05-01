@@ -55,12 +55,12 @@ impl LocationAnnotation {
                         useOutputFixedStack(inst, location);
                     }
                 }
-            },
+            }
 
             Op::TrueConst |
             Op::FalseConst => {
                 useOutputRegister(inst, false);
-            },
+            }
 
             Op::UInt8Const
             | Op::Int32Const
@@ -68,16 +68,16 @@ impl LocationAnnotation {
             | Op::StringConst
             | Op::NullConst => {
                 useOutputRegister(inst, false);
-            },
+            }
 
             Op::Float32Const
             | Op::Float64Const => {
                 useOutputFloatRegister(inst, false);
-            },
+            }
 
             Op::DivZeroCheck => {
                 useInputRegister(inst, 0);
-            },
+            }
 
             Op::Greater
             | Op::GreaterOrEqual
@@ -94,19 +94,19 @@ impl LocationAnnotation {
                 }
 
                 useOutputRegister(inst, true);
-            },
+            }
 
             Op::CheckedAdd => {
                 self.codegen.setLocationConstraintsCheckedAdd(inst, loc);
-            },
+            }
 
             Op::CheckedSub => {
                 self.codegen.setLocationConstraintsCheckedSub(inst, loc);
-            },
+            }
 
             Op::CheckedMul => {
                 self.codegen.setLocationConstraintsCheckedMul(inst, loc);
-            },
+            }
 
             Op::Add
             | Op::Sub
@@ -121,15 +121,15 @@ impl LocationAnnotation {
                     useInputRegister(inst, 1);
                     useOutputRegister(inst, true);
                 }
-            },
+            }
 
             Op::CheckedDiv => {
                 self.codegen.setLocationConstraintsCheckedDiv(inst, loc);
-            },
+            }
 
             Op::CheckedMod => {
                 self.codegen.setLocationConstraintsCheckedMod(inst, loc);
-            },
+            }
 
             Op::Neg | Op::CheckedNeg => {
                 if inst.getValueType().isAnyFloat() {
@@ -139,17 +139,17 @@ impl LocationAnnotation {
                     useInputRegister(inst, 0);
                     useOutputRegister(inst, true);
                 }
-            },
+            }
 
             Op::If => {
                 useInputRegister(inst, 0);
-            },
+            }
 
-            Op::Goto => {},
+            Op::Goto => {}
 
             Op::Return => {
                 self.codegen.setLocationConstraintsReturn(inst, loc);
-            },
+            }
 
             Op::InvokeStatic
             | Op::InvokeDirect
@@ -158,17 +158,17 @@ impl LocationAnnotation {
             => {
                 let outgoingArgsSize = annotateCall(inst, loc, self.codegen, self.ci);
                 self.maxOutgoingArgsSize = Int32::max(self.maxOutgoingArgsSize, outgoingArgsSize);
-            },
+            }
 
             Op::ArrayLength => {
                 useInputRegister(inst, 0);
                 useOutputRegister(inst, true);
-            },
+            }
 
             Op::BoundsCheck => {
                 useInputRegister(inst, 0);
                 useInputRegister(inst, 1);
-            },
+            }
 
             Op::LoadArray => {
                 useInputRegister(inst, 0);
@@ -181,7 +181,7 @@ impl LocationAnnotation {
                 }
 
                 setOutputOverlaps(inst, false);
-            },
+            }
 
             Op::StoreArray => {
                 useInputRegister(inst, 0);
@@ -194,13 +194,13 @@ impl LocationAnnotation {
                 }
 
                 setOutputOverlaps(inst, false);
-            },
+            }
 
             Op::NewObject | Op::NewLambda => {
                 addTempRegister(inst);
                 useOutputRegister(inst, true);
                 needsRegisterSnapshot(inst);
-            },
+            }
 
             Op::LoadGlobal => {
                 if inst.getOperationType().isAnyFloat() {
@@ -208,18 +208,18 @@ impl LocationAnnotation {
                 } else {
                     useOutputRegister(inst,  false);
                 }
-            },
+            }
 
             Op::GetGlobalAddress => {
                 useOutputRegister(inst, true);
                 setOutputOverlaps(inst, false);
-            },
+            }
 
             Op::EnsureGlobalInitialized => {
                 addTempRegister(inst);
                 setOutputOverlaps(inst, false);
                 needsRegisterSnapshot(inst);
-            },
+            }
 
             Op::StoreGlobal => {
                 if inst.getOperationType().isAnyFloat() {
@@ -227,21 +227,21 @@ impl LocationAnnotation {
                 } else {
                     useInputRegister(inst, 0);
                 }
-            },
+            }
 
             Op::MarkGlobalInitialized => {
                 if config.architecture == Architecture::Arm64 {
                     addTempRegister(inst);
                 }
-            },
+            }
 
             Op::ThreadCurrent => {
                 useOutputRegister(inst, false);
-            },
+            }
 
             Op::AllocateStack => {
                 useOutputRegister(inst, false);
-            },
+            }
 
             Op::Load => {
                 useInputRegister(inst, 0);
@@ -251,7 +251,7 @@ impl LocationAnnotation {
                 } else {
                     useOutputRegister(inst, true);
                 }
-            },
+            }
 
             Op::Store => {
                 useInputRegister(inst, 0);
@@ -263,14 +263,14 @@ impl LocationAnnotation {
                 }
 
                 setOutputOverlaps(inst, false);
-            },
+            }
 
             Op::StoreWb => {
                 useInputRegister(inst, 0);
                 useInputRegister(inst, 1);
                 setOutputOverlaps(inst, false);
                 needsRegisterSnapshot(inst);
-            },
+            }
 
             Op::StoreArrayWb => {
                 useInputRegister(inst, 0);
@@ -278,7 +278,7 @@ impl LocationAnnotation {
                 useInputRegister(inst, 2);
                 setOutputOverlaps(inst, false);
                 needsRegisterSnapshot(inst);
-            },
+            }
 
             Op::StoreArrayAddressWb => {
                 useInputRegister(inst, 0);
@@ -286,13 +286,15 @@ impl LocationAnnotation {
                 useInputRegister(inst, 2);
                 setOutputOverlaps(inst, false);
                 needsRegisterSnapshot(inst);
-            },
+            }
 
             Op::GetElementPtr => {
                 useInputRegister(inst, 0);
                 useInputRegister(inst, 1);
                 useOutputRegister(inst, false);
-            },
+            }
+
+            Op::Abort => {}
 
             _ => {
                 println("unsupported op ${inst.op().name()}");

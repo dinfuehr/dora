@@ -307,6 +307,11 @@ fn emitInst(codegen: CodeGen, inst: Inst) {
             codegen.emitGetElementPtr(inst);
         },
 
+        Op::Abort => {
+            codegen.emitComment("Abort");
+            codegen.emitAbort(inst);
+        }
+
         _ => {
             println("unsupported op ${inst.op().name()}");
             unreachable[()]();
@@ -397,6 +402,7 @@ pub trait CodeGen {
     fn emitStoreWb(inst: Inst);
     fn emitStoreArrayWb(inst: Inst);
     fn emitStoreArrayAddressWb(inst: Inst);
+    fn emitAbort(inst: Inst);
 
     fn emitComment(comment: String);
 }

@@ -588,6 +588,7 @@ pub enum Op {
     Goto,
     If,
     Return,
+    Abort,
 
     Neg,
     CheckedNeg,
@@ -704,6 +705,7 @@ pub fn opName(op: Op): String {
         Op::Goto => "Goto",
         Op::If => "If",
         Op::Return => "Return",
+        Op::Abort => "Abort",
         Op::Neg => "Neg",
         Op::CheckedNeg => "CheckedNeg",
         Op::Not => "Not",
@@ -886,6 +888,7 @@ impl Inst {
             Op::Goto => unreachable[Type](),
             Op::If => unreachable[Type](),
             Op::Return => unreachable[Type](),
+            Op::Abort => unreachable[Type](),
             Op::Neg => self.ty,
             Op::CheckedNeg => self.ty,
             Op::Not => self.ty,
@@ -1398,6 +1401,7 @@ impl Inst {
             Op::Goto => true,
             Op::If => true,
             Op::Return => true,
+            Op::Abort => true,
             Op::Neg => false,
             Op::CheckedNeg => true,
             Op::Not => false,
@@ -2227,6 +2231,12 @@ pub fn createDivZeroCheckInst(value: Inst): Inst {
     let inst = Inst::new();
     inst._op = Some(Op::DivZeroCheck);
     inst.addInput(value);
+    inst
+}
+
+pub fn createAbortInst(): Inst {
+    let inst = Inst::new();
+    inst._op = Some(Op::Abort);
     inst
 }
 

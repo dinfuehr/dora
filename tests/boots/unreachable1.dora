@@ -1,0 +1,18 @@
+//= boots
+
+fn main() {
+    let foo = Foo::A(10, 12.5, "hello");
+    let (a, b, c) = get(foo);
+    assert(a == 10);
+    assert(b == 12.5);
+    assert(c == "hello");
+}
+
+enum Foo { A(Int64, Float64, String), B }
+
+@optimizeImmediately fn get(foo: Foo): (Int64, Float64, String) {
+    match foo {
+        Foo::A(a, b, c) => (a, b, c),
+        Foo::B => unreachable[(Int64, Float64, String)](),
+    }
+}
