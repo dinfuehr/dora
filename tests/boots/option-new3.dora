@@ -1,0 +1,13 @@
+//= boots
+
+fn main() {
+    let foo = f(10);
+    match foo {
+        Some(x) => assert(x == 10),
+        _ => unreachable[()](),
+    }
+}
+
+@optimizeImmediately fn f(value: Int64): Option[Int64] {
+    Some[Int64](value)
+}

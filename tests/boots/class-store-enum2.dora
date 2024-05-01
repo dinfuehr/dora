@@ -1,0 +1,29 @@
+//= boots
+
+fn main() {
+    let foo1 = Foo(Bar::A);
+    let foo2 = Foo(Bar::B);
+
+    std::forceCollect();
+
+    f(foo1, Bar::C(12));
+    match foo1.bar {
+        Bar::C(x) => assert(x == 12),
+        _ => unreachable[()](),
+    }
+
+    f(foo2, Bar::A);
+    match foo2.bar {
+        Bar::A => {}
+        _ => unreachable[()](),
+    }
+
+    std::forceCollect();
+}
+
+class Foo(bar: Bar)
+enum Bar { A, B, C(Int64) }
+
+@optimizeImmediately fn f(x: Foo, y: Bar) {
+    x.bar = y;
+}

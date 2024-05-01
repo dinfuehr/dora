@@ -1,0 +1,22 @@
+//= boots
+
+fn main() {
+    match f(Foo(Bar::A)) {
+        Bar::A => {}
+        _ => unreachable[()](),
+    }
+
+    match f(Foo(Bar::B)) {
+        Bar::B => {}
+        _ => unreachable[()](),
+    }
+}
+
+class Foo(bar: Bar)
+enum Bar { A, B, C(Int64) }
+
+@optimizeImmediately fn f(x: Foo): Bar {
+    let result = x.bar;
+    std::forceCollect();
+    result
+}

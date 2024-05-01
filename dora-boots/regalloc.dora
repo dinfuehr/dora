@@ -998,7 +998,13 @@ pub fn isReference(ty: BytecodeType): Bool {
         | BytecodeType::Tuple(_)
         | BytecodeType::This
         | BytecodeType::TypeParam(_) => unreachable[Bool](),
-        BytecodeType::Enum(_, _) => unreachable[Bool](),
+        BytecodeType::Enum(enum_id, type_params) => {
+            let layout = computeEnumLayout(enum_id, type_params);
+            match layout {
+                EnumLayout::Int32 => false,
+                EnumLayout::PtrOrNull(_) | EnumLayout::Tagged => true,
+            }
+        }
         BytecodeType::TypeAlias(_) => unreachable[Bool](),
     }
 }

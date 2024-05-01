@@ -1,0 +1,23 @@
+//= boots
+
+fn main() {
+    let foo1 = Foo(Bar::A);
+    let foo2 = Foo(Bar::B);
+
+    std::forceCollect();
+
+    f(foo1, Bar::C);
+    assert(foo1.bar == Bar::C);
+
+    f(foo2, Bar::A);
+    assert(foo2.bar == Bar::A);
+
+    std::forceCollect();
+}
+
+class Foo(bar: Bar)
+enum Bar { A, B, C }
+
+@optimizeImmediately fn f(x: Foo, y: Bar) {
+    x.bar = y;
+}
