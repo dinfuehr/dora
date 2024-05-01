@@ -1635,8 +1635,8 @@ impl SsaGen {
                 }
             }
             BytecodeType::Struct(_, _)
-            | BytecodeType::Tuple(_)
-            | BytecodeType::This
+            | BytecodeType::Tuple(_) => Type::Address,
+            BytecodeType::This
             | BytecodeType::TypeParam(_) => unreachable[Type](),
             BytecodeType::TypeAlias(_) => unreachable[Type](),
         }
