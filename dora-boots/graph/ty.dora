@@ -82,25 +82,6 @@ impl Type {
     pub static fn float32(): Type { Type::Float32 }
     pub static fn float64(): Type { Type::Float64 }
     pub static fn ptr(): Type { Type::Ptr }
-
-    pub static fn fromBytecodeType(ty: BytecodeType): Type {
-        match ty {
-            BytecodeType::Unit => Type::Unit,
-            BytecodeType::Bool => Type::Bool,
-            BytecodeType::UInt8 => Type::UInt8,
-            BytecodeType::Char => Type::Char,
-            BytecodeType::Int32 => Type::Int32,
-            BytecodeType::Int64 => Type::Int64,
-            BytecodeType::Float32 => Type::Float32,
-            BytecodeType::Float64 => Type::Float64,
-            BytecodeType::Ptr => Type::Ptr,
-            BytecodeType::Trait(_, _) => Type::Ptr,
-            _ => {
-                println("unsupported type ${ty}");
-                unreachable[Type]()
-            }
-        }
-    }
 }
 
 impl Stringable for Type {

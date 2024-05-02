@@ -118,21 +118,7 @@ impl SsaGen {
         let mut regIdx = 0i32;
         while regIdx < self.bc.arguments {
             let ty = self.regId(regIdx);
-            let ty = if ty.isStruct() || ty.isTuple() {
-                Type::Address
-            } else if ty.isEnum() {
-                let (enum_id, type_params) = match ty {
-                    BytecodeType::Enum(enum_id, type_params) => (enum_id, type_params),
-                    _ => unreachable[(EnumId, Array[BytecodeType])](),
-                };
-                let layout = computeEnumLayout(enum_id, type_params);
-                match layout {
-                    EnumLayout::Int32 => Type::Int32,
-                    EnumLayout::PtrOrNull(_) | EnumLayout::Tagged => Type::Ptr,
-                }
-            } else {
-                Type::fromBytecodeType(ty)
-            };
+            let ty = self.graphTy(ty);
             let argInst = graph::createArgInst(argIdx, ty);
             entryBlock.appendInst(argInst);
             self.writeVariable(BytecodeRegister(regIdx), entryBlock, argInst);
@@ -924,22 +910,9 @@ impl SsaGen {
             self.copyTuple(ty, dest, 0i32, src, 0i32, false);
             let inst = graph::createReturnVoidInst();
             self.current().appendInst(inst);
-        } else if ty.isEnum() {
-            let (enum_id, type_params) = match ty {
-                BytecodeType::Enum(enum_id, type_params) => (enum_id, type_params),
-                _ => unreachable[(EnumId, Array[BytecodeType])](),
-            };
-            let layout = computeEnumLayout(enum_id, type_params);
-            let ty = match layout {
-                EnumLayout::Int32 => Type::Int32,
-                EnumLayout::PtrOrNull(_) | EnumLayout::Tagged => Type::Ptr
-            };
-            let value = self.readVariable(opnd, self.current());
-            let inst = graph::createReturnInst(value, ty);
-            self.current().appendInst(inst);
         } else {
             let value = self.readVariable(opnd, self.current());
-            let ty = Type::fromBytecodeType(ty);
+            let ty = self.graphTy(ty);
             let inst = graph::createReturnInst(value, ty);
             self.current().appendInst(inst);
         }
@@ -1085,7 +1058,7 @@ impl SsaGen {
 
             Type::Unit
         } else {
-            Type::fromBytecodeType(destTy)
+            self.graphTy(destTy)
         }
     }
 
@@ -1527,7 +1500,7 @@ impl SsaGen {
             let inst = graph::createStoreArrayAddressWbInst(array, dest, destOffset, value, ty);
             self.current().appendInst(inst);
         } else {
-            let ty = Type::fromBytecodeType(ty);
+            let ty = self.graphTy(ty);
 
             let value = graph::createLoadInst(src, srcOffset, ty);
             self.current().appendInst(value);
@@ -1557,19 +1530,14 @@ impl SsaGen {
             self.copyStruct(ty, dest, destOffset, src, srcOffset, heap);
         } else if ty.isTuple() {
             self.copyTuple(ty, dest, destOffset, src, srcOffset, heap);
-        } else if isReference(ty) {
+        } else if heap && config.needsWriteBarrier && isReference(ty) {
             let ty = Type::Ptr;
             let value = graph::createLoadInst(src, srcOffset, ty);
             self.current().appendInst(value);
-            if heap && config.needsWriteBarrier {
-                let inst = graph::createStoreWbInst(dest, destOffset, value, ty);
-                self.current().appendInst(inst);
-            } else {
-                let inst = graph::createStoreInst(dest, destOffset, value, ty);
-                self.current().appendInst(inst);
-            }
+            let inst = graph::createStoreWbInst(dest, destOffset, value, ty);
+            self.current().appendInst(inst);
         } else {
-            let ty = Type::fromBytecodeType(ty);
+            let ty = self.graphTy(ty);
             let value = graph::createLoadInst(src, srcOffset, ty);
             self.current().appendInst(value);
             let inst = graph::createStoreInst(dest, destOffset, value, ty);
@@ -1610,7 +1578,7 @@ impl SsaGen {
 
     fn graphTy(ty: BytecodeType): Type {
         match ty {
-            BytecodeType::Unit => unreachable[Type](),
+            BytecodeType::Unit => Type::Unit,
             BytecodeType::Bool => Type::Bool,
             BytecodeType::UInt8 => Type::UInt8,
             BytecodeType::Float32 => Type::Float32,

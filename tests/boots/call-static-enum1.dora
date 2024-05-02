@@ -1,0 +1,17 @@
+//= boots
+
+fn main() {
+    let foo = f();
+    assert(foo == Foo::A);
+}
+
+enum Foo { A, B, C }
+
+@optimizeImmediately fn f(): Foo {
+    let foo = g();
+    foo
+}
+
+fn g(): Foo {
+    Foo::A
+}

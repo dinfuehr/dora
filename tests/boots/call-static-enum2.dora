@@ -1,0 +1,20 @@
+//= boots
+
+fn main() {
+    let foo = f();
+    match foo {
+        Foo::C(x) => assert(x == 10),
+        _ => unreachable[()](),
+    }
+}
+
+enum Foo { A, B, C(Int64) }
+
+@optimizeImmediately fn f(): Foo {
+    let foo = g();
+    foo
+}
+
+fn g(): Foo {
+    Foo::C(10)
+}

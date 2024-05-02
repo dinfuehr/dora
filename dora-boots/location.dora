@@ -1,4 +1,5 @@
 use package::assembler::{FloatRegister, Register};
+use package::bytecode::data::BytecodeType;
 use package::codegen::CodeGen;
 use package::graph::{Graph, Inst, Location, LocationData, Op, Operand, Policy, StackSlot, Type};
 use package::interface::{config, CompilationInfo, PTR_SIZE, Architecture};
@@ -325,14 +326,23 @@ fn computeArgumentLocations(codegen: CodeGen, ci: CompilationInfo): Array[Locati
     for idx in std::range(0, arguments) {
         let ty = ci.bc.registers(idx);
         let ty = ty.specialize(ci.typeParams);
-        let ty = if ty.isStruct() || ty.isTuple() {
-            Type::Address
-        } else if ty.isEnum() {
-            // Enum could be implemented through Int32 or Ptr, but all
-            // here matters is that it is not float.
-            Type::Ptr
-        } else {
-            Type::fromBytecodeType(ty)
+        let ty = match ty {
+            BytecodeType::Struct(_, _) | BytecodeType::Tuple(_) => Type::Address,
+            BytecodeType::Float32 | BytecodeType::Float64 => Type::Float32,
+            BytecodeType::Bool
+            | BytecodeType::UInt8
+            | BytecodeType::Int32
+            | BytecodeType::Char
+            | BytecodeType::Int64
+            | BytecodeType::Class(_, _)
+            | BytecodeType::Ptr
+            | BytecodeType::Lambda(_, _)
+            | BytecodeType::Trait(_, _)
+            | BytecodeType::Enum(_, _) => Type::Ptr,
+            BytecodeType::Unit
+            | BytecodeType::This
+            | BytecodeType::TypeParam(_)
+            | BytecodeType::TypeAlias(_) => unreachable[Type](),
         };
 
         if ty.isAnyFloat() {

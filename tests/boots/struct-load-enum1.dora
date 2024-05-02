@@ -1,0 +1,14 @@
+//= boots
+
+fn main() {
+    let foo = Foo(1, Bar::A);
+    let bar = getbar(foo);
+    assert(bar == Bar::A);
+}
+
+struct Foo(a: Int64, bar: Bar)
+enum Bar { A, B, C }
+
+@optimizeImmediately fn getbar(x: Foo): Bar {
+    x.bar
+}

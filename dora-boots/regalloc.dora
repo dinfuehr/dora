@@ -915,11 +915,11 @@ fn computeRecordLayout(fieldTypes: Array[BytecodeType], start_size: Int32, start
 
                 match layout {
                     EnumLayout::Int32 => {
-                        addField(4i32, 4i32, BytecodeType::Int32);
+                        addField(4i32, 4i32, fieldTy);
                     }
 
                     EnumLayout::PtrOrNull(_) | EnumLayout::Tagged => {
-                        let offset = addField(8i32, 8i32, BytecodeType::Ptr);
+                        let offset = addField(8i32, 8i32, fieldTy);
                         refs.push(offset);
                     }
                 }
@@ -933,6 +933,7 @@ fn computeRecordLayout(fieldTypes: Array[BytecodeType], start_size: Int32, start
         }
     }
 
+    record_size = (record_size + (record_align - 1i32)) & !(record_align - 1i32);
     RecordLayout(record_size, record_align, fields.toArray(), refs.toArray())
 }
 
