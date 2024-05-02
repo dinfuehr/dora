@@ -1147,12 +1147,12 @@ impl CodeGen for CodeGenX64 {
         match ty {
             Type::Bool | Type::UInt8 => {
                 let dest = loc.getOutput().getRegister();
-                self.asm.movq_ra(dest, AsmAddress::array(array, idx, ScaleFactor::One, ARRAY_HEADER_LENGTH));
+                self.asm.movb_ra(dest, AsmAddress::array(array, idx, ScaleFactor::One, ARRAY_HEADER_LENGTH));
             },
 
             Type::Int32 => {
                 let dest = loc.getOutput().getRegister();
-                self.asm.movq_ra(dest, AsmAddress::array(array, idx, ScaleFactor::Four, ARRAY_HEADER_LENGTH));
+                self.asm.movl_ra(dest, AsmAddress::array(array, idx, ScaleFactor::Four, ARRAY_HEADER_LENGTH));
             },
 
             Type::Int64 | Type::Ptr => {

@@ -1,0 +1,25 @@
+//= boots
+//= ignore
+
+fn main() {
+    let arr = Array[Foo]::fill(100, Foo(1, Bar::B));
+    arr(47) = Foo(3, Bar::C);
+
+    let foo = f(arr, 46);
+    assert(foo.a == 1);
+    assert(foo.b == Bar::B);
+
+    let foo = f(arr, 47);
+    println("foo.a = ${foo.a}");
+    assert(foo.a == 3);
+    assert(foo.b == Bar::C);
+
+    let foo = f(arr, 48);
+    assert(foo.a == 1);
+    assert(foo.b == Bar::B);
+}
+
+struct Foo(a: Int64, b: Bar)
+enum Bar { A, B, C }
+
+@optimizeImmediately fn f(x: Array[Foo], idx: Int64): Foo { x(idx) }

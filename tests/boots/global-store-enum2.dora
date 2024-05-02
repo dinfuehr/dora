@@ -1,0 +1,17 @@
+//= boots
+
+let mut g: Foo = Foo::A;
+
+fn main() {
+    setg(Foo::B);
+    match g {
+        Foo::B => {}
+        _ => unreachable[()](),
+    }
+}
+
+enum Foo { A, B, C(Int64) }
+
+@optimizeImmediately fn setg(value: Foo) {
+    g = value;
+}

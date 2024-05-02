@@ -1,0 +1,29 @@
+//= boots
+
+fn main() {
+    let arr = Array[Foo]::fill(100, Foo::A);
+    std::forceCollect();
+
+    f(arr, 47, Foo::B);
+    match arr(46) {
+        Foo::A => {}
+        _ => unreachable[()](),
+    }
+    match arr(47) {
+        Foo::B => {}
+        _ => unreachable[()](),
+    }
+    match arr(48) {
+        Foo::A => {}
+        _ => unreachable[()](),
+    }
+
+    std::forceCollect();
+}
+
+enum Foo { A, B, C(Int64) }
+
+@optimizeImmediately
+fn f(x: Array[Foo], idx: Int64, value: Foo) {
+    x(idx) = value;
+}

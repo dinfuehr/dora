@@ -801,13 +801,7 @@ impl SsaGen {
         let destType = self.reg(dest);
 
         if iface::hasGlobalInitialValue(glob) {
-            let ty = if destType.isStruct() || destType.isTuple() {
-                Type::Address
-            } else {
-                let ty = Type::fromBytecodeType(destType);
-                assert(ty != Type::Address);
-                ty
-            };
+            let ty = self.graphTy(destType);
             let inst = graph::createEnsureGlobalInitializedInst(glob, ty);
             self.current().appendInst(inst);
             inst.set_bytecode_position(self.offset);
@@ -1388,7 +1382,7 @@ impl SsaGen {
             dest
 
         } else {
-            let ty = Type::fromBytecodeType(ty);
+            let ty = self.graphTy(ty);
             let inst = graph::createLoadGlobalInst(ty, id);
             self.current().appendInst(inst);
             inst
@@ -1462,7 +1456,7 @@ impl SsaGen {
             dest
 
         } else {
-            let ty = Type::fromBytecodeType(ty);
+            let ty = self.graphTy(ty);
             let inst = graph::createLoadArrayInst(arr, index, ty);
             self.current().appendInst(inst);
             inst
@@ -1496,7 +1490,7 @@ impl SsaGen {
             let inst = graph::createStoreArrayWbInst(arr, index, value, Type::Ptr);
             self.current().appendInst(inst);
         } else {
-            let ty = Type::fromBytecodeType(ty);
+            let ty = self.graphTy(ty);
             let inst = graph::createStoreArrayInst(arr, index, value, ty);
             self.current().appendInst(inst);
         }

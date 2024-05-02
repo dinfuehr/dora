@@ -1,0 +1,13 @@
+//= boots
+
+let g: Foo = Foo::A;
+
+fn main() {
+    assert(getg() == Foo::A);
+}
+
+enum Foo { A, B, C }
+
+@optimizeImmediately fn getg(): Foo {
+    g
+}

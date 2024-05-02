@@ -1,0 +1,20 @@
+//= boots
+
+let g: Foo = Foo::A;
+
+fn main() {
+    match g {
+        Foo::A => {}
+        _ => unreachable[()](),
+    }
+    match getg() {
+        Foo::A => {}
+        _ => unreachable[()](),
+    }
+}
+
+enum Foo { A, B, C(Int64) }
+
+@optimizeImmediately fn getg(): Foo {
+    g
+}

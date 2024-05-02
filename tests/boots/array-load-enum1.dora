@@ -1,0 +1,13 @@
+//= boots
+
+fn main() {
+    let arr = Array[Foo]::fill(100, Foo::A);
+    arr(47) = Foo::B;
+    assert(f(arr, 46) == Foo::A);
+    assert(f(arr, 47) == Foo::B);
+    assert(f(arr, 48) == Foo::A);
+}
+
+enum Foo { A, B, C }
+
+@optimizeImmediately fn f(x: Array[Foo], idx: Int64): Foo { x(idx) }

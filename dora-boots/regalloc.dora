@@ -910,8 +910,21 @@ fn computeRecordLayout(fieldTypes: Array[BytecodeType], start_size: Int32, start
                     refs.push(offset + ref);
                 }
             }
+            BytecodeType::Enum(enum_id, type_params) => {
+                let layout = computeEnumLayout(enum_id, type_params);
+
+                match layout {
+                    EnumLayout::Int32 => {
+                        addField(4i32, 4i32, BytecodeType::Int32);
+                    }
+
+                    EnumLayout::PtrOrNull(_) | EnumLayout::Tagged => {
+                        let offset = addField(8i32, 8i32, BytecodeType::Ptr);
+                        refs.push(offset);
+                    }
+                }
+            }
             BytecodeType::Ptr
-            | BytecodeType::Enum(_, _)
             | BytecodeType::Lambda(_, _)
             | BytecodeType::Trait(_, _)
             | _ => {

@@ -1,0 +1,14 @@
+//= boots
+
+let mut g: Foo = Foo::A;
+
+fn main() {
+    setg(Foo::B);
+    assert(g == Foo::B);
+}
+
+enum Foo { A, B, C }
+
+@optimizeImmediately fn setg(value: Foo) {
+    g = value;
+}
