@@ -848,16 +848,16 @@ pub struct EnumPtrOrNullLayout {
 
 pub fn computeTupleLayout(subtypes: Array[BytecodeType]): RecordLayout {
     assert(!subtypes.isGeneric());
-    computeRecordLayout(subtypes, 0i32, 1i32)
+    computeRecordLayout(subtypes, 0i32, 1i32, Array[BytecodeType]::new())
 }
 
 pub fn computeStructLayout(struct_id: StructId, type_params: Array[BytecodeType]): RecordLayout {
     assert(!type_params.isGeneric());
     let structData = iface::getStructData(struct_id);
-    computeRecordLayout(structData.fields, 0i32, 1i32)
+    computeRecordLayout(structData.fields, 0i32, 1i32, type_params)
 }
 
-fn computeRecordLayout(fieldTypes: Array[BytecodeType], start_size: Int32, start_align: Int32): RecordLayout {
+fn computeRecordLayout(fieldTypes: Array[BytecodeType], start_size: Int32, start_align: Int32, type_params: Array[BytecodeType]): RecordLayout {
     let mut record_size = start_size;
     let mut record_align = start_align;
     let fields = Vec[RecordField]::new();
@@ -874,6 +874,7 @@ fn computeRecordLayout(fieldTypes: Array[BytecodeType], start_size: Int32, start
     };
 
     for fieldTy in fieldTypes {
+        let fieldTy = fieldTy.specialize(type_params);
         assert(!fieldTy.isGeneric());
 
         match fieldTy {
@@ -942,6 +943,7 @@ pub fn computeClassLayout(class_id: ClassId, type_params: Array[BytecodeType]): 
 }
 
 pub fn computeEnumLayout(enum_id: EnumId, type_params: Array[BytecodeType]): EnumLayout {
+    assert(!type_params.isGeneric());
     let enumData = iface::getEnumData(enum_id);
 
     if isSimpleEnumeration(enumData) {

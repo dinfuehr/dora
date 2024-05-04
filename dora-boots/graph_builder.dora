@@ -12,7 +12,8 @@ use package::bytecode::instruction::BytecodeInstruction;
 use package::bytecode::reader::BytecodeIterator;
 use package::interface as iface;
 use package::interface::{config, CompilationInfo};
-use package::regalloc::{computeEnumLayout, computeStructLayout, computeTupleLayout, EnumLayout, isReference, RecordLayout};
+use package::regalloc::{EnumLayout, isReference, RecordLayout};
+use package::regalloc;
 
 pub fn createGraph(ci: CompilationInfo): Graph {
     let graph = Graph::new();
@@ -592,7 +593,7 @@ impl SsaGen {
             _ => unreachable[(StructId, Array[BytecodeType], StructFieldId)](),
         };
 
-        let structLayout = computeStructLayout(struct_id, type_params);
+        let structLayout = self.computeStructLayout(struct_id, type_params);
         let field = structLayout.fields(field_id.value.toInt64());
 
         let inst = self.loadField(destTy, srcInst, field.offset);
@@ -615,7 +616,7 @@ impl SsaGen {
             _ => unreachable[Array[BytecodeType]](),
         };
 
-        let tupleLayout = computeTupleLayout(subtypes);
+        let tupleLayout = self.computeTupleLayout(subtypes);
         let offset = tupleLayout.fields(subtype_idx.toInt64()).offset;
 
         let inst = self.loadField(destTy, srcInst, offset);
@@ -628,7 +629,7 @@ impl SsaGen {
             _ => unreachable[(EnumId, Array[BytecodeType])](),
         };
 
-        let layout = computeEnumLayout(enum_id, type_params);
+        let layout = self.computeEnumLayout(enum_id, type_params);
 
         match layout {
             EnumLayout::Int32 => {
@@ -673,7 +674,7 @@ impl SsaGen {
             _ => unreachable[(EnumId, Array[BytecodeType], Int32, Int32)](),
         };
 
-        let layout = computeEnumLayout(enum_id, type_params);
+        let layout = self.computeEnumLayout(enum_id, type_params);
 
         match layout {
             EnumLayout::Int32 => {
@@ -712,7 +713,7 @@ impl SsaGen {
             BytecodeType::Float64 => Type::float64(),
             BytecodeType::Enum(enum_id, type_params) => {
                 assert(op == Op::Equal || op == Op::NotEqual);
-                let layout = computeEnumLayout(enum_id, type_params);
+                let layout = self.computeEnumLayout(enum_id, type_params);
                 assert(layout.isInt32());
                 Type::Int32
             }
@@ -1030,11 +1031,11 @@ impl SsaGen {
         if destTy.isStruct() || destTy.isTuple() {
             let layout = match destTy {
                 BytecodeType::Struct(struct_id, type_params) => {
-                    computeStructLayout(struct_id, type_params)
+                    self.computeStructLayout(struct_id, type_params)
                 },
 
                 BytecodeType::Tuple(subtypes) => {
-                    computeTupleLayout(subtypes)
+                    self.computeTupleLayout(subtypes)
                 },
 
                 _ => unreachable[RecordLayout](),
@@ -1194,7 +1195,7 @@ impl SsaGen {
             ConstPoolEntry::Struct(struct_id, type_params) => (struct_id, type_params),
             _ => unreachable[(StructId, Array[BytecodeType])](),
         };
-        let layout = computeStructLayout(struct_id, type_params);
+        let layout = self.computeStructLayout(struct_id, type_params);
 
         let allocInst = graph::createAllocateStackInst(layout);
         self.current().appendInst(allocInst);
@@ -1222,7 +1223,7 @@ impl SsaGen {
             ConstPoolEntry::EnumVariant(enum_id, type_params, variant) => (enum_id, type_params, variant),
             _ => unreachable[(EnumId, Array[BytecodeType], Int32)](),
         };
-        let layout = computeEnumLayout(enum_id, type_params);
+        let layout = self.computeEnumLayout(enum_id, type_params);
 
         match layout {
             EnumLayout::Int32 => {
@@ -1285,7 +1286,7 @@ impl SsaGen {
             ConstPoolEntry::Tuple(subtypes) => subtypes,
             _ => unreachable[Array[BytecodeType]](),
         };
-        let layout = computeTupleLayout(subtypes);
+        let layout = self.computeTupleLayout(subtypes);
 
         let allocInst = graph::createAllocateStackInst(layout);
         self.current().appendInst(allocInst);
@@ -1330,7 +1331,7 @@ impl SsaGen {
                 BytecodeType::Struct(struct_id, type_params) => (struct_id, type_params),
                 _ => unreachable[(StructId, Array[BytecodeType])](),
             };
-            let layout = computeStructLayout(struct_id, type_params);
+            let layout = self.computeStructLayout(struct_id, type_params);
 
             let dest = graph::createAllocateStackInst(layout);
             self.current().appendInst(dest);
@@ -1344,7 +1345,7 @@ impl SsaGen {
                 BytecodeType::Tuple(subtypes) => subtypes,
                 _ => unreachable[Array[BytecodeType]](),
             };
-            let layout = computeTupleLayout(subtypes);
+            let layout = self.computeTupleLayout(subtypes);
 
             let dest = graph::createAllocateStackInst(layout);
             self.current().appendInst(dest);
@@ -1368,7 +1369,7 @@ impl SsaGen {
                 BytecodeType::Struct(struct_id, type_params) => (struct_id, type_params),
                 _ => unreachable[(StructId, Array[BytecodeType])](),
             };
-            let layout = computeStructLayout(struct_id, type_params);
+            let layout = self.computeStructLayout(struct_id, type_params);
 
             let dest = graph::createAllocateStackInst(layout);
             self.current().appendInst(dest);
@@ -1380,7 +1381,7 @@ impl SsaGen {
                 BytecodeType::Tuple(subtypes) => subtypes,
                 _ => unreachable[Array[BytecodeType]](),
             };
-            let layout = computeTupleLayout(subtypes);
+            let layout = self.computeTupleLayout(subtypes);
 
             let dest = graph::createAllocateStackInst(layout);
             self.current().appendInst(dest);
@@ -1401,7 +1402,7 @@ impl SsaGen {
                 BytecodeType::Struct(struct_id, type_params) => (struct_id, type_params),
                 _ => unreachable[(StructId, Array[BytecodeType])](),
             };
-            let layout = computeStructLayout(struct_id, type_params);
+            let layout = self.computeStructLayout(struct_id, type_params);
 
             let dest = graph::createAllocateStackInst(layout);
             self.current().appendInst(dest);
@@ -1418,7 +1419,7 @@ impl SsaGen {
                 _ => unreachable[Array[BytecodeType]](),
             };
 
-            let layout = computeTupleLayout(subtypes);
+            let layout = self.computeTupleLayout(subtypes);
             let dest = graph::createAllocateStackInst(layout);
             self.current().appendInst(dest);
 
@@ -1443,7 +1444,7 @@ impl SsaGen {
                 _ => unreachable[(StructId, Array[BytecodeType])](),
             };
 
-            let structLayout = computeStructLayout(struct_id, type_params);
+            let structLayout = self.computeStructLayout(struct_id, type_params);
             let dest = graph::createGetElementPtrInst(arr, index, structLayout.size.toInt64());
             self.current().appendInst(dest);
 
@@ -1454,7 +1455,7 @@ impl SsaGen {
                 _ => unreachable[Array[BytecodeType]](),
             };
 
-            let tupleLayout = computeTupleLayout(subtypes);
+            let tupleLayout = self.computeTupleLayout(subtypes);
             let dest = graph::createGetElementPtrInst(arr, index, tupleLayout.size.toInt64());
             self.current().appendInst(dest);
 
@@ -1476,7 +1477,7 @@ impl SsaGen {
                 _ => unreachable[(StructId, Array[BytecodeType])](),
             };
 
-            let structLayout = computeStructLayout(struct_id, type_params);
+            let structLayout = self.computeStructLayout(struct_id, type_params);
 
             for field in structLayout.fields {
                 self.storeArrayNested(field.ty, array, dest, destOffset + field.offset, src, srcOffset + field.offset);
@@ -1487,7 +1488,7 @@ impl SsaGen {
                 _ => unreachable[Array[BytecodeType]](),
             };
 
-            let tupleLayout = computeTupleLayout(subtypes);
+            let tupleLayout = self.computeTupleLayout(subtypes);
 
             for field in tupleLayout.fields {
                 self.storeArrayNested(field.ty, array, dest, destOffset + field.offset, src, srcOffset + field.offset);
@@ -1551,7 +1552,7 @@ impl SsaGen {
             _ => unreachable[Array[BytecodeType]](),
         };
 
-        let tupleLayout = computeTupleLayout(subtypes);
+        let tupleLayout = self.computeTupleLayout(subtypes);
 
         for field in tupleLayout.fields {
             self.copyField(field.ty, dest, destOffset + field.offset, src, srcOffset + field.offset, heap);
@@ -1564,11 +1565,26 @@ impl SsaGen {
             _ => unreachable[(StructId, Array[BytecodeType])](),
         };
 
-        let structLayout = computeStructLayout(struct_id, type_params);
+        let structLayout = self.computeStructLayout(struct_id, type_params);
 
         for field in structLayout.fields {
             self.copyField(field.ty, dest, destOffset + field.offset, src, srcOffset + field.offset, heap);
         }
+    }
+
+    fn computeStructLayout(struct_id: StructId, type_params: Array[BytecodeType]): RecordLayout {
+        let type_params = type_params.specialize(self.typeParams);
+        regalloc::computeStructLayout(struct_id, type_params)
+    }
+
+    fn computeTupleLayout(subtypes: Array[BytecodeType]): RecordLayout {
+        let subtypes = subtypes.specialize(self.typeParams);
+        regalloc::computeTupleLayout(subtypes)
+    }
+
+    fn computeEnumLayout(enum_id: EnumId, type_params: Array[BytecodeType]): EnumLayout {
+        let type_params = type_params.specialize(self.typeParams);
+        regalloc::computeEnumLayout(enum_id, type_params)
     }
 
     fn regGraphTy(id: BytecodeRegister): Type {
@@ -1591,7 +1607,7 @@ impl SsaGen {
             | BytecodeType::Lambda(_, _)
             | BytecodeType::Trait(_, _) => Type::Ptr,
             BytecodeType::Enum(enum_id, type_params) => {
-                let layout = computeEnumLayout(enum_id, type_params);
+                let layout = self.computeEnumLayout(enum_id, type_params);
                 match layout {
                     EnumLayout::Int32 => Type::Int32,
                     EnumLayout::PtrOrNull(_) | EnumLayout::Tagged => Type::Ptr,

@@ -1,0 +1,21 @@
+//= boots
+
+fn main() {
+    let foo = getfoo[String]("hello");
+    assert(foo.b == "hello");
+    let foo = getfoo[(Int64, String)]((5, "hello"));
+    assert(foo.b.1 == "hello");
+    let foo = getfoo[Bar](Bar::C(10));
+    std::forceCollect();
+    match foo.b {
+        Bar::C(x) => assert(x == 10),
+        _ => unreachable[()](),
+    }
+}
+
+struct Foo[T](a: Int64, b: T)
+enum Bar { A, B, C(Int64) }
+
+@optimizeImmediately fn getfoo[T](t: T): Foo[T] {
+    Foo[T](12, t)
+}

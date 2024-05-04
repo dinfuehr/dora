@@ -326,10 +326,11 @@ fn computeArgumentLocations(codegen: CodeGen, ci: CompilationInfo): Array[Locati
     for idx in std::range(0, arguments) {
         let ty = ci.bc.registers(idx);
         let ty = ty.specialize(ci.typeParams);
-        let ty = match ty {
-            BytecodeType::Struct(_, _) | BytecodeType::Tuple(_) => Type::Address,
-            BytecodeType::Float32 | BytecodeType::Float64 => Type::Float32,
-            BytecodeType::Bool
+        let uses_fp_reg = match ty {
+            BytecodeType::Float32 | BytecodeType::Float64 => true,
+            BytecodeType::Struct(_, _)
+            | BytecodeType::Tuple(_)
+            | BytecodeType::Bool
             | BytecodeType::UInt8
             | BytecodeType::Int32
             | BytecodeType::Char
@@ -338,14 +339,14 @@ fn computeArgumentLocations(codegen: CodeGen, ci: CompilationInfo): Array[Locati
             | BytecodeType::Ptr
             | BytecodeType::Lambda(_, _)
             | BytecodeType::Trait(_, _)
-            | BytecodeType::Enum(_, _) => Type::Ptr,
+            | BytecodeType::Enum(_, _) => false,
             BytecodeType::Unit
             | BytecodeType::This
             | BytecodeType::TypeParam(_)
-            | BytecodeType::TypeAlias(_) => unreachable[Type](),
+            | BytecodeType::TypeAlias(_) => unreachable[Bool](),
         };
 
-        if ty.isAnyFloat() {
+        if uses_fp_reg {
             if fp_idx < fp_argument_registers.size() {
                 locations.push(fp_argument_registers(fp_idx).toLocation());
             } else {
