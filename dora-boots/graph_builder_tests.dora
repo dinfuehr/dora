@@ -4,10 +4,10 @@ use package::bytecode::data::BytecodeType;
 use package::bytecode::data::ConstPoolEntry;
 use package::bytecode::dump::bytecodeDump;
 use package::bytecode::builder::BytecodeBuilder;
+use package::compilation_info::CompilationInfo;
 use package::graph_builder;
 use package::graph::dump::assertGraph;
 use package::graph::Graph;
-use package::interface::CompilationInfo;
 
 fn createGraph(fct: BytecodeFunction): Graph {
   let ci = CompilationInfo::newForTesting(fct, Array[BytecodeType]::new());

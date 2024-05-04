@@ -1,8 +1,9 @@
 use package::assembler::{FloatRegister, Register};
 use package::bytecode::data::BytecodeType;
 use package::codegen::CodeGen;
+use package::compilation_info::CompilationInfo;
 use package::graph::{Graph, Inst, Location, LocationData, Op, Operand, Policy, StackSlot, Type};
-use package::interface::{config, CompilationInfo, PTR_SIZE, Architecture};
+use package::interface::{config, PTR_SIZE, Architecture};
 
 pub fn ensureLocationData(graph: Graph, codegen: CodeGen, ci: CompilationInfo): Int32 {
     let argumentLocations = computeArgumentLocations(codegen, ci);

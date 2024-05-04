@@ -1,0 +1,25 @@
+use package::bytecode::data::{BytecodeFunction, BytecodeType, Location};
+
+pub class CompilationInfo(
+    pub bc: BytecodeFunction,
+    pub typeParams: Array[BytecodeType],
+    pub returnType: BytecodeType,
+    pub loc: Location,
+    pub emitDebug: Bool,
+    pub emitGraph: Bool,
+    pub emitCodeComments: Bool,
+)
+
+impl CompilationInfo {
+    pub static fn newForTesting(bc: BytecodeFunction, typeParams: Array[BytecodeType]): CompilationInfo {
+        CompilationInfo(
+            bc,
+            typeParams,
+            BytecodeType::Unit,
+            Location(0i32, 0i32),
+            false,
+            false,
+            false,
+        )
+    }
+}

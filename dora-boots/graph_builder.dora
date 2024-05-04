@@ -2,6 +2,7 @@ use std::HashMap;
 use std::BitSet;
 
 use package::bytecode::opcode as opc;
+use package::compilation_info::CompilationInfo;
 use package::graph;
 use package::graph::{AllocationData, Block, Graph, Inst, InstExtraData, Op};
 use package::graph::ty::Type;
@@ -11,7 +12,7 @@ use package::bytecode::data::{ConstPoolId, ConstPoolEntry, GlobalId, StructId, S
 use package::bytecode::instruction::BytecodeInstruction;
 use package::bytecode::reader::BytecodeIterator;
 use package::interface as iface;
-use package::interface::{config, CompilationInfo};
+use package::interface::config;
 use package::regalloc::{EnumLayout, isReference, RecordLayout};
 use package::regalloc;
 
