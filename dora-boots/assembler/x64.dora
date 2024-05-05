@@ -1049,6 +1049,12 @@ impl AssemblerX64 {
         self.emitByte(rhs.toUInt8());
     }
 
+    pub fn testb_rr(lhs: Register, rhs: Register) {
+        self.emitRex32ModRmByteOptional(rhs, lhs);
+        self.emitByte(0x84u8);
+        self.emitModRmReg(rhs, lhs);
+    }
+
     pub fn testl_ai(lhs: Address, rhs: Immediate) {
         assert(rhs.isInt32());
         self.emitRex32AddressOptional(lhs);
@@ -2227,6 +2233,24 @@ mod tests {
         assertAsm(buffer, 0x85u8, 0xC0u8);
         assertAsm(buffer, 0x85u8, 0xC6u8);
         assertAsm(buffer, 0x41u8, 0x85u8, 0xC7u8);
+        assertAsmEnd(buffer);
+    }
+
+    @Test
+    fn testb_rr() {
+        let asm = AssemblerX64::new();
+        asm.testb_rr(RAX, RAX);
+        asm.testb_rr(RBX, RBX);
+        asm.testb_rr(RSI, RAX);
+        asm.testb_rr(R15, RAX);
+        asm.testb_rr(RDI, RDI);
+        let buffer = asm.finalizeTesting();
+
+        assertAsm(buffer, 0x84u8, 0xC0u8);
+        assertAsm(buffer, 0x84u8, 0xDBu8);
+        assertAsm(buffer, 0x40u8, 0x84u8, 0xC6u8);
+        assertAsm(buffer, 0x41u8, 0x84u8, 0xC7u8);
+        assertAsm(buffer, 0x40u8, 0x84u8, 0xFFu8);
         assertAsmEnd(buffer);
     }
 

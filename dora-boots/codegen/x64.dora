@@ -10,6 +10,7 @@ use package::compilation_info::CompilationInfo;
 use package::interface::{Address, Architecture, ConstPool, ConstPoolEntry, ConstPoolValue, config, getFunctionAddress, LazyCompilationSite, LazyCompilationSiteDirect, getFieldOffset, getClassSize, getClassPointer, getClassPointerForLambda, getFunctionVtableIndex, getGlobalValueAddress, getGlobalStateAddress, getGlobalInitializerFunctionId, getReadOnlyStringAddress, getClassSizeForTraitObject, getClassPointerForTraitObject};
 use package::interface::{TRAP_DIV0, TRAP_OVERFLOW, TRAP_INDEX_OUT_OF_BOUNDS, LAMBDA_SIZE, PTR_SIZE, GLOBAL_STATE_INITIALIZED};
 use package::interface::{THREAD_LOCAL_DATA_TLAB_TOP_OFFSET, THREAD_LOCAL_DATA_TLAB_END_OFFSET, THREAD_LOCAL_DATA_STACK_LIMIT_OFFSET, THREAD_LOCAL_DATA_STATE_OFFSET, THREAD_LOCAL_DATA_MARKING_OFFSET, OBJECT_HEADER_LENGTH, OBJECT_METADATA_OFFSET, METADATA_REMEMBERED_BIT, ARRAY_HEADER_LENGTH, THREAD_LOCAL_DATA_MANAGED_THREAD_HANDLE_OFFSET};
+use package::interface as iface;
 use package::location::{useInputFloatRegisterFixed, useInputRegister, useInputRegisterFixed, useOutputRegisterFixed, useOutputSameAsFirstInput, addTempRegisterFixed};
 use package::graph::{Graph, Inst, Op, LocationData, RegisterSnapshot, RegisterTrackers, Type};
 use package::regalloc::isReference;
@@ -1573,6 +1574,23 @@ impl CodeGen for CodeGenX64 {
 
     fn emitAbort(inst: Inst) {
         self.emitDebug();
+    }
+
+    fn emitAssert(inst: Inst) {
+        let loc = inst.getLocationData();
+        let condition = loc.getInput(0).getRegister();
+
+        let lbl_failure = self.asm.createLabel();
+        println("condition = ${self.registerName(condition)}");
+        self.asm.testb_rr(condition, condition);
+        self.asm.jcc(Condition::Zero, lbl_failure);
+
+        self.deferred.push(|| {
+            self.emitComment("marking barrier slow path");
+            self.asm.bindLabel(lbl_failure);
+            self.trap(REG_TEMP, iface::TRAP_ASSERT, self.ci.bc.getLocationAt(inst.bytecode_position()));
+
+        });
     }
 
     fn finalize(): CodeDescriptor {

@@ -313,6 +313,11 @@ fn emitInst(codegen: CodeGen, inst: Inst) {
             codegen.emitAbort(inst);
         }
 
+        Op::Assert => {
+            codegen.emitComment("Assert");
+            codegen.emitAssert(inst);
+        }
+
         _ => {
             println("unsupported op ${inst.op().name()}");
             unreachable[()]();
@@ -404,6 +409,7 @@ pub trait CodeGen {
     fn emitStoreArrayWb(inst: Inst);
     fn emitStoreArrayAddressWb(inst: Inst);
     fn emitAbort(inst: Inst);
+    fn emitAssert(inst: Inst);
 
     fn emitComment(comment: String);
 }

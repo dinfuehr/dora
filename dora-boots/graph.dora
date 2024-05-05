@@ -589,6 +589,7 @@ pub enum Op {
     If,
     Return,
     Abort,
+    Assert,
 
     Neg,
     CheckedNeg,
@@ -706,6 +707,7 @@ pub fn opName(op: Op): String {
         Op::If => "If",
         Op::Return => "Return",
         Op::Abort => "Abort",
+        Op::Assert => "Assert",
         Op::Neg => "Neg",
         Op::CheckedNeg => "CheckedNeg",
         Op::Not => "Not",
@@ -889,6 +891,7 @@ impl Inst {
             Op::If => unreachable[Type](),
             Op::Return => unreachable[Type](),
             Op::Abort => unreachable[Type](),
+            Op::Assert => unreachable[Type](),
             Op::Neg => self.ty,
             Op::CheckedNeg => self.ty,
             Op::Not => self.ty,
@@ -1402,6 +1405,7 @@ impl Inst {
             Op::If => true,
             Op::Return => true,
             Op::Abort => true,
+            Op::Assert => true,
             Op::Neg => false,
             Op::CheckedNeg => true,
             Op::Not => false,
@@ -2237,6 +2241,13 @@ pub fn createDivZeroCheckInst(value: Inst): Inst {
 pub fn createAbortInst(): Inst {
     let inst = Inst::new();
     inst._op = Some(Op::Abort);
+    inst
+}
+
+pub fn createAssertInst(condition: Inst): Inst {
+    let inst = Inst::new();
+    inst._op = Some(Op::Assert);
+    inst.addInput(condition);
     inst
 }
 

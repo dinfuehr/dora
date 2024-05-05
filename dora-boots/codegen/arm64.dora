@@ -4,6 +4,7 @@ use package::interface::{Address, Architecture, ConstPool, ConstPoolEntry, Const
 use package::interface::{THREAD_LOCAL_DATA_STACK_LIMIT_OFFSET, THREAD_LOCAL_DATA_STATE_OFFSET, THREAD_LOCAL_DATA_MARKING_OFFSET, OBJECT_HEADER_LENGTH, OBJECT_METADATA_OFFSET, METADATA_REMEMBERED_BIT, ARRAY_HEADER_LENGTH, LAMBDA_SIZE};
 use package::interface::{THREAD_LOCAL_DATA_TLAB_TOP_OFFSET, THREAD_LOCAL_DATA_TLAB_END_OFFSET, THREAD_LOCAL_DATA_MANAGED_THREAD_HANDLE_OFFSET};
 use package::interface::{TRAP_DIV0, TRAP_OVERFLOW, TRAP_INDEX_OUT_OF_BOUNDS, PTR_SIZE, GLOBAL_STATE_INITIALIZED};
+use package::interface as iface;
 use package::codegen::{CODE_SIZE_ALIGNMENT, CodeGen};
 use package::assembler::arm64::{F0, F1, F2, F3, F4, F5, F6, F7, F8, F9, F10, F11, F12, F13, F14, F15, F31};
 use package::assembler::arm64::{AssemblerArm64, Cond, Extend, Shift, registerName, fitsMovz, fitsMovn};
@@ -1593,6 +1594,21 @@ impl CodeGen for CodeGenArm64 {
 
     fn emitAbort(inst: Inst) {
         self.emitDebug();
+    }
+
+    fn emitAssert(inst: Inst) {
+        let loc = inst.getLocationData();
+        let condition = loc.getInput(0).getRegister();
+
+        let lbl_failure = self.asm.createLabel();
+        self.asm.cbz(condition, lbl_failure);
+
+        self.deferred.push(|| {
+            self.emitComment("marking barrier slow path");
+            self.asm.bindLabel(lbl_failure);
+            self.trap(REG_TEMP, iface::TRAP_ASSERT, self.ci.bc.getLocationAt(inst.bytecode_position()));
+
+        });
     }
 
     fn finalize(): CodeDescriptor {

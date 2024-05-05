@@ -1103,10 +1103,21 @@ impl SsaGen {
             self.emitCall(dest, CallKind::Static, fct_id, type_params);
             let inst = graph::createAbortInst();
             self.current().appendInst(inst);
+        } else if intrinsic == opc::INTRINSIC_ASSERT {
+            self.emitIntrinsicAssert(dest, args);
         } else {
             let name = opc::intrinsicName(intrinsic);
             std::fatalError("unknown intrinsic ${name}");
         }
+    }
+
+    fn emitIntrinsicAssert(dest: BytecodeRegister, args: Array[BytecodeRegister]) {
+        assert(args.size() == 1);
+        let condition = self.readVariable(args(0), self.current());
+
+        let inst = graph::createAssertInst(condition);
+        self.current().appendInst(inst);
+        inst.set_bytecode_position(self.offset);
     }
 
     fn emitIntrinsicThreadCurrent(dest: BytecodeRegister, args: Array[BytecodeRegister]) {

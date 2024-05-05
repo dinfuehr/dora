@@ -1,0 +1,9 @@
+//= boots
+
+fn main() {
+    f(true);
+}
+
+@optimizeImmediately fn f(value: Bool) {
+    assert(value);
+}

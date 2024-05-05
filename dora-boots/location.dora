@@ -298,6 +298,11 @@ impl LocationAnnotation {
 
             Op::Abort => {}
 
+            Op::Assert => {
+                useInputRegister(inst, 0);
+                setOutputOverlaps(inst, false);
+            }
+
             _ => {
                 println("unsupported op ${inst.op().name()}");
                 unreachable[()]();
