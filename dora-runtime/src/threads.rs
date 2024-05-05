@@ -188,33 +188,6 @@ impl DoraThread {
         self.index_in_thread_list.store(idx, Ordering::Relaxed);
     }
 
-    pub fn use_dtn<F, R>(&self, dtn: &mut DoraToNativeInfo, fct: F) -> R
-    where
-        F: FnOnce() -> R,
-    {
-        dtn.last = self.dtn();
-
-        self.set_dtn(dtn as *const _);
-
-        let ret = fct();
-
-        self.set_dtn(dtn.last);
-
-        ret
-    }
-
-    pub fn push_dtn(&self, dtn: &mut DoraToNativeInfo) {
-        dtn.last = self.dtn();
-        self.set_dtn(dtn as *const _);
-    }
-
-    pub fn pop_dtn(&self) {
-        let current_dtn = self.dtn();
-        assert!(!current_dtn.is_null());
-        let dtn = unsafe { &*current_dtn };
-        self.set_dtn(dtn.last);
-    }
-
     pub fn state_relaxed(&self) -> ThreadState {
         self.tld.state.load(Ordering::Relaxed).into()
     }

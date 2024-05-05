@@ -342,7 +342,6 @@ pub extern "C" fn spawn_thread(runner: Handle<Obj>) -> Address {
 
 fn thread_main(thread: &DoraThread, thread_location: Address, runner_location: Address) {
     use crate::compiler;
-    use crate::stack::DoraToNativeInfo;
 
     let vm = get_vm();
     let _thread_handle: Handle<ManagedThread> = Handle::from_address(thread_location);
@@ -367,14 +366,7 @@ fn thread_main(thread: &DoraThread, thread_location: Address, runner_location: A
     };
 
     let tld = thread.tld_address();
-
-    let fct_ptr = {
-        let mut dtn = DoraToNativeInfo::new();
-
-        thread.use_dtn(&mut dtn, || {
-            compiler::generate_fct(vm, lambda_id, &type_params)
-        })
-    };
+    let fct_ptr = compiler::generate_fct(vm, lambda_id, &type_params);
 
     // execute the runner/lambda
     let dora_stub_address = vm.native_methods.dora_entry_trampoline();

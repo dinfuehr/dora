@@ -9,7 +9,6 @@ use std::time::Instant;
 
 use crate::compiler;
 use crate::gc::{Address, Gc};
-use crate::stack::DoraToNativeInfo;
 use crate::threads::ManagedThread;
 use crate::threads::{
     current_thread, deinit_current_thread, init_current_thread, DoraThread, ThreadState, Threads,
@@ -238,12 +237,8 @@ impl VM {
     }
 
     pub fn ensure_compiled(&self, fct_id: FunctionId) -> Address {
-        let mut dtn = DoraToNativeInfo::new();
         let type_params = BytecodeTypeArray::empty();
-
-        current_thread().use_dtn(&mut dtn, || {
-            compiler::generate_fct(self, fct_id, &type_params)
-        })
+        compiler::generate_fct(self, fct_id, &type_params)
     }
 
     pub fn dump_gc_summary(&self, runtime: f32) {
