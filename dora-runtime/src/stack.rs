@@ -1,5 +1,3 @@
-use std::ptr;
-
 use crate::handle::{create_handle, Handle};
 use crate::object::{alloc, Array, Int32Array, Ref, Stacktrace, StacktraceElement, Str};
 use crate::threads::current_thread;
@@ -60,14 +58,6 @@ pub struct DoraToNativeInfo {
 }
 
 impl DoraToNativeInfo {
-    pub fn new() -> DoraToNativeInfo {
-        DoraToNativeInfo {
-            last: ptr::null(),
-            fp: 0,
-            pc: 0,
-        }
-    }
-
     pub fn last_offset() -> i32 {
         offset_of!(DoraToNativeInfo, last) as i32
     }
