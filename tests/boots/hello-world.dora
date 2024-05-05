@@ -1,0 +1,6 @@
+//= boots
+
+@optimizeImmediately
+fn main() {
+    println("Hello World!");
+}

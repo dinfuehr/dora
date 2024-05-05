@@ -238,6 +238,8 @@ pub fn parse_arguments() -> Result<Args, String> {
             args.emit_bytecode_compiler = Some(argument_value(arg).into());
         } else if arg == "--emit-bytecode-boots" {
             args.emit_bytecode_boots = true;
+        } else if arg == "--always-boots" {
+            args.always_boots = true;
         } else if arg == "--emit-stubs" {
             args.emit_stubs = true;
         } else if arg.starts_with("--emit-debug=") {

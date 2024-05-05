@@ -56,6 +56,24 @@ def create_platform_binding
   binding
 end
 
+class Config
+  attr_accessor :name
+  attr_accessor :flags
+  attr_accessor :always_enabled
+  attr_accessor :enable_boots
+
+  def initialize(name, flags, always_enabled)
+    self.name = name
+    self.flags = flags
+    self.always_enabled = always_enabled
+    self.enable_boots = false
+  end
+
+  def always_enabled?
+    @always_enabled
+  end
+end
+
 $release = false
 $capture = true
 $stress = false
@@ -66,10 +84,14 @@ $ARCH = get_architecture
 $OS = get_os
 $files = []
 $platform_binding = create_platform_binding
-$all_configs = {
-  default: '',
-  region: '--gc=region'
-}
+$default_config = Config.new("default", "", true)
+$always_boots_config = Config.new("always_boots", '--always-boots', false)
+$always_boots_config.enable_boots = true
+$all_configs = [
+  $default_config,
+  $always_boots_config,
+]
+$use_config = nil
 $exit_after_n_failures = nil
 $env = {}
 $verbose = false
@@ -102,6 +124,11 @@ def process_arguments
       name_and_value = ARGV[idx+1].to_s.split("=", 2)
       raise "missing value" unless name_and_value.length == 2
       $env[name_and_value[0]] = name_and_value[1]
+      idx += 1
+    elsif arg == "--config"
+      config_name = ARGV[idx+1].to_s.strip
+      $use_config = $all_configs.detect { |c| c.name == config_name }
+      raise "unknown config #{config_name}" unless $use_config
       idx += 1
     elsif arg == "--release"
       $release = true
@@ -194,13 +221,15 @@ class TestCase
                 :expectation,
                 :result,
                 :timeout,
-                :configs
+                :configs,
+                :enable_boots
 
   def initialize(file, opts = {})
     self.expectation = opts.fetch(:expectation, TestExpectation.new(fail: false))
     self.file = self.test_file = file
     self.args = self.vm_args = ""
-    self.configs = [:default]
+    self.configs = []
+    self.enable_boots = false
     @ignore = false
   end
 
@@ -423,7 +452,7 @@ def run_tests
 
     for test_failure in faillist
       test_case, config = test_failure
-      puts "    #{test_case.file}.#{config}"
+      puts "    #{test_case.file}.#{config.name}"
     end
   end
 
@@ -446,8 +475,8 @@ def run_test(test_case, config, mutex)
   end
 
   cmdline = "#{binary_path}"
-  cmdline << " #{$all_configs[config]}" unless $all_configs[config].empty?
-  cmdline << " #{test_case.vm_args}" unless test_case.vm_args.empty?
+  cmdline << " #{config.flags}" unless config.flags.empty?
+  cmdline << " --package boots dora-boots/boots.dora --gc-verify" if test_case.enable_boots || config.enable_boots
   cmdline << " --check" if $check_only
   cmdline << " #{$extra_args}" if $extra_args
   cmdline << " #{test_case.test_file}"
@@ -523,7 +552,7 @@ def print_result(test_case, config, test_result)
     return
   end
 
-  print "#{test_case.file}.#{config}... "
+  print "#{test_case.file}.#{config.name}... "
 
   if test_result.status == :passed
     print "ok"
@@ -635,6 +664,14 @@ end
 def parse_test_file(file)
   test_case = TestCase.new(file)
 
+  if $use_config
+    test_case.configs.push($use_config)
+  else
+    for config in $all_configs do
+      test_case.configs.push(config) if config.always_enabled?
+    end
+  end
+
   for line in File.read(file).lines
     line = line.strip
 
@@ -684,9 +721,17 @@ def parse_test_file(file)
         test_case.expectation.stderr = arguments[1]
 
       when "config"
-        config = arguments[1].intern
-        raise "unknown config #{arguments[1]}" unless $all_configs.include?(config)
-        test_case.configs << config
+        config_name = arguments[1]
+        config = $all_configs.detect { |c| c.name == config_name }
+        raise "unknown config #{config_name}" unless config
+
+        if $use_config
+          if config != $use_config
+            test_case.set_ignore
+          end
+        else
+          test_case.configs << config
+        end
 
       when "args"
         test_case.args = arguments[1..-1].join(" ")
@@ -696,8 +741,7 @@ def parse_test_file(file)
         test_case.vm_args += arguments[1..-1].join(" ")
 
       when "boots"
-        test_case.vm_args += " " unless test_case.vm_args.empty?
-        test_case.vm_args += '--package boots dora-boots/boots.dora --gc-verify'
+        test_case.enable_boots = true
 
       when "timeout"
         test_case.timeout = arguments[1].to_i
