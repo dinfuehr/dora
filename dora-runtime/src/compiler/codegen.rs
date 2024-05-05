@@ -10,7 +10,8 @@ use crate::os;
 use crate::vm::CompilerName;
 use crate::vm::{display_fct, install_code, CodeDescriptor, CodeKind, VM};
 use dora_bytecode::{
-    dump_stdout, BytecodeFunction, BytecodeType, BytecodeTypeArray, FunctionId, Location,
+    dump_stdout, BytecodeFunction, BytecodeType, BytecodeTypeArray, FunctionData, FunctionId,
+    Location,
 };
 
 pub fn generate_fct(vm: &VM, fct_id: FunctionId, type_params: &BytecodeTypeArray) -> Address {
@@ -25,12 +26,7 @@ pub fn generate_fct(vm: &VM, fct_id: FunctionId, type_params: &BytecodeTypeArray
         return instruction_start;
     }
 
-    let compiler = if program_fct.is_optimize_immediately {
-        CompilerName::Boots
-    } else {
-        CompilerName::Cannon
-    };
-
+    let compiler = select_compiler(vm, program_fct);
     let bytecode_fct = program_fct
         .bytecode
         .as_ref()
@@ -128,12 +124,7 @@ pub fn generate_thunk(
         return instruction_start;
     }
 
-    let compiler = if trait_fct.is_optimize_immediately {
-        CompilerName::Boots
-    } else {
-        CompilerName::Cannon
-    };
-
+    let compiler = select_compiler(vm, trait_fct);
     let emit_bytecode = should_emit_bytecode(vm, trait_fct_id, compiler);
 
     if emit_bytecode {
@@ -218,6 +209,18 @@ pub fn generate_thunk(
 
 pub fn generate_bytecode(vm: &VM, compilation_data: CompilationData) -> CodeDescriptor {
     cannon::compile(vm, compilation_data, CompilationFlags::jit())
+}
+
+pub fn select_compiler(vm: &VM, fct: &FunctionData) -> CompilerName {
+    if vm.flags.always_boots && fct.package_id == vm.program.program_package_id {
+        return CompilerName::Boots;
+    }
+
+    if fct.is_optimize_immediately {
+        CompilerName::Boots
+    } else {
+        CompilerName::Cannon
+    }
 }
 
 pub fn should_emit_debug(vm: &VM, fct_id: FunctionId, compiler: CompilerName) -> bool {

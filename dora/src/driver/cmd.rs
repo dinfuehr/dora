@@ -26,6 +26,7 @@ Options:
     --emit-debug-compile    Emits debug instruction at beginning of compile stub.
     --emit-debug-entry      Emits debug instruction at beginning of entry stub.
     --emit-debug-boots      Emits debug instruction at beginning of boots function.
+    --always-boots          Uses boots for all functions in the program.
     --omit-bounds-check     Omit array index out of bounds checks.
     --check                 Only type check given program.
     --asm-syntax TYPE       Emits assembly with Intel or AT&T syntax.
@@ -73,6 +74,7 @@ pub struct Args {
     pub emit_stubs: bool,
     pub enable_perf: bool,
     pub omit_bounds_check: bool,
+    pub always_boots: bool,
     pub version: bool,
     pub help: bool,
     pub emit_debug: Option<String>,
@@ -129,6 +131,7 @@ impl Default for Args {
             emit_debug_entry: false,
             enable_perf: false,
             omit_bounds_check: false,
+            always_boots: false,
             version: false,
             help: false,
             gc_events: false,
@@ -413,6 +416,7 @@ pub fn create_vm_args(args: &Args) -> VmArgs {
         emit_compiler: args.emit_compiler,
         emit_graph: args.emit_graph.clone(),
         emit_stubs: args.emit_stubs,
+        always_boots: args.always_boots,
         enable_perf: args.enable_perf,
         omit_bounds_check: args.omit_bounds_check,
         emit_debug: args.emit_debug.clone(),

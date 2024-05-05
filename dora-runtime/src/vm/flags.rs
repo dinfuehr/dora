@@ -16,6 +16,7 @@ pub struct Flags {
     pub emit_graph: Option<String>,
     pub emit_stubs: bool,
     pub enable_perf: bool,
+    pub always_boots: bool,
     pub omit_bounds_check: bool,
     pub emit_debug: Option<String>,
     pub emit_debug_boots: bool,
