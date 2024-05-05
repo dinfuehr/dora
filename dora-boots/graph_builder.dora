@@ -651,7 +651,6 @@ impl SsaGen {
                 };
 
                 let result = graph::createBinaryInst(op, Type::Ptr, src, zero);
-                result.set_bytecode_position(self.offset);
                 self.current().appendInst(result);
 
                 self.writeVariable(dest, self.current(), result);
@@ -1096,19 +1095,87 @@ impl SsaGen {
         } else if intrinsic == opc::INTRINSIC_THREAD_CURRENT {
             self.emitIntrinsicThreadCurrent(dest, args);
         } else if intrinsic == opc::INTRINSIC_UNREACHABLE {
-            let (fct_id, type_params) = match self.bc.constPool(idx) {
-                ConstPoolEntry::Fct(fct_id, type_params) => (fct_id, type_params),
-                _ => unreachable[(FctId, Array[BytecodeType])](),
-            };
-            self.emitCall(dest, CallKind::Static, fct_id, type_params);
-            let inst = graph::createAbortInst();
-            self.current().appendInst(inst);
+            self.emitIntrinsicUnreachable(dest, args, idx);
         } else if intrinsic == opc::INTRINSIC_ASSERT {
             self.emitIntrinsicAssert(dest, args);
+        } else if intrinsic == opc::INTRINSIC_OPTION_IS_SOME || intrinsic == opc::INTRINSIC_OPTION_IS_NONE {
+            self.emitIntrinsicOptionIsSomeAndIsNone(intrinsic, dest, args);
         } else {
             let name = opc::intrinsicName(intrinsic);
             std::fatalError("unknown intrinsic ${name}");
         }
+    }
+
+    fn emitIntrinsicOptionIsSomeAndIsNone(intrinsic: Int32, dest: BytecodeRegister, args: Array[BytecodeRegister]) {
+        assert(args.size() == 1);
+        let ty = self.reg(args(0));
+        let (enum_id, type_params) = match ty {
+            BytecodeType::Enum(enum_id, type_params) => (enum_id, type_params),
+            _ => unreachable[(EnumId, Array[BytecodeType])](),
+        };
+        let layout = self.computeEnumLayout(enum_id, type_params);
+        let is_some = if intrinsic == opc::INTRINSIC_OPTION_IS_SOME {
+            true
+        } else {
+            assert(intrinsic == opc::INTRINSIC_OPTION_IS_NONE);
+            false
+        };
+
+        let enumData = iface::getEnumData(enum_id);
+        let none_variant_id = if enumData.variants(0).fields.isEmpty() {
+            0
+        } else {
+            1
+        };
+
+        let obj = self.readVariable(args(0), self.current());
+
+        match layout {
+            EnumLayout::Int32 => unreachable[()](),
+            EnumLayout::PtrOrNull(_) => {
+                let zero = graph::createNullConst();
+                self.current().appendInst(zero);
+
+                let op = if is_some {
+                    Op::NotEqual
+                } else {
+                    Op::Equal
+                };
+
+                let result = graph::createBinaryInst(op, Type::Ptr, obj, zero);
+                self.current().appendInst(result);
+            }
+            EnumLayout::Tagged => {
+                let variant_field = graph::createLoadInst(obj, iface::OBJECT_HEADER_LENGTH, Type::Int32);
+                variant_field.set_bytecode_position(self.offset);
+                self.current().appendInst(variant_field);
+
+                let op = if is_some {
+                    Op::NotEqual
+                } else {
+                    Op::Equal
+                };
+
+                let none_const = graph::createInt32Const(0i32);
+                self.current().appendInst(none_const);
+
+                let result = graph::createBinaryInst(op, Type::Int32, variant_field, none_const);
+                self.current().appendInst(result);
+            }
+        }
+
+        unimplemented();
+    }
+
+    fn emitIntrinsicUnreachable(dest: BytecodeRegister, args: Array[BytecodeRegister], idx: ConstPoolId) {
+        assert(args.isEmpty());
+        let (fct_id, type_params) = match self.bc.constPool(idx) {
+            ConstPoolEntry::Fct(fct_id, type_params) => (fct_id, type_params),
+            _ => unreachable[(FctId, Array[BytecodeType])](),
+        };
+        self.emitCall(dest, CallKind::Static, fct_id, type_params);
+        let inst = graph::createAbortInst();
+        self.current().appendInst(inst);
     }
 
     fn emitIntrinsicAssert(dest: BytecodeRegister, args: Array[BytecodeRegister]) {

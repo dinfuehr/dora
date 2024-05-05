@@ -1,0 +1,10 @@
+//= boots
+//= error assert
+
+fn main() {
+    f(false);
+}
+
+@optimizeImmediately fn f(value: Bool) {
+    assert(value);
+}

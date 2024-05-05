@@ -1581,7 +1581,6 @@ impl CodeGen for CodeGenX64 {
         let condition = loc.getInput(0).getRegister();
 
         let lbl_failure = self.asm.createLabel();
-        println("condition = ${self.registerName(condition)}");
         self.asm.testb_rr(condition, condition);
         self.asm.jcc(Condition::Zero, lbl_failure);
 

@@ -1,0 +1,10 @@
+//= boots
+//= error
+
+fn main() {
+    f();
+}
+
+@optimizeImmediately fn f() {
+    std::fatalError("foo");
+}
