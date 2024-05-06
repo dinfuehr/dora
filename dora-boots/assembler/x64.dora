@@ -190,6 +190,12 @@ impl AssemblerX64 {
         self.emitAddress(rhs.lowBits(), lhs);
     }
 
+    pub fn cmpb_rr(lhs: Register, rhs: Register) {
+        self.emitRex32ModRmByteOptional(rhs, lhs);
+        self.emitByte(0x38u8);
+        self.emitModRmReg(rhs, lhs);
+    }
+
     pub fn cmpl_ai(lhs: Address, imm: Immediate) {
         assert(imm.isInt32() || imm.isUInt32());
         self.emitRex32AddressOptional(lhs);
@@ -3310,6 +3316,24 @@ mod tests {
         assertAsm(buffer, 0x80u8, 0x38u8, 0x80u8);
         assertAsm(buffer, 0x80u8, 0x38u8, 0xFFu8);
         assertAsm(buffer, 0x41u8, 0x80u8, 0x38u8, 0xFFu8);
+        assertAsmEnd(buffer);
+    }
+
+    @Test
+    fn cmpb_rr() {
+        let asm = AssemblerX64::new();
+        asm.cmpb_rr(RAX, RAX);
+        asm.cmpb_rr(RBX, RBX);
+        asm.cmpb_rr(RSI, RAX);
+        asm.cmpb_rr(R15, RAX);
+        asm.cmpb_rr(RDI, RDI);
+        let buffer = asm.finalizeTesting();
+
+        assertAsm(buffer, 0x38u8, 0xC0u8);
+        assertAsm(buffer, 0x38u8, 0xDBu8);
+        assertAsm(buffer, 0x40u8, 0x38u8, 0xC6u8);
+        assertAsm(buffer, 0x41u8, 0x38u8, 0xC7u8);
+        assertAsm(buffer, 0x40u8, 0x38u8, 0xFFu8);
         assertAsmEnd(buffer);
     }
 

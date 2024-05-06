@@ -1050,23 +1050,28 @@ impl CodeGen for CodeGenX64 {
 
     fn emitCompare(inst: Inst) {
         let loc = inst.getLocationData();
-        let lhs = loc.getInput(0).getRegister();
-        let rhs = loc.getInput(1).getRegister();
-        let dest = loc.getOutput().getRegister();
 
-        let cond = match inst.op() {
-            Op::Greater => Condition::Greater,
-            Op::GreaterOrEqual => Condition::GreaterOrEqual,
-            Op::Less => Condition::Less,
-            Op::LessOrEqual => Condition::LessOrEqual,
-            Op::Equal => Condition::Equal,
-            Op::NotEqual => Condition::NotEqual,
-            _ => unreachable[Condition](),
-        };
+        if inst.getOperationType().isAnyFloat() {
+            unimplemented();
+        } else {
+            let lhs = loc.getInput(0).getRegister();
+            let rhs = loc.getInput(1).getRegister();
+            let dest = loc.getOutput().getRegister();
 
-        self.asm.cmpq_rr(lhs, rhs);
-        self.asm.setcc_r(cond, dest);
-        self.asm.movzxb_rr(dest, dest);
+            let cond = match inst.op() {
+                Op::Greater => Condition::Greater,
+                Op::GreaterOrEqual => Condition::GreaterOrEqual,
+                Op::Less => Condition::Less,
+                Op::LessOrEqual => Condition::LessOrEqual,
+                Op::Equal => Condition::Equal,
+                Op::NotEqual => Condition::NotEqual,
+                _ => unreachable[Condition](),
+            };
+
+            self.asm.cmpq_rr(lhs, rhs);
+            self.asm.setcc_r(cond, dest);
+            self.asm.movzxb_rr(dest, dest);
+        }
     }
 
     fn emitInvokeStatic(inst: Inst) {

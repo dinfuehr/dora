@@ -1050,22 +1050,27 @@ impl CodeGen for CodeGenArm64 {
 
     fn emitCompare(inst: Inst) {
         let loc = inst.getLocationData();
-        let lhs = loc.getInput(0).getRegister();
-        let rhs = loc.getInput(1).getRegister();
-        let dest = loc.getOutput().getRegister();
 
-        let cond = match inst.op() {
-            Op::Greater => Cond::GT,
-            Op::GreaterOrEqual => Cond::GE,
-            Op::Less => Cond::LT,
-            Op::LessOrEqual => Cond::LE,
-            Op::Equal => Cond::EQ,
-            Op::NotEqual => Cond::NE,
-            _ => unreachable[Cond](),
-        };
+        if inst.getOperationType().isAnyFloat() {
+            unimplemented();
+        } else {
+            let lhs = loc.getInput(0).getRegister();
+            let rhs = loc.getInput(1).getRegister();
+            let dest = loc.getOutput().getRegister();
 
-        self.asm.cmp(lhs, rhs);
-        self.asm.cset_w(dest, cond);
+            let cond = match inst.op() {
+                Op::Greater => Cond::GT,
+                Op::GreaterOrEqual => Cond::GE,
+                Op::Less => Cond::LT,
+                Op::LessOrEqual => Cond::LE,
+                Op::Equal => Cond::EQ,
+                Op::NotEqual => Cond::NE,
+                _ => unreachable[Cond](),
+            };
+
+            self.asm.cmp(lhs, rhs);
+            self.asm.cset_w(dest, cond);
+        }
     }
 
     fn emitInvokeStatic(inst: Inst) {
