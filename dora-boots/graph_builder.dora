@@ -1122,10 +1122,10 @@ impl SsaGen {
         };
 
         let enumData = iface::getEnumData(enum_id);
-        let none_variant_id = if enumData.variants(0).fields.isEmpty() {
-            0
+        let some_variant_id = if enumData.variants(0).fields.isEmpty() {
+            1i32
         } else {
-            1
+            0i32
         };
 
         let obj = self.readVariable(args(0), self.current());
@@ -1133,8 +1133,8 @@ impl SsaGen {
         match layout {
             EnumLayout::Int32 => unreachable[()](),
             EnumLayout::PtrOrNull(_) => {
-                let zero = graph::createNullConst();
-                self.current().appendInst(zero);
+                let null = graph::createNullConst();
+                self.current().appendInst(null);
 
                 let op = if is_some {
                     Op::NotEqual
@@ -1142,8 +1142,10 @@ impl SsaGen {
                     Op::Equal
                 };
 
-                let result = graph::createBinaryInst(op, Type::Ptr, obj, zero);
+                let result = graph::createBinaryInst(op, Type::Ptr, obj, null);
                 self.current().appendInst(result);
+
+                self.writeVariable(dest, self.current(), result);
             }
             EnumLayout::Tagged => {
                 let variant_field = graph::createLoadInst(obj, iface::OBJECT_HEADER_LENGTH, Type::Int32);
@@ -1151,20 +1153,20 @@ impl SsaGen {
                 self.current().appendInst(variant_field);
 
                 let op = if is_some {
-                    Op::NotEqual
-                } else {
                     Op::Equal
+                } else {
+                    Op::NotEqual
                 };
 
-                let none_const = graph::createInt32Const(0i32);
-                self.current().appendInst(none_const);
+                let some_const = graph::createInt32Const(some_variant_id);
+                self.current().appendInst(some_const);
 
-                let result = graph::createBinaryInst(op, Type::Int32, variant_field, none_const);
+                let result = graph::createBinaryInst(op, Type::Int32, variant_field, some_const);
                 self.current().appendInst(result);
+
+                self.writeVariable(dest, self.current(), result);
             }
         }
-
-        unimplemented();
     }
 
     fn emitIntrinsicUnreachable(dest: BytecodeRegister, args: Array[BytecodeRegister], idx: ConstPoolId) {
