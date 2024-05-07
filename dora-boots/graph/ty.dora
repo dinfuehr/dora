@@ -67,10 +67,6 @@ impl Type {
             _ => false,
         }
     }
-
-    pub fn isReference(): Bool {
-        self == Type::Ptr
-    }
 }
 
 impl Stringable for Type {

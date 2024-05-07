@@ -476,7 +476,7 @@ impl SimpleRegisterAllocator {
     }
 
     fn addSpillSlotToGcPoint(offset: Int32, ty: Type) {
-        if ty.isReference() {
+        if ty.isPtr() {
             assert(!self.refs.contains(offset));
             self.refs.insert(offset);
         }
@@ -549,7 +549,7 @@ impl SimpleRegisterAllocator {
                 assert(self.refs.remove(offset + ref));
             }
 
-        } else if inst.getValueType().isReference() && loc.hasSpillSlot() {
+        } else if inst.getValueType().isPtr() && loc.hasSpillSlot() {
             assert(self.refs.remove(loc.getSpillSlot()));
         }
     }

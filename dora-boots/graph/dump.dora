@@ -302,7 +302,6 @@ fn dumpInstName(inst: Inst): String {
         Op::InvokeDirect => "InvokeDirect.${inst.getValueType()}",
         Op::InvokeVirtual => "InvokeVirtual.${inst.getValueType()}",
         Op::InvokeLambda => "InvokeLambda.${inst.getValueType()}",
-        Op::TestIdentity => "TestIdentity.${inst.getValueType()}",
         Op::Equal => "Equal.${inst.getOperationType()}",
         Op::NotEqual => "NotEqual.${inst.getOperationType()}",
         Op::Greater => "Greater.${inst.getOperationType()}",

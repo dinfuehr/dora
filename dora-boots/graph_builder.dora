@@ -397,7 +397,7 @@ impl SsaGen {
                 self.writeVariable(dest, self.current(), inst);
             }
             BytecodeInstruction::TestIdentity(dest, lhs, rhs) => {
-                self.emitBin(dest, lhs, rhs, Op::TestIdentity);
+                self.emitTestIdentity(dest, lhs, rhs);
             }
             BytecodeInstruction::TestEq(dest, lhs, rhs) => {
                 self.emitBin(dest, lhs, rhs, Op::Equal);
@@ -703,12 +703,28 @@ impl SsaGen {
         }
     }
 
+    fn emitTestIdentity(dest: BytecodeRegister, lhs: BytecodeRegister, rhs: BytecodeRegister) {
+        let registerType = self.reg(lhs);
+
+        match registerType {
+            BytecodeType::Ptr => {},
+            _ => unreachable[()](),
+        }
+
+        let mut lhsInst = self.readVariable(lhs, self.current());
+        let mut rhsInst = self.readVariable(rhs, self.current());
+
+        let destInst = graph::createBinaryInst(Op::Equal, Type::Ptr, lhsInst, rhsInst);
+        self.current().appendInst(destInst);
+        self.writeVariable(dest, self.current(), destInst);
+    }
+
     fn emitBin(dest: BytecodeRegister, lhs: BytecodeRegister, rhs: BytecodeRegister, op: Op) {
         let registerType = self.reg(lhs);
 
         let ty = match registerType {
             BytecodeType::UInt8 => Type::UInt8,
-            BytecodeType::Int32 => Type::Int32,
+            BytecodeType::Int32 | BytecodeType::Char => Type::Int32,
             BytecodeType::Int64 => Type::Int64,
             BytecodeType::Float32 => Type::Float32,
             BytecodeType::Float64 => Type::Float64,
@@ -761,7 +777,7 @@ impl SsaGen {
         let ty = match registerType {
             BytecodeType::Int32 => Type::Int32,
             BytecodeType::Int64 => Type::Int64,
-            BytecodeType::Float32 => Type::Float64,
+            BytecodeType::Float32 => Type::Float32,
             BytecodeType::Float64 => Type::Float64,
             _ => unreachable[Type](),
         };

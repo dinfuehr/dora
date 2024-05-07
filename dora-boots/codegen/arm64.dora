@@ -341,7 +341,7 @@ impl CodeGenArm64 {
 
             fp_offset = fp_offset - PTR_SIZE;
 
-            if inst.getValueType().isReference() {
+            if inst.getValueType().isPtr() {
                 gc_point.add(fp_offset);
             }
 

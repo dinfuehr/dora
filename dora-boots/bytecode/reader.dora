@@ -221,6 +221,11 @@ impl BytecodeIterator {
             let lhs = self.readRegister();
             let rhs = self.readRegister();
             BytecodeInstruction::TestLe(dest, lhs, rhs)
+        } else if opcode == opc::BC_TEST_IDENTITY {
+            let dest = self.readRegister();
+            let lhs = self.readRegister();
+            let rhs = self.readRegister();
+            BytecodeInstruction::TestIdentity(dest, lhs, rhs)
 
         } else if opcode == opc::BC_LOOP_START {
             BytecodeInstruction::LoopStart

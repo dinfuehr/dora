@@ -302,7 +302,7 @@ impl CodeGenX64 {
 
             extendedSize = extendedSize + PTR_SIZE;
 
-            if inst.getValueType().isReference() {
+            if inst.getValueType().isPtr() {
                 let fp_offset = -(self.graph.getStackSize() + extendedSize);
                 gc_point.add(fp_offset);
             }
