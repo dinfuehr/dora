@@ -40,13 +40,23 @@ impl BytecodeFunction {
     }
 
     pub fn getLocationAt(at: Int32): Location {
-        for (offset, loc) in self.locations {
-            if offset == at {
-                return loc;
-            }
+        let size = self.locations.size();
+
+        if size == 0 || at < self.locations(0).0 {
+            return unreachable[Location]();
         }
 
-        unreachable[Location]()
+        let mut i = 1;
+
+        while i < size {
+            if at < self.locations(i).0 {
+                return self.locations(i-1).1;
+            }
+
+            i = i + 1;
+        }
+
+        self.locations(size-1).1
     }
 }
 

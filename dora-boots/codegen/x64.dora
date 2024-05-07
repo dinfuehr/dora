@@ -1112,6 +1112,7 @@ impl CodeGen for CodeGenX64 {
                     Type::Float64 => self.asm.ucomisd_rr(lhs, rhs),
                     _ => unreachable[()](),
                 }
+                self.asm.setcc_r(cond, dest);
                 self.asm.movzxb_rr(dest, dest);
             }
         } else {
