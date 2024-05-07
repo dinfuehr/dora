@@ -303,6 +303,10 @@ impl LocationAnnotation {
                 setOutputOverlaps(inst, false);
             }
 
+            Op::Not => {
+                self.codegen.setLocationConstraintsNot(inst, loc);
+            }
+
             _ => {
                 println("unsupported op ${inst.op().name()}");
                 unreachable[()]();

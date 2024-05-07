@@ -735,6 +735,21 @@ impl CodeGen for CodeGenX64 {
         }
     }
 
+    fn setLocationConstraintsNot(inst: Inst, loc: LocationData) {
+        useInputRegister(inst, 0);
+        useOutputSameAsFirstInput(inst);
+    }
+
+    fn emitNot(inst: Inst) {
+        let loc = inst.getLocationData();
+        let src = loc.getInput(0).getRegister();
+        let dest = loc.getOutput().getRegister();
+
+        assert(inst.getValueType() == Type::Bool);
+        assert(dest == src);
+        self.asm.xorb_ri(dest, Immediate(1));
+    }
+
     fn emitCheckedAdd(inst: Inst) {
         let loc = inst.getLocationData();
         let lhs = loc.getInput(0).getRegister();
@@ -1050,8 +1065,9 @@ impl CodeGen for CodeGenX64 {
 
     fn emitCompare(inst: Inst) {
         let loc = inst.getLocationData();
+        let ty = inst.getOperationType();
 
-        if inst.getOperationType().isAnyFloat() {
+        if ty.isAnyFloat() {
             unimplemented();
         } else {
             let lhs = loc.getInput(0).getRegister();
@@ -1068,7 +1084,14 @@ impl CodeGen for CodeGenX64 {
                 _ => unreachable[Condition](),
             };
 
-            self.asm.cmpq_rr(lhs, rhs);
+            assert(ty != Type::Ptr || (inst.op() == Op::Equal || inst.op() == Op::NotEqual));
+
+            match ty {
+                Type::UInt8 => self.asm.cmpb_rr(lhs, rhs),
+                Type::Int32 => self.asm.cmpl_rr(lhs, rhs),
+                Type::Int64 | Type::Ptr => self.asm.cmpq_rr(lhs, rhs),
+                _ => unreachable[()](),
+            }
             self.asm.setcc_r(cond, dest);
             self.asm.movzxb_rr(dest, dest);
         }

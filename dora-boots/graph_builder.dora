@@ -739,6 +739,7 @@ impl SsaGen {
         let registerType = self.reg(dest);
 
         let ty = match registerType {
+            BytecodeType::Bool => Type::Bool,
             BytecodeType::Int32 => Type::int32(),
             BytecodeType::Int64 => Type::int64(),
             BytecodeType::Float32 => Type::float32(),

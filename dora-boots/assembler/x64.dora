@@ -1189,6 +1189,10 @@ impl AssemblerX64 {
         self.emitAddress(src.lowBits(), dest);
     }
 
+    pub fn xorb_ri(lhs: Register, rhs: Immediate) {
+        self.emitAlu8Imm(lhs, rhs, 0b110i32, 0x34u8);
+    }
+
     pub fn xorl_ri(lhs: Register, rhs: Immediate) {
         self.emitAlu32Imm(lhs, rhs, 0b110i32, 0x35u8);
     }
@@ -1242,6 +1246,20 @@ impl AssemblerX64 {
             self.emitByte(0x81u8);
             self.emitModRm(0b11i32, modrm_reg, reg.lowBits());
             self.emitInt32(imm.toInt32());
+        }
+    }
+
+    fn emitAlu8Imm(reg: Register, imm: Immediate, modrm_reg: Int32, rax_opcode: UInt8) {
+        assert(imm.isInt8() || imm.isUInt8());
+        self.emitRex32ModRmByteOptional(RAX, reg);
+
+        if reg == RAX {
+            self.emitByte(rax_opcode);
+            self.emitByte(imm.toUInt8());
+        } else {
+            self.emitByte(0x80u8);
+            self.emitModRmOpcode(modrm_reg, reg);
+            self.emitByte(imm.toUInt8());
         }
     }
 
@@ -3276,6 +3294,21 @@ mod tests {
         assertAsm(buffer, 0x35u8, 0x80u8, 0u8, 0u8, 0u8);
         assertAsm(buffer, 0x41u8, 0x81u8, 0xF0u8, 0x7Fu8, 0xFFu8, 0xFFu8, 0xFFu8);
         assertAsm(buffer, 0x41u8, 0x81u8, 0xF7u8, 0x80u8, 0u8, 0u8, 0u8);
+        assertAsmEnd(buffer);
+    }
+
+    @Test
+    fn xorb_ri() {
+        let asm = AssemblerX64::new();
+        asm.xorb_ri(RAX, Immediate(1));
+        asm.xorb_ri(RDI, Immediate(255));
+        asm.xorb_ri(R8, Immediate(-128));
+
+        let buffer = asm.finalizeTesting();
+
+        assertAsm(buffer, 0x34u8, 1u8);
+        assertAsm(buffer, 0x40u8, 0x80u8, 0xF7u8, 0xFFu8);
+        assertAsm(buffer, 0x41u8, 0x80u8, 0xF0u8, 0x80u8);
         assertAsmEnd(buffer);
     }
 

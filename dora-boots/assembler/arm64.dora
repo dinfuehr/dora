@@ -386,6 +386,14 @@ impl AssemblerArm64 {
         self.emit(encoding::bitfield(0i32, 0b01i32, 0i32, immr, imms, rn, rd));
     }
 
+    pub fn bic(rd: Register, rn: Register, rm: Register) {
+        self.bic_sh(rd, rn, rm, Shift::LSL, 0i32);
+    }
+
+    pub fn bic_w(rd: Register, rn: Register, rm: Register) {
+        self.bic_sh(rd, rn, rm, Shift::LSL, 0i32);
+    }
+
     pub fn bic_sh(rd: Register, rn: Register, rm: Register, shift: Shift, imm6: Int32) {
         self.emit(encoding::logical_shreg(1i32, 0b00i32, shift, 1i32, rm, imm6, rn, rd));
     }

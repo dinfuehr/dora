@@ -1,0 +1,46 @@
+//= boots
+
+fn main() {
+    assert(!gt(2i32, 3i32));
+    assert(!gt(1i32, 1i32));
+    assert(gt(1i32, 0i32));
+    assert(gt(-1i32, -5i32));
+    assert(!gt(-3i32, -2i32));
+
+    assert(!ge(2i32, 3i32));
+    assert(ge(1i32, 1i32));
+    assert(ge(1i32, 0i32));
+    assert(ge(-1i32, -5i32));
+    assert(ge(-2i32, -2i32));
+    assert(!ge(-3i32, -2i32));
+
+    assert(!lt(3i32, 2i32));
+    assert(!lt(1i32, 1i32));
+    assert(lt(0i32, 1i32));
+    assert(lt(-5i32, -1i32));
+    assert(!lt(-2i32, -3i32));
+
+    assert(!le(3i32, 2i32));
+    assert(le(1i32, 1i32));
+    assert(le(0i32, 1i32));
+    assert(le(-5i32, -1i32));
+    assert(le(-2i32, -2i32));
+    assert(!le(-2i32, -3i32));
+
+    assert(eq(1i32, 1i32));
+    assert(eq(0i32, 0i32));
+    assert(eq(-1i32, -1i32));
+    assert(!eq(-1i32, 1i32));
+
+    assert(!ne(1i32, 1i32));
+    assert(!ne(0i32, 0i32));
+    assert(!ne(-1i32, -1i32));
+    assert(ne(-1i32, 1i32));
+}
+
+@optimizeImmediately fn gt(a: Int32, b: Int32): Bool { a>b }
+@optimizeImmediately fn ge(a: Int32, b: Int32): Bool { a>=b }
+@optimizeImmediately fn lt(a: Int32, b: Int32): Bool { a<b }
+@optimizeImmediately fn le(a: Int32, b: Int32): Bool { a<=b }
+@optimizeImmediately fn eq(a: Int32, b: Int32): Bool { a==b }
+@optimizeImmediately fn ne(a: Int32, b: Int32): Bool { a!=b }
