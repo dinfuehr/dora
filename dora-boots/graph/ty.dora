@@ -6,7 +6,6 @@ pub enum Type {
     Unit,
     Bool,
     UInt8,
-    Char,
     Int32,
     Int64,
     Float32,
@@ -72,16 +71,6 @@ impl Type {
     pub fn isReference(): Bool {
         self == Type::Ptr
     }
-
-    pub static fn unit(): Type { Type::Unit }
-    pub static fn bool(): Type { Type::Bool }
-    pub static fn uint8(): Type { Type::UInt8 }
-    pub static fn char(): Type { Type::Char }
-    pub static fn int32(): Type { Type::Int32 }
-    pub static fn int64(): Type { Type::Int64 }
-    pub static fn float32(): Type { Type::Float32 }
-    pub static fn float64(): Type { Type::Float64 }
-    pub static fn ptr(): Type { Type::Ptr }
 }
 
 impl Stringable for Type {
@@ -90,7 +79,6 @@ impl Stringable for Type {
             Type::Unit => "Unit",
             Type::Bool => "Bool",
             Type::UInt8 => "UInt8",
-            Type::Char => "Char",
             Type::Int32 => "Int32",
             Type::Int64 => "Int64",
             Type::Float32 => "Float32",

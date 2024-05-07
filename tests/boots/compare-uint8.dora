@@ -1,0 +1,34 @@
+//= boots
+
+fn main() {
+    assert(!gt(2u8, 3u8));
+    assert(!gt(1u8, 1u8));
+    assert(gt(1u8, 0u8));
+
+    assert(!ge(2u8, 3u8));
+    assert(ge(1u8, 1u8));
+    assert(ge(1u8, 0u8));
+
+    assert(!lt(3u8, 2u8));
+    assert(!lt(1u8, 1u8));
+    assert(lt(0u8, 1u8));
+
+    assert(!le(3u8, 2u8));
+    assert(le(1u8, 1u8));
+    assert(le(0u8, 1u8));
+
+    assert(eq(1u8, 1u8));
+    assert(eq(0u8, 0u8));
+    assert(!eq(0u8, 1u8));
+
+    assert(!ne(1u8, 1u8));
+    assert(!ne(0u8, 0u8));
+    assert(ne(1u8, 2u8));
+}
+
+@optimizeImmediately fn gt(a: UInt8, b: UInt8): Bool { a>b }
+@optimizeImmediately fn ge(a: UInt8, b: UInt8): Bool { a>=b }
+@optimizeImmediately fn lt(a: UInt8, b: UInt8): Bool { a<b }
+@optimizeImmediately fn le(a: UInt8, b: UInt8): Bool { a<=b }
+@optimizeImmediately fn eq(a: UInt8, b: UInt8): Bool { a==b }
+@optimizeImmediately fn ne(a: UInt8, b: UInt8): Bool { a!=b }

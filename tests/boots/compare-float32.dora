@@ -1,0 +1,46 @@
+//= boots
+
+fn main() {
+    assert(!gt(2.0f32, 3.0f32));
+    assert(!gt(1.0f32, 1.0f32));
+    assert(gt(1.0f32, 0.0f32));
+    assert(gt(-1.0f32, -5.0f32));
+    assert(!gt(-3.0f32, -2.0f32));
+
+    assert(!ge(2.0f32, 3.0f32));
+    assert(ge(1.0f32, 1.0f32));
+    assert(ge(1.0f32, 0.0f32));
+    assert(ge(-1.0f32, -5.0f32));
+    assert(ge(-2.0f32, -2.0f32));
+    assert(!ge(-3.0f32, -2.0f32));
+
+    assert(!lt(3.0f32, 2.0f32));
+    assert(!lt(1.0f32, 1.0f32));
+    assert(lt(0.0f32, 1.0f32));
+    assert(lt(-5.0f32, -1.0f32));
+    assert(!lt(-2.0f32, -3.0f32));
+
+    assert(!le(3.0f32, 2.0f32));
+    assert(le(1.0f32, 1.0f32));
+    assert(le(0.0f32, 1.0f32));
+    assert(le(-5.0f32, -1.0f32));
+    assert(le(-2.0f32, -2.0f32));
+    assert(!le(-2.0f32, -3.0f32));
+
+    assert(eq(1.0f32, 1.0f32));
+    assert(eq(0.0f32, 0.0f32));
+    assert(eq(-1.0f32, -1.0f32));
+    assert(!eq(-1.0f32, 1.0f32));
+
+    assert(!ne(1.0f32, 1.0f32));
+    assert(!ne(0.0f32, 0.0f32));
+    assert(!ne(-1.0f32, -1.0f32));
+    assert(ne(-1.0f32, 1.0f32));
+}
+
+@optimizeImmediately fn gt(a: Float32, b: Float32): Bool { a>b }
+@optimizeImmediately fn ge(a: Float32, b: Float32): Bool { a>=b }
+@optimizeImmediately fn lt(a: Float32, b: Float32): Bool { a<b }
+@optimizeImmediately fn le(a: Float32, b: Float32): Bool { a<=b }
+@optimizeImmediately fn eq(a: Float32, b: Float32): Bool { a==b }
+@optimizeImmediately fn ne(a: Float32, b: Float32): Bool { a!=b }

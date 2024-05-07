@@ -577,7 +577,7 @@ impl CodeGen for CodeGenArm64 {
 
             if ty == Type::UInt8 || ty == Type::Bool {
                 self.asm.sturb(reg, REG_FP, slot);
-            } else if ty == Type::Int32 || ty == Type::Char {
+            } else if ty == Type::Int32 {
                 self.asm.stur_w(reg, REG_FP, slot);
             } else if ty == Type::Int64 || ty == Type::Ptr || ty == Type::Address {
                 self.asm.stur(reg, REG_FP, slot);
@@ -974,7 +974,7 @@ impl CodeGen for CodeGenArm64 {
                 if ty == Type::Int64 || ty == Type::Ptr || ty == Type::Address {
                     self.asm.mov(dest.getRegister(), src.getRegister());
                 } else {
-                    assert(ty == Type::UInt8 || ty == Type::Int32 || ty == Type::Char || ty == Type::Bool);
+                    assert(ty == Type::UInt8 || ty == Type::Int32 || ty == Type::Bool);
                     self.asm.mov_w(dest.getRegister(), src.getRegister());
                 }
             } else {
@@ -1035,7 +1035,7 @@ impl CodeGen for CodeGenArm64 {
 
                 if ty == Type::Int64 || ty == Type::Ptr {
                     self.asm.stur(src, stack_reg, offset);
-                } else if ty == Type::Int32 || ty == Type::Char {
+                } else if ty == Type::Int32 {
                     self.asm.stur_w(src, stack_reg, offset);
                 } else if ty == Type::Bool || ty == Type::UInt8 {
                     self.asm.strb_imm(src, stack_reg, offset);
@@ -1050,7 +1050,7 @@ impl CodeGen for CodeGenArm64 {
                 if ty == Type::UInt8 || ty == Type::Bool {
                     self.asm.ldurb(REG_TEMP, REG_FP, src_offset);
                     self.asm.sturb(REG_TEMP, stack_reg, offset);
-                } else if ty == Type::Int32 || ty == Type::Char || ty == Type::Float32 {
+                } else if ty == Type::Int32 || ty == Type::Float32 {
                     self.asm.ldur_w(REG_TEMP, REG_FP, src_offset);
                     self.asm.stur_w(REG_TEMP, stack_reg, offset);
                 } else if ty == Type::Int64 || ty == Type::Ptr || ty == Type::Float64 {
@@ -1067,24 +1067,33 @@ impl CodeGen for CodeGenArm64 {
         let loc = inst.getLocationData();
         let ty = inst.getOperationType();
 
+        let cond = match inst.op() {
+            Op::Greater => Cond::GT,
+            Op::GreaterOrEqual => Cond::GE,
+            Op::Less => Cond::LT,
+            Op::LessOrEqual => Cond::LE,
+            Op::Equal => Cond::EQ,
+            Op::NotEqual => Cond::NE,
+            _ => unreachable[Cond](),
+        };
+
+        assert(ty != Type::Ptr || (inst.op() == Op::Equal || inst.op() == Op::NotEqual));
+
         if ty.isAnyFloat() {
-            unimplemented();
+            let lhs = loc.getInput(0).getFloatRegister();
+            let rhs = loc.getInput(1).getFloatRegister();
+            let dest = loc.getOutput().getRegister();
+
+            match ty {
+                Type::Float32 => self.asm.fcmp_s(lhs, rhs),
+                Type::Float64 => self.asm.fcmp_d(lhs, rhs),
+                _ => unreachable[()](),
+            }
+            self.asm.cset_w(dest, cond);
         } else {
             let lhs = loc.getInput(0).getRegister();
             let rhs = loc.getInput(1).getRegister();
             let dest = loc.getOutput().getRegister();
-
-            let cond = match inst.op() {
-                Op::Greater => Cond::GT,
-                Op::GreaterOrEqual => Cond::GE,
-                Op::Less => Cond::LT,
-                Op::LessOrEqual => Cond::LE,
-                Op::Equal => Cond::EQ,
-                Op::NotEqual => Cond::NE,
-                _ => unreachable[Cond](),
-            };
-
-            assert(ty != Type::Ptr || (inst.op() == Op::Equal || inst.op() == Op::NotEqual));
 
             match ty {
                 Type::UInt8 | Type::Int32 => self.asm.cmp_w(lhs, rhs),
@@ -1396,7 +1405,7 @@ impl CodeGen for CodeGenArm64 {
                         self.asm.strb_imm(R0, REG_TEMP, 0i32);
                     },
 
-                    Type::Int32 | Type::Char => {
+                    Type::Int32 => {
                         self.asm.str_imm_w(R0, REG_TEMP, 0i32);
                     },
 
@@ -1443,7 +1452,7 @@ impl CodeGen for CodeGenArm64 {
                 self.asm.strb_imm(src, REG_TEMP, 0i32);
             },
 
-            Type::Int32 | Type::Char => {
+            Type::Int32 => {
                 let src = loc.getInput(0).getRegister();
                 self.asm.str_imm_w(src, REG_TEMP, 0i32);
             },
@@ -1510,7 +1519,7 @@ impl CodeGen for CodeGenArm64 {
                 self.asm.ldrb_imm(dest, src, offset);
             },
 
-            Type::Int32 | Type::Char => {
+            Type::Int32 => {
                 let dest = loc.getOutput().getRegister();
                 self.asm.ldr_imm_w(dest, src, offset);
             },
@@ -1549,7 +1558,7 @@ impl CodeGen for CodeGenArm64 {
                 self.asm.strb_imm(src, obj, offset);
             },
 
-            Type::Int32 | Type::Char => {
+            Type::Int32 => {
                 let src = loc.getInput(1).getRegister();
                 self.asm.str_imm_w(src, obj, offset);
             },

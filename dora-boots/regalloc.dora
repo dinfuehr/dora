@@ -464,7 +464,7 @@ impl SimpleRegisterAllocator {
     fn allocateSpillSlot(ty: Type): Int32 {
         let (size, alignment) = match ty {
             Type::Bool | Type::UInt8 => (1i32, 1i32),
-            Type::Char | Type::Int32 | Type::Float32 => (4i32, 4i32),
+            Type::Int32 | Type::Float32 => (4i32, 4i32),
             Type::Address | Type::Ptr | Type::Int64 | Type::Float64 => (8i32, 8i32),
             _ => unreachable[(Int32, Int32)](),
         };

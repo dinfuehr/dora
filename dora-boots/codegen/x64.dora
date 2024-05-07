@@ -543,7 +543,7 @@ impl CodeGen for CodeGenX64 {
 
             if ty == Type::UInt8 || ty == Type::Bool {
                 self.asm.movb_ar(AsmAddress::offset(RBP, slot), reg);
-            } else if ty == Type::Int32 || ty == Type::Char {
+            } else if ty == Type::Int32 {
                 self.asm.movl_ar(AsmAddress::offset(RBP, slot), reg);
             } else if ty == Type::Int64 || ty == Type::Address || ty == Type::Ptr {
                 self.asm.movq_ar(AsmAddress::offset(RBP, slot), reg);
@@ -1050,7 +1050,7 @@ impl CodeGen for CodeGenX64 {
                 if ty == Type::UInt8 || ty == Type::Bool {
                     self.asm.movb_ra(REG_TEMP, AsmAddress::offset(RBP, src_offset));
                     self.asm.movb_ar(AsmAddress::offset(stack_reg, offset), REG_TEMP);
-                } else if ty == Type::Int32 || ty == Type::Char || ty == Type::Float32 {
+                } else if ty == Type::Int32 || ty == Type::Float32 {
                     self.asm.movl_ra(REG_TEMP, AsmAddress::offset(RBP, src_offset));
                     self.asm.movl_ar(AsmAddress::offset(stack_reg, offset), REG_TEMP);
                 } else if ty == Type::Int64 || ty == Type::Ptr || ty == Type::Float64 {
@@ -1067,8 +1067,53 @@ impl CodeGen for CodeGenX64 {
         let loc = inst.getLocationData();
         let ty = inst.getOperationType();
 
+        assert(ty != Type::Ptr || (inst.op() == Op::Equal || inst.op() == Op::NotEqual));
+
         if ty.isAnyFloat() {
-            unimplemented();
+            let mut lhs = loc.getInput(0).getFloatRegister();
+            let mut rhs = loc.getInput(1).getFloatRegister();
+            let dest = loc.getOutput().getRegister();
+
+            if inst.op() == Op::Equal || inst.op() == Op::NotEqual {
+                if inst.op() == Op::Equal {
+                    self.asm.xorl_rr(REG_TEMP, REG_TEMP);
+                } else {
+                    self.asm.movl_ri(REG_TEMP, Immediate(1));
+                }
+                match ty {
+                    Type::Float32 => self.asm.ucomiss_rr(lhs, rhs),
+                    Type::Float64 => self.asm.ucomisd_rr(lhs, rhs),
+                    _ => unreachable[()](),
+                }
+                let cond = if inst.op() == Op::Equal {
+                    Condition::NoParity
+                } else {
+                    Condition::Parity
+                };
+
+                self.asm.setcc_r(cond, dest);
+                self.asm.movzxb_rr(dest, dest);
+                self.asm.cmovl(Condition::NotEqual, dest, REG_TEMP);
+            } else {
+                if inst.op() == Op::Less || inst.op() == Op::LessOrEqual {
+                    let mut temp = lhs;
+                    lhs = rhs;
+                    rhs = temp;
+                }
+
+                let cond = match inst.op() {
+                    Op::Greater | Op::Less => Condition::Above,
+                    Op::GreaterOrEqual | Op::LessOrEqual => Condition::AboveOrEqual,
+                    _ => unreachable[Condition](),
+                };
+
+                match ty {
+                    Type::Float32 => self.asm.ucomiss_rr(lhs, rhs),
+                    Type::Float64 => self.asm.ucomisd_rr(lhs, rhs),
+                    _ => unreachable[()](),
+                }
+                self.asm.movzxb_rr(dest, dest);
+            }
         } else {
             let lhs = loc.getInput(0).getRegister();
             let rhs = loc.getInput(1).getRegister();
@@ -1083,8 +1128,6 @@ impl CodeGen for CodeGenX64 {
                 Op::NotEqual => Condition::NotEqual,
                 _ => unreachable[Condition](),
             };
-
-            assert(ty != Type::Ptr || (inst.op() == Op::Equal || inst.op() == Op::NotEqual));
 
             match ty {
                 Type::UInt8 => self.asm.cmpb_rr(lhs, rhs),
@@ -1383,7 +1426,7 @@ impl CodeGen for CodeGenX64 {
                         self.asm.movb_ar(AsmAddress::offset(REG_TEMP, 0i32), RAX);
                     },
 
-                    Type::Int32 | Type::Char => {
+                    Type::Int32 => {
                         self.asm.movl_ar(AsmAddress::offset(REG_TEMP, 0i32), RAX);
                     },
 
@@ -1429,7 +1472,7 @@ impl CodeGen for CodeGenX64 {
                 self.asm.movb_ar(AsmAddress::offset(REG_TEMP, 0i32), src);
             },
 
-            Type::Int32 | Type::Char => {
+            Type::Int32 => {
                 let src = loc.getInput(0).getRegister();
                 self.asm.movl_ar(AsmAddress::offset(REG_TEMP, 0i32), src);
             },
@@ -1490,7 +1533,7 @@ impl CodeGen for CodeGenX64 {
                 self.asm.movb_ra(dest, AsmAddress::offset(src, offset));
             },
 
-            Type::Int32 | Type::Char => {
+            Type::Int32 => {
                 let dest = loc.getOutput().getRegister();
                 self.asm.movl_ra(dest, AsmAddress::offset(src, offset));
             },
@@ -1529,7 +1572,7 @@ impl CodeGen for CodeGenX64 {
                 self.asm.movb_ar(AsmAddress::offset(obj, offset), src);
             },
 
-            Type::Int32 | Type::Char => {
+            Type::Int32 => {
                 let src = loc.getInput(1).getRegister();
                 self.asm.movl_ar(AsmAddress::offset(obj, offset), src);
             },

@@ -707,10 +707,11 @@ impl SsaGen {
         let registerType = self.reg(lhs);
 
         let ty = match registerType {
-            BytecodeType::Int32 => Type::int32(),
-            BytecodeType::Int64 => Type::int64(),
-            BytecodeType::Float32 => Type::float32(),
-            BytecodeType::Float64 => Type::float64(),
+            BytecodeType::UInt8 => Type::UInt8,
+            BytecodeType::Int32 => Type::Int32,
+            BytecodeType::Int64 => Type::Int64,
+            BytecodeType::Float32 => Type::Float32,
+            BytecodeType::Float64 => Type::Float64,
             BytecodeType::Enum(enum_id, type_params) => {
                 assert(op == Op::Equal || op == Op::NotEqual);
                 let layout = self.computeEnumLayout(enum_id, type_params);
@@ -740,10 +741,10 @@ impl SsaGen {
 
         let ty = match registerType {
             BytecodeType::Bool => Type::Bool,
-            BytecodeType::Int32 => Type::int32(),
-            BytecodeType::Int64 => Type::int64(),
-            BytecodeType::Float32 => Type::float32(),
-            BytecodeType::Float64 => Type::float64(),
+            BytecodeType::Int32 => Type::Int32,
+            BytecodeType::Int64 => Type::Int64,
+            BytecodeType::Float32 => Type::Float32,
+            BytecodeType::Float64 => Type::Float64,
             _ => unreachable[Type](),
         };
 
@@ -758,10 +759,10 @@ impl SsaGen {
         let registerType = self.reg(dest);
 
         let ty = match registerType {
-            BytecodeType::Int32 => Type::int32(),
-            BytecodeType::Int64 => Type::int64(),
-            BytecodeType::Float32 => Type::float32(),
-            BytecodeType::Float64 => Type::float64(),
+            BytecodeType::Int32 => Type::Int32,
+            BytecodeType::Int64 => Type::Int64,
+            BytecodeType::Float32 => Type::Float64,
+            BytecodeType::Float64 => Type::Float64,
             _ => unreachable[Type](),
         };
         
@@ -816,10 +817,10 @@ impl SsaGen {
         let registerType = self.reg(lhs);
 
         let ty = match registerType {
-            BytecodeType::Int32 => Type::int32(),
-            BytecodeType::Int64 => Type::int64(),
-            BytecodeType::Float32 => Type::float32(),
-            BytecodeType::Float64 => Type::float64(),
+            BytecodeType::Int32 => Type::Int32,
+            BytecodeType::Int64 => Type::Int64,
+            BytecodeType::Float32 => Type::Float32,
+            BytecodeType::Float64 => Type::Float64,
             _ => unreachable[Type](),
         };
 
@@ -1681,7 +1682,7 @@ impl SsaGen {
             BytecodeType::UInt8 => Type::UInt8,
             BytecodeType::Float32 => Type::Float32,
             BytecodeType::Int32 => Type::Int32,
-            BytecodeType::Char => Type::Char,
+            BytecodeType::Char => Type::Int32,
             BytecodeType::Int64 => Type::Int64,
             BytecodeType::Float64 => Type::Float64,
             BytecodeType::Class(_, _)

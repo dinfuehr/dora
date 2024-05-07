@@ -32,7 +32,7 @@ fn addIntConsts() {
     let const2 = createInt32Const(2i32);
     block.appendInst(const2);
 
-    let inst = createBinaryInst(Op::Add, Type::int32(), const1, const2);
+    let inst = createBinaryInst(Op::Add, Type::Int64, const1, const2);
     block.appendInst(inst);
 
     let inst = createReturnVoidInst();
