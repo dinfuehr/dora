@@ -947,7 +947,7 @@ impl SsaGen {
 
         let intrinsic = iface::getIntrinsicForFunction(fct_id);
 
-        if intrinsic >= 0i32 {
+        if self.isIntrinsic(intrinsic) {
             let args = self.pushed_registers.toArray();
             self.pushed_registers.clear();
             self.emitIntrinsic(intrinsic, dest, args, idx);
@@ -964,7 +964,7 @@ impl SsaGen {
 
         let intrinsic = iface::getIntrinsicForFunction(fct_id);
 
-        if intrinsic >= 0i32 {
+        if self.isIntrinsic(intrinsic) {
             let args = self.pushed_registers.toArray();
             self.pushed_registers.clear();
             self.emitIntrinsic(intrinsic, dest, args, idx);
@@ -1094,13 +1094,19 @@ impl SsaGen {
 
         let intrinsic = iface::getIntrinsicForFunction(callee_id);
 
-        if intrinsic >= 0i32 {
+        if self.isIntrinsic(intrinsic) {
             let args = self.pushed_registers.toArray();
             self.pushed_registers.clear();
             self.emitIntrinsic(intrinsic, dest, args, idx);
         } else {
             self.emitCall(dest, kind, callee_id, Array[BytecodeType]::new());
         }
+    }
+
+    fn isIntrinsic(intrinsic: Int32): Bool {
+        intrinsic >= 0i32 &&
+        intrinsic != opc::INTRINSIC_UNREACHABLE &&
+        intrinsic != opc::INTRINSIC_OPTION_GET_OR_PANIC
     }
 
     fn emitIntrinsic(intrinsic: Int32, dest: BytecodeRegister, args: Array[BytecodeRegister], idx: ConstPoolId) {
