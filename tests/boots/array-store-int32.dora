@@ -1,11 +1,11 @@
 //= boots
 
 fn main() {
-    let arr = Array[Int32]::newDefault(100);
+    let arr = Array[Int32]::fill(100, 1i32);
     f(arr, 47, 12i32);
-    assert(arr(46) == 0i32);
+    assert(arr(46) == 1i32);
     assert(arr(47) == 12i32);
-    assert(arr(48) == 0i32);
+    assert(arr(48) == 1i32);
 }
 
 @optimizeImmediately

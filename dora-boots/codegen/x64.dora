@@ -1260,12 +1260,12 @@ impl CodeGen for CodeGenX64 {
         match ty {
             Type::Bool | Type::UInt8 => {
                 let value = loc.getInput(2).getRegister();
-                self.asm.movq_ar(AsmAddress::array(array, idx, ScaleFactor::One, ARRAY_HEADER_LENGTH), value);
+                self.asm.movb_ar(AsmAddress::array(array, idx, ScaleFactor::One, ARRAY_HEADER_LENGTH), value);
             },
 
             Type::Int32 => {
                 let value = loc.getInput(2).getRegister();
-                self.asm.movq_ar(AsmAddress::array(array, idx, ScaleFactor::Four, ARRAY_HEADER_LENGTH), value);
+                self.asm.movl_ar(AsmAddress::array(array, idx, ScaleFactor::Four, ARRAY_HEADER_LENGTH), value);
             },
 
             Type::Int64 | Type::Ptr => {

@@ -1,11 +1,11 @@
 //= boots
 
 fn main() {
-    let arr = Array[UInt8]::newDefault(100);
+    let arr = Array[UInt8]::fill(100, 1u8);
     f(arr, 47, 12u8);
-    assert(arr(46) == 0u8);
+    assert(arr(46) == 1u8);
     assert(arr(47) == 12u8);
-    assert(arr(48) == 0u8);
+    assert(arr(48) == 1u8);
 }
 
 @optimizeImmediately

@@ -145,7 +145,8 @@ impl GraphDumper {
             }
 
             if !loc.getHint().isNone() {
-                self.buffer.append(" (hint ${loc.getHint()})");
+                let hint_location = self.displayLocation(loc.getHint());
+                self.buffer.append(" (hint ${hint_location})");
             }
         }
 
@@ -216,7 +217,12 @@ impl GraphDumper {
             Policy::FixedFloatStack => "FIX_FLOAT_STACK",
         };
 
-        let name = match operand.getLocation() {
+        let location = self.displayLocation(operand.getLocation());
+        self.buffer.append("${policy}:${location}");
+    }
+
+    fn displayLocation(loc: Location): String {
+        match loc {
             Location::Reg(reg) => {
                 match self.architecture {
                     Architecture::Arm64 => registerNameOnArm64(reg),
@@ -239,9 +245,7 @@ impl GraphDumper {
             },
 
             Location::None => "NONE",
-        };
-
-        self.buffer.append("${policy}:${name}");
+        }
     }
 }
 
