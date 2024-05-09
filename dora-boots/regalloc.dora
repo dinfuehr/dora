@@ -371,8 +371,10 @@ impl SimpleRegisterAllocator {
         if output.getPolicy().isAnyFixedStack() {
             let slot = output.getStack();
             assert(slot.isFp());
-            loc_data.setSpillSlot(slot.getOffset());
+            let offset = slot.getOffset();
+            loc_data.setSpillSlot(offset);
             assert(inst.op() == Op::Arg);
+            self.addSpillSlotToGcPoint(offset, inst.getValueType());
         } else if output.getPolicy().isFixedReg() {
             self.allocateFixedOutputRegisterGeneric[Register](output.getRegister(), self.registers(), inst);
         } else if output.getPolicy().isFixedFloatReg() {
@@ -551,11 +553,7 @@ impl SimpleRegisterAllocator {
             }
 
         } else if inst.getValueType().isPtr() && loc.hasSpillSlot() {
-            // While the Arg instruction has a spill slot, the spill splot
-            // is owned by the caller frame.
-            if inst.op() != Op::Arg {
-                assert(self.refs.remove(loc.getSpillSlot()));
-            }
+            assert(self.refs.remove(loc.getSpillSlot()));
         }
     }
 

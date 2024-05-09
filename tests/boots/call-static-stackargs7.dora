@@ -1,0 +1,43 @@
+//= boots
+
+fn main() {
+    let foo = Foo(17);
+    let value = f(
+        0, 1, 2, 3,
+        4, 5, 6, 7,
+        8, 9, 10, 11,
+        12, 13, 14, 15,
+        16, 17, foo
+    );
+    assert(value == 17);
+}
+
+class Foo(value: Int64)
+
+@optimizeImmediately
+fn f(a0: Int64, a1: Int64, a2: Int64, a3: Int64,
+     a4: Int64, a5: Int64, a6: Int64, a7: Int64,
+     a8: Int64, a9: Int64, a10: Int64, a11: Int64,
+     a12: Int64, a13: Int64, a14: Int64, a15: Int64,
+     a16: Int64, a17: Int64, ptr: Foo): Int64 {
+    std::forceCollect();
+    assert(a0 == 0);
+    assert(a1 == 1);
+    assert(a2 == 2);
+    assert(a3 == 3);
+    assert(a4 == 4);
+    assert(a5 == 5);
+    assert(a6 == 6);
+    assert(a7 == 7);
+    assert(a8 == 8);
+    assert(a9 == 9);
+    assert(a10 == 10);
+    assert(a11 == 11);
+    assert(a12 == 12);
+    assert(a13 == 13);
+    assert(a14 == 14);
+    assert(a15 == 15);
+    assert(a16 == 16);
+    assert(a17 == 17);
+    ptr.value
+}
