@@ -1,7 +1,7 @@
 use package::interface::{Address, Config, StructData, EnumData, EnumVariantData};
 use package::bytecode::data::{AliasId, BytecodeFunction, BytecodeType, ClassId, ConstPoolEntry, EnumId, FctId, FieldId, Location, StructId, StructFieldId, TraitId};
 use package::bytecode::opcode as opc;
-use package::compilation_info::CompilationInfo;
+use package::compilation::CompilationInfo;
 use package::interface::Architecture;
 
 pub fn decodeConfig(encoded: Array[UInt8]): Config {

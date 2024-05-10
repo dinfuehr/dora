@@ -1,7 +1,7 @@
 use package::assembler::{FloatRegister, Register};
 use package::bytecode::data::BytecodeType;
 use package::codegen::CodeGen;
-use package::compilation_info::CompilationInfo;
+use package::compilation::CompilationInfo;
 use package::graph::{Graph, Inst, Location, LocationData, Op, Operand, Policy, StackSlot, Type};
 use package::interface::{config, PTR_SIZE, Architecture};
 

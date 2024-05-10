@@ -1,5 +1,5 @@
 use package::bytecode::{ConstPoolId, Location, FctId, BytecodeType};
-use package::compilation_info::CompilationInfo;
+use package::compilation::CompilationInfo;
 use package::interface::{Address, Architecture, ConstPool, ConstPoolEntry, ConstPoolValue, config, getFunctionAddress, getFieldOffset, getClassSize, getClassPointer, getClassPointerForLambda, getFunctionVtableIndex, getGlobalValueAddress, getGlobalStateAddress, getGlobalInitializerFunctionId, getReadOnlyStringAddress, getClassSizeForTraitObject, getClassPointerForTraitObject};
 use package::interface::{THREAD_LOCAL_DATA_STACK_LIMIT_OFFSET, THREAD_LOCAL_DATA_STATE_OFFSET, THREAD_LOCAL_DATA_MARKING_OFFSET, OBJECT_HEADER_LENGTH, OBJECT_METADATA_OFFSET, METADATA_REMEMBERED_BIT, ARRAY_HEADER_LENGTH, LAMBDA_SIZE};
 use package::interface::{THREAD_LOCAL_DATA_TLAB_TOP_OFFSET, THREAD_LOCAL_DATA_TLAB_END_OFFSET, THREAD_LOCAL_DATA_MANAGED_THREAD_HANDLE_OFFSET};
@@ -1660,6 +1660,19 @@ impl CodeGen for CodeGenArm64 {
                     Type::Float64 => {
                         let src = loc.getInput(0).getFloatRegister();
                         self.asm.fcvtzs_d(dest, src);
+                    }
+
+                    _ => unimplemented(),
+                }
+            }
+
+            Type::Float32 => {
+                let dest = loc.getOutput().getFloatRegister();
+
+                match src_ty {
+                    Type::Int32 => {
+                        let src = loc.getInput(0).getRegister();
+                        self.asm.scvtf_si_sx(dest, src);
                     }
 
                     _ => unimplemented(),

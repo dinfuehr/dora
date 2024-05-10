@@ -1,7 +1,7 @@
 use package::bytecode::data::{BytecodeType, FctId};
 use package::codegen::x64::CodeGenX64;
 use package::codegen::arm64::CodeGenArm64;
-use package::compilation_info::CompilationInfo;
+use package::compilation::CompilationInfo;
 use package::assembler::{FloatRegister, Label, Register, RegSet};
 use package::interface::{Address, Architecture, config};
 use package::graph::{Graph, Inst, Location, LocationData, Op, Operand, Policy, Type};
