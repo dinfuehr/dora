@@ -440,7 +440,8 @@ impl Iterator for BitVecIter {
           self.idx = self.idx + 1;
           self.mask = !0i32;
         } else {
-          self.mask = !((1i32 << (bit + 1i32)) - 1i32);
+          // Avoid overflow for bit 30 here.
+          self.mask = !((1i32 << (bit + 1i32)).wrappingSub(1i32));
         }
 
         return Some[Int64](result);

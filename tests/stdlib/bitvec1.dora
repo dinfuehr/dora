@@ -52,6 +52,9 @@ fn main() {
     assert(set.capacity() == 96);
 
     assertBitVec(set, 1, 31, 32, 64);
+
+    set.insert(30);
+    assertBitVec(set, 1, 30, 31, 32, 64);
 }
 
 fn assertBitVec(bitvec: std::BitVec, entries: Int64...) {
