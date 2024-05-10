@@ -307,6 +307,20 @@ impl LocationAnnotation {
                 self.codegen.setLocationConstraintsNot(inst, loc);
             }
 
+            Op::Convert => {
+                if inst.getSourceType().isAnyFloat() {
+                    useInputFloatRegister(inst, 0);
+                } else {
+                    useInputRegister(inst, 0);
+                }
+
+                if inst.getValueType().isAnyFloat() {
+                    useOutputFloatRegister(inst, true);
+                } else {
+                    useOutputRegister(inst, true);
+                }
+            }
+
             _ => {
                 println("unsupported op ${inst.op().name()}");
                 unreachable[()]();

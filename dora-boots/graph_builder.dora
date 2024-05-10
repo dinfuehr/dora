@@ -1124,10 +1124,24 @@ impl SsaGen {
             self.emitIntrinsicAssert(dest, args);
         } else if intrinsic == opc::INTRINSIC_OPTION_IS_SOME || intrinsic == opc::INTRINSIC_OPTION_IS_NONE {
             self.emitIntrinsicOptionIsSomeAndIsNone(intrinsic, dest, args);
+        } else if intrinsic == opc::INTRINSIC_FLOAT64_TO_INT64 {
+            self.emitIntrinsicConvert(dest, args, Type::Int64, Type::Float64);
         } else {
             let name = opc::intrinsicName(intrinsic);
             std::fatalError("unknown intrinsic ${name}");
         }
+    }
+
+    fn emitIntrinsicConvert(dest: BytecodeRegister, args: Array[BytecodeRegister], dest_ty: Type, src_ty: Type) {
+        assert(args.size() == 1);
+        let src = args(0);
+        assert(dest_ty == self.regGraphTy(dest));
+        assert(src_ty == self.regGraphTy(src));
+        let value = self.readVariable(src, self.current());
+        let result = graph::createConvertInst(Type::Int64, value);
+        self.current().appendInst(result);
+
+        self.writeVariable(dest, self.current(), result);
     }
 
     fn emitIntrinsicOptionIsSomeAndIsNone(intrinsic: Int32, dest: BytecodeRegister, args: Array[BytecodeRegister]) {

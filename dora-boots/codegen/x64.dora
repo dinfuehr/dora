@@ -1664,6 +1664,10 @@ impl CodeGen for CodeGenX64 {
         });
     }
 
+    fn emitConvert(inst: Inst) {
+        unimplemented();
+    }
+
     fn finalize(): CodeDescriptor {
         self.emitDeferredCode();
         self.asm.resolveJumps();

@@ -331,6 +331,7 @@ fn dumpInstName(inst: Inst): String {
         Op::StoreArrayWb => "StoreArrayWb",
         Op::StoreArrayAddressWb => "StoreArrayAddressWb",
         Op::ThreadCurrent => "ThreadCurrent",
+        Op::Convert => "Convert.(${inst.getSourceType()}->${inst.getValueType()})",
     }
 }
 

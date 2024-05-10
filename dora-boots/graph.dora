@@ -649,6 +649,8 @@ pub enum Op {
     StoreArrayAddressWb,
 
     ThreadCurrent,
+    // Convert between integer and floats.
+    Convert,
 }
 
 impl Op {
@@ -755,6 +757,7 @@ pub fn opName(op: Op): String {
         Op::StoreArrayWb => "StoreArrayWb",
         Op::StoreArrayAddressWb => "StoreArrayAddressWb",
         Op::ThreadCurrent => "ThreadCurrent",
+        Op::Convert => "Convert",
     }
 }
 
@@ -938,6 +941,7 @@ impl Inst {
             | Op::StoreArrayWb
             | Op::StoreArrayAddressWb => unreachable[Type](),
             Op::ThreadCurrent => Type::Ptr,
+            Op::Convert => self.ty,
         }
     }
 
@@ -958,6 +962,11 @@ impl Inst {
             | Op::StoreArrayAddressWb => self.ty,
             _ => self.getValueType(),
         }
+    }
+
+    pub fn getSourceType(): Type {
+        assert(self.op() == Op::Convert);
+        self.getInput(0).getValue().getValueType()
     }
 
     pub fn hasFunctionInfo(): Bool {
@@ -1451,6 +1460,7 @@ impl Inst {
             | Op::StoreArrayWb
             | Op::StoreArrayAddressWb => true,
             Op::ThreadCurrent => false,
+            Op::Convert => false,
         }
     }
 }
@@ -2472,6 +2482,14 @@ pub fn createNewArrayInst(info: ClassInfo, length: Inst): Inst {
     inst.extra = InstExtraData::ClassInfo(info);
     inst.addInput(length);
 
+    inst
+}
+
+pub fn createConvertInst(ty: Type, value: Inst): Inst {
+    let inst = Inst::new();
+    inst.ty = ty;
+    inst._op = Some(Op::Convert);
+    inst.addInput(value);
     inst
 }
 

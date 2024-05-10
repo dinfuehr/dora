@@ -323,6 +323,11 @@ fn emitInst(codegen: CodeGen, inst: Inst) {
             codegen.emitNot(inst);
         }
 
+        Op::Convert => {
+            codegen.emitComment("Convert");
+            codegen.emitConvert(inst);
+        }
+
         _ => {
             println("unsupported op ${inst.op().name()}");
             unreachable[()]();
@@ -417,6 +422,7 @@ pub trait CodeGen {
     fn emitStoreArrayAddressWb(inst: Inst);
     fn emitAbort(inst: Inst);
     fn emitAssert(inst: Inst);
+    fn emitConvert(inst: Inst);
 
     fn emitComment(comment: String);
 }

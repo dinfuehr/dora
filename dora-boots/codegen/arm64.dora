@@ -1647,6 +1647,29 @@ impl CodeGen for CodeGenArm64 {
         });
     }
 
+    fn emitConvert(inst: Inst) {
+        let loc = inst.getLocationData();
+        let dest_ty = inst.getValueType();
+        let src_ty = inst.getSourceType();
+
+        match dest_ty {
+            Type::Int64 => {
+                let dest = loc.getOutput().getRegister();
+
+                match src_ty {
+                    Type::Float64 => {
+                        let src = loc.getInput(0).getFloatRegister();
+                        self.asm.fcvtzs_d(dest, src);
+                    }
+
+                    _ => unimplemented(),
+                }
+            }
+
+            _ => unimplemented(),
+        }
+    }
+
     fn finalize(): CodeDescriptor {
         self.emitDeferredCode();
         self.asm.resolveJumps();
