@@ -1334,6 +1334,10 @@ impl CodeGen for CodeGenX64 {
         self.emitObjectInitialization(obj, size, classptr, REG_TEMP, FREG_TEMP);
     }
 
+    fn emitNewArray(inst: Inst) {
+        unimplemented();
+    }
+
     fn emitLoadGlobal(inst: Inst) {
         let loc = inst.getLocationData();
 

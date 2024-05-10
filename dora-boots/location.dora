@@ -204,6 +204,13 @@ impl LocationAnnotation {
                 needsRegisterSnapshot(inst);
             }
 
+            Op::NewArray => {
+                useInputRegister(inst, 0);
+                useOutputRegister(inst, true);
+                addTempRegister(inst);
+                needsRegisterSnapshot(inst);
+            }
+
             Op::LoadGlobal => {
                 if inst.getOperationType().isAnyFloat() {
                     useOutputFloatRegister(inst,  false);

@@ -2478,7 +2478,7 @@ pub fn createStoreWbInst(obj: Inst, field: Int32, value: Inst, ty: Type): Inst {
 
 pub fn createNewArrayInst(info: ClassInfo, length: Inst): Inst {
     let inst = Inst::new();
-    inst._op = Some(Op::NewObject);
+    inst._op = Some(Op::NewArray);
     inst.extra = InstExtraData::ClassInfo(info);
     inst.addInput(length);
 

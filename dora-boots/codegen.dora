@@ -243,6 +243,11 @@ fn emitInst(codegen: CodeGen, inst: Inst) {
             codegen.emitNewObject(inst);
         },
 
+        Op::NewArray => {
+            codegen.emitComment("NewArray");
+            codegen.emitNewArray(inst);
+        },
+
         Op::EnsureGlobalInitialized => {
             codegen.emitComment("EnsureGlobalInitialized");
             codegen.emitEnsureGlobalInitialized(inst);
@@ -408,6 +413,7 @@ pub trait CodeGen {
     fn emitStoreArray(inst: Inst);
     fn emitGetElementPtr(inst: Inst);
     fn emitNewObject(inst: Inst);
+    fn emitNewArray(inst: Inst);
     fn emitLoadGlobal(inst: Inst);
     fn emitGetGlobalAddress(inst: Inst);
     fn emitStoreGlobal(inst: Inst);

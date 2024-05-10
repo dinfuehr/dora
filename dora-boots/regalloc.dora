@@ -180,8 +180,8 @@ impl SimpleRegisterAllocator {
         if outputOverlaps {
             if inst.getLocationData().needsRegisterSnapshot() {
                 assert(inst.op() == Op::NewObject
-                       || inst.op() == Op::NewLambda);
-                assert(!inst.getLocationData().hasInput());
+                       || inst.op() == Op::NewLambda
+                       || inst.op() == Op::NewArray);
                 self.snapshotRegisters(inst);
                 self.attachGcPoint(inst);
             }
