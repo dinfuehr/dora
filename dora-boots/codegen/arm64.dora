@@ -376,7 +376,7 @@ impl CodeGenArm64 {
         self.asm.add(words, words, ptr);
 
         let loop = self.asm.createAndBindLabel();
-        self.asm.sub_imm(words, words, PTR_SIZE);
+        self.asm.sub_imm(words, words, 1i32);
         self.asm.str_imm(REG_ZERO, words, 0i32);
         self.asm.cmp(words, ptr);
         self.asm.bc(Cond::NE, loop);
