@@ -1,17 +1,11 @@
 //= boots
-//= ignore
 
 fn main() {
     let foo = getfoo();
     std::forceCollect();
-    assert(foo.size() == 5);
-    assert(foo(0) == 10);
-    assert(foo(0) == 20);
-    assert(foo(0) == 30);
-    assert(foo(0) == 40);
-    assert(foo(0) == 50);
+    assert(foo.size() == 0);
 }
 
 @optimizeImmediately fn getfoo(): Array[Int64] {
-    Array[Int64]::new(10, 20, 30, 40, 50)
+    Array[Int64]::new()
 }

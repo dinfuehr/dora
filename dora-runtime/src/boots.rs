@@ -107,6 +107,10 @@ pub const BOOTS_NATIVE_FUNCTIONS: &[(&'static str, *const u8)] = &[
         "boots::interface::getFieldOffsetForEnumVariantRaw",
         get_field_offset_for_enum_variant_raw as *const u8,
     ),
+    (
+        "boots::interface::getElementSizeRaw",
+        get_element_size_raw as *const u8,
+    ),
 ];
 
 pub fn compile(
@@ -316,6 +320,35 @@ fn get_class_size_raw(vm: &VM, cls_id: ClassId, type_params: BytecodeTypeArray) 
 
     match cls.size {
         InstanceSize::Fixed(size) => size as u32,
+        _ => unreachable!(),
+    }
+}
+
+fn get_element_size_raw(data: Handle<UInt8Array>) -> u32 {
+    let vm = get_vm();
+
+    let mut serialized_data = vec![0; data.len()];
+
+    unsafe {
+        ptr::copy_nonoverlapping(
+            data.data() as *mut u8,
+            serialized_data.as_mut_ptr(),
+            data.len(),
+        );
+    }
+
+    let mut reader = ByteReader::new(serialized_data);
+    let cls_id = ClassId(reader.read_u32());
+    let type_params = decode_bytecode_type_array(&mut reader);
+    assert!(!reader.has_more());
+
+    let class_instance_id = create_class_instance(vm, cls_id, &type_params);
+    let cls = vm.class_instances.idx(class_instance_id);
+
+    match cls.size {
+        InstanceSize::StructArray(element_size) => element_size as u32,
+        InstanceSize::ObjArray => crate::mem::ptr_width() as u32,
+        InstanceSize::PrimitiveArray(element_size) => element_size as u32,
         _ => unreachable!(),
     }
 }

@@ -206,6 +206,7 @@ impl LocationAnnotation {
 
             Op::NewArray => {
                 useInputRegister(inst, 0);
+                useInputRegister(inst, 1);
                 useOutputRegister(inst, true);
                 addTempRegister(inst);
                 needsRegisterSnapshot(inst);

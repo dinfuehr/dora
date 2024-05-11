@@ -247,6 +247,66 @@ impl CodeGenX64 {
         }
     }
 
+    fn emitArrayAllocate(obj: Register, size: Register, tmp1: Register, tmp2: Register, snapshot: RegisterTrackers, gc_point: GcPoint) {
+        let lbl_alloc_slow_path = self.asm.createLabel();
+
+        if config.useTlab {
+            self.asm.movq_ri(tmp1, Immediate(iface::MAX_TLAB_OBJECT_SIZE));
+            self.asm.cmpq_rr(size, tmp1);
+            self.asm.jcc(Condition::GreaterOrEqual, lbl_alloc_slow_path);
+
+            self.asm.movq_ra(obj, AsmAddress::offset(REG_THREAD, THREAD_LOCAL_DATA_TLAB_TOP_OFFSET));
+            self.asm.movq_ra(tmp1, AsmAddress::offset(REG_THREAD, THREAD_LOCAL_DATA_TLAB_END_OFFSET));
+
+            self.asm.lea(tmp2, AsmAddress::array(obj, size, ScaleFactor::One, 0i32));
+            self.asm.cmpq_rr(tmp2, tmp1);
+            self.asm.jcc(Condition::Greater, lbl_alloc_slow_path);
+            self.asm.movq_ar(AsmAddress::offset(REG_THREAD, THREAD_LOCAL_DATA_TLAB_TOP_OFFSET), tmp2);
+        } else {
+            self.asm.jmp(lbl_alloc_slow_path);
+        }
+
+        let lbl_return = self.asm.createAndBindLabel();
+
+        self.deferred.push(|| {
+            self.emitComment("allocation slow path");
+            self.asm.bindLabel(lbl_alloc_slow_path);
+            let (gc_point, align) = self.saveRegistersForCall(snapshot, gc_point);
+            self.asm.movq_rr(CCALL_REG_PARAMS(0), size);
+            self.asm.movq_ri(REG_TEMP, Immediate(config.allocation_slow_path.toInt64()));
+            self.asm.call_r(REG_TEMP);
+            self.asm.movq_rr(obj, RAX);
+            self.restoreRegistersForCall(snapshot, align);
+            self.asm.jmp(lbl_return);
+        });
+    }
+
+    fn emitArrayInitialization(obj: Register, size: Register, length: Register, classptr: Address, tmp1: Register, tmp2: Register) {
+        let metadata_part = 0xFF_FF_FF_FCi32 | 1i32 << METADATA_REMEMBERED_BIT;
+        let classptr_part = classptr.value - config.meta_space_start.value;
+
+        let header_word = metadata_part.toInt64() << 32i32 | classptr_part;
+        self.asm.movq_ri(tmp1, Immediate(header_word));
+
+        self.asm.xorl_rr(tmp2, tmp2);
+        self.asm
+            .cmpq_ri(tmp2, Immediate(iface::LARGE_OBJECT_SIZE.toInt64()));
+        self.asm.setcc_r(Condition::Below, tmp2);
+        let bit = iface::METADATA_REMEMBERED_BIT + 32i32;
+        self.asm
+            .shlq_ri(tmp2, Immediate(bit.toInt64()));
+
+        self.asm.orq_rr(tmp1, tmp2);
+        self.asm.movq_ar(AsmAddress::offset(obj, 0i32), tmp1);
+        self.asm.movq_ar(AsmAddress::offset(obj, iface::OBJECT_HEADER_LENGTH), length);
+
+        self.asm.lea(tmp1, AsmAddress::offset(obj, iface::ARRAY_HEADER_LENGTH));
+        self.asm.lea(tmp2, AsmAddress::offset(size, -iface::ARRAY_HEADER_LENGTH));
+        assert(PTR_SIZE % 8i32 == 0i32);
+        self.asm.shrq_ri(tmp2, Immediate(3));
+        self.zeroMemoryDynamic(tmp1, tmp2, FREG_TEMP);
+    }
+
     fn zeroMemory(ptr: Register, words: Int64, tmp: FloatRegister) {
         self.emitComment("zero memory of fixed length");
         self.asm.xorps_rr(tmp, tmp);
@@ -1335,7 +1395,18 @@ impl CodeGen for CodeGenX64 {
     }
 
     fn emitNewArray(inst: Inst) {
-        unimplemented();
+        let loc = inst.getLocationData();
+        let obj = loc.getOutput().getRegister();
+        let size = loc.getInput(0).getRegister();
+        let length = loc.getInput(1).getRegister();
+
+        let info = inst.getClassInfo();
+        let classptr = getClassPointer(info.class_id, info.type_params);
+
+        let tmp = loc.getTemp(0).getRegister();
+        self.emitArrayAllocate(obj, size, REG_TEMP, tmp, loc.getRegisterSnapshot(), loc.getGcPoint());
+
+        self.emitArrayInitialization(obj, size, length, classptr, REG_TEMP, tmp);
     }
 
     fn emitLoadGlobal(inst: Inst) {

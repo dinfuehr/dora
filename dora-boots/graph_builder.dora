@@ -1436,10 +1436,46 @@ impl SsaGen {
             _ => unreachable[(ClassId, Array[BytecodeType])](),
         };
 
-        let info = ClassInfo(class_id, type_params);
-        let lengthInst = self.readVariable(length, self.current());
+        let element_size = iface::getElementSize(class_id, type_params);
+        let element_size_inst = graph::createInt64Const(element_size.toInt64());
+        self.current().appendInst(element_size_inst);
 
-        let objInst = graph::createNewArrayInst(info, lengthInst);
+        let length = self.readVariable(length, self.current());
+
+        let tmp = graph::createBinaryInst(Op::CheckedMul, Type::Int64, length, element_size_inst);
+        tmp.set_bytecode_position(self.offset);
+        self.current().appendInst(tmp);
+
+        let header_size = graph::createInt64Const(iface::ARRAY_HEADER_LENGTH.toInt64());
+        self.current().appendInst(header_size);
+
+        let unaligned_size = graph::createBinaryInst(Op::CheckedAdd, Type::Int64, tmp, header_size);
+        unaligned_size.set_bytecode_position(self.offset);
+        self.current().appendInst(unaligned_size);
+
+        let size = if element_size % iface::PTR_SIZE != 0i32 {
+            let ptr_size_minus_1 = (iface::PTR_SIZE - 1i32).toInt64();
+            let tmp = graph::createInt64Const(ptr_size_minus_1);
+            self.current().appendInst(tmp);
+
+            let tmp = graph::createBinaryInst(Op::Add, Type::Int64, unaligned_size, tmp);
+            self.current().appendInst(tmp);
+
+            let mask = graph::createInt64Const(!ptr_size_minus_1);
+            self.current().appendInst(mask);
+
+            let tmp = graph::createBinaryInst(Op::And, Type::Int64, tmp, mask);
+            self.current().appendInst(tmp);
+
+            tmp
+        } else {
+            unaligned_size
+        };
+
+        let classptr = iface::getClassPointer(class_id, type_params);
+        let info = ClassInfo(class_id, type_params);
+
+        let objInst = graph::createNewArrayInst(info, size, length);
         objInst.set_bytecode_position(self.offset);
         self.current().appendInst(objInst);
 

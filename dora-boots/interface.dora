@@ -43,6 +43,7 @@ pub const TRAP_OVERFLOW: Int32 = 9i32;
 @internal pub fn getClassSizeForEnumVariant(data: Array[UInt8]): Int32;
 @internal pub fn getClassDataForEnumVariantRaw(data: Array[UInt8]): Array[UInt8];
 @internal pub fn getFieldOffsetForEnumVariantRaw(data: Array[UInt8]): Int32;
+@internal pub fn getElementSizeRaw(data: Array[UInt8]): Int32;
 
 pub fn getFunctionAddress(fct_id: FctId, type_params: Array[BytecodeType]): Address {
     let writer = ByteWriter::new();
@@ -170,6 +171,13 @@ pub fn getFieldOffsetForEnumVariant(enum_id: EnumId, type_params: Array[Bytecode
     getFieldOffsetForEnumVariantRaw(writer.toArray())
 }
 
+pub fn getElementSize(cls_id: ClassId, type_params: Array[BytecodeType]): Int32 {
+    let writer = ByteWriter::new();
+    writer.emitInt32(cls_id.value);
+    encodeBytecodeTypeArray(writer, type_params);
+    getElementSizeRaw(writer.toArray())
+}
+
 pub class Config {
     pub architecture: Architecture,
     pub safepoint_trampoline: Address,
@@ -242,6 +250,8 @@ pub const OBJECT_METADATA_OFFSET: Int32 = 4;
 pub const OBJECT_HEADER_LENGTH: Int32 = 8;
 pub const ARRAY_HEADER_LENGTH: Int32 = 16;
 pub const LAMBDA_SIZE: Int32 = 16;
+pub const MAX_TLAB_OBJECT_SIZE: Int64 = 8192;
+pub const LARGE_OBJECT_SIZE: Int32 = 32768;
 
 pub const METADATA_MARK_BIT: Int32 = 0;
 pub const METADATA_REMEMBERED_BIT: Int32 = 1;
