@@ -1,0 +1,16 @@
+//= boots
+
+fn main() {
+    let foo = getfoo();
+    std::forceCollect();
+    assert(foo.size() == 5);
+    assert(foo(0) == 10i32);
+    assert(foo(1) == 20i32);
+    assert(foo(2) == 30i32);
+    assert(foo(3) == 40i32);
+    assert(foo(4) == 50i32);
+}
+
+@optimizeImmediately fn getfoo(): Array[Int32] {
+    Array[Int32]::new(10i32, 20i32, 30i32, 40i32, 50i32)
+}

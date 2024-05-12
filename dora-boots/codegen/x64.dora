@@ -250,6 +250,14 @@ impl CodeGenX64 {
     fn emitArrayAllocate(obj: Register, size: Register, tmp1: Register, tmp2: Register, snapshot: RegisterTrackers, gc_point: GcPoint) {
         let lbl_alloc_slow_path = self.asm.createLabel();
 
+        if config.isDebug {
+            self.asm.testl_ri(size, Immediate((PTR_SIZE - 1i32).toInt64()));
+            let lbl_regular = self.asm.createLabel();
+            self.asm.jcc(Condition::Zero, lbl_regular);
+            self.asm.int3();
+            self.asm.bindLabel(lbl_regular);
+        }
+
         if config.useTlab {
             self.asm.movq_ri(tmp1, Immediate(iface::MAX_TLAB_OBJECT_SIZE));
             self.asm.cmpq_rr(size, tmp1);

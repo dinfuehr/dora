@@ -1458,7 +1458,8 @@ impl SsaGen {
             let tmp = graph::createInt64Const(ptr_size_minus_1);
             self.current().appendInst(tmp);
 
-            let tmp = graph::createBinaryInst(Op::Add, Type::Int64, unaligned_size, tmp);
+            let tmp = graph::createBinaryInst(Op::CheckedAdd, Type::Int64, unaligned_size, tmp);
+            tmp.set_bytecode_position(self.offset);
             self.current().appendInst(tmp);
 
             let mask = graph::createInt64Const(!ptr_size_minus_1);

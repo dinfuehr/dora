@@ -189,6 +189,7 @@ pub class Config {
     pub isUnix: Bool,
     pub needsWriteBarrier: Bool,
     pub useTlab: Bool,
+    pub isDebug: Bool,
 }
 
 pub let config: Config = decodeConfig(getSystemConfig());

@@ -279,6 +279,14 @@ impl CodeGenArm64 {
     fn emitArrayAllocate(obj: Register, size: Register, tmp1: Register, tmp2: Register, snapshot: RegisterTrackers, gc_point: GcPoint) {
         let lbl_alloc_slow_path = self.asm.createLabel();
 
+        if config.isDebug {
+            self.asm.and_imm(REG_TEMP, size, (PTR_SIZE - 1i32).toInt64());
+            let lbl_regular = self.asm.createLabel();
+            self.asm.cbz(REG_TEMP, lbl_regular);
+            self.asm.brk(0i32);
+            self.asm.bindLabel(lbl_regular);
+        }
+
         if config.useTlab {
             self.mov_imm(tmp1, iface::MAX_TLAB_OBJECT_SIZE);
             self.asm.cmp(size, tmp1);
