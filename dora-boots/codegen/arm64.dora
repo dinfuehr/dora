@@ -836,7 +836,7 @@ impl CodeGen for CodeGenArm64 {
     fn annotateAnd(inst: Inst) {
         useInputRegister(inst, 0);
         useInputRegister(inst, 1);
-        useOutputRegister(inst, true);
+        useOutputRegister(inst, false);
     }
 
     fn emitAnd(inst: Inst) {
@@ -857,7 +857,7 @@ impl CodeGen for CodeGenArm64 {
     fn annotateOr(inst: Inst) {
         useInputRegister(inst, 0);
         useInputRegister(inst, 1);
-        useOutputRegister(inst, true);
+        useOutputRegister(inst, false);
     }
 
     fn emitOr(inst: Inst) {
@@ -878,7 +878,7 @@ impl CodeGen for CodeGenArm64 {
     fn annotateXor(inst: Inst) {
         useInputRegister(inst, 0);
         useInputRegister(inst, 1);
-        useOutputRegister(inst, true);
+        useOutputRegister(inst, false);
     }
 
     fn emitXor(inst: Inst) {
@@ -899,7 +899,7 @@ impl CodeGen for CodeGenArm64 {
     fn annotateSar(inst: Inst) {
         useInputRegister(inst, 0);
         useInputRegister(inst, 1);
-        useOutputRegister(inst, true);
+        useOutputRegister(inst, false);
     }
 
     fn emitSar(inst: Inst) {
@@ -920,7 +920,7 @@ impl CodeGen for CodeGenArm64 {
     fn annotateShr(inst: Inst) {
         useInputRegister(inst, 0);
         useInputRegister(inst, 1);
-        useOutputRegister(inst, true);
+        useOutputRegister(inst, false);
     }
 
     fn emitShr(inst: Inst) {
@@ -941,7 +941,7 @@ impl CodeGen for CodeGenArm64 {
     fn annotateShl(inst: Inst) {
         useInputRegister(inst, 0);
         useInputRegister(inst, 1);
-        useOutputRegister(inst, true);
+        useOutputRegister(inst, false);
     }
 
     fn emitShl(inst: Inst) {

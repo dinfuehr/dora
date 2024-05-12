@@ -896,6 +896,7 @@ impl CodeGen for CodeGenX64 {
         let rhs = loc.getInput(1).getRegister();
         let dest = loc.getOutput().getRegister();
         assert(dest == lhs);
+        assert(rhs == RCX);
         let ty = inst.getValueType();
 
         if ty == Type::Int32 {
@@ -918,6 +919,7 @@ impl CodeGen for CodeGenX64 {
         let rhs = loc.getInput(1).getRegister();
         let dest = loc.getOutput().getRegister();
         assert(dest == lhs);
+        assert(rhs == RCX);
         let ty = inst.getValueType();
 
         if ty == Type::Int32 {
@@ -940,6 +942,7 @@ impl CodeGen for CodeGenX64 {
         let rhs = loc.getInput(1).getRegister();
         let dest = loc.getOutput().getRegister();
         assert(dest == lhs);
+        assert(rhs == RCX);
         let ty = inst.getValueType();
 
         if ty == Type::Int32 {
