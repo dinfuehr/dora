@@ -1,0 +1,10 @@
+//= boots
+
+fn main() {
+    let x = f(3, 1i32);
+    assert(x == 6);
+    let x = f(-8, 2i32);
+    assert(x == -32);
+}
+
+@optimizeImmediately fn f(a: Int64, b: Int32): Int64 { a << b }

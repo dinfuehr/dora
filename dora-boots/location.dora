@@ -99,27 +99,39 @@ impl LocationAnnotation {
             }
 
             Op::CheckedAdd => {
-                self.codegen.annotateCheckedAdd(inst, loc);
+                self.codegen.annotateCheckedAdd(inst);
             }
 
             Op::CheckedSub => {
-                self.codegen.annotateCheckedSub(inst, loc);
+                self.codegen.annotateCheckedSub(inst);
             }
 
             Op::CheckedMul => {
-                self.codegen.annotateCheckedMul(inst, loc);
+                self.codegen.annotateCheckedMul(inst);
             }
 
             Op::And => {
-                self.codegen.annotateAnd(inst, loc);
+                self.codegen.annotateAnd(inst);
             }
 
             Op::Or => {
-                self.codegen.annotateOr(inst, loc);
+                self.codegen.annotateOr(inst);
             }
 
             Op::Xor => {
-                self.codegen.annotateXor(inst, loc);
+                self.codegen.annotateXor(inst);
+            }
+
+            Op::Sar => {
+                self.codegen.annotateSar(inst);
+            }
+
+            Op::Shr => {
+                self.codegen.annotateShr(inst);
+            }
+
+            Op::Shl => {
+                self.codegen.annotateShl(inst);
             }
 
             Op::Add
@@ -138,11 +150,11 @@ impl LocationAnnotation {
             }
 
             Op::CheckedDiv => {
-                self.codegen.annotateCheckedDiv(inst, loc);
+                self.codegen.annotateCheckedDiv(inst);
             }
 
             Op::CheckedMod => {
-                self.codegen.annotateCheckedMod(inst, loc);
+                self.codegen.annotateCheckedMod(inst);
             }
 
             Op::Neg | Op::CheckedNeg => {
@@ -162,7 +174,7 @@ impl LocationAnnotation {
             Op::Goto => {}
 
             Op::Return => {
-                self.codegen.annotateReturn(inst, loc);
+                self.codegen.annotateReturn(inst);
             }
 
             Op::InvokeStatic
@@ -324,7 +336,7 @@ impl LocationAnnotation {
             }
 
             Op::Not => {
-                self.codegen.annotateNot(inst, loc);
+                self.codegen.annotateNot(inst);
             }
 
             Op::Convert => {

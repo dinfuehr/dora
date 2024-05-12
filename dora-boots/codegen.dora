@@ -123,6 +123,21 @@ fn emitInst(codegen: CodeGen, inst: Inst) {
             codegen.emitXor(inst);
         }
 
+        Op::Sar => {
+            codegen.emitComment("Sar");
+            codegen.emitSar(inst);
+        }
+
+        Op::Shr => {
+            codegen.emitComment("Shr");
+            codegen.emitShr(inst);
+        }
+
+        Op::Shl => {
+            codegen.emitComment("Shl");
+            codegen.emitShl(inst);
+        }
+
         Op::Add => {
             codegen.emitComment("Add");
             codegen.emitAdd(inst);
@@ -383,16 +398,19 @@ pub trait CodeGen {
 
     fn spill(inst: Inst);
 
-    fn annotateAnd(inst: Inst, loc: LocationData);
-    fn annotateOr(inst: Inst, loc: LocationData);
-    fn annotateXor(inst: Inst, loc: LocationData);
-    fn annotateCheckedAdd(inst: Inst, loc: LocationData);
-    fn annotateCheckedSub(inst: Inst, loc: LocationData);
-    fn annotateCheckedMul(inst: Inst, loc: LocationData);
-    fn annotateCheckedDiv(inst: Inst, loc: LocationData);
-    fn annotateCheckedMod(inst: Inst, loc: LocationData);
-    fn annotateReturn(inst: Inst, loc: LocationData);
-    fn annotateNot(inst: Inst, loc: LocationData);
+    fn annotateAnd(inst: Inst);
+    fn annotateOr(inst: Inst);
+    fn annotateXor(inst: Inst);
+    fn annotateSar(inst: Inst);
+    fn annotateShr(inst: Inst);
+    fn annotateShl(inst: Inst);
+    fn annotateCheckedAdd(inst: Inst);
+    fn annotateCheckedSub(inst: Inst);
+    fn annotateCheckedMul(inst: Inst);
+    fn annotateCheckedDiv(inst: Inst);
+    fn annotateCheckedMod(inst: Inst);
+    fn annotateReturn(inst: Inst);
+    fn annotateNot(inst: Inst);
 
     fn emitTrueConst(inst: Inst);
     fn emitFalseConst(inst: Inst);
@@ -406,6 +424,9 @@ pub trait CodeGen {
     fn emitAnd(inst: Inst);
     fn emitOr(inst: Inst);
     fn emitXor(inst: Inst);
+    fn emitSar(inst: Inst);
+    fn emitShr(inst: Inst);
+    fn emitShl(inst: Inst);
     fn emitAdd(inst: Inst);
     fn emitSub(inst: Inst);
     fn emitMul(inst: Inst);
