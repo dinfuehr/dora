@@ -118,6 +118,10 @@ impl LocationAnnotation {
                 self.codegen.annotateOr(inst, loc);
             }
 
+            Op::Xor => {
+                self.codegen.annotateXor(inst, loc);
+            }
+
             Op::Add
             | Op::Sub
             | Op::Mul

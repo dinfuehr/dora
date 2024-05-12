@@ -867,6 +867,27 @@ impl CodeGen for CodeGenArm64 {
         }
     }
 
+    fn annotateXor(inst: Inst, loc: LocationData) {
+        useInputRegister(inst, 0);
+        useInputRegister(inst, 1);
+        useOutputRegister(inst, true);
+    }
+
+    fn emitXor(inst: Inst) {
+        let loc = inst.getLocationData();
+        let lhs = loc.getInput(0).getRegister();
+        let rhs = loc.getInput(1).getRegister();
+        let output = loc.getOutput().getRegister();
+        let ty = inst.getValueType();
+
+        if ty == Type::Int32 {
+            self.asm.eor_sh_w(output, lhs, rhs, Shift::LSL, 0i32);
+        } else {
+            assert(ty == Type::Int64);
+            self.asm.eor_sh(output, lhs, rhs, Shift::LSL, 0i32);
+        }
+    }
+
     fn annotateCheckedAdd(inst: Inst, loc: LocationData) {
         useInputRegister(inst, 0);
         useInputRegister(inst, 1);
