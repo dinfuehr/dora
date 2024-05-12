@@ -12,7 +12,7 @@ use package::interface::{TRAP_DIV0, TRAP_OVERFLOW, TRAP_INDEX_OUT_OF_BOUNDS, LAM
 use package::interface::{THREAD_LOCAL_DATA_TLAB_TOP_OFFSET, THREAD_LOCAL_DATA_TLAB_END_OFFSET, THREAD_LOCAL_DATA_STACK_LIMIT_OFFSET, THREAD_LOCAL_DATA_STATE_OFFSET, THREAD_LOCAL_DATA_MARKING_OFFSET, OBJECT_HEADER_LENGTH, OBJECT_METADATA_OFFSET, METADATA_REMEMBERED_BIT, ARRAY_HEADER_LENGTH, THREAD_LOCAL_DATA_MANAGED_THREAD_HANDLE_OFFSET};
 use package::interface as iface;
 use package::location::{useInputFloatRegisterFixed, useInputRegister, useInputRegisterFixed, useOutputRegisterFixed, useOutputSameAsFirstInput, addTempRegisterFixed};
-use package::graph::{Graph, Inst, Op, LocationData, RegisterSnapshot, RegisterTrackers, Type};
+use package::graph::{Graph, InputOutputOverlap, Inst, Op, LocationData, RegisterSnapshot, RegisterTrackers, Type};
 use package::regalloc::isReference;
 use package::{CodeDescriptor, CommentTable, GcPoint, GcPointTable, LazyCompilationData, LazyCompilationSiteVirtual, LazyCompilationSiteLambda, LocationTable};
 
@@ -1062,7 +1062,7 @@ impl CodeGen for CodeGenX64 {
     fn annotateCheckedDiv(inst: Inst) {
         useInputRegister(inst, 0);
         useInputRegister(inst, 1);
-        useOutputRegisterFixed(inst, RAX, true);
+        useOutputRegisterFixed(inst, RAX, InputOutputOverlap::Overlap);
         addTempRegisterFixed(inst, RDX);
     }
 
@@ -1073,7 +1073,7 @@ impl CodeGen for CodeGenX64 {
     fn annotateCheckedMod(inst: Inst) {
         useInputRegister(inst, 0);
         useInputRegister(inst, 1);
-        useOutputRegisterFixed(inst, RDX, true);
+        useOutputRegisterFixed(inst, RDX, InputOutputOverlap::Overlap);
         addTempRegisterFixed(inst, RAX);
     }
 

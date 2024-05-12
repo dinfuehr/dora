@@ -1627,10 +1627,10 @@ impl LocationData {
         self.needsRegisterSnapshot
     }
 
-    pub fn setOutput(operand: Operand, overlaps: Bool) {
+    pub fn setOutput(operand: Operand, overlaps: InputOutputOverlap) {
         assert(self.output.isNone());
         self.output = Some(operand);
-        self.output_overlaps = overlaps;
+        self.output_overlaps = overlaps.toBool();
     }
 
     pub fn setInput(idx: Int64, operand: Operand) {
@@ -1642,8 +1642,8 @@ impl LocationData {
         self.output_overlaps
     }
 
-    pub fn setOutputOverlaps(overlaps: Bool) {
-        self.output_overlaps = overlaps;
+    pub fn setOutputOverlaps(overlaps: InputOutputOverlap) {
+        self.output_overlaps = overlaps.toBool();
     }
 
     pub fn hasOutput(): Bool {
@@ -1733,6 +1733,20 @@ impl LocationData {
 
     pub fn getGcPoint(): GcPoint {
         self.gc_point.getOrPanic()
+    }
+}
+
+pub enum InputOutputOverlap {
+    Overlap,
+    NoOverlap,
+}
+
+impl InputOutputOverlap {
+    fn toBool(): Bool {
+        match self {
+            InputOutputOverlap::Overlap => true,
+            InputOutputOverlap::NoOverlap => false,
+        }
     }
 }
 

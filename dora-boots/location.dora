@@ -2,7 +2,7 @@ use package::assembler::{FloatRegister, Register};
 use package::bytecode::data::BytecodeType;
 use package::codegen::CodeGen;
 use package::compilation::CompilationInfo;
-use package::graph::{Graph, Inst, Location, LocationData, Op, Operand, Policy, StackSlot, Type};
+use package::graph::{Graph, InputOutputOverlap, Inst, Location, LocationData, Op, Operand, Policy, StackSlot, Type};
 use package::interface::{config, PTR_SIZE, Architecture};
 
 pub fn ensureLocationData(graph: Graph, codegen: CodeGen, ci: CompilationInfo): Int32 {
@@ -46,13 +46,13 @@ impl LocationAnnotation {
 
                 if inst.getValueType().isAnyFloat() {
                     if location.isFloatRegister() {
-                        useOutputFloatRegisterFixed(inst, location.getFloatRegister(), false);
+                        useOutputFloatRegisterFixed(inst, location.getFloatRegister(), InputOutputOverlap::NoOverlap);
                     } else  {
                         useOutputFloatStack(inst, location);
                     }
                 } else {
                     if location.isRegister() {
-                        useOutputRegisterFixed(inst, location.getRegister(), false);
+                        useOutputRegisterFixed(inst, location.getRegister(), InputOutputOverlap::NoOverlap);
                     } else  {
                         useOutputFixedStack(inst, location);
                     }
@@ -61,7 +61,7 @@ impl LocationAnnotation {
 
             Op::TrueConst |
             Op::FalseConst => {
-                useOutputRegister(inst, false);
+                useOutputRegister(inst, InputOutputOverlap::NoOverlap);
             }
 
             Op::UInt8Const
@@ -69,12 +69,12 @@ impl LocationAnnotation {
             | Op::Int64Const
             | Op::StringConst
             | Op::NullConst => {
-                useOutputRegister(inst, false);
+                useOutputRegister(inst, InputOutputOverlap::NoOverlap);
             }
 
             Op::Float32Const
             | Op::Float64Const => {
-                useOutputFloatRegister(inst, false);
+                useOutputFloatRegister(inst, InputOutputOverlap::NoOverlap);
             }
 
             Op::DivZeroCheck => {
@@ -95,7 +95,7 @@ impl LocationAnnotation {
                     useInputRegister(inst, 1);
                 }
 
-                useOutputRegister(inst, true);
+                useOutputRegister(inst, InputOutputOverlap::Overlap);
             }
 
             Op::CheckedAdd => {
@@ -141,11 +141,11 @@ impl LocationAnnotation {
                 if inst.getValueType().isAnyFloat() {
                     useInputFloatRegister(inst, 0);
                     useInputFloatRegister(inst, 1);
-                    useOutputFloatRegister(inst, true);
+                    useOutputFloatRegister(inst, InputOutputOverlap::Overlap);
                 } else {
                     useInputRegister(inst, 0);
                     useInputRegister(inst, 1);
-                    useOutputRegister(inst, true);
+                    useOutputRegister(inst, InputOutputOverlap::Overlap);
                 }
             }
 
@@ -160,10 +160,10 @@ impl LocationAnnotation {
             Op::Neg | Op::CheckedNeg => {
                 if inst.getValueType().isAnyFloat() {
                     useInputFloatRegister(inst, 0);
-                    useOutputFloatRegister(inst, true);
+                    useOutputFloatRegister(inst, InputOutputOverlap::Overlap);
                 } else {
                     useInputRegister(inst, 0);
-                    useOutputRegister(inst, true);
+                    useOutputRegister(inst, InputOutputOverlap::Overlap);
                 }
             }
 
@@ -188,7 +188,7 @@ impl LocationAnnotation {
 
             Op::ArrayLength => {
                 useInputRegister(inst, 0);
-                useOutputRegister(inst, true);
+                useOutputRegister(inst, InputOutputOverlap::Overlap);
             }
 
             Op::BoundsCheck => {
@@ -201,12 +201,12 @@ impl LocationAnnotation {
                 useInputRegister(inst, 1);
 
                 if inst.getValueType().isAnyFloat() {
-                    useOutputFloatRegister(inst, true);
+                    useOutputFloatRegister(inst, InputOutputOverlap::Overlap);
                 } else {
-                    useOutputRegister(inst, true);
+                    useOutputRegister(inst, InputOutputOverlap::Overlap);
                 }
 
-                setOutputOverlaps(inst, false);
+                setOutputOverlaps(inst, InputOutputOverlap::NoOverlap);
             }
 
             Op::StoreArray => {
@@ -219,39 +219,39 @@ impl LocationAnnotation {
                     useInputRegister(inst, 2);
                 }
 
-                setOutputOverlaps(inst, false);
+                setOutputOverlaps(inst, InputOutputOverlap::NoOverlap);
             }
 
             Op::NewObject | Op::NewLambda => {
                 addTempRegister(inst);
-                useOutputRegister(inst, true);
+                useOutputRegister(inst, InputOutputOverlap::Overlap);
                 needsRegisterSnapshot(inst);
             }
 
             Op::NewArray => {
                 useInputRegister(inst, 0);
                 useInputRegister(inst, 1);
-                useOutputRegister(inst, true);
+                useOutputRegister(inst, InputOutputOverlap::Overlap);
                 addTempRegister(inst);
                 needsRegisterSnapshot(inst);
             }
 
             Op::LoadGlobal => {
                 if inst.getOperationType().isAnyFloat() {
-                    useOutputFloatRegister(inst,  false);
+                    useOutputFloatRegister(inst,  InputOutputOverlap::NoOverlap);
                 } else {
-                    useOutputRegister(inst,  false);
+                    useOutputRegister(inst,  InputOutputOverlap::NoOverlap);
                 }
             }
 
             Op::GetGlobalAddress => {
-                useOutputRegister(inst, true);
-                setOutputOverlaps(inst, false);
+                useOutputRegister(inst, InputOutputOverlap::Overlap);
+                setOutputOverlaps(inst, InputOutputOverlap::NoOverlap);
             }
 
             Op::EnsureGlobalInitialized => {
                 addTempRegister(inst);
-                setOutputOverlaps(inst, false);
+                setOutputOverlaps(inst, InputOutputOverlap::NoOverlap);
                 needsRegisterSnapshot(inst);
             }
 
@@ -270,20 +270,20 @@ impl LocationAnnotation {
             }
 
             Op::ThreadCurrent => {
-                useOutputRegister(inst, false);
+                useOutputRegister(inst, InputOutputOverlap::NoOverlap);
             }
 
             Op::AllocateStack => {
-                useOutputRegister(inst, false);
+                useOutputRegister(inst, InputOutputOverlap::NoOverlap);
             }
 
             Op::Load => {
                 useInputRegister(inst, 0);
 
                 if inst.getValueType().isAnyFloat() {
-                    useOutputFloatRegister(inst, true);
+                    useOutputFloatRegister(inst, InputOutputOverlap::Overlap);
                 } else {
-                    useOutputRegister(inst, true);
+                    useOutputRegister(inst, InputOutputOverlap::Overlap);
                 }
             }
 
@@ -296,13 +296,13 @@ impl LocationAnnotation {
                     useInputRegister(inst, 1);
                 }
 
-                setOutputOverlaps(inst, false);
+                setOutputOverlaps(inst, InputOutputOverlap::NoOverlap);
             }
 
             Op::StoreWb => {
                 useInputRegister(inst, 0);
                 useInputRegister(inst, 1);
-                setOutputOverlaps(inst, false);
+                setOutputOverlaps(inst, InputOutputOverlap::NoOverlap);
                 needsRegisterSnapshot(inst);
             }
 
@@ -310,7 +310,7 @@ impl LocationAnnotation {
                 useInputRegister(inst, 0);
                 useInputRegister(inst, 1);
                 useInputRegister(inst, 2);
-                setOutputOverlaps(inst, false);
+                setOutputOverlaps(inst, InputOutputOverlap::NoOverlap);
                 needsRegisterSnapshot(inst);
             }
 
@@ -318,21 +318,21 @@ impl LocationAnnotation {
                 useInputRegister(inst, 0);
                 useInputRegister(inst, 1);
                 useInputRegister(inst, 2);
-                setOutputOverlaps(inst, false);
+                setOutputOverlaps(inst, InputOutputOverlap::NoOverlap);
                 needsRegisterSnapshot(inst);
             }
 
             Op::GetElementPtr => {
                 useInputRegister(inst, 0);
                 useInputRegister(inst, 1);
-                useOutputRegister(inst, false);
+                useOutputRegister(inst, InputOutputOverlap::NoOverlap);
             }
 
             Op::Abort => {}
 
             Op::Assert => {
                 useInputRegister(inst, 0);
-                setOutputOverlaps(inst, false);
+                setOutputOverlaps(inst, InputOutputOverlap::NoOverlap);
             }
 
             Op::Not => {
@@ -347,9 +347,9 @@ impl LocationAnnotation {
                 }
 
                 if inst.getValueType().isAnyFloat() {
-                    useOutputFloatRegister(inst, true);
+                    useOutputFloatRegister(inst, InputOutputOverlap::Overlap);
                 } else {
-                    useOutputRegister(inst, true);
+                    useOutputRegister(inst, InputOutputOverlap::Overlap);
                 }
             }
 
@@ -463,38 +463,38 @@ fn annotateCall(inst: Inst, loc: LocationData, codegen: CodeGen, ci: Compilation
     let ty = inst.getValueType();
 
     if ty.isUnit() {
-        setOutputOverlaps(inst, false);
+        setOutputOverlaps(inst, InputOutputOverlap::NoOverlap);
     } else {
         if ty.isAnyFloat() {
             let reg = codegen.getFloatReturnRegister();
-            useOutputFloatRegisterFixed(inst, reg, false);
+            useOutputFloatRegisterFixed(inst, reg, InputOutputOverlap::NoOverlap);
         } else {
             let reg = codegen.getReturnRegister();
-            useOutputRegisterFixed(inst, reg, false);
+            useOutputRegisterFixed(inst, reg, InputOutputOverlap::NoOverlap);
         }
     }
 
     next_sp_offset
 }
 
-pub fn useOutputRegister(inst: Inst, overlaps: Bool) {
+pub fn useOutputRegister(inst: Inst, overlaps: InputOutputOverlap) {
     let loc = inst.getLocationData();
     loc.setOutput(Operand::new(Policy::AnyReg, Location::None), overlaps);
 }
 
-pub fn useOutputRegisterFixed(inst: Inst, reg: Register, output_overlaps: Bool) {
+pub fn useOutputRegisterFixed(inst: Inst, reg: Register, overlap: InputOutputOverlap) {
     let loc = inst.getLocationData();
-    loc.setOutput(Operand::new(Policy::FixedReg, Location::Reg(reg)), output_overlaps);
+    loc.setOutput(Operand::new(Policy::FixedReg, Location::Reg(reg)), overlap);
 }
 
-pub fn useOutputFloatRegister(inst: Inst, output_overlaps: Bool) {
+pub fn useOutputFloatRegister(inst: Inst, overlap: InputOutputOverlap) {
     let loc = inst.getLocationData();
-    loc.setOutput(Operand::new(Policy::AnyFloatReg, Location::None), output_overlaps);
+    loc.setOutput(Operand::new(Policy::AnyFloatReg, Location::None), overlap);
 }
 
-pub fn useOutputFloatRegisterFixed(inst: Inst, reg: FloatRegister, output_overlaps: Bool) {
+pub fn useOutputFloatRegisterFixed(inst: Inst, reg: FloatRegister, overlap: InputOutputOverlap) {
     let loc = inst.getLocationData();
-    loc.setOutput(Operand::new(Policy::FixedFloatReg, Location::FloatReg(reg)), output_overlaps);
+    loc.setOutput(Operand::new(Policy::FixedFloatReg, Location::FloatReg(reg)), overlap);
 }
 
 pub fn useInputRegister(inst: Inst, idx: Int64) {
@@ -531,19 +531,19 @@ pub fn useInputFloatStack(inst: Inst, idx: Int64, stack: StackSlot) {
 
 pub fn useOutputSameAsFirstInput(inst: Inst) {
     let loc = inst.getLocationData();
-    loc.setOutput(Operand::new(Policy::SameAsFirstInput, Location::None), true);
+    loc.setOutput(Operand::new(Policy::SameAsFirstInput, Location::None), InputOutputOverlap::Overlap);
 }
 
 pub fn useOutputFloatStack(inst: Inst, stack: Location) {
     assert(stack.isStack());
     let loc = inst.getLocationData();
-    loc.setOutput(Operand::new(Policy::FixedFloatStack, stack), true);
+    loc.setOutput(Operand::new(Policy::FixedFloatStack, stack), InputOutputOverlap::Overlap);
 }
 
 pub fn useOutputFixedStack(inst: Inst, stack: Location) {
     assert(stack.isStack());
     let loc = inst.getLocationData();
-    loc.setOutput(Operand::new(Policy::FixedStack, stack), true);
+    loc.setOutput(Operand::new(Policy::FixedStack, stack), InputOutputOverlap::Overlap);
 }
 
 pub fn addTempRegister(inst: Inst) {
@@ -556,7 +556,7 @@ pub fn addTempRegisterFixed(inst: Inst, reg: Register) {
     loc.addTemp(Operand::new(Policy::FixedReg, Location::Reg(reg)));
 }
 
-pub fn setOutputOverlaps(inst: Inst, overlaps: Bool) {
+pub fn setOutputOverlaps(inst: Inst, overlaps: InputOutputOverlap) {
     let loc = inst.getLocationData();
     loc.setOutputOverlaps(overlaps)
 }

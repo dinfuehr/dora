@@ -14,7 +14,7 @@ use package::assembler::arm64::{R15, R16, R19, R20, R21, R22, R23};
 use package::assembler::arm64::{R24, R25, R26, R27, R28};
 use package::assembler::arm64::{REG_FP, REG_SP, REG_LR, REG_ZERO};
 use package::assembler::{FloatRegister, Label, RegSet, Register};
-use package::graph::{Graph, Inst, Op, LocationData, RegisterSnapshot, RegisterTrackers, Type};
+use package::graph::{Graph, InputOutputOverlap, Inst, Op, LocationData, RegisterSnapshot, RegisterTrackers, Type};
 use package::regalloc::isReference;
 use package::location::{useInputFloatRegisterFixed, useInputRegister, useInputRegisterFixed, useOutputRegister};
 use package::{CodeDescriptor, CommentTable, GcPoint, GcPointTable, LazyCompilationData, LazyCompilationSite, LazyCompilationSiteDirect, LazyCompilationSiteVirtual, LazyCompilationSiteLambda, LocationTable};
@@ -820,7 +820,7 @@ impl CodeGen for CodeGenArm64 {
 
     fn annotateNot(inst: Inst) {
         useInputRegister(inst, 0);
-        useOutputRegister(inst, false);
+        useOutputRegister(inst, InputOutputOverlap::NoOverlap);
     }
 
     fn emitNot(inst: Inst) {
@@ -836,7 +836,7 @@ impl CodeGen for CodeGenArm64 {
     fn annotateAnd(inst: Inst) {
         useInputRegister(inst, 0);
         useInputRegister(inst, 1);
-        useOutputRegister(inst, false);
+        useOutputRegister(inst, InputOutputOverlap::NoOverlap);
     }
 
     fn emitAnd(inst: Inst) {
@@ -857,7 +857,7 @@ impl CodeGen for CodeGenArm64 {
     fn annotateOr(inst: Inst) {
         useInputRegister(inst, 0);
         useInputRegister(inst, 1);
-        useOutputRegister(inst, false);
+        useOutputRegister(inst, InputOutputOverlap::NoOverlap);
     }
 
     fn emitOr(inst: Inst) {
@@ -878,7 +878,7 @@ impl CodeGen for CodeGenArm64 {
     fn annotateXor(inst: Inst) {
         useInputRegister(inst, 0);
         useInputRegister(inst, 1);
-        useOutputRegister(inst, false);
+        useOutputRegister(inst, InputOutputOverlap::NoOverlap);
     }
 
     fn emitXor(inst: Inst) {
@@ -899,7 +899,7 @@ impl CodeGen for CodeGenArm64 {
     fn annotateSar(inst: Inst) {
         useInputRegister(inst, 0);
         useInputRegister(inst, 1);
-        useOutputRegister(inst, false);
+        useOutputRegister(inst, InputOutputOverlap::NoOverlap);
     }
 
     fn emitSar(inst: Inst) {
@@ -920,7 +920,7 @@ impl CodeGen for CodeGenArm64 {
     fn annotateShr(inst: Inst) {
         useInputRegister(inst, 0);
         useInputRegister(inst, 1);
-        useOutputRegister(inst, false);
+        useOutputRegister(inst, InputOutputOverlap::NoOverlap);
     }
 
     fn emitShr(inst: Inst) {
@@ -941,7 +941,7 @@ impl CodeGen for CodeGenArm64 {
     fn annotateShl(inst: Inst) {
         useInputRegister(inst, 0);
         useInputRegister(inst, 1);
-        useOutputRegister(inst, false);
+        useOutputRegister(inst, InputOutputOverlap::NoOverlap);
     }
 
     fn emitShl(inst: Inst) {
@@ -962,7 +962,7 @@ impl CodeGen for CodeGenArm64 {
     fn annotateCheckedAdd(inst: Inst) {
         useInputRegister(inst, 0);
         useInputRegister(inst, 1);
-        useOutputRegister(inst, true);
+        useOutputRegister(inst, InputOutputOverlap::Overlap);
     }
 
     fn emitCheckedAdd(inst: Inst) {
@@ -992,7 +992,7 @@ impl CodeGen for CodeGenArm64 {
     fn annotateCheckedSub(inst: Inst) {
         useInputRegister(inst, 0);
         useInputRegister(inst, 1);
-        useOutputRegister(inst, true);
+        useOutputRegister(inst, InputOutputOverlap::Overlap);
     }
 
     fn emitCheckedSub(inst: Inst) {
@@ -1022,7 +1022,7 @@ impl CodeGen for CodeGenArm64 {
     fn annotateCheckedMul(inst: Inst) {
         useInputRegister(inst, 0);
         useInputRegister(inst, 1);
-        useOutputRegister(inst, true);
+        useOutputRegister(inst, InputOutputOverlap::Overlap);
     }
 
     fn emitCheckedMul(inst: Inst) {
@@ -1056,7 +1056,7 @@ impl CodeGen for CodeGenArm64 {
     fn annotateCheckedDiv(inst: Inst) {
         useInputRegister(inst, 0);
         useInputRegister(inst, 1);
-        useOutputRegister(inst, true);
+        useOutputRegister(inst, InputOutputOverlap::Overlap);
     }
 
     fn emitCheckedDiv(inst: Inst) {
@@ -1066,7 +1066,7 @@ impl CodeGen for CodeGenArm64 {
     fn annotateCheckedMod(inst: Inst) {
         useInputRegister(inst, 0);
         useInputRegister(inst, 1);
-        useOutputRegister(inst, true);
+        useOutputRegister(inst, InputOutputOverlap::Overlap);
     }
 
     fn emitCheckedMod(inst: Inst) {
