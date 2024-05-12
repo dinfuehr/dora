@@ -201,12 +201,10 @@ impl LocationAnnotation {
                 useInputRegister(inst, 1);
 
                 if inst.getValueType().isAnyFloat() {
-                    useOutputFloatRegister(inst, InputOutputOverlap::Overlap);
+                    useOutputFloatRegister(inst, InputOutputOverlap::NoOverlap);
                 } else {
-                    useOutputRegister(inst, InputOutputOverlap::Overlap);
+                    useOutputRegister(inst, InputOutputOverlap::NoOverlap);
                 }
-
-                setOutputOverlaps(inst, InputOutputOverlap::NoOverlap);
             }
 
             Op::StoreArray => {
@@ -245,8 +243,7 @@ impl LocationAnnotation {
             }
 
             Op::GetGlobalAddress => {
-                useOutputRegister(inst, InputOutputOverlap::Overlap);
-                setOutputOverlaps(inst, InputOutputOverlap::NoOverlap);
+                useOutputRegister(inst, InputOutputOverlap::NoOverlap);
             }
 
             Op::EnsureGlobalInitialized => {
