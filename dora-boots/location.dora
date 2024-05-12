@@ -99,15 +99,23 @@ impl LocationAnnotation {
             }
 
             Op::CheckedAdd => {
-                self.codegen.setLocationConstraintsCheckedAdd(inst, loc);
+                self.codegen.annotateCheckedAdd(inst, loc);
             }
 
             Op::CheckedSub => {
-                self.codegen.setLocationConstraintsCheckedSub(inst, loc);
+                self.codegen.annotateCheckedSub(inst, loc);
             }
 
             Op::CheckedMul => {
-                self.codegen.setLocationConstraintsCheckedMul(inst, loc);
+                self.codegen.annotateCheckedMul(inst, loc);
+            }
+
+            Op::And => {
+                self.codegen.annotateAnd(inst, loc);
+            }
+
+            Op::Or => {
+                self.codegen.annotateOr(inst, loc);
             }
 
             Op::Add
@@ -126,11 +134,11 @@ impl LocationAnnotation {
             }
 
             Op::CheckedDiv => {
-                self.codegen.setLocationConstraintsCheckedDiv(inst, loc);
+                self.codegen.annotateCheckedDiv(inst, loc);
             }
 
             Op::CheckedMod => {
-                self.codegen.setLocationConstraintsCheckedMod(inst, loc);
+                self.codegen.annotateCheckedMod(inst, loc);
             }
 
             Op::Neg | Op::CheckedNeg => {
@@ -150,7 +158,7 @@ impl LocationAnnotation {
             Op::Goto => {}
 
             Op::Return => {
-                self.codegen.setLocationConstraintsReturn(inst, loc);
+                self.codegen.annotateReturn(inst, loc);
             }
 
             Op::InvokeStatic
@@ -312,7 +320,7 @@ impl LocationAnnotation {
             }
 
             Op::Not => {
-                self.codegen.setLocationConstraintsNot(inst, loc);
+                self.codegen.annotateNot(inst, loc);
             }
 
             Op::Convert => {

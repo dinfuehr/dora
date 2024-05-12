@@ -649,37 +649,7 @@ impl CodeGen for CodeGenArm64 {
         }
     }
 
-    fn setLocationConstraintsCheckedAdd(inst: Inst, loc: LocationData) {
-        useInputRegister(inst, 0);
-        useInputRegister(inst, 1);
-        useOutputRegister(inst, true);
-    }
-
-    fn setLocationConstraintsCheckedSub(inst: Inst, loc: LocationData) {
-        useInputRegister(inst, 0);
-        useInputRegister(inst, 1);
-        useOutputRegister(inst, true);
-    }
-
-    fn setLocationConstraintsCheckedMul(inst: Inst, loc: LocationData) {
-        useInputRegister(inst, 0);
-        useInputRegister(inst, 1);
-        useOutputRegister(inst, true);
-    }
-
-    fn setLocationConstraintsCheckedDiv(inst: Inst, loc: LocationData) {
-        useInputRegister(inst, 0);
-        useInputRegister(inst, 1);
-        useOutputRegister(inst, true);
-    }
-
-    fn setLocationConstraintsCheckedMod(inst: Inst, loc: LocationData) {
-        useInputRegister(inst, 0);
-        useInputRegister(inst, 1);
-        useOutputRegister(inst, true);
-    }
-
-    fn setLocationConstraintsReturn(inst: Inst, loc: LocationData) {
+    fn annotateReturn(inst: Inst, loc: LocationData) {
         if inst.hasInput() {
             if inst.getOperationType().isAnyFloat() {
                 useInputFloatRegisterFixed(inst, 0, F0);
@@ -840,7 +810,7 @@ impl CodeGen for CodeGenArm64 {
         }
     }
 
-    fn setLocationConstraintsNot(inst: Inst, loc: LocationData) {
+    fn annotateNot(inst: Inst, loc: LocationData) {
         useInputRegister(inst, 0);
         useOutputRegister(inst, false);
     }
@@ -853,6 +823,54 @@ impl CodeGen for CodeGenArm64 {
         assert(inst.getValueType() == Type::Bool);
         self.asm.movz(REG_TEMP, 1i32, 0i32);
         self.asm.bic(dest, REG_TEMP, src);
+    }
+
+    fn annotateAnd(inst: Inst, loc: LocationData) {
+        useInputRegister(inst, 0);
+        useInputRegister(inst, 1);
+        useOutputRegister(inst, true);
+    }
+
+    fn emitAnd(inst: Inst) {
+        let loc = inst.getLocationData();
+        let lhs = loc.getInput(0).getRegister();
+        let rhs = loc.getInput(1).getRegister();
+        let output = loc.getOutput().getRegister();
+        let ty = inst.getValueType();
+
+        if ty == Type::Int32 {
+            self.asm.and_sh_w(output, lhs, rhs, Shift::LSL, 0i32);
+        } else {
+            assert(ty == Type::Int64);
+            self.asm.and_sh(output, lhs, rhs, Shift::LSL, 0i32);
+        }
+    }
+
+    fn annotateOr(inst: Inst, loc: LocationData) {
+        useInputRegister(inst, 0);
+        useInputRegister(inst, 1);
+        useOutputRegister(inst, true);
+    }
+
+    fn emitOr(inst: Inst) {
+        let loc = inst.getLocationData();
+        let lhs = loc.getInput(0).getRegister();
+        let rhs = loc.getInput(1).getRegister();
+        let output = loc.getOutput().getRegister();
+        let ty = inst.getValueType();
+
+        if ty == Type::Int32 {
+            self.asm.orr_sh_w(output, lhs, rhs, Shift::LSL, 0i32);
+        } else {
+            assert(ty == Type::Int64);
+            self.asm.orr_sh(output, lhs, rhs, Shift::LSL, 0i32);
+        }
+    }
+
+    fn annotateCheckedAdd(inst: Inst, loc: LocationData) {
+        useInputRegister(inst, 0);
+        useInputRegister(inst, 1);
+        useOutputRegister(inst, true);
     }
 
     fn emitCheckedAdd(inst: Inst) {
@@ -879,6 +897,12 @@ impl CodeGen for CodeGenArm64 {
         });
     }
 
+    fn annotateCheckedSub(inst: Inst, loc: LocationData) {
+        useInputRegister(inst, 0);
+        useInputRegister(inst, 1);
+        useOutputRegister(inst, true);
+    }
+
     fn emitCheckedSub(inst: Inst) {
         let loc = inst.getLocationData();
         let lhs = loc.getInput(0).getRegister();
@@ -901,6 +925,12 @@ impl CodeGen for CodeGenArm64 {
             self.asm.bindLabel(lbl_overflow);
             self.trap(REG_TEMP, TRAP_OVERFLOW, self.ci.bc.getLocationAt(inst.bytecode_position()));
         });
+    }
+
+    fn annotateCheckedMul(inst: Inst, loc: LocationData) {
+        useInputRegister(inst, 0);
+        useInputRegister(inst, 1);
+        useOutputRegister(inst, true);
     }
 
     fn emitCheckedMul(inst: Inst) {
@@ -931,8 +961,20 @@ impl CodeGen for CodeGenArm64 {
         });
     }
 
+    fn annotateCheckedDiv(inst: Inst, loc: LocationData) {
+        useInputRegister(inst, 0);
+        useInputRegister(inst, 1);
+        useOutputRegister(inst, true);
+    }
+
     fn emitCheckedDiv(inst: Inst) {
         self.emitCheckedDivModCommon(inst);
+    }
+
+    fn annotateCheckedMod(inst: Inst, loc: LocationData) {
+        useInputRegister(inst, 0);
+        useInputRegister(inst, 1);
+        useOutputRegister(inst, true);
     }
 
     fn emitCheckedMod(inst: Inst) {

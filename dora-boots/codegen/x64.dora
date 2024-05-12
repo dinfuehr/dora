@@ -795,7 +795,7 @@ impl CodeGen for CodeGenX64 {
         }
     }
 
-    fn setLocationConstraintsNot(inst: Inst, loc: LocationData) {
+    fn annotateNot(inst: Inst, loc: LocationData) {
         useInputRegister(inst, 0);
         useOutputSameAsFirstInput(inst);
     }
@@ -808,6 +808,56 @@ impl CodeGen for CodeGenX64 {
         assert(inst.getValueType() == Type::Bool);
         assert(dest == src);
         self.asm.xorb_ri(dest, Immediate(1));
+    }
+
+    fn annotateAnd(inst: Inst, loc: LocationData) {
+        useInputRegister(inst, 0);
+        useInputRegister(inst, 1);
+        useOutputSameAsFirstInput(inst);
+    }
+
+    fn emitAnd(inst: Inst) {
+        let loc = inst.getLocationData();
+        let lhs = loc.getInput(0).getRegister();
+        let rhs = loc.getInput(1).getRegister();
+        let dest = loc.getOutput().getRegister();
+        assert(dest == lhs);
+        let ty = inst.getValueType();
+
+        if ty == Type::Int32 {
+            self.asm.andl_rr(lhs, rhs);
+        } else {
+            assert(ty == Type::Int64);
+            self.asm.andq_rr(lhs, rhs);
+        }
+    }
+
+    fn annotateOr(inst: Inst, loc: LocationData) {
+        useInputRegister(inst, 0);
+        useInputRegister(inst, 1);
+        useOutputSameAsFirstInput(inst);
+    }
+
+    fn emitOr(inst: Inst) {
+        let loc = inst.getLocationData();
+        let lhs = loc.getInput(0).getRegister();
+        let rhs = loc.getInput(1).getRegister();
+        let dest = loc.getOutput().getRegister();
+        assert(dest == lhs);
+        let ty = inst.getValueType();
+
+        if ty == Type::Int32 {
+            self.asm.orl_rr(lhs, rhs);
+        } else {
+            assert(ty == Type::Int64);
+            self.asm.orq_rr(lhs, rhs);
+        }
+    }
+
+    fn annotateCheckedAdd(inst: Inst, loc: LocationData) {
+        useInputRegister(inst, 0);
+        useInputRegister(inst, 1);
+        useOutputSameAsFirstInput(inst);
     }
 
     fn emitCheckedAdd(inst: Inst) {
@@ -836,6 +886,12 @@ impl CodeGen for CodeGenX64 {
         });
     }
 
+    fn annotateCheckedSub(inst: Inst, loc: LocationData) {
+        useInputRegister(inst, 0);
+        useInputRegister(inst, 1);
+        useOutputSameAsFirstInput(inst);
+    }
+
     fn emitCheckedSub(inst: Inst) {
         let loc = inst.getLocationData();
         let lhs = loc.getInput(0).getRegister();
@@ -860,6 +916,12 @@ impl CodeGen for CodeGenX64 {
             self.asm.bindLabel(lbl_overflow);
             self.trap(REG_TEMP, TRAP_OVERFLOW, self.ci.bc.getLocationAt(inst.bytecode_position()));
         });
+    }
+
+    fn annotateCheckedMul(inst: Inst, loc: LocationData) {
+        useInputRegister(inst, 0);
+        useInputRegister(inst, 1);
+        useOutputSameAsFirstInput(inst);
     }
 
     fn emitCheckedMul(inst: Inst) {
@@ -888,39 +950,7 @@ impl CodeGen for CodeGenX64 {
         });
     }
 
-    fn setLocationConstraintsCheckedAdd(inst: Inst, loc: LocationData) {
-        useInputRegister(inst, 0);
-        useInputRegister(inst, 1);
-        useOutputSameAsFirstInput(inst);
-    }
-
-    fn setLocationConstraintsCheckedSub(inst: Inst, loc: LocationData) {
-        useInputRegister(inst, 0);
-        useInputRegister(inst, 1);
-        useOutputSameAsFirstInput(inst);
-    }
-
-    fn setLocationConstraintsCheckedMul(inst: Inst, loc: LocationData) {
-        useInputRegister(inst, 0);
-        useInputRegister(inst, 1);
-        useOutputSameAsFirstInput(inst);
-    }
-
-    fn setLocationConstraintsCheckedDiv(inst: Inst, loc: LocationData) {
-        useInputRegister(inst, 0);
-        useInputRegister(inst, 1);
-        useOutputRegisterFixed(inst, RAX, true);
-        addTempRegisterFixed(inst, RDX);
-    }
-
-    fn setLocationConstraintsCheckedMod(inst: Inst, loc: LocationData) {
-        useInputRegister(inst, 0);
-        useInputRegister(inst, 1);
-        useOutputRegisterFixed(inst, RDX, true);
-        addTempRegisterFixed(inst, RAX);
-    }
-
-    fn setLocationConstraintsReturn(inst: Inst, loc: LocationData) {
+    fn annotateReturn(inst: Inst, loc: LocationData) {
         if inst.hasInput() {
             if inst.getOperationType().isAnyFloat() {
                 useInputFloatRegisterFixed(inst, 0, XMM0);
@@ -930,8 +960,22 @@ impl CodeGen for CodeGenX64 {
         }
     }
 
+    fn annotateCheckedDiv(inst: Inst, loc: LocationData) {
+        useInputRegister(inst, 0);
+        useInputRegister(inst, 1);
+        useOutputRegisterFixed(inst, RAX, true);
+        addTempRegisterFixed(inst, RDX);
+    }
+
     fn emitCheckedDiv(inst: Inst) {
         self.emitCheckedDivModCommon(inst);
+    }
+
+    fn annotateCheckedMod(inst: Inst, loc: LocationData) {
+        useInputRegister(inst, 0);
+        useInputRegister(inst, 1);
+        useOutputRegisterFixed(inst, RDX, true);
+        addTempRegisterFixed(inst, RAX);
     }
 
     fn emitCheckedMod(inst: Inst) {

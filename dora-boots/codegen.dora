@@ -108,6 +108,16 @@ fn emitInst(codegen: CodeGen, inst: Inst) {
             codegen.emitStringConst(inst);
         },
 
+        Op::And => {
+            codegen.emitComment("And");
+            codegen.emitAnd(inst);
+        }
+
+        Op::Or => {
+            codegen.emitComment("Or");
+            codegen.emitOr(inst);
+        }
+
         Op::Add => {
             codegen.emitComment("Add");
             codegen.emitAdd(inst);
@@ -368,13 +378,15 @@ pub trait CodeGen {
 
     fn spill(inst: Inst);
 
-    fn setLocationConstraintsCheckedAdd(inst: Inst, loc: LocationData);
-    fn setLocationConstraintsCheckedSub(inst: Inst, loc: LocationData);
-    fn setLocationConstraintsCheckedMul(inst: Inst, loc: LocationData);
-    fn setLocationConstraintsCheckedDiv(inst: Inst, loc: LocationData);
-    fn setLocationConstraintsCheckedMod(inst: Inst, loc: LocationData);
-    fn setLocationConstraintsReturn(inst: Inst, loc: LocationData);
-    fn setLocationConstraintsNot(inst: Inst, loc: LocationData);
+    fn annotateAnd(inst: Inst, loc: LocationData);
+    fn annotateOr(inst: Inst, loc: LocationData);
+    fn annotateCheckedAdd(inst: Inst, loc: LocationData);
+    fn annotateCheckedSub(inst: Inst, loc: LocationData);
+    fn annotateCheckedMul(inst: Inst, loc: LocationData);
+    fn annotateCheckedDiv(inst: Inst, loc: LocationData);
+    fn annotateCheckedMod(inst: Inst, loc: LocationData);
+    fn annotateReturn(inst: Inst, loc: LocationData);
+    fn annotateNot(inst: Inst, loc: LocationData);
 
     fn emitTrueConst(inst: Inst);
     fn emitFalseConst(inst: Inst);
@@ -385,6 +397,8 @@ pub trait CodeGen {
     fn emitFloat64Const(inst: Inst);
     fn emitNullConst(inst: Inst);
     fn emitStringConst(inst: Inst);
+    fn emitAnd(inst: Inst);
+    fn emitOr(inst: Inst);
     fn emitAdd(inst: Inst);
     fn emitSub(inst: Inst);
     fn emitMul(inst: Inst);
