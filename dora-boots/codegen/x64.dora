@@ -1531,6 +1531,8 @@ impl CodeGen for CodeGenX64 {
             unreachable[()]();
         };
 
+        assert(size % PTR_SIZE == 0i32);
+
         let tmp = loc.getTemp(0).getRegister();
         self.emitObjectAllocate(obj, size, REG_TEMP, tmp, loc.getRegisterSnapshot(), loc.getGcPoint());
 
