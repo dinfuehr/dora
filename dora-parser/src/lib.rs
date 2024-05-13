@@ -4,7 +4,6 @@ pub use self::green::{GreenElement, GreenNode, GreenToken};
 pub use self::lexer::lex;
 pub use self::parser::Parser;
 pub use self::span::Span;
-pub use self::syntax::SyntaxNode;
 pub use self::token::{TokenKind, TokenSet};
 
 pub mod ast;
@@ -13,7 +12,6 @@ pub mod green;
 pub mod lexer;
 pub mod parser;
 pub mod span;
-pub mod syntax;
 pub mod token;
 
 pub fn compute_line_starts(content: &str) -> Vec<u32> {
