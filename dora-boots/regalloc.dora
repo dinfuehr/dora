@@ -1009,14 +1009,14 @@ pub fn isReference(ty: BytecodeType): Bool {
         | BytecodeType::Int32
         | BytecodeType::Char
         | BytecodeType::Int64
-        | BytecodeType::Float64 => false,
+        | BytecodeType::Float64
+        | BytecodeType::Struct(_, _)
+        | BytecodeType::Tuple(_) => false,
         BytecodeType::Class(_, _)
         | BytecodeType::Ptr
         | BytecodeType::Lambda(_, _)
         | BytecodeType::Trait(_, _) => true,
-        BytecodeType::Struct(_, _)
-        | BytecodeType::Tuple(_)
-        | BytecodeType::This
+        BytecodeType::This
         | BytecodeType::TypeParam(_) => unreachable[Bool](),
         BytecodeType::Enum(enum_id, type_params) => {
             let layout = computeEnumLayout(enum_id, type_params);

@@ -1,0 +1,10 @@
+//= boots
+
+fn main() {
+    let x = f(-5);
+    assert(x == 4);
+    let x = f(-1);
+    assert(x == 0);
+}
+
+@optimizeImmediately fn f(a: Int64): Int64 { !a }

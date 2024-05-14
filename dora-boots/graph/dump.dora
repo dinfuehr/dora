@@ -316,7 +316,7 @@ fn dumpInstName(inst: Inst): String {
         Op::DivZeroCheck => "DivZeroCheck",
         Op::ArrayLength => "ArrayLength",
         Op::LoadArray => "LoadArray.${inst.getValueType()}",
-        Op::StoreArray => "StoreArray",
+        Op::StoreArray => "StoreArray.${inst.getOperationType()}",
         Op::GetElementPtr => "GetElementPtr",
         Op::Arg => "Arg.${inst.getValueType()}(${inst.getArgIndex()})",
         Op::Move => "Move.${inst.getValueType()}",
@@ -332,6 +332,7 @@ fn dumpInstName(inst: Inst): String {
         Op::StoreArrayAddressWb => "StoreArrayAddressWb",
         Op::ThreadCurrent => "ThreadCurrent",
         Op::Convert => "Convert.(${inst.getSourceType()}->${inst.getValueType()})",
+        Op::CompareOrdering => "CompareOrdering",
     }
 }
 

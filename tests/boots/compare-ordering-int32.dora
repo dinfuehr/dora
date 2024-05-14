@@ -1,0 +1,14 @@
+//= boots
+
+use std::Ordering;
+
+fn main() {
+    assert(f(1i32, 2i32) == Ordering::Less);
+    assert(f(-1i32, 1i32) == Ordering::Less);
+    assert(f(2i32, 1i32) == Ordering::Greater);
+    assert(f(2i32, -4i32) == Ordering::Greater);
+    assert(f(4i32, 4i32) == Ordering::Equal);
+    assert(f(-4i32, -4i32) == Ordering::Equal);
+}
+
+@optimizeImmediately fn f(a: Int32, b: Int32): std::Ordering { a.cmp(b) }

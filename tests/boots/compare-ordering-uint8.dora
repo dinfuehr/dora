@@ -1,0 +1,11 @@
+//= boots
+
+use std::Ordering;
+
+fn main() {
+    assert(f(1u8, 2u8) == Ordering::Less);
+    assert(f(2u8, 1u8) == Ordering::Greater);
+    assert(f(4u8, 4u8) == Ordering::Equal);
+}
+
+@optimizeImmediately fn f(a: UInt8, b: UInt8): std::Ordering { a.cmp(b) }

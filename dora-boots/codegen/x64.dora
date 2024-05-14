@@ -11,7 +11,7 @@ use package::interface::{Address, Architecture, ConstPool, ConstPoolEntry, Const
 use package::interface::{TRAP_DIV0, TRAP_OVERFLOW, TRAP_INDEX_OUT_OF_BOUNDS, LAMBDA_SIZE, PTR_SIZE, GLOBAL_STATE_INITIALIZED};
 use package::interface::{THREAD_LOCAL_DATA_TLAB_TOP_OFFSET, THREAD_LOCAL_DATA_TLAB_END_OFFSET, THREAD_LOCAL_DATA_STACK_LIMIT_OFFSET, THREAD_LOCAL_DATA_STATE_OFFSET, THREAD_LOCAL_DATA_MARKING_OFFSET, OBJECT_HEADER_LENGTH, OBJECT_METADATA_OFFSET, METADATA_REMEMBERED_BIT, ARRAY_HEADER_LENGTH, THREAD_LOCAL_DATA_MANAGED_THREAD_HANDLE_OFFSET};
 use package::interface as iface;
-use package::location::{useInputFloatRegisterFixed, useInputRegister, useInputRegisterFixed, useOutputRegisterFixed, useOutputSameAsFirstInput, addTempRegisterFixed};
+use package::location::{useInputFloatRegisterFixed, useInputRegister, useInputRegisterFixed, useInputFloatRegister, useOutputRegister, useOutputRegisterFixed, useOutputSameAsFirstInput, addTempRegisterFixed};
 use package::graph::{Graph, InputOutputOverlap, Inst, Op, LocationData, RegisterSnapshot, RegisterTrackers, Type};
 use package::regalloc::isReference;
 use package::{CodeDescriptor, CommentTable, GcPoint, GcPointTable, LazyCompilationData, LazyCompilationSiteVirtual, LazyCompilationSiteLambda, LocationTable};
@@ -813,9 +813,24 @@ impl CodeGen for CodeGenX64 {
         let src = loc.getInput(0).getRegister();
         let dest = loc.getOutput().getRegister();
 
-        assert(inst.getValueType() == Type::Bool);
         assert(dest == src);
-        self.asm.xorb_ri(dest, Immediate(1));
+        let ty = inst.getValueType();
+
+        match ty {
+            Type::Bool => {
+                self.asm.xorb_ri(dest, Immediate(1));
+            }
+
+            Type::Int32 => {
+                self.asm.notl_r(dest);
+            }
+
+            Type::Int64 => {
+                self.asm.notq_r(dest);
+            }
+
+            _ => unreachable[()](),
+        }
     }
 
     fn annotateAnd(inst: Inst) {
@@ -1886,6 +1901,101 @@ impl CodeGen for CodeGenX64 {
 
     fn emitConvert(inst: Inst) {
         unimplemented();
+    }
+
+    fn annotateCompareOrdering(inst: Inst) {
+        if inst.getOperationType().isAnyFloat() {
+            useInputFloatRegister(inst, 0);
+            useInputFloatRegister(inst, 1);
+        } else {
+            useInputRegister(inst, 0);
+            useInputRegister(inst, 1);
+        }
+
+        useOutputRegister(inst, InputOutputOverlap::Overlap);
+    }
+
+    fn emitCompareOrdering(inst: Inst) {
+        let loc = inst.getLocationData();
+        let ty = inst.getOperationType();
+        let dest = loc.getOutput().getRegister();
+
+        match ty {
+            Type::Int64 => {
+                let lhs = loc.getInput(0).getRegister();
+                let rhs = loc.getInput(1).getRegister();
+                self.asm.xorl_rr(dest, dest);
+                self.asm.cmpq_rr(lhs, rhs);
+                let lbl_done = self.asm.createLabel();
+                self.asm.jcc(Condition::Less, lbl_done);
+                self.asm.setcc_r(Condition::NotEqual, dest);
+                self.asm.movzxb_rr(dest, dest);
+                self.asm.addl_ri(dest, Immediate(1));
+                self.asm.bindLabel(lbl_done);
+            }
+
+            Type::Int32 => {
+                let lhs = loc.getInput(0).getRegister();
+                let rhs = loc.getInput(1).getRegister();
+                self.asm.xorl_rr(dest, dest);
+                self.asm.cmpl_rr(lhs, rhs);
+                let lbl_done = self.asm.createLabel();
+                self.asm.jcc(Condition::Less, lbl_done);
+                self.asm.setcc_r(Condition::NotEqual, dest);
+                self.asm.movzxb_rr(dest, dest);
+                self.asm.addl_ri(dest, Immediate(1));
+                self.asm.bindLabel(lbl_done);
+            }
+
+            Type::UInt8 => {
+                let lhs = loc.getInput(0).getRegister();
+                let rhs = loc.getInput(1).getRegister();
+                self.asm.xorl_rr(dest, dest);
+                self.asm.cmpb_rr(lhs, rhs);
+                let lbl_done = self.asm.createLabel();
+                self.asm.jcc(Condition::Less, lbl_done);
+                self.asm.setcc_r(Condition::NotEqual, dest);
+                self.asm.movzxb_rr(dest, dest);
+                self.asm.addl_ri(dest, Immediate(1));
+                self.asm.bindLabel(lbl_done);
+            }
+
+            Type::Float32 => {
+                self.asm.xorl_rr(dest, dest);
+                let lhs = loc.getInput(0).getFloatRegister();
+                let rhs = loc.getInput(1).getFloatRegister();
+                self.asm.ucomiss_rr(rhs, lhs);
+                let lbl_done = self.asm.createLabel();
+                self.asm.jcc(Condition::Above, lbl_done);
+                let lbl_greater = self.asm.createLabel();
+                self.asm.jcc(Condition::Parity, lbl_greater);
+                self.asm.jcc(Condition::NotEqual, lbl_greater);
+                self.asm.addl_ri(dest, Immediate(1));
+                self.asm.jmp(lbl_done);
+                self.asm.bindLabel(lbl_greater);
+                self.asm.addl_ri(dest, Immediate(2));
+                self.asm.bindLabel(lbl_done);
+            }
+
+            Type::Float64 => {
+                self.asm.xorl_rr(dest, dest);
+                let lhs = loc.getInput(0).getFloatRegister();
+                let rhs = loc.getInput(1).getFloatRegister();
+                self.asm.ucomisd_rr(rhs, lhs);
+                let lbl_done = self.asm.createLabel();
+                self.asm.jcc(Condition::Above, lbl_done);
+                let lbl_greater = self.asm.createLabel();
+                self.asm.jcc(Condition::Parity, lbl_greater);
+                self.asm.jcc(Condition::NotEqual, lbl_greater);
+                self.asm.addl_ri(dest, Immediate(1));
+                self.asm.jmp(lbl_done);
+                self.asm.bindLabel(lbl_greater);
+                self.asm.addl_ri(dest, Immediate(2));
+                self.asm.bindLabel(lbl_done);
+            }
+
+            _ => unreachable[()](),
+        }
     }
 
     fn finalize(): CodeDescriptor {

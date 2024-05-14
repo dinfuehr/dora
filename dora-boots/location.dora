@@ -350,6 +350,10 @@ impl LocationAnnotation {
                 }
             }
 
+            Op::CompareOrdering => {
+                self.codegen.annotateCompareOrdering(inst);
+            }
+
             _ => {
                 println("unsupported op ${inst.op().name()}");
                 unreachable[()]();
@@ -379,6 +383,11 @@ fn computeArgumentLocations(codegen: CodeGen, ci: CompilationInfo): Array[Locati
     for idx in std::range(0, arguments) {
         let ty = ci.bc.registers(idx);
         let ty = ty.specialize(ci.typeParams);
+
+        if ty.isUnit() {
+            continue;
+        }
+
         let uses_fp_reg = match ty {
             BytecodeType::Float32 | BytecodeType::Float64 => true,
             BytecodeType::Struct(_, _)

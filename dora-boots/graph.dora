@@ -651,6 +651,7 @@ pub enum Op {
     ThreadCurrent,
     // Convert between integer and floats.
     Convert,
+    CompareOrdering,
 }
 
 impl Op {
@@ -758,6 +759,7 @@ pub fn opName(op: Op): String {
         Op::StoreArrayAddressWb => "StoreArrayAddressWb",
         Op::ThreadCurrent => "ThreadCurrent",
         Op::Convert => "Convert",
+        Op::CompareOrdering => "CompareOrdering",
     }
 }
 
@@ -942,6 +944,7 @@ impl Inst {
             | Op::StoreArrayAddressWb => unreachable[Type](),
             Op::ThreadCurrent => Type::Ptr,
             Op::Convert => self.ty,
+            Op::CompareOrdering => Type::Int32,
         }
     }
 
@@ -959,7 +962,8 @@ impl Inst {
             | Op::Store
             | Op::StoreWb
             | Op::StoreArrayWb
-            | Op::StoreArrayAddressWb => self.ty,
+            | Op::StoreArrayAddressWb
+            | Op::CompareOrdering => self.ty,
             _ => self.getValueType(),
         }
     }
@@ -1461,6 +1465,7 @@ impl Inst {
             | Op::StoreArrayAddressWb => true,
             Op::ThreadCurrent => false,
             Op::Convert => false,
+            Op::CompareOrdering => false,
         }
     }
 }
@@ -2505,6 +2510,15 @@ pub fn createConvertInst(ty: Type, value: Inst): Inst {
     inst.ty = ty;
     inst._op = Some(Op::Convert);
     inst.addInput(value);
+    inst
+}
+
+pub fn createCompareOrderingInst(ty: Type, lhs: Inst, rhs: Inst): Inst {
+    let inst = Inst::new();
+    inst.ty = ty;
+    inst._op = Some(Op::CompareOrdering);
+    inst.addInput(lhs);
+    inst.addInput(rhs);
     inst
 }
 

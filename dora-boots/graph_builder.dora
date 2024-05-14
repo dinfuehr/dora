@@ -121,10 +121,14 @@ impl SsaGen {
         while regIdx < self.bc.arguments {
             let ty = self.regId(regIdx);
             let ty = self.graphTy(ty);
-            let argInst = graph::createArgInst(argIdx, ty);
-            entryBlock.appendInst(argInst);
-            self.writeVariable(BytecodeRegister(regIdx), entryBlock, argInst);
-            argIdx = argIdx + 1i32;
+
+            if !ty.isUnit() {
+                let argInst = graph::createArgInst(argIdx, ty);
+                entryBlock.appendInst(argInst);
+                self.writeVariable(BytecodeRegister(regIdx), entryBlock, argInst);
+                argIdx = argIdx + 1i32;
+            }
+
             regIdx = regIdx + 1i32;
         }
     }
@@ -134,10 +138,12 @@ impl SsaGen {
     }
 
     fn writeVariable(register: BytecodeRegister, block: Block, value: Inst) {
+        assert(!self.reg(register).isUnit());
         self.currentDef(register.value.toInt64()).insert(block, value);
     }
 
     fn readVariable(register: BytecodeRegister, block: Block): Inst {
+        assert(!self.reg(register).isUnit());
         if self.currentDef(register.value.toInt64()).contains(block) {
             self.currentDef(register.value.toInt64())(block).getOrPanic()
         } else {
@@ -557,7 +563,6 @@ impl SsaGen {
     }
 
     fn emitLoadField(dest: BytecodeRegister, obj: BytecodeRegister, idx: ConstPoolId) {
-        let objInst = self.readVariable(obj, self.current());
         let destType = self.reg(dest);
 
         let (cls_id, type_params, field_id) = match self.bc.constPool(idx) {
@@ -565,29 +570,33 @@ impl SsaGen {
             _ => unreachable[(ClassId, Array[BytecodeType], FieldId)](),
         };
 
-        let type_params = type_params.specialize(self.typeParams);
-        let offset = iface::getFieldOffset(cls_id, type_params, field_id);
-        let value = self.loadField(destType, objInst, offset);
-        self.writeVariable(dest, self.current(), value);
+        if !destType.isUnit() {
+            let objInst = self.readVariable(obj, self.current());
+            let type_params = type_params.specialize(self.typeParams);
+            let offset = iface::getFieldOffset(cls_id, type_params, field_id);
+            let value = self.loadField(destType, objInst, offset);
+            self.writeVariable(dest, self.current(), value);
+        }
     }
 
     fn emitStoreField(src: BytecodeRegister, obj: BytecodeRegister, idx: ConstPoolId) {
-        let srcInst = self.readVariable(src, self.current());
         let srcType = self.reg(src);
-
-        let objInst = self.readVariable(obj, self.current());
 
         let (cls_id, type_params, field_id) = match self.bc.constPool(idx) {
             ConstPoolEntry::Field(cls_id, type_params, field_id) => (cls_id, type_params, field_id),
             _ => unreachable[(ClassId, Array[BytecodeType], FieldId)](),
         };
 
-        let offset = iface::getFieldOffset(cls_id, type_params, field_id);
-        self.storeField(srcType, objInst, offset, srcInst, true);
+        if !srcType.isUnit() {
+            let srcInst = self.readVariable(src, self.current());
+            let objInst = self.readVariable(obj, self.current());
+
+            let offset = iface::getFieldOffset(cls_id, type_params, field_id);
+            self.storeField(srcType, objInst, offset, srcInst, true);
+        }
     }
 
     fn emitLoadStructField(dest: BytecodeRegister, src: BytecodeRegister, idx: ConstPoolId) {
-        let srcInst = self.readVariable(src, self.current());
         let destTy = self.reg(dest);
 
         let (struct_id, type_params, field_id) = match self.bc.constPool(idx) {
@@ -595,11 +604,14 @@ impl SsaGen {
             _ => unreachable[(StructId, Array[BytecodeType], StructFieldId)](),
         };
 
-        let structLayout = self.computeStructLayout(struct_id, type_params);
-        let field = structLayout.fields(field_id.value.toInt64());
+        if !destTy.isUnit() {
+            let srcInst = self.readVariable(src, self.current());
+            let structLayout = self.computeStructLayout(struct_id, type_params);
+            let field = structLayout.fields(field_id.value.toInt64());
 
-        let inst = self.loadField(destTy, srcInst, field.offset);
-        self.writeVariable(dest, self.current(), inst);
+            let inst = self.loadField(destTy, srcInst, field.offset);
+            self.writeVariable(dest, self.current(), inst);
+        }
     }
 
     fn emitLoadTupleElement(dest: BytecodeRegister, src: BytecodeRegister, idx: ConstPoolId) {
@@ -882,15 +894,16 @@ impl SsaGen {
         self.current().appendInst(boundsCheckInst);
 
         let destTy = self.reg(dest);
-        let result = self.loadArray(destTy, arrInst, idxInst);
-        self.writeVariable(dest, self.current(), result);
+
+        if !destTy.isUnit() {
+            let result = self.loadArray(destTy, arrInst, idxInst);
+            self.writeVariable(dest, self.current(), result);
+        }
     }
 
     fn emitStoreArray(src: BytecodeRegister, arr: BytecodeRegister, idx: BytecodeRegister) {
-        let srcInst = self.readVariable(src, self.current());
         let arrInst = self.readVariable(arr, self.current());
         let idxInst = self.readVariable(idx, self.current());
-        let srcType = self.reg(src);
 
         let arrayLengthInst = graph::createArrayLengthInst(arrInst);
         self.current().appendInst(arrayLengthInst);
@@ -899,7 +912,11 @@ impl SsaGen {
         boundsCheckInst.set_bytecode_position(self.offset);
         self.current().appendInst(boundsCheckInst);
 
-        self.storeArray(srcType, arrInst, idxInst, srcInst);
+        let srcType = self.reg(src);
+        if !srcType.isUnit() {
+            let srcInst = self.readVariable(src, self.current());
+            self.storeArray(srcType, arrInst, idxInst, srcInst);
+        }
     }
 
     fn emitLoadTraitObjectValue(dest: BytecodeRegister, src: BytecodeRegister) {
@@ -982,8 +999,12 @@ impl SsaGen {
         let returnTy = self.prepareReturnValue(dest, destTy, args);
 
         for reg in self.pushed_registers {
-            let arg = self.readVariable(reg, self.current());
-            args.push(arg);
+            let ty = self.regGraphTy(reg);
+
+            if !ty.isUnit() {
+                let arg = self.readVariable(reg, self.current());
+                args.push(arg);
+            }
         }
 
         self.pushed_registers.clear();
@@ -1111,11 +1132,7 @@ impl SsaGen {
     }
 
     fn emitIntrinsic(intrinsic: Int32, dest: BytecodeRegister, args: Array[BytecodeRegister], idx: ConstPoolId) {
-        if intrinsic == opc::INTRINSIC_INT64_ADD || intrinsic == opc::INTRINSIC_INT32_ADD {
-            self.emitBin(dest, args(0), args(1), Op::CheckedAdd);
-        } else if intrinsic == opc::INTRINSIC_INT64_ADD_UNCHECKED || intrinsic == opc::INTRINSIC_INT32_ADD_UNCHECKED {
-            self.emitBin(dest, args(0), args(1), Op::Add);
-        } else if intrinsic == opc::INTRINSIC_FLOAT64_ADD || intrinsic == opc::INTRINSIC_FLOAT32_ADD {
+        if intrinsic == opc::INTRINSIC_INT64_ADD_UNCHECKED || intrinsic == opc::INTRINSIC_INT32_ADD_UNCHECKED {
             self.emitBin(dest, args(0), args(1), Op::Add);
         } else if intrinsic == opc::INTRINSIC_THREAD_CURRENT {
             self.emitIntrinsicThreadCurrent(dest, args);
@@ -1129,20 +1146,71 @@ impl SsaGen {
             self.emitIntrinsicConvert(dest, args, Type::Int64, Type::Float64);
         } else if intrinsic == opc::INTRINSIC_INT32_TO_FLOAT32 {
             self.emitIntrinsicConvert(dest, args, Type::Float32, Type::Int32);
+        } else if intrinsic == opc::INTRINSIC_FLOAT64_ADD || intrinsic == opc::INTRINSIC_FLOAT32_ADD {
+            self.emitBin(dest, args(0), args(1), Op::Add);
+        } else if intrinsic == opc::INTRINSIC_FLOAT64_SUB || intrinsic == opc::INTRINSIC_FLOAT32_SUB {
+            self.emitBin(dest, args(0), args(1), Op::Sub);
+        } else if intrinsic == opc::INTRINSIC_FLOAT64_MUL || intrinsic == opc::INTRINSIC_FLOAT32_MUL {
+            self.emitIntrinsicBin(dest, args, Op::Mul);
+        } else if intrinsic == opc::INTRINSIC_FLOAT64_DIV || intrinsic == opc::INTRINSIC_FLOAT32_DIV {
+            self.emitIntrinsicBin(dest, args, Op::Div);
+        } else if intrinsic == opc::INTRINSIC_FLOAT64_NEG || intrinsic == opc::INTRINSIC_FLOAT32_NEG {
+            self.emitIntrinsicUn(dest, args, Op::Neg);
+        } else if intrinsic == opc::INTRINSIC_FLOAT64_EQ || intrinsic == opc::INTRINSIC_FLOAT32_EQ {
+            self.emitIntrinsicBin(dest, args, Op::Equal);
+        } else if intrinsic == opc::INTRINSIC_INT64_ADD || intrinsic == opc::INTRINSIC_INT32_ADD {
+            self.emitBin(dest, args(0), args(1), Op::CheckedAdd);
+        } else if intrinsic == opc::INTRINSIC_INT64_SUB || intrinsic == opc::INTRINSIC_INT32_SUB {
+            self.emitBin(dest, args(0), args(1), Op::CheckedSub);
+        } else if intrinsic == opc::INTRINSIC_INT64_MUL || intrinsic == opc::INTRINSIC_INT32_MUL {
+            self.emitIntrinsicBin(dest, args, Op::CheckedMul);
+        } else if intrinsic == opc::INTRINSIC_INT64_DIV || intrinsic == opc::INTRINSIC_INT32_DIV {
+            self.emitIntrinsicBin(dest, args, Op::CheckedDiv);
+        } else if intrinsic == opc::INTRINSIC_INT64_MOD || intrinsic == opc::INTRINSIC_INT32_MOD {
+            self.emitIntrinsicBin(dest, args, Op::CheckedMod);
         } else if intrinsic == opc::INTRINSIC_INT64_AND || intrinsic == opc::INTRINSIC_INT32_AND {
             self.emitIntrinsicBin(dest, args, Op::And);
+        } else if intrinsic == opc::INTRINSIC_INT64_OR || intrinsic == opc::INTRINSIC_INT32_OR {
+            self.emitIntrinsicBin(dest, args, Op::Or);
+        } else if intrinsic == opc::INTRINSIC_INT64_XOR || intrinsic == opc::INTRINSIC_INT32_XOR {
+            self.emitIntrinsicBin(dest, args, Op::Xor);
         } else if intrinsic == opc::INTRINSIC_INT64_SAR || intrinsic == opc::INTRINSIC_INT32_SAR {
             self.emitIntrinsicBin(dest, args, Op::Sar);
         } else if intrinsic == opc::INTRINSIC_INT64_SHL || intrinsic == opc::INTRINSIC_INT32_SHL {
             self.emitIntrinsicBin(dest, args, Op::Shl);
-        } else if intrinsic == opc::INTRINSIC_INT64_NEG {
-            self.emitIntrinsicUn(dest, args, Op::Neg);
+        } else if intrinsic == opc::INTRINSIC_INT64_SHR || intrinsic == opc::INTRINSIC_INT32_SHR {
+            self.emitIntrinsicBin(dest, args, Op::Shr);
+        } else if intrinsic == opc::INTRINSIC_INT64_NEG || intrinsic == opc::INTRINSIC_INT32_NEG {
+            self.emitIntrinsicUn(dest, args, Op::CheckedNeg);
+        } else if intrinsic == opc::INTRINSIC_INT64_EQ || intrinsic == opc::INTRINSIC_INT32_EQ {
+            self.emitIntrinsicBin(dest, args, Op::Equal);
         } else if intrinsic == opc::INTRINSIC_BOOL_NOT || intrinsic == opc::INTRINSIC_INT64_NOT || intrinsic == opc::INTRINSIC_INT32_NOT {
             self.emitIntrinsicUn(dest, args, Op::Not);
+        } else if intrinsic == opc::INTRINSIC_INT64_CMP {
+            self.emitIntrinsicCompareOrdering(dest, args, Type::Int64);
+        } else if intrinsic == opc::INTRINSIC_INT32_CMP {
+            self.emitIntrinsicCompareOrdering(dest, args, Type::Int32);
+        } else if intrinsic == opc::INTRINSIC_U_INT8_CMP {
+            self.emitIntrinsicCompareOrdering(dest, args, Type::UInt8);
+        } else if intrinsic == opc::INTRINSIC_FLOAT32_CMP {
+            self.emitIntrinsicCompareOrdering(dest, args, Type::Float32);
+        } else if intrinsic == opc::INTRINSIC_FLOAT64_CMP {
+            self.emitIntrinsicCompareOrdering(dest, args, Type::Float64);
         } else {
             let name = opc::intrinsicName(intrinsic);
             std::fatalError("unknown intrinsic ${name}");
         }
+    }
+
+    fn emitIntrinsicCompareOrdering(dest: BytecodeRegister, args: Array[BytecodeRegister], ty: Type) {
+        assert(args.size() == 2);
+        assert(ty == self.regGraphTy(args(0)));
+        assert(ty == self.regGraphTy(args(1)));
+        let lhs = self.readVariable(args(0), self.current());
+        let rhs = self.readVariable(args(1), self.current());
+        let result = graph::createCompareOrderingInst(ty, lhs, rhs);
+        self.current().appendInst(result);
+        self.writeVariable(dest, self.current(), result);
     }
 
     fn emitIntrinsicUn(dest: BytecodeRegister, args: Array[BytecodeRegister], op: Op) {
@@ -1263,6 +1331,7 @@ impl SsaGen {
             _ => unreachable[(ClassId, Array[BytecodeType])](),
         };
 
+        let type_params = type_params.specialize(self.typeParams);
         let info = ClassInfo(class_id, type_params);
         let info = InstExtraData::ClassInfo(info);
         let objInst = graph::createNewObjectInst(info);
@@ -1273,11 +1342,15 @@ impl SsaGen {
         let mut field_id = 0i32;
 
         for reg in self.pushed_registers {
-            let arg = self.readVariable(reg, self.current());
             let argTy = self.reg(reg);
 
-            let offset = iface::getFieldOffset(class_id, type_params, FieldId(field_id));
-            self.storeField(argTy, objInst, offset, arg, true);
+            if !argTy.isUnit() {
+                let arg = self.readVariable(reg, self.current());
+
+                let offset = iface::getFieldOffset(class_id, type_params, FieldId(field_id));
+                self.storeField(argTy, objInst, offset, arg, true);
+            }
+
             field_id = field_id + 1i32;
         }
 
@@ -1349,10 +1422,14 @@ impl SsaGen {
 
         for idx in std::range(0, layout.fields.size()) {
             let reg = self.pushed_registers(idx);
-            let field = layout.fields(idx);
-            let arg = self.readVariable(reg, self.current());
+            let ty = self.reg(reg);
 
-            self.storeField(field.ty, allocInst, field.offset, arg, false);
+            if !ty.isUnit() {
+                let field = layout.fields(idx);
+                let arg = self.readVariable(reg, self.current());
+
+                self.storeField(field.ty, allocInst, field.offset, arg, false);
+            }
 
             fieldId = fieldId + 1i32;
         }
@@ -1569,6 +1646,7 @@ impl SsaGen {
             dest
         } else {
             let ty = self.graphTy(ty);
+            assert(!ty.isUnit());
             let inst = graph::createLoadInst(src, srcOffset, ty);
             inst.set_bytecode_position(self.offset);
             self.current().appendInst(inst);
@@ -1611,6 +1689,7 @@ impl SsaGen {
 
         } else {
             let ty = self.graphTy(ty);
+            assert(!ty.isUnit());
             let inst = graph::createLoadArrayInst(arr, index, ty);
             self.current().appendInst(inst);
             inst
@@ -1645,6 +1724,7 @@ impl SsaGen {
             self.current().appendInst(inst);
         } else {
             let ty = self.graphTy(ty);
+            assert(!ty.isUnit());
             let inst = graph::createStoreArrayInst(arr, index, value, ty);
             self.current().appendInst(inst);
         }
@@ -1683,11 +1763,13 @@ impl SsaGen {
         } else {
             let ty = self.graphTy(ty);
 
-            let value = graph::createLoadInst(src, srcOffset, ty);
-            self.current().appendInst(value);
+            if !ty.isUnit() {
+                let value = graph::createLoadInst(src, srcOffset, ty);
+                self.current().appendInst(value);
 
-            let inst = graph::createStoreInst(dest, destOffset, value, ty);
-            self.current().appendInst(inst);
+                let inst = graph::createStoreInst(dest, destOffset, value, ty);
+                self.current().appendInst(inst);
+            }
         }
     }
 
@@ -1701,6 +1783,7 @@ impl SsaGen {
             self.current().appendInst(inst);
         } else {
             let ty = self.graphTy(ty);
+            assert(!ty.isUnit());
             let inst = graph::createStoreInst(dest, destOffset, value, ty);
             self.current().appendInst(inst);
         }
@@ -1719,10 +1802,13 @@ impl SsaGen {
             self.current().appendInst(inst);
         } else {
             let ty = self.graphTy(ty);
-            let value = graph::createLoadInst(src, srcOffset, ty);
-            self.current().appendInst(value);
-            let inst = graph::createStoreInst(dest, destOffset, value, ty);
-            self.current().appendInst(inst);
+
+            if !ty.isUnit() {
+                let value = graph::createLoadInst(src, srcOffset, ty);
+                self.current().appendInst(value);
+                let inst = graph::createStoreInst(dest, destOffset, value, ty);
+                self.current().appendInst(inst);
+            }
         }
     }
 

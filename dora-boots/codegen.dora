@@ -363,6 +363,11 @@ fn emitInst(codegen: CodeGen, inst: Inst) {
             codegen.emitConvert(inst);
         }
 
+        Op::CompareOrdering => {
+            codegen.emitComment("CompareOrdering");
+            codegen.emitCompareOrdering(inst);
+        }
+
         _ => {
             println("unsupported op ${inst.op().name()}");
             unreachable[()]();
@@ -411,6 +416,7 @@ pub trait CodeGen {
     fn annotateCheckedMod(inst: Inst);
     fn annotateReturn(inst: Inst);
     fn annotateNot(inst: Inst);
+    fn annotateCompareOrdering(inst: Inst);
 
     fn emitTrueConst(inst: Inst);
     fn emitFalseConst(inst: Inst);
@@ -471,6 +477,7 @@ pub trait CodeGen {
     fn emitAbort(inst: Inst);
     fn emitAssert(inst: Inst);
     fn emitConvert(inst: Inst);
+    fn emitCompareOrdering(inst: Inst);
 
     fn emitComment(comment: String);
 }

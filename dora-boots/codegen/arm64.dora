@@ -16,7 +16,7 @@ use package::assembler::arm64::{REG_FP, REG_SP, REG_LR, REG_ZERO};
 use package::assembler::{FloatRegister, Label, RegSet, Register};
 use package::graph::{Graph, InputOutputOverlap, Inst, Op, LocationData, RegisterSnapshot, RegisterTrackers, Type};
 use package::regalloc::isReference;
-use package::location::{useInputFloatRegisterFixed, useInputRegister, useInputRegisterFixed, useOutputRegister};
+use package::location::{useInputFloatRegisterFixed, useInputRegister, useInputFloatRegister, useInputRegisterFixed, useOutputRegister};
 use package::{CodeDescriptor, CommentTable, GcPoint, GcPointTable, LazyCompilationData, LazyCompilationSite, LazyCompilationSiteDirect, LazyCompilationSiteVirtual, LazyCompilationSiteLambda, LocationTable};
 
 let REG_PARAMS: Array[Register] = Array[Register]::new(R0, R1, R2, R3, R4, R5, R6, R7);
@@ -828,9 +828,24 @@ impl CodeGen for CodeGenArm64 {
         let src = loc.getInput(0).getRegister();
         let dest = loc.getOutput().getRegister();
 
-        assert(inst.getValueType() == Type::Bool);
-        self.asm.movz(REG_TEMP, 1i32, 0i32);
-        self.asm.bic(dest, REG_TEMP, src);
+        let ty = inst.getValueType();
+
+        match ty {
+            Type::Bool => {
+                self.asm.movz(REG_TEMP, 1i32, 0i32);
+                self.asm.bic(dest, REG_TEMP, src);
+            }
+
+            Type::Int32 => {
+                self.asm.orn_sh_w(dest, REG_ZERO, src, Shift::LSL, 0i32);
+            }
+
+            Type::Int64 => {
+                self.asm.orn_sh(dest, REG_ZERO, src, Shift::LSL, 0i32);
+            }
+
+            _ => unreachable[()](),
+        }
     }
 
     fn annotateAnd(inst: Inst) {
@@ -1892,6 +1907,76 @@ impl CodeGen for CodeGenArm64 {
             }
 
             _ => unimplemented(),
+        }
+    }
+
+    fn annotateCompareOrdering(inst: Inst) {
+        if inst.getOperationType().isAnyFloat() {
+            useInputFloatRegister(inst, 0);
+            useInputFloatRegister(inst, 1);
+        } else {
+            useInputRegister(inst, 0);
+            useInputRegister(inst, 1);
+        }
+
+        useOutputRegister(inst, InputOutputOverlap::Overlap);
+    }
+
+    fn emitCompareOrdering(inst: Inst) {
+        let loc = inst.getLocationData();
+        let ty = inst.getOperationType();
+        let dest = loc.getOutput().getRegister();
+
+        match ty {
+            Type::Int64 => {
+                let lhs = loc.getInput(0).getRegister();
+                let rhs = loc.getInput(1).getRegister();
+                self.asm.movz_w(dest, 0i32, 0i32);
+                self.asm.cmp(lhs, rhs);
+                let lbl_done = self.asm.createLabel();
+                self.asm.bc(Cond::MI, lbl_done);
+                self.asm.cset(dest, Cond::NE);
+                self.asm.add_imm(dest, dest, 1i32);
+                self.asm.bindLabel(lbl_done);
+            }
+
+            Type::UInt8 | Type::Int32 => {
+                let lhs = loc.getInput(0).getRegister();
+                let rhs = loc.getInput(1).getRegister();
+                self.asm.movz_w(dest, 0i32, 0i32);
+                self.asm.cmp_w(lhs, rhs);
+                let lbl_done = self.asm.createLabel();
+                self.asm.bc(Cond::MI, lbl_done);
+                self.asm.cset(dest, Cond::NE);
+                self.asm.add_imm(dest, dest, 1i32);
+                self.asm.bindLabel(lbl_done);
+            }
+
+            Type::Float32 => {
+                let lhs = loc.getInput(0).getFloatRegister();
+                let rhs = loc.getInput(1).getFloatRegister();
+                self.asm.movz_w(dest, 0i32, 0i32);
+                self.asm.fcmp_s(lhs, rhs);
+                let lbl_done = self.asm.createLabel();
+                self.asm.bc(Cond::LT, lbl_done);
+                self.asm.cset(dest, Cond::NE);
+                self.asm.add_imm(dest, dest, 1i32);
+                self.asm.bindLabel(lbl_done);
+            }
+
+            Type::Float64 => {
+                let lhs = loc.getInput(0).getFloatRegister();
+                let rhs = loc.getInput(1).getFloatRegister();
+                self.asm.movz_w(dest, 0i32, 0i32);
+                self.asm.fcmp_d(lhs, rhs);
+                let lbl_done = self.asm.createLabel();
+                self.asm.bc(Cond::LT, lbl_done);
+                self.asm.cset(dest, Cond::NE);
+                self.asm.add_imm(dest, dest, 1i32);
+                self.asm.bindLabel(lbl_done);
+            }
+
+            _ => unreachable[()](),
         }
     }
 

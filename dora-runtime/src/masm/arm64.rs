@@ -841,38 +841,6 @@ impl MacroAssembler {
         self.asm.bind_label(lbl_done);
     }
 
-    pub fn cmp_int(&mut self, mode: MachineMode, dest: Reg, lhs: Reg, rhs: Reg) {
-        match mode {
-            MachineMode::Int8 | MachineMode::Int32 => {
-                self.asm.cmp_w(lhs.into(), rhs.into());
-            }
-
-            MachineMode::Int64 => {
-                self.asm.cmp(lhs.into(), rhs.into());
-            }
-
-            _ => unreachable!(),
-        }
-
-        self.asm.cset_w(dest.into(), Cond::NE);
-        self.asm
-            .csinv_w(dest.into(), dest.into(), REG_ZERO.into(), Cond::GE);
-    }
-
-    pub fn float_cmp_int(&mut self, mode: MachineMode, dest: Reg, lhs: FReg, rhs: FReg) {
-        match mode {
-            MachineMode::Float32 => self.asm.fcmp_s(lhs.into(), rhs.into()),
-            MachineMode::Float64 => self.asm.fcmp_d(lhs.into(), rhs.into()),
-            _ => unimplemented!(),
-        }
-
-        self.asm.cset_w(dest.into(), Cond::GT);
-        let scratch = self.get_scratch();
-        self.asm.movn_w((*scratch).into(), 0, 0);
-        self.asm
-            .csel_w(dest.into(), (*scratch).into(), dest.into(), Cond::MI);
-    }
-
     pub fn float_cmp_ordering(&mut self, mode: MachineMode, dest: Reg, lhs: FReg, rhs: FReg) {
         self.asm.movz_w(dest.into(), 0, 0);
         match mode {
