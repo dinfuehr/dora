@@ -369,7 +369,7 @@ fn computeArgumentLocations(codegen: CodeGen, ci: CompilationInfo): Array[Locati
     let gp_argument_registers = codegen.argumentRegisters();
     let fp_argument_registers = codegen.argumentFloatRegisters();
 
-    let retTy = ci.returnType;
+    let retTy = ci.returnType.specialize(ci.typeParams);
 
     if retTy.isStruct() || retTy.isTuple() {
         locations.push(gp_argument_registers(gp_idx).toLocation());

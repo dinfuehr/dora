@@ -108,7 +108,7 @@ impl SsaGen {
     fn setupArguments() {
         let mut argIdx = 0i32;
         let entryBlock = self.graph.getEntryBlock();
-        let retTy = self.ci.returnType;
+        let retTy = self.ci.returnType.specialize(self.typeParams);
 
         if retTy.isStruct() || retTy.isTuple() {
             let argInst = graph::createArgInst(argIdx, Type::Address);
@@ -565,6 +565,7 @@ impl SsaGen {
             _ => unreachable[(ClassId, Array[BytecodeType], FieldId)](),
         };
 
+        let type_params = type_params.specialize(self.typeParams);
         let offset = iface::getFieldOffset(cls_id, type_params, field_id);
         let value = self.loadField(destType, objInst, offset);
         self.writeVariable(dest, self.current(), value);
@@ -1128,10 +1129,30 @@ impl SsaGen {
             self.emitIntrinsicConvert(dest, args, Type::Int64, Type::Float64);
         } else if intrinsic == opc::INTRINSIC_INT32_TO_FLOAT32 {
             self.emitIntrinsicConvert(dest, args, Type::Float32, Type::Int32);
+        } else if intrinsic == opc::INTRINSIC_INT64_AND || intrinsic == opc::INTRINSIC_INT32_AND {
+            self.emitIntrinsicBin(dest, args, Op::And);
+        } else if intrinsic == opc::INTRINSIC_INT64_SAR || intrinsic == opc::INTRINSIC_INT32_SAR {
+            self.emitIntrinsicBin(dest, args, Op::Sar);
+        } else if intrinsic == opc::INTRINSIC_INT64_SHL || intrinsic == opc::INTRINSIC_INT32_SHL {
+            self.emitIntrinsicBin(dest, args, Op::Shl);
+        } else if intrinsic == opc::INTRINSIC_INT64_NEG {
+            self.emitIntrinsicUn(dest, args, Op::Neg);
+        } else if intrinsic == opc::INTRINSIC_BOOL_NOT || intrinsic == opc::INTRINSIC_INT64_NOT || intrinsic == opc::INTRINSIC_INT32_NOT {
+            self.emitIntrinsicUn(dest, args, Op::Not);
         } else {
             let name = opc::intrinsicName(intrinsic);
             std::fatalError("unknown intrinsic ${name}");
         }
+    }
+
+    fn emitIntrinsicUn(dest: BytecodeRegister, args: Array[BytecodeRegister], op: Op) {
+        assert(args.size() == 1);
+        self.emitUn(dest, args(0), op);
+    }
+
+    fn emitIntrinsicBin(dest: BytecodeRegister, args: Array[BytecodeRegister], op: Op) {
+        assert(args.size() == 2);
+        self.emitBin(dest, args(0), args(1), op);
     }
 
     fn emitIntrinsicConvert(dest: BytecodeRegister, args: Array[BytecodeRegister], dest_ty: Type, src_ty: Type) {
@@ -1436,6 +1457,7 @@ impl SsaGen {
             _ => unreachable[(ClassId, Array[BytecodeType])](),
         };
 
+        let type_params = type_params.specialize(self.typeParams);
         let element_size = iface::getElementSize(class_id, type_params);
         let element_size_inst = graph::createInt64Const(element_size.toInt64());
         self.current().appendInst(element_size_inst);

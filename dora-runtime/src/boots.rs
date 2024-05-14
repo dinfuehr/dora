@@ -349,6 +349,7 @@ fn get_element_size_raw(data: Handle<UInt8Array>) -> u32 {
         InstanceSize::StructArray(element_size) => element_size as u32,
         InstanceSize::ObjArray => crate::mem::ptr_width() as u32,
         InstanceSize::PrimitiveArray(element_size) => element_size as u32,
+        InstanceSize::UnitArray => 0,
         _ => unreachable!(),
     }
 }
