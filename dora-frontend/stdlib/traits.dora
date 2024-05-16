@@ -6,38 +6,6 @@ pub trait Hash {
   fn hash(): Int32;
 }
 
-pub trait Identity {
-  fn identicalTo(other: Self): Bool;
-}
-
-impl Identity for Bool {
-  fn identicalTo(other: Bool): Bool { self === other }
-}
-
-impl Identity for UInt8 {
-  fn identicalTo(other: UInt8): Bool { self === other }
-}
-
-impl Identity for Int32 {
-  fn identicalTo(other: Int32): Bool { self === other }
-}
-
-impl Identity for Int64 {
-  fn identicalTo(other: Int64): Bool { self === other }
-}
-
-impl Identity for Float32 {
-  fn identicalTo(other: Float32): Bool { self === other }
-}
-
-impl Identity for Float64 {
-  fn identicalTo(other: Float64): Bool { self === other }
-}
-
-impl Identity for String {
-  fn identicalTo(other: String): Bool { self === other }
-}
-
 // Implementations of the `Zero` trait indicate that zero-initialized memory of the appropriate size can be allocated to
 // represent a valid value of that type.¹
 //

@@ -1,4 +1,4 @@
-use std::traits::{Comparable, Hash, Equals, Default, Zero, Identity, IntoIterator, Iterator};
+use std::traits::{Comparable, Hash, Equals, Default, Zero, IntoIterator, Iterator};
 use std::string::{Stringable, StringBuffer};
 use std::{fatalError, unsafeKillRefs};
 
@@ -194,21 +194,6 @@ impl[T: Equals] Array[T] {
     }
 
     return true;
-  }
-}
-
-impl[T: Identity] Array[T] {
-  pub fn has(value: T): Bool {
-    let mut i = 0i64;
-
-    while i < self.size() {
-      if self.get(i).identicalTo(value) {
-        return true;
-      }
-      i = i + 1i64;
-    }
-
-    return false;
   }
 }
 
@@ -1292,21 +1277,6 @@ impl[T: Equals] Vec[T] {
         i = i + 1i64;
       }
     }
-  }
-}
-
-impl[T: Identity] Vec[T] {
-  pub fn has(value: T): Bool {
-    let mut i = 0i64;
-
-    while i < self.size() {
-      if self.get(i).identicalTo(value) {
-        return true;
-      }
-      i = i + 1i64;
-    }
-
-    return false;
   }
 }
 

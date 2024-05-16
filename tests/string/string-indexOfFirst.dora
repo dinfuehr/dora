@@ -9,11 +9,11 @@ fn main() {
 }
 
 fn testBothEmpty() {
-  assert("".indexOfFirst("").has(0i64));
+  assert("".indexOfFirst("").contains(0i64));
 }
 
 fn testNeedleEmpty() {
-  assert("abc".indexOfFirst("").has(0i64));
+  assert("abc".indexOfFirst("").contains(0i64));
 }
 
 fn testHaystackEmpty() {
@@ -25,14 +25,14 @@ fn testNeedleLarger() {
 }
 
 fn testSuccess() {
-  assert("abcdef".indexOfFirst("abc").has(0i64));
-  assert("defabc".indexOfFirst("abc").has(3i64));
-  assert("ababbaadef".indexOfFirst("aa").has(5i64));
-  assert("apapplapple".indexOfFirst("apple").has(6i64));
+  assert("abcdef".indexOfFirst("abc").contains(0i64));
+  assert("defabc".indexOfFirst("abc").contains(3i64));
+  assert("ababbaadef".indexOfFirst("aa").contains(5i64));
+  assert("apapplapple".indexOfFirst("apple").contains(6i64));
 }
 
 fn testMultipleMatch() {
-  assert("abcdefabc".indexOfFirst("abc").has(0i64));
+  assert("abcdefabc".indexOfFirst("abc").contains(0i64));
 }
 
 fn testFailure() {

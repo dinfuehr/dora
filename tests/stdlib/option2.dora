@@ -2,7 +2,6 @@ fn main() {
   let x = None[Int32];
   assert(x.isNone());
   assert(!x.isSome());
-  assert(!x.has(0i32));
   assert(!x.contains(0i32));
   assert(x.equals(None[Int32]));
   assert(!x.equals(Some[Int32](0i32)));
@@ -12,7 +11,6 @@ fn main() {
   assert(x.isSome());
   assert(!x.isNone());
   assert(x.getOrPanic() == 42i32);
-  assert(x.has(42i32));
   assert(x.contains(42i32));
   assert(x.equals(Some[Int32](42i32)));
   assert(!x.equals(Some[Int32](2i32)));

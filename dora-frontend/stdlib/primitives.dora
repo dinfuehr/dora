@@ -723,13 +723,6 @@ impl[T] Option[T] {
     }
   }
 
-  pub fn has(val: T): Bool {
-    match self {
-      Some(actual) => actual === val,
-      None => false,
-    }
-  }
-
   pub fn or(alt: Option[T]): Option[T] {
     if self.isSome() {
       return self;
