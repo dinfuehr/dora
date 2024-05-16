@@ -1,4 +1,5 @@
 use std::BitVec;
+use std::collections::BitVecIter;
 use std::Equals;
 use std::Hash;
 use std::Stringable;
@@ -63,12 +64,13 @@ impl Graph {
         self.entryBlock.getOrPanic()
     }
 
-    pub fn getInstById(id: Int32): Inst {
-        self.instById(id.toInt64()).getOrPanic()
+    pub fn getInstById(id: InstId): Inst {
+        self.instById(id.value.toInt64()).getOrPanic()
     }
 
     fn assignNextInstId(inst: Inst) {
-        inst._id = Some(self.instById.size().toInt32());
+        let id = self.instById.size().toInt32();
+        inst._id = Some(InstId(id));
         self.instById.push(Some[Inst](inst));
     }
 
@@ -229,7 +231,7 @@ pub class Block {
     dominator: Option[Block],
     dominatedBlocks: Vec[Block],
 
-    liveIn: Option[BitVec],
+    liveIn: Option[InstSet],
     trackerIn: Option[RegisterTrackers],
     trackerOut: Option[RegisterTrackers],
 
@@ -250,7 +252,7 @@ impl Block {
             None[Graph],
             None[Block],
             Vec[Block]::new(),
-            None[BitVec],
+            None[InstSet],
             None[RegisterTrackers],
             None[RegisterTrackers],
             Vec[Edge]::new(),
@@ -380,7 +382,7 @@ impl Block {
         unimplemented();
     }
 
-    pub fn setLiveIn(liveIn: BitVec) {
+    pub fn setLiveIn(liveIn: InstSet) {
         assert(self.liveIn.isNone());
         self.liveIn = Some(liveIn);
     }
@@ -389,7 +391,7 @@ impl Block {
         self.liveIn.isSome()
     }
 
-    pub fn getLiveIn(): BitVec {
+    pub fn getLiveIn(): InstSet {
         self.liveIn.getOrPanic()
     }
 
@@ -763,8 +765,16 @@ pub fn opName(op: Op): String {
     }
 }
 
+pub struct InstId(value: Int32)
+
+impl Stringable for InstId {
+    fn toString(): String {
+        self.value.toString()
+    }
+}
+
 pub class Inst {
-    _id: Option[Int32],
+    _id: Option[InstId],
     block: Option[Block],
     linear_index: Option[Int32],
 
@@ -793,7 +803,7 @@ pub class Inst {
 impl Inst {
     pub static fn new(): Inst {
         Inst(
-            None[Int32],
+            None[InstId],
             None[Block],
             None[Int32],
             None[Op],
@@ -812,7 +822,7 @@ impl Inst {
         )
     }
 
-    pub fn id(): Int32 {
+    pub fn id(): InstId {
         self._id.getOrPanic()
     }
 
@@ -873,79 +883,87 @@ impl Inst {
     }
 
     pub fn getValueType(): Type {
+        self.getMaybeValueType().getOrPanic()
+    }
+
+    pub fn getMaybeValueType(): Option[Type] {
         match self.op() {
-            Op::NullConst => Type::Ptr,
-            Op::TrueConst => Type::Bool,
-            Op::FalseConst => Type::Bool,
-            Op::UInt8Const => Type::UInt8,
-            Op::Int32Const => Type::Int32,
-            Op::Int64Const => Type::Int64,
-            Op::Float32Const => Type::Float32,
-            Op::Float64Const => Type::Float64,
-            Op::StringConst => Type::Ptr,
-            Op::EnsureGlobalInitialized => unreachable[Type](),
-            Op::LoadGlobal => self.ty,
-            Op::GetGlobalAddress => Type::Address,
-            Op::StoreGlobal => self.ty,
-            Op::MarkGlobalInitialized => unreachable[Type](),
-            Op::Undef => unreachable[Type](),
-            Op::BoundsCheck => Type::Unit,
-            Op::Goto => unreachable[Type](),
-            Op::If => unreachable[Type](),
-            Op::Return => unreachable[Type](),
-            Op::Abort => unreachable[Type](),
-            Op::Assert => unreachable[Type](),
-            Op::Neg => self.ty,
-            Op::CheckedNeg => self.ty,
-            Op::Not => self.ty,
-            Op::Add => self.ty,
-            Op::CheckedAdd => self.ty,
-            Op::Sub => self.ty,
-            Op::CheckedSub => self.ty,
-            Op::Mul => self.ty,
-            Op::CheckedMul => self.ty,
-            Op::Div => self.ty,
-            Op::CheckedDiv => self.ty,
-            Op::Mod => self.ty,
-            Op::CheckedMod => self.ty,
-            Op::And => self.ty,
-            Op::Or => self.ty,
-            Op::Xor => self.ty,
-            Op::Shl => self.ty,
-            Op::Shr => self.ty,
-            Op::Sar => self.ty,
-            Op::InvokeStatic => self.ty,
-            Op::InvokeDirect => self.ty,
-            Op::InvokeVirtual => self.ty,
-            Op::InvokeLambda => self.ty,
-            Op::Equal => Type::Bool,
-            Op::NotEqual => Type::Bool,
-            Op::Greater => Type::Bool,
-            Op::GreaterOrEqual => Type::Bool,
-            Op::Less => Type::Bool,
-            Op::LessOrEqual => Type::Bool,
-            Op::Phi => self.ty,
-            Op::DivZeroCheck => unreachable[Type](),
-            Op::ArrayLength => Type::Int64,
-            Op::LoadArray => self.ty,
-            Op::StoreArray => unreachable[Type](),
-            Op::GetElementPtr => Type::Address,
-            Op::Arg => self.ty,
-            Op::Move => self.ty,
-            Op::MoveImmediate => self.ty,
-            Op::NewObject => Type::Ptr,
-            Op::NewArray => Type::Ptr,
-            Op::NewLambda => Type::Ptr,
-            Op::AllocateStack => Type::Address,
-            Op::Load => self.ty,
+            Op::NullConst => Some[Type](Type::Ptr),
+            Op::TrueConst => Some[Type](Type::Bool),
+            Op::FalseConst => Some[Type](Type::Bool),
+            Op::UInt8Const => Some[Type](Type::UInt8),
+            Op::Int32Const => Some[Type](Type::Int32),
+            Op::Int64Const => Some[Type](Type::Int64),
+            Op::Float32Const => Some[Type](Type::Float32),
+            Op::Float64Const => Some[Type](Type::Float64),
+            Op::StringConst => Some[Type](Type::Ptr),
+            Op::EnsureGlobalInitialized => None[Type],
+            Op::LoadGlobal => Some[Type](self.ty),
+            Op::GetGlobalAddress => Some[Type](Type::Address),
+            Op::StoreGlobal => Some[Type](self.ty),
+            Op::MarkGlobalInitialized => None[Type],
+            Op::Undef => None[Type],
+            Op::BoundsCheck => Some[Type](Type::Unit),
+            Op::Goto => None[Type],
+            Op::If => None[Type],
+            Op::Return => None[Type],
+            Op::Abort => None[Type],
+            Op::Assert => None[Type],
+            Op::Neg => Some[Type](self.ty),
+            Op::CheckedNeg => Some[Type](self.ty),
+            Op::Not => Some[Type](self.ty),
+            Op::Add => Some[Type](self.ty),
+            Op::CheckedAdd => Some[Type](self.ty),
+            Op::Sub => Some[Type](self.ty),
+            Op::CheckedSub => Some[Type](self.ty),
+            Op::Mul => Some[Type](self.ty),
+            Op::CheckedMul => Some[Type](self.ty),
+            Op::Div => Some[Type](self.ty),
+            Op::CheckedDiv => Some[Type](self.ty),
+            Op::Mod => Some[Type](self.ty),
+            Op::CheckedMod => Some[Type](self.ty),
+            Op::And => Some[Type](self.ty),
+            Op::Or => Some[Type](self.ty),
+            Op::Xor => Some[Type](self.ty),
+            Op::Shl => Some[Type](self.ty),
+            Op::Shr => Some[Type](self.ty),
+            Op::Sar => Some[Type](self.ty),
+            Op::InvokeStatic => Some[Type](self.ty),
+            Op::InvokeDirect => Some[Type](self.ty),
+            Op::InvokeVirtual => Some[Type](self.ty),
+            Op::InvokeLambda => Some[Type](self.ty),
+            Op::Equal => Some[Type](Type::Bool),
+            Op::NotEqual => Some[Type](Type::Bool),
+            Op::Greater => Some[Type](Type::Bool),
+            Op::GreaterOrEqual => Some[Type](Type::Bool),
+            Op::Less => Some[Type](Type::Bool),
+            Op::LessOrEqual => Some[Type](Type::Bool),
+            Op::Phi => Some[Type](self.ty),
+            Op::DivZeroCheck => None[Type],
+            Op::ArrayLength => Some[Type](Type::Int64),
+            Op::LoadArray => Some[Type](self.ty),
+            Op::StoreArray => None[Type],
+            Op::GetElementPtr => Some[Type](Type::Address),
+            Op::Arg => Some[Type](self.ty),
+            Op::Move => Some[Type](self.ty),
+            Op::MoveImmediate => Some[Type](self.ty),
+            Op::NewObject => Some[Type](Type::Ptr),
+            Op::NewArray => Some[Type](Type::Ptr),
+            Op::NewLambda => Some[Type](Type::Ptr),
+            Op::AllocateStack => Some[Type](Type::Address),
+            Op::Load => Some[Type](self.ty),
             Op::Store
             | Op::StoreWb
             | Op::StoreArrayWb
-            | Op::StoreArrayAddressWb => unreachable[Type](),
-            Op::ThreadCurrent => Type::Ptr,
-            Op::Convert => self.ty,
-            Op::CompareOrdering => Type::Int32,
+            | Op::StoreArrayAddressWb => None[Type],
+            Op::ThreadCurrent => Some[Type](Type::Ptr),
+            Op::Convert => Some[Type](self.ty),
+            Op::CompareOrdering => Some[Type](Type::Int32),
         }
+    }
+
+    pub fn hasOutput(): Bool {
+        self.getMaybeValueType().isSome()
     }
 
     pub fn getOperationType(): Type {
@@ -1160,7 +1178,8 @@ impl Inst {
         }
 
         self.block = None;
-        block.getGraph().instById(self.id().toInt64()) = None[Inst];
+        let id = self.id().value.toInt64();
+        block.getGraph().instById(id) = None[Inst];
         self._id = None;
     }
 
@@ -1472,7 +1491,7 @@ impl Inst {
 
 impl Hash for Inst {
     fn hash(): Int32 {
-        self.id().hash()
+        self.id().value.hash()
     }
 }
 
@@ -2693,4 +2712,64 @@ impl Edge {
     pub fn isBackward(): Bool {
         self.backward
     }
+}
+
+pub class InstSet {
+    graph: Graph,
+    data: BitVec,
+}
+
+impl InstSet {
+    pub static fn new(graph: Graph): InstSet {
+        InstSet(graph, BitVec::new())
+    }
+
+    pub fn contains(inst: Inst): Bool {
+        self.data.contains(inst.id().value.toInt64())
+    }
+
+    pub fn insert(inst: Inst): Bool {
+        self.data.insert(inst.id().value.toInt64())
+    }
+
+    pub fn remove(inst: Inst): Bool {
+        self.data.remove(inst.id().value.toInt64())
+    }
+
+    pub fn unionWith(rhs: InstSet) {
+        assert(self.graph === rhs.graph);
+        self.data.unionWith(rhs.data);
+    }
+
+    pub fn clone(): InstSet {
+        InstSet(self.graph, self.data.clone())
+    }
+}
+
+impl std::traits::IntoIterator for InstSet {
+  type IteratorType = InstSetIter;
+
+  fn iter(): IteratorType {
+    InstSetIter(self.graph, self.data.iter())
+  }
+}
+
+pub class InstSetIter {
+  graph: Graph,
+  iter: BitVecIter,
+}
+
+impl Iterator for InstSetIter {
+  type Item = Inst;
+
+  fn next(): Option[Inst] {
+    let it = self.iter.next();
+
+    if it.isSome() {
+        let id = InstId(it.getOrPanic().toInt32());
+        Some[Inst](self.graph.getInstById(id))
+    } else {
+        None[Inst]
+    }
+  }
 }

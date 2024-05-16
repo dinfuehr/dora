@@ -5,7 +5,7 @@ use package::bytecode::data::{ClassId, EnumId, StructId, BytecodeType};
 use package::codegen::CodeGen;
 use package::codegen::STACK_FRAME_ALIGNMENT;
 use package::compilation::CompilationInfo;
-use package::graph::{createGotoInst, createMoveInst, Block, Edge, Graph, Inst, Operand, LocationData, Op, Location, opName, Policy, RegisterSnapshot, RegisterTrackers, Type};
+use package::graph::{createGotoInst, createMoveInst, Block, Edge, Graph, Inst, InstSet, Operand, LocationData, Op, Location, opName, Policy, RegisterSnapshot, RegisterTrackers, Type};
 use package::interface::{EnumData, GcPoint};
 use package::interface as iface;
 use package::location::ensureLocationData;
@@ -32,8 +32,8 @@ class SimpleRegisterAllocator {
     registers: Option[RegisterTracker[Register]],
     float_registers: Option[RegisterTracker[FloatRegister]],
     currentStackSize: Int32,
-    refs: HashSet[Int32],
     currentInst: Option[Inst],
+    currentlyLive: InstSet,
 }
 
 impl SimpleRegisterAllocator {
@@ -44,8 +44,8 @@ impl SimpleRegisterAllocator {
             None[RegisterTracker[Register]],
             None[RegisterTracker[FloatRegister]],
             0i32,
-            HashSet[Int32]::new(),
             None[Inst],
+            InstSet::new(graph),
         )
     }
 
@@ -58,6 +58,7 @@ impl SimpleRegisterAllocator {
     fn allocateBlock(block: Block) {
         self.initializeRegisters(block);
         block.setTrackerIn(self.snapshotRegisterTrackers());
+        self.currentlyLive = block.getLiveIn().clone();
 
         for inst in block.phisIterator() {
             self.allocatePhi(inst);
@@ -91,8 +92,7 @@ impl SimpleRegisterAllocator {
 
         if block.isLoopHeader() {
             // For now everything is spilled at the beginning of a loop.
-            for id in block.getLiveIn() {
-                let inst = self.graph.getInstById(id.toInt32());
+            for inst in block.getLiveIn() {
                 self.spill(inst);
             }
         } else {
@@ -117,9 +117,7 @@ impl SimpleRegisterAllocator {
                 assert(self.float_registers().allocateFixedRegister(reg, inst));
             }
 
-            for id in block.getLiveIn() {
-                let inst = self.graph.getInstById(id.toInt32());
-
+            for inst in block.getLiveIn() {
                 if all_gp.contains(inst) || all_fp.contains(inst) {
                     continue;
                 }
@@ -133,7 +131,7 @@ impl SimpleRegisterAllocator {
         let predecessorCount = block.predecessors.size();
 
         for (reg, inst) in tracker.data {
-            if !block.getLiveIn().contains(inst.id().toInt64()) {
+            if !block.getLiveIn().contains(inst) {
                 continue;
             }
 
@@ -159,6 +157,7 @@ impl SimpleRegisterAllocator {
     }
 
     fn allocatePhiGeneric[T: RegisterType](registers: RegisterTracker[T], inst: Inst) {
+        assert(self.currentlyLive.insert(inst));
         let register = registers.allocateRegister(inst);
 
         if register.isSome() {
@@ -194,6 +193,10 @@ impl SimpleRegisterAllocator {
             self.allocateArbitraryTemps(inst);
             self.allocateArbitraryOutput(inst);
 
+            if inst.getLocationData().hasOutput() {
+                assert(self.currentlyLive.insert(inst));
+            }
+
             self.freeDeadInputs(inst);
             self.freeDeadOutput(inst);
             self.freeDeadTemps(inst);
@@ -227,6 +230,10 @@ impl SimpleRegisterAllocator {
             self.allocateFixedOutput(inst);
             self.allocateArbitraryOutput(inst);
 
+            if inst.getLocationData().hasOutput() {
+                assert(self.currentlyLive.insert(inst));
+            }
+
             if inst.op() == Op::AllocateStack {
                 self.allocateStackSlot(inst);
             }
@@ -255,10 +262,23 @@ impl SimpleRegisterAllocator {
     fn attachGcPoint(inst: Inst) {
         let loc_data = inst.getLocationData();
         let offsets = Vec[Int32]::new();
-        offsets.reserve(self.refs.size());
-        for offset in self.refs {
-            offsets.push(offset);
+
+        for inst in self.currentlyLive {
+            let loc = inst.getLocationData();
+
+            if inst.op() == Op::AllocateStack {
+                let layout = inst.getRecordLayout();
+                let offset = loc.getStackSlot();
+
+                for ref in layout.refs {
+                    offsets.push(offset + ref);
+                }
+
+            } else if inst.getValueType().isPtr() && loc.hasSpillSlot() {
+                offsets.push(loc.getSpillSlot());
+            }
         }
+
         loc_data.setGcPoint(GcPoint::from(offsets));
     }
 
@@ -374,7 +394,6 @@ impl SimpleRegisterAllocator {
             let offset = slot.getOffset();
             loc_data.setSpillSlot(offset);
             assert(inst.op() == Op::Arg);
-            self.addSpillSlotToGcPoint(offset, inst.getValueType());
         } else if output.getPolicy().isFixedReg() {
             self.allocateFixedOutputRegisterGeneric[Register](output.getRegister(), self.registers(), inst);
         } else if output.getPolicy().isFixedFloatReg() {
@@ -472,25 +491,13 @@ impl SimpleRegisterAllocator {
             _ => unreachable[(Int32, Int32)](),
         };
 
-        let offset = self.allocateStackSpace(size, alignment);
-        self.addSpillSlotToGcPoint(offset, ty);
-
-        offset
-    }
-
-    fn addSpillSlotToGcPoint(offset: Int32, ty: Type) {
-        if ty.isPtr() {
-            assert(!self.refs.contains(offset));
-            self.refs.insert(offset);
-        }
+        self.allocateStackSpace(size, alignment)
     }
 
     fn allocateStackSlot(inst: Inst) {
         let layout = inst.getRecordLayout();
 
         let offset = self.allocateStackSpace(layout.size, layout.alignment);
-        self.addRecordLayoutToGcPoint(offset, layout);
-
         inst.getLocationData().setStackSlot(offset);
     }
 
@@ -501,19 +508,16 @@ impl SimpleRegisterAllocator {
         -self.currentStackSize
     }
 
-    fn addRecordLayoutToGcPoint(offset: Int32, layout: RecordLayout) {
-        for ref in layout.refs {
-            assert(!self.refs.contains(offset + ref));
-            self.refs.insert(offset + ref);
-        }
-    }
-
     fn freeDeadOutput(inst: Inst) {
         let loc_data = inst.getLocationData();
 
-        if loc_data.hasOutput() && !inst.hasUses() && !loc_data.getOutput().hasStack() {
-            self.freeRegisterInLocation(loc_data.getOutput().getLocation());
-            assert(!loc_data.hasSpillSlot());
+        if loc_data.hasOutput() && !inst.hasUses() {
+            if !loc_data.getOutput().hasStack() {
+                self.freeRegisterInLocation(loc_data.getOutput().getLocation());
+                assert(!loc_data.hasSpillSlot());
+            }
+
+            assert(self.currentlyLive.remove(inst));
         }
     }
 
@@ -536,24 +540,8 @@ impl SimpleRegisterAllocator {
             if input.isLastUse() {
                 self.registers().free(value);
                 self.float_registers().free(value);
-                self.removeInstFromGcPoint(value);
+                assert(self.currentlyLive.remove(value));
             }
-        }
-    }
-
-    fn removeInstFromGcPoint(inst: Inst) {
-        let loc = inst.getLocationData();
-
-        if inst.op() == Op::AllocateStack {
-            let layout = inst.getRecordLayout();
-            let offset = loc.getStackSlot();
-
-            for ref in layout.refs {
-                assert(self.refs.remove(offset + ref));
-            }
-
-        } else if inst.getValueType().isPtr() && loc.hasSpillSlot() {
-            assert(self.refs.remove(loc.getSpillSlot()));
         }
     }
 

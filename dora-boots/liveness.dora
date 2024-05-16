@@ -1,7 +1,7 @@
 use std::collections::BitVec;
 use std::collections::HashSet;
 
-use package::graph::{Graph, Input};
+use package::graph::{Graph, Input, InstSet};
 
 pub fn computeLiveness(graph: Graph) {
     computeLinearOrderIndex(graph);
@@ -17,7 +17,7 @@ pub fn computeLiveness(graph: Graph) {
     }
 
     for block in graph.postOrderIterator() {
-        let live = BitVec::new();
+        let live = InstSet::new(graph);
 
         for successorEdge in block.successors {
             let successor = successorEdge.target;
@@ -26,7 +26,7 @@ pub fn computeLiveness(graph: Graph) {
             for phi in successor.phisIterator() {
                 let input = phi.getInput(idx);
                 let value = input.getValue();
-                live.insert(value.id().toInt64());
+                live.insert(value);
                 value.usedAt(block.lastInst());
                 value.prependUse(input, block.lastInst());
             }
@@ -47,18 +47,16 @@ pub fn computeLiveness(graph: Graph) {
                 value.usedAt(inst);
                 value.prependUse(input, inst);
 
-                let id = value.id().toInt64();
-                if !live.contains(id) {
+                if live.insert(value) {
                     input.markLastUse();
                 }
-                live.insert(id);
             }
 
-            live.remove(inst.id().toInt64());
+            live.remove(inst);
         }
 
         for phi in block.phisIterator() {
-            live.remove(phi.id().toInt64());
+            live.remove(phi);
         }
 
         block.setLiveIn(live);
@@ -75,9 +73,7 @@ pub fn computeLiveness(graph: Graph) {
         // A value that is live-in in a loop header, needs to be
         // live through the whole loop.
 
-        for value_id in liveLoop {
-            let value = graph.getInstById(value_id.toInt32());
-
+        for value in liveLoop {
             // Extend live range for each live-in variable up to
             // the last loop back edge.
             for backEdge in loopData.getBackEdges() {

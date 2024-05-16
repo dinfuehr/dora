@@ -323,7 +323,7 @@ impl BitVec {
     return value & (1i32 << value_idx.toInt32()) != 0i32;
   }
 
-  pub fn insert(idx: Int64) {
+  pub fn insert(idx: Int64): Bool {
     if idx < 0i64 {
       fatalError("index out of bounds");
     }
@@ -334,27 +334,39 @@ impl BitVec {
     let mut value = self.data.get(entry_idx);
     let value_idx = idx & 0x1F;
 
-    value = value | (1i32 << value_idx.toInt32());
+    let mask = 1i32 << value_idx.toInt32();
 
-    self.data.set(entry_idx, value);
+    if value & mask == 0i32 {
+      value = value | (1i32 << value_idx.toInt32());
+      self.data.set(entry_idx, value);
+      true
+    } else {
+      false
+    }
   }
 
-  pub fn remove(idx: Int64) {
+  pub fn remove(idx: Int64): Bool {
     if idx < 0i64 {
       fatalError("index out of bounds");
     }
 
     if idx >= self.data.size() * 32i64 {
-        return;
+        return false;
     }
 
     let entry_idx = idx >> 5i32;
     let mut value = self.data.get(entry_idx);
     let value_idx = idx & 0x1F;
 
-    value = value & !(1i32 << value_idx.toInt32());
+    let mask = 1i32 << value_idx.toInt32();
 
-    self.data.set(entry_idx, value);
+    if value & mask != 0i32 {
+      value = value & !mask;
+      self.data.set(entry_idx, value);
+      true
+    } else {
+      false
+    }
   }
 
   pub fn ensureCapacity(newcap: Int64) {
@@ -405,6 +417,10 @@ impl BitVec {
       self.data(idx) = 0i32;
       idx = idx + 1;
     }
+  }
+
+  pub fn clone(): BitVec {
+    BitVec(self.data.clone())
   }
 }
 
@@ -871,6 +887,10 @@ impl[K: Hash + Equals] HashSet[K] {
 
   pub fn capacity(): Int64 {
     self.map.capacity()
+  }
+
+  pub fn clone(): HashSet[K] {
+    HashSet[K](self.map.clone())
   }
 }
 

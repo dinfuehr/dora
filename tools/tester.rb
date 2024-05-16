@@ -59,18 +59,22 @@ end
 class Config
   attr_accessor :name
   attr_accessor :flags
-  attr_accessor :always_enabled
+  attr_accessor :directories
   attr_accessor :enable_boots
 
-  def initialize(name, flags, always_enabled)
+  def initialize(name, flags, directories)
     self.name = name
     self.flags = flags
-    self.always_enabled = always_enabled
+    self.directories = directories
     self.enable_boots = false
   end
 
-  def always_enabled?
-    @always_enabled
+  def enabled_for?(test_dir)
+    return true if @directories == true
+    for dir in @directories
+      return true if test_dir == $tests_dir.join(dir)
+    end
+    false
   end
 end
 
@@ -85,7 +89,9 @@ $OS = get_os
 $files = []
 $platform_binding = create_platform_binding
 $default_config = Config.new("default", "", true)
-$always_boots_config = Config.new("always_boots", '--always-boots', false)
+$always_boots_config = Config.new("always_boots", '--always-boots', [
+  'boots', 'unit', 'generic'
+])
 $always_boots_config.enable_boots = true
 $all_configs = [
   $default_config,
@@ -97,6 +103,8 @@ $env = {}
 $verbose = false
 $check_only = false
 $extra_args = nil
+dir = File.expand_path(__dir__)
+$tests_dir = Pathname.new(dir).parent.join('tests')
 
 def process_arguments
   idx = 0
@@ -667,8 +675,9 @@ def parse_test_file(file)
   if $use_config
     test_case.configs.push($use_config)
   else
+    test_dir = Pathname.new(File.expand_path(file)).parent
     for config in $all_configs do
-      test_case.configs.push(config) if config.always_enabled?
+      test_case.configs.push(config) if config.enabled_for?(file)
     end
   end
 

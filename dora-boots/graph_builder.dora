@@ -811,8 +811,12 @@ impl SsaGen {
     }
 
     fn emitMov(dest: BytecodeRegister, src: BytecodeRegister) {
-        let srcInst = self.readVariable(src, self.current());
-        self.writeVariable(dest, self.current(), srcInst);
+        let ty = self.reg(src);
+
+        if !ty.isUnit() {
+            let srcInst = self.readVariable(src, self.current());
+            self.writeVariable(dest, self.current(), srcInst);
+        }
     }
 
     fn emitLoadGlobal(dest: BytecodeRegister, glob: GlobalId) {
