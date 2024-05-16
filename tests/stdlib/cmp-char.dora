@@ -1,5 +1,3 @@
-//= ignore
-
 use std::traits::Ordering;
 
 fn main() {

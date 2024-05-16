@@ -1,5 +1,3 @@
-//= ignore
-
 fn main() {
     assert(le[Int64](10, 10));
     assert(le[Int64](10, 12));
