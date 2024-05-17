@@ -5,7 +5,7 @@ use package::codegen::CodeGen;
 use package::graph::{Block, createMoveInst, Edge, Graph, Inst, Location, RegisterTrackers, Type};
 use package::regalloc::RegisterTracker;
 
-pub fn ssaDestruction(graph: Graph, codegen: CodeGen) {
+pub fn resolveMoves(graph: Graph, codegen: CodeGen) {
     for block in graph.insertionOrderIterator() {
         let block_trackers = block.getTrackerIn();
         
@@ -21,7 +21,13 @@ pub fn ssaDestruction(graph: Graph, codegen: CodeGen) {
             processPhis(block, predecessorEdge, predecessor_trackers, moves);
 
             moves.resolve(codegen.getScratchRegister(), codegen.getFloatScratchRegister());
-            moves.emitMoves(predecessor);
+
+            if predecessor.successors.size() == 1 {
+                moves.emitMovesAtEnd(predecessor);
+            } else {
+                assert(block.predecessors.size() == 1);
+                moves.emitMovesAtStart(predecessor);
+            }
         }
     }
 }
@@ -189,12 +195,21 @@ impl ParallelMoveResolver {
         self.orderedMoves.push(Move(ty, dest, src));
     }
 
-    fn emitMoves(block: Block) {
+    fn emitMovesAtEnd(block: Block) {
         for move in self.orderedMoves {
             let inst = createMoveInst(move.ty, move.dest, move.src);
             let terminator = block.lastInst();
             assert(terminator.isTerminator());
             terminator.insertBefore(inst);
+        }
+    }
+
+    fn emitMovesAtStart(block: Block) {
+        let first = block.firstInst();
+
+        for move in self.orderedMoves {
+            let inst = createMoveInst(move.ty, move.dest, move.src);
+            first.insertBefore(inst);
         }
     }
 }

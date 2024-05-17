@@ -9,7 +9,7 @@ use package::graph::{createGotoInst, createMoveInst, Block, Edge, Graph, Inst, I
 use package::interface::{EnumData, GcPoint};
 use package::interface as iface;
 use package::location::ensureLocationData;
-use package::ssa_destruction::ssaDestruction;
+use package::resolver::resolveMoves;
 
 pub fn performRegisterAllocation(graph: Graph, codegen: CodeGen, ci: CompilationInfo) {
     let maxOutgoingArgsSize = ensureLocationData(graph, codegen, ci);
@@ -23,7 +23,7 @@ pub fn performRegisterAllocation(graph: Graph, codegen: CodeGen, ci: Compilation
     let finalAlignedStackSize = (finalStackSize + (stack_alignment - 1i32)) & !(stack_alignment - 1i32);
     graph.setStackSize(finalAlignedStackSize);
 
-    ssaDestruction(graph, codegen);
+    resolveMoves(graph, codegen);
 }
 
 class SimpleRegisterAllocator {
