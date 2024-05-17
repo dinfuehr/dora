@@ -654,6 +654,7 @@ pub enum Op {
     // Convert between integer and floats.
     Convert,
     CompareOrdering,
+    Bitcast,
 }
 
 impl Op {
@@ -762,6 +763,7 @@ pub fn opName(op: Op): String {
         Op::ThreadCurrent => "ThreadCurrent",
         Op::Convert => "Convert",
         Op::CompareOrdering => "CompareOrdering",
+        Op::Bitcast => "Bitcast",
     }
 }
 
@@ -959,6 +961,7 @@ impl Inst {
             Op::ThreadCurrent => Some[Type](Type::Ptr),
             Op::Convert => Some[Type](self.ty),
             Op::CompareOrdering => Some[Type](Type::Int32),
+            Op::Bitcast => Some[Type](self.ty),
         }
     }
 
@@ -987,7 +990,7 @@ impl Inst {
     }
 
     pub fn getSourceType(): Type {
-        assert(self.op() == Op::Convert);
+        assert(self.op() == Op::Convert || self.op() == Op::Bitcast);
         self.getInput(0).getValue().getValueType()
     }
 
@@ -1485,6 +1488,7 @@ impl Inst {
             Op::ThreadCurrent => false,
             Op::Convert => false,
             Op::CompareOrdering => false,
+            Op::Bitcast => false,
         }
     }
 }
@@ -2528,6 +2532,14 @@ pub fn createConvertInst(ty: Type, value: Inst): Inst {
     let inst = Inst::new();
     inst.ty = ty;
     inst._op = Some(Op::Convert);
+    inst.addInput(value);
+    inst
+}
+
+pub fn createBitcastInst(ty: Type, value: Inst): Inst {
+    let inst = Inst::new();
+    inst.ty = ty;
+    inst._op = Some(Op::Bitcast);
     inst.addInput(value);
     inst
 }

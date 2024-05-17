@@ -196,10 +196,11 @@ impl ParallelMoveResolver {
     }
 
     fn emitMovesAtEnd(block: Block) {
+        let terminator = block.lastInst();
+        assert(terminator.isTerminator());
+
         for move in self.orderedMoves {
             let inst = createMoveInst(move.ty, move.dest, move.src);
-            let terminator = block.lastInst();
-            assert(terminator.isTerminator());
             terminator.insertBefore(inst);
         }
     }

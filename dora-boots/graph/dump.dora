@@ -333,6 +333,7 @@ fn dumpInstName(inst: Inst): String {
         Op::ThreadCurrent => "ThreadCurrent",
         Op::Convert => "Convert.(${inst.getSourceType()}->${inst.getValueType()})",
         Op::CompareOrdering => "CompareOrdering",
+        Op::Bitcast => "Bitcast.(${inst.getSourceType()}->${inst.getValueType()})",
     }
 }
 

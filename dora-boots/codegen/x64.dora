@@ -11,7 +11,7 @@ use package::interface::{Address, Architecture, ConstPool, ConstPoolEntry, Const
 use package::interface::{TRAP_DIV0, TRAP_OVERFLOW, TRAP_INDEX_OUT_OF_BOUNDS, LAMBDA_SIZE, PTR_SIZE, GLOBAL_STATE_INITIALIZED};
 use package::interface::{THREAD_LOCAL_DATA_TLAB_TOP_OFFSET, THREAD_LOCAL_DATA_TLAB_END_OFFSET, THREAD_LOCAL_DATA_STACK_LIMIT_OFFSET, THREAD_LOCAL_DATA_STATE_OFFSET, THREAD_LOCAL_DATA_MARKING_OFFSET, OBJECT_HEADER_LENGTH, OBJECT_METADATA_OFFSET, METADATA_REMEMBERED_BIT, ARRAY_HEADER_LENGTH, THREAD_LOCAL_DATA_MANAGED_THREAD_HANDLE_OFFSET};
 use package::interface as iface;
-use package::location::{useInputFloatRegisterFixed, useInputRegister, useInputRegisterFixed, useInputFloatRegister, useOutputRegister, useOutputRegisterFixed, useOutputSameAsFirstInput, addTempRegisterFixed};
+use package::location::{useInputFloatRegisterFixed, useInputRegister, useInputRegisterFixed, useInputFloatRegister, useOutputRegister, useOutputFloatRegister, useOutputRegisterFixed, useOutputSameAsFirstInput, addTempRegisterFixed};
 use package::graph::{Graph, InputOutputOverlap, Inst, Op, LocationData, RegisterSnapshot, RegisterTrackers, Type};
 use package::regalloc::isReference;
 use package::{CodeDescriptor, CommentTable, GcPoint, GcPointTable, LazyCompilationData, LazyCompilationSiteVirtual, LazyCompilationSiteLambda, LocationTable};
@@ -1995,6 +1995,35 @@ impl CodeGen for CodeGenX64 {
             }
 
             _ => unreachable[()](),
+        }
+    }
+
+    fn annotateBitcast(inst: Inst) {
+        if inst.getSourceType().isAnyFloat() {
+            useInputFloatRegister(inst, 0);
+        } else {
+            useInputRegister(inst, 0);
+        }
+
+        if inst.getValueType().isAnyFloat() {
+            useOutputFloatRegister(inst, InputOutputOverlap::NoOverlap);
+        } else {
+            useOutputRegister(inst, InputOutputOverlap::NoOverlap);
+        }
+    }
+
+    fn emitBitcast(inst: Inst) {
+        let loc = inst.getLocationData();
+        let dest_ty = inst.getValueType();
+        let src_ty = inst.getSourceType();
+
+        match dest_ty {
+            Type::Int64 => {
+                assert(src_ty == Type::Float64);
+
+            }
+
+            _ => unimplemented(),
         }
     }
 

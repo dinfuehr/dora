@@ -354,6 +354,10 @@ impl LocationAnnotation {
                 self.codegen.annotateCompareOrdering(inst);
             }
 
+            Op::Bitcast => {
+                self.codegen.annotateBitcast(inst);
+            }
+
             _ => {
                 println("unsupported op ${inst.op().name()}");
                 unreachable[()]();

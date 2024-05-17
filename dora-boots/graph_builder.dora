@@ -1200,6 +1200,8 @@ impl SsaGen {
             self.emitIntrinsicCompareOrdering(dest, args, Type::Float32);
         } else if intrinsic == opc::INTRINSIC_FLOAT64_CMP {
             self.emitIntrinsicCompareOrdering(dest, args, Type::Float64);
+        } else if intrinsic == opc::INTRINSIC_REINTERPRET_FLOAT64_AS_INT64 {
+            self.emitIntrinsicBitcast(dest, args, Type::Int64, Type::Float64);
         } else {
             let name = opc::intrinsicName(intrinsic);
             std::fatalError("unknown intrinsic ${name}");
@@ -1234,6 +1236,18 @@ impl SsaGen {
         assert(src_ty == self.regGraphTy(src));
         let value = self.readVariable(src, self.current());
         let result = graph::createConvertInst(dest_ty, value);
+        self.current().appendInst(result);
+
+        self.writeVariable(dest, self.current(), result);
+    }
+
+    fn emitIntrinsicBitcast(dest: BytecodeRegister, args: Array[BytecodeRegister], dest_ty: Type, src_ty: Type) {
+        assert(args.size() == 1);
+        let src = args(0);
+        assert(dest_ty == self.regGraphTy(dest));
+        assert(src_ty == self.regGraphTy(src));
+        let value = self.readVariable(src, self.current());
+        let result = graph::createBitcastInst(dest_ty, value);
         self.current().appendInst(result);
 
         self.writeVariable(dest, self.current(), result);
