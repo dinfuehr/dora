@@ -1098,15 +1098,20 @@ fn check_expr_bin_cmp(
 ) -> SourceType {
     match cmp {
         ast::CmpOp::Is | ast::CmpOp::IsNot => {
-            if !lhs_type.allows(ck.sa, rhs_type.clone())
-                && !rhs_type.allows(ck.sa, lhs_type.clone())
-            {
+            if lhs_type != rhs_type {
                 let lhs_type = ck.ty_name(&lhs_type);
                 let rhs_type = ck.ty_name(&rhs_type);
                 ck.sa.report(
                     ck.file_id,
                     e.span,
                     ErrorMessage::TypesIncompatible(lhs_type, rhs_type),
+                );
+            } else if !lhs_type.is_cls() && !lhs_type.is_lambda() && !lhs_type.is_trait() {
+                let lhs_type = ck.ty_name(&lhs_type);
+                ck.sa.report(
+                    ck.file_id,
+                    e.span,
+                    ErrorMessage::ExpectedIdentityType(lhs_type),
                 );
             }
 

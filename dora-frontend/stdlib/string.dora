@@ -121,7 +121,7 @@ impl String {
     }
     let mut i = 0i64;
     while i < valLen {
-      if self.getByte(i) !== val.getByte(i) {
+      if self.getByte(i) != val.getByte(i) {
         return false;
       }
       i = i + 1i64;
@@ -138,7 +138,7 @@ impl String {
     let mut iSlf = 0i64;
     let mut iVal = slfLen - valLen;
     while iSlf < valLen {
-      if self.getByte(iSlf + iVal) !== val.getByte(iSlf) {
+      if self.getByte(iSlf + iVal) != val.getByte(iSlf) {
         return false;
       }
       iSlf = iSlf + 1i64;

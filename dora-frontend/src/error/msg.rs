@@ -83,6 +83,7 @@ pub enum ErrorMessage {
     MissingOverride(String),
     MethodNotOverridable(String),
     TypesIncompatible(String, String),
+    ExpectedIdentityType(String),
     ReturnTypeMismatch(String, String),
     ImplMethodDefinitionMismatch,
     OverrideMismatch,
@@ -416,6 +417,9 @@ impl ErrorMessage {
             }
             ErrorMessage::TypesIncompatible(ref na, ref nb) => {
                 format!("types `{}` and `{}` incompatible.", na, nb)
+            }
+            ErrorMessage::ExpectedIdentityType(ref name) => {
+                format!("type `{}` does not have identity.", name)
             }
             ErrorMessage::ReturnTypeMismatch(ref fct, ref sup) => {
                 format!("return types `{}` and `{}` do not match.", fct, sup)

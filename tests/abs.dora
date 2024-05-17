@@ -6,23 +6,19 @@ fn main() {
 }
 
 fn float32() {
-  assert(Float32::notANumber().neg().abs() === Float32::notANumber());
   assert(Float32::infinityNegative().abs() == Float32::infinityPositive());
   assert((-1.0f32).abs() == 1.0f32);
   assert(0.0f32.abs() == 0.0f32);
   assert(1.0f32.abs() == 1.0f32);
   assert(Float32::infinityPositive().abs() == Float32::infinityPositive());
-  assert(Float32::notANumber().abs() === Float32::notANumber());
 }
 
 fn float64() {
-  assert(Float64::notANumber().neg().abs() === Float64::notANumber());
   assert(Float64::infinityNegative().abs() == Float64::infinityPositive());
   assert((-1.0).abs() == 1.0);
   assert(0.0.abs() == 0.0);
   assert(1.0.abs() == 1.0);
   assert(Float64::infinityPositive().abs() == Float64::infinityPositive());
-  assert(Float64::notANumber().abs() === Float64::notANumber());
 }
 
 

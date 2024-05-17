@@ -827,13 +827,6 @@ impl[V, E] Result[V, E] {
     }
   }
 
-  pub fn has(val: V): Bool {
-    match self {
-      Ok(actual) => actual === val,
-      Err(_) => false,
-    }
-  }
-
   pub fn or(alt: Result[V, E]): Result[V, E] {
     if self.isOk() {
       return self;

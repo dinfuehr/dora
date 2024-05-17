@@ -1040,30 +1040,6 @@ impl[T] Vec[T] {
     }
   }
 
-  pub fn removeItem(value: T) {
-    let len = self.len;
-    let mut destIdx = 0i64;
-    let mut srcIdx = 0i64;
-
-    while srcIdx < len {
-      let current = self.array(srcIdx);
-
-      if current !== value {
-        self.array(destIdx) = current;
-        destIdx = destIdx + 1i64;
-      }
-
-      srcIdx = srcIdx + 1i64;
-    }
-
-    self.len = destIdx;
-
-    while destIdx < srcIdx {
-      unsafeKillRefs[T](self.array, destIdx);
-      destIdx = destIdx + 1i64;
-    }
-  }
-
   pub fn removeAt(ind: Int64): T {
     let mut ind = ind;
     assert(ind < self.len);

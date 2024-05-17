@@ -628,8 +628,6 @@ fn int64_operations() {
     ok("fn f(a: Int64, b: Int32): Int64 { return a >>> b; }");
     ok("fn f(a: Int64, b: Int64): Bool { return a == b; }");
     ok("fn f(a: Int64, b: Int64): Bool { return a != b; }");
-    ok("fn f(a: Int64, b: Int64): Bool { return a === b; }");
-    ok("fn f(a: Int64, b: Int64): Bool { return a !== b; }");
     ok("fn f(a: Int64, b: Int64): Bool { return a < b; }");
     ok("fn f(a: Int64, b: Int64): Bool { return a <= b; }");
     ok("fn f(a: Int64, b: Int64): Bool { return a > b; }");
