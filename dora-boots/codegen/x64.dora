@@ -2020,7 +2020,9 @@ impl CodeGen for CodeGenX64 {
         match dest_ty {
             Type::Int64 => {
                 assert(src_ty == Type::Float64);
-
+                let dest = loc.getOutput().getRegister();
+                let src = loc.getInput(0).getFloatRegister();
+                self.asm.movq_rx(dest, src);
             }
 
             _ => unimplemented(),
