@@ -306,18 +306,6 @@ impl MacroAssembler {
         }
     }
 
-    pub fn float_cmp_nan(&mut self, mode: MachineMode, dest: Reg, src: FReg) {
-        self.asm.xorl_rr(dest.into(), dest.into());
-
-        match mode {
-            MachineMode::Float32 => self.asm.ucomiss_rr(src.into(), src.into()),
-            MachineMode::Float64 => self.asm.ucomisd_rr(src.into(), src.into()),
-            _ => unreachable!(),
-        }
-
-        self.asm.setcc_r(Condition::Parity, dest.into());
-    }
-
     pub fn cmp_zero(&mut self, mode: MachineMode, lhs: Reg) {
         if mode.is64() {
             self.asm.testq_rr(lhs.into(), lhs.into());

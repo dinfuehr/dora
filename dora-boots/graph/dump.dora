@@ -334,6 +334,11 @@ fn dumpInstName(inst: Inst): String {
         Op::Convert => "Convert.(${inst.getSourceType()}->${inst.getValueType()})",
         Op::CompareOrdering => "CompareOrdering",
         Op::Bitcast => "Bitcast.(${inst.getSourceType()}->${inst.getValueType()})",
+        Op::RoundDown => "RoundDown.${inst.getValueType()}",
+        Op::RoundUp => "RoundUp.${inst.getValueType()}",
+        Op::RoundToZero => "RoundToZero.${inst.getValueType()}",
+        Op::RoundHalfEven => "RoundHalfEven.${inst.getValueType()}",
+        Op::Abs => "Abs.${inst.getValueType()}",
     }
 }
 

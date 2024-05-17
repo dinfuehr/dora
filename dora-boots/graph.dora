@@ -655,6 +655,11 @@ pub enum Op {
     Convert,
     CompareOrdering,
     Bitcast,
+    RoundDown,
+    RoundUp,
+    RoundHalfEven,
+    RoundToZero,
+    Abs,
 }
 
 impl Op {
@@ -764,6 +769,11 @@ pub fn opName(op: Op): String {
         Op::Convert => "Convert",
         Op::CompareOrdering => "CompareOrdering",
         Op::Bitcast => "Bitcast",
+        Op::RoundDown => "RoundDown",
+        Op::RoundUp => "RoundUp",
+        Op::RoundToZero => "RoundToZero",
+        Op::RoundHalfEven => "RoundHalfEven",
+        Op::Abs => "Abs",
     }
 }
 
@@ -962,6 +972,11 @@ impl Inst {
             Op::Convert => Some[Type](self.ty),
             Op::CompareOrdering => Some[Type](Type::Int32),
             Op::Bitcast => Some[Type](self.ty),
+            Op::RoundDown => Some[Type](self.ty),
+            Op::RoundUp => Some[Type](self.ty),
+            Op::RoundToZero => Some[Type](self.ty),
+            Op::RoundHalfEven => Some[Type](self.ty),
+            Op::Abs => Some[Type](self.ty),
         }
     }
 
@@ -1489,6 +1504,11 @@ impl Inst {
             Op::Convert => false,
             Op::CompareOrdering => false,
             Op::Bitcast => false,
+            Op::RoundDown => false,
+            Op::RoundUp => false,
+            Op::RoundToZero => false,
+            Op::RoundHalfEven => false,
+            Op::Abs => false,
         }
     }
 }

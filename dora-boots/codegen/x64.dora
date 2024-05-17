@@ -1900,7 +1900,106 @@ impl CodeGen for CodeGenX64 {
     }
 
     fn emitConvert(inst: Inst) {
-        unimplemented();
+        let loc = inst.getLocationData();
+        let dest_ty = inst.getValueType();
+        let src_ty = inst.getSourceType();
+
+        match dest_ty {
+            Type::Int64 => {
+                let dest = loc.getOutput().getRegister();
+
+                match src_ty {
+                    Type::Float64 => {
+                        let src = loc.getInput(0).getFloatRegister();
+                        self.asm.cvttsd2siq_rr(dest, src);
+                    }
+
+                    Type::Float32 => {
+                        let src = loc.getInput(0).getFloatRegister();
+                        self.asm.cvttss2siq_rr(dest, src);
+                    }
+
+                    Type::Int32 => {
+                        let src = loc.getInput(0).getRegister();
+                        self.asm.movsxlq_rr(dest, src);
+                    }
+
+                    _ => unimplemented(),
+                }
+            }
+
+            Type::Int32 => {
+                let dest = loc.getOutput().getRegister();
+
+                match src_ty {
+                    Type::Float64 => {
+                        let src = loc.getInput(0).getFloatRegister();
+                        self.asm.cvttsd2sid_rr(dest, src);
+                    }
+
+                    Type::Float32 => {
+                        let src = loc.getInput(0).getFloatRegister();
+                        self.asm.cvttss2sid_rr(dest, src);
+                    }
+
+                    Type::Int64 => {
+                        let src = loc.getInput(0).getRegister();
+                        self.asm.movl_rr(dest, src);
+                    }
+
+                    _ => unimplemented(),
+                }
+            }
+
+            Type::Float32 => {
+                let dest = loc.getOutput().getFloatRegister();
+
+                match src_ty {
+                    Type::Int32 => {
+                        let src = loc.getInput(0).getRegister();
+                        self.asm.cvtsi2ssd_rr(dest, src);
+                    }
+
+                    Type::Int64 => {
+                        let src = loc.getInput(0).getRegister();
+                        self.asm.cvtsi2ssq_rr(dest, src);
+                    }
+
+
+                    Type::Float64 => {
+                        let src = loc.getInput(0).getFloatRegister();
+                        self.asm.cvtsd2ss_rr(dest, src);
+                    }
+
+                    _ => unimplemented(),
+                }
+            }
+
+            Type::Float64 => {
+                let dest = loc.getOutput().getFloatRegister();
+
+                match src_ty {
+                    Type::Int32 => {
+                        let src = loc.getInput(0).getRegister();
+                        self.asm.cvtsi2sdd_rr(dest, src);
+                    }
+
+                    Type::Int64 => {
+                        let src = loc.getInput(0).getRegister();
+                        self.asm.cvtsi2sdq_rr(dest, src);
+                    }
+
+                    Type::Float32 => {
+                        let src = loc.getInput(0).getFloatRegister();
+                        self.asm.cvtss2sd_rr(dest, src);
+                    }
+
+                    _ => unimplemented(),
+                }
+            }
+
+            _ => unimplemented(),
+        }
     }
 
     fn annotateCompareOrdering(inst: Inst) {
@@ -2027,6 +2126,46 @@ impl CodeGen for CodeGenX64 {
 
             _ => unimplemented(),
         }
+    }
+
+    fn annotateRoundDown(inst: Inst) {
+        unimplemented();
+    }
+
+    fn emitRoundDown(inst: Inst) {
+        unimplemented();
+    }
+
+    fn annotateRoundUp(inst: Inst) {
+        unimplemented();
+    }
+
+    fn emitRoundUp(inst: Inst) {
+        unimplemented();
+    }
+
+    fn annotateRoundToZero(inst: Inst) {
+        unimplemented();
+    }
+
+    fn emitRoundToZero(inst: Inst) {
+        unimplemented();
+    }
+
+    fn annotateRoundHalfEven(inst: Inst) {
+        unimplemented();
+    }
+
+    fn emitRoundHalfEven(inst: Inst) {
+        unimplemented();
+    }
+
+    fn annotateAbs(inst: Inst) {
+        unimplemented();
+    }
+
+    fn emitAbs(inst: Inst) {
+        unimplemented();
     }
 
     fn finalize(): CodeDescriptor {

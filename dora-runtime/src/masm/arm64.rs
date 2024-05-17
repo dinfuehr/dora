@@ -882,16 +882,6 @@ impl MacroAssembler {
         self.asm.cset_w(dest.into(), cond);
     }
 
-    pub fn float_cmp_nan(&mut self, mode: MachineMode, dest: Reg, src: FReg) {
-        match mode {
-            MachineMode::Float32 => self.asm.fcmp_s(src.into(), src.into()),
-            MachineMode::Float64 => self.asm.fcmp_d(src.into(), src.into()),
-            _ => unimplemented!(),
-        }
-
-        self.asm.cset_w(dest.into(), Cond::VS);
-    }
-
     pub fn load_float_const(&mut self, mode: MachineMode, dest: FReg, imm: f64) {
         let off = match mode {
             MachineMode::Float32 => self.constpool.add_f32(imm as f32),

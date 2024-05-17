@@ -358,6 +358,27 @@ impl LocationAnnotation {
                 self.codegen.annotateBitcast(inst);
             }
 
+
+            Op::RoundDown => {
+                self.codegen.annotateRoundDown(inst);
+            }
+
+            Op::RoundUp => {
+                self.codegen.annotateRoundUp(inst);
+            }
+
+            Op::RoundHalfEven => {
+                self.codegen.annotateRoundHalfEven(inst);
+            }
+
+            Op::RoundToZero => {
+                self.codegen.annotateRoundToZero(inst);
+            }
+
+            Op::Abs => {
+                self.codegen.annotateAbs(inst);
+            }
+
             _ => {
                 println("unsupported op ${inst.op().name()}");
                 unreachable[()]();

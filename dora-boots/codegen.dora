@@ -373,6 +373,31 @@ fn emitInst(codegen: CodeGen, inst: Inst) {
             codegen.emitBitcast(inst);
         }
 
+        Op::RoundDown => {
+            codegen.emitComment("RoundDown");
+            codegen.emitRoundDown(inst);
+        }
+
+        Op::RoundUp => {
+            codegen.emitComment("RoundUp");
+            codegen.emitRoundUp(inst);
+        }
+
+        Op::RoundHalfEven => {
+            codegen.emitComment("RoundHalfEven");
+            codegen.emitRoundHalfEven(inst);
+        }
+
+        Op::RoundToZero => {
+            codegen.emitComment("RoundToZero");
+            codegen.emitRoundToZero(inst);
+        }
+
+        Op::Abs => {
+            codegen.emitComment("Abs");
+            codegen.emitAbs(inst);
+        }
+
         _ => {
             println("unsupported op ${inst.op().name()}");
             unreachable[()]();
@@ -423,6 +448,11 @@ pub trait CodeGen {
     fn annotateNot(inst: Inst);
     fn annotateCompareOrdering(inst: Inst);
     fn annotateBitcast(inst: Inst);
+    fn annotateRoundDown(inst: Inst);
+    fn annotateRoundUp(inst: Inst);
+    fn annotateRoundToZero(inst: Inst);
+    fn annotateRoundHalfEven(inst: Inst);
+    fn annotateAbs(inst: Inst);
 
     fn emitTrueConst(inst: Inst);
     fn emitFalseConst(inst: Inst);
@@ -485,6 +515,11 @@ pub trait CodeGen {
     fn emitConvert(inst: Inst);
     fn emitCompareOrdering(inst: Inst);
     fn emitBitcast(inst: Inst);
+    fn emitRoundDown(inst: Inst);
+    fn emitRoundUp(inst: Inst);
+    fn emitRoundToZero(inst: Inst);
+    fn emitRoundHalfEven(inst: Inst);
+    fn emitAbs(inst: Inst);
 
     fn emitComment(comment: String);
 }

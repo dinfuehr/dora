@@ -782,10 +782,6 @@ impl<'a> BaselineAssembler<'a> {
         self.masm.float_neg(mode, dest, src);
     }
 
-    pub fn float_cmp_nan(&mut self, mode: MachineMode, dest: Reg, src: FReg) {
-        self.masm.float_cmp_nan(mode, dest, src);
-    }
-
     pub fn float_cmp_ordering(&mut self, mode: MachineMode, dest: Reg, lhs: FReg, rhs: FReg) {
         self.masm.float_cmp_ordering(mode, dest, lhs, rhs);
     }

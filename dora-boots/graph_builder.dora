@@ -1146,10 +1146,30 @@ impl SsaGen {
             self.emitIntrinsicAssert(dest, args);
         } else if intrinsic == opc::INTRINSIC_OPTION_IS_SOME || intrinsic == opc::INTRINSIC_OPTION_IS_NONE {
             self.emitIntrinsicOptionIsSomeAndIsNone(intrinsic, dest, args);
+        } else if intrinsic == opc::INTRINSIC_FLOAT64_TO_INT32 {
+            self.emitIntrinsicConvert(dest, args, Type::Int32, Type::Float64);
         } else if intrinsic == opc::INTRINSIC_FLOAT64_TO_INT64 {
             self.emitIntrinsicConvert(dest, args, Type::Int64, Type::Float64);
+        } else if intrinsic == opc::INTRINSIC_FLOAT32_TO_INT32 {
+            self.emitIntrinsicConvert(dest, args, Type::Int32, Type::Float32);
+        } else if intrinsic == opc::INTRINSIC_FLOAT32_TO_INT64 {
+            self.emitIntrinsicConvert(dest, args, Type::Int64, Type::Float32);
         } else if intrinsic == opc::INTRINSIC_INT32_TO_FLOAT32 {
             self.emitIntrinsicConvert(dest, args, Type::Float32, Type::Int32);
+        } else if intrinsic == opc::INTRINSIC_INT32_TO_FLOAT64 {
+            self.emitIntrinsicConvert(dest, args, Type::Float64, Type::Int32);
+        } else if intrinsic == opc::INTRINSIC_INT32_TO_INT64 {
+            self.emitIntrinsicConvert(dest, args, Type::Int64, Type::Int32);
+        } else if intrinsic == opc::INTRINSIC_INT64_TO_FLOAT32 {
+            self.emitIntrinsicConvert(dest, args, Type::Float32, Type::Int64);
+        } else if intrinsic == opc::INTRINSIC_INT64_TO_FLOAT64 {
+            self.emitIntrinsicConvert(dest, args, Type::Float64, Type::Int64);
+        } else if intrinsic == opc::INTRINSIC_INT64_TO_INT32 {
+            self.emitIntrinsicConvert(dest, args, Type::Int32, Type::Int64);
+        } else if intrinsic == opc::INTRINSIC_PROMOTE_FLOAT32_TO_FLOAT64 {
+            self.emitIntrinsicConvert(dest, args, Type::Float64, Type::Float32);
+        } else if intrinsic == opc::INTRINSIC_DEMOTE_FLOAT64_TO_FLOAT32 {
+            self.emitIntrinsicConvert(dest, args, Type::Float32, Type::Float64);
         } else if intrinsic == opc::INTRINSIC_FLOAT64_ADD || intrinsic == opc::INTRINSIC_FLOAT32_ADD {
             self.emitBin(dest, args(0), args(1), Op::Add);
         } else if intrinsic == opc::INTRINSIC_FLOAT64_SUB || intrinsic == opc::INTRINSIC_FLOAT32_SUB {
@@ -1202,6 +1222,8 @@ impl SsaGen {
             self.emitIntrinsicCompareOrdering(dest, args, Type::Float64);
         } else if intrinsic == opc::INTRINSIC_REINTERPRET_FLOAT64_AS_INT64 {
             self.emitIntrinsicBitcast(dest, args, Type::Int64, Type::Float64);
+        } else if intrinsic == opc::INTRINSIC_REINTERPRET_FLOAT32_AS_INT32 {
+            self.emitIntrinsicBitcast(dest, args, Type::Int32, Type::Float32);
         } else {
             let name = opc::intrinsicName(intrinsic);
             std::fatalError("unknown intrinsic ${name}");
