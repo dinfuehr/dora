@@ -2117,6 +2117,13 @@ impl CodeGen for CodeGenX64 {
         let src_ty = inst.getSourceType();
 
         match dest_ty {
+            Type::Int32 => {
+                assert(src_ty == Type::Float32);
+                let dest = loc.getOutput().getRegister();
+                let src = loc.getInput(0).getFloatRegister();
+                self.asm.movd_rx(dest, src);
+            }
+
             Type::Int64 => {
                 assert(src_ty == Type::Float64);
                 let dest = loc.getOutput().getRegister();
@@ -2129,35 +2136,95 @@ impl CodeGen for CodeGenX64 {
     }
 
     fn annotateRoundDown(inst: Inst) {
-        unimplemented();
+        useInputFloatRegister(inst, 0);
+        useOutputFloatRegister(inst, InputOutputOverlap::NoOverlap);
     }
 
     fn emitRoundDown(inst: Inst) {
-        unimplemented();
+        let loc = inst.getLocationData();
+        let dest = loc.getOutput().getFloatRegister();
+        let src = loc.getInput(0).getFloatRegister();
+
+        match inst.getValueType() {
+            Type::Float32 => {
+                self.asm.roundss_ri(dest, src, 0b1001u8);
+            }
+
+            Type::Float64 => {
+                self.asm.roundsd_ri(dest, src, 0b1001u8);
+            }
+
+            _ => unreachable[()](),
+        }
     }
 
     fn annotateRoundUp(inst: Inst) {
-        unimplemented();
+        useInputFloatRegister(inst, 0);
+        useOutputFloatRegister(inst, InputOutputOverlap::NoOverlap);
     }
 
     fn emitRoundUp(inst: Inst) {
-        unimplemented();
+        let loc = inst.getLocationData();
+        let dest = loc.getOutput().getFloatRegister();
+        let src = loc.getInput(0).getFloatRegister();
+
+        match inst.getValueType() {
+            Type::Float32 => {
+                self.asm.roundss_ri(dest, src, 0b1010u8);
+            }
+
+            Type::Float64 => {
+                self.asm.roundsd_ri(dest, src, 0b1010u8);
+            }
+
+            _ => unreachable[()](),
+        }
     }
 
     fn annotateRoundToZero(inst: Inst) {
-        unimplemented();
+        useInputFloatRegister(inst, 0);
+        useOutputFloatRegister(inst, InputOutputOverlap::NoOverlap);
     }
 
     fn emitRoundToZero(inst: Inst) {
-        unimplemented();
+        let loc = inst.getLocationData();
+        let dest = loc.getOutput().getFloatRegister();
+        let src = loc.getInput(0).getFloatRegister();
+
+        match inst.getValueType() {
+            Type::Float32 => {
+                self.asm.roundss_ri(dest, src, 0b1011u8);
+            }
+
+            Type::Float64 => {
+                self.asm.roundsd_ri(dest, src, 0b1011u8);
+            }
+
+            _ => unreachable[()](),
+        }
     }
 
     fn annotateRoundHalfEven(inst: Inst) {
-        unimplemented();
+        useInputFloatRegister(inst, 0);
+        useOutputFloatRegister(inst, InputOutputOverlap::NoOverlap);
     }
 
     fn emitRoundHalfEven(inst: Inst) {
-        unimplemented();
+        let loc = inst.getLocationData();
+        let dest = loc.getOutput().getFloatRegister();
+        let src = loc.getInput(0).getFloatRegister();
+
+        match inst.getValueType() {
+            Type::Float32 => {
+                self.asm.roundss_ri(dest, src, 0b1000u8);
+            }
+
+            Type::Float64 => {
+                self.asm.roundsd_ri(dest, src, 0b1000u8);
+            }
+
+            _ => unreachable[()](),
+        }
     }
 
     fn annotateAbs(inst: Inst) {

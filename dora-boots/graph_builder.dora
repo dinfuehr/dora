@@ -1224,10 +1224,38 @@ impl SsaGen {
             self.emitIntrinsicBitcast(dest, args, Type::Int64, Type::Float64);
         } else if intrinsic == opc::INTRINSIC_REINTERPRET_FLOAT32_AS_INT32 {
             self.emitIntrinsicBitcast(dest, args, Type::Int32, Type::Float32);
+        } else if intrinsic == opc::INTRINSIC_FLOAT64_ROUND_DOWN {
+            self.emitIntrinsicRounding(dest, args, Op::RoundDown, Type::Float64);
+        } else if intrinsic == opc::INTRINSIC_FLOAT64_ROUND_UP {
+            self.emitIntrinsicRounding(dest, args, Op::RoundUp, Type::Float64);
+        } else if intrinsic == opc::INTRINSIC_FLOAT64_ROUND_TO_ZERO {
+            self.emitIntrinsicRounding(dest, args, Op::RoundToZero, Type::Float64);
+        } else if intrinsic == opc::INTRINSIC_FLOAT64_ROUND_HALF_EVEN {
+            self.emitIntrinsicRounding(dest, args, Op::RoundHalfEven, Type::Float64);
+        } else if intrinsic == opc::INTRINSIC_FLOAT32_ROUND_DOWN {
+            self.emitIntrinsicRounding(dest, args, Op::RoundDown, Type::Float32);
+        } else if intrinsic == opc::INTRINSIC_FLOAT32_ROUND_UP {
+            self.emitIntrinsicRounding(dest, args, Op::RoundUp, Type::Float32);
+        } else if intrinsic == opc::INTRINSIC_FLOAT32_ROUND_TO_ZERO {
+            self.emitIntrinsicRounding(dest, args, Op::RoundToZero, Type::Float32);
+        } else if intrinsic == opc::INTRINSIC_FLOAT32_ROUND_HALF_EVEN {
+            self.emitIntrinsicRounding(dest, args, Op::RoundHalfEven, Type::Float32);
         } else {
             let name = opc::intrinsicName(intrinsic);
             std::fatalError("unknown intrinsic ${name}");
         }
+    }
+
+    fn emitIntrinsicRounding(dest: BytecodeRegister, args: Array[BytecodeRegister], op: Op, ty: Type) {
+        assert(args.size() == 1);
+        let src = args(0);
+        assert(ty == self.regGraphTy(dest));
+        assert(ty == self.regGraphTy(src));
+        let value = self.readVariable(src, self.current());
+        let result = graph::createUnaryInst(op, ty, value);
+        self.current().appendInst(result);
+
+        self.writeVariable(dest, self.current(), result);
     }
 
     fn emitIntrinsicCompareOrdering(dest: BytecodeRegister, args: Array[BytecodeRegister], ty: Type) {
