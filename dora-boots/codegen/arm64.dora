@@ -1235,10 +1235,10 @@ impl CodeGen for CodeGenArm64 {
 
             if src.isFloatRegister() {
                 if ty == Type::Float32 {
-                    self.asm.str_imm_s(src.getFloatRegister(), stack_reg, offset);
+                    self.asm.stur_s(src.getFloatRegister(), stack_reg, offset);
                 } else {
                     assert(ty == Type::Float64);
-                    self.asm.str_imm_d(src.getFloatRegister(), stack_reg, offset);
+                    self.asm.stur_d(src.getFloatRegister(), stack_reg, offset);
                 }
             } else if src.isRegister() {
                 let src = src.getRegister();
