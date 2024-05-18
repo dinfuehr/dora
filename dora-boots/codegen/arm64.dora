@@ -2187,11 +2187,49 @@ impl CodeGen for CodeGenArm64 {
     }
 
     fn annotateAbs(inst: Inst) {
-        unimplemented();
+        useInputFloatRegister(inst, 0);
+        useOutputFloatRegister(inst, InputOutputOverlap::NoOverlap);
     }
 
     fn emitAbs(inst: Inst) {
-        unimplemented();
+        let loc = inst.getLocationData();
+        let dest = loc.getOutput().getFloatRegister();
+        let src = loc.getInput(0).getFloatRegister();
+
+        match inst.getValueType() {
+            Type::Float32 => {
+                self.asm.fabs_s(dest, src);
+            }
+
+            Type::Float64 => {
+                self.asm.fabs_d(dest, src);
+            }
+
+            _ => unreachable[()](),
+        }
+    }
+
+    fn annotateSqrt(inst: Inst) {
+        useInputFloatRegister(inst, 0);
+        useOutputFloatRegister(inst, InputOutputOverlap::NoOverlap);
+    }
+
+    fn emitSqrt(inst: Inst) {
+        let loc = inst.getLocationData();
+        let dest = loc.getOutput().getFloatRegister();
+        let src = loc.getInput(0).getFloatRegister();
+
+        match inst.getValueType() {
+            Type::Float32 => {
+                self.asm.fsqrt_s(dest, src);
+            }
+
+            Type::Float64 => {
+                self.asm.fsqrt_d(dest, src);
+            }
+
+            _ => unreachable[()](),
+        }
     }
 
     fn finalize(): CodeDescriptor {

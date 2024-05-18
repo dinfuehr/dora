@@ -660,6 +660,7 @@ pub enum Op {
     RoundHalfEven,
     RoundToZero,
     Abs,
+    Sqrt,
 }
 
 impl Op {
@@ -774,6 +775,7 @@ pub fn opName(op: Op): String {
         Op::RoundToZero => "RoundToZero",
         Op::RoundHalfEven => "RoundHalfEven",
         Op::Abs => "Abs",
+        Op::Sqrt => "Sqrt",
     }
 }
 
@@ -977,6 +979,7 @@ impl Inst {
             Op::RoundToZero => Some[Type](self.ty),
             Op::RoundHalfEven => Some[Type](self.ty),
             Op::Abs => Some[Type](self.ty),
+            Op::Sqrt => Some[Type](self.ty),
         }
     }
 
@@ -1509,6 +1512,7 @@ impl Inst {
             Op::RoundToZero => false,
             Op::RoundHalfEven => false,
             Op::Abs => false,
+            Op::Sqrt => false,
         }
     }
 }

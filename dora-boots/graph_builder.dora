@@ -1240,6 +1240,10 @@ impl SsaGen {
             self.emitIntrinsicRounding(dest, args, Op::RoundToZero, Type::Float32);
         } else if intrinsic == opc::INTRINSIC_FLOAT32_ROUND_HALF_EVEN {
             self.emitIntrinsicRounding(dest, args, Op::RoundHalfEven, Type::Float32);
+        } else if intrinsic == opc::INTRINSIC_FLOAT64_SQRT {
+            self.emitIntrinsicRounding(dest, args, Op::Sqrt, Type::Float64);
+        } else if intrinsic == opc::INTRINSIC_FLOAT32_SQRT {
+            self.emitIntrinsicRounding(dest, args, Op::Sqrt, Type::Float32);
         } else {
             let name = opc::intrinsicName(intrinsic);
             std::fatalError("unknown intrinsic ${name}");

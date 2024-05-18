@@ -2228,11 +2228,35 @@ impl CodeGen for CodeGenX64 {
     }
 
     fn annotateAbs(inst: Inst) {
-        unimplemented();
+        useInputFloatRegister(inst, 0);
+        useOutputFloatRegister(inst, InputOutputOverlap::NoOverlap);
     }
 
     fn emitAbs(inst: Inst) {
         unimplemented();
+    }
+
+    fn annotateSqrt(inst: Inst) {
+        useInputFloatRegister(inst, 0);
+        useOutputFloatRegister(inst, InputOutputOverlap::NoOverlap);
+    }
+
+    fn emitSqrt(inst: Inst) {
+        let loc = inst.getLocationData();
+        let dest = loc.getOutput().getFloatRegister();
+        let src = loc.getInput(0).getFloatRegister();
+
+        match inst.getValueType() {
+            Type::Float32 => {
+                self.asm.sqrtss_rr(dest, src);
+            }
+
+            Type::Float64 => {
+                self.asm.sqrtsd_rr(dest, src);
+            }
+
+            _ => unreachable[()](),
+        }
     }
 
     fn finalize(): CodeDescriptor {
