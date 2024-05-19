@@ -616,7 +616,7 @@ impl CodeGen for CodeGenX64 {
             } else if ty == Type::Int64 || ty == Type::Address || ty == Type::Ptr {
                 self.asm.movq_ar(AsmAddress::offset(RBP, slot), reg);
             } else {
-                unimplemented();
+                unreachable[()]();
             }
         }
     }

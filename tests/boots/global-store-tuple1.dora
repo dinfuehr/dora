@@ -1,0 +1,16 @@
+//= boots
+
+let mut g: (Foo, Foo) = (Foo(1), Foo(2));
+
+fn main() {
+    setg((Foo(12), Foo(17)));
+    std::forceCollect();
+    assert(g.0.value == 12);
+    assert(g.1.value == 17);
+}
+
+class Foo(value: Int64)
+
+@optimizeImmediately fn setg(value: (Foo, Foo)) {
+    g = value;
+}

@@ -127,6 +127,9 @@ def process_arguments
     elsif arg == "--binary"
       $binary = ARGV[idx+1].to_s.strip
       idx += 1
+    elsif arg == "--target"
+      $target = ARGV[idx+1].to_s.strip
+      idx += 1
     elsif arg == "--env"
       raise "missing arguments" unless idx+1 < ARGV.length
       name_and_value = ARGV[idx+1].to_s.split("=", 2)
@@ -164,7 +167,8 @@ def binary_path
   return $binary if $binary
   dir = $release ? "release" : "debug"
   extension = Gem.win_platform? ? ".exe" : ""
-  "target/#{dir}/dora#{extension}"
+  target = $target ? "target/#{$target}" : "target"
+  "#{target}/#{dir}/dora#{extension}"
 end
 
 class TestUtility

@@ -834,11 +834,10 @@ impl SsaGen {
     }
 
     fn emitStoreGlobal(src: BytecodeRegister, glob: GlobalId) {
-        let srcType = self.regGraphTy(src);
+        let srcType = self.reg(src);
 
         let srcInst = self.readVariable(src, self.current());
-        let globInst = graph::createStoreGlobalInst(srcType, glob, srcInst);
-        self.current().appendInst(globInst);
+        self.storeGlobal(srcType, glob, srcInst);
 
         if iface::hasGlobalInitialValue(glob) {
             let inst = graph::createMarkGlobalInitializedInst(glob);
@@ -1689,6 +1688,36 @@ impl SsaGen {
             let inst = graph::createLoadGlobalInst(ty, id);
             self.current().appendInst(inst);
             inst
+        }
+    }
+
+    fn storeGlobal(ty: BytecodeType, id: GlobalId, value: Inst) {
+        if ty.isStruct() {
+            let (struct_id, type_params) = match ty {
+                BytecodeType::Struct(struct_id, type_params) => (struct_id, type_params),
+                _ => unreachable[(StructId, Array[BytecodeType])](),
+            };
+            let layout = self.computeStructLayout(struct_id, type_params);
+
+            let dest = graph::createGetGlobalAddressInst(id);
+            self.current().appendInst(dest);
+            self.copyStruct(ty, dest, 0i32, value, 0i32, false);
+
+        } else if ty.isTuple() {
+            let subtypes = match ty {
+                BytecodeType::Tuple(subtypes) => subtypes,
+                _ => unreachable[Array[BytecodeType]](),
+            };
+            let layout = self.computeTupleLayout(subtypes);
+
+            let dest = graph::createGetGlobalAddressInst(id);
+            self.current().appendInst(dest);
+            self.copyTuple(ty, dest, 0i32, value, 0i32, false);
+
+        } else {
+            let ty = self.graphTy(ty);
+            let inst = graph::createStoreGlobalInst(ty, id, value);
+            self.current().appendInst(inst);
         }
     }
 

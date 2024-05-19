@@ -651,8 +651,7 @@ impl CodeGen for CodeGenArm64 {
             } else if ty == Type::Int64 || ty == Type::Ptr || ty == Type::Address {
                 self.asm.stur(reg, REG_FP, slot);
             } else {
-                println("ty = ${ty}");
-                unimplemented();
+                unreachable[()]();
             }
         }
     }

@@ -1,0 +1,17 @@
+//= boots
+
+let mut g: Foo = Foo(1, Bar(2));
+
+fn main() {
+    setg(Foo(17, Bar(0)));
+    std::forceCollect();
+    assert(g.a == 17);
+    assert(g.b.value == 0);
+}
+
+struct Foo(a: Int64, b: Bar)
+class Bar(value: Int64)
+
+@optimizeImmediately fn setg(value: Foo) {
+    g = value;
+}
