@@ -1,0 +1,15 @@
+//= stdout "0/0:0/1:1/0:1/1:2/0:2/1:"
+//= ignore
+
+fn main() {
+    f();
+}
+
+@optimizeImmediately
+fn f() {
+    for i in std::range(0, 3) {
+        for j in std::range(0, 2) {
+            print("${i}/${j}:");
+        }
+    }
+}
