@@ -1,0 +1,28 @@
+use std::Stringable;
+
+fn main() {
+    let txt = "x${MyOption[Foo]::Some(Foo(17))}x";
+    assert(txt == "xSome(17)x");
+}
+
+enum MyOption[T] {
+    Some(T),
+    None
+}
+
+impl[T: Stringable] Stringable for MyOption[T] {
+  fn toString(): String {
+    match self {
+      MyOption::Some(value) => "Some(${value})",
+      MyOption::None => "None",
+    }
+  }
+}
+
+struct Foo(value: Int64)
+
+impl Stringable for Foo {
+    fn toString(): String {
+        self.value.toString()
+    }
+}

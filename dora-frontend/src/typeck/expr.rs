@@ -679,14 +679,14 @@ fn check_expr_template(
                 stringable_trait_ty.clone(),
             ) {
                 if !part_expr.is_type_param() {
-                    let stringable_impl_id = find_impl(
+                    let impl_match = find_impl(
                         ck.sa,
                         part_expr.clone(),
                         &ck.type_param_defs,
                         stringable_trait_ty.clone(),
                     )
-                    .expect("missing impl")
-                    .id;
+                    .expect("missing impl");
+                    let stringable_impl_id = impl_match.id;
 
                     let name = ck.sa.interner.intern("toString");
                     let stringable_trait = &ck.sa.trait_(stringable_trait_id);
@@ -700,7 +700,9 @@ fn check_expr_template(
                         .get_method_for_trait_method_id(trait_to_string_id)
                         .expect("missing method");
 
-                    ck.analysis.map_templates.insert(part.id(), to_string_id);
+                    ck.analysis
+                        .map_templates
+                        .insert(part.id(), (to_string_id, impl_match.binding));
                 }
             } else {
                 let ty = ck.ty_name(&part_expr);

@@ -19,7 +19,7 @@ use super::FctDefinition;
 #[derive(Debug)]
 pub struct AnalysisData {
     pub has_self: Option<bool>,
-    pub map_templates: NodeMap<FctDefinitionId>,
+    pub map_templates: NodeMap<(FctDefinitionId, SourceTypeArray)>,
     pub map_calls: NodeMap<Arc<CallType>>, // maps function call to FctId
     pub map_idents: NodeMap<IdentType>,
     pub map_tys: NodeMap<SourceType>,

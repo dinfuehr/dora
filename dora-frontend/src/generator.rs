@@ -836,15 +836,18 @@ impl<'a> AstBytecodeGen<'a> {
                     self.builder.emit_push_register(expr_register);
 
                     // build toString() call
-                    let to_string_id = self
+                    let (to_string_id, type_params) = self
                         .analysis
                         .map_templates
                         .get(part.id())
                         .expect("missing toString id");
 
-                    let fct_idx = self.builder.add_const_fct(FunctionId(
-                        to_string_id.index().try_into().expect("overflow"),
-                    ));
+                    let type_params = bty_array_from_ty(&type_params);
+
+                    let fct_idx = self.builder.add_const_fct_types(
+                        FunctionId(to_string_id.index().try_into().expect("overflow")),
+                        type_params,
+                    );
                     self.builder
                         .emit_invoke_direct(part_register, fct_idx, self.loc(part.span()));
 

@@ -431,6 +431,12 @@ impl Equals for Block {
   fn equals(other: Block): Bool { self === other }
 }
 
+impl Stringable for Block {
+    fn toString(): String {
+        "@${self.id()}"
+    }
+}
+
 pub class LoopData {
     header: Block,
     backEdges: Vec[Edge],
