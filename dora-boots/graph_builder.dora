@@ -139,16 +139,22 @@ impl SsaGen {
 
     fn writeVariable(register: BytecodeRegister, block: Block, value: Inst) {
         assert(!self.reg(register).isUnit());
+        assert(value.hasId());
         self.currentDef(register.value.toInt64()).insert(block, value);
     }
 
     fn readVariable(register: BytecodeRegister, block: Block): Inst {
         assert(!self.reg(register).isUnit());
+
         if self.currentDef(register.value.toInt64()).contains(block) {
-            self.currentDef(register.value.toInt64())(block).getOrPanic()
-        } else {
-            self.readVariableRecursive(register, block)
+            let inst = self.currentDef(register.value.toInt64())(block).getOrPanic();
+
+            if inst.hasId() {
+                return inst;
+            }
         }
+
+        self.readVariableRecursive(register, block)
     }
 
     fn readVariableRecursive(register: BytecodeRegister, block: Block): Inst {

@@ -840,6 +840,10 @@ impl Inst {
         self._id.getOrPanic()
     }
 
+    pub fn hasId(): Bool {
+        self._id.isSome()
+    }
+
     pub fn op(): Op {
         self._op.getOrPanic()
     }
