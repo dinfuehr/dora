@@ -1,4 +1,5 @@
 use std::Stringable;
+use std::StringBuffer;
 use std::Equals;
 use std::Hash;
 
@@ -317,15 +318,32 @@ impl Stringable for BytecodeType {
             BytecodeType::Float32 => "Float32",
             BytecodeType::Float64 => "Float64",
             BytecodeType::This => "This",
-            BytecodeType::Struct(id, params) => "Struct(${id.value}, <type params>)",
-            BytecodeType::Enum(id, params) => "Enum(${id.value}, <type params>)",
-            BytecodeType::Class(id, params) => "Class(${id.value}, <type params>)",
-            BytecodeType::Trait(id, params) => "Trait(${id.value}, <type params>)",
-            BytecodeType::Tuple(types) => "Tuple(<type params>)",
+            BytecodeType::Struct(id, params) => "Struct(${id.value}, ${params})",
+            BytecodeType::Enum(id, params) => "Enum(${id.value}, ${params})",
+            BytecodeType::Class(id, params) => "Class(${id.value}, ${params})",
+            BytecodeType::Trait(id, params) => "Trait(${id.value}, ${params})",
+            BytecodeType::Tuple(types) => "Tuple(${types})",
             BytecodeType::TypeParam(idx) => "TypeParam(${idx})",
-            BytecodeType::Lambda(_, _) => "Lambda(<params>, <return ty>)",
+            BytecodeType::Lambda(params, ty) => "Lambda(${params}, ${ty})",
             BytecodeType::TypeAlias(id) => "TypeAlias(${id.value})",
         }
+    }
+}
+
+impl Stringable for Array[BytecodeType] {
+    fn toString(): String {
+        let buffer = StringBuffer::new();
+        buffer.append("[");
+        let mut first = true;
+        for ty in self {
+            if !first {
+                buffer.append(", ");
+            }
+            buffer.append(ty.toString());
+            first = false;
+        }
+        buffer.append("]");
+        buffer.toString()
     }
 }
 

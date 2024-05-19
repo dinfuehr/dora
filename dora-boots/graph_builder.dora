@@ -586,6 +586,7 @@ impl SsaGen {
             ConstPoolEntry::Field(cls_id, type_params, field_id) => (cls_id, type_params, field_id),
             _ => unreachable[(ClassId, Array[BytecodeType], FieldId)](),
         };
+        let type_params = type_params.specialize(self.typeParams);
 
         if !srcType.isUnit() {
             let srcInst = self.readVariable(src, self.current());
@@ -686,8 +687,8 @@ impl SsaGen {
             ConstPoolEntry::EnumElement(enum_id, type_params, variant_id, field_id) => (enum_id, type_params, variant_id, field_id),
             _ => unreachable[(EnumId, Array[BytecodeType], Int32, Int32)](),
         };
-
         let layout = self.computeEnumLayout(enum_id, type_params);
+        let type_params = type_params.specialize(self.typeParams);
 
         match layout {
             EnumLayout::Int32 => {
@@ -1434,6 +1435,7 @@ impl SsaGen {
             _ => unreachable[(FctId, Array[BytecodeType])](),
         };
 
+        let type_params = type_params.specialize(self.typeParams);
         let info = FunctionInfo(fct_id, type_params);
         let info = InstExtraData::FunctionInfo(info);
         let objInst = graph::createNewObjectInst(info);
@@ -1509,16 +1511,17 @@ impl SsaGen {
     }
 
     fn emitNewEnum(dest: BytecodeRegister, idx: ConstPoolId) {
-        let (enum_id, type_params, variant) = match self.bc.constPool(idx) {
-            ConstPoolEntry::EnumVariant(enum_id, type_params, variant) => (enum_id, type_params, variant),
+        let (enum_id, type_params, variant_id) = match self.bc.constPool(idx) {
+            ConstPoolEntry::EnumVariant(enum_id, type_params, variant_id) => (enum_id, type_params, variant_id),
             _ => unreachable[(EnumId, Array[BytecodeType], Int32)](),
         };
         let layout = self.computeEnumLayout(enum_id, type_params);
+        let type_params = type_params.specialize(self.typeParams);
 
         match layout {
             EnumLayout::Int32 => {
                 assert(self.pushed_registers.isEmpty());
-                let inst = graph::createInt32Const(variant);
+                let inst = graph::createInt32Const(variant_id);
                 self.current().appendInst(inst);
                 self.writeVariable(dest, self.current(), inst);
             }
@@ -1537,11 +1540,6 @@ impl SsaGen {
             }
 
             EnumLayout::Tagged => {
-                let (enum_id, type_params, variant_id) = match self.bc.constPool(idx) {
-                    ConstPoolEntry::EnumVariant(enum_id, type_params, variant) => (enum_id, type_params, variant),
-                    _ => unreachable[(EnumId, Array[BytecodeType], Int32)](),
-                };
-
                 let (classptr, size) = iface::getClassDataForEnumVariant(enum_id, type_params, variant_id);
 
                 let data = AllocationData(classptr, size);
