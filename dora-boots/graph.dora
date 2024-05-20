@@ -662,6 +662,7 @@ pub enum Op {
     RoundToZero,
     Abs,
     Sqrt,
+    Unreachable,
 }
 
 impl Op {
@@ -777,6 +778,7 @@ pub fn opName(op: Op): String {
         Op::RoundHalfEven => "RoundHalfEven",
         Op::Abs => "Abs",
         Op::Sqrt => "Sqrt",
+        Op::Unreachable => "Unreachable",
     }
 }
 
@@ -985,6 +987,7 @@ impl Inst {
             Op::RoundHalfEven => Some[Type](self.ty),
             Op::Abs => Some[Type](self.ty),
             Op::Sqrt => Some[Type](self.ty),
+            Op::Unreachable => Some[Type](self.ty),
         }
     }
 
@@ -1518,6 +1521,7 @@ impl Inst {
             Op::RoundHalfEven => false,
             Op::Abs => false,
             Op::Sqrt => false,
+            Op::Unreachable => true,
         }
     }
 }
@@ -2579,6 +2583,13 @@ pub fn createCompareOrderingInst(ty: Type, lhs: Inst, rhs: Inst): Inst {
     inst._op = Some(Op::CompareOrdering);
     inst.addInput(lhs);
     inst.addInput(rhs);
+    inst
+}
+
+pub fn createUnreachableInst(ty: Type): Inst {
+    let inst = Inst::new();
+    inst.ty = ty;
+    inst._op = Some(Op::Unreachable);
     inst
 }
 

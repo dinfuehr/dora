@@ -1137,7 +1137,6 @@ impl SsaGen {
 
     fn isIntrinsic(intrinsic: Int32): Bool {
         intrinsic >= 0i32 &&
-        intrinsic != opc::INTRINSIC_UNREACHABLE &&
         intrinsic != opc::INTRINSIC_OPTION_GET_OR_PANIC
     }
 
@@ -1378,13 +1377,15 @@ impl SsaGen {
 
     fn emitIntrinsicUnreachable(dest: BytecodeRegister, args: Array[BytecodeRegister], idx: ConstPoolId) {
         assert(args.isEmpty());
-        let (fct_id, type_params) = match self.bc.constPool(idx) {
-            ConstPoolEntry::Fct(fct_id, type_params) => (fct_id, type_params),
-            _ => unreachable[(FctId, Array[BytecodeType])](),
-        };
-        self.emitCall(dest, CallKind::Static, fct_id, type_params);
-        let inst = graph::createAbortInst();
+        let ty = self.regGraphTy(dest);
+
+        let inst = graph::createUnreachableInst(ty);
         self.current().appendInst(inst);
+        inst.set_bytecode_position(self.offset);
+
+        if !ty.isUnit() {
+            self.writeVariable(dest, self.current(), inst);
+        }
     }
 
     fn emitIntrinsicAssert(dest: BytecodeRegister, args: Array[BytecodeRegister]) {

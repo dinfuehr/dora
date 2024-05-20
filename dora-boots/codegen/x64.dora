@@ -2259,6 +2259,23 @@ impl CodeGen for CodeGenX64 {
         }
     }
 
+    fn annotateUnreachable(inst: Inst) {
+        if inst.getValueType().isAnyFloat() {
+            useOutputFloatRegister(inst, InputOutputOverlap::NoOverlap);
+        } else {
+            useOutputRegister(inst, InputOutputOverlap::NoOverlap);
+        }
+    }
+
+    fn emitUnreachable(inst: Inst) {
+        let loc = self.ci.bc.getLocationAt(inst.bytecode_position());
+        self.asm.movq_ri(REG_TEMP, Immediate(config.unreachable_trampoline.toInt64()));
+        self.asm.call_r(REG_TEMP);
+        self.locations.insert(self.asm.position(), loc);
+        // Method should never return.
+        self.asm.int3();
+    }
+
     fn finalize(): CodeDescriptor {
         self.emitDeferredCode();
         self.asm.resolveJumps();

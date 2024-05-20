@@ -9,6 +9,7 @@ pub fn decodeConfig(encoded: Array[UInt8]): Config {
     let architecture = decodeArchitecture(reader);
     let safepoint_trampoline = reader.readAddress();
     let trap_trampoline = reader.readAddress();
+    let unreachable_trampoline = reader.readAddress();
     let object_write_barrier_slow_path = reader.readAddress();
     let allocation_slow_path = reader.readAddress();
     let meta_space_start = reader.readAddress();
@@ -23,6 +24,7 @@ pub fn decodeConfig(encoded: Array[UInt8]): Config {
         architecture,
         safepoint_trampoline,
         trap_trampoline,
+        unreachable_trampoline,
         object_write_barrier_slow_path,
         allocation_slow_path,
         meta_space_start,

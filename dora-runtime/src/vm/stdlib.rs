@@ -156,7 +156,7 @@ fn native_fct(vm: &mut VM, full_path: &str, ptr: *const u8) {
     assert!(old.is_none());
 }
 
-fn find_fct(vm: &VM, full_path: &str) -> FunctionId {
+pub fn find_fct(vm: &VM, full_path: &str) -> FunctionId {
     let mut components = full_path.split("::");
 
     let package_name = components.next().expect("missing package name");

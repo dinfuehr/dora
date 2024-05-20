@@ -23,6 +23,7 @@ fn encode_system_config(vm: &VM, buffer: &mut ByteBuffer) {
     encode_architecture(get_architecture(), buffer);
     buffer.emit_address(vm.native_methods.safepoint_trampoline());
     buffer.emit_address(vm.native_methods.trap_trampoline());
+    buffer.emit_address(vm.native_methods.unreachable_trampoline());
     let ptr = Address::from_ptr(crate::gc::swiper::object_write_barrier_slow_path as *const u8);
     buffer.emit_address(ptr);
     let ptr = Address::from_ptr(crate::stdlib::gc_alloc as *const u8);

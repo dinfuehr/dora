@@ -383,6 +383,10 @@ impl LocationAnnotation {
                 self.codegen.annotateSqrt(inst);
             }
 
+            Op::Unreachable => {
+                self.codegen.annotateUnreachable(inst);
+            }
+
             _ => {
                 println("unsupported op ${inst.op().name()}");
                 unreachable[()]();

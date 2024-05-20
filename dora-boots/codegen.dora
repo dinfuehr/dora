@@ -403,6 +403,11 @@ fn emitInst(codegen: CodeGen, inst: Inst) {
             codegen.emitSqrt(inst);
         }
 
+        Op::Unreachable => {
+            codegen.emitComment("Unreachable");
+            codegen.emitUnreachable(inst);
+        }
+
         _ => {
             println("unsupported op ${inst.op().name()}");
             unreachable[()]();
@@ -459,6 +464,7 @@ pub trait CodeGen {
     fn annotateRoundHalfEven(inst: Inst);
     fn annotateAbs(inst: Inst);
     fn annotateSqrt(inst: Inst);
+    fn annotateUnreachable(inst: Inst);
 
     fn emitTrueConst(inst: Inst);
     fn emitFalseConst(inst: Inst);
@@ -527,6 +533,7 @@ pub trait CodeGen {
     fn emitRoundHalfEven(inst: Inst);
     fn emitAbs(inst: Inst);
     fn emitSqrt(inst: Inst);
+    fn emitUnreachable(inst: Inst);
 
     fn emitComment(comment: String);
 }
