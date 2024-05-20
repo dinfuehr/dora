@@ -253,6 +253,12 @@ fn discoverBlocks(loop: LoopData, block: Block) {
     }
 
     loop.addBlock(block);
+
+    if block.isLoopHeader() {
+        let nested = block.getLoopData().getOrPanic();
+        nested.setLoopParent(loop);
+    }
+
     updateLoopData(block, loop);
 
     for predecessorEdge in block.predecessors {

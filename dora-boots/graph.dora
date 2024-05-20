@@ -477,14 +477,9 @@ impl LoopData {
     pub fn addBlock(block: Block) {
         assert(!self.containsBlock(block));
         self.blocks.insert(block.id().toInt64());
-
-        if block.isLoopHeader() {
-            let loop = block.getLoopData().getOrPanic();
-            loop.setLoopParent(self);
-        }
     }
 
-    fn setLoopParent(parent: LoopData) {
+    pub fn setLoopParent(parent: LoopData) {
         assert(self.parent.isNone());
         assert(self.depth == 0);
         self.parent = Some[LoopData](parent);
