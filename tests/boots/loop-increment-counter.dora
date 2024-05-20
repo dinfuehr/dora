@@ -1,0 +1,16 @@
+//= boots
+//= ignore
+
+@optimizeImmediately
+fn main() {
+    let set = std::BitSet::new(64);
+    set.insert(0);
+
+    let mut i = 1;
+    while i < 63 {
+        assert(!set.contains(i));
+        i = i + 1;
+    }
+
+    assert(i == 63);
+}

@@ -1217,7 +1217,7 @@ impl SsaGen {
             self.emitIntrinsicUn(dest, args, Op::Not);
         } else if intrinsic == opc::INTRINSIC_INT64_CMP {
             self.emitIntrinsicCompareOrdering(dest, args, Type::Int64);
-        } else if intrinsic == opc::INTRINSIC_INT32_CMP {
+        } else if intrinsic == opc::INTRINSIC_INT32_CMP || intrinsic == opc::INTRINSIC_CHAR_CMP {
             self.emitIntrinsicCompareOrdering(dest, args, Type::Int32);
         } else if intrinsic == opc::INTRINSIC_U_INT8_CMP {
             self.emitIntrinsicCompareOrdering(dest, args, Type::UInt8);
