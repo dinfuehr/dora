@@ -1349,7 +1349,7 @@ impl CodeGen for CodeGenX64 {
             };
 
             match ty {
-                Type::UInt8 => self.asm.cmpb_rr(lhs, rhs),
+                Type::Bool | Type::UInt8 => self.asm.cmpb_rr(lhs, rhs),
                 Type::Int32 => self.asm.cmpl_rr(lhs, rhs),
                 Type::Int64 | Type::Ptr => self.asm.cmpq_rr(lhs, rhs),
                 _ => unreachable[()](),

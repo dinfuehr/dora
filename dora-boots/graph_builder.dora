@@ -740,22 +740,7 @@ impl SsaGen {
     }
 
     fn emitBin(dest: BytecodeRegister, lhs: BytecodeRegister, rhs: BytecodeRegister, op: Op) {
-        let registerType = self.reg(lhs);
-
-        let ty = match registerType {
-            BytecodeType::UInt8 => Type::UInt8,
-            BytecodeType::Int32 | BytecodeType::Char => Type::Int32,
-            BytecodeType::Int64 => Type::Int64,
-            BytecodeType::Float32 => Type::Float32,
-            BytecodeType::Float64 => Type::Float64,
-            BytecodeType::Enum(enum_id, type_params) => {
-                assert(op == Op::Equal || op == Op::NotEqual);
-                let layout = self.computeEnumLayout(enum_id, type_params);
-                assert(layout.isInt32());
-                Type::Int32
-            }
-            _ => unreachable[Type](),
-        };
+        let ty = self.regGraphTy(lhs);
 
         let mut lhsInst = self.readVariable(lhs, self.current());
         let mut rhsInst = self.readVariable(rhs, self.current());
@@ -1563,11 +1548,14 @@ impl SsaGen {
                 self.storeField(BytecodeType::Int32, objInst, iface::OBJECT_HEADER_LENGTH, variant_id_inst, true);
 
                 for reg in self.pushed_registers {
-                    let arg = self.readVariable(reg, self.current());
                     let argTy = self.reg(reg);
 
-                    let offset = iface::getFieldOffsetForEnumVariant(enum_id, type_params, variant_id, field_id);
-                    self.storeField(argTy, objInst, offset, arg, true);
+                    if !argTy.isUnit() {
+                        let arg = self.readVariable(reg, self.current());
+                        let offset = iface::getFieldOffsetForEnumVariant(enum_id, type_params, variant_id, field_id);
+                        self.storeField(argTy, objInst, offset, arg, true);
+                    }
+
                     field_id = field_id + 1i32;
                 }
             }

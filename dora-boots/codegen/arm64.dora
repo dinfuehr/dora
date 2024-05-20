@@ -1315,7 +1315,7 @@ impl CodeGen for CodeGenArm64 {
             let dest = loc.getOutput().getRegister();
 
             match ty {
-                Type::UInt8 | Type::Int32 => self.asm.cmp_w(lhs, rhs),
+                Type::Bool | Type::UInt8 | Type::Int32 => self.asm.cmp_w(lhs, rhs),
                 Type::Int64 | Type::Ptr => self.asm.cmp(lhs, rhs),
                 _ => unreachable[()](),
             }
