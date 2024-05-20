@@ -61,11 +61,6 @@ fn processPhis(block: Block, predecessorEdge: Edge, predecessor_registers: Regis
 
 fn processPhi[T: RegisterType](phi: Inst, predecessorEdge: Edge, predecessor_registers: RegisterTracker[T], moves: ParallelMoveResolver) {
     let loc = phi.getLocationData();
-    let dest = if loc.hasSpillSlot() {
-        Location::fp(loc.getSpillSlot())
-    } else {
-        loc.getOutput().getLocation()
-    };
 
     let value = phi.getInput(predecessorEdge.targetIdx).getValue();
     let valueRegister = predecessor_registers.getRegister(value);
@@ -76,7 +71,18 @@ fn processPhi[T: RegisterType](phi: Inst, predecessorEdge: Edge, predecessor_reg
         Location::fp(value.getLocationData().getSpillSlot())
     };
 
-    moves.add(phi.getValueType(), dest, value);
+    // Phi could live both in register and on stack. This means
+    // there are up to 2 moves emitted for each phi.
+
+    if loc.hasSpillSlot() {
+        let dest = Location::fp(loc.getSpillSlot());
+        moves.add(phi.getValueType(), dest, value);
+    }
+
+    if !loc.getOutput().isNone() {
+        let dest = loc.getOutput().getLocation();
+        moves.add(phi.getValueType(), dest, value);
+    }
 }
 
 
