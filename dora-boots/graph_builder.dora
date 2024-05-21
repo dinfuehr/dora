@@ -1572,20 +1572,19 @@ impl SsaGen {
         self.current().appendInst(allocInst);
 
         self.writeVariable(dest, self.current(), allocInst);
-        let mut fieldId = 0i32;
+        let mut regIdx = 0;
 
-        assert(layout.fields.size() == self.pushed_registers.size());
-
-        for idx in std::range(0, layout.fields.size()) {
-            let reg = self.pushed_registers(idx);
-            let field = layout.fields(idx);
-            let arg = self.readVariable(reg, self.current());
-
-            self.storeField(field.ty, allocInst, field.offset, arg, false);
-
-            fieldId = fieldId + 1i32;
+        for field in layout.fields {
+            if !field.ty.isUnit() {
+                let reg = self.pushed_registers(regIdx);
+                let arg = self.readVariable(reg, self.current());
+                self.storeField(field.ty, allocInst, field.offset, arg, false);
+                regIdx = regIdx + 1;
+            }
         }
 
+        assert(regIdx == self.pushed_registers.size());
+        assert(regIdx <= layout.fields.size());
         self.pushed_registers.clear();
     }
 
