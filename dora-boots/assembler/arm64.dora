@@ -2247,6 +2247,10 @@ pub fn fitsMovn(imm: Int64, register_size: Int64): Option[(Int64, Int64)] {
     fitsMovz(!imm, register_size)
 }
 
+pub fn fitsUnscaledImmediate(offset: Int32): Bool {
+    encoding::fitsI9(offset)
+}
+
 impl Register {
     fn isGpr(): Bool {
         self.value <= 30u8
@@ -3264,7 +3268,7 @@ mod encoding {
         fitsSigned(value, 7i32)
     }
 
-    fn fitsI9(value: Int32): Bool {
+    pub fn fitsI9(value: Int32): Bool {
         fitsSigned(value, 9i32)
     }
 

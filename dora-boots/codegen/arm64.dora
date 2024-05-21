@@ -6,6 +6,7 @@ use package::interface::{THREAD_LOCAL_DATA_TLAB_TOP_OFFSET, THREAD_LOCAL_DATA_TL
 use package::interface::{TRAP_DIV0, TRAP_OVERFLOW, TRAP_INDEX_OUT_OF_BOUNDS, PTR_SIZE, GLOBAL_STATE_INITIALIZED};
 use package::interface as iface;
 use package::codegen::{CODE_SIZE_ALIGNMENT, CodeGen};
+use package::assembler::arm64;
 use package::assembler::arm64::{F0, F1, F2, F3, F4, F5, F6, F7, F8, F9, F10, F11, F12, F13, F14, F15, F31};
 use package::assembler::arm64::{AssemblerArm64, Cond, Extend, Shift, registerName, fitsMovz, fitsMovn};
 use package::assembler::arm64::{R0, R1, R2, R3, R4, R5, R6, R7};
@@ -531,6 +532,46 @@ impl CodeGenArm64 {
         self.locations.insert(pos, location);
         self.gcPoints.insert(pos, inst.getLocationData().getGcPoint());
     }
+
+    fn ldr_w(dest: Register, src: Register, offset: Int32) {
+        assert(src != REG_TEMP && dest != REG_TEMP);
+        if arm64::fitsUnscaledImmediate(offset) {
+            self.asm.ldur_w(dest, src, offset);
+        } else {
+            self.mov_imm_w(REG_TEMP, offset);
+            self.asm.ldr_reg_w(dest, src, REG_TEMP, Extend::LSL, 0i32);
+        }
+    }
+
+    fn ldr(dest: Register, src: Register, offset: Int32) {
+        assert(src != REG_TEMP && dest != REG_TEMP);
+        if arm64::fitsUnscaledImmediate(offset) {
+            self.asm.ldur(dest, src, offset);
+        } else {
+            self.mov_imm_w(REG_TEMP, offset);
+            self.asm.ldr_reg(dest, src, REG_TEMP, Extend::LSL, 0i32);
+        }
+    }
+
+    fn str_w(src: Register, dest: Register, offset: Int32) {
+        assert(src != REG_TEMP && dest != REG_TEMP);
+        if arm64::fitsUnscaledImmediate(offset) {
+            self.asm.stur_w(src, dest, offset);
+        } else {
+            self.mov_imm_w(REG_TEMP, offset);
+            self.asm.str_reg_w(src, dest, REG_TEMP, Extend::LSL, 0i32);
+        }
+    }
+
+    fn str(src: Register, dest: Register, offset: Int32) {
+        assert(src != REG_TEMP && dest != REG_TEMP);
+        if arm64::fitsUnscaledImmediate(offset) {
+            self.asm.stur(src, dest, offset);
+        } else {
+            self.mov_imm_w(REG_TEMP, offset);
+            self.asm.str_reg(src, dest, REG_TEMP, Extend::LSL, 0i32);
+        }
+    }
 }
 
 impl CodeGen for CodeGenArm64 {
@@ -647,9 +688,9 @@ impl CodeGen for CodeGenArm64 {
             if ty == Type::UInt8 || ty == Type::Bool {
                 self.asm.sturb(reg, REG_FP, slot);
             } else if ty == Type::Int32 {
-                self.asm.stur_w(reg, REG_FP, slot);
+                self.str_w(reg, REG_FP, slot);
             } else if ty == Type::Int64 || ty == Type::Ptr || ty == Type::Address {
-                self.asm.stur(reg, REG_FP, slot);
+                self.str(reg, REG_FP, slot);
             } else {
                 unreachable[()]();
             }
@@ -1194,9 +1235,9 @@ impl CodeGen for CodeGenArm64 {
                 let offset = slot.getOffset();
 
                 if ty == Type::Int64 || ty == Type::Ptr || ty == Type::Address {
-                    self.asm.ldur(dest.getRegister(), REG_FP, offset);
+                    self.ldr(dest.getRegister(), REG_FP, offset);
                 } else if ty == Type::Int32 {
-                    self.asm.ldur_w(dest.getRegister(), REG_FP, offset);
+                    self.ldr_w(dest.getRegister(), REG_FP, offset);
                 } else {
                     assert(ty == Type::Bool || ty == Type::UInt8);
                     self.asm.ldurb(dest.getRegister(), REG_FP, offset);
