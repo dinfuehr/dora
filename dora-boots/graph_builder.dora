@@ -724,17 +724,13 @@ impl SsaGen {
     }
 
     fn emitTestIdentity(dest: BytecodeRegister, lhs: BytecodeRegister, rhs: BytecodeRegister) {
-        let registerType = self.reg(lhs);
-
-        match registerType {
-            BytecodeType::Ptr => {},
-            _ => unreachable[()](),
-        }
+        let ty = self.regGraphTy(lhs);
+        assert(ty == Type::Ptr);
 
         let mut lhsInst = self.readVariable(lhs, self.current());
         let mut rhsInst = self.readVariable(rhs, self.current());
 
-        let destInst = graph::createBinaryInst(Op::Equal, Type::Ptr, lhsInst, rhsInst);
+        let destInst = graph::createBinaryInst(Op::Equal, ty, lhsInst, rhsInst);
         self.current().appendInst(destInst);
         self.writeVariable(dest, self.current(), destInst);
     }
@@ -916,12 +912,13 @@ impl SsaGen {
 
     fn emitLoadTraitObjectValue(dest: BytecodeRegister, src: BytecodeRegister) {
         let srcInst = self.readVariable(src, self.current());
-        let destType = self.regGraphTy(dest);
+        let ty = self.reg(dest);
 
-        let offset = iface::OBJECT_HEADER_LENGTH;
-        let value = self.loadField(BytecodeType::Ptr, srcInst, offset);
-
-        self.writeVariable(dest, self.current(), value);
+        if !ty.isUnit() {
+            let offset = iface::OBJECT_HEADER_LENGTH;
+            let value = self.loadField(ty, srcInst, offset);
+            self.writeVariable(dest, self.current(), value);
+        }
     }
 
     fn emitRet(opnd: BytecodeRegister) {

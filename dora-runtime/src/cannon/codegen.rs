@@ -1191,7 +1191,8 @@ impl<'a> CannonCodeGen<'a> {
                     0
                 };
                 assert_eq!(variant_idx, some_idx);
-                assert_eq!(BytecodeType::Ptr, self.specialize_register_type(dest));
+                let expected = self.specialize_register_type(dest);
+                assert!(expected == BytecodeType::Ptr || expected.is_trait());
 
                 self.emit_load_register_as(src, REG_RESULT.into(), MachineMode::Ptr);
                 let pos = self.bytecode.offset_location(self.current_offset.to_u32());

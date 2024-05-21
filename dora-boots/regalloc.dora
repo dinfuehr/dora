@@ -886,7 +886,8 @@ fn computeRecordLayout(fieldTypes: Array[BytecodeType], start_size: Int32, start
                 addField(8i32, 8i32, fieldTy);
             }
             BytecodeType::Class(_, _)
-            | BytecodeType::Lambda(_, _) => {
+            | BytecodeType::Lambda(_, _)
+            | BytecodeType::Trait(_, _) => {
                 let offset = addField(8i32, 8i32, fieldTy);
                 refs.push(offset);
             }
@@ -918,9 +919,7 @@ fn computeRecordLayout(fieldTypes: Array[BytecodeType], start_size: Int32, start
                     }
                 }
             }
-            BytecodeType::Ptr
-            | BytecodeType::Trait(_, _)
-            | _ => {
+            BytecodeType::Ptr | _ => {
                 unimplemented();
             }
         }

@@ -91,7 +91,7 @@ $platform_binding = create_platform_binding
 $default_config = Config.new("default", "", true)
 $always_boots_config = Config.new("always_boots", '--always-boots', [
   'boots', 'unit', 'generic', 'float', 'vec', 'lambda',
-  'stdlib', 'array', 'enum', 'for'
+  'stdlib', 'array', 'enum', 'for', 'trait'
 ])
 $always_boots_config.enable_boots = true
 $all_configs = [
