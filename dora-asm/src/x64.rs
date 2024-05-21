@@ -1696,7 +1696,7 @@ impl Address {
 
         address.set_modrm(mode, base);
 
-        if base == RSP {
+        if base == RSP || base == R12 {
             address.set_sib(ScaleFactor::One, RSP, base);
         }
 
@@ -2149,6 +2149,7 @@ mod tests {
     fn test_movl_ar() {
         assert_emit!(0x89, 0x45, 0; movl_ar(Address::offset(RBP, 0), RAX));
         assert_emit!(0x44, 0x89, 0x7d, 0; movl_ar(Address::offset(RBP, 0), R15));
+        assert_emit!(0x41, 0x89, 0x1c, 0x24; movl_ar(Address::offset(R12, 0), RBX));
         assert_emit!(0x45, 0x89, 0x38; movl_ar(Address::offset(R8, 0), R15));
         assert_emit!(0x47, 0x89, 0x3c, 0x88; movl_ar(Address::array(R8, R9, ScaleFactor::Four, 0), R15));
         assert_emit!(0x89, 0x44, 0xa8, 1; movl_ar(Address::array(RAX, RBP, ScaleFactor::Four, 1), RAX));

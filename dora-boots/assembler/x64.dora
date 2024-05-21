@@ -1684,7 +1684,7 @@ impl Address {
 
         address.set_modrm(mode, base);
 
-        if base == RSP {
+        if base == RSP || base == R12 {
             address.set_sib(ScaleFactor::One, RSP, base);
         }
 

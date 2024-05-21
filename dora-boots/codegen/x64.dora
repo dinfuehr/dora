@@ -1252,7 +1252,7 @@ impl CodeGen for CodeGenX64 {
                     self.asm.movsd_ar(AsmAddress::offset(stack_reg, offset), src.getFloatRegister());
                 }
             } else if src.isRegister() {
-                if ty == Type::Int64 || ty == Type::Ptr {
+                if ty == Type::Int64 || ty == Type::Ptr || ty == Type::Address {
                     self.asm.movq_ar(AsmAddress::offset(stack_reg, offset), src.getRegister());
                 } else if ty == Type::Int32 {
                     self.asm.movl_ar(AsmAddress::offset(stack_reg, offset), src.getRegister());
