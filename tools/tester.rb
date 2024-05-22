@@ -72,7 +72,9 @@ class Config
   def enabled_for?(test_dir)
     return true if @directories == true
     for dir in @directories
-      return true if test_dir == $tests_dir.join(dir)
+      if test_dir == $tests_dir.join(dir)
+        return true
+      end
     end
     false
   end
@@ -91,14 +93,15 @@ $platform_binding = create_platform_binding
 $default_config = Config.new("default", "", true)
 $always_boots_config = Config.new("always_boots", '--always-boots', [
   'boots', 'unit', 'generic', 'float', 'vec', 'lambda',
-  'stdlib', 'array', 'enum', 'for', 'trait', 'tuple', 'struct'
+  'stdlib', 'array', 'enum', 'for', 'trait', 'tuple', 'struct',
+  'string', 'ops', 'whiteboard', 'cannon', 'io', 'cannon'
 ])
 $always_boots_config.enable_boots = true
 $all_configs = [
   $default_config,
   $always_boots_config,
 ]
-$use_config = nil
+$force_config = nil
 $exit_after_n_failures = nil
 $env = {}
 $verbose = false
@@ -123,11 +126,6 @@ def process_arguments
       $stress_timeout = 60 if $stress_timeout < 1
     elsif (m = /\A\-\-exit\-after\-n\-failures\=(\d+)\z/.match(arg))
       $exit_after_n_failures = m[1].to_i
-    elsif (m = /\A\-\-binary\=(\S+)\z/.match(arg))
-      $binary = m[1].to_s
-    elsif arg == "--binary"
-      $binary = ARGV[idx+1].to_s.strip
-      idx += 1
     elsif arg == "--target"
       $target = ARGV[idx+1].to_s.strip
       idx += 1
@@ -137,10 +135,10 @@ def process_arguments
       raise "missing value" unless name_and_value.length == 2
       $env[name_and_value[0]] = name_and_value[1]
       idx += 1
-    elsif arg == "--config"
+    elsif arg == "--force-config"
       config_name = ARGV[idx+1].to_s.strip
-      $use_config = $all_configs.detect { |c| c.name == config_name }
-      raise "unknown config #{config_name}" unless $use_config
+      $force_config = $all_configs.detect { |c| c.name == config_name }
+      raise "unknown config #{config_name}" unless $force_config
       idx += 1
     elsif arg == "--release"
       $release = true
@@ -165,7 +163,6 @@ def process_arguments
 end
 
 def binary_path
-  return $binary if $binary
   dir = $release ? "release" : "debug"
   extension = Gem.win_platform? ? ".exe" : ""
   target = $target ? "target/#{$target}" : "target"
@@ -677,12 +674,12 @@ end
 def parse_test_file(file)
   test_case = TestCase.new(file)
 
-  if $use_config
-    test_case.configs.push($use_config)
+  if $force_config
+    test_case.configs.push($force_config)
   else
     test_dir = Pathname.new(File.expand_path(file)).parent
     for config in $all_configs do
-      test_case.configs.push(config) if config.enabled_for?(file)
+      test_case.configs.push(config) if config.enabled_for?(test_dir)
     end
   end
 
@@ -739,8 +736,8 @@ def parse_test_file(file)
         config = $all_configs.detect { |c| c.name == config_name }
         raise "unknown config #{config_name}" unless config
 
-        if $use_config
-          if config != $use_config
+        if $force_config
+          if config != $force_config
             test_case.set_ignore
           end
         else

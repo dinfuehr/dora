@@ -408,6 +408,16 @@ fn emitInst(codegen: CodeGen, inst: Inst) {
             codegen.emitUnreachable(inst);
         }
 
+        Op::RotateLeft => {
+            codegen.emitComment("RotateLeft");
+            codegen.emitRotateLeft(inst);
+        }
+
+        Op::RotateRight => {
+            codegen.emitComment("RotateRight");
+            codegen.emitRotateRight(inst);
+        }
+
         _ => {
             println("unsupported op ${inst.op().name()}");
             unreachable[()]();
@@ -465,6 +475,8 @@ pub trait CodeGen {
     fn annotateAbs(inst: Inst);
     fn annotateSqrt(inst: Inst);
     fn annotateUnreachable(inst: Inst);
+    fn annotateRotateLeft(inst: Inst);
+    fn annotateRotateRight(inst: Inst);
 
     fn emitTrueConst(inst: Inst);
     fn emitFalseConst(inst: Inst);
@@ -534,6 +546,8 @@ pub trait CodeGen {
     fn emitAbs(inst: Inst);
     fn emitSqrt(inst: Inst);
     fn emitUnreachable(inst: Inst);
+    fn emitRotateLeft(inst: Inst);
+    fn emitRotateRight(inst: Inst);
 
     fn emitComment(comment: String);
 }

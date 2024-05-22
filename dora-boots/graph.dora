@@ -663,6 +663,8 @@ pub enum Op {
     Abs,
     Sqrt,
     Unreachable,
+    RotateLeft,
+    RotateRight,
 }
 
 impl Op {
@@ -779,6 +781,8 @@ pub fn opName(op: Op): String {
         Op::Abs => "Abs",
         Op::Sqrt => "Sqrt",
         Op::Unreachable => "Unreachable",
+        Op::RotateLeft => "RotateLeft",
+        Op::RotateRight => "RotateRight",
     }
 }
 
@@ -988,6 +992,8 @@ impl Inst {
             Op::Abs => Some[Type](self.ty),
             Op::Sqrt => Some[Type](self.ty),
             Op::Unreachable => Some[Type](self.ty),
+            Op::RotateLeft => Some[Type](self.ty),
+            Op::RotateRight => Some[Type](self.ty),
         }
     }
 
@@ -1522,6 +1528,8 @@ impl Inst {
             Op::Abs => false,
             Op::Sqrt => false,
             Op::Unreachable => true,
+            Op::RotateLeft => false,
+            Op::RotateRight => false,
         }
     }
 }
@@ -2590,6 +2598,24 @@ pub fn createUnreachableInst(ty: Type): Inst {
     let inst = Inst::new();
     inst.ty = ty;
     inst._op = Some(Op::Unreachable);
+    inst
+}
+
+pub fn createRotateLeftInst(ty: Type, value: Inst, by: Inst): Inst {
+    let inst = Inst::new();
+    inst.ty = ty;
+    inst._op = Some(Op::RotateLeft);
+    inst.addInput(value);
+    inst.addInput(by);
+    inst
+}
+
+pub fn createRotateRightInst(ty: Type, value: Inst, by: Inst): Inst {
+    let inst = Inst::new();
+    inst.ty = ty;
+    inst._op = Some(Op::RotateRight);
+    inst.addInput(value);
+    inst.addInput(by);
     inst
 }
 

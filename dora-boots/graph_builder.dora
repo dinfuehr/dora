@@ -1124,7 +1124,13 @@ impl SsaGen {
 
     fn emitIntrinsic(intrinsic: Int32, dest: BytecodeRegister, args: Array[BytecodeRegister], idx: ConstPoolId) {
         if intrinsic == opc::INTRINSIC_INT64_ADD_UNCHECKED || intrinsic == opc::INTRINSIC_INT32_ADD_UNCHECKED {
-            self.emitBin(dest, args(0), args(1), Op::Add);
+            self.emitIntrinsicBin(dest, args, Op::Add);
+        } else if intrinsic == opc::INTRINSIC_INT64_SUB_UNCHECKED || intrinsic == opc::INTRINSIC_INT32_SUB_UNCHECKED {
+            self.emitIntrinsicBin(dest, args, Op::Sub);
+        } else if intrinsic == opc::INTRINSIC_INT64_MUL_UNCHECKED || intrinsic == opc::INTRINSIC_INT32_MUL_UNCHECKED {
+            self.emitIntrinsicBin(dest, args, Op::Mul);
+        } else if intrinsic == opc::INTRINSIC_INT32_NEG_UNCHECKED || intrinsic == opc::INTRINSIC_INT64_NEG_UNCHECKED {
+            self.emitIntrinsicUn(dest, args, Op::Neg);
         } else if intrinsic == opc::INTRINSIC_THREAD_CURRENT {
             self.emitIntrinsicThreadCurrent(dest, args);
         } else if intrinsic == opc::INTRINSIC_UNREACHABLE {
@@ -1231,10 +1237,50 @@ impl SsaGen {
             self.emitIntrinsicRounding(dest, args, Op::Sqrt, Type::Float64);
         } else if intrinsic == opc::INTRINSIC_FLOAT32_SQRT {
             self.emitIntrinsicRounding(dest, args, Op::Sqrt, Type::Float32);
+        } else if intrinsic == opc::INTRINSIC_INT32_TO_CHAR || intrinsic == opc::INTRINSIC_CHAR_TO_INT32 {
+            self.emitIntrinsicCastBetweenInt32AndChar(dest, args);
+        } else if intrinsic == opc::INTRINSIC_INT32_TO_UINT8 {
+            self.emitIntrinsicConvert(dest, args, Type::UInt8, Type::Int32);
+        } else if intrinsic == opc::INTRINSIC_U_INT8_TO_INT32 {
+            self.emitIntrinsicConvert(dest, args, Type::Int32, Type::UInt8);
+        } else if intrinsic == opc::INTRINSIC_INT32_ROTATE_LEFT {
+            self.emitIntrinsicRotate(dest, args, Type::Int32, true);
+        } else if intrinsic == opc::INTRINSIC_INT32_ROTATE_RIGHT {
+            self.emitIntrinsicRotate(dest, args, Type::Int32, false);
+        } else if intrinsic == opc::INTRINSIC_INT64_ROTATE_LEFT {
+            self.emitIntrinsicRotate(dest, args, Type::Int64, true);
+        } else if intrinsic == opc::INTRINSIC_INT64_ROTATE_RIGHT {
+            self.emitIntrinsicRotate(dest, args, Type::Int64, false);
         } else {
             let name = opc::intrinsicName(intrinsic);
             std::fatalError("unknown intrinsic ${name}");
         }
+    }
+
+    fn emitIntrinsicRotate(dest: BytecodeRegister, args: Array[BytecodeRegister], ty: Type, is_left: Bool) {
+        assert(args.size() == 2);
+        let src = args(0);
+        let by = args(1);
+        assert(self.regGraphTy(src) == ty);
+        assert(self.regGraphTy(by) == Type::Int32);
+        let src = self.readVariable(src, self.current());
+        let by = self.readVariable(by, self.current());
+        let inst = if is_left {
+            graph::createRotateLeftInst(ty, src, by)
+        } else {
+            graph::createRotateRightInst(ty, src, by)
+        };
+        self.current().appendInst(inst);
+        self.writeVariable(dest, self.current(), inst);
+    }
+
+    fn emitIntrinsicCastBetweenInt32AndChar(dest: BytecodeRegister, args: Array[BytecodeRegister]) {
+        assert(args.size() == 1);
+        let src = args(0);
+        assert(self.regGraphTy(dest) == Type::Int32);
+        assert(self.regGraphTy(src) == Type::Int32);
+        let value = self.readVariable(src, self.current());
+        self.writeVariable(dest, self.current(), value);
     }
 
     fn emitIntrinsicRounding(dest: BytecodeRegister, args: Array[BytecodeRegister], op: Op, ty: Type) {

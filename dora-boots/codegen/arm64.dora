@@ -181,6 +181,7 @@ impl CodeGenArm64 {
 
     fn emitCheckedDivModCommon(inst: Inst) {
         let loc = inst.getLocationData();
+        let ty = inst.getValueType();
         let lhs = loc.getInput(0).getRegister();
         let rhs = loc.getInput(1).getRegister();
 
@@ -191,13 +192,20 @@ impl CodeGenArm64 {
         let lbl_overflow = self.asm.createLabel();
         let lbl_div = self.asm.createLabel();
 
-        self.asm.movz(REG_TEMP, 0x8000i32, 48i32);
+        if ty == Type::Int32 {
+            self.mov_imm_w(REG_TEMP, Int32::minValue());
+        } else {
+            assert(ty == Type::Int64);
+            self.mov_imm(REG_TEMP, Int64::minValue());
+        }
+
         self.asm.cmp(lhs, REG_TEMP);
         self.asm.bc(Cond::NE, lbl_div);
         self.asm.cmn_imm(rhs, 1i32);
         self.asm.bc(Cond::EQ, lbl_overflow);
 
         self.asm.bindLabel(lbl_div);
+
         if is_div {
             self.asm.sdiv(dest, lhs, rhs);
         } else {
@@ -797,33 +805,59 @@ impl CodeGen for CodeGenArm64 {
 
     fn emitSub(inst: Inst) {
         let loc = inst.getLocationData();
-        let lhs = loc.getInput(0).getFloatRegister();
-        let rhs = loc.getInput(1).getFloatRegister();
-        let output = loc.getOutput().getFloatRegister();
-
         let ty = inst.getValueType();
 
-        if ty == Type::Float32 {
-            self.asm.fsub_s(output, lhs, rhs);
+        if ty.isAnyFloat() {
+            let lhs = loc.getInput(0).getFloatRegister();
+            let rhs = loc.getInput(1).getFloatRegister();
+            let output = loc.getOutput().getFloatRegister();
+
+            if ty == Type::Float32 {
+                self.asm.fsub_s(output, lhs, rhs);
+            } else {
+                assert(ty == Type::Float64);
+                self.asm.fsub_d(output, lhs, rhs);
+            }
         } else {
-            assert(ty == Type::Float64);
-            self.asm.fsub_d(output, lhs, rhs);
+            let lhs = loc.getInput(0).getRegister();
+            let rhs = loc.getInput(1).getRegister();
+            let output = loc.getOutput().getRegister();
+
+            if ty == Type::Int32 {
+                self.asm.sub_w(output, lhs, rhs);
+            } else {
+                assert(ty == Type::Int64);
+                self.asm.sub(output, lhs, rhs);
+            }
         }
     }
 
     fn emitMul(inst: Inst) {
         let loc = inst.getLocationData();
-        let lhs = loc.getInput(0).getFloatRegister();
-        let rhs = loc.getInput(1).getFloatRegister();
-        let output = loc.getOutput().getFloatRegister();
-
         let ty = inst.getValueType();
 
-        if ty == Type::Float32 {
-            self.asm.fmul_s(output, lhs, rhs);
+        if ty.isAnyFloat() {
+            let lhs = loc.getInput(0).getFloatRegister();
+            let rhs = loc.getInput(1).getFloatRegister();
+            let output = loc.getOutput().getFloatRegister();
+
+            if ty == Type::Float32 {
+                self.asm.fmul_s(output, lhs, rhs);
+            } else {
+                assert(ty == Type::Float64);
+                self.asm.fmul_d(output, lhs, rhs);
+            }
         } else {
-            assert(ty == Type::Float64);
-            self.asm.fmul_d(output, lhs, rhs);
+            let lhs = loc.getInput(0).getRegister();
+            let rhs = loc.getInput(1).getRegister();
+            let output = loc.getOutput().getRegister();
+
+            if ty == Type::Int32 {
+                self.asm.mul_w(output, lhs, rhs);
+            } else {
+                assert(ty == Type::Int64);
+                self.asm.mul(output, lhs, rhs);
+            }
         }
     }
 
@@ -845,16 +879,34 @@ impl CodeGen for CodeGenArm64 {
 
     fn emitNeg(inst: Inst) {
         let loc = inst.getLocationData();
-        let src = loc.getInput(0).getFloatRegister();
-        let dest = loc.getOutput().getFloatRegister();
-
         let ty = inst.getValueType();
 
-        if ty == Type::Float32 {
-            self.asm.fneg_s(dest, src);
-        } else {
-            assert(ty == Type::Float64);
-            self.asm.fneg_d(dest, src);
+        match ty {
+            Type::Float32 => {
+                let src = loc.getInput(0).getFloatRegister();
+                let dest = loc.getOutput().getFloatRegister();
+                self.asm.fneg_s(dest, src);
+            }
+
+            Type::Float64 => {
+                let src = loc.getInput(0).getFloatRegister();
+                let dest = loc.getOutput().getFloatRegister();
+                self.asm.fneg_d(dest, src);
+            }
+
+            Type::Int32 => {
+                let src = loc.getInput(0).getRegister();
+                let dest = loc.getOutput().getRegister();
+                self.asm.sub_w(dest, REG_ZERO, src);
+            }
+
+            Type::Int64 => {
+                let src = loc.getInput(0).getRegister();
+                let dest = loc.getOutput().getRegister();
+                self.asm.sub(dest, REG_ZERO, src);
+            }
+
+            _ => unreachable[()](),
         }
     }
 
@@ -1972,6 +2024,11 @@ impl CodeGen for CodeGenArm64 {
                         self.asm.mov_w(dest, src);
                     }
 
+                    Type::UInt8 => {
+                        let src = loc.getInput(0).getRegister();
+                        self.asm.mov_w(dest, src);
+                    }
+
                     _ => unimplemented(),
                 }
             }
@@ -2016,6 +2073,19 @@ impl CodeGen for CodeGenArm64 {
                     Type::Float32 => {
                         let src = loc.getInput(0).getFloatRegister();
                         self.asm.fcvt_ds(dest, src);
+                    }
+
+                    _ => unimplemented(),
+                }
+            }
+
+            Type::UInt8 => {
+                let dest = loc.getOutput().getRegister();
+
+                match src_ty {
+                    Type::Int32 => {
+                        let src = loc.getInput(0).getRegister();
+                        self.asm.and_imm_w(dest, src, 0xFFi32);
                     }
 
                     _ => unimplemented(),
@@ -2287,6 +2357,60 @@ impl CodeGen for CodeGenArm64 {
         self.locations.insert(self.asm.position(), loc);
         // Method should never return.
         self.asm.brk(0i32);
+    }
+
+    fn annotateRotateLeft(inst: Inst) {
+        useInputRegister(inst, 0);
+        useInputRegister(inst, 1);
+        useOutputRegister(inst, InputOutputOverlap::NoOverlap);
+    }
+
+    fn emitRotateLeft(inst: Inst) {
+        let loc = inst.getLocationData();
+        let dest = loc.getOutput().getRegister();
+        let src = loc.getInput(0).getRegister();
+        let by = loc.getInput(1).getRegister();
+
+        match inst.getValueType() {
+            Type::Int32 => {
+                self.mov_imm(REG_TEMP, 32);
+                self.asm.sub_w(REG_TEMP, REG_TEMP, by);
+                self.asm.ror_w(dest, src, REG_TEMP);
+            }
+
+            Type::Int64 => {
+                self.mov_imm(REG_TEMP, 64);
+                self.asm.sub(REG_TEMP, REG_TEMP, by);
+                self.asm.ror(dest, src, REG_TEMP);
+            }
+
+            _ => unreachable[()](),
+        }
+    }
+
+    fn annotateRotateRight(inst: Inst) {
+        useInputRegister(inst, 0);
+        useInputRegister(inst, 1);
+        useOutputRegister(inst, InputOutputOverlap::NoOverlap);
+    }
+
+    fn emitRotateRight(inst: Inst) {
+        let loc = inst.getLocationData();
+        let dest = loc.getOutput().getRegister();
+        let src = loc.getInput(0).getRegister();
+        let by = loc.getInput(1).getRegister();
+
+        match inst.getValueType() {
+            Type::Int32 => {
+                self.asm.ror_w(dest, src, by);
+            }
+
+            Type::Int64 => {
+                self.asm.ror(dest, src, by);
+            }
+
+            _ => unreachable[()](),
+        }
     }
 
     fn finalize(): CodeDescriptor {

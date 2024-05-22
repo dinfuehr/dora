@@ -6,5 +6,5 @@ TARGET=x86_64-apple-darwin
 
 cargo build --target $TARGET
 cargo test --target $TARGET
-ruby tools/tester.rb --binary target/$TARGET/debug/dora $@
+ruby tools/tester.rb --target $TARGET $@
 cargo run -p dora --target $TARGET -- test-boots --package boots dora-boots/boots.dora --gc-verify

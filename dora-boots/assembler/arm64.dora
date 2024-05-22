@@ -305,8 +305,8 @@ impl AssemblerArm64 {
         self.emit(encoding::logical_imm(1i32, 0b00i32, n_immr_imms, rn, rd));
     }
 
-    pub fn and_imm_w(rd: Register, rn: Register, imm: Int64) {
-        let n_immr_imms = imm_encoding::logical(imm, 32).getOrPanic();
+    pub fn and_imm_w(rd: Register, rn: Register, imm: Int32) {
+        let n_immr_imms = imm_encoding::logical(imm.toInt64(), 32).getOrPanic();
         self.emit(encoding::logical_imm(0i32, 0b00i32, n_immr_imms, rn, rd));
     }
 
@@ -3936,8 +3936,8 @@ mod tests {
         let asm = AssemblerArm64::new();
         asm.and_imm(R0, R1, 1);
         asm.and_imm(R0, R1, 0xaaaaaaaa_aaaaaaaa);
-        asm.and_imm_w(R0, R1, 1);
-        asm.and_imm_w(R0, R1, 0xaaaaaaaa);
+        asm.and_imm_w(R0, R1, 1i32);
+        asm.and_imm_w(R0, R1, 0xaaaaaaaai32);
         let buffer = asm.finalizeTesting();
 
         assertAsm32(

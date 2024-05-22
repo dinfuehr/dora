@@ -358,7 +358,6 @@ impl LocationAnnotation {
                 self.codegen.annotateBitcast(inst);
             }
 
-
             Op::RoundDown => {
                 self.codegen.annotateRoundDown(inst);
             }
@@ -385,6 +384,14 @@ impl LocationAnnotation {
 
             Op::Unreachable => {
                 self.codegen.annotateUnreachable(inst);
+            }
+
+            Op::RotateLeft => {
+                self.codegen.annotateRotateLeft(inst);
+            }
+
+            Op::RotateRight => {
+                self.codegen.annotateRotateRight(inst);
             }
 
             _ => {
