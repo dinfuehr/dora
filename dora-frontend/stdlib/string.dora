@@ -277,12 +277,12 @@ impl StringBuffer {
 
   // reserve `elements` bytes
   // (capacity - length >= elements)
-  pub fn reserve(elements: Int64) {
-    if self.capacity() - self.size() >= elements {
+  pub fn reserve(added: Int64) {
+    if self.capacity() - self.size() >= added {
       return;
     }
 
-    let newcap = self.newCapacity(elements);
+    let newcap = self.newCapacity(added);
     let newbuf = Array[UInt8]::zero(newcap);
     let mut i = 0i64;
 
@@ -294,19 +294,17 @@ impl StringBuffer {
     self.buf = newbuf;
   }
 
-  pub fn newCapacity(reserve: Int64): Int64 {
+  pub fn newCapacity(added: Int64): Int64 {
     let mut len = self.len;
 
     if len == 0i64 {
       len = 4i64;
     }
 
-    let c1 = (len + reserve + 7i64) & !7i64;
+    let c1 = (len + added + 7i64) & !7i64;
     let c2 = len * 2i64;
 
     if c1 > c2 {
-      c1
-    } else if c2 - c1 > 32i64 {
       c1
     } else {
       c2

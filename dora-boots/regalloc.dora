@@ -616,6 +616,7 @@ impl SimpleRegisterAllocator {
         let (register, instInReg) = registers.freeUnprotected();
         registers.protect(register);
         self.spill(instInReg);
+        assert(registers.allocateFixedTempRegister(register));
         register.toLocation()
     }
 
@@ -804,6 +805,26 @@ impl[T: RegisterType] RegisterTracker[T] {
 
     pub fn snapshot(): RegSet[T] {
         self.allocatable.difference(self.free)
+    }
+
+    pub fn print() {
+        print("free:");
+        for reg in self.free {
+            print(" ${reg.toInt32()}");
+        }
+        print("\nprotected:");
+        for reg in self.protected {
+            print(" ${reg.toInt32()}");
+        }
+        print("\ndata:");
+        for (reg, inst) in self.data {
+            print("  ${reg.toInt32()}->${inst}");
+        }
+        print("\nlocations:");
+        for (inst, reg) in self.locations {
+            print("  ${inst}->${reg.toInt32()}");
+        }
+        println("");
     }
 }
 
