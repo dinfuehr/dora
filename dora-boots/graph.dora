@@ -479,6 +479,10 @@ impl LoopData {
         self.blocks.insert(block.id().toInt64());
     }
 
+    pub fn getParent(): Option[LoopData] {
+        self.parent
+    }
+
     pub fn setLoopParent(parent: LoopData) {
         assert(self.parent.isNone());
         assert(self.depth == 0);
@@ -561,7 +565,7 @@ impl Input {
 
 impl Stringable for Input {
     fn toString(): String {
-        "Input(user:%${self.getUsedBy().id()}, idx:${self.getIdx()}, value:%${self.getValue().id()})"
+        "Input(usedBy:%${self.getUsedBy().id()}, idx:${self.getIdx()}, value:%${self.getValue().id()})"
     }
 }
 

@@ -102,6 +102,7 @@ $all_configs = [
   $always_boots_config,
 ]
 $force_config = nil
+$config = nil
 $exit_after_n_failures = nil
 $env = {}
 $verbose = false
@@ -139,6 +140,11 @@ def process_arguments
       config_name = ARGV[idx+1].to_s.strip
       $force_config = $all_configs.detect { |c| c.name == config_name }
       raise "unknown config #{config_name}" unless $force_config
+      idx += 1
+    elsif arg == "--run-config"
+      config_name = ARGV[idx+1].to_s.strip
+      $config = $all_configs.detect { |c| c.name == config_name }
+      raise "unknown config #{config_name}" unless $config
       idx += 1
     elsif arg == "--release"
       $release = true
@@ -673,11 +679,17 @@ end
 
 def parse_test_file(file)
   test_case = TestCase.new(file)
+  test_dir = Pathname.new(File.expand_path(file)).parent
 
   if $force_config
     test_case.configs.push($force_config)
+  elsif $config
+    if $config.enabled_for?(test_dir)
+      test_case.configs.push($config)
+    else
+      test_case.set_ignore
+    end
   else
-    test_dir = Pathname.new(File.expand_path(file)).parent
     for config in $all_configs do
       test_case.configs.push(config) if config.enabled_for?(test_dir)
     end
@@ -730,19 +742,6 @@ def parse_test_file(file)
 
       when "stderr"
         test_case.expectation.stderr = arguments[1]
-
-      when "config"
-        config_name = arguments[1]
-        config = $all_configs.detect { |c| c.name == config_name }
-        raise "unknown config #{config_name}" unless config
-
-        if $force_config
-          if config != $force_config
-            test_case.set_ignore
-          end
-        else
-          test_case.configs << config
-        end
 
       when "args"
         test_case.args = arguments[1..-1].join(" ")

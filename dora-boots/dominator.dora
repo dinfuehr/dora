@@ -247,32 +247,34 @@ fn discoverLoopBlocks(graph: Graph) {
     }
 }
 
-fn discoverBlocks(loop: LoopData, block: Block) {
-    if loop.containsBlock(block) {
-        return;
-    }
+fn discoverBlocks(loop: LoopData, start: Block) {
+    let worklist = Vec[Block]::new();
+    worklist.push(start);
 
-    loop.addBlock(block);
+    while !worklist.isEmpty() {
+        let block = worklist.pop().getOrPanic();
 
-    if block.isLoopHeader() {
-        let nested = block.getLoopData().getOrPanic();
-        nested.setLoopParent(loop);
-    }
+        if loop.containsBlock(block) {
+            return;
+        }
 
-    updateLoopData(block, loop);
+        loop.addBlock(block);
 
-    for predecessorEdge in block.predecessors {
-        discoverBlocks(loop, predecessorEdge.source);
-    }
-}
+        if block.isLoopHeader() {
+            let nested = block.getLoopData().getOrPanic();
+            if nested.getParent().isNone() {
+                nested.setLoopParent(loop);
+            }
+        }
 
-fn updateLoopData(block: Block, loop: LoopData) {
-    let currentLoop = block.getLoopData();
+        let currentLoop = block.getLoopData();
 
-    if currentLoop.isNone() {
-        block.setLoopData(loop);
-    } else {
-        let currentLoop = currentLoop.getOrPanic();
-        assert(loop.containsLoop(currentLoop));
+        if currentLoop.isNone() {
+            block.setLoopData(loop);
+        }
+
+        for predecessorEdge in block.predecessors {
+            worklist.push(predecessorEdge.source);
+        }
     }
 }
