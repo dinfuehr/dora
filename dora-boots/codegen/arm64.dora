@@ -552,7 +552,7 @@ impl CodeGenArm64 {
         if arm64::fitsUnscaledImmediate(offset) {
             self.asm.ldurb(dest, src, offset);
         } else {
-            self.mov_imm_w(REG_TEMP, offset);
+            self.mov_imm(REG_TEMP, offset.toInt64());
             self.asm.ldrb_reg(dest, src, REG_TEMP, Extend::LSL, 0i32);
         }
     }
@@ -562,7 +562,7 @@ impl CodeGenArm64 {
         if arm64::fitsUnscaledImmediate(offset) {
             self.asm.ldur_w(dest, src, offset);
         } else {
-            self.mov_imm_w(REG_TEMP, offset);
+            self.mov_imm(REG_TEMP, offset.toInt64());
             self.asm.ldr_reg_w(dest, src, REG_TEMP, Extend::LSL, 0i32);
         }
     }
@@ -572,7 +572,7 @@ impl CodeGenArm64 {
         if arm64::fitsUnscaledImmediate(offset) {
             self.asm.ldur(dest, src, offset);
         } else {
-            self.mov_imm_w(REG_TEMP, offset);
+            self.mov_imm(REG_TEMP, offset.toInt64());
             self.asm.ldr_reg(dest, src, REG_TEMP, Extend::LSL, 0i32);
         }
     }
@@ -582,7 +582,7 @@ impl CodeGenArm64 {
         if arm64::fitsUnscaledImmediate(offset) {
             self.asm.ldur_s(dest, src, offset);
         } else {
-            self.mov_imm_w(REG_TEMP, offset);
+            self.mov_imm(REG_TEMP, offset.toInt64());
             self.asm.ldr_reg_s(dest, src, REG_TEMP, Extend::LSL, 0i32);
         }
     }
@@ -592,7 +592,7 @@ impl CodeGenArm64 {
         if arm64::fitsUnscaledImmediate(offset) {
             self.asm.ldur_d(dest, src, offset);
         } else {
-            self.mov_imm_w(REG_TEMP, offset);
+            self.mov_imm(REG_TEMP, offset.toInt64());
             self.asm.ldr_reg_d(dest, src, REG_TEMP, Extend::LSL, 0i32);
         }
     }
@@ -602,7 +602,7 @@ impl CodeGenArm64 {
         if arm64::fitsUnscaledImmediate(offset) {
             self.asm.sturb(src, dest, offset);
         } else {
-            self.mov_imm_w(REG_TEMP, offset);
+            self.mov_imm(REG_TEMP, offset.toInt64());
             self.asm.strb_reg(src, dest, REG_TEMP, Extend::LSL, 0i32);
         }
     }
@@ -612,7 +612,7 @@ impl CodeGenArm64 {
         if arm64::fitsUnscaledImmediate(offset) {
             self.asm.stur_w(src, dest, offset);
         } else {
-            self.mov_imm_w(REG_TEMP, offset);
+            self.mov_imm(REG_TEMP, offset.toInt64());
             self.asm.str_reg_w(src, dest, REG_TEMP, Extend::LSL, 0i32);
         }
     }
@@ -622,7 +622,7 @@ impl CodeGenArm64 {
         if arm64::fitsUnscaledImmediate(offset) {
             self.asm.stur(src, dest, offset);
         } else {
-            self.mov_imm_w(REG_TEMP, offset);
+            self.mov_imm(REG_TEMP, offset.toInt64());
             self.asm.str_reg(src, dest, REG_TEMP, Extend::LSL, 0i32);
         }
     }
@@ -632,7 +632,7 @@ impl CodeGenArm64 {
         if arm64::fitsUnscaledImmediate(offset) {
             self.asm.stur_s(src, dest, offset);
         } else {
-            self.mov_imm_w(REG_TEMP, offset);
+            self.mov_imm(REG_TEMP, offset.toInt64());
             self.asm.str_reg_s(src, dest, REG_TEMP, Extend::LSL, 0i32);
         }
     }
@@ -642,7 +642,7 @@ impl CodeGenArm64 {
         if arm64::fitsUnscaledImmediate(offset) {
             self.asm.stur_d(src, dest, offset);
         } else {
-            self.mov_imm_w(REG_TEMP, offset);
+            self.mov_imm(REG_TEMP, offset.toInt64());
             self.asm.str_reg_d(src, dest, REG_TEMP, Extend::LSL, 0i32);
         }
     }
