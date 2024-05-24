@@ -528,11 +528,8 @@ impl SimpleRegisterAllocator {
         let loc_data = inst.getLocationData();
 
         for input in inst.getInputs() {
-            let value = input.getValue();
-            assert(value.currentNextUse().getOrPanic() === input);
-            value.advanceToNextUse();
-
             if input.isLastUse() {
+                let value = input.getValue();
                 self.registers().free(value);
                 self.float_registers().free(value);
                 assert(self.currentlyLive.remove(value));

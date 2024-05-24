@@ -6,16 +6,6 @@ use package::graph::{Graph, Input, InstSet};
 pub fn computeLiveness(graph: Graph) {
     computeLinearOrderIndex(graph);
 
-    for block in graph.reversePostOrderIterator() {
-        for phi in block.phisIterator() {
-            phi.clearUses();
-        }
-
-        for inst in block.instructionsIterator() {
-            inst.clearUses();
-        }
-    }
-
     for block in graph.postOrderIterator() {
         let live = InstSet::new(graph);
 
@@ -27,8 +17,6 @@ pub fn computeLiveness(graph: Graph) {
                 let input = phi.getInput(idx);
                 let value = input.getValue();
                 live.insert(value);
-                value.usedAt(block.lastInst());
-                value.prependUse(input, block.lastInst());
             }
         }
 
@@ -42,14 +30,9 @@ pub fn computeLiveness(graph: Graph) {
         }
 
         for inst in block.reverseInstructionsIterator() {
-            for input in inst.getInputs().makeReverseIterator() {
+            for input in inst.getInputs() {
                 let value = input.getValue();
-                value.usedAt(inst);
-                value.prependUse(input, inst);
-
-                if live.insert(value) {
-                    input.markLastUse();
-                }
+                live.insert(value);
             }
 
             live.remove(inst);
@@ -70,44 +53,11 @@ pub fn computeLiveness(graph: Graph) {
         let loopData = block.getLoopData().getOrPanic();
         let liveLoop = block.getLiveIn();
 
-        // A value that is live-in in a loop header, needs to be
-        // live through the whole loop.
-
-        for value in liveLoop {
-            // Extend live range for each live-in variable up to
-            // the last loop back edge.
-            for backEdge in loopData.getBackEdges() {
-                value.usedInLoop(backEdge.source);
-            }
-        }
-
-        // A variable which is live-in in the loop header, is also live-in
+        // A value which is live-in in the loop header, is also live-in
         // in all blocks of that loop.
         for loopBlockId in loopData.blocks() {
             let loopBlock = graph.getBlockWithId(loopBlockId.toInt32());
             loopBlock.getLiveIn().unionWith(liveLoop);
-        }
-    }
-
-    for block in graph.reversePostOrderIterator() {
-        for inst in block.instructionsIterator() {
-            let mut lastIdx = 0i32;
-
-            if inst.hasUses() {
-                assert(inst.currentNextUse().getOrPanic() === inst.firstUse().getOrPanic());
-            } else {
-                assert(inst.currentNextUse().isNone());
-            }
-
-            for input in inst.uses() {
-                assert(input.getValue() === inst);
-                let user = input.getUsedBy();
-                let currentIdx = input.getLinearOrderIndexInActualUser();
-
-                // Uses should be ordered by the linear order index.
-                assert(lastIdx <= currentIdx);
-                lastIdx = currentIdx;
-            }
         }
     }
 }

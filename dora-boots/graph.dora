@@ -811,13 +811,10 @@ pub class Inst {
     previous: Option[Inst],
     next: Option[Inst],
 
-    nextUse: Option[Input],
-
     ty: Type,
     extra: InstExtraData,
 
     location_data: Option[LocationData],
-    live_range: Option[LiveRange],
 
     useListHead: Option[Input],
     useListTail: Option[Input],
@@ -836,11 +833,9 @@ impl Inst {
             0,
             None[Inst],
             None[Inst],
-            None[Input],
             Type::Unit,
             InstExtraData::None,
             None[LocationData],
-            None[LiveRange],
             None[Input],
             None[Input],
             Vec[Input]::new(),
@@ -869,14 +864,6 @@ impl Inst {
 
     pub fn setLinearOrderIndex(value: Int32) {
         self.linear_index = Some(value);
-    }
-
-    pub fn hasLiveRange(): Bool {
-        self.live_range.isSome()
-    }
-
-    pub fn getLiveRange(): LiveRange {
-        self.live_range.getOrPanic()
     }
 
     pub fn bytecode_position(): Int32 {
@@ -1110,24 +1097,6 @@ impl Inst {
         }
     }
 
-    pub fn usedAt(inst: Inst) {
-        if self.live_range.isNone() {
-            self.live_range = Some(LiveRange(self.getLinearOrderIndex(), inst.getLinearOrderIndex()));
-        } else {
-            let live_range = self.live_range.getOrPanic();
-            assert(live_range.start == self.getLinearOrderIndex());
-            assert(live_range.end >= inst.getLinearOrderIndex());
-        }
-    }
-
-    pub fn usedInLoop(block: Block) {
-        let live_range = self.live_range.getOrPanic();
-        let idx = block.lastInst().getLinearOrderIndex();
-        if idx > live_range.end {
-            live_range.end = idx;
-        }
-    }
-
     pub fn addInput(inst: Inst) {
         let input = Input::new(self.inputs.size().toInt32(), inst, self);
         self.inputs.push(input);
@@ -1153,53 +1122,6 @@ impl Inst {
             input.nextUse = None;
 
             self.useListTail = Some(input);
-        }
-    }
-
-    pub fn currentNextUse(): Option[Input] {
-        self.nextUse
-    }
-
-    pub fn hasNextUse(): Bool {
-        self.nextUse.isSome()
-    }
-
-    pub fn advanceToNextUse() {
-        assert(self.nextUse.isSome());
-        self.nextUse = self.nextUse.getOrPanic().getNextUse();
-    }
-
-    pub fn clearUses() {
-        self.useListHead = None;
-        self.useListTail = None;
-        self.nextUse = None;
-    }
-
-    pub fn prependUse(input: Input, used_by: Inst) {
-        assert(input.value === self);
-        input.linearOrderIdxInActualUser = Some(used_by.getLinearOrderIndex());
-        self.nextUse = Some(input);
-
-        if self.useListHead.isNone() {
-            assert(self.useListTail.isNone());
-            input.previousUse = None;
-            input.nextUse = None;
-
-            self.useListHead = Some(input);
-            self.useListTail = Some(input);
-        } else {
-            assert(self.useListHead.isSome());
-            assert(self.useListTail.isSome());
-
-            assert(self.useListHead.getOrPanic().previousUse.isNone());
-            assert(self.useListTail.getOrPanic().nextUse.isNone());
-
-            self.useListHead.getOrPanic().previousUse = Some(input);
-
-            input.previousUse = None;
-            input.nextUse = self.useListHead;
-
-            self.useListHead = Some(input);
         }
     }
 

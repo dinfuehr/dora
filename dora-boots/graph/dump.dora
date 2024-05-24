@@ -166,11 +166,6 @@ impl GraphDumper {
             self.buffer.append("]");
         }
 
-        if inst.hasLiveRange() {
-            let range = inst.getLiveRange();
-            self.buffer.append(" (live: #${range.start}-#${range.end})");
-        }
-
         self.buffer.appendNewline();
     }
 
