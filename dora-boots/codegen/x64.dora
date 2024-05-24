@@ -1345,7 +1345,7 @@ impl CodeGen for CodeGenX64 {
                 } else if ty == Type::Int32 || ty == Type::Float32 {
                     self.asm.movl_ra(REG_TEMP, AsmAddress::offset(RBP, src_offset));
                     self.asm.movl_ar(AsmAddress::offset(stack_reg, offset), REG_TEMP);
-                } else if ty == Type::Int64 || ty == Type::Ptr || ty == Type::Float64 {
+                } else if ty == Type::Int64 || ty == Type::Ptr || ty == Type::Float64 || ty == Type::Address {
                     self.asm.movq_ra(REG_TEMP, AsmAddress::offset(RBP, src_offset));
                     self.asm.movq_ar(AsmAddress::offset(stack_reg, offset), REG_TEMP);
                 } else {
