@@ -191,7 +191,7 @@ impl AssemblerX64 {
     }
 
     pub fn cmpb_rr(lhs: Register, rhs: Register) {
-        self.emitRex32ModRmByteOptional(rhs, lhs);
+        self.emitRexByteModRmOptional(rhs, lhs);
         self.emitByte(0x38u8);
         self.emitModRmReg(rhs, lhs);
     }
@@ -1056,7 +1056,7 @@ impl AssemblerX64 {
     }
 
     pub fn testb_rr(lhs: Register, rhs: Register) {
-        self.emitRex32ModRmByteOptional(rhs, lhs);
+        self.emitRexByteModRmOptional(rhs, lhs);
         self.emitByte(0x84u8);
         self.emitModRmReg(rhs, lhs);
     }
@@ -1307,6 +1307,12 @@ impl AssemblerX64 {
 
     fn emitRex32ModRmByteOptional(modrm_reg: Register, modrm_rm: Register) {
         if modrm_reg.needsRexBit() || modrm_rm.needsRexBit() || modrm_rm.value > 3u8 {
+            self.emitRex(false, modrm_reg.needsRexBit(), false, modrm_rm.needsRexBit());
+        }
+    }
+
+    fn emitRexByteModRmOptional(modrm_reg: Register, modrm_rm: Register) {
+        if modrm_reg.needsRexBit() || modrm_reg.value > 3u8 || modrm_rm.needsRexBit() || modrm_rm.value > 3u8 {
             self.emitRex(false, modrm_reg.needsRexBit(), false, modrm_rm.needsRexBit());
         }
     }
@@ -2268,6 +2274,7 @@ mod tests {
         asm.testb_rr(RSI, RAX);
         asm.testb_rr(R15, RAX);
         asm.testb_rr(RDI, RDI);
+        asm.testb_rr(RBX, RSI);
         let buffer = asm.finalizeTesting();
 
         assertAsm(buffer, 0x84u8, 0xC0u8);
@@ -2275,6 +2282,7 @@ mod tests {
         assertAsm(buffer, 0x40u8, 0x84u8, 0xC6u8);
         assertAsm(buffer, 0x41u8, 0x84u8, 0xC7u8);
         assertAsm(buffer, 0x40u8, 0x84u8, 0xFFu8);
+        assertAsm(buffer, 0x40u8, 0x84u8, 0xF3u8);
         assertAsmEnd(buffer);
     }
 
@@ -3360,6 +3368,7 @@ mod tests {
         asm.cmpb_rr(RSI, RAX);
         asm.cmpb_rr(R15, RAX);
         asm.cmpb_rr(RDI, RDI);
+        asm.cmpb_rr(RBX, RSI);
         let buffer = asm.finalizeTesting();
 
         assertAsm(buffer, 0x38u8, 0xC0u8);
@@ -3367,6 +3376,7 @@ mod tests {
         assertAsm(buffer, 0x40u8, 0x38u8, 0xC6u8);
         assertAsm(buffer, 0x41u8, 0x38u8, 0xC7u8);
         assertAsm(buffer, 0x40u8, 0x38u8, 0xFFu8);
+        assertAsm(buffer, 0x40u8, 0x38u8, 0xF3u8);
         assertAsmEnd(buffer);
     }
 

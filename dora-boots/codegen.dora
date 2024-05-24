@@ -26,7 +26,7 @@ pub fn generateCode(graph: Graph, codegen: CodeGen, ci: CompilationInfo): CodeDe
     assert(stackSize % STACK_FRAME_ALIGNMENT.toInt32() == 0i32);
 
     if ci.emitDebug {
-        codegen.emitDebug();
+        codegen.emitBreakpoint();
     }
 
     codegen.emitProlog(stackSize);
@@ -418,6 +418,11 @@ fn emitInst(codegen: CodeGen, inst: Inst) {
             codegen.emitRotateRight(inst);
         }
 
+        Op::Debug => {
+            codegen.emitComment("Debug");
+            codegen.emitDebug(inst);
+        }
+
         _ => {
             println("unsupported op ${inst.op().name()}");
             unreachable[()]();
@@ -439,7 +444,7 @@ pub trait CodeGen {
     fn getReturnRegister(): Register;
     fn getFloatReturnRegister(): FloatRegister;
 
-    fn emitDebug();
+    fn emitBreakpoint();
     fn emitProlog(stackSize: Int32);
     fn emitStackLimitCheck();
     fn emitSafepointCheck();
@@ -548,6 +553,7 @@ pub trait CodeGen {
     fn emitUnreachable(inst: Inst);
     fn emitRotateLeft(inst: Inst);
     fn emitRotateRight(inst: Inst);
+    fn emitDebug(inst: Inst);
 
     fn emitComment(comment: String);
 }

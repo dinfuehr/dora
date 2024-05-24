@@ -394,6 +394,10 @@ impl LocationAnnotation {
                 self.codegen.annotateRotateRight(inst);
             }
 
+            Op::Debug => {
+                setOutputOverlaps(inst, InputOutputOverlap::NoOverlap);
+            }
+
             _ => {
                 println("unsupported op ${inst.op().name()}");
                 unreachable[()]();

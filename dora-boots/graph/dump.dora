@@ -342,6 +342,7 @@ fn dumpInstName(inst: Inst): String {
         Op::Unreachable => "Unreachable.${inst.getValueType()}",
         Op::RotateLeft => "RotateLeft.${inst.getValueType()}",
         Op::RotateRight => "RotateRight.${inst.getValueType()}",
+        Op::Debug => "Debug",
     }
 }
 

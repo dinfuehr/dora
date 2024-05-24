@@ -587,7 +587,7 @@ impl CodeGen for CodeGenX64 {
         XMM0
     }
 
-    fn emitDebug() {
+    fn emitBreakpoint() {
         self.asm.int3();
     }
 
@@ -1954,7 +1954,7 @@ impl CodeGen for CodeGenX64 {
     }
 
     fn emitAbort(inst: Inst) {
-        self.emitDebug();
+        self.emitBreakpoint();
     }
 
     fn emitAssert(inst: Inst) {
@@ -2422,6 +2422,10 @@ impl CodeGen for CodeGenX64 {
 
             _ => unreachable[()](),
         }
+    }
+
+    fn emitDebug(inst: Inst) {
+        self.emitBreakpoint();
     }
 
     fn finalize(): CodeDescriptor {

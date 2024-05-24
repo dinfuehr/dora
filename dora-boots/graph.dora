@@ -668,6 +668,7 @@ pub enum Op {
     Unreachable,
     RotateLeft,
     RotateRight,
+    Debug,
 }
 
 impl Op {
@@ -785,6 +786,7 @@ pub fn opName(op: Op): String {
         Op::Unreachable => "Unreachable",
         Op::RotateLeft => "RotateLeft",
         Op::RotateRight => "RotateRight",
+        Op::Debug => "Debug",
     }
 }
 
@@ -995,6 +997,7 @@ impl Inst {
             Op::Unreachable => Some[Type](self.ty),
             Op::RotateLeft => Some[Type](self.ty),
             Op::RotateRight => Some[Type](self.ty),
+            Op::Debug => None[Type],
         }
     }
 
@@ -1530,6 +1533,7 @@ impl Inst {
             Op::Unreachable => true,
             Op::RotateLeft => false,
             Op::RotateRight => false,
+            Op::Debug => true,
         }
     }
 }
@@ -2330,6 +2334,12 @@ pub fn createDivZeroCheckInst(value: Inst): Inst {
 pub fn createAbortInst(): Inst {
     let inst = Inst::new();
     inst._op = Some(Op::Abort);
+    inst
+}
+
+pub fn createDebugInst(): Inst {
+    let inst = Inst::new();
+    inst._op = Some(Op::Debug);
     inst
 }
 

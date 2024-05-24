@@ -1251,10 +1251,18 @@ impl SsaGen {
             self.emitIntrinsicRotate(dest, args, Type::Int64, true);
         } else if intrinsic == opc::INTRINSIC_INT64_ROTATE_RIGHT {
             self.emitIntrinsicRotate(dest, args, Type::Int64, false);
+        } else if intrinsic == opc::INTRINSIC_DEBUG {
+            self.emitIntrinsicDebug(dest, args);
         } else {
             let name = opc::intrinsicName(intrinsic);
             std::fatalError("unknown intrinsic ${name}");
         }
+    }
+
+    fn emitIntrinsicDebug(dest: BytecodeRegister, args: Array[BytecodeRegister]) {
+        assert(args.isEmpty());
+        let inst = graph::createDebugInst();
+        self.current().appendInst(inst);
     }
 
     fn emitIntrinsicRotate(dest: BytecodeRegister, args: Array[BytecodeRegister], ty: Type, is_left: Bool) {

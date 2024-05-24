@@ -699,7 +699,7 @@ impl CodeGen for CodeGenArm64 {
         F0
     }
 
-    fn emitDebug() {
+    fn emitBreakpoint() {
         self.asm.brk(0xF0_00i32);
     }
 
@@ -2038,7 +2038,7 @@ impl CodeGen for CodeGenArm64 {
     }
 
     fn emitAbort(inst: Inst) {
-        self.emitDebug();
+        self.emitBreakpoint();
     }
 
     fn emitAssert(inst: Inst) {
@@ -2491,6 +2491,10 @@ impl CodeGen for CodeGenArm64 {
 
             _ => unreachable[()](),
         }
+    }
+
+    fn emitDebug(inst: Inst) {
+        self.emitBreakpoint();
     }
 
     fn finalize(): CodeDescriptor {
