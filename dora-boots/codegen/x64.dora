@@ -219,6 +219,8 @@ impl CodeGenX64 {
     fn emitObjectAllocate(obj: Register, size: Int32, tmp1: Register, tmp2: Register, snapshot: RegisterTrackers, gc_point: GcPoint) {
         let lbl_alloc_slow_path = self.asm.createLabel();
 
+        snapshot.gp.freeRegisterIfUsed(obj);
+
         if config.useTlab {
             self.asm.movq_ra(obj, AsmAddress::offset(REG_THREAD, THREAD_LOCAL_DATA_TLAB_TOP_OFFSET));
             self.asm.movq_ra(tmp1, AsmAddress::offset(REG_THREAD, THREAD_LOCAL_DATA_TLAB_END_OFFSET));
@@ -264,6 +266,8 @@ impl CodeGenX64 {
 
     fn emitArrayAllocate(obj: Register, size: Register, tmp1: Register, tmp2: Register, snapshot: RegisterTrackers, gc_point: GcPoint) {
         let lbl_alloc_slow_path = self.asm.createLabel();
+
+        snapshot.gp.freeRegisterIfUsed(obj);
 
         if config.isDebug {
             self.asm.testl_ri(size, Immediate((PTR_SIZE - 1i32).toInt64()));
@@ -367,7 +371,7 @@ impl CodeGenX64 {
     }
 
     fn saveRegistersForCall(snapshot: RegisterTrackers, gc_point: GcPoint): (GcPoint, Int32) {
-        let used = snapshot.gp.snapshot();
+        let used = snapshot.gp.used();
         let gc_point = gc_point.clone();
         let mut extendedSize: Int32 = 0i32;
         let regs_to_push = RegSet[Register]::new();
@@ -398,7 +402,7 @@ impl CodeGenX64 {
             self.asm.pushq_r(reg);
         }
 
-        let regs = snapshot.fp.snapshot();
+        let regs = snapshot.fp.used();
 
         if !regs.isEmpty() {
             let size = regs.size().toInt32() * PTR_SIZE;
@@ -431,7 +435,7 @@ impl CodeGenX64 {
             self.asm.addq_ri(RSP, Immediate(PTR_SIZE.toInt64()));
         }
 
-        let regs = snapshot.fp.snapshot();
+        let regs = snapshot.fp.used();
 
         if !regs.isEmpty() {
             let mut offset = 0i32;
@@ -447,7 +451,7 @@ impl CodeGenX64 {
             self.asm.addq_ri(RSP, Immediate(size));
         }
 
-        let used = snapshot.gp.snapshot();
+        let used = snapshot.gp.used();
         let regs_to_pop = RegSet[Register]::new();
 
         for reg in used {

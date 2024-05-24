@@ -72,7 +72,7 @@ impl SimpleRegisterAllocator {
     }
 
     fn snapshotRegisterTrackers(): RegisterTrackers {
-        RegisterTrackers(self.registers().clone(), self.float_registers().clone())
+        RegisterTrackers(self.registers().snapshot(), self.float_registers().snapshot())
     }
 
     fn snapshotRegisters(inst: Inst) {
@@ -80,10 +80,6 @@ impl SimpleRegisterAllocator {
 
         let snapshot = self.snapshotRegisterTrackers();
         loc_data.setRegisterSnapshot(snapshot);
-    }
-
-    fn createRegisterSnapshot(): RegisterSnapshot {
-        RegisterSnapshot(self.registers().snapshot(), self.float_registers().snapshot())
     }
 
     fn initializeRegisters(block: Block) {
@@ -179,7 +175,6 @@ impl SimpleRegisterAllocator {
         if outputOverlaps {
             if inst.getLocationData().needsRegisterSnapshot() {
                 assert(inst.op() == Op::NewObject
-                       || inst.op() == Op::NewLambda
                        || inst.op() == Op::NewArray);
                 self.snapshotRegisters(inst);
                 self.attachGcPoint(inst);
@@ -774,6 +769,12 @@ impl[T: RegisterType] RegisterTracker[T] {
         self.freeRegisterRaw(reg);
     }
 
+    pub fn freeRegisterIfUsed(reg: T) {
+        if !self.free.contains(reg) {
+            self.freeRegister(reg);
+        }
+    }
+
     fn freeRegisterRaw(reg: T) {
         assert(!self.free.contains(reg));
         self.free.add(reg);
@@ -793,17 +794,17 @@ impl[T: RegisterType] RegisterTracker[T] {
         (reg, inst)
     }
 
-    fn clone(): RegisterTracker[T] {
+    fn snapshot(): RegisterTracker[T] {
         RegisterTracker(
             self.allocatable.clone(),
             self.free.clone(),
-            self.protected.clone(),
+            RegSet[T]::new(),
             self.data.clone(),
             self.locations.clone(),
         )
     }
 
-    pub fn snapshot(): RegSet[T] {
+    pub fn used(): RegSet[T] {
         self.allocatable.difference(self.free)
     }
 

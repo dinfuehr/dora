@@ -323,7 +323,6 @@ fn dumpInstName(inst: Inst): String {
         Op::MoveImmediate => "MoveImmediate.${inst.getValueType()}",
         Op::NewObject => "NewObject",
         Op::NewArray => "NewArray",
-        Op::NewLambda => "NewLambda",
         Op::AllocateStack => "AllocateStack",
         Op::Load => "Load.${inst.getValueType()}(${inst.getOffset()})",
         Op::Store => "Store.${inst.getOperationType()}(${inst.getOffset()})",

@@ -220,7 +220,7 @@ impl LocationAnnotation {
                 setOutputOverlaps(inst, InputOutputOverlap::NoOverlap);
             }
 
-            Op::NewObject | Op::NewLambda => {
+            Op::NewObject => {
                 addTempRegister(inst);
                 useOutputRegister(inst, InputOutputOverlap::Overlap);
                 needsRegisterSnapshot(inst);

@@ -258,6 +258,8 @@ impl CodeGenArm64 {
     fn emitObjectAllocate(obj: Register, size: Int32, tmp1: Register, tmp2: Register, snapshot: RegisterTrackers, gc_point: GcPoint) {
         let lbl_alloc_slow_path = self.asm.createLabel();
 
+        snapshot.gp.freeRegisterIfUsed(obj);
+
         if config.useTlab {
             self.asm.ldr_imm(obj, REG_THREAD, THREAD_LOCAL_DATA_TLAB_TOP_OFFSET);
             self.asm.ldr_imm(tmp1, REG_THREAD, THREAD_LOCAL_DATA_TLAB_END_OFFSET);
@@ -289,6 +291,8 @@ impl CodeGenArm64 {
 
     fn emitArrayAllocate(obj: Register, size: Register, tmp1: Register, tmp2: Register, snapshot: RegisterTrackers, gc_point: GcPoint) {
         let lbl_alloc_slow_path = self.asm.createLabel();
+
+        snapshot.gp.freeRegisterIfUsed(obj);
 
         if config.isDebug {
             self.asm.and_imm(REG_TEMP, size, (PTR_SIZE - 1i32).toInt64());
@@ -404,7 +408,7 @@ impl CodeGenArm64 {
     }
 
     fn saveRegistersForCall(snapshot: RegisterTrackers, gc_point: GcPoint): GcPoint {
-        let used = snapshot.gp.snapshot();
+        let used = snapshot.gp.used();
         let regs_to_push = RegSet[Register]::new();
         let mut fp_offset = -self.graph.getStackSize();
 
@@ -441,7 +445,7 @@ impl CodeGenArm64 {
 
         assert(regs_to_push.isEmpty());
 
-        let regs = snapshot.fp.snapshot();
+        let regs = snapshot.fp.used();
 
         if regs.size() % 2 != 0 {
             assert(!regs.contains(FREG_TEMP));
@@ -458,7 +462,7 @@ impl CodeGenArm64 {
     }
 
     fn restoreRegistersForCall(snapshot: RegisterTrackers) {
-        let regs = snapshot.fp.snapshot();
+        let regs = snapshot.fp.used();
 
         if regs.size() % 2 != 0 {
             assert(!regs.contains(FREG_TEMP));
@@ -471,7 +475,7 @@ impl CodeGenArm64 {
             self.asm.ldp_post_d(r1, r2, REG_SP, 16i32);
         }
 
-        let used = snapshot.gp.snapshot();
+        let used = snapshot.gp.used();
         let regs_to_pop = RegSet[Register]::new();
 
         for reg in used {

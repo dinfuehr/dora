@@ -646,7 +646,6 @@ pub enum Op {
 
     NewObject,
     NewArray,
-    NewLambda,
 
     AllocateStack,
     Load,
@@ -767,7 +766,6 @@ pub fn opName(op: Op): String {
         Op::MoveImmediate => "MoveImmediate",
         Op::NewObject => "NewObject",
         Op::NewArray => "NewArray",
-        Op::NewLambda => "NewLambda",
         Op::AllocateStack => "AllocateStack",
         Op::Load => "Load",
         Op::Store => "Store",
@@ -978,7 +976,6 @@ impl Inst {
             Op::MoveImmediate => Some[Type](self.ty),
             Op::NewObject => Some[Type](Type::Ptr),
             Op::NewArray => Some[Type](Type::Ptr),
-            Op::NewLambda => Some[Type](Type::Ptr),
             Op::AllocateStack => Some[Type](Type::Address),
             Op::Load => Some[Type](self.ty),
             Op::Store
@@ -1514,7 +1511,6 @@ impl Inst {
             Op::MoveImmediate => false,
             Op::NewObject => false,
             Op::NewArray => false,
-            Op::NewLambda => false,
             Op::AllocateStack => false,
             Op::Load => false,
             Op::Store
