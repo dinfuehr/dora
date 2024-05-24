@@ -95,11 +95,13 @@ struct Move {
 class ParallelMoveResolver {
     parallelMoves: Vec[Move],
     orderedMoves: Vec[Move],
+    // Type for each src. Immutable after setup.
     types: HashMap[Location, Type],
-    // All written registers.
+    // All written registers (dest <- src). Immutable after setup.
     directpreds: HashMap[Location, Location],
     // All used variables and their current location.
     locations: HashMap[Location, Location],
+    // All locations that still need to be stored
     todo: HashSet[Location],
 }
 
@@ -126,10 +128,13 @@ impl ParallelMoveResolver {
             let dest = move.dest;
             let src = move.src;
 
+            // There is only one move to each location allowed.
             assert(!self.directpreds.contains(dest));
             self.directpreds.insert(dest, src);
             self.locations.insert(src, src);
-            self.types.insert(dest, ty);
+            // The move describes the type of src. dest could
+            // currently hold a value of another type.
+            self.types.insert(src, ty);
             assert(!self.todo.contains(dest));
             self.todo.insert(dest);
         }
@@ -179,13 +184,13 @@ impl ParallelMoveResolver {
 
     fn emitMoveChainAt(dest: Location) {
         let mut dest = dest;
-        let ty = self.types.get(dest).getOrPanic();
         assert(self.todo.contains(dest));
 
         while self.todo.contains(dest) {
             let original_src = self.directpreds.get(dest).getOrPanic();
+            let src_ty = self.types.get(original_src).getOrPanic();
             let actual_src = self.locations.get(original_src).getOrPanic();
-            self.emitOrderedMove(ty, dest, actual_src);
+            self.emitOrderedMove(src_ty, dest, actual_src);
             self.locations.insert(original_src, dest);
             assert(self.todo.remove(dest));
 
@@ -251,6 +256,19 @@ fn testRegisterMovesWithDependency() {
     expectMoves(moves, Array[Move]::new(
         Move(Type::Int64, r(2), r(1)),
         Move(Type::Int64, r(1), r(0)),
+    ));
+}
+
+@Test
+fn testRegisterMovesWithDependencyAndDifferentTypes() {
+    let moves = ParallelMoveResolver::new();
+    moves.add(Type::Int32, r(1), r(0));
+    moves.add(Type::Int64, r(2), r(1));
+    moves.resolve(Register(10u8), FloatRegister(100u8));
+
+    expectMoves(moves, Array[Move]::new(
+        Move(Type::Int64, r(2), r(1)),
+        Move(Type::Int32, r(1), r(0)),
     ));
 }
 
@@ -338,6 +356,7 @@ fn expectMoves(moves: ParallelMoveResolver, expected: Array[Move]) {
             println("index ${idx}");
             println("move.dest=${move.dest} vs exp.dest=${exp.dest}");
             println("move.src=${move.src} vs exp.src=${exp.src}");
+            println("move.ty=${move.ty} vs exp.ty=${exp.ty}");
         }
 
         assert(move.ty == exp.ty);
