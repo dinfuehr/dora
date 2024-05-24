@@ -196,23 +196,37 @@ impl CodeGenArm64 {
 
         if ty == Type::Int32 {
             self.mov_imm_w(REG_TEMP, Int32::minValue());
+
+            self.asm.cmp_w(lhs, REG_TEMP);
+            self.asm.bc(Cond::NE, lbl_div);
+            self.asm.cmn_imm_w(rhs, 1i32);
+            self.asm.bc(Cond::EQ, lbl_overflow);
+
+            self.asm.bindLabel(lbl_div);
+
+            if is_div {
+                self.asm.sdiv_w(dest, lhs, rhs);
+            } else {
+                self.asm.sdiv_w(REG_TEMP, lhs, rhs);
+                self.asm.msub_w(dest, REG_TEMP, rhs, lhs);
+            }
         } else {
             assert(ty == Type::Int64);
             self.mov_imm(REG_TEMP, Int64::minValue());
-        }
 
-        self.asm.cmp(lhs, REG_TEMP);
-        self.asm.bc(Cond::NE, lbl_div);
-        self.asm.cmn_imm(rhs, 1i32);
-        self.asm.bc(Cond::EQ, lbl_overflow);
+            self.asm.cmp(lhs, REG_TEMP);
+            self.asm.bc(Cond::NE, lbl_div);
+            self.asm.cmn_imm(rhs, 1i32);
+            self.asm.bc(Cond::EQ, lbl_overflow);
 
-        self.asm.bindLabel(lbl_div);
+            self.asm.bindLabel(lbl_div);
 
-        if is_div {
-            self.asm.sdiv(dest, lhs, rhs);
-        } else {
-            self.asm.sdiv(REG_TEMP, lhs, rhs);
-            self.asm.msub(dest, REG_TEMP, rhs, lhs);
+            if is_div {
+                self.asm.sdiv(dest, lhs, rhs);
+            } else {
+                self.asm.sdiv(REG_TEMP, lhs, rhs);
+                self.asm.msub(dest, REG_TEMP, rhs, lhs);
+            }
         }
 
         self.deferred.push(|| {
