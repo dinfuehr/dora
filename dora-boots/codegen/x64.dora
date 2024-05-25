@@ -314,7 +314,7 @@ impl CodeGenX64 {
     }
 
     fn emitArrayInitialization(obj: Register, size: Register, length: Register, classptr: Address, tmp1: Register, tmp2: Register) {
-        let metadata_part = 0xFF_FF_FF_FCi32 | 1i32 << METADATA_REMEMBERED_BIT;
+        let metadata_part = 0xFF_FF_FF_FCi32;
         let classptr_part = classptr.value - config.meta_space_start.value;
 
         let header_word = metadata_part.toInt64() << 32i32 | classptr_part;
@@ -322,7 +322,7 @@ impl CodeGenX64 {
 
         self.asm.xorl_rr(tmp2, tmp2);
         self.asm
-            .cmpq_ri(tmp2, Immediate(iface::LARGE_OBJECT_SIZE.toInt64()));
+            .cmpq_ri(size, Immediate(iface::LARGE_OBJECT_SIZE.toInt64()));
         self.asm.setcc_r(Condition::Below, tmp2);
         let bit = iface::METADATA_REMEMBERED_BIT + 32i32;
         self.asm
