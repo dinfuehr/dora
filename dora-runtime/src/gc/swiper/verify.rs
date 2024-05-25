@@ -233,9 +233,21 @@ impl<'a> Verifier<'a> {
             }
         });
 
-        if object_has_young_ref && !page.is_young() {
+        if !page.is_young() {
+            // Every old object with the remembered bit set, needs
+            // to be recorded in the remembered set.
+            if object.header().is_remembered() {
+                self.minimum_remset.push(object_address);
+            }
+
+            // Every old object with references into the young generation,
+            // needs to be in the remembered set.
+            if object_has_young_ref {
+                assert!(object.header().is_remembered());
+            }
+        } else {
+            // All young objects have the remembered bit set.
             assert!(object.header().is_remembered());
-            self.minimum_remset.push(object_address);
         }
     }
 
