@@ -350,7 +350,12 @@ impl CodeGenArm64 {
     }
 
     fn emitObjectInitialization(obj: Register, size: Int32, classptr: Address, tmp: Register) {
-        let metadata_part = 0xFF_FF_FF_FCi32 | 1i32 << METADATA_REMEMBERED_BIT;
+        let mut metadata_part = 0xFF_FF_FF_FCi32;
+
+        if size < iface::LARGE_OBJECT_SIZE {
+            metadata_part = metadata_part | 1i32 << METADATA_REMEMBERED_BIT;
+        }
+
         let classptr_part = classptr.value - config.meta_space_start.value;
 
         let header_word = metadata_part.toInt64() << 32i32 | classptr_part;
