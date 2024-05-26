@@ -96,6 +96,7 @@ $always_boots_config = Config.new("always_boots", '--always-boots', [
   'stdlib', 'array', 'enum', 'for', 'trait', 'tuple', 'struct',
   'string', 'ops', 'whiteboard', 'cannon', 'io', 'cannon', 'swiper',
 ])
+# TODO: alias, atomic, bench, class, impl, int, stacktrace, thread
 $always_boots_config.enable_boots = true
 $all_configs = [
   $default_config,
