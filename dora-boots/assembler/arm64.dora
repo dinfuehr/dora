@@ -2186,8 +2186,15 @@ impl AssemblerArm64 {
 
             match jmp.kind {
                 JumpKind::Conditional(cond) => {
-                    self.bc_imm(cond, distance);
-                    self.nop();
+                    if encoding::fitsI19(distance) {
+                        self.bc_imm(cond, distance);
+                        self.nop();
+                    } else {
+                        self.bc_imm(cond.invert(), 2i32);
+                        // Distance is off by 1 instruction here.
+                        let inst = encoding::uncond_branch_imm(0i32, distance - 1i32);
+                        self.emit(inst);
+                    }
                 },
 
                 JumpKind::Unconditional(with_link) => {
@@ -2196,9 +2203,17 @@ impl AssemblerArm64 {
                 },
 
                 JumpKind::Zero(sf, value, rt) => {
-                    let inst = encoding::cmp_branch_imm(sf.toInt32(), value.toInt32(), rt, distance);
-                    self.emit(inst);
-                    self.nop();
+                    if encoding::fitsI19(distance) {
+                        let inst = encoding::cmp_branch_imm(sf.toInt32(), value.toInt32(), rt, distance);
+                        self.emit(inst);
+                        self.nop();
+                    } else {
+                        let inst = encoding::cmp_branch_imm(sf.toInt32(), (!value).toInt32(), rt, 2i32);
+                        self.emit(inst);
+                        // Distance is off by 1 instruction here.
+                        let inst = encoding::uncond_branch_imm(0i32, distance - 1i32);
+                        self.emit(inst);
+                    }
                 },
 
                 JumpKind::Test(is_non_zero, bit, reg) => {
@@ -2207,7 +2222,7 @@ impl AssemblerArm64 {
                         self.nop();
                     } else {
                         self.emit(encoding::test_and_branch(!is_non_zero, bit, 2i32, reg));
-                        // Distance is off  by 1 instruction here.
+                        // Distance is off by 1 instruction here.
                         let inst = encoding::uncond_branch_imm(0i32, distance - 1i32);
                         self.emit(inst);
                     }
@@ -2459,7 +2474,6 @@ mod imm_encoding {
             std::fatalError("illegal value");
             unreachable[(Int32, Int32)]()
         }
-
     }
 }
 
@@ -3287,7 +3301,7 @@ mod encoding {
         fitsSigned(value, 14i32)
     }
 
-    fn fitsI19(value: Int32): Bool {
+    pub fn fitsI19(value: Int32): Bool {
         fitsSigned(value, 19i32)
     }
 
