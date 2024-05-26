@@ -981,7 +981,12 @@ fn find_methods_in_extension(
                     sa,
                     extension.file_id,
                     &method_node.modifiers,
-                    &[Annotation::Internal, Annotation::Static, Annotation::Pub],
+                    &[
+                        Annotation::Internal,
+                        Annotation::Static,
+                        Annotation::Pub,
+                        Annotation::OptimizeImmediately,
+                    ],
                 );
 
                 let fct = FctDefinition::new(

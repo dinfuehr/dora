@@ -287,7 +287,12 @@ impl CodeGenArm64 {
             self.asm.ldr_imm(obj, REG_THREAD, THREAD_LOCAL_DATA_TLAB_TOP_OFFSET);
             self.asm.ldr_imm(tmp1, REG_THREAD, THREAD_LOCAL_DATA_TLAB_END_OFFSET);
 
-            self.asm.add_imm(tmp2, obj, size);
+            if arm64::fitsAddSubImm(size) {
+                self.asm.add_imm(tmp2, obj, size);
+            } else {
+                self.mov_imm(tmp2, size.toInt64());
+                self.asm.add(tmp2, obj, tmp2);
+            }
             self.asm.cmp(tmp2, tmp1);
             self.asm.bc(Cond::GT, lbl_alloc_slow_path);
             self.asm.str_imm(tmp2, REG_THREAD, THREAD_LOCAL_DATA_TLAB_TOP_OFFSET);
