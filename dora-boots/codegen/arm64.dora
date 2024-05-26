@@ -169,10 +169,19 @@ impl CodeGenArm64 {
         self.asm.ldr_imm_d(dest, scratch, 0i32);
     }
 
-    fn loadConstPool(dest: Register, entry: ConstPoolEntry) {
+    fn loadConstPool(dest: Register, entry: ConstPoolEntry, temp: Register) {
+        assert(dest != temp);
         let offset = -(self.asm.position() + entry.disp);
-        self.asm.adr_imm(dest, offset);
-        self.asm.ldr_imm(dest, dest, 0i32);
+
+        if arm64::fitsAdrImm(offset) {
+            self.asm.adr_imm(dest, offset);
+            self.asm.ldr_imm(dest, dest, 0i32);
+        } else {
+            self.asm.adr_imm(dest, 0i32);
+            self.mov_imm(temp, offset.toInt64());
+            self.asm.add(dest, dest, temp);
+            self.asm.ldr_imm(dest, dest, 0i32);
+        }
     }
 
     fn emitDeferredCode() {
@@ -532,7 +541,7 @@ impl CodeGenArm64 {
     fn emitCall(fct_id: FctId, type_params: Array[BytecodeType], bytecode_position: Int32, gc_point: GcPoint) {
         let address = getFunctionAddress(fct_id, type_params);
         let cp_entry = self.constPool.push(ConstPoolValue::Address(address));
-        self.loadConstPool(REG_TEMP, cp_entry);
+        self.loadConstPool(REG_TEMP, cp_entry, REG_TEMP2);
         self.asm.bl_r(REG_TEMP);
 
         let pos = self.asm.position();
@@ -850,11 +859,11 @@ impl CodeGen for CodeGenArm64 {
 
     fn emitStringConst(inst: Inst) {
         let loc = inst.getLocationData();
-        let register = loc.getOutput().getRegister();
+        let dest = loc.getOutput().getRegister();
 
         let address = getReadOnlyStringAddress(inst.getValueAsString());
         let cp_entry = self.constPool.push(ConstPoolValue::Address(address));
-        self.loadConstPool(register, cp_entry);
+        self.loadConstPool(dest, cp_entry, REG_TEMP);
     }
 
     fn emitAdd(inst: Inst) {

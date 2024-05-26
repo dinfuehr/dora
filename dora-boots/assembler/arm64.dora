@@ -300,6 +300,13 @@ impl AssemblerArm64 {
         self.emit(encoding::pcrel(0i32, imm, rd));
     }
 
+    pub fn adrp_imm(rd: Register, imm: Int64) {
+        assert(encoding::fitsI33(imm));
+        assert(imm & 0xF_FF == 0);
+        let imm = (imm >> 12i32).toInt32();
+        self.emit(encoding::pcrel(1i32, imm, rd));
+    }
+
     pub fn and_imm(rd: Register, rn: Register, imm: Int64) {
         let n_immr_imms = imm_encoding::logical(imm, 64).getOrPanic();
         self.emit(encoding::logical_imm(1i32, 0b00i32, n_immr_imms, rn, rd));
@@ -2251,6 +2258,10 @@ pub fn fitsUnscaledImmediate(offset: Int32): Bool {
     encoding::fitsI9(offset)
 }
 
+pub fn fitsAdrImm(offset: Int32): Bool {
+    encoding::fitsI21(offset)
+}
+
 impl Register {
     fn isGpr(): Bool {
         self.value <= 30u8
@@ -3280,12 +3291,16 @@ mod encoding {
         fitsSigned(value, 19i32)
     }
 
-    fn fitsI21(value: Int32): Bool {
+    pub fn fitsI21(value: Int32): Bool {
         fitsSigned(value, 21i32)
     }
 
     fn fitsI26(value: Int32): Bool {
         fitsSigned(value, 26i32)
+    }
+
+    pub fn fitsI33(value: Int64): Bool {
+        -(1 << 32i32) <= value && value < (1 << 32i32)
     }
 
     fn fitsSigned(value: Int32, bits: Int32): Bool {
