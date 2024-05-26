@@ -94,7 +94,7 @@ $default_config = Config.new("default", "", true)
 $always_boots_config = Config.new("always_boots", '--always-boots', [
   'boots', 'unit', 'generic', 'float', 'vec', 'lambda',
   'stdlib', 'array', 'enum', 'for', 'trait', 'tuple', 'struct',
-  'string', 'ops', 'whiteboard', 'cannon', 'io', 'cannon'
+  'string', 'ops', 'whiteboard', 'cannon', 'io', 'cannon', 'swiper',
 ])
 $always_boots_config.enable_boots = true
 $all_configs = [

@@ -727,7 +727,12 @@ impl CodeGen for CodeGenArm64 {
         self.asm.mov(REG_FP, REG_SP);
 
         if stackSize > 0i32 {
-            self.asm.sub_imm(REG_SP, REG_SP, stackSize);
+            if arm64::fitsAddSubImm(stackSize) {
+                self.asm.sub_imm(REG_SP, REG_SP, stackSize);
+            } else {
+                self.mov_imm(REG_TEMP, stackSize.toInt64());
+                self.asm.sub(REG_SP, REG_SP, REG_TEMP);
+            }
         }
     }
 
