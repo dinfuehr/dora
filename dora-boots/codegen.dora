@@ -482,6 +482,11 @@ pub trait CodeGen {
     fn annotateUnreachable(inst: Inst);
     fn annotateRotateLeft(inst: Inst);
     fn annotateRotateRight(inst: Inst);
+    fn annotateAtomicLoad(inst: Inst);
+    fn annotateAtomicStore(inst: Inst);
+    fn annotateAtomicExchange(inst: Inst);
+    fn annotateAtomicCompareExchange(inst: Inst);
+    fn annotateAtomicFetchAdd(inst: Inst);
 
     fn emitTrueConst(inst: Inst);
     fn emitFalseConst(inst: Inst);
@@ -554,6 +559,11 @@ pub trait CodeGen {
     fn emitRotateLeft(inst: Inst);
     fn emitRotateRight(inst: Inst);
     fn emitDebug(inst: Inst);
+    fn emitAtomicLoad(inst: Inst);
+    fn emitAtomicStore(inst: Inst);
+    fn emitAtomicExchange(inst: Inst);
+    fn emitAtomicCompareExchange(inst: Inst);
+    fn emitAtomicFetchAdd(inst: Inst);
 
     fn emitComment(comment: String);
 }

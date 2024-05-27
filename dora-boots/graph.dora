@@ -669,6 +669,11 @@ pub enum Op {
     RotateLeft,
     RotateRight,
     Debug,
+    AtomicLoad,
+    AtomicStore,
+    AtomicExchange,
+    AtomicCompareExchange,
+    AtomicFetchAdd,
 }
 
 impl Op {
@@ -787,6 +792,11 @@ pub fn opName(op: Op): String {
         Op::RotateLeft => "RotateLeft",
         Op::RotateRight => "RotateRight",
         Op::Debug => "Debug",
+        Op::AtomicLoad => "AtomicLoad",
+        Op::AtomicStore => "AtomicStore",
+        Op::AtomicExchange => "AtomicExchange",
+        Op::AtomicCompareExchange => "AtomicCompareExchange",
+        Op::AtomicFetchAdd => "AtomicFetchAdd",
     }
 }
 
@@ -985,6 +995,11 @@ impl Inst {
             Op::RotateLeft => Some[Type](self.ty),
             Op::RotateRight => Some[Type](self.ty),
             Op::Debug => None[Type],
+            Op::AtomicLoad => Some[Type](self.ty),
+            Op::AtomicStore => None[Type],
+            Op::AtomicCompareExchange => Some[Type](self.ty),
+            Op::AtomicExchange => Some[Type](self.ty),
+            Op::AtomicFetchAdd => Some[Type](self.ty),
         }
     }
 
@@ -1456,6 +1471,11 @@ impl Inst {
             Op::RotateLeft => false,
             Op::RotateRight => false,
             Op::Debug => true,
+            Op::AtomicLoad => true,
+            Op::AtomicStore => true,
+            Op::AtomicExchange => true,
+            Op::AtomicCompareExchange => true,
+            Op::AtomicFetchAdd => true,
         }
     }
 }

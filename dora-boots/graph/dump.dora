@@ -338,6 +338,11 @@ fn dumpInstName(inst: Inst): String {
         Op::RotateLeft => "RotateLeft.${inst.getValueType()}",
         Op::RotateRight => "RotateRight.${inst.getValueType()}",
         Op::Debug => "Debug",
+        Op::AtomicLoad => "AtomicLoad.${inst.getValueType()}",
+        Op::AtomicStore => "AtomicStore.${inst.getValueType()}",
+        Op::AtomicExchange => "AtomicExchange.${inst.getValueType()}",
+        Op::AtomicCompareExchange => "AtomicCompareExchange.${inst.getValueType()}",
+        Op::AtomicFetchAdd => "AtomicFetchAdd.${inst.getValueType()}",
     }
 }
 

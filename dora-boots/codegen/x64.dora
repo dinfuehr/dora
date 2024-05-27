@@ -2433,6 +2433,46 @@ impl CodeGen for CodeGenX64 {
         self.emitBreakpoint();
     }
 
+    fn annotateAtomicLoad(inst: Inst) {
+        unimplemented();
+    }
+
+    fn emitAtomicLoad(inst: Inst) {
+        unimplemented();
+    }
+
+    fn annotateAtomicStore(inst: Inst) {
+        unimplemented();
+    }
+
+    fn emitAtomicStore(inst: Inst) {
+        unimplemented();
+    }
+
+    fn annotateAtomicExchange(inst: Inst) {
+        unimplemented();
+    }
+
+    fn emitAtomicExchange(inst: Inst) {
+        unimplemented();
+    }
+
+    fn annotateAtomicCompareExchange(inst: Inst) {
+        unimplemented();
+    }
+
+    fn emitAtomicCompareExchange(inst: Inst) {
+        unimplemented();
+    }
+
+    fn annotateAtomicFetchAdd(inst: Inst) {
+        unimplemented();
+    }
+
+    fn emitAtomicFetchAdd(inst: Inst) {
+        unimplemented();
+    }
+
     fn finalize(): CodeDescriptor {
         self.emitDeferredCode();
         self.asm.resolveJumps();
