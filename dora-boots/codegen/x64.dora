@@ -11,7 +11,7 @@ use package::interface::{Address, Architecture, ConstPool, ConstPoolEntry, Const
 use package::interface::{TRAP_DIV0, TRAP_OVERFLOW, TRAP_INDEX_OUT_OF_BOUNDS, LAMBDA_SIZE, PTR_SIZE, GLOBAL_STATE_INITIALIZED};
 use package::interface::{THREAD_LOCAL_DATA_TLAB_TOP_OFFSET, THREAD_LOCAL_DATA_TLAB_END_OFFSET, THREAD_LOCAL_DATA_STACK_LIMIT_OFFSET, THREAD_LOCAL_DATA_STATE_OFFSET, THREAD_LOCAL_DATA_MARKING_OFFSET, OBJECT_HEADER_LENGTH, OBJECT_METADATA_OFFSET, METADATA_REMEMBERED_BIT, ARRAY_HEADER_LENGTH, THREAD_LOCAL_DATA_MANAGED_THREAD_HANDLE_OFFSET};
 use package::interface as iface;
-use package::location::{useInputFloatRegisterFixed, useInputRegister, useInputRegisterFixed, useInputFloatRegister, useOutputRegister, useOutputFloatRegister, useOutputRegisterFixed, useOutputSameAsFirstInput, addTempRegisterFixed};
+use package::location::{useInputFloatRegisterFixed, useInputRegister, useInputRegisterFixed, useInputFloatRegister, useOutputRegister, useOutputFloatRegister, useOutputRegisterFixed, useOutputSameAsFirstInput, setOutputOverlaps, addTempRegisterFixed};
 use package::graph::{Graph, InputOutputOverlap, Inst, Op, LocationData, RegisterSnapshot, RegisterTrackers, Type};
 use package::regalloc::isReference;
 use package::{CodeDescriptor, CommentTable, GcPoint, GcPointTable, LazyCompilationData, LazyCompilationSiteVirtual, LazyCompilationSiteLambda, LocationTable};
@@ -2434,43 +2434,134 @@ impl CodeGen for CodeGenX64 {
     }
 
     fn annotateAtomicLoad(inst: Inst) {
-        unimplemented();
+        useInputRegister(inst, 0);
+        useOutputRegister(inst, InputOutputOverlap::NoOverlap);
     }
 
     fn emitAtomicLoad(inst: Inst) {
-        unimplemented();
+        let loc = inst.getLocationData();
+        let dest = loc.getOutput().getRegister();
+        let src = loc.getInput(0).getRegister();
+
+        match inst.getValueType() {
+            Type::Int32 => {
+                self.asm.movl_ra(dest, AsmAddress::offset(src, OBJECT_HEADER_LENGTH));
+            }
+
+            Type::Int64 => {
+                self.asm.movq_ra(dest, AsmAddress::offset(src, OBJECT_HEADER_LENGTH));
+            }
+
+            _ => unreachable[()](),
+        }
     }
 
     fn annotateAtomicStore(inst: Inst) {
-        unimplemented();
+        useInputRegister(inst, 0);
+        useInputRegister(inst, 1);
+        setOutputOverlaps(inst, InputOutputOverlap::NoOverlap);
     }
 
     fn emitAtomicStore(inst: Inst) {
-        unimplemented();
+        let loc = inst.getLocationData();
+        let obj = loc.getInput(0).getRegister();
+        let value = loc.getInput(1).getRegister();
+
+        match inst.getValueType() {
+            Type::Int32 => {
+                self.asm.xchgl_ar(AsmAddress::offset(obj, OBJECT_HEADER_LENGTH), value);
+            }
+
+            Type::Int64 => {
+                self.asm.xchgq_ar(AsmAddress::offset(obj, OBJECT_HEADER_LENGTH), value);
+            }
+
+            _ => unreachable[()](),
+        }
     }
 
     fn annotateAtomicExchange(inst: Inst) {
-        unimplemented();
+        useInputRegister(inst, 0);
+        useInputRegister(inst, 1);
+        setOutputOverlaps(inst, InputOutputOverlap::NoOverlap);
     }
 
     fn emitAtomicExchange(inst: Inst) {
-        unimplemented();
+        let loc = inst.getLocationData();
+        let obj = loc.getInput(0).getRegister();
+        let value = loc.getInput(1).getRegister();
+        let dest = loc.getOutput().getRegister();
+
+        assert(value == dest);
+
+        match inst.getValueType() {
+            Type::Int32 => {
+                self.asm.xchgl_ar(AsmAddress::offset(obj, OBJECT_HEADER_LENGTH), value);
+            }
+
+            Type::Int64 => {
+                self.asm.xchgq_ar(AsmAddress::offset(obj, OBJECT_HEADER_LENGTH), value);
+            }
+
+            _ => unreachable[()](),
+        }
     }
 
     fn annotateAtomicCompareExchange(inst: Inst) {
-        unimplemented();
+        useInputRegister(inst, 0);
+        useInputRegister(inst, 1);
+        useInputRegister(inst, 2);
+        useOutputRegister(inst, InputOutputOverlap::NoOverlap);
     }
 
     fn emitAtomicCompareExchange(inst: Inst) {
-        unimplemented();
+        let loc = inst.getLocationData();
+        let dest = loc.getOutput().getRegister();
+        let obj = loc.getInput(0).getRegister();
+        let expected = loc.getInput(1).getRegister();
+        let new_value = loc.getInput(2).getRegister();
+
+        assert(expected == RAX);
+        assert(dest == RAX);
+
+        match inst.getValueType() {
+            Type::Int32 => {
+                self.asm.lock_cmpxchgl_ar(AsmAddress::offset(obj, OBJECT_HEADER_LENGTH), new_value);
+            }
+
+            Type::Int64 => {
+                self.asm.lock_cmpxchgq_ar(AsmAddress::offset(obj, OBJECT_HEADER_LENGTH), new_value);
+            }
+
+            _ => unreachable[()](),
+        }
     }
 
     fn annotateAtomicFetchAdd(inst: Inst) {
-        unimplemented();
+        useInputRegister(inst, 0);
+        useInputRegister(inst, 1);
+        useOutputSameAsFirstInput(inst);
     }
 
     fn emitAtomicFetchAdd(inst: Inst) {
-        unimplemented();
+        let loc = inst.getLocationData();
+        let dest = loc.getOutput().getRegister();
+        let obj = loc.getInput(0).getRegister();
+        let increment = loc.getInput(1).getRegister();
+
+        assert(dest == increment);
+
+        match inst.getValueType() {
+            Type::Int32 => {
+                self.asm.lock_xaddl_ar(AsmAddress::offset(obj, OBJECT_HEADER_LENGTH), increment);
+            }
+
+            Type::Int64 => {
+                self.asm.lock_xaddq_ar(AsmAddress::offset(obj, OBJECT_HEADER_LENGTH), increment);
+            }
+
+            _ => unreachable[()](),
+        }
     }
 
     fn finalize(): CodeDescriptor {

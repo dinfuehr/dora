@@ -2575,7 +2575,7 @@ impl CodeGen for CodeGenArm64 {
     fn annotateAtomicExchange(inst: Inst) {
         useInputRegister(inst, 0);
         useInputRegister(inst, 1);
-        setOutputOverlaps(inst, InputOutputOverlap::NoOverlap);
+        useOutputRegister(inst, InputOutputOverlap::NoOverlap);
     }
 
     fn emitAtomicExchange(inst: Inst) {
