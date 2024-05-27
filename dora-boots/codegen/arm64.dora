@@ -2588,11 +2588,11 @@ impl CodeGen for CodeGenArm64 {
 
         match inst.getValueType() {
             Type::Int32 => {
-                self.asm.swpal_w(value, dest, obj);
+                self.asm.swpal_w(value, dest, REG_TEMP);
             }
 
             Type::Int64 => {
-                self.asm.swpal(value, dest, obj);
+                self.asm.swpal(value, dest, REG_TEMP);
             }
 
             _ => unreachable[()](),
@@ -2600,19 +2600,60 @@ impl CodeGen for CodeGenArm64 {
     }
 
     fn annotateAtomicCompareExchange(inst: Inst) {
-        unimplemented();
+        useInputRegister(inst, 0);
+        useInputRegister(inst, 1);
+        useInputRegister(inst, 2);
+        useOutputRegister(inst, InputOutputOverlap::NoOverlap);
     }
 
     fn emitAtomicCompareExchange(inst: Inst) {
-        unimplemented();
+        let loc = inst.getLocationData();
+        let dest = loc.getOutput().getRegister();
+        let obj = loc.getInput(0).getRegister();
+        let expected = loc.getInput(1).getRegister();
+        let new_value = loc.getInput(2).getRegister();
+
+        assert(dest == expected);
+        self.asm.add_imm(REG_TEMP, obj, OBJECT_HEADER_LENGTH);
+
+        match inst.getValueType() {
+            Type::Int32 => {
+                self.asm.casal_w(expected, new_value, REG_TEMP);
+            }
+
+            Type::Int64 => {
+                self.asm.casal(expected, new_value, REG_TEMP);
+            }
+
+            _ => unreachable[()](),
+        }
     }
 
     fn annotateAtomicFetchAdd(inst: Inst) {
-        unimplemented();
+        useInputRegister(inst, 0);
+        useInputRegister(inst, 1);
+        useOutputRegister(inst, InputOutputOverlap::NoOverlap);
     }
 
     fn emitAtomicFetchAdd(inst: Inst) {
-        unimplemented();
+        let loc = inst.getLocationData();
+        let dest = loc.getOutput().getRegister();
+        let obj = loc.getInput(0).getRegister();
+        let increment = loc.getInput(1).getRegister();
+
+        self.asm.add_imm(REG_TEMP, obj, OBJECT_HEADER_LENGTH);
+
+        match inst.getValueType() {
+            Type::Int32 => {
+                self.asm.ldadd_w(increment, dest, REG_TEMP);
+            }
+
+            Type::Int64 => {
+                self.asm.ldadd(increment, dest, REG_TEMP);
+            }
+
+            _ => unreachable[()](),
+        }
     }
 
     fn finalize(): CodeDescriptor {
