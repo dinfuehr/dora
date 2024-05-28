@@ -2485,7 +2485,7 @@ impl CodeGen for CodeGenX64 {
     fn annotateAtomicExchange(inst: Inst) {
         useInputRegister(inst, 0);
         useInputRegister(inst, 1);
-        setOutputOverlaps(inst, InputOutputOverlap::NoOverlap);
+        useOutputRegister(inst, InputOutputOverlap::NoOverlap);
     }
 
     fn emitAtomicExchange(inst: Inst) {
@@ -2566,7 +2566,7 @@ impl CodeGen for CodeGenX64 {
 
             Type::Int64 => {
                 self.asm.movq_rr(REG_TEMP, increment);
-                self.asm.lock_xaddq_ar(AsmAddress::offset(obj, OBJECT_HEADER_LENGTH), increment);
+                self.asm.lock_xaddq_ar(AsmAddress::offset(obj, OBJECT_HEADER_LENGTH), REG_TEMP);
                 self.asm.movq_rr(dest, REG_TEMP);
             }
 
