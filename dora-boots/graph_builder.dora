@@ -1001,6 +1001,7 @@ impl SsaGen {
 
         self.pushed_registers.clear();
 
+        let type_params = type_params.specialize(self.typeParams);
         let info = FunctionInfo(fct_id, type_params);
 
         let inst = graph::createCallInst(info, kind, args, returnTy);
