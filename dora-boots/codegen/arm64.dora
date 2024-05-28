@@ -2559,13 +2559,13 @@ impl CodeGen for CodeGenArm64 {
 
         self.asm.add_imm(REG_TEMP, obj, OBJECT_HEADER_LENGTH);
 
-        match inst.getValueType() {
+        match inst.getOperationType() {
             Type::Int32 => {
-                self.asm.stlr_w(value, obj);
+                self.asm.stlr_w(value, REG_TEMP);
             }
 
             Type::Int64 => {
-                self.asm.stlr(value, obj);
+                self.asm.stlr(value, REG_TEMP);
             }
 
             _ => unreachable[()](),
@@ -2581,18 +2581,18 @@ impl CodeGen for CodeGenArm64 {
     fn emitAtomicExchange(inst: Inst) {
         let loc = inst.getLocationData();
         let obj = loc.getInput(0).getRegister();
-        let value = loc.getInput(1).getRegister();
+        let new_value = loc.getInput(1).getRegister();
         let dest = loc.getOutput().getRegister();
 
         self.asm.add_imm(REG_TEMP, obj, OBJECT_HEADER_LENGTH);
 
         match inst.getValueType() {
             Type::Int32 => {
-                self.asm.swpal_w(value, dest, REG_TEMP);
+                self.asm.swpal_w(new_value, dest, REG_TEMP);
             }
 
             Type::Int64 => {
-                self.asm.swpal(value, dest, REG_TEMP);
+                self.asm.swpal(new_value, dest, REG_TEMP);
             }
 
             _ => unreachable[()](),
@@ -2613,16 +2613,19 @@ impl CodeGen for CodeGenArm64 {
         let expected = loc.getInput(1).getRegister();
         let new_value = loc.getInput(2).getRegister();
 
-        assert(dest == expected);
         self.asm.add_imm(REG_TEMP, obj, OBJECT_HEADER_LENGTH);
 
         match inst.getValueType() {
             Type::Int32 => {
-                self.asm.casal_w(expected, new_value, REG_TEMP);
+                self.asm.mov_w(REG_TEMP2, expected);
+                self.asm.casal_w(REG_TEMP2, new_value, REG_TEMP);
+                self.asm.mov_w(dest, REG_TEMP2);
             }
 
             Type::Int64 => {
-                self.asm.casal(expected, new_value, REG_TEMP);
+                self.asm.mov(REG_TEMP2, expected);
+                self.asm.casal(REG_TEMP2, new_value, REG_TEMP);
+                self.asm.mov(dest, REG_TEMP2);
             }
 
             _ => unreachable[()](),

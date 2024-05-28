@@ -423,6 +423,31 @@ fn emitInst(codegen: CodeGen, inst: Inst) {
             codegen.emitDebug(inst);
         }
 
+        Op::AtomicLoad => {
+            codegen.emitComment("AtomicLoad");
+            codegen.emitAtomicLoad(inst);
+        }
+
+        Op::AtomicStore => {
+            codegen.emitComment("AtomicStore");
+            codegen.emitAtomicStore(inst);
+        }
+
+        Op::AtomicExchange => {
+            codegen.emitComment("AtomicExchange");
+            codegen.emitAtomicExchange(inst);
+        }
+
+        Op::AtomicCompareExchange => {
+            codegen.emitComment("AtomicCompareExchange");
+            codegen.emitAtomicCompareExchange(inst);
+        }
+
+        Op::AtomicFetchAdd => {
+            codegen.emitComment("AtomicFetchAdd");
+            codegen.emitAtomicFetchAdd(inst);
+        }
+
         _ => {
             println("unsupported op ${inst.op().name()}");
             unreachable[()]();

@@ -1253,10 +1253,89 @@ impl SsaGen {
             self.emitIntrinsicRotate(dest, args, Type::Int64, false);
         } else if intrinsic == opc::INTRINSIC_DEBUG {
             self.emitIntrinsicDebug(dest, args);
+        } else if intrinsic == opc::INTRINSIC_ATOMIC_INT32_GET {
+            self.emitIntrinsicAtomicLoad(dest, args, Type::Int32);
+        } else if intrinsic == opc::INTRINSIC_ATOMIC_INT64_GET {
+            self.emitIntrinsicAtomicLoad(dest, args, Type::Int64);
+        } else if intrinsic == opc::INTRINSIC_ATOMIC_INT32_SET {
+            self.emitIntrinsicAtomicStore(dest, args, Type::Int32);
+        } else if intrinsic == opc::INTRINSIC_ATOMIC_INT64_SET {
+            self.emitIntrinsicAtomicStore(dest, args, Type::Int64);
+        } else if intrinsic == opc::INTRINSIC_ATOMIC_INT32_EXCHANGE {
+            self.emitIntrinsicAtomicExchange(dest, args, Type::Int32);
+        } else if intrinsic == opc::INTRINSIC_ATOMIC_INT64_EXCHANGE {
+            self.emitIntrinsicAtomicExchange(dest, args, Type::Int64);
+        } else if intrinsic == opc::INTRINSIC_ATOMIC_INT32_COMPARE_EXCHANGE {
+            self.emitIntrinsicAtomicCompareExchange(dest, args, Type::Int32);
+        } else if intrinsic == opc::INTRINSIC_ATOMIC_INT64_COMPARE_EXCHANGE {
+            self.emitIntrinsicAtomicCompareExchange(dest, args, Type::Int64);
+        } else if intrinsic == opc::INTRINSIC_ATOMIC_INT32_FETCH_ADD {
+            self.emitIntrinsicAtomicFetchAdd(dest, args, Type::Int32);
+        } else if intrinsic == opc::INTRINSIC_ATOMIC_INT64_FETCH_ADD {
+            self.emitIntrinsicAtomicFetchAdd(dest, args, Type::Int64);
         } else {
             let name = opc::intrinsicName(intrinsic);
             std::fatalError("unknown intrinsic ${name}");
         }
+    }
+
+    fn emitIntrinsicAtomicLoad(dest: BytecodeRegister, args: Array[BytecodeRegister], ty: Type) {
+        assert(args.size() == 1);
+        assert(self.regGraphTy(dest) == ty);
+        assert(self.regGraphTy(args(0)) == Type::Ptr);
+        let obj = self.readVariable(args(0), self.current());
+        let inst = graph::createAtomicLoadInst(ty, obj);
+        self.current().appendInst(inst);
+        self.writeVariable(dest, self.current(), inst);
+    }
+
+    fn emitIntrinsicAtomicStore(dest: BytecodeRegister, args: Array[BytecodeRegister], ty: Type) {
+        assert(args.size() == 2);
+        assert(self.regGraphTy(dest) == Type::Unit);
+        assert(self.regGraphTy(args(0)) == Type::Ptr);
+        assert(self.regGraphTy(args(1)) == ty);
+        let obj = self.readVariable(args(0), self.current());
+        let value = self.readVariable(args(1), self.current());
+        let inst = graph::createAtomicStoreInst(ty, obj, value);
+        self.current().appendInst(inst);
+    }
+
+    fn emitIntrinsicAtomicExchange(dest: BytecodeRegister, args: Array[BytecodeRegister], ty: Type) {
+        assert(args.size() == 2);
+        assert(self.regGraphTy(dest) == ty);
+        assert(self.regGraphTy(args(0)) == Type::Ptr);
+        assert(self.regGraphTy(args(1)) == ty);
+        let obj = self.readVariable(args(0), self.current());
+        let new_value = self.readVariable(args(1), self.current());
+        let inst = graph::createAtomicExchangeInst(ty, obj, new_value);
+        self.current().appendInst(inst);
+        self.writeVariable(dest, self.current(), inst);
+    }
+
+    fn emitIntrinsicAtomicCompareExchange(dest: BytecodeRegister, args: Array[BytecodeRegister], ty: Type) {
+        assert(args.size() == 3);
+        assert(self.regGraphTy(dest) == ty);
+        assert(self.regGraphTy(args(0)) == Type::Ptr);
+        assert(self.regGraphTy(args(1)) == ty);
+        assert(self.regGraphTy(args(2)) == ty);
+        let obj = self.readVariable(args(0), self.current());
+        let expected = self.readVariable(args(1), self.current());
+        let new_value = self.readVariable(args(2), self.current());
+        let inst = graph::createAtomicCompareExchangeInst(ty, obj, expected, new_value);
+        self.current().appendInst(inst);
+        self.writeVariable(dest, self.current(), inst);
+    }
+
+    fn emitIntrinsicAtomicFetchAdd(dest: BytecodeRegister, args: Array[BytecodeRegister], ty: Type) {
+        assert(args.size() == 2);
+        assert(self.regGraphTy(dest) == ty);
+        assert(self.regGraphTy(args(0)) == Type::Ptr);
+        assert(self.regGraphTy(args(1)) == ty);
+        let obj = self.readVariable(args(0), self.current());
+        let increment = self.readVariable(args(1), self.current());
+        let inst = graph::createAtomicFetchAddInst(ty, obj, increment);
+        self.current().appendInst(inst);
+        self.writeVariable(dest, self.current(), inst);
     }
 
     fn emitIntrinsicDebug(dest: BytecodeRegister, args: Array[BytecodeRegister]) {

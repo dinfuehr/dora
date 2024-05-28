@@ -2467,13 +2467,15 @@ impl CodeGen for CodeGenX64 {
         let obj = loc.getInput(0).getRegister();
         let value = loc.getInput(1).getRegister();
 
-        match inst.getValueType() {
+        match inst.getOperationType() {
             Type::Int32 => {
-                self.asm.xchgl_ar(AsmAddress::offset(obj, OBJECT_HEADER_LENGTH), value);
+                self.asm.movl_rr(REG_TEMP, value);
+                self.asm.xchgl_ar(AsmAddress::offset(obj, OBJECT_HEADER_LENGTH), REG_TEMP);
             }
 
             Type::Int64 => {
-                self.asm.xchgq_ar(AsmAddress::offset(obj, OBJECT_HEADER_LENGTH), value);
+                self.asm.movq_rr(REG_TEMP, value);
+                self.asm.xchgq_ar(AsmAddress::offset(obj, OBJECT_HEADER_LENGTH), REG_TEMP);
             }
 
             _ => unreachable[()](),
@@ -2489,18 +2491,20 @@ impl CodeGen for CodeGenX64 {
     fn emitAtomicExchange(inst: Inst) {
         let loc = inst.getLocationData();
         let obj = loc.getInput(0).getRegister();
-        let value = loc.getInput(1).getRegister();
+        let new_value = loc.getInput(1).getRegister();
         let dest = loc.getOutput().getRegister();
-
-        assert(value == dest);
 
         match inst.getValueType() {
             Type::Int32 => {
-                self.asm.xchgl_ar(AsmAddress::offset(obj, OBJECT_HEADER_LENGTH), value);
+                self.asm.movl_rr(REG_TEMP, new_value);
+                self.asm.xchgl_ar(AsmAddress::offset(obj, OBJECT_HEADER_LENGTH), REG_TEMP);
+                self.asm.movl_rr(dest, REG_TEMP);
             }
 
             Type::Int64 => {
-                self.asm.xchgq_ar(AsmAddress::offset(obj, OBJECT_HEADER_LENGTH), value);
+                self.asm.movq_rr(REG_TEMP, new_value);
+                self.asm.xchgq_ar(AsmAddress::offset(obj, OBJECT_HEADER_LENGTH), REG_TEMP);
+                self.asm.movq_rr(dest, REG_TEMP);
             }
 
             _ => unreachable[()](),
@@ -2511,6 +2515,7 @@ impl CodeGen for CodeGenX64 {
         useInputRegister(inst, 0);
         useInputRegister(inst, 1);
         useInputRegister(inst, 2);
+        addTempRegisterFixed(inst, RAX);
         useOutputRegister(inst, InputOutputOverlap::NoOverlap);
     }
 
@@ -2520,17 +2525,20 @@ impl CodeGen for CodeGenX64 {
         let obj = loc.getInput(0).getRegister();
         let expected = loc.getInput(1).getRegister();
         let new_value = loc.getInput(2).getRegister();
-
-        assert(expected == RAX);
-        assert(dest == RAX);
+        let temp = loc.getTemp(0).getRegister();
+        assert(temp == RAX);
 
         match inst.getValueType() {
             Type::Int32 => {
+                self.asm.movl_rr(RAX, expected);
                 self.asm.lock_cmpxchgl_ar(AsmAddress::offset(obj, OBJECT_HEADER_LENGTH), new_value);
+                self.asm.movl_rr(dest, RAX);
             }
 
             Type::Int64 => {
+                self.asm.movq_rr(RAX, expected);
                 self.asm.lock_cmpxchgq_ar(AsmAddress::offset(obj, OBJECT_HEADER_LENGTH), new_value);
+                self.asm.movq_rr(dest, RAX);
             }
 
             _ => unreachable[()](),
@@ -2540,7 +2548,7 @@ impl CodeGen for CodeGenX64 {
     fn annotateAtomicFetchAdd(inst: Inst) {
         useInputRegister(inst, 0);
         useInputRegister(inst, 1);
-        useOutputSameAsFirstInput(inst);
+        useOutputRegister(inst, InputOutputOverlap::NoOverlap);
     }
 
     fn emitAtomicFetchAdd(inst: Inst) {
@@ -2549,15 +2557,17 @@ impl CodeGen for CodeGenX64 {
         let obj = loc.getInput(0).getRegister();
         let increment = loc.getInput(1).getRegister();
 
-        assert(dest == increment);
-
         match inst.getValueType() {
             Type::Int32 => {
-                self.asm.lock_xaddl_ar(AsmAddress::offset(obj, OBJECT_HEADER_LENGTH), increment);
+                self.asm.movl_rr(REG_TEMP, increment);
+                self.asm.lock_xaddl_ar(AsmAddress::offset(obj, OBJECT_HEADER_LENGTH), REG_TEMP);
+                self.asm.movl_rr(dest, REG_TEMP);
             }
 
             Type::Int64 => {
+                self.asm.movq_rr(REG_TEMP, increment);
                 self.asm.lock_xaddq_ar(AsmAddress::offset(obj, OBJECT_HEADER_LENGTH), increment);
+                self.asm.movq_rr(dest, REG_TEMP);
             }
 
             _ => unreachable[()](),

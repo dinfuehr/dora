@@ -1022,7 +1022,8 @@ impl Inst {
             | Op::StoreWb
             | Op::StoreArrayWb
             | Op::StoreArrayAddressWb
-            | Op::CompareOrdering => self.ty,
+            | Op::CompareOrdering
+            | Op::AtomicStore => self.ty,
             _ => self.getValueType(),
         }
     }
@@ -2568,6 +2569,51 @@ pub fn createRotateRightInst(ty: Type, value: Inst, by: Inst): Inst {
     inst._op = Some(Op::RotateRight);
     inst.addInput(value);
     inst.addInput(by);
+    inst
+}
+
+pub fn createAtomicLoadInst(ty: Type, obj: Inst): Inst {
+    let inst = Inst::new();
+    inst.ty = ty;
+    inst._op = Some(Op::AtomicLoad);
+    inst.addInput(obj);
+    inst
+}
+
+pub fn createAtomicStoreInst(ty: Type, obj: Inst, value: Inst): Inst {
+    let inst = Inst::new();
+    inst.ty = ty;
+    inst._op = Some(Op::AtomicStore);
+    inst.addInput(obj);
+    inst.addInput(value);
+    inst
+}
+
+pub fn createAtomicExchangeInst(ty: Type, obj: Inst, new_value: Inst): Inst {
+    let inst = Inst::new();
+    inst.ty = ty;
+    inst._op = Some(Op::AtomicExchange);
+    inst.addInput(obj);
+    inst.addInput(new_value);
+    inst
+}
+
+pub fn createAtomicCompareExchangeInst(ty: Type, obj: Inst, expected: Inst, new_value: Inst): Inst {
+    let inst = Inst::new();
+    inst.ty = ty;
+    inst._op = Some(Op::AtomicCompareExchange);
+    inst.addInput(obj);
+    inst.addInput(expected);
+    inst.addInput(new_value);
+    inst
+}
+
+pub fn createAtomicFetchAddInst(ty: Type, obj: Inst, increment: Inst): Inst {
+    let inst = Inst::new();
+    inst.ty = ty;
+    inst._op = Some(Op::AtomicFetchAdd);
+    inst.addInput(obj);
+    inst.addInput(increment);
     inst
 }
 

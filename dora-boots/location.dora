@@ -398,6 +398,26 @@ impl LocationAnnotation {
                 setOutputOverlaps(inst, InputOutputOverlap::NoOverlap);
             }
 
+            Op::AtomicLoad => {
+                self.codegen.annotateAtomicLoad(inst);
+            }
+
+            Op::AtomicStore => {
+                self.codegen.annotateAtomicStore(inst);
+            }
+
+            Op::AtomicExchange => {
+                self.codegen.annotateAtomicExchange(inst);
+            }
+
+            Op::AtomicCompareExchange => {
+                self.codegen.annotateAtomicCompareExchange(inst);
+            }
+
+            Op::AtomicFetchAdd => {
+                self.codegen.annotateAtomicFetchAdd(inst);
+            }
+
             _ => {
                 println("unsupported op ${inst.op().name()}");
                 unreachable[()]();
