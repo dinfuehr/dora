@@ -264,6 +264,10 @@ impl AssemblerArm64 {
         self.emit(encoding::addsub_imm(0i32, 0i32, false, shift.toInt32(), imm12, rn, rd));
     }
 
+    pub fn addv(q: Int32, size: Int32, rd: FloatRegister, rn: FloatRegister) {
+        self.emit(encoding::simd_across_lanes(q, 0i32, size, 0b11011i32, rn, rd));
+    }
+
     pub fn adds_imm(rd: Register, rn: Register, imm: Int32) {
         let (shift, imm12) = imm_encoding::imm12(imm).getOrPanic();
         self.emit(encoding::addsub_imm(1i32, 0i32, true, shift.toInt32(), imm12, rn, rd));
@@ -588,7 +592,6 @@ impl AssemblerArm64 {
     pub fn cmp_sh_w(rn: Register, rm: Register, shift: Shift, amount: Int32) {
         self.emit(encoding::addsub_shreg(0i32, 1i32, 1i32, shift, rm, amount, rn, REG_ZERO));
     }
-
 
     pub fn cnt(q: Int32, size: Int32, rd: FloatRegister, rn: FloatRegister) {
         self.emit(encoding::simd_2regs_misc(q, 0i32, size, 0b00101i32, rn, rd));

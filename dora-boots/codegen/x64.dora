@@ -8,7 +8,7 @@ use package::bytecode::data::{ConstPoolId, Location};
 use package::codegen::{CODE_SIZE_ALIGNMENT, STACK_FRAME_ALIGNMENT, CodeGen};
 use package::compilation::CompilationInfo;
 use package::interface::{Address, Architecture, ConstPool, ConstPoolEntry, ConstPoolValue, config, getFunctionAddress, LazyCompilationSite, LazyCompilationSiteDirect, getFieldOffset, getClassSize, getClassPointer, getClassPointerForLambda, getFunctionVtableIndex, getGlobalValueAddress, getGlobalStateAddress, getGlobalInitializerFunctionId, getReadOnlyStringAddress, getClassSizeForTraitObject, getClassPointerForTraitObject};
-use package::interface::{TRAP_DIV0, TRAP_OVERFLOW, TRAP_INDEX_OUT_OF_BOUNDS, LAMBDA_SIZE, PTR_SIZE, GLOBAL_STATE_INITIALIZED};
+use package::interface::{LAMBDA_SIZE, PTR_SIZE, GLOBAL_STATE_INITIALIZED};
 use package::interface::{THREAD_LOCAL_DATA_TLAB_TOP_OFFSET, THREAD_LOCAL_DATA_TLAB_END_OFFSET, THREAD_LOCAL_DATA_STACK_LIMIT_OFFSET, THREAD_LOCAL_DATA_STATE_OFFSET, THREAD_LOCAL_DATA_MARKING_OFFSET, OBJECT_HEADER_LENGTH, OBJECT_METADATA_OFFSET, METADATA_REMEMBERED_BIT, ARRAY_HEADER_LENGTH, THREAD_LOCAL_DATA_MANAGED_THREAD_HANDLE_OFFSET};
 use package::interface as iface;
 use package::location::{useInputFloatRegisterFixed, useInputRegister, useInputRegisterFixed, useInputFloatRegister, useOutputRegister, useOutputFloatRegister, useOutputRegisterFixed, useOutputSameAsFirstInput, setOutputOverlaps, addTempRegisterFixed};
@@ -129,6 +129,13 @@ impl CodeGenX64 {
         self.asm.movsd_ra(dest, AsmAddress::rip(-disp));
     }
 
+    fn andps_ri128(dest: FloatRegister, lower: Int64, upper: Int64) {
+        let entry = self.constPool.push(ConstPoolValue::Int128(lower, upper));
+        let inst_size = 7i32 + if msb(dest) { 1i32 } else { 0i32 };
+        let disp = self.asm.position() + entry.disp + inst_size;
+        self.asm.andps_ra(dest, AsmAddress::rip(-disp));
+    }
+
     fn emitCheckedDivModCommon(inst: Inst) {
         let loc = inst.getLocationData();
         let ty = inst.getValueType();
@@ -177,7 +184,7 @@ impl CodeGenX64 {
             let op = if is_div { "CheckedDiv" } else { "CheckedMod" };
             self.emitComment("slow path for ${op} overflow");
             self.asm.bindLabel(lbl_overflow);
-            self.trap(REG_TEMP, TRAP_OVERFLOW, self.ci.bc.getLocationAt(inst.bytecode_position()));
+            self.trap(REG_TEMP, iface::TRAP_OVERFLOW, self.ci.bc.getLocationAt(inst.bytecode_position()));
         });
     }
 
@@ -613,7 +620,7 @@ impl CodeGen for CodeGenX64 {
         self.deferred.push(|| {
             self.emitComment("slow path for stack limit check");
             self.asm.bindLabel(lbl_stack_overflow);
-            self.trap(REG_TEMP, TRAP_OVERFLOW, self.ci.loc);
+            self.trap(REG_TEMP, iface::TRAP_STACK_OVERFLOW, self.ci.loc);
         });
     }
 
@@ -1073,7 +1080,7 @@ impl CodeGen for CodeGenX64 {
         self.deferred.push(|| {
             self.emitComment("slow path for CheckedAdd overflow");
             self.asm.bindLabel(lbl_overflow);
-            self.trap(REG_TEMP, TRAP_OVERFLOW, self.ci.bc.getLocationAt(inst.bytecode_position()));
+            self.trap(REG_TEMP, iface::TRAP_OVERFLOW, self.ci.bc.getLocationAt(inst.bytecode_position()));
         });
     }
 
@@ -1105,7 +1112,7 @@ impl CodeGen for CodeGenX64 {
         self.deferred.push(|| {
             self.emitComment("slow path for CheckedSub overflow");
             self.asm.bindLabel(lbl_overflow);
-            self.trap(REG_TEMP, TRAP_OVERFLOW, self.ci.bc.getLocationAt(inst.bytecode_position()));
+            self.trap(REG_TEMP, iface::TRAP_OVERFLOW, self.ci.bc.getLocationAt(inst.bytecode_position()));
         });
     }
 
@@ -1137,7 +1144,7 @@ impl CodeGen for CodeGenX64 {
         self.deferred.push(|| {
             self.emitComment("slow path for CheckedMul overflow");
             self.asm.bindLabel(lbl_overflow);
-            self.trap(REG_TEMP, TRAP_OVERFLOW, self.ci.bc.getLocationAt(inst.bytecode_position()));
+            self.trap(REG_TEMP, iface::TRAP_OVERFLOW, self.ci.bc.getLocationAt(inst.bytecode_position()));
         });
     }
 
@@ -1184,7 +1191,7 @@ impl CodeGen for CodeGenX64 {
         self.deferred.push(|| {
             self.emitComment("slow path for div-by-0 check");
             self.asm.bindLabel(lbl_failure);
-            self.trap(REG_TEMP, TRAP_DIV0, self.ci.bc.getLocationAt(inst.bytecode_position()));
+            self.trap(REG_TEMP, iface::TRAP_DIV0, self.ci.bc.getLocationAt(inst.bytecode_position()));
         });
     }
 
@@ -1209,7 +1216,7 @@ impl CodeGen for CodeGenX64 {
         self.deferred.push(|| {
             self.emitComment("slow path for CheckedNeg overflow");
             self.asm.bindLabel(lbl_overflow);
-            self.trap(REG_TEMP, TRAP_OVERFLOW, self.ci.bc.getLocationAt(inst.bytecode_position()));
+            self.trap(REG_TEMP, iface::TRAP_OVERFLOW, self.ci.bc.getLocationAt(inst.bytecode_position()));
         });
     }
 
@@ -1504,7 +1511,7 @@ impl CodeGen for CodeGenX64 {
         self.deferred.push(|| {
             self.emitComment("slow path for BoundsCheck");
             self.asm.bindLabel(label_oob);
-            self.trap(REG_TEMP, TRAP_INDEX_OUT_OF_BOUNDS, self.ci.bc.getLocationAt(inst.bytecode_position()));
+            self.trap(REG_TEMP, iface::TRAP_INDEX_OUT_OF_BOUNDS, self.ci.bc.getLocationAt(inst.bytecode_position()));
         });
     }
 
@@ -2003,6 +2010,11 @@ impl CodeGen for CodeGenX64 {
                         self.asm.movsxlq_rr(dest, src);
                     }
 
+                    Type::UInt8 | Type::Bool => {
+                        let src = loc.getInput(0).getRegister();
+                        self.asm.movzxb_rr(dest, src);
+                    }
+
                     _ => unimplemented(),
                 }
             }
@@ -2026,7 +2038,7 @@ impl CodeGen for CodeGenX64 {
                         self.asm.movl_rr(dest, src);
                     }
 
-                    Type::UInt8 => {
+                    Type::UInt8 | Type::Bool => {
                         let src = loc.getInput(0).getRegister();
                         self.asm.movzxb_rr(dest, src);
                     }
@@ -2086,7 +2098,7 @@ impl CodeGen for CodeGenX64 {
                 let dest = loc.getOutput().getRegister();
 
                 match src_ty {
-                    Type::Int32 => {
+                    Type::Int32 | Type::Int64 => {
                         let src = loc.getInput(0).getRegister();
                         self.asm.movzxb_rr(dest, src);
                     }
@@ -2221,11 +2233,25 @@ impl CodeGen for CodeGenX64 {
                 self.asm.movd_rx(dest, src);
             }
 
+            Type::Float32 => {
+                assert(src_ty == Type::Int32);
+                let dest = loc.getOutput().getFloatRegister();
+                let src = loc.getInput(0).getRegister();
+                self.asm.movd_xr(dest, src);
+            }
+
             Type::Int64 => {
                 assert(src_ty == Type::Float64);
                 let dest = loc.getOutput().getRegister();
                 let src = loc.getInput(0).getFloatRegister();
                 self.asm.movq_rx(dest, src);
+            }
+
+            Type::Float64 => {
+                assert(src_ty == Type::Int64);
+                let dest = loc.getOutput().getFloatRegister();
+                let src = loc.getInput(0).getRegister();
+                self.asm.movq_xr(dest, src);
             }
 
             _ => unimplemented(),
@@ -2326,11 +2352,29 @@ impl CodeGen for CodeGenX64 {
 
     fn annotateAbs(inst: Inst) {
         useInputFloatRegister(inst, 0);
-        useOutputFloatRegister(inst, InputOutputOverlap::NoOverlap);
+        useOutputFloatRegister(inst, InputOutputOverlap::Overlap);
     }
 
     fn emitAbs(inst: Inst) {
-        unimplemented();
+        let loc = inst.getLocationData();
+        let dest = loc.getOutput().getFloatRegister();
+        let src = loc.getInput(0).getFloatRegister();
+
+        match inst.getValueType() {
+            Type::Float32 => {
+                self.asm.movss_rr(dest, src);
+                let lower = !(1i32 << 31i32);
+                self.andps_ri128(dest, lower.toInt64(), 0);
+            }
+
+            Type::Float64 => {
+                self.asm.movsd_rr(dest, src);
+                let lower = !(1 << 63i32);
+                self.andps_ri128(dest, lower, 0);
+            }
+
+            _ => unreachable[()](),
+        }
     }
 
     fn annotateSqrt(inst: Inst) {
@@ -2568,6 +2612,75 @@ impl CodeGen for CodeGenX64 {
                 self.asm.movq_rr(REG_TEMP, increment);
                 self.asm.lock_xaddq_ar(AsmAddress::offset(obj, OBJECT_HEADER_LENGTH), REG_TEMP);
                 self.asm.movq_rr(dest, REG_TEMP);
+            }
+
+            _ => unreachable[()](),
+        }
+    }
+
+    fn annotateCountBits(inst: Inst) {
+        useInputRegister(inst, 0);
+        useOutputRegister(inst, InputOutputOverlap::NoOverlap);
+    }
+
+    fn emitCountBits(inst: Inst) {
+        let loc = inst.getLocationData();
+        let dest = loc.getOutput().getRegister();
+        let value = loc.getInput(0).getRegister();
+
+        match inst.getOperationType() {
+            Type::Int32 => {
+                self.asm.popcntl_rr(dest, value);
+            }
+
+            Type::Int64 => {
+                self.asm.popcntq_rr(dest, value);
+            }
+
+            _ => unreachable[()](),
+        }
+    }
+
+    fn annotateCountLeadingZeros(inst: Inst) {
+        useInputRegister(inst, 0);
+        useOutputRegister(inst, InputOutputOverlap::NoOverlap);
+    }
+
+    fn emitCountLeadingZeros(inst: Inst) {
+        let loc = inst.getLocationData();
+        let dest = loc.getOutput().getRegister();
+        let value = loc.getInput(0).getRegister();
+
+        match inst.getOperationType() {
+            Type::Int32 => {
+                self.asm.lzcntl_rr(dest, value);
+            }
+
+            Type::Int64 => {
+                self.asm.lzcntq_rr(dest, value);
+            }
+
+            _ => unreachable[()](),
+        }
+    }
+
+    fn annotateCountTrailingZeros(inst: Inst) {
+        useInputRegister(inst, 0);
+        useOutputRegister(inst, InputOutputOverlap::NoOverlap);
+    }
+
+    fn emitCountTrailingZeros(inst: Inst) {
+        let loc = inst.getLocationData();
+        let dest = loc.getOutput().getRegister();
+        let value = loc.getInput(0).getRegister();
+
+        match inst.getOperationType() {
+            Type::Int32 => {
+                self.asm.tzcntl_rr(dest, value);
+            }
+
+            Type::Int64 => {
+                self.asm.tzcntq_rr(dest, value);
             }
 
             _ => unreachable[()](),

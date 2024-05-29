@@ -3,7 +3,7 @@ use package::compilation::CompilationInfo;
 use package::interface::{Address, Architecture, ConstPool, ConstPoolEntry, ConstPoolValue, config, getFunctionAddress, getFieldOffset, getClassSize, getClassPointer, getClassPointerForLambda, getFunctionVtableIndex, getGlobalValueAddress, getGlobalStateAddress, getGlobalInitializerFunctionId, getReadOnlyStringAddress, getClassSizeForTraitObject, getClassPointerForTraitObject};
 use package::interface::{THREAD_LOCAL_DATA_STACK_LIMIT_OFFSET, THREAD_LOCAL_DATA_STATE_OFFSET, THREAD_LOCAL_DATA_MARKING_OFFSET, OBJECT_HEADER_LENGTH, OBJECT_METADATA_OFFSET, METADATA_REMEMBERED_BIT, ARRAY_HEADER_LENGTH, LAMBDA_SIZE};
 use package::interface::{THREAD_LOCAL_DATA_TLAB_TOP_OFFSET, THREAD_LOCAL_DATA_TLAB_END_OFFSET, THREAD_LOCAL_DATA_MANAGED_THREAD_HANDLE_OFFSET};
-use package::interface::{TRAP_DIV0, TRAP_OVERFLOW, TRAP_INDEX_OUT_OF_BOUNDS, PTR_SIZE, GLOBAL_STATE_INITIALIZED};
+use package::interface::{PTR_SIZE, GLOBAL_STATE_INITIALIZED};
 use package::interface as iface;
 use package::codegen::{CODE_SIZE_ALIGNMENT, CodeGen};
 use package::assembler::arm64;
@@ -242,7 +242,7 @@ impl CodeGenArm64 {
             let op = if is_div { "CheckedDiv" } else { "CheckedMod" };
             self.emitComment("slow path for ${op} overflow");
             self.asm.bindLabel(lbl_overflow);
-            self.trap(REG_TEMP, TRAP_OVERFLOW, self.ci.bc.getLocationAt(inst.bytecode_position()));
+            self.trap(REG_TEMP, iface::TRAP_OVERFLOW, self.ci.bc.getLocationAt(inst.bytecode_position()));
         });
     }
 
@@ -745,7 +745,7 @@ impl CodeGen for CodeGenArm64 {
         self.deferred.push(|| {
             self.emitComment("slow path for stack limit check");
             self.asm.bindLabel(lbl_stack_overflow);
-            self.trap(REG_TEMP, TRAP_OVERFLOW, self.ci.loc);
+            self.trap(REG_TEMP, iface::TRAP_STACK_OVERFLOW, self.ci.loc);
         });
     }
 
@@ -1196,7 +1196,7 @@ impl CodeGen for CodeGenArm64 {
         self.deferred.push(|| {
             self.emitComment("slow path for CheckedAdd overflow");
             self.asm.bindLabel(lbl_overflow);
-            self.trap(REG_TEMP, TRAP_OVERFLOW, self.ci.bc.getLocationAt(inst.bytecode_position()));
+            self.trap(REG_TEMP, iface::TRAP_OVERFLOW, self.ci.bc.getLocationAt(inst.bytecode_position()));
         });
     }
 
@@ -1226,7 +1226,7 @@ impl CodeGen for CodeGenArm64 {
         self.deferred.push(|| {
             self.emitComment("slow path for CheckedSub overflow");
             self.asm.bindLabel(lbl_overflow);
-            self.trap(REG_TEMP, TRAP_OVERFLOW, self.ci.bc.getLocationAt(inst.bytecode_position()));
+            self.trap(REG_TEMP, iface::TRAP_OVERFLOW, self.ci.bc.getLocationAt(inst.bytecode_position()));
         });
     }
 
@@ -1260,7 +1260,7 @@ impl CodeGen for CodeGenArm64 {
         self.deferred.push(|| {
             self.emitComment("slow path for CheckedMul overflow");
             self.asm.bindLabel(lbl_overflow);
-            self.trap(REG_TEMP, TRAP_OVERFLOW, self.ci.bc.getLocationAt(inst.bytecode_position()));
+            self.trap(REG_TEMP, iface::TRAP_OVERFLOW, self.ci.bc.getLocationAt(inst.bytecode_position()));
         });
     }
 
@@ -1294,7 +1294,7 @@ impl CodeGen for CodeGenArm64 {
         self.deferred.push(|| {
             self.emitComment("slow path for div-by-0 check");
             self.asm.bindLabel(lbl_failure);
-            self.trap(REG_TEMP, TRAP_DIV0, self.ci.bc.getLocationAt(inst.bytecode_position()));
+            self.trap(REG_TEMP, iface::TRAP_DIV0, self.ci.bc.getLocationAt(inst.bytecode_position()));
         });
     }
 
@@ -1317,7 +1317,7 @@ impl CodeGen for CodeGenArm64 {
         self.deferred.push(|| {
             self.emitComment("slow path for CheckedNeg overflow");
             self.asm.bindLabel(lbl_overflow);
-            self.trap(REG_TEMP, TRAP_OVERFLOW, self.ci.bc.getLocationAt(inst.bytecode_position()));
+            self.trap(REG_TEMP, iface::TRAP_OVERFLOW, self.ci.bc.getLocationAt(inst.bytecode_position()));
         });
     }
 
@@ -1586,7 +1586,7 @@ impl CodeGen for CodeGenArm64 {
         self.deferred.push(|| {
             self.emitComment("slow path for BoundsCheck");
             self.asm.bindLabel(label_oob);
-            self.trap(REG_TEMP, TRAP_INDEX_OUT_OF_BOUNDS, self.ci.bc.getLocationAt(inst.bytecode_position()));
+            self.trap(REG_TEMP, iface::TRAP_INDEX_OUT_OF_BOUNDS, self.ci.bc.getLocationAt(inst.bytecode_position()));
         });
     }
 
@@ -2105,6 +2105,11 @@ impl CodeGen for CodeGenArm64 {
                         self.asm.sxtw(dest, src);
                     }
 
+                    Type::UInt8 | Type::Bool => {
+                        let src = loc.getInput(0).getRegister();
+                        self.asm.mov(dest, src);
+                    }
+
                     _ => unimplemented(),
                 }
             }
@@ -2128,7 +2133,7 @@ impl CodeGen for CodeGenArm64 {
                         self.asm.mov_w(dest, src);
                     }
 
-                    Type::UInt8 => {
+                    Type::UInt8 | Type::Bool => {
                         let src = loc.getInput(0).getRegister();
                         self.asm.mov_w(dest, src);
                     }
@@ -2187,7 +2192,7 @@ impl CodeGen for CodeGenArm64 {
                 let dest = loc.getOutput().getRegister();
 
                 match src_ty {
-                    Type::Int32 => {
+                    Type::Int32 | Type::Int64 => {
                         let src = loc.getInput(0).getRegister();
                         self.asm.and_imm_w(dest, src, 0xFFi32);
                     }
@@ -2297,11 +2302,25 @@ impl CodeGen for CodeGenArm64 {
                 self.asm.fmov_sf_s(dest, src);
             }
 
+            Type::Float32 => {
+                assert(src_ty == Type::Int32);
+                let dest = loc.getOutput().getFloatRegister();
+                let src = loc.getInput(0).getRegister();
+                self.asm.fmov_fs_s(dest, src);
+            }
+
             Type::Int64 => {
                 assert(src_ty == Type::Float64);
                 let dest = loc.getOutput().getRegister();
                 let src = loc.getInput(0).getFloatRegister();
                 self.asm.fmov_sf_d(dest, src);
+            }
+
+            Type::Float64 => {
+                assert(src_ty == Type::Int64);
+                let dest = loc.getOutput().getFloatRegister();
+                let src = loc.getInput(0).getRegister();
+                self.asm.fmov_fs_d(dest, src);
             }
 
             _ => unimplemented(),
@@ -2653,6 +2672,83 @@ impl CodeGen for CodeGenArm64 {
 
             Type::Int64 => {
                 self.asm.ldadd(increment, dest, REG_TEMP);
+            }
+
+            _ => unreachable[()](),
+        }
+    }
+
+    fn annotateCountBits(inst: Inst) {
+        useInputRegister(inst, 0);
+        useOutputRegister(inst, InputOutputOverlap::NoOverlap);
+    }
+
+    fn emitCountBits(inst: Inst) {
+        let loc = inst.getLocationData();
+        let dest = loc.getOutput().getRegister();
+        let value = loc.getInput(0).getRegister();
+
+        match inst.getOperationType() {
+            Type::Int32 => {
+                self.asm.fmov_fs_s(FREG_TEMP, value);
+                self.asm.cnt(0i32, 0b00i32, FREG_TEMP, FREG_TEMP);
+                self.asm.addv(0i32, 0b00i32, FREG_TEMP, FREG_TEMP);
+                self.asm.fmov_sf_s(dest, FREG_TEMP);
+            }
+
+            Type::Int64 => {
+                self.asm.fmov_fs_d(FREG_TEMP, value);
+                self.asm.cnt(0i32, 0b00i32, FREG_TEMP, FREG_TEMP);
+                self.asm.addv(0i32, 0b00i32, FREG_TEMP, FREG_TEMP);
+                self.asm.fmov_sf_d(dest, FREG_TEMP);
+            }
+
+            _ => unreachable[()](),
+        }
+    }
+
+    fn annotateCountLeadingZeros(inst: Inst) {
+        useInputRegister(inst, 0);
+        useOutputRegister(inst, InputOutputOverlap::NoOverlap);
+    }
+
+    fn emitCountLeadingZeros(inst: Inst) {
+        let loc = inst.getLocationData();
+        let dest = loc.getOutput().getRegister();
+        let value = loc.getInput(0).getRegister();
+
+        match inst.getOperationType() {
+            Type::Int32 => {
+                self.asm.clz_w(dest, value);
+            }
+
+            Type::Int64 => {
+                self.asm.clz(dest, value);
+            }
+
+            _ => unreachable[()](),
+        }
+    }
+
+    fn annotateCountTrailingZeros(inst: Inst) {
+        useInputRegister(inst, 0);
+        useOutputRegister(inst, InputOutputOverlap::NoOverlap);
+    }
+
+    fn emitCountTrailingZeros(inst: Inst) {
+        let loc = inst.getLocationData();
+        let dest = loc.getOutput().getRegister();
+        let value = loc.getInput(0).getRegister();
+
+        match inst.getOperationType() {
+            Type::Int32 => {
+                self.asm.rbit_w(dest, value);
+                self.asm.clz_w(dest, dest);
+            }
+
+            Type::Int64 => {
+                self.asm.rbit(dest, value);
+                self.asm.clz(dest, dest);
             }
 
             _ => unreachable[()](),

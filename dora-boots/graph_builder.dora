@@ -1152,7 +1152,7 @@ impl SsaGen {
             self.emitIntrinsicConvert(dest, args, Type::Float32, Type::Int32);
         } else if intrinsic == opc::INTRINSIC_INT32_TO_FLOAT64 {
             self.emitIntrinsicConvert(dest, args, Type::Float64, Type::Int32);
-        } else if intrinsic == opc::INTRINSIC_INT32_TO_INT64 {
+        } else if intrinsic == opc::INTRINSIC_INT32_TO_INT64 || intrinsic == opc::INTRINSIC_CHAR_TO_INT64 {
             self.emitIntrinsicConvert(dest, args, Type::Int64, Type::Int32);
         } else if intrinsic == opc::INTRINSIC_INT64_TO_FLOAT32 {
             self.emitIntrinsicConvert(dest, args, Type::Float32, Type::Int64);
@@ -1160,6 +1160,8 @@ impl SsaGen {
             self.emitIntrinsicConvert(dest, args, Type::Float64, Type::Int64);
         } else if intrinsic == opc::INTRINSIC_INT64_TO_INT32 {
             self.emitIntrinsicConvert(dest, args, Type::Int32, Type::Int64);
+        } else if intrinsic == opc::INTRINSIC_INT64_TO_UINT8 {
+            self.emitIntrinsicConvert(dest, args, Type::UInt8, Type::Int64);
         } else if intrinsic == opc::INTRINSIC_PROMOTE_FLOAT32_TO_FLOAT64 {
             self.emitIntrinsicConvert(dest, args, Type::Float64, Type::Float32);
         } else if intrinsic == opc::INTRINSIC_DEMOTE_FLOAT64_TO_FLOAT32 {
@@ -1176,6 +1178,10 @@ impl SsaGen {
             self.emitIntrinsicUn(dest, args, Op::Neg);
         } else if intrinsic == opc::INTRINSIC_FLOAT64_EQ || intrinsic == opc::INTRINSIC_FLOAT32_EQ {
             self.emitIntrinsicBin(dest, args, Op::Equal);
+        } else if intrinsic == opc::INTRINSIC_FLOAT64_ABS {
+            self.emitIntrinsicAbs(dest, args, Type::Float64);
+        } else if intrinsic == opc::INTRINSIC_FLOAT32_ABS {
+            self.emitIntrinsicAbs(dest, args, Type::Float32);
         } else if intrinsic == opc::INTRINSIC_INT64_ADD || intrinsic == opc::INTRINSIC_INT32_ADD {
             self.emitBin(dest, args(0), args(1), Op::CheckedAdd);
         } else if intrinsic == opc::INTRINSIC_INT64_SUB || intrinsic == opc::INTRINSIC_INT32_SUB {
@@ -1216,8 +1222,12 @@ impl SsaGen {
             self.emitIntrinsicCompareOrdering(dest, args, Type::Float64);
         } else if intrinsic == opc::INTRINSIC_REINTERPRET_FLOAT64_AS_INT64 {
             self.emitIntrinsicBitcast(dest, args, Type::Int64, Type::Float64);
+        } else if intrinsic == opc::INTRINSIC_REINTERPRET_INT64_AS_FLOAT64 {
+            self.emitIntrinsicBitcast(dest, args, Type::Float64, Type::Int64);
         } else if intrinsic == opc::INTRINSIC_REINTERPRET_FLOAT32_AS_INT32 {
             self.emitIntrinsicBitcast(dest, args, Type::Int32, Type::Float32);
+        } else if intrinsic == opc::INTRINSIC_REINTERPRET_INT32_AS_FLOAT32 {
+            self.emitIntrinsicBitcast(dest, args, Type::Float32, Type::Int32);
         } else if intrinsic == opc::INTRINSIC_FLOAT64_ROUND_DOWN {
             self.emitIntrinsicRounding(dest, args, Op::RoundDown, Type::Float64);
         } else if intrinsic == opc::INTRINSIC_FLOAT64_ROUND_UP {
@@ -1242,8 +1252,12 @@ impl SsaGen {
             self.emitIntrinsicCastBetweenInt32AndChar(dest, args);
         } else if intrinsic == opc::INTRINSIC_INT32_TO_UINT8 {
             self.emitIntrinsicConvert(dest, args, Type::UInt8, Type::Int32);
-        } else if intrinsic == opc::INTRINSIC_U_INT8_TO_INT32 {
+        } else if intrinsic == opc::INTRINSIC_U_INT8_TO_INT32 || intrinsic == opc::INTRINSIC_U_INT8_TO_CHAR {
             self.emitIntrinsicConvert(dest, args, Type::Int32, Type::UInt8);
+        } else if intrinsic == opc::INTRINSIC_BOOL_TO_INT32 {
+            self.emitIntrinsicConvert(dest, args, Type::Int32, Type::Bool);
+        } else if intrinsic == opc::INTRINSIC_U_INT8_TO_INT64 {
+            self.emitIntrinsicConvert(dest, args, Type::Int64, Type::UInt8);
         } else if intrinsic == opc::INTRINSIC_INT32_ROTATE_LEFT {
             self.emitIntrinsicRotate(dest, args, Type::Int32, true);
         } else if intrinsic == opc::INTRINSIC_INT32_ROTATE_RIGHT {
@@ -1274,10 +1288,95 @@ impl SsaGen {
             self.emitIntrinsicAtomicFetchAdd(dest, args, Type::Int32);
         } else if intrinsic == opc::INTRINSIC_ATOMIC_INT64_FETCH_ADD {
             self.emitIntrinsicAtomicFetchAdd(dest, args, Type::Int64);
+        } else if intrinsic == opc::INTRINSIC_INT32_COUNT_ZERO_BITS {
+            self.emitIntrinsicCountBits(dest, args, Type::Int32, false);
+        } else if intrinsic == opc::INTRINSIC_INT32_COUNT_ONE_BITS {
+            self.emitIntrinsicCountBits(dest, args, Type::Int32, true);
+        } else if intrinsic == opc::INTRINSIC_INT64_COUNT_ZERO_BITS {
+            self.emitIntrinsicCountBits(dest, args, Type::Int64, false);
+        } else if intrinsic == opc::INTRINSIC_INT64_COUNT_ONE_BITS {
+            self.emitIntrinsicCountBits(dest, args, Type::Int64, true);
+        } else if intrinsic == opc::INTRINSIC_INT64_COUNT_ZERO_BITS_LEADING {
+            self.emitIntrinsicCountLeading(dest, args, Type::Int64, false);
+        } else if intrinsic == opc::INTRINSIC_INT32_COUNT_ZERO_BITS_LEADING {
+            self.emitIntrinsicCountLeading(dest, args, Type::Int32, false);
+        } else if intrinsic == opc::INTRINSIC_INT64_COUNT_ONE_BITS_LEADING {
+            self.emitIntrinsicCountLeading(dest, args, Type::Int64, true);
+        } else if intrinsic == opc::INTRINSIC_INT32_COUNT_ONE_BITS_LEADING {
+            self.emitIntrinsicCountLeading(dest, args, Type::Int32, true);
+        } else if intrinsic == opc::INTRINSIC_INT64_COUNT_ONE_BITS_TRAILING {
+            self.emitIntrinsicCountTrailing(dest, args, Type::Int64, true);
+        } else if intrinsic == opc::INTRINSIC_INT32_COUNT_ONE_BITS_TRAILING {
+            self.emitIntrinsicCountTrailing(dest, args, Type::Int32, true);
+        } else if intrinsic == opc::INTRINSIC_INT64_COUNT_ZERO_BITS_TRAILING {
+            self.emitIntrinsicCountTrailing(dest, args, Type::Int64, false);
+        } else if intrinsic == opc::INTRINSIC_INT32_COUNT_ZERO_BITS_TRAILING {
+            self.emitIntrinsicCountTrailing(dest, args, Type::Int32, false);
         } else {
             let name = opc::intrinsicName(intrinsic);
             std::fatalError("unknown intrinsic ${name}");
         }
+    }
+
+    fn emitIntrinsicAbs(dest: BytecodeRegister, args: Array[BytecodeRegister], ty: Type) {
+        assert(args.size() == 1);
+        assert(self.regGraphTy(dest) == ty);
+        assert(self.regGraphTy(args(0)) == ty);
+        let value = self.readVariable(args(0), self.current());
+        let inst = graph::createAbsInst(ty, value);
+        self.current().appendInst(inst);
+        self.writeVariable(dest, self.current(), inst);
+    }
+
+    fn emitIntrinsicCountBits(dest: BytecodeRegister, args: Array[BytecodeRegister], ty: Type, count_set_bits: Bool) {
+        assert(args.size() == 1);
+        assert(self.regGraphTy(dest) == Type::Int32);
+        assert(self.regGraphTy(args(0)) == ty);
+        let value = self.readVariable(args(0), self.current());
+        let value = if count_set_bits {
+            value
+        } else {
+            let inst = graph::createUnaryInst(Op::Not, ty, value);
+            self.current().appendInst(inst);
+            inst
+        };
+        let inst = graph::createCountBitsInst(ty, value);
+        self.current().appendInst(inst);
+        self.writeVariable(dest, self.current(), inst);
+    }
+
+    fn emitIntrinsicCountLeading(dest: BytecodeRegister, args: Array[BytecodeRegister], ty: Type, count_set_bits: Bool) {
+        assert(args.size() == 1);
+        assert(self.regGraphTy(dest) == Type::Int32);
+        assert(self.regGraphTy(args(0)) == ty);
+        let value = self.readVariable(args(0), self.current());
+        let value = if count_set_bits {
+            let inst = graph::createUnaryInst(Op::Not, ty, value);
+            self.current().appendInst(inst);
+            inst
+        } else {
+            value
+        };
+        let inst = graph::createCountLeadingZerosInst(ty, value);
+        self.current().appendInst(inst);
+        self.writeVariable(dest, self.current(), inst);
+    }
+
+    fn emitIntrinsicCountTrailing(dest: BytecodeRegister, args: Array[BytecodeRegister], ty: Type, count_set_bits: Bool) {
+        assert(args.size() == 1);
+        assert(self.regGraphTy(dest) == Type::Int32);
+        assert(self.regGraphTy(args(0)) == ty);
+        let value = self.readVariable(args(0), self.current());
+        let value = if count_set_bits {
+            let inst = graph::createUnaryInst(Op::Not, ty, value);
+            self.current().appendInst(inst);
+            inst
+        } else {
+            value
+        };
+        let inst = graph::createCountTrailingZerosInst(ty, value);
+        self.current().appendInst(inst);
+        self.writeVariable(dest, self.current(), inst);
     }
 
     fn emitIntrinsicAtomicLoad(dest: BytecodeRegister, args: Array[BytecodeRegister], ty: Type) {

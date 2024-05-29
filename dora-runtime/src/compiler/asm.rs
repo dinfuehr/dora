@@ -1540,7 +1540,7 @@ impl<'a> BaselineAssembler<'a> {
         self.masm.bind_label(lbl_assert);
         self.masm.emit_comment("slow path assert".into());
         self.masm
-            .load_int_const(MachineMode::Int32, REG_PARAMS[0], Trap::ASSERT.int() as i64);
+            .load_int_const(MachineMode::Int32, REG_PARAMS[0], Trap::ASSERT as i64);
         self.masm.raw_call(self.vm.native_methods.trap_trampoline());
         self.masm.emit_gcpoint(GcPoint::new());
         self.masm.emit_position(location);

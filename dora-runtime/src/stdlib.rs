@@ -269,7 +269,7 @@ pub extern "C" fn str_to_float64(val: Handle<Str>) -> f64 {
 
 pub extern "C" fn trap(trap_id: u32) {
     let vm = get_vm();
-    let trap = Trap::from(trap_id).expect("invalid trap id!");
+    let trap = Trap::try_from(trap_id as u8).expect("illegal trap code");
 
     let msg = match trap {
         Trap::DIV0 => "division by 0",
@@ -289,12 +289,12 @@ pub extern "C" fn trap(trap_id: u32) {
     let mut stderr = stderr.lock();
     stacktrace.dump(vm, &mut stderr).expect("output broken");
     unsafe {
-        libc::_exit(100 + trap_id as i32);
+        libc::_exit(101 + trap_id as i32);
     }
 }
 
 pub extern "C" fn stack_overflow() {
-    trap(Trap::STACK_OVERFLOW.int());
+    trap(Trap::STACK_OVERFLOW as u32);
 }
 
 pub extern "C" fn spawn_thread(runner: Handle<Obj>) -> Address {

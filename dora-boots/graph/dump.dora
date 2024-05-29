@@ -343,6 +343,9 @@ fn dumpInstName(inst: Inst): String {
         Op::AtomicExchange => "AtomicExchange.${inst.getValueType()}",
         Op::AtomicCompareExchange => "AtomicCompareExchange.${inst.getValueType()}",
         Op::AtomicFetchAdd => "AtomicFetchAdd.${inst.getValueType()}",
+        Op::CountBits => "CountBits.${inst.getValueType()}",
+        Op::CountLeadingZeros => "CountLeadingZeros.${inst.getValueType()}",
+        Op::CountTrailingZeros => "CountTrailingZeros.${inst.getValueType()}",
     }
 }
 

@@ -12,15 +12,15 @@ use package::compileFunction;
 use package::graph::TraitObjectInfo;
 use package::serializer::{ByteWriter, encodeBytecodeType, encodeBytecodeTypeArray, encodeCodeDescriptor};
 
-pub const TRAP_DIV0: Int32 = 1i32;
-pub const TRAP_ASSERT: Int32 = 2i32;
-pub const TRAP_INDEX_OUT_OF_BOUNDS: Int32 = 3i32;
-pub const TRAP_NIL: Int32 = 4i32;
-pub const TRAP_CAST: Int32 = 5i32;
-pub const TRAP_OOM: Int32 = 6i32;
-pub const TRAP_STACK_OVERFLOW: Int32 = 7i32;
-pub const TRAP_ILLEGAL: Int32 = 8i32;
-pub const TRAP_OVERFLOW: Int32 = 9i32;
+pub const TRAP_DIV0: Int32 = 0i32;
+pub const TRAP_ASSERT: Int32 = 1i32;
+pub const TRAP_INDEX_OUT_OF_BOUNDS: Int32 = 2i32;
+pub const TRAP_NIL: Int32 = 3i32;
+pub const TRAP_CAST: Int32 = 4i32;
+pub const TRAP_OOM: Int32 = 5i32;
+pub const TRAP_STACK_OVERFLOW: Int32 = 6i32;
+pub const TRAP_ILLEGAL: Int32 = 7i32;
+pub const TRAP_OVERFLOW: Int32 = 8i32;
 
 @internal pub fn getSystemConfig(): Array[UInt8];
 @internal pub fn getFunctionAddressRaw(data: Array[UInt8]): Int64;

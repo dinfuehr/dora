@@ -94,7 +94,7 @@ pub fn stop(
     let young_size = align_page_down(target_young_size / 2) * 2;
 
     if old_size + young_size > config.max_heap_size {
-        stdlib::trap(Trap::OOM.int());
+        stdlib::trap(Trap::OOM as u32);
     }
 
     young.resize_after_gc(vm, young_size);

@@ -448,6 +448,21 @@ fn emitInst(codegen: CodeGen, inst: Inst) {
             codegen.emitAtomicFetchAdd(inst);
         }
 
+        Op::CountBits => {
+            codegen.emitComment("CountBits");
+            codegen.emitCountBits(inst);
+        }
+
+        Op::CountLeadingZeros => {
+            codegen.emitComment("CountLeadingZeros");
+            codegen.emitCountLeadingZeros(inst);
+        }
+
+        Op::CountTrailingZeros => {
+            codegen.emitComment("CountTrailingZeros");
+            codegen.emitCountTrailingZeros(inst);
+        }
+
         _ => {
             println("unsupported op ${inst.op().name()}");
             unreachable[()]();
@@ -512,6 +527,9 @@ pub trait CodeGen {
     fn annotateAtomicExchange(inst: Inst);
     fn annotateAtomicCompareExchange(inst: Inst);
     fn annotateAtomicFetchAdd(inst: Inst);
+    fn annotateCountBits(inst: Inst);
+    fn annotateCountLeadingZeros(inst: Inst);
+    fn annotateCountTrailingZeros(inst: Inst);
 
     fn emitTrueConst(inst: Inst);
     fn emitFalseConst(inst: Inst);
@@ -589,6 +607,9 @@ pub trait CodeGen {
     fn emitAtomicExchange(inst: Inst);
     fn emitAtomicCompareExchange(inst: Inst);
     fn emitAtomicFetchAdd(inst: Inst);
+    fn emitCountBits(inst: Inst);
+    fn emitCountLeadingZeros(inst: Inst);
+    fn emitCountTrailingZeros(inst: Inst);
 
     fn emitComment(comment: String);
 }

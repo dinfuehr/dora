@@ -674,6 +674,9 @@ pub enum Op {
     AtomicExchange,
     AtomicCompareExchange,
     AtomicFetchAdd,
+    CountBits,
+    CountLeadingZeros,
+    CountTrailingZeros,
 }
 
 impl Op {
@@ -797,6 +800,9 @@ pub fn opName(op: Op): String {
         Op::AtomicExchange => "AtomicExchange",
         Op::AtomicCompareExchange => "AtomicCompareExchange",
         Op::AtomicFetchAdd => "AtomicFetchAdd",
+        Op::CountBits => "CountBits",
+        Op::CountLeadingZeros => "CountLeadingZeros",
+        Op::CountTrailingZeros => "CountTrailingZeros",
     }
 }
 
@@ -1000,6 +1006,9 @@ impl Inst {
             Op::AtomicCompareExchange => Some[Type](self.ty),
             Op::AtomicExchange => Some[Type](self.ty),
             Op::AtomicFetchAdd => Some[Type](self.ty),
+            Op::CountBits => Some[Type](Type::Int32),
+            Op::CountLeadingZeros => Some[Type](Type::Int32),
+            Op::CountTrailingZeros => Some[Type](Type::Int32),
         }
     }
 
@@ -1023,7 +1032,10 @@ impl Inst {
             | Op::StoreArrayWb
             | Op::StoreArrayAddressWb
             | Op::CompareOrdering
-            | Op::AtomicStore => self.ty,
+            | Op::AtomicStore
+            | Op::CountBits
+            | Op::CountLeadingZeros
+            | Op::CountTrailingZeros => self.ty,
             _ => self.getValueType(),
         }
     }
@@ -1477,6 +1489,9 @@ impl Inst {
             Op::AtomicExchange => true,
             Op::AtomicCompareExchange => true,
             Op::AtomicFetchAdd => true,
+            Op::CountBits => false,
+            Op::CountLeadingZeros => false,
+            Op::CountTrailingZeros => false,
         }
     }
 }
@@ -2614,6 +2629,38 @@ pub fn createAtomicFetchAddInst(ty: Type, obj: Inst, increment: Inst): Inst {
     inst._op = Some(Op::AtomicFetchAdd);
     inst.addInput(obj);
     inst.addInput(increment);
+    inst
+}
+
+pub fn createCountBitsInst(ty: Type, value: Inst): Inst {
+    let inst = Inst::new();
+    inst.ty = ty;
+    inst._op = Some(Op::CountBits);
+    inst.addInput(value);
+    inst
+}
+
+pub fn createCountLeadingZerosInst(ty: Type, value: Inst): Inst {
+    let inst = Inst::new();
+    inst.ty = ty;
+    inst._op = Some(Op::CountLeadingZeros);
+    inst.addInput(value);
+    inst
+}
+
+pub fn createCountTrailingZerosInst(ty: Type, value: Inst): Inst {
+    let inst = Inst::new();
+    inst.ty = ty;
+    inst._op = Some(Op::CountTrailingZeros);
+    inst.addInput(value);
+    inst
+}
+
+pub fn createAbsInst(ty: Type, value: Inst): Inst {
+    let inst = Inst::new();
+    inst.ty = ty;
+    inst._op = Some(Op::Abs);
+    inst.addInput(value);
     inst
 }
 

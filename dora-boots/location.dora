@@ -418,6 +418,18 @@ impl LocationAnnotation {
                 self.codegen.annotateAtomicFetchAdd(inst);
             }
 
+            Op::CountBits => {
+                self.codegen.annotateCountBits(inst);
+            }
+
+            Op::CountLeadingZeros => {
+                self.codegen.annotateCountLeadingZeros(inst);
+            }
+
+            Op::CountTrailingZeros => {
+                self.codegen.annotateCountTrailingZeros(inst);
+            }
+
             _ => {
                 println("unsupported op ${inst.op().name()}");
                 unreachable[()]();

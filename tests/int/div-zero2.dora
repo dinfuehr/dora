@@ -1,0 +1,10 @@
+//= error div0
+//= stderr "division by 0\n    divide (tests/int/div-zero2.dora:9)\n    main (tests/int/div-zero2.dora:5)\n"
+
+fn main() {
+    divide(0i64);
+}
+
+fn divide(x: Int64): Int64 {
+    4711i64 / x
+}
