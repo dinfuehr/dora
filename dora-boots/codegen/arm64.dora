@@ -753,6 +753,7 @@ impl CodeGen for CodeGenArm64 {
         let lbl_safepoint = self.asm.createLabel();
         self.asm.ldrb_imm(REG_TEMP, REG_THREAD, THREAD_LOCAL_DATA_STATE_OFFSET);
         self.asm.cbnz(REG_TEMP, lbl_safepoint);
+        let lbl_return = self.asm.createAndBindLabel();
 
         self.deferred.push(|| {
             self.emitComment("slow path safepoint");
@@ -761,6 +762,8 @@ impl CodeGen for CodeGenArm64 {
             self.mov_imm(REG_TEMP, config.safepoint_trampoline.toInt64());
             self.asm.bl_r(REG_TEMP);
             self.locations.insert(self.asm.position(), self.ci.loc);
+            self.asm.b(lbl_return);
+
         });
     }
 
