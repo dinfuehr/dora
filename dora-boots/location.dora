@@ -7,6 +7,7 @@ use package::interface::{config, PTR_SIZE, Architecture};
 
 pub fn ensureLocationData(graph: Graph, codegen: CodeGen, ci: CompilationInfo): Int32 {
     let argumentLocations = computeArgumentLocations(codegen, ci);
+    codegen.setArgumentLocations(argumentLocations);
 
     let annotator = LocationAnnotation(graph, codegen, ci, 0i32, argumentLocations);
     annotator.annotate();
@@ -18,7 +19,7 @@ class LocationAnnotation {
     codegen: CodeGen,
     ci: CompilationInfo,
     maxOutgoingArgsSize: Int32,
-    argumentLocations: Array[Location],
+    argumentLocations: ArgumentLocations,
 }
 
 impl LocationAnnotation {
@@ -42,7 +43,7 @@ impl LocationAnnotation {
 
         match inst.op() {
             Op::Arg => {
-                let location = self.argumentLocations(inst.getArgIndex().toInt64());
+                let location = self.argumentLocations.locations(inst.getArgIndex().toInt64());
 
                 if inst.getValueType().isAnyFloat() {
                     if location.isFloatRegister() {
@@ -438,7 +439,11 @@ impl LocationAnnotation {
     }
 }
 
-fn computeArgumentLocations(codegen: CodeGen, ci: CompilationInfo): Array[Location] {
+pub class ArgumentLocations {
+    pub locations: Array[Location],
+}
+
+fn computeArgumentLocations(codegen: CodeGen, ci: CompilationInfo): ArgumentLocations {
     let arguments = ci.bc.arguments.toInt64();
     let locations = Vec[Location]::new();
     locations.reserve(arguments);
@@ -505,7 +510,7 @@ fn computeArgumentLocations(codegen: CodeGen, ci: CompilationInfo): Array[Locati
     }
 
 
-    locations.toArray()
+    ArgumentLocations(locations.toArray())
 }
 
 fn annotateCall(inst: Inst, loc: LocationData, codegen: CodeGen, ci: CompilationInfo): Int32 {

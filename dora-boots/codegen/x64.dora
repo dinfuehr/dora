@@ -4,15 +4,15 @@ use package::assembler::x64::{RAX, RDI, RDX, RCX, RSI, RBP, RSP, RBX};
 use package::assembler::x64::{R8, R9, R10, R11, R12, R13, R14, R15};
 use package::assembler::x64::{XMM0, XMM1, XMM2, XMM3, XMM4, XMM5, XMM6, XMM7, XMM8, XMM9, XMM10, XMM11, XMM12, XMM13, XMM14, XMM15};
 use package::assembler::{FloatRegister, Label, Register, RegSet};
-use package::bytecode::data::{ConstPoolId, Location};
+use package::bytecode::data::{ConstPoolId, Location as SourceLocation};
 use package::codegen::{CODE_SIZE_ALIGNMENT, STACK_FRAME_ALIGNMENT, CodeGen};
 use package::compilation::CompilationInfo;
 use package::interface::{Address, Architecture, ConstPool, ConstPoolEntry, ConstPoolValue, config, getFunctionAddress, LazyCompilationSite, LazyCompilationSiteDirect, getFieldOffset, getClassSize, getClassPointer, getClassPointerForLambda, getFunctionVtableIndex, getGlobalValueAddress, getGlobalStateAddress, getGlobalInitializerFunctionId, getReadOnlyStringAddress, getClassSizeForTraitObject, getClassPointerForTraitObject};
 use package::interface::{LAMBDA_SIZE, PTR_SIZE, GLOBAL_STATE_INITIALIZED};
 use package::interface::{THREAD_LOCAL_DATA_TLAB_TOP_OFFSET, THREAD_LOCAL_DATA_TLAB_END_OFFSET, THREAD_LOCAL_DATA_STACK_LIMIT_OFFSET, THREAD_LOCAL_DATA_STATE_OFFSET, THREAD_LOCAL_DATA_MARKING_OFFSET, OBJECT_HEADER_LENGTH, OBJECT_METADATA_OFFSET, METADATA_REMEMBERED_BIT, ARRAY_HEADER_LENGTH, THREAD_LOCAL_DATA_MANAGED_THREAD_HANDLE_OFFSET};
 use package::interface as iface;
-use package::location::{useInputFloatRegisterFixed, useInputRegister, useInputRegisterFixed, useInputFloatRegister, useOutputRegister, useOutputFloatRegister, useOutputRegisterFixed, useOutputSameAsFirstInput, setOutputOverlaps, addTempRegisterFixed};
-use package::graph::{Graph, InputOutputOverlap, Inst, Op, LocationData, RegisterSnapshot, RegisterTrackers, Type};
+use package::location::{ArgumentLocations, useInputFloatRegisterFixed, useInputRegister, useInputRegisterFixed, useInputFloatRegister, useOutputRegister, useOutputFloatRegister, useOutputRegisterFixed, useOutputSameAsFirstInput, setOutputOverlaps, addTempRegisterFixed};
+use package::graph::{Graph, InputOutputOverlap, Inst, Op, Location, LocationData, RegisterSnapshot, RegisterTrackers, Type};
 use package::regalloc::isReference;
 use package::{CodeDescriptor, CommentTable, GcPoint, GcPointTable, LazyCompilationData, LazyCompilationSiteVirtual, LazyCompilationSiteLambda, LocationTable};
 
@@ -73,6 +73,7 @@ pub class CodeGenX64 {
     gcPoints: GcPointTable,
     comments: CommentTable,
     deferred: Vec[(): ()],
+    argumentLocations: Option[ArgumentLocations],
 }
 
 impl CodeGenX64 {
@@ -87,6 +88,7 @@ impl CodeGenX64 {
             GcPointTable::new(),
             CommentTable::new(),
             Vec[(): ()]::new(),
+            None[ArgumentLocations],
         )
     }
 
@@ -97,7 +99,7 @@ impl CodeGenX64 {
         self.asm.retq();
     }
 
-    fn trap(tmp: Register, trap: Int32, loc: Location) {
+    fn trap(tmp: Register, trap: Int32, loc: SourceLocation) {
         self.asm.movl_ri(CCALL_REG_PARAMS(0), Immediate(trap.toInt64()));
         self.asm.movq_ri(tmp, Immediate(config.trap_trampoline.toInt64()));
         self.asm.call_r(tmp);
@@ -560,6 +562,69 @@ impl CodeGenX64 {
             self.asm.xorpd_ra(dest, address)
         }
     }
+
+
+    fn computeRegisterArguments(): (RegSet[Register], RegSet[FloatRegister]) {
+        let regs_to_push = RegSet[Register]::new();
+        let fregs_to_push = RegSet[FloatRegister]::new();
+
+        for location in self.argumentLocations.getOrPanic().locations {
+            match location {
+                Location::Reg(reg) => regs_to_push.add(reg),
+                Location::FloatReg(reg) => fregs_to_push.add(reg),
+                Location::Stack(_) => {
+                    // Already on stack.
+                }
+                Location::None => unreachable[()](),
+            }
+        };
+
+        (regs_to_push, fregs_to_push)
+    }
+
+    fn saveArgumentsForSafepoint(regs_to_push: RegSet[Register], fregs_to_push: RegSet[FloatRegister]): GcPoint {
+        while !regs_to_push.isEmpty() {
+            let reg = regs_to_push.popLowestIndex().getOrPanic();
+            self.asm.pushq_r(reg);
+        }
+
+        assert(regs_to_push.isEmpty());
+
+        if !fregs_to_push.isEmpty() {
+            let size = fregs_to_push.size().toInt32() * PTR_SIZE;
+            self.asm.subq_ri(RSP, Immediate(size.toInt64()));
+            let mut offset = 0i32;
+
+            while !fregs_to_push.isEmpty() {
+                let reg = fregs_to_push.popLowestIndex().getOrPanic();
+                self.asm.movsd_ar(AsmAddress::offset(RSP, offset), reg);
+                offset = offset + PTR_SIZE;
+            }
+        }
+
+        GcPoint::new()
+    }
+
+    fn restoreArgumentsForSafepoint(regs_to_pop: RegSet[Register], fregs_to_pop: RegSet[FloatRegister]) {
+        if !fregs_to_pop.isEmpty() {
+            let mut offset = 0i32;
+            let count = fregs_to_pop.size();
+
+            while !fregs_to_pop.isEmpty() {
+                let reg = fregs_to_pop.popLowestIndex().getOrPanic();
+                self.asm.movsd_ra(reg, AsmAddress::offset(RSP, offset));
+                offset = offset + PTR_SIZE;
+            }
+
+            let size = count * PTR_SIZE.toInt64();
+            self.asm.addq_ri(RSP, Immediate(size));
+        }
+
+        while !regs_to_pop.isEmpty() {
+            let reg = regs_to_pop.popHighestIndex().getOrPanic();
+            self.asm.popq_r(reg);
+        }
+    }
 }
 
 impl CodeGen for CodeGenX64 {
@@ -634,9 +699,15 @@ impl CodeGen for CodeGenX64 {
             self.emitComment("slow path safepoint");
             self.asm.bindLabel(lbl_safepoint);
 
+            let (regs, fregs) = self.computeRegisterArguments();
+            self.saveArgumentsForSafepoint(regs, fregs);
+
             self.asm.movq_ri(REG_TEMP, Immediate(config.safepoint_trampoline.toInt64()));
             self.asm.call_r(REG_TEMP);
             self.locations.insert(self.asm.position(), self.ci.loc);
+
+            self.restoreArgumentsForSafepoint(regs, fregs);
+
             self.asm.jmp(lbl_return);
         });
     }
@@ -2687,6 +2758,10 @@ impl CodeGen for CodeGenX64 {
 
             _ => unreachable[()](),
         }
+    }
+
+    fn setArgumentLocations(arguments: ArgumentLocations) {
+        self.argumentLocations = Some[ArgumentLocations](arguments);
     }
 
     fn finalize(): CodeDescriptor {

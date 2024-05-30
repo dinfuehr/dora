@@ -1,4 +1,4 @@
-use package::bytecode::{ConstPoolId, Location, FctId, BytecodeType};
+use package::bytecode::{ConstPoolId, Location as SourceLocation, FctId, BytecodeType};
 use package::compilation::CompilationInfo;
 use package::interface::{Address, Architecture, ConstPool, ConstPoolEntry, ConstPoolValue, config, getFunctionAddress, getFieldOffset, getClassSize, getClassPointer, getClassPointerForLambda, getFunctionVtableIndex, getGlobalValueAddress, getGlobalStateAddress, getGlobalInitializerFunctionId, getReadOnlyStringAddress, getClassSizeForTraitObject, getClassPointerForTraitObject};
 use package::interface::{THREAD_LOCAL_DATA_STACK_LIMIT_OFFSET, THREAD_LOCAL_DATA_STATE_OFFSET, THREAD_LOCAL_DATA_MARKING_OFFSET, OBJECT_HEADER_LENGTH, OBJECT_METADATA_OFFSET, METADATA_REMEMBERED_BIT, ARRAY_HEADER_LENGTH, LAMBDA_SIZE};
@@ -15,9 +15,9 @@ use package::assembler::arm64::{R15, R16, R19, R20, R21, R22, R23};
 use package::assembler::arm64::{R24, R25, R26, R27, R28};
 use package::assembler::arm64::{REG_FP, REG_SP, REG_LR, REG_ZERO};
 use package::assembler::{FloatRegister, Label, RegSet, Register};
-use package::graph::{Graph, InputOutputOverlap, Inst, Op, LocationData, RegisterSnapshot, RegisterTrackers, Type};
+use package::graph::{Graph, InputOutputOverlap, Inst, Op, Location, LocationData, RegisterSnapshot, RegisterTrackers, Type};
 use package::regalloc::isReference;
-use package::location::{useInputFloatRegisterFixed, useInputRegister, useInputFloatRegister, useInputRegisterFixed, useOutputRegister, useOutputFloatRegister, setOutputOverlaps};
+use package::location::{ArgumentLocations, useInputFloatRegisterFixed, useInputRegister, useInputFloatRegister, useInputRegisterFixed, useOutputRegister, useOutputFloatRegister, setOutputOverlaps};
 use package::{CodeDescriptor, CommentTable, GcPoint, GcPointTable, LazyCompilationData, LazyCompilationSite, LazyCompilationSiteDirect, LazyCompilationSiteVirtual, LazyCompilationSiteLambda, LocationTable};
 
 let REG_PARAMS: Array[Register] = Array[Register]::new(R0, R1, R2, R3, R4, R5, R6, R7);
@@ -68,6 +68,7 @@ pub class CodeGenArm64 {
     locations: LocationTable,
     comments: CommentTable,
     deferred: Vec[(): ()],
+    argumentLocations: Option[ArgumentLocations],
 }
 
 impl CodeGenArm64 {
@@ -82,6 +83,7 @@ impl CodeGenArm64 {
             LocationTable::new(),
             CommentTable::new(),
             Vec[(): ()]::new(),
+            None[ArgumentLocations],
         )
     }
 
@@ -97,7 +99,7 @@ impl CodeGenArm64 {
         self.asm.ret();
     }
 
-    fn trap(tmp: Register, trap: Int32, loc: Location) {
+    fn trap(tmp: Register, trap: Int32, loc: SourceLocation) {
         self.asm.movz(CCALL_REG_PARAMS(0), trap, 0i32);
         self.mov_imm(tmp, config.trap_trampoline.toInt64());
         self.asm.bl_r(tmp);
@@ -679,6 +681,71 @@ impl CodeGenArm64 {
             self.asm.str_reg_d(src, dest, REG_TEMP, Extend::LSL, 0i32);
         }
     }
+
+    fn computeRegisterArguments(): (RegSet[Register], RegSet[FloatRegister]) {
+        let regs_to_push = RegSet[Register]::new();
+        let fregs_to_push = RegSet[FloatRegister]::new();
+
+        for location in self.argumentLocations.getOrPanic().locations {
+            match location {
+                Location::Reg(reg) => regs_to_push.add(reg),
+                Location::FloatReg(reg) => fregs_to_push.add(reg),
+                Location::Stack(_) => {
+                    // Already on stack.
+                }
+                Location::None => unreachable[()](),
+            }
+        };
+
+        (regs_to_push, fregs_to_push)
+    }
+
+    fn saveArgumentsForSafepoint(regs_to_push: RegSet[Register], fregs_to_push: RegSet[FloatRegister]): GcPoint {
+        while regs_to_push.size() > 1 {
+            let rt2 = regs_to_push.popLowestIndex().getOrPanic();
+            let rt = regs_to_push.popLowestIndex().getOrPanic();
+            self.asm.stp_pre(rt, rt2, REG_SP, -16i32);
+        }
+
+        if !regs_to_push.isEmpty() {
+            let reg = regs_to_push.popLowestIndex().getOrPanic();
+            self.asm.stp_pre(REG_ZERO, reg, REG_SP, -16i32);
+        }
+
+        assert(regs_to_push.isEmpty());
+
+        if fregs_to_push.size() % 2 != 0 {
+            assert(!fregs_to_push.contains(FREG_TEMP));
+            fregs_to_push.add(FREG_TEMP);
+        }
+
+        while !fregs_to_push.isEmpty() {
+            let r1 = fregs_to_push.popLowestIndex().getOrPanic();
+            let r2 = fregs_to_push.popLowestIndex().getOrPanic();
+            self.asm.stp_pre_d(r2, r1, REG_SP, -16i32);
+        }
+
+        GcPoint::new()
+    }
+
+    fn restoreArgumentsForSafepoint(regs_to_pop: RegSet[Register], fregs_to_pop: RegSet[FloatRegister]) {
+        while !fregs_to_pop.isEmpty() {
+            let r1 = fregs_to_pop.popHighestIndex().getOrPanic();
+            let r2 = fregs_to_pop.popHighestIndex().getOrPanic();
+            self.asm.ldp_post_d(r1, r2, REG_SP, 16i32);
+        }
+
+        if regs_to_pop.size() % 2 != 0 {
+            let reg = regs_to_pop.popHighestIndex().getOrPanic();
+            self.asm.ldp_post(REG_ZERO, reg, REG_SP, 16i32);
+        }
+
+        while !regs_to_pop.isEmpty() {
+            let r1 = regs_to_pop.popHighestIndex().getOrPanic();
+            let r2 = regs_to_pop.popHighestIndex().getOrPanic();
+            self.asm.ldp_post(r1, r2, REG_SP, 16i32);
+        }
+    }
 }
 
 impl CodeGen for CodeGenArm64 {
@@ -759,9 +826,15 @@ impl CodeGen for CodeGenArm64 {
             self.emitComment("slow path safepoint");
             self.asm.bindLabel(lbl_safepoint);
 
+            let (regs, fregs) = self.computeRegisterArguments();
+            self.saveArgumentsForSafepoint(regs, fregs);
+
             self.mov_imm(REG_TEMP, config.safepoint_trampoline.toInt64());
             self.asm.bl_r(REG_TEMP);
             self.locations.insert(self.asm.position(), self.ci.loc);
+
+            self.restoreArgumentsForSafepoint(regs, fregs);
+
             self.asm.b(lbl_return);
 
         });
@@ -2756,6 +2829,10 @@ impl CodeGen for CodeGenArm64 {
 
             _ => unreachable[()](),
         }
+    }
+
+    fn setArgumentLocations(arguments: ArgumentLocations) {
+        self.argumentLocations = Some[ArgumentLocations](arguments);
     }
 
     fn finalize(): CodeDescriptor {

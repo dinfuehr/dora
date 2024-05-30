@@ -4,6 +4,7 @@ use package::codegen::arm64::CodeGenArm64;
 use package::compilation::CompilationInfo;
 use package::assembler::{FloatRegister, Label, Register, RegSet};
 use package::interface::{Address, Architecture, config};
+use package::location::ArgumentLocations;
 use package::graph::{Graph, Inst, Location, LocationData, Op, Operand, Policy, Type};
 use package::CodeDescriptor;
 
@@ -473,6 +474,8 @@ fn emitInst(codegen: CodeGen, inst: Inst) {
 pub trait CodeGen {
     fn allocatableRegisters(): RegSet[Register];
     fn allocatableFloatRegisters(): RegSet[FloatRegister];
+
+    fn setArgumentLocations(arguments: ArgumentLocations);
 
     fn argumentRegister(idx: Int64): Register;
     fn argumentRegisters(): Array[Register];
