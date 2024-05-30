@@ -111,12 +111,14 @@ fn computePostOrder(graph: Graph) {
     let visited = BitSet::new(graph.blockCount().toInt64());
 
     worklist.push(graph.getEntryBlock());
+    visited.insert(graph.getEntryBlock().id().toInt64());
 
     while !worklist.isEmpty() {
         let block = worklist.last().getOrPanic();
         let successorIndex = successorsVisited(block.id().toInt64());
 
         if successorIndex == block.successors.size() {
+            assert(visited.contains(block.id().toInt64()));
             worklist.pop();
             postOrder.push(block);
         } else {
