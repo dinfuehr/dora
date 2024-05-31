@@ -2668,6 +2668,12 @@ pub fn createAbsInst(ty: Type, value: Inst): Inst {
     inst
 }
 
+pub fn createSafepointInst(): Inst {
+    let inst = Inst::new();
+    inst._op = Some(Op::Safepoint);
+    inst
+}
+
 class InstLinkedList {
     first: Option[Inst],
     last: Option[Inst],

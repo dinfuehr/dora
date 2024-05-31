@@ -430,10 +430,7 @@ impl SsaGen {
                 self.emitBin(dest, lhs, rhs, Op::LessOrEqual);
             }
             BytecodeInstruction::JumpLoop(distance) => {
-                let targetBlock = self.blockMap.blockAt((self.offset - distance).toInt64()).getOrPanic();
-                let gotoInst = graph::createGotoInst(targetBlock);
-                self.current().appendInst(gotoInst);
-                self.markBlockTerminated();
+                self.emitJumpLoop(distance);
             }
             BytecodeInstruction::LoopStart => {
                 // nothing to do
@@ -566,6 +563,15 @@ impl SsaGen {
         for variableAndPhi in map.getOrPanic() {
             self.addPhiOperands(variableAndPhi.0, variableAndPhi.1);
         }
+    }
+
+    fn emitJumpLoop(distance: Int32) {
+        let inst = graph::createSafepointInst();
+        self.current().appendInst(inst);
+        let targetBlock = self.blockMap.blockAt((self.offset - distance).toInt64()).getOrPanic();
+        let gotoInst = graph::createGotoInst(targetBlock);
+        self.current().appendInst(gotoInst);
+        self.markBlockTerminated();
     }
 
     fn emitLoadField(dest: BytecodeRegister, obj: BytecodeRegister, idx: ConstPoolId) {

@@ -361,16 +361,17 @@ fn testSsaGenWhileCountDown() {
   %0: Arg.Int32(0) [%3]
   %1: Goto(@1)
 @1: pred = [@0, @2] succ = [@3, @2]
-  %3: Phi.Int32 %0, %7 [%4, %7, %9]
+  %3: Phi.Int32 %0, %7 [%4, %7, %10]
   %2: Const.Int32(#0) [%4]
   %4: Greater.Int32 %3, %2 [%5]
   %5: If(@2, @3) %4
 @2: pred = [@1] succ = [@1]
   %6: Const.Int32(#1) [%7]
   %7: CheckedSub.Int32 %3, %6 [%3]
-  %8: Goto(@1)
+  %8: Safepoint
+  %9: Goto(@1)
 @3: pred = [@1]
-  %9: Ret.Int32 %3
+  %10: Ret.Int32 %3
 ");
 }
 
@@ -446,7 +447,7 @@ fn testSsaGenWhileCountDownWithSum() {
   %2: Goto(@1)
 @1: pred = [@0, @2] succ = [@3, @2]
   %4: Phi.Int32 %0, %8 [%5, %8]
-  %9: Phi.Int32 %1, %10 [%10, %12]
+  %9: Phi.Int32 %1, %10 [%10, %13]
   %3: Const.Int32(#0) [%5]
   %5: Greater.Int32 %4, %3 [%6]
   %6: If(@2, @3) %5
@@ -454,9 +455,10 @@ fn testSsaGenWhileCountDownWithSum() {
   %7: Const.Int32(#1) [%8]
   %8: CheckedSub.Int32 %4, %7 [%10, %4]
   %10: CheckedAdd.Int32 %9, %8 [%9]
-  %11: Goto(@1)
+  %11: Safepoint
+  %12: Goto(@1)
 @3: pred = [@1]
-  %12: Ret.Int32 %9
+  %13: Ret.Int32 %9
 ");
 }
 

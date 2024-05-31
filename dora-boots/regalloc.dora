@@ -211,7 +211,8 @@ impl SimpleRegisterAllocator {
                 assert(inst.op() == Op::StoreArrayWb
                        || inst.op() == Op::StoreArrayAddressWb
                        || inst.op() == Op::StoreWb
-                       || inst.op() == Op::EnsureGlobalInitialized);
+                       || inst.op() == Op::EnsureGlobalInitialized
+                       || inst.op() == Op::Safepoint);
                 assert(!inst.getLocationData().hasOutput());
                 self.snapshotRegisters(inst);
                 self.attachGcPoint(inst);

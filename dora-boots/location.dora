@@ -431,6 +431,11 @@ impl LocationAnnotation {
                 self.codegen.annotateCountTrailingZeros(inst);
             }
 
+            Op::Safepoint => {
+                needsRegisterSnapshot(inst);
+                setOutputOverlaps(inst, InputOutputOverlap::NoOverlap);
+            }
+
             _ => {
                 println("unsupported op ${inst.op().name()}");
                 unreachable[()]();

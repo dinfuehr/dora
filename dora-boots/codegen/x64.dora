@@ -625,29 +625,6 @@ impl CodeGenX64 {
             self.asm.popq_r(reg);
         }
     }
-
-    fn emitBackEdgeSafepointCheck(inst: Inst) {
-        let lbl_safepoint = self.asm.createLabel();
-        self.asm.cmpb_ai(AsmAddress::offset(REG_THREAD, THREAD_LOCAL_DATA_STATE_OFFSET), Immediate(0));
-        self.asm.jcc(Condition::NotEqual, lbl_safepoint);
-        let lbl_return = self.asm.createAndBindLabel();
-
-        self.deferred.push(|| {
-            self.emitComment("slow path prolog safepoint");
-            self.asm.bindLabel(lbl_safepoint);
-
-            let (regs, fregs) = self.computeRegisterArguments();
-            self.saveArgumentsForSafepoint(regs, fregs);
-
-            self.asm.movq_ri(REG_TEMP, Immediate(config.safepoint_trampoline.toInt64()));
-            self.asm.call_r(REG_TEMP);
-            self.locations.insert(self.asm.position(), self.ci.loc);
-
-            self.restoreArgumentsForSafepoint(regs, fregs);
-
-            self.asm.jmp(lbl_return);
-        });
-    }
 }
 
 impl CodeGen for CodeGenX64 {
@@ -685,6 +662,10 @@ impl CodeGen for CodeGenX64 {
 
     fn getFloatReturnRegister(): FloatRegister {
         XMM0
+    }
+
+    fn setArgumentLocations(arguments: ArgumentLocations) {
+        self.argumentLocations = Some[ArgumentLocations](arguments);
     }
 
     fn emitBreakpoint() {
@@ -1337,10 +1318,6 @@ impl CodeGen for CodeGenX64 {
     fn emitGoto(inst: Inst) {
         let currentBlock = inst.getBlock();
         let targetBlock = inst.getTargetBlock();
-
-        if currentBlock.successors(0).isBackward() {
-            self.emitBackEdgeSafepointCheck(inst);
-        }
 
         if currentBlock.postOrderIdx != targetBlock.postOrderIdx + 1i32 {
             self.asm.jmp(targetBlock.getLabel());
@@ -2783,8 +2760,32 @@ impl CodeGen for CodeGenX64 {
         }
     }
 
-    fn setArgumentLocations(arguments: ArgumentLocations) {
-        self.argumentLocations = Some[ArgumentLocations](arguments);
+    fn emitSafepoint(inst: Inst) {
+        let loc = inst.getLocationData();
+
+        let lbl_safepoint = self.asm.createLabel();
+        self.asm.cmpb_ai(AsmAddress::offset(REG_THREAD, THREAD_LOCAL_DATA_STATE_OFFSET), Immediate(0));
+        self.asm.jcc(Condition::NotEqual, lbl_safepoint);
+        let lbl_return = self.asm.createAndBindLabel();
+
+        let snapshot = loc.getRegisterSnapshot();
+
+        self.deferred.push(|| {
+            self.emitComment("slow path safepoint");
+            self.asm.bindLabel(lbl_safepoint);
+
+            let (gc_point, alignment) = self.saveRegistersForCall(snapshot, loc.getGcPoint());
+
+            self.asm.movq_ri(REG_TEMP, Immediate(config.safepoint_trampoline.toInt64()));
+            self.asm.call_r(REG_TEMP);
+            let pos = self.asm.position();
+            self.gcPoints.insert(pos, gc_point);
+            self.locations.insert(pos, self.ci.loc);
+
+            self.restoreRegistersForCall(snapshot, alignment);
+
+            self.asm.jmp(lbl_return);
+        });
     }
 
     fn finalize(): CodeDescriptor {
