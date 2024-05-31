@@ -681,71 +681,6 @@ impl CodeGenArm64 {
             self.asm.str_reg_d(src, dest, REG_TEMP, Extend::LSL, 0i32);
         }
     }
-
-    fn computeRegisterArguments(): (RegSet[Register], RegSet[FloatRegister]) {
-        let regs_to_push = RegSet[Register]::new();
-        let fregs_to_push = RegSet[FloatRegister]::new();
-
-        for location in self.argumentLocations.getOrPanic().locations {
-            match location {
-                Location::Reg(reg) => regs_to_push.add(reg),
-                Location::FloatReg(reg) => fregs_to_push.add(reg),
-                Location::Stack(_) => {
-                    // Already on stack.
-                }
-                Location::None => unreachable[()](),
-            }
-        };
-
-        (regs_to_push, fregs_to_push)
-    }
-
-    fn saveArgumentsForSafepoint(regs_to_push: RegSet[Register], fregs_to_push: RegSet[FloatRegister]): GcPoint {
-        while regs_to_push.size() > 1 {
-            let rt2 = regs_to_push.popLowestIndex().getOrPanic();
-            let rt = regs_to_push.popLowestIndex().getOrPanic();
-            self.asm.stp_pre(rt, rt2, REG_SP, -16i32);
-        }
-
-        if !regs_to_push.isEmpty() {
-            let reg = regs_to_push.popLowestIndex().getOrPanic();
-            self.asm.stp_pre(REG_ZERO, reg, REG_SP, -16i32);
-        }
-
-        assert(regs_to_push.isEmpty());
-
-        if fregs_to_push.size() % 2 != 0 {
-            assert(!fregs_to_push.contains(FREG_TEMP));
-            fregs_to_push.add(FREG_TEMP);
-        }
-
-        while !fregs_to_push.isEmpty() {
-            let r1 = fregs_to_push.popLowestIndex().getOrPanic();
-            let r2 = fregs_to_push.popLowestIndex().getOrPanic();
-            self.asm.stp_pre_d(r2, r1, REG_SP, -16i32);
-        }
-
-        GcPoint::new()
-    }
-
-    fn restoreArgumentsForSafepoint(regs_to_pop: RegSet[Register], fregs_to_pop: RegSet[FloatRegister]) {
-        while !fregs_to_pop.isEmpty() {
-            let r1 = fregs_to_pop.popHighestIndex().getOrPanic();
-            let r2 = fregs_to_pop.popHighestIndex().getOrPanic();
-            self.asm.ldp_post_d(r1, r2, REG_SP, 16i32);
-        }
-
-        if regs_to_pop.size() % 2 != 0 {
-            let reg = regs_to_pop.popHighestIndex().getOrPanic();
-            self.asm.ldp_post(REG_ZERO, reg, REG_SP, 16i32);
-        }
-
-        while !regs_to_pop.isEmpty() {
-            let r1 = regs_to_pop.popHighestIndex().getOrPanic();
-            let r2 = regs_to_pop.popHighestIndex().getOrPanic();
-            self.asm.ldp_post(r1, r2, REG_SP, 16i32);
-        }
-    }
 }
 
 impl CodeGen for CodeGenArm64 {
@@ -817,29 +752,6 @@ impl CodeGen for CodeGenArm64 {
             self.emitComment("slow path for stack limit check");
             self.asm.bindLabel(lbl_stack_overflow);
             self.trap(REG_TEMP, iface::TRAP_STACK_OVERFLOW, self.ci.loc);
-        });
-    }
-
-    fn emitPrologSafepointCheck() {
-        let lbl_safepoint = self.asm.createLabel();
-        self.asm.ldrb_imm(REG_TEMP, REG_THREAD, THREAD_LOCAL_DATA_STATE_OFFSET);
-        self.asm.cbnz(REG_TEMP, lbl_safepoint);
-        let lbl_return = self.asm.createAndBindLabel();
-
-        self.deferred.push(|| {
-            self.emitComment("slow path safepoint");
-            self.asm.bindLabel(lbl_safepoint);
-
-            let (regs, fregs) = self.computeRegisterArguments();
-            self.saveArgumentsForSafepoint(regs, fregs);
-
-            self.mov_imm(REG_TEMP, config.safepoint_trampoline.toInt64());
-            self.asm.bl_r(REG_TEMP);
-            self.locations.insert(self.asm.position(), self.ci.loc);
-
-            self.restoreArgumentsForSafepoint(regs, fregs);
-
-            self.asm.b(lbl_return);
         });
     }
 

@@ -562,69 +562,6 @@ impl CodeGenX64 {
             self.asm.xorpd_ra(dest, address)
         }
     }
-
-
-    fn computeRegisterArguments(): (RegSet[Register], RegSet[FloatRegister]) {
-        let regs_to_push = RegSet[Register]::new();
-        let fregs_to_push = RegSet[FloatRegister]::new();
-
-        for location in self.argumentLocations.getOrPanic().locations {
-            match location {
-                Location::Reg(reg) => regs_to_push.add(reg),
-                Location::FloatReg(reg) => fregs_to_push.add(reg),
-                Location::Stack(_) => {
-                    // Already on stack.
-                }
-                Location::None => unreachable[()](),
-            }
-        };
-
-        (regs_to_push, fregs_to_push)
-    }
-
-    fn saveArgumentsForSafepoint(regs_to_push: RegSet[Register], fregs_to_push: RegSet[FloatRegister]): GcPoint {
-        while !regs_to_push.isEmpty() {
-            let reg = regs_to_push.popLowestIndex().getOrPanic();
-            self.asm.pushq_r(reg);
-        }
-
-        assert(regs_to_push.isEmpty());
-
-        if !fregs_to_push.isEmpty() {
-            let size = fregs_to_push.size().toInt32() * PTR_SIZE;
-            self.asm.subq_ri(RSP, Immediate(size.toInt64()));
-            let mut offset = 0i32;
-
-            while !fregs_to_push.isEmpty() {
-                let reg = fregs_to_push.popLowestIndex().getOrPanic();
-                self.asm.movsd_ar(AsmAddress::offset(RSP, offset), reg);
-                offset = offset + PTR_SIZE;
-            }
-        }
-
-        GcPoint::new()
-    }
-
-    fn restoreArgumentsForSafepoint(regs_to_pop: RegSet[Register], fregs_to_pop: RegSet[FloatRegister]) {
-        if !fregs_to_pop.isEmpty() {
-            let mut offset = 0i32;
-            let count = fregs_to_pop.size();
-
-            while !fregs_to_pop.isEmpty() {
-                let reg = fregs_to_pop.popLowestIndex().getOrPanic();
-                self.asm.movsd_ra(reg, AsmAddress::offset(RSP, offset));
-                offset = offset + PTR_SIZE;
-            }
-
-            let size = count * PTR_SIZE.toInt64();
-            self.asm.addq_ri(RSP, Immediate(size));
-        }
-
-        while !regs_to_pop.isEmpty() {
-            let reg = regs_to_pop.popHighestIndex().getOrPanic();
-            self.asm.popq_r(reg);
-        }
-    }
 }
 
 impl CodeGen for CodeGenX64 {
@@ -690,29 +627,6 @@ impl CodeGen for CodeGenX64 {
             self.emitComment("slow path for stack limit check");
             self.asm.bindLabel(lbl_stack_overflow);
             self.trap(REG_TEMP, iface::TRAP_STACK_OVERFLOW, self.ci.loc);
-        });
-    }
-
-    fn emitPrologSafepointCheck() {
-        let lbl_safepoint = self.asm.createLabel();
-        self.asm.cmpb_ai(AsmAddress::offset(REG_THREAD, THREAD_LOCAL_DATA_STATE_OFFSET), Immediate(0));
-        self.asm.jcc(Condition::NotEqual, lbl_safepoint);
-        let lbl_return = self.asm.createAndBindLabel();
-
-        self.deferred.push(|| {
-            self.emitComment("slow path prolog safepoint");
-            self.asm.bindLabel(lbl_safepoint);
-
-            let (regs, fregs) = self.computeRegisterArguments();
-            self.saveArgumentsForSafepoint(regs, fregs);
-
-            self.asm.movq_ri(REG_TEMP, Immediate(config.safepoint_trampoline.toInt64()));
-            self.asm.call_r(REG_TEMP);
-            self.locations.insert(self.asm.position(), self.ci.loc);
-
-            self.restoreArgumentsForSafepoint(regs, fregs);
-
-            self.asm.jmp(lbl_return);
         });
     }
 

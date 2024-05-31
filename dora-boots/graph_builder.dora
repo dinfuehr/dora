@@ -80,6 +80,7 @@ impl SsaGen {
     fn run() {
         self.prepare();
         self.setupArguments();
+        self.emitSafepoint(self.graph.getEntryBlock());
 
         for inst in BytecodeIterator::new(self.bc.code) {
             self.instructionStart(inst.start.toInt32());
@@ -566,12 +567,16 @@ impl SsaGen {
     }
 
     fn emitJumpLoop(distance: Int32) {
-        let inst = graph::createSafepointInst();
-        self.current().appendInst(inst);
+        self.emitSafepoint(self.current());
         let targetBlock = self.blockMap.blockAt((self.offset - distance).toInt64()).getOrPanic();
         let gotoInst = graph::createGotoInst(targetBlock);
         self.current().appendInst(gotoInst);
         self.markBlockTerminated();
+    }
+
+    fn emitSafepoint(block: Block) {
+        let inst = graph::createSafepointInst();
+        block.appendInst(inst);
     }
 
     fn emitLoadField(dest: BytecodeRegister, obj: BytecodeRegister, idx: ConstPoolId) {
