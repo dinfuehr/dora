@@ -278,6 +278,7 @@ fn dumpInstName(inst: Inst): String {
         },
         Op::Abort => "Abort",
         Op::Assert => "Assert",
+        Op::Safepoint => "Safepoint",
         Op::Neg => "Neg.${inst.getValueType()}",
         Op::CheckedNeg => "CheckedNeg.${inst.getValueType()}",
         Op::Not => "Not.${inst.getValueType()}",

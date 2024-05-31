@@ -746,6 +746,29 @@ impl CodeGenArm64 {
             self.asm.ldp_post(r1, r2, REG_SP, 16i32);
         }
     }
+
+    fn emitBackEdgeSafepointCheck(inst: Inst) {
+        let lbl_safepoint = self.asm.createLabel();
+        self.asm.ldrb_imm(REG_TEMP, REG_THREAD, THREAD_LOCAL_DATA_STATE_OFFSET);
+        self.asm.cbnz(REG_TEMP, lbl_safepoint);
+        let lbl_return = self.asm.createAndBindLabel();
+
+        self.deferred.push(|| {
+            self.emitComment("slow path loop back edge safepoint");
+            self.asm.bindLabel(lbl_safepoint);
+
+            let (regs, fregs) = self.computeRegisterArguments();
+            self.saveArgumentsForSafepoint(regs, fregs);
+
+            self.mov_imm(REG_TEMP, config.safepoint_trampoline.toInt64());
+            self.asm.bl_r(REG_TEMP);
+            self.locations.insert(self.asm.position(), self.ci.loc);
+
+            self.restoreArgumentsForSafepoint(regs, fregs);
+
+            self.asm.b(lbl_return);
+        });
+    }
 }
 
 impl CodeGen for CodeGenArm64 {
@@ -816,7 +839,7 @@ impl CodeGen for CodeGenArm64 {
         });
     }
 
-    fn emitSafepointCheck() {
+    fn emitPrologSafepointCheck() {
         let lbl_safepoint = self.asm.createLabel();
         self.asm.ldrb_imm(REG_TEMP, REG_THREAD, THREAD_LOCAL_DATA_STATE_OFFSET);
         self.asm.cbnz(REG_TEMP, lbl_safepoint);
@@ -836,7 +859,6 @@ impl CodeGen for CodeGenArm64 {
             self.restoreArgumentsForSafepoint(regs, fregs);
 
             self.asm.b(lbl_return);
-
         });
     }
 
@@ -1420,7 +1442,7 @@ impl CodeGen for CodeGenArm64 {
         assert(currentBlock.successors.size() == 1);
 
         if currentBlock.successors(0).isBackward() {
-            self.emitSafepointCheck();
+            self.emitBackEdgeSafepointCheck(inst);
         }
 
         if currentBlock.postOrderIdx != targetBlock.postOrderIdx + 1i32 {
