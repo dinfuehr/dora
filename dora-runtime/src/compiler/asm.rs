@@ -1035,7 +1035,7 @@ impl<'a> BaselineAssembler<'a> {
             fctptr: Address::from_ptr(stdlib::gc_alloc as *const u8),
             args: BytecodeTypeArray::new(vec![BytecodeType::Int64, BytecodeType::Bool]),
             return_type: BytecodeType::Ptr,
-            desc: NativeFctKind::AllocationFailureTrampoline,
+            desc: NativeFctKind::GcAllocationTrampoline,
         };
 
         self.runtime_call(internal_fct, location, gcpoint, dest.into());

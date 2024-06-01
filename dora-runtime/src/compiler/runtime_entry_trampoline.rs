@@ -20,7 +20,7 @@ use dora_bytecode::{BytecodeType, BytecodeTypeArray, FunctionId};
 #[derive(Clone)]
 pub enum NativeFctKind {
     RuntimeEntryTrampoline(FunctionId),
-    AllocationFailureTrampoline,
+    GcAllocationTrampoline,
     TrapTrampoline,
     StackOverflowTrampoline,
     SafepointTrampoline,
@@ -216,7 +216,7 @@ impl<'a> NativeGen<'a> {
 
         let kind = match self.fct.desc {
             NativeFctKind::RuntimeEntryTrampoline(fid) => CodeKind::RuntimeEntryTrampoline(fid),
-            NativeFctKind::AllocationFailureTrampoline => CodeKind::AllocationFailureTrampoline,
+            NativeFctKind::GcAllocationTrampoline => CodeKind::AllocationFailureTrampoline,
             NativeFctKind::TrapTrampoline => CodeKind::TrapTrampoline,
             NativeFctKind::StackOverflowTrampoline => CodeKind::StackOverflowTrampoline,
             NativeFctKind::SafepointTrampoline => CodeKind::SafepointTrampoline,
