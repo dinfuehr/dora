@@ -177,7 +177,7 @@ impl SimpleRegisterAllocator {
                 assert(inst.op() == Op::NewObject
                        || inst.op() == Op::NewArray);
                 self.snapshotRegisters(inst);
-                self.attachGcPoint(inst);
+                self.snapshotLiveValues(inst);
             }
 
             self.allocateFixedInputs(inst);
@@ -215,12 +215,12 @@ impl SimpleRegisterAllocator {
                        || inst.op() == Op::Safepoint);
                 assert(!inst.getLocationData().hasOutput());
                 self.snapshotRegisters(inst);
-                self.attachGcPoint(inst);
+                self.snapshotLiveValues(inst);
             }
 
             if inst.isCall() {
                 self.spillLiveRegisters();
-                self.attachGcPoint(inst);
+                self.snapshotLiveValues(inst);
             }
 
             self.allocateFixedOutput(inst);
@@ -255,27 +255,8 @@ impl SimpleRegisterAllocator {
         }
     }
 
-    fn attachGcPoint(inst: Inst) {
-        let loc_data = inst.getLocationData();
-        let offsets = Vec[Int32]::new();
-
-        for inst in self.currentlyLive {
-            let loc = inst.getLocationData();
-
-            if inst.op() == Op::AllocateStack {
-                let layout = inst.getRecordLayout();
-                let offset = loc.getStackSlot();
-
-                for ref in layout.refs {
-                    offsets.push(offset + ref);
-                }
-
-            } else if inst.getValueType().isPtr() && loc.hasSpillSlot() {
-                offsets.push(loc.getSpillSlot());
-            }
-        }
-
-        loc_data.setGcPoint(GcPoint::from(offsets));
+    fn snapshotLiveValues(inst: Inst) {
+        inst.getLocationData().setLiveValues(self.currentlyLive.clone());
     }
 
     fn allocateFixedInputs(inst: Inst) {

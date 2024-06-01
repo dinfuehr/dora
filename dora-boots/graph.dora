@@ -1615,7 +1615,7 @@ pub class LocationData {
     stack_slot: Option[Int32],
     needsRegisterSnapshot: Bool,
     snapshot: Option[RegisterTrackers],
-    gc_point: Option[GcPoint],
+    live_values: Option[InstSet],
 }
 
 impl LocationData {
@@ -1633,7 +1633,7 @@ impl LocationData {
             None[Int32],
             false,
             None[RegisterTrackers],
-            None[GcPoint],
+            None[InstSet],
         )
     }
 
@@ -1650,7 +1650,7 @@ impl LocationData {
             None[Int32],
             false,
             None[RegisterTrackers],
-            None[GcPoint],
+            None[InstSet],
         )
     }
 
@@ -1762,12 +1762,12 @@ impl LocationData {
         self.snapshot.getOrPanic()
     }
 
-    pub fn setGcPoint(point: GcPoint) {
-        self.gc_point = Some[GcPoint](point);
+    pub fn setLiveValues(set: InstSet) {
+        self.live_values = Some[InstSet](set);
     }
 
-    pub fn getGcPoint(): GcPoint {
-        self.gc_point.getOrPanic()
+    pub fn getLiveValues(): InstSet {
+        self.live_values.getOrPanic()
     }
 }
 

@@ -5,7 +5,7 @@ use package::compilation::CompilationInfo;
 use package::assembler::{FloatRegister, Label, Register, RegSet};
 use package::interface::{Address, Architecture, config};
 use package::location::ArgumentLocations;
-use package::graph::{Graph, Inst, Location, LocationData, Op, Operand, Policy, Type};
+use package::graph::{Graph, Inst, InstSet, Location, LocationData, Op, Operand, Policy, Type};
 use package::CodeDescriptor;
 
 pub mod arm64;
@@ -617,4 +617,26 @@ pub trait CodeGen {
     fn emitSafepoint(inst: Inst);
 
     fn emitComment(comment: String);
+}
+
+fn computeOffsetsInLiveSet(live: InstSet): Vec[Int32] {
+    let offsets = Vec[Int32]::new();
+
+    for inst in live {
+        let loc = inst.getLocationData();
+
+        if inst.op() == Op::AllocateStack {
+            let layout = inst.getRecordLayout();
+            let offset = loc.getStackSlot();
+
+            for ref in layout.refs {
+                offsets.push(offset + ref);
+            }
+
+        } else if inst.getValueType().isPtr() && loc.hasSpillSlot() {
+            offsets.push(loc.getSpillSlot());
+        }
+    }
+
+    offsets
 }

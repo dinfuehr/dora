@@ -5,7 +5,7 @@ use package::interface::{THREAD_LOCAL_DATA_STACK_LIMIT_OFFSET, THREAD_LOCAL_DATA
 use package::interface::{THREAD_LOCAL_DATA_TLAB_TOP_OFFSET, THREAD_LOCAL_DATA_TLAB_END_OFFSET, THREAD_LOCAL_DATA_MANAGED_THREAD_HANDLE_OFFSET};
 use package::interface::{PTR_SIZE, GLOBAL_STATE_INITIALIZED};
 use package::interface as iface;
-use package::codegen::{CODE_SIZE_ALIGNMENT, CodeGen};
+use package::codegen::{CODE_SIZE_ALIGNMENT, CodeGen, computeOffsetsInLiveSet};
 use package::assembler::arm64;
 use package::assembler::arm64::{F0, F1, F2, F3, F4, F5, F6, F7, F8, F9, F10, F11, F12, F13, F14, F15, F31};
 use package::assembler::arm64::{AssemblerArm64, Cond, Extend, Shift, registerName, fitsMovz, fitsMovn};
@@ -15,7 +15,7 @@ use package::assembler::arm64::{R15, R16, R19, R20, R21, R22, R23};
 use package::assembler::arm64::{R24, R25, R26, R27, R28};
 use package::assembler::arm64::{REG_FP, REG_SP, REG_LR, REG_ZERO};
 use package::assembler::{FloatRegister, Label, RegSet, Register};
-use package::graph::{Graph, InputOutputOverlap, Inst, Op, Location, LocationData, RegisterSnapshot, RegisterTrackers, Type};
+use package::graph::{Graph, InputOutputOverlap, Inst, InstSet, Op, Location, LocationData, RegisterSnapshot, RegisterTrackers, Type};
 use package::regalloc::isReference;
 use package::location::{ArgumentLocations, useInputFloatRegisterFixed, useInputRegister, useInputFloatRegister, useInputRegisterFixed, useOutputRegister, useOutputFloatRegister, setOutputOverlaps};
 use package::{CodeDescriptor, CommentTable, GcPoint, GcPointTable, LazyCompilationData, LazyCompilationSite, LazyCompilationSiteDirect, LazyCompilationSiteVirtual, LazyCompilationSiteLambda, LocationTable};
@@ -248,7 +248,7 @@ impl CodeGenArm64 {
         });
     }
 
-    fn emitWriteBarrier(host: Register, value: Register, scratch: Register, snapshot: RegisterTrackers) {
+    fn emitWriteBarrier(host: Register, value: Register, scratch: Register, snapshot: RegisterTrackers, live: InstSet) {
         let lbl_object_slow_path = self.asm.createLabel();
         let lbl_marking_slow_path = self.asm.createLabel();
 
@@ -270,7 +270,7 @@ impl CodeGenArm64 {
             self.emitComment("object barrier slow path");
             self.asm.bindLabel(lbl_object_slow_path);
             self.asm.cbz(value, lbl_return);
-            self.saveRegistersForCall(snapshot, GcPoint::new());
+            self.saveRegistersForCall(snapshot, live);
             self.zapAllocatableRegisterInDebugMode(host, value);
             self.asm.mov(CCALL_REG_PARAMS(0), host);
             self.asm.mov(CCALL_REG_PARAMS(1), value);
@@ -281,7 +281,7 @@ impl CodeGenArm64 {
         });
     }
 
-    fn emitObjectAllocate(obj: Register, size: Int32, tmp1: Register, tmp2: Register, snapshot: RegisterTrackers, gc_point: GcPoint, location: SourceLocation) {
+    fn emitObjectAllocate(obj: Register, size: Int32, tmp1: Register, tmp2: Register, snapshot: RegisterTrackers, live: InstSet, location: SourceLocation) {
         let lbl_alloc_slow_path = self.asm.createLabel();
 
         snapshot.gp.freeRegisterIfUsed(obj);
@@ -308,7 +308,7 @@ impl CodeGenArm64 {
         self.deferred.push(|| {
             self.emitComment("allocation slow path");
             self.asm.bindLabel(lbl_alloc_slow_path);
-            let gc_point = self.saveRegistersForCall(snapshot, gc_point);
+            let gc_point = self.saveRegistersForCall(snapshot, live);
             self.zapAllocatableRegisterInDebugMode();
             self.mov_imm(CCALL_REG_PARAMS(0), size.toInt64());
             self.mov_imm(REG_TEMP, config.allocation_slow_path.toInt64());
@@ -322,7 +322,7 @@ impl CodeGenArm64 {
         });
     }
 
-    fn emitArrayAllocate(obj: Register, size: Register, tmp1: Register, tmp2: Register, snapshot: RegisterTrackers, gc_point: GcPoint, location: SourceLocation) {
+    fn emitArrayAllocate(obj: Register, size: Register, tmp1: Register, tmp2: Register, snapshot: RegisterTrackers, live: InstSet, location: SourceLocation) {
         let lbl_alloc_slow_path = self.asm.createLabel();
 
         snapshot.gp.freeRegisterIfUsed(obj);
@@ -356,7 +356,7 @@ impl CodeGenArm64 {
         self.deferred.push(|| {
             self.emitComment("allocation slow path");
             self.asm.bindLabel(lbl_alloc_slow_path);
-            let gc_point = self.saveRegistersForCall(snapshot, gc_point);
+            let gc_point = self.saveRegistersForCall(snapshot, live);
             self.zapAllocatableRegisterInDebugMode(size);
             self.asm.mov(CCALL_REG_PARAMS(0), size);
             self.mov_imm(REG_TEMP, config.allocation_slow_path.toInt64());
@@ -447,15 +447,16 @@ impl CodeGenArm64 {
         self.asm.bindLabel(done);
     }
 
-    fn saveRegistersForCall(snapshot: RegisterTrackers, gc_point: GcPoint): GcPoint {
-        let used = snapshot.gp.used();
+    fn saveRegistersForCall(snapshot: RegisterTrackers, live: InstSet): GcPoint {
         let regs_to_push = RegSet[Register]::new();
         let mut fp_offset = -self.graph.getStackSize();
+        let offsets = computeOffsetsInLiveSet(live);
 
-        for reg in used {
+        for reg in snapshot.gp.used() {
             // Temporaries are not part of the snapshot, so we should
             // always be able to find an Inst.
             let inst = snapshot.gp.data.get(reg).getOrPanic();
+            assert(live.contains(inst));
 
             // If Inst is already spilled, we can reload it from
             // there.
@@ -466,7 +467,7 @@ impl CodeGenArm64 {
             fp_offset = fp_offset - PTR_SIZE;
 
             if inst.getValueType().isPtr() {
-                gc_point.add(fp_offset);
+                offsets.push(fp_offset);
             }
 
             regs_to_push.add(reg);
@@ -498,7 +499,7 @@ impl CodeGenArm64 {
             self.asm.stp_pre_d(r2, r1, REG_SP, -16i32);
         }
 
-        gc_point
+        GcPoint::from(offsets)
     }
 
     fn restoreRegistersForCall(snapshot: RegisterTrackers) {
@@ -573,7 +574,8 @@ impl CodeGenArm64 {
 
     fn emitInvokeCommon(inst: Inst) {
         let fct_info = inst.getFunctionInfo();
-        self.emitCall(fct_info.fct_id, fct_info.type_params, inst.bytecode_position(), inst.getLocationData().getGcPoint());
+        let gc_point = GcPoint::from(computeOffsetsInLiveSet(inst.getLocationData().getLiveValues()));
+        self.emitCall(fct_info.fct_id, fct_info.type_params, inst.bytecode_position(), gc_point);
     }
 
     fn emitCall(fct_id: FctId, type_params: Array[BytecodeType], bytecode_position: Int32, gc_point: GcPoint) {
@@ -609,10 +611,12 @@ impl CodeGenArm64 {
 
         let pos = self.asm.position();
         let location = self.ci.bc.getLocationAt(inst.bytecode_position());
+        let live = inst.getLocationData().getLiveValues();
+        let gc_point = GcPoint::from(computeOffsetsInLiveSet(live));
 
         self.lazyCompilation.insert(pos, site);
         self.locations.insert(pos, location);
-        self.gcPoints.insert(pos, inst.getLocationData().getGcPoint());
+        self.gcPoints.insert(pos, gc_point);
 
         self.zapAllocatableRegisterInDebugMode(R0);
     }
@@ -1745,7 +1749,7 @@ impl CodeGen for CodeGenArm64 {
 
         let tmp = loc.getTemp(0).getRegister();
         let location = self.ci.bc.getLocationAt(inst.bytecode_position());
-        self.emitObjectAllocate(obj, size, REG_TEMP, tmp, loc.getRegisterSnapshot(), loc.getGcPoint(), location);
+        self.emitObjectAllocate(obj, size, REG_TEMP, tmp, loc.getRegisterSnapshot(), loc.getLiveValues(), location);
 
         self.emitObjectInitialization(obj, size, classptr, REG_TEMP);
     }
@@ -1761,7 +1765,7 @@ impl CodeGen for CodeGenArm64 {
 
         let tmp = loc.getTemp(0).getRegister();
         let location = self.ci.bc.getLocationAt(inst.bytecode_position());
-        self.emitArrayAllocate(obj, size, REG_TEMP, tmp, loc.getRegisterSnapshot(), loc.getGcPoint(), location);
+        self.emitArrayAllocate(obj, size, REG_TEMP, tmp, loc.getRegisterSnapshot(), loc.getLiveValues(), location);
 
         self.emitArrayInitialization(obj, size, length, classptr, REG_TEMP, tmp);
     }
@@ -1838,7 +1842,7 @@ impl CodeGen for CodeGenArm64 {
             self.emitComment("slow path for global initializer");
             self.asm.bindLabel(lbl_global_slow_path);
 
-            let gc_point = self.saveRegistersForCall(snapshot, loc.getGcPoint().clone());
+            let gc_point = self.saveRegistersForCall(snapshot, loc.getLiveValues());
             self.zapAllocatableRegisterInDebugMode();
             let ty = inst.getOperationType();
             let value_address = getGlobalValueAddress(global_id);
@@ -2053,7 +2057,7 @@ impl CodeGen for CodeGenArm64 {
 
         let src = loc.getInput(1).getRegister();
         self.str(src, obj, offset);
-        self.emitWriteBarrier(obj, src, REG_TEMP, loc.getRegisterSnapshot());
+        self.emitWriteBarrier(obj, src, REG_TEMP, loc.getRegisterSnapshot(), loc.getLiveValues());
     }
 
     fn emitStoreArrayWb(inst: Inst) {
@@ -2068,7 +2072,7 @@ impl CodeGen for CodeGenArm64 {
         let value = loc.getInput(2).getRegister();
         self.asm.add_imm(REG_TEMP, array, ARRAY_HEADER_LENGTH);
         self.asm.str_reg(value, REG_TEMP, idx, Extend::LSL, 3i32);
-        self.emitWriteBarrier(array, value, REG_TEMP, loc.getRegisterSnapshot());
+        self.emitWriteBarrier(array, value, REG_TEMP, loc.getRegisterSnapshot(), loc.getLiveValues());
     }
 
     fn emitStoreArrayAddressWb(inst: Inst) {
@@ -2083,7 +2087,7 @@ impl CodeGen for CodeGenArm64 {
 
         let src = loc.getInput(2).getRegister();
         self.asm.str_imm(src, dest, offset);
-        self.emitWriteBarrier(array, src, REG_TEMP, loc.getRegisterSnapshot());
+        self.emitWriteBarrier(array, src, REG_TEMP, loc.getRegisterSnapshot(), loc.getLiveValues());
     }
 
     fn emitAbort(inst: Inst) {
@@ -2793,7 +2797,7 @@ impl CodeGen for CodeGenArm64 {
             self.emitComment("slow path safepoint");
             self.asm.bindLabel(lbl_safepoint);
 
-            let gc_point = self.saveRegistersForCall(snapshot, loc.getGcPoint().clone());
+            let gc_point = self.saveRegistersForCall(snapshot, loc.getLiveValues());
             self.zapAllocatableRegisterInDebugMode();
 
             self.mov_imm(REG_TEMP, config.safepoint_trampoline.toInt64());
