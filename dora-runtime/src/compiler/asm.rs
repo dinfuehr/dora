@@ -2,7 +2,7 @@ use std::mem;
 
 use crate::cannon::codegen::{mode, result_passed_as_argument, result_reg_mode, size, RegOrOffset};
 use crate::compiler::codegen::{ensure_runtime_entry_trampoline, AllocationSize, AnyReg};
-use crate::compiler::runtime_entry_trampoline::{NativeFct, NativeFctKind};
+use crate::compiler::runtime_entry_trampoline::NativeFct;
 use crate::cpu::{
     FReg, Reg, FREG_RESULT, REG_PARAMS, REG_RESULT, REG_SP, REG_THREAD, REG_TMP1,
     STACK_FRAME_ALIGNMENT,
@@ -13,7 +13,6 @@ use crate::masm::{CondCode, Label, MacroAssembler, Mem, ScratchReg};
 use crate::mode::MachineMode;
 use crate::object::Header;
 use crate::size::InstanceSize;
-use crate::stdlib;
 use crate::threads::ThreadLocalData;
 use crate::vm::{
     create_enum_instance, create_struct_instance, get_concrete_tuple_bty_array, ClassInstance,
@@ -1031,14 +1030,9 @@ impl<'a> BaselineAssembler<'a> {
             }
         }
 
-        let internal_fct = NativeFct {
-            fctptr: Address::from_ptr(stdlib::gc_alloc as *const u8),
-            args: BytecodeTypeArray::new(vec![BytecodeType::Int64, BytecodeType::Bool]),
-            return_type: BytecodeType::Ptr,
-            desc: NativeFctKind::GcAllocationTrampoline,
-        };
-
-        self.runtime_call(internal_fct, location, gcpoint, dest.into());
+        self.masm
+            .raw_call(self.vm.native_methods.gc_allocation_trampoline());
+        self.call_epilog(location, Some(MachineMode::Ptr), dest.into(), gcpoint);
         self.masm.test_if_nil_bailout(location, dest, Trap::OOM);
     }
 

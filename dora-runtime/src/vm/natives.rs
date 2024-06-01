@@ -73,7 +73,7 @@ impl NativeMethods {
     }
 
     pub fn gc_allocation_trampoline(&self) -> Address {
-        self.unreachable_trampoline.expect("uninitialized field")
+        self.gc_allocation_trampoline.expect("uninitialized field")
     }
 
     pub fn insert(&mut self, fct: FunctionId, address: Address) -> Option<Address> {
