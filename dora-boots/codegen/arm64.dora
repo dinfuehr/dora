@@ -322,7 +322,7 @@ impl CodeGenArm64 {
         });
     }
 
-    fn emitArrayAllocate(obj: Register, size: Register, tmp1: Register, tmp2: Register, snapshot: RegisterTrackers, gc_point: GcPoint) {
+    fn emitArrayAllocate(obj: Register, size: Register, tmp1: Register, tmp2: Register, snapshot: RegisterTrackers, gc_point: GcPoint, location: SourceLocation) {
         let lbl_alloc_slow_path = self.asm.createLabel();
 
         snapshot.gp.freeRegisterIfUsed(obj);
@@ -363,6 +363,7 @@ impl CodeGenArm64 {
             self.asm.bl_r(REG_TEMP);
             let pos = self.asm.position();
             self.gcPoints.insert(pos, gc_point);
+            self.locations.insert(pos, location);
             self.asm.mov(obj, R0);
             self.restoreRegistersForCall(snapshot);
             self.asm.b(lbl_return);
@@ -1759,7 +1760,8 @@ impl CodeGen for CodeGenArm64 {
         let classptr = getClassPointer(info.class_id, info.type_params);
 
         let tmp = loc.getTemp(0).getRegister();
-        self.emitArrayAllocate(obj, size, REG_TEMP, tmp, loc.getRegisterSnapshot(), loc.getGcPoint());
+        let location = self.ci.bc.getLocationAt(inst.bytecode_position());
+        self.emitArrayAllocate(obj, size, REG_TEMP, tmp, loc.getRegisterSnapshot(), loc.getGcPoint(), location);
 
         self.emitArrayInitialization(obj, size, length, classptr, REG_TEMP, tmp);
     }
