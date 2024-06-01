@@ -16,7 +16,11 @@ fn assertDominatedBlocks(fct: BytecodeFunction, idoms: Int32...) {
     let graph = createGraph(fct);
     graph.buildDominatorTree();
 
-    assert(graph.getEntryBlock().getDominator().isNone());
+    let entry = graph.getEntryBlock();
+    assert(entry.getDominator().isNone());
+    assert(entry.id() == 0i32);
+
+    assert(idoms.size() == graph.blockCount().toInt64() - 1);
 
     for (idx, expectedDominatorId) in idoms.enumerate() {
         // Block 0 is entry block and idoms doesn't contain that block so skip it.
@@ -42,7 +46,7 @@ fn testDominatorRet() {
     writer.emitRet(regUnit);
     let fct = writer.generate();
 
-    assertDominatedBlocks(fct);
+    assertDominatedBlocks(fct, 0i32);
 }
 
 @Test
@@ -58,7 +62,7 @@ fn testDominatorEmptyBlocks() {
     writer.emitRet(regUnit);
     let fct = writer.generate();
 
-    assertDominatedBlocks(fct, 0i32, 1i32);
+    assertDominatedBlocks(fct, 0i32, 1i32, 2i32);
 }
 
 @Test
@@ -77,5 +81,5 @@ fn testDominatorSimple() {
     writer.emitRet(regUnit);
     let fct = writer.generate();
 
-    assertDominatedBlocks(fct, 0i32, 0i32, 0i32);
+    assertDominatedBlocks(fct, 0i32, 1i32, 1i32, 1i32);
 }

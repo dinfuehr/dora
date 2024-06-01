@@ -79,8 +79,7 @@ impl SsaGen {
 
     fn run() {
         self.prepare();
-        self.setupArguments();
-        self.emitSafepoint(self.graph.getEntryBlock());
+        self.fillEntryBlock();
 
         for inst in BytecodeIterator::new(self.bc.code) {
             self.instructionStart(inst.start.toInt32());
@@ -88,6 +87,12 @@ impl SsaGen {
         }
 
         assert(self.blockTerminated);
+        self.blockEndReached(None[Block]);
+
+        for (_, block) in self.blockMap.blocks {
+            assert(self.filledBlocks.contains(block.id().toInt64()));
+            assert(self.sealedBlocks.contains(block.id().toInt64()));
+        }
     }
 
     fn prepare() {
@@ -106,15 +111,27 @@ impl SsaGen {
         self.currentDef = data.toArray();
     }
 
-    fn setupArguments() {
+    fn fillEntryBlock() {
+        let entry = self.graph.getEntryBlock();
+        self.setupArguments(entry);
+        self.emitSafepoint(entry);
+
+        let first = self.blockMap.blockAt(0).getOrPanic();
+        let inst = graph::createGotoInst(first);
+        entry.appendInst(inst);
+
+        self.fillBlock(entry);
+        assert(self.trySealBlock(entry));
+    }
+
+    fn setupArguments(block: Block) {
         let mut argIdx = 0i32;
-        let entryBlock = self.graph.getEntryBlock();
         let retTy = self.ci.returnType.specialize(self.typeParams);
 
         if retTy.isStruct() || retTy.isTuple() {
             let argInst = graph::createArgInst(argIdx, Type::Address);
             argIdx = argIdx + 1i32;
-            entryBlock.appendInst(argInst);
+            block.appendInst(argInst);
             self.returnValueArgInst = Some[Inst](argInst);
         }
 
@@ -125,8 +142,8 @@ impl SsaGen {
 
             if !ty.isUnit() {
                 let argInst = graph::createArgInst(argIdx, ty);
-                entryBlock.appendInst(argInst);
-                self.writeVariable(BytecodeRegister(regIdx), entryBlock, argInst);
+                block.appendInst(argInst);
+                self.writeVariable(BytecodeRegister(regIdx), block, argInst);
                 argIdx = argIdx + 1i32;
             }
 
@@ -181,7 +198,8 @@ impl SsaGen {
 
             incomplete
         } else if block.predecessors.size() == 1i64 {
-            self.readVariable(register, block.predecessors.first().getOrPanic().source)
+            let predecessor = block.predecessors.first().getOrPanic().source;
+            self.readVariable(register, predecessor)
         } else {
             let phi = graph::createPhiInst(ty);
             block.appendPhi(phi);
@@ -219,14 +237,30 @@ impl SsaGen {
             same = Some(op);
         }
 
-        if same.isNone() {
-            same = Some(graph::createUndefInst());
-        }
+        let replacement = if same.isNone() {
+            graph::createUndefInst()
+        } else {
+            same.getOrPanic()
+        };
 
         let users = phi.users();
 
-        phi.replaceWith(same.getOrPanic());
+        phi.replaceWith(replacement);
         phi.remove();
+
+        for map in self.currentDef {
+            let update = Vec[Block]::new();
+
+            for (block, value) in map {
+                if value === phi {
+                    update.push(block);
+                }
+            }
+
+            for block in update {
+                assert(map.insert(block, replacement).isSome());
+            }
+        }
 
         for i in std::range(0, users.size()) {
             let user = users(i);
@@ -539,19 +573,20 @@ impl SsaGen {
         self.filledBlocks.insert(block.id().toInt64());
     }
 
-    fn trySealBlock(block: Block) {
+    fn trySealBlock(block: Block): Bool {
         if self.sealedBlocks.contains(block.id().toInt64()) {
-            return;
+            return true;
         }
 
         // all predecessors need to be filled
         for edge in block.predecessors {
             if !self.filledBlocks.contains(edge.source.id().toInt64()) {
-                return;
+                return false;
             }
         }
 
         self.sealBlock(block);
+        true
     }
 
     fn sealBlock(block: Block) {
@@ -561,8 +596,10 @@ impl SsaGen {
         let map = self.incompletePhis(block);
         if map.isNone() { return; }
 
-        for variableAndPhi in map.getOrPanic() {
-            self.addPhiOperands(variableAndPhi.0, variableAndPhi.1);
+        for (register, phi) in map.getOrPanic() {
+            assert(phi.hasId());
+            let value = self.addPhiOperands(register, phi);
+            self.writeVariable(register, block, value);
         }
     }
 
@@ -2280,13 +2317,13 @@ class EdgeCreator {
     graph: Graph,
     bc: BytecodeFunction,
     blockMap: BlockMap,
-    currentBlock: Option[Block],
+    currentBlock: Block,
     blockTerminated: Bool,
 }
 
 impl EdgeCreator {
     static fn new(graph: Graph, bc: BytecodeFunction, blockMap: BlockMap): EdgeCreator {
-        EdgeCreator(graph, bc, blockMap, None[Block], false)
+        EdgeCreator(graph, bc, blockMap, graph.getEntryBlock(), false)
     }
 
     fn run() {
@@ -2300,20 +2337,20 @@ impl EdgeCreator {
         match inst {
             BytecodeInstruction::JumpLoop(distance) => {
                 let targetBlock = self.blockMap.blockAt(offset - distance.toInt64()).getOrPanic();
-                self.currentBlock.getOrPanic().addSuccessor(targetBlock);
+                self.currentBlock.addSuccessor(targetBlock);
                 self.markBlockTerminated();
             }
             BytecodeInstruction::JumpIfFalse(_opnd, distance) => {
                 let targetBlock = self.blockMap.blockAt(offset + distance.toInt64()).getOrPanic();
-                self.currentBlock.getOrPanic().addSuccessor(targetBlock);
+                self.currentBlock.addSuccessor(targetBlock);
             }
             BytecodeInstruction::JumpIfTrue(_opnd, distance) => {
                 let targetBlock = self.blockMap.blockAt(offset + distance.toInt64()).getOrPanic();
-                self.currentBlock.getOrPanic().addSuccessor(targetBlock);
+                self.currentBlock.addSuccessor(targetBlock);
             }
             BytecodeInstruction::Jump(distance) => {
                 let targetBlock = self.blockMap.blockAt(offset + distance.toInt64()).getOrPanic();
-                self.currentBlock.getOrPanic().addSuccessor(targetBlock);
+                self.currentBlock.addSuccessor(targetBlock);
                 self.markBlockTerminated();
             }
             BytecodeInstruction::Ret(_) => {
@@ -2332,13 +2369,11 @@ impl EdgeCreator {
         if result.isSome() {
             let nextBlock = result.getOrPanic();
 
-            if self.currentBlock.isSome() {
-                if !self.blockTerminated {
-                    self.currentBlock.getOrPanic().addSuccessor(nextBlock);
-                }
+            if !self.blockTerminated {
+                self.currentBlock.addSuccessor(nextBlock);
             }
 
-            self.currentBlock = Some(nextBlock);
+            self.currentBlock = nextBlock;
         }
 
         self.blockTerminated = false;
@@ -2367,9 +2402,11 @@ impl BlockCreator {
     }
 
     fn run() {
-        // create block for first instruction
-        let entryBlock = self.ensureBlock(0).getOrPanic();
+        // The entry block is a special block that is always created.
+        let entryBlock = self.addBlock();
         self.graph.setEntryBlock(entryBlock);
+
+        self.ensureBlockLazy(0);
 
         for instInfo in BytecodeIterator::new(self.bc.code) {
             let start = instInfo.start;
@@ -2422,10 +2459,15 @@ impl BlockCreator {
         let result = self.blockMap.blockAt(offset);
         if result.isSome() { return result; }
 
-        let block = Block::new();
-        self.graph.addBlock(block);
+        let block = self.addBlock();
         self.blockMap.insert(offset, block);
         Some(block)
+    }
+
+    fn addBlock(): Block {
+        let block = Block::new();
+        self.graph.addBlock(block);
+        block
     }
 
     fn ensureBlockLazy(offset: Int64) {
