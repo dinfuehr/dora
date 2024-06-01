@@ -216,6 +216,7 @@ impl CodeGenX64 {
             self.asm.testq_rr(value, value);
             self.asm.jcc(Condition::Zero, lbl_return);
             let (gc_point, align) = self.saveRegistersForCall(snapshot, GcPoint::new());
+            self.zapAllocatableRegisterInDebugMode(host, value);
             self.asm.movq_rr(CCALL_REG_PARAMS(0), host);
             self.asm.movq_rr(CCALL_REG_PARAMS(1), value);
             self.asm.movq_ri(REG_TEMP, Immediate(config.object_write_barrier_slow_path.toInt64()));
@@ -248,6 +249,7 @@ impl CodeGenX64 {
             self.emitComment("allocation slow path");
             self.asm.bindLabel(lbl_alloc_slow_path);
             let (gc_point, align) = self.saveRegistersForCall(snapshot, gc_point);
+            self.zapAllocatableRegisterInDebugMode();
             self.asm.movq_ri(CCALL_REG_PARAMS(0), Immediate(size.toInt64()));
             self.asm.movq_ri(REG_TEMP, Immediate(config.allocation_slow_path.toInt64()));
             self.asm.call_r(REG_TEMP);
@@ -313,6 +315,7 @@ impl CodeGenX64 {
             self.emitComment("allocation slow path");
             self.asm.bindLabel(lbl_alloc_slow_path);
             let (gc_point, align) = self.saveRegistersForCall(snapshot, gc_point);
+            self.zapAllocatableRegisterInDebugMode(size);
             self.asm.movq_rr(CCALL_REG_PARAMS(0), size);
             self.asm.movq_ri(REG_TEMP, Immediate(config.allocation_slow_path.toInt64()));
             self.asm.call_r(REG_TEMP);
@@ -489,6 +492,31 @@ impl CodeGenX64 {
         }
     }
 
+    fn zapAllocatableRegisterInDebugMode(ignore: Register...) {
+        if config.isDebug {
+            self.zapAllocatableRegister(ignore);
+        }
+    }
+
+    fn zapAllocatableRegister(ignore: Array[Register]) {
+        let ignore_set = RegSet[Register]::new();
+
+        for reg in ignore {
+            ignore_set.add(reg);
+        }
+
+        assert(!ignore_set.contains(REG_TEMP));
+        self.asm.movq_ri(REG_TEMP, Immediate(0xDEADBEEFDEADBEEF));
+
+        for reg in ALLOCATABLE_REGS {
+            if ignore_set.contains(reg) {
+                continue;
+            }
+
+            self.asm.movq_rr(reg, REG_TEMP);
+        }
+    }
+
     fn emitInvokeCommon(inst: Inst) {
         let fct_info = inst.getFunctionInfo();
         self.emitCall(fct_info.fct_id, fct_info.type_params, inst.bytecode_position(), inst.getLocationData().getGcPoint());
@@ -511,6 +539,8 @@ impl CodeGenX64 {
         self.lazyCompilation.insert(pos, LazyCompilationSite::Direct(site));
         self.locations.insert(pos, location);
         self.gcPoints.insert(pos, gc_point);
+
+        self.zapAllocatableRegisterInDebugMode(RAX);
     }
 
     fn emitVirtualCall(obj: Register, tmp1: Register, tmp2: Register, inst: Inst, vtable_index: Int32, site: LazyCompilationSite) {
@@ -529,6 +559,8 @@ impl CodeGenX64 {
         self.lazyCompilation.insert(pos, site);
         self.locations.insert(pos, location);
         self.gcPoints.insert(pos, inst.getLocationData().getGcPoint());
+
+        self.zapAllocatableRegisterInDebugMode(RAX);
     }
 
     fn emitFloatNeg(dest: FloatRegister, src: FloatRegister, ty: Type) {
@@ -1713,6 +1745,7 @@ impl CodeGen for CodeGenX64 {
             self.asm.bindLabel(lbl_global_slow_path);
 
             let (gc_point, alignment) = self.saveRegistersForCall(snapshot, loc.getGcPoint());
+            self.zapAllocatableRegisterInDebugMode();
             let ty = inst.getOperationType();
             let value_address = getGlobalValueAddress(global_id);
 
@@ -2689,6 +2722,7 @@ impl CodeGen for CodeGenX64 {
             self.asm.bindLabel(lbl_safepoint);
 
             let (gc_point, alignment) = self.saveRegistersForCall(snapshot, loc.getGcPoint());
+            self.zapAllocatableRegisterInDebugMode();
 
             self.asm.movq_ri(REG_TEMP, Immediate(config.safepoint_trampoline.toInt64()));
             self.asm.call_r(REG_TEMP);
