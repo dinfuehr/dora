@@ -178,39 +178,60 @@ def binary_path
   "#{target}/#{dir}/dora#{extension}"
 end
 
+class ProcessResult
+  attr_accessor :pid
+  attr_accessor :status
+  attr_accessor :stdout
+  attr_accessor :stderr
+  attr_accessor :timeout
+
+  def initialize
+    self.stdout = ""
+    self.stderr = ""
+  end
+end
+
 class TestUtility
   def self.spawn_with_timeout(env, cmd, timeout)
-    result = {
-      :pid     => nil,
-      :status  => nil,
-      :stdout  => nil,
-      :stderr  => nil,
-      :timeout => false,
-    }
+    result = ProcessResult.new
+    result.stdout = ""
+    result.stderr = ""
 
     out_reader = nil
     err_reader = nil
 
     Open3.popen3(env, cmd) do | stdin, stdout, stderr, wait_thr |
-      Timeout.timeout(timeout) do
-        result[:pid] = wait_thr.pid
+      result.pid = wait_thr.pid
 
-        stdin.close
-        out_reader = Thread.new { stdout.read }
-        err_reader = Thread.new { stderr.read }
-
-        result[:status] = wait_thr.value
+      stdin.close
+      out_reader = Thread.new do
+        begin
+          stdout.read
+        rescue
+          nil
+        end
       end
-    rescue Timeout::Error
-      result[:timeout] = true
+      err_reader = Thread.new do
+        begin
+          stderr.read
+        rescue
+          nil
+        end
+      end
 
-      Process.kill(:TERM, result[:pid])
-    ensure
-      result[:status] = wait_thr.value if wait_thr
-      result[:stdout] = out_reader.value if out_reader
-      result[:stderr] = err_reader.value if err_reader
-      stdout.close unless stdout.closed?
-      stderr.close unless stderr.closed?
+      join_result = wait_thr.join(timeout)
+
+      if join_result != nil
+        result.status = wait_thr.value.exitstatus
+        result.stdout = out_reader.value
+        result.stderr = err_reader.value
+        stdout.close unless stdout.closed?
+        stderr.close unless stderr.closed?
+      else
+        result.status = 1
+        result.timeout = true
+        Process.kill(:TRAP, result.pid)
+      end
     end
 
     result
@@ -274,7 +295,41 @@ class TestCase
   end
 end
 
-TestResult = Struct.new(:test_case, :config, :status, :message)
+class TestResult
+  attr_accessor :test_case
+  attr_accessor :config
+  attr_accessor :status
+  attr_accessor :message
+
+  def self.error(test_case, config, message)
+    result = TestResult.new
+    result.test_case = test_case
+    result.config = config
+    result.status = :failed
+    result.message = message
+    result
+  end
+
+  def self.success(test_case, config)
+    result = TestResult.new
+    result.test_case = test_case
+    result.config = config
+    result.status = :passed
+    result
+  end
+
+  def self.ignore(test_case, config)
+    result = TestResult.new
+    result.test_case = test_case
+    result.config = config
+    result.status = :ignore
+    result
+  end
+
+  def success?
+    self.status == :passed
+  end
+end
 
 def num_from_shell(cmd)
   begin
@@ -490,79 +545,83 @@ end
 
 def run_test(test_case, config, mutex)
   if test_case.ignore?
-    return TestResult.new(test_case, config, :ignore, nil)
+    return TestResult.ignore(test_case, config)
   end
 
-  cmdline = "#{binary_path}"
-  cmdline << " #{config.flags}" unless config.flags.empty?
-  cmdline << " --package boots dora-boots/boots.dora --gc-verify" if test_case.enable_boots || config.enable_boots
-  cmdline << " --check" if $check_only
+  args = ""
+  args << " #{config.flags}" unless config.flags.empty?
+  args << " --package boots dora-boots/boots.dora --gc-verify" if test_case.enable_boots || config.enable_boots
+  args << " --check" if $check_only
   # TODO: Make test work again with those flags.
   # cmdline << " #{test_case.vm_args}" unless test_case.vm_args.empty?
-  cmdline << " #{$extra_args}" if $extra_args
-  cmdline << " #{test_case.test_file}"
-  cmdline << " #{test_case.args}" unless test_case.args.empty?
+  args << " #{$extra_args}" if $extra_args
+  args << " #{test_case.test_file}"
+  args << " #{test_case.args}" unless test_case.args.empty?
 
+  cmdline = "#{binary_path}#{args}"
   puts cmdline if $verbose
 
   process_result = TestUtility.spawn_with_timeout($env, cmdline, test_case.get_timeout)
-  result = check_test_run_result(test_case, process_result)
+  result = check_process_result(test_case, process_result)
 
-  if !$capture || result != true
+  if result == true
+    result = TestResult.success(test_case, config)
+  else
+    raise "unexpected return value #{result.inspect}" unless String === result
+    result = TestResult.error(test_case, config, result)
+  end
+
+  if !$capture || !result.success?
     mutex.synchronize do
       puts "#==== STDOUT"
-      puts process_result[:stdout] unless process_result[:stdout].empty?
+      puts process_result.stdout unless process_result.stdout.empty?
+      if test_case.expectation.stdout
+        puts "#==== EXPECTED STDOUT"
+        puts process_result.stdout
+      end
       puts "#==== STDERR"
-      puts process_result[:stderr] unless process_result[:stderr].empty?
+      puts process_result.stderr unless process_result.stderr.empty?
+      if test_case.expectation.stderr
+        puts "#==== EXPECTED STDERR"
+        puts process_result.stderr
+      end
       puts "RUN: #{cmdline}"
+      puts "RUN: cargo -p dora --#{args}"
       STDOUT.flush
     end
   end
 
-  if result == true
-    TestResult.new(test_case, config, :passed, nil)
-  else
-    TestResult.new(test_case, config, :failed, result)
-  end
+  result
 end
 
-def check_test_run_result(test_case, result)
-  status = result[:status]
-  stdout = result[:stdout]
-  stderr = result[:stderr]
-  timeout = result[:timeout]
-  exit_code = status.exitstatus
-
+def check_process_result(test_case, result)
   return "test timed out after #{test_case.get_timeout} seconds" if
-    timeout
+    result.timeout
 
   if $check_only
-    return "semantic check failed" if exit_code != 0
+    return "semantic check failed" if result.status != 0
     return true
   end
 
   if test_case.expectation.fail
-    position, message = read_error_message(stderr)
+    position, message = read_error_message(result.stderr)
 
-    return "expected failure (test exited with 0)" if exit_code == 0
-    return "expected failure (#{test_case.expectation.code} expected but test returned #{status})" if
-      test_case.expectation.code && exit_code != test_case.expectation.code
+    return "expected failure (test exited with 0)" if result.status == 0
+    return "expected failure (#{test_case.expectation.code} expected but test returned #{result.status})" if
+      test_case.expectation.code && result.status != test_case.expectation.code
 
     return "position does not match (#{position.inspect} != #{test_case.expectation.position.inspect})" if
       test_case.expectation.position && position != test_case.expectation.position
     return "message does not match (#{message.inspect} != #{test_case.expectation.message.inspect})" if
       test_case.expectation.message && message != test_case.expectation.message
 
-  elsif exit_code != 0
-    return "expected success (0 expected but test returned #{status})"
+  elsif result.status != 0
+    return "expected success (0 expected but test returned #{result.status})"
 
   end
 
-  return "stdout does not match (expected #{test_case.expectation.stdout.inspect} but got #{stdout.inspect})" if
-    test_case.expectation.stdout && test_case.expectation.stdout != stdout
-
-  return "stderr does not match (expected #{test_case.expectation.stderr.inspect} but got #{stderr.inspect})" if
-    test_case.expectation.stderr && test_case.expectation.stderr != stderr
+  return "stdout does not match" if test_case.expectation.stdout && test_case.expectation.stdout != result.stdout
+  return "stderr does not match" if test_case.expectation.stderr && test_case.expectation.stderr != result.stderr
 
   true
 end
