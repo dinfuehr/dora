@@ -160,16 +160,16 @@ pub extern "C" fn stack_element(obj: Handle<Stacktrace>, ind: i32) -> Ref<Stackt
 
     let lineno = array.get_at(ind);
     let fct_id = array.get_at(ind + 1);
-    let cls_def_id = vm.stack_trace_element();
-
-    let ste: Ref<StacktraceElement> = alloc(vm, cls_def_id).cast();
-    let mut ste = create_handle(ste);
-    ste.line = lineno;
 
     let code_id: CodeId = (fct_id as usize).into();
     let code = vm.code_objects.get(code_id);
     let name = display_fct(vm, code.fct_id());
-    ste.name = Str::from_buffer(vm, name.as_bytes());
+    let ste_name = create_handle(Str::from_buffer(vm, name.as_bytes()));
+
+    let ste: Ref<StacktraceElement> = alloc(vm, vm.stack_trace_element()).cast();
+    let mut ste = create_handle(ste);
+    ste.name = ste_name.direct();
+    ste.line = lineno;
 
     ste.direct()
 }

@@ -552,8 +552,7 @@ def run_test(test_case, config, mutex)
   args << " #{config.flags}" unless config.flags.empty?
   args << " --package boots dora-boots/boots.dora --gc-verify" if test_case.enable_boots || config.enable_boots
   args << " --check" if $check_only
-  # TODO: Make test work again with those flags.
-  # args << " #{test_case.vm_args}" unless test_case.vm_args.empty?
+  args << " #{test_case.vm_args}" unless test_case.vm_args.empty?
   args << " #{$extra_args}" if $extra_args
   args << " #{test_case.test_file}"
   args << " #{test_case.args}" unless test_case.args.empty?
