@@ -553,7 +553,7 @@ def run_test(test_case, config, mutex)
   args << " --package boots dora-boots/boots.dora --gc-verify" if test_case.enable_boots || config.enable_boots
   args << " --check" if $check_only
   # TODO: Make test work again with those flags.
-  # cmdline << " #{test_case.vm_args}" unless test_case.vm_args.empty?
+  # args << " #{test_case.vm_args}" unless test_case.vm_args.empty?
   args << " #{$extra_args}" if $extra_args
   args << " #{test_case.test_file}"
   args << " #{test_case.args}" unless test_case.args.empty?
@@ -586,7 +586,7 @@ def run_test(test_case, config, mutex)
         puts process_result.stderr
       end
       puts "RUN: #{cmdline}"
-      puts "RUN: cargo -p dora --#{args}"
+      puts "RUN: cargo run -p dora --#{args}"
       STDOUT.flush
     end
   end

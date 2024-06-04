@@ -969,6 +969,12 @@ impl[T] Vec[T] {
     self.len = self.len + 1i64;
   }
 
+  pub fn append(array: Array[T]) {
+    for el in array {
+      self.push(el);
+    }
+  }
+
   pub fn insertAt(idx: Int64, val: T) {
     assert(idx <= self.len);
     if idx == self.len {

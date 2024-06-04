@@ -1581,9 +1581,14 @@ impl CodeGen for CodeGenArm64 {
         let obj = loc.getInput(receiver_idx).getRegister();
         let tmp = loc.getTemp(0).getRegister();
 
+        let params_including_self = Vec[BytecodeType]::new();
+        params_including_self.reserve(fct_info.params.size() + 1);
+        params_including_self.push(BytecodeType::Ptr);
+        params_including_self.append(fct_info.params);
+
         let site = LazyCompilationSiteLambda(
             fct_info.receiver_is_first,
-            fct_info.params,
+            params_including_self.toArray(),
             fct_info.return_type,
         );
         let site = LazyCompilationSite::Lambda(site);
