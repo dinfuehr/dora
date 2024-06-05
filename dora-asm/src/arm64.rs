@@ -3419,15 +3419,13 @@ pub fn fits_ldst_unscaled(value: i32) -> bool {
 }
 
 fn encode_addsub_imm(imm: u32) -> Option<(u32, u32)> {
-    if imm < (1 << 12) {
+    let mask = 0xF_FF;
+    if (imm & !mask) == 0 {
         Some((0, imm))
+    } else if imm & !(mask << 12) == 0 {
+        Some((1, imm >> 12))
     } else {
-        let imm = imm >> 12;
-        if imm < (1 << 12) {
-            Some((1, imm))
-        } else {
-            None
-        }
+        None
     }
 }
 
@@ -3477,6 +3475,13 @@ mod tests {
                 panic!("emitted code wrong.");
             }
         }};
+    }
+
+    #[test]
+    fn test_encode_addsub_imm() {
+        assert_eq!(encode_addsub_imm(1), Some((0, 1)));
+        assert_eq!(encode_addsub_imm(1 << 12), Some((1, 1)));
+        assert_eq!(encode_addsub_imm((1 << 12) + 1), None);
     }
 
     #[test]
