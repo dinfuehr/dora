@@ -181,6 +181,7 @@ end
 class ProcessResult
   attr_accessor :pid
   attr_accessor :status
+  attr_accessor :process_status
   attr_accessor :stdout
   attr_accessor :stderr
   attr_accessor :timeout
@@ -188,6 +189,21 @@ class ProcessResult
   def initialize
     self.stdout = ""
     self.stderr = ""
+  end
+
+  def compute_status(process_status)
+    self.process_status = process_status
+
+    if process_status.exited?
+      self.status = process_status.exitstatus
+    elsif process_status.signaled?
+      signal_code = process_status.termsig
+      signal_name = Signal.signame(signal_code)
+      signal_name = "unknown" unless signal_name
+      self.status = "signal #{signal_name}/#{signal_code}"
+    else
+      raise "unknown process status #{process_status.inspect}"
+    end
   end
 end
 
@@ -222,7 +238,7 @@ class TestUtility
       join_result = wait_thr.join(timeout)
 
       if join_result != nil
-        result.status = wait_thr.value.exitstatus
+        result.compute_status(wait_thr.value)
         result.stdout = out_reader.value
         result.stderr = err_reader.value
         stdout.close unless stdout.closed?
