@@ -76,10 +76,6 @@ pub fn computeLiveness(graph: Graph) {
         }
 
         for successorEdge in block.successors {
-            if successorEdge.isBackward() {
-                continue;
-            }
-
             let successorLiveIn = successorEdge.target.getLiveIn();
             live.unionWith(successorLiveIn);
         }

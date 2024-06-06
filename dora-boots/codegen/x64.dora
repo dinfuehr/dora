@@ -245,7 +245,7 @@ impl CodeGenX64 {
         let lbl_return = self.asm.createAndBindLabel();
 
         self.deferred.push(|| {
-            self.emitComment("allocation slow path");
+            self.emitComment("object allocation slow path");
             self.asm.bindLabel(lbl_alloc_slow_path);
             let (gc_point, align) = self.saveRegistersForCall(snapshot, live);
             self.asm.movq_ri(CCALL_REG_PARAMS(0), Immediate(size.toInt64()));
@@ -313,7 +313,7 @@ impl CodeGenX64 {
         let lbl_return = self.asm.createAndBindLabel();
 
         self.deferred.push(|| {
-            self.emitComment("allocation slow path");
+            self.emitComment("array allocation slow path");
             self.asm.bindLabel(lbl_alloc_slow_path);
             let (gc_point, align) = self.saveRegistersForCall(snapshot, live);
             self.asm.movq_rr(CCALL_REG_PARAMS(0), size);
