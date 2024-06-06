@@ -60,6 +60,41 @@ pub fn computeLiveness(graph: Graph) {
             loopBlock.getLiveIn().unionWith(liveLoop);
         }
     }
+
+    for block in graph.postOrderIterator() {
+        let live = InstSet::new(graph);
+
+        for successorEdge in block.successors {
+            let successor = successorEdge.target;
+            let idx = successorEdge.targetIdx;
+
+            for phi in successor.phisIterator() {
+                let input = phi.getInput(idx);
+                let value = input.getValue();
+                live.insert(value);
+            }
+        }
+
+        for successorEdge in block.successors {
+            if successorEdge.isBackward() {
+                continue;
+            }
+
+            let successorLiveIn = successorEdge.target.getLiveIn();
+            live.unionWith(successorLiveIn);
+        }
+
+        for inst in block.reverseInstructionsIterator() {
+            for input in inst.getInputs() {
+                let value = input.getValue();
+                if live.insert(value) {
+                    input.markLastUse();
+                }
+            }
+
+            live.remove(inst);
+        }
+    }
 }
 
 fn computeLinearOrderIndex(graph: Graph) {

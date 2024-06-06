@@ -220,7 +220,7 @@ impl SimpleRegisterAllocator {
 
             if inst.isCall() {
                 self.spillLiveRegisters();
-                self.snapshotLiveValues(inst);
+                self.snapshotLiveValuesForCall(inst);
             }
 
             self.allocateFixedOutput(inst);
@@ -257,6 +257,28 @@ impl SimpleRegisterAllocator {
 
     fn snapshotLiveValues(inst: Inst) {
         inst.getLocationData().setLiveValues(self.currentlyLive.clone());
+    }
+
+    fn snapshotLiveValuesForCall(inst: Inst) {
+        let live = self.currentlyLive.clone();
+
+        // Each function only keeps alive pointers in its own stack. Here
+        // we keep alive pointers in structs/tuples arguments to functions.
+        // This allows us to avoid copies of structs/tuples into the
+        // callee stack frame.
+        //
+        // Note that this automatically also keeps the struct/tuple return value
+        // alive. This is because the stack space is passed as the first argument.
+
+        for input in inst.getInputs() {
+            let value = input.getValue();
+
+            if value.op() == Op::AllocateStack {
+                live.insert(value);
+            }
+        }
+
+        inst.getLocationData().setLiveValues(live);
     }
 
     fn allocateFixedInputs(inst: Inst) {
