@@ -207,51 +207,38 @@ class ProcessResult
   end
 end
 
-class TestUtility
-  def self.spawn_with_timeout(env, cmd, timeout)
-    result = ProcessResult.new
-    result.stdout = ""
-    result.stderr = ""
+def spawn_with_timeout(env, cmd, timeout)
+  result = ProcessResult.new
+  result.stdout = ""
+  result.stderr = ""
 
-    out_reader = nil
-    err_reader = nil
+  out_reader = nil
+  err_reader = nil
 
-    Open3.popen3(env, cmd) do | stdin, stdout, stderr, wait_thr |
+  Open3.popen3(env, cmd) do | stdin, stdout, stderr, wait_thr |
+    Timeout.timeout(timeout) do
       result.pid = wait_thr.pid
 
       stdin.close
-      out_reader = Thread.new do
-        begin
-          stdout.read
-        rescue
-          nil
-        end
-      end
-      err_reader = Thread.new do
-        begin
-          stderr.read
-        rescue
-          nil
-        end
-      end
+      out_reader = Thread.new { stdout.read }
+      err_reader = Thread.new { stderr.read }
 
-      join_result = wait_thr.join(timeout)
-
-      if join_result != nil
-        result.compute_status(wait_thr.value)
-        result.stdout = out_reader.value
-        result.stderr = err_reader.value
-        stdout.close unless stdout.closed?
-        stderr.close unless stderr.closed?
-      else
-        result.status = 1
-        result.timeout = true
-        Process.kill(:TRAP, result.pid)
-      end
+      process_status = wait_thr.value
+      result.compute_status(process_status)
     end
+  rescue Timeout::Error
+    result.timeout = true
+    result.status = "TIMEOUT"
 
-    result
+    Process.kill(:TERM, result.pid)
+  ensure
+    result.stdout = out_reader.value if out_reader
+    result.stderr = err_reader.value if err_reader
+    stdout.close unless stdout.closed?
+    stderr.close unless stderr.closed?
   end
+
+  result
 end
 
 class TestExpectation
@@ -576,7 +563,7 @@ def run_test(test_case, config, mutex)
   cmdline = "#{binary_path}#{args}"
   puts cmdline if $verbose
 
-  process_result = TestUtility.spawn_with_timeout($env, cmdline, test_case.get_timeout)
+  process_result = spawn_with_timeout($env, cmdline, test_case.get_timeout)
   result = check_process_result(test_case, process_result)
 
   if result == true
