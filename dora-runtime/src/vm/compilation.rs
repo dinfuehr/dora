@@ -3,6 +3,7 @@ use parking_lot::{Condvar, Mutex};
 use std::collections::HashMap;
 
 use crate::gc::Address;
+use crate::threads::{current_thread, parked_scope};
 use crate::vm::{CodeId, VM};
 use dora_bytecode::{BytecodeTypeArray, FunctionId};
 
@@ -57,25 +58,30 @@ impl CompilationDatabase {
         id: FunctionId,
         type_params: BytecodeTypeArray,
     ) -> Option<Address> {
-        let mut inner = self.inner.lock();
+        // We might block here if compilation is already in progress for this specific function.
+        // In order to not block safepoints we park the thread right away.
+        parked_scope(|| {
+            let mut inner = self.inner.lock();
 
-        loop {
-            if let Some(status) = inner.get(&(id, type_params.clone())) {
-                match status {
-                    CompilationStatus::Compiled(code_id) => {
-                        let code = vm.code_objects.get(*code_id);
-                        return Some(code.instruction_start());
-                    }
+            loop {
+                if let Some(status) = inner.get(&(id, type_params.clone())) {
+                    match status {
+                        CompilationStatus::Compiled(code_id) => {
+                            let code = vm.code_objects.get(*code_id);
+                            return Some(code.instruction_start());
+                        }
 
-                    CompilationStatus::InProgress => {
-                        self.cv_notify.wait(&mut inner);
+                        CompilationStatus::InProgress => {
+                            assert!(current_thread().is_parked());
+                            self.cv_notify.wait(&mut inner);
+                        }
                     }
+                } else {
+                    inner.insert((id, type_params), CompilationStatus::InProgress);
+                    return None;
                 }
-            } else {
-                inner.insert((id, type_params), CompilationStatus::InProgress);
-                return None;
             }
-        }
+        })
     }
 
     pub fn finish_compilation(

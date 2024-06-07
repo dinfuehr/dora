@@ -345,9 +345,13 @@ where
     let vm = get_vm();
     let thread = current_thread();
 
+    assert!(thread.is_running());
+
     thread.park(vm);
     let result = callback();
     thread.unpark(vm);
+
+    assert!(thread.is_running());
 
     result
 }
