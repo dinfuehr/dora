@@ -52,10 +52,6 @@ impl Collector for ZeroCollector {
         self.readonly.alloc(size)
     }
 
-    fn force_collect(&self, _: &VM, _: GcReason) {
-        // do nothing
-    }
-
     fn collect_garbage(
         &self,
         _vm: &VM,

@@ -9,7 +9,6 @@ use crate::gc::{
     CollectionStats, Collector, GcReason, Region, Space,
 };
 use crate::os;
-use crate::safepoint;
 use crate::timer::Timer;
 use crate::vm::{Flags, VM};
 
@@ -53,43 +52,16 @@ impl Collector for SweepCollector {
     }
 
     fn alloc_tlab_area(&self, vm: &VM, size: usize) -> Option<Region> {
-        if let Some(address) = self.inner_alloc(vm, size) {
-            return Some(address.region_start(size));
-        }
-
-        self.force_collect(vm, GcReason::AllocationFailure);
-
         self.inner_alloc(vm, size)
             .map(|address| address.region_start(size))
     }
 
     fn alloc_object(&self, vm: &VM, size: usize) -> Option<Address> {
-        if let Some(address) = self.inner_alloc(vm, size) {
-            return Some(address);
-        }
-
-        self.force_collect(vm, GcReason::AllocationFailure);
         self.inner_alloc(vm, size)
     }
 
     fn alloc_readonly(&self, _vm: &VM, size: usize) -> Address {
         self.readonly.alloc(size)
-    }
-
-    fn force_collect(&self, vm: &VM, reason: GcReason) {
-        let mut timer = Timer::new(vm.flags.gc_stats);
-
-        safepoint::stop_the_world(vm, |threads| {
-            tlab::make_iterable_all(vm, threads);
-            let rootset = determine_strong_roots(vm, threads);
-            self.mark_sweep(vm, &rootset, reason);
-        });
-
-        if vm.flags.gc_stats {
-            let duration = timer.stop();
-            let mut stats = self.stats.lock();
-            stats.add(duration);
-        }
     }
 
     fn collect_garbage(

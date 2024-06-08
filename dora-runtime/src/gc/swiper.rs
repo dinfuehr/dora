@@ -325,16 +325,6 @@ impl Collector for Swiper {
         self.readonly.alloc(vm, size).unwrap_or(Address::null())
     }
 
-    fn force_collect(&self, vm: &VM, reason: GcReason) {
-        let collection_kind = match reason {
-            GcReason::ForceCollect | GcReason::Stress => CollectionKind::Full,
-            GcReason::ForceMinorCollect | GcReason::StressMinor => CollectionKind::Minor,
-            _ => unreachable!(),
-        };
-
-        self.perform_collection(vm, collection_kind, reason);
-    }
-
     fn collect_garbage(&self, vm: &VM, threads: &[Arc<DoraThread>], reason: GcReason, size: usize) {
         let kind = choose_collection_kind(&self.heap, reason, size);
         controller::start(&self.config, &self.heap);

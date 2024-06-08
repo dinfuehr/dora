@@ -114,11 +114,11 @@ impl Gc {
 
     pub fn alloc(&self, vm: &VM, size: usize) -> Address {
         if vm.flags.gc_stress_minor {
-            self.force_collect(vm, GcReason::StressMinor);
+            self.collect_garbage(vm, GcReason::StressMinor, 0);
         }
 
         if vm.flags.gc_stress {
-            self.force_collect(vm, GcReason::Stress);
+            self.collect_garbage(vm, GcReason::Stress, 0);
         }
 
         if let Some(address) = self.allocate_raw(vm, size) {
@@ -224,9 +224,6 @@ trait Collector {
     fn alloc_tlab_area(&self, vm: &VM, size: usize) -> Option<Region>;
     fn alloc_object(&self, vm: &VM, size: usize) -> Option<Address>;
     fn alloc_readonly(&self, vm: &VM, size: usize) -> Address;
-
-    // Force garbage collection.
-    fn force_collect(&self, vm: &VM, reason: GcReason);
 
     fn collect_garbage(&self, vm: &VM, threads: &[Arc<DoraThread>], reason: GcReason, size: usize);
 

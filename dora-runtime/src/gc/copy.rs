@@ -11,7 +11,6 @@ use crate::gc::{
 use crate::mem;
 use crate::object::{Obj, VtblptrWordKind};
 use crate::os::{self, MemoryPermission};
-use crate::safepoint;
 use crate::threads::DoraThread;
 use crate::timer::Timer;
 use crate::vm::{Flags, VM};
@@ -57,44 +56,18 @@ impl Collector for CopyCollector {
         true
     }
 
-    fn alloc_tlab_area(&self, vm: &VM, size: usize) -> Option<Region> {
-        if let Some(address) = self.alloc.bump_alloc(size) {
-            return Some(address.region_start(size));
-        }
-
-        self.force_collect(vm, GcReason::AllocationFailure);
-
+    fn alloc_tlab_area(&self, _vm: &VM, size: usize) -> Option<Region> {
         self.alloc
             .bump_alloc(size)
             .map(|address| address.region_start(size))
     }
 
-    fn alloc_object(&self, vm: &VM, size: usize) -> Option<Address> {
-        if let Some(address) = self.alloc.bump_alloc(size) {
-            return Some(address);
-        }
-
-        self.force_collect(vm, GcReason::AllocationFailure);
+    fn alloc_object(&self, _vm: &VM, size: usize) -> Option<Address> {
         self.alloc.bump_alloc(size)
     }
 
     fn alloc_readonly(&self, _vm: &VM, size: usize) -> Address {
         self.readonly.alloc(size)
-    }
-
-    fn force_collect(&self, vm: &VM, reason: GcReason) {
-        let mut timer = Timer::new(vm.flags.gc_stats);
-
-        safepoint::stop_the_world(vm, |threads| {
-            tlab::make_iterable_all(vm, threads);
-            self.copy_collect(vm, threads, reason);
-        });
-
-        if vm.flags.gc_stats {
-            let duration = timer.stop();
-            let mut stats = self.stats.lock();
-            stats.add(duration);
-        }
     }
 
     fn collect_garbage(
