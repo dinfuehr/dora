@@ -18,11 +18,10 @@ use crate::gc::swiper::sweeper::Sweeper;
 use crate::gc::swiper::verify::{Verifier, VerifierPhase};
 use crate::gc::swiper::young::YoungGen;
 use crate::gc::tlab::{MAX_TLAB_SIZE, MIN_TLAB_SIZE};
-use crate::gc::{tlab, Address, Collector, GcReason, Region, Worklist, WorklistSegment, K, M};
+use crate::gc::{Address, Collector, GcReason, Region, Worklist, WorklistSegment, K, M};
 use crate::mem;
 use crate::object::Obj;
 use crate::os::{self, Reservation};
-use crate::safepoint;
 use crate::threads::DoraThread;
 use crate::vm::{get_vm, Flags, VM};
 
@@ -137,41 +136,6 @@ impl Swiper {
         }
     }
 
-    fn perform_collection_and_choose(&self, vm: &VM, reason: GcReason) -> CollectionKind {
-        let kind = choose_collection_kind(&self.heap, reason, 0);
-        self.perform_collection(vm, kind, reason);
-        kind
-    }
-
-    fn perform_collection(&self, vm: &VM, kind: CollectionKind, reason: GcReason) {
-        safepoint::stop_the_world(vm, |threads| {
-            controller::start(&self.config, &self.heap);
-
-            tlab::make_iterable_all(vm, threads);
-            let rootset = determine_strong_roots(vm, threads);
-
-            match kind {
-                CollectionKind::Minor => {
-                    self.minor_collect(vm, reason, &rootset, threads);
-                }
-
-                CollectionKind::Full => {
-                    self.full_collect(vm, reason, threads, &rootset);
-                }
-            }
-
-            controller::stop(
-                vm,
-                &self.config,
-                kind,
-                &self.heap,
-                &self.young,
-                &vm.flags,
-                reason,
-            );
-        })
-    }
-
     fn minor_collect(
         &self,
         vm: &VM,
@@ -264,22 +228,10 @@ impl Swiper {
     }
 
     fn alloc_normal(&self, vm: &VM, size: usize) -> Option<Address> {
-        if let Some(region) = self.young.allocate(vm, size, size) {
-            return Some(region.start());
-        }
-
-        self.perform_collection_and_choose(vm, GcReason::AllocationFailure);
-
         self.young.allocate(vm, size, size).map(|r| r.start())
     }
 
-    fn alloc_large(&self, vm: &VM, size: usize) -> Option<Address> {
-        if let Some(address) = self.large.alloc(&self.heap, size) {
-            return Some(address);
-        }
-
-        self.perform_collection(vm, CollectionKind::Full, GcReason::AllocationFailure);
-
+    fn alloc_large(&self, _vm: &VM, size: usize) -> Option<Address> {
         self.large.alloc(&self.heap, size)
     }
 
@@ -294,23 +246,7 @@ impl Collector for Swiper {
     }
 
     fn alloc_tlab_area(&self, vm: &VM, _size: usize) -> Option<Region> {
-        if let Some(region) = self.young.allocate(vm, MIN_TLAB_SIZE, MAX_TLAB_SIZE) {
-            return Some(region);
-        }
-
-        self.perform_collection_and_choose(vm, GcReason::AllocationFailure);
-
-        if let Some(region) = self.young.allocate(vm, MIN_TLAB_SIZE, MAX_TLAB_SIZE) {
-            return Some(region);
-        }
-
-        self.perform_collection(vm, CollectionKind::Full, GcReason::AllocationFailure);
-
-        if let Some(region) = self.young.allocate(vm, MIN_TLAB_SIZE, MAX_TLAB_SIZE) {
-            return Some(region);
-        }
-
-        None
+        self.young.allocate(vm, MIN_TLAB_SIZE, MAX_TLAB_SIZE)
     }
 
     fn alloc_object(&self, vm: &VM, size: usize) -> Option<Address> {
