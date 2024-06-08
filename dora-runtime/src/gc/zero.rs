@@ -65,6 +65,7 @@ impl Collector for ZeroCollector {
         _vm: &VM,
         _threads: &[std::sync::Arc<crate::threads::DoraThread>],
         _reason: GcReason,
+        _size: usize,
     ) {
         // Do nothing
     }

@@ -105,7 +105,13 @@ impl Collector for CopyCollector {
         }
     }
 
-    fn collect_garbage(&self, vm: &VM, threads: &[Arc<DoraThread>], reason: GcReason) {
+    fn collect_garbage(
+        &self,
+        vm: &VM,
+        threads: &[Arc<DoraThread>],
+        reason: GcReason,
+        _size: usize,
+    ) {
         let mut timer = Timer::new(vm.flags.gc_stats);
 
         tlab::make_iterable_all(vm, threads);

@@ -138,7 +138,7 @@ impl Swiper {
     }
 
     fn perform_collection_and_choose(&self, vm: &VM, reason: GcReason) -> CollectionKind {
-        let kind = choose_collection_kind(&self.heap, reason);
+        let kind = choose_collection_kind(&self.heap, reason, 0);
         self.perform_collection(vm, kind, reason);
         kind
     }
@@ -340,8 +340,8 @@ impl Collector for Swiper {
         self.perform_collection(vm, collection_kind, reason);
     }
 
-    fn collect_garbage(&self, vm: &VM, threads: &[Arc<DoraThread>], reason: GcReason) {
-        let kind = choose_collection_kind(&self.heap, reason);
+    fn collect_garbage(&self, vm: &VM, threads: &[Arc<DoraThread>], reason: GcReason, size: usize) {
+        let kind = choose_collection_kind(&self.heap, reason, size);
         controller::start(&self.config, &self.heap);
 
         let rootset = determine_strong_roots(vm, threads);
@@ -428,18 +428,22 @@ impl Collector for Swiper {
     }
 }
 
-fn choose_collection_kind(heap: &Heap, reason: GcReason) -> CollectionKind {
+fn choose_collection_kind(heap: &Heap, reason: GcReason, size: usize) -> CollectionKind {
     match reason {
         GcReason::ForceCollect | GcReason::Stress | GcReason::LastResort => CollectionKind::Full,
         GcReason::ForceMinorCollect | GcReason::StressMinor => CollectionKind::Minor,
 
         GcReason::AllocationFailure => {
-            let young_size = heap.committed_sizes().young;
+            if size < LARGE_OBJECT_SIZE {
+                let young_size = heap.committed_sizes().young;
 
-            if young_size <= M {
-                CollectionKind::Full
+                if young_size <= M {
+                    CollectionKind::Full
+                } else {
+                    CollectionKind::Minor
+                }
             } else {
-                CollectionKind::Minor
+                CollectionKind::Full
             }
         }
     }

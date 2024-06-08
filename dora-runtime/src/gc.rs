@@ -133,7 +133,7 @@ impl Gc {
             } else {
                 GcReason::AllocationFailure
             };
-            self.collect_garbage(vm, reason);
+            self.collect_garbage(vm, reason, size);
 
             let result = self.allocate_raw(vm, size);
 
@@ -176,8 +176,8 @@ impl Gc {
     }
 
     pub fn force_collect(&self, vm: &VM, reason: GcReason) {
-        self.epoch.fetch_add(1, AtomicOrdering::Relaxed);
-        self.collector.force_collect(vm, reason);
+        assert!(reason.is_forced() || reason.is_stress());
+        self.collect_garbage(vm, reason, 0);
     }
 
     pub fn shutdown(&self, vm: &VM) {
@@ -213,12 +213,12 @@ impl Gc {
         }
     }
 
-    fn collect_garbage(&self, vm: &VM, reason: GcReason) {
+    fn collect_garbage(&self, vm: &VM, reason: GcReason, size: usize) {
         safepoint::stop_the_world(vm, |threads| {
             self.epoch.fetch_add(1, AtomicOrdering::Relaxed);
             tlab::make_iterable_all(vm, threads);
 
-            self.collector.collect_garbage(vm, threads, reason);
+            self.collector.collect_garbage(vm, threads, reason, size);
         });
     }
 }
@@ -232,7 +232,7 @@ trait Collector {
     // Force garbage collection.
     fn force_collect(&self, vm: &VM, reason: GcReason);
 
-    fn collect_garbage(&self, vm: &VM, threads: &[Arc<DoraThread>], reason: GcReason);
+    fn collect_garbage(&self, vm: &VM, threads: &[Arc<DoraThread>], reason: GcReason, size: usize);
 
     // Decides whether to emit write barriers needed for
     // generational GC.
@@ -532,6 +532,16 @@ impl GcReason {
             | GcReason::LastResort
             | GcReason::Stress
             | GcReason::StressMinor => false,
+        }
+    }
+
+    fn is_stress(&self) -> bool {
+        match self {
+            GcReason::Stress | GcReason::StressMinor => true,
+            GcReason::ForceCollect
+            | GcReason::ForceMinorCollect
+            | GcReason::AllocationFailure
+            | GcReason::LastResort => false,
         }
     }
 

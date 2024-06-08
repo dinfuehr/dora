@@ -106,6 +106,7 @@ impl Collector for SweepCollector {
         vm: &VM,
         threads: &[std::sync::Arc<crate::threads::DoraThread>],
         reason: GcReason,
+        _size: usize,
     ) {
         let mut timer = Timer::new(vm.flags.gc_stats);
 
