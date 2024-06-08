@@ -39,16 +39,12 @@ impl Collector for ZeroCollector {
     }
 
     fn alloc_tlab_area(&self, _vm: &VM, size: usize) -> Option<Region> {
-        let ptr = self.alloc.bump_alloc(size);
-
-        if ptr.is_null() {
-            None
-        } else {
-            Some(ptr.region_start(size))
-        }
+        self.alloc
+            .bump_alloc(size)
+            .map(|address| address.region_start(size))
     }
 
-    fn alloc_object(&self, _vm: &VM, size: usize) -> Address {
+    fn alloc_object(&self, _vm: &VM, size: usize) -> Option<Address> {
         self.alloc.bump_alloc(size)
     }
 

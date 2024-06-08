@@ -121,10 +121,8 @@ impl Gc {
             self.force_collect(vm, GcReason::Stress);
         }
 
-        let result = self.allocate_raw(vm, size);
-
-        if result.is_non_null() {
-            return result;
+        if let Some(address) = self.allocate_raw(vm, size) {
+            return address;
         }
 
         for retry in 0..3 {
@@ -135,10 +133,8 @@ impl Gc {
             };
             self.collect_garbage(vm, reason, size);
 
-            let result = self.allocate_raw(vm, size);
-
-            if result.is_non_null() {
-                return result;
+            if let Some(address) = self.allocate_raw(vm, size) {
+                return address;
             }
         }
 
@@ -146,10 +142,10 @@ impl Gc {
         unreachable!()
     }
 
-    fn alloc_in_lab(&self, vm: &VM, size: usize) -> Address {
+    fn alloc_in_lab(&self, vm: &VM, size: usize) -> Option<Address> {
         // try to allocate in current tlab
         if let Some(addr) = tlab::allocate(size) {
-            return addr;
+            return Some(addr);
         }
 
         // if there is not enough space, make heap iterable by filling tlab with unused objects
@@ -164,10 +160,10 @@ impl Gc {
             tlab::initialize(tlab);
 
             // object is allocated before TLAB
-            object_start
+            Some(object_start)
         } else {
             // fail with OOM if TLAB can't be allocated
-            Address::null()
+            None
         }
     }
 
@@ -205,7 +201,7 @@ impl Gc {
         self.meta_space.size()
     }
 
-    pub fn allocate_raw(&self, vm: &VM, size: usize) -> Address {
+    pub fn allocate_raw(&self, vm: &VM, size: usize) -> Option<Address> {
         if size < MAX_TLAB_OBJECT_SIZE && self.supports_tlab {
             self.alloc_in_lab(vm, size)
         } else {
@@ -226,7 +222,7 @@ impl Gc {
 trait Collector {
     // Allocate object of given size.
     fn alloc_tlab_area(&self, vm: &VM, size: usize) -> Option<Region>;
-    fn alloc_object(&self, vm: &VM, size: usize) -> Address;
+    fn alloc_object(&self, vm: &VM, size: usize) -> Option<Address>;
     fn alloc_readonly(&self, vm: &VM, size: usize) -> Address;
 
     // Force garbage collection.

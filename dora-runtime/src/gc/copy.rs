@@ -58,28 +58,20 @@ impl Collector for CopyCollector {
     }
 
     fn alloc_tlab_area(&self, vm: &VM, size: usize) -> Option<Region> {
-        let ptr = self.alloc.bump_alloc(size);
-
-        if ptr.is_non_null() {
-            return Some(ptr.region_start(size));
+        if let Some(address) = self.alloc.bump_alloc(size) {
+            return Some(address.region_start(size));
         }
 
         self.force_collect(vm, GcReason::AllocationFailure);
 
-        let ptr = self.alloc.bump_alloc(size);
-
-        return if ptr.is_null() {
-            None
-        } else {
-            Some(ptr.region_start(size))
-        };
+        self.alloc
+            .bump_alloc(size)
+            .map(|address| address.region_start(size))
     }
 
-    fn alloc_object(&self, vm: &VM, size: usize) -> Address {
-        let ptr = self.alloc.bump_alloc(size);
-
-        if ptr.is_non_null() {
-            return ptr;
+    fn alloc_object(&self, vm: &VM, size: usize) -> Option<Address> {
+        if let Some(address) = self.alloc.bump_alloc(size) {
+            return Some(address);
         }
 
         self.force_collect(vm, GcReason::AllocationFailure);

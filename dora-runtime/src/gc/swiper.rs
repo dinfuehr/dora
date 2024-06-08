@@ -263,29 +263,24 @@ impl Swiper {
         }
     }
 
-    fn alloc_normal(&self, vm: &VM, size: usize) -> Address {
+    fn alloc_normal(&self, vm: &VM, size: usize) -> Option<Address> {
         if let Some(region) = self.young.allocate(vm, size, size) {
-            return region.start();
+            return Some(region.start());
         }
 
         self.perform_collection_and_choose(vm, GcReason::AllocationFailure);
 
-        self.young
-            .allocate(vm, size, size)
-            .map(|r| r.start())
-            .unwrap_or(Address::null())
+        self.young.allocate(vm, size, size).map(|r| r.start())
     }
 
-    fn alloc_large(&self, vm: &VM, size: usize) -> Address {
+    fn alloc_large(&self, vm: &VM, size: usize) -> Option<Address> {
         if let Some(address) = self.large.alloc(&self.heap, size) {
-            return address;
+            return Some(address);
         }
 
         self.perform_collection(vm, CollectionKind::Full, GcReason::AllocationFailure);
 
-        self.large
-            .alloc(&self.heap, size)
-            .unwrap_or(Address::null())
+        self.large.alloc(&self.heap, size)
     }
 
     pub fn add_remset_segment(&self, segment: WorklistSegment) {
@@ -318,7 +313,7 @@ impl Collector for Swiper {
         None
     }
 
-    fn alloc_object(&self, vm: &VM, size: usize) -> Address {
+    fn alloc_object(&self, vm: &VM, size: usize) -> Option<Address> {
         if size < LARGE_OBJECT_SIZE {
             self.alloc_normal(vm, size)
         } else {

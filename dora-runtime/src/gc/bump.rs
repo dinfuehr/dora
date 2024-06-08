@@ -31,7 +31,7 @@ impl BumpAllocator {
         self.limit.load(Ordering::Relaxed).into()
     }
 
-    pub fn bump_alloc(&self, size: usize) -> Address {
+    pub fn bump_alloc(&self, size: usize) -> Option<Address> {
         let mut old = self.top.load(Ordering::Relaxed);
         let mut new;
 
@@ -39,7 +39,7 @@ impl BumpAllocator {
             new = old + size;
 
             if new > self.limit.load(Ordering::Relaxed) {
-                return Address::null();
+                return None;
             }
 
             let res = self
@@ -52,6 +52,6 @@ impl BumpAllocator {
             }
         }
 
-        old.into()
+        Some(old.into())
     }
 }

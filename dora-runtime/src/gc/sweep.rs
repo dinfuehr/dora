@@ -53,28 +53,19 @@ impl Collector for SweepCollector {
     }
 
     fn alloc_tlab_area(&self, vm: &VM, size: usize) -> Option<Region> {
-        let ptr = self.inner_alloc(vm, size);
-
-        if ptr.is_non_null() {
-            return Some(ptr.region_start(size));
+        if let Some(address) = self.inner_alloc(vm, size) {
+            return Some(address.region_start(size));
         }
 
         self.force_collect(vm, GcReason::AllocationFailure);
 
-        let ptr = self.inner_alloc(vm, size);
-
-        if ptr.is_null() {
-            None
-        } else {
-            Some(ptr.region_start(size))
-        }
+        self.inner_alloc(vm, size)
+            .map(|address| address.region_start(size))
     }
 
-    fn alloc_object(&self, vm: &VM, size: usize) -> Address {
-        let ptr = self.inner_alloc(vm, size);
-
-        if ptr.is_non_null() {
-            return ptr;
+    fn alloc_object(&self, vm: &VM, size: usize) -> Option<Address> {
+        if let Some(address) = self.inner_alloc(vm, size) {
+            return Some(address);
         }
 
         self.force_collect(vm, GcReason::AllocationFailure);
@@ -152,7 +143,7 @@ impl Drop for SweepCollector {
 }
 
 impl SweepCollector {
-    fn inner_alloc(&self, vm: &VM, size: usize) -> Address {
+    fn inner_alloc(&self, vm: &VM, size: usize) -> Option<Address> {
         let mut alloc = self.alloc.lock();
         alloc.allocate(vm, size)
     }
@@ -272,13 +263,13 @@ impl SweepAllocator {
         }
     }
 
-    fn allocate(&mut self, vm: &VM, size: usize) -> Address {
+    fn allocate(&mut self, vm: &VM, size: usize) -> Option<Address> {
         let object = self.top;
         let next_top = object.offset(size);
 
         if next_top <= self.limit {
             self.top = next_top;
-            return object;
+            return Some(object);
         }
 
         let free_space = self.free_list.alloc(vm, size);
@@ -294,9 +285,9 @@ impl SweepAllocator {
 
             setup_free_space(vm, free_start, free_end, Address::null());
             self.free_list.add(vm, free_start, new_free_size);
-            return object;
+            return Some(object);
         }
 
-        Address::null()
+        None
     }
 }
