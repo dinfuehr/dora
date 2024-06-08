@@ -185,12 +185,12 @@ pub extern "C" fn gc_alloc(size: usize) -> *mut Obj {
 
 extern "C" fn gc_collect() {
     let vm = get_vm();
-    vm.gc.collect(vm, GcReason::ForceCollect);
+    vm.gc.force_collect(vm, GcReason::ForceCollect);
 }
 
 extern "C" fn gc_minor_collect() {
     let vm = get_vm();
-    vm.gc.minor_collect(vm, GcReason::ForceMinorCollect);
+    vm.gc.force_collect(vm, GcReason::ForceMinorCollect);
 }
 
 extern "C" fn argc() -> i32 {

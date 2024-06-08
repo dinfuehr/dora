@@ -17,9 +17,10 @@ pub use crate::gc::worklist::{Worklist, WorklistSegment};
 use crate::gc::zero::ZeroCollector;
 use crate::mem;
 use crate::object::{Header, Obj};
+use crate::safepoint;
+use crate::stdlib;
 use crate::threads::DoraThread;
-use crate::vm::VM;
-use crate::vm::{CollectorName, Flags};
+use crate::vm::{CollectorName, Flags, Trap, VM};
 
 pub use crate::gc::root::{iterate_strong_roots, iterate_weak_roots, Slot};
 
@@ -113,18 +114,36 @@ impl Gc {
 
     pub fn alloc(&self, vm: &VM, size: usize) -> Address {
         if vm.flags.gc_stress_minor {
-            self.minor_collect(vm, GcReason::StressMinor);
+            self.force_collect(vm, GcReason::StressMinor);
         }
 
         if vm.flags.gc_stress {
-            self.collect(vm, GcReason::Stress);
+            self.force_collect(vm, GcReason::Stress);
         }
 
-        if size < MAX_TLAB_OBJECT_SIZE && self.supports_tlab {
-            self.alloc_in_lab(vm, size)
-        } else {
-            self.collector.alloc_object(vm, size)
+        let result = self.allocate_raw(vm, size);
+
+        if result.is_non_null() {
+            return result;
         }
+
+        for retry in 0..3 {
+            let reason = if retry > 0 {
+                GcReason::LastResort
+            } else {
+                GcReason::AllocationFailure
+            };
+            self.collect_garbage(vm, reason);
+
+            let result = self.allocate_raw(vm, size);
+
+            if result.is_non_null() {
+                return result;
+            }
+        }
+
+        stdlib::trap(Trap::OOM as u8 as u32);
+        unreachable!()
     }
 
     fn alloc_in_lab(&self, vm: &VM, size: usize) -> Address {
@@ -156,13 +175,9 @@ impl Gc {
         self.epoch.load(AtomicOrdering::Relaxed)
     }
 
-    pub fn collect(&self, vm: &VM, reason: GcReason) {
+    pub fn force_collect(&self, vm: &VM, reason: GcReason) {
         self.epoch.fetch_add(1, AtomicOrdering::Relaxed);
-        self.collector.collect(vm, reason);
-    }
-
-    pub fn minor_collect(&self, vm: &VM, reason: GcReason) {
-        self.collector.minor_collect(vm, reason);
+        self.collector.force_collect(vm, reason);
     }
 
     pub fn shutdown(&self, vm: &VM) {
@@ -189,23 +204,38 @@ impl Gc {
     pub fn meta_space_size(&self) -> usize {
         self.meta_space.size()
     }
+
+    pub fn allocate_raw(&self, vm: &VM, size: usize) -> Address {
+        if size < MAX_TLAB_OBJECT_SIZE && self.supports_tlab {
+            self.alloc_in_lab(vm, size)
+        } else {
+            self.collector.alloc_object(vm, size)
+        }
+    }
+
+    fn collect_garbage(&self, vm: &VM, reason: GcReason) {
+        safepoint::stop_the_world(vm, |threads| {
+            self.epoch.fetch_add(1, AtomicOrdering::Relaxed);
+            tlab::make_iterable_all(vm, threads);
+
+            self.collector.collect_garbage(vm, threads, reason);
+        });
+    }
 }
 
 trait Collector {
-    // allocate object of given size
+    // Allocate object of given size.
     fn alloc_tlab_area(&self, vm: &VM, size: usize) -> Option<Region>;
     fn alloc_object(&self, vm: &VM, size: usize) -> Address;
     fn alloc_readonly(&self, vm: &VM, size: usize) -> Address;
 
-    // collect garbage
-    fn collect(&self, vm: &VM, reason: GcReason);
+    // Force garbage collection.
+    fn force_collect(&self, vm: &VM, reason: GcReason);
 
-    // collect young generation if supported, otherwise
-    // collects whole heap
-    fn minor_collect(&self, vm: &VM, reason: GcReason);
+    fn collect_garbage(&self, vm: &VM, threads: &[Arc<DoraThread>], reason: GcReason);
 
-    // decides whether to emit write barriers needed for
-    // generational GC to write into card table
+    // Decides whether to emit write barriers needed for
+    // generational GC.
     fn needs_write_barrier(&self) -> bool {
         false
     }
@@ -214,13 +244,13 @@ trait Collector {
         (false, false)
     }
 
-    // gives true when collector supports tlab allocation.
+    // Gives true when collector supports tlab allocation.
     fn supports_tlab(&self) -> bool;
 
-    // prints GC summary: minor/full collections, etc.
+    // Prints GC summary: minor/full collections, etc.
     fn dump_summary(&self, _runtime: f32);
 
-    // verify reference
+    // Verify reference
     fn verify_ref(&self, _vm: &VM, _addr: Address) {
         // do nothing
     }
@@ -485,23 +515,34 @@ fn formatted_size(size: usize) -> FormattedSize {
 
 #[derive(Copy, Clone, PartialEq, Eq)]
 pub enum GcReason {
-    PromotionFailure,
     AllocationFailure,
     ForceCollect,
     ForceMinorCollect,
     Stress,
     StressMinor,
+    LastResort,
 }
 
 impl GcReason {
+    fn is_forced(&self) -> bool {
+        match self {
+            GcReason::ForceCollect | GcReason::ForceMinorCollect => true,
+
+            GcReason::AllocationFailure
+            | GcReason::LastResort
+            | GcReason::Stress
+            | GcReason::StressMinor => false,
+        }
+    }
+
     fn message(&self) -> &'static str {
         match self {
-            GcReason::PromotionFailure => "promo failure",
             GcReason::AllocationFailure => "alloc failure",
             GcReason::ForceCollect => "force collect",
             GcReason::ForceMinorCollect => "force minor collect",
             GcReason::Stress => "stress",
             GcReason::StressMinor => "stress minor",
+            GcReason::LastResort => "last resort",
         }
     }
 }

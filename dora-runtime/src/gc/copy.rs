@@ -64,7 +64,7 @@ impl Collector for CopyCollector {
             return Some(ptr.region_start(size));
         }
 
-        self.collect(vm, GcReason::AllocationFailure);
+        self.force_collect(vm, GcReason::AllocationFailure);
 
         let ptr = self.alloc.bump_alloc(size);
 
@@ -82,7 +82,7 @@ impl Collector for CopyCollector {
             return ptr;
         }
 
-        self.collect(vm, GcReason::AllocationFailure);
+        self.force_collect(vm, GcReason::AllocationFailure);
         self.alloc.bump_alloc(size)
     }
 
@@ -90,7 +90,7 @@ impl Collector for CopyCollector {
         self.readonly.alloc(size)
     }
 
-    fn collect(&self, vm: &VM, reason: GcReason) {
+    fn force_collect(&self, vm: &VM, reason: GcReason) {
         let mut timer = Timer::new(vm.flags.gc_stats);
 
         safepoint::stop_the_world(vm, |threads| {
@@ -105,8 +105,17 @@ impl Collector for CopyCollector {
         }
     }
 
-    fn minor_collect(&self, vm: &VM, reason: GcReason) {
-        self.collect(vm, reason);
+    fn collect_garbage(&self, vm: &VM, threads: &[Arc<DoraThread>], reason: GcReason) {
+        let mut timer = Timer::new(vm.flags.gc_stats);
+
+        tlab::make_iterable_all(vm, threads);
+        self.copy_collect(vm, threads, reason);
+
+        if vm.flags.gc_stats {
+            let duration = timer.stop();
+            let mut stats = self.stats.lock();
+            stats.add(duration);
+        }
     }
 
     fn dump_summary(&self, runtime: f32) {

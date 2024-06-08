@@ -56,12 +56,17 @@ impl Collector for ZeroCollector {
         self.readonly.alloc(size)
     }
 
-    fn collect(&self, _: &VM, _: GcReason) {
+    fn force_collect(&self, _: &VM, _: GcReason) {
         // do nothing
     }
 
-    fn minor_collect(&self, _: &VM, _: GcReason) {
-        // do nothing
+    fn collect_garbage(
+        &self,
+        _vm: &VM,
+        _threads: &[std::sync::Arc<crate::threads::DoraThread>],
+        _reason: GcReason,
+    ) {
+        // Do nothing
     }
 
     fn dump_summary(&self, runtime: f32) {

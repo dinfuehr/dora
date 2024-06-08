@@ -363,7 +363,7 @@ fn lazy_compile(ra: usize, receiver1: Address, receiver2: Address) -> Address {
         };
 
         if vm.flags.gc_stress_in_lazy_compile {
-            vm.gc.collect(vm, crate::gc::GcReason::Stress);
+            vm.gc.force_collect(vm, crate::gc::GcReason::Stress);
         }
 
         match lazy_compilation_site {

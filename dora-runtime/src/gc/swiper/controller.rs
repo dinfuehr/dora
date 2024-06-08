@@ -7,7 +7,7 @@ use std::time::Instant;
 
 use crate::gc::swiper::young::YoungGen;
 use crate::gc::swiper::{align_page_down, align_page_up, CollectionKind, Heap, PAGE_SIZE};
-use crate::gc::{formatted_size, AllNumbers, M};
+use crate::gc::{formatted_size, AllNumbers, GcReason};
 use crate::stdlib;
 use crate::vm::{Flags, Trap, VM};
 
@@ -43,16 +43,6 @@ pub fn init(config: &mut HeapController, args: &Flags) {
     config.old_limit = old_limit;
 }
 
-pub fn choose_collection_kind(heap: &Heap) -> CollectionKind {
-    let young_size = heap.committed_sizes().young;
-
-    return if young_size <= M {
-        CollectionKind::Full
-    } else {
-        CollectionKind::Minor
-    };
-}
-
 pub fn start(config: &SharedHeapConfig, heap: &Heap) {
     let mut config = config.lock();
 
@@ -67,6 +57,7 @@ pub fn stop(
     heap: &Heap,
     young: &YoungGen,
     args: &Flags,
+    reason: GcReason,
 ) {
     let mut config = config.lock();
 
@@ -126,11 +117,17 @@ pub fn stop(
     }
 
     if args.gc_verbose {
-        print(vm, &*config, kind, gc_duration_ms);
+        print(vm, &*config, kind, gc_duration_ms, reason);
     }
 }
 
-fn print(vm: &VM, config: &HeapController, kind: CollectionKind, gc_duration: f32) {
+fn print(
+    vm: &VM,
+    config: &HeapController,
+    kind: CollectionKind,
+    gc_duration: f32,
+    reason: GcReason,
+) {
     let timestamp = config
         .gc_start
         .expect("missing timestamp")
@@ -139,7 +136,7 @@ fn print(vm: &VM, config: &HeapController, kind: CollectionKind, gc_duration: f3
     match kind {
         CollectionKind::Minor => {
             println!(
-                "[{}.{:03}] Minor GC: {} -> {}; {:.2} ms; {} promoted; {} copied",
+                "[{}.{:03}] Minor GC: {} -> {}; {:.2} ms; {} promoted; {} copied; {}",
                 timestamp.as_secs(),
                 timestamp.subsec_millis(),
                 formatted_size(config.start_memory_size),
@@ -147,6 +144,7 @@ fn print(vm: &VM, config: &HeapController, kind: CollectionKind, gc_duration: f3
                 gc_duration,
                 formatted_size(config.minor_promoted),
                 formatted_size(config.minor_copied),
+                reason,
             );
         }
 

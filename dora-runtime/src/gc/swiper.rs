@@ -18,7 +18,7 @@ use crate::gc::swiper::sweeper::Sweeper;
 use crate::gc::swiper::verify::{Verifier, VerifierPhase};
 use crate::gc::swiper::young::YoungGen;
 use crate::gc::tlab::{MAX_TLAB_SIZE, MIN_TLAB_SIZE};
-use crate::gc::{tlab, Address, Collector, GcReason, Region, Worklist, WorklistSegment, K};
+use crate::gc::{tlab, Address, Collector, GcReason, Region, Worklist, WorklistSegment, K, M};
 use crate::mem;
 use crate::object::Obj;
 use crate::os::{self, Reservation};
@@ -138,7 +138,7 @@ impl Swiper {
     }
 
     fn perform_collection_and_choose(&self, vm: &VM, reason: GcReason) -> CollectionKind {
-        let kind = controller::choose_collection_kind(&self.heap);
+        let kind = choose_collection_kind(&self.heap, reason);
         self.perform_collection(vm, kind, reason);
         kind
     }
@@ -160,7 +160,15 @@ impl Swiper {
                 }
             }
 
-            controller::stop(vm, &self.config, kind, &self.heap, &self.young, &vm.flags);
+            controller::stop(
+                vm,
+                &self.config,
+                kind,
+                &self.heap,
+                &self.young,
+                &vm.flags,
+                reason,
+            );
         })
     }
 
@@ -322,12 +330,41 @@ impl Collector for Swiper {
         self.readonly.alloc(vm, size).unwrap_or(Address::null())
     }
 
-    fn collect(&self, vm: &VM, reason: GcReason) {
-        self.perform_collection(vm, CollectionKind::Full, reason);
+    fn force_collect(&self, vm: &VM, reason: GcReason) {
+        let collection_kind = match reason {
+            GcReason::ForceCollect | GcReason::Stress => CollectionKind::Full,
+            GcReason::ForceMinorCollect | GcReason::StressMinor => CollectionKind::Minor,
+            _ => unreachable!(),
+        };
+
+        self.perform_collection(vm, collection_kind, reason);
     }
 
-    fn minor_collect(&self, vm: &VM, reason: GcReason) {
-        self.perform_collection(vm, CollectionKind::Minor, reason);
+    fn collect_garbage(&self, vm: &VM, threads: &[Arc<DoraThread>], reason: GcReason) {
+        let kind = choose_collection_kind(&self.heap, reason);
+        controller::start(&self.config, &self.heap);
+
+        let rootset = determine_strong_roots(vm, threads);
+
+        match kind {
+            CollectionKind::Minor => {
+                self.minor_collect(vm, reason, &rootset, threads);
+            }
+
+            CollectionKind::Full => {
+                self.full_collect(vm, reason, threads, &rootset);
+            }
+        }
+
+        controller::stop(
+            vm,
+            &self.config,
+            kind,
+            &self.heap,
+            &self.young,
+            &vm.flags,
+            reason,
+        );
     }
 
     fn needs_write_barrier(&self) -> bool {
@@ -388,6 +425,23 @@ impl Collector for Swiper {
 
     fn to_swiper(&self) -> &Swiper {
         self
+    }
+}
+
+fn choose_collection_kind(heap: &Heap, reason: GcReason) -> CollectionKind {
+    match reason {
+        GcReason::ForceCollect | GcReason::Stress | GcReason::LastResort => CollectionKind::Full,
+        GcReason::ForceMinorCollect | GcReason::StressMinor => CollectionKind::Minor,
+
+        GcReason::AllocationFailure => {
+            let young_size = heap.committed_sizes().young;
+
+            if young_size <= M {
+                CollectionKind::Full
+            } else {
+                CollectionKind::Minor
+            }
+        }
     }
 }
 
