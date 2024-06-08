@@ -210,11 +210,14 @@ impl Gc {
     }
 
     fn collect_garbage(&self, vm: &VM, reason: GcReason, size: usize) {
+        let initial_epoch = self.epoch();
         safepoint::stop_the_world(vm, |threads| {
-            self.epoch.fetch_add(1, AtomicOrdering::Relaxed);
-            tlab::make_iterable_all(vm, threads);
+            if reason.is_forced() || initial_epoch == self.epoch() {
+                self.epoch.fetch_add(1, AtomicOrdering::Relaxed);
+                tlab::make_iterable_all(vm, threads);
 
-            self.collector.collect_garbage(vm, threads, reason, size);
+                self.collector.collect_garbage(vm, threads, reason, size);
+            }
         });
     }
 }
