@@ -1,0 +1,7 @@
+fn main() {
+    assert(foo::bar == 10);
+}
+
+mod foo {
+    pub let mut bar: Int64 = 10;
+}

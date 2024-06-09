@@ -891,8 +891,12 @@ impl<'a> AstBytecodeGen<'a> {
 
             IdentType::Const(const_id) => self.visit_expr_ident_const(const_id, dest),
 
+            IdentType::Global(global_id) => {
+                self.visit_expr_ident_global(global_id, dest, self.loc(expr.span))
+            }
+
             _ => {
-                panic!("ident_type = {:?}", ident_type);
+                panic!("unexpected ident_type = {:?}", ident_type);
             }
         }
     }
