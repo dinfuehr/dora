@@ -90,16 +90,12 @@ $ARCH = get_architecture
 $OS = get_os
 $files = []
 $platform_binding = create_platform_binding
+
 $default_config = Config.new("default", "", true)
-$always_boots_config = Config.new("always_boots", '--always-boots', [
-  'boots', 'unit', 'generic', 'float', 'vec', 'lambda',
-  'stdlib', 'array', 'enum', 'for', 'trait', 'tuple', 'struct',
-  'string', 'ops', 'whiteboard', 'cannon', 'io', 'cannon', 'swiper',
-  'alias', 'atomic', 'class', 'impl', 'int', 'stacktrace',
-  'language', 'gc', 'thread'
-])
-# TODO: bench
+
+$always_boots_config = Config.new("always_boots", '--always-boots', true)
 $always_boots_config.enable_boots = true
+
 $all_configs = [
   $default_config,
   $always_boots_config,
