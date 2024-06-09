@@ -895,9 +895,13 @@ impl<'a> AstBytecodeGen<'a> {
                 self.visit_expr_ident_global(global_id, dest, self.loc(expr.span))
             }
 
-            _ => {
-                panic!("unexpected ident_type = {:?}", ident_type);
-            }
+            IdentType::StructField(_, _)
+            | IdentType::Struct(_)
+            | IdentType::Field(_, _)
+            | IdentType::Fct(_, _)
+            | IdentType::Class(_, _)
+            | IdentType::Var(..)
+            | IdentType::Context(..) => unreachable!(),
         }
     }
 
