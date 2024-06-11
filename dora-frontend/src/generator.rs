@@ -949,8 +949,38 @@ impl<'a> AstBytecodeGen<'a> {
         dest
     }
 
-    fn visit_expr_is(&mut self, _node: &ast::ExprIsType, _dest: DataDest) -> Register {
-        unimplemented!()
+    fn visit_expr_is(&mut self, node: &ast::ExprIsType, dest: DataDest) -> Register {
+        let value_reg = gen_expr(self, &node.value, DataDest::Alloc);
+
+        let (enum_id, enum_type_params, variant_id) = {
+            let ident_type = self.analysis.map_idents.get(node.pattern.id).unwrap();
+
+            match ident_type {
+                IdentType::EnumValue(enum_id, type_params, variant_id) => {
+                    (enum_id, type_params, variant_id)
+                }
+                _ => unreachable!(),
+            }
+        };
+
+        let dest = self.ensure_register(dest, BytecodeType::Bool);
+
+        let tmp_reg = self.alloc_temp(BytecodeType::Int32);
+        let idx = self.builder.add_const_enum(
+            EnumId(enum_id.index().try_into().expect("overflow")),
+            bty_array_from_ty(enum_type_params),
+        );
+        self.builder
+            .emit_load_enum_variant(tmp_reg, value_reg, idx, self.loc(node.span));
+
+        let variant_reg = self.alloc_temp(BytecodeType::Int32);
+        self.builder
+            .emit_const_int32(variant_reg, *variant_id as i32);
+        self.builder.emit_test_eq(dest, tmp_reg, variant_reg);
+        self.free_temp(tmp_reg);
+        self.free_temp(variant_reg);
+
+        dest
     }
 
     fn last_context_register(&self) -> Option<Register> {

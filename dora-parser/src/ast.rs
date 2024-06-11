@@ -1261,7 +1261,7 @@ impl ExprData {
             id,
             span,
 
-            object,
+            value: object,
             pattern,
         })
     }
@@ -1865,7 +1865,7 @@ pub struct ExprIsType {
     pub id: NodeId,
     pub span: Span,
 
-    pub object: Expr,
+    pub value: Expr,
     pub pattern: MatchPattern,
 }
 

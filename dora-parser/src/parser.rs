@@ -170,7 +170,7 @@ impl Parser {
         self.assert(EXTERN_KW);
         self.expect(PACKAGE_KW);
         let name = self.expect_identifier();
-        let identifier = if self.eat(AS) {
+        let identifier = if self.eat(AS_KW) {
             self.expect_identifier()
         } else {
             None
@@ -227,7 +227,7 @@ impl Parser {
                     self.report_error(ParseError::ExpectedUsePath);
                     UsePathDescriptor::Error
                 }
-            } else if self.is(AS) {
+            } else if self.is(AS_KW) {
                 UsePathDescriptor::As(self.parse_use_as())
             } else {
                 UsePathDescriptor::Default
@@ -253,7 +253,7 @@ impl Parser {
     fn parse_use_as(&mut self) -> UseTargetName {
         self.start_node();
         self.builder.start_node();
-        self.assert(AS);
+        self.assert(AS_KW);
 
         let name = if self.eat(UNDERSCORE) {
             None
@@ -1587,7 +1587,7 @@ impl Parser {
                 EQ_EQ | NOT_EQ | LT | LE | GT | GE | EQ_EQ_EQ | NOT_EQ_EQ => 4,
                 ADD | SUB | OR | CARET => 5,
                 MUL | DIV | MODULO | AND | LT_LT | GT_GT | GT_GT_GT => 6,
-                AS => 7,
+                AS_KW | IS_KW => 7,
                 _ => {
                     return left;
                 }
@@ -1601,7 +1601,7 @@ impl Parser {
             self.advance();
 
             left = match kind {
-                AS => {
+                AS_KW => {
                     let right = self.parse_type();
                     let span = self.span_from(start);
 
@@ -1613,7 +1613,7 @@ impl Parser {
                     Arc::new(expr)
                 }
 
-                IS => {
+                IS_KW => {
                     let right = self.parse_match_pattern();
                     let span = self.span_from(start);
 
@@ -2629,7 +2629,7 @@ mod tests {
     }
 
     #[test]
-    fn parse_is_not() {
+    fn parse_identity_not() {
         let expr = parse_expr("1!==2");
 
         let cmp = expr.to_bin().unwrap();
@@ -2639,7 +2639,7 @@ mod tests {
     }
 
     #[test]
-    fn parse_is() {
+    fn parse_identity() {
         let expr = parse_expr("1===2");
 
         let cmp = expr.to_bin().unwrap();
@@ -3611,5 +3611,12 @@ mod tests {
             enum F where A: B + C { A, B }
         ",
         );
+    }
+
+    #[test]
+    fn parse_is() {
+        parse_expr("x is Foo");
+        parse_expr("x is Foo::Bar");
+        parse_expr("x is Foo::Bar(a, b, c)");
     }
 }

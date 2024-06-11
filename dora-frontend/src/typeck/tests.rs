@@ -4004,3 +4004,24 @@ fn self_in_impl_method() {
         }
     ");
 }
+
+#[test]
+fn is_pattern_no_args() {
+    ok("
+        enum Foo { A, B }
+        fn isA(x: Foo): Bool {
+            x is Foo::A
+        }
+    ");
+
+    err(
+        "
+        enum Foo { A, B }
+        fn isA(x: Foo): Bool {
+            x is Foo
+        }
+    ",
+        (4, 18),
+        ErrorMessage::EnumVariantExpected,
+    );
+}

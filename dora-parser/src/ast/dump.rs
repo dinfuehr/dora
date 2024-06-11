@@ -457,7 +457,7 @@ impl AstDumper {
     }
 
     fn dump_expr_is(&mut self, expr: &ExprIsType) {
-        self.indent(|d| d.dump_expr(&expr.object));
+        self.indent(|d| d.dump_expr(&expr.value));
         dump!(self, "is @ {} {}", expr.span, expr.id);
     }
 

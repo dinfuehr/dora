@@ -124,9 +124,9 @@ pub enum TokenKind {
     STATIC_KW,
 
     // Renames in use.
-    AS,
+    AS_KW,
     // Pattern matching.
-    IS,
+    IS_KW,
 
     // operators – numbers
     ADD,

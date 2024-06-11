@@ -570,8 +570,8 @@ fn keywords_in_map() -> HashMap<&'static str, TokenKind> {
     keywords.insert("static", STATIC_KW);
 
     // casting
-    keywords.insert("as", AS);
-    keywords.insert("is", IS);
+    keywords.insert("as", AS_KW);
+    keywords.insert("is", IS_KW);
 
     keywords.insert("type", TYPE_KW);
     keywords.insert("where", WHERE_KW);
@@ -971,6 +971,9 @@ mod tests {
                 (MUT_KW, 3),
             ]
         );
+
+        let tokens = lex_success("is as");
+        assert_eq!(tokens, vec![(IS_KW, 2), (WHITESPACE, 1), (AS_KW, 2)]);
     }
 
     #[test]

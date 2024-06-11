@@ -1,6 +1,7 @@
 use std::sync::Arc;
 
 use dora_bytecode::Intrinsic;
+use dora_parser::ast::MatchPatternData;
 use dora_parser::{ast, Span};
 
 use crate::access::{
@@ -592,12 +593,44 @@ fn check_expr_conv(
     }
 }
 
-fn check_expr_is(
-    _ck: &mut TypeCheck,
-    _e: &ast::ExprIsType,
-    _expected_ty: SourceType,
-) -> SourceType {
-    unimplemented!();
+fn check_expr_is(ck: &mut TypeCheck, e: &ast::ExprIsType, _expected_ty: SourceType) -> SourceType {
+    let value_type = check_expr(ck, &e.value, SourceType::Any);
+    ck.analysis.set_ty(e.value.id(), value_type.clone());
+
+    let value_enum_id = value_type.enum_id();
+    let value_type_params = value_type.type_params();
+
+    match e.pattern.data {
+        MatchPatternData::Underscore => unimplemented!(),
+
+        MatchPatternData::Ident(ref ident) => {
+            let sym = read_path(ck, &ident.path);
+            assert!(ident.params.is_none());
+
+            match sym {
+                Ok(SymbolKind::EnumVariant(enum_id, variant_idx)) => {
+                    if Some(enum_id) == value_enum_id {
+                        ck.analysis.map_idents.insert(
+                            e.pattern.id,
+                            IdentType::EnumValue(enum_id, value_type_params.clone(), variant_idx),
+                        );
+                    } else {
+                        let msg = ErrorMessage::EnumVariantExpected;
+                        ck.sa.report(ck.file_id, ident.path.span, msg);
+                    }
+                }
+
+                Ok(_) => {
+                    let msg = ErrorMessage::EnumVariantExpected;
+                    ck.sa.report(ck.file_id, ident.path.span, msg);
+                }
+
+                Err(()) => {}
+            }
+        }
+    }
+
+    SourceType::Bool
 }
 
 pub(super) fn check_expr_lit_int(
