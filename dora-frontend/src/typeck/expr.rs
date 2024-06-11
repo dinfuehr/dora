@@ -45,6 +45,7 @@ pub(super) fn check_expr(
         ast::ExprData::Dot(ref expr) => check_expr_dot(ck, expr, expected_ty),
         ast::ExprData::This(ref expr) => check_expr_this(ck, expr, expected_ty),
         ast::ExprData::Conv(ref expr) => check_expr_conv(ck, expr, expected_ty),
+        ast::ExprData::Is(ref expr) => check_expr_is(ck, expr, expected_ty),
         ast::ExprData::Lambda(ref expr) => check_expr_lambda(ck, expr, expected_ty),
         ast::ExprData::Block(ref expr) => check_expr_block(ck, expr, expected_ty),
         ast::ExprData::If(ref expr) => check_expr_if(ck, expr, expected_ty),
@@ -589,6 +590,14 @@ fn check_expr_conv(
     } else {
         SourceType::Error
     }
+}
+
+fn check_expr_is(
+    _ck: &mut TypeCheck,
+    _e: &ast::ExprIsType,
+    _expected_ty: SourceType,
+) -> SourceType {
+    unimplemented!();
 }
 
 pub(super) fn check_expr_lit_int(

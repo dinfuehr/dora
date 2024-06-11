@@ -387,6 +387,7 @@ impl AstDumper {
             ExprData::Path(ref path) => self.dump_expr_path(path),
             ExprData::This(ref selfie) => self.dump_expr_self(selfie),
             ExprData::Conv(ref expr) => self.dump_expr_conv(expr),
+            ExprData::Is(ref expr) => self.dump_expr_is(expr),
             ExprData::Lambda(ref expr) => self.dump_expr_lambda(expr),
             ExprData::Block(ref expr) => self.dump_expr_block(expr),
             ExprData::If(ref expr) => self.dump_expr_if(expr),
@@ -453,6 +454,11 @@ impl AstDumper {
         self.indent(|d| d.dump_expr(&expr.object));
         dump!(self, "as @ {} {}", expr.span, expr.id);
         self.indent(|d| d.dump_type(&expr.data_type));
+    }
+
+    fn dump_expr_is(&mut self, expr: &ExprIsType) {
+        self.indent(|d| d.dump_expr(&expr.object));
+        dump!(self, "is @ {} {}", expr.span, expr.id);
     }
 
     fn dump_expr_self(&mut self, selfie: &ExprSelfType) {

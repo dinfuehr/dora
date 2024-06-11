@@ -297,6 +297,10 @@ pub fn walk_expr<V: Visitor>(v: &mut V, e: &ExprData) {
             v.visit_type(&value.data_type);
         }
 
+        ExprData::Is(ref value) => {
+            v.visit_expr(&value.object);
+        }
+
         ExprData::Lambda(ref fct) => v.visit_fct(fct),
 
         ExprData::Block(ref value) => {

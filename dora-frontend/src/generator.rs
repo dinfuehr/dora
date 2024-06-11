@@ -949,6 +949,10 @@ impl<'a> AstBytecodeGen<'a> {
         dest
     }
 
+    fn visit_expr_is(&mut self, _node: &ast::ExprIsType, _dest: DataDest) -> Register {
+        unimplemented!()
+    }
+
     fn last_context_register(&self) -> Option<Register> {
         self.entered_contexts
             .iter()

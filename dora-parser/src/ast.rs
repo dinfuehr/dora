@@ -613,6 +613,7 @@ impl TypeData {
 #[derive(Clone, Debug)]
 pub struct Impl {
     pub id: NodeId,
+    pub declaration_span: Span,
     pub span: Span,
     pub green: GreenNode,
 
@@ -716,6 +717,7 @@ impl FunctionKind {
 #[derive(Clone, Debug)]
 pub struct Function {
     pub id: NodeId,
+    pub declaration_span: Span,
     pub span: Span,
     pub green: GreenNode,
     pub modifiers: Option<ModifierList>,
@@ -1102,6 +1104,7 @@ pub enum ExprData {
     Dot(ExprDotType),
     This(ExprSelfType),
     Conv(ExprConvType),
+    Is(ExprIsType),
     Lambda(Arc<Function>),
     Block(ExprBlockType),
     If(ExprIfType),
@@ -1250,6 +1253,16 @@ impl ExprData {
 
             object,
             data_type,
+        })
+    }
+
+    pub fn create_is(id: NodeId, span: Span, object: Expr, pattern: MatchPattern) -> ExprData {
+        ExprData::Is(ExprIsType {
+            id,
+            span,
+
+            object,
+            pattern,
         })
     }
 
@@ -1768,6 +1781,7 @@ impl ExprData {
             ExprData::Dot(ref val) => val.span,
             ExprData::This(ref val) => val.span,
             ExprData::Conv(ref val) => val.span,
+            ExprData::Is(ref val) => val.span,
             ExprData::Lambda(ref val) => val.span,
             ExprData::Block(ref val) => val.span,
             ExprData::If(ref val) => val.span,
@@ -1800,6 +1814,7 @@ impl ExprData {
             ExprData::Dot(ref val) => val.id,
             ExprData::This(ref val) => val.id,
             ExprData::Conv(ref val) => val.id,
+            ExprData::Is(ref val) => val.id,
             ExprData::Lambda(ref val) => val.id,
             ExprData::Block(ref val) => val.id,
             ExprData::If(ref val) => val.id,
@@ -1843,6 +1858,15 @@ pub struct ExprConvType {
 
     pub object: Expr,
     pub data_type: Type,
+}
+
+#[derive(Clone, Debug)]
+pub struct ExprIsType {
+    pub id: NodeId,
+    pub span: Span,
+
+    pub object: Expr,
+    pub pattern: MatchPattern,
 }
 
 #[derive(Clone, Debug)]

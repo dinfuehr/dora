@@ -266,6 +266,7 @@ pub enum TokenKind {
     POSTFIX_EXPR,
     BINARY_EXPR,
     CONV_EXPR,
+    IS_EXPR,
 
     ERROR,
 }

@@ -455,6 +455,7 @@ impl Parser {
     }
 
     fn parse_impl(&mut self, modifiers: Option<ModifierList>) -> Arc<Impl> {
+        let start = self.current_span().start();
         self.start_node();
         self.assert(IMPL_KW);
         let type_params = self.parse_type_params();
@@ -470,6 +471,7 @@ impl Parser {
         };
 
         let where_bounds = self.parse_where();
+        let declaration_span = self.span_from(start);
 
         self.expect(L_BRACE);
 
@@ -485,6 +487,7 @@ impl Parser {
 
         Arc::new(Impl {
             id: self.new_node_id(),
+            declaration_span,
             span: self.finish_node(),
             green,
             modifiers,
@@ -864,6 +867,7 @@ impl Parser {
     }
 
     fn parse_function(&mut self, modifiers: Option<ModifierList>) -> Arc<Function> {
+        let start = self.current_span().start();
         self.start_node();
         self.assert(FN_KW);
         let name = self.expect_identifier();
@@ -871,6 +875,7 @@ impl Parser {
         let params = self.parse_function_params();
         let return_type = self.parse_function_type();
         let where_bounds = self.parse_where();
+        let declaration_span = self.span_from(start);
         let block = self.parse_function_block();
 
         let green = self.builder.finish_node(FN);
@@ -880,6 +885,7 @@ impl Parser {
             kind: FunctionKind::Function,
             modifiers: modifiers.clone(),
             name,
+            declaration_span,
             span: self.finish_node(),
             params,
             return_type,
@@ -1607,6 +1613,18 @@ impl Parser {
                     Arc::new(expr)
                 }
 
+                IS => {
+                    let right = self.parse_match_pattern();
+                    let span = self.span_from(start);
+
+                    self.builder
+                        .finish_node_starting_at(IS_EXPR, marker.clone());
+
+                    let expr = ExprData::create_is(self.new_node_id(), span, left, right);
+
+                    Arc::new(expr)
+                }
+
                 _ => {
                     let right = self.parse_binary_expr(right_precedence);
                     self.builder
@@ -2027,6 +2045,7 @@ impl Parser {
     }
 
     fn parse_lambda(&mut self) -> Expr {
+        let start = self.current_span().start();
         self.start_node();
         self.builder.start_node();
 
@@ -2052,6 +2071,8 @@ impl Parser {
             None
         };
 
+        let declaration_span = self.span_from(start);
+
         let block = self.parse_block();
         let green = self.builder.finish_node(LAMBDA_EXPR);
 
@@ -2060,6 +2081,7 @@ impl Parser {
             kind: FunctionKind::Lambda,
             modifiers: None,
             name: None,
+            declaration_span,
             span: self.finish_node(),
             params,
             return_type,

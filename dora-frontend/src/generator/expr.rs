@@ -26,6 +26,7 @@ pub(super) fn gen_expr(g: &mut AstBytecodeGen, expr: &ast::ExprData, dest: DataD
         ast::ExprData::Call(ref call) => g.visit_expr_call(call, dest),
         ast::ExprData::This(ref expr) => g.visit_expr_self(expr, dest),
         ast::ExprData::Conv(ref conv) => g.visit_expr_conv(conv, dest),
+        ast::ExprData::Is(ref node) => g.visit_expr_is(node, dest),
         ast::ExprData::Tuple(ref tuple) => g.visit_expr_tuple(tuple, dest),
         ast::ExprData::Paren(ref paren) => gen_expr(g, &paren.expr, dest),
         ast::ExprData::Match(ref expr) => gen_match(g, expr, dest),

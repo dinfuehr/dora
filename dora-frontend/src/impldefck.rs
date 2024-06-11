@@ -241,7 +241,7 @@ fn report_missing_methods(
 
         sa.report(
             impl_.file_id,
-            impl_.span,
+            impl_.declaration_span,
             ErrorMessage::ElementNotInImpl(mtd_name),
         )
     }
