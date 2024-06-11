@@ -7,11 +7,15 @@ use dora_parser::Span;
 
 pub struct Diagnostic {
     errors: Vec<ErrorDescriptor>,
+    warnings: Vec<ErrorDescriptor>,
 }
 
 impl Diagnostic {
     pub fn new() -> Diagnostic {
-        Diagnostic { errors: Vec::new() }
+        Diagnostic {
+            errors: Vec::new(),
+            warnings: Vec::new(),
+        }
     }
 
     pub fn errors(&self) -> &[ErrorDescriptor] {
@@ -20,6 +24,10 @@ impl Diagnostic {
 
     pub fn report(&mut self, file: SourceFileId, span: Span, msg: ErrorMessage) {
         self.errors.push(ErrorDescriptor::new(file, span, msg));
+    }
+
+    pub fn warn(&mut self, file: SourceFileId, span: Span, msg: ErrorMessage) {
+        self.warnings.push(ErrorDescriptor::new(file, span, msg));
     }
 
     pub fn report_without_location(&mut self, msg: ErrorMessage) {

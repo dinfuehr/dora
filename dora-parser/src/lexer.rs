@@ -571,6 +571,7 @@ fn keywords_in_map() -> HashMap<&'static str, TokenKind> {
 
     // casting
     keywords.insert("as", AS);
+    keywords.insert("is", IS);
 
     keywords.insert("type", TYPE_KW);
     keywords.insert("where", WHERE_KW);

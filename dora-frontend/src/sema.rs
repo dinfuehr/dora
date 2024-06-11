@@ -283,4 +283,8 @@ impl Sema {
     pub fn report_without_location(&self, msg: ErrorMessage) {
         self.diag.borrow_mut().report_without_location(msg);
     }
+
+    pub fn warn(&self, file: SourceFileId, span: Span, msg: ErrorMessage) {
+        self.diag.borrow_mut().warn(file, span, msg);
+    }
 }

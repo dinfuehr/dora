@@ -101,6 +101,7 @@ $all_configs = [
   $always_boots_config,
 ]
 $force_config = nil
+$select_config = nil
 $config = nil
 $exit_after_n_failures = nil
 $env = {}
@@ -140,10 +141,10 @@ def process_arguments
       $force_config = $all_configs.detect { |c| c.name == config_name }
       raise "unknown config #{config_name}" unless $force_config
       idx += 1
-    elsif arg == "--run-config"
+    elsif arg == "--select-config"
       config_name = ARGV[idx+1].to_s.strip
-      $config = $all_configs.detect { |c| c.name == config_name }
-      raise "unknown config #{config_name}" unless $config
+      $select_config = $all_configs.detect { |c| c.name == config_name }
+      raise "unknown config #{config_name}" unless $select_config
       idx += 1
     elsif arg == "--release"
       $release = true
@@ -745,15 +746,17 @@ def parse_test_file(file)
 
   if $force_config
     test_case.configs.push($force_config)
-  elsif $config
-    if $config.enabled_for?(test_dir)
-      test_case.configs.push($config)
-    else
-      test_case.set_ignore
-    end
   else
     for config in $all_configs do
       test_case.configs.push(config) if config.enabled_for?(test_dir)
+    end
+
+    if $select_config
+      if test_case.configs.include?($select_config)
+        test_case.configs = [$select_config]
+      else
+        test_case.set_ignore
+      end
     end
   end
 

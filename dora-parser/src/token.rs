@@ -123,8 +123,10 @@ pub enum TokenKind {
     PUB_KW,
     STATIC_KW,
 
-    // casting
+    // Renames in use.
     AS,
+    // Pattern matching.
+    IS,
 
     // operators – numbers
     ADD,
