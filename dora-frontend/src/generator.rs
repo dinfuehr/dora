@@ -771,7 +771,7 @@ impl<'a> AstBytecodeGen<'a> {
         let ident_type = self.analysis.map_idents.get(expr.id).cloned().unwrap();
 
         match ident_type {
-            IdentType::EnumValue(enum_id, type_params, variant_idx) => {
+            IdentType::EnumVariant(enum_id, type_params, variant_idx) => {
                 self.emit_new_enum(enum_id, type_params, variant_idx, self.loc(expr.span), dest)
             }
 
@@ -885,7 +885,7 @@ impl<'a> AstBytecodeGen<'a> {
         let ident_type = self.analysis.map_idents.get(expr.id).cloned().unwrap();
 
         match ident_type {
-            IdentType::EnumValue(enum_id, type_params, variant_idx) => {
+            IdentType::EnumVariant(enum_id, type_params, variant_idx) => {
                 self.emit_new_enum(enum_id, type_params, variant_idx, self.loc(expr.span), dest)
             }
 
@@ -956,7 +956,7 @@ impl<'a> AstBytecodeGen<'a> {
             let ident_type = self.analysis.map_idents.get(node.pattern.id).unwrap();
 
             match ident_type {
-                IdentType::EnumValue(enum_id, type_params, variant_id) => {
+                IdentType::EnumVariant(enum_id, type_params, variant_id) => {
                     (enum_id, type_params, variant_id)
                 }
                 _ => unreachable!(),
@@ -2559,7 +2559,7 @@ impl<'a> AstBytecodeGen<'a> {
                 self.visit_expr_ident_global(gid, dest, self.loc(ident.span))
             }
             &IdentType::Const(cid) => self.visit_expr_ident_const(cid, dest),
-            &IdentType::EnumValue(enum_id, ref type_params, variant_idx) => self.emit_new_enum(
+            &IdentType::EnumVariant(enum_id, ref type_params, variant_idx) => self.emit_new_enum(
                 enum_id,
                 type_params.clone(),
                 variant_idx,

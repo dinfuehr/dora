@@ -463,7 +463,7 @@ fn check_expr_match_pattern_enum_variant(
     used_variants.insert(variant_idx as usize);
     ck.analysis.map_idents.insert(
         pattern.id,
-        IdentType::EnumValue(enum_id, expr_type_params.clone(), variant_idx),
+        IdentType::EnumVariant(enum_id, expr_type_params.clone(), variant_idx),
     );
 
     let enum_ = ck.sa.enum_(enum_id);

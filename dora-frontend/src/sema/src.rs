@@ -249,35 +249,35 @@ pub struct OuterContextIdx(pub usize);
 
 #[derive(Debug, Clone)]
 pub enum IdentType {
-    /// name of local variable
+    /// Name of local variable.
     Var(VarId),
 
-    // context variable
+    // Context variable.
     Context(OuterContextIdx, ContextFieldId),
 
-    /// name of a global variable
+    // Name of a global variable.
     Global(GlobalDefinitionId),
 
-    /// field expression: <expr>.<field_name>
+    // Field expression: <expr>.<field_name>
     Field(SourceType, FieldId),
 
-    /// field expression: <expr>.<field_name>
+    // Field expression: <expr>.<field_name>
     StructField(SourceType, StructDefinitionFieldId),
 
-    /// name of structure
+    // Name of structure.
     Struct(StructDefinitionId),
 
-    // name of constant
+    // Name of constant.
     Const(ConstDefinitionId),
 
-    // name of function with type params: some_fct[T1, T2, ...]
+    // Name of function with type params: some_fct[T1, T2, ...].
     Fct(FctDefinitionId, SourceTypeArray),
 
-    // name of class with type params: SomeClass[T1, T2, ...]
+    // Name of class with type params: SomeClass[T1, T2, ...].
     Class(ClassDefinitionId, SourceTypeArray),
 
-    // specific value in enum
-    EnumValue(EnumDefinitionId, SourceTypeArray, u32),
+    // Specific enum variant.
+    EnumVariant(EnumDefinitionId, SourceTypeArray, u32),
 }
 
 impl IdentType {

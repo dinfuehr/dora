@@ -390,7 +390,7 @@ fn match_variant_idx(g: &AstBytecodeGen, pattern: &ast::MatchPattern) -> u32 {
     let ident_type = g.analysis.map_idents.get(pattern.id).unwrap();
 
     match ident_type {
-        IdentType::EnumValue(_, _, variant_idx) => (*variant_idx).try_into().unwrap(),
+        IdentType::EnumVariant(_, _, variant_idx) => (*variant_idx).try_into().unwrap(),
         _ => unreachable!(),
     }
 }

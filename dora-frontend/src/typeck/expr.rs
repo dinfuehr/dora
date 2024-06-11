@@ -612,7 +612,7 @@ fn check_expr_is(ck: &mut TypeCheck, e: &ast::ExprIsType, _expected_ty: SourceTy
                     if Some(enum_id) == value_enum_id {
                         ck.analysis.map_idents.insert(
                             e.pattern.id,
-                            IdentType::EnumValue(enum_id, value_type_params.clone(), variant_idx),
+                            IdentType::EnumVariant(enum_id, value_type_params.clone(), variant_idx),
                         );
                     } else {
                         let msg = ErrorMessage::EnumVariantExpected;
@@ -1531,7 +1531,7 @@ fn check_enum_value_without_args(
 
         ck.analysis.map_idents.insert(
             expr_id,
-            IdentType::EnumValue(enum_id, type_params.clone(), value),
+            IdentType::EnumVariant(enum_id, type_params.clone(), value),
         );
     } else {
         ck.sa.report(
@@ -1682,7 +1682,7 @@ pub(super) fn check_enum_value_without_args_id(
 
     ck.analysis.map_idents.insert(
         expr_id,
-        IdentType::EnumValue(enum_id, type_params.clone(), variant_idx),
+        IdentType::EnumVariant(enum_id, type_params.clone(), variant_idx),
     );
 
     if type_params_ok {
