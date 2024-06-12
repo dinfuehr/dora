@@ -49,6 +49,7 @@ pub enum ErrorMessage {
     MatchPatternNoParens,
     MatchPatternWrongNumberOfParams(usize, usize),
     EnumExpected,
+    EnumMismatch(String, String),
     EnumVariantExpected,
     MatchUncoveredVariant,
     MatchUnreachablePattern,
@@ -313,6 +314,9 @@ impl ErrorMessage {
             }
             ErrorMessage::VarAlreadyInPattern => "var is already used in pattern.".into(),
             ErrorMessage::EnumExpected => format!("enum expected."),
+            ErrorMessage::EnumMismatch(ref value, ref pattern) => {
+                format!("value of type {} but pattern of type {}.", value, pattern)
+            }
             ErrorMessage::EnumVariantExpected => format!("enum variant expected."),
             ErrorMessage::MatchUncoveredVariant => "not all variants are covered.".into(),
             ErrorMessage::MatchUnreachablePattern => "unreachable pattern.".into(),

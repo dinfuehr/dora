@@ -600,23 +600,49 @@ fn check_expr_is(ck: &mut TypeCheck, e: &ast::ExprIsType, _expected_ty: SourceTy
     let value_enum_id = value_type.enum_id();
     let value_type_params = value_type.type_params();
 
+    if value_enum_id.is_none() {
+        let msg = ErrorMessage::EnumExpected;
+        ck.sa.report(ck.file_id, e.value.span(), msg);
+    }
+
     match e.pattern.data {
-        MatchPatternData::Underscore => unimplemented!(),
+        MatchPatternData::Underscore => {
+            let msg = ErrorMessage::EnumVariantExpected;
+            ck.sa.report(ck.file_id, e.pattern.span, msg);
+        }
 
         MatchPatternData::Ident(ref ident) => {
             let sym = read_path(ck, &ident.path);
             assert!(ident.params.is_none());
 
+            let given_params = ident.params.as_ref().map(|p| p.len()).unwrap_or(0);
+
             match sym {
                 Ok(SymbolKind::EnumVariant(enum_id, variant_idx)) => {
+                    let pattern_enum = ck.sa.enum_(enum_id);
+                    let variant = &pattern_enum.variants[variant_idx as usize];
+
                     if Some(enum_id) == value_enum_id {
                         ck.analysis.map_idents.insert(
                             e.pattern.id,
                             IdentType::EnumVariant(enum_id, value_type_params.clone(), variant_idx),
                         );
-                    } else {
-                        let msg = ErrorMessage::EnumVariantExpected;
+                    } else if value_enum_id.is_some() {
+                        let value_enum = ck.sa.enum_(value_enum_id.expect("missing"));
+                        let value_enum_name = value_enum.name(ck.sa);
+                        let pattern_enum = pattern_enum.name(ck.sa);
+                        let msg = ErrorMessage::EnumMismatch(value_enum_name, pattern_enum);
                         ck.sa.report(ck.file_id, ident.path.span, msg);
+                    }
+
+                    let expected_params = variant.types().len();
+
+                    if given_params != expected_params {
+                        let msg = ErrorMessage::MatchPatternWrongNumberOfParams(
+                            given_params,
+                            expected_params,
+                        );
+                        ck.sa.report(ck.file_id, e.pattern.span, msg);
                     }
                 }
 

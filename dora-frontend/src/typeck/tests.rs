@@ -4024,4 +4024,52 @@ fn is_pattern_no_args() {
         (4, 18),
         ErrorMessage::EnumVariantExpected,
     );
+
+    err(
+        "
+        enum Foo { A(Int64), B }
+        fn isA(x: Foo): Bool {
+            x is Foo::A
+        }
+    ",
+        (4, 18),
+        ErrorMessage::MatchPatternWrongNumberOfParams(0, 1),
+    );
+
+    err(
+        "
+        enum Foo { A, B }
+        fn isA(x: Int64): Bool {
+            x is Foo::A
+        }
+    ",
+        (4, 13),
+        ErrorMessage::EnumExpected,
+    );
+
+    err(
+        "
+        enum Foo { A, B }
+        enum Bar { C, D }
+        fn isA(x: Bar): Bool {
+            x is Foo::A
+        }
+    ",
+        (5, 18),
+        ErrorMessage::EnumMismatch("Bar".into(), "Foo".into()),
+    );
+}
+
+#[test]
+fn is_pattern_underscore() {
+    err(
+        "
+        enum Foo { A, B }
+        fn isA(x: Foo): Bool {
+            x is _
+        }
+    ",
+        (4, 18),
+        ErrorMessage::EnumVariantExpected,
+    );
 }
