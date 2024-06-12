@@ -2,11 +2,12 @@ use std::collections::HashSet;
 use std::time::Instant;
 
 use dora_bytecode::{
-    BytecodeInstruction, BytecodeReader, BytecodeTypeArray, ConstPoolEntry, FunctionId,
+    BytecodeInstruction, BytecodeReader, BytecodeType, BytecodeTypeArray, ConstPoolEntry,
+    FunctionId, FunctionKind,
 };
 
 use crate::compiler::generate_fct;
-use crate::vm::{specialize_bty_array, VM};
+use crate::vm::{find_trait_impl, specialize_bty_array, VM};
 
 pub fn compile_boots_aot(vm: &VM) {
     if vm.program.boots_package_id.is_some() {
@@ -74,6 +75,32 @@ impl<'a> TransitiveClosure<'a> {
                     let callee_type_params =
                         specialize_bty_array(&callee_type_params, &type_params);
                     self.push(callee_fct_id, callee_type_params);
+                }
+
+                BytecodeInstruction::InvokeGenericDirect { fct, .. }
+                | BytecodeInstruction::InvokeGenericStatic { fct, .. } => {
+                    let (id, callee_trait_fct_id, callee_type_params) =
+                        match bytecode_function.const_pool(fct) {
+                            ConstPoolEntry::Generic(id, fct_id, type_params) => {
+                                (*id, *fct_id, type_params.clone())
+                            }
+                            _ => unreachable!(),
+                        };
+                    let fct = &self.vm.program.functions[callee_trait_fct_id.0 as usize];
+
+                    let trait_id = match fct.kind {
+                        FunctionKind::Trait(trait_id) => trait_id,
+                        _ => unreachable!(),
+                    };
+                    let trait_ty = BytecodeType::Trait(trait_id, callee_type_params.clone());
+
+                    let ty = type_params[id as usize].clone();
+
+                    let callee_id = find_trait_impl(self.vm, callee_trait_fct_id, trait_ty, ty);
+
+                    let callee_type_params =
+                        specialize_bty_array(&callee_type_params, &type_params);
+                    self.push(callee_id, callee_type_params);
                 }
 
                 _ => {}

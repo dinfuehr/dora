@@ -171,7 +171,7 @@ impl<'a> BytecodeTypePrinter<'a> {
     ) -> std::fmt::Result {
         let mut first = true;
         for ty in types.iter() {
-            if first {
+            if !first {
                 write!(fmt, ", ")?;
             }
             self.name(&ty, fmt)?;

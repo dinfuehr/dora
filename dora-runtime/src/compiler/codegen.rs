@@ -87,10 +87,10 @@ pub fn generate_fct(vm: &VM, fct_id: FunctionId, type_params: &BytecodeTypeArray
     if vm.flags.emit_compiler {
         let duration = start.expect("missing start time").elapsed();
         println!(
-            "compile {} using {} in {}ms.",
+            "compile {} using {} in {:.3}ms.",
             display_fct(vm, fct_id),
             compiler,
-            (duration.as_micros() as f64) / 1000.0
+            duration.as_secs_f32() * 1000.0
         );
     }
 
