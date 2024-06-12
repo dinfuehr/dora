@@ -241,6 +241,10 @@ impl VM {
         compiler::generate_fct(self, fct_id, &type_params)
     }
 
+    pub fn compile_boots_aot(&self) {
+        compiler::aot::compile_boots_aot(self);
+    }
+
     pub fn dump_gc_summary(&self, runtime: f32) {
         self.gc.dump_summary(runtime);
     }

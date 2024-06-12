@@ -1,7 +1,6 @@
 use std::fs::File;
 use std::io::{self, Read, Write};
 use std::path::PathBuf;
-use std::time::Instant;
 
 use crate::driver::cmd::{self, Args};
 use dora_bytecode::{FunctionData, FunctionId, PackageId, Program};
@@ -87,12 +86,6 @@ pub fn start() -> i32 {
 
     set_vm(&vm);
 
-    let timer = if vm.flags.gc_stats {
-        Some(Instant::now())
-    } else {
-        None
-    };
-
     let exit_code = if command.is_test() {
         run_tests(&vm, &args, vm.program.program_package_id)
     } else if command.is_test_boots() {
@@ -112,7 +105,7 @@ pub fn start() -> i32 {
     vm.shutdown();
 
     if vm.flags.gc_stats {
-        let duration = timer.expect("missing timer").elapsed();
+        let duration = vm.startup_time().elapsed();
         vm.dump_gc_summary(duration.as_secs_f32() * 1000f32);
     }
 
@@ -311,7 +304,10 @@ fn test_filter_matches(vm: &VM, args: &Args, fct_id: FunctionId) -> bool {
 }
 
 fn run_main(vm: &VM, main: FunctionId) -> i32 {
-    let res = execute_on_main(|| vm.run(main));
+    let res = execute_on_main(|| {
+        vm.compile_boots_aot();
+        vm.run(main)
+    });
     let fct = &vm.program.functions[main.0 as usize];
     let is_unit = fct.return_type.is_unit();
 

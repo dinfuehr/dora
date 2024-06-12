@@ -1,6 +1,7 @@
 pub use crate::compiler::codegen::generate_fct;
 pub use crate::compiler::runtime_entry_trampoline::*;
 
+pub mod aot;
 pub mod asm;
 pub mod codegen;
 pub mod dora_entry_trampoline;
