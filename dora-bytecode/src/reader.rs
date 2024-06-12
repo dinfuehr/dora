@@ -458,12 +458,12 @@ impl<'a> BytecodeReader<'a> {
 }
 
 impl<'a> Iterator for BytecodeReader<'a> {
-    type Item = BytecodeInstruction;
+    type Item = (usize, BytecodeOpcode, BytecodeInstruction);
 
-    fn next(&mut self) -> Option<BytecodeInstruction> {
+    fn next(&mut self) -> Option<(usize, BytecodeOpcode, BytecodeInstruction)> {
         if self.offset < self.code.len() {
-            let (_start, _opcode, inst) = self.read_instruction();
-            Some(inst)
+            let (start, opcode, inst) = self.read_instruction();
+            Some((start, opcode, inst))
         } else {
             assert_eq!(self.offset, self.code.len());
             None
@@ -488,12 +488,9 @@ where
     }
 
     fn read(&mut self) {
-        let mut last = self.iterator.offset();
-
-        while let Some(inst) = self.iterator.next() {
-            self.visitor.visit_instruction(BytecodeOffset(last as u32));
+        while let Some((start, _opcode, inst)) = self.iterator.next() {
+            self.visitor.visit_instruction(BytecodeOffset(start as u32));
             self.dispatch_instruction(inst);
-            last = self.iterator.offset();
         }
     }
 
