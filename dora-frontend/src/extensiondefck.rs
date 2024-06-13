@@ -130,13 +130,7 @@ impl<'x> ExtensionCheck<'x> {
 
         assert!(extension.ty.set(extension_ty).is_ok());
 
-        for &method_id in self
-            .sa
-            .extension(self.extension_id)
-            .methods
-            .get()
-            .expect("missing method")
-        {
+        for &method_id in self.sa.extension(self.extension_id).methods() {
             self.visit_method(method_id);
         }
 

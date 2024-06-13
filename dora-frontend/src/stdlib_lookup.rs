@@ -1717,7 +1717,7 @@ fn find_method_in_extensions(
     for &extension_id in extensions.iter() {
         let extension = sa.extension(extension_id);
 
-        for &mid in extension.methods.get().expect("missing methods") {
+        for &mid in extension.methods() {
             let mtd = sa.fct(mid);
 
             if mtd.name == name && mtd.is_static == is_static {

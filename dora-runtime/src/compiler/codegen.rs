@@ -1,3 +1,4 @@
+use std::sync::Arc;
 use std::time::Instant;
 
 use crate::boots;
@@ -7,17 +8,16 @@ use crate::cpu::{FReg, Reg};
 use crate::disassembler;
 use crate::gc::Address;
 use crate::os;
-use crate::vm::CompilerName;
-use crate::vm::{display_fct, install_code, CodeDescriptor, CodeKind, VM};
+use crate::vm::{
+    display_fct, display_ty_without_type_params, install_code, Code, CodeDescriptor, CodeId,
+    CodeKind, CompilerName, VM,
+};
 use dora_bytecode::{
     dump_stdout, BytecodeFunction, BytecodeType, BytecodeTypeArray, FunctionData, FunctionId,
     Location,
 };
 
-pub fn generate_fct(vm: &VM, fct_id: FunctionId, type_params: &BytecodeTypeArray) -> Address {
-    debug_assert!(type_params.iter().all(|ty| ty.is_concrete_type()));
-    let program_fct = &vm.program.functions[fct_id.0 as usize];
-
+pub fn compile_fct_lazily(vm: &VM, fct_id: FunctionId, type_params: &BytecodeTypeArray) -> Address {
     // Block here if compilation is already in progress.
     if let Some(instruction_start) =
         vm.compilation_database
@@ -26,11 +26,72 @@ pub fn generate_fct(vm: &VM, fct_id: FunctionId, type_params: &BytecodeTypeArray
         return instruction_start;
     }
 
+    let program_fct = &vm.program.functions[fct_id.0 as usize];
+    let params = BytecodeTypeArray::new(program_fct.params.clone());
+    let bytecode_fct = program_fct.bytecode.as_ref().expect("missing bytecode");
+
+    let (code_id, code) =
+        compile_fct_to_code(vm, fct_id, program_fct, params, bytecode_fct, type_params);
+
+    // Mark compilation as finished and resume threads waiting for compilation.
+    vm.compilation_database
+        .finish_compilation(fct_id, type_params.clone(), code_id);
+
+    code.instruction_start()
+}
+
+pub fn compile_fct_aot(vm: &VM, fct_id: FunctionId, type_params: &BytecodeTypeArray) -> Address {
+    let program_fct = &vm.program.functions[fct_id.0 as usize];
+    let params = BytecodeTypeArray::new(program_fct.params.clone());
+    let bytecode_fct = program_fct.bytecode.as_ref().expect("missing bytecode");
+
+    let (code_id, code) =
+        compile_fct_to_code(vm, fct_id, program_fct, params, bytecode_fct, type_params);
+    vm.compilation_database
+        .compile_aot(fct_id, type_params.clone(), code_id);
+    code.instruction_start()
+}
+
+fn compile_fct_to_code(
+    vm: &VM,
+    fct_id: FunctionId,
+    program_fct: &FunctionData,
+    params: BytecodeTypeArray,
+    bytecode_fct: &BytecodeFunction,
+    type_params: &BytecodeTypeArray,
+) -> (CodeId, Arc<Code>) {
+    let (code_descriptor, compiler, code_kind) =
+        compile_fct_to_descriptor(vm, fct_id, program_fct, params, bytecode_fct, type_params);
+    let code = install_code(vm, code_descriptor, code_kind);
+
+    // We need to insert into CodeMap before releasing the compilation-lock. Otherwise
+    // another thread could run that function while the function can't be found in the
+    // CodeMap yet. This would lead to a crash e.g. for lazy compilation.
+    let code_id = vm.add_code(code.clone());
+
+    if should_emit_asm(vm, fct_id, compiler) {
+        disassembler::disassemble(vm, fct_id, &type_params, &code);
+    }
+
+    if vm.flags.enable_perf {
+        let name = display_fct(vm, fct_id);
+        os::perf::register_with_perf(&code, &name);
+    }
+
+    (code_id, code)
+}
+
+fn compile_fct_to_descriptor(
+    vm: &VM,
+    fct_id: FunctionId,
+    program_fct: &FunctionData,
+    params: BytecodeTypeArray,
+    bytecode_fct: &BytecodeFunction,
+    type_params: &BytecodeTypeArray,
+) -> (CodeDescriptor, CompilerName, CodeKind) {
+    debug_assert!(type_params.iter().all(|ty| ty.is_concrete_type()));
+
     let compiler = select_compiler(vm, program_fct);
-    let bytecode_fct = program_fct
-        .bytecode
-        .as_ref()
-        .expect("bytecode for function missing");
 
     let emit_bytecode = should_emit_bytecode(vm, fct_id, compiler);
 
@@ -49,7 +110,7 @@ pub fn generate_fct(vm: &VM, fct_id: FunctionId, type_params: &BytecodeTypeArray
 
     let compilation_data = CompilationData {
         bytecode_fct,
-        params: BytecodeTypeArray::new(program_fct.params.clone()),
+        params,
         has_variadic_parameter: program_fct.is_variadic,
         return_type: program_fct.return_type.clone(),
         type_params: type_params.clone(),
@@ -73,49 +134,43 @@ pub fn generate_fct(vm: &VM, fct_id: FunctionId, type_params: &BytecodeTypeArray
         ),
     };
 
-    let code = install_code(vm, code_descriptor, code_kind);
-
-    // We need to insert into CodeMap before releasing the compilation-lock. Otherwise
-    // another thread could run that function while the function can't be found in the
-    // CodeMap yet. This would lead to a crash e.g. for lazy compilation.
-    let code_id = vm.add_code(code.clone());
-
-    // Mark compilation as finished and resume threads waiting for compilation.
-    vm.compilation_database
-        .finish_compilation(fct_id, type_params.clone(), code_id);
-
     if vm.flags.emit_compiler {
         let duration = start.expect("missing start time").elapsed();
+        let mut name = display_fct(vm, fct_id);
+        if type_params.len() > 0 {
+            name.push_str(" with [");
+            let mut first = true;
+
+            for ty in type_params.iter() {
+                if !first {
+                    name.push_str(", ");
+                }
+
+                name.push_str(&display_ty_without_type_params(vm, &ty));
+                first = false;
+            }
+
+            name.push_str("]");
+        }
         println!(
             "compile {} using {} in {:.3}ms.",
-            display_fct(vm, fct_id),
+            name,
             compiler,
             duration.as_secs_f32() * 1000.0
         );
     }
 
-    if vm.flags.enable_perf {
-        let name = display_fct(vm, fct_id);
-        os::perf::register_with_perf(&code, &name);
-    }
-
-    if emit_asm {
-        disassembler::disassemble(vm, fct_id, &type_params, &code);
-    }
-
-    code.instruction_start()
+    (code_descriptor, compiler, code_kind)
 }
 
-pub fn generate_thunk(
+pub fn compile_thunk_jit(
     vm: &VM,
     trait_fct_id: FunctionId,
-    trait_object_ty: BytecodeType,
     type_params: &BytecodeTypeArray,
-    bytecode_fct: BytecodeFunction,
+    trait_object_ty: BytecodeType,
+    actual_ty: BytecodeType,
+    bytecode_fct: &BytecodeFunction,
 ) -> Address {
-    debug_assert!(type_params.iter().all(|ty| ty.is_concrete_type()));
-    let trait_fct = &vm.program.functions[trait_fct_id.0 as usize];
-
     // Block here if compilation is already in progress.
     if let Some(instruction_start) =
         vm.compilation_database
@@ -124,87 +179,71 @@ pub fn generate_thunk(
         return instruction_start;
     }
 
-    let compiler = select_compiler(vm, trait_fct);
-    let emit_bytecode = should_emit_bytecode(vm, trait_fct_id, compiler);
-
-    if emit_bytecode {
-        dump_stdout(&vm.program, trait_fct, &bytecode_fct);
-    }
-
-    let emit_debug = should_emit_debug(vm, trait_fct_id, compiler);
-    let emit_asm = should_emit_asm(vm, trait_fct_id, compiler);
-    let emit_graph = should_emit_graph(vm, trait_fct_id);
-    let mut start = None;
-
-    if vm.flags.emit_compiler {
-        start = Some(Instant::now());
-    }
-
-    let mut params = trait_fct.params.clone();
-    assert_eq!(params[0], BytecodeType::This);
-    params[0] = trait_object_ty;
-
-    let params = BytecodeTypeArray::new(params);
-    let return_type = trait_fct.return_type.clone();
-    let has_variadic_parameter = trait_fct.is_variadic;
-
-    let compilation_data = CompilationData {
-        bytecode_fct: &bytecode_fct,
-        params,
-        has_variadic_parameter,
-        return_type,
-        type_params: type_params.clone(),
-        loc: trait_fct.loc,
-
-        emit_debug,
-        emit_code_comments: emit_asm,
-        emit_graph,
-    };
-
-    let flags = CompilationFlags::jit();
-
-    let (code_descriptor, kind) = match compiler {
-        CompilerName::Cannon => (
-            cannon::compile(vm, compilation_data, flags),
-            CodeKind::BaselineFct(trait_fct_id),
-        ),
-        CompilerName::Boots => (
-            boots::compile(vm, compilation_data, flags),
-            CodeKind::OptimizedFct(trait_fct_id),
-        ),
-    };
-
-    let code = install_code(vm, code_descriptor, kind);
-
-    // We need to insert into CodeMap before releasing the compilation-lock. Otherwise
-    // another thread could run that function while the function can't be found in the
-    // CodeMap yet. This would lead to a crash e.g. for lazy compilation.
-    let code_id = vm.add_code(code.clone());
+    let (code_id, code) = compile_thunk_to_code(
+        vm,
+        trait_fct_id,
+        type_params,
+        trait_object_ty,
+        actual_ty,
+        bytecode_fct,
+    );
 
     // Mark compilation as finished and resume threads waiting for compilation.
     vm.compilation_database
         .finish_compilation(trait_fct_id, type_params.clone(), code_id);
 
-    if vm.flags.emit_compiler {
-        let duration = start.expect("missing start time").elapsed();
-        println!(
-            "compile {} using {} in {}ms.",
-            display_fct(vm, trait_fct_id),
-            compiler,
-            (duration.as_micros() as f64) / 1000.0
-        );
-    }
+    code.instruction_start()
+}
 
-    if vm.flags.enable_perf {
-        let name = display_fct(vm, trait_fct_id);
-        os::perf::register_with_perf(&code, &name);
-    }
+pub fn compile_thunk_aot(
+    vm: &VM,
+    trait_fct_id: FunctionId,
+    type_params: &BytecodeTypeArray,
+    trait_object_ty: BytecodeType,
+    actual_ty: BytecodeType,
+    bytecode_fct: &BytecodeFunction,
+) -> Address {
+    let (code_id, code) = compile_thunk_to_code(
+        vm,
+        trait_fct_id,
+        type_params,
+        trait_object_ty,
+        actual_ty,
+        bytecode_fct,
+    );
 
-    if emit_asm {
-        disassembler::disassemble(vm, trait_fct_id, &type_params, &code);
-    }
+    vm.compilation_database
+        .compile_aot(trait_fct_id, type_params.clone(), code_id);
 
     code.instruction_start()
+}
+
+fn compile_thunk_to_code(
+    vm: &VM,
+    trait_fct_id: FunctionId,
+    type_params: &BytecodeTypeArray,
+    trait_object_ty: BytecodeType,
+    _actual_ty: BytecodeType,
+    bytecode_fct: &BytecodeFunction,
+) -> (CodeId, Arc<Code>) {
+    debug_assert!(type_params.iter().all(|ty| ty.is_concrete_type()));
+
+    let trait_fct = &vm.program.functions[trait_fct_id.0 as usize];
+    let params = {
+        let mut params = trait_fct.params.clone();
+        assert_eq!(params[0], BytecodeType::This);
+        params[0] = trait_object_ty;
+        BytecodeTypeArray::new(params)
+    };
+
+    compile_fct_to_code(
+        vm,
+        trait_fct_id,
+        trait_fct,
+        params,
+        bytecode_fct,
+        type_params,
+    )
 }
 
 pub fn generate_bytecode(vm: &VM, compilation_data: CompilationData) -> CodeDescriptor {

@@ -31,12 +31,13 @@ pub fn ensure_compiled(
         actual_ty.clone(),
     );
 
-    compiler::codegen::generate_thunk(
+    compiler::codegen::compile_thunk_jit(
         vm,
         trait_fct_id,
-        trait_object_ty,
         &all_type_params,
-        bytecode,
+        trait_object_ty,
+        actual_ty,
+        &bytecode,
     )
 }
 

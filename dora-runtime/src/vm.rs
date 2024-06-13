@@ -31,7 +31,9 @@ pub use self::code::{
 };
 pub use self::code_map::CodeMap;
 pub use self::compilation::CompilationDatabase;
-pub use self::display::{display_fct, display_ty, display_ty_with_type_params};
+pub use self::display::{
+    display_fct, display_ty, display_ty_with_type_params, display_ty_without_type_params,
+};
 pub use self::enums::{enum_definition_name, EnumInstance, EnumInstanceId, EnumLayout};
 pub use self::extensions::block_matches_ty;
 pub use self::flags::{CollectorName, CompilerName, Flags, MemSize};
@@ -238,7 +240,7 @@ impl VM {
 
     pub fn ensure_compiled(&self, fct_id: FunctionId) -> Address {
         let type_params = BytecodeTypeArray::empty();
-        compiler::generate_fct(self, fct_id, &type_params)
+        compiler::compile_fct_lazily(self, fct_id, &type_params)
     }
 
     pub fn compile_boots_aot(&self) {

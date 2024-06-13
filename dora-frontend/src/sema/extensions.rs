@@ -63,6 +63,10 @@ impl ExtensionDefinition {
     pub fn ty(&self) -> &SourceType {
         self.ty.get().expect("missing type")
     }
+
+    pub fn methods(&self) -> &[FctDefinitionId] {
+        self.methods.get().expect("missing value")
+    }
 }
 
 mod matching {

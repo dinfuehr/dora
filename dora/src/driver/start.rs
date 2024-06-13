@@ -260,7 +260,7 @@ fn run_tests(vm: &VM, args: &Args, package_id: PackageId) -> i32 {
 
             tests += 1;
 
-            print!("test {} ... ", fct.name);
+            print!("test {} ... ", display_fct(vm, fct_id));
 
             run_test(vm, fct_id);
             passed += 1;

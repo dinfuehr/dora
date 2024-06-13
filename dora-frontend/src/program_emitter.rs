@@ -3,14 +3,15 @@ use std::collections::HashMap;
 use crate::Sema;
 use dora_bytecode::program::{AliasData, ImplData};
 use dora_bytecode::{
-    ClassData, ClassField, EnumData, EnumVariant, FunctionData, FunctionId, FunctionKind,
-    GlobalData, ImplId, ModuleData, ModuleId, PackageData, PackageId, Program, SourceFileData,
-    SourceFileId, StructData, StructField, TraitData, TraitId, TypeParamBound, TypeParamData,
+    ClassData, ClassField, EnumData, EnumVariant, ExtensionData, ExtensionId, FunctionData,
+    FunctionId, FunctionKind, GlobalData, ImplId, ModuleData, ModuleId, PackageData, PackageId,
+    Program, SourceFileData, SourceFileId, StructData, StructField, TraitData, TraitId,
+    TypeParamBound, TypeParamData,
 };
 
 use crate::generator::bty_from_ty;
 
-use crate::sema::{self as sa, GlobalDefinition, GlobalDefinitionId};
+use crate::sema::{self as sa, ExtensionDefinitionId, GlobalDefinition, GlobalDefinitionId};
 use crate::sema::{
     ClassDefinition, FctDefinitionId, FctParent, ModuleDefinitionId, PackageDefinitionId,
     PackageName, StructDefinition, TypeParamDefinition,
@@ -36,6 +37,7 @@ pub fn emit_program(sa: Sema) -> Program {
         structs: create_structs(&sa),
         enums: create_enums(&sa),
         traits: create_traits(&sa),
+        extensions: create_extensions(&sa),
         impls: create_impls(&sa),
         aliases: create_aliases(&sa),
         source_files: create_source_files(&sa),
@@ -85,6 +87,28 @@ fn create_modules(sa: &Sema) -> Vec<ModuleData> {
     result
 }
 
+fn create_extensions(sa: &Sema) -> Vec<ExtensionData> {
+    let mut result = Vec::new();
+
+    for (_id, extension) in sa.extensions.iter() {
+        let mut methods = Vec::new();
+
+        // The methods array for impl should have the exact same order as for the trait.
+        for method_id in extension.methods() {
+            methods.push(convert_function_id(*method_id));
+        }
+
+        result.push(ExtensionData {
+            module_id: convert_module_id(extension.module_id),
+            type_params: create_type_params(sa, extension.type_params()),
+            extended_ty: bty_from_ty(extension.ty().clone()),
+            methods,
+        });
+    }
+
+    result
+}
+
 fn create_impls(sa: &Sema) -> Vec<ImplData> {
     let mut result = Vec::new();
 
@@ -104,12 +128,22 @@ fn create_impls(sa: &Sema) -> Vec<ImplData> {
             methods.push(convert_function_id(target_method_id));
         }
 
+        let mut trait_method_map = Vec::new();
+
+        for (trait_method_id, impl_method_id) in impl_.trait_method_map() {
+            trait_method_map.push((
+                convert_function_id(*trait_method_id),
+                convert_function_id(*impl_method_id),
+            ))
+        }
+
         result.push(ImplData {
             module_id: convert_module_id(impl_.module_id),
             type_params: create_type_params(sa, impl_.type_params()),
             trait_ty: bty_from_ty(impl_.trait_ty()),
             extended_ty: bty_from_ty(impl_.extended_ty()),
             methods,
+            trait_method_map,
         });
     }
 
@@ -136,7 +170,9 @@ fn create_functions(sa: &Sema, e: &mut Emitter) -> Vec<FunctionData> {
         let name = sa.interner.str(fct.name).to_string();
 
         let kind = match fct.parent {
-            FctParent::Extension(..) => FunctionKind::Method,
+            FctParent::Extension(extension_id) => {
+                FunctionKind::Extension(convert_extension_id(extension_id))
+            }
             FctParent::Function => FunctionKind::Lambda,
             FctParent::Impl(impl_id) => FunctionKind::Impl(convert_impl_id(impl_id)),
             FctParent::Trait(trait_id) => FunctionKind::Trait(convert_trait_id(trait_id)),
@@ -423,6 +459,10 @@ fn convert_source_file_id(id: sa::SourceFileId) -> SourceFileId {
 
 fn convert_impl_id(id: ImplDefinitionId) -> ImplId {
     ImplId(id.index().try_into().expect("failure"))
+}
+
+fn convert_extension_id(id: ExtensionDefinitionId) -> ExtensionId {
+    ExtensionId(id.index().try_into().expect("failure"))
 }
 
 fn convert_trait_id(id: TraitDefinitionId) -> TraitId {

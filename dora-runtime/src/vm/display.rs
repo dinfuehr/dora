@@ -3,23 +3,49 @@ use dora_bytecode::{BytecodeType, BytecodeTypeArray, FunctionId, FunctionKind, T
 
 pub fn display_fct(vm: &VM, fct_id: FunctionId) -> String {
     let fct = &vm.program.functions[fct_id.0 as usize];
+    let mut container_type_params = 0;
     let mut repr = match fct.kind {
         FunctionKind::Trait(trait_id) => {
             let trait_ = &vm.program.traits[trait_id.0 as usize];
             module_path_name(vm, trait_.module_id, &trait_.name)
         }
 
-        FunctionKind::Method => {
+        FunctionKind::Extension(extension_id) => {
+            let extension = &vm.program.extensions[extension_id.0 as usize];
+            container_type_params = extension.type_params.names.len();
             let mut result = module_path(vm, fct.module_id);
-            if result.is_empty() {
+            if !result.is_empty() {
                 result.push_str("::");
             }
-            result.push_str("<extension block>");
+            result.push_str("<impl");
+
+            if !extension.type_params.names.is_empty() {
+                result.push_str("[");
+                let mut first = true;
+                for name in &extension.type_params.names {
+                    if !first {
+                        result.push_str(", ");
+                    }
+                    result.push_str(name);
+                    first = false;
+                }
+                result.push_str("]");
+            }
+
+            result.push_str(" ");
+            result.push_str(&display_ty_with_type_params(
+                vm,
+                &extension.extended_ty,
+                &extension.type_params,
+            ));
+            result.push_str(">");
+
             result
         }
 
         FunctionKind::Impl(impl_id) => {
             let impl_ = &vm.program.impls[impl_id.0 as usize];
+            container_type_params = impl_.type_params.names.len();
             let mut result = module_path(vm, fct.module_id);
             if !result.is_empty() {
                 result.push_str("::");
@@ -62,13 +88,37 @@ pub fn display_fct(vm: &VM, fct_id: FunctionId) -> String {
 
     repr.push_str("::");
     repr.push_str(&fct.name);
+
+    if fct.type_params.names.len() > container_type_params {
+        repr.push_str("[");
+        let mut first = true;
+        for name in fct.type_params.names.iter().skip(container_type_params) {
+            if !first {
+                repr.push_str(", ");
+            }
+            repr.push_str(name);
+            first = false;
+        }
+        repr.push_str("]");
+    }
+
     repr
 }
 
 pub fn display_ty(vm: &VM, ty: &BytecodeType) -> String {
     let printer = BytecodeTypePrinter {
         vm,
-        type_params: None,
+        type_params: TypeParamMode::Unknown,
+        ty: ty.clone(),
+    };
+
+    printer.string()
+}
+
+pub fn display_ty_without_type_params(vm: &VM, ty: &BytecodeType) -> String {
+    let printer = BytecodeTypePrinter {
+        vm,
+        type_params: TypeParamMode::None,
         ty: ty.clone(),
     };
 
@@ -82,16 +132,22 @@ pub fn display_ty_with_type_params(
 ) -> String {
     let printer = BytecodeTypePrinter {
         vm,
-        type_params: Some(type_params),
+        type_params: TypeParamMode::TypeParams(type_params),
         ty: ty.clone(),
     };
 
     printer.string()
 }
 
+enum TypeParamMode<'a> {
+    None,
+    Unknown,
+    TypeParams(&'a TypeParamData),
+}
+
 struct BytecodeTypePrinter<'a> {
     vm: &'a VM,
-    type_params: Option<&'a TypeParamData>,
+    type_params: TypeParamMode<'a>,
     ty: BytecodeType,
 }
 
@@ -132,13 +188,13 @@ impl<'a> BytecodeTypePrinter<'a> {
                 self.type_params(type_params, fmt)
             }
 
-            BytecodeType::TypeParam(idx) => {
-                if let Some(type_params) = self.type_params {
+            BytecodeType::TypeParam(idx) => match self.type_params {
+                TypeParamMode::None => panic!("type should not have type param"),
+                TypeParamMode::TypeParams(type_params) => {
                     write!(fmt, "{}", type_params.names[*idx as usize])
-                } else {
-                    write!(fmt, "TypeParam({})", idx)
                 }
-            }
+                TypeParamMode::Unknown => write!(fmt, "TypeParam({})", idx),
+            },
 
             BytecodeType::This => write!(fmt, "Self"),
 
@@ -154,7 +210,7 @@ impl<'a> BytecodeTypePrinter<'a> {
             BytecodeType::Tuple(subtypes) => {
                 write!(fmt, "(")?;
                 self.type_list(subtypes, fmt)?;
-                write!(fmt, ") -> ")
+                write!(fmt, ")")
             }
         }
     }

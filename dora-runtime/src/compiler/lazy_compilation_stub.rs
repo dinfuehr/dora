@@ -401,7 +401,7 @@ fn patch_lambda_call(vm: &VM, receiver: Handle<Obj>) -> Address {
         _ => unreachable!(),
     };
 
-    let fct_ptr = compiler::generate_fct(vm, lambda_id, &type_params);
+    let fct_ptr = compiler::compile_fct_lazily(vm, lambda_id, &type_params);
 
     let methodtable = vtable.table_mut();
     methodtable[0] = fct_ptr.to_usize();
@@ -443,7 +443,7 @@ fn patch_direct_call(
     type_params: &BytecodeTypeArray,
     disp: i32,
 ) -> Address {
-    let fct_ptr = compiler::generate_fct(vm, fct_id, type_params);
+    let fct_ptr = compiler::compile_fct_lazily(vm, fct_id, type_params);
     let fct_addr: *mut usize = (ra as isize - disp as isize) as *mut _;
 
     // update function pointer in data segment

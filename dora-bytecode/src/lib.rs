@@ -14,10 +14,10 @@ pub use data::*;
 pub use dumper::{dump, dump_stdout};
 pub use program::{
     AliasData, AliasId, ClassData, ClassField, ClassId, EnumData, EnumId, EnumVariant,
-    FunctionData, FunctionId, FunctionKind, GlobalData, GlobalId, ImplData, ImplId, Intrinsic,
-    ModuleData, ModuleId, NativeFunction, PackageData, PackageId, Program, SourceFileData,
-    SourceFileId, StructData, StructField, StructId, TraitData, TraitId, TypeParamBound,
-    TypeParamData,
+    ExtensionData, ExtensionId, FunctionData, FunctionId, FunctionKind, GlobalData, GlobalId,
+    ImplData, ImplId, Intrinsic, ModuleData, ModuleId, NativeFunction, PackageData, PackageId,
+    Program, SourceFileData, SourceFileId, StructData, StructField, StructId, TraitData, TraitId,
+    TypeParamBound, TypeParamData,
 };
 pub use reader::*;
 pub use ty::{BytecodeType, BytecodeTypeArray};

@@ -6,7 +6,8 @@ use dora_bytecode::{
     FunctionId, FunctionKind,
 };
 
-use crate::compiler::generate_fct;
+use crate::compiler::compile_fct_aot;
+use crate::compiler::trait_object_thunk::ensure_compiled as ensure_trait_thunk_compiled;
 use crate::vm::{find_trait_impl, specialize_bty_array, VM};
 
 pub fn compile_boots_aot(vm: &VM) {
@@ -48,7 +49,7 @@ impl<'a> TransitiveClosure<'a> {
         self.push(function_id, type_params);
 
         while let Some((function_id, type_params)) = self.worklist.pop() {
-            generate_fct(self.vm, function_id, &type_params);
+            compile_fct_aot(self.vm, function_id, &type_params);
             self.trace_function(function_id, type_params);
         }
     }
@@ -101,6 +102,52 @@ impl<'a> TransitiveClosure<'a> {
                     let callee_type_params =
                         specialize_bty_array(&callee_type_params, &type_params);
                     self.push(callee_id, callee_type_params);
+                }
+
+                BytecodeInstruction::NewLambda { idx, .. } => {
+                    let (callee_id, callee_type_params) = match bytecode_function.const_pool(idx) {
+                        ConstPoolEntry::Fct(fct_id, type_params) => (*fct_id, type_params),
+                        _ => unreachable!(),
+                    };
+
+                    let callee_type_params =
+                        specialize_bty_array(&callee_type_params, &type_params);
+                    self.push(callee_id, callee_type_params);
+                }
+
+                BytecodeInstruction::LoadGlobal { global_id, .. }
+                | BytecodeInstruction::StoreGlobal { global_id, .. } => {
+                    let global = &self.vm.program.globals[global_id.0 as usize];
+                    if let Some(callee_id) = global.initial_value {
+                        self.push(callee_id, BytecodeTypeArray::empty());
+                    }
+                }
+
+                BytecodeInstruction::InvokeVirtual { fct, .. } => {
+                    let (trait_object_ty, trait_fct_id, type_params) = match bytecode_function
+                        .const_pool(fct)
+                    {
+                        ConstPoolEntry::TraitObjectMethod(trait_object_ty, fct_id, type_params) => {
+                            (trait_object_ty.clone(), *fct_id, type_params)
+                        }
+                        _ => unreachable!(),
+                    };
+
+                    for impl_ in self.vm.program.impls.iter() {
+                        if impl_.trait_ty == trait_object_ty {
+                            for (trait_method_id, impl_method_id) in &impl_.trait_method_map {
+                                if *trait_method_id == trait_fct_id {
+                                    ensure_trait_thunk_compiled(
+                                        self.vm,
+                                        trait_fct_id,
+                                        type_params.clone(),
+                                        impl_.extended_ty.clone(),
+                                    );
+                                    self.push(*impl_method_id, type_params.clone());
+                                }
+                            }
+                        }
+                    }
                 }
 
                 _ => {}

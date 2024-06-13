@@ -1,4 +1,4 @@
-pub use crate::compiler::codegen::generate_fct;
+pub use crate::compiler::codegen::{compile_fct_aot, compile_fct_lazily};
 pub use crate::compiler::runtime_entry_trampoline::*;
 
 pub mod aot;
