@@ -31,10 +31,10 @@ pub use self::code::{
 };
 pub use self::code_map::CodeMap;
 pub use self::compilation::CompilationDatabase;
+pub use self::display::{display_fct, display_ty, display_ty_with_type_params};
 pub use self::enums::{enum_definition_name, EnumInstance, EnumInstanceId, EnumLayout};
 pub use self::extensions::block_matches_ty;
 pub use self::flags::{CollectorName, CompilerName, Flags, MemSize};
-pub use self::functions::display_fct;
 use self::globals::GlobalVariableMemory;
 pub use self::globals::{INITIALIZED, RUNNING, UNINITIALIZED};
 pub use self::impls::{bounds_for_tp, find_trait_impl, tp_implements_trait, ty_implements_trait};
@@ -48,17 +48,17 @@ pub use self::specialize::{
 };
 pub use self::structs::{StructInstance, StructInstanceField, StructInstanceId};
 pub use self::tuples::{get_concrete_tuple_bty, get_concrete_tuple_bty_array, ConcreteTuple};
-pub use self::ty::{display_ty, BytecodeTypeExt};
+pub use self::ty::BytecodeTypeExt;
 pub use self::waitlists::{ManagedCondition, ManagedMutex, WaitLists};
 
 mod classes;
 mod code;
 mod code_map;
 mod compilation;
+mod display;
 mod enums;
 mod extensions;
 mod flags;
-mod functions;
 mod globals;
 pub mod impls;
 mod initialize;

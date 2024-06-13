@@ -4,7 +4,7 @@ use std::cmp::Ordering;
 use std::collections::BTreeMap;
 
 use crate::gc::Address;
-use crate::vm::functions::display_fct;
+use crate::vm::display_fct;
 use crate::vm::{CodeId, CodeKind, VM};
 
 pub struct CodeMap {
