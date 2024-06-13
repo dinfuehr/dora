@@ -86,6 +86,8 @@ pub fn start() -> i32 {
 
     set_vm(&vm);
 
+    vm.compile_boots_aot();
+
     let exit_code = if command.is_test() {
         run_tests(&vm, &args, vm.program.program_package_id)
     } else if command.is_test_boots() {
@@ -304,10 +306,7 @@ fn test_filter_matches(vm: &VM, args: &Args, fct_id: FunctionId) -> bool {
 }
 
 fn run_main(vm: &VM, main: FunctionId) -> i32 {
-    let res = execute_on_main(|| {
-        vm.compile_boots_aot();
-        vm.run(main)
-    });
+    let res = execute_on_main(|| vm.run(main));
     let fct = &vm.program.functions[main.0 as usize];
     let is_unit = fct.return_type.is_unit();
 

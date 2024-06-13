@@ -17,7 +17,7 @@ use dora_bytecode::{
     Location,
 };
 
-pub fn compile_fct_lazily(vm: &VM, fct_id: FunctionId, type_params: &BytecodeTypeArray) -> Address {
+pub fn compile_fct_jit(vm: &VM, fct_id: FunctionId, type_params: &BytecodeTypeArray) -> Address {
     // Block here if compilation is already in progress.
     if let Some(instruction_start) =
         vm.compilation_database
@@ -52,7 +52,7 @@ pub fn compile_fct_aot(vm: &VM, fct_id: FunctionId, type_params: &BytecodeTypeAr
     code.instruction_start()
 }
 
-fn compile_fct_to_code(
+pub(super) fn compile_fct_to_code(
     vm: &VM,
     fct_id: FunctionId,
     program_fct: &FunctionData,
@@ -163,94 +163,7 @@ fn compile_fct_to_descriptor(
     (code_descriptor, compiler, code_kind)
 }
 
-pub fn compile_thunk_jit(
-    vm: &VM,
-    trait_fct_id: FunctionId,
-    type_params: &BytecodeTypeArray,
-    trait_object_ty: BytecodeType,
-    actual_ty: BytecodeType,
-    bytecode_fct: &BytecodeFunction,
-) -> Address {
-    // Block here if compilation is already in progress.
-    if let Some(instruction_start) =
-        vm.compilation_database
-            .compilation_request(vm, trait_fct_id, type_params.clone())
-    {
-        return instruction_start;
-    }
-
-    let (code_id, code) = compile_thunk_to_code(
-        vm,
-        trait_fct_id,
-        type_params,
-        trait_object_ty,
-        actual_ty,
-        bytecode_fct,
-    );
-
-    // Mark compilation as finished and resume threads waiting for compilation.
-    vm.compilation_database
-        .finish_compilation(trait_fct_id, type_params.clone(), code_id);
-
-    code.instruction_start()
-}
-
-pub fn compile_thunk_aot(
-    vm: &VM,
-    trait_fct_id: FunctionId,
-    type_params: &BytecodeTypeArray,
-    trait_object_ty: BytecodeType,
-    actual_ty: BytecodeType,
-    bytecode_fct: &BytecodeFunction,
-) -> Address {
-    let (code_id, code) = compile_thunk_to_code(
-        vm,
-        trait_fct_id,
-        type_params,
-        trait_object_ty,
-        actual_ty,
-        bytecode_fct,
-    );
-
-    vm.compilation_database
-        .compile_aot(trait_fct_id, type_params.clone(), code_id);
-
-    code.instruction_start()
-}
-
-fn compile_thunk_to_code(
-    vm: &VM,
-    trait_fct_id: FunctionId,
-    type_params: &BytecodeTypeArray,
-    trait_object_ty: BytecodeType,
-    _actual_ty: BytecodeType,
-    bytecode_fct: &BytecodeFunction,
-) -> (CodeId, Arc<Code>) {
-    debug_assert!(type_params.iter().all(|ty| ty.is_concrete_type()));
-
-    let trait_fct = &vm.program.functions[trait_fct_id.0 as usize];
-    let params = {
-        let mut params = trait_fct.params.clone();
-        assert_eq!(params[0], BytecodeType::This);
-        params[0] = trait_object_ty;
-        BytecodeTypeArray::new(params)
-    };
-
-    compile_fct_to_code(
-        vm,
-        trait_fct_id,
-        trait_fct,
-        params,
-        bytecode_fct,
-        type_params,
-    )
-}
-
-pub fn generate_bytecode(vm: &VM, compilation_data: CompilationData) -> CodeDescriptor {
-    cannon::compile(vm, compilation_data, CompilationFlags::jit())
-}
-
-pub fn select_compiler(vm: &VM, fct: &FunctionData) -> CompilerName {
+fn select_compiler(vm: &VM, fct: &FunctionData) -> CompilerName {
     if vm.flags.always_boots && fct.package_id == vm.program.program_package_id {
         return CompilerName::Boots;
     }
@@ -262,7 +175,7 @@ pub fn select_compiler(vm: &VM, fct: &FunctionData) -> CompilerName {
     }
 }
 
-pub fn should_emit_debug(vm: &VM, fct_id: FunctionId, compiler: CompilerName) -> bool {
+fn should_emit_debug(vm: &VM, fct_id: FunctionId, compiler: CompilerName) -> bool {
     if compiler == CompilerName::Boots && vm.flags.emit_debug_boots {
         return true;
     }
@@ -274,7 +187,7 @@ pub fn should_emit_debug(vm: &VM, fct_id: FunctionId, compiler: CompilerName) ->
     }
 }
 
-pub fn should_emit_bytecode(vm: &VM, fct_id: FunctionId, compiler: CompilerName) -> bool {
+fn should_emit_bytecode(vm: &VM, fct_id: FunctionId, compiler: CompilerName) -> bool {
     if !disassembler::supported() {
         return false;
     }
@@ -290,7 +203,7 @@ pub fn should_emit_bytecode(vm: &VM, fct_id: FunctionId, compiler: CompilerName)
     }
 }
 
-pub fn should_emit_asm(vm: &VM, fct_id: FunctionId, compiler: CompilerName) -> bool {
+fn should_emit_asm(vm: &VM, fct_id: FunctionId, compiler: CompilerName) -> bool {
     if !disassembler::supported() {
         return false;
     }
@@ -306,7 +219,7 @@ pub fn should_emit_asm(vm: &VM, fct_id: FunctionId, compiler: CompilerName) -> b
     }
 }
 
-pub fn should_emit_graph(vm: &VM, fct_id: FunctionId) -> bool {
+fn should_emit_graph(vm: &VM, fct_id: FunctionId) -> bool {
     if let Some(ref names) = vm.flags.emit_graph {
         fct_pattern_match(vm, fct_id, names)
     } else {
@@ -314,7 +227,7 @@ pub fn should_emit_graph(vm: &VM, fct_id: FunctionId) -> bool {
     }
 }
 
-pub fn fct_pattern_match(vm: &VM, fct_id: FunctionId, pattern: &str) -> bool {
+fn fct_pattern_match(vm: &VM, fct_id: FunctionId, pattern: &str) -> bool {
     if pattern == "all" {
         return true;
     }

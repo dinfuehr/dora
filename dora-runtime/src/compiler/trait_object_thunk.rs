@@ -1,29 +1,96 @@
+use std::sync::Arc;
+
 use crate::cannon::codegen::register_ty;
-use crate::compiler;
+use crate::compiler::codegen::compile_fct_to_code;
 use crate::gc::Address;
-use crate::vm::VM;
+use crate::vm::{Code, CodeId, VM};
 use dora_bytecode::{
     BytecodeBuilder, BytecodeFunction, BytecodeType, BytecodeTypeArray, FunctionId, FunctionKind,
     Register,
 };
 
-pub fn ensure_compiled(
+pub fn ensure_compiled_jit(
     vm: &VM,
     trait_fct_id: FunctionId,
-    type_params: BytecodeTypeArray,
+    trait_type_params: BytecodeTypeArray,
     actual_ty: BytecodeType,
 ) -> Address {
-    let all_type_params = type_params.append(actual_ty.clone());
+    let trait_object_ty = trait_object_ty(vm, trait_fct_id, &trait_type_params);
+    let all_type_params = trait_type_params.append(actual_ty.clone());
+
+    // Block here if compilation is already in progress.
+    if let Some(instruction_start) =
+        vm.compilation_database
+            .compilation_request(vm, trait_fct_id, all_type_params.clone())
+    {
+        return instruction_start;
+    }
+
+    let (code_id, code) = compile_thunk_to_code(
+        vm,
+        trait_fct_id,
+        &all_type_params,
+        trait_object_ty,
+        actual_ty,
+    );
+
+    // Mark compilation as finished and resume threads waiting for compilation.
+    vm.compilation_database
+        .finish_compilation(trait_fct_id, all_type_params.clone(), code_id);
+
+    code.instruction_start()
+}
+
+pub fn ensure_compiled_aot(
+    vm: &VM,
+    trait_fct_id: FunctionId,
+    trait_type_params: BytecodeTypeArray,
+    actual_ty: BytecodeType,
+) -> Address {
+    let trait_object_ty = trait_object_ty(vm, trait_fct_id, &trait_type_params);
+    let all_type_params = trait_type_params.append(actual_ty.clone());
+    let (code_id, code) = compile_thunk_to_code(
+        vm,
+        trait_fct_id,
+        &all_type_params,
+        trait_object_ty,
+        actual_ty,
+    );
+
+    vm.compilation_database
+        .compile_aot(trait_fct_id, all_type_params.clone(), code_id);
+
+    code.instruction_start()
+}
+
+fn trait_object_ty(
+    vm: &VM,
+    trait_fct_id: FunctionId,
+    type_params: &BytecodeTypeArray,
+) -> BytecodeType {
     let trait_fct = &vm.program.functions[trait_fct_id.0 as usize];
-    let trait_object_type_param_id = all_type_params.len() - 1;
 
     let trait_id = match trait_fct.kind {
         FunctionKind::Trait(trait_id) => trait_id,
         _ => unreachable!(),
     };
-    let trait_object_ty = BytecodeType::Trait(trait_id, type_params.clone());
 
-    let bytecode = generate_bytecode_for_thunk(
+    BytecodeType::Trait(trait_id, type_params.clone())
+}
+
+fn compile_thunk_to_code(
+    vm: &VM,
+    trait_fct_id: FunctionId,
+    type_params: &BytecodeTypeArray,
+    trait_object_ty: BytecodeType,
+    actual_ty: BytecodeType,
+) -> (CodeId, Arc<Code>) {
+    assert!(type_params.iter().all(|ty| ty.is_concrete_type()));
+
+    let trait_object_type_param_id = type_params.len() - 1;
+    assert_eq!(type_params[trait_object_type_param_id], actual_ty);
+
+    let bytecode_fct = generate_bytecode_for_thunk(
         vm,
         trait_fct_id,
         trait_object_ty.clone(),
@@ -31,13 +98,21 @@ pub fn ensure_compiled(
         actual_ty.clone(),
     );
 
-    compiler::codegen::compile_thunk_jit(
+    let trait_fct = &vm.program.functions[trait_fct_id.0 as usize];
+    let params = {
+        let mut params = trait_fct.params.clone();
+        assert_eq!(params[0], BytecodeType::This);
+        params[0] = trait_object_ty;
+        BytecodeTypeArray::new(params)
+    };
+
+    compile_fct_to_code(
         vm,
         trait_fct_id,
-        &all_type_params,
-        trait_object_ty,
-        actual_ty,
-        &bytecode,
+        trait_fct,
+        params,
+        &bytecode_fct,
+        type_params,
     )
 }
 

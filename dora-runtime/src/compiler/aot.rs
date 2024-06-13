@@ -6,8 +6,7 @@ use dora_bytecode::{
     FunctionId, FunctionKind,
 };
 
-use crate::compiler::compile_fct_aot;
-use crate::compiler::trait_object_thunk::ensure_compiled as ensure_trait_thunk_compiled;
+use crate::compiler::{compile_fct_aot, trait_object_thunk};
 use crate::vm::{find_trait_impl, specialize_bty_array, VM};
 
 pub fn compile_boots_aot(vm: &VM) {
@@ -20,7 +19,7 @@ pub fn compile_boots_aot(vm: &VM) {
         let duration = start.elapsed();
         if vm.flags.emit_compiler {
             println!(
-                "Compiled boots in {:.1}ms ({} functions)",
+                "compiled all of boots in {:.2}ms ({} functions)",
                 duration.as_secs_f32() * 1000.0f32,
                 compile_all.counter
             );
@@ -124,7 +123,7 @@ impl<'a> TransitiveClosure<'a> {
                 }
 
                 BytecodeInstruction::InvokeVirtual { fct, .. } => {
-                    let (trait_object_ty, trait_fct_id, type_params) = match bytecode_function
+                    let (trait_object_ty, trait_fct_id, trait_type_params) = match bytecode_function
                         .const_pool(fct)
                     {
                         ConstPoolEntry::TraitObjectMethod(trait_object_ty, fct_id, type_params) => {
@@ -137,12 +136,20 @@ impl<'a> TransitiveClosure<'a> {
                         if impl_.trait_ty == trait_object_ty {
                             for (trait_method_id, impl_method_id) in &impl_.trait_method_map {
                                 if *trait_method_id == trait_fct_id {
-                                    ensure_trait_thunk_compiled(
-                                        self.vm,
+                                    let actual_ty = impl_.extended_ty.clone();
+                                    if self.push_thunk(
                                         trait_fct_id,
-                                        type_params.clone(),
-                                        impl_.extended_ty.clone(),
-                                    );
+                                        trait_type_params.clone(),
+                                        actual_ty,
+                                    ) {
+                                        trait_object_thunk::ensure_compiled_aot(
+                                            self.vm,
+                                            trait_fct_id,
+                                            trait_type_params.clone(),
+                                            impl_.extended_ty.clone(),
+                                        );
+                                    }
+
                                     self.push(*impl_method_id, type_params.clone());
                                 }
                             }
@@ -155,11 +162,30 @@ impl<'a> TransitiveClosure<'a> {
         }
     }
 
-    fn push(&mut self, function_id: FunctionId, type_params: BytecodeTypeArray) {
+    fn push(&mut self, function_id: FunctionId, type_params: BytecodeTypeArray) -> bool {
         let function = &self.vm.program.functions[function_id.0 as usize];
         if function.bytecode.is_some() && self.visited.insert((function_id, type_params.clone())) {
             self.worklist.push((function_id, type_params));
             self.counter += 1;
+            true
+        } else {
+            false
+        }
+    }
+
+    fn push_thunk(
+        &mut self,
+        function_id: FunctionId,
+        type_params: BytecodeTypeArray,
+        actual_ty: BytecodeType,
+    ) -> bool {
+        let all_type_params = type_params.append(actual_ty);
+
+        if self.visited.insert((function_id, all_type_params.clone())) {
+            self.counter += 1;
+            true
+        } else {
+            false
         }
     }
 }

@@ -240,7 +240,7 @@ impl VM {
 
     pub fn ensure_compiled(&self, fct_id: FunctionId) -> Address {
         let type_params = BytecodeTypeArray::empty();
-        compiler::compile_fct_lazily(self, fct_id, &type_params)
+        compiler::compile_fct_jit(self, fct_id, &type_params)
     }
 
     pub fn compile_boots_aot(&self) {

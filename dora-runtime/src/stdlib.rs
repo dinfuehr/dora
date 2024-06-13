@@ -366,7 +366,7 @@ fn thread_main(thread: &DoraThread, thread_location: Address, runner_location: A
     };
 
     let tld = thread.tld_address();
-    let fct_ptr = compiler::compile_fct_lazily(vm, lambda_id, &type_params);
+    let fct_ptr = compiler::compile_fct_jit(vm, lambda_id, &type_params);
 
     // execute the runner/lambda
     let dora_stub_address = vm.native_methods.dora_entry_trampoline();
