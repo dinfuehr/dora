@@ -7,6 +7,7 @@ use dora_bytecode::{
 };
 
 use crate::compiler::{compile_fct_aot, trait_object_thunk};
+use crate::gc::formatted_size;
 use crate::vm::{find_trait_impl, specialize_bty_array, VM};
 
 pub fn compile_boots_aot(vm: &VM) {
@@ -19,9 +20,10 @@ pub fn compile_boots_aot(vm: &VM) {
         let duration = start.elapsed();
         if vm.flags.emit_compiler {
             println!(
-                "compiled all of boots in {:.2}ms ({} functions)",
+                "compiled all of boots in {:.2}ms ({} functions, {} bytes)",
                 duration.as_secs_f32() * 1000.0f32,
-                compile_all.counter
+                compile_all.counter,
+                formatted_size(vm.gc.current_code_size()),
             );
         }
     }

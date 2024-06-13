@@ -201,7 +201,7 @@ impl Gc {
         self.meta_space.size()
     }
 
-    pub fn allocate_raw(&self, vm: &VM, size: usize) -> Option<Address> {
+    fn allocate_raw(&self, vm: &VM, size: usize) -> Option<Address> {
         if size < MAX_TLAB_OBJECT_SIZE && self.supports_tlab {
             self.alloc_in_lab(vm, size)
         } else {
@@ -219,6 +219,10 @@ impl Gc {
                 self.collector.collect_garbage(vm, threads, reason, size);
             }
         });
+    }
+
+    pub fn current_code_size(&self) -> usize {
+        self.code_space.allocated_region().size()
     }
 }
 
@@ -477,7 +481,7 @@ impl fmt::Display for Region {
     }
 }
 
-struct FormattedSize {
+pub struct FormattedSize {
     size: usize,
 }
 
@@ -505,7 +509,7 @@ impl fmt::Display for FormattedSize {
     }
 }
 
-fn formatted_size(size: usize) -> FormattedSize {
+pub fn formatted_size(size: usize) -> FormattedSize {
     FormattedSize { size }
 }
 
