@@ -3,20 +3,23 @@ use std::time::Instant;
 
 use dora_bytecode::{
     BytecodeInstruction, BytecodeReader, BytecodeType, BytecodeTypeArray, ConstPoolEntry,
-    FunctionId, FunctionKind,
+    FunctionId, FunctionKind, PackageId,
 };
 
 use crate::compiler::{compile_fct_aot, trait_object_thunk};
 use crate::gc::formatted_size;
 use crate::vm::{find_trait_impl, specialize_bty_array, VM};
 
-pub fn compile_boots_aot(vm: &VM) {
-    if vm.program.boots_package_id.is_some() {
+pub fn compile_boots_aot(vm: &VM, include_tests: bool) {
+    if let Some(package_id) = vm.program.boots_package_id {
         let mut compile_all = TransitiveClosure::new(vm);
-        let compile_fct_id = vm.known.boots_compile_fct_id();
 
         let start = Instant::now();
-        compile_all.compute(compile_fct_id, BytecodeTypeArray::empty());
+        compile_all.push(vm.known.boots_compile_fct_id(), BytecodeTypeArray::empty());
+        if include_tests {
+            compile_all.push_tests(package_id);
+        }
+        compile_all.compute();
         let duration = start.elapsed();
         if vm.flags.emit_compiler {
             println!(
@@ -46,9 +49,15 @@ impl<'a> TransitiveClosure<'a> {
         }
     }
 
-    fn compute(&mut self, function_id: FunctionId, type_params: BytecodeTypeArray) {
-        self.push(function_id, type_params);
+    fn push_tests(&mut self, package_id: PackageId) {
+        for (id, fct) in self.vm.program.functions.iter().enumerate() {
+            if fct.package_id == package_id && fct.is_test {
+                self.push(FunctionId(id as u32), BytecodeTypeArray::empty());
+            }
+        }
+    }
 
+    fn compute(&mut self) {
         while let Some((function_id, type_params)) = self.worklist.pop() {
             compile_fct_aot(self.vm, function_id, &type_params);
             self.trace_function(function_id, type_params);

@@ -86,7 +86,7 @@ pub fn start() -> i32 {
 
     set_vm(&vm);
 
-    vm.compile_boots_aot();
+    vm.compile_boots_aot(command.is_test_boots());
 
     let exit_code = if command.is_test() {
         run_tests(&vm, &args, vm.program.program_package_id)

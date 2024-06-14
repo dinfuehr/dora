@@ -1,9 +1,9 @@
 use std::sync::Arc;
 
 use crate::cannon::codegen::register_ty;
-use crate::compiler::codegen::compile_fct_to_code;
+use crate::compiler::codegen::{compile_fct_to_code, select_compiler};
 use crate::gc::Address;
-use crate::vm::{Code, CodeId, VM};
+use crate::vm::{Code, CodeId, CompilerName, VM};
 use dora_bytecode::{
     BytecodeBuilder, BytecodeFunction, BytecodeType, BytecodeTypeArray, FunctionId, FunctionKind,
     Register,
@@ -26,12 +26,16 @@ pub fn ensure_compiled_jit(
         return instruction_start;
     }
 
+    let trait_fct = &vm.program.functions[trait_fct_id.0 as usize];
+    let compiler = select_compiler(vm, trait_fct);
+
     let (code_id, code) = compile_thunk_to_code(
         vm,
         trait_fct_id,
         &all_type_params,
         trait_object_ty,
         actual_ty,
+        compiler,
     );
 
     // Mark compilation as finished and resume threads waiting for compilation.
@@ -55,6 +59,7 @@ pub fn ensure_compiled_aot(
         &all_type_params,
         trait_object_ty,
         actual_ty,
+        CompilerName::Cannon,
     );
 
     vm.compilation_database
@@ -84,6 +89,7 @@ fn compile_thunk_to_code(
     type_params: &BytecodeTypeArray,
     trait_object_ty: BytecodeType,
     actual_ty: BytecodeType,
+    compiler: CompilerName,
 ) -> (CodeId, Arc<Code>) {
     assert!(type_params.iter().all(|ty| ty.is_concrete_type()));
 
@@ -113,6 +119,7 @@ fn compile_thunk_to_code(
         params,
         &bytecode_fct,
         type_params,
+        compiler,
     )
 }
 

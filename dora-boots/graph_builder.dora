@@ -688,8 +688,10 @@ impl SsaGen {
         let tupleLayout = self.computeTupleLayout(subtypes);
         let offset = tupleLayout.fields(subtype_idx.toInt64()).offset;
 
-        let inst = self.loadField(destTy, srcInst, offset);
-        self.writeVariable(dest, self.current(), inst);
+        if !destTy.isUnit() {
+            let inst = self.loadField(destTy, srcInst, offset);
+            self.writeVariable(dest, self.current(), inst);
+        }
     }
 
     fn emitLoadEnumVariant(dest: BytecodeRegister, src: BytecodeRegister, idx: ConstPoolId) {
@@ -1008,7 +1010,7 @@ impl SsaGen {
         if self.isIntrinsic(intrinsic) {
             let args = self.pushed_registers.toArray();
             self.pushed_registers.clear();
-            self.emitIntrinsic(intrinsic, dest, args, idx);
+            self.emitIntrinsic(intrinsic, dest, args, idx, type_params);
         } else {
             self.emitCall(dest, CallKind::Direct, fct_id, type_params);
         }
@@ -1025,7 +1027,7 @@ impl SsaGen {
         if self.isIntrinsic(intrinsic) {
             let args = self.pushed_registers.toArray();
             self.pushed_registers.clear();
-            self.emitIntrinsic(intrinsic, dest, args, idx);
+            self.emitIntrinsic(intrinsic, dest, args, idx, type_params);
         } else {
             self.emitCall(dest, CallKind::Static, fct_id, type_params);
         }
@@ -1160,7 +1162,7 @@ impl SsaGen {
         if self.isIntrinsic(intrinsic) {
             let args = self.pushed_registers.toArray();
             self.pushed_registers.clear();
-            self.emitIntrinsic(intrinsic, dest, args, idx);
+            self.emitIntrinsic(intrinsic, dest, args, idx, Array[BytecodeType]::new());
         } else {
             self.emitCall(dest, kind, callee_id, Array[BytecodeType]::new());
         }
@@ -1171,7 +1173,7 @@ impl SsaGen {
         intrinsic != opc::INTRINSIC_OPTION_GET_OR_PANIC
     }
 
-    fn emitIntrinsic(intrinsic: Int32, dest: BytecodeRegister, args: Array[BytecodeRegister], idx: ConstPoolId) {
+    fn emitIntrinsic(intrinsic: Int32, dest: BytecodeRegister, args: Array[BytecodeRegister], idx: ConstPoolId, type_params: Array[BytecodeType]) {
         if intrinsic == opc::INTRINSIC_INT64_ADD_UNCHECKED || intrinsic == opc::INTRINSIC_INT32_ADD_UNCHECKED {
             self.emitIntrinsicBin(dest, args, Op::Add);
         } else if intrinsic == opc::INTRINSIC_INT64_SUB_UNCHECKED || intrinsic == opc::INTRINSIC_INT32_SUB_UNCHECKED {
@@ -1360,9 +1362,88 @@ impl SsaGen {
             self.emitIntrinsicCountTrailing(dest, args, Type::Int64, false);
         } else if intrinsic == opc::INTRINSIC_INT32_COUNT_ZERO_BITS_TRAILING {
             self.emitIntrinsicCountTrailing(dest, args, Type::Int32, false);
+        } else if intrinsic == opc::INTRINSIC_UNSAFE_KILL_REFS {
+            self.emitIntrinsicUnsafeKillRefs(dest, args, type_params);
+
         } else {
             let name = opc::intrinsicName(intrinsic);
             std::fatalError("unknown intrinsic ${name}");
+        }
+    }
+
+    fn emitIntrinsicUnsafeKillRefs(dest: BytecodeRegister, args: Array[BytecodeRegister], type_params: Array[BytecodeType]) {
+        assert(args.size() == 2);
+        assert(self.regGraphTy(dest) == Type::Unit);
+        assert(type_params.size() == 1);
+        let array = self.readVariable(args(0), self.current());
+        let index = self.readVariable(args(1), self.current());
+        let ty = type_params(0).specialize(self.typeParams);
+
+        match ty {
+            BytecodeType::Unit |
+            BytecodeType::Bool |
+            BytecodeType::UInt8 |
+            BytecodeType::Float32 |
+            BytecodeType::Int32 |
+            BytecodeType::Char |
+            BytecodeType::Int64 |
+            BytecodeType::Float64 => {
+                // No need to clear any reference.
+            }
+            BytecodeType::Class(_, _)
+            | BytecodeType::Ptr
+            | BytecodeType::Lambda(_, _)
+            | BytecodeType::Trait(_, _) => {
+                self.clearArrayElementPointer(array, index);
+            }
+            BytecodeType::Enum(enum_id, type_params) => {
+                let layout = self.computeEnumLayout(enum_id, type_params);
+
+                match layout {
+                    EnumLayout::Int32 => {
+                        // No need to clear any reference.
+                    }
+
+                    EnumLayout::PtrOrNull(_)
+                    | EnumLayout::Tagged => {
+                        self.clearArrayElementPointer(array, index);
+                    }
+                }
+            }
+            BytecodeType::Struct(struct_id, typeParams) => {
+                let layout = self.computeStructLayout(struct_id, typeParams);
+                self.clearArrayElementLayout(array, index, layout);
+            }
+            BytecodeType::Tuple(subtypes) => {
+                let layout = self.computeTupleLayout(subtypes);
+                self.clearArrayElementLayout(array, index, layout);
+            }
+            BytecodeType::This
+            | BytecodeType::TypeParam(_)
+            | BytecodeType::TypeAlias(_) => unreachable[()](),
+        }
+    }
+
+    fn clearArrayElementPointer(arr: Inst, index: Inst) {
+        let null = graph::createNullConst();
+        self.current().appendInst(null);
+
+        let inst = graph::createStoreArrayInst(arr, index, null, Type::Ptr);
+        self.current().appendInst(inst);
+    }
+
+    fn clearArrayElementLayout(arr: Inst, index: Inst, layout: RecordLayout) {
+        if layout.refs.size() > 0 {
+            let null = graph::createNullConst();
+            self.current().appendInst(null);
+
+            let array_element = graph::createGetElementPtrInst(arr, index, layout.size.toInt64());
+            self.current().appendInst(array_element);
+
+            for ref in layout.refs {
+                let inst = graph::createStoreInst(array_element, ref, null, Type::Ptr);
+                self.current().appendInst(inst);
+            }
         }
     }
 

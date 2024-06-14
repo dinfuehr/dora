@@ -30,8 +30,18 @@ pub fn compile_fct_jit(vm: &VM, fct_id: FunctionId, type_params: &BytecodeTypeAr
     let params = BytecodeTypeArray::new(program_fct.params.clone());
     let bytecode_fct = program_fct.bytecode.as_ref().expect("missing bytecode");
 
-    let (code_id, code) =
-        compile_fct_to_code(vm, fct_id, program_fct, params, bytecode_fct, type_params);
+    assert_ne!(Some(program_fct.package_id), vm.program.boots_package_id);
+    let compiler = select_compiler(vm, program_fct);
+
+    let (code_id, code) = compile_fct_to_code(
+        vm,
+        fct_id,
+        program_fct,
+        params,
+        bytecode_fct,
+        type_params,
+        compiler,
+    );
 
     // Mark compilation as finished and resume threads waiting for compilation.
     vm.compilation_database
@@ -44,9 +54,17 @@ pub fn compile_fct_aot(vm: &VM, fct_id: FunctionId, type_params: &BytecodeTypeAr
     let program_fct = &vm.program.functions[fct_id.0 as usize];
     let params = BytecodeTypeArray::new(program_fct.params.clone());
     let bytecode_fct = program_fct.bytecode.as_ref().expect("missing bytecode");
+    let compiler = CompilerName::Cannon;
 
-    let (code_id, code) =
-        compile_fct_to_code(vm, fct_id, program_fct, params, bytecode_fct, type_params);
+    let (code_id, code) = compile_fct_to_code(
+        vm,
+        fct_id,
+        program_fct,
+        params,
+        bytecode_fct,
+        type_params,
+        compiler,
+    );
     vm.compilation_database
         .compile_aot(fct_id, type_params.clone(), code_id);
     code.instruction_start()
@@ -59,9 +77,17 @@ pub(super) fn compile_fct_to_code(
     params: BytecodeTypeArray,
     bytecode_fct: &BytecodeFunction,
     type_params: &BytecodeTypeArray,
+    compiler: CompilerName,
 ) -> (CodeId, Arc<Code>) {
-    let (code_descriptor, compiler, code_kind) =
-        compile_fct_to_descriptor(vm, fct_id, program_fct, params, bytecode_fct, type_params);
+    let (code_descriptor, compiler, code_kind) = compile_fct_to_descriptor(
+        vm,
+        fct_id,
+        program_fct,
+        params,
+        bytecode_fct,
+        type_params,
+        compiler,
+    );
     let code = install_code(vm, code_descriptor, code_kind);
 
     // We need to insert into CodeMap before releasing the compilation-lock. Otherwise
@@ -88,10 +114,9 @@ fn compile_fct_to_descriptor(
     params: BytecodeTypeArray,
     bytecode_fct: &BytecodeFunction,
     type_params: &BytecodeTypeArray,
+    compiler: CompilerName,
 ) -> (CodeDescriptor, CompilerName, CodeKind) {
     debug_assert!(type_params.iter().all(|ty| ty.is_concrete_type()));
-
-    let compiler = select_compiler(vm, program_fct);
 
     let emit_bytecode = should_emit_bytecode(vm, fct_id, compiler);
 
@@ -163,7 +188,7 @@ fn compile_fct_to_descriptor(
     (code_descriptor, compiler, code_kind)
 }
 
-fn select_compiler(vm: &VM, fct: &FunctionData) -> CompilerName {
+pub(super) fn select_compiler(vm: &VM, fct: &FunctionData) -> CompilerName {
     if vm.flags.always_boots && fct.package_id == vm.program.program_package_id {
         return CompilerName::Boots;
     }
