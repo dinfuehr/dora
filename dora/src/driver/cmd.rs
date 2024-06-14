@@ -75,6 +75,7 @@ pub struct Args {
     pub enable_perf: bool,
     pub omit_bounds_check: bool,
     pub always_boots: bool,
+    pub use_boots: Option<String>,
     pub version: bool,
     pub help: bool,
     pub emit_debug: Option<String>,
@@ -132,6 +133,7 @@ impl Default for Args {
             enable_perf: false,
             omit_bounds_check: false,
             always_boots: false,
+            use_boots: None,
             version: false,
             help: false,
             gc_events: false,
@@ -240,6 +242,8 @@ pub fn parse_arguments() -> Result<Args, String> {
             args.emit_bytecode_boots = true;
         } else if arg == "--always-boots" {
             args.always_boots = true;
+        } else if arg.starts_with("--use-boots=") {
+            args.use_boots = Some(argument_value(arg).into());
         } else if arg == "--emit-stubs" {
             args.emit_stubs = true;
         } else if arg.starts_with("--emit-debug=") {
@@ -419,6 +423,7 @@ pub fn create_vm_args(args: &Args) -> VmArgs {
         emit_graph: args.emit_graph.clone(),
         emit_stubs: args.emit_stubs,
         always_boots: args.always_boots,
+        use_boots: args.use_boots.clone(),
         enable_perf: args.enable_perf,
         omit_bounds_check: args.omit_bounds_check,
         emit_debug: args.emit_debug.clone(),

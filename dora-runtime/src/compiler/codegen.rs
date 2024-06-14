@@ -31,7 +31,7 @@ pub fn compile_fct_jit(vm: &VM, fct_id: FunctionId, type_params: &BytecodeTypeAr
     let bytecode_fct = program_fct.bytecode.as_ref().expect("missing bytecode");
 
     assert_ne!(Some(program_fct.package_id), vm.program.boots_package_id);
-    let compiler = select_compiler(vm, program_fct);
+    let compiler = select_compiler(vm, fct_id, program_fct);
 
     let (code_id, code) = compile_fct_to_code(
         vm,
@@ -188,9 +188,15 @@ fn compile_fct_to_descriptor(
     (code_descriptor, compiler, code_kind)
 }
 
-pub(super) fn select_compiler(vm: &VM, fct: &FunctionData) -> CompilerName {
+pub(super) fn select_compiler(vm: &VM, fct_id: FunctionId, fct: &FunctionData) -> CompilerName {
     if vm.flags.always_boots && fct.package_id == vm.program.program_package_id {
         return CompilerName::Boots;
+    }
+
+    if let Some(ref use_boots) = vm.flags.use_boots {
+        if fct_pattern_match(vm, fct_id, use_boots) {
+            return CompilerName::Boots;
+        }
     }
 
     if fct.is_optimize_immediately {
@@ -259,7 +265,7 @@ fn fct_pattern_match(vm: &VM, fct_id: FunctionId, pattern: &str) -> bool {
 
     let fct_name = display_fct(vm, fct_id);
 
-    for part in pattern.split(',') {
+    for part in pattern.split(';') {
         if fct_name.contains(part) {
             return true;
         }

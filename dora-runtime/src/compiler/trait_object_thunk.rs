@@ -27,7 +27,7 @@ pub fn ensure_compiled_jit(
     }
 
     let trait_fct = &vm.program.functions[trait_fct_id.0 as usize];
-    let compiler = select_compiler(vm, trait_fct);
+    let compiler = select_compiler(vm, trait_fct_id, trait_fct);
 
     let (code_id, code) = compile_thunk_to_code(
         vm,
