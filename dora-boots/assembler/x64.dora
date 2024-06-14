@@ -1579,7 +1579,7 @@ impl Immediate {
     }
 
     fn isInt32(): Bool {
-        let limit = 1i64 << 32i32;
+        let limit = 1i64 << 31i32;
         -limit <= self.value && self.value < limit
     }
 
