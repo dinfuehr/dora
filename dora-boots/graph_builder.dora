@@ -1208,7 +1208,7 @@ impl SsaGen {
             self.emitIntrinsicConvert(dest, args, Type::Float32, Type::Int64);
         } else if intrinsic == opc::INTRINSIC_INT64_TO_FLOAT64 {
             self.emitIntrinsicConvert(dest, args, Type::Float64, Type::Int64);
-        } else if intrinsic == opc::INTRINSIC_INT64_TO_INT32 {
+        } else if intrinsic == opc::INTRINSIC_INT64_TO_INT32 || intrinsic == opc::INTRINSIC_INT64_TO_CHAR {
             self.emitIntrinsicConvert(dest, args, Type::Int32, Type::Int64);
         } else if intrinsic == opc::INTRINSIC_INT64_TO_UINT8 {
             self.emitIntrinsicConvert(dest, args, Type::UInt8, Type::Int64);
