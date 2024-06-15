@@ -189,7 +189,7 @@ fn compile_fct_to_descriptor(
 }
 
 pub(super) fn select_compiler(vm: &VM, fct_id: FunctionId, fct: &FunctionData) -> CompilerName {
-    if vm.flags.always_boots && fct.package_id == vm.program.program_package_id {
+    if vm.flags.always_boots {
         return CompilerName::Boots;
     }
 
