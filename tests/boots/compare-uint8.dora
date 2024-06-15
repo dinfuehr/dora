@@ -4,18 +4,38 @@ fn main() {
     assert(!gt(2u8, 3u8));
     assert(!gt(1u8, 1u8));
     assert(gt(1u8, 0u8));
+    assert(!gt(128u8, 129u8));
+    assert(!gt(127u8, 128u8));
+    assert(gt(129u8, 128u8));
+    assert(gt(128u8, 127u8));
+    assert(!gt(129u8, 129u8));
 
     assert(!ge(2u8, 3u8));
     assert(ge(1u8, 1u8));
     assert(ge(1u8, 0u8));
+    assert(!ge(128u8, 129u8));
+    assert(!ge(127u8, 128u8));
+    assert(ge(129u8, 128u8));
+    assert(ge(128u8, 127u8));
+    assert(ge(129u8, 129u8));
 
     assert(!lt(3u8, 2u8));
     assert(!lt(1u8, 1u8));
     assert(lt(0u8, 1u8));
+    assert(lt(128u8, 129u8));
+    assert(lt(127u8, 128u8));
+    assert(!lt(129u8, 128u8));
+    assert(!lt(128u8, 127u8));
+    assert(!lt(129u8, 129u8));
 
     assert(!le(3u8, 2u8));
     assert(le(1u8, 1u8));
     assert(le(0u8, 1u8));
+    assert(le(128u8, 129u8));
+    assert(le(127u8, 128u8));
+    assert(!le(129u8, 128u8));
+    assert(!le(128u8, 127u8));
+    assert(le(129u8, 129u8));
 
     assert(eq(1u8, 1u8));
     assert(eq(0u8, 0u8));
