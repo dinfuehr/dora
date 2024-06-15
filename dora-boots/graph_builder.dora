@@ -25,11 +25,36 @@ pub fn createGraph(ci: CompilationInfo): Graph {
     // Create edges for the blocks.
     createEdges(graph, ci.bc, blockMap);
 
+    if ci.emitGraph {
+        dumpEdgeOverview(graph);
+    }
+
     // Fill basic blocks with instructions.
     let ssagen = SsaGen::new(ci, graph, ci.bc, blockMap, ci.typeParams);
     ssagen.run();
 
     graph
+}
+
+fn dumpEdgeOverview(graph: Graph) {
+    for block in graph.insertionOrderIterator() {
+        print("block ${block}:");
+        if !block.predecessors.isEmpty() {
+            print(" preds:");
+            for pred in block.predecessors {
+                print(" ${pred.source}");
+            }
+        }
+
+        if !block.successors.isEmpty() {
+            print(" succs:");
+            for succ in block.successors {
+                print(" ${succ.target}");
+            }
+        }
+
+        println("");
+    }
 }
 
 class SsaGen {
@@ -47,14 +72,19 @@ class SsaGen {
 
     pushed_registers: Vec[BytecodeRegister],
 
-    // a block is considered filled when all instructions are inserted
+    // A block is considered filled when all instructions
+    // are inserted.
     filledBlocks: BitSet,
 
-    // block is considered sealed when the set of predecessors is final
+    // A block is considered sealed when the set of predecessors
+    // is final and all predecessors are filled.
     sealedBlocks: BitSet,
 
-    // tracks all incomplete phi instructions inserted into unsealed blocks
+    // Tracks all incomplete phi instructions inserted into unsealed blocks.
     incompletePhis: HashMap[Block, HashMap[BytecodeRegister, Inst]],
+
+    // Current intended replacements for phis. See tryRemoveTrivialPhi().
+    currentReplacements: Vec[Inst],
 }
 
 impl SsaGen {
@@ -74,6 +104,7 @@ impl SsaGen {
             BitSet::new(0),
             BitSet::new(0),
             HashMap[Block, HashMap[BytecodeRegister, Inst]]::new(),
+            Vec[Inst]::new(),
         )
     }
 
@@ -226,7 +257,11 @@ impl SsaGen {
         for inp in phi.getInputs() {
             let op = inp.getValue();
 
-            if (same.isSome() && same.getOrPanic() === op) || op === phi {
+            if same.isSome() && same.getOrPanic() === op {
+                continue;
+            }
+
+            if op === phi {
                 continue;
             }
 
@@ -262,6 +297,14 @@ impl SsaGen {
             }
         }
 
+        for idx in std::range(0, self.currentReplacements.size()) {
+            if self.currentReplacements(idx) === phi {
+                self.currentReplacements(idx) = replacement;
+            }
+        }
+
+        self.currentReplacements.push(replacement);
+
         for i in std::range(0, users.size()) {
             let user = users(i);
 
@@ -274,7 +317,9 @@ impl SsaGen {
             }
         }
 
-        same.getOrPanic()
+        let replacement = self.currentReplacements.pop().getOrPanic();
+        assert(replacement.hasId());
+        replacement
     }
 
     fn markBlockTerminated() {
