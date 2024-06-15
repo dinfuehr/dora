@@ -1,4 +1,4 @@
-//= vm-args "--gc=copy --gc-stress --disable-tlab"
+//= vm-args "--gc-verify"
 //= stdout "main: 5\n"
 
 fn main() {
