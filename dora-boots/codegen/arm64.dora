@@ -433,13 +433,12 @@ impl CodeGenArm64 {
         let done = self.asm.createLabel();
 
         self.asm.cbz(words, done);
-        self.asm.add(words, words, ptr);
 
         let loop = self.asm.createAndBindLabel();
+        self.asm.str_imm(REG_ZERO, ptr, 0i32);
         self.asm.sub_imm(words, words, 1i32);
-        self.asm.str_imm(REG_ZERO, words, 0i32);
-        self.asm.cmp(words, ptr);
-        self.asm.bc(Cond::NE, loop);
+        self.asm.add_imm(ptr, ptr, 8i32);
+        self.asm.cbnz(words, loop);
 
         self.asm.bindLabel(done);
     }
