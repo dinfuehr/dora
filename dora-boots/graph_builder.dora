@@ -1139,7 +1139,8 @@ impl SsaGen {
                     ConstPoolEntry::Lambda(params, return_type) => (params, return_type),
                     _ => unreachable[(Array[BytecodeType], BytecodeType)](),
                 };
-
+                let params = params.specialize(self.typeParams);
+                let return_type = return_type.specialize(self.typeParams);
                 let info = LambdaFunctionInfo(params, return_type, receiver_is_first);
                 graph::createLambdaCallInst(info, args, returnTy)
             }
