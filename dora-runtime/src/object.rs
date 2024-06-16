@@ -339,7 +339,7 @@ impl Obj {
         let classptr = vtable.class_instance_ptr;
         let cls = unsafe { &*classptr };
 
-        visit_refs(self.address(), cls, None, f);
+        visit_refs(self.address(), cls, f);
     }
 
     // TODO: Remove this inline-annotation. It is only required to silence a
@@ -364,13 +364,13 @@ impl Obj {
     }
 }
 
-fn visit_refs<F>(object: Address, cls: &ClassInstance, range: Option<Region>, f: F)
+fn visit_refs<F>(object: Address, cls: &ClassInstance, f: F)
 where
     F: FnMut(Slot),
 {
     match cls.size {
         InstanceSize::ObjArray => {
-            visit_object_array_refs(object, range, f);
+            visit_object_array_refs(object, f);
         }
 
         InstanceSize::StructArray(element_size) => {
@@ -400,7 +400,7 @@ where
     }
 }
 
-fn visit_object_array_refs<F>(object: Address, range: Option<Region>, mut f: F)
+fn visit_object_array_refs<F>(object: Address, mut f: F)
 where
     F: FnMut(Slot),
 {
@@ -408,13 +408,7 @@ where
 
     // walk through all objects in array
     let mut ptr = Address::from_ptr(array.data());
-    let mut limit = ptr.add_ptr(array.len() as usize);
-
-    // visit elements until `limit` reached
-    if let Some(range) = range {
-        ptr = cmp::max(ptr, range.start);
-        limit = cmp::min(limit, range.end);
-    }
+    let limit = ptr.add_ptr(array.len() as usize);
 
     while ptr < limit {
         f(Slot::at(ptr));
