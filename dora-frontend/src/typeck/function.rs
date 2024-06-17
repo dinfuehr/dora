@@ -5,10 +5,9 @@ use std::{f32, f64};
 use crate::error::msg::ErrorMessage;
 use crate::sema::{
     AnalysisData, ClassDefinition, ContextFieldId, FctDefinition, Field, FieldId, GlobalDefinition,
-    IdentType, InnerContextId, LazyContextClassCreationData, LazyContextData,
-    LazyLambdaCreationData, ModuleDefinitionId, NestedScopeId, NestedVarId, OuterContextIdx,
-    PackageDefinitionId, ScopeId, Sema, SourceFileId, TypeParamDefinition, Var, VarAccess, VarId,
-    VarLocation, Visibility,
+    IdentType, LazyContextClassCreationData, LazyContextData, LazyLambdaCreationData,
+    ModuleDefinitionId, NestedScopeId, NestedVarId, OuterContextIdx, PackageDefinitionId, ScopeId,
+    Sema, SourceFileId, TypeParamDefinition, Var, VarAccess, VarId, VarLocation, Visibility,
 };
 use crate::typeck::{check_expr, check_stmt};
 use crate::{
@@ -981,12 +980,9 @@ impl VarManager {
 
     pub(super) fn add_var(&mut self, name: Name, ty: SourceType, mutable: bool) -> NestedVarId {
         let id = NestedVarId(self.vars.len());
-        let context_id = self.scopes.len() - self.current_function().start_scope_id;
-        let context_id = InnerContextId(context_id);
 
         let var = VarDefinition {
             id,
-            context_id,
             name,
             ty,
             mutable,
@@ -1043,7 +1039,6 @@ impl VarManager {
 #[derive(Clone, Debug)]
 pub struct VarDefinition {
     pub id: NestedVarId,
-    pub context_id: InnerContextId,
     pub name: Name,
     pub ty: SourceType,
     pub mutable: bool,

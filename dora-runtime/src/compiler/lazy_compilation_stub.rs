@@ -367,7 +367,7 @@ fn lazy_compile(ra: usize, receiver1: Address, receiver2: Address) -> Address {
         }
 
         match lazy_compilation_site {
-            LazyCompilationSite::Direct(fct_id, disp, ref type_params) => {
+            LazyCompilationSite::Direct(fct_id, ref type_params, disp) => {
                 patch_direct_call(vm, ra, fct_id, type_params, disp)
             }
 

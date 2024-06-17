@@ -186,7 +186,7 @@ where
         .clone();
 
     let (params, is_variadic, return_type) = match _lazy_compilation_site {
-        LazyCompilationSite::Direct(fct_id, _, type_params) => {
+        LazyCompilationSite::Direct(fct_id, type_params, _) => {
             let fct = &vm.program.functions[fct_id.0 as usize];
             let params = BytecodeTypeArray::new(fct.params.clone());
             let params = specialize_bty_array(&params, &type_params);

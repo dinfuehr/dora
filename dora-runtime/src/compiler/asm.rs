@@ -941,8 +941,8 @@ impl<'a> BaselineAssembler<'a> {
     pub fn direct_call(
         &mut self,
         fct_id: FunctionId,
-        ptr: Address,
         type_params: BytecodeTypeArray,
+        ptr: Address,
         location: Location,
         gcpoint: GcPoint,
         return_mode: Option<MachineMode>,
@@ -1482,8 +1482,8 @@ impl<'a> BaselineAssembler<'a> {
 
         self.direct_call(
             fct_id,
-            ptr,
             BytecodeTypeArray::empty(),
+            ptr,
             location,
             gcpoint,
             None,

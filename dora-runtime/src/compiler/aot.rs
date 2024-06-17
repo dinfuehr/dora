@@ -1,4 +1,5 @@
-use std::collections::HashSet;
+use std::collections::{HashMap, HashSet};
+use std::sync::Arc;
 use std::time::Instant;
 
 use dora_bytecode::{
@@ -7,8 +8,9 @@ use dora_bytecode::{
 };
 
 use crate::compiler::{compile_fct_aot, trait_object_thunk};
-use crate::gc::formatted_size;
-use crate::vm::{find_trait_impl, specialize_bty_array, VM};
+use crate::gc::{formatted_size, Address};
+use crate::os;
+use crate::vm::{find_trait_impl, specialize_bty_array, Code, VM};
 
 pub fn compile_boots_aot(vm: &VM, include_tests: bool) {
     if let Some(package_id) = vm.program.boots_package_id {
@@ -20,6 +22,7 @@ pub fn compile_boots_aot(vm: &VM, include_tests: bool) {
             compile_all.push_tests(package_id);
         }
         compile_all.compute();
+        compile_all.prepare_lazy_call_sites();
         let duration = start.elapsed();
         if vm.flags.emit_compiler {
             println!(
@@ -33,19 +36,23 @@ pub fn compile_boots_aot(vm: &VM, include_tests: bool) {
 }
 
 struct TransitiveClosure<'a> {
+    vm: &'a VM,
     worklist: Vec<(FunctionId, BytecodeTypeArray)>,
     visited: HashSet<(FunctionId, BytecodeTypeArray)>,
-    vm: &'a VM,
+    function_addresses: HashMap<(FunctionId, BytecodeTypeArray), Address>,
     counter: usize,
+    code_objects: Vec<Arc<Code>>,
 }
 
 impl<'a> TransitiveClosure<'a> {
     fn new(vm: &VM) -> TransitiveClosure {
         TransitiveClosure {
+            vm,
             worklist: Vec::new(),
             visited: HashSet::new(),
+            function_addresses: HashMap::new(),
+            code_objects: Vec::new(),
             counter: 0,
-            vm,
         }
     }
 
@@ -58,10 +65,19 @@ impl<'a> TransitiveClosure<'a> {
     }
 
     fn compute(&mut self) {
-        while let Some((function_id, type_params)) = self.worklist.pop() {
-            compile_fct_aot(self.vm, function_id, &type_params);
-            self.trace_function(function_id, type_params);
+        while let Some((fct_id, type_params)) = self.worklist.pop() {
+            self.compile(fct_id, type_params.clone());
+            self.trace_function(fct_id, type_params);
         }
+    }
+
+    fn compile(&mut self, fct_id: FunctionId, type_params: BytecodeTypeArray) {
+        let (_code_id, code) = compile_fct_aot(self.vm, fct_id, &type_params);
+        let existing = self
+            .function_addresses
+            .insert((fct_id, type_params), code.instruction_start());
+        assert!(existing.is_none());
+        self.code_objects.push(code);
     }
 
     fn trace_function(&mut self, function_id: FunctionId, type_params: BytecodeTypeArray) {
@@ -198,5 +214,17 @@ impl<'a> TransitiveClosure<'a> {
         } else {
             false
         }
+    }
+
+    fn prepare_lazy_call_sites(&self) {
+        os::jit_writable();
+
+        for code in &self.code_objects {
+            for (_offset, _site) in code.lazy_compilation().entries() {
+                // TODO
+            }
+        }
+
+        os::jit_executable();
     }
 }

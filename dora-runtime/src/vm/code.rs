@@ -164,6 +164,10 @@ pub struct Code {
 }
 
 impl Code {
+    pub fn lazy_compilation(&self) -> &LazyCompilationData {
+        &self.lazy_compilation
+    }
+
     pub fn location_for_offset(&self, offset: u32) -> Option<Location> {
         self.locations.get(offset)
     }
@@ -411,11 +415,15 @@ impl LazyCompilationData {
             Err(_) => None,
         }
     }
+
+    pub fn entries(&self) -> &[(u32, LazyCompilationSite)] {
+        &self.entries
+    }
 }
 
 #[derive(Clone, Debug)]
 pub enum LazyCompilationSite {
-    Direct(FunctionId, i32, BytecodeTypeArray),
+    Direct(FunctionId, BytecodeTypeArray, i32),
     Virtual(bool, BytecodeType, FunctionId, BytecodeTypeArray),
     Lambda(bool, BytecodeTypeArray, BytecodeType),
 }

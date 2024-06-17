@@ -2578,8 +2578,8 @@ impl<'a> CannonCodeGen<'a> {
 
         self.asm.direct_call(
             fct_id,
-            ptr,
             type_params,
+            ptr,
             location,
             gcpoint,
             result_mode,
@@ -2648,8 +2648,8 @@ impl<'a> CannonCodeGen<'a> {
 
         self.asm.direct_call(
             fct_id,
-            ptr,
             type_params,
+            ptr,
             location,
             gcpoint,
             result_mode,

@@ -10,6 +10,7 @@ pub mod lazy_compilation_stub;
 pub mod runtime_entry_trampoline;
 pub mod trait_object_thunk;
 
+#[derive(Copy, Clone)]
 pub enum CompilationMode {
     Aot,
     Jit,

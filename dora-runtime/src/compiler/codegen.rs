@@ -51,7 +51,11 @@ pub fn compile_fct_jit(vm: &VM, fct_id: FunctionId, type_params: &BytecodeTypeAr
     code.instruction_start()
 }
 
-pub fn compile_fct_aot(vm: &VM, fct_id: FunctionId, type_params: &BytecodeTypeArray) -> Address {
+pub fn compile_fct_aot(
+    vm: &VM,
+    fct_id: FunctionId,
+    type_params: &BytecodeTypeArray,
+) -> (CodeId, Arc<Code>) {
     let program_fct = &vm.program.functions[fct_id.0 as usize];
     let params = BytecodeTypeArray::new(program_fct.params.clone());
     let bytecode_fct = program_fct.bytecode.as_ref().expect("missing bytecode");
@@ -69,7 +73,7 @@ pub fn compile_fct_aot(vm: &VM, fct_id: FunctionId, type_params: &BytecodeTypeAr
     );
     vm.compilation_database
         .compile_aot(fct_id, type_params.clone(), code_id);
-    code.instruction_start()
+    (code_id, code)
 }
 
 pub(super) fn compile_fct_to_code(
