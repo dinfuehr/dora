@@ -5,6 +5,7 @@ use crate::compiler::codegen::{
     ensure_runtime_entry_trampoline, AllocationSize, AnyReg, CompilationData,
 };
 use crate::compiler::runtime_entry_trampoline::{NativeFct, NativeFctKind};
+use crate::compiler::CompilationMode;
 use crate::cpu::{
     has_lzcnt, has_popcnt, has_tzcnt, Reg, CALLEE_SAVED_REGS, FREG_PARAMS, FREG_RESULT, FREG_TMP1,
     REG_PARAMS, REG_RESULT, REG_SP, REG_TMP1, REG_TMP2, STACK_FRAME_ALIGNMENT,
@@ -28,8 +29,6 @@ use dora_bytecode::{
     ConstPoolEntry, ConstPoolIdx, FunctionId, FunctionKind, GlobalId, Intrinsic, Location,
     Register,
 };
-
-use super::CompilationFlags;
 
 macro_rules! comment {
     (
@@ -73,7 +72,7 @@ pub struct CannonCodeGen<'a> {
     framesize: i32,
     register_start_offset: i32,
 
-    flags: CompilationFlags,
+    mode: CompilationMode,
 
     slow_paths: Vec<(
         Label,
@@ -89,7 +88,7 @@ impl<'a> CannonCodeGen<'a> {
     pub(super) fn new(
         vm: &'a VM,
         compilation_data: CompilationData<'a>,
-        flags: CompilationFlags,
+        mode: CompilationMode,
     ) -> CannonCodeGen<'a> {
         CannonCodeGen {
             vm,
@@ -110,7 +109,7 @@ impl<'a> CannonCodeGen<'a> {
             offsets: Vec::new(),
             framesize: 0,
             register_start_offset: 0,
-            flags,
+            mode,
             slow_paths: Vec::new(),
         }
     }

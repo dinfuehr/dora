@@ -8,8 +8,7 @@ use dora_bytecode::{
 use crate::boots::deserializer::{decode_code_descriptor, ByteReader};
 use crate::boots::serializer::{allocate_encoded_compilation_info, ByteBuffer};
 use crate::cannon::codegen::get_function_address as get_function_address_raw;
-use crate::cannon::CompilationFlags;
-use crate::compiler::codegen::CompilationData;
+use crate::compiler::{CompilationData, CompilationMode};
 use crate::gc::Address;
 use crate::handle::{create_handle, Handle};
 use crate::object::{byte_array_from_buffer, Ref, Str, UInt8Array};
@@ -116,7 +115,7 @@ pub const BOOTS_NATIVE_FUNCTIONS: &[(&'static str, *const u8)] = &[
 pub fn compile(
     vm: &VM,
     compilation_data: CompilationData,
-    _flags: CompilationFlags,
+    _mode: CompilationMode,
 ) -> CodeDescriptor {
     let compile_fct_id = vm.known.boots_compile_fct_id();
     let compile_address = vm.ensure_compiled(compile_fct_id);

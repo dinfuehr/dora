@@ -2,8 +2,8 @@ use std::sync::Arc;
 use std::time::Instant;
 
 use crate::boots;
-use crate::cannon::{self, CompilationFlags};
-use crate::compiler::{runtime_entry_trampoline, NativeFct};
+use crate::cannon;
+use crate::compiler::{runtime_entry_trampoline, CompilationMode, NativeFct};
 use crate::cpu::{FReg, Reg};
 use crate::disassembler;
 use crate::gc::Address;
@@ -41,6 +41,7 @@ pub fn compile_fct_jit(vm: &VM, fct_id: FunctionId, type_params: &BytecodeTypeAr
         bytecode_fct,
         type_params,
         compiler,
+        CompilationMode::Jit,
     );
 
     // Mark compilation as finished and resume threads waiting for compilation.
@@ -64,6 +65,7 @@ pub fn compile_fct_aot(vm: &VM, fct_id: FunctionId, type_params: &BytecodeTypeAr
         bytecode_fct,
         type_params,
         compiler,
+        CompilationMode::Aot,
     );
     vm.compilation_database
         .compile_aot(fct_id, type_params.clone(), code_id);
@@ -78,6 +80,7 @@ pub(super) fn compile_fct_to_code(
     bytecode_fct: &BytecodeFunction,
     type_params: &BytecodeTypeArray,
     compiler: CompilerName,
+    mode: CompilationMode,
 ) -> (CodeId, Arc<Code>) {
     let (code_descriptor, compiler, code_kind) = compile_fct_to_descriptor(
         vm,
@@ -87,6 +90,7 @@ pub(super) fn compile_fct_to_code(
         bytecode_fct,
         type_params,
         compiler,
+        mode,
     );
     let code = install_code(vm, code_descriptor, code_kind);
 
@@ -115,6 +119,7 @@ fn compile_fct_to_descriptor(
     bytecode_fct: &BytecodeFunction,
     type_params: &BytecodeTypeArray,
     compiler: CompilerName,
+    mode: CompilationMode,
 ) -> (CodeDescriptor, CompilerName, CodeKind) {
     debug_assert!(type_params.iter().all(|ty| ty.is_concrete_type()));
 
@@ -146,15 +151,13 @@ fn compile_fct_to_descriptor(
         emit_graph,
     };
 
-    let compilation_flags = CompilationFlags::jit();
-
     let (code_descriptor, code_kind) = match compiler {
         CompilerName::Cannon => (
-            cannon::compile(vm, compilation_data, compilation_flags),
+            cannon::compile(vm, compilation_data, mode),
             CodeKind::BaselineFct(fct_id),
         ),
         CompilerName::Boots => (
-            boots::compile(vm, compilation_data, compilation_flags),
+            boots::compile(vm, compilation_data, mode),
             CodeKind::OptimizedFct(fct_id),
         ),
     };

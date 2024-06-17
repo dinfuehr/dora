@@ -2,6 +2,7 @@ use std::sync::Arc;
 
 use crate::cannon::codegen::register_ty;
 use crate::compiler::codegen::{compile_fct_to_code, select_compiler};
+use crate::compiler::CompilationMode;
 use crate::gc::Address;
 use crate::vm::{Code, CodeId, CompilerName, VM};
 use dora_bytecode::{
@@ -36,6 +37,7 @@ pub fn ensure_compiled_jit(
         trait_object_ty,
         actual_ty,
         compiler,
+        CompilationMode::Jit,
     );
 
     // Mark compilation as finished and resume threads waiting for compilation.
@@ -60,6 +62,7 @@ pub fn ensure_compiled_aot(
         trait_object_ty,
         actual_ty,
         CompilerName::Cannon,
+        CompilationMode::Aot,
     );
 
     vm.compilation_database
@@ -90,6 +93,7 @@ fn compile_thunk_to_code(
     trait_object_ty: BytecodeType,
     actual_ty: BytecodeType,
     compiler: CompilerName,
+    mode: CompilationMode,
 ) -> (CodeId, Arc<Code>) {
     assert!(type_params.iter().all(|ty| ty.is_concrete_type()));
 
@@ -120,6 +124,7 @@ fn compile_thunk_to_code(
         &bytecode_fct,
         type_params,
         compiler,
+        mode,
     )
 }
 
