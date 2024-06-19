@@ -52,7 +52,7 @@ pub fn ensure_compiled_aot(
     trait_fct_id: FunctionId,
     trait_type_params: BytecodeTypeArray,
     actual_ty: BytecodeType,
-) -> Address {
+) -> (CodeId, Arc<Code>) {
     let trait_object_ty = trait_object_ty(vm, trait_fct_id, &trait_type_params);
     let all_type_params = trait_type_params.append(actual_ty.clone());
     let (code_id, code) = compile_thunk_to_code(
@@ -68,7 +68,7 @@ pub fn ensure_compiled_aot(
     vm.compilation_database
         .compile_aot(trait_fct_id, all_type_params.clone(), code_id);
 
-    code.instruction_start()
+    (code_id, code)
 }
 
 fn trait_object_ty(

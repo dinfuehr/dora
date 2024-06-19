@@ -191,12 +191,15 @@ impl<'a> TransitiveClosure<'a> {
                                         trait_type_params.clone(),
                                         actual_ty,
                                     ) {
-                                        trait_object_thunk::ensure_compiled_aot(
-                                            self.vm,
-                                            trait_fct_id,
-                                            trait_type_params.clone(),
-                                            impl_.extended_ty.clone(),
-                                        );
+                                        let (_code_id, code) =
+                                            trait_object_thunk::ensure_compiled_aot(
+                                                self.vm,
+                                                trait_fct_id,
+                                                trait_type_params.clone(),
+                                                impl_.extended_ty.clone(),
+                                            );
+
+                                        self.code_objects.push(code);
                                     }
 
                                     self.push(*impl_method_id, type_params.clone());
