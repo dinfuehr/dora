@@ -3,11 +3,12 @@ use std::sync::Arc;
 use std::time::Instant;
 
 use dora_bytecode::{
-    BytecodeInstruction, BytecodeReader, BytecodeType, BytecodeTypeArray, ConstPoolEntry,
-    FunctionId, FunctionKind, PackageId,
+    BytecodeFunction, BytecodeInstruction, BytecodeReader, BytecodeType, BytecodeTypeArray,
+    ConstPoolEntry, FunctionId, FunctionKind, PackageId,
 };
 
-use crate::compiler::{compile_fct_aot, trait_object_thunk};
+use crate::compiler::codegen::ensure_runtime_entry_trampoline;
+use crate::compiler::{compile_fct_aot, trait_object_thunk, NativeFct, NativeFctKind};
 use crate::gc::{formatted_size, Address};
 use crate::os;
 use crate::vm::{find_trait_impl, specialize_bty_array, Code, LazyCompilationSite, VM};
@@ -67,25 +68,46 @@ impl<'a> TransitiveClosure<'a> {
     fn compute(&mut self) {
         while let Some((fct_id, type_params)) = self.worklist.pop() {
             self.compile(fct_id, type_params.clone());
-            self.trace_function(fct_id, type_params);
         }
     }
 
     fn compile(&mut self, fct_id: FunctionId, type_params: BytecodeTypeArray) {
-        let (_code_id, code) = compile_fct_aot(self.vm, fct_id, &type_params);
-        let existing = self
-            .function_addresses
-            .insert((fct_id, type_params), code.instruction_start());
-        assert!(existing.is_none());
-        self.code_objects.push(code);
+        let fct = &self.vm.program.functions[fct_id.0 as usize];
+
+        if let Some(native_fctptr) = self.vm.native_methods.get(fct_id) {
+            // Method is implemented in native code. Create trampoline for invoking it.
+            let internal_fct = NativeFct {
+                fctptr: native_fctptr,
+                args: BytecodeTypeArray::new(fct.params.clone()),
+                return_type: fct.return_type.clone(),
+                desc: NativeFctKind::RuntimeEntryTrampoline(fct_id),
+            };
+
+            let fctptr_wrapper =
+                ensure_runtime_entry_trampoline(self.vm, Some(fct_id), internal_fct);
+
+            let existing = self
+                .function_addresses
+                .insert((fct_id, type_params), fctptr_wrapper);
+            assert!(existing.is_none());
+        } else if let Some(ref bytecode_function) = fct.bytecode {
+            let (_code_id, code) = compile_fct_aot(self.vm, fct_id, &type_params);
+            self.counter += 1;
+            let existing = self
+                .function_addresses
+                .insert((fct_id, type_params.clone()), code.instruction_start());
+            assert!(existing.is_none());
+            self.code_objects.push(code);
+
+            self.trace_function(bytecode_function, type_params);
+        }
     }
 
-    fn trace_function(&mut self, function_id: FunctionId, type_params: BytecodeTypeArray) {
-        let function = &self.vm.program.functions[function_id.0 as usize];
-        let bytecode_function = function
-            .bytecode
-            .as_ref()
-            .expect("missing bytecode function");
+    fn trace_function(
+        &mut self,
+        bytecode_function: &BytecodeFunction,
+        type_params: BytecodeTypeArray,
+    ) {
         let reader = BytecodeReader::new(bytecode_function.code());
 
         for (_start, _opcode, inst) in reader {
@@ -190,10 +212,8 @@ impl<'a> TransitiveClosure<'a> {
     }
 
     fn push(&mut self, function_id: FunctionId, type_params: BytecodeTypeArray) -> bool {
-        let function = &self.vm.program.functions[function_id.0 as usize];
-        if function.bytecode.is_some() && self.visited.insert((function_id, type_params.clone())) {
+        if self.visited.insert((function_id, type_params.clone())) {
             self.worklist.push((function_id, type_params));
-            self.counter += 1;
             true
         } else {
             false
