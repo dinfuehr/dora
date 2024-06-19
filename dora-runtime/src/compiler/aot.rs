@@ -10,7 +10,7 @@ use dora_bytecode::{
 use crate::compiler::{compile_fct_aot, trait_object_thunk};
 use crate::gc::{formatted_size, Address};
 use crate::os;
-use crate::vm::{find_trait_impl, specialize_bty_array, Code, VM};
+use crate::vm::{find_trait_impl, specialize_bty_array, Code, LazyCompilationSite, VM};
 
 pub fn compile_boots_aot(vm: &VM, include_tests: bool) {
     if let Some(package_id) = vm.program.boots_package_id {
@@ -220,8 +220,24 @@ impl<'a> TransitiveClosure<'a> {
         os::jit_writable();
 
         for code in &self.code_objects {
-            for (_offset, _site) in code.lazy_compilation().entries() {
-                // TODO
+            for (offset, site) in code.lazy_compilation().entries() {
+                match site {
+                    LazyCompilationSite::Direct(fct_id, type_params, const_pool_offset) => {
+                        let address = self.function_addresses.get(&(*fct_id, type_params.clone()));
+                        if let Some(address) = address {
+                            let ra = code.instruction_start().offset(*offset as usize);
+                            let const_pool_address = ra.sub(*const_pool_offset as usize);
+
+                            unsafe {
+                                *const_pool_address.to_mut_ptr::<Address>() = *address;
+                            }
+                        }
+                    }
+
+                    LazyCompilationSite::Lambda(..) | LazyCompilationSite::Virtual(..) => {
+                        // Nothing to do.
+                    }
+                }
             }
         }
 
