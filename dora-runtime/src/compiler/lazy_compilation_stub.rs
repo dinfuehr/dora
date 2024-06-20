@@ -368,6 +368,9 @@ fn lazy_compile(ra: usize, receiver1: Address, receiver2: Address) -> Address {
 
         match lazy_compilation_site {
             LazyCompilationSite::Direct(fct_id, ref type_params, disp) => {
+                let fct = &vm.program.functions[code.fct_id().0 as usize];
+                assert_ne!(vm.program.boots_package_id, Some(fct.package_id));
+
                 patch_direct_call(vm, ra, fct_id, type_params, disp)
             }
 
