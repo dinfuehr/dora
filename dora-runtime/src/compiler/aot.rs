@@ -12,8 +12,9 @@ use crate::compiler::{compile_fct_aot, trait_object_thunk, NativeFct, NativeFctK
 use crate::gc::{formatted_size, Address};
 use crate::os;
 use crate::vm::{
-    ensure_class_instance_for_lambda, find_trait_impl, specialize_bty_array, ClassInstanceId, Code,
-    LazyCompilationSite, ShapeKind, VM,
+    ensure_class_instance_for_lambda, ensure_class_instance_for_trait_object, find_trait_impl,
+    specialize_bty, specialize_bty_array, ClassInstanceId, Code, LazyCompilationSite, ShapeKind,
+    VM,
 };
 
 pub fn compile_boots_aot(vm: &VM, include_tests: bool) {
@@ -173,6 +174,27 @@ impl<'a> TransitiveClosure<'a> {
                     self.class_instances.push(class_instance_id);
                 }
 
+                BytecodeInstruction::NewTraitObject { idx, .. } => {
+                    let (trait_id, trait_type_params, object_ty) =
+                        match bytecode_function.const_pool(idx) {
+                            ConstPoolEntry::Trait(trait_id, trait_type_params, object_ty) => {
+                                (*trait_id, trait_type_params.clone(), object_ty.clone())
+                            }
+                            _ => unreachable!(),
+                        };
+
+                    let trait_type_params = specialize_bty_array(&trait_type_params, &type_params);
+                    let object_ty = specialize_bty(object_ty, &type_params);
+
+                    let class_instance_id = ensure_class_instance_for_trait_object(
+                        self.vm,
+                        trait_id,
+                        &trait_type_params,
+                        object_ty,
+                    );
+                    self.class_instances.push(class_instance_id);
+                }
+
                 BytecodeInstruction::LoadGlobal { global_id, .. }
                 | BytecodeInstruction::StoreGlobal { global_id, .. } => {
                     let global = &self.vm.program.globals[global_id.0 as usize];
@@ -199,15 +221,22 @@ impl<'a> TransitiveClosure<'a> {
                                     if self.push_thunk(
                                         trait_fct_id,
                                         trait_type_params.clone(),
-                                        actual_ty,
+                                        actual_ty.clone(),
                                     ) {
                                         let (_code_id, code) =
                                             trait_object_thunk::ensure_compiled_aot(
                                                 self.vm,
                                                 trait_fct_id,
                                                 trait_type_params.clone(),
-                                                impl_.extended_ty.clone(),
+                                                actual_ty.clone(),
                                             );
+
+                                        let combined_type_params = type_params.append(actual_ty);
+                                        let existing = self.function_addresses.insert(
+                                            (trait_fct_id, combined_type_params),
+                                            code.instruction_start(),
+                                        );
+                                        assert!(existing.is_none());
 
                                         self.code_objects.push(code);
                                     }
@@ -292,6 +321,26 @@ impl<'a> TransitiveClosure<'a> {
                     let vtable = vtable.as_mut().expect("missing vtable");
                     let methodtable = vtable.table_mut();
                     methodtable[0] = address.to_usize();
+                }
+
+                ShapeKind::TraitObject {
+                    object_ty: _object_ty,
+                    trait_id,
+                    combined_type_params,
+                } => {
+                    let trait_ = &self.vm.program.traits[trait_id.0 as usize];
+                    for (idx, &trait_fct_id) in trait_.methods.iter().enumerate() {
+                        if let Some(address) = self
+                            .function_addresses
+                            .get(&(trait_fct_id, combined_type_params.clone()))
+                            .cloned()
+                        {
+                            let mut vtable = class_instance.vtable.write();
+                            let vtable = vtable.as_mut().expect("missing vtable");
+                            let methodtable = vtable.table_mut();
+                            methodtable[idx] = address.to_usize();
+                        }
+                    }
                 }
 
                 _ => unreachable!(),
