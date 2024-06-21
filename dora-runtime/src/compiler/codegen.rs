@@ -41,6 +41,7 @@ pub fn compile_fct_jit(vm: &VM, fct_id: FunctionId, type_params: &BytecodeTypeAr
         bytecode_fct,
         type_params,
         compiler,
+        vm.flags.emit_compiler,
         CompilationMode::Jit,
     );
 
@@ -69,6 +70,7 @@ pub fn compile_fct_aot(
         bytecode_fct,
         type_params,
         compiler,
+        false,
         CompilationMode::Aot,
     );
     vm.compilation_database
@@ -84,6 +86,7 @@ pub(super) fn compile_fct_to_code(
     bytecode_fct: &BytecodeFunction,
     type_params: &BytecodeTypeArray,
     compiler: CompilerName,
+    emit_compiler: bool,
     mode: CompilationMode,
 ) -> (CodeId, Arc<Code>) {
     let (code_descriptor, compiler, code_kind) = compile_fct_to_descriptor(
@@ -94,6 +97,7 @@ pub(super) fn compile_fct_to_code(
         bytecode_fct,
         type_params,
         compiler,
+        emit_compiler,
         mode,
     );
     let code = install_code(vm, code_descriptor, code_kind);
@@ -123,6 +127,7 @@ fn compile_fct_to_descriptor(
     bytecode_fct: &BytecodeFunction,
     type_params: &BytecodeTypeArray,
     compiler: CompilerName,
+    emit_compiler: bool,
     mode: CompilationMode,
 ) -> (CodeDescriptor, CompilerName, CodeKind) {
     debug_assert!(type_params.iter().all(|ty| ty.is_concrete_type()));
@@ -138,7 +143,7 @@ fn compile_fct_to_descriptor(
     let emit_graph = should_emit_graph(vm, fct_id);
     let mut start = None;
 
-    if vm.flags.emit_compiler {
+    if emit_compiler {
         start = Some(Instant::now());
     }
 
@@ -166,7 +171,7 @@ fn compile_fct_to_descriptor(
         ),
     };
 
-    if vm.flags.emit_compiler {
+    if emit_compiler {
         let duration = start.expect("missing start time").elapsed();
         let mut name = display_fct(vm, fct_id);
         if type_params.len() > 0 {

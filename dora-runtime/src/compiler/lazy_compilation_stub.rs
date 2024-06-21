@@ -389,6 +389,9 @@ fn lazy_compile(ra: usize, receiver1: Address, receiver2: Address) -> Address {
             }
 
             LazyCompilationSite::Lambda(..) => {
+                let fct = &vm.program.functions[code.fct_id().0 as usize];
+                assert_ne!(vm.program.boots_package_id, Some(fct.package_id));
+
                 patch_lambda_call(vm, receiver.expect("missing handle"))
             }
         }

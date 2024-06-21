@@ -37,6 +37,7 @@ pub fn ensure_compiled_jit(
         trait_object_ty,
         actual_ty,
         compiler,
+        vm.flags.emit_compiler,
         CompilationMode::Jit,
     );
 
@@ -62,6 +63,7 @@ pub fn ensure_compiled_aot(
         trait_object_ty,
         actual_ty,
         CompilerName::Cannon,
+        false,
         CompilationMode::Aot,
     );
 
@@ -93,6 +95,7 @@ fn compile_thunk_to_code(
     trait_object_ty: BytecodeType,
     actual_ty: BytecodeType,
     compiler: CompilerName,
+    emit_compiler: bool,
     mode: CompilationMode,
 ) -> (CodeId, Arc<Code>) {
     assert!(type_params.iter().all(|ty| ty.is_concrete_type()));
@@ -124,6 +127,7 @@ fn compile_thunk_to_code(
         &bytecode_fct,
         type_params,
         compiler,
+        emit_compiler,
         mode,
     )
 }

@@ -453,6 +453,14 @@ pub fn ensure_class_instance_for_lambda(
     fct_id: FunctionId,
     type_params: BytecodeTypeArray,
 ) -> ClassInstanceId {
+    let key = (fct_id, type_params.clone());
+
+    let mut lambda_vtables = vm.lambda_vtables.write();
+
+    if let Some(&id) = lambda_vtables.get(&key) {
+        return id;
+    }
+
     // Lambda object only has context field at the moment.
     let size = InstanceSize::Fixed(Header::size() + mem::ptr_width());
     let fields = vec![FieldInstance {
@@ -460,7 +468,16 @@ pub fn ensure_class_instance_for_lambda(
         ty: BytecodeType::Ptr,
     }];
 
-    create_class_instance_with_vtable(vm, ShapeKind::Lambda(fct_id, type_params), size, fields, 1)
+    let id = create_class_instance_with_vtable(
+        vm,
+        ShapeKind::Lambda(fct_id, type_params),
+        size,
+        fields,
+        1,
+    );
+
+    lambda_vtables.insert(key, id);
+    id
 }
 
 pub fn ensure_class_instance_for_trait_object(

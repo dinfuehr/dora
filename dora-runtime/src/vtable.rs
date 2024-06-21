@@ -105,7 +105,9 @@ impl VTable {
 
     pub fn table_ptr(&self) -> *const usize {
         let address = Address::from_ptr(self as *const _);
-        address.offset(std::mem::size_of::<VTable>()).to_ptr()
+        address
+            .offset(VTable::offset_of_method_table() as usize)
+            .to_ptr()
     }
 
     pub fn offset_of_method_table() -> i32 {

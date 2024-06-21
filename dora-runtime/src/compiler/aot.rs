@@ -11,7 +11,10 @@ use crate::compiler::codegen::ensure_runtime_entry_trampoline;
 use crate::compiler::{compile_fct_aot, trait_object_thunk, NativeFct, NativeFctKind};
 use crate::gc::{formatted_size, Address};
 use crate::os;
-use crate::vm::{find_trait_impl, specialize_bty_array, Code, LazyCompilationSite, VM};
+use crate::vm::{
+    ensure_class_instance_for_lambda, find_trait_impl, specialize_bty_array, ClassInstanceId, Code,
+    LazyCompilationSite, ShapeKind, VM,
+};
 
 pub fn compile_boots_aot(vm: &VM, include_tests: bool) {
     if let Some(package_id) = vm.program.boots_package_id {
@@ -24,6 +27,7 @@ pub fn compile_boots_aot(vm: &VM, include_tests: bool) {
         }
         compile_all.compute();
         compile_all.prepare_lazy_call_sites();
+        compile_all.prepare_class_instances();
         let duration = start.elapsed();
         if vm.flags.emit_compiler {
             println!(
@@ -43,6 +47,7 @@ struct TransitiveClosure<'a> {
     function_addresses: HashMap<(FunctionId, BytecodeTypeArray), Address>,
     counter: usize,
     code_objects: Vec<Arc<Code>>,
+    class_instances: Vec<ClassInstanceId>,
 }
 
 impl<'a> TransitiveClosure<'a> {
@@ -53,6 +58,7 @@ impl<'a> TransitiveClosure<'a> {
             visited: HashSet::new(),
             function_addresses: HashMap::new(),
             code_objects: Vec::new(),
+            class_instances: Vec::new(),
             counter: 0,
         }
     }
@@ -160,7 +166,11 @@ impl<'a> TransitiveClosure<'a> {
 
                     let callee_type_params =
                         specialize_bty_array(&callee_type_params, &type_params);
-                    self.push(callee_id, callee_type_params);
+                    self.push(callee_id, callee_type_params.clone());
+
+                    let class_instance_id =
+                        ensure_class_instance_for_lambda(self.vm, callee_id, callee_type_params);
+                    self.class_instances.push(class_instance_id);
                 }
 
                 BytecodeInstruction::LoadGlobal { global_id, .. }
@@ -265,5 +275,27 @@ impl<'a> TransitiveClosure<'a> {
         }
 
         os::jit_executable();
+    }
+
+    fn prepare_class_instances(&self) {
+        for class_instance_id in &self.class_instances {
+            let class_instance = self.vm.class_instances.idx(*class_instance_id);
+            match &class_instance.kind {
+                ShapeKind::Lambda(fct_id, type_params) => {
+                    let address = self
+                        .function_addresses
+                        .get(&(*fct_id, type_params.clone()))
+                        .cloned()
+                        .expect("missing function");
+
+                    let mut vtable = class_instance.vtable.write();
+                    let vtable = vtable.as_mut().expect("missing vtable");
+                    let methodtable = vtable.table_mut();
+                    methodtable[0] = address.to_usize();
+                }
+
+                _ => unreachable!(),
+            }
+        }
     }
 }

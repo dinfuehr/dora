@@ -140,6 +140,7 @@ pub struct VM {
     pub enum_specializations: RwLock<HashMap<(EnumId, BytecodeTypeArray), EnumInstanceId>>,
     pub enum_instances: GrowableVecNonIter<EnumInstance>, // stores all enum definitions
     pub trait_vtables: RwLock<HashMap<(TraitId, BytecodeTypeArray), ClassInstanceId>>,
+    pub lambda_vtables: RwLock<HashMap<(FunctionId, BytecodeTypeArray), ClassInstanceId>>,
     pub code_map: CodeMap, // stores all compiled functions
     pub global_variable_memory: Option<GlobalVariableMemory>,
     pub gc: Gc, // garbage collector
@@ -165,6 +166,7 @@ impl VM {
             enum_specializations: RwLock::new(HashMap::new()),
             enum_instances: GrowableVecNonIter::new(),
             trait_vtables: RwLock::new(HashMap::new()),
+            lambda_vtables: RwLock::new(HashMap::new()),
             global_variable_memory: None,
             known: KnownElements::new(),
             gc,
