@@ -1631,7 +1631,8 @@ impl<'a> CannonCodeGen<'a> {
         };
 
         let lbl = self.ensure_forward_label(target);
-        self.asm.test_and_jump_if(op, REG_RESULT, lbl);
+        self.asm
+            .test_and_jump_if(MachineMode::Int8, op, REG_RESULT, lbl);
     }
 
     fn emit_jump(&mut self, target: BytecodeOffset) {

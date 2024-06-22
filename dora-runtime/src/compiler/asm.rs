@@ -74,7 +74,7 @@ impl<'a> BaselineAssembler<'a> {
     pub fn assert(&mut self, value: Reg, location: Location) {
         let lbl_assert = self.masm.create_label();
         self.masm
-            .test_and_jump_if(CondCode::Zero, value, lbl_assert);
+            .test_and_jump_if(MachineMode::Int8, CondCode::Zero, value, lbl_assert);
 
         self.slow_paths
             .push(SlowPathKind::Assert(lbl_assert, location));
@@ -519,8 +519,8 @@ impl<'a> BaselineAssembler<'a> {
             .fetch_add_int64_synchronized(previous, value, addr)
     }
 
-    pub fn test_and_jump_if(&mut self, cond: CondCode, reg: Reg, lbl: Label) {
-        self.masm.test_and_jump_if(cond, reg, lbl);
+    pub fn test_and_jump_if(&mut self, mode: MachineMode, cond: CondCode, reg: Reg, lbl: Label) {
+        self.masm.test_and_jump_if(mode, cond, reg, lbl);
     }
 
     pub fn test_if_nil_bailout(&mut self, location: Location, reg: Reg, trap: Trap) {
@@ -1450,7 +1450,7 @@ impl<'a> BaselineAssembler<'a> {
             .emit_comment("slow path object write barrier".into());
         self.masm.bind_label(lbl_start);
         self.masm
-            .test_and_jump_if(CondCode::Zero, value, lbl_return);
+            .test_and_jump_if(MachineMode::Ptr, CondCode::Zero, value, lbl_return);
         self.masm.copy_reg(MachineMode::Ptr, REG_PARAMS[0], obj);
         self.masm.copy_reg(MachineMode::Ptr, REG_PARAMS[1], value);
         let ptr = Address::from_ptr(crate::gc::swiper::object_write_barrier_slow_path as *const u8);

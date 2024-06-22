@@ -314,11 +314,22 @@ impl MacroAssembler {
         }
     }
 
-    pub fn test_and_jump_if(&mut self, cond: CondCode, reg: Reg, lbl: Label) {
+    pub fn test_and_jump_if(&mut self, mode: MachineMode, cond: CondCode, reg: Reg, lbl: Label) {
         assert!(cond == CondCode::Zero || cond == CondCode::NonZero);
 
-        self.asm.testl_rr(reg.into(), reg.into());
-        self.jump_if(cond, lbl);
+        match mode {
+            MachineMode::Ptr => {
+                self.asm.testq_rr(reg.into(), reg.into());
+                self.jump_if(cond, lbl);
+            }
+
+            MachineMode::Int8 => {
+                self.asm.testb_rr(reg.into(), reg.into());
+                self.jump_if(cond, lbl);
+            }
+
+            _ => unreachable!(),
+        }
     }
 
     pub fn jump_if(&mut self, cond: CondCode, target: Label) {
