@@ -263,6 +263,12 @@ impl AssemblerX64 {
         self.emit_address(rhs.low_bits(), lhs);
     }
 
+    pub fn cmpb_rr(&mut self, lhs: Register, rhs: Register) {
+        self.emit_rex8_modrm_optional(rhs, lhs);
+        self.emit_u8(0x38u8);
+        self.emit_modrm_registers(rhs, lhs);
+    }
+
     pub fn cmpl_ai(&mut self, lhs: Address, rhs: Immediate) {
         assert!(rhs.is_int32() || rhs.is_uint32());
 
@@ -1158,6 +1164,12 @@ impl AssemblerX64 {
         self.emit_u8(rhs.uint8());
     }
 
+    pub fn testb_rr(&mut self, lhs: Register, rhs: Register) {
+        self.emit_rex8_modrm_optional(rhs, lhs);
+        self.emit_u8(0x84);
+        self.emit_modrm_registers(rhs, lhs);
+    }
+
     pub fn testl_ai(&mut self, lhs: Address, rhs: Immediate) {
         assert!(rhs.is_int32());
         self.emit_rex32_address_optional(lhs);
@@ -1337,6 +1349,12 @@ impl AssemblerX64 {
     fn emit_rex_sse_address_optional(&mut self, reg: XmmRegister, address: Address) {
         if address.rex != 0 || reg.needs_rex() {
             self.emit_u8(0x40 | address.rex | if reg.needs_rex() { 0x04 } else { 0 });
+        }
+    }
+
+    fn emit_rex8_modrm_optional(&mut self, modrm_reg: Register, modrm_rm: Register) {
+        if modrm_reg.needs_rex() || modrm_reg.0 > 3u8 || modrm_rm.needs_rex() || modrm_rm.0 > 3u8 {
+            self.emit_rex(false, modrm_reg.needs_rex(), false, modrm_rm.needs_rex());
         }
     }
 
@@ -2204,6 +2222,16 @@ mod tests {
     }
 
     #[test]
+    fn test_testb_rr() {
+        assert_emit!(0x84, 0xC0; testb_rr(RAX, RAX));
+        assert_emit!(0x84, 0xDB; testb_rr(RBX, RBX));
+        assert_emit!(0x40, 0x84, 0xC6; testb_rr(RSI, RAX));
+        assert_emit!(0x41, 0x84, 0xC7; testb_rr(R15, RAX));
+        assert_emit!(0x40, 0x84, 0xFF; testb_rr(RDI, RDI));
+        assert_emit!(0x40, 0x84, 0xF3; testb_rr(RBX, RSI));
+    }
+
+    #[test]
     fn test_testl_ai() {
         assert_emit!(0xf7, 0x00, 1, 0, 0, 0; testl_ai(Address::offset(RAX, 0), Immediate(1)));
         assert_emit!(0xf7, 0x40, 1, 1, 0, 0, 0; testl_ai(Address::offset(RAX, 1), Immediate(1)));
@@ -2344,6 +2372,16 @@ mod tests {
         assert_emit!(0x40, 0x38, 0x38; cmpb_ar(Address::offset(RAX, 0), RDI));
         assert_emit!(0x44, 0x38, 0x00; cmpb_ar(Address::offset(RAX, 0), R8));
         assert_emit!(0x41, 0x38, 0x00; cmpb_ar(Address::offset(R8, 0), RAX));
+    }
+
+    #[test]
+    fn test_cmpb_rr() {
+        assert_emit!(0x38, 0xC0; cmpb_rr(RAX, RAX));
+        assert_emit!(0x38, 0xDB; cmpb_rr(RBX, RBX));
+        assert_emit!(0x40, 0x38, 0xC6; cmpb_rr(RSI, RAX));
+        assert_emit!(0x41, 0x38, 0xC7; cmpb_rr(R15, RAX));
+        assert_emit!(0x40, 0x38, 0xFF; cmpb_rr(RDI, RDI));
+        assert_emit!(0x40, 0x38, 0xF3; cmpb_rr(RBX, RSI));
     }
 
     #[test]
