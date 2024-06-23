@@ -1585,44 +1585,7 @@ impl<'a> CannonCodeGen<'a> {
         let bytecode_type = self.specialize_register_type(lhs);
 
         match bytecode_type {
-            BytecodeType::Tuple(_) => unimplemented!(),
-
-            BytecodeType::TypeAlias(..)
-            | BytecodeType::Class(_, _)
-            | BytecodeType::TypeParam(_)
-            | BytecodeType::Struct(_, _)
-            | BytecodeType::Lambda(_, _)
-            | BytecodeType::This => {
-                unreachable!()
-            }
-            BytecodeType::Float32 | BytecodeType::Float64 => {
-                let mode = match bytecode_type {
-                    BytecodeType::Float32 => MachineMode::Int32,
-                    BytecodeType::Float64 => MachineMode::Int64,
-                    _ => unreachable!(),
-                };
-
-                self.emit_load_register_as(lhs, REG_RESULT.into(), mode);
-                self.emit_load_register_as(rhs, REG_TMP1.into(), mode);
-
-                self.asm.cmp_reg(mode, REG_RESULT, REG_TMP1);
-                self.asm.set(REG_RESULT, op);
-
-                self.emit_store_register(REG_RESULT.into(), dest);
-            }
-
-            BytecodeType::Unit => {
-                self.emit_const_bool(dest, true);
-            }
-
-            BytecodeType::Bool
-            | BytecodeType::UInt8
-            | BytecodeType::Char
-            | BytecodeType::Int32
-            | BytecodeType::Int64
-            | BytecodeType::Ptr
-            | BytecodeType::Trait(_, _)
-            | BytecodeType::Enum(_, _) => {
+            BytecodeType::Ptr | BytecodeType::Trait(_, _) => {
                 self.emit_load_register(lhs, REG_RESULT.into());
                 self.emit_load_register(rhs, REG_TMP1.into());
 
@@ -1631,6 +1594,25 @@ impl<'a> CannonCodeGen<'a> {
                 self.asm.set(REG_RESULT, op);
 
                 self.emit_store_register(REG_RESULT.into(), dest);
+            }
+
+            BytecodeType::TypeAlias(..)
+            | BytecodeType::Class(..)
+            | BytecodeType::TypeParam(_)
+            | BytecodeType::Struct(..)
+            | BytecodeType::Lambda(..)
+            | BytecodeType::This
+            | BytecodeType::Float32
+            | BytecodeType::Float64
+            | BytecodeType::Unit
+            | BytecodeType::Bool
+            | BytecodeType::UInt8
+            | BytecodeType::Char
+            | BytecodeType::Int32
+            | BytecodeType::Int64
+            | BytecodeType::Tuple(..)
+            | BytecodeType::Enum(..) => {
+                unreachable!()
             }
         }
     }
