@@ -1074,10 +1074,12 @@ impl<'a> CannonCodeGen<'a> {
         self.emit_store_register(dest_register.into(), dest);
     }
 
-    fn emit_extend_uint8(&mut self, dest: Register, src: Register, _mode: MachineMode) {
+    fn emit_extend_uint8(&mut self, dest: Register, src: Register, mode: MachineMode) {
         assert_eq!(self.bytecode.register_type(src), BytecodeType::UInt8);
 
         self.emit_load_register(src, REG_RESULT.into());
+        self.asm
+            .extend_byte(mode, REG_RESULT.into(), REG_RESULT.into());
         self.emit_store_register(REG_RESULT.into(), dest);
     }
 

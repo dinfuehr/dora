@@ -1027,7 +1027,7 @@ impl MacroAssembler {
 
     pub fn load_mem(&mut self, mode: MachineMode, dest: AnyReg, mem: Mem) {
         match mode {
-            MachineMode::Int8 => self.asm.movzxb_ra(dest.reg().into(), address_from_mem(mem)),
+            MachineMode::Int8 => self.asm.movb_ra(dest.reg().into(), address_from_mem(mem)),
             MachineMode::Int32 => self.asm.movl_ra(dest.reg().into(), address_from_mem(mem)),
             MachineMode::Int64 | MachineMode::Ptr | MachineMode::IntPtr => {
                 self.asm.movq_ra(dest.reg().into(), address_from_mem(mem))
