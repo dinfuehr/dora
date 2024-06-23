@@ -201,10 +201,16 @@ impl MacroAssembler {
     }
 
     pub fn cmp_reg_imm(&mut self, mode: MachineMode, lhs: Reg, imm: i32) {
-        if mode.is64() {
-            self.asm.cmpq_ri(lhs.into(), Immediate(imm as i64))
-        } else {
-            self.asm.cmpl_ri(lhs.into(), Immediate(imm as i64))
+        match mode {
+            MachineMode::Ptr => {
+                self.asm.cmpq_ri(lhs.into(), Immediate(imm as i64));
+            }
+
+            MachineMode::Int32 => {
+                self.asm.cmpl_ri(lhs.into(), Immediate(imm as i64));
+            }
+
+            _ => unreachable!(),
         }
     }
 
@@ -317,11 +323,8 @@ impl MacroAssembler {
     }
 
     pub fn cmp_zero(&mut self, mode: MachineMode, lhs: Reg) {
-        if mode.is64() {
-            self.asm.testq_rr(lhs.into(), lhs.into());
-        } else {
-            self.asm.testl_rr(lhs.into(), lhs.into());
-        }
+        assert_eq!(mode, MachineMode::Ptr);
+        self.asm.testq_rr(lhs.into(), lhs.into());
     }
 
     pub fn test_and_jump_if(&mut self, mode: MachineMode, cond: CondCode, reg: Reg, lbl: Label) {

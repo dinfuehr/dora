@@ -195,17 +195,15 @@ impl MacroAssembler {
     }
 
     pub fn cmp_reg_imm(&mut self, mode: MachineMode, lhs: Reg, imm: i32) {
+        assert!(mode == MachineMode::Ptr || mode == MachineMode::Int32);
         let scratch = self.get_scratch();
         self.load_int_const(mode, *scratch, imm as i64);
         self.cmp_reg(mode, lhs, *scratch);
     }
 
     pub fn cmp_zero(&mut self, mode: MachineMode, lhs: Reg) {
-        match mode {
-            MachineMode::Int8 | MachineMode::Int32 => self.asm.cmp_imm_w(lhs.into(), 0),
-            MachineMode::Int64 | MachineMode::Ptr => self.asm.cmp_imm(lhs.into(), 0),
-            _ => unreachable!(),
-        }
+        assert_eq!(mode, MachineMode::Ptr);
+        self.asm.cmp_imm(lhs.into(), 0);
     }
 
     pub fn test_and_jump_if(&mut self, mode: MachineMode, cond: CondCode, reg: Reg, lbl: Label) {
