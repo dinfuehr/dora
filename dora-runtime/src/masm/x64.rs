@@ -183,10 +183,20 @@ impl MacroAssembler {
     }
 
     pub fn cmp_reg(&mut self, mode: MachineMode, lhs: Reg, rhs: Reg) {
-        if mode.is64() {
-            self.asm.cmpq_rr(lhs.into(), rhs.into());
-        } else {
-            self.asm.cmpl_rr(lhs.into(), rhs.into());
+        match mode {
+            MachineMode::Int64 | MachineMode::Ptr => {
+                self.asm.cmpq_rr(lhs.into(), rhs.into());
+            }
+
+            MachineMode::Int32 => {
+                self.asm.cmpl_rr(lhs.into(), rhs.into());
+            }
+
+            MachineMode::Int8 => {
+                self.asm.cmpb_rr(lhs.into(), rhs.into());
+            }
+
+            _ => unreachable!(),
         }
     }
 

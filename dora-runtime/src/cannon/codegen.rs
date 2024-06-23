@@ -1549,6 +1549,20 @@ impl<'a> CannonCodeGen<'a> {
             self.emit_load_register(lhs, REG_RESULT.into());
             self.emit_load_register(rhs, REG_TMP1.into());
 
+            let op = if bytecode_type == BytecodeType::UInt8 {
+                match op {
+                    CondCode::Less => CondCode::UnsignedLess,
+                    CondCode::LessEq => CondCode::UnsignedLessEq,
+                    CondCode::Greater => CondCode::UnsignedGreater,
+                    CondCode::GreaterEq => CondCode::UnsignedGreaterEq,
+                    CondCode::Equal => CondCode::Equal,
+                    CondCode::NotEqual => CondCode::NotEqual,
+                    _ => unreachable!(),
+                }
+            } else {
+                op
+            };
+
             self.asm
                 .cmp_reg(mode(self.vm, bytecode_type), REG_RESULT, REG_TMP1);
             self.asm.set(REG_RESULT, op);
