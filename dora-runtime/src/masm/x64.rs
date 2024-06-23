@@ -44,15 +44,6 @@ impl MacroAssembler {
         self.asm.jcc(Condition::NotEqual, lbl_slow);
     }
 
-    pub fn fix_result(&mut self, result: Reg, mode: MachineMode) {
-        // Returning a boolean only sets the lower byte. However Dora
-        // on x64 keeps booleans in 32-bit registers. Fix result of
-        // native call up.
-        if mode.is_int8() {
-            self.asm.andq_ri(result.into(), Immediate(0xFF));
-        }
-    }
-
     pub fn epilog(&mut self) {
         self.asm.movq_rr(RSP.into(), RBP.into());
         self.asm.popq_r(RBP.into());

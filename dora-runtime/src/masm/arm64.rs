@@ -45,10 +45,6 @@ impl MacroAssembler {
         self.asm.cbnz(REG_TMP1.into(), lbl_safepoint);
     }
 
-    pub fn fix_result(&mut self, _result: Reg, _mode: MachineMode) {
-        // nothing to do on ARM64, see version for x64 for more info.
-    }
-
     pub fn epilog(&mut self) {
         self.epilog_without_return();
         self.asm.ret(REG_LR.into());

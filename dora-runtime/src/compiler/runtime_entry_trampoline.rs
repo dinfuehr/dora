@@ -5,7 +5,7 @@ use crate::cannon::codegen::mode;
 use crate::compiler::codegen::AnyReg;
 use crate::cpu::{
     FReg, Reg, CCALL_FREG_PARAMS, CCALL_REG_PARAMS, FREG_PARAMS, FREG_TMP1, PARAM_OFFSET, REG_FP,
-    REG_PARAMS, REG_RESULT, REG_SP, REG_THREAD, SCRATCH, STACK_FRAME_ALIGNMENT,
+    REG_PARAMS, REG_SP, REG_THREAD, SCRATCH, STACK_FRAME_ALIGNMENT,
 };
 use crate::gc::Address;
 use crate::masm::{MacroAssembler, Mem};
@@ -193,11 +193,6 @@ impl<'a> NativeGen<'a> {
 
         self.masm.raw_call(self.fct.fctptr);
         self.masm.emit_only_gcpoint(GcPoint::from_offsets(offsets));
-
-        if !self.fct.return_type.is_unit() {
-            let mode = mode(self.vm, self.fct.return_type);
-            self.masm.fix_result(REG_RESULT, mode);
-        }
 
         self.masm.load_mem(
             MachineMode::Ptr,
