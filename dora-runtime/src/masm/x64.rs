@@ -157,7 +157,6 @@ impl MacroAssembler {
 
     pub fn set(&mut self, dest: Reg, cond: CondCode) {
         self.asm.setcc_r(convert_into_condition(cond), dest.into());
-        self.asm.movzxb_rr(dest.into(), dest.into());
     }
 
     pub fn cmp_mem(&mut self, mode: MachineMode, mem: Mem, rhs: Reg) {
