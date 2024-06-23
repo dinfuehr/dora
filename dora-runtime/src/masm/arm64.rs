@@ -208,7 +208,9 @@ impl MacroAssembler {
         }
     }
 
-    pub fn test_and_jump_if(&mut self, cond: CondCode, reg: Reg, lbl: Label) {
+    pub fn test_and_jump_if(&mut self, mode: MachineMode, cond: CondCode, reg: Reg, lbl: Label) {
+        assert!(mode == MachineMode::Ptr || mode == MachineMode::Int8);
+
         match cond {
             CondCode::Zero => self.asm.cbz(reg.into(), lbl),
             CondCode::NonZero => self.asm.cbnz(reg.into(), lbl),
