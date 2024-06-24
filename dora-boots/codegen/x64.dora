@@ -16,8 +16,16 @@ use package::graph::{Graph, InputOutputOverlap, Inst, InstSet, Op, Location, Loc
 use package::regalloc::isReference;
 use package::{CodeDescriptor, CommentTable, GcPoint, GcPointTable, LazyCompilationData, LazyCompilationSiteVirtual, LazyCompilationSiteLambda, LocationTable};
 
-let REG_PARAMS: Array[Register] = Array[Register]::new(RDI, RSI, RDX, RCX, R8, R9);
-let FLOAT_REG_PARAMS: Array[FloatRegister] = Array[FloatRegister]::new(XMM0, XMM1, XMM2, XMM3, XMM4, XMM5, XMM6, XMM7);
+let REG_PARAMS: Array[Register] = if config.isWindows {
+    Array[Register]::new(RCX, RDX, R8, R9)
+} else {
+    Array[Register]::new(RDI, RSI, RDX, RCX, R8, R9)
+};
+let FLOAT_REG_PARAMS: Array[FloatRegister] = if config.isWindows {
+    Array[FloatRegister]::new(XMM0, XMM1, XMM2, XMM3)
+} else {
+    Array[FloatRegister]::new(XMM0, XMM1, XMM2, XMM3, XMM4, XMM5, XMM6, XMM7)
+};
 
 let CCALL_REG_PARAMS: Array[Register] = REG_PARAMS;
 
