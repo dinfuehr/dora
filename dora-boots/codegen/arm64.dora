@@ -2719,7 +2719,7 @@ impl CodeGen for CodeGenArm64 {
     fn annotateAtomicFetchAdd(inst: Inst) {
         useInputRegister(inst, 0);
         useInputRegister(inst, 1);
-        useOutputRegister(inst, InputOutputOverlap::NoOverlap);
+        useOutputRegister(inst, InputOutputOverlap::Overlap);
     }
 
     fn emitAtomicFetchAdd(inst: Inst) {
@@ -2732,11 +2732,27 @@ impl CodeGen for CodeGenArm64 {
 
         match inst.getValueType() {
             Type::Int32 => {
-                self.asm.ldadd_w(increment, dest, REG_TEMP);
+                if true {
+                    let loop_start = self.asm.createAndBindLabel();
+                    self.asm.ldaxr_w(dest, REG_TEMP);
+                    self.asm.add_w(REG_TEMP2, dest, increment);
+                    self.asm.stlxr_w(REG_TEMP2, REG_TEMP2, REG_TEMP);
+                    self.asm.cbnz_w(REG_TEMP2, loop_start);
+                } else {
+                    self.asm.ldadd_w(increment, dest, REG_TEMP);
+                }
             }
 
             Type::Int64 => {
-                self.asm.ldadd(increment, dest, REG_TEMP);
+                if true {
+                    let loop_start = self.asm.createAndBindLabel();
+                    self.asm.ldaxr(dest, REG_TEMP);
+                    self.asm.add(REG_TEMP2, dest, increment);
+                    self.asm.stlxr(REG_TEMP2, REG_TEMP2, REG_TEMP);
+                    self.asm.cbnz(REG_TEMP2, loop_start);
+                } else {
+                    self.asm.ldadd(increment, dest, REG_TEMP);
+                }
             }
 
             _ => unreachable[()](),
