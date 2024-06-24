@@ -2619,7 +2619,7 @@ impl CodeGen for CodeGenArm64 {
     fn annotateAtomicExchange(inst: Inst) {
         useInputRegister(inst, 0);
         useInputRegister(inst, 1);
-        useOutputRegister(inst, InputOutputOverlap::NoOverlap);
+        useOutputRegister(inst, InputOutputOverlap::Overlap);
     }
 
     fn emitAtomicExchange(inst: Inst) {
@@ -2632,11 +2632,25 @@ impl CodeGen for CodeGenArm64 {
 
         match inst.getValueType() {
             Type::Int32 => {
-                self.asm.swpal_w(new_value, dest, REG_TEMP);
+                if true {
+                    let loop_start = self.asm.createAndBindLabel();
+                    self.asm.ldaxr_w(dest, REG_TEMP);
+                    self.asm.stlxr_w(REG_TEMP2, new_value, REG_TEMP);
+                    self.asm.cbnz_w(REG_TEMP2, loop_start);
+                } else {
+                    self.asm.swpal_w(new_value, dest, REG_TEMP);
+                }
             }
 
             Type::Int64 => {
-                self.asm.swpal(new_value, dest, REG_TEMP);
+                if true {
+                    let loop_start = self.asm.createAndBindLabel();
+                    self.asm.ldaxr(dest, REG_TEMP);
+                    self.asm.stlxr(REG_TEMP2, new_value, REG_TEMP);
+                    self.asm.cbnz(REG_TEMP2, loop_start);
+                } else {
+                    self.asm.swpal(new_value, dest, REG_TEMP);
+                }
             }
 
             _ => unreachable[()](),
@@ -2647,7 +2661,7 @@ impl CodeGen for CodeGenArm64 {
         useInputRegister(inst, 0);
         useInputRegister(inst, 1);
         useInputRegister(inst, 2);
-        useOutputRegister(inst, InputOutputOverlap::NoOverlap);
+        useOutputRegister(inst, InputOutputOverlap::Overlap);
     }
 
     fn emitAtomicCompareExchange(inst: Inst) {
@@ -2661,15 +2675,41 @@ impl CodeGen for CodeGenArm64 {
 
         match inst.getValueType() {
             Type::Int32 => {
-                self.asm.mov_w(REG_TEMP2, expected);
-                self.asm.casal_w(REG_TEMP2, new_value, REG_TEMP);
-                self.asm.mov_w(dest, REG_TEMP2);
+                if true {
+                    let state = REG_TEMP2;
+                    let loop_start = self.asm.createAndBindLabel();
+                    let loop_end = self.asm.createLabel();
+                    self.asm.ldaxr_w(dest, REG_TEMP);
+                    self.asm.cmp_w(dest, expected);
+                    self.asm.bc(Cond::NE, loop_end);
+                    self.asm
+                        .stlxr_w(state, new_value, REG_TEMP);
+                    self.asm.cbnz_w(state, loop_start);
+                    self.asm.bindLabel(loop_end);
+                } else {
+                    self.asm.mov_w(REG_TEMP2, expected);
+                    self.asm.casal_w(REG_TEMP2, new_value, REG_TEMP);
+                    self.asm.mov_w(dest, REG_TEMP2);
+                }
             }
 
             Type::Int64 => {
-                self.asm.mov(REG_TEMP2, expected);
-                self.asm.casal(REG_TEMP2, new_value, REG_TEMP);
-                self.asm.mov(dest, REG_TEMP2);
+                if true {
+                    let state = REG_TEMP2;
+                    let loop_start = self.asm.createAndBindLabel();
+                    let loop_end = self.asm.createLabel();
+                    self.asm.ldaxr(dest, REG_TEMP);
+                    self.asm.cmp_w(dest, expected);
+                    self.asm.bc(Cond::NE, loop_end);
+                    self.asm
+                        .stlxr(state, new_value, REG_TEMP);
+                    self.asm.cbnz(state, loop_start);
+                    self.asm.bindLabel(loop_end);
+                } else {
+                    self.asm.mov(REG_TEMP2, expected);
+                    self.asm.casal(REG_TEMP2, new_value, REG_TEMP);
+                    self.asm.mov(dest, REG_TEMP2);
+                }
             }
 
             _ => unreachable[()](),
