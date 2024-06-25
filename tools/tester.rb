@@ -619,10 +619,14 @@ def check_process_result(test_case, result)
 
   end
 
-  return "stdout does not match" if test_case.expectation.stdout && test_case.expectation.stdout != result.stdout
-  return "stderr does not match" if test_case.expectation.stderr && test_case.expectation.stderr != result.stderr
+  return "stdout does not match" if test_case.expectation.stdout && test_case.expectation.stdout != canonicalize(result.stdout)
+  return "stderr does not match" if test_case.expectation.stderr && test_case.expectation.stderr != canonicalize(result.stderr)
 
   true
+end
+
+def canonicalize(output)
+  output.gsub("\\", "/")
 end
 
 def print_result(test_case, config, test_result)
