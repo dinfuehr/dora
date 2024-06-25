@@ -576,13 +576,13 @@ def run_test(test_case, config, mutex)
       puts process_result.stdout unless process_result.stdout.empty?
       if test_case.expectation.stdout
         puts "#==== EXPECTED STDOUT"
-        puts process_result.stdout
+        puts test_case.expectation.stdout
       end
       puts "#==== STDERR"
       puts process_result.stderr unless process_result.stderr.empty?
       if test_case.expectation.stderr
         puts "#==== EXPECTED STDERR"
-        puts process_result.stderr
+        puts test_case.expectation.stderr
       end
       puts "RUN: #{cmdline}"
       puts "RUN: cargo run -p dora --#{args}"
