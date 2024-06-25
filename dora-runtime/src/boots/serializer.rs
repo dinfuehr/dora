@@ -33,6 +33,17 @@ fn encode_system_config(vm: &VM, buffer: &mut ByteBuffer) {
     buffer.emit_bool(vm.gc.needs_write_barrier());
     buffer.emit_bool(!vm.flags.disable_tlab);
     buffer.emit_bool(cfg!(debug_assertions));
+    buffer.emit_bool(has_lse_atomics());
+}
+
+#[cfg(target_arch = "aarch64")]
+fn has_lse_atomics() -> bool {
+    crate::cpu::has_lse_atomics()
+}
+
+#[cfg(not(target_arch = "aarch64"))]
+fn has_lse_atomics() -> bool {
+    false
 }
 
 pub fn allocate_encoded_compilation_info(vm: &VM, compilation_data: &CompilationData) -> Ref<Obj> {

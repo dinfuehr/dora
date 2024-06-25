@@ -18,6 +18,7 @@ pub fn decodeConfig(encoded: Array[UInt8]): Config {
     let needs_write_barrier = reader.readBool();
     let use_tlab = reader.readBool();
     let is_debug = reader.readBool();
+    let has_lse_atomics = reader.readBool();
     assert(!reader.moreBytes());
 
     Config(
@@ -33,6 +34,7 @@ pub fn decodeConfig(encoded: Array[UInt8]): Config {
         needs_write_barrier,
         use_tlab,
         is_debug,
+        has_lse_atomics,
     )
 }
 

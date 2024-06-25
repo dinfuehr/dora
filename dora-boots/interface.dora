@@ -191,6 +191,7 @@ pub class Config {
     pub needsWriteBarrier: Bool,
     pub useTlab: Bool,
     pub isDebug: Bool,
+    pub hasLseAtomics: Bool,
 }
 
 pub let config: Config = decodeConfig(getSystemConfig());

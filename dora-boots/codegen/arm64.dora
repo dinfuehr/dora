@@ -2632,24 +2632,24 @@ impl CodeGen for CodeGenArm64 {
 
         match inst.getValueType() {
             Type::Int32 => {
-                if true {
+                if config.hasLseAtomics {
+                    self.asm.swpal_w(new_value, dest, REG_TEMP);
+                } else {
                     let loop_start = self.asm.createAndBindLabel();
                     self.asm.ldaxr_w(dest, REG_TEMP);
                     self.asm.stlxr_w(REG_TEMP2, new_value, REG_TEMP);
                     self.asm.cbnz_w(REG_TEMP2, loop_start);
-                } else {
-                    self.asm.swpal_w(new_value, dest, REG_TEMP);
                 }
             }
 
             Type::Int64 => {
-                if true {
+                if config.hasLseAtomics {
+                    self.asm.swpal(new_value, dest, REG_TEMP);
+                } else {
                     let loop_start = self.asm.createAndBindLabel();
                     self.asm.ldaxr(dest, REG_TEMP);
                     self.asm.stlxr(REG_TEMP2, new_value, REG_TEMP);
                     self.asm.cbnz(REG_TEMP2, loop_start);
-                } else {
-                    self.asm.swpal(new_value, dest, REG_TEMP);
                 }
             }
 
@@ -2675,7 +2675,11 @@ impl CodeGen for CodeGenArm64 {
 
         match inst.getValueType() {
             Type::Int32 => {
-                if true {
+                if config.hasLseAtomics {
+                    self.asm.mov_w(REG_TEMP2, expected);
+                    self.asm.casal_w(REG_TEMP2, new_value, REG_TEMP);
+                    self.asm.mov_w(dest, REG_TEMP2);
+                } else {
                     let state = REG_TEMP2;
                     let loop_start = self.asm.createAndBindLabel();
                     let loop_end = self.asm.createLabel();
@@ -2686,15 +2690,15 @@ impl CodeGen for CodeGenArm64 {
                         .stlxr_w(state, new_value, REG_TEMP);
                     self.asm.cbnz_w(state, loop_start);
                     self.asm.bindLabel(loop_end);
-                } else {
-                    self.asm.mov_w(REG_TEMP2, expected);
-                    self.asm.casal_w(REG_TEMP2, new_value, REG_TEMP);
-                    self.asm.mov_w(dest, REG_TEMP2);
                 }
             }
 
             Type::Int64 => {
-                if true {
+                if config.hasLseAtomics {
+                    self.asm.mov(REG_TEMP2, expected);
+                    self.asm.casal(REG_TEMP2, new_value, REG_TEMP);
+                    self.asm.mov(dest, REG_TEMP2);
+                } else {
                     let state = REG_TEMP2;
                     let loop_start = self.asm.createAndBindLabel();
                     let loop_end = self.asm.createLabel();
@@ -2705,10 +2709,6 @@ impl CodeGen for CodeGenArm64 {
                         .stlxr(state, new_value, REG_TEMP);
                     self.asm.cbnz(state, loop_start);
                     self.asm.bindLabel(loop_end);
-                } else {
-                    self.asm.mov(REG_TEMP2, expected);
-                    self.asm.casal(REG_TEMP2, new_value, REG_TEMP);
-                    self.asm.mov(dest, REG_TEMP2);
                 }
             }
 
@@ -2732,26 +2732,26 @@ impl CodeGen for CodeGenArm64 {
 
         match inst.getValueType() {
             Type::Int32 => {
-                if true {
+                if config.hasLseAtomics {
+                    self.asm.ldadd_w(increment, dest, REG_TEMP);
+                } else {
                     let loop_start = self.asm.createAndBindLabel();
                     self.asm.ldaxr_w(dest, REG_TEMP);
                     self.asm.add_w(REG_TEMP2, dest, increment);
                     self.asm.stlxr_w(REG_TEMP2, REG_TEMP2, REG_TEMP);
                     self.asm.cbnz_w(REG_TEMP2, loop_start);
-                } else {
-                    self.asm.ldadd_w(increment, dest, REG_TEMP);
                 }
             }
 
             Type::Int64 => {
-                if true {
+                if config.hasLseAtomics {
+                    self.asm.ldadd(increment, dest, REG_TEMP);
+                } else {
                     let loop_start = self.asm.createAndBindLabel();
                     self.asm.ldaxr(dest, REG_TEMP);
                     self.asm.add(REG_TEMP2, dest, increment);
                     self.asm.stlxr(REG_TEMP2, REG_TEMP2, REG_TEMP);
                     self.asm.cbnz(REG_TEMP2, loop_start);
-                } else {
-                    self.asm.ldadd(increment, dest, REG_TEMP);
                 }
             }
 
