@@ -88,6 +88,6 @@ jobs:
         if: matrix.os != 'windows-latest'
         run: tools/test-release
 
-      # - name: Test Release (Windows)
-      #   if: matrix.os == 'windows-latest'
-      #   run: .\tools\test-release.bat
+      - name: Test Release (Windows)
+        if: matrix.os == 'windows-latest'
+        run: .\tools\test-release.bat
