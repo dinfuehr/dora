@@ -35,13 +35,14 @@ pub struct Flags {
     pub gc_young_size: Option<MemSize>,
     pub gc_semi_ratio: Option<usize>,
     pub gc: Option<CollectorName>,
-    pub compiler: Option<CompilerName>,
+    pub compiler: Option<Compiler>,
     pub min_heap_size: Option<MemSize>,
     pub max_heap_size: Option<MemSize>,
     pub code_size: Option<MemSize>,
     pub readonly_size: Option<MemSize>,
     pub disable_tlab: bool,
     pub disable_barrier: bool,
+    pub bootstrap_compiler: bool,
 }
 
 impl Flags {
@@ -86,8 +87,8 @@ impl Flags {
         self.gc_young_size.is_none()
     }
 
-    pub fn compiler(&self) -> CompilerName {
-        self.compiler.unwrap_or(CompilerName::Cannon)
+    pub fn compiler(&self) -> Compiler {
+        self.compiler.unwrap_or(Compiler::Cannon)
     }
 }
 
@@ -111,16 +112,16 @@ impl Deref for MemSize {
 }
 
 #[derive(Copy, Clone, Debug, PartialEq, Eq)]
-pub enum CompilerName {
+pub enum Compiler {
     Cannon,
     Boots,
 }
 
-impl fmt::Display for CompilerName {
+impl fmt::Display for Compiler {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         let text = match self {
-            CompilerName::Cannon => "cannon",
-            CompilerName::Boots => "boots",
+            Compiler::Cannon => "cannon",
+            Compiler::Boots => "boots",
         };
 
         f.write_str(text)

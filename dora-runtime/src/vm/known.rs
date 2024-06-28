@@ -1,5 +1,7 @@
 use parking_lot::Mutex;
 
+use std::cell::OnceCell;
+
 use crate::gc::Address;
 use crate::vm::ClassInstanceId;
 use dora_bytecode::{ClassId, FunctionId, TraitId};
@@ -27,6 +29,7 @@ pub struct KnownElements {
     pub stacktrace_element_class_id: Option<ClassId>,
     pub stacktrace_retrieve_fct_id: Option<FunctionId>,
     pub boots_compile_fct_id: Option<FunctionId>,
+    pub boots_compile_fct_address: OnceCell<Address>,
 }
 
 impl KnownElements {
@@ -53,6 +56,7 @@ impl KnownElements {
             stacktrace_element_class_id: None,
             stacktrace_retrieve_fct_id: None,
             boots_compile_fct_id: None,
+            boots_compile_fct_address: OnceCell::new(),
         }
     }
 
@@ -110,5 +114,12 @@ impl KnownElements {
 
     pub fn boots_compile_fct_id(&self) -> FunctionId {
         self.boots_compile_fct_id.expect("uninitialized")
+    }
+
+    pub fn boots_compile_fct_address(&self) -> Address {
+        self.boots_compile_fct_address
+            .get()
+            .cloned()
+            .expect("uninitialized")
     }
 }

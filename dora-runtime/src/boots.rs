@@ -114,12 +114,10 @@ pub const BOOTS_NATIVE_FUNCTIONS: &[(&'static str, *const u8)] = &[
 
 pub fn compile(
     vm: &VM,
+    compile_address: Address,
     compilation_data: CompilationData,
     _mode: CompilationMode,
 ) -> CodeDescriptor {
-    let compile_fct_id = vm.known.boots_compile_fct_id();
-    let compile_address = vm.ensure_compiled(compile_fct_id);
-
     let encoded_compilation_info =
         create_handle(allocate_encoded_compilation_info(vm, &compilation_data));
 

@@ -36,7 +36,7 @@ pub use self::display::{
 };
 pub use self::enums::{enum_definition_name, EnumInstance, EnumInstanceId, EnumLayout};
 pub use self::extensions::block_matches_ty;
-pub use self::flags::{CollectorName, CompilerName, Flags, MemSize};
+pub use self::flags::{CollectorName, Compiler, Flags, MemSize};
 use self::globals::GlobalVariableMemory;
 pub use self::globals::{INITIALIZED, RUNNING, UNINITIALIZED};
 pub use self::impls::{bounds_for_tp, find_trait_impl, tp_implements_trait, ty_implements_trait};

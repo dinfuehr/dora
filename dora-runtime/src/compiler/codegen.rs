@@ -10,12 +10,27 @@ use crate::gc::Address;
 use crate::os;
 use crate::vm::{
     display_fct, display_ty_without_type_params, install_code, Code, CodeDescriptor, CodeId,
-    CodeKind, CompilerName, VM,
+    CodeKind, Compiler, VM,
 };
 use dora_bytecode::{
     dump_stdout, BytecodeFunction, BytecodeType, BytecodeTypeArray, FunctionData, FunctionId,
     Location,
 };
+
+#[derive(Clone, Copy)]
+pub enum CompilerInvocation {
+    Cannon,
+    Boots(Address),
+}
+
+impl CompilerInvocation {
+    fn to_compiler(&self) -> Compiler {
+        match self {
+            CompilerInvocation::Cannon => Compiler::Cannon,
+            CompilerInvocation::Boots(..) => Compiler::Boots,
+        }
+    }
+}
 
 pub fn compile_fct_jit(vm: &VM, fct_id: FunctionId, type_params: &BytecodeTypeArray) -> Address {
     // Block here if compilation is already in progress.
@@ -32,6 +47,13 @@ pub fn compile_fct_jit(vm: &VM, fct_id: FunctionId, type_params: &BytecodeTypeAr
 
     assert_ne!(Some(program_fct.package_id), vm.program.boots_package_id);
     let compiler = select_compiler(vm, fct_id, program_fct);
+    let compiler = match compiler {
+        Compiler::Cannon => CompilerInvocation::Cannon,
+        Compiler::Boots => {
+            let compile_fctptr = vm.known.boots_compile_fct_address();
+            CompilerInvocation::Boots(compile_fctptr)
+        }
+    };
 
     let (code_id, code) = compile_fct_to_code(
         vm,
@@ -56,11 +78,11 @@ pub fn compile_fct_aot(
     vm: &VM,
     fct_id: FunctionId,
     type_params: &BytecodeTypeArray,
+    compiler: CompilerInvocation,
 ) -> (CodeId, Arc<Code>) {
     let program_fct = &vm.program.functions[fct_id.0 as usize];
     let params = BytecodeTypeArray::new(program_fct.params.clone());
     let bytecode_fct = program_fct.bytecode.as_ref().expect("missing bytecode");
-    let compiler = CompilerName::Cannon;
 
     let (code_id, code) = compile_fct_to_code(
         vm,
@@ -85,7 +107,7 @@ pub(super) fn compile_fct_to_code(
     params: BytecodeTypeArray,
     bytecode_fct: &BytecodeFunction,
     type_params: &BytecodeTypeArray,
-    compiler: CompilerName,
+    compiler: CompilerInvocation,
     emit_compiler: bool,
     mode: CompilationMode,
 ) -> (CodeId, Arc<Code>) {
@@ -126,20 +148,20 @@ fn compile_fct_to_descriptor(
     params: BytecodeTypeArray,
     bytecode_fct: &BytecodeFunction,
     type_params: &BytecodeTypeArray,
-    compiler: CompilerName,
+    compiler: CompilerInvocation,
     emit_compiler: bool,
     mode: CompilationMode,
-) -> (CodeDescriptor, CompilerName, CodeKind) {
+) -> (CodeDescriptor, Compiler, CodeKind) {
     debug_assert!(type_params.iter().all(|ty| ty.is_concrete_type()));
 
-    let emit_bytecode = should_emit_bytecode(vm, fct_id, compiler);
+    let emit_bytecode = should_emit_bytecode(vm, fct_id, compiler.to_compiler());
 
     if emit_bytecode {
         dump_stdout(&vm.program, program_fct, &bytecode_fct);
     }
 
-    let emit_debug = should_emit_debug(vm, fct_id, compiler);
-    let emit_asm = should_emit_asm(vm, fct_id, compiler);
+    let emit_debug = should_emit_debug(vm, fct_id, compiler.to_compiler());
+    let emit_asm = should_emit_asm(vm, fct_id, compiler.to_compiler());
     let emit_graph = should_emit_graph(vm, fct_id);
     let mut start = None;
 
@@ -161,12 +183,12 @@ fn compile_fct_to_descriptor(
     };
 
     let (code_descriptor, code_kind) = match compiler {
-        CompilerName::Cannon => (
+        CompilerInvocation::Cannon => (
             cannon::compile(vm, compilation_data, mode),
             CodeKind::BaselineFct(fct_id),
         ),
-        CompilerName::Boots => (
-            boots::compile(vm, compilation_data, mode),
+        CompilerInvocation::Boots(compile_address) => (
+            boots::compile(vm, compile_address, compilation_data, mode),
             CodeKind::OptimizedFct(fct_id),
         ),
     };
@@ -192,34 +214,34 @@ fn compile_fct_to_descriptor(
         println!(
             "compile {} using {} in {:.3}ms.",
             name,
-            compiler,
+            compiler.to_compiler(),
             duration.as_secs_f32() * 1000.0
         );
     }
 
-    (code_descriptor, compiler, code_kind)
+    (code_descriptor, compiler.to_compiler(), code_kind)
 }
 
-pub(super) fn select_compiler(vm: &VM, fct_id: FunctionId, fct: &FunctionData) -> CompilerName {
+pub(super) fn select_compiler(vm: &VM, fct_id: FunctionId, fct: &FunctionData) -> Compiler {
     if vm.flags.always_boots {
-        return CompilerName::Boots;
+        return Compiler::Boots;
     }
 
     if let Some(ref use_boots) = vm.flags.use_boots {
         if fct_pattern_match(vm, fct_id, use_boots) {
-            return CompilerName::Boots;
+            return Compiler::Boots;
         }
     }
 
     if fct.is_optimize_immediately {
-        CompilerName::Boots
+        Compiler::Boots
     } else {
-        CompilerName::Cannon
+        Compiler::Cannon
     }
 }
 
-fn should_emit_debug(vm: &VM, fct_id: FunctionId, compiler: CompilerName) -> bool {
-    if compiler == CompilerName::Boots && vm.flags.emit_debug_boots {
+fn should_emit_debug(vm: &VM, fct_id: FunctionId, compiler: Compiler) -> bool {
+    if compiler == Compiler::Boots && vm.flags.emit_debug_boots {
         return true;
     }
 
@@ -230,12 +252,12 @@ fn should_emit_debug(vm: &VM, fct_id: FunctionId, compiler: CompilerName) -> boo
     }
 }
 
-fn should_emit_bytecode(vm: &VM, fct_id: FunctionId, compiler: CompilerName) -> bool {
+fn should_emit_bytecode(vm: &VM, fct_id: FunctionId, compiler: Compiler) -> bool {
     if !disassembler::supported() {
         return false;
     }
 
-    if compiler == CompilerName::Boots && vm.flags.emit_bytecode_boots {
+    if compiler == Compiler::Boots && vm.flags.emit_bytecode_boots {
         return true;
     }
 
@@ -246,12 +268,12 @@ fn should_emit_bytecode(vm: &VM, fct_id: FunctionId, compiler: CompilerName) -> 
     }
 }
 
-fn should_emit_asm(vm: &VM, fct_id: FunctionId, compiler: CompilerName) -> bool {
+fn should_emit_asm(vm: &VM, fct_id: FunctionId, compiler: Compiler) -> bool {
     if !disassembler::supported() {
         return false;
     }
 
-    if compiler == CompilerName::Boots && vm.flags.emit_asm_boots {
+    if compiler == Compiler::Boots && vm.flags.emit_asm_boots {
         return true;
     }
 
@@ -352,7 +374,7 @@ pub fn ensure_runtime_entry_trampoline(
             instruction_start
         } else {
             let dbg = if let Some(fct_id) = fct_id {
-                should_emit_debug(vm, fct_id, CompilerName::Cannon)
+                should_emit_debug(vm, fct_id, Compiler::Cannon)
             } else {
                 false
             };
@@ -360,7 +382,7 @@ pub fn ensure_runtime_entry_trampoline(
             let code = runtime_entry_trampoline::generate(vm, native_fct, dbg);
 
             if let Some(fct_id) = fct_id {
-                if should_emit_asm(vm, fct_id, CompilerName::Cannon) {
+                if should_emit_asm(vm, fct_id, Compiler::Cannon) {
                     disassembler::disassemble(vm, fct_id, &BytecodeTypeArray::empty(), &code);
                 }
             }

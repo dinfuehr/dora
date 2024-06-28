@@ -2,7 +2,7 @@ use std::default::Default;
 use std::path::PathBuf;
 
 use dora_runtime::Flags as VmArgs;
-use dora_runtime::{CollectorName, CompilerName, MemSize};
+use dora_runtime::{CollectorName, Compiler, MemSize};
 
 // Write the Docopt usage string.
 static USAGE: &'static str = "
@@ -49,6 +49,7 @@ Options:
 
     --disable-tlab          Disable tlab allocation.
     --disable-barrier       Disable barriers.
+    --bootstrap-compiler    Runs bootstrap process for boots compiler.
 
     --min-heap-size=<SIZE>  Set minimum heap size.
     --max-heap-size=<SIZE>  Set maximum heap size.
@@ -94,7 +95,7 @@ pub struct Args {
     gc_young_size: Option<MemSize>,
     pub gc_semi_ratio: Option<usize>,
     pub gc: Option<CollectorName>,
-    pub compiler: Option<CompilerName>,
+    pub compiler: Option<Compiler>,
     pub min_heap_size: Option<MemSize>,
     pub max_heap_size: Option<MemSize>,
     pub code_size: Option<MemSize>,
@@ -102,6 +103,7 @@ pub struct Args {
     pub check: bool,
     pub disable_tlab: bool,
     pub disable_barrier: bool,
+    pub bootstrap_compiler: bool,
     pub test_filter: Option<String>,
     pub packages: Vec<(String, PathBuf)>,
 
@@ -155,6 +157,7 @@ impl Default for Args {
             check: false,
             disable_tlab: false,
             disable_barrier: false,
+            bootstrap_compiler: false,
             test_filter: None,
             packages: Vec::new(),
 
@@ -295,8 +298,8 @@ pub fn parse_arguments() -> Result<Args, String> {
         } else if arg.starts_with("--compiler=") {
             let value = argument_value(arg);
             let value = match value {
-                "cannon" => CompilerName::Cannon,
-                "boots" => CompilerName::Boots,
+                "cannon" => Compiler::Cannon,
+                "boots" => Compiler::Boots,
                 _ => return Err(format!("--compiler: unknown compiler '{}'", value)),
             };
             args.compiler = Some(value);
@@ -304,6 +307,8 @@ pub fn parse_arguments() -> Result<Args, String> {
             args.test_filter = Some(argument_value(arg).into());
         } else if arg == "--disable-tlab" {
             args.disable_tlab = true;
+        } else if arg == "--bootstrap-compiler" {
+            args.bootstrap_compiler = true;
         } else if arg == "-o" {
             if idx + 1 >= cli_arguments.len() {
                 return Err("-o needs argument".into());
@@ -449,5 +454,6 @@ pub fn create_vm_args(args: &Args) -> VmArgs {
         readonly_size: args.readonly_size,
         disable_tlab: args.disable_tlab,
         disable_barrier: args.disable_barrier,
+        bootstrap_compiler: args.bootstrap_compiler,
     }
 }

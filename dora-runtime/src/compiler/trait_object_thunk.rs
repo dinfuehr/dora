@@ -4,11 +4,13 @@ use crate::cannon::codegen::register_ty;
 use crate::compiler::codegen::{compile_fct_to_code, select_compiler};
 use crate::compiler::CompilationMode;
 use crate::gc::Address;
-use crate::vm::{Code, CodeId, CompilerName, VM};
+use crate::vm::{Code, CodeId, Compiler, VM};
 use dora_bytecode::{
     BytecodeBuilder, BytecodeFunction, BytecodeType, BytecodeTypeArray, FunctionId, FunctionKind,
     Register,
 };
+
+use super::codegen::CompilerInvocation;
 
 pub fn ensure_compiled_jit(
     vm: &VM,
@@ -29,6 +31,13 @@ pub fn ensure_compiled_jit(
 
     let trait_fct = &vm.program.functions[trait_fct_id.0 as usize];
     let compiler = select_compiler(vm, trait_fct_id, trait_fct);
+    let compiler = match compiler {
+        Compiler::Cannon => CompilerInvocation::Cannon,
+        Compiler::Boots => {
+            let compile_address = vm.known.boots_compile_fct_address();
+            CompilerInvocation::Boots(compile_address)
+        }
+    };
 
     let (code_id, code) = compile_thunk_to_code(
         vm,
@@ -62,7 +71,7 @@ pub fn ensure_compiled_aot(
         &all_type_params,
         trait_object_ty,
         actual_ty,
-        CompilerName::Cannon,
+        CompilerInvocation::Cannon,
         false,
         CompilationMode::Aot,
     );
@@ -94,7 +103,7 @@ fn compile_thunk_to_code(
     type_params: &BytecodeTypeArray,
     trait_object_ty: BytecodeType,
     actual_ty: BytecodeType,
-    compiler: CompilerName,
+    compiler: CompilerInvocation,
     emit_compiler: bool,
     mode: CompilationMode,
 ) -> (CodeId, Arc<Code>) {

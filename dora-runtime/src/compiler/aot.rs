@@ -7,7 +7,7 @@ use dora_bytecode::{
     ConstPoolEntry, FunctionId, FunctionKind, PackageId,
 };
 
-use crate::compiler::codegen::ensure_runtime_entry_trampoline;
+use crate::compiler::codegen::{ensure_runtime_entry_trampoline, CompilerInvocation};
 use crate::compiler::{compile_fct_aot, trait_object_thunk, NativeFct, NativeFctKind};
 use crate::gc::{formatted_size, Address};
 use crate::os;
@@ -19,33 +19,93 @@ use crate::vm::{
 
 pub fn compile_boots_aot(vm: &VM, include_tests: bool) {
     if let Some(package_id) = vm.program.boots_package_id {
-        let start = Instant::now();
-        let tc = compute_transitive_closure(vm, package_id, include_tests);
-        let ctc = compile_transitive_closure(vm, &tc);
-        let duration = start.elapsed();
+        let entry_id = vm.known.boots_compile_fct_id();
+        let tc = compute_transitive_closure(vm, package_id, entry_id, include_tests);
+        let stage1_compiler_address = stage1_compiler(vm, &tc, entry_id);
 
-        if vm.flags.emit_compiler {
-            println!(
-                "compiled all of boots in {:.2}ms ({} functions, {} bytes)",
-                duration.as_secs_f32() * 1000.0f32,
-                ctc.counter,
-                formatted_size(vm.gc.current_code_size()),
-            );
-        }
+        let boots_compiler_address = if vm.flags.bootstrap_compiler {
+            stage2_compiler(vm, &tc, entry_id, stage1_compiler_address)
+        } else {
+            stage1_compiler_address
+        };
+
+        assert!(vm
+            .known
+            .boots_compile_fct_address
+            .set(boots_compiler_address)
+            .is_ok());
     }
+}
+
+fn stage1_compiler(vm: &VM, tc: &TransitiveClosure, entry_id: FunctionId) -> Address {
+    compiler_stage_n(vm, tc, entry_id, "stage1", CompilerInvocation::Cannon)
+}
+
+fn stage2_compiler(
+    vm: &VM,
+    tc: &TransitiveClosure,
+    entry_id: FunctionId,
+    stage1_compiler_address: Address,
+) -> Address {
+    compiler_stage_n(
+        vm,
+        tc,
+        entry_id,
+        "stage2",
+        CompilerInvocation::Boots(stage1_compiler_address),
+    )
+}
+
+fn compiler_stage_n(
+    vm: &VM,
+    tc: &TransitiveClosure,
+    entry_id: FunctionId,
+    name: &str,
+    compiler: CompilerInvocation,
+) -> Address {
+    let start = Instant::now();
+    let ctc = compile_transitive_closure(vm, &tc, compiler);
+    let compile_address = ctc.get_address(entry_id).expect("missing entry point");
+    let duration = start.elapsed();
+
+    if vm.flags.emit_compiler {
+        println!(
+            "compiled all of boots ({}) in {:.2}ms ({} bytes)",
+            name,
+            duration.as_secs_f32() * 1000.0f32,
+            formatted_size(vm.gc.current_code_size()),
+        );
+    }
+
+    compile_address
 }
 
 fn compute_transitive_closure(
     vm: &VM,
     package_id: PackageId,
+    entry_id: FunctionId,
     include_tests: bool,
 ) -> TransitiveClosure {
+    let start = Instant::now();
+
     let mut compile_all = TransitiveClosureComputation::new(vm);
-    compile_all.push(vm.known.boots_compile_fct_id(), BytecodeTypeArray::empty());
+    compile_all.push(entry_id, BytecodeTypeArray::empty());
     if include_tests {
         compile_all.push_tests(package_id);
     }
-    compile_all.compute()
+    let tc = compile_all.compute();
+    let duration = start.elapsed();
+
+    if vm.flags.emit_compiler {
+        println!(
+            "computed transitive closure of boots in {:.2}ms ({} functions, {} thunks)",
+            duration.as_secs_f32() * 1000.0f32,
+            tc.functions.len(),
+            tc.thunks.len(),
+        );
+    }
+
+    tc
 }
 
 struct TransitiveClosure {
@@ -287,20 +347,35 @@ impl CompiledTransitiveClosure {
             counter: 0,
         }
     }
+
+    fn get_address(&self, id: FunctionId) -> Option<Address> {
+        self.function_addresses
+            .get(&(id, BytecodeTypeArray::empty()))
+            .cloned()
+    }
 }
 
-fn compile_transitive_closure(vm: &VM, tc: &TransitiveClosure) -> CompiledTransitiveClosure {
+fn compile_transitive_closure(
+    vm: &VM,
+    tc: &TransitiveClosure,
+    compiler: CompilerInvocation,
+) -> CompiledTransitiveClosure {
     let mut ctc = CompiledTransitiveClosure::new();
-    compile_functions(vm, tc, &mut ctc);
+    compile_functions(vm, tc, &mut ctc, compiler);
     compile_thunks(vm, tc, &mut ctc);
     prepare_lazy_call_sites(vm, &ctc);
     prepare_virtual_method_tables(vm, tc, &ctc);
     ctc
 }
 
-fn compile_functions(vm: &VM, tc: &TransitiveClosure, ctc: &mut CompiledTransitiveClosure) {
+fn compile_functions(
+    vm: &VM,
+    tc: &TransitiveClosure,
+    ctc: &mut CompiledTransitiveClosure,
+    compiler: CompilerInvocation,
+) {
     for (fct_id, type_params) in &tc.functions {
-        compile_function(vm, *fct_id, type_params.clone(), ctc);
+        compile_function(vm, *fct_id, type_params.clone(), ctc, compiler);
     }
 }
 
@@ -309,6 +384,7 @@ fn compile_function(
     fct_id: FunctionId,
     type_params: BytecodeTypeArray,
     ctc: &mut CompiledTransitiveClosure,
+    compiler: CompilerInvocation,
 ) {
     let fct = &vm.program.functions[fct_id.0 as usize];
 
@@ -328,7 +404,7 @@ fn compile_function(
             .insert((fct_id, type_params), fctptr_wrapper);
         assert!(existing.is_none());
     } else if let Some(_) = fct.bytecode {
-        let (_code_id, code) = compile_fct_aot(vm, fct_id, &type_params);
+        let (_code_id, code) = compile_fct_aot(vm, fct_id, &type_params, compiler);
         ctc.counter += 1;
         let existing = ctc
             .function_addresses
