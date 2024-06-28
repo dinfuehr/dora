@@ -97,12 +97,4 @@ impl CompilationDatabase {
 
         self.cv_notify.notify_all();
     }
-
-    pub fn compile_aot(&self, id: FunctionId, type_params: BytecodeTypeArray, code_id: CodeId) {
-        let mut inner = self.inner.lock();
-
-        assert!(inner
-            .insert((id, type_params), CompilationStatus::Compiled(code_id))
-            .is_none());
-    }
 }

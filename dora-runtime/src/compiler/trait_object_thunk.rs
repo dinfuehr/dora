@@ -76,9 +76,6 @@ pub fn ensure_compiled_aot(
         CompilationMode::Aot,
     );
 
-    vm.compilation_database
-        .compile_aot(trait_fct_id, all_type_params.clone(), code_id);
-
     (code_id, code)
 }
 

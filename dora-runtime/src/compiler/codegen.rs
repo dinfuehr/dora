@@ -95,8 +95,6 @@ pub fn compile_fct_aot(
         false,
         CompilationMode::Aot,
     );
-    vm.compilation_database
-        .compile_aot(fct_id, type_params.clone(), code_id);
     (code_id, code)
 }
 
