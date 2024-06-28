@@ -12,9 +12,9 @@ use crate::compiler::{compile_fct_aot, trait_object_thunk, NativeFct, NativeFctK
 use crate::gc::{formatted_size, Address};
 use crate::os;
 use crate::vm::{
-    ensure_class_instance_for_lambda, ensure_class_instance_for_trait_object, find_trait_impl,
-    specialize_bty, specialize_bty_array, ClassInstanceId, Code, LazyCompilationSite, ShapeKind,
-    VM,
+    ensure_class_instance_for_lambda, ensure_class_instance_for_trait_object, execute_on_main,
+    find_trait_impl, specialize_bty, specialize_bty_array, ClassInstanceId, Code,
+    LazyCompilationSite, ShapeKind, VM,
 };
 
 pub fn compile_boots_aot(vm: &VM) {
@@ -24,7 +24,7 @@ pub fn compile_boots_aot(vm: &VM) {
         let stage1_compiler_address = stage1_compiler(vm, &tc, entry_id);
 
         let boots_compiler_address = if vm.flags.bootstrap_compiler {
-            stage2_compiler(vm, &tc, entry_id, stage1_compiler_address)
+            execute_on_main(|| stage2_compiler(vm, &tc, entry_id, stage1_compiler_address))
         } else {
             stage1_compiler_address
         };
