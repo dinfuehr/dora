@@ -19,48 +19,61 @@ use crate::vm::{
 
 pub fn compile_boots_aot(vm: &VM, include_tests: bool) {
     if let Some(package_id) = vm.program.boots_package_id {
-        let mut compile_all = TransitiveClosure::new(vm);
-
         let start = Instant::now();
-        compile_all.push(vm.known.boots_compile_fct_id(), BytecodeTypeArray::empty());
-        if include_tests {
-            compile_all.push_tests(package_id);
-        }
-        compile_all.compute();
-        compile_all.prepare_lazy_call_sites();
-        compile_all.prepare_class_instances();
+        let tc = compute_transitive_closure(vm, package_id, include_tests);
+        let ctc = compile_transitive_closure(vm, &tc);
         let duration = start.elapsed();
+
         if vm.flags.emit_compiler {
             println!(
                 "compiled all of boots in {:.2}ms ({} functions, {} bytes)",
                 duration.as_secs_f32() * 1000.0f32,
-                compile_all.counter,
+                ctc.counter,
                 formatted_size(vm.gc.current_code_size()),
             );
         }
     }
 }
 
-struct TransitiveClosure<'a> {
-    vm: &'a VM,
-    worklist: Vec<(FunctionId, BytecodeTypeArray)>,
-    visited: HashSet<(FunctionId, BytecodeTypeArray)>,
-    function_addresses: HashMap<(FunctionId, BytecodeTypeArray), Address>,
-    counter: usize,
-    code_objects: Vec<Arc<Code>>,
+fn compute_transitive_closure(
+    vm: &VM,
+    package_id: PackageId,
+    include_tests: bool,
+) -> TransitiveClosure {
+    let mut compile_all = TransitiveClosureComputation::new(vm);
+    compile_all.push(vm.known.boots_compile_fct_id(), BytecodeTypeArray::empty());
+    if include_tests {
+        compile_all.push_tests(package_id);
+    }
+    compile_all.compute()
+}
+
+struct TransitiveClosure {
+    functions: Vec<(FunctionId, BytecodeTypeArray)>,
+    thunks: Vec<(FunctionId, BytecodeTypeArray, BytecodeType)>,
     class_instances: Vec<ClassInstanceId>,
 }
 
-impl<'a> TransitiveClosure<'a> {
-    fn new(vm: &VM) -> TransitiveClosure {
-        TransitiveClosure {
+struct TransitiveClosureComputation<'a> {
+    vm: &'a VM,
+    worklist: Vec<(FunctionId, BytecodeTypeArray)>,
+    worklist_idx: usize,
+    visited: HashSet<(FunctionId, BytecodeTypeArray)>,
+    counter: usize,
+    class_instances: Vec<ClassInstanceId>,
+    thunks: Vec<(FunctionId, BytecodeTypeArray, BytecodeType)>,
+}
+
+impl<'a> TransitiveClosureComputation<'a> {
+    fn new(vm: &VM) -> TransitiveClosureComputation {
+        TransitiveClosureComputation {
             vm,
             worklist: Vec::new(),
+            worklist_idx: 0,
             visited: HashSet::new(),
-            function_addresses: HashMap::new(),
-            code_objects: Vec::new(),
             class_instances: Vec::new(),
             counter: 0,
+            thunks: Vec::new(),
         }
     }
 
@@ -72,45 +85,27 @@ impl<'a> TransitiveClosure<'a> {
         }
     }
 
-    fn compute(&mut self) {
-        while let Some((fct_id, type_params)) = self.worklist.pop() {
-            self.compile(fct_id, type_params.clone());
+    fn compute(mut self) -> TransitiveClosure {
+        while let Some((fct_id, type_params)) = self.pop() {
+            self.trace(fct_id, type_params.clone());
+        }
+
+        TransitiveClosure {
+            functions: self.worklist,
+            thunks: self.thunks,
+            class_instances: self.class_instances,
         }
     }
 
-    fn compile(&mut self, fct_id: FunctionId, type_params: BytecodeTypeArray) {
+    fn trace(&mut self, fct_id: FunctionId, type_params: BytecodeTypeArray) {
         let fct = &self.vm.program.functions[fct_id.0 as usize];
 
-        if let Some(native_fctptr) = self.vm.native_methods.get(fct_id) {
-            // Method is implemented in native code. Create trampoline for invoking it.
-            let internal_fct = NativeFct {
-                fctptr: native_fctptr,
-                args: BytecodeTypeArray::new(fct.params.clone()),
-                return_type: fct.return_type.clone(),
-                desc: NativeFctKind::RuntimeEntryTrampoline(fct_id),
-            };
-
-            let fctptr_wrapper =
-                ensure_runtime_entry_trampoline(self.vm, Some(fct_id), internal_fct);
-
-            let existing = self
-                .function_addresses
-                .insert((fct_id, type_params), fctptr_wrapper);
-            assert!(existing.is_none());
-        } else if let Some(ref bytecode_function) = fct.bytecode {
-            let (_code_id, code) = compile_fct_aot(self.vm, fct_id, &type_params);
-            self.counter += 1;
-            let existing = self
-                .function_addresses
-                .insert((fct_id, type_params.clone()), code.instruction_start());
-            assert!(existing.is_none());
-            self.code_objects.push(code);
-
-            self.trace_function(bytecode_function, type_params);
+        if let Some(ref bytecode_function) = fct.bytecode {
+            self.iterate_bytecode(bytecode_function, type_params);
         }
     }
 
-    fn trace_function(
+    fn iterate_bytecode(
         &mut self,
         bytecode_function: &BytecodeFunction,
         type_params: BytecodeTypeArray,
@@ -223,22 +218,11 @@ impl<'a> TransitiveClosure<'a> {
                                         trait_type_params.clone(),
                                         actual_ty.clone(),
                                     ) {
-                                        let (_code_id, code) =
-                                            trait_object_thunk::ensure_compiled_aot(
-                                                self.vm,
-                                                trait_fct_id,
-                                                trait_type_params.clone(),
-                                                actual_ty.clone(),
-                                            );
-
-                                        let combined_type_params = type_params.append(actual_ty);
-                                        let existing = self.function_addresses.insert(
-                                            (trait_fct_id, combined_type_params),
-                                            code.instruction_start(),
-                                        );
-                                        assert!(existing.is_none());
-
-                                        self.code_objects.push(code);
+                                        self.thunks.push((
+                                            trait_fct_id,
+                                            trait_type_params.clone(),
+                                            actual_ty,
+                                        ));
                                     }
 
                                     self.push(*impl_method_id, type_params.clone());
@@ -278,73 +262,168 @@ impl<'a> TransitiveClosure<'a> {
         }
     }
 
-    fn prepare_lazy_call_sites(&self) {
-        os::jit_writable();
+    fn pop(&mut self) -> Option<(FunctionId, BytecodeTypeArray)> {
+        if self.worklist_idx < self.worklist.len() {
+            let current = self.worklist[self.worklist_idx].clone();
+            self.worklist_idx += 1;
+            Some(current)
+        } else {
+            None
+        }
+    }
+}
 
-        for code in &self.code_objects {
-            for (offset, site) in code.lazy_compilation().entries() {
-                match site {
-                    LazyCompilationSite::Direct(fct_id, type_params, const_pool_offset) => {
-                        let address = self.function_addresses.get(&(*fct_id, type_params.clone()));
-                        if let Some(address) = address {
-                            let ra = code.instruction_start().offset(*offset as usize);
-                            let const_pool_address = ra.sub(*const_pool_offset as usize);
+struct CompiledTransitiveClosure {
+    function_addresses: HashMap<(FunctionId, BytecodeTypeArray), Address>,
+    code_objects: Vec<Arc<Code>>,
+    counter: usize,
+}
 
-                            unsafe {
-                                *const_pool_address.to_mut_ptr::<Address>() = *address;
-                            }
+impl CompiledTransitiveClosure {
+    fn new() -> CompiledTransitiveClosure {
+        CompiledTransitiveClosure {
+            function_addresses: HashMap::new(),
+            code_objects: Vec::new(),
+            counter: 0,
+        }
+    }
+}
+
+fn compile_transitive_closure(vm: &VM, tc: &TransitiveClosure) -> CompiledTransitiveClosure {
+    let mut ctc = CompiledTransitiveClosure::new();
+    compile_functions(vm, tc, &mut ctc);
+    compile_thunks(vm, tc, &mut ctc);
+    prepare_lazy_call_sites(vm, &ctc);
+    prepare_virtual_method_tables(vm, tc, &ctc);
+    ctc
+}
+
+fn compile_functions(vm: &VM, tc: &TransitiveClosure, ctc: &mut CompiledTransitiveClosure) {
+    for (fct_id, type_params) in &tc.functions {
+        compile_function(vm, *fct_id, type_params.clone(), ctc);
+    }
+}
+
+fn compile_function(
+    vm: &VM,
+    fct_id: FunctionId,
+    type_params: BytecodeTypeArray,
+    ctc: &mut CompiledTransitiveClosure,
+) {
+    let fct = &vm.program.functions[fct_id.0 as usize];
+
+    if let Some(native_fctptr) = vm.native_methods.get(fct_id) {
+        // Method is implemented in native code. Create trampoline for invoking it.
+        let internal_fct = NativeFct {
+            fctptr: native_fctptr,
+            args: BytecodeTypeArray::new(fct.params.clone()),
+            return_type: fct.return_type.clone(),
+            desc: NativeFctKind::RuntimeEntryTrampoline(fct_id),
+        };
+
+        let fctptr_wrapper = ensure_runtime_entry_trampoline(vm, Some(fct_id), internal_fct);
+
+        let existing = ctc
+            .function_addresses
+            .insert((fct_id, type_params), fctptr_wrapper);
+        assert!(existing.is_none());
+    } else if let Some(_) = fct.bytecode {
+        let (_code_id, code) = compile_fct_aot(vm, fct_id, &type_params);
+        ctc.counter += 1;
+        let existing = ctc
+            .function_addresses
+            .insert((fct_id, type_params.clone()), code.instruction_start());
+        assert!(existing.is_none());
+        ctc.code_objects.push(code);
+    }
+}
+
+fn compile_thunks(vm: &VM, tc: &TransitiveClosure, ctc: &mut CompiledTransitiveClosure) {
+    for (trait_fct_id, trait_type_params, actual_ty) in &tc.thunks {
+        let (_code_id, code) = trait_object_thunk::ensure_compiled_aot(
+            vm,
+            *trait_fct_id,
+            trait_type_params.clone(),
+            actual_ty.clone(),
+        );
+
+        let combined_type_params = trait_type_params.append(actual_ty.clone());
+        let existing = ctc.function_addresses.insert(
+            (*trait_fct_id, combined_type_params),
+            code.instruction_start(),
+        );
+        assert!(existing.is_none());
+
+        ctc.code_objects.push(code);
+    }
+}
+
+fn prepare_lazy_call_sites(_vm: &VM, ctc: &CompiledTransitiveClosure) {
+    os::jit_writable();
+
+    for code in &ctc.code_objects {
+        for (offset, site) in code.lazy_compilation().entries() {
+            match site {
+                LazyCompilationSite::Direct(fct_id, type_params, const_pool_offset) => {
+                    let address = ctc.function_addresses.get(&(*fct_id, type_params.clone()));
+                    if let Some(address) = address {
+                        let ra = code.instruction_start().offset(*offset as usize);
+                        let const_pool_address = ra.sub(*const_pool_offset as usize);
+
+                        unsafe {
+                            *const_pool_address.to_mut_ptr::<Address>() = *address;
                         }
                     }
+                }
 
-                    LazyCompilationSite::Lambda(..) | LazyCompilationSite::Virtual(..) => {
-                        // Nothing to do.
-                    }
+                LazyCompilationSite::Lambda(..) | LazyCompilationSite::Virtual(..) => {
+                    // Nothing to do.
                 }
             }
         }
-
-        os::jit_executable();
     }
 
-    fn prepare_class_instances(&self) {
-        for class_instance_id in &self.class_instances {
-            let class_instance = self.vm.class_instances.idx(*class_instance_id);
-            match &class_instance.kind {
-                ShapeKind::Lambda(fct_id, type_params) => {
-                    let address = self
+    os::jit_executable();
+}
+
+fn prepare_virtual_method_tables(vm: &VM, tc: &TransitiveClosure, ctc: &CompiledTransitiveClosure) {
+    for class_instance_id in &tc.class_instances {
+        let class_instance = vm.class_instances.idx(*class_instance_id);
+        match &class_instance.kind {
+            ShapeKind::Lambda(fct_id, type_params) => {
+                let address = ctc
+                    .function_addresses
+                    .get(&(*fct_id, type_params.clone()))
+                    .cloned()
+                    .expect("missing function");
+
+                let mut vtable = class_instance.vtable.write();
+                let vtable = vtable.as_mut().expect("missing vtable");
+                let methodtable = vtable.table_mut();
+                methodtable[0] = address.to_usize();
+            }
+
+            ShapeKind::TraitObject {
+                object_ty: _object_ty,
+                trait_id,
+                combined_type_params,
+            } => {
+                let trait_ = &vm.program.traits[trait_id.0 as usize];
+                for (idx, &trait_fct_id) in trait_.methods.iter().enumerate() {
+                    if let Some(address) = ctc
                         .function_addresses
-                        .get(&(*fct_id, type_params.clone()))
+                        .get(&(trait_fct_id, combined_type_params.clone()))
                         .cloned()
-                        .expect("missing function");
-
-                    let mut vtable = class_instance.vtable.write();
-                    let vtable = vtable.as_mut().expect("missing vtable");
-                    let methodtable = vtable.table_mut();
-                    methodtable[0] = address.to_usize();
-                }
-
-                ShapeKind::TraitObject {
-                    object_ty: _object_ty,
-                    trait_id,
-                    combined_type_params,
-                } => {
-                    let trait_ = &self.vm.program.traits[trait_id.0 as usize];
-                    for (idx, &trait_fct_id) in trait_.methods.iter().enumerate() {
-                        if let Some(address) = self
-                            .function_addresses
-                            .get(&(trait_fct_id, combined_type_params.clone()))
-                            .cloned()
-                        {
-                            let mut vtable = class_instance.vtable.write();
-                            let vtable = vtable.as_mut().expect("missing vtable");
-                            let methodtable = vtable.table_mut();
-                            methodtable[idx] = address.to_usize();
-                        }
+                    {
+                        let mut vtable = class_instance.vtable.write();
+                        let vtable = vtable.as_mut().expect("missing vtable");
+                        let methodtable = vtable.table_mut();
+                        methodtable[idx] = address.to_usize();
                     }
                 }
-
-                _ => unreachable!(),
             }
+
+            _ => unreachable!(),
         }
     }
 }
