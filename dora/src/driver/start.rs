@@ -30,33 +30,22 @@ pub fn start() -> i32 {
         return 0;
     }
 
-    if args.arg_file.is_none() && !args.command.is_test_boots() {
+    if args.arg_file.is_none() {
         eprintln!("missing input argument.");
         return 1;
     }
 
-    let prog = if let Some(ref file) = args.arg_file {
-        if file.ends_with(".dora-package") {
-            match decode_input_program(&file) {
-                Ok(prog) => prog,
-                Err(_) => {
-                    return 1;
-                }
-            }
-        } else {
-            let location = ProgramLocation::File(file.clone());
-            match compile_into_program(&args, location) {
-                Ok(result) => result,
-                Err(_) => {
-                    return 1;
-                }
+    let file = args.arg_file.as_ref().expect("missing argument");
+
+    let prog = if file.ends_with(".dora-package") {
+        match decode_input_program(&file) {
+            Ok(prog) => prog,
+            Err(_) => {
+                return 1;
             }
         }
     } else {
-        assert!(args.command.is_test_boots());
-        let content = "fn main() {}";
-        let location = ProgramLocation::String(content.to_string());
-        match compile_into_program(&args, location) {
+        match compile_into_program(&args, file.clone()) {
             Ok(result) => result,
             Err(_) => {
                 return 1;
@@ -86,13 +75,10 @@ pub fn start() -> i32 {
 
     set_vm(&vm);
 
-    vm.compile_boots_aot(command.is_test_boots());
+    vm.compile_boots_aot();
 
     let exit_code = if command.is_test() {
         run_tests(&vm, &args, vm.program.program_package_id)
-    } else if command.is_test_boots() {
-        let boots_id = vm.program.boots_package_id.expect("missing boots package");
-        run_tests(&vm, &args, boots_id)
     } else {
         if vm.program.main_fct_id.is_none() {
             eprintln!("no main method in program.");
@@ -116,21 +102,11 @@ pub fn start() -> i32 {
     exit_code
 }
 
-enum ProgramLocation {
-    File(String),
-    String(String),
-}
-
-fn compile_into_program(args: &Args, file: ProgramLocation) -> Result<Program, ()> {
-    let (arg_file, test_file_as_string) = match file {
-        ProgramLocation::File(file) => (Some(file), None),
-        ProgramLocation::String(content) => (None, Some(content)),
-    };
-
+fn compile_into_program(args: &Args, file: String) -> Result<Program, ()> {
     let sem_args = SemaArgs {
-        arg_file,
+        arg_file: Some(file),
         packages: args.packages.clone(),
-        test_file_as_string,
+        test_file_as_string: None,
     };
 
     let mut sa = Sema::new(sem_args);

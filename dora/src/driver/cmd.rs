@@ -170,7 +170,6 @@ impl Default for Args {
 pub enum Command {
     Run,
     Test,
-    TestBoots,
     Build,
 }
 
@@ -186,13 +185,6 @@ impl Command {
     pub fn is_test(&self) -> bool {
         match self {
             Command::Test => true,
-            _ => false,
-        }
-    }
-
-    pub fn is_test_boots(&self) -> bool {
-        match self {
-            Command::TestBoots => true,
             _ => false,
         }
     }
@@ -215,8 +207,6 @@ pub fn parse_arguments() -> Result<Args, String> {
 
         if arg == "test" && idx == 1 {
             args.command = Command::Test;
-        } else if arg == "test-boots" && idx == 1 {
-            args.command = Command::TestBoots;
         } else if arg == "build" && idx == 1 {
             args.command = Command::Build;
         } else if arg == "--version" || arg == "-v" {

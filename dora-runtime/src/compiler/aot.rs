@@ -17,10 +17,10 @@ use crate::vm::{
     VM,
 };
 
-pub fn compile_boots_aot(vm: &VM, include_tests: bool) {
+pub fn compile_boots_aot(vm: &VM) {
     if let Some(package_id) = vm.program.boots_package_id {
         let entry_id = vm.known.boots_compile_fct_id();
-        let tc = compute_transitive_closure(vm, package_id, entry_id, include_tests);
+        let tc = compute_transitive_closure(vm, package_id, entry_id);
         let stage1_compiler_address = stage1_compiler(vm, &tc, entry_id);
 
         let boots_compiler_address = if vm.flags.bootstrap_compiler {
@@ -82,17 +82,13 @@ fn compiler_stage_n(
 
 fn compute_transitive_closure(
     vm: &VM,
-    package_id: PackageId,
+    _package_id: PackageId,
     entry_id: FunctionId,
-    include_tests: bool,
 ) -> TransitiveClosure {
     let start = Instant::now();
 
     let mut compile_all = TransitiveClosureComputation::new(vm);
     compile_all.push(entry_id, BytecodeTypeArray::empty());
-    if include_tests {
-        compile_all.push_tests(package_id);
-    }
     let tc = compile_all.compute();
     let duration = start.elapsed();
 
@@ -134,14 +130,6 @@ impl<'a> TransitiveClosureComputation<'a> {
             class_instances: Vec::new(),
             counter: 0,
             thunks: Vec::new(),
-        }
-    }
-
-    fn push_tests(&mut self, package_id: PackageId) {
-        for (id, fct) in self.vm.program.functions.iter().enumerate() {
-            if fct.package_id == package_id && fct.is_test {
-                self.push(FunctionId(id as u32), BytecodeTypeArray::empty());
-            }
         }
     }
 

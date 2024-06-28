@@ -245,8 +245,8 @@ impl VM {
         compiler::compile_fct_jit(self, fct_id, &type_params)
     }
 
-    pub fn compile_boots_aot(&self, include_tests: bool) {
-        compiler::aot::compile_boots_aot(self, include_tests);
+    pub fn compile_boots_aot(&self) {
+        compiler::aot::compile_boots_aot(self);
     }
 
     pub fn dump_gc_summary(&self, runtime: f32) {
