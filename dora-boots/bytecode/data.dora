@@ -40,6 +40,10 @@ impl BytecodeFunction {
         (byte4 << 24i32) | (byte3 << 16i32) | (byte2 << 8i32) | byte1
     }
 
+    pub fn hasLocationAt(at: Int32): Bool {
+        self.locations.size() > 0 && at >= self.locations(0).0
+    }
+
     pub fn getLocationAt(at: Int32): Location {
         let size = self.locations.size();
 
