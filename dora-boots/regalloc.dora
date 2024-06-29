@@ -237,8 +237,8 @@ impl SimpleRegisterAllocator {
             self.freeDeadOutput(inst);
         }
 
-        self.registers().protected.clear();
-        self.float_registers().protected.clear();
+        self.registers().resetProtectedAndFreeUnowned();
+        self.float_registers().resetProtectedAndFreeUnowned();
 
         self.currentInst = None[Inst];
     }
@@ -625,7 +625,7 @@ impl SimpleRegisterAllocator {
         }
     }
 
-    fn allocateFixedRegisterGeneric[T: RegisterType + std::Equals](dest: T, registers: RegisterTracker[T], inst: Inst) {
+    fn allocateFixedRegisterGeneric[T: RegisterType](dest: T, registers: RegisterTracker[T], inst: Inst) {
         let current = registers.getRegister(inst);
 
         if current.isSome() && current.getOrPanic().equals(dest) {
@@ -794,6 +794,33 @@ impl[T: RegisterType] RegisterTracker[T] {
         let inst = self.data.free(reg).getOrPanic();
         self.locations.remove(inst);
         (reg, inst)
+    }
+
+    fn resetProtectedAndFreeUnowned() {
+        // An instruction could be in multiple registers at the same time
+        // if used multiple times as input in an instruction.
+        // However here we can only track one register per instruction and
+        // therefore we drop registers if their instruction does not point
+        // back to that register.
+        for reg in self.protected {
+            if self.free.contains(reg) {
+                continue;
+            }
+
+            let inst = self.data.get(reg);
+
+            if inst.isSome() {
+                let inst = inst.getOrPanic();
+                let current_reg = self.locations.get(inst);
+
+                if current_reg.isNone() || !reg.equals(current_reg.getOrPanic()) {
+                    self.free.add(reg);
+                    self.data.free(reg);
+                }
+            }
+        }
+
+        self.protected.clear();
     }
 
     fn snapshot(): RegisterTracker[T] {
