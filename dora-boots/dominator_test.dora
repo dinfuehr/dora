@@ -32,7 +32,7 @@ fn assertDominatedBlocks(fct: BytecodeFunction, idoms: Int32...) {
             println("block ${idx}: missing dominator, expected ${expectedDominatorId}");
         } else if dominator.getOrPanic().id() != expectedDominatorId {
             println("block ${idx}: idom is ${dominator.getOrPanic().id()}, expected ${expectedDominatorId}");
-            println(dumpGraph(graph, Architecture::Arm64));
+            println(dumpGraph(None[CompilationInfo], graph, Architecture::Arm64));
         }
 
         assert(dominator.getOrPanic().id() == expectedDominatorId);

@@ -3,5 +3,5 @@
 set -e
 
 TARGET=x86_64-apple-darwin
-cargo run -p dora --target $TARGET -- test-boots --package boots dora-boots/boots.dora --gc-verify
+cargo run -p dora --target $TARGET -- test dora-boots/boots.dora --gc-verify
 ruby tools/tester.rb  --target $TARGET tests/boots

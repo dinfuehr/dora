@@ -5,22 +5,24 @@ use package::assembler::arm64::registerName as registerNameOnArm64;
 use package::assembler::x64::registerName as registerNameOnX64;
 use package::assembler::arm64::floatRegisterName as floatRegisterNameOnArm64;
 use package::assembler::x64::floatRegisterName as floatRegisterNameOnX64;
+use package::compilation::CompilationInfo;
 use package::graph::{Block, Edge, Graph, Input, Inst, Location, LocationData, Operand, Op, Policy};
 use package::interface::Architecture;
 
-pub fn dumpGraph(graph: Graph, architecture: Architecture): String {
-    GraphDumper::new(graph, architecture).dump()
+pub fn dumpGraph(ci: Option[CompilationInfo], graph: Graph, architecture: Architecture): String {
+    GraphDumper::new(ci, graph, architecture).dump()
 }
 
 class GraphDumper {
+    ci: Option[CompilationInfo],
     graph: Graph,
     architecture: Architecture,
     buffer: StringBuffer,
 }
 
 impl GraphDumper {
-    static fn new(graph: Graph, architecture: Architecture): GraphDumper {
-        GraphDumper(graph, architecture, StringBuffer::new())
+    static fn new(ci: Option[CompilationInfo], graph: Graph, architecture: Architecture): GraphDumper {
+        GraphDumper(ci, graph, architecture, StringBuffer::new())
     }
 
     fn dump(): String {
@@ -164,6 +166,12 @@ impl GraphDumper {
             }
 
             self.buffer.append("]");
+        }
+
+        if inst.hasBytecodePosition() && self.ci.isSome() {
+            let pos = inst.getBytecodePosition();
+            let loc = self.ci.getOrPanic().bc.getLocationAt(pos);
+            self.buffer.append(" ${loc.line}:${loc.column}");
         }
 
         self.buffer.appendNewline();
@@ -351,7 +359,7 @@ fn dumpInstName(inst: Inst): String {
 }
 
 pub fn assertGraph(graph: Graph, output: String) {
-    let graphOutput = dumpGraph(graph, Architecture::Arm64);
+    let graphOutput = dumpGraph(None[CompilationInfo], graph, Architecture::Arm64);
 
     if !compareStrings(graphOutput, output) {
         println("got: \"${graphOutput}\"");

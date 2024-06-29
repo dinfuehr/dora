@@ -884,11 +884,15 @@ impl Inst {
         self.linear_index = Some(value);
     }
 
-    pub fn bytecode_position(): Int32 {
+    pub fn hasBytecodePosition(): Bool {
+        self.bytecode_position.isSome()
+    }
+
+    pub fn getBytecodePosition(): Int32 {
         self.bytecode_position.getOrPanic()
     }
 
-    pub fn set_bytecode_position(pos: Int32) {
+    pub fn setBytecodePosition(pos: Int32) {
         self.bytecode_position = Some(pos);
     }
 
