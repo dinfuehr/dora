@@ -629,6 +629,7 @@ impl SimpleRegisterAllocator {
         let current = registers.getRegister(inst);
 
         if current.isSome() && current.getOrPanic().equals(dest) {
+            registers.protect(dest);
             return;
         }
 
