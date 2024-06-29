@@ -714,7 +714,15 @@ impl[T: RegisterType] RegisterTracker[T] {
         if self.free.contains(reg) {
             self.free.remove(reg);
             self.data.pick(reg, value);
-            self.locations.insert(value, reg);
+            let old_reg = self.locations.insert(value, reg);
+            if old_reg.isSome() {
+                let old_reg = old_reg.getOrPanic();
+                if !self.protected.contains(old_reg) {
+                    assert(!old_reg.equals(reg));
+                    self.free.add(old_reg);
+                    self.data.free(old_reg);
+                }
+            }
             true
         } else {
             false
