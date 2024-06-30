@@ -151,7 +151,8 @@ pub fn emit_bytecode(prog: &Program, filter: &str) {
     for fct in prog.functions.iter() {
         if let Some(ref bc) = fct.bytecode {
             if fct_pattern_match(&fct.name, filter) {
-                dump_stdout(prog, fct, bc);
+                println!("Bytecode for {}:", fct.name);
+                dump_stdout(prog, bc);
             }
         }
     }

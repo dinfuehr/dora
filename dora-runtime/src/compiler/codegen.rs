@@ -155,7 +155,8 @@ fn compile_fct_to_descriptor(
     let emit_bytecode = should_emit_bytecode(vm, fct_id, compiler.to_compiler());
 
     if emit_bytecode {
-        dump_stdout(&vm.program, program_fct, &bytecode_fct);
+        println!("Bytecode for {}:", display_fct(vm, fct_id));
+        dump_stdout(&vm.program, &bytecode_fct);
     }
 
     let emit_debug = should_emit_debug(vm, fct_id, compiler.to_compiler());

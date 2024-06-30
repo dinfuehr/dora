@@ -3,21 +3,15 @@ use std::io;
 
 use crate::{
     read, BytecodeFunction, BytecodeOffset, BytecodeType, BytecodeTypeArray, BytecodeVisitor,
-    ConstPoolEntry, ConstPoolIdx, FunctionData, GlobalId, Program, Register,
+    ConstPoolEntry, ConstPoolIdx, GlobalId, Program, Register,
 };
 
-pub fn dump_stdout(prog: &Program, fct: &FunctionData, bc: &BytecodeFunction) {
+pub fn dump_stdout(prog: &Program, bc: &BytecodeFunction) {
     let mut stdout = io::stdout();
-    dump(&mut stdout, prog, fct, bc).expect("I/O failure");
+    dump(&mut stdout, prog, bc).expect("I/O failure");
 }
 
-pub fn dump(
-    w: &mut dyn io::Write,
-    prog: &Program,
-    fct: &FunctionData,
-    bc: &BytecodeFunction,
-) -> std::io::Result<()> {
-    writeln!(w, "{}", fct.name)?;
+pub fn dump(w: &mut dyn io::Write, prog: &Program, bc: &BytecodeFunction) -> std::io::Result<()> {
     let mut visitor = BytecodeDumper {
         bc,
         pos: BytecodeOffset(0),
