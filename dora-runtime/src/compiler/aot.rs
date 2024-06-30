@@ -24,7 +24,14 @@ pub fn compile_boots_aot(vm: &VM) {
         let stage1_compiler_address = stage1_compiler(vm, &tc, entry_id);
 
         let boots_compiler_address = if vm.flags.bootstrap_compiler {
-            execute_on_main(|| stage2_compiler(vm, &tc, entry_id, stage1_compiler_address))
+            execute_on_main(|| {
+                let stage2_compiler_address =
+                    stage2_compiler(vm, &tc, entry_id, stage1_compiler_address);
+                let stage3_compiler_address =
+                    stage3_compiler(vm, &tc, entry_id, stage2_compiler_address);
+
+                stage3_compiler_address
+            })
         } else {
             stage1_compiler_address
         };
@@ -56,6 +63,21 @@ fn stage2_compiler(
     )
 }
 
+fn stage3_compiler(
+    vm: &VM,
+    tc: &TransitiveClosure,
+    entry_id: FunctionId,
+    stage2_compiler_address: Address,
+) -> Address {
+    compiler_stage_n(
+        vm,
+        tc,
+        entry_id,
+        "stage3",
+        CompilerInvocation::Boots(stage2_compiler_address),
+    )
+}
+
 fn compiler_stage_n(
     vm: &VM,
     tc: &TransitiveClosure,
@@ -64,16 +86,18 @@ fn compiler_stage_n(
     compiler: CompilerInvocation,
 ) -> Address {
     let start = Instant::now();
+    let start_code_size = vm.gc.current_code_size();
     let ctc = compile_transitive_closure(vm, &tc, compiler);
     let compile_address = ctc.get_address(entry_id).expect("missing entry point");
     let duration = start.elapsed();
+    let code_size = vm.gc.current_code_size() - start_code_size;
 
     if vm.flags.emit_compiler {
         println!(
             "compiled all of boots ({}) in {:.2}ms ({} bytes)",
             name,
             duration.as_secs_f32() * 1000.0f32,
-            formatted_size(vm.gc.current_code_size()),
+            formatted_size(code_size),
         );
     }
 

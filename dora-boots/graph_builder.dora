@@ -25,6 +25,15 @@ pub fn createGraph(ci: CompilationInfo): Graph {
     // Create edges for the blocks.
     createEdges(graph, ci.bc, blockMap);
 
+    // Remove edges from unreachable blocks.
+    for (offset, block) in blockMap.blocks {
+        if block.predecessors.isEmpty() && !block.isEntryBlock() {
+            while !block.successors.isEmpty() {
+                block.successors(0).remove();
+            }
+        }
+    }
+
     if ci.emitGraph {
         dumpEdgeOverview(ci, graph);
     }
@@ -69,6 +78,7 @@ class SsaGen {
     offset: Int32,
     currentDef: Array[HashMap[Block, Inst]],
     blockTerminated: Bool,
+    isInstructionReachable: Bool,
 
     returnValueArgInst: Option[Inst],
 
@@ -101,6 +111,7 @@ impl SsaGen {
             0i32,
             Array[HashMap[Block, Inst]]::new(),
             false,
+            false,
             None[Inst],
             Vec[BytecodeRegister]::new(),
             BitSet::new(0),
@@ -116,7 +127,12 @@ impl SsaGen {
 
         for inst in BytecodeIterator::new(self.bc.code) {
             self.instructionStart(inst.start.toInt32());
-            self.processInstruction(inst.op);
+
+            if self.isInstructionReachable {
+                self.processInstruction(inst.op);
+            } else {
+                self.processDeadInstruction(inst.op);
+            }
         }
 
         assert(self.blockTerminated);
@@ -339,6 +355,10 @@ impl SsaGen {
             } else {
                 self.currentBlock = block;
             }
+
+            let block = block.getOrPanic();
+            let isBlockReachable = block.isEntryBlock() || !block.predecessors.isEmpty();
+            self.isInstructionReachable = isBlockReachable;
         }
 
         self.blockTerminated = false;
@@ -586,6 +606,20 @@ impl SsaGen {
             }
             BytecodeInstruction::Ret(opnd) => {
                 self.emitRet(opnd);
+            }
+        }
+    }
+
+    fn processDeadInstruction(inst: BytecodeInstruction) {
+        match inst {
+            BytecodeInstruction::JumpLoop(_)
+            | BytecodeInstruction::Jump(_)
+            | BytecodeInstruction::Ret(_) => {
+                self.markBlockTerminated();
+            }
+
+            _ => {
+                // Non-terminator instruction
             }
         }
     }

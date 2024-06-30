@@ -2849,6 +2849,25 @@ impl Edge {
     pub fn isBackward(): Bool {
         self.backward
     }
+
+    pub fn remove() {
+        removeEdge(self.source.successors, true, self.sourceIdx);
+        removeEdge(self.target.predecessors, false, self.targetIdx);
+    }
+}
+
+fn removeEdge(edges: Vec[Edge], is_successors_vec: Bool, mut idx: Int64) {
+    edges.removeAt(idx);
+
+    while idx < edges.size() {
+        let edge = edges(idx);
+        if is_successors_vec {
+            edge.sourceIdx = edge.sourceIdx - 1;
+        } else {
+            edge.targetIdx = edge.targetIdx - 1;
+        }
+        idx = idx + 1;
+    }
 }
 
 pub class InstSet {
