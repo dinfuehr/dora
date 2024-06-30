@@ -1457,7 +1457,7 @@ impl CodeGen for CodeGenArm64 {
             } else if src.isRegister() {
                 let src = src.getRegister();
 
-                if ty == Type::Int64 || ty == Type::Ptr {
+                if ty == Type::Int64 || ty == Type::Ptr || ty == Type::Address {
                     self.str(src, stack_reg, offset);
                 } else if ty == Type::Int32 {
                     self.str_w(src, stack_reg, offset);
@@ -1477,7 +1477,7 @@ impl CodeGen for CodeGenArm64 {
                 } else if ty == Type::Int32 || ty == Type::Float32 {
                     self.ldr_w(REG_TEMP2, REG_FP, src_offset);
                     self.str_w(REG_TEMP2, stack_reg, offset);
-                } else if ty == Type::Int64 || ty == Type::Ptr || ty == Type::Float64 {
+                } else if ty == Type::Int64 || ty == Type::Ptr || ty == Type::Float64 || ty == Type::Address {
                     self.ldr(REG_TEMP2, REG_FP, src_offset);
                     self.str(REG_TEMP2, stack_reg, offset);
                 } else {
