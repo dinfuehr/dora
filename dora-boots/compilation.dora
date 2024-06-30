@@ -1,25 +1,67 @@
-use package::bytecode::data::{BytecodeFunction, BytecodeType, Location};
+use package::bytecode::data::{BytecodeFunction, BytecodeType, FctId, Location};
+use package::interface as iface;
 
 pub class CompilationInfo(
     pub bc: BytecodeFunction,
+    pub fctId: Option[FctId],
     pub typeParams: Array[BytecodeType],
     pub returnType: BytecodeType,
     pub loc: Location,
     pub emitDebug: Bool,
     pub emitGraph: Bool,
     pub emitCodeComments: Bool,
+    displayName: Option[String],
 )
 
 impl CompilationInfo {
+    pub static fn new(
+        bc: BytecodeFunction,
+        id: FctId,
+        typeParams: Array[BytecodeType],
+        returnType: BytecodeType,
+        loc: Location,
+        emitDebug: Bool,
+        emitGraph: Bool,
+        emitCodeComments: Bool
+    ): CompilationInfo {
+        CompilationInfo(
+            bc,
+            Some[FctId](id),
+            typeParams,
+            returnType,
+            loc,
+            emitDebug,
+            emitGraph,
+            emitCodeComments,
+            None[String],
+        )
+    }
+
     pub static fn newForTesting(bc: BytecodeFunction, typeParams: Array[BytecodeType]): CompilationInfo {
         CompilationInfo(
             bc,
+            None[FctId],
             typeParams,
             BytecodeType::Unit,
             Location(0i32, 0i32),
             false,
             false,
             false,
+            None[String],
         )
+    }
+
+    pub fn getDisplayName(): String {
+        if self.displayName.isSome() {
+            return self.displayName.getOrPanic();
+        }
+
+        if self.fctId.isSome() {
+            let name = iface::getFunctionDisplayName(self.fctId.getOrPanic());
+            self.displayName = Some(name);
+            name
+        } else {
+            "<unknown>"
+        }
     }
 }

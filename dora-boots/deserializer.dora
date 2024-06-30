@@ -40,13 +40,14 @@ pub fn decodeConfig(encoded: Array[UInt8]): Config {
 
 pub fn decodeCompilationInfo(reader: ByteReader): CompilationInfo {
     let bc = decodeBytecodeFunction(reader);
+    let fctId = FctId(reader.readInt32());
     let typeParams = decodeTypeParams(reader);
     let returnType = decodeBytecodeType(reader);
     let loc = decodeLocation(reader);
     let emitDebug = reader.readBool();
     let emitGraph = reader.readBool();
     let emitCodeComments = reader.readBool();
-    CompilationInfo(bc, typeParams, returnType, loc, emitDebug, emitGraph, emitCodeComments)
+    CompilationInfo::new(bc, fctId, typeParams, returnType, loc, emitDebug, emitGraph, emitCodeComments)
 }
 
 pub fn decodeStructData(reader: ByteReader): StructData {

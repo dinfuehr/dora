@@ -15,8 +15,8 @@ use crate::object::{byte_array_from_buffer, Ref, Str, UInt8Array};
 use crate::size::InstanceSize;
 use crate::threads::current_thread;
 use crate::vm::{
-    create_class_instance, create_enum_instance, ensure_class_instance_for_enum_variant, get_vm,
-    impls, CodeDescriptor, VM,
+    create_class_instance, create_enum_instance, display_fct,
+    ensure_class_instance_for_enum_variant, get_vm, impls, CodeDescriptor, VM,
 };
 
 use self::deserializer::{decode_bytecode_type, decode_bytecode_type_array};
@@ -109,6 +109,10 @@ pub const BOOTS_NATIVE_FUNCTIONS: &[(&'static str, *const u8)] = &[
     (
         "boots::interface::getElementSizeRaw",
         get_element_size_raw as *const u8,
+    ),
+    (
+        "boots::interface::getFunctionDisplayNameRaw",
+        get_function_display_name_raw as *const u8,
     ),
 ];
 
@@ -461,6 +465,15 @@ extern "C" fn get_intrinsic_for_function_raw(id: u32) -> i32 {
     let vm = get_vm();
     let fct = &vm.program.functions[id as usize];
     fct.intrinsic.map(|i| i as u32 as i32).unwrap_or(-1)
+}
+
+extern "C" fn get_function_display_name_raw(id: u32) -> Ref<UInt8Array> {
+    let vm = get_vm();
+
+    let fct_id = FunctionId(id);
+    let name = display_fct(vm, fct_id);
+
+    Str::from_buffer(vm, name.as_bytes()).cast()
 }
 
 extern "C" fn get_struct_data_raw(id: u32) -> Ref<UInt8Array> {

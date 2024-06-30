@@ -26,7 +26,7 @@ pub fn createGraph(ci: CompilationInfo): Graph {
     createEdges(graph, ci.bc, blockMap);
 
     if ci.emitGraph {
-        dumpEdgeOverview(graph);
+        dumpEdgeOverview(ci, graph);
     }
 
     // Fill basic blocks with instructions.
@@ -36,9 +36,10 @@ pub fn createGraph(ci: CompilationInfo): Graph {
     graph
 }
 
-fn dumpEdgeOverview(graph: Graph) {
+fn dumpEdgeOverview(ci: CompilationInfo, graph: Graph) {
+    println("blocks in ${ci.getDisplayName()}:");
     for block in graph.insertionOrderIterator() {
-        print("block ${block}:");
+        print("  block ${block}:");
         if !block.predecessors.isEmpty() {
             print(" preds:");
             for pred in block.predecessors {
@@ -55,6 +56,7 @@ fn dumpEdgeOverview(graph: Graph) {
 
         println("");
     }
+    println("");
 }
 
 class SsaGen {

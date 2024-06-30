@@ -35,29 +35,23 @@ pub fn compileFunction(ci: CompilationInfo): CodeDescriptor {
     let codegen = createCodeGen(ci, graph);
 
     if ci.emitGraph {
-        println("after graph building:");
+        println("${ci.getDisplayName()} after graph building:");
         println(dumpGraph(Some[CompilationInfo](ci), graph, config.architecture));
     }
 
     splitCriticalEdges(graph);
-
-    if ci.emitGraph {
-        println("after critical edge splitting:");
-        println(dumpGraph(Some[CompilationInfo](ci), graph, config.architecture));
-    }
-
     buildDominatorTree(graph);
     computeLiveness(graph);
 
     if ci.emitGraph {
-        println("before register allocation:");
+        println("${ci.getDisplayName()} before register allocation:");
         println(dumpGraph(Some[CompilationInfo](ci), graph, config.architecture));
     }
 
     performRegisterAllocation(graph, codegen, ci);
 
     if ci.emitGraph {
-        println("after register allocation:");
+        println("${ci.getDisplayName()} after register allocation:");
         println(dumpGraph(Some[CompilationInfo](ci), graph, config.architecture));
     }
 

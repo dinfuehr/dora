@@ -54,6 +54,7 @@ pub fn allocate_encoded_compilation_info(vm: &VM, compilation_data: &Compilation
 
 fn encode_compilation_info(vm: &VM, compilation_data: &CompilationData, buffer: &mut ByteBuffer) {
     encode_bytecode_function(vm, &compilation_data.bytecode_fct, buffer);
+    buffer.emit_id(compilation_data.fct_id.0 as usize);
     encode_type_params(vm, &compilation_data.type_params, buffer);
     encode_bytecode_type(vm, &compilation_data.return_type, buffer);
     encode_location(&compilation_data.loc, buffer);

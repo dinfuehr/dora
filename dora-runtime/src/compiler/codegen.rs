@@ -173,6 +173,7 @@ fn compile_fct_to_descriptor(
         params,
         has_variadic_parameter: program_fct.is_variadic,
         return_type: program_fct.return_type.clone(),
+        fct_id,
         type_params: type_params.clone(),
         loc: program_fct.loc,
 
@@ -397,6 +398,7 @@ pub struct CompilationData<'a> {
     pub params: BytecodeTypeArray,
     pub has_variadic_parameter: bool,
     pub return_type: BytecodeType,
+    pub fct_id: FunctionId,
     pub type_params: BytecodeTypeArray,
     pub loc: Location,
 

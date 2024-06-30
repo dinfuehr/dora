@@ -25,6 +25,7 @@ pub const TRAP_OVERFLOW: Int32 = 8i32;
 @internal pub fn getSystemConfig(): Array[UInt8];
 @internal pub fn getFunctionAddressRaw(data: Array[UInt8]): Int64;
 @internal pub fn getFunctionVtableIndexRaw(fct_id: Int32): Int32;
+@internal pub fn getFunctionDisplayNameRaw(fct_id: Int32): Array[UInt8];
 @internal pub fn getFieldOffsetRaw(data: Array[UInt8]): Int32;
 @internal pub fn getClassSizeRaw(data: Array[UInt8]): Int32;
 @internal pub fn getClassPointerRaw(data: Array[UInt8]): Int64;
@@ -50,6 +51,11 @@ pub fn getFunctionAddress(fct_id: FctId, type_params: Array[BytecodeType]): Addr
     writer.emitInt32(fct_id.value);
     encodeBytecodeTypeArray(writer, type_params);
     Address(getFunctionAddressRaw(writer.toArray()))
+}
+
+pub fn getFunctionDisplayName(fct_id: FctId): String {
+    let encoded = getFunctionDisplayNameRaw(fct_id.value);
+    String::fromBytes(encoded).getOrPanic()
 }
 
 pub fn getClassPointerForLambda(fct_id: FctId, type_params: Array[BytecodeType]): Address {
