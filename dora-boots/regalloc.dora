@@ -173,13 +173,6 @@ impl SimpleRegisterAllocator {
         let outputOverlaps = inst.getLocationData().outputOverlaps();
 
         if outputOverlaps {
-            if inst.getLocationData().needsRegisterSnapshot() {
-                assert(inst.op() == Op::NewObject
-                       || inst.op() == Op::NewArray);
-                self.snapshotRegisters(inst);
-                self.snapshotLiveValues(inst);
-            }
-
             self.allocateFixedInputs(inst);
             self.allocateFixedTemps(inst);
             self.allocateFixedOutput(inst);
@@ -190,6 +183,13 @@ impl SimpleRegisterAllocator {
 
             if inst.getLocationData().hasOutput() {
                 assert(self.currentlyLive.insert(inst));
+            }
+
+            if inst.getLocationData().needsRegisterSnapshot() {
+                assert(inst.op() == Op::NewObject
+                       || inst.op() == Op::NewArray);
+                self.snapshotRegisters(inst);
+                self.snapshotLiveValues(inst);
             }
 
             self.freeDeadInputs(inst);

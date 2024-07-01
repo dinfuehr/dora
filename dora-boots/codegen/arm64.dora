@@ -283,8 +283,6 @@ impl CodeGenArm64 {
     fn emitObjectAllocate(obj: Register, size: Int32, tmp1: Register, tmp2: Register, snapshot: RegisterTrackers, live: InstSet, location: SourceLocation) {
         let lbl_alloc_slow_path = self.asm.createLabel();
 
-        snapshot.gp.freeRegisterIfUsed(obj);
-
         if config.useTlab {
             self.asm.ldr_imm(obj, REG_THREAD, THREAD_LOCAL_DATA_TLAB_TOP_OFFSET);
             self.asm.ldr_imm(tmp1, REG_THREAD, THREAD_LOCAL_DATA_TLAB_END_OFFSET);
@@ -322,8 +320,6 @@ impl CodeGenArm64 {
 
     fn emitArrayAllocate(obj: Register, size: Register, tmp1: Register, tmp2: Register, snapshot: RegisterTrackers, live: InstSet, location: SourceLocation) {
         let lbl_alloc_slow_path = self.asm.createLabel();
-
-        snapshot.gp.freeRegisterIfUsed(obj);
 
         if config.isDebug {
             self.asm.and_imm(REG_TEMP, size, (PTR_SIZE - 1i32).toInt64());
@@ -1746,7 +1742,12 @@ impl CodeGen for CodeGenArm64 {
 
         let tmp = loc.getTemp(0).getRegister();
         let location = self.ci.bc.getLocationAt(inst.getBytecodePosition());
-        self.emitObjectAllocate(obj, size, REG_TEMP, tmp, loc.getRegisterSnapshot(), loc.getLiveValues(), location);
+        let snapshot = loc.getRegisterSnapshot();
+        snapshot.gp.freeRegisterIfUsed(obj);
+        snapshot.gp.freeRegisterIfUsed(tmp);
+        let live = loc.getLiveValues();
+        live.remove(inst);
+        self.emitObjectAllocate(obj, size, REG_TEMP, tmp, snapshot, live, location);
 
         self.emitObjectInitialization(obj, size, classptr, REG_TEMP);
     }
@@ -1762,7 +1763,12 @@ impl CodeGen for CodeGenArm64 {
 
         let tmp = loc.getTemp(0).getRegister();
         let location = self.ci.bc.getLocationAt(inst.getBytecodePosition());
-        self.emitArrayAllocate(obj, size, REG_TEMP, tmp, loc.getRegisterSnapshot(), loc.getLiveValues(), location);
+        let snapshot = loc.getRegisterSnapshot();
+        snapshot.gp.freeRegisterIfUsed(obj);
+        snapshot.gp.freeRegisterIfUsed(tmp);
+        let live = loc.getLiveValues();
+        live.remove(inst);
+        self.emitArrayAllocate(obj, size, REG_TEMP, tmp, snapshot, live, location);
 
         self.emitArrayInitialization(obj, size, length, classptr, REG_TEMP, tmp);
     }
