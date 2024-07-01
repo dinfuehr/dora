@@ -257,7 +257,7 @@ fn discoverBlocks(loop: LoopData, start: Block) {
         let block = worklist.pop().getOrPanic();
 
         if loop.containsBlock(block) {
-            return;
+            continue;
         }
 
         loop.addBlock(block);
