@@ -112,8 +112,8 @@ fn assert_builds_identical(stage2: CompiledTransitiveClosure, stage3: CompiledTr
 
     for (stage2_code, stage3_code) in stage2.code_objects.iter().zip(&stage3.code_objects) {
         assert_eq!(
-            stage2_code.instruction_size(),
-            stage3_code.instruction_size()
+            stage2_code.instruction_slice(),
+            stage3_code.instruction_slice()
         );
     }
 }

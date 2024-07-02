@@ -201,6 +201,15 @@ impl Code {
         self.object_end
     }
 
+    pub fn instruction_slice(&self) -> &[u8] {
+        unsafe {
+            std::slice::from_raw_parts(
+                self.instruction_start().to_ptr::<u8>(),
+                self.instruction_size(),
+            )
+        }
+    }
+
     pub fn instruction_size(&self) -> usize {
         self.instruction_end().offset_from(self.instruction_start())
     }
