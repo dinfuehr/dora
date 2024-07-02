@@ -25,10 +25,11 @@ pub fn compile_boots_aot(vm: &VM) {
 
         let boots_compiler_address = if vm.flags.bootstrap_compiler {
             execute_on_main(|| {
-                let stage2_compiler_address =
+                let (stage2_compiler_address, stage2_ctc) =
                     stage2_compiler(vm, &tc, entry_id, stage1_compiler_address);
-                let stage3_compiler_address =
+                let (stage3_compiler_address, stage3_ctc) =
                     stage3_compiler(vm, &tc, entry_id, stage2_compiler_address);
+                assert_builds_identical(stage2_ctc, stage3_ctc);
 
                 stage3_compiler_address
             })
@@ -45,7 +46,9 @@ pub fn compile_boots_aot(vm: &VM) {
 }
 
 fn stage1_compiler(vm: &VM, tc: &TransitiveClosure, entry_id: FunctionId) -> Address {
-    compiler_stage_n(vm, tc, entry_id, "stage1", CompilerInvocation::Cannon)
+    let (compile_address, _ctc) =
+        compiler_stage_n(vm, tc, entry_id, "stage1", CompilerInvocation::Cannon);
+    compile_address
 }
 
 fn stage2_compiler(
@@ -53,7 +56,7 @@ fn stage2_compiler(
     tc: &TransitiveClosure,
     entry_id: FunctionId,
     stage1_compiler_address: Address,
-) -> Address {
+) -> (Address, CompiledTransitiveClosure) {
     compiler_stage_n(
         vm,
         tc,
@@ -68,7 +71,7 @@ fn stage3_compiler(
     tc: &TransitiveClosure,
     entry_id: FunctionId,
     stage2_compiler_address: Address,
-) -> Address {
+) -> (Address, CompiledTransitiveClosure) {
     compiler_stage_n(
         vm,
         tc,
@@ -84,7 +87,7 @@ fn compiler_stage_n(
     entry_id: FunctionId,
     name: &str,
     compiler: CompilerInvocation,
-) -> Address {
+) -> (Address, CompiledTransitiveClosure) {
     let start = Instant::now();
     let start_code_size = vm.gc.current_code_size();
     let ctc = compile_transitive_closure(vm, &tc, compiler);
@@ -101,7 +104,18 @@ fn compiler_stage_n(
         );
     }
 
-    compile_address
+    (compile_address, ctc)
+}
+
+fn assert_builds_identical(stage2: CompiledTransitiveClosure, stage3: CompiledTransitiveClosure) {
+    assert_eq!(stage2.code_objects.len(), stage3.code_objects.len());
+
+    for (stage2_code, stage3_code) in stage2.code_objects.iter().zip(&stage3.code_objects) {
+        assert_eq!(
+            stage2_code.instruction_size(),
+            stage3_code.instruction_size()
+        );
+    }
 }
 
 fn compute_transitive_closure(

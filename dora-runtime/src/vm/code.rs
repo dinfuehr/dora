@@ -201,6 +201,10 @@ impl Code {
         self.object_end
     }
 
+    pub fn instruction_size(&self) -> usize {
+        self.instruction_end().offset_from(self.instruction_start())
+    }
+
     pub fn comments_for_offset(&self, offset: u32) -> Vec<&String> {
         self.comments.get(offset)
     }
