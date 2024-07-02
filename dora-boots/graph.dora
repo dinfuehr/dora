@@ -1,5 +1,5 @@
 use std::BitVec;
-use std::collections::BitVecIter;
+use std::collections::{BitVecIter, HashMap};
 use std::Equals;
 use std::Hash;
 use std::Stringable;
@@ -28,6 +28,11 @@ pub class Graph {
     nextBlockIdValue: Int32,
     nextInstIdValue: Int32,
     stackSize: Option[Int32],
+    constsByValInt64: HashMap[Int64, Inst],
+    constsByValInt32: HashMap[Int32, Inst],
+    constsByValUInt8: HashMap[UInt8, Inst],
+    constTrue: Option[Inst],
+    constFalse: Option[Inst],
 }
 
 impl Graph {
@@ -39,7 +44,12 @@ impl Graph {
             Vec[Block]::new(),
             0i32,
             0i32,
-            None[Int32]
+            None[Int32],
+            HashMap[Int64, Inst]::new(),
+            HashMap[Int32, Inst]::new(),
+            HashMap[UInt8, Inst]::new(),
+            None[Inst],
+            None[Inst],
         )
     }
 
@@ -121,6 +131,78 @@ impl Graph {
     pub fn setStackSize(size: Int32) {
         assert(self.stackSize.isNone());
         self.stackSize = Some(size);
+    }
+
+    pub fn ensureConstInt64Inst(value: Int64): Inst {
+        let inst = self.constsByValInt64.get(value);
+
+        if inst.isSome() {
+            return inst.getOrPanic();
+        }
+
+        let inst = createInt64Const(value);
+        let old = self.constsByValInt64.insert(value, inst);
+        assert(old.isNone());
+
+        self.appendEntryBlock(inst);
+        inst
+    }
+
+    pub fn ensureConstInt32Inst(value: Int32): Inst {
+        let inst = self.constsByValInt32.get(value);
+
+        if inst.isSome() {
+            return inst.getOrPanic();
+        }
+
+        let inst = createInt32Const(value);
+        let old = self.constsByValInt32.insert(value, inst);
+        assert(old.isNone());
+
+        self.appendEntryBlock(inst);
+        inst
+    }
+
+    pub fn ensureConstUInt8Inst(value: UInt8): Inst {
+        let inst = self.constsByValUInt8.get(value);
+
+        if inst.isSome() {
+            return inst.getOrPanic();
+        }
+
+        let inst = createUInt8Const(value);
+        let old = self.constsByValUInt8.insert(value, inst);
+        assert(old.isNone());
+
+        self.appendEntryBlock(inst);
+        inst
+    }
+
+    pub fn ensureConstTrueInst(): Inst {
+        if self.constTrue.isSome() {
+            return self.constTrue.getOrPanic();
+        }
+
+        let inst = createBoolConst(true);
+        self.constTrue = Some[Inst](inst);
+        self.appendEntryBlock(inst);
+        inst
+    }
+
+    pub fn ensureConstFalseInst(): Inst {
+        if self.constFalse.isSome() {
+            return self.constFalse.getOrPanic();
+        }
+
+        let inst = createBoolConst(false);
+        self.constFalse = Some[Inst](inst);
+        self.appendEntryBlock(inst);
+        inst
+    }
+
+    fn appendEntryBlock(inst: Inst) {
+        let terminator = self.getEntryBlock().lastInst();
+        terminator.insertBefore(inst);
     }
 }
 

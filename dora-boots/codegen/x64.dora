@@ -146,6 +146,26 @@ impl CodeGenX64 {
         self.asm.andps_ra(dest, AsmAddress::rip(-disp));
     }
 
+    fn movq_ra_gp(dest: Register, address: AsmAddress, ty: Type) {
+        match ty {
+            Type::Bool | Type::UInt8 => {
+                self.asm.movb_ra(dest, address);
+            },
+
+            Type::Int32 => {
+                self.asm.movl_ra(dest, address);
+            },
+
+            Type::Ptr | Type::Int64 | Type::Address => {
+                self.asm.movq_ra(dest, address);
+            },
+
+            _ => {
+                unimplemented();
+            }
+        }
+    }
+
     fn emitCheckedDivModCommon(inst: Inst) {
         let loc = inst.getLocationData();
         let ty = inst.getValueType();
@@ -486,7 +506,9 @@ impl CodeGenX64 {
             // If Inst is already spilled, we can reload it from
             // there.
             if inst.getLocationData().hasSpillSlot() {
-                self.asm.movq_ra(reg, AsmAddress::offset(RBP, inst.getLocationData().getSpillSlot()));
+                let ty = inst.getValueType();
+                let slot = inst.getLocationData().getSpillSlot();
+                self.movq_ra_gp(reg, AsmAddress::offset(RBP, slot), ty);
                 continue;
             }
 

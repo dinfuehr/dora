@@ -519,7 +519,9 @@ impl CodeGenArm64 {
             // If Inst is already spilled, we can reload it from
             // there.
             if inst.getLocationData().hasSpillSlot() {
-                self.ldr(reg, REG_FP, inst.getLocationData().getSpillSlot());
+                let ty = inst.getValueType();
+                let slot = inst.getLocationData().getSpillSlot();
+                self.ldr_gp(reg, REG_FP, slot, ty);
                 continue;
             }
 
@@ -656,6 +658,26 @@ impl CodeGenArm64 {
         } else {
             self.mov_imm(REG_TEMP, offset.toInt64());
             self.asm.ldr_reg_d(dest, src, REG_TEMP, Extend::LSL, 0i32);
+        }
+    }
+
+    fn ldr_gp(dest: Register, src: Register, offset: Int32, ty: Type) {
+        match ty {
+            Type::Bool | Type::UInt8 => {
+                self.ldrb(dest, src, offset);
+            },
+
+            Type::Int32 => {
+                self.ldr_w(dest, src, offset);
+            },
+
+            Type::Ptr | Type::Int64 | Type::Address => {
+                self.ldr(dest, src, offset);
+            },
+
+            _ => {
+                unimplemented();
+            }
         }
     }
 

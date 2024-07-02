@@ -146,6 +146,10 @@ def process_arguments
       $select_config = $all_configs.detect { |c| c.name == config_name }
       raise "unknown config #{config_name}" unless $select_config
       idx += 1
+    elsif arg == "--default"
+      $select_config = $default_config
+    elsif arg == "--always-boots"
+      $select_config = $always_boots_config
     elsif arg == "--release"
       $release = true
     elsif arg == "--extra-args"
