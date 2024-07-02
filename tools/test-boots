@@ -3,4 +3,5 @@
 set -e
 
 cargo run -p dora -- test dora-boots/boots.dora --gc-verify
+cargo run -p dora -- --package boots dora-boots/boots.dora  --gc-verbose --emit-compiler --bootstrap-compiler tests/boots/hello.dora
 ruby tools/tester.rb tests/boots
