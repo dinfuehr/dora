@@ -1336,7 +1336,7 @@ impl SsaGen {
             self.emitIntrinsicBin(dest, args, Op::Equal);
         } else if intrinsic == opc::INTRINSIC_BOOL_NOT || intrinsic == opc::INTRINSIC_INT64_NOT || intrinsic == opc::INTRINSIC_INT32_NOT {
             self.emitIntrinsicUn(dest, args, Op::Not);
-        } else if intrinsic == opc::INTRINSIC_BOOL_EQ {
+        } else if intrinsic == opc::INTRINSIC_BOOL_EQ || intrinsic == opc::INTRINSIC_U_INT8_EQ {
             self.emitIntrinsicBin(dest, args, Op::Equal);
         } else if intrinsic == opc::INTRINSIC_INT64_CMP {
             self.emitIntrinsicCompareOrdering(dest, args, Type::Int64);
