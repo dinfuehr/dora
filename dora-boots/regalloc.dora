@@ -697,6 +697,7 @@ impl SimpleRegisterAllocator {
             || op == Op::UInt8Const
             || op == Op::TrueConst
             || op == Op::FalseConst
+            || op == Op::AllocateStack
     }
 
     fn registers(): RegisterTracker[Register] {

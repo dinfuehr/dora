@@ -1446,6 +1446,12 @@ impl CodeGen for CodeGenX64 {
                     self.asm.movl_ri(dest, Immediate(0));
                 }
 
+                Op::AllocateStack => {
+                    let dest = loc.getOutput().getRegister();
+                    let stack_offset = value.getLocationData().getStackSlot();
+                    self.asm.lea(dest, AsmAddress::offset(RBP, stack_offset));
+                }
+
                 _ => unreachable[()](),
             }
         } else {
@@ -1474,6 +1480,12 @@ impl CodeGen for CodeGenX64 {
 
                 Op::FalseConst => {
                     self.asm.movb_ai(AsmAddress::offset(stack_reg, offset), Immediate(0));
+                }
+
+                Op::AllocateStack => {
+                    let stack_offset = value.getLocationData().getStackSlot();
+                    self.asm.lea(REG_TEMP, AsmAddress::offset(RBP, stack_offset));
+                    self.asm.movq_ar(AsmAddress::offset(stack_reg, offset), REG_TEMP);
                 }
 
                 _ => unreachable[()](),

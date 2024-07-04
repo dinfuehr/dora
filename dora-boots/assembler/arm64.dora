@@ -255,12 +255,12 @@ impl AssemblerArm64 {
     }
 
     pub fn add_imm(rd: Register, rn: Register, imm: Int32) {
-        let (shift, imm12) = imm_encoding::imm12(imm).getOrPanic();
+        let (shift, imm12) = imm_encoding::imm12(imm.toInt64()).getOrPanic();
         self.emit(encoding::addsub_imm(1i32, 0i32, false, shift.toInt32(), imm12, rn, rd));
     }
 
     pub fn add_imm_w(rd: Register, rn: Register, imm: Int32) {
-        let (shift, imm12) = imm_encoding::imm12(imm).getOrPanic();
+        let (shift, imm12) = imm_encoding::imm12(imm.toInt64()).getOrPanic();
         self.emit(encoding::addsub_imm(0i32, 0i32, false, shift.toInt32(), imm12, rn, rd));
     }
 
@@ -269,12 +269,12 @@ impl AssemblerArm64 {
     }
 
     pub fn adds_imm(rd: Register, rn: Register, imm: Int32) {
-        let (shift, imm12) = imm_encoding::imm12(imm).getOrPanic();
+        let (shift, imm12) = imm_encoding::imm12(imm.toInt64()).getOrPanic();
         self.emit(encoding::addsub_imm(1i32, 0i32, true, shift.toInt32(), imm12, rn, rd));
     }
 
     pub fn adds_imm_w(rd: Register, rn: Register, imm: Int32) {
-        let (shift, imm12) = imm_encoding::imm12(imm).getOrPanic();
+        let (shift, imm12) = imm_encoding::imm12(imm.toInt64()).getOrPanic();
         self.emit(encoding::addsub_imm(0i32, 0i32, true, shift.toInt32(), imm12, rn, rd));
     }
 
@@ -2001,12 +2001,12 @@ impl AssemblerArm64 {
     }
 
     pub fn sub_imm(rd: Register, rn: Register, imm: Int32) {
-        let (shift, imm12) = imm_encoding::imm12(imm).getOrPanic();
+        let (shift, imm12) = imm_encoding::imm12(imm.toInt64()).getOrPanic();
         self.emit(encoding::addsub_imm(1i32, 1i32, false, shift.toInt32(), imm12, rn, rd));
     }
 
     pub fn sub_imm_w(rd: Register, rn: Register, imm: Int32) {
-        let (shift, imm12) = imm_encoding::imm12(imm).getOrPanic();
+        let (shift, imm12) = imm_encoding::imm12(imm.toInt64()).getOrPanic();
         self.emit(encoding::addsub_imm(0i32, 1i32, false, shift.toInt32(), imm12, rn, rd));
     }
 
@@ -2039,12 +2039,12 @@ impl AssemblerArm64 {
     }
 
     pub fn subs_imm(rd: Register, rn: Register, imm: Int32) {
-        let (shift, imm12) = imm_encoding::imm12(imm).getOrPanic();
+        let (shift, imm12) = imm_encoding::imm12(imm.toInt64()).getOrPanic();
         self.emit(encoding::addsub_imm(1i32, 1i32, true, shift.toInt32(), imm12, rn, rd));
     }
 
     pub fn subs_imm_w(rd: Register, rn: Register, imm: Int32) {
-        let (shift, imm12) = imm_encoding::imm12(imm).getOrPanic();
+        let (shift, imm12) = imm_encoding::imm12(imm.toInt64()).getOrPanic();
         self.emit(encoding::addsub_imm(0i32, 1i32, true, shift.toInt32(), imm12, rn, rd));
     }
 
@@ -2280,7 +2280,7 @@ pub fn fitsAdrImm(offset: Int32): Bool {
     encoding::fitsI21(offset)
 }
 
-pub fn fitsAddSubImm(value: Int32): Bool {
+pub fn fitsAddSubImm(value: Int64): Bool {
     imm_encoding::imm12(value).isSome()
 }
 
@@ -2468,14 +2468,14 @@ mod imm_encoding {
         imm != 0 && imm.wrappingAdd(1) & imm == 0
     }
 
-    pub fn imm12(mut imm: Int32): Option[(Bool, Int32)] {
-        let mask = 0xF_FFi32;
-        if (imm & !mask) == 0i32 {
-            return Some[(Bool, Int32)]((false, imm));
+    pub fn imm12(mut imm: Int64): Option[(Bool, Int32)] {
+        let mask = 0xF_FF;
+        if (imm & !mask) == 0 {
+            return Some[(Bool, Int32)]((false, imm.toInt32()));
         }
 
-        if (imm & !(mask << 12i32)) == 0i32 {
-            Some[(Bool, Int32)]((true, imm >> 12i32))
+        if (imm & !(mask << 12i32)) == 0 {
+            Some[(Bool, Int32)]((true, imm.toInt32() >> 12i32))
         } else {
             None[(Bool, Int32)]
         }

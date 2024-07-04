@@ -171,6 +171,17 @@ impl CodeGenArm64 {
         self.asm.ldr_imm_d(dest, scratch, 0i32);
     }
 
+    fn add_imm(dest: Register, lhs: Register, rhs: Int64) {
+        assert(lhs != REG_TEMP);
+
+        if arm64::fitsAddSubImm(rhs) {
+            self.asm.add_imm(dest, lhs, rhs.toInt32());
+        } else {
+            self.mov_imm(REG_TEMP, rhs);
+            self.asm.add(dest, lhs, REG_TEMP);
+        }
+    }
+
     fn loadConstPool(dest: Register, entry: ConstPoolEntry, temp: Register) {
         assert(dest != temp);
         let offset = -(self.asm.position() + entry.disp);
@@ -287,12 +298,7 @@ impl CodeGenArm64 {
             self.asm.ldr_imm(obj, REG_THREAD, THREAD_LOCAL_DATA_TLAB_TOP_OFFSET);
             self.asm.ldr_imm(tmp1, REG_THREAD, THREAD_LOCAL_DATA_TLAB_END_OFFSET);
 
-            if arm64::fitsAddSubImm(size) {
-                self.asm.add_imm(tmp2, obj, size);
-            } else {
-                self.mov_imm(tmp2, size.toInt64());
-                self.asm.add(tmp2, obj, tmp2);
-            }
+            self.add_imm(tmp2, obj, size.toInt64());
             self.asm.cmp(tmp2, tmp1);
             self.asm.bc(Cond::GT, lbl_alloc_slow_path);
             self.asm.str_imm(tmp2, REG_THREAD, THREAD_LOCAL_DATA_TLAB_TOP_OFFSET);
@@ -782,7 +788,7 @@ impl CodeGen for CodeGenArm64 {
         self.asm.mov(REG_FP, REG_SP);
 
         if stackSize > 0i32 {
-            if arm64::fitsAddSubImm(stackSize) {
+            if arm64::fitsAddSubImm(stackSize.toInt64()) {
                 self.asm.sub_imm(REG_SP, REG_SP, stackSize);
             } else {
                 self.mov_imm(REG_TEMP, stackSize.toInt64());
@@ -1537,6 +1543,12 @@ impl CodeGen for CodeGenArm64 {
                     self.asm.movz_w(dest, 0i32, 0i32);
                 }
 
+                Op::AllocateStack => {
+                    let dest = loc.getOutput().getRegister();
+                    let stack_offset = value.getLocationData().getStackSlot().toInt64();
+                    self.add_imm(dest, REG_FP, stack_offset);
+                }
+
                 _ => unreachable[()](),
             }
         } else {
@@ -1569,6 +1581,12 @@ impl CodeGen for CodeGenArm64 {
                 Op::FalseConst => {
                     self.asm.movz_w(REG_TEMP2, 0i32, 0i32);
                     self.strb(REG_TEMP2, stack_reg, offset);
+                }
+
+                Op::AllocateStack => {
+                    let stack_offset = value.getLocationData().getStackSlot().toInt64();
+                    self.add_imm(REG_TEMP2, REG_FP, stack_offset);
+                    self.str(REG_TEMP2, stack_reg, offset);
                 }
 
                 _ => unreachable[()](),
@@ -2058,9 +2076,7 @@ impl CodeGen for CodeGenArm64 {
     fn emitAllocateStack(inst: Inst) {
         let loc = inst.getLocationData();
         let dest = loc.getOutput().getRegister();
-        self.asm.mov(dest, REG_FP);
-        self.mov_imm(REG_TEMP, loc.getStackSlot().toInt64());
-        self.asm.add(dest, dest, REG_TEMP);
+        self.add_imm(dest, REG_FP, loc.getStackSlot().toInt64());
     }
 
     fn emitLoad(inst: Inst) {
