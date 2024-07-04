@@ -1517,6 +1517,26 @@ impl CodeGen for CodeGenArm64 {
                     self.mov_imm(dest, value.getValueAsInt64());
                 }
 
+                Op::Int32Const => {
+                    let dest = loc.getOutput().getRegister();
+                    self.mov_imm_w(dest, value.getValueAsInt32());
+                }
+
+                Op::UInt8Const => {
+                    let dest = loc.getOutput().getRegister();
+                    self.asm.movz_w(dest, value.getValueAsUInt8().toInt32(), 0i32);
+                }
+
+                Op::TrueConst => {
+                    let dest = loc.getOutput().getRegister();
+                    self.asm.movz_w(dest, 1i32, 0i32);
+                }
+
+                Op::FalseConst => {
+                    let dest = loc.getOutput().getRegister();
+                    self.asm.movz_w(dest, 0i32, 0i32);
+                }
+
                 _ => unreachable[()](),
             }
         } else {
@@ -1529,6 +1549,26 @@ impl CodeGen for CodeGenArm64 {
                 Op::Int64Const => {
                     self.mov_imm(REG_TEMP2, value.getValueAsInt64());
                     self.str(REG_TEMP2, stack_reg, offset);
+                }
+
+                Op::Int32Const => {
+                    self.mov_imm_w(REG_TEMP2, value.getValueAsInt32());
+                    self.str_w(REG_TEMP2, stack_reg, offset);
+                }
+
+                Op::UInt8Const => {
+                    self.asm.movz_w(REG_TEMP2, value.getValueAsUInt8().toInt32(), 0i32);
+                    self.strb(REG_TEMP2, stack_reg, offset);
+                }
+
+                Op::TrueConst => {
+                    self.asm.movz_w(REG_TEMP2, 1i32, 0i32);
+                    self.strb(REG_TEMP2, stack_reg, offset);
+                }
+
+                Op::FalseConst => {
+                    self.asm.movz_w(REG_TEMP2, 0i32, 0i32);
+                    self.strb(REG_TEMP2, stack_reg, offset);
                 }
 
                 _ => unreachable[()](),

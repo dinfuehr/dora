@@ -690,7 +690,13 @@ impl SimpleRegisterAllocator {
     }
 
     fn canBeRematerialized(inst: Inst): Bool {
-        inst.op() == Op::Int64Const
+        let op = inst.op();
+
+        op == Op::Int64Const
+            || op == Op::Int32Const
+            || op == Op::UInt8Const
+            || op == Op::TrueConst
+            || op == Op::FalseConst
     }
 
     fn registers(): RegisterTracker[Register] {
