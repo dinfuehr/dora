@@ -725,7 +725,7 @@ pub enum Op {
     GetElementPtr,
 
     Move,
-    MoveImmediate,
+    Rematerialize,
 
     NewObject,
     NewArray,
@@ -856,7 +856,7 @@ pub fn opName(op: Op): String {
         Op::GetElementPtr => "GetElementPtr",
         Op::Arg => "Arg",
         Op::Move => "Move",
-        Op::MoveImmediate => "MoveImmediate",
+        Op::Rematerialize => "Rematerialize",
         Op::NewObject => "NewObject",
         Op::NewArray => "NewArray",
         Op::AllocateStack => "AllocateStack",
@@ -1067,7 +1067,7 @@ impl Inst {
             Op::GetElementPtr => Some[Type](Type::Address),
             Op::Arg => Some[Type](self.ty),
             Op::Move => Some[Type](self.ty),
-            Op::MoveImmediate => Some[Type](self.ty),
+            Op::Rematerialize => Some[Type](self.ty),
             Op::NewObject => Some[Type](Type::Ptr),
             Op::NewArray => Some[Type](Type::Ptr),
             Op::AllocateStack => Some[Type](Type::Address),
@@ -1551,7 +1551,7 @@ impl Inst {
             Op::GetElementPtr => false,
             Op::Arg => false,
             Op::Move => false,
-            Op::MoveImmediate => false,
+            Op::Rematerialize => false,
             Op::NewObject => false,
             Op::NewArray => false,
             Op::AllocateStack => false,
@@ -2214,6 +2214,18 @@ pub fn createMoveInst(ty: Type, dest: Location, source: Location): Inst {
     let loc = LocationData::newWith(1);
     loc.output = Some(Operand(Policy::None, dest));
     loc.inputs(0) = Some[Operand](Operand(Policy::None, source));
+    inst.setLocationData(loc);
+
+    inst
+}
+
+pub fn createRematerializeInst(dest: Location, value: Inst): Inst {
+    let inst = Inst::new();
+    inst._op = Some(Op::Rematerialize);
+    inst.addInput(value);
+
+    let loc = LocationData::newWith(1);
+    loc.output = Some(Operand(Policy::None, dest));
     inst.setLocationData(loc);
 
     inst

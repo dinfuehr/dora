@@ -5,7 +5,7 @@ use package::bytecode::data::{ClassId, EnumId, StructId, BytecodeType};
 use package::codegen::CodeGen;
 use package::codegen::STACK_FRAME_ALIGNMENT;
 use package::compilation::CompilationInfo;
-use package::graph::{createGotoInst, createMoveInst, Block, Edge, Graph, Inst, InstSet, Operand, LocationData, Op, Location, opName, Policy, RegisterSnapshot, RegisterTrackers, Type};
+use package::graph::{createMoveInst, createRematerializeInst, Block, Edge, Graph, Inst, InstSet, Operand, LocationData, Op, Location, opName, Policy, RegisterSnapshot, RegisterTrackers, Type};
 use package::interface::{EnumData, GcPoint};
 use package::interface as iface;
 use package::location::ensureLocationData;
@@ -332,9 +332,14 @@ impl SimpleRegisterAllocator {
             } else if input_loc.getPolicy().isAnyFixedStack() {
                 assert(input_loc.hasStack());
                 let dest = Location::Stack(input_loc.getStack());
-                let src = self.getInstLocation(input.getValue());
-                let inst = createMoveInst(input.getValue().getValueType(), dest, src);
-                self.currentInst.getOrPanic().insertBefore(inst);
+                let src = self.getRegisterLocation(input.getValue());
+
+                if src.isNone() {
+                    self.emitReloadInst(dest, input.getValue());
+                } else {
+                    let inst = createMoveInst(input.getValue().getValueType(), dest, src);
+                    self.currentInst.getOrPanic().insertBefore(inst);
+                }
             }
         }
     }
@@ -350,21 +355,15 @@ impl SimpleRegisterAllocator {
         }
     }
 
-    fn getInstLocation(inst: Inst): Location {
-        let location = if inst.getValueType().isAnyFloat() {
-            self.getInstRegisterGeneric[FloatRegister](self.float_registers(), inst)
+    fn getRegisterLocation(inst: Inst): Location {
+        if inst.getValueType().isAnyFloat() {
+            self.getRegisterLocationGeneric[FloatRegister](self.float_registers(), inst)
         } else {
-            self.getInstRegisterGeneric[Register](self.registers(), inst)
-        };
-
-        if location.isNone() {
-            Location::fp(inst.getLocationData().getSpillSlot())
-        } else {
-            location
+            self.getRegisterLocationGeneric[Register](self.registers(), inst)
         }
     }
 
-    fn getInstRegisterGeneric[T: RegisterType](registers: RegisterTracker[T], inst: Inst): Location {
+    fn getRegisterLocationGeneric[T: RegisterType](registers: RegisterTracker[T], inst: Inst): Location {
         let register = registers.getRegister(inst);
 
         if register.isSome() {
@@ -473,6 +472,12 @@ impl SimpleRegisterAllocator {
     fn spill(inst: Inst) {
         let loc_data = inst.getLocationData();
         assert(loc_data.hasOutput());
+
+        if self.canBeRematerialized(inst) {
+            // No need to spill values that can be rematerialized.
+            assert(!loc_data.hasSpillSlot());
+            return;
+        }
 
         if !loc_data.hasSpillSlot() {
             let slot = self.allocateSpillSlot(inst.getValueType());
@@ -586,9 +591,17 @@ impl SimpleRegisterAllocator {
     }
 
     fn emitReloadInst(dest: Location, value: Inst) {
-        let slot = value.getLocationData().getSpillSlot();
-        let inst = createMoveInst(value.getValueType(), dest, Location::fp(slot));
-        self.currentInst.getOrPanic().insertBefore(inst);
+        let loc_data = value.getLocationData();
+
+        if loc_data.hasSpillSlot() {
+            let slot = loc_data.getSpillSlot();
+            let inst = createMoveInst(value.getValueType(), dest, Location::fp(slot));
+            self.currentInst.getOrPanic().insertBefore(inst);
+        } else {
+            assert(self.canBeRematerialized(value));
+            let inst = createRematerializeInst(dest, value);
+            self.currentInst.getOrPanic().insertBefore(inst);
+        }
     }
 
     fn allocateArbitraryTempRegister(policy: Policy): Location {
@@ -641,15 +654,21 @@ impl SimpleRegisterAllocator {
 
         registers.protect(dest);
 
-        let source = if current.isSome() {
-            current.getOrPanic().toLocation()
+        if current.isSome() {
+            let reg = current.getOrPanic().toLocation();
+
+            let move = createMoveInst(inst.getValueType(), dest.toLocation(), reg);
+            self.currentInst.getOrPanic().insertBefore(move);
+        } else if self.canBeRematerialized(inst) {
+            let rematerialize = createRematerializeInst(dest.toLocation(), inst);
+            self.currentInst.getOrPanic().insertBefore(rematerialize);
         } else {
             let slot = inst.getLocationData().getSpillSlot();
-            Location::fp(slot)
-        };
+            let slot = Location::fp(slot);
 
-        let inst = createMoveInst(inst.getValueType(), dest.toLocation(), source);
-        self.currentInst.getOrPanic().insertBefore(inst);
+            let move = createMoveInst(inst.getValueType(), dest.toLocation(), slot);
+            self.currentInst.getOrPanic().insertBefore(move);
+        }
     }
 
     fn allocateFixedTempRegister(policy: Policy, reg: Location) {
@@ -668,6 +687,10 @@ impl SimpleRegisterAllocator {
             assert(registers.allocateFixedTempRegister(reg));
         }
         registers.protect(reg);
+    }
+
+    fn canBeRematerialized(inst: Inst): Bool {
+        inst.op() == Op::Int64Const
     }
 
     fn registers(): RegisterTracker[Register] {

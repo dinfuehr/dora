@@ -216,6 +216,11 @@ fn emitInst(codegen: CodeGen, inst: Inst) {
             codegen.emitMove(inst);
         },
 
+        Op::Rematerialize => {
+            codegen.emitComment("Rematerialize");
+            codegen.emitRematerialize(inst);
+        },
+
         Op::Greater
         | Op::GreaterOrEqual
         | Op::Less
@@ -567,6 +572,7 @@ pub trait CodeGen {
     fn emitGoto(inst: Inst);
     fn emitReturn(inst: Inst);
     fn emitMove(inst: Inst);
+    fn emitRematerialize(inst: Inst);
     fn emitCompare(inst: Inst);
     fn emitInvokeStatic(inst: Inst);
     fn emitInvokeDirect(inst: Inst);

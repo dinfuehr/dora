@@ -2,7 +2,7 @@ use std::collections::{HashMap, HashSet};
 
 use package::assembler::{FloatRegister, Register, RegisterType};
 use package::codegen::CodeGen;
-use package::graph::{Block, createMoveInst, Edge, Graph, Inst, Location, RegisterTrackers, Type};
+use package::graph::{Block, createMoveInst, createRematerializeInst, Edge, Graph, Inst, Location, RegisterTrackers, Type};
 use package::regalloc::RegisterTracker;
 
 pub fn resolveMoves(graph: Graph, codegen: CodeGen) {
@@ -65,23 +65,38 @@ fn processPhi[T: RegisterType](phi: Inst, predecessorEdge: Edge, predecessor_reg
     let value = phi.getInput(predecessorEdge.targetIdx).getValue();
     let valueRegister = predecessor_registers.getRegister(value);
 
-    let value = if valueRegister.isSome() {
-        valueRegister.getOrPanic().toLocation()
+    if valueRegister.isSome() || value.getLocationData().hasSpillSlot() {
+        let value = if valueRegister.isSome() {
+            valueRegister.getOrPanic().toLocation()
+        } else {
+            Location::fp(value.getLocationData().getSpillSlot())
+        };
+
+        // Phi could live both in register and on stack. This means
+        // there are up to 2 moves emitted for each phi.
+
+        if loc.hasSpillSlot() {
+            let dest = Location::fp(loc.getSpillSlot());
+            moves.add(phi.getValueType(), dest, value);
+        }
+
+        if !loc.getOutput().isNone() {
+            let dest = loc.getOutput().getLocation();
+            moves.add(phi.getValueType(), dest, value);
+        }
     } else {
-        Location::fp(value.getLocationData().getSpillSlot())
-    };
+        // Phi could live both in register and on stack. This means
+        // there are up to 2 moves emitted for each phi.
 
-    // Phi could live both in register and on stack. This means
-    // there are up to 2 moves emitted for each phi.
+        if loc.hasSpillSlot() {
+            let dest = Location::fp(loc.getSpillSlot());
+            moves.addRematerialize(dest, value);
+        }
 
-    if loc.hasSpillSlot() {
-        let dest = Location::fp(loc.getSpillSlot());
-        moves.add(phi.getValueType(), dest, value);
-    }
-
-    if !loc.getOutput().isNone() {
-        let dest = loc.getOutput().getLocation();
-        moves.add(phi.getValueType(), dest, value);
+        if !loc.getOutput().isNone() {
+            let dest = loc.getOutput().getLocation();
+            moves.addRematerialize(dest, value);
+        }
     }
 }
 
@@ -92,9 +107,15 @@ struct Move {
     src: Location,
 }
 
+struct RematerializeMove {
+    dest: Location,
+    value: Inst,
+}
+
 class ParallelMoveResolver {
     parallelMoves: Vec[Move],
     orderedMoves: Vec[Move],
+    rematerialize: Vec[RematerializeMove],
     // Type for each src. Immutable after setup.
     types: HashMap[Location, Type],
     // All written registers (dest <- src). Immutable after setup.
@@ -110,6 +131,7 @@ impl ParallelMoveResolver {
         ParallelMoveResolver(
             Vec[Move]::new(),
             Vec[Move]::new(),
+            Vec[RematerializeMove]::new(),
             HashMap[Location, Type]::new(),
             HashMap[Location, Location]::new(),
             HashMap[Location, Location]::new(),
@@ -120,6 +142,10 @@ impl ParallelMoveResolver {
     fn add(ty: Type, dest: Location, src: Location) {
         if dest == src { return; }
         self.parallelMoves.push(Move(ty, dest, src));
+    }
+
+    fn addRematerialize(dest: Location, value: Inst) {
+        self.rematerialize.push(RematerializeMove(dest, value));
     }
 
     fn resolve(scratch: Register, float_scratch: FloatRegister) {
@@ -212,6 +238,11 @@ impl ParallelMoveResolver {
 
         for move in self.orderedMoves {
             let inst = createMoveInst(move.ty, move.dest, move.src);
+            terminator.insertBefore(inst);
+        }
+
+        for move in self.rematerialize {
+            let inst = createRematerializeInst(move.dest, move.value);
             terminator.insertBefore(inst);
         }
     }

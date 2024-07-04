@@ -1505,6 +1505,37 @@ impl CodeGen for CodeGenArm64 {
         }
     }
 
+    fn emitRematerialize(inst: Inst) {
+        let loc = inst.getLocationData();
+        let value = inst.getInput(0).getValue();
+        let dest = loc.getOutput().getLocation();
+
+        if dest.isRegister() {
+            match value.op() {
+                Op::Int64Const => {
+                    let dest = loc.getOutput().getRegister();
+                    self.mov_imm(dest, value.getValueAsInt64());
+                }
+
+                _ => unreachable[()](),
+            }
+        } else {
+            assert(dest.isStack());
+            let slot = dest.getStack();
+            let stack_reg = if slot.isFp() { REG_FP } else { REG_SP };
+            let offset = slot.getOffset();
+
+            match value.op() {
+                Op::Int64Const => {
+                    self.mov_imm(REG_TEMP2, value.getValueAsInt64());
+                    self.str(REG_TEMP2, stack_reg, offset);
+                }
+
+                _ => unreachable[()](),
+            }
+        }
+    }
+
     fn emitCompare(inst: Inst) {
         let loc = inst.getLocationData();
         let ty = inst.getOperationType();

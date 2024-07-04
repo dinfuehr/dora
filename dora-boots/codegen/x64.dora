@@ -1414,6 +1414,37 @@ impl CodeGen for CodeGenX64 {
         }
     }
 
+    fn emitRematerialize(inst: Inst) {
+        let loc = inst.getLocationData();
+        let value = inst.getInput(0).getValue();
+        let dest = loc.getOutput().getLocation();
+
+        if dest.isRegister() {
+            match value.op() {
+                Op::Int64Const => {
+                    let dest = loc.getOutput().getRegister();
+                    self.asm.movq_ri(dest, Immediate(value.getValueAsInt64()));
+                }
+
+                _ => unreachable[()](),
+            }
+        } else {
+            assert(dest.isStack());
+            let slot = dest.getStack();
+            let stack_reg = if slot.isFp() { RBP } else { RSP };
+            let offset = slot.getOffset();
+
+            match value.op() {
+                Op::Int64Const => {
+                    self.asm.movq_ri(REG_TEMP, Immediate(value.getValueAsInt64()));
+                    self.asm.movq_ar(AsmAddress::offset(stack_reg, offset), REG_TEMP);
+                }
+
+                _ => unreachable[()](),
+            }
+        }
+    }
+
     fn emitCompare(inst: Inst) {
         let loc = inst.getLocationData();
         let ty = inst.getOperationType();

@@ -327,7 +327,7 @@ fn dumpInstName(inst: Inst): String {
         Op::GetElementPtr => "GetElementPtr",
         Op::Arg => "Arg.${inst.getValueType()}(${inst.getArgIndex()})",
         Op::Move => "Move.${inst.getValueType()}",
-        Op::MoveImmediate => "MoveImmediate.${inst.getValueType()}",
+        Op::Rematerialize => "Rematerialize",
         Op::NewObject => "NewObject",
         Op::NewArray => "NewArray",
         Op::AllocateStack => "AllocateStack",
