@@ -462,8 +462,10 @@ impl SimpleRegisterAllocator {
         if register.isSome() {
             output.setLocation(register.getOrPanic().toLocation());
         } else {
-            let (register, instInReg) = registers.freeUnprotected();
+            let register = self.chooseRegisterToFree[T](registers);
+            let instInReg = registers.freeUnprotected(register);
             self.spill(instInReg);
+            registers.protect(register);
             assert(registers.allocateFixedRegister(register, inst));
             output.setLocation(register.toLocation());
         }
@@ -582,12 +584,35 @@ impl SimpleRegisterAllocator {
             return register.toLocation();
         }
 
-        let (register, instInReg) = registers.freeUnprotected();
+        let register = self.chooseRegisterToFree[T](registers);
+        let instInReg = registers.freeUnprotected(register);
         self.spill(instInReg);
         registers.allocateFixedRegister(register, value);
         registers.protect(register);
         self.emitReloadInst(register.toLocation(), value);
         register.toLocation()
+    }
+
+    fn chooseRegisterToFree[T: RegisterType](registers: RegisterTracker[T]): T {
+        let candidates = registers.unprotectedRegisters();
+
+        // Choose a register/inst which is cheap to reload first.
+        for candidate in candidates {
+            let candidateInst = registers.data.get(candidate).getOrPanic();
+            if self.canBeRematerialized(candidateInst) {
+                return candidate;
+            }
+        }
+
+        // The second choice is a register/inst which was already spilled.
+        for candidate in candidates {
+            let candidateInst = registers.data.get(candidate).getOrPanic();
+            if candidateInst.getLocationData().hasSpillSlot() {
+                return candidate;
+            }
+        }
+
+        candidates.first().getOrPanic()
     }
 
     fn emitReloadInst(dest: Location, value: Inst) {
@@ -622,9 +647,10 @@ impl SimpleRegisterAllocator {
             return register.toLocation();
         }
 
-        let (register, instInReg) = registers.freeUnprotected();
-        registers.protect(register);
+        let register = self.chooseRegisterToFree[T](registers);
+        let instInReg = registers.freeUnprotected(register);
         self.spill(instInReg);
+        registers.protect(register);
         assert(registers.allocateFixedTempRegister(register));
         register.toLocation()
     }
@@ -824,14 +850,16 @@ impl[T: RegisterType] RegisterTracker[T] {
         }
     }
 
-    fn freeUnprotected(): (T, Inst) {
+    fn unprotectedRegisters(): RegSet[T] {
+        self.allocatable.difference(self.protected)
+    }
+
+    fn freeUnprotected(reg: T): Inst {
         assert(self.free.intersect(self.allocatable).isEmpty());
-        let usedButUnprotected = self.allocatable.difference(self.protected);
-        let reg = usedButUnprotected.first().getOrPanic();
         self.free.add(reg);
         let inst = self.data.free(reg).getOrPanic();
         self.locations.remove(inst);
-        (reg, inst)
+        inst
     }
 
     fn resetProtectedAndFreeUnowned() {
