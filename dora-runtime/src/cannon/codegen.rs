@@ -2249,26 +2249,30 @@ impl<'a> CannonCodeGen<'a> {
         assert_eq!(self.bytecode.register_type(arr), BytecodeType::Ptr);
 
         let position = self.bytecode.offset_location(self.current_offset.to_u32());
+        let array_reg = REG_TMP2;
 
-        self.emit_load_register(arr, REG_RESULT.into());
-        self.asm
-            .test_if_nil_bailout(position, REG_RESULT, Trap::NIL);
+        self.emit_load_register(arr, array_reg.into());
+        self.asm.test_if_nil_bailout(position, array_reg, Trap::NIL);
 
         self.emit_load_register(idx, REG_TMP1.into());
 
         if !self.vm.flags.omit_bounds_check {
             self.asm
-                .check_index_out_of_bounds(position, REG_RESULT, REG_TMP1);
+                .check_index_out_of_bounds(position, array_reg, REG_TMP1);
         }
 
         let src_type = self.specialize_register_type(src);
 
         let element_size = size(self.vm, src_type.clone());
         self.asm
-            .array_address(REG_TMP1, REG_RESULT, REG_TMP1, element_size);
+            .array_address(REG_TMP1, array_reg, REG_TMP1, element_size);
 
+        // Both registers need to be callee-saved. Otherwise the write barrier slow
+        // path may invalidate these registers for structs/tuples.
+        debug_assert!(CALLEE_SAVED_REGS.contains(&array_reg));
+        debug_assert!(CALLEE_SAVED_REGS.contains(&REG_TMP1));
         self.asm
-            .store_array(REG_RESULT, REG_TMP1, 0, self.reg(src), src_type);
+            .store_array(array_reg, REG_TMP1, 0, self.reg(src), src_type);
     }
 
     fn emit_load_array(&mut self, dest: Register, arr: Register, idx: Register) {

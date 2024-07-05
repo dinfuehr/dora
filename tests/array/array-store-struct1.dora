@@ -1,0 +1,17 @@
+fn main() {
+    let old_bar = Bar(1900);
+    let vec = Vec[Foo]::new();
+    vec.reserve(10);
+    std::forceCollect();
+
+    let new_bar = Bar(2100);
+    vec.push(Foo(10i32, new_bar, old_bar));
+}
+
+struct Foo {
+    value: Int32,
+    bar1: Bar,
+    bar2: Bar,
+}
+
+class Bar(value: Int64)
