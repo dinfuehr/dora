@@ -795,7 +795,10 @@ impl SsaGen {
                     Op::Equal
                 };
 
-                let result = graph::createBinaryInst(op, Type::Ptr, src, zero);
+                let bool_result = graph::createBinaryInst(op, Type::Ptr, src, zero);
+                self.current().appendInst(bool_result);
+
+                let result = graph::createConvertInst(Type::Int32, bool_result);
                 self.current().appendInst(result);
 
                 self.writeVariable(dest, self.current(), result);

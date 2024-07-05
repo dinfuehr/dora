@@ -560,6 +560,12 @@ impl AssemblerX64 {
         self.emitAddress(dest.lowBits(), src);
     }
 
+    pub fn movb_rr(dest: Register, src: Register) {
+        self.emitRexByteModRmOptional(src, dest);
+        self.emitByte(0x88u8);
+        self.emitModRmReg(src, dest);
+    }
+
     pub fn movd_rx(dest: Register, src: FloatRegister) {
         self.emitByte(0x66u8);
         self.emitRexOptional(false, src.needsRexBit(), false, dest.needsRexBit());
@@ -2418,6 +2424,26 @@ mod tests {
         assertAsm(buffer, 0x88u8, 0x04u8, 0x24u8);
         assertAsm(buffer, 0x40u8, 0x88u8, 0x34u8, 0x24u8);
         assertAsm(buffer, 0x44u8, 0x88u8, 0x04u8, 0x24u8);
+        assertAsmEnd(buffer);
+    }
+
+    @Test
+    fn movb_rr() {
+        let asm = AssemblerX64::new();
+        asm.movb_rr(RAX, RAX);
+        asm.movb_rr(RBX, RBX);
+        asm.movb_rr(RSI, RAX);
+        asm.movb_rr(R15, RAX);
+        asm.movb_rr(RDI, RDI);
+        asm.movb_rr(RBX, RSI);
+        let buffer = asm.finalizeTesting();
+
+        assertAsm(buffer, 0x88u8, 0xC0u8);
+        assertAsm(buffer, 0x88u8, 0xDBu8);
+        assertAsm(buffer, 0x40u8, 0x88u8, 0xC6u8);
+        assertAsm(buffer, 0x41u8, 0x88u8, 0xC7u8);
+        assertAsm(buffer, 0x40u8, 0x88u8, 0xFFu8);
+        assertAsm(buffer, 0x40u8, 0x88u8, 0xF3u8);
         assertAsmEnd(buffer);
     }
 

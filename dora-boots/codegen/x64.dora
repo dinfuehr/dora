@@ -1329,7 +1329,7 @@ impl CodeGen for CodeGenX64 {
                     self.asm.movl_rr(dest.getRegister(), src.getRegister());
                 } else {
                     assert(ty == Type::UInt8 || ty == Type::Bool);
-                    self.asm.movzxb_rr(dest.getRegister(), src.getRegister());
+                    self.asm.movb_rr(dest.getRegister(), src.getRegister());
                 }
             } else {
                 // Reload
@@ -1543,7 +1543,6 @@ impl CodeGen for CodeGenX64 {
                     _ => unreachable[()](),
                 }
                 self.asm.setcc_r(cond, dest);
-                self.asm.movzxb_rr(dest, dest);
             }
         } else {
             let lhs = loc.getInput(0).getRegister();
@@ -1580,7 +1579,6 @@ impl CodeGen for CodeGenX64 {
                 _ => unreachable[()](),
             }
             self.asm.setcc_r(cond, dest);
-            self.asm.movzxb_rr(dest, dest);
         }
     }
 
