@@ -462,10 +462,7 @@ impl SimpleRegisterAllocator {
         if register.isSome() {
             output.setLocation(register.getOrPanic().toLocation());
         } else {
-            let register = self.chooseRegisterToFree[T](registers);
-            let instInReg = registers.freeUnprotected(register);
-            self.spill(instInReg);
-            registers.protect(register);
+            let register = self.spillSomeRegister[T](registers);
             assert(registers.allocateFixedRegister(register, inst));
             output.setLocation(register.toLocation());
         }
@@ -584,16 +581,21 @@ impl SimpleRegisterAllocator {
             return register.toLocation();
         }
 
-        let register = self.chooseRegisterToFree[T](registers);
-        let instInReg = registers.freeUnprotected(register);
-        self.spill(instInReg);
+        let register = self.spillSomeRegister[T](registers);
         registers.allocateFixedRegister(register, value);
-        registers.protect(register);
         self.emitReloadInst(register.toLocation(), value);
         register.toLocation()
     }
 
-    fn chooseRegisterToFree[T: RegisterType](registers: RegisterTracker[T]): T {
+    fn spillSomeRegister[T: RegisterType](registers: RegisterTracker[T]): T {
+        let register = self.chooseRegisterToSpill[T](registers);
+        let instInReg = registers.freeUnprotected(register);
+        self.spill(instInReg);
+        registers.protect(register);
+        register
+    }
+
+    fn chooseRegisterToSpill[T: RegisterType](registers: RegisterTracker[T]): T {
         let candidates = registers.unprotectedRegisters();
 
         // Choose a register/inst which is cheap to reload first.
@@ -647,10 +649,7 @@ impl SimpleRegisterAllocator {
             return register.toLocation();
         }
 
-        let register = self.chooseRegisterToFree[T](registers);
-        let instInReg = registers.freeUnprotected(register);
-        self.spill(instInReg);
-        registers.protect(register);
+        let register = self.spillSomeRegister[T](registers);
         assert(registers.allocateFixedTempRegister(register));
         register.toLocation()
     }
@@ -856,6 +855,7 @@ impl[T: RegisterType] RegisterTracker[T] {
 
     fn freeUnprotected(reg: T): Inst {
         assert(self.free.intersect(self.allocatable).isEmpty());
+        assert(!self.protected.contains(reg));
         self.free.add(reg);
         let inst = self.data.free(reg).getOrPanic();
         self.locations.remove(inst);
