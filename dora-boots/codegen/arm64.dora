@@ -1513,7 +1513,7 @@ impl CodeGen for CodeGenArm64 {
 
     fn emitRematerialize(inst: Inst) {
         let loc = inst.getLocationData();
-        let value = inst.getInput(0).getValue();
+        let value = inst.getExtraInst();
         let dest = loc.getOutput().getLocation();
 
         if dest.isRegister() {

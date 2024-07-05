@@ -1192,6 +1192,13 @@ impl Inst {
         }
     }
 
+    pub fn getExtraInst(): Inst {
+        match self.extra {
+            InstExtraData::Inst(inst) => inst,
+            _ => unreachable[Inst](),
+        }
+    }
+
     pub fn hasFieldOffsetInfo(): Bool {
         self.extra.isFieldOffsetInfo()
     }
@@ -1614,6 +1621,7 @@ pub enum InstExtraData {
     AllocationData(AllocationData),
     RecordLayout(RecordLayout),
     TraitObjectInfo(TraitObjectInfo),
+    Inst(Inst),
     If(Block, Block),
     Goto(Block),
     String(String),
@@ -2222,7 +2230,7 @@ pub fn createMoveInst(ty: Type, dest: Location, source: Location): Inst {
 pub fn createRematerializeInst(dest: Location, value: Inst): Inst {
     let inst = Inst::new();
     inst._op = Some(Op::Rematerialize);
-    inst.addInput(value);
+    inst.extra = InstExtraData::Inst(value);
 
     let loc = LocationData::newWith(1);
     loc.output = Some(Operand(Policy::None, dest));
