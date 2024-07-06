@@ -350,10 +350,16 @@ impl[T: RegisterType] RegSet[T] {
         RegSet[T]((1 << registers) - 1)
     }
 
-    pub fn add(reg: T) {
+    pub fn add(reg: T): Bool {
         let value = reg.toInt32();
         assert(value < 64i32);
-        self.value = self.value | (1 << value);
+        let mask = 1 << value;
+        if self.value & mask != 0 {
+            false
+        } else {
+            self.value = self.value | mask;
+            true
+        }
     }
 
     pub fn contains(reg: T): Bool {

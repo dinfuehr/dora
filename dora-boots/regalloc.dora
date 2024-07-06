@@ -207,6 +207,8 @@ impl SimpleRegisterAllocator {
             self.freeDeadInputs(inst);
             self.freeDeadTemps(inst);
 
+            self.resetProtectedRegisters();
+
             if inst.getLocationData().needsRegisterSnapshot() {
                 assert(inst.op() == Op::StoreArrayWb
                        || inst.op() == Op::StoreArrayAddressWb
@@ -237,10 +239,13 @@ impl SimpleRegisterAllocator {
             self.freeDeadOutput(inst);
         }
 
+        self.resetProtectedRegisters();
+        self.currentInst = None[Inst];
+    }
+
+    fn resetProtectedRegisters() {
         self.registers().resetProtectedAndFreeUnowned();
         self.float_registers().resetProtectedAndFreeUnowned();
-
-        self.currentInst = None[Inst];
     }
 
     fn spillLiveRegisters() {
@@ -865,7 +870,7 @@ impl[T: RegisterType] RegisterTracker[T] {
     fn resetProtectedAndFreeUnowned() {
         // An instruction could be in multiple registers at the same time
         // if used multiple times as input in an instruction.
-        // However here we can only track one register per instruction and
+        // However, we can only track one register per instruction and
         // therefore we drop registers if their instruction does not point
         // back to that register.
         for reg in self.protected {
