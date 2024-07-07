@@ -20,7 +20,7 @@ pub fn createGraph(ci: CompilationInfo): Graph {
     let graph = Graph::new();
 
     // Create basic blocks for the bytecode.
-    let blockMap = createBlocks(graph, ci.bc);
+    let (blockMap, predecessors) = createBlocks(graph, ci.bc);
 
     // Create edges for the blocks.
     createEdges(graph, ci.bc, blockMap);
@@ -29,7 +29,10 @@ pub fn createGraph(ci: CompilationInfo): Graph {
     for (offset, block) in blockMap.blocks {
         if block.predecessors.isEmpty() && !block.isEntryBlock() {
             while !block.successors.isEmpty() {
-                block.successors(0).remove();
+                let succEdge = block.successors(0);
+                let pos = succEdge.target.getBytecodePosition().toInt64();
+                predecessors(pos) = predecessors(pos) - 1i32;
+                succEdge.remove();
             }
         }
     }
@@ -39,7 +42,7 @@ pub fn createGraph(ci: CompilationInfo): Graph {
     }
 
     // Fill basic blocks with instructions.
-    let ssagen = SsaGen::new(ci, graph, ci.bc, blockMap, ci.typeParams);
+    let ssagen = SsaGen::new(ci, graph, blockMap, predecessors);
     ssagen.run();
 
     graph
@@ -48,7 +51,14 @@ pub fn createGraph(ci: CompilationInfo): Graph {
 fn dumpEdgeOverview(ci: CompilationInfo, graph: Graph) {
     println("blocks in ${ci.getDisplayName()}:");
     for block in graph.insertionOrderIterator() {
-        print("  block ${block}:");
+        print("  block ${block}");
+        if block.getName().isSome() {
+            print(" (${block.getName().getOrPanic()})");
+        }
+        if !block.isEntryBlock() && !block.isExitBlock() {
+            print(" (at bc ${block.getBytecodePosition()})");
+        }
+        print(":");
         if !block.predecessors.isEmpty() {
             print(" preds:");
             for pred in block.predecessors {
@@ -74,6 +84,7 @@ class SsaGen {
     bc: BytecodeFunction,
     typeParams: Array[BytecodeType],
     blockMap: BlockMap,
+    predecessors: Array[Int32],
     currentBlock: Option[Block],
     offset: Int32,
     currentDef: Array[HashMap[Block, Inst]],
@@ -100,13 +111,14 @@ class SsaGen {
 }
 
 impl SsaGen {
-    static fn new(ci: CompilationInfo, graph: Graph, bc: BytecodeFunction, blockMap: BlockMap, typeParams: Array[BytecodeType]): SsaGen {
+    static fn new(ci: CompilationInfo, graph: Graph, blockMap: BlockMap, predecessors: Array[Int32]): SsaGen {
         SsaGen(
             ci,
             graph,
-            bc,
-            typeParams,
+            ci.bc,
+            ci.typeParams,
             blockMap,
+            predecessors,
             None[Block],
             0i32,
             Array[HashMap[Block, Inst]]::new(),
@@ -651,6 +663,16 @@ impl SsaGen {
     fn trySealBlock(block: Block): Bool {
         if self.sealedBlocks.contains(block.id().toInt64()) {
             return true;
+        }
+
+        if block.hasBytecodePosition() {
+            let pos = block.getBytecodePosition().toInt64();
+            let expected = self.predecessors(pos).toInt64();
+            let actual = block.predecessors.size();
+            if expected != actual {
+                println("function ${self.ci.getDisplayName()}: block ${block}: ${expected} vs ${actual}");
+            }
+            assert(expected == actual);
         }
 
         // all predecessors need to be filled
@@ -2430,13 +2452,14 @@ impl SsaGen {
     }
 }
 
-fn createBlocks(graph: Graph, bc: BytecodeFunction): BlockMap {
+fn createBlocks(graph: Graph, bc: BytecodeFunction): (BlockMap, Array[Int32]) {
     let blockMap = BlockMap::new(bc);
 
     // The first pass creates blocks
-    BlockCreator::new(graph, bc, blockMap).run();
+    let bc = BlockCreator::new(graph, bc, blockMap);
+    bc.run();
 
-    blockMap
+    (blockMap, bc.predecessors)
 }
 
 fn createEdges(graph: Graph, bc: BytecodeFunction, blockMap: BlockMap) {
@@ -2551,6 +2574,8 @@ class BlockCreator {
     bc: BytecodeFunction,
     blockMap: BlockMap,
     blockStarts: BitSet,
+    blockStarts2: BitSet,
+    predecessors: Array[Int32],
 }
 
 impl BlockCreator {
@@ -2559,16 +2584,26 @@ impl BlockCreator {
             graph,
             bc,
             blockMap,
-            BitSet::new(bc.code.size())
+            BitSet::new(bc.code.size()),
+            BitSet::new(bc.code.size()),
+            Array[Int32]::zero(bc.code.size()),
         )
     }
 
     fn run() {
         // The entry block is a special block that is always created.
         let entryBlock = self.addBlock();
+        entryBlock.setName("entry");
         self.graph.setEntryBlock(entryBlock);
 
+        let exitBlock = self.addBlock();
+        exitBlock.setName("exit");
+        self.graph.setExitBlock(exitBlock);
+
         self.ensureBlockLazy(0);
+        self.blockStart(0);
+
+        let mut fallthrough = true;
 
         for instInfo in BytecodeIterator::new(self.bc.code) {
             let start = instInfo.start;
@@ -2577,37 +2612,64 @@ impl BlockCreator {
                 self.ensureBlock(start);
             }
 
-            self.processInstruction(start, instInfo.size, instInfo.op);
+            if (self.blockStarts2.contains(start) || instInfo.op.isLoopStart()) && fallthrough {
+                self.incrementPredecessors(start);
+            }
+
+            fallthrough = self.processInstruction(start, instInfo.size, instInfo.op);
         }
     }
 
-    fn processInstruction(start: Int64, size: Int64, inst: BytecodeInstruction) {
+    fn processInstruction(start: Int64, size: Int64, inst: BytecodeInstruction): Bool {
         match inst {
             BytecodeInstruction::Ret(_) => {
                 self.ensureBlock(start + size);
+
+                self.blockStart(start + size);
+                false
             },
             BytecodeInstruction::LoopStart => {
                 self.ensureBlock(start);
+
+                self.blockStart(start);
+                true
             },
             BytecodeInstruction::JumpLoop(distance) => {
                 let target = start - distance.toInt64();
                 assert(self.blockMap.blockAt(target).isSome());
+
+                self.blockStart(start + size);
+                self.incrementPredecessors(target);
+                false
             },
             BytecodeInstruction::JumpIfFalse(_opnd, distance) => {
                 self.ensureBlockLazy(start + distance.toInt64());
                 self.ensureBlock(start + size);
+
+                self.blockStart(start + size);
+                self.incrementPredecessors(start + distance.toInt64());
+                true
             },
             BytecodeInstruction::JumpIfTrue(_opnd, distance) => {
                 self.ensureBlockLazy(start + distance.toInt64());
                 self.ensureBlock(start + size);
+
+                self.blockStart(start + size);
+                self.incrementPredecessors(start + distance.toInt64());
+                true
             },
             BytecodeInstruction::Jump(distance) => {
                 self.ensureBlockLazy(start + distance.toInt64());
                 self.ensureBlock(start + size);
+
+                self.blockStart(start + size);
+                self.incrementPredecessors(start + distance.toInt64());
+                false
             },
 
             _ => {
                 // Non-terminator instruction
+                true
             },
         }
     }
@@ -2623,6 +2685,7 @@ impl BlockCreator {
 
         let block = self.addBlock();
         self.blockMap.insert(offset, block);
+        block.setBytecodePosition(offset.toInt32());
         Some(block)
     }
 
@@ -2634,5 +2697,16 @@ impl BlockCreator {
 
     fn ensureBlockLazy(offset: Int64) {
         self.blockStarts.insert(offset);
+    }
+
+    fn incrementPredecessors(offset: Int64) {
+        self.blockStart(offset);
+        self.predecessors(offset) = self.predecessors(offset) + 1i32;
+    }
+
+    fn blockStart(offset: Int64) {
+        if offset < self.bc.code.size() {
+            self.blockStarts2.insert(offset);
+        }
     }
 }

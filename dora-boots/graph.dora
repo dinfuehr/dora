@@ -22,6 +22,7 @@ pub mod verifier;
 
 pub class Graph {
     entryBlock: Option[Block],
+    exitBlock: Option[Block],
     pub blocks: Vec[Option[Block]],
     instById: Vec[Option[Inst]],
     postOrder: Vec[Block],
@@ -38,6 +39,7 @@ pub class Graph {
 impl Graph {
     static pub fn new(): Graph {
         Graph(
+            None[Block],
             None[Block],
             Vec[Option[Block]]::new(),
             Vec[Option[Inst]]::new(),
@@ -72,6 +74,14 @@ impl Graph {
 
     pub fn getEntryBlock(): Block {
         self.entryBlock.getOrPanic()
+    }
+
+    pub fn setExitBlock(block: Block) {
+        self.exitBlock = Some(block);
+    }
+
+    pub fn getExitBlock(): Block {
+        self.exitBlock.getOrPanic()
     }
 
     pub fn getInstById(id: InstId): Inst {
@@ -309,6 +319,8 @@ pub class Block {
 
     label: Option[Label],
     graph: Option[Graph],
+    name: Option[String],
+    bytecodePosition: Option[Int32],
 
     dominator: Option[Block],
     dominatedBlocks: Vec[Block],
@@ -332,6 +344,8 @@ impl Block {
             InstLinkedList::new(),
             None[Label],
             None[Graph],
+            None[String],
+            None[Int32],
             None[Block],
             Vec[Block]::new(),
             None[InstSet],
@@ -350,6 +364,27 @@ impl Block {
 
     pub fn getGraph(): Graph {
         self.graph.getOrPanic()
+    }
+
+    pub fn hasBytecodePosition(): Bool {
+        self.bytecodePosition.isSome()
+    }
+
+    pub fn setBytecodePosition(pos: Int32) {
+        assert(self.bytecodePosition.isNone());
+        self.bytecodePosition = Some[Int32](pos);
+    }
+
+    pub fn getBytecodePosition(): Int32 {
+        self.bytecodePosition.getOrPanic()
+    }
+
+    pub fn setName(name: String) {
+        self.name = Some[String](name);
+    }
+
+    pub fn getName(): Option[String] {
+        self.name
     }
 
     pub fn getDominator(): Option[Block] {
@@ -438,6 +473,10 @@ impl Block {
 
     pub fn isEntryBlock(): Bool {
         self.graph.getOrPanic().getEntryBlock() === self
+    }
+
+    pub fn isExitBlock(): Bool {
+        self.graph.getOrPanic().getExitBlock() === self
     }
 
     pub fn instructionsIterator(): InstIterator {

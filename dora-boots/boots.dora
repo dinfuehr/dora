@@ -19,7 +19,6 @@ mod codegen;
 mod compilation;
 mod dce;
 mod deserializer;
-mod dominator_test;
 mod dominator;
 mod graph;
 mod graph_builder;

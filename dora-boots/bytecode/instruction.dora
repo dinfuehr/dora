@@ -81,3 +81,12 @@ pub enum BytecodeInstruction {
 
     Ret(BytecodeRegister),
 }
+
+impl BytecodeInstruction {
+    pub fn isLoopStart(): Bool {
+        match self {
+            BytecodeInstruction::LoopStart => true,
+            _ => false,
+        }
+    }
+}
