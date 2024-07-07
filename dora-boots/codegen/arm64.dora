@@ -5,7 +5,7 @@ use package::interface::{THREAD_LOCAL_DATA_STACK_LIMIT_OFFSET, THREAD_LOCAL_DATA
 use package::interface::{THREAD_LOCAL_DATA_TLAB_TOP_OFFSET, THREAD_LOCAL_DATA_TLAB_END_OFFSET, THREAD_LOCAL_DATA_MANAGED_THREAD_HANDLE_OFFSET};
 use package::interface::{PTR_SIZE, GLOBAL_STATE_INITIALIZED};
 use package::interface as iface;
-use package::codegen::{CODE_SIZE_ALIGNMENT, CodeGen, computeOffsetsInLiveSet};
+use package::codegen::{CODE_SIZE_ALIGNMENT, CodeGen, computeOffsetsInLiveSet, getLiveValuesWithoutCurrentInst, getRegisterSnapshotWithout};
 use package::assembler::arm64;
 use package::assembler::arm64::{F0, F1, F2, F3, F4, F5, F6, F7, F8, F9, F10, F11, F12, F13, F14, F15, F31};
 use package::assembler::arm64::{AssemblerArm64, Cond, Extend, Shift, registerName, fitsMovz, fitsMovn};
@@ -1853,11 +1853,8 @@ impl CodeGen for CodeGenArm64 {
 
         let tmp = loc.getTemp(0).getRegister();
         let location = self.ci.bc.getLocationAt(inst.getBytecodePosition());
-        let snapshot = loc.getRegisterSnapshot();
-        snapshot.gp.freeRegisterIfUsed(obj);
-        snapshot.gp.freeRegisterIfUsed(tmp);
-        let live = loc.getLiveValues();
-        live.remove(inst);
+        let snapshot = getRegisterSnapshotWithout(inst, obj, tmp);
+        let live = getLiveValuesWithoutCurrentInst(inst);
         self.emitObjectAllocate(obj, size, REG_TEMP, tmp, snapshot, live, location);
 
         self.emitObjectInitialization(obj, size, classptr, REG_TEMP);
@@ -1874,11 +1871,8 @@ impl CodeGen for CodeGenArm64 {
 
         let tmp = loc.getTemp(0).getRegister();
         let location = self.ci.bc.getLocationAt(inst.getBytecodePosition());
-        let snapshot = loc.getRegisterSnapshot();
-        snapshot.gp.freeRegisterIfUsed(obj);
-        snapshot.gp.freeRegisterIfUsed(tmp);
-        let live = loc.getLiveValues();
-        live.remove(inst);
+        let snapshot = getRegisterSnapshotWithout(inst, obj, tmp);
+        let live = getLiveValuesWithoutCurrentInst(inst);
         self.emitArrayAllocate(obj, size, REG_TEMP, tmp, snapshot, live, location);
 
         self.emitArrayInitialization(obj, size, length, classptr, REG_TEMP, tmp);

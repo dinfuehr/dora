@@ -5,7 +5,7 @@ use package::compilation::CompilationInfo;
 use package::assembler::{FloatRegister, Label, Register, RegSet};
 use package::interface::{Address, Architecture, config};
 use package::location::ArgumentLocations;
-use package::graph::{Graph, Inst, InstSet, Location, LocationData, Op, Operand, Policy, Type};
+use package::graph::{Graph, Inst, InstSet, Location, LocationData, Op, Operand, Policy, RegisterTrackers, Type};
 use package::CodeDescriptor;
 
 pub mod arm64;
@@ -645,4 +645,20 @@ fn computeOffsetsInLiveSet(live: InstSet): Vec[Int32] {
     }
 
     offsets
+}
+
+fn getRegisterSnapshotWithout(inst: Inst, without: Register...): RegisterTrackers {
+    let snapshot = inst.getLocationData().getRegisterSnapshot();
+
+    for reg in without {
+        snapshot.gp.freeRegisterIfUsed(reg);
+    }
+
+    snapshot
+}
+
+fn getLiveValuesWithoutCurrentInst(inst: Inst): InstSet {
+    let live = inst.getLocationData().getLiveValues();
+    live.remove(inst);
+    live
 }

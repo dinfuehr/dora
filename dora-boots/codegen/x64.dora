@@ -5,7 +5,7 @@ use package::assembler::x64::{R8, R9, R10, R11, R12, R13, R14, R15};
 use package::assembler::x64::{XMM0, XMM1, XMM2, XMM3, XMM4, XMM5, XMM6, XMM7, XMM8, XMM9, XMM10, XMM11, XMM12, XMM13, XMM14, XMM15};
 use package::assembler::{FloatRegister, Label, Register, RegSet};
 use package::bytecode::data::{ConstPoolId, Location as SourceLocation};
-use package::codegen::{CODE_SIZE_ALIGNMENT, STACK_FRAME_ALIGNMENT, CodeGen, computeOffsetsInLiveSet};
+use package::codegen::{CODE_SIZE_ALIGNMENT, STACK_FRAME_ALIGNMENT, CodeGen, computeOffsetsInLiveSet, getLiveValuesWithoutCurrentInst, getRegisterSnapshotWithout};
 use package::compilation::CompilationInfo;
 use package::interface::{Address, Architecture, ConstPool, ConstPoolEntry, ConstPoolValue, config, getFunctionAddress, LazyCompilationSite, LazyCompilationSiteDirect, getFieldOffset, getClassSize, getClassPointer, getClassPointerForLambda, getFunctionVtableIndex, getGlobalValueAddress, getGlobalStateAddress, getGlobalInitializerFunctionId, getReadOnlyStringAddress, getClassSizeForTraitObject, getClassPointerForTraitObject};
 use package::interface::{LAMBDA_SIZE, PTR_SIZE, GLOBAL_STATE_INITIALIZED};
@@ -1778,11 +1778,8 @@ impl CodeGen for CodeGenX64 {
 
         let tmp = loc.getTemp(0).getRegister();
         let location = self.ci.bc.getLocationAt(inst.getBytecodePosition());
-        let snapshot = loc.getRegisterSnapshot();
-        snapshot.gp.freeRegisterIfUsed(obj);
-        snapshot.gp.freeRegisterIfUsed(tmp);
-        let live = loc.getLiveValues();
-        live.remove(inst);
+        let snapshot = getRegisterSnapshotWithout(inst, obj, tmp);
+        let live = getLiveValuesWithoutCurrentInst(inst);
         self.emitObjectAllocate(obj, size, REG_TEMP, tmp, snapshot, live, location);
 
         self.emitObjectInitialization(obj, size, classptr, REG_TEMP, FREG_TEMP);
@@ -1799,11 +1796,8 @@ impl CodeGen for CodeGenX64 {
 
         let tmp = loc.getTemp(0).getRegister();
         let location = self.ci.bc.getLocationAt(inst.getBytecodePosition());
-        let snapshot = loc.getRegisterSnapshot();
-        snapshot.gp.freeRegisterIfUsed(obj);
-        snapshot.gp.freeRegisterIfUsed(tmp);
-        let live = loc.getLiveValues();
-        live.remove(inst);
+        let snapshot = getRegisterSnapshotWithout(inst, obj, tmp);
+        let live = getLiveValuesWithoutCurrentInst(inst);
         self.emitArrayAllocate(obj, size, REG_TEMP, tmp, snapshot, live, location);
 
         self.emitArrayInitialization(obj, size, length, classptr, REG_TEMP, tmp);
