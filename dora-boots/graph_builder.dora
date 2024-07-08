@@ -2514,11 +2514,6 @@ class BytecodeAnalysisInfo {
     predecessors: Array[Int32],
 }
 
-fn createEdges(graph: Graph, bc: BytecodeFunction, blockMap: BlockMap) {
-    // The second pass creates edges between blocks
-    EdgeCreator::new(graph, bc, blockMap).run();
-}
-
 class BlockMap {
     bc: BytecodeFunction,
     blocks: HashMap[Int64, Block],
@@ -2547,77 +2542,6 @@ impl BlockMap {
         }
 
         None
-    }
-}
-
-class EdgeCreator {
-    graph: Graph,
-    bc: BytecodeFunction,
-    blockMap: BlockMap,
-    currentBlock: Block,
-    blockTerminated: Bool,
-}
-
-impl EdgeCreator {
-    static fn new(graph: Graph, bc: BytecodeFunction, blockMap: BlockMap): EdgeCreator {
-        EdgeCreator(graph, bc, blockMap, graph.getEntryBlock(), false)
-    }
-
-    fn run() {
-        for inst in BytecodeIterator::new(self.bc.code) {
-            self.instructionStart(inst.start);
-            self.processInstruction(inst.start, inst.size, inst.op);
-        }
-    }
-
-    fn processInstruction(offset: Int64, size: Int64, inst: BytecodeInstruction) {
-        match inst {
-            BytecodeInstruction::JumpLoop(distance) => {
-                let targetBlock = self.blockMap.blockAt(offset - distance.toInt64()).getOrPanic();
-                self.currentBlock.addSuccessor(targetBlock);
-                self.markBlockTerminated();
-            }
-            BytecodeInstruction::JumpIfFalse(_opnd, distance) => {
-                let targetBlock = self.blockMap.blockAt(offset + distance.toInt64()).getOrPanic();
-                self.currentBlock.addSuccessor(targetBlock);
-            }
-            BytecodeInstruction::JumpIfTrue(_opnd, distance) => {
-                let targetBlock = self.blockMap.blockAt(offset + distance.toInt64()).getOrPanic();
-                self.currentBlock.addSuccessor(targetBlock);
-            }
-            BytecodeInstruction::Jump(distance) => {
-                let targetBlock = self.blockMap.blockAt(offset + distance.toInt64()).getOrPanic();
-                self.currentBlock.addSuccessor(targetBlock);
-                self.markBlockTerminated();
-            }
-            BytecodeInstruction::Ret(_) => {
-                self.markBlockTerminated();
-            }
-
-            _ => {
-                // Non-terminator instruction
-            }
-        }
-    }
-
-    fn instructionStart(offset: Int64) {
-        let result = self.blockMap.blocks(offset);
-
-        if result.isSome() {
-            let nextBlock = result.getOrPanic();
-
-            if !self.blockTerminated {
-                self.currentBlock.addSuccessor(nextBlock);
-            }
-
-            self.currentBlock = nextBlock;
-        }
-
-        self.blockTerminated = false;
-    }
-
-    fn markBlockTerminated() {
-        self.blockTerminated = true;
     }
 }
 
