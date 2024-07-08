@@ -22,22 +22,14 @@ pub fn createGraph(ci: CompilationInfo): Graph {
     // Create basic blocks for the bytecode.
     let (blockMap, analysis) = analyzeBytecode(graph, ci.bc);
 
-    let createEdgesInSsaGen = false;
     let predecessors = analysis.predecessors;
 
-    if !createEdgesInSsaGen {
-        // Create edges for the blocks.
-        createEdges(graph, ci.bc, blockMap);
+    for blockPos in analysis.starts {
+        if predecessors(blockPos) == 0i32 {
+            let successors = findSuccessors(ci, blockPos);
 
-        // Remove edges from unreachable blocks.
-        for (offset, block) in blockMap.blocks {
-            if block.predecessors.isEmpty() && !block.isEntryBlock() {
-                while !block.successors.isEmpty() {
-                    let succEdge = block.successors(0);
-                    let pos = succEdge.target.getBytecodePosition().toInt64();
-                    predecessors(pos) = predecessors(pos) - 1i32;
-                    succEdge.remove();
-                }
+            for succ in successors {
+                predecessors(succ) = predecessors(succ) - 1i32;
             }
         }
     }
@@ -47,10 +39,43 @@ pub fn createGraph(ci: CompilationInfo): Graph {
     }
 
     // Fill basic blocks with instructions.
-    let ssagen = SsaGen::new(ci, graph, blockMap, analysis, createEdgesInSsaGen);
+    let ssagen = SsaGen::new(ci, graph, blockMap, analysis);
     ssagen.run();
 
     graph
+}
+
+fn findSuccessors(ci: CompilationInfo, pos: Int64): Array[Int64] {
+    for inst in BytecodeIterator::newAtPos(ci.bc.code, pos) {
+        match inst.op {
+            BytecodeInstruction::JumpLoop(distance) => {
+                let target = inst.start - distance.toInt64();
+                return Array[Int64]::new(target);
+            }
+            BytecodeInstruction::JumpIfFalse(_opnd, distance) => {
+                let target = inst.start + distance.toInt64();
+                return Array[Int64]::new(target, inst.start + inst.size);
+            }
+            BytecodeInstruction::JumpIfTrue(_opnd, distance) => {
+                let target = inst.start + distance.toInt64();
+                return Array[Int64]::new(target, inst.start + inst.size);
+
+            }
+            BytecodeInstruction::Jump(distance) => {
+                let target = inst.start + distance.toInt64();
+                return Array[Int64]::new(target);
+            }
+            BytecodeInstruction::Ret(_) => {
+                return Array[Int64]::new();
+            }
+
+            _ => {
+                // Non-terminator instruction
+            }
+        }
+    }
+
+    unreachable[Array[Int64]]()
 }
 
 fn dumpEdgeOverview(ci: CompilationInfo, graph: Graph) {
@@ -114,12 +139,10 @@ class SsaGen {
 
     // Current intended replacements for phis. See tryRemoveTrivialPhi().
     currentReplacements: Vec[Inst],
-
-    createEdges: Bool,
 }
 
 impl SsaGen {
-    static fn new(ci: CompilationInfo, graph: Graph, blockMap: BlockMap, analysis: BytecodeAnalysisInfo, createEdges: Bool): SsaGen {
+    static fn new(ci: CompilationInfo, graph: Graph, blockMap: BlockMap, analysis: BytecodeAnalysisInfo): SsaGen {
         SsaGen(
             ci,
             graph,
@@ -139,7 +162,6 @@ impl SsaGen {
             BitSet::new(0),
             HashMap[Block, HashMap[BytecodeRegister, Inst]]::new(),
             Vec[Inst]::new(),
-            createEdges,
         )
     }
 
@@ -190,10 +212,7 @@ impl SsaGen {
         let first = self.blockMap.blockAt(0).getOrPanic();
         let inst = graph::createGotoInst(first);
         entry.appendInst(inst);
-
-        if self.createEdges {
-            entry.addSuccessor(first);
-        }
+        entry.addSuccessor(first);
 
         self.fillBlock(entry);
         assert(self.trySealBlock(entry));
@@ -651,10 +670,7 @@ impl SsaGen {
             let next = next.getOrPanic();
             let gotoInst = graph::createGotoInst(next);
             block.appendInst(gotoInst);
-
-            if self.createEdges {
-                block.addSuccessor(next);
-            }
+            block.addSuccessor(next);
         }
 
         // We change the current block, that means all instructions
@@ -728,10 +744,7 @@ impl SsaGen {
         let targetBlock = self.blockMap.blockAt((self.offset - distance).toInt64()).getOrPanic();
         let gotoInst = graph::createGotoInst(targetBlock);
         self.current().appendInst(gotoInst);
-
-        if self.createEdges {
-            self.current().addSuccessor(targetBlock);
-        }
+        self.current().addSuccessor(targetBlock);
 
         self.markBlockTerminated();
     }
@@ -1033,11 +1046,7 @@ impl SsaGen {
         let targetBlock = self.blockMap.blockAt((self.offset + offset).toInt64()).getOrPanic();
         let gotoInst = graph::createGotoInst(targetBlock);
         self.current().appendInst(gotoInst);
-
-        if self.createEdges {
-            self.current().addSuccessor(targetBlock);
-        }
-
+        self.current().addSuccessor(targetBlock);
         self.markBlockTerminated();
     }
 
@@ -1054,11 +1063,8 @@ impl SsaGen {
 
         self.current().appendInst(cond);
 
-        if self.createEdges {
-            self.current().addSuccessor(targetBlock);
-            self.current().addSuccessor(fallthroughBlock);
-        }
-
+        self.current().addSuccessor(targetBlock);
+        self.current().addSuccessor(fallthroughBlock);
         self.markBlockTerminated();
     }
 

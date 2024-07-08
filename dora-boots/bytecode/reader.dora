@@ -27,6 +27,10 @@ impl BytecodeIterator {
         BytecodeIterator(data, 0, data.size())
     }
 
+    pub static fn newAtPos(data: Array[UInt8], pos: Int64): BytecodeIterator {
+        BytecodeIterator(data, pos, data.size())
+    }
+
     fn readInstruction(): BytecodeInstructionInfo {
         let start = self.pos;
         let opcode = self.readOpcode();

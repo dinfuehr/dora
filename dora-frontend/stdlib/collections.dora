@@ -242,9 +242,9 @@ impl BitSet {
 
     let entry_idx = idx / 32i64;
     let value = self.data.get(entry_idx);
-    let value_idx = idx - entry_idx;
+    let bit_idx = idx & 0x1F;
 
-    return value & (1i32 << value_idx.toInt32()) != 0i32;
+    return value & (1i32 << bit_idx.toInt32()) != 0i32;
   }
 
   pub fn insert(idx: Int64) {
@@ -254,9 +254,9 @@ impl BitSet {
 
     let entry_idx = idx / 32i64;
     let mut value = self.data.get(entry_idx);
-    let value_idx = idx - entry_idx;
+    let bit_idx = idx & 0x1F;
 
-    value = value | (1i32 << value_idx.toInt32());
+    value = value | (1i32 << bit_idx.toInt32());
 
     self.data.set(entry_idx, value);
   }
@@ -268,9 +268,9 @@ impl BitSet {
 
     let entry_idx = idx / 32i64;
     let mut value = self.data.get(entry_idx);
-    let value_idx = idx - entry_idx;
+    let bit_idx = idx & 0x1F;
 
-    value = value & !(1i32 << value_idx.toInt32());
+    value = value & !(1i32 << bit_idx.toInt32());
 
     self.data.set(entry_idx, value);
   }
