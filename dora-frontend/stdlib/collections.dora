@@ -283,6 +283,50 @@ impl BitSet {
   }
 }
 
+impl std::traits::IntoIterator for BitSet {
+  type IteratorType = BitSetIter;
+
+  fn iter(): IteratorType {
+    BitSetIter(self, 0, !0i32)
+  }
+}
+
+pub class BitSetIter {
+  bitset: BitSet,
+  idx: Int64,
+  mask: Int32,
+}
+
+impl Iterator for BitSetIter {
+  type Item = Int64;
+
+  fn next(): Option[Int64] {
+    while self.idx < self.bitset.data.size() {
+      let value = self.bitset.data(self.idx) & self.mask;
+      let bit = value.countZeroBitsTrailing();
+
+      if bit == 32i32 {
+        self.idx = self.idx + 1;
+        self.mask = !0i32;
+      } else {
+        let result = self.idx * 32 + bit.toInt64();
+
+        if bit == 31i32 {
+          self.idx = self.idx + 1;
+          self.mask = !0i32;
+        } else {
+          // Avoid overflow for bit 30 here.
+          self.mask = !((1i32 << (bit + 1i32)).wrappingSub(1i32));
+        }
+
+        return Some[Int64](result);
+      }
+    }
+
+    None[Int64]
+  }
+}
+
 pub class BitVec {
   data: Array[Int32],
 }

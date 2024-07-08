@@ -20,9 +20,10 @@ pub fn createGraph(ci: CompilationInfo): Graph {
     let graph = Graph::new();
 
     // Create basic blocks for the bytecode.
-    let (blockMap, predecessors) = createBlocks(graph, ci.bc);
+    let (blockMap, analysis) = analyzeBytecode(graph, ci.bc);
 
     let createEdgesInSsaGen = false;
+    let predecessors = analysis.predecessors;
 
     if !createEdgesInSsaGen {
         // Create edges for the blocks.
@@ -46,7 +47,7 @@ pub fn createGraph(ci: CompilationInfo): Graph {
     }
 
     // Fill basic blocks with instructions.
-    let ssagen = SsaGen::new(ci, graph, blockMap, predecessors, createEdgesInSsaGen);
+    let ssagen = SsaGen::new(ci, graph, blockMap, analysis, createEdgesInSsaGen);
     ssagen.run();
 
     graph
@@ -89,6 +90,7 @@ class SsaGen {
     typeParams: Array[BytecodeType],
     blockMap: BlockMap,
     predecessors: Array[Int32],
+    blockStarts: BitSet,
     currentBlock: Option[Block],
     offset: Int32,
     currentDef: Array[HashMap[Block, Inst]],
@@ -117,14 +119,15 @@ class SsaGen {
 }
 
 impl SsaGen {
-    static fn new(ci: CompilationInfo, graph: Graph, blockMap: BlockMap, predecessors: Array[Int32], createEdges: Bool): SsaGen {
+    static fn new(ci: CompilationInfo, graph: Graph, blockMap: BlockMap, analysis: BytecodeAnalysisInfo, createEdges: Bool): SsaGen {
         SsaGen(
             ci,
             graph,
             ci.bc,
             ci.typeParams,
             blockMap,
-            predecessors,
+            analysis.predecessors,
+            analysis.starts,
             None[Block],
             0i32,
             Array[HashMap[Block, Inst]]::new(),
@@ -2488,14 +2491,21 @@ impl SsaGen {
     }
 }
 
-fn createBlocks(graph: Graph, bc: BytecodeFunction): (BlockMap, Array[Int32]) {
+fn analyzeBytecode(graph: Graph, bc: BytecodeFunction): (BlockMap, BytecodeAnalysisInfo) {
     let blockMap = BlockMap::new(bc);
 
     // The first pass creates blocks
     let bc = BlockCreator::new(graph, bc, blockMap);
     bc.run();
 
-    (blockMap, bc.predecessors)
+    let analysis = BytecodeAnalysisInfo(bc.blockStarts2, bc.predecessors);
+
+    (blockMap, analysis)
+}
+
+class BytecodeAnalysisInfo {
+    starts: BitSet,
+    predecessors: Array[Int32],
 }
 
 fn createEdges(graph: Graph, bc: BytecodeFunction, blockMap: BlockMap) {
