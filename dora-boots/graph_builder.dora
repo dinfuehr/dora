@@ -52,8 +52,6 @@ class SsaGen {
     currentBlock: Option[Block],
     offset: Int32,
     currentDef: Array[HashMap[Block, Inst]],
-    blockTerminated: Bool,
-    isInstructionReachable: Bool,
 
     returnValueArgInst: Option[Inst],
 
@@ -85,8 +83,6 @@ impl SsaGen {
             None[Block],
             0i32,
             Array[HashMap[Block, Inst]]::new(),
-            false,
-            false,
             None[Inst],
             Vec[BytecodeRegister]::new(),
             BitSet::new(0),
@@ -100,19 +96,9 @@ impl SsaGen {
         self.prepare();
         self.fillEntryBlock();
 
-        for inst in BytecodeIterator::new(self.bc.code) {
-            self.instructionStart(inst.start.toInt32());
-
-            if self.isInstructionReachable {
-                let terminated = self.processInstruction(inst.start, inst.size, inst.op);
-                assert(terminated == self.blockTerminated);
-            } else {
-                self.processDeadInstruction(inst.op);
-            }
+        for blockStart in self.analysis.starts {
+            self.emitBlock(blockStart);
         }
-
-        assert(self.blockTerminated);
-        self.blockEndReached(None[Block]);
 
         for block in self.analysis.blocks {
             if block.isNone() {
@@ -146,7 +132,7 @@ impl SsaGen {
         self.setupArguments(entry);
         self.emitSafepoint(entry);
 
-        let first = self.analysis.blockAt(0).getOrPanic();
+        let first = self.ensureBlockAt(0);
         let inst = graph::createGotoInst(first);
         entry.appendInst(inst);
         entry.addSuccessor(first);
@@ -187,26 +173,49 @@ impl SsaGen {
             return;
         }
 
-        let block = self.analysis.blockAt(start).getOrPanic();
+        let block = self.ensureBlockAt(start);
         self.currentBlock = Some[Block](block);
 
         for inst in BytecodeIterator::newAtPos(self.bc.code, start) {
             if inst.start > start && self.analysis.starts.contains(inst.start) {
-                let next = self.analysis.blockAt(inst.start).getOrPanic();
+                let next = self.ensureBlockAt(inst.start);
                 let gotoInst = graph::createGotoInst(next);
                 block.appendInst(gotoInst);
                 block.addSuccessor(next);
-                return;
+                break;
             }
 
-            if !self.processInstruction(inst.start, inst.size, inst.op) {
-                return;
+            self.offset = inst.start.toInt32();
+
+            if self.processInstruction(inst.start, inst.size, inst.op) {
+                break;
             }
         }
+
+        // We change the current block, that means all instructions
+        // are inserted. The block is now filled.
+        self.fillBlock(block);
+
+        // We don't really know when to seal a block from the bytecode.
+        // Try to seal this block if all predecessors are filled.
+        self.trySealBlock(block);
+
+        // This block might have a back edge to a loop header. Since this
+        // block is now filled, we might be able to seal another block.
+        for succ in block.successors {
+            self.trySealBlock(succ.target);
+        }
+
+        self.currentBlock = None[Block];
     }
 
     fn current(): Block {
         self.currentBlock.getOrPanic()
+    }
+
+    fn ensureBlockAt(pos: Int64): Block {
+        assert(self.analysis.starts.contains(pos));
+        self.analysis.blockAt(pos).getOrPanic()
     }
 
     fn writeVariable(register: BytecodeRegister, block: Block, value: Inst) {
@@ -343,30 +352,6 @@ impl SsaGen {
         let replacement = self.currentReplacements.pop().getOrPanic();
         assert(replacement.hasId());
         replacement
-    }
-
-    fn markBlockTerminated() {
-        self.blockTerminated = true;
-    }
-
-    fn instructionStart(offset: Int32) {
-        self.offset = offset;
-
-        let block = self.analysis.blockAt(offset.toInt64());
-
-        if block.isSome() {
-            if self.currentBlock.isSome() {
-                self.blockEndReached(block);
-            } else {
-                self.currentBlock = block;
-            }
-
-            let block = block.getOrPanic();
-            let isBlockReachable = block.isEntryBlock() || !block.predecessors.isEmpty();
-            self.isInstructionReachable = isBlockReachable;
-        }
-
-        self.blockTerminated = false;
     }
 
     fn processInstruction(start: Int64, size: Int64, inst: BytecodeInstruction): Bool {
@@ -672,47 +657,6 @@ impl SsaGen {
         }
     }
 
-    fn processDeadInstruction(inst: BytecodeInstruction) {
-        match inst {
-            BytecodeInstruction::JumpLoop(_)
-            | BytecodeInstruction::Jump(_)
-            | BytecodeInstruction::Ret(_) => {
-                self.markBlockTerminated();
-            }
-
-            _ => {
-                // Non-terminator instruction
-            }
-        }
-    }
-
-    fn blockEndReached(next: Option[Block]) {
-        let block = self.current();
-
-        if !self.blockTerminated {
-            let next = next.getOrPanic();
-            let gotoInst = graph::createGotoInst(next);
-            block.appendInst(gotoInst);
-            block.addSuccessor(next);
-        }
-
-        // We change the current block, that means all instructions
-        // are inserted. The block is now filled.
-        self.fillBlock(block);
-
-        // We don't really know when to seal a block from the bytecode
-        // Try to seal this block if all predecessors are filled.
-        self.trySealBlock(block);
-
-        // This block might have a back edge to a loop header. Since this
-        // block is now filled, we might be able to seal another block.
-        for succ in block.successors {
-            self.trySealBlock(succ.target);
-        }
-
-        self.currentBlock = next;
-    }
-
     fn fillBlock(block: Block) {
         assert(!self.filledBlocks.contains(block.id().toInt64()));
         self.filledBlocks.insert(block.id().toInt64());
@@ -772,12 +716,10 @@ impl SsaGen {
 
     fn emitJumpLoop(distance: Int32) {
         self.emitSafepoint(self.current());
-        let targetBlock = self.analysis.blockAt((self.offset - distance).toInt64()).getOrPanic();
+        let targetBlock = self.ensureBlockAt((self.offset - distance).toInt64());
         let gotoInst = graph::createGotoInst(targetBlock);
         self.current().appendInst(gotoInst);
         self.current().addSuccessor(targetBlock);
-
-        self.markBlockTerminated();
     }
 
     fn emitSafepoint(block: Block) {
@@ -1074,17 +1016,16 @@ impl SsaGen {
     }
 
     fn emitJump(offset: Int32) {
-        let targetBlock = self.analysis.blockAt((self.offset + offset).toInt64()).getOrPanic();
+        let targetBlock = self.ensureBlockAt((self.offset + offset).toInt64());
         let gotoInst = graph::createGotoInst(targetBlock);
         self.current().appendInst(gotoInst);
         self.current().addSuccessor(targetBlock);
-        self.markBlockTerminated();
     }
 
     fn emitConditionalJump(opnd: BytecodeRegister, value: Bool, target: Int64, fallthrough: Int64) {
         let opndInst = self.readVariable(opnd, self.current());
-        let targetBlock = self.analysis.blockAt(target).getOrPanic();
-        let fallthroughBlock = self.analysis.blockAt(fallthrough).getOrPanic();
+        let targetBlock = self.ensureBlockAt(target);
+        let fallthroughBlock = self.ensureBlockAt(fallthrough);
 
         let cond = if value {
             graph::createIfInst(opndInst, targetBlock, fallthroughBlock)
@@ -1093,10 +1034,8 @@ impl SsaGen {
         };
 
         self.current().appendInst(cond);
-
         self.current().addSuccessor(targetBlock);
         self.current().addSuccessor(fallthroughBlock);
-        self.markBlockTerminated();
     }
 
     fn emitLoadArray(dest: BytecodeRegister, arr: BytecodeRegister, idx: BytecodeRegister) {
@@ -1171,8 +1110,6 @@ impl SsaGen {
             let inst = graph::createReturnInst(value, ty);
             self.current().appendInst(inst);
         }
-
-        self.markBlockTerminated();
     }
 
     fn emitInvokeDirect(dest: BytecodeRegister, idx: ConstPoolId) {
