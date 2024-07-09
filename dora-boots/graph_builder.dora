@@ -2505,11 +2505,12 @@ class BytecodeAnalysis {
 impl BytecodeAnalysis {
     static fn new(graph: Graph, bc: BytecodeFunction): BytecodeAnalysis {
         let size = bc.code.size();
+        let starts = findBlockStarts(bc);
 
         BytecodeAnalysis(
             graph,
             bc,
-            BitSet::new(size),
+            starts,
             Array[Int32]::zero(size),
             Array[Option[Array[Int64]]]::fill(size, None[Array[Int64]]),
             Array[Option[Block]]::fill(size, None[Block]),
@@ -2613,6 +2614,54 @@ impl BytecodeAnalysis {
             self.blockStarts.insert(offset);
         }
     }
+}
+
+fn findBlockStarts(bc: BytecodeFunction): BitSet {
+    let starts = BitSet::new(bc.code.size());
+    let markBlockStart = |offset: Int64| {
+        if offset < bc.code.size() {
+            starts.insert(offset);
+        }
+    };
+
+    for inst in BytecodeIterator::new(bc.code) {
+        let start = inst.start;
+        let next = start + inst.size;
+
+        match inst.op {
+            BytecodeInstruction::Ret(_) => {
+                markBlockStart(next);
+            },
+            BytecodeInstruction::LoopStart => {
+                markBlockStart(start);
+            },
+            BytecodeInstruction::JumpLoop(distance) => {
+                let target = start - distance.toInt64();
+                assert(starts.contains(target));
+                markBlockStart(next);
+            },
+            BytecodeInstruction::JumpIfFalse(_opnd, distance) => {
+                let target = start + distance.toInt64();
+                markBlockStart(next);
+                markBlockStart(target);
+            }
+            BytecodeInstruction::JumpIfTrue(_opnd, distance) => {
+                let target = start + distance.toInt64();
+                markBlockStart(next);
+                markBlockStart(target);
+            },
+            BytecodeInstruction::Jump(distance) => {
+                let target = start + distance.toInt64();
+                markBlockStart(next);
+                markBlockStart(target);
+            },
+            _ => {
+                // Non-terminator instruction
+            },
+        }
+    }
+
+    starts
 }
 
 fn findSuccessors(bc: BytecodeFunction, pos: Int64): Array[Int64] {
