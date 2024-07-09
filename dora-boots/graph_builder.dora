@@ -173,7 +173,7 @@ impl SsaGen {
             self.instructionStart(inst.start.toInt32());
 
             if self.isInstructionReachable {
-                self.processInstruction(inst.op);
+                self.processInstruction(inst.start, inst.size, inst.op);
             } else {
                 self.processDeadInstruction(inst.op);
             }
@@ -182,7 +182,12 @@ impl SsaGen {
         assert(self.blockTerminated);
         self.blockEndReached(None[Block]);
 
-        for (_, block) in self.blockMap.blocks {
+        for block in self.blockMap.blocks {
+            if block.isNone() {
+                continue;
+            }
+
+            let block = block.getOrPanic();
             assert(self.filledBlocks.contains(block.id().toInt64()));
             assert(self.sealedBlocks.contains(block.id().toInt64()));
         }
@@ -409,7 +414,7 @@ impl SsaGen {
         self.blockTerminated = false;
     }
 
-    fn processInstruction(inst: BytecodeInstruction) {
+    fn processInstruction(start: Int64, size: Int64, inst: BytecodeInstruction) {
        match inst {
             BytecodeInstruction::Add(dest, lhs, rhs) => {
                 if self.reg(dest).isAnyFloat() {
@@ -580,10 +585,12 @@ impl SsaGen {
                 self.emitJump(distance);
             }
             BytecodeInstruction::JumpIfFalse(opnd, distance) => {
-                self.emitConditionalJump(opnd, distance, false);
+                let fallthrough = start + size;
+                self.emitConditionalJump(opnd, distance, false, fallthrough);
             }
             BytecodeInstruction::JumpIfTrue(opnd, distance) => {
-                self.emitConditionalJump(opnd, distance, true);
+                let fallthrough = start + size;
+                self.emitConditionalJump(opnd, distance, true, fallthrough);
             }
             BytecodeInstruction::InvokeDirect(dest, idx) => {
                 self.emitInvokeDirect(dest, idx);
@@ -1050,10 +1057,10 @@ impl SsaGen {
         self.markBlockTerminated();
     }
 
-    fn emitConditionalJump(opnd: BytecodeRegister, distance: Int32, value: Bool) {
+    fn emitConditionalJump(opnd: BytecodeRegister, distance: Int32, value: Bool, fallthrough: Int64) {
         let opndInst = self.readVariable(opnd, self.current());
         let targetBlock = self.blockMap.blockAt((self.offset + distance).toInt64()).getOrPanic();
-        let fallthroughBlock = self.blockMap.nextBlockAt((self.offset+1i32).toInt64()).getOrPanic();
+        let fallthroughBlock = self.blockMap.blockAt(fallthrough).getOrPanic();
 
         let cond = if value {
             graph::createIfInst(opndInst, targetBlock, fallthroughBlock)
@@ -2515,33 +2522,22 @@ class BytecodeAnalysisInfo {
 }
 
 class BlockMap {
-    bc: BytecodeFunction,
-    blocks: HashMap[Int64, Block],
+    blocks: Array[Option[Block]],
 }
 
 impl BlockMap {
     static fn new(bc: BytecodeFunction): BlockMap {
-        BlockMap(bc, HashMap[Int64, Block]::new())
+        let size = bc.code.size();
+        let blocks = Array[Option[Block]]::fill(size, None[Block]);
+        BlockMap(blocks)
     }
 
     fn insert(offset: Int64, block: Block) {
-        self.blocks.insert(offset, block);
+        self.blocks(offset) = Some[Block](block);
     }
 
     fn blockAt(offset: Int64): Option[Block] {
         self.blocks(offset)
-    }
-
-    fn nextBlockAt(offset: Int64): Option[Block] {
-        let mut offset = offset;
-
-        while offset < self.bc.code.size() {
-            let result = self.blockAt(offset);
-            if result.isSome() { return result; }
-            offset = offset + 1i64;
-        }
-
-        None
     }
 }
 
