@@ -20,13 +20,13 @@ pub fn createGraph(ci: CompilationInfo): Graph {
     let graph = Graph::new();
 
     // Create basic blocks for the bytecode.
-    let (blockMap, analysis) = analyzeBytecode(graph, ci.bc);
+    let analysis = analyzeBytecode(graph, ci.bc);
 
     let predecessors = analysis.predecessors;
 
     for blockPos in analysis.starts {
         if predecessors(blockPos) == 0i32 {
-            let successors = findSuccessors(ci, blockPos);
+            let successors = findSuccessors(ci.bc, blockPos);
 
             for succ in successors {
                 predecessors(succ) = predecessors(succ) - 1i32;
@@ -39,43 +39,10 @@ pub fn createGraph(ci: CompilationInfo): Graph {
     }
 
     // Fill basic blocks with instructions.
-    let ssagen = SsaGen::new(ci, graph, blockMap, analysis);
+    let ssagen = SsaGen::new(ci, graph, analysis);
     ssagen.run();
 
     graph
-}
-
-fn findSuccessors(ci: CompilationInfo, pos: Int64): Array[Int64] {
-    for inst in BytecodeIterator::newAtPos(ci.bc.code, pos) {
-        match inst.op {
-            BytecodeInstruction::JumpLoop(distance) => {
-                let target = inst.start - distance.toInt64();
-                return Array[Int64]::new(target);
-            }
-            BytecodeInstruction::JumpIfFalse(_opnd, distance) => {
-                let target = inst.start + distance.toInt64();
-                return Array[Int64]::new(target, inst.start + inst.size);
-            }
-            BytecodeInstruction::JumpIfTrue(_opnd, distance) => {
-                let target = inst.start + distance.toInt64();
-                return Array[Int64]::new(target, inst.start + inst.size);
-
-            }
-            BytecodeInstruction::Jump(distance) => {
-                let target = inst.start + distance.toInt64();
-                return Array[Int64]::new(target);
-            }
-            BytecodeInstruction::Ret(_) => {
-                return Array[Int64]::new();
-            }
-
-            _ => {
-                // Non-terminator instruction
-            }
-        }
-    }
-
-    unreachable[Array[Int64]]()
 }
 
 fn dumpEdgeOverview(ci: CompilationInfo, graph: Graph) {
@@ -113,9 +80,7 @@ class SsaGen {
     graph: Graph,
     bc: BytecodeFunction,
     typeParams: Array[BytecodeType],
-    blockMap: BlockMap,
-    predecessors: Array[Int32],
-    blockStarts: BitSet,
+    analysis: BytecodeAnalysisInfo,
     currentBlock: Option[Block],
     offset: Int32,
     currentDef: Array[HashMap[Block, Inst]],
@@ -142,15 +107,13 @@ class SsaGen {
 }
 
 impl SsaGen {
-    static fn new(ci: CompilationInfo, graph: Graph, blockMap: BlockMap, analysis: BytecodeAnalysisInfo): SsaGen {
+    static fn new(ci: CompilationInfo, graph: Graph, analysis: BytecodeAnalysisInfo): SsaGen {
         SsaGen(
             ci,
             graph,
             ci.bc,
             ci.typeParams,
-            blockMap,
-            analysis.predecessors,
-            analysis.starts,
+            analysis,
             None[Block],
             0i32,
             Array[HashMap[Block, Inst]]::new(),
@@ -182,7 +145,7 @@ impl SsaGen {
         assert(self.blockTerminated);
         self.blockEndReached(None[Block]);
 
-        for block in self.blockMap.blocks {
+        for block in self.analysis.blocks {
             if block.isNone() {
                 continue;
             }
@@ -214,7 +177,7 @@ impl SsaGen {
         self.setupArguments(entry);
         self.emitSafepoint(entry);
 
-        let first = self.blockMap.blockAt(0).getOrPanic();
+        let first = self.analysis.blockAt(0).getOrPanic();
         let inst = graph::createGotoInst(first);
         entry.appendInst(inst);
         entry.addSuccessor(first);
@@ -397,7 +360,7 @@ impl SsaGen {
     fn instructionStart(offset: Int32) {
         self.offset = offset;
 
-        let block = self.blockMap.blockAt(offset.toInt64());
+        let block = self.analysis.blockAt(offset.toInt64());
 
         if block.isSome() {
             if self.currentBlock.isSome() {
@@ -585,12 +548,14 @@ impl SsaGen {
                 self.emitJump(distance);
             }
             BytecodeInstruction::JumpIfFalse(opnd, distance) => {
+                let target = start + distance.toInt64();
                 let fallthrough = start + size;
-                self.emitConditionalJump(opnd, distance, false, fallthrough);
+                self.emitConditionalJump(opnd, false, target, fallthrough);
             }
             BytecodeInstruction::JumpIfTrue(opnd, distance) => {
+                let target = start + distance.toInt64();
                 let fallthrough = start + size;
-                self.emitConditionalJump(opnd, distance, true, fallthrough);
+                self.emitConditionalJump(opnd, true, target, fallthrough);
             }
             BytecodeInstruction::InvokeDirect(dest, idx) => {
                 self.emitInvokeDirect(dest, idx);
@@ -635,11 +600,7 @@ impl SsaGen {
                 self.emitNewLambda(dest, idx);
             }
             BytecodeInstruction::ArrayLength(dest, src) => {
-                let srcInst = self.readVariable(src, self.current());
-                let destInst = graph::createArrayLengthInst(srcInst);
-                destInst.setBytecodePosition(self.offset);
-                self.current().appendInst(destInst);
-                self.writeVariable(dest, self.current(), destInst);
+                self.emitArrayLength(dest, src);
             }
             BytecodeInstruction::LoadArray(dest, arr, idx) => {
                 self.emitLoadArray(dest, arr, idx);
@@ -709,7 +670,7 @@ impl SsaGen {
 
         let expected_predecessors = if block.hasBytecodePosition() {
             let pos = block.getBytecodePosition().toInt64();
-            self.predecessors(pos).toInt64()
+            self.analysis.predecessors(pos).toInt64()
         } else {
             0
         };
@@ -746,9 +707,17 @@ impl SsaGen {
         }
     }
 
+    fn emitArrayLength(dest: BytecodeRegister, src: BytecodeRegister) {
+        let srcInst = self.readVariable(src, self.current());
+        let destInst = graph::createArrayLengthInst(srcInst);
+        destInst.setBytecodePosition(self.offset);
+        self.current().appendInst(destInst);
+        self.writeVariable(dest, self.current(), destInst);
+    }
+
     fn emitJumpLoop(distance: Int32) {
         self.emitSafepoint(self.current());
-        let targetBlock = self.blockMap.blockAt((self.offset - distance).toInt64()).getOrPanic();
+        let targetBlock = self.analysis.blockAt((self.offset - distance).toInt64()).getOrPanic();
         let gotoInst = graph::createGotoInst(targetBlock);
         self.current().appendInst(gotoInst);
         self.current().addSuccessor(targetBlock);
@@ -1050,17 +1019,17 @@ impl SsaGen {
     }
 
     fn emitJump(offset: Int32) {
-        let targetBlock = self.blockMap.blockAt((self.offset + offset).toInt64()).getOrPanic();
+        let targetBlock = self.analysis.blockAt((self.offset + offset).toInt64()).getOrPanic();
         let gotoInst = graph::createGotoInst(targetBlock);
         self.current().appendInst(gotoInst);
         self.current().addSuccessor(targetBlock);
         self.markBlockTerminated();
     }
 
-    fn emitConditionalJump(opnd: BytecodeRegister, distance: Int32, value: Bool, fallthrough: Int64) {
+    fn emitConditionalJump(opnd: BytecodeRegister, value: Bool, target: Int64, fallthrough: Int64) {
         let opndInst = self.readVariable(opnd, self.current());
-        let targetBlock = self.blockMap.blockAt((self.offset + distance).toInt64()).getOrPanic();
-        let fallthroughBlock = self.blockMap.blockAt(fallthrough).getOrPanic();
+        let targetBlock = self.analysis.blockAt(target).getOrPanic();
+        let fallthroughBlock = self.analysis.blockAt(fallthrough).getOrPanic();
 
         let cond = if value {
             graph::createIfInst(opndInst, targetBlock, fallthroughBlock)
@@ -2504,61 +2473,46 @@ impl SsaGen {
     }
 }
 
-fn analyzeBytecode(graph: Graph, bc: BytecodeFunction): (BlockMap, BytecodeAnalysisInfo) {
-    let blockMap = BlockMap::new(bc);
-
+fn analyzeBytecode(graph: Graph, bc: BytecodeFunction): BytecodeAnalysisInfo {
     // The first pass creates blocks
-    let bc = BlockCreator::new(graph, bc, blockMap);
+    let bc = BytecodeAnalysis::new(graph, bc);
     bc.run();
 
-    let analysis = BytecodeAnalysisInfo(bc.blockStarts2, bc.predecessors);
-
-    (blockMap, analysis)
+    BytecodeAnalysisInfo(bc.blockStarts, bc.predecessors, bc.blocks)
 }
 
 class BytecodeAnalysisInfo {
     starts: BitSet,
     predecessors: Array[Int32],
-}
-
-class BlockMap {
     blocks: Array[Option[Block]],
 }
 
-impl BlockMap {
-    static fn new(bc: BytecodeFunction): BlockMap {
-        let size = bc.code.size();
-        let blocks = Array[Option[Block]]::fill(size, None[Block]);
-        BlockMap(blocks)
-    }
-
-    fn insert(offset: Int64, block: Block) {
-        self.blocks(offset) = Some[Block](block);
-    }
-
+impl BytecodeAnalysisInfo {
     fn blockAt(offset: Int64): Option[Block] {
         self.blocks(offset)
     }
 }
 
-class BlockCreator {
+class BytecodeAnalysis {
     graph: Graph,
     bc: BytecodeFunction,
-    blockMap: BlockMap,
     blockStarts: BitSet,
-    blockStarts2: BitSet,
     predecessors: Array[Int32],
+    successors: Array[Option[Array[Int64]]],
+    blocks: Array[Option[Block]],
 }
 
-impl BlockCreator {
-    static fn new(graph: Graph, bc: BytecodeFunction, blockMap: BlockMap): BlockCreator {
-        BlockCreator(
+impl BytecodeAnalysis {
+    static fn new(graph: Graph, bc: BytecodeFunction): BytecodeAnalysis {
+        let size = bc.code.size();
+
+        BytecodeAnalysis(
             graph,
             bc,
-            blockMap,
-            BitSet::new(bc.code.size()),
-            BitSet::new(bc.code.size()),
-            Array[Int32]::zero(bc.code.size()),
+            BitSet::new(size),
+            Array[Int32]::zero(size),
+            Array[Option[Array[Int64]]]::fill(size, None[Array[Int64]]),
+            Array[Option[Block]]::fill(size, None[Block]),
         )
     }
 
@@ -2572,7 +2526,6 @@ impl BlockCreator {
         // exitBlock.setName("exit");
         // self.graph.setExitBlock(exitBlock);
 
-        self.ensureBlockLazy(0);
         self.blockStart(0);
 
         let mut fallthrough = true;
@@ -2580,12 +2533,13 @@ impl BlockCreator {
         for instInfo in BytecodeIterator::new(self.bc.code) {
             let start = instInfo.start;
 
-            if self.blockStarts.contains(start) {
+            if self.blockStarts.contains(start) || instInfo.op.isLoopStart() {
+                self.blockStart(start);
                 self.ensureBlock(start);
-            }
 
-            if (self.blockStarts2.contains(start) || instInfo.op.isLoopStart()) && fallthrough {
-                self.incrementPredecessors(start);
+                if fallthrough {
+                    self.incrementPredecessors(start);
+                }
             }
 
             fallthrough = self.processInstruction(start, instInfo.size, instInfo.op);
@@ -2595,45 +2549,32 @@ impl BlockCreator {
     fn processInstruction(start: Int64, size: Int64, inst: BytecodeInstruction): Bool {
         match inst {
             BytecodeInstruction::Ret(_) => {
-                self.ensureBlock(start + size);
-
                 self.blockStart(start + size);
                 false
             },
             BytecodeInstruction::LoopStart => {
-                self.ensureBlock(start);
-
                 self.blockStart(start);
                 true
             },
             BytecodeInstruction::JumpLoop(distance) => {
                 let target = start - distance.toInt64();
-                assert(self.blockMap.blockAt(target).isSome());
+                assert(self.blocks(target).isSome());
 
                 self.blockStart(start + size);
                 self.incrementPredecessors(target);
                 false
             },
             BytecodeInstruction::JumpIfFalse(_opnd, distance) => {
-                self.ensureBlockLazy(start + distance.toInt64());
-                self.ensureBlock(start + size);
-
                 self.blockStart(start + size);
                 self.incrementPredecessors(start + distance.toInt64());
                 true
             },
             BytecodeInstruction::JumpIfTrue(_opnd, distance) => {
-                self.ensureBlockLazy(start + distance.toInt64());
-                self.ensureBlock(start + size);
-
                 self.blockStart(start + size);
                 self.incrementPredecessors(start + distance.toInt64());
                 true
             },
             BytecodeInstruction::Jump(distance) => {
-                self.ensureBlockLazy(start + distance.toInt64());
-                self.ensureBlock(start + size);
-
                 self.blockStart(start + size);
                 self.incrementPredecessors(start + distance.toInt64());
                 false
@@ -2646,29 +2587,20 @@ impl BlockCreator {
         }
     }
 
-    fn ensureBlock(offset: Int64): Option[Block] {
+    fn ensureBlock(offset: Int64) {
         assert(offset <= self.bc.code.size());
-        if offset == self.bc.code.size() {
-            return None;
+
+        if self.blocks(offset).isNone() {
+            let block = self.addBlock();
+            self.blocks(offset) = Some[Block](block);
+            block.setBytecodePosition(offset.toInt32());
         }
-
-        let result = self.blockMap.blockAt(offset);
-        if result.isSome() { return result; }
-
-        let block = self.addBlock();
-        self.blockMap.insert(offset, block);
-        block.setBytecodePosition(offset.toInt32());
-        Some(block)
     }
 
     fn addBlock(): Block {
         let block = Block::new();
         self.graph.addBlock(block);
         block
-    }
-
-    fn ensureBlockLazy(offset: Int64) {
-        self.blockStarts.insert(offset);
     }
 
     fn incrementPredecessors(offset: Int64) {
@@ -2678,7 +2610,43 @@ impl BlockCreator {
 
     fn blockStart(offset: Int64) {
         if offset < self.bc.code.size() {
-            self.blockStarts2.insert(offset);
+            self.blockStarts.insert(offset);
         }
     }
+}
+
+fn findSuccessors(bc: BytecodeFunction, pos: Int64): Array[Int64] {
+    for inst in BytecodeIterator::newAtPos(bc.code, pos) {
+        match inst.op {
+            BytecodeInstruction::JumpLoop(distance) => {
+                let target = inst.start - distance.toInt64();
+                return Array[Int64]::new(target);
+            }
+            BytecodeInstruction::JumpIfFalse(_opnd, distance) => {
+                let target = inst.start + distance.toInt64();
+                return Array[Int64]::new(target, inst.start + inst.size);
+            }
+            BytecodeInstruction::JumpIfTrue(_opnd, distance) => {
+                let target = inst.start + distance.toInt64();
+                return Array[Int64]::new(target, inst.start + inst.size);
+
+            }
+            BytecodeInstruction::Jump(distance) => {
+                let target = inst.start + distance.toInt64();
+                return Array[Int64]::new(target);
+            }
+            BytecodeInstruction::Ret(_) => {
+                return Array[Int64]::new();
+            }
+            BytecodeInstruction::LoopStart => {
+                return Array[Int64]::new(inst.start + inst.size);
+            }
+
+            _ => {
+                // Non-terminator instruction
+            }
+        }
+    }
+
+    unreachable[Array[Int64]]()
 }
