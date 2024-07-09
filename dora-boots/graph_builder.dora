@@ -2474,11 +2474,14 @@ impl SsaGen {
 }
 
 fn analyzeBytecode(graph: Graph, bc: BytecodeFunction): BytecodeAnalysisInfo {
+    let starts = findBlockStarts(bc);
+    let successors = findSuccessors(bc, starts);
+
     // The first pass creates blocks
-    let bc = BytecodeAnalysis::new(graph, bc);
+    let bc = BytecodeAnalysis::new(graph, bc, starts, successors);
     bc.run();
 
-    BytecodeAnalysisInfo(bc.blockStarts, bc.predecessors, bc.blocks)
+    BytecodeAnalysisInfo(bc.starts, bc.predecessors, bc.blocks)
 }
 
 class BytecodeAnalysisInfo {
@@ -2496,23 +2499,22 @@ impl BytecodeAnalysisInfo {
 class BytecodeAnalysis {
     graph: Graph,
     bc: BytecodeFunction,
-    blockStarts: BitSet,
+    starts: BitSet,
     predecessors: Array[Int32],
     successors: Array[Option[Array[Int64]]],
     blocks: Array[Option[Block]],
 }
 
 impl BytecodeAnalysis {
-    static fn new(graph: Graph, bc: BytecodeFunction): BytecodeAnalysis {
+    static fn new(graph: Graph, bc: BytecodeFunction, starts: BitSet, successors: Array[Option[Array[Int64]]]): BytecodeAnalysis {
         let size = bc.code.size();
-        let starts = findBlockStarts(bc);
 
         BytecodeAnalysis(
             graph,
             bc,
             starts,
             Array[Int32]::zero(size),
-            Array[Option[Array[Int64]]]::fill(size, None[Array[Int64]]),
+            successors,
             Array[Option[Block]]::fill(size, None[Block]),
         )
     }
@@ -2532,7 +2534,7 @@ impl BytecodeAnalysis {
         for instInfo in BytecodeIterator::new(self.bc.code) {
             let start = instInfo.start;
 
-            if self.blockStarts.contains(start) {
+            if self.starts.contains(start) {
                 self.ensureBlock(start);
 
                 if fallthrough {
@@ -2650,12 +2652,23 @@ fn findBlockStarts(bc: BytecodeFunction): BitSet {
     starts
 }
 
-fn findSuccessors(bc: BytecodeFunction): Array[Option[Array[Int64]]] {
-    Array[Option[Array[Int64]]]::fill(bc.code.size(), None[Array[Int64]])
+fn findSuccessors(bc: BytecodeFunction, starts: BitSet): Array[Option[Array[Int64]]] {
+    let successors = Array[Option[Array[Int64]]]::fill(bc.code.size(), None[Array[Int64]]);
+
+    for block in starts {
+        let result = findSuccessorsForBlock(bc, block, starts);
+        successors(block) = Some[Array[Int64]](result);
+    }
+
+    successors
 }
 
-fn findSuccessorsForBlock(bc: BytecodeFunction, pos: Int64, starts: BitSet): Array[Int64] {
-    for inst in BytecodeIterator::newAtPos(bc.code, pos) {
+fn findSuccessorsForBlock(bc: BytecodeFunction, start: Int64, starts: BitSet): Array[Int64] {
+    for inst in BytecodeIterator::newAtPos(bc.code, start) {
+        if inst.start > start && starts.contains(inst.start) {
+            return Array[Int64]::new(inst.start);
+        }
+
         match inst.op {
             BytecodeInstruction::JumpLoop(distance) => {
                 let target = inst.start - distance.toInt64();
