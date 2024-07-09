@@ -2476,17 +2476,20 @@ impl SsaGen {
 fn analyzeBytecode(graph: Graph, bc: BytecodeFunction): BytecodeAnalysisInfo {
     let starts = findBlockStarts(bc);
     let successors = findSuccessors(bc, starts);
+    let predecessors = countPredecessors(starts, successors);
+    let blocks = createBlocks(graph, starts);
 
     // The first pass creates blocks
-    let bc = BytecodeAnalysis::new(graph, bc, starts, successors);
+    let bc = BytecodeAnalysis::new(graph, bc, starts, blocks);
     bc.run();
 
-    BytecodeAnalysisInfo(bc.starts, bc.predecessors, bc.blocks)
+    BytecodeAnalysisInfo(bc.starts, bc.predecessors, predecessors, bc.blocks)
 }
 
 class BytecodeAnalysisInfo {
     starts: BitSet,
     predecessors: Array[Int32],
+    predecessors2: Array[Int32],
     blocks: Array[Option[Block]],
 }
 
@@ -2501,12 +2504,11 @@ class BytecodeAnalysis {
     bc: BytecodeFunction,
     starts: BitSet,
     predecessors: Array[Int32],
-    successors: Array[Option[Array[Int64]]],
     blocks: Array[Option[Block]],
 }
 
 impl BytecodeAnalysis {
-    static fn new(graph: Graph, bc: BytecodeFunction, starts: BitSet, successors: Array[Option[Array[Int64]]]): BytecodeAnalysis {
+    static fn new(graph: Graph, bc: BytecodeFunction, starts: BitSet, blocks: Array[Option[Block]]): BytecodeAnalysis {
         let size = bc.code.size();
 
         BytecodeAnalysis(
@@ -2514,21 +2516,11 @@ impl BytecodeAnalysis {
             bc,
             starts,
             Array[Int32]::zero(size),
-            successors,
-            Array[Option[Block]]::fill(size, None[Block]),
+            blocks,
         )
     }
 
     fn run() {
-        // The entry block is a special block that is always created.
-        let entryBlock = self.addBlock();
-        entryBlock.setName("entry");
-        self.graph.setEntryBlock(entryBlock);
-
-        // let exitBlock = self.addBlock();
-        // exitBlock.setName("exit");
-        // self.graph.setExitBlock(exitBlock);
-
         let mut fallthrough = true;
 
         for instInfo in BytecodeIterator::new(self.bc.code) {
@@ -2583,12 +2575,7 @@ impl BytecodeAnalysis {
 
     fn ensureBlock(offset: Int64) {
         assert(offset <= self.bc.code.size());
-
-        if self.blocks(offset).isNone() {
-            let block = self.addBlock();
-            self.blocks(offset) = Some[Block](block);
-            block.setBytecodePosition(offset.toInt32());
-        }
+        assert(self.blocks(offset).isSome());
     }
 
     fn addBlock(): Block {
@@ -2663,11 +2650,13 @@ fn findSuccessors(bc: BytecodeFunction, starts: BitSet): Array[Option[Array[Int6
     successors
 }
 
-fn findSuccessorsForBlock(bc: BytecodeFunction, start: Int64, starts: BitSet): Array[Int64] {
-    for inst in BytecodeIterator::newAtPos(bc.code, start) {
-        if inst.start > start && starts.contains(inst.start) {
+fn findSuccessorsForBlock(bc: BytecodeFunction, block: Int64, starts: BitSet): Array[Int64] {
+    for inst in BytecodeIterator::newAtPos(bc.code, block) {
+        if inst.start > block && starts.contains(inst.start) {
             return Array[Int64]::new(inst.start);
         }
+
+        let next = inst.start + inst.size;
 
         match inst.op {
             BytecodeInstruction::JumpLoop(distance) => {
@@ -2676,11 +2665,11 @@ fn findSuccessorsForBlock(bc: BytecodeFunction, start: Int64, starts: BitSet): A
             }
             BytecodeInstruction::JumpIfFalse(_opnd, distance) => {
                 let target = inst.start + distance.toInt64();
-                return Array[Int64]::new(target, inst.start + inst.size);
+                return Array[Int64]::new(target, next);
             }
             BytecodeInstruction::JumpIfTrue(_opnd, distance) => {
                 let target = inst.start + distance.toInt64();
-                return Array[Int64]::new(target, inst.start + inst.size);
+                return Array[Int64]::new(target, next);
 
             }
             BytecodeInstruction::Jump(distance) => {
@@ -2691,7 +2680,7 @@ fn findSuccessorsForBlock(bc: BytecodeFunction, start: Int64, starts: BitSet): A
                 return Array[Int64]::new();
             }
             BytecodeInstruction::LoopStart => {
-                return Array[Int64]::new(inst.start + inst.size);
+                return Array[Int64]::new(inst.start);
             }
 
             _ => {
@@ -2701,4 +2690,49 @@ fn findSuccessorsForBlock(bc: BytecodeFunction, start: Int64, starts: BitSet): A
     }
 
     unreachable[Array[Int64]]()
+}
+
+fn countPredecessors(starts: BitSet, successors: Array[Option[Array[Int64]]]): Array[Int32] {
+    let predecessorCounts = Array[Int32]::zero(starts.size());
+    let worklist = Vec[Int64]::new();
+
+    let pushOnWorklist = |offset: Int64| {
+        assert(starts.contains(offset));
+        predecessorCounts(offset) = predecessorCounts(offset) + 1i32;
+        if predecessorCounts(offset) == 1i32 {
+            worklist.push(offset);
+        }
+    };
+
+    worklist.push(0);
+
+    while !worklist.isEmpty() {
+        let block = worklist.pop().getOrPanic();
+        assert(starts.contains(block));
+        let blockSuccessors = successors(block).getOrPanic();
+
+        for succ in blockSuccessors {
+            pushOnWorklist(succ);
+        }
+    }
+
+    predecessorCounts
+}
+
+fn createBlocks(graph: Graph, starts: BitSet): Array[Option[Block]] {
+    let entryBlock = Block::new();
+    graph.addBlock(entryBlock);
+    entryBlock.setName("entry");
+    graph.setEntryBlock(entryBlock);
+
+    let blocks = Array[Option[Block]]::fill(starts.size(), None[Block]);
+
+    for pos in starts {
+        let block = Block::new();
+        graph.addBlock(block);
+        blocks(pos) = Some[Block](block);
+        block.setBytecodePosition(pos.toInt32());
+    }
+
+    blocks
 }
