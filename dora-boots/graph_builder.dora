@@ -26,7 +26,7 @@ pub fn createGraph(ci: CompilationInfo): Graph {
 
     for blockPos in analysis.starts {
         if predecessors(blockPos) == 0i32 {
-            let successors = findSuccessors(ci.bc, blockPos);
+            let successors = findSuccessorsForBlock(ci.bc, blockPos, analysis.starts);
 
             for succ in successors {
                 predecessors(succ) = predecessors(succ) - 1i32;
@@ -2527,15 +2527,12 @@ impl BytecodeAnalysis {
         // exitBlock.setName("exit");
         // self.graph.setExitBlock(exitBlock);
 
-        self.blockStart(0);
-
         let mut fallthrough = true;
 
         for instInfo in BytecodeIterator::new(self.bc.code) {
             let start = instInfo.start;
 
-            if self.blockStarts.contains(start) || instInfo.op.isLoopStart() {
-                self.blockStart(start);
+            if self.blockStarts.contains(start) {
                 self.ensureBlock(start);
 
                 if fallthrough {
@@ -2550,33 +2547,27 @@ impl BytecodeAnalysis {
     fn processInstruction(start: Int64, size: Int64, inst: BytecodeInstruction): Bool {
         match inst {
             BytecodeInstruction::Ret(_) => {
-                self.blockStart(start + size);
                 false
             },
             BytecodeInstruction::LoopStart => {
-                self.blockStart(start);
                 true
             },
             BytecodeInstruction::JumpLoop(distance) => {
                 let target = start - distance.toInt64();
                 assert(self.blocks(target).isSome());
 
-                self.blockStart(start + size);
                 self.incrementPredecessors(target);
                 false
             },
             BytecodeInstruction::JumpIfFalse(_opnd, distance) => {
-                self.blockStart(start + size);
                 self.incrementPredecessors(start + distance.toInt64());
                 true
             },
             BytecodeInstruction::JumpIfTrue(_opnd, distance) => {
-                self.blockStart(start + size);
                 self.incrementPredecessors(start + distance.toInt64());
                 true
             },
             BytecodeInstruction::Jump(distance) => {
-                self.blockStart(start + size);
                 self.incrementPredecessors(start + distance.toInt64());
                 false
             },
@@ -2605,19 +2596,14 @@ impl BytecodeAnalysis {
     }
 
     fn incrementPredecessors(offset: Int64) {
-        self.blockStart(offset);
         self.predecessors(offset) = self.predecessors(offset) + 1i32;
-    }
-
-    fn blockStart(offset: Int64) {
-        if offset < self.bc.code.size() {
-            self.blockStarts.insert(offset);
-        }
     }
 }
 
 fn findBlockStarts(bc: BytecodeFunction): BitSet {
     let starts = BitSet::new(bc.code.size());
+    starts.insert(0);
+
     let markBlockStart = |offset: Int64| {
         if offset < bc.code.size() {
             starts.insert(offset);
@@ -2664,7 +2650,11 @@ fn findBlockStarts(bc: BytecodeFunction): BitSet {
     starts
 }
 
-fn findSuccessors(bc: BytecodeFunction, pos: Int64): Array[Int64] {
+fn findSuccessors(bc: BytecodeFunction): Array[Option[Array[Int64]]] {
+    Array[Option[Array[Int64]]]::fill(bc.code.size(), None[Array[Int64]])
+}
+
+fn findSuccessorsForBlock(bc: BytecodeFunction, pos: Int64, starts: BitSet): Array[Int64] {
     for inst in BytecodeIterator::newAtPos(bc.code, pos) {
         match inst.op {
             BytecodeInstruction::JumpLoop(distance) => {
