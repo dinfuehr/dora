@@ -37,12 +37,8 @@ fn dumpEdgeOverview(ci: CompilationInfo, analysis: BytecodeAnalysis) {
     println("blocks in ${ci.getDisplayName()}:");
     for blockPos in analysis.starts {
         let block = analysis.blocks(blockPos).getOrPanic();
-        println(" block ${block} at bc offset ${blockPos}:");
-        print("  successors:");
-        for succPos in analysis.successors(blockPos).getOrPanic() {
-            let succ = analysis.blocks(succPos).getOrPanic();
-            println(" ${succ}");
-        }
+        let predecessors = analysis.predecessors(blockPos);
+        println(" block ${block} at bc offset ${blockPos}: ${predecessors} predecessor(s)");
     }
     println("");
 }
@@ -2447,17 +2443,15 @@ impl SsaGen {
 
 fn analyzeBytecode(graph: Graph, bc: BytecodeFunction): BytecodeAnalysis {
     let starts = findBlockStarts(bc);
-    let successors = findSuccessors(bc, starts);
-    let predecessors = countPredecessors(starts, successors);
-    let blocks = createBlocks(graph, starts);
+    let predecessors = countPredecessors(bc, starts);
+    let blocks = createBlocks(graph, starts, predecessors);
 
-    BytecodeAnalysis(starts, predecessors, successors, blocks)
+    BytecodeAnalysis(starts, predecessors, blocks)
 }
 
 class BytecodeAnalysis {
     starts: BitSet,
     predecessors: Array[Int32],
-    successors: Array[Option[Array[Int64]]],
     blocks: Array[Option[Block]],
 }
 
@@ -2517,17 +2511,6 @@ fn findBlockStarts(bc: BytecodeFunction): BitSet {
     starts
 }
 
-fn findSuccessors(bc: BytecodeFunction, starts: BitSet): Array[Option[Array[Int64]]] {
-    let successors = Array[Option[Array[Int64]]]::fill(bc.code.size(), None[Array[Int64]]);
-
-    for block in starts {
-        let result = findSuccessorsForBlock(bc, block, starts);
-        successors(block) = Some[Array[Int64]](result);
-    }
-
-    successors
-}
-
 fn findSuccessorsForBlock(bc: BytecodeFunction, block: Int64, starts: BitSet): Array[Int64] {
     for inst in BytecodeIterator::newAtPos(bc.code, block) {
         if inst.start > block && starts.contains(inst.start) {
@@ -2570,7 +2553,7 @@ fn findSuccessorsForBlock(bc: BytecodeFunction, block: Int64, starts: BitSet): A
     unreachable[Array[Int64]]()
 }
 
-fn countPredecessors(starts: BitSet, successors: Array[Option[Array[Int64]]]): Array[Int32] {
+fn countPredecessors(bc: BytecodeFunction, starts: BitSet): Array[Int32] {
     let predecessorCounts = Array[Int32]::zero(starts.size());
     let worklist = Vec[Int64]::new();
 
@@ -2587,9 +2570,8 @@ fn countPredecessors(starts: BitSet, successors: Array[Option[Array[Int64]]]): A
     while !worklist.isEmpty() {
         let block = worklist.pop().getOrPanic();
         assert(starts.contains(block));
-        let blockSuccessors = successors(block).getOrPanic();
 
-        for succ in blockSuccessors {
+        for succ in findSuccessorsForBlock(bc, block, starts) {
             pushOnWorklist(succ);
         }
     }
@@ -2597,7 +2579,7 @@ fn countPredecessors(starts: BitSet, successors: Array[Option[Array[Int64]]]): A
     predecessorCounts
 }
 
-fn createBlocks(graph: Graph, starts: BitSet): Array[Option[Block]] {
+fn createBlocks(graph: Graph, starts: BitSet, predecessors: Array[Int32]): Array[Option[Block]] {
     let entryBlock = Block::new();
     graph.addBlock(entryBlock);
     entryBlock.setName("entry");
@@ -2606,10 +2588,12 @@ fn createBlocks(graph: Graph, starts: BitSet): Array[Option[Block]] {
     let blocks = Array[Option[Block]]::fill(starts.size(), None[Block]);
 
     for pos in starts {
-        let block = Block::new();
-        graph.addBlock(block);
-        blocks(pos) = Some[Block](block);
-        block.setBytecodePosition(pos.toInt32());
+        if predecessors(pos) > 0i32 {
+            let block = Block::new();
+            graph.addBlock(block);
+            blocks(pos) = Some[Block](block);
+            block.setBytecodePosition(pos.toInt32());
+        }
     }
 
     blocks
