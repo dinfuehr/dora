@@ -104,7 +104,8 @@ impl SsaGen {
             self.instructionStart(inst.start.toInt32());
 
             if self.isInstructionReachable {
-                self.processInstruction(inst.start, inst.size, inst.op);
+                let terminated = self.processInstruction(inst.start, inst.size, inst.op);
+                assert(terminated == self.blockTerminated);
             } else {
                 self.processDeadInstruction(inst.op);
             }
@@ -178,6 +179,29 @@ impl SsaGen {
             }
 
             regIdx = regIdx + 1i32;
+        }
+    }
+
+    fn emitBlock(start: Int64) {
+        if self.analysis.predecessors(start) == 0i32 {
+            return;
+        }
+
+        let block = self.analysis.blockAt(start).getOrPanic();
+        self.currentBlock = Some[Block](block);
+
+        for inst in BytecodeIterator::newAtPos(self.bc.code, start) {
+            if inst.start > start && self.analysis.starts.contains(inst.start) {
+                let next = self.analysis.blockAt(inst.start).getOrPanic();
+                let gotoInst = graph::createGotoInst(next);
+                block.appendInst(gotoInst);
+                block.addSuccessor(next);
+                return;
+            }
+
+            if !self.processInstruction(inst.start, inst.size, inst.op) {
+                return;
+            }
         }
     }
 
@@ -345,7 +369,7 @@ impl SsaGen {
         self.blockTerminated = false;
     }
 
-    fn processInstruction(start: Int64, size: Int64, inst: BytecodeInstruction) {
+    fn processInstruction(start: Int64, size: Int64, inst: BytecodeInstruction): Bool {
        match inst {
             BytecodeInstruction::Add(dest, lhs, rhs) => {
                 if self.reg(dest).isAnyFloat() {
@@ -353,6 +377,7 @@ impl SsaGen {
                 } else {
                     self.emitBin(dest, lhs, rhs, Op::CheckedAdd);
                 }
+                false
             }
             BytecodeInstruction::Sub(dest, lhs, rhs) => {
                 if self.reg(dest).isAnyFloat() {
@@ -360,6 +385,7 @@ impl SsaGen {
                 } else {
                     self.emitBin(dest, lhs, rhs, Op::CheckedSub);
                 }
+                false
             }
             BytecodeInstruction::Neg(dest, src) => {
                 if self.reg(dest).isAnyFloat() {
@@ -367,6 +393,7 @@ impl SsaGen {
                 } else {
                     self.emitUn(dest, src, Op::CheckedNeg);
                 }
+                false
             }
             BytecodeInstruction::Mul(dest, lhs, rhs) => {
                 if self.reg(dest).isAnyFloat() {
@@ -374,6 +401,7 @@ impl SsaGen {
                 } else {
                     self.emitBin(dest, lhs, rhs, Op::CheckedMul);
                 }
+                false
             }
             BytecodeInstruction::Div(dest, lhs, rhs) => {
                 if self.reg(dest).isAnyFloat() {
@@ -381,6 +409,7 @@ impl SsaGen {
                 } else {
                     self.emitDivMod(dest, lhs, rhs, Op::CheckedDiv);
                 }
+                false
             }
             BytecodeInstruction::Mod(dest, lhs, rhs) => {
                 if self.reg(dest).isAnyFloat() {
@@ -388,199 +417,257 @@ impl SsaGen {
                 } else {
                     self.emitDivMod(dest, lhs, rhs, Op::CheckedMod);
                 }
+                false
             }
             BytecodeInstruction::And(dest, lhs, rhs) => {
                 self.emitBin(dest, lhs, rhs, Op::And);
+                false
             }
             BytecodeInstruction::Or(dest, lhs, rhs) => {
                 self.emitBin(dest, lhs, rhs, Op::Or);
+                false
             }
             BytecodeInstruction::Xor(dest, lhs, rhs) => {
                 self.emitBin(dest, lhs, rhs, Op::Xor);
+                false
             }
             BytecodeInstruction::Not(dest, src) => {
                 self.emitUn(dest, src, Op::Not);
+                false
             }
             BytecodeInstruction::Shl(dest, lhs, rhs) => {
                 self.emitBin(dest, lhs, rhs, Op::Shl);
+                false
             }
             BytecodeInstruction::Shr(dest, lhs, rhs) => {
                 self.emitBin(dest, lhs, rhs, Op::Shr);
+                false
             }
             BytecodeInstruction::Sar(dest, lhs, rhs) => {
                 self.emitBin(dest, lhs, rhs, Op::Sar);
+                false
             }
             BytecodeInstruction::Mov(dest, src) => {
                 self.emitMov(dest, src);
+                false
             }
             BytecodeInstruction::LoadTupleElement(dest, src, idx)  => {
                 self.emitLoadTupleElement(dest, src, idx);
+                false
             }
             BytecodeInstruction::LoadEnumElement(dest, src, idx) => {                
                 self.emitLoadEnumElement(dest, src, idx);
+                false
             }
             BytecodeInstruction::LoadEnumVariant(dest, src, idx) => {
                 self.emitLoadEnumVariant(dest, src, idx);
+                false
             }
             BytecodeInstruction::LoadStructField(dest, src, idx) => {
                 self.emitLoadStructField(dest, src, idx);
+                false
             }
             BytecodeInstruction::LoadField(dest, obj, idx) => {
                 self.emitLoadField(dest, obj, idx);
+                false
             }
             BytecodeInstruction::StoreField(src, obj, idx) => {
                 self.emitStoreField(src, obj, idx);
+                false
             }
             BytecodeInstruction::LoadGlobal(dest, global_id) => {
                 self.emitLoadGlobal(dest, global_id);
+                false
             }
             BytecodeInstruction::StoreGlobal(src, global_id) => {
                 self.emitStoreGlobal(src, global_id);
+                false
             }
             BytecodeInstruction::PushRegister(src) => {
                 self.pushed_registers.push(src);
+                false
             }
             BytecodeInstruction::ConstTrue(dest) => {
                 let inst = self.graph.ensureConstTrueInst();
                 self.writeVariable(dest, self.current(), inst);
+                false
             }
             BytecodeInstruction::ConstFalse(dest) => {
                 let inst = self.graph.ensureConstFalseInst();
                 self.writeVariable(dest, self.current(), inst);
+                false
             }
             BytecodeInstruction::ConstUInt8(dest, value) => {
                 let inst = self.graph.ensureConstUInt8Inst(value);
                 self.writeVariable(dest, self.current(), inst);
+                false
             }
             BytecodeInstruction::ConstChar(dest, idx) => {
                 let value = self.bc.constPool(idx).toChar().getOrPanic().toInt32();
                 let inst = self.graph.ensureConstInt32Inst(value);
                 self.writeVariable(dest, self.current(), inst);
+                false
             }
             BytecodeInstruction::ConstInt32(dest, idx) => {
                 let value = self.bc.constPool(idx).toInt32().getOrPanic();
                 let inst = self.graph.ensureConstInt32Inst(value);
                 self.writeVariable(dest, self.current(), inst);
+                false
             }
             BytecodeInstruction::ConstInt64(dest, idx) => {
                 let value = self.bc.constPool(idx).toInt64().getOrPanic();
                 let inst = self.graph.ensureConstInt64Inst(value);
                 self.writeVariable(dest, self.current(), inst);
+                false
             }
             BytecodeInstruction::ConstFloat32(dest, idx) => {
                 let value = self.bc.constPool(idx).toFloat32().getOrPanic();
                 let inst = graph::createFloat32Const(value);
                 self.current().appendInst(inst);
                 self.writeVariable(dest, self.current(), inst);
+                false
             }
             BytecodeInstruction::ConstFloat64(dest, idx) => {
                 let value = self.bc.constPool(idx).toFloat64().getOrPanic();
                 let inst = graph::createFloat64Const(value);
                 self.current().appendInst(inst);
                 self.writeVariable(dest, self.current(), inst);
+                false
             }
             BytecodeInstruction::ConstString(dest, idx) => {
                 let value = self.bc.constPool(idx).toString().getOrPanic();
                 let inst = graph::createStringConst(value);
                 self.current().appendInst(inst);
                 self.writeVariable(dest, self.current(), inst);
+                false
             }
             BytecodeInstruction::TestIdentity(dest, lhs, rhs) => {
                 self.emitTestIdentity(dest, lhs, rhs);
+                false
             }
             BytecodeInstruction::TestEq(dest, lhs, rhs) => {
                 self.emitBin(dest, lhs, rhs, Op::Equal);
+                false
             }
             BytecodeInstruction::TestNe(dest, lhs, rhs) => {
                 self.emitBin(dest, lhs, rhs, Op::NotEqual);
+                false
             }
             BytecodeInstruction::TestGt(dest, lhs, rhs) => {
                 self.emitBin(dest, lhs, rhs, Op::Greater);
+                false
             }
             BytecodeInstruction::TestGe(dest, lhs, rhs) => {
                 self.emitBin(dest, lhs, rhs, Op::GreaterOrEqual);
+                false
             }
             BytecodeInstruction::TestLt(dest, lhs, rhs) => {
                 self.emitBin(dest, lhs, rhs, Op::Less);
+                false
             }
             BytecodeInstruction::TestLe(dest, lhs, rhs) => {
                 self.emitBin(dest, lhs, rhs, Op::LessOrEqual);
+                false
             }
             BytecodeInstruction::JumpLoop(distance) => {
                 self.emitJumpLoop(distance);
+                true
             }
             BytecodeInstruction::LoopStart => {
                 // nothing to do
+                false
             }
             BytecodeInstruction::Jump(distance) => {
                 self.emitJump(distance);
+                true
             }
             BytecodeInstruction::JumpIfFalse(opnd, distance) => {
                 let target = start + distance.toInt64();
                 let fallthrough = start + size;
                 self.emitConditionalJump(opnd, false, target, fallthrough);
+                true
             }
             BytecodeInstruction::JumpIfTrue(opnd, distance) => {
                 let target = start + distance.toInt64();
                 let fallthrough = start + size;
                 self.emitConditionalJump(opnd, true, target, fallthrough);
+                true
             }
             BytecodeInstruction::InvokeDirect(dest, idx) => {
                 self.emitInvokeDirect(dest, idx);
+                false
             }
             BytecodeInstruction::InvokeVirtual(dest, idx) => {
                 self.emitInvokeVirtual(dest, idx, CallKind::Virtual);
+                false
             }
             BytecodeInstruction::InvokeStatic(dest, idx) => {
                 self.emitInvokeStatic(dest, idx);
+                false
             }
             BytecodeInstruction::InvokeLambda(dest, idx) => {
                 self.emitInvokeVirtual(dest, idx, CallKind::Lambda);
+                false
             }
             BytecodeInstruction::InvokeGenericStatic(dest, idx) => {
                 self.emitInvokeGeneric(dest, idx, CallKind::Static);
+                false
             }
             BytecodeInstruction::InvokeGenericDirect(dest, idx) => {
                 self.emitInvokeGeneric(dest, idx, CallKind::Direct);
+                false
             }
             BytecodeInstruction::NewObject(dest, idx) => {
                 self.emitNewObject(dest, idx);
+                false
             }
             BytecodeInstruction::NewObjectInitialized(dest, idx) => {
                 self.emitNewObject(dest, idx);
+                false
             }
             BytecodeInstruction::NewArray(dest, idx, length) => {
                 self.emitNewArray(dest, idx, length);
+                false
             }
             BytecodeInstruction::NewTuple(dest, idx) => {
                 self.emitNewTuple(dest, idx);
+                false
             }
             BytecodeInstruction::NewEnum(dest, idx) => {
                 self.emitNewEnum(dest, idx);
+                false
             }
             BytecodeInstruction::NewStruct(dest, idx) => {
                 self.emitNewStruct(dest, idx);
+                false
             }
             BytecodeInstruction::NewTraitObject(dest, idx, obj) => {
                 self.emitNewTraitObject(dest, idx, obj);
+                false
             }
             BytecodeInstruction::NewLambda(dest, idx) => {
                 self.emitNewLambda(dest, idx);
+                false
             }
             BytecodeInstruction::ArrayLength(dest, src) => {
                 self.emitArrayLength(dest, src);
+                false
             }
             BytecodeInstruction::LoadArray(dest, arr, idx) => {
                 self.emitLoadArray(dest, arr, idx);
+                false
             }
             BytecodeInstruction::StoreArray(src, arr, idx) => {
                 self.emitStoreArray(src, arr, idx);
+                false
             }
             BytecodeInstruction::LoadTraitObjectValue(dest, src) => {
                 self.emitLoadTraitObjectValue(dest, src);
+                false
             }
             BytecodeInstruction::Ret(opnd) => {
                 self.emitRet(opnd);
+                true
             }
         }
     }
