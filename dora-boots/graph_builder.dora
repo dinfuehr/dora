@@ -37,7 +37,7 @@ class SsaGen {
     analysis: BytecodeAnalysis,
     currentBlock: Option[Block],
     offset: Int32,
-    currentDef: Array[HashMap[Block, Inst]],
+    currentDef: RegisterTable,
     blocks: Array[Option[Block]],
 
     returnValueArgInst: Option[Inst],
@@ -69,7 +69,7 @@ impl SsaGen {
             analysis,
             None[Block],
             0i32,
-            Array[HashMap[Block, Inst]]::new(),
+            RegisterTable::new(ci.bc.registers.size()),
             Array[Option[Block]]::fill(ci.bc.code.size(), None[Block]),
             None[Inst],
             Vec[BytecodeRegister]::new(),
@@ -81,8 +81,7 @@ impl SsaGen {
     }
 
     fn run() {
-        self.prepare();
-        self.fillEntryBlock();
+        self.setupEntryBlock();
 
         for blockStart in self.analysis.starts {
             self.emitBlock(blockStart);
@@ -99,33 +98,22 @@ impl SsaGen {
         }
     }
 
-    fn prepare() {
+    fn setupEntryBlock() {
         let entryBlock = Block::new();
         self.graph.addBlock(entryBlock);
         entryBlock.setName("entry");
         self.graph.setEntryBlock(entryBlock);
 
-        let data = Vec[HashMap[Block, Inst]]::new();
-
-        for i in std::range(0, self.bc.registers.size()) {
-            data.push(HashMap[Block, Inst]::new());
-        }
-
-        self.currentDef = data.toArray();
-    }
-
-    fn fillEntryBlock() {
-        let entry = self.graph.getEntryBlock();
-        self.setupArguments(entry);
-        self.emitSafepoint(entry);
+        self.setupArguments(entryBlock);
+        self.emitSafepoint(entryBlock);
 
         let first = self.ensureBlockAt(0);
         let inst = graph::createGotoInst(first);
-        entry.appendInst(inst);
-        entry.addSuccessor(first);
+        entryBlock.appendInst(inst);
+        entryBlock.addSuccessor(first);
 
-        self.fillBlock(entry);
-        assert(self.trySealBlock(entry));
+        self.fillBlock(entryBlock);
+        assert(self.trySealBlock(entryBlock));
     }
 
     fn setupArguments(block: Block) {
@@ -218,14 +206,16 @@ impl SsaGen {
     fn writeVariable(register: BytecodeRegister, block: Block, value: Inst) {
         assert(!self.reg(register).isUnit());
         assert(value.hasId());
-        self.currentDef(register.value.toInt64()).insert(block, value);
+        self.currentDef.insert(register, block, value);
     }
 
     fn readVariable(register: BytecodeRegister, block: Block): Inst {
         assert(!self.reg(register).isUnit());
 
-        if self.currentDef(register.value.toInt64()).contains(block) {
-            let inst = self.currentDef(register.value.toInt64())(block).getOrPanic();
+        let inst = self.currentDef.get(register, block);
+
+        if inst.isSome() {
+            let inst = inst.getOrPanic();
 
             if inst.hasId() {
                 return inst;
@@ -312,7 +302,7 @@ impl SsaGen {
         phi.replaceWith(replacement);
         phi.remove();
 
-        for map in self.currentDef {
+        for map in self.currentDef.data {
             let update = Vec[Block]::new();
 
             for (block, value) in map {
@@ -2459,6 +2449,30 @@ impl SsaGen {
     fn regId(id: Int32): BytecodeType {
         let ty = self.bc.registers(id.toInt64());
         ty.specialize(self.typeParams)
+    }
+}
+
+class RegisterTable {
+    data: Array[HashMap[Block, Inst]],
+}
+
+impl RegisterTable {
+    static fn new(registers: Int64): RegisterTable {
+        let data = Vec[HashMap[Block, Inst]]::new();
+
+        for i in std::range(0, registers) {
+            data.push(HashMap[Block, Inst]::new());
+        }
+
+        RegisterTable(data.toArray())
+    }
+
+    fn get(register: BytecodeRegister, block: Block): Option[Inst] {
+        self.data(register.value.toInt64()).get(block)
+    }
+
+    fn insert(register: BytecodeRegister, block: Block, value: Inst) {
+        self.data(register.value.toInt64()).insert(block, value);
     }
 }
 
