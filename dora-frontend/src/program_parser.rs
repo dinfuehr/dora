@@ -687,6 +687,7 @@ impl<'x> visit::Visitor for TopLevelDeclaration<'x> {
                 Annotation::OptimizeImmediately,
                 Annotation::Test,
                 Annotation::Pub,
+                Annotation::Inline,
             ],
         );
 
@@ -1037,6 +1038,7 @@ pub struct ParsedModifierList {
     pub is_test: bool,
     pub is_optimize_immediately: bool,
     pub is_internal: bool,
+    pub is_inline: bool,
 }
 
 impl ParsedModifierList {
@@ -1056,6 +1058,7 @@ enum Annotation {
     Static,
     Test,
     OptimizeImmediately,
+    Inline,
     Error,
 }
 
@@ -1071,6 +1074,7 @@ impl Annotation {
             Annotation::Static => "static",
             Annotation::Test => "test",
             Annotation::OptimizeImmediately => "optimizeImmediately",
+            Annotation::Inline => "inline",
             Annotation::Error => "<error>",
         }
     }
@@ -1141,6 +1145,11 @@ fn check_modifier(
                 "internal" => {
                     parsed_modifiers.is_internal = true;
                     Annotation::Internal
+                }
+
+                "inline" => {
+                    parsed_modifiers.is_inline = true;
+                    Annotation::Inline
                 }
 
                 _ => {

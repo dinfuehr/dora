@@ -1,0 +1,10 @@
+//= boots
+//= ignore
+
+fn main() {
+    let result = f();
+    assert(result == 17);
+}
+
+@optimizeImmediately fn f(): Int64 { g() }
+@inline fn g(): Int64 { 17 }
