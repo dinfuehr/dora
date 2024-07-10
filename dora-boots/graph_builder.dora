@@ -1,5 +1,5 @@
 use std::HashMap;
-use std::BitSet;
+use std::{BitSet, BitVec};
 
 use package::bytecode::opcode as opc;
 use package::compilation::CompilationInfo;
@@ -22,25 +22,11 @@ pub fn createGraph(ci: CompilationInfo): Graph {
     // Create basic blocks for the bytecode.
     let analysis = analyzeBytecode(graph, ci.bc);
 
-    if ci.emitGraph {
-        dumpEdgeOverview(ci, analysis);
-    }
-
     // Fill basic blocks with instructions.
     let ssagen = SsaGen::new(ci, graph, analysis);
     ssagen.run();
 
     graph
-}
-
-fn dumpEdgeOverview(ci: CompilationInfo, analysis: BytecodeAnalysis) {
-    println("blocks in ${ci.getDisplayName()}:");
-    for blockPos in analysis.starts {
-        let block = analysis.blocks(blockPos).getOrPanic();
-        let predecessors = analysis.predecessors(blockPos);
-        println(" block ${block} at bc offset ${blockPos}: ${predecessors} predecessor(s)");
-    }
-    println("");
 }
 
 class SsaGen {
@@ -52,6 +38,7 @@ class SsaGen {
     currentBlock: Option[Block],
     offset: Int32,
     currentDef: Array[HashMap[Block, Inst]],
+    blocks: Array[Option[Block]],
 
     returnValueArgInst: Option[Inst],
 
@@ -59,11 +46,11 @@ class SsaGen {
 
     // A block is considered filled when all instructions
     // are inserted.
-    filledBlocks: BitSet,
+    filledBlocks: BitVec,
 
     // A block is considered sealed when the set of predecessors
     // is final and all predecessors are filled.
-    sealedBlocks: BitSet,
+    sealedBlocks: BitVec,
 
     // Tracks all incomplete phi instructions inserted into unsealed blocks.
     incompletePhis: HashMap[Block, HashMap[BytecodeRegister, Inst]],
@@ -83,10 +70,11 @@ impl SsaGen {
             None[Block],
             0i32,
             Array[HashMap[Block, Inst]]::new(),
+            Array[Option[Block]]::fill(ci.bc.code.size(), None[Block]),
             None[Inst],
             Vec[BytecodeRegister]::new(),
-            BitSet::new(0),
-            BitSet::new(0),
+            BitVec::new(),
+            BitVec::new(),
             HashMap[Block, HashMap[BytecodeRegister, Inst]]::new(),
             Vec[Inst]::new(),
         )
@@ -100,7 +88,7 @@ impl SsaGen {
             self.emitBlock(blockStart);
         }
 
-        for block in self.analysis.blocks {
+        for block in self.blocks {
             if block.isNone() {
                 continue;
             }
@@ -112,11 +100,10 @@ impl SsaGen {
     }
 
     fn prepare() {
-        self.currentBlock = None;
-        let blockCount = self.graph.blockCount();
-
-        self.filledBlocks = BitSet::new(blockCount.toInt64());
-        self.sealedBlocks = BitSet::new(blockCount.toInt64());
+        let entryBlock = Block::new();
+        self.graph.addBlock(entryBlock);
+        entryBlock.setName("entry");
+        self.graph.setEntryBlock(entryBlock);
 
         let data = Vec[HashMap[Block, Inst]]::new();
 
@@ -215,7 +202,17 @@ impl SsaGen {
 
     fn ensureBlockAt(pos: Int64): Block {
         assert(self.analysis.starts.contains(pos));
-        self.analysis.blockAt(pos).getOrPanic()
+        let block = self.blocks(pos);
+
+        if block.isSome() {
+            block.getOrPanic()
+        } else {
+            let block = Block::new();
+            self.graph.addBlock(block);
+            self.blocks(pos) = Some[Block](block);
+            block.setBytecodePosition(pos.toInt32());
+            block
+        }
     }
 
     fn writeVariable(register: BytecodeRegister, block: Block, value: Inst) {
@@ -2468,21 +2465,13 @@ impl SsaGen {
 fn analyzeBytecode(graph: Graph, bc: BytecodeFunction): BytecodeAnalysis {
     let starts = findBlockStarts(bc);
     let predecessors = countPredecessors(bc, starts);
-    let blocks = createBlocks(graph, starts, predecessors);
 
-    BytecodeAnalysis(starts, predecessors, blocks)
+    BytecodeAnalysis(starts, predecessors)
 }
 
 class BytecodeAnalysis {
     starts: BitSet,
     predecessors: Array[Int32],
-    blocks: Array[Option[Block]],
-}
-
-impl BytecodeAnalysis {
-    fn blockAt(offset: Int64): Option[Block] {
-        self.blocks(offset)
-    }
 }
 
 fn findBlockStarts(bc: BytecodeFunction): BitSet {
@@ -2601,24 +2590,4 @@ fn countPredecessors(bc: BytecodeFunction, starts: BitSet): Array[Int32] {
     }
 
     predecessorCounts
-}
-
-fn createBlocks(graph: Graph, starts: BitSet, predecessors: Array[Int32]): Array[Option[Block]] {
-    let entryBlock = Block::new();
-    graph.addBlock(entryBlock);
-    entryBlock.setName("entry");
-    graph.setEntryBlock(entryBlock);
-
-    let blocks = Array[Option[Block]]::fill(starts.size(), None[Block]);
-
-    for pos in starts {
-        if predecessors(pos) > 0i32 {
-            let block = Block::new();
-            graph.addBlock(block);
-            blocks(pos) = Some[Block](block);
-            block.setBytecodePosition(pos.toInt32());
-        }
-    }
-
-    blocks
 }
