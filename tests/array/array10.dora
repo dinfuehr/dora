@@ -1,5 +1,5 @@
 //= error array
-//= stderr "array index out of bounds\n    main (tests/array/array10.dora:6)\n"
+//= stderr "array index out of bounds\n    main (tests/array/array10.dora:6:3)\n"
 
 fn main() {
   let array = Array[Int32]::new();

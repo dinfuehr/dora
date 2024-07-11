@@ -2,7 +2,6 @@ use crate::handle::{create_handle, Handle};
 use crate::object::{alloc, Array, Int32Array, Ref, Stacktrace, StacktraceElement, Str};
 use crate::threads::current_thread;
 use crate::vm::{display_fct, get_vm, CodeId, CodeKind, VM};
-use dora_bytecode::Location;
 
 pub struct NativeStacktrace {
     elems: Vec<StackElem>,
@@ -17,23 +16,41 @@ impl NativeStacktrace {
         self.elems.len()
     }
 
-    pub fn push_entry(&mut self, fct_id: CodeId, location: Location) {
-        self.elems.push(StackElem { fct_id, location });
+    pub fn push_entry(&mut self, code_id: CodeId, offset: u32) {
+        self.elems.push(StackElem { code_id, offset });
     }
 
     pub fn dump(&self, vm: &VM, w: &mut (impl std::io::Write + ?Sized)) -> std::io::Result<()> {
         for elem in &self.elems {
-            let code = vm.code_objects.get(elem.fct_id);
+            let code = vm.code_objects.get(elem.code_id);
             let fct_id = code.fct_id();
             let fct = &vm.program.functions[fct_id.0 as usize];
-            let fct_name = display_fct(vm, fct_id);
-            let file = &vm.program.source_files[fct.file_id.0 as usize].path;
-            let lineno = if elem.location.line() == 0 {
-                fct.loc.line()
-            } else {
-                elem.location.line()
+            let location = code.location_for_offset(elem.offset);
+            let location = match location {
+                Some(mut inlined_location) => {
+                    while inlined_location.is_inlined() {
+                        let inlined_function =
+                            code.inlined_function(inlined_location.inlined_function_id());
+                        let fct = &vm.program.functions[inlined_function.fct_id.0 as usize];
+                        let fct_name = display_fct(vm, inlined_function.fct_id);
+                        let file = &vm.program.source_files[fct.file_id.0 as usize].path;
+                        writeln!(
+                            w,
+                            "    {} ({}:{})",
+                            fct_name, file, inlined_location.location
+                        )?;
+                        inlined_location = inlined_function.location.clone();
+                    }
+
+                    inlined_location.location
+                }
+
+                None => fct.loc,
             };
-            writeln!(w, "    {} ({}:{})", fct_name, file, lineno)?;
+
+            let file = &vm.program.source_files[fct.file_id.0 as usize].path;
+            let fct_name = display_fct(vm, fct_id);
+            writeln!(w, "    {} ({}:{})", fct_name, file, location)?;
         }
 
         Ok(())
@@ -41,8 +58,8 @@ impl NativeStacktrace {
 }
 
 struct StackElem {
-    fct_id: CodeId,
-    location: Location,
+    code_id: CodeId,
+    offset: u32,
 }
 
 #[repr(C)]
@@ -116,18 +133,13 @@ fn determine_stack_entry(stacktrace: &mut NativeStacktrace, vm: &VM, pc: usize) 
         match code.descriptor() {
             CodeKind::BaselineFct(_) | CodeKind::OptimizedFct(_) => {
                 let offset = pc - code.instruction_start().to_usize();
-                let location = code
-                    .location_for_offset(offset as u32)
-                    .expect("position not found for program point");
-
-                stacktrace.push_entry(code_id, location);
+                stacktrace.push_entry(code_id, offset as u32);
 
                 true
             }
 
-            CodeKind::RuntimeEntryTrampoline(fct_id) => {
-                let fct = &vm.program.functions[fct_id.0 as usize];
-                stacktrace.push_entry(code_id, fct.loc);
+            CodeKind::RuntimeEntryTrampoline(_) => {
+                stacktrace.push_entry(code_id, 0);
 
                 true
             }
@@ -158,10 +170,10 @@ pub extern "C" fn stack_element(obj: Handle<Stacktrace>, ind: i32) -> Ref<Stackt
 
     let ind = ind as usize * 2;
 
-    let lineno = array.get_at(ind);
-    let fct_id = array.get_at(ind + 1);
+    let offset = array.get_at(ind) as u32;
+    let code_id = array.get_at(ind + 1);
 
-    let code_id: CodeId = (fct_id as usize).into();
+    let code_id: CodeId = (code_id as usize).into();
     let code = vm.code_objects.get(code_id);
     let name = display_fct(vm, code.fct_id());
     let ste_name = create_handle(Str::from_buffer(vm, name.as_bytes()));
@@ -169,7 +181,20 @@ pub extern "C" fn stack_element(obj: Handle<Stacktrace>, ind: i32) -> Ref<Stackt
     let ste: Ref<StacktraceElement> = alloc(vm, vm.stack_trace_element()).cast();
     let mut ste = create_handle(ste);
     ste.name = ste_name.direct();
-    ste.line = lineno;
+
+    let location = code.location_for_offset(offset);
+    let lineno = match location {
+        Some(inlined_location) => {
+            assert!(!inlined_location.is_inlined());
+            inlined_location.location.line()
+        }
+
+        None => {
+            let fct = &vm.program.functions[code.fct_id().0 as usize];
+            fct.loc.line()
+        }
+    };
+    ste.line = lineno as i32;
 
     ste.direct()
 }
@@ -183,7 +208,7 @@ fn set_backtrace(vm: &VM, mut obj: Handle<Stacktrace>, via_retrieve: bool) {
     // ignore every element until first not inside susubclass of Stacktrace (ctor of Exception)
     if via_retrieve {
         for elem in stacktrace.elems.iter() {
-            let code_id = elem.fct_id.idx().into();
+            let code_id = elem.code_id.idx().into();
             let code = vm.code_objects.get(code_id);
             let fct_id = code.fct_id();
 
@@ -208,8 +233,8 @@ fn set_backtrace(vm: &VM, mut obj: Handle<Stacktrace>, via_retrieve: bool) {
     let mut i = 0;
 
     for elem in stacktrace.elems.iter().skip(skip) {
-        array.set_at(i, elem.location.line() as i32);
-        array.set_at(i + 1, elem.fct_id.idx() as i32);
+        array.set_at(i, elem.offset as i32);
+        array.set_at(i + 1, elem.code_id.idx() as i32);
         i += 2;
     }
     obj.backtrace = array.direct();

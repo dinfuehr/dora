@@ -1,5 +1,5 @@
 //= error div0
-//= stderr "division by 0\n    divide (tests/int/div-zero1.dora:9)\n    main (tests/int/div-zero1.dora:5)\n"
+//= stderr "division by 0\n    divide (tests/int/div-zero1.dora:9:5)\n    main (tests/int/div-zero1.dora:5:5)\n"
 
 fn main() {
     divide(0i32);

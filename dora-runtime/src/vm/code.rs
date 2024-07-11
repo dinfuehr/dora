@@ -170,7 +170,7 @@ impl Code {
         &self.lazy_compilation
     }
 
-    pub fn location_for_offset(&self, offset: u32) -> Option<Location> {
+    pub fn location_for_offset(&self, offset: u32) -> Option<SourceLocation> {
         self.locations.get(offset)
     }
 
@@ -233,6 +233,10 @@ impl Code {
             CodeKind::OptimizedFct(_) => true,
             _ => false,
         }
+    }
+
+    pub fn inlined_function(&self, id: InlinedFunctionId) -> &InlinedFunction {
+        &self.inlined_functions[id.0 as usize]
     }
 }
 
@@ -322,7 +326,7 @@ impl GcPoint {
     }
 }
 
-#[derive(Debug)]
+#[derive(Debug, Clone, Copy)]
 pub struct InlinedFunctionId(pub u32);
 
 pub struct InlinedFunction {
@@ -398,22 +402,32 @@ impl LocationTable {
         self.entries.push((offset, location));
     }
 
-    pub fn get(&self, offset: u32) -> Option<Location> {
+    pub fn get(&self, offset: u32) -> Option<SourceLocation> {
         let result = self
             .entries
             .binary_search_by_key(&offset, |&(offset, _)| offset);
 
         match result {
-            Ok(idx) => Some(self.entries[idx].1.location),
+            Ok(idx) => Some(self.entries[idx].1.clone()),
             Err(_) => None,
         }
     }
 }
 
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub struct SourceLocation {
     pub location: Location,
     pub inlined_function_id: Option<InlinedFunctionId>,
+}
+
+impl SourceLocation {
+    pub fn is_inlined(&self) -> bool {
+        self.inlined_function_id.is_some()
+    }
+
+    pub fn inlined_function_id(&self) -> InlinedFunctionId {
+        self.inlined_function_id.expect("no id")
+    }
 }
 
 #[derive(Debug)]
