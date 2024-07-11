@@ -170,7 +170,7 @@ impl Code {
         &self.lazy_compilation
     }
 
-    pub fn location_for_offset(&self, offset: u32) -> Option<SourceLocation> {
+    pub fn location_for_offset(&self, offset: u32) -> Option<InlinedLocation> {
         self.locations.get(offset)
     }
 
@@ -332,7 +332,7 @@ pub struct InlinedFunctionId(pub u32);
 pub struct InlinedFunction {
     pub fct_id: FunctionId,
     pub type_params: BytecodeTypeArray,
-    pub location: SourceLocation,
+    pub location: InlinedLocation,
 }
 
 pub struct CommentTable {
@@ -384,7 +384,7 @@ impl CommentTable {
 
 #[derive(Debug)]
 pub struct LocationTable {
-    entries: Vec<(u32, SourceLocation)>,
+    entries: Vec<(u32, InlinedLocation)>,
 }
 
 impl LocationTable {
@@ -394,7 +394,7 @@ impl LocationTable {
         }
     }
 
-    pub fn insert(&mut self, offset: u32, location: SourceLocation) {
+    pub fn insert(&mut self, offset: u32, location: InlinedLocation) {
         if let Some(last) = self.entries.last() {
             debug_assert!(offset > last.0);
         }
@@ -402,7 +402,7 @@ impl LocationTable {
         self.entries.push((offset, location));
     }
 
-    pub fn get(&self, offset: u32) -> Option<SourceLocation> {
+    pub fn get(&self, offset: u32) -> Option<InlinedLocation> {
         let result = self
             .entries
             .binary_search_by_key(&offset, |&(offset, _)| offset);
@@ -415,12 +415,12 @@ impl LocationTable {
 }
 
 #[derive(Debug, Clone)]
-pub struct SourceLocation {
+pub struct InlinedLocation {
     pub location: Location,
     pub inlined_function_id: Option<InlinedFunctionId>,
 }
 
-impl SourceLocation {
+impl InlinedLocation {
     pub fn is_inlined(&self) -> bool {
         self.inlined_function_id.is_some()
     }

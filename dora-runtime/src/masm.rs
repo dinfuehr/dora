@@ -10,7 +10,7 @@ use crate::mode::MachineMode;
 use crate::object::Header;
 use crate::vm::{
     CodeDescriptor, CommentTable, ConstPool, GcPoint, GcPointTable, LazyCompilationData,
-    LazyCompilationSite, LocationTable, RelocationTable, SourceLocation, Trap, CODE_ALIGNMENT,
+    LazyCompilationSite, LocationTable, RelocationTable, InlinedLocation, Trap, CODE_ALIGNMENT,
 };
 pub use dora_asm::Label;
 use dora_bytecode::Location;
@@ -147,7 +147,7 @@ impl MacroAssembler {
         let offset = self.pos() as u32;
         self.positions.insert(
             offset,
-            SourceLocation {
+            InlinedLocation {
                 inlined_function_id: None,
                 location,
             },

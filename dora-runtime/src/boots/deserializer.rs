@@ -2,8 +2,8 @@ use crate::boots::data::{ConstPoolEntryKind, LazyCompilationSiteKind};
 use crate::gc::Address;
 use crate::vm::{
     CodeDescriptor, CommentTable, ConstPool, ConstPoolValue, GcPoint, GcPointTable,
-    InlinedFunction, InlinedFunctionId, LazyCompilationData, LazyCompilationSite, LocationTable,
-    RelocationTable, SourceLocation, CODE_ALIGNMENT,
+    InlinedFunction, InlinedFunctionId, InlinedLocation, LazyCompilationData, LazyCompilationSite,
+    LocationTable, RelocationTable, CODE_ALIGNMENT,
 };
 use dora_bytecode::{
     BytecodeType, BytecodeTypeArray, BytecodeTypeKind, ClassId, EnumId, FunctionId, Location,
@@ -71,7 +71,7 @@ fn decode_location_table(reader: &mut ByteReader) -> LocationTable {
     result
 }
 
-fn decode_source_location(reader: &mut ByteReader) -> SourceLocation {
+fn decode_source_location(reader: &mut ByteReader) -> InlinedLocation {
     let inlined_function_id = if reader.read_bool() {
         Some(InlinedFunctionId(reader.read_u32()))
     } else {
@@ -79,7 +79,7 @@ fn decode_source_location(reader: &mut ByteReader) -> SourceLocation {
     };
     let line = reader.read_u32();
     let col = reader.read_u32();
-    SourceLocation {
+    InlinedLocation {
         inlined_function_id,
         location: Location::new(line, col),
     }
