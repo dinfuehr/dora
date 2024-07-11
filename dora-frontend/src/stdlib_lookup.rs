@@ -201,17 +201,6 @@ pub fn lookup_known_methods(sa: &mut Sema) {
         "string::StringBuffer",
         "toString",
     ));
-    sa.known.functions.capture_stack_trace = Some(find_instance_method(
-        sa,
-        stdlib_id,
-        "Stacktrace",
-        "captureStacktrace",
-    ));
-
-    if sa.has_boots_package() {
-        let boots_id = sa.boots_module_id();
-        sa.known.functions.compile = Some(find_function(sa, boots_id, "compile"));
-    }
 }
 
 pub fn create_lambda_class(sa: &mut Sema) {
@@ -569,7 +558,7 @@ fn resolve_stacktrace(sa: &mut Sema, stdlib_id: ModuleDefinitionId) {
         sa,
         stdlib_id,
         "Stacktrace",
-        "captureStacktrace",
+        "capture",
         NativeFunction::CaptureStacktrace,
     );
     native_fct(
@@ -1656,14 +1645,6 @@ fn find_instance_method(
     name: &str,
 ) -> FctDefinitionId {
     find_method(sa, module_id, container_name, name, false)
-}
-
-fn find_function(sa: &Sema, module_id: ModuleDefinitionId, name: &str) -> FctDefinitionId {
-    let fct_id = resolve_name(sa, name, module_id)
-        .to_fct()
-        .expect("function expected");
-
-    fct_id
 }
 
 fn find_static_method(

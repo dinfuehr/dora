@@ -109,11 +109,11 @@ pub class Stacktrace {
 impl Stacktrace {
   pub static fn new(): Stacktrace {
     let trace = Stacktrace(None[Array[Int32]], None[Array[StacktraceElement]]);
-    trace.captureStacktrace();
+    trace.capture();
     trace
   }
 
-  pub fn getStacktrace(): Array[StacktraceElement] {
+  pub fn symbolize(): Array[StacktraceElement] {
     if self.symbolized_backtrace.isSome() {
       return self.symbolized_backtrace.getOrPanic();
     }
@@ -131,8 +131,8 @@ impl Stacktrace {
     let iterator = StacktraceIterator(0i32, 0i32, None[String], -1i32);
 
     while i < backtrace.size() {
-      let offset = backtrace(i);
-      let code_id = backtrace(i + 1);
+      let code_id = backtrace(i);
+      let offset = backtrace(i + 1);
       iterator.code_id = code_id;
       iterator.offset = offset;
       iterator.text = None[String];
@@ -156,16 +156,13 @@ impl Stacktrace {
     symbolized_backtrace
   }
 
-  pub fn printStacktrace() {
-    let x = self.getStacktrace();
-    let mut i = 0i64;
-
-    for frame in self.getStacktrace() {
+  pub fn print() {
+    for frame in self.symbolize() {
       println(frame.toString());
     }
   }
 
-  @internal fn captureStacktrace();
+  @internal fn capture();
 }
 
 @internal

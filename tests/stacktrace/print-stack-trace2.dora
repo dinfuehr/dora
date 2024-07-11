@@ -8,7 +8,7 @@ fn main() {
   // by retrieveStackTrace (as Array[Int32])
   std::forceCollect();
 
-  e.printStacktrace();
+  e.print();
 }
 
 fn a(): std::Stacktrace {

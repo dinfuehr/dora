@@ -303,8 +303,6 @@ pub struct KnownFunctions {
     pub ordering_is_gt: Option<FctDefinitionId>,
     pub ordering_is_le: Option<FctDefinitionId>,
     pub ordering_is_lt: Option<FctDefinitionId>,
-    pub capture_stack_trace: Option<FctDefinitionId>,
-    pub compile: Option<FctDefinitionId>,
 }
 
 impl KnownFunctions {
@@ -321,8 +319,6 @@ impl KnownFunctions {
             ordering_is_gt: None,
             ordering_is_le: None,
             ordering_is_lt: None,
-            capture_stack_trace: None,
-            compile: None,
         }
     }
 
@@ -368,14 +364,6 @@ impl KnownFunctions {
 
     pub fn ordering_is_lt(&self) -> FctDefinitionId {
         self.ordering_is_lt.expect("uninitialized")
-    }
-
-    pub fn stacktrace_retrieve(&self) -> FctDefinitionId {
-        self.capture_stack_trace.expect("uninitialized")
-    }
-
-    pub fn compile(&self) -> FctDefinitionId {
-        self.compile.expect("uninitialized")
     }
 }
 

@@ -3,5 +3,5 @@
 
 fn main() {
   let e = std::Stacktrace::new();
-  e.printStacktrace();
+  e.print();
 }

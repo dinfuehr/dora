@@ -284,6 +284,4 @@ pub fn lookup_known_functions(vm: &mut VM) {
     if vm.program.boots_package_id.is_some() {
         vm.known.boots_compile_fct_id = Some(find_fct(vm, "boots::interface::compile"));
     }
-
-    vm.known.capture_stacktrace_fct_id = Some(find_fct(vm, "stdlib::captureStacktrace"));
 }

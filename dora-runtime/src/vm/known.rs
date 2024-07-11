@@ -26,7 +26,6 @@ pub struct KnownElements {
     pub array_class_id: Option<ClassId>,
     pub string_class_id: Option<ClassId>,
     pub thread_class_id: Option<ClassId>,
-    pub capture_stacktrace_fct_id: Option<FunctionId>,
     pub boots_compile_fct_id: Option<FunctionId>,
     pub boots_compile_fct_address: OnceCell<Address>,
 }
@@ -52,7 +51,6 @@ impl KnownElements {
             array_class_id: None,
             string_class_id: None,
             thread_class_id: None,
-            capture_stacktrace_fct_id: None,
             boots_compile_fct_id: None,
             boots_compile_fct_address: OnceCell::new(),
         }
@@ -100,10 +98,6 @@ impl KnownElements {
 
     pub fn thread_class_id(&self) -> ClassId {
         self.thread_class_id.expect("uninitialized")
-    }
-
-    pub fn capture_stacktrace_fct_id(&self) -> FunctionId {
-        self.capture_stacktrace_fct_id.expect("uninitialized")
     }
 
     pub fn boots_compile_fct_id(&self) -> FunctionId {

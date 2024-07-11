@@ -163,9 +163,26 @@ fn determine_stack_entry(stacktrace: &mut NativeStacktrace, vm: &VM, pc: usize) 
     }
 }
 
-pub extern "C" fn capture_stack_trace(obj: Handle<Stacktrace>) {
+pub extern "C" fn capture_stack_trace(mut obj: Handle<Stacktrace>) {
     let vm = get_vm();
-    set_backtrace(vm, obj, true);
+    let stacktrace = stacktrace_from_last_dtn(vm);
+
+    // Do not add Stacktrace::new() and Stacktrace::captureStacktrace() to stack trace.
+    let skip = 2;
+    assert!(stacktrace.len() > skip);
+    let len = stacktrace.len() - skip;
+
+    let cls_id = vm.int_array();
+    let array: Ref<Int32Array> = Array::alloc(vm, len * 2, 0, cls_id);
+    let mut array = create_handle(array);
+    let mut i = 0;
+
+    for elem in stacktrace.elems.iter().skip(skip) {
+        array.set_at(i, elem.code_id.idx() as i32);
+        array.set_at(i + 1, elem.offset as i32);
+        i += 2;
+    }
+    obj.backtrace = array.direct();
 }
 
 pub extern "C" fn symbolize_stack_trace_element(mut obj: Handle<StacktraceIterator>) {
@@ -228,44 +245,3 @@ fn destruct_inlined_location(
 }
 
 const FINAL_INLINED_FUNCTION_ID: InlinedFunctionId = InlinedFunctionId(u32::MAX);
-
-fn set_backtrace(vm: &VM, mut obj: Handle<Stacktrace>, via_retrieve: bool) {
-    let stacktrace = stacktrace_from_last_dtn(vm);
-    let mut skip = 0;
-
-    let mut skip_capture_stack = false;
-
-    // ignore every element until first not inside subclass of Stacktrace (ctor of Exception)
-    if via_retrieve {
-        for elem in stacktrace.elems.iter() {
-            let code_id = elem.code_id.idx().into();
-            let code = vm.code_objects.get(code_id);
-            let fct_id = code.fct_id();
-
-            if !skip_capture_stack {
-                let capture_stacktrace_fct_id = vm.known.capture_stacktrace_fct_id();
-
-                if capture_stacktrace_fct_id == fct_id {
-                    skip += 2;
-                    continue;
-                } else {
-                    skip_capture_stack = true;
-                }
-            }
-        }
-    }
-
-    let len = stacktrace.len() - skip;
-
-    let cls_id = vm.int_array();
-    let array: Ref<Int32Array> = Array::alloc(vm, len * 2, 0, cls_id);
-    let mut array = create_handle(array);
-    let mut i = 0;
-
-    for elem in stacktrace.elems.iter().skip(skip) {
-        array.set_at(i, elem.offset as i32);
-        array.set_at(i + 1, elem.code_id.idx() as i32);
-        i += 2;
-    }
-    obj.backtrace = array.direct();
-}
