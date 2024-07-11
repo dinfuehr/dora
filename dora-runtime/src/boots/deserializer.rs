@@ -64,14 +64,14 @@ fn decode_location_table(reader: &mut ByteReader) -> LocationTable {
 
     for _ in 0..length {
         let pos = reader.read_u32();
-        let source_location = decode_source_location(reader);
-        result.insert(pos, source_location);
+        let inlined_location = decode_inlined_location(reader);
+        result.insert(pos, inlined_location);
     }
 
     result
 }
 
-fn decode_source_location(reader: &mut ByteReader) -> InlinedLocation {
+fn decode_inlined_location(reader: &mut ByteReader) -> InlinedLocation {
     let inlined_function_id = if reader.read_bool() {
         Some(InlinedFunctionId(reader.read_u32()))
     } else {
@@ -101,7 +101,7 @@ fn decode_inlined_function_table(reader: &mut ByteReader) -> Vec<InlinedFunction
 fn decode_inlined_function(reader: &mut ByteReader) -> InlinedFunction {
     let fct_id = FunctionId(reader.read_u32());
     let type_params = decode_bytecode_type_array(reader);
-    let location = decode_source_location(reader);
+    let location = decode_inlined_location(reader);
 
     InlinedFunction {
         fct_id,

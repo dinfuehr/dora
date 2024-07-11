@@ -3,7 +3,7 @@ use package::compilation::CompilationInfo;
 use package::interface::{Address, Architecture, ConstPool, ConstPoolEntry, ConstPoolValue, config, getFunctionAddress, getFieldOffset, getClassSize, getClassPointer, getClassPointerForLambda, getFunctionVtableIndex, getGlobalValueAddress, getGlobalStateAddress, getGlobalInitializerFunctionId, getReadOnlyStringAddress, getClassSizeForTraitObject, getClassPointerForTraitObject, InlinedFunction};
 use package::interface::{THREAD_LOCAL_DATA_STACK_LIMIT_OFFSET, THREAD_LOCAL_DATA_STATE_OFFSET, THREAD_LOCAL_DATA_MARKING_OFFSET, OBJECT_HEADER_LENGTH, OBJECT_METADATA_OFFSET, METADATA_REMEMBERED_BIT, ARRAY_HEADER_LENGTH, LAMBDA_SIZE};
 use package::interface::{THREAD_LOCAL_DATA_TLAB_TOP_OFFSET, THREAD_LOCAL_DATA_TLAB_END_OFFSET, THREAD_LOCAL_DATA_MANAGED_THREAD_HANDLE_OFFSET};
-use package::interface::{PTR_SIZE, GLOBAL_STATE_INITIALIZED, SourceLocation, InlinedFunctionId};
+use package::interface::{PTR_SIZE, GLOBAL_STATE_INITIALIZED, InlinedLocation, InlinedFunctionId};
 use package::interface as iface;
 use package::codegen::{CODE_SIZE_ALIGNMENT, CodeGen, computeOffsetsInLiveSet, getLiveValuesWithoutCurrentInst, getRegisterSnapshotWithout};
 use package::assembler::arm64;
@@ -103,7 +103,7 @@ impl CodeGenArm64 {
         self.asm.movz(CCALL_REG_PARAMS(0), trap, 0i32);
         self.mov_imm(tmp, config.trap_trampoline.toInt64());
         self.asm.bl_r(tmp);
-        self.locations.insert(self.asm.position(), SourceLocation(None[InlinedFunctionId], loc));
+        self.locations.insert(self.asm.position(), InlinedLocation(None[InlinedFunctionId], loc));
     }
 
     fn mov_imm(dest: Register, imm: Int64) {
@@ -317,7 +317,7 @@ impl CodeGenArm64 {
             self.asm.bl_r(REG_TEMP);
             let pos = self.asm.position();
             self.gcPoints.insert(pos, gc_point);
-            self.locations.insert(pos, SourceLocation(None[InlinedFunctionId], location));
+            self.locations.insert(pos, InlinedLocation(None[InlinedFunctionId], location));
             self.asm.mov(obj, R0);
             self.restoreRegistersForCall(snapshot);
             self.asm.b(lbl_return);
@@ -362,7 +362,7 @@ impl CodeGenArm64 {
             self.asm.bl_r(REG_TEMP);
             let pos = self.asm.position();
             self.gcPoints.insert(pos, gc_point);
-            self.locations.insert(pos, SourceLocation(None[InlinedFunctionId], location));
+            self.locations.insert(pos, InlinedLocation(None[InlinedFunctionId], location));
             self.asm.mov(obj, R0);
             self.restoreRegistersForCall(snapshot);
             self.asm.b(lbl_return);
@@ -593,7 +593,7 @@ impl CodeGenArm64 {
         let location = self.ci.bc.getLocationAt(bytecode_position);
 
         self.lazyCompilation.insert(pos, LazyCompilationSite::Direct(site));
-        self.locations.insert(pos, SourceLocation(None[InlinedFunctionId], location));
+        self.locations.insert(pos, InlinedLocation(None[InlinedFunctionId], location));
         self.gcPoints.insert(pos, gc_point);
     }
 
@@ -613,7 +613,7 @@ impl CodeGenArm64 {
         let gc_point = GcPoint::from(computeOffsetsInLiveSet(live));
 
         self.lazyCompilation.insert(pos, site);
-        self.locations.insert(pos, SourceLocation(None[InlinedFunctionId], location));
+        self.locations.insert(pos, InlinedLocation(None[InlinedFunctionId], location));
         self.gcPoints.insert(pos, gc_point);
     }
 
@@ -2611,7 +2611,7 @@ impl CodeGen for CodeGenArm64 {
         let location = self.ci.bc.getLocationAt(inst.getBytecodePosition());
         self.mov_imm(REG_TEMP, config.unreachable_trampoline.toInt64());
         self.asm.bl_r(REG_TEMP);
-        self.locations.insert(self.asm.position(), SourceLocation(None[InlinedFunctionId], location));
+        self.locations.insert(self.asm.position(), InlinedLocation(None[InlinedFunctionId], location));
         // Method should never return.
         self.asm.brk(0i32);
     }
@@ -2964,7 +2964,7 @@ impl CodeGen for CodeGenArm64 {
             self.asm.bl_r(REG_TEMP);
             let pos = self.asm.position();
             self.gcPoints.insert(pos, gc_point);
-            self.locations.insert(pos, SourceLocation(None[InlinedFunctionId], self.ci.loc));
+            self.locations.insert(pos, InlinedLocation(None[InlinedFunctionId], self.ci.loc));
 
             self.restoreRegistersForCall(snapshot);
 

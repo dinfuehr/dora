@@ -324,26 +324,26 @@ pub struct InlinedFunctionId {
 pub struct InlinedFunction {
     pub fct_id: FctId,
     pub type_params: Array[BytecodeType],
-    pub location: SourceLocation,
+    pub location: InlinedLocation,
 }
 
-pub struct SourceLocation {
+pub struct InlinedLocation {
     pub inlined_function_id: Option[InlinedFunctionId],
     pub location: Location,
 }
 
 pub class LocationTable {
-    entries: Vec[(Int32, SourceLocation)],
+    entries: Vec[(Int32, InlinedLocation)],
 }
 
 impl LocationTable {
     pub static fn new(): LocationTable {
         LocationTable(
-            Vec[(Int32, SourceLocation)]::new(),
+            Vec[(Int32, InlinedLocation)]::new(),
         )
     }
 
-    pub fn insert(offset: Int32, loc: SourceLocation) {
+    pub fn insert(offset: Int32, loc: InlinedLocation) {
         if self.entries.last().isSome() {
             let last = self.entries.last().getOrPanic();
             assert(last.0 <= offset);
@@ -358,7 +358,7 @@ impl LocationTable {
 }
 
 impl std::traits::IntoIterator for LocationTable {
-    type IteratorType = VecIter[(Int32, SourceLocation)];
+    type IteratorType = VecIter[(Int32, InlinedLocation)];
     fn iter(): IteratorType {
         self.entries.iter()
     }
