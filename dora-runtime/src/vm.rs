@@ -26,8 +26,8 @@ pub use self::classes::{
 pub use self::code::{
     install_code, install_code_stub, Code, CodeDescriptor, CodeId, CodeKind, CodeObjects,
     CommentTable, ConstPool, ConstPoolEntry, ConstPoolValue, GcPoint, GcPointTable,
-    LazyCompilationData, LazyCompilationSite, LocationTable, ManagedCodeHeader, RelocationTable,
-    CODE_ALIGNMENT,
+    InlinedFunction, InlinedFunctionId, LazyCompilationData, LazyCompilationSite, LocationTable,
+    ManagedCodeHeader, RelocationTable, SourceLocation, CODE_ALIGNMENT,
 };
 pub use self::code_map::CodeMap;
 pub use self::compilation::CompilationDatabase;

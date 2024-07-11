@@ -26,6 +26,7 @@ pub const TRAP_OVERFLOW: Int32 = 8i32;
 @internal pub fn getFunctionAddressRaw(data: Array[UInt8]): Int64;
 @internal pub fn getFunctionVtableIndexRaw(fct_id: Int32): Int32;
 @internal pub fn getFunctionDisplayNameRaw(fct_id: Int32): Array[UInt8];
+@internal pub fn hasFunctionInlineAnnotationRaw(fct_id: Int32): Bool;
 @internal pub fn getFieldOffsetRaw(data: Array[UInt8]): Int32;
 @internal pub fn getClassSizeRaw(data: Array[UInt8]): Int32;
 @internal pub fn getClassPointerRaw(data: Array[UInt8]): Int64;
@@ -56,6 +57,10 @@ pub fn getFunctionAddress(fct_id: FctId, type_params: Array[BytecodeType]): Addr
 pub fn getFunctionDisplayName(fct_id: FctId): String {
     let encoded = getFunctionDisplayNameRaw(fct_id.value);
     String::fromBytes(encoded).getOrPanic()
+}
+
+pub fn hasFunctionInlineAnnotation(fct_id: FctId): Bool {
+    hasFunctionInlineAnnotationRaw(fct_id.value)
 }
 
 pub fn getClassPointerForLambda(fct_id: FctId, type_params: Array[BytecodeType]): Address {
@@ -276,6 +281,7 @@ pub class CodeDescriptor {
     pub gcPoints: GcPointTable,
     pub locations: LocationTable,
     pub comments: CommentTable,
+    pub inlined_functions: Array[InlinedFunction],
 }
 
 pub class CommentTable {
@@ -311,24 +317,39 @@ impl std::traits::IntoIterator for CommentTable {
     }
 }
 
+pub struct InlinedFunctionId {
+    pub value: Int32,
+}
+
+pub struct InlinedFunction {
+    pub fct_id: FctId,
+    pub type_params: Array[BytecodeType],
+    pub location: SourceLocation,
+}
+
+pub struct SourceLocation {
+    pub inlined_function_id: Option[InlinedFunctionId],
+    pub location: Location,
+}
+
 pub class LocationTable {
-    entries: Vec[(Int32, Location)],
+    entries: Vec[(Int32, SourceLocation)],
 }
 
 impl LocationTable {
     pub static fn new(): LocationTable {
         LocationTable(
-            Vec[(Int32, Location)]::new(),
+            Vec[(Int32, SourceLocation)]::new(),
         )
     }
 
-    pub fn insert(offset: Int32, location: Location) {
+    pub fn insert(offset: Int32, loc: SourceLocation) {
         if self.entries.last().isSome() {
             let last = self.entries.last().getOrPanic();
             assert(last.0 <= offset);
         }
 
-        self.entries.push((offset, location));
+        self.entries.push((offset, loc));
     }
 
     pub fn size(): Int64 {
@@ -337,7 +358,7 @@ impl LocationTable {
 }
 
 impl std::traits::IntoIterator for LocationTable {
-    type IteratorType = VecIter[(Int32, Location)];
+    type IteratorType = VecIter[(Int32, SourceLocation)];
     fn iter(): IteratorType {
         self.entries.iter()
     }

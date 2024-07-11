@@ -2,7 +2,8 @@ use crate::boots::data::{ConstPoolEntryKind, LazyCompilationSiteKind};
 use crate::gc::Address;
 use crate::vm::{
     CodeDescriptor, CommentTable, ConstPool, ConstPoolValue, GcPoint, GcPointTable,
-    LazyCompilationData, LazyCompilationSite, LocationTable, RelocationTable, CODE_ALIGNMENT,
+    InlinedFunction, InlinedFunctionId, LazyCompilationData, LazyCompilationSite, LocationTable,
+    RelocationTable, SourceLocation, CODE_ALIGNMENT,
 };
 use dora_bytecode::{
     BytecodeType, BytecodeTypeArray, BytecodeTypeKind, ClassId, EnumId, FunctionId, Location,
@@ -16,6 +17,7 @@ pub fn decode_code_descriptor(reader: &mut ByteReader) -> CodeDescriptor {
     let gcpoints = decode_gcpoint_table(reader);
     let positions = decode_location_table(reader);
     let comments = decode_comment_table(reader);
+    let inlined_functions = decode_inlined_function_table(reader);
     CodeDescriptor {
         code,
         comments,
@@ -24,6 +26,7 @@ pub fn decode_code_descriptor(reader: &mut ByteReader) -> CodeDescriptor {
         gcpoints,
         positions,
         relocations: RelocationTable::new(),
+        inlined_functions,
     }
 }
 
@@ -61,12 +64,50 @@ fn decode_location_table(reader: &mut ByteReader) -> LocationTable {
 
     for _ in 0..length {
         let pos = reader.read_u32();
-        let line = reader.read_u32();
-        let col = reader.read_u32();
-        result.insert(pos, Location::new(line, col));
+        let source_location = decode_source_location(reader);
+        result.insert(pos, source_location);
     }
 
     result
+}
+
+fn decode_source_location(reader: &mut ByteReader) -> SourceLocation {
+    let inlined_function_id = if reader.read_bool() {
+        Some(InlinedFunctionId(reader.read_u32()))
+    } else {
+        None
+    };
+    let line = reader.read_u32();
+    let col = reader.read_u32();
+    SourceLocation {
+        inlined_function_id,
+        location: Location::new(line, col),
+    }
+}
+
+fn decode_inlined_function_table(reader: &mut ByteReader) -> Vec<InlinedFunction> {
+    let length = reader.read_u32() as usize;
+    let mut result = Vec::new();
+    result.reserve(length);
+
+    for _ in 0..length {
+        let inlined = decode_inlined_function(reader);
+        result.push(inlined);
+    }
+
+    result
+}
+
+fn decode_inlined_function(reader: &mut ByteReader) -> InlinedFunction {
+    let fct_id = FunctionId(reader.read_u32());
+    let type_params = decode_bytecode_type_array(reader);
+    let location = decode_source_location(reader);
+
+    InlinedFunction {
+        fct_id,
+        type_params,
+        location,
+    }
 }
 
 fn decode_array_u8(reader: &mut ByteReader) -> Vec<u8> {

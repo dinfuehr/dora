@@ -10,7 +10,7 @@ use crate::mode::MachineMode;
 use crate::object::Header;
 use crate::vm::{
     CodeDescriptor, CommentTable, ConstPool, GcPoint, GcPointTable, LazyCompilationData,
-    LazyCompilationSite, LocationTable, RelocationTable, Trap, CODE_ALIGNMENT,
+    LazyCompilationSite, LocationTable, RelocationTable, SourceLocation, Trap, CODE_ALIGNMENT,
 };
 pub use dora_asm::Label;
 use dora_bytecode::Location;
@@ -85,6 +85,7 @@ impl MacroAssembler {
             comments: self.comments,
             positions: self.positions,
             relocations: self.relocations,
+            inlined_functions: Vec::new(),
         }
     }
 
@@ -144,7 +145,13 @@ impl MacroAssembler {
 
     pub fn emit_position(&mut self, location: Location) {
         let offset = self.pos() as u32;
-        self.positions.insert(offset, location);
+        self.positions.insert(
+            offset,
+            SourceLocation {
+                inlined_function_id: None,
+                location,
+            },
+        );
     }
 
     pub fn emit_gcpoint(&mut self, gcpoint: GcPoint) {

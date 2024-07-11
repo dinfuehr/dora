@@ -135,6 +135,7 @@ pub fn install_code(vm: &VM, code_descriptor: CodeDescriptor, kind: CodeKind) ->
         gcpoints: code_descriptor.gcpoints,
         comments: code_descriptor.comments,
         locations: code_descriptor.positions,
+        inlined_functions: code_descriptor.inlined_functions,
     });
 
     let code_header = object_start.to_mut_ptr::<ManagedCodeHeader>();
@@ -161,6 +162,7 @@ pub struct Code {
     gcpoints: GcPointTable,
     comments: CommentTable,
     locations: LocationTable,
+    inlined_functions: Vec<InlinedFunction>,
 }
 
 impl Code {
@@ -254,6 +256,7 @@ pub struct CodeDescriptor {
     pub comments: CommentTable,
     pub positions: LocationTable,
     pub relocations: RelocationTable,
+    pub inlined_functions: Vec<InlinedFunction>,
 }
 
 #[derive(Debug)]
@@ -319,6 +322,15 @@ impl GcPoint {
     }
 }
 
+#[derive(Debug)]
+pub struct InlinedFunctionId(pub u32);
+
+pub struct InlinedFunction {
+    pub fct_id: FunctionId,
+    pub type_params: BytecodeTypeArray,
+    pub location: SourceLocation,
+}
+
 pub struct CommentTable {
     entries: Vec<(u32, String)>,
 }
@@ -368,7 +380,7 @@ impl CommentTable {
 
 #[derive(Debug)]
 pub struct LocationTable {
-    entries: Vec<(u32, Location)>,
+    entries: Vec<(u32, SourceLocation)>,
 }
 
 impl LocationTable {
@@ -378,7 +390,7 @@ impl LocationTable {
         }
     }
 
-    pub fn insert(&mut self, offset: u32, location: Location) {
+    pub fn insert(&mut self, offset: u32, location: SourceLocation) {
         if let Some(last) = self.entries.last() {
             debug_assert!(offset > last.0);
         }
@@ -392,10 +404,16 @@ impl LocationTable {
             .binary_search_by_key(&offset, |&(offset, _)| offset);
 
         match result {
-            Ok(idx) => Some(self.entries[idx].1),
+            Ok(idx) => Some(self.entries[idx].1.location),
             Err(_) => None,
         }
     }
+}
+
+#[derive(Debug)]
+pub struct SourceLocation {
+    pub location: Location,
+    pub inlined_function_id: Option<InlinedFunctionId>,
 }
 
 #[derive(Debug)]

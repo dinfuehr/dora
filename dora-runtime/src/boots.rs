@@ -114,6 +114,10 @@ pub const BOOTS_NATIVE_FUNCTIONS: &[(&'static str, *const u8)] = &[
         "boots::interface::getFunctionDisplayNameRaw",
         get_function_display_name_raw as *const u8,
     ),
+    (
+        "boots::interface::hasFunctionInlineAnnotationRaw",
+        has_function_inline_annotation_raw as *const u8,
+    ),
 ];
 
 pub fn compile(
@@ -474,6 +478,15 @@ extern "C" fn get_function_display_name_raw(id: u32) -> Ref<UInt8Array> {
     let name = display_fct(vm, fct_id);
 
     Str::from_buffer(vm, name.as_bytes()).cast()
+}
+
+extern "C" fn has_function_inline_annotation_raw(id: u32) -> bool {
+    let vm = get_vm();
+
+    let fct_id = FunctionId(id);
+    let fct = &vm.program.functions[fct_id.0 as usize];
+
+    fct.is_inline
 }
 
 extern "C" fn get_struct_data_raw(id: u32) -> Ref<UInt8Array> {

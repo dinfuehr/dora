@@ -1,6 +1,6 @@
 use package::bytecode::BytecodeType;
 use package::bytecode::opcode as opc;
-use package::interface::{Address, CodeDescriptor, CommentTable, ConstPool, ConstPoolEntry, ConstPoolValue, GcPoint, GcPointTable, LazyCompilationData, LazyCompilationSite, LocationTable};
+use package::interface::{Address, CodeDescriptor, CommentTable, ConstPool, ConstPoolEntry, ConstPoolValue, GcPoint, GcPointTable, InlinedFunction, LazyCompilationData, LazyCompilationSite, LocationTable, SourceLocation};
 
 pub fn encodeCodeDescriptor(writer: ByteWriter, descriptor: CodeDescriptor) {
     encodeConstPool(writer, descriptor.constPool);
@@ -9,6 +9,7 @@ pub fn encodeCodeDescriptor(writer: ByteWriter, descriptor: CodeDescriptor) {
     encodeGcPointTable(writer, descriptor.gcPoints);
     encodeLocationTable(writer, descriptor.locations);
     encodeCommentTable(writer, descriptor.comments);
+    encodeInlinedFunctionTable(writer, descriptor.inlined_functions);
 }
 
 fn encodeConstPool(writer: ByteWriter, table: ConstPool) {
@@ -124,11 +125,35 @@ fn encodeString(writer: ByteWriter, value: String) {
 fn encodeLocationTable(writer: ByteWriter, locations: LocationTable) {
     writer.emitInt32(locations.size().toInt32());
 
-    for (offset, location) in locations {
+    for (offset, source_location) in locations {
         writer.emitInt32(offset);
-        writer.emitInt32(location.line);
-        writer.emitInt32(location.column);
+        encodeSourceLocation(writer, source_location);
     }
+}
+
+fn encodeSourceLocation(writer: ByteWriter, source_location: SourceLocation) {
+    if source_location.inlined_function_id.isSome() {
+        writer.emitBool(true);
+        writer.emitInt32(source_location.inlined_function_id.getOrPanic().value);
+    } else {
+        writer.emitBool(false);
+    }
+    writer.emitInt32(source_location.location.line);
+    writer.emitInt32(source_location.location.column);
+}
+
+fn encodeInlinedFunctionTable(writer: ByteWriter, table: Array[InlinedFunction]) {
+    writer.emitInt32(table.size().toInt32());
+
+    for inlined in table {
+        encodeInlinedFunction(writer, inlined);
+    }
+}
+
+fn encodeInlinedFunction(writer: ByteWriter, inlined: InlinedFunction) {
+    writer.emitInt32(inlined.fct_id.value);
+    encodeBytecodeTypeArray(writer, inlined.type_params);
+    encodeSourceLocation(writer, inlined.location);
 }
 
 pub fn encodeBytecodeTypeArray(writer: ByteWriter, types: Array[BytecodeType]) {

@@ -1,9 +1,9 @@
-use package::bytecode::{ConstPoolId, Location as SourceLocation, FctId, BytecodeType};
+use package::bytecode::{ConstPoolId, Location as FunctionLocation, FctId, BytecodeType};
 use package::compilation::CompilationInfo;
-use package::interface::{Address, Architecture, ConstPool, ConstPoolEntry, ConstPoolValue, config, getFunctionAddress, getFieldOffset, getClassSize, getClassPointer, getClassPointerForLambda, getFunctionVtableIndex, getGlobalValueAddress, getGlobalStateAddress, getGlobalInitializerFunctionId, getReadOnlyStringAddress, getClassSizeForTraitObject, getClassPointerForTraitObject};
+use package::interface::{Address, Architecture, ConstPool, ConstPoolEntry, ConstPoolValue, config, getFunctionAddress, getFieldOffset, getClassSize, getClassPointer, getClassPointerForLambda, getFunctionVtableIndex, getGlobalValueAddress, getGlobalStateAddress, getGlobalInitializerFunctionId, getReadOnlyStringAddress, getClassSizeForTraitObject, getClassPointerForTraitObject, InlinedFunction};
 use package::interface::{THREAD_LOCAL_DATA_STACK_LIMIT_OFFSET, THREAD_LOCAL_DATA_STATE_OFFSET, THREAD_LOCAL_DATA_MARKING_OFFSET, OBJECT_HEADER_LENGTH, OBJECT_METADATA_OFFSET, METADATA_REMEMBERED_BIT, ARRAY_HEADER_LENGTH, LAMBDA_SIZE};
 use package::interface::{THREAD_LOCAL_DATA_TLAB_TOP_OFFSET, THREAD_LOCAL_DATA_TLAB_END_OFFSET, THREAD_LOCAL_DATA_MANAGED_THREAD_HANDLE_OFFSET};
-use package::interface::{PTR_SIZE, GLOBAL_STATE_INITIALIZED};
+use package::interface::{PTR_SIZE, GLOBAL_STATE_INITIALIZED, SourceLocation, InlinedFunctionId};
 use package::interface as iface;
 use package::codegen::{CODE_SIZE_ALIGNMENT, CodeGen, computeOffsetsInLiveSet, getLiveValuesWithoutCurrentInst, getRegisterSnapshotWithout};
 use package::assembler::arm64;
@@ -99,11 +99,11 @@ impl CodeGenArm64 {
         self.asm.ret();
     }
 
-    fn trap(tmp: Register, trap: Int32, loc: SourceLocation) {
+    fn trap(tmp: Register, trap: Int32, loc: FunctionLocation) {
         self.asm.movz(CCALL_REG_PARAMS(0), trap, 0i32);
         self.mov_imm(tmp, config.trap_trampoline.toInt64());
         self.asm.bl_r(tmp);
-        self.locations.insert(self.asm.position(), loc);
+        self.locations.insert(self.asm.position(), SourceLocation(None[InlinedFunctionId], loc));
     }
 
     fn mov_imm(dest: Register, imm: Int64) {
@@ -291,7 +291,7 @@ impl CodeGenArm64 {
         });
     }
 
-    fn emitObjectAllocate(obj: Register, size: Int32, tmp1: Register, tmp2: Register, snapshot: RegisterTrackers, live: InstSet, location: SourceLocation) {
+    fn emitObjectAllocate(obj: Register, size: Int32, tmp1: Register, tmp2: Register, snapshot: RegisterTrackers, live: InstSet, location: FunctionLocation) {
         let lbl_alloc_slow_path = self.asm.createLabel();
 
         if config.useTlab {
@@ -317,14 +317,14 @@ impl CodeGenArm64 {
             self.asm.bl_r(REG_TEMP);
             let pos = self.asm.position();
             self.gcPoints.insert(pos, gc_point);
-            self.locations.insert(pos, location);
+            self.locations.insert(pos, SourceLocation(None[InlinedFunctionId], location));
             self.asm.mov(obj, R0);
             self.restoreRegistersForCall(snapshot);
             self.asm.b(lbl_return);
         });
     }
 
-    fn emitArrayAllocate(obj: Register, size: Register, tmp1: Register, tmp2: Register, snapshot: RegisterTrackers, live: InstSet, location: SourceLocation) {
+    fn emitArrayAllocate(obj: Register, size: Register, tmp1: Register, tmp2: Register, snapshot: RegisterTrackers, live: InstSet, location: FunctionLocation) {
         let lbl_alloc_slow_path = self.asm.createLabel();
 
         if config.isDebug {
@@ -362,7 +362,7 @@ impl CodeGenArm64 {
             self.asm.bl_r(REG_TEMP);
             let pos = self.asm.position();
             self.gcPoints.insert(pos, gc_point);
-            self.locations.insert(pos, location);
+            self.locations.insert(pos, SourceLocation(None[InlinedFunctionId], location));
             self.asm.mov(obj, R0);
             self.restoreRegistersForCall(snapshot);
             self.asm.b(lbl_return);
@@ -593,7 +593,7 @@ impl CodeGenArm64 {
         let location = self.ci.bc.getLocationAt(bytecode_position);
 
         self.lazyCompilation.insert(pos, LazyCompilationSite::Direct(site));
-        self.locations.insert(pos, location);
+        self.locations.insert(pos, SourceLocation(None[InlinedFunctionId], location));
         self.gcPoints.insert(pos, gc_point);
     }
 
@@ -613,7 +613,7 @@ impl CodeGenArm64 {
         let gc_point = GcPoint::from(computeOffsetsInLiveSet(live));
 
         self.lazyCompilation.insert(pos, site);
-        self.locations.insert(pos, location);
+        self.locations.insert(pos, SourceLocation(None[InlinedFunctionId], location));
         self.gcPoints.insert(pos, gc_point);
     }
 
@@ -2608,10 +2608,10 @@ impl CodeGen for CodeGenArm64 {
     }
 
     fn emitUnreachable(inst: Inst) {
-        let loc = self.ci.bc.getLocationAt(inst.getBytecodePosition());
+        let location = self.ci.bc.getLocationAt(inst.getBytecodePosition());
         self.mov_imm(REG_TEMP, config.unreachable_trampoline.toInt64());
         self.asm.bl_r(REG_TEMP);
-        self.locations.insert(self.asm.position(), loc);
+        self.locations.insert(self.asm.position(), SourceLocation(None[InlinedFunctionId], location));
         // Method should never return.
         self.asm.brk(0i32);
     }
@@ -2964,7 +2964,7 @@ impl CodeGen for CodeGenArm64 {
             self.asm.bl_r(REG_TEMP);
             let pos = self.asm.position();
             self.gcPoints.insert(pos, gc_point);
-            self.locations.insert(pos, self.ci.loc);
+            self.locations.insert(pos, SourceLocation(None[InlinedFunctionId], self.ci.loc));
 
             self.restoreRegistersForCall(snapshot);
 
@@ -2991,6 +2991,7 @@ impl CodeGen for CodeGenArm64 {
             self.gcPoints,
             self.locations,
             self.comments,
+            Array[InlinedFunction]::new(),
         )
     }
 }
