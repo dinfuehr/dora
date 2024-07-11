@@ -278,7 +278,6 @@ pub fn lookup_known_classes(vm: &mut VM) {
     vm.known.array_class_id = Some(find_class(vm, "stdlib::collections::Array"));
     vm.known.string_class_id = Some(find_class(vm, "stdlib::string::String"));
     vm.known.thread_class_id = Some(find_class(vm, "stdlib::thread::Thread"));
-    vm.known.stacktrace_element_class_id = Some(find_class(vm, "stdlib::StacktraceElement"));
 }
 
 pub fn lookup_known_functions(vm: &mut VM) {

@@ -312,22 +312,6 @@ impl VM {
         }
     }
 
-    pub fn stack_trace_element(&self) -> ClassInstanceId {
-        let mut ste_class_def = self.known.ste_class_instance_id.lock();
-
-        if let Some(cls_id) = *ste_class_def {
-            cls_id
-        } else {
-            let cls_id = create_class_instance(
-                self,
-                self.known.stacktrace_element_class_id(),
-                &BytecodeTypeArray::empty(),
-            );
-            *ste_class_def = Some(cls_id);
-            cls_id
-        }
-    }
-
     pub fn thread_class_instance(&self) -> ClassInstanceId {
         create_class_instance(
             self,
