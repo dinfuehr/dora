@@ -324,7 +324,7 @@ pub struct InlinedFunctionId {
 pub struct InlinedFunction {
     pub fct_id: FctId,
     pub type_params: Array[BytecodeType],
-    pub location: InlinedLocation,
+    pub inlined_location: InlinedLocation,
 }
 
 pub struct InlinedLocation {

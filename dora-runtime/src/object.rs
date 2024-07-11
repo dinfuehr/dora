@@ -883,14 +883,25 @@ pub fn alloc(vm: &VM, clsid: ClassInstanceId) -> Ref<Obj> {
     object
 }
 
+#[repr(C)]
 pub struct Stacktrace {
     pub header: Header,
     pub backtrace: Ref<Int32Array>,
     pub elements: Ref<Obj>,
 }
 
+#[repr(C)]
 pub struct StacktraceElement {
     pub header: Header,
-    pub name: Ref<Str>,
-    pub line: i32,
+    pub text: Ref<Str>,
+}
+
+#[repr(C)]
+
+pub struct StacktraceIterator {
+    pub header: Header,
+    pub code_id: i32,
+    pub offset: i32,
+    pub text: Ref<Str>,
+    pub inlined_function_id: i32,
 }

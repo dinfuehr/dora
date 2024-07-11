@@ -86,12 +86,12 @@ pub fn connect_native_functions_to_implementation(vm: &mut VM) {
             stdlib::str_from_bytes as *const u8,
         ),
         (
-            NativeFunction::RetrieveStacktrace,
-            stack::retrieve_stack_trace as *const u8,
+            NativeFunction::CaptureStacktrace,
+            stack::capture_stack_trace as *const u8,
         ),
         (
-            NativeFunction::GetStackTraceElement,
-            stack::stack_element as *const u8,
+            NativeFunction::SymbolizeStackTraceElement,
+            stack::symbolize_stack_trace_element as *const u8,
         ),
         (
             NativeFunction::SpawnThread,
@@ -286,5 +286,5 @@ pub fn lookup_known_functions(vm: &mut VM) {
         vm.known.boots_compile_fct_id = Some(find_fct(vm, "boots::interface::compile"));
     }
 
-    vm.known.stacktrace_retrieve_fct_id = Some(find_fct(vm, "stdlib::retrieveStacktrace"));
+    vm.known.capture_stacktrace_fct_id = Some(find_fct(vm, "stdlib::captureStacktrace"));
 }

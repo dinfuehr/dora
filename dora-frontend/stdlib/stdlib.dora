@@ -103,41 +103,57 @@ pub @internal fn sleep(seconds: Int32);
 
 pub class Stacktrace {
   backtrace: Option[Array[Int32]],
-  elements: Option[Array[StacktraceElement]],
+  symbolized_backtrace: Option[Array[StacktraceElement]],
 }
 
 impl Stacktrace {
   pub static fn new(): Stacktrace {
     let trace = Stacktrace(None[Array[Int32]], None[Array[StacktraceElement]]);
-    trace.retrieveStacktrace();
+    trace.captureStacktrace();
     trace
   }
 
   pub fn getStacktrace(): Array[StacktraceElement] {
-    if self.elements.isSome() {
-      return self.elements.getOrPanic();
+    if self.symbolized_backtrace.isSome() {
+      return self.symbolized_backtrace.getOrPanic();
     }
 
     if self.backtrace.isNone() {
-      let elements = Array[StacktraceElement]::new();
-      self.elements = Some[Array[StacktraceElement]](elements);
-      return elements;
+      let symbolized_backtrace = Array[StacktraceElement]::new();
+      self.symbolized_backtrace = Some[Array[StacktraceElement]](symbolized_backtrace);
+      return symbolized_backtrace;
     }
 
-    let backtraceLength = self.backtrace.getOrPanic().size();
+    let backtrace = self.backtrace.getOrPanic();
     let mut i = 0i64;
-    let len = backtraceLength / 2i64;
-    let elements = Vec[StacktraceElement]::new();
-    elements.reserve(len);
+    let symbolized_backtrace = Vec[StacktraceElement]::new();
+    symbolized_backtrace.reserve(backtrace.size());
+    let iterator = StacktraceIterator(0i32, 0i32, None[String], -1i32);
 
-    while i < len {
-      elements.push(self.getStacktraceElement(i));
-      i = i + 1i64;
+    while i < backtrace.size() {
+      let offset = backtrace(i);
+      let code_id = backtrace(i + 1);
+      iterator.code_id = code_id;
+      iterator.offset = offset;
+      iterator.text = None[String];
+      iterator.inlined_function_id = -1i32;
+      symbolizeStacktraceElement(iterator);
+      let element = StacktraceElement(iterator.text.getOrPanic());
+      symbolized_backtrace.push(element);
+
+      while iterator.inlined_function_id != -1i32 {
+        symbolizeStacktraceElement(iterator);
+        let element = StacktraceElement(iterator.text.getOrPanic());
+        symbolized_backtrace.push(element);
+      }
+
+      assert(iterator.inlined_function_id == -1i32);
+      i = i + 2;
     }
 
-    let elements = elements.toArray();
-    self.elements = Some(elements);
-    return elements;
+    let symbolized_backtrace = symbolized_backtrace.toArray();
+    self.symbolized_backtrace = Some(symbolized_backtrace);
+    symbolized_backtrace
   }
 
   pub fn printStacktrace() {
@@ -149,17 +165,25 @@ impl Stacktrace {
     }
   }
 
-  @internal fn retrieveStacktrace();
-  @internal fn getStacktraceElement(idx: Int64): StacktraceElement;
+  @internal fn captureStacktrace();
+}
+
+@internal
+fn symbolizeStacktraceElement(iterator: StacktraceIterator);
+
+class StacktraceIterator {
+  code_id: Int32,
+  offset: Int32,
+  text: Option[String],
+  inlined_function_id: Int32,
 }
 
 class StacktraceElement {
-  name: String,
-  line: Int32,
+  text: String,
 }
 
 impl StacktraceElement {
   fn toString(): String {
-    "${self.name}: ${self.line}"
+    self.text
   }
 }

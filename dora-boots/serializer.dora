@@ -153,7 +153,7 @@ fn encodeInlinedFunctionTable(writer: ByteWriter, table: Array[InlinedFunction])
 fn encodeInlinedFunction(writer: ByteWriter, inlined: InlinedFunction) {
     writer.emitInt32(inlined.fct_id.value);
     encodeBytecodeTypeArray(writer, inlined.type_params);
-    encodeInlinedLocation(writer, inlined.location);
+    encodeInlinedLocation(writer, inlined.inlined_location);
 }
 
 pub fn encodeBytecodeTypeArray(writer: ByteWriter, types: Array[BytecodeType]) {

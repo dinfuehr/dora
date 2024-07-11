@@ -106,7 +106,7 @@ fn decode_inlined_function(reader: &mut ByteReader) -> InlinedFunction {
     InlinedFunction {
         fct_id,
         type_params,
-        location,
+        inlined_location: location,
     }
 }
 

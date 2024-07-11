@@ -1,7 +1,7 @@
 use crate::handle::{create_handle, Handle};
-use crate::object::{alloc, Array, Int32Array, Ref, Stacktrace, StacktraceElement, Str};
+use crate::object::{Array, Int32Array, Ref, Stacktrace, StacktraceIterator, Str};
 use crate::threads::current_thread;
-use crate::vm::{display_fct, get_vm, CodeId, CodeKind, VM};
+use crate::vm::{display_fct, get_vm, CodeId, CodeKind, InlinedFunctionId, VM};
 
 pub struct NativeStacktrace {
     elems: Vec<StackElem>,
@@ -39,7 +39,7 @@ impl NativeStacktrace {
                             "    {} ({}:{})",
                             fct_name, file, inlined_location.location
                         )?;
-                        inlined_location = inlined_function.location.clone();
+                        inlined_location = inlined_function.inlined_location.clone();
                     }
 
                     inlined_location.location
@@ -159,67 +159,96 @@ fn determine_stack_entry(stacktrace: &mut NativeStacktrace, vm: &VM, pc: usize) 
     }
 }
 
-pub extern "C" fn retrieve_stack_trace(obj: Handle<Stacktrace>) {
+pub extern "C" fn capture_stack_trace(obj: Handle<Stacktrace>) {
     let vm = get_vm();
     set_backtrace(vm, obj, true);
 }
 
-pub extern "C" fn stack_element(obj: Handle<Stacktrace>, ind: i32) -> Ref<StacktraceElement> {
+pub extern "C" fn symbolize_stack_trace_element(mut obj: Handle<StacktraceIterator>) {
     let vm = get_vm();
-    let array = obj.backtrace;
 
-    let ind = ind as usize * 2;
-
-    let offset = array.get_at(ind) as u32;
-    let code_id = array.get_at(ind + 1);
-
-    let code_id: CodeId = (code_id as usize).into();
+    let code_id: CodeId = (obj.code_id as usize).into();
     let code = vm.code_objects.get(code_id);
-    let name = display_fct(vm, code.fct_id());
-    let ste_name = create_handle(Str::from_buffer(vm, name.as_bytes()));
 
-    let ste: Ref<StacktraceElement> = alloc(vm, vm.stack_trace_element()).cast();
-    let mut ste = create_handle(ste);
-    ste.name = ste_name.direct();
+    let final_inlined_function_id = InlinedFunctionId(u32::MAX);
 
-    let location = code.location_for_offset(offset);
-    let lineno = match location {
-        Some(inlined_location) => {
-            assert!(!inlined_location.is_inlined());
-            inlined_location.location.line()
+    let (fct_id, location, next_inlined_function_id) = if obj.inlined_function_id == -1 {
+        let offset = obj.offset as u32;
+
+        match code.location_for_offset(offset) {
+            Some(inlined_location) => {
+                if inlined_location.is_inlined() {
+                    let id = inlined_location.inlined_function_id();
+                    let inlined_function = code.inlined_function(id);
+
+                    (
+                        inlined_function.fct_id,
+                        inlined_location.location,
+                        inlined_location
+                            .inlined_function_id
+                            .unwrap_or(final_inlined_function_id),
+                    )
+                } else {
+                    (
+                        code.fct_id(),
+                        inlined_location.location,
+                        final_inlined_function_id,
+                    )
+                }
+            }
+
+            None => {
+                let fct_id = code.fct_id();
+                let fct = &vm.program.functions[fct_id.0 as usize];
+
+                (code.fct_id(), fct.loc, final_inlined_function_id)
+            }
         }
+    } else {
+        let code = vm.code_objects.get(code_id);
+        let id = InlinedFunctionId(obj.inlined_function_id as u32);
+        let inlined_function = code.inlined_function(id);
 
-        None => {
-            let fct = &vm.program.functions[code.fct_id().0 as usize];
-            fct.loc.line()
-        }
+        (
+            inlined_function.fct_id,
+            inlined_function.inlined_location.location,
+            inlined_function
+                .inlined_location
+                .inlined_function_id
+                .unwrap_or(final_inlined_function_id),
+        )
     };
-    ste.line = lineno as i32;
 
-    ste.direct()
+    let fct = &vm.program.functions[fct_id.0 as usize];
+    let file = &vm.program.source_files[fct.file_id.0 as usize].path;
+    let fct_name = display_fct(vm, fct_id);
+
+    let text = format!("{} ({}:{})", fct_name, file, location);
+    obj.text = Str::from_buffer(vm, text.as_bytes());
+    obj.inlined_function_id = next_inlined_function_id.0 as i32;
 }
 
 fn set_backtrace(vm: &VM, mut obj: Handle<Stacktrace>, via_retrieve: bool) {
     let stacktrace = stacktrace_from_last_dtn(vm);
     let mut skip = 0;
 
-    let mut skip_retrieve_stack = false;
+    let mut skip_capture_stack = false;
 
-    // ignore every element until first not inside susubclass of Stacktrace (ctor of Exception)
+    // ignore every element until first not inside subclass of Stacktrace (ctor of Exception)
     if via_retrieve {
         for elem in stacktrace.elems.iter() {
             let code_id = elem.code_id.idx().into();
             let code = vm.code_objects.get(code_id);
             let fct_id = code.fct_id();
 
-            if !skip_retrieve_stack {
-                let retrieve_stacktrace_fct_id = vm.known.stacktrace_retrieve_fct_id();
+            if !skip_capture_stack {
+                let capture_stacktrace_fct_id = vm.known.capture_stacktrace_fct_id();
 
-                if retrieve_stacktrace_fct_id == fct_id {
+                if capture_stacktrace_fct_id == fct_id {
                     skip += 2;
                     continue;
                 } else {
-                    skip_retrieve_stack = true;
+                    skip_capture_stack = true;
                 }
             }
         }

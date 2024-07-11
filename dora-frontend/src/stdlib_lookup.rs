@@ -201,11 +201,11 @@ pub fn lookup_known_methods(sa: &mut Sema) {
         "string::StringBuffer",
         "toString",
     ));
-    sa.known.functions.stacktrace_retrieve = Some(find_instance_method(
+    sa.known.functions.capture_stack_trace = Some(find_instance_method(
         sa,
         stdlib_id,
         "Stacktrace",
-        "retrieveStacktrace",
+        "captureStacktrace",
     ));
 
     if sa.has_boots_package() {
@@ -564,20 +564,19 @@ fn resolve_string(sa: &Sema, stdlib_id: ModuleDefinitionId) {
     );
 }
 
-fn resolve_stacktrace(sa: &Sema, stdlib_id: ModuleDefinitionId) {
+fn resolve_stacktrace(sa: &mut Sema, stdlib_id: ModuleDefinitionId) {
     native_method(
         sa,
         stdlib_id,
         "Stacktrace",
-        "retrieveStacktrace",
-        NativeFunction::RetrieveStacktrace,
+        "captureStacktrace",
+        NativeFunction::CaptureStacktrace,
     );
-    native_method(
+    native_fct(
         sa,
         stdlib_id,
-        "Stacktrace",
-        "getStacktraceElement",
-        NativeFunction::GetStackTraceElement,
+        "symbolizeStacktraceElement",
+        NativeFunction::SymbolizeStackTraceElement,
     );
 }
 

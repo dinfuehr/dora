@@ -332,7 +332,7 @@ pub struct InlinedFunctionId(pub u32);
 pub struct InlinedFunction {
     pub fct_id: FunctionId,
     pub type_params: BytecodeTypeArray,
-    pub location: InlinedLocation,
+    pub inlined_location: InlinedLocation,
 }
 
 pub struct CommentTable {
