@@ -1,15 +1,15 @@
 use crate::gc::Address;
 use crate::size::InstanceSize;
 use crate::vm::{
-    create_class_instance_with_vtable, setup_builtin_natives, stdlib, ClassInstanceId, ShapeKind,
-    VM,
+    create_class_instance_with_vtable, setup_builtin_natives, stdlib_lookup, ClassInstanceId,
+    ShapeKind, VM,
 };
 use crate::vtable::VTable;
 
 pub(super) fn setup(vm: &mut VM) {
-    stdlib::connect_native_functions_to_implementation(vm);
-    stdlib::lookup_known_classes(vm);
-    stdlib::lookup_known_functions(vm);
+    stdlib_lookup::connect_native_functions_to_implementation(vm);
+    stdlib_lookup::lookup_known_classes(vm);
+    stdlib_lookup::lookup_known_functions(vm);
     create_special_classes(vm);
     setup_builtin_natives(vm);
 }

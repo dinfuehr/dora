@@ -221,16 +221,7 @@ pub enum NativeFunction {
     Float64ToString,
     StringFromBytesPart,
     StringFromStringPart,
-    CaptureStacktrace,
-    SymbolizeStackTraceElement,
     SpawnThread,
-    ThreadJoin,
-    MutexWait,
-    MutexNotify,
-    ConditionEnqueue,
-    ConditionBlock,
-    ConditionWakupOne,
-    ConditionWakupAll,
     StringClone,
 }
 

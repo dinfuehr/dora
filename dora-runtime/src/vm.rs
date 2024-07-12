@@ -68,7 +68,7 @@ mod known;
 mod modules;
 mod natives;
 mod specialize;
-mod stdlib;
+mod stdlib_lookup;
 mod structs;
 mod tuples;
 mod ty;

@@ -2,16 +2,20 @@ use std::collections::HashMap;
 
 use crate::boots::BOOTS_NATIVE_FUNCTIONS;
 use crate::gc::Address;
-use crate::stack;
 use crate::stdlib::io::IO_NATIVE_FUNCTIONS;
-use crate::stdlib::{self, STDLIB_NATIVE_FUNCTIONS};
-use crate::vm::VM;
-use dora_bytecode::ModuleId;
-use dora_bytecode::{ClassId, FunctionId, NativeFunction, PackageId};
+use crate::stdlib::{self, STDLIB_NATIVE_FUNCTIONS, STDLIB_NATIVE_METHODS};
+use crate::vm::{BytecodeType, VM};
+use dora_bytecode::{
+    ClassId, ExtensionId, FunctionId, FunctionKind, ModuleId, NativeFunction, PackageId,
+};
 
 pub fn connect_native_functions_to_implementation(vm: &mut VM) {
     for (path, ptr) in STDLIB_NATIVE_FUNCTIONS {
         native_fct(vm, path, *ptr);
+    }
+
+    for (path, method_name, ptr) in STDLIB_NATIVE_METHODS {
+        native_method(vm, path, method_name, *ptr);
     }
 
     for (path, ptr) in IO_NATIVE_FUNCTIONS {
@@ -86,38 +90,8 @@ pub fn connect_native_functions_to_implementation(vm: &mut VM) {
             stdlib::str_from_bytes as *const u8,
         ),
         (
-            NativeFunction::CaptureStacktrace,
-            stack::capture_stack_trace as *const u8,
-        ),
-        (
-            NativeFunction::SymbolizeStackTraceElement,
-            stack::symbolize_stack_trace_element as *const u8,
-        ),
-        (
             NativeFunction::SpawnThread,
             stdlib::spawn_thread as *const u8,
-        ),
-        (NativeFunction::ThreadJoin, stdlib::join_thread as *const u8),
-        (NativeFunction::MutexWait, stdlib::mutex_wait as *const u8),
-        (
-            NativeFunction::MutexNotify,
-            stdlib::mutex_notify as *const u8,
-        ),
-        (
-            NativeFunction::ConditionEnqueue,
-            stdlib::condition_enqueue as *const u8,
-        ),
-        (
-            NativeFunction::ConditionBlock,
-            stdlib::condition_block_after_enqueue as *const u8,
-        ),
-        (
-            NativeFunction::ConditionWakupOne,
-            stdlib::condition_wakeup_one as *const u8,
-        ),
-        (
-            NativeFunction::ConditionWakupAll,
-            stdlib::condition_wakeup_all as *const u8,
         ),
         (NativeFunction::StringClone, stdlib::str_clone as *const u8),
     ]);
@@ -156,6 +130,54 @@ fn native_fct(vm: &mut VM, full_path: &str, ptr: *const u8) {
     assert!(old.is_none());
 }
 
+fn native_method(vm: &mut VM, full_path: &str, method_name: &str, ptr: *const u8) {
+    let class_id = find_class(vm, full_path);
+    let extension_id = lookup_extension_by_class_id(vm, class_id).expect("class not found");
+    let fct_id =
+        lookup_fct_by_extension_id_and_name(vm, extension_id, method_name).expect("missing method");
+
+    let old = vm.native_methods.insert(fct_id, Address::from_ptr(ptr));
+
+    if old.is_some() {
+        panic!("function {} was already initialized", full_path);
+    }
+
+    assert!(old.is_none());
+}
+
+fn lookup_fct_by_extension_id_and_name(
+    vm: &VM,
+    extension_id: ExtensionId,
+    name: &str,
+) -> Option<FunctionId> {
+    for (id, fct) in vm.program.functions.iter().enumerate() {
+        match fct.kind {
+            FunctionKind::Extension(ext_id) if ext_id == extension_id && fct.name == name => {
+                return Some(FunctionId(id.try_into().expect("overflow")));
+            }
+
+            _ => {}
+        }
+    }
+    None
+}
+
+fn lookup_extension_by_class_id(vm: &VM, class_id: ClassId) -> Option<ExtensionId> {
+    for (id, extension) in vm.program.extensions.iter().enumerate() {
+        let ty = &extension.extended_ty;
+
+        match ty {
+            BytecodeType::Class(ext_class_id, ..) if class_id == *ext_class_id => {
+                return Some(ExtensionId(id.try_into().expect("overflow")));
+            }
+
+            _ => {}
+        }
+    }
+
+    None
+}
+
 pub fn find_fct(vm: &VM, full_path: &str) -> FunctionId {
     let mut components = full_path.split("::");
 
@@ -179,7 +201,7 @@ pub fn find_fct(vm: &VM, full_path: &str) -> FunctionId {
     let mut module_id = package.root_module_id;
 
     for component in path {
-        module_id = match lookup_module(vm, module_id, component) {
+        module_id = match lookup_module_by_parent_id_and_name(vm, module_id, component) {
             Some(next_module_id) => next_module_id,
             None => {
                 panic!("unknown module {} in path {}", component, full_path);
@@ -187,7 +209,7 @@ pub fn find_fct(vm: &VM, full_path: &str) -> FunctionId {
         };
     }
 
-    match lookup_fct(vm, module_id, fct_name) {
+    match lookup_fct_by_module_id_and_name(vm, module_id, fct_name) {
         Some(fct_id) => fct_id,
         None => {
             panic!("unknown function {} in path {}", fct_name, full_path);
@@ -218,7 +240,7 @@ fn find_class(vm: &VM, full_path: &str) -> ClassId {
     let mut module_id = package.root_module_id;
 
     for component in path {
-        module_id = match lookup_module(vm, module_id, component) {
+        module_id = match lookup_module_by_parent_id_and_name(vm, module_id, component) {
             Some(next_module_id) => next_module_id,
             None => {
                 panic!("unknown module {} in path {}", component, full_path);
@@ -226,7 +248,7 @@ fn find_class(vm: &VM, full_path: &str) -> ClassId {
         };
     }
 
-    match lookup_class(vm, module_id, fct_name) {
+    match lookup_class_by_module_id_and_name(vm, module_id, fct_name) {
         Some(fct_id) => fct_id,
         None => {
             panic!("unknown function {} in path {}", fct_name, full_path);
@@ -244,7 +266,11 @@ fn lookup_package(vm: &VM, name: &str) -> Option<PackageId> {
     None
 }
 
-fn lookup_module(vm: &VM, module_id: ModuleId, name: &str) -> Option<ModuleId> {
+fn lookup_module_by_parent_id_and_name(
+    vm: &VM,
+    module_id: ModuleId,
+    name: &str,
+) -> Option<ModuleId> {
     for (id, module) in vm.program.modules.iter().enumerate() {
         if module.parent_id == Some(module_id) && module.name == name {
             return Some(ModuleId(id.try_into().expect("overflow")));
@@ -254,7 +280,11 @@ fn lookup_module(vm: &VM, module_id: ModuleId, name: &str) -> Option<ModuleId> {
     None
 }
 
-fn lookup_fct(vm: &VM, module_id: ModuleId, name: &str) -> Option<FunctionId> {
+fn lookup_fct_by_module_id_and_name(
+    vm: &VM,
+    module_id: ModuleId,
+    name: &str,
+) -> Option<FunctionId> {
     for (id, fct) in vm.program.functions.iter().enumerate() {
         if fct.module_id == module_id && fct.name == name {
             return Some(FunctionId(id.try_into().expect("overflow")));
@@ -264,7 +294,7 @@ fn lookup_fct(vm: &VM, module_id: ModuleId, name: &str) -> Option<FunctionId> {
     None
 }
 
-fn lookup_class(vm: &VM, module_id: ModuleId, name: &str) -> Option<ClassId> {
+fn lookup_class_by_module_id_and_name(vm: &VM, module_id: ModuleId, name: &str) -> Option<ClassId> {
     for (id, class) in vm.program.classes.iter().enumerate() {
         if class.module_id == module_id && class.name == name {
             return Some(ClassId(id.try_into().expect("overflow")));

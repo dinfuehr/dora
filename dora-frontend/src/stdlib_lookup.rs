@@ -309,7 +309,6 @@ pub fn resolve_internal_functions(sa: &mut Sema) {
     resolve_freestanding_stdlib(sa, stdlib_id);
 
     resolve_string(sa, stdlib_id);
-    resolve_stacktrace(sa, stdlib_id);
     resolve_uint8(sa, stdlib_id);
     resolve_bool(sa, stdlib_id);
     resolve_char(sa, stdlib_id);
@@ -322,8 +321,6 @@ pub fn resolve_internal_functions(sa: &mut Sema) {
     resolve_option(sa, stdlib_id);
 
     resolve_thread(sa, stdlib_id);
-    resolve_mutex(sa, stdlib_id);
-    resolve_condition(sa, stdlib_id);
 
     resolve_atomic_int32(sa, stdlib_id);
     resolve_atomic_int64(sa, stdlib_id);
@@ -429,14 +426,6 @@ fn resolve_atomic_int64(sa: &mut Sema, stdlib_id: ModuleDefinitionId) {
 
 fn resolve_thread(sa: &mut Sema, stdlib_id: ModuleDefinitionId) {
     native_fct(sa, stdlib_id, "thread::spawn", NativeFunction::SpawnThread);
-
-    native_method(
-        sa,
-        stdlib_id,
-        "thread::Thread",
-        "join",
-        NativeFunction::ThreadJoin,
-    );
 
     intrinsic_static(
         sa,
@@ -550,74 +539,6 @@ fn resolve_string(sa: &Sema, stdlib_id: ModuleDefinitionId) {
         "string::String",
         "getByte",
         Intrinsic::StrGet,
-    );
-}
-
-fn resolve_stacktrace(sa: &mut Sema, stdlib_id: ModuleDefinitionId) {
-    native_method(
-        sa,
-        stdlib_id,
-        "Stacktrace",
-        "capture",
-        NativeFunction::CaptureStacktrace,
-    );
-    native_fct(
-        sa,
-        stdlib_id,
-        "symbolizeStacktraceElement",
-        NativeFunction::SymbolizeStackTraceElement,
-    );
-}
-
-fn resolve_condition(sa: &Sema, stdlib_id: ModuleDefinitionId) {
-    native_method(
-        sa,
-        stdlib_id,
-        "thread::Condition",
-        "enqueue",
-        NativeFunction::ConditionEnqueue,
-    );
-
-    native_method(
-        sa,
-        stdlib_id,
-        "thread::Condition",
-        "block",
-        NativeFunction::ConditionBlock,
-    );
-
-    native_method(
-        sa,
-        stdlib_id,
-        "thread::Condition",
-        "wakeupOne",
-        NativeFunction::ConditionWakupOne,
-    );
-
-    native_method(
-        sa,
-        stdlib_id,
-        "thread::Condition",
-        "wakeupAll",
-        NativeFunction::ConditionWakupAll,
-    );
-}
-
-fn resolve_mutex(sa: &Sema, stdlib_id: ModuleDefinitionId) {
-    native_method(
-        sa,
-        stdlib_id,
-        "thread::Mutex",
-        "wait",
-        NativeFunction::MutexWait,
-    );
-
-    native_method(
-        sa,
-        stdlib_id,
-        "thread::Mutex",
-        "notify",
-        NativeFunction::MutexNotify,
     );
 }
 

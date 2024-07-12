@@ -129,7 +129,7 @@ pub fn setup_builtin_natives(vm: &mut VM) {
     vm.native_methods.lazy_compilation_stub =
         Some(lazy_compilation_stub::generate(vm).instruction_start());
 
-    let fct_id = crate::vm::stdlib::find_fct(vm, "stdlib::unreachable");
+    let fct_id = crate::vm::stdlib_lookup::find_fct(vm, "stdlib::unreachable");
     let ifct = NativeFct {
         fctptr: Address::from_ptr(stdlib::unreachable as *const u8),
         args: BytecodeTypeArray::empty(),

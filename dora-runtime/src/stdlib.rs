@@ -10,6 +10,7 @@ use std::time::Duration;
 use crate::gc::{Address, GcReason};
 use crate::handle::{create_handle, handle_scope, Handle};
 use crate::object::{Obj, Ref, Str, UInt8Array};
+use crate::stack;
 use crate::stack::stacktrace_from_last_dtn;
 use crate::stdlib;
 use crate::threads::{
@@ -30,6 +31,10 @@ pub const STDLIB_NATIVE_FUNCTIONS: &[(&'static str, *const u8)] = &[
     ("stdlib::forceMinorCollect", gc_minor_collect as *const u8),
     ("stdlib::timestamp", timestamp as *const u8),
     ("stdlib::sleep", sleep as *const u8),
+    (
+        "stdlib::symbolizeStacktraceElement",
+        stack::symbolize_stack_trace_element as *const u8,
+    ),
 ];
 
 pub const STDLIB_NATIVE_METHODS: &[(&'static str, &'static str, *const u8)] = &[
@@ -42,6 +47,36 @@ pub const STDLIB_NATIVE_METHODS: &[(&'static str, &'static str, *const u8)] = &[
         "stdlib::thread::Mutex",
         "notify",
         stdlib::mutex_notify as *const u8,
+    ),
+    (
+        "stdlib::thread::Condition",
+        "enqueue",
+        stdlib::condition_enqueue as *const u8,
+    ),
+    (
+        "stdlib::thread::Condition",
+        "block",
+        stdlib::condition_block_after_enqueue as *const u8,
+    ),
+    (
+        "stdlib::thread::Condition",
+        "wakeupOne",
+        stdlib::condition_wakeup_one as *const u8,
+    ),
+    (
+        "stdlib::thread::Condition",
+        "wakeupAll",
+        stdlib::condition_wakeup_all as *const u8,
+    ),
+    (
+        "stdlib::thread::Thread",
+        "join",
+        stdlib::join_thread as *const u8,
+    ),
+    (
+        "stdlib::Stacktrace",
+        "capture",
+        stack::capture_stack_trace as *const u8,
     ),
 ];
 
