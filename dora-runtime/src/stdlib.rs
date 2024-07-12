@@ -11,6 +11,7 @@ use crate::gc::{Address, GcReason};
 use crate::handle::{create_handle, handle_scope, Handle};
 use crate::object::{Obj, Ref, Str, UInt8Array};
 use crate::stack::stacktrace_from_last_dtn;
+use crate::stdlib;
 use crate::threads::{
     current_thread, deinit_current_thread, init_current_thread, DoraThread, ManagedThread,
     ThreadState, STACK_SIZE,
@@ -29,6 +30,19 @@ pub const STDLIB_NATIVE_FUNCTIONS: &[(&'static str, *const u8)] = &[
     ("stdlib::forceMinorCollect", gc_minor_collect as *const u8),
     ("stdlib::timestamp", timestamp as *const u8),
     ("stdlib::sleep", sleep as *const u8),
+];
+
+pub const STDLIB_NATIVE_METHODS: &[(&'static str, &'static str, *const u8)] = &[
+    (
+        "stdlib::thread::Mutex",
+        "wait",
+        stdlib::mutex_wait as *const u8,
+    ),
+    (
+        "stdlib::thread::Mutex",
+        "notify",
+        stdlib::mutex_notify as *const u8,
+    ),
 ];
 
 pub mod io;
