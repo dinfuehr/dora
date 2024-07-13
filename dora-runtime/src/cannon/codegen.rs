@@ -22,12 +22,11 @@ use crate::vm::{
     ensure_class_instance_for_enum_variant, ensure_class_instance_for_lambda,
     ensure_class_instance_for_trait_object, find_trait_impl, get_concrete_tuple_bty,
     get_concrete_tuple_bty_array, specialize_bty, specialize_bty_array, CodeDescriptor, EnumLayout,
-    GcPoint, LazyCompilationSite, Trap, INITIALIZED, VM,
+    GcPoint, Intrinsic, LazyCompilationSite, Trap, INITIALIZED, VM,
 };
 use dora_bytecode::{
     read, BytecodeFunction, BytecodeOffset, BytecodeType, BytecodeTypeArray, BytecodeVisitor,
-    ConstPoolEntry, ConstPoolIdx, FunctionId, FunctionKind, GlobalId, Intrinsic, Location,
-    Register,
+    ConstPoolEntry, ConstPoolIdx, FunctionId, FunctionKind, GlobalId, Location, Register,
 };
 
 macro_rules! comment {
@@ -2536,10 +2535,8 @@ impl<'a> CannonCodeGen<'a> {
         arguments: Vec<Register>,
         location: Location,
     ) {
-        let fct = &self.vm.program.functions[fct_id.0 as usize];
-
-        if let Some(intrinsic) = fct.intrinsic {
-            self.emit_invoke_intrinsic(dest, fct_id, intrinsic, type_params, arguments, location);
+        if let Some(intrinsic) = self.vm.intrinsics.get(&fct_id) {
+            self.emit_invoke_intrinsic(dest, fct_id, *intrinsic, type_params, arguments, location);
         } else {
             self.emit_invoke_direct(dest, fct_id, type_params, arguments, location);
         };
@@ -2617,10 +2614,8 @@ impl<'a> CannonCodeGen<'a> {
         arguments: Vec<Register>,
         location: Location,
     ) {
-        let fct = &self.vm.program.functions[fct_id.0 as usize];
-
-        if let Some(intrinsic) = fct.intrinsic {
-            self.emit_invoke_intrinsic(dest, fct_id, intrinsic, type_params, arguments, location);
+        if let Some(intrinsic) = self.vm.intrinsics.get(&fct_id) {
+            self.emit_invoke_intrinsic(dest, fct_id, *intrinsic, type_params, arguments, location);
         } else {
             self.emit_invoke_static(dest, fct_id, type_params, arguments, location);
         }

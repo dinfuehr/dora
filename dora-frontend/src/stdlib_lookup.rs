@@ -425,8 +425,6 @@ fn resolve_atomic_int64(sa: &mut Sema, stdlib_id: ModuleDefinitionId) {
 }
 
 fn resolve_thread(sa: &mut Sema, stdlib_id: ModuleDefinitionId) {
-    native_fct(sa, stdlib_id, "thread::spawn", NativeFunction::SpawnThread);
-
     intrinsic_static(
         sa,
         stdlib_id,
@@ -437,69 +435,6 @@ fn resolve_thread(sa: &mut Sema, stdlib_id: ModuleDefinitionId) {
 }
 
 fn resolve_string(sa: &Sema, stdlib_id: ModuleDefinitionId) {
-    native_method(
-        sa,
-        stdlib_id,
-        "string::String",
-        "compareTo",
-        NativeFunction::StringCompareTo,
-    );
-    native_method(
-        sa,
-        stdlib_id,
-        "string::String",
-        "toInt32Success",
-        NativeFunction::StringToInt32Success,
-    );
-    native_method(
-        sa,
-        stdlib_id,
-        "string::String",
-        "toInt64Success",
-        NativeFunction::StringToInt64Success,
-    );
-    native_method(
-        sa,
-        stdlib_id,
-        "string::String",
-        "toFloat32Success",
-        NativeFunction::StringToFloat32Success,
-    );
-    native_method(
-        sa,
-        stdlib_id,
-        "string::String",
-        "toFloat64Success",
-        NativeFunction::StringToFloat64Success,
-    );
-    native_method(
-        sa,
-        stdlib_id,
-        "string::String",
-        "toInt32OrZero",
-        NativeFunction::StringToInt32OrZero,
-    );
-    native_method(
-        sa,
-        stdlib_id,
-        "string::String",
-        "toInt64OrZero",
-        NativeFunction::StringToInt64OrZero,
-    );
-    native_method(
-        sa,
-        stdlib_id,
-        "string::String",
-        "toFloat32OrZero",
-        NativeFunction::StringToFloat32OrZero,
-    );
-    native_method(
-        sa,
-        stdlib_id,
-        "string::String",
-        "toFloat64OrZero",
-        NativeFunction::StringToFloat64OrZero,
-    );
     native_impl_method(
         sa,
         stdlib_id,
@@ -507,29 +442,6 @@ fn resolve_string(sa: &Sema, stdlib_id: ModuleDefinitionId) {
         sa.known.traits.add(),
         "add",
         NativeFunction::StringPlus,
-    );
-
-    native_static(
-        sa,
-        stdlib_id,
-        "string::String",
-        "fromBytesPart",
-        NativeFunction::StringFromBytesPart,
-    );
-    native_static(
-        sa,
-        stdlib_id,
-        "string::String",
-        "fromStringPart",
-        NativeFunction::StringFromStringPart,
-    );
-
-    native_method(
-        sa,
-        stdlib_id,
-        "string::String",
-        "clone",
-        NativeFunction::StringClone,
     );
 
     intrinsic_method(sa, stdlib_id, "string::String", "size", Intrinsic::StrLen);
@@ -1639,15 +1551,6 @@ fn intrinsic_fct(
     common_fct(sa, module_id, name, FctImplementation::Intrinsic(intrinsic))
 }
 
-fn native_fct(
-    sa: &mut Sema,
-    module_id: ModuleDefinitionId,
-    name: &str,
-    native: NativeFunction,
-) -> FctDefinitionId {
-    common_fct(sa, module_id, name, FctImplementation::Native(native))
-}
-
 fn common_fct(
     sa: &mut Sema,
     module_id: ModuleDefinitionId,
@@ -1687,23 +1590,6 @@ fn intrinsic_method(
     )
 }
 
-fn native_method(
-    sa: &Sema,
-    module_id: ModuleDefinitionId,
-    container_name: &str,
-    method_name: &str,
-    native: NativeFunction,
-) -> FctDefinitionId {
-    common_method(
-        sa,
-        module_id,
-        container_name,
-        method_name,
-        false,
-        FctImplementation::Native(native),
-    )
-}
-
 fn intrinsic_static(
     sa: &Sema,
     module_id: ModuleDefinitionId,
@@ -1718,23 +1604,6 @@ fn intrinsic_static(
         method_name,
         true,
         FctImplementation::Intrinsic(intrinsic),
-    );
-}
-
-fn native_static(
-    sa: &Sema,
-    module_id: ModuleDefinitionId,
-    container_name: &str,
-    method_name: &str,
-    native: NativeFunction,
-) {
-    common_method(
-        sa,
-        module_id,
-        container_name,
-        method_name,
-        true,
-        FctImplementation::Native(native),
     );
 }
 

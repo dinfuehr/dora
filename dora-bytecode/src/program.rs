@@ -207,22 +207,9 @@ pub enum NativeFunction {
     CharToString,
     Int32ToString,
     Int64ToString,
-    StringCompareTo,
-    StringToInt32Success,
-    StringToInt64Success,
-    StringToFloat32Success,
-    StringToFloat64Success,
-    StringToInt32OrZero,
-    StringToInt64OrZero,
-    StringToFloat32OrZero,
-    StringToFloat64OrZero,
     StringPlus,
     Float32ToString,
     Float64ToString,
-    StringFromBytesPart,
-    StringFromStringPart,
-    SpawnThread,
-    StringClone,
 }
 
 #[derive(Copy, Clone, Debug, PartialEq, Eq, Decode, Encode)]

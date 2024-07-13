@@ -35,6 +35,7 @@ pub const STDLIB_NATIVE_FUNCTIONS: &[(&'static str, *const u8)] = &[
         "stdlib::symbolizeStacktraceElement",
         stack::symbolize_stack_trace_element as *const u8,
     ),
+    ("stdlib::thread::spawn", stdlib::spawn_thread as *const u8),
 ];
 
 pub const STDLIB_NATIVE_METHODS: &[(&'static str, &'static str, *const u8)] = &[
@@ -77,6 +78,66 @@ pub const STDLIB_NATIVE_METHODS: &[(&'static str, &'static str, *const u8)] = &[
         "stdlib::Stacktrace",
         "capture",
         stack::capture_stack_trace as *const u8,
+    ),
+    (
+        "stdlib::string::String",
+        "clone",
+        stdlib::str_clone as *const u8,
+    ),
+    (
+        "stdlib::string::String",
+        "fromBytesPart",
+        stdlib::str_from_bytes as *const u8,
+    ),
+    (
+        "stdlib::string::String",
+        "fromStringPart",
+        stdlib::str_from_bytes as *const u8,
+    ),
+    (
+        "stdlib::string::String",
+        "compareTo",
+        stdlib::strcmp as *const u8,
+    ),
+    (
+        "stdlib::string::String",
+        "toInt32Success",
+        stdlib::str_to_int32_success as *const u8,
+    ),
+    (
+        "stdlib::string::String",
+        "toInt64Success",
+        stdlib::str_to_int64_success as *const u8,
+    ),
+    (
+        "stdlib::string::String",
+        "toInt32OrZero",
+        stdlib::str_to_int32 as *const u8,
+    ),
+    (
+        "stdlib::string::String",
+        "toInt64OrZero",
+        stdlib::str_to_int64 as *const u8,
+    ),
+    (
+        "stdlib::string::String",
+        "toFloat32Success",
+        stdlib::str_to_float32_success as *const u8,
+    ),
+    (
+        "stdlib::string::String",
+        "toFloat64Success",
+        stdlib::str_to_float64_success as *const u8,
+    ),
+    (
+        "stdlib::string::String",
+        "toFloat32OrZero",
+        stdlib::str_to_float32 as *const u8,
+    ),
+    (
+        "stdlib::string::String",
+        "toFloat64OrZero",
+        stdlib::str_to_float64 as *const u8,
     ),
 ];
 

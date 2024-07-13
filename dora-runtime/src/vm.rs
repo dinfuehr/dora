@@ -40,6 +40,7 @@ pub use self::flags::{CollectorName, Compiler, Flags, MemSize};
 use self::globals::GlobalVariableMemory;
 pub use self::globals::{INITIALIZED, RUNNING, UNINITIALIZED};
 pub use self::impls::{bounds_for_tp, find_trait_impl, tp_implements_trait, ty_implements_trait};
+pub use self::known::Intrinsic;
 use self::known::KnownElements;
 pub use self::modules::{module_path, module_path_name};
 pub use self::natives::{setup_builtin_natives, NativeMethods};
@@ -145,6 +146,7 @@ pub struct VM {
     pub global_variable_memory: Option<GlobalVariableMemory>,
     pub gc: Gc, // garbage collector
     pub native_methods: NativeMethods,
+    pub intrinsics: HashMap<FunctionId, Intrinsic>,
     pub threads: Threads,
     pub wait_lists: WaitLists,
     pub state: AtomicU8,
@@ -174,6 +176,7 @@ impl VM {
             code_objects: CodeObjects::new(),
             code_map: CodeMap::new(),
             native_methods: NativeMethods::new(),
+            intrinsics: HashMap::new(),
             threads: Threads::new(),
             wait_lists: WaitLists::new(),
             state: AtomicU8::new(VmState::Running.into()),

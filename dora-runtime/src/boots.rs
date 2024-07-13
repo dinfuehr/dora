@@ -467,8 +467,11 @@ extern "C" fn find_trait_impl_raw(data: Handle<UInt8Array>) -> u32 {
 
 extern "C" fn get_intrinsic_for_function_raw(id: u32) -> i32 {
     let vm = get_vm();
-    let fct = &vm.program.functions[id as usize];
-    fct.intrinsic.map(|i| i as u32 as i32).unwrap_or(-1)
+    let id = FunctionId(id);
+    vm.intrinsics
+        .get(&id)
+        .map(|i| *i as u32 as i32)
+        .unwrap_or(-1)
 }
 
 extern "C" fn get_function_display_name_raw(id: u32) -> Ref<UInt8Array> {

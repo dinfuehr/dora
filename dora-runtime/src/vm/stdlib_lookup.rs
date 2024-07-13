@@ -4,7 +4,7 @@ use crate::boots::BOOTS_NATIVE_FUNCTIONS;
 use crate::gc::Address;
 use crate::stdlib::io::IO_NATIVE_FUNCTIONS;
 use crate::stdlib::{self, STDLIB_NATIVE_FUNCTIONS, STDLIB_NATIVE_METHODS};
-use crate::vm::{BytecodeType, VM};
+use crate::vm::{BytecodeType, Intrinsic, VM};
 use dora_bytecode::{
     ClassId, ExtensionId, FunctionId, FunctionKind, ModuleId, NativeFunction, PackageId,
 };
@@ -39,39 +39,6 @@ pub fn connect_native_functions_to_implementation(vm: &mut VM) {
             NativeFunction::Int64ToString,
             stdlib::int64_to_string as *const u8,
         ),
-        (NativeFunction::StringCompareTo, stdlib::strcmp as *const u8),
-        (
-            NativeFunction::StringToInt32Success,
-            stdlib::str_to_int32_success as *const u8,
-        ),
-        (
-            NativeFunction::StringToInt64Success,
-            stdlib::str_to_int64_success as *const u8,
-        ),
-        (
-            NativeFunction::StringToFloat32Success,
-            stdlib::str_to_float32_success as *const u8,
-        ),
-        (
-            NativeFunction::StringToFloat64Success,
-            stdlib::str_to_float64_success as *const u8,
-        ),
-        (
-            NativeFunction::StringToInt32OrZero,
-            stdlib::str_to_int32 as *const u8,
-        ),
-        (
-            NativeFunction::StringToInt64OrZero,
-            stdlib::str_to_int64 as *const u8,
-        ),
-        (
-            NativeFunction::StringToFloat32OrZero,
-            stdlib::str_to_float32 as *const u8,
-        ),
-        (
-            NativeFunction::StringToFloat64OrZero,
-            stdlib::str_to_float64 as *const u8,
-        ),
         (NativeFunction::StringPlus, stdlib::strcat as *const u8),
         (
             NativeFunction::Float32ToString,
@@ -81,19 +48,6 @@ pub fn connect_native_functions_to_implementation(vm: &mut VM) {
             NativeFunction::Float64ToString,
             stdlib::float64_to_string as *const u8,
         ),
-        (
-            NativeFunction::StringFromBytesPart,
-            stdlib::str_from_bytes as *const u8,
-        ),
-        (
-            NativeFunction::StringFromStringPart,
-            stdlib::str_from_bytes as *const u8,
-        ),
-        (
-            NativeFunction::SpawnThread,
-            stdlib::spawn_thread as *const u8,
-        ),
-        (NativeFunction::StringClone, stdlib::str_clone as *const u8),
     ]);
 
     if vm.program.boots_package_id.is_some() {
@@ -112,6 +66,12 @@ pub fn connect_native_functions_to_implementation(vm: &mut VM) {
             } else if vm.native_methods.get(fct_id).is_none() {
                 panic!("unknown native function {}", fct.name);
             }
+        }
+
+        if let Some(intrinsic) = fct.intrinsic {
+            let intrinsic = Intrinsic::from_bytecode(intrinsic);
+            let old = vm.intrinsics.insert(fct_id, intrinsic);
+            assert!(old.is_none());
         }
     }
 

@@ -33,7 +33,7 @@ def read_enum(name)
     values = []
     parse_line = false
 
-    input_files = ['dora-bytecode/src/data.rs', 'dora-bytecode/src/program.rs', 'dora-runtime/src/boots/data.rs']
+    input_files = ['dora-bytecode/src/data.rs', 'dora-runtime/src/boots/data.rs', 'dora-runtime/src/vm/known.rs']
 
     for input_file in input_files
         File.open(input_file).each_line do |line|
