@@ -141,6 +141,14 @@ pub const STDLIB_NATIVE_METHODS: &[(&'static str, &'static str, *const u8)] = &[
     ),
 ];
 
+pub const STDLIB_NATIVE_IMPL_METHODS: &[(&'static str, &'static str, &'static str, *const u8)] =
+    &[(
+        "stdlib::string::Stringable",
+        "stdlib::primitives::UInt8",
+        "toString",
+        stdlib::uint8_to_string as *const u8,
+    )];
+
 pub mod io;
 
 pub extern "C" fn uint8_to_string(val: u8) -> Ref<Str> {

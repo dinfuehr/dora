@@ -3,7 +3,9 @@ use std::collections::HashMap;
 use crate::boots::BOOTS_NATIVE_FUNCTIONS;
 use crate::gc::Address;
 use crate::stdlib::io::IO_NATIVE_FUNCTIONS;
-use crate::stdlib::{self, STDLIB_NATIVE_FUNCTIONS, STDLIB_NATIVE_METHODS};
+use crate::stdlib::{
+    self, STDLIB_NATIVE_FUNCTIONS, STDLIB_NATIVE_IMPL_METHODS, STDLIB_NATIVE_METHODS,
+};
 use crate::vm::{BytecodeType, Intrinsic, VM};
 use dora_bytecode::{
     ClassId, ExtensionId, FunctionId, FunctionKind, ModuleId, NativeFunction, PackageId,
@@ -16,6 +18,10 @@ pub fn connect_native_functions_to_implementation(vm: &mut VM) {
 
     for (path, method_name, ptr) in STDLIB_NATIVE_METHODS {
         native_method(vm, path, method_name, *ptr);
+    }
+
+    for (trait_path, extended_ty_name, method_name, ptr) in STDLIB_NATIVE_IMPL_METHODS {
+        native_impl_method(vm, trait_path, extended_ty_name, method_name, *ptr);
     }
 
     for (path, ptr) in IO_NATIVE_FUNCTIONS {
@@ -103,6 +109,15 @@ fn native_method(vm: &mut VM, full_path: &str, method_name: &str, ptr: *const u8
     }
 
     assert!(old.is_none());
+}
+
+fn native_impl_method(
+    _vm: &mut VM,
+    _trait_path: &str,
+    _extended_ty_path: &str,
+    _method_name: &str,
+    _ptr: *const u8,
+) {
 }
 
 fn lookup_fct_by_extension_id_and_name(
