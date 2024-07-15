@@ -18,10 +18,6 @@ impl std::traits::Not for Bool {
   @internal fn not(): Bool;
 }
 
-impl std::traits::Comparable for Bool {
-  @internal fn cmp(other: Bool): Ordering;
-}
-
 impl std::traits::Equals for Bool {
   @internal fn equals(other: Bool): Bool;
 }
