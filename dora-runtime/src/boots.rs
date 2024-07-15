@@ -59,8 +59,8 @@ pub const BOOTS_NATIVE_FUNCTIONS: &[(&'static str, *const u8)] = &[
         get_global_initializer_function_id as *const u8,
     ),
     (
-        "boots::interface::getSystemConfig",
-        get_system_config as *const u8,
+        "boots::interface::getSystemConfigRaw",
+        get_system_config_raw as *const u8,
     ),
     (
         "boots::interface::getFunctionAddressRaw",
@@ -420,7 +420,7 @@ fn get_field_offset_raw(
     field.offset.try_into().expect("overflow")
 }
 
-extern "C" fn get_system_config() -> Ref<UInt8Array> {
+extern "C" fn get_system_config_raw() -> Ref<UInt8Array> {
     let vm = get_vm();
     serializer::allocate_encoded_system_config(vm)
 }
