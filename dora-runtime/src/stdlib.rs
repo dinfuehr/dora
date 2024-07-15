@@ -7,6 +7,8 @@ use std::str;
 use std::thread;
 use std::time::Duration;
 
+use dora_bytecode::BytecodeType;
+
 use crate::gc::{Address, GcReason};
 use crate::handle::{create_handle, handle_scope, Handle};
 use crate::object::{Obj, Ref, Str, UInt8Array};
@@ -141,12 +143,56 @@ pub const STDLIB_NATIVE_METHODS: &[(&'static str, &'static str, *const u8)] = &[
     ),
 ];
 
-pub const STDLIB_NATIVE_IMPL_METHODS: &[(&'static str, &'static str, &'static str, *const u8)] =
-    &[(
+pub const STDLIB_NATIVE_PRIMITIVE_IMPL_METHODS: &[(
+    &'static str,
+    BytecodeType,
+    &'static str,
+    *const u8,
+)] = &[
+    (
         "stdlib::string::Stringable",
-        "stdlib::primitives::UInt8",
+        BytecodeType::UInt8,
         "toString",
         stdlib::uint8_to_string as *const u8,
+    ),
+    (
+        "stdlib::string::Stringable",
+        BytecodeType::Char,
+        "toString",
+        stdlib::char_to_string as *const u8,
+    ),
+    (
+        "stdlib::string::Stringable",
+        BytecodeType::Int32,
+        "toString",
+        stdlib::int32_to_string as *const u8,
+    ),
+    (
+        "stdlib::string::Stringable",
+        BytecodeType::Int64,
+        "toString",
+        stdlib::int64_to_string as *const u8,
+    ),
+    (
+        "stdlib::string::Stringable",
+        BytecodeType::Float32,
+        "toString",
+        stdlib::float32_to_string as *const u8,
+    ),
+    (
+        "stdlib::string::Stringable",
+        BytecodeType::Float64,
+        "toString",
+        stdlib::float64_to_string as *const u8,
+    ),
+];
+
+pub const STDLIB_NATIVE_IMPL_METHODS: &[(&'static str, &'static str, &'static str, *const u8)] =
+    &[(
+        "stdlib::traits::Add",
+        "stdlib::string::String",
+        "add",
+        stdlib::strcat as *const u8,
     )];
 
 pub mod io;

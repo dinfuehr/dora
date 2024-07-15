@@ -34,7 +34,7 @@ pub struct FunctionData {
     pub source_file_id: Option<SourceFileId>,
     pub params: Vec<BytecodeType>,
     pub return_type: BytecodeType,
-    pub native: Option<NativeFunction>,
+    pub is_native: bool,
     pub intrinsic: Option<Intrinsic>,
     pub vtable_index: Option<u32>,
     pub is_test: bool,

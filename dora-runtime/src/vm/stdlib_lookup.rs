@@ -4,12 +4,13 @@ use crate::boots::BOOTS_NATIVE_FUNCTIONS;
 use crate::gc::Address;
 use crate::stdlib::io::IO_NATIVE_FUNCTIONS;
 use crate::stdlib::{
-    self, STDLIB_NATIVE_FUNCTIONS, STDLIB_NATIVE_IMPL_METHODS, STDLIB_NATIVE_METHODS,
+    STDLIB_NATIVE_FUNCTIONS, STDLIB_NATIVE_IMPL_METHODS, STDLIB_NATIVE_METHODS,
+    STDLIB_NATIVE_PRIMITIVE_IMPL_METHODS,
 };
-use crate::vm::{BytecodeType, Intrinsic, VM};
+use crate::vm::{display_ty, BytecodeType, Intrinsic, VM};
 use dora_bytecode::{
-    ClassId, EnumId, ExtensionId, FunctionId, FunctionKind, ModuleId, NativeFunction, PackageId,
-    Program, StructId, TraitId,
+    ClassId, EnumId, ExtensionId, FunctionId, FunctionKind, ImplId, ModuleId, PackageId, Program,
+    StructId, TraitId,
 };
 
 pub fn lookup(vm: &mut VM) {
@@ -23,12 +24,23 @@ pub fn lookup(vm: &mut VM) {
         native_method(vm, &module_items, path, method_name, *ptr);
     }
 
-    for (trait_path, extended_ty_name, method_name, ptr) in STDLIB_NATIVE_IMPL_METHODS {
+    for (trait_path, extended_ty, method_name, ptr) in STDLIB_NATIVE_PRIMITIVE_IMPL_METHODS {
+        native_impl_method_ty(
+            vm,
+            &module_items,
+            trait_path,
+            extended_ty.clone(),
+            method_name,
+            *ptr,
+        );
+    }
+
+    for (trait_path, extended_ty, method_name, ptr) in STDLIB_NATIVE_IMPL_METHODS {
         native_impl_method(
             vm,
             &module_items,
             trait_path,
-            extended_ty_name,
+            extended_ty,
             method_name,
             *ptr,
         );
@@ -37,34 +49,6 @@ pub fn lookup(vm: &mut VM) {
     for (path, ptr) in IO_NATIVE_FUNCTIONS {
         native_fct(vm, &module_items, path, *ptr);
     }
-
-    let mut mappings: HashMap<NativeFunction, *const u8> = HashMap::from([
-        (
-            NativeFunction::UInt8ToString,
-            stdlib::uint8_to_string as *const u8,
-        ),
-        (
-            NativeFunction::CharToString,
-            stdlib::char_to_string as *const u8,
-        ),
-        (
-            NativeFunction::Int32ToString,
-            stdlib::int32_to_string as *const u8,
-        ),
-        (
-            NativeFunction::Int64ToString,
-            stdlib::int64_to_string as *const u8,
-        ),
-        (NativeFunction::StringPlus, stdlib::strcat as *const u8),
-        (
-            NativeFunction::Float32ToString,
-            stdlib::float32_to_string as *const u8,
-        ),
-        (
-            NativeFunction::Float64ToString,
-            stdlib::float64_to_string as *const u8,
-        ),
-    ]);
 
     if vm.program.boots_package_id.is_some() {
         for (path, ptr) in BOOTS_NATIVE_FUNCTIONS {
@@ -78,13 +62,8 @@ pub fn lookup(vm: &mut VM) {
     for (fct_id, fct) in vm.program.functions.iter().enumerate() {
         let fct_id = FunctionId(fct_id as u32);
 
-        if let Some(native_function) = fct.native {
-            if let Some(ptr) = mappings.remove(&native_function) {
-                let old = vm.native_methods.insert(fct_id, Address::from_ptr(ptr));
-                assert!(old.is_none());
-            } else if vm.native_methods.get(fct_id).is_none() {
-                panic!("unknown native function {}", fct.name);
-            }
+        if fct.is_native && vm.native_methods.get(fct_id).is_none() {
+            panic!("unknown native function {}", fct.name);
         }
 
         if let Some(intrinsic) = fct.intrinsic {
@@ -93,8 +72,6 @@ pub fn lookup(vm: &mut VM) {
             assert!(old.is_none());
         }
     }
-
-    assert!(mappings.is_empty());
 }
 
 fn native_fct(vm: &mut VM, module_items: &ModuleItemMap, full_path: &str, ptr: *const u8) {
@@ -118,10 +95,8 @@ fn native_method(
     method_name: &str,
     ptr: *const u8,
 ) {
-    let class_id = resolve_path(vm, module_items, full_path)
-        .class_id()
-        .expect("class expected");
-    let extension_id = lookup_extension_by_class_id(vm, class_id).expect("class not found");
+    let extended_ty = resolve_path(vm, module_items, full_path);
+    let extension_id = lookup_extension_for_item(vm, extended_ty).expect("class not found");
     let fct_id =
         lookup_fct_by_extension_id_and_name(vm, extension_id, method_name).expect("missing method");
 
@@ -134,20 +109,59 @@ fn native_method(
     assert!(old.is_none());
 }
 
+fn native_impl_method_ty(
+    vm: &mut VM,
+    module_items: &ModuleItemMap,
+    trait_path: &str,
+    extended_ty: BytecodeType,
+    method_name: &str,
+    ptr: *const u8,
+) {
+    let trait_id = resolve_path(vm, module_items, trait_path)
+        .trait_id()
+        .expect("trait expected");
+    let impl_id = lookup_impl_for_ty(vm, trait_id, extended_ty.clone()).expect("missing impl");
+    let fct_id = lookup_fct_by_impl_id_and_name(vm, impl_id, method_name).expect("missing method");
+
+    let old = vm.native_methods.insert(fct_id, Address::from_ptr(ptr));
+
+    if old.is_some() {
+        panic!(
+            "function {} in `impl {} for {}` was already initialized",
+            method_name,
+            trait_path,
+            display_ty(vm, &extended_ty)
+        );
+    }
+
+    assert!(old.is_none());
+}
+
 fn native_impl_method(
     vm: &mut VM,
     module_items: &ModuleItemMap,
     trait_path: &str,
     extended_ty_path: &str,
-    _method_name: &str,
-    _ptr: *const u8,
+    method_name: &str,
+    ptr: *const u8,
 ) {
-    let _trait_id = resolve_path(vm, module_items, trait_path)
+    let trait_id = resolve_path(vm, module_items, trait_path)
         .trait_id()
         .expect("trait expected");
-    let _struct_id = resolve_path(vm, module_items, extended_ty_path)
-        .struct_id()
-        .expect("struct expected");
+    let extended_ty = resolve_path(vm, module_items, extended_ty_path);
+    let impl_id = lookup_impl_for_item(vm, trait_id, extended_ty).expect("missing impl");
+    let fct_id = lookup_fct_by_impl_id_and_name(vm, impl_id, method_name).expect("missing method");
+
+    let old = vm.native_methods.insert(fct_id, Address::from_ptr(ptr));
+
+    if old.is_some() {
+        panic!(
+            "function {} in `impl {} for {:?}` was already initialized",
+            method_name, trait_path, extended_ty
+        );
+    }
+
+    assert!(old.is_none());
 }
 
 fn lookup_fct_by_extension_id_and_name(
@@ -167,13 +181,60 @@ fn lookup_fct_by_extension_id_and_name(
     None
 }
 
-fn lookup_extension_by_class_id(vm: &VM, class_id: ClassId) -> Option<ExtensionId> {
-    for (id, extension) in vm.program.extensions.iter().enumerate() {
-        let ty = &extension.extended_ty;
+fn lookup_fct_by_impl_id_and_name(vm: &VM, impl_id: ImplId, name: &str) -> Option<FunctionId> {
+    for (id, fct) in vm.program.functions.iter().enumerate() {
+        match fct.kind {
+            FunctionKind::Impl(fct_impl_id) if fct_impl_id == impl_id && fct.name == name => {
+                return Some(FunctionId(id.try_into().expect("overflow")));
+            }
 
-        match ty {
-            BytecodeType::Class(ext_class_id, ..) if class_id == *ext_class_id => {
+            _ => {}
+        }
+    }
+    None
+}
+
+fn lookup_extension_for_item(vm: &VM, extended_ty: ModuleItem) -> Option<ExtensionId> {
+    for (id, extension) in vm.program.extensions.iter().enumerate() {
+        match &extension.extended_ty {
+            BytecodeType::Class(ext_class_id, ..)
+                if extended_ty == ModuleItem::Class(*ext_class_id) =>
+            {
                 return Some(ExtensionId(id.try_into().expect("overflow")));
+            }
+
+            _ => {}
+        }
+    }
+
+    None
+}
+
+fn lookup_impl_for_ty(vm: &VM, trait_id: TraitId, extended_ty: BytecodeType) -> Option<ImplId> {
+    for (id, impl_) in vm.program.impls.iter().enumerate() {
+        match &impl_.trait_ty {
+            BytecodeType::Trait(impl_trait_id, ..) if *impl_trait_id == trait_id => {}
+            _ => continue,
+        }
+
+        if impl_.extended_ty == extended_ty {
+            return Some(ImplId(id.try_into().expect("overflow")));
+        }
+    }
+
+    None
+}
+
+fn lookup_impl_for_item(vm: &VM, trait_id: TraitId, extended_ty: ModuleItem) -> Option<ImplId> {
+    for (id, impl_) in vm.program.impls.iter().enumerate() {
+        match &impl_.trait_ty {
+            BytecodeType::Trait(impl_trait_id, ..) if *impl_trait_id == trait_id => {}
+            _ => continue,
+        }
+
+        match impl_.extended_ty {
+            BytecodeType::Class(class_id, ..) if extended_ty == ModuleItem::Class(class_id) => {
+                return Some(ImplId(id.try_into().expect("overflow")));
             }
 
             _ => {}
