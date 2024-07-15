@@ -270,7 +270,8 @@ impl<'a> TypeCheck<'a> {
             fields.push(field);
         }
 
-        let name = self.sa.interner.intern("$Context");
+        let name = self.sa.generate_context_name();
+        let name = self.sa.interner.intern(&name);
 
         let class = ClassDefinition::new_without_source(
             self.package_id,

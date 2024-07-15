@@ -2,6 +2,7 @@ use std::cell::RefCell;
 use std::collections::HashMap;
 use std::path::PathBuf;
 use std::rc::Rc;
+use std::sync::atomic::{AtomicU32, Ordering};
 
 use id_arena::Arena;
 
@@ -109,6 +110,8 @@ pub struct Sema {
     pub stdlib_package_id: Option<PackageDefinitionId>,
     pub program_package_id: Option<PackageDefinitionId>,
     pub boots_package_id: Option<PackageDefinitionId>,
+    next_context_id: AtomicU32,
+    next_lambda_id: AtomicU32,
 }
 
 impl Sema {
@@ -140,6 +143,8 @@ impl Sema {
             stdlib_package_id: None,
             program_package_id: None,
             boots_package_id: None,
+            next_context_id: AtomicU32::new(1),
+            next_lambda_id: AtomicU32::new(1),
         }
     }
 
@@ -286,5 +291,15 @@ impl Sema {
 
     pub fn warn(&self, file: SourceFileId, span: Span, msg: ErrorMessage) {
         self.diag.borrow_mut().warn(file, span, msg);
+    }
+
+    pub fn generate_context_name(&self) -> String {
+        let id = self.next_context_id.fetch_add(1, Ordering::Relaxed);
+        format!("$Context{id}")
+    }
+
+    pub fn generate_lambda_name(&self) -> String {
+        let id = self.next_lambda_id.fetch_add(1, Ordering::Relaxed);
+        format!("$Lambda{id}")
     }
 }

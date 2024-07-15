@@ -1312,7 +1312,8 @@ fn check_expr_lambda(
         analysis
     };
 
-    let name = ck.sa.interner.intern("<closure>");
+    let name = ck.sa.generate_lambda_name();
+    let name = ck.sa.interner.intern(&name);
 
     let lambda = FctDefinition::new(
         ck.package_id,

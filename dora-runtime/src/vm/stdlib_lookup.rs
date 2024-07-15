@@ -8,10 +8,13 @@ use crate::stdlib::{
 };
 use crate::vm::{BytecodeType, Intrinsic, VM};
 use dora_bytecode::{
-    ClassId, ExtensionId, FunctionId, FunctionKind, ModuleId, NativeFunction, PackageId,
+    ClassId, EnumId, ExtensionId, FunctionId, FunctionKind, ModuleId, NativeFunction, PackageId,
+    Program, StructId, TraitId,
 };
 
 pub fn connect_native_functions_to_implementation(vm: &mut VM) {
+    let _module_items = compute_module_items(&vm.program);
+
     for (path, ptr) in STDLIB_NATIVE_FUNCTIONS {
         native_fct(vm, path, *ptr);
     }
@@ -112,12 +115,26 @@ fn native_method(vm: &mut VM, full_path: &str, method_name: &str, ptr: *const u8
 }
 
 fn native_impl_method(
-    _vm: &mut VM,
-    _trait_path: &str,
-    _extended_ty_path: &str,
+    vm: &mut VM,
+    trait_path: &str,
+    extended_ty_path: &str,
     _method_name: &str,
     _ptr: *const u8,
 ) {
+    let _trait_id = find_trait(vm, trait_path);
+    let _struct_id = find_struct(vm, extended_ty_path);
+
+    // let extension_id = lookup_extension_by_class_id(vm, class_id).expect("class not found");
+    // let fct_id =
+    //     lookup_fct_by_extension_id_and_name(vm, extension_id, method_name).expect("missing method");
+
+    // let old = vm.native_methods.insert(fct_id, Address::from_ptr(ptr));
+
+    // if old.is_some() {
+    //     panic!("function {} was already initialized", full_path);
+    // }
+
+    // assert!(old.is_none());
 }
 
 fn lookup_fct_by_extension_id_and_name(
@@ -224,7 +241,85 @@ fn find_class(vm: &VM, full_path: &str) -> ClassId {
     }
 
     match lookup_class_by_module_id_and_name(vm, module_id, fct_name) {
-        Some(fct_id) => fct_id,
+        Some(class_id) => class_id,
+        None => {
+            panic!("unknown function {} in path {}", fct_name, full_path);
+        }
+    }
+}
+
+fn find_struct(vm: &VM, full_path: &str) -> StructId {
+    let mut components = full_path.split("::");
+
+    let package_name = components.next().expect("missing package name");
+    let package_id = match lookup_package(vm, package_name) {
+        Some(package_id) => package_id,
+        None => {
+            panic!("unknown package {} in path {}", package_name, full_path);
+        }
+    };
+
+    let mut path = Vec::new();
+
+    while let Some(component) = components.next() {
+        path.push(component);
+    }
+
+    let fct_name = path.pop().expect("missing function name");
+
+    let package = &vm.program.packages[package_id.0 as usize];
+    let mut module_id = package.root_module_id;
+
+    for component in path {
+        module_id = match lookup_module_by_parent_id_and_name(vm, module_id, component) {
+            Some(next_module_id) => next_module_id,
+            None => {
+                panic!("unknown module {} in path {}", component, full_path);
+            }
+        };
+    }
+
+    match lookup_struct_by_module_id_and_name(vm, module_id, fct_name) {
+        Some(struct_id) => struct_id,
+        None => {
+            panic!("unknown function {} in path {}", fct_name, full_path);
+        }
+    }
+}
+
+fn find_trait(vm: &VM, full_path: &str) -> TraitId {
+    let mut components = full_path.split("::");
+
+    let package_name = components.next().expect("missing package name");
+    let package_id = match lookup_package(vm, package_name) {
+        Some(package_id) => package_id,
+        None => {
+            panic!("unknown package {} in path {}", package_name, full_path);
+        }
+    };
+
+    let mut path = Vec::new();
+
+    while let Some(component) = components.next() {
+        path.push(component);
+    }
+
+    let fct_name = path.pop().expect("missing function name");
+
+    let package = &vm.program.packages[package_id.0 as usize];
+    let mut module_id = package.root_module_id;
+
+    for component in path {
+        module_id = match lookup_module_by_parent_id_and_name(vm, module_id, component) {
+            Some(next_module_id) => next_module_id,
+            None => {
+                panic!("unknown module {} in path {}", component, full_path);
+            }
+        };
+    }
+
+    match lookup_trait_by_module_id_and_name(vm, module_id, fct_name) {
+        Some(trait_id) => trait_id,
         None => {
             panic!("unknown function {} in path {}", fct_name, full_path);
         }
@@ -279,6 +374,30 @@ fn lookup_class_by_module_id_and_name(vm: &VM, module_id: ModuleId, name: &str) 
     None
 }
 
+fn lookup_struct_by_module_id_and_name(
+    vm: &VM,
+    module_id: ModuleId,
+    name: &str,
+) -> Option<StructId> {
+    for (id, struct_) in vm.program.structs.iter().enumerate() {
+        if struct_.module_id == module_id && struct_.name == name {
+            return Some(StructId(id.try_into().expect("overflow")));
+        }
+    }
+
+    None
+}
+
+fn lookup_trait_by_module_id_and_name(vm: &VM, module_id: ModuleId, name: &str) -> Option<TraitId> {
+    for (id, trait_) in vm.program.traits.iter().enumerate() {
+        if trait_.module_id == module_id && trait_.name == name {
+            return Some(TraitId(id.try_into().expect("overflow")));
+        }
+    }
+
+    None
+}
+
 pub fn lookup_known_classes(vm: &mut VM) {
     vm.known.array_class_id = Some(find_class(vm, "stdlib::collections::Array"));
     vm.known.string_class_id = Some(find_class(vm, "stdlib::string::String"));
@@ -289,4 +408,68 @@ pub fn lookup_known_functions(vm: &mut VM) {
     if vm.program.boots_package_id.is_some() {
         vm.known.boots_compile_fct_id = Some(find_fct(vm, "boots::interface::compile"));
     }
+}
+
+fn compute_module_items(program: &Program) -> ModuleItemMap {
+    let mut map = ModuleItemMap::new();
+
+    for (id, module) in program.modules.iter().enumerate() {
+        let id = ModuleId(id.try_into().expect("overflow"));
+        if let Some(parent_id) = module.parent_id {
+            map.insert(parent_id, &module.name, ModuleItem::Module(id));
+        }
+    }
+
+    for (id, trait_) in program.traits.iter().enumerate() {
+        let id = TraitId(id.try_into().expect("overflow"));
+        map.insert(trait_.module_id, &trait_.name, ModuleItem::Trait(id));
+    }
+
+    for (id, class) in program.classes.iter().enumerate() {
+        let id = ClassId(id.try_into().expect("overflow"));
+        map.insert(class.module_id, &class.name, ModuleItem::Class(id));
+    }
+
+    for (id, struct_) in program.structs.iter().enumerate() {
+        let id = StructId(id.try_into().expect("overflow"));
+        map.insert(struct_.module_id, &struct_.name, ModuleItem::Struct(id));
+    }
+
+    for (id, enum_) in program.enums.iter().enumerate() {
+        let id = EnumId(id.try_into().expect("overflow"));
+        map.insert(enum_.module_id, &enum_.name, ModuleItem::Enum(id));
+    }
+
+    map
+}
+
+struct ModuleItemMap {
+    data: HashMap<ModuleId, HashMap<String, ModuleItem>>,
+}
+
+impl ModuleItemMap {
+    fn new() -> ModuleItemMap {
+        ModuleItemMap {
+            data: HashMap::new(),
+        }
+    }
+
+    fn insert(&mut self, id: ModuleId, name: &str, item: ModuleItem) {
+        let entry = self.data.entry(id).or_default();
+        assert!(entry.insert(name.to_string(), item).is_none());
+    }
+
+    fn get(&self, id: ModuleId, name: &str) -> Option<ModuleItem> {
+        self.data.get(&id).and_then(|m| m.get(name)).cloned()
+    }
+}
+
+#[derive(PartialEq, Debug, Clone)]
+enum ModuleItem {
+    Class(ClassId),
+    Struct(StructId),
+    Enum(EnumId),
+    Trait(TraitId),
+    Module(ModuleId),
+    Function(FunctionId),
 }
