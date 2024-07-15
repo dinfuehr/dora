@@ -28,6 +28,7 @@ pub struct KnownElements {
     pub thread_class_id: Option<ClassId>,
     pub boots_compile_fct_id: Option<FunctionId>,
     pub boots_compile_fct_address: OnceCell<Address>,
+    pub unreachable_fct_id: Option<FunctionId>,
 }
 
 impl KnownElements {
@@ -53,6 +54,7 @@ impl KnownElements {
             thread_class_id: None,
             boots_compile_fct_id: None,
             boots_compile_fct_address: OnceCell::new(),
+            unreachable_fct_id: None,
         }
     }
 

@@ -12,23 +12,30 @@ use dora_bytecode::{
     Program, StructId, TraitId,
 };
 
-pub fn connect_native_functions_to_implementation(vm: &mut VM) {
-    let _module_items = compute_module_items(&vm.program);
+pub fn lookup(vm: &mut VM) {
+    let module_items = compute_module_items(&vm.program);
 
     for (path, ptr) in STDLIB_NATIVE_FUNCTIONS {
-        native_fct(vm, path, *ptr);
+        native_fct(vm, &module_items, path, *ptr);
     }
 
     for (path, method_name, ptr) in STDLIB_NATIVE_METHODS {
-        native_method(vm, path, method_name, *ptr);
+        native_method(vm, &module_items, path, method_name, *ptr);
     }
 
     for (trait_path, extended_ty_name, method_name, ptr) in STDLIB_NATIVE_IMPL_METHODS {
-        native_impl_method(vm, trait_path, extended_ty_name, method_name, *ptr);
+        native_impl_method(
+            vm,
+            &module_items,
+            trait_path,
+            extended_ty_name,
+            method_name,
+            *ptr,
+        );
     }
 
     for (path, ptr) in IO_NATIVE_FUNCTIONS {
-        native_fct(vm, path, *ptr);
+        native_fct(vm, &module_items, path, *ptr);
     }
 
     let mut mappings: HashMap<NativeFunction, *const u8> = HashMap::from([
@@ -61,9 +68,12 @@ pub fn connect_native_functions_to_implementation(vm: &mut VM) {
 
     if vm.program.boots_package_id.is_some() {
         for (path, ptr) in BOOTS_NATIVE_FUNCTIONS {
-            native_fct(vm, path, *ptr);
+            native_fct(vm, &module_items, path, *ptr);
         }
     }
+
+    lookup_known_classes(vm, &module_items);
+    lookup_known_functions(vm, &module_items);
 
     for (fct_id, fct) in vm.program.functions.iter().enumerate() {
         let fct_id = FunctionId(fct_id as u32);
@@ -87,8 +97,10 @@ pub fn connect_native_functions_to_implementation(vm: &mut VM) {
     assert!(mappings.is_empty());
 }
 
-fn native_fct(vm: &mut VM, full_path: &str, ptr: *const u8) {
-    let fct_id = find_fct(vm, full_path);
+fn native_fct(vm: &mut VM, module_items: &ModuleItemMap, full_path: &str, ptr: *const u8) {
+    let fct_id = resolve_path(vm, module_items, full_path)
+        .function_id()
+        .expect("function expected");
 
     let old = vm.native_methods.insert(fct_id, Address::from_ptr(ptr));
 
@@ -99,8 +111,16 @@ fn native_fct(vm: &mut VM, full_path: &str, ptr: *const u8) {
     assert!(old.is_none());
 }
 
-fn native_method(vm: &mut VM, full_path: &str, method_name: &str, ptr: *const u8) {
-    let class_id = find_class(vm, full_path);
+fn native_method(
+    vm: &mut VM,
+    module_items: &ModuleItemMap,
+    full_path: &str,
+    method_name: &str,
+    ptr: *const u8,
+) {
+    let class_id = resolve_path(vm, module_items, full_path)
+        .class_id()
+        .expect("class expected");
     let extension_id = lookup_extension_by_class_id(vm, class_id).expect("class not found");
     let fct_id =
         lookup_fct_by_extension_id_and_name(vm, extension_id, method_name).expect("missing method");
@@ -116,25 +136,18 @@ fn native_method(vm: &mut VM, full_path: &str, method_name: &str, ptr: *const u8
 
 fn native_impl_method(
     vm: &mut VM,
+    module_items: &ModuleItemMap,
     trait_path: &str,
     extended_ty_path: &str,
     _method_name: &str,
     _ptr: *const u8,
 ) {
-    let _trait_id = find_trait(vm, trait_path);
-    let _struct_id = find_struct(vm, extended_ty_path);
-
-    // let extension_id = lookup_extension_by_class_id(vm, class_id).expect("class not found");
-    // let fct_id =
-    //     lookup_fct_by_extension_id_and_name(vm, extension_id, method_name).expect("missing method");
-
-    // let old = vm.native_methods.insert(fct_id, Address::from_ptr(ptr));
-
-    // if old.is_some() {
-    //     panic!("function {} was already initialized", full_path);
-    // }
-
-    // assert!(old.is_none());
+    let _trait_id = resolve_path(vm, module_items, trait_path)
+        .trait_id()
+        .expect("trait expected");
+    let _struct_id = resolve_path(vm, module_items, extended_ty_path)
+        .struct_id()
+        .expect("struct expected");
 }
 
 fn lookup_fct_by_extension_id_and_name(
@@ -170,160 +183,31 @@ fn lookup_extension_by_class_id(vm: &VM, class_id: ClassId) -> Option<ExtensionI
     None
 }
 
-pub fn find_fct(vm: &VM, full_path: &str) -> FunctionId {
-    let mut components = full_path.split("::");
+fn resolve_path(vm: &VM, module_items: &ModuleItemMap, path: &str) -> ModuleItem {
+    let mut components = path.split("::");
 
     let package_name = components.next().expect("missing package name");
     let package_id = match lookup_package(vm, package_name) {
         Some(package_id) => package_id,
         None => {
-            panic!("unknown package {} in path {}", package_name, full_path);
+            panic!("unknown package {} in path {}", package_name, path);
         }
     };
 
-    let mut path = Vec::new();
+    let package = &vm.program.packages[package_id.0 as usize];
+    let mut item = ModuleItem::Module(package.root_module_id);
 
     while let Some(component) = components.next() {
-        path.push(component);
-    }
-
-    let fct_name = path.pop().expect("missing function name");
-
-    let package = &vm.program.packages[package_id.0 as usize];
-    let mut module_id = package.root_module_id;
-
-    for component in path {
-        module_id = match lookup_module_by_parent_id_and_name(vm, module_id, component) {
-            Some(next_module_id) => next_module_id,
+        let module_id = item.module_id().expect("module expected");
+        item = match module_items.get(module_id, component) {
+            Some(item) => item,
             None => {
-                panic!("unknown module {} in path {}", component, full_path);
+                panic!("unknown module {} in path {}", component, path);
             }
         };
     }
 
-    match lookup_fct_by_module_id_and_name(vm, module_id, fct_name) {
-        Some(fct_id) => fct_id,
-        None => {
-            panic!("unknown function {} in path {}", fct_name, full_path);
-        }
-    }
-}
-
-fn find_class(vm: &VM, full_path: &str) -> ClassId {
-    let mut components = full_path.split("::");
-
-    let package_name = components.next().expect("missing package name");
-    let package_id = match lookup_package(vm, package_name) {
-        Some(package_id) => package_id,
-        None => {
-            panic!("unknown package {} in path {}", package_name, full_path);
-        }
-    };
-
-    let mut path = Vec::new();
-
-    while let Some(component) = components.next() {
-        path.push(component);
-    }
-
-    let fct_name = path.pop().expect("missing function name");
-
-    let package = &vm.program.packages[package_id.0 as usize];
-    let mut module_id = package.root_module_id;
-
-    for component in path {
-        module_id = match lookup_module_by_parent_id_and_name(vm, module_id, component) {
-            Some(next_module_id) => next_module_id,
-            None => {
-                panic!("unknown module {} in path {}", component, full_path);
-            }
-        };
-    }
-
-    match lookup_class_by_module_id_and_name(vm, module_id, fct_name) {
-        Some(class_id) => class_id,
-        None => {
-            panic!("unknown function {} in path {}", fct_name, full_path);
-        }
-    }
-}
-
-fn find_struct(vm: &VM, full_path: &str) -> StructId {
-    let mut components = full_path.split("::");
-
-    let package_name = components.next().expect("missing package name");
-    let package_id = match lookup_package(vm, package_name) {
-        Some(package_id) => package_id,
-        None => {
-            panic!("unknown package {} in path {}", package_name, full_path);
-        }
-    };
-
-    let mut path = Vec::new();
-
-    while let Some(component) = components.next() {
-        path.push(component);
-    }
-
-    let fct_name = path.pop().expect("missing function name");
-
-    let package = &vm.program.packages[package_id.0 as usize];
-    let mut module_id = package.root_module_id;
-
-    for component in path {
-        module_id = match lookup_module_by_parent_id_and_name(vm, module_id, component) {
-            Some(next_module_id) => next_module_id,
-            None => {
-                panic!("unknown module {} in path {}", component, full_path);
-            }
-        };
-    }
-
-    match lookup_struct_by_module_id_and_name(vm, module_id, fct_name) {
-        Some(struct_id) => struct_id,
-        None => {
-            panic!("unknown function {} in path {}", fct_name, full_path);
-        }
-    }
-}
-
-fn find_trait(vm: &VM, full_path: &str) -> TraitId {
-    let mut components = full_path.split("::");
-
-    let package_name = components.next().expect("missing package name");
-    let package_id = match lookup_package(vm, package_name) {
-        Some(package_id) => package_id,
-        None => {
-            panic!("unknown package {} in path {}", package_name, full_path);
-        }
-    };
-
-    let mut path = Vec::new();
-
-    while let Some(component) = components.next() {
-        path.push(component);
-    }
-
-    let fct_name = path.pop().expect("missing function name");
-
-    let package = &vm.program.packages[package_id.0 as usize];
-    let mut module_id = package.root_module_id;
-
-    for component in path {
-        module_id = match lookup_module_by_parent_id_and_name(vm, module_id, component) {
-            Some(next_module_id) => next_module_id,
-            None => {
-                panic!("unknown module {} in path {}", component, full_path);
-            }
-        };
-    }
-
-    match lookup_trait_by_module_id_and_name(vm, module_id, fct_name) {
-        Some(trait_id) => trait_id,
-        None => {
-            panic!("unknown function {} in path {}", fct_name, full_path);
-        }
-    }
+    item
 }
 
 fn lookup_package(vm: &VM, name: &str) -> Option<PackageId> {
@@ -336,78 +220,38 @@ fn lookup_package(vm: &VM, name: &str) -> Option<PackageId> {
     None
 }
 
-fn lookup_module_by_parent_id_and_name(
-    vm: &VM,
-    module_id: ModuleId,
-    name: &str,
-) -> Option<ModuleId> {
-    for (id, module) in vm.program.modules.iter().enumerate() {
-        if module.parent_id == Some(module_id) && module.name == name {
-            return Some(ModuleId(id.try_into().expect("overflow")));
-        }
-    }
-
-    None
+fn lookup_known_classes(vm: &mut VM, module_items: &ModuleItemMap) {
+    vm.known.array_class_id = Some(
+        resolve_path(vm, module_items, "stdlib::collections::Array")
+            .class_id()
+            .expect("class expected"),
+    );
+    vm.known.string_class_id = Some(
+        resolve_path(vm, module_items, "stdlib::string::String")
+            .class_id()
+            .expect("class expected"),
+    );
+    vm.known.thread_class_id = Some(
+        resolve_path(vm, module_items, "stdlib::thread::Thread")
+            .class_id()
+            .expect("class expected"),
+    );
 }
 
-fn lookup_fct_by_module_id_and_name(
-    vm: &VM,
-    module_id: ModuleId,
-    name: &str,
-) -> Option<FunctionId> {
-    for (id, fct) in vm.program.functions.iter().enumerate() {
-        if fct.module_id == module_id && fct.name == name {
-            return Some(FunctionId(id.try_into().expect("overflow")));
-        }
-    }
-
-    None
-}
-
-fn lookup_class_by_module_id_and_name(vm: &VM, module_id: ModuleId, name: &str) -> Option<ClassId> {
-    for (id, class) in vm.program.classes.iter().enumerate() {
-        if class.module_id == module_id && class.name == name {
-            return Some(ClassId(id.try_into().expect("overflow")));
-        }
-    }
-
-    None
-}
-
-fn lookup_struct_by_module_id_and_name(
-    vm: &VM,
-    module_id: ModuleId,
-    name: &str,
-) -> Option<StructId> {
-    for (id, struct_) in vm.program.structs.iter().enumerate() {
-        if struct_.module_id == module_id && struct_.name == name {
-            return Some(StructId(id.try_into().expect("overflow")));
-        }
-    }
-
-    None
-}
-
-fn lookup_trait_by_module_id_and_name(vm: &VM, module_id: ModuleId, name: &str) -> Option<TraitId> {
-    for (id, trait_) in vm.program.traits.iter().enumerate() {
-        if trait_.module_id == module_id && trait_.name == name {
-            return Some(TraitId(id.try_into().expect("overflow")));
-        }
-    }
-
-    None
-}
-
-pub fn lookup_known_classes(vm: &mut VM) {
-    vm.known.array_class_id = Some(find_class(vm, "stdlib::collections::Array"));
-    vm.known.string_class_id = Some(find_class(vm, "stdlib::string::String"));
-    vm.known.thread_class_id = Some(find_class(vm, "stdlib::thread::Thread"));
-}
-
-pub fn lookup_known_functions(vm: &mut VM) {
+fn lookup_known_functions(vm: &mut VM, module_items: &ModuleItemMap) {
     if vm.program.boots_package_id.is_some() {
-        vm.known.boots_compile_fct_id = Some(find_fct(vm, "boots::interface::compile"));
+        vm.known.boots_compile_fct_id = Some(
+            resolve_path(vm, module_items, "boots::interface::compile")
+                .function_id()
+                .expect("function expected"),
+        );
     }
+
+    vm.known.unreachable_fct_id = Some(
+        resolve_path(vm, module_items, "stdlib::unreachable")
+            .function_id()
+            .expect("function expected"),
+    );
 }
 
 fn compute_module_items(program: &Program) -> ModuleItemMap {
@@ -440,6 +284,17 @@ fn compute_module_items(program: &Program) -> ModuleItemMap {
         map.insert(enum_.module_id, &enum_.name, ModuleItem::Enum(id));
     }
 
+    for (id, function) in program.functions.iter().enumerate() {
+        match function.kind {
+            FunctionKind::Function => {
+                let id = FunctionId(id.try_into().expect("overflow"));
+                map.insert(function.module_id, &function.name, ModuleItem::Function(id));
+            }
+
+            _ => {}
+        }
+    }
+
     map
 }
 
@@ -464,7 +319,7 @@ impl ModuleItemMap {
     }
 }
 
-#[derive(PartialEq, Debug, Clone)]
+#[derive(PartialEq, Debug, Copy, Clone)]
 enum ModuleItem {
     Class(ClassId),
     Struct(StructId),
@@ -472,4 +327,41 @@ enum ModuleItem {
     Trait(TraitId),
     Module(ModuleId),
     Function(FunctionId),
+}
+
+impl ModuleItem {
+    fn module_id(&self) -> Option<ModuleId> {
+        match self {
+            ModuleItem::Module(id) => Some(*id),
+            _ => None,
+        }
+    }
+
+    fn function_id(&self) -> Option<FunctionId> {
+        match self {
+            ModuleItem::Function(id) => Some(*id),
+            _ => None,
+        }
+    }
+
+    fn class_id(&self) -> Option<ClassId> {
+        match self {
+            ModuleItem::Class(id) => Some(*id),
+            _ => None,
+        }
+    }
+
+    fn struct_id(&self) -> Option<StructId> {
+        match self {
+            ModuleItem::Struct(id) => Some(*id),
+            _ => None,
+        }
+    }
+
+    fn trait_id(&self) -> Option<TraitId> {
+        match self {
+            ModuleItem::Trait(id) => Some(*id),
+            _ => None,
+        }
+    }
 }

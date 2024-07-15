@@ -7,9 +7,7 @@ use crate::vm::{
 use crate::vtable::VTable;
 
 pub(super) fn setup(vm: &mut VM) {
-    stdlib_lookup::connect_native_functions_to_implementation(vm);
-    stdlib_lookup::lookup_known_classes(vm);
-    stdlib_lookup::lookup_known_functions(vm);
+    stdlib_lookup::lookup(vm);
     create_special_classes(vm);
     setup_builtin_natives(vm);
 }
