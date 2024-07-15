@@ -13,7 +13,7 @@ use crate::sema::{
     PackageDefinitionId, Sema, SourceFileId, TraitDefinitionId, TypeParamDefinition, Visibility,
 };
 use crate::ty::SourceType;
-use dora_bytecode::{BytecodeFunction, BytecodeType, BytecodeTypeArray, Intrinsic, NativeFunction};
+use dora_bytecode::{BytecodeFunction, BytecodeType, BytecodeTypeArray, Intrinsic};
 
 pub type FctDefinitionId = Id<FctDefinition>;
 
@@ -45,7 +45,6 @@ pub struct FctDefinition {
     pub container_type_params: OnceCell<usize>,
     pub bytecode: OnceCell<BytecodeFunction>,
     pub intrinsic: OnceCell<Intrinsic>,
-    pub native_function: OnceCell<NativeFunction>,
 }
 
 impl FctDefinition {
@@ -84,7 +83,6 @@ impl FctDefinition {
             container_type_params: OnceCell::new(),
             bytecode: OnceCell::new(),
             intrinsic: OnceCell::new(),
-            native_function: OnceCell::new(),
         }
     }
 

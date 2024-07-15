@@ -194,7 +194,6 @@ fn create_functions(sa: &Sema, e: &mut Emitter) -> Vec<FunctionData> {
                 .map(|ty| bty_from_ty(ty.clone()))
                 .collect(),
             return_type: fct.return_type_bty(),
-            is_native: fct.native_function.get().is_some(),
             is_internal: fct.is_internal,
             intrinsic: fct.intrinsic.get().cloned(),
             is_test: fct.is_test,
@@ -225,7 +224,6 @@ fn create_functions(sa: &Sema, e: &mut Emitter) -> Vec<FunctionData> {
             source_file_id: Some(convert_source_file_id(global.file_id)),
             params: Vec::new(),
             return_type: bty_from_ty(global.ty()),
-            is_native: false,
             is_internal: false,
             intrinsic: None,
             is_test: false,

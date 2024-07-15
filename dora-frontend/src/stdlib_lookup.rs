@@ -10,7 +10,7 @@ use crate::sym::{SymTable, SymbolKind};
 use crate::ty::{SourceType, SourceTypeArray};
 
 use crate::interner::Name;
-use dora_bytecode::{Intrinsic, NativeFunction};
+use dora_bytecode::Intrinsic;
 
 pub fn lookup_known_fundamental_types(sa: &mut Sema) {
     let stdlib_id = sa.stdlib_module_id();
@@ -435,15 +435,6 @@ fn resolve_thread(sa: &mut Sema, stdlib_id: ModuleDefinitionId) {
 }
 
 fn resolve_string(sa: &Sema, stdlib_id: ModuleDefinitionId) {
-    native_impl_method(
-        sa,
-        stdlib_id,
-        "string::String",
-        sa.known.traits.add(),
-        "add",
-        NativeFunction::StringPlus,
-    );
-
     intrinsic_method(sa, stdlib_id, "string::String", "size", Intrinsic::StrLen);
     intrinsic_method(
         sa,
@@ -491,14 +482,6 @@ fn resolve_uint8(sa: &mut Sema, stdlib_id: ModuleDefinitionId) {
         sa.known.traits.comparable(),
         "cmp",
         Intrinsic::UInt8Cmp,
-    );
-    native_impl_method(
-        sa,
-        stdlib_id,
-        "primitives::UInt8",
-        sa.known.traits.stringable(),
-        "toString",
-        NativeFunction::UInt8ToString,
     );
 }
 
@@ -565,15 +548,6 @@ fn resolve_char(sa: &Sema, stdlib_id: ModuleDefinitionId) {
         sa.known.traits.comparable(),
         "cmp",
         Intrinsic::CharCmp,
-    );
-
-    native_impl_method(
-        sa,
-        stdlib_id,
-        "primitives::Char",
-        sa.known.traits.stringable(),
-        "toString",
-        NativeFunction::CharToString,
     );
 }
 
@@ -834,15 +808,6 @@ fn resolve_int32(sa: &Sema, stdlib_id: ModuleDefinitionId) {
         "countOneBitsTrailing",
         Intrinsic::Int32CountOneBitsTrailing,
     );
-
-    native_impl_method(
-        sa,
-        stdlib_id,
-        "primitives::Int32",
-        sa.known.traits.stringable(),
-        "toString",
-        NativeFunction::Int32ToString,
-    );
 }
 
 fn resolve_float32(sa: &Sema, stdlib_id: ModuleDefinitionId) {
@@ -985,15 +950,6 @@ fn resolve_float32(sa: &Sema, stdlib_id: ModuleDefinitionId) {
         "primitives::Float32",
         "sqrt",
         Intrinsic::Float32Sqrt,
-    );
-
-    native_impl_method(
-        sa,
-        stdlib_id,
-        "primitives::Float32",
-        sa.known.traits.stringable(),
-        "toString",
-        NativeFunction::Float32ToString,
     );
 }
 
@@ -1138,15 +1094,6 @@ fn resolve_float64(sa: &Sema, stdlib_id: ModuleDefinitionId) {
         "primitives::Float64",
         "sqrt",
         Intrinsic::Float64Sqrt,
-    );
-
-    native_impl_method(
-        sa,
-        stdlib_id,
-        "primitives::Float64",
-        sa.known.traits.stringable(),
-        "toString",
-        NativeFunction::Float64ToString,
     );
 }
 
@@ -1407,14 +1354,6 @@ fn resolve_int64(sa: &Sema, stdlib_id: ModuleDefinitionId) {
         "countOneBitsTrailing",
         Intrinsic::Int64CountOneBitsTrailing,
     );
-    native_impl_method(
-        sa,
-        stdlib_id,
-        "primitives::Int64",
-        sa.known.traits.stringable(),
-        "toString",
-        NativeFunction::Int64ToString,
-    );
 }
 
 fn resolve_array(sa: &Sema, stdlib_id: ModuleDefinitionId) {
@@ -1548,28 +1487,21 @@ fn intrinsic_fct(
     name: &str,
     intrinsic: Intrinsic,
 ) -> FctDefinitionId {
-    common_fct(sa, module_id, name, FctImplementation::Intrinsic(intrinsic))
+    common_fct(sa, module_id, name, intrinsic)
 }
 
 fn common_fct(
     sa: &mut Sema,
     module_id: ModuleDefinitionId,
     name: &str,
-    marker: FctImplementation,
+    intrinsic: Intrinsic,
 ) -> FctDefinitionId {
     let fct_id = resolve_name(sa, name, module_id)
         .to_fct()
         .expect("function expected");
 
     let fct = sa.fct(fct_id);
-
-    match marker {
-        FctImplementation::Intrinsic(intrinsic) => assert!(fct.intrinsic.set(intrinsic).is_ok()),
-        FctImplementation::Native(native_function) => {
-            assert!(fct.native_function.set(native_function).is_ok())
-        }
-    }
-
+    assert!(fct.intrinsic.set(intrinsic).is_ok());
     fct_id
 }
 
@@ -1580,14 +1512,7 @@ fn intrinsic_method(
     method_name: &str,
     intrinsic: Intrinsic,
 ) -> FctDefinitionId {
-    common_method(
-        sa,
-        module_id,
-        container_name,
-        method_name,
-        false,
-        FctImplementation::Intrinsic(intrinsic),
-    )
+    common_method(sa, module_id, container_name, method_name, false, intrinsic)
 }
 
 fn intrinsic_static(
@@ -1597,19 +1522,7 @@ fn intrinsic_static(
     method_name: &str,
     intrinsic: Intrinsic,
 ) {
-    common_method(
-        sa,
-        module_id,
-        container_name,
-        method_name,
-        true,
-        FctImplementation::Intrinsic(intrinsic),
-    );
-}
-
-enum FctImplementation {
-    Intrinsic(Intrinsic),
-    Native(NativeFunction),
+    common_method(sa, module_id, container_name, method_name, true, intrinsic);
 }
 
 fn common_method(
@@ -1618,7 +1531,7 @@ fn common_method(
     container_name: &str,
     method_name: &str,
     is_static: bool,
-    marker: FctImplementation,
+    marker: Intrinsic,
 ) -> FctDefinitionId {
     let sym = resolve_name(sa, container_name, module_id);
 
@@ -1649,7 +1562,7 @@ fn internal_extension_method(
     extensions: &[ExtensionDefinitionId],
     name_as_string: &str,
     is_static: bool,
-    marker: FctImplementation,
+    intrinsic: Intrinsic,
 ) -> FctDefinitionId {
     let name = sa.interner.intern(name_as_string);
 
@@ -1664,16 +1577,7 @@ fn internal_extension_method(
 
         if let Some(&method_id) = table.borrow().get(&name) {
             let fct = sa.fct(method_id);
-
-            match marker {
-                FctImplementation::Intrinsic(intrinsic) => {
-                    assert!(fct.intrinsic.set(intrinsic).is_ok());
-                }
-                FctImplementation::Native(native_function) => {
-                    assert!(fct.native_function.set(native_function).is_ok());
-                }
-            }
-
+            assert!(fct.intrinsic.set(intrinsic).is_ok());
             return method_id;
         }
     }
@@ -1695,25 +1599,7 @@ fn intrinsic_impl_method(
         container_name,
         trait_id,
         method_name,
-        FctImplementation::Intrinsic(intrinsic),
-    )
-}
-
-fn native_impl_method(
-    sa: &Sema,
-    module_id: ModuleDefinitionId,
-    container_name: &str,
-    trait_id: TraitDefinitionId,
-    method_name: &str,
-    native: NativeFunction,
-) -> FctDefinitionId {
-    internal_impl_method(
-        sa,
-        module_id,
-        container_name,
-        trait_id,
-        method_name,
-        FctImplementation::Native(native),
+        intrinsic,
     )
 }
 
@@ -1723,7 +1609,7 @@ fn internal_impl_method(
     container_name: &str,
     trait_id: TraitDefinitionId,
     method_name: &str,
-    marker: FctImplementation,
+    intrinsic: Intrinsic,
 ) -> FctDefinitionId {
     let sym = resolve_name(sa, container_name, module_id);
 
@@ -1751,16 +1637,7 @@ fn internal_impl_method(
                 .expect("missing method");
 
             let fct = sa.fct(method_id);
-
-            match marker {
-                FctImplementation::Intrinsic(intrinsic) => {
-                    assert!(fct.intrinsic.set(intrinsic).is_ok());
-                }
-                FctImplementation::Native(native_function) => {
-                    assert!(fct.native_function.set(native_function).is_ok());
-                }
-            }
-
+            assert!(fct.intrinsic.set(intrinsic).is_ok());
             return method_id;
         }
     }

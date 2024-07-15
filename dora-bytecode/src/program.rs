@@ -34,7 +34,6 @@ pub struct FunctionData {
     pub source_file_id: Option<SourceFileId>,
     pub params: Vec<BytecodeType>,
     pub return_type: BytecodeType,
-    pub is_native: bool,
     pub is_internal: bool,
     pub intrinsic: Option<Intrinsic>,
     pub vtable_index: Option<u32>,
@@ -199,18 +198,6 @@ pub struct Program {
     pub program_package_id: PackageId,
     pub boots_package_id: Option<PackageId>,
     pub main_fct_id: Option<FunctionId>,
-}
-
-#[derive(Copy, Clone, Debug, PartialEq, Eq, Hash, Decode, Encode)]
-#[allow(dead_code)]
-pub enum NativeFunction {
-    UInt8ToString,
-    CharToString,
-    Int32ToString,
-    Int64ToString,
-    StringPlus,
-    Float32ToString,
-    Float64ToString,
 }
 
 #[derive(Copy, Clone, Debug, PartialEq, Eq, Decode, Encode)]
