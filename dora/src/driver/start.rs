@@ -3,7 +3,7 @@ use std::io::{self, Read, Write};
 use std::path::PathBuf;
 
 use crate::driver::cmd::{self, Args};
-use dora_bytecode::{FunctionData, FunctionId, PackageId, Program};
+use dora_bytecode::{FunctionId, PackageId, Program};
 use dora_frontend as language;
 use dora_frontend::sema::{Sema, SemaArgs};
 use dora_runtime::{clear_vm, display_fct, execute_on_main, set_vm, VM};
@@ -78,7 +78,11 @@ pub fn start() -> i32 {
     vm.compile_boots_aot();
 
     let exit_code = if command.is_test() {
-        run_tests(&vm, &args, vm.program.program_package_id)
+        if args.test_boots {
+            run_tests(&vm, &args, vm.program.boots_package_id.expect("no boots"))
+        } else {
+            run_tests(&vm, &args, vm.program.program_package_id)
+        }
     } else {
         if vm.program.main_fct_id.is_none() {
             eprintln!("no main method in program.");
@@ -229,20 +233,17 @@ fn run_tests(vm: &VM, args: &Args, package_id: PackageId) -> i32 {
         for (fct_id, fct) in vm.program.functions.iter().enumerate() {
             let fct_id = FunctionId(fct_id as u32);
 
-            if fct.package_id != package_id
-                || !is_test_fct(&*fct)
-                || !test_filter_matches(vm, args, fct_id)
+            if fct.package_id == package_id && fct.is_test && test_filter_matches(vm, args, fct_id)
             {
-                continue;
+                tests += 1;
+
+                print!("test {} ... ", display_fct(vm, fct_id));
+
+                vm.run_test(fct_id);
+
+                passed += 1;
+                println!("ok");
             }
-
-            tests += 1;
-
-            print!("test {} ... ", display_fct(vm, fct_id));
-
-            run_test(vm, fct_id);
-            passed += 1;
-            println!("ok");
         }
     });
 
@@ -259,15 +260,6 @@ fn run_tests(vm: &VM, args: &Args, package_id: PackageId) -> i32 {
     } else {
         1
     }
-}
-
-fn run_test(vm: &VM, fct: FunctionId) {
-    vm.run_test(fct);
-}
-
-fn is_test_fct(fct: &FunctionData) -> bool {
-    // the function needs to be marked with the @Test annotation
-    fct.is_test
 }
 
 fn test_filter_matches(vm: &VM, args: &Args, fct_id: FunctionId) -> bool {

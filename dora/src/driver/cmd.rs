@@ -105,6 +105,7 @@ pub struct Args {
     pub disable_barrier: bool,
     pub bootstrap_compiler: bool,
     pub test_filter: Option<String>,
+    pub test_boots: bool,
     pub packages: Vec<(String, PathBuf)>,
 
     pub command: Command,
@@ -159,6 +160,7 @@ impl Default for Args {
             disable_barrier: false,
             bootstrap_compiler: false,
             test_filter: None,
+            test_boots: false,
             packages: Vec::new(),
 
             command: Command::Run,
@@ -295,6 +297,8 @@ pub fn parse_arguments() -> Result<Args, String> {
             args.compiler = Some(value);
         } else if arg.starts_with("--test-filter=") {
             args.test_filter = Some(argument_value(arg).into());
+        } else if arg == "--test-boots" {
+            args.test_boots = true;
         } else if arg == "--disable-tlab" {
             args.disable_tlab = true;
         } else if arg == "--bootstrap-compiler" {

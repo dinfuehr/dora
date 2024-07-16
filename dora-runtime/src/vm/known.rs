@@ -1,6 +1,7 @@
 use parking_lot::Mutex;
 
 use std::cell::OnceCell;
+use std::collections::HashMap;
 
 use crate::gc::Address;
 use crate::vm::ClassInstanceId;
@@ -28,6 +29,7 @@ pub struct KnownElements {
     pub thread_class_id: Option<ClassId>,
     pub boots_compile_fct_id: Option<FunctionId>,
     pub boots_compile_fct_address: OnceCell<Address>,
+    pub boots_test_addresses: OnceCell<HashMap<FunctionId, Address>>,
     pub unreachable_fct_id: Option<FunctionId>,
 }
 
@@ -54,6 +56,7 @@ impl KnownElements {
             thread_class_id: None,
             boots_compile_fct_id: None,
             boots_compile_fct_address: OnceCell::new(),
+            boots_test_addresses: OnceCell::new(),
             unreachable_fct_id: None,
         }
     }

@@ -20,21 +20,22 @@ use crate::vm::{
 pub fn compile_boots_aot(vm: &VM) {
     if let Some(package_id) = vm.program.boots_package_id {
         let entry_id = vm.known.boots_compile_fct_id();
-        let tc = compute_transitive_closure(vm, package_id, entry_id);
-        let stage1_compiler_address = stage1_compiler(vm, &tc, entry_id);
+        let tests = compute_tests(vm, package_id);
+        let tc = compute_transitive_closure(vm, package_id, entry_id, &tests);
+        let (stage1_compiler_address, stage1_ctc) = stage1_compiler(vm, &tc, entry_id);
 
-        let boots_compiler_address = if vm.flags.bootstrap_compiler {
+        let (boots_compiler_address, ctc) = if vm.flags.bootstrap_compiler {
             execute_on_main(|| {
                 let (stage2_compiler_address, stage2_ctc) =
                     stage2_compiler(vm, &tc, entry_id, stage1_compiler_address);
                 let (stage3_compiler_address, stage3_ctc) =
                     stage3_compiler(vm, &tc, entry_id, stage2_compiler_address);
-                assert_builds_identical(stage2_ctc, stage3_ctc);
+                assert_builds_identical(&stage2_ctc, &stage3_ctc);
 
-                stage3_compiler_address
+                (stage3_compiler_address, stage3_ctc)
             })
         } else {
-            stage1_compiler_address
+            (stage1_compiler_address, stage1_ctc)
         };
 
         assert!(vm
@@ -42,13 +43,20 @@ pub fn compile_boots_aot(vm: &VM) {
             .boots_compile_fct_address
             .set(boots_compiler_address)
             .is_ok());
+
+        let tests = compute_test_addresses(&ctc, tests);
+        assert!(vm.known.boots_test_addresses.set(tests).is_ok());
     }
 }
 
-fn stage1_compiler(vm: &VM, tc: &TransitiveClosure, entry_id: FunctionId) -> Address {
-    let (compile_address, _ctc) =
+fn stage1_compiler(
+    vm: &VM,
+    tc: &TransitiveClosure,
+    entry_id: FunctionId,
+) -> (Address, CompiledTransitiveClosure) {
+    let (compile_address, ctc) =
         compiler_stage_n(vm, tc, entry_id, "stage1", CompilerInvocation::Cannon);
-    compile_address
+    (compile_address, ctc)
 }
 
 fn stage2_compiler(
@@ -107,7 +115,7 @@ fn compiler_stage_n(
     (compile_address, ctc)
 }
 
-fn assert_builds_identical(stage2: CompiledTransitiveClosure, stage3: CompiledTransitiveClosure) {
+fn assert_builds_identical(stage2: &CompiledTransitiveClosure, stage3: &CompiledTransitiveClosure) {
     assert_eq!(stage2.code_objects.len(), stage3.code_objects.len());
 
     for (stage2_code, stage3_code) in stage2.code_objects.iter().zip(&stage3.code_objects) {
@@ -122,11 +130,17 @@ fn compute_transitive_closure(
     vm: &VM,
     _package_id: PackageId,
     entry_id: FunctionId,
+    tests: &[FunctionId],
 ) -> TransitiveClosure {
     let start = Instant::now();
 
     let mut compile_all = TransitiveClosureComputation::new(vm);
     compile_all.push(entry_id, BytecodeTypeArray::empty());
+
+    for test_fct_id in tests {
+        compile_all.push(*test_fct_id, BytecodeTypeArray::empty());
+    }
+
     let tc = compile_all.compute();
     let duration = start.elapsed();
 
@@ -142,6 +156,31 @@ fn compute_transitive_closure(
     tc
 }
 
+fn compute_tests(vm: &VM, package_id: PackageId) -> Vec<FunctionId> {
+    let mut results = Vec::new();
+
+    for (id, function) in vm.program.functions.iter().enumerate() {
+        if function.package_id == package_id && function.is_test {
+            results.push(FunctionId(id.try_into().expect("overflow")));
+        }
+    }
+
+    results
+}
+
+fn compute_test_addresses(
+    ctc: &CompiledTransitiveClosure,
+    tests: Vec<FunctionId>,
+) -> HashMap<FunctionId, Address> {
+    let mut results = HashMap::new();
+
+    for id in tests {
+        let address = ctc.get_address(id).expect("missing function");
+        results.insert(id, address);
+    }
+
+    results
+}
 struct TransitiveClosure {
     functions: Vec<(FunctionId, BytecodeTypeArray)>,
     thunks: Vec<(FunctionId, BytecodeTypeArray, BytecodeType)>,

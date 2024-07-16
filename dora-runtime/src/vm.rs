@@ -236,11 +236,18 @@ impl VM {
 
     pub fn run_test(&self, fct_id: FunctionId) {
         let tld = current_thread().tld_address();
-        let ptr = self.ensure_compiled(fct_id);
+        let address = self
+            .known
+            .boots_test_addresses
+            .get()
+            .expect("missing tests")
+            .get(&fct_id)
+            .cloned()
+            .unwrap_or_else(|| self.ensure_compiled(fct_id));
         let dora_stub_address = self.native_methods.dora_entry_trampoline();
         let fct: extern "C" fn(Address, Address) -> i32 =
             unsafe { mem::transmute(dora_stub_address) };
-        fct(tld, ptr);
+        fct(tld, address);
     }
 
     pub fn ensure_compiled(&self, fct_id: FunctionId) -> Address {
