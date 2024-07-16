@@ -7,7 +7,7 @@ use crate::stdlib::{
     STDLIB_NATIVE_FUNCTIONS, STDLIB_NATIVE_IMPL_METHODS, STDLIB_NATIVE_METHODS,
     STDLIB_NATIVE_PRIMITIVE_IMPL_METHODS,
 };
-use crate::vm::{display_ty, BytecodeType, Intrinsic, VM};
+use crate::vm::{display_fct, display_ty, BytecodeType, Intrinsic, VM};
 use dora_bytecode::{
     ClassId, EnumId, ExtensionId, FunctionId, FunctionKind, ImplId, ModuleId, PackageId, Program,
     StructId, TraitId,
@@ -66,6 +66,13 @@ pub fn lookup(vm: &mut VM) {
             let intrinsic = Intrinsic::from_bytecode(intrinsic);
             let old = vm.intrinsics.insert(fct_id, intrinsic);
             assert!(old.is_none());
+        }
+
+        if fct.is_internal
+            && vm.native_methods.get(fct_id).is_none()
+            && vm.intrinsics.get(&fct_id).is_none()
+        {
+            panic!("unknown internal function {}", display_fct(vm, fct_id));
         }
     }
 }
