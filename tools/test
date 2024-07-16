@@ -6,4 +6,4 @@ cargo build
 cargo test
 cargo run -p dora -- --package boots dora-boots/boots.dora  --gc-verbose --emit-compiler --bootstrap-compiler tests/boots/hello.dora
 ruby tools/tester.rb $@
-cargo run -p dora -- test --package boots dora-boots/boots.dora --test-boots tests/hello-world.dora --gc-verify
+cargo run -p dora -- test --package boots dora-boots/boots.dora --test-boots --gc-verify tests/hello-world.dora
