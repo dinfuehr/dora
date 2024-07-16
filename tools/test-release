@@ -6,4 +6,4 @@ cargo build --release
 cargo test --release
 cargo run -p dora --release -- --package boots dora-boots/boots.dora  --gc-verbose --emit-compiler --bootstrap-compiler tests/boots/hello.dora
 ruby tools/tester.rb --release $@
-cargo run --release -p dora -- test dora-boots/boots.dora
+cargo run --release -p dora -- test --package boots dora-boots/boots.dora --test-boots tests/hello-world.dora
