@@ -241,10 +241,6 @@ impl Swiper {
 }
 
 impl Collector for Swiper {
-    fn supports_tlab(&self) -> bool {
-        true
-    }
-
     fn alloc_tlab_area(&self, vm: &VM, _size: usize) -> Option<Region> {
         self.young.allocate(vm, MIN_TLAB_SIZE, MAX_TLAB_SIZE)
     }

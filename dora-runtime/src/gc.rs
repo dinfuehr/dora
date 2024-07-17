@@ -71,13 +71,11 @@ impl Gc {
             CollectorName::Swiper => Box::new(Swiper::new(args)),
         };
 
-        let supports_tlab = !args.disable_tlab && collector.supports_tlab();
-
         let code_size = args.code_size();
 
         Gc {
             collector,
-            supports_tlab,
+            supports_tlab: !args.disable_tlab,
 
             code_space: CodeSpace::new(code_size),
             meta_space: MetaSpace::new(),
@@ -243,9 +241,6 @@ trait Collector {
     fn initial_metadata_value(&self, _size: usize, _is_readonly: bool) -> (bool, bool) {
         (false, false)
     }
-
-    // Gives true when collector supports tlab allocation.
-    fn supports_tlab(&self) -> bool;
 
     // Prints GC summary: minor/full collections, etc.
     fn dump_summary(&self, _runtime: f32);

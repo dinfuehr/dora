@@ -47,10 +47,6 @@ impl SweepCollector {
 }
 
 impl Collector for SweepCollector {
-    fn supports_tlab(&self) -> bool {
-        true
-    }
-
     fn alloc_tlab_area(&self, vm: &VM, size: usize) -> Option<Region> {
         self.inner_alloc(vm, size)
             .map(|address| address.region_start(size))
