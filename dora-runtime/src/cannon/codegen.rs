@@ -1,6 +1,6 @@
 use std::collections::HashMap;
 
-use crate::compiler::asm::BaselineAssembler;
+use crate::cannon::asm::BaselineAssembler;
 use crate::compiler::codegen::{
     ensure_runtime_entry_trampoline, AllocationSize, AnyReg, CompilationData,
 };
@@ -96,7 +96,7 @@ impl<'a> CannonCodeGen<'a> {
             return_type: compilation_data.return_type,
             location: compilation_data.loc,
             emit_debug: compilation_data.emit_debug,
-            asm: BaselineAssembler::new(vm),
+            asm: BaselineAssembler::new(vm, mode),
             bytecode: compilation_data.bytecode_fct,
             emit_code_comments: compilation_data.emit_code_comments,
             type_params: compilation_data.type_params,

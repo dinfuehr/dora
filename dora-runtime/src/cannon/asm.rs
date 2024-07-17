@@ -3,6 +3,7 @@ use std::mem;
 use crate::cannon::codegen::{mode, result_passed_as_argument, result_reg_mode, size, RegOrOffset};
 use crate::compiler::codegen::{ensure_runtime_entry_trampoline, AllocationSize, AnyReg};
 use crate::compiler::runtime_entry_trampoline::NativeFct;
+use crate::compiler::CompilationMode;
 use crate::cpu::{
     FReg, Reg, FREG_RESULT, REG_PARAMS, REG_RESULT, REG_SP, REG_THREAD, REG_TMP1,
     STACK_FRAME_ALIGNMENT,
@@ -24,14 +25,16 @@ pub struct BaselineAssembler<'a> {
     masm: MacroAssembler,
     vm: &'a VM,
     slow_paths: Vec<SlowPathKind>,
+    mode: CompilationMode,
 }
 
 impl<'a> BaselineAssembler<'a> {
-    pub fn new(vm: &'a VM) -> BaselineAssembler<'a> {
+    pub fn new(vm: &'a VM, mode: CompilationMode) -> BaselineAssembler<'a> {
         BaselineAssembler {
             masm: MacroAssembler::new(),
             vm,
             slow_paths: Vec::new(),
+            mode,
         }
     }
 

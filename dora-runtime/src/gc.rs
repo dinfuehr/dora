@@ -51,7 +51,6 @@ pub const DEFAULT_READONLY_SPACE_LIMIT: usize = 2 * M;
 
 pub struct Gc {
     collector: Box<dyn Collector + Sync>,
-    supports_tlab: bool,
 
     code_space: CodeSpace,
     meta_space: MetaSpace,
@@ -75,7 +74,6 @@ impl Gc {
 
         Gc {
             collector,
-            supports_tlab: !args.disable_tlab,
 
             code_space: CodeSpace::new(code_size),
             meta_space: MetaSpace::new(),
@@ -200,7 +198,7 @@ impl Gc {
     }
 
     fn allocate_raw(&self, vm: &VM, size: usize) -> Option<Address> {
-        if size < MAX_TLAB_OBJECT_SIZE && self.supports_tlab {
+        if size < MAX_TLAB_OBJECT_SIZE {
             self.alloc_in_lab(vm, size)
         } else {
             self.collector.alloc_object(vm, size)
