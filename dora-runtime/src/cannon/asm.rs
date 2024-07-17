@@ -1194,7 +1194,7 @@ impl<'a> BaselineAssembler<'a> {
         location: Location,
         gcpoint: GcPoint,
     ) {
-        if self.vm.flags.disable_tlab {
+        if self.vm.flags.disable_tlab && self.mode.is_jit() {
             self.gc_allocate(dest, size, location, gcpoint);
             return;
         }
