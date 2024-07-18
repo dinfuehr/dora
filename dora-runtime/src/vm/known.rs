@@ -303,189 +303,217 @@ pub enum Intrinsic {
 }
 
 impl Intrinsic {
-    pub fn from_bytecode(original: BytecodeIntrinsic) -> Intrinsic {
+    pub fn from_bytecode(original: BytecodeIntrinsic) -> Option<Intrinsic> {
         match original {
-            BytecodeIntrinsic::ArrayNewOfSize => Intrinsic::ArrayNewOfSize,
-            BytecodeIntrinsic::ArrayWithValues => Intrinsic::ArrayWithValues,
-            BytecodeIntrinsic::ArrayLen => Intrinsic::ArrayLen,
-            BytecodeIntrinsic::ArrayGet => Intrinsic::ArrayGet,
-            BytecodeIntrinsic::ArraySet => Intrinsic::ArraySet,
+            BytecodeIntrinsic::ArrayNewOfSize => None,
+            BytecodeIntrinsic::ArrayWithValues => None,
+            BytecodeIntrinsic::ArrayLen => None,
+            BytecodeIntrinsic::ArrayGet => None,
+            BytecodeIntrinsic::ArraySet => None,
 
-            BytecodeIntrinsic::Unreachable => Intrinsic::Unreachable,
-            BytecodeIntrinsic::UnsafeKillRefs => Intrinsic::UnsafeKillRefs,
+            BytecodeIntrinsic::Unreachable => unreachable!(),
+            BytecodeIntrinsic::UnsafeKillRefs => unreachable!(),
 
-            BytecodeIntrinsic::Assert => Intrinsic::Assert,
-            BytecodeIntrinsic::Debug => Intrinsic::Debug,
+            BytecodeIntrinsic::Assert => unreachable!(),
+            BytecodeIntrinsic::Debug => unreachable!(),
 
-            BytecodeIntrinsic::StrLen => Intrinsic::StrLen,
-            BytecodeIntrinsic::StrGet => Intrinsic::StrGet,
+            BytecodeIntrinsic::StrLen => Some(Intrinsic::StrLen),
+            BytecodeIntrinsic::StrGet => Some(Intrinsic::StrGet),
 
-            BytecodeIntrinsic::BoolEq => Intrinsic::BoolEq,
-            BytecodeIntrinsic::BoolNot => Intrinsic::BoolNot,
-            BytecodeIntrinsic::BoolToInt32 => Intrinsic::BoolToInt32,
-            BytecodeIntrinsic::BoolToInt64 => Intrinsic::BoolToInt64,
+            BytecodeIntrinsic::BoolEq => Some(Intrinsic::BoolEq),
+            BytecodeIntrinsic::BoolNot => Some(Intrinsic::BoolNot),
+            BytecodeIntrinsic::BoolToInt32 => Some(Intrinsic::BoolToInt32),
+            BytecodeIntrinsic::BoolToInt64 => Some(Intrinsic::BoolToInt64),
 
-            BytecodeIntrinsic::UInt8Eq => Intrinsic::UInt8Eq,
-            BytecodeIntrinsic::UInt8Cmp => Intrinsic::UInt8Cmp,
-            BytecodeIntrinsic::UInt8ToChar => Intrinsic::UInt8ToChar,
-            BytecodeIntrinsic::UInt8ToInt32 => Intrinsic::UInt8ToInt32,
-            BytecodeIntrinsic::UInt8ToInt64 => Intrinsic::UInt8ToInt64,
+            BytecodeIntrinsic::UInt8Eq => None,
+            BytecodeIntrinsic::UInt8Cmp => None,
+            BytecodeIntrinsic::UInt8ToChar => Some(Intrinsic::UInt8ToChar),
+            BytecodeIntrinsic::UInt8ToInt32 => Some(Intrinsic::UInt8ToInt32),
+            BytecodeIntrinsic::UInt8ToInt64 => Some(Intrinsic::UInt8ToInt64),
 
-            BytecodeIntrinsic::CharEq => Intrinsic::CharEq,
-            BytecodeIntrinsic::CharCmp => Intrinsic::CharCmp,
-            BytecodeIntrinsic::CharToInt32 => Intrinsic::CharToInt32,
-            BytecodeIntrinsic::CharToInt64 => Intrinsic::CharToInt64,
+            BytecodeIntrinsic::CharEq => Some(Intrinsic::CharEq),
+            BytecodeIntrinsic::CharCmp => Some(Intrinsic::CharCmp),
+            BytecodeIntrinsic::CharToInt32 => Some(Intrinsic::CharToInt32),
+            BytecodeIntrinsic::CharToInt64 => Some(Intrinsic::CharToInt64),
 
-            BytecodeIntrinsic::Int32ToUInt8 => Intrinsic::Int32ToUInt8,
-            BytecodeIntrinsic::Int32ToChar => Intrinsic::Int32ToChar,
-            BytecodeIntrinsic::Int32ToInt64 => Intrinsic::Int32ToInt64,
-            BytecodeIntrinsic::Int32ToFloat32 => Intrinsic::Int32ToFloat32,
-            BytecodeIntrinsic::Int32ToFloat64 => Intrinsic::Int32ToFloat64,
-            BytecodeIntrinsic::ReinterpretInt32AsFloat32 => Intrinsic::ReinterpretInt32AsFloat32,
+            BytecodeIntrinsic::Int32ToUInt8 => Some(Intrinsic::Int32ToUInt8),
+            BytecodeIntrinsic::Int32ToChar => Some(Intrinsic::Int32ToChar),
+            BytecodeIntrinsic::Int32ToInt64 => Some(Intrinsic::Int32ToInt64),
+            BytecodeIntrinsic::Int32ToFloat32 => Some(Intrinsic::Int32ToFloat32),
+            BytecodeIntrinsic::Int32ToFloat64 => Some(Intrinsic::Int32ToFloat64),
+            BytecodeIntrinsic::ReinterpretInt32AsFloat32 => {
+                Some(Intrinsic::ReinterpretInt32AsFloat32)
+            }
 
-            BytecodeIntrinsic::EnumEq => Intrinsic::EnumEq,
-            BytecodeIntrinsic::EnumNe => Intrinsic::EnumNe,
+            BytecodeIntrinsic::EnumEq => Some(Intrinsic::EnumEq),
+            BytecodeIntrinsic::EnumNe => Some(Intrinsic::EnumNe),
 
-            BytecodeIntrinsic::Int32Eq => Intrinsic::Int32Eq,
-            BytecodeIntrinsic::Int32Cmp => Intrinsic::Int32Cmp,
+            BytecodeIntrinsic::Int32Eq => Some(Intrinsic::Int32Eq),
+            BytecodeIntrinsic::Int32Cmp => Some(Intrinsic::Int32Cmp),
 
-            BytecodeIntrinsic::Int32Add => Intrinsic::Int32Add,
-            BytecodeIntrinsic::Int32AddUnchecked => Intrinsic::Int32AddUnchecked,
-            BytecodeIntrinsic::Int32Sub => Intrinsic::Int32Sub,
-            BytecodeIntrinsic::Int32SubUnchecked => Intrinsic::Int32SubUnchecked,
-            BytecodeIntrinsic::Int32Mul => Intrinsic::Int32Mul,
-            BytecodeIntrinsic::Int32MulUnchecked => Intrinsic::Int32MulUnchecked,
-            BytecodeIntrinsic::Int32Div => Intrinsic::Int32Div,
-            BytecodeIntrinsic::Int32Mod => Intrinsic::Int32Mod,
+            BytecodeIntrinsic::Int32Add => Some(Intrinsic::Int32Add),
+            BytecodeIntrinsic::Int32AddUnchecked => Some(Intrinsic::Int32AddUnchecked),
+            BytecodeIntrinsic::Int32Sub => Some(Intrinsic::Int32Sub),
+            BytecodeIntrinsic::Int32SubUnchecked => Some(Intrinsic::Int32SubUnchecked),
+            BytecodeIntrinsic::Int32Mul => Some(Intrinsic::Int32Mul),
+            BytecodeIntrinsic::Int32MulUnchecked => Some(Intrinsic::Int32MulUnchecked),
+            BytecodeIntrinsic::Int32Div => Some(Intrinsic::Int32Div),
+            BytecodeIntrinsic::Int32Mod => Some(Intrinsic::Int32Mod),
 
-            BytecodeIntrinsic::Int32Or => Intrinsic::Int32Or,
-            BytecodeIntrinsic::Int32And => Intrinsic::Int32And,
-            BytecodeIntrinsic::Int32Xor => Intrinsic::Int32Xor,
+            BytecodeIntrinsic::Int32Or => Some(Intrinsic::Int32Or),
+            BytecodeIntrinsic::Int32And => Some(Intrinsic::Int32And),
+            BytecodeIntrinsic::Int32Xor => Some(Intrinsic::Int32Xor),
 
-            BytecodeIntrinsic::Int32Shl => Intrinsic::Int32Shl,
-            BytecodeIntrinsic::Int32Sar => Intrinsic::Int32Sar,
-            BytecodeIntrinsic::Int32Shr => Intrinsic::Int32Shr,
+            BytecodeIntrinsic::Int32Shl => Some(Intrinsic::Int32Shl),
+            BytecodeIntrinsic::Int32Sar => Some(Intrinsic::Int32Sar),
+            BytecodeIntrinsic::Int32Shr => Some(Intrinsic::Int32Shr),
 
-            BytecodeIntrinsic::Int32RotateLeft => Intrinsic::Int32RotateLeft,
-            BytecodeIntrinsic::Int32RotateRight => Intrinsic::Int32RotateRight,
+            BytecodeIntrinsic::Int32RotateLeft => Some(Intrinsic::Int32RotateLeft),
+            BytecodeIntrinsic::Int32RotateRight => Some(Intrinsic::Int32RotateRight),
 
-            BytecodeIntrinsic::Int32Not => Intrinsic::Int32Not,
-            BytecodeIntrinsic::Int32Neg => Intrinsic::Int32Neg,
-            BytecodeIntrinsic::Int32NegUnchecked => Intrinsic::Int32NegUnchecked,
+            BytecodeIntrinsic::Int32Not => Some(Intrinsic::Int32Not),
+            BytecodeIntrinsic::Int32Neg => Some(Intrinsic::Int32Neg),
+            BytecodeIntrinsic::Int32NegUnchecked => Some(Intrinsic::Int32NegUnchecked),
 
-            BytecodeIntrinsic::Int32CountZeroBits => Intrinsic::Int32CountZeroBits,
-            BytecodeIntrinsic::Int32CountOneBits => Intrinsic::Int32CountOneBits,
-            BytecodeIntrinsic::Int32CountZeroBitsLeading => Intrinsic::Int32CountZeroBitsLeading,
-            BytecodeIntrinsic::Int32CountOneBitsLeading => Intrinsic::Int32CountOneBitsLeading,
-            BytecodeIntrinsic::Int32CountZeroBitsTrailing => Intrinsic::Int32CountZeroBitsTrailing,
-            BytecodeIntrinsic::Int32CountOneBitsTrailing => Intrinsic::Int32CountOneBitsTrailing,
+            BytecodeIntrinsic::Int32CountZeroBits => Some(Intrinsic::Int32CountZeroBits),
+            BytecodeIntrinsic::Int32CountOneBits => Some(Intrinsic::Int32CountOneBits),
+            BytecodeIntrinsic::Int32CountZeroBitsLeading => {
+                Some(Intrinsic::Int32CountZeroBitsLeading)
+            }
+            BytecodeIntrinsic::Int32CountOneBitsLeading => {
+                Some(Intrinsic::Int32CountOneBitsLeading)
+            }
+            BytecodeIntrinsic::Int32CountZeroBitsTrailing => {
+                Some(Intrinsic::Int32CountZeroBitsTrailing)
+            }
+            BytecodeIntrinsic::Int32CountOneBitsTrailing => {
+                Some(Intrinsic::Int32CountOneBitsTrailing)
+            }
 
-            BytecodeIntrinsic::Int64ToInt32 => Intrinsic::Int64ToInt32,
-            BytecodeIntrinsic::Int64ToChar => Intrinsic::Int64ToChar,
-            BytecodeIntrinsic::Int64ToUInt8 => Intrinsic::Int64ToUInt8,
-            BytecodeIntrinsic::Int64ToFloat32 => Intrinsic::Int64ToFloat32,
-            BytecodeIntrinsic::Int64ToFloat64 => Intrinsic::Int64ToFloat64,
-            BytecodeIntrinsic::ReinterpretInt64AsFloat64 => Intrinsic::ReinterpretInt64AsFloat64,
+            BytecodeIntrinsic::Int64ToInt32 => Some(Intrinsic::Int64ToInt32),
+            BytecodeIntrinsic::Int64ToChar => Some(Intrinsic::Int64ToChar),
+            BytecodeIntrinsic::Int64ToUInt8 => Some(Intrinsic::Int64ToUInt8),
+            BytecodeIntrinsic::Int64ToFloat32 => Some(Intrinsic::Int64ToFloat32),
+            BytecodeIntrinsic::Int64ToFloat64 => Some(Intrinsic::Int64ToFloat64),
+            BytecodeIntrinsic::ReinterpretInt64AsFloat64 => {
+                Some(Intrinsic::ReinterpretInt64AsFloat64)
+            }
 
-            BytecodeIntrinsic::Int64Eq => Intrinsic::Int64Eq,
-            BytecodeIntrinsic::Int64Cmp => Intrinsic::Int64Cmp,
+            BytecodeIntrinsic::Int64Eq => Some(Intrinsic::Int64Eq),
+            BytecodeIntrinsic::Int64Cmp => Some(Intrinsic::Int64Cmp),
 
-            BytecodeIntrinsic::Int64Add => Intrinsic::Int64Add,
-            BytecodeIntrinsic::Int64AddUnchecked => Intrinsic::Int64AddUnchecked,
-            BytecodeIntrinsic::Int64Sub => Intrinsic::Int64Sub,
-            BytecodeIntrinsic::Int64SubUnchecked => Intrinsic::Int64SubUnchecked,
-            BytecodeIntrinsic::Int64Mul => Intrinsic::Int64Mul,
-            BytecodeIntrinsic::Int64MulUnchecked => Intrinsic::Int64MulUnchecked,
-            BytecodeIntrinsic::Int64Div => Intrinsic::Int64Div,
-            BytecodeIntrinsic::Int64Mod => Intrinsic::Int64Mod,
+            BytecodeIntrinsic::Int64Add => Some(Intrinsic::Int64Add),
+            BytecodeIntrinsic::Int64AddUnchecked => Some(Intrinsic::Int64AddUnchecked),
+            BytecodeIntrinsic::Int64Sub => Some(Intrinsic::Int64Sub),
+            BytecodeIntrinsic::Int64SubUnchecked => Some(Intrinsic::Int64SubUnchecked),
+            BytecodeIntrinsic::Int64Mul => Some(Intrinsic::Int64Mul),
+            BytecodeIntrinsic::Int64MulUnchecked => Some(Intrinsic::Int64MulUnchecked),
+            BytecodeIntrinsic::Int64Div => Some(Intrinsic::Int64Div),
+            BytecodeIntrinsic::Int64Mod => Some(Intrinsic::Int64Mod),
 
-            BytecodeIntrinsic::Int64Or => Intrinsic::Int64Or,
-            BytecodeIntrinsic::Int64And => Intrinsic::Int64And,
-            BytecodeIntrinsic::Int64Xor => Intrinsic::Int64Xor,
+            BytecodeIntrinsic::Int64Or => Some(Intrinsic::Int64Or),
+            BytecodeIntrinsic::Int64And => Some(Intrinsic::Int64And),
+            BytecodeIntrinsic::Int64Xor => Some(Intrinsic::Int64Xor),
 
-            BytecodeIntrinsic::Int64Shl => Intrinsic::Int64Shl,
-            BytecodeIntrinsic::Int64Sar => Intrinsic::Int64Sar,
-            BytecodeIntrinsic::Int64Shr => Intrinsic::Int64Shr,
+            BytecodeIntrinsic::Int64Shl => Some(Intrinsic::Int64Shl),
+            BytecodeIntrinsic::Int64Sar => Some(Intrinsic::Int64Sar),
+            BytecodeIntrinsic::Int64Shr => Some(Intrinsic::Int64Shr),
 
-            BytecodeIntrinsic::Int64RotateLeft => Intrinsic::Int64RotateLeft,
-            BytecodeIntrinsic::Int64RotateRight => Intrinsic::Int64RotateRight,
+            BytecodeIntrinsic::Int64RotateLeft => Some(Intrinsic::Int64RotateLeft),
+            BytecodeIntrinsic::Int64RotateRight => Some(Intrinsic::Int64RotateRight),
 
-            BytecodeIntrinsic::Int64Not => Intrinsic::Int64Not,
-            BytecodeIntrinsic::Int64Neg => Intrinsic::Int64Neg,
-            BytecodeIntrinsic::Int64NegUnchecked => Intrinsic::Int64NegUnchecked,
+            BytecodeIntrinsic::Int64Not => Some(Intrinsic::Int64Not),
+            BytecodeIntrinsic::Int64Neg => Some(Intrinsic::Int64Neg),
+            BytecodeIntrinsic::Int64NegUnchecked => Some(Intrinsic::Int64NegUnchecked),
 
-            BytecodeIntrinsic::Int64CountZeroBits => Intrinsic::Int64CountZeroBits,
-            BytecodeIntrinsic::Int64CountOneBits => Intrinsic::Int64CountOneBits,
-            BytecodeIntrinsic::Int64CountZeroBitsLeading => Intrinsic::Int64CountZeroBitsLeading,
-            BytecodeIntrinsic::Int64CountOneBitsLeading => Intrinsic::Int64CountOneBitsLeading,
-            BytecodeIntrinsic::Int64CountZeroBitsTrailing => Intrinsic::Int64CountZeroBitsTrailing,
-            BytecodeIntrinsic::Int64CountOneBitsTrailing => Intrinsic::Int64CountOneBitsTrailing,
+            BytecodeIntrinsic::Int64CountZeroBits => Some(Intrinsic::Int64CountZeroBits),
+            BytecodeIntrinsic::Int64CountOneBits => Some(Intrinsic::Int64CountOneBits),
+            BytecodeIntrinsic::Int64CountZeroBitsLeading => {
+                Some(Intrinsic::Int64CountZeroBitsLeading)
+            }
+            BytecodeIntrinsic::Int64CountOneBitsLeading => {
+                Some(Intrinsic::Int64CountOneBitsLeading)
+            }
+            BytecodeIntrinsic::Int64CountZeroBitsTrailing => {
+                Some(Intrinsic::Int64CountZeroBitsTrailing)
+            }
+            BytecodeIntrinsic::Int64CountOneBitsTrailing => {
+                Some(Intrinsic::Int64CountOneBitsTrailing)
+            }
 
-            BytecodeIntrinsic::Float32ToInt32 => Intrinsic::Float32ToInt32,
-            BytecodeIntrinsic::Float32ToInt64 => Intrinsic::Float32ToInt64,
-            BytecodeIntrinsic::PromoteFloat32ToFloat64 => Intrinsic::PromoteFloat32ToFloat64,
-            BytecodeIntrinsic::ReinterpretFloat32AsInt32 => Intrinsic::ReinterpretFloat32AsInt32,
+            BytecodeIntrinsic::Float32ToInt32 => Some(Intrinsic::Float32ToInt32),
+            BytecodeIntrinsic::Float32ToInt64 => Some(Intrinsic::Float32ToInt64),
+            BytecodeIntrinsic::PromoteFloat32ToFloat64 => Some(Intrinsic::PromoteFloat32ToFloat64),
+            BytecodeIntrinsic::ReinterpretFloat32AsInt32 => {
+                Some(Intrinsic::ReinterpretFloat32AsInt32)
+            }
 
-            BytecodeIntrinsic::Float32Eq => Intrinsic::Float32Eq,
-            BytecodeIntrinsic::Float32Cmp => Intrinsic::Float32Cmp,
+            BytecodeIntrinsic::Float32Eq => Some(Intrinsic::Float32Eq),
+            BytecodeIntrinsic::Float32Cmp => Some(Intrinsic::Float32Cmp),
 
-            BytecodeIntrinsic::Float32Add => Intrinsic::Float32Add,
-            BytecodeIntrinsic::Float32Sub => Intrinsic::Float32Sub,
-            BytecodeIntrinsic::Float32Mul => Intrinsic::Float32Mul,
-            BytecodeIntrinsic::Float32Div => Intrinsic::Float32Div,
+            BytecodeIntrinsic::Float32Add => Some(Intrinsic::Float32Add),
+            BytecodeIntrinsic::Float32Sub => Some(Intrinsic::Float32Sub),
+            BytecodeIntrinsic::Float32Mul => Some(Intrinsic::Float32Mul),
+            BytecodeIntrinsic::Float32Div => Some(Intrinsic::Float32Div),
 
-            BytecodeIntrinsic::Float32Neg => Intrinsic::Float32Neg,
-            BytecodeIntrinsic::Float32Abs => Intrinsic::Float32Abs,
-            BytecodeIntrinsic::Float32IsNan => Intrinsic::Float32IsNan,
+            BytecodeIntrinsic::Float32Neg => Some(Intrinsic::Float32Neg),
+            BytecodeIntrinsic::Float32Abs => Some(Intrinsic::Float32Abs),
+            BytecodeIntrinsic::Float32IsNan => Some(Intrinsic::Float32IsNan),
 
-            BytecodeIntrinsic::Float32RoundToZero => Intrinsic::Float32RoundToZero,
-            BytecodeIntrinsic::Float32RoundUp => Intrinsic::Float32RoundUp,
-            BytecodeIntrinsic::Float32RoundDown => Intrinsic::Float32RoundDown,
-            BytecodeIntrinsic::Float32RoundHalfEven => Intrinsic::Float32RoundHalfEven,
+            BytecodeIntrinsic::Float32RoundToZero => Some(Intrinsic::Float32RoundToZero),
+            BytecodeIntrinsic::Float32RoundUp => Some(Intrinsic::Float32RoundUp),
+            BytecodeIntrinsic::Float32RoundDown => Some(Intrinsic::Float32RoundDown),
+            BytecodeIntrinsic::Float32RoundHalfEven => Some(Intrinsic::Float32RoundHalfEven),
 
-            BytecodeIntrinsic::Float32Sqrt => Intrinsic::Float32Sqrt,
+            BytecodeIntrinsic::Float32Sqrt => Some(Intrinsic::Float32Sqrt),
 
-            BytecodeIntrinsic::Float64ToInt32 => Intrinsic::Float64ToInt32,
-            BytecodeIntrinsic::Float64ToInt64 => Intrinsic::Float64ToInt64,
-            BytecodeIntrinsic::DemoteFloat64ToFloat32 => Intrinsic::DemoteFloat64ToFloat32,
-            BytecodeIntrinsic::ReinterpretFloat64AsInt64 => Intrinsic::ReinterpretFloat64AsInt64,
+            BytecodeIntrinsic::Float64ToInt32 => Some(Intrinsic::Float64ToInt32),
+            BytecodeIntrinsic::Float64ToInt64 => Some(Intrinsic::Float64ToInt64),
+            BytecodeIntrinsic::DemoteFloat64ToFloat32 => Some(Intrinsic::DemoteFloat64ToFloat32),
+            BytecodeIntrinsic::ReinterpretFloat64AsInt64 => {
+                Some(Intrinsic::ReinterpretFloat64AsInt64)
+            }
 
-            BytecodeIntrinsic::Float64Eq => Intrinsic::Float64Eq,
-            BytecodeIntrinsic::Float64Cmp => Intrinsic::Float64Cmp,
+            BytecodeIntrinsic::Float64Eq => Some(Intrinsic::Float64Eq),
+            BytecodeIntrinsic::Float64Cmp => Some(Intrinsic::Float64Cmp),
 
-            BytecodeIntrinsic::Float64Add => Intrinsic::Float64Add,
-            BytecodeIntrinsic::Float64Sub => Intrinsic::Float64Sub,
-            BytecodeIntrinsic::Float64Mul => Intrinsic::Float64Mul,
-            BytecodeIntrinsic::Float64Div => Intrinsic::Float64Div,
+            BytecodeIntrinsic::Float64Add => Some(Intrinsic::Float64Add),
+            BytecodeIntrinsic::Float64Sub => Some(Intrinsic::Float64Sub),
+            BytecodeIntrinsic::Float64Mul => Some(Intrinsic::Float64Mul),
+            BytecodeIntrinsic::Float64Div => Some(Intrinsic::Float64Div),
 
-            BytecodeIntrinsic::Float64Neg => Intrinsic::Float64Neg,
-            BytecodeIntrinsic::Float64Abs => Intrinsic::Float64Abs,
-            BytecodeIntrinsic::Float64IsNan => Intrinsic::Float64IsNan,
+            BytecodeIntrinsic::Float64Neg => Some(Intrinsic::Float64Neg),
+            BytecodeIntrinsic::Float64Abs => Some(Intrinsic::Float64Abs),
+            BytecodeIntrinsic::Float64IsNan => Some(Intrinsic::Float64IsNan),
 
-            BytecodeIntrinsic::Float64RoundToZero => Intrinsic::Float64RoundToZero,
-            BytecodeIntrinsic::Float64RoundUp => Intrinsic::Float64RoundUp,
-            BytecodeIntrinsic::Float64RoundDown => Intrinsic::Float64RoundDown,
-            BytecodeIntrinsic::Float64RoundHalfEven => Intrinsic::Float64RoundHalfEven,
+            BytecodeIntrinsic::Float64RoundToZero => Some(Intrinsic::Float64RoundToZero),
+            BytecodeIntrinsic::Float64RoundUp => Some(Intrinsic::Float64RoundUp),
+            BytecodeIntrinsic::Float64RoundDown => Some(Intrinsic::Float64RoundDown),
+            BytecodeIntrinsic::Float64RoundHalfEven => Some(Intrinsic::Float64RoundHalfEven),
 
-            BytecodeIntrinsic::Float64Sqrt => Intrinsic::Float64Sqrt,
+            BytecodeIntrinsic::Float64Sqrt => Some(Intrinsic::Float64Sqrt),
 
-            BytecodeIntrinsic::OptionGetOrPanic => Intrinsic::OptionGetOrPanic,
-            BytecodeIntrinsic::OptionIsNone => Intrinsic::OptionIsNone,
-            BytecodeIntrinsic::OptionIsSome => Intrinsic::OptionIsSome,
+            BytecodeIntrinsic::OptionGetOrPanic => Some(Intrinsic::OptionGetOrPanic),
+            BytecodeIntrinsic::OptionIsNone => Some(Intrinsic::OptionIsNone),
+            BytecodeIntrinsic::OptionIsSome => Some(Intrinsic::OptionIsSome),
 
-            BytecodeIntrinsic::AtomicInt32Get => Intrinsic::AtomicInt32Get,
-            BytecodeIntrinsic::AtomicInt32Set => Intrinsic::AtomicInt32Set,
-            BytecodeIntrinsic::AtomicInt32Exchange => Intrinsic::AtomicInt32Exchange,
-            BytecodeIntrinsic::AtomicInt32CompareExchange => Intrinsic::AtomicInt32CompareExchange,
-            BytecodeIntrinsic::AtomicInt32FetchAdd => Intrinsic::AtomicInt32FetchAdd,
+            BytecodeIntrinsic::AtomicInt32Get => Some(Intrinsic::AtomicInt32Get),
+            BytecodeIntrinsic::AtomicInt32Set => Some(Intrinsic::AtomicInt32Set),
+            BytecodeIntrinsic::AtomicInt32Exchange => Some(Intrinsic::AtomicInt32Exchange),
+            BytecodeIntrinsic::AtomicInt32CompareExchange => {
+                Some(Intrinsic::AtomicInt32CompareExchange)
+            }
+            BytecodeIntrinsic::AtomicInt32FetchAdd => Some(Intrinsic::AtomicInt32FetchAdd),
 
-            BytecodeIntrinsic::AtomicInt64Get => Intrinsic::AtomicInt64Get,
-            BytecodeIntrinsic::AtomicInt64Set => Intrinsic::AtomicInt64Set,
-            BytecodeIntrinsic::AtomicInt64Exchange => Intrinsic::AtomicInt64Exchange,
-            BytecodeIntrinsic::AtomicInt64CompareExchange => Intrinsic::AtomicInt64CompareExchange,
-            BytecodeIntrinsic::AtomicInt64FetchAdd => Intrinsic::AtomicInt64FetchAdd,
+            BytecodeIntrinsic::AtomicInt64Get => Some(Intrinsic::AtomicInt64Get),
+            BytecodeIntrinsic::AtomicInt64Set => Some(Intrinsic::AtomicInt64Set),
+            BytecodeIntrinsic::AtomicInt64Exchange => Some(Intrinsic::AtomicInt64Exchange),
+            BytecodeIntrinsic::AtomicInt64CompareExchange => {
+                Some(Intrinsic::AtomicInt64CompareExchange)
+            }
+            BytecodeIntrinsic::AtomicInt64FetchAdd => Some(Intrinsic::AtomicInt64FetchAdd),
 
-            BytecodeIntrinsic::ThreadCurrent => Intrinsic::ThreadCurrent,
+            BytecodeIntrinsic::ThreadCurrent => Some(Intrinsic::ThreadCurrent),
         }
     }
 }

@@ -306,8 +306,6 @@ fn find_enum(sa: &mut Sema, module_id: ModuleDefinitionId, name: &str) -> EnumDe
 pub fn resolve_internal_functions(sa: &mut Sema) {
     let stdlib_id = sa.stdlib_module_id();
 
-    resolve_freestanding_stdlib(sa, stdlib_id);
-
     resolve_string(sa, stdlib_id);
     resolve_uint8(sa, stdlib_id);
     resolve_bool(sa, stdlib_id);
@@ -337,15 +335,6 @@ fn lookup_ordering(sa: &mut Sema, stdlib_id: ModuleDefinitionId) {
         Some(find_instance_method(sa, stdlib_id, "Ordering", "is_le"));
     sa.known.functions.ordering_is_lt =
         Some(find_instance_method(sa, stdlib_id, "Ordering", "is_lt"));
-}
-
-fn resolve_freestanding_stdlib(sa: &mut Sema, stdlib_id: ModuleDefinitionId) {
-    intrinsic_fct(sa, stdlib_id, "unreachable", Intrinsic::Unreachable);
-
-    let fid = intrinsic_fct(sa, stdlib_id, "assert", Intrinsic::Assert);
-    sa.known.functions.assert = Some(fid);
-    intrinsic_fct(sa, stdlib_id, "debug", Intrinsic::Debug);
-    intrinsic_fct(sa, stdlib_id, "unsafeKillRefs", Intrinsic::UnsafeKillRefs);
 }
 
 fn resolve_atomic_int32(sa: &mut Sema, stdlib_id: ModuleDefinitionId) {
@@ -1479,30 +1468,6 @@ fn find_method_in_extensions(
     }
 
     panic!("cannot find method `{}`", sa.interner.str(name))
-}
-
-fn intrinsic_fct(
-    sa: &mut Sema,
-    module_id: ModuleDefinitionId,
-    name: &str,
-    intrinsic: Intrinsic,
-) -> FctDefinitionId {
-    common_fct(sa, module_id, name, intrinsic)
-}
-
-fn common_fct(
-    sa: &mut Sema,
-    module_id: ModuleDefinitionId,
-    name: &str,
-    intrinsic: Intrinsic,
-) -> FctDefinitionId {
-    let fct_id = resolve_name(sa, name, module_id)
-        .to_fct()
-        .expect("function expected");
-
-    let fct = sa.fct(fct_id);
-    assert!(fct.intrinsic.set(intrinsic).is_ok());
-    fct_id
 }
 
 fn intrinsic_method(

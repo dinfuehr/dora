@@ -19,7 +19,9 @@ use crate::threads::{
     current_thread, deinit_current_thread, init_current_thread, DoraThread, ManagedThread,
     ThreadState, STACK_SIZE,
 };
-use crate::vm::{get_vm, stack_pointer, ManagedCondition, ManagedMutex, ShapeKind, Trap};
+use crate::vm::{
+    get_vm, stack_pointer, Intrinsic, ManagedCondition, ManagedMutex, ShapeKind, Trap,
+};
 
 pub const STDLIB_NATIVE_FUNCTIONS: &[(&'static str, *const u8)] = &[
     ("stdlib::abort", abort as *const u8),
@@ -38,6 +40,13 @@ pub const STDLIB_NATIVE_FUNCTIONS: &[(&'static str, *const u8)] = &[
         stack::symbolize_stack_trace_element as *const u8,
     ),
     ("stdlib::thread::spawn", stdlib::spawn_thread as *const u8),
+];
+
+pub const STDLIB_INTRINSIC_FUNCTIONS: &[(&'static str, Intrinsic)] = &[
+    ("stdlib::unreachable", Intrinsic::Unreachable),
+    ("stdlib::assert", Intrinsic::Assert),
+    ("stdlib::debug", Intrinsic::Debug),
+    ("stdlib::unsafeKillRefs", Intrinsic::UnsafeKillRefs),
 ];
 
 pub const STDLIB_NATIVE_METHODS: &[(&'static str, &'static str, *const u8)] = &[
@@ -143,6 +152,22 @@ pub const STDLIB_NATIVE_METHODS: &[(&'static str, &'static str, *const u8)] = &[
     ),
 ];
 
+pub const STDLIB_INTRINSIC_METHODS: &[(&'static str, &'static str, Intrinsic)] = &[
+    ("stdlib::collections::Array", "size", Intrinsic::ArrayLen),
+    ("stdlib::collections::Array", "get", Intrinsic::ArrayGet),
+    ("stdlib::collections::Array", "set", Intrinsic::ArraySet),
+    (
+        "stdlib::collections::Array",
+        "unsafeNew",
+        Intrinsic::ArrayNewOfSize,
+    ),
+    (
+        "stdlib::collections::Array",
+        "new",
+        Intrinsic::ArrayWithValues,
+    ),
+];
+
 pub const STDLIB_NATIVE_PRIMITIVE_IMPL_METHODS: &[(
     &'static str,
     BytecodeType,
@@ -184,6 +209,26 @@ pub const STDLIB_NATIVE_PRIMITIVE_IMPL_METHODS: &[(
         BytecodeType::Float64,
         "toString",
         stdlib::float64_to_string as *const u8,
+    ),
+];
+
+pub const STDLIB_INTRINSIC_PRIMITIVE_IMPL_METHODS: &[(
+    &'static str,
+    BytecodeType,
+    &'static str,
+    Intrinsic,
+)] = &[
+    (
+        "stdlib::traits::Equals",
+        BytecodeType::UInt8,
+        "equals",
+        Intrinsic::UInt8Eq,
+    ),
+    (
+        "stdlib::traits::Comparable",
+        BytecodeType::UInt8,
+        "cmp",
+        Intrinsic::UInt8Cmp,
     ),
 ];
 
