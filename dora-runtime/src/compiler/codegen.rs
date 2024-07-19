@@ -293,14 +293,14 @@ fn should_emit_graph(vm: &VM, fct_id: FunctionId) -> bool {
 }
 
 fn fct_pattern_match(vm: &VM, fct_id: FunctionId, pattern: &str) -> bool {
-    if pattern == "all" {
+    if pattern == "all" || pattern == "*" {
         return true;
     }
 
     let fct_name = display_fct(vm, fct_id);
 
     for part in pattern.split(';') {
-        if fct_name.contains(part) {
+        if fct_name.ends_with(part) {
             return true;
         }
     }

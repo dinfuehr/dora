@@ -159,12 +159,12 @@ pub fn emit_bytecode(prog: &Program, filter: &str) {
 }
 
 fn fct_pattern_match(name: &str, pattern: &str) -> bool {
-    if pattern == "all" {
+    if pattern == "all" || pattern == "*" {
         return true;
     }
 
     for part in pattern.split(',') {
-        if name.contains(part) {
+        if name.ends_with(part) {
             return true;
         }
     }
