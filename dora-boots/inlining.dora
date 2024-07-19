@@ -1,6 +1,20 @@
 use package::compilation::CompilationInfo;
-use package::graph::Graph;
+use package::graph::{Graph, Op};
+use package::interface as iface;
 
 pub fn performInlining(ci: CompilationInfo, graph: Graph) {
+    for block in graph.insertionOrderIterator() {
+        for inst in block.instructionsIterator() {
+            let op = inst.op();
 
+            if op == Op::InvokeStatic {
+                let fctInfo = inst.getFunctionInfo();
+                let fctId = fctInfo.fct_id;
+
+                if iface::hasFunctionInlineAnnotation(fctId) {
+                    unimplemented();
+                }
+            }
+        }
+    }
 }
