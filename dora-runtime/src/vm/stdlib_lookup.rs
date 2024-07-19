@@ -4,7 +4,7 @@ use crate::boots::BOOTS_FUNCTIONS;
 use crate::gc::Address;
 use crate::stdlib::io::IO_FUNCTIONS;
 use crate::stdlib::STDLIB_FUNCTIONS;
-use crate::vm::{display_fct, display_ty, BytecodeType, Intrinsic, VM};
+use crate::vm::{display_fct, BytecodeType, Intrinsic, VM};
 use dora_bytecode::{
     ClassId, EnumId, ExtensionId, FunctionId, FunctionKind, ImplId, ModuleId, PackageId, Program,
     StructId, TraitId,
@@ -71,7 +71,7 @@ fn apply_fct(
     path: &str,
     implementation: FctImplementation,
 ) {
-    if path.contains("#") {
+    let fct_id = if path.contains("#") {
         let parts = path.split("#").collect::<Vec<_>>();
         assert_eq!(parts.len(), 2);
         let path = parts[0];
@@ -84,66 +84,30 @@ fn apply_fct(
             let trait_path = parts[0];
             let extended_ty_path = parts[1];
 
-            if let Some(extended_ty) = get_primitive_ty(extended_ty_path) {
-                match implementation {
-                    FctImplementation::Intrinsic(intrinsic) => {
-                        intrinsic_impl_method_ty(
-                            vm,
-                            &module_items,
-                            trait_path,
-                            extended_ty.clone(),
-                            method_name,
-                            intrinsic,
-                        );
-                    }
-                    FctImplementation::Native(ptr) => {
-                        native_impl_method_ty(
-                            vm,
-                            &module_items,
-                            trait_path,
-                            extended_ty.clone(),
-                            method_name,
-                            ptr,
-                        );
-                    }
-                }
+            let trait_id = resolve_path(vm, module_items, trait_path)
+                .trait_id()
+                .expect("trait expected");
+
+            let impl_id = if let Some(extended_ty) = get_primitive_ty(extended_ty_path) {
+                lookup_impl_for_ty(vm, trait_id, extended_ty.clone()).expect("missing impl")
             } else {
-                match implementation {
-                    FctImplementation::Intrinsic(..) => {
-                        unimplemented!()
-                    }
-                    FctImplementation::Native(ptr) => {
-                        native_impl_method(
-                            vm,
-                            &module_items,
-                            trait_path,
-                            extended_ty_path,
-                            method_name,
-                            ptr,
-                        );
-                    }
-                }
-            }
+                let extended_ty = resolve_path(vm, module_items, extended_ty_path);
+                lookup_impl_for_item(vm, trait_id, extended_ty).expect("missing impl")
+            };
+
+            lookup_fct_by_impl_id_and_name(vm, impl_id, method_name).expect("missing method")
         } else {
-            match implementation {
-                FctImplementation::Intrinsic(intrinsic) => {
-                    intrinsic_method(vm, &module_items, path, method_name, intrinsic);
-                }
-                FctImplementation::Native(ptr) => {
-                    native_method(vm, &module_items, path, method_name, ptr);
-                }
-            }
+            let extended_ty = resolve_path(vm, module_items, path);
+            let extension_id = lookup_extension_for_item(vm, extended_ty).expect("class not found");
+            lookup_fct_by_extension_id_and_name(vm, extension_id, method_name)
+                .expect("missing method")
         }
     } else {
-        let fct_id = resolve_path(vm, &module_items, path)
+        resolve_path(vm, &module_items, path)
             .function_id()
-            .expect("function expected");
+            .expect("function expected")
+    };
 
-        apply_implementation(vm, fct_id, implementation.clone());
-    }
-}
-
-fn apply_implementation(vm: &mut VM, fct_id: FunctionId, implementation: FctImplementation) {
     let existed = match implementation {
         FctImplementation::Intrinsic(intrinsic) => {
             vm.intrinsics.insert(fct_id, intrinsic).is_some()
@@ -160,159 +124,6 @@ fn apply_implementation(vm: &mut VM, fct_id: FunctionId, implementation: FctImpl
             display_fct(vm, fct_id)
         );
     }
-}
-
-fn native_fct(vm: &mut VM, module_items: &ModuleItemMap, full_path: &str, ptr: *const u8) {
-    let fct_id = resolve_path(vm, module_items, full_path)
-        .function_id()
-        .expect("function expected");
-
-    let old = vm.native_methods.insert(fct_id, Address::from_ptr(ptr));
-
-    if old.is_some() {
-        panic!("function {} was already initialized", full_path);
-    }
-
-    assert!(old.is_none());
-}
-
-fn intrinsic_fct(vm: &mut VM, module_items: &ModuleItemMap, full_path: &str, intrinsic: Intrinsic) {
-    let fct_id = resolve_path(vm, module_items, full_path)
-        .function_id()
-        .expect("function expected");
-
-    let old = vm.intrinsics.insert(fct_id, intrinsic);
-
-    if old.is_some() {
-        panic!("function {} was already initialized", full_path);
-    }
-
-    assert!(old.is_none());
-}
-
-fn native_method(
-    vm: &mut VM,
-    module_items: &ModuleItemMap,
-    full_path: &str,
-    method_name: &str,
-    ptr: *const u8,
-) {
-    let extended_ty = resolve_path(vm, module_items, full_path);
-    let extension_id = lookup_extension_for_item(vm, extended_ty).expect("class not found");
-    let fct_id =
-        lookup_fct_by_extension_id_and_name(vm, extension_id, method_name).expect("missing method");
-
-    let old = vm.native_methods.insert(fct_id, Address::from_ptr(ptr));
-
-    if old.is_some() {
-        panic!("function {} was already initialized", full_path);
-    }
-
-    assert!(old.is_none());
-}
-
-fn intrinsic_method(
-    vm: &mut VM,
-    module_items: &ModuleItemMap,
-    full_path: &str,
-    method_name: &str,
-    intrinsic: Intrinsic,
-) {
-    let extended_ty = resolve_path(vm, module_items, full_path);
-    let extension_id = lookup_extension_for_item(vm, extended_ty).expect("class not found");
-    let fct_id =
-        lookup_fct_by_extension_id_and_name(vm, extension_id, method_name).expect("missing method");
-
-    let old = vm.intrinsics.insert(fct_id, intrinsic);
-
-    if old.is_some() {
-        panic!("function {} was already initialized", full_path);
-    }
-
-    assert!(old.is_none());
-}
-
-fn native_impl_method_ty(
-    vm: &mut VM,
-    module_items: &ModuleItemMap,
-    trait_path: &str,
-    extended_ty: BytecodeType,
-    method_name: &str,
-    ptr: *const u8,
-) {
-    let trait_id = resolve_path(vm, module_items, trait_path)
-        .trait_id()
-        .expect("trait expected");
-    let impl_id = lookup_impl_for_ty(vm, trait_id, extended_ty.clone()).expect("missing impl");
-    let fct_id = lookup_fct_by_impl_id_and_name(vm, impl_id, method_name).expect("missing method");
-
-    let old = vm.native_methods.insert(fct_id, Address::from_ptr(ptr));
-
-    if old.is_some() {
-        panic!(
-            "function {} in `impl {} for {}` was already initialized",
-            method_name,
-            trait_path,
-            display_ty(vm, &extended_ty)
-        );
-    }
-
-    assert!(old.is_none());
-}
-
-fn intrinsic_impl_method_ty(
-    vm: &mut VM,
-    module_items: &ModuleItemMap,
-    trait_path: &str,
-    extended_ty: BytecodeType,
-    method_name: &str,
-    intrinsic: Intrinsic,
-) {
-    let trait_id = resolve_path(vm, module_items, trait_path)
-        .trait_id()
-        .expect("trait expected");
-    let impl_id = lookup_impl_for_ty(vm, trait_id, extended_ty.clone()).expect("missing impl");
-    let fct_id = lookup_fct_by_impl_id_and_name(vm, impl_id, method_name).expect("missing method");
-
-    let old = vm.intrinsics.insert(fct_id, intrinsic);
-
-    if old.is_some() {
-        panic!(
-            "function {} in `impl {} for {}` was already initialized",
-            method_name,
-            trait_path,
-            display_ty(vm, &extended_ty)
-        );
-    }
-
-    assert!(old.is_none());
-}
-
-fn native_impl_method(
-    vm: &mut VM,
-    module_items: &ModuleItemMap,
-    trait_path: &str,
-    extended_ty_path: &str,
-    method_name: &str,
-    ptr: *const u8,
-) {
-    let trait_id = resolve_path(vm, module_items, trait_path)
-        .trait_id()
-        .expect("trait expected");
-    let extended_ty = resolve_path(vm, module_items, extended_ty_path);
-    let impl_id = lookup_impl_for_item(vm, trait_id, extended_ty).expect("missing impl");
-    let fct_id = lookup_fct_by_impl_id_and_name(vm, impl_id, method_name).expect("missing method");
-
-    let old = vm.native_methods.insert(fct_id, Address::from_ptr(ptr));
-
-    if old.is_some() {
-        panic!(
-            "function {} in `impl {} for {:?}` was already initialized",
-            method_name, trait_path, extended_ty
-        );
-    }
-
-    assert!(old.is_none());
 }
 
 fn lookup_fct_by_extension_id_and_name(
