@@ -4,9 +4,7 @@ use crate::boots::BOOTS_NATIVE_FUNCTIONS;
 use crate::gc::Address;
 use crate::stdlib::io::IO_NATIVE_FUNCTIONS;
 use crate::stdlib::{
-    STDLIB_INTRINSIC_FUNCTIONS, STDLIB_INTRINSIC_METHODS, STDLIB_INTRINSIC_PRIMITIVE_IMPL_METHODS,
-    STDLIB_NATIVE_FUNCTIONS, STDLIB_NATIVE_IMPL_METHODS, STDLIB_NATIVE_METHODS,
-    STDLIB_NATIVE_PRIMITIVE_IMPL_METHODS,
+    STDLIB_FUNCTIONS, STDLIB_METHODS, STDLIB_NATIVE_IMPL_METHODS, STDLIB_PRIMITIVE_IMPL_METHODS,
 };
 use crate::vm::{display_fct, display_ty, BytecodeType, Intrinsic, VM};
 use dora_bytecode::{
@@ -14,57 +12,77 @@ use dora_bytecode::{
     StructId, TraitId,
 };
 
+pub enum FctImplementation {
+    Intrinsic(Intrinsic),
+    Native(*const u8),
+}
+
 pub fn lookup(vm: &mut VM) {
     let module_items = compute_module_items(&vm.program);
 
-    for (path, ptr) in STDLIB_NATIVE_FUNCTIONS {
-        native_fct(vm, &module_items, path, *ptr);
+    for (path, implementation) in STDLIB_FUNCTIONS {
+        match implementation {
+            FctImplementation::Intrinsic(intrinsic) => {
+                intrinsic_fct(vm, &module_items, path, *intrinsic);
+            }
+            FctImplementation::Native(ptr) => {
+                native_fct(vm, &module_items, path, *ptr);
+            }
+        }
     }
 
-    for (path, intrinsic) in STDLIB_INTRINSIC_FUNCTIONS {
-        intrinsic_fct(vm, &module_items, path, *intrinsic);
+    for (path, method_name, implementation) in STDLIB_METHODS {
+        match implementation {
+            FctImplementation::Intrinsic(intrinsic) => {
+                intrinsic_method(vm, &module_items, path, method_name, *intrinsic);
+            }
+            FctImplementation::Native(ptr) => {
+                native_method(vm, &module_items, path, method_name, *ptr);
+            }
+        }
     }
 
-    for (path, method_name, ptr) in STDLIB_NATIVE_METHODS {
-        native_method(vm, &module_items, path, method_name, *ptr);
+    for (trait_path, extended_ty, method_name, implementation) in STDLIB_PRIMITIVE_IMPL_METHODS {
+        match implementation {
+            FctImplementation::Intrinsic(intrinsic) => {
+                intrinsic_impl_method_ty(
+                    vm,
+                    &module_items,
+                    trait_path,
+                    extended_ty.clone(),
+                    method_name,
+                    *intrinsic,
+                );
+            }
+            FctImplementation::Native(ptr) => {
+                native_impl_method_ty(
+                    vm,
+                    &module_items,
+                    trait_path,
+                    extended_ty.clone(),
+                    method_name,
+                    *ptr,
+                );
+            }
+        }
     }
 
-    for (path, method_name, intrinsic) in STDLIB_INTRINSIC_METHODS {
-        intrinsic_method(vm, &module_items, path, method_name, *intrinsic);
-    }
-
-    for (trait_path, extended_ty, method_name, ptr) in STDLIB_NATIVE_PRIMITIVE_IMPL_METHODS {
-        native_impl_method_ty(
-            vm,
-            &module_items,
-            trait_path,
-            extended_ty.clone(),
-            method_name,
-            *ptr,
-        );
-    }
-
-    for (trait_path, extended_ty, method_name, intrinsic) in STDLIB_INTRINSIC_PRIMITIVE_IMPL_METHODS
-    {
-        intrinsic_impl_method_ty(
-            vm,
-            &module_items,
-            trait_path,
-            extended_ty.clone(),
-            method_name,
-            *intrinsic,
-        );
-    }
-
-    for (trait_path, extended_ty, method_name, ptr) in STDLIB_NATIVE_IMPL_METHODS {
-        native_impl_method(
-            vm,
-            &module_items,
-            trait_path,
-            extended_ty,
-            method_name,
-            *ptr,
-        );
+    for (trait_path, extended_ty, method_name, implementation) in STDLIB_NATIVE_IMPL_METHODS {
+        match implementation {
+            FctImplementation::Intrinsic(..) => {
+                unimplemented!()
+            }
+            FctImplementation::Native(ptr) => {
+                native_impl_method(
+                    vm,
+                    &module_items,
+                    trait_path,
+                    extended_ty,
+                    method_name,
+                    *ptr,
+                );
+            }
+        }
     }
 
     for (path, ptr) in IO_NATIVE_FUNCTIONS {

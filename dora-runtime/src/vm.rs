@@ -49,6 +49,7 @@ pub use self::specialize::{
     ensure_class_instance_for_enum_variant, ensure_class_instance_for_lambda,
     ensure_class_instance_for_trait_object, specialize_bty, specialize_bty_array,
 };
+pub use self::stdlib_lookup::FctImplementation;
 pub use self::structs::{StructInstance, StructInstanceField, StructInstanceId};
 pub use self::tuples::{get_concrete_tuple_bty, get_concrete_tuple_bty_array, ConcreteTuple};
 pub use self::ty::BytecodeTypeExt;

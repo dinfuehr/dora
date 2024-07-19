@@ -20,225 +20,225 @@ use crate::threads::{
     ThreadState, STACK_SIZE,
 };
 use crate::vm::{
-    get_vm, stack_pointer, Intrinsic, ManagedCondition, ManagedMutex, ShapeKind, Trap,
+    get_vm, stack_pointer, FctImplementation, Intrinsic, ManagedCondition, ManagedMutex, ShapeKind,
+    Trap,
 };
 
-pub const STDLIB_NATIVE_FUNCTIONS: &[(&'static str, *const u8)] = &[
-    ("stdlib::abort", abort as *const u8),
-    ("stdlib::exit", exit as *const u8),
-    ("stdlib::fatalError", fatal_error as *const u8),
-    ("stdlib::print", print as *const u8),
-    ("stdlib::println", println as *const u8),
-    ("stdlib::argc", argc as *const u8),
-    ("stdlib::argv", argv as *const u8),
-    ("stdlib::forceCollect", gc_collect as *const u8),
-    ("stdlib::forceMinorCollect", gc_minor_collect as *const u8),
-    ("stdlib::timestamp", timestamp as *const u8),
-    ("stdlib::sleep", sleep as *const u8),
+use FctImplementation::Intrinsic as I;
+use FctImplementation::Native as N;
+
+pub const STDLIB_FUNCTIONS: &[(&'static str, FctImplementation)] = &[
+    ("stdlib::abort", N(abort as *const u8)),
+    ("stdlib::exit", N(exit as *const u8)),
+    ("stdlib::fatalError", N(fatal_error as *const u8)),
+    ("stdlib::print", N(print as *const u8)),
+    ("stdlib::println", N(println as *const u8)),
+    ("stdlib::argc", N(argc as *const u8)),
+    ("stdlib::argv", N(argv as *const u8)),
+    ("stdlib::forceCollect", N(gc_collect as *const u8)),
+    (
+        "stdlib::forceMinorCollect",
+        N(gc_minor_collect as *const u8),
+    ),
+    ("stdlib::timestamp", N(timestamp as *const u8)),
+    ("stdlib::sleep", N(sleep as *const u8)),
     (
         "stdlib::symbolizeStacktraceElement",
-        stack::symbolize_stack_trace_element as *const u8,
+        N(stack::symbolize_stack_trace_element as *const u8),
     ),
-    ("stdlib::thread::spawn", stdlib::spawn_thread as *const u8),
+    (
+        "stdlib::thread::spawn",
+        N(stdlib::spawn_thread as *const u8),
+    ),
+    ("stdlib::unreachable", I(Intrinsic::Unreachable)),
+    ("stdlib::assert", I(Intrinsic::Assert)),
+    ("stdlib::debug", I(Intrinsic::Debug)),
+    ("stdlib::unsafeKillRefs", I(Intrinsic::UnsafeKillRefs)),
 ];
 
-pub const STDLIB_INTRINSIC_FUNCTIONS: &[(&'static str, Intrinsic)] = &[
-    ("stdlib::unreachable", Intrinsic::Unreachable),
-    ("stdlib::assert", Intrinsic::Assert),
-    ("stdlib::debug", Intrinsic::Debug),
-    ("stdlib::unsafeKillRefs", Intrinsic::UnsafeKillRefs),
-];
-
-pub const STDLIB_NATIVE_METHODS: &[(&'static str, &'static str, *const u8)] = &[
+pub const STDLIB_METHODS: &[(&'static str, &'static str, FctImplementation)] = &[
     (
         "stdlib::thread::Mutex",
         "wait",
-        stdlib::mutex_wait as *const u8,
+        N(stdlib::mutex_wait as *const u8),
     ),
     (
         "stdlib::thread::Mutex",
         "notify",
-        stdlib::mutex_notify as *const u8,
+        N(stdlib::mutex_notify as *const u8),
     ),
     (
         "stdlib::thread::Condition",
         "enqueue",
-        stdlib::condition_enqueue as *const u8,
+        N(stdlib::condition_enqueue as *const u8),
     ),
     (
         "stdlib::thread::Condition",
         "block",
-        stdlib::condition_block_after_enqueue as *const u8,
+        N(stdlib::condition_block_after_enqueue as *const u8),
     ),
     (
         "stdlib::thread::Condition",
         "wakeupOne",
-        stdlib::condition_wakeup_one as *const u8,
+        N(stdlib::condition_wakeup_one as *const u8),
     ),
     (
         "stdlib::thread::Condition",
         "wakeupAll",
-        stdlib::condition_wakeup_all as *const u8,
+        N(stdlib::condition_wakeup_all as *const u8),
     ),
     (
         "stdlib::thread::Thread",
         "join",
-        stdlib::join_thread as *const u8,
+        N(stdlib::join_thread as *const u8),
     ),
     (
         "stdlib::Stacktrace",
         "capture",
-        stack::capture_stack_trace as *const u8,
+        N(stack::capture_stack_trace as *const u8),
     ),
     (
         "stdlib::string::String",
         "clone",
-        stdlib::str_clone as *const u8,
+        N(stdlib::str_clone as *const u8),
     ),
     (
         "stdlib::string::String",
         "fromBytesPart",
-        stdlib::str_from_bytes as *const u8,
+        N(stdlib::str_from_bytes as *const u8),
     ),
     (
         "stdlib::string::String",
         "fromStringPart",
-        stdlib::str_from_bytes as *const u8,
+        N(stdlib::str_from_bytes as *const u8),
     ),
     (
         "stdlib::string::String",
         "compareTo",
-        stdlib::strcmp as *const u8,
+        N(stdlib::strcmp as *const u8),
     ),
     (
         "stdlib::string::String",
         "toInt32Success",
-        stdlib::str_to_int32_success as *const u8,
+        N(stdlib::str_to_int32_success as *const u8),
     ),
     (
         "stdlib::string::String",
         "toInt64Success",
-        stdlib::str_to_int64_success as *const u8,
+        N(stdlib::str_to_int64_success as *const u8),
     ),
     (
         "stdlib::string::String",
         "toInt32OrZero",
-        stdlib::str_to_int32 as *const u8,
+        N(stdlib::str_to_int32 as *const u8),
     ),
     (
         "stdlib::string::String",
         "toInt64OrZero",
-        stdlib::str_to_int64 as *const u8,
+        N(stdlib::str_to_int64 as *const u8),
     ),
     (
         "stdlib::string::String",
         "toFloat32Success",
-        stdlib::str_to_float32_success as *const u8,
+        N(stdlib::str_to_float32_success as *const u8),
     ),
     (
         "stdlib::string::String",
         "toFloat64Success",
-        stdlib::str_to_float64_success as *const u8,
+        N(stdlib::str_to_float64_success as *const u8),
     ),
     (
         "stdlib::string::String",
         "toFloat32OrZero",
-        stdlib::str_to_float32 as *const u8,
+        N(stdlib::str_to_float32 as *const u8),
     ),
     (
         "stdlib::string::String",
         "toFloat64OrZero",
-        stdlib::str_to_float64 as *const u8,
+        N(stdlib::str_to_float64 as *const u8),
     ),
-];
-
-pub const STDLIB_INTRINSIC_METHODS: &[(&'static str, &'static str, Intrinsic)] = &[
-    ("stdlib::collections::Array", "size", Intrinsic::ArrayLen),
-    ("stdlib::collections::Array", "get", Intrinsic::ArrayGet),
-    ("stdlib::collections::Array", "set", Intrinsic::ArraySet),
+    ("stdlib::collections::Array", "size", I(Intrinsic::ArrayLen)),
+    ("stdlib::collections::Array", "get", I(Intrinsic::ArrayGet)),
+    ("stdlib::collections::Array", "set", I(Intrinsic::ArraySet)),
     (
         "stdlib::collections::Array",
         "unsafeNew",
-        Intrinsic::ArrayNewOfSize,
+        I(Intrinsic::ArrayNewOfSize),
     ),
     (
         "stdlib::collections::Array",
         "new",
-        Intrinsic::ArrayWithValues,
+        I(Intrinsic::ArrayWithValues),
     ),
 ];
 
-pub const STDLIB_NATIVE_PRIMITIVE_IMPL_METHODS: &[(
+pub const STDLIB_PRIMITIVE_IMPL_METHODS: &[(
     &'static str,
     BytecodeType,
     &'static str,
-    *const u8,
+    FctImplementation,
 )] = &[
     (
         "stdlib::string::Stringable",
         BytecodeType::UInt8,
         "toString",
-        stdlib::uint8_to_string as *const u8,
+        N(stdlib::uint8_to_string as *const u8),
     ),
     (
         "stdlib::string::Stringable",
         BytecodeType::Char,
         "toString",
-        stdlib::char_to_string as *const u8,
+        N(stdlib::char_to_string as *const u8),
     ),
     (
         "stdlib::string::Stringable",
         BytecodeType::Int32,
         "toString",
-        stdlib::int32_to_string as *const u8,
+        N(stdlib::int32_to_string as *const u8),
     ),
     (
         "stdlib::string::Stringable",
         BytecodeType::Int64,
         "toString",
-        stdlib::int64_to_string as *const u8,
+        N(stdlib::int64_to_string as *const u8),
     ),
     (
         "stdlib::string::Stringable",
         BytecodeType::Float32,
         "toString",
-        stdlib::float32_to_string as *const u8,
+        N(stdlib::float32_to_string as *const u8),
     ),
     (
         "stdlib::string::Stringable",
         BytecodeType::Float64,
         "toString",
-        stdlib::float64_to_string as *const u8,
+        N(stdlib::float64_to_string as *const u8),
     ),
-];
-
-pub const STDLIB_INTRINSIC_PRIMITIVE_IMPL_METHODS: &[(
-    &'static str,
-    BytecodeType,
-    &'static str,
-    Intrinsic,
-)] = &[
     (
         "stdlib::traits::Equals",
         BytecodeType::UInt8,
         "equals",
-        Intrinsic::UInt8Eq,
+        I(Intrinsic::UInt8Eq),
     ),
     (
         "stdlib::traits::Comparable",
         BytecodeType::UInt8,
         "cmp",
-        Intrinsic::UInt8Cmp,
+        I(Intrinsic::UInt8Cmp),
     ),
 ];
 
-pub const STDLIB_NATIVE_IMPL_METHODS: &[(&'static str, &'static str, &'static str, *const u8)] =
-    &[(
-        "stdlib::traits::Add",
-        "stdlib::string::String",
-        "add",
-        stdlib::strcat as *const u8,
-    )];
+pub const STDLIB_NATIVE_IMPL_METHODS: &[(
+    &'static str,
+    &'static str,
+    &'static str,
+    FctImplementation,
+)] = &[(
+    "stdlib::traits::Add",
+    "stdlib::string::String",
+    "add",
+    N(stdlib::strcat as *const u8),
+)];
 
 pub mod io;
 
