@@ -4,7 +4,7 @@ use crate::boots::BOOTS_NATIVE_FUNCTIONS;
 use crate::gc::Address;
 use crate::stdlib::io::IO_NATIVE_FUNCTIONS;
 use crate::stdlib::{
-    STDLIB_FUNCTIONS, STDLIB_METHODS, STDLIB_NATIVE_IMPL_METHODS, STDLIB_PRIMITIVE_IMPL_METHODS,
+    STDLIB_FUNCTIONS, STDLIB_METHODS, STDLIB_PRIMITIVE_IMPL_METHODS as STDLIB_IMPL_METHODS,
 };
 use crate::vm::{display_fct, display_ty, BytecodeType, Intrinsic, VM};
 use dora_bytecode::{
@@ -42,45 +42,45 @@ pub fn lookup(vm: &mut VM) {
         }
     }
 
-    for (trait_path, extended_ty, method_name, implementation) in STDLIB_PRIMITIVE_IMPL_METHODS {
-        match implementation {
-            FctImplementation::Intrinsic(intrinsic) => {
-                intrinsic_impl_method_ty(
-                    vm,
-                    &module_items,
-                    trait_path,
-                    extended_ty.clone(),
-                    method_name,
-                    *intrinsic,
-                );
+    for (trait_path, extended_ty_path, method_name, implementation) in STDLIB_IMPL_METHODS {
+        if let Some(extended_ty) = get_primitive_ty(extended_ty_path) {
+            match implementation {
+                FctImplementation::Intrinsic(intrinsic) => {
+                    intrinsic_impl_method_ty(
+                        vm,
+                        &module_items,
+                        trait_path,
+                        extended_ty.clone(),
+                        method_name,
+                        *intrinsic,
+                    );
+                }
+                FctImplementation::Native(ptr) => {
+                    native_impl_method_ty(
+                        vm,
+                        &module_items,
+                        trait_path,
+                        extended_ty.clone(),
+                        method_name,
+                        *ptr,
+                    );
+                }
             }
-            FctImplementation::Native(ptr) => {
-                native_impl_method_ty(
-                    vm,
-                    &module_items,
-                    trait_path,
-                    extended_ty.clone(),
-                    method_name,
-                    *ptr,
-                );
-            }
-        }
-    }
-
-    for (trait_path, extended_ty, method_name, implementation) in STDLIB_NATIVE_IMPL_METHODS {
-        match implementation {
-            FctImplementation::Intrinsic(..) => {
-                unimplemented!()
-            }
-            FctImplementation::Native(ptr) => {
-                native_impl_method(
-                    vm,
-                    &module_items,
-                    trait_path,
-                    extended_ty,
-                    method_name,
-                    *ptr,
-                );
+        } else {
+            match implementation {
+                FctImplementation::Intrinsic(..) => {
+                    unimplemented!()
+                }
+                FctImplementation::Native(ptr) => {
+                    native_impl_method(
+                        vm,
+                        &module_items,
+                        trait_path,
+                        extended_ty_path,
+                        method_name,
+                        *ptr,
+                    );
+                }
             }
         }
     }
@@ -112,6 +112,18 @@ pub fn lookup(vm: &mut VM) {
         {
             panic!("unknown internal function {}", display_fct(vm, fct_id));
         }
+    }
+}
+
+fn get_primitive_ty(path: &str) -> Option<BytecodeType> {
+    match path {
+        "stdlib::primitives::UInt8" => Some(BytecodeType::UInt8),
+        "stdlib::primitives::Char" => Some(BytecodeType::Char),
+        "stdlib::primitives::Int32" => Some(BytecodeType::Int32),
+        "stdlib::primitives::Int64" => Some(BytecodeType::Int64),
+        "stdlib::primitives::Float32" => Some(BytecodeType::Float32),
+        "stdlib::primitives::Float64" => Some(BytecodeType::Float64),
+        _ => None,
     }
 }
 

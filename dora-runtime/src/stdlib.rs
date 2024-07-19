@@ -7,8 +7,6 @@ use std::str;
 use std::thread;
 use std::time::Duration;
 
-use dora_bytecode::BytecodeType;
-
 use crate::gc::{Address, GcReason};
 use crate::handle::{create_handle, handle_scope, Handle};
 use crate::object::{Obj, Ref, Str, UInt8Array};
@@ -174,71 +172,65 @@ pub const STDLIB_METHODS: &[(&'static str, &'static str, FctImplementation)] = &
 
 pub const STDLIB_PRIMITIVE_IMPL_METHODS: &[(
     &'static str,
-    BytecodeType,
+    &'static str,
     &'static str,
     FctImplementation,
 )] = &[
     (
         "stdlib::string::Stringable",
-        BytecodeType::UInt8,
+        "stdlib::primitives::UInt8",
         "toString",
         N(stdlib::uint8_to_string as *const u8),
     ),
     (
         "stdlib::string::Stringable",
-        BytecodeType::Char,
+        "stdlib::primitives::Char",
         "toString",
         N(stdlib::char_to_string as *const u8),
     ),
     (
         "stdlib::string::Stringable",
-        BytecodeType::Int32,
+        "stdlib::primitives::Int32",
         "toString",
         N(stdlib::int32_to_string as *const u8),
     ),
     (
         "stdlib::string::Stringable",
-        BytecodeType::Int64,
+        "stdlib::primitives::Int64",
         "toString",
         N(stdlib::int64_to_string as *const u8),
     ),
     (
         "stdlib::string::Stringable",
-        BytecodeType::Float32,
+        "stdlib::primitives::Float32",
         "toString",
         N(stdlib::float32_to_string as *const u8),
     ),
     (
         "stdlib::string::Stringable",
-        BytecodeType::Float64,
+        "stdlib::primitives::Float64",
         "toString",
         N(stdlib::float64_to_string as *const u8),
     ),
     (
         "stdlib::traits::Equals",
-        BytecodeType::UInt8,
+        "stdlib::primitives::UInt8",
         "equals",
         I(Intrinsic::UInt8Eq),
     ),
     (
         "stdlib::traits::Comparable",
-        BytecodeType::UInt8,
+        "stdlib::primitives::UInt8",
         "cmp",
         I(Intrinsic::UInt8Cmp),
     ),
+    (
+        "stdlib::traits::Add",
+        "stdlib::string::String",
+        "add",
+        N(stdlib::strcat as *const u8),
+    ),
 ];
-
-pub const STDLIB_NATIVE_IMPL_METHODS: &[(
-    &'static str,
-    &'static str,
-    &'static str,
-    FctImplementation,
-)] = &[(
-    "stdlib::traits::Add",
-    "stdlib::string::String",
-    "add",
-    N(stdlib::strcat as *const u8),
-)];
 
 pub mod io;
 
