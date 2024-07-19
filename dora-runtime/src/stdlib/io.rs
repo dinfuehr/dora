@@ -6,30 +6,32 @@ use std::{fs, path::PathBuf};
 use crate::handle::{handle_scope, Handle};
 use crate::object::{byte_array_from_buffer, Ref, Str, UInt8Array};
 use crate::threads::parked_scope;
-use crate::vm::get_vm;
+use crate::vm::{get_vm, FctImplementation};
 
-pub const IO_NATIVE_FUNCTIONS: &[(&'static str, *const u8)] = &[
-    ("stdlib::io::socketConnect", socket_connect as *const u8),
-    ("stdlib::io::socketClose", socket_close as *const u8),
-    ("stdlib::io::socketWrite", socket_write as *const u8),
-    ("stdlib::io::socketRead", socket_read as *const u8),
-    ("stdlib::io::socketBind", socket_bind as *const u8),
-    ("stdlib::io::socketAccept", socket_accept as *const u8),
+use FctImplementation::Native as N;
+
+pub const IO_FUNCTIONS: &[(&'static str, FctImplementation)] = &[
+    ("stdlib::io::socketConnect", N(socket_connect as *const u8)),
+    ("stdlib::io::socketClose", N(socket_close as *const u8)),
+    ("stdlib::io::socketWrite", N(socket_write as *const u8)),
+    ("stdlib::io::socketRead", N(socket_read as *const u8)),
+    ("stdlib::io::socketBind", N(socket_bind as *const u8)),
+    ("stdlib::io::socketAccept", N(socket_accept as *const u8)),
     (
         "stdlib::io::readFileAsString",
-        read_file_as_string as *const u8,
+        N(read_file_as_string as *const u8),
     ),
     (
         "stdlib::io::readFileAsBytes",
-        read_file_as_bytes as *const u8,
+        N(read_file_as_bytes as *const u8),
     ),
     (
         "stdlib::io::writeFileAsString",
-        write_file_as_string as *const u8,
+        N(write_file_as_string as *const u8),
     ),
     (
         "stdlib::io::writeFileAsBytes",
-        write_file_as_bytes as *const u8,
+        N(write_file_as_bytes as *const u8),
     ),
 ];
 

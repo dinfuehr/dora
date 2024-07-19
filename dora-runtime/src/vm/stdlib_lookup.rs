@@ -1,15 +1,16 @@
 use std::collections::HashMap;
 
-use crate::boots::BOOTS_NATIVE_FUNCTIONS;
+use crate::boots::BOOTS_FUNCTIONS;
 use crate::gc::Address;
-use crate::stdlib::io::IO_NATIVE_FUNCTIONS;
-use crate::stdlib::{STDLIB_FUNCTIONS, STDLIB_IMPL_METHODS, STDLIB_METHODS};
+use crate::stdlib::io::IO_FUNCTIONS;
+use crate::stdlib::STDLIB_FUNCTIONS;
 use crate::vm::{display_fct, display_ty, BytecodeType, Intrinsic, VM};
 use dora_bytecode::{
     ClassId, EnumId, ExtensionId, FunctionId, FunctionKind, ImplId, ModuleId, PackageId, Program,
     StructId, TraitId,
 };
 
+#[derive(Clone)]
 pub enum FctImplementation {
     Intrinsic(Intrinsic),
     Native(*const u8),
@@ -19,77 +20,16 @@ pub fn lookup(vm: &mut VM) {
     let module_items = compute_module_items(&vm.program);
 
     for (path, implementation) in STDLIB_FUNCTIONS {
-        match implementation {
-            FctImplementation::Intrinsic(intrinsic) => {
-                intrinsic_fct(vm, &module_items, path, *intrinsic);
-            }
-            FctImplementation::Native(ptr) => {
-                native_fct(vm, &module_items, path, *ptr);
-            }
-        }
+        apply_fct(vm, &module_items, path, implementation.clone());
     }
 
-    for (path, method_name, implementation) in STDLIB_METHODS {
-        match implementation {
-            FctImplementation::Intrinsic(intrinsic) => {
-                intrinsic_method(vm, &module_items, path, method_name, *intrinsic);
-            }
-            FctImplementation::Native(ptr) => {
-                native_method(vm, &module_items, path, method_name, *ptr);
-            }
-        }
-    }
-
-    for (trait_path, extended_ty_path, method_name, implementation) in STDLIB_IMPL_METHODS {
-        if let Some(extended_ty) = get_primitive_ty(extended_ty_path) {
-            match implementation {
-                FctImplementation::Intrinsic(intrinsic) => {
-                    intrinsic_impl_method_ty(
-                        vm,
-                        &module_items,
-                        trait_path,
-                        extended_ty.clone(),
-                        method_name,
-                        *intrinsic,
-                    );
-                }
-                FctImplementation::Native(ptr) => {
-                    native_impl_method_ty(
-                        vm,
-                        &module_items,
-                        trait_path,
-                        extended_ty.clone(),
-                        method_name,
-                        *ptr,
-                    );
-                }
-            }
-        } else {
-            match implementation {
-                FctImplementation::Intrinsic(..) => {
-                    unimplemented!()
-                }
-                FctImplementation::Native(ptr) => {
-                    native_impl_method(
-                        vm,
-                        &module_items,
-                        trait_path,
-                        extended_ty_path,
-                        method_name,
-                        *ptr,
-                    );
-                }
-            }
-        }
-    }
-
-    for (path, ptr) in IO_NATIVE_FUNCTIONS {
-        native_fct(vm, &module_items, path, *ptr);
+    for (path, implementation) in IO_FUNCTIONS {
+        apply_fct(vm, &module_items, path, implementation.clone());
     }
 
     if vm.program.boots_package_id.is_some() {
-        for (path, ptr) in BOOTS_NATIVE_FUNCTIONS {
-            native_fct(vm, &module_items, path, *ptr);
+        for (path, implementation) in BOOTS_FUNCTIONS {
+            apply_fct(vm, &module_items, path, implementation.clone());
         }
     }
 
@@ -122,6 +62,103 @@ fn get_primitive_ty(path: &str) -> Option<BytecodeType> {
         "stdlib::primitives::Float32" => Some(BytecodeType::Float32),
         "stdlib::primitives::Float64" => Some(BytecodeType::Float64),
         _ => None,
+    }
+}
+
+fn apply_fct(
+    vm: &mut VM,
+    module_items: &ModuleItemMap,
+    path: &str,
+    implementation: FctImplementation,
+) {
+    if path.contains("#") {
+        let parts = path.split("#").collect::<Vec<_>>();
+        assert_eq!(parts.len(), 2);
+        let path = parts[0];
+        let method_name = parts[1];
+
+        if path.contains(" for ") {
+            let parts = path.split(" for ").collect::<Vec<_>>();
+            assert_eq!(parts.len(), 2);
+
+            let trait_path = parts[0];
+            let extended_ty_path = parts[1];
+
+            if let Some(extended_ty) = get_primitive_ty(extended_ty_path) {
+                match implementation {
+                    FctImplementation::Intrinsic(intrinsic) => {
+                        intrinsic_impl_method_ty(
+                            vm,
+                            &module_items,
+                            trait_path,
+                            extended_ty.clone(),
+                            method_name,
+                            intrinsic,
+                        );
+                    }
+                    FctImplementation::Native(ptr) => {
+                        native_impl_method_ty(
+                            vm,
+                            &module_items,
+                            trait_path,
+                            extended_ty.clone(),
+                            method_name,
+                            ptr,
+                        );
+                    }
+                }
+            } else {
+                match implementation {
+                    FctImplementation::Intrinsic(..) => {
+                        unimplemented!()
+                    }
+                    FctImplementation::Native(ptr) => {
+                        native_impl_method(
+                            vm,
+                            &module_items,
+                            trait_path,
+                            extended_ty_path,
+                            method_name,
+                            ptr,
+                        );
+                    }
+                }
+            }
+        } else {
+            match implementation {
+                FctImplementation::Intrinsic(intrinsic) => {
+                    intrinsic_method(vm, &module_items, path, method_name, intrinsic);
+                }
+                FctImplementation::Native(ptr) => {
+                    native_method(vm, &module_items, path, method_name, ptr);
+                }
+            }
+        }
+    } else {
+        let fct_id = resolve_path(vm, &module_items, path)
+            .function_id()
+            .expect("function expected");
+
+        apply_implementation(vm, fct_id, implementation.clone());
+    }
+}
+
+fn apply_implementation(vm: &mut VM, fct_id: FunctionId, implementation: FctImplementation) {
+    let existed = match implementation {
+        FctImplementation::Intrinsic(intrinsic) => {
+            vm.intrinsics.insert(fct_id, intrinsic).is_some()
+        }
+        FctImplementation::Native(ptr) => vm
+            .native_methods
+            .insert(fct_id, Address::from_ptr(ptr))
+            .is_some(),
+    };
+
+    if existed {
+        panic!(
+            "function {} was already initialized",
+            display_fct(vm, fct_id)
+        );
     }
 }
 

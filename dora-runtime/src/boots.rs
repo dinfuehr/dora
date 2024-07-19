@@ -16,7 +16,7 @@ use crate::size::InstanceSize;
 use crate::threads::current_thread;
 use crate::vm::{
     create_class_instance, create_enum_instance, display_fct,
-    ensure_class_instance_for_enum_variant, get_vm, impls, CodeDescriptor, VM,
+    ensure_class_instance_for_enum_variant, get_vm, impls, CodeDescriptor, FctImplementation, VM,
 };
 
 use self::deserializer::{decode_bytecode_type, decode_bytecode_type_array};
@@ -25,98 +25,100 @@ mod data;
 mod deserializer;
 mod serializer;
 
-pub const BOOTS_NATIVE_FUNCTIONS: &[(&'static str, *const u8)] = &[
+use FctImplementation::Native as N;
+
+pub const BOOTS_FUNCTIONS: &[(&'static str, FctImplementation)] = &[
     (
         "boots::interface::getClassPointerRaw",
-        get_class_pointer as *const u8,
+        N(get_class_pointer as *const u8),
     ),
     (
         "boots::interface::getClassSizeRaw",
-        get_class_size as *const u8,
+        N(get_class_size as *const u8),
     ),
     (
         "boots::interface::getFieldOffsetRaw",
-        get_field_offset as *const u8,
+        N(get_field_offset as *const u8),
     ),
     (
         "boots::interface::getFunctionVtableIndexRaw",
-        get_function_vtable_index as *const u8,
+        N(get_function_vtable_index as *const u8),
     ),
     (
         "boots::interface::hasGlobalInitialValueRaw",
-        has_global_initial_value as *const u8,
+        N(has_global_initial_value as *const u8),
     ),
     (
         "boots::interface::getGlobalValueAddressRaw",
-        get_global_value_address as *const u8,
+        N(get_global_value_address as *const u8),
     ),
     (
         "boots::interface::getGlobalStateAddressRaw",
-        get_global_state_address as *const u8,
+        N(get_global_state_address as *const u8),
     ),
     (
         "boots::interface::getGlobalInitializerFunctionIdRaw",
-        get_global_initializer_function_id as *const u8,
+        N(get_global_initializer_function_id as *const u8),
     ),
     (
         "boots::interface::getSystemConfigRaw",
-        get_system_config_raw as *const u8,
+        N(get_system_config_raw as *const u8),
     ),
     (
         "boots::interface::getFunctionAddressRaw",
-        get_function_address as *const u8,
+        N(get_function_address as *const u8),
     ),
     (
         "boots::interface::getClassPointerForLambdaRaw",
-        get_class_pointer_for_lambda as *const u8,
+        N(get_class_pointer_for_lambda as *const u8),
     ),
     (
         "boots::interface::getClassPointerForTraitObjectRaw",
-        get_class_pointer_for_trait_object_raw as *const u8,
+        N(get_class_pointer_for_trait_object_raw as *const u8),
     ),
     (
         "boots::interface::getClassSizeForTraitObjectRaw",
-        get_class_size_for_trait_object_raw as *const u8,
+        N(get_class_size_for_trait_object_raw as *const u8),
     ),
     (
         "boots::interface::getReadOnlyStringAddressRaw",
-        get_read_only_string_address_raw as *const u8,
+        N(get_read_only_string_address_raw as *const u8),
     ),
     (
         "boots::interface::findTraitImplRaw",
-        find_trait_impl_raw as *const u8,
+        N(find_trait_impl_raw as *const u8),
     ),
     (
         "boots::interface::getIntrinsicForFunctionRaw",
-        get_intrinsic_for_function_raw as *const u8,
+        N(get_intrinsic_for_function_raw as *const u8),
     ),
     (
         "boots::interface::getStructDataRaw",
-        get_struct_data_raw as *const u8,
+        N(get_struct_data_raw as *const u8),
     ),
     (
         "boots::interface::getEnumDataRaw",
-        get_enum_data_raw as *const u8,
+        N(get_enum_data_raw as *const u8),
     ),
     (
         "boots::interface::getClassDataForEnumVariantRaw",
-        get_class_data_for_enum_variant_raw as *const u8,
+        N(get_class_data_for_enum_variant_raw as *const u8),
     ),
     (
         "boots::interface::getFieldOffsetForEnumVariantRaw",
-        get_field_offset_for_enum_variant_raw as *const u8,
+        N(get_field_offset_for_enum_variant_raw as *const u8),
     ),
     (
         "boots::interface::getElementSizeRaw",
-        get_element_size_raw as *const u8,
+        N(get_element_size_raw as *const u8),
     ),
     (
         "boots::interface::getFunctionDisplayNameRaw",
-        get_function_display_name_raw as *const u8,
+        N(get_function_display_name_raw as *const u8),
     ),
     (
         "boots::interface::hasFunctionInlineAnnotationRaw",
-        has_function_inline_annotation_raw as *const u8,
+        N(has_function_inline_annotation_raw as *const u8),
     ),
 ];
 
