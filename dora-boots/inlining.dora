@@ -1,0 +1,6 @@
+use package::compilation::CompilationInfo;
+use package::graph::Graph;
+
+pub fn performInlining(ci: CompilationInfo, graph: Graph) {
+
+}
