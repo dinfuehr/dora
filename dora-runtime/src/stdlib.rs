@@ -170,12 +170,7 @@ pub const STDLIB_METHODS: &[(&'static str, &'static str, FctImplementation)] = &
     ),
 ];
 
-pub const STDLIB_PRIMITIVE_IMPL_METHODS: &[(
-    &'static str,
-    &'static str,
-    &'static str,
-    FctImplementation,
-)] = &[
+pub const STDLIB_IMPL_METHODS: &[(&'static str, &'static str, &'static str, FctImplementation)] = &[
     (
         "stdlib::string::Stringable",
         "stdlib::primitives::UInt8",

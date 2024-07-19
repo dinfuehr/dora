@@ -3,9 +3,7 @@ use std::collections::HashMap;
 use crate::boots::BOOTS_NATIVE_FUNCTIONS;
 use crate::gc::Address;
 use crate::stdlib::io::IO_NATIVE_FUNCTIONS;
-use crate::stdlib::{
-    STDLIB_FUNCTIONS, STDLIB_METHODS, STDLIB_PRIMITIVE_IMPL_METHODS as STDLIB_IMPL_METHODS,
-};
+use crate::stdlib::{STDLIB_FUNCTIONS, STDLIB_IMPL_METHODS, STDLIB_METHODS};
 use crate::vm::{display_fct, display_ty, BytecodeType, Intrinsic, VM};
 use dora_bytecode::{
     ClassId, EnumId, ExtensionId, FunctionId, FunctionKind, ImplId, ModuleId, PackageId, Program,
