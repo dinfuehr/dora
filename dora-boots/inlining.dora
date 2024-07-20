@@ -15,8 +15,6 @@ pub fn performInlining(ci: CompilationInfo, graph: Graph) {
                 if iface::hasFunctionInlineAnnotation(fctId) {
                     let data = iface::getFunctionDataForInlining(fctId);
                     graph_builder::addToGraph(graph, data.bc, fctInfo.type_params, data.returnType);
-
-                    unimplemented();
                 }
             }
         }

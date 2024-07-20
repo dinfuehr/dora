@@ -35,7 +35,7 @@ pub fn addToGraph(graph: Graph, bc: BytecodeFunction, typeParams: Array[Bytecode
 
     // Create basic blocks and fill with instructions.
     let ssagen = SsaGen::newForInlining(graph, analysis, bc, typeParams, returnType);
-    ssagen.run();
+    ssagen.runInline();
 }
 
 class SsaGen {
@@ -111,20 +111,13 @@ impl SsaGen {
 
     fn run() {
         self.setupEntryBlock();
+        self.emitBlockBodies();
+        self.finish();
+    }
 
-        for blockStart in self.analysis.starts {
-            self.emitBlock(blockStart);
-        }
-
-        for block in self.blocks {
-            if block.isNone() {
-                continue;
-            }
-
-            let block = block.getOrPanic();
-            assert(self.filledBlocks.contains(block.id().toInt64()));
-            assert(self.sealedBlocks.contains(block.id().toInt64()));
-        }
+    fn runInline() {
+        self.emitBlockBodies();
+        self.finish();
     }
 
     fn setupEntryBlock() {
@@ -172,7 +165,25 @@ impl SsaGen {
         }
     }
 
-    fn emitBlock(start: Int64) {
+    fn finish() {
+        for block in self.blocks {
+            if block.isNone() {
+                continue;
+            }
+
+            let block = block.getOrPanic();
+            assert(self.filledBlocks.contains(block.id().toInt64()));
+            assert(self.sealedBlocks.contains(block.id().toInt64()));
+        }
+    }
+
+    fn emitBlockBodies() {
+        for blockStart in self.analysis.starts {
+            self.emitBlockBody(blockStart);
+        }
+    }
+
+    fn emitBlockBody(start: Int64) {
         if self.analysis.predecessors(start) == 0i32 {
             return;
         }
