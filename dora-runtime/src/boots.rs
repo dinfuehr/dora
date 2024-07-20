@@ -120,6 +120,10 @@ pub const BOOTS_FUNCTIONS: &[(&'static str, FctImplementation)] = &[
         "boots::interface::hasFunctionInlineAnnotationRaw",
         N(has_function_inline_annotation_raw as *const u8),
     ),
+    (
+        "boots::interface::getFunctionDataForInliningRaw",
+        N(get_function_data_for_inlining_raw as *const u8),
+    ),
 ];
 
 pub fn compile(
@@ -492,6 +496,15 @@ extern "C" fn has_function_inline_annotation_raw(id: u32) -> bool {
     let fct = &vm.program.functions[fct_id.0 as usize];
 
     fct.is_inline
+}
+
+extern "C" fn get_function_data_for_inlining_raw(id: u32) -> Ref<UInt8Array> {
+    let vm = get_vm();
+
+    let fct_id = FunctionId(id);
+    let fct = &vm.program.functions[fct_id.0 as usize];
+
+    serializer::allocate_encoded_function_inlining_data(vm, fct)
 }
 
 extern "C" fn get_struct_data_raw(id: u32) -> Ref<UInt8Array> {

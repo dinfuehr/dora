@@ -2,7 +2,7 @@ use package::interface::{Address, Config, StructData, EnumData, EnumVariantData}
 use package::bytecode::data::{AliasId, BytecodeFunction, BytecodeType, ClassId, ConstPoolEntry, EnumId, FctId, FieldId, Location, StructId, StructFieldId, TraitId};
 use package::bytecode::opcode as opc;
 use package::compilation::CompilationInfo;
-use package::interface::Architecture;
+use package::interface::{FunctionInliningData, Architecture};
 
 pub fn decodeConfig(encoded: Array[UInt8]): Config {
     let reader = ByteReader::new(encoded);
@@ -320,6 +320,13 @@ fn decodeBytecodeTypeArray(reader: ByteReader): Array[BytecodeType] {
     }
 
     data
+}
+
+pub fn decodeFunctionInliningData(reader: ByteReader): FunctionInliningData {
+    let bc = decodeBytecodeFunction(reader);
+    let returnType = decodeBytecodeType(reader);
+
+    FunctionInliningData(bc, returnType)
 }
 
 pub class ByteReader {

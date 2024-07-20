@@ -19,21 +19,30 @@ use package::regalloc;
 pub fn createGraph(ci: CompilationInfo): Graph {
     let graph = Graph::new();
 
-    // Create basic blocks for the bytecode.
+    // Analyze basic block starts/ends.
     let analysis = analyzeBytecode(graph, ci.bc);
 
-    // Fill basic blocks with instructions.
+    // Create basic blocks and fill with instructions.
     let ssagen = SsaGen::new(ci, graph, analysis);
     ssagen.run();
 
     graph
 }
 
+pub fn addToGraph(ci: CompilationInfo, graph: Graph, bc: BytecodeFunction, typeParams: Array[BytecodeType], returnType: BytecodeType) {
+    // Analyze basic block starts/ends.
+    let analysis = analyzeBytecode(graph, bc);
+
+    // Create basic blocks and fill with instructions.
+    let ssagen = SsaGen::newForInlining(graph, analysis, bc, typeParams, returnType);
+    ssagen.run();
+}
+
 class SsaGen {
-    ci: CompilationInfo,
     graph: Graph,
     bc: BytecodeFunction,
     typeParams: Array[BytecodeType],
+    returnType: BytecodeType,
     analysis: BytecodeAnalysis,
     currentBlock: Option[Block],
     offset: Int32,
@@ -62,15 +71,35 @@ class SsaGen {
 impl SsaGen {
     static fn new(ci: CompilationInfo, graph: Graph, analysis: BytecodeAnalysis): SsaGen {
         SsaGen(
-            ci,
             graph,
             ci.bc,
             ci.typeParams,
+            ci.returnType,
             analysis,
             None[Block],
             0i32,
             RegisterTable::new(ci.bc.registers.size()),
             Array[Option[Block]]::fill(ci.bc.code.size(), None[Block]),
+            None[Inst],
+            Vec[BytecodeRegister]::new(),
+            BitVec::new(),
+            BitVec::new(),
+            HashMap[Block, HashMap[BytecodeRegister, Inst]]::new(),
+            Vec[Inst]::new(),
+        )
+    }
+
+    static fn newForInlining(graph: Graph, analysis: BytecodeAnalysis, bc: BytecodeFunction, typeParams: Array[BytecodeType], returnType: BytecodeType): SsaGen {
+        SsaGen(
+            graph,
+            bc,
+            typeParams,
+            returnType,
+            analysis,
+            None[Block],
+            0i32,
+            RegisterTable::new(bc.registers.size()),
+            Array[Option[Block]]::fill(bc.code.size(), None[Block]),
             None[Inst],
             Vec[BytecodeRegister]::new(),
             BitVec::new(),
@@ -118,7 +147,7 @@ impl SsaGen {
 
     fn setupArguments(block: Block) {
         let mut argIdx = 0i32;
-        let retTy = self.ci.returnType.specialize(self.typeParams);
+        let retTy = self.returnType.specialize(self.typeParams);
 
         if retTy.isStruct() || retTy.isTuple() {
             let argInst = graph::createArgInst(argIdx, Type::Address);

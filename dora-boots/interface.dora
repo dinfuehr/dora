@@ -6,6 +6,7 @@ use package::deserializer::decodeBytecodeFunction;
 use package::deserializer::{decodeCompilationInfo, decodeStructData, decodeEnumData};
 use package::deserializer::decodeConfig;
 use package::deserializer::ByteReader;
+use package::deserializer;
 use package::codegen::x64::CodeGenX64;
 use package::codegen::arm64::CodeGenArm64;
 use package::compileFunction;
@@ -45,6 +46,7 @@ pub const TRAP_OVERFLOW: Int32 = 8i32;
 @internal pub fn getClassDataForEnumVariantRaw(data: Array[UInt8]): Array[UInt8];
 @internal pub fn getFieldOffsetForEnumVariantRaw(data: Array[UInt8]): Int32;
 @internal pub fn getElementSizeRaw(data: Array[UInt8]): Int32;
+@internal pub fn getFunctionDataForInliningRaw(fct_id: Int32): Array[UInt8];
 
 pub fn getFunctionAddress(fct_id: FctId, type_params: Array[BytecodeType]): Address {
     let writer = ByteWriter::new();
@@ -186,6 +188,14 @@ pub fn getElementSize(cls_id: ClassId, type_params: Array[BytecodeType]): Int32 
     writer.emitInt32(cls_id.value);
     encodeBytecodeTypeArray(writer, type_params);
     getElementSizeRaw(writer.toArray())
+}
+
+pub fn getFunctionDataForInlining(fct_id: FctId): FunctionInliningData {
+    let encoded = getFunctionDataForInliningRaw(fct_id.value);
+    let reader = ByteReader::new(encoded);
+    let decoded = deserializer::decodeFunctionInliningData(reader);
+    assert(!reader.moreBytes());
+    decoded
 }
 
 pub class Config {
@@ -545,4 +555,9 @@ impl ConstPoolValue {
             ConstPoolValue::Int128(lower, upper) => 16i32,
         }
     }
+}
+
+pub struct FunctionInliningData {
+    pub bc: BytecodeFunction,
+    pub returnType: BytecodeType,
 }

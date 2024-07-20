@@ -8,8 +8,8 @@ use crate::gc::Address;
 use crate::object::{byte_array_from_buffer, Obj, Ref, UInt8Array};
 use crate::vm::VM;
 use dora_bytecode::{
-    BytecodeFunction, BytecodeTypeArray, ConstPoolEntry, ConstPoolOpcode, EnumData, Location,
-    StructData,
+    BytecodeFunction, BytecodeTypeArray, ConstPoolEntry, ConstPoolOpcode, EnumData, FunctionData,
+    Location, StructData,
 };
 use dora_bytecode::{BytecodeType, BytecodeTypeKind};
 
@@ -97,6 +97,17 @@ fn encode_enum_data(vm: &VM, enum_: &EnumData, buffer: &mut ByteBuffer) {
     for variant in &enum_.variants {
         encode_bytecode_type_slice(vm, &variant.arguments, buffer);
     }
+}
+
+pub fn allocate_encoded_function_inlining_data(vm: &VM, fct: &FunctionData) -> Ref<UInt8Array> {
+    let mut buffer = ByteBuffer::new();
+    encode_bytecode_function(
+        vm,
+        fct.bytecode.as_ref().expect("missing bytecode"),
+        &mut buffer,
+    );
+    encode_bytecode_type(vm, &fct.return_type, &mut buffer);
+    byte_array_from_buffer(vm, buffer.data()).cast()
 }
 
 fn encode_bytecode_function(vm: &VM, bytecode_fct: &BytecodeFunction, buffer: &mut ByteBuffer) {
