@@ -13,6 +13,7 @@ pub fn performInlining(ci: CompilationInfo, graph: Graph) {
                 let fctId = fctInfo.fct_id;
 
                 if iface::hasFunctionInlineAnnotation(fctId) {
+                    let inlined_function_id = ci.addInlinedFunction(fctId, fctInfo.type_params, inst.getInlinedLocation());
                     let data = iface::getFunctionDataForInlining(fctId);
                     graph_builder::addToGraph(graph, data.bc, fctInfo.type_params, data.returnType);
                 }

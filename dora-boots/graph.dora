@@ -8,7 +8,7 @@ use std::traits::Iterator;
 use package::assembler::{FloatRegister, Label, Register, RegMap, RegSet};
 use package::bytecode::data::{BytecodeType, ClassId, FctId, FieldId, GlobalId, StructId, TraitId};
 use package::dominator::buildDominatorTree;
-use package::interface::{Address, GcPoint};
+use package::interface::{Address, GcPoint, InlinedLocation};
 use package::regalloc::{RegisterTracker, RecordLayout};
 
 pub use package::graph::ty::Type;
@@ -944,6 +944,7 @@ pub class Inst {
 
     _op: Option[Op],
     bytecode_position: Option[Int32],
+    inlinedLocation: Option[InlinedLocation],
 
     aux: Int64,
 
@@ -969,6 +970,7 @@ impl Inst {
             None[Int32],
             None[Op],
             None[Int32],
+            None[InlinedLocation],
             0,
             None[Inst],
             None[Inst],
@@ -1015,6 +1017,19 @@ impl Inst {
 
     pub fn setBytecodePosition(pos: Int32) {
         self.bytecode_position = Some(pos);
+    }
+
+    pub fn hasInlinedLocation(): Bool {
+        self.inlinedLocation.isSome()
+    }
+
+    pub fn getInlinedLocation(): InlinedLocation {
+        self.inlinedLocation.getOrPanic()
+    }
+
+    pub fn setInlinedLocation(loc: InlinedLocation) {
+        assert(self.inlinedLocation.isNone());
+        self.inlinedLocation = Some[InlinedLocation](loc);
     }
 
     pub fn getBlock(): Block {

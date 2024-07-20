@@ -11,6 +11,7 @@ pub class CompilationInfo(
     pub emitGraph: Bool,
     pub emitCodeComments: Bool,
     displayName: Option[String],
+    inlinedFunctions: Vec[iface::InlinedFunction],
 )
 
 impl CompilationInfo {
@@ -34,6 +35,7 @@ impl CompilationInfo {
             emitGraph,
             emitCodeComments,
             None[String],
+            Vec[iface::InlinedFunction]::new(),
         )
     }
 
@@ -48,6 +50,7 @@ impl CompilationInfo {
             false,
             false,
             None[String],
+            Vec[iface::InlinedFunction]::new(),
         )
     }
 
@@ -63,5 +66,11 @@ impl CompilationInfo {
         } else {
             "<unknown>"
         }
+    }
+
+    pub fn addInlinedFunction(fct_id: FctId, type_params: Array[BytecodeType], location: iface::InlinedLocation): iface::InlinedFunctionId {
+        let id = self.inlinedFunctions.size();
+        self.inlinedFunctions.push(iface::InlinedFunction(fct_id, type_params, location));
+        iface::InlinedFunctionId(id.toInt32())
     }
 }

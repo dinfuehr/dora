@@ -12,7 +12,7 @@ use package::bytecode::data::{ConstPoolId, ConstPoolEntry, GlobalId, StructId, S
 use package::bytecode::instruction::BytecodeInstruction;
 use package::bytecode::reader::BytecodeIterator;
 use package::interface as iface;
-use package::interface::config;
+use package::interface::{config, InlinedLocation, InlinedFunctionId};
 use package::regalloc::{EnumLayout, isReference, RecordLayout};
 use package::regalloc;
 
@@ -1196,6 +1196,8 @@ impl SsaGen {
 
         let inst = graph::createCallInst(info, kind, args, returnTy);
         inst.setBytecodePosition(self.offset);
+        let inlined_location = self.getInlinedLocation(self.offset);
+        inst.setInlinedLocation(inlined_location);
         self.current().appendInst(inst);
 
         if !returnTy.isUnit() {
@@ -2446,6 +2448,11 @@ impl SsaGen {
     fn computeEnumLayout(enum_id: EnumId, type_params: Array[BytecodeType]): EnumLayout {
         let type_params = type_params.specialize(self.typeParams);
         regalloc::computeEnumLayout(enum_id, type_params)
+    }
+
+    fn getInlinedLocation(offset: Int32): InlinedLocation {
+        let loc = self.bc.getLocationAt(offset);
+        InlinedLocation(None[InlinedFunctionId], loc)
     }
 
     fn regGraphTy(id: BytecodeRegister): Type {
