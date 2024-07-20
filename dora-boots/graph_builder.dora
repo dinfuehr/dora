@@ -29,7 +29,7 @@ pub fn createGraph(ci: CompilationInfo): Graph {
     graph
 }
 
-pub fn addToGraph(ci: CompilationInfo, graph: Graph, bc: BytecodeFunction, typeParams: Array[BytecodeType], returnType: BytecodeType) {
+pub fn addToGraph(graph: Graph, bc: BytecodeFunction, typeParams: Array[BytecodeType], returnType: BytecodeType) {
     // Analyze basic block starts/ends.
     let analysis = analyzeBytecode(graph, bc);
 

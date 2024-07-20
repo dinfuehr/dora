@@ -1,5 +1,6 @@
 use package::compilation::CompilationInfo;
 use package::graph::{Graph, Op};
+use package::graph_builder;
 use package::interface as iface;
 
 pub fn performInlining(ci: CompilationInfo, graph: Graph) {
@@ -13,6 +14,7 @@ pub fn performInlining(ci: CompilationInfo, graph: Graph) {
 
                 if iface::hasFunctionInlineAnnotation(fctId) {
                     let data = iface::getFunctionDataForInlining(fctId);
+                    graph_builder::addToGraph(graph, data.bc, fctInfo.type_params, data.returnType);
 
                     unimplemented();
                 }
