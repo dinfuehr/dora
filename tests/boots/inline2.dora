@@ -1,0 +1,9 @@
+//= boots
+//= stdout "Hello inlining 107!\n"
+
+fn main() {
+    f();
+}
+
+@optimizeImmediately fn f() { g(107) }
+@inline fn g(x: Int64) { println("Hello inlining ${x}!"); }

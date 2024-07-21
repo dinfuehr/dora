@@ -29,13 +29,13 @@ pub fn createGraph(ci: CompilationInfo): Graph {
     graph
 }
 
-pub fn addToGraph(graph: Graph, inlined_function_id: InlinedFunctionId, bc: BytecodeFunction, typeParams: Array[BytecodeType], returnType: BytecodeType, entryBlock: Block, exitBlock: Block) {
+pub fn addToGraph(graph: Graph, inlined_function_id: InlinedFunctionId, bc: BytecodeFunction, typeParams: Array[BytecodeType], returnType: BytecodeType, entryBlock: Block, exitBlock: Block, callInst: Inst) {
     // Analyze basic block starts/ends.
     let analysis = analyzeBytecode(graph, bc);
 
     // Create basic blocks and fill with instructions.
     let ssagen = SsaGen::newForInlining(graph, inlined_function_id, analysis, bc, typeParams, returnType, entryBlock, exitBlock);
-    ssagen.runInline();
+    ssagen.runInline(callInst);
 }
 
 class SsaGen {
@@ -128,8 +128,9 @@ impl SsaGen {
         self.finish();
     }
 
-    fn runInline() {
+    fn runInline(callInst: Inst) {
         self.connectEntryBlock();
+        self.connectArguments(self.entryBlock.getOrPanic(), callInst);
         self.emitBlockBodies();
         self.finish();
     }
@@ -181,6 +182,30 @@ impl SsaGen {
                 block.appendInst(argInst);
                 self.writeVariable(BytecodeRegister(regIdx), block, argInst);
                 argIdx = argIdx + 1i32;
+            }
+
+            regIdx = regIdx + 1i32;
+        }
+    }
+
+    fn connectArguments(block: Block, callInst: Inst) {
+        let mut argIdx = 0;
+        let retTy = self.returnType.specialize(self.typeParams);
+
+        if retTy.isStruct() || retTy.isTuple() {
+            let arg = callInst.getInput(argIdx).getValue();
+            self.returnValueArgInst = Some[Inst](arg);
+        }
+
+        let mut regIdx = 0i32;
+        while regIdx < self.bc.arguments {
+            let ty = self.regId(regIdx);
+            let ty = self.graphTy(ty);
+
+            if !ty.isUnit() {
+                let arg = callInst.getInput(argIdx).getValue();
+                self.writeVariable(BytecodeRegister(regIdx), block, arg);
+                argIdx = argIdx + 1;
             }
 
             regIdx = regIdx + 1i32;
