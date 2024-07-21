@@ -73,4 +73,8 @@ impl CompilationInfo {
         self.inlinedFunctions.push(iface::InlinedFunction(fct_id, type_params, location));
         iface::InlinedFunctionId(id.toInt32())
     }
+
+    pub fn getInlinedFunctions(): Array[iface::InlinedFunction] {
+        self.inlinedFunctions.toArray()
+    }
 }

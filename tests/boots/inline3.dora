@@ -1,0 +1,9 @@
+//= boots
+//= error code 1
+
+fn main() {
+    f();
+}
+
+@optimizeImmediately fn f() { g() }
+@inline fn g() { std::fatalError("error in g()"); }

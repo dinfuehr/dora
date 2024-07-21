@@ -2989,7 +2989,7 @@ impl CodeGen for CodeGenArm64 {
             self.gcPoints,
             self.locations,
             self.comments,
-            Array[InlinedFunction]::new(),
+            self.ci.getInlinedFunctions(),
         )
     }
 }
