@@ -1127,26 +1127,30 @@ impl SsaGen {
     fn emitRet(opnd: BytecodeRegister) {
         let ty = self.reg(opnd);
 
-        if ty.isUnit() {
-            let inst = graph::createReturnVoidInst();
-            self.current().appendInst(inst);
-        } else if ty.isStruct() {
-            let src = self.readVariable(opnd, self.current());
-            let dest = self.returnValueArgInst.getOrPanic();
-            self.copyStruct(ty, dest, 0i32, src, 0i32, false);
-            let inst = graph::createReturnVoidInst();
-            self.current().appendInst(inst);
-        } else if ty.isTuple() {
-            let src = self.readVariable(opnd, self.current());
-            let dest = self.returnValueArgInst.getOrPanic();
-            self.copyTuple(ty, dest, 0i32, src, 0i32, false);
-            let inst = graph::createReturnVoidInst();
-            self.current().appendInst(inst);
+        if self.isInlining() {
+            unimplemented();
         } else {
-            let value = self.readVariable(opnd, self.current());
-            let ty = self.graphTy(ty);
-            let inst = graph::createReturnInst(value, ty);
-            self.current().appendInst(inst);
+            if ty.isUnit() {
+                let inst = graph::createReturnVoidInst();
+                self.current().appendInst(inst);
+            } else if ty.isStruct() {
+                let src = self.readVariable(opnd, self.current());
+                let dest = self.returnValueArgInst.getOrPanic();
+                self.copyStruct(ty, dest, 0i32, src, 0i32, false);
+                let inst = graph::createReturnVoidInst();
+                self.current().appendInst(inst);
+            } else if ty.isTuple() {
+                let src = self.readVariable(opnd, self.current());
+                let dest = self.returnValueArgInst.getOrPanic();
+                self.copyTuple(ty, dest, 0i32, src, 0i32, false);
+                let inst = graph::createReturnVoidInst();
+                self.current().appendInst(inst);
+            } else {
+                let value = self.readVariable(opnd, self.current());
+                let ty = self.graphTy(ty);
+                let inst = graph::createReturnInst(value, ty);
+                self.current().appendInst(inst);
+            }
         }
     }
 
@@ -2466,6 +2470,10 @@ impl SsaGen {
     fn getInlinedLocation(offset: Int32): InlinedLocation {
         let loc = self.bc.getLocationAt(offset);
         InlinedLocation(self.inlined_function_id, loc)
+    }
+
+    fn isInlining(): Bool {
+        self.inlined_function_id.isSome()
     }
 
     fn regGraphTy(id: BytecodeRegister): Type {
