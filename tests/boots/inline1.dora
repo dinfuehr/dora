@@ -2,9 +2,8 @@
 //= ignore
 
 fn main() {
-    let result = f();
-    assert(result == 17);
+    f();
 }
 
-@optimizeImmediately fn f(): Int64 { g() }
-@inline fn g(): Int64 { 17 }
+@optimizeImmediately fn f() { g() }
+@inline fn g() { println("Hello inlining!"); }

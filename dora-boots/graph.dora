@@ -442,6 +442,20 @@ impl Block {
         inst
     }
 
+    pub fn splitAfter(inst: Inst) {
+        assert(inst.getBlock() === self);
+        assert(!inst.isTerminator());
+        let instructions = self.instructions.splitAfter(inst);
+
+        let newBlock = Block::new();
+        newBlock.instructions = instructions;
+        self.getGraph().addBlock(newBlock);
+
+        let gotoInst = createGotoInst(newBlock);
+        self.appendInst(gotoInst);
+        self.addSuccessor(newBlock);
+    }
+
     pub fn isLoopHeader(): Bool {
         self.loopData.isSome() && self.loopData.getOrPanic().header === self
     }
@@ -2856,10 +2870,36 @@ impl InstLinkedList {
         } else {
             let previous = location.previous.getOrPanic();
             previous.next = Some(inst);
-            inst.previous = Some(location.previous.getOrPanic());
+            inst.previous = Some(previous);
             inst.next = Some(location);
             location.previous = Some(inst);
         }
+    }
+
+    fn insertAfter(inst: Inst, location: Inst) {
+        if location.next.isNone() {
+            assert(self.last.getOrPanic() === location);
+            inst.previous = Some(location);
+            inst.next = None;
+            location.next = Some(inst);
+            self.last = Some(inst);
+        } else {
+            let next = location.next.getOrPanic();
+            next.previous = Some(inst);
+            inst.previous = Some(location);
+            inst.next = Some(next);
+            location.next = Some(inst);
+        }
+    }
+
+    fn splitAfter(location: Inst): InstLinkedList {
+        assert(location.next.isSome());
+        let next = location.next.getOrPanic();
+        let last = self.last.getOrPanic();
+        self.last = Some(location);
+        location.next = None;
+        next.previous = None;
+        InstLinkedList(Some[Inst](next), Some[Inst](last))
     }
 
     fn removeInst(inst: Inst) {
