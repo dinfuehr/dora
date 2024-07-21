@@ -943,7 +943,6 @@ pub class Inst {
     linear_index: Option[Int32],
 
     _op: Option[Op],
-    bytecode_position: Option[Int32],
     inlinedLocation: Option[InlinedLocation],
 
     aux: Int64,
@@ -969,7 +968,6 @@ impl Inst {
             None[Block],
             None[Int32],
             None[Op],
-            None[Int32],
             None[InlinedLocation],
             0,
             None[Inst],
@@ -1005,18 +1003,6 @@ impl Inst {
 
     pub fn setLinearOrderIndex(value: Int32) {
         self.linear_index = Some(value);
-    }
-
-    pub fn hasBytecodePosition(): Bool {
-        self.bytecode_position.isSome()
-    }
-
-    pub fn getBytecodePosition(): Int32 {
-        self.bytecode_position.getOrPanic()
-    }
-
-    pub fn setBytecodePosition(pos: Int32) {
-        self.bytecode_position = Some(pos);
     }
 
     pub fn hasInlinedLocation(): Bool {

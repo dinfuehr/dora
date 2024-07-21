@@ -1,4 +1,4 @@
-use package::bytecode::{ConstPoolId, Location as FunctionLocation, FctId, BytecodeType};
+use package::bytecode::{ConstPoolId, FctId, BytecodeType};
 use package::compilation::CompilationInfo;
 use package::interface::{Address, Architecture, ConstPool, ConstPoolEntry, ConstPoolValue, config, getFunctionAddress, getFieldOffset, getClassSize, getClassPointer, getClassPointerForLambda, getFunctionVtableIndex, getGlobalValueAddress, getGlobalStateAddress, getGlobalInitializerFunctionId, getReadOnlyStringAddress, getClassSizeForTraitObject, getClassPointerForTraitObject, InlinedFunction};
 use package::interface::{THREAD_LOCAL_DATA_STACK_LIMIT_OFFSET, THREAD_LOCAL_DATA_STATE_OFFSET, THREAD_LOCAL_DATA_MARKING_OFFSET, OBJECT_HEADER_LENGTH, OBJECT_METADATA_OFFSET, METADATA_REMEMBERED_BIT, ARRAY_HEADER_LENGTH, LAMBDA_SIZE};
@@ -99,11 +99,11 @@ impl CodeGenArm64 {
         self.asm.ret();
     }
 
-    fn trap(tmp: Register, trap: Int32, loc: FunctionLocation) {
+    fn trap(tmp: Register, trap: Int32, inlined_location: InlinedLocation) {
         self.asm.movz(CCALL_REG_PARAMS(0), trap, 0i32);
         self.mov_imm(tmp, config.trap_trampoline.toInt64());
         self.asm.bl_r(tmp);
-        self.locations.insert(self.asm.position(), InlinedLocation(None[InlinedFunctionId], loc));
+        self.locations.insert(self.asm.position(), inlined_location);
     }
 
     fn mov_imm(dest: Register, imm: Int64) {
@@ -255,7 +255,7 @@ impl CodeGenArm64 {
             let op = if is_div { "CheckedDiv" } else { "CheckedMod" };
             self.emitComment("slow path for ${op} overflow");
             self.asm.bindLabel(lbl_overflow);
-            self.trap(REG_TEMP, iface::TRAP_OVERFLOW, self.ci.bc.getLocationAt(inst.getBytecodePosition()));
+            self.trap(REG_TEMP, iface::TRAP_OVERFLOW, inst.getInlinedLocation());
         });
     }
 
@@ -291,7 +291,7 @@ impl CodeGenArm64 {
         });
     }
 
-    fn emitObjectAllocate(obj: Register, size: Int32, tmp1: Register, tmp2: Register, snapshot: RegisterTrackers, live: InstSet, location: FunctionLocation) {
+    fn emitObjectAllocate(obj: Register, size: Int32, tmp1: Register, tmp2: Register, snapshot: RegisterTrackers, live: InstSet, location: InlinedLocation) {
         let lbl_alloc_slow_path = self.asm.createLabel();
 
         if config.useTlab {
@@ -317,14 +317,14 @@ impl CodeGenArm64 {
             self.asm.bl_r(REG_TEMP);
             let pos = self.asm.position();
             self.gcPoints.insert(pos, gc_point);
-            self.locations.insert(pos, InlinedLocation(None[InlinedFunctionId], location));
+            self.locations.insert(pos, location);
             self.asm.mov(obj, R0);
             self.restoreRegistersForCall(snapshot);
             self.asm.b(lbl_return);
         });
     }
 
-    fn emitArrayAllocate(obj: Register, size: Register, tmp1: Register, tmp2: Register, snapshot: RegisterTrackers, live: InstSet, location: FunctionLocation) {
+    fn emitArrayAllocate(obj: Register, size: Register, tmp1: Register, tmp2: Register, snapshot: RegisterTrackers, live: InstSet, location: InlinedLocation) {
         let lbl_alloc_slow_path = self.asm.createLabel();
 
         if config.isDebug {
@@ -362,7 +362,7 @@ impl CodeGenArm64 {
             self.asm.bl_r(REG_TEMP);
             let pos = self.asm.position();
             self.gcPoints.insert(pos, gc_point);
-            self.locations.insert(pos, InlinedLocation(None[InlinedFunctionId], location));
+            self.locations.insert(pos, location);
             self.asm.mov(obj, R0);
             self.restoreRegistersForCall(snapshot);
             self.asm.b(lbl_return);
@@ -575,10 +575,10 @@ impl CodeGenArm64 {
     fn emitInvokeCommon(inst: Inst) {
         let fct_info = inst.getFunctionInfo();
         let gc_point = GcPoint::from(computeOffsetsInLiveSet(inst.getLocationData().getLiveValues()));
-        self.emitCall(fct_info.fct_id, fct_info.type_params, inst.getBytecodePosition(), gc_point);
+        self.emitCall(fct_info.fct_id, fct_info.type_params, inst.getInlinedLocation(), gc_point);
     }
 
-    fn emitCall(fct_id: FctId, type_params: Array[BytecodeType], bytecode_position: Int32, gc_point: GcPoint) {
+    fn emitCall(fct_id: FctId, type_params: Array[BytecodeType], inlined_location: InlinedLocation, gc_point: GcPoint) {
         let address = getFunctionAddress(fct_id, type_params);
         let cp_entry = self.constPool.push(ConstPoolValue::Address(address));
         self.loadConstPool(REG_TEMP, cp_entry, REG_TEMP2);
@@ -590,10 +590,9 @@ impl CodeGenArm64 {
             type_params,
             pos + cp_entry.disp,
         );
-        let location = self.ci.bc.getLocationAt(bytecode_position);
 
         self.lazyCompilation.insert(pos, LazyCompilationSite::Direct(site));
-        self.locations.insert(pos, InlinedLocation(None[InlinedFunctionId], location));
+        self.locations.insert(pos, inlined_location);
         self.gcPoints.insert(pos, gc_point);
     }
 
@@ -608,12 +607,12 @@ impl CodeGenArm64 {
         self.asm.bl_r(REG_TEMP);
 
         let pos = self.asm.position();
-        let location = self.ci.bc.getLocationAt(inst.getBytecodePosition());
+        let location = inst.getInlinedLocation();
         let live = inst.getLocationData().getLiveValues();
         let gc_point = GcPoint::from(computeOffsetsInLiveSet(live));
 
         self.lazyCompilation.insert(pos, site);
-        self.locations.insert(pos, InlinedLocation(None[InlinedFunctionId], location));
+        self.locations.insert(pos, location);
         self.gcPoints.insert(pos, gc_point);
     }
 
@@ -806,7 +805,7 @@ impl CodeGen for CodeGenArm64 {
         self.deferred.push(|| {
             self.emitComment("slow path for stack limit check");
             self.asm.bindLabel(lbl_stack_overflow);
-            self.trap(REG_TEMP, iface::TRAP_STACK_OVERFLOW, self.ci.loc);
+            self.trap(REG_TEMP, iface::TRAP_STACK_OVERFLOW, InlinedLocation(None[InlinedFunctionId], self.ci.loc));
         });
     }
 
@@ -1242,7 +1241,7 @@ impl CodeGen for CodeGenArm64 {
         self.deferred.push(|| {
             self.emitComment("slow path for CheckedAdd overflow");
             self.asm.bindLabel(lbl_overflow);
-            self.trap(REG_TEMP, iface::TRAP_OVERFLOW, self.ci.bc.getLocationAt(inst.getBytecodePosition()));
+            self.trap(REG_TEMP, iface::TRAP_OVERFLOW, inst.getInlinedLocation());
         });
     }
 
@@ -1272,7 +1271,7 @@ impl CodeGen for CodeGenArm64 {
         self.deferred.push(|| {
             self.emitComment("slow path for CheckedSub overflow");
             self.asm.bindLabel(lbl_overflow);
-            self.trap(REG_TEMP, iface::TRAP_OVERFLOW, self.ci.bc.getLocationAt(inst.getBytecodePosition()));
+            self.trap(REG_TEMP, iface::TRAP_OVERFLOW, inst.getInlinedLocation());
         });
     }
 
@@ -1306,7 +1305,7 @@ impl CodeGen for CodeGenArm64 {
         self.deferred.push(|| {
             self.emitComment("slow path for CheckedMul overflow");
             self.asm.bindLabel(lbl_overflow);
-            self.trap(REG_TEMP, iface::TRAP_OVERFLOW, self.ci.bc.getLocationAt(inst.getBytecodePosition()));
+            self.trap(REG_TEMP, iface::TRAP_OVERFLOW, inst.getInlinedLocation());
         });
     }
 
@@ -1340,7 +1339,7 @@ impl CodeGen for CodeGenArm64 {
         self.deferred.push(|| {
             self.emitComment("slow path for div-by-0 check");
             self.asm.bindLabel(lbl_failure);
-            self.trap(REG_TEMP, iface::TRAP_DIV0, self.ci.bc.getLocationAt(inst.getBytecodePosition()));
+            self.trap(REG_TEMP, iface::TRAP_DIV0, inst.getInlinedLocation());
         });
     }
 
@@ -1363,7 +1362,7 @@ impl CodeGen for CodeGenArm64 {
         self.deferred.push(|| {
             self.emitComment("slow path for CheckedNeg overflow");
             self.asm.bindLabel(lbl_overflow);
-            self.trap(REG_TEMP, iface::TRAP_OVERFLOW, self.ci.bc.getLocationAt(inst.getBytecodePosition()));
+            self.trap(REG_TEMP, iface::TRAP_OVERFLOW, inst.getInlinedLocation());
         });
     }
 
@@ -1716,7 +1715,7 @@ impl CodeGen for CodeGenArm64 {
         self.deferred.push(|| {
             self.emitComment("slow path for BoundsCheck");
             self.asm.bindLabel(label_oob);
-            self.trap(REG_TEMP, iface::TRAP_INDEX_OUT_OF_BOUNDS, self.ci.bc.getLocationAt(inst.getBytecodePosition()));
+            self.trap(REG_TEMP, iface::TRAP_INDEX_OUT_OF_BOUNDS, inst.getInlinedLocation());
         });
     }
 
@@ -1852,7 +1851,7 @@ impl CodeGen for CodeGenArm64 {
         assert(size % PTR_SIZE == 0i32);
 
         let tmp = loc.getTemp(0).getRegister();
-        let location = self.ci.bc.getLocationAt(inst.getBytecodePosition());
+        let location = inst.getInlinedLocation();
         let snapshot = getRegisterSnapshotWithout(inst, obj, tmp);
         let live = getLiveValuesWithoutCurrentInst(inst);
         self.emitObjectAllocate(obj, size, REG_TEMP, tmp, snapshot, live, location);
@@ -1870,7 +1869,7 @@ impl CodeGen for CodeGenArm64 {
         let classptr = getClassPointer(info.class_id, info.type_params);
 
         let tmp = loc.getTemp(0).getRegister();
-        let location = self.ci.bc.getLocationAt(inst.getBytecodePosition());
+        let location = inst.getInlinedLocation();
         let snapshot = getRegisterSnapshotWithout(inst, obj, tmp);
         let live = getLiveValuesWithoutCurrentInst(inst);
         self.emitArrayAllocate(obj, size, REG_TEMP, tmp, snapshot, live, location);
@@ -1963,7 +1962,7 @@ impl CodeGen for CodeGenArm64 {
             // Compute initial value.
             let fct_id = getGlobalInitializerFunctionId(global_id);
             let type_params = Array[BytecodeType]::new();
-            self.emitCall(fct_id, type_params, inst.getBytecodePosition(), gc_point);
+            self.emitCall(fct_id, type_params, inst.getInlinedLocation(), gc_point);
 
             if ty != Type::Address {
                 // Store initial value in global variable.
@@ -2209,8 +2208,7 @@ impl CodeGen for CodeGenArm64 {
         self.deferred.push(|| {
             self.emitComment("marking barrier slow path");
             self.asm.bindLabel(lbl_failure);
-            self.trap(REG_TEMP, iface::TRAP_ASSERT, self.ci.bc.getLocationAt(inst.getBytecodePosition()));
-
+            self.trap(REG_TEMP, iface::TRAP_ASSERT, inst.getInlinedLocation());
         });
     }
 
@@ -2608,10 +2606,10 @@ impl CodeGen for CodeGenArm64 {
     }
 
     fn emitUnreachable(inst: Inst) {
-        let location = self.ci.bc.getLocationAt(inst.getBytecodePosition());
+        let location = inst.getInlinedLocation();
         self.mov_imm(REG_TEMP, config.unreachable_trampoline.toInt64());
         self.asm.bl_r(REG_TEMP);
-        self.locations.insert(self.asm.position(), InlinedLocation(None[InlinedFunctionId], location));
+        self.locations.insert(self.asm.position(), location);
         // Method should never return.
         self.asm.brk(0i32);
     }

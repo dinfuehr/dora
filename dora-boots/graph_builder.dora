@@ -29,17 +29,18 @@ pub fn createGraph(ci: CompilationInfo): Graph {
     graph
 }
 
-pub fn addToGraph(graph: Graph, bc: BytecodeFunction, typeParams: Array[BytecodeType], returnType: BytecodeType) {
+pub fn addToGraph(graph: Graph, inlined_function_id: InlinedFunctionId, bc: BytecodeFunction, typeParams: Array[BytecodeType], returnType: BytecodeType) {
     // Analyze basic block starts/ends.
     let analysis = analyzeBytecode(graph, bc);
 
     // Create basic blocks and fill with instructions.
-    let ssagen = SsaGen::newForInlining(graph, analysis, bc, typeParams, returnType);
+    let ssagen = SsaGen::newForInlining(graph, inlined_function_id, analysis, bc, typeParams, returnType);
     ssagen.runInline();
 }
 
 class SsaGen {
     graph: Graph,
+    inlined_function_id: Option[InlinedFunctionId],
     bc: BytecodeFunction,
     typeParams: Array[BytecodeType],
     returnType: BytecodeType,
@@ -72,6 +73,7 @@ impl SsaGen {
     static fn new(ci: CompilationInfo, graph: Graph, analysis: BytecodeAnalysis): SsaGen {
         SsaGen(
             graph,
+            None[InlinedFunctionId],
             ci.bc,
             ci.typeParams,
             ci.returnType,
@@ -89,9 +91,10 @@ impl SsaGen {
         )
     }
 
-    static fn newForInlining(graph: Graph, analysis: BytecodeAnalysis, bc: BytecodeFunction, typeParams: Array[BytecodeType], returnType: BytecodeType): SsaGen {
+    static fn newForInlining(graph: Graph, inlined_function_id: InlinedFunctionId, analysis: BytecodeAnalysis, bc: BytecodeFunction, typeParams: Array[BytecodeType], returnType: BytecodeType): SsaGen {
         SsaGen(
             graph,
+            Some[InlinedFunctionId](inlined_function_id),
             bc,
             typeParams,
             returnType,
@@ -736,7 +739,7 @@ impl SsaGen {
     fn emitArrayLength(dest: BytecodeRegister, src: BytecodeRegister) {
         let srcInst = self.readVariable(src, self.current());
         let destInst = graph::createArrayLengthInst(srcInst);
-        destInst.setBytecodePosition(self.offset);
+        self.setCurrentInlinedLocation(destInst);
         self.current().appendInst(destInst);
         self.writeVariable(dest, self.current(), destInst);
     }
@@ -871,7 +874,7 @@ impl SsaGen {
                 let src = self.readVariable(src, self.current());
 
                 let inst = graph::createLoadInst(src, iface::OBJECT_HEADER_LENGTH, Type::Int32);
-                inst.setBytecodePosition(self.offset);
+                self.setCurrentInlinedLocation(inst);
                 self.current().appendInst(inst);
 
                 self.writeVariable(dest, self.current(), inst);
@@ -939,7 +942,9 @@ impl SsaGen {
         }
 
         let destInst = graph::createBinaryInst(op, ty, lhsInst, rhsInst);
-        destInst.setBytecodePosition(self.offset);
+        if op == Op::CheckedDiv || op == Op::CheckedMod || op == Op::CheckedAdd || op == Op::CheckedSub || op == Op::CheckedMul {
+            self.setCurrentInlinedLocation(destInst);
+        }
         self.current().appendInst(destInst);
         self.writeVariable(dest, self.current(), destInst);
     }
@@ -958,7 +963,9 @@ impl SsaGen {
 
         let srcInst = self.readVariable(src, self.current());
         let destInst = graph::createUnaryInst(op, ty, srcInst);
-        destInst.setBytecodePosition(self.offset);
+        if op == Op::CheckedNeg {
+            self.setCurrentInlinedLocation(destInst);
+        }
         self.current().appendInst(destInst);
         self.writeVariable(dest, self.current(), destInst);
     }
@@ -979,12 +986,12 @@ impl SsaGen {
 
         if !registerType.isAnyFloat() {
             let divZeroCheck = graph::createDivZeroCheckInst(rhsInst);
-            divZeroCheck.setBytecodePosition(self.offset);
+            self.setCurrentInlinedLocation(divZeroCheck);
             self.current().appendInst(divZeroCheck);
         }
 
         let destInst = graph::createBinaryInst(op, ty, lhsInst, rhsInst);
-        destInst.setBytecodePosition(self.offset);
+        self.setCurrentInlinedLocation(destInst);
         self.current().appendInst(destInst);
         self.writeVariable(dest, self.current(), destInst);
     }
@@ -1005,7 +1012,7 @@ impl SsaGen {
             let ty = self.graphTy(destType);
             let inst = graph::createEnsureGlobalInitializedInst(glob, ty);
             self.current().appendInst(inst);
-            inst.setBytecodePosition(self.offset);
+            self.setCurrentInlinedLocation(inst);
         }
 
         let value = self.loadGlobal(destType, glob);
@@ -1073,7 +1080,7 @@ impl SsaGen {
         self.current().appendInst(arrayLengthInst);
 
         let boundsCheckInst = graph::createBoundsCheckInst(idxInst, arrayLengthInst);
-        boundsCheckInst.setBytecodePosition(self.offset);
+        self.setCurrentInlinedLocation(boundsCheckInst);
         self.current().appendInst(boundsCheckInst);
 
         let destTy = self.reg(dest);
@@ -1092,7 +1099,7 @@ impl SsaGen {
         self.current().appendInst(arrayLengthInst);
 
         let boundsCheckInst = graph::createBoundsCheckInst(idxInst, arrayLengthInst);
-        boundsCheckInst.setBytecodePosition(self.offset);
+        self.setCurrentInlinedLocation(boundsCheckInst);
         self.current().appendInst(boundsCheckInst);
 
         let srcType = self.reg(src);
@@ -1195,9 +1202,7 @@ impl SsaGen {
         let info = FunctionInfo(fct_id, type_params);
 
         let inst = graph::createCallInst(info, kind, args, returnTy);
-        inst.setBytecodePosition(self.offset);
-        let inlined_location = self.getInlinedLocation(self.offset);
-        inst.setInlinedLocation(inlined_location);
+        self.setCurrentInlinedLocation(inst);
         self.current().appendInst(inst);
 
         if !returnTy.isUnit() {
@@ -1245,7 +1250,7 @@ impl SsaGen {
             _ => unreachable[Inst](),
         };
 
-        inst.setBytecodePosition(self.offset);
+        self.setCurrentInlinedLocation(inst);
         self.current().appendInst(inst);
 
         if !returnTy.isUnit() {
@@ -1844,7 +1849,7 @@ impl SsaGen {
             }
             EnumLayout::Tagged => {
                 let variant_field = graph::createLoadInst(obj, iface::OBJECT_HEADER_LENGTH, Type::Int32);
-                variant_field.setBytecodePosition(self.offset);
+                self.setCurrentInlinedLocation(variant_field);
                 self.current().appendInst(variant_field);
 
                 let op = if is_some {
@@ -1870,7 +1875,7 @@ impl SsaGen {
 
         let inst = graph::createUnreachableInst(ty);
         self.current().appendInst(inst);
-        inst.setBytecodePosition(self.offset);
+        self.setCurrentInlinedLocation(inst);
 
         if !ty.isUnit() {
             self.writeVariable(dest, self.current(), inst);
@@ -1883,7 +1888,7 @@ impl SsaGen {
 
         let inst = graph::createAssertInst(condition);
         self.current().appendInst(inst);
-        inst.setBytecodePosition(self.offset);
+        self.setCurrentInlinedLocation(inst);
     }
 
     fn emitIntrinsicThreadCurrent(dest: BytecodeRegister, args: Array[BytecodeRegister]) {
@@ -1903,7 +1908,7 @@ impl SsaGen {
         let info = ClassInfo(class_id, type_params);
         let info = InstExtraData::ClassInfo(info);
         let objInst = graph::createNewObjectInst(info);
-        objInst.setBytecodePosition(self.offset);
+        self.setCurrentInlinedLocation(objInst);
         self.current().appendInst(objInst);
 
         self.writeVariable(dest, self.current(), objInst);
@@ -1935,7 +1940,7 @@ impl SsaGen {
         let info = FunctionInfo(fct_id, type_params);
         let info = InstExtraData::FunctionInfo(info);
         let objInst = graph::createNewObjectInst(info);
-        objInst.setBytecodePosition(self.offset);
+        self.setCurrentInlinedLocation(objInst);
         self.current().appendInst(objInst);
 
         self.writeVariable(dest, self.current(), objInst);
@@ -1962,7 +1967,7 @@ impl SsaGen {
         let info = TraitObjectInfo(trait_id, type_params, object_ty);
         let info = InstExtraData::TraitObjectInfo(info);
         let objInst = graph::createNewObjectInst(info);
-        objInst.setBytecodePosition(self.offset);
+        self.setCurrentInlinedLocation(objInst);
         self.current().appendInst(objInst);
 
         self.writeVariable(dest, self.current(), objInst);
@@ -2041,7 +2046,7 @@ impl SsaGen {
                 let data = AllocationData(classptr, size);
                 let info = InstExtraData::AllocationData(data);
                 let objInst = graph::createNewObjectInst(info);
-                objInst.setBytecodePosition(self.offset);
+                self.setCurrentInlinedLocation(objInst);
                 self.current().appendInst(objInst);
 
                 self.writeVariable(dest, self.current(), objInst);
@@ -2109,14 +2114,14 @@ impl SsaGen {
         let length = self.readVariable(length, self.current());
 
         let tmp = graph::createBinaryInst(Op::CheckedMul, Type::Int64, length, element_size_inst);
-        tmp.setBytecodePosition(self.offset);
+        self.setCurrentInlinedLocation(tmp);
         self.current().appendInst(tmp);
 
         let header_size = graph::createInt64Const(iface::ARRAY_HEADER_LENGTH.toInt64());
         self.current().appendInst(header_size);
 
         let unaligned_size = graph::createBinaryInst(Op::CheckedAdd, Type::Int64, tmp, header_size);
-        unaligned_size.setBytecodePosition(self.offset);
+        self.setCurrentInlinedLocation(unaligned_size);
         self.current().appendInst(unaligned_size);
 
         let size = if element_size % iface::PTR_SIZE != 0i32 {
@@ -2125,7 +2130,7 @@ impl SsaGen {
             self.current().appendInst(tmp);
 
             let tmp = graph::createBinaryInst(Op::CheckedAdd, Type::Int64, unaligned_size, tmp);
-            tmp.setBytecodePosition(self.offset);
+            self.setCurrentInlinedLocation(tmp);
             self.current().appendInst(tmp);
 
             let mask = graph::createInt64Const(!ptr_size_minus_1);
@@ -2143,7 +2148,7 @@ impl SsaGen {
         let info = ClassInfo(class_id, type_params);
 
         let objInst = graph::createNewArrayInst(info, size, length);
-        objInst.setBytecodePosition(self.offset);
+        self.setCurrentInlinedLocation(objInst);
         self.current().appendInst(objInst);
 
         self.writeVariable(dest, self.current(), objInst);
@@ -2245,7 +2250,6 @@ impl SsaGen {
             let ty = self.graphTy(ty);
             assert(!ty.isUnit());
             let inst = graph::createLoadInst(src, srcOffset, ty);
-            inst.setBytecodePosition(self.offset);
             self.current().appendInst(inst);
             inst
         }
@@ -2450,9 +2454,14 @@ impl SsaGen {
         regalloc::computeEnumLayout(enum_id, type_params)
     }
 
+    fn setCurrentInlinedLocation(inst: Inst) {
+        let inlined_location = self.getInlinedLocation(self.offset);
+        inst.setInlinedLocation(inlined_location);
+    }
+
     fn getInlinedLocation(offset: Int32): InlinedLocation {
         let loc = self.bc.getLocationAt(offset);
-        InlinedLocation(None[InlinedFunctionId], loc)
+        InlinedLocation(self.inlined_function_id, loc)
     }
 
     fn regGraphTy(id: BytecodeRegister): Type {

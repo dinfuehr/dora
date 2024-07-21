@@ -168,13 +168,10 @@ impl GraphDumper {
             self.buffer.append("]");
         }
 
-        if inst.hasBytecodePosition() && self.ci.isSome() {
-            let pos = inst.getBytecodePosition();
-            let bc = self.ci.getOrPanic().bc;
-            if bc.hasLocationAt(pos) {
-                let loc = self.ci.getOrPanic().bc.getLocationAt(pos);
-                self.buffer.append(" ${loc.line}:${loc.column}");
-            }
+        if inst.hasInlinedLocation() {
+            let inlined_location = inst.getInlinedLocation();
+            let loc = inlined_location.location;
+            self.buffer.append(" ${loc.line}:${loc.column}");
         }
 
         self.buffer.appendNewline();
