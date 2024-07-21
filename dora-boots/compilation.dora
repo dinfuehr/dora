@@ -1,9 +1,9 @@
-use package::bytecode::data::{BytecodeFunction, BytecodeType, FctId, Location};
+use package::bytecode::data::{BytecodeFunction, BytecodeType, FunctionId, Location};
 use package::interface as iface;
 
 pub class CompilationInfo(
     pub bc: BytecodeFunction,
-    pub fctId: Option[FctId],
+    pub fctId: Option[FunctionId],
     pub typeParams: Array[BytecodeType],
     pub returnType: BytecodeType,
     pub loc: Location,
@@ -17,7 +17,7 @@ pub class CompilationInfo(
 impl CompilationInfo {
     pub static fn new(
         bc: BytecodeFunction,
-        id: FctId,
+        id: FunctionId,
         typeParams: Array[BytecodeType],
         returnType: BytecodeType,
         loc: Location,
@@ -27,7 +27,7 @@ impl CompilationInfo {
     ): CompilationInfo {
         CompilationInfo(
             bc,
-            Some[FctId](id),
+            Some[FunctionId](id),
             typeParams,
             returnType,
             loc,
@@ -42,7 +42,7 @@ impl CompilationInfo {
     pub static fn newForTesting(bc: BytecodeFunction, typeParams: Array[BytecodeType]): CompilationInfo {
         CompilationInfo(
             bc,
-            None[FctId],
+            None[FunctionId],
             typeParams,
             BytecodeType::Unit,
             Location(0i32, 0i32),
@@ -68,7 +68,7 @@ impl CompilationInfo {
         }
     }
 
-    pub fn addInlinedFunction(fct_id: FctId, type_params: Array[BytecodeType], location: iface::InlinedLocation): iface::InlinedFunctionId {
+    pub fn addInlinedFunction(fct_id: FunctionId, type_params: Array[BytecodeType], location: iface::InlinedLocation): iface::InlinedFunctionId {
         let id = self.inlinedFunctions.size();
         self.inlinedFunctions.push(iface::InlinedFunction(fct_id, type_params, location));
         iface::InlinedFunctionId(id.toInt32())

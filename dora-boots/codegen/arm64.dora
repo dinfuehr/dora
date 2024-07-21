@@ -1,4 +1,4 @@
-use package::bytecode::{ConstPoolId, FctId, BytecodeType};
+use package::bytecode::{ConstPoolId, FunctionId, BytecodeType};
 use package::compilation::CompilationInfo;
 use package::interface::{Address, Architecture, ConstPool, ConstPoolEntry, ConstPoolValue, config, getFunctionAddress, getFieldOffset, getClassSize, getClassPointer, getClassPointerForLambda, getFunctionVtableIndex, getGlobalValueAddress, getGlobalStateAddress, getGlobalInitializerFunctionId, getReadOnlyStringAddress, getClassSizeForTraitObject, getClassPointerForTraitObject, InlinedFunction};
 use package::interface::{THREAD_LOCAL_DATA_STACK_LIMIT_OFFSET, THREAD_LOCAL_DATA_STATE_OFFSET, THREAD_LOCAL_DATA_MARKING_OFFSET, OBJECT_HEADER_LENGTH, OBJECT_METADATA_OFFSET, METADATA_REMEMBERED_BIT, ARRAY_HEADER_LENGTH, LAMBDA_SIZE};
@@ -578,7 +578,7 @@ impl CodeGenArm64 {
         self.emitCall(fct_info.fct_id, fct_info.type_params, inst.getInlinedLocation(), gc_point);
     }
 
-    fn emitCall(fct_id: FctId, type_params: Array[BytecodeType], inlined_location: InlinedLocation, gc_point: GcPoint) {
+    fn emitCall(fct_id: FunctionId, type_params: Array[BytecodeType], inlined_location: InlinedLocation, gc_point: GcPoint) {
         let address = getFunctionAddress(fct_id, type_params);
         let cp_entry = self.constPool.push(ConstPoolValue::Address(address));
         self.loadConstPool(REG_TEMP, cp_entry, REG_TEMP2);

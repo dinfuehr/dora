@@ -74,9 +74,9 @@ pub enum ConstPoolEntry {
     Char(Char),
     Class(ClassId, Array[BytecodeType]),
     Field(ClassId, Array[BytecodeType], FieldId),
-    Fct(FctId, Array[BytecodeType]),
-    TraitObjectMethod(BytecodeType, FctId, Array[BytecodeType]),
-    Generic(Int32, FctId, Array[BytecodeType]),
+    Fct(FunctionId, Array[BytecodeType]),
+    TraitObjectMethod(BytecodeType, FunctionId, Array[BytecodeType]),
+    Generic(Int32, FunctionId, Array[BytecodeType]),
     Enum(EnumId, Array[BytecodeType]),
     EnumVariant(EnumId, Array[BytecodeType], Int32),
     EnumElement(EnumId, Array[BytecodeType], Int32, Int32),
@@ -180,7 +180,7 @@ impl ConstPoolId {
     }
 }
 
-pub struct FctId(pub value: Int32)
+pub struct FunctionId(pub value: Int32)
 
 pub enum BytecodeType {
     Unit,

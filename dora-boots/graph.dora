@@ -6,7 +6,7 @@ use std::Stringable;
 use std::traits::Iterator;
 
 use package::assembler::{FloatRegister, Label, Register, RegMap, RegSet};
-use package::bytecode::data::{BytecodeType, ClassId, FctId, FieldId, GlobalId, StructId, TraitId};
+use package::bytecode::data::{BytecodeType, ClassId, FunctionId, FieldId, GlobalId, StructId, TraitId};
 use package::dominator::buildDominatorTree;
 use package::interface::{Address, GcPoint, InlinedLocation};
 use package::regalloc::{RegisterTracker, RecordLayout};
@@ -2502,7 +2502,7 @@ pub fn createArrayLengthInst(array: Inst): Inst {
 }
 
 pub class FunctionInfo {
-    pub fct_id: FctId,
+    pub fct_id: FunctionId,
     pub type_params: Array[BytecodeType],
 }
 
@@ -2519,7 +2519,7 @@ pub struct AllocationData {
 
 pub class VirtualFunctionInfo {
     pub trait_object_ty: BytecodeType,
-    pub fct_id: FctId,
+    pub fct_id: FunctionId,
     pub type_params: Array[BytecodeType],
     pub receiver_is_first: Bool,
 }

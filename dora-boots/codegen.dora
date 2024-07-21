@@ -1,4 +1,4 @@
-use package::bytecode::data::{BytecodeType, FctId};
+use package::bytecode::data::{BytecodeType, FunctionId};
 use package::codegen::x64::CodeGenX64;
 use package::codegen::arm64::CodeGenArm64;
 use package::compilation::CompilationInfo;

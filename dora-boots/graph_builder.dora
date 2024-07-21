@@ -7,7 +7,7 @@ use package::graph;
 use package::graph::{AllocationData, Block, Graph, Inst, InstExtraData, Op};
 use package::graph::ty::Type;
 use package::graph::{ClassInfo, FunctionInfo, CallKind, VirtualFunctionInfo, LambdaFunctionInfo, TraitObjectInfo};
-use package::bytecode::data::{BytecodeFunction, BytecodeRegister, BytecodeType, ClassId, EnumId, FctId, FieldId};
+use package::bytecode::data::{BytecodeFunction, BytecodeRegister, BytecodeType, ClassId, EnumId, FunctionId, FieldId};
 use package::bytecode::data::{ConstPoolId, ConstPoolEntry, GlobalId, StructId, StructFieldId, TraitId};
 use package::bytecode::instruction::BytecodeInstruction;
 use package::bytecode::reader::BytecodeIterator;
@@ -1153,7 +1153,7 @@ impl SsaGen {
     fn emitInvokeDirect(dest: BytecodeRegister, idx: ConstPoolId) {
         let (fct_id, type_params) = match self.bc.constPool(idx) {
             ConstPoolEntry::Fct(fct_id, type_params) => (fct_id, type_params),
-            _ => unreachable[(FctId, Array[BytecodeType])](),
+            _ => unreachable[(FunctionId, Array[BytecodeType])](),
         };
 
         let intrinsic = iface::getIntrinsicForFunction(fct_id);
@@ -1170,7 +1170,7 @@ impl SsaGen {
     fn emitInvokeStatic(dest: BytecodeRegister, idx: ConstPoolId) {
         let (fct_id, type_params) = match self.bc.constPool(idx) {
             ConstPoolEntry::Fct(fct_id, type_params) => (fct_id, type_params),
-            _ => unreachable[(FctId, Array[BytecodeType])](),
+            _ => unreachable[(FunctionId, Array[BytecodeType])](),
         };
 
         let intrinsic = iface::getIntrinsicForFunction(fct_id);
@@ -1184,7 +1184,7 @@ impl SsaGen {
         }
     }
 
-    fn emitCall(dest: BytecodeRegister, kind: CallKind, fct_id: FctId, type_params: Array[BytecodeType]) {
+    fn emitCall(dest: BytecodeRegister, kind: CallKind, fct_id: FunctionId, type_params: Array[BytecodeType]) {
         let args = Vec[Inst]::new();
         args.reserve(self.pushed_registers.size());
         let destTy = self.reg(dest);
@@ -1233,7 +1233,7 @@ impl SsaGen {
             CallKind::Virtual => {
                 let (trait_object_ty, fct_id, type_params) = match self.bc.constPool(idx) {
                     ConstPoolEntry::TraitObjectMethod(trait_object_ty, fct_id, type_params) => (trait_object_ty, fct_id, type_params),
-                    _ => unreachable[(BytecodeType, FctId, Array[BytecodeType])](),
+                    _ => unreachable[(BytecodeType, FunctionId, Array[BytecodeType])](),
                 };
 
                 let info = VirtualFunctionInfo(trait_object_ty, fct_id, type_params, receiver_is_first);
@@ -1303,7 +1303,7 @@ impl SsaGen {
 
         let (type_param_idx, trait_fct_id, trait_type_params) = match self.bc.constPool(idx) {
             ConstPoolEntry::Generic(type_param_idx, trait_fct_id, trait_type_params) => (type_param_idx, trait_fct_id, trait_type_params),
-            _ => unreachable[(Int32, FctId, Array[BytecodeType])](),
+            _ => unreachable[(Int32, FunctionId, Array[BytecodeType])](),
         };
 
         let object_ty = self.typeParams(type_param_idx.toInt64());
@@ -1937,7 +1937,7 @@ impl SsaGen {
     fn emitNewLambda(dest: BytecodeRegister, idx: ConstPoolId) {
         let (fct_id, type_params) = match self.bc.constPool(idx) {
             ConstPoolEntry::Fct(fct_id, type_params) => (fct_id, type_params),
-            _ => unreachable[(FctId, Array[BytecodeType])](),
+            _ => unreachable[(FunctionId, Array[BytecodeType])](),
         };
 
         let type_params = type_params.specialize(self.typeParams);

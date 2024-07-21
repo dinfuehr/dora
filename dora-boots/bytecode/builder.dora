@@ -4,7 +4,7 @@ use package::bytecode::data::BytecodeRegister;
 use package::bytecode::data::ConstPoolEntry;
 use package::bytecode::data::ConstPoolId;
 use package::bytecode::data::FieldId;
-use package::bytecode::data::FctId;
+use package::bytecode::data::FunctionId;
 use package::bytecode::data::GlobalId;
 use package::bytecode::data::{ClassId, Location};
 use package::bytecode::opcode as opc;
@@ -232,15 +232,15 @@ impl BytecodeBuilder {
         self.emitJmpForward(opc::BC_JUMP, None[BytecodeRegister], lbl);
     }
 
-    pub fn emitInvokeDirect(dest: BytecodeRegister, fct: FctId, start: BytecodeRegister, count: Int32) {
+    pub fn emitInvokeDirect(dest: BytecodeRegister, fct: FunctionId, start: BytecodeRegister, count: Int32) {
         self.emitFct(opc::BC_INVOKE_DIRECT, dest, fct, start, count);
     }
 
-    pub fn emitInvokeVirtual(dest: BytecodeRegister, fct: FctId, start: BytecodeRegister, count: Int32) {
+    pub fn emitInvokeVirtual(dest: BytecodeRegister, fct: FunctionId, start: BytecodeRegister, count: Int32) {
         self.emitFct(opc::BC_INVOKE_VIRTUAL, dest, fct, start, count);
     }
 
-    pub fn emitInvokeStatic(dest: BytecodeRegister, fct: FctId, start: BytecodeRegister, count: Int32) {
+    pub fn emitInvokeStatic(dest: BytecodeRegister, fct: FunctionId, start: BytecodeRegister, count: Int32) {
         self.emitFct(opc::BC_INVOKE_STATIC, dest, fct, start, count);
     }
 
@@ -290,11 +290,11 @@ impl BytecodeBuilder {
         self.unresolvedJumps.clear();
     }
 
-    fn emitFctVoid(inst: Int32, fct: FctId, start: BytecodeRegister, count: Int32) {
+    fn emitFctVoid(inst: Int32, fct: FunctionId, start: BytecodeRegister, count: Int32) {
         self.emitVal4(inst, fct.value, start.value, count);
     }
 
-    fn emitFct(inst: Int32, dest: BytecodeRegister, fct: FctId, start: BytecodeRegister, count: Int32) {
+    fn emitFct(inst: Int32, dest: BytecodeRegister, fct: FunctionId, start: BytecodeRegister, count: Int32) {
         self.emitVal5(inst, dest.value, fct.value, start.value, count);
     }
 

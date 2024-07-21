@@ -1,5 +1,5 @@
 use package::interface::{Address, Config, StructData, EnumData, EnumVariantData};
-use package::bytecode::data::{AliasId, BytecodeFunction, BytecodeType, ClassId, ConstPoolEntry, EnumId, FctId, FieldId, Location, StructId, StructFieldId, TraitId};
+use package::bytecode::data::{AliasId, BytecodeFunction, BytecodeType, ClassId, ConstPoolEntry, EnumId, FunctionId, FieldId, Location, StructId, StructFieldId, TraitId};
 use package::bytecode::opcode as opc;
 use package::compilation::CompilationInfo;
 use package::interface::{FunctionInliningData, Architecture};
@@ -40,7 +40,7 @@ pub fn decodeConfig(encoded: Array[UInt8]): Config {
 
 pub fn decodeCompilationInfo(reader: ByteReader): CompilationInfo {
     let bc = decodeBytecodeFunction(reader);
-    let fctId = FctId(reader.readInt32());
+    let fctId = FunctionId(reader.readInt32());
     let typeParams = decodeTypeParams(reader);
     let returnType = decodeBytecodeType(reader);
     let loc = decodeLocation(reader);
@@ -214,17 +214,17 @@ fn decodeConstPoolEntry(reader: ByteReader): ConstPoolEntry {
         let field_id = FieldId(reader.readInt32());
         ConstPoolEntry::Field(cls_id, type_params, field_id)
     } else if opcode == opc::CONSTPOOL_OPCODE_FCT {
-        let fct_id = FctId(reader.readInt32());
+        let fct_id = FunctionId(reader.readInt32());
         let type_params = decodeBytecodeTypeArray(reader);
         ConstPoolEntry::Fct(fct_id, type_params)
     } else if opcode == opc::CONSTPOOL_OPCODE_TRAIT_OBJECT_METHOD {
         let trait_object_ty = decodeBytecodeType(reader);
-        let fct_id = FctId(reader.readInt32());
+        let fct_id = FunctionId(reader.readInt32());
         let type_params = decodeBytecodeTypeArray(reader);
         ConstPoolEntry::TraitObjectMethod(trait_object_ty, fct_id, type_params)
     } else if opcode == opc::CONSTPOOL_OPCODE_GENERIC {
         let idx = reader.readInt32();
-        let fct_id = FctId(reader.readInt32());
+        let fct_id = FunctionId(reader.readInt32());
         let type_params = decodeBytecodeTypeArray(reader);
         ConstPoolEntry::Generic(idx, fct_id, type_params)
     } else if opcode == opc::CONSTPOOL_OPCODE_ENUM {

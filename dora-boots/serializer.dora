@@ -9,7 +9,7 @@ pub fn encodeCodeDescriptor(writer: ByteWriter, descriptor: CodeDescriptor) {
     encodeGcPointTable(writer, descriptor.gcPoints);
     encodeLocationTable(writer, descriptor.locations);
     encodeCommentTable(writer, descriptor.comments);
-    encodeInlinedFunctionTable(writer, descriptor.inlined_functions);
+    encodeInlinedFunctionTable(writer, descriptor.inlinedFunctions);
 }
 
 fn encodeConstPool(writer: ByteWriter, table: ConstPool) {

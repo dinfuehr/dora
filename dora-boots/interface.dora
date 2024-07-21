@@ -1,6 +1,6 @@
 use std::collections::VecIter;
 
-use package::bytecode::{BytecodeFunction, BytecodeType, ConstPoolId, FctId, Location};
+use package::bytecode::{BytecodeFunction, BytecodeType, ConstPoolId, FunctionId, Location};
 use package::bytecode::data::{ClassId, EnumId, FieldId, GlobalId, StructId, StructFieldId};
 use package::deserializer::decodeBytecodeFunction;
 use package::deserializer::{decodeCompilationInfo, decodeStructData, decodeEnumData};
@@ -48,23 +48,23 @@ pub const TRAP_OVERFLOW: Int32 = 8i32;
 @internal pub fn getElementSizeRaw(data: Array[UInt8]): Int32;
 @internal pub fn getFunctionDataForInliningRaw(fct_id: Int32): Array[UInt8];
 
-pub fn getFunctionAddress(fct_id: FctId, type_params: Array[BytecodeType]): Address {
+pub fn getFunctionAddress(fct_id: FunctionId, type_params: Array[BytecodeType]): Address {
     let writer = ByteWriter::new();
     writer.emitInt32(fct_id.value);
     encodeBytecodeTypeArray(writer, type_params);
     Address(getFunctionAddressRaw(writer.toArray()))
 }
 
-pub fn getFunctionDisplayName(fct_id: FctId): String {
+pub fn getFunctionDisplayName(fct_id: FunctionId): String {
     let encoded = getFunctionDisplayNameRaw(fct_id.value);
     String::fromBytes(encoded).getOrPanic()
 }
 
-pub fn hasFunctionInlineAnnotation(fct_id: FctId): Bool {
+pub fn hasFunctionInlineAnnotation(fct_id: FunctionId): Bool {
     hasFunctionInlineAnnotationRaw(fct_id.value)
 }
 
-pub fn getClassPointerForLambda(fct_id: FctId, type_params: Array[BytecodeType]): Address {
+pub fn getClassPointerForLambda(fct_id: FunctionId, type_params: Array[BytecodeType]): Address {
     let writer = ByteWriter::new();
     writer.emitInt32(fct_id.value);
     encodeBytecodeTypeArray(writer, type_params);
@@ -87,7 +87,7 @@ pub fn getClassPointerForTraitObject(info: TraitObjectInfo): Address {
     Address(getClassPointerForTraitObjectRaw(writer.toArray()))
 }
 
-pub fn getFunctionVtableIndex(fct_id: FctId): Int32 {
+pub fn getFunctionVtableIndex(fct_id: FunctionId): Int32 {
     getFunctionVtableIndexRaw(fct_id.value)
 }
 
@@ -125,23 +125,23 @@ pub fn hasGlobalInitialValue(id: GlobalId): Bool {
     hasGlobalInitialValueRaw(id.value)
 }
 
-pub fn getGlobalInitializerFunctionId(id: GlobalId): FctId {
-    FctId(getGlobalInitializerFunctionIdRaw(id.value))
+pub fn getGlobalInitializerFunctionId(id: GlobalId): FunctionId {
+    FunctionId(getGlobalInitializerFunctionIdRaw(id.value))
 }
 
 pub fn getReadOnlyStringAddress(value: String): Address {
     Address(getReadOnlyStringAddressRaw(value))
 }
 
-pub fn findTraitImpl(trait_fct_id: FctId, trait_type_params: Array[BytecodeType], object_ty: BytecodeType): FctId {
+pub fn findTraitImpl(trait_fct_id: FunctionId, trait_type_params: Array[BytecodeType], object_ty: BytecodeType): FunctionId {
     let writer = ByteWriter::new();
     writer.emitInt32(trait_fct_id.value);
     encodeBytecodeTypeArray(writer, trait_type_params);
     encodeBytecodeType(writer, object_ty);
-    FctId(findTraitImplRaw(writer.toArray()))
+    FunctionId(findTraitImplRaw(writer.toArray()))
 }
 
-pub fn getIntrinsicForFunction(fct_id: FctId): Int32 {
+pub fn getIntrinsicForFunction(fct_id: FunctionId): Int32 {
     getIntrinsicForFunctionRaw(fct_id.value)
 }
 
@@ -190,7 +190,7 @@ pub fn getElementSize(cls_id: ClassId, type_params: Array[BytecodeType]): Int32 
     getElementSizeRaw(writer.toArray())
 }
 
-pub fn getFunctionDataForInlining(fct_id: FctId): FunctionInliningData {
+pub fn getFunctionDataForInlining(fct_id: FunctionId): FunctionInliningData {
     let encoded = getFunctionDataForInliningRaw(fct_id.value);
     let reader = ByteReader::new(encoded);
     let decoded = deserializer::decodeFunctionInliningData(reader);
@@ -290,7 +290,7 @@ pub class CodeDescriptor {
     pub gcPoints: GcPointTable,
     pub locations: LocationTable,
     pub comments: CommentTable,
-    pub inlined_functions: Array[InlinedFunction],
+    pub inlinedFunctions: Array[InlinedFunction],
 }
 
 pub class CommentTable {
@@ -331,7 +331,7 @@ pub struct InlinedFunctionId {
 }
 
 pub struct InlinedFunction {
-    pub fct_id: FctId,
+    pub fct_id: FunctionId,
     pub type_params: Array[BytecodeType],
     pub inlined_location: InlinedLocation,
 }
@@ -412,14 +412,14 @@ pub enum LazyCompilationSite {
 }
 
 pub struct LazyCompilationSiteDirect {
-    pub fct_id: FctId,
+    pub fct_id: FunctionId,
     pub type_params: Array[BytecodeType],
     pub const_pool_offset: Int32,
 }
 
 pub struct LazyCompilationSiteVirtual {
     pub receiver_is_first: Bool,
-    pub fct_id: FctId,
+    pub fct_id: FunctionId,
     pub type_params: Array[BytecodeType],
     pub trait_object_ty: BytecodeType,
 }

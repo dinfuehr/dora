@@ -1,4 +1,4 @@
-use package::bytecode::{BytecodeType, FctId};
+use package::bytecode::{BytecodeType, FunctionId};
 use package::assembler::x64::{AssemblerX64, Address as AsmAddress, Condition, Immediate, ScaleFactor, registerName};
 use package::assembler::x64::{RAX, RDI, RDX, RCX, RSI, RBP, RSP, RBX};
 use package::assembler::x64::{R8, R9, R10, R11, R12, R13, R14, R15};
@@ -552,7 +552,7 @@ impl CodeGenX64 {
         self.emitCall(fct_info.fct_id, fct_info.type_params, inst.getInlinedLocation(), gc_point);
     }
 
-    fn emitCall(fct_id: FctId, type_params: Array[BytecodeType], inlined_location: InlinedLocation, gc_point: GcPoint) {
+    fn emitCall(fct_id: FunctionId, type_params: Array[BytecodeType], inlined_location: InlinedLocation, gc_point: GcPoint) {
         let address = getFunctionAddress(fct_id, type_params);
         let cp_entry = self.constPool.push(ConstPoolValue::Address(address));
         self.loadConstPool(REG_TEMP, cp_entry);
