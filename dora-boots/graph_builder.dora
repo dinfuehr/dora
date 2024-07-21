@@ -29,12 +29,12 @@ pub fn createGraph(ci: CompilationInfo): Graph {
     graph
 }
 
-pub fn addToGraph(graph: Graph, inlined_function_id: InlinedFunctionId, bc: BytecodeFunction, typeParams: Array[BytecodeType], returnType: BytecodeType, exitBlock: Block) {
+pub fn addToGraph(graph: Graph, inlined_function_id: InlinedFunctionId, bc: BytecodeFunction, typeParams: Array[BytecodeType], returnType: BytecodeType, entryBlock: Block, exitBlock: Block) {
     // Analyze basic block starts/ends.
     let analysis = analyzeBytecode(graph, bc);
 
     // Create basic blocks and fill with instructions.
-    let ssagen = SsaGen::newForInlining(graph, inlined_function_id, analysis, bc, typeParams, returnType, exitBlock);
+    let ssagen = SsaGen::newForInlining(graph, inlined_function_id, analysis, bc, typeParams, returnType, entryBlock, exitBlock);
     ssagen.runInline();
 }
 
@@ -51,6 +51,7 @@ class SsaGen {
     blocks: Array[Option[Block]],
     blockPositions: HashMap[Block, Int32],
 
+    entryBlock: Option[Block],
     exitBlock: Option[Block],
 
     returnValueArgInst: Option[Inst],
@@ -87,6 +88,7 @@ impl SsaGen {
             Array[Option[Block]]::fill(ci.bc.code.size(), None[Block]),
             HashMap[Block, Int32]::new(),
             None[Block],
+            None[Block],
             None[Inst],
             Vec[BytecodeRegister]::new(),
             BitVec::new(),
@@ -96,7 +98,7 @@ impl SsaGen {
         )
     }
 
-    static fn newForInlining(graph: Graph, inlined_function_id: InlinedFunctionId, analysis: BytecodeAnalysis, bc: BytecodeFunction, typeParams: Array[BytecodeType], returnType: BytecodeType, exitBlock: Block): SsaGen {
+    static fn newForInlining(graph: Graph, inlined_function_id: InlinedFunctionId, analysis: BytecodeAnalysis, bc: BytecodeFunction, typeParams: Array[BytecodeType], returnType: BytecodeType, entryBlock: Block, exitBlock: Block): SsaGen {
         SsaGen(
             graph,
             Some[InlinedFunctionId](inlined_function_id),
@@ -109,6 +111,7 @@ impl SsaGen {
             RegisterTable::new(bc.registers.size()),
             Array[Option[Block]]::fill(bc.code.size(), None[Block]),
             HashMap[Block, Int32]::new(),
+            Some[Block](entryBlock),
             Some[Block](exitBlock),
             None[Inst],
             Vec[BytecodeRegister]::new(),

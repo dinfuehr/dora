@@ -442,7 +442,7 @@ impl Block {
         inst
     }
 
-    pub fn splitAfter(inst: Inst) {
+    pub fn splitAfter(inst: Inst): Block {
         assert(inst.getBlock() === self);
         assert(!inst.isTerminator());
         let instructions = self.instructions.splitAfter(inst);
@@ -454,6 +454,7 @@ impl Block {
         let gotoInst = createGotoInst(newBlock);
         self.appendInst(gotoInst);
         self.addSuccessor(newBlock);
+        newBlock
     }
 
     pub fn isLoopHeader(): Bool {
