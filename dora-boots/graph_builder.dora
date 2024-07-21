@@ -129,6 +129,7 @@ impl SsaGen {
     }
 
     fn runInline() {
+        self.connectEntryBlock();
         self.emitBlockBodies();
         self.finish();
     }
@@ -149,6 +150,14 @@ impl SsaGen {
 
         self.fillBlock(entryBlock);
         assert(self.trySealBlock(entryBlock));
+    }
+
+    fn connectEntryBlock() {
+        let entryBlock = self.entryBlock.getOrPanic();
+        let first = self.ensureBlockAt(0);
+        let inst = graph::createGotoInst(first);
+        entryBlock.appendInst(inst);
+        entryBlock.addSuccessor(first);
     }
 
     fn setupArguments(block: Block) {
@@ -707,6 +716,10 @@ impl SsaGen {
             return true;
         }
 
+        if Some[Block](block) == self.entryBlock || Some[Block](block) == self.exitBlock {
+            return false;
+        }
+
         let pos = self.blockPositions.get(block);
 
         let expected_predecessors = if pos.isSome() {
@@ -728,8 +741,12 @@ impl SsaGen {
 
         assert(block.predecessors.size() == expected_predecessors);
 
-        // all predecessors need to be filled
+        // All predecessors need to be filled.
         for edge in block.predecessors {
+            if Some[Block](edge.source) == self.entryBlock {
+                continue;
+            }
+
             if !self.filledBlocks.contains(edge.source.id().toInt64()) {
                 return false;
             }
@@ -1141,6 +1158,7 @@ impl SsaGen {
         let ty = self.reg(opnd);
 
         if self.isInlining() {
+            assert(ty.isUnit());
             let exitBlock = self.exitBlock.getOrPanic();
             let inst = graph::createGotoInst(exitBlock);
             self.current().appendInst(inst);

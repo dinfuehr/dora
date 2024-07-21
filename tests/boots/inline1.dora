@@ -1,5 +1,5 @@
 //= boots
-//= ignore
+//= stdout "Hello inlining!\n"
 
 fn main() {
     f();

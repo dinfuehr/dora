@@ -446,14 +446,14 @@ impl Block {
         assert(inst.getBlock() === self);
         assert(!inst.isTerminator());
         let instructions = self.instructions.splitAfter(inst);
+        let successors = self.successors;
+        self.successors = Vec[Edge]::new();
 
         let newBlock = Block::new();
         newBlock.instructions = instructions;
+        newBlock.successors = successors;
         self.getGraph().addBlock(newBlock);
 
-        let gotoInst = createGotoInst(newBlock);
-        self.appendInst(gotoInst);
-        self.addSuccessor(newBlock);
         newBlock
     }
 
