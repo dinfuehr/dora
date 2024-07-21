@@ -366,19 +366,6 @@ impl Block {
         self.graph.getOrPanic()
     }
 
-    pub fn hasBytecodePosition(): Bool {
-        self.bytecodePosition.isSome()
-    }
-
-    pub fn setBytecodePosition(pos: Int32) {
-        assert(self.bytecodePosition.isNone());
-        self.bytecodePosition = Some[Int32](pos);
-    }
-
-    pub fn getBytecodePosition(): Int32 {
-        self.bytecodePosition.getOrPanic()
-    }
-
     pub fn setName(name: String) {
         self.name = Some[String](name);
     }

@@ -49,6 +49,7 @@ class SsaGen {
     offset: Int32,
     currentDef: RegisterTable,
     blocks: Array[Option[Block]],
+    blockPositions: HashMap[Block, Int32],
 
     returnValueArgInst: Option[Inst],
 
@@ -82,6 +83,7 @@ impl SsaGen {
             0i32,
             RegisterTable::new(ci.bc.registers.size()),
             Array[Option[Block]]::fill(ci.bc.code.size(), None[Block]),
+            HashMap[Block, Int32]::new(),
             None[Inst],
             Vec[BytecodeRegister]::new(),
             BitVec::new(),
@@ -103,6 +105,7 @@ impl SsaGen {
             0i32,
             RegisterTable::new(bc.registers.size()),
             Array[Option[Block]]::fill(bc.code.size(), None[Block]),
+            HashMap[Block, Int32]::new(),
             None[Inst],
             Vec[BytecodeRegister]::new(),
             BitVec::new(),
@@ -241,7 +244,7 @@ impl SsaGen {
             let block = Block::new();
             self.graph.addBlock(block);
             self.blocks(pos) = Some[Block](block);
-            block.setBytecodePosition(pos.toInt32());
+            self.blockPositions.insert(block, pos.toInt32());
             block
         }
     }
@@ -697,9 +700,10 @@ impl SsaGen {
             return true;
         }
 
-        let expected_predecessors = if block.hasBytecodePosition() {
-            let pos = block.getBytecodePosition().toInt64();
-            self.analysis.predecessors(pos).toInt64()
+        let pos = self.blockPositions.get(block);
+
+        let expected_predecessors = if pos.isSome() {
+            self.analysis.predecessors(pos.getOrPanic().toInt64()).toInt64()
         } else {
             0
         };
