@@ -1,9 +1,12 @@
+use package::bytecode::data::{BytecodeType, FunctionId};
 use package::compilation::CompilationInfo;
-use package::graph::{Graph, Op};
+use package::graph::{Graph, Inst, Op};
 use package::graph_builder;
 use package::interface as iface;
 
 pub fn performInlining(ci: CompilationInfo, graph: Graph) {
+    let mut budget: Int32 = 1000;
+
     for block in graph.insertionOrderIterator() {
         for inst in block.instructionsIterator() {
             let op = inst.op();
@@ -14,19 +17,30 @@ pub fn performInlining(ci: CompilationInfo, graph: Graph) {
 
                 let info = iface::getFunctionInfoForInlining(fctId);
 
+                if !info.hasBytecode {
+                    continue;
+                }
+
                 if info.hasInlineAnnotation {
-                    let inlined_function_id = ci.addInlinedFunction(fctId, fctInfo.type_params, inst.getInlinedLocation());
-                    let data = iface::getFunctionDataForInlining(fctId);
-                    let newBlock = block.splitAfter(inst);
-                    let returnValue = graph_builder::addToGraph(graph, inlined_function_id, data.bc, fctInfo.type_params, data.returnType, block, newBlock, inst);
-                    if returnValue.isSome() {
-                        let returnValue = returnValue.getOrPanic();
-                        inst.replaceAllUsesWith(returnValue);
-                    }
-                    inst.remove();
-                    return;
+                    inline(ci, graph, inst, fctId, fctInfo.type_params);
+                } else if ci.inline && info.bytecodeSize < 200i32 && info.bytecodeSize < budget {
+                    inline(ci, graph, inst, fctId, fctInfo.type_params);
+                    budget = budget - info.bytecodeSize;
                 }
             }
         }
     }
+}
+
+fn inline(ci: CompilationInfo, graph: Graph, inst: Inst, fctId: FunctionId, typeParams: Array[BytecodeType]) {
+    let block = inst.getBlock();
+    let inlined_function_id = ci.addInlinedFunction(fctId, typeParams, inst.getInlinedLocation());
+    let data = iface::getFunctionDataForInlining(fctId);
+    let newBlock = block.splitAfter(inst);
+    let returnValue = graph_builder::addToGraph(graph, inlined_function_id, data.bc, typeParams, data.returnType, block, newBlock, inst);
+    if returnValue.isSome() {
+        let returnValue = returnValue.getOrPanic();
+        inst.replaceAllUsesWith(returnValue);
+    }
+    inst.remove();
 }
