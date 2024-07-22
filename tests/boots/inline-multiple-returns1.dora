@@ -1,0 +1,15 @@
+//= boots
+
+fn main() {
+    assert(f(true) == 100);
+    assert(f(false) == 200);
+}
+
+@optimizeImmediately fn f(a: Bool): Int64 { g(a) }
+@inline fn g(a: Bool): Int64 {
+    if a {
+        return 100;
+    } else {
+        return 200;
+    }
+}

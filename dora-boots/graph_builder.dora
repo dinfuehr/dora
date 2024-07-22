@@ -29,7 +29,7 @@ pub fn createGraph(ci: CompilationInfo): Graph {
     graph
 }
 
-pub fn addToGraph(graph: Graph, inlined_function_id: InlinedFunctionId, bc: BytecodeFunction, typeParams: Array[BytecodeType], returnType: BytecodeType, entryBlock: Block, exitBlock: Block, callInst: Inst): Vec[Inst] {
+pub fn addToGraph(graph: Graph, inlined_function_id: InlinedFunctionId, bc: BytecodeFunction, typeParams: Array[BytecodeType], returnType: BytecodeType, entryBlock: Block, exitBlock: Block, callInst: Inst): Option[Inst] {
     // Analyze basic block starts/ends.
     let analysis = analyzeBytecode(graph, bc);
 
@@ -37,7 +37,7 @@ pub fn addToGraph(graph: Graph, inlined_function_id: InlinedFunctionId, bc: Byte
     let ssagen = SsaGen::newForInlining(graph, inlined_function_id, analysis, bc, typeParams, returnType, entryBlock, exitBlock);
     ssagen.runInline(callInst);
 
-    ssagen.returnValues
+    ssagen.returnValue
 }
 
 class SsaGen {
@@ -57,7 +57,7 @@ class SsaGen {
     exitBlock: Option[Block],
 
     returnValueArgInst: Option[Inst],
-    returnValues: Vec[Inst],
+    returnValue: Option[Inst],
 
     pushed_registers: Vec[BytecodeRegister],
 
@@ -93,7 +93,7 @@ impl SsaGen {
             None[Block],
             None[Block],
             None[Inst],
-            Vec[Inst]::new(),
+            None[Inst],
             Vec[BytecodeRegister]::new(),
             BitVec::new(),
             BitVec::new(),
@@ -118,7 +118,7 @@ impl SsaGen {
             Some[Block](entryBlock),
             Some[Block](exitBlock),
             None[Inst],
-            Vec[Inst]::new(),
+            None[Inst],
             Vec[BytecodeRegister]::new(),
             BitVec::new(),
             BitVec::new(),
@@ -1189,6 +1189,8 @@ impl SsaGen {
         let ty = self.reg(opnd);
 
         if self.isInlining() {
+            let exitBlock = self.exitBlock.getOrPanic();
+
             if ty.isUnit() {
                 // Do nothing.
             } else if ty.isStruct() {
@@ -1201,10 +1203,28 @@ impl SsaGen {
                 self.copyTuple(ty, dest, 0i32, src, 0i32, false);
             } else {
                 let value = self.readVariable(opnd, self.current());
-                self.returnValues.push(value);
+                let ty = self.graphTy(ty);
+
+                if self.returnValue.isSome() {
+                    let returnValue = self.returnValue.getOrPanic();
+
+                    let phi = if returnValue.getBlock() == exitBlock {
+                        assert(returnValue.isPhi());
+                        returnValue
+                    } else {
+                        let phi = graph::createPhiInst(ty);
+                        phi.addInput(returnValue);
+                        exitBlock.appendPhi(phi);
+                        phi
+                    };
+
+                    phi.addInput(value);
+                    self.returnValue = Some(phi);
+                } else {
+                    self.returnValue = Some(value);
+                }
             }
 
-            let exitBlock = self.exitBlock.getOrPanic();
             let inst = graph::createGotoInst(exitBlock);
             self.current().appendInst(inst);
             self.current().addSuccessor(exitBlock);
