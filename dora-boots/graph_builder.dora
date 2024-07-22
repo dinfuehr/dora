@@ -200,6 +200,7 @@ impl SsaGen {
         if retTy.isStruct() || retTy.isTuple() {
             let arg = callInst.getInput(argIdx).getValue();
             self.returnValueArgInst = Some[Inst](arg);
+            argIdx = argIdx + 1;
         }
 
         let mut regIdx = 0i32;
