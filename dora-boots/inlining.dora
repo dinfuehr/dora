@@ -16,7 +16,12 @@ pub fn performInlining(ci: CompilationInfo, graph: Graph) {
                     let inlined_function_id = ci.addInlinedFunction(fctId, fctInfo.type_params, inst.getInlinedLocation());
                     let data = iface::getFunctionDataForInlining(fctId);
                     let newBlock = block.splitAfter(inst);
-                    graph_builder::addToGraph(graph, inlined_function_id, data.bc, fctInfo.type_params, data.returnType, block, newBlock, inst);
+                    let returnValues = graph_builder::addToGraph(graph, inlined_function_id, data.bc, fctInfo.type_params, data.returnType, block, newBlock, inst);
+                    if !returnValues.isEmpty() {
+                        assert(returnValues.size() == 1);
+                        let newValue = returnValues(0);
+                        inst.replaceAllUsesWith(newValue);
+                    }
                     inst.remove();
                     return;
                 }

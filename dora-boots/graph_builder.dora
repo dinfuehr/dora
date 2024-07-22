@@ -29,13 +29,15 @@ pub fn createGraph(ci: CompilationInfo): Graph {
     graph
 }
 
-pub fn addToGraph(graph: Graph, inlined_function_id: InlinedFunctionId, bc: BytecodeFunction, typeParams: Array[BytecodeType], returnType: BytecodeType, entryBlock: Block, exitBlock: Block, callInst: Inst) {
+pub fn addToGraph(graph: Graph, inlined_function_id: InlinedFunctionId, bc: BytecodeFunction, typeParams: Array[BytecodeType], returnType: BytecodeType, entryBlock: Block, exitBlock: Block, callInst: Inst): Vec[Inst] {
     // Analyze basic block starts/ends.
     let analysis = analyzeBytecode(graph, bc);
 
     // Create basic blocks and fill with instructions.
     let ssagen = SsaGen::newForInlining(graph, inlined_function_id, analysis, bc, typeParams, returnType, entryBlock, exitBlock);
     ssagen.runInline(callInst);
+
+    ssagen.returnValues
 }
 
 class SsaGen {
@@ -55,6 +57,7 @@ class SsaGen {
     exitBlock: Option[Block],
 
     returnValueArgInst: Option[Inst],
+    returnValues: Vec[Inst],
 
     pushed_registers: Vec[BytecodeRegister],
 
@@ -90,6 +93,7 @@ impl SsaGen {
             None[Block],
             None[Block],
             None[Inst],
+            Vec[Inst]::new(),
             Vec[BytecodeRegister]::new(),
             BitVec::new(),
             BitVec::new(),
@@ -114,6 +118,7 @@ impl SsaGen {
             Some[Block](entryBlock),
             Some[Block](exitBlock),
             None[Inst],
+            Vec[Inst]::new(),
             Vec[BytecodeRegister]::new(),
             BitVec::new(),
             BitVec::new(),
@@ -386,7 +391,7 @@ impl SsaGen {
 
         let users = phi.users();
 
-        phi.replaceWith(replacement);
+        phi.replaceAllUsesWith(replacement);
         phi.remove();
 
         for map in self.currentDef.data {
@@ -1183,7 +1188,19 @@ impl SsaGen {
         let ty = self.reg(opnd);
 
         if self.isInlining() {
-            assert(ty.isUnit());
+            if ty.isUnit() {
+                // Do nothing.
+            } else if ty.isStruct() {
+                unimplemented();
+            } else if ty.isTuple() {
+                let src = self.readVariable(opnd, self.current());
+                let dest = self.returnValueArgInst.getOrPanic();
+                self.copyTuple(ty, dest, 0i32, src, 0i32, false);
+            } else {
+                let value = self.readVariable(opnd, self.current());
+                self.returnValues.push(value);
+            }
+
             let exitBlock = self.exitBlock.getOrPanic();
             let inst = graph::createGotoInst(exitBlock);
             self.current().appendInst(inst);

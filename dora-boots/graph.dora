@@ -1340,7 +1340,7 @@ impl Inst {
         inst.registerUses();
     }
 
-    pub fn replaceWith(replacement: Inst) {
+    pub fn replaceAllUsesWith(replacement: Inst) {
         while self.useListHead.isSome() {
             let input = self.useListHead.getOrPanic();
             input.usedBy.replaceInput(replacement, input.idx);
