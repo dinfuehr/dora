@@ -1192,7 +1192,9 @@ impl SsaGen {
             if ty.isUnit() {
                 // Do nothing.
             } else if ty.isStruct() {
-                unimplemented();
+                let src = self.readVariable(opnd, self.current());
+                let dest = self.returnValueArgInst.getOrPanic();
+                self.copyStruct(ty, dest, 0i32, src, 0i32, false);
             } else if ty.isTuple() {
                 let src = self.readVariable(opnd, self.current());
                 let dest = self.returnValueArgInst.getOrPanic();

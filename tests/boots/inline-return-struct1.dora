@@ -1,0 +1,12 @@
+//= boots
+
+fn main() {
+    let result = f();
+    assert(result.a == 12);
+    assert(result.b == 17);
+}
+
+struct Foo(a: Int64, b: Int64)
+
+@optimizeImmediately fn f(): Foo { g(12, 17) }
+@inline fn g(a: Int64, b: Int64): Foo { Foo(a, b) }
