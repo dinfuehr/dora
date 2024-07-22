@@ -454,6 +454,11 @@ impl Block {
         newBlock.successors = successors;
         self.getGraph().addBlock(newBlock);
 
+        for inst in newBlock.instructionsIterator() {
+            assert(inst.getBlock() === self);
+            inst.block = Some(newBlock);
+        }
+
         newBlock
     }
 
