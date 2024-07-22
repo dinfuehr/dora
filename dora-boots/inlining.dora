@@ -12,7 +12,9 @@ pub fn performInlining(ci: CompilationInfo, graph: Graph) {
                 let fctInfo = inst.getFunctionInfo();
                 let fctId = fctInfo.fct_id;
 
-                if iface::hasFunctionInlineAnnotation(fctId) {
+                let info = iface::getFunctionInfoForInlining(fctId);
+
+                if info.hasInlineAnnotation {
                     let inlined_function_id = ci.addInlinedFunction(fctId, fctInfo.type_params, inst.getInlinedLocation());
                     let data = iface::getFunctionDataForInlining(fctId);
                     let newBlock = block.splitAfter(inst);

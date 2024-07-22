@@ -27,7 +27,7 @@ pub const TRAP_OVERFLOW: Int32 = 8i32;
 @internal pub fn getFunctionAddressRaw(data: Array[UInt8]): Int64;
 @internal pub fn getFunctionVtableIndexRaw(fct_id: Int32): Int32;
 @internal pub fn getFunctionDisplayNameRaw(fct_id: Int32): Array[UInt8];
-@internal pub fn hasFunctionInlineAnnotationRaw(fct_id: Int32): Bool;
+@internal pub fn getFunctionInfoForInliningRaw(fct_id: Int32): Array[UInt8];
 @internal pub fn getFieldOffsetRaw(data: Array[UInt8]): Int32;
 @internal pub fn getClassSizeRaw(data: Array[UInt8]): Int32;
 @internal pub fn getClassPointerRaw(data: Array[UInt8]): Int64;
@@ -60,8 +60,12 @@ pub fn getFunctionDisplayName(fct_id: FunctionId): String {
     String::fromBytes(encoded).getOrPanic()
 }
 
-pub fn hasFunctionInlineAnnotation(fct_id: FunctionId): Bool {
-    hasFunctionInlineAnnotationRaw(fct_id.value)
+pub fn getFunctionInfoForInlining(fct_id: FunctionId): FunctionInliningInfo {
+    let encoded = getFunctionInfoForInliningRaw(fct_id.value);
+    let reader = ByteReader::new(encoded);
+    let decoded = deserializer::decodeFunctionInliningInfo(reader);
+    assert(!reader.moreBytes());
+    decoded
 }
 
 pub fn getClassPointerForLambda(fct_id: FunctionId, type_params: Array[BytecodeType]): Address {
@@ -560,4 +564,10 @@ impl ConstPoolValue {
 pub struct FunctionInliningData {
     pub bc: BytecodeFunction,
     pub returnType: BytecodeType,
+}
+
+pub struct FunctionInliningInfo {
+    pub hasBytecode: Bool,
+    pub bytecodeSize: Int32,
+    pub hasInlineAnnotation: Bool,
 }

@@ -99,6 +99,19 @@ fn encode_enum_data(vm: &VM, enum_: &EnumData, buffer: &mut ByteBuffer) {
     }
 }
 
+pub fn allocate_encoded_function_inlining_info(vm: &VM, fct: &FunctionData) -> Ref<UInt8Array> {
+    let mut buffer = ByteBuffer::new();
+    buffer.emit_bool(fct.bytecode.is_some());
+    buffer.emit_u32(
+        fct.bytecode
+            .as_ref()
+            .map(|bc| bc.code().len() as u32)
+            .unwrap_or(0),
+    );
+    buffer.emit_bool(fct.is_inline);
+    byte_array_from_buffer(vm, buffer.data()).cast()
+}
+
 pub fn allocate_encoded_function_inlining_data(vm: &VM, fct: &FunctionData) -> Ref<UInt8Array> {
     let mut buffer = ByteBuffer::new();
     encode_bytecode_function(
