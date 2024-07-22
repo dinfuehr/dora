@@ -85,6 +85,8 @@ fn processPhi[T: RegisterType](phi: Inst, predecessorEdge: Edge, predecessor_reg
             moves.add(phi.getValueType(), dest, value);
         }
     } else {
+        assert(value.op().canBeRematerialized());
+
         // Phi could live both in register and on stack. This means
         // there are up to 2 moves emitted for each phi.
 

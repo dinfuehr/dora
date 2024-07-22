@@ -477,7 +477,7 @@ impl SimpleRegisterAllocator {
         let loc_data = inst.getLocationData();
         assert(loc_data.hasOutput());
 
-        if self.canBeRematerialized(inst) {
+        if inst.op().canBeRematerialized() {
             // No need to spill values that can be rematerialized.
             assert(!loc_data.hasSpillSlot());
             return;
@@ -606,7 +606,7 @@ impl SimpleRegisterAllocator {
         // Choose a register/inst which is cheap to reload first.
         for candidate in candidates {
             let candidateInst = registers.data.get(candidate).getOrPanic();
-            if self.canBeRematerialized(candidateInst) {
+            if candidateInst.op().canBeRematerialized() {
                 return candidate;
             }
         }
@@ -630,7 +630,7 @@ impl SimpleRegisterAllocator {
             let inst = createMoveInst(value.getValueType(), dest, Location::fp(slot));
             self.currentInst.getOrPanic().insertBefore(inst);
         } else {
-            assert(self.canBeRematerialized(value));
+            assert(value.op().canBeRematerialized());
             let inst = createRematerializeInst(dest, value);
             self.currentInst.getOrPanic().insertBefore(inst);
         }
@@ -689,7 +689,7 @@ impl SimpleRegisterAllocator {
 
             let move = createMoveInst(inst.getValueType(), dest.toLocation(), reg);
             self.currentInst.getOrPanic().insertBefore(move);
-        } else if self.canBeRematerialized(inst) {
+        } else if inst.op().canBeRematerialized() {
             let rematerialize = createRematerializeInst(dest.toLocation(), inst);
             self.currentInst.getOrPanic().insertBefore(rematerialize);
         } else {
@@ -717,17 +717,6 @@ impl SimpleRegisterAllocator {
             assert(registers.allocateFixedTempRegister(reg));
         }
         registers.protect(reg);
-    }
-
-    fn canBeRematerialized(inst: Inst): Bool {
-        let op = inst.op();
-
-        op == Op::Int64Const
-            || op == Op::Int32Const
-            || op == Op::UInt8Const
-            || op == Op::TrueConst
-            || op == Op::FalseConst
-            || op == Op::AllocateStack
     }
 
     fn registers(): RegisterTracker[Register] {

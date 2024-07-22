@@ -835,6 +835,18 @@ impl Op {
         }
     }
 
+    pub fn canBeRematerialized(): Bool {
+        match self {
+            Op::Int64Const
+            | Op::Int32Const
+            | Op::UInt8Const
+            | Op::TrueConst
+            | Op::FalseConst
+            | Op::AllocateStack => true,
+            _ => false,
+        }
+    }
+
     pub fn name(): String {
         opName(self)
     }
