@@ -167,17 +167,12 @@ pub extern "C" fn capture_stack_trace(mut obj: Handle<Stacktrace>) {
     let vm = get_vm();
     let stacktrace = stacktrace_from_last_dtn(vm);
 
-    // Do not add Stacktrace::new() and Stacktrace::captureStacktrace() to stack trace.
-    let skip = 2;
-    assert!(stacktrace.len() > skip);
-    let len = stacktrace.len() - skip;
-
     let cls_id = vm.int_array();
-    let array: Ref<Int32Array> = Array::alloc(vm, len * 2, 0, cls_id);
+    let array: Ref<Int32Array> = Array::alloc(vm, stacktrace.len() * 2, 0, cls_id);
     let mut array = create_handle(array);
     let mut i = 0;
 
-    for elem in stacktrace.elems.iter().skip(skip) {
+    for elem in &stacktrace.elems {
         array.set_at(i, elem.code_id.idx() as i32);
         array.set_at(i + 1, elem.offset as i32);
         i += 2;

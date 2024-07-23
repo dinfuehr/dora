@@ -151,6 +151,11 @@ impl Stacktrace {
       i = i + 2;
     }
 
+    // Do not add Stacktrace::new() and Stacktrace::captureStacktrace() to stack trace.
+    for _ in std::range(0, 2) {
+      symbolized_backtrace.removeAt(0);
+    }
+
     let symbolized_backtrace = symbolized_backtrace.toArray();
     self.symbolized_backtrace = Some(symbolized_backtrace);
     symbolized_backtrace
