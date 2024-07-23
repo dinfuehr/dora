@@ -35,7 +35,7 @@ impl CompilationInfo {
             emitDebug,
             emitGraph,
             emitCodeComments,
-            false,
+            true,
             None[String],
             Vec[iface::InlinedFunction]::new(),
         )
