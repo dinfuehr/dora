@@ -1470,7 +1470,7 @@ impl CodeGen for CodeGenX64 {
                 }
 
                 Op::UInt8Const => {
-                    self.asm.movb_ai(AsmAddress::offset(stack_reg, offset), Immediate(value.getValueAsInt32().toInt64()));
+                    self.asm.movb_ai(AsmAddress::offset(stack_reg, offset), Immediate(value.getValueAsUInt8().toInt64()));
                 }
 
                 Op::TrueConst => {
