@@ -11,7 +11,7 @@ pub fn performInlining(ci: CompilationInfo, graph: Graph) {
         for inst in block.instructionsIterator() {
             let op = inst.op();
 
-            if op == Op::InvokeStatic {
+            if op == Op::InvokeStatic || op == Op::InvokeDirect {
                 let fctInfo = inst.getFunctionInfo();
                 let fctId = fctInfo.fct_id;
 
