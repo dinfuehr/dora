@@ -1285,9 +1285,10 @@ impl Inst {
         }
     }
 
-    pub fn addInput(inst: Inst) {
+    pub fn addInput(inst: Inst): Input {
         let input = Input::new(self.inputs.size().toInt32(), inst, self);
         self.inputs.push(input);
+        input
     }
 
     pub fn addUse(input: Input) {

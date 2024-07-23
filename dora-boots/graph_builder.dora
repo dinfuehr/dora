@@ -1218,7 +1218,10 @@ impl SsaGen {
                         phi
                     };
 
-                    phi.addInput(value);
+                    // Here we add input to phi after the phi was  already appended to
+                    // the graph. Therefore we need to register the input manually.
+                    let input = phi.addInput(value);
+                    value.addUse(input);
                     self.returnValue = Some(phi);
                 } else {
                     self.returnValue = Some(value);
