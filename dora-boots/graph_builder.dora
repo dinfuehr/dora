@@ -415,6 +415,10 @@ impl SsaGen {
             }
         }
 
+        if self.returnValue.isSome() && self.returnValue.getOrPanic() === phi {
+            self.returnValue = Some(replacement);
+        }
+
         self.currentReplacements.push(replacement);
 
         for i in std::range(0, users.size()) {
