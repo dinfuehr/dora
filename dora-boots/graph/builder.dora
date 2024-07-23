@@ -91,7 +91,7 @@ fn testEmptyGraph() {
 
     assertGraph(builder.build(), "
 @0:
-  %0: Const.Int32(#12) [%1]
-  %1: Ret.Int32 %0
+  %1: Const.Int32(#12) [%2]
+  %2: Ret.Int32 %1
 ");
 }

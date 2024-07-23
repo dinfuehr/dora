@@ -38,7 +38,7 @@ fn testRemoveUnusedConstant() {
     performDce(graph);
     assertGraph(graph, "
 @0:
-  %1: Ret.Void
+  %2: Ret.Void
 ");
 }
 
@@ -54,6 +54,6 @@ fn testRemoveUnusedAdd() {
     performDce(graph);
     assertGraph(graph, "
 @0:
-  %3: Ret.Void
+  %4: Ret.Void
 ");
 }

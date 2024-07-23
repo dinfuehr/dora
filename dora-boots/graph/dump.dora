@@ -104,7 +104,7 @@ impl GraphDumper {
     }
 
     fn dumpInst(inst: Inst) {
-        self.buffer.append("  %${inst.id()}");
+        self.buffer.append("  %${instId(inst)}");
 
         if inst.hasLinearOrderIndex() {
             self.buffer.append("/#${inst.getLinearOrderIndex()}");
@@ -123,7 +123,7 @@ impl GraphDumper {
                     self.buffer.append(", ");
                 }
 
-                self.buffer.append("%${inp.value.id()}");
+                self.buffer.append("%${instId(inp.value)}");
                 self.dumpInputLocation(inst, idx);
                 idx = idx + 1;
             }
@@ -161,7 +161,7 @@ impl GraphDumper {
                     self.buffer.append(", ");
                 }
 
-                self.buffer.append("%${input.usedBy.id()}");
+                self.buffer.append("%${instId(input.usedBy)}");
                 first = false;
             }
 
@@ -460,4 +460,12 @@ fn skipWhite(it: Output) {
 
 fn isWhite(ch: Char): Bool {
     ch == ' ' || ch == '\t' || ch == '\n' || ch == '\r'
+}
+
+fn instId(inst: Inst): String {
+    if inst.hasId() {
+        inst.id().toString()
+    } else {
+        "XXX:${inst._id}:${inst.op()}:XXX"
+    }
 }

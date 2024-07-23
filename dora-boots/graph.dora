@@ -38,11 +38,14 @@ pub class Graph {
 
 impl Graph {
     static pub fn new(): Graph {
+        let insts = Vec[Option[Inst]]::new();
+        insts.push(None[Inst]);
+
         Graph(
             None[Block],
             None[Block],
             Vec[Option[Block]]::new(),
-            Vec[Option[Inst]]::new(),
+            insts,
             Vec[Block]::new(),
             0i32,
             0i32,
@@ -90,7 +93,8 @@ impl Graph {
 
     fn assignNextInstId(inst: Inst) {
         let id = self.instById.size().toInt32();
-        inst._id = Some(InstId(id));
+        assert(id > 0i32);
+        inst._id = id;
         self.instById.push(Some[Inst](inst));
     }
 
@@ -419,7 +423,7 @@ impl Block {
     }
 
     pub fn appendPhi(phi: Inst): Inst {
-        assert(phi.block.isNone() && phi._id.isNone());
+        assert(phi.block.isNone() && !phi.hasId());
 
         phi.block = Some(self);
         self.graph.getOrPanic().assignNextInstId(phi);
@@ -431,7 +435,7 @@ impl Block {
     }
 
     pub fn appendInst(inst: Inst): Inst {
-        assert(inst.block.isNone() && inst._id.isNone());
+        assert(inst.block.isNone() && !inst.hasId());
 
         inst.block = Some(self);
         self.graph.getOrPanic().assignNextInstId(inst);
@@ -962,7 +966,7 @@ impl Stringable for InstId {
 }
 
 pub class Inst {
-    _id: Option[InstId],
+    _id: Int32,
     block: Option[Block],
     linear_index: Option[Int32],
 
@@ -988,7 +992,7 @@ pub class Inst {
 impl Inst {
     pub static fn new(): Inst {
         Inst(
-            None[InstId],
+            0i32,
             None[Block],
             None[Int32],
             None[Op],
@@ -1006,11 +1010,12 @@ impl Inst {
     }
 
     pub fn id(): InstId {
-        self._id.getOrPanic()
+        assert(self._id > 0i32);
+        InstId(self._id)
     }
 
     pub fn hasId(): Bool {
-        self._id.isSome()
+        self._id > 0i32
     }
 
     pub fn op(): Op {
@@ -1328,9 +1333,11 @@ impl Inst {
         }
 
         self.block = None;
-        let id = self.id().value.toInt64();
-        block.getGraph().instById(id) = None[Inst];
-        self._id = None;
+        assert(self.hasId());
+        let id = self._id;
+        block.getGraph().instById(id.toInt64()) = None[Inst];
+        self._id = -id;
+        assert(!self.hasId());
     }
 
     pub fn registerUses() {
@@ -1352,7 +1359,7 @@ impl Inst {
     }
 
     pub fn insertBefore(inst: Inst) {
-        assert(inst.block.isNone() && inst._id.isNone());
+        assert(inst.block.isNone() && !inst.hasId());
 
         let block = self.getBlock();
 
