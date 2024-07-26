@@ -46,8 +46,9 @@ pub fn decodeCompilationInfo(reader: ByteReader): CompilationInfo {
     let loc = decodeLocation(reader);
     let emitDebug = reader.readBool();
     let emitGraph = reader.readBool();
+    let emitHtml = reader.readBool();
     let emitCodeComments = reader.readBool();
-    CompilationInfo::new(bc, fctId, typeParams, returnType, loc, emitDebug, emitGraph, emitCodeComments)
+    CompilationInfo::new(bc, fctId, typeParams, returnType, loc, emitDebug, emitGraph, emitHtml, emitCodeComments)
 }
 
 pub fn decodeStructData(reader: ByteReader): StructData {

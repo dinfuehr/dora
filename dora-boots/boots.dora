@@ -35,6 +35,10 @@ pub fn compileFunction(ci: CompilationInfo): CodeDescriptor {
     let graph = createGraph(ci);
     let codegen = createCodeGen(ci, graph);
 
+    if ci.emitHtml {
+        unimplemented();
+    }
+
     if ci.emitGraph {
         println("${ci.getDisplayName()} after graph building:");
         println(dumpGraph(Some[CompilationInfo](ci), graph, config.architecture));

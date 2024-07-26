@@ -60,6 +60,7 @@ fn encode_compilation_info(vm: &VM, compilation_data: &CompilationData, buffer: 
     encode_location(&compilation_data.loc, buffer);
     buffer.emit_bool(compilation_data.emit_debug);
     buffer.emit_bool(compilation_data.emit_graph);
+    buffer.emit_bool(compilation_data.emit_html);
     buffer.emit_bool(compilation_data.emit_code_comments);
 }
 

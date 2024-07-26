@@ -9,6 +9,7 @@ pub class CompilationInfo(
     pub loc: Location,
     pub emitDebug: Bool,
     pub emitGraph: Bool,
+    pub emitHtml: Bool,
     pub emitCodeComments: Bool,
     pub inline: Bool,
     displayName: Option[String],
@@ -24,6 +25,7 @@ impl CompilationInfo {
         loc: Location,
         emitDebug: Bool,
         emitGraph: Bool,
+        emitHtml: Bool,
         emitCodeComments: Bool
     ): CompilationInfo {
         CompilationInfo(
@@ -34,6 +36,7 @@ impl CompilationInfo {
             loc,
             emitDebug,
             emitGraph,
+            emitHtml,
             emitCodeComments,
             true,
             None[String],
@@ -48,6 +51,7 @@ impl CompilationInfo {
             typeParams,
             BytecodeType::Unit,
             Location(0i32, 0i32),
+            false,
             false,
             false,
             false,
