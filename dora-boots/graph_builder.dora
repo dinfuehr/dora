@@ -1260,7 +1260,7 @@ impl SsaGen {
         }
     }
 
-    fn emitInvokeDirect(dest: BytecodeRegister, idx: ConstPoolId) {
+    fn emitInvokeDirect(dest: BytecodeRegister, idx: ConstPoolId): Bool {
         let (fct_id, type_params) = match self.bc.constPool(idx) {
             ConstPoolEntry::Fct(fct_id, type_params) => (fct_id, type_params),
             _ => unreachable[(FunctionId, Array[BytecodeType])](),
@@ -1271,13 +1271,14 @@ impl SsaGen {
         if self.isIntrinsic(intrinsic) {
             let args = self.pushed_registers.toArray();
             self.pushed_registers.clear();
-            self.emitIntrinsic(intrinsic, dest, args, idx, type_params);
+            self.emitIntrinsic(intrinsic, dest, args, idx, type_params)
         } else {
             self.emitCall(dest, CallKind::Direct, fct_id, type_params);
+            false
         }
     }
 
-    fn emitInvokeStatic(dest: BytecodeRegister, idx: ConstPoolId) {
+    fn emitInvokeStatic(dest: BytecodeRegister, idx: ConstPoolId): Bool {
         let (fct_id, type_params) = match self.bc.constPool(idx) {
             ConstPoolEntry::Fct(fct_id, type_params) => (fct_id, type_params),
             _ => unreachable[(FunctionId, Array[BytecodeType])](),
@@ -1288,9 +1289,10 @@ impl SsaGen {
         if self.isIntrinsic(intrinsic) {
             let args = self.pushed_registers.toArray();
             self.pushed_registers.clear();
-            self.emitIntrinsic(intrinsic, dest, args, idx, type_params);
+            self.emitIntrinsic(intrinsic, dest, args, idx, type_params)
         } else {
             self.emitCall(dest, CallKind::Static, fct_id, type_params);
+            false
         }
     }
 
@@ -1408,7 +1410,7 @@ impl SsaGen {
         }
     }
 
-    fn emitInvokeGeneric(dest: BytecodeRegister, idx: ConstPoolId, kind: CallKind) {
+    fn emitInvokeGeneric(dest: BytecodeRegister, idx: ConstPoolId, kind: CallKind): Bool {
         let ty = self.regGraphTy(dest);
 
         let (type_param_idx, trait_fct_id, trait_type_params) = match self.bc.constPool(idx) {
@@ -1424,9 +1426,10 @@ impl SsaGen {
         if self.isIntrinsic(intrinsic) {
             let args = self.pushed_registers.toArray();
             self.pushed_registers.clear();
-            self.emitIntrinsic(intrinsic, dest, args, idx, Array[BytecodeType]::new());
+            self.emitIntrinsic(intrinsic, dest, args, idx, Array[BytecodeType]::new())
         } else {
             self.emitCall(dest, kind, callee_id, Array[BytecodeType]::new());
+            false
         }
     }
 
@@ -1435,203 +1438,300 @@ impl SsaGen {
         intrinsic != opc::INTRINSIC_OPTION_GET_OR_PANIC
     }
 
-    fn emitIntrinsic(intrinsic: Int32, dest: BytecodeRegister, args: Array[BytecodeRegister], idx: ConstPoolId, type_params: Array[BytecodeType]) {
+    fn emitIntrinsic(intrinsic: Int32, dest: BytecodeRegister, args: Array[BytecodeRegister], idx: ConstPoolId, type_params: Array[BytecodeType]): Bool {
         if intrinsic == opc::INTRINSIC_INT64_ADD_UNCHECKED || intrinsic == opc::INTRINSIC_INT32_ADD_UNCHECKED {
             self.emitIntrinsicBin(dest, args, Op::Add);
+            false
         } else if intrinsic == opc::INTRINSIC_INT64_SUB_UNCHECKED || intrinsic == opc::INTRINSIC_INT32_SUB_UNCHECKED {
             self.emitIntrinsicBin(dest, args, Op::Sub);
+            false
         } else if intrinsic == opc::INTRINSIC_INT64_MUL_UNCHECKED || intrinsic == opc::INTRINSIC_INT32_MUL_UNCHECKED {
             self.emitIntrinsicBin(dest, args, Op::Mul);
+            false
         } else if intrinsic == opc::INTRINSIC_INT32_NEG_UNCHECKED || intrinsic == opc::INTRINSIC_INT64_NEG_UNCHECKED {
             self.emitIntrinsicUn(dest, args, Op::Neg);
+            false
         } else if intrinsic == opc::INTRINSIC_THREAD_CURRENT {
             self.emitIntrinsicThreadCurrent(dest, args);
+            false
         } else if intrinsic == opc::INTRINSIC_UNREACHABLE {
             self.emitIntrinsicUnreachable(dest, args, idx);
+            false
         } else if intrinsic == opc::INTRINSIC_ASSERT {
             self.emitIntrinsicAssert(dest, args);
+            false
         } else if intrinsic == opc::INTRINSIC_OPTION_IS_SOME || intrinsic == opc::INTRINSIC_OPTION_IS_NONE {
             self.emitIntrinsicOptionIsSomeAndIsNone(intrinsic, dest, args);
+            false
         } else if intrinsic == opc::INTRINSIC_FLOAT64_TO_INT32 {
             self.emitIntrinsicConvert(dest, args, Type::Int32, Type::Float64);
+            false
         } else if intrinsic == opc::INTRINSIC_FLOAT64_TO_INT64 {
             self.emitIntrinsicConvert(dest, args, Type::Int64, Type::Float64);
+            false
         } else if intrinsic == opc::INTRINSIC_FLOAT32_TO_INT32 {
             self.emitIntrinsicConvert(dest, args, Type::Int32, Type::Float32);
+            false
         } else if intrinsic == opc::INTRINSIC_FLOAT32_TO_INT64 {
             self.emitIntrinsicConvert(dest, args, Type::Int64, Type::Float32);
+            false
         } else if intrinsic == opc::INTRINSIC_INT32_TO_FLOAT32 {
             self.emitIntrinsicConvert(dest, args, Type::Float32, Type::Int32);
+            false
         } else if intrinsic == opc::INTRINSIC_INT32_TO_FLOAT64 {
             self.emitIntrinsicConvert(dest, args, Type::Float64, Type::Int32);
+            false
         } else if intrinsic == opc::INTRINSIC_INT32_TO_INT64 || intrinsic == opc::INTRINSIC_CHAR_TO_INT64 {
             self.emitIntrinsicConvert(dest, args, Type::Int64, Type::Int32);
+            false
         } else if intrinsic == opc::INTRINSIC_INT64_TO_FLOAT32 {
             self.emitIntrinsicConvert(dest, args, Type::Float32, Type::Int64);
+            false
         } else if intrinsic == opc::INTRINSIC_INT64_TO_FLOAT64 {
             self.emitIntrinsicConvert(dest, args, Type::Float64, Type::Int64);
+            false
         } else if intrinsic == opc::INTRINSIC_INT64_TO_INT32 || intrinsic == opc::INTRINSIC_INT64_TO_CHAR {
             self.emitIntrinsicConvert(dest, args, Type::Int32, Type::Int64);
+            false
         } else if intrinsic == opc::INTRINSIC_INT64_TO_UINT8 {
             self.emitIntrinsicConvert(dest, args, Type::UInt8, Type::Int64);
+            false
         } else if intrinsic == opc::INTRINSIC_PROMOTE_FLOAT32_TO_FLOAT64 {
             self.emitIntrinsicConvert(dest, args, Type::Float64, Type::Float32);
+            false
         } else if intrinsic == opc::INTRINSIC_DEMOTE_FLOAT64_TO_FLOAT32 {
             self.emitIntrinsicConvert(dest, args, Type::Float32, Type::Float64);
+            false
         } else if intrinsic == opc::INTRINSIC_FLOAT64_ADD || intrinsic == opc::INTRINSIC_FLOAT32_ADD {
             self.emitBin(dest, args(0), args(1), Op::Add);
+            false
         } else if intrinsic == opc::INTRINSIC_FLOAT64_SUB || intrinsic == opc::INTRINSIC_FLOAT32_SUB {
             self.emitBin(dest, args(0), args(1), Op::Sub);
+            false
         } else if intrinsic == opc::INTRINSIC_FLOAT64_MUL || intrinsic == opc::INTRINSIC_FLOAT32_MUL {
             self.emitIntrinsicBin(dest, args, Op::Mul);
+            false
         } else if intrinsic == opc::INTRINSIC_FLOAT64_DIV || intrinsic == opc::INTRINSIC_FLOAT32_DIV {
             self.emitIntrinsicBin(dest, args, Op::Div);
+            false
         } else if intrinsic == opc::INTRINSIC_FLOAT64_NEG || intrinsic == opc::INTRINSIC_FLOAT32_NEG {
             self.emitIntrinsicUn(dest, args, Op::Neg);
+            false
         } else if intrinsic == opc::INTRINSIC_FLOAT64_EQ || intrinsic == opc::INTRINSIC_FLOAT32_EQ {
             self.emitIntrinsicBin(dest, args, Op::Equal);
+            false
         } else if intrinsic == opc::INTRINSIC_FLOAT64_ABS {
             self.emitIntrinsicAbs(dest, args, Type::Float64);
+            false
         } else if intrinsic == opc::INTRINSIC_FLOAT32_ABS {
             self.emitIntrinsicAbs(dest, args, Type::Float32);
+            false
         } else if intrinsic == opc::INTRINSIC_INT64_ADD || intrinsic == opc::INTRINSIC_INT32_ADD {
             self.emitBin(dest, args(0), args(1), Op::CheckedAdd);
+            false
         } else if intrinsic == opc::INTRINSIC_INT64_SUB || intrinsic == opc::INTRINSIC_INT32_SUB {
             self.emitBin(dest, args(0), args(1), Op::CheckedSub);
+            false
         } else if intrinsic == opc::INTRINSIC_INT64_MUL || intrinsic == opc::INTRINSIC_INT32_MUL {
             self.emitIntrinsicBin(dest, args, Op::CheckedMul);
+            false
         } else if intrinsic == opc::INTRINSIC_INT64_DIV || intrinsic == opc::INTRINSIC_INT32_DIV {
             self.emitIntrinsicBin(dest, args, Op::CheckedDiv);
+            false
         } else if intrinsic == opc::INTRINSIC_INT64_MOD || intrinsic == opc::INTRINSIC_INT32_MOD {
             self.emitIntrinsicBin(dest, args, Op::CheckedMod);
+            false
         } else if intrinsic == opc::INTRINSIC_INT64_AND || intrinsic == opc::INTRINSIC_INT32_AND {
             self.emitIntrinsicBin(dest, args, Op::And);
+            false
         } else if intrinsic == opc::INTRINSIC_INT64_OR || intrinsic == opc::INTRINSIC_INT32_OR {
             self.emitIntrinsicBin(dest, args, Op::Or);
+            false
         } else if intrinsic == opc::INTRINSIC_INT64_XOR || intrinsic == opc::INTRINSIC_INT32_XOR {
             self.emitIntrinsicBin(dest, args, Op::Xor);
+            false
         } else if intrinsic == opc::INTRINSIC_INT64_SAR || intrinsic == opc::INTRINSIC_INT32_SAR {
             self.emitIntrinsicBin(dest, args, Op::Sar);
+            false
         } else if intrinsic == opc::INTRINSIC_INT64_SHL || intrinsic == opc::INTRINSIC_INT32_SHL {
             self.emitIntrinsicBin(dest, args, Op::Shl);
+            false
         } else if intrinsic == opc::INTRINSIC_INT64_SHR || intrinsic == opc::INTRINSIC_INT32_SHR {
             self.emitIntrinsicBin(dest, args, Op::Shr);
+            false
         } else if intrinsic == opc::INTRINSIC_INT64_NEG || intrinsic == opc::INTRINSIC_INT32_NEG {
             self.emitIntrinsicUn(dest, args, Op::CheckedNeg);
+            false
         } else if intrinsic == opc::INTRINSIC_INT64_EQ || intrinsic == opc::INTRINSIC_INT32_EQ {
             self.emitIntrinsicBin(dest, args, Op::Equal);
+            false
         } else if intrinsic == opc::INTRINSIC_BOOL_NOT || intrinsic == opc::INTRINSIC_INT64_NOT || intrinsic == opc::INTRINSIC_INT32_NOT {
             self.emitIntrinsicUn(dest, args, Op::Not);
+            false
         } else if intrinsic == opc::INTRINSIC_BOOL_EQ || intrinsic == opc::INTRINSIC_U_INT8_EQ {
             self.emitIntrinsicBin(dest, args, Op::Equal);
+            false
         } else if intrinsic == opc::INTRINSIC_INT64_CMP {
             self.emitIntrinsicCompareOrdering(dest, args, Type::Int64);
+            false
         } else if intrinsic == opc::INTRINSIC_INT32_CMP || intrinsic == opc::INTRINSIC_CHAR_CMP {
             self.emitIntrinsicCompareOrdering(dest, args, Type::Int32);
+            false
         } else if intrinsic == opc::INTRINSIC_U_INT8_CMP {
             self.emitIntrinsicCompareOrdering(dest, args, Type::UInt8);
+            false
         } else if intrinsic == opc::INTRINSIC_FLOAT32_CMP {
             self.emitIntrinsicCompareOrdering(dest, args, Type::Float32);
+            false
         } else if intrinsic == opc::INTRINSIC_FLOAT64_CMP {
             self.emitIntrinsicCompareOrdering(dest, args, Type::Float64);
+            false
         } else if intrinsic == opc::INTRINSIC_REINTERPRET_FLOAT64_AS_INT64 {
             self.emitIntrinsicBitcast(dest, args, Type::Int64, Type::Float64);
+            false
         } else if intrinsic == opc::INTRINSIC_REINTERPRET_INT64_AS_FLOAT64 {
             self.emitIntrinsicBitcast(dest, args, Type::Float64, Type::Int64);
+            false
         } else if intrinsic == opc::INTRINSIC_REINTERPRET_FLOAT32_AS_INT32 {
             self.emitIntrinsicBitcast(dest, args, Type::Int32, Type::Float32);
+            false
         } else if intrinsic == opc::INTRINSIC_REINTERPRET_INT32_AS_FLOAT32 {
             self.emitIntrinsicBitcast(dest, args, Type::Float32, Type::Int32);
+            false
         } else if intrinsic == opc::INTRINSIC_FLOAT64_ROUND_DOWN {
             self.emitIntrinsicRounding(dest, args, Op::RoundDown, Type::Float64);
+            false
         } else if intrinsic == opc::INTRINSIC_FLOAT64_ROUND_UP {
             self.emitIntrinsicRounding(dest, args, Op::RoundUp, Type::Float64);
+            false
         } else if intrinsic == opc::INTRINSIC_FLOAT64_ROUND_TO_ZERO {
             self.emitIntrinsicRounding(dest, args, Op::RoundToZero, Type::Float64);
+            false
         } else if intrinsic == opc::INTRINSIC_FLOAT64_ROUND_HALF_EVEN {
             self.emitIntrinsicRounding(dest, args, Op::RoundHalfEven, Type::Float64);
+            false
         } else if intrinsic == opc::INTRINSIC_FLOAT32_ROUND_DOWN {
             self.emitIntrinsicRounding(dest, args, Op::RoundDown, Type::Float32);
+            false
         } else if intrinsic == opc::INTRINSIC_FLOAT32_ROUND_UP {
             self.emitIntrinsicRounding(dest, args, Op::RoundUp, Type::Float32);
+            false
         } else if intrinsic == opc::INTRINSIC_FLOAT32_ROUND_TO_ZERO {
             self.emitIntrinsicRounding(dest, args, Op::RoundToZero, Type::Float32);
+            false
         } else if intrinsic == opc::INTRINSIC_FLOAT32_ROUND_HALF_EVEN {
             self.emitIntrinsicRounding(dest, args, Op::RoundHalfEven, Type::Float32);
+            false
         } else if intrinsic == opc::INTRINSIC_FLOAT64_SQRT {
             self.emitIntrinsicRounding(dest, args, Op::Sqrt, Type::Float64);
+            false
         } else if intrinsic == opc::INTRINSIC_FLOAT32_SQRT {
             self.emitIntrinsicRounding(dest, args, Op::Sqrt, Type::Float32);
+            false
         } else if intrinsic == opc::INTRINSIC_INT32_TO_CHAR || intrinsic == opc::INTRINSIC_CHAR_TO_INT32 {
             self.emitIntrinsicCastBetweenInt32AndChar(dest, args);
+            false
         } else if intrinsic == opc::INTRINSIC_INT32_TO_UINT8 {
             self.emitIntrinsicConvert(dest, args, Type::UInt8, Type::Int32);
+            false
         } else if intrinsic == opc::INTRINSIC_U_INT8_TO_INT32 || intrinsic == opc::INTRINSIC_U_INT8_TO_CHAR {
             self.emitIntrinsicConvert(dest, args, Type::Int32, Type::UInt8);
+            false
         } else if intrinsic == opc::INTRINSIC_BOOL_TO_INT32 {
             self.emitIntrinsicConvert(dest, args, Type::Int32, Type::Bool);
+            false
         } else if intrinsic == opc::INTRINSIC_U_INT8_TO_INT64 {
             self.emitIntrinsicConvert(dest, args, Type::Int64, Type::UInt8);
+            false
         } else if intrinsic == opc::INTRINSIC_INT32_ROTATE_LEFT {
             self.emitIntrinsicRotate(dest, args, Type::Int32, true);
+            false
         } else if intrinsic == opc::INTRINSIC_INT32_ROTATE_RIGHT {
             self.emitIntrinsicRotate(dest, args, Type::Int32, false);
+            false
         } else if intrinsic == opc::INTRINSIC_INT64_ROTATE_LEFT {
             self.emitIntrinsicRotate(dest, args, Type::Int64, true);
+            false
         } else if intrinsic == opc::INTRINSIC_INT64_ROTATE_RIGHT {
             self.emitIntrinsicRotate(dest, args, Type::Int64, false);
+            false
         } else if intrinsic == opc::INTRINSIC_DEBUG {
             self.emitIntrinsicDebug(dest, args);
+            false
         } else if intrinsic == opc::INTRINSIC_ATOMIC_INT32_GET {
             self.emitIntrinsicAtomicLoad(dest, args, Type::Int32);
+            false
         } else if intrinsic == opc::INTRINSIC_ATOMIC_INT64_GET {
             self.emitIntrinsicAtomicLoad(dest, args, Type::Int64);
+            false
         } else if intrinsic == opc::INTRINSIC_ATOMIC_INT32_SET {
             self.emitIntrinsicAtomicStore(dest, args, Type::Int32);
+            false
         } else if intrinsic == opc::INTRINSIC_ATOMIC_INT64_SET {
             self.emitIntrinsicAtomicStore(dest, args, Type::Int64);
+            false
         } else if intrinsic == opc::INTRINSIC_ATOMIC_INT32_EXCHANGE {
             self.emitIntrinsicAtomicExchange(dest, args, Type::Int32);
+            false
         } else if intrinsic == opc::INTRINSIC_ATOMIC_INT64_EXCHANGE {
             self.emitIntrinsicAtomicExchange(dest, args, Type::Int64);
+            false
         } else if intrinsic == opc::INTRINSIC_ATOMIC_INT32_COMPARE_EXCHANGE {
             self.emitIntrinsicAtomicCompareExchange(dest, args, Type::Int32);
+            false
         } else if intrinsic == opc::INTRINSIC_ATOMIC_INT64_COMPARE_EXCHANGE {
             self.emitIntrinsicAtomicCompareExchange(dest, args, Type::Int64);
+            false
         } else if intrinsic == opc::INTRINSIC_ATOMIC_INT32_FETCH_ADD {
             self.emitIntrinsicAtomicFetchAdd(dest, args, Type::Int32);
+            false
         } else if intrinsic == opc::INTRINSIC_ATOMIC_INT64_FETCH_ADD {
             self.emitIntrinsicAtomicFetchAdd(dest, args, Type::Int64);
+            false
         } else if intrinsic == opc::INTRINSIC_INT32_COUNT_ZERO_BITS {
             self.emitIntrinsicCountBits(dest, args, Type::Int32, false);
+            false
         } else if intrinsic == opc::INTRINSIC_INT32_COUNT_ONE_BITS {
             self.emitIntrinsicCountBits(dest, args, Type::Int32, true);
+            false
         } else if intrinsic == opc::INTRINSIC_INT64_COUNT_ZERO_BITS {
             self.emitIntrinsicCountBits(dest, args, Type::Int64, false);
+            false
         } else if intrinsic == opc::INTRINSIC_INT64_COUNT_ONE_BITS {
             self.emitIntrinsicCountBits(dest, args, Type::Int64, true);
+            false
         } else if intrinsic == opc::INTRINSIC_INT64_COUNT_ZERO_BITS_LEADING {
             self.emitIntrinsicCountLeading(dest, args, Type::Int64, false);
+            false
         } else if intrinsic == opc::INTRINSIC_INT32_COUNT_ZERO_BITS_LEADING {
             self.emitIntrinsicCountLeading(dest, args, Type::Int32, false);
+            false
         } else if intrinsic == opc::INTRINSIC_INT64_COUNT_ONE_BITS_LEADING {
             self.emitIntrinsicCountLeading(dest, args, Type::Int64, true);
+            false
         } else if intrinsic == opc::INTRINSIC_INT32_COUNT_ONE_BITS_LEADING {
             self.emitIntrinsicCountLeading(dest, args, Type::Int32, true);
+            false
         } else if intrinsic == opc::INTRINSIC_INT64_COUNT_ONE_BITS_TRAILING {
             self.emitIntrinsicCountTrailing(dest, args, Type::Int64, true);
+            false
         } else if intrinsic == opc::INTRINSIC_INT32_COUNT_ONE_BITS_TRAILING {
             self.emitIntrinsicCountTrailing(dest, args, Type::Int32, true);
+            false
         } else if intrinsic == opc::INTRINSIC_INT64_COUNT_ZERO_BITS_TRAILING {
             self.emitIntrinsicCountTrailing(dest, args, Type::Int64, false);
+            false
         } else if intrinsic == opc::INTRINSIC_INT32_COUNT_ZERO_BITS_TRAILING {
             self.emitIntrinsicCountTrailing(dest, args, Type::Int32, false);
+            false
         } else if intrinsic == opc::INTRINSIC_UNSAFE_KILL_REFS {
             self.emitIntrinsicUnsafeKillRefs(dest, args, type_params);
+            false
 
         } else {
             let name = opc::intrinsicName(intrinsic);
             std::fatalError("unknown intrinsic ${name}");
+            unreachable[Bool]()
         }
     }
 
@@ -2266,6 +2366,22 @@ impl SsaGen {
         self.current().appendInst(objInst);
 
         self.writeVariable(dest, self.current(), objInst);
+    }
+
+    fn terminateBlockEarly() {
+        let block = self.current();
+        let offset = self.blockPositions.get(block).getOrPanic().toInt64();
+
+        for succOffset in findSuccessorsForBlock(self.bc, offset, self.analysis.starts) {
+            self.analysis.predecessors(succOffset) = self.analysis.predecessors(succOffset) - 1i32;
+            assert(self.analysis.predecessors(succOffset) >= 0i32);
+            let succ = self.ensureBlockAt(succOffset);
+            println("decrement block at ${succOffset} to ${self.analysis.predecessors(succOffset)} (current predecessors ${succ.predecessors.size()})");
+
+            assert(succ.predecessors.size() <= self.analysis.predecessors(succOffset).toInt64());
+
+            self.trySealBlock(succ);
+        }
     }
 
     fn loadGlobal(ty: BytecodeType, id: GlobalId): Inst {

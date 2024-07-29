@@ -34,7 +34,6 @@ mod serializer;
 
 pub fn compileFunction(ci: CompilationInfo): CodeDescriptor {
     let graph = createGraph(ci);
-    verify(graph);
 
     let codegen = createCodeGen(ci, graph);
 
@@ -47,13 +46,16 @@ pub fn compileFunction(ci: CompilationInfo): CodeDescriptor {
         println(dumpGraph(Some[CompilationInfo](ci), graph, config.architecture));
     }
 
-    performInlining(ci, graph);
     verify(graph);
+
+    performInlining(ci, graph);
 
     if ci.emitGraph {
         println("${ci.getDisplayName()} after inlining:");
         println(dumpGraph(Some[CompilationInfo](ci), graph, config.architecture));
     }
+
+    verify(graph);
 
     splitCriticalEdges(graph);
     buildDominatorTree(graph);
