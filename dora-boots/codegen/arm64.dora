@@ -580,8 +580,7 @@ impl CodeGenArm64 {
             self.emitCall(fct_info.fct_id, fct_info.type_params, inst.getInlinedLocation(), gc_point);
         } else {
             let address = inst.getFunctionAddress();
-            let cp_entry = self.constPool.push(ConstPoolValue::Address(address));
-            self.loadConstPool(REG_TEMP, cp_entry, REG_TEMP2);
+            self.mov_imm(REG_TEMP, address.value);
             self.asm.bl_r(REG_TEMP);
 
             let pos = self.asm.position();
