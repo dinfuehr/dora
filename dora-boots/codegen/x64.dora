@@ -554,8 +554,7 @@ impl CodeGenX64 {
             self.emitCall(fct_info.fct_id, fct_info.type_params, inst.getInlinedLocation(), gc_point);
         } else {
             let address = inst.getFunctionAddress();
-            let cp_entry = self.constPool.push(ConstPoolValue::Address(address));
-            self.loadConstPool(REG_TEMP, cp_entry);
+            self.asm.movq_ri(REG_TEMP, Immediate(address.value));
             self.asm.call_r(REG_TEMP);
 
             let pos = self.asm.position();
