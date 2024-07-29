@@ -31,6 +31,7 @@ pub struct KnownElements {
     pub boots_compile_fct_address: OnceCell<Address>,
     pub boots_test_addresses: OnceCell<HashMap<FunctionId, Address>>,
     pub unreachable_fct_id: Option<FunctionId>,
+    pub fatal_error_fct_id: Option<FunctionId>,
 }
 
 impl KnownElements {
@@ -58,6 +59,7 @@ impl KnownElements {
             boots_compile_fct_address: OnceCell::new(),
             boots_test_addresses: OnceCell::new(),
             unreachable_fct_id: None,
+            fatal_error_fct_id: None,
         }
     }
 
@@ -126,6 +128,7 @@ pub enum Intrinsic {
     ArraySet,
 
     Unreachable,
+    FatalError,
     UnsafeKillRefs,
 
     Assert,

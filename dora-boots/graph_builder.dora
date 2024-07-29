@@ -1454,6 +1454,10 @@ impl SsaGen {
             self.emitIntrinsicUnreachable(dest, args, idx);
             self.terminateBlockEarly();
             true
+        } else if intrinsic == opc::INTRINSIC_FATAL_ERROR {
+            self.emitIntrinsicFatalError(dest, args, idx);
+            self.terminateBlockEarly();
+            true
         } else if intrinsic == opc::INTRINSIC_ASSERT {
             self.emitIntrinsicAssert(dest, args);
             false
@@ -2082,14 +2086,26 @@ impl SsaGen {
 
     fn emitIntrinsicUnreachable(dest: BytecodeRegister, args: Array[BytecodeRegister], idx: ConstPoolId) {
         assert(args.isEmpty());
-        let ty = self.regGraphTy(dest);
-
         let info = InstExtraData::FunctionAddress(config.unreachable_trampoline);
         let inst = graph::createCallInst(info, CallKind::Static, Vec[Inst]::new(), Type::Unit);
         self.setCurrentInlinedLocation(inst);
         self.current().appendInst(inst);
 
-        let inst = graph::createUnreachableInst(ty);
+        let inst = graph::createUnreachableInst();
+        self.current().appendInst(inst);
+    }
+
+    fn emitIntrinsicFatalError(dest: BytecodeRegister, args: Array[BytecodeRegister], idx: ConstPoolId) {
+        assert(args.size() == 1);
+        let arg = self.readVariable(args(0), self.current());
+        let args = Vec[Inst]::new(arg);
+
+        let info = InstExtraData::FunctionAddress(config.fatal_error_trampoline);
+        let inst = graph::createCallInst(info, CallKind::Static, args, Type::Unit);
+        self.setCurrentInlinedLocation(inst);
+        self.current().appendInst(inst);
+
+        let inst = graph::createUnreachableInst();
         self.current().appendInst(inst);
     }
 

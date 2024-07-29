@@ -1,8 +1,7 @@
 use std::mem;
 
 use crate::cannon::codegen::{mode, result_passed_as_argument, result_reg_mode, size, RegOrOffset};
-use crate::compiler::codegen::{ensure_runtime_entry_trampoline, AllocationSize, AnyReg};
-use crate::compiler::runtime_entry_trampoline::NativeFct;
+use crate::compiler::codegen::{AllocationSize, AnyReg};
 use crate::compiler::CompilationMode;
 use crate::cpu::{
     FReg, Reg, FREG_RESULT, REG_PARAMS, REG_RESULT, REG_SP, REG_THREAD, REG_TMP1,
@@ -920,25 +919,9 @@ impl<'a> BaselineAssembler<'a> {
         self.masm.code()
     }
 
-    pub fn runtime_call(
-        &mut self,
-        internal_fct: NativeFct,
-        location: Location,
-        gcpoint: GcPoint,
-        dest: AnyReg,
-    ) {
-        let ty = internal_fct.return_type.clone();
-        let ptr = ensure_runtime_entry_trampoline(self.vm, None, internal_fct);
-
-        self.masm.raw_call(ptr);
-
-        let mode = if ty.is_unit() {
-            None
-        } else {
-            let mode = mode(self.vm, ty);
-            Some(mode)
-        };
-        self.call_epilog(location, mode, dest, gcpoint);
+    pub fn runtime_call(&mut self, address: Address, location: Location, gcpoint: GcPoint) {
+        self.masm.raw_call(address);
+        self.call_epilog(location, None, REG_RESULT.into(), gcpoint);
     }
 
     pub fn direct_call(

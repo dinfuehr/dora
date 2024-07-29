@@ -21,6 +21,7 @@ pub struct NativeMethods {
     stack_overflow_trampoline: Option<Address>,
     safepoint_trampoline: Option<Address>,
     unreachable_trampoline: Option<Address>,
+    fatal_error_trampoline: Option<Address>,
     gc_allocation_trampoline: Option<Address>,
 
     // Stores all trampolines generated at runtime for Dora-exposed functions
@@ -41,6 +42,7 @@ impl NativeMethods {
             stack_overflow_trampoline: None,
             safepoint_trampoline: None,
             unreachable_trampoline: None,
+            fatal_error_trampoline: None,
             gc_allocation_trampoline: None,
 
             trampolines: Mutex::new(NativeTrampolines::new()),
@@ -70,6 +72,10 @@ impl NativeMethods {
 
     pub fn unreachable_trampoline(&self) -> Address {
         self.unreachable_trampoline.expect("uninitialized field")
+    }
+
+    pub fn fatal_error_trampoline(&self) -> Address {
+        self.fatal_error_trampoline.expect("uninitialized field")
     }
 
     pub fn gc_allocation_trampoline(&self) -> Address {
@@ -138,6 +144,16 @@ pub fn setup_builtin_natives(vm: &mut VM) {
     };
     let code = runtime_entry_trampoline::generate(vm, ifct, false);
     vm.native_methods.unreachable_trampoline = Some(code.instruction_start());
+
+    let fct_id = vm.known.fatal_error_fct_id.expect("fatalError not found");
+    let ifct = NativeFct {
+        fctptr: Address::from_ptr(stdlib::fatal_error as *const u8),
+        args: BytecodeTypeArray::one(BytecodeType::Ptr),
+        return_type: BytecodeType::Unit,
+        desc: NativeFctKind::RuntimeEntryTrampoline(fct_id),
+    };
+    let code = runtime_entry_trampoline::generate(vm, ifct, false);
+    vm.native_methods.fatal_error_trampoline = Some(code.instruction_start());
 
     let ifct = NativeFct {
         fctptr: Address::from_ptr(stdlib::stack_overflow as *const u8),

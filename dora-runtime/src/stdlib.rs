@@ -49,6 +49,7 @@ pub const STDLIB_FUNCTIONS: &[(&'static str, FctImplementation)] = &[
         N(stdlib::spawn_thread as *const u8),
     ),
     ("stdlib::unreachable", I(Intrinsic::Unreachable)),
+    ("stdlib::fatalError", I(Intrinsic::FatalError)),
     ("stdlib::assert", I(Intrinsic::Assert)),
     ("stdlib::debug", I(Intrinsic::Debug)),
     ("stdlib::unsafeKillRefs", I(Intrinsic::UnsafeKillRefs)),

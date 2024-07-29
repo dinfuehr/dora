@@ -10,6 +10,7 @@ pub fn decodeConfig(encoded: Array[UInt8]): Config {
     let safepoint_trampoline = reader.readAddress();
     let trap_trampoline = reader.readAddress();
     let unreachable_trampoline = reader.readAddress();
+    let fatal_error_trampoline = reader.readAddress();
     let object_write_barrier_slow_path = reader.readAddress();
     let allocation_slow_path = reader.readAddress();
     let meta_space_start = reader.readAddress();
@@ -26,6 +27,7 @@ pub fn decodeConfig(encoded: Array[UInt8]): Config {
         safepoint_trampoline,
         trap_trampoline,
         unreachable_trampoline,
+        fatal_error_trampoline,
         object_write_barrier_slow_path,
         allocation_slow_path,
         meta_space_start,

@@ -275,6 +275,12 @@ fn lookup_known_functions(vm: &mut VM, module_items: &ModuleItemMap) {
             .function_id()
             .expect("function expected"),
     );
+
+    vm.known.fatal_error_fct_id = Some(
+        resolve_path(vm, module_items, "stdlib::fatalError")
+            .function_id()
+            .expect("function expected"),
+    );
 }
 
 fn compute_module_items(program: &Program) -> ModuleItemMap {

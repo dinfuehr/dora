@@ -16,7 +16,6 @@ use crate::mem::{self, align_i32};
 use crate::mode::MachineMode;
 use crate::object::{Header, Str};
 use crate::size::InstanceSize;
-use crate::stdlib;
 use crate::vm::{
     create_class_instance, create_enum_instance, create_struct_instance, display_fct, display_ty,
     ensure_class_instance_for_enum_variant, ensure_class_instance_for_lambda,
@@ -2821,15 +2820,27 @@ impl<'a> CannonCodeGen<'a> {
             }
 
             Intrinsic::Unreachable => {
-                let native_fct = NativeFct {
-                    fctptr: Address::from_ptr(stdlib::unreachable as *const u8),
-                    args: BytecodeTypeArray::empty(),
-                    return_type: BytecodeType::Unit,
-                    desc: NativeFctKind::RuntimeEntryTrampoline(fct_id),
-                };
                 let gcpoint = self.create_gcpoint();
-                let result = REG_RESULT.into();
-                self.asm.runtime_call(native_fct, location, gcpoint, result);
+                self.asm.runtime_call(
+                    self.vm.native_methods.unreachable_trampoline(),
+                    location,
+                    gcpoint,
+                );
+
+                // Method should never return
+                self.asm.debug();
+            }
+
+            Intrinsic::FatalError => {
+                assert_eq!(arguments.len(), 1);
+                self.emit_invoke_arguments(dest, BytecodeType::Unit, arguments);
+
+                let gcpoint = self.create_gcpoint();
+                self.asm.runtime_call(
+                    self.vm.native_methods.fatal_error_trampoline(),
+                    location,
+                    gcpoint,
+                );
 
                 // Method should never return
                 self.asm.debug();

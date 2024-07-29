@@ -207,6 +207,7 @@ pub class Config {
     pub safepoint_trampoline: Address,
     pub trap_trampoline: Address,
     pub unreachable_trampoline: Address,
+    pub fatal_error_trampoline: Address,
     pub object_write_barrier_slow_path: Address,
     pub allocation_slow_path: Address,
     pub meta_space_start: Address,

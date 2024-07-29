@@ -2764,9 +2764,8 @@ pub fn createCompareOrderingInst(ty: Type, lhs: Inst, rhs: Inst): Inst {
     inst
 }
 
-pub fn createUnreachableInst(ty: Type): Inst {
+pub fn createUnreachableInst(): Inst {
     let inst = Inst::new();
-    inst.ty = ty;
     inst._op = Some(Op::Unreachable);
     inst
 }
