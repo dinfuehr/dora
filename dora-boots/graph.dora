@@ -1445,9 +1445,10 @@ impl Inst {
 
     pub fn isTerminator(): Bool {
         match self.op() {
-            Op::Goto => true,
-            Op::If => true,
-            Op::Return => true,
+            Op::Goto
+            | Op::If
+            | Op::Return
+            | Op::Unreachable => true,
             _ => false,
         }
     }

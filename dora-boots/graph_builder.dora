@@ -663,28 +663,24 @@ impl SsaGen {
                 true
             }
             BytecodeInstruction::InvokeDirect(dest, idx) => {
-                self.emitInvokeDirect(dest, idx);
-                false
+                self.emitInvokeDirect(dest, idx)
             }
             BytecodeInstruction::InvokeVirtual(dest, idx) => {
                 self.emitInvokeVirtual(dest, idx, CallKind::Virtual);
                 false
             }
             BytecodeInstruction::InvokeStatic(dest, idx) => {
-                self.emitInvokeStatic(dest, idx);
-                false
+                self.emitInvokeStatic(dest, idx)
             }
             BytecodeInstruction::InvokeLambda(dest, idx) => {
                 self.emitInvokeVirtual(dest, idx, CallKind::Lambda);
                 false
             }
             BytecodeInstruction::InvokeGenericStatic(dest, idx) => {
-                self.emitInvokeGeneric(dest, idx, CallKind::Static);
-                false
+                self.emitInvokeGeneric(dest, idx, CallKind::Static)
             }
             BytecodeInstruction::InvokeGenericDirect(dest, idx) => {
-                self.emitInvokeGeneric(dest, idx, CallKind::Direct);
-                false
+                self.emitInvokeGeneric(dest, idx, CallKind::Direct)
             }
             BytecodeInstruction::NewObject(dest, idx) => {
                 self.emitNewObject(dest, idx);
@@ -1456,7 +1452,8 @@ impl SsaGen {
             false
         } else if intrinsic == opc::INTRINSIC_UNREACHABLE {
             self.emitIntrinsicUnreachable(dest, args, idx);
-            false
+            self.terminateBlockEarly();
+            true
         } else if intrinsic == opc::INTRINSIC_ASSERT {
             self.emitIntrinsicAssert(dest, args);
             false
@@ -2373,12 +2370,19 @@ impl SsaGen {
         let offset = self.blockPositions.get(block).getOrPanic().toInt64();
 
         for succOffset in findSuccessorsForBlock(self.bc, offset, self.analysis.starts) {
-            self.analysis.predecessors(succOffset) = self.analysis.predecessors(succOffset) - 1i32;
-            assert(self.analysis.predecessors(succOffset) >= 0i32);
-            let succ = self.ensureBlockAt(succOffset);
-            println("decrement block at ${succOffset} to ${self.analysis.predecessors(succOffset)} (current predecessors ${succ.predecessors.size()})");
+            let predecessors = self.analysis.predecessors(succOffset) - 1i32;
+            self.analysis.predecessors(succOffset) = predecessors;
+            assert(predecessors >= 0i32);
 
-            assert(succ.predecessors.size() <= self.analysis.predecessors(succOffset).toInt64());
+            let succ = self.ensureBlockAt(succOffset);
+            assert(succ.predecessors.size() <= predecessors.toInt64());
+
+            if self.filledBlocks.contains(succ.id().toInt64()) {
+                // If successor was already filled, assert that the successor still
+                // has at least one other predecessor. If this is violated that block
+                // should be removed again.
+                assert(predecessors > 0i32);
+            }
 
             self.trySealBlock(succ);
         }
