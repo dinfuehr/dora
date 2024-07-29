@@ -573,9 +573,21 @@ impl CodeGenArm64 {
     }
 
     fn emitInvokeCommon(inst: Inst) {
-        let fct_info = inst.getFunctionInfo();
         let gc_point = GcPoint::from(computeOffsetsInLiveSet(inst.getLocationData().getLiveValues()));
-        self.emitCall(fct_info.fct_id, fct_info.type_params, inst.getInlinedLocation(), gc_point);
+
+        if inst.hasFunctionInfo() {
+            let fct_info = inst.getFunctionInfo();
+            self.emitCall(fct_info.fct_id, fct_info.type_params, inst.getInlinedLocation(), gc_point);
+        } else {
+            let address = inst.getFunctionAddress();
+            let cp_entry = self.constPool.push(ConstPoolValue::Address(address));
+            self.loadConstPool(REG_TEMP, cp_entry, REG_TEMP2);
+            self.asm.bl_r(REG_TEMP);
+
+            let pos = self.asm.position();
+            self.locations.insert(pos, inst.getInlinedLocation());
+            self.gcPoints.insert(pos, gc_point);
+        }
     }
 
     fn emitCall(fct_id: FunctionId, type_params: Array[BytecodeType], inlined_location: InlinedLocation, gc_point: GcPoint) {
@@ -2598,11 +2610,7 @@ impl CodeGen for CodeGenArm64 {
     }
 
     fn emitUnreachable(inst: Inst) {
-        let location = inst.getInlinedLocation();
-        self.mov_imm(REG_TEMP, config.unreachable_trampoline.toInt64());
-        self.asm.bl_r(REG_TEMP);
-        self.locations.insert(self.asm.position(), location);
-        // Method should never return.
+        // Instruction should never be reached.
         self.asm.brk(0i32);
     }
 

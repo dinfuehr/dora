@@ -1311,7 +1311,7 @@ impl SsaGen {
         self.pushed_registers.clear();
 
         let type_params = type_params.specialize(self.typeParams);
-        let info = FunctionInfo(fct_id, type_params);
+        let info = InstExtraData::FunctionInfo(FunctionInfo(fct_id, type_params));
 
         let inst = graph::createCallInst(info, kind, args, returnTy);
         self.setCurrentInlinedLocation(inst);
@@ -2084,13 +2084,13 @@ impl SsaGen {
         assert(args.isEmpty());
         let ty = self.regGraphTy(dest);
 
+        let info = InstExtraData::FunctionAddress(config.unreachable_trampoline);
+        let inst = graph::createCallInst(info, CallKind::Static, Vec[Inst]::new(), Type::Unit);
+        self.setCurrentInlinedLocation(inst);
+        self.current().appendInst(inst);
+
         let inst = graph::createUnreachableInst(ty);
         self.current().appendInst(inst);
-        self.setCurrentInlinedLocation(inst);
-
-        if !ty.isUnit() {
-            self.writeVariable(dest, self.current(), inst);
-        }
     }
 
     fn emitIntrinsicAssert(dest: BytecodeRegister, args: Array[BytecodeRegister]) {

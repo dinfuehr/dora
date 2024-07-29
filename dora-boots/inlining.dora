@@ -12,20 +12,22 @@ pub fn performInlining(ci: CompilationInfo, graph: Graph) {
             let op = inst.op();
 
             if op == Op::InvokeStatic || op == Op::InvokeDirect {
-                let fctInfo = inst.getFunctionInfo();
-                let fctId = fctInfo.fct_id;
+                if inst.hasFunctionInfo() {
+                    let fctInfo = inst.getFunctionInfo();
+                    let fctId = fctInfo.fct_id;
 
-                let info = iface::getFunctionInfoForInlining(fctId);
+                    let info = iface::getFunctionInfoForInlining(fctId);
 
-                if !info.hasBytecode {
-                    continue;
-                }
+                    if !info.hasBytecode {
+                        continue;
+                    }
 
-                if info.hasInlineAnnotation {
-                    inline(ci, graph, inst, fctId, fctInfo.type_params);
-                } else if ci.inline && info.bytecodeSize < 200i32 && info.bytecodeSize < budget {
-                    inline(ci, graph, inst, fctId, fctInfo.type_params);
-                    budget = budget - info.bytecodeSize;
+                    if info.hasInlineAnnotation {
+                        inline(ci, graph, inst, fctId, fctInfo.type_params);
+                    } else if ci.inline && info.bytecodeSize < 200i32 && info.bytecodeSize < budget {
+                        inline(ci, graph, inst, fctId, fctInfo.type_params);
+                        budget = budget - info.bytecodeSize;
+                    }
                 }
             }
         }

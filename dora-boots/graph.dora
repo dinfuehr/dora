@@ -1214,6 +1214,17 @@ impl Inst {
         }
     }
 
+    pub fn hasFunctionAddress(): Bool {
+        self.extra.isFunctionInfo()
+    }
+
+    pub fn getFunctionAddress(): Address {
+        match self.extra {
+            InstExtraData::FunctionAddress(address) => address,
+            _ => unreachable[Address](),
+        }
+    }
+
     pub fn hasTraitObjectInfo(): Bool {
         self.extra.isTraitObjectInfo()
     }
@@ -1688,6 +1699,7 @@ pub enum InstExtraData {
     None,
     FieldOffsetInfo(Int32),
     FunctionInfo(FunctionInfo),
+    FunctionAddress(Address),
     VirtualFunctionInfo(VirtualFunctionInfo),
     LambdaFunctionInfo(LambdaFunctionInfo),
     ClassInfo(ClassInfo),
@@ -1739,6 +1751,13 @@ impl InstExtraData {
     fn isAllocationData(): Bool {
         match self {
             InstExtraData::AllocationData(_) => true,
+            _ => false,
+        }
+    }
+
+    fn isFunctionAddress(): Bool {
+        match self {
+            InstExtraData::FunctionAddress(_) => true,
             _ => false,
         }
     }
@@ -2619,7 +2638,7 @@ pub fn createGotoInst(block: Block): Inst {
     inst
 }
 
-pub fn createCallInst(info: FunctionInfo, kind: CallKind, args: Vec[Inst], return_ty: Type): Inst {
+pub fn createCallInst(extra: InstExtraData, kind: CallKind, args: Vec[Inst], return_ty: Type): Inst {
     let inst = Inst::new();
     let op = match kind {
         CallKind::Static => Op::InvokeStatic,
@@ -2627,7 +2646,7 @@ pub fn createCallInst(info: FunctionInfo, kind: CallKind, args: Vec[Inst], retur
         _ => unreachable[Op](),
     };
     inst._op = Some(op);
-    inst.extra = InstExtraData::FunctionInfo(info);
+    inst.extra = extra;
     inst.ty = return_ty;
 
     for arg in args {
