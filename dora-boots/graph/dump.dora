@@ -343,7 +343,7 @@ fn dumpInstName(inst: Inst): String {
         Op::RoundHalfEven => "RoundHalfEven.${inst.getValueType()}",
         Op::Abs => "Abs.${inst.getValueType()}",
         Op::Sqrt => "Sqrt.${inst.getValueType()}",
-        Op::Unreachable => "Unreachable.${inst.getValueType()}",
+        Op::Unreachable => "Unreachable",
         Op::RotateLeft => "RotateLeft.${inst.getValueType()}",
         Op::RotateRight => "RotateRight.${inst.getValueType()}",
         Op::Debug => "Debug",

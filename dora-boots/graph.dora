@@ -1155,7 +1155,7 @@ impl Inst {
             Op::RoundHalfEven => Some[Type](self.ty),
             Op::Abs => Some[Type](self.ty),
             Op::Sqrt => Some[Type](self.ty),
-            Op::Unreachable => Some[Type](self.ty),
+            Op::Unreachable => None[Type],
             Op::RotateLeft => Some[Type](self.ty),
             Op::RotateRight => Some[Type](self.ty),
             Op::Debug => None[Type],

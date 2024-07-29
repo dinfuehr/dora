@@ -391,7 +391,7 @@ impl LocationAnnotation {
             }
 
             Op::Unreachable => {
-                self.codegen.annotateUnreachable(inst);
+                // Do nothing.
             }
 
             Op::RotateLeft => {

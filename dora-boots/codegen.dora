@@ -528,7 +528,6 @@ pub trait CodeGen {
     fn annotateRoundHalfEven(inst: Inst);
     fn annotateAbs(inst: Inst);
     fn annotateSqrt(inst: Inst);
-    fn annotateUnreachable(inst: Inst);
     fn annotateRotateLeft(inst: Inst);
     fn annotateRotateRight(inst: Inst);
     fn annotateAtomicLoad(inst: Inst);

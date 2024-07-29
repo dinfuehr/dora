@@ -2546,14 +2546,6 @@ impl CodeGen for CodeGenX64 {
         }
     }
 
-    fn annotateUnreachable(inst: Inst) {
-        if inst.getValueType().isAnyFloat() {
-            useOutputFloatRegister(inst, InputOutputOverlap::NoOverlap);
-        } else {
-            useOutputRegister(inst, InputOutputOverlap::NoOverlap);
-        }
-    }
-
     fn emitUnreachable(inst: Inst) {
         let location = inst.getInlinedLocation();
         self.asm.movq_ri(REG_TEMP, Immediate(config.unreachable_trampoline.toInt64()));
