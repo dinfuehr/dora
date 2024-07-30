@@ -1031,7 +1031,7 @@ fn computeRecordLayout(fieldTypes: Array[BytecodeType], start_size: Int32, start
                 }
             }
             BytecodeType::Ptr | _ => {
-                unimplemented();
+                unimplemented[()]();
             }
         }
     }

@@ -344,8 +344,7 @@ impl BytecodeIterator {
             BytecodeInstruction::Ret(opnd)
 
         } else {
-            std::fatalError("unkown opcode ${opcode} ${opc::bytecodeName(opcode)}");
-            unreachable[BytecodeInstruction]()
+            std::fatalError[BytecodeInstruction]("unkown opcode ${opcode} ${opc::bytecodeName(opcode)}")
         };
 
         let size = self.pos - start;

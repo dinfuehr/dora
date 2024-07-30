@@ -1731,8 +1731,7 @@ impl SsaGen {
 
         } else {
             let name = opc::intrinsicName(intrinsic);
-            std::fatalError("unknown intrinsic ${name}");
-            unreachable[Bool]()
+            std::fatalError[Bool]("unknown intrinsic ${name}")
         }
     }
 

@@ -2121,7 +2121,7 @@ impl AssemblerArm64 {
             if encoding::fitsI14(diff) {
                 self.emit(encoding::test_and_branch(is_non_zero, bit, diff, rt));
             } else {
-                unimplemented();
+                unimplemented[()]();
             }
         } else {
             let pos = self.buffer.position();
@@ -5643,7 +5643,7 @@ mod tests {
                 idx = idx + 4;
             }
             println("");
-            std::fatalError("broken assertion");
+            std::fatalError[()]("broken assertion");
         }
     }
 

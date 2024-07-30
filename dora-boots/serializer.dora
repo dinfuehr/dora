@@ -230,7 +230,7 @@ pub fn encodeBytecodeType(writer: ByteWriter, ty: BytecodeType) {
             encodeBytecodeType(writer, ret);
         },
         BytecodeType::TypeAlias(id) => {
-            unimplemented();
+            unimplemented[()]();
         }
     }
 }

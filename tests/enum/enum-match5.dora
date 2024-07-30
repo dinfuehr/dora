@@ -4,8 +4,7 @@ impl[T] MyOption[T] {
     fn unwrapNone() {
         match self {
             MyOption::Some(value) => {
-                std::fatalError("cannot unwrap Some.");
-                unreachable[()]()
+                std::fatalError[()]("cannot unwrap Some.")
             },
             MyOption::None => ()
         }

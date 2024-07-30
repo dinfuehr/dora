@@ -692,7 +692,7 @@ impl CodeGenArm64 {
             },
 
             _ => {
-                unimplemented();
+                unimplemented[()]();
             }
         }
     }
@@ -1498,7 +1498,7 @@ impl CodeGen for CodeGenArm64 {
                 } else if ty == Type::Bool || ty == Type::UInt8 {
                     self.strb(src, stack_reg, offset);
                 } else {
-                    unimplemented();
+                    unimplemented[()]();
                 }
             } else {
                 let src_slot = src.getStack();
@@ -1515,7 +1515,7 @@ impl CodeGen for CodeGenArm64 {
                     self.ldr(REG_TEMP2, REG_FP, src_offset);
                     self.str(REG_TEMP2, stack_reg, offset);
                 } else {
-                    unimplemented();
+                    unimplemented[()]();
                 }
             }
         }
@@ -1769,7 +1769,7 @@ impl CodeGen for CodeGenArm64 {
             },
 
             _ => {
-                unimplemented();
+                unimplemented[()]();
             }
         }
     }
@@ -1815,7 +1815,7 @@ impl CodeGen for CodeGenArm64 {
             },
 
             _ => {
-                unimplemented();
+                unimplemented[()]();
             }
         }
     }
@@ -1925,7 +1925,7 @@ impl CodeGen for CodeGenArm64 {
             },
 
             _ => {
-                unimplemented();
+                unimplemented[()]();
             }
         }
     }
@@ -2001,7 +2001,7 @@ impl CodeGen for CodeGenArm64 {
                     },
 
                     _ => {
-                        unimplemented();
+                        unimplemented[()]();
                     }
                 }
             }
@@ -2052,7 +2052,7 @@ impl CodeGen for CodeGenArm64 {
             },
 
             _ => {
-                unimplemented();
+                unimplemented[()]();
             }
         }
     }
@@ -2117,7 +2117,7 @@ impl CodeGen for CodeGenArm64 {
             },
 
             _ => {
-                unimplemented();
+                unimplemented[()]();
             }
         }
     }
@@ -2156,7 +2156,7 @@ impl CodeGen for CodeGenArm64 {
             },
 
             _ => {
-                unimplemented();
+                unimplemented[()]();
             }
         }
     }
@@ -2253,7 +2253,7 @@ impl CodeGen for CodeGenArm64 {
                         self.asm.mov(dest, src);
                     }
 
-                    _ => unimplemented(),
+                    _ => unimplemented[()](),
                 }
             }
 
@@ -2281,7 +2281,7 @@ impl CodeGen for CodeGenArm64 {
                         self.asm.mov_w(dest, src);
                     }
 
-                    _ => unimplemented(),
+                    _ => unimplemented[()](),
                 }
             }
 
@@ -2304,7 +2304,7 @@ impl CodeGen for CodeGenArm64 {
                         self.asm.fcvt_sd(dest, src);
                     }
 
-                    _ => unimplemented(),
+                    _ => unimplemented[()](),
                 }
             }
 
@@ -2327,7 +2327,7 @@ impl CodeGen for CodeGenArm64 {
                         self.asm.fcvt_ds(dest, src);
                     }
 
-                    _ => unimplemented(),
+                    _ => unimplemented[()](),
                 }
             }
 
@@ -2340,11 +2340,11 @@ impl CodeGen for CodeGenArm64 {
                         self.asm.and_imm_w(dest, src, 0xFFi32);
                     }
 
-                    _ => unimplemented(),
+                    _ => unimplemented[()](),
                 }
             }
 
-            _ => unimplemented(),
+            _ => unimplemented[()](),
         }
     }
 
@@ -2466,7 +2466,7 @@ impl CodeGen for CodeGenArm64 {
                 self.asm.fmov_fs_d(dest, src);
             }
 
-            _ => unimplemented(),
+            _ => unimplemented[()](),
         }
     }
 

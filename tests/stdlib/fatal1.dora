@@ -2,5 +2,5 @@
 //= stderr "fatal error: bla\n    std::fatalError (stdlib/stdlib.dora:16:15)\n    main (tests/stdlib/fatal1.dora:5:5)\n"
 
 fn main() {
-    std::fatalError("bla");
+    std::fatalError[()]("bla");
 }

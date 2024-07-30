@@ -515,10 +515,6 @@ impl Block {
         self.instructions.lastInst()
     }
 
-    pub fn removePhi(inst: Inst) {
-        unimplemented();
-    }
-
     pub fn setLiveIn(liveIn: InstSet) {
         assert(self.liveIn.isNone());
         self.liveIn = Some(liveIn);

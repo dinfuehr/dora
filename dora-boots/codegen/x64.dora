@@ -161,7 +161,7 @@ impl CodeGenX64 {
             },
 
             _ => {
-                unimplemented();
+                unimplemented[()]();
             }
         }
     }
@@ -1418,7 +1418,7 @@ impl CodeGen for CodeGenX64 {
                     self.asm.movq_ra(REG_TEMP, AsmAddress::offset(RBP, src_offset));
                     self.asm.movq_ar(AsmAddress::offset(stack_reg, offset), REG_TEMP);
                 } else {
-                    unimplemented();
+                    unimplemented[()]();
                 }
             }
         }
@@ -1701,7 +1701,7 @@ impl CodeGen for CodeGenX64 {
             },
 
             _ => {
-                unimplemented();
+                unimplemented[()]();
             }
         }
     }
@@ -1740,7 +1740,7 @@ impl CodeGen for CodeGenX64 {
             },
 
             _ => {
-                unimplemented();
+                unimplemented[()]();
             }
         }
     }
@@ -1850,7 +1850,7 @@ impl CodeGen for CodeGenX64 {
             },
 
             _ => {
-                unimplemented();
+                unimplemented[()]();
             }
         }
     }
@@ -1923,7 +1923,7 @@ impl CodeGen for CodeGenX64 {
                     },
 
                     _ => {
-                        unimplemented();
+                        unimplemented[()]();
                     }
                 }
             }
@@ -1973,7 +1973,7 @@ impl CodeGen for CodeGenX64 {
             },
 
             _ => {
-                unimplemented();
+                unimplemented[()]();
             }
         }
     }
@@ -2034,7 +2034,7 @@ impl CodeGen for CodeGenX64 {
             },
 
             _ => {
-                unimplemented();
+                unimplemented[()]();
             }
         }
     }
@@ -2073,7 +2073,7 @@ impl CodeGen for CodeGenX64 {
             },
 
             _ => {
-                unimplemented();
+                unimplemented[()]();
             }
         }
     }
@@ -2172,7 +2172,7 @@ impl CodeGen for CodeGenX64 {
                         self.asm.movzxb_rr(dest, src);
                     }
 
-                    _ => unimplemented(),
+                    _ => unimplemented[()](),
                 }
             }
 
@@ -2200,7 +2200,7 @@ impl CodeGen for CodeGenX64 {
                         self.asm.movzxb_rr(dest, src);
                     }
 
-                    _ => unimplemented(),
+                    _ => unimplemented[()](),
                 }
             }
 
@@ -2224,7 +2224,7 @@ impl CodeGen for CodeGenX64 {
                         self.asm.cvtsd2ss_rr(dest, src);
                     }
 
-                    _ => unimplemented(),
+                    _ => unimplemented[()](),
                 }
             }
 
@@ -2247,7 +2247,7 @@ impl CodeGen for CodeGenX64 {
                         self.asm.cvtss2sd_rr(dest, src);
                     }
 
-                    _ => unimplemented(),
+                    _ => unimplemented[()](),
                 }
             }
 
@@ -2260,11 +2260,11 @@ impl CodeGen for CodeGenX64 {
                         self.asm.movzxb_rr(dest, src);
                     }
 
-                    _ => unimplemented(),
+                    _ => unimplemented[()](),
                 }
             }
 
-            _ => unimplemented(),
+            _ => unimplemented[()](),
         }
     }
 
@@ -2411,7 +2411,7 @@ impl CodeGen for CodeGenX64 {
                 self.asm.movq_xr(dest, src);
             }
 
-            _ => unimplemented(),
+            _ => unimplemented[()](),
         }
     }
 

@@ -379,7 +379,7 @@ pub fn assertGraph(graph: Graph, output: String) {
 
         println("");
 
-        std::fatalError("output does not match");
+        std::fatalError[()]("output does not match");
     }
 }
 

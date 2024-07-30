@@ -1,0 +1,8 @@
+//= error code 1
+//= stderr "fatal error: bla\n    std::fatalError (stdlib/stdlib.dora:16:15)\n    main (tests/stdlib/fatal2.dora:5:5)\n"
+
+fn main() {
+    std::fatalError[Foo]("bla");
+}
+
+struct Foo(a: Int64, b: Int64, c: Int64, d: Int64)

@@ -369,7 +369,7 @@ impl CodepointIterator {
     }
 
     if ch <= 0xBFu8 {
-      fatalError("unexpected continuation byte");
+      fatalError[()]("unexpected continuation byte");
     }
 
     if ch <= 0xDFu8 {
@@ -395,8 +395,7 @@ impl CodepointIterator {
       return cp.toCharUnchecked();
     }
 
-    fatalError("invalid utf8: " + ch.toInt32().toString());
-    unreachable[Char]()
+    fatalError[Char]("invalid utf8: " + ch.toInt32().toString())
   }
 
   pub fn peek(): Char {
@@ -407,7 +406,7 @@ impl CodepointIterator {
     }
 
     if ch <= 0xBFu8 {
-      fatalError("unexpected continuation byte");
+      fatalError[()]("unexpected continuation byte");
     }
 
     if ch <= 0xDFu8 {
@@ -430,8 +429,7 @@ impl CodepointIterator {
       return cp.toCharUnchecked();
     }
 
-    fatalError("invalid utf8: " + ch.toInt32().toString());
-    return '\0';
+    fatalError[Char]("invalid utf8: " + ch.toInt32().toString())
   }
 
   pub fn size(): Int64 {

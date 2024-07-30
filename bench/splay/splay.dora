@@ -77,14 +77,14 @@ impl Benchmark {
         let mut length = keys.size();
 
         if length != splayTreeSize.toInt64() {
-            fatalError("Splay tree has wrong sie");
+            fatalError[()]("Splay tree has wrong sie");
         }
 
         let mut i = 0i64;
 
         while i < length - 1i64 {
             if keys(i) >= keys(i+1i64) {
-                fatalError("Splay tree not sorted");
+                fatalError[()]("Splay tree not sorted");
             }
 
             i = i + 1i64;

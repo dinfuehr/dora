@@ -13,13 +13,13 @@ pub mod string;
 pub mod thread;
 pub mod traits;
 
-pub @internal fn fatalError(msg: String);
+pub @internal fn fatalError[T](msg: String): T;
 pub @internal fn abort();
 pub @internal fn exit(status: Int32);
 pub @internal fn unreachable[T](): T;
 
-pub fn unimplemented() {
-  fatalError("not yet implemented");
+pub fn unimplemented[T](): T {
+  fatalError[T]("not yet implemented")
 }
 
 pub @internal fn print(text: String);

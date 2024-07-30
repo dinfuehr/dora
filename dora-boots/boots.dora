@@ -38,7 +38,7 @@ pub fn compileFunction(ci: CompilationInfo): CodeDescriptor {
     let codegen = createCodeGen(ci, graph);
 
     if ci.emitHtml {
-        unimplemented();
+        unimplemented[()]();
     }
 
     if ci.emitGraph {
