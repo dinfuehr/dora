@@ -19,7 +19,7 @@ mod assembler;
 mod bytecode;
 mod codegen;
 mod compilation;
-mod dce;
+mod dead_code_elimination;
 mod deserializer;
 mod dominator;
 mod graph;
