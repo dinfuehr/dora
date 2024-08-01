@@ -572,23 +572,6 @@ impl CodeGenArm64 {
         }
     }
 
-    fn emitInvokeCommon(inst: Inst) {
-        let gc_point = GcPoint::from(computeOffsetsInLiveSet(inst.getLocationData().getLiveValues()));
-
-        if inst.hasFunctionInfo() {
-            let fct_info = inst.getFunctionInfo();
-            self.emitCall(fct_info.fct_id, fct_info.type_params, inst.getInlinedLocation(), gc_point);
-        } else {
-            let address = inst.getFunctionAddress();
-            self.mov_imm(REG_TEMP, address.value);
-            self.asm.bl_r(REG_TEMP);
-
-            let pos = self.asm.position();
-            self.locations.insert(pos, inst.getInlinedLocation());
-            self.gcPoints.insert(pos, gc_point);
-        }
-    }
-
     fn emitCall(fct_id: FunctionId, type_params: Array[BytecodeType], inlined_location: InlinedLocation, gc_point: GcPoint) {
         let address = getFunctionAddress(fct_id, type_params);
         let cp_entry = self.constPool.push(ConstPoolValue::Address(address));
@@ -1655,12 +1638,21 @@ impl CodeGen for CodeGenArm64 {
         }
     }
 
-    fn emitInvokeStatic(inst: Inst) {
-        self.emitInvokeCommon(inst);
-    }
+    fn emitInvoke(inst: Inst) {
+        let gc_point = GcPoint::from(computeOffsetsInLiveSet(inst.getLocationData().getLiveValues()));
 
-    fn emitInvokeDirect(inst: Inst) {
-        self.emitInvokeCommon(inst);
+        if inst.hasFunctionInfo() {
+            let fct_info = inst.getFunctionInfo();
+            self.emitCall(fct_info.fct_id, fct_info.type_params, inst.getInlinedLocation(), gc_point);
+        } else {
+            let address = inst.getFunctionAddress();
+            self.mov_imm(REG_TEMP, address.value);
+            self.asm.bl_r(REG_TEMP);
+
+            let pos = self.asm.position();
+            self.locations.insert(pos, inst.getInlinedLocation());
+            self.gcPoints.insert(pos, gc_point);
+        }
     }
 
     fn emitInvokeVirtual(inst: Inst) {

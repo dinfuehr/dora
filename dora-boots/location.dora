@@ -185,8 +185,7 @@ impl LocationAnnotation {
                 self.codegen.annotateReturn(inst);
             }
 
-            Op::InvokeStatic
-            | Op::InvokeDirect
+            Op::Invoke
             | Op::InvokeVirtual
             | Op::InvokeLambda
             => {

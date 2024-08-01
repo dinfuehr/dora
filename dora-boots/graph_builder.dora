@@ -1314,7 +1314,7 @@ impl SsaGen {
         let type_params = type_params.specialize(self.typeParams);
         let info = InstExtraData::FunctionInfo(FunctionInfo(fct_id, type_params));
 
-        let inst = graph::createCallInst(info, kind, args, returnTy);
+        let inst = graph::createInvokeInst(info, kind, args, returnTy);
         self.setCurrentInlinedLocation(inst);
         self.current().appendInst(inst);
 
@@ -1346,7 +1346,7 @@ impl SsaGen {
                 };
 
                 let info = VirtualFunctionInfo(trait_object_ty, fct_id, type_params, receiver_is_first);
-                graph::createVirtualCallInst(info, args, returnTy)
+                graph::createInvokeVirtualInst(info, args, returnTy)
             }
 
             CallKind::Lambda => {
@@ -1357,7 +1357,7 @@ impl SsaGen {
                 let params = params.specialize(self.typeParams);
                 let return_type = return_type.specialize(self.typeParams);
                 let info = LambdaFunctionInfo(params, return_type, receiver_is_first);
-                graph::createLambdaCallInst(info, args, returnTy)
+                graph::createInvokeLambdaInst(info, args, returnTy)
             }
 
             _ => unreachable[Inst](),
@@ -2087,7 +2087,7 @@ impl SsaGen {
     fn emitIntrinsicUnreachable(dest: BytecodeRegister, args: Array[BytecodeRegister], idx: ConstPoolId) {
         assert(args.isEmpty());
         let info = InstExtraData::FunctionAddress(config.unreachable_trampoline);
-        let inst = graph::createCallInst(info, CallKind::Static, Vec[Inst]::new(), Type::Unit);
+        let inst = graph::createInvokeInst(info, CallKind::Static, Vec[Inst]::new(), Type::Unit);
         self.setCurrentInlinedLocation(inst);
         self.current().appendInst(inst);
 
@@ -2101,7 +2101,7 @@ impl SsaGen {
         let args = Vec[Inst]::new(arg);
 
         let info = InstExtraData::FunctionAddress(config.fatal_error_trampoline);
-        let inst = graph::createCallInst(info, CallKind::Static, args, Type::Unit);
+        let inst = graph::createInvokeInst(info, CallKind::Static, args, Type::Unit);
         self.setCurrentInlinedLocation(inst);
         self.current().appendInst(inst);
 

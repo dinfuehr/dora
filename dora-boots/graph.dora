@@ -755,8 +755,7 @@ pub enum Op {
     Shr,
     Sar,
 
-    InvokeStatic,
-    InvokeDirect,
+    Invoke,
     InvokeVirtual,
     InvokeLambda,
 
@@ -902,8 +901,7 @@ pub fn opName(op: Op): String {
         Op::Shl => "Shl",
         Op::Shr => "Shr",
         Op::Sar => "Sar",
-        Op::InvokeStatic => "InvokeStatic",
-        Op::InvokeDirect => "InvokeDirect",
+        Op::Invoke => "Invoke",
         Op::InvokeVirtual => "InvokeVirtual",
         Op::InvokeLambda => "InvokeLambda",
         Op::Equal => "Equal",
@@ -1114,8 +1112,7 @@ impl Inst {
             Op::Shl => Some[Type](self.ty),
             Op::Shr => Some[Type](self.ty),
             Op::Sar => Some[Type](self.ty),
-            Op::InvokeStatic => Some[Type](self.ty),
-            Op::InvokeDirect => Some[Type](self.ty),
+            Op::Invoke => Some[Type](self.ty),
             Op::InvokeVirtual => Some[Type](self.ty),
             Op::InvokeLambda => Some[Type](self.ty),
             Op::Equal => Some[Type](Type::Bool),
@@ -1441,8 +1438,7 @@ impl Inst {
 
     pub fn isCall(): Bool {
         match self.op() {
-            Op::InvokeStatic => true,
-            Op::InvokeDirect => true,
+            Op::Invoke => true,
             Op::InvokeVirtual => true,
             Op::InvokeLambda => true,
             _ => false,
@@ -1619,8 +1615,7 @@ impl Inst {
             Op::Shl => false,
             Op::Shr => false,
             Op::Sar => false,
-            Op::InvokeStatic => true,
-            Op::InvokeDirect => true,
+            Op::Invoke => true,
             Op::InvokeVirtual => true,
             Op::InvokeLambda => true,
             Op::Equal => false,
@@ -1767,8 +1762,8 @@ pub enum CallKind {
 impl CallKind {
     fn toOp(): Op {
         match self {
-            CallKind::Static => Op::InvokeStatic,
-            CallKind::Direct => Op::InvokeDirect,
+            CallKind::Static => Op::Invoke,
+            CallKind::Direct => Op::Invoke,
             CallKind::Virtual => Op::InvokeVirtual,
             CallKind::Lambda => Op::InvokeLambda,
         }
@@ -2625,14 +2620,9 @@ pub fn createGotoInst(block: Block): Inst {
     inst
 }
 
-pub fn createCallInst(extra: InstExtraData, kind: CallKind, args: Vec[Inst], return_ty: Type): Inst {
+pub fn createInvokeInst(extra: InstExtraData, kind: CallKind, args: Vec[Inst], return_ty: Type): Inst {
     let inst = Inst::new();
-    let op = match kind {
-        CallKind::Static => Op::InvokeStatic,
-        CallKind::Direct => Op::InvokeDirect,
-        _ => unreachable[Op](),
-    };
-    inst._op = Some(op);
+    inst._op = Some(Op::Invoke);
     inst.extra = extra;
     inst.ty = return_ty;
 
@@ -2643,7 +2633,7 @@ pub fn createCallInst(extra: InstExtraData, kind: CallKind, args: Vec[Inst], ret
     inst
 }
 
-pub fn createVirtualCallInst(info: VirtualFunctionInfo,  args: Vec[Inst], return_ty: Type): Inst {
+pub fn createInvokeVirtualInst(info: VirtualFunctionInfo,  args: Vec[Inst], return_ty: Type): Inst {
     let inst = Inst::new();
     inst._op = Some(Op::InvokeVirtual);
     inst.extra = InstExtraData::VirtualFunctionInfo(info);
@@ -2656,7 +2646,7 @@ pub fn createVirtualCallInst(info: VirtualFunctionInfo,  args: Vec[Inst], return
     inst
 }
 
-pub fn createLambdaCallInst(info: LambdaFunctionInfo,  args: Vec[Inst], return_ty: Type): Inst {
+pub fn createInvokeLambdaInst(info: LambdaFunctionInfo,  args: Vec[Inst], return_ty: Type): Inst {
     let inst = Inst::new();
     inst._op = Some(Op::InvokeLambda);
     inst.extra = InstExtraData::LambdaFunctionInfo(info);
