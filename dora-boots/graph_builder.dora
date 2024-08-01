@@ -803,10 +803,8 @@ impl SsaGen {
 
     fn emitArrayLength(dest: BytecodeRegister, src: BytecodeRegister) {
         let srcInst = self.readVariable(src, self.current());
-        let destInst = graph::createArrayLengthInst(srcInst);
-        self.setCurrentInlinedLocation(destInst);
-        self.current().appendInst(destInst);
-        self.writeVariable(dest, self.current(), destInst);
+        let lengthInst = self.loadArrayLength(srcInst);
+        self.writeVariable(dest, self.current(), lengthInst);
     }
 
     fn emitJumpLoop(distance: Int32) {
@@ -1141,9 +1139,7 @@ impl SsaGen {
         let arrInst = self.readVariable(arr, self.current());
         let idxInst = self.readVariable(idx, self.current());
 
-        let arrayLengthInst = graph::createArrayLengthInst(arrInst);
-        self.current().appendInst(arrayLengthInst);
-
+        let arrayLengthInst = self.loadArrayLength(arrInst);
         let boundsCheckInst = graph::createBoundsCheckInst(idxInst, arrayLengthInst);
         self.setCurrentInlinedLocation(boundsCheckInst);
         self.current().appendInst(boundsCheckInst);
@@ -1160,8 +1156,7 @@ impl SsaGen {
         let arrInst = self.readVariable(arr, self.current());
         let idxInst = self.readVariable(idx, self.current());
 
-        let arrayLengthInst = graph::createArrayLengthInst(arrInst);
-        self.current().appendInst(arrayLengthInst);
+        let arrayLengthInst = self.loadArrayLength(arrInst);
 
         let boundsCheckInst = graph::createBoundsCheckInst(idxInst, arrayLengthInst);
         self.setCurrentInlinedLocation(boundsCheckInst);
@@ -1172,6 +1167,12 @@ impl SsaGen {
             let srcInst = self.readVariable(src, self.current());
             self.storeArray(srcType, arrInst, idxInst, srcInst);
         }
+    }
+
+    fn loadArrayLength(obj: Inst): Inst {
+        let inst = graph::createArrayLengthInst(obj);
+        self.current().appendInst(inst);
+        inst
     }
 
     fn emitLoadTraitObjectValue(dest: BytecodeRegister, src: BytecodeRegister) {

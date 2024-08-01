@@ -12,6 +12,7 @@ pub class CompilationInfo(
     pub emitHtml: Bool,
     pub emitCodeComments: Bool,
     pub inline: Bool,
+    pub optimize: Bool,
     displayName: Option[String],
     inlinedFunctions: Vec[iface::InlinedFunction],
 )
@@ -39,6 +40,7 @@ impl CompilationInfo {
             emitHtml,
             emitCodeComments,
             true,
+            true,
             None[String],
             Vec[iface::InlinedFunction]::new(),
         )
@@ -51,6 +53,7 @@ impl CompilationInfo {
             typeParams,
             BytecodeType::Unit,
             Location(0i32, 0i32),
+            false,
             false,
             false,
             false,

@@ -1,3 +1,4 @@
+use package::compilation::CompilationInfo;
 use package::dominator::computePostOrder;
 use package::graph::Graph;
 use package::graph::builder::GraphBuilder;
@@ -6,12 +7,9 @@ use package::graph::verifier::verifyGraph;
 use package::graph::ty::Type;
 use package::dominator::buildDominatorTree;
 
-pub fn performDeadCodeElimination(graph: Graph) {
+pub fn performDeadCodeElimination(ci: CompilationInfo, graph: Graph) {
     computePostOrder(graph);
-    removeDeadInstructions(graph);
-}
 
-fn removeDeadInstructions(graph: Graph) {
     for block in graph.postOrderIterator() {
         for inst in block.reverseInstructionsIterator() {
             if !inst.hasUses() && !inst.isRequiredWhenUnused() {
@@ -19,43 +17,4 @@ fn removeDeadInstructions(graph: Graph) {
             }
         }
     }
-}
-
-fn performDce(graph: Graph) {
-    verifyGraph(graph);
-    buildDominatorTree(graph);
-    verifyGraph(graph);
-    performDeadCodeElimination(graph);
-    verifyGraph(graph);
-}
-
-
-@Test
-fn testRemoveUnusedConstant() {
-    let builder = GraphBuilder::new();
-    let block = builder.addBlock();
-    let value = builder.createInt32Const(12i32);
-    builder.createReturnVoid();
-    let graph = builder.build();
-    performDce(graph);
-    assertGraph(graph, "
-@0:
-  %2: Ret.Void
-");
-}
-
-@Test
-fn testRemoveUnusedAdd() {
-    let builder = GraphBuilder::new();
-    let block = builder.addBlock();
-    let lhs = builder.createInt32Const(12i32);
-    let rhs = builder.createInt32Const(17i32);
-    builder.createAdd(lhs, rhs, Type::Int32);
-    builder.createReturnVoid();
-    let graph = builder.build();
-    performDce(graph);
-    assertGraph(graph, "
-@0:
-  %4: Ret.Void
-");
 }

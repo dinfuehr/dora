@@ -49,23 +49,25 @@ pub fn compileFunction(ci: CompilationInfo): CodeDescriptor {
 
     verify(graph);
 
-    performInlining(ci, graph);
+    if ci.optimize {
+        performInlining(ci, graph);
 
-    if ci.emitGraph {
-        println("${ci.getDisplayName()} after inlining:");
-        println(dumpGraph(Some[CompilationInfo](ci), graph, config.architecture));
+        if ci.emitGraph {
+            println("${ci.getDisplayName()} after inlining:");
+            println(dumpGraph(Some[CompilationInfo](ci), graph, config.architecture));
+        }
+
+        verify(graph);
+
+        performDeadCodeElimination(ci, graph);
+
+        if ci.emitGraph {
+            println("${ci.getDisplayName()} after dead code elimination:");
+            println(dumpGraph(Some[CompilationInfo](ci), graph, config.architecture));
+        }
+
+        verify(graph);
     }
-
-    verify(graph);
-
-    performDeadCodeElimination(graph);
-
-    if ci.emitGraph {
-        println("${ci.getDisplayName()} after dead code elimination:");
-        println(dumpGraph(Some[CompilationInfo](ci), graph, config.architecture));
-    }
-
-    verify(graph);
 
     splitCriticalEdges(graph);
     buildDominatorTree(graph);
