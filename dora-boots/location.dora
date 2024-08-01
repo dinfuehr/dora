@@ -194,11 +194,6 @@ impl LocationAnnotation {
                 self.maxOutgoingArgsSize = Int32::max(self.maxOutgoingArgsSize, outgoingArgsSize);
             }
 
-            Op::ArrayLength => {
-                useInputRegister(inst, 0);
-                useOutputRegister(inst, InputOutputOverlap::Overlap);
-            }
-
             Op::BoundsCheck => {
                 useInputRegister(inst, 0);
                 useInputRegister(inst, 1);

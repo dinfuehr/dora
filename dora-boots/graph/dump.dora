@@ -318,7 +318,6 @@ fn dumpInstName(inst: Inst): String {
         Op::LessOrEqual => "LessOrEqual.${inst.getOperationType()}",
         Op::Phi => "Phi.${inst.getValueType()}",
         Op::DivZeroCheck => "DivZeroCheck",
-        Op::ArrayLength => "ArrayLength",
         Op::LoadArray => "LoadArray.${inst.getValueType()}",
         Op::StoreArray => "StoreArray.${inst.getOperationType()}",
         Op::GetElementPtr => "GetElementPtr",

@@ -1170,7 +1170,7 @@ impl SsaGen {
     }
 
     fn loadArrayLength(obj: Inst): Inst {
-        let inst = graph::createArrayLengthInst(obj);
+        let inst = graph::createLoadInst(obj, iface::OBJECT_HEADER_LENGTH, Type::Int64);
         self.current().appendInst(inst);
         inst
     }

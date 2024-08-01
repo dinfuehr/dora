@@ -251,11 +251,6 @@ fn emitInst(codegen: CodeGen, inst: Inst) {
             codegen.emitInvokeLambda(inst);
         },
 
-        Op::ArrayLength => {
-            codegen.emitComment("ArrayLength");
-            codegen.emitArrayLength(inst);
-        },
-
         Op::BoundsCheck => {
             codegen.emitComment("BoundsCheck");
             codegen.emitBoundsCheck(inst);
@@ -577,7 +572,6 @@ pub trait CodeGen {
     fn emitInvokeDirect(inst: Inst);
     fn emitInvokeVirtual(inst: Inst);
     fn emitInvokeLambda(inst: Inst);
-    fn emitArrayLength(inst: Inst);
     fn emitBoundsCheck(inst: Inst);
     fn emitLoadArray(inst: Inst);
     fn emitStoreArray(inst: Inst);

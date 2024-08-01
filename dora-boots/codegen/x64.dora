@@ -1642,14 +1642,6 @@ impl CodeGen for CodeGenX64 {
         self.emitVirtualCall(obj, REG_TEMP, tmp, inst, 0i32, site);
     }
 
-    fn emitArrayLength(inst: Inst) {
-        let loc = inst.getLocationData();
-        let arr = loc.getInput(0).getRegister();
-
-        let dest = loc.getOutput().getRegister();
-        self.asm.movq_ra(dest, AsmAddress::offset(arr, OBJECT_HEADER_LENGTH));
-    }
-
     fn emitBoundsCheck(inst: Inst) {
         let loc = inst.getLocationData();
         let idx = loc.getInput(0).getRegister();

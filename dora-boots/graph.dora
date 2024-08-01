@@ -769,7 +769,6 @@ pub enum Op {
 
     Phi,
     DivZeroCheck,
-    ArrayLength,
 
     Arg,
 
@@ -915,7 +914,6 @@ pub fn opName(op: Op): String {
         Op::LessOrEqual => "LessOrEqual",
         Op::Phi => "Phi",
         Op::DivZeroCheck => "DivZeroCheck",
-        Op::ArrayLength => "ArrayLength",
         Op::LoadArray => "LoadArray",
         Op::StoreArray => "StoreArray",
         Op::GetElementPtr => "GetElementPtr",
@@ -1128,7 +1126,6 @@ impl Inst {
             Op::LessOrEqual => Some[Type](Type::Bool),
             Op::Phi => Some[Type](self.ty),
             Op::DivZeroCheck => None[Type],
-            Op::ArrayLength => Some[Type](Type::Int64),
             Op::LoadArray => Some[Type](self.ty),
             Op::StoreArray => None[Type],
             Op::GetElementPtr => Some[Type](Type::Address),
@@ -1634,7 +1631,6 @@ impl Inst {
             Op::LessOrEqual => false,
             Op::Phi => true,
             Op::DivZeroCheck => true,
-            Op::ArrayLength => false,
             Op::LoadArray => false,
             Op::StoreArray => true,
             Op::GetElementPtr => false,
@@ -2554,13 +2550,6 @@ pub fn createStoreArrayAddressWbInst(array: Inst, dest: Inst, destOffset: Int32,
     inst.addInput(dest);
     inst.addInput(value);
     inst.aux = destOffset.toInt64();
-    inst
-}
-
-pub fn createArrayLengthInst(array: Inst): Inst {
-    let inst = Inst::new();
-    inst._op = Some(Op::ArrayLength);
-    inst.addInput(array);
     inst
 }
 
