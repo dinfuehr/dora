@@ -4,6 +4,7 @@ use package::assembler::{RegMap, RegSet, Register};
 use package::codegen::CodeGen;
 use package::codegen::{createCodeGen, generateCode};
 use package::compilation::CompilationInfo;
+use package::dead_code_elimination::performDeadCodeElimination;
 use package::dominator::buildDominatorTree;
 use package::graph::{createGotoInst, Block, Edge, Graph, Inst, LocationData, Op, opName};
 use package::graph::dump::dumpGraph;
@@ -52,6 +53,15 @@ pub fn compileFunction(ci: CompilationInfo): CodeDescriptor {
 
     if ci.emitGraph {
         println("${ci.getDisplayName()} after inlining:");
+        println(dumpGraph(Some[CompilationInfo](ci), graph, config.architecture));
+    }
+
+    verify(graph);
+
+    performDeadCodeElimination(graph);
+
+    if ci.emitGraph {
+        println("${ci.getDisplayName()} after dead code elimination:");
         println(dumpGraph(Some[CompilationInfo](ci), graph, config.architecture));
     }
 

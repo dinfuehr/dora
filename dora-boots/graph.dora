@@ -25,7 +25,7 @@ pub class Graph {
     exitBlock: Option[Block],
     pub blocks: Vec[Option[Block]],
     instById: Vec[Option[Inst]],
-    postOrder: Vec[Block],
+    postOrder: Option[Vec[Block]],
     nextBlockIdValue: Int32,
     nextInstIdValue: Int32,
     stackSize: Option[Int32],
@@ -46,7 +46,7 @@ impl Graph {
             None[Block],
             Vec[Option[Block]]::new(),
             insts,
-            Vec[Block]::new(),
+            None[Vec[Block]],
             0i32,
             0i32,
             None[Int32],
@@ -110,9 +110,9 @@ impl Graph {
     }
 
     pub fn setPostOrder(postOrder: Vec[Block]) {
-        self.postOrder = postOrder;
+        self.postOrder = Some(postOrder);
 
-        for (idx, block) in self.postOrder.enumerate() {
+        for (idx, block) in postOrder.enumerate() {
             block.postOrderIdx = idx.toInt32();
         }
     }
@@ -131,11 +131,13 @@ impl Graph {
     }
 
     pub fn postOrderIterator(): PostOrderIterator {
-        PostOrderIterator::new(self.postOrder.toArray())
+        let postOrder = self.postOrder.getOrPanic().toArray();
+        PostOrderIterator::new(postOrder)
     }
 
     pub fn reversePostOrderIterator(): ReversePostOrderIterator {
-        ReversePostOrderIterator::new(self.postOrder.toArray())
+        let postOrder = self.postOrder.getOrPanic().toArray();
+        ReversePostOrderIterator::new(postOrder)
     }
 
     pub fn getStackSize(): Int32 {
@@ -1577,7 +1579,7 @@ impl Inst {
         self.location_data.getOrPanic()
     }
 
-    pub fn hasSideEffects(): Bool {
+    pub fn isRequiredWhenUnused(): Bool {
         match self.op() {
             Op::NullConst => false,
             Op::TrueConst => false,

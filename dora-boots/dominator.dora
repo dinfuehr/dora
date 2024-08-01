@@ -97,7 +97,7 @@ fn removeUnreachableBlocks(graph: Graph, visited: BitSet) {
     }
 }
 
-fn computePostOrder(graph: Graph) {
+pub fn computePostOrder(graph: Graph) {
     let postOrder = Vec[Block]::new();
     postOrder.reserve(graph.blockCount().toInt64());
 
