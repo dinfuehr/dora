@@ -275,6 +275,12 @@ impl BitSet {
     self.data.set(entry_idx, value);
   }
 
+  pub fn clear() {
+    for idx in std::range(0, self.data.size()) {
+      self.data(idx) = 0i32;
+    }
+  }
+
   pub fn clone(): BitSet {
     BitSet(
       self.data.clone(),
@@ -809,6 +815,19 @@ impl[K: Hash + Equals, V] HashMap[K, V] {
         self.cap = new_capacity;
     }
 
+    pub fn clear() {
+      self.inserted_and_deleted.clear();
+      self.entries = 0;
+
+      for idx in std::range(0, self.keys.size()) {
+        unsafeKillRefs[K](self.keys, idx);
+      }
+
+      for idx in std::range(0, self.values.size()) {
+        unsafeKillRefs[V](self.values, idx);
+      }
+    }
+
     pub fn clone(): HashMap[K, V] {
       HashMap(
         self.inserted_and_deleted.clone(),
@@ -894,8 +913,8 @@ impl[K: Hash + Equals] HashSet[K] {
     HashSet[K](map)
   }
 
-  pub fn insert(key: K) {
-    self.map.insert(key, ());
+  pub fn insert(key: K): Bool {
+    self.map.insert(key, ()).isNone()
   }
 
   pub fn contains(key: K): Bool {

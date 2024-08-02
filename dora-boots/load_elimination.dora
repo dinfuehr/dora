@@ -1,6 +1,42 @@
+use std::{HashSet, HashMap};
+
 use package::compilation::CompilationInfo;
-use package::graph::Graph;
+use package::dominator::computePostOrder;
+use package::graph::{Graph, Inst, Op};
 
 pub fn performLoadElimination(ci: CompilationInfo, graph: Graph) {
-    // TODO
+    computePostOrder(graph);
+
+    for block in graph.reversePostOrderIterator() {
+        let initizialized_globals = HashSet[Int32]::new();
+        let global_values = HashMap[Int32, Inst]::new();
+
+        for inst in block.instructionsIterator() {
+            let op = inst.op();
+
+            if op == Op::EnsureGlobalInitialized {
+                let id = inst.getGlobalId();
+
+                if !initizialized_globals.insert(id.value) {
+                    inst.remove();
+                }
+            } else if op == Op::LoadGlobal {
+                let id = inst.getGlobalId();
+                let value = global_values.get(id.value);
+
+                if value.isSome() {
+                    inst.replaceAllUsesWith(value.getOrPanic());
+                    inst.remove();
+                } else {
+                    global_values.insert(id.value, inst);
+                }
+            } else if op == Op::StoreGlobal {
+                let id = inst.getGlobalId();
+                let value = inst.getInput(0).getValue();
+                global_values.insert(id.value, value);
+            } else if inst.isCall() {
+                global_values.clear();
+            }
+        }
+    }
 }
