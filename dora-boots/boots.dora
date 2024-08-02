@@ -13,6 +13,7 @@ use package::graph_builder::createGraph;
 use package::inlining::performInlining;
 use package::interface::{Architecture, CodeDescriptor, CommentTable, GcPointTable, GcPoint, LazyCompilationData, LazyCompilationSite, LazyCompilationSiteDirect, LazyCompilationSiteVirtual, LazyCompilationSiteLambda, LocationTable};
 use package::interface::{compile, config, getFunctionAddressRaw, getFieldOffsetRaw, getClassSizeRaw, getClassPointerRaw, getFunctionVtableIndexRaw, getClassPointerForLambdaRaw, getGlobalValueAddressRaw, getGlobalStateAddressRaw, hasGlobalInitialValueRaw};
+use package::load_elimination::performLoadElimination;
 use package::regalloc::performRegisterAllocation;
 use package::liveness::computeLiveness;
 
@@ -28,6 +29,7 @@ mod graph_builder;
 mod inlining;
 mod interface;
 mod liveness;
+mod load_elimination;
 mod location;
 mod regalloc;
 mod resolver;
@@ -54,6 +56,15 @@ pub fn compileFunction(ci: CompilationInfo): CodeDescriptor {
 
         if ci.emitGraph {
             println("${ci.getDisplayName()} after inlining:");
+            println(dumpGraph(Some[CompilationInfo](ci), graph, config.architecture));
+        }
+
+        verify(graph);
+
+        performLoadElimination(ci, graph);
+
+        if ci.emitGraph {
+            println("${ci.getDisplayName()} after load elimination:");
             println(dumpGraph(Some[CompilationInfo](ci), graph, config.architecture));
         }
 
