@@ -1,5 +1,6 @@
 use std::{HashSet, HashMap};
 
+use package::bytecode::data::GlobalId;
 use package::compilation::CompilationInfo;
 use package::dominator::computePostOrder;
 use package::graph::{Graph, Inst, Op};
@@ -8,8 +9,7 @@ pub fn performLoadElimination(ci: CompilationInfo, graph: Graph) {
     computePostOrder(graph);
 
     for block in graph.reversePostOrderIterator() {
-        let initizialized_globals = HashSet[Int32]::new();
-        let global_values = HashMap[Int32, Inst]::new();
+        let data = LoadData::new();
 
         for inst in block.instructionsIterator() {
             let op = inst.op();
@@ -17,26 +17,56 @@ pub fn performLoadElimination(ci: CompilationInfo, graph: Graph) {
             if op == Op::EnsureGlobalInitialized {
                 let id = inst.getGlobalId();
 
-                if !initizialized_globals.insert(id.value) {
+                if !data.initializeGlobal(id) {
                     inst.remove();
                 }
             } else if op == Op::LoadGlobal {
                 let id = inst.getGlobalId();
-                let value = global_values.get(id.value);
+                let value = data.getGlobalValue(id);
 
                 if value.isSome() {
                     inst.replaceAllUsesWith(value.getOrPanic());
                     inst.remove();
                 } else {
-                    global_values.insert(id.value, inst);
+                    data.setGlobalValue(id, inst);
                 }
             } else if op == Op::StoreGlobal {
                 let id = inst.getGlobalId();
                 let value = inst.getInput(0).getValue();
-                global_values.insert(id.value, value);
+                data.setGlobalValue(id, value);
             } else if op.isCall() {
-                global_values.clear();
+                data.kill();
             }
         }
+    }
+}
+
+class LoadData {
+    initialized_globals: HashSet[Int32],
+    global_values: HashMap[Int32, Inst],
+}
+
+impl LoadData {
+    static fn new(): LoadData {
+        LoadData(
+            HashSet[Int32]::new(),
+            HashMap[Int32, Inst]::new(),
+        )
+    }
+
+    fn initializeGlobal(id: GlobalId): Bool {
+        self.initialized_globals.insert(id.value)
+    }
+
+    fn getGlobalValue(id: GlobalId): Option[Inst] {
+        self.global_values.get(id.value)
+    }
+
+    fn setGlobalValue(id: GlobalId, value: Inst) {
+        self.global_values.insert(id.value, value);
+    }
+
+    fn kill() {
+        self.global_values.clear();
     }
 }
