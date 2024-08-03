@@ -34,7 +34,7 @@ pub fn performLoadElimination(ci: CompilationInfo, graph: Graph) {
                 let id = inst.getGlobalId();
                 let value = inst.getInput(0).getValue();
                 global_values.insert(id.value, value);
-            } else if inst.isCall() {
+            } else if op.isCall() {
                 global_values.clear();
             }
         }

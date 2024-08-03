@@ -814,14 +814,24 @@ pub enum Op {
 }
 
 impl Op {
-    pub fn isConst(): Bool {
+    pub fn canBeRematerialized(): Bool {
         match self {
-            Op::NullConst => true,
-            Op::Int32Const => true,
-            Op::Int64Const => true,
-            Op::Float32Const => true,
-            Op::Float64Const => true,
-            _ => false
+            Op::Int64Const
+            | Op::Int32Const
+            | Op::UInt8Const
+            | Op::TrueConst
+            | Op::FalseConst
+            | Op::AllocateStack => true,
+            _ => false,
+        }
+    }
+
+    pub fn isCall(): Bool {
+        match self {
+            Op::Invoke => true,
+            Op::InvokeVirtual => true,
+            Op::InvokeLambda => true,
+            _ => false,
         }
     }
 
@@ -835,14 +845,23 @@ impl Op {
         }
     }
 
-    pub fn canBeRematerialized(): Bool {
+    pub fn isConst(): Bool {
         match self {
-            Op::Int64Const
-            | Op::Int32Const
-            | Op::UInt8Const
-            | Op::TrueConst
-            | Op::FalseConst
-            | Op::AllocateStack => true,
+            Op::NullConst => true,
+            Op::Int32Const => true,
+            Op::Int64Const => true,
+            Op::Float32Const => true,
+            Op::Float64Const => true,
+            _ => false
+        }
+    }
+
+    pub fn isTerminator(): Bool {
+        match self {
+            Op::Goto
+            | Op::If
+            | Op::Return
+            | Op::Unreachable => true,
             _ => false,
         }
     }
@@ -1437,22 +1456,11 @@ impl Inst {
     }
 
     pub fn isCall(): Bool {
-        match self.op() {
-            Op::Invoke => true,
-            Op::InvokeVirtual => true,
-            Op::InvokeLambda => true,
-            _ => false,
-        }
+        self.op().isCall()
     }
 
     pub fn isTerminator(): Bool {
-        match self.op() {
-            Op::Goto
-            | Op::If
-            | Op::Return
-            | Op::Unreachable => true,
-            _ => false,
-        }
+        self.op().isTerminator()
     }
 
     pub fn getArgIndex(): Int32 {
