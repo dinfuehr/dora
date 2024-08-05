@@ -1266,6 +1266,21 @@ impl AssemblerX64 {
         self.emit_modrm_sse_registers(dest, src);
     }
 
+    pub fn vmovss_ra(&mut self, dest: XmmRegister, src: Address) {
+        self.emit_vex(
+            dest.needs_rex(),
+            src.rex_x(),
+            src.rex_b(),
+            VEX_MMMMM_0F,
+            0,
+            0b1111,
+            0b0,
+            VEX_PP_F3,
+        );
+        self.emit_u8(0x10);
+        self.emit_address(dest.low_bits(), src);
+    }
+
     pub fn xaddl_ar(&mut self, dest: Address, src: Register) {
         self.emit_rex32_modrm_address_optional(src, dest);
         self.emit_u8(0x0f);
@@ -1448,14 +1463,14 @@ impl AssemblerX64 {
     //       - 01 --> 66
     //       - 10 --> F3
     //       - 11 --> F2
-    #[allow(unused)]
-    fn emit_vex(&mut self, r: bool, x: bool, b: bool, mmmmm: u8, w: bool, vvvv: u8, l: u8, pp: u8) {
+    fn emit_vex(&mut self, r: bool, x: bool, b: bool, mmmmm: u8, w: u8, vvvv: u8, l: u8, pp: u8) {
         assert!(fits_u5(mmmmm as u32));
         assert!(fits_u4(vvvv as u32));
         assert!(fits_u2(pp as u32));
         assert!(fits_u1(l as u32));
+        assert!(fits_u1(b as u32));
 
-        if x || b || mmmmm != 0b00001 {
+        if x || b || mmmmm != 0b00001 || w != 0 {
             self.emit_vex3(r, x, b, mmmmm, w, vvvv, l, pp);
         } else {
             self.emit_vex2(r, vvvv, l, pp);
@@ -1470,23 +1485,13 @@ impl AssemblerX64 {
     // vvvv - register specifier (4 bits)
     // l - vector length (1 bit)
     // pp - simd prefix (2 bits)
-    #[allow(unused)]
-    fn emit_vex3(
-        &mut self,
-        r: bool,
-        x: bool,
-        b: bool,
-        mmmmm: u8,
-        w: bool,
-        vvvv: u8,
-        l: u8,
-        pp: u8,
-    ) {
+    fn emit_vex3(&mut self, r: bool, x: bool, b: bool, mmmmm: u8, w: u8, vvvv: u8, l: u8, pp: u8) {
         assert!(fits_u5(mmmmm as u32));
         assert!(fits_u4(vvvv as u32));
         assert!(fits_u2(pp as u32));
         assert!(fits_u1(l as u32));
-        self.emit_u8(0b1100_0100);
+        assert!(fits_u1(w as u32));
+        self.emit_u8(0xC4);
 
         let byte = (!r as u8) << 7 | (!x as u8) << 6 | (!b as u8) << 5 | mmmmm;
         self.emit_u8(byte);
@@ -1499,12 +1504,11 @@ impl AssemblerX64 {
     // vvvv - register specifier (4 bits)
     // l - vector length (1 bit)
     // pp - simd prefix (2 bits)
-    #[allow(unused)]
     fn emit_vex2(&mut self, r: bool, vvvv: u8, l: u8, pp: u8) {
         assert!(fits_u4(vvvv as u32));
         assert!(fits_u2(pp as u32));
         assert!(fits_u1(l as u32));
-        self.emit_u8(0b1100_0101);
+        self.emit_u8(0xC5);
 
         let byte = (!r as u8) << 7 | vvvv << 3 | (l as u8) << 2 | pp;
         self.emit_u8(byte);
@@ -1858,6 +1862,14 @@ impl Address {
 
     pub fn encoded_bytes(&self) -> &[u8] {
         &self.bytes[0..self.length as usize]
+    }
+
+    pub fn rex_x(&self) -> bool {
+        (self.rex & 0x2) != 0
+    }
+
+    pub fn rex_b(&self) -> bool {
+        (self.rex & 0x1) != 0
     }
 }
 
@@ -3078,5 +3090,20 @@ mod tests {
         assert_emit!(0x0f, 0x11, 0x45, 16; movups_ar(Address::offset(RBP, 16), XMM0));
         assert_emit!(0x44, 0x0f, 0x11, 0x45, 16; movups_ar(Address::offset(RBP, 16), XMM8));
         assert_emit!(0x41, 0x0f, 0x11, 0x7d, 16; movups_ar(Address::offset(R13, 16), XMM7));
+    }
+
+    #[test]
+    fn test_vmovss_ra() {
+        assert_emit!(0xc5, 0xfa, 0x10, 0x00; vmovss_ra(XMM0, Address::reg(RAX)));
+        assert_emit!(0xc5, 0xfa, 0x10, 0x38; vmovss_ra(XMM7, Address::reg(RAX)));
+        assert_emit!(0xc5, 0x7a, 0x10, 0x00; vmovss_ra(XMM8, Address::reg(RAX)));
+        assert_emit!(0xc5, 0x7a, 0x10, 0x38; vmovss_ra(XMM15, Address::reg(RAX)));
+
+        assert_emit!(0xc5, 0xfa, 0x10, 0x07; vmovss_ra(XMM0, Address::reg(RDI)));
+        assert_emit!(0xc4, 0xc1, 0x7a, 0x10, 0x00; vmovss_ra(XMM0, Address::reg(R8)));
+        assert_emit!(0xc4, 0xc1, 0x7a, 0x10, 0x07; vmovss_ra(XMM0, Address::reg(R15)));
+
+        assert_emit!(0xc5, 0xfa, 0x10, 0x04, 0xb8; vmovss_ra(XMM0, Address::array(RAX, RDI, ScaleFactor::Four, 0)));
+        assert_emit!(0xc4, 0xa1, 0x7a, 0x10, 0x04, 0xb8; vmovss_ra(XMM0, Address::array(RAX, R15, ScaleFactor::Four, 0)));
     }
 }
