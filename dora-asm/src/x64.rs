@@ -1430,6 +1430,86 @@ impl AssemblerX64 {
         }
     }
 
+    // r - rex.r bit (1 bit)
+    // x - rex.x bit (1 bit)
+    // b - rex.b bit (1 bit)
+    // mmmmm - leading opcode byte (5 bits)
+    //       - 00001B --> OF
+    //       - 00010B --> OF 38
+    //       - 00011B --> OF 3A
+    //       - rest reserved
+    // w - rex.w/opcode (1 bit)
+    // vvvv - register specifier (4 bits)
+    // l - vector length (1 bit)
+    //       - 0 --> scalar or 128-bit vector
+    //       - 1 --> 256-bit vector
+    // pp - simd prefix (2 bits)
+    //       - 00 --> None
+    //       - 01 --> 66
+    //       - 10 --> F3
+    //       - 11 --> F2
+    #[allow(unused)]
+    fn emit_vex(&mut self, r: bool, x: bool, b: bool, mmmmm: u8, w: bool, vvvv: u8, l: u8, pp: u8) {
+        assert!(fits_u5(mmmmm as u32));
+        assert!(fits_u4(vvvv as u32));
+        assert!(fits_u2(pp as u32));
+        assert!(fits_u1(l as u32));
+
+        if x || b || mmmmm != 0b00001 {
+            self.emit_vex3(r, x, b, mmmmm, w, vvvv, l, pp);
+        } else {
+            self.emit_vex2(r, vvvv, l, pp);
+        }
+    }
+
+    // r - rex.r bit (1 bit)
+    // x - rex.x bit (1 bit)
+    // b - rex.b bit (1 bit)
+    // mmmmm - leading opcode byte (5 bits)
+    // w - rex.w/opcode (1 bit)
+    // vvvv - register specifier (4 bits)
+    // l - vector length (1 bit)
+    // pp - simd prefix (2 bits)
+    #[allow(unused)]
+    fn emit_vex3(
+        &mut self,
+        r: bool,
+        x: bool,
+        b: bool,
+        mmmmm: u8,
+        w: bool,
+        vvvv: u8,
+        l: u8,
+        pp: u8,
+    ) {
+        assert!(fits_u5(mmmmm as u32));
+        assert!(fits_u4(vvvv as u32));
+        assert!(fits_u2(pp as u32));
+        assert!(fits_u1(l as u32));
+        self.emit_u8(0b1100_0100);
+
+        let byte = (!r as u8) << 7 | (!x as u8) << 6 | (!b as u8) << 5 | mmmmm;
+        self.emit_u8(byte);
+
+        let byte = (w as u8) << 7 | vvvv << 3 | (l as u8) << 2 | pp;
+        self.emit_u8(byte);
+    }
+
+    // r - rex.r bit (1 bit)
+    // vvvv - register specifier (4 bits)
+    // l - vector length (1 bit)
+    // pp - simd prefix (2 bits)
+    #[allow(unused)]
+    fn emit_vex2(&mut self, r: bool, vvvv: u8, l: u8, pp: u8) {
+        assert!(fits_u4(vvvv as u32));
+        assert!(fits_u2(pp as u32));
+        assert!(fits_u1(l as u32));
+        self.emit_u8(0b1100_0101);
+
+        let byte = (!r as u8) << 7 | vvvv << 3 | (l as u8) << 2 | pp;
+        self.emit_u8(byte);
+    }
+
     fn emit_modrm_registers(&mut self, reg: Register, rm: Register) {
         self.emit_modrm(0b11, reg.low_bits(), rm.low_bits());
     }
@@ -1779,6 +1859,43 @@ impl Address {
     pub fn encoded_bytes(&self) -> &[u8] {
         &self.bytes[0..self.length as usize]
     }
+}
+
+#[allow(unused)]
+const VEX_PP_NONE: u8 = 0b00;
+#[allow(unused)]
+const VEX_PP_66: u8 = 0b01;
+#[allow(unused)]
+const VEX_PP_F3: u8 = 0b10;
+#[allow(unused)]
+const VEX_PP_F2: u8 = 0b11;
+
+#[allow(unused)]
+const VEX_L_SCALAR_128: u8 = 0b0;
+#[allow(unused)]
+const VEX_L_256: u8 = 0b0;
+
+#[allow(unused)]
+const VEX_MMMMM_0F: u8 = 0b00001;
+#[allow(unused)]
+const VEX_MMMMM_0F_38: u8 = 0b00010;
+#[allow(unused)]
+const VEX_MMMMM_0F_3A: u8 = 0b00011;
+
+fn fits_u1(imm: u32) -> bool {
+    imm < 2
+}
+
+fn fits_u2(imm: u32) -> bool {
+    imm < 4
+}
+
+fn fits_u4(imm: u32) -> bool {
+    imm < (1 << 4)
+}
+
+fn fits_u5(imm: u32) -> bool {
+    imm < (1 << 5)
 }
 
 #[cfg(test)]
