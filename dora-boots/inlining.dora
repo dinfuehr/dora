@@ -18,11 +18,11 @@ pub fn performInlining(ci: CompilationInfo, graph: Graph) {
 
                     let info = iface::getFunctionInfoForInlining(fctId);
 
-                    if !info.hasBytecode {
+                    if !info.hasBytecode || info.hasNeverInlineAnnotation {
                         continue;
                     }
 
-                    if info.hasInlineAnnotation {
+                    if info.hasForceInlineAnnotation {
                         inline(ci, graph, inst, fctId, fctInfo.type_params);
                     } else if ci.inline && info.bytecodeSize < 200i32 && info.bytecodeSize < budget {
                         inline(ci, graph, inst, fctId, fctInfo.type_params);

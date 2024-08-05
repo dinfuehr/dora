@@ -15,4 +15,4 @@ class Foo(bar: Bar)
 struct Bar(a: MyInt, b: MyInt)
 class MyInt(value: Int64)
 
-@optimizeImmediately fn f(x: Foo, bar: Bar) { x.bar = bar; }
+@Optimize fn f(x: Foo, bar: Bar) { x.bar = bar; }

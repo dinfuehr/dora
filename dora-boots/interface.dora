@@ -570,5 +570,6 @@ pub struct FunctionInliningData {
 pub struct FunctionInliningInfo {
     pub hasBytecode: Bool,
     pub bytecodeSize: Int32,
-    pub hasInlineAnnotation: Bool,
+    pub hasForceInlineAnnotation: Bool,
+    pub hasNeverInlineAnnotation: Bool,
 }

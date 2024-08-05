@@ -21,4 +21,4 @@ fn main() {
 
 class Foo(lambda: (Int64): Int64)
 
-@optimizeImmediately fn f(x: Foo, y: (Int64): Int64) { x.lambda = y; }
+@Optimize fn f(x: Foo, y: (Int64): Int64) { x.lambda = y; }

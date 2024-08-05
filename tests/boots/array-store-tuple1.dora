@@ -19,4 +19,4 @@ fn main() {
 
 class Bar(value: Int64)
 
-@optimizeImmediately fn f(x: Array[(Int64, Bar)], idx: Int64, foo: (Int64, Bar)) { x(idx) = foo; }
+@Optimize fn f(x: Array[(Int64, Bar)], idx: Int64, foo: (Int64, Bar)) { x(idx) = foo; }

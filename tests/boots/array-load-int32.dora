@@ -8,4 +8,4 @@ fn main() {
     assert(f(arr, 48) == 0i32);
 }
 
-@optimizeImmediately fn f(x: Array[Int32], idx: Int64): Int32 { x(idx) }
+@Optimize fn f(x: Array[Int32], idx: Int64): Int32 { x(idx) }

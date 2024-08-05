@@ -5,7 +5,7 @@ fn main() {
     f(3, foo);
 }
 
-@optimizeImmediately fn f(x: Int64, foo: (Int64, Int64)) {
+@Optimize fn f(x: Int64, foo: (Int64, Int64)) {
     g(foo);
 }
 

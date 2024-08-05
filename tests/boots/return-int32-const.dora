@@ -9,6 +9,6 @@ fn main() {
     assert(x == -1i32);
 }
 
-@optimizeImmediately fn f(): Int32 { 12i32 }
-@optimizeImmediately fn g(): Int32 { 13i32 }
-@optimizeImmediately fn h(): Int32 { -1i32 }
+@Optimize fn f(): Int32 { 12i32 }
+@Optimize fn g(): Int32 { 13i32 }
+@Optimize fn h(): Int32 { -1i32 }

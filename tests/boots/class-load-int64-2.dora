@@ -9,5 +9,5 @@ fn main() {
 
 class Foo(a: Int64, b: Int64)
 
-@optimizeImmediately fn geta(x: Foo): Int64 { x.a }
-@optimizeImmediately fn getb(x: Foo): Int64 { x.b }
+@Optimize fn geta(x: Foo): Int64 { x.a }
+@Optimize fn getb(x: Foo): Int64 { x.b }

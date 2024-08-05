@@ -1,10 +1,10 @@
 //= boots
 //= error div0
-//= stderr "division by 0\n    f (tests/boots/div-int64-divby0.dora:10:56)\n    main (tests/boots/div-int64-divby0.dora:6:13)\n"
+//= stderr "division by 0\n    f (tests/boots/div-int64-divby0.dora:10:45)\n    main (tests/boots/div-int64-divby0.dora:6:13)\n"
 
 fn main() {
     let x = f(12, 0);
     unreachable[()]();
 }
 
-@optimizeImmediately fn f(a: Int64, b: Int64): Int64 { a/b }
+@Optimize fn f(a: Int64, b: Int64): Int64 { a/b }

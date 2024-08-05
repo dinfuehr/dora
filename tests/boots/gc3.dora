@@ -6,7 +6,7 @@ fn main() {
     assert(arg === result);
 }
 
-@optimizeImmediately fn f(a: String): String {
+@Optimize fn f(a: String): String {
     std::forceCollect();
     a
 }

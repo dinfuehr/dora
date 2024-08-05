@@ -9,6 +9,6 @@ fn main() {
     assert(x == -1);
 }
 
-@optimizeImmediately fn f(): Int64 { 12 }
-@optimizeImmediately fn g(): Int64 { 13 }
-@optimizeImmediately fn h(): Int64 { -1 }
+@Optimize fn f(): Int64 { 12 }
+@Optimize fn g(): Int64 { 13 }
+@Optimize fn h(): Int64 { -1 }

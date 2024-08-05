@@ -13,4 +13,4 @@ fn main() {
 
 class Foo(a: Float64, b: Float64, c: Float64, d: Float64, e: Float64)
 
-@optimizeImmediately fn getfoo(): Foo { Foo(1.0, 2.0, 3.0, 4.0, 5.0) }
+@Optimize fn getfoo(): Foo { Foo(1.0, 2.0, 3.0, 4.0, 5.0) }

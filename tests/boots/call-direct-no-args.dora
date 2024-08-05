@@ -5,7 +5,7 @@ fn main() {
     assert(f(foo) == 47);
 }
 
-@optimizeImmediately fn f(foo: Foo): Int64 {
+@Optimize fn f(foo: Foo): Int64 {
     foo.g()
 }
 

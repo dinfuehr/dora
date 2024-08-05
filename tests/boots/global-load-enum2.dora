@@ -15,6 +15,6 @@ fn main() {
 
 enum Foo { A, B, C(Int64) }
 
-@optimizeImmediately fn getg(): Foo {
+@Optimize fn getg(): Foo {
     g
 }

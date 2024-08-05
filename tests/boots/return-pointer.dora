@@ -7,4 +7,4 @@ fn main() {
 
 class Foo(val: Int64)
 
-@optimizeImmediately fn f(x: Foo): Foo { x }
+@Optimize fn f(x: Foo): Foo { x }

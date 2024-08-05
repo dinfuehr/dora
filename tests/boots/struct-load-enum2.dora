@@ -12,6 +12,6 @@ fn main() {
 struct Foo(a: Int64, bar: Bar)
 enum Bar { A, B, C(Int64) }
 
-@optimizeImmediately fn getbar(x: Foo): Bar {
+@Optimize fn getbar(x: Foo): Bar {
     x.bar
 }

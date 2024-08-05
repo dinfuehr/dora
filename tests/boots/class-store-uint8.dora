@@ -12,4 +12,4 @@ fn main() {
 
 class Foo(val: UInt8)
 
-@optimizeImmediately fn f(x: Foo, y: UInt8) { x.val = y; }
+@Optimize fn f(x: Foo, y: UInt8) { x.val = y; }

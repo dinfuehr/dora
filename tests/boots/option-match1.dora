@@ -7,7 +7,7 @@ fn main() {
 
 class Foo(value: Int64)
 
-@optimizeImmediately fn isNone(value: Option[Foo]): Bool {
+@Optimize fn isNone(value: Option[Foo]): Bool {
     match value {
         None => true,
         _ => false,

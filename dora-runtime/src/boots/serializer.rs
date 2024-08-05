@@ -110,7 +110,8 @@ pub fn allocate_encoded_function_inlining_info(vm: &VM, fct: &FunctionData) -> R
             .map(|bc| bc.code().len() as u32)
             .unwrap_or(0),
     );
-    buffer.emit_bool(fct.is_inline);
+    buffer.emit_bool(fct.is_force_inline);
+    buffer.emit_bool(fct.is_never_inline);
     byte_array_from_buffer(vm, buffer.data()).cast()
 }
 

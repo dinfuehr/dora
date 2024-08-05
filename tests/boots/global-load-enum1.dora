@@ -9,6 +9,6 @@ fn main() {
 
 enum Foo { A, B, C }
 
-@optimizeImmediately fn getg(): Foo {
+@Optimize fn getg(): Foo {
     g
 }

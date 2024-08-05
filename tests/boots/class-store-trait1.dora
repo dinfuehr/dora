@@ -28,4 +28,4 @@ impl Bar for Int64 {
     fn get(): Int64 { self }
 }
 
-@optimizeImmediately fn f(x: Foo, y: Bar) { x.bar = y; }
+@Optimize fn f(x: Foo, y: Bar) { x.bar = y; }

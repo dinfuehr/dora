@@ -1,5 +1,4 @@
 //= boots
-//= ignore
 
 let g: Int64 = 10;
 
@@ -7,6 +6,6 @@ fn main() {
     assert(getg() == 40);
 }
 
-@optimizeImmediately fn getg(): Int64 {
+@Optimize fn getg(): Int64 {
     g + g + g + g
 }

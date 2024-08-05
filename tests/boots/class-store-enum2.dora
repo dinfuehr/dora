@@ -24,6 +24,6 @@ fn main() {
 class Foo(bar: Bar)
 enum Bar { A, B, C(Int64) }
 
-@optimizeImmediately fn f(x: Foo, y: Bar) {
+@Optimize fn f(x: Foo, y: Bar) {
     x.bar = y;
 }

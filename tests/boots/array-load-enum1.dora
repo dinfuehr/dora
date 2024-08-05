@@ -10,4 +10,4 @@ fn main() {
 
 enum Foo { A, B, C }
 
-@optimizeImmediately fn f(x: Array[Foo], idx: Int64): Foo { x(idx) }
+@Optimize fn f(x: Array[Foo], idx: Int64): Foo { x(idx) }

@@ -5,7 +5,7 @@ fn main() {
     f(foo as Bar);
 }
 
-@optimizeImmediately fn f(bar: Bar) {
+@Optimize fn f(bar: Bar) {
     bar.bar();
 }
 

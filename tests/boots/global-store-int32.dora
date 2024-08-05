@@ -7,6 +7,6 @@ fn main() {
     assert(g == 12i32);
 }
 
-@optimizeImmediately fn setg(value: Int32) {
+@Optimize fn setg(value: Int32) {
     g = value;
 }

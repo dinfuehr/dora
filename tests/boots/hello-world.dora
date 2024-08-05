@@ -1,6 +1,6 @@
 //= boots
 
-@optimizeImmediately
+@Optimize
 fn main() {
     println("Hello World!");
 }

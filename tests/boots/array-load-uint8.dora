@@ -8,4 +8,4 @@ fn main() {
     assert(f(arr, 48) == 0u8);
 }
 
-@optimizeImmediately fn f(x: Array[UInt8], idx: Int64): UInt8 { x(idx) }
+@Optimize fn f(x: Array[UInt8], idx: Int64): UInt8 { x(idx) }

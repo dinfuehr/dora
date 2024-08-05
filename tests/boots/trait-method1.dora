@@ -8,7 +8,7 @@ fn main() {
 class Foo(value: Int64)
 
 trait Bar {
-    @optimizeImmediately fn get(): Int64;
+    @Optimize fn get(): Int64;
 }
 
 impl Bar for Foo {

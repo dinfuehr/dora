@@ -10,7 +10,7 @@ fn main() {
 struct Foo(a: Bar, b: Bar)
 class Bar(value: Int64)
 
-@optimizeImmediately fn getfoo(): Foo {
+@Optimize fn getfoo(): Foo {
     let a = Bar(1);
     let b = Bar(2);
     let foo = Foo(a, b);

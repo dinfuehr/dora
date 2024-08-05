@@ -38,9 +38,9 @@ fn main() {
     assert(ne(-1, 1));
 }
 
-@optimizeImmediately fn gt(a: Int64, b: Int64): Bool { a>b }
-@optimizeImmediately fn ge(a: Int64, b: Int64): Bool { a>=b }
-@optimizeImmediately fn lt(a: Int64, b: Int64): Bool { a<b }
-@optimizeImmediately fn le(a: Int64, b: Int64): Bool { a<=b }
-@optimizeImmediately fn eq(a: Int64, b: Int64): Bool { a==b }
-@optimizeImmediately fn ne(a: Int64, b: Int64): Bool { a!=b }
+@Optimize fn gt(a: Int64, b: Int64): Bool { a>b }
+@Optimize fn ge(a: Int64, b: Int64): Bool { a>=b }
+@Optimize fn lt(a: Int64, b: Int64): Bool { a<b }
+@Optimize fn le(a: Int64, b: Int64): Bool { a<=b }
+@Optimize fn eq(a: Int64, b: Int64): Bool { a==b }
+@Optimize fn ne(a: Int64, b: Int64): Bool { a!=b }

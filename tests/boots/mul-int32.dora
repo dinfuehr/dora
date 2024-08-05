@@ -7,4 +7,4 @@ fn main() {
     assert(x == 1200i32);
 }
 
-@optimizeImmediately fn f(a: Int32, b: Int32): Int32 { a*b }
+@Optimize fn f(a: Int32, b: Int32): Int32 { a*b }

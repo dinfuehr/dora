@@ -4,7 +4,7 @@ fn main() {
     f(12, 14);
 }
 
-@optimizeImmediately fn f(x: Int64, y: Int64) {
+@Optimize fn f(x: Int64, y: Int64) {
     g(y);
 }
 

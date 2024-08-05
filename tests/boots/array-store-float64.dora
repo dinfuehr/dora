@@ -8,7 +8,7 @@ fn main() {
     assert(arr(48) == 0.0);
 }
 
-@optimizeImmediately
+@Optimize
 fn f(x: Array[Float64], idx: Int64, value: Float64) {
     x(idx) = value;
 }

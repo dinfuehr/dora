@@ -7,6 +7,6 @@ fn main() {
     assert(getg() == 12.5);
 }
 
-@optimizeImmediately fn getg(): Float64 {
+@Optimize fn getg(): Float64 {
     g
 }

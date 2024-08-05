@@ -200,7 +200,8 @@ fn create_functions(sa: &Sema, e: &mut Emitter) -> Vec<FunctionData> {
             vtable_index: fct.vtable_index.get().cloned(),
             is_optimize_immediately: fct.is_optimize_immediately,
             is_variadic: fct.is_variadic.get(),
-            is_inline: fct.is_inline,
+            is_force_inline: fct.is_force_inline,
+            is_never_inline: fct.is_never_inline,
             bytecode: fct.bytecode.get().cloned(),
         })
     }
@@ -230,7 +231,8 @@ fn create_functions(sa: &Sema, e: &mut Emitter) -> Vec<FunctionData> {
             vtable_index: None,
             is_optimize_immediately: false,
             is_variadic: false,
-            is_inline: false,
+            is_force_inline: false,
+            is_never_inline: false,
             bytecode: Some(global.bytecode().clone()),
         });
 

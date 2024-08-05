@@ -687,7 +687,8 @@ impl<'x> visit::Visitor for TopLevelDeclaration<'x> {
                 Annotation::OptimizeImmediately,
                 Annotation::Test,
                 Annotation::Pub,
-                Annotation::Inline,
+                Annotation::ForceInline,
+                Annotation::NeverInline,
             ],
         );
 
@@ -1038,7 +1039,8 @@ pub struct ParsedModifierList {
     pub is_test: bool,
     pub is_optimize_immediately: bool,
     pub is_internal: bool,
-    pub is_inline: bool,
+    pub is_force_inline: bool,
+    pub is_never_inline: bool,
 }
 
 impl ParsedModifierList {
@@ -1058,7 +1060,8 @@ enum Annotation {
     Static,
     Test,
     OptimizeImmediately,
-    Inline,
+    ForceInline,
+    NeverInline,
     Error,
 }
 
@@ -1073,8 +1076,9 @@ impl Annotation {
             Annotation::Pub => "pub",
             Annotation::Static => "static",
             Annotation::Test => "test",
-            Annotation::OptimizeImmediately => "optimizeImmediately",
-            Annotation::Inline => "inline",
+            Annotation::OptimizeImmediately => "Optimize",
+            Annotation::ForceInline => "ForceInline",
+            Annotation::NeverInline => "NeverInline",
             Annotation::Error => "<error>",
         }
     }
@@ -1137,7 +1141,7 @@ fn check_modifier(
                     Annotation::Test
                 }
 
-                "optimizeImmediately" => {
+                "Optimize" => {
                     parsed_modifiers.is_optimize_immediately = true;
                     Annotation::OptimizeImmediately
                 }
@@ -1147,9 +1151,14 @@ fn check_modifier(
                     Annotation::Internal
                 }
 
-                "inline" => {
-                    parsed_modifiers.is_inline = true;
-                    Annotation::Inline
+                "ForceInline" => {
+                    parsed_modifiers.is_force_inline = true;
+                    Annotation::ForceInline
+                }
+
+                "NeverInline" => {
+                    parsed_modifiers.is_never_inline = true;
+                    Annotation::NeverInline
                 }
 
                 _ => {

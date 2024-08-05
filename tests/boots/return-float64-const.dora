@@ -7,5 +7,5 @@ fn main() {
     assert(x == 100.25);
 }
 
-@optimizeImmediately fn f(): Float64 { 12.5 }
-@optimizeImmediately fn g(): Float64 { 100.25 }
+@Optimize fn f(): Float64 { 12.5 }
+@Optimize fn g(): Float64 { 100.25 }

@@ -7,7 +7,7 @@ fn main() {
     assert(result.1 == 2);
 }
 
-@optimizeImmediately fn f(bar: Bar): (Int64, Int64) {
+@Optimize fn f(bar: Bar): (Int64, Int64) {
     let result = bar.bar();
     result
 }

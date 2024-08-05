@@ -8,7 +8,7 @@ fn main() {
 class Foo(bar: Bar)
 enum Bar { A, B, C }
 
-@optimizeImmediately fn f(x: Foo): Bar {
+@Optimize fn f(x: Foo): Bar {
     let result = x.bar;
     std::forceCollect();
     result

@@ -18,4 +18,4 @@ fn main() {
 class Foo(bar: Bar)
 class Bar(val: Int64)
 
-@optimizeImmediately fn f(x: Foo, y: Bar) { x.bar = y; }
+@Optimize fn f(x: Foo, y: Bar) { x.bar = y; }

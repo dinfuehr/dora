@@ -9,7 +9,7 @@ fn main() {
 
 class Value(value: Int64)
 
-@optimizeImmediately fn getfoo(): (Value, Value) {
+@Optimize fn getfoo(): (Value, Value) {
     let a = Value(1);
     let b = Value(2);
     let foo = (a, b);

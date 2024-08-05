@@ -12,6 +12,6 @@ fn main() {
 struct Foo(a: Int64, b: Bar)
 class Bar(value: Int64)
 
-@optimizeImmediately fn setg(value: Foo) {
+@Optimize fn setg(value: Foo) {
     g = value;
 }

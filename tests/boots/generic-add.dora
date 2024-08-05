@@ -7,6 +7,6 @@ fn main() {
     assert(add[Float32](17.0f32, 3.0f32) == 20.0f32);
 }
 
-@optimizeImmediately fn add[T: std::traits::Add](a: T, b: T): T {
+@Optimize fn add[T: std::traits::Add](a: T, b: T): T {
     a + b
 }

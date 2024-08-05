@@ -38,9 +38,9 @@ fn main() {
     assert(ne(-1.0f32, 1.0f32));
 }
 
-@optimizeImmediately fn gt(a: Float32, b: Float32): Bool { a>b }
-@optimizeImmediately fn ge(a: Float32, b: Float32): Bool { a>=b }
-@optimizeImmediately fn lt(a: Float32, b: Float32): Bool { a<b }
-@optimizeImmediately fn le(a: Float32, b: Float32): Bool { a<=b }
-@optimizeImmediately fn eq(a: Float32, b: Float32): Bool { a==b }
-@optimizeImmediately fn ne(a: Float32, b: Float32): Bool { a!=b }
+@Optimize fn gt(a: Float32, b: Float32): Bool { a>b }
+@Optimize fn ge(a: Float32, b: Float32): Bool { a>=b }
+@Optimize fn lt(a: Float32, b: Float32): Bool { a<b }
+@Optimize fn le(a: Float32, b: Float32): Bool { a<=b }
+@Optimize fn eq(a: Float32, b: Float32): Bool { a==b }
+@Optimize fn ne(a: Float32, b: Float32): Bool { a!=b }

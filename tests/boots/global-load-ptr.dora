@@ -9,6 +9,6 @@ fn main() {
 
 class Foo(value: Int64)
 
-@optimizeImmediately fn getg(): Foo {
+@Optimize fn getg(): Foo {
     g
 }

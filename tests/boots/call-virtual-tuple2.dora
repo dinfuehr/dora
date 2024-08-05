@@ -9,7 +9,7 @@ fn main() {
 
 class Value(value: Int64)
 
-@optimizeImmediately fn f(bar: Bar): (Value, Value) {
+@Optimize fn f(bar: Bar): (Value, Value) {
     let result = bar.bar();
     std::forceCollect();
     result

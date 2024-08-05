@@ -4,6 +4,6 @@ fn main() {
     f();
 }
 
-@optimizeImmediately fn f() {
+@Optimize fn f() {
     std::forceCollect();
 }

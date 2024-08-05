@@ -8,6 +8,6 @@ fn main() {
     assert(f(get27) == 27);
 }
 
-@optimizeImmediately fn f(bar: (): Int64): Int64 {
+@Optimize fn f(bar: (): Int64): Int64 {
     bar()
 }

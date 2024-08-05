@@ -10,7 +10,7 @@ fn main() {
 
 class Foo(value: Int64)
 
-@optimizeImmediately fn getg(x: Foo): Int64 {
+@Optimize fn getg(x: Foo): Int64 {
     let result = g;
     x.value + result
 }

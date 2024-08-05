@@ -5,5 +5,5 @@ fn main() {
     f();
 }
 
-@optimizeImmediately fn f() { g() }
-@inline fn g() { println("Hello inlining!"); }
+@Optimize fn f() { g() }
+@ForceInline fn g() { println("Hello inlining!"); }

@@ -7,6 +7,6 @@ fn main() {
     assert(getg() == 10i32);
 }
 
-@optimizeImmediately fn getg(): Int32 {
+@Optimize fn getg(): Int32 {
     g
 }

@@ -12,7 +12,7 @@ fn main() {
 
 class Value(value: Int64)
 
-@optimizeImmediately fn f(lambda: (): (Value, Value)): (Value, Value) {
+@Optimize fn f(lambda: (): (Value, Value)): (Value, Value) {
     let foo = lambda();
     std::forceCollect();
     foo

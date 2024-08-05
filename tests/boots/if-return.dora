@@ -5,7 +5,7 @@ fn main() {
     assert(f(false) == 20);
 }
 
-@optimizeImmediately fn f(x: Bool): Int64 {
+@Optimize fn f(x: Bool): Int64 {
     if x {
         return 10;
     } else {

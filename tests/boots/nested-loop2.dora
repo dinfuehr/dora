@@ -5,7 +5,7 @@ fn main() {
     f();
 }
 
-@optimizeImmediately
+@Optimize
 fn f() {
     for i in std::range(0, 2) {
         for j in std::range(0, 2) {

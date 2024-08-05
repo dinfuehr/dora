@@ -8,14 +8,14 @@ fn main() {
 
 enum Foo { A, B, C }
 
-@optimizeImmediately fn f(): Foo {
+@Optimize fn f(): Foo {
     Foo::A
 }
 
-@optimizeImmediately fn g(): Foo {
+@Optimize fn g(): Foo {
     Foo::B
 }
 
-@optimizeImmediately fn h(): Foo {
+@Optimize fn h(): Foo {
     Foo::C
 }

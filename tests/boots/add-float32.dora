@@ -7,4 +7,4 @@ fn main() {
     assert(x == 101.0f32);
 }
 
-@optimizeImmediately fn f(a: Float32, b: Float32): Float32 { a+b }
+@Optimize fn f(a: Float32, b: Float32): Float32 { a+b }

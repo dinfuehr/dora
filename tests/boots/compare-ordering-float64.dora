@@ -11,4 +11,4 @@ fn main() {
     assert(f(-4.0, -4.0) == Ordering::Equal);
 }
 
-@optimizeImmediately fn f(a: Float64, b: Float64): std::Ordering { a.cmp(b) }
+@Optimize fn f(a: Float64, b: Float64): std::Ordering { a.cmp(b) }

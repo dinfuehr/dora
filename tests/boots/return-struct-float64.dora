@@ -8,6 +8,6 @@ fn main() {
 
 struct Foo(a: Float64, b: Float64)
 
-@optimizeImmediately fn makefoo(a: Float64, b: Float64): Foo {
+@Optimize fn makefoo(a: Float64, b: Float64): Foo {
     Foo(a, b)
 }

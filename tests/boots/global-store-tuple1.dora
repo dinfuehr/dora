@@ -11,6 +11,6 @@ fn main() {
 
 class Foo(value: Int64)
 
-@optimizeImmediately fn setg(value: (Foo, Foo)) {
+@Optimize fn setg(value: (Foo, Foo)) {
     g = value;
 }

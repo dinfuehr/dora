@@ -7,6 +7,6 @@ fn main() {
     assert(getg() == 10u8);
 }
 
-@optimizeImmediately fn getg(): UInt8 {
+@Optimize fn getg(): UInt8 {
     g
 }

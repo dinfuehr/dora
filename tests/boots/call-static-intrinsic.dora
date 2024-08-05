@@ -5,6 +5,6 @@ fn main() {
     assert(std::Thread::current() === t);
 }
 
-@optimizeImmediately fn mythread(): std::Thread {
+@Optimize fn mythread(): std::Thread {
     std::Thread::current()
 }

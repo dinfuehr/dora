@@ -11,6 +11,6 @@ fn main() {
 struct Foo(a: Int64, b: Bar)
 class Bar(value: Int64)
 
-@optimizeImmediately fn getg(): Foo {
+@Optimize fn getg(): Foo {
     g
 }

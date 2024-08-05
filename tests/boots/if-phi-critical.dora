@@ -5,7 +5,7 @@ fn main() {
     assert(f(false) == 10);
 }
 
-@optimizeImmediately fn f(x: Bool): Int64 {
+@Optimize fn f(x: Bool): Int64 {
     let mut result = 10;
     if x {
         result = 20

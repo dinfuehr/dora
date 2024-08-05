@@ -9,6 +9,6 @@ fn main() {
 
 struct Foo(a: Int64, bar: (Int64, Int64))
 
-@optimizeImmediately fn getbar(x: Foo): (Int64, Int64) {
+@Optimize fn getbar(x: Foo): (Int64, Int64) {
     x.bar
 }

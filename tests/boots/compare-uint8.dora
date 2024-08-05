@@ -46,9 +46,9 @@ fn main() {
     assert(ne(1u8, 2u8));
 }
 
-@optimizeImmediately fn gt(a: UInt8, b: UInt8): Bool { a>b }
-@optimizeImmediately fn ge(a: UInt8, b: UInt8): Bool { a>=b }
-@optimizeImmediately fn lt(a: UInt8, b: UInt8): Bool { a<b }
-@optimizeImmediately fn le(a: UInt8, b: UInt8): Bool { a<=b }
-@optimizeImmediately fn eq(a: UInt8, b: UInt8): Bool { a==b }
-@optimizeImmediately fn ne(a: UInt8, b: UInt8): Bool { a!=b }
+@Optimize fn gt(a: UInt8, b: UInt8): Bool { a>b }
+@Optimize fn ge(a: UInt8, b: UInt8): Bool { a>=b }
+@Optimize fn lt(a: UInt8, b: UInt8): Bool { a<b }
+@Optimize fn le(a: UInt8, b: UInt8): Bool { a<=b }
+@Optimize fn eq(a: UInt8, b: UInt8): Bool { a==b }
+@Optimize fn ne(a: UInt8, b: UInt8): Bool { a!=b }

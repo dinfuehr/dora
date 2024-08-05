@@ -16,6 +16,6 @@ fn main() {
 struct Foo[T](a: Int64, b: T)
 enum Bar { A, B, C(Int64) }
 
-@optimizeImmediately fn getfoo[T](t: T): Foo[T] {
+@Optimize fn getfoo[T](t: T): Foo[T] {
     Foo[T](12, t)
 }

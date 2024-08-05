@@ -14,7 +14,7 @@ fn main() {
 
 enum Foo { A, B, C }
 
-@optimizeImmediately
+@Optimize
 fn f(x: Array[Foo], idx: Int64, value: Foo) {
     x(idx) = value;
 }

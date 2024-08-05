@@ -5,10 +5,10 @@ fn main() {
     assert(add2(2i32, 3i32) == 5i32);
 }
 
-@optimizeImmediately fn add1(a: Int64, b: Int64): Int64 {
+@Optimize fn add1(a: Int64, b: Int64): Int64 {
     a.wrappingAdd(b)
 }
 
-@optimizeImmediately fn add2(a: Int32, b: Int32): Int32 {
+@Optimize fn add2(a: Int32, b: Int32): Int32 {
     a.wrappingAdd(b)
 }

@@ -6,8 +6,8 @@ fn main() {
     assert(f(1) == 300);
 }
 
-@optimizeImmediately fn f(a: Int64): Int64 { g(a) }
-@inline fn g(a: Int64): Int64 {
+@Optimize fn f(a: Int64): Int64 { g(a) }
+@ForceInline fn g(a: Int64): Int64 {
     if a < 0 {
         return 100;
     } else if a == 0 {

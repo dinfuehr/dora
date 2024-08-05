@@ -20,4 +20,4 @@ fn main() {
     assert(foo.2 == 3);
 }
 
-@optimizeImmediately fn f(x: Array[(Int64, Int64, Int64)], idx: Int64): (Int64, Int64, Int64) { x(idx) }
+@Optimize fn f(x: Array[(Int64, Int64, Int64)], idx: Int64): (Int64, Int64, Int64) { x(idx) }

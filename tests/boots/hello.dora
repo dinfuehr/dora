@@ -5,5 +5,5 @@ fn main() {
     assert(g() == 17i32);
 }
 
-@optimizeImmediately fn f() {}
-@optimizeImmediately fn g(): Int32 { 17i32 }
+@Optimize fn f() {}
+@Optimize fn g(): Int32 { 17i32 }

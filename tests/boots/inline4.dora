@@ -1,12 +1,12 @@
 //= boots
 //= error div0
-//= stderr "division by 0\n    divide (tests/boots/inline4.dora:11:5)\n    f (tests/boots/inline4.dora:9:31)\n    main (tests/boots/inline4.dora:6:5)\n"
+//= stderr "division by 0\n    divide (tests/boots/inline4.dora:11:5)\n    f (tests/boots/inline4.dora:9:20)\n    main (tests/boots/inline4.dora:6:5)\n"
 
 fn main() {
     f();
 }
 
-@optimizeImmediately fn f() { divide(0); }
-@inline fn divide(x: Int64) {
+@Optimize fn f() { divide(0); }
+@ForceInline fn divide(x: Int64) {
     4711 / x;
 }

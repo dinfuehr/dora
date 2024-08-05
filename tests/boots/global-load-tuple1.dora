@@ -13,6 +13,6 @@ fn main() {
 
 class Bar(value: Int64)
 
-@optimizeImmediately fn getg(): (Int64, Bar) {
+@Optimize fn getg(): (Int64, Bar) {
     g
 }

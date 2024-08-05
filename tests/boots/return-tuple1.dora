@@ -6,6 +6,6 @@ fn main() {
     assert(f.1 == 2);
 }
 
-@optimizeImmediately fn makefoo(a: Int64, b: Int64): (Int64, Int64) {
+@Optimize fn makefoo(a: Int64, b: Int64): (Int64, Int64) {
     (a, b)
 }

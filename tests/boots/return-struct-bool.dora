@@ -8,6 +8,6 @@ fn main() {
 
 struct Foo(a: Bool, b: Bool)
 
-@optimizeImmediately fn makefoo(a: Bool, b: Bool): Foo {
+@Optimize fn makefoo(a: Bool, b: Bool): Foo {
     Foo(a, b)
 }

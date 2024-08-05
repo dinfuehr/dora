@@ -12,6 +12,6 @@ fn main() {
 
 enum Foo { A, B, C(Int64) }
 
-@optimizeImmediately fn setg(value: Foo) {
+@Optimize fn setg(value: Foo) {
     g = value;
 }

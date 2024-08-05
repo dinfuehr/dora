@@ -10,7 +10,7 @@ fn main() {
 
 enum Foo { A(Int64, Float64, String), B }
 
-@optimizeImmediately fn get(foo: Foo): (Int64, Float64, String) {
+@Optimize fn get(foo: Foo): (Int64, Float64, String) {
     match foo {
         Foo::A(a, b, c) => (a, b, c),
         Foo::B => unreachable[(Int64, Float64, String)](),

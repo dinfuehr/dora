@@ -6,6 +6,6 @@ fn main() {
     assert(foo.size() == 0);
 }
 
-@optimizeImmediately fn getfoo(): Array[Int64] {
+@Optimize fn getfoo(): Array[Int64] {
     Array[Int64]::new()
 }

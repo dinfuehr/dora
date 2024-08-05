@@ -5,7 +5,7 @@ fn main() {
     assert(myf(false) == 20.75);
 }
 
-@optimizeImmediately fn myf(x: Bool): Float64 {
+@Optimize fn myf(x: Bool): Float64 {
     if x {
         10.5
     } else {

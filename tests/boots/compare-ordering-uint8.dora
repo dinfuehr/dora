@@ -8,4 +8,4 @@ fn main() {
     assert(f(4u8, 4u8) == Ordering::Equal);
 }
 
-@optimizeImmediately fn f(a: UInt8, b: UInt8): std::Ordering { a.cmp(b) }
+@Optimize fn f(a: UInt8, b: UInt8): std::Ordering { a.cmp(b) }

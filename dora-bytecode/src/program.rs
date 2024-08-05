@@ -40,7 +40,8 @@ pub struct FunctionData {
     pub is_test: bool,
     pub is_optimize_immediately: bool,
     pub is_variadic: bool,
-    pub is_inline: bool,
+    pub is_force_inline: bool,
+    pub is_never_inline: bool,
     pub bytecode: Option<BytecodeFunction>,
 }
 

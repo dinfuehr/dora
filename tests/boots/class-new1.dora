@@ -7,4 +7,4 @@ fn main() {
 
 class Foo
 
-@optimizeImmediately fn getfoo(): Foo { Foo() }
+@Optimize fn getfoo(): Foo { Foo() }

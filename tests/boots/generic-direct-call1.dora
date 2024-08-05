@@ -5,7 +5,7 @@ fn main() {
     assert(f[Float64](3, 2.5) == 10);
 }
 
-@optimizeImmediately fn f[T: Foo](x: Int64, a: T): Int64 {
+@Optimize fn f[T: Foo](x: Int64, a: T): Int64 {
     a.foo()
 }
 

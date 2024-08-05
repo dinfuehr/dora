@@ -7,7 +7,7 @@ fn main() {
     assert(counter == 2);
 }
 
-@optimizeImmediately fn f(x: Int64, y: Int64) {
+@Optimize fn f(x: Int64, y: Int64) {
     g(x);
     g(y);
 }

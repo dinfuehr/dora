@@ -1,6 +1,6 @@
 //= boots
 
-@optimizeImmediately
+@Optimize
 fn main() {
     let set = std::BitSet::new(64);
     set.insert(0);

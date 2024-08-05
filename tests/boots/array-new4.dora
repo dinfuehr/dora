@@ -11,6 +11,6 @@ fn main() {
     assert(foo(4) == 50i32);
 }
 
-@optimizeImmediately fn getfoo(): Array[Int32] {
+@Optimize fn getfoo(): Array[Int32] {
     Array[Int32]::new(10i32, 20i32, 30i32, 40i32, 50i32)
 }

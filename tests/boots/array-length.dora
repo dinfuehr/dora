@@ -5,4 +5,4 @@ fn main() {
     assert(f(Array[Int64]::newDefault(47)) == 47);
 }
 
-@optimizeImmediately fn f(x: Array[Int64]): Int64 { x.size() }
+@Optimize fn f(x: Array[Int64]): Int64 { x.size() }

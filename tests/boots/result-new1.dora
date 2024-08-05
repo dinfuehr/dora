@@ -8,6 +8,6 @@ fn main() {
 class Foo(value: Int64)
 class Bar(value: Int64)
 
-@optimizeImmediately fn f(foo: Foo): Result[Foo, Bar] {
+@Optimize fn f(foo: Foo): Result[Foo, Bar] {
     Ok[Foo, Bar](foo)
 }

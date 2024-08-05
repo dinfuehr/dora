@@ -8,10 +8,10 @@ fn main() {
 
 struct Foo(a: Int64, b: Int64)
 
-@optimizeImmediately fn geta(x: (Int64, Int64)): Int64 {
+@Optimize fn geta(x: (Int64, Int64)): Int64 {
     x.0
 }
 
-@optimizeImmediately fn getb(x: (Int64, Int64)): Int64 {
+@Optimize fn getb(x: (Int64, Int64)): Int64 {
     x.1
 }

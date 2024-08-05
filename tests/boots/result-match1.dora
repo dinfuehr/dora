@@ -8,7 +8,7 @@ fn main() {
 class Foo(value: Int64)
 class Bar(value: Int64)
 
-@optimizeImmediately fn f(value: Result[Foo, Bar]): Int64 {
+@Optimize fn f(value: Result[Foo, Bar]): Int64 {
     match value {
         Ok(foo) => foo.value,
         Err(bar) => bar.value,

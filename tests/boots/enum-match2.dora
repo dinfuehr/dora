@@ -8,7 +8,7 @@ fn main() {
 
 enum Foo { A(Int64), B(String), C(Float64) }
 
-@optimizeImmediately fn getVariant(f: Foo): Int64 {
+@Optimize fn getVariant(f: Foo): Int64 {
     match f {
         Foo::A(_) => 0,
         Foo::B(_) => 1,

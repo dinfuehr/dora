@@ -5,7 +5,7 @@ fn main() {
     assert(f(9) == 0);
 }
 
-@optimizeImmediately fn f(x: Int64): Int64 {
+@Optimize fn f(x: Int64): Int64 {
     let mut x = x;
     while x > 0 { x = x - 1; }
     x

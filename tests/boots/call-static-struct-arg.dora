@@ -7,7 +7,7 @@ fn main() {
 
 struct Foo(a: Int64, b: Int64)
 
-@optimizeImmediately fn f(x: Int64, foo: Foo) {
+@Optimize fn f(x: Int64, foo: Foo) {
     g(foo);
 }
 

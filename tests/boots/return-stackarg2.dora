@@ -8,7 +8,7 @@ fn main() {
     assert(x == 17.0);
 }
 
-@optimizeImmediately fn f(a0: Float64, a1: Float64, a2: Float64, a3: Float64,
+@Optimize fn f(a0: Float64, a1: Float64, a2: Float64, a3: Float64,
                           a4: Float64, a5: Float64, a6: Float64, a7: Float64, a8: Float64): Float64 {
     a8
 }

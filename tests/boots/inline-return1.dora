@@ -4,5 +4,5 @@ fn main() {
     assert(f() == 17);
 }
 
-@optimizeImmediately fn f(): Int64 { g() }
-@inline fn g(): Int64 { 17 }
+@Optimize fn f(): Int64 { g() }
+@ForceInline fn g(): Int64 { 17 }

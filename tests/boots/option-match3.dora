@@ -7,7 +7,7 @@ fn main() {
 
 class Foo(value: Int64)
 
-@optimizeImmediately fn f(value: Option[Foo]): Int64 {
+@Optimize fn f(value: Option[Foo]): Int64 {
     match value {
         Some(foo) => foo.value,
         _ => -1,

@@ -14,7 +14,7 @@ fn main() {
 
 class Foo(value: Int64)
 
-@optimizeImmediately
+@Optimize
 fn f(a0: Int64, a1: Int64, a2: Int64, a3: Int64,
      a4: Int64, a5: Int64, a6: Int64, a7: Int64,
      a8: Int64, a9: Int64, a10: Int64, a11: Int64,

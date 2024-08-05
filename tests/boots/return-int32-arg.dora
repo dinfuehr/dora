@@ -7,4 +7,4 @@ fn main() {
     assert(x == 13i32);
 }
 
-@optimizeImmediately fn f(x: Int32): Int32 { x }
+@Optimize fn f(x: Int32): Int32 { x }
