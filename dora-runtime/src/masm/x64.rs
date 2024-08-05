@@ -1022,7 +1022,9 @@ impl MacroAssembler {
             MachineMode::Int64 | MachineMode::Ptr | MachineMode::IntPtr => {
                 self.asm.movq_ra(dest.reg().into(), address_from_mem(mem))
             }
-            MachineMode::Float32 => self.asm.movss_ra(dest.freg().into(), address_from_mem(mem)),
+            MachineMode::Float32 => self
+                .asm
+                .vmovss_ra(dest.freg().into(), address_from_mem(mem)),
             MachineMode::Float64 => self.asm.movsd_ra(dest.freg().into(), address_from_mem(mem)),
         }
     }
