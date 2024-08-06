@@ -1237,7 +1237,7 @@ impl MacroAssembler {
     pub fn float_add(&mut self, mode: MachineMode, dest: FReg, lhs: FReg, rhs: FReg) {
         match mode {
             MachineMode::Float32 => self.asm.vaddss_rr(dest.into(), lhs.into(), rhs.into()),
-            MachineMode::Float64 => self.asm.vaddsd_rr(dest.into(), rhs.into(), rhs.into()),
+            MachineMode::Float64 => self.asm.vaddsd_rr(dest.into(), lhs.into(), rhs.into()),
             _ => unimplemented!(),
         }
     }
