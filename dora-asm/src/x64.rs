@@ -1266,6 +1266,51 @@ impl AssemblerX64 {
         self.emit_modrm_sse_registers(dest, src);
     }
 
+    pub fn vaddsd_rr(&mut self, dest: XmmRegister, lhs: XmmRegister, rhs: XmmRegister) {
+        self.emit_vex(
+            dest.needs_rex(),
+            false,
+            rhs.needs_rex(),
+            VEX_MMMMM_0F,
+            0,
+            lhs.value(),
+            VEX_L_SCALAR_128,
+            VEX_PP_F2,
+        );
+        self.emit_u8(0x58);
+        self.emit_modrm(0b11, dest.low_bits(), rhs.low_bits());
+    }
+
+    pub fn vaddss_rr(&mut self, dest: XmmRegister, lhs: XmmRegister, rhs: XmmRegister) {
+        self.emit_vex(
+            dest.needs_rex(),
+            false,
+            rhs.needs_rex(),
+            VEX_MMMMM_0F,
+            0,
+            lhs.value(),
+            VEX_L_SCALAR_128,
+            VEX_PP_F3,
+        );
+        self.emit_u8(0x58);
+        self.emit_modrm(0b11, dest.low_bits(), rhs.low_bits());
+    }
+
+    pub fn vmovsd_ra(&mut self, dest: XmmRegister, src: Address) {
+        self.emit_vex(
+            dest.needs_rex(),
+            src.rex_x(),
+            src.rex_b(),
+            VEX_MMMMM_0F,
+            0,
+            VEX_VVVV_UNUSED,
+            VEX_L_SCALAR_128,
+            VEX_PP_F2,
+        );
+        self.emit_u8(0x10);
+        self.emit_address(dest.low_bits(), src);
+    }
+
     pub fn vmovss_ra(&mut self, dest: XmmRegister, src: Address) {
         self.emit_vex(
             dest.needs_rex(),
@@ -1273,8 +1318,8 @@ impl AssemblerX64 {
             src.rex_b(),
             VEX_MMMMM_0F,
             0,
-            0b1111,
-            0b0,
+            VEX_VVVV_UNUSED,
+            VEX_L_SCALAR_128,
             VEX_PP_F3,
         );
         self.emit_u8(0x10);
@@ -1496,6 +1541,7 @@ impl AssemblerX64 {
         let byte = (!r as u8) << 7 | (!x as u8) << 6 | (!b as u8) << 5 | mmmmm;
         self.emit_u8(byte);
 
+        let vvvv = !vvvv & 0b1111;
         let byte = (w as u8) << 7 | vvvv << 3 | (l as u8) << 2 | pp;
         self.emit_u8(byte);
     }
@@ -1510,6 +1556,7 @@ impl AssemblerX64 {
         assert!(fits_u1(l as u32));
         self.emit_u8(0xC5);
 
+        let vvvv = !vvvv & 0b1111;
         let byte = (!r as u8) << 7 | vvvv << 3 | (l as u8) << 2 | pp;
         self.emit_u8(byte);
     }
@@ -1877,9 +1924,7 @@ impl Address {
 const VEX_PP_NONE: u8 = 0b00;
 #[allow(unused)]
 const VEX_PP_66: u8 = 0b01;
-#[allow(unused)]
 const VEX_PP_F3: u8 = 0b10;
-#[allow(unused)]
 const VEX_PP_F2: u8 = 0b11;
 
 #[allow(unused)]
@@ -1893,6 +1938,8 @@ const VEX_MMMMM_0F: u8 = 0b00001;
 const VEX_MMMMM_0F_38: u8 = 0b00010;
 #[allow(unused)]
 const VEX_MMMMM_0F_3A: u8 = 0b00011;
+
+const VEX_VVVV_UNUSED: u8 = 0b0000;
 
 fn fits_u1(imm: u32) -> bool {
     imm < 2
@@ -3105,5 +3152,26 @@ mod tests {
 
         assert_emit!(0xc5, 0xfa, 0x10, 0x04, 0xb8; vmovss_ra(XMM0, Address::array(RAX, RDI, ScaleFactor::Four, 0)));
         assert_emit!(0xc4, 0xa1, 0x7a, 0x10, 0x04, 0xb8; vmovss_ra(XMM0, Address::array(RAX, R15, ScaleFactor::Four, 0)));
+    }
+
+    #[test]
+    fn test_vmovsd_ra() {
+        assert_emit!(0xc5, 0xfb, 0x10, 0x00; vmovsd_ra(XMM0, Address::reg(RAX)));
+    }
+
+    #[test]
+    fn test_vaddss_rr() {
+        assert_emit!(0xc5, 0xf2, 0x58, 0xc2; vaddss_rr(XMM0, XMM1, XMM2));
+        assert_emit!(0xc5, 0x72, 0x58, 0xc2; vaddss_rr(XMM8, XMM1, XMM2));
+        assert_emit!(0xc5, 0xb2, 0x58, 0xc2; vaddss_rr(XMM0, XMM9, XMM2));
+        assert_emit!(0xc4, 0xc1, 0x72, 0x58, 0xc2; vaddss_rr(XMM0, XMM1, XMM10));
+    }
+
+    #[test]
+    fn test_vaddsd_rr() {
+        assert_emit!(0xc5, 0xf3, 0x58, 0xc2; vaddsd_rr(XMM0, XMM1, XMM2));
+        assert_emit!(0xc5, 0x73, 0x58, 0xc2; vaddsd_rr(XMM8, XMM1, XMM2));
+        assert_emit!(0xc5, 0xb3, 0x58, 0xc2; vaddsd_rr(XMM0, XMM9, XMM2));
+        assert_emit!(0xc4, 0xc1, 0x73, 0x58, 0xc2; vaddsd_rr(XMM0, XMM1, XMM10));
     }
 }
