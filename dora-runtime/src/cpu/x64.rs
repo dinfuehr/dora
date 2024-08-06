@@ -20,10 +20,15 @@ pub fn has_tzcnt() -> bool {
     *HAS_TZCNT
 }
 
+pub fn has_avx2() -> bool {
+    *HAS_AVX2
+}
+
 lazy_static! {
     static ref HAS_POPCNT: bool = is_x86_feature_detected!("popcnt");
     static ref HAS_LZCNT: bool = is_x86_feature_detected!("lzcnt");
     static ref HAS_TZCNT: bool = is_x86_feature_detected!("bmi1");
+    static ref HAS_AVX2: bool = is_x86_feature_detected!("avx2");
 }
 
 // first param offset to rbp is +16,

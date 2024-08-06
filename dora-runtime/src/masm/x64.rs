@@ -1022,10 +1022,22 @@ impl MacroAssembler {
             MachineMode::Int64 | MachineMode::Ptr | MachineMode::IntPtr => {
                 self.asm.movq_ra(dest.reg().into(), address_from_mem(mem))
             }
-            MachineMode::Float32 => self
-                .asm
-                .vmovss_ra(dest.freg().into(), address_from_mem(mem)),
-            MachineMode::Float64 => self.asm.movsd_ra(dest.freg().into(), address_from_mem(mem)),
+            MachineMode::Float32 => {
+                if has_avx2() {
+                    self.asm
+                        .vmovss_ra(dest.freg().into(), address_from_mem(mem));
+                } else {
+                    self.asm.movss_ra(dest.freg().into(), address_from_mem(mem));
+                }
+            }
+            MachineMode::Float64 => {
+                if has_avx2() {
+                    self.asm
+                        .vmovsd_ra(dest.freg().into(), address_from_mem(mem));
+                } else {
+                    self.asm.movsd_ra(dest.freg().into(), address_from_mem(mem));
+                }
+            }
         }
     }
 
@@ -1236,16 +1248,52 @@ impl MacroAssembler {
 
     pub fn float_add(&mut self, mode: MachineMode, dest: FReg, lhs: FReg, rhs: FReg) {
         match mode {
-            MachineMode::Float32 => self.asm.vaddss_rr(dest.into(), lhs.into(), rhs.into()),
-            MachineMode::Float64 => self.asm.vaddsd_rr(dest.into(), lhs.into(), rhs.into()),
+            MachineMode::Float32 => {
+                if has_avx2() {
+                    self.asm.vaddss_rr(dest.into(), lhs.into(), rhs.into());
+                } else {
+                    if dest != lhs {
+                        self.asm.movss_rr(dest.into(), lhs.into());
+                    }
+                    self.asm.addss_rr(dest.into(), rhs.into());
+                }
+            }
+            MachineMode::Float64 => {
+                if has_avx2() {
+                    self.asm.vaddsd_rr(dest.into(), lhs.into(), rhs.into());
+                } else {
+                    if dest != lhs {
+                        self.asm.movss_rr(dest.into(), lhs.into());
+                    }
+                    self.asm.addsd_rr(dest.into(), rhs.into());
+                }
+            }
             _ => unimplemented!(),
         }
     }
 
     pub fn float_sub(&mut self, mode: MachineMode, dest: FReg, lhs: FReg, rhs: FReg) {
         match mode {
-            MachineMode::Float32 => self.asm.vsubss_rr(dest.into(), lhs.into(), rhs.into()),
-            MachineMode::Float64 => self.asm.vsubsd_rr(dest.into(), lhs.into(), rhs.into()),
+            MachineMode::Float32 => {
+                if has_avx2() {
+                    self.asm.vsubss_rr(dest.into(), lhs.into(), rhs.into());
+                } else {
+                    if dest != lhs {
+                        self.asm.movss_rr(dest.into(), lhs.into());
+                    }
+                    self.asm.subss_rr(dest.into(), rhs.into());
+                }
+            }
+            MachineMode::Float64 => {
+                if has_avx2() {
+                    self.asm.vsubsd_rr(dest.into(), lhs.into(), rhs.into());
+                } else {
+                    if dest != lhs {
+                        self.asm.movsd_rr(dest.into(), lhs.into());
+                    }
+                    self.asm.subsd_rr(dest.into(), rhs.into());
+                }
+            }
             _ => unimplemented!(),
         }
     }
