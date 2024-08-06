@@ -1326,6 +1326,36 @@ impl AssemblerX64 {
         self.emit_address(dest.low_bits(), src);
     }
 
+    pub fn vsubsd_rr(&mut self, dest: XmmRegister, lhs: XmmRegister, rhs: XmmRegister) {
+        self.emit_vex(
+            dest.needs_rex(),
+            false,
+            rhs.needs_rex(),
+            VEX_MMMMM_0F,
+            0,
+            lhs.value(),
+            VEX_L_SCALAR_128,
+            VEX_PP_F2,
+        );
+        self.emit_u8(0x5c);
+        self.emit_modrm(0b11, dest.low_bits(), rhs.low_bits());
+    }
+
+    pub fn vsubss_rr(&mut self, dest: XmmRegister, lhs: XmmRegister, rhs: XmmRegister) {
+        self.emit_vex(
+            dest.needs_rex(),
+            false,
+            rhs.needs_rex(),
+            VEX_MMMMM_0F,
+            0,
+            lhs.value(),
+            VEX_L_SCALAR_128,
+            VEX_PP_F3,
+        );
+        self.emit_u8(0x5c);
+        self.emit_modrm(0b11, dest.low_bits(), rhs.low_bits());
+    }
+
     pub fn xaddl_ar(&mut self, dest: Address, src: Register) {
         self.emit_rex32_modrm_address_optional(src, dest);
         self.emit_u8(0x0f);
@@ -3173,5 +3203,15 @@ mod tests {
         assert_emit!(0xc5, 0x73, 0x58, 0xc2; vaddsd_rr(XMM8, XMM1, XMM2));
         assert_emit!(0xc5, 0xb3, 0x58, 0xc2; vaddsd_rr(XMM0, XMM9, XMM2));
         assert_emit!(0xc4, 0xc1, 0x73, 0x58, 0xc2; vaddsd_rr(XMM0, XMM1, XMM10));
+    }
+
+    #[test]
+    fn test_vsubss_rr() {
+        assert_emit!(0xc5, 0xf2, 0x5c, 0xc2; vsubss_rr(XMM0, XMM1, XMM2));
+    }
+
+    #[test]
+    fn test_vsubsd_rr() {
+        assert_emit!(0xc5, 0xf3, 0x5c, 0xc2; vsubsd_rr(XMM0, XMM1, XMM2));
     }
 }

@@ -1244,13 +1244,9 @@ impl MacroAssembler {
 
     pub fn float_sub(&mut self, mode: MachineMode, dest: FReg, lhs: FReg, rhs: FReg) {
         match mode {
-            MachineMode::Float32 => self.asm.subss_rr(lhs.into(), rhs.into()),
-            MachineMode::Float64 => self.asm.subsd_rr(lhs.into(), rhs.into()),
+            MachineMode::Float32 => self.asm.vsubss_rr(dest.into(), lhs.into(), rhs.into()),
+            MachineMode::Float64 => self.asm.vsubsd_rr(dest.into(), lhs.into(), rhs.into()),
             _ => unimplemented!(),
-        }
-
-        if dest != lhs {
-            self.copy_freg(mode, dest, lhs);
         }
     }
 
