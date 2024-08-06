@@ -173,7 +173,7 @@ impl AssemblerX64 {
     pub fn addl_rr(&mut self, dest: Register, src: Register) {
         self.emit_rex32_optional(src, dest);
         self.emit_u8(0x01);
-        self.emit_modrm_registers(src, dest);
+        self.emit_modrm(0b11, src.low_bits(), dest.low_bits());
     }
 
     pub fn addq_ri(&mut self, dest: Register, imm: Immediate) {
@@ -183,7 +183,7 @@ impl AssemblerX64 {
     pub fn addq_rr(&mut self, dest: Register, src: Register) {
         self.emit_rex64_modrm(src, dest);
         self.emit_u8(0x01);
-        self.emit_modrm_registers(src, dest);
+        self.emit_modrm(0b11, src.low_bits(), dest.low_bits());
     }
 
     pub fn addss_rr(&mut self, dest: XmmRegister, src: XmmRegister) {
@@ -191,7 +191,7 @@ impl AssemblerX64 {
         self.emit_rex_sse_modrm_optional(dest, src);
         self.emit_u8(0x0f);
         self.emit_u8(0x58);
-        self.emit_modrm_sse_registers(dest, src);
+        self.emit_modrm(0b11, dest.low_bits(), src.low_bits());
     }
 
     pub fn addsd_rr(&mut self, dest: XmmRegister, src: XmmRegister) {
@@ -199,13 +199,13 @@ impl AssemblerX64 {
         self.emit_rex_sse_modrm_optional(dest, src);
         self.emit_u8(0x0f);
         self.emit_u8(0x58);
-        self.emit_modrm_sse_registers(dest, src);
+        self.emit_modrm(0b11, dest.low_bits(), src.low_bits());
     }
 
     pub fn andl_rr(&mut self, dest: Register, src: Register) {
         self.emit_rex32_optional(src, dest);
         self.emit_u8(0x21);
-        self.emit_modrm_registers(src, dest);
+        self.emit_modrm(0b11, src.low_bits(), dest.low_bits());
     }
 
     pub fn andps_ra(&mut self, dest: XmmRegister, src: Address) {
@@ -222,13 +222,13 @@ impl AssemblerX64 {
     pub fn andq_rr(&mut self, dest: Register, src: Register) {
         self.emit_rex64_modrm(src, dest);
         self.emit_u8(0x21);
-        self.emit_modrm_registers(src, dest);
+        self.emit_modrm(0b11, src.low_bits(), dest.low_bits());
     }
 
     pub fn call_r(&mut self, reg: Register) {
         self.emit_rex32_rm_optional(reg);
         self.emit_u8(0xFF);
-        self.emit_modrm_opcode(0b010, reg);
+        self.emit_modrm(0b11, 0b010, reg.low_bits());
     }
 
     pub fn cdq(&mut self) {
@@ -239,14 +239,14 @@ impl AssemblerX64 {
         self.emit_rex32_optional(dest, src);
         self.emit_u8(0x0F);
         self.emit_u8((0x40 + condition.int()) as u8);
-        self.emit_modrm_registers(dest, src);
+        self.emit_modrm(0b11, dest.low_bits(), src.low_bits());
     }
 
     pub fn cmovq(&mut self, condition: Condition, dest: Register, src: Register) {
         self.emit_rex64_modrm(dest, src);
         self.emit_u8(0x0F);
         self.emit_u8((0x40 + condition.int()) as u8);
-        self.emit_modrm_registers(dest, src);
+        self.emit_modrm(0b11, dest.low_bits(), src.low_bits());
     }
 
     pub fn cmpb_ai(&mut self, lhs: Address, rhs: Immediate) {
@@ -266,7 +266,7 @@ impl AssemblerX64 {
     pub fn cmpb_rr(&mut self, lhs: Register, rhs: Register) {
         self.emit_rex8_modrm_optional(rhs, lhs);
         self.emit_u8(0x38u8);
-        self.emit_modrm_registers(rhs, lhs);
+        self.emit_modrm(0b11, rhs.low_bits(), lhs.low_bits());
     }
 
     pub fn cmpl_ai(&mut self, lhs: Address, rhs: Immediate) {
@@ -298,7 +298,7 @@ impl AssemblerX64 {
     pub fn cmpl_rr(&mut self, dest: Register, src: Register) {
         self.emit_rex32_optional(src, dest);
         self.emit_u8(0x39);
-        self.emit_modrm_registers(src, dest);
+        self.emit_modrm(0b11, src.low_bits(), dest.low_bits());
     }
 
     pub fn cmpq_ai(&mut self, lhs: Address, rhs: Immediate) {
@@ -330,7 +330,7 @@ impl AssemblerX64 {
     pub fn cmpq_rr(&mut self, lhs: Register, rhs: Register) {
         self.emit_rex64_modrm(rhs, lhs);
         self.emit_u8(0x39);
-        self.emit_modrm_registers(rhs, lhs);
+        self.emit_modrm(0b11, rhs.low_bits(), lhs.low_bits());
     }
 
     pub fn cmpxchgl_ar(&mut self, dest: Address, src: Register) {
@@ -348,7 +348,7 @@ impl AssemblerX64 {
     }
 
     pub fn cqo(&mut self) {
-        self.emit_rex64();
+        self.emit_rex(true, false, false, false);
         self.emit_u8(0x99);
     }
 
@@ -357,7 +357,7 @@ impl AssemblerX64 {
         self.emit_rex_sse_modrm_optional(dest, src);
         self.emit_u8(0x0f);
         self.emit_u8(0x5a);
-        self.emit_modrm_sse_registers(dest, src);
+        self.emit_modrm(0b11, dest.low_bits(), src.low_bits());
     }
 
     pub fn cvtsi2sdd_rr(&mut self, dest: XmmRegister, src: Register) {
@@ -397,7 +397,7 @@ impl AssemblerX64 {
         self.emit_rex_sse_modrm_optional(dest, src);
         self.emit_u8(0x0f);
         self.emit_u8(0x5a);
-        self.emit_modrm_sse_registers(dest, src);
+        self.emit_modrm(0b11, dest.low_bits(), src.low_bits());
     }
 
     pub fn cvttsd2sid_rr(&mut self, dest: Register, src: XmmRegister) {
@@ -437,7 +437,7 @@ impl AssemblerX64 {
         self.emit_rex_sse_modrm_optional(dest, src);
         self.emit_u8(0x0f);
         self.emit_u8(0x5e);
-        self.emit_modrm_sse_registers(dest, src);
+        self.emit_modrm(0b11, dest.low_bits(), src.low_bits());
     }
 
     pub fn divsd_rr(&mut self, dest: XmmRegister, src: XmmRegister) {
@@ -445,33 +445,33 @@ impl AssemblerX64 {
         self.emit_rex_sse_modrm_optional(dest, src);
         self.emit_u8(0x0f);
         self.emit_u8(0x5e);
-        self.emit_modrm_sse_registers(dest, src);
+        self.emit_modrm(0b11, dest.low_bits(), src.low_bits());
     }
 
     pub fn idivl_r(&mut self, reg: Register) {
         self.emit_rex32_rm_optional(reg);
         self.emit_u8(0xF7);
-        self.emit_modrm_opcode(0b111, reg);
+        self.emit_modrm(0b11, 0b111, reg.low_bits());
     }
 
     pub fn idivq_r(&mut self, src: Register) {
-        self.emit_rex64_rm(src);
+        self.emit_rex(true, false, false, src.needs_rex());
         self.emit_u8(0xF7);
-        self.emit_modrm_opcode(0b111, src);
+        self.emit_modrm(0b11, 0b111, src.low_bits());
     }
 
     pub fn imull_rr(&mut self, dest: Register, src: Register) {
         self.emit_rex32_optional(dest, src);
         self.emit_u8(0x0F);
         self.emit_u8(0xAF);
-        self.emit_modrm_registers(dest, src);
+        self.emit_modrm(0b11, dest.low_bits(), src.low_bits());
     }
 
     pub fn imulq_rr(&mut self, dest: Register, src: Register) {
         self.emit_rex64_modrm(dest, src);
         self.emit_u8(0x0F);
         self.emit_u8(0xAF);
-        self.emit_modrm_registers(dest, src);
+        self.emit_modrm(0b11, dest.low_bits(), src.low_bits());
     }
 
     pub fn int3(&mut self) {
@@ -591,7 +591,7 @@ impl AssemblerX64 {
     pub fn jmp_r(&mut self, reg: Register) {
         self.emit_rex32_rm_optional(reg);
         self.emit_u8(0xff);
-        self.emit_modrm_opcode(0b100, reg);
+        self.emit_modrm(0b11, 0b100, reg.low_bits());
     }
 
     pub fn lea(&mut self, dest: Register, src: Address) {
@@ -625,7 +625,7 @@ impl AssemblerX64 {
         self.emit_rex32_optional(dest, src);
         self.emit_u8(0x0f);
         self.emit_u8(0xbd);
-        self.emit_modrm_registers(dest, src);
+        self.emit_modrm(0b11, dest.low_bits(), src.low_bits());
     }
 
     pub fn lzcntq_rr(&mut self, dest: Register, src: Register) {
@@ -633,7 +633,7 @@ impl AssemblerX64 {
         self.emit_rex64_modrm(dest, src);
         self.emit_u8(0x0f);
         self.emit_u8(0xbd);
-        self.emit_modrm_registers(dest, src);
+        self.emit_modrm(0b11, dest.low_bits(), src.low_bits());
     }
 
     pub fn mfence(&mut self) {
@@ -715,7 +715,7 @@ impl AssemblerX64 {
     pub fn movl_rr(&mut self, dest: Register, src: Register) {
         self.emit_rex32_optional(src, dest);
         self.emit_u8(0x89);
-        self.emit_modrm_registers(src, dest);
+        self.emit_modrm(0b11, src.low_bits(), dest.low_bits());
     }
 
     pub fn movq_ai(&mut self, dest: Address, imm: Immediate) {
@@ -740,12 +740,12 @@ impl AssemblerX64 {
 
     pub fn movq_ri(&mut self, dest: Register, imm: Immediate) {
         if imm.is_int32() {
-            self.emit_rex64_rm(dest);
+            self.emit_rex(true, false, false, dest.needs_rex());
             self.emit_u8(0xC7);
-            self.emit_modrm_opcode(0, dest);
+            self.emit_modrm(0b11, 0b000, dest.low_bits());
             self.emit_u32(imm.int32() as u32);
         } else {
-            self.emit_rex64_rm(dest);
+            self.emit_rex(true, false, false, dest.needs_rex());
             self.emit_u8(0xB8 + dest.low_bits());
             self.emit_u64(imm.int64() as u64);
         }
@@ -754,7 +754,7 @@ impl AssemblerX64 {
     pub fn movq_rr(&mut self, dest: Register, src: Register) {
         self.emit_rex64_modrm(src, dest);
         self.emit_u8(0x89);
-        self.emit_modrm_registers(src, dest);
+        self.emit_modrm(0b11, src.low_bits(), dest.low_bits());
     }
 
     pub fn movq_rx(&mut self, dest: Register, src: XmmRegister) {
@@ -778,7 +778,7 @@ impl AssemblerX64 {
         self.emit_rex_sse_modrm_optional(dest, src);
         self.emit_u8(0x0f);
         self.emit_u8(0x10);
-        self.emit_modrm_sse_registers(dest, src);
+        self.emit_modrm(0b11, dest.low_bits(), src.low_bits());
     }
 
     pub fn movsd_ra(&mut self, dest: XmmRegister, src: Address) {
@@ -818,7 +818,7 @@ impl AssemblerX64 {
         self.emit_rex_sse_modrm_optional(dest, src);
         self.emit_u8(0x0f);
         self.emit_u8(0x10);
-        self.emit_modrm_sse_registers(dest, src);
+        self.emit_modrm(0b11, dest.low_bits(), src.low_bits());
     }
 
     pub fn movsxbl_ra(&mut self, dest: Register, src: Address) {
@@ -832,7 +832,7 @@ impl AssemblerX64 {
         self.emit_rex32_byte_optional(dest, src);
         self.emit_u8(0x0f);
         self.emit_u8(0xbe);
-        self.emit_modrm_registers(dest, src);
+        self.emit_modrm(0b11, dest.low_bits(), src.low_bits());
     }
 
     pub fn movsxbq_ra(&mut self, dest: Register, src: Address) {
@@ -846,13 +846,13 @@ impl AssemblerX64 {
         self.emit_rex64_modrm(dest, src);
         self.emit_u8(0x0f);
         self.emit_u8(0xbe);
-        self.emit_modrm_registers(dest, src);
+        self.emit_modrm(0b11, dest.low_bits(), src.low_bits());
     }
 
     pub fn movsxlq_rr(&mut self, dest: Register, src: Register) {
         self.emit_rex64_modrm(dest, src);
         self.emit_u8(0x63);
-        self.emit_modrm_registers(dest, src);
+        self.emit_modrm(0b11, dest.low_bits(), src.low_bits());
     }
 
     pub fn movups_ar(&mut self, dest: Address, src: XmmRegister) {
@@ -866,7 +866,7 @@ impl AssemblerX64 {
         self.emit_rex32_byte_optional(dest, src);
         self.emit_u8(0x0f);
         self.emit_u8(0xb6);
-        self.emit_modrm_registers(dest, src);
+        self.emit_modrm(0b11, dest.low_bits(), src.low_bits());
     }
 
     pub fn movzxb_ra(&mut self, dest: Register, src: Address) {
@@ -881,7 +881,7 @@ impl AssemblerX64 {
         self.emit_rex_sse_modrm_optional(dest, src);
         self.emit_u8(0x0f);
         self.emit_u8(0x59);
-        self.emit_modrm_sse_registers(dest, src);
+        self.emit_modrm(0b11, dest.low_bits(), src.low_bits());
     }
 
     pub fn mulsd_rr(&mut self, dest: XmmRegister, src: XmmRegister) {
@@ -889,19 +889,19 @@ impl AssemblerX64 {
         self.emit_rex_sse_modrm_optional(dest, src);
         self.emit_u8(0x0f);
         self.emit_u8(0x59);
-        self.emit_modrm_sse_registers(dest, src);
+        self.emit_modrm(0b11, dest.low_bits(), src.low_bits());
     }
 
     pub fn negl(&mut self, reg: Register) {
         self.emit_rex32_rm_optional(reg);
         self.emit_u8(0xF7);
-        self.emit_modrm_opcode(0b011, reg);
+        self.emit_modrm(0b11, 0b011, reg.low_bits());
     }
 
     pub fn negq(&mut self, reg: Register) {
-        self.emit_rex64_rm(reg);
+        self.emit_rex(true, false, false, reg.needs_rex());
         self.emit_u8(0xF7);
-        self.emit_modrm_opcode(0b011, reg);
+        self.emit_modrm(0b11, 0b011, reg.low_bits());
     }
 
     pub fn nop(&mut self) {
@@ -911,25 +911,25 @@ impl AssemblerX64 {
     pub fn notl(&mut self, reg: Register) {
         self.emit_rex32_rm_optional(reg);
         self.emit_u8(0xF7);
-        self.emit_modrm_opcode(0b010, reg);
+        self.emit_modrm(0b11, 0b010, reg.low_bits());
     }
 
     pub fn notq(&mut self, reg: Register) {
-        self.emit_rex64_rm(reg);
+        self.emit_rex(true, false, false, reg.needs_rex());
         self.emit_u8(0xF7);
-        self.emit_modrm_opcode(0b010, reg);
+        self.emit_modrm(0b11, 0b010, reg.low_bits());
     }
 
     pub fn orl_rr(&mut self, dest: Register, src: Register) {
         self.emit_rex32_optional(src, dest);
         self.emit_u8(0x09);
-        self.emit_modrm_registers(src, dest);
+        self.emit_modrm(0b11, src.low_bits(), dest.low_bits());
     }
 
     pub fn orq_rr(&mut self, dest: Register, src: Register) {
         self.emit_rex64_modrm(src, dest);
         self.emit_u8(0x09);
-        self.emit_modrm_registers(src, dest);
+        self.emit_modrm(0b11, src.low_bits(), dest.low_bits());
     }
 
     pub fn pushq_r(&mut self, reg: Register) {
@@ -942,7 +942,7 @@ impl AssemblerX64 {
         self.emit_rex32_optional(dest, src);
         self.emit_u8(0x0f);
         self.emit_u8(0xb8);
-        self.emit_modrm_registers(dest, src);
+        self.emit_modrm(0b11, dest.low_bits(), src.low_bits());
     }
 
     pub fn popcntq_rr(&mut self, dest: Register, src: Register) {
@@ -950,7 +950,7 @@ impl AssemblerX64 {
         self.emit_rex64_modrm(dest, src);
         self.emit_u8(0x0f);
         self.emit_u8(0xb8);
-        self.emit_modrm_registers(dest, src);
+        self.emit_modrm(0b11, dest.low_bits(), src.low_bits());
     }
 
     pub fn popq_r(&mut self, reg: Register) {
@@ -963,7 +963,7 @@ impl AssemblerX64 {
         self.emit_rex_sse_modrm_optional(dest, src);
         self.emit_u8(0x0f);
         self.emit_u8(0xef);
-        self.emit_modrm_sse_registers(dest, src);
+        self.emit_modrm(0b11, dest.low_bits(), src.low_bits());
     }
 
     pub fn retq(&mut self) {
@@ -973,13 +973,13 @@ impl AssemblerX64 {
     pub fn roll_r(&mut self, opnd: Register) {
         self.emit_rex32_rm_optional(opnd);
         self.emit_u8(0xd3);
-        self.emit_modrm_opcode(0b000, opnd);
+        self.emit_modrm(0b11, 0b000, opnd.low_bits());
     }
 
     pub fn rolq_r(&mut self, opnd: Register) {
-        self.emit_rex64_rm(opnd);
+        self.emit_rex(true, false, false, opnd.needs_rex());
         self.emit_u8(0xd3);
-        self.emit_modrm_opcode(0b000, opnd);
+        self.emit_modrm(0b11, 0b000, opnd.low_bits());
     }
 
     pub fn roundss_ri(&mut self, dest: XmmRegister, src: XmmRegister, mode: u8) {
@@ -988,7 +988,7 @@ impl AssemblerX64 {
         self.emit_u8(0x0f);
         self.emit_u8(0x3a);
         self.emit_u8(0x0a);
-        self.emit_modrm_sse_registers(dest, src);
+        self.emit_modrm(0b11, dest.low_bits(), src.low_bits());
         self.emit_u8(mode);
     }
 
@@ -998,47 +998,47 @@ impl AssemblerX64 {
         self.emit_u8(0x0f);
         self.emit_u8(0x3a);
         self.emit_u8(0x0b);
-        self.emit_modrm_sse_registers(dest, src);
+        self.emit_modrm(0b11, dest.low_bits(), src.low_bits());
         self.emit_u8(mode);
     }
 
     pub fn rorl_r(&mut self, opnd: Register) {
         self.emit_rex32_rm_optional(opnd);
         self.emit_u8(0xd3);
-        self.emit_modrm_opcode(0b001, opnd);
+        self.emit_modrm(0b11, 0b001, opnd.low_bits());
     }
 
     pub fn rorq_r(&mut self, opnd: Register) {
-        self.emit_rex64_rm(opnd);
+        self.emit_rex(true, false, false, opnd.needs_rex());
         self.emit_u8(0xd3);
-        self.emit_modrm_opcode(0b001, opnd);
+        self.emit_modrm(0b11, 0b001, opnd.low_bits());
     }
 
     pub fn sarl_r(&mut self, lhs: Register) {
         self.emit_rex32_rm_optional(lhs);
         self.emit_u8(0xd3);
-        self.emit_modrm_opcode(0b111, lhs);
+        self.emit_modrm(0b11, 0b111, lhs.low_bits());
     }
 
     pub fn sarl_ri(&mut self, lhs: Register, rhs: Immediate) {
         assert!(rhs.is_int8());
         self.emit_rex32_rm_optional(lhs);
         self.emit_u8(0xc1);
-        self.emit_modrm_opcode(0b111, lhs);
+        self.emit_modrm(0b11, 0b111, lhs.low_bits());
         self.emit_u8(rhs.int8() as u8);
     }
 
     pub fn sarq_r(&mut self, lhs: Register) {
-        self.emit_rex64_rm(lhs);
+        self.emit_rex(true, false, false, lhs.needs_rex());
         self.emit_u8(0xd3);
-        self.emit_modrm_opcode(0b111, lhs);
+        self.emit_modrm(0b11, 0b111, lhs.low_bits());
     }
 
     pub fn sarq_ri(&mut self, lhs: Register, rhs: Immediate) {
         assert!(rhs.is_int8());
-        self.emit_rex64_rm(lhs);
+        self.emit_rex(true, false, false, lhs.needs_rex());
         self.emit_u8(0xc1);
-        self.emit_modrm_opcode(0b111, lhs);
+        self.emit_modrm(0b11, 0b111, lhs.low_bits());
         self.emit_u8(rhs.int8() as u8);
     }
 
@@ -1049,62 +1049,62 @@ impl AssemblerX64 {
 
         self.emit_u8(0x0F);
         self.emit_u8((0x90 + condition.int()) as u8);
-        self.emit_modrm_opcode(0, dest);
+        self.emit_modrm(0b11, 0b000, dest.low_bits());
     }
 
     pub fn shll_r(&mut self, lhs: Register) {
         self.emit_rex32_rm_optional(lhs);
         self.emit_u8(0xd3);
-        self.emit_modrm_opcode(0b100, lhs);
+        self.emit_modrm(0b11, 0b100, lhs.low_bits());
     }
 
     pub fn shll_ri(&mut self, lhs: Register, rhs: Immediate) {
         assert!(rhs.is_int8());
         self.emit_rex32_rm_optional(lhs);
         self.emit_u8(0xc1);
-        self.emit_modrm_opcode(0b100, lhs);
+        self.emit_modrm(0b11, 0b100, lhs.low_bits());
         self.emit_u8(rhs.int8() as u8);
     }
 
     pub fn shlq_r(&mut self, lhs: Register) {
-        self.emit_rex64_rm(lhs);
+        self.emit_rex(true, false, false, lhs.needs_rex());
         self.emit_u8(0xd3);
-        self.emit_modrm_opcode(0b100, lhs);
+        self.emit_modrm(0b11, 0b100, lhs.low_bits());
     }
 
     pub fn shlq_ri(&mut self, lhs: Register, rhs: Immediate) {
         assert!(rhs.is_int8());
-        self.emit_rex64_rm(lhs);
+        self.emit_rex(true, false, false, lhs.needs_rex());
         self.emit_u8(0xc1);
-        self.emit_modrm_opcode(0b100, lhs);
+        self.emit_modrm(0b11, 0b100, lhs.low_bits());
         self.emit_u8(rhs.int8() as u8);
     }
 
     pub fn shrl_r(&mut self, lhs: Register) {
         self.emit_rex32_rm_optional(lhs);
         self.emit_u8(0xd3);
-        self.emit_modrm_opcode(0b101, lhs);
+        self.emit_modrm(0b11, 0b101, lhs.low_bits());
     }
 
     pub fn shrl_ri(&mut self, lhs: Register, rhs: Immediate) {
         assert!(rhs.is_int8());
         self.emit_rex32_rm_optional(lhs);
         self.emit_u8(0xc1);
-        self.emit_modrm_opcode(0b101, lhs);
+        self.emit_modrm(0b11, 0b101, lhs.low_bits());
         self.emit_u8(rhs.int8() as u8);
     }
 
     pub fn shrq_r(&mut self, lhs: Register) {
-        self.emit_rex64_rm(lhs);
+        self.emit_rex(true, false, false, lhs.needs_rex());
         self.emit_u8(0xd3);
-        self.emit_modrm_opcode(0b101, lhs);
+        self.emit_modrm(0b11, 0b101, lhs.low_bits());
     }
 
     pub fn shrq_ri(&mut self, lhs: Register, rhs: Immediate) {
         assert!(rhs.is_int8());
-        self.emit_rex64_rm(lhs);
+        self.emit_rex(true, false, false, lhs.needs_rex());
         self.emit_u8(0xc1);
-        self.emit_modrm_opcode(0b101, lhs);
+        self.emit_modrm(0b11, 0b101, lhs.low_bits());
         self.emit_u8(rhs.int8() as u8);
     }
 
@@ -1113,7 +1113,7 @@ impl AssemblerX64 {
         self.emit_rex_sse_modrm_optional(dest, src);
         self.emit_u8(0x0f);
         self.emit_u8(0x51);
-        self.emit_modrm_sse_registers(dest, src);
+        self.emit_modrm(0b11, dest.low_bits(), src.low_bits());
     }
 
     pub fn sqrtss_rr(&mut self, dest: XmmRegister, src: XmmRegister) {
@@ -1121,13 +1121,13 @@ impl AssemblerX64 {
         self.emit_rex_sse_modrm_optional(dest, src);
         self.emit_u8(0x0f);
         self.emit_u8(0x51);
-        self.emit_modrm_sse_registers(dest, src);
+        self.emit_modrm(0b11, dest.low_bits(), src.low_bits());
     }
 
     pub fn subl_rr(&mut self, dest: Register, src: Register) {
         self.emit_rex32_optional(src, dest);
         self.emit_u8(0x29);
-        self.emit_modrm_registers(src, dest);
+        self.emit_modrm(0b11, src.low_bits(), dest.low_bits());
     }
 
     pub fn subq_ri(&mut self, dest: Register, imm: Immediate) {
@@ -1137,7 +1137,7 @@ impl AssemblerX64 {
     pub fn subq_rr(&mut self, dest: Register, src: Register) {
         self.emit_rex64_modrm(src, dest);
         self.emit_u8(0x29);
-        self.emit_modrm_registers(src, dest);
+        self.emit_modrm(0b11, src.low_bits(), dest.low_bits());
     }
 
     pub fn subsd_rr(&mut self, dest: XmmRegister, src: XmmRegister) {
@@ -1145,7 +1145,7 @@ impl AssemblerX64 {
         self.emit_rex_sse_modrm_optional(dest, src);
         self.emit_u8(0x0f);
         self.emit_u8(0x5c);
-        self.emit_modrm_sse_registers(dest, src);
+        self.emit_modrm(0b11, dest.low_bits(), src.low_bits());
     }
 
     pub fn subss_rr(&mut self, dest: XmmRegister, src: XmmRegister) {
@@ -1153,7 +1153,7 @@ impl AssemblerX64 {
         self.emit_rex_sse_modrm_optional(dest, src);
         self.emit_u8(0x0f);
         self.emit_u8(0x5c);
-        self.emit_modrm_sse_registers(dest, src);
+        self.emit_modrm(0b11, dest.low_bits(), src.low_bits());
     }
 
     pub fn testb_ai(&mut self, lhs: Address, rhs: Immediate) {
@@ -1167,7 +1167,7 @@ impl AssemblerX64 {
     pub fn testb_rr(&mut self, lhs: Register, rhs: Register) {
         self.emit_rex8_modrm_optional(rhs, lhs);
         self.emit_u8(0x84);
-        self.emit_modrm_registers(rhs, lhs);
+        self.emit_modrm(0b11, rhs.low_bits(), lhs.low_bits());
     }
 
     pub fn testl_ai(&mut self, lhs: Address, rhs: Immediate) {
@@ -1192,11 +1192,11 @@ impl AssemblerX64 {
                 self.emit_u8(0xa8);
             } else if lhs.value() < 4 {
                 self.emit_u8(0xf6);
-                self.emit_modrm_opcode(0b000, lhs);
+                self.emit_modrm(0b11, 0b000, lhs.low_bits());
             } else {
                 self.emit_rex(false, false, false, lhs.needs_rex());
                 self.emit_u8(0xf6);
-                self.emit_modrm_opcode(0b000, lhs);
+                self.emit_modrm(0b11, 0b000, lhs.low_bits());
             }
             self.emit_u8(rhs.uint8());
         } else if lhs == RAX {
@@ -1204,7 +1204,7 @@ impl AssemblerX64 {
             self.emit_u32(rhs.int32() as u32);
         } else {
             self.emit_u8(0xf7);
-            self.emit_modrm_opcode(0b000, lhs);
+            self.emit_modrm(0b11, 0b000, lhs.low_bits());
             self.emit_u32(rhs.int32() as u32);
         }
     }
@@ -1212,7 +1212,7 @@ impl AssemblerX64 {
     pub fn testl_rr(&mut self, lhs: Register, rhs: Register) {
         self.emit_rex32_optional(rhs, lhs);
         self.emit_u8(0x85);
-        self.emit_modrm_registers(rhs, lhs);
+        self.emit_modrm(0b11, rhs.low_bits(), lhs.low_bits());
     }
 
     pub fn testq_ai(&mut self, lhs: Address, rhs: Immediate) {
@@ -1232,7 +1232,7 @@ impl AssemblerX64 {
     pub fn testq_rr(&mut self, lhs: Register, rhs: Register) {
         self.emit_rex64_modrm(rhs, lhs);
         self.emit_u8(0x85);
-        self.emit_modrm_registers(rhs, lhs);
+        self.emit_modrm(0b11, rhs.low_bits(), lhs.low_bits());
     }
 
     pub fn tzcntl_rr(&mut self, dest: Register, src: Register) {
@@ -1240,7 +1240,7 @@ impl AssemblerX64 {
         self.emit_rex32_optional(dest, src);
         self.emit_u8(0x0f);
         self.emit_u8(0xbc);
-        self.emit_modrm_registers(dest, src);
+        self.emit_modrm(0b11, dest.low_bits(), src.low_bits());
     }
 
     pub fn tzcntq_rr(&mut self, dest: Register, src: Register) {
@@ -1248,14 +1248,14 @@ impl AssemblerX64 {
         self.emit_rex64_modrm(dest, src);
         self.emit_u8(0x0f);
         self.emit_u8(0xbc);
-        self.emit_modrm_registers(dest, src);
+        self.emit_modrm(0b11, dest.low_bits(), src.low_bits());
     }
 
     pub fn ucomiss_rr(&mut self, dest: XmmRegister, src: XmmRegister) {
         self.emit_rex_sse_modrm_optional(dest, src);
         self.emit_u8(0x0f);
         self.emit_u8(0x2e);
-        self.emit_modrm_sse_registers(dest, src);
+        self.emit_modrm(0b11, dest.low_bits(), src.low_bits());
     }
 
     pub fn ucomisd_rr(&mut self, dest: XmmRegister, src: XmmRegister) {
@@ -1263,7 +1263,7 @@ impl AssemblerX64 {
         self.emit_rex_sse_modrm_optional(dest, src);
         self.emit_u8(0x0f);
         self.emit_u8(0x2e);
-        self.emit_modrm_sse_registers(dest, src);
+        self.emit_modrm(0b11, dest.low_bits(), src.low_bits());
     }
 
     pub fn vaddsd_rr(&mut self, dest: XmmRegister, lhs: XmmRegister, rhs: XmmRegister) {
@@ -1395,7 +1395,7 @@ impl AssemblerX64 {
     pub fn xorl_rr(&mut self, dest: Register, src: Register) {
         self.emit_rex32_optional(src, dest);
         self.emit_u8(0x31);
-        self.emit_modrm_registers(src, dest);
+        self.emit_modrm(0b11, src.low_bits(), dest.low_bits());
     }
 
     pub fn xorpd_ra(&mut self, dest: XmmRegister, src: Address) {
@@ -1417,13 +1417,13 @@ impl AssemblerX64 {
         self.emit_rex_sse_modrm_optional(dest, src);
         self.emit_u8(0x0f);
         self.emit_u8(0x57);
-        self.emit_modrm_sse_registers(dest, src);
+        self.emit_modrm(0b11, dest.low_bits(), src.low_bits());
     }
 
     pub fn xorq_rr(&mut self, dest: Register, src: Register) {
         self.emit_rex64_modrm(src, dest);
         self.emit_u8(0x31);
-        self.emit_modrm_registers(src, dest);
+        self.emit_modrm(0b11, src.low_bits(), dest.low_bits());
     }
 
     fn emit_lock_prefix(&mut self) {
@@ -1464,14 +1464,6 @@ impl AssemblerX64 {
         if reg.needs_rex() || rm.needs_rex() {
             self.emit_rex(false, reg.needs_rex(), false, rm.needs_rex());
         }
-    }
-
-    fn emit_rex64(&mut self) {
-        self.emit_rex(true, false, false, false);
-    }
-
-    fn emit_rex64_rm(&mut self, rm: Register) {
-        self.emit_rex(true, false, false, rm.needs_rex());
     }
 
     fn emit_rex64_modrm_address(&mut self, reg: Register, address: Address) {
@@ -1591,27 +1583,15 @@ impl AssemblerX64 {
         self.emit_u8(byte);
     }
 
-    fn emit_modrm_registers(&mut self, reg: Register, rm: Register) {
-        self.emit_modrm(0b11, reg.low_bits(), rm.low_bits());
-    }
-
-    fn emit_modrm_sse_registers(&mut self, reg: XmmRegister, rm: XmmRegister) {
-        self.emit_modrm(0b11, reg.low_bits(), rm.low_bits());
-    }
-
-    fn emit_modrm_opcode(&mut self, opcode: u8, reg: Register) {
-        self.emit_modrm(0b11, opcode, reg.low_bits());
-    }
-
     fn emit_modrm(&mut self, mode: u8, reg: u8, rm: u8) {
-        assert!(mode < 4);
-        assert!(reg < 8);
-        assert!(rm < 8);
+        assert!(fits_u2(mode as u32));
+        assert!(fits_u3(reg as u32));
+        assert!(fits_u3(rm as u32));
         self.emit_u8(mode << 6 | reg << 3 | rm);
     }
 
     fn emit_address(&mut self, reg_or_opcode: u8, address: Address) {
-        assert!(reg_or_opcode < 8);
+        assert!(fits_u3(reg_or_opcode as u32));
 
         let bytes = address.encoded_bytes();
 
@@ -1625,18 +1605,18 @@ impl AssemblerX64 {
 
     fn emit_alu64_imm(&mut self, reg: Register, imm: Immediate, modrm_reg: u8, rax_opcode: u8) {
         assert!(imm.is_int32());
-        self.emit_rex64_rm(reg);
+        self.emit_rex(true, false, false, reg.needs_rex());
 
         if imm.is_int8() {
             self.emit_u8(0x83);
-            self.emit_modrm_opcode(modrm_reg, reg);
+            self.emit_modrm(0b11, modrm_reg, reg.low_bits());
             self.emit_u8(imm.int8() as u8);
         } else if reg == RAX {
             self.emit_u8(rax_opcode);
             self.emit_u32(imm.int32() as u32);
         } else {
             self.emit_u8(0x81);
-            self.emit_modrm_opcode(modrm_reg, reg);
+            self.emit_modrm(0b11, modrm_reg, reg.low_bits());
             self.emit_u32(imm.int32() as u32);
         }
     }
@@ -1647,14 +1627,14 @@ impl AssemblerX64 {
 
         if imm.is_int8() {
             self.emit_u8(0x83);
-            self.emit_modrm_opcode(modrm_reg, reg);
+            self.emit_modrm(0b11, modrm_reg, reg.low_bits());
             self.emit_u8(imm.int8() as u8);
         } else if reg == RAX {
             self.emit_u8(rax_opcode);
             self.emit_u32(imm.int32() as u32);
         } else {
             self.emit_u8(0x81);
-            self.emit_modrm_opcode(modrm_reg, reg);
+            self.emit_modrm(0b11, modrm_reg, reg.low_bits());
             self.emit_u32(imm.int32() as u32);
         }
     }
@@ -1977,6 +1957,10 @@ fn fits_u1(imm: u32) -> bool {
 
 fn fits_u2(imm: u32) -> bool {
     imm < 4
+}
+
+fn fits_u3(imm: u32) -> bool {
+    imm < 8
 }
 
 fn fits_u4(imm: u32) -> bool {
