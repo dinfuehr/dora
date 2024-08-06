@@ -1252,20 +1252,22 @@ impl MacroAssembler {
                 if has_avx2() {
                     self.asm.vaddss_rr(dest.into(), lhs.into(), rhs.into());
                 } else {
+                    self.asm.addss_rr(lhs.into(), rhs.into());
+
                     if dest != lhs {
                         self.asm.movss_rr(dest.into(), lhs.into());
                     }
-                    self.asm.addss_rr(dest.into(), rhs.into());
                 }
             }
             MachineMode::Float64 => {
                 if has_avx2() {
                     self.asm.vaddsd_rr(dest.into(), lhs.into(), rhs.into());
                 } else {
+                    self.asm.addsd_rr(lhs.into(), rhs.into());
+
                     if dest != lhs {
-                        self.asm.movss_rr(dest.into(), lhs.into());
+                        self.asm.movsd_rr(dest.into(), lhs.into());
                     }
-                    self.asm.addsd_rr(dest.into(), rhs.into());
                 }
             }
             _ => unimplemented!(),
@@ -1278,20 +1280,22 @@ impl MacroAssembler {
                 if has_avx2() {
                     self.asm.vsubss_rr(dest.into(), lhs.into(), rhs.into());
                 } else {
+                    self.asm.subss_rr(lhs.into(), rhs.into());
+
                     if dest != lhs {
                         self.asm.movss_rr(dest.into(), lhs.into());
                     }
-                    self.asm.subss_rr(dest.into(), rhs.into());
                 }
             }
             MachineMode::Float64 => {
                 if has_avx2() {
                     self.asm.vsubsd_rr(dest.into(), lhs.into(), rhs.into());
                 } else {
+                    self.asm.subsd_rr(lhs.into(), rhs.into());
+
                     if dest != lhs {
-                        self.asm.movsd_rr(dest.into(), lhs.into());
+                        self.asm.movss_rr(dest.into(), lhs.into());
                     }
-                    self.asm.subsd_rr(dest.into(), rhs.into());
                 }
             }
             _ => unimplemented!(),
@@ -1300,25 +1304,57 @@ impl MacroAssembler {
 
     pub fn float_mul(&mut self, mode: MachineMode, dest: FReg, lhs: FReg, rhs: FReg) {
         match mode {
-            MachineMode::Float32 => self.asm.mulss_rr(lhs.into(), rhs.into()),
-            MachineMode::Float64 => self.asm.mulsd_rr(lhs.into(), rhs.into()),
-            _ => unimplemented!(),
-        }
+            MachineMode::Float32 => {
+                if has_avx2() {
+                    self.asm.vmulss_rr(dest.into(), lhs.into(), rhs.into());
+                } else {
+                    self.asm.mulss_rr(lhs.into(), rhs.into());
 
-        if dest != lhs {
-            self.copy_freg(mode, dest, lhs);
+                    if dest != lhs {
+                        self.asm.movss_rr(dest.into(), lhs.into());
+                    }
+                }
+            }
+            MachineMode::Float64 => {
+                if has_avx2() {
+                    self.asm.vmulsd_rr(dest.into(), lhs.into(), rhs.into());
+                } else {
+                    self.asm.mulsd_rr(lhs.into(), rhs.into());
+
+                    if dest != lhs {
+                        self.asm.movsd_rr(dest.into(), lhs.into());
+                    }
+                }
+            }
+            _ => unimplemented!(),
         }
     }
 
     pub fn float_div(&mut self, mode: MachineMode, dest: FReg, lhs: FReg, rhs: FReg) {
         match mode {
-            MachineMode::Float32 => self.asm.divss_rr(lhs.into(), rhs.into()),
-            MachineMode::Float64 => self.asm.divsd_rr(lhs.into(), rhs.into()),
-            _ => unimplemented!(),
-        }
+            MachineMode::Float32 => {
+                if has_avx2() {
+                    self.asm.vdivss_rr(dest.into(), lhs.into(), rhs.into());
+                } else {
+                    self.asm.divss_rr(lhs.into(), rhs.into());
 
-        if dest != lhs {
-            self.copy_freg(mode, dest, lhs);
+                    if dest != lhs {
+                        self.asm.movss_rr(dest.into(), lhs.into());
+                    }
+                }
+            }
+            MachineMode::Float64 => {
+                if has_avx2() {
+                    self.asm.vdivsd_rr(dest.into(), lhs.into(), rhs.into());
+                } else {
+                    self.asm.divsd_rr(lhs.into(), rhs.into());
+
+                    if dest != lhs {
+                        self.asm.movsd_rr(dest.into(), lhs.into());
+                    }
+                }
+            }
+            _ => unimplemented!(),
         }
     }
 
