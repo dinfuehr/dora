@@ -1450,8 +1450,20 @@ impl MacroAssembler {
 
     pub fn float_sqrt(&mut self, mode: MachineMode, dest: FReg, src: FReg) {
         match mode {
-            MachineMode::Float32 => self.asm.sqrtss_rr(dest.into(), src.into()),
-            MachineMode::Float64 => self.asm.sqrtsd_rr(dest.into(), src.into()),
+            MachineMode::Float32 => {
+                if has_avx2() {
+                    self.asm.vsqrtss_rr(dest.into(), src.into(), src.into());
+                } else {
+                    self.asm.sqrtss_rr(dest.into(), src.into());
+                }
+            }
+            MachineMode::Float64 => {
+                if has_avx2() {
+                    self.asm.vsqrtsd_rr(dest.into(), src.into(), src.into());
+                } else {
+                    self.asm.sqrtsd_rr(dest.into(), src.into());
+                }
+            }
             _ => unreachable!(),
         }
     }

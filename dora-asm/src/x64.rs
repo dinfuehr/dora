@@ -982,22 +982,22 @@ impl AssemblerX64 {
         self.emit_modrm(0b11, 0b000, opnd.low_bits());
     }
 
-    pub fn roundss_ri(&mut self, dest: XmmRegister, src: XmmRegister, mode: u8) {
-        self.emit_u8(0x66);
-        self.emit_rex_sse_modrm_optional(dest, src);
-        self.emit_u8(0x0f);
-        self.emit_u8(0x3a);
-        self.emit_u8(0x0a);
-        self.emit_modrm(0b11, dest.low_bits(), src.low_bits());
-        self.emit_u8(mode);
-    }
-
     pub fn roundsd_ri(&mut self, dest: XmmRegister, src: XmmRegister, mode: u8) {
         self.emit_u8(0x66);
         self.emit_rex_sse_modrm_optional(dest, src);
         self.emit_u8(0x0f);
         self.emit_u8(0x3a);
         self.emit_u8(0x0b);
+        self.emit_modrm(0b11, dest.low_bits(), src.low_bits());
+        self.emit_u8(mode);
+    }
+
+    pub fn roundss_ri(&mut self, dest: XmmRegister, src: XmmRegister, mode: u8) {
+        self.emit_u8(0x66);
+        self.emit_rex_sse_modrm_optional(dest, src);
+        self.emit_u8(0x0f);
+        self.emit_u8(0x3a);
+        self.emit_u8(0x0a);
         self.emit_modrm(0b11, dest.low_bits(), src.low_bits());
         self.emit_u8(mode);
     }
@@ -1383,6 +1383,36 @@ impl AssemblerX64 {
             VEX_PP_F3,
         );
         self.emit_u8(0x59);
+        self.emit_modrm(0b11, dest.low_bits(), rhs.low_bits());
+    }
+
+    pub fn vsqrtsd_rr(&mut self, dest: XmmRegister, lhs: XmmRegister, rhs: XmmRegister) {
+        self.emit_vex(
+            dest.needs_rex(),
+            false,
+            rhs.needs_rex(),
+            VEX_MMMMM_0F,
+            0,
+            lhs.value(),
+            VEX_L_SCALAR_128,
+            VEX_PP_F2,
+        );
+        self.emit_u8(0x51);
+        self.emit_modrm(0b11, dest.low_bits(), rhs.low_bits());
+    }
+
+    pub fn vsqrtss_rr(&mut self, dest: XmmRegister, lhs: XmmRegister, rhs: XmmRegister) {
+        self.emit_vex(
+            dest.needs_rex(),
+            false,
+            rhs.needs_rex(),
+            VEX_MMMMM_0F,
+            0,
+            lhs.value(),
+            VEX_L_SCALAR_128,
+            VEX_PP_F3,
+        );
+        self.emit_u8(0x51);
         self.emit_modrm(0b11, dest.low_bits(), rhs.low_bits());
     }
 
@@ -3277,5 +3307,15 @@ mod tests {
     #[test]
     fn test_vdivsd_rr() {
         assert_emit!(0xc5, 0xf3, 0x5e, 0xc2; vdivsd_rr(XMM0, XMM1, XMM2));
+    }
+
+    #[test]
+    fn test_vsqrtss_rr() {
+        assert_emit!(0xc5, 0xf2, 0x51, 0xc2; vsqrtss_rr(XMM0, XMM1, XMM2));
+    }
+
+    #[test]
+    fn test_vsqrtsd_rr() {
+        assert_emit!(0xc5, 0xf3, 0x51, 0xc2; vsqrtsd_rr(XMM0, XMM1, XMM2));
     }
 }
