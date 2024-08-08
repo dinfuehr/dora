@@ -1365,24 +1365,45 @@ impl MacroAssembler {
             (1 << 63) - 1
         };
 
-        let disp = self.constpool.add_i128(value);
+        let const_offset = self.constpool.add_i128(value);
+        let inst_start = self.pos() as i32;
 
-        let pos = self.pos() as i32;
+        if has_avx2() {
+            match mode {
+                MachineMode::Float32 => {
+                    self.asm
+                        .vandps_ra(dest.into(), src.into(), AsmAddress::rip(0))
+                }
+                MachineMode::Float64 => {
+                    self.asm
+                        .vandpd_ra(dest.into(), src.into(), AsmAddress::rip(0))
+                }
+                _ => unimplemented!(),
+            }
 
-        let xmm_reg: XmmRegister = src.into();
+            let inst_end = self.pos() as i32;
+            let disp = -(const_offset + inst_end);
+            self.asm.set_position(self.pos() - 4);
+            self.asm.emit_u32(disp as u32);
+            self.asm.set_position_end();
+        } else {
+            let xmm_reg: XmmRegister = src.into();
 
-        let inst_size = 7 + if xmm_reg.needs_rex() { 1 } else { 0 };
+            let inst_size = 7 + if xmm_reg.needs_rex() { 1 } else { 0 };
 
-        let address = AsmAddress::rip(-(disp + pos + inst_size));
+            let address = AsmAddress::rip(-(const_offset + inst_start + inst_size));
 
-        match mode {
-            MachineMode::Float32 => self.asm.andps_ra(src.into(), address),
-            MachineMode::Float64 => self.asm.andps_ra(src.into(), address),
-            _ => unimplemented!(),
-        }
+            match mode {
+                MachineMode::Float32 => self.asm.andps_ra(src.into(), address),
+                MachineMode::Float64 => self.asm.andps_ra(src.into(), address),
+                _ => unimplemented!(),
+            }
 
-        if dest != src {
-            self.copy_freg(mode, dest, src);
+            assert_eq!(inst_size, self.pos() as i32 - inst_start);
+
+            if dest != src {
+                self.copy_freg(mode, dest, src);
+            }
         }
     }
 
@@ -1393,57 +1414,140 @@ impl MacroAssembler {
             1 << 63
         };
 
-        let disp = self.constpool.add_i128(value);
+        let const_offset = self.constpool.add_i128(value);
+        let inst_start = self.pos() as i32;
 
-        let pos = self.pos() as i32;
+        if has_avx2() {
+            match mode {
+                MachineMode::Float32 => {
+                    self.asm
+                        .vxorps_ra(dest.into(), src.into(), AsmAddress::rip(0))
+                }
+                MachineMode::Float64 => {
+                    self.asm
+                        .vxorpd_ra(dest.into(), src.into(), AsmAddress::rip(0))
+                }
+                _ => unimplemented!(),
+            }
 
-        let xmm_reg: XmmRegister = src.into();
+            let inst_end = self.pos() as i32;
+            let disp = -(const_offset + inst_end);
+            self.asm.set_position(self.pos() - 4);
+            self.asm.emit_u32(disp as u32);
+            self.asm.set_position_end();
+        } else {
+            let xmm_reg: XmmRegister = src.into();
 
-        let inst_size = 7
-            + if mode == MachineMode::Float64 { 1 } else { 0 }
-            + if xmm_reg.needs_rex() { 1 } else { 0 };
+            let inst_size = 7
+                + if mode == MachineMode::Float64 { 1 } else { 0 }
+                + if xmm_reg.needs_rex() { 1 } else { 0 };
 
-        let address = AsmAddress::rip(-(disp + pos + inst_size));
+            let address = AsmAddress::rip(-(const_offset + inst_start + inst_size));
 
-        match mode {
-            MachineMode::Float32 => self.asm.xorps_ra(src.into(), address),
-            MachineMode::Float64 => self.asm.xorpd_ra(src.into(), address),
-            _ => unimplemented!(),
-        }
+            match mode {
+                MachineMode::Float32 => self.asm.xorps_ra(src.into(), address),
+                MachineMode::Float64 => self.asm.xorpd_ra(src.into(), address),
+                _ => unimplemented!(),
+            }
 
-        if dest != src {
-            self.copy_freg(mode, dest, src);
+            if dest != src {
+                self.copy_freg(mode, dest, src);
+            }
         }
     }
 
     pub fn float_round_tozero(&mut self, mode: MachineMode, dest: FReg, src: FReg) {
+        const ROUNDING_MODE: u8 = 0b1011;
+
         match mode {
-            MachineMode::Float32 => self.asm.roundss_ri(dest.into(), src.into(), 0b1011),
-            MachineMode::Float64 => self.asm.roundsd_ri(dest.into(), src.into(), 0b1011),
+            MachineMode::Float32 => {
+                if has_avx2() {
+                    self.asm
+                        .vroundss_ri(dest.into(), src.into(), src.into(), ROUNDING_MODE);
+                } else {
+                    self.asm.roundss_ri(dest.into(), src.into(), ROUNDING_MODE);
+                }
+            }
+            MachineMode::Float64 => {
+                if has_avx2() {
+                    self.asm
+                        .vroundsd_ri(dest.into(), src.into(), src.into(), ROUNDING_MODE);
+                } else {
+                    self.asm.roundsd_ri(dest.into(), src.into(), ROUNDING_MODE);
+                }
+            }
             _ => unreachable!(),
         }
     }
 
     pub fn float_round_up(&mut self, mode: MachineMode, dest: FReg, src: FReg) {
+        const ROUNDING_MODE: u8 = 0b1010;
+
         match mode {
-            MachineMode::Float32 => self.asm.roundss_ri(dest.into(), src.into(), 0b1010),
-            MachineMode::Float64 => self.asm.roundsd_ri(dest.into(), src.into(), 0b1010),
+            MachineMode::Float32 => {
+                if has_avx2() {
+                    self.asm
+                        .vroundss_ri(dest.into(), src.into(), src.into(), ROUNDING_MODE);
+                } else {
+                    self.asm.roundss_ri(dest.into(), src.into(), ROUNDING_MODE);
+                }
+            }
+            MachineMode::Float64 => {
+                if has_avx2() {
+                    self.asm
+                        .vroundsd_ri(dest.into(), src.into(), src.into(), ROUNDING_MODE);
+                } else {
+                    self.asm.roundsd_ri(dest.into(), src.into(), ROUNDING_MODE);
+                }
+            }
             _ => unreachable!(),
         }
     }
 
     pub fn float_round_down(&mut self, mode: MachineMode, dest: FReg, src: FReg) {
+        const ROUNDING_MODE: u8 = 0b1001;
+
         match mode {
-            MachineMode::Float32 => self.asm.roundss_ri(dest.into(), src.into(), 0b1001),
-            MachineMode::Float64 => self.asm.roundsd_ri(dest.into(), src.into(), 0b1001),
+            MachineMode::Float32 => {
+                if has_avx2() {
+                    self.asm
+                        .vroundss_ri(dest.into(), src.into(), src.into(), ROUNDING_MODE);
+                } else {
+                    self.asm.roundss_ri(dest.into(), src.into(), ROUNDING_MODE);
+                }
+            }
+            MachineMode::Float64 => {
+                if has_avx2() {
+                    self.asm
+                        .vroundsd_ri(dest.into(), src.into(), src.into(), ROUNDING_MODE);
+                } else {
+                    self.asm.roundsd_ri(dest.into(), src.into(), ROUNDING_MODE);
+                }
+            }
             _ => unreachable!(),
         }
     }
 
     pub fn float_round_halfeven(&mut self, mode: MachineMode, dest: FReg, src: FReg) {
+        const ROUNDING_MODE: u8 = 0b1000;
+
         match mode {
-            MachineMode::Float32 => self.asm.roundss_ri(dest.into(), src.into(), 0b1000),
-            MachineMode::Float64 => self.asm.roundsd_ri(dest.into(), src.into(), 0b1000),
+            MachineMode::Float32 => {
+                if has_avx2() {
+                    self.asm
+                        .vroundss_ri(dest.into(), src.into(), src.into(), ROUNDING_MODE);
+                } else {
+                    self.asm.roundss_ri(dest.into(), src.into(), ROUNDING_MODE);
+                }
+            }
+            MachineMode::Float64 => {
+                if has_avx2() {
+                    self.asm
+                        .vroundsd_ri(dest.into(), src.into(), src.into(), ROUNDING_MODE);
+                } else {
+                    self.asm.roundsd_ri(dest.into(), src.into(), ROUNDING_MODE);
+                }
+            }
             _ => unreachable!(),
         }
     }

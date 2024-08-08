@@ -1296,6 +1296,36 @@ impl AssemblerX64 {
         self.emit_modrm(0b11, dest.low_bits(), rhs.low_bits());
     }
 
+    pub fn vandpd_ra(&mut self, dest: XmmRegister, lhs: XmmRegister, rhs: Address) {
+        self.emit_vex(
+            dest.needs_rex(),
+            rhs.rex_x(),
+            rhs.rex_b(),
+            VEX_MMMMM_0F,
+            0,
+            lhs.value(),
+            VEX_L_SCALAR_128,
+            VEX_PP_66,
+        );
+        self.emit_u8(0x54);
+        self.emit_address(dest.low_bits(), rhs);
+    }
+
+    pub fn vandps_ra(&mut self, dest: XmmRegister, lhs: XmmRegister, rhs: Address) {
+        self.emit_vex(
+            dest.needs_rex(),
+            rhs.rex_x(),
+            rhs.rex_b(),
+            VEX_MMMMM_0F,
+            0,
+            lhs.value(),
+            VEX_L_SCALAR_128,
+            VEX_PP_NONE,
+        );
+        self.emit_u8(0x54);
+        self.emit_address(dest.low_bits(), rhs);
+    }
+
     pub fn vdivsd_rr(&mut self, dest: XmmRegister, lhs: XmmRegister, rhs: XmmRegister) {
         self.emit_vex(
             dest.needs_rex(),
@@ -1386,6 +1416,38 @@ impl AssemblerX64 {
         self.emit_modrm(0b11, dest.low_bits(), rhs.low_bits());
     }
 
+    pub fn vroundsd_ri(&mut self, dest: XmmRegister, lhs: XmmRegister, rhs: XmmRegister, mode: u8) {
+        self.emit_vex(
+            dest.needs_rex(),
+            false,
+            rhs.needs_rex(),
+            VEX_MMMMM_0F_3A,
+            0,
+            lhs.value(),
+            VEX_L_SCALAR_128,
+            VEX_PP_66,
+        );
+        self.emit_u8(0x0b);
+        self.emit_modrm(0b11, dest.low_bits(), rhs.low_bits());
+        self.emit_u8(mode);
+    }
+
+    pub fn vroundss_ri(&mut self, dest: XmmRegister, lhs: XmmRegister, rhs: XmmRegister, mode: u8) {
+        self.emit_vex(
+            dest.needs_rex(),
+            false,
+            rhs.needs_rex(),
+            VEX_MMMMM_0F_3A,
+            0,
+            lhs.value(),
+            VEX_L_SCALAR_128,
+            VEX_PP_66,
+        );
+        self.emit_u8(0x0a);
+        self.emit_modrm(0b11, dest.low_bits(), rhs.low_bits());
+        self.emit_u8(mode);
+    }
+
     pub fn vsqrtsd_rr(&mut self, dest: XmmRegister, lhs: XmmRegister, rhs: XmmRegister) {
         self.emit_vex(
             dest.needs_rex(),
@@ -1444,6 +1506,36 @@ impl AssemblerX64 {
         );
         self.emit_u8(0x5c);
         self.emit_modrm(0b11, dest.low_bits(), rhs.low_bits());
+    }
+
+    pub fn vxorpd_ra(&mut self, dest: XmmRegister, lhs: XmmRegister, rhs: Address) {
+        self.emit_vex(
+            dest.needs_rex(),
+            rhs.rex_x(),
+            rhs.rex_b(),
+            VEX_MMMMM_0F,
+            0,
+            lhs.value(),
+            VEX_L_SCALAR_128,
+            VEX_PP_66,
+        );
+        self.emit_u8(0x57);
+        self.emit_address(dest.low_bits(), rhs);
+    }
+
+    pub fn vxorps_ra(&mut self, dest: XmmRegister, lhs: XmmRegister, rhs: Address) {
+        self.emit_vex(
+            dest.needs_rex(),
+            rhs.rex_x(),
+            rhs.rex_b(),
+            VEX_MMMMM_0F,
+            0,
+            lhs.value(),
+            VEX_L_SCALAR_128,
+            VEX_PP_NONE,
+        );
+        self.emit_u8(0x57);
+        self.emit_address(dest.low_bits(), rhs);
     }
 
     pub fn xaddl_ar(&mut self, dest: Address, src: Register) {
@@ -1628,8 +1720,10 @@ impl AssemblerX64 {
         assert!(fits_u1(b as u32));
 
         if x || b || mmmmm != 0b00001 || w != 0 {
+            // 0xC4 ...
             self.emit_vex3(r, x, b, mmmmm, w, vvvv, l, pp);
         } else {
+            // 0xC5 ...
             self.emit_vex2(r, vvvv, l, pp);
         }
     }
@@ -3317,5 +3411,41 @@ mod tests {
     #[test]
     fn test_vsqrtsd_rr() {
         assert_emit!(0xc5, 0xf3, 0x51, 0xc2; vsqrtsd_rr(XMM0, XMM1, XMM2));
+    }
+
+    #[test]
+    fn test_vandps_ra() {
+        assert_emit!(0xc5, 0xf0, 0x54, 0x05, 0x04, 0x00, 0x00, 0x00; vandps_ra(XMM0, XMM1, Address::rip(4)));
+        assert_emit!(0xc5, 0x30, 0x54, 0x05, 0x08, 0x00, 0x00, 0x00; vandps_ra(XMM8, XMM9, Address::rip(8)));
+    }
+
+    #[test]
+    fn test_vandpd_ra() {
+        assert_emit!(0xc5, 0xf1, 0x54, 0x05, 0x04, 0x00, 0x00, 0x00; vandpd_ra(XMM0, XMM1, Address::rip(4)));
+        assert_emit!(0xc5, 0x31, 0x54, 0x05, 0x08, 0x00, 0x00, 0x00; vandpd_ra(XMM8, XMM9, Address::rip(8)));
+    }
+
+    #[test]
+    fn test_vxorpd_ra() {
+        assert_emit!(0xc5, 0xf0, 0x57, 0x05, 0x04, 0x00, 0x00, 0x00; vxorps_ra(XMM0, XMM1, Address::rip(4)));
+        assert_emit!(0xc5, 0x30, 0x57, 0x05, 0x08, 0x00, 0x00, 0x00; vxorps_ra(XMM8, XMM9, Address::rip(8)));
+    }
+
+    #[test]
+    fn test_vxorps_ra() {
+        assert_emit!(0xc5, 0xf0, 0x57, 0x05, 0x04, 0x00, 0x00, 0x00; vxorps_ra(XMM0, XMM1, Address::rip(4)));
+        assert_emit!(0xc5, 0x30, 0x57, 0x05, 0x08, 0x00, 0x00, 0x00; vxorps_ra(XMM8, XMM9, Address::rip(8)));
+    }
+
+    #[test]
+    fn test_vroundss_ri() {
+        assert_emit!(0xc4, 0xe3, 0x71, 0x0a, 0xc2, 1; vroundss_ri(XMM0, XMM1, XMM2, 1));
+        assert_emit!(0xc4, 0x43, 0x31, 0x0a, 0xc2, 1; vroundss_ri(XMM8, XMM9, XMM10, 1));
+    }
+
+    #[test]
+    fn test_vroundsd_ri() {
+        assert_emit!(0xc4, 0xe3, 0x71, 0x0b, 0xc2, 1; vroundsd_ri(XMM0, XMM1, XMM2, 1));
+        assert_emit!(0xc4, 0x43, 0x31, 0x0b, 0xc2, 1; vroundsd_ri(XMM8, XMM9, XMM10, 1));
     }
 }
