@@ -15,6 +15,10 @@ use dora_asm::x64::{Address as AsmAddress, Condition, Immediate, ScaleFactor, Xm
 use dora_bytecode::{BytecodeTypeArray, FunctionId, Location};
 
 impl MacroAssembler {
+    pub fn create_assembler() -> Assembler {
+        Assembler::new(has_avx2())
+    }
+
     pub fn prolog(&mut self, stacksize: i32) {
         self.asm.pushq_r(RBP.into());
         self.asm.movq_rr(RBP.into(), RSP.into());
@@ -1152,8 +1156,20 @@ impl MacroAssembler {
             MachineMode::Int64 | MachineMode::Ptr | MachineMode::IntPtr => {
                 self.asm.movq_ar(address_from_mem(mem), src.reg().into())
             }
-            MachineMode::Float32 => self.asm.movss_ar(address_from_mem(mem), src.freg().into()),
-            MachineMode::Float64 => self.asm.movsd_ar(address_from_mem(mem), src.freg().into()),
+            MachineMode::Float32 => {
+                if has_avx2() {
+                    self.asm.vmovss_ar(address_from_mem(mem), src.freg().into())
+                } else {
+                    self.asm.movss_ar(address_from_mem(mem), src.freg().into())
+                }
+            }
+            MachineMode::Float64 => {
+                if has_avx2() {
+                    self.asm.vmovsd_ar(address_from_mem(mem), src.freg().into())
+                } else {
+                    self.asm.movsd_ar(address_from_mem(mem), src.freg().into())
+                }
+            }
         }
     }
 
@@ -1190,10 +1206,18 @@ impl MacroAssembler {
     }
 
     pub fn copy_freg(&mut self, mode: MachineMode, dest: FReg, src: FReg) {
-        match mode {
-            MachineMode::Float32 => self.asm.movss_rr(dest.into(), src.into()),
-            MachineMode::Float64 => self.asm.movsd_rr(dest.into(), src.into()),
-            _ => unreachable!(),
+        if has_avx2() {
+            match mode {
+                MachineMode::Float32 => self.asm.vmovaps_rr(dest.into(), src.into()),
+                MachineMode::Float64 => self.asm.vmovapd_rr(dest.into(), src.into()),
+                _ => unreachable!(),
+            }
+        } else {
+            match mode {
+                MachineMode::Float32 => self.asm.movss_rr(dest.into(), src.into()),
+                MachineMode::Float64 => self.asm.movsd_rr(dest.into(), src.into()),
+                _ => unreachable!(),
+            }
         }
     }
 
@@ -1240,27 +1264,61 @@ impl MacroAssembler {
 
     pub fn load_float_const(&mut self, mode: MachineMode, dest: FReg, imm: f64) {
         if imm == 0.0 {
-            self.asm.xorps_rr(dest.into(), dest.into());
+            if has_avx2() {
+                self.asm.vxorps_rr(dest.into(), dest.into(), dest.into());
+            } else {
+                self.asm.xorps_rr(dest.into(), dest.into());
+            }
             return;
         }
 
-        let pos = self.pos() as i32;
-        let inst_size = 8 + if dest.msb() != 0 { 1 } else { 0 };
+        if has_avx2() {
+            let const_offset = match mode {
+                MachineMode::Float32 => self.constpool.add_f32(imm as f32),
+                MachineMode::Float64 => self.constpool.add_f64(imm),
+                _ => unreachable!(),
+            };
 
-        match mode {
-            MachineMode::Float32 => {
-                let off = self.constpool.add_f32(imm as f32);
-                self.asm
-                    .movss_ra(dest.into(), AsmAddress::rip(-(off + pos + inst_size)))
+            match mode {
+                MachineMode::Float32 => {
+                    self.asm.vmovss_ra(dest.into(), AsmAddress::rip(0));
+                }
+
+                MachineMode::Float64 => {
+                    self.asm.vmovsd_ra(dest.into(), AsmAddress::rip(0));
+                }
+
+                _ => unreachable!(),
             }
 
-            MachineMode::Float64 => {
-                let off = self.constpool.add_f64(imm);
-                self.asm
-                    .movsd_ra(dest.into(), AsmAddress::rip(-(off + pos + inst_size)))
-            }
+            let inst_end = self.pos() as i32;
+            let disp = -(const_offset + inst_end);
+            self.asm.set_position(self.pos() - 4);
+            self.asm.emit_u32(disp as u32);
+            self.asm.set_position_end();
+        } else {
+            let pos = self.pos() as i32;
+            let inst_size = 8 + if dest.msb() != 0 { 1 } else { 0 };
 
-            _ => unreachable!(),
+            match mode {
+                MachineMode::Float32 => {
+                    let const_offset = self.constpool.add_f32(imm as f32);
+                    self.asm.movss_ra(
+                        dest.into(),
+                        AsmAddress::rip(-(const_offset + pos + inst_size)),
+                    )
+                }
+
+                MachineMode::Float64 => {
+                    let const_offset = self.constpool.add_f64(imm);
+                    self.asm.movsd_ra(
+                        dest.into(),
+                        AsmAddress::rip(-(const_offset + pos + inst_size)),
+                    )
+                }
+
+                _ => unreachable!(),
+            }
         }
     }
 

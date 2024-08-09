@@ -56,7 +56,7 @@ pub struct MacroAssembler {
 impl MacroAssembler {
     pub fn new() -> MacroAssembler {
         MacroAssembler {
-            asm: Assembler::new(),
+            asm: MacroAssembler::create_assembler(),
             bailouts: Vec::new(),
             lazy_compilation: LazyCompilationData::new(),
             constpool: ConstPool::new(),

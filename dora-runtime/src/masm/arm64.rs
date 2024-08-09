@@ -14,6 +14,10 @@ use dora_asm::arm64::{self as asm, Cond, Extend, MemOperand, NeonRegister, Shift
 use dora_bytecode::{BytecodeTypeArray, FunctionId, Location};
 
 impl MacroAssembler {
+    pub fn create_assembler() -> Assembler {
+        Assembler::new()
+    }
+
     pub fn prolog(&mut self, stacksize: i32) {
         self.asm
             .stp_pre(REG_FP.into(), REG_LR.into(), REG_SP.into(), -2);
