@@ -221,11 +221,20 @@ impl MacroAssembler {
 
     pub fn float_cmp_ordering(&mut self, mode: MachineMode, dest: Reg, lhs: FReg, rhs: FReg) {
         self.asm.xorl_rr(dest.into(), dest.into());
-        match mode {
-            MachineMode::Float64 => self.asm.ucomisd_rr(rhs.into(), lhs.into()),
-            MachineMode::Float32 => self.asm.ucomiss_rr(rhs.into(), lhs.into()),
-            _ => unreachable!(),
+        if has_avx2() {
+            match mode {
+                MachineMode::Float64 => self.asm.vucomisd_rr(rhs.into(), lhs.into()),
+                MachineMode::Float32 => self.asm.vucomiss_rr(rhs.into(), lhs.into()),
+                _ => unreachable!(),
+            }
+        } else {
+            match mode {
+                MachineMode::Float64 => self.asm.ucomisd_rr(rhs.into(), lhs.into()),
+                MachineMode::Float32 => self.asm.ucomiss_rr(rhs.into(), lhs.into()),
+                _ => unreachable!(),
+            }
         }
+
         let lbl_done = self.asm.create_label();
         self.asm.jcc(Condition::Above, lbl_done);
         let lbl_greater = self.asm.create_label();
@@ -242,8 +251,8 @@ impl MacroAssembler {
         &mut self,
         mode: MachineMode,
         dest: Reg,
-        lhs: FReg,
-        rhs: FReg,
+        mut lhs: FReg,
+        mut rhs: FReg,
         cond: CondCode,
     ) {
         let scratch = self.get_scratch();
@@ -253,12 +262,19 @@ impl MacroAssembler {
                 let init = if cond == CondCode::Equal { 0 } else { 1 };
 
                 self.load_int_const(MachineMode::Int32, *scratch, init);
-                self.asm.xorl_rr(dest.into(), dest.into());
 
-                match mode {
-                    MachineMode::Float32 => self.asm.ucomiss_rr(lhs.into(), rhs.into()),
-                    MachineMode::Float64 => self.asm.ucomisd_rr(lhs.into(), rhs.into()),
-                    _ => unreachable!(),
+                if has_avx2() {
+                    match mode {
+                        MachineMode::Float32 => self.asm.vucomiss_rr(lhs.into(), rhs.into()),
+                        MachineMode::Float64 => self.asm.vucomisd_rr(lhs.into(), rhs.into()),
+                        _ => unreachable!(),
+                    }
+                } else {
+                    match mode {
+                        MachineMode::Float32 => self.asm.ucomiss_rr(lhs.into(), rhs.into()),
+                        MachineMode::Float64 => self.asm.ucomisd_rr(lhs.into(), rhs.into()),
+                        _ => unreachable!(),
+                    }
                 }
 
                 let parity = if cond == CondCode::Equal {
@@ -272,36 +288,28 @@ impl MacroAssembler {
                     .cmovl(Condition::NotEqual, dest.into(), (*scratch).into());
             }
 
-            CondCode::Greater | CondCode::GreaterEq => {
-                self.load_int_const(MachineMode::Int32, dest, 0);
+            CondCode::Less | CondCode::LessEq | CondCode::Greater | CondCode::GreaterEq => {
+                if cond == CondCode::Less || cond == CondCode::LessEq {
+                    std::mem::swap(&mut lhs, &mut rhs);
+                }
 
-                match mode {
-                    MachineMode::Float32 => self.asm.ucomiss_rr(lhs.into(), rhs.into()),
-                    MachineMode::Float64 => self.asm.ucomisd_rr(lhs.into(), rhs.into()),
-                    _ => unreachable!(),
+                if has_avx2() {
+                    match mode {
+                        MachineMode::Float32 => self.asm.vucomiss_rr(lhs.into(), rhs.into()),
+                        MachineMode::Float64 => self.asm.vucomisd_rr(lhs.into(), rhs.into()),
+                        _ => unreachable!(),
+                    }
+                } else {
+                    match mode {
+                        MachineMode::Float32 => self.asm.ucomiss_rr(lhs.into(), rhs.into()),
+                        MachineMode::Float64 => self.asm.ucomisd_rr(lhs.into(), rhs.into()),
+                        _ => unreachable!(),
+                    }
                 }
 
                 let cond = match cond {
-                    CondCode::Greater => Condition::Above,
-                    CondCode::GreaterEq => Condition::AboveOrEqual,
-                    _ => unreachable!(),
-                };
-
-                self.asm.setcc_r(cond, dest.into());
-            }
-
-            CondCode::Less | CondCode::LessEq => {
-                self.asm.xorl_rr(dest.into(), dest.into());
-
-                match mode {
-                    MachineMode::Float32 => self.asm.ucomiss_rr(rhs.into(), lhs.into()),
-                    MachineMode::Float64 => self.asm.ucomisd_rr(rhs.into(), lhs.into()),
-                    _ => unreachable!(),
-                }
-
-                let cond = match cond {
-                    CondCode::Less => Condition::Above,
-                    CondCode::LessEq => Condition::AboveOrEqual,
+                    CondCode::Greater | CondCode::Less => Condition::Above,
+                    CondCode::GreaterEq | CondCode::LessEq => Condition::AboveOrEqual,
                     _ => unreachable!(),
                 };
 
@@ -822,10 +830,18 @@ impl MacroAssembler {
     ) {
         assert!(src_mode.size() == dest_mode.size());
 
-        match dest_mode {
-            MachineMode::Float32 => self.asm.movd_xr(dest.into(), src.into()),
-            MachineMode::Float64 => self.asm.movq_xr(dest.into(), src.into()),
-            _ => unreachable!(),
+        if has_avx2() {
+            match dest_mode {
+                MachineMode::Float32 => self.asm.vmovd_xr(dest.into(), src.into()),
+                MachineMode::Float64 => self.asm.vmovq_xr(dest.into(), src.into()),
+                _ => unreachable!(),
+            }
+        } else {
+            match dest_mode {
+                MachineMode::Float32 => self.asm.movd_xr(dest.into(), src.into()),
+                MachineMode::Float64 => self.asm.movq_xr(dest.into(), src.into()),
+                _ => unreachable!(),
+            }
         }
     }
 
@@ -838,10 +854,18 @@ impl MacroAssembler {
     ) {
         assert!(src_mode.size() == dest_mode.size());
 
-        match src_mode {
-            MachineMode::Float32 => self.asm.movd_rx(dest.into(), src.into()),
-            MachineMode::Float64 => self.asm.movq_rx(dest.into(), src.into()),
-            _ => unreachable!(),
+        if has_avx2() {
+            match src_mode {
+                MachineMode::Float32 => self.asm.vmovd_rx(dest.into(), src.into()),
+                MachineMode::Float64 => self.asm.vmovq_rx(dest.into(), src.into()),
+                _ => unreachable!(),
+            }
+        } else {
+            match src_mode {
+                MachineMode::Float32 => self.asm.movd_rx(dest.into(), src.into()),
+                MachineMode::Float64 => self.asm.movq_rx(dest.into(), src.into()),
+                _ => unreachable!(),
+            }
         }
     }
 
