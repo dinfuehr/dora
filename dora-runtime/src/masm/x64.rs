@@ -816,22 +816,42 @@ impl MacroAssembler {
         src_mode: MachineMode,
         src: FReg,
     ) {
-        match src_mode {
-            MachineMode::Float32 => {
-                if dest_mode.is64() {
-                    self.asm.cvttss2siq_rr(dest.into(), src.into())
-                } else {
-                    self.asm.cvttss2sid_rr(dest.into(), src.into())
+        if has_avx2() {
+            match src_mode {
+                MachineMode::Float32 => {
+                    if dest_mode.is64() {
+                        self.asm.vcvttss2siq_rr(dest.into(), src.into())
+                    } else {
+                        self.asm.vcvttss2sid_rr(dest.into(), src.into())
+                    }
                 }
-            }
-            MachineMode::Float64 => {
-                if dest_mode.is64() {
-                    self.asm.cvttsd2siq_rr(dest.into(), src.into())
-                } else {
-                    self.asm.cvttsd2sid_rr(dest.into(), src.into())
+                MachineMode::Float64 => {
+                    if dest_mode.is64() {
+                        self.asm.vcvttsd2siq_rr(dest.into(), src.into())
+                    } else {
+                        self.asm.vcvttsd2sid_rr(dest.into(), src.into())
+                    }
                 }
+                _ => unreachable!(),
             }
-            _ => unreachable!(),
+        } else {
+            match src_mode {
+                MachineMode::Float32 => {
+                    if dest_mode.is64() {
+                        self.asm.cvttss2siq_rr(dest.into(), src.into())
+                    } else {
+                        self.asm.cvttss2sid_rr(dest.into(), src.into())
+                    }
+                }
+                MachineMode::Float64 => {
+                    if dest_mode.is64() {
+                        self.asm.cvttsd2siq_rr(dest.into(), src.into())
+                    } else {
+                        self.asm.cvttsd2sid_rr(dest.into(), src.into())
+                    }
+                }
+                _ => unreachable!(),
+            }
         }
     }
 
