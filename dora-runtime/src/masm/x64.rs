@@ -766,24 +766,46 @@ impl MacroAssembler {
         src_mode: MachineMode,
         src: Reg,
     ) {
-        self.asm.pxor_rr(dest.into(), dest.into());
+        if has_avx2() {
+            self.asm.vxorps_rr(dest.into(), dest.into(), dest.into());
 
-        match dest_mode {
-            MachineMode::Float32 => {
-                if src_mode.is64() {
-                    self.asm.cvtsi2ssq_rr(dest.into(), src.into());
-                } else {
-                    self.asm.cvtsi2ssd_rr(dest.into(), src.into());
+            match dest_mode {
+                MachineMode::Float32 => {
+                    if src_mode.is64() {
+                        self.asm.vcvtsi2ssq_rr(dest.into(), dest.into(), src.into());
+                    } else {
+                        self.asm.vcvtsi2ssd_rr(dest.into(), dest.into(), src.into());
+                    }
                 }
-            }
-            MachineMode::Float64 => {
-                if src_mode.is64() {
-                    self.asm.cvtsi2sdq_rr(dest.into(), src.into());
-                } else {
-                    self.asm.cvtsi2sdd_rr(dest.into(), src.into());
+                MachineMode::Float64 => {
+                    if src_mode.is64() {
+                        self.asm.vcvtsi2sdq_rr(dest.into(), dest.into(), src.into());
+                    } else {
+                        self.asm.vcvtsi2sdd_rr(dest.into(), dest.into(), src.into());
+                    }
                 }
+                _ => unreachable!(),
             }
-            _ => unreachable!(),
+        } else {
+            self.asm.pxor_rr(dest.into(), dest.into());
+
+            match dest_mode {
+                MachineMode::Float32 => {
+                    if src_mode.is64() {
+                        self.asm.cvtsi2ssq_rr(dest.into(), src.into());
+                    } else {
+                        self.asm.cvtsi2ssd_rr(dest.into(), src.into());
+                    }
+                }
+                MachineMode::Float64 => {
+                    if src_mode.is64() {
+                        self.asm.cvtsi2sdq_rr(dest.into(), src.into());
+                    } else {
+                        self.asm.cvtsi2sdd_rr(dest.into(), src.into());
+                    }
+                }
+                _ => unreachable!(),
+            }
         }
     }
 
@@ -814,11 +836,19 @@ impl MacroAssembler {
     }
 
     pub fn float32_to_float64(&mut self, dest: FReg, src: FReg) {
-        self.asm.cvtss2sd_rr(dest.into(), src.into());
+        if has_avx2() {
+            self.asm.vcvtss2sd_rr(dest.into(), src.into(), src.into());
+        } else {
+            self.asm.cvtss2sd_rr(dest.into(), src.into());
+        }
     }
 
     pub fn float64_to_float32(&mut self, dest: FReg, src: FReg) {
-        self.asm.cvtsd2ss_rr(dest.into(), src.into());
+        if has_avx2() {
+            self.asm.vcvtsd2ss_rr(dest.into(), src.into(), src.into());
+        } else {
+            self.asm.cvtsd2ss_rr(dest.into(), src.into());
+        }
     }
 
     pub fn int_as_float(
