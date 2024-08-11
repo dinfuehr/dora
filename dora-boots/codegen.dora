@@ -497,6 +497,10 @@ pub trait CodeGen {
 
     fn spill(inst: Inst);
 
+    fn annotateAdd(inst: Inst);
+    fn annotateSub(inst: Inst);
+    fn annotateMul(inst: Inst);
+    fn annotateDiv(inst: Inst);
     fn annotateAnd(inst: Inst);
     fn annotateOr(inst: Inst);
     fn annotateXor(inst: Inst);

@@ -142,19 +142,20 @@ impl LocationAnnotation {
                 self.codegen.annotateShl(inst);
             }
 
-            Op::Add
-            | Op::Sub
-            | Op::Mul
-            | Op::Div => {
-                if inst.getValueType().isAnyFloat() {
-                    useInputFloatRegister(inst, 0);
-                    useInputFloatRegister(inst, 1);
-                    useOutputFloatRegister(inst, InputOutputOverlap::Overlap);
-                } else {
-                    useInputRegister(inst, 0);
-                    useInputRegister(inst, 1);
-                    useOutputRegister(inst, InputOutputOverlap::Overlap);
-                }
+            Op::Add => {
+                self.codegen.annotateAdd(inst);
+            }
+
+            Op::Sub => {
+                self.codegen.annotateSub(inst);
+            }
+
+            Op::Mul => {
+                self.codegen.annotateMul(inst);
+            }
+
+            Op::Div => {
+                self.codegen.annotateDiv(inst);
             }
 
             Op::CheckedDiv => {

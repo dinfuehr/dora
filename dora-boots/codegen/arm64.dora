@@ -915,6 +915,18 @@ impl CodeGen for CodeGenArm64 {
         self.loadConstPool(dest, cp_entry, REG_TEMP);
     }
 
+    fn annotateAdd(inst: Inst) {
+        if inst.getValueType().isAnyFloat() {
+            useInputFloatRegister(inst, 0);
+            useInputFloatRegister(inst, 1);
+            useOutputFloatRegister(inst, InputOutputOverlap::Overlap);
+        } else {
+            useInputRegister(inst, 0);
+            useInputRegister(inst, 1);
+            useOutputRegister(inst, InputOutputOverlap::Overlap);
+        }
+    }
+
     fn emitAdd(inst: Inst) {
         let loc = inst.getLocationData();
         let ty = inst.getValueType();
@@ -946,6 +958,18 @@ impl CodeGen for CodeGenArm64 {
 
     }
 
+    fn annotateSub(inst: Inst) {
+        if inst.getValueType().isAnyFloat() {
+            useInputFloatRegister(inst, 0);
+            useInputFloatRegister(inst, 1);
+            useOutputFloatRegister(inst, InputOutputOverlap::Overlap);
+        } else {
+            useInputRegister(inst, 0);
+            useInputRegister(inst, 1);
+            useOutputRegister(inst, InputOutputOverlap::Overlap);
+        }
+    }
+
     fn emitSub(inst: Inst) {
         let loc = inst.getLocationData();
         let ty = inst.getValueType();
@@ -975,6 +999,18 @@ impl CodeGen for CodeGenArm64 {
         }
     }
 
+    fn annotateMul(inst: Inst) {
+        if inst.getValueType().isAnyFloat() {
+            useInputFloatRegister(inst, 0);
+            useInputFloatRegister(inst, 1);
+            useOutputFloatRegister(inst, InputOutputOverlap::Overlap);
+        } else {
+            useInputRegister(inst, 0);
+            useInputRegister(inst, 1);
+            useOutputRegister(inst, InputOutputOverlap::Overlap);
+        }
+    }
+
     fn emitMul(inst: Inst) {
         let loc = inst.getLocationData();
         let ty = inst.getValueType();
@@ -1001,6 +1037,18 @@ impl CodeGen for CodeGenArm64 {
                 assert(ty == Type::Int64);
                 self.asm.mul(output, lhs, rhs);
             }
+        }
+    }
+
+    fn annotateDiv(inst: Inst) {
+        if inst.getValueType().isAnyFloat() {
+            useInputFloatRegister(inst, 0);
+            useInputFloatRegister(inst, 1);
+            useOutputFloatRegister(inst, InputOutputOverlap::Overlap);
+        } else {
+            useInputRegister(inst, 0);
+            useInputRegister(inst, 1);
+            useOutputRegister(inst, InputOutputOverlap::Overlap);
         }
     }
 
