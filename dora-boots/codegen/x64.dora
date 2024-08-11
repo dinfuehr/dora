@@ -793,7 +793,7 @@ impl CodeGen for CodeGenX64 {
         } else {
             useInputRegister(inst, 0);
             useInputRegister(inst, 1);
-            useOutputRegister(inst, InputOutputOverlap::Overlap);
+            useOutputSameAsFirstInput(inst);
         }
     }
 
@@ -818,13 +818,12 @@ impl CodeGen for CodeGenX64 {
             let lhs = loc.getInput(0).getRegister();
             let rhs = loc.getInput(1).getRegister();
             let output = loc.getOutput().getRegister();
+            assert(output == lhs);
 
             if ty == Type::Int32 {
-                self.asm.movl_rr(output, lhs);
                 self.asm.addl_rr(output, rhs);
             } else {
                 assert(ty == Type::Int64);
-                self.asm.movq_rr(output, lhs);
                 self.asm.addq_rr(output, rhs);
             }
         }
@@ -838,7 +837,7 @@ impl CodeGen for CodeGenX64 {
         } else {
             useInputRegister(inst, 0);
             useInputRegister(inst, 1);
-            useOutputRegister(inst, InputOutputOverlap::Overlap);
+            useOutputSameAsFirstInput(inst);
         }
     }
 
@@ -863,13 +862,12 @@ impl CodeGen for CodeGenX64 {
             let lhs = loc.getInput(0).getRegister();
             let rhs = loc.getInput(1).getRegister();
             let output = loc.getOutput().getRegister();
+            assert(output == lhs);
 
             if ty == Type::Int32 {
-                self.asm.movl_rr(output, lhs);
                 self.asm.subl_rr(output, rhs);
             } else {
                 assert(ty == Type::Int64);
-                self.asm.movq_rr(output, lhs);
                 self.asm.subq_rr(output, rhs);
             }
         }
@@ -883,7 +881,7 @@ impl CodeGen for CodeGenX64 {
         } else {
             useInputRegister(inst, 0);
             useInputRegister(inst, 1);
-            useOutputRegister(inst, InputOutputOverlap::Overlap);
+            useOutputSameAsFirstInput(inst);
         }
     }
 
@@ -908,28 +906,21 @@ impl CodeGen for CodeGenX64 {
             let lhs = loc.getInput(0).getRegister();
             let rhs = loc.getInput(1).getRegister();
             let output = loc.getOutput().getRegister();
+            assert(output == lhs);
 
             if ty == Type::Int32 {
-                self.asm.movl_rr(output, lhs);
                 self.asm.imull_rr(output, rhs);
             } else {
                 assert(ty == Type::Int64);
-                self.asm.movq_rr(output, lhs);
                 self.asm.imulq_rr(output, rhs);
             }
         }
     }
 
     fn annotateDiv(inst: Inst) {
-        if inst.getValueType().isAnyFloat() {
-            useInputFloatRegister(inst, 0);
-            useInputFloatRegister(inst, 1);
-            useOutputFloatRegister(inst, InputOutputOverlap::Overlap);
-        } else {
-            useInputRegister(inst, 0);
-            useInputRegister(inst, 1);
-            useOutputRegister(inst, InputOutputOverlap::Overlap);
-        }
+        useInputFloatRegister(inst, 0);
+        useInputFloatRegister(inst, 1);
+        useOutputFloatRegister(inst, InputOutputOverlap::Overlap);
     }
 
     fn emitDiv(inst: Inst) {
