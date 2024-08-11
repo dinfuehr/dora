@@ -35,6 +35,7 @@ fn encode_system_config(vm: &VM, buffer: &mut ByteBuffer) {
     buffer.emit_bool(!vm.flags.disable_tlab);
     buffer.emit_bool(cfg!(debug_assertions));
     buffer.emit_bool(has_lse_atomics());
+    buffer.emit_bool(has_avx2());
 }
 
 #[cfg(target_arch = "aarch64")]
@@ -44,6 +45,16 @@ fn has_lse_atomics() -> bool {
 
 #[cfg(not(target_arch = "aarch64"))]
 fn has_lse_atomics() -> bool {
+    false
+}
+
+#[cfg(target_arch = "x86_64")]
+fn has_avx2() -> bool {
+    crate::cpu::has_avx2()
+}
+
+#[cfg(not(target_arch = "x86_64"))]
+fn has_avx2() -> bool {
     false
 }
 

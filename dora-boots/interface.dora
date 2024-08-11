@@ -217,6 +217,7 @@ pub class Config {
     pub useTlab: Bool,
     pub isDebug: Bool,
     pub hasLseAtomics: Bool,
+    pub hasAvx2: Bool,
 }
 
 pub let config: Config = decodeConfig(getSystemConfigRaw());

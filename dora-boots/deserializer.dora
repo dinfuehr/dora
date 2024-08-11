@@ -20,6 +20,7 @@ pub fn decodeConfig(encoded: Array[UInt8]): Config {
     let use_tlab = reader.readBool();
     let is_debug = reader.readBool();
     let has_lse_atomics = reader.readBool();
+    let has_avx2 = reader.readBool();
     assert(!reader.moreBytes());
 
     Config(
@@ -37,6 +38,7 @@ pub fn decodeConfig(encoded: Array[UInt8]): Config {
         use_tlab,
         is_debug,
         has_lse_atomics,
+        has_avx2,
     )
 }
 
