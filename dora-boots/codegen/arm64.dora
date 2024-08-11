@@ -919,11 +919,11 @@ impl CodeGen for CodeGenArm64 {
         if inst.getValueType().isAnyFloat() {
             useInputFloatRegister(inst, 0);
             useInputFloatRegister(inst, 1);
-            useOutputFloatRegister(inst, InputOutputOverlap::Overlap);
+            useOutputFloatRegister(inst, InputOutputOverlap::NoOverlap);
         } else {
             useInputRegister(inst, 0);
             useInputRegister(inst, 1);
-            useOutputRegister(inst, InputOutputOverlap::Overlap);
+            useOutputRegister(inst, InputOutputOverlap::NoOverlap);
         }
     }
 
@@ -962,11 +962,11 @@ impl CodeGen for CodeGenArm64 {
         if inst.getValueType().isAnyFloat() {
             useInputFloatRegister(inst, 0);
             useInputFloatRegister(inst, 1);
-            useOutputFloatRegister(inst, InputOutputOverlap::Overlap);
+            useOutputFloatRegister(inst, InputOutputOverlap::NoOverlap);
         } else {
             useInputRegister(inst, 0);
             useInputRegister(inst, 1);
-            useOutputRegister(inst, InputOutputOverlap::Overlap);
+            useOutputRegister(inst, InputOutputOverlap::NoOverlap);
         }
     }
 
@@ -1003,11 +1003,11 @@ impl CodeGen for CodeGenArm64 {
         if inst.getValueType().isAnyFloat() {
             useInputFloatRegister(inst, 0);
             useInputFloatRegister(inst, 1);
-            useOutputFloatRegister(inst, InputOutputOverlap::Overlap);
+            useOutputFloatRegister(inst, InputOutputOverlap::NoOverlap);
         } else {
             useInputRegister(inst, 0);
             useInputRegister(inst, 1);
-            useOutputRegister(inst, InputOutputOverlap::Overlap);
+            useOutputRegister(inst, InputOutputOverlap::NoOverlap);
         }
     }
 
@@ -1041,15 +1041,9 @@ impl CodeGen for CodeGenArm64 {
     }
 
     fn annotateDiv(inst: Inst) {
-        if inst.getValueType().isAnyFloat() {
-            useInputFloatRegister(inst, 0);
-            useInputFloatRegister(inst, 1);
-            useOutputFloatRegister(inst, InputOutputOverlap::Overlap);
-        } else {
-            useInputRegister(inst, 0);
-            useInputRegister(inst, 1);
-            useOutputRegister(inst, InputOutputOverlap::Overlap);
-        }
+        useInputFloatRegister(inst, 0);
+        useInputFloatRegister(inst, 1);
+        useOutputFloatRegister(inst, InputOutputOverlap::NoOverlap);
     }
 
     fn emitDiv(inst: Inst) {
