@@ -789,7 +789,7 @@ impl CodeGen for CodeGenX64 {
         if inst.getValueType().isAnyFloat() {
             useInputFloatRegister(inst, 0);
             useInputFloatRegister(inst, 1);
-            useOutputFloatRegister(inst, InputOutputOverlap::Overlap);
+            useOutputSameAsFirstInput(inst);
         } else {
             useInputRegister(inst, 0);
             useInputRegister(inst, 1);
@@ -805,13 +805,12 @@ impl CodeGen for CodeGenX64 {
             let lhs = loc.getInput(0).getFloatRegister();
             let rhs = loc.getInput(1).getFloatRegister();
             let output = loc.getOutput().getFloatRegister();
+            assert(output == lhs);
 
             if ty == Type::Float32 {
-                self.asm.movss_rr(output, lhs);
                 self.asm.addss_rr(output, rhs);
             } else {
                 assert(ty == Type::Float64);
-                self.asm.movsd_rr(output, lhs);
                 self.asm.addsd_rr(output, rhs);
             }
         } else {
@@ -833,7 +832,7 @@ impl CodeGen for CodeGenX64 {
         if inst.getValueType().isAnyFloat() {
             useInputFloatRegister(inst, 0);
             useInputFloatRegister(inst, 1);
-            useOutputFloatRegister(inst, InputOutputOverlap::Overlap);
+            useOutputSameAsFirstInput(inst);
         } else {
             useInputRegister(inst, 0);
             useInputRegister(inst, 1);
@@ -849,13 +848,12 @@ impl CodeGen for CodeGenX64 {
             let lhs = loc.getInput(0).getFloatRegister();
             let rhs = loc.getInput(1).getFloatRegister();
             let output = loc.getOutput().getFloatRegister();
+            assert(output == lhs);
 
             if ty == Type::Float32 {
-                self.asm.movss_rr(output, lhs);
                 self.asm.subss_rr(output, rhs);
             } else {
                 assert(ty == Type::Float64);
-                self.asm.movsd_rr(output, lhs);
                 self.asm.subsd_rr(output, rhs);
             }
         } else {
@@ -877,7 +875,7 @@ impl CodeGen for CodeGenX64 {
         if inst.getValueType().isAnyFloat() {
             useInputFloatRegister(inst, 0);
             useInputFloatRegister(inst, 1);
-            useOutputFloatRegister(inst, InputOutputOverlap::Overlap);
+            useOutputSameAsFirstInput(inst);
         } else {
             useInputRegister(inst, 0);
             useInputRegister(inst, 1);
@@ -893,13 +891,12 @@ impl CodeGen for CodeGenX64 {
             let lhs = loc.getInput(0).getFloatRegister();
             let rhs = loc.getInput(1).getFloatRegister();
             let output = loc.getOutput().getFloatRegister();
+            assert(output == lhs);
 
             if ty == Type::Float32 {
-                self.asm.movss_rr(output, lhs);
                 self.asm.mulss_rr(output, rhs);
             } else {
                 assert(ty == Type::Float64);
-                self.asm.movsd_rr(output, lhs);
                 self.asm.mulsd_rr(output, rhs);
             }
         } else {
@@ -920,7 +917,7 @@ impl CodeGen for CodeGenX64 {
     fn annotateDiv(inst: Inst) {
         useInputFloatRegister(inst, 0);
         useInputFloatRegister(inst, 1);
-        useOutputFloatRegister(inst, InputOutputOverlap::Overlap);
+        useOutputSameAsFirstInput(inst);
     }
 
     fn emitDiv(inst: Inst) {
@@ -928,15 +925,14 @@ impl CodeGen for CodeGenX64 {
         let lhs = loc.getInput(0).getFloatRegister();
         let rhs = loc.getInput(1).getFloatRegister();
         let output = loc.getOutput().getFloatRegister();
+        assert(output == lhs);
 
         let ty = inst.getValueType();
 
         if ty == Type::Float32 {
-            self.asm.movss_rr(output, lhs);
             self.asm.divss_rr(output, rhs);
         } else {
             assert(ty == Type::Float64);
-            self.asm.movsd_rr(output, lhs);
             self.asm.divsd_rr(output, rhs);
         }
     }

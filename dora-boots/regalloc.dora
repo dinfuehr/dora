@@ -424,30 +424,36 @@ impl SimpleRegisterAllocator {
 
         let output = loc_data.getOutput();
         let hint = loc_data.getHint();
+        let policy = output.getPolicy();
 
-        if output.getPolicy().isAnyFloatReg() {
+        if policy.isAnyFloatReg() {
             let hint = if hint.isFloatRegister() { Some[FloatRegister](hint.getFloatRegister()) } else { None[FloatRegister] };
             self.allocateOutputRegisterGeneric[FloatRegister](self.float_registers(), hint, inst, output);
-        } else if output.getPolicy().isAnyReg() {
+        } else if policy.isAnyReg() {
             let hint = if hint.isRegister() { Some[Register](hint.getRegister()) } else { None[Register] };
             self.allocateOutputRegisterGeneric[Register](self.registers(), hint, inst, output);
-        } else if output.getPolicy().isSameAsFirstInput() {
-            self.allocateOutputRegisterSameAsFirstInput(inst, loc_data, output);
+        } else if policy.isSameAsFirstInput() {
+            let first_input = loc_data.getInput(0).getLocation();
+            if first_input.isRegister() {
+                let reg = first_input.getRegister();
+                self.allocateOutputRegisterSameAsFirstInput[Register](self.registers(), inst, output, reg);
+            } else {
+                assert(first_input.isFloatRegister());
+                let reg = first_input.getFloatRegister();
+                self.allocateOutputRegisterSameAsFirstInput[FloatRegister](self.float_registers(), inst, output, reg);
+            }
         }
     }
 
-    fn allocateOutputRegisterSameAsFirstInput(inst: Inst, loc_data: LocationData, output: Operand) {
-        let input_loc = loc_data.getInput(0);
-        let dest = input_loc.getLocation().getRegister();
-
+    fn allocateOutputRegisterSameAsFirstInput[T: RegisterType](registers: RegisterTracker[T], inst: Inst, output: Operand, dest: T) {
         if !inst.getInput(0).isLastUse() {
-            self.yieldRegister[Register](self.registers(), dest);
+            self.yieldRegister[T](registers, dest);
         }
 
-        self.registers().freeRegisterRaw(dest);
-        assert(self.registers().allocateFixedRegister(dest, inst));
-        assert(self.registers().protected.contains(dest));
-        output.setRegister(dest);
+        registers.freeRegisterRaw(dest);
+        assert(registers.allocateFixedRegister(dest, inst));
+        assert(registers.protected.contains(dest));
+        output.setLocation(dest.toLocation());
     }
 
     fn allocateOutputRegisterGeneric[T: RegisterType](registers: RegisterTracker[T], hint: Option[T], inst: Inst, output: Operand) {
