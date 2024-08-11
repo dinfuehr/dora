@@ -2143,7 +2143,6 @@ impl AssemblerX64 {
         assert!(fits_u4(vvvv as u32));
         assert!(fits_u2(pp as u32));
         assert!(fits_u1(l as u32));
-        assert!(fits_u1(b as u32));
 
         if x || b || mmmmm != 0b00001 || w != 0 {
             // 0xC4 ...

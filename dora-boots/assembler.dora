@@ -177,6 +177,12 @@ impl std::Stringable for Register {
 
 pub struct FloatRegister(pub value: UInt8)
 
+impl FloatRegister {
+    fn value(): Int32 {
+        self.value.toInt32()
+    }
+}
+
 impl Equals for FloatRegister {
     fn equals(rhs: FloatRegister): Bool {
         self.value == rhs.value
