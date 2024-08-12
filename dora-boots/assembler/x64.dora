@@ -1197,6 +1197,38 @@ impl AssemblerX64 {
         self.emitModRm(0b11i32, dest.lowBits(), rhs.lowBits());
     }
 
+    pub fn vandpd_ra(dest: FloatRegister, lhs: FloatRegister, rhs: Address) {
+        assert(self.hasAvx2);
+        self.emitVex(
+            dest.needsRexBit(),
+            rhs.rexX(),
+            rhs.rexB(),
+            VEX_MMMMM_0F,
+            VEX_W0,
+            lhs.value(),
+            VEX_L_SCALAR_128,
+            VEX_PP_66,
+        );
+        self.emitByte(0x54u8);
+        self.emitAddress(dest.lowBits(), rhs);
+    }
+
+    pub fn vandps_ra(dest: FloatRegister, lhs: FloatRegister, rhs: Address) {
+        assert(self.hasAvx2);
+        self.emitVex(
+            dest.needsRexBit(),
+            rhs.rexX(),
+            rhs.rexB(),
+            VEX_MMMMM_0F,
+            VEX_W0,
+            lhs.value(),
+            VEX_L_SCALAR_128,
+            VEX_PP_NONE,
+        );
+        self.emitByte(0x54u8);
+        self.emitAddress(dest.lowBits(), rhs);
+    }
+
     pub fn xaddl_ar(dest: Address, src: Register) {
         self.emitRex32ModRmAddressOptional(src, dest);
         self.emitByte(0x0fu8);
@@ -1870,6 +1902,14 @@ impl Address {
         address.set_disp32(disp);
 
         address
+    }
+
+    pub fn rexX(): Bool {
+        (self.rex.toInt32() & 0x2i32) != 0i32
+    }
+
+    pub fn rexB(): Bool {
+        (self.rex.toInt32() & 0x1i32) != 0i32
     }
 }
 
@@ -4522,6 +4562,38 @@ mod tests {
         assertAsm(buffer, 0xc5u8, 0x72u8, 0x58u8, 0xc2u8);
         assertAsm(buffer, 0xc5u8, 0xb2u8, 0x58u8, 0xc2u8);
         assertAsm(buffer, 0xc4u8, 0xc1u8, 0x72u8, 0x58u8, 0xc2u8);
+        assertAsmEnd(buffer);
+    }
+
+    @Test
+    fn test_vandps_ra() {
+        let asm = AssemblerX64::new(true);
+        asm.vandps_ra(XMM0, XMM1, Address::offset(RDX, 4i32));
+        asm.vandps_ra(XMM8, XMM1, Address::offset(RDX, 4i32));
+        asm.vandps_ra(XMM0, XMM9, Address::offset(RDX, 4i32));
+        asm.vandps_ra(XMM0, XMM1, Address::offset(R10, 4i32));
+        let buffer = asm.finalizeTesting();
+
+        assertAsm(buffer, 0xc5u8, 0xf0u8, 0x54u8, 0x42u8, 0x04u8);
+        assertAsm(buffer, 0xc5u8, 0x70u8, 0x54u8, 0x42u8, 0x04u8);
+        assertAsm(buffer, 0xc5u8, 0xb0u8, 0x54u8, 0x42u8, 0x04u8);
+        assertAsm(buffer, 0xc4u8, 0xc1u8, 0x70u8, 0x54u8, 0x42u8, 0x04u8);
+        assertAsmEnd(buffer);
+    }
+
+    @Test
+    fn test_vandpd_ra() {
+        let asm = AssemblerX64::new(true);
+        asm.vandpd_ra(XMM0, XMM1, Address::offset(RDX, 4i32));
+        asm.vandpd_ra(XMM8, XMM1, Address::offset(RDX, 4i32));
+        asm.vandpd_ra(XMM0, XMM9, Address::offset(RDX, 4i32));
+        asm.vandpd_ra(XMM0, XMM1, Address::offset(R10, 4i32));
+        let buffer = asm.finalizeTesting();
+
+        assertAsm(buffer, 0xc5u8, 0xf1u8, 0x54u8, 0x42u8, 0x04u8);
+        assertAsm(buffer, 0xc5u8, 0x71u8, 0x54u8, 0x42u8, 0x04u8);
+        assertAsm(buffer, 0xc5u8, 0xb1u8, 0x54u8, 0x42u8, 0x04u8);
+        assertAsm(buffer, 0xc4u8, 0xc1u8, 0x71u8, 0x54u8, 0x42u8, 0x04u8);
         assertAsmEnd(buffer);
     }
 

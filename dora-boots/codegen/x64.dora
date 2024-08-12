@@ -88,7 +88,7 @@ impl CodeGenX64 {
     pub static fn new(ci: CompilationInfo, graph: Graph): CodeGenX64 {
         CodeGenX64(
             ci,
-            AssemblerX64::new(false),
+            AssemblerX64::new(config.hasAvx2),
             graph,
             ConstPool::new(),
             LocationTable::new(),
