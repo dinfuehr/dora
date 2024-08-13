@@ -1389,6 +1389,262 @@ impl AssemblerX64 {
         self.emitModRm(0b11i32, dest.lowBits(), src.lowBits());
     }
 
+    pub fn vdivsd_rr(dest: FloatRegister, lhs: FloatRegister, rhs: FloatRegister) {
+        assert(self.hasAvx2);
+        self.emitVex(
+            dest.needsRexBit(),
+            false,
+            rhs.needsRexBit(),
+            VEX_MMMMM_0F,
+            VEX_W0,
+            lhs.value(),
+            VEX_L_SCALAR_128,
+            VEX_PP_F2,
+        );
+        self.emitByte(0x5eu8);
+        self.emitModRm(0b11i32, dest.lowBits(), rhs.lowBits());
+    }
+
+    pub fn vdivss_rr(dest: FloatRegister, lhs: FloatRegister, rhs: FloatRegister) {
+        assert(self.hasAvx2);
+        self.emitVex(
+            dest.needsRexBit(),
+            false,
+            rhs.needsRexBit(),
+            VEX_MMMMM_0F,
+            VEX_W0,
+            lhs.value(),
+            VEX_L_SCALAR_128,
+            VEX_PP_F3,
+        );
+        self.emitByte(0x5eu8);
+        self.emitModRm(0b11i32, dest.lowBits(), rhs.lowBits());
+    }
+
+    pub fn vmovapd_rr(dest: FloatRegister, src: FloatRegister) {
+        assert(self.hasAvx2);
+        self.emitVex(
+            dest.needsRexBit(),
+            false,
+            src.needsRexBit(),
+            VEX_MMMMM_0F,
+            VEX_W0,
+            VEX_VVVV_UNUSED,
+            VEX_L_SCALAR_128,
+            VEX_PP_66,
+        );
+        self.emitByte(0x28u8);
+        self.emitModRm(0b11i32, dest.lowBits(), src.lowBits());
+    }
+
+    pub fn vmovaps_rr(dest: FloatRegister, src: FloatRegister) {
+        assert(self.hasAvx2);
+        self.emitVex(
+            dest.needsRexBit(),
+            false,
+            src.needsRexBit(),
+            VEX_MMMMM_0F,
+            VEX_W0,
+            VEX_VVVV_UNUSED,
+            VEX_L_SCALAR_128,
+            VEX_PP_NONE,
+        );
+        self.emitByte(0x28u8);
+        self.emitModRm(0b11i32, dest.lowBits(), src.lowBits());
+    }
+
+    pub fn vmovd_rx(dest: Register, src: FloatRegister) {
+        assert(self.hasAvx2);
+        self.emitVex(
+            src.needsRexBit(),
+            false,
+            dest.needsRexBit(),
+            VEX_MMMMM_0F,
+            VEX_W0,
+            VEX_VVVV_UNUSED,
+            VEX_L_SCALAR_128,
+            VEX_PP_66,
+        );
+        self.emitByte(0x7Eu8);
+        self.emitModRm(0b11i32, src.lowBits(), dest.lowBits());
+    }
+
+    pub fn vmovd_xr(dest: FloatRegister, src: Register) {
+        assert(self.hasAvx2);
+        self.emitVex(
+            dest.needsRexBit(),
+            false,
+            src.needsRexBit(),
+            VEX_MMMMM_0F,
+            VEX_W0,
+            VEX_VVVV_UNUSED,
+            VEX_L_SCALAR_128,
+            VEX_PP_66,
+        );
+        self.emitByte(0x6Eu8);
+        self.emitModRm(0b11i32, dest.lowBits(), src.lowBits());
+    }
+
+    pub fn vmovq_rx(dest: Register, src: FloatRegister) {
+        assert(self.hasAvx2);
+        self.emitVex(
+            src.needsRexBit(),
+            false,
+            dest.needsRexBit(),
+            VEX_MMMMM_0F,
+            VEX_W1,
+            VEX_VVVV_UNUSED,
+            VEX_L_SCALAR_128,
+            VEX_PP_66,
+        );
+        self.emitByte(0x7Eu8);
+        self.emitModRm(0b11i32, src.lowBits(), dest.lowBits());
+    }
+
+    pub fn vmovq_xr(dest: FloatRegister, src: Register) {
+        assert(self.hasAvx2);
+        self.emitVex(
+            dest.needsRexBit(),
+            false,
+            src.needsRexBit(),
+            VEX_MMMMM_0F,
+            VEX_W1,
+            VEX_VVVV_UNUSED,
+            VEX_L_SCALAR_128,
+            VEX_PP_66,
+        );
+        self.emitByte(0x6Eu8);
+        self.emitModRm(0b11i32, dest.lowBits(), src.lowBits());
+    }
+
+    pub fn vmovsd_ar(dest: Address, src: FloatRegister) {
+        assert(self.hasAvx2);
+        self.emitVex(
+            src.needsRexBit(),
+            dest.rexX(),
+            dest.rexB(),
+            VEX_MMMMM_0F,
+            VEX_W0,
+            VEX_VVVV_UNUSED,
+            VEX_L_SCALAR_128,
+            VEX_PP_F2,
+        );
+        self.emitByte(0x11u8);
+        self.emitAddress(src.lowBits(), dest);
+    }
+
+    pub fn vmovsd_ra(dest: FloatRegister, src: Address) {
+        assert(self.hasAvx2);
+        self.emitVex(
+            dest.needsRexBit(),
+            src.rexX(),
+            src.rexB(),
+            VEX_MMMMM_0F,
+            VEX_W0,
+            VEX_VVVV_UNUSED,
+            VEX_L_SCALAR_128,
+            VEX_PP_F2,
+        );
+        self.emitByte(0x10u8);
+        self.emitAddress(dest.lowBits(), src);
+    }
+
+    pub fn vmovsd_rr(dest: FloatRegister, lhs: FloatRegister, rhs: FloatRegister) {
+        assert(self.hasAvx2);
+        self.emitVex(
+            dest.needsRexBit(),
+            false,
+            rhs.needsRexBit(),
+            VEX_MMMMM_0F,
+            VEX_W0,
+            lhs.value(),
+            VEX_L_SCALAR_128,
+            VEX_PP_F2,
+        );
+        self.emitByte(0x10u8);
+        self.emitModRm(0b11i32, dest.lowBits(), rhs.lowBits());
+    }
+
+    pub fn vmovss_ar(dest: Address, src: FloatRegister) {
+        assert(self.hasAvx2);
+        self.emitVex(
+            src.needsRexBit(),
+            dest.rexX(),
+            dest.rexB(),
+            VEX_MMMMM_0F,
+            VEX_W0,
+            VEX_VVVV_UNUSED,
+            VEX_L_SCALAR_128,
+            VEX_PP_F3,
+        );
+        self.emitByte(0x11u8);
+        self.emitAddress(src.lowBits(), dest);
+    }
+
+    pub fn vmovss_ra(dest: FloatRegister, src: Address) {
+        assert(self.hasAvx2);
+        self.emitVex(
+            dest.needsRexBit(),
+            src.rexX(),
+            src.rexB(),
+            VEX_MMMMM_0F,
+            VEX_W0,
+            VEX_VVVV_UNUSED,
+            VEX_L_SCALAR_128,
+            VEX_PP_F3,
+        );
+        self.emitByte(0x10u8);
+        self.emitAddress(dest.lowBits(), src);
+    }
+
+    pub fn vmovss_rr(dest: FloatRegister, lhs: FloatRegister, rhs: FloatRegister) {
+        assert(self.hasAvx2);
+        self.emitVex(
+            dest.needsRexBit(),
+            false,
+            rhs.needsRexBit(),
+            VEX_MMMMM_0F,
+            VEX_W0,
+            lhs.value(),
+            VEX_L_SCALAR_128,
+            VEX_PP_F3,
+        );
+        self.emitByte(0x10u8);
+        self.emitModRm(0b11i32, dest.lowBits(), rhs.lowBits());
+    }
+
+    pub fn vmulsd_rr(dest: FloatRegister, lhs: FloatRegister, rhs: FloatRegister) {
+        assert(self.hasAvx2);
+        self.emitVex(
+            dest.needsRexBit(),
+            false,
+            rhs.needsRexBit(),
+            VEX_MMMMM_0F,
+            VEX_W0,
+            lhs.value(),
+            VEX_L_SCALAR_128,
+            VEX_PP_F2,
+        );
+        self.emitByte(0x59u8);
+        self.emitModRm(0b11i32, dest.lowBits(), rhs.lowBits());
+    }
+
+    pub fn vmulss_rr(dest: FloatRegister, lhs: FloatRegister, rhs: FloatRegister) {
+        assert(self.hasAvx2);
+        self.emitVex(
+            dest.needsRexBit(),
+            false,
+            rhs.needsRexBit(),
+            VEX_MMMMM_0F,
+            VEX_W0,
+            lhs.value(),
+            VEX_L_SCALAR_128,
+            VEX_PP_F3,
+        );
+        self.emitByte(0x59u8);
+        self.emitModRm(0b11i32, dest.lowBits(), rhs.lowBits());
+    }
+
     pub fn xaddl_ar(dest: Address, src: Register) {
         self.emitRex32ModRmAddressOptional(src, dest);
         self.emitByte(0x0fu8);
@@ -4857,6 +5113,166 @@ mod tests {
         assertAsmEnd(buffer);
     }
 
+    @Test
+    fn test_vdivsd_rr() {
+        let asm = AssemblerX64::new(true);
+        asm.vdivsd_rr(XMM0, XMM1, XMM2);
+        let buffer = asm.finalizeTesting();
+
+        assertAsm(buffer, 0xc5u8, 0xf3u8, 0x5eu8, 0xc2u8);
+        assertAsmEnd(buffer);
+    }
+
+    @Test
+    fn test_vdivss_rr() {
+        let asm = AssemblerX64::new(true);
+        asm.vdivss_rr(XMM0, XMM1, XMM2);
+        let buffer = asm.finalizeTesting();
+
+        assertAsm(buffer, 0xc5u8, 0xf2u8, 0x5eu8, 0xc2u8);
+        assertAsmEnd(buffer);
+    }
+
+    @Test
+    fn test_vmovapd_rr() {
+        let asm = AssemblerX64::new(true);
+        asm.vmovapd_rr(XMM0, XMM1);
+        let buffer = asm.finalizeTesting();
+
+        assertAsm(buffer, 0xc5u8, 0xf9u8, 0x28u8, 0xc1u8);
+        assertAsmEnd(buffer);
+    }
+
+    @Test
+    fn test_vmovaps_rr() {
+        let asm = AssemblerX64::new(true);
+        asm.vmovaps_rr(XMM0, XMM1);
+        let buffer = asm.finalizeTesting();
+
+        assertAsm(buffer, 0xc5u8, 0xf8u8, 0x28u8, 0xc1u8);
+        assertAsmEnd(buffer);
+    }
+
+    @Test
+    fn test_vmovd_rx() {
+        let asm = AssemblerX64::new(true);
+        asm.vmovd_rx(RAX, XMM1);
+        let buffer = asm.finalizeTesting();
+
+        assertAsm(buffer, 0xc5u8, 0xf9u8, 0x7eu8, 0xc8u8);
+        assertAsmEnd(buffer);
+    }
+
+    @Test
+    fn test_vmovd_xr() {
+        let asm = AssemblerX64::new(true);
+        asm.vmovd_xr(XMM0, RCX);
+        let buffer = asm.finalizeTesting();
+
+        assertAsm(buffer, 0xc5u8, 0xf9u8, 0x6eu8, 0xc1u8);
+        assertAsmEnd(buffer);
+    }
+
+    @Test
+    fn test_vmovq_rx() {
+        let asm = AssemblerX64::new(true);
+        asm.vmovq_rx(RAX, XMM1);
+        let buffer = asm.finalizeTesting();
+
+        assertAsm(buffer, 0xc4u8, 0xe1u8, 0xf9u8, 0x7eu8, 0xc8u8);
+        assertAsmEnd(buffer);
+    }
+
+    @Test
+    fn test_vmovq_xr() {
+        let asm = AssemblerX64::new(true);
+        asm.vmovq_xr(XMM0, RCX);
+        let buffer = asm.finalizeTesting();
+
+        assertAsm(buffer, 0xc4u8, 0xe1u8, 0xf9u8, 0x6eu8, 0xc1u8);
+        assertAsmEnd(buffer);
+    }
+
+    @Test
+    fn test_vmovsd_ar() {
+        let asm = AssemblerX64::new(true);
+        asm.vmovsd_ar(Address::offset(RAX, 4i32), XMM1);
+        let buffer = asm.finalizeTesting();
+
+        assertAsm(buffer, 0xc5u8, 0xfbu8, 0x11u8, 0x48u8, 0x04u8);
+        assertAsmEnd(buffer);
+    }
+
+    @Test
+    fn test_vmovsd_ra() {
+        let asm = AssemblerX64::new(true);
+        asm.vmovsd_ra(XMM0, Address::offset(RCX, 4i32));
+        let buffer = asm.finalizeTesting();
+
+        assertAsm(buffer, 0xc5u8, 0xfbu8, 0x10u8, 0x41u8, 0x04u8);
+        assertAsmEnd(buffer);
+    }
+
+    @Test
+    fn test_vmovsd_rr() {
+        let asm = AssemblerX64::new(true);
+        asm.vmovsd_rr(XMM0, XMM1, XMM2);
+        let buffer = asm.finalizeTesting();
+
+        assertAsm(buffer, 0xc5u8, 0xf3u8, 0x10u8, 0xc2u8);
+        assertAsmEnd(buffer);
+    }
+
+    @Test
+    fn test_vmovss_ar() {
+        let asm = AssemblerX64::new(true);
+        asm.vmovss_ar(Address::offset(RAX, 4i32), XMM1);
+        let buffer = asm.finalizeTesting();
+
+        assertAsm(buffer, 0xc5u8, 0xfau8, 0x11u8, 0x48u8, 0x04u8);
+        assertAsmEnd(buffer);
+    }
+
+    @Test
+    fn test_vmovss_ra() {
+        let asm = AssemblerX64::new(true);
+        asm.vmovss_ra(XMM0, Address::offset(RCX, 4i32));
+        let buffer = asm.finalizeTesting();
+
+        assertAsm(buffer, 0xc5u8, 0xfau8, 0x10u8, 0x41u8, 0x04u8);
+        assertAsmEnd(buffer);
+    }
+
+    @Test
+    fn test_vmovss_rr() {
+        let asm = AssemblerX64::new(true);
+        asm.vmovss_rr(XMM0, XMM1, XMM2);
+        let buffer = asm.finalizeTesting();
+
+        assertAsm(buffer, 0xc5u8, 0xf2u8, 0x10u8, 0xc2u8);
+        assertAsmEnd(buffer);
+    }
+
+    @Test
+    fn test_vmulsd_rr() {
+        let asm = AssemblerX64::new(true);
+        asm.vmulsd_rr(XMM0, XMM1, XMM2);
+        let buffer = asm.finalizeTesting();
+
+        assertAsm(buffer, 0xc5u8, 0xf3u8, 0x59u8, 0xc2u8);
+        assertAsmEnd(buffer);
+    }
+
+    @Test
+    fn test_vmulss_rr() {
+        let asm = AssemblerX64::new(true);
+        asm.vmulss_rr(XMM0, XMM1, XMM2);
+        let buffer = asm.finalizeTesting();
+
+        assertAsm(buffer, 0xc5u8, 0xf2u8, 0x59u8, 0xc2u8);
+        assertAsmEnd(buffer);
+    }
+
     fn assertAsmNop(code: MachineCode, length: Int64) {
         assert(length > 0i64);
 
@@ -4882,7 +5298,7 @@ mod tests {
                 print("expected: ");
 
                 while i < bytes.size() {
-                    if i > 0i64 { print(", "); }
+                    if i > 0i64 { print(" "); }
                     let value = bytes(i);
                     print("${value.toStringHex()}");
                     i = i + 1i64;
@@ -4890,10 +5306,10 @@ mod tests {
 
                 i = 0i64;
                 println("");
-                print("buffer: ");
+                print("buffer:   ");
 
                 while i < bytes.size() {
-                    if i > 0i64 { print(", "); }
+                    if i > 0i64 { print(" "); }
                     let value = code.bytes(code.start + i);
                     print("${value.toStringHex()}");
                     i = i + 1i64;
