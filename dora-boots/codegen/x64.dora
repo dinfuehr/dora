@@ -82,6 +82,7 @@ pub class CodeGenX64 {
     comments: CommentTable,
     deferred: Vec[(): ()],
     argumentLocations: Option[ArgumentLocations],
+    hasAvx2: Bool,
 }
 
 impl CodeGenX64 {
@@ -97,6 +98,7 @@ impl CodeGenX64 {
             CommentTable::new(),
             Vec[(): ()]::new(),
             None[ArgumentLocations],
+            config.hasAvx2,
         )
     }
 
@@ -789,7 +791,11 @@ impl CodeGen for CodeGenX64 {
         if inst.getValueType().isAnyFloat() {
             useInputFloatRegister(inst, 0);
             useInputFloatRegister(inst, 1);
-            useOutputSameAsFirstInput(inst);
+            if self.hasAvx2 {
+                useOutputFloatRegister(inst, InputOutputOverlap::NoOverlap);
+            } else {
+                useOutputSameAsFirstInput(inst);
+            }
         } else {
             useInputRegister(inst, 0);
             useInputRegister(inst, 1);
@@ -805,13 +811,22 @@ impl CodeGen for CodeGenX64 {
             let lhs = loc.getInput(0).getFloatRegister();
             let rhs = loc.getInput(1).getFloatRegister();
             let output = loc.getOutput().getFloatRegister();
-            assert(output == lhs);
 
-            if ty == Type::Float32 {
-                self.asm.addss_rr(output, rhs);
+            if self.hasAvx2 {
+                if ty == Type::Float32 {
+                    self.asm.vaddss_rr(output, lhs, rhs);
+                } else {
+                    assert(ty == Type::Float64);
+                    self.asm.vaddsd_rr(output, lhs, rhs);
+                }
             } else {
-                assert(ty == Type::Float64);
-                self.asm.addsd_rr(output, rhs);
+                assert(output == lhs);
+                if ty == Type::Float32 {
+                    self.asm.addss_rr(output, rhs);
+                } else {
+                    assert(ty == Type::Float64);
+                    self.asm.addsd_rr(output, rhs);
+                }
             }
         } else {
             let lhs = loc.getInput(0).getRegister();
@@ -832,7 +847,11 @@ impl CodeGen for CodeGenX64 {
         if inst.getValueType().isAnyFloat() {
             useInputFloatRegister(inst, 0);
             useInputFloatRegister(inst, 1);
-            useOutputSameAsFirstInput(inst);
+            if self.hasAvx2 {
+                useOutputFloatRegister(inst, InputOutputOverlap::NoOverlap);
+            } else {
+                useOutputSameAsFirstInput(inst);
+            }
         } else {
             useInputRegister(inst, 0);
             useInputRegister(inst, 1);
@@ -848,13 +867,22 @@ impl CodeGen for CodeGenX64 {
             let lhs = loc.getInput(0).getFloatRegister();
             let rhs = loc.getInput(1).getFloatRegister();
             let output = loc.getOutput().getFloatRegister();
-            assert(output == lhs);
 
-            if ty == Type::Float32 {
-                self.asm.subss_rr(output, rhs);
+            if self.hasAvx2 {
+                if ty == Type::Float32 {
+                    self.asm.vsubss_rr(output, lhs, rhs);
+                } else {
+                    assert(ty == Type::Float64);
+                    self.asm.vsubsd_rr(output, lhs, rhs);
+                }
             } else {
-                assert(ty == Type::Float64);
-                self.asm.subsd_rr(output, rhs);
+                assert(output == lhs);
+                if ty == Type::Float32 {
+                    self.asm.subss_rr(output, rhs);
+                } else {
+                    assert(ty == Type::Float64);
+                    self.asm.subsd_rr(output, rhs);
+                }
             }
         } else {
             let lhs = loc.getInput(0).getRegister();
@@ -875,7 +903,11 @@ impl CodeGen for CodeGenX64 {
         if inst.getValueType().isAnyFloat() {
             useInputFloatRegister(inst, 0);
             useInputFloatRegister(inst, 1);
-            useOutputSameAsFirstInput(inst);
+            if self.hasAvx2 {
+                useOutputFloatRegister(inst, InputOutputOverlap::NoOverlap);
+            } else {
+                useOutputSameAsFirstInput(inst);
+            }
         } else {
             useInputRegister(inst, 0);
             useInputRegister(inst, 1);
@@ -891,13 +923,22 @@ impl CodeGen for CodeGenX64 {
             let lhs = loc.getInput(0).getFloatRegister();
             let rhs = loc.getInput(1).getFloatRegister();
             let output = loc.getOutput().getFloatRegister();
-            assert(output == lhs);
 
-            if ty == Type::Float32 {
-                self.asm.mulss_rr(output, rhs);
+            if self.hasAvx2 {
+                if ty == Type::Float32 {
+                    self.asm.vmulss_rr(output, lhs, rhs);
+                } else {
+                    assert(ty == Type::Float64);
+                    self.asm.vmulsd_rr(output, lhs, rhs);
+                }
             } else {
-                assert(ty == Type::Float64);
-                self.asm.mulsd_rr(output, rhs);
+                assert(output == lhs);
+                if ty == Type::Float32 {
+                    self.asm.mulss_rr(output, rhs);
+                } else {
+                    assert(ty == Type::Float64);
+                    self.asm.mulsd_rr(output, rhs);
+                }
             }
         } else {
             let lhs = loc.getInput(0).getRegister();
@@ -917,7 +958,11 @@ impl CodeGen for CodeGenX64 {
     fn annotateDiv(inst: Inst) {
         useInputFloatRegister(inst, 0);
         useInputFloatRegister(inst, 1);
-        useOutputSameAsFirstInput(inst);
+        if self.hasAvx2 {
+            useOutputFloatRegister(inst, InputOutputOverlap::NoOverlap);
+        } else {
+            useOutputSameAsFirstInput(inst);
+        }
     }
 
     fn emitDiv(inst: Inst) {
@@ -925,15 +970,24 @@ impl CodeGen for CodeGenX64 {
         let lhs = loc.getInput(0).getFloatRegister();
         let rhs = loc.getInput(1).getFloatRegister();
         let output = loc.getOutput().getFloatRegister();
-        assert(output == lhs);
 
         let ty = inst.getValueType();
 
-        if ty == Type::Float32 {
-            self.asm.divss_rr(output, rhs);
+        if self.hasAvx2 {
+            if ty == Type::Float32 {
+                self.asm.vdivss_rr(output, lhs, rhs);
+            } else {
+                assert(ty == Type::Float64);
+                self.asm.vdivsd_rr(output, lhs, rhs);
+            }
         } else {
-            assert(ty == Type::Float64);
-            self.asm.divsd_rr(output, rhs);
+            assert(output == lhs);
+            if ty == Type::Float32 {
+                self.asm.divss_rr(output, rhs);
+            } else {
+                assert(ty == Type::Float64);
+                self.asm.divsd_rr(output, rhs);
+            }
         }
     }
 
