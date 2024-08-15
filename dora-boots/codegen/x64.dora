@@ -594,28 +594,31 @@ impl CodeGenX64 {
             1 << 63i32
         };
 
-        if ty == Type::Float32 {
-            self.asm.movss_rr(dest, src);
+        let const_offset = self.constPool.push(ConstPoolValue::Int128(value, 0)).disp;
+
+        if self.hasAvx2 {
+            if ty == Type::Float32 {
+                self.asm.vxorps_ra(dest, src, AsmAddress::rip(0i32))
+            } else {
+                assert(ty == Type::Float64);
+                self.asm.vxorpd_ra(dest, src, AsmAddress::rip(0i32))
+            }
         } else {
-            assert(ty == Type::Float64);
-            self.asm.movsd_rr(dest, src);
+            if ty == Type::Float32 {
+                self.asm.movss_rr(dest, src);
+                self.asm.xorps_ra(dest, AsmAddress::rip(0i32))
+            } else {
+                assert(ty == Type::Float64);
+                self.asm.movsd_rr(dest, src);
+                self.asm.xorpd_ra(dest, AsmAddress::rip(0i32))
+            }
         }
 
-        let disp = self.constPool.push(ConstPoolValue::Int128(value, 0)).disp;
-        let pos = self.asm.position();
-
-        let inst_size = 7i32
-            + if ty == Type::Float64 { 1i32 } else { 0i32 }
-            + if dest.needsRexBit() { 1i32 } else { 0i32 };
-
-        let address = AsmAddress::rip(-(disp + pos + inst_size));
-
-        if ty == Type::Float32 {
-            self.asm.xorps_ra(dest, address)
-        } else {
-            assert(ty == Type::Float64);
-            self.asm.xorpd_ra(dest, address)
-        }
+        let inst_end = self.asm.position();
+        let disp = -(const_offset + inst_end);
+        self.asm.setPosition(inst_end - 4i32);
+        self.asm.emitInt32(disp);
+        self.asm.setPositionEnd();
     }
 }
 

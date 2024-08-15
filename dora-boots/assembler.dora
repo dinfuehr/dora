@@ -25,6 +25,10 @@ impl AssemblerBuffer {
         self.pos = newpos;
     }
 
+    fn setPositionEnd() {
+        self.pos = self.buffer.size();
+    }
+
     fn emitByte(value: UInt8) {
         if self.pos == self.buffer.size() {
             self.buffer.push(value);

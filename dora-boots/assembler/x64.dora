@@ -95,6 +95,14 @@ impl AssemblerX64 {
         self.buffer.position().toInt32()
     }
 
+    pub fn setPosition(newpos: Int32) {
+        self.buffer.setPosition(newpos.toInt64());
+    }
+
+    pub fn setPositionEnd() {
+        self.buffer.setPositionEnd();
+    }
+
     pub fn addl_ri(dest: Register, imm: Immediate) {
         self.emitAlu32Imm(dest, imm, 0b000i32, 0x05u8);
     }
@@ -116,6 +124,7 @@ impl AssemblerX64 {
     }
 
     pub fn addss_rr(dest: FloatRegister, src: FloatRegister) {
+        assert(!self.hasAvx2);
         self.emitByte(0xF3u8);
         self.emitRexSseModRmOptional(dest, src);
         self.emitByte(0x0Fu8);
@@ -124,6 +133,7 @@ impl AssemblerX64 {
     }
 
     pub fn addsd_rr(dest: FloatRegister, src: FloatRegister) {
+        assert(!self.hasAvx2);
         self.emitByte(0xF2u8);
         self.emitRexSseModRmOptional(dest, src);
         self.emitByte(0x0Fu8);
@@ -360,6 +370,7 @@ impl AssemblerX64 {
     }
 
     pub fn divss_rr(dest: FloatRegister, src: FloatRegister) {
+        assert(!self.hasAvx2);
         self.emitByte(0xF3u8);
         self.emitRexSseModRmOptional(dest, src);
         self.emitByte(0x0Fu8);
@@ -368,6 +379,7 @@ impl AssemblerX64 {
     }
 
     pub fn divsd_rr(dest: FloatRegister, src: FloatRegister) {
+        assert(!self.hasAvx2);
         self.emitByte(0xF2u8);
         self.emitRexSseModRmOptional(dest, src);
         self.emitByte(0x0Fu8);
@@ -776,6 +788,7 @@ impl AssemblerX64 {
     }
 
     pub fn mulss_rr(dest: FloatRegister, src: FloatRegister) {
+        assert(!self.hasAvx2);
         self.emitByte(0xF3u8);
         self.emitRexSseModRmOptional(dest, src);
         self.emitByte(0x0Fu8);
@@ -784,6 +797,7 @@ impl AssemblerX64 {
     }
 
     pub fn mulsd_rr(dest: FloatRegister, src: FloatRegister) {
+        assert(!self.hasAvx2);
         self.emitByte(0xF2u8);
         self.emitRexSseModRmOptional(dest, src);
         self.emitByte(0x0Fu8);
@@ -1040,6 +1054,7 @@ impl AssemblerX64 {
     }
 
     pub fn subsd_rr(dest: FloatRegister, src: FloatRegister) {
+        assert(!self.hasAvx2);
         self.emitByte(0xF2u8);
         self.emitRexSseModRmOptional(dest, src);
         self.emitByte(0x0Fu8);
@@ -1048,6 +1063,7 @@ impl AssemblerX64 {
     }
 
     pub fn subss_rr(dest: FloatRegister, src: FloatRegister) {
+        assert(!self.hasAvx2);
         self.emitByte(0xF3u8);
         self.emitRexSseModRmOptional(dest, src);
         self.emitByte(0x0Fu8);
@@ -1870,6 +1886,7 @@ impl AssemblerX64 {
     }
 
     pub fn xorpd_ra(dest: FloatRegister, src: Address) {
+        assert(!self.hasAvx2);
         self.emitByte(0x66u8);
         self.emitRexSseAddressOptional(dest, src);
         self.emitByte(0x0Fu8);
@@ -1878,6 +1895,7 @@ impl AssemblerX64 {
     }
 
     pub fn xorps_ra(dest: FloatRegister, src: Address) {
+        assert(!self.hasAvx2);
         self.emitRexSseAddressOptional(dest, src);
         self.emitByte(0x0Fu8);
         self.emitByte(0x57u8);
@@ -2160,7 +2178,7 @@ impl AssemblerX64 {
         self.buffer.emitByte(value);
     }
 
-    fn emitInt32(value: Int32) {
+    pub fn emitInt32(value: Int32) {
         self.buffer.emitInt32(value);
     }
 
