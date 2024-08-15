@@ -129,23 +129,56 @@ impl CodeGenX64 {
 
     fn mov_imm_f32(dest: FloatRegister, value: Float32) {
         let entry = self.constPool.push(ConstPoolValue::Float32(value));
-        let inst_size = 8i32 + if msb(dest) { 1i32 } else { 0i32 };
-        let disp = self.asm.position() + entry.disp + inst_size;
-        self.asm.movss_ra(dest, AsmAddress::rip(-disp));
+        let const_offset = entry.disp;
+
+        if self.hasAvx2 {
+            self.asm.vmovss_ra(dest, AsmAddress::rip(0i32));
+        } else {
+            self.asm.movss_ra(dest, AsmAddress::rip(0i32));
+        }
+
+        let inst_end = self.asm.position();
+        let disp = -(const_offset + inst_end);
+        self.asm.setPosition(inst_end - 4i32);
+        self.asm.emitInt32(disp);
+        self.asm.setPositionEnd();
     }
 
     fn mov_imm_f64(dest: FloatRegister, value: Float64) {
         let entry = self.constPool.push(ConstPoolValue::Float64(value));
-        let inst_size = 8i32 + if msb(dest) { 1i32 } else { 0i32 };
-        let disp = self.asm.position() + entry.disp + inst_size;
-        self.asm.movsd_ra(dest, AsmAddress::rip(-disp));
+        let const_offset = entry.disp;
+
+        if self.hasAvx2 {
+            self.asm.vmovsd_ra(dest, AsmAddress::rip(0i32));
+        } else {
+            self.asm.movsd_ra(dest, AsmAddress::rip(0i32));
+        }
+
+        let inst_end = self.asm.position();
+        let disp = -(const_offset + inst_end);
+        self.asm.setPosition(inst_end - 4i32);
+        self.asm.emitInt32(disp);
+        self.asm.setPositionEnd();
     }
 
-    fn andps_ri128(dest: FloatRegister, lower: Int64, upper: Int64) {
+    fn andps_ri128(dest: FloatRegister, src: FloatRegister, lower: Int64, upper: Int64) {
         let entry = self.constPool.push(ConstPoolValue::Int128(lower, upper));
-        let inst_size = 7i32 + if msb(dest) { 1i32 } else { 0i32 };
-        let disp = self.asm.position() + entry.disp + inst_size;
-        self.asm.andps_ra(dest, AsmAddress::rip(-disp));
+        let const_offset = entry.disp;
+
+        if self.hasAvx2 {
+            self.asm.vandps_ra(dest, src, AsmAddress::rip(0i32));
+        } else {
+            if dest != src {
+                self.asm.movaps_rr(dest, src);
+            }
+            self.asm.andps_ra(dest, AsmAddress::rip(0i32));
+        }
+
+        let inst_end = self.asm.position();
+        let disp = -(const_offset + inst_end);
+        self.asm.setPosition(inst_end - 4i32);
+        self.asm.emitInt32(disp);
+        self.asm.setPositionEnd();
     }
 
     fn movq_ra_gp(dest: Register, address: AsmAddress, ty: Type) {
@@ -382,17 +415,30 @@ impl CodeGenX64 {
 
     fn zeroMemory(ptr: Register, words: Int64, tmp: FloatRegister) {
         self.emitComment("zero memory of fixed length");
-        self.asm.xorps_rr(tmp, tmp);
+
+        if self.hasAvx2 {
+            self.asm.vxorps_rr(tmp, tmp, tmp);
+        } else {
+            self.asm.xorps_rr(tmp, tmp);
+        }
 
         let mut idx = 0;
 
         while idx + 1 < words {
-            self.asm.movups_ar(AsmAddress::offset(ptr, idx.toInt32() * PTR_SIZE), tmp);
+            if self.hasAvx2 {
+                self.asm.vmovups_ar(AsmAddress::offset(ptr, idx.toInt32() * PTR_SIZE), tmp);
+            } else {
+                self.asm.movups_ar(AsmAddress::offset(ptr, idx.toInt32() * PTR_SIZE), tmp);
+            }
             idx = idx + 2;
         }
 
         if idx < words {
-            self.asm.movsd_ar(AsmAddress::offset(ptr, idx.toInt32() * PTR_SIZE), tmp);
+            if self.hasAvx2 {
+                self.asm.vmovsd_ar(AsmAddress::offset(ptr, idx.toInt32() * PTR_SIZE), tmp);
+            } else {
+                self.asm.movsd_ar(AsmAddress::offset(ptr, idx.toInt32() * PTR_SIZE), tmp);
+            }
             idx = idx + 1;
         }
 
@@ -406,10 +452,18 @@ impl CodeGenX64 {
         self.asm.testq_rr(words, words);
         self.asm.jcc(Condition::Zero, done);
 
-        self.asm.xorps_rr(tmp, tmp);
+        if self.hasAvx2 {
+            self.asm.vxorps_rr(tmp, tmp, tmp);
+        } else {
+            self.asm.xorps_rr(tmp, tmp);
+        }
 
         let loop = self.asm.createAndBindLabel();
-        self.asm.movsd_ar(AsmAddress::array(ptr, words, ScaleFactor::Eight, -PTR_SIZE), tmp);
+        if self.hasAvx2 {
+            self.asm.vmovsd_ar(AsmAddress::array(ptr, words, ScaleFactor::Eight, -PTR_SIZE), tmp);
+        } else {
+            self.asm.movsd_ar(AsmAddress::array(ptr, words, ScaleFactor::Eight, -PTR_SIZE), tmp);
+        }
         self.asm.subq_ri(words, Immediate(1));
         self.asm.jcc(Condition::NotZero, loop);
 
@@ -458,7 +512,11 @@ impl CodeGenX64 {
 
             while !regs.isEmpty() {
                 let reg = regs.popLowestIndex().getOrPanic();
-                self.asm.movsd_ar(AsmAddress::offset(RSP, offset), reg);
+                if self.hasAvx2 {
+                    self.asm.vmovsd_ar(AsmAddress::offset(RSP, offset), reg);
+                } else {
+                    self.asm.movsd_ar(AsmAddress::offset(RSP, offset), reg);
+                }
                 offset = offset + PTR_SIZE;
             }
         };
@@ -489,7 +547,11 @@ impl CodeGenX64 {
 
             while !regs.isEmpty() {
                 let reg = regs.popLowestIndex().getOrPanic();
-                self.asm.movsd_ra(reg, AsmAddress::offset(RSP, offset));
+                if self.hasAvx2 {
+                    self.asm.vmovsd_ra(reg, AsmAddress::offset(RSP, offset));
+                } else {
+                    self.asm.movsd_ra(reg, AsmAddress::offset(RSP, offset));
+                }
                 offset = offset + PTR_SIZE;
             }
 
@@ -712,11 +774,20 @@ impl CodeGen for CodeGenX64 {
         if ty.isAnyFloat() {
             let reg = loc.getOutput().getFloatRegister();
 
-            if ty == Type::Float32 {
-                self.asm.movss_ar(AsmAddress::offset(RBP, slot), reg);
+            if self.hasAvx2 {
+                if ty == Type::Float32 {
+                    self.asm.vmovss_ar(AsmAddress::offset(RBP, slot), reg);
+                } else {
+                    assert(ty == Type::Float64);
+                    self.asm.vmovsd_ar(AsmAddress::offset(RBP, slot), reg);
+                }
             } else {
-                assert(ty == Type::Float64);
-                self.asm.movsd_ar(AsmAddress::offset(RBP, slot), reg);
+                if ty == Type::Float32 {
+                    self.asm.movss_ar(AsmAddress::offset(RBP, slot), reg);
+                } else {
+                    assert(ty == Type::Float64);
+                    self.asm.movsd_ar(AsmAddress::offset(RBP, slot), reg);
+                }
             }
         } else {
             let reg = loc.getOutput().getRegister();
@@ -1435,11 +1506,20 @@ impl CodeGen for CodeGenX64 {
         } else if dest.isFloatRegister() {
             if src.isFloatRegister() {
                 // Register-to-Register
-                if ty == Type::Float32 {
-                    self.asm.movss_rr(dest.getFloatRegister(), src.getFloatRegister());
+                if self.hasAvx2 {
+                    if ty == Type::Float32 {
+                        self.asm.vmovaps_rr(dest.getFloatRegister(), src.getFloatRegister());
+                    } else {
+                        assert(ty == Type::Float64);
+                        self.asm.vmovapd_rr(dest.getFloatRegister(), src.getFloatRegister());
+                    }
                 } else {
-                    assert(ty == Type::Float64);
-                    self.asm.movsd_rr(dest.getFloatRegister(), src.getFloatRegister());
+                    if ty == Type::Float32 {
+                        self.asm.movss_rr(dest.getFloatRegister(), src.getFloatRegister());
+                    } else {
+                        assert(ty == Type::Float64);
+                        self.asm.movsd_rr(dest.getFloatRegister(), src.getFloatRegister());
+                    }
                 }
             } else {
                 // Reload
@@ -1448,11 +1528,20 @@ impl CodeGen for CodeGenX64 {
                 assert(slot.isFp());
                 let offset = slot.getOffset();
 
-                if ty == Type::Float32 {
-                    self.asm.movss_ra(dest.getFloatRegister(), AsmAddress::offset(RBP, offset));
+                if self.hasAvx2 {
+                    if ty == Type::Float32 {
+                        self.asm.vmovss_ra(dest.getFloatRegister(), AsmAddress::offset(RBP, offset));
+                    } else {
+                        assert(ty == Type::Float64);
+                        self.asm.vmovsd_ra(dest.getFloatRegister(), AsmAddress::offset(RBP, offset));
+                    }
                 } else {
-                    assert(ty == Type::Float64);
-                    self.asm.movsd_ra(dest.getFloatRegister(), AsmAddress::offset(RBP, offset));
+                    if ty == Type::Float32 {
+                        self.asm.movss_ra(dest.getFloatRegister(), AsmAddress::offset(RBP, offset));
+                    } else {
+                        assert(ty == Type::Float64);
+                        self.asm.movsd_ra(dest.getFloatRegister(), AsmAddress::offset(RBP, offset));
+                    }
                 }
             }
         } else {
@@ -1463,11 +1552,20 @@ impl CodeGen for CodeGenX64 {
             let offset = slot.getOffset();
 
             if src.isFloatRegister() {
-                if ty == Type::Float32 {
-                    self.asm.movss_ar(AsmAddress::offset(stack_reg, offset), src.getFloatRegister());
+                if self.hasAvx2 {
+                    if ty == Type::Float32 {
+                        self.asm.vmovss_ar(AsmAddress::offset(stack_reg, offset), src.getFloatRegister());
+                    } else {
+                        assert(ty == Type::Float64);
+                        self.asm.vmovsd_ar(AsmAddress::offset(stack_reg, offset), src.getFloatRegister());
+                    }
                 } else {
-                    assert(ty == Type::Float64);
-                    self.asm.movsd_ar(AsmAddress::offset(stack_reg, offset), src.getFloatRegister());
+                    if ty == Type::Float32 {
+                        self.asm.movss_ar(AsmAddress::offset(stack_reg, offset), src.getFloatRegister());
+                    } else {
+                        assert(ty == Type::Float64);
+                        self.asm.movsd_ar(AsmAddress::offset(stack_reg, offset), src.getFloatRegister());
+                    }
                 }
             } else if src.isRegister() {
                 if ty == Type::Int64 || ty == Type::Ptr || ty == Type::Address {
@@ -1768,12 +1866,20 @@ impl CodeGen for CodeGenX64 {
 
             Type::Float32 => {
                 let dest = loc.getOutput().getFloatRegister();
-                self.asm.movss_ra(dest, AsmAddress::array(array, idx, ScaleFactor::Four, ARRAY_HEADER_LENGTH));
+                if self.hasAvx2 {
+                    self.asm.vmovss_ra(dest, AsmAddress::array(array, idx, ScaleFactor::Four, ARRAY_HEADER_LENGTH));
+                } else {
+                    self.asm.movss_ra(dest, AsmAddress::array(array, idx, ScaleFactor::Four, ARRAY_HEADER_LENGTH));
+                }
             },
 
             Type::Float64 => {
                 let dest = loc.getOutput().getFloatRegister();
-                self.asm.movsd_ra(dest, AsmAddress::array(array, idx, ScaleFactor::Eight, ARRAY_HEADER_LENGTH));
+                if self.hasAvx2 {
+                    self.asm.vmovsd_ra(dest, AsmAddress::array(array, idx, ScaleFactor::Eight, ARRAY_HEADER_LENGTH));
+                } else {
+                    self.asm.movsd_ra(dest, AsmAddress::array(array, idx, ScaleFactor::Eight, ARRAY_HEADER_LENGTH));
+                }
             },
 
             _ => {
@@ -1807,12 +1913,20 @@ impl CodeGen for CodeGenX64 {
 
             Type::Float32 => {
                 let value = loc.getInput(2).getFloatRegister();
-                self.asm.movss_ar(AsmAddress::array(array, idx, ScaleFactor::Four, ARRAY_HEADER_LENGTH), value);
+                if self.hasAvx2 {
+                    self.asm.vmovss_ar(AsmAddress::array(array, idx, ScaleFactor::Four, ARRAY_HEADER_LENGTH), value);
+                } else {
+                    self.asm.movss_ar(AsmAddress::array(array, idx, ScaleFactor::Four, ARRAY_HEADER_LENGTH), value);
+                }
             },
 
             Type::Float64 => {
                 let value = loc.getInput(2).getFloatRegister();
-                self.asm.movsd_ar(AsmAddress::array(array, idx, ScaleFactor::Eight, ARRAY_HEADER_LENGTH), value);
+                if self.hasAvx2 {
+                    self.asm.vmovsd_ar(AsmAddress::array(array, idx, ScaleFactor::Eight, ARRAY_HEADER_LENGTH), value);
+                } else {
+                    self.asm.movsd_ar(AsmAddress::array(array, idx, ScaleFactor::Eight, ARRAY_HEADER_LENGTH), value);
+                }
             },
 
             _ => {
@@ -1916,13 +2030,20 @@ impl CodeGen for CodeGenX64 {
 
             Type::Float32 => {
                 let dest = loc.getOutput().getFloatRegister();
-                self.asm.movss_ra(dest, AsmAddress::offset(REG_TEMP, 0i32));
-
+                if self.hasAvx2 {
+                    self.asm.vmovss_ra(dest, AsmAddress::offset(REG_TEMP, 0i32));
+                } else {
+                    self.asm.movss_ra(dest, AsmAddress::offset(REG_TEMP, 0i32));
+                }
             },
 
             Type::Float64 => {
                 let dest = loc.getOutput().getFloatRegister();
-                self.asm.movsd_ra(dest, AsmAddress::offset(REG_TEMP, 0i32));
+                if self.hasAvx2 {
+                    self.asm.vmovsd_ra(dest, AsmAddress::offset(REG_TEMP, 0i32));
+                } else {
+                    self.asm.movsd_ra(dest, AsmAddress::offset(REG_TEMP, 0i32));
+                }
             },
 
             _ => {
@@ -1991,11 +2112,19 @@ impl CodeGen for CodeGenX64 {
                     },
 
                     Type::Float32 => {
-                        self.asm.movss_ar(AsmAddress::offset(REG_TEMP, 0i32), XMM0);
+                        if self.hasAvx2 {
+                            self.asm.vmovss_ar(AsmAddress::offset(REG_TEMP, 0i32), XMM0);
+                        } else {
+                            self.asm.movss_ar(AsmAddress::offset(REG_TEMP, 0i32), XMM0);
+                        }
                     },
 
                     Type::Float64 => {
-                        self.asm.movsd_ar(AsmAddress::offset(REG_TEMP, 0i32), XMM0);
+                        if self.hasAvx2 {
+                            self.asm.vmovsd_ar(AsmAddress::offset(REG_TEMP, 0i32), XMM0);
+                        } else {
+                            self.asm.movsd_ar(AsmAddress::offset(REG_TEMP, 0i32), XMM0);
+                        }
                     },
 
                     _ => {
@@ -2040,12 +2169,20 @@ impl CodeGen for CodeGenX64 {
 
             Type::Float32 => {
                 let src = loc.getInput(0).getFloatRegister();
-                self.asm.movss_ar(AsmAddress::offset(REG_TEMP, 0i32), src);
+                if self.hasAvx2 {
+                    self.asm.vmovss_ar(AsmAddress::offset(REG_TEMP, 0i32), src);
+                } else {
+                    self.asm.movss_ar(AsmAddress::offset(REG_TEMP, 0i32), src);
+                }
             },
 
             Type::Float64 => {
                 let src = loc.getInput(0).getFloatRegister();
-                self.asm.movsd_ar(AsmAddress::offset(REG_TEMP, 0i32), src);
+                if self.hasAvx2 {
+                    self.asm.vmovsd_ar(AsmAddress::offset(REG_TEMP, 0i32), src);
+                } else {
+                    self.asm.movsd_ar(AsmAddress::offset(REG_TEMP, 0i32), src);
+                }
             },
 
             _ => {
@@ -2101,12 +2238,20 @@ impl CodeGen for CodeGenX64 {
 
             Type::Float32 => {
                 let dest = loc.getOutput().getFloatRegister();
-                self.asm.movss_ra(dest, AsmAddress::offset(src, offset));
+                if self.hasAvx2 {
+                    self.asm.vmovss_ra(dest, AsmAddress::offset(src, offset));
+                } else {
+                    self.asm.movss_ra(dest, AsmAddress::offset(src, offset));
+                }
             },
 
             Type::Float64 => {
                 let dest = loc.getOutput().getFloatRegister();
-                self.asm.movsd_ra(dest, AsmAddress::offset(src, offset));
+                if self.hasAvx2 {
+                    self.asm.vmovsd_ra(dest, AsmAddress::offset(src, offset));
+                } else {
+                    self.asm.movsd_ra(dest, AsmAddress::offset(src, offset));
+                }
             },
 
             _ => {
@@ -2140,12 +2285,20 @@ impl CodeGen for CodeGenX64 {
 
             Type::Float32 => {
                 let src = loc.getInput(1).getFloatRegister();
-                self.asm.movss_ar(AsmAddress::offset(obj, offset), src);
+                if self.hasAvx2 {
+                    self.asm.vmovss_ar(AsmAddress::offset(obj, offset), src);
+                } else {
+                    self.asm.movss_ar(AsmAddress::offset(obj, offset), src);
+                }
             },
 
             Type::Float64 => {
                 let src = loc.getInput(1).getFloatRegister();
-                self.asm.movsd_ar(AsmAddress::offset(obj, offset), src);
+                if self.hasAvx2 {
+                    self.asm.vmovsd_ar(AsmAddress::offset(obj, offset), src);
+                } else {
+                    self.asm.movsd_ar(AsmAddress::offset(obj, offset), src);
+                }
             },
 
             _ => {
@@ -2585,7 +2738,7 @@ impl CodeGen for CodeGenX64 {
 
     fn annotateAbs(inst: Inst) {
         useInputFloatRegister(inst, 0);
-        useOutputFloatRegister(inst, InputOutputOverlap::Overlap);
+        useOutputFloatRegister(inst, InputOutputOverlap::NoOverlap);
     }
 
     fn emitAbs(inst: Inst) {
@@ -2595,15 +2748,13 @@ impl CodeGen for CodeGenX64 {
 
         match inst.getValueType() {
             Type::Float32 => {
-                self.asm.movss_rr(dest, src);
                 let lower = !(1i32 << 31i32);
-                self.andps_ri128(dest, lower.toInt64(), 0);
+                self.andps_ri128(dest, src, lower.toInt64(), 0);
             }
 
             Type::Float64 => {
-                self.asm.movsd_rr(dest, src);
                 let lower = !(1 << 63i32);
-                self.andps_ri128(dest, lower, 0);
+                self.andps_ri128(dest, src, lower, 0);
             }
 
             _ => unreachable[()](),

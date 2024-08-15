@@ -148,6 +148,7 @@ impl AssemblerX64 {
     }
 
     pub fn andps_ra(dest: FloatRegister, src: Address) {
+        assert(!self.hasAvx2);
         self.emitRexSseAddressOptional(dest, src);
         self.emitByte(0x0fu8);
         self.emitByte(0x54u8);
@@ -548,10 +549,19 @@ impl AssemblerX64 {
     }
 
     pub fn movaps_ar(dest: Address, src: FloatRegister) {
+        assert(!self.hasAvx2);
         self.emitRexSseAddressOptional(src, dest);
         self.emitByte(0x0fu8);
         self.emitByte(0x29u8);
         self.emitAddress(src.lowBits(), dest);
+    }
+
+    pub fn movaps_rr(dest: FloatRegister, src: FloatRegister) {
+        assert(!self.hasAvx2);
+        self.emitRexSseModRmOptional(src, dest);
+        self.emitByte(0x0fu8);
+        self.emitByte(0x29u8);
+        self.emitModRmSseRegisters(src, dest);
     }
 
     pub fn movb_ai(dest: Address, src: Immediate) {
@@ -685,6 +695,7 @@ impl AssemblerX64 {
     }
 
     pub fn movsd_rr(dest: FloatRegister, src: FloatRegister) {
+        assert(!self.hasAvx2);
         self.emitByte(0xF2u8);
         self.emitRexSseModRmOptional(dest, src);
         self.emitByte(0x0Fu8);
@@ -693,6 +704,7 @@ impl AssemblerX64 {
     }
 
     pub fn movsd_ra(dest: FloatRegister, src: Address) {
+        assert(!self.hasAvx2);
         self.emitByte(0xF2u8);
         self.emitRexSseAddressOptional(dest, src);
         self.emitByte(0x0Fu8);
@@ -701,6 +713,7 @@ impl AssemblerX64 {
     }
 
     pub fn movsd_ar(dest: Address, src: FloatRegister) {
+        assert(!self.hasAvx2);
         self.emitByte(0xF2u8);
         self.emitRexSseAddressOptional(src, dest);
         self.emitByte(0x0Fu8);
@@ -709,6 +722,7 @@ impl AssemblerX64 {
     }
 
     pub fn movss_ar(dest: Address, src: FloatRegister) {
+        assert(!self.hasAvx2);
         self.emitByte(0xF3u8);
         self.emitRexSseAddressOptional(src, dest);
         self.emitByte(0x0Fu8);
@@ -717,6 +731,7 @@ impl AssemblerX64 {
     }
 
     pub fn movss_ra(dest: FloatRegister, src: Address) {
+        assert(!self.hasAvx2);
         self.emitByte(0xF3u8);
         self.emitRexSseAddressOptional(dest, src);
         self.emitByte(0x0Fu8);
@@ -725,6 +740,7 @@ impl AssemblerX64 {
     }
 
     pub fn movss_rr(dest: FloatRegister, src: FloatRegister) {
+        assert(!self.hasAvx2);
         self.emitByte(0xF3u8);
         self.emitRexSseModRmOptional(dest, src);
         self.emitByte(0x0Fu8);
@@ -767,6 +783,7 @@ impl AssemblerX64 {
     }
 
     pub fn movups_ar(dest: Address, src: FloatRegister) {
+        assert(!self.hasAvx2);
         self.emitRexSseAddressOptional(src, dest);
         self.emitByte(0x0fu8);
         self.emitByte(0x11u8);
@@ -1629,6 +1646,38 @@ impl AssemblerX64 {
         self.emitModRm(0b11i32, dest.lowBits(), rhs.lowBits());
     }
 
+    pub fn vmovupd_ar(dest: Address, src: FloatRegister) {
+        assert(self.hasAvx2);
+        self.emitVex(
+            src.needsRexBit(),
+            dest.rexX(),
+            dest.rexB(),
+            VEX_MMMMM_0F,
+            VEX_W0,
+            VEX_VVVV_UNUSED,
+            VEX_L_SCALAR_128,
+            VEX_PP_66,
+        );
+        self.emitByte(0x11u8);
+        self.emitAddress(src.lowBits(), dest);
+    }
+
+    pub fn vmovups_ar(dest: Address, src: FloatRegister) {
+        assert(self.hasAvx2);
+        self.emitVex(
+            src.needsRexBit(),
+            dest.rexX(),
+            dest.rexB(),
+            VEX_MMMMM_0F,
+            VEX_W0,
+            VEX_VVVV_UNUSED,
+            VEX_L_SCALAR_128,
+            VEX_PP_NONE,
+        );
+        self.emitByte(0x11u8);
+        self.emitAddress(src.lowBits(), dest);
+    }
+
     pub fn vmulsd_rr(dest: FloatRegister, lhs: FloatRegister, rhs: FloatRegister) {
         assert(self.hasAvx2);
         self.emitVex(
@@ -1903,6 +1952,7 @@ impl AssemblerX64 {
     }
 
     pub fn xorps_rr(dest: FloatRegister, src: FloatRegister) {
+        assert(!self.hasAvx2);
         self.emitRexSseModRmOptional(dest, src);
         self.emitByte(0x0Fu8);
         self.emitByte(0x57u8);
@@ -5566,6 +5616,26 @@ mod tests {
         let buffer = asm.finalizeTesting();
 
         assertAsm(buffer, 0xc5u8, 0xf0u8, 0x57u8, 0x42u8, 0x04u8);
+        assertAsmEnd(buffer);
+    }
+
+    @Test
+    fn test_vmovups_ar() {
+        let asm = AssemblerX64::new(true);
+        asm.vmovups_ar(Address::offset(RAX, 4i32), XMM1);
+        let buffer = asm.finalizeTesting();
+
+        assertAsm(buffer, 0xc5u8, 0xf8u8, 0x11u8, 0x48u8, 0x04u8);
+        assertAsmEnd(buffer);
+    }
+
+    @Test
+    fn test_vmovupd_ar() {
+        let asm = AssemblerX64::new(true);
+        asm.vmovupd_ar(Address::offset(RAX, 4i32), XMM1);
+        let buffer = asm.finalizeTesting();
+
+        assertAsm(buffer, 0xc5u8, 0xf9u8, 0x11u8, 0x48u8, 0x04u8);
         assertAsmEnd(buffer);
     }
 
