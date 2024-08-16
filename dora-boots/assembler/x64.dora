@@ -291,6 +291,7 @@ impl AssemblerX64 {
     }
 
     pub fn cvtsd2ss_rr(dest: FloatRegister, src: FloatRegister) {
+        assert(!self.hasAvx2);
         self.emitByte(0xF2u8);
         self.emitRexSseModRmOptional(dest, src);
         self.emitByte(0x0Fu8);
@@ -299,6 +300,7 @@ impl AssemblerX64 {
     }
 
     pub fn cvtsi2sdd_rr(dest: FloatRegister, src: Register) {
+        assert(!self.hasAvx2);
         self.emitByte(0xF2u8);
         self.emitRexOptional(false, dest.needsRexBit(), false, src.needsRexBit());
         self.emitByte(0x0Fu8);
@@ -307,6 +309,7 @@ impl AssemblerX64 {
     }
 
     pub fn cvtsi2sdq_rr(dest: FloatRegister, src: Register) {
+        assert(!self.hasAvx2);
         self.emitByte(0xF2u8);
         self.emitRexOptional(true, dest.needsRexBit(), false, src.needsRexBit());
         self.emitByte(0x0Fu8);
@@ -315,6 +318,7 @@ impl AssemblerX64 {
     }
 
     pub fn cvtsi2ssd_rr(dest: FloatRegister, src: Register) {
+        assert(!self.hasAvx2);
         self.emitByte(0xF3u8);
         self.emitRexOptional(false, dest.needsRexBit(), false, src.needsRexBit());
         self.emitByte(0x0Fu8);
@@ -323,6 +327,7 @@ impl AssemblerX64 {
     }
 
     pub fn cvtsi2ssq_rr(dest: FloatRegister, src: Register) {
+        assert(!self.hasAvx2);
         self.emitByte(0xF3u8);
         self.emitRexOptional(true, dest.needsRexBit(), false, src.needsRexBit());
         self.emitByte(0x0Fu8);
@@ -331,6 +336,7 @@ impl AssemblerX64 {
     }
 
     pub fn cvtss2sd_rr(dest: FloatRegister, src: FloatRegister) {
+        assert(!self.hasAvx2);
         self.emitByte(0xF3u8);
         self.emitRexSseModRmOptional(dest, src);
         self.emitByte(0x0Fu8);
@@ -339,6 +345,7 @@ impl AssemblerX64 {
     }
 
     pub fn cvttsd2sid_rr(dest: Register, src: FloatRegister) {
+        assert(!self.hasAvx2);
         self.emitByte(0xF2u8);
         self.emitRexOptional(false, dest.needsRexBit(), false, src.needsRexBit());
         self.emitByte(0x0Fu8);
@@ -347,6 +354,7 @@ impl AssemblerX64 {
     }
 
     pub fn cvttsd2siq_rr(dest: Register, src: FloatRegister) {
+        assert(!self.hasAvx2);
         self.emitByte(0xF2u8);
         self.emitRexOptional(true, dest.needsRexBit(), false, src.needsRexBit());
         self.emitByte(0x0Fu8);
@@ -355,6 +363,7 @@ impl AssemblerX64 {
     }
 
     pub fn cvttss2sid_rr(dest: Register, src: FloatRegister) {
+        assert(!self.hasAvx2);
         self.emitByte(0xF3u8);
         self.emitRexOptional(false, dest.needsRexBit(), false, src.needsRexBit());
         self.emitByte(0x0Fu8);
@@ -363,6 +372,7 @@ impl AssemblerX64 {
     }
 
     pub fn cvttss2siq_rr(dest: Register, src: FloatRegister) {
+        assert(!self.hasAvx2);
         self.emitByte(0xF3u8);
         self.emitRexOptional(true, dest.needsRexBit(), false, src.needsRexBit());
         self.emitByte(0x0Fu8);

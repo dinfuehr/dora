@@ -2383,12 +2383,20 @@ impl CodeGen for CodeGenX64 {
                 match src_ty {
                     Type::Float64 => {
                         let src = loc.getInput(0).getFloatRegister();
-                        self.asm.cvttsd2siq_rr(dest, src);
+                        if self.hasAvx2 {
+                            self.asm.vcvttsd2siq_rr(dest, src);
+                        } else {
+                            self.asm.cvttsd2siq_rr(dest, src);
+                        }
                     }
 
                     Type::Float32 => {
                         let src = loc.getInput(0).getFloatRegister();
-                        self.asm.cvttss2siq_rr(dest, src);
+                        if self.hasAvx2 {
+                            self.asm.vcvttss2siq_rr(dest, src);
+                        } else {
+                            self.asm.cvttss2siq_rr(dest, src);
+                        }
                     }
 
                     Type::Int32 => {
@@ -2411,12 +2419,20 @@ impl CodeGen for CodeGenX64 {
                 match src_ty {
                     Type::Float64 => {
                         let src = loc.getInput(0).getFloatRegister();
-                        self.asm.cvttsd2sid_rr(dest, src);
+                        if self.hasAvx2 {
+                            self.asm.vcvttsd2sid_rr(dest, src);
+                        } else {
+                            self.asm.cvttsd2sid_rr(dest, src);
+                        }
                     }
 
                     Type::Float32 => {
                         let src = loc.getInput(0).getFloatRegister();
-                        self.asm.cvttss2sid_rr(dest, src);
+                        if self.hasAvx2 {
+                            self.asm.vcvttss2sid_rr(dest, src);
+                        } else {
+                            self.asm.cvttss2sid_rr(dest, src);
+                        }
                     }
 
                     Type::Int64 => {
@@ -2439,18 +2455,30 @@ impl CodeGen for CodeGenX64 {
                 match src_ty {
                     Type::Int32 => {
                         let src = loc.getInput(0).getRegister();
-                        self.asm.cvtsi2ssd_rr(dest, src);
+                        if self.hasAvx2 {
+                            self.asm.vcvtsi2ssd_rr(dest, FREG_TEMP, src);
+                        } else {
+                            self.asm.cvtsi2ssd_rr(dest, src);
+                        }
                     }
 
                     Type::Int64 => {
                         let src = loc.getInput(0).getRegister();
-                        self.asm.cvtsi2ssq_rr(dest, src);
+                        if self.hasAvx2 {
+                            self.asm.vcvtsi2ssq_rr(dest, FREG_TEMP, src);
+                        } else {
+                            self.asm.cvtsi2ssq_rr(dest, src);
+                        }
                     }
 
 
                     Type::Float64 => {
                         let src = loc.getInput(0).getFloatRegister();
-                        self.asm.cvtsd2ss_rr(dest, src);
+                        if self.hasAvx2 {
+                            self.asm.vcvtsd2ss_rr(dest, FREG_TEMP, src);
+                        } else {
+                            self.asm.cvtsd2ss_rr(dest, src);
+                        }
                     }
 
                     _ => unimplemented[()](),
@@ -2463,17 +2491,29 @@ impl CodeGen for CodeGenX64 {
                 match src_ty {
                     Type::Int32 => {
                         let src = loc.getInput(0).getRegister();
-                        self.asm.cvtsi2sdd_rr(dest, src);
+                        if self.hasAvx2 {
+                            self.asm.vcvtsi2sdd_rr(dest, FREG_TEMP, src);
+                        } else {
+                            self.asm.cvtsi2sdd_rr(dest, src);
+                        }
                     }
 
                     Type::Int64 => {
                         let src = loc.getInput(0).getRegister();
-                        self.asm.cvtsi2sdq_rr(dest, src);
+                        if self.hasAvx2 {
+                            self.asm.vcvtsi2sdq_rr(dest, FREG_TEMP, src);
+                        } else {
+                            self.asm.cvtsi2sdq_rr(dest, src);
+                        }
                     }
 
                     Type::Float32 => {
                         let src = loc.getInput(0).getFloatRegister();
-                        self.asm.cvtss2sd_rr(dest, src);
+                        if self.hasAvx2 {
+                            self.asm.vcvtss2sd_rr(dest, src, src);
+                        } else {
+                            self.asm.cvtss2sd_rr(dest, src);
+                        }
                     }
 
                     _ => unimplemented[()](),
