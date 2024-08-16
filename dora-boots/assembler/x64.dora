@@ -591,6 +591,7 @@ impl AssemblerX64 {
     }
 
     pub fn movd_rx(dest: Register, src: FloatRegister) {
+        assert(!self.hasAvx2);
         self.emitByte(0x66u8);
         self.emitRexOptional(false, src.needsRexBit(), false, dest.needsRexBit());
         self.emitByte(0x0Fu8);
@@ -599,6 +600,7 @@ impl AssemblerX64 {
     }
 
     pub fn movd_xr(dest: FloatRegister, src: Register) {
+        assert(!self.hasAvx2);
         self.emitByte(0x66u8);
         self.emitRexOptional(false, dest.needsRexBit(), false, src.needsRexBit());
         self.emitByte(0x0Fu8);
@@ -679,6 +681,7 @@ impl AssemblerX64 {
     }
 
     pub fn movq_rx(dest: Register, src: FloatRegister) {
+        assert(!self.hasAvx2);
         self.emitByte(0x66u8);
         self.emitRexOptional(true, src.needsRexBit(), false, dest.needsRexBit());
         self.emitByte(0x0Fu8);
@@ -687,6 +690,7 @@ impl AssemblerX64 {
     }
 
     pub fn movq_xr(dest: FloatRegister, src: Register) {
+        assert(!self.hasAvx2);
         self.emitByte(0x66u8);
         self.emitRexOptional(true, dest.needsRexBit(), false, src.needsRexBit());
         self.emitByte(0x0Fu8);
@@ -889,6 +893,7 @@ impl AssemblerX64 {
     }
 
     pub fn pxor_rr(dest: FloatRegister, src: FloatRegister) {
+        assert(!self.hasAvx2);
         self.emitByte(0x66u8);
         self.emitRexSseModRmOptional(dest, src);
         self.emitByte(0x0Fu8);
@@ -913,6 +918,7 @@ impl AssemblerX64 {
     }
 
     pub fn roundss_ri(dest: FloatRegister, src: FloatRegister, mode: UInt8) {
+        assert(!self.hasAvx2);
         self.emitByte(0x66u8);
         self.emitRexSseModRmOptional(dest, src);
         self.emitByte(0x0fu8);
@@ -923,6 +929,7 @@ impl AssemblerX64 {
     }
 
     pub fn roundsd_ri(dest: FloatRegister, src: FloatRegister, mode: UInt8) {
+        assert(!self.hasAvx2);
         self.emitByte(0x66u8);
         self.emitRexSseModRmOptional(dest, src);
         self.emitByte(0x0fu8);
@@ -1039,6 +1046,7 @@ impl AssemblerX64 {
     }
 
     pub fn sqrtsd_rr(dest: FloatRegister, src: FloatRegister) {
+        assert(!self.hasAvx2);
         self.emitByte(0xF2u8);
         self.emitRexSseModRmOptional(dest, src);
         self.emitByte(0x0Fu8);
@@ -1047,6 +1055,7 @@ impl AssemblerX64 {
     }
 
     pub fn sqrtss_rr(dest: FloatRegister, src: FloatRegister) {
+        assert(!self.hasAvx2);
         self.emitByte(0xF3u8);
         self.emitRexSseModRmOptional(dest, src);
         self.emitByte(0x0Fu8);

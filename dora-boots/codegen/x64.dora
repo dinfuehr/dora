@@ -2616,28 +2616,48 @@ impl CodeGen for CodeGenX64 {
                 assert(src_ty == Type::Float32);
                 let dest = loc.getOutput().getRegister();
                 let src = loc.getInput(0).getFloatRegister();
-                self.asm.movd_rx(dest, src);
+
+                if self.hasAvx2 {
+                    self.asm.vmovd_rx(dest, src);
+                } else {
+                    self.asm.movd_rx(dest, src);
+                }
             }
 
             Type::Float32 => {
                 assert(src_ty == Type::Int32);
                 let dest = loc.getOutput().getFloatRegister();
                 let src = loc.getInput(0).getRegister();
-                self.asm.movd_xr(dest, src);
+
+                if self.hasAvx2 {
+                    self.asm.vmovd_xr(dest, src);
+                } else {
+                    self.asm.movd_xr(dest, src);
+                }
             }
 
             Type::Int64 => {
                 assert(src_ty == Type::Float64);
                 let dest = loc.getOutput().getRegister();
                 let src = loc.getInput(0).getFloatRegister();
-                self.asm.movq_rx(dest, src);
+
+                if self.hasAvx2 {
+                    self.asm.vmovq_rx(dest, src);
+                } else {
+                    self.asm.movq_rx(dest, src);
+                }
             }
 
             Type::Float64 => {
                 assert(src_ty == Type::Int64);
                 let dest = loc.getOutput().getFloatRegister();
                 let src = loc.getInput(0).getRegister();
-                self.asm.movq_xr(dest, src);
+
+                if self.hasAvx2 {
+                    self.asm.vmovq_xr(dest, src);
+                } else {
+                    self.asm.movq_xr(dest, src);
+                }
             }
 
             _ => unimplemented[()](),
@@ -2653,17 +2673,32 @@ impl CodeGen for CodeGenX64 {
         let loc = inst.getLocationData();
         let dest = loc.getOutput().getFloatRegister();
         let src = loc.getInput(0).getFloatRegister();
+        let rounding_mode = 0b1001u8;
 
-        match inst.getValueType() {
-            Type::Float32 => {
-                self.asm.roundss_ri(dest, src, 0b1001u8);
+        if self.hasAvx2 {
+            match inst.getValueType() {
+                Type::Float32 => {
+                    self.asm.vroundss_ri(dest, src, src, rounding_mode);
+                }
+
+                Type::Float64 => {
+                    self.asm.vroundsd_ri(dest, src, src, rounding_mode);
+                }
+
+                _ => unreachable[()](),
             }
+        } else {
+            match inst.getValueType() {
+                Type::Float32 => {
+                    self.asm.roundss_ri(dest, src, rounding_mode);
+                }
 
-            Type::Float64 => {
-                self.asm.roundsd_ri(dest, src, 0b1001u8);
+                Type::Float64 => {
+                    self.asm.roundsd_ri(dest, src, rounding_mode);
+                }
+
+                _ => unreachable[()](),
             }
-
-            _ => unreachable[()](),
         }
     }
 
@@ -2676,17 +2711,32 @@ impl CodeGen for CodeGenX64 {
         let loc = inst.getLocationData();
         let dest = loc.getOutput().getFloatRegister();
         let src = loc.getInput(0).getFloatRegister();
+        let rounding_mode = 0b1010u8;
 
-        match inst.getValueType() {
-            Type::Float32 => {
-                self.asm.roundss_ri(dest, src, 0b1010u8);
+        if self.hasAvx2 {
+            match inst.getValueType() {
+                Type::Float32 => {
+                    self.asm.vroundss_ri(dest, src, src, rounding_mode);
+                }
+
+                Type::Float64 => {
+                    self.asm.vroundsd_ri(dest, src, src, rounding_mode);
+                }
+
+                _ => unreachable[()](),
             }
+        } else {
+            match inst.getValueType() {
+                Type::Float32 => {
+                    self.asm.roundss_ri(dest, src, rounding_mode);
+                }
 
-            Type::Float64 => {
-                self.asm.roundsd_ri(dest, src, 0b1010u8);
+                Type::Float64 => {
+                    self.asm.roundsd_ri(dest, src, rounding_mode);
+                }
+
+                _ => unreachable[()](),
             }
-
-            _ => unreachable[()](),
         }
     }
 
@@ -2699,17 +2749,32 @@ impl CodeGen for CodeGenX64 {
         let loc = inst.getLocationData();
         let dest = loc.getOutput().getFloatRegister();
         let src = loc.getInput(0).getFloatRegister();
+        let rounding_mode = 0b1011u8;
 
-        match inst.getValueType() {
-            Type::Float32 => {
-                self.asm.roundss_ri(dest, src, 0b1011u8);
+        if self.hasAvx2 {
+            match inst.getValueType() {
+                Type::Float32 => {
+                    self.asm.vroundss_ri(dest, src, src, rounding_mode);
+                }
+
+                Type::Float64 => {
+                    self.asm.vroundsd_ri(dest, src, src, rounding_mode);
+                }
+
+                _ => unreachable[()](),
             }
+        } else {
+            match inst.getValueType() {
+                Type::Float32 => {
+                    self.asm.roundss_ri(dest, src, rounding_mode);
+                }
 
-            Type::Float64 => {
-                self.asm.roundsd_ri(dest, src, 0b1011u8);
+                Type::Float64 => {
+                    self.asm.roundsd_ri(dest, src, rounding_mode);
+                }
+
+                _ => unreachable[()](),
             }
-
-            _ => unreachable[()](),
         }
     }
 
@@ -2722,17 +2787,32 @@ impl CodeGen for CodeGenX64 {
         let loc = inst.getLocationData();
         let dest = loc.getOutput().getFloatRegister();
         let src = loc.getInput(0).getFloatRegister();
+        let rounding_mode = 0b1000u8;
 
-        match inst.getValueType() {
-            Type::Float32 => {
-                self.asm.roundss_ri(dest, src, 0b1000u8);
+        if self.hasAvx2 {
+            match inst.getValueType() {
+                Type::Float32 => {
+                    self.asm.vroundss_ri(dest, src, src, rounding_mode);
+                }
+
+                Type::Float64 => {
+                    self.asm.vroundsd_ri(dest, src, src, rounding_mode);
+                }
+
+                _ => unreachable[()](),
             }
+        } else {
+            match inst.getValueType() {
+                Type::Float32 => {
+                    self.asm.roundss_ri(dest, src, rounding_mode);
+                }
 
-            Type::Float64 => {
-                self.asm.roundsd_ri(dest, src, 0b1000u8);
+                Type::Float64 => {
+                    self.asm.roundsd_ri(dest, src, rounding_mode);
+                }
+
+                _ => unreachable[()](),
             }
-
-            _ => unreachable[()](),
         }
     }
 
@@ -2771,16 +2851,30 @@ impl CodeGen for CodeGenX64 {
         let dest = loc.getOutput().getFloatRegister();
         let src = loc.getInput(0).getFloatRegister();
 
-        match inst.getValueType() {
-            Type::Float32 => {
-                self.asm.sqrtss_rr(dest, src);
-            }
+        if self.hasAvx2 {
+            match inst.getValueType() {
+                Type::Float32 => {
+                    self.asm.vsqrtss_rr(dest, src, src);
+                }
 
-            Type::Float64 => {
-                self.asm.sqrtsd_rr(dest, src);
-            }
+                Type::Float64 => {
+                    self.asm.vsqrtsd_rr(dest, src, src);
+                }
 
-            _ => unreachable[()](),
+                _ => unreachable[()](),
+            }
+        } else {
+            match inst.getValueType() {
+                Type::Float32 => {
+                    self.asm.sqrtss_rr(dest, src);
+                }
+
+                Type::Float64 => {
+                    self.asm.sqrtsd_rr(dest, src);
+                }
+
+                _ => unreachable[()](),
+            }
         }
     }
 
