@@ -1693,10 +1693,18 @@ impl CodeGen for CodeGenX64 {
                 } else {
                     self.asm.movl_ri(REG_TEMP, Immediate(1));
                 }
-                match ty {
-                    Type::Float32 => self.asm.ucomiss_rr(lhs, rhs),
-                    Type::Float64 => self.asm.ucomisd_rr(lhs, rhs),
-                    _ => unreachable[()](),
+                if self.hasAvx2 {
+                    match ty {
+                        Type::Float32 => self.asm.vucomiss_rr(lhs, rhs),
+                        Type::Float64 => self.asm.vucomisd_rr(lhs, rhs),
+                        _ => unreachable[()](),
+                    }
+                } else {
+                    match ty {
+                        Type::Float32 => self.asm.ucomiss_rr(lhs, rhs),
+                        Type::Float64 => self.asm.ucomisd_rr(lhs, rhs),
+                        _ => unreachable[()](),
+                    }
                 }
                 let cond = if inst.op() == Op::Equal {
                     Condition::NoParity
@@ -1705,7 +1713,6 @@ impl CodeGen for CodeGenX64 {
                 };
 
                 self.asm.setcc_r(cond, dest);
-                self.asm.movzxb_rr(dest, dest);
                 self.asm.cmovl(Condition::NotEqual, dest, REG_TEMP);
             } else {
                 if inst.op() == Op::Less || inst.op() == Op::LessOrEqual {
@@ -1720,10 +1727,18 @@ impl CodeGen for CodeGenX64 {
                     _ => unreachable[Condition](),
                 };
 
-                match ty {
-                    Type::Float32 => self.asm.ucomiss_rr(lhs, rhs),
-                    Type::Float64 => self.asm.ucomisd_rr(lhs, rhs),
-                    _ => unreachable[()](),
+                if self.hasAvx2 {
+                    match ty {
+                        Type::Float32 => self.asm.vucomiss_rr(lhs, rhs),
+                        Type::Float64 => self.asm.vucomisd_rr(lhs, rhs),
+                        _ => unreachable[()](),
+                    }
+                } else {
+                    match ty {
+                        Type::Float32 => self.asm.ucomiss_rr(lhs, rhs),
+                        Type::Float64 => self.asm.ucomisd_rr(lhs, rhs),
+                        _ => unreachable[()](),
+                    }
                 }
                 self.asm.setcc_r(cond, dest);
             }
@@ -2598,7 +2613,11 @@ impl CodeGen for CodeGenX64 {
                 self.asm.xorl_rr(dest, dest);
                 let lhs = loc.getInput(0).getFloatRegister();
                 let rhs = loc.getInput(1).getFloatRegister();
-                self.asm.ucomiss_rr(rhs, lhs);
+                if self.hasAvx2 {
+                    self.asm.vucomiss_rr(rhs, lhs);
+                } else {
+                    self.asm.ucomiss_rr(rhs, lhs);
+                }
                 let lbl_done = self.asm.createLabel();
                 self.asm.jcc(Condition::Above, lbl_done);
                 let lbl_greater = self.asm.createLabel();
@@ -2615,7 +2634,11 @@ impl CodeGen for CodeGenX64 {
                 self.asm.xorl_rr(dest, dest);
                 let lhs = loc.getInput(0).getFloatRegister();
                 let rhs = loc.getInput(1).getFloatRegister();
-                self.asm.ucomisd_rr(rhs, lhs);
+                if self.hasAvx2 {
+                    self.asm.vucomisd_rr(rhs, lhs);
+                } else {
+                    self.asm.ucomisd_rr(rhs, lhs);
+                }
                 let lbl_done = self.asm.createLabel();
                 self.asm.jcc(Condition::Above, lbl_done);
                 let lbl_greater = self.asm.createLabel();

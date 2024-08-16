@@ -1203,6 +1203,7 @@ impl AssemblerX64 {
     }
 
     pub fn ucomiss_rr(dest: FloatRegister, src: FloatRegister) {
+        assert(!self.hasAvx2);
         self.emitRexSseModRmOptional(dest, src);
         self.emitByte(0x0Fu8);
         self.emitByte(0x2Eu8);
@@ -1210,6 +1211,7 @@ impl AssemblerX64 {
     }
 
     pub fn ucomisd_rr(dest: FloatRegister, src: FloatRegister) {
+        assert(!self.hasAvx2);
         self.emitByte(0x66u8);
         self.emitRexSseModRmOptional(dest, src);
         self.emitByte(0x0Fu8);
