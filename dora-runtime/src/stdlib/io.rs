@@ -248,7 +248,7 @@ fn tcp_listener_from_native_fd(fd: NativeFd) -> TcpListener {
 
 #[cfg(unix)]
 fn tcp_stream_into_native_fd(stream: TcpStream) -> NativeFd {
-    use std::os::windows::io::IntoRawFd;
+    use std::os::unix::prelude::IntoRawFd;
     let fd = TcpStream::into_raw_fd(stream);
     NativeFd(fd as u32 as u64)
 }
@@ -261,7 +261,7 @@ fn tcp_stream_from_native_fd(fd: NativeFd) -> TcpStream {
 
 #[cfg(unix)]
 fn tcp_listener_into_native_fd(stream: TcpListener) -> NativeFd {
-    use std::os::windows::io::IntoRawFd;
+    use std::os::unix::prelude::IntoRawFd;
     let fd = TcpListener::into_raw_fd(stream);
     NativeFd(fd as u32 as u64)
 }
