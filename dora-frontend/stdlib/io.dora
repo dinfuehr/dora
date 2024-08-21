@@ -47,22 +47,22 @@ impl Directory {
     }
 }
 
-@internal fn socketConnect(addr: String): Int32;
-@internal fn socketClose(fd: Int32);
-@internal fn socketRead(fd: Int32, array: Array[UInt8], offset: Int64, len: Int64): Int64;
-@internal fn socketWrite(fd: Int32, array: Array[UInt8], offset: Int64, len: Int64): Int64;
+@internal fn socketConnect(addr: String): Int64;
+@internal fn socketClose(fd: Int64);
+@internal fn socketRead(fd: Int64, array: Array[UInt8], offset: Int64, len: Int64): Int64;
+@internal fn socketWrite(fd: Int64, array: Array[UInt8], offset: Int64, len: Int64): Int64;
 
-@internal fn socketBind(addr: String): Int32;
-@internal fn socketAccept(fd: Int32): Int32;
+@internal fn socketBind(addr: String): Int64;
+@internal fn socketAccept(fd: Int64): Int64;
 
 pub class TcpListener {
-    fd: Int32,
+    fd: Int64,
 }
 
 impl TcpListener {
     pub static fn bind(addr: String): Result[TcpListener, ()] {
         let fd = socketBind(addr);
-        if fd != -1i32 {
+        if fd != -1 {
             Ok[TcpListener, ()](TcpListener(fd))
         } else {
             Err[TcpListener, ()](())
@@ -72,7 +72,7 @@ impl TcpListener {
     pub fn accept(): Result[TcpStream, ()] {
         let stream_fd = socketAccept(self.fd);
 
-        if stream_fd != -1i32 {
+        if stream_fd != -1 {
             Ok[TcpStream, ()](TcpStream(stream_fd))
         } else {
             Err[TcpStream, ()](())
@@ -80,7 +80,7 @@ impl TcpListener {
     }
 
     pub fn close() {
-        if self.fd != -1i32 {
+        if self.fd != -1 {
             socketClose(self.fd);
             self.fd = -1;
         }
@@ -88,13 +88,13 @@ impl TcpListener {
 }
 
 pub class TcpStream {
-    fd: Int32,
+    fd: Int64,
 }
 
 impl TcpStream {
     pub static fn connect(addr: String): Result[TcpStream, ()] {
         let fd = socketConnect(addr);
-        if fd != -1i32 {
+        if fd != -1 {
             Ok[TcpStream, ()](TcpStream(fd))
         } else {
             Err[TcpStream, ()](())
@@ -102,7 +102,7 @@ impl TcpStream {
     }
 
     pub fn close() {
-        if self.fd != -1i32 {
+        if self.fd != -1 {
             socketClose(self.fd);
             self.fd = -1;
         }

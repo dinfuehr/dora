@@ -1,6 +1,8 @@
 use std::fs::File;
 use std::io::{Read, Write};
+use std::net::{TcpListener, TcpStream};
 use std::str::FromStr;
+use std::u64;
 use std::{fs, path::PathBuf};
 
 use crate::handle::{handle_scope, Handle};
@@ -34,6 +36,11 @@ pub const IO_FUNCTIONS: &[(&'static str, FctImplementation)] = &[
         N(write_file_as_bytes as *const u8),
     ),
 ];
+
+#[repr(C)]
+struct NativeFd(u64);
+
+const INVALID_FD: NativeFd = NativeFd(u64::MAX);
 
 extern "C" fn read_file_as_string(name: Handle<Str>) -> Ref<Str> {
     handle_scope(|| {
@@ -112,28 +119,20 @@ fn write_file_common(name: Handle<Str>, content: Vec<u8>) -> bool {
     }
 }
 
-#[cfg(unix)]
-extern "C" fn socket_connect(addr: Handle<Str>) -> i32 {
+extern "C" fn socket_connect(addr: Handle<Str>) -> NativeFd {
     let addr = String::from(addr.content_utf8());
     parked_scope(|| {
         use std::net::TcpStream;
-        use std::os::unix::prelude::IntoRawFd;
 
         if let Ok(stream) = TcpStream::connect(&addr) {
-            stream.into_raw_fd() as i32
+            tcp_stream_into_native_fd(stream)
         } else {
-            -1
+            INVALID_FD
         }
     })
 }
 
-#[cfg(windows)]
-extern "C" fn socket_connect(_addr: Handle<Str>) -> i32 {
-    unimplemented!()
-}
-
-#[cfg(unix)]
-extern "C" fn socket_write(fd: i32, array: Handle<UInt8Array>, offset: i64, len: i64) -> i64 {
+extern "C" fn socket_write(fd: NativeFd, array: Handle<UInt8Array>, offset: i64, len: i64) -> i64 {
     let offset = offset as usize;
     let len = len as usize;
 
@@ -143,10 +142,7 @@ extern "C" fn socket_write(fd: i32, array: Handle<UInt8Array>, offset: i64, len:
 
     let buffer = Vec::from(&array.slice()[offset..offset + len]);
     parked_scope(|| {
-        use std::net::TcpStream;
-        use std::os::unix::prelude::FromRawFd;
-
-        let mut stream = unsafe { TcpStream::from_raw_fd(fd) };
+        let mut stream = tcp_stream_from_native_fd(fd);
         let bytes = match stream.write(&buffer) {
             Ok(bytes) => bytes as i64,
             Err(_) => -1,
@@ -156,13 +152,12 @@ extern "C" fn socket_write(fd: i32, array: Handle<UInt8Array>, offset: i64, len:
     })
 }
 
-#[cfg(windows)]
-extern "C" fn socket_write(_fd: i32, _array: Handle<UInt8Array>, _offset: i64, _len: i64) -> i64 {
-    unimplemented!()
-}
-
-#[cfg(unix)]
-extern "C" fn socket_read(fd: i32, mut array: Handle<UInt8Array>, offset: i64, len: i64) -> i64 {
+extern "C" fn socket_read(
+    fd: NativeFd,
+    mut array: Handle<UInt8Array>,
+    offset: i64,
+    len: i64,
+) -> i64 {
     let offset = offset as usize;
     let len = len as usize;
 
@@ -173,10 +168,7 @@ extern "C" fn socket_read(fd: i32, mut array: Handle<UInt8Array>, offset: i64, l
     let mut buffer = vec![0; len];
 
     let bytes = parked_scope(|| {
-        use std::net::TcpStream;
-        use std::os::unix::prelude::FromRawFd;
-
-        let mut stream = unsafe { TcpStream::from_raw_fd(fd) };
+        let mut stream = tcp_stream_from_native_fd(fd);
         let bytes = match stream.read(&mut buffer) {
             Ok(bytes) => bytes as i64,
             Err(_) => -1,
@@ -196,58 +188,31 @@ extern "C" fn socket_read(fd: i32, mut array: Handle<UInt8Array>, offset: i64, l
     bytes
 }
 
-#[cfg(windows)]
-extern "C" fn socket_read(_fd: i32, _array: Handle<UInt8Array>, _offset: i64, _len: i64) -> i32 {
-    unimplemented!()
-}
-
-#[cfg(unix)]
-extern "C" fn socket_close(fd: i32) {
+extern "C" fn socket_close(fd: NativeFd) {
     parked_scope(|| {
-        use std::net::TcpStream;
-        use std::os::unix::prelude::FromRawFd;
-
-        let stream = unsafe { TcpStream::from_raw_fd(fd) };
+        let stream = tcp_stream_from_native_fd(fd);
         std::mem::drop(stream)
     });
 }
 
-#[cfg(windows)]
-extern "C" fn socket_close(_fd: i32) {
-    unimplemented!()
-}
-
-#[cfg(unix)]
-extern "C" fn socket_bind(addr: Handle<Str>) -> i32 {
+extern "C" fn socket_bind(addr: Handle<Str>) -> NativeFd {
     let addr = String::from(addr.content_utf8());
     parked_scope(|| {
-        use std::net::TcpListener;
-        use std::os::unix::prelude::IntoRawFd;
-
         if let Ok(stream) = TcpListener::bind(&addr) {
-            stream.into_raw_fd() as i32
+            tcp_listener_into_native_fd(stream)
         } else {
-            -1
+            INVALID_FD
         }
     })
 }
 
-#[cfg(windows)]
-extern "C" fn socket_bind(_addr: Handle<Str>) -> i32 {
-    unimplemented!()
-}
-
-#[cfg(unix)]
-extern "C" fn socket_accept(fd: i32) -> i32 {
+extern "C" fn socket_accept(fd: NativeFd) -> NativeFd {
     parked_scope(|| {
-        use std::net::TcpListener;
-        use std::os::unix::prelude::{FromRawFd, IntoRawFd};
-
-        let listener = unsafe { TcpListener::from_raw_fd(fd) };
+        let listener = tcp_listener_from_native_fd(fd);
         let result = if let Ok((stream, _)) = listener.accept() {
-            stream.into_raw_fd() as i32
+            tcp_stream_into_native_fd(stream)
         } else {
-            -1
+            INVALID_FD
         };
         std::mem::forget(listener);
         result
@@ -255,6 +220,54 @@ extern "C" fn socket_accept(fd: i32) -> i32 {
 }
 
 #[cfg(windows)]
-extern "C" fn socket_accept(_fd: i32) -> i32 {
-    unimplemented!()
+fn tcp_stream_into_native_fd(stream: TcpStream) -> NativeFd {
+    use std::os::windows::io::IntoRawSocket;
+    let socket = TcpStream::into_raw_socket(stream);
+    NativeFd(socket)
+}
+
+#[cfg(windows)]
+fn tcp_stream_from_native_fd(fd: NativeFd) -> TcpStream {
+    use std::os::windows::io::FromRawSocket;
+
+    unsafe { TcpStream::from_raw_socket(fd.0) }
+}
+
+#[cfg(windows)]
+fn tcp_listener_into_native_fd(listener: TcpListener) -> NativeFd {
+    use std::os::windows::io::IntoRawSocket;
+    let socket = TcpListener::into_raw_socket(listener);
+    NativeFd(socket)
+}
+
+#[cfg(windows)]
+fn tcp_listener_from_native_fd(fd: NativeFd) -> TcpListener {
+    use std::os::windows::io::FromRawSocket;
+    unsafe { TcpListener::from_raw_socket(fd.0) }
+}
+
+#[cfg(unix)]
+fn tcp_stream_into_native_fd(stream: TcpStream) -> NativeFd {
+    use std::os::windows::io::IntoRawFd;
+    let fd = TcpStream::into_raw_fd(stream);
+    NativeFd(fd as u32 as u64)
+}
+
+#[cfg(unix)]
+fn tcp_stream_from_native_fd(fd: NativeFd) -> TcpStream {
+    use std::os::unix::prelude::FromRawFd;
+    unsafe { TcpStream::from_raw_fd(fd.0 as i32) }
+}
+
+#[cfg(unix)]
+fn tcp_listener_into_native_fd(stream: TcpListener) -> NativeFd {
+    use std::os::windows::io::IntoRawFd;
+    let fd = TcpListener::into_raw_fd(stream);
+    NativeFd(fd as u32 as u64)
+}
+
+#[cfg(unix)]
+fn tcp_listener_from_native_fd(fd: NativeFd) -> TcpListener {
+    use std::os::unix::prelude::FromRawFd;
+    unsafe { TcpListener::from_raw_fd(fd.0 as i32) }
 }
