@@ -3,6 +3,10 @@
 @internal fn writeFileAsString(path: String, content: String): Bool;
 @internal fn writeFileAsBytes(path: String, content: Array[UInt8]): Bool;
 
+@internal fn fileCreate(path: String): Int64;
+@internal fn fileWrite(fd: Int64, array: Array[UInt8], offset: Int64, len: Int64): Int64;
+@internal fn fileClose(fd: Int64);
+
 pub class File {
     path: String,
 }
@@ -10,6 +14,10 @@ pub class File {
 impl File {
     pub static fn new(path: String): File {
         File(path)
+    }
+
+    pub static fn create(path: String): OpenFile {
+        OpenFile(fileCreate(path))
     }
 
     pub fn readAsString(): Option[String] {
@@ -33,6 +41,22 @@ impl File {
             Ok[(), ()](())
         } else {
             Err[(), ()](())
+        }
+    }
+}
+
+pub class OpenFile {
+    fd: Int64,
+}
+
+impl OpenFile {
+    pub fn write(array: Array[UInt8]): Int64 {
+        fileWrite(self.fd, array, 0, array.size())
+    }
+
+    pub fn close() {
+        if self.fd != -1 {
+            fileClose(self.fd)
         }
     }
 }

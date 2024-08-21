@@ -4,3 +4,4 @@
 /program.s
 /program.o
 /program
+tests/io/test123.txt

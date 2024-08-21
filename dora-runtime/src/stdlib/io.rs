@@ -1,11 +1,11 @@
 use std::fs::File;
 use std::io::{Read, Write};
 use std::net::{TcpListener, TcpStream};
+use std::path::PathBuf;
 use std::str::FromStr;
 use std::u64;
-use std::{fs, path::PathBuf};
 
-use crate::handle::{handle_scope, Handle};
+use crate::handle::Handle;
 use crate::object::{byte_array_from_buffer, Ref, Str, UInt8Array};
 use crate::threads::parked_scope;
 use crate::vm::{get_vm, FctImplementation};
@@ -35,59 +35,105 @@ pub const IO_FUNCTIONS: &[(&'static str, FctImplementation)] = &[
         "stdlib::io::writeFileAsBytes",
         N(write_file_as_bytes as *const u8),
     ),
+    ("stdlib::io::fileCreate", N(file_create as *const u8)),
+    ("stdlib::io::fileWrite", N(file_write as *const u8)),
+    ("stdlib::io::fileClose", N(file_close as *const u8)),
 ];
 
 #[repr(C)]
+#[derive(Copy, Clone)]
 struct NativeFd(u64);
+
+impl std::fmt::Debug for NativeFd {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        write!(f, "{}", self.0)
+    }
+}
 
 const INVALID_FD: NativeFd = NativeFd(u64::MAX);
 
-extern "C" fn read_file_as_string(name: Handle<Str>) -> Ref<Str> {
-    handle_scope(|| {
-        let path = PathBuf::from_str(name.content_utf8());
-        if path.is_err() {
-            return Ref::null();
-        }
-        let path = path.unwrap();
-        let content = parked_scope(|| fs::read_to_string(path));
-        if content.is_err() {
-            return Ref::null();
-        }
-        let content = content.unwrap();
+extern "C" fn file_create(name: Handle<Str>) -> NativeFd {
+    let path = PathBuf::from_str(name.content_utf8());
 
-        let vm = get_vm();
-        Str::from_buffer(vm, content.as_bytes())
+    if path.is_err() {
+        return INVALID_FD;
+    }
+
+    let path = path.unwrap();
+
+    parked_scope(|| {
+        if let Ok(file) = File::create(path) {
+            file_into_native_fd(file)
+        } else {
+            INVALID_FD
+        }
     })
 }
 
+extern "C" fn file_write(fd: NativeFd, array: Handle<UInt8Array>, offset: i64, len: i64) -> i64 {
+    let offset = offset as usize;
+    let len = len as usize;
+
+    if offset + len > array.slice().len() {
+        return -1;
+    }
+
+    let buffer = Vec::from(&array.slice()[offset..offset + len]);
+    parked_scope(|| {
+        let mut file = file_from_native_fd(fd);
+        let bytes = match file.write(&buffer) {
+            Ok(bytes) => bytes as i64,
+            Err(_) => -1,
+        };
+        std::mem::forget(file);
+        bytes
+    })
+}
+
+extern "C" fn file_close(fd: NativeFd) {
+    parked_scope(|| {
+        let file = file_from_native_fd(fd);
+        std::mem::drop(file);
+    })
+}
+
+extern "C" fn read_file_as_string(name: Handle<Str>) -> Ref<Str> {
+    let content = read_file_common(name);
+
+    if let Some(content) = content {
+        Str::from_buffer(get_vm(), &content)
+    } else {
+        Ref::null()
+    }
+}
+
 extern "C" fn read_file_as_bytes(name: Handle<Str>) -> Ref<UInt8Array> {
-    handle_scope(|| {
-        let path = PathBuf::from_str(name.content_utf8());
-        if path.is_err() {
-            return Ref::null();
+    let content = read_file_common(name);
+
+    if let Some(content) = content {
+        byte_array_from_buffer(get_vm(), &content)
+    } else {
+        Ref::null()
+    }
+}
+
+fn read_file_common(name: Handle<Str>) -> Option<Vec<u8>> {
+    let path = PathBuf::from_str(name.content_utf8());
+    if path.is_err() {
+        return None;
+    }
+    let path = path.unwrap();
+    parked_scope(|| {
+        let f = File::open(&path);
+        if f.is_err() {
+            return None;
         }
-        let path = path.unwrap();
-        let content: Option<Vec<u8>> = parked_scope(|| {
-            let f = File::open(&path);
-            if f.is_err() {
-                return None;
-            }
-            let mut f = f.unwrap();
-            let mut buffer = Vec::new();
-            match f.read_to_end(&mut buffer) {
-                Ok(_) => Some(buffer),
-                Err(_) => None,
-            }
-        });
-
-        if content.is_none() {
-            return Ref::null();
+        let mut f = f.unwrap();
+        let mut buffer = Vec::new();
+        match f.read_to_end(&mut buffer) {
+            Ok(_) => Some(buffer),
+            Err(_) => None,
         }
-
-        let content = content.unwrap();
-
-        let vm = get_vm();
-        byte_array_from_buffer(vm, &content)
     })
 }
 
@@ -246,6 +292,19 @@ fn tcp_listener_from_native_fd(fd: NativeFd) -> TcpListener {
     unsafe { TcpListener::from_raw_socket(fd.0) }
 }
 
+#[cfg(windows)]
+fn file_into_native_fd(file: File) -> NativeFd {
+    use std::os::windows::io::IntoRawSocket;
+    let socket = File::into_raw_socket(file);
+    NativeFd(socket)
+}
+
+#[cfg(windows)]
+fn file_from_native_fd(fd: NativeFd) -> File {
+    use std::os::windows::io::FromRawSocket;
+    unsafe { File::from_raw_socket(fd.0) }
+}
+
 #[cfg(unix)]
 fn tcp_stream_into_native_fd(stream: TcpStream) -> NativeFd {
     use std::os::unix::prelude::IntoRawFd;
@@ -270,4 +329,17 @@ fn tcp_listener_into_native_fd(stream: TcpListener) -> NativeFd {
 fn tcp_listener_from_native_fd(fd: NativeFd) -> TcpListener {
     use std::os::unix::prelude::FromRawFd;
     unsafe { TcpListener::from_raw_fd(fd.0 as i32) }
+}
+
+#[cfg(unix)]
+fn file_into_native_fd(file: File) -> NativeFd {
+    use std::os::unix::prelude::IntoRawFd;
+    let fd = File::into_raw_fd(file);
+    NativeFd(fd as u32 as u64)
+}
+
+#[cfg(unix)]
+fn file_from_native_fd(fd: NativeFd) -> File {
+    use std::os::unix::prelude::FromRawFd;
+    unsafe { File::from_raw_fd(fd.0 as i32) }
 }
