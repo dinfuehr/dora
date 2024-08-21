@@ -294,15 +294,15 @@ fn tcp_listener_from_native_fd(fd: NativeFd) -> TcpListener {
 
 #[cfg(windows)]
 fn file_into_native_fd(file: File) -> NativeFd {
-    use std::os::windows::io::IntoRawSocket;
-    let socket = File::into_raw_socket(file);
-    NativeFd(socket)
+    use std::os::windows::io::IntoRawHandle;
+    let socket = File::into_raw_handle(file);
+    NativeFd(socket as u64)
 }
 
 #[cfg(windows)]
 fn file_from_native_fd(fd: NativeFd) -> File {
-    use std::os::windows::io::FromRawSocket;
-    unsafe { File::from_raw_socket(fd.0) }
+    use std::os::{raw::c_void, windows::io::FromRawHandle};
+    unsafe { File::from_raw_handle(fd.0 as *mut c_void) }
 }
 
 #[cfg(unix)]
