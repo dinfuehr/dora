@@ -28,16 +28,16 @@ impl NativeStacktrace {
         for elem in &self.elems {
             let code = vm.code_objects.get(elem.code_id);
             let fct_id = code.fct_id();
-            let fct = &vm.program.functions[fct_id.0 as usize];
+            let fct = vm.fct(fct_id);
             let location = code.location_for_offset(elem.offset);
             let location = match location {
                 Some(mut inlined_location) => {
                     while inlined_location.is_inlined() {
                         let inlined_function =
                             code.inlined_function(inlined_location.inlined_function_id());
-                        let fct = &vm.program.functions[inlined_function.fct_id.0 as usize];
+                        let fct = vm.fct(inlined_function.fct_id);
                         let fct_name = display_fct(vm, inlined_function.fct_id);
-                        let file = &vm.program.source_files[fct.file_id.0 as usize].path;
+                        let file = &vm.file(fct.file_id).path;
                         writeln!(
                             w,
                             "    {} ({}:{})",
@@ -52,7 +52,7 @@ impl NativeStacktrace {
                 None => fct.loc,
             };
 
-            let file = &vm.program.source_files[fct.file_id.0 as usize].path;
+            let file = &vm.file(fct.file_id).path;
             let fct_name = display_fct(vm, fct_id);
             writeln!(w, "    {} ({}:{})", fct_name, file, location)?;
         }
@@ -194,7 +194,7 @@ pub extern "C" fn symbolize_stack_trace_element(mut obj: Handle<StacktraceIterat
 
             None => {
                 let fct_id = code.fct_id();
-                let fct = &vm.program.functions[fct_id.0 as usize];
+                let fct = vm.fct(fct_id);
 
                 (code.fct_id(), fct.loc, FINAL_INLINED_FUNCTION_ID)
             }
@@ -206,8 +206,8 @@ pub extern "C" fn symbolize_stack_trace_element(mut obj: Handle<StacktraceIterat
         destruct_inlined_location(&*code, inlined_location)
     };
 
-    let fct = &vm.program.functions[fct_id.0 as usize];
-    let file = &vm.program.source_files[fct.file_id.0 as usize].path;
+    let fct = vm.fct(fct_id);
+    let file = &vm.file(fct.file_id).path;
     let fct_name = display_fct(vm, fct_id);
 
     let text = format!("{} ({}:{})", fct_name, file, location);

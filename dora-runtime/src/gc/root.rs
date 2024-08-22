@@ -187,7 +187,7 @@ where
 
     let (params, is_variadic, return_type) = match _lazy_compilation_site {
         LazyCompilationSite::Direct(fct_id, type_params, _) => {
-            let fct = &vm.program.functions[fct_id.0 as usize];
+            let fct = vm.fct(fct_id);
             let params = BytecodeTypeArray::new(fct.params.clone());
             let params = specialize_bty_array(&params, &type_params);
             let return_type = specialize_bty(fct.return_type.clone(), &type_params);
@@ -195,7 +195,7 @@ where
         }
 
         LazyCompilationSite::Virtual(_receiver_is_first, trait_object_ty, fct_id, type_params) => {
-            let fct = &vm.program.functions[fct_id.0 as usize];
+            let fct = vm.fct(fct_id);
             let mut params = fct.params.clone();
             assert_eq!(params[0], BytecodeType::This);
             params[0] = trait_object_ty;

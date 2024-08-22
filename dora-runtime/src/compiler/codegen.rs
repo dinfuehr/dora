@@ -41,7 +41,7 @@ pub fn compile_fct_jit(vm: &VM, fct_id: FunctionId, type_params: &BytecodeTypeAr
         return instruction_start;
     }
 
-    let program_fct = &vm.program.functions[fct_id.0 as usize];
+    let program_fct = vm.fct(fct_id);
     let params = BytecodeTypeArray::new(program_fct.params.clone());
     let bytecode_fct = program_fct.bytecode.as_ref().expect("missing bytecode");
 
@@ -80,7 +80,7 @@ pub fn compile_fct_aot(
     type_params: &BytecodeTypeArray,
     compiler: CompilerInvocation,
 ) -> (CodeId, Arc<Code>) {
-    let program_fct = &vm.program.functions[fct_id.0 as usize];
+    let program_fct = vm.fct(fct_id);
     let params = BytecodeTypeArray::new(program_fct.params.clone());
     let bytecode_fct = program_fct.bytecode.as_ref().expect("missing bytecode");
 

@@ -29,7 +29,7 @@ pub fn ensure_compiled_jit(
         return instruction_start;
     }
 
-    let trait_fct = &vm.program.functions[trait_fct_id.0 as usize];
+    let trait_fct = vm.fct(trait_fct_id);
     let compiler = select_compiler(vm, trait_fct_id, trait_fct);
     let compiler = match compiler {
         Compiler::Cannon => CompilerInvocation::Cannon,
@@ -84,7 +84,7 @@ fn trait_object_ty(
     trait_fct_id: FunctionId,
     type_params: &BytecodeTypeArray,
 ) -> BytecodeType {
-    let trait_fct = &vm.program.functions[trait_fct_id.0 as usize];
+    let trait_fct = vm.fct(trait_fct_id);
 
     let trait_id = match trait_fct.kind {
         FunctionKind::Trait(trait_id) => trait_id,
@@ -117,7 +117,7 @@ fn compile_thunk_to_code(
         actual_ty.clone(),
     );
 
-    let trait_fct = &vm.program.functions[trait_fct_id.0 as usize];
+    let trait_fct = vm.fct(trait_fct_id);
     let params = {
         let mut params = trait_fct.params.clone();
         assert_eq!(params[0], BytecodeType::This);
@@ -145,7 +145,7 @@ fn generate_bytecode_for_thunk(
     trait_object_type_param_id: usize,
     actual_ty: BytecodeType,
 ) -> BytecodeFunction {
-    let program_trait_fct = &vm.program.functions[fct_id.0 as usize];
+    let program_trait_fct = vm.fct(fct_id);
 
     let mut gen = BytecodeBuilder::new();
     gen.push_scope();

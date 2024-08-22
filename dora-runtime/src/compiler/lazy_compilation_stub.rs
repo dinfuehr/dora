@@ -336,7 +336,7 @@ fn lazy_compile(ra: usize, receiver1: Address, receiver2: Address) -> Address {
 
     let code = vm.code_objects.get(code_id);
 
-    let fct = &vm.program.functions[code.fct_id().0 as usize];
+    let fct = vm.fct(code.fct_id());
     assert_ne!(vm.program.boots_package_id, Some(fct.package_id));
 
     let offset = ra - code.instruction_start().to_usize();
@@ -375,9 +375,7 @@ fn lazy_compile(ra: usize, receiver1: Address, receiver2: Address) -> Address {
             }
 
             LazyCompilationSite::Virtual(_, _, fct_id, ref type_params) => {
-                let vtable_index = vm.program.functions[fct_id.0 as usize]
-                    .vtable_index
-                    .expect("missing vtable_index");
+                let vtable_index = vm.fct(fct_id).vtable_index.expect("missing vtable_index");
 
                 patch_virtual_call(
                     vm,

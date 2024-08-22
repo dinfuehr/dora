@@ -2,16 +2,16 @@ use crate::vm::{module_path, module_path_name, VM};
 use dora_bytecode::{BytecodeType, BytecodeTypeArray, FunctionId, FunctionKind, TypeParamData};
 
 pub fn display_fct(vm: &VM, fct_id: FunctionId) -> String {
-    let fct = &vm.program.functions[fct_id.0 as usize];
+    let fct = vm.fct(fct_id);
     let mut container_type_params = 0;
     let mut repr = match fct.kind {
         FunctionKind::Trait(trait_id) => {
-            let trait_ = &vm.program.traits[trait_id.0 as usize];
+            let trait_ = vm.trait_(trait_id);
             module_path_name(vm, trait_.module_id, &trait_.name)
         }
 
         FunctionKind::Extension(extension_id) => {
-            let extension = &vm.program.extensions[extension_id.0 as usize];
+            let extension = vm.extension(extension_id);
             container_type_params = extension.type_params.names.len();
             let mut result = module_path(vm, fct.module_id);
             if !result.is_empty() {
@@ -44,7 +44,7 @@ pub fn display_fct(vm: &VM, fct_id: FunctionId) -> String {
         }
 
         FunctionKind::Impl(impl_id) => {
-            let impl_ = &vm.program.impls[impl_id.0 as usize];
+            let impl_ = vm.impl_(impl_id);
             container_type_params = impl_.type_params.names.len();
             let mut result = module_path(vm, fct.module_id);
             if !result.is_empty() {
@@ -168,22 +168,22 @@ impl<'a> BytecodeTypePrinter<'a> {
             BytecodeType::Bool => write!(fmt, "Bool"),
             BytecodeType::Ptr => write!(fmt, "Ptr"),
             BytecodeType::Class(id, type_params) => {
-                let cls = &self.vm.program.classes[id.0 as usize];
+                let cls = self.vm.class(*id);
                 write!(fmt, "{}", cls.name)?;
                 self.type_params(type_params, fmt)
             }
             BytecodeType::Struct(sid, type_params) => {
-                let struct_ = &self.vm.program.structs[sid.0 as usize];
+                let struct_ = self.vm.struct_(*sid);
                 write!(fmt, "{}", struct_.name)?;
                 self.type_params(type_params, fmt)
             }
             BytecodeType::Trait(tid, type_params) => {
-                let trait_ = &self.vm.program.traits[tid.0 as usize];
+                let trait_ = self.vm.trait_(*tid);
                 write!(fmt, "{}", trait_.name)?;
                 self.type_params(type_params, fmt)
             }
             BytecodeType::Enum(id, type_params) => {
-                let enum_ = &self.vm.program.enums[id.0 as usize];
+                let enum_ = self.vm.enum_(*id);
                 write!(fmt, "{}", enum_.name)?;
                 self.type_params(type_params, fmt)
             }

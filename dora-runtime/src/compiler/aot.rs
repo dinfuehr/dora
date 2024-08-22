@@ -223,7 +223,7 @@ impl<'a> TransitiveClosureComputation<'a> {
     }
 
     fn trace(&mut self, fct_id: FunctionId, type_params: BytecodeTypeArray) {
-        let fct = &self.vm.program.functions[fct_id.0 as usize];
+        let fct = &self.vm.fct(fct_id);
 
         if let Some(ref bytecode_function) = fct.bytecode {
             self.iterate_bytecode(bytecode_function, type_params);
@@ -262,7 +262,7 @@ impl<'a> TransitiveClosureComputation<'a> {
                             }
                             _ => unreachable!(),
                         };
-                    let fct = &self.vm.program.functions[callee_trait_fct_id.0 as usize];
+                    let fct = self.vm.fct(callee_trait_fct_id);
 
                     let trait_id = match fct.kind {
                         FunctionKind::Trait(trait_id) => trait_id,
@@ -317,7 +317,7 @@ impl<'a> TransitiveClosureComputation<'a> {
 
                 BytecodeInstruction::LoadGlobal { global_id, .. }
                 | BytecodeInstruction::StoreGlobal { global_id, .. } => {
-                    let global = &self.vm.program.globals[global_id.0 as usize];
+                    let global = self.vm.global(global_id);
                     if let Some(callee_id) = global.initial_value {
                         self.push(callee_id, BytecodeTypeArray::empty());
                     }
@@ -451,7 +451,7 @@ fn compile_function(
     ctc: &mut CompiledTransitiveClosure,
     compiler: CompilerInvocation,
 ) {
-    let fct = &vm.program.functions[fct_id.0 as usize];
+    let fct = vm.fct(fct_id);
 
     if let Some(native_fctptr) = vm.native_methods.get(fct_id) {
         // Method is implemented in native code. Create trampoline for invoking it.
@@ -549,7 +549,7 @@ fn prepare_virtual_method_tables(vm: &VM, tc: &TransitiveClosure, ctc: &Compiled
                 trait_id,
                 combined_type_params,
             } => {
-                let trait_ = &vm.program.traits[trait_id.0 as usize];
+                let trait_ = vm.trait_(*trait_id);
                 for (idx, &trait_fct_id) in trait_.methods.iter().enumerate() {
                     if let Some(address) = ctc
                         .function_addresses

@@ -459,7 +459,7 @@ extern "C" fn find_trait_impl_raw(data: Handle<UInt8Array>) -> u32 {
     let object_ty = decode_bytecode_type(&mut reader);
     assert!(!reader.has_more());
 
-    let trait_fct = &vm.program.functions[trait_fct_id.0 as usize];
+    let trait_fct = vm.fct(trait_fct_id);
     let trait_id = match trait_fct.kind {
         FunctionKind::Trait(trait_id) => trait_id,
         _ => unreachable!(),
@@ -493,7 +493,7 @@ extern "C" fn get_function_info_for_inlining_raw(id: u32) -> Ref<UInt8Array> {
     let vm = get_vm();
 
     let fct_id = FunctionId(id);
-    let fct = &vm.program.functions[fct_id.0 as usize];
+    let fct = vm.fct(fct_id);
 
     serializer::allocate_encoded_function_inlining_info(vm, fct)
 }
@@ -502,7 +502,7 @@ extern "C" fn get_function_data_for_inlining_raw(id: u32) -> Ref<UInt8Array> {
     let vm = get_vm();
 
     let fct_id = FunctionId(id);
-    let fct = &vm.program.functions[fct_id.0 as usize];
+    let fct = vm.fct(fct_id);
 
     serializer::allocate_encoded_function_inlining_data(vm, fct)
 }
@@ -539,7 +539,7 @@ extern "C" fn get_class_data_for_enum_variant_raw(data: Handle<UInt8Array>) -> R
     let variant_id = reader.read_u32();
     assert!(!reader.has_more());
 
-    let enum_ = &vm.program.enums[enum_id.0 as usize];
+    let enum_ = vm.enum_(enum_id);
 
     let enum_instance_id = create_enum_instance(vm, enum_id, type_params.clone());
     let enum_instance = vm.enum_instances.idx(enum_instance_id);
@@ -583,8 +583,7 @@ extern "C" fn get_field_offset_for_enum_variant_raw(data: Handle<UInt8Array>) ->
     let field_id = reader.read_u32();
     assert!(!reader.has_more());
 
-    let enum_ = &vm.program.enums[enum_id.0 as usize];
-
+    let enum_ = vm.enum_(enum_id);
     let enum_instance_id = create_enum_instance(vm, enum_id, type_params.clone());
     let enum_instance = vm.enum_instances.idx(enum_instance_id);
 

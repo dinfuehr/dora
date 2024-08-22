@@ -1455,7 +1455,7 @@ impl<'a> BaselineAssembler<'a> {
         gcpoint: GcPoint,
     ) {
         self.masm.bind_label(lbl_start);
-        let ty = self.vm.program.globals[global_id.0 as usize].ty.clone();
+        let ty = self.vm.global(global_id).ty.clone();
         let ty_size =
             crate::mem::align_i32(size(self.vm, ty.clone()), STACK_FRAME_ALIGNMENT as i32);
 

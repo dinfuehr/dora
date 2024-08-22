@@ -19,14 +19,13 @@ pub fn find_trait_impl(
     let impl_id = find_impl(vm, object_type, &type_param_data, trait_ty.clone())
         .expect("no impl found for generic trait method call");
 
-    let impl_ = &vm.program.impls[impl_id.0 as usize];
-
+    let impl_ = vm.impl_(impl_id);
     let trait_id = trait_ty.trait_id().expect("expected trait type");
     let impl_trait_id = impl_.trait_ty.trait_id().expect("expected trait type");
 
     assert_eq!(impl_trait_id, trait_id);
 
-    let trait_ = &vm.program.traits[trait_id.0 as usize];
+    let trait_ = vm.trait_(trait_id);
     let trait_entry_id = trait_
         .methods
         .iter()
@@ -65,7 +64,7 @@ fn impl_block_matches_ty(
     check_type_param_defs: &TypeParamData,
     impl_id: ImplId,
 ) -> Option<BytecodeTypeArray> {
-    let impl_ = &vm.program.impls[impl_id.0 as usize];
+    let impl_ = vm.impl_(impl_id);
     block_matches_ty(
         vm,
         check_ty,

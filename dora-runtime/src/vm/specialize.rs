@@ -20,7 +20,7 @@ pub fn create_struct_instance(
     struct_id: StructId,
     type_params: BytecodeTypeArray,
 ) -> StructInstanceId {
-    let struct_ = &vm.program.structs[struct_id.0 as usize];
+    let struct_ = vm.struct_(struct_id);
     create_specialized_struct(vm, struct_id, struct_, type_params)
 }
 
@@ -80,7 +80,7 @@ pub fn create_enum_instance(
     enum_id: EnumId,
     type_params: BytecodeTypeArray,
 ) -> EnumInstanceId {
-    let enum_ = &vm.program.enums[enum_id.0 as usize];
+    let enum_ = &vm.enum_(enum_id);
     specialize_enum(vm, enum_id, enum_, type_params)
 }
 
@@ -284,7 +284,7 @@ pub fn create_class_instance(
     cls_id: ClassId,
     type_params: &BytecodeTypeArray,
 ) -> ClassInstanceId {
-    let cls = &vm.program.classes[cls_id.0 as usize];
+    let cls = vm.class(cls_id);
     specialize_class(vm, cls_id, cls, type_params)
 }
 
@@ -486,8 +486,7 @@ pub fn ensure_class_instance_for_trait_object(
     trait_type_params: &BytecodeTypeArray,
     object_type: BytecodeType,
 ) -> ClassInstanceId {
-    let trait_ = &vm.program.traits[trait_id.0 as usize];
-
+    let trait_ = vm.trait_(trait_id);
     let combined_type_params = trait_type_params.append(object_type.clone());
 
     if let Some(&id) = vm

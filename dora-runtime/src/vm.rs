@@ -1,3 +1,8 @@
+use dora_bytecode::{
+    ClassData, EnumData, ExtensionData, ExtensionId, FunctionData, ImplData, ImplId, ModuleData,
+    SourceFileData, SourceFileId, StructData, TraitData,
+};
+use dora_bytecode::{GlobalData, GlobalId};
 use num_enum::{IntoPrimitive, TryFromPrimitive};
 use parking_lot::RwLock;
 use std::collections::HashMap;
@@ -337,6 +342,46 @@ impl VM {
 
     pub fn meta_space_size(&self) -> usize {
         self.gc.meta_space_size()
+    }
+
+    pub fn class(&self, id: ClassId) -> &ClassData {
+        &self.program.classes[id.0 as usize]
+    }
+
+    pub fn enum_(&self, id: EnumId) -> &EnumData {
+        &self.program.enums[id.0 as usize]
+    }
+
+    pub fn extension(&self, id: ExtensionId) -> &ExtensionData {
+        &self.program.extensions[id.0 as usize]
+    }
+
+    pub fn fct(&self, id: FunctionId) -> &FunctionData {
+        &self.program.functions[id.0 as usize]
+    }
+
+    pub fn file(&self, id: SourceFileId) -> &SourceFileData {
+        &self.program.source_files[id.0 as usize]
+    }
+
+    pub fn global(&self, id: GlobalId) -> &GlobalData {
+        &self.program.globals[id.0 as usize]
+    }
+
+    pub fn impl_(&self, id: ImplId) -> &ImplData {
+        &self.program.impls[id.0 as usize]
+    }
+
+    pub fn module(&self, id: ModuleId) -> &ModuleData {
+        &self.program.modules[id.0 as usize]
+    }
+
+    pub fn struct_(&self, id: StructId) -> &StructData {
+        &self.program.structs[id.0 as usize]
+    }
+
+    pub fn trait_(&self, id: TraitId) -> &TraitData {
+        &self.program.traits[id.0 as usize]
     }
 }
 

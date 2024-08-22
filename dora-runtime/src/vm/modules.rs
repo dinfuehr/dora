@@ -22,7 +22,7 @@ pub fn module_path(vm: &VM, module_id: ModuleId) -> String {
         return "".into();
     }
 
-    let module = &vm.program.modules[current_id.0 as usize];
+    let module = vm.module(current_id);
     path.push_str(&module.name);
 
     let mut module_id = module.parent_id;
@@ -33,7 +33,7 @@ pub fn module_path(vm: &VM, module_id: ModuleId) -> String {
             break;
         }
 
-        let module = &vm.program.modules[current_id.0 as usize];
+        let module = vm.module(current_id);
         assert_ne!("<root>", module.name);
         path.insert_str(0, "::");
         path.insert_str(0, &module.name);
