@@ -2,7 +2,8 @@ use std::mem;
 use std::ptr;
 
 use dora_bytecode::{
-    BytecodeType, BytecodeTypeArray, ClassId, EnumId, FunctionId, FunctionKind, GlobalId, TraitId,
+    BytecodeType, BytecodeTypeArray, ClassId, EnumId, FunctionId, FunctionKind, GlobalId, StructId,
+    TraitId,
 };
 
 use crate::boots::deserializer::{decode_code_descriptor, ByteReader};
@@ -183,11 +184,9 @@ extern "C" fn get_function_address(data: Handle<UInt8Array>) -> Address {
     get_function_address_raw(vm, fct_id, type_params)
 }
 
-extern "C" fn get_function_vtable_index(fct_id: u32) -> u32 {
+extern "C" fn get_function_vtable_index(fct_id: FunctionId) -> u32 {
     let vm = get_vm();
-    vm.program.functions[fct_id as usize]
-        .vtable_index
-        .expect("vtable_index missing")
+    vm.fct(fct_id).vtable_index.expect("vtable_index missing")
 }
 
 extern "C" fn get_class_pointer_for_lambda(data: Handle<UInt8Array>) -> Address {
@@ -267,41 +266,30 @@ extern "C" fn get_class_size_for_trait_object_raw(data: Handle<UInt8Array>) -> i
     }
 }
 
-extern "C" fn get_global_value_address(id: u32) -> Address {
+extern "C" fn get_global_value_address(id: GlobalId) -> Address {
     let vm = get_vm();
-
-    let global_id = GlobalId(id);
 
     vm.global_variable_memory
         .as_ref()
         .unwrap()
-        .address_value(global_id)
+        .address_value(id)
 }
 
-extern "C" fn get_global_state_address(id: u32) -> Address {
+extern "C" fn get_global_state_address(id: GlobalId) -> Address {
     let vm = get_vm();
 
-    let global_id = GlobalId(id);
-
-    vm.global_variable_memory
-        .as_ref()
-        .unwrap()
-        .address_init(global_id)
+    vm.global_variable_memory.as_ref().unwrap().address_init(id)
 }
 
-extern "C" fn get_global_initializer_function_id(id: u32) -> u32 {
+extern "C" fn get_global_initializer_function_id(id: GlobalId) -> u32 {
     let vm = get_vm();
 
-    vm.program.globals[id as usize]
-        .initial_value
-        .expect("missing initializer")
-        .0
+    vm.global(id).initial_value.expect("missing initializer").0
 }
 
-extern "C" fn has_global_initial_value(id: u32) -> bool {
+extern "C" fn has_global_initial_value(id: GlobalId) -> bool {
     let vm = get_vm();
-
-    vm.program.globals[id as usize].initial_value.is_some()
+    vm.global(id).initial_value.is_some()
 }
 
 extern "C" fn get_class_size(data: Handle<UInt8Array>) -> u32 {
@@ -480,44 +468,41 @@ extern "C" fn get_intrinsic_for_function_raw(id: u32) -> i32 {
         .unwrap_or(-1)
 }
 
-extern "C" fn get_function_display_name_raw(id: u32) -> Ref<UInt8Array> {
+extern "C" fn get_function_display_name_raw(id: FunctionId) -> Ref<UInt8Array> {
     let vm = get_vm();
 
-    let fct_id = FunctionId(id);
-    let name = display_fct(vm, fct_id);
+    let name = display_fct(vm, id);
 
     Str::from_buffer(vm, name.as_bytes()).cast()
 }
 
-extern "C" fn get_function_info_for_inlining_raw(id: u32) -> Ref<UInt8Array> {
+extern "C" fn get_function_info_for_inlining_raw(id: FunctionId) -> Ref<UInt8Array> {
     let vm = get_vm();
 
-    let fct_id = FunctionId(id);
-    let fct = vm.fct(fct_id);
+    let fct = vm.fct(id);
 
     serializer::allocate_encoded_function_inlining_info(vm, fct)
 }
 
-extern "C" fn get_function_data_for_inlining_raw(id: u32) -> Ref<UInt8Array> {
+extern "C" fn get_function_data_for_inlining_raw(id: FunctionId) -> Ref<UInt8Array> {
     let vm = get_vm();
 
-    let fct_id = FunctionId(id);
-    let fct = vm.fct(fct_id);
+    let fct = vm.fct(id);
 
     serializer::allocate_encoded_function_inlining_data(vm, fct)
 }
 
-extern "C" fn get_struct_data_raw(id: u32) -> Ref<UInt8Array> {
+extern "C" fn get_struct_data_raw(id: StructId) -> Ref<UInt8Array> {
     let vm = get_vm();
 
-    let struct_ = &vm.program.structs[id as usize];
+    let struct_ = vm.struct_(id);
     serializer::allocate_encoded_struct_data(vm, &struct_)
 }
 
-extern "C" fn get_enum_data_raw(id: u32) -> Ref<UInt8Array> {
+extern "C" fn get_enum_data_raw(id: EnumId) -> Ref<UInt8Array> {
     let vm = get_vm();
 
-    let enum_ = &vm.program.enums[id as usize];
+    let enum_ = vm.enum_(id);
     serializer::allocate_encoded_enum_data(vm, &enum_)
 }
 

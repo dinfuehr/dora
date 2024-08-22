@@ -20,6 +20,7 @@ pub struct ModuleData {
 }
 
 #[derive(Copy, Clone, Debug, PartialEq, Eq, Hash, Decode, Encode)]
+#[repr(C)]
 pub struct FunctionId(pub u32);
 
 #[derive(Debug, Decode, Encode)]
@@ -54,6 +55,7 @@ pub enum FunctionKind {
 }
 
 #[derive(Copy, Clone, Debug, PartialEq, Eq, Hash, Decode, Encode)]
+#[repr(C)]
 pub struct GlobalId(pub u32);
 
 #[derive(Debug, Decode, Encode)]
@@ -83,6 +85,7 @@ pub struct ClassField {
 }
 
 #[derive(Copy, Clone, Debug, PartialEq, Eq, Hash, Decode, Encode)]
+#[repr(C)]
 pub struct StructId(pub u32);
 
 #[derive(Debug, Decode, Encode)]
@@ -112,6 +115,7 @@ pub struct TypeParamBound {
 }
 
 #[derive(Copy, Clone, Debug, PartialEq, Eq, Hash, Decode, Encode)]
+#[repr(C)]
 pub struct EnumId(pub u32);
 
 #[derive(Debug, Decode, Encode)]
