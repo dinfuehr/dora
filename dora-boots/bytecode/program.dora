@@ -1,0 +1,172 @@
+use package::bytecode::{BytecodeType, Location};
+
+pub struct PackageId(pub value: Int32)
+
+pub class PackageData {
+    name: String,
+    root_module_id: ModuleId,
+}
+
+pub struct ModuleId(pub value: Int32)
+
+pub struct ModuleData {
+    name: String,
+    parent_id: Option[ModuleId],
+}
+
+pub struct FunctionId(pub value: Int32)
+
+pub struct FunctionData {
+    name: String,
+    file_id: SourceFileId,
+    loc: Location,
+    kind: FunctionKind,
+    package_id: PackageId,
+    module_id: ModuleId,
+    type_params: TypeParamData,
+    source_file_id: Option[SourceFileId],
+    params: Array[BytecodeType],
+    returnType: BytecodeType,
+    is_internal: Bool,
+    vtable_index: Option[Int32],
+    is_test: Bool,
+    is_optimize_immediately: Bool,
+    is_variadic: Bool,
+    is_force_inline: Bool,
+    is_never_inline: Bool,
+}
+
+pub enum FunctionKind {
+    Impl(ImplId),
+    Lambda,
+    Trait(TraitId),
+    Extension(ExtensionId),
+    Function,
+}
+
+pub class TypeParamData {
+    names: Array[String],
+    bounds: Array[TypeParamBound],
+}
+
+pub class TypeParamBound {
+    ty: BytecodeType,
+    trait_ty: BytecodeType,
+}
+
+pub struct GlobalId(pub value: Int32)
+
+pub class GlobalData {
+    module_id: ModuleId,
+    ty: BytecodeType,
+    mutable: Bool,
+    name: String,
+    initial_value: Option[FunctionId],
+}
+
+pub struct ClassId(pub value: Int32)
+
+pub class ClassData {
+    module_id: ModuleId,
+    name: String,
+    type_params: TypeParamData,
+    fields: Array[ClassField],
+}
+
+pub struct ClassFieldId(pub value: Int32)
+
+pub class ClassField {
+    ty: BytecodeType,
+    name: String,
+}
+
+pub struct StructId(pub value: Int32)
+
+pub class StructData {
+    module_id: ModuleId,
+    name: String,
+    type_params: TypeParamData,
+    fields: Array[StructField],
+}
+
+pub struct StructFieldId(pub value: Int32)
+
+pub class StructField {
+    ty: BytecodeType,
+    name: String,
+}
+
+pub struct EnumId(pub value: Int32)
+
+pub class EnumData {
+    module_id: ModuleId,
+    name: String,
+    type_params: TypeParamData,
+    fields: Array[StructField],
+}
+
+pub class EnumVariant {
+    name: String,
+    arguments: Array[BytecodeType],
+}
+
+pub struct TraitId(pub value: Int32)
+
+pub class TraitData {
+    module_id: ModuleId,
+    name: String,
+    type_params: TypeParamData,
+    methods: Array[FunctionId],
+}
+
+pub struct SourceFileId(pub value: Int32)
+
+pub class SourceFileData {
+    path: String,
+}
+
+
+pub struct ExtensionId(pub value: Int32)
+
+pub class ExtensionData {
+    module_id: ModuleId,
+    type_params: TypeParamData,
+    extended_ty: BytecodeType,
+    methods: Array[FunctionId],
+}
+
+pub struct ImplId(pub value: Int32)
+
+pub class ImplData {
+    module_id: ModuleId,
+    type_params: TypeParamData,
+    trait_ty: BytecodeType,
+    extended_ty: BytecodeType,
+    methods: Array[FunctionId],
+    trait_method_map: Array[(FunctionId, FunctionId)],
+}
+
+pub struct AliasId(pub value: Int32)
+
+pub class AliasData {
+    name: String,
+    ty: Option[BytecodeType],
+}
+
+pub class Program {
+    packages: Array[PackageData],
+    modules: Array[ModuleData],
+    functions: Array[FunctionData],
+    globals: Array[GlobalData],
+    classes: Array[ClassData],
+    structs: Array[StructData],
+    enums: Array[EnumData],
+    traits: Array[TraitData],
+    impls: Array[ImplData],
+    extensions: Array[ExtensionData],
+    aliases: Array[AliasData],
+    source_files: Array[SourceFileData],
+    stdlib_package_id: PackageId,
+    boots_package_id: Option[PackageId],
+    main_fct_id: Option[FunctionId],
+}

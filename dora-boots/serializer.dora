@@ -274,4 +274,8 @@ impl ByteWriter {
     pub fn toArray(): Array[UInt8] {
         self.buffer.toArray()
     }
+
+    pub fn clear() {
+        self.buffer.clear();
+    }
 }

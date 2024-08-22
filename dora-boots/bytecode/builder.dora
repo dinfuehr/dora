@@ -1,12 +1,5 @@
-use package::bytecode::data::BytecodeType;
-use package::bytecode::data::BytecodeFunction;
-use package::bytecode::data::BytecodeRegister;
-use package::bytecode::data::ConstPoolEntry;
-use package::bytecode::data::ConstPoolId;
-use package::bytecode::data::FieldId;
-use package::bytecode::data::FunctionId;
-use package::bytecode::data::GlobalId;
-use package::bytecode::data::{ClassId, Location};
+use package::bytecode::{ClassId, Location, GlobalId, FunctionId, ClassFieldId, ConstPoolId,
+    ConstPoolEntry, BytecodeRegister, BytecodeFunction, BytecodeType};
 use package::bytecode::opcode as opc;
 
 pub class BytecodeBuilder {
@@ -122,11 +115,11 @@ impl BytecodeBuilder {
         self.emitReg2(opc::BC_MOV, dest, src);
     }
 
-    pub fn emitLoadField(dest: BytecodeRegister, obj: BytecodeRegister, cls: ClassId, field: FieldId) {
+    pub fn emitLoadField(dest: BytecodeRegister, obj: BytecodeRegister, cls: ClassId, field: ClassFieldId) {
         self.emitField(opc::BC_LOAD_FIELD, dest, obj, cls, field);
     }
 
-    pub fn emitStoreField(src: BytecodeRegister, obj: BytecodeRegister, cls: ClassId, field: FieldId) {
+    pub fn emitStoreField(src: BytecodeRegister, obj: BytecodeRegister, cls: ClassId, field: ClassFieldId) {
         self.emitField(opc::BC_STORE_FIELD, src, obj, cls, field);
     }
 
@@ -362,7 +355,7 @@ impl BytecodeBuilder {
         r1: BytecodeRegister,
         r2: BytecodeRegister,
         cls: ClassId,
-        field: FieldId,
+        field: ClassFieldId,
     ) {
         self.emitVal5(inst, r1.value, r2.value, cls.value, field.value);
     }

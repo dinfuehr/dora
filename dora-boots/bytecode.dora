@@ -1,9 +1,19 @@
-pub use package::bytecode::data::{BytecodeFunction, BytecodeType, ConstPoolId, FunctionId, Location};
+pub use package::bytecode::data::{BytecodeFunction, BytecodeRegister, BytecodeType, ConstPoolId, ConstPoolEntry, Location};
+pub use package::bytecode::program::{AliasId, AliasData, ClassId, ClassData, ClassFieldId,
+    ClassField, EnumId, EnumData, EnumVariant,
+    ExtensionId, ExtensionData, FunctionId, FunctionData,
+    FunctionKind, ImplId, ImplData, GlobalId, GlobalData,
+    ModuleId, ModuleData, PackageId, PackageData, Program,
+    SourceFileData, StructId, StructData, StructFieldId,
+    StructField, TraitId, TraitData, TypeParamBound, TypeParamData};
+pub use package::bytecode::instruction::BytecodeInstruction;
 
 pub mod builder;
 pub mod data;
+pub mod deserializer;
 pub mod dump;
 pub mod instruction;
 pub mod opcode;
+pub mod program;
 pub mod reader;
 pub mod tests;

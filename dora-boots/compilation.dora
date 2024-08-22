@@ -1,5 +1,6 @@
-use package::bytecode::data::{BytecodeFunction, BytecodeType, FunctionId, Location};
+use package::bytecode::{BytecodeFunction, BytecodeType, FunctionId, Location};
 use package::interface as iface;
+use package::serializer::ByteWriter;
 
 pub class CompilationInfo(
     pub bc: BytecodeFunction,
@@ -15,6 +16,7 @@ pub class CompilationInfo(
     pub optimize: Bool,
     displayName: Option[String],
     inlinedFunctions: Vec[iface::InlinedFunction],
+    byteWriter: ByteWriter,
 )
 
 impl CompilationInfo {
@@ -43,24 +45,7 @@ impl CompilationInfo {
             true,
             None[String],
             Vec[iface::InlinedFunction]::new(),
-        )
-    }
-
-    pub static fn newForTesting(bc: BytecodeFunction, typeParams: Array[BytecodeType]): CompilationInfo {
-        CompilationInfo(
-            bc,
-            None[FunctionId],
-            typeParams,
-            BytecodeType::Unit,
-            Location(0i32, 0i32),
-            false,
-            false,
-            false,
-            false,
-            false,
-            false,
-            None[String],
-            Vec[iface::InlinedFunction]::new(),
+            ByteWriter::new(),
         )
     }
 
@@ -86,5 +71,10 @@ impl CompilationInfo {
 
     pub fn getInlinedFunctions(): Array[iface::InlinedFunction] {
         self.inlinedFunctions.toArray()
+    }
+
+    pub fn getByteWriter(): ByteWriter {
+        self.byteWriter.clear();
+        self.byteWriter
     }
 }

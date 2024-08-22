@@ -1,7 +1,8 @@
 use std::collections::VecIter;
 
 use package::bytecode::{BytecodeFunction, BytecodeType, ConstPoolId, FunctionId, Location};
-use package::bytecode::data::{ClassId, EnumId, FieldId, GlobalId, StructId, StructFieldId};
+use package::bytecode::{ClassId, EnumId, ClassFieldId, GlobalId, StructId, StructFieldId};
+use package::compilation::CompilationInfo;
 use package::deserializer::decodeBytecodeFunction;
 use package::deserializer::{decodeCompilationInfo, decodeStructData, decodeEnumData};
 use package::deserializer::decodeConfig;
@@ -48,8 +49,8 @@ pub const TRAP_OVERFLOW: Int32 = 8i32;
 @internal pub fn getElementSizeRaw(data: Array[UInt8]): Int32;
 @internal pub fn getFunctionDataForInliningRaw(fct_id: Int32): Array[UInt8];
 
-pub fn getFunctionAddress(fct_id: FunctionId, type_params: Array[BytecodeType]): Address {
-    let writer = ByteWriter::new();
+pub fn getFunctionAddress(ci: CompilationInfo, fct_id: FunctionId, type_params: Array[BytecodeType]): Address {
+    let writer = ci.getByteWriter();
     writer.emitInt32(fct_id.value);
     encodeBytecodeTypeArray(writer, type_params);
     Address(getFunctionAddressRaw(writer.toArray()))
@@ -68,23 +69,23 @@ pub fn getFunctionInfoForInlining(fct_id: FunctionId): FunctionInliningInfo {
     decoded
 }
 
-pub fn getClassPointerForLambda(fct_id: FunctionId, type_params: Array[BytecodeType]): Address {
-    let writer = ByteWriter::new();
+pub fn getClassPointerForLambda(ci: CompilationInfo, fct_id: FunctionId, type_params: Array[BytecodeType]): Address {
+    let writer = ci.getByteWriter();
     writer.emitInt32(fct_id.value);
     encodeBytecodeTypeArray(writer, type_params);
     Address(getClassPointerForLambdaRaw(writer.toArray()))
 }
 
-pub fn getClassSizeForTraitObject(info: TraitObjectInfo): Int32 {
-    let writer = ByteWriter::new();
+pub fn getClassSizeForTraitObject(ci: CompilationInfo, info: TraitObjectInfo): Int32 {
+    let writer = ci.getByteWriter();
     writer.emitInt32(info.trait_id.value);
     encodeBytecodeTypeArray(writer, info.type_params);
     encodeBytecodeType(writer, info.object_ty);
     getClassSizeForTraitObjectRaw(writer.toArray())
 }
 
-pub fn getClassPointerForTraitObject(info: TraitObjectInfo): Address {
-    let writer = ByteWriter::new();
+pub fn getClassPointerForTraitObject(ci: CompilationInfo, info: TraitObjectInfo): Address {
+    let writer = ci.getByteWriter();
     writer.emitInt32(info.trait_id.value);
     encodeBytecodeTypeArray(writer, info.type_params);
     encodeBytecodeType(writer, info.object_ty);
@@ -95,23 +96,23 @@ pub fn getFunctionVtableIndex(fct_id: FunctionId): Int32 {
     getFunctionVtableIndexRaw(fct_id.value)
 }
 
-pub fn getFieldOffset(cls_id: ClassId, type_params: Array[BytecodeType], field_id: FieldId): Int32 {
-    let writer = ByteWriter::new();
+pub fn getFieldOffset(ci: CompilationInfo, cls_id: ClassId, type_params: Array[BytecodeType], field_id: ClassFieldId): Int32 {
+    let writer = ci.getByteWriter();
     writer.emitInt32(cls_id.value);
     encodeBytecodeTypeArray(writer, type_params);
     writer.emitInt32(field_id.value);
     getFieldOffsetRaw(writer.toArray())
 }
 
-pub fn getClassSize(cls_id: ClassId, type_params: Array[BytecodeType]): Int32 {
-    let writer = ByteWriter::new();
+pub fn getClassSize(ci: CompilationInfo, cls_id: ClassId, type_params: Array[BytecodeType]): Int32 {
+    let writer = ci.getByteWriter();
     writer.emitInt32(cls_id.value);
     encodeBytecodeTypeArray(writer, type_params);
     getClassSizeRaw(writer.toArray())
 }
 
-pub fn getClassPointer(cls_id: ClassId, type_params: Array[BytecodeType]): Address {
-    let writer = ByteWriter::new();
+pub fn getClassPointer(ci: CompilationInfo, cls_id: ClassId, type_params: Array[BytecodeType]): Address {
+    let writer = ci.getByteWriter();
     writer.emitInt32(cls_id.value);
     encodeBytecodeTypeArray(writer, type_params);
     Address(getClassPointerRaw(writer.toArray()))
@@ -137,8 +138,8 @@ pub fn getReadOnlyStringAddress(value: String): Address {
     Address(getReadOnlyStringAddressRaw(value))
 }
 
-pub fn findTraitImpl(trait_fct_id: FunctionId, trait_type_params: Array[BytecodeType], object_ty: BytecodeType): FunctionId {
-    let writer = ByteWriter::new();
+pub fn findTraitImpl(ci: CompilationInfo, trait_fct_id: FunctionId, trait_type_params: Array[BytecodeType], object_ty: BytecodeType): FunctionId {
+    let writer = ci.getByteWriter();
     writer.emitInt32(trait_fct_id.value);
     encodeBytecodeTypeArray(writer, trait_type_params);
     encodeBytecodeType(writer, object_ty);
@@ -165,8 +166,8 @@ pub fn getEnumData(enum_id: EnumId): EnumData {
     enumData
 }
 
-pub fn getClassDataForEnumVariant(id: EnumId, type_params: Array[BytecodeType], variant: Int32): (Address, Int32) {
-    let writer = ByteWriter::new();
+pub fn getClassDataForEnumVariant(ci: CompilationInfo, id: EnumId, type_params: Array[BytecodeType], variant: Int32): (Address, Int32) {
+    let writer = ci.getByteWriter();
     writer.emitInt32(id.value);
     encodeBytecodeTypeArray(writer, type_params);
     writer.emitInt32(variant);
@@ -178,8 +179,8 @@ pub fn getClassDataForEnumVariant(id: EnumId, type_params: Array[BytecodeType], 
     (Address(address), size)
 }
 
-pub fn getFieldOffsetForEnumVariant(enum_id: EnumId, type_params: Array[BytecodeType], variant_id: Int32, field_id: Int32): Int32 {
-    let writer = ByteWriter::new();
+pub fn getFieldOffsetForEnumVariant(ci: CompilationInfo, enum_id: EnumId, type_params: Array[BytecodeType], variant_id: Int32, field_id: Int32): Int32 {
+    let writer = ci.getByteWriter();
     writer.emitInt32(enum_id.value);
     encodeBytecodeTypeArray(writer, type_params);
     writer.emitInt32(variant_id);
@@ -187,8 +188,8 @@ pub fn getFieldOffsetForEnumVariant(enum_id: EnumId, type_params: Array[Bytecode
     getFieldOffsetForEnumVariantRaw(writer.toArray())
 }
 
-pub fn getElementSize(cls_id: ClassId, type_params: Array[BytecodeType]): Int32 {
-    let writer = ByteWriter::new();
+pub fn getElementSize(ci: CompilationInfo, cls_id: ClassId, type_params: Array[BytecodeType]): Int32 {
+    let writer = ci.getByteWriter();
     writer.emitInt32(cls_id.value);
     encodeBytecodeTypeArray(writer, type_params);
     getElementSizeRaw(writer.toArray())
@@ -227,7 +228,7 @@ pub fn compile(encoded: Array[UInt8]): Array[UInt8] {
     let ci = decodeCompilationInfo(reader);
     assert(!reader.moreBytes());
     let code = compileFunction(ci);
-    let writer = ByteWriter::new();
+    let writer = ci.getByteWriter();
     encodeCodeDescriptor(writer, code);
     writer.toArray()
 }

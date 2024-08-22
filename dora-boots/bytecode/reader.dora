@@ -1,9 +1,6 @@
 use std::traits::Iterator;
 
-use package::bytecode::instruction::BytecodeInstruction;
-use package::bytecode::data::BytecodeRegister;
-use package::bytecode::data::GlobalId;
-use package::bytecode::data::ConstPoolId;
+use package::bytecode::{BytecodeInstruction, BytecodeRegister, GlobalId, ConstPoolId};
 use package::bytecode::opcode as opc;
 
 pub fn decodeBytecode(code: Array[UInt8]): Array[BytecodeInstructionInfo] {

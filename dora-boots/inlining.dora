@@ -1,4 +1,4 @@
-use package::bytecode::data::{BytecodeType, FunctionId};
+use package::bytecode::{BytecodeType, FunctionId};
 use package::compilation::CompilationInfo;
 use package::graph::{Graph, Inst, Op};
 use package::graph_builder;
@@ -39,7 +39,7 @@ fn inline(ci: CompilationInfo, graph: Graph, inst: Inst, fctId: FunctionId, type
     let inlined_function_id = ci.addInlinedFunction(fctId, typeParams, inst.getInlinedLocation());
     let data = iface::getFunctionDataForInlining(fctId);
     let newBlock = block.splitAfter(inst);
-    let returnValue = graph_builder::addToGraph(graph, inlined_function_id, data.bc, typeParams, data.returnType, block, newBlock, inst);
+    let returnValue = graph_builder::addToGraph(ci, graph, inlined_function_id, data.bc, typeParams, data.returnType, block, newBlock, inst);
     if returnValue.isSome() {
         let returnValue = returnValue.getOrPanic();
         inst.replaceAllUsesWith(returnValue);

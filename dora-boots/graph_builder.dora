@@ -7,8 +7,8 @@ use package::graph;
 use package::graph::{AllocationData, Block, Graph, Inst, InstExtraData, Op};
 use package::graph::ty::Type;
 use package::graph::{ClassInfo, FunctionInfo, CallKind, VirtualFunctionInfo, LambdaFunctionInfo, TraitObjectInfo};
-use package::bytecode::data::{BytecodeFunction, BytecodeRegister, BytecodeType, ClassId, EnumId, FunctionId, FieldId};
-use package::bytecode::data::{ConstPoolId, ConstPoolEntry, GlobalId, StructId, StructFieldId, TraitId};
+use package::bytecode::{BytecodeFunction, BytecodeRegister, BytecodeType, ClassId, EnumId, FunctionId, ClassFieldId};
+use package::bytecode::{ConstPoolId, ConstPoolEntry, GlobalId, StructId, StructFieldId, TraitId};
 use package::bytecode::instruction::BytecodeInstruction;
 use package::bytecode::reader::BytecodeIterator;
 use package::interface as iface;
@@ -29,18 +29,19 @@ pub fn createGraph(ci: CompilationInfo): Graph {
     graph
 }
 
-pub fn addToGraph(graph: Graph, inlined_function_id: InlinedFunctionId, bc: BytecodeFunction, typeParams: Array[BytecodeType], returnType: BytecodeType, entryBlock: Block, exitBlock: Block, callInst: Inst): Option[Inst] {
+pub fn addToGraph(ci: CompilationInfo, graph: Graph, inlined_function_id: InlinedFunctionId, bc: BytecodeFunction, typeParams: Array[BytecodeType], returnType: BytecodeType, entryBlock: Block, exitBlock: Block, callInst: Inst): Option[Inst] {
     // Analyze basic block starts/ends.
     let analysis = analyzeBytecode(graph, bc);
 
     // Create basic blocks and fill with instructions.
-    let ssagen = SsaGen::newForInlining(graph, inlined_function_id, analysis, bc, typeParams, returnType, entryBlock, exitBlock);
+    let ssagen = SsaGen::newForInlining(ci, graph, inlined_function_id, analysis, bc, typeParams, returnType, entryBlock, exitBlock);
     ssagen.runInline(callInst);
 
     ssagen.returnValue
 }
 
 class SsaGen {
+    ci: CompilationInfo,
     graph: Graph,
     inlined_function_id: Option[InlinedFunctionId],
     bc: BytecodeFunction,
@@ -79,6 +80,7 @@ class SsaGen {
 impl SsaGen {
     static fn new(ci: CompilationInfo, graph: Graph, analysis: BytecodeAnalysis): SsaGen {
         SsaGen(
+            ci,
             graph,
             None[InlinedFunctionId],
             ci.bc,
@@ -102,8 +104,9 @@ impl SsaGen {
         )
     }
 
-    static fn newForInlining(graph: Graph, inlined_function_id: InlinedFunctionId, analysis: BytecodeAnalysis, bc: BytecodeFunction, typeParams: Array[BytecodeType], returnType: BytecodeType, entryBlock: Block, exitBlock: Block): SsaGen {
+    static fn newForInlining(ci: CompilationInfo, graph: Graph, inlined_function_id: InlinedFunctionId, analysis: BytecodeAnalysis, bc: BytecodeFunction, typeParams: Array[BytecodeType], returnType: BytecodeType, entryBlock: Block, exitBlock: Block): SsaGen {
         SsaGen(
+            ci,
             graph,
             Some[InlinedFunctionId](inlined_function_id),
             bc,
@@ -825,13 +828,13 @@ impl SsaGen {
 
         let (cls_id, type_params, field_id) = match self.bc.constPool(idx) {
             ConstPoolEntry::Field(cls_id, type_params, field_id) => (cls_id, type_params, field_id),
-            _ => unreachable[(ClassId, Array[BytecodeType], FieldId)](),
+            _ => unreachable[(ClassId, Array[BytecodeType], ClassFieldId)](),
         };
 
         if !destType.isUnit() {
             let objInst = self.readVariable(obj, self.current());
             let type_params = type_params.specialize(self.typeParams);
-            let offset = iface::getFieldOffset(cls_id, type_params, field_id);
+            let offset = iface::getFieldOffset(self.ci, cls_id, type_params, field_id);
             let value = self.loadField(destType, objInst, offset);
             self.writeVariable(dest, self.current(), value);
         }
@@ -842,7 +845,7 @@ impl SsaGen {
 
         let (cls_id, type_params, field_id) = match self.bc.constPool(idx) {
             ConstPoolEntry::Field(cls_id, type_params, field_id) => (cls_id, type_params, field_id),
-            _ => unreachable[(ClassId, Array[BytecodeType], FieldId)](),
+            _ => unreachable[(ClassId, Array[BytecodeType], ClassFieldId)](),
         };
         let type_params = type_params.specialize(self.typeParams);
 
@@ -850,7 +853,7 @@ impl SsaGen {
             let srcInst = self.readVariable(src, self.current());
             let objInst = self.readVariable(obj, self.current());
 
-            let offset = iface::getFieldOffset(cls_id, type_params, field_id);
+            let offset = iface::getFieldOffset(self.ci, cls_id, type_params, field_id);
             self.storeField(srcType, objInst, offset, srcInst, true);
         }
     }
@@ -972,7 +975,7 @@ impl SsaGen {
                 let destTy = self.reg(dest);
                 let src = self.readVariable(src, self.current());
 
-                let offset = iface::getFieldOffsetForEnumVariant(enum_id, type_params, variant_id, field_id);
+                let offset = iface::getFieldOffsetForEnumVariant(self.ci, enum_id, type_params, variant_id, field_id);
                 let result = self.loadField(destTy, src, offset);
 
                 self.writeVariable(dest, self.current(), result);
@@ -1416,7 +1419,7 @@ impl SsaGen {
         };
 
         let object_ty = self.typeParams(type_param_idx.toInt64());
-        let callee_id = iface::findTraitImpl(trait_fct_id, trait_type_params, object_ty);
+        let callee_id = iface::findTraitImpl(self.ci, trait_fct_id, trait_type_params, object_ty);
 
         let intrinsic = iface::getIntrinsicForFunction(callee_id);
 
@@ -2147,7 +2150,7 @@ impl SsaGen {
             if !argTy.isUnit() {
                 let arg = self.readVariable(reg, self.current());
 
-                let offset = iface::getFieldOffset(class_id, type_params, FieldId(field_id));
+                let offset = iface::getFieldOffset(self.ci, class_id, type_params, ClassFieldId(field_id));
                 self.storeField(argTy, objInst, offset, arg, true);
             }
 
@@ -2268,7 +2271,7 @@ impl SsaGen {
             }
 
             EnumLayout::Tagged => {
-                let (classptr, size) = iface::getClassDataForEnumVariant(enum_id, type_params, variant_id);
+                let (classptr, size) = iface::getClassDataForEnumVariant(self.ci, enum_id, type_params, variant_id);
 
                 let data = AllocationData(classptr, size);
                 let info = InstExtraData::AllocationData(data);
@@ -2288,7 +2291,7 @@ impl SsaGen {
 
                     if !argTy.isUnit() {
                         let arg = self.readVariable(reg, self.current());
-                        let offset = iface::getFieldOffsetForEnumVariant(enum_id, type_params, variant_id, field_id);
+                        let offset = iface::getFieldOffsetForEnumVariant(self.ci, enum_id, type_params, variant_id, field_id);
                         self.storeField(argTy, objInst, offset, arg, true);
                     }
 
@@ -2334,7 +2337,7 @@ impl SsaGen {
         };
 
         let type_params = type_params.specialize(self.typeParams);
-        let element_size = iface::getElementSize(class_id, type_params);
+        let element_size = iface::getElementSize(self.ci, class_id, type_params);
         let element_size_inst = graph::createInt64Const(element_size.toInt64());
         self.current().appendInst(element_size_inst);
 
@@ -2371,7 +2374,7 @@ impl SsaGen {
             unaligned_size
         };
 
-        let classptr = iface::getClassPointer(class_id, type_params);
+        let classptr = iface::getClassPointer(self.ci, class_id, type_params);
         let info = ClassInfo(class_id, type_params);
 
         let objInst = graph::createNewArrayInst(info, size, length);

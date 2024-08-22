@@ -1,0 +1,93 @@
+use package::bytecode::{AliasId, AliasData, ClassId, ClassData, ClassField, EnumId, EnumData,
+    EnumVariant, ExtensionId, ExtensionData, FunctionId, FunctionData,
+    FunctionKind, GlobalId, GlobalData, ImplId, ImplData, ModuleId, ModuleData,
+    PackageId, PackageData, Program,
+    SourceFileData, StructId, StructData,
+    StructField, TraitData, TypeParamBound, TypeParamData};
+
+pub class Deserializer {
+    array: Array[UInt8],
+    idx: Int64,
+}
+
+impl Deserializer {
+    static pub fn new(array: Array[UInt8]): Deserializer {
+        Deserializer(array, 0)
+    }
+
+    pub fn deserializeProgram(): Program {
+        unimplemented[Program]()
+    }
+
+    pub fn deserializePackageData(): PackageData {
+        unimplemented[PackageData]()
+    }
+
+    pub fn deserializeModuleData(): ModuleData {
+        unimplemented[ModuleData]()
+    }
+
+    pub fn deserializeFunctionData(): FunctionData {
+        unimplemented[FunctionData]()
+    }
+
+    pub fn deserializeFunctionKind(): FunctionKind {
+        unimplemented[FunctionKind]()
+    }
+
+    pub fn deserializeTypeParamData(): TypeParamData {
+        unimplemented[TypeParamData]()
+    }
+
+    pub fn deserializeTypeParamBound(): TypeParamBound {
+        unimplemented[TypeParamBound]()
+    }
+
+    pub fn deserializeGlobalData(): GlobalData {
+        unimplemented[GlobalData]()
+    }
+
+    pub fn deserializeClassData(): ClassData {
+        unimplemented[ClassData]()
+    }
+
+    pub fn deserializeClassField(): ClassField {
+        unimplemented[ClassField]()
+    }
+
+    pub fn deserializeStructData(): StructData {
+        unimplemented[StructData]()
+    }
+
+    pub fn deserializeStructField(): StructField {
+        unimplemented[StructField]()
+    }
+
+    pub fn deserializeEnumData(): EnumData {
+        unimplemented[EnumData]()
+    }
+
+    pub fn deserializeEnumVariant(): EnumVariant {
+        unimplemented[EnumVariant]()
+    }
+
+    pub fn deserializeTraitData(): TraitData {
+        unimplemented[TraitData]()
+    }
+
+    pub fn deserializeSourceFileData(): SourceFileData {
+        unimplemented[SourceFileData]()
+    }
+
+    pub fn deserializeExtensionData(): ExtensionData {
+        unimplemented[ExtensionData]()
+    }
+
+    pub fn deserializeImplData(): ImplData {
+        unimplemented[ImplData]()
+    }
+
+    pub fn deserializeAliasData(): AliasData {
+        unimplemented[AliasData]()
+    }
+}

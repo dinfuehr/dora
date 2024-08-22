@@ -1,5 +1,5 @@
 use package::interface::{Address, Config, StructData, EnumData, EnumVariantData};
-use package::bytecode::data::{AliasId, BytecodeFunction, BytecodeType, ClassId, ConstPoolEntry, EnumId, FunctionId, FieldId, Location, StructId, StructFieldId, TraitId};
+use package::bytecode::{AliasId, BytecodeFunction, BytecodeType, ClassId, ConstPoolEntry, EnumId, FunctionId, ClassFieldId, Location, StructId, StructFieldId, TraitId};
 use package::bytecode::opcode as opc;
 use package::compilation::CompilationInfo;
 use package::interface::{FunctionInliningData, FunctionInliningInfo, Architecture};
@@ -216,7 +216,7 @@ fn decodeConstPoolEntry(reader: ByteReader): ConstPoolEntry {
     } else if opcode == opc::CONSTPOOL_OPCODE_FIELD {
         let cls_id = ClassId(reader.readInt32());
         let type_params = decodeBytecodeTypeArray(reader);
-        let field_id = FieldId(reader.readInt32());
+        let field_id = ClassFieldId(reader.readInt32());
         ConstPoolEntry::Field(cls_id, type_params, field_id)
     } else if opcode == opc::CONSTPOOL_OPCODE_FCT {
         let fct_id = FunctionId(reader.readInt32());

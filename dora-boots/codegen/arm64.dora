@@ -1,6 +1,6 @@
 use package::bytecode::{ConstPoolId, FunctionId, BytecodeType};
 use package::compilation::CompilationInfo;
-use package::interface::{Address, Architecture, ConstPool, ConstPoolEntry, ConstPoolValue, config, getFunctionAddress, getFieldOffset, getClassSize, getClassPointer, getClassPointerForLambda, getFunctionVtableIndex, getGlobalValueAddress, getGlobalStateAddress, getGlobalInitializerFunctionId, getReadOnlyStringAddress, getClassSizeForTraitObject, getClassPointerForTraitObject, InlinedFunction};
+use package::interface::{Address, Architecture, ConstPool, ConstPoolEntry, ConstPoolValue, config, InlinedFunction};
 use package::interface::{THREAD_LOCAL_DATA_STACK_LIMIT_OFFSET, THREAD_LOCAL_DATA_STATE_OFFSET, THREAD_LOCAL_DATA_MARKING_OFFSET, OBJECT_HEADER_LENGTH, OBJECT_METADATA_OFFSET, METADATA_REMEMBERED_BIT, ARRAY_HEADER_LENGTH, LAMBDA_SIZE};
 use package::interface::{THREAD_LOCAL_DATA_TLAB_TOP_OFFSET, THREAD_LOCAL_DATA_TLAB_END_OFFSET, THREAD_LOCAL_DATA_MANAGED_THREAD_HANDLE_OFFSET};
 use package::interface::{PTR_SIZE, GLOBAL_STATE_INITIALIZED, InlinedLocation, InlinedFunctionId};
@@ -573,7 +573,7 @@ impl CodeGenArm64 {
     }
 
     fn emitCall(fct_id: FunctionId, type_params: Array[BytecodeType], inlined_location: InlinedLocation, gc_point: GcPoint) {
-        let address = getFunctionAddress(fct_id, type_params);
+        let address = iface::getFunctionAddress(self.ci, fct_id, type_params);
         let cp_entry = self.constPool.push(ConstPoolValue::Address(address));
         self.loadConstPool(REG_TEMP, cp_entry, REG_TEMP2);
         self.asm.bl_r(REG_TEMP);
@@ -910,7 +910,7 @@ impl CodeGen for CodeGenArm64 {
         let loc = inst.getLocationData();
         let dest = loc.getOutput().getRegister();
 
-        let address = getReadOnlyStringAddress(inst.getValueAsString());
+        let address = iface::getReadOnlyStringAddress(inst.getValueAsString());
         let cp_entry = self.constPool.push(ConstPoolValue::Address(address));
         self.loadConstPool(dest, cp_entry, REG_TEMP);
     }
@@ -1704,7 +1704,7 @@ impl CodeGen for CodeGenArm64 {
         let obj = loc.getInput(receiver_idx).getRegister();
         let tmp = loc.getTemp(0).getRegister();
 
-        let vtable_index = getFunctionVtableIndex(fct_info.fct_id);
+        let vtable_index = iface::getFunctionVtableIndex(fct_info.fct_id);
 
         let site = LazyCompilationSiteVirtual(
             fct_info.receiver_is_first,
@@ -1867,16 +1867,16 @@ impl CodeGen for CodeGenArm64 {
 
         if inst.hasClassInfo() {
             let info = inst.getClassInfo();
-            size = getClassSize(info.class_id, info.type_params);
-            classptr = getClassPointer(info.class_id, info.type_params);
+            size = iface::getClassSize(self.ci, info.class_id, info.type_params);
+            classptr = iface::getClassPointer(self.ci, info.class_id, info.type_params);
         } else if inst.hasFunctionInfo() {
             let info = inst.getFunctionInfo();
             size = LAMBDA_SIZE;
-            classptr = getClassPointerForLambda(info.fct_id, info.type_params);
+            classptr = iface::getClassPointerForLambda(self.ci, info.fct_id, info.type_params);
         } else if inst.hasTraitObjectInfo() {
             let info = inst.getTraitObjectInfo();
-            size = getClassSizeForTraitObject(info);
-            classptr = getClassPointerForTraitObject(info);
+            size = iface::getClassSizeForTraitObject(self.ci, info);
+            classptr = iface::getClassPointerForTraitObject(self.ci, info);
         } else if inst.hasAllocationData() {
             let data = inst.getAllocationData();
             size = data.size;
@@ -1903,7 +1903,7 @@ impl CodeGen for CodeGenArm64 {
         let length = loc.getInput(1).getRegister();
 
         let info = inst.getClassInfo();
-        let classptr = getClassPointer(info.class_id, info.type_params);
+        let classptr = iface::getClassPointer(self.ci, info.class_id, info.type_params);
 
         let tmp = loc.getTemp(0).getRegister();
         let location = inst.getInlinedLocation();
@@ -1918,7 +1918,7 @@ impl CodeGen for CodeGenArm64 {
         let loc = inst.getLocationData();
 
         let global_id = inst.getGlobalId();
-        let value_address = getGlobalValueAddress(global_id);
+        let value_address = iface::getGlobalValueAddress(global_id);
         self.mov_imm(REG_TEMP, value_address.value);
 
         let ty = inst.getValueType();
@@ -1961,7 +1961,7 @@ impl CodeGen for CodeGenArm64 {
         let dest = loc.getOutput().getRegister();
 
         let global_id = inst.getGlobalId();
-        let value_address = getGlobalValueAddress(global_id);
+        let value_address = iface::getGlobalValueAddress(global_id);
         self.mov_imm(dest, value_address.value);
     }
 
@@ -1972,7 +1972,7 @@ impl CodeGen for CodeGenArm64 {
         let lbl_global_slow_path = self.asm.createLabel();
 
         let global_id = inst.getGlobalId();
-        let state_address = getGlobalStateAddress(global_id);
+        let state_address = iface::getGlobalStateAddress(global_id);
         self.mov_imm(REG_TEMP, state_address.value);
         self.asm.ldrb_imm(REG_TEMP, REG_TEMP, 0i32);
         self.asm.movz(tmp, GLOBAL_STATE_INITIALIZED, 0i32);
@@ -1988,16 +1988,16 @@ impl CodeGen for CodeGenArm64 {
 
             let gc_point = self.saveRegistersForCall(snapshot, loc.getLiveValues());
             let ty = inst.getOperationType();
-            let value_address = getGlobalValueAddress(global_id);
+            let value_address = iface::getGlobalValueAddress(global_id);
 
             if ty == Type::Address {
                 // Pass address of global to function as first argument.
-                let value_address = getGlobalValueAddress(global_id);
+                let value_address = iface::getGlobalValueAddress(global_id);
                 self.mov_imm(REG_PARAMS(0), value_address.value);
             }
 
             // Compute initial value.
-            let fct_id = getGlobalInitializerFunctionId(global_id);
+            let fct_id = iface::getGlobalInitializerFunctionId(global_id);
             let type_params = Array[BytecodeType]::new();
             self.emitCall(fct_id, type_params, inst.getInlinedLocation(), gc_point);
 
@@ -2048,7 +2048,7 @@ impl CodeGen for CodeGenArm64 {
 
         let global_id = inst.getGlobalId();
 
-        let value_address = getGlobalValueAddress(global_id);
+        let value_address = iface::getGlobalValueAddress(global_id);
         self.mov_imm(REG_TEMP, value_address.value);
 
         match inst.getOperationType() {
@@ -2090,7 +2090,7 @@ impl CodeGen for CodeGenArm64 {
         let global_id = inst.getGlobalId();
 
         // Store initial value in global variable.
-        let state_address = getGlobalStateAddress(global_id);
+        let state_address = iface::getGlobalStateAddress(global_id);
         self.mov_imm(REG_TEMP, state_address.value);
         self.asm.movz(tmp, GLOBAL_STATE_INITIALIZED, 0i32);
         self.asm.strb_imm(tmp, REG_TEMP, 0i32);

@@ -3,6 +3,7 @@ use std::StringBuffer;
 use std::Equals;
 use std::Hash;
 
+use package::bytecode::{AliasId, ClassId, ClassFieldId, EnumId, FunctionId, StructId, StructFieldId, TraitId};
 use package::graph::Block;
 
 pub class BytecodeFunction {
@@ -73,7 +74,7 @@ pub enum ConstPoolEntry {
     Int64(Int64),
     Char(Char),
     Class(ClassId, Array[BytecodeType]),
-    Field(ClassId, Array[BytecodeType], FieldId),
+    Field(ClassId, Array[BytecodeType], ClassFieldId),
     Fct(FunctionId, Array[BytecodeType]),
     TraitObjectMethod(BytecodeType, FunctionId, Array[BytecodeType]),
     Generic(Int32, FunctionId, Array[BytecodeType]),
@@ -164,23 +165,13 @@ impl Stringable for BytecodeRegister {
     fn toString(): String { "r${self.value}" }
 }
 
-pub struct EnumId(pub value: Int32)
-pub struct ClassId(pub value: Int32)
-pub struct FieldId(pub value: Int32)
-pub struct GlobalId(pub value: Int32)
 pub struct ConstPoolId(pub value: Int32)
-pub struct StructId(pub value: Int32)
-pub struct StructFieldId(pub value: Int32)
-pub struct TraitId(pub value: Int32)
-pub struct AliasId(pub value: Int32)
 
 impl ConstPoolId {
     fn equals(rhs: ConstPoolId): Bool {
         self.value == rhs.value
     }
 }
-
-pub struct FunctionId(pub value: Int32)
 
 pub enum BytecodeType {
     Unit,

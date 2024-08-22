@@ -6,7 +6,7 @@ use std::Stringable;
 use std::traits::Iterator;
 
 use package::assembler::{FloatRegister, Label, Register, RegMap, RegSet};
-use package::bytecode::data::{BytecodeType, ClassId, FunctionId, FieldId, GlobalId, StructId, TraitId};
+use package::bytecode::{BytecodeType, ClassId, FunctionId, ClassFieldId, GlobalId, StructId, TraitId};
 use package::dominator::buildDominatorTree;
 use package::interface::{Address, GcPoint, InlinedLocation};
 use package::regalloc::{RegisterTracker, RecordLayout};

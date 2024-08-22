@@ -1,6 +1,6 @@
 use std::{HashSet, HashMap};
 
-use package::bytecode::data::GlobalId;
+use package::bytecode::GlobalId;
 use package::compilation::CompilationInfo;
 use package::dominator::computePostOrder;
 use package::graph::{Graph, Inst, Op};
