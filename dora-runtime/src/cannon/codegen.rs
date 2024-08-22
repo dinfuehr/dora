@@ -3271,7 +3271,7 @@ impl<'a> CannonCodeGen<'a> {
                 self.emit_int64_to_int(dest, src_reg);
             }
 
-            Intrinsic::Int64ToChar => {
+            Intrinsic::Int64ToCharUnchecked => {
                 assert_eq!(arguments.len(), 1);
                 let src_reg = arguments[0];
                 self.emit_shrink(dest, MachineMode::Int32, src_reg, MachineMode::Int64);
@@ -3283,7 +3283,7 @@ impl<'a> CannonCodeGen<'a> {
                 self.emit_shrink(dest, MachineMode::Int8, src_reg, MachineMode::Int64);
             }
 
-            Intrinsic::Int32ToChar => {
+            Intrinsic::Int32ToCharUnchecked => {
                 assert_eq!(arguments.len(), 1);
                 let src_reg = arguments[0];
                 self.emit_shrink(dest, MachineMode::Int32, src_reg, MachineMode::Int32);

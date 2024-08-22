@@ -112,6 +112,10 @@ pub const STDLIB_FUNCTIONS: &[(&'static str, FctImplementation)] = &[
         I(Intrinsic::UInt8Cmp),
     ),
     (
+        "stdlib::string::Stringable for stdlib::primitives::UInt8#toString",
+        N(stdlib::uint8_to_string as *const u8),
+    ),
+    (
         "stdlib::primitives::UInt8#toChar",
         I(Intrinsic::UInt8ToChar),
     ),
@@ -140,6 +144,10 @@ pub const STDLIB_FUNCTIONS: &[(&'static str, FctImplementation)] = &[
         "stdlib::primitives::Char#toInt64",
         I(Intrinsic::CharToInt64),
     ),
+    (
+        "stdlib::string::Stringable for stdlib::primitives::Char#toString",
+        N(stdlib::char_to_string as *const u8),
+    ),
     // Int32
     (
         "stdlib::traits::Equals for stdlib::primitives::Int32#equals",
@@ -154,8 +162,104 @@ pub const STDLIB_FUNCTIONS: &[(&'static str, FctImplementation)] = &[
         I(Intrinsic::Int32Add),
     ),
     (
+        "stdlib::traits::Sub for stdlib::primitives::Int32#sub",
+        I(Intrinsic::Int32Sub),
+    ),
+    (
+        "stdlib::traits::Mul for stdlib::primitives::Int32#mul",
+        I(Intrinsic::Int32Mul),
+    ),
+    (
+        "stdlib::traits::Div for stdlib::primitives::Int32#div",
+        I(Intrinsic::Int32Div),
+    ),
+    (
+        "stdlib::traits::Mod for stdlib::primitives::Int32#modulo",
+        I(Intrinsic::Int32Mod),
+    ),
+    (
+        "stdlib::traits::BitOr for stdlib::primitives::Int32#bitor",
+        I(Intrinsic::Int32Or),
+    ),
+    (
+        "stdlib::traits::BitAnd for stdlib::primitives::Int32#bitand",
+        I(Intrinsic::Int32And),
+    ),
+    (
+        "stdlib::traits::BitXor for stdlib::primitives::Int32#bitxor",
+        I(Intrinsic::Int32Xor),
+    ),
+    (
+        "stdlib::traits::Shl for stdlib::primitives::Int32#shl",
+        I(Intrinsic::Int32Shl),
+    ),
+    (
+        "stdlib::traits::Shr for stdlib::primitives::Int32#shr",
+        I(Intrinsic::Int32Shr),
+    ),
+    (
+        "stdlib::traits::Sar for stdlib::primitives::Int32#sar",
+        I(Intrinsic::Int32Sar),
+    ),
+    (
+        "stdlib::traits::Not for stdlib::primitives::Int32#not",
+        I(Intrinsic::Int32Not),
+    ),
+    (
+        "stdlib::traits::Neg for stdlib::primitives::Int32#neg",
+        I(Intrinsic::Int32Neg),
+    ),
+    (
+        "stdlib::string::Stringable for stdlib::primitives::Int32#toString",
+        N(stdlib::int32_to_string as *const u8),
+    ),
+    (
+        "stdlib::primitives::Int32#wrappingNeg",
+        I(Intrinsic::Int32NegUnchecked),
+    ),
+    (
+        "stdlib::primitives::Int32#countZeroBitsLeading",
+        I(Intrinsic::Int32CountZeroBitsLeading),
+    ),
+    (
+        "stdlib::primitives::Int32#countZeroBitsTrailing",
+        I(Intrinsic::Int32CountZeroBitsTrailing),
+    ),
+    (
+        "stdlib::primitives::Int32#countOneBitsLeading",
+        I(Intrinsic::Int32CountOneBitsLeading),
+    ),
+    (
+        "stdlib::primitives::Int32#countOneBitsTrailing",
+        I(Intrinsic::Int32CountOneBitsTrailing),
+    ),
+    (
+        "stdlib::primitives::Int32#countZeroBits",
+        I(Intrinsic::Int32CountZeroBits),
+    ),
+    (
+        "stdlib::primitives::Int32#countOneBits",
+        I(Intrinsic::Int32CountOneBits),
+    ),
+    (
+        "stdlib::primitives::Int32#rotateLeft",
+        I(Intrinsic::Int32RotateLeft),
+    ),
+    (
+        "stdlib::primitives::Int32#rotateRight",
+        I(Intrinsic::Int32RotateRight),
+    ),
+    (
         "stdlib::primitives::Int32#wrappingAdd",
         I(Intrinsic::Int32AddUnchecked),
+    ),
+    (
+        "stdlib::primitives::Int32#wrappingSub",
+        I(Intrinsic::Int32SubUnchecked),
+    ),
+    (
+        "stdlib::primitives::Int32#wrappingMul",
+        I(Intrinsic::Int32MulUnchecked),
     ),
     (
         "stdlib::primitives::Int32#toUInt8",
@@ -163,7 +267,7 @@ pub const STDLIB_FUNCTIONS: &[(&'static str, FctImplementation)] = &[
     ),
     (
         "stdlib::primitives::Int32#toCharUnchecked",
-        I(Intrinsic::Int32ToChar),
+        I(Intrinsic::Int32ToCharUnchecked),
     ),
     (
         "stdlib::primitives::Int32#toInt64",
@@ -181,7 +285,288 @@ pub const STDLIB_FUNCTIONS: &[(&'static str, FctImplementation)] = &[
         "stdlib::primitives::Int32#asFloat32",
         I(Intrinsic::ReinterpretInt32AsFloat32),
     ),
+    // Int64
+    (
+        "stdlib::traits::Equals for stdlib::primitives::Int64#equals",
+        I(Intrinsic::Int64Eq),
+    ),
+    (
+        "stdlib::traits::Comparable for stdlib::primitives::Int64#cmp",
+        I(Intrinsic::Int64Cmp),
+    ),
+    (
+        "stdlib::traits::Add for stdlib::primitives::Int64#add",
+        I(Intrinsic::Int64Add),
+    ),
+    (
+        "stdlib::traits::Sub for stdlib::primitives::Int64#sub",
+        I(Intrinsic::Int64Sub),
+    ),
+    (
+        "stdlib::traits::Mul for stdlib::primitives::Int64#mul",
+        I(Intrinsic::Int64Mul),
+    ),
+    (
+        "stdlib::traits::Div for stdlib::primitives::Int64#div",
+        I(Intrinsic::Int64Div),
+    ),
+    (
+        "stdlib::traits::Mod for stdlib::primitives::Int64#modulo",
+        I(Intrinsic::Int64Mod),
+    ),
+    (
+        "stdlib::traits::BitOr for stdlib::primitives::Int64#bitor",
+        I(Intrinsic::Int64Or),
+    ),
+    (
+        "stdlib::traits::BitAnd for stdlib::primitives::Int64#bitand",
+        I(Intrinsic::Int64And),
+    ),
+    (
+        "stdlib::traits::BitXor for stdlib::primitives::Int64#bitxor",
+        I(Intrinsic::Int64Xor),
+    ),
+    (
+        "stdlib::traits::Shl for stdlib::primitives::Int64#shl",
+        I(Intrinsic::Int64Shl),
+    ),
+    (
+        "stdlib::traits::Shr for stdlib::primitives::Int64#shr",
+        I(Intrinsic::Int64Shr),
+    ),
+    (
+        "stdlib::traits::Sar for stdlib::primitives::Int64#sar",
+        I(Intrinsic::Int64Sar),
+    ),
+    (
+        "stdlib::traits::Not for stdlib::primitives::Int64#not",
+        I(Intrinsic::Int64Not),
+    ),
+    (
+        "stdlib::traits::Neg for stdlib::primitives::Int64#neg",
+        I(Intrinsic::Int64Neg),
+    ),
+    (
+        "stdlib::string::Stringable for stdlib::primitives::Int64#toString",
+        N(stdlib::int64_to_string as *const u8),
+    ),
+    (
+        "stdlib::primitives::Int64#wrappingNeg",
+        I(Intrinsic::Int64NegUnchecked),
+    ),
+    (
+        "stdlib::primitives::Int64#countZeroBitsLeading",
+        I(Intrinsic::Int64CountZeroBitsLeading),
+    ),
+    (
+        "stdlib::primitives::Int64#countZeroBitsTrailing",
+        I(Intrinsic::Int64CountZeroBitsTrailing),
+    ),
+    (
+        "stdlib::primitives::Int64#countOneBitsLeading",
+        I(Intrinsic::Int64CountOneBitsLeading),
+    ),
+    (
+        "stdlib::primitives::Int64#countOneBitsTrailing",
+        I(Intrinsic::Int64CountOneBitsTrailing),
+    ),
+    (
+        "stdlib::primitives::Int64#countZeroBits",
+        I(Intrinsic::Int64CountZeroBits),
+    ),
+    (
+        "stdlib::primitives::Int64#countOneBits",
+        I(Intrinsic::Int64CountOneBits),
+    ),
+    (
+        "stdlib::primitives::Int64#rotateLeft",
+        I(Intrinsic::Int64RotateLeft),
+    ),
+    (
+        "stdlib::primitives::Int64#rotateRight",
+        I(Intrinsic::Int64RotateRight),
+    ),
+    (
+        "stdlib::primitives::Int64#wrappingAdd",
+        I(Intrinsic::Int64AddUnchecked),
+    ),
+    (
+        "stdlib::primitives::Int64#wrappingSub",
+        I(Intrinsic::Int64SubUnchecked),
+    ),
+    (
+        "stdlib::primitives::Int64#wrappingMul",
+        I(Intrinsic::Int64MulUnchecked),
+    ),
+    (
+        "stdlib::primitives::Int64#toUInt8",
+        I(Intrinsic::Int64ToUInt8),
+    ),
+    (
+        "stdlib::primitives::Int64#toInt32",
+        I(Intrinsic::Int64ToInt32),
+    ),
+    (
+        "stdlib::primitives::Int64#toCharUnchecked",
+        I(Intrinsic::Int64ToCharUnchecked),
+    ),
+    (
+        "stdlib::primitives::Int64#toFloat32",
+        I(Intrinsic::Int64ToFloat32),
+    ),
+    (
+        "stdlib::primitives::Int64#toFloat64",
+        I(Intrinsic::Int64ToFloat64),
+    ),
+    (
+        "stdlib::primitives::Int64#asFloat64",
+        I(Intrinsic::ReinterpretInt64AsFloat64),
+    ),
+    // Float32
+    (
+        "stdlib::traits::Equals for stdlib::primitives::Float32#equals",
+        I(Intrinsic::Float32Eq),
+    ),
+    (
+        "stdlib::traits::Comparable for stdlib::primitives::Float32#cmp",
+        I(Intrinsic::Float32Cmp),
+    ),
+    (
+        "stdlib::traits::Add for stdlib::primitives::Float32#add",
+        I(Intrinsic::Float32Add),
+    ),
+    (
+        "stdlib::traits::Sub for stdlib::primitives::Float32#sub",
+        I(Intrinsic::Float32Sub),
+    ),
+    (
+        "stdlib::traits::Mul for stdlib::primitives::Float32#mul",
+        I(Intrinsic::Float32Mul),
+    ),
+    (
+        "stdlib::traits::Div for stdlib::primitives::Float32#div",
+        I(Intrinsic::Float32Div),
+    ),
+    (
+        "stdlib::traits::Neg for stdlib::primitives::Float32#neg",
+        I(Intrinsic::Float32Neg),
+    ),
+    ("stdlib::primitives::Float32#abs", I(Intrinsic::Float32Abs)),
+    (
+        "stdlib::primitives::Float32#isNan",
+        I(Intrinsic::Float32IsNan),
+    ),
+    (
+        "stdlib::primitives::Float32#roundToZero",
+        I(Intrinsic::Float32RoundToZero),
+    ),
+    (
+        "stdlib::primitives::Float32#roundUp",
+        I(Intrinsic::Float32RoundUp),
+    ),
+    (
+        "stdlib::primitives::Float32#roundDown",
+        I(Intrinsic::Float32RoundDown),
+    ),
+    (
+        "stdlib::primitives::Float32#roundHalfEven",
+        I(Intrinsic::Float32RoundHalfEven),
+    ),
+    (
+        "stdlib::primitives::Float32#sqrt",
+        I(Intrinsic::Float32Sqrt),
+    ),
+    (
+        "stdlib::primitives::Float32#toInt32",
+        I(Intrinsic::Float32ToInt32),
+    ),
+    (
+        "stdlib::primitives::Float32#toInt64",
+        I(Intrinsic::Float32ToInt64),
+    ),
+    (
+        "stdlib::primitives::Float32#toFloat64",
+        I(Intrinsic::PromoteFloat32ToFloat64),
+    ),
+    (
+        "stdlib::primitives::Float32#asInt32",
+        I(Intrinsic::ReinterpretFloat32AsInt32),
+    ),
+    // Float64
+    (
+        "stdlib::traits::Equals for stdlib::primitives::Float64#equals",
+        I(Intrinsic::Float64Eq),
+    ),
+    (
+        "stdlib::traits::Comparable for stdlib::primitives::Float64#cmp",
+        I(Intrinsic::Float64Cmp),
+    ),
+    (
+        "stdlib::traits::Add for stdlib::primitives::Float64#add",
+        I(Intrinsic::Float64Add),
+    ),
+    (
+        "stdlib::traits::Sub for stdlib::primitives::Float64#sub",
+        I(Intrinsic::Float64Sub),
+    ),
+    (
+        "stdlib::traits::Mul for stdlib::primitives::Float64#mul",
+        I(Intrinsic::Float64Mul),
+    ),
+    (
+        "stdlib::traits::Div for stdlib::primitives::Float64#div",
+        I(Intrinsic::Float64Div),
+    ),
+    (
+        "stdlib::traits::Neg for stdlib::primitives::Float64#neg",
+        I(Intrinsic::Float64Neg),
+    ),
+    ("stdlib::primitives::Float64#abs", I(Intrinsic::Float64Abs)),
+    (
+        "stdlib::primitives::Float64#isNan",
+        I(Intrinsic::Float64IsNan),
+    ),
+    (
+        "stdlib::primitives::Float64#roundToZero",
+        I(Intrinsic::Float64RoundToZero),
+    ),
+    (
+        "stdlib::primitives::Float64#roundUp",
+        I(Intrinsic::Float64RoundUp),
+    ),
+    (
+        "stdlib::primitives::Float64#roundDown",
+        I(Intrinsic::Float64RoundDown),
+    ),
+    (
+        "stdlib::primitives::Float64#roundHalfEven",
+        I(Intrinsic::Float64RoundHalfEven),
+    ),
+    (
+        "stdlib::primitives::Float64#sqrt",
+        I(Intrinsic::Float64Sqrt),
+    ),
+    (
+        "stdlib::primitives::Float64#toInt32",
+        I(Intrinsic::Float64ToInt32),
+    ),
+    (
+        "stdlib::primitives::Float64#toInt64",
+        I(Intrinsic::Float64ToInt64),
+    ),
+    (
+        "stdlib::primitives::Float64#toFloat32",
+        I(Intrinsic::DemoteFloat64ToFloat32),
+    ),
+    (
+        "stdlib::primitives::Float64#asInt64",
+        I(Intrinsic::ReinterpretFloat64AsInt64),
+    ),
     // String
+    (
+        "stdlib::traits::Add for stdlib::string::String#add",
+        N(stdlib::strcat as *const u8),
+    ),
     (
         "stdlib::string::String#clone",
         N(stdlib::str_clone as *const u8),
@@ -244,21 +629,65 @@ pub const STDLIB_FUNCTIONS: &[(&'static str, FctImplementation)] = &[
         "stdlib::collections::Array#new",
         I(Intrinsic::ArrayWithValues),
     ),
+    // Option
     (
-        "stdlib::string::Stringable for stdlib::primitives::UInt8#toString",
-        N(stdlib::uint8_to_string as *const u8),
+        "stdlib::primitives::Option#getOrPanic",
+        I(Intrinsic::OptionGetOrPanic),
     ),
     (
-        "stdlib::string::Stringable for stdlib::primitives::Char#toString",
-        N(stdlib::char_to_string as *const u8),
+        "stdlib::primitives::Option#isNone",
+        I(Intrinsic::OptionIsNone),
     ),
     (
-        "stdlib::string::Stringable for stdlib::primitives::Int32#toString",
-        N(stdlib::int32_to_string as *const u8),
+        "stdlib::primitives::Option#isSome",
+        I(Intrinsic::OptionIsSome),
+    ),
+    // AtomicInt32
+    (
+        "stdlib::thread::AtomicInt32#get",
+        I(Intrinsic::AtomicInt32Get),
     ),
     (
-        "stdlib::string::Stringable for stdlib::primitives::Int64#toString",
-        N(stdlib::int64_to_string as *const u8),
+        "stdlib::thread::AtomicInt32#set",
+        I(Intrinsic::AtomicInt32Set),
+    ),
+    (
+        "stdlib::thread::AtomicInt32#exchange",
+        I(Intrinsic::AtomicInt32Exchange),
+    ),
+    (
+        "stdlib::thread::AtomicInt32#compareExchange",
+        I(Intrinsic::AtomicInt32CompareExchange),
+    ),
+    (
+        "stdlib::thread::AtomicInt32#fetchAdd",
+        I(Intrinsic::AtomicInt32FetchAdd),
+    ),
+    // AtomicInt64
+    (
+        "stdlib::thread::AtomicInt64#get",
+        I(Intrinsic::AtomicInt64Get),
+    ),
+    (
+        "stdlib::thread::AtomicInt64#set",
+        I(Intrinsic::AtomicInt64Set),
+    ),
+    (
+        "stdlib::thread::AtomicInt64#exchange",
+        I(Intrinsic::AtomicInt64Exchange),
+    ),
+    (
+        "stdlib::thread::AtomicInt64#compareExchange",
+        I(Intrinsic::AtomicInt64CompareExchange),
+    ),
+    (
+        "stdlib::thread::AtomicInt64#fetchAdd",
+        I(Intrinsic::AtomicInt64FetchAdd),
+    ),
+    // Thread
+    (
+        "stdlib::thread::Thread#current",
+        I(Intrinsic::ThreadCurrent),
     ),
     (
         "stdlib::string::Stringable for stdlib::primitives::Float32#toString",
@@ -267,10 +696,6 @@ pub const STDLIB_FUNCTIONS: &[(&'static str, FctImplementation)] = &[
     (
         "stdlib::string::Stringable for stdlib::primitives::Float64#toString",
         N(stdlib::float64_to_string as *const u8),
-    ),
-    (
-        "stdlib::traits::Add for stdlib::string::String#add",
-        N(stdlib::strcat as *const u8),
     ),
 ];
 

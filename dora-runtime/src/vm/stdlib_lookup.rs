@@ -171,6 +171,12 @@ fn lookup_extension_for_item(vm: &VM, extended_ty: ModuleItem) -> Option<Extensi
                 return Some(ExtensionId(id.try_into().expect("overflow")));
             }
 
+            BytecodeType::Enum(ext_enum_id, ..)
+                if extended_ty == ModuleItem::Enum(*ext_enum_id) =>
+            {
+                return Some(ExtensionId(id.try_into().expect("overflow")));
+            }
+
             _ => {}
         }
     }
