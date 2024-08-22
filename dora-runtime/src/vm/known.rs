@@ -320,42 +320,37 @@ impl Intrinsic {
             BytecodeIntrinsic::Assert => unreachable!(),
             BytecodeIntrinsic::Debug => unreachable!(),
 
-            BytecodeIntrinsic::StrLen => Some(Intrinsic::StrLen),
-            BytecodeIntrinsic::StrGet => Some(Intrinsic::StrGet),
+            BytecodeIntrinsic::StrLen => None,
+            BytecodeIntrinsic::StrGet => None,
 
-            BytecodeIntrinsic::BoolEq => Some(Intrinsic::BoolEq),
-            BytecodeIntrinsic::BoolNot => Some(Intrinsic::BoolNot),
-            BytecodeIntrinsic::BoolToInt32 => Some(Intrinsic::BoolToInt32),
-            BytecodeIntrinsic::BoolToInt64 => Some(Intrinsic::BoolToInt64),
+            BytecodeIntrinsic::BoolEq => None,
+            BytecodeIntrinsic::BoolNot => None,
+            BytecodeIntrinsic::BoolToInt32 => None,
+            BytecodeIntrinsic::BoolToInt64 => None,
 
             BytecodeIntrinsic::UInt8Eq => None,
             BytecodeIntrinsic::UInt8Cmp => None,
-            BytecodeIntrinsic::UInt8ToChar => Some(Intrinsic::UInt8ToChar),
-            BytecodeIntrinsic::UInt8ToInt32 => Some(Intrinsic::UInt8ToInt32),
-            BytecodeIntrinsic::UInt8ToInt64 => Some(Intrinsic::UInt8ToInt64),
+            BytecodeIntrinsic::UInt8ToChar => None,
+            BytecodeIntrinsic::UInt8ToInt32 => None,
+            BytecodeIntrinsic::UInt8ToInt64 => None,
 
-            BytecodeIntrinsic::CharEq => Some(Intrinsic::CharEq),
-            BytecodeIntrinsic::CharCmp => Some(Intrinsic::CharCmp),
-            BytecodeIntrinsic::CharToInt32 => Some(Intrinsic::CharToInt32),
-            BytecodeIntrinsic::CharToInt64 => Some(Intrinsic::CharToInt64),
+            BytecodeIntrinsic::CharEq => None,
+            BytecodeIntrinsic::CharCmp => None,
+            BytecodeIntrinsic::CharToInt32 => None,
+            BytecodeIntrinsic::CharToInt64 => None,
 
-            BytecodeIntrinsic::Int32ToUInt8 => Some(Intrinsic::Int32ToUInt8),
-            BytecodeIntrinsic::Int32ToChar => Some(Intrinsic::Int32ToChar),
-            BytecodeIntrinsic::Int32ToInt64 => Some(Intrinsic::Int32ToInt64),
-            BytecodeIntrinsic::Int32ToFloat32 => Some(Intrinsic::Int32ToFloat32),
-            BytecodeIntrinsic::Int32ToFloat64 => Some(Intrinsic::Int32ToFloat64),
-            BytecodeIntrinsic::ReinterpretInt32AsFloat32 => {
-                Some(Intrinsic::ReinterpretInt32AsFloat32)
-            }
+            BytecodeIntrinsic::Int32ToUInt8 => None,
+            BytecodeIntrinsic::Int32ToChar => None,
+            BytecodeIntrinsic::Int32ToInt64 => None,
+            BytecodeIntrinsic::Int32ToFloat32 => None,
+            BytecodeIntrinsic::Int32ToFloat64 => None,
+            BytecodeIntrinsic::ReinterpretInt32AsFloat32 => None,
 
-            BytecodeIntrinsic::EnumEq => Some(Intrinsic::EnumEq),
-            BytecodeIntrinsic::EnumNe => Some(Intrinsic::EnumNe),
+            BytecodeIntrinsic::Int32Eq => None,
+            BytecodeIntrinsic::Int32Cmp => None,
 
-            BytecodeIntrinsic::Int32Eq => Some(Intrinsic::Int32Eq),
-            BytecodeIntrinsic::Int32Cmp => Some(Intrinsic::Int32Cmp),
-
-            BytecodeIntrinsic::Int32Add => Some(Intrinsic::Int32Add),
-            BytecodeIntrinsic::Int32AddUnchecked => Some(Intrinsic::Int32AddUnchecked),
+            BytecodeIntrinsic::Int32Add => None,
+            BytecodeIntrinsic::Int32AddUnchecked => None,
             BytecodeIntrinsic::Int32Sub => Some(Intrinsic::Int32Sub),
             BytecodeIntrinsic::Int32SubUnchecked => Some(Intrinsic::Int32SubUnchecked),
             BytecodeIntrinsic::Int32Mul => Some(Intrinsic::Int32Mul),
@@ -443,6 +438,9 @@ impl Intrinsic {
             BytecodeIntrinsic::Int64CountOneBitsTrailing => {
                 Some(Intrinsic::Int64CountOneBitsTrailing)
             }
+
+            BytecodeIntrinsic::EnumEq => Some(Intrinsic::EnumEq),
+            BytecodeIntrinsic::EnumNe => Some(Intrinsic::EnumNe),
 
             BytecodeIntrinsic::Float32ToInt32 => Some(Intrinsic::Float32ToInt32),
             BytecodeIntrinsic::Float32ToInt64 => Some(Intrinsic::Float32ToInt64),

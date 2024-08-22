@@ -55,6 +55,7 @@ pub fn lookup(vm: &mut VM) {
 
 fn get_primitive_ty(path: &str) -> Option<BytecodeType> {
     match path {
+        "stdlib::primitives::Bool" => Some(BytecodeType::Bool),
         "stdlib::primitives::UInt8" => Some(BytecodeType::UInt8),
         "stdlib::primitives::Char" => Some(BytecodeType::Char),
         "stdlib::primitives::Int32" => Some(BytecodeType::Int32),
@@ -97,8 +98,13 @@ fn apply_fct(
 
             lookup_fct_by_impl_id_and_name(vm, impl_id, method_name).expect("missing method")
         } else {
-            let extended_ty = resolve_path(vm, module_items, path);
-            let extension_id = lookup_extension_for_item(vm, extended_ty).expect("class not found");
+            let extension_id = if let Some(extended_ty) = get_primitive_ty(path) {
+                lookup_extension_for_ty(vm, extended_ty)
+            } else {
+                let extended_ty = resolve_path(vm, module_items, path);
+                lookup_extension_for_item(vm, extended_ty)
+            }
+            .expect("impl block not found");
             lookup_fct_by_extension_id_and_name(vm, extension_id, method_name)
                 .expect("missing method")
         }
@@ -166,6 +172,16 @@ fn lookup_extension_for_item(vm: &VM, extended_ty: ModuleItem) -> Option<Extensi
             }
 
             _ => {}
+        }
+    }
+
+    None
+}
+
+fn lookup_extension_for_ty(vm: &VM, extended_ty: BytecodeType) -> Option<ExtensionId> {
+    for (id, extension) in vm.program.extensions.iter().enumerate() {
+        if extension.extended_ty == extended_ty {
+            return Some(ExtensionId(id.try_into().expect("overflow")));
         }
     }
 

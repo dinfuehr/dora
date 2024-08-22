@@ -85,6 +85,103 @@ pub const STDLIB_FUNCTIONS: &[(&'static str, FctImplementation)] = &[
         "stdlib::Stacktrace#capture",
         N(stack::capture_stack_trace as *const u8),
     ),
+    // Bool
+    (
+        "stdlib::traits::Equals for stdlib::primitives::Bool#equals",
+        I(Intrinsic::BoolEq),
+    ),
+    (
+        "stdlib::traits::Not for stdlib::primitives::Bool#not",
+        I(Intrinsic::BoolNot),
+    ),
+    (
+        "stdlib::primitives::Bool#toInt32",
+        I(Intrinsic::BoolToInt32),
+    ),
+    (
+        "stdlib::primitives::Bool#toInt64",
+        I(Intrinsic::BoolToInt64),
+    ),
+    // UInt8
+    (
+        "stdlib::traits::Equals for stdlib::primitives::UInt8#equals",
+        I(Intrinsic::UInt8Eq),
+    ),
+    (
+        "stdlib::traits::Comparable for stdlib::primitives::UInt8#cmp",
+        I(Intrinsic::UInt8Cmp),
+    ),
+    (
+        "stdlib::primitives::UInt8#toChar",
+        I(Intrinsic::UInt8ToChar),
+    ),
+    (
+        "stdlib::primitives::UInt8#toInt32",
+        I(Intrinsic::UInt8ToInt32),
+    ),
+    (
+        "stdlib::primitives::UInt8#toInt64",
+        I(Intrinsic::UInt8ToInt64),
+    ),
+    // Char
+    (
+        "stdlib::traits::Equals for stdlib::primitives::Char#equals",
+        I(Intrinsic::CharEq),
+    ),
+    (
+        "stdlib::traits::Comparable for stdlib::primitives::Char#cmp",
+        I(Intrinsic::CharCmp),
+    ),
+    (
+        "stdlib::primitives::Char#toInt32",
+        I(Intrinsic::CharToInt32),
+    ),
+    (
+        "stdlib::primitives::Char#toInt64",
+        I(Intrinsic::CharToInt64),
+    ),
+    // Int32
+    (
+        "stdlib::traits::Equals for stdlib::primitives::Int32#equals",
+        I(Intrinsic::Int32Eq),
+    ),
+    (
+        "stdlib::traits::Comparable for stdlib::primitives::Int32#cmp",
+        I(Intrinsic::Int32Cmp),
+    ),
+    (
+        "stdlib::traits::Add for stdlib::primitives::Int32#add",
+        I(Intrinsic::Int32Add),
+    ),
+    (
+        "stdlib::primitives::Int32#wrappingAdd",
+        I(Intrinsic::Int32AddUnchecked),
+    ),
+    (
+        "stdlib::primitives::Int32#toUInt8",
+        I(Intrinsic::Int32ToUInt8),
+    ),
+    (
+        "stdlib::primitives::Int32#toCharUnchecked",
+        I(Intrinsic::Int32ToChar),
+    ),
+    (
+        "stdlib::primitives::Int32#toInt64",
+        I(Intrinsic::Int32ToInt64),
+    ),
+    (
+        "stdlib::primitives::Int32#toFloat32",
+        I(Intrinsic::Int32ToFloat32),
+    ),
+    (
+        "stdlib::primitives::Int32#toFloat64",
+        I(Intrinsic::Int32ToFloat64),
+    ),
+    (
+        "stdlib::primitives::Int32#asFloat32",
+        I(Intrinsic::ReinterpretInt32AsFloat32),
+    ),
+    // String
     (
         "stdlib::string::String#clone",
         N(stdlib::str_clone as *const u8),
@@ -133,6 +230,9 @@ pub const STDLIB_FUNCTIONS: &[(&'static str, FctImplementation)] = &[
         "stdlib::string::String#toFloat64OrZero",
         N(stdlib::str_to_float64 as *const u8),
     ),
+    ("stdlib::string::String#size", I(Intrinsic::StrLen)),
+    ("stdlib::string::String#getByte", I(Intrinsic::StrGet)),
+    // Array
     ("stdlib::collections::Array#size", I(Intrinsic::ArrayLen)),
     ("stdlib::collections::Array#get", I(Intrinsic::ArrayGet)),
     ("stdlib::collections::Array#set", I(Intrinsic::ArraySet)),
@@ -167,14 +267,6 @@ pub const STDLIB_FUNCTIONS: &[(&'static str, FctImplementation)] = &[
     (
         "stdlib::string::Stringable for stdlib::primitives::Float64#toString",
         N(stdlib::float64_to_string as *const u8),
-    ),
-    (
-        "stdlib::traits::Equals for stdlib::primitives::UInt8#equals",
-        I(Intrinsic::UInt8Eq),
-    ),
-    (
-        "stdlib::traits::Comparable for stdlib::primitives::UInt8#cmp",
-        I(Intrinsic::UInt8Cmp),
     ),
     (
         "stdlib::traits::Add for stdlib::string::String#add",
