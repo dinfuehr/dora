@@ -24,7 +24,9 @@ pub use self::enums::{find_methods_in_enum, EnumDefinition, EnumDefinitionId, En
 pub use self::extensions::{
     extension_matches, extension_matches_ty, ExtensionDefinition, ExtensionDefinitionId,
 };
-pub use self::functions::{emit_as_bytecode_operation, FctDefinition, FctDefinitionId, FctParent};
+pub use self::functions::{
+    emit_as_bytecode_operation, FctDefinition, FctDefinitionId, FctParent, Intrinsic,
+};
 pub use self::globals::{GlobalDefinition, GlobalDefinitionId};
 pub use self::impls::{
     find_impl, impl_matches, implements_trait, ImplDefinition, ImplDefinitionId,

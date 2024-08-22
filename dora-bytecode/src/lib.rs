@@ -15,9 +15,9 @@ pub use dumper::{dump, dump_stdout};
 pub use program::{
     AliasData, AliasId, ClassData, ClassField, ClassId, EnumData, EnumId, EnumVariant,
     ExtensionData, ExtensionId, FunctionData, FunctionId, FunctionKind, GlobalData, GlobalId,
-    ImplData, ImplId, Intrinsic, ModuleData, ModuleId, PackageData, PackageId, Program,
-    SourceFileData, SourceFileId, StructData, StructField, StructId, TraitData, TraitId,
-    TypeParamBound, TypeParamData,
+    ImplData, ImplId, ModuleData, ModuleId, PackageData, PackageId, Program, SourceFileData,
+    SourceFileId, StructData, StructField, StructId, TraitData, TraitId, TypeParamBound,
+    TypeParamData,
 };
 pub use reader::*;
 pub use ty::{BytecodeType, BytecodeTypeArray};

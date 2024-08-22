@@ -39,11 +39,6 @@ pub fn lookup(vm: &mut VM) {
     for (fct_id, fct) in vm.program.functions.iter().enumerate() {
         let fct_id = FunctionId(fct_id as u32);
 
-        if let Some(intrinsic) = fct.intrinsic.and_then(|i| Intrinsic::from_bytecode(i)) {
-            assert!(!vm.intrinsics.contains_key(&fct_id));
-            vm.intrinsics.insert(fct_id, intrinsic);
-        }
-
         if fct.is_internal
             && vm.native_methods.get(fct_id).is_none()
             && vm.intrinsics.get(&fct_id).is_none()

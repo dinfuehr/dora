@@ -3,14 +3,13 @@ use std::rc::Rc;
 
 use crate::sema::{
     ClassDefinition, ClassDefinitionId, EnumDefinitionId, ExtensionDefinitionId, FctDefinitionId,
-    Field, FieldId, ModuleDefinition, ModuleDefinitionId, Sema, StructDefinitionId,
+    Field, FieldId, Intrinsic, ModuleDefinition, ModuleDefinitionId, Sema, StructDefinitionId,
     TraitDefinitionId, TypeParamDefinition, Visibility,
 };
 use crate::sym::{SymTable, SymbolKind};
 use crate::ty::{SourceType, SourceTypeArray};
 
 use crate::interner::Name;
-use dora_bytecode::Intrinsic;
 
 pub fn lookup_known_fundamental_types(sa: &mut Sema) {
     let stdlib_id = sa.stdlib_module_id();

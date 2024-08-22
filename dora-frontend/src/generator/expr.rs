@@ -1,10 +1,8 @@
-use dora_bytecode::{
-    BytecodeType, BytecodeTypeArray, EnumId, FunctionId, Intrinsic, Label, Register,
-};
+use dora_bytecode::{BytecodeType, BytecodeTypeArray, EnumId, FunctionId, Label, Register};
 use dora_parser::ast::{self, CmpOp};
 
 use crate::generator::{bty_array_from_ty, register_bty_from_ty, AstBytecodeGen, DataDest};
-use crate::sema::{EnumDefinitionId, FctDefinition, FctParent, IdentType, Sema};
+use crate::sema::{EnumDefinitionId, FctDefinition, FctParent, IdentType, Intrinsic, Sema};
 use crate::ty::SourceType;
 
 pub(super) fn gen_expr(g: &mut AstBytecodeGen, expr: &ast::ExprData, dest: DataDest) -> Register {

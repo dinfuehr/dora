@@ -4,13 +4,12 @@ use std::ops::{Index, IndexMut};
 use std::rc::Rc;
 use std::sync::Arc;
 
-use dora_bytecode::Intrinsic;
 use dora_parser::ast;
 
 use crate::sema::{
     ClassDefinition, ClassDefinitionId, ConstDefinitionId, EnumDefinitionId, FctDefinitionId,
-    FieldId, GlobalDefinitionId, StructDefinitionFieldId, StructDefinitionId, TraitDefinitionId,
-    TypeParamId,
+    FieldId, GlobalDefinitionId, Intrinsic, StructDefinitionFieldId, StructDefinitionId,
+    TraitDefinitionId, TypeParamId,
 };
 use crate::ty::{SourceType, SourceTypeArray};
 

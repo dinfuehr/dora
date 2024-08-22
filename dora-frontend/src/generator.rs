@@ -8,16 +8,16 @@ use self::expr::{gen_expr, gen_expr_bin_cmp};
 use crate::sema::{
     emit_as_bytecode_operation, AnalysisData, CallType, ClassDefinitionId, ConstDefinitionId,
     ContextFieldId, EnumDefinitionId, FctDefinition, FctDefinitionId, FieldId, GlobalDefinition,
-    GlobalDefinitionId, IdentType, LazyContextData, OuterContextIdx, ScopeId, Sema, SourceFileId,
-    StructDefinitionId, TypeParamId, VarId, VarLocation,
+    GlobalDefinitionId, IdentType, Intrinsic, LazyContextData, OuterContextIdx, ScopeId, Sema,
+    SourceFileId, StructDefinitionId, TypeParamId, VarId, VarLocation,
 };
 use crate::specialize::{replace_type, specialize_type};
 use crate::ty::{SourceType, SourceTypeArray};
 use crate::{expr_always_returns, expr_block_always_returns, AliasReplacement};
 use dora_bytecode::{
     AliasId, BytecodeBuilder, BytecodeFunction, BytecodeType, BytecodeTypeArray, ClassId,
-    ConstPoolEntry, ConstPoolIdx, EnumId, FunctionId, GlobalId, Intrinsic, Label, Location,
-    Register, StructId, TraitId,
+    ConstPoolEntry, ConstPoolIdx, EnumId, FunctionId, GlobalId, Label, Location, Register,
+    StructId, TraitId,
 };
 
 mod expr;
