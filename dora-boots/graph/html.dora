@@ -1,0 +1,19 @@
+use std::io::OpenFile;
+
+pub fn createHtmlWriter(): HtmlWriter {
+    HtmlWriter(None[OpenFile])
+}
+
+class HtmlWriter {
+    file: Option[OpenFile],
+}
+
+impl HtmlWriter {
+    pub fn start() {
+        unimplemented[()]();
+    }
+
+    pub fn finish() {
+        unimplemented[()]();
+    }
+}

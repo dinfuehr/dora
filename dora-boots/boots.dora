@@ -8,6 +8,7 @@ use package::dead_code_elimination::performDeadCodeElimination;
 use package::dominator::buildDominatorTree;
 use package::graph::{createGotoInst, Block, Edge, Graph, Inst, LocationData, Op, opName};
 use package::graph::dump::dumpGraph;
+use package::graph::html::createHtmlWriter;
 use package::graph::verifier::verifyGraph;
 use package::graph_builder::createGraph;
 use package::inlining::performInlining;
@@ -39,6 +40,7 @@ pub fn compileFunction(ci: CompilationInfo): CodeDescriptor {
     let graph = createGraph(ci);
 
     let codegen = createCodeGen(ci, graph);
+    let html = createHtmlWriter();
 
     if ci.emitHtml {
         unimplemented[()]();
