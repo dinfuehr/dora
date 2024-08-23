@@ -3859,7 +3859,7 @@ impl<'a> CannonCodeGen<'a> {
         fct_return_type: BytecodeType,
         arguments: Vec<Register>,
     ) -> i32 {
-        let argsize = self.determine_argsize(&arguments);
+        let argsize = self.determine_argsize(&arguments, fct_return_type.clone());
 
         self.asm.increase_stack_frame(argsize);
 
@@ -3948,10 +3948,18 @@ impl<'a> CannonCodeGen<'a> {
         argsize
     }
 
-    fn determine_argsize(&mut self, arguments: &Vec<Register>) -> i32 {
+    fn determine_argsize(
+        &mut self,
+        arguments: &Vec<Register>,
+        fct_return_type: BytecodeType,
+    ) -> i32 {
         let mut reg_idx = 0;
         let mut freg_idx = 0;
         let mut argsize = 0;
+
+        if result_passed_as_argument(fct_return_type) {
+            reg_idx += 1;
+        }
 
         for &src in arguments {
             let bytecode_type = self.bytecode.register_type(src);
