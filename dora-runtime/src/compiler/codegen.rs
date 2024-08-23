@@ -287,7 +287,8 @@ fn should_emit_asm(vm: &VM, fct_id: FunctionId, compiler: Compiler) -> bool {
 
 fn should_emit_graph(vm: &VM, fct_id: FunctionId) -> (bool, bool) {
     if let Some(ref names) = vm.flags.emit_graph {
-        fct_pattern_match(vm, fct_id, names)
+        let (matches, has_plus) = fct_pattern_match(vm, fct_id, names);
+        (matches && !has_plus, matches && has_plus)
     } else {
         (false, false)
     }

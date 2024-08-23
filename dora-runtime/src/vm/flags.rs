@@ -8,7 +8,7 @@ use std::ops::Deref;
 #[derive(Debug)]
 pub struct Flags {
     pub emit_asm: Option<String>,
-    pub emit_asm_file: bool,
+    pub emit_asm_file: Option<String>,
     pub emit_asm_boots: bool,
     pub emit_bytecode_compiler: Option<String>,
     pub emit_bytecode_boots: bool,

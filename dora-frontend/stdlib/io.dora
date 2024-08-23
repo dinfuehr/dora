@@ -54,6 +54,10 @@ impl OpenFile {
         fileWrite(self.fd, array, 0, array.size())
     }
 
+    pub fn writeString(text: String) {
+        self.write(text.asBytes());
+    }
+
     pub fn close() {
         if self.fd != -1 {
             fileClose(self.fd)

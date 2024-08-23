@@ -8,7 +8,7 @@ use package::dead_code_elimination::performDeadCodeElimination;
 use package::dominator::buildDominatorTree;
 use package::graph::{createGotoInst, Block, Edge, Graph, Inst, LocationData, Op, opName};
 use package::graph::dump::dumpGraph;
-use package::graph::html::createHtmlWriter;
+use package::graph::html::{createHtmlWriter, HtmlWriter};
 use package::graph::verifier::verifyGraph;
 use package::graph_builder::createGraph;
 use package::inlining::performInlining;
@@ -40,10 +40,14 @@ pub fn compileFunction(ci: CompilationInfo): CodeDescriptor {
     let graph = createGraph(ci);
 
     let codegen = createCodeGen(ci, graph);
-    let html = createHtmlWriter();
+    let htmlWriter: Option[HtmlWriter] = if ci.emitHtml {
+        Some[HtmlWriter](createHtmlWriter())
+    } else {
+        None[HtmlWriter]
+    };
 
-    if ci.emitHtml {
-        unimplemented[()]();
+    if htmlWriter.isSome() {
+        htmlWriter.getOrPanic().dump(ci, graph, "after graph building");
     }
 
     if ci.emitGraph {
@@ -56,6 +60,10 @@ pub fn compileFunction(ci: CompilationInfo): CodeDescriptor {
     if ci.optimize {
         performInlining(ci, graph);
 
+        if htmlWriter.isSome() {
+            htmlWriter.getOrPanic().dump(ci, graph, "after inlining");
+        }
+
         if ci.emitGraph {
             println("${ci.getDisplayName()} after inlining:");
             println(dumpGraph(Some[CompilationInfo](ci), graph, config.architecture));
@@ -65,6 +73,10 @@ pub fn compileFunction(ci: CompilationInfo): CodeDescriptor {
 
         performLoadElimination(ci, graph);
 
+        if htmlWriter.isSome() {
+            htmlWriter.getOrPanic().dump(ci, graph, "after load elimination");
+        }
+
         if ci.emitGraph {
             println("${ci.getDisplayName()} after load elimination:");
             println(dumpGraph(Some[CompilationInfo](ci), graph, config.architecture));
@@ -73,6 +85,10 @@ pub fn compileFunction(ci: CompilationInfo): CodeDescriptor {
         verify(graph);
 
         performDeadCodeElimination(ci, graph);
+
+        if htmlWriter.isSome() {
+            htmlWriter.getOrPanic().dump(ci, graph, "after dead code elimination");
+        }
 
         if ci.emitGraph {
             println("${ci.getDisplayName()} after dead code elimination:");
@@ -86,12 +102,21 @@ pub fn compileFunction(ci: CompilationInfo): CodeDescriptor {
     buildDominatorTree(graph);
     computeLiveness(graph);
 
+    if htmlWriter.isSome() {
+        htmlWriter.getOrPanic().dump(ci, graph, "before register allocation");
+    }
+
     if ci.emitGraph {
         println("${ci.getDisplayName()} before register allocation:");
         println(dumpGraph(Some[CompilationInfo](ci), graph, config.architecture));
     }
 
     performRegisterAllocation(graph, codegen, ci);
+
+    if htmlWriter.isSome() {
+        htmlWriter.getOrPanic().dump(ci, graph, "after register allocation");
+        htmlWriter.getOrPanic().close();
+    }
 
     if ci.emitGraph {
         println("${ci.getDisplayName()} after register allocation:");

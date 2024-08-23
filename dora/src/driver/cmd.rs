@@ -66,7 +66,7 @@ pub struct Args {
     pub output: Option<String>,
     pub emit_asm: Option<String>,
     pub emit_asm_boots: bool,
-    pub emit_asm_file: bool,
+    pub emit_asm_file: Option<String>,
     pub emit_graph: Option<String>,
     pub emit_bytecode: Option<String>,
     pub emit_bytecode_compiler: Option<String>,
@@ -121,7 +121,7 @@ impl Default for Args {
             emit_ast: None,
             emit_asm: None,
             emit_asm_boots: false,
-            emit_asm_file: false,
+            emit_asm_file: None,
             emit_graph: None,
             emit_bytecode: None,
             emit_bytecode_compiler: None,
@@ -221,8 +221,8 @@ pub fn parse_arguments() -> Result<Args, String> {
             args.emit_ast = Some(argument_value(arg).into());
         } else if arg.starts_with("--emit-asm=") {
             args.emit_asm = Some(argument_value(arg).into());
-        } else if arg == "--emit-asm-file" {
-            args.emit_asm_file = true;
+        } else if arg.starts_with("--emit-asm-file=") {
+            args.emit_asm_file = Some(argument_value(arg).into());
         } else if arg == "--emit-asm-boots" {
             args.emit_asm_boots = true;
         } else if arg.starts_with("--emit-graph=") {
@@ -415,7 +415,7 @@ pub fn create_vm_args(args: &Args) -> VmArgs {
     VmArgs {
         emit_asm: args.emit_asm.clone(),
         emit_asm_boots: args.emit_asm_boots,
-        emit_asm_file: args.emit_asm_file,
+        emit_asm_file: args.emit_asm_file.clone(),
         emit_bytecode_boots: args.emit_bytecode_boots,
         emit_bytecode_compiler: args.emit_bytecode_compiler.clone(),
         emit_compiler: args.emit_compiler,

@@ -1,19 +1,30 @@
-use std::io::OpenFile;
+use std::io::{File, OpenFile};
+
+use package::graph::Graph;
+use package::compilation::CompilationInfo;
 
 pub fn createHtmlWriter(): HtmlWriter {
-    HtmlWriter(None[OpenFile])
+    let file = File::create("ssa.html");
+    let html = HtmlWriter(file);
+    html.start();
+    html
 }
 
-class HtmlWriter {
-    file: Option[OpenFile],
+pub class HtmlWriter {
+    file: OpenFile,
 }
 
 impl HtmlWriter {
-    pub fn start() {
-        unimplemented[()]();
+    fn start() {
+        self.file.writeString("<html>\n");
     }
 
-    pub fn finish() {
-        unimplemented[()]();
+    pub fn dump(ci: CompilationInfo, graph: Graph, text: String) {
+        // TODO
+    }
+
+    pub fn close() {
+        self.file.writeString("</html>\n");
+        self.file.close();
     }
 }

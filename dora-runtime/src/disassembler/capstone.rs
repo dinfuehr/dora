@@ -1,5 +1,3 @@
-use libc;
-
 use std::fs::OpenOptions;
 use std::io::{self, BufWriter, Write};
 use std::slice;
@@ -20,13 +18,11 @@ pub fn disassemble(vm: &VM, fct_id: FunctionId, type_params: &BytecodeTypeArray,
 
     let engine = get_engine().expect("cannot create capstone engine");
 
-    let mut w: Box<dyn Write> = if vm.flags.emit_asm_file {
-        let pid = unsafe { libc::getpid() };
-        let name = format!("code-{}.asm", pid);
+    let mut w: Box<dyn Write> = if let Some(ref file) = vm.flags.emit_asm_file {
         let file = OpenOptions::new()
             .create(true)
             .append(true)
-            .open(&name)
+            .open(file)
             .expect("couldn't append to asm file");
 
         Box::new(BufWriter::new(file))
