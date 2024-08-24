@@ -41,13 +41,13 @@ pub fn compileFunction(ci: CompilationInfo): CodeDescriptor {
 
     let codegen = createCodeGen(ci, graph);
     let htmlWriter: Option[HtmlWriter] = if ci.emitHtml {
-        Some[HtmlWriter](createHtmlWriter())
+        Some[HtmlWriter](createHtmlWriter(ci, graph))
     } else {
         None[HtmlWriter]
     };
 
     if htmlWriter.isSome() {
-        htmlWriter.getOrPanic().dump(ci, graph, "after graph building");
+        htmlWriter.getOrPanic().dumpGraph("after graph building");
     }
 
     if ci.emitGraph {
@@ -61,7 +61,7 @@ pub fn compileFunction(ci: CompilationInfo): CodeDescriptor {
         performInlining(ci, graph);
 
         if htmlWriter.isSome() {
-            htmlWriter.getOrPanic().dump(ci, graph, "after inlining");
+            htmlWriter.getOrPanic().dumpGraph("after inlining");
         }
 
         if ci.emitGraph {
@@ -74,7 +74,7 @@ pub fn compileFunction(ci: CompilationInfo): CodeDescriptor {
         performLoadElimination(ci, graph);
 
         if htmlWriter.isSome() {
-            htmlWriter.getOrPanic().dump(ci, graph, "after load elimination");
+            htmlWriter.getOrPanic().dumpGraph("after load elimination");
         }
 
         if ci.emitGraph {
@@ -87,7 +87,7 @@ pub fn compileFunction(ci: CompilationInfo): CodeDescriptor {
         performDeadCodeElimination(ci, graph);
 
         if htmlWriter.isSome() {
-            htmlWriter.getOrPanic().dump(ci, graph, "after dead code elimination");
+            htmlWriter.getOrPanic().dumpGraph("after dead code elimination");
         }
 
         if ci.emitGraph {
@@ -103,7 +103,7 @@ pub fn compileFunction(ci: CompilationInfo): CodeDescriptor {
     computeLiveness(graph);
 
     if htmlWriter.isSome() {
-        htmlWriter.getOrPanic().dump(ci, graph, "before register allocation");
+        htmlWriter.getOrPanic().dumpGraph("before register allocation");
     }
 
     if ci.emitGraph {
@@ -114,7 +114,7 @@ pub fn compileFunction(ci: CompilationInfo): CodeDescriptor {
     performRegisterAllocation(graph, codegen, ci);
 
     if htmlWriter.isSome() {
-        htmlWriter.getOrPanic().dump(ci, graph, "after register allocation");
+        htmlWriter.getOrPanic().dumpGraph("after register allocation");
         htmlWriter.getOrPanic().close();
     }
 

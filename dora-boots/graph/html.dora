@@ -1,30 +1,98 @@
 use std::io::{File, OpenFile};
 
-use package::graph::Graph;
+use package::graph::{Block, Graph, Inst};
 use package::compilation::CompilationInfo;
 
-pub fn createHtmlWriter(): HtmlWriter {
+pub fn createHtmlWriter(ci: CompilationInfo, graph: Graph): HtmlWriter {
     let file = File::create("ssa.html");
-    let html = HtmlWriter(file);
+    let html = HtmlWriter(ci, graph, file);
     html.start();
     html
 }
 
 pub class HtmlWriter {
+    ci: CompilationInfo,
+    graph: Graph,
     file: OpenFile,
 }
 
 impl HtmlWriter {
     fn start() {
-        self.file.writeString("<html>\n");
+        self.write("<!doctype html>
+<html>
+    <head>
+        <meta charset=\"utf-8\">
+        <title>Graph Viewer</title>
+    </head>
+    <body>
+
+    <table><tr>
+");
     }
 
-    pub fn dump(ci: CompilationInfo, graph: Graph, text: String) {
-        // TODO
+    pub fn dumpGraph(text: String) {
+        self.write("<td>${text}</td>\n");
+        self.write("<td><code>");
+
+        for block in self.graph.insertionOrderIterator() {
+            self.dumpBlock(block);
+        }
+
+        self.write("</code></td>\n");
+    }
+
+    fn dumpBlock(block: Block) {
+        self.write("<ul><li>@${block.id()}:</li><li><ul>");
+
+        for inst in block.phisIterator() {
+            self.dumpInst(inst);
+        }
+
+        for inst in block.instructionsIterator() {
+            self.dumpInst(inst);
+        }
+
+        self.write("</ul></li></ul>");
+    }
+
+    fn dumpInst(inst: Inst) {
+        self.write("<li>%${inst.id()}");
+
+        let ty = inst.getMaybeValueType();
+
+        if ty.isSome() {
+            let ty = ty.getOrPanic();
+            self.write("&nbsp;<span class=\"inst-value-type\">&lt;${ty}&gt;</span>");
+        }
+
+        if inst.hasInlinedLocation() {
+            let inlined_location = inst.getInlinedLocation();
+            let loc = inlined_location.location;
+            self.write("&nbsp;&lt;${loc.line}:${loc.column}&gt;");
+        }
+
+        self.write(": ${inst.op()}");
+
+        if !inst.getInputs().isEmpty() {
+            for input in inst.getInputs() {
+                let id = input.getValue().id();
+                self.write("&nbsp;<span class=\"inst${id}\">%${id}</span>");
+            }
+        }
+
+        self.write("</li>");
     }
 
     pub fn close() {
-        self.file.writeString("</html>\n");
+        self.write("
+    </tr></table>
+    </body>
+</html>
+");
         self.file.close();
+    }
+
+    fn write(text: String) {
+        self.file.writeString(text);
     }
 }
