@@ -1,6 +1,6 @@
 use std::io::{File, OpenFile};
 
-use package::graph::{Block, Graph, Inst};
+use package::graph::{Block, Graph, Inst, Op};
 use package::compilation::CompilationInfo;
 
 pub fn createHtmlWriter(ci: CompilationInfo, graph: Graph): HtmlWriter {
@@ -23,6 +23,57 @@ impl HtmlWriter {
     <head>
         <meta charset=\"utf-8\">
         <title>Graph Viewer</title>
+        <style>
+div.block {
+    margin-left: 40px;
+}
+
+div.inst {
+    padding-left: 1.5em;
+    text-indent: -1.5em;
+}
+
+table {
+    table-layout: fixed;
+}
+
+td {
+    vertical-align: top;
+}
+
+td.pass-name div {
+    transform: rotate(180deg);
+    writing-mode: vertical-lr;
+    white-space: pre;
+}
+
+td.graph {
+    width: 400px;
+}
+
+.value {
+    cursor: pointer;
+}
+
+.line-number {
+    font-style: italic;
+    font-size: small;
+}
+        </style>
+        <script>
+window.onload = function() {
+    console.log(\"onload\");
+
+    let elements = document.getElementsByClassName(\"value\");
+    for (element of elements) {
+        element.addEventListener('click', graphValueClicked);
+    }
+}
+
+function graphValueClicked(e) {
+    console.log(e);
+}
+        </script>
     </head>
     <body>
 
@@ -31,8 +82,8 @@ impl HtmlWriter {
     }
 
     pub fn dumpGraph(text: String) {
-        self.write("<td>${text}</td>\n");
-        self.write("<td><code>");
+        self.write("<td class=\"pass-name\"><div>${text}</div></td>\n");
+        self.write("<td class=\"graph\"><code>");
 
         for block in self.graph.insertionOrderIterator() {
             self.dumpBlock(block);
@@ -42,7 +93,8 @@ impl HtmlWriter {
     }
 
     fn dumpBlock(block: Block) {
-        self.write("<ul><li>@${block.id()}:</li><li><ul>");
+        self.write("<div class=\"block-name\">@${block.id()}:</div>");
+        self.write("<div class=\"block\">");
 
         for inst in block.phisIterator() {
             self.dumpInst(inst);
@@ -52,11 +104,11 @@ impl HtmlWriter {
             self.dumpInst(inst);
         }
 
-        self.write("</ul></li></ul>");
+        self.write("</div>");
     }
 
     fn dumpInst(inst: Inst) {
-        self.write("<li>%${inst.id()}");
+        self.write("<div class=\"inst\">%${inst.id()}");
 
         let ty = inst.getMaybeValueType();
 
@@ -68,7 +120,7 @@ impl HtmlWriter {
         if inst.hasInlinedLocation() {
             let inlined_location = inst.getInlinedLocation();
             let loc = inlined_location.location;
-            self.write("&nbsp;&lt;${loc.line}:${loc.column}&gt;");
+            self.write("&nbsp;<span class=\"line-number\">&lt;${loc.line}:${loc.column}&gt;</span>");
         }
 
         self.write(": ${inst.op()}");
@@ -76,11 +128,18 @@ impl HtmlWriter {
         if !inst.getInputs().isEmpty() {
             for input in inst.getInputs() {
                 let id = input.getValue().id();
-                self.write("&nbsp;<span class=\"inst${id}\">%${id}</span>");
+                self.write("&nbsp;<span class=\"value inst${id}\">%${id}</span>");
             }
         }
 
-        self.write("</li>");
+        if inst.op() == Op::Goto {
+            self.write("&nbsp;<span class=\"block-use\">${inst.getTargetBlock()}</span>");
+        } else if inst.op() == Op::If {
+            self.write("&nbsp;<span class=\"block-use\">${inst.getTrueBlock()}</span>");
+            self.write("&nbsp;<span class=\"block-use\">${inst.getFalseBlock()}</span>");
+        }
+
+        self.write("</div>");
     }
 
     pub fn close() {
