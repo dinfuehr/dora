@@ -37,22 +37,36 @@ table {
     table-layout: fixed;
 }
 
-td {
-    vertical-align: top;
+#main {
+    display: flex;
+    width: fit-content;
+    margin: 10px;
 }
 
-td.pass-name div {
+div.pass-name {
+    border: 1px solid black;
+    text-align: right;
     transform: rotate(180deg);
     writing-mode: vertical-lr;
     white-space: pre;
+    padding: 10px;
 }
 
-td.graph {
+div.graph {
+    border-width: 1px 0px;
+    border-style: solid;
+    border-color: black;
+    padding: 5px;
     width: 400px;
 }
 
 .value {
     cursor: pointer;
+}
+
+.inst-value-type {
+    font-style: italic;
+    font-size: small;
 }
 
 .line-number {
@@ -77,19 +91,19 @@ function graphValueClicked(e) {
     </head>
     <body>
 
-    <table><tr>
+    <div id=\"main\">
 ");
     }
 
     pub fn dumpGraph(text: String) {
-        self.write("<td class=\"pass-name\"><div>${text}</div></td>\n");
-        self.write("<td class=\"graph\"><code>");
+        self.write("<div class=\"pass-name\"><div>${text}</div></div>\n");
+        self.write("<div class=\"graph\"><code>");
 
         for block in self.graph.insertionOrderIterator() {
             self.dumpBlock(block);
         }
 
-        self.write("</code></td>\n");
+        self.write("</code></div>\n");
     }
 
     fn dumpBlock(block: Block) {
@@ -125,18 +139,48 @@ function graphValueClicked(e) {
 
         self.write(": ${inst.op()}");
 
-        if !inst.getInputs().isEmpty() {
-            for input in inst.getInputs() {
-                let id = input.getValue().id();
-                self.write("&nbsp;<span class=\"value inst${id}\">%${id}</span>");
+        match inst.op() {
+            Op::Goto => {
+                self.write("&nbsp;<span class=\"block-use\">${inst.getTargetBlock()}</span>");
             }
-        }
 
-        if inst.op() == Op::Goto {
-            self.write("&nbsp;<span class=\"block-use\">${inst.getTargetBlock()}</span>");
-        } else if inst.op() == Op::If {
-            self.write("&nbsp;<span class=\"block-use\">${inst.getTrueBlock()}</span>");
-            self.write("&nbsp;<span class=\"block-use\">${inst.getFalseBlock()}</span>");
+            Op::If => {
+                self.write("&nbsp;<span class=\"block-use\">${inst.getTrueBlock()}</span>");
+                self.write("&nbsp;<span class=\"block-use\">${inst.getFalseBlock()}</span>");
+            }
+
+            Op::UInt8Const => {
+                self.write("&nbsp;${inst.getValueAsUInt8()}");
+            }
+
+            Op::Int32Const => {
+                self.write("&nbsp;${inst.getValueAsInt32()}");
+            }
+
+            Op::Int64Const => {
+                self.write("&nbsp;${inst.getValueAsInt64()}");
+            }
+
+            Op::Float32Const => {
+                self.write("&nbsp;${inst.getValueAsFloat32()}");
+            }
+
+            Op::Float64Const => {
+                self.write("&nbsp;${inst.getValueAsFloat64()}");
+            }
+
+            Op::StringConst => {
+                self.write("&nbsp;\"${inst.getValueAsString()}\"");
+            }
+
+            _ => {
+                if !inst.getInputs().isEmpty() {
+                    for input in inst.getInputs() {
+                        let id = input.getValue().id();
+                        self.write("&nbsp;<span class=\"value inst${id}\">%${id}</span>");
+                    }
+                }
+            }
         }
 
         self.write("</div>");
@@ -144,7 +188,7 @@ function graphValueClicked(e) {
 
     pub fn close() {
         self.write("
-    </tr></table>
+    </div>
     </body>
 </html>
 ");
