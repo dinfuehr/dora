@@ -321,8 +321,8 @@ impl BytecodeWriter {
     pub fn emit_new_object_initialized(&mut self, dest: Register, idx: ConstPoolIdx) {
         self.emit_new(BytecodeOpcode::NewObjectInitialized, dest, idx);
     }
-    pub fn emit_new_array(&mut self, dest: Register, cls_id: ConstPoolIdx, length: Register) {
-        self.emit_new_arr(BytecodeOpcode::NewArray, dest, cls_id, length);
+    pub fn emit_new_array(&mut self, dest: Register, length: Register, cls_id: ConstPoolIdx) {
+        self.emit_new_arr(BytecodeOpcode::NewArray, dest, length, cls_id);
     }
     pub fn emit_new_tuple(&mut self, dest: Register, idx: ConstPoolIdx) {
         let values = [dest.to_usize() as u32, idx.0];
@@ -337,7 +337,7 @@ impl BytecodeWriter {
         self.emit_values(BytecodeOpcode::NewStruct, &values);
     }
     pub fn emit_new_trait_object(&mut self, dest: Register, idx: ConstPoolIdx, src: Register) {
-        let values = [dest.to_usize() as u32, idx.0, src.to_usize() as u32];
+        let values = [dest.to_usize() as u32, src.to_usize() as u32, idx.0];
         self.emit_values(BytecodeOpcode::NewTraitObject, &values);
     }
     pub fn emit_new_lambda(&mut self, dest: Register, idx: ConstPoolIdx) {
@@ -450,10 +450,10 @@ impl BytecodeWriter {
         &mut self,
         inst: BytecodeOpcode,
         r1: Register,
-        idx: ConstPoolIdx,
         lth: Register,
+        idx: ConstPoolIdx,
     ) {
-        let values = [r1.to_usize() as u32, idx.0, lth.to_usize() as u32];
+        let values = [r1.to_usize() as u32, lth.to_usize() as u32, idx.0];
         self.emit_values(inst, &values);
     }
 

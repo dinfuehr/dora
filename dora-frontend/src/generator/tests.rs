@@ -4791,7 +4791,7 @@ impl<'a> BytecodeVisitor for BytecodeArrayBuilder<'a> {
     fn visit_new_object_initialized(&mut self, dest: Register, idx: ConstPoolIdx) {
         self.emit(Bytecode::NewObjectInitialized(dest, idx));
     }
-    fn visit_new_array(&mut self, dest: Register, idx: ConstPoolIdx, length: Register) {
+    fn visit_new_array(&mut self, dest: Register, length: Register, idx: ConstPoolIdx) {
         self.emit(Bytecode::NewArray(dest, idx, length));
     }
     fn visit_new_tuple(&mut self, dest: Register, idx: ConstPoolIdx) {
@@ -4803,7 +4803,7 @@ impl<'a> BytecodeVisitor for BytecodeArrayBuilder<'a> {
     fn visit_new_struct(&mut self, dest: Register, idx: ConstPoolIdx) {
         self.emit(Bytecode::NewStruct(dest, idx));
     }
-    fn visit_new_trait_object(&mut self, dest: Register, idx: ConstPoolIdx, src: Register) {
+    fn visit_new_trait_object(&mut self, dest: Register, src: Register, idx: ConstPoolIdx) {
         self.emit(Bytecode::NewTraitObject(dest, idx, src));
     }
     fn visit_new_lambda(&mut self, dest: Register, idx: ConstPoolIdx) {

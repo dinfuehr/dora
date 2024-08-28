@@ -479,8 +479,8 @@ pub enum BytecodeInstruction {
     },
     NewArray {
         dest: Register,
-        cls: ConstPoolIdx,
         length: Register,
+        idx: ConstPoolIdx,
     },
     NewTuple {
         dest: Register,
@@ -496,8 +496,8 @@ pub enum BytecodeInstruction {
     },
     NewTraitObject {
         dest: Register,
-        idx: ConstPoolIdx,
         src: Register,
+        idx: ConstPoolIdx,
     },
     NewLambda {
         dest: Register,

@@ -63,11 +63,11 @@ pub enum BytecodeInstruction {
 
     NewObject(BytecodeRegister, ConstPoolId),
     NewObjectInitialized(BytecodeRegister, ConstPoolId),
-    NewArray(BytecodeRegister, ConstPoolId, BytecodeRegister),
+    NewArray(BytecodeRegister, BytecodeRegister, ConstPoolId),
     NewTuple(BytecodeRegister, ConstPoolId),
     NewEnum(BytecodeRegister, ConstPoolId),
     NewStruct(BytecodeRegister, ConstPoolId),
-    NewTraitObject(BytecodeRegister, ConstPoolId, BytecodeRegister),
+    NewTraitObject(BytecodeRegister, BytecodeRegister, ConstPoolId),
     NewLambda(BytecodeRegister, ConstPoolId),
 
     ArrayLength(BytecodeRegister, BytecodeRegister),

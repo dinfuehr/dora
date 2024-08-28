@@ -334,9 +334,13 @@ impl<'a> BytecodeReader<'a> {
             }
             BytecodeOpcode::NewArray => {
                 let dest = self.read_register();
-                let cls = self.read_const_pool_idx();
                 let length = self.read_register();
-                BytecodeInstruction::NewArray { dest, cls, length }
+                let cls = self.read_const_pool_idx();
+                BytecodeInstruction::NewArray {
+                    dest,
+                    length,
+                    idx: cls,
+                }
             }
             BytecodeOpcode::NewTuple => {
                 let dest = self.read_register();
@@ -355,8 +359,8 @@ impl<'a> BytecodeReader<'a> {
             }
             BytecodeOpcode::NewTraitObject => {
                 let dest = self.read_register();
-                let idx = self.read_const_pool_idx();
                 let src = self.read_register();
+                let idx = self.read_const_pool_idx();
                 BytecodeInstruction::NewTraitObject { dest, idx, src }
             }
             BytecodeOpcode::NewLambda => {
@@ -678,8 +682,8 @@ where
             BytecodeInstruction::NewObjectInitialized { dest, cls } => {
                 self.visitor.visit_new_object_initialized(dest, cls);
             }
-            BytecodeInstruction::NewArray { dest, cls, length } => {
-                self.visitor.visit_new_array(dest, cls, length);
+            BytecodeInstruction::NewArray { dest, length, idx } => {
+                self.visitor.visit_new_array(dest, length, idx);
             }
             BytecodeInstruction::NewTuple { dest, idx } => {
                 self.visitor.visit_new_tuple(dest, idx);
@@ -691,7 +695,7 @@ where
                 self.visitor.visit_new_struct(dest, idx);
             }
             BytecodeInstruction::NewTraitObject { dest, idx, src } => {
-                self.visitor.visit_new_trait_object(dest, idx, src);
+                self.visitor.visit_new_trait_object(dest, src, idx);
             }
             BytecodeInstruction::NewLambda { dest, idx } => {
                 self.visitor.visit_new_lambda(dest, idx);
@@ -927,13 +931,13 @@ pub trait BytecodeVisitor {
         unimplemented!();
     }
 
-    fn visit_new_object(&mut self, _dest: Register, _cls: ConstPoolIdx) {
+    fn visit_new_object(&mut self, _dest: Register, _idx: ConstPoolIdx) {
         unimplemented!();
     }
-    fn visit_new_object_initialized(&mut self, _dest: Register, _cls: ConstPoolIdx) {
+    fn visit_new_object_initialized(&mut self, _dest: Register, _idx: ConstPoolIdx) {
         unimplemented!();
     }
-    fn visit_new_array(&mut self, _dest: Register, _cls: ConstPoolIdx, _length: Register) {
+    fn visit_new_array(&mut self, _dest: Register, _length: Register, _idx: ConstPoolIdx) {
         unimplemented!();
     }
     fn visit_new_tuple(&mut self, _dest: Register, _idx: ConstPoolIdx) {
@@ -945,7 +949,7 @@ pub trait BytecodeVisitor {
     fn visit_new_struct(&mut self, _dest: Register, _idx: ConstPoolIdx) {
         unimplemented!();
     }
-    fn visit_new_trait_object(&mut self, _dest: Register, _idx: ConstPoolIdx, _src: Register) {
+    fn visit_new_trait_object(&mut self, _dest: Register, _src: Register, _idx: ConstPoolIdx) {
         unimplemented!();
     }
     fn visit_new_lambda(&mut self, _dest: Register, _idx: ConstPoolIdx) {

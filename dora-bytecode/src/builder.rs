@@ -505,13 +505,13 @@ impl BytecodeBuilder {
     pub fn emit_new_array(
         &mut self,
         dest: Register,
-        cls_idx: ConstPoolIdx,
         length: Register,
+        cls_idx: ConstPoolIdx,
         location: Location,
     ) {
         assert!(self.def(dest));
         self.writer.set_location(location);
-        self.writer.emit_new_array(dest, cls_idx, length);
+        self.writer.emit_new_array(dest, length, cls_idx);
     }
     pub fn emit_new_tuple(&mut self, dest: Register, idx: ConstPoolIdx, location: Location) {
         assert!(self.def(dest));

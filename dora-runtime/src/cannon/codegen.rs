@@ -4487,7 +4487,7 @@ impl<'a> BytecodeVisitor for CannonCodeGen<'a> {
         self.emit_new_object_initialized(dest, idx)
     }
 
-    fn visit_new_array(&mut self, dest: Register, idx: ConstPoolIdx, length: Register) {
+    fn visit_new_array(&mut self, dest: Register, length: Register, idx: ConstPoolIdx) {
         comment!(self, {
             let (cls_id, type_params) = match self.bytecode.const_pool(idx) {
                 ConstPoolEntry::Class(cls_id, type_params) => (*cls_id, type_params),
@@ -4554,7 +4554,7 @@ impl<'a> BytecodeVisitor for CannonCodeGen<'a> {
         self.emit_new_struct(dest, idx);
     }
 
-    fn visit_new_trait_object(&mut self, dest: Register, idx: ConstPoolIdx, src: Register) {
+    fn visit_new_trait_object(&mut self, dest: Register, src: Register, idx: ConstPoolIdx) {
         comment!(self, {
             let (trait_id, type_params, object_ty) = match self.bytecode.const_pool(idx) {
                 ConstPoolEntry::Trait(trait_id, type_params, object_ty) => {

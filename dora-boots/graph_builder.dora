@@ -16,11 +16,8 @@ use package::interface::{config, InlinedLocation, InlinedFunctionId};
 use package::regalloc::{EnumLayout, isReference, RecordLayout};
 use package::regalloc;
 
-pub fn createGraph(ci: CompilationInfo): Graph {
+pub fn createGraph(ci: CompilationInfo, analysis: BytecodeAnalysis): Graph {
     let graph = Graph::new();
-
-    // Analyze basic block starts/ends.
-    let analysis = analyzeBytecode(graph, ci.bc);
 
     // Create basic blocks and fill with instructions.
     let ssagen = SsaGen::new(ci, graph, analysis);
@@ -31,7 +28,7 @@ pub fn createGraph(ci: CompilationInfo): Graph {
 
 pub fn addToGraph(ci: CompilationInfo, graph: Graph, inlined_function_id: InlinedFunctionId, bc: BytecodeFunction, typeParams: Array[BytecodeType], returnType: BytecodeType, entryBlock: Block, exitBlock: Block, callInst: Inst): Option[Inst] {
     // Analyze basic block starts/ends.
-    let analysis = analyzeBytecode(graph, bc);
+    let analysis = analyzeBytecode(bc);
 
     // Create basic blocks and fill with instructions.
     let ssagen = SsaGen::newForInlining(ci, graph, inlined_function_id, analysis, bc, typeParams, returnType, entryBlock, exitBlock);
@@ -693,8 +690,8 @@ impl SsaGen {
                 self.emitNewObject(dest, idx);
                 false
             }
-            BytecodeInstruction::NewArray(dest, idx, length) => {
-                self.emitNewArray(dest, idx, length);
+            BytecodeInstruction::NewArray(dest, length, idx) => {
+                self.emitNewArray(dest, length, idx);
                 false
             }
             BytecodeInstruction::NewTuple(dest, idx) => {
@@ -709,8 +706,8 @@ impl SsaGen {
                 self.emitNewStruct(dest, idx);
                 false
             }
-            BytecodeInstruction::NewTraitObject(dest, idx, obj) => {
-                self.emitNewTraitObject(dest, idx, obj);
+            BytecodeInstruction::NewTraitObject(dest, obj, idx) => {
+                self.emitNewTraitObject(dest, obj, idx);
                 false
             }
             BytecodeInstruction::NewLambda(dest, idx) => {
@@ -2188,7 +2185,7 @@ impl SsaGen {
         self.pushed_registers.clear();
     }
 
-    fn emitNewTraitObject(dest: BytecodeRegister, idx: ConstPoolId, obj: BytecodeRegister) {
+    fn emitNewTraitObject(dest: BytecodeRegister, obj: BytecodeRegister, idx: ConstPoolId) {
         let (trait_id, type_params, object_ty) = match self.bc.constPool(idx) {
             ConstPoolEntry::Trait(trait_id, type_params, object_ty) => (trait_id, type_params, object_ty),
             _ => unreachable[(TraitId, Array[BytecodeType], BytecodeType)](),
@@ -2330,7 +2327,7 @@ impl SsaGen {
         self.pushed_registers.clear();
     }
 
-    fn emitNewArray(dest: BytecodeRegister, idx: ConstPoolId, length: BytecodeRegister) {
+    fn emitNewArray(dest: BytecodeRegister, length: BytecodeRegister, idx: ConstPoolId) {
         let (class_id, type_params) = match self.bc.constPool(idx) {
             ConstPoolEntry::Class(class_id, type_params) => (class_id, type_params),
             _ => unreachable[(ClassId, Array[BytecodeType])](),
@@ -2789,15 +2786,15 @@ impl RegisterTable {
     }
 }
 
-fn analyzeBytecode(graph: Graph, bc: BytecodeFunction): BytecodeAnalysis {
+pub fn analyzeBytecode(bc: BytecodeFunction): BytecodeAnalysis {
     let starts = findBlockStarts(bc);
     let predecessors = countPredecessors(bc, starts);
 
     BytecodeAnalysis(starts, predecessors)
 }
 
-class BytecodeAnalysis {
-    starts: BitSet,
+pub class BytecodeAnalysis {
+    pub starts: BitSet,
     predecessors: Array[Int32],
 }
 

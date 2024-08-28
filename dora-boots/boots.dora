@@ -10,7 +10,7 @@ use package::graph::{createGotoInst, Block, Edge, Graph, Inst, LocationData, Op,
 use package::graph::dump::dumpGraph;
 use package::graph::html::{createHtmlWriter, HtmlWriter};
 use package::graph::verifier::verifyGraph;
-use package::graph_builder::createGraph;
+use package::graph_builder::{analyzeBytecode, createGraph};
 use package::inlining::performInlining;
 use package::interface::{Architecture, CodeDescriptor, CommentTable, GcPointTable, GcPoint, LazyCompilationData, LazyCompilationSite, LazyCompilationSiteDirect, LazyCompilationSiteVirtual, LazyCompilationSiteLambda, LocationTable};
 use package::interface::{compile, config, getFunctionAddressRaw, getFieldOffsetRaw, getClassSizeRaw, getClassPointerRaw, getFunctionVtableIndexRaw, getClassPointerForLambdaRaw, getGlobalValueAddressRaw, getGlobalStateAddressRaw, hasGlobalInitialValueRaw};
@@ -37,17 +37,25 @@ mod resolver;
 mod serializer;
 
 pub fn compileFunction(ci: CompilationInfo): CodeDescriptor {
-    let graph = createGraph(ci);
-
-    let codegen = createCodeGen(ci, graph);
     let htmlWriter: Option[HtmlWriter] = if ci.emitHtml {
-        Some[HtmlWriter](createHtmlWriter(ci, graph))
+        Some[HtmlWriter](createHtmlWriter(ci))
     } else {
         None[HtmlWriter]
     };
 
+    // Analyze basic block starts/ends.
+    let analysis = analyzeBytecode(ci.bc);
+
     if htmlWriter.isSome() {
-        htmlWriter.getOrPanic().dumpGraph("after graph building");
+        htmlWriter.getOrPanic().dumpBytecode(ci.bc, analysis);
+    }
+
+    let graph = createGraph(ci, analysis);
+
+    let codegen = createCodeGen(ci, graph);
+
+    if htmlWriter.isSome() {
+        htmlWriter.getOrPanic().dumpGraph("after graph building", graph);
     }
 
     if ci.emitGraph {
@@ -61,7 +69,7 @@ pub fn compileFunction(ci: CompilationInfo): CodeDescriptor {
         performInlining(ci, graph);
 
         if htmlWriter.isSome() {
-            htmlWriter.getOrPanic().dumpGraph("after inlining");
+            htmlWriter.getOrPanic().dumpGraph("after inlining", graph);
         }
 
         if ci.emitGraph {
@@ -74,7 +82,7 @@ pub fn compileFunction(ci: CompilationInfo): CodeDescriptor {
         performLoadElimination(ci, graph);
 
         if htmlWriter.isSome() {
-            htmlWriter.getOrPanic().dumpGraph("after load elimination");
+            htmlWriter.getOrPanic().dumpGraph("after load elimination", graph);
         }
 
         if ci.emitGraph {
@@ -87,7 +95,7 @@ pub fn compileFunction(ci: CompilationInfo): CodeDescriptor {
         performDeadCodeElimination(ci, graph);
 
         if htmlWriter.isSome() {
-            htmlWriter.getOrPanic().dumpGraph("after dead code elimination");
+            htmlWriter.getOrPanic().dumpGraph("after dead code elimination", graph);
         }
 
         if ci.emitGraph {
@@ -103,7 +111,7 @@ pub fn compileFunction(ci: CompilationInfo): CodeDescriptor {
     computeLiveness(graph);
 
     if htmlWriter.isSome() {
-        htmlWriter.getOrPanic().dumpGraph("before register allocation");
+        htmlWriter.getOrPanic().dumpGraph("before register allocation", graph);
     }
 
     if ci.emitGraph {
@@ -114,7 +122,7 @@ pub fn compileFunction(ci: CompilationInfo): CodeDescriptor {
     performRegisterAllocation(graph, codegen, ci);
 
     if htmlWriter.isSome() {
-        htmlWriter.getOrPanic().dumpGraph("after register allocation");
+        htmlWriter.getOrPanic().dumpGraph("after register allocation", graph);
         htmlWriter.getOrPanic().close();
     }
 

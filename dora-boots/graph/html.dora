@@ -1,18 +1,19 @@
 use std::io::{File, OpenFile};
 
+use package::bytecode::{BytecodeFunction, BytecodeIterator};
 use package::graph::{Block, Graph, Inst, Op};
+use package::graph_builder::BytecodeAnalysis;
 use package::compilation::CompilationInfo;
 
-pub fn createHtmlWriter(ci: CompilationInfo, graph: Graph): HtmlWriter {
+pub fn createHtmlWriter(ci: CompilationInfo): HtmlWriter {
     let file = File::create("ssa.html");
-    let html = HtmlWriter(ci, graph, file);
+    let html = HtmlWriter(ci, file);
     html.start();
     html
 }
 
 pub class HtmlWriter {
     ci: CompilationInfo,
-    graph: Graph,
     file: OpenFile,
 }
 
@@ -76,8 +77,6 @@ div.graph {
         </style>
         <script>
 window.onload = function() {
-    console.log(\"onload\");
-
     let elements = document.getElementsByClassName(\"value\");
     for (element of elements) {
         element.addEventListener('click', graphValueClicked);
@@ -95,11 +94,33 @@ function graphValueClicked(e) {
 ");
     }
 
-    pub fn dumpGraph(text: String) {
-        self.write("<div class=\"pass-name\"><div>${text}</div></div>\n");
+    pub fn dumpBytecode(bc: BytecodeFunction, analysis: BytecodeAnalysis) {
+        self.write("<div class=\"pass-name\">Bytecode</div>\n");
         self.write("<div class=\"graph\"><code>");
 
-        for block in self.graph.insertionOrderIterator() {
+        for blockStart in analysis.starts {
+            self.write("<div class=\"block-name\">Block at ${blockStart}:</div>");
+            self.write("<div class=\"block\">");
+
+            for inst in BytecodeIterator::newAtPos(bc.code, blockStart) {
+                if inst.start > blockStart && analysis.starts.contains(inst.start) {
+                    break;
+                }
+
+                self.write("<div>${inst.start}: some bytecode inst</div>");
+            }
+
+            self.write("</div>");
+        }
+
+        self.write("</code></div>\n");
+    }
+
+    pub fn dumpGraph(title: String, graph: Graph) {
+        self.write("<div class=\"pass-name\">${title}</div>\n");
+        self.write("<div class=\"graph\"><code>");
+
+        for block in graph.insertionOrderIterator() {
             self.dumpBlock(block);
         }
 

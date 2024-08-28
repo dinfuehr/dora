@@ -24,6 +24,19 @@ pub fn bytecodeDump(bc: BytecodeFunction) {
     }
 }
 
+trait BytecodeDumperObject {
+    fn emitReg1(name: String, r1: BytecodeRegister);
+    fn emitReg1AndInt(name: String, r1: BytecodeRegister, value: Int32);
+    fn emitReg2(name: String, r1: BytecodeRegister, r2: BytecodeRegister, idx: ConstPoolId);
+    fn emitReg2AndIdx(name: String, r1: BytecodeRegister, r2: BytecodeRegister, idx: ConstPoolId);
+    fn emitReg3(name: String, r1: BytecodeRegister, r2: BytecodeRegister, r3: BytecodeRegister);
+    fn emitGlobal(name: String, r: BytecodeRegister, g: GlobalId);
+
+    fn emitBackwardJump(name: String, offset: Int32);
+    fn emitJump(name: String, offset: Int32);
+    fn emitConditionalJump(name: String, r: BytecodeRegister, offset: Int32);
+}
+
 class BytecodeDumper {
     bc: BytecodeFunction,
     pos: Int32,
@@ -165,19 +178,19 @@ impl BytecodeDumper {
             },
 
             BytecodeInstruction::JumpLoop(distance) => {
-                self.emitInt("JumpLoop", distance);
+                self.emitBackwardJump("JumpLoop", distance);
             },
             BytecodeInstruction::LoopStart => {
                 self.emitInst("LoopStart");
             },
             BytecodeInstruction::Jump(distance) => {
-                self.emitInt("Jump", distance);
+                self.emitJump("Jump", distance);
             },
             BytecodeInstruction::JumpIfFalse(opnd, distance) => {
-                self.emitReg1AndInt("JumpIfFalse", opnd, distance);
+                self.emitConditionalJump("JumpIfFalse", opnd, distance);
             },
             BytecodeInstruction::JumpIfTrue(opnd, distance) => {
-                self.emitReg1AndInt("JumpIfTrue", opnd, distance);
+                self.emitConditionalJump("JumpIfTrue", opnd, distance);
             },
 
             BytecodeInstruction::InvokeDirect(dest, idx) => {
@@ -205,8 +218,8 @@ impl BytecodeDumper {
             BytecodeInstruction::NewObjectInitialized(dest, idx) => {
                 self.emitReg1AndIdx("NewObjectInitialized", dest, idx);
             },
-            BytecodeInstruction::NewArray(dest, idx, length) => {
-                self.emitRegIdxReg("NewArray", dest, idx, length);
+            BytecodeInstruction::NewArray(dest, length, idx) => {
+                self.emitReg2AndIdx("NewArray", dest, length, idx);
             },
             BytecodeInstruction::NewTuple(dest, idx) => {
                 self.emitReg1AndIdx("NewTuple", dest, idx);
@@ -217,8 +230,8 @@ impl BytecodeDumper {
             BytecodeInstruction::NewStruct(dest, idx) => {
                 self.emitReg1AndIdx("NewStruct", dest, idx);
             },
-            BytecodeInstruction::NewTraitObject(dest, idx, obj) => {
-                self.emitRegIdxReg("NewTraitObject", dest, idx, obj);
+            BytecodeInstruction::NewTraitObject(dest, obj, idx) => {
+                self.emitReg2AndIdx("NewTraitObject", dest, obj, idx);
             },
             BytecodeInstruction::NewLambda(dest, idx) => {
                 self.emitReg1AndIdx("NewLambda", dest, idx);
@@ -271,11 +284,6 @@ impl BytecodeDumper {
         println(" ${r1}, @${idx.value}")
     }
 
-    fn emitRegIdxReg(name: String, r1: BytecodeRegister, idx: ConstPoolId, r2: BytecodeRegister) {
-        self.emitStart(name);
-        println(" ${r1}, @${idx.value}, ${r2}");
-    }
-
     fn emitIdx(name: String, idx: ConstPoolId) {
         self.emitStart(name);
         println(" @${idx.value}");
@@ -286,9 +294,19 @@ impl BytecodeDumper {
         println(" ${r1}, ${value}");
     }
 
-    fn emitInt(name: String, value: Int32) {
+    fn emitConditionalJump(name: String, r: BytecodeRegister, offset: Int32) {
         self.emitStart(name);
-        println(" ${value}");
+        println(" ${r}, ${self.pos + offset} (+${offset})");
+    }
+
+    fn emitBackwardJump(name: String, offset: Int32) {
+        self.emitStart(name);
+        println(" ${self.pos - offset} (-${offset})");
+    }
+
+    fn emitJump(name: String, offset: Int32) {
+        self.emitStart(name);
+        println(" ${self.pos + offset} (+${offset})");
     }
 
     fn emitGlobal(name: String, r1: BytecodeRegister, gid: GlobalId) {

@@ -1593,7 +1593,7 @@ impl<'a> AstBytecodeGen<'a> {
         // Allocate array of given length
         let array_reg = self.ensure_register(dest, BytecodeType::Ptr);
         self.builder
-            .emit_new_array(array_reg, cls_idx, length_reg, self.loc(expr.span));
+            .emit_new_array(array_reg, length_reg, cls_idx, self.loc(expr.span));
 
         if element_ty.is_unit() {
             // Evaluate rest arguments
@@ -2102,7 +2102,7 @@ impl<'a> AstBytecodeGen<'a> {
         let length_reg = gen_expr(self, &expr.args[0], DataDest::Alloc);
 
         self.builder
-            .emit_new_array(array_reg, cls_idx, length_reg, self.loc(expr.span));
+            .emit_new_array(array_reg, length_reg, cls_idx, self.loc(expr.span));
 
         self.free_if_temp(length_reg);
 

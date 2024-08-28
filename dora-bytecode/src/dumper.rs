@@ -511,7 +511,7 @@ impl<'a> BytecodeDumper<'a> {
         .expect("write! failed");
     }
 
-    fn emit_new_trait_object(&mut self, name: &str, r1: Register, idx: ConstPoolIdx, r2: Register) {
+    fn emit_new_trait_object(&mut self, name: &str, r1: Register, r2: Register, idx: ConstPoolIdx) {
         self.emit_start(name);
         let (trait_id, type_params, actual_ty) = match self.bc.const_pool(idx) {
             ConstPoolEntry::Trait(trait_id, type_params, ty) => (*trait_id, type_params, ty),
@@ -520,17 +520,17 @@ impl<'a> BytecodeDumper<'a> {
         let trait_ = &self.prog.traits[trait_id.0 as usize];
         writeln!(
             self.w,
-            " {}, ConstPoolIdx({}), {} # {} wrapping {}",
+            " {}, {}, ConstPoolIdx({}) # {} wrapping {}",
             r1,
-            idx.0,
             r2,
+            idx.0,
             fmt_name(self.prog, &trait_.name, type_params),
             fmt_ty(self.prog, actual_ty),
         )
         .expect("write! failed");
     }
 
-    fn emit_new_array(&mut self, name: &str, r1: Register, idx: ConstPoolIdx, length: Register) {
+    fn emit_new_array(&mut self, name: &str, r1: Register, length: Register, idx: ConstPoolIdx) {
         self.emit_start(name);
         let (cls_id, type_params) = match self.bc.const_pool(idx) {
             ConstPoolEntry::Class(cls_id, type_params) => (*cls_id, type_params),
@@ -539,10 +539,10 @@ impl<'a> BytecodeDumper<'a> {
         let cls = &self.prog.classes[cls_id.0 as usize];
         writeln!(
             self.w,
-            " {}, ConstPoolIdx({}), {} # {}",
+            " {}, {}, ConstPoolIdx({}) # {}",
             r1,
-            idx.0,
             length,
+            idx.0,
             fmt_name(self.prog, &cls.name, type_params),
         )
         .expect("write! failed");
@@ -840,14 +840,14 @@ impl<'a> BytecodeVisitor for BytecodeDumper<'a> {
     fn visit_new_object_initialized(&mut self, dest: Register, idx: ConstPoolIdx) {
         self.emit_new_object("NewObjectInitialized", dest, idx);
     }
-    fn visit_new_trait_object(&mut self, dest: Register, idx: ConstPoolIdx, src: Register) {
-        self.emit_new_trait_object("NewTraitObject", dest, idx, src);
+    fn visit_new_trait_object(&mut self, dest: Register, src: Register, idx: ConstPoolIdx) {
+        self.emit_new_trait_object("NewTraitObject", dest, src, idx);
     }
     fn visit_new_lambda(&mut self, dest: Register, idx: ConstPoolIdx) {
         self.emit_new_lambda("NewLambda", dest, idx);
     }
-    fn visit_new_array(&mut self, dest: Register, idx: ConstPoolIdx, length: Register) {
-        self.emit_new_array("NewArray", dest, idx, length);
+    fn visit_new_array(&mut self, dest: Register, length: Register, idx: ConstPoolIdx) {
+        self.emit_new_array("NewArray", dest, length, idx);
     }
     fn visit_new_tuple(&mut self, dest: Register, idx: ConstPoolIdx) {
         self.emit_new_tuple("NewTuple", dest, idx);
