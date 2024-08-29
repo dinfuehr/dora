@@ -1,6 +1,6 @@
 use std::io::{File, OpenFile};
 
-use package::bytecode::{BytecodeFunction, BytecodeIterator};
+use package::bytecode::{BytecodeDumper, BytecodeFunction, BytecodeInstructionInfo, BytecodeIterator, BytecodeRegister, ConstPoolId, dumpInstruction, GlobalId};
 use package::graph::{Block, Graph, Inst, Op};
 use package::graph_builder::BytecodeAnalysis;
 use package::compilation::CompilationInfo;
@@ -42,6 +42,16 @@ table {
     display: flex;
     width: fit-content;
     margin: 10px;
+}
+
+.constpool {
+    margin-top: 20px;
+    margin-left: 40px;
+}
+
+.registers {
+    margin-top: 20px;
+    margin-left: 40px;
 }
 
 div.pass-name {
@@ -95,11 +105,12 @@ function graphValueClicked(e) {
     }
 
     pub fn dumpBytecode(bc: BytecodeFunction, analysis: BytecodeAnalysis) {
-        self.write("<div class=\"pass-name\">Bytecode</div>\n");
+        self.write("<div class=\"pass-name\">bytecode</div>\n");
         self.write("<div class=\"graph\"><code>");
+        let dumper = HtmlBytecodeDumper(self.file) as BytecodeDumper;
 
         for blockStart in analysis.starts {
-            self.write("<div class=\"block-name\">Block at ${blockStart}:</div>");
+            self.write("<div class=\"block-name\">block at ${blockStart}:</div>");
             self.write("<div class=\"block\">");
 
             for inst in BytecodeIterator::newAtPos(bc.code, blockStart) {
@@ -107,11 +118,29 @@ function graphValueClicked(e) {
                     break;
                 }
 
-                self.write("<div>${inst.start}: some bytecode inst</div>");
+                self.write("<div>${inst.start}: ");
+                dumpInstruction(inst, dumper);
+                self.write("</div>");
             }
 
             self.write("</div>");
         }
+
+        let mut i = 0;
+        self.write("<div class=\"constpool\">");
+        for entry in bc.const_pool {
+            self.write("<div>@${i} = ${entry.toString()}</div>");
+            i = i + 1i64;
+        }
+        self.write("</div>");
+
+        i = 0;
+        self.write("<div class=\"registers\">");
+        for register in bc.registers {
+            self.write("<div>r${i} = ${register}</div>");
+            i = i + 1;
+        }
+        self.write("</div>");
 
         self.write("</code></div>\n");
     }
@@ -218,5 +247,55 @@ function graphValueClicked(e) {
 
     fn write(text: String) {
         self.file.writeString(text);
+    }
+}
+
+class HtmlBytecodeDumper {
+    file: OpenFile,
+}
+
+impl BytecodeDumper for HtmlBytecodeDumper {
+    fn emitInst(inst: BytecodeInstructionInfo, name: String) {
+        self.file.writeString(name);
+    }
+
+    fn emitReg3(inst: BytecodeInstructionInfo, name: String, r1: BytecodeRegister, r2: BytecodeRegister, r3: BytecodeRegister) {
+        self.file.writeString("${name} ${r1}, ${r2}, ${r3}");
+    }
+
+    fn emitReg2(inst: BytecodeInstructionInfo, name: String, r1: BytecodeRegister, r2: BytecodeRegister) {
+        self.file.writeString("${name} ${r1}, ${r2}");
+    }
+
+    fn emitReg2AndIdx(inst: BytecodeInstructionInfo, name: String, r1: BytecodeRegister, r2: BytecodeRegister, idx: ConstPoolId) {
+        self.file.writeString("${name} ${r1}, ${r2}, @${idx.value}");
+    }
+
+    fn emitReg1(inst: BytecodeInstructionInfo, name: String, r1: BytecodeRegister) {
+        self.file.writeString("${name} ${r1}")
+    }
+
+    fn emitReg1AndInt(inst: BytecodeInstructionInfo, name: String, r1: BytecodeRegister, value: Int32) {
+        self.file.writeString("${name} ${r1}, ${value}")
+    }
+
+    fn emitReg1AndIdx(inst: BytecodeInstructionInfo, name: String, r1: BytecodeRegister, idx: ConstPoolId) {
+        self.file.writeString("${name} ${r1}, @${idx.value}")
+    }
+
+    fn emitConditionalJump(inst: BytecodeInstructionInfo, name: String, r: BytecodeRegister, offset: Int32) {
+        self.file.writeString("${name} ${r}, ${inst.start + offset.toInt64()} (+${offset})");
+    }
+
+    fn emitBackwardJump(inst: BytecodeInstructionInfo, name: String, offset: Int32) {
+        self.file.writeString("${name} ${inst.start - offset.toInt64()} (-${offset})");
+    }
+
+    fn emitJump(inst: BytecodeInstructionInfo, name: String, offset: Int32) {
+        self.file.writeString("${name} ${inst.start + offset.toInt64()} (+${offset})");
+    }
+
+    fn emitGlobal(inst: BytecodeInstructionInfo, name: String, r1: BytecodeRegister, gid: GlobalId) {
+        self.file.writeString("${name} ${r1}, ${gid.value}");
     }
 }

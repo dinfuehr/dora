@@ -1,320 +1,309 @@
 use package::bytecode::{GlobalId, ConstPoolId, BytecodeFunction, BytecodeRegister};
 use package::bytecode::instruction::BytecodeInstruction;
-use package::bytecode::reader::BytecodeIterator;
+use package::bytecode::{BytecodeIterator, BytecodeInstructionInfo};
 
 pub fn bytecodeDump(bc: BytecodeFunction) {
-    let dumper = BytecodeDumper::new(bc);
+    let dumper = StdoutBytecodeDumper() as BytecodeDumper;
 
     for inst in BytecodeIterator::new(bc.code) {
-        dumper.pos = inst.start.toInt32();
-        dumper.dumpInstruction(inst.op);
+        dumpInstruction(inst, dumper);
     }
 
-    let mut i = 0i64;
+    let mut i = 0;
 
     for entry in bc.const_pool {
         println("@${i} = ${entry.toString()}");
         i = i + 1i64;
     }
 
-    i = 0i64;
+    i = 0;
     for ty in bc.registers {
         println("r${i} = ${ty}");
         i = i + 1i64;
     }
 }
 
-trait BytecodeDumperObject {
-    fn emitReg1(name: String, r1: BytecodeRegister);
-    fn emitReg1AndInt(name: String, r1: BytecodeRegister, value: Int32);
-    fn emitReg2(name: String, r1: BytecodeRegister, r2: BytecodeRegister, idx: ConstPoolId);
-    fn emitReg2AndIdx(name: String, r1: BytecodeRegister, r2: BytecodeRegister, idx: ConstPoolId);
-    fn emitReg3(name: String, r1: BytecodeRegister, r2: BytecodeRegister, r3: BytecodeRegister);
-    fn emitGlobal(name: String, r: BytecodeRegister, g: GlobalId);
+pub trait BytecodeDumper {
+    fn emitInst(inst: BytecodeInstructionInfo, name: String);
+    fn emitReg1(inst: BytecodeInstructionInfo, name: String, r1: BytecodeRegister);
+    fn emitReg1AndInt(inst: BytecodeInstructionInfo, name: String, r1: BytecodeRegister, value: Int32);
+    fn emitReg1AndIdx(inst: BytecodeInstructionInfo, name: String, r1: BytecodeRegister, idx: ConstPoolId);
+    fn emitReg2(inst: BytecodeInstructionInfo, name: String, r1: BytecodeRegister, r2: BytecodeRegister);
+    fn emitReg2AndIdx(inst: BytecodeInstructionInfo, name: String, r1: BytecodeRegister, r2: BytecodeRegister, idx: ConstPoolId);
+    fn emitReg3(inst: BytecodeInstructionInfo, name: String, r1: BytecodeRegister, r2: BytecodeRegister, r3: BytecodeRegister);
+    fn emitGlobal(inst: BytecodeInstructionInfo, name: String, r: BytecodeRegister, g: GlobalId);
 
-    fn emitBackwardJump(name: String, offset: Int32);
-    fn emitJump(name: String, offset: Int32);
-    fn emitConditionalJump(name: String, r: BytecodeRegister, offset: Int32);
+    fn emitBackwardJump(inst: BytecodeInstructionInfo, name: String, offset: Int32);
+    fn emitJump(inst: BytecodeInstructionInfo, name: String, offset: Int32);
+    fn emitConditionalJump(inst: BytecodeInstructionInfo, name: String, r: BytecodeRegister, offset: Int32);
 }
 
-class BytecodeDumper {
-    bc: BytecodeFunction,
-    pos: Int32,
+pub fn dumpInstruction(inst: BytecodeInstructionInfo, dumper: BytecodeDumper) {
+    match inst.op {
+        BytecodeInstruction::Add(dest, lhs, rhs) => {
+            dumper.emitReg3(inst, "Add", dest, lhs, rhs);
+        },
+        BytecodeInstruction::Sub(dest, lhs, rhs) => {
+            dumper.emitReg3(inst, "Sub", dest, lhs, rhs);
+        },
+        BytecodeInstruction::Neg(dest, src) => {
+            dumper.emitReg2(inst, "Neg", dest, src);
+        },
+        BytecodeInstruction::Mul(dest, lhs, rhs) => {
+            dumper.emitReg3(inst, "Mul", dest, lhs, rhs);
+        },
+        BytecodeInstruction::Div(dest, lhs, rhs) => {
+            dumper.emitReg3(inst, "Div", dest, lhs, rhs);
+        },
+        BytecodeInstruction::Mod(dest, lhs, rhs) => {
+            dumper.emitReg3(inst, "Mod", dest, lhs, rhs);
+        },
+        BytecodeInstruction::And(dest, lhs, rhs) => {
+            dumper.emitReg3(inst, "And", dest, lhs, rhs);
+        },
+        BytecodeInstruction::Or(dest, lhs, rhs) => {
+            dumper.emitReg3(inst, "Or", dest, lhs, rhs);
+        },
+        BytecodeInstruction::Xor(dest, lhs, rhs) => {
+            dumper.emitReg3(inst, "Xor", dest, lhs, rhs);
+        },
+        BytecodeInstruction::Not(dest, src) => {
+            dumper.emitReg2(inst, "Not", dest, src);
+        },
+        BytecodeInstruction::Shl(dest, lhs, rhs) => {
+            dumper.emitReg3(inst, "Shl", dest, lhs, rhs);
+        },
+        BytecodeInstruction::Shr(dest, lhs, rhs) => {
+            dumper.emitReg3(inst, "Shr", dest, lhs, rhs);
+        },
+        BytecodeInstruction::Sar(dest, lhs, rhs) => {
+            dumper.emitReg3(inst, "Sar", dest, lhs, rhs);
+        },
+
+        BytecodeInstruction::Mov(dest, src) => {
+            dumper.emitReg2(inst, "Mov", dest, src);
+        },
+
+        BytecodeInstruction::LoadTupleElement(dest, src, idx)  => {
+            dumper.emitReg2AndIdx(inst, "LoadTupleElement", dest, src, idx);
+        },
+        BytecodeInstruction::LoadEnumElement(dest, src, idx) => {
+            dumper.emitReg2AndIdx(inst, "LoadEnumElement", dest, src, idx);
+        },
+        BytecodeInstruction::LoadEnumVariant(dest, src, idx) => {
+            dumper.emitReg2AndIdx(inst, "LoadEnumVariant", dest, src, idx);
+        },
+        BytecodeInstruction::LoadStructField(dest, src, idx) => {
+            dumper.emitReg2AndIdx(inst, "LoadStructField", dest, src, idx);
+        },
+
+        BytecodeInstruction::LoadField(dest, src, idx) => {
+            dumper.emitReg2AndIdx(inst, "LoadField", dest, src, idx);
+        },
+        BytecodeInstruction::StoreField(dest, src, idx) => {
+            dumper.emitReg2AndIdx(inst, "StoreField", dest, src, idx);
+        },
+
+        BytecodeInstruction::LoadGlobal(dest, global_id) => {
+            dumper.emitGlobal(inst, "LoadGlobal", dest, global_id);
+        },
+        BytecodeInstruction::StoreGlobal(src, global_id) => {
+            dumper.emitGlobal(inst, "StoreGlobal", src, global_id);
+        },
+
+        BytecodeInstruction::PushRegister(src) => {
+            dumper.emitReg1(inst, "PushRegister", src);
+        },
+        BytecodeInstruction::ConstTrue(dest) => {
+            dumper.emitReg1(inst, "ConstTrue", dest);
+        },
+        BytecodeInstruction::ConstFalse(dest) => {
+            dumper.emitReg1(inst, "ConstFalse", dest);
+        },
+        BytecodeInstruction::ConstUInt8(dest, value) => {
+            dumper.emitReg1AndInt(inst, "ConstUInt8", dest, value.toInt32());
+        },
+        BytecodeInstruction::ConstChar(dest, idx) => {
+            dumper.emitReg1AndIdx(inst, "ConstChar", dest, idx);
+        },
+        BytecodeInstruction::ConstInt32(dest, idx) => {
+            dumper.emitReg1AndIdx(inst, "ConstInt32", dest, idx);
+        },
+        BytecodeInstruction::ConstInt64(dest, idx) => {
+            dumper.emitReg1AndIdx(inst, "ConstInt64", dest, idx);
+        },
+        BytecodeInstruction::ConstFloat32(dest, idx) => {
+            dumper.emitReg1AndIdx(inst, "ConstFloat32", dest, idx);
+
+        },
+        BytecodeInstruction::ConstFloat64(dest, idx) => {
+            dumper.emitReg1AndIdx(inst, "ConstFloat64", dest, idx);
+
+        },
+        BytecodeInstruction::ConstString(dest, idx) => {
+            dumper.emitReg1AndIdx(inst, "ConstString", dest, idx);
+        },
+
+        BytecodeInstruction::TestIdentity(dest, lhs, rhs) => {
+            dumper.emitReg3(inst, "TestIdentity", dest, lhs, rhs);
+        },
+        BytecodeInstruction::TestEq(dest, lhs, rhs) => {
+            dumper.emitReg3(inst, "TestEq", dest, lhs, rhs);
+        },
+        BytecodeInstruction::TestNe(dest, lhs, rhs) => {
+            dumper.emitReg3(inst, "TestNe", dest, lhs, rhs);
+        },
+        BytecodeInstruction::TestGt(dest, lhs, rhs) => {
+            dumper.emitReg3(inst, "TestGt", dest, lhs, rhs);
+        },
+        BytecodeInstruction::TestGe(dest, lhs, rhs) => {
+            dumper.emitReg3(inst, "TestGe", dest, lhs, rhs);
+        },
+        BytecodeInstruction::TestLt(dest, lhs, rhs) => {
+            dumper.emitReg3(inst, "TestLt", dest, lhs, rhs);
+        },
+        BytecodeInstruction::TestLe(dest, lhs, rhs) => {
+            dumper.emitReg3(inst, "TestLe", dest, lhs, rhs);
+        },
+
+        BytecodeInstruction::JumpLoop(distance) => {
+            dumper.emitBackwardJump(inst, "JumpLoop", distance);
+        },
+        BytecodeInstruction::LoopStart => {
+            dumper.emitInst(inst, "LoopStart");
+        },
+        BytecodeInstruction::Jump(distance) => {
+            dumper.emitJump(inst, "Jump", distance);
+        },
+        BytecodeInstruction::JumpIfFalse(opnd, distance) => {
+            dumper.emitConditionalJump(inst, "JumpIfFalse", opnd, distance);
+        },
+        BytecodeInstruction::JumpIfTrue(opnd, distance) => {
+            dumper.emitConditionalJump(inst, "JumpIfTrue", opnd, distance);
+        },
+
+        BytecodeInstruction::InvokeDirect(dest, idx) => {
+            dumper.emitReg1AndIdx(inst, "InvokeDirect", dest, idx);
+        },
+        BytecodeInstruction::InvokeVirtual(dest, idx) => {
+            dumper.emitReg1AndIdx(inst, "InvokeVirtual", dest, idx);
+        },
+        BytecodeInstruction::InvokeStatic(dest, idx) => {
+            dumper.emitReg1AndIdx(inst, "InvokeStatic", dest, idx);
+        },
+        BytecodeInstruction::InvokeLambda(dest, idx) => {
+            dumper.emitReg1AndIdx(inst, "InvokeLambda", dest, idx);
+        },
+        BytecodeInstruction::InvokeGenericStatic(dest, idx) => {
+            dumper.emitReg1AndIdx(inst, "InvokeGenericStatic", dest, idx);
+        },
+        BytecodeInstruction::InvokeGenericDirect(dest, idx) => {
+            dumper.emitReg1AndIdx(inst, "InvokeGenericDirect", dest, idx);
+        },
+
+        BytecodeInstruction::NewObject(dest, idx) => {
+            dumper.emitReg1AndIdx(inst, "NewObject", dest, idx);
+        },
+        BytecodeInstruction::NewObjectInitialized(dest, idx) => {
+            dumper.emitReg1AndIdx(inst, "NewObjectInitialized", dest, idx);
+        },
+        BytecodeInstruction::NewArray(dest, length, idx) => {
+            dumper.emitReg2AndIdx(inst, "NewArray", dest, length, idx);
+        },
+        BytecodeInstruction::NewTuple(dest, idx) => {
+            dumper.emitReg1AndIdx(inst, "NewTuple", dest, idx);
+        },
+        BytecodeInstruction::NewEnum(dest, idx) => {
+            dumper.emitReg1AndIdx(inst, "NewEnum", dest, idx);
+        },
+        BytecodeInstruction::NewStruct(dest, idx) => {
+            dumper.emitReg1AndIdx(inst, "NewStruct", dest, idx);
+        },
+        BytecodeInstruction::NewTraitObject(dest, obj, idx) => {
+            dumper.emitReg2AndIdx(inst, "NewTraitObject", dest, obj, idx);
+        },
+        BytecodeInstruction::NewLambda(dest, idx) => {
+            dumper.emitReg1AndIdx(inst, "NewLambda", dest, idx);
+        },
+        BytecodeInstruction::ArrayLength(dest, src) => {
+            dumper.emitReg2(inst, "ArrayLength", dest, src);
+        },
+        BytecodeInstruction::LoadArray(dest, arr, index) => {
+            dumper.emitReg3(inst, "LoadArray", dest, arr, index);
+        },
+        BytecodeInstruction::StoreArray(src, arr, index) => {
+            dumper.emitReg3(inst, "StoreArray", src, arr, index);
+        },
+        BytecodeInstruction::LoadTraitObjectValue(dest, src) => {
+            dumper.emitReg2(inst, "LoadTraitObjectValue", dest, src);
+        },
+        BytecodeInstruction::Ret(opnd) => {
+            dumper.emitReg1(inst, "Ret", opnd);
+        },
+    }
 }
 
-impl BytecodeDumper {
-    static fn new(bc: BytecodeFunction): BytecodeDumper {
-        BytecodeDumper(bc, 0i32)
+class StdoutBytecodeDumper
+
+impl StdoutBytecodeDumper {
+    fn emitStart(inst: BytecodeInstructionInfo, name: String) {
+        print("${inst.start}: ${name}");
     }
+}
 
-    fn dumpInstruction(inst: BytecodeInstruction) {
-        match inst {
-            BytecodeInstruction::Add(dest, lhs, rhs) => {
-                self.emitReg3("Add", dest, lhs, rhs);
-            },
-            BytecodeInstruction::Sub(dest, lhs, rhs) => {
-                self.emitReg3("Sub", dest, lhs, rhs);
-            },
-            BytecodeInstruction::Neg(dest, src) => {
-                self.emitReg2("Neg", dest, src);
-            },
-            BytecodeInstruction::Mul(dest, lhs, rhs) => {
-                self.emitReg3("Mul", dest, lhs, rhs);
-            },
-            BytecodeInstruction::Div(dest, lhs, rhs) => {
-                self.emitReg3("Div", dest, lhs, rhs);
-            },
-            BytecodeInstruction::Mod(dest, lhs, rhs) => {
-                self.emitReg3("Mod", dest, lhs, rhs);
-            },
-            BytecodeInstruction::And(dest, lhs, rhs) => {
-                self.emitReg3("And", dest, lhs, rhs);
-            },
-            BytecodeInstruction::Or(dest, lhs, rhs) => {
-                self.emitReg3("Or", dest, lhs, rhs);
-            },
-            BytecodeInstruction::Xor(dest, lhs, rhs) => {
-                self.emitReg3("Xor", dest, lhs, rhs);
-            },
-            BytecodeInstruction::Not(dest, src) => {
-                self.emitReg2("Not", dest, src);
-            },
-            BytecodeInstruction::Shl(dest, lhs, rhs) => {
-                self.emitReg3("Shl", dest, lhs, rhs);
-            },
-            BytecodeInstruction::Shr(dest, lhs, rhs) => {
-                self.emitReg3("Shr", dest, lhs, rhs);
-            },
-            BytecodeInstruction::Sar(dest, lhs, rhs) => {
-                self.emitReg3("Sar", dest, lhs, rhs);
-            },
-
-            BytecodeInstruction::Mov(dest, src) => {
-                self.emitReg2("Mov", dest, src);
-            },
-
-            BytecodeInstruction::LoadTupleElement(dest, src, idx)  => {
-                self.emitReg2AndIdx("LoadTupleElement", dest, src, idx);
-            },
-            BytecodeInstruction::LoadEnumElement(dest, src, idx) => {                
-                self.emitReg2AndIdx("LoadEnumElement", dest, src, idx);
-
-            },
-            BytecodeInstruction::LoadEnumVariant(dest, src, idx) => {
-                self.emitReg2AndIdx("LoadEnumVariant", dest, src, idx);
-            },
-            BytecodeInstruction::LoadStructField(dest, src, idx) => {
-                self.emitReg2AndIdx("LoadStructField", dest, src, idx);
-            },
-
-            BytecodeInstruction::LoadField(dest, src, idx) => {
-                self.emitReg2AndIdx("LoadField", dest, src, idx);
-            },
-            BytecodeInstruction::StoreField(dest, src, idx) => {
-                self.emitReg2AndIdx("StoreField", dest, src, idx);
-            },
-
-            BytecodeInstruction::LoadGlobal(dest, global_id) => {
-                self.emitGlobal("LoadGlobal", dest, global_id);
-            },
-            BytecodeInstruction::StoreGlobal(src, global_id) => {
-                self.emitGlobal("StoreGlobal", src, global_id);
-            },
-
-            BytecodeInstruction::PushRegister(src) => {
-                self.emitReg1("PushRegister", src);
-            },
-            
-            BytecodeInstruction::ConstTrue(dest) => {
-                self.emitReg1("ConstTrue", dest);
-            },
-            BytecodeInstruction::ConstFalse(dest) => {
-                self.emitReg1("ConstFalse", dest);
-            },
-            BytecodeInstruction::ConstUInt8(dest, value) => {
-                self.emitReg1AndInt("ConstUInt8", dest, value.toInt32());
-            },
-            BytecodeInstruction::ConstChar(dest, idx) => {
-                self.emitReg1AndIdx("ConstChar", dest, idx);
-            },
-            BytecodeInstruction::ConstInt32(dest, idx) => {
-                self.emitReg1AndIdx("ConstInt32", dest, idx);
-            },
-            BytecodeInstruction::ConstInt64(dest, idx) => {
-                self.emitReg1AndIdx("ConstInt64", dest, idx);
-            },
-            BytecodeInstruction::ConstFloat32(dest, idx) => {
-                self.emitReg1AndIdx("ConstFloat32", dest, idx);
-
-            },
-            BytecodeInstruction::ConstFloat64(dest, idx) => {
-                self.emitReg1AndIdx("ConstFloat64", dest, idx);
-
-            },
-            BytecodeInstruction::ConstString(dest, idx) => {
-                self.emitReg1AndIdx("ConstString", dest, idx);
-            },
-
-            BytecodeInstruction::TestIdentity(dest, lhs, rhs) => {
-                self.emitReg3("TestIdentity", dest, lhs, rhs);
-            },
-            BytecodeInstruction::TestEq(dest, lhs, rhs) => {
-                self.emitReg3("TestEq", dest, lhs, rhs);
-            },
-            BytecodeInstruction::TestNe(dest, lhs, rhs) => {
-                self.emitReg3("TestNe", dest, lhs, rhs);
-            },
-            BytecodeInstruction::TestGt(dest, lhs, rhs) => {
-                self.emitReg3("TestGt", dest, lhs, rhs);
-            },
-            BytecodeInstruction::TestGe(dest, lhs, rhs) => {
-                self.emitReg3("TestGe", dest, lhs, rhs);
-            },
-            BytecodeInstruction::TestLt(dest, lhs, rhs) => {
-                self.emitReg3("TestLt", dest, lhs, rhs);
-            },
-            BytecodeInstruction::TestLe(dest, lhs, rhs) => {
-                self.emitReg3("TestLe", dest, lhs, rhs);
-            },
-
-            BytecodeInstruction::JumpLoop(distance) => {
-                self.emitBackwardJump("JumpLoop", distance);
-            },
-            BytecodeInstruction::LoopStart => {
-                self.emitInst("LoopStart");
-            },
-            BytecodeInstruction::Jump(distance) => {
-                self.emitJump("Jump", distance);
-            },
-            BytecodeInstruction::JumpIfFalse(opnd, distance) => {
-                self.emitConditionalJump("JumpIfFalse", opnd, distance);
-            },
-            BytecodeInstruction::JumpIfTrue(opnd, distance) => {
-                self.emitConditionalJump("JumpIfTrue", opnd, distance);
-            },
-
-            BytecodeInstruction::InvokeDirect(dest, idx) => {
-                self.emitReg1AndIdx("InvokeDirect", dest, idx);
-            },
-            BytecodeInstruction::InvokeVirtual(dest, idx) => {
-                self.emitReg1AndIdx("InvokeVirtual", dest, idx);
-            },
-            BytecodeInstruction::InvokeStatic(dest, idx) => {
-                self.emitReg1AndIdx("InvokeStatic", dest, idx);
-            },
-            BytecodeInstruction::InvokeLambda(dest, idx) => {
-                self.emitReg1AndIdx("InvokeLambda", dest, idx);
-            },
-            BytecodeInstruction::InvokeGenericStatic(dest, idx) => {
-                self.emitReg1AndIdx("InvokeGenericStatic", dest, idx);
-            },
-            BytecodeInstruction::InvokeGenericDirect(dest, idx) => {
-                self.emitReg1AndIdx("InvokeGenericDirect", dest, idx);
-            },
-
-            BytecodeInstruction::NewObject(dest, idx) => {
-                self.emitReg1AndIdx("NewObject", dest, idx);
-            },
-            BytecodeInstruction::NewObjectInitialized(dest, idx) => {
-                self.emitReg1AndIdx("NewObjectInitialized", dest, idx);
-            },
-            BytecodeInstruction::NewArray(dest, length, idx) => {
-                self.emitReg2AndIdx("NewArray", dest, length, idx);
-            },
-            BytecodeInstruction::NewTuple(dest, idx) => {
-                self.emitReg1AndIdx("NewTuple", dest, idx);
-            },
-            BytecodeInstruction::NewEnum(dest, idx) => {
-                self.emitReg1AndIdx("NewEnum", dest, idx);
-            },
-            BytecodeInstruction::NewStruct(dest, idx) => {
-                self.emitReg1AndIdx("NewStruct", dest, idx);
-            },
-            BytecodeInstruction::NewTraitObject(dest, obj, idx) => {
-                self.emitReg2AndIdx("NewTraitObject", dest, obj, idx);
-            },
-            BytecodeInstruction::NewLambda(dest, idx) => {
-                self.emitReg1AndIdx("NewLambda", dest, idx);
-            },
-            BytecodeInstruction::ArrayLength(dest, src) => {
-                self.emitReg2("ArrayLength", dest, src);
-            },
-            BytecodeInstruction::LoadArray(dest, arr, index) => {
-                self.emitReg3("LoadArray", dest, arr, index);
-            },
-            BytecodeInstruction::StoreArray(src, arr, index) => {
-                self.emitReg3("StoreArray", src, arr, index);
-            },
-            BytecodeInstruction::LoadTraitObjectValue(dest, src) => {
-                self.emitReg2("LoadTraitObjectValue", dest, src);
-            },
-            BytecodeInstruction::Ret(opnd) => {
-                self.emitReg1("Ret", opnd);
-            },
-        }
-    }
-
-    fn emitInst(name: String) {
-        self.emitStart(name);
+impl BytecodeDumper for StdoutBytecodeDumper {
+    fn emitInst(inst: BytecodeInstructionInfo, name: String) {
+        self.emitStart(inst, name);
         println("");
     }
 
-    fn emitReg3(name: String, r1: BytecodeRegister, r2: BytecodeRegister, r3: BytecodeRegister) {
-        self.emitStart(name);
+    fn emitReg3(inst: BytecodeInstructionInfo, name: String, r1: BytecodeRegister, r2: BytecodeRegister, r3: BytecodeRegister) {
+        self.emitStart(inst, name);
         println(" ${r1}, ${r2}, ${r3}");
     }
 
-    fn emitReg2(name: String, r1: BytecodeRegister, r2: BytecodeRegister) {
-        self.emitStart(name);
+    fn emitReg2(inst: BytecodeInstructionInfo, name: String, r1: BytecodeRegister, r2: BytecodeRegister) {
+        self.emitStart(inst, name);
         println(" ${r1}, ${r2}");
     }
 
-    fn emitReg2AndIdx(name: String, r1: BytecodeRegister, r2: BytecodeRegister, idx: ConstPoolId) {
-        self.emitStart(name);
+    fn emitReg2AndIdx(inst: BytecodeInstructionInfo, name: String, r1: BytecodeRegister, r2: BytecodeRegister, idx: ConstPoolId) {
+        self.emitStart(inst, name);
         println(" ${r1}, ${r2}, @${idx.value}");
     }
 
-    fn emitReg1(name: String, r1: BytecodeRegister) {
-        self.emitStart(name);
+    fn emitReg1(inst: BytecodeInstructionInfo, name: String, r1: BytecodeRegister) {
+        self.emitStart(inst, name);
         println(" ${r1}")
     }
 
-    fn emitReg1AndIdx(name: String, r1: BytecodeRegister, idx: ConstPoolId) {
-        self.emitStart(name);
+    fn emitReg1AndInt(inst: BytecodeInstructionInfo, name: String, r1: BytecodeRegister, value: Int32) {
+        self.emitStart(inst, name);
+        println(" ${r1}, ${value}")
+    }
+
+    fn emitReg1AndIdx(inst: BytecodeInstructionInfo, name: String, r1: BytecodeRegister, idx: ConstPoolId) {
+        self.emitStart(inst, name);
         println(" ${r1}, @${idx.value}")
     }
 
-    fn emitIdx(name: String, idx: ConstPoolId) {
-        self.emitStart(name);
-        println(" @${idx.value}");
+    fn emitConditionalJump(inst: BytecodeInstructionInfo, name: String, r: BytecodeRegister, offset: Int32) {
+        self.emitStart(inst, name);
+        println(" ${r}, ${inst.start + offset.toInt64()} (+${offset})");
     }
 
-    fn emitReg1AndInt(name: String, r1: BytecodeRegister, value: Int32) {
-        self.emitStart(name);
-        println(" ${r1}, ${value}");
+    fn emitBackwardJump(inst: BytecodeInstructionInfo, name: String, offset: Int32) {
+        self.emitStart(inst, name);
+        println(" ${inst.start - offset.toInt64()} (-${offset})");
     }
 
-    fn emitConditionalJump(name: String, r: BytecodeRegister, offset: Int32) {
-        self.emitStart(name);
-        println(" ${r}, ${self.pos + offset} (+${offset})");
+    fn emitJump(inst: BytecodeInstructionInfo, name: String, offset: Int32) {
+        self.emitStart(inst, name);
+        println(" ${inst.start + offset.toInt64()} (+${offset})");
     }
 
-    fn emitBackwardJump(name: String, offset: Int32) {
-        self.emitStart(name);
-        println(" ${self.pos - offset} (-${offset})");
-    }
-
-    fn emitJump(name: String, offset: Int32) {
-        self.emitStart(name);
-        println(" ${self.pos + offset} (+${offset})");
-    }
-
-    fn emitGlobal(name: String, r1: BytecodeRegister, gid: GlobalId) {
-        self.emitStart(name);
+    fn emitGlobal(inst: BytecodeInstructionInfo, name: String, r1: BytecodeRegister, gid: GlobalId) {
+        self.emitStart(inst, name);
         println(" ${r1}, ${gid.value}");
-    }
-
-    fn emitStart(name: String) {
-        print("${self.pos}: ${name}");
     }
 }
