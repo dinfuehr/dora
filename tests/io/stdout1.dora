@@ -1,0 +1,5 @@
+//= stdout "Hello, world!\n"
+
+fn main() {
+  std::io::stdout.writeString("Hello, world!\n");
+}

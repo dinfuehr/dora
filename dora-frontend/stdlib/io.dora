@@ -45,6 +45,10 @@ impl File {
     }
 }
 
+pub let stdin: OpenFile = OpenFile(0);
+pub let stdout: OpenFile = OpenFile(1);
+pub let stderr: OpenFile = OpenFile(2);
+
 pub class OpenFile {
     fd: Int64,
 }

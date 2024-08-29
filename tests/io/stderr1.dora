@@ -1,0 +1,5 @@
+//= stderr "Hello, world!\n"
+
+fn main() {
+  std::io::stderr.writeString("Hello, world!\n");
+}
