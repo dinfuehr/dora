@@ -52,6 +52,7 @@ def create_platform_binding
   macos = $OS == :macos
   x64 = $ARCH == "x64"
   arm64 = $ARCH == "arm64"
+  unix = linux || macos
 
   binding
 end
