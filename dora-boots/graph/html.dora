@@ -71,8 +71,12 @@ div.graph {
     width: 400px;
 }
 
-.value {
+.selectable {
     cursor: pointer;
+}
+
+.selected {
+    background-color: red;
 }
 
 .inst-value-type {
@@ -86,15 +90,36 @@ div.graph {
 }
         </style>
         <script>
+var selected = null;
+
 window.onload = function() {
-    let elements = document.getElementsByClassName(\"value\");
+    let elements = document.getElementsByClassName(\"selectable\");
     for (element of elements) {
-        element.addEventListener('click', graphValueClicked);
+        element.addEventListener('click', function(event) {
+            elementSelected(this, event);
+        });
     }
 }
 
-function graphValueClicked(e) {
-    console.log(e);
+function elementSelected(element, event) {
+    event.stopPropagation();
+    let newSelection = element.classList.item(0);
+
+    if (selected) {
+        for (el of document.getElementsByClassName(selected)) {
+            el.classList.remove(\"selected\");
+        }
+    }
+
+    if (selected == newSelection) {
+        // Cancel selection.
+        selected = null;
+    } else {
+        for (el of document.getElementsByClassName(newSelection)) {
+            el.classList.add(\"selected\");
+        }
+        selected = newSelection;
+    }
 }
         </script>
     </head>
@@ -129,7 +154,7 @@ function graphValueClicked(e) {
         let mut i = 0;
         self.write("<div class=\"constpool\">");
         for entry in bc.const_pool {
-            self.write("<div>@${i} = ${entry.toString()}</div>");
+            self.write("<div class=\"cp${i} selectable\">@${i} = ${entry.toString()}</div>");
             i = i + 1i64;
         }
         self.write("</div>");
@@ -137,7 +162,7 @@ function graphValueClicked(e) {
         i = 0;
         self.write("<div class=\"registers\">");
         for register in bc.registers {
-            self.write("<div>r${i} = ${register}</div>");
+            self.write("<div class=\"r${i} selectable\">r${i} = ${register}</div>");
             i = i + 1;
         }
         self.write("</div>");
@@ -172,7 +197,7 @@ function graphValueClicked(e) {
     }
 
     fn dumpInst(inst: Inst) {
-        self.write("<div class=\"inst\">%${inst.id()}");
+        self.write("<div class=\"inst${inst.id()} inst selectable\">%${inst.id()}");
 
         let ty = inst.getMaybeValueType();
 
@@ -227,7 +252,7 @@ function graphValueClicked(e) {
                 if !inst.getInputs().isEmpty() {
                     for input in inst.getInputs() {
                         let id = input.getValue().id();
-                        self.write("&nbsp;<span class=\"value inst${id}\">%${id}</span>");
+                        self.write("&nbsp;<span class=\"inst${id} selectable\">%${id}</span>");
                     }
                 }
             }
@@ -260,31 +285,31 @@ impl BytecodeDumper for HtmlBytecodeDumper {
     }
 
     fn emitReg3(inst: BytecodeInstructionInfo, name: String, r1: BytecodeRegister, r2: BytecodeRegister, r3: BytecodeRegister) {
-        self.file.writeString("${name} ${r1}, ${r2}, ${r3}");
+        self.file.writeString("${name} ${reg(r1)}, ${reg(r2)}, ${reg(r3)}");
     }
 
     fn emitReg2(inst: BytecodeInstructionInfo, name: String, r1: BytecodeRegister, r2: BytecodeRegister) {
-        self.file.writeString("${name} ${r1}, ${r2}");
+        self.file.writeString("${name} ${reg(r1)}, ${reg(r2)}");
     }
 
     fn emitReg2AndIdx(inst: BytecodeInstructionInfo, name: String, r1: BytecodeRegister, r2: BytecodeRegister, idx: ConstPoolId) {
-        self.file.writeString("${name} ${r1}, ${r2}, @${idx.value}");
+        self.file.writeString("${name} ${reg(r1)}, ${reg(r2)}, ${cp(idx)}");
     }
 
     fn emitReg1(inst: BytecodeInstructionInfo, name: String, r1: BytecodeRegister) {
-        self.file.writeString("${name} ${r1}")
+        self.file.writeString("${name} ${reg(r1)}")
     }
 
     fn emitReg1AndInt(inst: BytecodeInstructionInfo, name: String, r1: BytecodeRegister, value: Int32) {
-        self.file.writeString("${name} ${r1}, ${value}")
+        self.file.writeString("${name} ${reg(r1)}, ${value}")
     }
 
     fn emitReg1AndIdx(inst: BytecodeInstructionInfo, name: String, r1: BytecodeRegister, idx: ConstPoolId) {
-        self.file.writeString("${name} ${r1}, @${idx.value}")
+        self.file.writeString("${name} ${reg(r1)}, ${cp(idx)}")
     }
 
     fn emitConditionalJump(inst: BytecodeInstructionInfo, name: String, r: BytecodeRegister, offset: Int32) {
-        self.file.writeString("${name} ${r}, ${inst.start + offset.toInt64()} (+${offset})");
+        self.file.writeString("${name} ${reg(r)}, ${inst.start + offset.toInt64()} (+${offset})");
     }
 
     fn emitBackwardJump(inst: BytecodeInstructionInfo, name: String, offset: Int32) {
@@ -296,6 +321,14 @@ impl BytecodeDumper for HtmlBytecodeDumper {
     }
 
     fn emitGlobal(inst: BytecodeInstructionInfo, name: String, r1: BytecodeRegister, gid: GlobalId) {
-        self.file.writeString("${name} ${r1}, ${gid.value}");
+        self.file.writeString("${name} ${reg(r1)}, ${gid.value}");
     }
+}
+
+fn reg(r: BytecodeRegister): String {
+    "<span class=\"r${r.value} selectable\">${r}</span>"
+}
+
+fn cp(id: ConstPoolId): String {
+    "<span class=\"cp${id.value} selectable\">@${id.value}</span>"
 }
