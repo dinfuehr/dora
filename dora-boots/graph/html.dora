@@ -219,7 +219,17 @@ function elementSelected(element, event) {
             self.write("&nbsp;<span class=\"line-number\">&lt;${loc.line}:${loc.column}&gt;</span>");
         }
 
-        self.write(": ${inst.op()}");
+        self.write(": ");
+
+        if inst.hasLocationData() {
+            let loc = inst.getLocationData();
+
+            if loc.hasOutput() {
+                self.write("${opnd(loc.getOutput())} &larr; ");
+            }
+        }
+
+        self.write("${inst.op()}");
 
         match inst.op() {
             Op::Goto => {
@@ -266,9 +276,7 @@ function elementSelected(element, event) {
 
             Op::Move => {
                 let loc = inst.getLocationData();
-                self.write("&nbsp;${opnd(loc.getOutput())}");
-                self.write("&nbsp;&larr;&nbsp;");
-                self.write(opnd(loc.getInput(0)));
+                self.write(" ${opnd(loc.getInput(0))}");
             }
 
             Op::Arg => {
@@ -277,9 +285,20 @@ function elementSelected(element, event) {
 
             _ => {
                 if !inst.getInputs().isEmpty() {
+                    let mut idx = 0;
                     for input in inst.getInputs() {
+                        if idx > 0 {
+                            self.write(", ");
+                        }
                         let id = input.getValue().id();
                         self.write("&nbsp;<span class=\"inst${id} selectable\">%${id}</span>");
+                        if inst.hasLocationData() {
+                            let loc = inst.getLocationData();
+                            if loc.hasInputAt(idx) {
+                                self.write(" in ${opnd(loc.getInput(idx))}");
+                            }
+                        }
+                        idx = idx + 1;
                     }
                 }
             }
