@@ -38,6 +38,7 @@ pub const IO_FUNCTIONS: &[(&'static str, FctImplementation)] = &[
     ("stdlib::io::fileCreate", N(file_create as *const u8)),
     ("stdlib::io::fileWrite", N(file_write as *const u8)),
     ("stdlib::io::fileClose", N(file_close as *const u8)),
+    ("stdlib::io::getStdHandle", N(get_std_handle as *const u8)),
 ];
 
 #[repr(C)]
@@ -95,6 +96,27 @@ extern "C" fn file_close(fd: NativeFd) {
         let file = file_from_native_fd(fd);
         std::mem::drop(file);
     })
+}
+
+#[cfg(windows)]
+extern "C" fn get_std_handle(std_fd: i32) -> i64 {
+    use windows_sys::Win32::System::Console::{
+        GetStdHandle, STD_ERROR_HANDLE, STD_INPUT_HANDLE, STD_OUTPUT_HANDLE,
+    };
+
+    let value = match std_fd {
+        0 => STD_INPUT_HANDLE,
+        1 => STD_OUTPUT_HANDLE,
+        2 => STD_ERROR_HANDLE,
+        _ => unimplemented!(),
+    };
+
+    unsafe { GetStdHandle(value) as i64 }
+}
+
+#[cfg(unix)]
+extern "C" fn get_std_handle(std_fd: i32) -> i64 {
+    std_fd as i64
 }
 
 extern "C" fn read_file_as_string(name: Handle<Str>) -> Ref<Str> {

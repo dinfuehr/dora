@@ -7,6 +7,8 @@
 @internal fn fileWrite(fd: Int64, array: Array[UInt8], offset: Int64, len: Int64): Int64;
 @internal fn fileClose(fd: Int64);
 
+@internal fn getStdHandle(stdFd: Int32): Int64;
+
 pub class File {
     path: String,
 }
@@ -45,9 +47,9 @@ impl File {
     }
 }
 
-pub let stdin: OpenFile = OpenFile(0);
-pub let stdout: OpenFile = OpenFile(1);
-pub let stderr: OpenFile = OpenFile(2);
+pub let stdin: OpenFile = OpenFile(getStdHandle(0i32));
+pub let stdout: OpenFile = OpenFile(getStdHandle(1i32));
+pub let stderr: OpenFile = OpenFile(getStdHandle(2i32));
 
 pub class OpenFile {
     fd: Int64,

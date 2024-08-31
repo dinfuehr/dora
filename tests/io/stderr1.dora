@@ -1,5 +1,4 @@
 //= stderr "Hello, world!\n"
-//= platform unix
 
 fn main() {
   std::io::stderr.writeString("Hello, world!\n");
