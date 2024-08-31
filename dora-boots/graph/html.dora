@@ -1,9 +1,14 @@
 use std::io::{File, OpenFile};
 
+use package::assembler::arm64::registerName as registerNameOnArm64;
+use package::assembler::x64::registerName as registerNameOnX64;
+use package::assembler::arm64::floatRegisterName as floatRegisterNameOnArm64;
+use package::assembler::x64::floatRegisterName as floatRegisterNameOnX64;
 use package::bytecode::{BytecodeDumper, BytecodeFunction, BytecodeInstructionInfo, BytecodeIterator, BytecodeRegister, ConstPoolId, dumpInstruction, GlobalId};
-use package::graph::{Block, Graph, Inst, Op};
+use package::graph::{Block, Graph, Inst, Location, Op, Operand};
 use package::graph_builder::BytecodeAnalysis;
 use package::compilation::CompilationInfo;
+use package::interface::{Architecture, config};
 
 pub fn createHtmlWriter(ci: CompilationInfo): HtmlWriter {
     let file = File::create("ssa.html");
@@ -203,7 +208,9 @@ function elementSelected(element, event) {
 
         if ty.isSome() {
             let ty = ty.getOrPanic();
-            self.write("&nbsp;<span class=\"inst-value-type\">&lt;${ty}&gt;</span>");
+            if !ty.isUnit() {
+                self.write("&nbsp;<span class=\"inst-value-type\">&lt;${ty}&gt;</span>");
+            }
         }
 
         if inst.hasInlinedLocation() {
@@ -246,6 +253,26 @@ function elementSelected(element, event) {
 
             Op::StringConst => {
                 self.write("&nbsp;\"${inst.getValueAsString()}\"");
+            }
+
+            Op::Rematerialize => {
+                let loc = inst.getLocationData();
+                self.write("&nbsp;");
+                self.write(opnd(loc.getOutput()));
+                self.write("&nbsp;&larr;&nbsp;");
+                let id = inst.getExtraInst().id();
+                self.write("<span class=\"inst${id} selectable\">%${id}</span>");
+            }
+
+            Op::Move => {
+                let loc = inst.getLocationData();
+                self.write("&nbsp;${opnd(loc.getOutput())}");
+                self.write("&nbsp;&larr;&nbsp;");
+                self.write(opnd(loc.getInput(0)));
+            }
+
+            Op::Arg => {
+                self.write("&nbsp;${inst.getArgIndex()}");
             }
 
             _ => {
@@ -331,4 +358,39 @@ fn reg(r: BytecodeRegister): String {
 
 fn cp(id: ConstPoolId): String {
     "<span class=\"cp${id.value} selectable\">@${id.value}</span>"
+}
+
+fn opnd(operand: Operand): String {
+    loc(operand.getLocation())
+}
+
+fn loc(loc: Location): String {
+    match loc {
+        Location::Reg(reg) => {
+            let name = match config.architecture {
+                Architecture::Arm64 => registerNameOnArm64(reg),
+                Architecture::X64 => registerNameOnX64(reg),
+            };
+
+            "<span class=\"cpu-reg${reg.value} selectable\">${name}</span>"
+        },
+        Location::FloatReg(reg) => {
+            let name = match config.architecture {
+                Architecture::Arm64 => floatRegisterNameOnArm64(reg),
+                Architecture::X64 => floatRegisterNameOnX64(reg),
+            };
+
+            "<span class=\"cpu-freg${reg.value} selectable\">${name}</span>"
+        },
+
+        Location::Stack(slot) => {
+            if slot.isFp() {
+                "FP:${slot.getOffset()}"
+            } else {
+                "SP:${slot.getOffset()}"
+            }
+        },
+
+        Location::None => "NONE",
+    }
 }
