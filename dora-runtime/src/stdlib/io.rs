@@ -36,7 +36,9 @@ pub const IO_FUNCTIONS: &[(&'static str, FctImplementation)] = &[
         N(write_file_as_bytes as *const u8),
     ),
     ("stdlib::io::fileCreate", N(file_create as *const u8)),
+    ("stdlib::io::fileOpen", N(file_open as *const u8)),
     ("stdlib::io::fileWrite", N(file_write as *const u8)),
+    ("stdlib::io::fileRead", N(file_read as *const u8)),
     ("stdlib::io::fileClose", N(file_close as *const u8)),
     ("stdlib::io::getStdHandle", N(get_std_handle as *const u8)),
 ];
@@ -71,6 +73,24 @@ extern "C" fn file_create(name: Handle<Str>) -> NativeFd {
     })
 }
 
+extern "C" fn file_open(name: Handle<Str>) -> NativeFd {
+    let path = PathBuf::from_str(name.content_utf8());
+
+    if path.is_err() {
+        return INVALID_FD;
+    }
+
+    let path = path.unwrap();
+
+    parked_scope(|| {
+        if let Ok(file) = File::open(path) {
+            file_into_native_fd(file)
+        } else {
+            INVALID_FD
+        }
+    })
+}
+
 extern "C" fn file_write(fd: NativeFd, array: Handle<UInt8Array>, offset: i64, len: i64) -> i64 {
     let offset = offset as usize;
     let len = len as usize;
@@ -89,6 +109,37 @@ extern "C" fn file_write(fd: NativeFd, array: Handle<UInt8Array>, offset: i64, l
         std::mem::forget(file);
         bytes
     })
+}
+
+extern "C" fn file_read(fd: NativeFd, array: Handle<UInt8Array>, offset: i64, len: i64) -> i64 {
+    let offset = offset as usize;
+    let len = len as usize;
+
+    if offset + len > array.slice().len() {
+        return -1;
+    }
+
+    let mut buffer = vec![0; len];
+    let result = parked_scope(|| {
+        let mut file = file_from_native_fd(fd);
+        let result = file.read(&mut buffer[..]);
+        std::mem::forget(file);
+        result
+    });
+
+    match result {
+        Ok(bytes) => {
+            let start = array.data_address().offset(offset);
+
+            unsafe {
+                std::ptr::copy_nonoverlapping(buffer.as_ptr(), start.to_mut_ptr::<u8>(), bytes);
+            }
+
+            bytes as i64
+        }
+
+        Err(_) => -1,
+    }
 }
 
 extern "C" fn file_close(fd: NativeFd) {

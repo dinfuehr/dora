@@ -4,7 +4,9 @@
 @internal fn writeFileAsBytes(path: String, content: Array[UInt8]): Bool;
 
 @internal fn fileCreate(path: String): Int64;
+@internal fn fileOpen(path: String): Int64;
 @internal fn fileWrite(fd: Int64, array: Array[UInt8], offset: Int64, len: Int64): Int64;
+@internal fn fileRead(fd: Int64, array: Array[UInt8], offset: Int64, len: Int64): Int64;
 @internal fn fileClose(fd: Int64);
 
 @internal fn getStdHandle(stdFd: Int32): Int64;
@@ -20,6 +22,10 @@ impl File {
 
     pub static fn create(path: String): OpenFile {
         OpenFile(fileCreate(path))
+    }
+
+    pub static fn open(path: String): OpenFile {
+        OpenFile(fileOpen(path))
     }
 
     pub fn readAsString(): Option[String] {
@@ -58,6 +64,10 @@ pub class OpenFile {
 impl OpenFile {
     pub fn write(array: Array[UInt8]): Int64 {
         fileWrite(self.fd, array, 0, array.size())
+    }
+
+    pub fn read(array: Array[UInt8]): Int64 {
+        fileRead(self.fd, array, 0, array.size())
     }
 
     pub fn writeString(text: String) {
