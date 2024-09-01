@@ -154,34 +154,6 @@ extern "C" fn get_std_handle(std_fd: i32) -> i64 {
     std_fd as i64
 }
 
-extern "C" fn write_file_as_string(name: Handle<Str>, content: Handle<Str>) -> bool {
-    write_file_common(name, Vec::from(content.content_utf8()))
-}
-
-extern "C" fn write_file_as_bytes(name: Handle<Str>, content: Handle<UInt8Array>) -> bool {
-    write_file_common(name, Vec::from(content.slice()))
-}
-
-fn write_file_common(name: Handle<Str>, content: Vec<u8>) -> bool {
-    let path = PathBuf::from_str(name.content_utf8());
-
-    if path.is_err() {
-        return false;
-    }
-
-    let result: std::io::Result<()> = parked_scope(|| {
-        let mut f = File::create(&path.unwrap())?;
-        f.write_all(&content)?;
-        Ok(())
-    });
-
-    if result.is_ok() {
-        true
-    } else {
-        false
-    }
-}
-
 extern "C" fn socket_connect(addr: Handle<Str>) -> NativeFd {
     let addr = String::from(addr.content_utf8());
     parked_scope(|| {

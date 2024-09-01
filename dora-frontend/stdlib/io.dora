@@ -25,25 +25,25 @@ impl File {
         OpenFile(fileOpen(path))
     }
 
-    pub fn readAsString(): Result[String, ()] {
+    pub fn readAsString(): Result[String, IOError] {
         let result = self.readAsBytes();
 
         match result {
             Ok(bytes) => {
                 let value = String::fromBytes(bytes);
                 match value {
-                    Some(string) => Ok[String, ()](string),
-                    None => Err[String, ()](()),
+                    Some(string) => Ok[String, IOError](string),
+                    None => Err[String, IOError](IOError()),
                 }
             }
-            Err(_) => Err(()),
+            Err(e) => Err(e),
         }
     }
 
-    pub fn readAsBytes(): Result[Array[UInt8], ()] {
+    pub fn readAsBytes(): Result[Array[UInt8], IOError] {
         let fd = fileOpen(self.path);
         if fd == -1 {
-            return Err(());
+            return Err(IOError());
         }
         let file = OpenFile(fd);
         let result = Vec[UInt8]::new();
@@ -54,7 +54,7 @@ impl File {
 
             if bytesRead == -1 {
                 file.close();
-                return Err(());
+                return Err(IOError());
             } else if bytesRead == 0 {
                 // Reached end of file.
                 break;
@@ -68,14 +68,14 @@ impl File {
         Ok(result.toArray())
     }
 
-    pub fn writeAsString(content: String): Result[(), ()] {
+    pub fn writeAsString(content: String): Result[(), IOError] {
         self.writeAsBytes(content.asBytes())
     }
 
-    pub fn writeAsBytes(buffer: Array[UInt8]): Result[(), ()] {
+    pub fn writeAsBytes(buffer: Array[UInt8]): Result[(), IOError] {
         let fd = fileCreate(self.path);
         if fd == -1 {
-            return Err(());
+            return Err(IOError());
         }
         let file = OpenFile(fd);
         let mut written = 0;
@@ -86,7 +86,7 @@ impl File {
 
             if bytesWritten <= 0 {
                 // Reached end of file.
-                return Err(());
+                return Err(IOError());
             } else {
                 written = written + bytesWritten;
             }
@@ -129,6 +129,8 @@ impl OpenFile {
     }
 }
 
+pub class IOError
+
 pub class Directory {
     path: String,
 }
@@ -152,22 +154,22 @@ pub class TcpListener {
 }
 
 impl TcpListener {
-    pub static fn bind(addr: String): Result[TcpListener, ()] {
+    pub static fn bind(addr: String): Result[TcpListener, IOError] {
         let fd = socketBind(addr);
         if fd != -1 {
-            Ok[TcpListener, ()](TcpListener(fd))
+            Ok[TcpListener, IOError](TcpListener(fd))
         } else {
-            Err[TcpListener, ()](())
+            Err[TcpListener, IOError](IOError())
         }
     }
 
-    pub fn accept(): Result[TcpStream, ()] {
+    pub fn accept(): Result[TcpStream, IOError] {
         let stream_fd = socketAccept(self.fd);
 
         if stream_fd != -1 {
-            Ok[TcpStream, ()](TcpStream(stream_fd))
+            Ok[TcpStream, IOError](TcpStream(stream_fd))
         } else {
-            Err[TcpStream, ()](())
+            Err[TcpStream, IOError](IOError())
         }
     }
 
@@ -184,12 +186,12 @@ pub class TcpStream {
 }
 
 impl TcpStream {
-    pub static fn connect(addr: String): Result[TcpStream, ()] {
+    pub static fn connect(addr: String): Result[TcpStream, IOError] {
         let fd = socketConnect(addr);
         if fd != -1 {
-            Ok[TcpStream, ()](TcpStream(fd))
+            Ok[TcpStream, IOError](TcpStream(fd))
         } else {
-            Err[TcpStream, ()](())
+            Err[TcpStream, IOError](IOError())
         }
     }
 
