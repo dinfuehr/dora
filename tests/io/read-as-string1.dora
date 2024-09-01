@@ -3,5 +3,5 @@ fn main() {
     assert(content == "abc");
 
     let content = std::io::File::new("unknown.txt").readAsString();
-    assert(content.isNone());
+    assert(content.isErr());
 }

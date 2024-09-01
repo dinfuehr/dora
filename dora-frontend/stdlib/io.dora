@@ -1,5 +1,3 @@
-@internal fn readFileAsString(path: String): Option[String];
-@internal fn readFileAsBytes(path: String): Option[Array[UInt8]];
 @internal fn writeFileAsString(path: String, content: String): Bool;
 @internal fn writeFileAsBytes(path: String, content: Array[UInt8]): Bool;
 
@@ -30,19 +28,26 @@ impl File {
         OpenFile(fileOpen(path))
     }
 
-    pub fn readAsString(): Option[String] {
+    pub fn readAsString(): Result[String, ()] {
         let result = self.readAsBytes();
 
         match result {
-            Some(bytes) => String::fromBytes(bytes),
-            None => None,
+            Ok(bytes) => {
+                let value = String::fromBytes(bytes);
+                if value.isSome() {
+                    Ok[String, ()](value.getOrPanic())
+                } else {
+                    Err[String, ()](())
+                }
+            }
+            Err(_) => Err(()),
         }
     }
 
-    pub fn readAsBytes(): Option[Array[UInt8]] {
+    pub fn readAsBytes(): Result[Array[UInt8], ()] {
         let fd = fileOpen(self.path);
         if fd == -1 {
-            return None;
+            return Err(());
         }
         let file = OpenFile(fd);
         let result = Vec[UInt8]::new();
@@ -53,7 +58,7 @@ impl File {
 
             if bytesRead == -1 {
                 file.close();
-                return None;
+                return Err(());
             } else if bytesRead == 0 {
                 // Reached end of file.
                 break;
@@ -64,7 +69,7 @@ impl File {
         }
 
         file.close();
-        Some(result.toArray())
+        Ok(result.toArray())
     }
 
     pub fn writeAsString(content: String): Result[(), ()] {

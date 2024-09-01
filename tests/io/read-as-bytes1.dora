@@ -6,5 +6,5 @@ fn main() {
     assert(content(2) == 3u8);
 
     let content = std::io::File::new("unknown.txt").readAsBytes();
-    assert(content.isNone());
+    assert(content.isErr());
 }
