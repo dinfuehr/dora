@@ -1038,6 +1038,12 @@ impl[T] Vec[T] {
     }
   }
 
+  pub fn appendPart(array: Array[T], offset: Int64, len: Int64) {
+    for idx in std::range(offset, offset + len) {
+      self.push(array(idx));
+    }
+  }
+
   pub fn insertAt(idx: Int64, val: T) {
     assert(idx <= self.len);
     if idx == self.len {

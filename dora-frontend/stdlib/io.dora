@@ -11,6 +11,8 @@
 
 @internal fn getStdHandle(stdFd: Int32): Int64;
 
+const DEFAULT_BUFFER_SIZE: Int64 = 16384;
+
 pub class File {
     path: String,
 }
@@ -29,11 +31,40 @@ impl File {
     }
 
     pub fn readAsString(): Option[String] {
-        readFileAsString(self.path)
+        let result = self.readAsBytes();
+
+        match result {
+            Some(bytes) => String::fromBytes(bytes),
+            None => None,
+        }
     }
 
     pub fn readAsBytes(): Option[Array[UInt8]] {
-        readFileAsBytes(self.path)
+        let fd = fileOpen(self.path);
+        if fd == -1 {
+            return None;
+        }
+        let file = OpenFile(fd);
+        let result = Vec[UInt8]::new();
+        let buffer = Array[UInt8]::zero(DEFAULT_BUFFER_SIZE);
+
+        while true {
+            let bytesRead = file.read(buffer);
+
+            if bytesRead == -1 {
+                file.close();
+                return None;
+            } else if bytesRead == 0 {
+                // Reached end of file.
+                break;
+            } else {
+                assert(bytesRead > 0);
+                result.appendPart(buffer, 0, bytesRead);
+            }
+        }
+
+        file.close();
+        Some(result.toArray())
     }
 
     pub fn writeAsString(content: String): Result[(), ()] {

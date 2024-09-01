@@ -6,9 +6,9 @@ use std::str::FromStr;
 use std::u64;
 
 use crate::handle::Handle;
-use crate::object::{byte_array_from_buffer, Ref, Str, UInt8Array};
+use crate::object::{Str, UInt8Array};
 use crate::threads::parked_scope;
-use crate::vm::{get_vm, FctImplementation};
+use crate::vm::FctImplementation;
 
 use FctImplementation::Native as N;
 
@@ -19,14 +19,6 @@ pub const IO_FUNCTIONS: &[(&'static str, FctImplementation)] = &[
     ("stdlib::io::socketRead", N(socket_read as *const u8)),
     ("stdlib::io::socketBind", N(socket_bind as *const u8)),
     ("stdlib::io::socketAccept", N(socket_accept as *const u8)),
-    (
-        "stdlib::io::readFileAsString",
-        N(read_file_as_string as *const u8),
-    ),
-    (
-        "stdlib::io::readFileAsBytes",
-        N(read_file_as_bytes as *const u8),
-    ),
     (
         "stdlib::io::writeFileAsString",
         N(write_file_as_string as *const u8),
@@ -168,46 +160,6 @@ extern "C" fn get_std_handle(std_fd: i32) -> i64 {
 #[cfg(unix)]
 extern "C" fn get_std_handle(std_fd: i32) -> i64 {
     std_fd as i64
-}
-
-extern "C" fn read_file_as_string(name: Handle<Str>) -> Ref<Str> {
-    let content = read_file_common(name);
-
-    if let Some(content) = content {
-        Str::from_buffer(get_vm(), &content)
-    } else {
-        Ref::null()
-    }
-}
-
-extern "C" fn read_file_as_bytes(name: Handle<Str>) -> Ref<UInt8Array> {
-    let content = read_file_common(name);
-
-    if let Some(content) = content {
-        byte_array_from_buffer(get_vm(), &content)
-    } else {
-        Ref::null()
-    }
-}
-
-fn read_file_common(name: Handle<Str>) -> Option<Vec<u8>> {
-    let path = PathBuf::from_str(name.content_utf8());
-    if path.is_err() {
-        return None;
-    }
-    let path = path.unwrap();
-    parked_scope(|| {
-        let f = File::open(&path);
-        if f.is_err() {
-            return None;
-        }
-        let mut f = f.unwrap();
-        let mut buffer = Vec::new();
-        match f.read_to_end(&mut buffer) {
-            Ok(_) => Some(buffer),
-            Err(_) => None,
-        }
-    })
 }
 
 extern "C" fn write_file_as_string(name: Handle<Str>, content: Handle<Str>) -> bool {

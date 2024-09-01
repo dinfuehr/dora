@@ -5,4 +5,6 @@
 /program.o
 /program
 tests/io/test123.txt
+tests/io/write-as-string1.txt
+tests/io/write-as-bytes1.txt
 ssa.html
