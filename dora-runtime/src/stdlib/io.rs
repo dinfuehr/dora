@@ -20,10 +20,6 @@ pub const IO_FUNCTIONS: &[(&'static str, FctImplementation)] = &[
     ("stdlib::io::socketBind", N(socket_bind as *const u8)),
     ("stdlib::io::socketAccept", N(socket_accept as *const u8)),
     (
-        "stdlib::io::writeFileAsString",
-        N(write_file_as_string as *const u8),
-    ),
-    (
         "stdlib::io::writeFileAsBytes",
         N(write_file_as_bytes as *const u8),
     ),
