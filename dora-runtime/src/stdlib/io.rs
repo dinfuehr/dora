@@ -19,10 +19,6 @@ pub const IO_FUNCTIONS: &[(&'static str, FctImplementation)] = &[
     ("stdlib::io::socketRead", N(socket_read as *const u8)),
     ("stdlib::io::socketBind", N(socket_bind as *const u8)),
     ("stdlib::io::socketAccept", N(socket_accept as *const u8)),
-    (
-        "stdlib::io::writeFileAsBytes",
-        N(write_file_as_bytes as *const u8),
-    ),
     ("stdlib::io::fileCreate", N(file_create as *const u8)),
     ("stdlib::io::fileOpen", N(file_open as *const u8)),
     ("stdlib::io::fileWrite", N(file_write as *const u8)),

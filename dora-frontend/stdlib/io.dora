@@ -1,5 +1,3 @@
-@internal fn writeFileAsBytes(path: String, content: Array[UInt8]): Bool;
-
 @internal fn fileCreate(path: String): Int64;
 @internal fn fileOpen(path: String): Int64;
 @internal fn fileWrite(fd: Int64, array: Array[UInt8], offset: Int64, len: Int64): Int64;
@@ -74,12 +72,28 @@ impl File {
         self.writeAsBytes(content.asBytes())
     }
 
-    pub fn writeAsBytes(content: Array[UInt8]): Result[(), ()] {
-        if writeFileAsBytes(self.path, content) {
-            Ok[(), ()](())
-        } else {
-            Err[(), ()](())
+    pub fn writeAsBytes(buffer: Array[UInt8]): Result[(), ()] {
+        let fd = fileCreate(self.path);
+        if fd == -1 {
+            return Err(());
         }
+        let file = OpenFile(fd);
+        let mut written = 0;
+
+        while written < buffer.size() {
+            let len = Int64::min(buffer.size() - written, DEFAULT_BUFFER_SIZE);
+            let bytesWritten = file.writePart(buffer, written, len);
+
+            if bytesWritten <= 0 {
+                // Reached end of file.
+                return Err(());
+            } else {
+                written = written + bytesWritten;
+            }
+        }
+
+        file.close();
+        Ok(())
     }
 }
 
@@ -94,6 +108,10 @@ pub class OpenFile {
 impl OpenFile {
     pub fn write(array: Array[UInt8]): Int64 {
         fileWrite(self.fd, array, 0, array.size())
+    }
+
+    pub fn writePart(array: Array[UInt8], offset: Int64, len: Int64): Int64 {
+        fileWrite(self.fd, array, offset, len)
     }
 
     pub fn read(array: Array[UInt8]): Int64 {
