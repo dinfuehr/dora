@@ -286,12 +286,13 @@ function elementSelected(element, event) {
             _ => {
                 if !inst.getInputs().isEmpty() {
                     let mut idx = 0;
+                    self.write(" ");
                     for input in inst.getInputs() {
                         if idx > 0 {
                             self.write(", ");
                         }
                         let id = input.getValue().id();
-                        self.write("&nbsp;<span class=\"inst${id} selectable\">%${id}</span>");
+                        self.write("<span class=\"inst${id} selectable\">%${id}</span>");
                         if inst.hasLocationData() {
                             let loc = inst.getLocationData();
                             if loc.hasInputAt(idx) {
@@ -299,6 +300,24 @@ function elementSelected(element, event) {
                             }
                         }
                         idx = idx + 1;
+                    }
+                }
+
+                if inst.hasLocationData() {
+                    let loc = inst.getLocationData();
+                    if !loc.getTemps().isEmpty() {
+                        self.write(" (temps: ");
+                        let mut first = true;
+                        for temp in loc.getTemps() {
+                            if !first { self.write(", "); }
+                            self.write(opnd(temp));
+                            first = false;
+                        }
+                        self.write(")");
+                    }
+
+                    if !loc.getHint().isNone() {
+                        self.write(" (hint ${location(loc.getHint())})");
                     }
                 }
             }
@@ -380,10 +399,10 @@ fn cp(id: ConstPoolId): String {
 }
 
 fn opnd(operand: Operand): String {
-    loc(operand.getLocation())
+    location(operand.getLocation())
 }
 
-fn loc(loc: Location): String {
+fn location(loc: Location): String {
     match loc {
         Location::Reg(reg) => {
             let name = match config.architecture {
