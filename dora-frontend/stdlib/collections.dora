@@ -989,6 +989,11 @@ impl[T] Vec[T] {
     Vec[T](values, values.size())
   }
 
+  pub static fn newWithCapacity(capacity: Int64): Vec[T] {
+    let array = Array[T]::unsafeNew(capacity);
+    Vec[T](array, 0)
+  }
+
   pub fn get(idx: Int64): T {
     if idx < 0i64 || idx >= self.len {
       fatalError[()]("index out of bounds for vector");

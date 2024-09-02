@@ -1,4 +1,4 @@
-use std::io::{File, OpenFile};
+use std::io::{BufferedWriter, File, OpenFile, Write};
 
 use package::assembler::arm64::registerName as registerNameOnArm64;
 use package::assembler::x64::registerName as registerNameOnX64;
@@ -12,7 +12,7 @@ use package::interface::{Architecture, config};
 
 pub fn createHtmlWriter(ci: CompilationInfo): HtmlWriter {
     let file = File::create("ssa.html");
-    let html = HtmlWriter(ci, file);
+    let html = HtmlWriter(ci, file, BufferedWriter::new(file));
     html.start();
     html
 }
@@ -20,6 +20,7 @@ pub fn createHtmlWriter(ci: CompilationInfo): HtmlWriter {
 pub class HtmlWriter {
     ci: CompilationInfo,
     file: OpenFile,
+    writer: BufferedWriter,
 }
 
 impl HtmlWriter {
@@ -173,7 +174,7 @@ function passCollapse(element, event) {
         self.write("<div class=\"pass\">");
         self.write("<div class=\"pass-name\">bytecode</div>");
         self.write("<div class=\"graph\"><code>");
-        let dumper = HtmlBytecodeDumper(self.file) as BytecodeDumper;
+        let dumper = HtmlBytecodeDumper(self.writer as Write) as BytecodeDumper;
 
         for blockStart in analysis.starts {
             self.write("<div class=\"block-name\">block at ${blockStart}:</div>");
@@ -375,57 +376,57 @@ function passCollapse(element, event) {
     }
 
     fn write(text: String) {
-        self.file.writeString(text);
+        self.writer.writeString(text);
     }
 }
 
 class HtmlBytecodeDumper {
-    file: OpenFile,
+    writer: Write,
 }
 
 impl BytecodeDumper for HtmlBytecodeDumper {
     fn emitInst(inst: BytecodeInstructionInfo, name: String) {
-        self.file.writeString(name);
+        self.writer.writeString(name);
     }
 
     fn emitReg3(inst: BytecodeInstructionInfo, name: String, r1: BytecodeRegister, r2: BytecodeRegister, r3: BytecodeRegister) {
-        self.file.writeString("${name} ${reg(r1)}, ${reg(r2)}, ${reg(r3)}");
+        self.writer.writeString("${name} ${reg(r1)}, ${reg(r2)}, ${reg(r3)}");
     }
 
     fn emitReg2(inst: BytecodeInstructionInfo, name: String, r1: BytecodeRegister, r2: BytecodeRegister) {
-        self.file.writeString("${name} ${reg(r1)}, ${reg(r2)}");
+        self.writer.writeString("${name} ${reg(r1)}, ${reg(r2)}");
     }
 
     fn emitReg2AndIdx(inst: BytecodeInstructionInfo, name: String, r1: BytecodeRegister, r2: BytecodeRegister, idx: ConstPoolId) {
-        self.file.writeString("${name} ${reg(r1)}, ${reg(r2)}, ${cp(idx)}");
+        self.writer.writeString("${name} ${reg(r1)}, ${reg(r2)}, ${cp(idx)}");
     }
 
     fn emitReg1(inst: BytecodeInstructionInfo, name: String, r1: BytecodeRegister) {
-        self.file.writeString("${name} ${reg(r1)}")
+        self.writer.writeString("${name} ${reg(r1)}").getOrPanic();
     }
 
     fn emitReg1AndInt(inst: BytecodeInstructionInfo, name: String, r1: BytecodeRegister, value: Int32) {
-        self.file.writeString("${name} ${reg(r1)}, ${value}")
+        self.writer.writeString("${name} ${reg(r1)}, ${value}").getOrPanic();
     }
 
     fn emitReg1AndIdx(inst: BytecodeInstructionInfo, name: String, r1: BytecodeRegister, idx: ConstPoolId) {
-        self.file.writeString("${name} ${reg(r1)}, ${cp(idx)}")
+        self.writer.writeString("${name} ${reg(r1)}, ${cp(idx)}").getOrPanic();
     }
 
     fn emitConditionalJump(inst: BytecodeInstructionInfo, name: String, r: BytecodeRegister, offset: Int32) {
-        self.file.writeString("${name} ${reg(r)}, ${inst.start + offset.toInt64()} (+${offset})");
+        self.writer.writeString("${name} ${reg(r)}, ${inst.start + offset.toInt64()} (+${offset})");
     }
 
     fn emitBackwardJump(inst: BytecodeInstructionInfo, name: String, offset: Int32) {
-        self.file.writeString("${name} ${inst.start - offset.toInt64()} (-${offset})");
+        self.writer.writeString("${name} ${inst.start - offset.toInt64()} (-${offset})");
     }
 
     fn emitJump(inst: BytecodeInstructionInfo, name: String, offset: Int32) {
-        self.file.writeString("${name} ${inst.start + offset.toInt64()} (+${offset})");
+        self.writer.writeString("${name} ${inst.start + offset.toInt64()} (+${offset})");
     }
 
     fn emitGlobal(inst: BytecodeInstructionInfo, name: String, r1: BytecodeRegister, gid: GlobalId) {
-        self.file.writeString("${name} ${reg(r1)}, ${gid.value}");
+        self.writer.writeString("${name} ${reg(r1)}, ${gid.value}");
     }
 }
 
