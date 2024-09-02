@@ -107,7 +107,7 @@ pub class OpenFile {
 
 impl OpenFile {
     pub fn write(array: Array[UInt8]): Int64 {
-        fileWrite(self.fd, array, 0, array.size())
+        self.writePart(array, 0, array.size())
     }
 
     pub fn writePart(array: Array[UInt8], offset: Int64, len: Int64): Int64 {
@@ -115,6 +115,10 @@ impl OpenFile {
     }
 
     pub fn read(array: Array[UInt8]): Int64 {
+        self.readPart(array, 0, array.size())
+    }
+
+    pub fn readPart(array: Array[UInt8], offset: Int64, len: Int64): Int64 {
         fileRead(self.fd, array, 0, array.size())
     }
 

@@ -39,14 +39,20 @@ div.inst {
     text-indent: -1.5em;
 }
 
-table {
-    table-layout: fixed;
-}
-
 #main {
     display: flex;
     width: fit-content;
     margin: 10px;
+}
+
+.pass {
+    display: flex;
+    width: fit-content;
+    border: 1px solid black;
+}
+
+.pass:not(:last-child) {
+    border-right-width: 0px;
 }
 
 .constpool {
@@ -59,19 +65,27 @@ table {
     margin-left: 40px;
 }
 
-div.pass-name {
-    border: 1px solid black;
+.collapsed > .pass-name {
+    border-left-width: 0px;
+}
+
+.collapsed > .pass-name {
+    font-style: italic;
+    font-size: small;
+    padding: 4px;
+}
+
+.pass-name {
     text-align: right;
     transform: rotate(180deg);
     writing-mode: vertical-lr;
     white-space: pre;
     padding: 10px;
+    cursor: pointer;
+    border-left: 1px solid black;
 }
 
 div.graph {
-    border-width: 1px 0px;
-    border-style: solid;
-    border-color: black;
     padding: 5px;
     width: 400px;
 }
@@ -104,6 +118,13 @@ window.onload = function() {
             elementSelected(this, event);
         });
     }
+
+    elements = document.getElementsByClassName(\"pass-name\");
+    for (element of elements) {
+        element.addEventListener('click', function(event) {
+            passCollapse(this, event);
+        });
+    }
 }
 
 function elementSelected(element, event) {
@@ -126,6 +147,20 @@ function elementSelected(element, event) {
         selected = newSelection;
     }
 }
+
+function passCollapse(element, event) {
+    let passNode = element.parentNode;
+    let passNameNode = passNode.getElementsByClassName(\"pass-name\")[0];
+    let graphNode = passNode.getElementsByClassName(\"graph\")[0];
+
+    console.log(graphNode.style.display);
+
+    if (passNode.classList.toggle(\"collapsed\")) {
+        graphNode.style.display = 'none';
+    } else {
+        graphNode.style.display = '';
+    }
+}
         </script>
     </head>
     <body>
@@ -135,7 +170,8 @@ function elementSelected(element, event) {
     }
 
     pub fn dumpBytecode(bc: BytecodeFunction, analysis: BytecodeAnalysis) {
-        self.write("<div class=\"pass-name\">bytecode</div>\n");
+        self.write("<div class=\"pass\">");
+        self.write("<div class=\"pass-name\">bytecode</div>");
         self.write("<div class=\"graph\"><code>");
         let dumper = HtmlBytecodeDumper(self.file) as BytecodeDumper;
 
@@ -172,10 +208,12 @@ function elementSelected(element, event) {
         }
         self.write("</div>");
 
-        self.write("</code></div>\n");
+        self.write("</code></div>"); // end of div.graph
+        self.write("</div>\n"); // end of div.pass
     }
 
     pub fn dumpGraph(title: String, graph: Graph) {
+        self.write("<div class=\"pass\">");
         self.write("<div class=\"pass-name\">${title}</div>\n");
         self.write("<div class=\"graph\"><code>");
 
@@ -183,7 +221,8 @@ function elementSelected(element, event) {
             self.dumpBlock(block);
         }
 
-        self.write("</code></div>\n");
+        self.write("</code></div>\n"); // end of div.graph
+        self.write("</div>\n"); // end of div.pass
     }
 
     fn dumpBlock(block: Block) {
