@@ -1,5 +1,6 @@
 //= stderr "Hello, world!\n"
 
 fn main() {
-  std::io::stderr.writeString("Hello, world!\n");
+  let bytes = "Hello, world!\n".asBytes();
+  std::io::stderr.write(bytes, 0, bytes.size());
 }

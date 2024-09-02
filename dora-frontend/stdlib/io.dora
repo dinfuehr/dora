@@ -85,7 +85,7 @@ impl File {
 
         while written < buffer.size() {
             let len = Int64::min(buffer.size() - written, DEFAULT_BUFFER_SIZE);
-            let result = file.writePart(buffer, written, len);
+            let result = file.write(buffer, written, len);
 
             match result {
                 Ok(bytesWritten) => {
@@ -138,11 +138,30 @@ impl Read for OpenFile {
 }
 
 impl Write for OpenFile {
-    fn write(array: Array[UInt8]): Result[Int64, IOError] {
-        self.writePart(array, 0, array.size())
+    fn writeAll(array: Array[UInt8], offset: Int64, len: Int64): Result[(), IOError] {
+        let mut curr = offset;
+        let end = offset + len;
+
+        while curr < end {
+            let result = self.write(array, curr, end - curr);
+
+            match result {
+                Ok(bytesWritten) => {
+                    if bytesWritten <= 0 {
+                        return Err(IOError());
+                    }
+
+                    curr = curr + bytesWritten;
+                }
+
+                Err(e) => return Err(e),
+            }
+        }
+
+        Ok(())
     }
 
-    fn writePart(array: Array[UInt8], offset: Int64, len: Int64): Result[Int64, IOError] {
+    fn write(array: Array[UInt8], offset: Int64, len: Int64): Result[Int64, IOError] {
         let written = fileWrite(self.fd, array, offset, len);
 
         if written >= 0 {
@@ -150,10 +169,6 @@ impl Write for OpenFile {
         } else {
             Err[Int64, IOError](IOError())
         }
-    }
-
-    fn writeString(text: String): Result[Int64, IOError] {
-        self.write(text.asBytes())
     }
 
     fn flush(): Result[(), IOError] {
@@ -167,9 +182,8 @@ pub trait Read {
 }
 
 pub trait Write {
-    fn write(array: Array[UInt8]): Result[Int64, IOError];
-    fn writePart(array: Array[UInt8], offset: Int64, len: Int64): Result[Int64, IOError];
-    fn writeString(text: String): Result[Int64, IOError];
+    fn writeAll(array: Array[UInt8], offset: Int64, len: Int64): Result[(), IOError];
+    fn write(array: Array[UInt8], offset: Int64, len: Int64): Result[Int64, IOError];
     fn flush(): Result[(), IOError];
 }
 
@@ -193,27 +207,9 @@ impl BufferedWriter {
 
 impl BufferedWriter {
     fn flushBuffer(): Result[(), IOError] {
-        let mut written = 0;
-
-        while written < self.len {
-            let len = Int64::min(self.len - written, DEFAULT_BUFFER_SIZE);
-            let result = self.file.writePart(self.buffer, written, len);
-
-            match result {
-                Ok(bytesWritten) => {
-                    if bytesWritten <= 0 {
-                        return Err(IOError());
-                    }
-
-                    written = written + bytesWritten;
-                }
-
-                Err(e) => return Err(e),
-            }
-        }
-
+        let result = self.file.writeAll(self.buffer, 0, self.len);
         self.len = 0;
-        Ok(())
+        result
     }
 
     fn remainingCapacity(): Int64 {
@@ -222,11 +218,25 @@ impl BufferedWriter {
 }
 
 impl Write for BufferedWriter {
-    fn write(array: Array[UInt8]): Result[Int64, IOError] {
-        self.writePart(array, 0, array.size())
+    fn writeAll(array: Array[UInt8], offset: Int64, len: Int64): Result[(), IOError] {
+        if self.remainingCapacity() < len {
+            let result = self.flushBuffer();
+
+            if result.isErr() {
+                return Err(result.getErrOrPanic());
+            }
+        }
+
+        if len < self.buffer.size() {
+            Array[UInt8]::copy(array, offset, self.buffer, self.len, len);
+            self.len = self.len + len;
+            Ok[(), IOError](())
+        } else {
+            self.file.writeAll(array, offset, len)
+        }
     }
 
-    fn writePart(array: Array[UInt8], offset: Int64, len: Int64): Result[Int64, IOError] {
+    fn write(array: Array[UInt8], offset: Int64, len: Int64): Result[Int64, IOError] {
         if self.remainingCapacity() < len {
             let result = self.flushBuffer();
 
@@ -240,12 +250,8 @@ impl Write for BufferedWriter {
             self.len = self.len + len;
             Ok[Int64, IOError](len)
         } else {
-            self.file.writePart(array, offset, len)
+            self.file.write(array, offset, len)
         }
-    }
-
-    fn writeString(text: String): Result[Int64, IOError] {
-        self.write(text.asBytes())
     }
 
     fn flush(): Result[(), IOError] {

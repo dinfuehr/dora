@@ -1,6 +1,7 @@
 fn main() {
     let file = std::io::File::create("tests/io/test123.txt");
-    let written = file.write("hello\n".asBytes());
+    let bytes = "hello\n".asBytes();
+    let written = file.write(bytes, 0, bytes.size());
     assert(written.getOrPanic() == 6);
     file.close();
 }

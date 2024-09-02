@@ -376,7 +376,8 @@ function passCollapse(element, event) {
     }
 
     fn write(text: String) {
-        self.writer.writeString(text);
+        let bytes = text.asBytes();
+        self.writer.writeAll(bytes, 0, bytes.size()).getOrPanic();
     }
 }
 
@@ -384,49 +385,56 @@ class HtmlBytecodeDumper {
     writer: Write,
 }
 
+impl HtmlBytecodeDumper {
+    fn write(text: String) {
+        let bytes = text.asBytes();
+        self.writer.writeAll(bytes, 0, bytes.size()).getOrPanic();
+    }
+}
+
 impl BytecodeDumper for HtmlBytecodeDumper {
     fn emitInst(inst: BytecodeInstructionInfo, name: String) {
-        self.writer.writeString(name);
+        self.write(name);
     }
 
     fn emitReg3(inst: BytecodeInstructionInfo, name: String, r1: BytecodeRegister, r2: BytecodeRegister, r3: BytecodeRegister) {
-        self.writer.writeString("${name} ${reg(r1)}, ${reg(r2)}, ${reg(r3)}");
+        self.write("${name} ${reg(r1)}, ${reg(r2)}, ${reg(r3)}");
     }
 
     fn emitReg2(inst: BytecodeInstructionInfo, name: String, r1: BytecodeRegister, r2: BytecodeRegister) {
-        self.writer.writeString("${name} ${reg(r1)}, ${reg(r2)}");
+        self.write("${name} ${reg(r1)}, ${reg(r2)}");
     }
 
     fn emitReg2AndIdx(inst: BytecodeInstructionInfo, name: String, r1: BytecodeRegister, r2: BytecodeRegister, idx: ConstPoolId) {
-        self.writer.writeString("${name} ${reg(r1)}, ${reg(r2)}, ${cp(idx)}");
+        self.write("${name} ${reg(r1)}, ${reg(r2)}, ${cp(idx)}");
     }
 
     fn emitReg1(inst: BytecodeInstructionInfo, name: String, r1: BytecodeRegister) {
-        self.writer.writeString("${name} ${reg(r1)}").getOrPanic();
+        self.write("${name} ${reg(r1)}");
     }
 
     fn emitReg1AndInt(inst: BytecodeInstructionInfo, name: String, r1: BytecodeRegister, value: Int32) {
-        self.writer.writeString("${name} ${reg(r1)}, ${value}").getOrPanic();
+        self.write("${name} ${reg(r1)}, ${value}");
     }
 
     fn emitReg1AndIdx(inst: BytecodeInstructionInfo, name: String, r1: BytecodeRegister, idx: ConstPoolId) {
-        self.writer.writeString("${name} ${reg(r1)}, ${cp(idx)}").getOrPanic();
+        self.write("${name} ${reg(r1)}, ${cp(idx)}");
     }
 
     fn emitConditionalJump(inst: BytecodeInstructionInfo, name: String, r: BytecodeRegister, offset: Int32) {
-        self.writer.writeString("${name} ${reg(r)}, ${inst.start + offset.toInt64()} (+${offset})");
+        self.write("${name} ${reg(r)}, ${inst.start + offset.toInt64()} (+${offset})");
     }
 
     fn emitBackwardJump(inst: BytecodeInstructionInfo, name: String, offset: Int32) {
-        self.writer.writeString("${name} ${inst.start - offset.toInt64()} (-${offset})");
+        self.write("${name} ${inst.start - offset.toInt64()} (-${offset})");
     }
 
     fn emitJump(inst: BytecodeInstructionInfo, name: String, offset: Int32) {
-        self.writer.writeString("${name} ${inst.start + offset.toInt64()} (+${offset})");
+        self.write("${name} ${inst.start + offset.toInt64()} (+${offset})");
     }
 
     fn emitGlobal(inst: BytecodeInstructionInfo, name: String, r1: BytecodeRegister, gid: GlobalId) {
-        self.writer.writeString("${name} ${reg(r1)}, ${gid.value}");
+        self.write("${name} ${reg(r1)}, ${gid.value}");
     }
 }
 
