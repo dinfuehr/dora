@@ -142,7 +142,20 @@ impl Stringable for ConstPoolEntry {
             ConstPoolEntry::Float64(value) => "Float64 ${value}",
             ConstPoolEntry::Char(value) => "Char ${value}",
             ConstPoolEntry::String(value) => "String ${value}",
-            _ => unreachable[String](),
+            ConstPoolEntry::Class(id, typeParams) => "Class ${id.value}${typeParams}",
+            ConstPoolEntry::Field(id, typeParams, fieldId) => "Field ${id.value}${typeParams}.${fieldId.value}",
+            ConstPoolEntry::Fct(id, typeParams) => "Fct ${id.value}${typeParams}",
+            ConstPoolEntry::TraitObjectMethod(ty, id, typeParams) => "TraitObjectMethod ${ty} ${id.value}${typeParams}",
+            ConstPoolEntry::Generic(tp, id, typeParams) => "Generic ${tp} ${id.value}${typeParams}",
+            ConstPoolEntry::Enum(id, typeParams) => "Enum ${id.value}${typeParams}",
+            ConstPoolEntry::EnumVariant(id, typeParams, variant) => "EnumVariant ${id.value}${typeParams}::${variant}",
+            ConstPoolEntry::EnumElement(id, typeParams, variant, element) => "EnumVariant ${id.value}${typeParams}::${variant}.${element}",
+            ConstPoolEntry::Struct(id, typeParams) => "Struct ${id.value}${typeParams}",
+            ConstPoolEntry::StructField(id, typeParams, fieldId) => "StructField ${id.value}${typeParams}.${fieldId.value}",
+            ConstPoolEntry::Trait(id, typeParams, ty) => "Trait ${id.value}${typeParams}.${ty}",
+            ConstPoolEntry::TupleElement(ty, idx) => "TupleElement ${ty}.${idx}",
+            ConstPoolEntry::Tuple(types) => "Tuple ${types}",
+            ConstPoolEntry::Lambda(params, ret) => "Lambda ${params}:${ret}",
         }
     }
 }

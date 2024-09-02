@@ -159,7 +159,7 @@ function elementSelected(element, event) {
         let mut i = 0;
         self.write("<div class=\"constpool\">");
         for entry in bc.const_pool {
-            self.write("<div class=\"cp${i} selectable\">@${i} = ${entry.toString()}</div>");
+            self.write("<div class=\"cp${i} selectable\">@${i} = ${entry}</div>");
             i = i + 1i64;
         }
         self.write("</div>");
