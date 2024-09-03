@@ -1436,7 +1436,7 @@ impl Parser {
                 PATTERN_LIST,
                 |p| {
                     if p.is_set(MATCH_PATTERN_FIRST) {
-                        Some(p.parse_pattern_param())
+                        Some(p.parse_pattern())
                     } else {
                         None
                     }
@@ -1479,7 +1479,7 @@ impl Parser {
                     PATTERN_LIST,
                     |p| {
                         if p.is_set(MATCH_PATTERN_FIRST) {
-                            Some(p.parse_pattern_param())
+                            Some(p.parse_pattern())
                         } else {
                             None
                         }
@@ -1497,26 +1497,6 @@ impl Parser {
                 path,
                 params,
             }))
-        }
-    }
-
-    fn parse_pattern_param(&mut self) -> PatternParam {
-        self.start_node();
-
-        let (mutable, name) = if self.eat(UNDERSCORE) {
-            (false, None)
-        } else {
-            let mutable = self.eat(MUT_KW);
-            let ident = self.expect_identifier();
-
-            (mutable, ident)
-        };
-
-        PatternParam {
-            id: self.new_node_id(),
-            span: self.finish_node(),
-            mutable,
-            name,
         }
     }
 

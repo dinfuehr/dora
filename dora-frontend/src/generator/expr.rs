@@ -345,31 +345,47 @@ fn match_case_body(
 ) {
     g.push_scope();
 
-    if let ast::Pattern::StructOrEnum(ref ident) = pattern {
-        if let Some(ref params) = ident.params {
-            let variant_idx = match_variant_idx(g, pattern);
+    match pattern {
+        ast::Pattern::Underscore(..) | ast::Pattern::Ident(..) => {
+            // Nothing to do.
+        }
+        ast::Pattern::Tuple(..) => unreachable!(),
+        ast::Pattern::StructOrEnum(ref ident) => {
+            if let Some(ref params) = ident.params {
+                let variant_idx = match_variant_idx(g, pattern);
 
-            for (subtype_idx, param) in params.iter().enumerate() {
-                if let Some(_) = param.name {
-                    let idx = g.builder.add_const_enum_element(
-                        EnumId(enum_id.index().try_into().expect("overflow")),
-                        bty_array_from_ty(&enum_ty.type_params()),
-                        variant_idx,
-                        subtype_idx as u32,
-                    );
+                for (subtype_idx, param) in params.iter().enumerate() {
+                    match param.as_ref() {
+                        ast::Pattern::Underscore(..) => {
+                            // Do nothing.
+                        }
+                        ast::Pattern::Tuple(..) | ast::Pattern::StructOrEnum(..) => unreachable!(),
+                        ast::Pattern::Ident(ref ident) => {
+                            let idx = g.builder.add_const_enum_element(
+                                EnumId(enum_id.index().try_into().expect("overflow")),
+                                bty_array_from_ty(&enum_ty.type_params()),
+                                variant_idx,
+                                subtype_idx as u32,
+                            );
 
-                    let var_id = *g.analysis.map_vars.get(param.id).unwrap();
+                            let var_id = *g.analysis.map_vars.get(ident.id).unwrap();
 
-                    let ty = g.var_ty(var_id);
+                            let ty = g.var_ty(var_id);
 
-                    if !ty.is_unit() {
-                        let ty: BytecodeType = register_bty_from_ty(ty);
-                        let var_reg = g.alloc_var(ty);
+                            if !ty.is_unit() {
+                                let ty: BytecodeType = register_bty_from_ty(ty);
+                                let var_reg = g.alloc_var(ty);
 
-                        g.var_registers.insert(var_id, var_reg);
+                                g.var_registers.insert(var_id, var_reg);
 
-                        g.builder
-                            .emit_load_enum_element(var_reg, expr_reg, idx, g.loc(param.span));
+                                g.builder.emit_load_enum_element(
+                                    var_reg,
+                                    expr_reg,
+                                    idx,
+                                    g.loc(ident.span),
+                                );
+                            }
+                        }
                     }
                 }
             }

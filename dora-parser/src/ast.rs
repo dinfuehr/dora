@@ -2073,7 +2073,7 @@ pub struct PatternIdent {
 pub struct PatternTuple {
     pub id: NodeId,
     pub span: Span,
-    pub params: Vec<PatternParam>,
+    pub params: Vec<Arc<Pattern>>,
 }
 
 #[derive(Clone, Debug)]
@@ -2081,7 +2081,7 @@ pub struct PatternStructOrEnum {
     pub id: NodeId,
     pub span: Span,
     pub path: Path,
-    pub params: Option<Vec<PatternParam>>,
+    pub params: Option<Vec<Arc<Pattern>>>,
 }
 
 #[derive(Clone, Debug)]

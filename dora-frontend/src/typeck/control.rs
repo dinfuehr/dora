@@ -1,4 +1,5 @@
 use std::collections::HashMap;
+use std::sync::Arc;
 
 use dora_parser::ast;
 use fixedbitset::FixedBitSet;
@@ -520,33 +521,41 @@ fn check_expr_match_pattern_enum_variant(
 
     if let Some(params) = params {
         for (idx, param) in params.iter().enumerate() {
-            if let Some(ident) = &param.name {
-                let ty = if idx < variant.types().len() {
-                    variant.types()[idx].clone()
-                } else {
-                    SourceType::Error
-                };
-
-                let ty = replace_type(
-                    ck.sa,
-                    ty,
-                    Some(&expr_type_params),
-                    None,
-                    AliasReplacement::None,
-                );
-
-                let iname = ck.sa.interner.intern(&ident.name_as_string);
-
-                if used_idents.insert(iname, ty.clone()).is_some() {
-                    let msg = ErrorMessage::VarAlreadyInPattern;
-                    ck.sa.report(ck.file_id, param.span, msg);
+            match param.as_ref() {
+                ast::Pattern::Underscore(..) => {
+                    // Do nothing.
                 }
 
-                let var_id = ck.vars.add_var(iname, ty, param.mutable);
-                add_local(ck.sa, ck.symtable, ck.vars, var_id, ck.file_id, param.span);
-                ck.analysis
-                    .map_vars
-                    .insert(param.id, ck.vars.local_var_id(var_id));
+                ast::Pattern::Ident(ref ident) => {
+                    let ty = if idx < variant.types().len() {
+                        variant.types()[idx].clone()
+                    } else {
+                        SourceType::Error
+                    };
+
+                    let ty = replace_type(
+                        ck.sa,
+                        ty,
+                        Some(&expr_type_params),
+                        None,
+                        AliasReplacement::None,
+                    );
+
+                    let iname = ck.sa.interner.intern(&ident.name.name_as_string);
+
+                    if used_idents.insert(iname, ty.clone()).is_some() {
+                        let msg = ErrorMessage::VarAlreadyInPattern;
+                        ck.sa.report(ck.file_id, ident.span, msg);
+                    }
+
+                    let var_id = ck.vars.add_var(iname, ty, ident.mutable);
+                    add_local(ck.sa, ck.symtable, ck.vars, var_id, ck.file_id, ident.span);
+                    ck.analysis
+                        .map_vars
+                        .insert(ident.id, ck.vars.local_var_id(var_id));
+                }
+
+                ast::Pattern::StructOrEnum(..) | ast::Pattern::Tuple(..) => unreachable!(),
             }
         }
     }
@@ -554,7 +563,7 @@ fn check_expr_match_pattern_enum_variant(
     used_idents
 }
 
-fn struct_or_enum_params(p: &ast::Pattern) -> Option<&Vec<ast::PatternParam>> {
+fn struct_or_enum_params(p: &ast::Pattern) -> Option<&Vec<Arc<ast::Pattern>>> {
     match p {
         ast::Pattern::Underscore(..) | ast::Pattern::Tuple(..) => unreachable!(),
         ast::Pattern::Ident(..) => None,
