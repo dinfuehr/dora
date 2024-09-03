@@ -970,12 +970,15 @@ impl SsaGen {
 
             EnumLayout::Tagged => {
                 let destTy = self.reg(dest);
-                let src = self.readVariable(src, self.current());
 
-                let offset = iface::getFieldOffsetForEnumVariant(self.ci, enum_id, type_params, variant_id, field_id);
-                let result = self.loadField(destTy, src, offset);
+                if !destTy.isUnit() {
+                    let src = self.readVariable(src, self.current());
 
-                self.writeVariable(dest, self.current(), result);
+                    let offset = iface::getFieldOffsetForEnumVariant(self.ci, enum_id, type_params, variant_id, field_id);
+                    let result = self.loadField(destTy, src, offset);
+
+                    self.writeVariable(dest, self.current(), result);
+                }
             }
         }
     }
