@@ -277,9 +277,7 @@ pub(super) fn gen_match(
                     g.builder.emit_jump(labels[idx]);
                 }
 
-                ast::Pattern::Ident(..) => unimplemented!(),
-
-                ast::Pattern::StructOrEnum(_) => {
+                ast::Pattern::Ident(_) | ast::Pattern::StructOrEnum(_) => {
                     match_check_ident(g, pattern, variant_reg, labels[idx]);
                 }
             }

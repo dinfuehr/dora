@@ -9,7 +9,9 @@ use crate::typeck::control::{
     check_expr_break_and_continue, check_expr_for, check_expr_if, check_expr_match,
     check_expr_return, check_expr_while,
 };
-use crate::typeck::expr::{check_enum_value_with_args, check_expr, read_path, read_path_expr};
+use crate::typeck::expr::{
+    check_enum_value_with_args, check_expr, read_ident, read_path, read_path_expr,
+};
 use crate::typeck::function::{
     add_local, args_compatible, args_compatible_fct, check_lit_char, check_lit_float,
     check_lit_int, check_lit_str, is_simple_enum, TypeCheck, VarManager,

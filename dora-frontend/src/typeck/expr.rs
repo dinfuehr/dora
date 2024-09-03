@@ -609,7 +609,42 @@ fn check_expr_is(ck: &mut TypeCheck, e: &ast::ExprIsType, _expected_ty: SourceTy
             ck.sa.report(ck.file_id, e.pattern.span(), msg);
         }
 
-        ast::Pattern::Ident(..) => unimplemented!(),
+        ast::Pattern::Ident(ref ident) => {
+            let sym = read_ident(ck, &ident.name);
+
+            match sym {
+                Ok(SymbolKind::EnumVariant(enum_id, variant_idx)) => {
+                    let pattern_enum = ck.sa.enum_(enum_id);
+                    let variant = &pattern_enum.variants[variant_idx as usize];
+
+                    if Some(enum_id) == value_enum_id {
+                        ck.analysis.map_idents.insert(
+                            e.pattern.id(),
+                            IdentType::EnumVariant(enum_id, value_type_params.clone(), variant_idx),
+                        );
+                    } else if value_enum_id.is_some() {
+                        let value_enum = ck.sa.enum_(value_enum_id.expect("missing"));
+                        let value_enum_name = value_enum.name(ck.sa);
+                        let pattern_enum = pattern_enum.name(ck.sa);
+                        let msg = ErrorMessage::EnumMismatch(value_enum_name, pattern_enum);
+                        ck.sa.report(ck.file_id, ident.span, msg);
+                    }
+
+                    if !variant.types().is_empty() {
+                        let msg =
+                            ErrorMessage::MatchPatternWrongNumberOfParams(0, variant.types().len());
+                        ck.sa.report(ck.file_id, e.pattern.span(), msg);
+                    }
+                }
+
+                Ok(_) => {
+                    let msg = ErrorMessage::EnumVariantExpected;
+                    ck.sa.report(ck.file_id, ident.span, msg);
+                }
+
+                Err(()) => {}
+            }
+        }
 
         ast::Pattern::StructOrEnum(ref ident) => {
             let sym = read_path(ck, &ident.path);
@@ -1816,6 +1851,20 @@ pub(super) fn check_type(
         let msg = ErrorMessage::BinOpType(op, lhs_type, rhs_type);
 
         ck.sa.report(ck.file_id, e.span, msg);
+    }
+}
+
+pub(super) fn read_ident(ck: &mut TypeCheck, ident: &ast::IdentData) -> Result<SymbolKind, ()> {
+    let sym = ck.symtable.get_string(ck.sa, &ident.name_as_string);
+
+    if let Some(sym) = sym {
+        Ok(sym)
+    } else {
+        let name = ident.name_as_string.clone();
+        let msg = ErrorMessage::UnknownIdentifier(name);
+        ck.sa.report(ck.file_id, ident.span, msg);
+
+        Err(())
     }
 }
 

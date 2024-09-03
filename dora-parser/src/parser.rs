@@ -1437,6 +1437,16 @@ impl Parser {
                 name,
             }))
         } else {
+            if self.is(IDENTIFIER) && !(self.nth_is(1, COLON_COLON) || self.nth_is(1, L_PAREN)) {
+                let name = self.expect_identifier().expect("identifier expected");
+                return Arc::new(Pattern::Ident(PatternIdent {
+                    id: self.new_node_id(),
+                    span: self.finish_node(),
+                    mutable: false,
+                    name,
+                }));
+            }
+
             let path = self.parse_path();
 
             let params = if self.is(L_PAREN) {

@@ -8,7 +8,7 @@ use crate::expr_always_returns;
 use crate::interner::Name;
 use crate::sema::{find_impl, EnumDefinitionId, FctDefinitionId, ForTypeInfo, IdentType};
 use crate::sym::SymbolKind;
-use crate::typeck::{add_local, check_expr, check_let_pattern, read_path, TypeCheck};
+use crate::typeck::{add_local, check_expr, check_let_pattern, read_ident, read_path, TypeCheck};
 use crate::{replace_type, specialize_type, AliasReplacement, SourceType, SourceTypeArray};
 
 pub(super) fn check_expr_while(
@@ -410,7 +410,37 @@ fn check_expr_match_pattern(
             HashMap::new()
         }
 
-        ast::Pattern::Ident(..) => unimplemented!(),
+        ast::Pattern::Ident(ref ident) => {
+            let sym = read_ident(ck, &ident.name);
+
+            match sym {
+                Ok(SymbolKind::EnumVariant(enum_id, variant_idx)) => {
+                    if Some(enum_id) == expr_enum_id {
+                        check_expr_match_pattern_enum_variant(
+                            ck,
+                            enum_id,
+                            variant_idx,
+                            expr_type_params,
+                            case,
+                            pattern,
+                            used_variants,
+                        )
+                    } else {
+                        let msg = ErrorMessage::EnumVariantExpected;
+                        ck.sa.report(ck.file_id, ident.span, msg);
+                        HashMap::new()
+                    }
+                }
+
+                Ok(_) => {
+                    let msg = ErrorMessage::EnumVariantExpected;
+                    ck.sa.report(ck.file_id, ident.span, msg);
+                    HashMap::new()
+                }
+
+                Err(()) => HashMap::new(),
+            }
+        }
 
         ast::Pattern::StructOrEnum(ref ident) => {
             let sym = read_path(ck, &ident.path);
@@ -425,7 +455,6 @@ fn check_expr_match_pattern(
                             expr_type_params,
                             case,
                             pattern,
-                            ident,
                             used_variants,
                         )
                     } else {
@@ -454,7 +483,6 @@ fn check_expr_match_pattern_enum_variant(
     expr_type_params: SourceTypeArray,
     case: &ast::MatchCaseType,
     pattern: &ast::Pattern,
-    ident: &ast::PatternStructOrEnum,
     used_variants: &mut FixedBitSet,
 ) -> HashMap<Name, SourceType> {
     if used_variants.contains(variant_idx as usize) {
@@ -471,13 +499,11 @@ fn check_expr_match_pattern_enum_variant(
     let enum_ = ck.sa.enum_(enum_id);
     let variant = &enum_.variants()[variant_idx as usize];
 
-    let given_params = if let Some(ref params) = ident.params {
-        params.len()
-    } else {
-        0
-    };
+    let params = pattern_params(pattern);
 
-    if given_params == 0 && ident.params.is_some() {
+    let given_params = params.map(|x| x.len()).unwrap_or(0);
+
+    if given_params == 0 && params.is_some() {
         let msg = ErrorMessage::MatchPatternNoParens;
         ck.sa.report(ck.file_id, case.span, msg);
     }
@@ -491,7 +517,7 @@ fn check_expr_match_pattern_enum_variant(
 
     let mut used_idents: HashMap<Name, SourceType> = HashMap::new();
 
-    if let Some(ref params) = ident.params {
+    if let Some(params) = params {
         for (idx, param) in params.iter().enumerate() {
             if let Some(ident) = &param.name {
                 let ty = if idx < variant.types().len() {
@@ -525,4 +551,12 @@ fn check_expr_match_pattern_enum_variant(
     }
 
     used_idents
+}
+
+fn pattern_params(p: &ast::Pattern) -> Option<&Vec<ast::PatternParam>> {
+    match p {
+        ast::Pattern::Underscore(..) => unreachable!(),
+        ast::Pattern::Ident(..) => None,
+        ast::Pattern::StructOrEnum(p) => p.params.as_ref(),
+    }
 }
