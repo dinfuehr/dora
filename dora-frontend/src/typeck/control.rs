@@ -410,6 +410,8 @@ fn check_expr_match_pattern(
             HashMap::new()
         }
 
+        ast::Pattern::Tuple(..) => unimplemented!(),
+
         ast::Pattern::Ident(ref ident) => {
             let sym = read_ident(ck, &ident.name);
 
@@ -499,8 +501,7 @@ fn check_expr_match_pattern_enum_variant(
     let enum_ = ck.sa.enum_(enum_id);
     let variant = &enum_.variants()[variant_idx as usize];
 
-    let params = pattern_params(pattern);
-
+    let params = struct_or_enum_params(pattern);
     let given_params = params.map(|x| x.len()).unwrap_or(0);
 
     if given_params == 0 && params.is_some() {
@@ -553,9 +554,9 @@ fn check_expr_match_pattern_enum_variant(
     used_idents
 }
 
-fn pattern_params(p: &ast::Pattern) -> Option<&Vec<ast::PatternParam>> {
+fn struct_or_enum_params(p: &ast::Pattern) -> Option<&Vec<ast::PatternParam>> {
     match p {
-        ast::Pattern::Underscore(..) => unreachable!(),
+        ast::Pattern::Underscore(..) | ast::Pattern::Tuple(..) => unreachable!(),
         ast::Pattern::Ident(..) => None,
         ast::Pattern::StructOrEnum(p) => p.params.as_ref(),
     }

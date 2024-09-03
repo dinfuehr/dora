@@ -2030,6 +2030,7 @@ pub struct MatchCaseType {
 #[derive(Clone, Debug)]
 pub enum Pattern {
     Underscore(PatternUnderscore),
+    Tuple(PatternTuple),
     Ident(PatternIdent),
     StructOrEnum(PatternStructOrEnum),
 }
@@ -2037,7 +2038,8 @@ pub enum Pattern {
 impl Pattern {
     pub fn id(&self) -> NodeId {
         match self {
-            Pattern::Underscore(ref p) => p.id,
+            Pattern::Underscore(p) => p.id,
+            Pattern::Tuple(p) => p.id,
             Pattern::Ident(p) => p.id,
             Pattern::StructOrEnum(p) => p.id,
         }
@@ -2046,6 +2048,7 @@ impl Pattern {
     pub fn span(&self) -> Span {
         match self {
             Pattern::Underscore(p) => p.span,
+            Pattern::Tuple(p) => p.span,
             Pattern::Ident(p) => p.span,
             Pattern::StructOrEnum(p) => p.span,
         }
@@ -2067,6 +2070,13 @@ pub struct PatternIdent {
 }
 
 #[derive(Clone, Debug)]
+pub struct PatternTuple {
+    pub id: NodeId,
+    pub span: Span,
+    pub params: Vec<PatternParam>,
+}
+
+#[derive(Clone, Debug)]
 pub struct PatternStructOrEnum {
     pub id: NodeId,
     pub span: Span,
@@ -2078,8 +2088,8 @@ pub struct PatternStructOrEnum {
 pub struct PatternParam {
     pub id: NodeId,
     pub span: Span,
-    pub name: Option<Ident>,
     pub mutable: bool,
+    pub name: Option<Ident>,
 }
 
 pub type Path = Arc<PathData>;

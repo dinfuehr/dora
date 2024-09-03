@@ -1426,8 +1426,28 @@ impl Parser {
                 id: self.new_node_id(),
                 span: self.finish_node(),
             }))
-        } else if self.eat(L_PAREN) {
-            unimplemented!()
+        } else if self.is(L_PAREN) {
+            let params = self.parse_list(
+                L_PAREN,
+                COMMA,
+                R_PAREN,
+                MATCH_PATTERN_RS,
+                ParseError::ExpectedPattern,
+                PATTERN_LIST,
+                |p| {
+                    if p.is_set(MATCH_PATTERN_FIRST) {
+                        Some(p.parse_pattern_param())
+                    } else {
+                        None
+                    }
+                },
+            );
+
+            Arc::new(Pattern::Tuple(PatternTuple {
+                id: self.new_node_id(),
+                span: self.finish_node(),
+                params,
+            }))
         } else if self.eat(MUT_KW) {
             let name = self.expect_identifier().expect("identifier expected");
             Arc::new(Pattern::Ident(PatternIdent {

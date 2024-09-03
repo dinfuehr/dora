@@ -609,6 +609,8 @@ fn check_expr_is(ck: &mut TypeCheck, e: &ast::ExprIsType, _expected_ty: SourceTy
             ck.sa.report(ck.file_id, e.pattern.span(), msg);
         }
 
+        ast::Pattern::Tuple(..) => unimplemented!(),
+
         ast::Pattern::Ident(ref ident) => {
             let sym = read_ident(ck, &ident.name);
 
