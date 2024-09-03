@@ -73,10 +73,9 @@ impl<'a> ConstCheck<'a> {
         };
 
         if !self.const_.ty().allows(self.sa, ty.clone()) {
-            let name = self.sa.interner.str(self.const_.name).to_string();
             let const_ty = self.const_.ty().name(self.sa);
             let ty = ty.name(self.sa);
-            let msg = ErrorMessage::AssignType(name, const_ty, ty);
+            let msg = ErrorMessage::AssignType(const_ty, ty);
             self.sa.report(self.const_.file_id, expr.span(), msg);
         }
 

@@ -64,7 +64,7 @@ pub const FIELD_FIRST: TokenSet = TokenSet::new(&[IDENTIFIER, COLON]).union(MODI
 pub const FIELD_RS: TokenSet = ELEM_FIRST;
 pub const LET_PATTERN_FIRST: TokenSet = TokenSet::new(&[L_PAREN, MUT_KW, UNDERSCORE, IDENTIFIER]);
 pub const LET_PATTERN_RS: TokenSet = TokenSet::new(&[EQ]);
-pub const MATCH_PATTERN_FIRST: TokenSet = TokenSet::new(&[UNDERSCORE, MUT_KW, IDENTIFIER]);
+pub const MATCH_PATTERN_FIRST: TokenSet = TokenSet::new(&[UNDERSCORE, MUT_KW, L_PAREN, IDENTIFIER]);
 pub const MATCH_PATTERN_RS: TokenSet = TokenSet::new(&[DOUBLE_ARROW]);
 
 pub const ELEM_FIRST: TokenSet = TokenSet::new(&[

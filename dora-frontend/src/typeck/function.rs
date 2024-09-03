@@ -66,10 +66,9 @@ impl<'a> TypeCheck<'a> {
                 && !expr_ty.is_error()
                 && !global.ty().allows(self_.sa, expr_ty.clone())
             {
-                let name = self_.sa.interner.str(global.name).to_string();
                 let global_ty = self_.ty_name(&global.ty());
                 let expr_ty = self_.ty_name(&expr_ty);
-                let msg = ErrorMessage::AssignType(name, global_ty, expr_ty);
+                let msg = ErrorMessage::AssignType(global_ty, expr_ty);
                 self_.sa.report(self_.file_id, global.span, msg);
             }
         })

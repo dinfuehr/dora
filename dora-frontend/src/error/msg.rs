@@ -60,7 +60,7 @@ pub enum ErrorMessage {
     IfCondType(String),
     ReturnType(String, String),
     LvalueExpected,
-    AssignType(String, String, String),
+    AssignType(String, String),
     AssignField(String, String, String, String),
     UnOpType(String, String),
     BinOpType(String, String, String),
@@ -350,10 +350,9 @@ impl ErrorMessage {
             ),
             ErrorMessage::LvalueExpected => format!("lvalue expected for assignment"),
             ErrorMessage::ValueExpected => format!("value expected"),
-            ErrorMessage::AssignType(ref name, ref def, ref expr) => format!(
-                "cannot assign `{}` to variable `{}` of type `{}`.",
-                expr, name, def
-            ),
+            ErrorMessage::AssignType(ref def, ref expr) => {
+                format!("cannot assign `{}` to variable of type `{}`.", expr, def)
+            }
             ErrorMessage::AssignField(ref name, ref cls, ref def, ref expr) => format!(
                 "cannot assign `{}` to field `{}`.`{}` of type `{}`.",
                 expr, cls, name, def

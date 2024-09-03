@@ -799,7 +799,7 @@ impl StmtData {
     pub fn create_let(
         id: NodeId,
         span: Span,
-        pattern: Box<LetPattern>,
+        pattern: Arc<Pattern>,
         data_type: Option<Type>,
         expr: Option<Expr>,
     ) -> StmtData {
@@ -858,82 +858,10 @@ pub struct StmtLetType {
     pub id: NodeId,
     pub span: Span,
 
-    pub pattern: Box<LetPattern>,
+    pub pattern: Arc<Pattern>,
 
     pub data_type: Option<Type>,
     pub expr: Option<Expr>,
-}
-
-#[derive(Clone, Debug)]
-pub enum LetPattern {
-    Ident(LetIdentType),
-    Tuple(LetTupleType),
-    Underscore(LetUnderscoreType),
-}
-
-impl LetPattern {
-    pub fn is_ident(&self) -> bool {
-        match self {
-            LetPattern::Ident(_) => true,
-            _ => false,
-        }
-    }
-
-    pub fn is_tuple(&self) -> bool {
-        match self {
-            LetPattern::Tuple(_) => true,
-            _ => false,
-        }
-    }
-
-    pub fn is_underscore(&self) -> bool {
-        match self {
-            LetPattern::Underscore(_) => true,
-            _ => false,
-        }
-    }
-
-    pub fn to_name(&self) -> Option<String> {
-        match self {
-            LetPattern::Ident(ref ident) => ident.name.as_ref().map(|i| i.name_as_string.clone()),
-            _ => None,
-        }
-    }
-
-    pub fn to_ident(&self) -> Option<&LetIdentType> {
-        match self {
-            LetPattern::Ident(ref ident) => Some(ident),
-            _ => None,
-        }
-    }
-
-    pub fn to_tuple(&self) -> Option<&LetTupleType> {
-        match self {
-            LetPattern::Tuple(ref tuple) => Some(tuple),
-            _ => None,
-        }
-    }
-}
-
-#[derive(Clone, Debug)]
-pub struct LetUnderscoreType {
-    pub id: NodeId,
-    pub span: Span,
-}
-
-#[derive(Clone, Debug)]
-pub struct LetIdentType {
-    pub id: NodeId,
-    pub span: Span,
-    pub mutable: bool,
-    pub name: Option<Ident>,
-}
-
-#[derive(Clone, Debug)]
-pub struct LetTupleType {
-    pub id: NodeId,
-    pub span: Span,
-    pub parts: Vec<Box<LetPattern>>,
 }
 
 #[derive(Clone, Debug)]
@@ -942,7 +870,7 @@ pub struct ExprForType {
     pub span: Span,
     pub green: GreenNode,
 
-    pub pattern: Box<LetPattern>,
+    pub pattern: Arc<Pattern>,
     pub expr: Expr,
     pub block: Expr,
 }
@@ -1175,7 +1103,7 @@ impl ExprData {
         id: NodeId,
         span: Span,
         green: GreenNode,
-        pattern: Box<LetPattern>,
+        pattern: Arc<Pattern>,
         expr: Expr,
         block: Expr,
     ) -> ExprData {
@@ -2051,6 +1979,41 @@ impl Pattern {
             Pattern::Tuple(p) => p.span,
             Pattern::Ident(p) => p.span,
             Pattern::StructOrEnum(p) => p.span,
+        }
+    }
+
+    pub fn is_underscore(&self) -> bool {
+        match self {
+            Pattern::Underscore(..) => true,
+            _ => false,
+        }
+    }
+
+    pub fn is_ident(&self) -> bool {
+        match self {
+            Pattern::Ident(..) => true,
+            _ => false,
+        }
+    }
+
+    pub fn to_ident(&self) -> Option<&PatternIdent> {
+        match self {
+            Pattern::Ident(ref p) => Some(p),
+            _ => None,
+        }
+    }
+
+    pub fn is_tuple(&self) -> bool {
+        match self {
+            Pattern::Tuple(..) => true,
+            _ => false,
+        }
+    }
+
+    pub fn to_tuple(&self) -> Option<&PatternTuple> {
+        match self {
+            Pattern::Tuple(ref p) => Some(p),
+            _ => None,
         }
     }
 }

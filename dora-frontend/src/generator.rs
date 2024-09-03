@@ -361,9 +361,9 @@ impl<'a> AstBytecodeGen<'a> {
         }
     }
 
-    fn visit_stmt_for_pattern_setup(&mut self, pattern: &ast::LetPattern) {
+    fn visit_stmt_for_pattern_setup(&mut self, pattern: &ast::Pattern) {
         match pattern {
-            ast::LetPattern::Ident(ref ident) => {
+            ast::Pattern::Ident(ref ident) => {
                 let var_id = *self.analysis.map_vars.get(ident.id).unwrap();
                 let var = self.analysis.vars.get_var(var_id);
 
@@ -382,12 +382,13 @@ impl<'a> AstBytecodeGen<'a> {
                     }
                 }
             }
-            ast::LetPattern::Underscore(_) => {
+            ast::Pattern::Underscore(_) => {
                 // nothing to do
             }
-            ast::LetPattern::Tuple(ref tuple) => {
-                for part in &tuple.parts {
-                    self.visit_stmt_for_pattern_setup(part);
+            ast::Pattern::StructOrEnum(..) => unreachable!(),
+            ast::Pattern::Tuple(ref tuple) => {
+                for param in &tuple.params {
+                    self.visit_stmt_for_pattern_setup(param);
                 }
             }
         }
@@ -395,12 +396,12 @@ impl<'a> AstBytecodeGen<'a> {
 
     fn visit_stmt_for_pattern_assign_iterator(
         &mut self,
-        pattern: &ast::LetPattern,
+        pattern: &ast::Pattern,
         next_reg: Register,
         next_ty: SourceType,
     ) {
         match pattern {
-            ast::LetPattern::Ident(ref ident) => {
+            ast::Pattern::Ident(ref ident) => {
                 let var_id = *self.analysis.map_vars.get(ident.id).unwrap();
                 let var = self.analysis.vars.get_var(var_id);
 
@@ -423,12 +424,14 @@ impl<'a> AstBytecodeGen<'a> {
                 }
             }
 
-            ast::LetPattern::Underscore(_) => {
+            ast::Pattern::Underscore(_) => {
                 // nothing to do
             }
 
-            ast::LetPattern::Tuple(ref tuple) => {
-                assert!(tuple.parts.len() > 0);
+            ast::Pattern::StructOrEnum(..) => unreachable!(),
+
+            ast::Pattern::Tuple(ref tuple) => {
+                assert!(tuple.params.len() > 0);
                 self.destruct_tuple_pattern(tuple, next_reg, next_ty);
             }
         }
@@ -436,15 +439,15 @@ impl<'a> AstBytecodeGen<'a> {
 
     fn destruct_tuple_pattern(
         &mut self,
-        tuple: &ast::LetTupleType,
+        tuple: &ast::PatternTuple,
         tuple_reg: Register,
         tuple_ty: SourceType,
     ) {
         let tuple_subtypes = tuple_ty.tuple_subtypes();
 
-        for (idx, part) in tuple.parts.iter().enumerate() {
-            match &**part {
-                ast::LetPattern::Ident(ref ident) => {
+        for (idx, param) in tuple.params.iter().enumerate() {
+            match param.as_ref() {
+                ast::Pattern::Ident(ref ident) => {
                     let var_id = *self.analysis.map_vars.get(ident.id).unwrap();
                     let ty = self.var_ty(var_id);
 
@@ -461,11 +464,13 @@ impl<'a> AstBytecodeGen<'a> {
                     }
                 }
 
-                ast::LetPattern::Underscore(_) => {
+                ast::Pattern::Underscore(_) => {
                     // nothing to do
                 }
 
-                ast::LetPattern::Tuple(ref tuple) => {
+                ast::Pattern::StructOrEnum(..) => unreachable!(),
+
+                ast::Pattern::Tuple(ref tuple) => {
                     let ty = tuple_subtypes[idx].clone();
 
                     if !ty.is_unit() {
@@ -609,21 +614,23 @@ impl<'a> AstBytecodeGen<'a> {
 
     fn visit_stmt_let(&mut self, stmt: &ast::StmtLetType) {
         match &*stmt.pattern {
-            ast::LetPattern::Ident(ref ident) => {
+            ast::Pattern::Ident(ref ident) => {
                 self.visit_stmt_let_ident(stmt, ident);
             }
 
-            ast::LetPattern::Underscore(_) => {
+            ast::Pattern::Underscore(_) => {
                 self.visit_stmt_let_underscore(stmt);
             }
 
-            ast::LetPattern::Tuple(ref tuple) => {
+            ast::Pattern::StructOrEnum(..) => unreachable!(),
+
+            ast::Pattern::Tuple(ref tuple) => {
                 self.visit_stmt_let_pattern(stmt, tuple);
             }
         }
     }
 
-    fn visit_stmt_let_ident(&mut self, stmt: &ast::StmtLetType, ident: &ast::LetIdentType) {
+    fn visit_stmt_let_ident(&mut self, stmt: &ast::StmtLetType, ident: &ast::PatternIdent) {
         let var_id = *self.analysis.map_vars.get(ident.id).unwrap();
         let var = self.analysis.vars.get_var(var_id);
 
@@ -662,7 +669,7 @@ impl<'a> AstBytecodeGen<'a> {
         }
     }
 
-    fn visit_stmt_let_pattern(&mut self, stmt: &ast::StmtLetType, pattern: &ast::LetTupleType) {
+    fn visit_stmt_let_pattern(&mut self, stmt: &ast::StmtLetType, pattern: &ast::PatternTuple) {
         if let Some(ref expr) = stmt.expr {
             let ty = self.ty(expr.id());
 
@@ -678,10 +685,10 @@ impl<'a> AstBytecodeGen<'a> {
         }
     }
 
-    fn visit_stmt_let_tuple_init(&mut self, tuple: &ast::LetTupleType) {
-        for part in &tuple.parts {
+    fn visit_stmt_let_tuple_init(&mut self, tuple: &ast::PatternTuple) {
+        for part in &tuple.params {
             match &**part {
-                ast::LetPattern::Ident(ref ident) => {
+                ast::Pattern::Ident(ref ident) => {
                     let var_id = *self.analysis.map_vars.get(ident.id).unwrap();
                     let ty = self.var_ty(var_id);
                     let ty: BytecodeType = register_bty_from_ty(ty);
@@ -689,11 +696,13 @@ impl<'a> AstBytecodeGen<'a> {
                     self.var_registers.insert(var_id, var_reg);
                 }
 
-                ast::LetPattern::Underscore(_) => {
+                ast::Pattern::Underscore(_) => {
                     // nothing to do
                 }
 
-                ast::LetPattern::Tuple(ref tuple) => {
+                ast::Pattern::StructOrEnum(..) => unreachable!(),
+
+                ast::Pattern::Tuple(ref tuple) => {
                     self.visit_stmt_let_tuple_init(tuple);
                 }
             }

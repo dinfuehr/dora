@@ -232,12 +232,12 @@ fn type_var_wrong_type_defined() {
     err(
         "fn f() { let a : Int32 = true; }",
         (1, 10),
-        ErrorMessage::AssignType("a".into(), "Int32".into(), "Bool".into()),
+        ErrorMessage::AssignType("Int32".into(), "Bool".into()),
     );
     err(
         "fn f() { let b : Bool = 2i32; }",
         (1, 10),
-        ErrorMessage::AssignType("b".into(), "Bool".into(), "Int32".into()),
+        ErrorMessage::AssignType("Bool".into(), "Int32".into()),
     );
 }
 
@@ -413,7 +413,7 @@ fn type_function_return_type() {
         fn foo(): Int32 { return 1i32; }
         fn f() { let i: Bool = foo(); }",
         (3, 18),
-        ErrorMessage::AssignType("i".into(), "Bool".into(), "Int32".into()),
+        ErrorMessage::AssignType("Bool".into(), "Int32".into()),
     );
 }
 
@@ -843,7 +843,7 @@ fn test_const_check() {
         "const one: Int32 = 1i32;
             fn f() { let x: String = one; }",
         (2, 22),
-        ErrorMessage::AssignType("x".into(), "String".into(), "Int32".into()),
+        ErrorMessage::AssignType("String".into(), "Int32".into()),
     );
 }
 
@@ -916,12 +916,12 @@ fn test_unary_minus_byte() {
     err(
         "const m1: UInt8 = -1;",
         (1, 19),
-        ErrorMessage::AssignType("m1".into(), "UInt8".into(), "Int64".into()),
+        ErrorMessage::AssignType("UInt8".into(), "Int64".into()),
     );
     err(
         "const m1: UInt8 = -1i32;",
         (1, 19),
-        ErrorMessage::AssignType("m1".into(), "UInt8".into(), "Int32".into()),
+        ErrorMessage::AssignType("UInt8".into(), "Int32".into()),
     );
     err(
         "fn main() { let m1: UInt8 = -1u8; }",
@@ -1010,7 +1010,7 @@ fn test_global_set() {
     err(
         "let x: Int32 = true;",
         (1, 1),
-        ErrorMessage::AssignType("x".into(), "Int32".into(), "Bool".into()),
+        ErrorMessage::AssignType("Int32".into(), "Bool".into()),
     );
 }
 
@@ -1024,7 +1024,7 @@ fn lambda_assignment() {
     err(
         "fn f() { let x: (): Int32 = || {}; }",
         (1, 10),
-        ErrorMessage::AssignType("x".into(), "() -> Int32".into(), "() -> ()".into()),
+        ErrorMessage::AssignType("() -> Int32".into(), "() -> ()".into()),
     );
 }
 

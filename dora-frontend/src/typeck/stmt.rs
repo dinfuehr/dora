@@ -48,10 +48,9 @@ fn check_stmt_let(ck: &mut TypeCheck, s: &ast::StmtLetType) {
             && !defined_type.is_error()
             && !defined_type.allows(ck.sa, expr_type.clone())
         {
-            let name = s.pattern.to_name().unwrap();
             let defined_type = ck.ty_name(&defined_type);
             let expr_type = ck.ty_name(&expr_type);
-            let msg = ErrorMessage::AssignType(name, defined_type, expr_type);
+            let msg = ErrorMessage::AssignType(defined_type, expr_type);
             ck.sa.report(ck.file_id, s.span, msg);
         }
 
@@ -62,13 +61,10 @@ fn check_stmt_let(ck: &mut TypeCheck, s: &ast::StmtLetType) {
     }
 }
 
-pub(super) fn check_let_pattern(ck: &mut TypeCheck, pattern: &ast::LetPattern, ty: SourceType) {
+pub(super) fn check_let_pattern(ck: &mut TypeCheck, pattern: &ast::Pattern, ty: SourceType) {
     match pattern {
-        ast::LetPattern::Ident(ref ident) => {
-            let name = ck
-                .sa
-                .interner
-                .intern(&ident.name.as_ref().expect("missing name").name_as_string);
+        ast::Pattern::Ident(ref ident) => {
+            let name = ck.sa.interner.intern(&ident.name.name_as_string);
             let var_id = ck.vars.add_var(name, ty, ident.mutable);
 
             add_local(ck.sa, ck.symtable, ck.vars, var_id, ck.file_id, ident.span);
@@ -77,11 +73,13 @@ pub(super) fn check_let_pattern(ck: &mut TypeCheck, pattern: &ast::LetPattern, t
                 .insert(ident.id, ck.vars.local_var_id(var_id));
         }
 
-        ast::LetPattern::Underscore(_) => {
+        ast::Pattern::Underscore(_) => {
             // nothing to do
         }
 
-        ast::LetPattern::Tuple(ref tuple) => {
+        ast::Pattern::StructOrEnum(..) => unreachable!(),
+
+        ast::Pattern::Tuple(ref tuple) => {
             if !ty.is_tuple_or_unit() && !ty.is_error() {
                 let ty_name = ck.ty_name(&ty);
                 ck.sa.report(
@@ -94,7 +92,7 @@ pub(super) fn check_let_pattern(ck: &mut TypeCheck, pattern: &ast::LetPattern, t
 
             if ty.is_unit() {
                 // () doesn't have any subparts
-                if tuple.parts.len() != 0 {
+                if tuple.params.len() != 0 {
                     ck.sa
                         .report(ck.file_id, tuple.span, ErrorMessage::LetPatternShouldBeUnit);
                 }
@@ -102,15 +100,15 @@ pub(super) fn check_let_pattern(ck: &mut TypeCheck, pattern: &ast::LetPattern, t
             }
 
             if ty.is_error() {
-                for part in &tuple.parts {
-                    check_let_pattern(ck, part, SourceType::Error);
+                for param in &tuple.params {
+                    check_let_pattern(ck, param, SourceType::Error);
                 }
                 return;
             }
 
             let subtypes = ty.tuple_subtypes();
 
-            if subtypes.len() != tuple.parts.len() {
+            if subtypes.len() != tuple.params.len() {
                 let ty_name = ck.ty_name(&ty);
                 ck.sa.report(
                     ck.file_id,
@@ -118,14 +116,14 @@ pub(super) fn check_let_pattern(ck: &mut TypeCheck, pattern: &ast::LetPattern, t
                     ErrorMessage::LetPatternExpectedTupleWithLength(
                         ty_name,
                         subtypes.len(),
-                        tuple.parts.len(),
+                        tuple.params.len(),
                     ),
                 );
                 return;
             }
 
-            for (part, subtype) in tuple.parts.iter().zip(subtypes.iter()) {
-                check_let_pattern(ck, &*part, subtype.clone());
+            for (param, subtype) in tuple.params.iter().zip(subtypes.iter()) {
+                check_let_pattern(ck, param.as_ref(), subtype.clone());
             }
         }
     }

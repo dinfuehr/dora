@@ -258,13 +258,12 @@ fn check_expr_assign_ident(ck: &mut TypeCheck, e: &ast::ExprBinType) {
     let rhs_type = check_expr(ck, &e.rhs, lhs_type.clone());
 
     if !lhs_type.is_error() && !rhs_type.is_error() && !lhs_type.allows(ck.sa, rhs_type.clone()) {
-        let ident = e.lhs.to_ident().unwrap();
         let lhs_type = ck.ty_name(&lhs_type);
         let rhs_type = ck.ty_name(&rhs_type);
 
         ck.analysis.set_ty(e.id, SourceType::Unit);
 
-        let msg = ErrorMessage::AssignType(ident.name.clone(), lhs_type, rhs_type);
+        let msg = ErrorMessage::AssignType(lhs_type, rhs_type);
         ck.sa.report(ck.file_id, e.span, msg);
     }
 }

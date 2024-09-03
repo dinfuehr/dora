@@ -7,8 +7,8 @@ use crate::error::{ParseError, ParseErrorWithLocation};
 use crate::green::{GreenTreeBuilder, Marker};
 use crate::token::{
     ELEM_FIRST, EMPTY, ENUM_VARIANT_ARGUMENT_RS, ENUM_VARIANT_RS, EXPRESSION_FIRST, FIELD_FIRST,
-    LET_PATTERN_FIRST, LET_PATTERN_RS, MATCH_PATTERN_FIRST, MATCH_PATTERN_RS, MODIFIER_FIRST,
-    PARAM_LIST_RS, TYPE_PARAM_RS, USE_PATH_ATOM_FIRST, USE_PATH_FIRST,
+    MATCH_PATTERN_FIRST, MATCH_PATTERN_RS, MODIFIER_FIRST, PARAM_LIST_RS, TYPE_PARAM_RS,
+    USE_PATH_ATOM_FIRST, USE_PATH_FIRST,
 };
 use crate::TokenKind::*;
 use crate::{lex, Span, TokenKind, TokenSet};
@@ -1191,7 +1191,7 @@ impl Parser {
         self.start_node();
 
         self.assert(LET_KW);
-        let pattern = self.parse_let_pattern();
+        let pattern = self.parse_pattern();
         let data_type = self.parse_var_type();
         let expr = self.parse_var_assignment();
 
@@ -1204,48 +1204,6 @@ impl Parser {
             data_type,
             expr,
         ))
-    }
-
-    fn parse_let_pattern(&mut self) -> Box<LetPattern> {
-        self.start_node();
-        if self.is(L_PAREN) {
-            let parts = self.parse_list(
-                L_PAREN,
-                COMMA,
-                R_PAREN,
-                LET_PATTERN_RS,
-                ParseError::ExpectedPattern,
-                PATTERN_LIST,
-                |p| {
-                    if p.is_set(LET_PATTERN_FIRST) {
-                        Some(p.parse_let_pattern())
-                    } else {
-                        None
-                    }
-                },
-            );
-
-            Box::new(LetPattern::Tuple(LetTupleType {
-                id: self.new_node_id(),
-                span: self.finish_node(),
-                parts,
-            }))
-        } else if self.eat(UNDERSCORE) {
-            Box::new(LetPattern::Underscore(LetUnderscoreType {
-                id: self.new_node_id(),
-                span: self.finish_node(),
-            }))
-        } else {
-            let mutable = self.eat(MUT_KW);
-            let name = self.expect_identifier();
-
-            Box::new(LetPattern::Ident(LetIdentType {
-                id: self.new_node_id(),
-                span: self.finish_node(),
-                mutable,
-                name,
-            }))
-        }
     }
 
     fn parse_var_type(&mut self) -> Option<Type> {
@@ -1504,7 +1462,7 @@ impl Parser {
         self.start_node();
         self.builder.start_node();
         self.assert(FOR_KW);
-        let pattern = self.parse_let_pattern();
+        let pattern = self.parse_pattern();
         self.expect(IN_KW);
         let expr = self.parse_expression();
         let block = self.parse_block();
@@ -2812,10 +2770,10 @@ mod tests {
 
         assert!(let_decl.pattern.is_tuple());
         let tuple = let_decl.pattern.to_tuple().unwrap();
-        let first = tuple.parts.first().unwrap();
+        let first: &Arc<Pattern> = tuple.params.first().unwrap();
         assert!(first.is_ident());
         assert!(first.to_ident().unwrap().mutable);
-        assert!(tuple.parts.last().unwrap().is_tuple());
+        assert!(tuple.params.last().unwrap().is_tuple());
     }
 
     #[test]

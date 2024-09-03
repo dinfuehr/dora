@@ -275,7 +275,6 @@ impl AstDumper {
         dump!(self, "let @ {} {}", stmt.span, stmt.id);
 
         self.indent(|d| {
-            d.dump_stmt_let_pattern(&stmt.pattern);
             dump!(d, "type");
             d.indent(|d| {
                 if let Some(ref ty) = stmt.data_type {
@@ -296,26 +295,10 @@ impl AstDumper {
         });
     }
 
-    fn dump_stmt_let_pattern(&mut self, pattern: &LetPattern) {
-        match pattern {
-            LetPattern::Ident(ref ident) => dump!(self, "ident {:?}", ident.name),
-            LetPattern::Underscore(_) => dump!(self, "_"),
-            LetPattern::Tuple(ref tuple) => {
-                dump!(self, "tuple");
-                self.indent(|d| {
-                    for part in &tuple.parts {
-                        d.dump_stmt_let_pattern(part);
-                    }
-                });
-            }
-        }
-    }
-
     fn dump_expr_for(&mut self, stmt: &ExprForType) {
         dump!(self, "for @ {} {}", stmt.span, stmt.id);
 
         self.indent(|d| {
-            d.dump_stmt_let_pattern(&stmt.pattern);
             dump!(d, "cond");
             d.indent(|d| {
                 d.dump_expr(&stmt.expr);
