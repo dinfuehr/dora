@@ -50,7 +50,7 @@ impl File {
         let buffer = Array[UInt8]::zero(DEFAULT_BUFFER_SIZE);
 
         while true {
-            let readResult = file.read(buffer);
+            let readResult = file.read(buffer, 0, buffer.size());
 
             match readResult {
                 Ok(bytesRead) => {
@@ -122,11 +122,7 @@ impl OpenFile {
 }
 
 impl Read for OpenFile {
-    fn read(array: Array[UInt8]): Result[Int64, IOError] {
-        self.readPart(array, 0, array.size())
-    }
-
-    fn readPart(array: Array[UInt8], offset: Int64, len: Int64): Result[Int64, IOError] {
+    fn read(array: Array[UInt8], offset: Int64, len: Int64): Result[Int64, IOError] {
         let read = fileRead(self.fd, array, 0, array.size());
 
         if read >= 0 {
@@ -177,8 +173,7 @@ impl Write for OpenFile {
 }
 
 pub trait Read {
-    fn read(array: Array[UInt8]): Result[Int64, IOError];
-    fn readPart(array: Array[UInt8], offset: Int64, len: Int64): Result[Int64, IOError];
+    fn read(array: Array[UInt8], offset: Int64, len: Int64): Result[Int64, IOError];
 }
 
 pub trait Write {

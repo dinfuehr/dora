@@ -1,7 +1,7 @@
 fn main() {
     let file = std::io::File::open("tests/io/abc.txt");
     let buffer = Array[UInt8]::zero(4);
-    let read = file.read(buffer).getOrPanic();
+    let read = file.read(buffer, 0, buffer.size()).getOrPanic();
     assert(read == 3);
     let text = String::fromBytesPart(buffer, 0, read).getOrPanic();
     assert(text == "abc");
