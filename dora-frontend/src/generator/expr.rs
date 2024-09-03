@@ -272,12 +272,14 @@ pub(super) fn gen_match(
 
     for case in &node.cases {
         for pattern in &case.patterns {
-            match pattern.data {
-                ast::MatchPatternData::Underscore => {
+            match pattern.as_ref() {
+                ast::Pattern::Underscore(..) => {
                     g.builder.emit_jump(labels[idx]);
                 }
 
-                ast::MatchPatternData::Ident(_) => {
+                ast::Pattern::Ident(..) => unimplemented!(),
+
+                ast::Pattern::StructOrEnum(_) => {
                     match_check_ident(g, pattern, variant_reg, labels[idx]);
                 }
             }
@@ -316,7 +318,7 @@ pub(super) fn gen_match(
 
 fn match_check_ident(
     g: &mut AstBytecodeGen,
-    pattern: &ast::MatchPattern,
+    pattern: &ast::Pattern,
     variant_reg: Register,
     code_lbl: Label,
 ) {
@@ -334,7 +336,7 @@ fn match_check_ident(
 fn match_case_body(
     g: &mut AstBytecodeGen,
     case: &ast::MatchCaseType,
-    pattern: &ast::MatchPattern,
+    pattern: &ast::Pattern,
     enum_id: EnumDefinitionId,
     enum_ty: SourceType,
     expr_reg: Register,
@@ -343,7 +345,7 @@ fn match_case_body(
 ) {
     g.push_scope();
 
-    if let ast::MatchPatternData::Ident(ref ident) = pattern.data {
+    if let ast::Pattern::StructOrEnum(ref ident) = pattern {
         if let Some(ref params) = ident.params {
             let variant_idx = match_variant_idx(g, pattern);
 
@@ -384,8 +386,8 @@ fn match_case_body(
     g.pop_scope();
 }
 
-fn match_variant_idx(g: &AstBytecodeGen, pattern: &ast::MatchPattern) -> u32 {
-    let ident_type = g.analysis.map_idents.get(pattern.id).unwrap();
+fn match_variant_idx(g: &AstBytecodeGen, pattern: &ast::Pattern) -> u32 {
+    let ident_type = g.analysis.map_idents.get(pattern.id()).unwrap();
 
     match ident_type {
         IdentType::EnumVariant(_, _, variant_idx) => (*variant_idx).try_into().unwrap(),

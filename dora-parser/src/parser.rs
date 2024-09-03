@@ -1400,10 +1400,10 @@ impl Parser {
     fn parse_match_case(&mut self) -> MatchCaseType {
         self.start_node();
         let mut patterns = Vec::new();
-        patterns.push(self.parse_match_pattern());
+        patterns.push(self.parse_pattern());
 
         while self.eat(OR) {
-            patterns.push(self.parse_match_pattern());
+            patterns.push(self.parse_pattern());
         }
 
         self.expect(DOUBLE_ARROW);
@@ -1418,11 +1418,24 @@ impl Parser {
         }
     }
 
-    fn parse_match_pattern(&mut self) -> MatchPattern {
+    fn parse_pattern(&mut self) -> Arc<Pattern> {
         self.start_node();
 
-        let data = if self.eat(UNDERSCORE) {
-            MatchPatternData::Underscore
+        if self.eat(UNDERSCORE) {
+            Arc::new(Pattern::Underscore(PatternUnderscore {
+                id: self.new_node_id(),
+                span: self.finish_node(),
+            }))
+        } else if self.eat(L_PAREN) {
+            unimplemented!()
+        } else if self.eat(MUT_KW) {
+            let name = self.expect_identifier().expect("identifier expected");
+            Arc::new(Pattern::Ident(PatternIdent {
+                id: self.new_node_id(),
+                span: self.finish_node(),
+                mutable: true,
+                name,
+            }))
         } else {
             let path = self.parse_path();
 
@@ -1436,7 +1449,7 @@ impl Parser {
                     PATTERN_LIST,
                     |p| {
                         if p.is_set(MATCH_PATTERN_FIRST) {
-                            Some(p.parse_match_pattern_param())
+                            Some(p.parse_pattern_param())
                         } else {
                             None
                         }
@@ -1448,17 +1461,16 @@ impl Parser {
                 None
             };
 
-            MatchPatternData::Ident(MatchPatternIdent { path, params })
-        };
-
-        MatchPattern {
-            id: self.new_node_id(),
-            span: self.finish_node(),
-            data,
+            Arc::new(Pattern::StructOrEnum(PatternStructOrEnum {
+                id: self.new_node_id(),
+                span: self.finish_node(),
+                path,
+                params,
+            }))
         }
     }
 
-    fn parse_match_pattern_param(&mut self) -> MatchPatternParam {
+    fn parse_pattern_param(&mut self) -> PatternParam {
         self.start_node();
 
         let (mutable, name) = if self.eat(UNDERSCORE) {
@@ -1470,7 +1482,7 @@ impl Parser {
             (mutable, ident)
         };
 
-        MatchPatternParam {
+        PatternParam {
             id: self.new_node_id(),
             span: self.finish_node(),
             mutable,
@@ -1614,7 +1626,7 @@ impl Parser {
                 }
 
                 IS_KW => {
-                    let right = self.parse_match_pattern();
+                    let right = self.parse_pattern();
                     let span = self.span_from(start);
 
                     self.builder

@@ -953,7 +953,7 @@ impl<'a> AstBytecodeGen<'a> {
         let value_reg = gen_expr(self, &node.value, DataDest::Alloc);
 
         let (enum_id, enum_type_params, variant_id) = {
-            let ident_type = self.analysis.map_idents.get(node.pattern.id).unwrap();
+            let ident_type = self.analysis.map_idents.get(node.pattern.id()).unwrap();
 
             match ident_type {
                 IdentType::EnumVariant(enum_id, type_params, variant_id) => {

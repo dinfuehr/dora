@@ -1256,7 +1256,7 @@ impl ExprData {
         })
     }
 
-    pub fn create_is(id: NodeId, span: Span, object: Expr, pattern: MatchPattern) -> ExprData {
+    pub fn create_is(id: NodeId, span: Span, object: Expr, pattern: Arc<Pattern>) -> ExprData {
         ExprData::Is(ExprIsType {
             id,
             span,
@@ -1866,7 +1866,7 @@ pub struct ExprIsType {
     pub span: Span,
 
     pub value: Expr,
-    pub pattern: MatchPattern,
+    pub pattern: Arc<Pattern>,
 }
 
 #[derive(Clone, Debug)]
@@ -2023,31 +2023,59 @@ pub struct MatchCaseType {
     pub id: NodeId,
     pub span: Span,
 
-    pub patterns: Vec<MatchPattern>,
+    pub patterns: Vec<Arc<Pattern>>,
     pub value: Expr,
 }
 
 #[derive(Clone, Debug)]
-pub struct MatchPattern {
+pub enum Pattern {
+    Underscore(PatternUnderscore),
+    Ident(PatternIdent),
+    StructOrEnum(PatternStructOrEnum),
+}
+
+impl Pattern {
+    pub fn id(&self) -> NodeId {
+        match self {
+            Pattern::Underscore(ref p) => p.id,
+            Pattern::Ident(p) => p.id,
+            Pattern::StructOrEnum(p) => p.id,
+        }
+    }
+
+    pub fn span(&self) -> Span {
+        match self {
+            Pattern::Underscore(p) => p.span,
+            Pattern::Ident(p) => p.span,
+            Pattern::StructOrEnum(p) => p.span,
+        }
+    }
+}
+
+#[derive(Clone, Debug)]
+pub struct PatternUnderscore {
     pub id: NodeId,
     pub span: Span,
-    pub data: MatchPatternData,
 }
 
 #[derive(Clone, Debug)]
-pub enum MatchPatternData {
-    Underscore,
-    Ident(MatchPatternIdent),
+pub struct PatternIdent {
+    pub id: NodeId,
+    pub span: Span,
+    pub mutable: bool,
+    pub name: Ident,
 }
 
 #[derive(Clone, Debug)]
-pub struct MatchPatternIdent {
+pub struct PatternStructOrEnum {
+    pub id: NodeId,
+    pub span: Span,
     pub path: Path,
-    pub params: Option<Vec<MatchPatternParam>>,
+    pub params: Option<Vec<PatternParam>>,
 }
 
 #[derive(Clone, Debug)]
-pub struct MatchPatternParam {
+pub struct PatternParam {
     pub id: NodeId,
     pub span: Span,
     pub name: Option<Ident>,

@@ -393,11 +393,11 @@ fn check_expr_match_pattern(
     expr_enum_id: Option<EnumDefinitionId>,
     expr_type_params: SourceTypeArray,
     case: &ast::MatchCaseType,
-    pattern: &ast::MatchPattern,
+    pattern: &ast::Pattern,
     used_variants: &mut FixedBitSet,
 ) -> HashMap<Name, SourceType> {
-    match pattern.data {
-        ast::MatchPatternData::Underscore => {
+    match pattern {
+        ast::Pattern::Underscore(..) => {
             let mut negated_used_variants = used_variants.clone();
             negated_used_variants.toggle_range(..);
 
@@ -410,7 +410,9 @@ fn check_expr_match_pattern(
             HashMap::new()
         }
 
-        ast::MatchPatternData::Ident(ref ident) => {
+        ast::Pattern::Ident(..) => unimplemented!(),
+
+        ast::Pattern::StructOrEnum(ref ident) => {
             let sym = read_path(ck, &ident.path);
 
             match sym {
@@ -451,8 +453,8 @@ fn check_expr_match_pattern_enum_variant(
     variant_idx: u32,
     expr_type_params: SourceTypeArray,
     case: &ast::MatchCaseType,
-    pattern: &ast::MatchPattern,
-    ident: &ast::MatchPatternIdent,
+    pattern: &ast::Pattern,
+    ident: &ast::PatternStructOrEnum,
     used_variants: &mut FixedBitSet,
 ) -> HashMap<Name, SourceType> {
     if used_variants.contains(variant_idx as usize) {
@@ -462,7 +464,7 @@ fn check_expr_match_pattern_enum_variant(
 
     used_variants.insert(variant_idx as usize);
     ck.analysis.map_idents.insert(
-        pattern.id,
+        pattern.id(),
         IdentType::EnumVariant(enum_id, expr_type_params.clone(), variant_idx),
     );
 

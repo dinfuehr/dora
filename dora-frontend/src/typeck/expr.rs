@@ -1,6 +1,5 @@
 use std::sync::Arc;
 
-use dora_parser::ast::MatchPatternData;
 use dora_parser::{ast, Span};
 
 use crate::access::{
@@ -604,13 +603,15 @@ fn check_expr_is(ck: &mut TypeCheck, e: &ast::ExprIsType, _expected_ty: SourceTy
         ck.sa.report(ck.file_id, e.value.span(), msg);
     }
 
-    match e.pattern.data {
-        MatchPatternData::Underscore => {
+    match e.pattern.as_ref() {
+        ast::Pattern::Underscore(..) => {
             let msg = ErrorMessage::EnumVariantExpected;
-            ck.sa.report(ck.file_id, e.pattern.span, msg);
+            ck.sa.report(ck.file_id, e.pattern.span(), msg);
         }
 
-        MatchPatternData::Ident(ref ident) => {
+        ast::Pattern::Ident(..) => unimplemented!(),
+
+        ast::Pattern::StructOrEnum(ref ident) => {
             let sym = read_path(ck, &ident.path);
             assert!(ident.params.is_none());
 
@@ -623,7 +624,7 @@ fn check_expr_is(ck: &mut TypeCheck, e: &ast::ExprIsType, _expected_ty: SourceTy
 
                     if Some(enum_id) == value_enum_id {
                         ck.analysis.map_idents.insert(
-                            e.pattern.id,
+                            e.pattern.id(),
                             IdentType::EnumVariant(enum_id, value_type_params.clone(), variant_idx),
                         );
                     } else if value_enum_id.is_some() {
@@ -641,7 +642,7 @@ fn check_expr_is(ck: &mut TypeCheck, e: &ast::ExprIsType, _expected_ty: SourceTy
                             given_params,
                             expected_params,
                         );
-                        ck.sa.report(ck.file_id, e.pattern.span, msg);
+                        ck.sa.report(ck.file_id, e.pattern.span(), msg);
                     }
                 }
 
