@@ -303,7 +303,7 @@ fn gen_mul_float64() {
 #[test]
 fn gen_stmt_var_init() {
     let result = code("fn f() { let x = 1i32; }");
-    let expected = vec![ConstInt32(r(0), 1), Ret(r(1))];
+    let expected = vec![ConstInt32(r(1), 1), Mov(r(0), r(1)), Ret(r(2))];
     assert_eq!(expected, result);
 }
 
@@ -340,8 +340,10 @@ fn gen_stmt_let_tuple() {
         |sa, code, fct| {
             let tuple_ty = create_tuple(sa, vec![SourceType::Int32, SourceType::Int32]);
             let expected = vec![
-                LoadTupleElement(r(1), r(0), ConstPoolIdx(0)),
-                LoadTupleElement(r(2), r(0), ConstPoolIdx(1)),
+                LoadTupleElement(r(3), r(0), ConstPoolIdx(0)),
+                Mov(r(1), r(3)),
+                LoadTupleElement(r(3), r(0), ConstPoolIdx(1)),
+                Mov(r(2), r(3)),
                 Add(r(3), r(1), r(2)),
                 Ret(r(3)),
             ];
@@ -365,13 +367,16 @@ fn gen_stmt_let_tuple() {
             let nested_tuple_ty = create_tuple(sa, vec![SourceType::Int32, SourceType::Int32]);
             let tuple_ty = create_tuple(sa, vec![SourceType::Int32, nested_tuple_ty.clone()]);
             let expected = vec![
-                LoadTupleElement(r(1), r(0), ConstPoolIdx(0)),
-                LoadTupleElement(r(2), r(0), ConstPoolIdx(1)),
-                LoadTupleElement(r(3), r(2), ConstPoolIdx(2)),
-                LoadTupleElement(r(4), r(2), ConstPoolIdx(3)),
-                Add(r(6), r(1), r(3)),
-                Add(r(5), r(6), r(4)),
-                Ret(r(5)),
+                LoadTupleElement(r(4), r(0), ConstPoolIdx(0)),
+                Mov(r(1), r(4)),
+                LoadTupleElement(r(5), r(0), ConstPoolIdx(1)),
+                LoadTupleElement(r(4), r(5), ConstPoolIdx(2)),
+                Mov(r(2), r(4)),
+                LoadTupleElement(r(4), r(5), ConstPoolIdx(3)),
+                Mov(r(3), r(4)),
+                Add(r(6), r(1), r(2)),
+                Add(r(4), r(6), r(3)),
+                Ret(r(4)),
             ];
             assert_eq!(expected, code);
 
@@ -403,11 +408,14 @@ fn gen_stmt_let_tuple() {
             let nested_tuple_ty = create_tuple(sa, vec![SourceType::Int32, SourceType::Int32]);
             let tuple_ty = create_tuple(sa, vec![SourceType::Int32, nested_tuple_ty.clone()]);
             let expected = vec![
-                LoadTupleElement(r(1), r(0), ConstPoolIdx(0)),
-                LoadTupleElement(r(2), r(0), ConstPoolIdx(1)),
-                LoadTupleElement(r(3), r(2), ConstPoolIdx(2)),
-                Add(r(4), r(1), r(3)),
-                Ret(r(4)),
+                LoadTupleElement(r(3), r(0), ConstPoolIdx(0)),
+                Mov(r(1), r(3)),
+                LoadTupleElement(r(4), r(0), ConstPoolIdx(1)),
+                LoadTupleElement(r(3), r(4), ConstPoolIdx(2)),
+                LoadTupleElement(r(3), r(4), ConstPoolIdx(3)),
+                Mov(r(2), r(3)),
+                Add(r(3), r(1), r(2)),
+                Ret(r(3)),
             ];
             assert_eq!(expected, code);
 
@@ -423,6 +431,11 @@ fn gen_stmt_let_tuple() {
 
             assert_eq!(
                 fct.const_pool(ConstPoolIdx(2)),
+                &ConstPoolEntry::TupleElement(bty_from_ty(nested_tuple_ty.clone()), 0)
+            );
+
+            assert_eq!(
+                fct.const_pool(ConstPoolIdx(3)),
                 &ConstPoolEntry::TupleElement(bty_from_ty(nested_tuple_ty), 1)
             );
         },
@@ -445,11 +458,13 @@ fn gen_stmt_let_unit() {
             let inner_tuple_ty = create_tuple(sa, vec![SourceType::Int32, SourceType::Unit]);
             let tuple_ty = create_tuple(sa, vec![SourceType::Int32, inner_tuple_ty.clone()]);
             let expected = vec![
-                LoadTupleElement(r(1), r(0), ConstPoolIdx(0)),
-                LoadTupleElement(r(2), r(0), ConstPoolIdx(1)),
-                LoadTupleElement(r(3), r(2), ConstPoolIdx(2)),
-                Add(r(4), r(1), r(3)),
-                Ret(r(4)),
+                LoadTupleElement(r(3), r(0), ConstPoolIdx(0)),
+                Mov(r(1), r(3)),
+                LoadTupleElement(r(4), r(0), ConstPoolIdx(1)),
+                LoadTupleElement(r(3), r(4), ConstPoolIdx(2)),
+                Mov(r(2), r(3)),
+                Add(r(3), r(1), r(2)),
+                Ret(r(3)),
             ];
             assert_eq!(expected, code);
 
@@ -476,11 +491,13 @@ fn gen_stmt_let_unit() {
             let nested_tuple_ty = create_tuple(sa, vec![SourceType::Int32, SourceType::Unit]);
             let tuple_ty = create_tuple(sa, vec![SourceType::Int32, nested_tuple_ty.clone()]);
             let expected = vec![
-                LoadTupleElement(r(1), r(0), ConstPoolIdx(0)),
-                LoadTupleElement(r(2), r(0), ConstPoolIdx(1)),
-                LoadTupleElement(r(3), r(2), ConstPoolIdx(2)),
-                Add(r(4), r(1), r(3)),
-                Ret(r(4)),
+                LoadTupleElement(r(3), r(0), ConstPoolIdx(0)),
+                Mov(r(1), r(3)),
+                LoadTupleElement(r(4), r(0), ConstPoolIdx(1)),
+                LoadTupleElement(r(3), r(4), ConstPoolIdx(2)),
+                Mov(r(2), r(3)),
+                Add(r(3), r(1), r(2)),
+                Ret(r(3)),
             ];
             assert_eq!(expected, code);
 
@@ -642,9 +659,11 @@ fn gen_expr_lit_string() {
 fn gen_expr_lit_string_duplicate() {
     let result = code("fn f() { let a = \"z\"; let b = \"z\"; }");
     let expected = vec![
-        ConstString(r(0), "z".to_string()),
         ConstString(r(1), "z".to_string()),
-        Ret(r(2)),
+        Mov(r(0), r(1)),
+        ConstString(r(2), "z".to_string()),
+        Mov(r(1), r(2)),
+        Ret(r(3)),
     ];
     assert_eq!(expected, result);
 }
@@ -653,9 +672,11 @@ fn gen_expr_lit_string_duplicate() {
 fn gen_expr_lit_string_multiple() {
     let result = code("fn f() { let a = \"z\"; let b = \"y\"; }");
     let expected = vec![
-        ConstString(r(0), "z".to_string()),
-        ConstString(r(1), "y".to_string()),
-        Ret(r(2)),
+        ConstString(r(1), "z".to_string()),
+        Mov(r(0), r(1)),
+        ConstString(r(2), "y".to_string()),
+        Mov(r(1), r(2)),
+        Ret(r(3)),
     ];
     assert_eq!(expected, result);
 }
@@ -1043,14 +1064,19 @@ fn gen_expr_test_greaterthanequal_float64() {
 #[test]
 fn gen_expr_ident() {
     let result = code("fn f(): Int32 { let x = 1i32; return x; }");
-    let expected = vec![ConstInt32(r(0), 1), Ret(r(0))];
+    let expected = vec![ConstInt32(r(1), 1), Mov(r(0), r(1)), Ret(r(0))];
     assert_eq!(expected, result);
 }
 
 #[test]
 fn gen_expr_assign() {
     let result = code("fn f() { let mut x = 1i32; x = 2i32; }");
-    let expected = vec![ConstInt32(r(0), 1), ConstInt32(r(0), 2), Ret(r(1))];
+    let expected = vec![
+        ConstInt32(r(1), 1),
+        Mov(r(0), r(1)),
+        ConstInt32(r(0), 2),
+        Ret(r(2)),
+    ];
     assert_eq!(expected, result);
 }
 
@@ -3954,12 +3980,13 @@ fn gen_tuple_var() {
     gen_fct("fn f() { let x = (1i32, 2i32); }", |_, code, fct| {
         let subtypes = vec![BytecodeType::Int32, BytecodeType::Int32];
         let expected = vec![
-            ConstInt32(r(1), 1),
-            ConstInt32(r(2), 2),
-            PushRegister(r(1)),
+            ConstInt32(r(2), 1),
+            ConstInt32(r(3), 2),
             PushRegister(r(2)),
-            NewTuple(r(0), ConstPoolIdx(2)),
-            Ret(r(3)),
+            PushRegister(r(3)),
+            NewTuple(r(1), ConstPoolIdx(2)),
+            Mov(r(0), r(1)),
+            Ret(r(4)),
         ];
         assert_eq!(expected, code);
 
@@ -4103,10 +4130,11 @@ fn gen_context_allocated_var() {
                 StoreField(r(1), r(0), ConstPoolIdx(2)),
                 ConstInt64(r(1), 11),
                 StoreField(r(1), r(0), ConstPoolIdx(4)),
-                LoadField(r(1), r(0), ConstPoolIdx(5)),
+                LoadField(r(2), r(0), ConstPoolIdx(5)),
+                Mov(r(1), r(2)),
                 PushRegister(r(0)),
-                NewLambda(r(2), ConstPoolIdx(6)),
-                Ret(r(2)),
+                NewLambda(r(3), ConstPoolIdx(6)),
+                Ret(r(3)),
             ];
             assert_eq!(expected, code);
         },

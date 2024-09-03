@@ -361,7 +361,7 @@ impl<'a> AstBytecodeGen<'a> {
         }
     }
 
-    fn visit_stmt_for_pattern_setup(&mut self, pattern: &ast::Pattern) {
+    fn setup_pattern_vars(&mut self, pattern: &ast::Pattern) {
         match pattern {
             ast::Pattern::Ident(ref ident) => {
                 let var_id = *self.analysis.map_vars.get(ident.id).unwrap();
@@ -388,18 +388,13 @@ impl<'a> AstBytecodeGen<'a> {
             ast::Pattern::StructOrEnum(..) => unreachable!(),
             ast::Pattern::Tuple(ref tuple) => {
                 for param in &tuple.params {
-                    self.visit_stmt_for_pattern_setup(param);
+                    self.setup_pattern_vars(param);
                 }
             }
         }
     }
 
-    fn visit_stmt_for_pattern_assign_iterator(
-        &mut self,
-        pattern: &ast::Pattern,
-        next_reg: Register,
-        next_ty: SourceType,
-    ) {
+    fn destruct_pattern(&mut self, pattern: &ast::Pattern, value: Register, ty: SourceType) {
         match pattern {
             ast::Pattern::Ident(ref ident) => {
                 let var_id = *self.analysis.map_vars.get(ident.id).unwrap();
@@ -408,17 +403,12 @@ impl<'a> AstBytecodeGen<'a> {
                 if !var.ty.is_unit() {
                     match var.location {
                         VarLocation::Context(scope_id, field_id) => {
-                            self.store_in_context(
-                                next_reg,
-                                scope_id,
-                                field_id,
-                                self.loc(ident.span),
-                            );
+                            self.store_in_context(value, scope_id, field_id, self.loc(ident.span));
                         }
 
                         VarLocation::Stack => {
                             let var_reg = self.var_reg(var_id);
-                            self.emit_mov(var_reg, next_reg);
+                            self.emit_mov(var_reg, value);
                         }
                     }
                 }
@@ -431,58 +421,24 @@ impl<'a> AstBytecodeGen<'a> {
             ast::Pattern::StructOrEnum(..) => unreachable!(),
 
             ast::Pattern::Tuple(ref tuple) => {
-                assert!(tuple.params.len() > 0);
-                self.destruct_tuple_pattern(tuple, next_reg, next_ty);
-            }
-        }
-    }
+                if ty.is_unit() {
+                    assert!(tuple.params.is_empty());
+                } else {
+                    let tuple_subtypes = ty.tuple_subtypes();
 
-    fn destruct_tuple_pattern(
-        &mut self,
-        tuple: &ast::PatternTuple,
-        tuple_reg: Register,
-        tuple_ty: SourceType,
-    ) {
-        let tuple_subtypes = tuple_ty.tuple_subtypes();
+                    for (idx, param) in tuple.params.iter().enumerate() {
+                        let subtype = tuple_subtypes[idx].clone();
 
-        for (idx, param) in tuple.params.iter().enumerate() {
-            match param.as_ref() {
-                ast::Pattern::Ident(ref ident) => {
-                    let var_id = *self.analysis.map_vars.get(ident.id).unwrap();
-                    let ty = self.var_ty(var_id);
-
-                    if !ty.is_unit() {
-                        let bytecode_ty: BytecodeType = register_bty_from_ty(ty);
-                        let var_reg = self.alloc_var(bytecode_ty);
-                        self.var_registers.insert(var_id, var_reg);
-                        let idx = self
-                            .builder
-                            .add_const_tuple_element(bty_from_ty(tuple_ty.clone()), idx as u32);
-
-                        self.builder
-                            .emit_load_tuple_element(var_reg, tuple_reg, idx);
-                    }
-                }
-
-                ast::Pattern::Underscore(_) => {
-                    // nothing to do
-                }
-
-                ast::Pattern::StructOrEnum(..) => unreachable!(),
-
-                ast::Pattern::Tuple(ref tuple) => {
-                    let ty = tuple_subtypes[idx].clone();
-
-                    if !ty.is_unit() {
-                        let register_ty = register_bty_from_ty(ty.clone());
-                        let temp_reg = self.alloc_temp(register_ty);
-                        let idx = self
-                            .builder
-                            .add_const_tuple_element(bty_from_ty(tuple_ty.clone()), idx as u32);
-                        self.builder
-                            .emit_load_tuple_element(temp_reg, tuple_reg, idx);
-                        self.destruct_tuple_pattern(tuple, temp_reg, ty);
-                        self.free_temp(temp_reg);
+                        if !subtype.is_unit() {
+                            let register_ty = register_bty_from_ty(subtype.clone());
+                            let idx = self
+                                .builder
+                                .add_const_tuple_element(bty_from_ty(ty.clone()), idx as u32);
+                            let temp_reg = self.alloc_temp(register_ty);
+                            self.builder.emit_load_tuple_element(temp_reg, value, idx);
+                            self.destruct_pattern(param.as_ref(), temp_reg, subtype);
+                            self.free_temp(temp_reg);
+                        }
                     }
                 }
             }
@@ -590,12 +546,8 @@ impl<'a> AstBytecodeGen<'a> {
                 .emit_invoke_direct(value_reg, fct_idx, self.loc(stmt.expr.span()));
             self.free_temp(next_result_reg);
 
-            self.visit_stmt_for_pattern_setup(&stmt.pattern);
-            self.visit_stmt_for_pattern_assign_iterator(
-                &stmt.pattern,
-                value_reg,
-                for_type_info.value_type,
-            );
+            self.setup_pattern_vars(&stmt.pattern);
+            self.destruct_pattern(&stmt.pattern, value_reg, for_type_info.value_type);
         }
 
         self.loops.push(LoopLabels::new(lbl_cond, lbl_end));
@@ -613,99 +565,13 @@ impl<'a> AstBytecodeGen<'a> {
     }
 
     fn visit_stmt_let(&mut self, stmt: &ast::StmtLetType) {
-        match &*stmt.pattern {
-            ast::Pattern::Ident(ref ident) => {
-                self.visit_stmt_let_ident(stmt, ident);
-            }
+        self.setup_pattern_vars(&stmt.pattern);
 
-            ast::Pattern::Underscore(_) => {
-                self.visit_stmt_let_underscore(stmt);
-            }
-
-            ast::Pattern::StructOrEnum(..) => unreachable!(),
-
-            ast::Pattern::Tuple(ref tuple) => {
-                self.visit_stmt_let_pattern(stmt, tuple);
-            }
-        }
-    }
-
-    fn visit_stmt_let_ident(&mut self, stmt: &ast::StmtLetType, ident: &ast::PatternIdent) {
-        let var_id = *self.analysis.map_vars.get(ident.id).unwrap();
-        let var = self.analysis.vars.get_var(var_id);
-
-        let ty: BytecodeType = register_bty_from_ty(var.ty.clone());
-
-        match var.location {
-            VarLocation::Context(scope_id, field_id) => {
-                if let Some(ref expr) = stmt.expr {
-                    let value_reg = gen_expr(self, expr, DataDest::Alloc);
-                    self.store_in_context(value_reg, scope_id, field_id, self.loc(ident.span));
-                    self.free_if_temp(value_reg);
-                }
-            }
-
-            VarLocation::Stack => {
-                let dest = if var.ty.is_unit() {
-                    DataDest::Effect
-                } else {
-                    let var_reg = self.alloc_var(ty);
-
-                    self.var_registers.insert(var_id, var_reg);
-
-                    DataDest::Reg(var_reg)
-                };
-
-                if let Some(ref expr) = stmt.expr {
-                    gen_expr(self, expr, dest);
-                }
-            }
-        }
-    }
-
-    fn visit_stmt_let_underscore(&mut self, stmt: &ast::StmtLetType) {
-        if let Some(ref expr) = stmt.expr {
-            gen_expr(self, expr, DataDest::Effect);
-        }
-    }
-
-    fn visit_stmt_let_pattern(&mut self, stmt: &ast::StmtLetType, pattern: &ast::PatternTuple) {
         if let Some(ref expr) = stmt.expr {
             let ty = self.ty(expr.id());
-
-            if ty.is_unit() {
-                gen_expr(self, expr, DataDest::Effect);
-            } else {
-                let tuple_reg = gen_expr(self, expr, DataDest::Alloc);
-                self.destruct_tuple_pattern(pattern, tuple_reg, ty);
-                self.free_if_temp(tuple_reg);
-            }
-        } else {
-            self.visit_stmt_let_tuple_init(pattern);
-        }
-    }
-
-    fn visit_stmt_let_tuple_init(&mut self, tuple: &ast::PatternTuple) {
-        for part in &tuple.params {
-            match &**part {
-                ast::Pattern::Ident(ref ident) => {
-                    let var_id = *self.analysis.map_vars.get(ident.id).unwrap();
-                    let ty = self.var_ty(var_id);
-                    let ty: BytecodeType = register_bty_from_ty(ty);
-                    let var_reg = self.alloc_var(ty.clone());
-                    self.var_registers.insert(var_id, var_reg);
-                }
-
-                ast::Pattern::Underscore(_) => {
-                    // nothing to do
-                }
-
-                ast::Pattern::StructOrEnum(..) => unreachable!(),
-
-                ast::Pattern::Tuple(ref tuple) => {
-                    self.visit_stmt_let_tuple_init(tuple);
-                }
-            }
+            let value = gen_expr(self, expr, DataDest::Alloc);
+            self.destruct_pattern(&stmt.pattern, value, ty);
+            self.free_if_temp(value);
         }
     }
 
