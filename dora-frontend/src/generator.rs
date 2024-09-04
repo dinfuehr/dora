@@ -1,5 +1,6 @@
 use std::collections::HashMap;
 use std::convert::TryInto;
+use std::sync::Arc;
 
 use dora_parser::ast::CmpOp;
 use dora_parser::{ast, Span};
@@ -422,20 +423,24 @@ impl<'a> AstBytecodeGen<'a> {
     ) {
         match pattern {
             ast::Pattern::Ident(ref ident) => {
-                let var_id = *self.analysis.map_vars.get(ident.id).unwrap();
-                let var = self.analysis.vars.get_var(var_id);
+                let ident_type = self.analysis.map_idents.get(ident.id);
 
-                if !var.ty.is_unit() {
-                    match var.location {
-                        VarLocation::Context(scope_id, field_id) => {
-                            self.store_in_context(value, scope_id, field_id, self.loc(ident.span));
-                        }
-
-                        VarLocation::Stack => {
-                            let var_reg = self.var_reg(var_id);
-                            self.emit_mov(var_reg, value);
-                        }
+                match ident_type {
+                    Some(IdentType::EnumVariant(enum_id, enum_type_params, variant_id)) => {
+                        self.destruct_pattern_enum(
+                            pck,
+                            pattern,
+                            value,
+                            ty,
+                            *enum_id,
+                            enum_type_params,
+                            *variant_id,
+                        );
                     }
+
+                    None => self.destruct_pattern_var(pck, pattern, value, ty),
+
+                    _ => unreachable!(),
                 }
             }
 
@@ -448,32 +453,15 @@ impl<'a> AstBytecodeGen<'a> {
 
                 match ident_type {
                     IdentType::EnumVariant(enum_id, enum_type_params, variant_id) => {
-                        let match_reg = self.alloc_temp(BytecodeType::Bool);
-                        let actual_variant_reg = self.alloc_temp(BytecodeType::Int32);
-                        let idx = self.builder.add_const_enum(
-                            EnumId(enum_id.index().try_into().expect("overflow")),
-                            bty_array_from_ty(enum_type_params),
-                        );
-                        self.builder.emit_load_enum_variant(
-                            actual_variant_reg,
+                        self.destruct_pattern_enum(
+                            pck,
+                            pattern,
                             value,
-                            idx,
-                            self.loc(p.span),
+                            ty,
+                            *enum_id,
+                            enum_type_params,
+                            *variant_id,
                         );
-
-                        let expected_variant_reg = self.alloc_temp(BytecodeType::Int32);
-                        self.builder
-                            .emit_const_int32(expected_variant_reg, *variant_id as i32);
-                        self.builder.emit_test_eq(
-                            match_reg,
-                            actual_variant_reg,
-                            expected_variant_reg,
-                        );
-                        let lbl = pck.ensure_label(&mut self.builder);
-                        self.builder.emit_jump_if_false(match_reg, lbl);
-                        self.free_temp(actual_variant_reg);
-                        self.free_temp(expected_variant_reg);
-                        self.free_temp(match_reg);
                     }
 
                     _ => unreachable!(),
@@ -500,6 +488,98 @@ impl<'a> AstBytecodeGen<'a> {
                             self.free_temp(temp_reg);
                         }
                     }
+                }
+            }
+        }
+    }
+
+    fn destruct_pattern_enum(
+        &mut self,
+        pck: &mut PatternCheckContext,
+        pattern: &ast::Pattern,
+        value: Register,
+        _ty: SourceType,
+        enum_id: EnumDefinitionId,
+        enum_type_params: &SourceTypeArray,
+        variant_idx: u32,
+    ) {
+        let enum_ = self.sa.enum_(enum_id);
+
+        let enum_id = EnumId(enum_id.index().try_into().expect("overflow"));
+        let enum_type_params = bty_array_from_ty(enum_type_params);
+
+        let match_reg = self.alloc_temp(BytecodeType::Bool);
+        let actual_variant_reg = self.alloc_temp(BytecodeType::Int32);
+        let idx = self
+            .builder
+            .add_const_enum(enum_id, enum_type_params.clone());
+        self.builder.emit_load_enum_variant(
+            actual_variant_reg,
+            value,
+            idx,
+            self.loc(pattern.span()),
+        );
+
+        let expected_variant_reg = self.alloc_temp(BytecodeType::Int32);
+        self.builder
+            .emit_const_int32(expected_variant_reg, variant_idx as i32);
+        self.builder
+            .emit_test_eq(match_reg, actual_variant_reg, expected_variant_reg);
+        let lbl = pck.ensure_label(&mut self.builder);
+        self.builder.emit_jump_if_false(match_reg, lbl);
+
+        let variant = &enum_.variants[variant_idx as usize];
+        let params = struct_or_enum_params(pattern);
+        assert_eq!(variant.types().len(), params.map(|p| p.len()).unwrap_or(0));
+
+        if let Some(params) = params {
+            for (idx, param) in params.iter().enumerate() {
+                let source_ty = variant.types()[idx].clone();
+                let ty = register_bty_from_ty(source_ty.clone());
+                let field_reg = self.alloc_temp(ty);
+
+                let idx = self.builder.add_const_enum_element(
+                    enum_id,
+                    enum_type_params.clone(),
+                    variant_idx,
+                    idx as u32,
+                );
+
+                self.builder.emit_load_enum_element(
+                    field_reg,
+                    value,
+                    idx,
+                    self.loc(pattern.span()),
+                );
+
+                self.destruct_pattern_inner(pck, param, field_reg, source_ty)
+            }
+        }
+
+        self.free_temp(actual_variant_reg);
+        self.free_temp(expected_variant_reg);
+        self.free_temp(match_reg);
+    }
+
+    fn destruct_pattern_var(
+        &mut self,
+        _pck: &mut PatternCheckContext,
+        pattern: &ast::Pattern,
+        value: Register,
+        _ty: SourceType,
+    ) {
+        let var_id = *self.analysis.map_vars.get(pattern.id()).unwrap();
+        let var = self.analysis.vars.get_var(var_id);
+
+        if !var.ty.is_unit() {
+            match var.location {
+                VarLocation::Context(scope_id, field_id) => {
+                    self.store_in_context(value, scope_id, field_id, self.loc(pattern.span()));
+                }
+
+                VarLocation::Stack => {
+                    let var_reg = self.var_reg(var_id);
+                    self.emit_mov(var_reg, value);
                 }
             }
         }
@@ -885,35 +965,18 @@ impl<'a> AstBytecodeGen<'a> {
     }
 
     fn visit_expr_is(&mut self, node: &ast::ExprIsType, dest: DataDest) -> Register {
+        let ty = self.ty(node.value.id());
         let value_reg = gen_expr(self, &node.value, DataDest::Alloc);
 
-        let (enum_id, enum_type_params, variant_id) = {
-            let ident_type = self.analysis.map_idents.get(node.pattern.id()).unwrap();
-
-            match ident_type {
-                IdentType::EnumVariant(enum_id, type_params, variant_id) => {
-                    (enum_id, type_params, variant_id)
-                }
-                _ => unreachable!(),
-            }
-        };
-
+        let mismatch_lbl = self.builder.create_label();
+        let merge_lbl = self.builder.create_label();
+        self.destruct_pattern(&node.pattern, value_reg, ty, Some(mismatch_lbl));
         let dest = self.ensure_register(dest, BytecodeType::Bool);
-
-        let tmp_reg = self.alloc_temp(BytecodeType::Int32);
-        let idx = self.builder.add_const_enum(
-            EnumId(enum_id.index().try_into().expect("overflow")),
-            bty_array_from_ty(enum_type_params),
-        );
-        self.builder
-            .emit_load_enum_variant(tmp_reg, value_reg, idx, self.loc(node.span));
-
-        let variant_reg = self.alloc_temp(BytecodeType::Int32);
-        self.builder
-            .emit_const_int32(variant_reg, *variant_id as i32);
-        self.builder.emit_test_eq(dest, tmp_reg, variant_reg);
-        self.free_temp(tmp_reg);
-        self.free_temp(variant_reg);
+        self.builder.emit_const_true(dest);
+        self.builder.emit_jump(merge_lbl);
+        self.builder.bind_label(mismatch_lbl);
+        self.builder.emit_const_false(dest);
+        self.builder.bind_label(merge_lbl);
 
         dest
     }
@@ -3081,6 +3144,14 @@ fn field_id_from_context_idx(context_idx: ContextFieldId, has_outer_context_slot
     let start_idx = if has_outer_context_slot { 1 } else { 0 };
     let ContextFieldId(context_idx) = context_idx;
     FieldId(start_idx + context_idx)
+}
+
+fn struct_or_enum_params(p: &ast::Pattern) -> Option<&Vec<Arc<ast::Pattern>>> {
+    match p {
+        ast::Pattern::Underscore(..) | ast::Pattern::Tuple(..) => unreachable!(),
+        ast::Pattern::Ident(..) => None,
+        ast::Pattern::StructOrEnum(p) => p.params.as_ref(),
+    }
 }
 
 struct PatternCheckContext {
