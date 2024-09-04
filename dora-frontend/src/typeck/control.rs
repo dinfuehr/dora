@@ -9,7 +9,7 @@ use crate::expr_always_returns;
 use crate::interner::Name;
 use crate::sema::{find_impl, EnumDefinitionId, FctDefinitionId, ForTypeInfo, IdentType};
 use crate::sym::SymbolKind;
-use crate::typeck::{add_local, check_expr, check_let_pattern, read_ident, read_path, TypeCheck};
+use crate::typeck::{add_local, check_expr, check_pattern, read_ident, read_path, TypeCheck};
 use crate::{replace_type, specialize_type, AliasReplacement, SourceType, SourceTypeArray};
 
 pub(super) fn check_expr_while(
@@ -83,7 +83,7 @@ pub(super) fn check_expr_for(
 fn check_for_body(ck: &mut TypeCheck, stmt: &ast::ExprForType, ty: SourceType) {
     ck.symtable.push_level();
     ck.enter_block_scope();
-    check_let_pattern(ck, &stmt.pattern, ty);
+    check_pattern(ck, &stmt.pattern, ty);
     check_loop_body(ck, &stmt.block);
     ck.leave_block_scope(stmt.id);
     ck.symtable.pop_level();

@@ -41,7 +41,7 @@ fn check_stmt_let(ck: &mut TypeCheck, s: &ast::StmtLetType) {
     }
 
     // update type of variable, necessary when stmt has initializer expression but no type
-    check_let_pattern(ck, &s.pattern, defined_type.clone());
+    check_pattern(ck, &s.pattern, defined_type.clone());
 
     if s.expr.is_some() {
         if !expr_type.is_error()
@@ -61,7 +61,7 @@ fn check_stmt_let(ck: &mut TypeCheck, s: &ast::StmtLetType) {
     }
 }
 
-pub(super) fn check_let_pattern(ck: &mut TypeCheck, pattern: &ast::Pattern, ty: SourceType) {
+pub(super) fn check_pattern(ck: &mut TypeCheck, pattern: &ast::Pattern, ty: SourceType) {
     match pattern {
         ast::Pattern::Ident(ref ident) => {
             let name = ck.sa.interner.intern(&ident.name.name_as_string);
@@ -101,7 +101,7 @@ pub(super) fn check_let_pattern(ck: &mut TypeCheck, pattern: &ast::Pattern, ty: 
 
             if ty.is_error() {
                 for param in &tuple.params {
-                    check_let_pattern(ck, param, SourceType::Error);
+                    check_pattern(ck, param, SourceType::Error);
                 }
                 return;
             }
@@ -123,7 +123,7 @@ pub(super) fn check_let_pattern(ck: &mut TypeCheck, pattern: &ast::Pattern, ty: 
             }
 
             for (param, subtype) in tuple.params.iter().zip(subtypes.iter()) {
-                check_let_pattern(ck, param.as_ref(), subtype.clone());
+                check_pattern(ck, param.as_ref(), subtype.clone());
             }
         }
     }

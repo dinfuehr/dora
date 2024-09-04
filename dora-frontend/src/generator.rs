@@ -394,7 +394,25 @@ impl<'a> AstBytecodeGen<'a> {
         }
     }
 
-    fn destruct_pattern(&mut self, pattern: &ast::Pattern, value: Register, ty: SourceType) {
+    fn destruct_pattern(
+        &mut self,
+        pattern: &ast::Pattern,
+        value: Register,
+        ty: SourceType,
+        exit: Option<Label>,
+    ) -> Option<Label> {
+        let mut pck = PatternCheckContext { exit };
+        self.destruct_pattern_inner(&mut pck, pattern, value, ty);
+        pck.exit
+    }
+
+    fn destruct_pattern_inner(
+        &mut self,
+        pck: &mut PatternCheckContext,
+        pattern: &ast::Pattern,
+        value: Register,
+        ty: SourceType,
+    ) {
         match pattern {
             ast::Pattern::Ident(ref ident) => {
                 let var_id = *self.analysis.map_vars.get(ident.id).unwrap();
@@ -436,7 +454,7 @@ impl<'a> AstBytecodeGen<'a> {
                                 .add_const_tuple_element(bty_from_ty(ty.clone()), idx as u32);
                             let temp_reg = self.alloc_temp(register_ty);
                             self.builder.emit_load_tuple_element(temp_reg, value, idx);
-                            self.destruct_pattern(param.as_ref(), temp_reg, subtype);
+                            self.destruct_pattern_inner(pck, param.as_ref(), temp_reg, subtype);
                             self.free_temp(temp_reg);
                         }
                     }
@@ -547,7 +565,7 @@ impl<'a> AstBytecodeGen<'a> {
             self.free_temp(next_result_reg);
 
             self.setup_pattern_vars(&stmt.pattern);
-            self.destruct_pattern(&stmt.pattern, value_reg, for_type_info.value_type);
+            self.destruct_pattern(&stmt.pattern, value_reg, for_type_info.value_type, None);
         }
 
         self.loops.push(LoopLabels::new(lbl_cond, lbl_end));
@@ -570,7 +588,7 @@ impl<'a> AstBytecodeGen<'a> {
         if let Some(ref expr) = stmt.expr {
             let ty = self.ty(expr.id());
             let value = gen_expr(self, expr, DataDest::Alloc);
-            self.destruct_pattern(&stmt.pattern, value, ty);
+            self.destruct_pattern(&stmt.pattern, value, ty, None);
             self.free_if_temp(value);
         }
     }
@@ -3021,4 +3039,19 @@ fn field_id_from_context_idx(context_idx: ContextFieldId, has_outer_context_slot
     let start_idx = if has_outer_context_slot { 1 } else { 0 };
     let ContextFieldId(context_idx) = context_idx;
     FieldId(start_idx + context_idx)
+}
+
+struct PatternCheckContext {
+    exit: Option<Label>,
+}
+
+impl PatternCheckContext {
+    #[allow(unused)]
+    fn ensure_label(&mut self, b: &mut BytecodeBuilder) -> Label {
+        if self.exit.is_none() {
+            self.exit = Some(b.define_label());
+        }
+
+        self.exit.expect("missing label")
+    }
 }
