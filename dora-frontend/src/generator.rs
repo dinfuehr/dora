@@ -385,7 +385,14 @@ impl<'a> AstBytecodeGen<'a> {
             ast::Pattern::Underscore(_) => {
                 // nothing to do
             }
-            ast::Pattern::StructOrEnum(..) => unreachable!(),
+            ast::Pattern::StructOrEnum(ref p) => {
+                if let Some(ref params) = p.params {
+                    for param in params {
+                        self.setup_pattern_vars(param);
+                    }
+                }
+            }
+
             ast::Pattern::Tuple(ref tuple) => {
                 for param in &tuple.params {
                     self.setup_pattern_vars(param);
@@ -436,7 +443,42 @@ impl<'a> AstBytecodeGen<'a> {
                 // nothing to do
             }
 
-            ast::Pattern::StructOrEnum(..) => unreachable!(),
+            ast::Pattern::StructOrEnum(ref p) => {
+                let ident_type = self.analysis.map_idents.get(p.id).unwrap();
+
+                match ident_type {
+                    IdentType::EnumVariant(enum_id, enum_type_params, variant_id) => {
+                        let match_reg = self.alloc_temp(BytecodeType::Bool);
+                        let actual_variant_reg = self.alloc_temp(BytecodeType::Int32);
+                        let idx = self.builder.add_const_enum(
+                            EnumId(enum_id.index().try_into().expect("overflow")),
+                            bty_array_from_ty(enum_type_params),
+                        );
+                        self.builder.emit_load_enum_variant(
+                            actual_variant_reg,
+                            value,
+                            idx,
+                            self.loc(p.span),
+                        );
+
+                        let expected_variant_reg = self.alloc_temp(BytecodeType::Int32);
+                        self.builder
+                            .emit_const_int32(expected_variant_reg, *variant_id as i32);
+                        self.builder.emit_test_eq(
+                            match_reg,
+                            actual_variant_reg,
+                            expected_variant_reg,
+                        );
+                        let lbl = pck.ensure_label(&mut self.builder);
+                        self.builder.emit_jump_if_false(match_reg, lbl);
+                        self.free_temp(actual_variant_reg);
+                        self.free_temp(expected_variant_reg);
+                        self.free_temp(match_reg);
+                    }
+
+                    _ => unreachable!(),
+                }
+            }
 
             ast::Pattern::Tuple(ref tuple) => {
                 if ty.is_unit() {
