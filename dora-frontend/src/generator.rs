@@ -3056,7 +3056,7 @@ impl PatternCheckContext {
     #[allow(unused)]
     fn ensure_label(&mut self, b: &mut BytecodeBuilder) -> Label {
         if self.exit.is_none() {
-            self.exit = Some(b.define_label());
+            self.exit = Some(b.create_label());
         }
 
         self.exit.expect("missing label")
