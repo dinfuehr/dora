@@ -1,0 +1,10 @@
+//= error code 1
+
+fn main() {
+    assert(f((0, false)) == 0);
+}
+
+fn f(x: (Int64, Bool)): Int64 {
+    let (a, true) = x;
+    a
+}
