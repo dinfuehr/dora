@@ -1,9 +1,9 @@
-use dora_bytecode::{BytecodeType, BytecodeTypeArray, EnumId, FunctionId, Label, Register};
+use dora_bytecode::{BytecodeType, BytecodeTypeArray, FunctionId, Register};
 use dora_parser::ast::{self, CmpOp};
 use dora_parser::Span;
 
 use crate::generator::{bty_array_from_ty, register_bty_from_ty, AstBytecodeGen, DataDest};
-use crate::sema::{EnumDefinitionId, FctDefinition, FctParent, IdentType, Intrinsic, Sema};
+use crate::sema::{FctDefinition, FctParent, Intrinsic, Sema};
 use crate::ty::{SourceType, SourceTypeArray};
 
 pub(super) fn gen_expr(g: &mut AstBytecodeGen, expr: &ast::ExprData, dest: DataDest) -> Register {
@@ -238,8 +238,7 @@ pub(super) fn gen_match(
     dest: DataDest,
 ) -> Register {
     let result_ty = g.ty(node.id);
-    let enum_ty = g.ty(node.expr.id());
-    let enum_id = enum_ty.enum_id().expect("enum expected");
+    let expr_ty = g.ty(node.expr.id());
 
     let dest = if result_ty.is_unit() {
         None
@@ -249,167 +248,58 @@ pub(super) fn gen_match(
         Some(dest)
     };
 
-    let end_lbl = g.builder.create_label();
+    let fallthrough_lbl = g.builder.create_label();
+    let merge_lbl = g.builder.create_label();
 
     let expr_reg = gen_expr(g, &node.expr, DataDest::Alloc);
 
-    let variant_reg = g.alloc_temp(BytecodeType::Int32);
-    let idx = g.builder.add_const_enum(
-        EnumId(enum_id.index().try_into().expect("overflow")),
-        bty_array_from_ty(&enum_ty.type_params()),
-    );
-    g.builder
-        .emit_load_enum_variant(variant_reg, expr_reg, idx, g.loc(node.span));
-
-    let mut labels = Vec::with_capacity(node.cases.len());
+    let mut pattern_labels = Vec::with_capacity(node.cases.len());
 
     for case in &node.cases {
         for _pattern in &case.patterns {
-            labels.push(g.builder.create_label());
+            pattern_labels.push(g.builder.create_label());
         }
     }
+
+    pattern_labels.push(fallthrough_lbl);
 
     let mut idx = 0;
+    g.push_scope();
 
     for case in &node.cases {
+        let case_body_lbl = g.builder.create_label();
+
         for pattern in &case.patterns {
-            match pattern.as_ref() {
-                ast::Pattern::Underscore(..) => {
-                    g.builder.emit_jump(labels[idx]);
-                }
-
-                ast::Pattern::Tuple(..) => unreachable!(),
-
-                ast::Pattern::Ident(_) | ast::Pattern::StructOrEnum(_) => {
-                    match_check_ident(g, pattern, variant_reg, labels[idx]);
-                }
-            }
+            g.builder.bind_label(pattern_labels[idx]);
+            let next_pattern = pattern_labels[idx + 1];
+            g.setup_pattern_vars(pattern);
+            g.destruct_pattern(pattern, expr_reg, expr_ty.clone(), Some(next_pattern));
+            g.builder.emit_jump(case_body_lbl);
 
             idx += 1;
         }
-    }
 
-    idx = 0;
+        g.push_scope();
+        g.builder.bind_label(case_body_lbl);
 
-    for case in &node.cases {
-        for pattern in &case.patterns {
-            g.builder.bind_label(labels[idx]);
-
-            match_case_body(
-                g,
-                case,
-                pattern,
-                enum_id,
-                enum_ty.clone(),
-                expr_reg,
-                dest,
-                end_lbl,
-            );
-
-            idx += 1;
+        if let Some(dest) = dest {
+            gen_expr(g, &case.value, DataDest::Reg(dest));
+        } else {
+            gen_expr(g, &case.value, DataDest::Effect);
         }
+
+        g.builder.emit_jump(merge_lbl);
+        g.pop_scope();
     }
 
-    g.builder.bind_label(end_lbl);
-    g.free_temp(variant_reg);
+    g.builder.bind_label(fallthrough_lbl);
+    gen_unreachable(g, node.span);
+
+    g.pop_scope();
+    g.builder.bind_label(merge_lbl);
     g.free_if_temp(expr_reg);
 
     dest.unwrap_or(Register::invalid())
-}
-
-fn match_check_ident(
-    g: &mut AstBytecodeGen,
-    pattern: &ast::Pattern,
-    variant_reg: Register,
-    code_lbl: Label,
-) {
-    let variant_idx = match_variant_idx(g, pattern);
-
-    let tmp_reg = g.alloc_temp(BytecodeType::Int32);
-    let cmp_reg = g.alloc_temp(BytecodeType::Bool);
-    g.builder.emit_const_int32(tmp_reg, variant_idx as i32);
-    g.builder.emit_test_eq(cmp_reg, variant_reg, tmp_reg);
-    g.builder.emit_jump_if_true(cmp_reg, code_lbl);
-    g.free_temp(tmp_reg);
-    g.free_temp(cmp_reg);
-}
-
-fn match_case_body(
-    g: &mut AstBytecodeGen,
-    case: &ast::MatchCaseType,
-    pattern: &ast::Pattern,
-    enum_id: EnumDefinitionId,
-    enum_ty: SourceType,
-    expr_reg: Register,
-    dest: Option<Register>,
-    end_lbl: Label,
-) {
-    g.push_scope();
-
-    match pattern {
-        ast::Pattern::Underscore(..) | ast::Pattern::Ident(..) => {
-            // Nothing to do.
-        }
-        ast::Pattern::Tuple(..) => unreachable!(),
-        ast::Pattern::StructOrEnum(ref ident) => {
-            if let Some(ref params) = ident.params {
-                let variant_idx = match_variant_idx(g, pattern);
-
-                for (subtype_idx, param) in params.iter().enumerate() {
-                    match param.as_ref() {
-                        ast::Pattern::Underscore(..) => {
-                            // Do nothing.
-                        }
-                        ast::Pattern::Tuple(..) | ast::Pattern::StructOrEnum(..) => unreachable!(),
-                        ast::Pattern::Ident(ref ident) => {
-                            let idx = g.builder.add_const_enum_element(
-                                EnumId(enum_id.index().try_into().expect("overflow")),
-                                bty_array_from_ty(&enum_ty.type_params()),
-                                variant_idx,
-                                subtype_idx as u32,
-                            );
-
-                            let var_id = *g.analysis.map_vars.get(ident.id).unwrap();
-
-                            let ty = g.var_ty(var_id);
-
-                            if !ty.is_unit() {
-                                let ty: BytecodeType = register_bty_from_ty(ty);
-                                let var_reg = g.alloc_var(ty);
-
-                                g.var_registers.insert(var_id, var_reg);
-
-                                g.builder.emit_load_enum_element(
-                                    var_reg,
-                                    expr_reg,
-                                    idx,
-                                    g.loc(ident.span),
-                                );
-                            }
-                        }
-                    }
-                }
-            }
-        }
-    }
-
-    if let Some(dest) = dest {
-        gen_expr(g, &case.value, DataDest::Reg(dest));
-    } else {
-        gen_expr(g, &case.value, DataDest::Effect);
-    }
-
-    g.builder.emit_jump(end_lbl);
-    g.pop_scope();
-}
-
-fn match_variant_idx(g: &AstBytecodeGen, pattern: &ast::Pattern) -> u32 {
-    let ident_type = g.analysis.map_idents.get(pattern.id()).unwrap();
-
-    match ident_type {
-        IdentType::EnumVariant(_, _, variant_idx) => (*variant_idx).try_into().unwrap(),
-        _ => unreachable!(),
-    }
 }
 
 pub(super) fn gen_unreachable(g: &mut AstBytecodeGen, span: Span) {

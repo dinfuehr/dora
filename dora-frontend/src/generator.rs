@@ -365,22 +365,34 @@ impl<'a> AstBytecodeGen<'a> {
     fn setup_pattern_vars(&mut self, pattern: &ast::Pattern) {
         match pattern {
             ast::Pattern::Ident(ref ident) => {
-                let var_id = *self.analysis.map_vars.get(ident.id).unwrap();
-                let var = self.analysis.vars.get_var(var_id);
+                let ident_type = self.analysis.map_idents.get(ident.id);
 
-                if !var.ty.is_unit() {
-                    let bty: BytecodeType = register_bty_from_ty(var.ty.clone());
+                match ident_type {
+                    Some(IdentType::EnumVariant(..)) => {
+                        // Do nothing.
+                    }
 
-                    match var.location {
-                        VarLocation::Context(..) => {
-                            // Nothing to do here.
-                        }
+                    None => {
+                        let var_id = *self.analysis.map_vars.get(ident.id).unwrap();
+                        let var = self.analysis.vars.get_var(var_id);
 
-                        VarLocation::Stack => {
-                            let var_reg = self.alloc_var(bty);
-                            self.var_registers.insert(var_id, var_reg);
+                        if !var.ty.is_unit() {
+                            let bty: BytecodeType = register_bty_from_ty(var.ty.clone());
+
+                            match var.location {
+                                VarLocation::Context(..) => {
+                                    // Nothing to do here.
+                                }
+
+                                VarLocation::Stack => {
+                                    let var_reg = self.alloc_var(bty);
+                                    self.var_registers.insert(var_id, var_reg);
+                                }
+                            }
                         }
                     }
+
+                    _ => unreachable!(),
                 }
             }
             ast::Pattern::Underscore(_) => {
@@ -521,14 +533,14 @@ impl<'a> AstBytecodeGen<'a> {
     ) {
         let enum_ = self.sa.enum_(enum_id);
 
-        let enum_id = EnumId(enum_id.index().try_into().expect("overflow"));
-        let enum_type_params = bty_array_from_ty(enum_type_params);
+        let bc_enum_id = EnumId(enum_id.index().try_into().expect("overflow"));
+        let bc_enum_type_params = bty_array_from_ty(enum_type_params);
 
         let match_reg = self.alloc_temp(BytecodeType::Bool);
         let actual_variant_reg = self.alloc_temp(BytecodeType::Int32);
         let idx = self
             .builder
-            .add_const_enum(enum_id, enum_type_params.clone());
+            .add_const_enum(bc_enum_id, bc_enum_type_params.clone());
         self.builder.emit_load_enum_variant(
             actual_variant_reg,
             value,
@@ -550,13 +562,14 @@ impl<'a> AstBytecodeGen<'a> {
 
         if let Some(params) = params {
             for (idx, param) in params.iter().enumerate() {
-                let source_ty = variant.types()[idx].clone();
-                let ty = register_bty_from_ty(source_ty.clone());
+                let element_ty = variant.types()[idx].clone();
+                let element_ty = specialize_type(self.sa, element_ty, enum_type_params);
+                let ty = register_bty_from_ty(element_ty.clone());
                 let field_reg = self.alloc_temp(ty);
 
                 let idx = self.builder.add_const_enum_element(
-                    enum_id,
-                    enum_type_params.clone(),
+                    bc_enum_id,
+                    bc_enum_type_params.clone(),
                     variant_idx,
                     idx as u32,
                 );
@@ -568,7 +581,8 @@ impl<'a> AstBytecodeGen<'a> {
                     self.loc(pattern.span()),
                 );
 
-                self.destruct_pattern_inner(pck, param, field_reg, source_ty)
+                self.destruct_pattern_inner(pck, param, field_reg, element_ty);
+                self.free_temp(field_reg);
             }
         }
 

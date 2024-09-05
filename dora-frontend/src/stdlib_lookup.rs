@@ -328,7 +328,7 @@ pub fn resolve_internal_functions(sa: &mut Sema) {
 }
 
 fn resolve_functions(sa: &mut Sema, stdlib_id: ModuleDefinitionId) {
-    sa.known.functions.assert = Some(find_fct(sa, stdlib_id, "unreachable"));
+    sa.known.functions.unreachable = Some(find_fct(sa, stdlib_id, "unreachable"));
 }
 
 fn lookup_ordering(sa: &mut Sema, stdlib_id: ModuleDefinitionId) {
