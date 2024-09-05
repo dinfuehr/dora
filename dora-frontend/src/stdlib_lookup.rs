@@ -323,6 +323,12 @@ pub fn resolve_internal_functions(sa: &mut Sema) {
     resolve_atomic_int64(sa, stdlib_id);
 
     lookup_ordering(sa, stdlib_id);
+
+    resolve_functions(sa, stdlib_id);
+}
+
+fn resolve_functions(sa: &mut Sema, stdlib_id: ModuleDefinitionId) {
+    sa.known.functions.assert = Some(find_fct(sa, stdlib_id, "unreachable"));
 }
 
 fn lookup_ordering(sa: &mut Sema, stdlib_id: ModuleDefinitionId) {
@@ -1445,6 +1451,16 @@ fn find_method(
         }
 
         _ => panic!("unknown symbol {}::{}", container_name, name),
+    }
+}
+
+fn find_fct(sa: &Sema, module_id: ModuleDefinitionId, name: &str) -> FctDefinitionId {
+    let iname = sa.interner.intern(name);
+    let sym = sa.module(module_id).table().get(iname);
+
+    match sym {
+        Some(SymbolKind::Fct(fct_id)) => fct_id,
+        _ => panic!("unknown fct {}", name),
     }
 }
 

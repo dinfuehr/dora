@@ -5,7 +5,7 @@ use std::sync::Arc;
 use dora_parser::ast::CmpOp;
 use dora_parser::{ast, Span};
 
-use self::expr::{gen_expr, gen_expr_bin_cmp};
+use self::expr::{gen_expr, gen_expr_bin_cmp, gen_unreachable};
 use crate::sema::{
     emit_as_bytecode_operation, AnalysisData, CallType, ClassDefinitionId, ConstDefinitionId,
     ContextFieldId, EnumDefinitionId, FctDefinition, FctDefinitionId, FieldId, GlobalDefinition,
@@ -402,6 +402,22 @@ impl<'a> AstBytecodeGen<'a> {
         }
     }
 
+    fn destruct_pattern_or_fail(
+        &mut self,
+        pattern: &ast::Pattern,
+        value: Register,
+        ty: SourceType,
+    ) {
+        let mismatch_lbl = self.destruct_pattern(pattern, value, ty, None);
+        if let Some(mismatch_lbl) = mismatch_lbl {
+            let merge_lbl = self.builder.create_label();
+            self.builder.emit_jump(merge_lbl);
+            self.builder.bind_label(mismatch_lbl);
+            gen_unreachable(self, pattern.span());
+            self.builder.bind_label(merge_lbl);
+        }
+    }
+
     fn destruct_pattern(
         &mut self,
         pattern: &ast::Pattern,
@@ -687,7 +703,7 @@ impl<'a> AstBytecodeGen<'a> {
             self.free_temp(next_result_reg);
 
             self.setup_pattern_vars(&stmt.pattern);
-            self.destruct_pattern(&stmt.pattern, value_reg, for_type_info.value_type, None);
+            self.destruct_pattern_or_fail(&stmt.pattern, value_reg, for_type_info.value_type);
         }
 
         self.loops.push(LoopLabels::new(lbl_cond, lbl_end));
@@ -710,7 +726,7 @@ impl<'a> AstBytecodeGen<'a> {
         if let Some(ref expr) = stmt.expr {
             let ty = self.ty(expr.id());
             let value = gen_expr(self, expr, DataDest::Alloc);
-            self.destruct_pattern(&stmt.pattern, value, ty, None);
+            self.destruct_pattern_or_fail(&stmt.pattern, value, ty);
             self.free_if_temp(value);
         }
     }
@@ -968,6 +984,7 @@ impl<'a> AstBytecodeGen<'a> {
         let ty = self.ty(node.value.id());
         let value_reg = gen_expr(self, &node.value, DataDest::Alloc);
 
+        self.push_scope();
         let mismatch_lbl = self.builder.create_label();
         let merge_lbl = self.builder.create_label();
         self.destruct_pattern(&node.pattern, value_reg, ty, Some(mismatch_lbl));
@@ -977,6 +994,7 @@ impl<'a> AstBytecodeGen<'a> {
         self.builder.bind_label(mismatch_lbl);
         self.builder.emit_const_false(dest);
         self.builder.bind_label(merge_lbl);
+        self.pop_scope();
 
         dest
     }

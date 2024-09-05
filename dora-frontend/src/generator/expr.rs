@@ -1,9 +1,10 @@
 use dora_bytecode::{BytecodeType, BytecodeTypeArray, EnumId, FunctionId, Label, Register};
 use dora_parser::ast::{self, CmpOp};
+use dora_parser::Span;
 
 use crate::generator::{bty_array_from_ty, register_bty_from_ty, AstBytecodeGen, DataDest};
 use crate::sema::{EnumDefinitionId, FctDefinition, FctParent, IdentType, Intrinsic, Sema};
-use crate::ty::SourceType;
+use crate::ty::{SourceType, SourceTypeArray};
 
 pub(super) fn gen_expr(g: &mut AstBytecodeGen, expr: &ast::ExprData, dest: DataDest) -> Register {
     match *expr {
@@ -409,4 +410,25 @@ fn match_variant_idx(g: &AstBytecodeGen, pattern: &ast::Pattern) -> u32 {
         IdentType::EnumVariant(_, _, variant_idx) => (*variant_idx).try_into().unwrap(),
         _ => unreachable!(),
     }
+}
+
+pub(super) fn gen_unreachable(g: &mut AstBytecodeGen, span: Span) {
+    let return_type = g.return_type.clone().unwrap_or(SourceType::Unit);
+    let register_bty = register_bty_from_ty(return_type.clone());
+    let dest = g.alloc_temp(register_bty);
+    let fct_type_params = bty_array_from_ty(&SourceTypeArray::single(return_type));
+    let fct_idx = g.builder.add_const_fct_types(
+        FunctionId(
+            g.sa.known
+                .functions
+                .unreachable()
+                .index()
+                .try_into()
+                .expect("overflow"),
+        ),
+        fct_type_params,
+    );
+    g.builder.emit_invoke_direct(dest, fct_idx, g.loc(span));
+    g.builder.emit_ret(dest);
+    g.free_temp(dest);
 }
