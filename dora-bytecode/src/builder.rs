@@ -617,11 +617,11 @@ impl BytecodeBuilder {
     }
 
     fn used(&self, reg: Register) -> bool {
-        self.registers.used.contains(&reg)
+        self.registers.used.contains(&reg) || Some(reg) == self.registers.unit
     }
 
     fn def(&self, reg: Register) -> bool {
-        self.registers.used.contains(&reg)
+        self.registers.used.contains(&reg) || Some(reg) == self.registers.unit
     }
 }
 
@@ -631,6 +631,7 @@ struct Registers {
     used: HashSet<Register>,
     temps: HashSet<Register>,
     unused: HashMap<BytecodeType, Vec<Register>>,
+    unit: Option<Register>,
 }
 
 impl Registers {
@@ -641,6 +642,7 @@ impl Registers {
             used: HashSet::new(),
             temps: HashSet::new(),
             unused: HashMap::new(),
+            unit: None,
         }
     }
 
@@ -659,6 +661,10 @@ impl Registers {
     }
 
     fn alloc_var(&mut self, ty: BytecodeType) -> Register {
+        if ty.is_unit() {
+            return self.ensure_unit_register();
+        }
+
         let reg = self.alloc_internal(ty);
         assert!(self.scopes.last_mut().expect("missing scope").0.insert(reg));
         assert!(self.used.insert(reg));
@@ -666,6 +672,10 @@ impl Registers {
     }
 
     fn alloc_temp(&mut self, ty: BytecodeType) -> Register {
+        if ty.is_unit() {
+            return self.ensure_unit_register();
+        }
+
         let reg = self.alloc_internal(ty);
         assert!(self.temps.insert(reg));
         assert!(self.used.insert(reg));
@@ -673,6 +683,10 @@ impl Registers {
     }
 
     fn alloc_global(&mut self, ty: BytecodeType) -> Register {
+        if ty.is_unit() {
+            return self.ensure_unit_register();
+        }
+
         let reg = self.alloc_internal(ty);
         assert!(self
             .scopes
@@ -685,10 +699,12 @@ impl Registers {
     }
 
     fn free_temp(&mut self, reg: Register) {
-        assert!(self.temps.remove(&reg));
-        let ty = self.all[reg.0].clone();
-        self.unused.entry(ty).or_insert(Vec::new()).push(reg);
-        assert!(self.used.remove(&reg));
+        if Some(reg) != self.unit {
+            assert!(self.temps.remove(&reg));
+            let ty = self.all[reg.0].clone();
+            self.unused.entry(ty).or_insert(Vec::new()).push(reg);
+            assert!(self.used.remove(&reg));
+        }
     }
 
     fn free_if_temp(&mut self, reg: Register) -> bool {
@@ -711,8 +727,19 @@ impl Registers {
     }
 
     fn new_register(&mut self, ty: BytecodeType) -> Register {
+        assert!(!ty.is_unit());
         self.all.push(ty);
         Register(self.all.len() - 1)
+    }
+
+    fn ensure_unit_register(&mut self) -> Register {
+        if self.unit.is_none() {
+            let idx = self.all.len();
+            self.all.push(BytecodeType::Unit);
+            self.unit = Some(Register(idx));
+        }
+
+        self.unit.expect("missing unit register")
     }
 
     fn used(&self) -> bool {

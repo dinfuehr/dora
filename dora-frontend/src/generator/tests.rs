@@ -445,7 +445,7 @@ fn gen_stmt_let_tuple() {
 #[test]
 fn gen_stmt_let_unit() {
     let result = code("fn f(value: ()) { let () = value; }");
-    let expected = vec![Ret(r(1))];
+    let expected = vec![Ret(r(0))];
     assert_eq!(expected, result);
 
     let result = code("fn f() { let x = (); }");
