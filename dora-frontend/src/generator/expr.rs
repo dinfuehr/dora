@@ -240,13 +240,8 @@ pub(super) fn gen_match(
     let result_ty = g.ty(node.id);
     let expr_ty = g.ty(node.expr.id());
 
-    let dest = if result_ty.is_unit() {
-        None
-    } else {
-        let result_bc_ty = register_bty_from_ty(result_ty);
-        let dest = g.ensure_register(dest, result_bc_ty);
-        Some(dest)
-    };
+    let result_bc_ty = register_bty_from_ty(result_ty);
+    let dest = g.ensure_register(dest, result_bc_ty);
 
     let fallthrough_lbl = g.builder.create_label();
     let merge_lbl = g.builder.create_label();
@@ -282,11 +277,7 @@ pub(super) fn gen_match(
         g.push_scope();
         g.builder.bind_label(case_body_lbl);
 
-        if let Some(dest) = dest {
-            gen_expr(g, &case.value, DataDest::Reg(dest));
-        } else {
-            gen_expr(g, &case.value, DataDest::Effect);
-        }
+        gen_expr(g, &case.value, DataDest::Reg(dest));
 
         g.builder.emit_jump(merge_lbl);
         g.pop_scope();
@@ -299,7 +290,7 @@ pub(super) fn gen_match(
     g.builder.bind_label(merge_lbl);
     g.free_if_temp(expr_reg);
 
-    dest.unwrap_or(g.ensure_unit_register())
+    dest
 }
 
 pub(super) fn gen_unreachable(g: &mut AstBytecodeGen, span: Span) {

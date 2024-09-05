@@ -2109,7 +2109,7 @@ impl CodeGen for CodeGenX64 {
             let type_params = Array[BytecodeType]::new();
             self.emitCall(fct_id, type_params, inst.getInlinedLocation(), gc_point);
 
-            if ty != Type::Address {
+            if ty != Type::Address && ty != Type::Unit {
                 // Store initial value in global variable.
                 self.asm.movq_ri(REG_TEMP, Immediate(value_address.value));
 

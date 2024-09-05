@@ -1081,15 +1081,19 @@ impl SsaGen {
             self.setCurrentInlinedLocation(inst);
         }
 
-        let value = self.loadGlobal(destType, glob);
-        self.writeVariable(dest, self.current(), value);
+        if !destType.isUnit() {
+            let value = self.loadGlobal(destType, glob);
+            self.writeVariable(dest, self.current(), value);
+        }
     }
 
     fn emitStoreGlobal(src: BytecodeRegister, glob: GlobalId) {
         let srcType = self.reg(src);
 
-        let srcInst = self.readVariable(src, self.current());
-        self.storeGlobal(srcType, glob, srcInst);
+        if !srcType.isUnit() {
+            let srcInst = self.readVariable(src, self.current());
+            self.storeGlobal(srcType, glob, srcInst);
+        }
 
         if iface::hasGlobalInitialValue(glob) {
             let inst = graph::createMarkGlobalInitializedInst(glob);

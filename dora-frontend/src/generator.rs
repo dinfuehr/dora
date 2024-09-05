@@ -376,18 +376,16 @@ impl<'a> AstBytecodeGen<'a> {
                         let var_id = *self.analysis.map_vars.get(ident.id).unwrap();
                         let var = self.analysis.vars.get_var(var_id);
 
-                        if !var.ty.is_unit() {
-                            let bty: BytecodeType = register_bty_from_ty(var.ty.clone());
+                        let bty: BytecodeType = register_bty_from_ty(var.ty.clone());
 
-                            match var.location {
-                                VarLocation::Context(..) => {
-                                    // Nothing to do here.
-                                }
+                        match var.location {
+                            VarLocation::Context(..) => {
+                                // Nothing to do here.
+                            }
 
-                                VarLocation::Stack => {
-                                    let var_reg = self.alloc_var(bty);
-                                    self.var_registers.insert(var_id, var_reg);
-                                }
+                            VarLocation::Stack => {
+                                let var_reg = self.alloc_var(bty);
+                                self.var_registers.insert(var_id, var_reg);
                             }
                         }
                     }
@@ -763,7 +761,7 @@ impl<'a> AstBytecodeGen<'a> {
     }
 
     fn visit_stmt_expr(&mut self, stmt: &ast::StmtExprType) {
-        let reg = gen_expr(self, &stmt.expr, DataDest::Effect);
+        let reg = gen_expr(self, &stmt.expr, DataDest::Alloc);
         self.free_if_temp(reg);
     }
 
@@ -808,7 +806,7 @@ impl<'a> AstBytecodeGen<'a> {
     }
 
     fn emit_expr_for_effect(&mut self, expr: &ast::ExprData) {
-        let reg = gen_expr(self, expr, DataDest::Effect);
+        let reg = gen_expr(self, expr, DataDest::Alloc);
         self.free_if_temp(reg);
     }
 
@@ -1078,12 +1076,7 @@ impl<'a> AstBytecodeGen<'a> {
         let ty = self.ty(expr.id);
 
         if let Some(ref else_block) = expr.else_block {
-            let dest = match dest {
-                DataDest::Effect => DataDest::Effect,
-                DataDest::Alloc | DataDest::Reg(..) => {
-                    DataDest::Reg(self.ensure_register(dest, register_bty_from_ty(ty)))
-                }
-            };
+            let dest = self.ensure_register(dest, register_bty_from_ty(ty));
 
             let else_lbl = self.builder.create_label();
             let end_lbl = self.builder.create_label();
@@ -1092,21 +1085,17 @@ impl<'a> AstBytecodeGen<'a> {
             self.builder.emit_jump_if_false(cond_reg, else_lbl);
             self.free_if_temp(cond_reg);
 
-            gen_expr(self, &expr.then_block, dest);
+            gen_expr(self, &expr.then_block, DataDest::Reg(dest));
 
             if !expr_always_returns(&expr.then_block) {
                 self.builder.emit_jump(end_lbl);
             }
 
             self.builder.bind_label(else_lbl);
-            gen_expr(self, else_block, dest);
+            gen_expr(self, else_block, DataDest::Reg(dest));
             self.builder.bind_label(end_lbl);
 
-            match dest {
-                DataDest::Effect => self.ensure_unit_register(),
-                DataDest::Reg(reg) => reg,
-                DataDest::Alloc => unreachable!(),
-            }
+            dest
         } else {
             // Without else-branch there can't be return value
             assert!(ty.is_unit());
@@ -1210,7 +1199,6 @@ impl<'a> AstBytecodeGen<'a> {
         let ty = specialize_type(self.sa, field.ty(), &type_params);
 
         if ty.is_unit() {
-            assert!(dest.is_unit());
             self.free_if_temp(struct_obj);
             return self.ensure_unit_register();
         }
@@ -1243,12 +1231,6 @@ impl<'a> AstBytecodeGen<'a> {
         let subtypes = tuple_ty.tuple_subtypes();
         let ty = subtypes[idx as usize].clone();
 
-        if ty.is_unit() {
-            assert!(dest.is_unit());
-            self.free_if_temp(tuple);
-            return self.ensure_unit_register();
-        }
-
         let ty: BytecodeType = register_bty_from_ty(ty);
         let dest = self.ensure_register(dest, ty);
         let idx = self
@@ -1261,8 +1243,7 @@ impl<'a> AstBytecodeGen<'a> {
         dest
     }
 
-    fn visit_expr_assert(&mut self, expr: &ast::ExprCallType, dest: DataDest) {
-        assert!(dest.is_unit());
+    fn visit_expr_assert(&mut self, expr: &ast::ExprCallType, _dest: DataDest) -> Register {
         let assert_reg = gen_expr(self, &*expr.args[0], DataDest::Alloc);
         self.builder.emit_push_register(assert_reg);
         let fid = self.sa.known.functions.assert();
@@ -1273,6 +1254,7 @@ impl<'a> AstBytecodeGen<'a> {
         self.builder
             .emit_invoke_static(dest, idx, self.loc(expr.span));
         self.free_if_temp(assert_reg);
+        dest
     }
 
     fn visit_expr_call(&mut self, expr: &ast::ExprCallType, dest: DataDest) -> Register {
@@ -1625,26 +1607,18 @@ impl<'a> AstBytecodeGen<'a> {
         self.builder
             .emit_new_array(array_reg, length_reg, cls_idx, self.loc(expr.span));
 
-        if element_ty.is_unit() {
-            // Evaluate rest arguments
-            for arg in expr.args.iter().skip(non_variadic_arguments) {
-                gen_expr(self, arg, DataDest::Effect);
-            }
-        } else {
-            let index_reg = self.alloc_temp(BytecodeType::Int64);
+        let index_reg = self.alloc_temp(BytecodeType::Int64);
 
-            // Evaluate rest arguments and store them in array
-            for (idx, arg) in expr.args.iter().skip(non_variadic_arguments).enumerate() {
-                let arg_reg = gen_expr(self, arg, DataDest::Alloc);
-                self.builder.emit_const_int64(index_reg, idx as i64);
-                self.builder
-                    .emit_store_array(arg_reg, array_reg, index_reg, self.loc(expr.span));
-                self.free_if_temp(arg_reg);
-            }
-
-            self.free_if_temp(index_reg);
+        // Evaluate rest arguments and store them in array
+        for (idx, arg) in expr.args.iter().skip(non_variadic_arguments).enumerate() {
+            let arg_reg = gen_expr(self, arg, DataDest::Alloc);
+            self.builder.emit_const_int64(index_reg, idx as i64);
+            self.builder
+                .emit_store_array(arg_reg, array_reg, index_reg, self.loc(expr.span));
+            self.free_if_temp(arg_reg);
         }
 
+        self.free_if_temp(index_reg);
         self.free_if_temp(length_reg);
 
         array_reg
@@ -1730,10 +1704,6 @@ impl<'a> AstBytecodeGen<'a> {
     }
 
     fn visit_expr_self(&mut self, expr: &ast::ExprSelfType, dest: DataDest) -> Register {
-        if dest.is_effect() {
-            return self.ensure_unit_register();
-        }
-
         if self.is_lambda {
             let ident = self
                 .analysis
@@ -1761,10 +1731,6 @@ impl<'a> AstBytecodeGen<'a> {
     }
 
     fn visit_expr_lit_char(&mut self, lit: &ast::ExprLitCharType, dest: DataDest) -> Register {
-        if dest.is_effect() {
-            return self.ensure_unit_register();
-        }
-
         let dest = self.ensure_register(dest, BytecodeType::Char);
 
         let value = self.analysis.literal_char(lit.id);
@@ -1779,10 +1745,6 @@ impl<'a> AstBytecodeGen<'a> {
         dest: DataDest,
         _neg: bool,
     ) -> Register {
-        if dest.is_effect() {
-            return self.ensure_unit_register();
-        }
-
         let ty = self.analysis.ty(lit.id);
         let (value_i64, value_f64) = self.analysis.literal_value(lit.id);
 
@@ -1816,10 +1778,6 @@ impl<'a> AstBytecodeGen<'a> {
     }
 
     fn visit_expr_lit_float(&mut self, lit: &ast::ExprLitFloatType, dest: DataDest) -> Register {
-        if dest.is_effect() {
-            return self.ensure_unit_register();
-        }
-
         let ty = self.analysis.ty(lit.id);
         let (_, value_f64) = self.analysis.literal_value(lit.id);
 
@@ -1841,10 +1799,6 @@ impl<'a> AstBytecodeGen<'a> {
     }
 
     fn visit_expr_lit_string(&mut self, lit: &ast::ExprLitStrType, dest: DataDest) -> Register {
-        if dest.is_effect() {
-            return self.ensure_unit_register();
-        }
-
         let dest = self.ensure_register(dest, BytecodeType::Ptr);
         let value = self.analysis.literal_string(lit.id);
         self.builder.emit_const_string(dest, value);
@@ -1853,10 +1807,6 @@ impl<'a> AstBytecodeGen<'a> {
     }
 
     fn visit_expr_lit_bool(&mut self, lit: &ast::ExprLitBoolType, dest: DataDest) -> Register {
-        if dest.is_effect() {
-            return self.ensure_unit_register();
-        }
-
         let dest = self.ensure_register(dest, BytecodeType::Bool);
 
         if lit.value {
@@ -1870,7 +1820,6 @@ impl<'a> AstBytecodeGen<'a> {
 
     fn visit_expr_tuple(&mut self, e: &ast::ExprTupleType, dest: DataDest) -> Register {
         if e.values.is_empty() {
-            assert!(dest.is_unit());
             return self.ensure_unit_register();
         }
 
@@ -2086,10 +2035,7 @@ impl<'a> AstBytecodeGen<'a> {
             }
         } else {
             match intrinsic {
-                Intrinsic::Assert => {
-                    self.visit_expr_assert(expr, dest);
-                    self.ensure_unit_register()
-                }
+                Intrinsic::Assert => self.visit_expr_assert(expr, dest),
 
                 Intrinsic::ArrayGet => self.emit_intrinsic_bin(
                     &expr.callee,
@@ -2140,12 +2086,6 @@ impl<'a> AstBytecodeGen<'a> {
     }
 
     fn emit_bin_is(&mut self, expr: &ast::ExprBinType, dest: DataDest) -> Register {
-        if dest.is_effect() {
-            self.emit_expr_for_effect(&expr.lhs);
-            self.emit_expr_for_effect(&expr.rhs);
-            return self.ensure_unit_register();
-        }
-
         let dest = self.ensure_register(dest, BytecodeType::Bool);
 
         let lhs_reg = gen_expr(self, &expr.lhs, DataDest::Alloc);
@@ -2164,51 +2104,27 @@ impl<'a> AstBytecodeGen<'a> {
     }
 
     fn emit_bin_or(&mut self, expr: &ast::ExprBinType, dest: DataDest) -> Register {
-        if dest.is_effect() {
-            let end_lbl = self.builder.create_label();
-            let dest = gen_expr(self, &expr.lhs, DataDest::Alloc);
-            self.builder.emit_jump_if_true(dest, end_lbl);
-            self.free_if_temp(dest);
+        let end_lbl = self.builder.create_label();
+        let dest = self.ensure_register(dest, BytecodeType::Bool);
 
-            self.emit_expr_for_effect(&expr.rhs);
-            self.builder.bind_label(end_lbl);
+        gen_expr(self, &expr.lhs, DataDest::Reg(dest));
+        self.builder.emit_jump_if_true(dest, end_lbl);
+        gen_expr(self, &expr.rhs, DataDest::Reg(dest));
+        self.builder.bind_label(end_lbl);
 
-            self.ensure_unit_register()
-        } else {
-            let end_lbl = self.builder.create_label();
-            let dest = self.ensure_register(dest, BytecodeType::Bool);
-
-            gen_expr(self, &expr.lhs, DataDest::Reg(dest));
-            self.builder.emit_jump_if_true(dest, end_lbl);
-            gen_expr(self, &expr.rhs, DataDest::Reg(dest));
-            self.builder.bind_label(end_lbl);
-
-            dest
-        }
+        dest
     }
 
     fn emit_bin_and(&mut self, expr: &ast::ExprBinType, dest: DataDest) -> Register {
-        if dest.is_effect() {
-            let end_lbl = self.builder.create_label();
-            let dest = gen_expr(self, &expr.lhs, DataDest::Alloc);
-            self.builder.emit_jump_if_false(dest, end_lbl);
-            self.free_if_temp(dest);
+        let end_lbl = self.builder.create_label();
+        let dest = self.ensure_register(dest, BytecodeType::Bool);
 
-            self.emit_expr_for_effect(&expr.rhs);
-            self.builder.bind_label(end_lbl);
+        gen_expr(self, &expr.lhs, DataDest::Reg(dest));
+        self.builder.emit_jump_if_false(dest, end_lbl);
+        gen_expr(self, &expr.rhs, DataDest::Reg(dest));
+        self.builder.bind_label(end_lbl);
 
-            self.ensure_unit_register()
-        } else {
-            let end_lbl = self.builder.create_label();
-            let dest = self.ensure_register(dest, BytecodeType::Bool);
-
-            gen_expr(self, &expr.lhs, DataDest::Reg(dest));
-            self.builder.emit_jump_if_false(dest, end_lbl);
-            gen_expr(self, &expr.rhs, DataDest::Reg(dest));
-            self.builder.bind_label(end_lbl);
-
-            dest
-        }
+        dest
     }
 
     fn emit_intrinsic_array_set(
@@ -2217,10 +2133,8 @@ impl<'a> AstBytecodeGen<'a> {
         idx: &ast::ExprData,
         src: &ast::ExprData,
         location: Location,
-        dest: DataDest,
+        _dest: DataDest,
     ) -> Register {
-        assert!(dest.is_unit());
-
         let arr = gen_expr(self, arr, DataDest::Alloc);
         let idx = gen_expr(self, idx, DataDest::Alloc);
         let src = gen_expr(self, src, DataDest::Alloc);
@@ -2371,9 +2285,7 @@ impl<'a> AstBytecodeGen<'a> {
         dest
     }
 
-    fn visit_expr_assign(&mut self, expr: &ast::ExprBinType, dest: DataDest) -> Register {
-        assert!(dest.is_unit());
-
+    fn visit_expr_assign(&mut self, expr: &ast::ExprBinType, _dest: DataDest) -> Register {
         if expr.lhs.is_ident() {
             let ident_type = self.analysis.map_idents.get(expr.lhs.id()).unwrap();
             match ident_type {
@@ -2403,13 +2315,14 @@ impl<'a> AstBytecodeGen<'a> {
         if let Some(info) = self.get_intrinsic(expr.id) {
             match info.intrinsic {
                 Intrinsic::ArraySet => {
-                    self.emit_intrinsic_array_set(
+                    let result = self.emit_intrinsic_array_set(
                         object,
                         index,
                         value,
                         self.loc(expr.span),
-                        DataDest::Effect,
+                        DataDest::Alloc,
                     );
+                    self.free_if_temp(result);
                 }
                 _ => panic!("unexpected intrinsic {:?}", info.intrinsic),
             }
@@ -2544,33 +2457,17 @@ impl<'a> AstBytecodeGen<'a> {
             }
 
             VarLocation::Stack => {
-                let dest = if var.ty.is_unit() {
-                    DataDest::Effect
-                } else {
-                    let var_reg = self.var_reg(var_id);
-                    DataDest::Reg(var_reg)
-                };
-
-                gen_expr(self, &expr.rhs, dest);
+                let var_reg = self.var_reg(var_id);
+                gen_expr(self, &expr.rhs, DataDest::Reg(var_reg));
             }
         }
     }
 
     fn visit_expr_assign_global(&mut self, expr: &ast::ExprBinType, gid: GlobalDefinitionId) {
-        let global_var = self.sa.global(gid);
+        let src = gen_expr(self, &expr.rhs, DataDest::Alloc);
 
-        let dest = if global_var.ty().is_unit() {
-            DataDest::Effect
-        } else {
-            DataDest::Alloc
-        };
-
-        let src = gen_expr(self, &expr.rhs, dest);
-
-        if !global_var.ty().is_unit() {
-            self.builder
-                .emit_store_global(src, GlobalId(gid.index().try_into().expect("overflow")));
-        }
+        self.builder
+            .emit_store_global(src, GlobalId(gid.index().try_into().expect("overflow")));
 
         self.free_if_temp(src);
     }
@@ -2673,10 +2570,6 @@ impl<'a> AstBytecodeGen<'a> {
     }
 
     fn visit_expr_ident_const(&mut self, const_id: ConstDefinitionId, dest: DataDest) -> Register {
-        if dest.is_effect() {
-            return self.ensure_unit_register();
-        }
-
         let const_ = self.sa.const_(const_id);
         let ty = const_.ty();
 
@@ -2732,16 +2625,7 @@ impl<'a> AstBytecodeGen<'a> {
         dest: DataDest,
         location: Location,
     ) -> Register {
-        if dest.is_effect() {
-            return self.ensure_unit_register();
-        }
-
         let global_var = self.sa.global(gid);
-
-        if global_var.ty().is_unit() {
-            assert!(dest.is_alloc());
-            return self.ensure_unit_register();
-        }
 
         let ty: BytecodeType = register_bty_from_ty(global_var.ty());
         let dest = self.ensure_register(dest, ty);
@@ -2762,15 +2646,6 @@ impl<'a> AstBytecodeGen<'a> {
         location: Location,
     ) -> Register {
         let var = self.analysis.vars.get_var(var_id);
-
-        if dest.is_effect() {
-            return self.ensure_unit_register();
-        }
-
-        if var.ty.is_unit() {
-            assert!(dest.is_alloc());
-            return self.ensure_unit_register();
-        }
 
         match var.location {
             VarLocation::Context(scope_id, field_idx) => {
@@ -2847,13 +2722,7 @@ impl<'a> AstBytecodeGen<'a> {
 
     fn ensure_register(&mut self, dest: DataDest, ty: BytecodeType) -> Register {
         match dest {
-            DataDest::Effect | DataDest::Alloc => {
-                if ty.is_unit() {
-                    self.ensure_unit_register()
-                } else {
-                    self.alloc_temp(ty)
-                }
-            }
+            DataDest::Alloc => self.alloc_temp(ty),
             DataDest::Reg(reg) => reg,
         }
     }
@@ -3049,9 +2918,6 @@ impl From<Intrinsic> for IntrinsicInfo {
 
 #[derive(Copy, Clone, Debug)]
 enum DataDest {
-    // Do not store result. Only interested in side-effects of an expression.
-    Effect,
-
     // Allocate a new register and store result in it.
     Alloc,
 
@@ -3060,25 +2926,8 @@ enum DataDest {
 }
 
 impl DataDest {
-    fn is_unit(&self) -> bool {
-        match self {
-            DataDest::Effect => true,
-            DataDest::Reg(_) => false,
-            DataDest::Alloc => true,
-        }
-    }
-
-    fn is_effect(&self) -> bool {
-        match self {
-            DataDest::Effect => true,
-            DataDest::Reg(_) => false,
-            DataDest::Alloc => false,
-        }
-    }
-
     fn is_alloc(&self) -> bool {
         match self {
-            DataDest::Effect => false,
             DataDest::Reg(_) => false,
             DataDest::Alloc => true,
         }
@@ -3086,7 +2935,7 @@ impl DataDest {
 
     fn reg(&self) -> Register {
         match self {
-            DataDest::Effect | DataDest::Alloc => panic!("not a register"),
+            DataDest::Alloc => panic!("not a register"),
             DataDest::Reg(reg) => *reg,
         }
     }

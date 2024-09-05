@@ -1493,7 +1493,7 @@ impl<'a> BaselineAssembler<'a> {
                 RegOrOffset::Reg(REG_SP),
             );
             self.decrease_stack_frame(ty_size);
-        } else {
+        } else if !ty.is_unit() {
             let ty_mode = mode(self.vm, ty.clone());
             self.masm
                 .store_mem(ty_mode, Mem::Base(REG_TMP1, 0), result_reg_mode(ty_mode));

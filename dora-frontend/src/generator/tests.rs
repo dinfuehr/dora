@@ -458,13 +458,13 @@ fn gen_stmt_let_unit() {
             let inner_tuple_ty = create_tuple(sa, vec![SourceType::Int32, SourceType::Unit]);
             let tuple_ty = create_tuple(sa, vec![SourceType::Int32, inner_tuple_ty.clone()]);
             let expected = vec![
-                LoadTupleElement(r(3), r(0), ConstPoolIdx(0)),
-                Mov(r(1), r(3)),
-                LoadTupleElement(r(4), r(0), ConstPoolIdx(1)),
-                LoadTupleElement(r(3), r(4), ConstPoolIdx(2)),
-                Mov(r(2), r(3)),
-                Add(r(3), r(1), r(2)),
-                Ret(r(3)),
+                LoadTupleElement(r(4), r(0), ConstPoolIdx(0)),
+                Mov(r(1), r(4)),
+                LoadTupleElement(r(5), r(0), ConstPoolIdx(1)),
+                LoadTupleElement(r(4), r(5), ConstPoolIdx(2)),
+                Mov(r(2), r(4)),
+                Add(r(4), r(1), r(2)),
+                Ret(r(4)),
             ];
             assert_eq!(expected, code);
 
@@ -525,9 +525,10 @@ fn gen_stmt_while() {
     let code = vec![
         LoopStart,
         ConstTrue(r(0)),
-        JumpIfFalse(r(0), 4),
+        JumpIfFalse(r(0), 5),
+        ConstInt64(r(1), 0),
         JumpLoop(0),
-        Ret(r(1)),
+        Ret(r(2)),
     ];
     assert_eq!(code, result);
 }
