@@ -534,20 +534,12 @@ pub enum BytecodeInstruction {
 pub struct Register(pub usize);
 
 impl Register {
-    pub fn invalid() -> Register {
-        Register(usize::max_value())
-    }
-
     pub fn zero() -> Register {
         Register(0)
     }
 
     pub fn to_usize(&self) -> usize {
         self.0
-    }
-
-    pub fn is_invalid(&self) -> bool {
-        self.0 == usize::max_value()
     }
 
     pub fn offset(&self, value: usize) -> Register {

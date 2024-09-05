@@ -299,7 +299,7 @@ pub(super) fn gen_match(
     g.builder.bind_label(merge_lbl);
     g.free_if_temp(expr_reg);
 
-    dest.unwrap_or(Register::invalid())
+    dest.unwrap_or(g.ensure_unit_register())
 }
 
 pub(super) fn gen_unreachable(g: &mut AstBytecodeGen, span: Span) {

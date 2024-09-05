@@ -4130,11 +4130,11 @@ fn gen_context_allocated_var() {
                 StoreField(r(1), r(0), ConstPoolIdx(2)),
                 ConstInt64(r(1), 11),
                 StoreField(r(1), r(0), ConstPoolIdx(4)),
-                LoadField(r(2), r(0), ConstPoolIdx(5)),
-                Mov(r(1), r(2)),
+                LoadField(r(3), r(0), ConstPoolIdx(5)),
+                Mov(r(1), r(3)),
                 PushRegister(r(0)),
-                NewLambda(r(3), ConstPoolIdx(6)),
-                Ret(r(3)),
+                NewLambda(r(4), ConstPoolIdx(6)),
+                Ret(r(4)),
             ];
             assert_eq!(expected, code);
         },
