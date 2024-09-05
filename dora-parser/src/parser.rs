@@ -1384,6 +1384,13 @@ impl Parser {
                 id: self.new_node_id(),
                 span: self.finish_node(),
             }))
+        } else if self.is(TRUE) || self.is(FALSE) {
+            let expr = self.parse_lit_bool();
+            Arc::new(Pattern::LitBool(PatternLit {
+                id: self.new_node_id(),
+                span: self.finish_node(),
+                expr,
+            }))
         } else if self.is(L_PAREN) {
             let params = self.parse_list(
                 L_PAREN,
@@ -1449,7 +1456,7 @@ impl Parser {
                 None
             };
 
-            Arc::new(Pattern::StructOrEnum(PatternStructOrEnum {
+            Arc::new(Pattern::ClassOrStructOrEnum(PatternClassOrStructOrEnum {
                 id: self.new_node_id(),
                 span: self.finish_node(),
                 path,
@@ -1794,8 +1801,8 @@ impl Parser {
             STRING_LITERAL => self.parse_string(),
             TEMPLATE_LITERAL => self.parse_template(),
             IDENTIFIER => self.parse_identifier(),
-            TRUE => self.parse_bool_literal(),
-            FALSE => self.parse_bool_literal(),
+            TRUE => self.parse_lit_bool(),
+            FALSE => self.parse_lit_bool(),
             SELF_KW => self.parse_this(),
             OR | OR_OR => self.parse_lambda(),
             FOR_KW => self.parse_for(),
@@ -2004,7 +2011,7 @@ impl Parser {
         ))
     }
 
-    fn parse_bool_literal(&mut self) -> Expr {
+    fn parse_lit_bool(&mut self) -> Expr {
         self.builder.start_node();
         let span = self.current_span();
         let kind = self.current();
@@ -2283,6 +2290,16 @@ mod tests {
     fn parse_let(code: &'static str) -> Stmt {
         let mut parser = Parser::from_string(code);
         let result = parser.parse_let();
+        if !parser.errors.is_empty() {
+            for err in &parser.errors {
+                eprintln!(
+                    "error at {}: {:?} / {}",
+                    err.span,
+                    err.error,
+                    err.error.message()
+                );
+            }
+        }
         assert!(parser.errors.is_empty());
         result
     }
@@ -2774,6 +2791,17 @@ mod tests {
         assert!(first.is_ident());
         assert!(first.to_ident().unwrap().mutable);
         assert!(tuple.params.last().unwrap().is_tuple());
+    }
+
+    #[test]
+    fn parse_let_lit_bool() {
+        let stmt = parse_let("let (a, true) = 1;");
+        let let_decl = stmt.to_let().unwrap();
+
+        assert!(let_decl.pattern.is_tuple());
+        let tuple = let_decl.pattern.to_tuple().unwrap();
+        assert!(tuple.params[0].is_ident());
+        assert!(tuple.params[1].is_lit_bool());
     }
 
     #[test]

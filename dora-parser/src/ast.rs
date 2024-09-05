@@ -1958,33 +1958,43 @@ pub struct MatchCaseType {
 #[derive(Clone, Debug)]
 pub enum Pattern {
     Underscore(PatternUnderscore),
+    LitBool(PatternLit),
     Tuple(PatternTuple),
     Ident(PatternIdent),
-    StructOrEnum(PatternStructOrEnum),
+    ClassOrStructOrEnum(PatternClassOrStructOrEnum),
 }
 
 impl Pattern {
     pub fn id(&self) -> NodeId {
         match self {
             Pattern::Underscore(p) => p.id,
+            Pattern::LitBool(p) => p.id,
             Pattern::Tuple(p) => p.id,
             Pattern::Ident(p) => p.id,
-            Pattern::StructOrEnum(p) => p.id,
+            Pattern::ClassOrStructOrEnum(p) => p.id,
         }
     }
 
     pub fn span(&self) -> Span {
         match self {
             Pattern::Underscore(p) => p.span,
+            Pattern::LitBool(p) => p.span,
             Pattern::Tuple(p) => p.span,
             Pattern::Ident(p) => p.span,
-            Pattern::StructOrEnum(p) => p.span,
+            Pattern::ClassOrStructOrEnum(p) => p.span,
         }
     }
 
     pub fn is_underscore(&self) -> bool {
         match self {
             Pattern::Underscore(..) => true,
+            _ => false,
+        }
+    }
+
+    pub fn is_lit_bool(&self) -> bool {
+        match self {
+            Pattern::LitBool(..) => true,
             _ => false,
         }
     }
@@ -2025,6 +2035,13 @@ pub struct PatternUnderscore {
 }
 
 #[derive(Clone, Debug)]
+pub struct PatternLit {
+    pub id: NodeId,
+    pub span: Span,
+    pub expr: Expr,
+}
+
+#[derive(Clone, Debug)]
 pub struct PatternIdent {
     pub id: NodeId,
     pub span: Span,
@@ -2040,7 +2057,7 @@ pub struct PatternTuple {
 }
 
 #[derive(Clone, Debug)]
-pub struct PatternStructOrEnum {
+pub struct PatternClassOrStructOrEnum {
     pub id: NodeId,
     pub span: Span,
     pub path: Path,

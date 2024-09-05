@@ -411,6 +411,8 @@ fn check_expr_match_pattern(
             HashMap::new()
         }
 
+        ast::Pattern::LitBool(..) => unreachable!(),
+
         ast::Pattern::Tuple(..) => unimplemented!(),
 
         ast::Pattern::Ident(ref ident) => {
@@ -445,7 +447,7 @@ fn check_expr_match_pattern(
             }
         }
 
-        ast::Pattern::StructOrEnum(ref ident) => {
+        ast::Pattern::ClassOrStructOrEnum(ref ident) => {
             let sym = read_path(ck, &ident.path);
 
             match sym {
@@ -502,7 +504,7 @@ fn check_expr_match_pattern_enum_variant(
     let enum_ = ck.sa.enum_(enum_id);
     let variant = &enum_.variants()[variant_idx as usize];
 
-    let params = struct_or_enum_params(pattern);
+    let params = class_or_struct_or_enum_params(pattern);
     let given_params = params.map(|x| x.len()).unwrap_or(0);
 
     if given_params == 0 && params.is_some() {
@@ -525,6 +527,8 @@ fn check_expr_match_pattern_enum_variant(
                 ast::Pattern::Underscore(..) => {
                     // Do nothing.
                 }
+
+                ast::Pattern::LitBool(..) => unreachable!(),
 
                 ast::Pattern::Ident(ref ident) => {
                     let ty = if idx < variant.types().len() {
@@ -555,7 +559,7 @@ fn check_expr_match_pattern_enum_variant(
                         .insert(ident.id, ck.vars.local_var_id(var_id));
                 }
 
-                ast::Pattern::StructOrEnum(..) | ast::Pattern::Tuple(..) => unreachable!(),
+                ast::Pattern::ClassOrStructOrEnum(..) | ast::Pattern::Tuple(..) => unreachable!(),
             }
         }
     }
@@ -563,10 +567,12 @@ fn check_expr_match_pattern_enum_variant(
     used_idents
 }
 
-fn struct_or_enum_params(p: &ast::Pattern) -> Option<&Vec<Arc<ast::Pattern>>> {
+fn class_or_struct_or_enum_params(p: &ast::Pattern) -> Option<&Vec<Arc<ast::Pattern>>> {
     match p {
-        ast::Pattern::Underscore(..) | ast::Pattern::Tuple(..) => unreachable!(),
+        ast::Pattern::Underscore(..) | ast::Pattern::Tuple(..) | ast::Pattern::LitBool(..) => {
+            unreachable!()
+        }
         ast::Pattern::Ident(..) => None,
-        ast::Pattern::StructOrEnum(p) => p.params.as_ref(),
+        ast::Pattern::ClassOrStructOrEnum(p) => p.params.as_ref(),
     }
 }

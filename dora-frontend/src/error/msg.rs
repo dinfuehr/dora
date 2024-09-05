@@ -110,6 +110,7 @@ pub enum ErrorMessage {
     ExpectedModule,
     ExpectedPath,
     LetPatternExpectedTuple(String),
+    LetPatternExpectedType(String, String),
     LetPatternShouldBeUnit,
     LetPatternExpectedTupleWithLength(String, usize, usize),
     MisplacedElse,
@@ -456,6 +457,9 @@ impl ErrorMessage {
             ErrorMessage::ExpectedPath => "path expected.".into(),
             ErrorMessage::LetPatternExpectedTuple(ref ty) => {
                 format!("tuple expected but got type {}.", ty)
+            }
+            ErrorMessage::LetPatternExpectedType(ref expected, ref got) => {
+                format!("{} expected but got type {}.", expected, got)
             }
             ErrorMessage::LetPatternShouldBeUnit => format!("let pattern should be unit."),
             ErrorMessage::LetPatternExpectedTupleWithLength(ref ty, ty_length, pattern_length) => {

@@ -73,11 +73,22 @@ pub(super) fn check_pattern(ck: &mut TypeCheck, pattern: &ast::Pattern, ty: Sour
                 .insert(ident.id, ck.vars.local_var_id(var_id));
         }
 
+        ast::Pattern::LitBool(ref p) => {
+            if !ty.is_bool() && !ty.is_error() {
+                let ty_name = ck.ty_name(&ty);
+                ck.sa.report(
+                    ck.file_id,
+                    p.span,
+                    ErrorMessage::LetPatternExpectedType("Bool".into(), ty_name),
+                );
+            }
+        }
+
         ast::Pattern::Underscore(_) => {
             // nothing to do
         }
 
-        ast::Pattern::StructOrEnum(..) => unreachable!(),
+        ast::Pattern::ClassOrStructOrEnum(..) => unreachable!(),
 
         ast::Pattern::Tuple(ref tuple) => {
             if !ty.is_tuple_or_unit() && !ty.is_error() {

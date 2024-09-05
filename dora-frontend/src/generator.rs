@@ -393,10 +393,12 @@ impl<'a> AstBytecodeGen<'a> {
                     _ => unreachable!(),
                 }
             }
-            ast::Pattern::Underscore(_) => {
+
+            ast::Pattern::LitBool(..) | ast::Pattern::Underscore(..) => {
                 // nothing to do
             }
-            ast::Pattern::StructOrEnum(ref p) => {
+
+            ast::Pattern::ClassOrStructOrEnum(ref p) => {
                 if let Some(ref params) = p.params {
                     for param in params {
                         self.setup_pattern_vars(param);
@@ -469,12 +471,21 @@ impl<'a> AstBytecodeGen<'a> {
                     _ => unreachable!(),
                 }
             }
+            ast::Pattern::LitBool(ref p) => {
+                let mismatch_lbl = pck.ensure_label(&mut self.builder);
+                let p = p.expr.to_lit_bool().expect("expected bool literal");
+                if p.value {
+                    self.builder.emit_jump_if_false(value, mismatch_lbl);
+                } else {
+                    self.builder.emit_jump_if_true(value, mismatch_lbl);
+                }
+            }
 
             ast::Pattern::Underscore(_) => {
                 // nothing to do
             }
 
-            ast::Pattern::StructOrEnum(ref p) => {
+            ast::Pattern::ClassOrStructOrEnum(ref p) => {
                 let ident_type = self.analysis.map_idents.get(p.id).unwrap();
 
                 match ident_type {
@@ -555,7 +566,7 @@ impl<'a> AstBytecodeGen<'a> {
         self.builder.emit_jump_if_false(match_reg, lbl);
 
         let variant = &enum_.variants[variant_idx as usize];
-        let params = struct_or_enum_params(pattern);
+        let params = class_or_struct_or_enum_params(pattern);
         assert_eq!(variant.types().len(), params.map(|p| p.len()).unwrap_or(0));
 
         if let Some(params) = params {
@@ -3027,11 +3038,13 @@ fn field_id_from_context_idx(context_idx: ContextFieldId, has_outer_context_slot
     FieldId(start_idx + context_idx)
 }
 
-fn struct_or_enum_params(p: &ast::Pattern) -> Option<&Vec<Arc<ast::Pattern>>> {
+fn class_or_struct_or_enum_params(p: &ast::Pattern) -> Option<&Vec<Arc<ast::Pattern>>> {
     match p {
-        ast::Pattern::Underscore(..) | ast::Pattern::Tuple(..) => unreachable!(),
+        ast::Pattern::Underscore(..) | ast::Pattern::Tuple(..) | ast::Pattern::LitBool(..) => {
+            unreachable!()
+        }
         ast::Pattern::Ident(..) => None,
-        ast::Pattern::StructOrEnum(p) => p.params.as_ref(),
+        ast::Pattern::ClassOrStructOrEnum(p) => p.params.as_ref(),
     }
 }
 

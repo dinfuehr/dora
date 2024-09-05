@@ -4073,3 +4073,22 @@ fn is_pattern_underscore() {
         ErrorMessage::EnumVariantExpected,
     );
 }
+
+#[test]
+fn pattern_lit_bool() {
+    ok("
+        fn f(x: (String, Bool)) {
+            let (y, true) = x;
+        }
+    ");
+
+    err(
+        "
+    fn f(x: (String, Int64)) {
+        let (y, true) = x;
+    }
+",
+        (3, 17),
+        ErrorMessage::LetPatternExpectedType("Bool".into(), "Int64".into()),
+    );
+}
