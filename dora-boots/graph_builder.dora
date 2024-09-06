@@ -822,11 +822,7 @@ impl SsaGen {
 
     fn emitLoadField(dest: BytecodeRegister, obj: BytecodeRegister, idx: ConstPoolId) {
         let destType = self.reg(dest);
-
-        let (cls_id, type_params, field_id) = match self.bc.constPool(idx) {
-            ConstPoolEntry::Field(cls_id, type_params, field_id) => (cls_id, type_params, field_id),
-            _ => unreachable[(ClassId, Array[BytecodeType], ClassFieldId)](),
-        };
+        let ConstPoolEntry::Field(cls_id, type_params, field_id) = self.bc.constPool(idx);
 
         if !destType.isUnit() {
             let objInst = self.readVariable(obj, self.current());
@@ -840,10 +836,7 @@ impl SsaGen {
     fn emitStoreField(src: BytecodeRegister, obj: BytecodeRegister, idx: ConstPoolId) {
         let srcType = self.reg(src);
 
-        let (cls_id, type_params, field_id) = match self.bc.constPool(idx) {
-            ConstPoolEntry::Field(cls_id, type_params, field_id) => (cls_id, type_params, field_id),
-            _ => unreachable[(ClassId, Array[BytecodeType], ClassFieldId)](),
-        };
+        let ConstPoolEntry::Field(cls_id, type_params, field_id) = self.bc.constPool(idx);
         let type_params = type_params.specialize(self.typeParams);
 
         if !srcType.isUnit() {
@@ -858,10 +851,7 @@ impl SsaGen {
     fn emitLoadStructField(dest: BytecodeRegister, src: BytecodeRegister, idx: ConstPoolId) {
         let destTy = self.reg(dest);
 
-        let (struct_id, type_params, field_id) = match self.bc.constPool(idx) {
-            ConstPoolEntry::StructField(struct_id, type_params, field_id) => (struct_id, type_params, field_id),
-            _ => unreachable[(StructId, Array[BytecodeType], StructFieldId)](),
-        };
+        let ConstPoolEntry::StructField(struct_id, type_params, field_id) = self.bc.constPool(idx);
 
         if !destTy.isUnit() {
             let srcInst = self.readVariable(src, self.current());
@@ -877,10 +867,7 @@ impl SsaGen {
         let srcInst = self.readVariable(src, self.current());
         let destTy = self.reg(dest);
 
-        let (tuple_ty, subtype_idx) = match self.bc.constPool(idx) {
-            ConstPoolEntry::TupleElement(tuple_ty, subtype_idx) => (tuple_ty, subtype_idx),
-            _ => unreachable[(BytecodeType, Int32)](),
-        };
+        let ConstPoolEntry::TupleElement(tuple_ty, subtype_idx) = self.bc.constPool(idx);
 
         assert(tuple_ty.isTuple());
 
@@ -899,11 +886,7 @@ impl SsaGen {
     }
 
     fn emitLoadEnumVariant(dest: BytecodeRegister, src: BytecodeRegister, idx: ConstPoolId) {
-        let (enum_id, type_params) = match self.bc.constPool(idx) {
-            ConstPoolEntry::Enum(enum_id, type_params) => (enum_id, type_params),
-            _ => unreachable[(EnumId, Array[BytecodeType])](),
-        };
-
+        let ConstPoolEntry::Enum(enum_id, type_params) = self.bc.constPool(idx);
         let layout = self.computeEnumLayout(enum_id, type_params);
 
         match layout {
@@ -946,10 +929,7 @@ impl SsaGen {
     }
 
     fn emitLoadEnumElement(dest: BytecodeRegister, src: BytecodeRegister, idx: ConstPoolId) {
-        let (enum_id, type_params, variant_id, field_id) = match self.bc.constPool(idx) {
-            ConstPoolEntry::EnumElement(enum_id, type_params, variant_id, field_id) => (enum_id, type_params, variant_id, field_id),
-            _ => unreachable[(EnumId, Array[BytecodeType], Int32, Int32)](),
-        };
+        let ConstPoolEntry::EnumElement(enum_id, type_params, variant_id, field_id) = self.bc.constPool(idx);
         let layout = self.computeEnumLayout(enum_id, type_params);
         let type_params = type_params.specialize(self.typeParams);
 
@@ -1265,11 +1245,7 @@ impl SsaGen {
     }
 
     fn emitInvokeDirect(dest: BytecodeRegister, idx: ConstPoolId): Bool {
-        let (fct_id, type_params) = match self.bc.constPool(idx) {
-            ConstPoolEntry::Fct(fct_id, type_params) => (fct_id, type_params),
-            _ => unreachable[(FunctionId, Array[BytecodeType])](),
-        };
-
+        let ConstPoolEntry::Fct(fct_id, type_params) = self.bc.constPool(idx);
         let intrinsic = iface::getIntrinsicForFunction(fct_id);
 
         if self.isIntrinsic(intrinsic) {
@@ -1283,10 +1259,7 @@ impl SsaGen {
     }
 
     fn emitInvokeStatic(dest: BytecodeRegister, idx: ConstPoolId): Bool {
-        let (fct_id, type_params) = match self.bc.constPool(idx) {
-            ConstPoolEntry::Fct(fct_id, type_params) => (fct_id, type_params),
-            _ => unreachable[(FunctionId, Array[BytecodeType])](),
-        };
+        let ConstPoolEntry::Fct(fct_id, type_params) = self.bc.constPool(idx);
 
         let intrinsic = iface::getIntrinsicForFunction(fct_id);
 
@@ -1347,20 +1320,13 @@ impl SsaGen {
 
         let inst = match kind {
             CallKind::Virtual => {
-                let (trait_object_ty, fct_id, type_params) = match self.bc.constPool(idx) {
-                    ConstPoolEntry::TraitObjectMethod(trait_object_ty, fct_id, type_params) => (trait_object_ty, fct_id, type_params),
-                    _ => unreachable[(BytecodeType, FunctionId, Array[BytecodeType])](),
-                };
-
+                let ConstPoolEntry::TraitObjectMethod(trait_object_ty, fct_id, type_params) = self.bc.constPool(idx);
                 let info = VirtualFunctionInfo(trait_object_ty, fct_id, type_params, receiver_is_first);
                 graph::createInvokeVirtualInst(info, args, returnTy)
             }
 
             CallKind::Lambda => {
-                let (params, return_type) = match self.bc.constPool(idx) {
-                    ConstPoolEntry::Lambda(params, return_type) => (params, return_type),
-                    _ => unreachable[(Array[BytecodeType], BytecodeType)](),
-                };
+                let ConstPoolEntry::Lambda(params, return_type) = self.bc.constPool(idx);
                 let params = params.specialize(self.typeParams);
                 let return_type = return_type.specialize(self.typeParams);
                 let info = LambdaFunctionInfo(params, return_type, receiver_is_first);
@@ -1417,11 +1383,7 @@ impl SsaGen {
     fn emitInvokeGeneric(dest: BytecodeRegister, idx: ConstPoolId, kind: CallKind): Bool {
         let ty = self.regGraphTy(dest);
 
-        let (type_param_idx, trait_fct_id, trait_type_params) = match self.bc.constPool(idx) {
-            ConstPoolEntry::Generic(type_param_idx, trait_fct_id, trait_type_params) => (type_param_idx, trait_fct_id, trait_type_params),
-            _ => unreachable[(Int32, FunctionId, Array[BytecodeType])](),
-        };
-
+        let ConstPoolEntry::Generic(type_param_idx, trait_fct_id, trait_type_params) = self.bc.constPool(idx);
         let object_ty = self.typeParams(type_param_idx.toInt64());
         let callee_id = iface::findTraitImpl(self.ci, trait_fct_id, trait_type_params, object_ty);
 
@@ -2133,10 +2095,7 @@ impl SsaGen {
     }
 
     fn emitNewObject(dest: BytecodeRegister, idx: ConstPoolId) {
-        let (class_id, type_params) = match self.bc.constPool(idx) {
-            ConstPoolEntry::Class(class_id, type_params) => (class_id, type_params),
-            _ => unreachable[(ClassId, Array[BytecodeType])](),
-        };
+        let ConstPoolEntry::Class(class_id, type_params) = self.bc.constPool(idx);
 
         let type_params = type_params.specialize(self.typeParams);
         let info = ClassInfo(class_id, type_params);
@@ -2165,10 +2124,7 @@ impl SsaGen {
     }
 
     fn emitNewLambda(dest: BytecodeRegister, idx: ConstPoolId) {
-        let (fct_id, type_params) = match self.bc.constPool(idx) {
-            ConstPoolEntry::Fct(fct_id, type_params) => (fct_id, type_params),
-            _ => unreachable[(FunctionId, Array[BytecodeType])](),
-        };
+        let ConstPoolEntry::Fct(fct_id, type_params) = self.bc.constPool(idx);
 
         let type_params = type_params.specialize(self.typeParams);
         let info = FunctionInfo(fct_id, type_params);
@@ -2193,10 +2149,7 @@ impl SsaGen {
     }
 
     fn emitNewTraitObject(dest: BytecodeRegister, obj: BytecodeRegister, idx: ConstPoolId) {
-        let (trait_id, type_params, object_ty) = match self.bc.constPool(idx) {
-            ConstPoolEntry::Trait(trait_id, type_params, object_ty) => (trait_id, type_params, object_ty),
-            _ => unreachable[(TraitId, Array[BytecodeType], BytecodeType)](),
-        };
+        let ConstPoolEntry::Trait(trait_id, type_params, object_ty) = self.bc.constPool(idx);
 
         let info = TraitObjectInfo(trait_id, type_params, object_ty);
         let info = InstExtraData::TraitObjectInfo(info);
@@ -2214,10 +2167,7 @@ impl SsaGen {
     }
 
     fn emitNewStruct(dest: BytecodeRegister, idx: ConstPoolId) {
-        let (struct_id, type_params) = match self.bc.constPool(idx) {
-            ConstPoolEntry::Struct(struct_id, type_params) => (struct_id, type_params),
-            _ => unreachable[(StructId, Array[BytecodeType])](),
-        };
+        let ConstPoolEntry::Struct(struct_id, type_params) = self.bc.constPool(idx);
         let layout = self.computeStructLayout(struct_id, type_params);
 
         let allocInst = graph::createAllocateStackInst(layout);
@@ -2246,10 +2196,7 @@ impl SsaGen {
     }
 
     fn emitNewEnum(dest: BytecodeRegister, idx: ConstPoolId) {
-        let (enum_id, type_params, variant_id) = match self.bc.constPool(idx) {
-            ConstPoolEntry::EnumVariant(enum_id, type_params, variant_id) => (enum_id, type_params, variant_id),
-            _ => unreachable[(EnumId, Array[BytecodeType], Int32)](),
-        };
+        let ConstPoolEntry::EnumVariant(enum_id, type_params, variant_id) = self.bc.constPool(idx);
         let layout = self.computeEnumLayout(enum_id, type_params);
         let type_params = type_params.specialize(self.typeParams);
 
@@ -2308,10 +2255,7 @@ impl SsaGen {
     }
 
     fn emitNewTuple(dest: BytecodeRegister, idx: ConstPoolId) {
-        let subtypes = match self.bc.constPool(idx) {
-            ConstPoolEntry::Tuple(subtypes) => subtypes,
-            _ => unreachable[Array[BytecodeType]](),
-        };
+        let ConstPoolEntry::Tuple(subtypes) = self.bc.constPool(idx);
         let layout = self.computeTupleLayout(subtypes);
 
         let allocInst = graph::createAllocateStackInst(layout);
@@ -2335,10 +2279,7 @@ impl SsaGen {
     }
 
     fn emitNewArray(dest: BytecodeRegister, length: BytecodeRegister, idx: ConstPoolId) {
-        let (class_id, type_params) = match self.bc.constPool(idx) {
-            ConstPoolEntry::Class(class_id, type_params) => (class_id, type_params),
-            _ => unreachable[(ClassId, Array[BytecodeType])](),
-        };
+        let ConstPoolEntry::Class(class_id, type_params) = self.bc.constPool(idx);
 
         let type_params = type_params.specialize(self.typeParams);
         let element_size = iface::getElementSize(self.ci, class_id, type_params);
