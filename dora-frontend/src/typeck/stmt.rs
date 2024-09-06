@@ -2,9 +2,9 @@ use dora_parser::ast;
 
 use crate::access::enum_accessible_from;
 use crate::error::msg::ErrorMessage;
-use crate::sema::IdentType;
+use crate::sema::{EnumDefinitionId, IdentType};
 use crate::ty::SourceType;
-use crate::typeck::{add_local, check_expr, read_path, TypeCheck};
+use crate::typeck::{add_local, check_expr, class_or_struct_or_enum_params, read_path, TypeCheck};
 use crate::{specialize_type, SymbolKind};
 
 pub(super) fn check_stmt(ck: &mut TypeCheck, s: &ast::StmtData) {
@@ -67,13 +67,23 @@ fn check_stmt_let(ck: &mut TypeCheck, s: &ast::StmtLetType) {
 pub(super) fn check_pattern(ck: &mut TypeCheck, pattern: &ast::Pattern, ty: SourceType) {
     match pattern {
         ast::Pattern::Ident(ref ident) => {
-            let name = ck.sa.interner.intern(&ident.name.name_as_string);
-            let var_id = ck.vars.add_var(name, ty, ident.mutable);
+            let sym = ck.symtable.get_string(ck.sa, &ident.name.name_as_string);
 
-            add_local(ck.sa, ck.symtable, ck.vars, var_id, ck.file_id, ident.span);
-            ck.analysis
-                .map_idents
-                .insert(ident.id, IdentType::Var(ck.vars.local_var_id(var_id)));
+            match sym {
+                Some(SymbolKind::EnumVariant(enum_id, variant_id)) => {
+                    check_pattern_enum(ck, pattern, ty, enum_id, variant_id);
+                }
+
+                _ => {
+                    let name = ck.sa.interner.intern(&ident.name.name_as_string);
+                    let var_id = ck.vars.add_var(name, ty, ident.mutable);
+
+                    add_local(ck.sa, ck.symtable, ck.vars, var_id, ck.file_id, ident.span);
+                    ck.analysis
+                        .map_idents
+                        .insert(ident.id, IdentType::Var(ck.vars.local_var_id(var_id)));
+                }
+            }
         }
 
         ast::Pattern::LitBool(ref p) => {
@@ -93,59 +103,10 @@ pub(super) fn check_pattern(ck: &mut TypeCheck, pattern: &ast::Pattern, ty: Sour
 
         ast::Pattern::ClassOrStructOrEnum(ref p) => {
             let sym = read_path(ck, &p.path);
-            let given_params = p.params.as_ref().map(|p| p.len()).unwrap_or(0);
 
             match sym {
                 Ok(SymbolKind::EnumVariant(enum_id, variant_id)) => {
-                    let enum_ = ck.sa.enum_(enum_id);
-                    let variant = &enum_.variants[variant_id as usize];
-
-                    if !enum_accessible_from(ck.sa, enum_id, ck.module_id) {
-                        let msg = ErrorMessage::NotAccessible(enum_.name(ck.sa));
-                        ck.sa.report(ck.file_id, p.span, msg);
-                    }
-
-                    if Some(enum_id) == ty.enum_id() {
-                        let value_type_params = ty.type_params();
-
-                        ck.analysis.map_idents.insert(
-                            p.id,
-                            IdentType::EnumVariant(enum_id, value_type_params.clone(), variant_id),
-                        );
-
-                        let expected_params = variant.types().len();
-
-                        if given_params != expected_params {
-                            let msg = ErrorMessage::MatchPatternWrongNumberOfParams(
-                                given_params,
-                                expected_params,
-                            );
-                            ck.sa.report(ck.file_id, p.span, msg);
-                        }
-
-                        if let Some(ref params) = p.params {
-                            for (idx, param) in params.iter().enumerate() {
-                                let param_ty = variant
-                                    .types()
-                                    .get(idx)
-                                    .cloned()
-                                    .unwrap_or(SourceType::Error);
-                                let param_ty = specialize_type(ck.sa, param_ty, &value_type_params);
-                                check_pattern(ck, param.as_ref(), param_ty);
-                            }
-                        }
-                    } else if !ty.is_error() {
-                        let ty = ty.name(ck.sa);
-                        let msg = ErrorMessage::PatternTypeMismatch(ty);
-                        ck.sa.report(ck.file_id, p.span, msg);
-
-                        if let Some(ref params) = p.params {
-                            for param in params.iter() {
-                                let param_ty = SourceType::Error;
-                                check_pattern(ck, param.as_ref(), param_ty);
-                            }
-                        }
-                    }
+                    check_pattern_enum(ck, pattern, ty, enum_id, variant_id);
                 }
 
                 Ok(..) => unimplemented!(),
@@ -199,6 +160,64 @@ pub(super) fn check_pattern(ck: &mut TypeCheck, pattern: &ast::Pattern, ty: Sour
 
             for (param, subtype) in tuple.params.iter().zip(subtypes.iter()) {
                 check_pattern(ck, param.as_ref(), subtype.clone());
+            }
+        }
+    }
+}
+
+fn check_pattern_enum(
+    ck: &mut TypeCheck,
+    pattern: &ast::Pattern,
+    ty: SourceType,
+    enum_id: EnumDefinitionId,
+    variant_id: u32,
+) {
+    let enum_ = ck.sa.enum_(enum_id);
+    let variant = &enum_.variants[variant_id as usize];
+
+    let params = class_or_struct_or_enum_params(pattern);
+    let given_params = params.as_ref().map(|p| p.len()).unwrap_or(0);
+
+    if !enum_accessible_from(ck.sa, enum_id, ck.module_id) {
+        let msg = ErrorMessage::NotAccessible(enum_.name(ck.sa));
+        ck.sa.report(ck.file_id, pattern.span(), msg);
+    }
+
+    if Some(enum_id) == ty.enum_id() {
+        let value_type_params = ty.type_params();
+
+        ck.analysis.map_idents.insert(
+            pattern.id(),
+            IdentType::EnumVariant(enum_id, value_type_params.clone(), variant_id),
+        );
+
+        let expected_params = variant.types().len();
+
+        if given_params != expected_params {
+            let msg = ErrorMessage::MatchPatternWrongNumberOfParams(given_params, expected_params);
+            ck.sa.report(ck.file_id, pattern.span(), msg);
+        }
+
+        if let Some(ref params) = params {
+            for (idx, param) in params.iter().enumerate() {
+                let param_ty = variant
+                    .types()
+                    .get(idx)
+                    .cloned()
+                    .unwrap_or(SourceType::Error);
+                let param_ty = specialize_type(ck.sa, param_ty, &value_type_params);
+                check_pattern(ck, param.as_ref(), param_ty);
+            }
+        }
+    } else if !ty.is_error() {
+        let ty = ty.name(ck.sa);
+        let msg = ErrorMessage::PatternTypeMismatch(ty);
+        ck.sa.report(ck.file_id, pattern.span(), msg);
+
+        if let Some(params) = params {
+            for param in params.iter() {
+                let param_ty = SourceType::Error;
+                check_pattern(ck, param.as_ref(), param_ty);
             }
         }
     }

@@ -4103,6 +4103,20 @@ fn pattern_enum() {
         }
     ");
 
+    ok("
+        enum Foo { A(Int64), B }
+        fn f(x: Foo) {
+            let Foo::B = x;
+        }
+    ");
+
+    ok("
+        enum Foo { A(Int64), B }
+        fn f(x: Foo) {
+            let _ = x;
+        }
+    ");
+
     err(
         "
     enum Foo { A(Int64), B }

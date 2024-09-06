@@ -7,7 +7,7 @@ use crate::typeck::call::{check_expr_call, check_expr_call_enum_args, find_metho
 use crate::typeck::constck::ConstCheck;
 use crate::typeck::control::{
     check_expr_break_and_continue, check_expr_for, check_expr_if, check_expr_match,
-    check_expr_return, check_expr_while,
+    check_expr_return, check_expr_while, class_or_struct_or_enum_params,
 };
 use crate::typeck::expr::{
     check_enum_value_with_args, check_expr, read_ident, read_path, read_path_expr,

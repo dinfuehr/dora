@@ -567,7 +567,7 @@ fn check_expr_match_pattern_enum_variant(
     used_idents
 }
 
-fn class_or_struct_or_enum_params(p: &ast::Pattern) -> Option<&Vec<Arc<ast::Pattern>>> {
+pub(super) fn class_or_struct_or_enum_params(p: &ast::Pattern) -> Option<&Vec<Arc<ast::Pattern>>> {
     match p {
         ast::Pattern::Underscore(..) | ast::Pattern::Tuple(..) | ast::Pattern::LitBool(..) => {
             unreachable!()
