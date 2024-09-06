@@ -49,7 +49,7 @@ pub fn generate_fct(sa: &Sema, fct: &FctDefinition, src: &AnalysisData) -> Bytec
         sa,
         type_params_len: fct.type_params().len(),
         is_lambda: fct.is_lambda(),
-        return_type: Some(fct.return_type()),
+        return_type: fct.return_type(),
         file_id: fct.file_id,
         span: fct.span,
         analysis: src,
@@ -72,7 +72,7 @@ pub fn generate_global_initializer(
         sa,
         type_params_len: 0,
         is_lambda: false,
-        return_type: Some(global.ty()),
+        return_type: global.ty(),
         file_id: global.file_id,
         span: global.span,
         analysis: src,
@@ -98,7 +98,7 @@ struct AstBytecodeGen<'a> {
     sa: &'a Sema,
     type_params_len: usize,
     is_lambda: bool,
-    return_type: Option<SourceType>,
+    return_type: SourceType,
     file_id: SourceFileId,
     span: Span,
     analysis: &'a AnalysisData,
@@ -202,16 +202,7 @@ impl<'a> AstBytecodeGen<'a> {
     }
 
     fn emit_function_body(&mut self, ast: &ast::Function) {
-        let return_type = self
-            .return_type
-            .as_ref()
-            .expect("missing return type")
-            .clone();
-        let bty_return_type = if return_type.is_unit() {
-            None
-        } else {
-            Some(bty_from_ty(return_type.clone()))
-        };
+        let bty_return_type = bty_from_ty(self.return_type.clone());
         self.builder.set_return_type(bty_return_type);
 
         let mut needs_return = true;
@@ -227,14 +218,14 @@ impl<'a> AstBytecodeGen<'a> {
             let reg = gen_expr(self, value, DataDest::Alloc);
 
             if !expr_block_always_returns(block) {
-                self.emit_ret_value(reg);
+                self.builder.emit_ret(reg);
             }
 
             needs_return = false;
             self.free_if_temp(reg);
         }
 
-        if needs_return && return_type.is_unit() {
+        if needs_return && self.return_type.is_unit() {
             let dest = self.ensure_unit_register();
             self.builder.emit_ret(dest);
         }
@@ -783,31 +774,16 @@ impl<'a> AstBytecodeGen<'a> {
     }
 
     fn visit_expr_return(&mut self, ret: &ast::ExprReturnType, _dest: DataDest) -> Register {
-        if let Some(ref expr) = ret.expr {
-            let result_reg = gen_expr(self, expr, DataDest::Alloc);
-            self.emit_ret_value(result_reg);
-            self.free_if_temp(result_reg);
+        let result_reg = if let Some(ref expr) = ret.expr {
+            gen_expr(self, expr, DataDest::Alloc)
         } else {
-            let dest = self.ensure_unit_register();
-            self.builder.emit_ret(dest);
-        }
-        self.ensure_unit_register()
-    }
-
-    fn emit_ret_value(&mut self, result_reg: Register) {
-        let ret_ty = self
-            .return_type
-            .as_ref()
-            .expect("missing return type")
-            .clone();
-
-        if ret_ty.is_unit() {
-            let dest = self.ensure_unit_register();
-            self.builder.emit_ret(dest);
-            return;
-        }
+            self.ensure_unit_register()
+        };
 
         self.builder.emit_ret(result_reg);
+        self.free_if_temp(result_reg);
+
+        self.ensure_unit_register()
     }
 
     fn visit_expr_break(&mut self, _stmt: &ast::ExprBreakType, _dest: DataDest) -> Register {
@@ -2143,10 +2119,24 @@ impl<'a> AstBytecodeGen<'a> {
         let end_lbl = self.builder.create_label();
         let dest = self.ensure_register(dest, BytecodeType::Bool);
 
-        gen_expr(self, &expr.lhs, DataDest::Reg(dest));
-        self.builder.emit_jump_if_false(dest, end_lbl);
+        self.push_scope();
+
+        if let Some(is_expr) = expr.lhs.to_is() {
+            self.builder.emit_const_false(dest);
+            let value = gen_expr(self, &is_expr.value, DataDest::Alloc);
+            let ty = self.ty(is_expr.value.id());
+            self.setup_pattern_vars(&is_expr.pattern);
+            self.destruct_pattern(&is_expr.pattern, value, ty, Some(end_lbl));
+            self.free_if_temp(value);
+        } else {
+            gen_expr(self, &expr.lhs, DataDest::Reg(dest));
+            self.builder.emit_jump_if_false(dest, end_lbl);
+        }
+
         gen_expr(self, &expr.rhs, DataDest::Reg(dest));
         self.builder.bind_label(end_lbl);
+
+        self.pop_scope();
 
         dest
     }

@@ -110,7 +110,7 @@ pub enum ErrorMessage {
     ExpectedModule,
     ExpectedPath,
     PatternTupleExpected(String),
-    LetPatternExpectedType(String, String),
+    WrongType(String, String),
     PatternTupleLengthMismatch(String, usize, usize),
     MisplacedElse,
     ValueExpected,
@@ -458,7 +458,7 @@ impl ErrorMessage {
             ErrorMessage::PatternTupleExpected(ref ty) => {
                 format!("tuple expected but got type {}.", ty)
             }
-            ErrorMessage::LetPatternExpectedType(ref expected, ref got) => {
+            ErrorMessage::WrongType(ref expected, ref got) => {
                 format!("{} expected but got type {}.", expected, got)
             }
             ErrorMessage::PatternTupleLengthMismatch(ref ty, ty_length, pattern_length) => {

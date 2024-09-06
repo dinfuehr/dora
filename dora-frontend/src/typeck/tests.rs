@@ -4071,7 +4071,7 @@ fn pattern_lit_bool() {
     }
 ",
         (3, 17),
-        ErrorMessage::LetPatternExpectedType("Bool".into(), "Int64".into()),
+        ErrorMessage::WrongType("Bool".into(), "Int64".into()),
     );
 }
 
@@ -4197,5 +4197,26 @@ fn pattern_in_if_with_condition() {
     ",
         (7, 17),
         ErrorMessage::UnknownIdentifier("y".into()),
+    );
+}
+
+#[test]
+fn pattern_in_expression() {
+    ok("
+        enum Foo { A(Int64), B }
+        fn f(x: Foo): Bool {
+            x is Foo::A(y) && y > 0
+        }
+    ");
+
+    err(
+        "
+        enum Foo { A(Int64), B }
+        fn f(x: Foo): Bool {
+            x is Foo::A(y) && y
+        }
+    ",
+        (4, 13),
+        ErrorMessage::WrongType("Bool".into(), "Int64".into()),
     );
 }

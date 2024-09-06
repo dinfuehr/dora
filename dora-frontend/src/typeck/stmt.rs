@@ -92,7 +92,7 @@ pub(super) fn check_pattern(ck: &mut TypeCheck, pattern: &ast::Pattern, ty: Sour
                 ck.sa.report(
                     ck.file_id,
                     p.span,
-                    ErrorMessage::LetPatternExpectedType("Bool".into(), ty_name),
+                    ErrorMessage::WrongType("Bool".into(), ty_name),
                 );
             }
         }

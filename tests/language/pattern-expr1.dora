@@ -1,0 +1,13 @@
+enum Foo { A(Int64), B }
+
+fn main() {
+    assert(f(Foo::A(12)));
+    assert(!f(Foo::A(-1)));
+    assert(!f(Foo::A(-17)));
+    assert(!f(Foo::A(0)));
+    assert(f(Foo::A(1)));
+}
+
+fn f(x: Foo): Bool {
+    x is Foo::A(y) && y > 0
+}

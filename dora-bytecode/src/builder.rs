@@ -39,7 +39,7 @@ impl BytecodeBuilder {
         self.writer.set_params(params);
     }
 
-    pub fn set_return_type(&mut self, return_type: Option<BytecodeType>) {
+    pub fn set_return_type(&mut self, return_type: BytecodeType) {
         self.writer.set_return_type(return_type);
     }
 

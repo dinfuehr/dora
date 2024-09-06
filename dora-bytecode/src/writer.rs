@@ -22,7 +22,7 @@ pub struct BytecodeWriter {
     current_location: Option<Location>,
 
     params: Vec<BytecodeType>,
-    return_type: Option<BytecodeType>,
+    return_type: BytecodeType,
 }
 
 impl BytecodeWriter {
@@ -41,7 +41,7 @@ impl BytecodeWriter {
             current_location: None,
 
             params: Vec::new(),
-            return_type: None,
+            return_type: BytecodeType::Unit,
         }
     }
 
@@ -84,7 +84,7 @@ impl BytecodeWriter {
         self.params = params;
     }
 
-    pub fn set_return_type(&mut self, return_type: Option<BytecodeType>) {
+    pub fn set_return_type(&mut self, return_type: BytecodeType) {
         self.return_type = return_type;
     }
 

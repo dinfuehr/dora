@@ -844,6 +844,22 @@ pub(super) fn check_expr_bin(
         return SourceType::Unit;
     }
 
+    if e.op == ast::BinOp::And && e.lhs.is_is() {
+        ck.symtable.push_level();
+        let is_expr = e.lhs.to_is().expect("expected is");
+        let value_ty = check_expr(ck, &is_expr.value, SourceType::Any);
+        check_pattern(ck, &is_expr.pattern, value_ty);
+        let cond_ty = check_expr(ck, &e.rhs, SourceType::Bool);
+        if !cond_ty.is_bool() && !cond_ty.is_error() {
+            let cond_ty = cond_ty.name(ck.sa);
+            let msg = ErrorMessage::WrongType("Bool".into(), cond_ty);
+            ck.sa.report(ck.file_id, e.span, msg);
+        }
+        ck.symtable.pop_level();
+        ck.analysis.set_ty(e.id, SourceType::Bool);
+        return SourceType::Bool;
+    }
+
     let lhs_type = check_expr(ck, &e.lhs, SourceType::Any);
     let rhs_type = check_expr(ck, &e.rhs, SourceType::Any);
 

@@ -294,7 +294,7 @@ pub(super) fn gen_match(
 }
 
 pub(super) fn gen_unreachable(g: &mut AstBytecodeGen, span: Span) {
-    let return_type = g.return_type.clone().unwrap_or(SourceType::Unit);
+    let return_type = g.return_type.clone();
     let register_bty = register_bty_from_ty(return_type.clone());
     let dest = g.alloc_temp(register_bty);
     let fct_type_params = bty_array_from_ty(&SourceTypeArray::single(return_type));
