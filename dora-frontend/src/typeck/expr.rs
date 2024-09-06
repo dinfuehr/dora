@@ -635,7 +635,7 @@ fn check_expr_is(ck: &mut TypeCheck, e: &ast::ExprIsType, _expected_ty: SourceTy
 
                     if !variant.types().is_empty() {
                         let msg =
-                            ErrorMessage::MatchPatternWrongNumberOfParams(0, variant.types().len());
+                            ErrorMessage::PatternWrongNumberOfParams(0, variant.types().len());
                         ck.sa.report(ck.file_id, e.pattern.span(), msg);
                     }
                 }
@@ -676,10 +676,8 @@ fn check_expr_is(ck: &mut TypeCheck, e: &ast::ExprIsType, _expected_ty: SourceTy
                     let expected_params = variant.types().len();
 
                     if given_params != expected_params {
-                        let msg = ErrorMessage::MatchPatternWrongNumberOfParams(
-                            given_params,
-                            expected_params,
-                        );
+                        let msg =
+                            ErrorMessage::PatternWrongNumberOfParams(given_params, expected_params);
                         ck.sa.report(ck.file_id, e.pattern.span(), msg);
                     }
                 }

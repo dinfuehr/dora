@@ -47,7 +47,7 @@ pub enum ErrorMessage {
     StructArgsIncompatible(String, Vec<String>, Vec<String>),
     EnumArgsNoParens(String, String),
     MatchPatternNoParens,
-    MatchPatternWrongNumberOfParams(usize, usize),
+    PatternWrongNumberOfParams(usize, usize),
     EnumExpected,
     EnumMismatch(String, String),
     EnumVariantExpected,
@@ -109,10 +109,9 @@ pub enum ErrorMessage {
     ExpectedSomeIdentifier,
     ExpectedModule,
     ExpectedPath,
-    LetPatternExpectedTuple(String),
+    PatternTupleExpected(String),
     LetPatternExpectedType(String, String),
-    LetPatternShouldBeUnit,
-    LetPatternExpectedTupleWithLength(String, usize, usize),
+    PatternTupleLengthMismatch(String, usize, usize),
     MisplacedElse,
     ValueExpected,
     IoError,
@@ -308,7 +307,7 @@ impl ErrorMessage {
                 format!("{}::{} needs to be used without parens.", name, variant)
             }
             ErrorMessage::MatchPatternNoParens => "pattern should be used without parens.".into(),
-            ErrorMessage::MatchPatternWrongNumberOfParams(given_params, expected_params) => {
+            ErrorMessage::PatternWrongNumberOfParams(given_params, expected_params) => {
                 format!(
                     "pattern expects {} params but got {}.",
                     given_params, expected_params
@@ -456,14 +455,13 @@ impl ErrorMessage {
             ErrorMessage::ExpectedSomeIdentifier => "identifier expected.".into(),
             ErrorMessage::ExpectedModule => "module expected.".into(),
             ErrorMessage::ExpectedPath => "path expected.".into(),
-            ErrorMessage::LetPatternExpectedTuple(ref ty) => {
+            ErrorMessage::PatternTupleExpected(ref ty) => {
                 format!("tuple expected but got type {}.", ty)
             }
             ErrorMessage::LetPatternExpectedType(ref expected, ref got) => {
                 format!("{} expected but got type {}.", expected, got)
             }
-            ErrorMessage::LetPatternShouldBeUnit => format!("let pattern should be unit."),
-            ErrorMessage::LetPatternExpectedTupleWithLength(ref ty, ty_length, pattern_length) => {
+            ErrorMessage::PatternTupleLengthMismatch(ref ty, ty_length, pattern_length) => {
                 format!(
                     "tuple {} has {} elements but pattern has {}.",
                     ty, ty_length, pattern_length

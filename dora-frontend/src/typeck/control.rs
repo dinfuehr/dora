@@ -515,7 +515,7 @@ fn check_expr_match_pattern_enum_variant(
     let expected_params = variant.types().len();
 
     if given_params != expected_params {
-        let msg = ErrorMessage::MatchPatternWrongNumberOfParams(given_params, expected_params);
+        let msg = ErrorMessage::PatternWrongNumberOfParams(given_params, expected_params);
         ck.sa.report(ck.file_id, case.span, msg);
     }
 

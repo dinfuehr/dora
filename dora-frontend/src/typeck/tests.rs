@@ -304,30 +304,30 @@ fn type_let() {
     err(
         "fn f() { let (a, b) = true; }",
         (1, 14),
-        ErrorMessage::LetPatternExpectedTuple("Bool".into()),
+        ErrorMessage::PatternTupleExpected("Bool".into()),
     );
 
     ok("fn f(value: ()) { let () = value; }");
     err(
         "fn f() { let () = true; }",
         (1, 14),
-        ErrorMessage::LetPatternExpectedTuple("Bool".into()),
+        ErrorMessage::PatternTupleExpected("Bool".into()),
     );
     err(
         "fn f() { let (a, b) = (); }",
         (1, 14),
-        ErrorMessage::LetPatternShouldBeUnit,
+        ErrorMessage::PatternTupleLengthMismatch("()".into(), 0, 2),
     );
 
     err(
         "fn f() { let (a, b) = (true,); }",
         (1, 14),
-        ErrorMessage::LetPatternExpectedTupleWithLength("(Bool)".into(), 1, 2),
+        ErrorMessage::PatternTupleLengthMismatch("(Bool)".into(), 1, 2),
     );
     err(
         "fn f() { let () = (true,); }",
         (1, 14),
-        ErrorMessage::LetPatternExpectedTupleWithLength("(Bool)".into(), 1, 0),
+        ErrorMessage::PatternTupleLengthMismatch("(Bool)".into(), 1, 0),
     );
 
     ok("fn f(value: (Int32, (Int32, Int32))): Int32 { let (a, (b, c)) = value; a+b+c }");
@@ -1864,7 +1864,7 @@ fn test_enum_match_wrong_number_params() {
         }
     ",
         (5, 17),
-        ErrorMessage::MatchPatternWrongNumberOfParams(0, 1),
+        ErrorMessage::PatternWrongNumberOfParams(0, 1),
     );
 
     err(
@@ -1878,7 +1878,7 @@ fn test_enum_match_wrong_number_params() {
         }
     ",
         (5, 17),
-        ErrorMessage::MatchPatternWrongNumberOfParams(4, 3),
+        ErrorMessage::PatternWrongNumberOfParams(4, 3),
     );
 }
 
@@ -4033,7 +4033,7 @@ fn is_pattern_no_args() {
         }
     ",
         (4, 18),
-        ErrorMessage::MatchPatternWrongNumberOfParams(0, 1),
+        ErrorMessage::PatternWrongNumberOfParams(0, 1),
     );
 
     err(
@@ -4094,26 +4094,12 @@ fn pattern_lit_bool() {
 }
 
 #[test]
-fn pattern_enum() {
+fn pattern_enum_variant_with_args() {
     ok("
         enum Foo { A(Int64), B }
         fn f(x: Foo): Int64 {
             let Foo::A(y) = x;
             y
-        }
-    ");
-
-    ok("
-        enum Foo { A(Int64), B }
-        fn f(x: Foo) {
-            let Foo::B = x;
-        }
-    ");
-
-    ok("
-        enum Foo { A(Int64), B }
-        fn f(x: Foo) {
-            let _ = x;
         }
     ");
 
@@ -4129,4 +4115,47 @@ fn pattern_enum() {
         (5, 13),
         ErrorMessage::PatternTypeMismatch("Foo".into()),
     );
+
+    err(
+        "
+    enum Foo { A(Int64), B }
+    fn f(x: Foo): Int64 {
+        let Foo::A(y, z) = x;
+        z
+    }
+",
+        (4, 13),
+        ErrorMessage::PatternWrongNumberOfParams(2, 1),
+    );
+}
+
+#[test]
+fn pattern_enum_variant_no_args() {
+    ok("
+    enum Foo { A(Int64), B }
+    fn f(x: Foo) {
+        let Foo::B = x;
+    }
+");
+
+    err(
+        "
+enum Foo { A(Int64), B }
+fn f(x: Foo) {
+    let Foo::A = x;
+}
+",
+        (4, 9),
+        ErrorMessage::PatternWrongNumberOfParams(0, 1),
+    );
+}
+
+#[test]
+fn pattern_underscore() {
+    ok("
+        enum Foo { A(Int64), B }
+        fn f(x: Foo) {
+            let _ = x;
+        }
+    ");
 }

@@ -5,7 +5,7 @@ use crate::error::msg::ErrorMessage;
 use crate::sema::{EnumDefinitionId, IdentType};
 use crate::ty::SourceType;
 use crate::typeck::{add_local, check_expr, class_or_struct_or_enum_params, read_path, TypeCheck};
-use crate::{specialize_type, SymbolKind};
+use crate::{specialize_type, SourceTypeArray, SymbolKind};
 
 pub(super) fn check_stmt(ck: &mut TypeCheck, s: &ast::StmtData) {
     match *s {
@@ -109,58 +109,17 @@ pub(super) fn check_pattern(ck: &mut TypeCheck, pattern: &ast::Pattern, ty: Sour
                     check_pattern_enum(ck, pattern, ty, enum_id, variant_id);
                 }
 
-                Ok(..) => unimplemented!(),
+                Ok(..) => {
+                    let msg = ErrorMessage::EnumVariantExpected;
+                    ck.sa.report(ck.file_id, p.path.span, msg);
+                }
 
                 Err(..) => {}
             }
         }
 
         ast::Pattern::Tuple(ref tuple) => {
-            if !ty.is_tuple_or_unit() && !ty.is_error() {
-                let ty_name = ck.ty_name(&ty);
-                ck.sa.report(
-                    ck.file_id,
-                    tuple.span,
-                    ErrorMessage::LetPatternExpectedTuple(ty_name),
-                );
-                return;
-            }
-
-            if ty.is_unit() {
-                // () doesn't have any subparts
-                if tuple.params.len() != 0 {
-                    ck.sa
-                        .report(ck.file_id, tuple.span, ErrorMessage::LetPatternShouldBeUnit);
-                }
-                return;
-            }
-
-            if ty.is_error() {
-                for param in &tuple.params {
-                    check_pattern(ck, param, SourceType::Error);
-                }
-                return;
-            }
-
-            let subtypes = ty.tuple_subtypes();
-
-            if subtypes.len() != tuple.params.len() {
-                let ty_name = ck.ty_name(&ty);
-                ck.sa.report(
-                    ck.file_id,
-                    tuple.span,
-                    ErrorMessage::LetPatternExpectedTupleWithLength(
-                        ty_name,
-                        subtypes.len(),
-                        tuple.params.len(),
-                    ),
-                );
-                return;
-            }
-
-            for (param, subtype) in tuple.params.iter().zip(subtypes.iter()) {
-                check_pattern(ck, param.as_ref(), subtype.clone());
-            }
+            check_pattern_tuple(ck, tuple, ty);
         }
     }
 }
@@ -194,7 +153,7 @@ fn check_pattern_enum(
         let expected_params = variant.types().len();
 
         if given_params != expected_params {
-            let msg = ErrorMessage::MatchPatternWrongNumberOfParams(given_params, expected_params);
+            let msg = ErrorMessage::PatternWrongNumberOfParams(given_params, expected_params);
             ck.sa.report(ck.file_id, pattern.span(), msg);
         }
 
@@ -220,5 +179,48 @@ fn check_pattern_enum(
                 check_pattern(ck, param.as_ref(), param_ty);
             }
         }
+    }
+}
+
+fn check_pattern_tuple(ck: &mut TypeCheck, pattern: &ast::PatternTuple, ty: SourceType) {
+    if !ty.is_tuple_or_unit() {
+        if !ty.is_error() {
+            let ty_name = ck.ty_name(&ty);
+            ck.sa.report(
+                ck.file_id,
+                pattern.span,
+                ErrorMessage::PatternTupleExpected(ty_name),
+            );
+        }
+
+        for param in &pattern.params {
+            check_pattern(ck, param, SourceType::Error);
+        }
+
+        return;
+    }
+
+    let subtypes = if ty.is_unit() {
+        SourceTypeArray::empty()
+    } else {
+        ty.tuple_subtypes()
+    };
+
+    if subtypes.len() != pattern.params.len() {
+        let ty_name = ck.ty_name(&ty);
+        ck.sa.report(
+            ck.file_id,
+            pattern.span,
+            ErrorMessage::PatternTupleLengthMismatch(ty_name, subtypes.len(), pattern.params.len()),
+        );
+    }
+
+    for (idx, param) in pattern.params.iter().enumerate() {
+        let subty = subtypes
+            .types()
+            .get(idx)
+            .cloned()
+            .unwrap_or(SourceType::Error);
+        check_pattern(ck, param.as_ref(), subty.clone());
     }
 }
