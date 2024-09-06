@@ -555,8 +555,8 @@ fn check_expr_match_pattern_enum_variant(
                     let var_id = ck.vars.add_var(iname, ty, ident.mutable);
                     add_local(ck.sa, ck.symtable, ck.vars, var_id, ck.file_id, ident.span);
                     ck.analysis
-                        .map_vars
-                        .insert(ident.id, ck.vars.local_var_id(var_id));
+                        .map_idents
+                        .insert(ident.id, IdentType::Var(ck.vars.local_var_id(var_id)));
                 }
 
                 ast::Pattern::ClassOrStructOrEnum(..) | ast::Pattern::Tuple(..) => unreachable!(),

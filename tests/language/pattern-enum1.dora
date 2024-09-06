@@ -1,0 +1,12 @@
+enum Foo { A(Int64), B }
+
+fn main() {
+    assert(f(Foo::A(12)) == 12);
+    assert(f(Foo::A(0)) == 0);
+    assert(f(Foo::A(-17)) == -17);
+}
+
+fn f(x: Foo): Int64 {
+    let Foo::A(y) = x;
+    y
+}

@@ -372,22 +372,8 @@ impl<'a> AstBytecodeGen<'a> {
                         // Do nothing.
                     }
 
-                    None => {
-                        let var_id = *self.analysis.map_vars.get(ident.id).unwrap();
-                        let var = self.analysis.vars.get_var(var_id);
-
-                        let bty: BytecodeType = register_bty_from_ty(var.ty.clone());
-
-                        match var.location {
-                            VarLocation::Context(..) => {
-                                // Nothing to do here.
-                            }
-
-                            VarLocation::Stack => {
-                                let var_reg = self.alloc_var(bty);
-                                self.var_registers.insert(var_id, var_reg);
-                            }
-                        }
+                    Some(IdentType::Var(var_id)) => {
+                        self.setup_pattern_var(*var_id);
                     }
 
                     _ => unreachable!(),
@@ -410,6 +396,23 @@ impl<'a> AstBytecodeGen<'a> {
                 for param in &tuple.params {
                     self.setup_pattern_vars(param);
                 }
+            }
+        }
+    }
+
+    fn setup_pattern_var(&mut self, var_id: VarId) {
+        let var = self.analysis.vars.get_var(var_id);
+
+        let bty: BytecodeType = register_bty_from_ty(var.ty.clone());
+
+        match var.location {
+            VarLocation::Context(..) => {
+                // Nothing to do here.
+            }
+
+            VarLocation::Stack => {
+                let var_reg = self.alloc_var(bty);
+                self.var_registers.insert(var_id, var_reg);
             }
         }
     }
@@ -466,7 +469,9 @@ impl<'a> AstBytecodeGen<'a> {
                         );
                     }
 
-                    None => self.destruct_pattern_var(pck, pattern, value, ty),
+                    Some(IdentType::Var(var_id)) => {
+                        self.destruct_pattern_var(pck, pattern, value, ty, *var_id)
+                    }
 
                     _ => unreachable!(),
                 }
@@ -606,8 +611,8 @@ impl<'a> AstBytecodeGen<'a> {
         pattern: &ast::Pattern,
         value: Register,
         _ty: SourceType,
+        var_id: VarId,
     ) {
-        let var_id = *self.analysis.map_vars.get(pattern.id()).unwrap();
         let var = self.analysis.vars.get_var(var_id);
 
         if !var.ty.is_unit() {

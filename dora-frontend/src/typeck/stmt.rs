@@ -1,8 +1,11 @@
 use dora_parser::ast;
 
+use crate::access::enum_accessible_from;
 use crate::error::msg::ErrorMessage;
+use crate::sema::IdentType;
 use crate::ty::SourceType;
-use crate::typeck::{add_local, check_expr, TypeCheck};
+use crate::typeck::{add_local, check_expr, read_path, TypeCheck};
+use crate::{specialize_type, SymbolKind};
 
 pub(super) fn check_stmt(ck: &mut TypeCheck, s: &ast::StmtData) {
     match *s {
@@ -69,8 +72,8 @@ pub(super) fn check_pattern(ck: &mut TypeCheck, pattern: &ast::Pattern, ty: Sour
 
             add_local(ck.sa, ck.symtable, ck.vars, var_id, ck.file_id, ident.span);
             ck.analysis
-                .map_vars
-                .insert(ident.id, ck.vars.local_var_id(var_id));
+                .map_idents
+                .insert(ident.id, IdentType::Var(ck.vars.local_var_id(var_id)));
         }
 
         ast::Pattern::LitBool(ref p) => {
@@ -88,7 +91,68 @@ pub(super) fn check_pattern(ck: &mut TypeCheck, pattern: &ast::Pattern, ty: Sour
             // nothing to do
         }
 
-        ast::Pattern::ClassOrStructOrEnum(..) => unreachable!(),
+        ast::Pattern::ClassOrStructOrEnum(ref p) => {
+            let sym = read_path(ck, &p.path);
+            let given_params = p.params.as_ref().map(|p| p.len()).unwrap_or(0);
+
+            match sym {
+                Ok(SymbolKind::EnumVariant(enum_id, variant_id)) => {
+                    let enum_ = ck.sa.enum_(enum_id);
+                    let variant = &enum_.variants[variant_id as usize];
+
+                    if !enum_accessible_from(ck.sa, enum_id, ck.module_id) {
+                        let msg = ErrorMessage::NotAccessible(enum_.name(ck.sa));
+                        ck.sa.report(ck.file_id, p.span, msg);
+                    }
+
+                    if Some(enum_id) == ty.enum_id() {
+                        let value_type_params = ty.type_params();
+
+                        ck.analysis.map_idents.insert(
+                            p.id,
+                            IdentType::EnumVariant(enum_id, value_type_params.clone(), variant_id),
+                        );
+
+                        let expected_params = variant.types().len();
+
+                        if given_params != expected_params {
+                            let msg = ErrorMessage::MatchPatternWrongNumberOfParams(
+                                given_params,
+                                expected_params,
+                            );
+                            ck.sa.report(ck.file_id, p.span, msg);
+                        }
+
+                        if let Some(ref params) = p.params {
+                            for (idx, param) in params.iter().enumerate() {
+                                let param_ty = variant
+                                    .types()
+                                    .get(idx)
+                                    .cloned()
+                                    .unwrap_or(SourceType::Error);
+                                let param_ty = specialize_type(ck.sa, param_ty, &value_type_params);
+                                check_pattern(ck, param.as_ref(), param_ty);
+                            }
+                        }
+                    } else if !ty.is_error() {
+                        let ty = ty.name(ck.sa);
+                        let msg = ErrorMessage::PatternTypeMismatch(ty);
+                        ck.sa.report(ck.file_id, p.span, msg);
+
+                        if let Some(ref params) = p.params {
+                            for param in params.iter() {
+                                let param_ty = SourceType::Error;
+                                check_pattern(ck, param.as_ref(), param_ty);
+                            }
+                        }
+                    }
+                }
+
+                Ok(..) => unimplemented!(),
+
+                Err(..) => {}
+            }
+        }
 
         ast::Pattern::Tuple(ref tuple) => {
             if !ty.is_tuple_or_unit() && !ty.is_error() {

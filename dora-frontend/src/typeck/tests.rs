@@ -4092,3 +4092,27 @@ fn pattern_lit_bool() {
         ErrorMessage::LetPatternExpectedType("Bool".into(), "Int64".into()),
     );
 }
+
+#[test]
+fn pattern_enum() {
+    ok("
+        enum Foo { A(Int64), B }
+        fn f(x: Foo): Int64 {
+            let Foo::A(y) = x;
+            y
+        }
+    ");
+
+    err(
+        "
+    enum Foo { A(Int64), B }
+    enum Bar { C(Int64), D }
+    fn f(x: Foo): Int64 {
+        let Bar::C(y) = x;
+        y
+    }
+",
+        (5, 13),
+        ErrorMessage::PatternTypeMismatch("Foo".into()),
+    );
+}

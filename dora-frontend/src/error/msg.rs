@@ -186,6 +186,7 @@ pub enum ErrorMessage {
     TypeAliasMissingType,
     AliasCycle,
     UnexpectedTypeBounds,
+    PatternTypeMismatch(String),
 }
 
 impl ErrorMessage {
@@ -637,6 +638,9 @@ impl ErrorMessage {
             }
             ErrorMessage::AliasCycle => "Alias cycle detected.".into(),
             ErrorMessage::UnexpectedTypeBounds => "unexepcted type bounds.".into(),
+            ErrorMessage::PatternTypeMismatch(ref ty) => {
+                format!("Pattern does not match type {}", ty)
+            }
         }
     }
 }

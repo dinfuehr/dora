@@ -1,0 +1,12 @@
+//= error code 1
+
+enum Foo { A(Int64), B }
+
+fn main() {
+    assert(f(Foo::B) == 12);
+}
+
+fn f(x: Foo): Int64 {
+    let Foo::A(y) = x;
+    y
+}
