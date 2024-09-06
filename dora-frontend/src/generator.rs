@@ -1092,21 +1092,35 @@ impl<'a> AstBytecodeGen<'a> {
     fn visit_expr_if(&mut self, expr: &ast::ExprIfType, dest: DataDest) -> Register {
         let ty = self.ty(expr.id);
 
-        if let Some(ref else_block) = expr.else_block {
-            let dest = self.ensure_register(dest, register_bty_from_ty(ty));
+        let dest = self.ensure_register(dest, register_bty_from_ty(ty));
+        let else_lbl = self.builder.create_label();
 
-            let else_lbl = self.builder.create_label();
-            let end_lbl = self.builder.create_label();
+        self.push_scope();
 
-            if let Some((_is_expr, _cond)) = is_with_condition(&expr.cond) {
-                unimplemented!();
+        if let Some((is_expr, cond)) = is_with_condition(&expr.cond) {
+            let value_reg = gen_expr(self, &is_expr.value, DataDest::Alloc);
+            let value_ty = self.ty(is_expr.value.id());
+            self.setup_pattern_vars(&is_expr.pattern);
+            self.destruct_pattern(&is_expr.pattern, value_reg, value_ty, Some(else_lbl));
+            self.free_if_temp(value_reg);
+
+            if let Some(cond) = cond {
+                let cond_reg = gen_expr(self, cond, DataDest::Alloc);
+                self.builder.emit_jump_if_false(cond_reg, else_lbl);
+                self.free_if_temp(cond_reg);
             }
-
+        } else {
             let cond_reg = gen_expr(self, &expr.cond, DataDest::Alloc);
             self.builder.emit_jump_if_false(cond_reg, else_lbl);
             self.free_if_temp(cond_reg);
+        }
 
-            gen_expr(self, &expr.then_block, DataDest::Reg(dest));
+        gen_expr(self, &expr.then_block, DataDest::Reg(dest));
+
+        self.pop_scope();
+
+        if let Some(ref else_block) = expr.else_block {
+            let end_lbl = self.builder.create_label();
 
             if !expr_always_returns(&expr.then_block) {
                 self.builder.emit_jump(end_lbl);
@@ -1115,22 +1129,11 @@ impl<'a> AstBytecodeGen<'a> {
             self.builder.bind_label(else_lbl);
             gen_expr(self, else_block, DataDest::Reg(dest));
             self.builder.bind_label(end_lbl);
-
-            dest
         } else {
-            // Without else-branch there can't be return value
-            assert!(ty.is_unit());
-
-            let end_lbl = self.builder.create_label();
-            let cond_reg = gen_expr(self, &expr.cond, DataDest::Alloc);
-            self.builder.emit_jump_if_false(cond_reg, end_lbl);
-            self.free_if_temp(cond_reg);
-
-            self.emit_expr_for_effect(&expr.then_block);
-
-            self.builder.bind_label(end_lbl);
-            self.ensure_unit_register()
+            self.builder.bind_label(else_lbl);
         }
+
+        dest
     }
 
     fn visit_expr_block(&mut self, block: &ast::ExprBlockType, dest: DataDest) -> Register {

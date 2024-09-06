@@ -1,0 +1,16 @@
+enum Foo { A(Int64), B }
+
+fn main() {
+    assert(f(Foo::A(12)) == 24);
+    assert(f(Foo::A(-1)) == 0);
+    assert(f(Foo::A(-17)) == 0);
+    assert(f(Foo::A(17)) == 34);
+}
+
+fn f(x: Foo): Int64 {
+    if x is Foo::A(y) && y > 0 {
+        return y * 2;
+    }
+
+    0
+}

@@ -538,10 +538,10 @@ fn gen_stmt_if() {
     let result = code("fn f(a: Bool): Int32 { if a { return 1; } return 0; }");
     let expected = vec![
         JumpIfFalse(r(0), 3),
-        ConstInt32(r(1), 1),
-        Ret(r(1)),
-        ConstInt32(r(1), 0),
-        Ret(r(1)),
+        ConstInt32(r(2), 1),
+        Ret(r(2)),
+        ConstInt32(r(2), 0),
+        Ret(r(2)),
     ];
     assert_eq!(expected, result);
 }
