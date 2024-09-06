@@ -4014,16 +4014,12 @@ fn is_pattern_no_args() {
         }
     ");
 
-    err(
-        "
+    ok("
         enum Foo { A, B }
         fn isA(x: Foo): Bool {
             x is Foo
         }
-    ",
-        (4, 18),
-        ErrorMessage::EnumVariantExpected,
-    );
+    ");
 
     err(
         "
@@ -4043,8 +4039,8 @@ fn is_pattern_no_args() {
             x is Foo::A
         }
     ",
-        (4, 13),
-        ErrorMessage::EnumExpected,
+        (4, 18),
+        ErrorMessage::PatternTypeMismatch("Int64".into()),
     );
 
     err(
@@ -4056,21 +4052,7 @@ fn is_pattern_no_args() {
         }
     ",
         (5, 18),
-        ErrorMessage::EnumMismatch("Bar".into(), "Foo".into()),
-    );
-}
-
-#[test]
-fn is_pattern_underscore() {
-    err(
-        "
-        enum Foo { A, B }
-        fn isA(x: Foo): Bool {
-            x is _
-        }
-    ",
-        (4, 18),
-        ErrorMessage::EnumVariantExpected,
+        ErrorMessage::PatternTypeMismatch("Bar".into()),
     );
 }
 

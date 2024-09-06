@@ -17,8 +17,8 @@ use crate::sema::{
 use crate::typeck::{
     check_expr_break_and_continue, check_expr_call, check_expr_call_enum_args, check_expr_for,
     check_expr_if, check_expr_match, check_expr_return, check_expr_while, check_lit_char,
-    check_lit_float, check_lit_int, check_lit_str, check_stmt, find_method, is_simple_enum,
-    TypeCheck,
+    check_lit_float, check_lit_int, check_lit_str, check_pattern, check_stmt, find_method,
+    is_simple_enum, TypeCheck,
 };
 use crate::typeparamck::{self, ErrorReporting};
 use crate::{replace_type, AliasReplacement, SourceType, SourceTypeArray, SymbolKind};
@@ -594,103 +594,7 @@ fn check_expr_is(ck: &mut TypeCheck, e: &ast::ExprIsType, _expected_ty: SourceTy
     let value_type = check_expr(ck, &e.value, SourceType::Any);
     ck.analysis.set_ty(e.value.id(), value_type.clone());
 
-    let value_enum_id = value_type.enum_id();
-    let value_type_params = value_type.type_params();
-
-    if value_enum_id.is_none() {
-        let msg = ErrorMessage::EnumExpected;
-        ck.sa.report(ck.file_id, e.value.span(), msg);
-    }
-
-    match e.pattern.as_ref() {
-        ast::Pattern::Underscore(..) => {
-            let msg = ErrorMessage::EnumVariantExpected;
-            ck.sa.report(ck.file_id, e.pattern.span(), msg);
-        }
-
-        ast::Pattern::LitBool(..) => unimplemented!(),
-
-        ast::Pattern::Tuple(..) => unimplemented!(),
-
-        ast::Pattern::Ident(ref ident) => {
-            let sym = read_ident(ck, &ident.name);
-
-            match sym {
-                Ok(SymbolKind::EnumVariant(enum_id, variant_idx)) => {
-                    let pattern_enum = ck.sa.enum_(enum_id);
-                    let variant = &pattern_enum.variants[variant_idx as usize];
-
-                    if Some(enum_id) == value_enum_id {
-                        ck.analysis.map_idents.insert(
-                            e.pattern.id(),
-                            IdentType::EnumVariant(enum_id, value_type_params.clone(), variant_idx),
-                        );
-                    } else if value_enum_id.is_some() {
-                        let value_enum = ck.sa.enum_(value_enum_id.expect("missing"));
-                        let value_enum_name = value_enum.name(ck.sa);
-                        let pattern_enum = pattern_enum.name(ck.sa);
-                        let msg = ErrorMessage::EnumMismatch(value_enum_name, pattern_enum);
-                        ck.sa.report(ck.file_id, ident.span, msg);
-                    }
-
-                    if !variant.types().is_empty() {
-                        let msg =
-                            ErrorMessage::PatternWrongNumberOfParams(0, variant.types().len());
-                        ck.sa.report(ck.file_id, e.pattern.span(), msg);
-                    }
-                }
-
-                Ok(_) => {
-                    let msg = ErrorMessage::EnumVariantExpected;
-                    ck.sa.report(ck.file_id, ident.span, msg);
-                }
-
-                Err(()) => {}
-            }
-        }
-
-        ast::Pattern::ClassOrStructOrEnum(ref ident) => {
-            let sym = read_path(ck, &ident.path);
-            assert!(ident.params.is_none());
-
-            let given_params = ident.params.as_ref().map(|p| p.len()).unwrap_or(0);
-
-            match sym {
-                Ok(SymbolKind::EnumVariant(enum_id, variant_idx)) => {
-                    let pattern_enum = ck.sa.enum_(enum_id);
-                    let variant = &pattern_enum.variants[variant_idx as usize];
-
-                    if Some(enum_id) == value_enum_id {
-                        ck.analysis.map_idents.insert(
-                            e.pattern.id(),
-                            IdentType::EnumVariant(enum_id, value_type_params.clone(), variant_idx),
-                        );
-                    } else if value_enum_id.is_some() {
-                        let value_enum = ck.sa.enum_(value_enum_id.expect("missing"));
-                        let value_enum_name = value_enum.name(ck.sa);
-                        let pattern_enum = pattern_enum.name(ck.sa);
-                        let msg = ErrorMessage::EnumMismatch(value_enum_name, pattern_enum);
-                        ck.sa.report(ck.file_id, ident.path.span, msg);
-                    }
-
-                    let expected_params = variant.types().len();
-
-                    if given_params != expected_params {
-                        let msg =
-                            ErrorMessage::PatternWrongNumberOfParams(given_params, expected_params);
-                        ck.sa.report(ck.file_id, e.pattern.span(), msg);
-                    }
-                }
-
-                Ok(_) => {
-                    let msg = ErrorMessage::EnumVariantExpected;
-                    ck.sa.report(ck.file_id, ident.path.span, msg);
-                }
-
-                Err(()) => {}
-            }
-        }
-    }
+    check_pattern(ck, &e.pattern, value_type.clone());
 
     SourceType::Bool
 }
