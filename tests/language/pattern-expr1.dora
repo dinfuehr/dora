@@ -2,6 +2,7 @@ enum Foo { A(Int64), B }
 
 fn main() {
     assert(f(Foo::A(12)));
+    assert(!f(Foo::B));
     assert(!f(Foo::A(-1)));
     assert(!f(Foo::A(-17)));
     assert(!f(Foo::A(0)));
