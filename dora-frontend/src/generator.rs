@@ -14,6 +14,7 @@ use crate::sema::{
 };
 use crate::specialize::{replace_type, specialize_type};
 use crate::ty::{SourceType, SourceTypeArray};
+use crate::typeck::is_with_condition;
 use crate::{expr_always_returns, expr_block_always_returns, AliasReplacement};
 use dora_bytecode::{
     AliasId, BytecodeBuilder, BytecodeFunction, BytecodeType, BytecodeTypeArray, ClassId,
@@ -1096,6 +1097,10 @@ impl<'a> AstBytecodeGen<'a> {
 
             let else_lbl = self.builder.create_label();
             let end_lbl = self.builder.create_label();
+
+            if let Some((_is_expr, _cond)) = is_with_condition(&expr.cond) {
+                unimplemented!();
+            }
 
             let cond_reg = gen_expr(self, &expr.cond, DataDest::Alloc);
             self.builder.emit_jump_if_false(cond_reg, else_lbl);

@@ -4141,3 +4141,61 @@ fn pattern_underscore() {
         }
     ");
 }
+
+#[test]
+fn pattern_in_if() {
+    ok("
+        enum Foo { A(Int64), B }
+        fn f(x: Foo): Int64 {
+            if x is Foo::A(y) {
+                y
+            } else {
+                0
+            }
+        }
+    ");
+
+    err(
+        "
+        enum Foo { A(Int64), B }
+        fn f(x: Foo): Int64 {
+            if x is Foo::A(y) {
+                0
+            } else {
+                y
+            }
+        }
+    ",
+        (7, 17),
+        ErrorMessage::UnknownIdentifier("y".into()),
+    );
+}
+
+#[test]
+fn pattern_in_if_with_condition() {
+    ok("
+        enum Foo { A(Int64), B }
+        fn f(x: Foo): Int64 {
+            if x is Foo::A(y) && y < 0 {
+                y
+            } else {
+                0
+            }
+        }
+    ");
+
+    err(
+        "
+        enum Foo { A(Int64), B }
+        fn f(x: Foo): Int64 {
+            if x is Foo::A(y) && y > 0 {
+                0
+            } else {
+                y
+            }
+        }
+    ",
+        (7, 17),
+        ErrorMessage::UnknownIdentifier("y".into()),
+    );
+}

@@ -242,15 +242,33 @@ pub(super) fn check_expr_if(
     expr: &ast::ExprIfType,
     expected_ty: SourceType,
 ) -> SourceType {
-    let expr_type = check_expr(ck, &expr.cond, SourceType::Any);
+    ck.symtable.push_level();
 
-    if !expr_type.is_bool() && !expr_type.is_error() {
-        let expr_type = ck.ty_name(&expr_type);
-        let msg = ErrorMessage::IfCondType(expr_type);
-        ck.sa.report(ck.file_id, expr.span, msg);
+    if let Some((is_expr, cond)) = is_with_condition(&expr.cond) {
+        let ty = check_expr(ck, &is_expr.value, SourceType::Any);
+        check_pattern(ck, &is_expr.pattern, ty);
+        if let Some(cond) = cond {
+            let ty = check_expr(ck, cond, SourceType::Bool);
+
+            if !ty.is_bool() && !ty.is_error() {
+                let expr_type = ck.ty_name(&ty);
+                let msg = ErrorMessage::IfCondType(expr_type);
+                ck.sa.report(ck.file_id, expr.span, msg);
+            }
+        }
+    } else {
+        let ty = check_expr(ck, &expr.cond, SourceType::Any);
+
+        if !ty.is_bool() && !ty.is_error() {
+            let expr_type = ck.ty_name(&ty);
+            let msg = ErrorMessage::IfCondType(expr_type);
+            ck.sa.report(ck.file_id, expr.span, msg);
+        }
     }
 
     let then_type = check_expr(ck, &expr.then_block, expected_ty.clone());
+
+    ck.symtable.pop_level();
 
     let merged_type = if let Some(ref else_block) = expr.else_block {
         let else_type = check_expr(ck, else_block, expected_ty);
@@ -279,6 +297,21 @@ pub(super) fn check_expr_if(
     ck.analysis.set_ty(expr.id, merged_type.clone());
 
     merged_type
+}
+
+pub fn is_with_condition(e: &ast::Expr) -> Option<(&ast::ExprIsType, Option<&ast::Expr>)> {
+    if let Some(is_expr) = e.to_is() {
+        Some((is_expr, None))
+    } else if let Some(e) = e.to_bin() {
+        if e.lhs.is_is() && e.op == ast::BinOp::And {
+            let is_expr = e.lhs.to_is().expect("missing is");
+            Some((is_expr, Some(&e.rhs)))
+        } else {
+            None
+        }
+    } else {
+        None
+    }
 }
 
 pub(super) fn check_expr_break_and_continue(

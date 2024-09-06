@@ -1387,6 +1387,20 @@ impl ExprData {
         }
     }
 
+    pub fn is_is(&self) -> bool {
+        match *self {
+            ExprData::Is(_) => true,
+            _ => false,
+        }
+    }
+
+    pub fn to_is(&self) -> Option<&ExprIsType> {
+        match *self {
+            ExprData::Is(ref e) => Some(e),
+            _ => None,
+        }
+    }
+
     pub fn to_paren(&self) -> Option<&ExprParenType> {
         match *self {
             ExprData::Paren(ref val) => Some(val),
