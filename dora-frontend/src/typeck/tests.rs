@@ -565,7 +565,6 @@ fn reassign_self() {
 #[test]
 fn same_names() {
     ok("class Foo { Foo: Foo }");
-    ok("class Foo fn foo() { let Foo: Int32 = 1i32; }");
 }
 
 #[test]
@@ -2672,11 +2671,6 @@ fn show_type_param_with_name() {
 }
 
 #[test]
-fn shadow_type_with_var() {
-    ok("fn test() { let String = 3i32; }");
-}
-
-#[test]
 fn shadow_function() {
     ok("fn f() { let f = 1i32; }");
     err(
@@ -4230,5 +4224,62 @@ fn pattern_in_expression() {
     ",
         (4, 13),
         ErrorMessage::WrongType("Bool".into(), "Int64".into()),
+    );
+}
+
+#[test]
+fn pattern_class_with_args() {
+    ok("
+        class Foo(a: Int64, b: String)
+        fn f(x: Foo): Int64 {
+            let Foo(a, b) = x;
+            a
+        }
+    ");
+
+    err(
+        "
+    class Foo(a: Int64, b: String)
+    class Bar(a: Int64, b: String)
+    fn f(x: Foo): Int64 {
+        let Bar(a, b) = x;
+        b
+    }
+",
+        (5, 13),
+        ErrorMessage::PatternTypeMismatch("Foo".into()),
+    );
+
+    err(
+        "
+    class Foo(a: Int64)
+    fn f(x: Foo): Int64 {
+        let Foo(a, b) = x;
+        b
+    }
+",
+        (4, 13),
+        ErrorMessage::PatternWrongNumberOfParams(2, 1),
+    );
+}
+
+#[test]
+fn pattern_class_no_args() {
+    ok("
+    class Foo
+    fn f(x: Foo) {
+        let Foo = x;
+    }
+");
+
+    err(
+        "
+class Foo(a: Int64)
+fn f(x: Foo) {
+    let Foo = x;
+}
+",
+        (4, 9),
+        ErrorMessage::PatternWrongNumberOfParams(0, 1),
     );
 }

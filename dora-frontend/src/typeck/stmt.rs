@@ -1,8 +1,8 @@
 use dora_parser::ast;
 
-use crate::access::enum_accessible_from;
+use crate::access::{class_accessible_from, enum_accessible_from};
 use crate::error::msg::ErrorMessage;
-use crate::sema::{EnumDefinitionId, IdentType};
+use crate::sema::{ClassDefinitionId, EnumDefinitionId, IdentType};
 use crate::ty::SourceType;
 use crate::typeck::{add_local, check_expr, class_or_struct_or_enum_params, read_path, TypeCheck};
 use crate::{specialize_type, SourceTypeArray, SymbolKind};
@@ -74,6 +74,10 @@ pub(super) fn check_pattern(ck: &mut TypeCheck, pattern: &ast::Pattern, ty: Sour
                     check_pattern_enum(ck, pattern, ty, enum_id, variant_id);
                 }
 
+                Some(SymbolKind::Class(cls_id)) => {
+                    check_pattern_class(ck, pattern, ty, cls_id);
+                }
+
                 _ => {
                     let name = ck.sa.interner.intern(&ident.name.name_as_string);
                     let var_id = ck.vars.add_var(name, ty, ident.mutable);
@@ -107,6 +111,10 @@ pub(super) fn check_pattern(ck: &mut TypeCheck, pattern: &ast::Pattern, ty: Sour
             match sym {
                 Ok(SymbolKind::EnumVariant(enum_id, variant_id)) => {
                     check_pattern_enum(ck, pattern, ty, enum_id, variant_id);
+                }
+
+                Ok(SymbolKind::Class(cls_id)) => {
+                    check_pattern_class(ck, pattern, ty, cls_id);
                 }
 
                 Ok(..) => {
@@ -222,5 +230,59 @@ fn check_pattern_tuple(ck: &mut TypeCheck, pattern: &ast::PatternTuple, ty: Sour
             .cloned()
             .unwrap_or(SourceType::Error);
         check_pattern(ck, param.as_ref(), subty.clone());
+    }
+}
+
+fn check_pattern_class(
+    ck: &mut TypeCheck,
+    pattern: &ast::Pattern,
+    ty: SourceType,
+    cls_id: ClassDefinitionId,
+) {
+    let cls = ck.sa.class(cls_id);
+    let expected_params = cls.fields.len();
+    let params = class_or_struct_or_enum_params(pattern);
+    let given_params = params.map(|p| p.len()).unwrap_or(0);
+
+    if !class_accessible_from(ck.sa, cls_id, ck.module_id) {
+        let msg = ErrorMessage::NotAccessible(cls.name(ck.sa));
+        ck.sa.report(ck.file_id, pattern.span(), msg);
+    }
+
+    if Some(cls_id) == ty.cls_id() {
+        let value_type_params = ty.type_params();
+
+        ck.analysis.map_idents.insert(
+            pattern.id(),
+            IdentType::Class(cls_id, value_type_params.clone()),
+        );
+
+        if given_params != expected_params {
+            let msg = ErrorMessage::PatternWrongNumberOfParams(given_params, expected_params);
+            ck.sa.report(ck.file_id, pattern.span(), msg);
+        }
+
+        if let Some(ref params) = params {
+            for (idx, param) in params.iter().enumerate() {
+                let field_ty = cls
+                    .fields
+                    .get(idx)
+                    .map(|f| f.ty())
+                    .unwrap_or(SourceType::Error);
+                let field_ty = specialize_type(ck.sa, field_ty, &value_type_params);
+                check_pattern(ck, param.as_ref(), field_ty);
+            }
+        }
+    } else if !ty.is_error() {
+        let ty = ty.name(ck.sa);
+        let msg = ErrorMessage::PatternTypeMismatch(ty);
+        ck.sa.report(ck.file_id, pattern.span(), msg);
+
+        if let Some(ref params) = params {
+            for param in params.iter() {
+                let param_ty = SourceType::Error;
+                check_pattern(ck, param.as_ref(), param_ty);
+            }
+        }
     }
 }
