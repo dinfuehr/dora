@@ -4201,6 +4201,18 @@ fn pattern_in_if_with_condition() {
 }
 
 #[test]
+fn pattern_in_while_with_condition() {
+    ok("
+        enum Foo { A(Int64), B }
+        fn f(x: Foo) {
+            while x is Foo::A(y) && y < 0 {
+                y
+            }
+        }
+    ");
+}
+
+#[test]
 fn pattern_in_expression() {
     ok("
         enum Foo { A(Int64), B }

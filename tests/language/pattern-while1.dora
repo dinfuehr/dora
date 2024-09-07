@@ -1,0 +1,26 @@
+fn main() {
+    let result = f();
+    assert(result == 120);
+}
+
+fn f(): Int64 {
+    let mut sum = 1;
+
+    while next() is Some(value) {
+        sum = sum * value;
+    }
+
+    sum
+}
+
+fn next(): Option[Int64] {
+    if cnt < 6 {
+        let result = cnt;
+        cnt = cnt + 1;
+        Some[Int64](result)
+    } else {
+        None[Int64]
+    }
+}
+
+let mut cnt: Int64 = 1;

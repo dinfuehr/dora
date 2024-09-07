@@ -14,20 +14,35 @@ use crate::{replace_type, specialize_type, AliasReplacement, SourceType, SourceT
 
 pub(super) fn check_expr_while(
     ck: &mut TypeCheck,
-    stmt: &ast::ExprWhileType,
+    expr: &ast::ExprWhileType,
     _expected_ty: SourceType,
 ) -> SourceType {
     ck.enter_block_scope();
-    let expr_type = check_expr(ck, &stmt.cond, SourceType::Bool);
 
-    if !expr_type.is_error() && !expr_type.is_bool() {
-        let expr_type = ck.ty_name(&expr_type);
-        let msg = ErrorMessage::WhileCondType(expr_type);
-        ck.sa.report(ck.file_id, stmt.span, msg);
+    if let Some((is_expr, cond)) = is_pattern_check(&expr.cond) {
+        let ty = check_expr(ck, &is_expr.value, SourceType::Any);
+        check_pattern(ck, &is_expr.pattern, ty);
+        if let Some(cond) = cond {
+            let ty = check_expr(ck, cond, SourceType::Bool);
+
+            if !ty.is_bool() && !ty.is_error() {
+                let expr_type = ck.ty_name(&ty);
+                let msg = ErrorMessage::IfCondType(expr_type);
+                ck.sa.report(ck.file_id, cond.span(), msg);
+            }
+        }
+    } else {
+        let expr_type = check_expr(ck, &expr.cond, SourceType::Bool);
+
+        if !expr_type.is_error() && !expr_type.is_bool() {
+            let expr_type = ck.ty_name(&expr_type);
+            let msg = ErrorMessage::WhileCondType(expr_type);
+            ck.sa.report(ck.file_id, expr.span, msg);
+        }
     }
 
-    check_loop_body(ck, &stmt.block);
-    ck.leave_block_scope(stmt.id);
+    check_loop_body(ck, &expr.block);
+    ck.leave_block_scope(expr.id);
     SourceType::Unit
 }
 
@@ -244,7 +259,7 @@ pub(super) fn check_expr_if(
 ) -> SourceType {
     ck.symtable.push_level();
 
-    if let Some((is_expr, cond)) = is_with_condition(&expr.cond) {
+    if let Some((is_expr, cond)) = is_pattern_check(&expr.cond) {
         let ty = check_expr(ck, &is_expr.value, SourceType::Any);
         check_pattern(ck, &is_expr.pattern, ty);
         if let Some(cond) = cond {
@@ -299,7 +314,7 @@ pub(super) fn check_expr_if(
     merged_type
 }
 
-pub fn is_with_condition(e: &ast::Expr) -> Option<(&ast::ExprIsType, Option<&ast::Expr>)> {
+pub fn is_pattern_check(e: &ast::Expr) -> Option<(&ast::ExprIsType, Option<&ast::Expr>)> {
     if let Some(is_expr) = e.to_is() {
         Some((is_expr, None))
     } else if let Some(e) = e.to_bin() {
