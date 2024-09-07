@@ -497,8 +497,7 @@ impl CodeGenX64 {
             regs_to_push.add(reg);
         }
 
-        while !regs_to_push.isEmpty() {
-            let reg = regs_to_push.popLowestIndex().getOrPanic();
+        while regs_to_push.popLowestIndex() is Some(reg) {
             self.asm.pushq_r(reg);
         }
 
@@ -510,8 +509,7 @@ impl CodeGenX64 {
             self.asm.subq_ri(RSP, Immediate(size.toInt64()));
             let mut offset = 0i32;
 
-            while !regs.isEmpty() {
-                let reg = regs.popLowestIndex().getOrPanic();
+            while regs.popLowestIndex() is Some(reg) {
                 if self.hasAvx2 {
                     self.asm.vmovsd_ar(AsmAddress::offset(RSP, offset), reg);
                 } else {
@@ -545,8 +543,7 @@ impl CodeGenX64 {
             let mut offset = 0i32;
             let count = regs.size();
 
-            while !regs.isEmpty() {
-                let reg = regs.popLowestIndex().getOrPanic();
+            while regs.popLowestIndex() is Some(reg) {
                 if self.hasAvx2 {
                     self.asm.vmovsd_ra(reg, AsmAddress::offset(RSP, offset));
                 } else {
@@ -579,8 +576,7 @@ impl CodeGenX64 {
             regs_to_pop.add(reg);
         }
 
-        while !regs_to_pop.isEmpty() {
-            let reg = regs_to_pop.popHighestIndex().getOrPanic();
+        while regs_to_pop.popHighestIndex() is Some(reg) {
             self.asm.popq_r(reg);
         }
     }

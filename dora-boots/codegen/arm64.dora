@@ -139,14 +139,12 @@ impl CodeGenArm64 {
     fn mov_imm_w(dest: Register, imm: Int32) {
         let fits_movz = fitsMovz(imm.toInt64(), 32);
 
-        if fits_movz.isSome() {
-            let (value, shift) = fits_movz.getOrPanic();
+        if fits_movz is Some((value, shift)) {
             self.asm.movz(dest, value.toInt32(), shift.toInt32());
         } else {
             let fits_movn = fitsMovn(imm.toInt64(), 32);
 
-            if fits_movn.isSome() {
-                let (value, shift) = fits_movn.getOrPanic();
+            if fits_movn is Some((value, shift)) {
                 self.asm.movn(dest, value.toInt32(), shift.toInt32());
             } else {
                 self.asm.movz_w(dest, imm & 0xFF_FFi32, 0i32);
