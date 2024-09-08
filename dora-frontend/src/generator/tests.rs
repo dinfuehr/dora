@@ -463,6 +463,7 @@ fn gen_stmt_let_unit() {
                 LoadTupleElement(r(5), r(0), ConstPoolIdx(1)),
                 LoadTupleElement(r(4), r(5), ConstPoolIdx(2)),
                 Mov(r(2), r(4)),
+                LoadTupleElement(r(3), r(5), ConstPoolIdx(3)),
                 Add(r(4), r(1), r(2)),
                 Ret(r(4)),
             ];
@@ -496,6 +497,7 @@ fn gen_stmt_let_unit() {
                 LoadTupleElement(r(4), r(0), ConstPoolIdx(1)),
                 LoadTupleElement(r(3), r(4), ConstPoolIdx(2)),
                 Mov(r(2), r(3)),
+                LoadTupleElement(r(5), r(4), ConstPoolIdx(3)),
                 Add(r(3), r(1), r(2)),
                 Ret(r(3)),
             ];
