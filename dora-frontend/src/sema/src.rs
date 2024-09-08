@@ -264,7 +264,7 @@ pub enum IdentType {
     StructField(SourceType, StructDefinitionFieldId),
 
     // Name of structure.
-    Struct(StructDefinitionId),
+    Struct(StructDefinitionId, SourceTypeArray),
 
     // Name of constant.
     Const(ConstDefinitionId),
@@ -289,7 +289,7 @@ impl IdentType {
 
     pub fn struct_id(&self) -> StructDefinitionId {
         match self {
-            &IdentType::Struct(sid) => sid,
+            &IdentType::Struct(sid, ..) => sid,
             _ => panic!(),
         }
     }

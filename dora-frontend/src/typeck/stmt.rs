@@ -1,8 +1,8 @@
 use dora_parser::ast;
 
-use crate::access::{class_accessible_from, enum_accessible_from};
+use crate::access::{class_accessible_from, enum_accessible_from, struct_accessible_from};
 use crate::error::msg::ErrorMessage;
-use crate::sema::{ClassDefinitionId, EnumDefinitionId, IdentType};
+use crate::sema::{ClassDefinitionId, EnumDefinitionId, IdentType, StructDefinitionId};
 use crate::ty::SourceType;
 use crate::typeck::{add_local, check_expr, class_or_struct_or_enum_params, read_path, TypeCheck};
 use crate::{specialize_type, SourceTypeArray, SymbolKind};
@@ -78,6 +78,10 @@ pub(super) fn check_pattern(ck: &mut TypeCheck, pattern: &ast::Pattern, ty: Sour
                     check_pattern_class(ck, pattern, ty, cls_id);
                 }
 
+                Some(SymbolKind::Struct(struct_id)) => {
+                    check_pattern_struct(ck, pattern, ty, struct_id);
+                }
+
                 _ => {
                     let name = ck.sa.interner.intern(&ident.name.name_as_string);
                     let var_id = ck.vars.add_var(name, ty, ident.mutable);
@@ -115,6 +119,10 @@ pub(super) fn check_pattern(ck: &mut TypeCheck, pattern: &ast::Pattern, ty: Sour
 
                 Ok(SymbolKind::Class(cls_id)) => {
                     check_pattern_class(ck, pattern, ty, cls_id);
+                }
+
+                Ok(SymbolKind::Struct(struct_id)) => {
+                    check_pattern_struct(ck, pattern, ty, struct_id);
                 }
 
                 Ok(..) => {
@@ -265,6 +273,60 @@ fn check_pattern_class(
         if let Some(ref params) = params {
             for (idx, param) in params.iter().enumerate() {
                 let field_ty = cls
+                    .fields
+                    .get(idx)
+                    .map(|f| f.ty())
+                    .unwrap_or(SourceType::Error);
+                let field_ty = specialize_type(ck.sa, field_ty, &value_type_params);
+                check_pattern(ck, param.as_ref(), field_ty);
+            }
+        }
+    } else if !ty.is_error() {
+        let ty = ty.name(ck.sa);
+        let msg = ErrorMessage::PatternTypeMismatch(ty);
+        ck.sa.report(ck.file_id, pattern.span(), msg);
+
+        if let Some(ref params) = params {
+            for param in params.iter() {
+                let param_ty = SourceType::Error;
+                check_pattern(ck, param.as_ref(), param_ty);
+            }
+        }
+    }
+}
+
+fn check_pattern_struct(
+    ck: &mut TypeCheck,
+    pattern: &ast::Pattern,
+    ty: SourceType,
+    struct_id: StructDefinitionId,
+) {
+    let struct_ = ck.sa.struct_(struct_id);
+    let expected_params = struct_.fields.len();
+    let params = class_or_struct_or_enum_params(pattern);
+    let given_params = params.map(|p| p.len()).unwrap_or(0);
+
+    if !struct_accessible_from(ck.sa, struct_id, ck.module_id) {
+        let msg = ErrorMessage::NotAccessible(struct_.name(ck.sa));
+        ck.sa.report(ck.file_id, pattern.span(), msg);
+    }
+
+    if Some(struct_id) == ty.struct_id() {
+        let value_type_params = ty.type_params();
+
+        ck.analysis.map_idents.insert(
+            pattern.id(),
+            IdentType::Struct(struct_id, value_type_params.clone()),
+        );
+
+        if given_params != expected_params {
+            let msg = ErrorMessage::PatternWrongNumberOfParams(given_params, expected_params);
+            ck.sa.report(ck.file_id, pattern.span(), msg);
+        }
+
+        if let Some(ref params) = params {
+            for (idx, param) in params.iter().enumerate() {
+                let field_ty = struct_
                     .fields
                     .get(idx)
                     .map(|f| f.ty())

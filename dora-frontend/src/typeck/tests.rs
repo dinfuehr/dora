@@ -4283,3 +4283,78 @@ fn f(x: Foo) {
         ErrorMessage::PatternWrongNumberOfParams(0, 1),
     );
 }
+
+#[test]
+fn pattern_struct_with_args() {
+    ok("
+        struct Foo(a: Int64, b: String)
+        fn f(x: Foo): Int64 {
+            let Foo(a, b) = x;
+            a
+        }
+    ");
+
+    err(
+        "
+    struct Foo(a: Int64, b: String)
+    struct Bar(a: Int64, b: String)
+    fn f(x: Foo): Int64 {
+        let Bar(a, b) = x;
+        b
+    }
+",
+        (5, 13),
+        ErrorMessage::PatternTypeMismatch("Foo".into()),
+    );
+
+    err(
+        "
+    struct Foo(a: Int64)
+    fn f(x: Foo): Int64 {
+        let Foo(a, b) = x;
+        b
+    }
+",
+        (4, 13),
+        ErrorMessage::PatternWrongNumberOfParams(2, 1),
+    );
+}
+
+#[test]
+fn pattern_struct_no_args() {
+    ok("
+    struct Foo
+    fn f(x: Foo) {
+        let Foo = x;
+    }
+");
+
+    err(
+        "
+struct Foo(a: Int64)
+fn f(x: Foo) {
+    let Foo = x;
+}
+",
+        (4, 9),
+        ErrorMessage::PatternWrongNumberOfParams(0, 1),
+    );
+}
+
+#[test]
+#[ignore]
+fn pattern_struct_private_ctor() {
+    err(
+        "
+        mod n {
+            pub struct Foo(pub a: Int64, b: String)
+        }
+        fn f(x: n::Foo): Int64 {
+            let n::Foo(a, b) = x;
+            a
+        }
+    ",
+        (1, 1),
+        ErrorMessage::Unimplemented,
+    );
+}

@@ -947,11 +947,11 @@ impl<'a> AstBytecodeGen<'a> {
                 self.visit_expr_ident_global(global_id, dest, self.loc(expr.span))
             }
 
-            IdentType::StructField(_, _)
-            | IdentType::Struct(_)
-            | IdentType::Field(_, _)
-            | IdentType::Fct(_, _)
-            | IdentType::Class(_, _)
+            IdentType::StructField(..)
+            | IdentType::Struct(..)
+            | IdentType::Field(..)
+            | IdentType::Fct(..)
+            | IdentType::Class(..)
             | IdentType::Var(..)
             | IdentType::Context(..) => unreachable!(),
         }
@@ -2524,12 +2524,12 @@ impl<'a> AstBytecodeGen<'a> {
                 dest,
             ),
 
-            &IdentType::Field(_, _) => unreachable!(),
-            &IdentType::Struct(_) => unreachable!(),
-            &IdentType::StructField(_, _) => unreachable!(),
+            &IdentType::Field(..) => unreachable!(),
+            &IdentType::Struct(..) => unreachable!(),
+            &IdentType::StructField(..) => unreachable!(),
 
-            &IdentType::Fct(_, _) => unreachable!(),
-            &IdentType::Class(_, _) => unreachable!(),
+            &IdentType::Fct(..) => unreachable!(),
+            &IdentType::Class(..) => unreachable!(),
         }
     }
 
