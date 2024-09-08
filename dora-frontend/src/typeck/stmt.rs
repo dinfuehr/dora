@@ -1,6 +1,8 @@
 use dora_parser::ast;
 
-use crate::access::{class_accessible_from, enum_accessible_from, struct_accessible_from};
+use crate::access::{
+    class_accessible_from, enum_accessible_from, is_default_accessible, struct_accessible_from,
+};
 use crate::error::msg::ErrorMessage;
 use crate::sema::{ClassDefinitionId, EnumDefinitionId, IdentType, StructDefinitionId};
 use crate::ty::SourceType;
@@ -255,6 +257,11 @@ fn check_pattern_class(
     if !class_accessible_from(ck.sa, cls_id, ck.module_id) {
         let msg = ErrorMessage::NotAccessible(cls.name(ck.sa));
         ck.sa.report(ck.file_id, pattern.span(), msg);
+    } else if !is_default_accessible(ck.sa, cls.module_id, ck.module_id)
+        && !cls.all_fields_are_public()
+    {
+        let msg = ErrorMessage::ClassConstructorNotAccessible(cls.name(ck.sa));
+        ck.sa.report(ck.file_id, pattern.span(), msg);
     }
 
     if Some(cls_id) == ty.cls_id() {
@@ -308,6 +315,11 @@ fn check_pattern_struct(
 
     if !struct_accessible_from(ck.sa, struct_id, ck.module_id) {
         let msg = ErrorMessage::NotAccessible(struct_.name(ck.sa));
+        ck.sa.report(ck.file_id, pattern.span(), msg);
+    } else if !is_default_accessible(ck.sa, struct_.module_id, ck.module_id)
+        && !struct_.all_fields_are_public()
+    {
+        let msg = ErrorMessage::StructConstructorNotAccessible(struct_.name(ck.sa));
         ck.sa.report(ck.file_id, pattern.span(), msg);
     }
 

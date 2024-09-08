@@ -4342,7 +4342,6 @@ fn f(x: Foo) {
 }
 
 #[test]
-#[ignore]
 fn pattern_struct_private_ctor() {
     err(
         "
@@ -4354,7 +4353,24 @@ fn pattern_struct_private_ctor() {
             a
         }
     ",
-        (1, 1),
-        ErrorMessage::Unimplemented,
+        (6, 17),
+        ErrorMessage::StructConstructorNotAccessible("n::Foo".into()),
+    );
+}
+
+#[test]
+fn pattern_class_private_ctor() {
+    err(
+        "
+        mod n {
+            pub class Foo(pub a: Int64, b: String)
+        }
+        fn f(x: n::Foo): Int64 {
+            let n::Foo(a, b) = x;
+            a
+        }
+    ",
+        (6, 17),
+        ErrorMessage::ClassConstructorNotAccessible("n::Foo".into()),
     );
 }
