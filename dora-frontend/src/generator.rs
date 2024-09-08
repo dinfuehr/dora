@@ -498,6 +498,65 @@ impl<'a> AstBytecodeGen<'a> {
                         );
                     }
 
+                    IdentType::Struct(struct_id, struct_type_params) => {
+                        let struct_ = self.sa.struct_(*struct_id);
+
+                        if let Some(ref params) = p.params {
+                            for (idx, param) in params.iter().enumerate() {
+                                let field_ty = struct_.fields[idx].ty();
+                                let field_ty =
+                                    specialize_type(self.sa, field_ty, struct_type_params);
+                                let register_ty = register_bty_from_ty(field_ty.clone());
+                                let idx = self.builder.add_const_struct_field(
+                                    StructId(struct_id.index().try_into().expect("overflow")),
+                                    bty_array_from_ty(struct_type_params),
+                                    idx as u32,
+                                );
+                                let temp_reg = self.alloc_temp(register_ty);
+                                self.builder.emit_load_struct_field(temp_reg, value, idx);
+                                self.destruct_pattern_inner(
+                                    pck,
+                                    param.as_ref(),
+                                    temp_reg,
+                                    field_ty,
+                                );
+                                self.free_temp(temp_reg);
+                            }
+                        }
+                    }
+
+                    IdentType::Class(class_id, struct_type_params) => {
+                        let class = self.sa.class(*class_id);
+
+                        if let Some(ref params) = p.params {
+                            for (idx, param) in params.iter().enumerate() {
+                                let field_ty = class.fields[idx].ty();
+                                let field_ty =
+                                    specialize_type(self.sa, field_ty, struct_type_params);
+                                let register_ty = register_bty_from_ty(field_ty.clone());
+                                let idx = self.builder.add_const_field_types(
+                                    ClassId(class_id.index().try_into().expect("overflow")),
+                                    bty_array_from_ty(struct_type_params),
+                                    idx as u32,
+                                );
+                                let temp_reg = self.alloc_temp(register_ty);
+                                self.builder.emit_load_field(
+                                    temp_reg,
+                                    value,
+                                    idx,
+                                    self.loc(p.span),
+                                );
+                                self.destruct_pattern_inner(
+                                    pck,
+                                    param.as_ref(),
+                                    temp_reg,
+                                    field_ty,
+                                );
+                                self.free_temp(temp_reg);
+                            }
+                        }
+                    }
+
                     _ => unreachable!(),
                 }
             }
@@ -510,17 +569,14 @@ impl<'a> AstBytecodeGen<'a> {
 
                     for (idx, param) in tuple.params.iter().enumerate() {
                         let subtype = tuple_subtypes[idx].clone();
-
-                        if !subtype.is_unit() {
-                            let register_ty = register_bty_from_ty(subtype.clone());
-                            let idx = self
-                                .builder
-                                .add_const_tuple_element(bty_from_ty(ty.clone()), idx as u32);
-                            let temp_reg = self.alloc_temp(register_ty);
-                            self.builder.emit_load_tuple_element(temp_reg, value, idx);
-                            self.destruct_pattern_inner(pck, param.as_ref(), temp_reg, subtype);
-                            self.free_temp(temp_reg);
-                        }
+                        let register_ty = register_bty_from_ty(subtype.clone());
+                        let idx = self
+                            .builder
+                            .add_const_tuple_element(bty_from_ty(ty.clone()), idx as u32);
+                        let temp_reg = self.alloc_temp(register_ty);
+                        self.builder.emit_load_tuple_element(temp_reg, value, idx);
+                        self.destruct_pattern_inner(pck, param.as_ref(), temp_reg, subtype);
+                        self.free_temp(temp_reg);
                     }
                 }
             }

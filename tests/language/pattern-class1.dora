@@ -1,0 +1,10 @@
+class Foo(a: Int64, b: Int64)
+
+fn main() {
+    assert(f(Foo(1, 2)) == 3);
+}
+
+fn f(x: Foo): Int64 {
+    let Foo(a, b) = x;
+    a + b
+}
