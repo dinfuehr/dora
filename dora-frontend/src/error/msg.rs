@@ -186,6 +186,7 @@ pub enum ErrorMessage {
     AliasCycle,
     UnexpectedTypeBounds,
     PatternTypeMismatch(String),
+    PatternDuplicateBinding,
 }
 
 impl ErrorMessage {
@@ -639,6 +640,7 @@ impl ErrorMessage {
             ErrorMessage::PatternTypeMismatch(ref ty) => {
                 format!("Pattern does not match type {}", ty)
             }
+            ErrorMessage::PatternDuplicateBinding => format!("duplicate binding in pattern."),
         }
     }
 }

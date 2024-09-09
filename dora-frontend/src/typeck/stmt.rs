@@ -1,3 +1,5 @@
+use std::collections::HashMap;
+
 use dora_parser::ast;
 
 use crate::access::{
@@ -7,7 +9,7 @@ use crate::error::msg::ErrorMessage;
 use crate::sema::{ClassDefinitionId, EnumDefinitionId, IdentType, StructDefinitionId};
 use crate::ty::SourceType;
 use crate::typeck::{add_local, check_expr, class_or_struct_or_enum_params, read_path, TypeCheck};
-use crate::{specialize_type, SourceTypeArray, SymbolKind};
+use crate::{specialize_type, Name, SourceTypeArray, SymbolKind};
 
 pub(super) fn check_stmt(ck: &mut TypeCheck, s: &ast::StmtData) {
     match *s {
@@ -66,32 +68,41 @@ fn check_stmt_let(ck: &mut TypeCheck, s: &ast::StmtLetType) {
     }
 }
 
-pub(super) fn check_pattern(ck: &mut TypeCheck, pattern: &ast::Pattern, ty: SourceType) {
+pub(super) fn check_pattern(
+    ck: &mut TypeCheck,
+    pattern: &ast::Pattern,
+    ty: SourceType,
+) -> HashMap<Name, SourceType> {
+    let mut bindings: HashMap<Name, SourceType> = HashMap::new();
+    check_pattern_inner(ck, &mut bindings, pattern, ty);
+    bindings
+}
+
+fn check_pattern_inner(
+    ck: &mut TypeCheck,
+    bindings: &mut HashMap<Name, SourceType>,
+    pattern: &ast::Pattern,
+    ty: SourceType,
+) {
     match pattern {
         ast::Pattern::Ident(ref ident) => {
             let sym = ck.symtable.get_string(ck.sa, &ident.name.name_as_string);
 
             match sym {
                 Some(SymbolKind::EnumVariant(enum_id, variant_id)) => {
-                    check_pattern_enum(ck, pattern, ty, enum_id, variant_id);
+                    check_pattern_enum(ck, bindings, pattern, ty, enum_id, variant_id);
                 }
 
                 Some(SymbolKind::Class(cls_id)) => {
-                    check_pattern_class(ck, pattern, ty, cls_id);
+                    check_pattern_class(ck, bindings, pattern, ty, cls_id);
                 }
 
                 Some(SymbolKind::Struct(struct_id)) => {
-                    check_pattern_struct(ck, pattern, ty, struct_id);
+                    check_pattern_struct(ck, bindings, pattern, ty, struct_id);
                 }
 
                 _ => {
-                    let name = ck.sa.interner.intern(&ident.name.name_as_string);
-                    let var_id = ck.vars.add_var(name, ty, ident.mutable);
-
-                    add_local(ck.sa, ck.symtable, ck.vars, var_id, ck.file_id, ident.span);
-                    ck.analysis
-                        .map_idents
-                        .insert(ident.id, IdentType::Var(ck.vars.local_var_id(var_id)));
+                    check_pattern_var(ck, bindings, ident, ty);
                 }
             }
         }
@@ -116,15 +127,15 @@ pub(super) fn check_pattern(ck: &mut TypeCheck, pattern: &ast::Pattern, ty: Sour
 
             match sym {
                 Ok(SymbolKind::EnumVariant(enum_id, variant_id)) => {
-                    check_pattern_enum(ck, pattern, ty, enum_id, variant_id);
+                    check_pattern_enum(ck, bindings, pattern, ty, enum_id, variant_id);
                 }
 
                 Ok(SymbolKind::Class(cls_id)) => {
-                    check_pattern_class(ck, pattern, ty, cls_id);
+                    check_pattern_class(ck, bindings, pattern, ty, cls_id);
                 }
 
                 Ok(SymbolKind::Struct(struct_id)) => {
-                    check_pattern_struct(ck, pattern, ty, struct_id);
+                    check_pattern_struct(ck, bindings, pattern, ty, struct_id);
                 }
 
                 Ok(..) => {
@@ -137,13 +148,14 @@ pub(super) fn check_pattern(ck: &mut TypeCheck, pattern: &ast::Pattern, ty: Sour
         }
 
         ast::Pattern::Tuple(ref tuple) => {
-            check_pattern_tuple(ck, tuple, ty);
+            check_pattern_tuple(ck, bindings, tuple, ty);
         }
     }
 }
 
 fn check_pattern_enum(
     ck: &mut TypeCheck,
+    bindings: &mut HashMap<Name, SourceType>,
     pattern: &ast::Pattern,
     ty: SourceType,
     enum_id: EnumDefinitionId,
@@ -183,7 +195,7 @@ fn check_pattern_enum(
                     .cloned()
                     .unwrap_or(SourceType::Error);
                 let param_ty = specialize_type(ck.sa, param_ty, &value_type_params);
-                check_pattern(ck, param.as_ref(), param_ty);
+                check_pattern_inner(ck, bindings, param.as_ref(), param_ty);
             }
         }
     } else if !ty.is_error() {
@@ -194,13 +206,18 @@ fn check_pattern_enum(
         if let Some(params) = params {
             for param in params.iter() {
                 let param_ty = SourceType::Error;
-                check_pattern(ck, param.as_ref(), param_ty);
+                check_pattern_inner(ck, bindings, param.as_ref(), param_ty);
             }
         }
     }
 }
 
-fn check_pattern_tuple(ck: &mut TypeCheck, pattern: &ast::PatternTuple, ty: SourceType) {
+fn check_pattern_tuple(
+    ck: &mut TypeCheck,
+    bindings: &mut HashMap<Name, SourceType>,
+    pattern: &ast::PatternTuple,
+    ty: SourceType,
+) {
     if !ty.is_tuple_or_unit() {
         if !ty.is_error() {
             let ty_name = ck.ty_name(&ty);
@@ -212,7 +229,7 @@ fn check_pattern_tuple(ck: &mut TypeCheck, pattern: &ast::PatternTuple, ty: Sour
         }
 
         for param in &pattern.params {
-            check_pattern(ck, param, SourceType::Error);
+            check_pattern_inner(ck, bindings, param, SourceType::Error);
         }
 
         return;
@@ -239,12 +256,13 @@ fn check_pattern_tuple(ck: &mut TypeCheck, pattern: &ast::PatternTuple, ty: Sour
             .get(idx)
             .cloned()
             .unwrap_or(SourceType::Error);
-        check_pattern(ck, param.as_ref(), subty.clone());
+        check_pattern_inner(ck, bindings, param.as_ref(), subty.clone());
     }
 }
 
 fn check_pattern_class(
     ck: &mut TypeCheck,
+    bindings: &mut HashMap<Name, SourceType>,
     pattern: &ast::Pattern,
     ty: SourceType,
     cls_id: ClassDefinitionId,
@@ -285,7 +303,7 @@ fn check_pattern_class(
                     .map(|f| f.ty())
                     .unwrap_or(SourceType::Error);
                 let field_ty = specialize_type(ck.sa, field_ty, &value_type_params);
-                check_pattern(ck, param.as_ref(), field_ty);
+                check_pattern_inner(ck, bindings, param.as_ref(), field_ty);
             }
         }
     } else if !ty.is_error() {
@@ -296,7 +314,7 @@ fn check_pattern_class(
         if let Some(ref params) = params {
             for param in params.iter() {
                 let param_ty = SourceType::Error;
-                check_pattern(ck, param.as_ref(), param_ty);
+                check_pattern_inner(ck, bindings, param.as_ref(), param_ty);
             }
         }
     }
@@ -304,6 +322,7 @@ fn check_pattern_class(
 
 fn check_pattern_struct(
     ck: &mut TypeCheck,
+    bindings: &mut HashMap<Name, SourceType>,
     pattern: &ast::Pattern,
     ty: SourceType,
     struct_id: StructDefinitionId,
@@ -344,7 +363,7 @@ fn check_pattern_struct(
                     .map(|f| f.ty())
                     .unwrap_or(SourceType::Error);
                 let field_ty = specialize_type(ck.sa, field_ty, &value_type_params);
-                check_pattern(ck, param.as_ref(), field_ty);
+                check_pattern_inner(ck, bindings, param.as_ref(), field_ty);
             }
         }
     } else if !ty.is_error() {
@@ -355,8 +374,39 @@ fn check_pattern_struct(
         if let Some(ref params) = params {
             for param in params.iter() {
                 let param_ty = SourceType::Error;
-                check_pattern(ck, param.as_ref(), param_ty);
+                check_pattern_inner(ck, bindings, param.as_ref(), param_ty);
             }
         }
     }
+}
+
+fn check_pattern_var(
+    ck: &mut TypeCheck,
+    bindings: &mut HashMap<Name, SourceType>,
+    pattern: &ast::PatternIdent,
+    ty: SourceType,
+) {
+    let name = ck.sa.interner.intern(&pattern.name.name_as_string);
+    let var_id = ck.vars.add_var(name, ty.clone(), pattern.mutable);
+
+    if bindings.contains_key(&name) {
+        let msg = ErrorMessage::PatternDuplicateBinding;
+        ck.sa.report(ck.file_id, pattern.span, msg);
+    } else {
+        add_local(
+            ck.sa,
+            ck.symtable,
+            ck.vars,
+            var_id,
+            ck.file_id,
+            pattern.span,
+        );
+
+        let old = bindings.insert(name, ty);
+        assert!(old.is_none());
+    }
+
+    ck.analysis
+        .map_idents
+        .insert(pattern.id, IdentType::Var(ck.vars.local_var_id(var_id)));
 }

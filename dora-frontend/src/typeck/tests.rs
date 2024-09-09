@@ -4374,3 +4374,18 @@ fn pattern_class_private_ctor() {
         ErrorMessage::ClassConstructorNotAccessible("n::Foo".into()),
     );
 }
+
+#[test]
+fn pattern_duplicate_binding() {
+    err(
+        "
+        struct Foo(a: Int64, b: String)
+        fn f(x: Foo): Int64 {
+            let Foo(a, a) = x;
+            a
+        }
+    ",
+        (4, 24),
+        ErrorMessage::PatternDuplicateBinding,
+    );
+}
