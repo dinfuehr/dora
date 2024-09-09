@@ -380,12 +380,7 @@ pub(super) fn check_expr_match(
         ck.symtable.pop_level();
     }
 
-    used_variants.toggle_range(..);
-
-    if used_variants.count_ones(..) != 0 {
-        let msg = ErrorMessage::MatchUncoveredVariant;
-        ck.sa.report(ck.file_id, node.expr.span(), msg);
-    }
+    check_coverage(ck, node, expr_type);
 
     ck.analysis.set_ty(node.id, result_type.clone());
 
@@ -446,18 +441,7 @@ fn check_expr_match_pattern(
     used_variants: &mut FixedBitSet,
 ) -> HashMap<Name, SourceType> {
     match pattern {
-        ast::Pattern::Underscore(..) => {
-            let mut negated_used_variants = used_variants.clone();
-            negated_used_variants.toggle_range(..);
-
-            if negated_used_variants.count_ones(..) == 0 {
-                let msg = ErrorMessage::MatchUnreachablePattern;
-                ck.sa.report(ck.file_id, case.span, msg);
-            }
-
-            used_variants.insert_range(..);
-            HashMap::new()
-        }
+        ast::Pattern::Underscore(..) => HashMap::new(),
 
         ast::Pattern::LitBool(..) => unreachable!(),
 
@@ -536,14 +520,8 @@ fn check_expr_match_pattern_enum_variant(
     expr_type_params: SourceTypeArray,
     case: &ast::MatchCaseType,
     pattern: &ast::Pattern,
-    used_variants: &mut FixedBitSet,
+    _used_variants: &mut FixedBitSet,
 ) -> HashMap<Name, SourceType> {
-    if used_variants.contains(variant_idx as usize) {
-        let msg = ErrorMessage::MatchUnreachablePattern;
-        ck.sa.report(ck.file_id, case.span, msg);
-    }
-
-    used_variants.insert(variant_idx as usize);
     ck.analysis.map_idents.insert(
         pattern.id(),
         IdentType::EnumVariant(enum_id, expr_type_params.clone(), variant_idx),
@@ -613,6 +591,104 @@ fn check_expr_match_pattern_enum_variant(
     }
 
     used_idents
+}
+
+#[allow(unused)]
+fn check_coverage(ck: &mut TypeCheck, node: &ast::ExprMatchType, expr_type: SourceType) {
+    if !expr_type.is_enum() {
+        ck.sa
+            .report(ck.file_id, node.expr.span(), ErrorMessage::EnumExpected);
+        return;
+    }
+
+    let enum_id = expr_type.enum_id().expect("enum expected");
+    let enum_type_params = expr_type.type_params();
+
+    let enum_ = ck.sa.enum_(enum_id);
+    let enum_variants = enum_.variants().len();
+
+    let mut used_variants = FixedBitSet::with_capacity(enum_variants);
+
+    for case in &node.cases {
+        for pattern in &case.patterns {
+            match pattern.as_ref() {
+                ast::Pattern::Underscore(..) => {
+                    let mut negated_used_variants = used_variants.clone();
+                    negated_used_variants.toggle_range(..);
+
+                    if negated_used_variants.count_ones(..) == 0 {
+                        let msg = ErrorMessage::MatchUnreachablePattern;
+                        ck.sa.report(ck.file_id, case.span, msg);
+                    }
+
+                    used_variants.insert_range(..);
+                }
+
+                ast::Pattern::LitBool(..) | ast::Pattern::Tuple(..) => unreachable!(),
+
+                ast::Pattern::Ident(ref ident) => {
+                    let sym = read_ident(ck, &ident.name);
+
+                    match sym {
+                        Ok(SymbolKind::EnumVariant(pattern_enum_id, variant_idx)) => {
+                            if pattern_enum_id == enum_id {
+                                if used_variants.contains(variant_idx as usize) {
+                                    let msg = ErrorMessage::MatchUnreachablePattern;
+                                    ck.sa.report(ck.file_id, case.span, msg);
+                                }
+
+                                used_variants.insert(variant_idx as usize);
+                            } else {
+                                let msg = ErrorMessage::EnumVariantExpected;
+                                ck.sa.report(ck.file_id, ident.span, msg);
+                            }
+                        }
+
+                        Ok(_) => {
+                            let msg = ErrorMessage::EnumVariantExpected;
+                            ck.sa.report(ck.file_id, ident.span, msg);
+                        }
+
+                        Err(()) => {}
+                    }
+                }
+
+                ast::Pattern::ClassOrStructOrEnum(ref ident) => {
+                    let sym = read_path(ck, &ident.path);
+
+                    match sym {
+                        Ok(SymbolKind::EnumVariant(pattern_enum_id, variant_idx)) => {
+                            if pattern_enum_id == enum_id {
+                                if used_variants.contains(variant_idx as usize) {
+                                    let msg = ErrorMessage::MatchUnreachablePattern;
+                                    ck.sa.report(ck.file_id, case.span, msg);
+                                }
+
+                                used_variants.insert(variant_idx as usize);
+                            } else {
+                                let msg = ErrorMessage::EnumVariantExpected;
+                                ck.sa.report(ck.file_id, ident.span, msg);
+                            }
+                        }
+
+                        Ok(_) => {
+                            let msg = ErrorMessage::EnumVariantExpected;
+                            ck.sa.report(ck.file_id, ident.path.span, msg);
+                        }
+
+                        Err(()) => {}
+                    }
+                }
+            }
+        }
+    }
+
+    used_variants.toggle_range(..);
+
+    if used_variants.count_ones(..) != 0 {
+        let msg = ErrorMessage::MatchUncoveredVariant;
+        ck.sa.report(ck.file_id, node.expr.span(), msg);
+    }
 }
 
 pub(super) fn class_or_struct_or_enum_params(p: &ast::Pattern) -> Option<&Vec<Arc<ast::Pattern>>> {
