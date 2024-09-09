@@ -185,6 +185,9 @@ fn check_pattern_enum(
         if given_params != expected_params {
             let msg = ErrorMessage::PatternWrongNumberOfParams(given_params, expected_params);
             ck.sa.report(ck.file_id, pattern.span(), msg);
+        } else if params.is_some() && given_params == 0 {
+            let msg = ErrorMessage::PatternNoParens;
+            ck.sa.report(ck.file_id, pattern.span(), msg);
         }
 
         if let Some(ref params) = params {

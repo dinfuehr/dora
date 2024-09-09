@@ -46,7 +46,7 @@ pub enum ErrorMessage {
     EnumArgsIncompatible(String, String, Vec<String>, Vec<String>),
     StructArgsIncompatible(String, Vec<String>, Vec<String>),
     EnumArgsNoParens(String, String),
-    MatchPatternNoParens,
+    PatternNoParens,
     PatternWrongNumberOfParams(usize, usize),
     EnumExpected,
     EnumMismatch(String, String),
@@ -164,7 +164,6 @@ pub enum ErrorMessage {
     NameOfStaticMethodExpected,
     IfBranchTypesIncompatible(String, String),
     MatchBranchTypesIncompatible(String, String),
-    VarAlreadyInPattern,
     NameExpected,
     IndexExpected,
     IllegalTupleIndex(u64, String),
@@ -307,14 +306,13 @@ impl ErrorMessage {
             ErrorMessage::EnumArgsNoParens(ref name, ref variant) => {
                 format!("{}::{} needs to be used without parens.", name, variant)
             }
-            ErrorMessage::MatchPatternNoParens => "pattern should be used without parens.".into(),
+            ErrorMessage::PatternNoParens => "pattern should be used without parens.".into(),
             ErrorMessage::PatternWrongNumberOfParams(given_params, expected_params) => {
                 format!(
                     "pattern expects {} params but got {}.",
                     given_params, expected_params
                 )
             }
-            ErrorMessage::VarAlreadyInPattern => "var is already used in pattern.".into(),
             ErrorMessage::EnumExpected => format!("enum expected."),
             ErrorMessage::EnumMismatch(ref value, ref pattern) => {
                 format!("value of type {} but pattern of type {}.", value, pattern)

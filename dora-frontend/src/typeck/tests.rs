@@ -1846,7 +1846,7 @@ fn test_enum_match_with_parens() {
         }
     ",
         (5, 17),
-        ErrorMessage::MatchPatternNoParens,
+        ErrorMessage::PatternNoParens,
     );
 }
 
@@ -1918,7 +1918,7 @@ fn test_enum_match_params() {
         }
     ",
         (5, 26),
-        ErrorMessage::VarAlreadyInPattern,
+        ErrorMessage::PatternDuplicateBinding,
     );
 }
 

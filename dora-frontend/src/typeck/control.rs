@@ -1,4 +1,3 @@
-use std::collections::HashMap;
 use std::sync::Arc;
 
 use dora_parser::ast;
@@ -6,11 +5,10 @@ use fixedbitset::FixedBitSet;
 
 use crate::error::msg::ErrorMessage;
 use crate::expr_always_returns;
-use crate::interner::Name;
-use crate::sema::{find_impl, EnumDefinitionId, FctDefinitionId, ForTypeInfo, IdentType};
+use crate::sema::{find_impl, FctDefinitionId, ForTypeInfo};
 use crate::sym::SymbolKind;
-use crate::typeck::{add_local, check_expr, check_pattern, read_ident, read_path, TypeCheck};
-use crate::{replace_type, specialize_type, AliasReplacement, SourceType, SourceTypeArray};
+use crate::typeck::{check_expr, check_pattern, read_ident, read_path, TypeCheck};
+use crate::{specialize_type, SourceType};
 
 pub(super) fn check_expr_while(
     ck: &mut TypeCheck,
@@ -350,23 +348,14 @@ pub(super) fn check_expr_match(
     let expr_type = check_expr(ck, &node.expr, SourceType::Any);
     let mut result_type = SourceType::Error;
 
-    if !expr_type.is_enum() {
-        ck.sa
-            .report(ck.file_id, node.span, ErrorMessage::EnumExpected);
-    }
-
-    let expr_enum_id = expr_type.enum_id();
-    let expr_type_params = expr_type.type_params();
-
     for case in &node.cases {
         ck.symtable.push_level();
         check_expr_match_case(
             ck,
             case,
-            expr_enum_id,
-            expr_type_params.clone(),
-            &mut result_type,
+            expr_type.clone(),
             expected_ty.clone(),
+            &mut result_type,
         );
         ck.symtable.pop_level();
     }
@@ -381,16 +370,14 @@ pub(super) fn check_expr_match(
 fn check_expr_match_case(
     ck: &mut TypeCheck,
     case: &ast::MatchCaseType,
-    expr_enum_id: Option<EnumDefinitionId>,
-    expr_type_params: SourceTypeArray,
-    result_type: &mut SourceType,
+    expr_ty: SourceType,
     expected_ty: SourceType,
+    result_type: &mut SourceType,
 ) {
     let mut has_arguments = false;
 
     for pattern in &case.patterns {
-        let arguments =
-            check_expr_match_pattern(ck, expr_enum_id, expr_type_params.clone(), case, pattern);
+        let arguments = check_pattern(ck, pattern.as_ref(), expr_ty.clone());
 
         if !arguments.is_empty() {
             has_arguments = true;
@@ -414,163 +401,6 @@ fn check_expr_match_case(
         let msg = ErrorMessage::MatchBranchTypesIncompatible(result_type_name, case_ty_name);
         ck.sa.report(ck.file_id, case.value.span(), msg);
     }
-}
-
-fn check_expr_match_pattern(
-    ck: &mut TypeCheck,
-    expr_enum_id: Option<EnumDefinitionId>,
-    expr_type_params: SourceTypeArray,
-    case: &ast::MatchCaseType,
-    pattern: &ast::Pattern,
-) -> HashMap<Name, SourceType> {
-    match pattern {
-        ast::Pattern::Underscore(..) => HashMap::new(),
-
-        ast::Pattern::LitBool(..) => unreachable!(),
-
-        ast::Pattern::Tuple(..) => unimplemented!(),
-
-        ast::Pattern::Ident(ref ident) => {
-            let sym = read_ident(ck, &ident.name);
-
-            match sym {
-                Ok(SymbolKind::EnumVariant(enum_id, variant_idx)) => {
-                    if Some(enum_id) == expr_enum_id {
-                        check_expr_match_pattern_enum_variant(
-                            ck,
-                            enum_id,
-                            variant_idx,
-                            expr_type_params,
-                            case,
-                            pattern,
-                        )
-                    } else {
-                        let msg = ErrorMessage::EnumVariantExpected;
-                        ck.sa.report(ck.file_id, ident.span, msg);
-                        HashMap::new()
-                    }
-                }
-
-                Ok(_) => {
-                    let msg = ErrorMessage::EnumVariantExpected;
-                    ck.sa.report(ck.file_id, ident.span, msg);
-                    HashMap::new()
-                }
-
-                Err(()) => HashMap::new(),
-            }
-        }
-
-        ast::Pattern::ClassOrStructOrEnum(ref ident) => {
-            let sym = read_path(ck, &ident.path);
-
-            match sym {
-                Ok(SymbolKind::EnumVariant(enum_id, variant_idx)) => {
-                    if Some(enum_id) == expr_enum_id {
-                        check_expr_match_pattern_enum_variant(
-                            ck,
-                            enum_id,
-                            variant_idx,
-                            expr_type_params,
-                            case,
-                            pattern,
-                        )
-                    } else {
-                        let msg = ErrorMessage::EnumVariantExpected;
-                        ck.sa.report(ck.file_id, ident.path.span, msg);
-                        HashMap::new()
-                    }
-                }
-
-                Ok(_) => {
-                    let msg = ErrorMessage::EnumVariantExpected;
-                    ck.sa.report(ck.file_id, ident.path.span, msg);
-                    HashMap::new()
-                }
-
-                Err(()) => HashMap::new(),
-            }
-        }
-    }
-}
-
-fn check_expr_match_pattern_enum_variant(
-    ck: &mut TypeCheck,
-    enum_id: EnumDefinitionId,
-    variant_idx: u32,
-    expr_type_params: SourceTypeArray,
-    case: &ast::MatchCaseType,
-    pattern: &ast::Pattern,
-) -> HashMap<Name, SourceType> {
-    ck.analysis.map_idents.insert(
-        pattern.id(),
-        IdentType::EnumVariant(enum_id, expr_type_params.clone(), variant_idx),
-    );
-
-    let enum_ = ck.sa.enum_(enum_id);
-    let variant = &enum_.variants()[variant_idx as usize];
-
-    let params = class_or_struct_or_enum_params(pattern);
-    let given_params = params.map(|x| x.len()).unwrap_or(0);
-
-    if given_params == 0 && params.is_some() {
-        let msg = ErrorMessage::MatchPatternNoParens;
-        ck.sa.report(ck.file_id, case.span, msg);
-    }
-
-    let expected_params = variant.types().len();
-
-    if given_params != expected_params {
-        let msg = ErrorMessage::PatternWrongNumberOfParams(given_params, expected_params);
-        ck.sa.report(ck.file_id, case.span, msg);
-    }
-
-    let mut used_idents: HashMap<Name, SourceType> = HashMap::new();
-
-    if let Some(params) = params {
-        for (idx, param) in params.iter().enumerate() {
-            match param.as_ref() {
-                ast::Pattern::Underscore(..) => {
-                    // Do nothing.
-                }
-
-                ast::Pattern::LitBool(..) => unreachable!(),
-
-                ast::Pattern::Ident(ref ident) => {
-                    let ty = if idx < variant.types().len() {
-                        variant.types()[idx].clone()
-                    } else {
-                        SourceType::Error
-                    };
-
-                    let ty = replace_type(
-                        ck.sa,
-                        ty,
-                        Some(&expr_type_params),
-                        None,
-                        AliasReplacement::None,
-                    );
-
-                    let iname = ck.sa.interner.intern(&ident.name.name_as_string);
-
-                    if used_idents.insert(iname, ty.clone()).is_some() {
-                        let msg = ErrorMessage::VarAlreadyInPattern;
-                        ck.sa.report(ck.file_id, ident.span, msg);
-                    }
-
-                    let var_id = ck.vars.add_var(iname, ty, ident.mutable);
-                    add_local(ck.sa, ck.symtable, ck.vars, var_id, ck.file_id, ident.span);
-                    ck.analysis
-                        .map_idents
-                        .insert(ident.id, IdentType::Var(ck.vars.local_var_id(var_id)));
-                }
-
-                ast::Pattern::ClassOrStructOrEnum(..) | ast::Pattern::Tuple(..) => unreachable!(),
-            }
-        }
-    }
-
-    used_idents
 }
 
 #[allow(unused)]
