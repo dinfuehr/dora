@@ -358,14 +358,6 @@ pub(super) fn check_expr_match(
     let expr_enum_id = expr_type.enum_id();
     let expr_type_params = expr_type.type_params();
 
-    let enum_variants = if let Some(expr_enum_id) = expr_enum_id {
-        ck.sa.enum_(expr_enum_id).variants().len()
-    } else {
-        0
-    };
-
-    let mut used_variants = FixedBitSet::with_capacity(enum_variants);
-
     for case in &node.cases {
         ck.symtable.push_level();
         check_expr_match_case(
@@ -373,7 +365,6 @@ pub(super) fn check_expr_match(
             case,
             expr_enum_id,
             expr_type_params.clone(),
-            &mut used_variants,
             &mut result_type,
             expected_ty.clone(),
         );
@@ -392,21 +383,14 @@ fn check_expr_match_case(
     case: &ast::MatchCaseType,
     expr_enum_id: Option<EnumDefinitionId>,
     expr_type_params: SourceTypeArray,
-    used_variants: &mut FixedBitSet,
     result_type: &mut SourceType,
     expected_ty: SourceType,
 ) {
     let mut has_arguments = false;
 
     for pattern in &case.patterns {
-        let arguments = check_expr_match_pattern(
-            ck,
-            expr_enum_id,
-            expr_type_params.clone(),
-            case,
-            pattern,
-            used_variants,
-        );
+        let arguments =
+            check_expr_match_pattern(ck, expr_enum_id, expr_type_params.clone(), case, pattern);
 
         if !arguments.is_empty() {
             has_arguments = true;
@@ -438,7 +422,6 @@ fn check_expr_match_pattern(
     expr_type_params: SourceTypeArray,
     case: &ast::MatchCaseType,
     pattern: &ast::Pattern,
-    used_variants: &mut FixedBitSet,
 ) -> HashMap<Name, SourceType> {
     match pattern {
         ast::Pattern::Underscore(..) => HashMap::new(),
@@ -460,7 +443,6 @@ fn check_expr_match_pattern(
                             expr_type_params,
                             case,
                             pattern,
-                            used_variants,
                         )
                     } else {
                         let msg = ErrorMessage::EnumVariantExpected;
@@ -492,7 +474,6 @@ fn check_expr_match_pattern(
                             expr_type_params,
                             case,
                             pattern,
-                            used_variants,
                         )
                     } else {
                         let msg = ErrorMessage::EnumVariantExpected;
@@ -520,7 +501,6 @@ fn check_expr_match_pattern_enum_variant(
     expr_type_params: SourceTypeArray,
     case: &ast::MatchCaseType,
     pattern: &ast::Pattern,
-    _used_variants: &mut FixedBitSet,
 ) -> HashMap<Name, SourceType> {
     ck.analysis.map_idents.insert(
         pattern.id(),
