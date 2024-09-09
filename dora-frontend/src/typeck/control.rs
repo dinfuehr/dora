@@ -7,7 +7,9 @@ use crate::error::msg::ErrorMessage;
 use crate::expr_always_returns;
 use crate::sema::{find_impl, FctDefinitionId, ForTypeInfo};
 use crate::sym::SymbolKind;
-use crate::typeck::{check_expr, check_pattern, read_ident, read_path, TypeCheck};
+use crate::typeck::{
+    check_expr, check_pattern, check_pattern_alt, read_ident, read_path, TypeCheck,
+};
 use crate::{specialize_type, SourceType};
 
 pub(super) fn check_expr_while(
@@ -374,19 +376,17 @@ fn check_expr_match_case(
     expected_ty: SourceType,
     result_type: &mut SourceType,
 ) {
-    let mut has_arguments = false;
+    if let Some(first) = case.patterns.first() {
+        let bindings = check_pattern(ck, first.as_ref(), expr_ty.clone());
 
-    for pattern in &case.patterns {
-        let arguments = check_pattern(ck, pattern.as_ref(), expr_ty.clone());
-
-        if !arguments.is_empty() {
-            has_arguments = true;
+        for pattern in &case.patterns[1..] {
+            check_pattern_alt(ck, pattern.as_ref(), expr_ty.clone(), &bindings);
         }
-    }
 
-    if has_arguments && case.patterns.len() > 1 {
-        let msg = ErrorMessage::MatchMultiplePatternsWithParamsNotSupported;
-        ck.sa.report(ck.file_id, case.span, msg);
+        if !bindings.is_empty() && case.patterns.len() > 1 {
+            let msg = ErrorMessage::MatchMultiplePatternsWithParamsNotSupported;
+            ck.sa.report(ck.file_id, case.span, msg);
+        }
     }
 
     let case_ty = check_expr(ck, &case.value, expected_ty.clone());
