@@ -1,0 +1,13 @@
+enum Foo { A(Int64), B, C, D }
+
+fn main() {
+    assert(!f((Foo::A(1), Foo::D)));
+    assert(f((Foo::B, Foo::D)));
+    assert(!f((Foo::B, Foo::B)));
+    assert(f((Foo::C, Foo::D)));
+    assert(!f((Foo::C, Foo::C)));
+}
+
+fn f(x: (Foo, Foo)): Bool {
+    x is (Foo::B | Foo::C, Foo::D)
+}

@@ -143,7 +143,7 @@ fn check_pattern_inner(
             current: ctxt.current.clone(),
         };
 
-        check_pattern_alt_inner(ck, &mut alt_ctxt, alt.as_ref(), ty.clone());
+        check_pattern_alt(ck, &mut alt_ctxt, alt.as_ref(), ty.clone());
 
         if alt_ctxt.current.map.len() > ctxt.current.map.len() {
             has_bindings = true;
@@ -160,7 +160,7 @@ fn check_pattern_inner(
     }
 }
 
-fn check_pattern_alt_inner(
+fn check_pattern_alt(
     ck: &mut TypeCheck,
     ctxt: &mut Context,
     pattern: &ast::PatternAlt,
