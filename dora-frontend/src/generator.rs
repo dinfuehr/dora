@@ -450,23 +450,38 @@ impl<'a> AstBytecodeGen<'a> {
         value: Register,
         ty: SourceType,
     ) {
-        assert_eq!(pattern.alts.len(), 1);
-        self.destruct_pattern_alt_inner(pck, pattern.alts[0].as_ref(), value, ty);
+        assert!(pattern.alts.len() > 0);
+
+        if pattern.alts.len() == 1 {
+            self.destruct_pattern_alt(pck, pattern.alts[0].as_ref(), value, ty);
+        } else {
+            let mut alt_labels = Vec::with_capacity(pattern.alts.len() + 1);
+            let match_lbl = self.builder.create_label();
+
+            for _ in &pattern.alts {
+                alt_labels.push(self.builder.create_label());
+            }
+
+            alt_labels.push(pck.ensure_label(&mut self.builder));
+
+            for (idx, alt) in pattern.alts.iter().enumerate() {
+                let current_lbl = alt_labels[idx];
+                self.builder.bind_label(current_lbl);
+
+                let next_lbl = alt_labels[idx + 1];
+
+                let mut alt_pck = PatternCheckContext {
+                    exit: Some(next_lbl),
+                };
+                self.destruct_pattern_alt(&mut alt_pck, alt.as_ref(), value, ty.clone());
+                self.builder.emit_jump(match_lbl);
+            }
+
+            self.builder.bind_label(match_lbl);
+        }
     }
 
     fn destruct_pattern_alt(
-        &mut self,
-        pattern: &ast::PatternAlt,
-        value: Register,
-        ty: SourceType,
-        exit: Option<Label>,
-    ) -> Option<Label> {
-        let mut pck = PatternCheckContext { exit };
-        self.destruct_pattern_alt_inner(&mut pck, pattern, value, ty);
-        pck.exit
-    }
-
-    fn destruct_pattern_alt_inner(
         &mut self,
         pck: &mut PatternCheckContext,
         pattern: &ast::PatternAlt,

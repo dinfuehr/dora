@@ -248,37 +248,27 @@ pub(super) fn gen_match(
 
     let expr_reg = gen_expr(g, &node.expr, DataDest::Alloc);
 
-    let mut pattern_labels = Vec::with_capacity(node.cases.len());
+    let mut case_labels = Vec::with_capacity(node.cases.len());
 
-    for case in &node.cases {
-        let pattern = case.pattern.as_ref();
-
-        for _alt in &pattern.alts {
-            pattern_labels.push(g.builder.create_label());
-        }
+    for _case in &node.cases {
+        case_labels.push(g.builder.create_label());
     }
 
-    pattern_labels.push(fallthrough_lbl);
+    case_labels.push(fallthrough_lbl);
 
-    let mut idx = 0;
     g.push_scope();
 
-    for case in &node.cases {
-        let case_body_lbl = g.builder.create_label();
+    for (idx, case) in node.cases.iter().enumerate() {
+        let case_lbl = case_labels[idx];
+        g.builder.bind_label(case_lbl);
+
+        let next_case_lbl = case_labels[idx + 1];
+
         let pattern = case.pattern.as_ref();
-
-        for alt in &pattern.alts {
-            g.builder.bind_label(pattern_labels[idx]);
-            let next_pattern = pattern_labels[idx + 1];
-            g.setup_pattern_alt(alt);
-            g.destruct_pattern_alt(alt, expr_reg, expr_ty.clone(), Some(next_pattern));
-            g.builder.emit_jump(case_body_lbl);
-
-            idx += 1;
-        }
+        g.setup_pattern_vars(pattern);
+        g.destruct_pattern(pattern, expr_reg, expr_ty.clone(), Some(next_case_lbl));
 
         g.push_scope();
-        g.builder.bind_label(case_body_lbl);
 
         gen_expr(g, &case.value, DataDest::Reg(dest));
 
