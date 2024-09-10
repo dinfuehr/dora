@@ -4411,4 +4411,18 @@ fn pattern_bindings_in_alternatives() {
         (5, 32),
         ErrorMessage::PatternBindingWrongType("Float32".into(), "Int64".into()),
     );
+
+    err(
+        "
+    enum Foo { A(Int64), B(Int64, Float32), C }
+    fn f(x: Foo): Int64 {
+        match x {
+            Foo::A(x) | Foo::B(x, y) => x,
+            Foo::C => 1
+        }
+    }
+",
+        (5, 13),
+        ErrorMessage::PatternBindingNotDefinedInAllAlternatives("y".into()),
+    );
 }

@@ -119,6 +119,7 @@ fn check_pattern_inner(
         check_pattern_alt(ck, ctxt, pattern.alts[0].as_ref(), ty.clone());
     } else {
         let mut bindings = Bindings::new();
+        let mut alt_bindings: Vec<HashSet<Name>> = Vec::with_capacity(pattern.alts.len());
 
         for alt in &pattern.alts {
             let mut alt_ctxt = Context {
@@ -128,6 +129,30 @@ fn check_pattern_inner(
 
             check_pattern_alt(ck, &mut alt_ctxt, alt.as_ref(), ty.clone());
             bindings = alt_ctxt.alt;
+
+            let new_bindings = alt_ctxt
+                .current
+                .difference(&ctxt.current)
+                .map(|n| *n)
+                .collect::<HashSet<Name>>();
+            alt_bindings.push(new_bindings);
+        }
+
+        let mut all = alt_bindings.pop().expect("no element");
+        let mut intersect = all.clone();
+
+        for alt in alt_bindings {
+            all = all.union(&alt).map(|n| *n).collect::<HashSet<Name>>();
+            intersect = intersect
+                .intersection(&alt)
+                .map(|n| *n)
+                .collect::<HashSet<Name>>();
+        }
+
+        for &name in all.difference(&intersect) {
+            let name = ck.sa.interner.str(name).to_string();
+            let msg = ErrorMessage::PatternBindingNotDefinedInAllAlternatives(name);
+            ck.sa.report(ck.file_id, pattern.span, msg);
         }
 
         for (name, data) in bindings.map {

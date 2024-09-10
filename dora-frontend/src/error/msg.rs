@@ -187,6 +187,7 @@ pub enum ErrorMessage {
     PatternTypeMismatch(String),
     PatternDuplicateBinding,
     PatternBindingWrongType(String, String),
+    PatternBindingNotDefinedInAllAlternatives(String),
 }
 
 impl ErrorMessage {
@@ -642,6 +643,9 @@ impl ErrorMessage {
             ErrorMessage::PatternDuplicateBinding => format!("duplicate binding in pattern."),
             ErrorMessage::PatternBindingWrongType(ref ty, ref expected_ty) => {
                 format!("binding has type {} but type {} expected.", ty, expected_ty)
+            }
+            ErrorMessage::PatternBindingNotDefinedInAllAlternatives(ref name) => {
+                format!("binding `{}` not defined in all bindings", name)
             }
         }
     }
