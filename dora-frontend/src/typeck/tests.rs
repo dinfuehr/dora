@@ -1818,19 +1818,15 @@ fn test_enum_match_multiple_patterns() {
         }
     ");
 
-    err(
-        "
+    ok("
         enum Foo { A(Int64), B(Int64), C }
         fn f(x: Foo): Int64 {
             match x {
-                Foo::A(x) | Foo::B(x) => 0,
+                Foo::A(x) | Foo::B(x) => x,
                 Foo::C => 1
             }
         }
-    ",
-        (5, 17),
-        ErrorMessage::PatternAltWithBindingUnsupported,
-    );
+    ");
 }
 
 #[test]

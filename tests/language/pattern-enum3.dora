@@ -1,0 +1,13 @@
+enum Foo { A(Int64), B(Int64), C }
+
+fn main() {
+    assert(f(Foo::A(10)) == 10);
+    assert(f(Foo::B(17)) == 17);
+}
+
+fn f(x: Foo): Int64 {
+    match x {
+        Foo::A(x) | Foo::B(x) => x,
+        Foo::C => 1
+    }
+}
