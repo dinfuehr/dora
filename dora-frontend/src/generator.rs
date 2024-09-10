@@ -119,7 +119,7 @@ impl<'a> AstBytecodeGen<'a> {
         self.push_scope();
         self.create_params(ast);
         self.enter_function_context();
-        self.initialize_params(ast);
+        self.store_params_in_context(ast);
         self.emit_function_body(ast);
         self.leave_function_context();
         self.pop_scope();
@@ -145,9 +145,8 @@ impl<'a> AstBytecodeGen<'a> {
 
             let bty = bty_from_ty(var_ty.clone());
             params.push(bty);
-            let register_bty = register_bty_from_ty(var_ty);
-            let reg = self.alloc_var(register_bty);
-            self.var_registers.insert(SELF_VAR_ID, reg);
+
+            self.allocate_register_for_var(SELF_VAR_ID);
         }
 
         for param in &ast.params {
@@ -155,16 +154,15 @@ impl<'a> AstBytecodeGen<'a> {
             let ty = self.var_ty(var_id);
 
             let bty = bty_from_ty(ty.clone());
-            let register_bty = register_bty_from_ty(ty);
             params.push(bty);
-            let reg = self.alloc_var(register_bty);
-            self.var_registers.insert(var_id, reg);
+
+            self.allocate_register_for_var(var_id);
         }
 
         self.builder.set_params(params);
     }
 
-    fn initialize_params(&mut self, ast: &ast::Function) {
+    fn store_params_in_context(&mut self, ast: &ast::Function) {
         let next_register_idx = if self.analysis.has_self() {
             let var_self = self.analysis.vars.get_self();
             let reg = Register(0);
@@ -175,7 +173,7 @@ impl<'a> AstBytecodeGen<'a> {
                 }
 
                 VarLocation::Stack => {
-                    self.var_registers.insert(SELF_VAR_ID, reg);
+                    // Nothing to do.
                 }
             }
 
@@ -195,7 +193,7 @@ impl<'a> AstBytecodeGen<'a> {
                 }
 
                 VarLocation::Stack => {
-                    self.var_registers.insert(var_id, reg);
+                    // Nothing to do.
                 }
             }
         }
@@ -355,9 +353,10 @@ impl<'a> AstBytecodeGen<'a> {
     }
 
     fn setup_pattern_vars(&mut self, pattern: &ast::Pattern) {
-        for alt in &pattern.alts {
-            self.setup_pattern_alt(alt.as_ref());
-        }
+        // All alternative patterns define the same vars, so just allocate
+        // registers for the first subpattern.
+        let alt = pattern.alts.first().expect("missing alt");
+        self.setup_pattern_alt(alt.as_ref());
     }
 
     fn setup_pattern_alt(&mut self, pattern: &ast::PatternAlt) {
@@ -401,18 +400,22 @@ impl<'a> AstBytecodeGen<'a> {
     fn setup_pattern_var(&mut self, var_id: VarId) {
         let var = self.analysis.vars.get_var(var_id);
 
-        let bty: BytecodeType = register_bty_from_ty(var.ty.clone());
-
         match var.location {
             VarLocation::Context(..) => {
                 // Nothing to do here.
             }
 
             VarLocation::Stack => {
-                let var_reg = self.alloc_var(bty);
-                self.var_registers.insert(var_id, var_reg);
+                self.allocate_register_for_var(var_id);
             }
         }
+    }
+
+    fn allocate_register_for_var(&mut self, var_id: VarId) {
+        let var = self.analysis.vars.get_var(var_id);
+        let bty: BytecodeType = register_bty_from_ty(var.ty.clone());
+        let reg = self.alloc_var(bty);
+        self.set_var_reg(var_id, reg);
     }
 
     fn destruct_pattern_or_fail(
@@ -2848,6 +2851,11 @@ impl<'a> AstBytecodeGen<'a> {
             .var_registers
             .get(&var_id)
             .expect("no register for var found")
+    }
+
+    fn set_var_reg(&mut self, var_id: VarId, reg: Register) {
+        let old = self.var_registers.insert(var_id, reg);
+        assert!(old.is_none());
     }
 
     fn ensure_register(&mut self, dest: DataDest, ty: BytecodeType) -> Register {
