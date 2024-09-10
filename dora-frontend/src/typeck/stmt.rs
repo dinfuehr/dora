@@ -457,7 +457,10 @@ fn check_pattern_var(
         ck.sa.report(ck.file_id, pattern.span, msg);
     } else if let Some(data) = ctxt.alt.get(name) {
         if !data.ty.allows(ck.sa, ty.clone()) && !ty.is_error() {
-            unimplemented!()
+            let ty = ty.name(ck.sa);
+            let expected_ty = data.ty.name(ck.sa);
+            let msg = ErrorMessage::PatternBindingWrongType(ty, expected_ty);
+            ck.sa.report(ck.file_id, pattern.span, msg);
         }
 
         assert!(ctxt.current.insert(name));

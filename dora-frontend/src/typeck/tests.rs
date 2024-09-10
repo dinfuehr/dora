@@ -4385,3 +4385,30 @@ fn pattern_duplicate_binding() {
         ErrorMessage::PatternDuplicateBinding,
     );
 }
+
+#[test]
+fn pattern_bindings_in_alternatives() {
+    ok("
+        enum Foo { A(Int64), B(Int64, Int64), C }
+        fn f(x: Foo): Int64 {
+            match x {
+                Foo::A(x) | Foo::B(x, _) => x,
+                Foo::C => 1
+            }
+        }
+    ");
+
+    err(
+        "
+    enum Foo { A(Int64), B(Float32), C }
+    fn f(x: Foo): Int64 {
+        match x {
+            Foo::A(x) | Foo::B(x) => x,
+            Foo::C => 1
+        }
+    }
+",
+        (5, 32),
+        ErrorMessage::PatternBindingWrongType("Float32".into(), "Int64".into()),
+    );
+}

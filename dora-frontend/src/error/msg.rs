@@ -186,6 +186,7 @@ pub enum ErrorMessage {
     UnexpectedTypeBounds,
     PatternTypeMismatch(String),
     PatternDuplicateBinding,
+    PatternBindingWrongType(String, String),
 }
 
 impl ErrorMessage {
@@ -639,6 +640,9 @@ impl ErrorMessage {
                 format!("Pattern does not match type {}", ty)
             }
             ErrorMessage::PatternDuplicateBinding => format!("duplicate binding in pattern."),
+            ErrorMessage::PatternBindingWrongType(ref ty, ref expected_ty) => {
+                format!("binding has type {} but type {} expected.", ty, expected_ty)
+            }
         }
     }
 }
