@@ -871,11 +871,7 @@ impl SsaGen {
 
         assert(tuple_ty.isTuple());
 
-        let subtypes = match tuple_ty {
-            BytecodeType::Tuple(subtypes) => subtypes,
-            _ => unreachable[Array[BytecodeType]](),
-        };
-
+        let BytecodeType::Tuple(subtypes) = tuple_ty;
         let tupleLayout = self.computeTupleLayout(subtypes);
         let offset = tupleLayout.fields(subtype_idx.toInt64()).offset;
 
@@ -1993,10 +1989,7 @@ impl SsaGen {
     fn emitIntrinsicOptionIsSomeAndIsNone(intrinsic: Int32, dest: BytecodeRegister, args: Array[BytecodeRegister]) {
         assert(args.size() == 1);
         let ty = self.reg(args(0));
-        let (enum_id, type_params) = match ty {
-            BytecodeType::Enum(enum_id, type_params) => (enum_id, type_params),
-            _ => unreachable[(EnumId, Array[BytecodeType])](),
-        };
+        let BytecodeType::Enum(enum_id, type_params) = ty;
         let layout = self.computeEnumLayout(enum_id, type_params);
         let is_some = if intrinsic == opc::INTRINSIC_OPTION_IS_SOME {
             true
@@ -2353,11 +2346,7 @@ impl SsaGen {
     }
 
     fn loadGlobal(ty: BytecodeType, id: GlobalId): Inst {
-        if ty.isStruct() {
-            let (struct_id, type_params) = match ty {
-                BytecodeType::Struct(struct_id, type_params) => (struct_id, type_params),
-                _ => unreachable[(StructId, Array[BytecodeType])](),
-            };
+        if ty is BytecodeType::Struct(struct_id, type_params) {
             let layout = self.computeStructLayout(struct_id, type_params);
 
             let dest = graph::createAllocateStackInst(layout);
@@ -2367,11 +2356,7 @@ impl SsaGen {
             self.copyStruct(ty, dest, 0i32, src, 0i32, false);
             dest
 
-        } else if ty.isTuple() {
-            let subtypes = match ty {
-                BytecodeType::Tuple(subtypes) => subtypes,
-                _ => unreachable[Array[BytecodeType]](),
-            };
+        } else if ty is BytecodeType::Tuple(subtypes) {
             let layout = self.computeTupleLayout(subtypes);
 
             let dest = graph::createAllocateStackInst(layout);
@@ -2391,11 +2376,7 @@ impl SsaGen {
     }
 
     fn storeGlobal(ty: BytecodeType, id: GlobalId, value: Inst) {
-        if ty.isStruct() {
-            let (struct_id, type_params) = match ty {
-                BytecodeType::Struct(struct_id, type_params) => (struct_id, type_params),
-                _ => unreachable[(StructId, Array[BytecodeType])](),
-            };
+        if ty is BytecodeType::Struct(struct_id, type_params) {
             let layout = self.computeStructLayout(struct_id, type_params);
 
             let dest = graph::createGetGlobalAddressInst(id);
@@ -2403,10 +2384,7 @@ impl SsaGen {
             self.copyStruct(ty, dest, 0i32, value, 0i32, false);
 
         } else if ty.isTuple() {
-            let subtypes = match ty {
-                BytecodeType::Tuple(subtypes) => subtypes,
-                _ => unreachable[Array[BytecodeType]](),
-            };
+            let BytecodeType::Tuple(subtypes) = ty;
             let layout = self.computeTupleLayout(subtypes);
 
             let dest = graph::createGetGlobalAddressInst(id);
@@ -2421,11 +2399,7 @@ impl SsaGen {
     }
 
     fn loadField(ty: BytecodeType, src: Inst, srcOffset: Int32): Inst {
-        if ty.isStruct() {
-            let (struct_id, type_params) = match ty {
-                BytecodeType::Struct(struct_id, type_params) => (struct_id, type_params),
-                _ => unreachable[(StructId, Array[BytecodeType])](),
-            };
+        if ty is BytecodeType::Struct(struct_id, type_params) {
             let layout = self.computeStructLayout(struct_id, type_params);
 
             let dest = graph::createAllocateStackInst(layout);
@@ -2433,11 +2407,7 @@ impl SsaGen {
             self.copyStruct(ty, dest, 0i32, src, srcOffset, false);
             dest
 
-        } else if ty.isTuple() {
-            let subtypes = match ty {
-                BytecodeType::Tuple(subtypes) => subtypes,
-                _ => unreachable[Array[BytecodeType]](),
-            };
+        } else if ty is BytecodeType::Tuple(subtypes) {
             let layout = self.computeTupleLayout(subtypes);
 
             let dest = graph::createAllocateStackInst(layout);
@@ -2454,11 +2424,7 @@ impl SsaGen {
     }
 
     fn loadArray(ty: BytecodeType, arr: Inst, index: Inst): Inst {
-        if ty.isStruct() {
-            let (struct_id, type_params) = match ty {
-                BytecodeType::Struct(struct_id, type_params) => (struct_id, type_params),
-                _ => unreachable[(StructId, Array[BytecodeType])](),
-            };
+        if ty is BytecodeType::Struct(struct_id, type_params) {
             let layout = self.computeStructLayout(struct_id, type_params);
 
             let dest = graph::createAllocateStackInst(layout);
@@ -2470,12 +2436,7 @@ impl SsaGen {
             self.copyStruct(ty, dest, 0i32, src, 0i32, false);
             dest
 
-        } else if ty.isTuple() {
-            let subtypes = match ty {
-                BytecodeType::Tuple(subtypes) => subtypes,
-                _ => unreachable[Array[BytecodeType]](),
-            };
-
+        } else if ty is BytecodeType::Tuple(subtypes) {
             let layout = self.computeTupleLayout(subtypes);
             let dest = graph::createAllocateStackInst(layout);
             self.current().appendInst(dest);
@@ -2496,23 +2457,13 @@ impl SsaGen {
     }
 
     fn storeArray(ty: BytecodeType, arr: Inst, index: Inst, value: Inst) {
-        if ty.isStruct() {
-            let (struct_id, type_params) = match ty {
-                BytecodeType::Struct(struct_id, type_params) => (struct_id, type_params),
-                _ => unreachable[(StructId, Array[BytecodeType])](),
-            };
-
+        if ty is BytecodeType::Struct(struct_id, type_params) {
             let structLayout = self.computeStructLayout(struct_id, type_params);
             let dest = graph::createGetElementPtrInst(arr, index, structLayout.size.toInt64());
             self.current().appendInst(dest);
 
             self.storeArrayNested(ty, arr, dest, 0i32, value, 0i32);
-        } else if ty.isTuple() {
-            let subtypes = match ty {
-                BytecodeType::Tuple(subtypes) => subtypes,
-                _ => unreachable[Array[BytecodeType]](),
-            };
-
+        } else if ty is BytecodeType::Tuple(subtypes) {
             let tupleLayout = self.computeTupleLayout(subtypes);
             let dest = graph::createGetElementPtrInst(arr, index, tupleLayout.size.toInt64());
             self.current().appendInst(dest);
@@ -2530,23 +2481,13 @@ impl SsaGen {
     }
 
     fn storeArrayNested(ty: BytecodeType, array: Inst, dest: Inst, destOffset: Int32, src: Inst, srcOffset: Int32) {
-        if ty.isStruct() {
-            let (struct_id, type_params) = match ty {
-                BytecodeType::Struct(struct_id, type_params) => (struct_id, type_params),
-                _ => unreachable[(StructId, Array[BytecodeType])](),
-            };
-
+        if ty is BytecodeType::Struct(struct_id, type_params) {
             let structLayout = self.computeStructLayout(struct_id, type_params);
 
             for field in structLayout.fields {
                 self.storeArrayNested(field.ty, array, dest, destOffset + field.offset, src, srcOffset + field.offset);
             }
-        } else if ty.isTuple() {
-            let subtypes = match ty {
-                BytecodeType::Tuple(subtypes) => subtypes,
-                _ => unreachable[Array[BytecodeType]](),
-            };
-
+        } else if ty is BytecodeType::Tuple(subtypes) {
             let tupleLayout = self.computeTupleLayout(subtypes);
 
             for field in tupleLayout.fields {
@@ -2612,11 +2553,7 @@ impl SsaGen {
     }
 
     fn copyTuple(ty: BytecodeType, dest: Inst, destOffset: Int32, src: Inst, srcOffset: Int32, heap: Bool) {
-        let subtypes = match ty {
-            BytecodeType::Tuple(subtypes) => subtypes,
-            _ => unreachable[Array[BytecodeType]](),
-        };
-
+        let BytecodeType::Tuple(subtypes) = ty;
         let tupleLayout = self.computeTupleLayout(subtypes);
 
         for field in tupleLayout.fields {
@@ -2625,11 +2562,7 @@ impl SsaGen {
     }
 
     fn copyStruct(ty: BytecodeType, dest: Inst, destOffset: Int32, src: Inst, srcOffset: Int32, heap: Bool) {
-        let (struct_id, type_params) = match ty {
-            BytecodeType::Struct(struct_id, type_params) => (struct_id, type_params),
-            _ => unreachable[(StructId, Array[BytecodeType])](),
-        };
-
+        let BytecodeType::Struct(struct_id, type_params) = ty;
         let structLayout = self.computeStructLayout(struct_id, type_params);
 
         for field in structLayout.fields {
@@ -2772,16 +2705,12 @@ fn findBlockStarts(bc: BytecodeFunction): BitSet {
                 assert(starts.contains(target));
                 markBlockStart(next);
             },
-            BytecodeInstruction::JumpIfFalse(_opnd, distance) => {
+            BytecodeInstruction::JumpIfFalse(_opnd, distance)
+            | BytecodeInstruction::JumpIfTrue(_opnd, distance) => {
                 let target = start + distance.toInt64();
                 markBlockStart(next);
                 markBlockStart(target);
             }
-            BytecodeInstruction::JumpIfTrue(_opnd, distance) => {
-                let target = start + distance.toInt64();
-                markBlockStart(next);
-                markBlockStart(target);
-            },
             BytecodeInstruction::Jump(distance) => {
                 let target = start + distance.toInt64();
                 markBlockStart(next);
@@ -2809,14 +2738,10 @@ fn findSuccessorsForBlock(bc: BytecodeFunction, block: Int64, starts: BitSet): A
                 let target = inst.start - distance.toInt64();
                 return Array[Int64]::new(target);
             }
-            BytecodeInstruction::JumpIfFalse(_opnd, distance) => {
+            BytecodeInstruction::JumpIfFalse(_opnd, distance)
+            | BytecodeInstruction::JumpIfTrue(_opnd, distance) => {
                 let target = inst.start + distance.toInt64();
                 return Array[Int64]::new(target, next);
-            }
-            BytecodeInstruction::JumpIfTrue(_opnd, distance) => {
-                let target = inst.start + distance.toInt64();
-                return Array[Int64]::new(target, next);
-
             }
             BytecodeInstruction::Jump(distance) => {
                 let target = inst.start + distance.toInt64();
