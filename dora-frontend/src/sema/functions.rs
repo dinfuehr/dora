@@ -479,7 +479,6 @@ pub fn emit_as_bytecode_operation(intrinsic: Intrinsic) -> bool {
         | Intrinsic::StrGet
         | Intrinsic::BoolEq
         | Intrinsic::BoolNot
-        | Intrinsic::BoolToInt64
         | Intrinsic::UInt8Eq
         | Intrinsic::CharEq
         | Intrinsic::EnumEq

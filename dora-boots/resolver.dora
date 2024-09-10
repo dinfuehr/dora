@@ -36,8 +36,8 @@ fn processLiveRegisters[T: RegisterType](registers: RegisterTracker[T], predeces
     for (reg, inst) in registers.data {
         let instRegister = predecessor_registers.getRegister(inst);
 
-        let value = if instRegister.isSome() {
-            instRegister.getOrPanic().toLocation()
+        let value = if instRegister is Some(reg) {
+            reg.toLocation()
         } else {
             Location::fp(inst.getLocationData().getSpillSlot())
         };
@@ -66,8 +66,8 @@ fn processPhi[T: RegisterType](phi: Inst, predecessorEdge: Edge, predecessor_reg
     let valueRegister = predecessor_registers.getRegister(value);
 
     if valueRegister.isSome() || value.getLocationData().hasSpillSlot() {
-        let value = if valueRegister.isSome() {
-            valueRegister.getOrPanic().toLocation()
+        let value = if valueRegister is Some(reg) {
+            reg.toLocation()
         } else {
             Location::fp(value.getLocationData().getSpillSlot())
         };

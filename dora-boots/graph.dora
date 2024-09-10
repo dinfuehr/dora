@@ -151,10 +151,8 @@ impl Graph {
     }
 
     pub fn ensureConstInt64Inst(value: Int64): Inst {
-        let inst = self.constsByValInt64.get(value);
-
-        if inst.isSome() {
-            return inst.getOrPanic();
+        if self.constsByValInt64.get(value) is Some(inst) {
+            return inst;
         }
 
         let inst = createInt64Const(value);
@@ -166,10 +164,8 @@ impl Graph {
     }
 
     pub fn ensureConstInt32Inst(value: Int32): Inst {
-        let inst = self.constsByValInt32.get(value);
-
-        if inst.isSome() {
-            return inst.getOrPanic();
+        if self.constsByValInt32.get(value) is Some(inst) {
+            return inst;
         }
 
         let inst = createInt32Const(value);
@@ -181,10 +177,8 @@ impl Graph {
     }
 
     pub fn ensureConstUInt8Inst(value: UInt8): Inst {
-        let inst = self.constsByValUInt8.get(value);
-
-        if inst.isSome() {
-            return inst.getOrPanic();
+        if self.constsByValUInt8.get(value) is Some(inst) {
+            return inst;
         }
 
         let inst = createUInt8Const(value);
@@ -196,8 +190,8 @@ impl Graph {
     }
 
     pub fn ensureConstTrueInst(): Inst {
-        if self.constTrue.isSome() {
-            return self.constTrue.getOrPanic();
+        if self.constTrue is Some(inst) {
+            return inst;
         }
 
         let inst = createBoolConst(true);
@@ -207,8 +201,8 @@ impl Graph {
     }
 
     pub fn ensureConstFalseInst(): Inst {
-        if self.constFalse.isSome() {
-            return self.constFalse.getOrPanic();
+        if self.constFalse is Some(inst) {
+            return inst;
         }
 
         let inst = createBoolConst(false);
@@ -475,7 +469,7 @@ impl Block {
     }
 
     pub fn isLoopHeader(): Bool {
-        self.loopData.isSome() && self.loopData.getOrPanic().header === self
+        self.loopData is Some(loop) && loop.header === self
     }
 
     pub fn getLoopData(): Option[LoopData] {
@@ -1394,8 +1388,7 @@ impl Inst {
     }
 
     pub fn replaceAllUsesWith(replacement: Inst) {
-        while self.useListHead.isSome() {
-            let input = self.useListHead.getOrPanic();
+        while self.useListHead is Some(input) {
             input.usedBy.replaceInput(replacement, input.idx);
         }
     }
@@ -1416,8 +1409,7 @@ impl Inst {
         let data = Vec[Inst]::new();
         let mut current = self.useListHead;
 
-        while current.isSome() {
-            let cur = current.getOrPanic();
+        while current is Some(cur) {
             data.push(cur.usedBy);
             current = cur.nextUse;
         }
@@ -1440,9 +1432,7 @@ impl Inst {
         if sblock === oblock {
             let mut current = self.next;
 
-            while current.isSome() {
-                let currentInst = current.getOrPanic();
-
+            while current is Some(currentInst) {
                 if currentInst === other {
                     return true;
                 }
@@ -2273,8 +2263,7 @@ impl Iterator for UseIterator {
     type Item = Input;
 
     fn next(): Option[Input] {
-        if self.current.isSome() {
-            let input = self.current.getOrPanic();
+        if self.current is Some(input) {
             self.current = input.nextUse;
             Some[Input](input)
         } else {
@@ -2286,14 +2275,14 @@ impl Iterator for UseIterator {
 fn removeUse(input: Input) {
     let inst = input.value;
 
-    if input.previousUse.isSome() {
-        input.previousUse.getOrPanic().nextUse = input.nextUse;
+    if input.previousUse is Some(prev) {
+        prev.nextUse = input.nextUse;
     } else {
         inst.useListHead = input.nextUse;
     }
 
-    if input.nextUse.isSome() {
-        input.nextUse.getOrPanic().previousUse = input.previousUse;
+    if input.nextUse is Some(next) {
+        next.previousUse = input.previousUse;
     } else {
         inst.useListTail = input.previousUse;
     }
@@ -2939,15 +2928,13 @@ impl InstLinkedList {
     }
 
     fn removeInst(inst: Inst) {
-        if inst.previous.isSome() {
-            let previous = inst.previous.getOrPanic();
-            previous.next = inst.next;
+        if inst.previous is Some(prev) {
+            prev.next = inst.next;
         } else {
             self.first = inst.next;
         }
 
-        if inst.next.isSome() {
-            let next = inst.next.getOrPanic();
+        if inst.next is Some(next) {
             next.previous = inst.previous;
         } else {
             self.last = inst.previous;
@@ -2969,8 +2956,7 @@ impl Iterator for InstIterator {
     type Item = Inst;
 
     fn next(): Option[Inst] {
-        if self.current.isSome() {
-            let inst = self.current.getOrPanic();
+        if self.current is Some(inst) {
             self.current = inst.next;
             Some[Inst](inst)
         } else {
@@ -2993,8 +2979,7 @@ impl Iterator for PhiInstIterator {
     type Item = Inst;
 
     fn next(): Option[Inst] {
-        if self.current.isSome() {
-            let inst = self.current.getOrPanic();
+        if self.current is Some(inst) {
             self.current = inst.next;
             Some[Inst](inst)
         } else {
@@ -3017,8 +3002,7 @@ impl Iterator for BackwardInstIterator {
     type Item = Inst;
 
     fn next(): Option[Inst] {
-        if self.current.isSome() {
-            let inst = self.current.getOrPanic();
+        if self.current is Some(inst) {
             self.current = inst.previous;
             Some[Inst](inst)
         } else {
@@ -3126,8 +3110,8 @@ impl Iterator for InstSetIter {
   fn next(): Option[Inst] {
     let it = self.iter.next();
 
-    if it.isSome() {
-        let id = InstId(it.getOrPanic().toInt32());
+    if it is Some(it) {
+        let id = InstId(it.toInt32());
         Some[Inst](self.graph.getInstById(id))
     } else {
         None[Inst]

@@ -1,0 +1,18 @@
+fn main() {
+    assert(f(Some[Int64](101)) == 101);
+    assert(f(Some[Int64](100)) == 17);
+    assert(f(Some[Int64](99)) == 17);
+    assert(f(None[Int64]) == 13);
+}
+
+fn f(x: Option[Int64]): Int64 {
+    if x is Some(x) && x > 100 {
+        return x;
+    }
+
+    if x.isSome() {
+        17
+    } else {
+        13
+    }
+}
