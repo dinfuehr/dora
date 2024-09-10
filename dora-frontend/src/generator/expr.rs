@@ -256,19 +256,17 @@ pub(super) fn gen_match(
 
     case_labels.push(fallthrough_lbl);
 
-    g.push_scope();
-
     for (idx, case) in node.cases.iter().enumerate() {
         let case_lbl = case_labels[idx];
         g.builder.bind_label(case_lbl);
 
         let next_case_lbl = case_labels[idx + 1];
 
+        g.push_scope();
+
         let pattern = case.pattern.as_ref();
         g.setup_pattern_vars(pattern);
         g.destruct_pattern(pattern, expr_reg, expr_ty.clone(), Some(next_case_lbl));
-
-        g.push_scope();
 
         gen_expr(g, &case.value, DataDest::Reg(dest));
 
@@ -279,7 +277,6 @@ pub(super) fn gen_match(
     g.builder.bind_label(fallthrough_lbl);
     gen_unreachable(g, node.span);
 
-    g.pop_scope();
     g.builder.bind_label(merge_lbl);
     g.free_if_temp(expr_reg);
 
