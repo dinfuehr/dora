@@ -8,7 +8,8 @@ use crate::expr_always_returns;
 use crate::sema::{find_impl, FctDefinitionId, ForTypeInfo};
 use crate::sym::SymbolKind;
 use crate::typeck::{
-    check_expr, check_pattern, check_pattern_alt, read_ident, read_path, TypeCheck,
+    check_expr, check_pattern, check_pattern_alt, check_pattern_alt_bindings, read_ident,
+    read_path, TypeCheck,
 };
 use crate::{specialize_type, SourceType};
 
@@ -376,14 +377,15 @@ fn check_expr_match_case(
     expected_ty: SourceType,
     result_type: &mut SourceType,
 ) {
-    if let Some(first) = case.patterns.first() {
-        let bindings = check_pattern(ck, first.as_ref(), expr_ty.clone());
+    let pattern = case.pattern.as_ref();
+    if let Some(first) = pattern.alts.first() {
+        let bindings = check_pattern_alt(ck, first.as_ref(), expr_ty.clone());
 
-        for pattern in &case.patterns[1..] {
-            check_pattern_alt(ck, pattern.as_ref(), expr_ty.clone(), &bindings);
+        for pattern in &pattern.alts[1..] {
+            check_pattern_alt_bindings(ck, pattern.as_ref(), expr_ty.clone(), &bindings);
         }
 
-        if !bindings.is_empty() && case.patterns.len() > 1 {
+        if !bindings.is_empty() && pattern.alts.len() > 1 {
             let msg = ErrorMessage::MatchMultiplePatternsWithParamsNotSupported;
             ck.sa.report(ck.file_id, case.span, msg);
         }
@@ -403,7 +405,6 @@ fn check_expr_match_case(
     }
 }
 
-#[allow(unused)]
 fn check_coverage(ck: &mut TypeCheck, node: &ast::ExprMatchType, expr_type: SourceType) {
     if !expr_type.is_enum() {
         ck.sa
@@ -412,7 +413,6 @@ fn check_coverage(ck: &mut TypeCheck, node: &ast::ExprMatchType, expr_type: Sour
     }
 
     let enum_id = expr_type.enum_id().expect("enum expected");
-    let enum_type_params = expr_type.type_params();
 
     let enum_ = ck.sa.enum_(enum_id);
     let enum_variants = enum_.variants().len();
@@ -420,9 +420,10 @@ fn check_coverage(ck: &mut TypeCheck, node: &ast::ExprMatchType, expr_type: Sour
     let mut used_variants = FixedBitSet::with_capacity(enum_variants);
 
     for case in &node.cases {
-        for pattern in &case.patterns {
+        let pattern = case.pattern.as_ref();
+        for pattern in &pattern.alts {
             match pattern.as_ref() {
-                ast::Pattern::Underscore(..) => {
+                ast::PatternAlt::Underscore(..) => {
                     let mut negated_used_variants = used_variants.clone();
                     negated_used_variants.toggle_range(..);
 
@@ -434,9 +435,9 @@ fn check_coverage(ck: &mut TypeCheck, node: &ast::ExprMatchType, expr_type: Sour
                     used_variants.insert_range(..);
                 }
 
-                ast::Pattern::LitBool(..) | ast::Pattern::Tuple(..) => unreachable!(),
+                ast::PatternAlt::LitBool(..) | ast::PatternAlt::Tuple(..) => unreachable!(),
 
-                ast::Pattern::Ident(ref ident) => {
+                ast::PatternAlt::Ident(ref ident) => {
                     let sym = read_ident(ck, &ident.name);
 
                     match sym {
@@ -463,7 +464,7 @@ fn check_coverage(ck: &mut TypeCheck, node: &ast::ExprMatchType, expr_type: Sour
                     }
                 }
 
-                ast::Pattern::ClassOrStructOrEnum(ref ident) => {
+                ast::PatternAlt::ClassOrStructOrEnum(ref ident) => {
                     let sym = read_path(ck, &ident.path);
 
                     match sym {
@@ -501,12 +502,16 @@ fn check_coverage(ck: &mut TypeCheck, node: &ast::ExprMatchType, expr_type: Sour
     }
 }
 
-pub(super) fn class_or_struct_or_enum_params(p: &ast::Pattern) -> Option<&Vec<Arc<ast::Pattern>>> {
+pub(super) fn class_or_struct_or_enum_params(
+    p: &ast::PatternAlt,
+) -> Option<&Vec<Arc<ast::Pattern>>> {
     match p {
-        ast::Pattern::Underscore(..) | ast::Pattern::Tuple(..) | ast::Pattern::LitBool(..) => {
+        ast::PatternAlt::Underscore(..)
+        | ast::PatternAlt::Tuple(..)
+        | ast::PatternAlt::LitBool(..) => {
             unreachable!()
         }
-        ast::Pattern::Ident(..) => None,
-        ast::Pattern::ClassOrStructOrEnum(p) => p.params.as_ref(),
+        ast::PatternAlt::Ident(..) => None,
+        ast::PatternAlt::ClassOrStructOrEnum(p) => p.params.as_ref(),
     }
 }

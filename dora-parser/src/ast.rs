@@ -1965,12 +1965,26 @@ pub struct MatchCaseType {
     pub id: NodeId,
     pub span: Span,
 
-    pub patterns: Vec<Arc<Pattern>>,
+    pub pattern: Arc<Pattern>,
     pub value: Expr,
 }
 
 #[derive(Clone, Debug)]
-pub enum Pattern {
+pub struct Pattern {
+    pub id: NodeId,
+    pub span: Span,
+
+    pub alts: Vec<Arc<PatternAlt>>,
+}
+
+impl Pattern {
+    pub fn first_alt(&self) -> Option<&Arc<PatternAlt>> {
+        self.alts.get(0)
+    }
+}
+
+#[derive(Clone, Debug)]
+pub enum PatternAlt {
     Underscore(PatternUnderscore),
     LitBool(PatternLit),
     Tuple(PatternTuple),
@@ -1978,65 +1992,65 @@ pub enum Pattern {
     ClassOrStructOrEnum(PatternClassOrStructOrEnum),
 }
 
-impl Pattern {
+impl PatternAlt {
     pub fn id(&self) -> NodeId {
         match self {
-            Pattern::Underscore(p) => p.id,
-            Pattern::LitBool(p) => p.id,
-            Pattern::Tuple(p) => p.id,
-            Pattern::Ident(p) => p.id,
-            Pattern::ClassOrStructOrEnum(p) => p.id,
+            PatternAlt::Underscore(p) => p.id,
+            PatternAlt::LitBool(p) => p.id,
+            PatternAlt::Tuple(p) => p.id,
+            PatternAlt::Ident(p) => p.id,
+            PatternAlt::ClassOrStructOrEnum(p) => p.id,
         }
     }
 
     pub fn span(&self) -> Span {
         match self {
-            Pattern::Underscore(p) => p.span,
-            Pattern::LitBool(p) => p.span,
-            Pattern::Tuple(p) => p.span,
-            Pattern::Ident(p) => p.span,
-            Pattern::ClassOrStructOrEnum(p) => p.span,
+            PatternAlt::Underscore(p) => p.span,
+            PatternAlt::LitBool(p) => p.span,
+            PatternAlt::Tuple(p) => p.span,
+            PatternAlt::Ident(p) => p.span,
+            PatternAlt::ClassOrStructOrEnum(p) => p.span,
         }
     }
 
     pub fn is_underscore(&self) -> bool {
         match self {
-            Pattern::Underscore(..) => true,
+            PatternAlt::Underscore(..) => true,
             _ => false,
         }
     }
 
     pub fn is_lit_bool(&self) -> bool {
         match self {
-            Pattern::LitBool(..) => true,
+            PatternAlt::LitBool(..) => true,
             _ => false,
         }
     }
 
     pub fn is_ident(&self) -> bool {
         match self {
-            Pattern::Ident(..) => true,
+            PatternAlt::Ident(..) => true,
             _ => false,
         }
     }
 
     pub fn to_ident(&self) -> Option<&PatternIdent> {
         match self {
-            Pattern::Ident(ref p) => Some(p),
+            PatternAlt::Ident(ref p) => Some(p),
             _ => None,
         }
     }
 
     pub fn is_tuple(&self) -> bool {
         match self {
-            Pattern::Tuple(..) => true,
+            PatternAlt::Tuple(..) => true,
             _ => false,
         }
     }
 
     pub fn to_tuple(&self) -> Option<&PatternTuple> {
         match self {
-            Pattern::Tuple(ref p) => Some(p),
+            PatternAlt::Tuple(ref p) => Some(p),
             _ => None,
         }
     }

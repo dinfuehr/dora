@@ -355,8 +355,14 @@ impl<'a> AstBytecodeGen<'a> {
     }
 
     fn setup_pattern_vars(&mut self, pattern: &ast::Pattern) {
+        for alt in &pattern.alts {
+            self.setup_pattern_alt(alt.as_ref());
+        }
+    }
+
+    fn setup_pattern_alt(&mut self, pattern: &ast::PatternAlt) {
         match pattern {
-            ast::Pattern::Ident(ref ident) => {
+            ast::PatternAlt::Ident(ref ident) => {
                 let ident_type = self.analysis.map_idents.get(ident.id);
 
                 match ident_type {
@@ -372,11 +378,11 @@ impl<'a> AstBytecodeGen<'a> {
                 }
             }
 
-            ast::Pattern::LitBool(..) | ast::Pattern::Underscore(..) => {
+            ast::PatternAlt::LitBool(..) | ast::PatternAlt::Underscore(..) => {
                 // nothing to do
             }
 
-            ast::Pattern::ClassOrStructOrEnum(ref p) => {
+            ast::PatternAlt::ClassOrStructOrEnum(ref p) => {
                 if let Some(ref params) = p.params {
                     for param in params {
                         self.setup_pattern_vars(param);
@@ -384,7 +390,7 @@ impl<'a> AstBytecodeGen<'a> {
                 }
             }
 
-            ast::Pattern::Tuple(ref tuple) => {
+            ast::PatternAlt::Tuple(ref tuple) => {
                 for param in &tuple.params {
                     self.setup_pattern_vars(param);
                 }
@@ -420,7 +426,7 @@ impl<'a> AstBytecodeGen<'a> {
             let merge_lbl = self.builder.create_label();
             self.builder.emit_jump(merge_lbl);
             self.builder.bind_label(mismatch_lbl);
-            gen_unreachable(self, pattern.span());
+            gen_unreachable(self, pattern.span);
             self.builder.bind_label(merge_lbl);
         }
     }
@@ -444,8 +450,31 @@ impl<'a> AstBytecodeGen<'a> {
         value: Register,
         ty: SourceType,
     ) {
+        assert_eq!(pattern.alts.len(), 1);
+        self.destruct_pattern_alt_inner(pck, pattern.alts[0].as_ref(), value, ty);
+    }
+
+    fn destruct_pattern_alt(
+        &mut self,
+        pattern: &ast::PatternAlt,
+        value: Register,
+        ty: SourceType,
+        exit: Option<Label>,
+    ) -> Option<Label> {
+        let mut pck = PatternCheckContext { exit };
+        self.destruct_pattern_alt_inner(&mut pck, pattern, value, ty);
+        pck.exit
+    }
+
+    fn destruct_pattern_alt_inner(
+        &mut self,
+        pck: &mut PatternCheckContext,
+        pattern: &ast::PatternAlt,
+        value: Register,
+        ty: SourceType,
+    ) {
         match pattern {
-            ast::Pattern::Ident(ref ident) => {
+            ast::PatternAlt::Ident(ref ident) => {
                 let ident_type = self.analysis.map_idents.get(ident.id);
 
                 match ident_type {
@@ -468,7 +497,7 @@ impl<'a> AstBytecodeGen<'a> {
                     _ => unreachable!(),
                 }
             }
-            ast::Pattern::LitBool(ref p) => {
+            ast::PatternAlt::LitBool(ref p) => {
                 let mismatch_lbl = pck.ensure_label(&mut self.builder);
                 let p = p.expr.to_lit_bool().expect("expected bool literal");
                 if p.value {
@@ -478,11 +507,11 @@ impl<'a> AstBytecodeGen<'a> {
                 }
             }
 
-            ast::Pattern::Underscore(_) => {
+            ast::PatternAlt::Underscore(_) => {
                 // nothing to do
             }
 
-            ast::Pattern::ClassOrStructOrEnum(ref p) => {
+            ast::PatternAlt::ClassOrStructOrEnum(ref p) => {
                 let ident_type = self.analysis.map_idents.get(p.id).unwrap();
 
                 match ident_type {
@@ -561,7 +590,7 @@ impl<'a> AstBytecodeGen<'a> {
                 }
             }
 
-            ast::Pattern::Tuple(ref tuple) => {
+            ast::PatternAlt::Tuple(ref tuple) => {
                 if ty.is_unit() {
                     assert!(tuple.params.is_empty());
                 } else {
@@ -586,7 +615,7 @@ impl<'a> AstBytecodeGen<'a> {
     fn destruct_pattern_enum(
         &mut self,
         pck: &mut PatternCheckContext,
-        pattern: &ast::Pattern,
+        pattern: &ast::PatternAlt,
         value: Register,
         _ty: SourceType,
         enum_id: EnumDefinitionId,
@@ -656,7 +685,7 @@ impl<'a> AstBytecodeGen<'a> {
     fn destruct_pattern_var(
         &mut self,
         _pck: &mut PatternCheckContext,
-        pattern: &ast::Pattern,
+        pattern: &ast::PatternAlt,
         value: Register,
         _ty: SourceType,
         var_id: VarId,
@@ -3113,13 +3142,15 @@ fn field_id_from_context_idx(context_idx: ContextFieldId, has_outer_context_slot
     FieldId(start_idx + context_idx)
 }
 
-fn class_or_struct_or_enum_params(p: &ast::Pattern) -> Option<&Vec<Arc<ast::Pattern>>> {
+fn class_or_struct_or_enum_params(p: &ast::PatternAlt) -> Option<&Vec<Arc<ast::Pattern>>> {
     match p {
-        ast::Pattern::Underscore(..) | ast::Pattern::Tuple(..) | ast::Pattern::LitBool(..) => {
+        ast::PatternAlt::Underscore(..)
+        | ast::PatternAlt::Tuple(..)
+        | ast::PatternAlt::LitBool(..) => {
             unreachable!()
         }
-        ast::Pattern::Ident(..) => None,
-        ast::Pattern::ClassOrStructOrEnum(p) => p.params.as_ref(),
+        ast::PatternAlt::Ident(..) => None,
+        ast::PatternAlt::ClassOrStructOrEnum(p) => p.params.as_ref(),
     }
 }
 

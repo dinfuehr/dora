@@ -127,22 +127,7 @@ pub(super) fn check_pattern(
         alt: None,
         current: Bindings::new(),
     };
-    check_pattern_inner(ck, &mut ctxt, pattern, ty);
-    ctxt.current
-}
-
-pub(super) fn check_pattern_alt(
-    ck: &mut TypeCheck,
-    pattern: &ast::Pattern,
-    ty: SourceType,
-    alt: &Bindings,
-) -> Bindings {
-    let mut ctxt = Context {
-        alt: Some(alt),
-        current: Bindings::new(),
-    };
-    check_pattern_inner(ck, &mut ctxt, pattern, ty);
-
+    check_pattern_alt_inner(ck, &mut ctxt, pattern.alts[0].as_ref(), ty);
     ctxt.current
 }
 
@@ -152,8 +137,47 @@ fn check_pattern_inner(
     pattern: &ast::Pattern,
     ty: SourceType,
 ) {
+    assert_eq!(pattern.alts.len(), 1);
+    check_pattern_alt_inner(ck, ctxt, pattern.alts[0].as_ref(), ty);
+}
+
+pub(super) fn check_pattern_alt(
+    ck: &mut TypeCheck,
+    pattern: &ast::PatternAlt,
+    ty: SourceType,
+) -> Bindings {
+    let mut ctxt = Context {
+        alt: None,
+        current: Bindings::new(),
+    };
+    check_pattern_alt_inner(ck, &mut ctxt, pattern, ty);
+
+    ctxt.current
+}
+
+pub(super) fn check_pattern_alt_bindings(
+    ck: &mut TypeCheck,
+    pattern: &ast::PatternAlt,
+    ty: SourceType,
+    alt: &Bindings,
+) -> Bindings {
+    let mut ctxt = Context {
+        alt: Some(alt),
+        current: Bindings::new(),
+    };
+    check_pattern_alt_inner(ck, &mut ctxt, pattern, ty);
+
+    ctxt.current
+}
+
+fn check_pattern_alt_inner(
+    ck: &mut TypeCheck,
+    ctxt: &mut Context,
+    pattern: &ast::PatternAlt,
+    ty: SourceType,
+) {
     match pattern {
-        ast::Pattern::Ident(ref ident) => {
+        ast::PatternAlt::Ident(ref ident) => {
             let sym = ck.symtable.get_string(ck.sa, &ident.name.name_as_string);
 
             match sym {
@@ -175,7 +199,7 @@ fn check_pattern_inner(
             }
         }
 
-        ast::Pattern::LitBool(ref p) => {
+        ast::PatternAlt::LitBool(ref p) => {
             if !ty.is_bool() && !ty.is_error() {
                 let ty_name = ck.ty_name(&ty);
                 ck.sa.report(
@@ -186,11 +210,11 @@ fn check_pattern_inner(
             }
         }
 
-        ast::Pattern::Underscore(_) => {
+        ast::PatternAlt::Underscore(_) => {
             // nothing to do
         }
 
-        ast::Pattern::ClassOrStructOrEnum(ref p) => {
+        ast::PatternAlt::ClassOrStructOrEnum(ref p) => {
             let sym = read_path(ck, &p.path);
 
             match sym {
@@ -215,7 +239,7 @@ fn check_pattern_inner(
             }
         }
 
-        ast::Pattern::Tuple(ref tuple) => {
+        ast::PatternAlt::Tuple(ref tuple) => {
             check_pattern_tuple(ck, ctxt, tuple, ty);
         }
     }
@@ -224,7 +248,7 @@ fn check_pattern_inner(
 fn check_pattern_enum(
     ck: &mut TypeCheck,
     ctxt: &mut Context,
-    pattern: &ast::Pattern,
+    pattern: &ast::PatternAlt,
     ty: SourceType,
     enum_id: EnumDefinitionId,
     variant_id: u32,
@@ -334,7 +358,7 @@ fn check_pattern_tuple(
 fn check_pattern_class(
     ck: &mut TypeCheck,
     ctxt: &mut Context,
-    pattern: &ast::Pattern,
+    pattern: &ast::PatternAlt,
     ty: SourceType,
     cls_id: ClassDefinitionId,
 ) {
@@ -394,7 +418,7 @@ fn check_pattern_class(
 fn check_pattern_struct(
     ck: &mut TypeCheck,
     ctxt: &mut Context,
-    pattern: &ast::Pattern,
+    pattern: &ast::PatternAlt,
     ty: SourceType,
     struct_id: StructDefinitionId,
 ) {

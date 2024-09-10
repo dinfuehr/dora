@@ -251,7 +251,9 @@ pub(super) fn gen_match(
     let mut pattern_labels = Vec::with_capacity(node.cases.len());
 
     for case in &node.cases {
-        for _pattern in &case.patterns {
+        let pattern = case.pattern.as_ref();
+
+        for _alt in &pattern.alts {
             pattern_labels.push(g.builder.create_label());
         }
     }
@@ -263,12 +265,13 @@ pub(super) fn gen_match(
 
     for case in &node.cases {
         let case_body_lbl = g.builder.create_label();
+        let pattern = case.pattern.as_ref();
 
-        for pattern in &case.patterns {
+        for alt in &pattern.alts {
             g.builder.bind_label(pattern_labels[idx]);
             let next_pattern = pattern_labels[idx + 1];
-            g.setup_pattern_vars(pattern);
-            g.destruct_pattern(pattern, expr_reg, expr_ty.clone(), Some(next_pattern));
+            g.setup_pattern_alt(alt);
+            g.destruct_pattern_alt(alt, expr_reg, expr_ty.clone(), Some(next_pattern));
             g.builder.emit_jump(case_body_lbl);
 
             idx += 1;

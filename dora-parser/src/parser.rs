@@ -7,8 +7,8 @@ use crate::error::{ParseError, ParseErrorWithLocation};
 use crate::green::{GreenTreeBuilder, Marker};
 use crate::token::{
     ELEM_FIRST, EMPTY, ENUM_VARIANT_ARGUMENT_RS, ENUM_VARIANT_RS, EXPRESSION_FIRST, FIELD_FIRST,
-    MATCH_PATTERN_FIRST, MATCH_PATTERN_RS, MODIFIER_FIRST, PARAM_LIST_RS, TYPE_PARAM_RS,
-    USE_PATH_ATOM_FIRST, USE_PATH_FIRST,
+    MODIFIER_FIRST, PARAM_LIST_RS, PATTERN_FIRST, PATTERN_RS, TYPE_PARAM_RS, USE_PATH_ATOM_FIRST,
+    USE_PATH_FIRST,
 };
 use crate::TokenKind::*;
 use crate::{lex, Span, TokenKind, TokenSet};
@@ -1357,12 +1357,7 @@ impl Parser {
 
     fn parse_match_case(&mut self) -> MatchCaseType {
         self.start_node();
-        let mut patterns = Vec::new();
-        patterns.push(self.parse_pattern());
-
-        while self.eat(OR) {
-            patterns.push(self.parse_pattern());
-        }
+        let pattern = self.parse_pattern();
 
         self.expect(DOUBLE_ARROW);
 
@@ -1371,7 +1366,7 @@ impl Parser {
         MatchCaseType {
             id: self.new_node_id(),
             span: self.finish_node(),
-            patterns,
+            pattern,
             value,
         }
     }
@@ -1379,14 +1374,31 @@ impl Parser {
     fn parse_pattern(&mut self) -> Arc<Pattern> {
         self.start_node();
 
+        let first = self.parse_pattern_no_alt();
+        let mut alts = vec![first];
+
+        while self.eat(OR) {
+            alts.push(self.parse_pattern_no_alt());
+        }
+
+        Arc::new(Pattern {
+            id: self.new_node_id(),
+            span: self.finish_node(),
+            alts,
+        })
+    }
+
+    fn parse_pattern_no_alt(&mut self) -> Arc<PatternAlt> {
+        self.start_node();
+
         if self.eat(UNDERSCORE) {
-            Arc::new(Pattern::Underscore(PatternUnderscore {
+            Arc::new(PatternAlt::Underscore(PatternUnderscore {
                 id: self.new_node_id(),
                 span: self.finish_node(),
             }))
         } else if self.is(TRUE) || self.is(FALSE) {
             let expr = self.parse_lit_bool();
-            Arc::new(Pattern::LitBool(PatternLit {
+            Arc::new(PatternAlt::LitBool(PatternLit {
                 id: self.new_node_id(),
                 span: self.finish_node(),
                 expr,
@@ -1396,11 +1408,11 @@ impl Parser {
                 L_PAREN,
                 COMMA,
                 R_PAREN,
-                MATCH_PATTERN_RS,
+                PATTERN_RS,
                 ParseError::ExpectedPattern,
                 PATTERN_LIST,
                 |p| {
-                    if p.is_set(MATCH_PATTERN_FIRST) {
+                    if p.is_set(PATTERN_FIRST) {
                         Some(p.parse_pattern())
                     } else {
                         None
@@ -1408,14 +1420,14 @@ impl Parser {
                 },
             );
 
-            Arc::new(Pattern::Tuple(PatternTuple {
+            Arc::new(PatternAlt::Tuple(PatternTuple {
                 id: self.new_node_id(),
                 span: self.finish_node(),
                 params,
             }))
         } else if self.eat(MUT_KW) {
             let name = self.expect_identifier().expect("identifier expected");
-            Arc::new(Pattern::Ident(PatternIdent {
+            Arc::new(PatternAlt::Ident(PatternIdent {
                 id: self.new_node_id(),
                 span: self.finish_node(),
                 mutable: true,
@@ -1424,7 +1436,7 @@ impl Parser {
         } else {
             if self.is(IDENTIFIER) && !(self.nth_is(1, COLON_COLON) || self.nth_is(1, L_PAREN)) {
                 let name = self.expect_identifier().expect("identifier expected");
-                return Arc::new(Pattern::Ident(PatternIdent {
+                return Arc::new(PatternAlt::Ident(PatternIdent {
                     id: self.new_node_id(),
                     span: self.finish_node(),
                     mutable: false,
@@ -1439,11 +1451,11 @@ impl Parser {
                     L_PAREN,
                     COMMA,
                     R_PAREN,
-                    MATCH_PATTERN_RS,
+                    PATTERN_RS,
                     ParseError::ExpectedPattern,
                     PATTERN_LIST,
                     |p| {
-                        if p.is_set(MATCH_PATTERN_FIRST) {
+                        if p.is_set(PATTERN_FIRST) {
                             Some(p.parse_pattern())
                         } else {
                             None
@@ -1456,12 +1468,14 @@ impl Parser {
                 None
             };
 
-            Arc::new(Pattern::ClassOrStructOrEnum(PatternClassOrStructOrEnum {
-                id: self.new_node_id(),
-                span: self.finish_node(),
-                path,
-                params,
-            }))
+            Arc::new(PatternAlt::ClassOrStructOrEnum(
+                PatternClassOrStructOrEnum {
+                    id: self.new_node_id(),
+                    span: self.finish_node(),
+                    path,
+                    params,
+                },
+            ))
         }
     }
 
@@ -2777,7 +2791,8 @@ mod tests {
         let stmt = parse_let("let _ = 1;");
         let let_decl = stmt.to_let().unwrap();
 
-        assert!(let_decl.pattern.is_underscore());
+        let pattern = let_decl.pattern.first_alt().unwrap();
+        assert!(pattern.is_underscore());
     }
 
     #[test]
@@ -2785,12 +2800,15 @@ mod tests {
         let stmt = parse_let("let (mut a, b, (c, d)) = 1;");
         let let_decl = stmt.to_let().unwrap();
 
-        assert!(let_decl.pattern.is_tuple());
-        let tuple = let_decl.pattern.to_tuple().unwrap();
+        let pattern = let_decl.pattern.first_alt().unwrap();
+        let tuple = pattern.to_tuple().unwrap();
         let first: &Arc<Pattern> = tuple.params.first().unwrap();
+        let first = first.first_alt().unwrap();
         assert!(first.is_ident());
         assert!(first.to_ident().unwrap().mutable);
-        assert!(tuple.params.last().unwrap().is_tuple());
+        let last = tuple.params.last().unwrap();
+        let last = last.first_alt().unwrap();
+        assert!(last.is_tuple());
     }
 
     #[test]
@@ -2798,10 +2816,10 @@ mod tests {
         let stmt = parse_let("let (a, true) = 1;");
         let let_decl = stmt.to_let().unwrap();
 
-        assert!(let_decl.pattern.is_tuple());
-        let tuple = let_decl.pattern.to_tuple().unwrap();
-        assert!(tuple.params[0].is_ident());
-        assert!(tuple.params[1].is_lit_bool());
+        let pattern = let_decl.pattern.first_alt().unwrap();
+        let tuple = pattern.to_tuple().unwrap();
+        assert!(tuple.params[0].first_alt().unwrap().is_ident());
+        assert!(tuple.params[1].first_alt().unwrap().is_lit_bool());
     }
 
     #[test]
@@ -2809,7 +2827,8 @@ mod tests {
         let stmt = parse_let("let x = 1;");
         let let_decl = stmt.to_let().unwrap();
 
-        assert!(let_decl.pattern.is_ident());
+        let pattern = let_decl.pattern.first_alt().unwrap();
+        assert!(pattern.is_ident());
     }
 
     #[test]
@@ -2817,8 +2836,8 @@ mod tests {
         let stmt = parse_let("let mut x = 1;");
         let let_decl = stmt.to_let().unwrap();
 
-        assert!(let_decl.pattern.is_ident());
-        assert!(let_decl.pattern.to_ident().unwrap().mutable);
+        let pattern = let_decl.pattern.first_alt().unwrap();
+        assert!(pattern.to_ident().unwrap().mutable);
     }
 
     #[test]
