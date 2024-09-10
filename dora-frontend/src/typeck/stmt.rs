@@ -74,6 +74,7 @@ struct BindingData {
     ty: SourceType,
 }
 
+#[derive(Clone)]
 pub struct Bindings {
     map: HashMap<Name, BindingData>,
 }
@@ -83,10 +84,6 @@ impl Bindings {
         Bindings {
             map: HashMap::new(),
         }
-    }
-
-    pub fn is_empty(&self) -> bool {
-        self.map.is_empty()
     }
 
     fn contains(&self, name: Name) -> bool {
@@ -127,7 +124,7 @@ pub(super) fn check_pattern(
         alt: None,
         current: Bindings::new(),
     };
-    check_pattern_alt_inner(ck, &mut ctxt, pattern.alts[0].as_ref(), ty);
+    check_pattern_inner(ck, &mut ctxt, pattern, ty);
     ctxt.current
 }
 
@@ -137,37 +134,30 @@ fn check_pattern_inner(
     pattern: &ast::Pattern,
     ty: SourceType,
 ) {
-    assert_eq!(pattern.alts.len(), 1);
-    check_pattern_alt_inner(ck, ctxt, pattern.alts[0].as_ref(), ty);
-}
+    let mut has_bindings = false;
+    let mut all_bindings = Vec::with_capacity(pattern.alts.len());
 
-pub(super) fn check_pattern_alt(
-    ck: &mut TypeCheck,
-    pattern: &ast::PatternAlt,
-    ty: SourceType,
-) -> Bindings {
-    let mut ctxt = Context {
-        alt: None,
-        current: Bindings::new(),
-    };
-    check_pattern_alt_inner(ck, &mut ctxt, pattern, ty);
+    for alt in &pattern.alts {
+        let mut alt_ctxt = Context {
+            alt: None,
+            current: ctxt.current.clone(),
+        };
 
-    ctxt.current
-}
+        check_pattern_alt_inner(ck, &mut alt_ctxt, alt.as_ref(), ty.clone());
 
-pub(super) fn check_pattern_alt_bindings(
-    ck: &mut TypeCheck,
-    pattern: &ast::PatternAlt,
-    ty: SourceType,
-    alt: &Bindings,
-) -> Bindings {
-    let mut ctxt = Context {
-        alt: Some(alt),
-        current: Bindings::new(),
-    };
-    check_pattern_alt_inner(ck, &mut ctxt, pattern, ty);
+        if alt_ctxt.current.map.len() > ctxt.current.map.len() {
+            has_bindings = true;
+        }
 
-    ctxt.current
+        all_bindings.push(alt_ctxt.current);
+    }
+
+    if has_bindings && pattern.alts.len() > 1 {
+        let msg = ErrorMessage::PatternAltWithBindingUnsupported;
+        ck.sa.report(ck.file_id, pattern.span, msg);
+    } else if pattern.alts.len() == 1 {
+        ctxt.current = all_bindings.swap_remove(0);
+    }
 }
 
 fn check_pattern_alt_inner(

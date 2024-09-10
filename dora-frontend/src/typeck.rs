@@ -18,9 +18,7 @@ use crate::typeck::function::{
     check_lit_int, check_lit_str, is_simple_enum, TypeCheck, VarManager,
 };
 use crate::typeck::lookup::MethodLookup;
-use crate::typeck::stmt::{
-    check_pattern, check_pattern_alt, check_pattern_alt_bindings, check_stmt,
-};
+use crate::typeck::stmt::{check_pattern, check_stmt};
 use crate::SourceType;
 
 mod call;

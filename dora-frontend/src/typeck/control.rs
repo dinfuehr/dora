@@ -7,10 +7,7 @@ use crate::error::msg::ErrorMessage;
 use crate::expr_always_returns;
 use crate::sema::{find_impl, FctDefinitionId, ForTypeInfo};
 use crate::sym::SymbolKind;
-use crate::typeck::{
-    check_expr, check_pattern, check_pattern_alt, check_pattern_alt_bindings, read_ident,
-    read_path, TypeCheck,
-};
+use crate::typeck::{check_expr, check_pattern, read_ident, read_path, TypeCheck};
 use crate::{specialize_type, SourceType};
 
 pub(super) fn check_expr_while(
@@ -378,18 +375,8 @@ fn check_expr_match_case(
     result_type: &mut SourceType,
 ) {
     let pattern = case.pattern.as_ref();
-    if let Some(first) = pattern.alts.first() {
-        let bindings = check_pattern_alt(ck, first.as_ref(), expr_ty.clone());
 
-        for pattern in &pattern.alts[1..] {
-            check_pattern_alt_bindings(ck, pattern.as_ref(), expr_ty.clone(), &bindings);
-        }
-
-        if !bindings.is_empty() && pattern.alts.len() > 1 {
-            let msg = ErrorMessage::MatchMultiplePatternsWithParamsNotSupported;
-            ck.sa.report(ck.file_id, case.span, msg);
-        }
-    }
+    check_pattern(ck, pattern, expr_ty);
 
     let case_ty = check_expr(ck, &case.value, expected_ty.clone());
 

@@ -179,7 +179,7 @@ pub enum ErrorMessage {
     NegativeUnsigned,
     InvalidCharLiteral,
     InvalidReturn,
-    MatchMultiplePatternsWithParamsNotSupported,
+    PatternAltWithBindingUnsupported,
     UseNotAccessible,
     TypeAliasMissingType,
     AliasCycle,
@@ -625,7 +625,7 @@ impl ErrorMessage {
             ErrorMessage::InvalidReturn => {
                 format!("`return` cannot be used in this context.")
             }
-            ErrorMessage::MatchMultiplePatternsWithParamsNotSupported => {
+            ErrorMessage::PatternAltWithBindingUnsupported => {
                 format!("Multiple patterns with arguments in a `match` arm are currently not supported.")
             }
             ErrorMessage::UseNotAccessible => format!("`use` not accessible."),

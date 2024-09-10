@@ -1829,7 +1829,7 @@ fn test_enum_match_multiple_patterns() {
         }
     ",
         (5, 17),
-        ErrorMessage::MatchMultiplePatternsWithParamsNotSupported,
+        ErrorMessage::PatternAltWithBindingUnsupported,
     );
 }
 
