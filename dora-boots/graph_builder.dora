@@ -2705,17 +2705,13 @@ fn findBlockStarts(bc: BytecodeFunction): BitSet {
                 assert(starts.contains(target));
                 markBlockStart(next);
             },
-            BytecodeInstruction::JumpIfFalse(_opnd, distance)
-            | BytecodeInstruction::JumpIfTrue(_opnd, distance) => {
+            BytecodeInstruction::JumpIfFalse(_, distance)
+            | BytecodeInstruction::JumpIfTrue(_, distance)
+            | BytecodeInstruction::Jump(distance) => {
                 let target = start + distance.toInt64();
                 markBlockStart(next);
                 markBlockStart(target);
             }
-            BytecodeInstruction::Jump(distance) => {
-                let target = start + distance.toInt64();
-                markBlockStart(next);
-                markBlockStart(target);
-            },
             _ => {
                 // Non-terminator instruction
             },
