@@ -4457,16 +4457,36 @@ fn test_pattern_rest() {
     ");
 
     ok("
-    fn f(x: (Int64, Int64)): Int64 {
-        let (.., a, b) = x;
-        a + b
-    }
+        fn f(x: (Int64, Int64)): Int64 {
+            let (.., a, b) = x;
+            a + b
+        }
 ");
 
     ok("
-fn f(x: (Int64, Int64)): Int64 {
-    let (a, .., b) = x;
-    a + b
-}
+        fn f(x: (Int64, Int64)): Int64 {
+            let (a, .., b) = x;
+            a + b
+        }
+");
+
+    ok("
+        fn f(x: (Int64, Bool, Float64)): (Int64, Float64) {
+            let (a, .., b) = x;
+            (a, b)
+        }
+");
+
+    ok("
+        fn f(x: (Int64, Int64)): Int64 {
+            let (a, b, ..) = x;
+            a + b
+        }
+");
+
+    ok("
+        fn f(x: (Int64, Int64)) {
+            let (..) = x;
+        }
 ");
 }
