@@ -4426,3 +4426,16 @@ fn pattern_bindings_in_alternatives() {
         ErrorMessage::PatternBindingNotDefinedInAllAlternatives("y".into()),
     );
 }
+
+#[test]
+fn test_pattern_rest() {
+    err(
+        "
+        fn f(x: Int64) {
+            let .. = x;
+        }
+    ",
+        (3, 17),
+        ErrorMessage::PatternUnexpectedRest,
+    );
+}

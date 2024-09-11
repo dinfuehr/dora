@@ -237,7 +237,10 @@ fn check_pattern_alt(
             check_pattern_tuple(ck, ctxt, pattern, ty);
         }
 
-        ast::PatternAlt::Rest(..) => unimplemented!(),
+        ast::PatternAlt::Rest(ref p) => {
+            let msg = ErrorMessage::PatternUnexpectedRest;
+            ck.sa.report(ck.file_id, p.span, msg);
+        }
     }
 }
 
