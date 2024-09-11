@@ -189,6 +189,7 @@ pub enum ErrorMessage {
     PatternBindingWrongType(String, String),
     PatternBindingNotDefinedInAllAlternatives(String),
     PatternUnexpectedRest,
+    PatternMultipleRest,
 }
 
 impl ErrorMessage {
@@ -649,6 +650,9 @@ impl ErrorMessage {
                 format!("binding `{}` not defined in all bindings", name)
             }
             ErrorMessage::PatternUnexpectedRest => format!("Rest pattern is not allowed here."),
+            ErrorMessage::PatternMultipleRest => {
+                format!("Rest pattern is only allowed once but used multiple times.")
+            }
         }
     }
 }

@@ -436,20 +436,39 @@ fn check_subpatterns<'a>(
 ) {
     let params = get_subpatterns(pattern);
 
-    let given_params = params.map(|p| p.len()).unwrap_or(0);
-
-    if given_params != expected_types.len() {
-        let msg = ErrorMessage::PatternWrongNumberOfParams(given_params, expected_types.len());
-        ck.sa.report(ck.file_id, pattern.span(), msg);
-    }
-
     if let Some(params) = params {
-        for (idx, subpattern) in params.iter().enumerate() {
-            let ty = expected_types
-                .get(idx)
-                .cloned()
-                .unwrap_or(SourceType::Error);
-            check_pattern_inner(ck, ctxt, subpattern.as_ref(), ty);
+        let rest_count = params.iter().filter(|p| p.is_rest()).count();
+
+        if rest_count == 0 {
+            if params.len() != expected_types.len() {
+                let msg =
+                    ErrorMessage::PatternWrongNumberOfParams(params.len(), expected_types.len());
+                ck.sa.report(ck.file_id, pattern.span(), msg);
+            }
+
+            for (idx, subpattern) in params.iter().enumerate() {
+                let ty = expected_types
+                    .get(idx)
+                    .cloned()
+                    .unwrap_or(SourceType::Error);
+                check_pattern_inner(ck, ctxt, subpattern.as_ref(), ty);
+            }
+        } else if rest_count == 1 {
+            unimplemented!();
+        } else {
+            let msg = ErrorMessage::PatternMultipleRest;
+            ck.sa.report(ck.file_id, pattern.span(), msg);
+
+            for subpattern in params {
+                if !subpattern.is_rest() {
+                    check_pattern_inner(ck, ctxt, subpattern.as_ref(), SourceType::Error);
+                }
+            }
+        }
+    } else {
+        if expected_types.len() > 0 {
+            let msg = ErrorMessage::PatternWrongNumberOfParams(0, expected_types.len());
+            ck.sa.report(ck.file_id, pattern.span(), msg);
         }
     }
 }

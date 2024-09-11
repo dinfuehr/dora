@@ -1981,6 +1981,10 @@ impl Pattern {
     pub fn first_alt(&self) -> Option<&Arc<PatternAlt>> {
         self.alts.get(0)
     }
+
+    pub fn is_rest(&self) -> bool {
+        self.alts.len() == 1 && self.alts[0].is_rest()
+    }
 }
 
 #[derive(Clone, Debug)]

@@ -4438,4 +4438,14 @@ fn test_pattern_rest() {
         (3, 17),
         ErrorMessage::PatternUnexpectedRest,
     );
+
+    err(
+        "
+        fn f(x: (Int64, Int64)) {
+            let (.., a, ..) = x;
+        }
+    ",
+        (3, 17),
+        ErrorMessage::PatternMultipleRest,
+    );
 }
