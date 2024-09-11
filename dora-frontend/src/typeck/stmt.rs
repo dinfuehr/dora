@@ -236,6 +236,8 @@ fn check_pattern_alt(
         ast::PatternAlt::Tuple(ref tuple) => {
             check_pattern_tuple(ck, ctxt, tuple, ty);
         }
+
+        ast::PatternAlt::Rest(..) => unimplemented!(),
     }
 }
 

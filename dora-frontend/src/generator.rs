@@ -377,7 +377,9 @@ impl<'a> AstBytecodeGen<'a> {
                 }
             }
 
-            ast::PatternAlt::LitBool(..) | ast::PatternAlt::Underscore(..) => {
+            ast::PatternAlt::LitBool(..)
+            | ast::PatternAlt::Underscore(..)
+            | ast::PatternAlt::Rest(..) => {
                 // nothing to do
             }
 
@@ -627,6 +629,8 @@ impl<'a> AstBytecodeGen<'a> {
                     }
                 }
             }
+
+            ast::PatternAlt::Rest(..) => unimplemented!(),
         }
     }
 
@@ -3169,7 +3173,8 @@ fn class_or_struct_or_enum_params(p: &ast::PatternAlt) -> Option<&Vec<Arc<ast::P
     match p {
         ast::PatternAlt::Underscore(..)
         | ast::PatternAlt::Tuple(..)
-        | ast::PatternAlt::LitBool(..) => {
+        | ast::PatternAlt::LitBool(..)
+        | ast::PatternAlt::Rest(..) => {
             unreachable!()
         }
         ast::PatternAlt::Ident(..) => None,

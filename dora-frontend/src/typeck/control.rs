@@ -422,6 +422,8 @@ fn check_coverage(ck: &mut TypeCheck, node: &ast::ExprMatchType, expr_type: Sour
                     used_variants.insert_range(..);
                 }
 
+                ast::PatternAlt::Rest(..) => unimplemented!(),
+
                 ast::PatternAlt::LitBool(..) | ast::PatternAlt::Tuple(..) => unreachable!(),
 
                 ast::PatternAlt::Ident(ref ident) => {
@@ -495,7 +497,8 @@ pub(super) fn class_or_struct_or_enum_params(
     match p {
         ast::PatternAlt::Underscore(..)
         | ast::PatternAlt::Tuple(..)
-        | ast::PatternAlt::LitBool(..) => {
+        | ast::PatternAlt::LitBool(..)
+        | ast::PatternAlt::Rest(..) => {
             unreachable!()
         }
         ast::PatternAlt::Ident(..) => None,

@@ -64,8 +64,9 @@ pub const FIELD_FIRST: TokenSet = TokenSet::new(&[IDENTIFIER, COLON]).union(MODI
 pub const FIELD_RS: TokenSet = ELEM_FIRST;
 pub const LET_PATTERN_FIRST: TokenSet = TokenSet::new(&[L_PAREN, MUT_KW, UNDERSCORE, IDENTIFIER]);
 pub const LET_PATTERN_RS: TokenSet = TokenSet::new(&[EQ]);
-pub const PATTERN_FIRST: TokenSet =
-    TokenSet::new(&[UNDERSCORE, MUT_KW, L_PAREN, TRUE, FALSE, IDENTIFIER]);
+pub const PATTERN_FIRST: TokenSet = TokenSet::new(&[
+    UNDERSCORE, MUT_KW, L_PAREN, TRUE, FALSE, DOT_DOT, IDENTIFIER,
+]);
 pub const PATTERN_RS: TokenSet = TokenSet::new(&[DOUBLE_ARROW]);
 
 pub const ELEM_FIRST: TokenSet = TokenSet::new(&[
@@ -164,6 +165,7 @@ pub enum TokenKind {
     COMMA,
     SEMICOLON,
     DOT,
+    DOT_DOT,
     DOT_DOT_DOT,
     COLON,
     COLON_COLON,

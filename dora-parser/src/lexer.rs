@@ -283,11 +283,14 @@ impl<'a> Lexer<'a> {
                 }
             }
             '.' => {
-                if nch == '.' && nnch == '.' {
+                if nch == '.' {
                     self.eat_char();
-                    self.eat_char();
-
-                    DOT_DOT_DOT
+                    if nnch == '.' {
+                        self.eat_char();
+                        DOT_DOT_DOT
+                    } else {
+                        DOT_DOT
+                    }
                 } else {
                     DOT
                 }

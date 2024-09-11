@@ -1990,6 +1990,7 @@ pub enum PatternAlt {
     Tuple(PatternTuple),
     Ident(PatternIdent),
     ClassOrStructOrEnum(PatternClassOrStructOrEnum),
+    Rest(PatternRest),
 }
 
 impl PatternAlt {
@@ -2000,6 +2001,7 @@ impl PatternAlt {
             PatternAlt::Tuple(p) => p.id,
             PatternAlt::Ident(p) => p.id,
             PatternAlt::ClassOrStructOrEnum(p) => p.id,
+            PatternAlt::Rest(p) => p.id,
         }
     }
 
@@ -2010,12 +2012,20 @@ impl PatternAlt {
             PatternAlt::Tuple(p) => p.span,
             PatternAlt::Ident(p) => p.span,
             PatternAlt::ClassOrStructOrEnum(p) => p.span,
+            PatternAlt::Rest(p) => p.span,
         }
     }
 
     pub fn is_underscore(&self) -> bool {
         match self {
             PatternAlt::Underscore(..) => true,
+            _ => false,
+        }
+    }
+
+    pub fn is_rest(&self) -> bool {
+        match self {
+            PatternAlt::Rest(..) => true,
             _ => false,
         }
     }
@@ -2058,6 +2068,12 @@ impl PatternAlt {
 
 #[derive(Clone, Debug)]
 pub struct PatternUnderscore {
+    pub id: NodeId,
+    pub span: Span,
+}
+
+#[derive(Clone, Debug)]
+pub struct PatternRest {
     pub id: NodeId,
     pub span: Span,
 }

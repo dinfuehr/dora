@@ -1396,6 +1396,11 @@ impl Parser {
                 id: self.new_node_id(),
                 span: self.finish_node(),
             }))
+        } else if self.eat(DOT_DOT) {
+            Arc::new(PatternAlt::Rest(PatternRest {
+                id: self.new_node_id(),
+                span: self.finish_node(),
+            }))
         } else if self.is(TRUE) || self.is(FALSE) {
             let expr = self.parse_lit_bool();
             Arc::new(PatternAlt::LitBool(PatternLit {
@@ -2772,6 +2777,16 @@ mod tests {
     fn parse_let_without_type() {
         let stmt = parse_let("let a = 1;");
         let var = stmt.to_let().unwrap();
+
+        assert!(var.data_type.is_none());
+        assert!(var.expr.as_ref().unwrap().is_lit_int());
+    }
+
+    #[test]
+    fn parse_let_rest() {
+        let stmt = parse_let("let .. = 1;");
+        let var = stmt.to_let().unwrap();
+        assert!(var.pattern.first_alt().unwrap().is_rest());
 
         assert!(var.data_type.is_none());
         assert!(var.expr.as_ref().unwrap().is_lit_int());
