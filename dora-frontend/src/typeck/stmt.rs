@@ -454,7 +454,23 @@ fn check_subpatterns<'a>(
                 check_pattern_inner(ck, ctxt, subpattern.as_ref(), ty);
             }
         } else if rest_count == 1 {
-            unimplemented!();
+            let params_count = params.len() - 1;
+            assert!(params_count <= expected_types.len());
+            let rest_len = expected_types.len() - params_count;
+            let mut idx = 0;
+
+            for subpattern in params {
+                if subpattern.is_rest() {
+                    idx += rest_len;
+                } else {
+                    let ty = expected_types
+                        .get(idx)
+                        .cloned()
+                        .unwrap_or(SourceType::Error);
+                    check_pattern_inner(ck, ctxt, subpattern.as_ref(), ty);
+                    idx += 1;
+                }
+            }
         } else {
             let msg = ErrorMessage::PatternMultipleRest;
             ck.sa.report(ck.file_id, pattern.span(), msg);

@@ -4448,4 +4448,25 @@ fn test_pattern_rest() {
         (3, 17),
         ErrorMessage::PatternMultipleRest,
     );
+
+    ok("
+        fn f(x: (Int64, Int64)): Int64 {
+            let (.., a) = x;
+            a
+        }
+    ");
+
+    ok("
+    fn f(x: (Int64, Int64)): Int64 {
+        let (.., a, b) = x;
+        a + b
+    }
+");
+
+    ok("
+fn f(x: (Int64, Int64)): Int64 {
+    let (a, .., b) = x;
+    a + b
+}
+");
 }
