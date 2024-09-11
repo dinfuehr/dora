@@ -491,17 +491,15 @@ fn check_coverage(ck: &mut TypeCheck, node: &ast::ExprMatchType, expr_type: Sour
     }
 }
 
-pub(super) fn class_or_struct_or_enum_params(
-    p: &ast::PatternAlt,
-) -> Option<&Vec<Arc<ast::Pattern>>> {
+pub(super) fn get_subpatterns(p: &ast::PatternAlt) -> Option<&Vec<Arc<ast::Pattern>>> {
     match p {
         ast::PatternAlt::Underscore(..)
-        | ast::PatternAlt::Tuple(..)
         | ast::PatternAlt::LitBool(..)
         | ast::PatternAlt::Rest(..) => {
             unreachable!()
         }
         ast::PatternAlt::Ident(..) => None,
         ast::PatternAlt::ClassOrStructOrEnum(p) => p.params.as_ref(),
+        ast::PatternAlt::Tuple(p) => Some(p.params.as_ref()),
     }
 }

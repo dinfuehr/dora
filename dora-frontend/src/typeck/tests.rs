@@ -299,7 +299,7 @@ fn type_variable() {
 }
 
 #[test]
-fn type_let() {
+fn type_let_pattern_tuple() {
     ok("fn f(value: (Int32, Int32)): Int32 { let (a, b) = value; a+b }");
     err(
         "fn f() { let (a, b) = true; }",
@@ -316,18 +316,18 @@ fn type_let() {
     err(
         "fn f() { let (a, b) = (); }",
         (1, 14),
-        ErrorMessage::PatternTupleLengthMismatch("()".into(), 0, 2),
+        ErrorMessage::PatternWrongNumberOfParams(2, 0),
     );
 
     err(
         "fn f() { let (a, b) = (true,); }",
         (1, 14),
-        ErrorMessage::PatternTupleLengthMismatch("(Bool)".into(), 1, 2),
+        ErrorMessage::PatternWrongNumberOfParams(2, 1),
     );
     err(
         "fn f() { let () = (true,); }",
         (1, 14),
-        ErrorMessage::PatternTupleLengthMismatch("(Bool)".into(), 1, 0),
+        ErrorMessage::PatternWrongNumberOfParams(0, 1),
     );
 
     ok("fn f(value: (Int32, (Int32, Int32))): Int32 { let (a, (b, c)) = value; a+b+c }");

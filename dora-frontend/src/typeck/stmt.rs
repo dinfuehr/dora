@@ -1,5 +1,4 @@
 use std::collections::{HashMap, HashSet};
-use std::sync::Arc;
 
 use dora_parser::ast;
 
@@ -9,7 +8,7 @@ use crate::access::{
 use crate::error::msg::ErrorMessage;
 use crate::sema::{ClassDefinitionId, EnumDefinitionId, IdentType, StructDefinitionId, VarId};
 use crate::ty::SourceType;
-use crate::typeck::{add_local, check_expr, class_or_struct_or_enum_params, read_path, TypeCheck};
+use crate::typeck::{add_local, check_expr, get_subpatterns, read_path, TypeCheck};
 use crate::{specialize_type, Name, SourceTypeArray, SymbolKind};
 
 pub(super) fn check_stmt(ck: &mut TypeCheck, s: &ast::StmtData) {
@@ -205,7 +204,7 @@ fn check_pattern_alt(
             }
         }
 
-        ast::PatternAlt::Underscore(_) => {
+        ast::PatternAlt::Underscore(..) => {
             // nothing to do
         }
 
@@ -234,8 +233,8 @@ fn check_pattern_alt(
             }
         }
 
-        ast::PatternAlt::Tuple(ref tuple) => {
-            check_pattern_tuple(ck, ctxt, tuple, ty);
+        ast::PatternAlt::Tuple(..) => {
+            check_pattern_tuple(ck, ctxt, pattern, ty);
         }
 
         ast::PatternAlt::Rest(..) => unimplemented!(),
@@ -253,7 +252,7 @@ fn check_pattern_enum(
     let enum_ = ck.sa.enum_(enum_id);
     let variant = &enum_.variants[variant_id as usize];
 
-    let params = class_or_struct_or_enum_params(pattern);
+    let params = get_subpatterns(pattern);
     let given_params = params.as_ref().map(|p| p.len()).unwrap_or(0);
 
     if !enum_accessible_from(ck.sa, enum_id, ck.module_id) {
@@ -269,20 +268,17 @@ fn check_pattern_enum(
             IdentType::EnumVariant(enum_id, value_type_params.clone(), variant_id),
         );
 
-        let expected_params = variant.types().len();
-
-        if given_params != expected_params {
-            let msg = ErrorMessage::PatternWrongNumberOfParams(given_params, expected_params);
-            ck.sa.report(ck.file_id, pattern.span(), msg);
-        } else if params.is_some() && given_params == 0 {
+        if params.is_some() && given_params == 0 {
             let msg = ErrorMessage::PatternNoParens;
             ck.sa.report(ck.file_id, pattern.span(), msg);
         }
 
-        for (_idx, param_ty, param) in iterate_patterns(params, variant.types()) {
-            let param_ty = specialize_type(ck.sa, param_ty, &value_type_params);
-            check_pattern_inner(ck, ctxt, param, param_ty);
-        }
+        let expected_types = variant
+            .types()
+            .iter()
+            .map(|t| specialize_type(ck.sa, t.clone(), &value_type_params))
+            .collect::<Vec<_>>();
+        check_subpatterns(ck, ctxt, pattern, &expected_types);
     } else if !ty.is_error() {
         let ty = ty.name(ck.sa);
         let msg = ErrorMessage::PatternTypeMismatch(ty);
@@ -300,20 +296,22 @@ fn check_pattern_enum(
 fn check_pattern_tuple(
     ck: &mut TypeCheck,
     ctxt: &mut Context,
-    pattern: &ast::PatternTuple,
+    pattern: &ast::PatternAlt,
     ty: SourceType,
 ) {
+    let tuple_pattern = pattern.to_tuple().expect("tuple expected");
+
     if !ty.is_tuple_or_unit() {
         if !ty.is_error() {
             let ty_name = ck.ty_name(&ty);
             ck.sa.report(
                 ck.file_id,
-                pattern.span,
+                tuple_pattern.span,
                 ErrorMessage::PatternTupleExpected(ty_name),
             );
         }
 
-        for param in &pattern.params {
+        for param in &tuple_pattern.params {
             check_pattern_inner(ck, ctxt, param, SourceType::Error);
         }
 
@@ -326,18 +324,7 @@ fn check_pattern_tuple(
         ty.tuple_subtypes()
     };
 
-    if subtypes.len() != pattern.params.len() {
-        let ty_name = ck.ty_name(&ty);
-        ck.sa.report(
-            ck.file_id,
-            pattern.span,
-            ErrorMessage::PatternTupleLengthMismatch(ty_name, subtypes.len(), pattern.params.len()),
-        );
-    }
-
-    for (_idx, subty, param) in iterate_patterns(Some(&pattern.params), subtypes.types()) {
-        check_pattern_inner(ck, ctxt, param, subty.clone());
-    }
+    check_subpatterns(ck, ctxt, pattern, subtypes.types());
 }
 
 fn check_pattern_class(
@@ -348,9 +335,7 @@ fn check_pattern_class(
     cls_id: ClassDefinitionId,
 ) {
     let cls = ck.sa.class(cls_id);
-    let expected_params = cls.fields.len();
-    let params = class_or_struct_or_enum_params(pattern);
-    let given_params = params.map(|p| p.len()).unwrap_or(0);
+    let params = get_subpatterns(pattern);
 
     if !class_accessible_from(ck.sa, cls_id, ck.module_id) {
         let msg = ErrorMessage::NotAccessible(cls.name(ck.sa));
@@ -370,20 +355,13 @@ fn check_pattern_class(
             IdentType::Class(cls_id, value_type_params.clone()),
         );
 
-        if given_params != expected_params {
-            let msg = ErrorMessage::PatternWrongNumberOfParams(given_params, expected_params);
-            ck.sa.report(ck.file_id, pattern.span(), msg);
-        }
-
         let expected_types = cls
             .fields
             .iter()
             .map(|f| specialize_type(ck.sa, f.ty(), &value_type_params))
             .collect::<Vec<_>>();
 
-        for (_idx, field_ty, param) in iterate_patterns(params, &expected_types) {
-            check_pattern_inner(ck, ctxt, param, field_ty);
-        }
+        check_subpatterns(ck, ctxt, pattern, &expected_types);
     } else if !ty.is_error() {
         let ty = ty.name(ck.sa);
         let msg = ErrorMessage::PatternTypeMismatch(ty);
@@ -406,9 +384,7 @@ fn check_pattern_struct(
     struct_id: StructDefinitionId,
 ) {
     let struct_ = ck.sa.struct_(struct_id);
-    let expected_params = struct_.fields.len();
-    let params = class_or_struct_or_enum_params(pattern);
-    let given_params = params.map(|p| p.len()).unwrap_or(0);
+    let params = get_subpatterns(pattern);
 
     if !struct_accessible_from(ck.sa, struct_id, ck.module_id) {
         let msg = ErrorMessage::NotAccessible(struct_.name(ck.sa));
@@ -428,20 +404,13 @@ fn check_pattern_struct(
             IdentType::Struct(struct_id, value_type_params.clone()),
         );
 
-        if given_params != expected_params {
-            let msg = ErrorMessage::PatternWrongNumberOfParams(given_params, expected_params);
-            ck.sa.report(ck.file_id, pattern.span(), msg);
-        }
-
         let expected_types = struct_
             .fields
             .iter()
             .map(|f| specialize_type(ck.sa, f.ty(), &value_type_params))
             .collect::<Vec<_>>();
 
-        for (_idx, field_ty, param) in iterate_patterns(params, &expected_types) {
-            check_pattern_inner(ck, ctxt, param, field_ty);
-        }
+        check_subpatterns(ck, ctxt, pattern, &expected_types);
     } else if !ty.is_error() {
         let ty = ty.name(ck.sa);
         let msg = ErrorMessage::PatternTypeMismatch(ty);
@@ -456,55 +425,30 @@ fn check_pattern_struct(
     }
 }
 
-struct PatternIter<'a> {
-    params: Option<&'a Vec<Arc<ast::Pattern>>>,
+fn check_subpatterns<'a>(
+    ck: &mut TypeCheck,
+    ctxt: &mut Context,
+    pattern: &ast::PatternAlt,
     expected_types: &'a [SourceType],
-    idx: usize,
-}
+) {
+    let params = get_subpatterns(pattern);
 
-impl<'a> PatternIter<'a> {
-    fn len(&self) -> usize {
-        self.params.map(|x| x.len()).unwrap_or(0)
+    let given_params = params.map(|p| p.len()).unwrap_or(0);
+
+    if given_params != expected_types.len() {
+        let msg = ErrorMessage::PatternWrongNumberOfParams(given_params, expected_types.len());
+        ck.sa.report(ck.file_id, pattern.span(), msg);
     }
-}
 
-impl<'a> Iterator for PatternIter<'a> {
-    type Item = (usize, SourceType, &'a ast::Pattern);
-
-    fn next(&mut self) -> Option<Self::Item> {
-        if self.idx < self.len() {
-            let curr = self.idx;
-            let pattern = self
-                .params
-                .as_ref()
-                .expect("missing params")
-                .get(curr)
-                .expect("wrong index")
-                .as_ref();
-            let ty = self
-                .expected_types
-                .get(curr)
+    if let Some(params) = params {
+        for (idx, subpattern) in params.iter().enumerate() {
+            let ty = expected_types
+                .get(idx)
                 .cloned()
                 .unwrap_or(SourceType::Error);
-            self.idx = self.idx + 1;
-            Some((curr, ty, pattern))
-        } else {
-            None
+            check_pattern_inner(ck, ctxt, subpattern.as_ref(), ty);
         }
     }
-}
-
-fn iterate_patterns<'a>(
-    params: Option<&'a Vec<Arc<ast::Pattern>>>,
-    expected_types: &'a [SourceType],
-) -> PatternIter<'a> {
-    let iter = PatternIter {
-        params,
-        expected_types,
-        idx: 0,
-    };
-
-    iter
 }
 
 fn check_pattern_var(
