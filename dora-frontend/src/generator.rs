@@ -548,86 +548,33 @@ impl<'a> AstBytecodeGen<'a> {
                     }
 
                     IdentType::Struct(struct_id, struct_type_params) => {
-                        let struct_ = self.sa.struct_(*struct_id);
-
-                        if let Some(ref params) = p.params {
-                            for (idx, param) in params.iter().enumerate() {
-                                let field_ty = struct_.fields[idx].ty();
-                                let field_ty =
-                                    specialize_type(self.sa, field_ty, struct_type_params);
-                                let register_ty = register_bty_from_ty(field_ty.clone());
-                                let idx = self.builder.add_const_struct_field(
-                                    StructId(struct_id.index().try_into().expect("overflow")),
-                                    bty_array_from_ty(struct_type_params),
-                                    idx as u32,
-                                );
-                                let temp_reg = self.alloc_temp(register_ty);
-                                self.builder.emit_load_struct_field(temp_reg, value, idx);
-                                self.destruct_pattern_inner(
-                                    pck,
-                                    param.as_ref(),
-                                    temp_reg,
-                                    field_ty,
-                                );
-                                self.free_temp(temp_reg);
-                            }
-                        }
+                        self.destruct_pattern_struct(
+                            pck,
+                            pattern,
+                            value,
+                            ty,
+                            *struct_id,
+                            struct_type_params,
+                        );
                     }
 
-                    IdentType::Class(class_id, struct_type_params) => {
-                        let class = self.sa.class(*class_id);
-
-                        if let Some(ref params) = p.params {
-                            for (idx, param) in params.iter().enumerate() {
-                                let field_ty = class.fields[idx].ty();
-                                let field_ty =
-                                    specialize_type(self.sa, field_ty, struct_type_params);
-                                let register_ty = register_bty_from_ty(field_ty.clone());
-                                let idx = self.builder.add_const_field_types(
-                                    ClassId(class_id.index().try_into().expect("overflow")),
-                                    bty_array_from_ty(struct_type_params),
-                                    idx as u32,
-                                );
-                                let temp_reg = self.alloc_temp(register_ty);
-                                self.builder.emit_load_field(
-                                    temp_reg,
-                                    value,
-                                    idx,
-                                    self.loc(p.span),
-                                );
-                                self.destruct_pattern_inner(
-                                    pck,
-                                    param.as_ref(),
-                                    temp_reg,
-                                    field_ty,
-                                );
-                                self.free_temp(temp_reg);
-                            }
-                        }
+                    IdentType::Class(class_id, class_type_params) => {
+                        self.destruct_pattern_class(
+                            pck,
+                            pattern,
+                            value,
+                            ty,
+                            *class_id,
+                            class_type_params,
+                        );
                     }
 
                     _ => unreachable!(),
                 }
             }
 
-            ast::PatternAlt::Tuple(ref tuple) => {
-                if ty.is_unit() {
-                    assert!(tuple.params.is_empty());
-                } else {
-                    let tuple_subtypes = ty.tuple_subtypes();
-
-                    for (idx, param) in tuple.params.iter().enumerate() {
-                        let subtype = tuple_subtypes[idx].clone();
-                        let register_ty = register_bty_from_ty(subtype.clone());
-                        let idx = self
-                            .builder
-                            .add_const_tuple_element(bty_from_ty(ty.clone()), idx as u32);
-                        let temp_reg = self.alloc_temp(register_ty);
-                        self.builder.emit_load_tuple_element(temp_reg, value, idx);
-                        self.destruct_pattern_inner(pck, param.as_ref(), temp_reg, subtype);
-                        self.free_temp(temp_reg);
-                    }
-                }
+            ast::PatternAlt::Tuple(..) => {
+                self.destruct_pattern_tuple(pck, pattern, value, ty);
             }
 
             ast::PatternAlt::Rest(..) => unimplemented!(),
@@ -670,7 +617,7 @@ impl<'a> AstBytecodeGen<'a> {
         self.builder.emit_jump_if_false(match_reg, lbl);
 
         let variant = &enum_.variants[variant_idx as usize];
-        let params = class_or_struct_or_enum_params(pattern);
+        let params = get_subpatterns(pattern);
         assert_eq!(variant.types().len(), params.map(|p| p.len()).unwrap_or(0));
 
         if let Some(params) = params {
@@ -702,6 +649,93 @@ impl<'a> AstBytecodeGen<'a> {
         self.free_temp(actual_variant_reg);
         self.free_temp(expected_variant_reg);
         self.free_temp(match_reg);
+    }
+
+    fn destruct_pattern_struct(
+        &mut self,
+        pck: &mut PatternCheckContext,
+        pattern: &ast::PatternAlt,
+        value: Register,
+        _ty: SourceType,
+        struct_id: StructDefinitionId,
+        struct_type_params: &SourceTypeArray,
+    ) {
+        let struct_ = self.sa.struct_(struct_id);
+
+        if let Some(ref params) = get_subpatterns(pattern) {
+            for (idx, param) in params.iter().enumerate() {
+                let field_ty = struct_.fields[idx].ty();
+                let field_ty = specialize_type(self.sa, field_ty, struct_type_params);
+                let register_ty = register_bty_from_ty(field_ty.clone());
+                let idx = self.builder.add_const_struct_field(
+                    StructId(struct_id.index().try_into().expect("overflow")),
+                    bty_array_from_ty(struct_type_params),
+                    idx as u32,
+                );
+                let temp_reg = self.alloc_temp(register_ty);
+                self.builder.emit_load_struct_field(temp_reg, value, idx);
+                self.destruct_pattern_inner(pck, param.as_ref(), temp_reg, field_ty);
+                self.free_temp(temp_reg);
+            }
+        }
+    }
+
+    fn destruct_pattern_class(
+        &mut self,
+        pck: &mut PatternCheckContext,
+        pattern: &ast::PatternAlt,
+        value: Register,
+        _ty: SourceType,
+        class_id: ClassDefinitionId,
+        class_type_params: &SourceTypeArray,
+    ) {
+        let class = self.sa.class(class_id);
+
+        if let Some(ref params) = get_subpatterns(pattern) {
+            for (idx, param) in params.iter().enumerate() {
+                let field_ty = class.fields[idx].ty();
+                let field_ty = specialize_type(self.sa, field_ty, class_type_params);
+                let register_ty = register_bty_from_ty(field_ty.clone());
+                let idx = self.builder.add_const_field_types(
+                    ClassId(class_id.index().try_into().expect("overflow")),
+                    bty_array_from_ty(class_type_params),
+                    idx as u32,
+                );
+                let temp_reg = self.alloc_temp(register_ty);
+                self.builder
+                    .emit_load_field(temp_reg, value, idx, self.loc(pattern.span()));
+                self.destruct_pattern_inner(pck, param.as_ref(), temp_reg, field_ty);
+                self.free_temp(temp_reg);
+            }
+        }
+    }
+
+    fn destruct_pattern_tuple(
+        &mut self,
+        pck: &mut PatternCheckContext,
+        pattern: &ast::PatternAlt,
+        value: Register,
+        ty: SourceType,
+    ) {
+        let subpatterns = get_subpatterns(pattern).expect("tuple expected");
+
+        if ty.is_unit() {
+            assert!(subpatterns.is_empty());
+        } else {
+            let tuple_subtypes = ty.tuple_subtypes();
+
+            for (idx, param) in subpatterns.iter().enumerate() {
+                let subtype = tuple_subtypes[idx].clone();
+                let register_ty = register_bty_from_ty(subtype.clone());
+                let idx = self
+                    .builder
+                    .add_const_tuple_element(bty_from_ty(ty.clone()), idx as u32);
+                let temp_reg = self.alloc_temp(register_ty);
+                self.builder.emit_load_tuple_element(temp_reg, value, idx);
+                self.destruct_pattern_inner(pck, param.as_ref(), temp_reg, subtype);
+                self.free_temp(temp_reg);
+            }
+        }
     }
 
     fn destruct_pattern_var(
@@ -3169,16 +3203,16 @@ fn field_id_from_context_idx(context_idx: ContextFieldId, has_outer_context_slot
     FieldId(start_idx + context_idx)
 }
 
-fn class_or_struct_or_enum_params(p: &ast::PatternAlt) -> Option<&Vec<Arc<ast::Pattern>>> {
+fn get_subpatterns(p: &ast::PatternAlt) -> Option<&Vec<Arc<ast::Pattern>>> {
     match p {
         ast::PatternAlt::Underscore(..)
-        | ast::PatternAlt::Tuple(..)
         | ast::PatternAlt::LitBool(..)
         | ast::PatternAlt::Rest(..) => {
             unreachable!()
         }
         ast::PatternAlt::Ident(..) => None,
         ast::PatternAlt::ClassOrStructOrEnum(p) => p.params.as_ref(),
+        ast::PatternAlt::Tuple(p) => Some(&p.params),
     }
 }
 
