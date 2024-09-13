@@ -1720,10 +1720,10 @@ impl SsaGen {
             BytecodeType::Float64 => {
                 // No need to clear any reference.
             }
-            BytecodeType::Class(_, _)
+            BytecodeType::Class(..)
             | BytecodeType::Ptr
-            | BytecodeType::Lambda(_, _)
-            | BytecodeType::Trait(_, _) => {
+            | BytecodeType::Lambda(..)
+            | BytecodeType::Trait(..) => {
                 self.clearArrayElementPointer(array, index);
             }
             BytecodeType::Enum(enum_id, type_params) => {
@@ -2614,10 +2614,10 @@ impl SsaGen {
             BytecodeType::Char => Type::Int32,
             BytecodeType::Int64 => Type::Int64,
             BytecodeType::Float64 => Type::Float64,
-            BytecodeType::Class(_, _)
+            BytecodeType::Class(..)
             | BytecodeType::Ptr
-            | BytecodeType::Lambda(_, _)
-            | BytecodeType::Trait(_, _) => Type::Ptr,
+            | BytecodeType::Lambda(..)
+            | BytecodeType::Trait(..) => Type::Ptr,
             BytecodeType::Enum(enum_id, type_params) => {
                 let layout = self.computeEnumLayout(enum_id, type_params);
                 match layout {
@@ -2625,7 +2625,7 @@ impl SsaGen {
                     EnumLayout::PtrOrNull(_) | EnumLayout::Tagged => Type::Ptr,
                 }
             }
-            BytecodeType::Struct(_, _)
+            BytecodeType::Struct(..)
             | BytecodeType::Tuple(_) => Type::Address,
             BytecodeType::This
             | BytecodeType::TypeParam(_) => unreachable[Type](),

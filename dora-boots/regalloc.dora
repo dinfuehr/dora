@@ -987,9 +987,9 @@ fn computeRecordLayout(fieldTypes: Array[BytecodeType], start_size: Int32, start
             | BytecodeType::Float64 => {
                 addField(8i32, 8i32, fieldTy);
             }
-            BytecodeType::Class(_, _)
-            | BytecodeType::Lambda(_, _)
-            | BytecodeType::Trait(_, _) => {
+            BytecodeType::Class(..)
+            | BytecodeType::Lambda(..)
+            | BytecodeType::Trait(..) => {
                 let offset = addField(8i32, 8i32, fieldTy);
                 refs.push(offset);
             }
@@ -1099,12 +1099,12 @@ pub fn isReference(ty: BytecodeType): Bool {
         | BytecodeType::Char
         | BytecodeType::Int64
         | BytecodeType::Float64
-        | BytecodeType::Struct(_, _)
+        | BytecodeType::Struct(..)
         | BytecodeType::Tuple(_) => false,
-        BytecodeType::Class(_, _)
+        BytecodeType::Class(..)
         | BytecodeType::Ptr
-        | BytecodeType::Lambda(_, _)
-        | BytecodeType::Trait(_, _) => true,
+        | BytecodeType::Lambda(..)
+        | BytecodeType::Trait(..) => true,
         BytecodeType::This
         | BytecodeType::TypeParam(_) => unreachable[Bool](),
         BytecodeType::Enum(enum_id, type_params) => {

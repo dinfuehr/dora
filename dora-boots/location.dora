@@ -478,18 +478,18 @@ fn computeArgumentLocations(codegen: CodeGen, ci: CompilationInfo): ArgumentLoca
 
         let uses_fp_reg = match ty {
             BytecodeType::Float32 | BytecodeType::Float64 => true,
-            BytecodeType::Struct(_, _)
+            BytecodeType::Struct(..)
             | BytecodeType::Tuple(_)
             | BytecodeType::Bool
             | BytecodeType::UInt8
             | BytecodeType::Int32
             | BytecodeType::Char
             | BytecodeType::Int64
-            | BytecodeType::Class(_, _)
+            | BytecodeType::Class(..)
             | BytecodeType::Ptr
-            | BytecodeType::Lambda(_, _)
-            | BytecodeType::Trait(_, _)
-            | BytecodeType::Enum(_, _) => false,
+            | BytecodeType::Lambda(..)
+            | BytecodeType::Trait(..)
+            | BytecodeType::Enum(..) => false,
             BytecodeType::Unit
             | BytecodeType::This
             | BytecodeType::TypeParam(_)

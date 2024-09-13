@@ -254,7 +254,7 @@ impl BytecodeType {
 
     pub fn isStruct(): Bool {
         match self {
-            BytecodeType::Struct(_, _) => true,
+            BytecodeType::Struct(..) => true,
             _ => false,
         }
     }
@@ -268,7 +268,7 @@ impl BytecodeType {
 
     pub fn isEnum(): Bool {
         match self {
-            BytecodeType::Enum(_, _) => true,
+            BytecodeType::Enum(..) => true,
             _ => false,
         }
     }
