@@ -297,6 +297,7 @@ pub struct KnownFunctions {
     pub string_buffer_to_string: Option<FctDefinitionId>,
     pub assert: Option<FctDefinitionId>,
     pub unreachable: Option<FctDefinitionId>,
+    pub fatal_error: Option<FctDefinitionId>,
     pub option_is_some: Option<FctDefinitionId>,
     pub option_is_none: Option<FctDefinitionId>,
     pub option_unwrap: Option<FctDefinitionId>,
@@ -314,6 +315,7 @@ impl KnownFunctions {
             string_buffer_to_string: None,
             assert: None,
             unreachable: None,
+            fatal_error: None,
             option_is_none: None,
             option_is_some: None,
             option_unwrap: None,
@@ -342,6 +344,10 @@ impl KnownFunctions {
 
     pub fn unreachable(&self) -> FctDefinitionId {
         self.unreachable.expect("uninitialized")
+    }
+
+    pub fn fatal_error(&self) -> FctDefinitionId {
+        self.fatal_error.expect("uninitialized")
     }
 
     pub fn option_is_some(&self) -> FctDefinitionId {

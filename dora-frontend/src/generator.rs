@@ -5,7 +5,7 @@ use std::sync::Arc;
 use dora_parser::ast::CmpOp;
 use dora_parser::{ast, Span};
 
-use self::expr::{gen_expr, gen_expr_bin_cmp, gen_unreachable};
+use self::expr::{gen_expr, gen_expr_bin_cmp, gen_fatal_error};
 use crate::sema::{
     emit_as_bytecode_operation, AnalysisData, CallType, ClassDefinitionId, ConstDefinitionId,
     ContextFieldId, EnumDefinitionId, FctDefinition, FctDefinitionId, FieldId, GlobalDefinition,
@@ -431,7 +431,7 @@ impl<'a> AstBytecodeGen<'a> {
             let merge_lbl = self.builder.create_label();
             self.builder.emit_jump(merge_lbl);
             self.builder.bind_label(mismatch_lbl);
-            gen_unreachable(self, pattern.span);
+            gen_fatal_error(self, "pattern matching failure", pattern.span);
             self.builder.bind_label(merge_lbl);
         }
     }
