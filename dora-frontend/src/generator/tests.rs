@@ -412,7 +412,6 @@ fn gen_stmt_let_tuple() {
                 Mov(r(1), r(3)),
                 LoadTupleElement(r(4), r(0), ConstPoolIdx(1)),
                 LoadTupleElement(r(3), r(4), ConstPoolIdx(2)),
-                LoadTupleElement(r(3), r(4), ConstPoolIdx(3)),
                 Mov(r(2), r(3)),
                 Add(r(3), r(1), r(2)),
                 Ret(r(3)),
@@ -431,11 +430,6 @@ fn gen_stmt_let_tuple() {
 
             assert_eq!(
                 fct.const_pool(ConstPoolIdx(2)),
-                &ConstPoolEntry::TupleElement(bty_from_ty(nested_tuple_ty.clone()), 0)
-            );
-
-            assert_eq!(
-                fct.const_pool(ConstPoolIdx(3)),
                 &ConstPoolEntry::TupleElement(bty_from_ty(nested_tuple_ty), 1)
             );
         },

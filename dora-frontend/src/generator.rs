@@ -3221,6 +3221,8 @@ where
         for subpattern in subpatterns {
             if subpattern.is_rest() {
                 idx += rest_len;
+            } else if subpattern.is_underscore() {
+                idx += 1;
             } else {
                 f(idx, subpattern.as_ref());
                 idx += 1;

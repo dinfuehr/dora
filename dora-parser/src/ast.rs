@@ -1985,6 +1985,10 @@ impl Pattern {
     pub fn is_rest(&self) -> bool {
         self.alts.len() == 1 && self.alts[0].is_rest()
     }
+
+    pub fn is_underscore(&self) -> bool {
+        self.alts.len() == 1 && self.alts[0].is_underscore()
+    }
 }
 
 #[derive(Clone, Debug)]
