@@ -204,6 +204,11 @@ fn check_pattern_alt(
             }
         }
 
+        ast::PatternAlt::LitChar(..)
+        | ast::PatternAlt::LitString(..)
+        | ast::PatternAlt::LitInt(..)
+        | ast::PatternAlt::LitFloat(..) => unimplemented!(),
+
         ast::PatternAlt::Underscore(..) => {
             // nothing to do
         }

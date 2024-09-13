@@ -1995,6 +1995,10 @@ impl Pattern {
 pub enum PatternAlt {
     Underscore(PatternUnderscore),
     LitBool(PatternLit),
+    LitChar(PatternLit),
+    LitString(PatternLit),
+    LitInt(PatternLit),
+    LitFloat(PatternLit),
     Tuple(PatternTuple),
     Ident(PatternIdent),
     ClassOrStructOrEnum(PatternClassOrStructOrEnum),
@@ -2006,6 +2010,10 @@ impl PatternAlt {
         match self {
             PatternAlt::Underscore(p) => p.id,
             PatternAlt::LitBool(p) => p.id,
+            PatternAlt::LitChar(p) => p.id,
+            PatternAlt::LitString(p) => p.id,
+            PatternAlt::LitInt(p) => p.id,
+            PatternAlt::LitFloat(p) => p.id,
             PatternAlt::Tuple(p) => p.id,
             PatternAlt::Ident(p) => p.id,
             PatternAlt::ClassOrStructOrEnum(p) => p.id,
@@ -2017,6 +2025,10 @@ impl PatternAlt {
         match self {
             PatternAlt::Underscore(p) => p.span,
             PatternAlt::LitBool(p) => p.span,
+            PatternAlt::LitChar(p) => p.span,
+            PatternAlt::LitString(p) => p.span,
+            PatternAlt::LitInt(p) => p.span,
+            PatternAlt::LitFloat(p) => p.span,
             PatternAlt::Tuple(p) => p.span,
             PatternAlt::Ident(p) => p.span,
             PatternAlt::ClassOrStructOrEnum(p) => p.span,

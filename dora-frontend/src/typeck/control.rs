@@ -424,7 +424,12 @@ fn check_coverage(ck: &mut TypeCheck, node: &ast::ExprMatchType, expr_type: Sour
 
                 ast::PatternAlt::Rest(..) => unreachable!(),
 
-                ast::PatternAlt::LitBool(..) | ast::PatternAlt::Tuple(..) => unreachable!(),
+                ast::PatternAlt::LitBool(..)
+                | ast::PatternAlt::LitChar(..)
+                | ast::PatternAlt::LitString(..)
+                | ast::PatternAlt::LitInt(..)
+                | ast::PatternAlt::LitFloat(..)
+                | ast::PatternAlt::Tuple(..) => unreachable!(),
 
                 ast::PatternAlt::Ident(ref ident) => {
                     let sym = read_ident(ck, &ident.name);
@@ -495,6 +500,10 @@ pub(super) fn get_subpatterns(p: &ast::PatternAlt) -> Option<&Vec<Arc<ast::Patte
     match p {
         ast::PatternAlt::Underscore(..)
         | ast::PatternAlt::LitBool(..)
+        | ast::PatternAlt::LitChar(..)
+        | ast::PatternAlt::LitString(..)
+        | ast::PatternAlt::LitInt(..)
+        | ast::PatternAlt::LitFloat(..)
         | ast::PatternAlt::Rest(..) => {
             unreachable!()
         }

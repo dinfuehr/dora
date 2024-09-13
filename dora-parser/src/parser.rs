@@ -1374,11 +1374,11 @@ impl Parser {
     fn parse_pattern(&mut self) -> Arc<Pattern> {
         self.start_node();
 
-        let first = self.parse_pattern_no_alt();
+        let first = self.parse_pattern_alt();
         let mut alts = vec![first];
 
         while self.eat(OR) {
-            alts.push(self.parse_pattern_no_alt());
+            alts.push(self.parse_pattern_alt());
         }
 
         Arc::new(Pattern {
@@ -1388,7 +1388,7 @@ impl Parser {
         })
     }
 
-    fn parse_pattern_no_alt(&mut self) -> Arc<PatternAlt> {
+    fn parse_pattern_alt(&mut self) -> Arc<PatternAlt> {
         self.start_node();
 
         if self.eat(UNDERSCORE) {
@@ -1430,7 +1430,15 @@ impl Parser {
                 span: self.finish_node(),
                 params,
             }))
-        } else if self.eat(MUT_KW) {
+        } else if self.is(STRING_LITERAL) {
+            let expr = self.parse_string();
+            Arc::new(PatternAlt::LitString(PatternLit {
+                id: self.new_node_id(),
+                span: self.finish_node(),
+                expr,
+            }))
+        } else if self.is_pair(MUT_KW, IDENTIFIER) {
+            self.assert(MUT_KW);
             let name = self.expect_identifier().expect("identifier expected");
             Arc::new(PatternAlt::Ident(PatternIdent {
                 id: self.new_node_id(),
@@ -1438,8 +1446,8 @@ impl Parser {
                 mutable: true,
                 name,
             }))
-        } else {
-            if self.is(IDENTIFIER) && !(self.nth_is(1, COLON_COLON) || self.nth_is(1, L_PAREN)) {
+        } else if self.is(IDENTIFIER) {
+            if !self.nth_is(1, COLON_COLON) && !self.nth_is(1, L_PAREN) {
                 let name = self.expect_identifier().expect("identifier expected");
                 return Arc::new(PatternAlt::Ident(PatternIdent {
                     id: self.new_node_id(),
@@ -1481,6 +1489,8 @@ impl Parser {
                     params,
                 },
             ))
+        } else {
+            unreachable!()
         }
     }
 
@@ -2196,6 +2206,25 @@ impl Parser {
 
     fn is(&self, kind: TokenKind) -> bool {
         self.current() == kind
+    }
+
+    fn is_pair(&self, fst: TokenKind, snd: TokenKind) -> bool {
+        if !self.is(fst) {
+            return false;
+        }
+
+        let mut idx = 1;
+
+        loop {
+            let curr = self.nth(idx);
+
+            if curr.is_trivia() {
+                idx += 1;
+                continue;
+            }
+
+            return curr == snd;
+        }
     }
 
     fn is_set(&self, set: TokenSet) -> bool {

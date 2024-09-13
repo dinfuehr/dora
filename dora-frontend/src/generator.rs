@@ -378,6 +378,10 @@ impl<'a> AstBytecodeGen<'a> {
             }
 
             ast::PatternAlt::LitBool(..)
+            | ast::PatternAlt::LitChar(..)
+            | ast::PatternAlt::LitString(..)
+            | ast::PatternAlt::LitInt(..)
+            | ast::PatternAlt::LitFloat(..)
             | ast::PatternAlt::Underscore(..)
             | ast::PatternAlt::Rest(..) => {
                 // nothing to do
@@ -526,6 +530,11 @@ impl<'a> AstBytecodeGen<'a> {
                     self.builder.emit_jump_if_true(value, mismatch_lbl);
                 }
             }
+
+            ast::PatternAlt::LitChar(..)
+            | ast::PatternAlt::LitString(..)
+            | ast::PatternAlt::LitInt(..)
+            | ast::PatternAlt::LitFloat(..) => unimplemented!(),
 
             ast::PatternAlt::Underscore(_) => {
                 // nothing to do
@@ -3196,6 +3205,10 @@ fn get_subpatterns(p: &ast::PatternAlt) -> Option<&Vec<Arc<ast::Pattern>>> {
     match p {
         ast::PatternAlt::Underscore(..)
         | ast::PatternAlt::LitBool(..)
+        | ast::PatternAlt::LitChar(..)
+        | ast::PatternAlt::LitString(..)
+        | ast::PatternAlt::LitInt(..)
+        | ast::PatternAlt::LitFloat(..)
         | ast::PatternAlt::Rest(..) => {
             unreachable!()
         }
