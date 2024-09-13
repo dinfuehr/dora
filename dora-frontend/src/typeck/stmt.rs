@@ -282,17 +282,14 @@ fn check_pattern_enum(
             .map(|t| specialize_type(ck.sa, t.clone(), &value_type_params))
             .collect::<Vec<_>>();
         check_subpatterns(ck, ctxt, pattern, &expected_types);
-    } else if !ty.is_error() {
-        let ty = ty.name(ck.sa);
-        let msg = ErrorMessage::PatternTypeMismatch(ty);
-        ck.sa.report(ck.file_id, pattern.span(), msg);
-
-        if let Some(params) = params {
-            for param in params.iter() {
-                let param_ty = SourceType::Error;
-                check_pattern_inner(ck, ctxt, param.as_ref(), param_ty);
-            }
+    } else {
+        if !ty.is_error() {
+            let ty = ty.name(ck.sa);
+            let msg = ErrorMessage::PatternTypeMismatch(ty);
+            ck.sa.report(ck.file_id, pattern.span(), msg);
         }
+
+        check_subpatterns_error(ck, ctxt, pattern);
     }
 }
 
@@ -314,10 +311,7 @@ fn check_pattern_tuple(
             );
         }
 
-        for param in &tuple_pattern.params {
-            check_pattern_inner(ck, ctxt, param, SourceType::Error);
-        }
-
+        check_subpatterns_error(ck, ctxt, pattern);
         return;
     }
 
@@ -338,7 +332,6 @@ fn check_pattern_class(
     cls_id: ClassDefinitionId,
 ) {
     let cls = ck.sa.class(cls_id);
-    let params = get_subpatterns(pattern);
 
     if !class_accessible_from(ck.sa, cls_id, ck.module_id) {
         let msg = ErrorMessage::NotAccessible(cls.name(ck.sa));
@@ -365,17 +358,14 @@ fn check_pattern_class(
             .collect::<Vec<_>>();
 
         check_subpatterns(ck, ctxt, pattern, &expected_types);
-    } else if !ty.is_error() {
-        let ty = ty.name(ck.sa);
-        let msg = ErrorMessage::PatternTypeMismatch(ty);
-        ck.sa.report(ck.file_id, pattern.span(), msg);
-
-        if let Some(ref params) = params {
-            for param in params.iter() {
-                let param_ty = SourceType::Error;
-                check_pattern_inner(ck, ctxt, param.as_ref(), param_ty);
-            }
+    } else {
+        if !ty.is_error() {
+            let ty = ty.name(ck.sa);
+            let msg = ErrorMessage::PatternTypeMismatch(ty);
+            ck.sa.report(ck.file_id, pattern.span(), msg);
         }
+
+        check_subpatterns_error(ck, ctxt, pattern);
     }
 }
 
@@ -387,7 +377,6 @@ fn check_pattern_struct(
     struct_id: StructDefinitionId,
 ) {
     let struct_ = ck.sa.struct_(struct_id);
-    let params = get_subpatterns(pattern);
 
     if !struct_accessible_from(ck.sa, struct_id, ck.module_id) {
         let msg = ErrorMessage::NotAccessible(struct_.name(ck.sa));
@@ -414,17 +403,14 @@ fn check_pattern_struct(
             .collect::<Vec<_>>();
 
         check_subpatterns(ck, ctxt, pattern, &expected_types);
-    } else if !ty.is_error() {
-        let ty = ty.name(ck.sa);
-        let msg = ErrorMessage::PatternTypeMismatch(ty);
-        ck.sa.report(ck.file_id, pattern.span(), msg);
-
-        if let Some(ref params) = params {
-            for param in params.iter() {
-                let param_ty = SourceType::Error;
-                check_pattern_inner(ck, ctxt, param.as_ref(), param_ty);
-            }
+    } else {
+        if !ty.is_error() {
+            let ty = ty.name(ck.sa);
+            let msg = ErrorMessage::PatternTypeMismatch(ty);
+            ck.sa.report(ck.file_id, pattern.span(), msg);
         }
+
+        check_subpatterns_error(ck, ctxt, pattern);
     }
 }
 
@@ -455,7 +441,16 @@ fn check_subpatterns<'a>(
             }
         } else if rest_count == 1 {
             let params_count = params.len() - 1;
-            assert!(params_count <= expected_types.len());
+
+            if params_count > expected_types.len() {
+                let msg =
+                    ErrorMessage::PatternWrongNumberOfParams(params_count, expected_types.len());
+                ck.sa.report(ck.file_id, pattern.span(), msg);
+
+                check_subpatterns_error(ck, ctxt, pattern);
+                return;
+            }
+
             let rest_len = expected_types.len() - params_count;
             let mut idx = 0;
 
@@ -475,16 +470,22 @@ fn check_subpatterns<'a>(
             let msg = ErrorMessage::PatternMultipleRest;
             ck.sa.report(ck.file_id, pattern.span(), msg);
 
-            for subpattern in params {
-                if !subpattern.is_rest() {
-                    check_pattern_inner(ck, ctxt, subpattern.as_ref(), SourceType::Error);
-                }
-            }
+            check_subpatterns_error(ck, ctxt, pattern);
         }
     } else {
         if expected_types.len() > 0 {
             let msg = ErrorMessage::PatternWrongNumberOfParams(0, expected_types.len());
             ck.sa.report(ck.file_id, pattern.span(), msg);
+        }
+    }
+}
+
+fn check_subpatterns_error(ck: &mut TypeCheck, ctxt: &mut Context, pattern: &ast::PatternAlt) {
+    if let Some(subpatterns) = get_subpatterns(pattern) {
+        for subpattern in subpatterns {
+            if !subpattern.is_rest() {
+                check_pattern_inner(ck, ctxt, subpattern.as_ref(), SourceType::Error);
+            }
         }
     }
 }

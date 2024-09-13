@@ -4489,4 +4489,14 @@ fn test_pattern_rest() {
             let (..) = x;
         }
 ");
+
+    err(
+        "
+fn f(x: (Int64, Int64)) {
+    let (a, b, c, ..) = x;
+}
+",
+        (3, 9),
+        ErrorMessage::PatternWrongNumberOfParams(3, 2),
+    );
 }
