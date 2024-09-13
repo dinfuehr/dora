@@ -420,19 +420,21 @@ fn check_subpatterns<'a>(
     pattern: &ast::PatternAlt,
     expected_types: &'a [SourceType],
 ) {
-    let params = get_subpatterns(pattern);
+    let subpatterns = get_subpatterns(pattern);
 
-    if let Some(params) = params {
-        let rest_count = params.iter().filter(|p| p.is_rest()).count();
+    if let Some(subpatterns) = subpatterns {
+        let rest_count = subpatterns.iter().filter(|p| p.is_rest()).count();
 
         if rest_count == 0 {
-            if params.len() != expected_types.len() {
-                let msg =
-                    ErrorMessage::PatternWrongNumberOfParams(params.len(), expected_types.len());
+            if subpatterns.len() != expected_types.len() {
+                let msg = ErrorMessage::PatternWrongNumberOfParams(
+                    subpatterns.len(),
+                    expected_types.len(),
+                );
                 ck.sa.report(ck.file_id, pattern.span(), msg);
             }
 
-            for (idx, subpattern) in params.iter().enumerate() {
+            for (idx, subpattern) in subpatterns.iter().enumerate() {
                 let ty = expected_types
                     .get(idx)
                     .cloned()
@@ -440,21 +442,21 @@ fn check_subpatterns<'a>(
                 check_pattern_inner(ck, ctxt, subpattern.as_ref(), ty);
             }
         } else if rest_count == 1 {
-            let params_count = params.len() - 1;
+            let pattern_count = subpatterns.len() - 1;
 
-            if params_count > expected_types.len() {
+            if pattern_count > expected_types.len() {
                 let msg =
-                    ErrorMessage::PatternWrongNumberOfParams(params_count, expected_types.len());
+                    ErrorMessage::PatternWrongNumberOfParams(pattern_count, expected_types.len());
                 ck.sa.report(ck.file_id, pattern.span(), msg);
 
                 check_subpatterns_error(ck, ctxt, pattern);
                 return;
             }
 
-            let rest_len = expected_types.len() - params_count;
+            let rest_len = expected_types.len() - pattern_count;
             let mut idx = 0;
 
-            for subpattern in params {
+            for subpattern in subpatterns {
                 if subpattern.is_rest() {
                     idx += rest_len;
                 } else {
