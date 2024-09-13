@@ -1,0 +1,17 @@
+fn main() {
+    assert(fst((1, 7)) == 1);
+    assert(snd((1, 7)) == 7);
+
+    assert(fst((7, 1)) == 7);
+    assert(snd((7, 1)) == 1);
+}
+
+fn fst(x: (Int64, Int64)): Int64 {
+    let (a, ..) = x;
+    a
+}
+
+fn snd(x: (Int64, Int64)): Int64 {
+    let (.., a) = x;
+    a
+}

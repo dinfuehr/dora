@@ -577,7 +577,7 @@ impl<'a> AstBytecodeGen<'a> {
                 self.destruct_pattern_tuple(pck, pattern, value, ty);
             }
 
-            ast::PatternAlt::Rest(..) => unimplemented!(),
+            ast::PatternAlt::Rest(..) => unreachable!(),
         }
     }
 
@@ -723,18 +723,29 @@ impl<'a> AstBytecodeGen<'a> {
             assert!(subpatterns.is_empty());
         } else {
             let tuple_subtypes = ty.tuple_subtypes();
+            let rest_len = get_rest_len(subpatterns.as_slice());
+            let mut idx = 0;
 
-            for (idx, param) in subpatterns.iter().enumerate() {
-                let subtype = tuple_subtypes[idx].clone();
-                let register_ty = register_bty_from_ty(subtype.clone());
-                let idx = self
-                    .builder
-                    .add_const_tuple_element(bty_from_ty(ty.clone()), idx as u32);
-                let temp_reg = self.alloc_temp(register_ty);
-                self.builder.emit_load_tuple_element(temp_reg, value, idx);
-                self.destruct_pattern_inner(pck, param.as_ref(), temp_reg, subtype);
-                self.free_temp(temp_reg);
+            for subpattern in subpatterns {
+                if subpattern.is_rest() {
+                    idx += rest_len;
+                } else {
+                    let subtype = tuple_subtypes[idx].clone();
+                    let register_ty = register_bty_from_ty(subtype.clone());
+                    let cp_idx = self
+                        .builder
+                        .add_const_tuple_element(bty_from_ty(ty.clone()), idx as u32);
+                    let temp_reg = self.alloc_temp(register_ty);
+                    self.builder
+                        .emit_load_tuple_element(temp_reg, value, cp_idx);
+                    self.destruct_pattern_inner(pck, subpattern.as_ref(), temp_reg, subtype);
+                    self.free_temp(temp_reg);
+
+                    idx += 1;
+                }
             }
+
+            assert_eq!(idx, tuple_subtypes.len());
         }
     }
 
@@ -3213,6 +3224,14 @@ fn get_subpatterns(p: &ast::PatternAlt) -> Option<&Vec<Arc<ast::Pattern>>> {
         ast::PatternAlt::Ident(..) => None,
         ast::PatternAlt::ClassOrStructOrEnum(p) => p.params.as_ref(),
         ast::PatternAlt::Tuple(p) => Some(&p.params),
+    }
+}
+
+fn get_rest_len(subpatterns: &[Arc<ast::Pattern>]) -> usize {
+    if subpatterns.iter().find(|p| p.is_rest()).is_some() {
+        subpatterns.len() - 1
+    } else {
+        0
     }
 }
 
