@@ -1453,20 +1453,6 @@ impl Parser {
             }))
         } else if self.is(FLOAT_LITERAL) || self.is_pair(SUB, FLOAT_LITERAL) {
             let expr = self.parse_lit_float_minus();
-            Arc::new(PatternAlt::LitInt(PatternLit {
-                id: self.new_node_id(),
-                span: self.finish_node(),
-                expr,
-            }))
-        } else if self.is_pair(SUB, FLOAT_LITERAL) {
-            let expr = self.parse_unary_expr();
-            Arc::new(PatternAlt::LitFloat(PatternLit {
-                id: self.new_node_id(),
-                span: self.finish_node(),
-                expr,
-            }))
-        } else if self.is(FLOAT_LITERAL) {
-            let expr = self.parse_lit_int();
             Arc::new(PatternAlt::LitFloat(PatternLit {
                 id: self.new_node_id(),
                 span: self.finish_node(),
@@ -2953,6 +2939,17 @@ mod tests {
 
     #[test]
     fn parse_let_lit_int() {
+        let stmt = parse_let("let (a, 17) = 1;");
+        let let_decl = stmt.to_let().unwrap();
+
+        let pattern = let_decl.pattern.first_alt().unwrap();
+        let tuple = pattern.to_tuple().unwrap();
+        assert!(tuple.params[0].is_ident());
+        assert!(tuple.params[1].is_lit_int());
+    }
+
+    #[test]
+    fn parse_let_lit_int_neg() {
         let stmt = parse_let("let (a, -17) = 1;");
         let let_decl = stmt.to_let().unwrap();
 
@@ -2964,13 +2961,24 @@ mod tests {
 
     #[test]
     fn parse_let_lit_float() {
+        let stmt = parse_let("let (a, 17.5) = 1;");
+        let let_decl = stmt.to_let().unwrap();
+
+        let pattern = let_decl.pattern.first_alt().unwrap();
+        let tuple = pattern.to_tuple().unwrap();
+        assert!(tuple.params[0].is_ident());
+        assert!(tuple.params[1].is_lit_float());
+    }
+
+    #[test]
+    fn parse_let_lit_float_neg() {
         let stmt = parse_let("let (a, -17.5) = 1;");
         let let_decl = stmt.to_let().unwrap();
 
         let pattern = let_decl.pattern.first_alt().unwrap();
         let tuple = pattern.to_tuple().unwrap();
         assert!(tuple.params[0].is_ident());
-        assert!(tuple.params[1].is_lit_int());
+        assert!(tuple.params[1].is_lit_float());
     }
 
     #[test]
@@ -3390,9 +3398,7 @@ mod tests {
     #[test]
     fn parse_lit_float() {
         let expr = parse_expr("1.2");
-
         let lit = expr.to_lit_float().unwrap();
-
         assert_eq!("1.2", lit.value);
     }
 
