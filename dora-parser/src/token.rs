@@ -73,6 +73,7 @@ pub const PATTERN_FIRST: TokenSet = TokenSet::new(&[
     DOT_DOT,
     IDENTIFIER,
     CHAR_LITERAL,
+    STRING_LITERAL,
 ]);
 pub const PATTERN_RS: TokenSet = TokenSet::new(&[DOUBLE_ARROW]);
 

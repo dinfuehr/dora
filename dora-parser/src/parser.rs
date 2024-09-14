@@ -2885,6 +2885,17 @@ mod tests {
     }
 
     #[test]
+    fn parse_let_lit_string() {
+        let stmt = parse_let("let (a, \"x\") = 1;");
+        let let_decl = stmt.to_let().unwrap();
+
+        let pattern = let_decl.pattern.first_alt().unwrap();
+        let tuple = pattern.to_tuple().unwrap();
+        assert!(tuple.params[0].is_ident());
+        assert!(tuple.params[1].is_lit_string());
+    }
+
+    #[test]
     fn parse_let_ident() {
         let stmt = parse_let("let x = 1;");
         let let_decl = stmt.to_let().unwrap();
