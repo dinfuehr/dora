@@ -1989,6 +1989,30 @@ impl Pattern {
     pub fn is_underscore(&self) -> bool {
         self.alts.len() == 1 && self.alts[0].is_underscore()
     }
+
+    pub fn is_ident(&self) -> bool {
+        self.alts.len() == 1 && self.alts[0].is_ident()
+    }
+
+    pub fn is_lit_bool(&self) -> bool {
+        self.alts.len() == 1 && self.alts[0].is_lit_bool()
+    }
+
+    pub fn is_lit_char(&self) -> bool {
+        self.alts.len() == 1 && self.alts[0].is_lit_char()
+    }
+
+    pub fn is_lit_int(&self) -> bool {
+        self.alts.len() == 1 && self.alts[0].is_lit_int()
+    }
+
+    pub fn is_lit_float(&self) -> bool {
+        self.alts.len() == 1 && self.alts[0].is_lit_float()
+    }
+
+    pub fn is_lit_string(&self) -> bool {
+        self.alts.len() == 1 && self.alts[0].is_lit_string()
+    }
 }
 
 #[derive(Clone, Debug)]
@@ -2053,6 +2077,34 @@ impl PatternAlt {
     pub fn is_lit_bool(&self) -> bool {
         match self {
             PatternAlt::LitBool(..) => true,
+            _ => false,
+        }
+    }
+
+    pub fn is_lit_char(&self) -> bool {
+        match self {
+            PatternAlt::LitChar(..) => true,
+            _ => false,
+        }
+    }
+
+    pub fn is_lit_int(&self) -> bool {
+        match self {
+            PatternAlt::LitInt(..) => true,
+            _ => false,
+        }
+    }
+
+    pub fn is_lit_float(&self) -> bool {
+        match self {
+            PatternAlt::LitFloat(..) => true,
+            _ => false,
+        }
+    }
+
+    pub fn is_lit_string(&self) -> bool {
+        match self {
+            PatternAlt::LitString(..) => true,
             _ => false,
         }
     }

@@ -1430,6 +1430,13 @@ impl Parser {
                 span: self.finish_node(),
                 params,
             }))
+        } else if self.is(CHAR_LITERAL) {
+            let expr = self.parse_lit_char();
+            Arc::new(PatternAlt::LitChar(PatternLit {
+                id: self.new_node_id(),
+                span: self.finish_node(),
+                expr,
+            }))
         } else if self.is(STRING_LITERAL) {
             let expr = self.parse_string();
             Arc::new(PatternAlt::LitString(PatternLit {
@@ -2864,6 +2871,17 @@ mod tests {
         let tuple = pattern.to_tuple().unwrap();
         assert!(tuple.params[0].first_alt().unwrap().is_ident());
         assert!(tuple.params[1].first_alt().unwrap().is_lit_bool());
+    }
+
+    #[test]
+    fn parse_let_lit_char() {
+        let stmt = parse_let("let (a, 'x') = 1;");
+        let let_decl = stmt.to_let().unwrap();
+
+        let pattern = let_decl.pattern.first_alt().unwrap();
+        let tuple = pattern.to_tuple().unwrap();
+        assert!(tuple.params[0].is_ident());
+        assert!(tuple.params[1].is_lit_char());
     }
 
     #[test]

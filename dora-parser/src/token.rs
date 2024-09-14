@@ -65,7 +65,14 @@ pub const FIELD_RS: TokenSet = ELEM_FIRST;
 pub const LET_PATTERN_FIRST: TokenSet = TokenSet::new(&[L_PAREN, MUT_KW, UNDERSCORE, IDENTIFIER]);
 pub const LET_PATTERN_RS: TokenSet = TokenSet::new(&[EQ]);
 pub const PATTERN_FIRST: TokenSet = TokenSet::new(&[
-    UNDERSCORE, MUT_KW, L_PAREN, TRUE, FALSE, DOT_DOT, IDENTIFIER,
+    UNDERSCORE,
+    MUT_KW,
+    L_PAREN,
+    TRUE,
+    FALSE,
+    DOT_DOT,
+    IDENTIFIER,
+    CHAR_LITERAL,
 ]);
 pub const PATTERN_RS: TokenSet = TokenSet::new(&[DOUBLE_ARROW]);
 
