@@ -74,6 +74,9 @@ pub const PATTERN_FIRST: TokenSet = TokenSet::new(&[
     IDENTIFIER,
     CHAR_LITERAL,
     STRING_LITERAL,
+    INT_LITERAL,
+    FLOAT_LITERAL,
+    SUB,
 ]);
 pub const PATTERN_RS: TokenSet = TokenSet::new(&[DOUBLE_ARROW]);
 

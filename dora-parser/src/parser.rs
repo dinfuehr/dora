@@ -1444,6 +1444,34 @@ impl Parser {
                 span: self.finish_node(),
                 expr,
             }))
+        } else if self.is(INT_LITERAL) || self.is_pair(SUB, INT_LITERAL) {
+            let expr = self.parse_lit_int_minus();
+            Arc::new(PatternAlt::LitInt(PatternLit {
+                id: self.new_node_id(),
+                span: self.finish_node(),
+                expr,
+            }))
+        } else if self.is(FLOAT_LITERAL) || self.is_pair(SUB, FLOAT_LITERAL) {
+            let expr = self.parse_lit_float_minus();
+            Arc::new(PatternAlt::LitInt(PatternLit {
+                id: self.new_node_id(),
+                span: self.finish_node(),
+                expr,
+            }))
+        } else if self.is_pair(SUB, FLOAT_LITERAL) {
+            let expr = self.parse_unary_expr();
+            Arc::new(PatternAlt::LitFloat(PatternLit {
+                id: self.new_node_id(),
+                span: self.finish_node(),
+                expr,
+            }))
+        } else if self.is(FLOAT_LITERAL) {
+            let expr = self.parse_lit_int();
+            Arc::new(PatternAlt::LitFloat(PatternLit {
+                id: self.new_node_id(),
+                span: self.finish_node(),
+                expr,
+            }))
         } else if self.is_pair(MUT_KW, IDENTIFIER) {
             self.assert(MUT_KW);
             let name = self.expect_identifier().expect("identifier expected");
@@ -1957,6 +1985,34 @@ impl Parser {
             green,
             value,
         ))
+    }
+
+    fn parse_lit_int_minus(&mut self) -> Expr {
+        self.parse_lit_with_minus(|p| p.parse_lit_int())
+    }
+
+    fn parse_lit_float_minus(&mut self) -> Expr {
+        self.parse_lit_with_minus(|p| p.parse_lit_float())
+    }
+
+    fn parse_lit_with_minus<F: FnOnce(&mut Parser) -> Expr>(&mut self, fct: F) -> Expr {
+        if self.is(SUB) {
+            self.start_node();
+            self.builder.start_node();
+            self.assert(SUB);
+
+            let expr = fct(self);
+            let green = self.builder.finish_node(UNARY_EXPR);
+            Arc::new(ExprData::create_un(
+                self.new_node_id(),
+                self.finish_node(),
+                green,
+                UnOp::Neg,
+                expr,
+            ))
+        } else {
+            fct(self)
+        }
     }
 
     fn parse_lit_float(&mut self) -> Expr {
@@ -2893,6 +2949,28 @@ mod tests {
         let tuple = pattern.to_tuple().unwrap();
         assert!(tuple.params[0].is_ident());
         assert!(tuple.params[1].is_lit_string());
+    }
+
+    #[test]
+    fn parse_let_lit_int() {
+        let stmt = parse_let("let (a, -17) = 1;");
+        let let_decl = stmt.to_let().unwrap();
+
+        let pattern = let_decl.pattern.first_alt().unwrap();
+        let tuple = pattern.to_tuple().unwrap();
+        assert!(tuple.params[0].is_ident());
+        assert!(tuple.params[1].is_lit_int());
+    }
+
+    #[test]
+    fn parse_let_lit_float() {
+        let stmt = parse_let("let (a, -17.5) = 1;");
+        let let_decl = stmt.to_let().unwrap();
+
+        let pattern = let_decl.pattern.first_alt().unwrap();
+        let tuple = pattern.to_tuple().unwrap();
+        assert!(tuple.params[0].is_ident());
+        assert!(tuple.params[1].is_lit_int());
     }
 
     #[test]
