@@ -10,6 +10,7 @@ use crate::typeck::control::{
     check_expr_break_and_continue, check_expr_for, check_expr_if, check_expr_match,
     check_expr_return, check_expr_while, get_subpatterns,
 };
+pub use crate::typeck::expr::compute_lit_int;
 use crate::typeck::expr::{
     check_enum_value_with_args, check_expr, read_ident, read_path, read_path_expr,
 };

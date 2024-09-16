@@ -11,8 +11,9 @@ use crate::interner::Name;
 use crate::program_parser::ParsedModifierList;
 use crate::sema::{
     create_tuple, find_field_in_class, find_impl, impl_matches, implements_trait, AnalysisData,
-    CallType, EnumDefinitionId, FctDefinition, FctParent, IdentType, Intrinsic,
-    LazyLambdaCreationData, LazyLambdaId, ModuleDefinitionId, NestedVarId, TraitDefinitionId,
+    CallType, ConstValue, EnumDefinitionId, FctDefinition, FctParent, IdentType, Intrinsic,
+    LazyLambdaCreationData, LazyLambdaId, ModuleDefinitionId, NestedVarId, Sema, SourceFileId,
+    TraitDefinitionId,
 };
 use crate::typeck::{
     check_expr_break_and_continue, check_expr_call, check_expr_call_enum_args, check_expr_for,
@@ -611,6 +612,28 @@ pub(super) fn check_expr_lit_int(
     ck.analysis.set_literal_value(e.id, value_i64, value_f64);
 
     ty
+}
+
+pub fn compute_lit_int(
+    sa: &Sema,
+    file_id: SourceFileId,
+    e: &ast::ExprData,
+    expected_ty: SourceType,
+) -> (SourceType, ConstValue) {
+    let (ty, value_i64, value_f64) = if e.is_un_op(ast::UnOp::Neg) {
+        let e = e.to_un().expect("unary expected");
+        let lit = e.opnd.to_lit_int().expect("literal expected");
+        check_lit_int(sa, file_id, lit, true, expected_ty)
+    } else {
+        let lit = e.to_lit_int().expect("literal expected");
+        check_lit_int(sa, file_id, lit, false, expected_ty)
+    };
+
+    if ty.is_float() {
+        (ty, ConstValue::Float(value_f64))
+    } else {
+        (ty, ConstValue::Int(value_i64))
+    }
 }
 
 fn check_expr_lit_float(

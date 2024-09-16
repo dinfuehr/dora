@@ -1373,6 +1373,13 @@ impl ExprData {
         }
     }
 
+    pub fn is_un_op(&self, op: UnOp) -> bool {
+        match *self {
+            ExprData::Un(ref e) if e.op == op => true,
+            _ => false,
+        }
+    }
+
     pub fn to_bin(&self) -> Option<&ExprBinType> {
         match *self {
             ExprData::Bin(ref val) => Some(val),
