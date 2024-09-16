@@ -531,8 +531,19 @@ impl<'a> AstBytecodeGen<'a> {
                 }
             }
 
-            ast::PatternAlt::LitChar(..)
-            | ast::PatternAlt::LitString(..)
+            ast::PatternAlt::LitChar(ref p) => {
+                let mismatch_lbl = pck.ensure_label(&mut self.builder);
+                let char_value = self.analysis.const_value(p.id).to_char();
+                let tmp = self.alloc_temp(BytecodeType::Bool);
+                let expected = self.alloc_temp(BytecodeType::Char);
+                self.builder.emit_const_char(expected, char_value);
+                self.builder.emit_test_eq(tmp, value, expected);
+                self.builder.emit_jump_if_false(tmp, mismatch_lbl);
+                self.builder.free_temp(tmp);
+                self.builder.free_temp(expected);
+            }
+
+            ast::PatternAlt::LitString(..)
             | ast::PatternAlt::LitInt(..)
             | ast::PatternAlt::LitFloat(..) => unimplemented!(),
 

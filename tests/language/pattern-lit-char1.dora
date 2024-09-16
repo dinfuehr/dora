@@ -1,0 +1,10 @@
+fn main() {
+    assert(f((0, 't')) == 0);
+    assert(f((2, 't')) == 2);
+    assert(f((17, 't')) == 17);
+}
+
+fn f(x: (Int64, Char)): Int64 {
+    let (a, 't') = x;
+    a
+}
