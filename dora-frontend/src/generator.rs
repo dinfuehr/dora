@@ -543,9 +543,31 @@ impl<'a> AstBytecodeGen<'a> {
                 self.builder.free_temp(expected);
             }
 
-            ast::PatternAlt::LitString(..)
-            | ast::PatternAlt::LitInt(..)
-            | ast::PatternAlt::LitFloat(..) => unimplemented!(),
+            ast::PatternAlt::LitFloat(ref p) => {
+                let ty = register_bty_from_ty(ty);
+                assert!(ty == BytecodeType::Float32 || ty == BytecodeType::Float64);
+                let mismatch_lbl = pck.ensure_label(&mut self.builder);
+                let const_value = self
+                    .analysis
+                    .const_value(p.id)
+                    .to_f64()
+                    .expect("float expected");
+                let tmp = self.alloc_temp(BytecodeType::Bool);
+                let expected = self.alloc_temp(ty.clone());
+                match ty {
+                    BytecodeType::Float32 => self
+                        .builder
+                        .emit_const_float32(expected, const_value as f32),
+                    BytecodeType::Float64 => self.builder.emit_const_float64(expected, const_value),
+                    _ => unreachable!(),
+                }
+                self.builder.emit_test_eq(tmp, value, expected);
+                self.builder.emit_jump_if_false(tmp, mismatch_lbl);
+                self.builder.free_temp(tmp);
+                self.builder.free_temp(expected);
+            }
+
+            ast::PatternAlt::LitString(..) | ast::PatternAlt::LitInt(..) => unimplemented!(),
 
             ast::PatternAlt::Underscore(_) => {
                 // nothing to do

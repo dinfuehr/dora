@@ -1,0 +1,10 @@
+fn main() {
+    assert(f((0, 2.5f32)) == 0);
+    assert(f((2, 2.5f32)) == 2);
+    assert(f((17, 2.5f32)) == 17);
+}
+
+fn f(x: (Int64, Float32)): Int64 {
+    let (a, 2.5f32) = x;
+    a
+}
