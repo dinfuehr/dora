@@ -7,9 +7,9 @@ use std::sync::Arc;
 use dora_parser::ast;
 
 use crate::sema::{
-    ClassDefinition, ClassDefinitionId, ConstDefinitionId, EnumDefinitionId, FctDefinitionId,
-    FieldId, GlobalDefinitionId, Intrinsic, StructDefinitionFieldId, StructDefinitionId,
-    TraitDefinitionId, TypeParamId,
+    ClassDefinition, ClassDefinitionId, ConstDefinitionId, ConstValue, EnumDefinitionId,
+    FctDefinitionId, FieldId, GlobalDefinitionId, Intrinsic, StructDefinitionFieldId,
+    StructDefinitionId, TraitDefinitionId, TypeParamId,
 };
 use crate::ty::{SourceType, SourceTypeArray};
 
@@ -23,9 +23,7 @@ pub struct AnalysisData {
     pub map_idents: NodeMap<IdentType>,
     pub map_tys: NodeMap<SourceType>,
     pub map_vars: NodeMap<VarId>,
-    pub map_literals: NodeMap<(i64, f64)>,
-    pub map_char_literals: NodeMap<char>,
-    pub map_string_literals: NodeMap<String>,
+    pub map_consts: NodeMap<ConstValue>,
     pub map_cls: NodeMap<ClassDefinitionId>,
     pub map_fors: NodeMap<ForTypeInfo>,
     pub map_lambdas: NodeMap<LazyLambdaId>,
@@ -52,9 +50,7 @@ impl AnalysisData {
             map_cls: NodeMap::new(),
             map_fors: NodeMap::new(),
             map_lambdas: NodeMap::new(),
-            map_literals: NodeMap::new(),
-            map_char_literals: NodeMap::new(),
-            map_string_literals: NodeMap::new(),
+            map_consts: NodeMap::new(),
             map_block_contexts: NodeMap::new(),
 
             vars: VarAccess::empty(),
@@ -76,34 +72,12 @@ impl AnalysisData {
         self.map_tys.insert_or_replace(id, ty);
     }
 
-    pub fn set_literal_value(&mut self, id: ast::NodeId, value_i64: i64, value_f64: f64) {
-        self.map_literals.insert(id, (value_i64, value_f64));
+    pub fn set_const_value(&mut self, id: ast::NodeId, value: ConstValue) {
+        self.map_consts.insert(id, value);
     }
 
-    pub fn literal_value(&self, id: ast::NodeId) -> (i64, f64) {
-        self.map_literals.get(id).expect("no literal found").clone()
-    }
-
-    pub fn set_literal_char(&mut self, id: ast::NodeId, value: char) {
-        self.map_char_literals.insert(id, value)
-    }
-
-    pub fn literal_char(&self, id: ast::NodeId) -> char {
-        self.map_char_literals
-            .get(id)
-            .expect("no literal found")
-            .clone()
-    }
-
-    pub fn set_literal_string(&mut self, id: ast::NodeId, value: String) {
-        self.map_string_literals.insert(id, value);
-    }
-
-    pub fn literal_string(&self, id: ast::NodeId) -> String {
-        self.map_string_literals
-            .get(id)
-            .expect("no literal found")
-            .clone()
+    pub fn const_value(&self, id: ast::NodeId) -> &ConstValue {
+        self.map_consts.get(id).expect("no literal found")
     }
 
     pub fn ty(&self, id: ast::NodeId) -> SourceType {

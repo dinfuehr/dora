@@ -4,10 +4,11 @@ use std::{f32, f64};
 
 use crate::error::msg::ErrorMessage;
 use crate::sema::{
-    AnalysisData, ClassDefinition, ContextFieldId, FctDefinition, Field, FieldId, GlobalDefinition,
-    IdentType, LazyContextClassCreationData, LazyContextData, LazyLambdaCreationData,
-    ModuleDefinitionId, NestedScopeId, NestedVarId, OuterContextIdx, PackageDefinitionId, ScopeId,
-    Sema, SourceFileId, TypeParamDefinition, Var, VarAccess, VarId, VarLocation, Visibility,
+    AnalysisData, ClassDefinition, ConstValue, ContextFieldId, FctDefinition, Field, FieldId,
+    GlobalDefinition, IdentType, LazyContextClassCreationData, LazyContextData,
+    LazyLambdaCreationData, ModuleDefinitionId, NestedScopeId, NestedVarId, OuterContextIdx,
+    PackageDefinitionId, ScopeId, Sema, SourceFileId, TypeParamDefinition, Var, VarAccess, VarId,
+    VarLocation, Visibility,
 };
 use crate::typeck::{check_expr, check_stmt};
 use crate::{
@@ -665,7 +666,7 @@ pub fn check_lit_int(
     e: &ast::ExprLitIntType,
     negate: bool,
     expected_type: SourceType,
-) -> (SourceType, i64, f64) {
+) -> (SourceType, ConstValue) {
     let (base, value, suffix) = parse_lit_int(&e.value);
     let suffix_type = determine_suffix_type_int_literal(sa, file, e.span, &suffix);
 
@@ -684,7 +685,7 @@ pub fn check_lit_int(
             sa.report(file, e.span, ErrorMessage::InvalidNumberFormat);
         }
 
-        return (ty, 0, value);
+        return (ty, ConstValue::Float(value));
     }
 
     if negate && ty == SourceType::UInt8 {
@@ -698,7 +699,7 @@ pub fn check_lit_int(
         Ok(value) => value,
         Err(_) => {
             sa.report(file, e.span, ErrorMessage::NumberLimitOverflow);
-            return (ty, 0, 0.0);
+            return (ty, ConstValue::Int(0));
         }
     };
 
@@ -720,7 +721,7 @@ pub fn check_lit_int(
             value as i64
         };
 
-        (ty, value, 0.0)
+        (ty, ConstValue::Int(value))
     } else {
         assert!(!negate);
 
@@ -735,7 +736,7 @@ pub fn check_lit_int(
             sa.report(file, e.span, ErrorMessage::NumberOverflow(ty_name.into()));
         }
 
-        (ty, value as i64, 0.0)
+        (ty, ConstValue::Int(value as i64))
     }
 }
 

@@ -6,9 +6,14 @@ use crate::access::{
     class_accessible_from, enum_accessible_from, is_default_accessible, struct_accessible_from,
 };
 use crate::error::msg::ErrorMessage;
-use crate::sema::{ClassDefinitionId, EnumDefinitionId, IdentType, StructDefinitionId, VarId};
+use crate::sema::{
+    ClassDefinitionId, ConstValue, EnumDefinitionId, IdentType, StructDefinitionId, VarId,
+};
 use crate::ty::SourceType;
-use crate::typeck::{add_local, check_expr, get_subpatterns, read_path, TypeCheck};
+use crate::typeck::{
+    add_local, check_expr, check_lit_char, check_lit_str, compute_lit_float, compute_lit_int,
+    get_subpatterns, read_path, TypeCheck,
+};
 use crate::{specialize_type, Name, SourceTypeArray, SymbolKind};
 
 pub(super) fn check_stmt(ck: &mut TypeCheck, s: &ast::StmtData) {
@@ -193,21 +198,38 @@ fn check_pattern_alt(
             }
         }
 
-        ast::PatternAlt::LitBool(ref p) => {
-            if !ty.is_bool() && !ty.is_error() {
-                let ty_name = ck.ty_name(&ty);
-                ck.sa.report(
-                    ck.file_id,
-                    p.span,
-                    ErrorMessage::WrongType("Bool".into(), ty_name),
-                );
-            }
+        ast::PatternAlt::LitBool(..) => {
+            check_literal_ty(ck, pattern, SourceType::Bool, ty);
         }
 
-        ast::PatternAlt::LitChar(..)
-        | ast::PatternAlt::LitString(..)
-        | ast::PatternAlt::LitInt(..)
-        | ast::PatternAlt::LitFloat(..) => unimplemented!(),
+        ast::PatternAlt::LitChar(ref p) => {
+            let e = p.expr.to_lit_char().expect("char expected");
+            let value = check_lit_char(ck.sa, ck.file_id, e);
+            ck.analysis.set_const_value(p.id, ConstValue::Char(value));
+            check_literal_ty(ck, pattern, SourceType::Char, ty);
+        }
+
+        ast::PatternAlt::LitInt(ref p) => {
+            let (value_ty, value) = compute_lit_int(ck.sa, ck.file_id, &p.expr, ty.clone());
+            ck.analysis.set_const_value(p.id, value);
+            ck.analysis.set_ty(p.id, value_ty.clone());
+            check_literal_ty(ck, pattern, value_ty, ty);
+        }
+
+        ast::PatternAlt::LitString(ref p) => {
+            let e = p.expr.to_lit_str().expect("string expected");
+            let value = check_lit_str(ck.sa, ck.file_id, e);
+            ck.analysis.set_const_value(p.id, ConstValue::String(value));
+            let str_ty = SourceType::Class(ck.sa.known.classes.string(), SourceTypeArray::empty());
+            check_literal_ty(ck, pattern, str_ty, ty);
+        }
+
+        ast::PatternAlt::LitFloat(ref p) => {
+            let (value_ty, value) = compute_lit_float(ck.sa, ck.file_id, &p.expr);
+            ck.analysis.set_const_value(p.id, ConstValue::Float(value));
+            ck.analysis.set_ty(p.id, value_ty.clone());
+            check_literal_ty(ck, pattern, value_ty, ty);
+        }
 
         ast::PatternAlt::Underscore(..) => {
             // nothing to do
@@ -246,6 +268,23 @@ fn check_pattern_alt(
             let msg = ErrorMessage::PatternUnexpectedRest;
             ck.sa.report(ck.file_id, p.span, msg);
         }
+    }
+}
+
+fn check_literal_ty(
+    ck: &mut TypeCheck,
+    pattern: &ast::PatternAlt,
+    ty: SourceType,
+    expected_ty: SourceType,
+) {
+    if !expected_ty.allows(ck.sa, ty.clone()) && !ty.is_error() {
+        let expected_ty = expected_ty.name(ck.sa);
+        let ty_name = ck.ty_name(&ty);
+        ck.sa.report(
+            ck.file_id,
+            pattern.span(),
+            ErrorMessage::WrongType(expected_ty, ty_name),
+        );
     }
 }
 

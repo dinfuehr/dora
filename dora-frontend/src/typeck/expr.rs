@@ -487,17 +487,16 @@ fn check_expr_dot_tuple(
 ) -> SourceType {
     let index = match e.rhs.to_lit_int() {
         Some(literal) => {
-            let (ty, value_i64, _) =
-                check_lit_int(ck.sa, ck.file_id, literal, false, SourceType::Any);
+            let (ty, value) = compute_lit_int(ck.sa, ck.file_id, &e.rhs, SourceType::Any);
 
             if ty.is_float() {
                 ck.sa
                     .report(ck.file_id, literal.span, ErrorMessage::IndexExpected);
             }
 
-            ck.analysis.set_literal_value(literal.id, value_i64, 0.0);
+            ck.analysis.set_const_value(literal.id, value.clone());
 
-            value_i64 as u64
+            value.to_i64().unwrap_or(0) as u64
         }
 
         None => {
@@ -606,10 +605,10 @@ pub(super) fn check_expr_lit_int(
     negate: bool,
     expected_ty: SourceType,
 ) -> SourceType {
-    let (ty, value_i64, value_f64) = check_lit_int(ck.sa, ck.file_id, e, negate, expected_ty);
+    let (ty, value) = check_lit_int(ck.sa, ck.file_id, e, negate, expected_ty);
 
     ck.analysis.set_ty(e.id, ty.clone());
-    ck.analysis.set_literal_value(e.id, value_i64, value_f64);
+    ck.analysis.set_const_value(e.id, value);
 
     ty
 }
@@ -620,19 +619,24 @@ pub fn compute_lit_int(
     e: &ast::ExprData,
     expected_ty: SourceType,
 ) -> (SourceType, ConstValue) {
-    let (ty, value_i64, value_f64) = if e.is_un_op(ast::UnOp::Neg) {
+    if e.is_un_op(ast::UnOp::Neg) {
         let e = e.to_un().expect("unary expected");
         let lit = e.opnd.to_lit_int().expect("literal expected");
         check_lit_int(sa, file_id, lit, true, expected_ty)
     } else {
         let lit = e.to_lit_int().expect("literal expected");
         check_lit_int(sa, file_id, lit, false, expected_ty)
-    };
+    }
+}
 
-    if ty.is_float() {
-        (ty, ConstValue::Float(value_f64))
+pub fn compute_lit_float(sa: &Sema, file_id: SourceFileId, e: &ast::ExprData) -> (SourceType, f64) {
+    if e.is_un_op(ast::UnOp::Neg) {
+        let e = e.to_un().expect("unary expected");
+        let lit = e.opnd.to_lit_float().expect("literal expected");
+        check_lit_float(sa, file_id, lit, true)
     } else {
-        (ty, ConstValue::Int(value_i64))
+        let lit = e.to_lit_float().expect("literal expected");
+        check_lit_float(sa, file_id, lit, false)
     }
 }
 
@@ -645,7 +649,7 @@ fn check_expr_lit_float(
     let (ty, value) = check_lit_float(ck.sa, ck.file_id, e, negate);
 
     ck.analysis.set_ty(e.id, ty.clone());
-    ck.analysis.set_literal_value(e.id, 0, value);
+    ck.analysis.set_const_value(e.id, ConstValue::Float(value));
 
     ty
 }
@@ -660,7 +664,7 @@ fn check_expr_lit_bool(
     SourceType::Bool
 }
 
-fn check_expr_lit_char(
+pub fn check_expr_lit_char(
     ck: &mut TypeCheck,
     e: &ast::ExprLitCharType,
     _expected_ty: SourceType,
@@ -668,7 +672,7 @@ fn check_expr_lit_char(
     let value = check_lit_char(ck.sa, ck.file_id, e);
 
     ck.analysis.set_ty(e.id, SourceType::Char);
-    ck.analysis.set_literal_char(e.id, value);
+    ck.analysis.set_const_value(e.id, ConstValue::Char(value));
 
     SourceType::Char
 }
@@ -682,7 +686,7 @@ fn check_expr_lit_str(
 
     let str_ty = SourceType::Class(ck.sa.known.classes.string(), SourceTypeArray::empty());
     ck.analysis.set_ty(e.id, str_ty.clone());
-    ck.analysis.set_literal_string(e.id, value);
+    ck.analysis.set_const_value(e.id, ConstValue::String(value));
 
     str_ty
 }

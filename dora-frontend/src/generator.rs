@@ -985,7 +985,12 @@ impl<'a> AstBytecodeGen<'a> {
 
         for part in &expr.parts {
             if let Some(ref lit_str) = part.to_lit_str() {
-                let value = self.analysis.literal_string(lit_str.id);
+                let value = self
+                    .analysis
+                    .const_value(lit_str.id)
+                    .to_string()
+                    .expect("string expected")
+                    .to_string();
                 self.builder.emit_const_string(part_register, value);
             } else {
                 let ty = self.ty(part.id());
@@ -1380,10 +1385,14 @@ impl<'a> AstBytecodeGen<'a> {
         dest: DataDest,
     ) -> Register {
         let tuple = gen_expr(self, &expr.lhs, DataDest::Alloc);
-        let (value_i64, _) = self.analysis.literal_value(expr.rhs.id());
+        let value_i64 = self
+            .analysis
+            .const_value(expr.rhs.id())
+            .to_i64()
+            .expect("integer expected");
         let idx: u32 = value_i64.try_into().expect("too large");
 
-        let subtypes = tuple_ty.tuple_subtypes();
+        let subtypes: SourceTypeArray = tuple_ty.tuple_subtypes();
         let ty = subtypes[idx as usize].clone();
 
         let ty: BytecodeType = register_bty_from_ty(ty);
@@ -1888,7 +1897,7 @@ impl<'a> AstBytecodeGen<'a> {
     fn visit_expr_lit_char(&mut self, lit: &ast::ExprLitCharType, dest: DataDest) -> Register {
         let dest = self.ensure_register(dest, BytecodeType::Char);
 
-        let value = self.analysis.literal_char(lit.id);
+        let value = self.analysis.const_value(lit.id).to_char();
         self.builder.emit_const_char(dest, value);
 
         dest
@@ -1901,7 +1910,7 @@ impl<'a> AstBytecodeGen<'a> {
         _neg: bool,
     ) -> Register {
         let ty = self.analysis.ty(lit.id);
-        let (value_i64, value_f64) = self.analysis.literal_value(lit.id);
+        let value = self.analysis.const_value(lit.id);
 
         let ty = match ty {
             SourceType::UInt8 => BytecodeType::UInt8,
@@ -1909,18 +1918,21 @@ impl<'a> AstBytecodeGen<'a> {
             SourceType::Int64 => BytecodeType::Int64,
             SourceType::Float32 => {
                 let dest = self.ensure_register(dest, BytecodeType::Float32);
-                self.builder.emit_const_float32(dest, value_f64 as f32);
+                self.builder
+                    .emit_const_float32(dest, value.to_f64().expect("float expected") as f32);
                 return dest;
             }
             SourceType::Float64 => {
                 let dest = self.ensure_register(dest, BytecodeType::Float64);
-                self.builder.emit_const_float64(dest, value_f64);
+                self.builder
+                    .emit_const_float64(dest, value.to_f64().expect("float expected"));
                 return dest;
             }
             _ => unreachable!(),
         };
 
         let dest = self.ensure_register(dest, ty.clone());
+        let value_i64 = value.to_i64().expect("integer expected");
 
         match ty {
             BytecodeType::UInt8 => self.builder.emit_const_uint8(dest, value_i64 as u8),
@@ -1934,7 +1946,11 @@ impl<'a> AstBytecodeGen<'a> {
 
     fn visit_expr_lit_float(&mut self, lit: &ast::ExprLitFloatType, dest: DataDest) -> Register {
         let ty = self.analysis.ty(lit.id);
-        let (_, value_f64) = self.analysis.literal_value(lit.id);
+        let value_f64 = self
+            .analysis
+            .const_value(lit.id)
+            .to_f64()
+            .expect("float expected");
 
         let ty = match ty {
             SourceType::Float32 => BytecodeType::Float32,
@@ -1955,7 +1971,12 @@ impl<'a> AstBytecodeGen<'a> {
 
     fn visit_expr_lit_string(&mut self, lit: &ast::ExprLitStrType, dest: DataDest) -> Register {
         let dest = self.ensure_register(dest, BytecodeType::Ptr);
-        let value = self.analysis.literal_string(lit.id);
+        let value = self
+            .analysis
+            .const_value(lit.id)
+            .to_string()
+            .expect("string expected")
+            .to_string();
         self.builder.emit_const_string(dest, value);
 
         dest
@@ -2759,27 +2780,34 @@ impl<'a> AstBytecodeGen<'a> {
             }
 
             SourceType::UInt8 => {
-                self.builder
-                    .emit_const_uint8(dest, const_.value().to_int() as u8);
+                self.builder.emit_const_uint8(
+                    dest,
+                    const_.value().to_i64().expect("integer expected") as u8,
+                );
             }
 
             SourceType::Int32 => {
-                self.builder
-                    .emit_const_int32(dest, const_.value().to_int() as i32);
+                self.builder.emit_const_int32(
+                    dest,
+                    const_.value().to_i64().expect("integer expected") as i32,
+                );
             }
 
             SourceType::Int64 => {
-                self.builder.emit_const_int64(dest, const_.value().to_int());
+                self.builder
+                    .emit_const_int64(dest, const_.value().to_i64().expect("integer expected"));
             }
 
             SourceType::Float32 => {
-                self.builder
-                    .emit_const_float32(dest, const_.value().to_float() as f32);
+                self.builder.emit_const_float32(
+                    dest,
+                    const_.value().to_f64().expect("float expected") as f32,
+                );
             }
 
             SourceType::Float64 => {
                 self.builder
-                    .emit_const_float64(dest, const_.value().to_float());
+                    .emit_const_float64(dest, const_.value().to_f64().expect("float expected"));
             }
 
             _ => unimplemented!(),

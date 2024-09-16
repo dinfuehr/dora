@@ -77,6 +77,7 @@ pub enum ConstValue {
     Char(char),
     Int(i64),
     Float(f64),
+    String(String),
 }
 
 impl ConstValue {
@@ -94,17 +95,24 @@ impl ConstValue {
         }
     }
 
-    pub fn to_int(&self) -> i64 {
+    pub fn to_i64(&self) -> Option<i64> {
         match self {
-            &ConstValue::Int(i) => i,
-            _ => unreachable!(),
+            &ConstValue::Int(i) => Some(i),
+            _ => None,
         }
     }
 
-    pub fn to_float(&self) -> f64 {
+    pub fn to_f64(&self) -> Option<f64> {
         match self {
-            &ConstValue::Float(f) => f,
-            _ => unreachable!(),
+            &ConstValue::Float(f) => Some(f),
+            _ => None,
+        }
+    }
+
+    pub fn to_string(&self) -> Option<&String> {
+        match self {
+            &ConstValue::String(ref v) => Some(v),
+            _ => None,
         }
     }
 }

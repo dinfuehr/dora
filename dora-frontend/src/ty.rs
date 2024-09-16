@@ -140,6 +140,13 @@ impl SourceType {
         }
     }
 
+    pub fn is_char(&self) -> bool {
+        match self {
+            &SourceType::Char => true,
+            _ => false,
+        }
+    }
+
     pub fn is_type_param(&self) -> bool {
         match self {
             &SourceType::TypeParam(_) => true,

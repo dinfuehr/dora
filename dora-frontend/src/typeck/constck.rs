@@ -24,14 +24,8 @@ impl<'a> ConstCheck<'a> {
                     (SourceType::Char, ConstValue::Char(value))
                 }
                 &ExprData::LitInt(ref expr) => {
-                    let (ty, value_i64, value_f64) =
+                    let (ty, value) =
                         check_lit_int(self.sa, self.const_.file_id, expr, false, expected_type);
-
-                    let value = if ty.is_float() {
-                        ConstValue::Float(value_f64)
-                    } else {
-                        ConstValue::Int(value_i64)
-                    };
 
                     (ty, value)
                 }
@@ -42,19 +36,13 @@ impl<'a> ConstCheck<'a> {
                 &ExprData::LitBool(ref expr) => (SourceType::Bool, ConstValue::Bool(expr.value)),
 
                 &ExprData::Un(ref expr) if expr.op == UnOp::Neg && expr.opnd.is_lit_int() => {
-                    let (ty, value_i64, value_f64) = check_lit_int(
+                    let (ty, value) = check_lit_int(
                         self.sa,
                         self.const_.file_id,
                         expr.opnd.to_lit_int().unwrap(),
                         true,
                         expected_type,
                     );
-
-                    let value = if ty.is_float() {
-                        ConstValue::Float(value_f64)
-                    } else {
-                        ConstValue::Int(value_i64)
-                    };
 
                     (ty, value)
                 }

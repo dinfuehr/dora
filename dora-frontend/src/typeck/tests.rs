@@ -4061,7 +4061,83 @@ fn pattern_lit_bool() {
     }
 ",
         (3, 17),
+        ErrorMessage::WrongType("Int64".into(), "Bool".into()),
+    );
+}
+
+#[test]
+fn pattern_lit_char() {
+    ok("
+        fn f(x: (String, Char)) {
+            let (y, 'a') = x;
+        }
+    ");
+
+    err(
+        "
+    fn f(x: (String, Int64)) {
+        let (y, 'a') = x;
+    }
+",
+        (3, 17),
+        ErrorMessage::WrongType("Int64".into(), "Char".into()),
+    );
+}
+
+#[test]
+fn pattern_lit_string() {
+    ok("
+        fn f(x: (String, String)) {
+            let (y, \"a\") = x;
+        }
+    ");
+
+    err(
+        "
+    fn f(x: (String, Int64)) {
+        let (y, \"a\") = x;
+    }
+",
+        (3, 17),
+        ErrorMessage::WrongType("Int64".into(), "String".into()),
+    );
+}
+
+#[test]
+fn pattern_lit_int() {
+    ok("
+        fn f(x: (String, Int64)) {
+            let (y, -2) = x;
+        }
+    ");
+
+    err(
+        "
+    fn f(x: (String, Bool)) {
+        let (y, 2) = x;
+    }
+",
+        (3, 17),
         ErrorMessage::WrongType("Bool".into(), "Int64".into()),
+    );
+}
+
+#[test]
+fn pattern_lit_float() {
+    ok("
+        fn f(x: (String, Float64)) {
+            let (y, -2.0) = x;
+        }
+    ");
+
+    err(
+        "
+    fn f(x: (String, Bool)) {
+        let (y, 2.0f32) = x;
+    }
+",
+        (3, 17),
+        ErrorMessage::WrongType("Bool".into(), "Float32".into()),
     );
 }
 
