@@ -567,7 +567,30 @@ impl<'a> AstBytecodeGen<'a> {
                 self.builder.free_temp(expected);
             }
 
-            ast::PatternAlt::LitString(..) | ast::PatternAlt::LitInt(..) => unimplemented!(),
+            ast::PatternAlt::LitString(ref p) => {
+                let mismatch_lbl = pck.ensure_label(&mut self.builder);
+                let const_value = self
+                    .analysis
+                    .const_value(p.id)
+                    .to_string()
+                    .expect("float expected")
+                    .to_string();
+                let tmp = self.alloc_temp(BytecodeType::Bool);
+                let expected = self.alloc_temp(BytecodeType::Ptr);
+                self.builder.emit_const_string(expected, const_value);
+                let fct_id = self.sa.known.functions.string_equals();
+                let idx = self
+                    .builder
+                    .add_const_fct(FunctionId(fct_id.index().try_into().expect("overflow")));
+                self.builder.emit_push_register(value);
+                self.builder.emit_push_register(expected);
+                self.builder.emit_invoke_direct(tmp, idx, self.loc(p.span));
+                self.builder.emit_jump_if_false(tmp, mismatch_lbl);
+                self.builder.free_temp(tmp);
+                self.builder.free_temp(expected);
+            }
+
+            ast::PatternAlt::LitInt(..) => unimplemented!(),
 
             ast::PatternAlt::Underscore(_) => {
                 // nothing to do
