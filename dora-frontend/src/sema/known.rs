@@ -292,6 +292,7 @@ impl KnownTraits {
 
 #[derive(Debug)]
 pub struct KnownFunctions {
+    pub string_equals: Option<FctDefinitionId>,
     pub string_buffer_empty: Option<FctDefinitionId>,
     pub string_buffer_append: Option<FctDefinitionId>,
     pub string_buffer_to_string: Option<FctDefinitionId>,
@@ -310,6 +311,7 @@ pub struct KnownFunctions {
 impl KnownFunctions {
     pub fn new() -> KnownFunctions {
         KnownFunctions {
+            string_equals: None,
             string_buffer_empty: None,
             string_buffer_append: None,
             string_buffer_to_string: None,
@@ -324,6 +326,10 @@ impl KnownFunctions {
             ordering_is_le: None,
             ordering_is_lt: None,
         }
+    }
+
+    pub fn string_equals(&self) -> FctDefinitionId {
+        self.string_equals.expect("uninitialized")
     }
 
     pub fn string_buffer_empty(&self) -> FctDefinitionId {

@@ -3,8 +3,8 @@ use std::rc::Rc;
 
 use crate::sema::{
     ClassDefinition, ClassDefinitionId, EnumDefinitionId, ExtensionDefinitionId, FctDefinitionId,
-    Field, FieldId, Intrinsic, ModuleDefinition, ModuleDefinitionId, Sema, StructDefinitionId,
-    TraitDefinitionId, TypeParamDefinition, Visibility,
+    Field, FieldId, ImplDefinitionId, Intrinsic, ModuleDefinition, ModuleDefinitionId, Sema,
+    StructDefinitionId, TraitDefinitionId, TypeParamDefinition, Visibility,
 };
 use crate::sym::{SymTable, SymbolKind};
 use crate::ty::{SourceType, SourceTypeArray};
@@ -182,6 +182,9 @@ fn final_path_name(sa: &mut Sema, path: &str) -> Name {
 pub fn lookup_known_methods(sa: &mut Sema) {
     let stdlib_id = sa.stdlib_module_id();
 
+    sa.known.functions.string_equals =
+        Some(lookup_fct(sa, "traits::Equals for string::String#equals"));
+
     sa.known.functions.string_buffer_empty = Some(find_static_method(
         sa,
         stdlib_id,
@@ -290,13 +293,13 @@ fn resolve_name(sa: &Sema, name: &str, module_id: ModuleDefinitionId) -> SymbolK
     sym
 }
 
-fn find_trait(sa: &mut Sema, module_id: ModuleDefinitionId, name: &str) -> TraitDefinitionId {
+fn find_trait(sa: &Sema, module_id: ModuleDefinitionId, name: &str) -> TraitDefinitionId {
     resolve_name(sa, name, module_id)
         .to_trait()
         .expect("trait expected")
 }
 
-fn find_enum(sa: &mut Sema, module_id: ModuleDefinitionId, name: &str) -> EnumDefinitionId {
+fn find_enum(sa: &Sema, module_id: ModuleDefinitionId, name: &str) -> EnumDefinitionId {
     resolve_name(sa, name, module_id)
         .to_enum()
         .expect("enum not found")
@@ -1624,6 +1627,82 @@ fn internal_impl_method(
     }
 
     panic!("method {} not found!", method_name)
+}
+
+#[allow(unused)]
+fn lookup_fct(sa: &Sema, path: &str) -> FctDefinitionId {
+    let module_id = sa.stdlib_module_id();
+
+    if path.contains("#") {
+        let parts = path.split("#").collect::<Vec<_>>();
+        assert_eq!(parts.len(), 2);
+        let path = parts[0];
+        let method_name = parts[1];
+
+        if path.contains(" for ") {
+            let parts = path.split(" for ").collect::<Vec<_>>();
+            assert_eq!(parts.len(), 2);
+
+            let trait_path = parts[0];
+            let extended_ty_path = parts[1];
+
+            let trait_id = resolve_name(sa, trait_path, module_id)
+                .to_trait()
+                .expect("trait expected");
+            let extended_ty = resolve_name(sa, extended_ty_path, module_id);
+            let impl_id = lookup_impl_for_item(sa, trait_id, extended_ty).expect("impl not found");
+
+            lookup_fct_by_impl_id_and_name(sa, impl_id, method_name)
+                .expect("method in impl not found")
+        } else {
+            unimplemented!()
+        }
+    } else {
+        resolve_name(sa, path, module_id)
+            .to_fct()
+            .expect("function expected")
+    }
+}
+
+fn lookup_impl_for_item(
+    sa: &Sema,
+    trait_id: TraitDefinitionId,
+    extended_ty: SymbolKind,
+) -> Option<ImplDefinitionId> {
+    for (id, impl_) in sa.impls.iter() {
+        match impl_.trait_ty() {
+            SourceType::Trait(impl_trait_id, ..) if impl_trait_id == trait_id => {}
+            _ => continue,
+        }
+
+        match impl_.extended_ty() {
+            SourceType::Class(class_id, ..) if extended_ty.to_class() == Some(class_id) => {
+                return Some(id);
+            }
+
+            _ => {}
+        }
+    }
+
+    None
+}
+
+fn lookup_fct_by_impl_id_and_name(
+    sa: &Sema,
+    impl_id: ImplDefinitionId,
+    name: &str,
+) -> Option<FctDefinitionId> {
+    let impl_ = sa.impl_(impl_id);
+    let name = sa.interner.intern(name);
+
+    for &method_id in impl_.methods() {
+        let method = sa.fct(method_id);
+        if method.name == name {
+            return Some(method_id);
+        }
+    }
+
+    None
 }
 
 #[cfg(test)]
