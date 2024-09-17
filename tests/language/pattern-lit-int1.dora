@@ -1,0 +1,46 @@
+fn main() {
+    assert(f((0, 12)) == 0);
+    assert(f((2, 12)) == 2);
+    assert(f((17, 12)) == 17);
+
+    assert(f1((0, 12u8)) == 0);
+    assert(f1((2, 12u8)) == 2);
+    assert(f1((17, 12u8)) == 17);
+
+    assert(f2((0, 12i32)) == 0);
+    assert(f2((2, 12i32)) == 2);
+    assert(f2((17, 12i32)) == 17);
+
+    assert(f3((0, 2.0f32)) == 0);
+    assert(f3((2, 2.0f32)) == 2);
+    assert(f3((17, 2.0f32)) == 17);
+
+    assert(f4((0, 12.0)) == 0);
+    assert(f4((2, 12.0)) == 2);
+    assert(f4((17, 12.0)) == 17);
+}
+
+fn f(x: (Int64, Int64)): Int64 {
+    let (a, 12) = x;
+    a
+}
+
+fn f1(x: (Int64, UInt8)): Int64 {
+    let (a, 12u8) = x;
+    a
+}
+
+fn f2(x: (Int64, Int32)): Int64 {
+    let (a, 12i32) = x;
+    a
+}
+
+fn f3(x: (Int64, Float32)): Int64 {
+    let (a, 2f32) = x;
+    a
+}
+
+fn f4(x: (Int64, Float64)): Int64 {
+    let (a, 12f64) = x;
+    a
+}

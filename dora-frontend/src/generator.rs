@@ -590,7 +590,40 @@ impl<'a> AstBytecodeGen<'a> {
                 self.builder.free_temp(expected);
             }
 
-            ast::PatternAlt::LitInt(..) => unimplemented!(),
+            ast::PatternAlt::LitInt(ref p) => {
+                let ty = register_bty_from_ty(ty);
+                let mismatch_lbl = pck.ensure_label(&mut self.builder);
+                let const_value = self.analysis.const_value(p.id);
+                let tmp = self.alloc_temp(BytecodeType::Bool);
+                let expected = self.alloc_temp(ty.clone());
+                match ty {
+                    BytecodeType::Float32 => {
+                        let value = const_value.to_f64().expect("float expected") as f32;
+                        self.builder.emit_const_float32(expected, value);
+                    }
+                    BytecodeType::Float64 => {
+                        let value = const_value.to_f64().expect("float expected");
+                        self.builder.emit_const_float64(expected, value)
+                    }
+                    BytecodeType::UInt8 => {
+                        let value = const_value.to_i64().expect("float expected") as u8;
+                        self.builder.emit_const_uint8(expected, value)
+                    }
+                    BytecodeType::Int32 => {
+                        let value = const_value.to_i64().expect("float expected") as i32;
+                        self.builder.emit_const_int32(expected, value)
+                    }
+                    BytecodeType::Int64 => {
+                        let value = const_value.to_i64().expect("float expected");
+                        self.builder.emit_const_int64(expected, value)
+                    }
+                    _ => unreachable!(),
+                }
+                self.builder.emit_test_eq(tmp, value, expected);
+                self.builder.emit_jump_if_false(tmp, mismatch_lbl);
+                self.builder.free_temp(tmp);
+                self.builder.free_temp(expected);
+            }
 
             ast::PatternAlt::Underscore(_) => {
                 // nothing to do
