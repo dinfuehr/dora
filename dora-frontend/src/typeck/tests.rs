@@ -1807,6 +1807,46 @@ fn test_enum_match() {
 }
 
 #[test]
+fn test_enum_match_with_guard() {
+    ok("
+        enum A { V1, V2 }
+        fn f(x: A, y: Bool): Int64 {
+            match x {
+                A::V1 if y => 0,
+                A::V1 => 1,
+                A::V2 => 2
+            }
+        }
+    ");
+
+    ok("
+        enum A { V1(Int64), V2 }
+        fn f(x: A, y: Bool): Int64 {
+            match x {
+                A::V1(a) if a > 10 => a,
+                A::V1(..) => 1,
+                A::V2 => 2
+            }
+        }
+    ");
+
+    err(
+        "
+        enum A { V1, V2 }
+        fn f(x: A, y: Float64): Int64 {
+            match x {
+                A::V1 if y => 0,
+                A::V1 => 1,
+                A::V2 => 2
+            }
+        }
+    ",
+        (5, 26),
+        ErrorMessage::IfCondType("Float64".into()),
+    );
+}
+
+#[test]
 fn test_enum_match_multiple_patterns() {
     ok("
         enum Foo { A, B, C }

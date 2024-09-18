@@ -248,27 +248,33 @@ pub(super) fn gen_match(
 
     let expr_reg = gen_expr(g, &node.expr, DataDest::Alloc);
 
-    let mut case_labels = Vec::with_capacity(node.cases.len());
+    let mut arm_labels = Vec::with_capacity(node.arms.len());
 
-    for _case in &node.cases {
-        case_labels.push(g.builder.create_label());
+    for _arm in &node.arms {
+        arm_labels.push(g.builder.create_label());
     }
 
-    case_labels.push(fallthrough_lbl);
+    arm_labels.push(fallthrough_lbl);
 
-    for (idx, case) in node.cases.iter().enumerate() {
-        let case_lbl = case_labels[idx];
-        g.builder.bind_label(case_lbl);
+    for (idx, arm) in node.arms.iter().enumerate() {
+        let arm_lbl = arm_labels[idx];
+        g.builder.bind_label(arm_lbl);
 
-        let next_case_lbl = case_labels[idx + 1];
+        let next_arm_lbl = arm_labels[idx + 1];
 
         g.push_scope();
 
-        let pattern = case.pattern.as_ref();
+        let pattern = arm.pattern.as_ref();
         g.setup_pattern_vars(pattern);
-        g.destruct_pattern(pattern, expr_reg, expr_ty.clone(), Some(next_case_lbl));
+        g.destruct_pattern(pattern, expr_reg, expr_ty.clone(), Some(next_arm_lbl));
 
-        gen_expr(g, &case.value, DataDest::Reg(dest));
+        if let Some(ref cond) = arm.cond {
+            let cond_reg = gen_expr(g, cond, DataDest::Alloc);
+            g.builder.emit_jump_if_false(cond_reg, next_arm_lbl);
+            g.free_if_temp(cond_reg);
+        }
+
+        gen_expr(g, &arm.value, DataDest::Reg(dest));
 
         g.builder.emit_jump(merge_lbl);
         g.pop_scope();

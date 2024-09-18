@@ -1088,14 +1088,14 @@ impl ExprData {
         span: Span,
         green: GreenNode,
         expr: Expr,
-        cases: Vec<Arc<MatchArmType>>,
+        arms: Vec<Arc<MatchArmType>>,
     ) -> ExprData {
         ExprData::Match(ExprMatchType {
             id,
             span,
             green,
             expr,
-            cases,
+            arms,
         })
     }
 
@@ -1969,7 +1969,7 @@ pub struct ExprMatchType {
     pub green: GreenNode,
 
     pub expr: Expr,
-    pub cases: Vec<Arc<MatchArmType>>,
+    pub arms: Vec<Arc<MatchArmType>>,
 }
 
 #[derive(Clone, Debug)]

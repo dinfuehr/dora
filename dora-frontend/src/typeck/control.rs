@@ -348,11 +348,11 @@ pub(super) fn check_expr_match(
     let expr_type = check_expr(ck, &node.expr, SourceType::Any);
     let mut result_type = SourceType::Error;
 
-    for case in &node.cases {
+    for arm in &node.arms {
         ck.symtable.push_level();
-        check_expr_match_case(
+        check_expr_match_arm(
             ck,
-            case,
+            arm,
             expr_type.clone(),
             expected_ty.clone(),
             &mut result_type,
@@ -367,28 +367,38 @@ pub(super) fn check_expr_match(
     result_type
 }
 
-fn check_expr_match_case(
+fn check_expr_match_arm(
     ck: &mut TypeCheck,
-    case: &ast::MatchArmType,
+    arm: &ast::MatchArmType,
     expr_ty: SourceType,
     expected_ty: SourceType,
     result_type: &mut SourceType,
 ) {
-    let pattern = case.pattern.as_ref();
+    let pattern = arm.pattern.as_ref();
 
     check_pattern(ck, pattern, expr_ty);
 
-    let case_ty = check_expr(ck, &case.value, expected_ty.clone());
+    if let Some(ref cond) = arm.cond {
+        let cond_ty = check_expr(ck, cond, SourceType::Bool);
+
+        if !cond_ty.is_bool() && !cond_ty.is_error() {
+            let cond_ty = ck.ty_name(&cond_ty);
+            let msg = ErrorMessage::IfCondType(cond_ty);
+            ck.sa.report(ck.file_id, cond.span(), msg);
+        }
+    }
+
+    let arm_ty = check_expr(ck, &arm.value, expected_ty.clone());
 
     if result_type.is_error() {
-        *result_type = case_ty;
-    } else if case_ty.is_error() {
-        // ignore this case
-    } else if !result_type.allows(ck.sa, case_ty.clone()) {
+        *result_type = arm_ty;
+    } else if arm_ty.is_error() {
+        // Ignore this arm.
+    } else if !result_type.allows(ck.sa, arm_ty.clone()) {
         let result_type_name = ck.ty_name(&result_type);
-        let case_ty_name = ck.ty_name(&case_ty);
-        let msg = ErrorMessage::MatchBranchTypesIncompatible(result_type_name, case_ty_name);
-        ck.sa.report(ck.file_id, case.value.span(), msg);
+        let arm_ty_name = ck.ty_name(&arm_ty);
+        let msg = ErrorMessage::MatchBranchTypesIncompatible(result_type_name, arm_ty_name);
+        ck.sa.report(ck.file_id, arm.value.span(), msg);
     }
 }
 
@@ -406,8 +416,12 @@ fn check_coverage(ck: &mut TypeCheck, node: &ast::ExprMatchType, expr_type: Sour
 
     let mut used_variants = FixedBitSet::with_capacity(enum_variants);
 
-    for case in &node.cases {
-        let pattern = case.pattern.as_ref();
+    for arm in &node.arms {
+        if arm.cond.is_some() {
+            continue;
+        }
+
+        let pattern = arm.pattern.as_ref();
         for pattern in &pattern.alts {
             match pattern.as_ref() {
                 ast::PatternAlt::Underscore(..) => {
@@ -416,7 +430,7 @@ fn check_coverage(ck: &mut TypeCheck, node: &ast::ExprMatchType, expr_type: Sour
 
                     if negated_used_variants.count_ones(..) == 0 {
                         let msg = ErrorMessage::MatchUnreachablePattern;
-                        ck.sa.report(ck.file_id, case.span, msg);
+                        ck.sa.report(ck.file_id, arm.span, msg);
                     }
 
                     used_variants.insert_range(..);
@@ -439,7 +453,7 @@ fn check_coverage(ck: &mut TypeCheck, node: &ast::ExprMatchType, expr_type: Sour
                             if pattern_enum_id == enum_id {
                                 if used_variants.contains(variant_idx as usize) {
                                     let msg = ErrorMessage::MatchUnreachablePattern;
-                                    ck.sa.report(ck.file_id, case.span, msg);
+                                    ck.sa.report(ck.file_id, arm.span, msg);
                                 }
 
                                 used_variants.insert(variant_idx as usize);
@@ -466,7 +480,7 @@ fn check_coverage(ck: &mut TypeCheck, node: &ast::ExprMatchType, expr_type: Sour
                             if pattern_enum_id == enum_id {
                                 if used_variants.contains(variant_idx as usize) {
                                     let msg = ErrorMessage::MatchUnreachablePattern;
-                                    ck.sa.report(ck.file_id, case.span, msg);
+                                    ck.sa.report(ck.file_id, arm.span, msg);
                                 }
 
                                 used_variants.insert(variant_idx as usize);
