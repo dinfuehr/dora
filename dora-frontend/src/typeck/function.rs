@@ -348,7 +348,7 @@ impl<'a> TypeCheck<'a> {
         }
 
         // Only functions can use `self`.
-        let self_ty = self.self_ty.clone().expect("self expected");
+        let self_ty = self.param_types[0].clone();
         let name = self.sa.interner.intern("self");
 
         assert!(!self.vars.has_vars());
