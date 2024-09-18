@@ -3,6 +3,7 @@ use crate::sema::{
     LazyLambdaCreationData, Sema, TypeParamDefinition,
 };
 use crate::sym::ModuleSymTable;
+use crate::ty::SourceTypeArray;
 use crate::typeck::call::{check_expr_call, check_expr_call_enum_args, find_method};
 use crate::typeck::constck::ConstCheck;
 pub use crate::typeck::control::is_pattern_check;
@@ -88,7 +89,7 @@ fn check_function(
         FctParent::None => None,
         FctParent::Extension(id) => Some(sa.extension(id).ty().clone()),
         FctParent::Impl(id) => Some(sa.impl_(id).extended_ty()),
-        FctParent::Trait(..) => Some(SourceType::This),
+        FctParent::Trait(id) => Some(SourceType::Trait(id, SourceTypeArray::empty())),
         FctParent::Function => unreachable!(),
     };
 

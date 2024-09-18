@@ -94,7 +94,7 @@ mod tests {
 
     #[test]
     fn trait_method_with_body() {
-        ok("trait Foo { fn foo(): Int32 { return 1; } }");
+        ok("trait Foo { fn foo(): Int32 { 1 } }");
 
         err(
             "trait Foo { fn foo() { self.bar(); } }",
@@ -107,6 +107,15 @@ mod tests {
             (1, 31),
             ErrorMessage::ReturnType("Int32".into(), "Bool".into()),
         );
+    }
+
+    #[test]
+    fn trait_method_using_another_trait_method() {
+        ok("
+            trait Foo {
+                fn foo(): Int64;
+                fn bar(): Int64 { self.foo() }
+            }");
     }
 
     #[test]
