@@ -103,7 +103,7 @@ fn type_method_defined_twice() {
         "class Foo
         impl Foo{
                  fn bar() {}
-                 fn bar(): Int32 {}
+                 fn bar(): Int32 { 0 }
              }",
         (4, 18),
         ErrorMessage::AliasExists("bar".into(), Span::new(45, 11)),
@@ -113,7 +113,7 @@ fn type_method_defined_twice() {
         "class Foo
         impl Foo {
                  fn bar(a: Int32) {}
-                 fn bar(a: Int32): Int32 {}
+                 fn bar(a: Int32): Int32 { 0 }
              }",
         (4, 18),
         ErrorMessage::AliasExists("bar".into(), Span::new(46, 19)),
@@ -940,11 +940,13 @@ fn test_generic_trait_bounds() {
             fn f(): A[X] { A[X]() }");
 
     err(
-        "trait Foo {}
+        "
+            trait Foo {}
             class X
             class A[T: Foo]
-            fn f(): A[X] { A[X]() }",
-        (4, 21),
+            fn f(x: A[X]) {}
+        ",
+        (5, 21),
         ErrorMessage::TypeNotImplementingTrait("X".into(), "Foo".into()),
     );
 
@@ -1628,7 +1630,7 @@ fn test_struct_with_type_params() {
         "
         trait MyTrait {}
         struct Foo[T: MyTrait](f1: Int32)
-        fn f(): Foo[Int32] { Foo[Int32](1i32) }
+        fn f(x: Foo[Int32]) {}
     ",
         (4, 17),
         ErrorMessage::TypeNotImplementingTrait("Int32".into(), "MyTrait".into()),

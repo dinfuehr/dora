@@ -140,11 +140,6 @@ impl<'x> ExtensionCheck<'x> {
     fn visit_method(&mut self, fct_id: FctDefinitionId) {
         let fct = self.sa.fct(fct_id);
 
-        if fct.ast.block.is_none() && !fct.is_internal {
-            self.sa
-                .report(self.file_id.into(), fct.span, ErrorMessage::MissingFctBody);
-        }
-
         if self.extension_ty.is_error() {
             return;
         }

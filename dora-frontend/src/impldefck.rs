@@ -104,8 +104,12 @@ fn check_impl_definition(sa: &Sema, impl_: &ImplDefinition) {
 
 pub fn check_definition_against_trait(sa: &Sema) {
     for (_id, impl_) in sa.impls.iter() {
-        let trait_ = &sa.trait_(impl_.trait_id());
-        check_impl_methods(sa, impl_, trait_);
+        let trait_ty = impl_.trait_ty();
+
+        if let Some(trait_id) = trait_ty.trait_id() {
+            let trait_ = sa.trait_(trait_id);
+            check_impl_methods(sa, impl_, trait_);
+        }
     }
 }
 
@@ -122,14 +126,6 @@ fn check_impl_methods(sa: &Sema, impl_: &ImplDefinition, trait_: &TraitDefinitio
 
     for &impl_method_id in impl_.methods() {
         let impl_method = &sa.fct(impl_method_id);
-
-        if impl_method.ast.block.is_none() && !impl_method.is_internal {
-            sa.report(
-                impl_method.file_id.into(),
-                impl_method.span,
-                ErrorMessage::MissingFctBody,
-            );
-        }
 
         if let Some(trait_method_id) = trait_.get_method(impl_method.name, impl_method.is_static) {
             if let Some(existing_id) = trait_method_map.insert(trait_method_id, impl_method_id) {
@@ -249,8 +245,12 @@ fn report_missing_methods(
 
 pub fn check_type_aliases(sa: &Sema) {
     for (_id, impl_) in sa.impls.iter() {
-        let trait_ = &sa.trait_(impl_.trait_id());
-        check_impl_types(sa, impl_, trait_);
+        let trait_ty = impl_.trait_ty();
+
+        if let Some(trait_id) = trait_ty.trait_id() {
+            let trait_ = sa.trait_(trait_id);
+            check_impl_types(sa, impl_, trait_);
+        }
     }
 }
 

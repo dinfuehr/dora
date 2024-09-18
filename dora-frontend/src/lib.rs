@@ -43,21 +43,16 @@ mod useck;
 
 pub const STDLIB: &[(&str, &str)] = &include!(concat!(env!("OUT_DIR"), "/dora_stdlib_bundle.rs"));
 
-macro_rules! return_on_error {
-    ($vm: ident) => {{
-        if $vm.diag.borrow().has_errors() {
-            return false;
-        }
-    }};
-}
-
 pub fn check_program(sa: &mut Sema) -> bool {
     // This phase loads and parses all files. Also creates top-level-elements.
     let module_symtables = program_parser::parse(sa);
 
     // Discover all imported types.
     useck::check(sa, module_symtables);
-    return_on_error!(sa);
+
+    if sa.diag.borrow().has_errors() {
+        return false;
+    }
 
     // Fill prelude with important types and functions.
     stdlib_lookup::setup_prelude(sa);
@@ -71,7 +66,6 @@ pub fn check_program(sa: &mut Sema) -> bool {
     impldefck::check_definition(sa);
     // Check types/type bounds for type params.
     typedefck::check_type_bounds(sa);
-    return_on_error!(sa);
 
     // Checks class/struct/trait/enum definitions.
     aliasck::check(sa);
@@ -80,20 +74,15 @@ pub fn check_program(sa: &mut Sema) -> bool {
     traitdefck::check(sa);
     enumck::check(sa);
     impldefck::check_type_aliases(sa);
-    return_on_error!(sa);
-
     globaldefck::check(sa);
     constdefck::check(sa);
     extensiondefck::check(sa);
-    return_on_error!(sa);
 
     // Check type definitions of params and return types in functions.
     fctdefck::check(sa);
-    return_on_error!(sa);
 
     // Check impl methods against trait definition.
     impldefck::check_definition_against_trait(sa);
-    return_on_error!(sa);
 
     // Define internal functions & methods.
     stdlib_lookup::resolve_internal_functions(sa);
@@ -102,13 +91,11 @@ pub fn check_program(sa: &mut Sema) -> bool {
 
     // Check for internal functions, methods or types.
     internalck(sa);
-    return_on_error!(sa);
 
     // Check function body.
     typeck::check(sa);
-    return_on_error!(sa);
 
-    true
+    !sa.diag.borrow().has_errors()
 }
 
 pub fn emit_ast(sa: &Sema, filter: &str) {
