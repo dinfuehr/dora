@@ -5,6 +5,7 @@ use std::sync::Arc;
 use dora_parser::ast::CmpOp;
 use dora_parser::{ast, Span};
 
+use self::bytecode::BytecodeBuilder;
 use self::expr::{gen_expr, gen_expr_bin_cmp, gen_fatal_error};
 use crate::sema::{
     emit_as_bytecode_operation, AnalysisData, CallType, ClassDefinitionId, ConstDefinitionId,
@@ -17,11 +18,11 @@ use crate::ty::{SourceType, SourceTypeArray};
 use crate::typeck::is_pattern_check;
 use crate::{expr_always_returns, expr_block_always_returns, AliasReplacement};
 use dora_bytecode::{
-    AliasId, BytecodeBuilder, BytecodeFunction, BytecodeType, BytecodeTypeArray, ClassId,
-    ConstPoolEntry, ConstPoolIdx, EnumId, FunctionId, GlobalId, Label, Location, Register,
-    StructId, TraitId,
+    AliasId, BytecodeFunction, BytecodeType, BytecodeTypeArray, ClassId, ConstPoolEntry,
+    ConstPoolIdx, EnumId, FunctionId, GlobalId, Label, Location, Register, StructId, TraitId,
 };
 
+mod bytecode;
 mod expr;
 #[cfg(test)]
 pub mod tests;

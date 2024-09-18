@@ -6,8 +6,8 @@ use crate::compiler::CompilationMode;
 use crate::gc::Address;
 use crate::vm::{Code, CodeId, Compiler, VM};
 use dora_bytecode::{
-    BytecodeBuilder, BytecodeFunction, BytecodeType, BytecodeTypeArray, FunctionId, FunctionKind,
-    Register,
+    BytecodeFunction, BytecodeType, BytecodeTypeArray, BytecodeWriter, ConstPoolEntry, FunctionId,
+    FunctionKind, Register,
 };
 
 use super::codegen::CompilerInvocation;
@@ -147,41 +147,35 @@ fn generate_bytecode_for_thunk(
 ) -> BytecodeFunction {
     let program_trait_fct = vm.fct(fct_id);
 
-    let mut gen = BytecodeBuilder::new();
-    gen.push_scope();
-    gen.alloc_var(register_ty(trait_object_ty));
+    let mut w = BytecodeWriter::new();
+    w.add_register(register_ty(trait_object_ty));
 
     for param_ty in program_trait_fct.params.iter().skip(1) {
-        if !param_ty.is_unit() {
-            let ty = register_ty(param_ty.clone());
-            gen.alloc_var(ty);
-        }
+        w.add_register(register_ty(param_ty.clone()));
     }
 
-    gen.set_arguments(program_trait_fct.params.len() as u32);
+    w.set_arguments(program_trait_fct.params.len() as u32 + 1);
 
-    if !actual_ty.is_unit() {
-        let ty = register_ty(actual_ty.clone());
-        let new_self_reg = gen.alloc_var(ty);
-        gen.emit_load_trait_object_value(new_self_reg, Register(0));
-        gen.emit_push_register(new_self_reg);
-    }
+    let actual_ty = register_ty(actual_ty.clone());
+    let new_self_reg = w.add_register(actual_ty);
+    w.emit_load_trait_object_value(new_self_reg, Register(0));
+    w.emit_push_register(new_self_reg);
 
     for (idx, _) in program_trait_fct.params.iter().enumerate().skip(1) {
-        gen.emit_push_register(Register(idx));
+        w.emit_push_register(Register(idx));
     }
 
-    let target_fct_idx = gen.add_const_generic(
+    let target_fct_idx = w.add_const(ConstPoolEntry::Generic(
         trait_object_type_param_id.try_into().expect("does not fit"),
         fct_id,
         BytecodeTypeArray::empty(),
-    );
+    ));
 
-    let ty = register_ty(program_trait_fct.return_type.clone());
-    let result_reg = gen.alloc_var(ty);
-    gen.emit_invoke_generic_direct(result_reg, target_fct_idx, program_trait_fct.loc);
-    gen.emit_ret(result_reg);
+    let return_ty = register_ty(program_trait_fct.return_type.clone());
+    let result_reg = w.add_register(return_ty);
+    w.set_location(program_trait_fct.loc);
+    w.emit_invoke_generic_direct(result_reg, target_fct_idx);
+    w.emit_ret(result_reg);
 
-    gen.pop_scope();
-    gen.generate()
+    w.generate()
 }

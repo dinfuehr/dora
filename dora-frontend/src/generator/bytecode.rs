@@ -1,6 +1,6 @@
 use std::collections::{HashMap, HashSet};
 
-use crate::{
+use dora_bytecode::{
     BytecodeFunction, BytecodeType, BytecodeTypeArray, BytecodeWriter, ClassId, ConstPoolEntry,
     ConstPoolIdx, EnumId, FunctionId, GlobalId, Label, Location, Register, StructId, TraitId,
 };
@@ -28,10 +28,6 @@ impl BytecodeBuilder {
 
     pub fn bind_label(&mut self, lbl: Label) {
         self.writer.bind_label(lbl)
-    }
-
-    pub fn set_arguments(&mut self, arguments: u32) {
-        self.writer.set_arguments(arguments)
     }
 
     pub fn set_params(&mut self, params: Vec<BytecodeType>) {
@@ -135,11 +131,6 @@ impl BytecodeBuilder {
     ) -> ConstPoolIdx {
         self.writer
             .add_const(ConstPoolEntry::Field(cls_id, type_params, field_id))
-    }
-
-    pub fn add_const_cls(&mut self, id: ClassId) -> ConstPoolIdx {
-        self.writer
-            .add_const(ConstPoolEntry::Class(id, BytecodeTypeArray::empty()))
     }
 
     pub fn add_const_cls_types(
@@ -378,11 +369,6 @@ impl BytecodeBuilder {
         assert!(self.def(dest) && self.used(src));
         self.writer.set_location(location);
         self.writer.emit_load_enum_variant(dest, src, idx);
-    }
-
-    pub fn emit_load_trait_object_value(&mut self, dest: Register, object: Register) {
-        assert!(self.def(dest) && self.used(object));
-        self.writer.emit_load_trait_object_value(dest, object);
     }
 
     pub fn emit_ret(&mut self, src: Register) {
