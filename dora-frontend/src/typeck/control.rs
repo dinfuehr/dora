@@ -369,7 +369,7 @@ pub(super) fn check_expr_match(
 
 fn check_expr_match_case(
     ck: &mut TypeCheck,
-    case: &ast::MatchCaseType,
+    case: &ast::MatchArmType,
     expr_ty: SourceType,
     expected_ty: SourceType,
     result_type: &mut SourceType,

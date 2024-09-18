@@ -1088,7 +1088,7 @@ impl ExprData {
         span: Span,
         green: GreenNode,
         expr: Expr,
-        cases: Vec<MatchCaseType>,
+        cases: Vec<Arc<MatchArmType>>,
     ) -> ExprData {
         ExprData::Match(ExprMatchType {
             id,
@@ -1641,7 +1641,12 @@ impl ExprData {
 
     pub fn is_block(&self) -> bool {
         match self {
-            &ExprData::Block(_) => true,
+            &ExprData::Block(..)
+            | &ExprData::If(..)
+            | &ExprData::Match(..)
+            | &ExprData::While(..)
+            | &ExprData::For(..) => true,
+
             _ => false,
         }
     }
@@ -1964,15 +1969,16 @@ pub struct ExprMatchType {
     pub green: GreenNode,
 
     pub expr: Expr,
-    pub cases: Vec<MatchCaseType>,
+    pub cases: Vec<Arc<MatchArmType>>,
 }
 
 #[derive(Clone, Debug)]
-pub struct MatchCaseType {
+pub struct MatchArmType {
     pub id: NodeId,
     pub span: Span,
 
     pub pattern: Arc<Pattern>,
+    pub cond: Option<Expr>,
     pub value: Expr,
 }
 

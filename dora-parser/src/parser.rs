@@ -1330,11 +1330,11 @@ impl Parser {
         self.expect(L_BRACE);
 
         while !self.is(R_BRACE) && !self.is_eof() {
-            let case = self.parse_match_case();
+            let case = self.parse_match_arm();
             let is_block = case.value.is_block();
             cases.push(case);
 
-            if !self.is(R_BRACE) {
+            if !self.is(R_BRACE) && !self.is_eof() {
                 if is_block {
                     self.eat(COMMA);
                 } else {
@@ -1355,20 +1355,28 @@ impl Parser {
         ))
     }
 
-    fn parse_match_case(&mut self) -> MatchCaseType {
+    fn parse_match_arm(&mut self) -> Arc<MatchArmType> {
         self.start_node();
         let pattern = self.parse_pattern();
+
+        let cond = if self.eat(IF_KW) {
+            let expr = self.parse_expression();
+            Some(expr)
+        } else {
+            None
+        };
 
         self.expect(DOUBLE_ARROW);
 
         let value = self.parse_expression();
 
-        MatchCaseType {
+        Arc::new(MatchArmType {
             id: self.new_node_id(),
             span: self.finish_node(),
             pattern,
+            cond,
             value,
-        }
+        })
     }
 
     fn parse_pattern(&mut self) -> Arc<Pattern> {
@@ -3770,6 +3778,7 @@ mod tests {
     fn parse_match() {
         parse_expr("match x { }");
         parse_expr("match x { A(x, b) => 1, B => 2 }");
+        parse_expr("match x { A(x, b) if foo => 1, B => 2 }");
         parse_expr("match x { A(x, b) => 1, B | C => 2 }");
         parse_expr("match x { A(x, b) => { 1 } B | C => { 2 } }");
     }
