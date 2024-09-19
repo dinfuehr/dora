@@ -3,10 +3,7 @@ use std::mem;
 
 use self::Bytecode::*;
 use crate::generator::{bty_from_ty, generate_fct_id};
-use crate::sema::{
-    create_tuple, find_impl, find_methods_in_class, find_methods_in_struct, FctDefinitionId, Sema,
-    TypeParamDefinition,
-};
+use crate::sema::{create_tuple, find_impl, FctDefinitionId, Sema, TypeParamDefinition};
 use crate::sema::{
     ClassDefinitionId, ConstDefinitionId, EnumDefinitionId, FieldId, GlobalDefinitionId,
     StructDefinitionId, TraitDefinitionId,
@@ -14,6 +11,7 @@ use crate::sema::{
 use crate::sym::ModuleSymTable;
 use crate::test;
 use crate::ty::{SourceType, SourceTypeArray};
+use crate::typeck::find_method_call_candidates;
 use dora_bytecode::{
     self as bytecode, BytecodeFunction, BytecodeOffset, BytecodeType, BytecodeTypeArray,
     BytecodeVisitor, ClassId, ConstPoolEntry, ConstPoolIdx, EnumId, FunctionId, GlobalId, Register,
@@ -4335,8 +4333,7 @@ pub fn cls_method_by_name(
         .expect("class expected");
     let cls = &sa.classes[cls_id];
 
-    let candidates =
-        find_methods_in_class(sa, cls.ty(), cls.type_params(), function_name, is_static);
+    let candidates = find_method_call_candidates(sa, cls.ty(), cls.type_params(), function_name, is_static);
     if candidates.len() == 1 {
         Some(candidates[0].fct_id)
     } else {
@@ -4360,7 +4357,7 @@ pub fn struct_method_by_name(
         .expect("struct expected");
     let struct_ = sa.struct_(struct_id);
 
-    let candidates = find_methods_in_struct(
+    let candidates = find_method_call_candidates(
         sa,
         struct_.ty(),
         struct_.type_params(),

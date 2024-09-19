@@ -4,8 +4,8 @@ use std::{f32, f64};
 
 use crate::error::msg::ErrorMessage;
 use crate::sema::{
-    AnalysisData, ClassDefinition, ConstValue, ContextFieldId, FctDefinition, Field, FieldId,
-    GlobalDefinition, IdentType, LazyContextClassCreationData, LazyContextData,
+    AnalysisData, ClassDefinition, ConstValue, ContextFieldId, FctDefinition, FctParent, Field,
+    FieldId, GlobalDefinition, IdentType, LazyContextClassCreationData, LazyContextData,
     LazyLambdaCreationData, ModuleDefinitionId, NestedScopeId, NestedVarId, OuterContextIdx,
     PackageDefinitionId, ScopeId, Sema, SourceFileId, TypeParamDefinition, Var, VarAccess, VarId,
     VarLocation, Visibility,
@@ -32,6 +32,7 @@ pub struct TypeCheck<'a> {
     pub return_type: Option<SourceType>,
     pub in_loop: bool,
     pub is_lambda: bool,
+    pub parent: FctParent,
     pub has_hidden_self_argument: bool,
     pub is_self_available: bool,
     pub self_ty: Option<SourceType>,
@@ -348,11 +349,16 @@ impl<'a> TypeCheck<'a> {
         }
 
         // Only functions can use `self`.
-        let self_ty = self.param_types[0].clone();
-        let name = self.sa.interner.intern("self");
+        let hidden_self_ty = if self.is_lambda {
+            assert_eq!(SourceType::Ptr, self.param_types[0]);
+            SourceType::Ptr
+        } else {
+            self.self_ty.clone().expect("self expected")
+        };
 
         assert!(!self.vars.has_vars());
-        self.vars.add_var(name, self_ty, false);
+        let name = self.sa.interner.intern("self");
+        self.vars.add_var(name, hidden_self_ty, false);
     }
 
     pub(super) fn read_type(&mut self, t: &ast::TypeData) -> SourceType {

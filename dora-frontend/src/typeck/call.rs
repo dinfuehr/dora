@@ -8,15 +8,15 @@ use crate::access::{
 };
 use crate::interner::Name;
 use crate::sema::{
-    find_field_in_class, find_methods_in_class, find_methods_in_enum, find_methods_in_struct,
-    CallType, ClassDefinition, ClassDefinitionId, EnumDefinitionId, EnumVariant, FctDefinitionId,
-    IdentType, Sema, StructDefinition, StructDefinitionId, TypeParamDefinition, TypeParamId,
+    find_field_in_class, CallType, ClassDefinition, ClassDefinitionId, EnumDefinitionId,
+    EnumVariant, FctDefinitionId, IdentType, Sema, StructDefinition, StructDefinitionId,
+    TypeParamDefinition, TypeParamId,
 };
 use crate::specialize::replace_type;
 use crate::sym::SymbolKind;
 use crate::typeck::{
-    args_compatible, args_compatible_fct, check_enum_value_with_args, check_expr, read_path_expr,
-    MethodLookup, TypeCheck,
+    args_compatible, args_compatible_fct, check_enum_value_with_args, check_expr,
+    find_method_call_candidates, read_path_expr, MethodLookup, TypeCheck,
 };
 use crate::typeparamck::{self, ErrorReporting};
 use crate::{specialize_type, AliasReplacement, ErrorMessage, SourceType, SourceTypeArray};
@@ -359,6 +359,7 @@ fn check_expr_call_method(
 
     let lookup = MethodLookup::new(ck.sa, ck.file_id, ck.type_param_defs)
         .no_error_reporting()
+        .parent(ck.parent.clone())
         .method(object_type.clone())
         .name(interned_method_name)
         .fct_type_params(&fct_type_params)
@@ -369,7 +370,7 @@ fn check_expr_call_method(
         let fct_id = lookup.found_fct_id().unwrap();
         let return_type = lookup.found_ret().unwrap();
 
-        let call_type = if object_type.is_trait() {
+        let call_type = if object_type.is_trait() || object_type.is_self() {
             CallType::TraitObjectMethod(object_type, fct_id)
         } else {
             let method_type = lookup.found_class_type().unwrap();
@@ -398,6 +399,7 @@ fn check_expr_call_method(
     } else {
         // Lookup the method again, but this time with error reporting
         let lookup = MethodLookup::new(ck.sa, ck.file_id, ck.type_param_defs)
+            .parent(ck.parent.clone())
             .method(object_type)
             .name(interned_method_name)
             .fct_type_params(&fct_type_params)
@@ -473,6 +475,7 @@ fn check_expr_call_field(
 
     // No field with that name as well, so report method
     let lookup = MethodLookup::new(ck.sa, ck.file_id, ck.type_param_defs)
+        .parent(ck.parent.clone())
         .method(object_type)
         .name(interned_method_name)
         .fct_type_params(&type_params)
@@ -1038,15 +1041,7 @@ pub(super) fn lookup_method(
     args: &[SourceType],
     fct_type_params: &SourceTypeArray,
 ) -> Option<MethodDescriptor> {
-    let candidates = if object_type.is_enum() {
-        find_methods_in_enum(sa, object_type, type_param_defs, name, is_static)
-    } else if object_type.is_struct() || object_type.is_primitive() {
-        find_methods_in_struct(sa, object_type, type_param_defs, name, is_static)
-    } else if object_type.cls_id().is_some() {
-        find_methods_in_class(sa, object_type, type_param_defs, name, is_static)
-    } else {
-        Vec::new()
-    };
+    let candidates = find_method_call_candidates(sa, object_type, type_param_defs, name, is_static);
 
     if candidates.len() == 1 {
         let method_id = candidates[0].fct_id;

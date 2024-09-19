@@ -110,6 +110,25 @@ mod tests {
     }
 
     #[test]
+    fn trait_method_using_another_trait_method() {
+        ok("
+            trait Foo {
+                fn foo(): Int64;
+                fn bar(): Int64 { self.foo() }
+            }");
+    }
+
+    #[test]
+    #[ignore]
+    fn trait_method_using_another_trait_method_generic() {
+        ok("
+        trait Foo[T] {
+            fn foo(): Int64;
+            fn bar(): Int64 { self.foo() }
+        }");
+    }
+
+    #[test]
     fn trait_definitions() {
         ok("trait Foo {}");
         ok("trait Foo { fn toBool(): Bool; }");

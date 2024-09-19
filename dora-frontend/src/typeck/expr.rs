@@ -1278,6 +1278,7 @@ fn check_expr_lambda(
                 is_lambda: true,
                 param_types: lambda_params.clone(),
                 return_type: Some(lambda_return_type.clone()),
+                parent: ck.parent.clone(),
                 has_hidden_self_argument: true,
                 is_self_available: ck.is_self_available,
                 self_ty: ck.self_ty.clone(),

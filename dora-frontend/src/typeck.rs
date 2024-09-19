@@ -18,6 +18,7 @@ use crate::typeck::function::{
     add_local, args_compatible, args_compatible_fct, check_lit_char, check_lit_float,
     check_lit_int, check_lit_str, is_simple_enum, TypeCheck, VarManager,
 };
+pub use crate::typeck::lookup::find_method_call_candidates;
 use crate::typeck::lookup::MethodLookup;
 use crate::typeck::stmt::{check_pattern, check_stmt};
 use crate::SourceType;
@@ -103,6 +104,7 @@ fn check_function(
         param_types: fct.params_with_self().to_owned(),
         return_type: Some(fct.return_type()),
         in_loop: false,
+        parent: fct.parent.clone(),
         has_hidden_self_argument: fct.has_hidden_self_argument(),
         is_self_available: fct.has_hidden_self_argument(),
         self_ty,
@@ -148,6 +150,7 @@ fn check_global(
             is_lambda: false,
             param_types: Vec::new(),
             return_type: None,
+            parent: FctParent::None,
             has_hidden_self_argument: false,
             is_self_available: false,
             self_ty: None,

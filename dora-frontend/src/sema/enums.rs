@@ -10,8 +10,8 @@ use dora_parser::Span;
 use id_arena::Id;
 
 use crate::sema::{
-    extension_matches, impl_matches, module_path, Candidate, ExtensionDefinitionId,
-    ModuleDefinitionId, PackageDefinitionId, Sema, SourceFileId, TypeParamDefinition, Visibility,
+    module_path, ExtensionDefinitionId, ModuleDefinitionId, PackageDefinitionId, Sema,
+    SourceFileId, TypeParamDefinition, Visibility,
 };
 use crate::ty::{SourceType, SourceTypeArray};
 
@@ -117,52 +117,4 @@ impl EnumVariant {
     pub fn types(&self) -> &[SourceType] {
         self.types.get().expect("missing types")
     }
-}
-
-pub fn find_methods_in_enum(
-    sa: &Sema,
-    object_type: SourceType,
-    type_param_defs: &TypeParamDefinition,
-    name: Name,
-    is_static: bool,
-) -> Vec<Candidate> {
-    for (_id, extension) in sa.extensions.iter() {
-        if let Some(bindings) =
-            extension_matches(sa, object_type.clone(), type_param_defs, extension.id())
-        {
-            let table = if is_static {
-                &extension.static_names
-            } else {
-                &extension.instance_names
-            };
-
-            if let Some(&fct_id) = table.borrow().get(&name) {
-                return vec![Candidate {
-                    object_type: object_type.clone(),
-                    container_type_params: bindings,
-                    fct_id,
-                }];
-            }
-        }
-    }
-
-    let mut candidates = Vec::new();
-
-    for (_id, impl_) in sa.impls.iter() {
-        if let Some(bindings) = impl_matches(sa, object_type.clone(), type_param_defs, impl_.id()) {
-            let trait_ = &sa.trait_(impl_.trait_id());
-
-            if let Some(trait_method_id) = trait_.get_method(name, is_static) {
-                candidates.push(Candidate {
-                    object_type: object_type.clone(),
-                    container_type_params: bindings.clone(),
-                    fct_id: impl_
-                        .get_method_for_trait_method_id(trait_method_id)
-                        .expect("missing fct"),
-                });
-            }
-        }
-    }
-
-    candidates
 }

@@ -16,11 +16,10 @@ use crate::sym::SymTable;
 
 pub use self::aliases::{AliasDefinition, AliasDefinitionId, AliasParent};
 pub use self::classes::{
-    find_field_in_class, find_methods_in_class, Candidate, ClassDefinition, ClassDefinitionId,
-    Field, FieldId, Visibility,
+    find_field_in_class, Candidate, ClassDefinition, ClassDefinitionId, Field, FieldId, Visibility,
 };
 pub use self::consts::{ConstDefinition, ConstDefinitionId, ConstValue};
-pub use self::enums::{find_methods_in_enum, EnumDefinition, EnumDefinitionId, EnumVariant};
+pub use self::enums::{EnumDefinition, EnumDefinitionId, EnumVariant};
 pub use self::extensions::{
     extension_matches, extension_matches_ty, ExtensionDefinition, ExtensionDefinitionId,
 };
@@ -42,8 +41,7 @@ pub use self::src::{
     VarLocation,
 };
 pub use self::structs::{
-    find_methods_in_struct, StructDefinition, StructDefinitionField, StructDefinitionFieldId,
-    StructDefinitionId,
+    StructDefinition, StructDefinitionField, StructDefinitionFieldId, StructDefinitionId,
 };
 pub use self::traits::{TraitDefinition, TraitDefinitionId};
 pub use self::tuples::create_tuple;

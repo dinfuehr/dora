@@ -8,10 +8,10 @@ use dora_parser::ast;
 use dora_parser::Span;
 
 use crate::sema::{
-    module_path, AliasDefinitionId, FctDefinitionId, ModuleDefinitionId, PackageDefinitionId, Sema,
-    SourceFileId, TypeParamDefinition, Visibility,
+    module_path, AliasDefinitionId, Candidate, FctDefinitionId, ModuleDefinitionId,
+    PackageDefinitionId, Sema, SourceFileId, TypeParamDefinition, Visibility,
 };
-use crate::SourceTypeArray;
+use crate::{SourceType, SourceTypeArray};
 use id_arena::Id;
 
 pub type TraitDefinitionId = Id<TraitDefinition>;
@@ -120,4 +120,15 @@ impl TraitDefinition {
 
         table.get(&name).cloned()
     }
+}
+
+#[allow(unused)]
+pub fn find_methods_in_trait(
+    sa: &Sema,
+    object_type: SourceType,
+    type_param_defs: &TypeParamDefinition,
+    name: Name,
+    is_static: bool,
+) -> Vec<Candidate> {
+    unimplemented!()
 }

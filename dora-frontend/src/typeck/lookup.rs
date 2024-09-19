@@ -1,8 +1,8 @@
 use crate::error::msg::ErrorMessage;
 use crate::interner::Name;
 use crate::sema::{
-    find_methods_in_class, find_methods_in_enum, find_methods_in_struct, FctDefinitionId, Sema,
-    SourceFileId, TraitDefinitionId, TypeParamDefinition,
+    extension_matches, impl_matches, Candidate, FctDefinitionId, FctParent, Sema, SourceFileId,
+    TraitDefinitionId, TypeParamDefinition,
 };
 use crate::typeck::function::args_compatible_fct;
 use crate::typeparamck::{self, ErrorReporting};
@@ -55,6 +55,7 @@ impl MethodLookupResult {
 enum LookupKind {
     Method(SourceType),
     Static(SourceType),
+    Self_(TraitDefinitionId),
     Trait(TraitDefinitionId),
     Callee(FctDefinitionId),
 }
@@ -68,6 +69,7 @@ pub struct MethodLookup<'a> {
     fct_tps: Option<&'a SourceTypeArray>,
     type_param_defs: &'a TypeParamDefinition,
     ret: Option<SourceType>,
+    fct_parent: Option<FctParent>,
     span: Option<Span>,
     report_errors: bool,
 }
@@ -86,6 +88,7 @@ impl<'a> MethodLookup<'a> {
             args: None,
             fct_tps: None,
             ret: None,
+            fct_parent: None,
             span: None,
             report_errors: true,
             type_param_defs: caller_type_param_defs,
@@ -97,12 +100,25 @@ impl<'a> MethodLookup<'a> {
         self
     }
 
+    pub fn parent(mut self, parent: FctParent) -> MethodLookup<'a> {
+        self.fct_parent = Some(parent);
+        self
+    }
+
     pub fn method(mut self, obj: SourceType) -> MethodLookup<'a> {
-        self.kind = if let SourceType::Trait(trait_id, _) = obj {
-            Some(LookupKind::Trait(trait_id))
-        } else {
-            Some(LookupKind::Method(obj))
+        let kind = match obj {
+            SourceType::This => {
+                let parent = self.fct_parent.clone().expect("parent missing");
+                match parent {
+                    FctParent::Trait(id) => LookupKind::Self_(id),
+                    _ => unreachable!(),
+                }
+            }
+            SourceType::Trait(id, ..) => LookupKind::Trait(id),
+            _ => LookupKind::Method(obj),
         };
+
+        self.kind = Some(kind);
 
         self
     }
@@ -150,6 +166,11 @@ impl<'a> MethodLookup<'a> {
                 self.find_method(&mut result, obj.clone(), name, false)
             }
 
+            LookupKind::Self_(trait_id) => {
+                let name = self.name.expect("name not set");
+                self.find_method_in_trait(trait_id, name, false)
+            }
+
             LookupKind::Trait(trait_id) => {
                 let name = self.name.expect("name not set");
                 self.find_method_in_trait(trait_id, name, false)
@@ -184,6 +205,10 @@ impl<'a> MethodLookup<'a> {
                     } else {
                         ErrorMessage::UnknownMethod(type_name, name, param_names)
                     }
+                }
+
+                LookupKind::Self_(..) => {
+                    ErrorMessage::UnknownMethod("Self".into(), name, param_names)
                 }
 
                 LookupKind::Trait(trait_id) => {
@@ -277,15 +302,13 @@ impl<'a> MethodLookup<'a> {
         name: Name,
         is_static: bool,
     ) -> Option<FctDefinitionId> {
-        let candidates = if object_type.is_enum() {
-            find_methods_in_enum(self.sa, object_type, self.type_param_defs, name, is_static)
-        } else if object_type.is_struct() || object_type.is_primitive() {
-            find_methods_in_struct(self.sa, object_type, self.type_param_defs, name, is_static)
-        } else if object_type.is_cls() {
-            find_methods_in_class(self.sa, object_type, self.type_param_defs, name, is_static)
-        } else {
-            Vec::new()
-        };
+        let candidates = find_method_call_candidates(
+            self.sa,
+            object_type,
+            self.type_param_defs,
+            name,
+            is_static,
+        );
 
         result.found_multiple_functions = candidates.len() > 1;
 
@@ -322,4 +345,52 @@ impl<'a> MethodLookup<'a> {
     fn ty_name(&self, ty: &SourceType) -> String {
         ty.name_with_type_params(self.sa, self.type_param_defs)
     }
+}
+
+pub fn find_method_call_candidates(
+    sa: &Sema,
+    object_type: SourceType,
+    type_param_defs: &TypeParamDefinition,
+    name: Name,
+    is_static: bool,
+) -> Vec<Candidate> {
+    for (_id, extension) in sa.extensions.iter() {
+        if let Some(bindings) =
+            extension_matches(sa, object_type.clone(), type_param_defs, extension.id())
+        {
+            let table = if is_static {
+                &extension.static_names
+            } else {
+                &extension.instance_names
+            };
+
+            if let Some(&fct_id) = table.borrow().get(&name) {
+                return vec![Candidate {
+                    object_type: object_type.clone(),
+                    container_type_params: bindings,
+                    fct_id,
+                }];
+            }
+        }
+    }
+
+    let mut candidates = Vec::new();
+
+    for (_id, impl_) in sa.impls.iter() {
+        if let Some(bindings) = impl_matches(sa, object_type.clone(), type_param_defs, impl_.id()) {
+            let trait_ = &sa.trait_(impl_.trait_id());
+
+            if let Some(trait_method_id) = trait_.get_method(name, is_static) {
+                candidates.push(Candidate {
+                    object_type: object_type.clone(),
+                    container_type_params: bindings.clone(),
+                    fct_id: impl_
+                        .get_method_for_trait_method_id(trait_method_id)
+                        .expect("missing fct"),
+                });
+            }
+        }
+    }
+
+    candidates
 }
