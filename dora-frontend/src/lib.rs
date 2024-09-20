@@ -7,6 +7,7 @@ use dora_bytecode::{dump_stdout, Program};
 use dora_parser::ast;
 use dora_parser::Span;
 
+pub use crate::extensiondefck::package_for_type;
 pub use program_emitter::emit_program;
 pub use readty::{check_type, expand_type, parse_type, parse_type_bound, verify_type, AllowSelf};
 pub use specialize::{replace_type, specialize_type, AliasReplacement};

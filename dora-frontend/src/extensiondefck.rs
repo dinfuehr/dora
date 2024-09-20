@@ -1,136 +1,136 @@
-use crate::sema::{
-    EnumDefinitionId, ExtensionDefinitionId, FctDefinitionId, Sema, SourceFileId,
-    StructDefinitionId, TypeParamDefinition, TypeParamId,
-};
-use crate::{expand_type, AllowSelf, ErrorMessage, ModuleSymTable, SourceType, SymbolKind};
+use std::collections::HashMap;
 
-use dora_parser::ast;
+use crate::sema::{
+    extension_matches_ty, ExtensionDefinition, FctDefinitionId, PackageDefinitionId, Sema,
+    SourceFileId, TypeParamDefinition, TypeParamId,
+};
+use crate::{expand_type, AllowSelf, ErrorMessage, ModuleSymTable, Name, SourceType, SymbolKind};
+
 use dora_parser::Span;
 use fixedbitset::FixedBitSet;
 
 pub fn check(sa: &Sema) {
-    for (_id, extension) in sa.extensions.iter() {
-        let (extension_id, file_id, module_id, ast) = {
-            (
-                extension.id(),
-                extension.file_id,
-                extension.module_id,
-                extension.ast.clone(),
-            )
-        };
+    let mut maybe_duplicate_names: HashMap<Name, Vec<FctDefinitionId>> = HashMap::new();
 
+    for (_id, extension) in sa.extensions.iter() {
         let mut extck = ExtensionCheck {
             sa,
-            extension_id,
-            sym: ModuleSymTable::new(sa, module_id),
-            file_id,
-            ast: &ast,
-            extension_ty: SourceType::Error,
+            extension,
+            sym: ModuleSymTable::new(sa, extension.module_id),
+            maybe_duplicate_names: &mut maybe_duplicate_names,
         };
 
         extck.check();
+    }
+
+    for (name, fcts) in maybe_duplicate_names {
+        if fcts.len() < 2 {
+            continue;
+        }
+
+        for idx in 0..fcts.len() {
+            let fct_id = fcts[idx];
+            let fct = sa.fct(fct_id);
+            let extension_id = fct.parent.extension_id().expect("extension expected");
+            let extension = sa.extension(extension_id);
+
+            for cmp_idx in idx + 1..fcts.len() {
+                let cmp_fct_id = fcts[cmp_idx];
+                let cmp_fct = sa.fct(cmp_fct_id);
+                let cmp_extension_id = cmp_fct.parent.extension_id().expect("extension expected");
+                let cmp_extension = sa.extension(cmp_extension_id);
+
+                if extension_matches_ty(
+                    sa,
+                    extension.ty().clone(),
+                    extension.type_params(),
+                    cmp_extension.ty().clone(),
+                    cmp_extension.type_params(),
+                )
+                .is_some()
+                {
+                    let method_name = sa.interner.str(name).to_string();
+                    let msg = ErrorMessage::AliasExists(method_name, fct.span);
+                    sa.report(extension.file_id.into(), cmp_fct.span, msg);
+                }
+            }
+        }
+    }
+}
+
+pub fn package_for_type(sa: &Sema, ty: SourceType) -> Option<PackageDefinitionId> {
+    match ty {
+        SourceType::Error
+        | SourceType::Unit
+        | SourceType::Lambda(..)
+        | SourceType::Tuple(..)
+        | SourceType::TypeParam(..) => None,
+        SourceType::Any | SourceType::Ptr | SourceType::This => unreachable!(),
+        SourceType::Bool
+        | SourceType::UInt8
+        | SourceType::Char
+        | SourceType::Float32
+        | SourceType::Float64
+        | SourceType::Int32
+        | SourceType::Int64 => Some(sa.stdlib_package_id()),
+        SourceType::Class(id, ..) => Some(sa.class(id).package_id),
+        SourceType::Struct(id, ..) => Some(sa.struct_(id).package_id),
+        SourceType::Enum(id, ..) => Some(sa.enum_(id).package_id),
+        SourceType::Trait(id, ..) => Some(sa.trait_(id).package_id),
+        SourceType::TypeAlias(id, ..) => Some(sa.alias(id).package_id),
     }
 }
 
 struct ExtensionCheck<'x> {
     sa: &'x Sema,
-    file_id: SourceFileId,
     sym: ModuleSymTable,
-    extension_id: ExtensionDefinitionId,
-    extension_ty: SourceType,
-    ast: &'x ast::Impl,
+    extension: &'x ExtensionDefinition,
+    maybe_duplicate_names: &'x mut HashMap<Name, Vec<FctDefinitionId>>,
 }
 
 impl<'x> ExtensionCheck<'x> {
     fn check(&mut self) {
-        assert!(self.ast.trait_type.is_none());
+        assert!(self.extension.ast.trait_type.is_none());
 
         self.sym.push_level();
 
-        let extension = self.sa.extension(self.extension_id);
-
-        for (id, name) in extension.type_params().names() {
+        for (id, name) in self.extension.type_params().names() {
             self.sym.insert(name, SymbolKind::TypeParam(id));
         }
 
         let extension_ty = expand_type(
             self.sa,
             &self.sym,
-            self.file_id.into(),
-            &self.ast.extended_type,
-            extension.type_params(),
+            self.extension.file_id.into(),
+            &self.extension.ast.extended_type,
+            self.extension.type_params(),
             AllowSelf::No,
         );
 
-        self.extension_ty = extension_ty.clone();
+        let extension_ty_package_id = package_for_type(self.sa, extension_ty.clone());
 
-        match extension_ty {
-            SourceType::Bool
-            | SourceType::UInt8
-            | SourceType::Char
-            | SourceType::Int32
-            | SourceType::Int64
-            | SourceType::Float32
-            | SourceType::Float64 => {
-                let struct_id = extension_ty
-                    .primitive_struct_id(self.sa)
-                    .expect("primitive expected");
-                let struct_ = self.sa.struct_(struct_id);
-                struct_.extensions.borrow_mut().push(self.extension_id);
-            }
-
-            SourceType::Struct(struct_id, _) => {
-                let struct_ = self.sa.struct_(struct_id);
-                struct_.extensions.borrow_mut().push(self.extension_id);
-            }
-
-            SourceType::Enum(enum_id, _) => {
-                let enum_ = self.sa.enum_(enum_id);
-                enum_.extensions.borrow_mut().push(self.extension_id);
-            }
-
-            SourceType::Class(cls_id, _) => {
-                let cls = self.sa.class(cls_id);
-                cls.extensions.borrow_mut().push(self.extension_id);
-            }
-
-            SourceType::Trait(..) => {
-                unimplemented!();
-            }
-
-            SourceType::Tuple(..)
-            | SourceType::Unit
-            | SourceType::TypeParam(..)
-            | SourceType::Lambda(..) => {
-                let extension = self.sa.extension(self.extension_id);
-
+        if let Some(extension_ty_package_id) = extension_ty_package_id {
+            if extension_ty_package_id != self.extension.package_id {
+                let msg = ErrorMessage::ExtendingTypeDifferentPackage;
                 self.sa.report(
-                    self.file_id.into(),
-                    extension.span,
-                    ErrorMessage::ExpectedImplType,
+                    self.extension.file_id.into(),
+                    self.extension.ast.extended_type.span(),
+                    msg,
                 );
             }
-
-            SourceType::Error => {}
-
-            SourceType::Any | SourceType::This | SourceType::Ptr | SourceType::TypeAlias(..) => {
-                unreachable!()
-            }
         }
-
-        let extension = self.sa.extension(self.extension_id);
 
         check_for_unconstrained_type_params(
             self.sa,
             extension_ty.clone(),
-            extension.type_params(),
-            self.file_id,
-            self.ast.span,
+            self.extension.type_params(),
+            self.extension.file_id,
+            self.extension.ast.extended_type.span(),
         );
 
-        assert!(extension.ty.set(extension_ty).is_ok());
+        assert!(self.extension.ty.set(extension_ty).is_ok());
 
-        for &method_id in self.sa.extension(self.extension_id).methods() {
+        for &method_id in self.extension.methods() {
             self.visit_method(method_id);
         }
 
@@ -140,126 +140,25 @@ impl<'x> ExtensionCheck<'x> {
     fn visit_method(&mut self, fct_id: FctDefinitionId) {
         let fct = self.sa.fct(fct_id);
 
-        if self.extension_ty.is_error() {
+        if self.extension.ty().is_error() {
             return;
         }
 
-        let success = match self.extension_ty {
-            SourceType::Enum(enum_id, _) => self.check_in_enum(&fct.ast, fct.is_static, enum_id),
-            SourceType::Bool
-            | SourceType::UInt8
-            | SourceType::Char
-            | SourceType::Int32
-            | SourceType::Int64
-            | SourceType::Float32
-            | SourceType::Float64 => {
-                let struct_id = self
-                    .extension_ty
-                    .primitive_struct_id(self.sa)
-                    .expect("primitive expected");
-                self.check_in_struct(&fct.ast, fct.is_static, struct_id)
-            }
-            SourceType::Struct(struct_id, _) => {
-                self.check_in_struct(&fct.ast, fct.is_static, struct_id)
-            }
-            _ => self.check_in_class(&fct.ast, fct.is_static),
-        };
-
-        if !success {
-            return;
-        }
-
-        let extension = self.sa.extension(self.extension_id);
+        self.maybe_duplicate_names
+            .entry(fct.name)
+            .and_modify(|v| v.push(fct_id))
+            .or_insert_with(|| vec![fct_id]);
 
         let table = if fct.is_static {
-            &extension.static_names
+            &self.extension.static_names
         } else {
-            &extension.instance_names
+            &self.extension.instance_names
         };
 
         let mut table = table.borrow_mut();
 
         if !table.contains_key(&fct.name) {
             table.insert(fct.name, fct_id);
-        }
-    }
-
-    fn check_in_enum(&self, f: &ast::Function, is_static: bool, enum_id: EnumDefinitionId) -> bool {
-        let enum_ = self.sa.enum_(enum_id);
-        let extensions = enum_.extensions.borrow();
-
-        for &extension_id in extensions.iter() {
-            if !self.check_extension(f, is_static, extension_id) {
-                return false;
-            }
-        }
-
-        true
-    }
-
-    fn check_in_struct(
-        &self,
-        f: &ast::Function,
-        is_static: bool,
-        struct_id: StructDefinitionId,
-    ) -> bool {
-        let struct_ = self.sa.struct_(struct_id);
-        let extensions = struct_.extensions.borrow();
-
-        for &extension_id in extensions.iter() {
-            if !self.check_extension(f, is_static, extension_id) {
-                return false;
-            }
-        }
-
-        true
-    }
-
-    fn check_in_class(&self, f: &ast::Function, is_static: bool) -> bool {
-        let cls_id = self.extension_ty.cls_id().unwrap();
-        let cls = self.sa.class(cls_id);
-        let extensions = cls.extensions.borrow();
-
-        for &extension_id in extensions.iter() {
-            if !self.check_extension(f, is_static, extension_id) {
-                return false;
-            }
-        }
-
-        true
-    }
-
-    fn check_extension(
-        &self,
-        f: &ast::Function,
-        is_static: bool,
-        extension_id: ExtensionDefinitionId,
-    ) -> bool {
-        let extension = self.sa.extension(extension_id);
-
-        if extension.ty().type_params() != self.extension_ty.type_params() {
-            return true;
-        }
-
-        let table = if is_static {
-            &extension.static_names
-        } else {
-            &extension.instance_names
-        };
-
-        let name = self
-            .sa
-            .interner
-            .intern(&f.name.as_ref().expect("missing name").name_as_string);
-
-        if let Some(&method_id) = table.borrow().get(&name) {
-            let method = self.sa.fct(method_id);
-            let method_name = self.sa.interner.str(method.name).to_string();
-            let msg = ErrorMessage::AliasExists(method_name, method.span);
-            self.sa.report(self.file_id.into(), f.span, msg);
-            false
-        } else {
-            true
         }
     }
 }
@@ -385,6 +284,24 @@ mod tests {
         ok("class Foo[T]
             impl Foo[Int32] { fn foo() {} }
             impl Foo[Int64] { fn foo() {} }");
+
+        err(
+            "class Foo[T]
+            impl[T] Foo[T] { fn foo() {} }
+            impl[T] Foo[T] { fn foo() {} }",
+            (3, 30),
+            ErrorMessage::AliasExists("foo".into(), Span::new(42, 11)),
+        );
+
+        // err(
+        //     "class Foo[T]
+        //     trait TraitA {}
+        //     trait TraitB {}
+        //     impl[T: TraitA] Foo[T] { fn foo() {} }
+        //     impl[T: TraitB] Foo[T] { fn foo() {} }",
+        //     (1, 1),
+        //     ErrorMessage::Unimplemented,
+        // );
     }
 
     #[test]
@@ -430,7 +347,7 @@ mod tests {
             struct MyFoo[T]
             impl[T] MyFoo[Int32] {}
         ",
-            (3, 13),
+            (3, 21),
             ErrorMessage::UnconstrainedTypeParam("T".into()),
         );
 
@@ -439,7 +356,7 @@ mod tests {
             struct MyFoo[T]
             impl[A, B] MyFoo[(A, A)] {}
         ",
-            (3, 13),
+            (3, 24),
             ErrorMessage::UnconstrainedTypeParam("B".into()),
         );
     }
@@ -485,50 +402,6 @@ mod tests {
             impl foo::MyFoo { fn bar() {} }
             mod foo { pub class MyFoo }
         ");
-    }
-
-    #[test]
-    fn extension_for_trait() {
-        err(
-            "
-            impl (Int64, Int64) {}
-        ",
-            (2, 13),
-            ErrorMessage::ExpectedImplType,
-        );
-    }
-
-    #[test]
-    fn extension_for_unit() {
-        err(
-            "
-            impl () {}
-        ",
-            (2, 13),
-            ErrorMessage::ExpectedImplType,
-        );
-    }
-
-    #[test]
-    fn extension_for_lambda() {
-        err(
-            "
-            impl (Int64, Int64): Bool {}
-        ",
-            (2, 13),
-            ErrorMessage::ExpectedImplType,
-        );
-    }
-
-    #[test]
-    fn extension_for_type_param() {
-        err(
-            "
-            impl[T] T {}
-        ",
-            (2, 13),
-            ErrorMessage::ExpectedImplType,
-        );
     }
 
     #[test]

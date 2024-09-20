@@ -175,6 +175,7 @@ fn check_test(sa: &Sema, fct: &FctDefinition) {
 mod tests {
     use crate::error::msg::ErrorMessage;
     use crate::tests::*;
+    use crate::Span;
 
     #[test]
     fn self_param() {
@@ -195,12 +196,18 @@ mod tests {
     }
 
     #[test]
-    fn allow_same_method_as_static_and_non_static() {
-        ok("class Foo
+    fn same_method_as_static_and_non_static() {
+        err(
+            "
+            class Foo
             impl Foo {
                 static fn foo() {}
                 fn foo() {}
-            }");
+            }
+        ",
+            (5, 17),
+            ErrorMessage::AliasExists("foo".into(), Span::new(69, 11)),
+        );
     }
 
     #[test]

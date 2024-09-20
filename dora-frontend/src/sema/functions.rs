@@ -280,6 +280,13 @@ impl FctParent {
             _ => None,
         }
     }
+
+    pub fn extension_id(&self) -> Option<ExtensionDefinitionId> {
+        match self {
+            &FctParent::Extension(id) => Some(id),
+            _ => None,
+        }
+    }
 }
 
 #[derive(Copy, Clone, Debug, PartialEq, Eq)]

@@ -7,7 +7,7 @@ use crate::sema::{
     StructDefinitionId, TraitDefinitionId, TypeParamDefinition, Visibility,
 };
 use crate::sym::{SymTable, SymbolKind};
-use crate::ty::{SourceType, SourceTypeArray};
+use crate::ty::SourceType;
 
 use crate::interner::Name;
 
@@ -290,43 +290,41 @@ fn find_enum(sa: &Sema, module_id: ModuleDefinitionId, name: &str) -> EnumDefini
 }
 
 pub fn resolve_internal_functions(sa: &mut Sema) {
-    let stdlib_id = sa.stdlib_module_id();
+    resolve_string(sa);
+    resolve_uint8(sa);
+    resolve_bool(sa);
+    resolve_char(sa);
+    resolve_int32(sa);
+    resolve_int64(sa);
+    resolve_float32(sa);
+    resolve_float64(sa);
 
-    resolve_string(sa, stdlib_id);
-    resolve_uint8(sa, stdlib_id);
-    resolve_bool(sa, stdlib_id);
-    resolve_char(sa, stdlib_id);
-    resolve_int32(sa, stdlib_id);
-    resolve_int64(sa, stdlib_id);
-    resolve_float32(sa, stdlib_id);
-    resolve_float64(sa, stdlib_id);
+    resolve_array(sa);
+    resolve_option(sa);
 
-    resolve_array(sa, stdlib_id);
-    resolve_option(sa, stdlib_id);
+    resolve_thread(sa);
 
-    resolve_thread(sa, stdlib_id);
+    resolve_atomic_int32(sa);
+    resolve_atomic_int64(sa);
 
-    resolve_atomic_int32(sa, stdlib_id);
-    resolve_atomic_int64(sa, stdlib_id);
+    lookup_ordering(sa);
 
-    lookup_ordering(sa, stdlib_id);
-
-    resolve_functions(sa, stdlib_id);
+    resolve_functions(sa);
 }
 
-fn resolve_functions(sa: &mut Sema, _stdlib_id: ModuleDefinitionId) {
+fn resolve_functions(sa: &mut Sema) {
     sa.known.functions.unreachable = Some(lookup_fct(sa, "unreachable"));
     sa.known.functions.fatal_error = Some(lookup_fct(sa, "fatalError"));
 }
 
-fn lookup_ordering(sa: &mut Sema, _stdlib_id: ModuleDefinitionId) {
+fn lookup_ordering(sa: &mut Sema) {
     sa.known.functions.ordering_is_ge = Some(lookup_fct(sa, "Ordering#is_ge"));
     sa.known.functions.ordering_is_gt = Some(lookup_fct(sa, "Ordering#is_gt"));
     sa.known.functions.ordering_is_le = Some(lookup_fct(sa, "Ordering#is_le"));
     sa.known.functions.ordering_is_lt = Some(lookup_fct(sa, "Ordering#is_lt"));
 }
 
-fn resolve_atomic_int32(sa: &mut Sema, _stdlib_id: ModuleDefinitionId) {
+fn resolve_atomic_int32(sa: &mut Sema) {
     intrinsic_method(sa, "thread::AtomicInt32#get", Intrinsic::AtomicInt32Get);
     intrinsic_method(sa, "thread::AtomicInt32#set", Intrinsic::AtomicInt32Set);
     intrinsic_method(
@@ -346,7 +344,7 @@ fn resolve_atomic_int32(sa: &mut Sema, _stdlib_id: ModuleDefinitionId) {
     );
 }
 
-fn resolve_atomic_int64(sa: &mut Sema, _stdlib_id: ModuleDefinitionId) {
+fn resolve_atomic_int64(sa: &mut Sema) {
     intrinsic_method(sa, "thread::AtomicInt64#get", Intrinsic::AtomicInt64Get);
     intrinsic_method(sa, "thread::AtomicInt64#set", Intrinsic::AtomicInt64Set);
     intrinsic_method(
@@ -366,80 +364,62 @@ fn resolve_atomic_int64(sa: &mut Sema, _stdlib_id: ModuleDefinitionId) {
     );
 }
 
-fn resolve_thread(sa: &mut Sema, _stdlib_id: ModuleDefinitionId) {
+fn resolve_thread(sa: &mut Sema) {
     intrinsic_method(sa, "thread::Thread#current", Intrinsic::ThreadCurrent);
 }
 
-fn resolve_string(sa: &Sema, _stdlib_id: ModuleDefinitionId) {
+fn resolve_string(sa: &Sema) {
     intrinsic_method(sa, "string::String#size", Intrinsic::StrLen);
     intrinsic_method(sa, "string::String#getByte", Intrinsic::StrGet);
 }
 
-fn resolve_uint8(sa: &mut Sema, stdlib_id: ModuleDefinitionId) {
+fn resolve_uint8(sa: &mut Sema) {
     intrinsic_method(sa, "primitives::UInt8#toInt64", Intrinsic::UInt8ToInt64);
     intrinsic_method(sa, "primitives::UInt8#toInt32", Intrinsic::UInt8ToInt32);
     intrinsic_method(sa, "primitives::UInt8#toChar", Intrinsic::UInt8ToChar);
-    intrinsic_impl_method(
+    intrinsic_method(
         sa,
-        stdlib_id,
-        "primitives::UInt8",
-        sa.known.traits.equals(),
-        "equals",
+        "traits::Equals for primitives::UInt8#equals",
         Intrinsic::UInt8Eq,
     );
-    intrinsic_impl_method(
+    intrinsic_method(
         sa,
-        stdlib_id,
-        "primitives::UInt8",
-        sa.known.traits.comparable(),
-        "cmp",
+        "traits::Comparable for primitives::UInt8#cmp",
         Intrinsic::UInt8Cmp,
     );
 }
 
-fn resolve_bool(sa: &Sema, stdlib_id: ModuleDefinitionId) {
+fn resolve_bool(sa: &Sema) {
     intrinsic_method(sa, "primitives::Bool#toInt32", Intrinsic::BoolToInt32);
     intrinsic_method(sa, "primitives::Bool#toInt64", Intrinsic::BoolToInt64);
-    intrinsic_impl_method(
+    intrinsic_method(
         sa,
-        stdlib_id,
-        "primitives::Bool",
-        sa.known.traits.equals(),
-        "equals",
+        "traits::Equals for primitives::Bool#equals",
         Intrinsic::BoolEq,
     );
-    intrinsic_impl_method(
+    intrinsic_method(
         sa,
-        stdlib_id,
-        "primitives::Bool",
-        sa.known.traits.not(),
-        "not",
+        "traits::Not for primitives::Bool#not",
         Intrinsic::BoolNot,
     );
 }
 
-fn resolve_char(sa: &Sema, stdlib_id: ModuleDefinitionId) {
+fn resolve_char(sa: &Sema) {
     intrinsic_method(sa, "primitives::Char#toInt64", Intrinsic::CharToInt64);
     intrinsic_method(sa, "primitives::Char#toInt32", Intrinsic::CharToInt32);
-    intrinsic_impl_method(
+    intrinsic_method(
         sa,
-        stdlib_id,
-        "primitives::Char",
-        sa.known.traits.equals(),
-        "equals",
+        "traits::Equals for primitives::Char#equals",
         Intrinsic::CharEq,
     );
-    intrinsic_impl_method(
+    intrinsic_method(
         sa,
-        stdlib_id,
-        "primitives::Char",
-        sa.known.traits.comparable(),
-        "cmp",
+        "traits::Comparable for primitives::Char#cmp",
         Intrinsic::CharCmp,
     );
 }
 
-fn resolve_int32(sa: &Sema, stdlib_id: ModuleDefinitionId) {
+fn resolve_int32(sa: &Sema) {
     intrinsic_method(sa, "primitives::Int32#toUInt8", Intrinsic::Int32ToUInt8);
     intrinsic_method(
         sa,
@@ -457,61 +437,40 @@ fn resolve_int32(sa: &Sema, stdlib_id: ModuleDefinitionId) {
         Intrinsic::ReinterpretInt32AsFloat32,
     );
 
-    intrinsic_impl_method(
+    intrinsic_method(
         sa,
-        stdlib_id,
-        "primitives::Int32",
-        sa.known.traits.equals(),
-        "equals",
+        "traits::Equals for primitives::Int32#equals",
         Intrinsic::Int32Eq,
     );
-    intrinsic_impl_method(
+    intrinsic_method(
         sa,
-        stdlib_id,
-        "primitives::Int32",
-        sa.known.traits.comparable(),
-        "cmp",
+        "traits::Comparable for primitives::Int32#cmp",
         Intrinsic::Int32Cmp,
     );
 
-    intrinsic_impl_method(
+    intrinsic_method(
         sa,
-        stdlib_id,
-        "primitives::Int32",
-        sa.known.traits.add(),
-        "add",
+        "traits::Add for primitives::Int32#add",
         Intrinsic::Int32Add,
     );
-    intrinsic_impl_method(
+    intrinsic_method(
         sa,
-        stdlib_id,
-        "primitives::Int32",
-        sa.known.traits.sub(),
-        "sub",
+        "traits::Sub for primitives::Int32#sub",
         Intrinsic::Int32Sub,
     );
-    intrinsic_impl_method(
+    intrinsic_method(
         sa,
-        stdlib_id,
-        "primitives::Int32",
-        sa.known.traits.mul(),
-        "mul",
+        "traits::Mul for primitives::Int32#mul",
         Intrinsic::Int32Mul,
     );
-    intrinsic_impl_method(
+    intrinsic_method(
         sa,
-        stdlib_id,
-        "primitives::Int32",
-        sa.known.traits.div(),
-        "div",
+        "traits::Div for primitives::Int32#div",
         Intrinsic::Int32Div,
     );
-    intrinsic_impl_method(
+    intrinsic_method(
         sa,
-        stdlib_id,
-        "primitives::Int32",
-        sa.known.traits.mod_(),
-        "modulo",
+        "traits::Mod for primitives::Int32#modulo",
         Intrinsic::Int32Mod,
     );
 
@@ -531,53 +490,35 @@ fn resolve_int32(sa: &Sema, stdlib_id: ModuleDefinitionId) {
         Intrinsic::Int32MulUnchecked,
     );
 
-    intrinsic_impl_method(
+    intrinsic_method(
         sa,
-        stdlib_id,
-        "primitives::Int32",
-        sa.known.traits.bit_or(),
-        "bitor",
+        "traits::BitOr for primitives::Int32#bitor",
         Intrinsic::Int32Or,
     );
-    intrinsic_impl_method(
+    intrinsic_method(
         sa,
-        stdlib_id,
-        "primitives::Int32",
-        sa.known.traits.bit_and(),
-        "bitand",
+        "traits::BitAnd for primitives::Int32#bitand",
         Intrinsic::Int32And,
     );
-    intrinsic_impl_method(
+    intrinsic_method(
         sa,
-        stdlib_id,
-        "primitives::Int32",
-        sa.known.traits.bit_xor(),
-        "bitxor",
+        "traits::BitXor for primitives::Int32#bitxor",
         Intrinsic::Int32Xor,
     );
 
-    intrinsic_impl_method(
+    intrinsic_method(
         sa,
-        stdlib_id,
-        "primitives::Int32",
-        sa.known.traits.shl(),
-        "shl",
+        "traits::Shl for primitives::Int32#shl",
         Intrinsic::Int32Shl,
     );
-    intrinsic_impl_method(
+    intrinsic_method(
         sa,
-        stdlib_id,
-        "primitives::Int32",
-        sa.known.traits.shr(),
-        "shr",
+        "traits::Shr for primitives::Int32#shr",
         Intrinsic::Int32Shr,
     );
-    intrinsic_impl_method(
+    intrinsic_method(
         sa,
-        stdlib_id,
-        "primitives::Int32",
-        sa.known.traits.sar(),
-        "sar",
+        "traits::Sar for primitives::Int32#sar",
         Intrinsic::Int32Sar,
     );
 
@@ -592,12 +533,9 @@ fn resolve_int32(sa: &Sema, stdlib_id: ModuleDefinitionId) {
         Intrinsic::Int32RotateRight,
     );
 
-    intrinsic_impl_method(
+    intrinsic_method(
         sa,
-        stdlib_id,
-        "primitives::Int32",
-        sa.known.traits.neg(),
-        "neg",
+        "traits::Neg for primitives::Int32#neg",
         Intrinsic::Int32Neg,
     );
     intrinsic_method(
@@ -605,12 +543,9 @@ fn resolve_int32(sa: &Sema, stdlib_id: ModuleDefinitionId) {
         "primitives::Int32#wrappingNeg",
         Intrinsic::Int32NegUnchecked,
     );
-    intrinsic_impl_method(
+    intrinsic_method(
         sa,
-        stdlib_id,
-        "primitives::Int32",
-        sa.known.traits.not(),
-        "not",
+        "traits::Not for primitives::Int32#not",
         Intrinsic::Int32Not,
     );
 
@@ -646,7 +581,7 @@ fn resolve_int32(sa: &Sema, stdlib_id: ModuleDefinitionId) {
     );
 }
 
-fn resolve_float32(sa: &Sema, stdlib_id: ModuleDefinitionId) {
+fn resolve_float32(sa: &Sema) {
     intrinsic_method(sa, "primitives::Float32#toInt32", Intrinsic::Float32ToInt32);
     intrinsic_method(sa, "primitives::Float32#toInt64", Intrinsic::Float32ToInt64);
     intrinsic_method(
@@ -661,62 +596,41 @@ fn resolve_float32(sa: &Sema, stdlib_id: ModuleDefinitionId) {
         Intrinsic::ReinterpretFloat32AsInt32,
     );
 
-    intrinsic_impl_method(
+    intrinsic_method(
         sa,
-        stdlib_id,
-        "primitives::Float32",
-        sa.known.traits.equals(),
-        "equals",
+        "traits::Equals for primitives::Float32#equals",
         Intrinsic::Float32Eq,
     );
-    intrinsic_impl_method(
+    intrinsic_method(
         sa,
-        stdlib_id,
-        "primitives::Float32",
-        sa.known.traits.comparable(),
-        "cmp",
+        "traits::Comparable for primitives::Float32#cmp",
         Intrinsic::Float32Cmp,
     );
 
-    intrinsic_impl_method(
+    intrinsic_method(
         sa,
-        stdlib_id,
-        "primitives::Float32",
-        sa.known.traits.add(),
-        "add",
+        "traits::Add for primitives::Float32#add",
         Intrinsic::Float32Add,
     );
-    intrinsic_impl_method(
+    intrinsic_method(
         sa,
-        stdlib_id,
-        "primitives::Float32",
-        sa.known.traits.sub(),
-        "sub",
+        "traits::Sub for primitives::Float32#sub",
         Intrinsic::Float32Sub,
     );
-    intrinsic_impl_method(
+    intrinsic_method(
         sa,
-        stdlib_id,
-        "primitives::Float32",
-        sa.known.traits.mul(),
-        "mul",
+        "traits::Mul for primitives::Float32#mul",
         Intrinsic::Float32Mul,
     );
-    intrinsic_impl_method(
+    intrinsic_method(
         sa,
-        stdlib_id,
-        "primitives::Float32",
-        sa.known.traits.div(),
-        "div",
+        "traits::Div for primitives::Float32#div",
         Intrinsic::Float32Div,
     );
 
-    intrinsic_impl_method(
+    intrinsic_method(
         sa,
-        stdlib_id,
-        "primitives::Float32",
-        sa.known.traits.neg(),
-        "neg",
+        "traits::Neg for primitives::Float32#neg",
         Intrinsic::Float32Neg,
     );
 
@@ -743,7 +657,7 @@ fn resolve_float32(sa: &Sema, stdlib_id: ModuleDefinitionId) {
     intrinsic_method(sa, "primitives::Float32#sqrt", Intrinsic::Float32Sqrt);
 }
 
-fn resolve_float64(sa: &Sema, stdlib_id: ModuleDefinitionId) {
+fn resolve_float64(sa: &Sema) {
     intrinsic_method(sa, "primitives::Float64#toInt32", Intrinsic::Float64ToInt32);
     intrinsic_method(sa, "primitives::Float64#toInt64", Intrinsic::Float64ToInt64);
     intrinsic_method(
@@ -758,62 +672,41 @@ fn resolve_float64(sa: &Sema, stdlib_id: ModuleDefinitionId) {
         Intrinsic::ReinterpretFloat64AsInt64,
     );
 
-    intrinsic_impl_method(
+    intrinsic_method(
         sa,
-        stdlib_id,
-        "primitives::Float64",
-        sa.known.traits.equals(),
-        "equals",
+        "traits::Equals for primitives::Float64#equals",
         Intrinsic::Float64Eq,
     );
-    intrinsic_impl_method(
+    intrinsic_method(
         sa,
-        stdlib_id,
-        "primitives::Float64",
-        sa.known.traits.comparable(),
-        "cmp",
+        "traits::Comparable for primitives::Float64#cmp",
         Intrinsic::Float64Cmp,
     );
 
-    intrinsic_impl_method(
+    intrinsic_method(
         sa,
-        stdlib_id,
-        "primitives::Float64",
-        sa.known.traits.add(),
-        "add",
+        "traits::Add for primitives::Float64#add",
         Intrinsic::Float64Add,
     );
-    intrinsic_impl_method(
+    intrinsic_method(
         sa,
-        stdlib_id,
-        "primitives::Float64",
-        sa.known.traits.sub(),
-        "sub",
+        "traits::Sub for primitives::Float64#sub",
         Intrinsic::Float64Sub,
     );
-    intrinsic_impl_method(
+    intrinsic_method(
         sa,
-        stdlib_id,
-        "primitives::Float64",
-        sa.known.traits.mul(),
-        "mul",
+        "traits::Mul for primitives::Float64#mul",
         Intrinsic::Float64Mul,
     );
-    intrinsic_impl_method(
+    intrinsic_method(
         sa,
-        stdlib_id,
-        "primitives::Float64",
-        sa.known.traits.div(),
-        "div",
+        "traits::Div for primitives::Float64#div",
         Intrinsic::Float64Div,
     );
 
-    intrinsic_impl_method(
+    intrinsic_method(
         sa,
-        stdlib_id,
-        "primitives::Float64",
-        sa.known.traits.neg(),
-        "neg",
+        "traits::Neg for primitives::Float64#neg",
         Intrinsic::Float64Neg,
     );
 
@@ -841,7 +734,7 @@ fn resolve_float64(sa: &Sema, stdlib_id: ModuleDefinitionId) {
     intrinsic_method(sa, "primitives::Float64#sqrt", Intrinsic::Float64Sqrt);
 }
 
-fn resolve_int64(sa: &Sema, stdlib_id: ModuleDefinitionId) {
+fn resolve_int64(sa: &Sema) {
     intrinsic_method(
         sa,
         "primitives::Int64#toCharUnchecked",
@@ -859,61 +752,40 @@ fn resolve_int64(sa: &Sema, stdlib_id: ModuleDefinitionId) {
         Intrinsic::ReinterpretInt64AsFloat64,
     );
 
-    intrinsic_impl_method(
+    intrinsic_method(
         sa,
-        stdlib_id,
-        "primitives::Int64",
-        sa.known.traits.equals(),
-        "equals",
+        "traits::Equals for primitives::Int64#equals",
         Intrinsic::Int64Eq,
     );
-    intrinsic_impl_method(
+    intrinsic_method(
         sa,
-        stdlib_id,
-        "primitives::Int64",
-        sa.known.traits.comparable(),
-        "cmp",
+        "traits::Comparable for primitives::Int64#cmp",
         Intrinsic::Int64Cmp,
     );
 
-    intrinsic_impl_method(
+    intrinsic_method(
         sa,
-        stdlib_id,
-        "primitives::Int64",
-        sa.known.traits.add(),
-        "add",
+        "traits::Add for primitives::Int64#add",
         Intrinsic::Int64Add,
     );
-    intrinsic_impl_method(
+    intrinsic_method(
         sa,
-        stdlib_id,
-        "primitives::Int64",
-        sa.known.traits.sub(),
-        "sub",
+        "traits::Sub for primitives::Int64#sub",
         Intrinsic::Int64Sub,
     );
-    intrinsic_impl_method(
+    intrinsic_method(
         sa,
-        stdlib_id,
-        "primitives::Int64",
-        sa.known.traits.mul(),
-        "mul",
+        "traits::Mul for primitives::Int64#mul",
         Intrinsic::Int64Mul,
     );
-    intrinsic_impl_method(
+    intrinsic_method(
         sa,
-        stdlib_id,
-        "primitives::Int64",
-        sa.known.traits.div(),
-        "div",
+        "traits::Div for primitives::Int64#div",
         Intrinsic::Int64Div,
     );
-    intrinsic_impl_method(
+    intrinsic_method(
         sa,
-        stdlib_id,
-        "primitives::Int64",
-        sa.known.traits.mod_(),
-        "modulo",
+        "traits::Mod for primitives::Int64#modulo",
         Intrinsic::Int64Mod,
     );
 
@@ -933,53 +805,35 @@ fn resolve_int64(sa: &Sema, stdlib_id: ModuleDefinitionId) {
         Intrinsic::Int64MulUnchecked,
     );
 
-    intrinsic_impl_method(
+    intrinsic_method(
         sa,
-        stdlib_id,
-        "primitives::Int64",
-        sa.known.traits.bit_or(),
-        "bitor",
+        "traits::BitOr for primitives::Int64#bitor",
         Intrinsic::Int64Or,
     );
-    intrinsic_impl_method(
+    intrinsic_method(
         sa,
-        stdlib_id,
-        "primitives::Int64",
-        sa.known.traits.bit_and(),
-        "bitand",
+        "traits::BitAnd for primitives::Int64#bitand",
         Intrinsic::Int64And,
     );
-    intrinsic_impl_method(
+    intrinsic_method(
         sa,
-        stdlib_id,
-        "primitives::Int64",
-        sa.known.traits.bit_xor(),
-        "bitxor",
+        "traits::BitXor for primitives::Int64#bitxor",
         Intrinsic::Int64Xor,
     );
 
-    intrinsic_impl_method(
+    intrinsic_method(
         sa,
-        stdlib_id,
-        "primitives::Int64",
-        sa.known.traits.shl(),
-        "shl",
+        "traits::Shl for primitives::Int64#shl",
         Intrinsic::Int64Shl,
     );
-    intrinsic_impl_method(
+    intrinsic_method(
         sa,
-        stdlib_id,
-        "primitives::Int64",
-        sa.known.traits.shr(),
-        "shr",
+        "traits::Shr for primitives::Int64#shr",
         Intrinsic::Int64Shr,
     );
-    intrinsic_impl_method(
+    intrinsic_method(
         sa,
-        stdlib_id,
-        "primitives::Int64",
-        sa.known.traits.sar(),
-        "sar",
+        "traits::Sar for primitives::Int64#sar",
         Intrinsic::Int64Sar,
     );
 
@@ -994,12 +848,9 @@ fn resolve_int64(sa: &Sema, stdlib_id: ModuleDefinitionId) {
         Intrinsic::Int64RotateRight,
     );
 
-    intrinsic_impl_method(
+    intrinsic_method(
         sa,
-        stdlib_id,
-        "primitives::Int64",
-        sa.known.traits.neg(),
-        "neg",
+        "traits::Neg for primitives::Int64#neg",
         Intrinsic::Int64Neg,
     );
     intrinsic_method(
@@ -1007,12 +858,9 @@ fn resolve_int64(sa: &Sema, stdlib_id: ModuleDefinitionId) {
         "primitives::Int64#wrappingNeg",
         Intrinsic::Int64NegUnchecked,
     );
-    intrinsic_impl_method(
+    intrinsic_method(
         sa,
-        stdlib_id,
-        "primitives::Int64",
-        sa.known.traits.not(),
-        "not",
+        "traits::Not for primitives::Int64#not",
         Intrinsic::Int64Not,
     );
 
@@ -1048,7 +896,7 @@ fn resolve_int64(sa: &Sema, stdlib_id: ModuleDefinitionId) {
     );
 }
 
-fn resolve_array(sa: &Sema, _stdlib_id: ModuleDefinitionId) {
+fn resolve_array(sa: &Sema) {
     intrinsic_method(sa, "collections::Array#size", Intrinsic::ArrayLen);
     intrinsic_method(sa, "collections::Array#get", Intrinsic::ArrayGet);
     intrinsic_method(sa, "collections::Array#set", Intrinsic::ArraySet);
@@ -1061,7 +909,7 @@ fn resolve_array(sa: &Sema, _stdlib_id: ModuleDefinitionId) {
     intrinsic_method(sa, "collections::Array#new", Intrinsic::ArrayWithValues);
 }
 
-fn resolve_option(sa: &mut Sema, _stdlib_id: ModuleDefinitionId) {
+fn resolve_option(sa: &mut Sema) {
     let fct_id = intrinsic_method(sa, "Option#isNone", Intrinsic::OptionIsNone);
     sa.known.functions.option_is_none = Some(fct_id);
     let fct_id = intrinsic_method(sa, "Option#isSome", Intrinsic::OptionIsSome);
@@ -1075,66 +923,6 @@ fn intrinsic_method(sa: &Sema, path: &str, intrinsic: Intrinsic) -> FctDefinitio
     let fct = sa.fct(id);
     assert!(fct.intrinsic.set(intrinsic).is_ok());
     id
-}
-
-fn intrinsic_impl_method(
-    sa: &Sema,
-    module_id: ModuleDefinitionId,
-    container_name: &str,
-    trait_id: TraitDefinitionId,
-    method_name: &str,
-    intrinsic: Intrinsic,
-) -> FctDefinitionId {
-    internal_impl_method(
-        sa,
-        module_id,
-        container_name,
-        trait_id,
-        method_name,
-        intrinsic,
-    )
-}
-
-fn internal_impl_method(
-    sa: &Sema,
-    module_id: ModuleDefinitionId,
-    container_name: &str,
-    trait_id: TraitDefinitionId,
-    method_name: &str,
-    intrinsic: Intrinsic,
-) -> FctDefinitionId {
-    let sym = resolve_name(sa, container_name, module_id);
-
-    let ty = match sym {
-        SymbolKind::Struct(struct_id) => sa.struct_(struct_id).ty(),
-
-        SymbolKind::Class(cls_id) => SourceType::Class(cls_id, SourceTypeArray::empty()),
-
-        _ => panic!("unexpected type"),
-    };
-
-    let trait_ty = SourceType::new_trait(trait_id);
-
-    for (_id, impl_) in sa.impls.iter() {
-        if impl_.trait_ty() == trait_ty && impl_.extended_ty() == ty {
-            let method_name = sa.interner.intern(method_name);
-            let trait_ = &sa.trait_(impl_.trait_id());
-
-            let trait_method_id = trait_
-                .get_method(method_name, false)
-                .expect("method not found");
-
-            let method_id = impl_
-                .get_method_for_trait_method_id(trait_method_id)
-                .expect("missing method");
-
-            let fct = sa.fct(method_id);
-            assert!(fct.intrinsic.set(intrinsic).is_ok());
-            return method_id;
-        }
-    }
-
-    panic!("method {} not found!", method_name)
 }
 
 fn lookup_fct(sa: &Sema, path: &str) -> FctDefinitionId {
@@ -1187,48 +975,35 @@ fn lookup_impl_for_item(
             _ => continue,
         }
 
-        match impl_.extended_ty() {
-            SourceType::Class(class_id, ..) if extended_ty.to_class() == Some(class_id) => {
-                return Some(id);
-            }
-
-            _ => {}
+        if ty_matches_symbol(sa, impl_.extended_ty(), extended_ty.clone()) {
+            return Some(id);
         }
     }
 
     None
 }
 
-fn lookup_extension_for_item(sa: &Sema, extended_ty: SymbolKind) -> Option<ExtensionDefinitionId> {
+fn ty_matches_symbol(sa: &Sema, ty: SourceType, extended_ty: SymbolKind) -> bool {
     if let SymbolKind::Struct(id) = extended_ty {
         let struct_ = sa.struct_(id);
 
         if let Some(ref primitive_ty) = struct_.primitive_ty {
-            for (id, ext) in sa.extensions.iter() {
-                if ext.ty() == primitive_ty {
-                    return Some(id);
-                }
-            }
-
-            return None;
+            return ty == primitive_ty.clone();
         }
     }
 
+    match ty {
+        SourceType::Class(class_id, ..) if extended_ty.to_class() == Some(class_id) => true,
+        SourceType::Enum(enum_id, ..) if extended_ty.to_enum() == Some(enum_id) => true,
+        SourceType::Struct(struct_id, ..) if extended_ty.to_struct() == Some(struct_id) => true,
+        _ => false,
+    }
+}
+
+fn lookup_extension_for_item(sa: &Sema, extended_ty: SymbolKind) -> Option<ExtensionDefinitionId> {
     for (id, ext) in sa.extensions.iter() {
-        match ext.ty() {
-            SourceType::Class(class_id, ..) if extended_ty.to_class() == Some(*class_id) => {
-                return Some(id);
-            }
-
-            SourceType::Enum(enum_id, ..) if extended_ty.to_enum() == Some(*enum_id) => {
-                return Some(id);
-            }
-
-            SourceType::Struct(struct_id, ..) if extended_ty.to_struct() == Some(*struct_id) => {
-                return Some(id);
-            }
-
-            _ => {}
+        if ty_matches_symbol(sa, ext.ty().clone(), extended_ty.clone()) {
+            return Some(id);
         }
     }
 

@@ -69,8 +69,10 @@ impl ExtensionDefinition {
     }
 }
 
-mod matching {
-    use crate::sema::{implements_trait, ExtensionDefinitionId, Sema, TypeParamDefinition};
+pub mod matching {
+    use crate::sema::{
+        implements_trait, ExtensionDefinitionId, Sema, TypeParamDefinition, TypeParamId,
+    };
     use crate::ty::{SourceType, SourceTypeArray};
 
     pub fn extension_matches(
@@ -124,8 +126,8 @@ mod matching {
         ext_type_param_defs: &TypeParamDefinition,
         bindings: &mut [Option<SourceType>],
     ) -> bool {
-        if let SourceType::TypeParam(tp_id) = ext_ty {
-            let binding = bindings[tp_id.to_usize()].clone();
+        if let SourceType::TypeParam(ext_tp_id) = ext_ty {
+            let binding = bindings[ext_tp_id.to_usize()].clone();
 
             if let Some(binding) = binding {
                 compare_concrete_types(
@@ -150,12 +152,12 @@ mod matching {
                         sa,
                         check_ty.clone(),
                         check_type_param_defs,
-                        ext_ty,
+                        ext_tp_id,
                         ext_type_param_defs,
                     )
                 };
 
-                bindings[tp_id.to_usize()] = Some(check_ty);
+                bindings[ext_tp_id.to_usize()] = Some(check_ty);
 
                 result
             }
@@ -199,11 +201,9 @@ mod matching {
         sa: &Sema,
         check_ty: SourceType,
         check_type_param_defs: &TypeParamDefinition,
-        ext_ty: SourceType,
+        ext_tp_id: TypeParamId,
         ext_type_param_defs: &TypeParamDefinition,
     ) -> bool {
-        let ext_tp_id = ext_ty.type_param_id().expect("expected type param");
-
         for trait_ty in ext_type_param_defs.bounds_for_type_param(ext_tp_id) {
             if !implements_trait(sa, check_ty.clone(), check_type_param_defs, trait_ty) {
                 return false;

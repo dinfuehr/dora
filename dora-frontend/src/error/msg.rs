@@ -190,6 +190,8 @@ pub enum ErrorMessage {
     PatternBindingNotDefinedInAllAlternatives(String),
     PatternUnexpectedRest,
     PatternMultipleRest,
+    ExtendingTypeDifferentPackage,
+    ImplTraitForeignType,
 }
 
 impl ErrorMessage {
@@ -652,6 +654,12 @@ impl ErrorMessage {
             ErrorMessage::PatternUnexpectedRest => format!("Rest pattern is not allowed here."),
             ErrorMessage::PatternMultipleRest => {
                 format!("Rest pattern is only allowed once but used multiple times.")
+            }
+            ErrorMessage::ExtendingTypeDifferentPackage => {
+                format!("Can not extend types defined in another package.")
+            }
+            ErrorMessage::ImplTraitForeignType => {
+                format!("Cannot implement foreign trait for a type of another package.")
             }
         }
     }

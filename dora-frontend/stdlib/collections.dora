@@ -197,8 +197,8 @@ impl[T: Equals] Array[T] {
   }
 }
 
-impl[T: Stringable] Array[T] {
-  pub fn toString(): String {
+impl[T: Stringable] Stringable for Array[T] {
+  fn toString(): String {
     let sb = StringBuffer::new();
     sb.append("Array(");
     let size = self.size();

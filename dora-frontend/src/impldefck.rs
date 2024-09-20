@@ -7,8 +7,8 @@ use crate::sema::{
 };
 use crate::specialize::replace_type;
 use crate::{
-    parse_type, verify_type, AliasReplacement, AllowSelf, ErrorMessage, ModuleSymTable, SourceType,
-    SourceTypeArray, SymbolKind,
+    package_for_type, parse_type, verify_type, AliasReplacement, AllowSelf, ErrorMessage,
+    ModuleSymTable, SourceType, SourceTypeArray, SymbolKind,
 };
 
 pub fn check_definition(sa: &Sema) {
@@ -100,6 +100,20 @@ fn check_impl_definition(sa: &Sema, impl_: &ImplDefinition) {
         impl_.file_id,
         impl_.ast.span,
     );
+
+    if impl_.trait_ty().is_trait() && !impl_.extended_ty().is_error() {
+        let is_trait_foreign = package_for_type(sa, impl_.trait_ty()) != Some(impl_.package_id);
+        let is_extended_ty_foreign =
+            package_for_type(sa, impl_.extended_ty()) != Some(impl_.package_id);
+
+        if is_trait_foreign && is_extended_ty_foreign {
+            sa.report(
+                impl_.file_id,
+                impl_.ast.span,
+                ErrorMessage::ImplTraitForeignType,
+            );
+        }
+    }
 }
 
 pub fn check_definition_against_trait(sa: &Sema) {

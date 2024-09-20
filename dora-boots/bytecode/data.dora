@@ -338,25 +338,13 @@ impl Stringable for BytecodeType {
     }
 }
 
-impl Stringable for Array[BytecodeType] {
-    fn toString(): String {
-        let buffer = StringBuffer::new();
-        buffer.append("[");
-        let mut first = true;
-        for ty in self {
-            if !first {
-                buffer.append(", ");
-            }
-            buffer.append(ty.toString());
-            first = false;
-        }
-        buffer.append("]");
-        buffer.toString()
-    }
+pub trait BytecodeTypeArrayExt {
+    fn isGeneric(): Bool;
+    fn specialize(type_params: Array[BytecodeType]): Array[BytecodeType];
 }
 
-impl Array[BytecodeType] {
-    pub fn isGeneric(): Bool {
+impl BytecodeTypeArrayExt for Array[BytecodeType] {
+    fn isGeneric(): Bool {
         for value in self {
             if value.isGeneric() {
                 return true;
@@ -366,7 +354,7 @@ impl Array[BytecodeType] {
         false
     }
 
-    pub fn specialize(type_params: Array[BytecodeType]): Array[BytecodeType] {
+    fn specialize(type_params: Array[BytecodeType]): Array[BytecodeType] {
         if type_params.isEmpty() || !self.isGeneric() {
             return self;
         }
