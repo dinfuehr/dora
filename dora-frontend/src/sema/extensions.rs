@@ -268,7 +268,26 @@ pub mod matching {
                 _ => false,
             },
 
-            SourceType::Trait(..) | SourceType::TypeAlias(..) => {
+            SourceType::Trait(check_trait_id, ..) => match ext_ty {
+                SourceType::Trait(ext_trait_id, ..) => {
+                    if check_trait_id != ext_trait_id {
+                        return false;
+                    }
+
+                    compare_type_params(
+                        sa,
+                        check_ty,
+                        check_type_param_defs,
+                        ext_ty,
+                        ext_type_param_defs,
+                        bindings,
+                    )
+                }
+
+                _ => false,
+            },
+
+            SourceType::TypeAlias(..) => {
                 unimplemented!()
             }
 

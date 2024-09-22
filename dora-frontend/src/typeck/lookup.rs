@@ -56,7 +56,6 @@ enum LookupKind {
     Method(SourceType),
     Static(SourceType),
     Self_(TraitDefinitionId),
-    Trait(TraitDefinitionId),
     Callee(FctDefinitionId),
 }
 
@@ -114,7 +113,6 @@ impl<'a> MethodLookup<'a> {
                     _ => unreachable!(),
                 }
             }
-            SourceType::Trait(id, ..) => LookupKind::Trait(id),
             _ => LookupKind::Method(obj),
         };
 
@@ -171,11 +169,6 @@ impl<'a> MethodLookup<'a> {
                 self.find_method_in_trait(trait_id, name, false)
             }
 
-            LookupKind::Trait(trait_id) => {
-                let name = self.name.expect("name not set");
-                self.find_method_in_trait(trait_id, name, false)
-            }
-
             LookupKind::Static(ref obj) => {
                 let name = self.name.expect("name not set");
                 self.find_method(&mut result, obj.clone(), name, true)
@@ -209,12 +202,6 @@ impl<'a> MethodLookup<'a> {
 
                 LookupKind::Self_(..) => {
                     ErrorMessage::UnknownMethod("Self".into(), name, param_names)
-                }
-
-                LookupKind::Trait(trait_id) => {
-                    let trait_ = self.sa.trait_(trait_id);
-                    let type_name = self.sa.interner.str(trait_.name).to_string();
-                    ErrorMessage::UnknownMethod(type_name, name, param_names)
                 }
 
                 LookupKind::Static(ref obj) => {
@@ -354,6 +341,20 @@ pub fn find_method_call_candidates(
     name: Name,
     is_static: bool,
 ) -> Vec<Candidate> {
+    let mut candidates = Vec::with_capacity(1);
+
+    if let Some(trait_id) = object_type.trait_id() {
+        let trait_ = sa.trait_(trait_id);
+        if let Some(fct_id) = trait_.get_method(name, false) {
+            candidates.push(Candidate {
+                object_type: object_type.clone(),
+                container_type_params: object_type.type_params(),
+                fct_id,
+            });
+            return candidates;
+        }
+    }
+
     for (_id, extension) in sa.extensions.iter() {
         if let Some(bindings) =
             extension_matches(sa, object_type.clone(), type_param_defs, extension.id())
@@ -365,16 +366,15 @@ pub fn find_method_call_candidates(
             };
 
             if let Some(&fct_id) = table.borrow().get(&name) {
-                return vec![Candidate {
+                candidates.push(Candidate {
                     object_type: object_type.clone(),
                     container_type_params: bindings,
                     fct_id,
-                }];
+                });
+                return candidates;
             }
         }
     }
-
-    let mut candidates = Vec::new();
 
     for (_id, impl_) in sa.impls.iter() {
         if let Some(bindings) = impl_matches(sa, object_type.clone(), type_param_defs, impl_.id()) {

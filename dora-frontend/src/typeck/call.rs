@@ -368,9 +368,12 @@ fn check_expr_call_method(
 
     if lookup.find() {
         let fct_id = lookup.found_fct_id().unwrap();
+        let fct = ck.sa.fct(fct_id);
         let return_type = lookup.found_ret().unwrap();
 
-        let call_type = if object_type.is_trait() || object_type.is_self() {
+        let call_type = if object_type.is_self() {
+            CallType::TraitObjectMethod(object_type, fct_id)
+        } else if object_type.is_trait() && fct.parent.is_trait() {
             CallType::TraitObjectMethod(object_type, fct_id)
         } else {
             let method_type = lookup.found_class_type().unwrap();

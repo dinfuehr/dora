@@ -1,0 +1,22 @@
+fn main() {
+    assert((1 as TraitA).plus1() == 2);
+    assert((100 as TraitA).plus1() == 101);
+}
+
+trait TraitA {
+    fn foo(): Int64;
+}
+
+impl TraitA {
+    fn plus1(): Int64 {
+        self.foo() + 1
+    }
+}
+
+fn f(x: TraitA): Int64 {
+    x.plus1()
+}
+
+impl TraitA for Int64 {
+    fn foo(): Int64 { self }
+}

@@ -460,4 +460,23 @@ mod tests {
             }
         ")
     }
+
+    #[test]
+    fn extension_trait() {
+        ok("
+            trait TraitA {
+                fn foo(): Int64;
+            }
+
+            impl TraitA {
+                fn plus1(): Int64 {
+                    self.foo() + 1
+                }
+            }
+
+            fn f(x: TraitA): Int64 {
+                x.plus1()
+            }
+        ")
+    }
 }
