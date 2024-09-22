@@ -1,0 +1,15 @@
+fn main() {
+    assert(f((3, 4)) == 7);
+    assert(f((-3, 4)) == 1);
+    assert(f((3, -4)) == -1);
+}
+
+impl (Int64, Int64) {
+    fn f(): Int64 {
+        self.0 + self.1
+    }
+}
+
+fn f(x: (Int64, Int64)): Int64 {
+    x.f()
+}

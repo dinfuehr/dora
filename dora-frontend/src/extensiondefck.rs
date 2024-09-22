@@ -430,4 +430,34 @@ mod tests {
             }
         ");
     }
+
+    #[test]
+    fn extension_tuple() {
+        ok("
+            impl (Int64, Int64) {
+                fn f(): Int64 {
+                    self.0
+                }
+            }
+
+            fn f(x: (Int64, Int64)) {
+                x.f();
+            }
+        ")
+    }
+
+    #[test]
+    fn extension_lambda() {
+        ok("
+            impl (Int64, Int64): Bool {
+                fn f(): Bool {
+                    self(1, 2)
+                }
+            }
+
+            fn f(x: (Int64, Int64): Bool): Bool {
+                x.f()
+            }
+        ")
+    }
 }

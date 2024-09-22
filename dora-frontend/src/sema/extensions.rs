@@ -236,7 +236,39 @@ pub mod matching {
             | SourceType::Float64
             | SourceType::TypeParam(_) => check_ty == ext_ty,
 
-            SourceType::Lambda(..) | SourceType::Trait(..) | SourceType::TypeAlias(..) => {
+            SourceType::Lambda(check_params, check_ret_type) => match ext_ty {
+                SourceType::Lambda(ext_params, ext_ret_type) => {
+                    if check_params.len() != ext_params.len() {
+                        return false;
+                    }
+
+                    for (ext_param, check_param) in ext_params.iter().zip(check_params.iter()) {
+                        if !matches(
+                            sa,
+                            check_param.clone(),
+                            check_type_param_defs,
+                            ext_param.clone(),
+                            ext_type_param_defs,
+                            bindings,
+                        ) {
+                            return false;
+                        }
+                    }
+
+                    matches(
+                        sa,
+                        *check_ret_type,
+                        check_type_param_defs,
+                        *ext_ret_type,
+                        ext_type_param_defs,
+                        bindings,
+                    )
+                }
+
+                _ => false,
+            },
+
+            SourceType::Trait(..) | SourceType::TypeAlias(..) => {
                 unimplemented!()
             }
 

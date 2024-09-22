@@ -1,0 +1,15 @@
+fn main() {
+    let x = |a: Int64, b: Int64|: Int64 { a + b };
+    assert(x.f() == 3);
+    assert(x.g() == 7);
+}
+
+impl (Int64, Int64): Int64 {
+    fn f(): Int64 {
+        self(1, 2)
+    }
+
+    fn g(): Int64 {
+        self(3, 4)
+    }
+}
