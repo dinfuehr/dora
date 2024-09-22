@@ -107,6 +107,36 @@ impl<'x> ExtensionCheck<'x> {
             AllowSelf::No,
         );
 
+        match extension_ty {
+            SourceType::TypeParam(..) => {
+                let msg = ErrorMessage::ExpectedExtensionType;
+                self.sa.report(
+                    self.extension.file_id.into(),
+                    self.extension.ast.extended_type.span(),
+                    msg,
+                );
+            }
+            SourceType::TypeAlias(..) => unimplemented!(),
+            SourceType::Any | SourceType::Ptr | SourceType::This => {
+                unreachable!()
+            }
+            SourceType::Error
+            | SourceType::Bool
+            | SourceType::UInt8
+            | SourceType::Char
+            | SourceType::Float32
+            | SourceType::Float64
+            | SourceType::Int32
+            | SourceType::Int64
+            | SourceType::Class(..)
+            | SourceType::Struct(..)
+            | SourceType::Enum(..)
+            | SourceType::Trait(..)
+            | SourceType::Unit
+            | SourceType::Lambda(..)
+            | SourceType::Tuple(..) => {}
+        }
+
         let extension_ty_package_id = package_for_type(self.sa, extension_ty.clone());
 
         if let Some(extension_ty_package_id) = extension_ty_package_id {
@@ -478,5 +508,18 @@ mod tests {
                 x.plus1()
             }
         ")
+    }
+
+    #[test]
+    fn extension_type_param() {
+        err(
+            "
+            impl[T] T {
+                fn foo(): Int64 { 0 }
+            }
+        ",
+            (2, 21),
+            ErrorMessage::ExpectedExtensionType,
+        )
     }
 }

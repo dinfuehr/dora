@@ -143,7 +143,7 @@ pub enum ErrorMessage {
     UnconstrainedTypeParam(String),
     StaticMethodCallTargetExpected,
     ExpectedImplTraitType,
-    ExpectedImplType,
+    ExpectedExtensionType,
     BoundExpected,
     NoTypeParamsExpected,
     DuplicateTraitBound,
@@ -544,7 +544,7 @@ impl ErrorMessage {
                 "expected static method call target.".into()
             }
             ErrorMessage::ExpectedImplTraitType => "cannot implement trait for this type.".into(),
-            ErrorMessage::ExpectedImplType => "cannot use this type in `impl` block".into(),
+            ErrorMessage::ExpectedExtensionType => "cannot extend this type.".into(),
             ErrorMessage::BoundExpected => "class or trait bound expected".into(),
             ErrorMessage::NoTypeParamsExpected => "no type params allowed".into(),
             ErrorMessage::DuplicateTraitBound => "duplicate trait bound".into(),
