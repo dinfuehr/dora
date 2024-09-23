@@ -47,23 +47,28 @@ fn parse_impl_definition(sa: &Sema, impl_: &ImplDefinition) {
 
     let extended_ty = parse_type(sa, &table, impl_.file_id.into(), &impl_.ast.extended_type);
 
-    let extended_ty = if extended_ty.is_cls()
-        || extended_ty.is_struct()
-        || extended_ty.is_enum()
-        || extended_ty.is_primitive()
-        || extended_ty.is_tuple_or_unit()
-    {
-        extended_ty
-    } else if !extended_ty.is_error() {
-        sa.report(
-            impl_.file_id,
-            impl_.ast.extended_type.span(),
-            ErrorMessage::ExpectedImplTraitType,
-        );
+    match extended_ty {
+        SourceType::TypeAlias(..) => unimplemented!(),
+        SourceType::Any | SourceType::Ptr | SourceType::This => {
+            unreachable!()
+        }
         SourceType::Error
-    } else {
-        SourceType::Error
-    };
+        | SourceType::Bool
+        | SourceType::UInt8
+        | SourceType::Char
+        | SourceType::Float32
+        | SourceType::Float64
+        | SourceType::Int32
+        | SourceType::Int64
+        | SourceType::Class(..)
+        | SourceType::Struct(..)
+        | SourceType::Enum(..)
+        | SourceType::Trait(..)
+        | SourceType::Unit
+        | SourceType::Lambda(..)
+        | SourceType::Tuple(..)
+        | SourceType::TypeParam(..) => {}
+    }
 
     assert!(impl_.extended_ty.set(extended_ty).is_ok());
 
@@ -368,11 +373,7 @@ mod tests {
             ErrorMessage::UnknownIdentifier("A".into()),
         );
 
-        err(
-            "trait Foo {} trait A {} impl Foo for A {}",
-            (1, 38),
-            ErrorMessage::ExpectedImplTraitType,
-        );
+        ok("trait Foo {} trait A {} impl Foo for A {}");
     }
 
     #[test]
@@ -777,5 +778,98 @@ mod tests {
             (7, 17),
             ErrorMessage::TypeNotImplementingTrait("String".into(), "Bar".into()),
         );
+    }
+
+    #[test]
+    fn impl_tuple() {
+        ok("
+            trait Foo {
+                fn foo(): Int64;
+            }
+            impl Foo for (Int64, Int64) {
+                fn foo(): Int64 { self.0 }
+            }
+            fn f(x: (Int64, Int64)): Int64 {
+                x.foo()
+            }
+        ")
+    }
+
+    #[test]
+    fn impl_lambda() {
+        ok("
+            trait Foo {
+                fn foo(): Int64;
+            }
+            impl Foo for (Int64, Int64): Int64 {
+                fn foo(): Int64 { self(1, 2) }
+            }
+            fn f(x: (Int64, Int64): Int64): Int64 {
+                x.foo()
+            }
+        ");
+
+        err(
+            "
+        trait Foo {
+            fn foo(): Int64;
+        }
+        impl Foo for (Int64, Int64): Int64 {
+            fn foo(): Int64 { self(1, 2) }
+        }
+        fn f(x: (Int64, String): Int64): Int64 {
+            x.foo()
+        }
+    ",
+            (9, 13),
+            ErrorMessage::UnknownMethod("(Int64, String) -> Int64".into(), "foo".into(), vec![]),
+        );
+
+        err(
+            "
+        trait Foo {
+            fn foo(): Int64;
+        }
+        impl Foo for (Int64, Int64): Int64 {
+            fn foo(): Int64 { self(1, 2) }
+        }
+        fn f(x: (Int64, Int64): Bool): Int64 {
+            x.foo()
+        }
+    ",
+            (9, 13),
+            ErrorMessage::UnknownMethod("(Int64, Int64) -> Bool".into(), "foo".into(), vec![]),
+        );
+    }
+
+    #[test]
+    fn impl_trait_object() {
+        ok("
+            trait Foo {
+                fn foo(): Int64;
+            }
+            trait Bar {}
+            impl Foo for Bar {
+                fn foo(): Int64 { 0 }
+            }
+            fn f(x: Bar): Int64 {
+                x.foo()
+            }
+        ");
+    }
+
+    #[test]
+    fn impl_type_param() {
+        ok("
+            trait Foo {
+                fn mytest(): Int64;
+            }
+            impl[T] Foo for T {
+                fn mytest(): Int64 { 0 }
+            }
+            fn f(x: Bool): Int64 {
+                x.mytest()
+            }
+        ");
     }
 }

@@ -142,7 +142,6 @@ pub enum ErrorMessage {
     WrongNumberTypeParams(usize, usize),
     UnconstrainedTypeParam(String),
     StaticMethodCallTargetExpected,
-    ExpectedImplTraitType,
     ExpectedExtensionType,
     BoundExpected,
     NoTypeParamsExpected,
@@ -543,7 +542,6 @@ impl ErrorMessage {
             ErrorMessage::StaticMethodCallTargetExpected => {
                 "expected static method call target.".into()
             }
-            ErrorMessage::ExpectedImplTraitType => "cannot implement trait for this type.".into(),
             ErrorMessage::ExpectedExtensionType => "cannot extend this type.".into(),
             ErrorMessage::BoundExpected => "class or trait bound expected".into(),
             ErrorMessage::NoTypeParamsExpected => "no type params allowed".into(),
