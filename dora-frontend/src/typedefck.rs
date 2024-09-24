@@ -11,7 +11,7 @@ use crate::{
     SourceTypeArray, SymbolKind,
 };
 
-pub fn parse_type_params(sa: &Sema) {
+pub fn parse_types(sa: &Sema) {
     parse_trait_type_params(sa);
     parse_impl_type_params(sa);
     parse_class_type_params(sa);

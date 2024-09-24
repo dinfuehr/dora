@@ -303,7 +303,7 @@ fn check_pattern_enum(
     let given_params = params.as_ref().map(|p| p.len()).unwrap_or(0);
 
     if !enum_accessible_from(ck.sa, enum_id, ck.module_id) {
-        let msg = ErrorMessage::NotAccessible(enum_.name(ck.sa));
+        let msg = ErrorMessage::NotAccessible;
         ck.sa.report(ck.file_id, pattern.span(), msg);
     }
 
@@ -378,7 +378,7 @@ fn check_pattern_class(
     let cls = ck.sa.class(cls_id);
 
     if !class_accessible_from(ck.sa, cls_id, ck.module_id) {
-        let msg = ErrorMessage::NotAccessible(cls.name(ck.sa));
+        let msg = ErrorMessage::NotAccessible;
         ck.sa.report(ck.file_id, pattern.span(), msg);
     } else if !is_default_accessible(ck.sa, cls.module_id, ck.module_id)
         && !cls.all_fields_are_public()
@@ -423,7 +423,7 @@ fn check_pattern_struct(
     let struct_ = ck.sa.struct_(struct_id);
 
     if !struct_accessible_from(ck.sa, struct_id, ck.module_id) {
-        let msg = ErrorMessage::NotAccessible(struct_.name(ck.sa));
+        let msg = ErrorMessage::NotAccessible;
         ck.sa.report(ck.file_id, pattern.span(), msg);
     } else if !is_default_accessible(ck.sa, struct_.module_id, ck.module_id)
         && !struct_.all_fields_are_public()

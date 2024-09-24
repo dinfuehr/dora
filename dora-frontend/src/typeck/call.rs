@@ -267,8 +267,7 @@ fn check_expr_call_fct(
     arg_types: &[SourceType],
 ) -> SourceType {
     if !fct_accessible_from(ck.sa, fct_id, ck.module_id) {
-        let fct = ck.sa.fct(fct_id);
-        let msg = ErrorMessage::NotAccessible(fct.display_name(ck.sa));
+        let msg = ErrorMessage::NotAccessible;
         ck.sa.report(ck.file_id, e.span, msg);
     }
 
@@ -319,10 +318,7 @@ fn check_expr_call_static_method(
         ck.analysis.map_calls.insert(e.id, call_type.clone());
 
         if !method_accessible_from(ck.sa, fct_id, ck.module_id) {
-            let fct = ck.sa.fct(fct_id);
-
-            let name = fct.display_name(ck.sa);
-            let msg = ErrorMessage::NotAccessible(name);
+            let msg = ErrorMessage::NotAccessible;
             ck.sa.report(ck.file_id, e.span, msg);
         }
 
@@ -388,10 +384,7 @@ fn check_expr_call_method(
         ck.analysis.set_ty(e.id, return_type.clone());
 
         if !method_accessible_from(ck.sa, fct_id, ck.module_id) {
-            let fct = ck.sa.fct(fct_id);
-
-            let name = fct.display_name(ck.sa);
-            let msg = ErrorMessage::NotAccessible(name);
+            let msg = ErrorMessage::NotAccessible;
             ck.sa.report(ck.file_id, e.span, msg);
         }
 
@@ -438,11 +431,7 @@ fn check_expr_call_field(
         let cls_id = object_type.cls_id().expect("class expected");
 
         if !class_field_accessible_from(ck.sa, cls_id, field_id, ck.module_id) {
-            let cls = ck.sa.class(cls_id);
-            let field = &cls.fields[field_id];
-
-            let name = ck.sa.interner.str(field.name).to_string();
-            let msg = ErrorMessage::NotAccessible(name);
+            let msg = ErrorMessage::NotAccessible;
             ck.sa.report(ck.file_id, e.span, msg);
         }
 
@@ -466,8 +455,7 @@ fn check_expr_call_field(
             );
 
             if !struct_field_accessible_from(ck.sa, struct_id, field_id, ck.module_id) {
-                let name = ck.sa.interner.str(field.name).to_string();
-                let msg = ErrorMessage::NotAccessible(name);
+                let msg = ErrorMessage::NotAccessible;
                 ck.sa.report(ck.file_id, e.span, msg);
             }
 
@@ -502,8 +490,7 @@ fn check_expr_call_struct(
     let is_struct_accessible = struct_accessible_from(ck.sa, struct_id, ck.module_id);
 
     if !is_struct_accessible {
-        let struct_ = ck.sa.struct_(struct_id);
-        let msg = ErrorMessage::NotAccessible(struct_.name(ck.sa));
+        let msg = ErrorMessage::NotAccessible;
         ck.sa.report(ck.file_id, e.span, msg);
     }
 
@@ -616,8 +603,7 @@ fn check_expr_call_class(
     let is_class_accessible = class_accessible_from(ck.sa, cls_id, ck.module_id);
 
     if !is_class_accessible {
-        let cls = ck.sa.class(cls_id);
-        let msg = ErrorMessage::NotAccessible(cls.name(ck.sa));
+        let msg = ErrorMessage::NotAccessible;
         ck.sa.report(ck.file_id, e.span, msg);
     }
 

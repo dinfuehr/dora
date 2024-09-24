@@ -50,10 +50,10 @@ mod useck;
 pub const STDLIB: &[(&str, &str)] = &include!(concat!(env!("OUT_DIR"), "/dora_stdlib_bundle.rs"));
 
 pub fn check_program(sa: &mut Sema) -> bool {
-    // This phase loads and parses all files. Also creates top-level-elements.
+    // This phase loads and parses all files. Also creates all elements.
     let module_symtables = program_parser::parse(sa);
 
-    // Discover all imported types.
+    // Discover all imported elements.
     useck::check(sa, module_symtables);
 
     if sa.diag.borrow().has_errors() {
@@ -67,7 +67,7 @@ pub fn check_program(sa: &mut Sema) -> bool {
     stdlib_lookup::lookup_known_fundamental_types(sa);
 
     // Now all types are known and we can start parsing types/type bounds.
-    typedefck::parse_type_params(sa);
+    typedefck::parse_types(sa);
     // Find all trait implementations for types.
     impldefck::check_definition(sa);
     // Check types/type bounds for type params.

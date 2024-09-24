@@ -1667,7 +1667,7 @@ fn test_struct_mod() {
         mod foo { struct Foo(f1: Int32) }
         ",
         (2, 18),
-        ErrorMessage::NotAccessible("foo::Foo".into()),
+        ErrorMessage::NotAccessible,
     );
 }
 
@@ -2803,7 +2803,7 @@ fn mod_fct_call() {
         mod foo { fn g() {} }
     ",
         (2, 18),
-        ErrorMessage::NotAccessible("foo::g".into()),
+        ErrorMessage::NotAccessible,
     );
 
     ok("
@@ -2830,7 +2830,7 @@ fn mod_fct_call() {
         }
     ",
         (2, 18),
-        ErrorMessage::NotAccessible("foo::bar::baz".into()),
+        ErrorMessage::NotAccessible,
     );
 }
 
@@ -2847,7 +2847,7 @@ fn mod_ctor_call() {
         mod foo { class Foo }
     ",
         (2, 18),
-        ErrorMessage::NotAccessible("foo::Foo".into()),
+        ErrorMessage::NotAccessible,
     );
 
     ok("
@@ -2861,7 +2861,7 @@ fn mod_ctor_call() {
         mod foo { pub mod bar { class Foo } }
     ",
         (2, 18),
-        ErrorMessage::NotAccessible("foo::bar::Foo".into()),
+        ErrorMessage::NotAccessible,
     );
 }
 
@@ -2873,7 +2873,7 @@ fn mod_class_field() {
         mod foo { pub class Foo(bar: Int32) }
     ",
         (2, 39),
-        ErrorMessage::NotAccessible("bar".into()),
+        ErrorMessage::NotAccessible,
     );
 
     err(
@@ -2882,7 +2882,7 @@ fn mod_class_field() {
         mod foo { pub class Foo(bar: Array[Int32]) }
     ",
         (2, 37),
-        ErrorMessage::NotAccessible("bar".into()),
+        ErrorMessage::NotAccessible,
     );
 
     err(
@@ -2891,7 +2891,7 @@ fn mod_class_field() {
         mod foo { pub class Foo(bar: Array[Int32]) }
     ",
         (2, 31),
-        ErrorMessage::NotAccessible("bar".into()),
+        ErrorMessage::NotAccessible,
     );
 
     ok("
@@ -2919,7 +2919,7 @@ fn mod_class_method() {
         }
     ",
         (2, 29),
-        ErrorMessage::NotAccessible("foo::Foo#bar".into()),
+        ErrorMessage::NotAccessible,
     );
 }
 
@@ -2942,7 +2942,7 @@ fn mod_class_static_method() {
         }
     ",
         (2, 18),
-        ErrorMessage::NotAccessible("foo::Foo::bar".into()),
+        ErrorMessage::NotAccessible,
     );
 }
 
@@ -2954,7 +2954,7 @@ fn mod_struct_field() {
         mod foo { pub struct Foo(bar: Int32) }
     ",
         (2, 39),
-        ErrorMessage::NotAccessible("bar".into()),
+        ErrorMessage::NotAccessible,
     );
 
     ok("
@@ -2968,7 +2968,7 @@ fn mod_struct_field() {
         mod foo { pub struct Foo(bar: Array[Int32]) }
     ",
         (2, 37),
-        ErrorMessage::NotAccessible("bar".into()),
+        ErrorMessage::NotAccessible,
     );
 
     err(
@@ -2977,7 +2977,7 @@ fn mod_struct_field() {
         mod foo { pub struct Foo(bar: Array[Int32]) }
     ",
         (2, 31),
-        ErrorMessage::NotAccessible("bar".into()),
+        ErrorMessage::NotAccessible,
     );
 
     ok("
@@ -3033,7 +3033,7 @@ fn mod_global() {
         mod foo { let x: Int32 = 1i32; }
     ",
         (2, 28),
-        ErrorMessage::NotAccessible("foo::x".into()),
+        ErrorMessage::NotAccessible,
     );
 }
 
@@ -3091,7 +3091,7 @@ fn mod_class_new() {
         }
     ",
         (2, 18),
-        ErrorMessage::NotAccessible("foo::Foo".into()),
+        ErrorMessage::NotAccessible,
     );
 
     err(
@@ -3102,7 +3102,7 @@ fn mod_class_new() {
         }
     ",
         (2, 18),
-        ErrorMessage::NotAccessible("foo::Foo".into()),
+        ErrorMessage::NotAccessible,
     );
 
     err(
@@ -3127,7 +3127,7 @@ fn mod_struct() {
         }
     ",
         (2, 18),
-        ErrorMessage::NotAccessible("foo::Foo".into()),
+        ErrorMessage::NotAccessible,
     );
 
     err(
@@ -3138,7 +3138,7 @@ fn mod_struct() {
         }
     ",
         (2, 18),
-        ErrorMessage::NotAccessible("foo::Foo".into()),
+        ErrorMessage::NotAccessible,
     );
 
     err(
@@ -3174,7 +3174,7 @@ fn mod_struct() {
         }
     ",
         (2, 21),
-        ErrorMessage::NotAccessible("foo::Foo".into()),
+        ErrorMessage::NotAccessible,
     );
 }
 
@@ -3191,7 +3191,7 @@ fn mod_const() {
         mod foo { const x: Int32 = 1i32; }
     ",
         (2, 28),
-        ErrorMessage::NotAccessible("foo::x".into()),
+        ErrorMessage::NotAccessible,
     );
 
     ok("
@@ -3213,7 +3213,7 @@ fn mod_enum_value() {
         mod foo { enum Foo { A, B } use Foo::A; }
     ",
         (2, 21),
-        ErrorMessage::NotAccessible("foo::Foo".into()),
+        ErrorMessage::NotAccessible,
     );
 
     ok("
@@ -3227,7 +3227,7 @@ fn mod_enum_value() {
         mod foo { pub mod bar { enum Foo { A, B } use Foo::A; } }
     ",
         (2, 26),
-        ErrorMessage::NotAccessible("foo::bar::Foo".into()),
+        ErrorMessage::NotAccessible,
     );
 }
 
@@ -3241,7 +3241,7 @@ fn mod_enum() {
         mod foo { enum Foo { A(Bar), B } class Bar }
     ",
         (3, 21),
-        ErrorMessage::NotAccessible("foo::Foo".into()),
+        ErrorMessage::NotAccessible,
     );
 
     ok("
@@ -3266,7 +3266,7 @@ fn mod_enum() {
         mod foo { enum Foo { A(Int32), B } }
     ",
         (3, 13),
-        ErrorMessage::NotAccessible("foo::Foo".into()),
+        ErrorMessage::NotAccessible,
     );
 }
 
@@ -3455,7 +3455,7 @@ fn mod_inside() {
         mod foo { class Foo }
     ",
         (2, 17),
-        ErrorMessage::NotAccessible("foo::Foo".into()),
+        ErrorMessage::NotAccessible,
     );
 }
 

@@ -467,7 +467,7 @@ mod tests {
             class Foo
             impl foo::MyTrait for Foo {}",
             (4, 18),
-            ErrorMessage::NotAccessible("foo::MyTrait".into()),
+            ErrorMessage::NotAccessible,
         );
 
         err(
@@ -476,7 +476,7 @@ mod tests {
             trait MyTrait {}
             impl MyTrait for foo::Foo {}",
             (4, 30),
-            ErrorMessage::NotAccessible("foo::Foo".into()),
+            ErrorMessage::NotAccessible,
         );
     }
 

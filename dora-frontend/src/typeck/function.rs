@@ -372,7 +372,7 @@ impl<'a> TypeCheck<'a> {
             type_param_defs: self.type_param_defs,
         };
 
-        parsety::check_parsed_type(self.sa, &ctxt, &parsed_ty);
+        parsety::convert_parsed_type(self.sa, &ctxt, &parsed_ty);
         let expanded_ty = parsety::expand_parsed_type(self.sa, &parsed_ty);
 
         replace_type(

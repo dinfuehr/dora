@@ -428,8 +428,7 @@ pub(super) fn check_expr_dot(
             );
 
             if !struct_field_accessible_from(ck.sa, struct_id, field_id, ck.module_id) {
-                let name = ck.sa.interner.str(field.name).to_string();
-                let msg = ErrorMessage::NotAccessible(name);
+                let msg = ErrorMessage::NotAccessible;
                 ck.sa.report(ck.file_id, e.rhs.span(), msg);
             }
 
@@ -458,8 +457,7 @@ pub(super) fn check_expr_dot(
             );
 
             if !class_field_accessible_from(ck.sa, cls_id, field_id, ck.module_id) {
-                let name = ck.sa.interner.str(field.name).to_string();
-                let msg = ErrorMessage::NotAccessible(name);
+                let msg = ErrorMessage::NotAccessible;
                 ck.sa.report(ck.file_id, e.rhs.span(), msg);
             }
 
@@ -1344,7 +1342,7 @@ pub(super) fn check_enum_value_with_args(
     let variant = &enum_.variants()[variant_idx as usize];
 
     if !enum_accessible_from(ck.sa, enum_id, ck.module_id) {
-        let msg = ErrorMessage::NotAccessible(enum_.name(ck.sa));
+        let msg = ErrorMessage::NotAccessible;
         ck.sa.report(ck.file_id, e.span, msg);
     }
 
@@ -1510,7 +1508,7 @@ fn check_enum_value_without_args(
     let enum_ = ck.sa.enum_(enum_id);
 
     if !enum_accessible_from(ck.sa, enum_id, ck.module_id) {
-        let msg = ErrorMessage::NotAccessible(enum_.name(ck.sa));
+        let msg = ErrorMessage::NotAccessible;
         ck.sa.report(ck.file_id, expr_span, msg);
     }
 
@@ -1662,7 +1660,7 @@ pub(super) fn check_enum_value_without_args_id(
     let enum_ = ck.sa.enum_(enum_id);
 
     if !enum_accessible_from(ck.sa, enum_id, ck.module_id) {
-        let msg = ErrorMessage::NotAccessible(enum_.name(ck.sa));
+        let msg = ErrorMessage::NotAccessible;
         ck.sa.report(ck.file_id, expr_span, msg);
     }
 
@@ -1727,8 +1725,7 @@ fn check_expr_path_module(
     match sym {
         Some(SymbolKind::Global(global_id)) => {
             if !global_accessible_from(ck.sa, global_id, ck.module_id) {
-                let global = ck.sa.global(global_id);
-                let msg = ErrorMessage::NotAccessible(global.name(ck.sa));
+                let msg = ErrorMessage::NotAccessible;
                 ck.sa.report(ck.file_id, e.op_span, msg);
             }
 
@@ -1745,8 +1742,7 @@ fn check_expr_path_module(
 
         Some(SymbolKind::Const(const_id)) => {
             if !const_accessible_from(ck.sa, const_id, ck.module_id) {
-                let const_ = ck.sa.const_(const_id);
-                let msg = ErrorMessage::NotAccessible(const_.name(ck.sa));
+                let msg = ErrorMessage::NotAccessible;
                 ck.sa.report(ck.file_id, e.op_span, msg);
             }
 
@@ -1830,8 +1826,7 @@ pub(super) fn read_path(ck: &mut TypeCheck, path: &ast::PathData) -> Result<Symb
         match sym {
             Some(SymbolKind::Module(module_id)) => {
                 if !module_accessible_from(ck.sa, module_id, ck.module_id) {
-                    let module = ck.sa.module(module_id);
-                    let msg = ErrorMessage::NotAccessible(module.name(ck.sa));
+                    let msg = ErrorMessage::NotAccessible;
                     ck.sa.report(ck.file_id, path.span, msg);
                 }
 
@@ -1843,7 +1838,7 @@ pub(super) fn read_path(ck: &mut TypeCheck, path: &ast::PathData) -> Result<Symb
                 let enum_ = ck.sa.enum_(enum_id);
 
                 if !enum_accessible_from(ck.sa, enum_id, ck.module_id) {
-                    let msg = ErrorMessage::NotAccessible(enum_.name(ck.sa));
+                    let msg = ErrorMessage::NotAccessible;
                     ck.sa.report(ck.file_id, path.span, msg);
                 }
 

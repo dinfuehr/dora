@@ -125,7 +125,7 @@ pub enum ErrorMessage {
     ThisOrSuperExpected(String),
     NoSuperDelegationWithPrimaryCtor(String),
     NoSuperClass(String),
-    NotAccessible(String),
+    NotAccessible,
     UnexpectedTypeAliasAssignment,
     StructConstructorNotAccessible(String),
     StructFieldImmutable,
@@ -391,7 +391,7 @@ impl ErrorMessage {
                 format!("`{}` is not a trait.", name)
             }
             ErrorMessage::NoSuperModule => "no super module.".into(),
-            ErrorMessage::NotAccessible(ref name) => format!("`{}` is not accessible.", name),
+            ErrorMessage::NotAccessible => format!("element is not accessible."),
             ErrorMessage::StructConstructorNotAccessible(ref name) => {
                 format!("constructor of struct `{}` is not accessible.", name)
             }

@@ -2,11 +2,11 @@ use crate::access::{
     class_accessible_from, enum_accessible_from, struct_accessible_from, trait_accessible_from,
 };
 use crate::error::msg::ErrorMessage;
-use crate::replace_type;
+use crate::parsety;
 use crate::sema::{implements_trait, ModuleDefinitionId, Sema, SourceFileId, TypeParamDefinition};
 use crate::specialize::specialize_type;
 use crate::sym::{ModuleSymTable, SymTable, SymbolKind};
-use crate::{AliasReplacement, SourceType, SourceTypeArray};
+use crate::{SourceType, SourceTypeArray};
 use std::rc::Rc;
 
 use dora_parser::ast::{self, TypeLambdaType, TypeRegularType, TypeTupleType};
@@ -285,7 +285,7 @@ fn verify_type_regular(
             let cls = sa.class(cls_id);
 
             if !class_accessible_from(sa, cls_id, module_id) {
-                let msg = ErrorMessage::NotAccessible(cls.name(sa));
+                let msg = ErrorMessage::NotAccessible;
                 sa.report(file_id, node.span, msg);
                 return false;
             }
@@ -320,7 +320,7 @@ fn verify_type_regular(
             let enum_ = sa.enum_(enum_id);
 
             if !enum_accessible_from(sa, enum_id, module_id) {
-                let msg = ErrorMessage::NotAccessible(enum_.name(sa));
+                let msg = ErrorMessage::NotAccessible;
                 sa.report(file_id, node.span, msg);
                 return false;
             }
@@ -363,8 +363,7 @@ fn verify_type_regular(
                 .expect("primitive struct expected");
 
             if !struct_accessible_from(sa, struct_id, module_id) {
-                let struct_ = sa.struct_(struct_id);
-                let msg = ErrorMessage::NotAccessible(struct_.name(sa));
+                let msg = ErrorMessage::NotAccessible;
                 sa.report(file_id, node.span, msg);
                 return false;
             }
@@ -374,7 +373,7 @@ fn verify_type_regular(
             let struct_ = sa.struct_(struct_id);
 
             if !struct_accessible_from(sa, struct_id, module_id) {
-                let msg = ErrorMessage::NotAccessible(struct_.name(sa));
+                let msg = ErrorMessage::NotAccessible;
                 sa.report(file_id, node.span, msg);
                 return false;
             }
@@ -409,7 +408,7 @@ fn verify_type_regular(
             let trait_ = &sa.trait_(trait_id);
 
             if !trait_accessible_from(sa, trait_id, module_id) {
-                let msg = ErrorMessage::NotAccessible(trait_.name(sa));
+                let msg = ErrorMessage::NotAccessible;
                 sa.report(file_id, node.span, msg);
                 return false;
             }
@@ -594,23 +593,44 @@ pub fn expand_type(
     type_param_defs: &TypeParamDefinition,
     allow_self: AllowSelf,
 ) -> SourceType {
-    let ty = parse_type(sa, table, file_id, t);
+    let parsed_ty = parsety::parse_type(sa, table, file_id, t);
 
-    let is_good = verify_type(
-        sa,
-        table.module_id(),
+    let ctxt = parsety::TypeContext {
+        allow_self: allow_self == AllowSelf::Yes,
+        module_id: table.module_id(),
         file_id,
-        t,
-        ty.clone(),
         type_param_defs,
-        allow_self,
-    );
+    };
 
-    if is_good {
-        replace_type(sa, ty, None, None, AliasReplacement::ReplaceWithActualType)
-    } else {
-        SourceType::Error
-    }
+    parsety::convert_parsed_type(sa, &ctxt, &parsed_ty);
+    let expanded_ty = parsety::expand_parsed_type(sa, &parsed_ty);
+    expanded_ty
+
+    // replace_type(
+    //     self.sa,
+    //     expanded_ty,
+    //     None,
+    //     self.self_ty.clone(),
+    //     AliasReplacement::None,
+    // )
+
+    // let ty = parse_type(sa, table, file_id, t);
+
+    // let is_good = verify_type(
+    //     sa,
+    //     table.module_id(),
+    //     file_id,
+    //     t,
+    //     ty.clone(),
+    //     type_param_defs,
+    //     allow_self,
+    // );
+
+    // if is_good {
+    //     replace_type(sa, ty, None, None, AliasReplacement::ReplaceWithActualType)
+    // } else {
+    //     SourceType::Error
+    // }
 }
 
 #[cfg(test)]
@@ -631,7 +651,7 @@ mod tests {
             mod foo { class Foo }
         ",
             (2, 21),
-            ErrorMessage::NotAccessible("foo::Foo".into()),
+            ErrorMessage::NotAccessible,
         );
     }
 
@@ -648,7 +668,7 @@ mod tests {
             mod foo { enum Foo { A, B } }
         ",
             (2, 21),
-            ErrorMessage::NotAccessible("foo::Foo".into()),
+            ErrorMessage::NotAccessible,
         );
     }
 
@@ -665,7 +685,7 @@ mod tests {
             mod foo { trait Foo {} }
         ",
             (2, 21),
-            ErrorMessage::NotAccessible("foo::Foo".into()),
+            ErrorMessage::NotAccessible,
         );
     }
 }

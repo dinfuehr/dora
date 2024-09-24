@@ -425,7 +425,7 @@ mod tests {
             mod foo { class MyFoo }
         ",
             (2, 18),
-            ErrorMessage::NotAccessible("foo::MyFoo".into()),
+            ErrorMessage::NotAccessible,
         );
 
         ok("
