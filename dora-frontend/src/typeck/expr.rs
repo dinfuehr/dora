@@ -10,10 +10,10 @@ use crate::error::msg::ErrorMessage;
 use crate::interner::Name;
 use crate::program_parser::ParsedModifierList;
 use crate::sema::{
-    create_tuple, find_field_in_class, find_impl, impl_matches, implements_trait, AnalysisData,
-    CallType, ConstValue, EnumDefinitionId, FctDefinition, FctParent, IdentType, Intrinsic,
-    LazyLambdaCreationData, LazyLambdaId, ModuleDefinitionId, NestedVarId, Sema, SourceFileId,
-    TraitDefinitionId,
+    create_tuple, find_field_in_class, find_impl, impl_matches, implements_trait, is_object_safe,
+    AnalysisData, CallType, ConstValue, EnumDefinitionId, FctDefinition, FctParent, IdentType,
+    Intrinsic, LazyLambdaCreationData, LazyLambdaId, ModuleDefinitionId, NestedVarId, Sema,
+    SourceFileId, TraitDefinitionId,
 };
 use crate::typeck::{
     check_expr_break_and_continue, check_expr_call, check_expr_call_enum_args, check_expr_for,
@@ -557,7 +557,12 @@ fn check_expr_conv(
     let check_type = ck.read_type(&e.data_type);
     ck.analysis.set_ty(e.data_type.id(), check_type.clone());
 
-    if check_type.is_trait() {
+    if let Some(trait_id) = check_type.trait_id() {
+        if !is_object_safe(ck.sa, trait_id) {
+            ck.sa
+                .report(ck.file_id, e.span, ErrorMessage::TraitNotObjectSafe);
+        }
+
         let implements = implements_trait(
             ck.sa,
             object_type.clone(),

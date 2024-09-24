@@ -208,7 +208,7 @@ fn parse_fct_type_params(sa: &Sema) {
             FctParent::Function => unreachable!(),
         }
 
-        let container_type_params = type_param_definition.len();
+        let container_type_params = type_param_definition.set_container_type_params();
         assert!(fct.container_type_params.set(container_type_params).is_ok());
 
         read_type_param_definition(

@@ -191,6 +191,7 @@ pub enum ErrorMessage {
     PatternMultipleRest,
     ExtendingTypeDifferentPackage,
     ImplTraitForeignType,
+    TraitNotObjectSafe,
 }
 
 impl ErrorMessage {
@@ -659,6 +660,7 @@ impl ErrorMessage {
             ErrorMessage::ImplTraitForeignType => {
                 format!("Cannot implement foreign trait for a type of another package.")
             }
+            ErrorMessage::TraitNotObjectSafe => format!("Trait not object safe"),
         }
     }
 }

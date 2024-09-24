@@ -11,7 +11,7 @@ use crate::sema::{
     module_path, AliasDefinitionId, Candidate, FctDefinitionId, ModuleDefinitionId,
     PackageDefinitionId, Sema, SourceFileId, TypeParamDefinition, Visibility,
 };
-use crate::{SourceType, SourceTypeArray};
+use crate::{contains_self, SourceType, SourceTypeArray};
 use id_arena::Id;
 
 pub type TraitDefinitionId = Id<TraitDefinition>;
@@ -120,6 +120,38 @@ impl TraitDefinition {
 
         table.get(&name).cloned()
     }
+}
+
+pub fn is_object_safe(sa: &Sema, trait_id: TraitDefinitionId) -> bool {
+    let trait_ = sa.trait_(trait_id);
+
+    if !trait_.aliases().is_empty() {
+        return false;
+    }
+
+    for method_id in trait_.methods() {
+        let method = sa.fct(*method_id);
+
+        if method.type_params().has_fct_type_params() {
+            return false;
+        }
+
+        if method.is_static {
+            return false;
+        }
+
+        for param in method.params_without_self() {
+            if contains_self(sa, param.clone()) {
+                return false;
+            }
+        }
+
+        if contains_self(sa, method.return_type()) {
+            return false;
+        }
+    }
+
+    true
 }
 
 #[allow(unused)]

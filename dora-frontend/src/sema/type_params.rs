@@ -1,3 +1,5 @@
+use std::cell::OnceCell;
+
 use crate::{Name, SourceType};
 use dora_parser::ast;
 
@@ -5,6 +7,7 @@ use dora_parser::ast;
 pub struct TypeParamDefinition {
     type_params: Vec<TypeParam>,
     bounds: Vec<Bound>,
+    container_type_params: OnceCell<usize>,
 }
 
 impl TypeParamDefinition {
@@ -12,6 +15,7 @@ impl TypeParamDefinition {
         TypeParamDefinition {
             type_params: Vec::new(),
             bounds: Vec::new(),
+            container_type_params: OnceCell::new(),
         }
     }
 
@@ -21,6 +25,26 @@ impl TypeParamDefinition {
 
     pub fn name(&self, id: TypeParamId) -> Name {
         self.type_params[id.to_usize()].name
+    }
+
+    pub fn container_type_params(&self) -> usize {
+        self.container_type_params
+            .get()
+            .cloned()
+            .expect("uninitialized field")
+    }
+
+    pub fn set_container_type_params(&self) -> usize {
+        let container_type_params = self.type_params.len();
+        assert!(self
+            .container_type_params
+            .set(container_type_params)
+            .is_ok());
+        container_type_params
+    }
+
+    pub fn has_fct_type_params(&self) -> bool {
+        self.len() > self.container_type_params()
     }
 
     pub fn add_type_param(&mut self, name: Name) -> TypeParamId {

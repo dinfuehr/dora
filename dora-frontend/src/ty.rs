@@ -510,6 +510,55 @@ impl SourceType {
     }
 }
 
+pub fn contains_self(sa: &Sema, ty: SourceType) -> bool {
+    match ty {
+        SourceType::Ptr | SourceType::Any => unreachable!(),
+        SourceType::This => true,
+        SourceType::Error
+        | SourceType::Unit
+        | SourceType::Bool
+        | SourceType::UInt8
+        | SourceType::Char
+        | SourceType::Int32
+        | SourceType::Int64
+        | SourceType::Float32
+        | SourceType::Float64
+        | SourceType::TypeParam(..) => false,
+        SourceType::TypeAlias(..) => unimplemented!(),
+        SourceType::Class(_, params)
+        | SourceType::Enum(_, params)
+        | SourceType::Struct(_, params)
+        | SourceType::Trait(_, params) => {
+            for param in params.iter() {
+                if contains_self(sa, param) {
+                    return true;
+                }
+            }
+
+            false
+        }
+
+        SourceType::Tuple(subtypes) => {
+            for subtype in subtypes.iter() {
+                if contains_self(sa, subtype) {
+                    return true;
+                }
+            }
+
+            false
+        }
+        SourceType::Lambda(params, return_type) => {
+            for param in params.iter() {
+                if contains_self(sa, param) {
+                    return true;
+                }
+            }
+
+            contains_self(sa, *return_type)
+        }
+    }
+}
+
 #[derive(Clone, Debug, Hash, PartialEq, Eq)]
 pub enum SourceTypeArray {
     Empty,

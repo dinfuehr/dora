@@ -217,4 +217,115 @@ mod tests {
             ErrorMessage::BoundExpected,
         );
     }
+
+    #[test]
+    fn trait_object_safe_alias() {
+        err(
+            "
+            trait Foo {
+                type X;
+            }
+            impl Foo for Int64 {
+                type X = String;
+            }
+            fn f(x: Int64) {
+                x as Foo;
+            }
+        ",
+            (9, 17),
+            ErrorMessage::TraitNotObjectSafe,
+        );
+    }
+
+    #[test]
+    fn trait_object_safe_static_method() {
+        err(
+            "
+            trait Foo {
+                static fn f();
+            }
+            impl Foo for Int64 {
+                static fn f() {}
+            }
+            fn f(x: Int64) {
+                x as Foo;
+            }
+        ",
+            (9, 17),
+            ErrorMessage::TraitNotObjectSafe,
+        );
+    }
+
+    #[test]
+    fn trait_object_safe_trait_type_param() {
+        ok("
+            trait Foo[T] {
+                fn f(): T;
+            }
+            impl Foo[Int64] for Int64 {
+                fn f(): Self { self }
+            }
+            fn f(x: Int64) {
+                x as Foo[Int64];
+            }
+        ");
+    }
+
+    #[test]
+    #[ignore]
+    fn trait_object_safe_fct_type_param() {
+        err(
+            "
+            trait Foo {
+                fn f[U](x: U): T;
+            }
+            impl Foo for Int64 {
+                fn f[U](_x: U): Self { self }
+            }
+            fn f(x: Int64) {
+                x as Foo[Int64];
+            }
+        ",
+            (1, 1),
+            ErrorMessage::Unimplemented,
+        );
+    }
+
+    #[test]
+    fn trait_object_safe_self_param() {
+        err(
+            "
+            trait Foo {
+                fn f(x: Self);
+            }
+            impl Foo for Int64 {
+                fn f(x: Int64) {}
+            }
+            fn f(x: Int64) {
+                x as Foo;
+            }
+        ",
+            (9, 17),
+            ErrorMessage::TraitNotObjectSafe,
+        );
+    }
+
+    #[test]
+    fn trait_object_safe_self_return_type() {
+        err(
+            "
+            trait Foo {
+                fn f(): Self;
+            }
+            impl Foo for Int64 {
+                fn f(): Int64 { self }
+            }
+            fn f(x: Int64) {
+                x as Foo;
+            }
+        ",
+            (9, 17),
+            ErrorMessage::TraitNotObjectSafe,
+        );
+    }
 }
