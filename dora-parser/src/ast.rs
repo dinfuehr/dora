@@ -379,11 +379,9 @@ pub type Type = Arc<TypeData>;
 #[derive(Clone, Debug)]
 pub enum TypeData {
     This(TypeSelfType),
-    Basic(TypeBasicType),
+    Regular(TypeRegularType),
     Tuple(TypeTupleType),
     Lambda(TypeLambdaType),
-    Path(TypePathType),
-    Generic(TypeGenericType),
     Error { id: NodeId, span: Span },
 }
 
@@ -414,7 +412,7 @@ pub struct TypeLambdaType {
 }
 
 #[derive(Clone, Debug)]
-pub struct TypeBasicType {
+pub struct TypeRegularType {
     pub id: NodeId,
     pub span: Span,
     pub green: GreenNode,
@@ -442,7 +440,7 @@ pub struct TypeGenericType {
     pub params: Vec<Type>,
 }
 
-impl TypeBasicType {
+impl TypeRegularType {
     #[cfg(test)]
     pub fn name(&self) -> String {
         assert_eq!(self.path.names.len(), 1);
@@ -468,32 +466,7 @@ impl TypeData {
         path: Path,
         params: Vec<Type>,
     ) -> TypeData {
-        TypeData::Basic(TypeBasicType {
-            id,
-            span,
-            green,
-            path,
-            params,
-        })
-    }
-
-    pub fn create_path(id: NodeId, span: Span, green: GreenNode, path: Path) -> TypeData {
-        TypeData::Path(TypePathType {
-            id,
-            span,
-            green,
-            path,
-        })
-    }
-
-    pub fn create_generic(
-        id: NodeId,
-        span: Span,
-        green: GreenNode,
-        path: Type,
-        params: Vec<Type>,
-    ) -> TypeData {
-        TypeData::Generic(TypeGenericType {
+        TypeData::Regular(TypeRegularType {
             id,
             span,
             green,
@@ -527,9 +500,9 @@ impl TypeData {
         })
     }
 
-    pub fn to_basic(&self) -> Option<&TypeBasicType> {
+    pub fn to_basic(&self) -> Option<&TypeRegularType> {
         match *self {
-            TypeData::Basic(ref val) => Some(val),
+            TypeData::Regular(ref val) => Some(val),
             _ => None,
         }
     }
@@ -560,7 +533,7 @@ impl TypeData {
     pub fn to_string(&self) -> String {
         match *self {
             TypeData::This(_) => "Self".into(),
-            TypeData::Basic(ref val) => val.name(),
+            TypeData::Regular(ref val) => val.name(),
 
             TypeData::Tuple(ref val) => {
                 let types: Vec<String> = val.subtypes.iter().map(|t| t.to_string()).collect();
@@ -579,8 +552,6 @@ impl TypeData {
                 }
             }
 
-            TypeData::Generic(..) | TypeData::Path(..) => unreachable!(),
-
             TypeData::Error { .. } => "error type".into(),
         }
     }
@@ -588,24 +559,20 @@ impl TypeData {
     pub fn span(&self) -> Span {
         match *self {
             TypeData::This(ref val) => val.span,
-            TypeData::Basic(ref val) => val.span,
+            TypeData::Regular(ref val) => val.span,
             TypeData::Tuple(ref val) => val.span,
             TypeData::Lambda(ref val) => val.span,
             TypeData::Error { span, .. } => span,
-            TypeData::Path(ref val) => val.span,
-            TypeData::Generic(ref val) => val.span,
         }
     }
 
     pub fn id(&self) -> NodeId {
         match *self {
             TypeData::This(ref val) => val.id,
-            TypeData::Basic(ref val) => val.id,
+            TypeData::Regular(ref val) => val.id,
             TypeData::Tuple(ref val) => val.id,
             TypeData::Lambda(ref val) => val.id,
             TypeData::Error { id, .. } => id,
-            TypeData::Path(ref val) => val.id,
-            TypeData::Generic(ref val) => val.id,
         }
     }
 }

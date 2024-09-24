@@ -209,7 +209,7 @@ pub fn walk_param<V: Visitor>(v: &mut V, p: &Param) {
 pub fn walk_type<V: Visitor>(v: &mut V, t: &TypeData) {
     match *t {
         TypeData::This(_) => {}
-        TypeData::Basic(_) => {}
+        TypeData::Regular(_) => {}
         TypeData::Tuple(ref tuple) => {
             for ty in &tuple.subtypes {
                 v.visit_type(ty);
@@ -223,13 +223,6 @@ pub fn walk_type<V: Visitor>(v: &mut V, t: &TypeData) {
 
             if let Some(ref ret) = fct.ret {
                 v.visit_type(&ret);
-            }
-        }
-
-        TypeData::Path(..) => {}
-        TypeData::Generic(ref ty) => {
-            for ty in &ty.params {
-                v.visit_type(ty);
             }
         }
 

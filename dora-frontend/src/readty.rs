@@ -9,7 +9,7 @@ use crate::sym::{ModuleSymTable, SymTable, SymbolKind};
 use crate::{AliasReplacement, SourceType, SourceTypeArray};
 use std::rc::Rc;
 
-use dora_parser::ast::{self, TypeBasicType, TypeLambdaType, TypeTupleType};
+use dora_parser::ast::{self, TypeLambdaType, TypeRegularType, TypeTupleType};
 use dora_parser::Span;
 
 #[derive(Copy, Clone, PartialEq, Eq)]
@@ -26,19 +26,18 @@ pub fn parse_type(
 ) -> SourceType {
     match *t {
         ast::TypeData::This(_) => SourceType::This,
-        ast::TypeData::Basic(ref node) => read_type_basic_unchecked(sa, table, file_id, node),
+        ast::TypeData::Regular(ref node) => read_type_regular_unchecked(sa, table, file_id, node),
         ast::TypeData::Tuple(ref node) => read_type_tuple_unchecked(sa, table, file_id, node),
         ast::TypeData::Lambda(ref node) => read_type_lambda_unchecked(sa, table, file_id, node),
-        ast::TypeData::Generic(..) | ast::TypeData::Path(..) => unreachable!(),
         ast::TypeData::Error { .. } => SourceType::Error,
     }
 }
 
-fn read_type_basic_unchecked(
+fn read_type_regular_unchecked(
     sa: &Sema,
     table: &ModuleSymTable,
     file_id: SourceFileId,
-    node: &TypeBasicType,
+    node: &TypeRegularType,
 ) -> SourceType {
     let sym = read_type_path(sa, table, file_id, node);
 
@@ -188,8 +187,8 @@ pub fn verify_type(
             }
         }
 
-        &ast::TypeData::Basic(ref node) => {
-            if !verify_type_basic(
+        &ast::TypeData::Regular(ref node) => {
+            if !verify_type_regular(
                 sa,
                 module_id,
                 file_id,
@@ -264,19 +263,17 @@ pub fn verify_type(
             }
         }
 
-        ast::TypeData::Generic(..) | ast::TypeData::Path(..) => unreachable!(),
-
         &ast::TypeData::Error { .. } => {}
     }
 
     true
 }
 
-fn verify_type_basic(
+fn verify_type_regular(
     sa: &Sema,
     module_id: ModuleDefinitionId,
     file_id: SourceFileId,
-    node: &ast::TypeBasicType,
+    node: &ast::TypeRegularType,
     ty: SourceType,
     type_param_defs: &TypeParamDefinition,
     allow_self: AllowSelf,
@@ -487,11 +484,11 @@ pub fn check_type(
     }
 }
 
-fn read_type_path(
+pub fn read_type_path(
     sa: &Sema,
     table: &ModuleSymTable,
     file_id: SourceFileId,
-    basic: &TypeBasicType,
+    basic: &TypeRegularType,
 ) -> Result<Option<SymbolKind>, ()> {
     let names = &basic.path.names;
 
@@ -521,7 +518,7 @@ fn read_type_path(
 fn table_for_module(
     sa: &Sema,
     file_id: SourceFileId,
-    basic: &TypeBasicType,
+    basic: &TypeRegularType,
     sym: Option<SymbolKind>,
 ) -> Result<Rc<SymTable>, ()> {
     match sym {
