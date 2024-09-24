@@ -1,7 +1,7 @@
 use crate::sema::{
-    ClassDefinitionId, ConstDefinitionId, EnumDefinitionId, FctDefinitionId, FctParent, FieldId,
-    GlobalDefinitionId, ModuleDefinitionId, Sema, StructDefinitionFieldId, StructDefinitionId,
-    TraitDefinitionId, Visibility,
+    AliasDefinitionId, ClassDefinitionId, ConstDefinitionId, EnumDefinitionId, FctDefinitionId,
+    FctParent, FieldId, GlobalDefinitionId, ModuleDefinitionId, Sema, StructDefinitionFieldId,
+    StructDefinitionId, TraitDefinitionId, Visibility,
 };
 use crate::sym::SymbolKind;
 
@@ -17,10 +17,19 @@ pub fn sym_accessible_from(sa: &Sema, sym: SymbolKind, module_id: ModuleDefiniti
         SymbolKind::Module(sym_module_id) => module_accessible_from(sa, sym_module_id, module_id),
         SymbolKind::Struct(struct_id) => struct_accessible_from(sa, struct_id, module_id),
         SymbolKind::Trait(trait_id) => trait_accessible_from(sa, trait_id, module_id),
-        SymbolKind::TypeAlias(_alias_id) => unreachable!(),
+        SymbolKind::TypeAlias(alias_id) => alias_accessible_from(sa, alias_id, module_id),
         SymbolKind::TypeParam(_) => unreachable!(),
         SymbolKind::Var(_) => unreachable!(),
     }
+}
+
+pub fn alias_accessible_from(
+    sa: &Sema,
+    alias_id: AliasDefinitionId,
+    module_id: ModuleDefinitionId,
+) -> bool {
+    let alias = sa.alias(alias_id);
+    accessible_from(sa, alias.module_id, alias.visibility, module_id)
 }
 
 pub fn global_accessible_from(

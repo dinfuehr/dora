@@ -6,6 +6,7 @@ use id_arena::Id;
 
 use crate::sema::{
     ImplDefinitionId, ModuleDefinitionId, PackageDefinitionId, SourceFileId, TraitDefinitionId,
+    Visibility,
 };
 use dora_parser::ast;
 
@@ -28,6 +29,7 @@ pub struct AliasDefinition {
     pub name: Name,
     pub ty: OnceCell<SourceType>,
     pub bounds: OnceCell<Vec<SourceType>>,
+    pub visibility: Visibility,
 }
 
 impl AliasDefinition {
@@ -47,6 +49,7 @@ impl AliasDefinition {
             file_id,
             parent,
             node: node.clone(),
+            visibility: modifiers.visibility(),
             modifiers,
             name,
             ty: OnceCell::new(),

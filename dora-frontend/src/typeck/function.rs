@@ -3,6 +3,7 @@ use std::str::Chars;
 use std::{f32, f64};
 
 use crate::error::msg::ErrorMessage;
+use crate::parsety;
 use crate::sema::{
     AnalysisData, ClassDefinition, ConstValue, ContextFieldId, FctDefinition, FctParent, Field,
     FieldId, GlobalDefinition, IdentType, LazyContextClassCreationData, LazyContextData,
@@ -12,8 +13,8 @@ use crate::sema::{
 };
 use crate::typeck::{check_expr, check_stmt};
 use crate::{
-    always_returns, check_type, expr_always_returns, replace_type, report_sym_shadow_span,
-    AliasReplacement, AllowSelf, ModuleSymTable, SourceType, SourceTypeArray, SymbolKind,
+    always_returns, expr_always_returns, replace_type, report_sym_shadow_span, AliasReplacement,
+    ModuleSymTable, SourceType, SourceTypeArray, SymbolKind,
 };
 
 use crate::interner::Name;
@@ -362,27 +363,24 @@ impl<'a> TypeCheck<'a> {
     }
 
     pub(super) fn read_type(&mut self, t: &ast::TypeData) -> SourceType {
-        let allow_self = if self.self_ty.is_some() {
-            AllowSelf::Yes
-        } else {
-            AllowSelf::No
+        let parsed_ty = parsety::parse_type(self.sa, &self.symtable, self.file_id, t);
+
+        let ctxt = parsety::TypeContext {
+            allow_self: self.self_ty.is_some(),
+            module_id: self.module_id,
+            file_id: self.file_id,
+            type_param_defs: self.type_param_defs,
         };
 
-        let ty = check_type(
-            self.sa,
-            &self.symtable,
-            self.file_id,
-            t,
-            self.type_param_defs,
-            allow_self,
-        );
+        parsety::check_parsed_type(self.sa, &ctxt, &parsed_ty);
+        let expanded_ty = parsety::expand_parsed_type(self.sa, &parsed_ty);
 
         replace_type(
             self.sa,
-            ty,
+            expanded_ty,
             None,
             self.self_ty.clone(),
-            AliasReplacement::ReplaceWithActualType,
+            AliasReplacement::None,
         )
     }
 

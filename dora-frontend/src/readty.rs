@@ -532,7 +532,7 @@ fn table_for_module(
     }
 }
 
-fn check_type_params(
+pub fn check_type_params(
     sa: &Sema,
     tp_definitions: &TypeParamDefinition,
     type_params: &[SourceType],
