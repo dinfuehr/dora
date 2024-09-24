@@ -8,7 +8,12 @@ fn main() {
     assert(x.g() == 12);
 }
 
-impl (Int64, Int64): Int64 {
+trait Foo {
+    fn f(): Int64;
+    fn g(): Int64;
+}
+
+impl Foo for (Int64, Int64): Int64 {
     fn f(): Int64 {
         self(1, 2)
     }

@@ -1,0 +1,25 @@
+fn main() {
+    assert(call_foo(1) == 1);
+    assert(call_foo(97) == 97);
+    assert(call_foo(100) == 100);
+}
+
+trait ToInt64 {
+    fn toInt64(): Int64;
+}
+
+trait Foo {
+    fn foo(): Int64;
+}
+
+fn call_foo(x: Int64): Int64 {
+    x.foo()
+}
+
+impl[T: ToInt64] Foo for T {
+    fn foo(): Int64 { self.toInt64() }
+}
+
+impl ToInt64 for Int64 {
+    fn toInt64(): Int64 { self }
+}
