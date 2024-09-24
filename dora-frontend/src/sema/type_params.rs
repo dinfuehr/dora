@@ -43,6 +43,10 @@ impl TypeParamDefinition {
         container_type_params
     }
 
+    pub fn fct_type_params_len(&self) -> usize {
+        self.len() - self.container_type_params()
+    }
+
     pub fn has_fct_type_params(&self) -> bool {
         self.len() > self.container_type_params()
     }

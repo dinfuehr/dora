@@ -272,22 +272,21 @@ mod tests {
     }
 
     #[test]
-    #[ignore]
     fn trait_object_safe_fct_type_param() {
         err(
             "
             trait Foo {
-                fn f[U](x: U): T;
+                fn f[U](x: U): Self;
             }
             impl Foo for Int64 {
                 fn f[U](_x: U): Self { self }
             }
             fn f(x: Int64) {
-                x as Foo[Int64];
+                x as Foo;
             }
         ",
-            (1, 1),
-            ErrorMessage::Unimplemented,
+            (9, 17),
+            ErrorMessage::TraitNotObjectSafe,
         );
     }
 

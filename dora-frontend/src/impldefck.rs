@@ -3,7 +3,7 @@ use std::collections::{HashMap, HashSet};
 use crate::extensiondefck::check_for_unconstrained_type_params;
 use crate::sema::{
     implements_trait, AliasDefinitionId, FctDefinition, FctDefinitionId, ImplDefinition, Sema,
-    TraitDefinition,
+    TraitDefinition, TypeParamId,
 };
 use crate::specialize::replace_type;
 use crate::{
@@ -204,11 +204,28 @@ fn method_definitions_compatible(
         return false;
     }
 
+    let fct_type_params = trait_method.type_params().fct_type_params_len();
+
+    if fct_type_params != impl_method.type_params().fct_type_params_len() {
+        return false;
+    }
+
+    let method_type_params = if fct_type_params > 0 {
+        let fct_type_params = (0..fct_type_params)
+            .into_iter()
+            .map(|t| SourceType::TypeParam(TypeParamId(t)))
+            .collect::<Vec<_>>();
+        let fct_type_params = SourceTypeArray::with(fct_type_params);
+        trait_type_params.connect(&fct_type_params)
+    } else {
+        trait_type_params
+    };
+
     for (trait_arg_ty, impl_arg_ty) in trait_params.iter().zip(impl_params.iter()) {
         if !trait_and_impl_arg_ty_compatible(
             sa,
             trait_arg_ty.clone(),
-            trait_type_params.clone(),
+            method_type_params.clone(),
             trait_alias_map,
             impl_arg_ty.clone(),
             self_ty.clone(),
@@ -220,7 +237,7 @@ fn method_definitions_compatible(
     trait_and_impl_arg_ty_compatible(
         sa,
         trait_method.return_type(),
-        trait_type_params.clone(),
+        method_type_params.clone(),
         trait_alias_map,
         impl_method.return_type(),
         self_ty.clone(),
