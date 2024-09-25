@@ -6,22 +6,23 @@ use dora_parser::Span;
 use crate::sema::ModuleDefinitionId;
 use crate::sema::{FctParent, Sema, SourceFileId, TypeParamDefinition, TypeParamId};
 use crate::verify_type;
+use crate::ParsedType;
 use crate::{
-    parse_type, parse_type_bound, AllowSelf, ErrorMessage, ModuleSymTable, SourceType,
+    parse_type, parse_type_bound, parsety, AllowSelf, ErrorMessage, ModuleSymTable, SourceType,
     SourceTypeArray, SymbolKind,
 };
 
 pub fn parse_types(sa: &Sema) {
-    parse_trait_type_params(sa);
-    parse_impl_type_params(sa);
-    parse_class_type_params(sa);
-    parse_enum_type_params(sa);
-    parse_struct_type_params(sa);
-    parse_extension_type_params(sa);
-    parse_fct_type_params(sa);
+    parse_trait_types(sa);
+    parse_impl_types(sa);
+    parse_class_types(sa);
+    parse_enum_types(sa);
+    parse_struct_types(sa);
+    parse_extension_types(sa);
+    parse_fct_types(sa);
 }
 
-fn parse_trait_type_params(sa: &Sema) {
+fn parse_trait_types(sa: &Sema) {
     for (_id, trait_) in sa.traits.iter() {
         let mut symtable = ModuleSymTable::new(sa, trait_.module_id);
         symtable.push_level();
@@ -43,7 +44,7 @@ fn parse_trait_type_params(sa: &Sema) {
     }
 }
 
-fn parse_impl_type_params(sa: &Sema) {
+fn parse_impl_types(sa: &Sema) {
     for (_id, impl_) in sa.impls.iter() {
         let mut symtable = ModuleSymTable::new(sa, impl_.module_id);
         symtable.push_level();
@@ -60,13 +61,27 @@ fn parse_impl_type_params(sa: &Sema) {
             impl_.span,
         );
 
+        let ast_trait_type = impl_.ast.trait_type.as_ref().unwrap();
+        let trait_ty = parsety::parse_type(sa, &symtable, impl_.file_id, ast_trait_type);
+        let trait_ty = ParsedType::new_ast(trait_ty);
+        assert!(impl_.trait_ty.set(trait_ty).is_ok());
+
+        let extended_ty = parsety::parse_type(
+            sa,
+            &symtable,
+            impl_.file_id.into(),
+            &impl_.ast.extended_type,
+        );
+        let extended_ty = ParsedType::new_ast(extended_ty);
+        assert!(impl_.extended_ty.set(extended_ty).is_ok());
+
         symtable.pop_level();
 
         assert!(impl_.type_params.set(type_param_definition).is_ok());
     }
 }
 
-fn parse_class_type_params(sa: &Sema) {
+fn parse_class_types(sa: &Sema) {
     for (cls_id, cls) in sa.classes.iter() {
         let mut symtable = ModuleSymTable::new(sa, cls.module_id);
         symtable.push_level();
@@ -98,7 +113,7 @@ fn parse_class_type_params(sa: &Sema) {
     }
 }
 
-fn parse_enum_type_params(sa: &Sema) {
+fn parse_enum_types(sa: &Sema) {
     for (_id, enum_) in sa.enums.iter() {
         let mut symtable = ModuleSymTable::new(sa, enum_.module_id);
         symtable.push_level();
@@ -121,7 +136,7 @@ fn parse_enum_type_params(sa: &Sema) {
     }
 }
 
-fn parse_struct_type_params(sa: &Sema) {
+fn parse_struct_types(sa: &Sema) {
     for (_struct_id, struct_) in sa.structs.iter() {
         let mut symtable = ModuleSymTable::new(sa, struct_.module_id);
         symtable.push_level();
@@ -147,7 +162,7 @@ fn parse_struct_type_params(sa: &Sema) {
     }
 }
 
-fn parse_extension_type_params(sa: &Sema) {
+fn parse_extension_types(sa: &Sema) {
     for (_id, extension) in sa.extensions.iter() {
         let mut symtable = ModuleSymTable::new(sa, extension.module_id);
         symtable.push_level();
@@ -170,7 +185,7 @@ fn parse_extension_type_params(sa: &Sema) {
     }
 }
 
-fn parse_fct_type_params(sa: &Sema) {
+fn parse_fct_types(sa: &Sema) {
     for (_id, fct) in sa.fcts.iter() {
         let mut sym_table = ModuleSymTable::new(sa, fct.module_id);
         sym_table.push_level();

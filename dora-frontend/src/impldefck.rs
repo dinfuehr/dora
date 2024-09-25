@@ -7,8 +7,8 @@ use crate::sema::{
 };
 use crate::specialize::replace_type;
 use crate::{
-    package_for_type, parsety, AliasReplacement, ErrorMessage, ModuleSymTable, ParsedType,
-    SourceType, SourceTypeArray, SymbolKind,
+    package_for_type, parsety, AliasReplacement, ErrorMessage, ModuleSymTable, SourceType,
+    SourceTypeArray, SymbolKind,
 };
 
 pub fn check_definition(sa: &Sema) {
@@ -30,30 +30,21 @@ fn parse_impl_definition(sa: &Sema, impl_: &ImplDefinition) {
         table.insert(name, SymbolKind::TypeParam(id));
     }
 
-    let ast_trait_type = impl_.ast.trait_type.as_ref().unwrap();
-
-    let trait_ty = parsety::parse_type(sa, &table, impl_.file_id, ast_trait_type);
     let ctxt = parsety::TypeContext {
         allow_self: false,
         module_id: impl_.module_id,
         file_id: impl_.file_id,
         type_param_defs: impl_.type_params(),
     };
-    parsety::convert_parsed_type(sa, &ctxt, &trait_ty);
-    let trait_ty = ParsedType::new_ast(trait_ty);
-    assert!(impl_.trait_ty.set(trait_ty).is_ok());
+    parsety::convert_parsed_type2(sa, &ctxt, impl_.trait_ty.get().unwrap());
 
-    let extended_ty =
-        parsety::parse_type(sa, &table, impl_.file_id.into(), &impl_.ast.extended_type);
     let ctxt = parsety::TypeContext {
         allow_self: false,
         module_id: impl_.module_id,
         file_id: impl_.file_id,
         type_param_defs: impl_.type_params(),
     };
-    parsety::convert_parsed_type(sa, &ctxt, &extended_ty);
-    let extended_ty = ParsedType::new_ast(extended_ty);
-    assert!(impl_.extended_ty.set(extended_ty).is_ok());
+    parsety::convert_parsed_type2(sa, &ctxt, impl_.extended_ty.get().unwrap());
 
     table.pop_level();
 }

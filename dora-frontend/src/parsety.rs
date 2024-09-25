@@ -235,6 +235,13 @@ pub struct TypeContext<'a> {
     pub type_param_defs: &'a TypeParamDefinition,
 }
 
+pub fn convert_parsed_type2(sa: &Sema, ctxt: &TypeContext, parsed_ty: &ParsedType) -> SourceType {
+    match parsed_ty {
+        ParsedType::Ast(ref parsed_ty) => convert_parsed_type(sa, ctxt, parsed_ty),
+        ParsedType::Fixed(..) => unreachable!(),
+    }
+}
+
 pub fn convert_parsed_type(sa: &Sema, ctxt: &TypeContext, parsed_ty: &ParsedTypeAst) -> SourceType {
     let ty = match parsed_ty.kind {
         ParsedTypeKind::This => convert_parsed_type_this(sa, ctxt, parsed_ty),
