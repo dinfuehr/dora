@@ -258,13 +258,6 @@ mod tests {
             ErrorMessage::BoundExpected,
         );
         ok("trait Foo {} fn f[T: Foo]() {}");
-
-        err(
-            "trait Foo {}
-            fn f[T: Foo + Foo]() {  }",
-            (2, 18),
-            ErrorMessage::DuplicateTraitBound,
-        );
     }
 
     #[test]

@@ -10,6 +10,7 @@ use crate::sema::{
     PackageDefinitionId, Sema, SourceFileId, TraitDefinitionId, TypeParamDefinition,
 };
 use crate::ty::{SourceType, SourceTypeArray};
+use crate::ParsedType;
 use id_arena::Id;
 
 pub type ImplDefinitionId = Id<ImplDefinition>;
@@ -24,8 +25,8 @@ pub struct ImplDefinition {
     pub declaration_span: Span,
     pub span: Span,
     pub type_params: OnceCell<TypeParamDefinition>,
-    pub trait_ty: OnceCell<SourceType>,
-    pub extended_ty: OnceCell<SourceType>,
+    pub trait_ty: OnceCell<Box<ParsedType>>,
+    pub extended_ty: OnceCell<Box<ParsedType>>,
     pub methods: OnceCell<Vec<FctDefinitionId>>,
     pub aliases: OnceCell<Vec<AliasDefinitionId>>,
     pub trait_method_map: OnceCell<HashMap<FctDefinitionId, FctDefinitionId>>,
@@ -70,11 +71,11 @@ impl ImplDefinition {
     }
 
     pub fn trait_ty(&self) -> SourceType {
-        self.trait_ty.get().expect("missing trait type").clone()
+        self.trait_ty.get().expect("missing trait type").ty()
     }
 
     pub fn extended_ty(&self) -> SourceType {
-        self.extended_ty.get().expect("missing trait type").clone()
+        self.extended_ty.get().expect("missing trait type").ty()
     }
 
     pub fn trait_method_map(&self) -> &HashMap<FctDefinitionId, FctDefinitionId> {

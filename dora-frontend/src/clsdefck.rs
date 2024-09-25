@@ -126,16 +126,6 @@ mod tests {
     }
 
     #[test]
-    fn test_duplicate_trait_bound() {
-        err(
-            "trait Foo {}
-            class A[T: Foo + Foo]",
-            (2, 21),
-            ErrorMessage::DuplicateTraitBound,
-        );
-    }
-
-    #[test]
     fn test_defining_static_method_twice() {
         err(
             "

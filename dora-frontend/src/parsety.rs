@@ -21,10 +21,34 @@ impl ParsedType {
         Box::new(ParsedType::Fixed(ty))
     }
 
+    pub fn new_ast(ty: Box<ParsedTypeAst>) -> Box<ParsedType> {
+        Box::new(ParsedType::Ast(*ty))
+    }
+
     pub fn ty(&self) -> SourceType {
         match self {
             ParsedType::Fixed(ty) => ty.clone(),
             ParsedType::Ast(ref ast) => ast.ty(),
+        }
+    }
+
+    pub fn is_trait(&self) -> bool {
+        match self {
+            ParsedType::Fixed(..) => unreachable!(),
+            ParsedType::Ast(ref ast) => match &ast.kind {
+                ParsedTypeKind::Regular { symbol, .. } => symbol.is_trait(),
+                _ => false,
+            },
+        }
+    }
+
+    pub fn is_error(&self) -> bool {
+        match self {
+            ParsedType::Fixed(..) => unreachable!(),
+            ParsedType::Ast(ref ast) => match &ast.kind {
+                ParsedTypeKind::Error => true,
+                _ => false,
+            },
         }
     }
 }
@@ -368,6 +392,13 @@ fn convert_parsed_type_lambda(
     };
 
     SourceType::Lambda(params, Box::new(return_ty))
+}
+
+pub fn check_parsed_type2(sa: &Sema, ctxt: &TypeContext, parsed_ty: &ParsedType) -> SourceType {
+    match parsed_ty {
+        ParsedType::Ast(ref parsed_ty) => check_parsed_type(sa, ctxt, parsed_ty),
+        ParsedType::Fixed(..) => unreachable!(),
+    }
 }
 
 pub fn check_parsed_type(sa: &Sema, ctxt: &TypeContext, parsed_ty: &ParsedTypeAst) -> SourceType {

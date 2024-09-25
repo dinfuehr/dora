@@ -145,7 +145,6 @@ pub enum ErrorMessage {
     ExpectedExtensionType,
     BoundExpected,
     NoTypeParamsExpected,
-    DuplicateTraitBound,
     TypeNotImplementingTrait(String, String),
     AbstractMethodNotInAbstractClass,
     AbstractMethodWithImplementation,
@@ -546,7 +545,6 @@ impl ErrorMessage {
             ErrorMessage::ExpectedExtensionType => "cannot extend this type.".into(),
             ErrorMessage::BoundExpected => "class or trait bound expected".into(),
             ErrorMessage::NoTypeParamsExpected => "no type params allowed".into(),
-            ErrorMessage::DuplicateTraitBound => "duplicate trait bound".into(),
             ErrorMessage::TypeNotImplementingTrait(ref name, ref trait_) => {
                 format!("type `{}` does not implement trait `{}`.", name, trait_)
             }

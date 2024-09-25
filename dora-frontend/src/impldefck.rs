@@ -7,8 +7,8 @@ use crate::sema::{
 };
 use crate::specialize::replace_type;
 use crate::{
-    package_for_type, parse_type, verify_type, AliasReplacement, AllowSelf, ErrorMessage,
-    ModuleSymTable, SourceType, SourceTypeArray, SymbolKind,
+    package_for_type, parsety, AliasReplacement, ErrorMessage, ModuleSymTable, ParsedType,
+    SourceType, SourceTypeArray, SymbolKind,
 };
 
 pub fn check_definition(sa: &Sema) {
@@ -32,22 +32,54 @@ fn parse_impl_definition(sa: &Sema, impl_: &ImplDefinition) {
 
     let ast_trait_type = impl_.ast.trait_type.as_ref().unwrap();
 
-    let trait_ty = parse_type(sa, &table, impl_.file_id, ast_trait_type);
-
-    let trait_ty = if trait_ty.is_trait() {
-        trait_ty
-    } else if !trait_ty.is_error() {
-        sa.report(impl_.file_id, impl_.ast.span, ErrorMessage::ExpectedTrait);
-        SourceType::Error
-    } else {
-        trait_ty
+    let trait_ty = parsety::parse_type(sa, &table, impl_.file_id, ast_trait_type);
+    let ctxt = parsety::TypeContext {
+        allow_self: false,
+        module_id: impl_.module_id,
+        file_id: impl_.file_id,
+        type_param_defs: impl_.type_params(),
     };
-
+    parsety::convert_parsed_type(sa, &ctxt, &trait_ty);
+    let trait_ty = ParsedType::new_ast(trait_ty);
     assert!(impl_.trait_ty.set(trait_ty).is_ok());
 
-    let extended_ty = parse_type(sa, &table, impl_.file_id.into(), &impl_.ast.extended_type);
+    let extended_ty =
+        parsety::parse_type(sa, &table, impl_.file_id.into(), &impl_.ast.extended_type);
+    let ctxt = parsety::TypeContext {
+        allow_self: false,
+        module_id: impl_.module_id,
+        file_id: impl_.file_id,
+        type_param_defs: impl_.type_params(),
+    };
+    parsety::convert_parsed_type(sa, &ctxt, &extended_ty);
+    let extended_ty = ParsedType::new_ast(extended_ty);
+    assert!(impl_.extended_ty.set(extended_ty).is_ok());
 
-    match extended_ty {
+    table.pop_level();
+}
+
+fn check_impl_definition(sa: &Sema, impl_: &ImplDefinition) {
+    let ctxt = parsety::TypeContext {
+        allow_self: false,
+        module_id: impl_.module_id,
+        file_id: impl_.file_id,
+        type_param_defs: impl_.type_params(),
+    };
+    parsety::check_parsed_type2(sa, &ctxt, impl_.trait_ty.get().expect("missing"));
+
+    if !impl_.trait_ty().is_trait() && !impl_.trait_ty().is_error() {
+        sa.report(impl_.file_id, impl_.ast.span, ErrorMessage::ExpectedTrait);
+    }
+
+    let ctxt = parsety::TypeContext {
+        allow_self: false,
+        module_id: impl_.module_id,
+        file_id: impl_.file_id,
+        type_param_defs: impl_.type_params(),
+    };
+    parsety::check_parsed_type2(sa, &ctxt, impl_.extended_ty.get().expect("missing"));
+
+    match impl_.extended_ty() {
         SourceType::TypeAlias(..) => unimplemented!(),
         SourceType::Any | SourceType::Ptr | SourceType::This => {
             unreachable!()
@@ -69,34 +101,6 @@ fn parse_impl_definition(sa: &Sema, impl_: &ImplDefinition) {
         | SourceType::Tuple(..)
         | SourceType::TypeParam(..) => {}
     }
-
-    assert!(impl_.extended_ty.set(extended_ty).is_ok());
-
-    table.pop_level();
-}
-
-fn check_impl_definition(sa: &Sema, impl_: &ImplDefinition) {
-    let ast_trait_type = impl_.ast.trait_type.as_ref().expect("missing trait type");
-
-    verify_type(
-        sa,
-        impl_.module_id,
-        impl_.file_id,
-        ast_trait_type,
-        impl_.trait_ty(),
-        impl_.type_params(),
-        AllowSelf::No,
-    );
-
-    verify_type(
-        sa,
-        impl_.module_id,
-        impl_.file_id,
-        &impl_.ast.extended_type,
-        impl_.extended_ty(),
-        impl_.type_params(),
-        AllowSelf::No,
-    );
 
     check_for_unconstrained_type_params(
         sa,

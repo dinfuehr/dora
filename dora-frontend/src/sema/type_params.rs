@@ -57,27 +57,13 @@ impl TypeParamDefinition {
         id
     }
 
-    pub fn add_bound(
-        &mut self,
-        id: TypeParamId,
-        trait_ty: SourceType,
-        type_bound_ast: ast::Type,
-    ) -> bool {
-        assert!(trait_ty.is_trait());
-
-        for bound in &self.bounds {
-            if bound.ty() == SourceType::TypeParam(id) && bound.trait_ty() == trait_ty {
-                return false;
-            }
-        }
-
+    pub fn add_bound(&mut self, id: TypeParamId, trait_ty: SourceType, type_bound_ast: ast::Type) {
         self.bounds.push(Bound {
             ty: SourceType::TypeParam(id),
             ty_ast: None,
             trait_ty: trait_ty.clone(),
             type_bound_ast,
         });
-        true
     }
 
     pub fn add_where_bound(
@@ -87,7 +73,6 @@ impl TypeParamDefinition {
         trait_ty: SourceType,
         type_bound_ast: ast::Type,
     ) {
-        assert!(trait_ty.is_trait());
         self.bounds.push(Bound {
             ty,
             ty_ast: Some(ty_ast),

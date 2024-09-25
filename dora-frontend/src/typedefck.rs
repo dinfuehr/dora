@@ -294,12 +294,8 @@ fn read_type_param_definition(
         for bound in &type_param.bounds {
             let ty = parse_type_bound(sa, &symtable, file_id, bound);
 
-            if !ty.is_error() {
-                assert!(ty.is_trait());
-                if !type_param_definition.add_bound(id, ty, bound.clone()) {
-                    let msg = ErrorMessage::DuplicateTraitBound;
-                    sa.report(file_id, type_param.span, msg);
-                }
+            if ty.is_trait() {
+                type_param_definition.add_bound(id, ty, bound.clone());
             }
         }
     }
