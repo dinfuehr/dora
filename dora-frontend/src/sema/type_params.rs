@@ -1,7 +1,6 @@
 use std::cell::OnceCell;
 
-use crate::{Name, SourceType};
-use dora_parser::ast;
+use crate::{Name, ParsedType, SourceType};
 
 #[derive(Clone, Debug)]
 pub struct TypeParamDefinition {
@@ -57,28 +56,15 @@ impl TypeParamDefinition {
         id
     }
 
-    pub fn add_bound(&mut self, id: TypeParamId, trait_ty: SourceType, type_bound_ast: ast::Type) {
+    pub fn add_bound(&mut self, id: TypeParamId, trait_ty: Box<ParsedType>) {
         self.bounds.push(Bound {
-            ty: SourceType::TypeParam(id),
-            ty_ast: None,
-            trait_ty: trait_ty.clone(),
-            type_bound_ast,
+            ty: ParsedType::new(SourceType::TypeParam(id)),
+            trait_ty,
         });
     }
 
-    pub fn add_where_bound(
-        &mut self,
-        ty: SourceType,
-        ty_ast: ast::Type,
-        trait_ty: SourceType,
-        type_bound_ast: ast::Type,
-    ) {
-        self.bounds.push(Bound {
-            ty,
-            ty_ast: Some(ty_ast),
-            trait_ty,
-            type_bound_ast,
-        });
+    pub fn add_where_bound(&mut self, ty: Box<ParsedType>, trait_ty: Box<ParsedType>) {
+        self.bounds.push(Bound { ty, trait_ty });
     }
 
     pub fn implements_trait(&self, id: TypeParamId, trait_ty: SourceType) -> bool {
@@ -124,20 +110,17 @@ impl TypeParamDefinition {
 
 #[derive(Clone, Debug)]
 pub struct Bound {
-    pub ty: SourceType,
-    pub ty_ast: Option<ast::Type>,
-    pub trait_ty: SourceType,
-    pub type_bound_ast: ast::Type,
+    pub ty: Box<ParsedType>,
+    pub trait_ty: Box<ParsedType>,
 }
 
 impl Bound {
     pub fn ty(&self) -> SourceType {
-        self.ty.clone()
+        self.ty.ty()
     }
 
     pub fn trait_ty(&self) -> SourceType {
-        debug_assert!(self.trait_ty.is_trait());
-        self.trait_ty.clone()
+        self.trait_ty.ty()
     }
 }
 

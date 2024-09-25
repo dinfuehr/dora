@@ -10,7 +10,7 @@ use crate::{
 };
 use std::cell::RefCell;
 
-#[derive(Debug)]
+#[derive(Clone, Debug)]
 pub enum ParsedType {
     Fixed(SourceType),
     Ast(ParsedTypeAst),
@@ -53,7 +53,7 @@ impl ParsedType {
     }
 }
 
-#[derive(Debug)]
+#[derive(Clone, Debug)]
 pub struct ParsedTypeAst {
     #[allow(unused)]
     id: ast::NodeId,
@@ -73,7 +73,7 @@ impl ParsedTypeAst {
     }
 }
 
-#[derive(Debug)]
+#[derive(Clone, Debug)]
 pub enum ParsedTypeKind {
     This,
 
@@ -370,7 +370,7 @@ fn convert_parsed_type_lambda(sa: &Sema, parsed_ty: &ParsedTypeAst) -> SourceTyp
 pub fn check_parsed_type2(sa: &Sema, ctxt: &TypeContext, parsed_ty: &ParsedType) -> SourceType {
     match parsed_ty {
         ParsedType::Ast(ref parsed_ty) => check_parsed_type(sa, ctxt, parsed_ty),
-        ParsedType::Fixed(..) => unreachable!(),
+        ParsedType::Fixed(ty) => ty.clone(),
     }
 }
 

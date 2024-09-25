@@ -275,11 +275,11 @@ fn check_impl_types(sa: &Sema, impl_: &ImplDefinition, trait_: &TraitDefinition)
             let trait_alias = sa.alias(trait_alias_id);
 
             for bound in trait_alias.bounds() {
-                if !implements_trait(sa, impl_alias.ty(), impl_.type_params(), bound.clone()) {
+                if !implements_trait(sa, impl_alias.ty(), impl_.type_params(), bound.ty()) {
                     let name = impl_alias
                         .ty()
                         .name_with_type_params(sa, impl_.type_params());
-                    let trait_name = bound.name_with_type_params(sa, trait_.type_params());
+                    let trait_name = bound.ty().name_with_type_params(sa, trait_.type_params());
                     let msg = ErrorMessage::TypeNotImplementingTrait(name, trait_name);
                     sa.report(impl_.file_id, impl_alias.node.span, msg);
                 }

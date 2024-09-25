@@ -5,10 +5,9 @@ use dora_parser::Span;
 
 use crate::sema::ModuleDefinitionId;
 use crate::sema::{FctParent, Sema, SourceFileId, TypeParamDefinition, TypeParamId};
-use crate::verify_type;
 use crate::ParsedType;
 use crate::{
-    parse_type, parse_type_bound, parsety, AllowSelf, ErrorMessage, ModuleSymTable, SourceType,
+    parse_type_bound, parsety, AllowSelf, ErrorMessage, ModuleSymTable, SourceType,
     SourceTypeArray, SymbolKind,
 };
 
@@ -312,7 +311,7 @@ fn read_type_param_definition(
             let ty = parse_type_bound(sa, &symtable, file_id, bound);
 
             if ty.is_trait() {
-                type_param_definition.add_bound(id, ty, bound.clone());
+                type_param_definition.add_bound(id, ty);
             }
         }
     }
@@ -321,19 +320,15 @@ fn read_type_param_definition(
 
     if let Some(where_bounds) = where_bounds {
         for clause in where_bounds.clauses.iter() {
-            let ty = parse_type(sa, &symtable, file_id, &clause.ty);
+            let ty = parsety::parse_type(sa, &symtable, file_id, &clause.ty);
+            let ty = ParsedType::new_ast(ty);
+            parsety::convert_parsed_type2(sa, &ty);
 
             for bound in &clause.bounds {
                 let bound_ty = parse_type_bound(sa, &symtable, file_id, bound);
 
-                if !bound_ty.is_error() {
-                    assert!(bound_ty.is_trait());
-                    type_param_definition.add_where_bound(
-                        ty.clone(),
-                        clause.ty.clone(),
-                        bound_ty,
-                        bound.clone(),
-                    );
+                if bound_ty.is_trait() {
+                    type_param_definition.add_where_bound(ty.clone(), bound_ty);
                 }
             }
         }
@@ -444,31 +439,18 @@ fn check_type_param_bounds(
     sa: &Sema,
     module_id: ModuleDefinitionId,
     file_id: SourceFileId,
-    type_params: &TypeParamDefinition,
+    type_param_defs: &TypeParamDefinition,
     allow_self: AllowSelf,
 ) {
-    for bound in type_params.bounds() {
-        if let Some(ref ty_ast) = bound.ty_ast {
-            verify_type(
-                sa,
-                module_id,
-                file_id,
-                ty_ast,
-                bound.ty(),
-                type_params,
-                allow_self,
-            );
-        }
-
-        verify_type(
-            sa,
+    for bound in type_param_defs.bounds() {
+        let ctxt = parsety::TypeContext {
+            allow_self: allow_self == AllowSelf::Yes,
             module_id,
             file_id,
-            &bound.type_bound_ast,
-            bound.trait_ty(),
-            type_params,
-            allow_self,
-        );
+            type_param_defs,
+        };
+        parsety::check_parsed_type2(sa, &ctxt, &bound.ty);
+        parsety::check_parsed_type2(sa, &ctxt, &bound.trait_ty);
     }
 }
 
@@ -479,7 +461,7 @@ mod tests {
 
     #[test]
     fn fct_with_invalid_type_bound() {
-        err(
+        errors(
             "
             trait Foo {}
             trait Bar[T: Foo] { fn testme(); }
@@ -487,8 +469,13 @@ mod tests {
                 x.testme();
             }
         ",
-            (4, 21),
-            ErrorMessage::TypeNotImplementingTrait("Int64".into(), "Foo".into()),
+            &[
+                (
+                    (4, 21),
+                    ErrorMessage::TypeNotImplementingTrait("Int64".into(), "Foo".into()),
+                ),
+                ((5, 17), ErrorMessage::UnknownMethodForTypeParam),
+            ],
         );
     }
 

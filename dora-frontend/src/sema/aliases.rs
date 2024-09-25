@@ -1,4 +1,4 @@
-use crate::{interner::Name, program_parser::ParsedModifierList, ty::SourceType};
+use crate::{interner::Name, program_parser::ParsedModifierList, ty::SourceType, ParsedType};
 use std::cell::OnceCell;
 use std::sync::Arc;
 
@@ -28,7 +28,7 @@ pub struct AliasDefinition {
     pub modifiers: ParsedModifierList,
     pub name: Name,
     pub ty: OnceCell<SourceType>,
-    pub bounds: OnceCell<Vec<SourceType>>,
+    pub bounds: OnceCell<Vec<Box<ParsedType>>>,
     pub visibility: Visibility,
 }
 
@@ -61,7 +61,7 @@ impl AliasDefinition {
         self.ty.get().cloned().expect("missing ty")
     }
 
-    pub fn bounds(&self) -> &[SourceType] {
+    pub fn bounds(&self) -> &Vec<Box<ParsedType>> {
         self.bounds.get().expect("missing bounds")
     }
 }

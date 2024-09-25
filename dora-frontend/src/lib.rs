@@ -11,8 +11,7 @@ pub use crate::extensiondefck::package_for_type;
 pub use parsety::{ParsedType, ParsedTypeAst};
 pub use program_emitter::emit_program;
 pub use readty::{
-    check_type, check_type_params, expand_type, parse_type, parse_type_bound, verify_type,
-    AllowSelf,
+    check_type, check_type_params, expand_type, parse_type_bound, verify_type, AllowSelf,
 };
 pub use specialize::{replace_type, specialize_type, AliasReplacement};
 

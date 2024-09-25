@@ -677,11 +677,12 @@ fn check_expr_call_generic_type_param(
     let interned_name = ck.sa.interner.intern(&name);
 
     for trait_ty in ck.type_param_defs.bounds_for_type_param(id) {
-        let trait_id = trait_ty.trait_id().expect("trait expected");
-        let trait_ = ck.sa.trait_(trait_id);
+        if let Some(trait_id) = trait_ty.trait_id() {
+            let trait_ = ck.sa.trait_(trait_id);
 
-        if let Some(trait_method_id) = trait_.get_method(interned_name, false) {
-            matched_methods.push((trait_method_id, trait_ty));
+            if let Some(trait_method_id) = trait_.get_method(interned_name, false) {
+                matched_methods.push((trait_method_id, trait_ty));
+            }
         }
     }
 
