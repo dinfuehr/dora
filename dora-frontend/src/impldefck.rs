@@ -12,32 +12,8 @@ use crate::{
 
 pub fn check_definition(sa: &Sema) {
     for (_id, impl_) in sa.impls.iter() {
-        parse_impl_definition(sa, impl_);
-    }
-
-    for (_id, impl_) in sa.impls.iter() {
         check_impl_definition(sa, impl_);
     }
-}
-
-fn parse_impl_definition(sa: &Sema, impl_: &ImplDefinition) {
-    assert!(impl_.ast.trait_type.is_some());
-
-    let ctxt = parsety::TypeContext {
-        allow_self: false,
-        module_id: impl_.module_id,
-        file_id: impl_.file_id,
-        type_param_defs: impl_.type_params(),
-    };
-    parsety::convert_parsed_type2(sa, &ctxt, impl_.trait_ty.get().unwrap());
-
-    let ctxt = parsety::TypeContext {
-        allow_self: false,
-        module_id: impl_.module_id,
-        file_id: impl_.file_id,
-        type_param_defs: impl_.type_params(),
-    };
-    parsety::convert_parsed_type2(sa, &ctxt, impl_.extended_ty.get().unwrap());
 }
 
 fn check_impl_definition(sa: &Sema, impl_: &ImplDefinition) {

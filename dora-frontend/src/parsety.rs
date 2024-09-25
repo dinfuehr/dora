@@ -235,19 +235,19 @@ pub struct TypeContext<'a> {
     pub type_param_defs: &'a TypeParamDefinition,
 }
 
-pub fn convert_parsed_type2(sa: &Sema, ctxt: &TypeContext, parsed_ty: &ParsedType) -> SourceType {
+pub fn convert_parsed_type2(sa: &Sema, parsed_ty: &ParsedType) -> SourceType {
     match parsed_ty {
-        ParsedType::Ast(ref parsed_ty) => convert_parsed_type(sa, ctxt, parsed_ty),
+        ParsedType::Ast(ref parsed_ty) => convert_parsed_type(sa, parsed_ty),
         ParsedType::Fixed(..) => unreachable!(),
     }
 }
 
-pub fn convert_parsed_type(sa: &Sema, ctxt: &TypeContext, parsed_ty: &ParsedTypeAst) -> SourceType {
+pub fn convert_parsed_type(sa: &Sema, parsed_ty: &ParsedTypeAst) -> SourceType {
     let ty = match parsed_ty.kind {
-        ParsedTypeKind::This => convert_parsed_type_this(sa, ctxt, parsed_ty),
-        ParsedTypeKind::Regular { .. } => convert_parsed_type_regular(sa, ctxt, parsed_ty),
-        ParsedTypeKind::Tuple { .. } => convert_parsed_type_tuple(sa, ctxt, parsed_ty),
-        ParsedTypeKind::Lambda { .. } => convert_parsed_type_lambda(sa, ctxt, parsed_ty),
+        ParsedTypeKind::This => SourceType::This,
+        ParsedTypeKind::Regular { .. } => convert_parsed_type_regular(sa, parsed_ty),
+        ParsedTypeKind::Tuple { .. } => convert_parsed_type_tuple(sa, parsed_ty),
+        ParsedTypeKind::Lambda { .. } => convert_parsed_type_lambda(sa, parsed_ty),
         ParsedTypeKind::Error { .. } => SourceType::Error,
     };
 
@@ -255,28 +255,7 @@ pub fn convert_parsed_type(sa: &Sema, ctxt: &TypeContext, parsed_ty: &ParsedType
     ty
 }
 
-fn convert_parsed_type_this(
-    sa: &Sema,
-    ctxt: &TypeContext,
-    parsed_ty: &ParsedTypeAst,
-) -> SourceType {
-    if ctxt.allow_self {
-        SourceType::This
-    } else {
-        sa.report(
-            ctxt.file_id,
-            parsed_ty.span,
-            ErrorMessage::SelfTypeUnavailable,
-        );
-        SourceType::Error
-    }
-}
-
-fn convert_parsed_type_regular(
-    sa: &Sema,
-    ctxt: &TypeContext,
-    parsed_ty: &ParsedTypeAst,
-) -> SourceType {
+fn convert_parsed_type_regular(sa: &Sema, parsed_ty: &ParsedTypeAst) -> SourceType {
     let (sym, type_params) = match parsed_ty.kind {
         ParsedTypeKind::Regular {
             ref symbol,
@@ -284,11 +263,6 @@ fn convert_parsed_type_regular(
         } => (symbol.clone(), type_params),
         _ => unreachable!(),
     };
-
-    if !sym.is_type_param() && !sym_accessible_from(sa, sym.clone(), ctxt.module_id) {
-        let msg = ErrorMessage::NotAccessible;
-        sa.report(ctxt.file_id, parsed_ty.span, msg);
-    }
 
     match sym {
         SymbolKind::TypeAlias(id) => {
@@ -307,7 +281,7 @@ fn convert_parsed_type_regular(
         | SymbolKind::Trait(..) => {
             let type_params = type_params
                 .iter()
-                .map(|tp| convert_parsed_type(sa, ctxt, tp))
+                .map(|tp| convert_parsed_type(sa, tp))
                 .collect::<Vec<_>>();
             let type_params = SourceTypeArray::with(type_params);
 
@@ -350,11 +324,7 @@ fn ty_for_sym(sa: &Sema, sym: SymbolKind, type_params: SourceTypeArray) -> Sourc
     }
 }
 
-fn convert_parsed_type_tuple(
-    sa: &Sema,
-    ctxt: &TypeContext,
-    parsed_ty: &ParsedTypeAst,
-) -> SourceType {
+fn convert_parsed_type_tuple(sa: &Sema, parsed_ty: &ParsedTypeAst) -> SourceType {
     let subtypes = match parsed_ty.kind {
         ParsedTypeKind::Tuple { ref subtypes } => subtypes,
         _ => unreachable!(),
@@ -362,7 +332,7 @@ fn convert_parsed_type_tuple(
 
     let subtypes = subtypes
         .iter()
-        .map(|t| convert_parsed_type(sa, ctxt, t))
+        .map(|t| convert_parsed_type(sa, t))
         .collect::<Vec<_>>();
     let subtypes = SourceTypeArray::with(subtypes);
 
@@ -373,11 +343,7 @@ fn convert_parsed_type_tuple(
     }
 }
 
-fn convert_parsed_type_lambda(
-    sa: &Sema,
-    ctxt: &TypeContext,
-    parsed_ty: &ParsedTypeAst,
-) -> SourceType {
+fn convert_parsed_type_lambda(sa: &Sema, parsed_ty: &ParsedTypeAst) -> SourceType {
     let (params, return_ty) = match parsed_ty.kind {
         ParsedTypeKind::Lambda {
             ref params,
@@ -388,12 +354,12 @@ fn convert_parsed_type_lambda(
 
     let params = params
         .iter()
-        .map(|t| convert_parsed_type(sa, ctxt, t))
+        .map(|t| convert_parsed_type(sa, t))
         .collect::<Vec<_>>();
     let params = SourceTypeArray::with(params);
 
     let return_ty = if let Some(return_ty) = return_ty {
-        convert_parsed_type(sa, ctxt, return_ty)
+        convert_parsed_type(sa, return_ty)
     } else {
         SourceType::Unit
     };
@@ -415,18 +381,39 @@ pub fn check_parsed_type(sa: &Sema, ctxt: &TypeContext, parsed_ty: &ParsedTypeAs
         SourceType::Any | SourceType::Ptr => {
             unreachable!()
         }
+        SourceType::This => {
+            if ctxt.allow_self {
+                SourceType::This
+            } else {
+                sa.report(
+                    ctxt.file_id,
+                    parsed_ty.span,
+                    ErrorMessage::SelfTypeUnavailable,
+                );
+                SourceType::Error
+            }
+        }
+        SourceType::Error | SourceType::Unit | SourceType::TypeParam(..) => ty,
         SourceType::TypeAlias(..)
-        | SourceType::Error
         | SourceType::Bool
         | SourceType::UInt8
         | SourceType::Char
         | SourceType::Float32
         | SourceType::Float64
         | SourceType::Int32
-        | SourceType::Int64
-        | SourceType::Unit
-        | SourceType::TypeParam(..)
-        | SourceType::This => ty,
+        | SourceType::Int64 => {
+            let symbol = match &parsed_ty.kind {
+                ParsedTypeKind::Regular { symbol, .. } => symbol.clone(),
+                _ => unreachable!(),
+            };
+
+            if !sym_accessible_from(sa, symbol, ctxt.module_id) {
+                let msg = ErrorMessage::NotAccessible;
+                sa.report(ctxt.file_id, parsed_ty.span, msg);
+            }
+
+            ty
+        }
         SourceType::Lambda(params, return_type) => {
             let (parsed_params, parsed_return_type) = match parsed_ty.kind {
                 ParsedTypeKind::Lambda {
@@ -502,6 +489,11 @@ fn check_parsed_type_record(
         } => (symbol.clone(), type_params),
         _ => unreachable!(),
     };
+
+    if !sym_accessible_from(sa, symbol.clone(), ctxt.module_id) {
+        let msg = ErrorMessage::NotAccessible;
+        sa.report(ctxt.file_id, parsed_ty.span, msg);
+    }
 
     assert_eq!(type_params.len(), parsed_type_params.len());
     let mut new_type_params = Vec::with_capacity(parsed_type_params.len());

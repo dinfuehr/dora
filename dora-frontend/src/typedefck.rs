@@ -64,6 +64,7 @@ fn parse_impl_types(sa: &Sema) {
         let ast_trait_type = impl_.ast.trait_type.as_ref().unwrap();
         let trait_ty = parsety::parse_type(sa, &symtable, impl_.file_id, ast_trait_type);
         let trait_ty = ParsedType::new_ast(trait_ty);
+        parsety::convert_parsed_type2(sa, &trait_ty);
         assert!(impl_.trait_ty.set(trait_ty).is_ok());
 
         let extended_ty = parsety::parse_type(
@@ -73,6 +74,7 @@ fn parse_impl_types(sa: &Sema) {
             &impl_.ast.extended_type,
         );
         let extended_ty = ParsedType::new_ast(extended_ty);
+        parsety::convert_parsed_type2(sa, &extended_ty);
         assert!(impl_.extended_ty.set(extended_ty).is_ok());
 
         symtable.pop_level();

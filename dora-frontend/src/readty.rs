@@ -594,6 +594,7 @@ pub fn expand_type(
     allow_self: AllowSelf,
 ) -> Box<ParsedType> {
     let parsed_ty = parsety::parse_type(sa, table, file_id, t);
+    parsety::convert_parsed_type(sa, &parsed_ty);
 
     let ctxt = parsety::TypeContext {
         allow_self: allow_self == AllowSelf::Yes,
@@ -601,9 +602,8 @@ pub fn expand_type(
         file_id,
         type_param_defs,
     };
-
-    parsety::convert_parsed_type(sa, &ctxt, &parsed_ty);
     parsety::check_parsed_type(sa, &ctxt, &parsed_ty);
+
     parsety::expand_parsed_type(sa, &parsed_ty);
     Box::new(ParsedType::Ast(*parsed_ty))
 }
