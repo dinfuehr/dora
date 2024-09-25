@@ -2,7 +2,7 @@ use std::collections::{HashMap, HashSet};
 
 use crate::sema::{AliasDefinitionId, AliasParent, TypeParamDefinition};
 use crate::{
-    check_type, parse_type_bound, AllowSelf, ErrorMessage, ModuleSymTable, Sema, SourceType,
+    parse_type_bound, parsety, ErrorMessage, ModuleSymTable, ParsedType, Sema, SourceType,
     SourceTypeArray, SymbolKind,
 };
 
@@ -14,16 +14,20 @@ pub fn check(sa: &Sema) {
             AliasParent::None => {
                 if let Some(ref ty_node) = alias.node.ty {
                     let table = ModuleSymTable::new(sa, alias.module_id);
-                    let ty = check_type(
-                        sa,
-                        &table,
-                        alias.file_id,
-                        ty_node,
-                        &TypeParamDefinition::new(),
-                        AllowSelf::No,
-                    );
 
-                    assert!(alias_types.insert(id, ty).is_none());
+                    let parsed_ty = parsety::parse_type(sa, &table, alias.file_id, ty_node);
+                    let parsed_ty = ParsedType::new_ast(parsed_ty);
+                    parsety::convert_parsed_type2(sa, &parsed_ty);
+
+                    let ctxt = parsety::TypeContext {
+                        allow_self: false,
+                        module_id: alias.module_id,
+                        file_id: alias.file_id,
+                        type_param_defs: &TypeParamDefinition::new(),
+                    };
+                    parsety::check_parsed_type2(sa, &ctxt, &parsed_ty);
+
+                    assert!(alias_types.insert(id, parsed_ty.ty()).is_none());
                 } else {
                     assert!(alias_types.insert(id, SourceType::Error).is_none());
                 }
@@ -39,18 +43,21 @@ pub fn check(sa: &Sema) {
                         table.insert(name, SymbolKind::TypeParam(id));
                     }
 
-                    let ty = check_type(
-                        sa,
-                        &table,
-                        alias.file_id,
-                        ty_node,
-                        impl_.type_params(),
-                        AllowSelf::No,
-                    );
+                    let parsed_ty = parsety::parse_type(sa, &table, alias.file_id, ty_node);
+                    let parsed_ty = ParsedType::new_ast(parsed_ty);
+                    parsety::convert_parsed_type2(sa, &parsed_ty);
+
+                    let ctxt = parsety::TypeContext {
+                        allow_self: false,
+                        module_id: alias.module_id,
+                        file_id: alias.file_id,
+                        type_param_defs: impl_.type_params(),
+                    };
+                    parsety::check_parsed_type2(sa, &ctxt, &parsed_ty);
 
                     table.pop_level();
 
-                    assert!(alias_types.insert(id, ty).is_none());
+                    assert!(alias_types.insert(id, parsed_ty.ty()).is_none());
                 } else {
                     assert!(alias_types.insert(id, SourceType::Error).is_none());
                 }
