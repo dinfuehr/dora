@@ -7,8 +7,7 @@ use crate::sema::{
 };
 use crate::specialize::replace_type;
 use crate::{
-    package_for_type, parsety, AliasReplacement, ErrorMessage, ModuleSymTable, SourceType,
-    SourceTypeArray, SymbolKind,
+    package_for_type, parsety, AliasReplacement, ErrorMessage, SourceType, SourceTypeArray,
 };
 
 pub fn check_definition(sa: &Sema) {
@@ -23,12 +22,6 @@ pub fn check_definition(sa: &Sema) {
 
 fn parse_impl_definition(sa: &Sema, impl_: &ImplDefinition) {
     assert!(impl_.ast.trait_type.is_some());
-    let mut table = ModuleSymTable::new(sa, impl_.module_id);
-    table.push_level();
-
-    for (id, name) in impl_.type_params().names() {
-        table.insert(name, SymbolKind::TypeParam(id));
-    }
 
     let ctxt = parsety::TypeContext {
         allow_self: false,
@@ -45,8 +38,6 @@ fn parse_impl_definition(sa: &Sema, impl_: &ImplDefinition) {
         type_param_defs: impl_.type_params(),
     };
     parsety::convert_parsed_type2(sa, &ctxt, impl_.extended_ty.get().unwrap());
-
-    table.pop_level();
 }
 
 fn check_impl_definition(sa: &Sema, impl_: &ImplDefinition) {
