@@ -4,8 +4,7 @@ use dora_parser::ast;
 
 use crate::sema::{FctDefinition, FctParent, Sema};
 use crate::{
-    check_type, replace_type, AliasReplacement, AllowSelf, ErrorMessage, ModuleSymTable,
-    SourceType, SymbolKind,
+    parsety, AliasReplacement, ErrorMessage, ModuleSymTable, ParsedType, SourceType, SymbolKind,
 };
 
 pub fn check(sa: &Sema) {
@@ -100,58 +99,47 @@ fn process_type(
     sym_table: &ModuleSymTable,
     ast: &Arc<ast::TypeData>,
 ) -> SourceType {
-    let allow_self = if fct.is_self_allowed() {
-        AllowSelf::Yes
-    } else {
-        AllowSelf::No
+    let parsed_ty = parsety::parse_type(sa, &sym_table, fct.file_id, ast);
+    let parsed_ty = ParsedType::new_ast(parsed_ty);
+    parsety::convert_parsed_type2(sa, &parsed_ty);
+
+    let ctxt = parsety::TypeContext {
+        allow_self: fct.is_self_allowed(),
+        module_id: sym_table.module_id(),
+        file_id: fct.file_id,
+        type_param_defs: fct.type_params(),
     };
+    parsety::check_parsed_type2(sa, &ctxt, &parsed_ty);
 
-    let ty = check_type(
-        sa,
-        &sym_table,
-        fct.file_id,
-        ast,
-        fct.type_params(),
-        allow_self,
-    );
-
-    match fct.parent {
+    let (replace_self, alias_map) = match fct.parent {
         FctParent::Impl(id) => {
             let impl_ = sa.impl_(id);
-            replace_type(
-                sa,
-                ty,
-                None,
+            (
                 Some(impl_.extended_ty()),
                 AliasReplacement::ReplaceWithActualType,
             )
         }
 
-        FctParent::None => {
-            replace_type(sa, ty, None, None, AliasReplacement::ReplaceWithActualType)
-        }
+        FctParent::None => (None, AliasReplacement::ReplaceWithActualType),
 
         FctParent::Extension(id) => {
             let ext = sa.extension(id);
-            replace_type(
-                sa,
-                ty,
-                None,
+            (
                 Some(ext.ty().clone()),
                 AliasReplacement::ReplaceWithActualType,
             )
         }
 
-        FctParent::Trait(trait_id) => replace_type(
-            sa,
-            ty,
-            None,
+        FctParent::Trait(trait_id) => (
             None,
             AliasReplacement::ReplaceWithActualTypeKeepTrait(trait_id),
         ),
 
         FctParent::Function => unreachable!(),
-    }
+    };
+
+    parsety::expand_parsed_type2(sa, &parsed_ty, replace_self, alias_map);
+    parsed_ty.ty()
 }
 
 fn check_test(sa: &Sema, fct: &FctDefinition) {

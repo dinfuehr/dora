@@ -523,15 +523,28 @@ fn check_parsed_type_record(
     }
 }
 
-pub fn expand_parsed_type(sa: &Sema, parsed_ty: &ParsedTypeAst) -> SourceType {
+pub fn expand_parsed_type2(
+    sa: &Sema,
+    parsed_ty: &ParsedType,
+    replace_self: Option<SourceType>,
+    alias_map: AliasReplacement,
+) -> SourceType {
+    match parsed_ty {
+        ParsedType::Ast(ref parsed_ty) => {
+            expand_parsed_type(sa, parsed_ty, replace_self, alias_map)
+        }
+        ParsedType::Fixed(..) => unreachable!(),
+    }
+}
+
+pub fn expand_parsed_type(
+    sa: &Sema,
+    parsed_ty: &ParsedTypeAst,
+    replace_self: Option<SourceType>,
+    alias_map: AliasReplacement,
+) -> SourceType {
     let parsed_source_ty = parsed_ty.ty();
-    let expanded_ty = replace_type(
-        sa,
-        parsed_source_ty,
-        None,
-        None,
-        AliasReplacement::ReplaceWithActualType,
-    );
+    let expanded_ty = replace_type(sa, parsed_source_ty, None, replace_self, alias_map);
     parsed_ty.set_ty(expanded_ty.clone());
     expanded_ty
 }

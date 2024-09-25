@@ -6,7 +6,7 @@ use crate::sema::{implements_trait, ModuleDefinitionId, Sema, SourceFileId, Type
 use crate::specialize::specialize_type;
 use crate::sym::{ModuleSymTable, SymTable, SymbolKind};
 use crate::{parsety, ParsedType};
-use crate::{SourceType, SourceTypeArray};
+use crate::{AliasReplacement, SourceType, SourceTypeArray};
 use std::rc::Rc;
 
 use dora_parser::ast::{self, TypeLambdaType, TypeRegularType, TypeTupleType};
@@ -603,7 +603,12 @@ pub fn expand_type(
     };
     parsety::check_parsed_type(sa, &ctxt, &parsed_ty);
 
-    parsety::expand_parsed_type(sa, &parsed_ty);
+    parsety::expand_parsed_type(
+        sa,
+        &parsed_ty,
+        None,
+        AliasReplacement::ReplaceWithActualType,
+    );
     Box::new(ParsedType::Ast(*parsed_ty))
 }
 
