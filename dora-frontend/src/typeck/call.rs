@@ -90,7 +90,7 @@ pub(super) fn check_expr_call_enum_args(
     for (def_ty, arg_ty) in variant.types().iter().zip(arg_types) {
         let def_ty = replace_type(
             sa,
-            def_ty.clone(),
+            def_ty.ty(),
             Some(&type_params),
             None,
             AliasReplacement::None,

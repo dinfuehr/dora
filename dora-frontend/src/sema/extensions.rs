@@ -7,6 +7,7 @@ use crate::sema::{
     FctDefinitionId, ModuleDefinitionId, PackageDefinitionId, SourceFileId, TypeParamDefinition,
 };
 use crate::ty::SourceType;
+use crate::ParsedType;
 use id_arena::Id;
 
 pub use self::matching::{extension_matches, extension_matches_ty};
@@ -24,7 +25,7 @@ pub struct ExtensionDefinition {
     pub ast: Arc<ast::Impl>,
     pub span: Span,
     pub type_params: OnceCell<TypeParamDefinition>,
-    pub ty: OnceCell<SourceType>,
+    pub ty: OnceCell<Box<ParsedType>>,
     pub methods: OnceCell<Vec<FctDefinitionId>>,
     pub instance_names: RefCell<HashMap<Name, FctDefinitionId>>,
     pub static_names: RefCell<HashMap<Name, FctDefinitionId>>,
@@ -60,8 +61,8 @@ impl ExtensionDefinition {
         self.type_params.get().expect("uninitialized")
     }
 
-    pub fn ty(&self) -> &SourceType {
-        self.ty.get().expect("missing type")
+    pub fn ty(&self) -> SourceType {
+        self.ty.get().expect("missing type").ty()
     }
 
     pub fn methods(&self) -> &[FctDefinitionId] {

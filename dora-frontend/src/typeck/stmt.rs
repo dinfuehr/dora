@@ -323,7 +323,7 @@ fn check_pattern_enum(
         let expected_types = variant
             .types()
             .iter()
-            .map(|t| specialize_type(ck.sa, t.clone(), &value_type_params))
+            .map(|t| specialize_type(ck.sa, t.ty(), &value_type_params))
             .collect::<Vec<_>>();
         check_subpatterns(ck, ctxt, pattern, &expected_types);
     } else {

@@ -718,7 +718,7 @@ impl<'a> AstBytecodeGen<'a> {
         let variant = &enum_.variants[variant_idx as usize];
 
         iterate_subpatterns(pattern, variant.types().len(), |idx, param| {
-            let element_ty = variant.types()[idx].clone();
+            let element_ty = variant.types()[idx].ty();
             let element_ty = specialize_type(self.sa, element_ty, enum_type_params);
             let ty = register_bty_from_ty(element_ty.clone());
             let field_reg = self.alloc_temp(ty);

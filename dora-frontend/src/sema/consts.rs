@@ -11,10 +11,11 @@ use crate::sema::{
     module_path, ModuleDefinitionId, PackageDefinitionId, Sema, SourceFileId, Visibility,
 };
 use crate::ty::SourceType;
+use crate::ParsedType;
 
 pub type ConstDefinitionId = Id<ConstDefinition>;
 
-#[derive(Clone, Debug)]
+#[derive(Debug)]
 pub struct ConstDefinition {
     pub id: Option<ConstDefinitionId>,
     pub package_id: PackageDefinitionId,
@@ -24,7 +25,7 @@ pub struct ConstDefinition {
     pub visibility: Visibility,
     pub span: Span,
     pub name: Name,
-    pub ty: OnceCell<SourceType>,
+    pub ty: OnceCell<Box<ParsedType>>,
     pub expr: ast::Expr,
     pub value: OnceCell<ConstValue>,
 }
@@ -62,7 +63,7 @@ impl ConstDefinition {
     }
 
     pub fn ty(&self) -> SourceType {
-        self.ty.get().expect("uninitialized").to_owned()
+        self.ty.get().expect("uninitialized").ty()
     }
 
     pub fn value(&self) -> &ConstValue {

@@ -8,6 +8,7 @@ use crate::sema::{
     SourceFileId, Visibility,
 };
 use crate::ty::SourceType;
+use crate::ParsedType;
 use dora_bytecode::BytecodeFunction;
 use dora_parser::ast;
 use dora_parser::Span;
@@ -24,7 +25,7 @@ pub struct GlobalDefinition {
     pub ast: Arc<ast::Global>,
     pub span: Span,
     pub visibility: Visibility,
-    pub ty: OnceCell<SourceType>,
+    pub ty: OnceCell<Box<ParsedType>>,
     pub mutable: bool,
     pub name: Name,
     pub initializer: OnceCell<FctDefinitionId>,
@@ -75,7 +76,7 @@ impl GlobalDefinition {
     }
 
     pub fn ty(&self) -> SourceType {
-        self.ty.get().expect("missing type").clone()
+        self.ty.get().expect("missing type").ty()
     }
 
     pub fn analysis(&self) -> &AnalysisData {

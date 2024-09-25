@@ -10,16 +10,36 @@ use crate::{
 };
 use std::cell::RefCell;
 
-#[allow(unused)]
-pub struct ParsedType {
+#[derive(Debug)]
+pub enum ParsedType {
+    Fixed(SourceType),
+    Ast(ParsedTypeAst),
+}
+
+impl ParsedType {
+    pub fn new(ty: SourceType) -> Box<ParsedType> {
+        Box::new(ParsedType::Fixed(ty))
+    }
+
+    pub fn ty(&self) -> SourceType {
+        match self {
+            ParsedType::Fixed(ty) => ty.clone(),
+            ParsedType::Ast(ref ast) => ast.ty(),
+        }
+    }
+}
+
+#[derive(Debug)]
+pub struct ParsedTypeAst {
+    #[allow(unused)]
     id: ast::NodeId,
     span: Span,
     kind: ParsedTypeKind,
     ty: RefCell<Option<SourceType>>,
 }
 
-impl ParsedType {
-    fn ty(&self) -> SourceType {
+impl ParsedTypeAst {
+    pub fn ty(&self) -> SourceType {
         self.ty.borrow().clone().expect("missing ty")
     }
 
@@ -29,21 +49,22 @@ impl ParsedType {
     }
 }
 
+#[derive(Debug)]
 pub enum ParsedTypeKind {
     This,
 
     Regular {
         symbol: SymbolKind,
-        type_params: Vec<Box<ParsedType>>,
+        type_params: Vec<Box<ParsedTypeAst>>,
     },
 
     Tuple {
-        subtypes: Vec<Box<ParsedType>>,
+        subtypes: Vec<Box<ParsedTypeAst>>,
     },
 
     Lambda {
-        params: Vec<Box<ParsedType>>,
-        return_ty: Option<Box<ParsedType>>,
+        params: Vec<Box<ParsedTypeAst>>,
+        return_ty: Option<Box<ParsedTypeAst>>,
     },
 
     Error,
@@ -54,7 +75,7 @@ pub fn parse_type(
     table: &ModuleSymTable,
     file_id: SourceFileId,
     t: &ast::TypeData,
-) -> Box<ParsedType> {
+) -> Box<ParsedTypeAst> {
     let kind = match *t {
         ast::TypeData::This(_) => ParsedTypeKind::This,
         ast::TypeData::Regular(ref node) => parse_type_regular(sa, table, file_id, node),
@@ -63,7 +84,7 @@ pub fn parse_type(
         ast::TypeData::Error { .. } => ParsedTypeKind::Error,
     };
 
-    Box::new(ParsedType {
+    Box::new(ParsedTypeAst {
         id: t.id(),
         span: t.span(),
         kind,
@@ -190,7 +211,7 @@ pub struct TypeContext<'a> {
     pub type_param_defs: &'a TypeParamDefinition,
 }
 
-pub fn convert_parsed_type(sa: &Sema, ctxt: &TypeContext, parsed_ty: &ParsedType) -> SourceType {
+pub fn convert_parsed_type(sa: &Sema, ctxt: &TypeContext, parsed_ty: &ParsedTypeAst) -> SourceType {
     let ty = match parsed_ty.kind {
         ParsedTypeKind::This => convert_parsed_type_this(sa, ctxt, parsed_ty),
         ParsedTypeKind::Regular { .. } => convert_parsed_type_regular(sa, ctxt, parsed_ty),
@@ -203,7 +224,11 @@ pub fn convert_parsed_type(sa: &Sema, ctxt: &TypeContext, parsed_ty: &ParsedType
     ty
 }
 
-fn convert_parsed_type_this(sa: &Sema, ctxt: &TypeContext, parsed_ty: &ParsedType) -> SourceType {
+fn convert_parsed_type_this(
+    sa: &Sema,
+    ctxt: &TypeContext,
+    parsed_ty: &ParsedTypeAst,
+) -> SourceType {
     if ctxt.allow_self {
         SourceType::This
     } else {
@@ -219,7 +244,7 @@ fn convert_parsed_type_this(sa: &Sema, ctxt: &TypeContext, parsed_ty: &ParsedTyp
 fn convert_parsed_type_regular(
     sa: &Sema,
     ctxt: &TypeContext,
-    parsed_ty: &ParsedType,
+    parsed_ty: &ParsedTypeAst,
 ) -> SourceType {
     let (sym, type_params) = match parsed_ty.kind {
         ParsedTypeKind::Regular {
@@ -255,20 +280,7 @@ fn convert_parsed_type_regular(
                 .collect::<Vec<_>>();
             let type_params = SourceTypeArray::with(type_params);
 
-            let type_param_defs = sym_type_params(sa, sym.clone());
-
-            if check_type_params(
-                sa,
-                type_param_defs,
-                type_params.types(),
-                ctxt.file_id,
-                parsed_ty.span,
-                ctxt.type_param_defs,
-            ) {
-                ty_for_sym(sa, sym, type_params)
-            } else {
-                SourceType::Error
-            }
+            ty_for_sym(sa, sym, type_params)
         }
 
         _ => unreachable!(),
@@ -289,12 +301,16 @@ fn ty_for_sym(sa: &Sema, sym: SymbolKind, type_params: SourceTypeArray) -> Sourc
     match sym {
         SymbolKind::Class(id) => SourceType::Class(id, type_params),
         SymbolKind::Struct(id) => {
-            let struct_ = sa.struct_(id);
-            if let Some(primitive_ty) = struct_.primitive_ty.clone() {
-                assert!(type_params.is_empty());
-                primitive_ty
-            } else {
+            if !type_params.is_empty() {
                 SourceType::Struct(id, type_params)
+            } else {
+                let struct_ = sa.struct_(id);
+                if let Some(primitive_ty) = struct_.primitive_ty.clone() {
+                    assert!(type_params.is_empty());
+                    primitive_ty
+                } else {
+                    SourceType::Struct(id, type_params)
+                }
             }
         }
         SymbolKind::Enum(id) => SourceType::Enum(id, type_params),
@@ -303,7 +319,11 @@ fn ty_for_sym(sa: &Sema, sym: SymbolKind, type_params: SourceTypeArray) -> Sourc
     }
 }
 
-fn convert_parsed_type_tuple(sa: &Sema, ctxt: &TypeContext, parsed_ty: &ParsedType) -> SourceType {
+fn convert_parsed_type_tuple(
+    sa: &Sema,
+    ctxt: &TypeContext,
+    parsed_ty: &ParsedTypeAst,
+) -> SourceType {
     let subtypes = match parsed_ty.kind {
         ParsedTypeKind::Tuple { ref subtypes } => subtypes,
         _ => unreachable!(),
@@ -322,7 +342,11 @@ fn convert_parsed_type_tuple(sa: &Sema, ctxt: &TypeContext, parsed_ty: &ParsedTy
     }
 }
 
-fn convert_parsed_type_lambda(sa: &Sema, ctxt: &TypeContext, parsed_ty: &ParsedType) -> SourceType {
+fn convert_parsed_type_lambda(
+    sa: &Sema,
+    ctxt: &TypeContext,
+    parsed_ty: &ParsedTypeAst,
+) -> SourceType {
     let (params, return_ty) = match parsed_ty.kind {
         ParsedTypeKind::Lambda {
             ref params,
@@ -346,12 +370,11 @@ fn convert_parsed_type_lambda(sa: &Sema, ctxt: &TypeContext, parsed_ty: &ParsedT
     SourceType::Lambda(params, Box::new(return_ty))
 }
 
-#[allow(unused)]
-pub fn check_parsed_type(sa: &Sema, ctxt: &TypeContext, parsed_ty: &ParsedType) -> SourceType {
+pub fn check_parsed_type(sa: &Sema, ctxt: &TypeContext, parsed_ty: &ParsedTypeAst) -> SourceType {
     let ty = parsed_ty.ty();
 
     let checked_ty = match ty.clone() {
-        SourceType::Any | SourceType::Ptr | SourceType::This => {
+        SourceType::Any | SourceType::Ptr => {
             unreachable!()
         }
         SourceType::TypeAlias(..)
@@ -364,14 +387,62 @@ pub fn check_parsed_type(sa: &Sema, ctxt: &TypeContext, parsed_ty: &ParsedType) 
         | SourceType::Int32
         | SourceType::Int64
         | SourceType::Unit
-        | SourceType::TypeParam(..) => ty,
-        SourceType::Lambda(..) | SourceType::Tuple(..) => unimplemented!(),
+        | SourceType::TypeParam(..)
+        | SourceType::This => ty,
+        SourceType::Lambda(params, return_type) => {
+            let (parsed_params, parsed_return_type) = match parsed_ty.kind {
+                ParsedTypeKind::Lambda {
+                    ref params,
+                    ref return_ty,
+                } => (params, return_ty),
+                _ => unreachable!(),
+            };
+
+            assert_eq!(params.len(), parsed_params.len());
+            let mut new_params = Vec::with_capacity(parsed_params.len());
+
+            for idx in 0..parsed_params.len() {
+                let parsed_param = &parsed_params[idx];
+                assert_eq!(params[idx], parsed_param.ty());
+
+                let ty = check_parsed_type(sa, ctxt, parsed_param);
+                new_params.push(ty);
+            }
+
+            let new_params = SourceTypeArray::with(new_params);
+            let new_return_type: SourceType = if let Some(parsed_return_type) = parsed_return_type {
+                assert_eq!(*return_type, parsed_return_type.ty());
+                check_parsed_type(sa, ctxt, parsed_return_type)
+            } else {
+                SourceType::Unit
+            };
+
+            SourceType::Lambda(new_params, Box::new(new_return_type))
+        }
+        SourceType::Tuple(subtypes) => {
+            let parsed_subtypes = match parsed_ty.kind {
+                ParsedTypeKind::Tuple { ref subtypes } => subtypes,
+                _ => unreachable!(),
+            };
+
+            assert_eq!(subtypes.len(), parsed_subtypes.len());
+            let mut new_type_params = Vec::with_capacity(parsed_subtypes.len());
+
+            for idx in 0..parsed_subtypes.len() {
+                let parsed_subtype = &parsed_subtypes[idx];
+                assert_eq!(subtypes[idx], parsed_subtype.ty());
+
+                let ty = check_parsed_type(sa, ctxt, parsed_subtype);
+                new_type_params.push(ty);
+            }
+
+            SourceType::Tuple(SourceTypeArray::with(new_type_params))
+        }
         SourceType::Class(_, type_params)
         | SourceType::Struct(_, type_params)
         | SourceType::Enum(_, type_params)
         | SourceType::Trait(_, type_params) => {
-            let _type_param_defs = ty_type_param_defs(sa, ty);
-            unimplemented!()
+            check_parsed_type_record(sa, ctxt, parsed_ty, type_params)
         }
     };
 
@@ -379,17 +450,50 @@ pub fn check_parsed_type(sa: &Sema, ctxt: &TypeContext, parsed_ty: &ParsedType) 
     checked_ty
 }
 
-fn ty_type_param_defs(sa: &Sema, ty: SourceType) -> &TypeParamDefinition {
-    match ty {
-        SourceType::Class(id, ..) => sa.class(id).type_params(),
-        SourceType::Struct(id, ..) => sa.struct_(id).type_params(),
-        SourceType::Enum(id, ..) => sa.enum_(id).type_params(),
-        SourceType::Trait(id, ..) => sa.trait_(id).type_params(),
-        _ => unimplemented!(),
+fn check_parsed_type_record(
+    sa: &Sema,
+    ctxt: &TypeContext,
+    parsed_ty: &ParsedTypeAst,
+    type_params: SourceTypeArray,
+) -> SourceType {
+    let (symbol, parsed_type_params) = match parsed_ty.kind {
+        ParsedTypeKind::Regular {
+            ref symbol,
+            ref type_params,
+            ..
+        } => (symbol.clone(), type_params),
+        _ => unreachable!(),
+    };
+
+    assert_eq!(type_params.len(), parsed_type_params.len());
+    let mut new_type_params = Vec::with_capacity(parsed_type_params.len());
+
+    for idx in 0..type_params.len() {
+        let parsed_type_param = &parsed_type_params[idx];
+        assert_eq!(type_params[idx], parsed_type_param.ty());
+
+        let ty = check_parsed_type(sa, ctxt, parsed_type_param);
+        new_type_params.push(ty);
+    }
+
+    let new_type_params = SourceTypeArray::with(new_type_params);
+    let type_param_defs = sym_type_params(sa, symbol.clone());
+
+    if check_type_params(
+        sa,
+        type_param_defs,
+        new_type_params.types(),
+        ctxt.file_id,
+        parsed_ty.span,
+        ctxt.type_param_defs,
+    ) {
+        ty_for_sym(sa, symbol, new_type_params)
+    } else {
+        SourceType::Error
     }
 }
 
-pub fn expand_parsed_type(sa: &Sema, parsed_ty: &ParsedType) -> SourceType {
+pub fn expand_parsed_type(sa: &Sema, parsed_ty: &ParsedTypeAst) -> SourceType {
     let parsed_source_ty = parsed_ty.ty();
     let expanded_ty = replace_type(
         sa,

@@ -4,8 +4,7 @@ use dora_parser::ast;
 
 use crate::sema::{EnumDefinition, Sema, SourceFileId};
 use crate::sym::{ModuleSymTable, SymbolKind};
-use crate::ty::SourceType;
-use crate::{expand_type, AllowSelf};
+use crate::{expand_type, AllowSelf, ParsedType};
 
 pub fn check(sa: &Sema) {
     for (_id, enum_) in sa.enums.iter() {
@@ -45,7 +44,7 @@ impl<'x> EnumCheck<'x> {
         let mut simple_enumeration = true;
 
         for value in &self.ast.variants {
-            let mut types: Vec<SourceType> = Vec::new();
+            let mut types: Vec<Box<ParsedType>> = Vec::new();
 
             if let Some(ref variant_types) = value.types {
                 for ty in variant_types {

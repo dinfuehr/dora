@@ -10,6 +10,7 @@ use crate::sym::{SymTable, SymbolKind};
 use crate::ty::SourceType;
 
 use crate::interner::Name;
+use crate::ParsedType;
 
 pub fn lookup_known_fundamental_types(sa: &mut Sema) {
     let stdlib_id = sa.stdlib_module_id();
@@ -200,7 +201,9 @@ pub fn create_lambda_class(sa: &mut Sema) {
         mutable: false,
         visibility: Visibility::Public,
     };
-    assert!(field.ty.set(SourceType::Ptr).is_ok());
+
+    let ty = ParsedType::new(SourceType::Ptr);
+    assert!(field.ty.set(ty).is_ok());
 
     let fields = vec![field];
 

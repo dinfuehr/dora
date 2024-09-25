@@ -2,10 +2,10 @@ use crate::access::{
     class_accessible_from, enum_accessible_from, struct_accessible_from, trait_accessible_from,
 };
 use crate::error::msg::ErrorMessage;
-use crate::parsety;
 use crate::sema::{implements_trait, ModuleDefinitionId, Sema, SourceFileId, TypeParamDefinition};
 use crate::specialize::specialize_type;
 use crate::sym::{ModuleSymTable, SymTable, SymbolKind};
+use crate::{parsety, ParsedType};
 use crate::{SourceType, SourceTypeArray};
 use std::rc::Rc;
 
@@ -592,7 +592,7 @@ pub fn expand_type(
     t: &ast::TypeData,
     type_param_defs: &TypeParamDefinition,
     allow_self: AllowSelf,
-) -> SourceType {
+) -> Box<ParsedType> {
     let parsed_ty = parsety::parse_type(sa, table, file_id, t);
 
     let ctxt = parsety::TypeContext {
@@ -603,34 +603,9 @@ pub fn expand_type(
     };
 
     parsety::convert_parsed_type(sa, &ctxt, &parsed_ty);
-    let expanded_ty = parsety::expand_parsed_type(sa, &parsed_ty);
-    expanded_ty
-
-    // replace_type(
-    //     self.sa,
-    //     expanded_ty,
-    //     None,
-    //     self.self_ty.clone(),
-    //     AliasReplacement::None,
-    // )
-
-    // let ty = parse_type(sa, table, file_id, t);
-
-    // let is_good = verify_type(
-    //     sa,
-    //     table.module_id(),
-    //     file_id,
-    //     t,
-    //     ty.clone(),
-    //     type_param_defs,
-    //     allow_self,
-    // );
-
-    // if is_good {
-    //     replace_type(sa, ty, None, None, AliasReplacement::ReplaceWithActualType)
-    // } else {
-    //     SourceType::Error
-    // }
+    parsety::check_parsed_type(sa, &ctxt, &parsed_ty);
+    parsety::expand_parsed_type(sa, &parsed_ty);
+    Box::new(ParsedType::Ast(*parsed_ty))
 }
 
 #[cfg(test)]

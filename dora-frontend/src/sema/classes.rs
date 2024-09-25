@@ -13,7 +13,7 @@ use crate::sema::{
     module_path, ExtensionDefinitionId, FctDefinitionId, ModuleDefinitionId, PackageDefinitionId,
     Sema, SourceFileId, TypeParamDefinition,
 };
-use crate::{replace_type, AliasReplacement, SourceType, SourceTypeArray};
+use crate::{replace_type, AliasReplacement, ParsedType, SourceType, SourceTypeArray};
 
 pub type ClassDefinitionId = Id<ClassDefinition>;
 
@@ -202,14 +202,14 @@ impl From<usize> for FieldId {
 pub struct Field {
     pub id: FieldId,
     pub name: Name,
-    pub ty: OnceCell<SourceType>,
+    pub ty: OnceCell<Box<ParsedType>>,
     pub mutable: bool,
     pub visibility: Visibility,
 }
 
 impl Field {
     pub fn ty(&self) -> SourceType {
-        self.ty.get().expect("uninitalized").clone()
+        self.ty.get().expect("uninitalized").ty()
     }
 }
 

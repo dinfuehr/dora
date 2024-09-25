@@ -13,7 +13,7 @@ use crate::sema::{
     module_path, ExtensionDefinitionId, ModuleDefinitionId, PackageDefinitionId, Sema,
     SourceFileId, TypeParamDefinition, TypeParamId, Visibility,
 };
-use crate::{SourceType, SourceTypeArray};
+use crate::{ParsedType, SourceType, SourceTypeArray};
 
 pub type StructDefinitionId = Id<StructDefinition>;
 
@@ -153,12 +153,12 @@ pub struct StructDefinitionField {
     pub id: StructDefinitionFieldId,
     pub span: Span,
     pub name: Name,
-    pub ty: OnceCell<SourceType>,
+    pub ty: OnceCell<Box<ParsedType>>,
     pub visibility: Visibility,
 }
 
 impl StructDefinitionField {
     pub fn ty(&self) -> SourceType {
-        self.ty.get().expect("uninitialized").clone()
+        self.ty.get().expect("uninitialized").ty()
     }
 }

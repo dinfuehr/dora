@@ -3,7 +3,6 @@ use std::str::Chars;
 use std::{f32, f64};
 
 use crate::error::msg::ErrorMessage;
-use crate::parsety;
 use crate::sema::{
     AnalysisData, ClassDefinition, ConstValue, ContextFieldId, FctDefinition, FctParent, Field,
     FieldId, GlobalDefinition, IdentType, LazyContextClassCreationData, LazyContextData,
@@ -16,6 +15,7 @@ use crate::{
     always_returns, expr_always_returns, replace_type, report_sym_shadow_span, AliasReplacement,
     ModuleSymTable, SourceType, SourceTypeArray, SymbolKind,
 };
+use crate::{parsety, ParsedType};
 
 use crate::interner::Name;
 use dora_parser::Span;
@@ -239,7 +239,8 @@ impl<'a> TypeCheck<'a> {
                 mutable: true,
                 visibility: Visibility::Module,
             };
-            assert!(field.ty.set(SourceType::Ptr).is_ok());
+            let ty = ParsedType::new(SourceType::Ptr);
+            assert!(field.ty.set(ty).is_ok());
 
             fields.push(field);
         }
@@ -267,7 +268,8 @@ impl<'a> TypeCheck<'a> {
                 mutable: true,
                 visibility: Visibility::Module,
             };
-            assert!(field.ty.set(var.ty.clone()).is_ok());
+            let ty = ParsedType::new(var.ty.clone());
+            assert!(field.ty.set(ty).is_ok());
 
             fields.push(field);
         }
@@ -373,6 +375,7 @@ impl<'a> TypeCheck<'a> {
         };
 
         parsety::convert_parsed_type(self.sa, &ctxt, &parsed_ty);
+        parsety::check_parsed_type(self.sa, &ctxt, &parsed_ty);
         let expanded_ty = parsety::expand_parsed_type(self.sa, &parsed_ty);
 
         replace_type(

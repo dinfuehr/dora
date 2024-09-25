@@ -107,7 +107,7 @@ impl<'x> ExtensionCheck<'x> {
             AllowSelf::No,
         );
 
-        match extension_ty {
+        match extension_ty.ty() {
             SourceType::TypeParam(..) => {
                 let msg = ErrorMessage::ExpectedExtensionType;
                 self.sa.report(
@@ -137,7 +137,7 @@ impl<'x> ExtensionCheck<'x> {
             | SourceType::Tuple(..) => {}
         }
 
-        let extension_ty_package_id = package_for_type(self.sa, extension_ty.clone());
+        let extension_ty_package_id = package_for_type(self.sa, extension_ty.ty());
 
         if let Some(extension_ty_package_id) = extension_ty_package_id {
             if extension_ty_package_id != self.extension.package_id {
@@ -152,7 +152,7 @@ impl<'x> ExtensionCheck<'x> {
 
         check_for_unconstrained_type_params(
             self.sa,
-            extension_ty.clone(),
+            extension_ty.ty(),
             self.extension.type_params(),
             self.extension.file_id,
             self.extension.ast.extended_type.span(),

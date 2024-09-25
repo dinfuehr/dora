@@ -4,6 +4,7 @@ use std::sync::Arc;
 
 use crate::interner::Name;
 use crate::program_parser::ParsedModifierList;
+use crate::ParsedType;
 use dora_parser::ast;
 use dora_parser::Span;
 
@@ -13,7 +14,7 @@ use crate::sema::{
     module_path, ExtensionDefinitionId, ModuleDefinitionId, PackageDefinitionId, Sema,
     SourceFileId, TypeParamDefinition, Visibility,
 };
-use crate::ty::{SourceType, SourceTypeArray};
+use crate::ty::SourceTypeArray;
 
 pub type EnumDefinitionId = Id<EnumDefinition>;
 
@@ -110,11 +111,11 @@ impl EnumDefinition {
 pub struct EnumVariant {
     pub id: u32,
     pub name: Name,
-    pub types: OnceCell<Vec<SourceType>>,
+    pub types: OnceCell<Vec<Box<ParsedType>>>,
 }
 
 impl EnumVariant {
-    pub fn types(&self) -> &[SourceType] {
+    pub fn types(&self) -> &Vec<Box<ParsedType>> {
         self.types.get().expect("missing types")
     }
 }

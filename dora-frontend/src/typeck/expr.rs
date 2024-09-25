@@ -1371,7 +1371,7 @@ pub(super) fn check_enum_value_with_args(
         let variant_types = variant
             .types()
             .iter()
-            .map(|a| a.name_enum(ck.sa, &*enum_))
+            .map(|a| a.ty().name_enum(ck.sa, &*enum_))
             .collect::<Vec<_>>();
         let arg_types = arg_types.iter().map(|a| ck.ty_name(a)).collect::<Vec<_>>();
         let msg =
@@ -1531,7 +1531,7 @@ fn check_enum_value_without_args(
             let variant_types = variant
                 .types()
                 .iter()
-                .map(|a| a.name_enum(ck.sa, &*enum_))
+                .map(|a| a.ty().name_enum(ck.sa, &*enum_))
                 .collect::<Vec<_>>();
             let arg_types = Vec::new();
             let msg = ErrorMessage::EnumArgsIncompatible(
@@ -1686,7 +1686,7 @@ pub(super) fn check_enum_value_without_args_id(
         let variant_types = variant
             .types()
             .iter()
-            .map(|a| a.name_enum(ck.sa, &*enum_))
+            .map(|a| a.ty().name_enum(ck.sa, &*enum_))
             .collect::<Vec<_>>();
         let arg_types = Vec::new();
         let msg =
