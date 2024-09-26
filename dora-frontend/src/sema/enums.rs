@@ -67,7 +67,7 @@ impl EnumDefinition {
         self.id.expect("id missing")
     }
 
-    pub fn type_params(&self) -> &TypeParamDefinition {
+    pub fn type_param_definition(&self) -> &TypeParamDefinition {
         self.type_params.get().expect("uninitialized")
     }
 

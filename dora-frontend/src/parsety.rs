@@ -292,12 +292,12 @@ fn convert_parsed_type_regular(sa: &Sema, parsed_ty: &ParsedTypeAst) -> SourceTy
     }
 }
 
-fn sym_type_params(sa: &Sema, sym: SymbolKind) -> &TypeParamDefinition {
+fn sym_type_param_definition(sa: &Sema, sym: SymbolKind) -> &TypeParamDefinition {
     match sym {
-        SymbolKind::Class(id) => sa.class(id).type_params(),
-        SymbolKind::Struct(id) => sa.struct_(id).type_params(),
-        SymbolKind::Enum(id) => sa.enum_(id).type_params(),
-        SymbolKind::Trait(id) => sa.trait_(id).type_params(),
+        SymbolKind::Class(id) => sa.class(id).type_param_definition(),
+        SymbolKind::Struct(id) => sa.struct_(id).type_param_definition(),
+        SymbolKind::Enum(id) => sa.enum_(id).type_param_definition(),
+        SymbolKind::Trait(id) => sa.trait_(id).type_param_definition(),
         _ => unimplemented!(),
     }
 }
@@ -507,7 +507,7 @@ fn check_parsed_type_record(
     }
 
     let new_type_params = SourceTypeArray::with(new_type_params);
-    let type_param_defs = sym_type_params(sa, symbol.clone());
+    let type_param_defs = sym_type_param_definition(sa, symbol.clone());
 
     if check_type_params(
         sa,

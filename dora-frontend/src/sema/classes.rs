@@ -125,7 +125,7 @@ impl ClassDefinition {
         self.span.expect("missing position")
     }
 
-    pub fn type_params(&self) -> &TypeParamDefinition {
+    pub fn type_param_definition(&self) -> &TypeParamDefinition {
         self.type_params.get().expect("uninitialized")
     }
 
@@ -208,8 +208,12 @@ pub struct Field {
 }
 
 impl Field {
+    pub fn parsed_ty(&self) -> &ParsedType {
+        self.ty.get().expect("uninitalized")
+    }
+
     pub fn ty(&self) -> SourceType {
-        self.ty.get().expect("uninitalized").ty()
+        self.parsed_ty().ty()
     }
 }
 

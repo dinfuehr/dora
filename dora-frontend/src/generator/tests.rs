@@ -4333,8 +4333,13 @@ pub fn cls_method_by_name(
         .expect("class expected");
     let cls = &sa.classes[cls_id];
 
-    let candidates =
-        find_method_call_candidates(sa, cls.ty(), cls.type_params(), function_name, is_static);
+    let candidates = find_method_call_candidates(
+        sa,
+        cls.ty(),
+        cls.type_param_definition(),
+        function_name,
+        is_static,
+    );
     if candidates.len() == 1 {
         Some(candidates[0].fct_id)
     } else {
@@ -4361,7 +4366,7 @@ pub fn struct_method_by_name(
     let candidates = find_method_call_candidates(
         sa,
         struct_.ty(),
-        struct_.type_params(),
+        struct_.type_param_definition(),
         function_name,
         is_static,
     );

@@ -70,7 +70,7 @@ pub fn check(sa: &Sema) {
                 let mut table = ModuleSymTable::new(sa, alias.module_id);
                 table.push_level();
 
-                for (id, name) in trait_.type_params().names() {
+                for (id, name) in trait_.type_param_definition().names() {
                     table.insert(name, SymbolKind::TypeParam(id));
                 }
 

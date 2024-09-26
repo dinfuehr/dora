@@ -35,7 +35,7 @@ impl<'x> EnumCheck<'x> {
         symtable.push_level();
 
         {
-            for (id, name) in self.enum_.type_params().names() {
+            for (id, name) in self.enum_.type_param_definition().names() {
                 symtable.insert(name, SymbolKind::TypeParam(id));
             }
         }
@@ -53,7 +53,7 @@ impl<'x> EnumCheck<'x> {
                         &symtable,
                         self.file_id.into(),
                         ty,
-                        self.enum_.type_params(),
+                        self.enum_.type_param_definition(),
                         AllowSelf::No,
                     );
                     types.push(variant_ty);

@@ -279,7 +279,9 @@ fn check_impl_types(sa: &Sema, impl_: &ImplDefinition, trait_: &TraitDefinition)
                     let name = impl_alias
                         .ty()
                         .name_with_type_params(sa, impl_.type_params());
-                    let trait_name = bound.ty().name_with_type_params(sa, trait_.type_params());
+                    let trait_name = bound
+                        .ty()
+                        .name_with_type_params(sa, trait_.type_param_definition());
                     let msg = ErrorMessage::TypeNotImplementingTrait(name, trait_name);
                     sa.report(impl_.file_id, impl_alias.node.span, msg);
                 }

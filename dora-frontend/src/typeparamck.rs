@@ -25,7 +25,7 @@ pub fn check_enum(
     let checker = TypeParamCheck {
         sa,
         caller_type_param_defs,
-        callee_type_param_defs: enum_.type_params(),
+        callee_type_param_defs: enum_.type_param_definition(),
         error,
     };
 
@@ -44,7 +44,7 @@ pub fn check_struct(
     let checker = TypeParamCheck {
         sa,
         caller_type_param_defs,
-        callee_type_param_defs: struct_.type_params(),
+        callee_type_param_defs: struct_.type_param_definition(),
         error,
     };
 
@@ -63,7 +63,7 @@ pub fn check_class(
     let checker = TypeParamCheck {
         sa,
         caller_type_param_defs,
-        callee_type_param_defs: cls.type_params(),
+        callee_type_param_defs: cls.type_param_definition(),
         error,
     };
 

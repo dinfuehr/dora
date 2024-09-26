@@ -280,7 +280,7 @@ fn create_classes(sa: &Sema) -> Vec<ClassData> {
         result.push(ClassData {
             module_id: convert_module_id(class.module_id),
             name,
-            type_params: create_type_params(sa, class.type_params()),
+            type_params: create_type_params(sa, class.type_param_definition()),
             fields: create_class_fields(sa, &*class),
         })
     }
@@ -308,7 +308,7 @@ fn create_structs(sa: &Sema) -> Vec<StructData> {
         result.push(StructData {
             module_id: convert_module_id(struct_.module_id),
             name,
-            type_params: create_type_params(sa, struct_.type_params()),
+            type_params: create_type_params(sa, struct_.type_param_definition()),
             fields: create_struct_fields(sa, &*struct_),
         })
     }
@@ -354,7 +354,7 @@ fn create_enums(sa: &Sema) -> Vec<EnumData> {
         result.push(EnumData {
             module_id: convert_module_id(enum_.module_id),
             name,
-            type_params: create_type_params(sa, enum_.type_params()),
+            type_params: create_type_params(sa, enum_.type_param_definition()),
             variants: create_enum_variants(sa, &*enum_),
         })
     }
@@ -389,7 +389,7 @@ fn create_traits(sa: &Sema) -> Vec<TraitData> {
         result.push(TraitData {
             module_id: convert_module_id(trait_.module_id),
             name,
-            type_params: create_type_params(sa, &trait_.type_params()),
+            type_params: create_type_params(sa, &trait_.type_param_definition()),
             methods: trait_
                 .methods()
                 .iter()

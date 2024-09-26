@@ -79,7 +79,7 @@ impl StructDefinition {
         self.id.expect("missing id")
     }
 
-    pub fn type_params(&self) -> &TypeParamDefinition {
+    pub fn type_param_definition(&self) -> &TypeParamDefinition {
         self.type_params.get().expect("uninitialized")
     }
 
@@ -109,7 +109,7 @@ impl StructDefinition {
         if let Some(ref primitive_ty) = self.primitive_ty {
             primitive_ty.clone()
         } else {
-            let type_params = (0..self.type_params().len())
+            let type_params = (0..self.type_param_definition().len())
                 .into_iter()
                 .map(|id| SourceType::TypeParam(TypeParamId(id)))
                 .collect();
@@ -159,6 +159,10 @@ pub struct StructDefinitionField {
 
 impl StructDefinitionField {
     pub fn ty(&self) -> SourceType {
-        self.ty.get().expect("uninitialized").ty()
+        self.parsed_ty().ty()
+    }
+
+    pub fn parsed_ty(&self) -> &ParsedType {
+        self.ty.get().expect("uninitialized")
     }
 }

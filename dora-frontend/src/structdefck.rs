@@ -1,16 +1,13 @@
-use crate::sema::{Sema, SourceFileId, StructDefinitionId};
+use crate::sema::{Sema, SourceFileId, StructDefinition, StructDefinitionField};
 use crate::sym::{ModuleSymTable, SymbolKind};
-use crate::{expand_type, AllowSelf};
-
-use dora_parser::ast;
+use crate::{parsety, AliasReplacement};
 
 pub fn check(sa: &Sema) {
-    for (id, struct_) in sa.structs.iter() {
+    for (_id, struct_) in sa.structs.iter() {
         let mut clsck = StructCheck {
             sa,
-            struct_id: id,
+            struct_,
             file_id: struct_.file_id,
-            ast: &struct_.ast,
             symtable: ModuleSymTable::new(sa, struct_.module_id),
         };
 
@@ -20,9 +17,8 @@ pub fn check(sa: &Sema) {
 
 struct StructCheck<'x> {
     sa: &'x Sema,
-    struct_id: StructDefinitionId,
+    struct_: &'x StructDefinition,
     file_id: SourceFileId,
-    ast: &'x ast::Struct,
     symtable: ModuleSymTable,
 }
 
@@ -30,34 +26,32 @@ impl<'x> StructCheck<'x> {
     fn check(&mut self) {
         self.symtable.push_level();
 
-        {
-            let struct_ = self.sa.struct_(self.struct_id);
-
-            for (id, name) in struct_.type_params().names() {
-                self.symtable.insert(name, SymbolKind::TypeParam(id));
-            }
+        for (id, name) in self.struct_.type_param_definition().names() {
+            self.symtable.insert(name, SymbolKind::TypeParam(id));
         }
 
-        for (idx, field) in self.ast.fields.iter().enumerate() {
-            self.visit_struct_field(idx, field);
+        for field in self.struct_.fields.iter() {
+            self.visit_struct_field(field);
         }
 
         self.symtable.pop_level();
     }
 
-    fn visit_struct_field(&mut self, idx: usize, f: &ast::StructField) {
-        let struct_ = self.sa.struct_(self.struct_id);
+    fn visit_struct_field(&mut self, field: &StructDefinitionField) {
+        let ctxt = parsety::TypeContext {
+            allow_self: false,
+            module_id: self.struct_.module_id,
+            file_id: self.file_id,
+            type_param_defs: self.struct_.type_param_definition(),
+        };
+        parsety::check_parsed_type2(self.sa, &ctxt, field.parsed_ty());
 
-        let ty = expand_type(
+        parsety::expand_parsed_type2(
             self.sa,
-            &self.symtable,
-            self.file_id,
-            &f.data_type,
-            struct_.type_params(),
-            AllowSelf::No,
+            field.parsed_ty(),
+            None,
+            AliasReplacement::ReplaceWithActualType,
         );
-
-        struct_.fields[idx].ty.set(ty).expect("already initialized");
     }
 }
 

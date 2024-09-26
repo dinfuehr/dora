@@ -99,8 +99,6 @@ fn parse_class_types(sa: &Sema) {
             cls.span(),
         );
 
-        symtable.pop_level();
-
         let number_type_params = type_param_definition.len();
         cls.type_params
             .set(type_param_definition)
@@ -111,6 +109,16 @@ fn parse_class_types(sa: &Sema) {
                 build_type_params(number_type_params),
             ))
             .expect("already initialized");
+
+        for (idx, field) in cls.ast().fields.iter().enumerate() {
+            let ty = parsety::parse_type(sa, &symtable, cls.file_id(), &field.data_type);
+            let ty = ParsedType::new_ast(ty);
+            parsety::convert_parsed_type2(sa, &ty);
+
+            assert!(cls.fields[idx].ty.set(ty).is_ok());
+        }
+
+        symtable.pop_level();
     }
 }
 
@@ -154,12 +162,20 @@ fn parse_struct_types(sa: &Sema) {
             struct_.span,
         );
 
-        symtable.pop_level();
-
         struct_
             .type_params
             .set(type_param_definition)
             .expect("already initialized");
+
+        for (idx, ast_field) in struct_.ast.fields.iter().enumerate() {
+            let ty = parsety::parse_type(sa, &symtable, struct_.file_id, &ast_field.data_type);
+            let ty = ParsedType::new_ast(ty);
+            parsety::convert_parsed_type2(sa, &ty);
+
+            assert!(struct_.fields[idx].ty.set(ty).is_ok());
+        }
+
+        symtable.pop_level();
     }
 }
 
@@ -211,7 +227,7 @@ fn parse_fct_types(sa: &Sema) {
 
             FctParent::Trait(trait_id) => {
                 let trait_ = sa.trait_(trait_id);
-                type_param_definition.append(&trait_.type_params());
+                type_param_definition.append(&trait_.type_param_definition());
 
                 for &alias_id in trait_.aliases() {
                     let alias = sa.alias(alias_id);
@@ -351,7 +367,7 @@ fn check_trait_type_bounds(sa: &Sema) {
             sa,
             trait_.module_id,
             trait_.file_id,
-            trait_.type_params(),
+            trait_.type_param_definition(),
             AllowSelf::Yes,
         );
     }
@@ -363,7 +379,7 @@ fn check_struct_type_bounds(sa: &Sema) {
             sa,
             struct_.module_id,
             struct_.file_id,
-            struct_.type_params(),
+            struct_.type_param_definition(),
             AllowSelf::No,
         );
     }
@@ -375,7 +391,7 @@ fn check_class_type_bounds(sa: &Sema) {
             sa,
             class.module_id,
             class.file_id(),
-            class.type_params(),
+            class.type_param_definition(),
             AllowSelf::No,
         );
     }
@@ -387,7 +403,7 @@ fn check_enum_type_bounds(sa: &Sema) {
             sa,
             enum_.module_id,
             enum_.file_id,
-            enum_.type_params(),
+            enum_.type_param_definition(),
             AllowSelf::No,
         );
     }
