@@ -1,57 +1,24 @@
-use crate::sema::{Sema, SourceFileId, StructDefinition, StructDefinitionField};
-use crate::sym::{ModuleSymTable, SymbolKind};
+use crate::sema::Sema;
 use crate::{parsety, AliasReplacement};
 
 pub fn check(sa: &Sema) {
     for (_id, struct_) in sa.structs.iter() {
-        let mut clsck = StructCheck {
-            sa,
-            struct_,
-            file_id: struct_.file_id,
-            symtable: ModuleSymTable::new(sa, struct_.module_id),
-        };
+        for field in &struct_.fields {
+            let ctxt = parsety::TypeContext {
+                allow_self: false,
+                module_id: struct_.module_id,
+                file_id: struct_.file_id,
+                type_param_defs: struct_.type_param_definition(),
+            };
+            parsety::check_parsed_type2(sa, &ctxt, field.parsed_ty());
 
-        clsck.check();
-    }
-}
-
-struct StructCheck<'x> {
-    sa: &'x Sema,
-    struct_: &'x StructDefinition,
-    file_id: SourceFileId,
-    symtable: ModuleSymTable,
-}
-
-impl<'x> StructCheck<'x> {
-    fn check(&mut self) {
-        self.symtable.push_level();
-
-        for (id, name) in self.struct_.type_param_definition().names() {
-            self.symtable.insert(name, SymbolKind::TypeParam(id));
+            parsety::expand_parsed_type2(
+                sa,
+                field.parsed_ty(),
+                None,
+                AliasReplacement::ReplaceWithActualType,
+            );
         }
-
-        for field in self.struct_.fields.iter() {
-            self.visit_struct_field(field);
-        }
-
-        self.symtable.pop_level();
-    }
-
-    fn visit_struct_field(&mut self, field: &StructDefinitionField) {
-        let ctxt = parsety::TypeContext {
-            allow_self: false,
-            module_id: self.struct_.module_id,
-            file_id: self.file_id,
-            type_param_defs: self.struct_.type_param_definition(),
-        };
-        parsety::check_parsed_type2(self.sa, &ctxt, field.parsed_ty());
-
-        parsety::expand_parsed_type2(
-            self.sa,
-            field.parsed_ty(),
-            None,
-            AliasReplacement::ReplaceWithActualType,
-        );
     }
 }
 

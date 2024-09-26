@@ -1,57 +1,24 @@
-use crate::sema::{ClassDefinition, Field, Sema, SourceFileId};
-use crate::sym::{ModuleSymTable, SymbolKind};
+use crate::sema::Sema;
 use crate::{parsety, AliasReplacement};
 
 pub fn check(sa: &Sema) {
     for (_id, cls) in sa.classes.iter() {
-        let mut clsck = ClsDefCheck {
-            sa,
-            cls,
-            file_id: cls.file_id(),
-            sym: ModuleSymTable::new(sa, cls.module_id),
-        };
+        for field in &cls.fields {
+            let ctxt = parsety::TypeContext {
+                allow_self: false,
+                module_id: cls.module_id,
+                file_id: cls.file_id(),
+                type_param_defs: cls.type_param_definition(),
+            };
+            parsety::check_parsed_type2(sa, &ctxt, field.parsed_ty());
 
-        clsck.check();
-    }
-}
-
-struct ClsDefCheck<'x> {
-    sa: &'x Sema,
-    cls: &'x ClassDefinition,
-    file_id: SourceFileId,
-    sym: ModuleSymTable,
-}
-
-impl<'x> ClsDefCheck<'x> {
-    fn check(&mut self) {
-        self.sym.push_level();
-
-        for (id, name) in self.cls.type_param_definition().names() {
-            self.sym.insert(name, SymbolKind::TypeParam(id));
+            parsety::expand_parsed_type2(
+                sa,
+                field.parsed_ty(),
+                None,
+                AliasReplacement::ReplaceWithActualType,
+            );
         }
-
-        for field in &self.cls.fields {
-            self.visit_field(field);
-        }
-
-        self.sym.pop_level();
-    }
-
-    fn visit_field(&mut self, field: &Field) {
-        let ctxt = parsety::TypeContext {
-            allow_self: false,
-            module_id: self.cls.module_id,
-            file_id: self.file_id,
-            type_param_defs: self.cls.type_param_definition(),
-        };
-        parsety::check_parsed_type2(self.sa, &ctxt, field.parsed_ty());
-
-        parsety::expand_parsed_type2(
-            self.sa,
-            field.parsed_ty(),
-            None,
-            AliasReplacement::ReplaceWithActualType,
-        );
     }
 }
 
