@@ -9,12 +9,13 @@ use crate::error::msg::ErrorMessage;
 use crate::interner::Name;
 use crate::report_sym_shadow_span;
 use crate::sema::{
-    AliasDefinition, AliasParent, ClassDefinition, ConstDefinition, EnumDefinition, EnumVariant,
-    ExtensionDefinition, ExtensionDefinitionId, FctDefinition, FctParent, Field, FieldId,
-    GlobalDefinition, ImplDefinition, ImplDefinitionId, ModuleDefinition, ModuleDefinitionId,
-    PackageDefinition, PackageDefinitionId, PackageName, Sema, SourceFile, SourceFileId,
-    StructDefinition, StructDefinitionField, StructDefinitionFieldId, TraitDefinition,
-    TraitDefinitionId, TypeParamDefinition, TypeParamId, UseDefinition, Visibility,
+    AliasBound, AliasDefinition, AliasParent, ClassDefinition, ConstDefinition, EnumDefinition,
+    EnumVariant, ExtensionDefinition, ExtensionDefinitionId, FctDefinition, FctParent, Field,
+    FieldId, GlobalDefinition, ImplDefinition, ImplDefinitionId, ModuleDefinition,
+    ModuleDefinitionId, PackageDefinition, PackageDefinitionId, PackageName, Param, Sema,
+    SourceFile, SourceFileId, StructDefinition, StructDefinitionField, StructDefinitionFieldId,
+    TraitDefinition, TraitDefinitionId, TypeParamDefinition, TypeParamId, UseDefinition,
+    Visibility,
 };
 use crate::sym::{SymTable, Symbol, SymbolKind};
 use crate::STDLIB;
@@ -746,6 +747,9 @@ impl<'x> visit::Visitor for TopLevelDeclaration<'x> {
             self.file_id,
         );
 
+        let parent = FctParent::None;
+        let params = parse_function_params(self.sa, node, parent.clone(), &modifiers);
+
         let fct = FctDefinition::new(
             self.package_id,
             self.module_id,
@@ -754,7 +758,8 @@ impl<'x> visit::Visitor for TopLevelDeclaration<'x> {
             modifiers,
             ensure_name(self.sa, &node.name),
             type_param_definition,
-            FctParent::None,
+            params,
+            parent,
         );
         let fct_id = self.sa.fcts.alloc(fct);
         self.sa.fcts[fct_id].id = Some(fct_id);
@@ -835,6 +840,7 @@ impl<'x> visit::Visitor for TopLevelDeclaration<'x> {
 
     fn visit_type_alias(&mut self, node: &Arc<ast::TypeAlias>) {
         let modifiers = check_modifiers(self.sa, self.file_id, &node.modifiers, &[Annotation::Pub]);
+
         let alias = AliasDefinition::new(
             self.package_id,
             self.module_id,
@@ -843,6 +849,7 @@ impl<'x> visit::Visitor for TopLevelDeclaration<'x> {
             node,
             modifiers,
             ensure_name(self.sa, &node.name),
+            Vec::new(),
         );
         let id = self.sa.aliases.alloc(alias);
         assert!(self.sa.alias(id).id.set(id).is_ok());
@@ -897,6 +904,9 @@ fn find_elements_in_trait(
                     file_id,
                 );
 
+                let parent = FctParent::Trait(trait_id);
+                let params = parse_function_params(sa, method_node, parent.clone(), &modifiers);
+
                 let fct = FctDefinition::new(
                     trait_.package_id,
                     trait_.module_id,
@@ -905,7 +915,8 @@ fn find_elements_in_trait(
                     modifiers,
                     ensure_name(sa, &method_node.name),
                     type_param_definition,
-                    FctParent::Trait(trait_id),
+                    params,
+                    parent,
                 );
 
                 let fct_id = sa.fcts.alloc(fct);
@@ -918,6 +929,12 @@ fn find_elements_in_trait(
 
                 let name = ensure_name(sa, &node.name);
 
+                let mut bounds = Vec::with_capacity(node.bounds.len());
+
+                for ast_alias_bound in &node.bounds {
+                    bounds.push(AliasBound::new(ast_alias_bound.clone()));
+                }
+
                 let alias = AliasDefinition::new(
                     package_id,
                     module_id,
@@ -926,6 +943,7 @@ fn find_elements_in_trait(
                     node,
                     modifiers,
                     name,
+                    bounds,
                 );
 
                 let id = sa.aliases.alloc(alias);
@@ -991,6 +1009,9 @@ fn find_elements_in_impl(
                     file_id,
                 );
 
+                let parent = FctParent::Impl(impl_id);
+                let params = parse_function_params(sa, method_node, parent.clone(), &modifiers);
+
                 let fct = FctDefinition::new(
                     impl_.package_id,
                     impl_.module_id,
@@ -999,7 +1020,8 @@ fn find_elements_in_impl(
                     modifiers,
                     ensure_name(sa, &method_node.name),
                     type_param_definition,
-                    FctParent::Impl(impl_id),
+                    params,
+                    parent,
                 );
 
                 let fct_id = sa.fcts.alloc(fct);
@@ -1020,6 +1042,7 @@ fn find_elements_in_impl(
                     node,
                     modifiers,
                     name,
+                    Vec::new(),
                 );
 
                 let id = sa.aliases.alloc(alias);
@@ -1087,6 +1110,9 @@ fn find_methods_in_extension(
                     extension.file_id,
                 );
 
+                let parent = FctParent::Extension(extension_id);
+                let params = parse_function_params(sa, method_node, parent.clone(), &modifiers);
+
                 let fct = FctDefinition::new(
                     extension.package_id,
                     extension.module_id,
@@ -1095,7 +1121,8 @@ fn find_methods_in_extension(
                     modifiers,
                     name,
                     type_param_definition,
-                    FctParent::Extension(extension_id),
+                    params,
+                    parent,
                 );
 
                 let fct_id = sa.fcts.alloc(fct);
@@ -1395,6 +1422,34 @@ fn parse_type_param_definition(
     }
 
     type_param_definition
+}
+
+fn parse_function_params(
+    _sa: &Sema,
+    ast: &ast::Function,
+    parent: FctParent,
+    modifiers: &ParsedModifierList,
+) -> Vec<Param> {
+    let mut params: Vec<Param> = Vec::new();
+
+    match parent {
+        FctParent::Impl(..) | FctParent::Extension(..) | FctParent::Trait(..) => {
+            if !modifiers.is_static {
+                params.push(Param::new_uninitialized());
+            }
+        }
+
+        FctParent::None => {}
+
+        FctParent::Function => unreachable!(),
+    }
+
+    for p in &ast.params {
+        let param = Param::new(p.clone());
+        params.push(param);
+    }
+
+    params
 }
 
 #[cfg(test)]

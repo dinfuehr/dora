@@ -35,7 +35,7 @@ pub struct FctDefinition {
     pub is_internal: bool,
     pub is_force_inline: bool,
     pub is_never_inline: bool,
-    pub param_types: OnceCell<Vec<Param>>,
+    pub params: Vec<Param>,
     pub return_type: OnceCell<Box<ParsedType>>,
     pub is_variadic: Cell<bool>,
 
@@ -58,6 +58,7 @@ impl FctDefinition {
         modifiers: ParsedModifierList,
         name: Name,
         type_params: TypeParamDefinition,
+        params: Vec<Param>,
         parent: FctParent,
     ) -> FctDefinition {
         FctDefinition {
@@ -69,7 +70,7 @@ impl FctDefinition {
             span: ast.span,
             ast: ast.clone(),
             name,
-            param_types: OnceCell::new(),
+            params,
             return_type: OnceCell::new(),
             parent,
             is_optimize_immediately: modifiers.is_optimize_immediately,
@@ -176,6 +177,10 @@ impl FctDefinition {
         self.ast.kind.is_lambda()
     }
 
+    pub fn is_variadic(&self) -> bool {
+        self.is_variadic.get()
+    }
+
     pub fn span(&self) -> Span {
         self.span
     }
@@ -193,7 +198,7 @@ impl FctDefinition {
     }
 
     pub fn params_with_self(&self) -> &[Param] {
-        self.param_types.get().expect("missing params")
+        &self.params
     }
 
     pub fn params_without_self(&self) -> &[Param] {
@@ -201,6 +206,14 @@ impl FctDefinition {
             &self.params_with_self()[1..]
         } else {
             self.params_with_self()
+        }
+    }
+
+    pub fn self_param(&self) -> Option<&Param> {
+        if self.has_hidden_self_argument() {
+            Some(&self.params[0])
+        } else {
+            None
         }
     }
 
@@ -294,15 +307,33 @@ impl FctParent {
 
 #[derive(Debug, Clone)]
 pub struct Param {
+    pub ast: Option<Arc<ast::Param>>,
     pub ty: OnceCell<Box<ParsedType>>,
-    pub expanded_ty: OnceCell<SourceType>,
 }
 
 impl Param {
-    pub fn new() -> Param {
+    pub fn new(ast: Arc<ast::Param>) -> Param {
         Param {
+            ast: Some(ast),
             ty: OnceCell::new(),
-            expanded_ty: OnceCell::new(),
+        }
+    }
+
+    pub fn new_uninitialized() -> Param {
+        Param {
+            ast: None,
+            ty: OnceCell::new(),
+        }
+    }
+
+    pub fn new_ty(ty: SourceType) -> Param {
+        let cell = OnceCell::new();
+        let parsed_ty = ParsedType::new(ty);
+        assert!(cell.set(parsed_ty).is_ok());
+
+        Param {
+            ast: None,
+            ty: cell,
         }
     }
 
@@ -311,7 +342,12 @@ impl Param {
     }
 
     pub fn ty(&self) -> SourceType {
-        self.expanded_ty.get().expect("missing type").clone()
+        self.parsed_ty().ty()
+    }
+
+    pub fn set_ty(&self, ty: SourceType) {
+        let parsed_ty = ParsedType::new(ty);
+        assert!(self.ty.set(parsed_ty).is_ok());
     }
 }
 

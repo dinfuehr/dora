@@ -2,11 +2,10 @@ use crate::error::msg::ErrorMessage;
 use crate::sema::{implements_trait, Sema, SourceFileId, TypeParamDefinition};
 use crate::specialize::specialize_type;
 use crate::sym::{ModuleSymTable, SymTable, SymbolKind};
-use crate::{parsety, ParsedType};
-use crate::{AliasReplacement, SourceType, SourceTypeArray};
+use crate::{SourceType, SourceTypeArray};
 use std::rc::Rc;
 
-use dora_parser::ast::{self, TypeRegularType};
+use dora_parser::ast;
 use dora_parser::Span;
 
 #[derive(Copy, Clone, PartialEq, Eq)]
@@ -19,7 +18,7 @@ pub fn read_type_path(
     sa: &Sema,
     table: &ModuleSymTable,
     file_id: SourceFileId,
-    basic: &TypeRegularType,
+    basic: &ast::TypeRegularType,
 ) -> Result<Option<SymbolKind>, ()> {
     let names = &basic.path.names;
 
@@ -49,7 +48,7 @@ pub fn read_type_path(
 fn table_for_module(
     sa: &Sema,
     file_id: SourceFileId,
-    basic: &TypeRegularType,
+    basic: &ast::TypeRegularType,
     sym: Option<SymbolKind>,
 ) -> Result<Rc<SymTable>, ()> {
     match sym {
@@ -96,52 +95,6 @@ pub fn check_type_params(
     }
 
     success
-}
-
-pub fn parse_type_bound(
-    sa: &Sema,
-    symtable: &ModuleSymTable,
-    file_id: SourceFileId,
-    bound: &ast::TypeData,
-) -> Box<ParsedType> {
-    let ty = parsety::parse_type(sa, &symtable, file_id, bound);
-    let ty = ParsedType::new_ast(ty);
-    parsety::convert_parsed_type2(sa, &ty);
-
-    if !ty.is_trait() && !ty.is_error() {
-        let msg = ErrorMessage::BoundExpected;
-        sa.report(file_id, bound.span(), msg);
-    }
-
-    ty
-}
-
-pub fn expand_type(
-    sa: &Sema,
-    table: &ModuleSymTable,
-    file_id: SourceFileId,
-    t: &ast::TypeData,
-    type_param_defs: &TypeParamDefinition,
-    allow_self: AllowSelf,
-) -> Box<ParsedType> {
-    let parsed_ty = parsety::parse_type(sa, table, file_id, t);
-    parsety::convert_parsed_type(sa, &parsed_ty);
-
-    let ctxt = parsety::TypeContext {
-        allow_self: allow_self == AllowSelf::Yes,
-        module_id: table.module_id(),
-        file_id,
-        type_param_defs,
-    };
-    parsety::check_parsed_type(sa, &ctxt, &parsed_ty);
-
-    parsety::expand_parsed_type(
-        sa,
-        &parsed_ty,
-        None,
-        AliasReplacement::ReplaceWithActualType,
-    );
-    Box::new(ParsedType::Ast(*parsed_ty))
 }
 
 #[cfg(test)]

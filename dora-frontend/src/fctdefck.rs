@@ -1,59 +1,30 @@
-use crate::sema::{FctDefinition, FctParent, Param, Sema};
-use crate::{
-    parsety, AliasReplacement, ErrorMessage, ModuleSymTable, ParsedType, SourceType, SymbolKind,
-};
+use crate::sema::{FctDefinition, FctParent, Sema};
+use crate::{parsety, AliasReplacement, ErrorMessage, ParsedType, SourceType};
 
 pub fn check(sa: &Sema) {
     for (_id, fct) in sa.fcts.iter() {
         let ast = fct.ast.clone();
 
-        let mut sym_table = ModuleSymTable::new(sa, fct.module_id);
-        sym_table.push_level();
-
-        let mut param_types: Vec<Param> = Vec::new();
-
-        for (id, name) in fct.type_params().names() {
-            sym_table.insert(name, SymbolKind::TypeParam(id));
-        }
-
         match fct.parent {
             FctParent::Impl(impl_id) => {
                 let impl_ = sa.impl_(impl_id);
 
-                if fct.has_hidden_self_argument() {
-                    let param = Param::new();
-                    assert!(param.expanded_ty.set(impl_.extended_ty()).is_ok());
-                    param_types.push(param);
-                }
-
-                for &alias_id in impl_.aliases() {
-                    let alias = sa.alias(alias_id);
-                    sym_table.insert(alias.name, SymbolKind::TypeAlias(alias_id));
+                if let Some(self_param) = fct.self_param() {
+                    self_param.set_ty(impl_.extended_ty());
                 }
             }
 
             FctParent::Extension(extension_id) => {
                 let extension = sa.extension(extension_id);
 
-                if fct.has_hidden_self_argument() {
-                    let param = Param::new();
-                    assert!(param.expanded_ty.set(extension.ty()).is_ok());
-                    param_types.push(param);
+                if let Some(self_param) = fct.self_param() {
+                    self_param.set_ty(extension.ty());
                 }
             }
 
-            FctParent::Trait(trait_id) => {
-                let trait_ = sa.trait_(trait_id);
-
-                if fct.has_hidden_self_argument() {
-                    let param = Param::new();
-                    assert!(param.expanded_ty.set(SourceType::This).is_ok());
-                    param_types.push(param);
-                }
-
-                for &alias_id in trait_.aliases() {
-                    let alias = sa.alias(alias_id);
-                    sym_table.insert(alias.name, SymbolKind::TypeAlias(alias_id));
+            FctParent::Trait(..) => {
+                if let Some(self_param) = fct.self_param() {
+                    self_param.set_ty(SourceType::This);
                 }
             }
 
@@ -62,40 +33,25 @@ pub fn check(sa: &Sema) {
             FctParent::Function => unreachable!(),
         }
 
-        for p in &ast.params {
-            if fct.is_variadic.get() {
+        for p in fct.params_without_self() {
+            let ast_node = p.ast.as_ref().expect("missing ast");
+
+            if fct.is_variadic() {
                 sa.report(
                     fct.file_id,
-                    p.span,
+                    ast_node.span,
                     ErrorMessage::VariadicParameterNeedsToBeLast,
                 );
             }
 
-            let param = Param::new();
+            process_type(sa, fct, p.parsed_ty());
 
-            let parsed_ty = parsety::parse_type(sa, &sym_table, fct.file_id, &p.data_type);
-            let parsed_ty = ParsedType::new_ast(parsed_ty);
-            parsety::convert_parsed_type2(sa, &parsed_ty);
-            assert!(param.ty.set(parsed_ty).is_ok());
-
-            let ty = process_type(sa, fct, param.parsed_ty());
-            assert!(param.expanded_ty.set(ty).is_ok());
-
-            param_types.push(param);
-
-            if p.variadic {
+            if ast_node.variadic {
                 fct.is_variadic.set(true);
             }
         }
 
-        assert!(fct.param_types.set(param_types).is_ok());
-
-        if let Some(ret) = ast.return_type.as_ref() {
-            let parsed_ty = parsety::parse_type(sa, &sym_table, fct.file_id, ret);
-            let parsed_ty = ParsedType::new_ast(parsed_ty);
-            parsety::convert_parsed_type2(sa, &parsed_ty);
-            assert!(fct.return_type.set(parsed_ty).is_ok());
-
+        if ast.return_type.is_some() {
             process_type(sa, fct, fct.parsed_return_type());
         } else {
             let parsed_ty = ParsedType::new(SourceType::Unit);
@@ -108,7 +64,7 @@ pub fn check(sa: &Sema) {
     }
 }
 
-fn process_type(sa: &Sema, fct: &FctDefinition, parsed_ty: &ParsedType) -> SourceType {
+fn process_type(sa: &Sema, fct: &FctDefinition, parsed_ty: &ParsedType) {
     let ctxt = parsety::TypeContext {
         allow_self: fct.is_self_allowed(),
         module_id: fct.module_id,
@@ -145,7 +101,6 @@ fn process_type(sa: &Sema, fct: &FctDefinition, parsed_ty: &ParsedType) -> Sourc
     };
 
     parsety::expand_parsed_type2(sa, &parsed_ty, replace_self, alias_map);
-    parsed_ty.ty()
 }
 
 fn check_test(sa: &Sema, fct: &FctDefinition) {

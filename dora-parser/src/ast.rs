@@ -692,7 +692,7 @@ pub struct Function {
 
     pub name: Option<Ident>,
     pub type_params: Option<TypeParams>,
-    pub params: Vec<Param>,
+    pub params: Vec<Arc<Param>>,
     pub return_type: Option<Type>,
     pub where_bounds: Option<WhereBounds>,
     pub block: Option<Expr>,

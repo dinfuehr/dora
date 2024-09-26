@@ -14,7 +14,7 @@ use crate::error::diag::Diagnostic;
 use crate::error::msg::ErrorMessage;
 use crate::sym::SymTable;
 
-pub use self::aliases::{AliasDefinition, AliasDefinitionId, AliasParent};
+pub use self::aliases::{AliasBound, AliasDefinition, AliasDefinitionId, AliasParent};
 pub use self::classes::{
     find_field_in_class, Candidate, ClassDefinition, ClassDefinitionId, Field, FieldId, Visibility,
 };

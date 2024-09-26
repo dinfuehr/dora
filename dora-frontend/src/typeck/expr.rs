@@ -1251,23 +1251,20 @@ fn check_expr_lambda(
     };
 
     let mut params = Vec::new();
-    let mut param_types = Vec::new();
 
     for ast_param in &node.params {
-        let param = Param::new();
         let ty = ck.read_type(&ast_param.data_type);
-        assert!(param.expanded_ty.set(ty.clone()).is_ok());
+        let param = Param::new_ty(ty.clone());
         params.push(param);
-        param_types.push(ty);
     }
 
+    let param_types = params.iter().map(|p| p.ty()).collect::<Vec<_>>();
     let ty = SourceType::Lambda(
-        SourceTypeArray::with(param_types.clone()),
+        SourceTypeArray::with(param_types),
         Box::new(lambda_return_type.clone()),
     );
 
-    let param = Param::new();
-    assert!(param.expanded_ty.set(SourceType::Ptr).is_ok());
+    let param = Param::new_ty(SourceType::Ptr);
     let mut lambda_params = vec![param];
     lambda_params.append(&mut params);
 
@@ -1317,9 +1314,9 @@ fn check_expr_lambda(
         ParsedModifierList::default(),
         name,
         ck.type_param_defs.clone(),
+        lambda_params,
         FctParent::Function,
     );
-    assert!(lambda.param_types.set(lambda_params).is_ok());
     assert!(lambda
         .return_type
         .set(ParsedType::new(lambda_return_type))

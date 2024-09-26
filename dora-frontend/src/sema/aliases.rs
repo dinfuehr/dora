@@ -29,7 +29,7 @@ pub struct AliasDefinition {
     pub name: Name,
     pub parsed_ty: OnceCell<Option<Box<ParsedType>>>,
     pub ty: OnceCell<SourceType>,
-    pub bounds: OnceCell<Vec<Box<ParsedType>>>,
+    pub bounds: Vec<AliasBound>,
     pub visibility: Visibility,
 }
 
@@ -42,6 +42,7 @@ impl AliasDefinition {
         node: &Arc<ast::TypeAlias>,
         modifiers: ParsedModifierList,
         name: Name,
+        bounds: Vec<AliasBound>,
     ) -> AliasDefinition {
         AliasDefinition {
             id: OnceCell::new(),
@@ -55,7 +56,7 @@ impl AliasDefinition {
             name,
             parsed_ty: OnceCell::new(),
             ty: OnceCell::new(),
-            bounds: OnceCell::new(),
+            bounds,
         }
     }
 
@@ -67,7 +68,29 @@ impl AliasDefinition {
         self.ty.get().cloned().expect("missing ty")
     }
 
-    pub fn bounds(&self) -> &Vec<Box<ParsedType>> {
-        self.bounds.get().expect("missing bounds")
+    pub fn bounds(&self) -> &[AliasBound] {
+        &self.bounds
+    }
+}
+
+pub struct AliasBound {
+    pub ty_ast: ast::Type,
+    pub ty: OnceCell<Box<ParsedType>>,
+}
+
+impl AliasBound {
+    pub fn new(ast: ast::Type) -> AliasBound {
+        AliasBound {
+            ty_ast: ast,
+            ty: OnceCell::new(),
+        }
+    }
+
+    pub fn ty(&self) -> SourceType {
+        self.parsed_ty().ty()
+    }
+
+    pub fn parsed_ty(&self) -> &ParsedType {
+        self.ty.get().expect("missing type")
     }
 }

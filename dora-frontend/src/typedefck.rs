@@ -2,8 +2,7 @@ use crate::sema::ModuleDefinitionId;
 use crate::sema::{AliasParent, FctParent, Sema, SourceFileId, TypeParamDefinition, TypeParamId};
 use crate::ParsedType;
 use crate::{
-    parse_type_bound, parsety, AllowSelf, ErrorMessage, ModuleSymTable, SourceType,
-    SourceTypeArray, SymbolKind,
+    parsety, AllowSelf, ErrorMessage, ModuleSymTable, SourceType, SourceTypeArray, SymbolKind,
 };
 
 pub fn parse_types(sa: &Sema) {
@@ -37,18 +36,23 @@ fn parse_alias_types(sa: &Sema) {
 
             AliasParent::Trait(id) => {
                 let trait_ = sa.trait_(id);
-                let mut bounds = Vec::with_capacity(alias.node.bounds.len());
 
                 for (id, name) in trait_.type_param_definition().names() {
                     table.insert(name, SymbolKind::TypeParam(id));
                 }
 
-                for bound in &alias.node.bounds {
-                    let ty = parse_type_bound(sa, &table, alias.file_id, bound);
-                    bounds.push(ty);
-                }
+                for bound in &alias.bounds {
+                    let parsed_trait_ty =
+                        parsety::parse_type(sa, &table, alias.file_id, &bound.ty_ast);
+                    let parsed_trait_ty = ParsedType::new_ast(parsed_trait_ty);
+                    parsety::convert_parsed_type2(sa, &parsed_trait_ty);
+                    assert!(bound.ty.set(parsed_trait_ty).is_ok());
 
-                assert!(alias.bounds.set(bounds).is_ok());
+                    if !bound.parsed_ty().is_trait() && !bound.parsed_ty().is_error() {
+                        let msg = ErrorMessage::BoundExpected;
+                        sa.report(alias.file_id, bound.ty_ast.span(), msg);
+                    }
+                }
             }
         }
 
@@ -287,6 +291,22 @@ fn parse_fct_types(sa: &Sema) {
         }
 
         read_type_param_definition(sa, fct.type_params(), &mut sym_table, fct.file_id);
+
+        for p in fct.params_without_self() {
+            let ast_node = p.ast.as_ref().expect("missing ast");
+
+            let parsed_ty = parsety::parse_type(sa, &sym_table, fct.file_id, &ast_node.data_type);
+            let parsed_ty = ParsedType::new_ast(parsed_ty);
+            parsety::convert_parsed_type2(sa, &parsed_ty);
+            assert!(p.ty.set(parsed_ty).is_ok());
+        }
+
+        if let Some(ret) = fct.ast.return_type.as_ref() {
+            let parsed_ty = parsety::parse_type(sa, &sym_table, fct.file_id, ret);
+            let parsed_ty = ParsedType::new_ast(parsed_ty);
+            parsety::convert_parsed_type2(sa, &parsed_ty);
+            assert!(fct.return_type.set(parsed_ty).is_ok());
+        }
 
         sym_table.pop_level();
     }
