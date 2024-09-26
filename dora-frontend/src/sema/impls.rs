@@ -24,7 +24,7 @@ pub struct ImplDefinition {
     pub ast: Arc<ast::Impl>,
     pub declaration_span: Span,
     pub span: Span,
-    pub type_params: OnceCell<TypeParamDefinition>,
+    pub type_params: TypeParamDefinition,
     pub trait_ty: OnceCell<Box<ParsedType>>,
     pub extended_ty: OnceCell<Box<ParsedType>>,
     pub methods: OnceCell<Vec<FctDefinitionId>>,
@@ -39,6 +39,7 @@ impl ImplDefinition {
         module_id: ModuleDefinitionId,
         file_id: SourceFileId,
         node: &Arc<ast::Impl>,
+        type_params: TypeParamDefinition,
     ) -> ImplDefinition {
         ImplDefinition {
             id: OnceCell::new(),
@@ -46,7 +47,7 @@ impl ImplDefinition {
             module_id,
             file_id,
             ast: node.clone(),
-            type_params: OnceCell::new(),
+            type_params,
             declaration_span: node.declaration_span,
             span: node.span,
             trait_ty: OnceCell::new(),
@@ -62,8 +63,8 @@ impl ImplDefinition {
         self.id.get().expect("id missing").clone()
     }
 
-    pub fn type_params(&self) -> &TypeParamDefinition {
-        self.type_params.get().expect("uninitialized")
+    pub fn type_param_definition(&self) -> &TypeParamDefinition {
+        &self.type_params
     }
 
     pub fn trait_id(&self) -> TraitDefinitionId {
@@ -71,11 +72,19 @@ impl ImplDefinition {
     }
 
     pub fn trait_ty(&self) -> SourceType {
-        self.trait_ty.get().expect("missing trait type").ty()
+        self.parsed_trait_ty().ty()
+    }
+
+    pub fn parsed_trait_ty(&self) -> &ParsedType {
+        self.trait_ty.get().expect("missing trait type")
     }
 
     pub fn extended_ty(&self) -> SourceType {
-        self.extended_ty.get().expect("missing trait type").ty()
+        self.parsed_extended_ty().ty()
+    }
+
+    pub fn parsed_extended_ty(&self) -> &ParsedType {
+        self.extended_ty.get().expect("missing trait type")
     }
 
     pub fn trait_method_map(&self) -> &HashMap<FctDefinitionId, FctDefinitionId> {
@@ -114,7 +123,7 @@ pub fn impl_matches(
         check_ty,
         check_type_param_defs,
         impl_.extended_ty(),
-        impl_.type_params(),
+        impl_.type_param_definition(),
     )
 }
 

@@ -1751,11 +1751,11 @@ impl<'a> AstBytecodeGen<'a> {
             let self_type = match call_type {
                 CallType::TraitObjectMethod(trait_ty, _) => {
                     // trait methods use Self as type for self argument but specialize_type_for_call can't handle Self.
-                    assert!(fct.params_with_self()[0].is_self() && !fct.is_static);
+                    assert!(fct.params_with_self()[0].ty().is_self() && !fct.is_static);
                     trait_ty.clone()
                 }
                 _ => {
-                    let arg = fct.params_with_self()[0].clone();
+                    let arg = fct.params_with_self()[0].ty().clone();
                     self.specialize_type_for_call(&call_type, arg.clone())
                 }
             };
@@ -1764,7 +1764,7 @@ impl<'a> AstBytecodeGen<'a> {
         }
 
         for arg in fct.params_without_self() {
-            let arg = self.specialize_type_for_call(&call_type, arg.clone());
+            let arg = self.specialize_type_for_call(&call_type, arg.ty());
             arg_types.push(arg);
         }
 

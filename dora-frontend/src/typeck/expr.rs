@@ -12,7 +12,7 @@ use crate::program_parser::ParsedModifierList;
 use crate::sema::{
     create_tuple, find_field_in_class, find_impl, impl_matches, implements_trait, is_object_safe,
     AnalysisData, CallType, ConstValue, EnumDefinitionId, FctDefinition, FctParent, IdentType,
-    Intrinsic, LazyLambdaCreationData, LazyLambdaId, ModuleDefinitionId, NestedVarId, Sema,
+    Intrinsic, LazyLambdaCreationData, LazyLambdaId, ModuleDefinitionId, NestedVarId, Param, Sema,
     SourceFileId, TraitDefinitionId,
 };
 use crate::typeck::{
@@ -22,7 +22,7 @@ use crate::typeck::{
     is_simple_enum, TypeCheck,
 };
 use crate::typeparamck::{self, ErrorReporting};
-use crate::{replace_type, AliasReplacement, SourceType, SourceTypeArray, SymbolKind};
+use crate::{replace_type, AliasReplacement, ParsedType, SourceType, SourceTypeArray, SymbolKind};
 
 pub(super) fn check_expr(
     ck: &mut TypeCheck,
@@ -1060,7 +1060,7 @@ fn check_expr_bin_trait(
 
         assert_eq!(params.len(), 1);
 
-        let param = params[0].clone();
+        let param = params[0].ty();
         let param = replace_type(
             ck.sa,
             param,
@@ -1103,7 +1103,7 @@ fn check_expr_bin_trait(
             .map_calls
             .insert_or_replace(e.id, Arc::new(call_type));
 
-        let param = params[0].clone();
+        let param = params[0].ty();
         let param = replace_type(
             ck.sa,
             param,
@@ -1251,17 +1251,24 @@ fn check_expr_lambda(
     };
 
     let mut params = Vec::new();
+    let mut param_types = Vec::new();
 
-    for param in &node.params {
-        params.push(ck.read_type(&param.data_type));
+    for ast_param in &node.params {
+        let param = Param::new();
+        let ty = ck.read_type(&ast_param.data_type);
+        assert!(param.expanded_ty.set(ty.clone()).is_ok());
+        params.push(param);
+        param_types.push(ty);
     }
 
     let ty = SourceType::Lambda(
-        SourceTypeArray::with(params.clone()),
+        SourceTypeArray::with(param_types.clone()),
         Box::new(lambda_return_type.clone()),
     );
 
-    let mut lambda_params = vec![SourceType::Ptr];
+    let param = Param::new();
+    assert!(param.expanded_ty.set(SourceType::Ptr).is_ok());
+    let mut lambda_params = vec![param];
     lambda_params.append(&mut params);
 
     let analysis = {
@@ -1309,11 +1316,14 @@ fn check_expr_lambda(
         node,
         ParsedModifierList::default(),
         name,
+        ck.type_param_defs.clone(),
         FctParent::Function,
     );
     assert!(lambda.param_types.set(lambda_params).is_ok());
-    assert!(lambda.return_type.set(lambda_return_type).is_ok());
-    assert!(lambda.type_params.set(ck.type_param_defs.clone()).is_ok());
+    assert!(lambda
+        .return_type
+        .set(ParsedType::new(lambda_return_type))
+        .is_ok());
     assert!(lambda.analysis.set(analysis).is_ok());
 
     let lambda_id = LazyLambdaId::new();

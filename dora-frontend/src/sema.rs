@@ -24,7 +24,7 @@ pub use self::extensions::{
     extension_matches, extension_matches_ty, ExtensionDefinition, ExtensionDefinitionId,
 };
 pub use self::functions::{
-    emit_as_bytecode_operation, FctDefinition, FctDefinitionId, FctParent, Intrinsic,
+    emit_as_bytecode_operation, FctDefinition, FctDefinitionId, FctParent, Intrinsic, Param,
 };
 pub use self::globals::{GlobalDefinition, GlobalDefinitionId};
 pub use self::impls::{

@@ -35,7 +35,7 @@ pub struct ClassDefinition {
 
     pub extensions: RefCell<Vec<ExtensionDefinitionId>>,
 
-    pub type_params: OnceCell<TypeParamDefinition>,
+    pub type_params: TypeParamDefinition,
 
     // true if this class is the generic Array class
     pub is_array: bool,
@@ -50,6 +50,7 @@ impl ClassDefinition {
         ast: &Arc<ast::Class>,
         modifiers: ParsedModifierList,
         name: Name,
+        type_param_definition: TypeParamDefinition,
         fields: Vec<Field>,
     ) -> ClassDefinition {
         ClassDefinition {
@@ -69,7 +70,7 @@ impl ClassDefinition {
 
             extensions: RefCell::new(Vec::new()),
 
-            type_params: OnceCell::new(),
+            type_params: type_param_definition,
 
             is_array: false,
             is_str: false,
@@ -83,6 +84,7 @@ impl ClassDefinition {
         span: Option<Span>,
         name: Name,
         visibility: Visibility,
+        type_param_definition: TypeParamDefinition,
         fields: Vec<Field>,
     ) -> ClassDefinition {
         ClassDefinition {
@@ -102,7 +104,7 @@ impl ClassDefinition {
 
             extensions: RefCell::new(Vec::new()),
 
-            type_params: OnceCell::new(),
+            type_params: type_param_definition,
 
             is_array: false,
             is_str: false,
@@ -126,11 +128,7 @@ impl ClassDefinition {
     }
 
     pub fn type_param_definition(&self) -> &TypeParamDefinition {
-        self.type_params.get().expect("uninitialized")
-    }
-
-    pub fn type_params_mut(&mut self) -> &mut TypeParamDefinition {
-        self.type_params.get_mut().expect("uninitialized")
+        &self.type_params
     }
 
     pub fn ty(&self) -> SourceType {

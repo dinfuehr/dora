@@ -4,7 +4,9 @@ use crate::sema::{
     extension_matches_ty, ExtensionDefinition, FctDefinitionId, PackageDefinitionId, Sema,
     SourceFileId, TypeParamDefinition, TypeParamId,
 };
-use crate::{expand_type, AllowSelf, ErrorMessage, ModuleSymTable, Name, SourceType, SymbolKind};
+use crate::{
+    parsety, AliasReplacement, ErrorMessage, ModuleSymTable, Name, SourceType, SymbolKind,
+};
 
 use dora_parser::Span;
 use fixedbitset::FixedBitSet;
@@ -43,9 +45,9 @@ pub fn check(sa: &Sema) {
                 if extension_matches_ty(
                     sa,
                     extension.ty().clone(),
-                    extension.type_params(),
+                    extension.type_param_definition(),
                     cmp_extension.ty().clone(),
-                    cmp_extension.type_params(),
+                    cmp_extension.type_param_definition(),
                 )
                 .is_some()
                 {
@@ -94,20 +96,26 @@ impl<'x> ExtensionCheck<'x> {
 
         self.sym.push_level();
 
-        for (id, name) in self.extension.type_params().names() {
+        for (id, name) in self.extension.type_param_definition().names() {
             self.sym.insert(name, SymbolKind::TypeParam(id));
         }
 
-        let extension_ty = expand_type(
+        let ctxt = parsety::TypeContext {
+            allow_self: false,
+            module_id: self.extension.module_id,
+            file_id: self.extension.file_id,
+            type_param_defs: self.extension.type_param_definition(),
+        };
+        parsety::check_parsed_type2(self.sa, &ctxt, self.extension.parsed_ty());
+
+        parsety::expand_parsed_type2(
             self.sa,
-            &self.sym,
-            self.extension.file_id.into(),
-            &self.extension.ast.extended_type,
-            self.extension.type_params(),
-            AllowSelf::No,
+            self.extension.parsed_ty(),
+            None,
+            AliasReplacement::ReplaceWithActualType,
         );
 
-        match extension_ty.ty() {
+        match self.extension.ty() {
             SourceType::TypeParam(..) => {
                 let msg = ErrorMessage::ExpectedExtensionType;
                 self.sa.report(
@@ -137,7 +145,7 @@ impl<'x> ExtensionCheck<'x> {
             | SourceType::Tuple(..) => {}
         }
 
-        let extension_ty_package_id = package_for_type(self.sa, extension_ty.ty());
+        let extension_ty_package_id = package_for_type(self.sa, self.extension.ty());
 
         if let Some(extension_ty_package_id) = extension_ty_package_id {
             if extension_ty_package_id != self.extension.package_id {
@@ -152,13 +160,11 @@ impl<'x> ExtensionCheck<'x> {
 
         check_for_unconstrained_type_params(
             self.sa,
-            extension_ty.ty(),
-            self.extension.type_params(),
+            self.extension.ty(),
+            self.extension.type_param_definition(),
             self.extension.file_id,
             self.extension.ast.extended_type.span(),
         );
-
-        assert!(self.extension.ty.set(extension_ty).is_ok());
 
         for &method_id in self.extension.methods() {
             self.visit_method(method_id);

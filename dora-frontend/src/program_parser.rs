@@ -14,7 +14,7 @@ use crate::sema::{
     GlobalDefinition, ImplDefinition, ImplDefinitionId, ModuleDefinition, ModuleDefinitionId,
     PackageDefinition, PackageDefinitionId, PackageName, Sema, SourceFile, SourceFileId,
     StructDefinition, StructDefinitionField, StructDefinitionFieldId, TraitDefinition,
-    TraitDefinitionId, UseDefinition, Visibility,
+    TraitDefinitionId, TypeParamDefinition, TypeParamId, UseDefinition, Visibility,
 };
 use crate::sym::{SymTable, Symbol, SymbolKind};
 use crate::STDLIB;
@@ -473,6 +473,14 @@ impl<'x> visit::Visitor for TopLevelDeclaration<'x> {
     fn visit_trait(&mut self, node: &Arc<ast::Trait>) {
         let modifiers = check_modifiers(self.sa, self.file_id, &node.modifiers, &[Annotation::Pub]);
 
+        let type_param_definition = parse_type_param_definition(
+            self.sa,
+            TypeParamDefinition::new(),
+            node.type_params.as_ref(),
+            node.where_bounds.as_ref(),
+            self.file_id,
+        );
+
         let trait_ = TraitDefinition::new(
             self.package_id,
             self.module_id,
@@ -480,6 +488,7 @@ impl<'x> visit::Visitor for TopLevelDeclaration<'x> {
             node,
             modifiers,
             ensure_name(self.sa, &node.name),
+            type_param_definition,
         );
         let trait_id = self.sa.traits.alloc(trait_);
         self.sa.traits[trait_id].id = Some(trait_id);
@@ -536,8 +545,22 @@ impl<'x> visit::Visitor for TopLevelDeclaration<'x> {
     fn visit_impl(&mut self, node: &Arc<ast::Impl>) {
         check_modifiers(self.sa, self.file_id, &node.modifiers, &[]);
 
+        let type_param_definition = parse_type_param_definition(
+            self.sa,
+            TypeParamDefinition::new(),
+            node.type_params.as_ref(),
+            node.where_bounds.as_ref(),
+            self.file_id,
+        );
+
         if node.trait_type.is_some() {
-            let impl_ = ImplDefinition::new(self.package_id, self.module_id, self.file_id, node);
+            let impl_ = ImplDefinition::new(
+                self.package_id,
+                self.module_id,
+                self.file_id,
+                node,
+                type_param_definition,
+            );
             let impl_id = self.sa.impls.alloc(impl_);
             assert!(self.sa.impls[impl_id].id.set(impl_id).is_ok());
 
@@ -550,8 +573,13 @@ impl<'x> visit::Visitor for TopLevelDeclaration<'x> {
                 node,
             );
         } else {
-            let extension =
-                ExtensionDefinition::new(self.package_id, self.module_id, self.file_id, node);
+            let extension = ExtensionDefinition::new(
+                self.package_id,
+                self.module_id,
+                self.file_id,
+                node,
+                type_param_definition,
+            );
             let extension_id = self.sa.extensions.alloc(extension);
             assert!(self.sa.extensions[extension_id]
                 .id
@@ -609,6 +637,14 @@ impl<'x> visit::Visitor for TopLevelDeclaration<'x> {
             });
         }
 
+        let type_param_definition = parse_type_param_definition(
+            self.sa,
+            TypeParamDefinition::new(),
+            node.type_params.as_ref(),
+            node.where_bounds.as_ref(),
+            self.file_id,
+        );
+
         let class = ClassDefinition::new(
             self.package_id,
             self.module_id,
@@ -616,6 +652,7 @@ impl<'x> visit::Visitor for TopLevelDeclaration<'x> {
             node,
             modifiers,
             ensure_name(self.sa, &node.name),
+            type_param_definition,
             fields,
         );
         let class_id = self.sa.classes.alloc(class);
@@ -659,6 +696,14 @@ impl<'x> visit::Visitor for TopLevelDeclaration<'x> {
             });
         }
 
+        let type_param_definition = parse_type_param_definition(
+            self.sa,
+            TypeParamDefinition::new(),
+            node.type_params.as_ref(),
+            node.where_bounds.as_ref(),
+            self.file_id,
+        );
+
         let struct_ = StructDefinition::new(
             self.package_id,
             self.module_id,
@@ -666,6 +711,7 @@ impl<'x> visit::Visitor for TopLevelDeclaration<'x> {
             node,
             modifiers,
             ensure_name(self.sa, &node.name),
+            type_param_definition,
             fields,
         );
         let id = self.sa.structs.alloc(struct_);
@@ -692,6 +738,14 @@ impl<'x> visit::Visitor for TopLevelDeclaration<'x> {
             ],
         );
 
+        let type_param_definition = parse_type_param_definition(
+            self.sa,
+            TypeParamDefinition::new(),
+            node.type_params.as_ref(),
+            node.where_bounds.as_ref(),
+            self.file_id,
+        );
+
         let fct = FctDefinition::new(
             self.package_id,
             self.module_id,
@@ -699,6 +753,7 @@ impl<'x> visit::Visitor for TopLevelDeclaration<'x> {
             node,
             modifiers,
             ensure_name(self.sa, &node.name),
+            type_param_definition,
             FctParent::None,
         );
         let fct_id = self.sa.fcts.alloc(fct);
@@ -749,6 +804,14 @@ impl<'x> visit::Visitor for TopLevelDeclaration<'x> {
                 .report(self.file_id, node.span, ErrorMessage::NoEnumVariant);
         }
 
+        let type_param_definition = parse_type_param_definition(
+            self.sa,
+            TypeParamDefinition::new(),
+            node.type_params.as_ref(),
+            node.where_bounds.as_ref(),
+            self.file_id,
+        );
+
         let modifiers = check_modifiers(self.sa, self.file_id, &node.modifiers, &[Annotation::Pub]);
         let enum_ = EnumDefinition::new(
             self.package_id,
@@ -757,6 +820,7 @@ impl<'x> visit::Visitor for TopLevelDeclaration<'x> {
             node,
             modifiers,
             ensure_name(self.sa, &node.name),
+            type_param_definition,
             variants,
             name_to_value,
         );
@@ -823,6 +887,16 @@ fn find_elements_in_trait(
                     &[Annotation::Static, Annotation::OptimizeImmediately],
                 );
 
+                let container_type_param_definition = trait_.type_param_definition().clone();
+                container_type_param_definition.set_container_type_params();
+                let type_param_definition = parse_type_param_definition(
+                    sa,
+                    container_type_param_definition,
+                    method_node.type_params.as_ref(),
+                    method_node.where_bounds.as_ref(),
+                    file_id,
+                );
+
                 let fct = FctDefinition::new(
                     trait_.package_id,
                     trait_.module_id,
@@ -830,6 +904,7 @@ fn find_elements_in_trait(
                     method_node,
                     modifiers,
                     ensure_name(sa, &method_node.name),
+                    type_param_definition,
                     FctParent::Trait(trait_id),
                 );
 
@@ -906,6 +981,16 @@ fn find_elements_in_impl(
                     &[Annotation::Static, Annotation::Internal],
                 );
 
+                let container_type_param_definition = impl_.type_param_definition().clone();
+                container_type_param_definition.set_container_type_params();
+                let type_param_definition = parse_type_param_definition(
+                    sa,
+                    container_type_param_definition,
+                    method_node.type_params.as_ref(),
+                    method_node.where_bounds.as_ref(),
+                    file_id,
+                );
+
                 let fct = FctDefinition::new(
                     impl_.package_id,
                     impl_.module_id,
@@ -913,6 +998,7 @@ fn find_elements_in_impl(
                     method_node,
                     modifiers,
                     ensure_name(sa, &method_node.name),
+                    type_param_definition,
                     FctParent::Impl(impl_id),
                 );
 
@@ -991,6 +1077,16 @@ fn find_methods_in_extension(
                     ],
                 );
 
+                let container_type_param_definition = extension.type_param_definition().clone();
+                container_type_param_definition.set_container_type_params();
+                let type_param_definition = parse_type_param_definition(
+                    sa,
+                    container_type_param_definition,
+                    method_node.type_params.as_ref(),
+                    method_node.where_bounds.as_ref(),
+                    extension.file_id,
+                );
+
                 let fct = FctDefinition::new(
                     extension.package_id,
                     extension.module_id,
@@ -998,6 +1094,7 @@ fn find_methods_in_extension(
                     method_node,
                     modifiers,
                     name,
+                    type_param_definition,
                     FctParent::Extension(extension_id),
                 );
 
@@ -1243,6 +1340,61 @@ fn add_package(
     sa.modules[module_id].package_id = Some(package_id);
 
     (package_id, module_id)
+}
+
+fn parse_type_param_definition(
+    sa: &Sema,
+    mut type_param_definition: TypeParamDefinition,
+    ast_type_params: Option<&ast::TypeParams>,
+    where_bounds: Option<&ast::WhereBounds>,
+    file_id: SourceFileId,
+) -> TypeParamDefinition {
+    if ast_type_params.is_none() {
+        return type_param_definition;
+    }
+
+    let ast_type_params = ast_type_params.expect("type params expected");
+
+    if ast_type_params.params.len() == 0 {
+        let msg = ErrorMessage::TypeParamsExpected;
+        sa.report(file_id, ast_type_params.span, msg);
+    }
+
+    let mut names = HashSet::new();
+    let container_type_params = type_param_definition.len();
+
+    for (id, type_param) in ast_type_params.params.iter().enumerate() {
+        if let Some(ref ident) = type_param.name {
+            let iname = sa.interner.intern(&ident.name_as_string);
+
+            if !names.insert(iname) {
+                let name = ident.name_as_string.clone();
+                let msg = ErrorMessage::TypeParamNameNotUnique(name);
+                sa.report(file_id, type_param.span, msg);
+            }
+
+            type_param_definition.add_type_param(iname);
+        } else {
+            let name = sa.interner.intern("<missing name>");
+            type_param_definition.add_type_param(name);
+        }
+
+        let id = TypeParamId(container_type_params + id);
+
+        for bound in &type_param.bounds {
+            type_param_definition.add_bound2(id, bound.clone());
+        }
+    }
+
+    if let Some(where_bounds) = where_bounds {
+        for clause in where_bounds.clauses.iter() {
+            for bound in &clause.bounds {
+                type_param_definition.add_where_bound2(clause.ty.clone(), bound.clone());
+            }
+        }
+    }
+
+    type_param_definition
 }
 
 #[cfg(test)]

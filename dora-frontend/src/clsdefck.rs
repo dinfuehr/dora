@@ -66,7 +66,7 @@ mod tests {
             (1, 12),
             ErrorMessage::TypeParamNameNotUnique("T".into()),
         );
-        err("class A[]", (1, 1), ErrorMessage::TypeParamsExpected);
+        err("class A[]", (1, 8), ErrorMessage::TypeParamsExpected);
     }
 
     #[test]

@@ -81,7 +81,7 @@ mod tests {
     fn struct_with_type_params_error() {
         err(
             "struct MyStruct[] { f1: Int32 }",
-            (1, 1),
+            (1, 16),
             ErrorMessage::TypeParamsExpected,
         );
 

@@ -1,80 +1,34 @@
-use std::sync::Arc;
-
-use dora_parser::ast;
-
-use crate::sema::{EnumDefinition, Sema, SourceFileId};
-use crate::sym::{ModuleSymTable, SymbolKind};
-use crate::{expand_type, AllowSelf, ParsedType};
+use crate::sema::Sema;
+use crate::{parsety, AliasReplacement};
 
 pub fn check(sa: &Sema) {
     for (_id, enum_) in sa.enums.iter() {
-        let ast = enum_.ast.clone();
-
-        let mut enumck = EnumCheck {
-            sa,
-            file_id: enum_.file_id,
-            ast: &ast,
-            enum_,
-        };
-
-        enumck.check();
-    }
-}
-
-struct EnumCheck<'x> {
-    sa: &'x Sema,
-    file_id: SourceFileId,
-    ast: &'x Arc<ast::Enum>,
-    enum_: &'x EnumDefinition,
-}
-
-impl<'x> EnumCheck<'x> {
-    fn check(&mut self) {
-        let mut symtable = ModuleSymTable::new(self.sa, self.enum_.module_id);
-
-        symtable.push_level();
-
-        {
-            for (id, name) in self.enum_.type_param_definition().names() {
-                symtable.insert(name, SymbolKind::TypeParam(id));
-            }
-        }
-
-        let mut variant_idx: usize = 0;
         let mut simple_enumeration = true;
 
-        for value in &self.ast.variants {
-            let mut types: Vec<Box<ParsedType>> = Vec::new();
+        for variant in enum_.variants() {
+            for parsed_ty in variant.types() {
+                let ctxt = parsety::TypeContext {
+                    allow_self: false,
+                    module_id: enum_.module_id,
+                    file_id: enum_.file_id,
+                    type_param_defs: enum_.type_param_definition(),
+                };
+                parsety::check_parsed_type2(sa, &ctxt, parsed_ty);
 
-            if let Some(ref variant_types) = value.types {
-                for ty in variant_types {
-                    let variant_ty = expand_type(
-                        self.sa,
-                        &symtable,
-                        self.file_id.into(),
-                        ty,
-                        self.enum_.type_param_definition(),
-                        AllowSelf::No,
-                    );
-                    types.push(variant_ty);
-                }
+                parsety::expand_parsed_type2(
+                    sa,
+                    parsed_ty,
+                    None,
+                    AliasReplacement::ReplaceWithActualType,
+                );
             }
 
-            if types.len() > 0 {
+            if variant.types().len() > 0 {
                 simple_enumeration = false;
             }
-
-            assert!(self.enum_.variants()[variant_idx].types.set(types).is_ok());
-            variant_idx += 1;
         }
 
-        assert!(self
-            .enum_
-            .simple_enumeration
-            .set(simple_enumeration)
-            .is_ok());
-
-        symtable.pop_level();
+        assert!(enum_.simple_enumeration.set(simple_enumeration).is_ok());
     }
 }
 
@@ -195,7 +149,7 @@ mod tests {
     fn enum_generic_with_failures() {
         err(
             "enum MyOption[] { A, B }",
-            (1, 1),
+            (1, 14),
             ErrorMessage::TypeParamsExpected,
         );
 

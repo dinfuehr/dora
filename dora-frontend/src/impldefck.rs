@@ -21,9 +21,9 @@ fn check_impl_definition(sa: &Sema, impl_: &ImplDefinition) {
         allow_self: false,
         module_id: impl_.module_id,
         file_id: impl_.file_id,
-        type_param_defs: impl_.type_params(),
+        type_param_defs: impl_.type_param_definition(),
     };
-    parsety::check_parsed_type2(sa, &ctxt, impl_.trait_ty.get().expect("missing"));
+    parsety::check_parsed_type2(sa, &ctxt, impl_.parsed_trait_ty());
 
     if !impl_.trait_ty().is_trait() && !impl_.trait_ty().is_error() {
         sa.report(impl_.file_id, impl_.ast.span, ErrorMessage::ExpectedTrait);
@@ -33,9 +33,9 @@ fn check_impl_definition(sa: &Sema, impl_: &ImplDefinition) {
         allow_self: false,
         module_id: impl_.module_id,
         file_id: impl_.file_id,
-        type_param_defs: impl_.type_params(),
+        type_param_defs: impl_.type_param_definition(),
     };
-    parsety::check_parsed_type2(sa, &ctxt, impl_.extended_ty.get().expect("missing"));
+    parsety::check_parsed_type2(sa, &ctxt, impl_.parsed_extended_ty());
 
     match impl_.extended_ty() {
         SourceType::TypeAlias(..) => unimplemented!(),
@@ -63,7 +63,7 @@ fn check_impl_definition(sa: &Sema, impl_: &ImplDefinition) {
     check_for_unconstrained_type_params(
         sa,
         impl_.extended_ty(),
-        impl_.type_params(),
+        impl_.type_param_definition(),
         impl_.file_id,
         impl_.ast.span,
     );
@@ -186,10 +186,10 @@ fn method_definitions_compatible(
     for (trait_arg_ty, impl_arg_ty) in trait_params.iter().zip(impl_params.iter()) {
         if !trait_and_impl_arg_ty_compatible(
             sa,
-            trait_arg_ty.clone(),
+            trait_arg_ty.ty(),
             method_type_params.clone(),
             trait_alias_map,
-            impl_arg_ty.clone(),
+            impl_arg_ty.ty(),
             self_ty.clone(),
         ) {
             return false;
@@ -275,10 +275,15 @@ fn check_impl_types(sa: &Sema, impl_: &ImplDefinition, trait_: &TraitDefinition)
             let trait_alias = sa.alias(trait_alias_id);
 
             for bound in trait_alias.bounds() {
-                if !implements_trait(sa, impl_alias.ty(), impl_.type_params(), bound.ty()) {
+                if !implements_trait(
+                    sa,
+                    impl_alias.ty(),
+                    impl_.type_param_definition(),
+                    bound.ty(),
+                ) {
                     let name = impl_alias
                         .ty()
-                        .name_with_type_params(sa, impl_.type_params());
+                        .name_with_type_params(sa, impl_.type_param_definition());
                     let trait_name = bound
                         .ty()
                         .name_with_type_params(sa, trait_.type_param_definition());

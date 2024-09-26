@@ -24,7 +24,7 @@ pub struct ExtensionDefinition {
     pub file_id: SourceFileId,
     pub ast: Arc<ast::Impl>,
     pub span: Span,
-    pub type_params: OnceCell<TypeParamDefinition>,
+    pub type_params: TypeParamDefinition,
     pub ty: OnceCell<Box<ParsedType>>,
     pub methods: OnceCell<Vec<FctDefinitionId>>,
     pub instance_names: RefCell<HashMap<Name, FctDefinitionId>>,
@@ -37,6 +37,7 @@ impl ExtensionDefinition {
         module_id: ModuleDefinitionId,
         file_id: SourceFileId,
         node: &Arc<ast::Impl>,
+        type_params: TypeParamDefinition,
     ) -> ExtensionDefinition {
         ExtensionDefinition {
             id: OnceCell::new(),
@@ -45,7 +46,7 @@ impl ExtensionDefinition {
             file_id,
             ast: node.clone(),
             span: node.span,
-            type_params: OnceCell::new(),
+            type_params,
             ty: OnceCell::new(),
             methods: OnceCell::new(),
             instance_names: RefCell::new(HashMap::new()),
@@ -57,12 +58,16 @@ impl ExtensionDefinition {
         self.id.get().cloned().expect("id missing")
     }
 
-    pub fn type_params(&self) -> &TypeParamDefinition {
-        self.type_params.get().expect("uninitialized")
+    pub fn type_param_definition(&self) -> &TypeParamDefinition {
+        &self.type_params
+    }
+
+    pub fn parsed_ty(&self) -> &ParsedType {
+        self.ty.get().expect("missing type")
     }
 
     pub fn ty(&self) -> SourceType {
-        self.ty.get().expect("missing type").ty()
+        self.parsed_ty().ty()
     }
 
     pub fn methods(&self) -> &[FctDefinitionId] {
@@ -88,7 +93,7 @@ pub mod matching {
             check_ty,
             check_type_param_defs,
             extension.ty().clone(),
-            extension.type_params(),
+            extension.type_param_definition(),
         )
     }
 

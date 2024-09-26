@@ -27,6 +27,7 @@ pub struct AliasDefinition {
     pub node: Arc<ast::TypeAlias>,
     pub modifiers: ParsedModifierList,
     pub name: Name,
+    pub parsed_ty: OnceCell<Option<Box<ParsedType>>>,
     pub ty: OnceCell<SourceType>,
     pub bounds: OnceCell<Vec<Box<ParsedType>>>,
     pub visibility: Visibility,
@@ -52,9 +53,14 @@ impl AliasDefinition {
             visibility: modifiers.visibility(),
             modifiers,
             name,
+            parsed_ty: OnceCell::new(),
             ty: OnceCell::new(),
             bounds: OnceCell::new(),
         }
+    }
+
+    pub fn parsed_ty(&self) -> Option<&ParsedType> {
+        self.parsed_ty.get().expect("missing ty").as_deref()
     }
 
     pub fn ty(&self) -> SourceType {

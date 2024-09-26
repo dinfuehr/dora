@@ -156,7 +156,7 @@ fn check_expr_call_generic_static_method(
         let fct_params = trait_method
             .params_without_self()
             .iter()
-            .map(|a| ck.ty_name(a))
+            .map(|a| ck.ty_name(&a.ty()))
             .collect::<Vec<_>>();
         let arg_types = args.iter().map(|a| ck.ty_name(a)).collect::<Vec<_>>();
         let msg = ErrorMessage::ParamTypesIncompatible(name, fct_params, arg_types);
@@ -722,7 +722,7 @@ fn check_expr_call_generic_type_param(
             let trait_params = trait_method
                 .params_without_self()
                 .iter()
-                .map(|a| specialize_type(ck.sa, a.clone(), &trait_type_params))
+                .map(|a| specialize_type(ck.sa, a.ty(), &trait_type_params))
                 .map(|a| ck.ty_name(&a))
                 .collect::<Vec<String>>();
             let param_names = args.iter().map(|a| ck.ty_name(a)).collect::<Vec<String>>();

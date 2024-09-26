@@ -250,7 +250,7 @@ impl<'a> MethodLookup<'a> {
             let fct_params = fct
                 .params_without_self()
                 .iter()
-                .map(|a| a.name_fct(self.sa, &*fct))
+                .map(|a| a.ty().name_fct(self.sa, &*fct))
                 .collect::<Vec<_>>();
             let call_types = args.iter().map(|a| self.ty_name(a)).collect::<Vec<_>>();
             let msg = ErrorMessage::ParamTypesIncompatible(fct_name, fct_params, call_types);

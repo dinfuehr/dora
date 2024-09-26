@@ -1,5 +1,7 @@
 use std::cell::OnceCell;
 
+use dora_parser::ast;
+
 use crate::{Name, ParsedType, SourceType};
 
 #[derive(Clone, Debug)]
@@ -56,15 +58,68 @@ impl TypeParamDefinition {
         id
     }
 
-    pub fn add_bound(&mut self, id: TypeParamId, trait_ty: Box<ParsedType>) {
-        self.bounds.push(Bound {
-            ty: ParsedType::new(SourceType::TypeParam(id)),
-            trait_ty,
-        });
+    pub fn add_bound(
+        &mut self,
+        id: TypeParamId,
+        trait_ty: Box<ParsedType>,
+        ast_trait_ty: ast::Type,
+    ) {
+        let bound = Bound {
+            ty: OnceCell::new(),
+            ast_ty: None,
+            trait_ty: OnceCell::new(),
+            ast_trait_ty,
+        };
+
+        let parsed_ty = ParsedType::new(SourceType::TypeParam(id));
+        assert!(bound.ty.set(parsed_ty).is_ok());
+        assert!(bound.trait_ty.set(trait_ty).is_ok());
+
+        self.bounds.push(bound);
     }
 
-    pub fn add_where_bound(&mut self, ty: Box<ParsedType>, trait_ty: Box<ParsedType>) {
-        self.bounds.push(Bound { ty, trait_ty });
+    pub fn add_bound2(&mut self, id: TypeParamId, ast_trait_ty: ast::Type) {
+        let bound = Bound {
+            ty: OnceCell::new(),
+            ast_ty: None,
+            trait_ty: OnceCell::new(),
+            ast_trait_ty,
+        };
+
+        let parsed_ty = ParsedType::new(SourceType::TypeParam(id));
+        assert!(bound.ty.set(parsed_ty).is_ok());
+
+        self.bounds.push(bound);
+    }
+
+    pub fn add_where_bound(
+        &mut self,
+        ty: Box<ParsedType>,
+        ast_ty: ast::Type,
+        trait_ty: Box<ParsedType>,
+        ast_trait_ty: ast::Type,
+    ) {
+        let bound = Bound {
+            ty: OnceCell::new(),
+            ast_ty: Some(ast_ty),
+            trait_ty: OnceCell::new(),
+            ast_trait_ty,
+        };
+
+        assert!(bound.ty.set(ty).is_ok());
+        assert!(bound.trait_ty.set(trait_ty).is_ok());
+        self.bounds.push(bound);
+    }
+
+    pub fn add_where_bound2(&mut self, ast_ty: ast::Type, ast_trait_ty: ast::Type) {
+        let bound = Bound {
+            ty: OnceCell::new(),
+            ast_ty: Some(ast_ty),
+            trait_ty: OnceCell::new(),
+            ast_trait_ty,
+        };
+
+        self.bounds.push(bound);
     }
 
     pub fn implements_trait(&self, id: TypeParamId, trait_ty: SourceType) -> bool {
@@ -110,17 +165,27 @@ impl TypeParamDefinition {
 
 #[derive(Clone, Debug)]
 pub struct Bound {
-    pub ty: Box<ParsedType>,
-    pub trait_ty: Box<ParsedType>,
+    pub ty: OnceCell<Box<ParsedType>>,
+    pub ast_ty: Option<ast::Type>,
+    pub trait_ty: OnceCell<Box<ParsedType>>,
+    pub ast_trait_ty: ast::Type,
 }
 
 impl Bound {
     pub fn ty(&self) -> SourceType {
-        self.ty.ty()
+        self.parsed_ty().ty()
+    }
+
+    pub fn parsed_ty(&self) -> &ParsedType {
+        self.ty.get().expect("missing")
     }
 
     pub fn trait_ty(&self) -> SourceType {
-        self.trait_ty.ty()
+        self.parsed_trait_ty().ty()
+    }
+
+    pub fn parsed_trait_ty(&self) -> &ParsedType {
+        self.trait_ty.get().expect("missing")
     }
 }
 

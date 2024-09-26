@@ -7,8 +7,8 @@ use crate::sema::{
     AnalysisData, ClassDefinition, ConstValue, ContextFieldId, FctDefinition, FctParent, Field,
     FieldId, GlobalDefinition, IdentType, LazyContextClassCreationData, LazyContextData,
     LazyLambdaCreationData, ModuleDefinitionId, NestedScopeId, NestedVarId, OuterContextIdx,
-    PackageDefinitionId, ScopeId, Sema, SourceFileId, TypeParamDefinition, Var, VarAccess, VarId,
-    VarLocation, Visibility,
+    PackageDefinitionId, Param, ScopeId, Sema, SourceFileId, TypeParamDefinition, Var, VarAccess,
+    VarId, VarLocation, Visibility,
 };
 use crate::typeck::{check_expr, check_stmt};
 use crate::{
@@ -29,7 +29,7 @@ pub struct TypeCheck<'a> {
     pub file_id: SourceFileId,
     pub analysis: &'a mut AnalysisData,
     pub symtable: &'a mut ModuleSymTable,
-    pub param_types: Vec<SourceType>,
+    pub param_types: Vec<Param>,
     pub return_type: Option<SourceType>,
     pub in_loop: bool,
     pub is_lambda: bool,
@@ -284,12 +284,9 @@ impl<'a> TypeCheck<'a> {
             None,
             name,
             Visibility::Public,
+            self.type_param_defs.clone(),
             fields,
         );
-        class
-            .type_params
-            .set(self.type_param_defs.clone())
-            .expect("already initialized");
 
         self.lazy_context_class_creation
             .push(LazyContextClassCreationData {
@@ -310,7 +307,7 @@ impl<'a> TypeCheck<'a> {
         let self_count = if self.has_hidden_self_argument { 1 } else { 0 };
         assert_eq!(ast.params.len() + self_count, self.param_types.len());
 
-        for (ind, (param, ty)) in ast
+        for (ind, (ast_param, param)) in ast
             .params
             .iter()
             .zip(self.param_types.iter().skip(self_count))
@@ -321,25 +318,28 @@ impl<'a> TypeCheck<'a> {
                 && ast.params.last().expect("missing param").variadic
             {
                 // type of variable is Array[T]
-                self.sa.known.array_ty(ty.clone())
+                self.sa.known.array_ty(param.ty())
             } else {
-                ty.clone()
+                param.ty()
             };
 
-            let name = self
-                .sa
-                .interner
-                .intern(&param.name.as_ref().expect("missing name").name_as_string);
+            let name = self.sa.interner.intern(
+                &ast_param
+                    .name
+                    .as_ref()
+                    .expect("missing name")
+                    .name_as_string,
+            );
 
-            let var_id = self.vars.add_var(name, ty, param.mutable);
+            let var_id = self.vars.add_var(name, ty, ast_param.mutable);
             self.analysis
                 .map_vars
-                .insert(param.id, self.vars.local_var_id(var_id));
+                .insert(ast_param.id, self.vars.local_var_id(var_id));
 
             // params are only allowed to replace functions, vars cannot be replaced
             let replaced_sym = self.symtable.insert(name, SymbolKind::Var(var_id));
             if let Some(replaced_sym) = replaced_sym {
-                report_sym_shadow_span(self.sa, name, self.file_id, param.span, replaced_sym)
+                report_sym_shadow_span(self.sa, name, self.file_id, ast_param.span, replaced_sym)
             }
         }
     }
@@ -353,7 +353,7 @@ impl<'a> TypeCheck<'a> {
 
         // Only functions can use `self`.
         let hidden_self_ty = if self.is_lambda {
-            assert_eq!(SourceType::Ptr, self.param_types[0]);
+            assert_eq!(SourceType::Ptr, self.param_types[0].ty());
             SourceType::Ptr
         } else {
             self.self_ty.clone().expect("self expected")
@@ -441,7 +441,7 @@ pub(super) fn args_compatible_fct(
     let variadic_arguments = callee.is_variadic.get();
     args_compatible(
         sa,
-        arg_types,
+        &arg_types.iter().map(|p| p.ty()).collect::<Vec<_>>(),
         variadic_arguments,
         args,
         type_params,

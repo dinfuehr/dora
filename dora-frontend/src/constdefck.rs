@@ -1,21 +1,22 @@
 use crate::sema::{Sema, TypeParamDefinition};
-use crate::sym::ModuleSymTable;
-use crate::{expand_type, AllowSelf};
+use crate::{parsety, AliasReplacement};
 
 pub fn check(sa: &Sema) {
-    for (id, const_) in sa.consts.iter() {
-        let symtable = ModuleSymTable::new(sa, const_.module_id);
+    for (_id, const_) in sa.consts.iter() {
+        let ctxt = parsety::TypeContext {
+            allow_self: false,
+            module_id: const_.module_id,
+            file_id: const_.file_id,
+            type_param_defs: &TypeParamDefinition::new(),
+        };
+        parsety::check_parsed_type2(sa, &ctxt, const_.parsed_ty());
 
-        let ty = expand_type(
+        parsety::expand_parsed_type2(
             sa,
-            &symtable,
-            const_.file_id,
-            &const_.ast.data_type,
-            &TypeParamDefinition::new(),
-            AllowSelf::No,
+            const_.parsed_ty(),
+            None,
+            AliasReplacement::ReplaceWithActualType,
         );
-
-        sa.const_(id).ty.set(ty).expect("already initialized");
     }
 }
 

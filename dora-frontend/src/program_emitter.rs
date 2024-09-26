@@ -100,7 +100,7 @@ fn create_extensions(sa: &Sema) -> Vec<ExtensionData> {
 
         result.push(ExtensionData {
             module_id: convert_module_id(extension.module_id),
-            type_params: create_type_params(sa, extension.type_params()),
+            type_params: create_type_params(sa, extension.type_param_definition()),
             extended_ty: bty_from_ty(extension.ty().clone()),
             methods,
         });
@@ -139,7 +139,7 @@ fn create_impls(sa: &Sema) -> Vec<ImplData> {
 
         result.push(ImplData {
             module_id: convert_module_id(impl_.module_id),
-            type_params: create_type_params(sa, impl_.type_params()),
+            type_params: create_type_params(sa, impl_.type_param_definition()),
             trait_ty: bty_from_ty(impl_.trait_ty()),
             extended_ty: bty_from_ty(impl_.extended_ty()),
             methods,
@@ -191,7 +191,7 @@ fn create_functions(sa: &Sema, e: &mut Emitter) -> Vec<FunctionData> {
             params: fct
                 .params_with_self()
                 .iter()
-                .map(|ty| bty_from_ty(ty.clone()))
+                .map(|p| bty_from_ty(p.ty()))
                 .collect(),
             return_type: fct.return_type_bty(),
             is_internal: fct.is_internal,

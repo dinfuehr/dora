@@ -27,7 +27,7 @@ pub struct TraitDefinition {
     pub span: Span,
     pub name: Name,
     pub is_trait_object: bool,
-    pub type_params: OnceCell<TypeParamDefinition>,
+    pub type_params: TypeParamDefinition,
     pub methods: OnceCell<Vec<FctDefinitionId>>,
     pub aliases: OnceCell<Vec<AliasDefinitionId>>,
     pub instance_names: OnceCell<HashMap<Name, FctDefinitionId>>,
@@ -43,6 +43,7 @@ impl TraitDefinition {
         node: &Arc<ast::Trait>,
         modifiers: ParsedModifierList,
         name: Name,
+        type_params: TypeParamDefinition,
     ) -> TraitDefinition {
         TraitDefinition {
             id: None,
@@ -54,7 +55,7 @@ impl TraitDefinition {
             span: node.span,
             name,
             is_trait_object: false,
-            type_params: OnceCell::new(),
+            type_params,
             methods: OnceCell::new(),
             aliases: OnceCell::new(),
             instance_names: OnceCell::new(),
@@ -68,7 +69,7 @@ impl TraitDefinition {
     }
 
     pub fn type_param_definition(&self) -> &TypeParamDefinition {
-        self.type_params.get().expect("uninitialized")
+        &self.type_params
     }
 
     pub fn methods(&self) -> &[FctDefinitionId] {
@@ -141,7 +142,7 @@ pub fn is_object_safe(sa: &Sema, trait_id: TraitDefinitionId) -> bool {
         }
 
         for param in method.params_without_self() {
-            if contains_self(sa, param.clone()) {
+            if contains_self(sa, param.ty()) {
                 return false;
             }
         }

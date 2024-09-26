@@ -63,7 +63,11 @@ impl ConstDefinition {
     }
 
     pub fn ty(&self) -> SourceType {
-        self.ty.get().expect("uninitialized").ty()
+        self.parsed_ty().ty()
+    }
+
+    pub fn parsed_ty(&self) -> &ParsedType {
+        self.ty.get().expect("uninitialized")
     }
 
     pub fn value(&self) -> &ConstValue {

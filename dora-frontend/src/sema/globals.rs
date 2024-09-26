@@ -76,7 +76,11 @@ impl GlobalDefinition {
     }
 
     pub fn ty(&self) -> SourceType {
-        self.ty.get().expect("missing type").ty()
+        self.parsed_ty().ty()
+    }
+
+    pub fn parsed_ty(&self) -> &ParsedType {
+        self.ty.get().expect("missing type")
     }
 
     pub fn analysis(&self) -> &AnalysisData {

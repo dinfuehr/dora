@@ -3,6 +3,7 @@ use std::sync::Arc;
 
 use crate::interner::Name;
 use crate::program_parser::ParsedModifierList;
+use crate::ParsedType;
 use dora_parser::ast;
 use dora_parser::Span;
 use id_arena::Id;
@@ -34,15 +35,15 @@ pub struct FctDefinition {
     pub is_internal: bool,
     pub is_force_inline: bool,
     pub is_never_inline: bool,
-    pub param_types: OnceCell<Vec<SourceType>>,
-    pub return_type: OnceCell<SourceType>,
+    pub param_types: OnceCell<Vec<Param>>,
+    pub return_type: OnceCell<Box<ParsedType>>,
     pub is_variadic: Cell<bool>,
 
     pub vtable_index: OnceCell<u32>,
     pub initialized: Cell<bool>,
     pub analysis: OnceCell<AnalysisData>,
 
-    pub type_params: OnceCell<TypeParamDefinition>,
+    pub type_params: TypeParamDefinition,
     pub container_type_params: OnceCell<usize>,
     pub bytecode: OnceCell<BytecodeFunction>,
     pub intrinsic: OnceCell<Intrinsic>,
@@ -56,6 +57,7 @@ impl FctDefinition {
         ast: &Arc<ast::Function>,
         modifiers: ParsedModifierList,
         name: Name,
+        type_params: TypeParamDefinition,
         parent: FctParent,
     ) -> FctDefinition {
         FctDefinition {
@@ -81,7 +83,7 @@ impl FctDefinition {
             initialized: Cell::new(false),
             is_variadic: Cell::new(false),
             analysis: OnceCell::new(),
-            type_params: OnceCell::new(),
+            type_params,
             container_type_params: OnceCell::new(),
             bytecode: OnceCell::new(),
             intrinsic: OnceCell::new(),
@@ -93,7 +95,7 @@ impl FctDefinition {
     }
 
     pub fn type_params(&self) -> &TypeParamDefinition {
-        self.type_params.get().expect("uninitialized type params")
+        &self.type_params
     }
 
     pub fn container_type_params(&self) -> usize {
@@ -190,11 +192,11 @@ impl FctDefinition {
         }
     }
 
-    pub fn params_with_self(&self) -> &[SourceType] {
+    pub fn params_with_self(&self) -> &[Param] {
         self.param_types.get().expect("missing params")
     }
 
-    pub fn params_without_self(&self) -> &[SourceType] {
+    pub fn params_without_self(&self) -> &[Param] {
         if self.has_hidden_self_argument() {
             &self.params_with_self()[1..]
         } else {
@@ -206,16 +208,17 @@ impl FctDefinition {
         let params = self
             .params_with_self()
             .iter()
-            .map(|ty| bty_from_ty(ty.clone()))
+            .map(|p| bty_from_ty(p.ty()))
             .collect();
         BytecodeTypeArray::new(params)
     }
 
     pub fn return_type(&self) -> SourceType {
-        self.return_type
-            .get()
-            .cloned()
-            .expect("missing return type")
+        self.parsed_return_type().ty()
+    }
+
+    pub fn parsed_return_type(&self) -> &ParsedType {
+        self.return_type.get().expect("missing return type")
     }
 
     pub fn return_type_bty(&self) -> BytecodeType {
@@ -286,6 +289,29 @@ impl FctParent {
             &FctParent::Extension(id) => Some(id),
             _ => None,
         }
+    }
+}
+
+#[derive(Debug, Clone)]
+pub struct Param {
+    pub ty: OnceCell<Box<ParsedType>>,
+    pub expanded_ty: OnceCell<SourceType>,
+}
+
+impl Param {
+    pub fn new() -> Param {
+        Param {
+            ty: OnceCell::new(),
+            expanded_ty: OnceCell::new(),
+        }
+    }
+
+    pub fn parsed_ty(&self) -> &ParsedType {
+        self.ty.get().expect("missing")
+    }
+
+    pub fn ty(&self) -> SourceType {
+        self.expanded_ty.get().expect("missing type").clone()
     }
 }
 

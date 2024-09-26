@@ -1,8 +1,4 @@
-use std::sync::Arc;
-
-use dora_parser::ast;
-
-use crate::sema::{FctDefinition, FctParent, Sema};
+use crate::sema::{FctDefinition, FctParent, Param, Sema};
 use crate::{
     parsety, AliasReplacement, ErrorMessage, ModuleSymTable, ParsedType, SourceType, SymbolKind,
 };
@@ -14,7 +10,7 @@ pub fn check(sa: &Sema) {
         let mut sym_table = ModuleSymTable::new(sa, fct.module_id);
         sym_table.push_level();
 
-        let mut param_types: Vec<SourceType> = Vec::new();
+        let mut param_types: Vec<Param> = Vec::new();
 
         for (id, name) in fct.type_params().names() {
             sym_table.insert(name, SymbolKind::TypeParam(id));
@@ -25,7 +21,9 @@ pub fn check(sa: &Sema) {
                 let impl_ = sa.impl_(impl_id);
 
                 if fct.has_hidden_self_argument() {
-                    param_types.push(impl_.extended_ty());
+                    let param = Param::new();
+                    assert!(param.expanded_ty.set(impl_.extended_ty()).is_ok());
+                    param_types.push(param);
                 }
 
                 for &alias_id in impl_.aliases() {
@@ -38,7 +36,9 @@ pub fn check(sa: &Sema) {
                 let extension = sa.extension(extension_id);
 
                 if fct.has_hidden_self_argument() {
-                    param_types.push(extension.ty().clone());
+                    let param = Param::new();
+                    assert!(param.expanded_ty.set(extension.ty()).is_ok());
+                    param_types.push(param);
                 }
             }
 
@@ -46,7 +46,9 @@ pub fn check(sa: &Sema) {
                 let trait_ = sa.trait_(trait_id);
 
                 if fct.has_hidden_self_argument() {
-                    param_types.push(SourceType::This);
+                    let param = Param::new();
+                    assert!(param.expanded_ty.set(SourceType::This).is_ok());
+                    param_types.push(param);
                 }
 
                 for &alias_id in trait_.aliases() {
@@ -69,9 +71,17 @@ pub fn check(sa: &Sema) {
                 );
             }
 
-            let ty = process_type(sa, fct, &sym_table, &p.data_type);
+            let param = Param::new();
 
-            param_types.push(ty);
+            let parsed_ty = parsety::parse_type(sa, &sym_table, fct.file_id, &p.data_type);
+            let parsed_ty = ParsedType::new_ast(parsed_ty);
+            parsety::convert_parsed_type2(sa, &parsed_ty);
+            assert!(param.ty.set(parsed_ty).is_ok());
+
+            let ty = process_type(sa, fct, param.parsed_ty());
+            assert!(param.expanded_ty.set(ty).is_ok());
+
+            param_types.push(param);
 
             if p.variadic {
                 fct.is_variadic.set(true);
@@ -80,32 +90,28 @@ pub fn check(sa: &Sema) {
 
         assert!(fct.param_types.set(param_types).is_ok());
 
-        let return_type = if let Some(ret) = ast.return_type.as_ref() {
-            process_type(sa, fct, &sym_table, ret)
-        } else {
-            SourceType::Unit
-        };
+        if let Some(ret) = ast.return_type.as_ref() {
+            let parsed_ty = parsety::parse_type(sa, &sym_table, fct.file_id, ret);
+            let parsed_ty = ParsedType::new_ast(parsed_ty);
+            parsety::convert_parsed_type2(sa, &parsed_ty);
+            assert!(fct.return_type.set(parsed_ty).is_ok());
 
-        assert!(fct.return_type.set(return_type).is_ok());
+            process_type(sa, fct, fct.parsed_return_type());
+        } else {
+            let parsed_ty = ParsedType::new(SourceType::Unit);
+            assert!(fct.return_type.set(parsed_ty).is_ok());
+        }
+
         fct.initialized.set(true);
 
         check_test(sa, &*fct);
     }
 }
 
-fn process_type(
-    sa: &Sema,
-    fct: &FctDefinition,
-    sym_table: &ModuleSymTable,
-    ast: &Arc<ast::TypeData>,
-) -> SourceType {
-    let parsed_ty = parsety::parse_type(sa, &sym_table, fct.file_id, ast);
-    let parsed_ty = ParsedType::new_ast(parsed_ty);
-    parsety::convert_parsed_type2(sa, &parsed_ty);
-
+fn process_type(sa: &Sema, fct: &FctDefinition, parsed_ty: &ParsedType) -> SourceType {
     let ctxt = parsety::TypeContext {
         allow_self: fct.is_self_allowed(),
-        module_id: sym_table.module_id(),
+        module_id: fct.module_id,
         file_id: fct.file_id,
         type_param_defs: fct.type_params(),
     };
@@ -207,7 +213,7 @@ mod tests {
             (1, 9),
             ErrorMessage::TypeParamNameNotUnique("T".into()),
         );
-        err("fn f[]() {}", (1, 1), ErrorMessage::TypeParamsExpected);
+        err("fn f[]() {}", (1, 5), ErrorMessage::TypeParamsExpected);
     }
 
     #[test]

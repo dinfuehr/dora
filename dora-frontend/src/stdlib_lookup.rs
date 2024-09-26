@@ -214,12 +214,10 @@ pub fn create_lambda_class(sa: &mut Sema) {
         None,
         class_name,
         Visibility::Public,
+        TypeParamDefinition::new(),
         fields,
     );
-    class
-        .type_params
-        .set(TypeParamDefinition::new())
-        .expect("already initialized");
+
     let class_id = sa.classes.alloc(class);
     sa.classes[class_id].id = Some(class_id);
     sa.known.classes.lambda = Some(class_id);

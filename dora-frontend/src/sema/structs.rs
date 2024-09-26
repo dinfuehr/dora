@@ -25,7 +25,7 @@ pub struct StructDefinition {
     pub file_id: SourceFileId,
     pub ast: Arc<ast::Struct>,
     pub primitive_ty: Option<SourceType>,
-    pub type_params: OnceCell<TypeParamDefinition>,
+    pub type_params: TypeParamDefinition,
     pub visibility: Visibility,
     pub is_internal: bool,
     pub internal_resolved: bool,
@@ -44,6 +44,7 @@ impl StructDefinition {
         node: &Arc<ast::Struct>,
         modifiers: ParsedModifierList,
         name: Name,
+        type_params: TypeParamDefinition,
         fields: Vec<StructDefinitionField>,
     ) -> StructDefinition {
         let mut field_names = HashMap::new();
@@ -68,7 +69,7 @@ impl StructDefinition {
             name,
             is_internal: modifiers.is_internal,
             internal_resolved: false,
-            type_params: OnceCell::new(),
+            type_params,
             fields,
             field_names,
             extensions: RefCell::new(Vec::new()),
@@ -80,7 +81,7 @@ impl StructDefinition {
     }
 
     pub fn type_param_definition(&self) -> &TypeParamDefinition {
-        self.type_params.get().expect("uninitialized")
+        &self.type_params
     }
 
     pub fn name(&self, sa: &Sema) -> String {

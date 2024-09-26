@@ -1,51 +1,27 @@
 use crate::error::msg::ErrorMessage;
-use crate::sema::{GlobalDefinitionId, Sema, SourceFileId, TypeParamDefinition};
-use crate::sym::ModuleSymTable;
-use crate::{expand_type, AllowSelf};
-use dora_parser::ast;
+use crate::sema::{Sema, TypeParamDefinition};
+use crate::{parsety, AliasReplacement};
 
 pub fn check<'a>(sa: &Sema) {
-    for (id, global) in sa.globals.iter() {
-        let symtable = ModuleSymTable::new(sa, global.module_id);
-
-        let mut checker = GlobalDefCheck {
-            sa,
+    for (_id, global) in sa.globals.iter() {
+        let ctxt = parsety::TypeContext {
+            allow_self: false,
+            module_id: global.module_id,
             file_id: global.file_id,
-            ast: &global.ast,
-            global_id: id,
-            symtable,
+            type_param_defs: &TypeParamDefinition::new(),
         };
+        parsety::check_parsed_type2(sa, &ctxt, global.parsed_ty());
 
-        checker.check();
-    }
-}
-
-struct GlobalDefCheck<'a> {
-    sa: &'a Sema,
-    file_id: SourceFileId,
-    global_id: GlobalDefinitionId,
-    ast: &'a ast::Global,
-    symtable: ModuleSymTable,
-}
-
-impl<'a> GlobalDefCheck<'a> {
-    fn check(&mut self) {
-        let ty = expand_type(
-            self.sa,
-            &self.symtable,
-            self.file_id,
-            &self.ast.data_type,
-            &TypeParamDefinition::new(),
-            AllowSelf::No,
+        parsety::expand_parsed_type2(
+            sa,
+            global.parsed_ty(),
+            None,
+            AliasReplacement::ReplaceWithActualType,
         );
 
-        let global_var = self.sa.global(self.global_id);
-
-        assert!(global_var.ty.set(ty).is_ok());
-
-        if !global_var.has_initial_value() {
+        if !global.has_initial_value() {
             let msg = ErrorMessage::LetMissingInitialization;
-            self.sa.report(self.file_id, self.ast.span, msg);
+            sa.report(global.file_id, global.ast.span, msg);
         }
     }
 }

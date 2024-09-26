@@ -28,7 +28,7 @@ pub struct EnumDefinition {
     pub span: Span,
     pub name: Name,
     pub visibility: Visibility,
-    pub type_params: OnceCell<TypeParamDefinition>,
+    pub type_params: TypeParamDefinition,
     pub variants: Vec<EnumVariant>,
     pub extensions: RefCell<Vec<ExtensionDefinitionId>>,
     pub simple_enumeration: OnceCell<bool>,
@@ -43,6 +43,7 @@ impl EnumDefinition {
         node: &Arc<ast::Enum>,
         modifiers: ParsedModifierList,
         name: Name,
+        type_params: TypeParamDefinition,
         variants: Vec<EnumVariant>,
         name_to_value: HashMap<Name, u32>,
     ) -> EnumDefinition {
@@ -54,7 +55,7 @@ impl EnumDefinition {
             ast: node.clone(),
             span: node.span,
             name,
-            type_params: OnceCell::new(),
+            type_params,
             visibility: modifiers.visibility(),
             variants,
             extensions: RefCell::new(Vec::new()),
@@ -68,7 +69,7 @@ impl EnumDefinition {
     }
 
     pub fn type_param_definition(&self) -> &TypeParamDefinition {
-        self.type_params.get().expect("uninitialized")
+        &self.type_params
     }
 
     pub fn name_to_value(&self) -> &HashMap<Name, u32> {
