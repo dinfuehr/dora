@@ -64,10 +64,8 @@ fn parse_const_types(sa: &Sema) {
     for (_id, const_) in sa.consts.iter() {
         let symtable = ModuleSymTable::new(sa, const_.module_id);
 
-        let ast = &const_.ast.data_type;
-        let trait_ty = parsety::parse_type(sa, &symtable, const_.file_id, ast);
-        parsety::convert_parsed_type(sa, &trait_ty);
-        assert!(const_.ty.set(trait_ty).is_ok());
+        parsety::parse_parsed_type(sa, &symtable, const_.file_id, const_.parsed_ty());
+        parsety::convert_parsed_type(sa, const_.parsed_ty());
     }
 }
 
@@ -75,10 +73,8 @@ fn parse_global_types(sa: &Sema) {
     for (_id, global) in sa.globals.iter() {
         let symtable = ModuleSymTable::new(sa, global.module_id);
 
-        let ast = &global.ast.data_type;
-        let trait_ty = parsety::parse_type(sa, &symtable, global.file_id, ast);
-        parsety::convert_parsed_type(sa, &trait_ty);
-        assert!(global.ty.set(trait_ty).is_ok());
+        parsety::parse_parsed_type(sa, &symtable, global.file_id, global.parsed_ty());
+        parsety::convert_parsed_type(sa, global.parsed_ty());
     }
 }
 
@@ -110,19 +106,16 @@ fn parse_impl_types(sa: &Sema) {
             impl_.file_id,
         );
 
-        let ast_trait_type = impl_.ast.trait_type.as_ref().unwrap();
-        let trait_ty = parsety::parse_type(sa, &symtable, impl_.file_id, ast_trait_type);
-        parsety::convert_parsed_type(sa, &trait_ty);
-        assert!(impl_.trait_ty.set(trait_ty).is_ok());
+        parsety::parse_parsed_type(sa, &symtable, impl_.file_id, impl_.parsed_trait_ty());
+        parsety::convert_parsed_type(sa, impl_.parsed_trait_ty());
 
-        let extended_ty = parsety::parse_type(
+        parsety::parse_parsed_type(
             sa,
             &symtable,
             impl_.file_id.into(),
-            &impl_.ast.extended_type,
+            impl_.parsed_extended_ty(),
         );
-        parsety::convert_parsed_type(sa, &extended_ty);
-        assert!(impl_.extended_ty.set(extended_ty).is_ok());
+        parsety::convert_parsed_type(sa, impl_.parsed_extended_ty());
 
         symtable.pop_level();
     }
@@ -221,10 +214,8 @@ fn parse_extension_types(sa: &Sema) {
             extension.file_id,
         );
 
-        let ast_type = &extension.ast.extended_type;
-        let ty = parsety::parse_type(sa, &symtable, extension.file_id, ast_type);
-        parsety::convert_parsed_type(sa, &ty);
-        assert!(extension.ty.set(ty).is_ok());
+        parsety::parse_parsed_type(sa, &symtable, extension.file_id, extension.parsed_ty());
+        parsety::convert_parsed_type(sa, extension.parsed_ty());
 
         symtable.pop_level();
     }

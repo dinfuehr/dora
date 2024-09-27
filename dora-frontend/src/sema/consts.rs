@@ -25,7 +25,7 @@ pub struct ConstDefinition {
     pub visibility: Visibility,
     pub span: Span,
     pub name: Name,
-    pub ty: OnceCell<Box<ParsedType>>,
+    pub parsed_ty: Box<ParsedType>,
     pub expr: ast::Expr,
     pub value: OnceCell<ConstValue>,
 }
@@ -48,7 +48,7 @@ impl ConstDefinition {
             span: node.span,
             name,
             visibility: modifiers.visibility(),
-            ty: OnceCell::new(),
+            parsed_ty: ParsedType::new_ast(node.data_type.clone()),
             expr: node.expr.clone(),
             value: OnceCell::new(),
         }
@@ -67,7 +67,7 @@ impl ConstDefinition {
     }
 
     pub fn parsed_ty(&self) -> &ParsedType {
-        self.ty.get().expect("uninitialized")
+        &self.parsed_ty
     }
 
     pub fn value(&self) -> &ConstValue {

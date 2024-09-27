@@ -25,8 +25,8 @@ pub struct ImplDefinition {
     pub declaration_span: Span,
     pub span: Span,
     pub type_params: TypeParamDefinition,
-    pub trait_ty: OnceCell<Box<ParsedType>>,
-    pub extended_ty: OnceCell<Box<ParsedType>>,
+    pub parsed_trait_ty: Box<ParsedType>,
+    pub parsed_extended_ty: Box<ParsedType>,
     pub methods: OnceCell<Vec<FctDefinitionId>>,
     pub aliases: OnceCell<Vec<AliasDefinitionId>>,
     pub trait_method_map: OnceCell<HashMap<FctDefinitionId, FctDefinitionId>>,
@@ -50,8 +50,13 @@ impl ImplDefinition {
             type_params,
             declaration_span: node.declaration_span,
             span: node.span,
-            trait_ty: OnceCell::new(),
-            extended_ty: OnceCell::new(),
+            parsed_trait_ty: ParsedType::new_ast(
+                node.trait_type
+                    .as_ref()
+                    .expect("missing trait type")
+                    .clone(),
+            ),
+            parsed_extended_ty: ParsedType::new_ast(node.extended_type.clone()),
             methods: OnceCell::new(),
             aliases: OnceCell::new(),
             trait_method_map: OnceCell::new(),
@@ -76,7 +81,7 @@ impl ImplDefinition {
     }
 
     pub fn parsed_trait_ty(&self) -> &ParsedType {
-        self.trait_ty.get().expect("missing trait type")
+        &self.parsed_trait_ty
     }
 
     pub fn extended_ty(&self) -> SourceType {
@@ -84,7 +89,7 @@ impl ImplDefinition {
     }
 
     pub fn parsed_extended_ty(&self) -> &ParsedType {
-        self.extended_ty.get().expect("missing trait type")
+        &self.parsed_extended_ty
     }
 
     pub fn trait_method_map(&self) -> &HashMap<FctDefinitionId, FctDefinitionId> {

@@ -25,7 +25,7 @@ pub struct ExtensionDefinition {
     pub ast: Arc<ast::Impl>,
     pub span: Span,
     pub type_params: TypeParamDefinition,
-    pub ty: OnceCell<Box<ParsedType>>,
+    pub parsed_ty: Box<ParsedType>,
     pub methods: OnceCell<Vec<FctDefinitionId>>,
     pub instance_names: RefCell<HashMap<Name, FctDefinitionId>>,
     pub static_names: RefCell<HashMap<Name, FctDefinitionId>>,
@@ -47,7 +47,7 @@ impl ExtensionDefinition {
             ast: node.clone(),
             span: node.span,
             type_params,
-            ty: OnceCell::new(),
+            parsed_ty: ParsedType::new_ast(node.extended_type.clone()),
             methods: OnceCell::new(),
             instance_names: RefCell::new(HashMap::new()),
             static_names: RefCell::new(HashMap::new()),
@@ -63,7 +63,7 @@ impl ExtensionDefinition {
     }
 
     pub fn parsed_ty(&self) -> &ParsedType {
-        self.ty.get().expect("missing type")
+        &self.parsed_ty
     }
 
     pub fn ty(&self) -> SourceType {

@@ -25,7 +25,7 @@ pub struct GlobalDefinition {
     pub ast: Arc<ast::Global>,
     pub span: Span,
     pub visibility: Visibility,
-    pub ty: OnceCell<Box<ParsedType>>,
+    pub parsed_ty: Box<ParsedType>,
     pub mutable: bool,
     pub name: Name,
     pub initializer: OnceCell<FctDefinitionId>,
@@ -51,7 +51,7 @@ impl GlobalDefinition {
             span: node.span,
             name,
             visibility: modifiers.visibility(),
-            ty: OnceCell::new(),
+            parsed_ty: ParsedType::new_ast(node.data_type.clone()),
             mutable: node.mutable,
             initializer: OnceCell::new(),
             analysis: OnceCell::new(),
@@ -80,7 +80,7 @@ impl GlobalDefinition {
     }
 
     pub fn parsed_ty(&self) -> &ParsedType {
-        self.ty.get().expect("missing type")
+        &self.parsed_ty
     }
 
     pub fn analysis(&self) -> &AnalysisData {
