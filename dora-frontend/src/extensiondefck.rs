@@ -4,9 +4,7 @@ use crate::sema::{
     extension_matches_ty, ExtensionDefinition, FctDefinitionId, PackageDefinitionId, Sema,
     SourceFileId, TypeParamDefinition, TypeParamId,
 };
-use crate::{
-    parsety, AliasReplacement, ErrorMessage, ModuleSymTable, Name, SourceType, SymbolKind,
-};
+use crate::{parsety, AliasReplacement, ErrorMessage, Name, SourceType};
 
 use dora_parser::Span;
 use fixedbitset::FixedBitSet;
@@ -18,7 +16,6 @@ pub fn check(sa: &Sema) {
         let mut extck = ExtensionCheck {
             sa,
             extension,
-            sym: ModuleSymTable::new(sa, extension.module_id),
             maybe_duplicate_names: &mut maybe_duplicate_names,
         };
 
@@ -85,7 +82,6 @@ pub fn package_for_type(sa: &Sema, ty: SourceType) -> Option<PackageDefinitionId
 
 struct ExtensionCheck<'x> {
     sa: &'x Sema,
-    sym: ModuleSymTable,
     extension: &'x ExtensionDefinition,
     maybe_duplicate_names: &'x mut HashMap<Name, Vec<FctDefinitionId>>,
 }
@@ -94,21 +90,7 @@ impl<'x> ExtensionCheck<'x> {
     fn check(&mut self) {
         assert!(self.extension.ast.trait_type.is_none());
 
-        self.sym.push_level();
-
-        for (id, name) in self.extension.type_param_definition().names() {
-            self.sym.insert(name, SymbolKind::TypeParam(id));
-        }
-
-        let ctxt = parsety::TypeContext {
-            allow_self: false,
-            module_id: self.extension.module_id,
-            file_id: self.extension.file_id,
-            type_param_defs: self.extension.type_param_definition(),
-        };
-        parsety::check_parsed_type2(self.sa, &ctxt, self.extension.parsed_ty());
-
-        parsety::expand_parsed_type2(
+        parsety::expand_parsed_type(
             self.sa,
             self.extension.parsed_ty(),
             None,
@@ -169,8 +151,6 @@ impl<'x> ExtensionCheck<'x> {
         for &method_id in self.extension.methods() {
             self.visit_method(method_id);
         }
-
-        self.sym.pop_level();
     }
 
     fn visit_method(&mut self, fct_id: FctDefinitionId) {

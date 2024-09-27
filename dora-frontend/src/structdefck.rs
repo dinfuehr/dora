@@ -4,15 +4,7 @@ use crate::{parsety, AliasReplacement};
 pub fn check(sa: &Sema) {
     for (_id, struct_) in sa.structs.iter() {
         for field in &struct_.fields {
-            let ctxt = parsety::TypeContext {
-                allow_self: false,
-                module_id: struct_.module_id,
-                file_id: struct_.file_id,
-                type_param_defs: struct_.type_param_definition(),
-            };
-            parsety::check_parsed_type2(sa, &ctxt, field.parsed_ty());
-
-            parsety::expand_parsed_type2(
+            parsety::expand_parsed_type(
                 sa,
                 field.parsed_ty(),
                 None,

@@ -95,7 +95,7 @@ fn check_function(
 
     let mut typeck = TypeCheck {
         sa,
-        type_param_defs: fct.type_params(),
+        type_param_defs: fct.type_param_definition(),
         package_id: fct.package_id,
         module_id: fct.module_id,
         file_id: fct.file_id,

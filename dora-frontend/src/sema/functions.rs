@@ -36,7 +36,7 @@ pub struct FctDefinition {
     pub is_force_inline: bool,
     pub is_never_inline: bool,
     pub params: Vec<Param>,
-    pub return_type: OnceCell<Box<ParsedType>>,
+    pub return_type: Box<ParsedType>,
     pub is_variadic: Cell<bool>,
 
     pub vtable_index: OnceCell<u32>,
@@ -71,7 +71,7 @@ impl FctDefinition {
             ast: ast.clone(),
             name,
             params,
-            return_type: OnceCell::new(),
+            return_type: ParsedType::new_maybe_ast(ast.return_type.clone()),
             parent,
             is_optimize_immediately: modifiers.is_optimize_immediately,
             visibility: modifiers.visibility(),
@@ -95,7 +95,7 @@ impl FctDefinition {
         self.id.expect("id missing")
     }
 
-    pub fn type_params(&self) -> &TypeParamDefinition {
+    pub fn type_param_definition(&self) -> &TypeParamDefinition {
         &self.type_params
     }
 
@@ -231,7 +231,7 @@ impl FctDefinition {
     }
 
     pub fn parsed_return_type(&self) -> &ParsedType {
-        self.return_type.get().expect("missing return type")
+        &self.return_type
     }
 
     pub fn return_type_bty(&self) -> BytecodeType {
@@ -308,37 +308,33 @@ impl FctParent {
 #[derive(Debug, Clone)]
 pub struct Param {
     pub ast: Option<Arc<ast::Param>>,
-    pub ty: OnceCell<Box<ParsedType>>,
+    pub parsed_ty: Box<ParsedType>,
 }
 
 impl Param {
     pub fn new(ast: Arc<ast::Param>) -> Param {
         Param {
+            parsed_ty: ParsedType::new_ast(ast.data_type.clone()),
             ast: Some(ast),
-            ty: OnceCell::new(),
         }
     }
 
     pub fn new_uninitialized() -> Param {
         Param {
+            parsed_ty: ParsedType::new_uninit(),
             ast: None,
-            ty: OnceCell::new(),
         }
     }
 
     pub fn new_ty(ty: SourceType) -> Param {
-        let cell = OnceCell::new();
-        let parsed_ty = ParsedType::new(ty);
-        assert!(cell.set(parsed_ty).is_ok());
-
         Param {
             ast: None,
-            ty: cell,
+            parsed_ty: ParsedType::new_ty(ty),
         }
     }
 
     pub fn parsed_ty(&self) -> &ParsedType {
-        self.ty.get().expect("missing")
+        &self.parsed_ty
     }
 
     pub fn ty(&self) -> SourceType {
@@ -346,8 +342,7 @@ impl Param {
     }
 
     pub fn set_ty(&self, ty: SourceType) {
-        let parsed_ty = ParsedType::new(ty);
-        assert!(self.ty.set(parsed_ty).is_ok());
+        self.parsed_ty().set_ty(ty);
     }
 }
 

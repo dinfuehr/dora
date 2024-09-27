@@ -7,7 +7,7 @@ pub fn check(sa: &Sema) {
     let mut alias_types: HashMap<AliasDefinitionId, SourceType> = HashMap::new();
 
     for (id, alias) in sa.aliases.iter() {
-        if let Some(parsed_ty) = alias.parsed_ty() {
+        if alias.parsed_ty().has_node() {
             let type_param_definition = match alias.parent {
                 AliasParent::None => &TypeParamDefinition::new(),
 
@@ -28,14 +28,9 @@ pub fn check(sa: &Sema) {
                 file_id: alias.file_id,
                 type_param_defs: type_param_definition,
             };
-            parsety::check_parsed_type2(sa, &ctxt, parsed_ty);
+            parsety::check_parsed_type(sa, &ctxt, alias.parsed_ty());
+            assert!(alias_types.insert(id, alias.parsed_ty().ty()).is_none());
         }
-
-        let ty = alias
-            .parsed_ty()
-            .map(|t| t.ty())
-            .unwrap_or(SourceType::Error);
-        assert!(alias_types.insert(id, ty).is_none());
     }
 
     expand_aliases(sa, alias_types);

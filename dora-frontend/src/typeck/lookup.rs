@@ -233,7 +233,7 @@ impl<'a> MethodLookup<'a> {
 
         let type_params = container_tps.connect(&fct_tps);
 
-        if !self.check_tps(fct.type_params(), &type_params) {
+        if !self.check_tps(fct.type_param_definition(), &type_params) {
             return result;
         }
 

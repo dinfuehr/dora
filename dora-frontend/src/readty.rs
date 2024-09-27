@@ -8,12 +8,6 @@ use std::rc::Rc;
 use dora_parser::ast;
 use dora_parser::Span;
 
-#[derive(Copy, Clone, PartialEq, Eq)]
-pub enum AllowSelf {
-    Yes,
-    No,
-}
-
 pub fn read_type_path(
     sa: &Sema,
     table: &ModuleSymTable,

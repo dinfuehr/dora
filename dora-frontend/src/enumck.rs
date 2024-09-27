@@ -7,15 +7,7 @@ pub fn check(sa: &Sema) {
 
         for variant in enum_.variants() {
             for parsed_ty in variant.types() {
-                let ctxt = parsety::TypeContext {
-                    allow_self: false,
-                    module_id: enum_.module_id,
-                    file_id: enum_.file_id,
-                    type_param_defs: enum_.type_param_definition(),
-                };
-                parsety::check_parsed_type2(sa, &ctxt, parsed_ty);
-
-                parsety::expand_parsed_type2(
+                parsety::expand_parsed_type(
                     sa,
                     parsed_ty,
                     None,

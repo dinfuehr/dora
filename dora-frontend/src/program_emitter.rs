@@ -186,7 +186,7 @@ fn create_functions(sa: &Sema, e: &mut Emitter) -> Vec<FunctionData> {
             file_id: convert_source_file_id(fct.file_id),
             package_id: convert_package_id(fct.package_id),
             module_id: convert_module_id(fct.module_id),
-            type_params: create_type_params(sa, fct.type_params()),
+            type_params: create_type_params(sa, fct.type_param_definition()),
             source_file_id: Some(convert_source_file_id(fct.file_id)),
             params: fct
                 .params_with_self()
@@ -435,7 +435,7 @@ fn find_main_fct_id(sa: &Sema) -> Option<FunctionId> {
 
     if (!ret.is_unit() && !ret.is_int32())
         || !fct.params_without_self().is_empty()
-        || !fct.type_params().is_empty()
+        || !fct.type_param_definition().is_empty()
     {
         None
     } else {

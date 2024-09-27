@@ -3,8 +3,6 @@ use crate::{parsety, AliasReplacement, ErrorMessage, ParsedType, SourceType};
 
 pub fn check(sa: &Sema) {
     for (_id, fct) in sa.fcts.iter() {
-        let ast = fct.ast.clone();
-
         match fct.parent {
             FctParent::Impl(impl_id) => {
                 let impl_ = sa.impl_(impl_id);
@@ -51,12 +49,7 @@ pub fn check(sa: &Sema) {
             }
         }
 
-        if ast.return_type.is_some() {
-            process_type(sa, fct, fct.parsed_return_type());
-        } else {
-            let parsed_ty = ParsedType::new(SourceType::Unit);
-            assert!(fct.return_type.set(parsed_ty).is_ok());
-        }
+        process_type(sa, fct, fct.parsed_return_type());
 
         fct.initialized.set(true);
 
@@ -65,14 +58,6 @@ pub fn check(sa: &Sema) {
 }
 
 fn process_type(sa: &Sema, fct: &FctDefinition, parsed_ty: &ParsedType) {
-    let ctxt = parsety::TypeContext {
-        allow_self: fct.is_self_allowed(),
-        module_id: fct.module_id,
-        file_id: fct.file_id,
-        type_param_defs: fct.type_params(),
-    };
-    parsety::check_parsed_type2(sa, &ctxt, &parsed_ty);
-
     let (replace_self, alias_map) = match fct.parent {
         FctParent::Impl(id) => {
             let impl_ = sa.impl_(id);
@@ -100,7 +85,7 @@ fn process_type(sa: &Sema, fct: &FctDefinition, parsed_ty: &ParsedType) {
         FctParent::Function => unreachable!(),
     };
 
-    parsety::expand_parsed_type2(sa, &parsed_ty, replace_self, alias_map);
+    parsety::expand_parsed_type(sa, &parsed_ty, replace_self, alias_map);
 }
 
 fn check_test(sa: &Sema, fct: &FctDefinition) {
@@ -111,7 +96,7 @@ fn check_test(sa: &Sema, fct: &FctDefinition) {
     }
 
     if !fct.parent.is_none()
-        || !fct.type_params().is_empty()
+        || !fct.type_param_definition().is_empty()
         || !fct.params_with_self().is_empty()
         || (!fct.return_type().is_unit() && !fct.return_type().is_error())
     {

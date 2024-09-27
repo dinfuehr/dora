@@ -235,12 +235,10 @@ impl<'a> TypeCheck<'a> {
             let field = Field {
                 id: FieldId(0),
                 name,
-                ty: OnceCell::new(),
+                parsed_ty: ParsedType::new_ty(SourceType::Ptr),
                 mutable: true,
                 visibility: Visibility::Module,
             };
-            let ty = ParsedType::new(SourceType::Ptr);
-            assert!(field.ty.set(ty).is_ok());
 
             fields.push(field);
         }
@@ -264,12 +262,10 @@ impl<'a> TypeCheck<'a> {
             let field = Field {
                 id,
                 name: var.name,
-                ty: OnceCell::new(),
+                parsed_ty: ParsedType::new_ty(var.ty.clone()),
                 mutable: true,
                 visibility: Visibility::Module,
             };
-            let ty = ParsedType::new(var.ty.clone());
-            assert!(field.ty.set(ty).is_ok());
 
             fields.push(field);
         }

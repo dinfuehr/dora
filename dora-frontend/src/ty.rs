@@ -295,7 +295,7 @@ impl SourceType {
     pub fn name_fct(&self, sa: &Sema, fct: &FctDefinition) -> String {
         let writer = SourceTypePrinter {
             sa,
-            type_params: Some(fct.type_params()),
+            type_params: Some(fct.type_param_definition()),
         };
 
         writer.name(self.clone())

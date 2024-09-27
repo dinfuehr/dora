@@ -133,7 +133,7 @@ pub fn is_object_safe(sa: &Sema, trait_id: TraitDefinitionId) -> bool {
     for method_id in trait_.methods() {
         let method = sa.fct(*method_id);
 
-        if method.type_params().has_fct_type_params() {
+        if method.type_param_definition().has_fct_type_params() {
             return false;
         }
 

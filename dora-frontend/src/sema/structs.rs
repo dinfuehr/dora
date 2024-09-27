@@ -1,4 +1,4 @@
-use std::cell::{OnceCell, RefCell};
+use std::cell::RefCell;
 use std::collections::hash_map::HashMap;
 use std::sync::Arc;
 
@@ -154,7 +154,7 @@ pub struct StructDefinitionField {
     pub id: StructDefinitionFieldId,
     pub span: Span,
     pub name: Name,
-    pub ty: OnceCell<Box<ParsedType>>,
+    pub parsed_ty: Box<ParsedType>,
     pub visibility: Visibility,
 }
 
@@ -164,6 +164,6 @@ impl StructDefinitionField {
     }
 
     pub fn parsed_ty(&self) -> &ParsedType {
-        self.ty.get().expect("uninitialized")
+        &self.parsed_ty
     }
 }

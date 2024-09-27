@@ -7,7 +7,6 @@ use std::sync::Arc;
 
 use crate::error::msg::ErrorMessage;
 use crate::interner::Name;
-use crate::report_sym_shadow_span;
 use crate::sema::{
     AliasBound, AliasDefinition, AliasParent, ClassDefinition, ConstDefinition, EnumDefinition,
     EnumVariant, ExtensionDefinition, ExtensionDefinitionId, FctDefinition, FctParent, Field,
@@ -19,6 +18,7 @@ use crate::sema::{
 };
 use crate::sym::{SymTable, Symbol, SymbolKind};
 use crate::STDLIB;
+use crate::{report_sym_shadow_span, ParsedType};
 use dora_parser::ast::visit::Visitor;
 use dora_parser::ast::{self, visit, ModifierList};
 use dora_parser::parser::Parser;
@@ -632,7 +632,7 @@ impl<'x> visit::Visitor for TopLevelDeclaration<'x> {
             fields.push(Field {
                 id: FieldId(idx),
                 name,
-                ty: OnceCell::new(),
+                parsed_ty: ParsedType::new_ast(field.data_type.clone()),
                 mutable: field.mutable,
                 visibility: modifiers.visibility(),
             });
@@ -692,7 +692,7 @@ impl<'x> visit::Visitor for TopLevelDeclaration<'x> {
                 id: StructDefinitionFieldId(idx),
                 name,
                 span: field.span,
-                ty: OnceCell::new(),
+                parsed_ty: ParsedType::new_ast(field.data_type.clone()),
                 visibility: modifiers.visibility(),
             });
         }
@@ -1409,14 +1409,14 @@ fn parse_type_param_definition(
         let id = TypeParamId(container_type_params + id);
 
         for bound in &type_param.bounds {
-            type_param_definition.add_bound2(id, bound.clone());
+            type_param_definition.add_bound(id, bound.clone());
         }
     }
 
     if let Some(where_bounds) = where_bounds {
         for clause in where_bounds.clauses.iter() {
             for bound in &clause.bounds {
-                type_param_definition.add_where_bound2(clause.ty.clone(), bound.clone());
+                type_param_definition.add_where_bound(clause.ty.clone(), bound.clone());
             }
         }
     }

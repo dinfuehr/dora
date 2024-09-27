@@ -22,7 +22,7 @@ use crate::typeck::{
     is_simple_enum, TypeCheck,
 };
 use crate::typeparamck::{self, ErrorReporting};
-use crate::{replace_type, AliasReplacement, ParsedType, SourceType, SourceTypeArray, SymbolKind};
+use crate::{replace_type, AliasReplacement, SourceType, SourceTypeArray, SymbolKind};
 
 pub(super) fn check_expr(
     ck: &mut TypeCheck,
@@ -1317,10 +1317,7 @@ fn check_expr_lambda(
         lambda_params,
         FctParent::Function,
     );
-    assert!(lambda
-        .return_type
-        .set(ParsedType::new(lambda_return_type))
-        .is_ok());
+    lambda.parsed_return_type().set_ty(lambda_return_type);
     assert!(lambda.analysis.set(analysis).is_ok());
 
     let lambda_id = LazyLambdaId::new();

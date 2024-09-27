@@ -10,7 +10,7 @@ use dora_parser::Span;
 pub use crate::extensiondefck::package_for_type;
 pub use parsety::{ParsedType, ParsedTypeAst};
 pub use program_emitter::emit_program;
-pub use readty::{check_type_params, AllowSelf};
+pub use readty::check_type_params;
 pub use specialize::{replace_type, specialize_type, AliasReplacement};
 
 pub(crate) mod access;
@@ -68,7 +68,7 @@ pub fn check_program(sa: &mut Sema) -> bool {
     // Find all trait implementations for types.
     impldefck::check_definition(sa);
     // Check types/type bounds for type params.
-    typedefck::check_type_bounds(sa);
+    typedefck::check_types(sa);
 
     // Checks class/struct/trait/enum definitions.
     aliasck::check(sa);

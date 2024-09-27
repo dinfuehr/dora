@@ -9,9 +9,9 @@ pub fn check(sa: &Sema) {
             file_id: const_.file_id,
             type_param_defs: &TypeParamDefinition::new(),
         };
-        parsety::check_parsed_type2(sa, &ctxt, const_.parsed_ty());
+        parsety::check_parsed_type(sa, &ctxt, const_.parsed_ty());
 
-        parsety::expand_parsed_type2(
+        parsety::expand_parsed_type(
             sa,
             const_.parsed_ty(),
             None,

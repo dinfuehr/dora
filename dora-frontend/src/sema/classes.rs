@@ -200,14 +200,14 @@ impl From<usize> for FieldId {
 pub struct Field {
     pub id: FieldId,
     pub name: Name,
-    pub ty: OnceCell<Box<ParsedType>>,
+    pub parsed_ty: Box<ParsedType>,
     pub mutable: bool,
     pub visibility: Visibility,
 }
 
 impl Field {
     pub fn parsed_ty(&self) -> &ParsedType {
-        self.ty.get().expect("uninitalized")
+        &self.parsed_ty
     }
 
     pub fn ty(&self) -> SourceType {

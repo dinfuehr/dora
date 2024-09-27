@@ -6,9 +6,7 @@ use crate::sema::{
     TraitDefinition, TypeParamId,
 };
 use crate::specialize::replace_type;
-use crate::{
-    package_for_type, parsety, AliasReplacement, ErrorMessage, SourceType, SourceTypeArray,
-};
+use crate::{package_for_type, AliasReplacement, ErrorMessage, SourceType, SourceTypeArray};
 
 pub fn check_definition(sa: &Sema) {
     for (_id, impl_) in sa.impls.iter() {
@@ -17,25 +15,9 @@ pub fn check_definition(sa: &Sema) {
 }
 
 fn check_impl_definition(sa: &Sema, impl_: &ImplDefinition) {
-    let ctxt = parsety::TypeContext {
-        allow_self: false,
-        module_id: impl_.module_id,
-        file_id: impl_.file_id,
-        type_param_defs: impl_.type_param_definition(),
-    };
-    parsety::check_parsed_type2(sa, &ctxt, impl_.parsed_trait_ty());
-
     if !impl_.trait_ty().is_trait() && !impl_.trait_ty().is_error() {
         sa.report(impl_.file_id, impl_.ast.span, ErrorMessage::ExpectedTrait);
     }
-
-    let ctxt = parsety::TypeContext {
-        allow_self: false,
-        module_id: impl_.module_id,
-        file_id: impl_.file_id,
-        type_param_defs: impl_.type_param_definition(),
-    };
-    parsety::check_parsed_type2(sa, &ctxt, impl_.parsed_extended_ty());
 
     match impl_.extended_ty() {
         SourceType::TypeAlias(..) => unimplemented!(),
@@ -166,9 +148,9 @@ fn method_definitions_compatible(
         return false;
     }
 
-    let fct_type_params = trait_method.type_params().fct_type_params_len();
+    let fct_type_params = trait_method.type_param_definition().fct_type_params_len();
 
-    if fct_type_params != impl_method.type_params().fct_type_params_len() {
+    if fct_type_params != impl_method.type_param_definition().fct_type_params_len() {
         return false;
     }
 

@@ -58,65 +58,19 @@ impl TypeParamDefinition {
         id
     }
 
-    pub fn add_bound(
-        &mut self,
-        id: TypeParamId,
-        trait_ty: Box<ParsedType>,
-        ast_trait_ty: ast::Type,
-    ) {
+    pub fn add_bound(&mut self, id: TypeParamId, ast_trait_ty: ast::Type) {
         let bound = Bound {
-            ty: OnceCell::new(),
-            ast_ty: None,
-            trait_ty: OnceCell::new(),
-            ast_trait_ty,
+            ty: ParsedType::new_ty(SourceType::TypeParam(id)),
+            trait_ty: ParsedType::new_ast(ast_trait_ty.clone()),
         };
-
-        let parsed_ty = ParsedType::new(SourceType::TypeParam(id));
-        assert!(bound.ty.set(parsed_ty).is_ok());
-        assert!(bound.trait_ty.set(trait_ty).is_ok());
 
         self.bounds.push(bound);
     }
 
-    pub fn add_bound2(&mut self, id: TypeParamId, ast_trait_ty: ast::Type) {
+    pub fn add_where_bound(&mut self, ast_ty: ast::Type, ast_trait_ty: ast::Type) {
         let bound = Bound {
-            ty: OnceCell::new(),
-            ast_ty: None,
-            trait_ty: OnceCell::new(),
-            ast_trait_ty,
-        };
-
-        let parsed_ty = ParsedType::new(SourceType::TypeParam(id));
-        assert!(bound.ty.set(parsed_ty).is_ok());
-
-        self.bounds.push(bound);
-    }
-
-    pub fn add_where_bound(
-        &mut self,
-        ty: Box<ParsedType>,
-        ast_ty: ast::Type,
-        trait_ty: Box<ParsedType>,
-        ast_trait_ty: ast::Type,
-    ) {
-        let bound = Bound {
-            ty: OnceCell::new(),
-            ast_ty: Some(ast_ty),
-            trait_ty: OnceCell::new(),
-            ast_trait_ty,
-        };
-
-        assert!(bound.ty.set(ty).is_ok());
-        assert!(bound.trait_ty.set(trait_ty).is_ok());
-        self.bounds.push(bound);
-    }
-
-    pub fn add_where_bound2(&mut self, ast_ty: ast::Type, ast_trait_ty: ast::Type) {
-        let bound = Bound {
-            ty: OnceCell::new(),
-            ast_ty: Some(ast_ty),
-            trait_ty: OnceCell::new(),
-            ast_trait_ty,
+            ty: ParsedType::new_ast(ast_ty.clone()),
+            trait_ty: ParsedType::new_ast(ast_trait_ty.clone()),
         };
 
         self.bounds.push(bound);
@@ -165,10 +119,8 @@ impl TypeParamDefinition {
 
 #[derive(Clone, Debug)]
 pub struct Bound {
-    pub ty: OnceCell<Box<ParsedType>>,
-    pub ast_ty: Option<ast::Type>,
-    pub trait_ty: OnceCell<Box<ParsedType>>,
-    pub ast_trait_ty: ast::Type,
+    pub ty: Box<ParsedType>,
+    pub trait_ty: Box<ParsedType>,
 }
 
 impl Bound {
@@ -177,7 +129,7 @@ impl Bound {
     }
 
     pub fn parsed_ty(&self) -> &ParsedType {
-        self.ty.get().expect("missing")
+        &*self.ty
     }
 
     pub fn trait_ty(&self) -> SourceType {
@@ -185,7 +137,7 @@ impl Bound {
     }
 
     pub fn parsed_trait_ty(&self) -> &ParsedType {
-        self.trait_ty.get().expect("missing")
+        &*self.trait_ty
     }
 }
 

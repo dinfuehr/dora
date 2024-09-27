@@ -1,4 +1,3 @@
-use std::cell::OnceCell;
 use std::rc::Rc;
 
 use crate::sema::{
@@ -197,13 +196,10 @@ pub fn create_lambda_class(sa: &mut Sema) {
     let field = Field {
         id: FieldId(0),
         name: context_name,
-        ty: OnceCell::new(),
+        parsed_ty: ParsedType::new_ty(SourceType::Ptr),
         mutable: false,
         visibility: Visibility::Public,
     };
-
-    let ty = ParsedType::new(SourceType::Ptr);
-    assert!(field.ty.set(ty).is_ok());
 
     let fields = vec![field];
 

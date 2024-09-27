@@ -48,7 +48,7 @@ pub fn generate_fct_id(sa: &Sema, id: FctDefinitionId) -> BytecodeFunction {
 pub fn generate_fct(sa: &Sema, fct: &FctDefinition, src: &AnalysisData) -> BytecodeFunction {
     let ast_bytecode_generator = AstBytecodeGen {
         sa,
-        type_params_len: fct.type_params().len(),
+        type_params_len: fct.type_param_definition().len(),
         is_lambda: fct.is_lambda(),
         return_type: fct.return_type(),
         file_id: fct.file_id,
@@ -3045,7 +3045,7 @@ impl<'a> AstBytecodeGen<'a> {
         call_type: &CallType,
     ) -> ConstPoolIdx {
         let type_params = self.determine_call_type_params(call_type);
-        assert_eq!(fct.type_params().len(), type_params.len());
+        assert_eq!(fct.type_param_definition().len(), type_params.len());
 
         match *call_type {
             CallType::GenericStaticMethod(id, ..) | CallType::GenericMethod(id, ..) => {

@@ -10,9 +10,9 @@ pub fn check<'a>(sa: &Sema) {
             file_id: global.file_id,
             type_param_defs: &TypeParamDefinition::new(),
         };
-        parsety::check_parsed_type2(sa, &ctxt, global.parsed_ty());
+        parsety::check_parsed_type(sa, &ctxt, global.parsed_ty());
 
-        parsety::expand_parsed_type2(
+        parsety::expand_parsed_type(
             sa,
             global.parsed_ty(),
             None,
