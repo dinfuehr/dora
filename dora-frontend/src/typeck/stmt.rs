@@ -321,7 +321,7 @@ fn check_pattern_enum(
         }
 
         let expected_types = variant
-            .types()
+            .parsed_types()
             .iter()
             .map(|t| specialize_type(ck.sa, t.ty(), &value_type_params))
             .collect::<Vec<_>>();

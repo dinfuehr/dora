@@ -83,11 +83,11 @@ pub(super) fn check_expr_call_enum_args(
     variant: &EnumVariant,
     arg_types: &[SourceType],
 ) -> bool {
-    if variant.types().len() != arg_types.len() {
+    if variant.parsed_types().len() != arg_types.len() {
         return false;
     }
 
-    for (def_ty, arg_ty) in variant.types().iter().zip(arg_types) {
+    for (def_ty, arg_ty) in variant.parsed_types().iter().zip(arg_types) {
         let def_ty = replace_type(
             sa,
             def_ty.ty(),

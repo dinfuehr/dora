@@ -1,5 +1,8 @@
 use crate::sema::{AliasParent, FctParent, Sema, SourceFileId, TypeParamDefinition, TypeParamId};
-use crate::{parsety, ErrorMessage, ModuleSymTable, SourceType, SourceTypeArray, SymbolKind};
+use crate::{
+    parsety, AliasReplacement, ErrorMessage, ModuleSymTable, SourceType, SourceTypeArray,
+    SymbolKind,
+};
 
 pub fn parse_types(sa: &Sema) {
     parse_trait_types(sa);
@@ -399,7 +402,7 @@ fn check_enum_types(sa: &Sema) {
         check_type_param_definition(sa, &ctxt, enum_.type_param_definition());
 
         for variant in enum_.variants() {
-            for parsed_ty in variant.types() {
+            for parsed_ty in variant.parsed_types() {
                 parsety::check_parsed_type(sa, &ctxt, parsed_ty);
             }
         }
@@ -468,6 +471,53 @@ fn check_type_param_definition(
     for bound in type_param_definition.bounds() {
         parsety::check_parsed_type(sa, &ctxt, bound.parsed_ty());
         parsety::check_parsed_type(sa, &ctxt, bound.parsed_trait_ty());
+    }
+}
+
+pub fn expand_types(sa: &Sema) {
+    expand_class_types(sa);
+    expand_struct_types(sa);
+    expand_enum_types(sa);
+}
+
+fn expand_class_types(sa: &Sema) {
+    for (_id, cls) in sa.classes.iter() {
+        for field in &cls.fields {
+            parsety::expand_parsed_type(
+                sa,
+                field.parsed_ty(),
+                None,
+                AliasReplacement::ReplaceWithActualType,
+            );
+        }
+    }
+}
+
+fn expand_struct_types(sa: &Sema) {
+    for (_id, struct_) in sa.structs.iter() {
+        for field in &struct_.fields {
+            parsety::expand_parsed_type(
+                sa,
+                field.parsed_ty(),
+                None,
+                AliasReplacement::ReplaceWithActualType,
+            );
+        }
+    }
+}
+
+fn expand_enum_types(sa: &Sema) {
+    for (_id, enum_) in sa.enums.iter() {
+        for variant in enum_.variants() {
+            for parsed_ty in variant.parsed_types() {
+                parsety::expand_parsed_type(
+                    sa,
+                    parsed_ty,
+                    None,
+                    AliasReplacement::ReplaceWithActualType,
+                );
+            }
+        }
     }
 }
 

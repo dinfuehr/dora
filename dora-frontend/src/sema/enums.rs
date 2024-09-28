@@ -116,7 +116,7 @@ pub struct EnumVariant {
 }
 
 impl EnumVariant {
-    pub fn types(&self) -> &Vec<ParsedType> {
+    pub fn parsed_types(&self) -> &Vec<ParsedType> {
         &self.parsed_types
     }
 }

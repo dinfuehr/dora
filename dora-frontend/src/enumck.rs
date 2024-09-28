@@ -1,21 +1,11 @@
 use crate::sema::Sema;
-use crate::{parsety, AliasReplacement};
 
 pub fn check(sa: &Sema) {
     for (_id, enum_) in sa.enums.iter() {
         let mut simple_enumeration = true;
 
         for variant in enum_.variants() {
-            for parsed_ty in variant.types() {
-                parsety::expand_parsed_type(
-                    sa,
-                    parsed_ty,
-                    None,
-                    AliasReplacement::ReplaceWithActualType,
-                );
-            }
-
-            if variant.types().len() > 0 {
+            if variant.parsed_types().len() > 0 {
                 simple_enumeration = false;
             }
         }

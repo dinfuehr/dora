@@ -70,10 +70,11 @@ pub fn check_program(sa: &mut Sema) -> bool {
     // Check types/type bounds for type params.
     typedefck::check_types(sa);
 
-    // Checks class/struct/trait/enum definitions.
     aliasck::check(sa);
-    clsdefck::check(sa);
-    structdefck::check(sa);
+
+    typedefck::expand_types(sa);
+
+    // Checks class/struct/trait/enum definitions.
     traitdefck::check(sa);
     enumck::check(sa);
     impldefck::check_type_aliases(sa);

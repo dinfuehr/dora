@@ -1373,7 +1373,7 @@ pub(super) fn check_enum_value_with_args(
         let enum_name = ck.sa.interner.str(enum_.name).to_string();
         let variant_name = ck.sa.interner.str(variant.name).to_string();
         let variant_types = variant
-            .types()
+            .parsed_types()
             .iter()
             .map(|a| a.ty().name_enum(ck.sa, &*enum_))
             .collect::<Vec<_>>();
@@ -1381,7 +1381,7 @@ pub(super) fn check_enum_value_with_args(
         let msg =
             ErrorMessage::EnumArgsIncompatible(enum_name, variant_name, variant_types, arg_types);
         ck.sa.report(ck.file_id, e.span, msg);
-    } else if variant.types().is_empty() {
+    } else if variant.parsed_types().is_empty() {
         let enum_name = ck.sa.interner.str(enum_.name).to_string();
         let variant_name = ck.sa.interner.str(variant.name).to_string();
         let msg = ErrorMessage::EnumArgsNoParens(enum_name, variant_name);
@@ -1529,11 +1529,11 @@ fn check_enum_value_without_args(
     if let Some(&value) = enum_.name_to_value().get(&interned_name) {
         let variant = &enum_.variants()[value as usize];
 
-        if !variant.types().is_empty() {
+        if !variant.parsed_types().is_empty() {
             let enum_name = ck.sa.interner.str(enum_.name).to_string();
             let variant_name = ck.sa.interner.str(variant.name).to_string();
             let variant_types = variant
-                .types()
+                .parsed_types()
                 .iter()
                 .map(|a| a.ty().name_enum(ck.sa, &*enum_))
                 .collect::<Vec<_>>();
@@ -1684,11 +1684,11 @@ pub(super) fn check_enum_value_without_args_id(
 
     let variant = &enum_.variants()[variant_idx as usize];
 
-    if !variant.types().is_empty() {
+    if !variant.parsed_types().is_empty() {
         let enum_name = ck.sa.interner.str(enum_.name).to_string();
         let variant_name = ck.sa.interner.str(variant.name).to_string();
         let variant_types = variant
-            .types()
+            .parsed_types()
             .iter()
             .map(|a| a.ty().name_enum(ck.sa, &*enum_))
             .collect::<Vec<_>>();
