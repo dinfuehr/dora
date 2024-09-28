@@ -362,7 +362,7 @@ fn check_pattern_tuple(
     let subtypes = if ty.is_unit() {
         SourceTypeArray::empty()
     } else {
-        ty.tuple_subtypes()
+        ty.tuple_subtypes().expect("tuple expected")
     };
 
     check_subpatterns(ck, ctxt, pattern, subtypes.types());

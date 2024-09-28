@@ -506,7 +506,7 @@ fn check_expr_dot_tuple(
         }
     };
 
-    let subtypes = object_type.tuple_subtypes();
+    let subtypes = object_type.tuple_subtypes().expect("tuple expected");
 
     if index >= subtypes.len() as u64 {
         let msg = ErrorMessage::IllegalTupleIndex(index, ck.ty_name(&object_type));

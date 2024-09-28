@@ -344,13 +344,10 @@ impl SourceType {
         }
     }
 
-    pub fn tuple_subtypes(&self) -> SourceTypeArray {
+    pub fn tuple_subtypes(&self) -> Option<SourceTypeArray> {
         match self {
-            SourceType::Tuple(subtypes) => subtypes.clone(),
-            _ => {
-                println!("ty = {:?}", self);
-                unreachable!()
-            }
+            SourceType::Tuple(subtypes) => Some(subtypes.clone()),
+            _ => None,
         }
     }
 

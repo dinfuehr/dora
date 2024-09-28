@@ -302,7 +302,7 @@ pub mod matching {
                     return false;
                 }
 
-                let ext_subtypes = ext_ty.tuple_subtypes();
+                let ext_subtypes = ext_ty.tuple_subtypes().expect("tuple expected");
 
                 if check_subtypes.len() != ext_subtypes.len() {
                     return false;

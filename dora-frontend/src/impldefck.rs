@@ -5,8 +5,7 @@ use crate::sema::{
     implements_trait, AliasDefinitionId, FctDefinition, FctDefinitionId, ImplDefinition, Sema,
     TraitDefinition, TypeParamId,
 };
-use crate::specialize::replace_type;
-use crate::{package_for_type, AliasReplacement, ErrorMessage, SourceType, SourceTypeArray};
+use crate::{package_for_type, ErrorMessage, SourceType, SourceTypeArray};
 
 pub fn check_definition(sa: &Sema) {
     for (_id, impl_) in sa.impls.iter() {
@@ -196,13 +195,159 @@ fn trait_and_impl_arg_ty_compatible(
     impl_arg_ty: SourceType,
     self_ty: SourceType,
 ) -> bool {
-    replace_type(
-        sa,
-        trait_arg_ty.clone(),
-        Some(&trait_type_params),
-        Some(self_ty.clone()),
-        AliasReplacement::Map(trait_alias_map),
-    ) == impl_arg_ty.clone()
+    match trait_arg_ty {
+        SourceType::Class(trait_cls_id, trait_cls_type_params) => match impl_arg_ty {
+            SourceType::Class(impl_cls_id, impl_cls_type_params) => {
+                trait_cls_id == impl_cls_id
+                    && trait_and_impl_arg_ty_compatible_array(
+                        sa,
+                        trait_cls_type_params,
+                        trait_type_params,
+                        trait_alias_map,
+                        impl_cls_type_params,
+                        self_ty,
+                    )
+            }
+
+            _ => false,
+        },
+
+        SourceType::Trait(trait_trait_id, trait_trait_type_params) => match impl_arg_ty {
+            SourceType::Trait(impl_trait_id, impl_trait_type_params) => {
+                trait_trait_id == impl_trait_id
+                    && trait_and_impl_arg_ty_compatible_array(
+                        sa,
+                        trait_trait_type_params,
+                        trait_type_params,
+                        trait_alias_map,
+                        impl_trait_type_params,
+                        self_ty,
+                    )
+            }
+
+            _ => false,
+        },
+
+        SourceType::Struct(trait_struct_id, trait_struct_type_params) => match impl_arg_ty {
+            SourceType::Struct(impl_struct_id, impl_struct_type_params) => {
+                trait_struct_id == impl_struct_id
+                    && trait_and_impl_arg_ty_compatible_array(
+                        sa,
+                        trait_struct_type_params,
+                        trait_type_params,
+                        trait_alias_map,
+                        impl_struct_type_params,
+                        self_ty,
+                    )
+            }
+
+            _ => false,
+        },
+
+        SourceType::Enum(trait_enum_id, trait_enum_type_params) => match impl_arg_ty {
+            SourceType::Enum(impl_enum_id, impl_enum_type_params) => {
+                trait_enum_id == impl_enum_id
+                    && trait_and_impl_arg_ty_compatible_array(
+                        sa,
+                        trait_enum_type_params,
+                        trait_type_params,
+                        trait_alias_map,
+                        impl_enum_type_params,
+                        self_ty,
+                    )
+            }
+
+            _ => false,
+        },
+
+        SourceType::Lambda(trait_arg_params, trait_arg_return_type) => match impl_arg_ty {
+            SourceType::Lambda(impl_arg_params, impl_arg_return_type) => {
+                trait_and_impl_arg_ty_compatible_array(
+                    sa,
+                    trait_arg_params,
+                    trait_type_params.clone(),
+                    trait_alias_map,
+                    impl_arg_params,
+                    self_ty.clone(),
+                ) && trait_and_impl_arg_ty_compatible(
+                    sa,
+                    *trait_arg_return_type,
+                    trait_type_params,
+                    trait_alias_map,
+                    *impl_arg_return_type,
+                    self_ty,
+                )
+            }
+
+            _ => false,
+        },
+
+        SourceType::Tuple(trait_tuple_subtypes) => {
+            if let Some(impl_tuple_subtypes) = impl_arg_ty.tuple_subtypes() {
+                trait_and_impl_arg_ty_compatible_array(
+                    sa,
+                    trait_tuple_subtypes,
+                    trait_type_params,
+                    trait_alias_map,
+                    impl_tuple_subtypes,
+                    self_ty,
+                )
+            } else {
+                false
+            }
+        }
+
+        SourceType::TypeAlias(id) => {
+            let ty = trait_alias_map.get(&id).expect("missing alias");
+            ty == &impl_arg_ty
+        }
+
+        SourceType::TypeParam(id) => trait_type_params[id.0] == impl_arg_ty,
+
+        SourceType::This => self_ty == impl_arg_ty,
+
+        SourceType::Unit
+        | SourceType::UInt8
+        | SourceType::Bool
+        | SourceType::Char
+        | SourceType::Int32
+        | SourceType::Int64
+        | SourceType::Float32
+        | SourceType::Float64
+        | SourceType::Error => trait_arg_ty == impl_arg_ty,
+
+        SourceType::Any | SourceType::Ptr => unreachable!(),
+    }
+}
+
+fn trait_and_impl_arg_ty_compatible_array(
+    sa: &Sema,
+    trait_arg_types: SourceTypeArray,
+    trait_type_params: SourceTypeArray,
+    trait_alias_map: &HashMap<AliasDefinitionId, SourceType>,
+    impl_arg_types: SourceTypeArray,
+    self_ty: SourceType,
+) -> bool {
+    if trait_arg_types.len() != impl_arg_types.len() {
+        return false;
+    }
+
+    for (trait_tuple_subtype, impl_tuple_subtype) in
+        trait_arg_types.iter().zip(impl_arg_types.iter())
+    {
+        if !trait_and_impl_arg_ty_compatible(
+            sa,
+            trait_tuple_subtype,
+            trait_type_params.clone(),
+            trait_alias_map,
+            impl_tuple_subtype,
+            self_ty.clone(),
+        ) {
+            return false;
+        }
+    }
+
+    true
 }
 
 fn report_missing_methods(

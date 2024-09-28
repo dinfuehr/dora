@@ -809,7 +809,7 @@ impl<'a> AstBytecodeGen<'a> {
         if ty.is_unit() {
             assert!(subpatterns.is_empty());
         } else {
-            let tuple_subtypes = ty.tuple_subtypes();
+            let tuple_subtypes = ty.tuple_subtypes().expect("tuple expected");
 
             iterate_subpatterns(pattern, tuple_subtypes.len(), |idx, subpattern| {
                 let subtype = tuple_subtypes[idx].clone();
@@ -1482,7 +1482,7 @@ impl<'a> AstBytecodeGen<'a> {
             .expect("integer expected");
         let idx: u32 = value_i64.try_into().expect("too large");
 
-        let subtypes: SourceTypeArray = tuple_ty.tuple_subtypes();
+        let subtypes: SourceTypeArray = tuple_ty.tuple_subtypes().expect("tuple expected");
         let ty = subtypes[idx as usize].clone();
 
         let ty: BytecodeType = register_bty_from_ty(ty);
@@ -2109,7 +2109,7 @@ impl<'a> AstBytecodeGen<'a> {
             self.builder.emit_push_register(value);
         }
 
-        let subtypes = ty.tuple_subtypes();
+        let subtypes = ty.tuple_subtypes().expect("tuple expected");
         let idx = self.builder.add_const_tuple(bty_array_from_ty(&subtypes));
         self.builder.emit_new_tuple(result, idx, self.loc(e.span));
 

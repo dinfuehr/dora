@@ -1,6 +1,4 @@
-use std::collections::HashMap;
-
-use crate::sema::{create_tuple, AliasDefinitionId, AliasParent, Sema, TraitDefinitionId};
+use crate::sema::{create_tuple, AliasParent, Sema, TraitDefinitionId};
 use crate::{SourceType, SourceTypeArray};
 
 pub fn specialize_type(sa: &Sema, ty: SourceType, type_params: &SourceTypeArray) -> SourceType {
@@ -8,9 +6,8 @@ pub fn specialize_type(sa: &Sema, ty: SourceType, type_params: &SourceTypeArray)
 }
 
 #[derive(Clone)]
-pub enum AliasReplacement<'a> {
+pub enum AliasReplacement {
     None,
-    Map(&'a HashMap<AliasDefinitionId, SourceType>),
     ReplaceWithActualType,
     ReplaceWithActualTypeKeepTrait(TraitDefinitionId),
 }
@@ -120,7 +117,6 @@ pub fn replace_type(
 
         SourceType::TypeAlias(id) => match alias_map {
             AliasReplacement::None => ty,
-            AliasReplacement::Map(map) => map.get(&id).cloned().unwrap_or(SourceType::Error),
             AliasReplacement::ReplaceWithActualType => sa.alias(id).ty(),
             AliasReplacement::ReplaceWithActualTypeKeepTrait(trait_id) => {
                 let alias = sa.alias(id);
