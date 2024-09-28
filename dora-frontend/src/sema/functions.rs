@@ -319,13 +319,6 @@ impl Param {
         }
     }
 
-    pub fn new_uninitialized() -> Param {
-        Param {
-            parsed_ty: ParsedType::new_uninit(),
-            ast: None,
-        }
-    }
-
     pub fn new_ty(ty: SourceType) -> Param {
         Param {
             ast: None,

@@ -18,7 +18,7 @@ use crate::sema::{
 };
 use crate::sym::{SymTable, Symbol, SymbolKind};
 use crate::STDLIB;
-use crate::{report_sym_shadow_span, ParsedType};
+use crate::{report_sym_shadow_span, ParsedType, SourceType};
 use dora_parser::ast::visit::Visitor;
 use dora_parser::ast::{self, visit, ModifierList};
 use dora_parser::parser::Parser;
@@ -1443,7 +1443,7 @@ fn parse_function_params(
     match parent {
         FctParent::Impl(..) | FctParent::Extension(..) | FctParent::Trait(..) => {
             if !modifiers.is_static {
-                params.push(Param::new_uninitialized());
+                params.push(Param::new_ty(SourceType::This));
             }
         }
 

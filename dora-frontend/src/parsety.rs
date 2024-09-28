@@ -26,14 +26,6 @@ impl ParsedType {
         }
     }
 
-    pub fn new_uninit() -> ParsedType {
-        ParsedType {
-            node: None,
-            ast: OnceCell::new(),
-            ty: RefCell::new(None),
-        }
-    }
-
     pub fn new_maybe_ast(node: Option<ast::Type>) -> ParsedType {
         ParsedType {
             node,
@@ -72,22 +64,6 @@ impl ParsedType {
 
     pub fn set_ty(&self, ty: SourceType) {
         *self.ty.borrow_mut() = Some(ty);
-    }
-
-    pub fn is_trait(&self) -> bool {
-        let ast = self.ast().expect("missing ast");
-        match &ast.kind {
-            ParsedTypeKind::Regular { symbol, .. } => symbol.is_trait(),
-            _ => false,
-        }
-    }
-
-    pub fn is_error(&self) -> bool {
-        let ast = self.ast().expect("missing ast");
-        match &ast.kind {
-            ParsedTypeKind::Error => true,
-            _ => false,
-        }
     }
 }
 

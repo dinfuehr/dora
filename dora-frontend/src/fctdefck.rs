@@ -1,36 +1,8 @@
-use crate::sema::{FctDefinition, FctParent, Sema};
-use crate::{ErrorMessage, SourceType};
+use crate::sema::{FctDefinition, Sema};
+use crate::ErrorMessage;
 
 pub fn check(sa: &Sema) {
     for (_id, fct) in sa.fcts.iter() {
-        match fct.parent {
-            FctParent::Impl(impl_id) => {
-                let impl_ = sa.impl_(impl_id);
-
-                if let Some(self_param) = fct.self_param() {
-                    self_param.set_ty(impl_.extended_ty());
-                }
-            }
-
-            FctParent::Extension(extension_id) => {
-                let extension = sa.extension(extension_id);
-
-                if let Some(self_param) = fct.self_param() {
-                    self_param.set_ty(extension.ty());
-                }
-            }
-
-            FctParent::Trait(..) => {
-                if let Some(self_param) = fct.self_param() {
-                    self_param.set_ty(SourceType::This);
-                }
-            }
-
-            FctParent::None => {}
-
-            FctParent::Function => unreachable!(),
-        }
-
         for p in fct.params_without_self() {
             let ast_node = p.ast.as_ref().expect("missing ast");
 

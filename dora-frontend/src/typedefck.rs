@@ -46,7 +46,7 @@ fn parse_alias_types(sa: &Sema) {
                     parsety::parse_parsed_type(sa, &table, alias.file_id, bound.parsed_ty());
                     parsety::convert_parsed_type(sa, bound.parsed_ty());
 
-                    if !bound.parsed_ty().is_trait() && !bound.parsed_ty().is_error() {
+                    if !bound.ty().is_trait() && !bound.ty().is_error() {
                         let msg = ErrorMessage::BoundExpected;
                         sa.report(alias.file_id, bound.ty_ast.span(), msg);
                     }
@@ -302,7 +302,7 @@ fn read_type_param_definition(
         parsety::parse_parsed_type(sa, &symtable, file_id, bound.parsed_trait_ty());
         parsety::convert_parsed_type(sa, bound.parsed_trait_ty());
 
-        if !bound.parsed_trait_ty().is_trait() && !bound.parsed_trait_ty().is_error() {
+        if !bound.trait_ty().is_trait() && !bound.trait_ty().is_error() {
             let msg = ErrorMessage::BoundExpected;
             sa.report(file_id, bound.parsed_trait_ty().span(), msg);
         }
@@ -312,6 +312,7 @@ fn read_type_param_definition(
 pub fn check_types(sa: &Sema) {
     check_trait_types(sa);
     check_impl_types(sa);
+    check_alias_types(sa);
     check_struct_types(sa);
     check_class_types(sa);
     check_enum_types(sa);
@@ -319,6 +320,34 @@ pub fn check_types(sa: &Sema) {
     check_fct_types(sa);
     check_global_types(sa);
     check_const_types(sa);
+}
+
+fn check_alias_types(sa: &Sema) {
+    for (_id, alias) in sa.aliases.iter() {
+        if alias.parsed_ty().has_node() {
+            let type_param_definition = match alias.parent {
+                AliasParent::None => &TypeParamDefinition::new(),
+
+                AliasParent::Impl(impl_id) => {
+                    let impl_ = sa.impl_(impl_id);
+                    impl_.type_param_definition()
+                }
+
+                AliasParent::Trait(id) => {
+                    let trait_ = sa.trait_(id);
+                    trait_.type_param_definition()
+                }
+            };
+
+            let ctxt = parsety::TypeContext {
+                allow_self: false,
+                module_id: alias.module_id,
+                file_id: alias.file_id,
+                type_param_defs: type_param_definition,
+            };
+            parsety::check_parsed_type(sa, &ctxt, alias.parsed_ty());
+        }
+    }
 }
 
 fn check_const_types(sa: &Sema) {
@@ -556,7 +585,7 @@ fn expand_extension_types(sa: &Sema) {
 
 fn expand_function_types(sa: &Sema) {
     for (_id, fct) in sa.fcts.iter() {
-        for p in fct.params_without_self() {
+        for p in fct.params_with_self() {
             expand_function_type(sa, fct, p.parsed_ty());
         }
 

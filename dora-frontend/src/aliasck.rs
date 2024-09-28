@@ -1,34 +1,13 @@
 use std::collections::{HashMap, HashSet};
 
-use crate::sema::{AliasDefinitionId, AliasParent, TypeParamDefinition};
-use crate::{parsety, ErrorMessage, Sema, SourceType, SourceTypeArray};
+use crate::sema::{AliasDefinitionId, AliasParent};
+use crate::{ErrorMessage, Sema, SourceType, SourceTypeArray};
 
 pub fn check(sa: &Sema) {
     let mut alias_types: HashMap<AliasDefinitionId, SourceType> = HashMap::new();
 
     for (id, alias) in sa.aliases.iter() {
         if alias.parsed_ty().has_node() {
-            let type_param_definition = match alias.parent {
-                AliasParent::None => &TypeParamDefinition::new(),
-
-                AliasParent::Impl(impl_id) => {
-                    let impl_ = sa.impl_(impl_id);
-                    impl_.type_param_definition()
-                }
-
-                AliasParent::Trait(id) => {
-                    let trait_ = sa.trait_(id);
-                    trait_.type_param_definition()
-                }
-            };
-
-            let ctxt = parsety::TypeContext {
-                allow_self: false,
-                module_id: alias.module_id,
-                file_id: alias.file_id,
-                type_param_defs: type_param_definition,
-            };
-            parsety::check_parsed_type(sa, &ctxt, alias.parsed_ty());
             assert!(alias_types.insert(id, alias.parsed_ty().ty()).is_none());
         }
     }
