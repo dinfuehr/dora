@@ -36,7 +36,7 @@ pub struct FctDefinition {
     pub is_force_inline: bool,
     pub is_never_inline: bool,
     pub params: Vec<Param>,
-    pub return_type: Box<ParsedType>,
+    pub return_type: ParsedType,
     pub is_variadic: Cell<bool>,
 
     pub vtable_index: OnceCell<u32>,
@@ -308,7 +308,7 @@ impl FctParent {
 #[derive(Debug, Clone)]
 pub struct Param {
     pub ast: Option<Arc<ast::Param>>,
-    pub parsed_ty: Box<ParsedType>,
+    pub parsed_ty: ParsedType,
 }
 
 impl Param {

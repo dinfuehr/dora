@@ -200,7 +200,7 @@ impl From<usize> for FieldId {
 pub struct Field {
     pub id: FieldId,
     pub name: Name,
-    pub parsed_ty: Box<ParsedType>,
+    pub parsed_ty: ParsedType,
     pub mutable: bool,
     pub visibility: Visibility,
 }

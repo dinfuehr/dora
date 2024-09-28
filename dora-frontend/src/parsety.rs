@@ -18,36 +18,36 @@ pub struct ParsedType {
 }
 
 impl ParsedType {
-    pub fn new_ty(ty: SourceType) -> Box<ParsedType> {
-        Box::new(ParsedType {
+    pub fn new_ty(ty: SourceType) -> ParsedType {
+        ParsedType {
             node: None,
             ast: OnceCell::new(),
             ty: RefCell::new(Some(ty)),
-        })
+        }
     }
 
-    pub fn new_uninit() -> Box<ParsedType> {
-        Box::new(ParsedType {
+    pub fn new_uninit() -> ParsedType {
+        ParsedType {
             node: None,
             ast: OnceCell::new(),
             ty: RefCell::new(None),
-        })
+        }
     }
 
-    pub fn new_maybe_ast(node: Option<ast::Type>) -> Box<ParsedType> {
-        Box::new(ParsedType {
+    pub fn new_maybe_ast(node: Option<ast::Type>) -> ParsedType {
+        ParsedType {
             node,
             ast: OnceCell::new(),
             ty: RefCell::new(None),
-        })
+        }
     }
 
-    pub fn new_ast(ast: ast::Type) -> Box<ParsedType> {
-        Box::new(ParsedType {
+    pub fn new_ast(ast: ast::Type) -> ParsedType {
+        ParsedType {
             node: Some(ast),
             ast: OnceCell::new(),
             ty: RefCell::new(None),
-        })
+        }
     }
 
     pub fn has_node(&self) -> bool {

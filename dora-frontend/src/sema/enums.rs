@@ -112,11 +112,11 @@ impl EnumDefinition {
 pub struct EnumVariant {
     pub id: u32,
     pub name: Name,
-    pub parsed_types: Vec<Box<ParsedType>>,
+    pub parsed_types: Vec<ParsedType>,
 }
 
 impl EnumVariant {
-    pub fn types(&self) -> &Vec<Box<ParsedType>> {
+    pub fn types(&self) -> &Vec<ParsedType> {
         &self.parsed_types
     }
 }

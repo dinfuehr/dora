@@ -25,7 +25,7 @@ pub struct ExtensionDefinition {
     pub ast: Arc<ast::Impl>,
     pub span: Span,
     pub type_params: TypeParamDefinition,
-    pub parsed_ty: Box<ParsedType>,
+    pub parsed_ty: ParsedType,
     pub methods: OnceCell<Vec<FctDefinitionId>>,
     pub instance_names: RefCell<HashMap<Name, FctDefinitionId>>,
     pub static_names: RefCell<HashMap<Name, FctDefinitionId>>,

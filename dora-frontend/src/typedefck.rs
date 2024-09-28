@@ -289,7 +289,7 @@ fn read_type_param_definition(
     }
 
     for bound in type_param_definition.bounds() {
-        if bound.ty.has_node() {
+        if bound.parsed_ty().has_node() {
             parsety::parse_parsed_type(sa, &symtable, file_id, bound.parsed_ty());
             parsety::convert_parsed_type(sa, bound.parsed_ty());
         }
@@ -312,6 +312,32 @@ pub fn check_types(sa: &Sema) {
     check_enum_types(sa);
     check_extension_types(sa);
     check_fct_types(sa);
+    check_global_types(sa);
+    check_const_types(sa);
+}
+
+fn check_const_types(sa: &Sema) {
+    for (_id, const_) in sa.consts.iter() {
+        let ctxt = parsety::TypeContext {
+            allow_self: false,
+            module_id: const_.module_id,
+            file_id: const_.file_id,
+            type_param_defs: &TypeParamDefinition::new(),
+        };
+        parsety::check_parsed_type(sa, &ctxt, const_.parsed_ty());
+    }
+}
+
+fn check_global_types(sa: &Sema) {
+    for (_id, global) in sa.globals.iter() {
+        let ctxt = parsety::TypeContext {
+            allow_self: false,
+            module_id: global.module_id,
+            file_id: global.file_id,
+            type_param_defs: &TypeParamDefinition::new(),
+        };
+        parsety::check_parsed_type(sa, &ctxt, global.parsed_ty());
+    }
 }
 
 fn check_trait_types(sa: &Sema) {

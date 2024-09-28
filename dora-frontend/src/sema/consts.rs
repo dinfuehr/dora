@@ -25,7 +25,7 @@ pub struct ConstDefinition {
     pub visibility: Visibility,
     pub span: Span,
     pub name: Name,
-    pub parsed_ty: Box<ParsedType>,
+    pub parsed_ty: ParsedType,
     pub expr: ast::Expr,
     pub value: OnceCell<ConstValue>,
 }

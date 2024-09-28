@@ -27,7 +27,7 @@ pub struct AliasDefinition {
     pub node: Arc<ast::TypeAlias>,
     pub modifiers: ParsedModifierList,
     pub name: Name,
-    pub parsed_ty: Box<ParsedType>,
+    pub parsed_ty: ParsedType,
     pub ty: OnceCell<SourceType>,
     pub bounds: Vec<AliasBound>,
     pub visibility: Visibility,
@@ -75,7 +75,7 @@ impl AliasDefinition {
 
 pub struct AliasBound {
     pub ty_ast: ast::Type,
-    pub parsed_ty: Box<ParsedType>,
+    pub parsed_ty: ParsedType,
 }
 
 impl AliasBound {

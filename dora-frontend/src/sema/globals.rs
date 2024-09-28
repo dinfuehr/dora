@@ -25,7 +25,7 @@ pub struct GlobalDefinition {
     pub ast: Arc<ast::Global>,
     pub span: Span,
     pub visibility: Visibility,
-    pub parsed_ty: Box<ParsedType>,
+    pub parsed_ty: ParsedType,
     pub mutable: bool,
     pub name: Name,
     pub initializer: OnceCell<FctDefinitionId>,

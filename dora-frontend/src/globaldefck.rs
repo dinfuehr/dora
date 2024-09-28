@@ -1,17 +1,9 @@
 use crate::error::msg::ErrorMessage;
-use crate::sema::{Sema, TypeParamDefinition};
+use crate::sema::Sema;
 use crate::{parsety, AliasReplacement};
 
 pub fn check<'a>(sa: &Sema) {
     for (_id, global) in sa.globals.iter() {
-        let ctxt = parsety::TypeContext {
-            allow_self: false,
-            module_id: global.module_id,
-            file_id: global.file_id,
-            type_param_defs: &TypeParamDefinition::new(),
-        };
-        parsety::check_parsed_type(sa, &ctxt, global.parsed_ty());
-
         parsety::expand_parsed_type(
             sa,
             global.parsed_ty(),

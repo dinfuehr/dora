@@ -59,19 +59,19 @@ impl TypeParamDefinition {
     }
 
     pub fn add_bound(&mut self, id: TypeParamId, ast_trait_ty: ast::Type) {
-        let bound = Bound {
-            ty: ParsedType::new_ty(SourceType::TypeParam(id)),
-            trait_ty: ParsedType::new_ast(ast_trait_ty.clone()),
-        };
+        let bound = Bound::new(
+            ParsedType::new_ty(SourceType::TypeParam(id)),
+            ParsedType::new_ast(ast_trait_ty.clone()),
+        );
 
         self.bounds.push(bound);
     }
 
     pub fn add_where_bound(&mut self, ast_ty: ast::Type, ast_trait_ty: ast::Type) {
-        let bound = Bound {
-            ty: ParsedType::new_ast(ast_ty.clone()),
-            trait_ty: ParsedType::new_ast(ast_trait_ty.clone()),
-        };
+        let bound = Bound::new(
+            ParsedType::new_ast(ast_ty.clone()),
+            ParsedType::new_ast(ast_trait_ty.clone()),
+        );
 
         self.bounds.push(bound);
     }
@@ -119,17 +119,24 @@ impl TypeParamDefinition {
 
 #[derive(Clone, Debug)]
 pub struct Bound {
-    pub ty: Box<ParsedType>,
-    pub trait_ty: Box<ParsedType>,
+    parsed_ty: ParsedType,
+    parsed_trait_ty: ParsedType,
 }
 
 impl Bound {
+    pub fn new(parsed_ty: ParsedType, parsed_trait_ty: ParsedType) -> Bound {
+        Bound {
+            parsed_ty,
+            parsed_trait_ty,
+        }
+    }
+
     pub fn ty(&self) -> SourceType {
         self.parsed_ty().ty()
     }
 
     pub fn parsed_ty(&self) -> &ParsedType {
-        &*self.ty
+        &self.parsed_ty
     }
 
     pub fn trait_ty(&self) -> SourceType {
@@ -137,7 +144,7 @@ impl Bound {
     }
 
     pub fn parsed_trait_ty(&self) -> &ParsedType {
-        &*self.trait_ty
+        &self.parsed_trait_ty
     }
 }
 
