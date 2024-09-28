@@ -616,10 +616,7 @@ fn expand_function_type(sa: &Sema, fct: &FctDefinition, parsed_ty: &ParsedType) 
             )
         }
 
-        FctParent::Trait(trait_id) => (
-            None,
-            AliasReplacement::ReplaceWithActualTypeKeepTrait(trait_id),
-        ),
+        FctParent::Trait(..) => (None, AliasReplacement::ReplaceWithActualType),
 
         FctParent::Function => unreachable!(),
     };

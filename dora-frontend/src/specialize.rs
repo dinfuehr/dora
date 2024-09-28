@@ -1,4 +1,4 @@
-use crate::sema::{create_tuple, AliasParent, Sema, TraitDefinitionId};
+use crate::sema::{create_tuple, AliasParent, Sema};
 use crate::{SourceType, SourceTypeArray};
 
 pub fn specialize_type(sa: &Sema, ty: SourceType, type_params: &SourceTypeArray) -> SourceType {
@@ -9,7 +9,6 @@ pub fn specialize_type(sa: &Sema, ty: SourceType, type_params: &SourceTypeArray)
 pub enum AliasReplacement {
     None,
     ReplaceWithActualType,
-    ReplaceWithActualTypeKeepTrait(TraitDefinitionId),
 }
 
 pub fn replace_type(
@@ -117,11 +116,9 @@ pub fn replace_type(
 
         SourceType::TypeAlias(id) => match alias_map {
             AliasReplacement::None => ty,
-            AliasReplacement::ReplaceWithActualType => sa.alias(id).ty(),
-            AliasReplacement::ReplaceWithActualTypeKeepTrait(trait_id) => {
+            AliasReplacement::ReplaceWithActualType => {
                 let alias = sa.alias(id);
-                if let AliasParent::Trait(alias_trait_id) = alias.parent {
-                    assert_eq!(alias_trait_id, trait_id);
+                if let AliasParent::Trait(..) = alias.parent {
                     ty
                 } else {
                     alias.ty()
