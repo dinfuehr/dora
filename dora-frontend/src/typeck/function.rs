@@ -360,8 +360,9 @@ impl<'a> TypeCheck<'a> {
         self.vars.add_var(name, hidden_self_ty, false);
     }
 
-    pub(super) fn read_type(&mut self, t: &ast::TypeData) -> SourceType {
-        let parsed_ty = parsety::parse_type(self.sa, &self.symtable, self.file_id, t);
+    pub(super) fn read_type(&mut self, t: &ast::Type) -> SourceType {
+        let parsed_ty = ParsedType::new_ast(t.clone());
+        parsety::parse_parsed_type(self.sa, &self.symtable, self.file_id, &parsed_ty);
         parsety::convert_parsed_type(self.sa, &parsed_ty);
 
         let ctxt = parsety::TypeContext {

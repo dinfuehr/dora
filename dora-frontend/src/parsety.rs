@@ -120,22 +120,6 @@ pub enum ParsedTypeKind {
     Error,
 }
 
-pub fn parse_type(
-    sa: &Sema,
-    table: &ModuleSymTable,
-    file_id: SourceFileId,
-    t: &ast::TypeData,
-) -> Box<ParsedType> {
-    let cell = OnceCell::new();
-    let ast = parse_type_inner(sa, table, file_id, t);
-    assert!(cell.set(ast).is_ok());
-    Box::new(ParsedType {
-        node: None,
-        ast: cell,
-        ty: RefCell::new(None),
-    })
-}
-
 pub fn parse_parsed_type(
     sa: &Sema,
     table: &ModuleSymTable,

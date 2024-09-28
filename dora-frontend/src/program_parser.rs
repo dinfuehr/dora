@@ -784,10 +784,18 @@ impl<'x> visit::Visitor for TopLevelDeclaration<'x> {
                 .interner
                 .intern(&value.name.as_ref().expect("missing name").name_as_string);
 
+            let mut parsed_types = Vec::new();
+
+            if let Some(ref types) = value.types {
+                for arg in types {
+                    parsed_types.push(ParsedType::new_ast(arg.clone()));
+                }
+            }
+
             let variant = EnumVariant {
                 id: next_variant_id,
                 name: name,
-                types: OnceCell::new(),
+                parsed_types,
             };
 
             variants.push(variant);

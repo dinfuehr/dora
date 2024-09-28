@@ -75,14 +75,14 @@ impl AliasDefinition {
 
 pub struct AliasBound {
     pub ty_ast: ast::Type,
-    pub ty: OnceCell<Box<ParsedType>>,
+    pub parsed_ty: Box<ParsedType>,
 }
 
 impl AliasBound {
     pub fn new(ast: ast::Type) -> AliasBound {
         AliasBound {
-            ty_ast: ast,
-            ty: OnceCell::new(),
+            ty_ast: ast.clone(),
+            parsed_ty: ParsedType::new_ast(ast),
         }
     }
 
@@ -91,6 +91,6 @@ impl AliasBound {
     }
 
     pub fn parsed_ty(&self) -> &ParsedType {
-        self.ty.get().expect("missing type")
+        &self.parsed_ty
     }
 }

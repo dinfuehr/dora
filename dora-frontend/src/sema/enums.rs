@@ -112,11 +112,11 @@ impl EnumDefinition {
 pub struct EnumVariant {
     pub id: u32,
     pub name: Name,
-    pub types: OnceCell<Vec<Box<ParsedType>>>,
+    pub parsed_types: Vec<Box<ParsedType>>,
 }
 
 impl EnumVariant {
     pub fn types(&self) -> &Vec<Box<ParsedType>> {
-        self.types.get().expect("missing types")
+        &self.parsed_types
     }
 }

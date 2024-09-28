@@ -38,10 +38,8 @@ fn parse_alias_types(sa: &Sema) {
                 }
 
                 for bound in &alias.bounds {
-                    let parsed_trait_ty =
-                        parsety::parse_type(sa, &table, alias.file_id, &bound.ty_ast);
-                    parsety::convert_parsed_type(sa, &parsed_trait_ty);
-                    assert!(bound.ty.set(parsed_trait_ty).is_ok());
+                    parsety::parse_parsed_type(sa, &table, alias.file_id, bound.parsed_ty());
+                    parsety::convert_parsed_type(sa, bound.parsed_ty());
 
                     if !bound.parsed_ty().is_trait() && !bound.parsed_ty().is_error() {
                         let msg = ErrorMessage::BoundExpected;
@@ -162,19 +160,11 @@ fn parse_enum_types(sa: &Sema) {
             enum_.file_id,
         );
 
-        assert_eq!(enum_.variants.len(), enum_.ast.variants.len());
-
-        for (variant, ast) in enum_.variants.iter().zip(enum_.ast.variants.iter()) {
-            let mut parsed_types = Vec::new();
-            if let Some(ref ast_variant_types) = ast.types {
-                for ast_ty in ast_variant_types {
-                    let ty = parsety::parse_type(sa, &symtable, enum_.file_id, ast_ty);
-                    parsety::convert_parsed_type(sa, &ty);
-
-                    parsed_types.push(ty);
-                }
+        for variant in &enum_.variants {
+            for parsed_ty in &variant.parsed_types {
+                parsety::parse_parsed_type(sa, &symtable, enum_.file_id, parsed_ty);
+                parsety::convert_parsed_type(sa, parsed_ty);
             }
-            assert!(variant.types.set(parsed_types).is_ok());
         }
 
         symtable.pop_level();
