@@ -11,8 +11,8 @@ edition = "2021"
 [dependencies]
 dora-parser = { path = "../dora-parser", version = "0.0.2" }
 dora-frontend = { path = "../dora-frontend", version = "0.0.2" }
-lsp-server = "*"
-lsp-types = "*"
+lsp-server = "0.7.2"
+lsp-types = "0.94.0"
 serde_json = "*"
 serde = "*"
 threadpool = "*"
