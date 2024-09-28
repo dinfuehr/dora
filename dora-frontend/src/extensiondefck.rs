@@ -501,4 +501,16 @@ mod tests {
             ErrorMessage::ExpectedExtensionType,
         )
     }
+
+    #[test]
+    fn extension_self_in_extended_ty() {
+        err(
+            "
+            struct Foo[T](value: T)
+            impl Foo[Self] {}
+        ",
+            (3, 22),
+            ErrorMessage::SelfTypeUnavailable,
+        )
+    }
 }

@@ -22,7 +22,7 @@ use crate::typeck::{
     is_simple_enum, TypeCheck,
 };
 use crate::typeparamck::{self, ErrorReporting};
-use crate::{replace_type, AliasReplacement, SourceType, SourceTypeArray, SymbolKind};
+use crate::{replace_type, SourceType, SourceTypeArray, SymbolKind};
 
 pub(super) fn check_expr(
     ck: &mut TypeCheck,
@@ -333,13 +333,7 @@ fn check_expr_assign_field(ck: &mut TypeCheck, e: &ast::ExprBinType) {
 
             let class_type_params = cls_ty.type_params();
 
-            let fty = replace_type(
-                ck.sa,
-                field.ty(),
-                Some(&class_type_params),
-                None,
-                AliasReplacement::None,
-            );
+            let fty = replace_type(ck.sa, field.ty(), Some(&class_type_params), None);
 
             if !e.initializer && !field.mutable {
                 ck.sa
@@ -419,13 +413,7 @@ pub(super) fn check_expr_dot(
 
             let field = &struct_.fields[field_id.to_usize()];
             let struct_type_params = object_type.type_params();
-            let fty = replace_type(
-                ck.sa,
-                field.ty(),
-                Some(&struct_type_params),
-                None,
-                AliasReplacement::None,
-            );
+            let fty = replace_type(ck.sa, field.ty(), Some(&struct_type_params), None);
 
             if !struct_field_accessible_from(ck.sa, struct_id, field_id, ck.module_id) {
                 let msg = ErrorMessage::NotAccessible;
@@ -448,13 +436,7 @@ pub(super) fn check_expr_dot(
             let cls = ck.sa.class(cls_id);
             let field = &cls.fields[field_id];
             let class_type_params = cls_ty.type_params();
-            let fty = replace_type(
-                ck.sa,
-                field.ty(),
-                Some(&class_type_params),
-                None,
-                AliasReplacement::None,
-            );
+            let fty = replace_type(ck.sa, field.ty(), Some(&class_type_params), None);
 
             if !class_field_accessible_from(ck.sa, cls_id, field_id, ck.module_id) {
                 let msg = ErrorMessage::NotAccessible;
@@ -848,7 +830,6 @@ fn check_expr_un_trait(
             return_type,
             Some(&SourceTypeArray::empty()),
             Some(ty.clone()),
-            AliasReplacement::None,
         );
 
         ck.analysis.set_ty(e.id, return_type.clone());
@@ -1061,13 +1042,7 @@ fn check_expr_bin_trait(
         assert_eq!(params.len(), 1);
 
         let param = params[0].ty();
-        let param = replace_type(
-            ck.sa,
-            param,
-            Some(&type_params),
-            None,
-            AliasReplacement::None,
-        );
+        let param = replace_type(ck.sa, param, Some(&type_params), None);
 
         if !param.allows(ck.sa, rhs_type.clone()) {
             let lhs_type = ck.ty_name(&lhs_type);
@@ -1109,7 +1084,6 @@ fn check_expr_bin_trait(
             param,
             Some(&SourceTypeArray::empty()),
             Some(lhs_type.clone()),
-            AliasReplacement::None,
         );
 
         if !param.allows(ck.sa, rhs_type.clone()) {
@@ -1126,7 +1100,6 @@ fn check_expr_bin_trait(
             return_type,
             Some(&SourceTypeArray::empty()),
             Some(lhs_type.clone()),
-            AliasReplacement::None,
         );
 
         ck.analysis.set_ty(e.id, return_type.clone());

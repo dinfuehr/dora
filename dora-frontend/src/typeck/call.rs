@@ -19,7 +19,7 @@ use crate::typeck::{
     find_method_call_candidates, read_path_expr, MethodLookup, TypeCheck,
 };
 use crate::typeparamck::{self, ErrorReporting};
-use crate::{specialize_type, AliasReplacement, ErrorMessage, SourceType, SourceTypeArray};
+use crate::{specialize_type, ErrorMessage, SourceType, SourceTypeArray};
 
 pub(super) fn check_expr_call(
     ck: &mut TypeCheck,
@@ -88,13 +88,7 @@ pub(super) fn check_expr_call_enum_args(
     }
 
     for (def_ty, arg_ty) in variant.parsed_types().iter().zip(arg_types) {
-        let def_ty = replace_type(
-            sa,
-            def_ty.ty(),
-            Some(&type_params),
-            None,
-            AliasReplacement::None,
-        );
+        let def_ty = replace_type(sa, def_ty.ty(), Some(&type_params), None);
 
         if !def_ty.allows(sa, arg_ty.clone()) {
             return false;
@@ -176,7 +170,6 @@ fn check_expr_call_generic_static_method(
         trait_method.return_type(),
         Some(&trait_ty.type_params()),
         Some(tp),
-        AliasReplacement::None,
     );
 
     ck.analysis.set_ty(e.id, return_type.clone());
@@ -446,13 +439,7 @@ fn check_expr_call_field(
 
             let field = &struct_.fields[field_id.to_usize()];
             let struct_type_params = object_type.type_params();
-            let field_type = replace_type(
-                ck.sa,
-                field.ty(),
-                Some(&struct_type_params),
-                None,
-                AliasReplacement::None,
-            );
+            let field_type = replace_type(ck.sa, field.ty(), Some(&struct_type_params), None);
 
             if !struct_field_accessible_from(ck.sa, struct_id, field_id, ck.module_id) {
                 let msg = ErrorMessage::NotAccessible;
@@ -549,13 +536,7 @@ fn check_expr_call_struct_args(
     }
 
     for (def_ty, arg_ty) in struct_.fields.iter().zip(arg_types) {
-        let def_ty = replace_type(
-            sa,
-            def_ty.ty(),
-            Some(&type_params),
-            None,
-            AliasReplacement::None,
-        );
+        let def_ty = replace_type(sa, def_ty.ty(), Some(&type_params), None);
 
         if !def_ty.allows(sa, arg_ty.clone()) {
             return false;
@@ -576,13 +557,7 @@ fn check_expr_call_class_args(
     }
 
     for (def_ty, arg_ty) in cls.fields.iter().zip(arg_types) {
-        let def_ty = replace_type(
-            sa,
-            def_ty.ty(),
-            Some(&type_params),
-            None,
-            AliasReplacement::None,
-        );
+        let def_ty = replace_type(sa, def_ty.ty(), Some(&type_params), None);
 
         if !def_ty.allows(sa, arg_ty.clone()) {
             return false;
@@ -697,7 +672,6 @@ fn check_expr_call_generic_type_param(
             return_type,
             Some(&trait_ty.type_params()),
             Some(object_type.clone()),
-            AliasReplacement::None,
         );
 
         ck.analysis.set_ty(e.id, return_type.clone());
@@ -1041,13 +1015,7 @@ pub(super) fn lookup_method(
         let type_params = container_type_params.connect(fct_type_params);
 
         if args_compatible_fct(sa, method, args, &type_params, None) {
-            let cmp_type = replace_type(
-                sa,
-                method.return_type(),
-                Some(&type_params),
-                None,
-                AliasReplacement::None,
-            );
+            let cmp_type = replace_type(sa, method.return_type(), Some(&type_params), None);
 
             return Some(MethodDescriptor {
                 fct_id: method_id,

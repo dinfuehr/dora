@@ -1,14 +1,8 @@
-use crate::sema::{create_tuple, AliasParent, Sema};
+use crate::sema::Sema;
 use crate::{SourceType, SourceTypeArray};
 
 pub fn specialize_type(sa: &Sema, ty: SourceType, type_params: &SourceTypeArray) -> SourceType {
-    replace_type(sa, ty, Some(type_params), None, AliasReplacement::None)
-}
-
-#[derive(Clone)]
-pub enum AliasReplacement {
-    None,
-    ReplaceWithActualType,
+    replace_type(sa, ty, Some(type_params), None)
 }
 
 pub fn replace_type(
@@ -16,58 +10,35 @@ pub fn replace_type(
     ty: SourceType,
     type_params: Option<&SourceTypeArray>,
     self_ty: Option<SourceType>,
-    alias_map: AliasReplacement,
 ) -> SourceType {
     match ty {
-        SourceType::TypeParam(tpid) => {
-            if let Some(type_params) = type_params {
-                type_params[tpid.to_usize()].clone()
-            } else {
-                ty
-            }
-        }
-        SourceType::Class(cls_id, params) => {
-            let params = SourceTypeArray::with(
-                params
-                    .iter()
-                    .map(|p| replace_type(sa, p, type_params, self_ty.clone(), alias_map.clone()))
-                    .collect::<Vec<_>>(),
-            );
+        SourceType::Class(cls_id, cls_type_params) => SourceType::Class(
+            cls_id,
+            replace_sta(sa, cls_type_params, type_params, self_ty),
+        ),
 
-            SourceType::Class(cls_id, params)
-        }
+        SourceType::Trait(trait_id, trait_type_params) => SourceType::Trait(
+            trait_id,
+            replace_sta(sa, trait_type_params, type_params, self_ty),
+        ),
 
-        SourceType::Trait(trait_id, old_type_params) => {
-            let new_type_params = SourceTypeArray::with(
-                old_type_params
-                    .iter()
-                    .map(|p| replace_type(sa, p, type_params, self_ty.clone(), alias_map.clone()))
-                    .collect::<Vec<_>>(),
-            );
+        SourceType::Struct(struct_id, struct_type_params) => SourceType::Struct(
+            struct_id,
+            replace_sta(sa, struct_type_params, type_params, self_ty),
+        ),
 
-            SourceType::Trait(trait_id, new_type_params)
-        }
+        SourceType::Enum(enum_id, enum_type_params) => SourceType::Enum(
+            enum_id,
+            replace_sta(sa, enum_type_params, type_params, self_ty),
+        ),
 
-        SourceType::Struct(struct_id, old_type_params) => {
-            let new_type_params = SourceTypeArray::with(
-                old_type_params
-                    .iter()
-                    .map(|p| replace_type(sa, p, type_params, self_ty.clone(), alias_map.clone()))
-                    .collect::<Vec<_>>(),
-            );
+        SourceType::Lambda(params, return_type) => SourceType::Lambda(
+            replace_sta(sa, params, type_params, self_ty.clone()),
+            Box::new(replace_type(sa, *return_type, type_params, self_ty)),
+        ),
 
-            SourceType::Struct(struct_id, new_type_params)
-        }
-
-        SourceType::Enum(enum_id, old_type_params) => {
-            let new_type_params = SourceTypeArray::with(
-                old_type_params
-                    .iter()
-                    .map(|p| replace_type(sa, p, type_params, self_ty.clone(), alias_map.clone()))
-                    .collect::<Vec<_>>(),
-            );
-
-            SourceType::Enum(enum_id, new_type_params)
+        SourceType::Tuple(subtypes) => {
+            SourceType::Tuple(replace_sta(sa, subtypes, type_params, self_ty))
         }
 
         SourceType::This => {
@@ -78,53 +49,13 @@ pub fn replace_type(
             }
         }
 
-        SourceType::Lambda(params, return_type) => {
-            let new_params = SourceTypeArray::with(
-                params
-                    .iter()
-                    .map(|p| replace_type(sa, p, type_params, self_ty.clone(), alias_map.clone()))
-                    .collect::<Vec<_>>(),
-            );
-
-            let return_type = replace_type(
-                sa,
-                return_type.as_ref().clone(),
-                type_params,
-                self_ty.clone(),
-                alias_map,
-            );
-
-            SourceType::Lambda(new_params, Box::new(return_type))
-        }
-
-        SourceType::Tuple(subtypes) => {
-            let new_subtypes = subtypes
-                .iter()
-                .map(|t| {
-                    replace_type(
-                        sa,
-                        t.clone(),
-                        type_params,
-                        self_ty.clone(),
-                        alias_map.clone(),
-                    )
-                })
-                .collect::<Vec<_>>();
-
-            create_tuple(sa, new_subtypes)
-        }
-
-        SourceType::TypeAlias(id) => match alias_map {
-            AliasReplacement::None => ty,
-            AliasReplacement::ReplaceWithActualType => {
-                let alias = sa.alias(id);
-                if let AliasParent::Trait(..) = alias.parent {
-                    ty
-                } else {
-                    alias.ty()
-                }
+        SourceType::TypeParam(id) => {
+            if let Some(type_params) = type_params {
+                type_params[id.to_usize()].clone()
+            } else {
+                ty
             }
-        },
+        }
 
         SourceType::Unit
         | SourceType::UInt8
@@ -136,9 +67,19 @@ pub fn replace_type(
         | SourceType::Float64
         | SourceType::Error => ty,
 
-        SourceType::Any | SourceType::Ptr => {
-            panic!("unexpected type = {:?}", ty);
-            // unreachable!()
-        }
+        SourceType::TypeAlias(..) | SourceType::Any | SourceType::Ptr => unreachable!(),
     }
+}
+
+fn replace_sta(
+    sa: &Sema,
+    array: SourceTypeArray,
+    type_params: Option<&SourceTypeArray>,
+    self_ty: Option<SourceType>,
+) -> SourceTypeArray {
+    let new_array = array
+        .iter()
+        .map(|ty| replace_type(sa, ty, type_params.clone(), self_ty.clone()))
+        .collect::<Vec<_>>();
+    SourceTypeArray::with(new_array)
 }

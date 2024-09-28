@@ -16,7 +16,7 @@ use crate::sema::{
 use crate::specialize::{replace_type, specialize_type};
 use crate::ty::{SourceType, SourceTypeArray};
 use crate::typeck::is_pattern_check;
-use crate::{expr_always_returns, expr_block_always_returns, AliasReplacement};
+use crate::{expr_always_returns, expr_block_always_returns};
 use dora_bytecode::{
     AliasId, BytecodeFunction, BytecodeType, BytecodeTypeArray, ClassId, ConstPoolEntry,
     ConstPoolIdx, EnumId, FunctionId, GlobalId, Label, Location, Register, StructId, TraitId,
@@ -3091,7 +3091,6 @@ impl<'a> AstBytecodeGen<'a> {
                     ty,
                     Some(type_params),
                     Some(SourceType::TypeParam(*id)),
-                    AliasReplacement::None,
                 )
             }
 

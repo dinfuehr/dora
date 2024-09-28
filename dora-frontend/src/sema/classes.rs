@@ -13,7 +13,7 @@ use crate::sema::{
     module_path, ExtensionDefinitionId, FctDefinitionId, ModuleDefinitionId, PackageDefinitionId,
     Sema, SourceFileId, TypeParamDefinition,
 };
-use crate::{replace_type, AliasReplacement, ParsedType, SourceType, SourceTypeArray};
+use crate::{replace_type, ParsedType, SourceType, SourceTypeArray};
 
 pub type ClassDefinitionId = Id<ClassDefinition>;
 
@@ -248,13 +248,7 @@ pub fn find_field_in_class(
             return Some((
                 class,
                 field.id,
-                replace_type(
-                    sa,
-                    field.ty(),
-                    Some(&type_list),
-                    None,
-                    AliasReplacement::None,
-                ),
+                replace_type(sa, field.ty(), Some(&type_list), None),
             ));
         }
     }

@@ -2,8 +2,7 @@ use crate::sema::{
     AliasParent, FctDefinition, FctParent, Sema, SourceFileId, TypeParamDefinition, TypeParamId,
 };
 use crate::{
-    parsety, AliasReplacement, ErrorMessage, ModuleSymTable, ParsedType, SourceType,
-    SourceTypeArray, SymbolKind,
+    parsety, ErrorMessage, ModuleSymTable, ParsedType, SourceType, SourceTypeArray, SymbolKind,
 };
 
 pub fn parse_types(sa: &Sema) {
@@ -443,7 +442,7 @@ fn check_enum_types(sa: &Sema) {
 fn check_impl_types(sa: &Sema) {
     for (_id, impl_) in sa.impls.iter() {
         let ctxt: parsety::TypeContext<'_> = parsety::TypeContext {
-            allow_self: true,
+            allow_self: false,
             module_id: impl_.module_id,
             file_id: impl_.file_id,
             type_param_defs: impl_.type_param_definition(),
@@ -453,7 +452,7 @@ fn check_impl_types(sa: &Sema) {
         parsety::check_parsed_type(sa, &ctxt, impl_.parsed_extended_ty());
 
         let mut ctxt = ctxt;
-        ctxt.allow_self = false;
+        ctxt.allow_self = true;
         parsety::check_parsed_type(sa, &ctxt, impl_.parsed_trait_ty());
     }
 }
@@ -520,68 +519,31 @@ pub fn expand_types(sa: &Sema) {
 
 fn expand_impl_types(sa: &Sema) {
     for (_id, impl_) in sa.impls.iter() {
-        parsety::expand_parsed_type(
-            sa,
-            impl_.parsed_extended_ty(),
-            None,
-            AliasReplacement::ReplaceWithActualType,
-        );
+        parsety::expand_parsed_type(sa, impl_.parsed_extended_ty(), None);
+        parsety::expand_parsed_type(sa, impl_.parsed_trait_ty(), Some(impl_.extended_ty()));
 
-        parsety::expand_parsed_type(
-            sa,
-            impl_.parsed_trait_ty(),
-            None,
-            AliasReplacement::ReplaceWithActualType,
-        );
-
-        expand_type_param_definition(
-            sa,
-            impl_.type_param_definition(),
-            None,
-            AliasReplacement::ReplaceWithActualType,
-        );
+        expand_type_param_definition(sa, impl_.type_param_definition(), None);
     }
 }
 
 fn expand_trait_types(sa: &Sema) {
     for (_id, trait_) in sa.traits.iter() {
-        expand_type_param_definition(
-            sa,
-            trait_.type_param_definition(),
-            None,
-            AliasReplacement::ReplaceWithActualType,
-        );
+        expand_type_param_definition(sa, trait_.type_param_definition(), None);
     }
 }
 
 fn expand_alias_types(sa: &Sema) {
     for (_id, alias) in sa.aliases.iter() {
         if alias.parsed_ty().has_node() {
-            parsety::expand_parsed_type(
-                sa,
-                alias.parsed_ty(),
-                None,
-                AliasReplacement::ReplaceWithActualType,
-            );
+            parsety::expand_parsed_type(sa, alias.parsed_ty(), None);
         }
     }
 }
 
 fn expand_extension_types(sa: &Sema) {
     for (_id, extension) in sa.extensions.iter() {
-        parsety::expand_parsed_type(
-            sa,
-            extension.parsed_ty(),
-            None,
-            AliasReplacement::ReplaceWithActualType,
-        );
-
-        expand_type_param_definition(
-            sa,
-            extension.type_param_definition(),
-            None,
-            AliasReplacement::ReplaceWithActualType,
-        );
+        parsety::expand_parsed_type(sa, extension.parsed_ty(), Some(extension.ty()));
+        expand_type_param_definition(sa, extension.type_param_definition(), Some(extension.ty()));
     }
 }
 
@@ -597,92 +559,53 @@ fn expand_function_types(sa: &Sema) {
 }
 
 fn expand_function_type(sa: &Sema, fct: &FctDefinition, parsed_ty: &ParsedType) {
-    let (replace_self, alias_map) = match fct.parent {
+    let replace_self = match fct.parent {
         FctParent::Impl(id) => {
             let impl_ = sa.impl_(id);
-            (
-                Some(impl_.extended_ty()),
-                AliasReplacement::ReplaceWithActualType,
-            )
+            Some(impl_.extended_ty())
         }
-
-        FctParent::None => (None, AliasReplacement::ReplaceWithActualType),
-
         FctParent::Extension(id) => {
             let ext = sa.extension(id);
-            (
-                Some(ext.ty().clone()),
-                AliasReplacement::ReplaceWithActualType,
-            )
+            Some(ext.ty().clone())
         }
 
-        FctParent::Trait(..) => (None, AliasReplacement::ReplaceWithActualType),
-
+        FctParent::Trait(..) => Some(SourceType::This),
+        FctParent::None => None,
         FctParent::Function => unreachable!(),
     };
 
-    parsety::expand_parsed_type(sa, &parsed_ty, replace_self, alias_map);
+    parsety::expand_parsed_type(sa, &parsed_ty, replace_self);
 }
 
 fn expand_global_types(sa: &Sema) {
     for (_id, global) in sa.globals.iter() {
-        parsety::expand_parsed_type(
-            sa,
-            global.parsed_ty(),
-            None,
-            AliasReplacement::ReplaceWithActualType,
-        );
+        parsety::expand_parsed_type(sa, global.parsed_ty(), None);
     }
 }
 
 fn expand_const_types(sa: &Sema) {
     for (_id, const_) in sa.consts.iter() {
-        parsety::expand_parsed_type(
-            sa,
-            const_.parsed_ty(),
-            None,
-            AliasReplacement::ReplaceWithActualType,
-        );
+        parsety::expand_parsed_type(sa, const_.parsed_ty(), None);
     }
 }
 
 fn expand_class_types(sa: &Sema) {
     for (_id, cls) in sa.classes.iter() {
         for field in &cls.fields {
-            parsety::expand_parsed_type(
-                sa,
-                field.parsed_ty(),
-                None,
-                AliasReplacement::ReplaceWithActualType,
-            );
+            parsety::expand_parsed_type(sa, field.parsed_ty(), None);
         }
 
-        expand_type_param_definition(
-            sa,
-            cls.type_param_definition(),
-            None,
-            AliasReplacement::ReplaceWithActualType,
-        );
+        expand_type_param_definition(sa, cls.type_param_definition(), None);
     }
 }
 
 fn expand_struct_types(sa: &Sema) {
     for (_id, struct_) in sa.structs.iter() {
         for field in &struct_.fields {
-            parsety::expand_parsed_type(
-                sa,
-                field.parsed_ty(),
-                None,
-                AliasReplacement::ReplaceWithActualType,
-            );
+            parsety::expand_parsed_type(sa, field.parsed_ty(), None);
         }
 
-        expand_type_param_definition(
-            sa,
-            struct_.type_param_definition(),
-            None,
-            AliasReplacement::ReplaceWithActualType,
-        );
+        expand_type_param_definition(sa, struct_.type_param_definition(), None);
     }
 }
 
@@ -690,21 +613,11 @@ fn expand_enum_types(sa: &Sema) {
     for (_id, enum_) in sa.enums.iter() {
         for variant in enum_.variants() {
             for parsed_ty in variant.parsed_types() {
-                parsety::expand_parsed_type(
-                    sa,
-                    parsed_ty,
-                    None,
-                    AliasReplacement::ReplaceWithActualType,
-                );
+                parsety::expand_parsed_type(sa, parsed_ty, None);
             }
         }
 
-        expand_type_param_definition(
-            sa,
-            enum_.type_param_definition(),
-            None,
-            AliasReplacement::ReplaceWithActualType,
-        );
+        expand_type_param_definition(sa, enum_.type_param_definition(), None);
     }
 }
 
@@ -712,21 +625,10 @@ fn expand_type_param_definition(
     sa: &Sema,
     type_param_definition: &TypeParamDefinition,
     replace_self: Option<SourceType>,
-    alias_map: AliasReplacement,
 ) {
     for bound in type_param_definition.bounds() {
-        parsety::expand_parsed_type(
-            sa,
-            bound.parsed_ty(),
-            replace_self.clone(),
-            alias_map.clone(),
-        );
-        parsety::expand_parsed_type(
-            sa,
-            bound.parsed_trait_ty(),
-            replace_self.clone(),
-            alias_map.clone(),
-        );
+        parsety::expand_parsed_type(sa, bound.parsed_ty(), replace_self.clone());
+        parsety::expand_parsed_type(sa, bound.parsed_trait_ty(), replace_self.clone());
     }
 }
 

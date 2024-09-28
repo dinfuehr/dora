@@ -4,10 +4,7 @@ use crate::access::sym_accessible_from;
 use crate::readty::read_type_path;
 use crate::sema::{ModuleDefinitionId, SourceFileId, TypeParamDefinition};
 use crate::sym::{ModuleSymTable, SymbolKind};
-use crate::{
-    check_type_params, replace_type, AliasReplacement, ErrorMessage, Sema, SourceType,
-    SourceTypeArray, Span,
-};
+use crate::{check_type_params, ErrorMessage, Sema, SourceType, SourceTypeArray, Span};
 use std::cell::{OnceCell, RefCell};
 
 #[derive(Clone, Debug)]
@@ -532,18 +529,73 @@ pub fn expand_parsed_type(
     sa: &Sema,
     parsed_ty: &ParsedType,
     replace_self: Option<SourceType>,
-    alias_map: AliasReplacement,
 ) -> SourceType {
-    let new_ty = expand_parsed_type_inner(sa, parsed_ty.ty(), replace_self, alias_map);
+    let new_ty = expand_st(sa, parsed_ty.ty(), replace_self);
     parsed_ty.set_ty(new_ty.clone());
     new_ty
 }
 
-fn expand_parsed_type_inner(
+fn expand_st(sa: &Sema, ty: SourceType, replace_self: Option<SourceType>) -> SourceType {
+    match ty {
+        SourceType::Class(cls_id, type_params) => {
+            SourceType::Class(cls_id, expand_sta(sa, type_params, replace_self))
+        }
+
+        SourceType::Trait(trait_id, type_params) => {
+            SourceType::Trait(trait_id, expand_sta(sa, type_params, replace_self))
+        }
+
+        SourceType::Struct(struct_id, type_params) => {
+            SourceType::Struct(struct_id, expand_sta(sa, type_params, replace_self))
+        }
+
+        SourceType::Enum(enum_id, type_params) => {
+            SourceType::Enum(enum_id, expand_sta(sa, type_params, replace_self))
+        }
+
+        SourceType::Lambda(params, return_type) => SourceType::Lambda(
+            expand_sta(sa, params, replace_self.clone()),
+            Box::new(expand_st(sa, *return_type, replace_self)),
+        ),
+
+        SourceType::Tuple(subtypes) => SourceType::Tuple(expand_sta(sa, subtypes, replace_self)),
+
+        SourceType::TypeAlias(id) => {
+            let alias = sa.alias(id);
+            if alias.parent.is_trait() {
+                ty
+            } else {
+                expand_st(sa, alias.ty(), replace_self)
+            }
+        }
+
+        SourceType::Unit
+        | SourceType::UInt8
+        | SourceType::Bool
+        | SourceType::Char
+        | SourceType::Int32
+        | SourceType::Int64
+        | SourceType::Float32
+        | SourceType::Float64
+        | SourceType::Error
+        | SourceType::TypeParam(..) => ty,
+        SourceType::This => replace_self.expect("self expected"),
+
+        SourceType::Any | SourceType::Ptr => {
+            panic!("unexpected type = {:?}", ty);
+            // unreachable!()
+        }
+    }
+}
+
+fn expand_sta(
     sa: &Sema,
-    ty: SourceType,
+    array: SourceTypeArray,
     replace_self: Option<SourceType>,
-    alias_map: AliasReplacement,
-) -> SourceType {
-    replace_type(sa, ty, None, replace_self, alias_map)
+) -> SourceTypeArray {
+    let new_array = array
+        .iter()
+        .map(|ty| expand_st(sa, ty, replace_self.clone()))
+        .collect::<Vec<_>>();
+    SourceTypeArray::with(new_array)
 }

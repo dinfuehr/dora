@@ -18,6 +18,15 @@ pub enum AliasParent {
     Impl(ImplDefinitionId),
 }
 
+impl AliasParent {
+    pub fn is_trait(&self) -> bool {
+        match self {
+            AliasParent::Trait(..) => true,
+            _ => false,
+        }
+    }
+}
+
 pub struct AliasDefinition {
     pub id: OnceCell<AliasDefinitionId>,
     pub package_id: PackageDefinitionId,

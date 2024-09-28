@@ -12,8 +12,8 @@ use crate::sema::{
 };
 use crate::typeck::{check_expr, check_stmt};
 use crate::{
-    always_returns, expr_always_returns, replace_type, report_sym_shadow_span, AliasReplacement,
-    ModuleSymTable, SourceType, SourceTypeArray, SymbolKind,
+    always_returns, expr_always_returns, replace_type, report_sym_shadow_span, ModuleSymTable,
+    SourceType, SourceTypeArray, SymbolKind,
 };
 use crate::{parsety, ParsedType};
 
@@ -372,20 +372,9 @@ impl<'a> TypeCheck<'a> {
             type_param_defs: self.type_param_defs,
         };
         parsety::check_parsed_type(self.sa, &ctxt, &parsed_ty);
-        let expanded_ty = parsety::expand_parsed_type(
-            self.sa,
-            &parsed_ty,
-            None,
-            AliasReplacement::ReplaceWithActualType,
-        );
+        let expanded_ty = parsety::expand_parsed_type(self.sa, &parsed_ty, self.self_ty.clone());
 
-        replace_type(
-            self.sa,
-            expanded_ty,
-            None,
-            self.self_ty.clone(),
-            AliasReplacement::None,
-        )
+        replace_type(self.sa, expanded_ty, None, self.self_ty.clone())
     }
 
     pub(super) fn check_fct_return_type(
@@ -474,13 +463,7 @@ pub(super) fn args_compatible(
     };
 
     for (ind, def_arg) in def.iter().enumerate() {
-        let def_arg = replace_type(
-            sa,
-            def_arg.clone(),
-            Some(&type_params),
-            self_ty.clone(),
-            AliasReplacement::None,
-        );
+        let def_arg = replace_type(sa, def_arg.clone(), Some(&type_params), self_ty.clone());
 
         if !arg_allows(sa, def_arg, args[ind].clone(), self_ty.clone()) {
             return false;
@@ -489,13 +472,7 @@ pub(super) fn args_compatible(
 
     if let Some(rest_ty) = rest_ty {
         let ind = def.len();
-        let rest_ty = replace_type(
-            sa,
-            rest_ty,
-            Some(&type_params),
-            self_ty.clone(),
-            AliasReplacement::None,
-        );
+        let rest_ty = replace_type(sa, rest_ty, Some(&type_params), self_ty.clone());
 
         for expr_ty in &args[ind..] {
             if !arg_allows(sa, rest_ty.clone(), expr_ty.clone(), self_ty.clone()) {

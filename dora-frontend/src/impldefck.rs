@@ -985,4 +985,26 @@ mod tests {
             }
         ");
     }
+
+    #[test]
+    fn impl_self_in_extended_ty() {
+        err(
+            "
+            trait Foo {}
+            struct Bar[T](x: T)
+            impl Foo for Bar[Self] {}
+        ",
+            (4, 30),
+            ErrorMessage::SelfTypeUnavailable,
+        );
+    }
+
+    #[test]
+    fn impl_self_in_trait_ty() {
+        ok("
+            trait Foo[T] {}
+            struct Bar[T](x: T)
+            impl Foo[Self] for Bar[Int64] {}
+        ");
+    }
 }
