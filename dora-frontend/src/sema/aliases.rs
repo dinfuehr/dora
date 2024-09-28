@@ -28,7 +28,6 @@ pub struct AliasDefinition {
     pub modifiers: ParsedModifierList,
     pub name: Name,
     pub parsed_ty: ParsedType,
-    pub ty: OnceCell<SourceType>,
     pub bounds: Vec<AliasBound>,
     pub visibility: Visibility,
 }
@@ -55,7 +54,6 @@ impl AliasDefinition {
             modifiers,
             name,
             parsed_ty: ParsedType::new_maybe_ast(node.ty.clone()),
-            ty: OnceCell::new(),
             bounds,
         }
     }
@@ -65,7 +63,7 @@ impl AliasDefinition {
     }
 
     pub fn ty(&self) -> SourceType {
-        self.ty.get().cloned().expect("missing ty")
+        self.parsed_ty().ty()
     }
 
     pub fn bounds(&self) -> &[AliasBound] {

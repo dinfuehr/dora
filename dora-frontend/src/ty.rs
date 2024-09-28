@@ -828,16 +828,7 @@ impl<'a> SourceTypePrinter<'a> {
 
             SourceType::TypeAlias(id) => {
                 let alias = self.sa.alias(id);
-
-                if let Some(ty) = alias.ty.get() {
-                    format!(
-                        "{}={}",
-                        self.sa.interner.str(alias.name),
-                        self.name(ty.clone())
-                    )
-                } else {
-                    format!("{}", self.sa.interner.str(alias.name))
-                }
+                format!("{}", self.sa.interner.str(alias.name))
             }
         }
     }

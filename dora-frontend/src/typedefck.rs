@@ -555,13 +555,15 @@ fn expand_trait_types(sa: &Sema) {
 }
 
 fn expand_alias_types(sa: &Sema) {
-    for (_id, _alias) in sa.aliases.iter() {
-        // parsety::expand_parsed_type(
-        //     sa,
-        //     alias.parsed_ty(),
-        //     None,
-        //     AliasReplacement::ReplaceWithActualType,
-        // );
+    for (_id, alias) in sa.aliases.iter() {
+        if alias.parsed_ty().has_node() {
+            parsety::expand_parsed_type(
+                sa,
+                alias.parsed_ty(),
+                None,
+                AliasReplacement::ReplaceWithActualType,
+            );
+        }
     }
 }
 

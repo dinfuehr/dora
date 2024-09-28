@@ -1,74 +1,63 @@
-use std::collections::{HashMap, HashSet};
+use fixedbitset::FixedBitSet;
 
 use crate::sema::{AliasDefinitionId, AliasParent};
 use crate::{ErrorMessage, Sema, SourceType, SourceTypeArray};
 
-pub fn check(sa: &Sema) {
-    let mut alias_types: HashMap<AliasDefinitionId, SourceType> = HashMap::new();
+pub fn detect_cycles(sa: &Sema) {
+    let mut visited = FixedBitSet::with_capacity(sa.aliases.len());
 
-    for (id, alias) in sa.aliases.iter() {
-        if alias.parsed_ty().has_node() {
-            assert!(alias_types.insert(id, alias.parsed_ty().ty()).is_none());
-        }
-    }
-
-    expand_aliases(sa, alias_types);
-}
-
-pub fn expand_aliases(sa: &Sema, alias_types: HashMap<AliasDefinitionId, SourceType>) {
     for (id, alias) in sa.aliases.iter() {
         match alias.parent {
             AliasParent::None | AliasParent::Impl(..) => {
-                let mut visiting = HashSet::new();
-                expand_alias(sa, &alias_types, &mut visiting, id);
-                assert!(visiting.is_empty());
-                assert!(alias.ty.get().is_some());
+                let mut visiting = FixedBitSet::with_capacity(sa.aliases.len());
+                detect_cycles_for_alias(sa, &mut visited, &mut visiting, id);
+                assert!(visiting.is_clear());
             }
+
             AliasParent::Trait(..) => {}
         }
     }
 }
 
-fn expand_alias(
+fn detect_cycles_for_alias(
     sa: &Sema,
-    alias_types: &HashMap<AliasDefinitionId, SourceType>,
-    visiting: &mut HashSet<AliasDefinitionId>,
+    visited: &mut FixedBitSet,
+    visiting: &mut FixedBitSet,
     id: AliasDefinitionId,
-) -> SourceType {
+) -> bool {
     let alias = sa.alias(id);
 
-    if let Some(ty) = alias.ty.get() {
-        return ty.clone();
+    if visited.contains(id.index()) {
+        return false;
     }
 
-    if visiting.contains(&id) {
+    if visiting.contains(id.index()) {
         sa.report(alias.file_id, alias.node.span, ErrorMessage::AliasCycle);
-        return SourceType::Error;
+        return true;
     }
 
-    assert!(visiting.insert(id));
-    let ty = alias_types.get(&id).cloned().expect("missing type");
-    let ty = expand_type(sa, alias_types, visiting, ty);
-    assert!(visiting.remove(&id));
+    visiting.insert(id.index());
+    let ty = alias.parsed_ty().ty();
+    let ty = expand_type(sa, visited, visiting, ty);
+    visiting.remove(id.index());
+    visited.insert(id.index());
 
-    assert!(alias.ty.set(ty.clone()).is_ok());
-
-    ty
+    alias.parsed_ty().set_ty(ty.clone());
+    false
 }
 
 fn expand_type(
     sa: &Sema,
-    alias_types: &HashMap<AliasDefinitionId, SourceType>,
-    visiting: &mut HashSet<AliasDefinitionId>,
+    visited: &mut FixedBitSet,
+    visiting: &mut FixedBitSet,
     ty: SourceType,
 ) -> SourceType {
     match ty {
-        SourceType::TypeParam(..) => ty,
         SourceType::Class(cls_id, params) => {
             let params = SourceTypeArray::with(
                 params
                     .iter()
-                    .map(|p| expand_type(sa, alias_types, visiting, p))
+                    .map(|p| expand_type(sa, visited, visiting, p))
                     .collect::<Vec<_>>(),
             );
 
@@ -79,7 +68,7 @@ fn expand_type(
             let new_type_params = SourceTypeArray::with(
                 old_type_params
                     .iter()
-                    .map(|p| expand_type(sa, alias_types, visiting, p))
+                    .map(|p| expand_type(sa, visited, visiting, p))
                     .collect::<Vec<_>>(),
             );
 
@@ -90,7 +79,7 @@ fn expand_type(
             let new_type_params = SourceTypeArray::with(
                 old_type_params
                     .iter()
-                    .map(|p| expand_type(sa, alias_types, visiting, p))
+                    .map(|p| expand_type(sa, visited, visiting, p))
                     .collect::<Vec<_>>(),
             );
 
@@ -101,24 +90,22 @@ fn expand_type(
             let new_type_params = SourceTypeArray::with(
                 old_type_params
                     .iter()
-                    .map(|p| expand_type(sa, alias_types, visiting, p))
+                    .map(|p| expand_type(sa, visited, visiting, p))
                     .collect::<Vec<_>>(),
             );
 
             SourceType::Enum(enum_id, new_type_params)
         }
 
-        SourceType::This => ty,
-
         SourceType::Lambda(params, return_type) => {
             let new_params = SourceTypeArray::with(
                 params
                     .iter()
-                    .map(|p| expand_type(sa, alias_types, visiting, p))
+                    .map(|p| expand_type(sa, visited, visiting, p))
                     .collect::<Vec<_>>(),
             );
 
-            let return_type = expand_type(sa, alias_types, visiting, return_type.as_ref().clone());
+            let return_type = expand_type(sa, visited, visiting, return_type.as_ref().clone());
 
             SourceType::Lambda(new_params, Box::new(return_type))
         }
@@ -126,13 +113,21 @@ fn expand_type(
         SourceType::Tuple(subtypes) => {
             let new_subtypes = subtypes
                 .iter()
-                .map(|t| expand_type(sa, alias_types, visiting, t.clone()))
+                .map(|t| expand_type(sa, visited, visiting, t.clone()))
                 .collect::<Vec<_>>();
 
             SourceType::Tuple(SourceTypeArray::with(new_subtypes))
         }
 
-        SourceType::TypeAlias(id) => expand_alias(sa, alias_types, visiting, id),
+        SourceType::TypeAlias(id) => {
+            let found_cycle = detect_cycles_for_alias(sa, visited, visiting, id);
+
+            if found_cycle {
+                SourceType::Error
+            } else {
+                ty
+            }
+        }
 
         SourceType::Unit
         | SourceType::UInt8
@@ -142,7 +137,9 @@ fn expand_type(
         | SourceType::Int64
         | SourceType::Float32
         | SourceType::Float64
-        | SourceType::Error => ty,
+        | SourceType::Error
+        | SourceType::This
+        | SourceType::TypeParam(..) => ty,
 
         SourceType::Any | SourceType::Ptr => {
             panic!("unexpected type = {:?}", ty);

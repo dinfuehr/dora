@@ -70,7 +70,7 @@ pub fn check_program(sa: &mut Sema) -> bool {
     // Check types/type bounds for type params.
     typedefck::check_types(sa);
 
-    aliasck::check(sa);
+    aliasck::detect_cycles(sa);
 
     typedefck::expand_types(sa);
 
