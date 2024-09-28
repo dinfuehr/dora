@@ -79,7 +79,6 @@ pub fn check_program(sa: &mut Sema) -> bool {
     enumck::check(sa);
     impldefck::check_type_aliases(sa);
     globaldefck::check(sa);
-    constdefck::check(sa);
     extensiondefck::check(sa);
 
     // Check type definitions of params and return types in functions.

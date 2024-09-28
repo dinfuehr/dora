@@ -4,7 +4,7 @@ use crate::sema::{
     extension_matches_ty, ExtensionDefinition, FctDefinitionId, PackageDefinitionId, Sema,
     SourceFileId, TypeParamDefinition, TypeParamId,
 };
-use crate::{parsety, AliasReplacement, ErrorMessage, Name, SourceType};
+use crate::{ErrorMessage, Name, SourceType};
 
 use dora_parser::Span;
 use fixedbitset::FixedBitSet;
@@ -89,13 +89,6 @@ struct ExtensionCheck<'x> {
 impl<'x> ExtensionCheck<'x> {
     fn check(&mut self) {
         assert!(self.extension.ast.trait_type.is_none());
-
-        parsety::expand_parsed_type(
-            self.sa,
-            self.extension.parsed_ty(),
-            None,
-            AliasReplacement::ReplaceWithActualType,
-        );
 
         match self.extension.ty() {
             SourceType::TypeParam(..) => {

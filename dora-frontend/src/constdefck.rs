@@ -1,17 +1,3 @@
-use crate::sema::Sema;
-use crate::{parsety, AliasReplacement};
-
-pub fn check(sa: &Sema) {
-    for (_id, const_) in sa.consts.iter() {
-        parsety::expand_parsed_type(
-            sa,
-            const_.parsed_ty(),
-            None,
-            AliasReplacement::ReplaceWithActualType,
-        );
-    }
-}
-
 #[cfg(test)]
 mod tests {
     use crate::error::msg::ErrorMessage;

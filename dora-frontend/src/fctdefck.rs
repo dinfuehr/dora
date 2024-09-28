@@ -1,5 +1,5 @@
 use crate::sema::{FctDefinition, FctParent, Sema};
-use crate::{parsety, AliasReplacement, ErrorMessage, ParsedType, SourceType};
+use crate::{ErrorMessage, SourceType};
 
 pub fn check(sa: &Sema) {
     for (_id, fct) in sa.fcts.iter() {
@@ -42,50 +42,13 @@ pub fn check(sa: &Sema) {
                 );
             }
 
-            process_type(sa, fct, p.parsed_ty());
-
             if ast_node.variadic {
                 fct.is_variadic.set(true);
             }
         }
 
-        process_type(sa, fct, fct.parsed_return_type());
-
-        fct.initialized.set(true);
-
         check_test(sa, &*fct);
     }
-}
-
-fn process_type(sa: &Sema, fct: &FctDefinition, parsed_ty: &ParsedType) {
-    let (replace_self, alias_map) = match fct.parent {
-        FctParent::Impl(id) => {
-            let impl_ = sa.impl_(id);
-            (
-                Some(impl_.extended_ty()),
-                AliasReplacement::ReplaceWithActualType,
-            )
-        }
-
-        FctParent::None => (None, AliasReplacement::ReplaceWithActualType),
-
-        FctParent::Extension(id) => {
-            let ext = sa.extension(id);
-            (
-                Some(ext.ty().clone()),
-                AliasReplacement::ReplaceWithActualType,
-            )
-        }
-
-        FctParent::Trait(trait_id) => (
-            None,
-            AliasReplacement::ReplaceWithActualTypeKeepTrait(trait_id),
-        ),
-
-        FctParent::Function => unreachable!(),
-    };
-
-    parsety::expand_parsed_type(sa, &parsed_ty, replace_self, alias_map);
 }
 
 fn check_test(sa: &Sema, fct: &FctDefinition) {

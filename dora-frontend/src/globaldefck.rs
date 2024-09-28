@@ -1,16 +1,8 @@
 use crate::error::msg::ErrorMessage;
 use crate::sema::Sema;
-use crate::{parsety, AliasReplacement};
 
 pub fn check<'a>(sa: &Sema) {
     for (_id, global) in sa.globals.iter() {
-        parsety::expand_parsed_type(
-            sa,
-            global.parsed_ty(),
-            None,
-            AliasReplacement::ReplaceWithActualType,
-        );
-
         if !global.has_initial_value() {
             let msg = ErrorMessage::LetMissingInitialization;
             sa.report(global.file_id, global.ast.span, msg);
