@@ -36,7 +36,7 @@ pub struct AliasDefinition {
     pub node: Arc<ast::TypeAlias>,
     pub modifiers: ParsedModifierList,
     pub name: Name,
-    pub parsed_ty: ParsedType,
+    pub parsed_ty: Option<ParsedType>,
     pub bounds: Vec<AliasBound>,
     pub visibility: Visibility,
 }
@@ -52,6 +52,12 @@ impl AliasDefinition {
         name: Name,
         bounds: Vec<AliasBound>,
     ) -> AliasDefinition {
+        let parsed_ty = if let Some(ref ty) = node.ty {
+            Some(ParsedType::new_ast(ty.clone()))
+        } else {
+            None
+        };
+
         AliasDefinition {
             id: OnceCell::new(),
             package_id,
@@ -62,17 +68,17 @@ impl AliasDefinition {
             visibility: modifiers.visibility(),
             modifiers,
             name,
-            parsed_ty: ParsedType::new_maybe_ast(node.ty.clone()),
+            parsed_ty,
             bounds,
         }
     }
 
-    pub fn parsed_ty(&self) -> &ParsedType {
-        &self.parsed_ty
+    pub fn parsed_ty(&self) -> Option<&ParsedType> {
+        self.parsed_ty.as_ref()
     }
 
     pub fn ty(&self) -> SourceType {
-        self.parsed_ty().ty()
+        self.parsed_ty().expect("missing type").ty()
     }
 
     pub fn bounds(&self) -> &[AliasBound] {

@@ -9,50 +9,38 @@ use std::cell::{OnceCell, RefCell};
 
 #[derive(Clone, Debug)]
 pub struct ParsedType {
-    node: Option<ast::Type>,
-    ast: OnceCell<Box<ParsedTypeAst>>,
+    ast: Option<ast::Type>,
+    parsed_ast: OnceCell<Box<ParsedTypeAst>>,
     ty: RefCell<Option<SourceType>>,
 }
 
 impl ParsedType {
     pub fn new_ty(ty: SourceType) -> ParsedType {
         ParsedType {
-            node: None,
-            ast: OnceCell::new(),
+            ast: None,
+            parsed_ast: OnceCell::new(),
             ty: RefCell::new(Some(ty)),
-        }
-    }
-
-    pub fn new_maybe_ast(node: Option<ast::Type>) -> ParsedType {
-        ParsedType {
-            node,
-            ast: OnceCell::new(),
-            ty: RefCell::new(None),
         }
     }
 
     pub fn new_ast(ast: ast::Type) -> ParsedType {
         ParsedType {
-            node: Some(ast),
-            ast: OnceCell::new(),
+            ast: Some(ast),
+            parsed_ast: OnceCell::new(),
             ty: RefCell::new(None),
         }
     }
 
-    pub fn has_node(&self) -> bool {
-        self.node.is_some()
-    }
-
-    pub fn node(&self) -> Option<&ast::Type> {
-        self.node.as_ref()
+    fn ast(&self) -> Option<&ast::Type> {
+        self.ast.as_ref()
     }
 
     pub fn span(&self) -> Span {
-        self.node().expect("missing ast node").span()
+        self.ast().expect("missing ast node").span()
     }
 
-    pub fn ast(&self) -> Option<&ParsedTypeAst> {
-        self.ast.get().map(|ast| &**ast)
+    fn parsed_ast(&self) -> Option<&ParsedTypeAst> {
+        self.parsed_ast.get().map(|ast| &**ast)
     }
 
     pub fn ty(&self) -> SourceType {
@@ -99,9 +87,10 @@ pub fn parse_parsed_type(
     file_id: SourceFileId,
     parsed_ty: &ParsedType,
 ) {
-    let node = parsed_ty.node.as_ref().expect("missing ast node");
-    let ast = parse_type_inner(sa, table, file_id, node);
-    assert!(parsed_ty.ast.set(ast).is_ok());
+    if let Some(node) = parsed_ty.ast.as_ref() {
+        let ast = parse_type_inner(sa, table, file_id, node);
+        assert!(parsed_ty.parsed_ast.set(ast).is_ok());
+    }
 }
 
 fn parse_type_inner(
@@ -244,11 +233,11 @@ pub struct TypeContext<'a> {
     pub type_param_defs: &'a TypeParamDefinition,
 }
 
-pub fn convert_parsed_type(sa: &Sema, parsed_ty: &ParsedType) -> SourceType {
-    let parsed_ty_ast = parsed_ty.ast().expect("missing ast");
-    let ty = convert_parsed_type_inner(sa, parsed_ty_ast);
-    *parsed_ty.ty.borrow_mut() = Some(ty.clone());
-    ty
+pub fn convert_parsed_type(sa: &Sema, parsed_ty: &ParsedType) {
+    if let Some(parsed_ty_ast) = parsed_ty.parsed_ast() {
+        let ty = convert_parsed_type_inner(sa, parsed_ty_ast);
+        *parsed_ty.ty.borrow_mut() = Some(ty.clone());
+    }
 }
 
 fn convert_parsed_type_inner(sa: &Sema, parsed_ty: &ParsedTypeAst) -> SourceType {
@@ -374,7 +363,7 @@ fn convert_parsed_type_lambda(sa: &Sema, parsed_ty: &ParsedTypeAst) -> SourceTyp
 }
 
 pub fn check_parsed_type(sa: &Sema, ctxt: &TypeContext, parsed_ty: &ParsedType) -> SourceType {
-    if let Some(parsed_ty_ast) = parsed_ty.ast() {
+    if let Some(parsed_ty_ast) = parsed_ty.parsed_ast() {
         let new_ty = check_parsed_type_inner(sa, ctxt, parsed_ty.ty(), parsed_ty_ast);
         parsed_ty.set_ty(new_ty.clone());
         new_ty

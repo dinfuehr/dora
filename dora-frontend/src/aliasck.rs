@@ -37,12 +37,13 @@ fn detect_cycles_for_alias(
     }
 
     visiting.insert(id.index());
-    let ty = alias.parsed_ty().ty();
-    let ty = expand_type(sa, visited, visiting, ty);
+    if let Some(parsed_ty) = alias.parsed_ty() {
+        let ty = expand_type(sa, visited, visiting, parsed_ty.ty());
+        parsed_ty.set_ty(ty);
+    }
     visiting.remove(id.index());
     visited.insert(id.index());
 
-    alias.parsed_ty().set_ty(ty.clone());
     false
 }
 

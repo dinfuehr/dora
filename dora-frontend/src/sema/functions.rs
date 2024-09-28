@@ -61,6 +61,12 @@ impl FctDefinition {
         params: Vec<Param>,
         parent: FctParent,
     ) -> FctDefinition {
+        let return_type = if let Some(ref ast_return_type) = ast.return_type {
+            ParsedType::new_ast(ast_return_type.clone())
+        } else {
+            ParsedType::new_ty(SourceType::Unit)
+        };
+
         FctDefinition {
             id: None,
             package_id,
@@ -71,7 +77,7 @@ impl FctDefinition {
             ast: ast.clone(),
             name,
             params,
-            return_type: ParsedType::new_maybe_ast(ast.return_type.clone()),
+            return_type,
             parent,
             is_optimize_immediately: modifiers.is_optimize_immediately,
             visibility: modifiers.visibility(),

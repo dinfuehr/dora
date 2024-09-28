@@ -53,9 +53,9 @@ fn parse_alias_types(sa: &Sema) {
             }
         }
 
-        if alias.parsed_ty().has_node() {
-            parsety::parse_parsed_type(sa, &table, alias.file_id, alias.parsed_ty());
-            parsety::convert_parsed_type(sa, alias.parsed_ty());
+        if let Some(parsed_ty) = alias.parsed_ty() {
+            parsety::parse_parsed_type(sa, &table, alias.file_id, parsed_ty);
+            parsety::convert_parsed_type(sa, parsed_ty);
         }
 
         table.pop_level();
@@ -260,12 +260,8 @@ fn parse_fct_types(sa: &Sema) {
             parsety::convert_parsed_type(sa, p.parsed_ty());
         }
 
-        if fct.parsed_return_type().has_node() {
-            parsety::parse_parsed_type(sa, &sym_table, fct.file_id, fct.parsed_return_type());
-            parsety::convert_parsed_type(sa, fct.parsed_return_type());
-        } else {
-            fct.parsed_return_type().set_ty(SourceType::Unit);
-        }
+        parsety::parse_parsed_type(sa, &sym_table, fct.file_id, fct.parsed_return_type());
+        parsety::convert_parsed_type(sa, fct.parsed_return_type());
 
         sym_table.pop_level();
     }
@@ -293,10 +289,8 @@ fn read_type_param_definition(
     }
 
     for bound in type_param_definition.bounds() {
-        if bound.parsed_ty().has_node() {
-            parsety::parse_parsed_type(sa, &symtable, file_id, bound.parsed_ty());
-            parsety::convert_parsed_type(sa, bound.parsed_ty());
-        }
+        parsety::parse_parsed_type(sa, &symtable, file_id, bound.parsed_ty());
+        parsety::convert_parsed_type(sa, bound.parsed_ty());
 
         parsety::parse_parsed_type(sa, &symtable, file_id, bound.parsed_trait_ty());
         parsety::convert_parsed_type(sa, bound.parsed_trait_ty());
@@ -323,7 +317,7 @@ pub fn check_types(sa: &Sema) {
 
 fn check_alias_types(sa: &Sema) {
     for (_id, alias) in sa.aliases.iter() {
-        if alias.parsed_ty().has_node() {
+        if let Some(parsed_ty) = alias.parsed_ty() {
             let type_param_definition = match alias.parent {
                 AliasParent::None => &TypeParamDefinition::new(),
 
@@ -344,7 +338,7 @@ fn check_alias_types(sa: &Sema) {
                 file_id: alias.file_id,
                 type_param_defs: type_param_definition,
             };
-            parsety::check_parsed_type(sa, &ctxt, alias.parsed_ty());
+            parsety::check_parsed_type(sa, &ctxt, parsed_ty);
         }
     }
 }
@@ -534,8 +528,8 @@ fn expand_trait_types(sa: &Sema) {
 
 fn expand_alias_types(sa: &Sema) {
     for (_id, alias) in sa.aliases.iter() {
-        if alias.parsed_ty().has_node() {
-            parsety::expand_parsed_type(sa, alias.parsed_ty(), None);
+        if let Some(parsed_ty) = alias.parsed_ty() {
+            parsety::expand_parsed_type(sa, parsed_ty, None);
         }
     }
 }
