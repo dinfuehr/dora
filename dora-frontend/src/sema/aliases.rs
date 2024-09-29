@@ -51,13 +51,8 @@ impl AliasDefinition {
         modifiers: ParsedModifierList,
         name: Name,
         bounds: Vec<AliasBound>,
+        parsed_ty: Option<ParsedType>,
     ) -> AliasDefinition {
-        let parsed_ty = if let Some(ref ty) = node.ty {
-            Some(ParsedType::new_ast(ty.clone()))
-        } else {
-            None
-        };
-
         AliasDefinition {
             id: OnceCell::new(),
             package_id,

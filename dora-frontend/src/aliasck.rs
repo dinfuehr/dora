@@ -38,7 +38,7 @@ fn detect_cycles_for_alias(
 
     visiting.insert(id.index());
     if let Some(parsed_ty) = alias.parsed_ty() {
-        let ty = expand_type(sa, visited, visiting, parsed_ty.ty());
+        let ty = expand_type(sa, parsed_ty.ty(), visited, visiting);
         parsed_ty.set_ty(ty);
     }
     visiting.remove(id.index());
@@ -49,75 +49,34 @@ fn detect_cycles_for_alias(
 
 fn expand_type(
     sa: &Sema,
+    ty: SourceType,
     visited: &mut FixedBitSet,
     visiting: &mut FixedBitSet,
-    ty: SourceType,
 ) -> SourceType {
     match ty {
-        SourceType::Class(cls_id, params) => {
-            let params = SourceTypeArray::with(
-                params
-                    .iter()
-                    .map(|p| expand_type(sa, visited, visiting, p))
-                    .collect::<Vec<_>>(),
-            );
-
-            SourceType::Class(cls_id, params)
+        SourceType::Class(cls_id, type_params) => {
+            SourceType::Class(cls_id, expand_sta(sa, type_params, visited, visiting))
         }
 
-        SourceType::Trait(trait_id, old_type_params) => {
-            let new_type_params = SourceTypeArray::with(
-                old_type_params
-                    .iter()
-                    .map(|p| expand_type(sa, visited, visiting, p))
-                    .collect::<Vec<_>>(),
-            );
-
-            SourceType::Trait(trait_id, new_type_params)
+        SourceType::Trait(trait_id, type_params) => {
+            SourceType::Trait(trait_id, expand_sta(sa, type_params, visited, visiting))
         }
 
-        SourceType::Struct(struct_id, old_type_params) => {
-            let new_type_params = SourceTypeArray::with(
-                old_type_params
-                    .iter()
-                    .map(|p| expand_type(sa, visited, visiting, p))
-                    .collect::<Vec<_>>(),
-            );
-
-            SourceType::Struct(struct_id, new_type_params)
+        SourceType::Struct(struct_id, type_params) => {
+            SourceType::Struct(struct_id, expand_sta(sa, type_params, visited, visiting))
         }
 
-        SourceType::Enum(enum_id, old_type_params) => {
-            let new_type_params = SourceTypeArray::with(
-                old_type_params
-                    .iter()
-                    .map(|p| expand_type(sa, visited, visiting, p))
-                    .collect::<Vec<_>>(),
-            );
-
-            SourceType::Enum(enum_id, new_type_params)
+        SourceType::Enum(enum_id, type_params) => {
+            SourceType::Enum(enum_id, expand_sta(sa, type_params, visited, visiting))
         }
 
-        SourceType::Lambda(params, return_type) => {
-            let new_params = SourceTypeArray::with(
-                params
-                    .iter()
-                    .map(|p| expand_type(sa, visited, visiting, p))
-                    .collect::<Vec<_>>(),
-            );
-
-            let return_type = expand_type(sa, visited, visiting, return_type.as_ref().clone());
-
-            SourceType::Lambda(new_params, Box::new(return_type))
-        }
+        SourceType::Lambda(params, return_type) => SourceType::Lambda(
+            expand_sta(sa, params, visited, visiting),
+            Box::new(expand_type(sa, *return_type, visited, visiting)),
+        ),
 
         SourceType::Tuple(subtypes) => {
-            let new_subtypes = subtypes
-                .iter()
-                .map(|t| expand_type(sa, visited, visiting, t.clone()))
-                .collect::<Vec<_>>();
-
-            SourceType::Tuple(SourceTypeArray::with(new_subtypes))
+            SourceType::Tuple(expand_sta(sa, subtypes, visited, visiting))
         }
 
         SourceType::TypeAlias(id) => {
@@ -146,6 +105,19 @@ fn expand_type(
             panic!("unexpected type = {:?}", ty);
         }
     }
+}
+
+fn expand_sta(
+    sa: &Sema,
+    array: SourceTypeArray,
+    visited: &mut FixedBitSet,
+    visiting: &mut FixedBitSet,
+) -> SourceTypeArray {
+    let new_array = array
+        .iter()
+        .map(|ty| expand_type(sa, ty, visited, visiting))
+        .collect::<Vec<_>>();
+    SourceTypeArray::with(new_array)
 }
 
 #[cfg(test)]

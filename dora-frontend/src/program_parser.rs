@@ -849,6 +849,14 @@ impl<'x> visit::Visitor for TopLevelDeclaration<'x> {
     fn visit_type_alias(&mut self, node: &Arc<ast::TypeAlias>) {
         let modifiers = check_modifiers(self.sa, self.file_id, &node.modifiers, &[Annotation::Pub]);
 
+        let parsed_ty = if let Some(ref ty) = node.ty {
+            ParsedType::new_ast(ty.clone())
+        } else {
+            self.sa
+                .report(self.file_id, node.span, ErrorMessage::TypeAliasMissingType);
+            ParsedType::new_ty(SourceType::Error)
+        };
+
         let alias = AliasDefinition::new(
             self.package_id,
             self.module_id,
@@ -858,14 +866,10 @@ impl<'x> visit::Visitor for TopLevelDeclaration<'x> {
             modifiers,
             ensure_name(self.sa, &node.name),
             Vec::new(),
+            Some(parsed_ty),
         );
         let id = self.sa.aliases.alloc(alias);
         assert!(self.sa.alias(id).id.set(id).is_ok());
-
-        if node.ty.is_none() {
-            self.sa
-                .report(self.file_id, node.span, ErrorMessage::TypeAliasMissingType);
-        }
 
         if !node.bounds.is_empty() {
             self.sa
@@ -943,6 +947,14 @@ fn find_elements_in_trait(
                     bounds.push(AliasBound::new(ast_alias_bound.clone()));
                 }
 
+                if node.ty.is_some() {
+                    sa.report(
+                        file_id,
+                        node.span,
+                        ErrorMessage::UnexpectedTypeAliasAssignment,
+                    )
+                }
+
                 let alias = AliasDefinition::new(
                     package_id,
                     module_id,
@@ -952,18 +964,11 @@ fn find_elements_in_trait(
                     modifiers,
                     name,
                     bounds,
+                    None,
                 );
 
                 let id = sa.aliases.alloc(alias);
                 assert!(sa.alias(id).id.set(id).is_ok());
-
-                if node.ty.is_some() {
-                    sa.report(
-                        file_id,
-                        node.span,
-                        ErrorMessage::UnexpectedTypeAliasAssignment,
-                    )
-                }
 
                 aliases.push(id);
             }
@@ -1042,6 +1047,13 @@ fn find_elements_in_impl(
 
                 let name = ensure_name(sa, &node.name);
 
+                let parsed_ty = if let Some(ref ty) = node.ty {
+                    ParsedType::new_ast(ty.clone())
+                } else {
+                    sa.report(file_id, node.span, ErrorMessage::TypeAliasMissingType);
+                    ParsedType::new_ty(SourceType::Error)
+                };
+
                 let alias = AliasDefinition::new(
                     package_id,
                     module_id,
@@ -1051,14 +1063,11 @@ fn find_elements_in_impl(
                     modifiers,
                     name,
                     Vec::new(),
+                    Some(parsed_ty),
                 );
 
                 let id = sa.aliases.alloc(alias);
                 assert!(sa.alias(id).id.set(id).is_ok());
-
-                if node.ty.is_none() {
-                    sa.report(file_id, node.span, ErrorMessage::TypeAliasMissingType);
-                }
 
                 if !node.bounds.is_empty() {
                     sa.report(file_id, node.span, ErrorMessage::UnexpectedTypeBounds);
