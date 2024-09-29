@@ -369,7 +369,7 @@ impl<'a> TypeCheck<'a> {
             allow_self: self.self_ty.is_some(),
             module_id: self.module_id,
             file_id: self.file_id,
-            type_param_defs: self.type_param_defs,
+            type_param_definition: self.type_param_defs,
         };
         parsety::check_parsed_type(self.sa, &ctxt, &parsed_ty);
         let expanded_ty = parsety::expand_parsed_type(self.sa, &parsed_ty, self.self_ty.clone());

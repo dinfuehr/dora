@@ -179,7 +179,7 @@ pub fn implements_trait(
     }
 }
 
-fn maybe_alias_ty(sa: &Sema, mut ty: SourceType) -> SourceType {
+pub fn maybe_alias_ty(sa: &Sema, mut ty: SourceType) -> SourceType {
     while let SourceType::TypeAlias(id) = ty {
         let alias = sa.alias(id);
         ty = alias.ty();

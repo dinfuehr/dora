@@ -24,8 +24,6 @@ pub fn check(sa: &Sema) {
 }
 
 fn check_test(sa: &Sema, fct: &FctDefinition) {
-    assert!(fct.initialized.get());
-
     if !fct.is_test {
         return;
     }

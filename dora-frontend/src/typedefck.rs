@@ -1,5 +1,6 @@
 use crate::sema::{
-    AliasParent, FctDefinition, FctParent, Sema, SourceFileId, TypeParamDefinition, TypeParamId,
+    maybe_alias_ty, AliasParent, FctDefinition, FctParent, Sema, SourceFileId, TypeParamDefinition,
+    TypeParamId,
 };
 use crate::{
     parsety, ErrorMessage, ModuleSymTable, ParsedType, SourceType, SourceTypeArray, SymbolKind,
@@ -12,7 +13,7 @@ pub fn parse_types(sa: &Sema) {
     parse_enum_types(sa);
     parse_struct_types(sa);
     parse_extension_types(sa);
-    parse_fct_types(sa);
+    parse_function_types(sa);
     parse_global_types(sa);
     parse_const_types(sa);
     parse_alias_types(sa);
@@ -44,11 +45,6 @@ fn parse_alias_types(sa: &Sema) {
                 for bound in &alias.bounds {
                     parsety::parse_parsed_type(sa, &table, alias.file_id, bound.parsed_ty());
                     parsety::convert_parsed_type(sa, bound.parsed_ty());
-
-                    if !bound.ty().is_trait() && !bound.ty().is_error() {
-                        let msg = ErrorMessage::BoundExpected;
-                        sa.report(alias.file_id, bound.ty_ast.span(), msg);
-                    }
                 }
             }
         }
@@ -85,7 +81,7 @@ fn parse_trait_types(sa: &Sema) {
         let mut symtable = ModuleSymTable::new(sa, trait_.module_id);
         symtable.push_level();
 
-        read_type_param_definition(
+        parse_type_param_definition(
             sa,
             trait_.type_param_definition(),
             &mut symtable,
@@ -101,7 +97,7 @@ fn parse_impl_types(sa: &Sema) {
         let mut symtable = ModuleSymTable::new(sa, impl_.module_id);
         symtable.push_level();
 
-        read_type_param_definition(
+        parse_type_param_definition(
             sa,
             impl_.type_param_definition(),
             &mut symtable,
@@ -128,7 +124,7 @@ fn parse_class_types(sa: &Sema) {
         let mut symtable = ModuleSymTable::new(sa, cls.module_id);
         symtable.push_level();
 
-        read_type_param_definition(
+        parse_type_param_definition(
             sa,
             cls.type_param_definition(),
             &mut symtable,
@@ -157,7 +153,7 @@ fn parse_enum_types(sa: &Sema) {
         let mut symtable = ModuleSymTable::new(sa, enum_.module_id);
         symtable.push_level();
 
-        read_type_param_definition(
+        parse_type_param_definition(
             sa,
             enum_.type_param_definition(),
             &mut symtable,
@@ -180,7 +176,7 @@ fn parse_struct_types(sa: &Sema) {
         let mut symtable = ModuleSymTable::new(sa, struct_.module_id);
         symtable.push_level();
 
-        read_type_param_definition(
+        parse_type_param_definition(
             sa,
             struct_.type_param_definition(),
             &mut symtable,
@@ -201,7 +197,7 @@ fn parse_extension_types(sa: &Sema) {
         let mut symtable = ModuleSymTable::new(sa, extension.module_id);
         symtable.push_level();
 
-        read_type_param_definition(
+        parse_type_param_definition(
             sa,
             extension.type_param_definition(),
             &mut symtable,
@@ -215,7 +211,7 @@ fn parse_extension_types(sa: &Sema) {
     }
 }
 
-fn parse_fct_types(sa: &Sema) {
+fn parse_function_types(sa: &Sema) {
     for (_id, fct) in sa.fcts.iter() {
         let mut sym_table = ModuleSymTable::new(sa, fct.module_id);
         sym_table.push_level();
@@ -253,7 +249,7 @@ fn parse_fct_types(sa: &Sema) {
             FctParent::Function => unreachable!(),
         }
 
-        read_type_param_definition(sa, fct.type_param_definition(), &mut sym_table, fct.file_id);
+        parse_type_param_definition(sa, fct.type_param_definition(), &mut sym_table, fct.file_id);
 
         for p in fct.params_without_self() {
             parsety::parse_parsed_type(sa, &sym_table, fct.file_id, p.parsed_ty());
@@ -275,7 +271,7 @@ fn build_type_params(number_type_params: usize) -> SourceTypeArray {
     SourceTypeArray::with(type_params)
 }
 
-fn read_type_param_definition(
+fn parse_type_param_definition(
     sa: &Sema,
     type_param_definition: &TypeParamDefinition,
     symtable: &mut ModuleSymTable,
@@ -294,11 +290,6 @@ fn read_type_param_definition(
 
         parsety::parse_parsed_type(sa, &symtable, file_id, bound.parsed_trait_ty());
         parsety::convert_parsed_type(sa, bound.parsed_trait_ty());
-
-        if !bound.trait_ty().is_trait() && !bound.trait_ty().is_error() {
-            let msg = ErrorMessage::BoundExpected;
-            sa.report(file_id, bound.parsed_trait_ty().span(), msg);
-        }
     }
 }
 
@@ -310,7 +301,7 @@ pub fn check_types(sa: &Sema) {
     check_class_types(sa);
     check_enum_types(sa);
     check_extension_types(sa);
-    check_fct_types(sa);
+    check_function_types(sa);
     check_global_types(sa);
     check_const_types(sa);
 }
@@ -336,9 +327,19 @@ fn check_alias_types(sa: &Sema) {
                 allow_self: false,
                 module_id: alias.module_id,
                 file_id: alias.file_id,
-                type_param_defs: type_param_definition,
+                type_param_definition,
             };
             parsety::check_parsed_type(sa, &ctxt, parsed_ty);
+
+            for bound in alias.bounds() {
+                parsety::check_parsed_type(sa, &ctxt, bound.parsed_ty());
+
+                let bound_ty = maybe_alias_ty(sa, bound.ty());
+                if !bound_ty.is_trait() && !bound_ty.is_error() {
+                    let msg = ErrorMessage::BoundExpected;
+                    sa.report(alias.file_id, bound.ty_ast.span(), msg);
+                }
+            }
         }
     }
 }
@@ -349,7 +350,7 @@ fn check_const_types(sa: &Sema) {
             allow_self: false,
             module_id: const_.module_id,
             file_id: const_.file_id,
-            type_param_defs: &TypeParamDefinition::new(),
+            type_param_definition: &TypeParamDefinition::new(),
         };
         parsety::check_parsed_type(sa, &ctxt, const_.parsed_ty());
     }
@@ -361,7 +362,7 @@ fn check_global_types(sa: &Sema) {
             allow_self: false,
             module_id: global.module_id,
             file_id: global.file_id,
-            type_param_defs: &TypeParamDefinition::new(),
+            type_param_definition: &TypeParamDefinition::new(),
         };
         parsety::check_parsed_type(sa, &ctxt, global.parsed_ty());
     }
@@ -373,7 +374,7 @@ fn check_trait_types(sa: &Sema) {
             allow_self: true,
             module_id: trait_.module_id,
             file_id: trait_.file_id,
-            type_param_defs: trait_.type_param_definition(),
+            type_param_definition: trait_.type_param_definition(),
         };
 
         check_type_param_definition(sa, &ctxt, trait_.type_param_definition());
@@ -386,7 +387,7 @@ fn check_struct_types(sa: &Sema) {
             allow_self: false,
             module_id: struct_.module_id,
             file_id: struct_.file_id,
-            type_param_defs: struct_.type_param_definition(),
+            type_param_definition: struct_.type_param_definition(),
         };
 
         check_type_param_definition(sa, &ctxt, struct_.type_param_definition());
@@ -403,7 +404,7 @@ fn check_class_types(sa: &Sema) {
             allow_self: false,
             module_id: class.module_id,
             file_id: class.file_id(),
-            type_param_defs: class.type_param_definition(),
+            type_param_definition: class.type_param_definition(),
         };
 
         check_type_param_definition(sa, &ctxt, class.type_param_definition());
@@ -420,7 +421,7 @@ fn check_enum_types(sa: &Sema) {
             allow_self: false,
             module_id: enum_.module_id,
             file_id: enum_.file_id,
-            type_param_defs: enum_.type_param_definition(),
+            type_param_definition: enum_.type_param_definition(),
         };
 
         check_type_param_definition(sa, &ctxt, enum_.type_param_definition());
@@ -439,7 +440,7 @@ fn check_impl_types(sa: &Sema) {
             allow_self: false,
             module_id: impl_.module_id,
             file_id: impl_.file_id,
-            type_param_defs: impl_.type_param_definition(),
+            type_param_definition: impl_.type_param_definition(),
         };
 
         check_type_param_definition(sa, &ctxt, impl_.type_param_definition());
@@ -457,7 +458,7 @@ fn check_extension_types(sa: &Sema) {
             allow_self: false,
             module_id: extension.module_id,
             file_id: extension.file_id,
-            type_param_defs: extension.type_param_definition(),
+            type_param_definition: extension.type_param_definition(),
         };
 
         check_type_param_definition(sa, &ctxt, extension.type_param_definition());
@@ -466,13 +467,13 @@ fn check_extension_types(sa: &Sema) {
     }
 }
 
-fn check_fct_types(sa: &Sema) {
+fn check_function_types(sa: &Sema) {
     for (_id, fct) in sa.fcts.iter() {
         let ctxt: parsety::TypeContext<'_> = parsety::TypeContext {
             allow_self: fct.is_self_allowed(),
             module_id: fct.module_id,
             file_id: fct.file_id,
-            type_param_defs: fct.type_param_definition(),
+            type_param_definition: fct.type_param_definition(),
         };
 
         check_type_param_definition(sa, &ctxt, fct.type_param_definition());
@@ -495,6 +496,12 @@ fn check_type_param_definition(
     for bound in type_param_definition.bounds() {
         parsety::check_parsed_type(sa, &ctxt, bound.parsed_ty());
         parsety::check_parsed_type(sa, &ctxt, bound.parsed_trait_ty());
+
+        let trait_ty = maybe_alias_ty(sa, bound.trait_ty());
+        if !trait_ty.is_trait() && !trait_ty.is_error() {
+            let msg = ErrorMessage::BoundExpected;
+            sa.report(ctxt.file_id, bound.parsed_trait_ty().span(), msg);
+        }
     }
 }
 
@@ -548,7 +555,6 @@ fn expand_function_types(sa: &Sema) {
         }
 
         expand_function_type(sa, fct, fct.parsed_return_type());
-        fct.initialized.set(true);
     }
 }
 

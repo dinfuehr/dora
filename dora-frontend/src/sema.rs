@@ -28,7 +28,7 @@ pub use self::functions::{
 };
 pub use self::globals::{GlobalDefinition, GlobalDefinitionId};
 pub use self::impls::{
-    find_impl, impl_matches, implements_trait, ImplDefinition, ImplDefinitionId,
+    find_impl, impl_matches, implements_trait, maybe_alias_ty, ImplDefinition, ImplDefinitionId,
 };
 pub use self::known::KnownElements;
 pub use self::modules::{module_package, module_path, ModuleDefinition, ModuleDefinitionId};

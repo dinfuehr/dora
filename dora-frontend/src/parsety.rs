@@ -230,7 +230,7 @@ pub struct TypeContext<'a> {
     pub allow_self: bool,
     pub module_id: ModuleDefinitionId,
     pub file_id: SourceFileId,
-    pub type_param_defs: &'a TypeParamDefinition,
+    pub type_param_definition: &'a TypeParamDefinition,
 }
 
 pub fn convert_parsed_type(sa: &Sema, parsed_ty: &ParsedType) {
@@ -506,7 +506,7 @@ fn check_parsed_type_record(
         new_type_params.types(),
         ctxt.file_id,
         parsed_ty.span,
-        ctxt.type_param_defs,
+        ctxt.type_param_definition,
     ) {
         ty_for_sym(sa, symbol, new_type_params)
     } else {
