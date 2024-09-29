@@ -154,8 +154,6 @@ pub fn implements_trait(
     }
 
     match check_ty {
-        SourceType::Trait(_, _) | SourceType::Lambda(_, _) => false,
-
         SourceType::Bool
         | SourceType::UInt8
         | SourceType::Char
@@ -167,7 +165,11 @@ pub fn implements_trait(
         | SourceType::Enum(_, _)
         | SourceType::Class(_, _)
         | SourceType::Tuple(_)
-        | SourceType::Unit => find_impl(sa, check_ty, check_type_param_defs, trait_ty).is_some(),
+        | SourceType::Unit
+        | SourceType::Trait(_, _)
+        | SourceType::Lambda(_, _) => {
+            find_impl(sa, check_ty, check_type_param_defs, trait_ty).is_some()
+        }
 
         SourceType::TypeParam(tp_id) => check_type_param_defs.implements_trait(tp_id, trait_ty),
 
@@ -200,7 +202,7 @@ pub fn find_impl(
     trait_ty: SourceType,
 ) -> Option<ImplMatch> {
     for (_id, impl_) in sa.impls.iter() {
-        if impl_.trait_ty() != trait_ty {
+        if maybe_alias_ty(sa, impl_.trait_ty()) != trait_ty {
             continue;
         }
 

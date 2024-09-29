@@ -77,7 +77,8 @@ impl ExtensionDefinition {
 
 pub mod matching {
     use crate::sema::{
-        implements_trait, ExtensionDefinitionId, Sema, TypeParamDefinition, TypeParamId,
+        implements_trait, maybe_alias_ty, ExtensionDefinitionId, Sema, TypeParamDefinition,
+        TypeParamId,
     };
     use crate::ty::{SourceType, SourceTypeArray};
 
@@ -132,6 +133,9 @@ pub mod matching {
         ext_type_param_defs: &TypeParamDefinition,
         bindings: &mut [Option<SourceType>],
     ) -> bool {
+        let check_ty = maybe_alias_ty(sa, check_ty);
+        let ext_ty = maybe_alias_ty(sa, ext_ty);
+
         if let SourceType::TypeParam(ext_tp_id) = ext_ty {
             let binding = bindings[ext_tp_id.to_usize()].clone();
 
