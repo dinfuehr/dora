@@ -65,16 +65,15 @@ pub fn check_program(sa: &mut Sema) -> bool {
 
     // Now all types are known and we can start parsing types/type bounds.
     typedefck::parse_types(sa);
-    // Find all trait implementations for types.
-    impldefck::check_definition(sa);
+    // Detect and clear alias cycles.
+    aliasck::detect_cycles(sa);
     // Check types/type bounds for type params.
     typedefck::check_types(sa);
-
-    aliasck::detect_cycles(sa);
-
+    // Expand all alias types.
     typedefck::expand_types(sa);
 
-    // Checks class/struct/trait/enum definitions.
+    // Checks class/struct/trait/enum/impl definitions.
+    impldefck::check_definition(sa);
     traitdefck::check(sa);
     enumck::check(sa);
     impldefck::check_type_aliases(sa);

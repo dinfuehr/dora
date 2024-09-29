@@ -264,4 +264,22 @@ mod tests {
             ErrorMessage::UnknownIdentifier("Bar".into()),
         );
     }
+
+    #[test]
+    #[ignore]
+    fn use_alias_trait_bound() {
+        ok("
+            trait Foo {}
+            type Foo1 = Foo;
+            type Foo2 = Foo1;
+            type FooA = Foo;
+            type FooB = FooA;
+
+            impl FooB for Int64 {}
+
+            struct Bar[T: Foo2](value: T)
+
+            fn f(x: Bar[Int64]) {}
+        ")
+    }
 }

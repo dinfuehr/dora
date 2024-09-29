@@ -138,9 +138,17 @@ pub fn implements_trait(
     check_type_param_defs: &TypeParamDefinition,
     trait_ty: SourceType,
 ) -> bool {
-    if check_ty.is_primitive()
-        && sa.known.traits.zero() == trait_ty.trait_id().expect("trait expected")
-    {
+    let trait_ty = maybe_alias_ty(sa, trait_ty);
+
+    if !trait_ty.is_trait() {
+        return true;
+    }
+
+    let trait_id = trait_ty.trait_id().expect("expected trait");
+
+    let check_ty = maybe_alias_ty(sa, check_ty);
+
+    if check_ty.is_primitive() && sa.known.traits.zero() == trait_id {
         assert!(trait_ty.type_params().is_empty());
         return true;
     }
@@ -169,6 +177,15 @@ pub fn implements_trait(
 
         SourceType::Ptr | SourceType::This | SourceType::Any => unreachable!(),
     }
+}
+
+fn maybe_alias_ty(sa: &Sema, mut ty: SourceType) -> SourceType {
+    while let SourceType::TypeAlias(id) = ty {
+        let alias = sa.alias(id);
+        ty = alias.ty();
+    }
+
+    ty
 }
 
 pub struct ImplMatch {
