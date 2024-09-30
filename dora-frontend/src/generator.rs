@@ -8,10 +8,11 @@ use dora_parser::{ast, Span};
 use self::bytecode::BytecodeBuilder;
 use self::expr::{gen_expr, gen_expr_bin_cmp, gen_fatal_error};
 use crate::sema::{
-    emit_as_bytecode_operation, AnalysisData, CallType, ClassDefinitionId, ConstDefinitionId,
-    ContextFieldId, EnumDefinitionId, FctDefinition, FctDefinitionId, FieldId, GlobalDefinition,
-    GlobalDefinitionId, IdentType, Intrinsic, LazyContextData, OuterContextIdx, ScopeId, Sema,
-    SourceFileId, StructDefinitionId, TypeParamId, VarId, VarLocation,
+    emit_as_bytecode_operation, new_identity_type_params, AnalysisData, CallType,
+    ClassDefinitionId, ConstDefinitionId, ContextFieldId, EnumDefinitionId, FctDefinition,
+    FctDefinitionId, FieldId, GlobalDefinition, GlobalDefinitionId, IdentType, Intrinsic,
+    LazyContextData, OuterContextIdx, ScopeId, Sema, SourceFileId, StructDefinitionId, VarId,
+    VarLocation,
 };
 use crate::specialize::{replace_type, specialize_type};
 use crate::ty::{SourceType, SourceTypeArray};
@@ -1105,7 +1106,7 @@ impl<'a> AstBytecodeGen<'a> {
                         .expect("Stringable::toString() not found");
 
                     let fct_idx = self.builder.add_const_generic(
-                        type_list_id.0 as u32,
+                        type_list_id.index() as u32,
                         FunctionId(to_string_id.index().try_into().expect("overflow")),
                         BytecodeTypeArray::empty(),
                     );
@@ -3050,7 +3051,7 @@ impl<'a> AstBytecodeGen<'a> {
         match *call_type {
             CallType::GenericStaticMethod(id, ..) | CallType::GenericMethod(id, ..) => {
                 self.builder.add_const_generic(
-                    id.0 as u32,
+                    id.index() as u32,
                     FunctionId(fct.id().index().try_into().expect("overflow")),
                     bty_array_from_ty(&type_params),
                 )
@@ -3135,16 +3136,7 @@ impl<'a> AstBytecodeGen<'a> {
     }
 
     fn identity_type_params(&self) -> SourceTypeArray {
-        if self.type_params_len == 0 {
-            return SourceTypeArray::empty();
-        }
-
-        let type_params = (0..self.type_params_len)
-            .into_iter()
-            .map(|idx| SourceType::TypeParam(TypeParamId(idx)))
-            .collect::<Vec<SourceType>>();
-
-        SourceTypeArray::with(type_params)
+        new_identity_type_params(self.type_params_len)
     }
 
     fn ensure_unit_register(&mut self) -> Register {
@@ -3267,7 +3259,7 @@ pub fn bty_from_ty(ty: SourceType) -> BytecodeType {
             bty_array_from_ty(&type_params),
         ),
         SourceType::Tuple(subtypes) => BytecodeType::Tuple(bty_array_from_ty(&subtypes)),
-        SourceType::TypeParam(idx) => BytecodeType::TypeParam(idx.to_usize() as u32),
+        SourceType::TypeParam(idx) => BytecodeType::TypeParam(idx.index() as u32),
         SourceType::Lambda(params, return_type) => BytecodeType::Lambda(
             bty_array_from_ty(&params),
             Box::new(bty_from_ty(*return_type)),
@@ -3305,7 +3297,7 @@ pub fn register_bty_from_ty(ty: SourceType) -> BytecodeType {
             bty_array_from_ty(&type_params),
         ),
         SourceType::Tuple(subtypes) => BytecodeType::Tuple(bty_array_from_ty(&subtypes)),
-        SourceType::TypeParam(idx) => BytecodeType::TypeParam(idx.to_usize() as u32),
+        SourceType::TypeParam(idx) => BytecodeType::TypeParam(idx.index() as u32),
         SourceType::Lambda(_, _) => BytecodeType::Ptr,
         SourceType::Ptr => BytecodeType::Ptr,
         _ => panic!("SourceType {:?} cannot be converted to BytecodeType", ty),

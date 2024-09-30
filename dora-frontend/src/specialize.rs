@@ -51,7 +51,7 @@ pub fn replace_type(
 
         SourceType::TypeParam(id) => {
             if let Some(type_params) = type_params {
-                type_params[id.to_usize()].clone()
+                type_params[id.index()].clone()
             } else {
                 ty
             }

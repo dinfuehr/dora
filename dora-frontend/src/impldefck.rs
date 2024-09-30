@@ -2,8 +2,8 @@ use std::collections::{HashMap, HashSet};
 
 use crate::extensiondefck::check_for_unconstrained_type_params;
 use crate::sema::{
-    implements_trait, AliasDefinitionId, FctDefinition, FctDefinitionId, ImplDefinition, Sema,
-    TraitDefinition, TypeParamId,
+    implements_trait, new_identity_type_params, AliasDefinitionId, FctDefinition, FctDefinitionId,
+    ImplDefinition, Sema, TraitDefinition,
 };
 use crate::{package_for_type, ErrorMessage, SourceType, SourceTypeArray};
 
@@ -154,12 +154,7 @@ fn method_definitions_compatible(
     }
 
     let method_type_params = if fct_type_params > 0 {
-        let fct_type_params = (0..fct_type_params)
-            .into_iter()
-            .map(|t| SourceType::TypeParam(TypeParamId(t)))
-            .collect::<Vec<_>>();
-        let fct_type_params = SourceTypeArray::with(fct_type_params);
-        trait_type_params.connect(&fct_type_params)
+        trait_type_params.connect(&new_identity_type_params(fct_type_params))
     } else {
         trait_type_params
     };
@@ -302,7 +297,7 @@ fn trait_and_impl_arg_ty_compatible(
             ty == &impl_arg_ty
         }
 
-        SourceType::TypeParam(id) => trait_type_params[id.0] == impl_arg_ty,
+        SourceType::TypeParam(id) => trait_type_params[id.index()] == impl_arg_ty,
 
         SourceType::This => self_ty == impl_arg_ty,
 

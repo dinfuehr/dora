@@ -227,7 +227,7 @@ fn discover_type_params(sa: &Sema, ty: SourceType, used_type_params: &mut FixedB
             discover_type_params(sa, *return_type, used_type_params);
         }
         SourceType::TypeParam(tp_id) => {
-            used_type_params.insert(tp_id.to_usize());
+            used_type_params.insert(tp_id.index());
         }
         SourceType::TypeAlias(..) => unreachable!(),
     }

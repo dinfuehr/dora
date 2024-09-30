@@ -137,7 +137,7 @@ pub mod matching {
         let ext_ty = maybe_alias_ty(sa, ext_ty);
 
         if let SourceType::TypeParam(ext_tp_id) = ext_ty {
-            let binding = bindings[ext_tp_id.to_usize()].clone();
+            let binding = bindings[ext_tp_id.index()].clone();
 
             if let Some(binding) = binding {
                 compare_concrete_types(
@@ -167,7 +167,7 @@ pub mod matching {
                     )
                 };
 
-                bindings[ext_tp_id.to_usize()] = Some(check_ty);
+                bindings[ext_tp_id.index()] = Some(check_ty);
 
                 result
             }

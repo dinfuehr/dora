@@ -10,8 +10,8 @@ use dora_parser::ast;
 use dora_parser::Span;
 
 use crate::sema::{
-    module_path, ExtensionDefinitionId, ModuleDefinitionId, PackageDefinitionId, Sema,
-    SourceFileId, TypeParamDefinition, TypeParamId, Visibility,
+    module_path, new_identity_type_params, ExtensionDefinitionId, ModuleDefinitionId,
+    PackageDefinitionId, Sema, SourceFileId, TypeParamDefinition, Visibility,
 };
 use crate::{ParsedType, SourceType, SourceTypeArray};
 
@@ -110,11 +110,10 @@ impl StructDefinition {
         if let Some(ref primitive_ty) = self.primitive_ty {
             primitive_ty.clone()
         } else {
-            let type_params = (0..self.type_param_definition().len())
-                .into_iter()
-                .map(|id| SourceType::TypeParam(TypeParamId(id)))
-                .collect();
-            SourceType::Struct(self.id(), SourceTypeArray::with(type_params))
+            SourceType::Struct(
+                self.id(),
+                new_identity_type_params(self.type_param_definition().len()),
+            )
         }
     }
 

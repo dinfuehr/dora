@@ -45,7 +45,7 @@ pub use self::structs::{
 };
 pub use self::traits::{is_object_safe, TraitDefinition, TraitDefinitionId};
 pub use self::tuples::create_tuple;
-pub use self::type_params::{Bound, TypeParamDefinition, TypeParamId};
+pub use self::type_params::{new_identity_type_params, Bound, TypeParamDefinition, TypeParamId};
 pub use self::uses::{UseDefinition, UseDefinitionId};
 
 mod aliases;

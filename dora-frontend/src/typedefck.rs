@@ -1,10 +1,8 @@
 use crate::sema::{
-    maybe_alias_ty, AliasParent, FctDefinition, FctParent, Sema, SourceFileId, TypeParamDefinition,
-    TypeParamId,
+    maybe_alias_ty, new_identity_type_params, AliasParent, FctDefinition, FctParent, Sema,
+    SourceFileId, TypeParamDefinition,
 };
-use crate::{
-    parsety, ErrorMessage, ModuleSymTable, ParsedType, SourceType, SourceTypeArray, SymbolKind,
-};
+use crate::{parsety, ErrorMessage, ModuleSymTable, ParsedType, SourceType, SymbolKind};
 
 pub fn parse_types(sa: &Sema) {
     parse_trait_types(sa);
@@ -129,7 +127,7 @@ fn parse_class_types(sa: &Sema) {
         cls.ty
             .set(SourceType::Class(
                 cls_id,
-                build_type_params(number_type_params),
+                new_identity_type_params(number_type_params),
             ))
             .expect("already initialized");
 
@@ -249,14 +247,6 @@ fn parse_function_types(sa: &Sema) {
 
         sym_table.pop_level();
     }
-}
-
-fn build_type_params(number_type_params: usize) -> SourceTypeArray {
-    let type_params = (0..number_type_params)
-        .into_iter()
-        .map(|id| SourceType::TypeParam(TypeParamId(id)))
-        .collect::<Vec<_>>();
-    SourceTypeArray::with(type_params)
 }
 
 fn parse_type_param_definition(

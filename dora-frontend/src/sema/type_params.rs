@@ -2,7 +2,7 @@ use std::cell::OnceCell;
 
 use dora_parser::ast;
 
-use crate::{Name, ParsedType, SourceType};
+use crate::{Name, ParsedType, SourceType, SourceTypeArray};
 
 #[derive(Clone, Debug)]
 pub struct TypeParamDefinition {
@@ -25,7 +25,7 @@ impl TypeParamDefinition {
     }
 
     pub fn name(&self, id: TypeParamId) -> Name {
-        self.type_params[id.to_usize()].name
+        self.type_params[id.index()].name
     }
 
     pub fn container_type_params(&self) -> usize {
@@ -200,7 +200,15 @@ struct TypeParam {
 pub struct TypeParamId(pub usize);
 
 impl TypeParamId {
-    pub fn to_usize(self) -> usize {
+    pub fn index(self) -> usize {
         self.0
     }
+}
+
+pub fn new_identity_type_params(number_type_params: usize) -> SourceTypeArray {
+    let type_params = (0..number_type_params)
+        .into_iter()
+        .map(|id| SourceType::TypeParam(TypeParamId(id)))
+        .collect::<Vec<_>>();
+    SourceTypeArray::with(type_params)
 }

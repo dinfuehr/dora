@@ -798,7 +798,7 @@ impl<'a> SourceTypePrinter<'a> {
                 if let Some(type_params) = self.type_params {
                     self.sa.interner.str(type_params.name(idx)).to_string()
                 } else {
-                    format!("TypeParam({})", idx.to_usize())
+                    format!("TypeParam({})", idx.index())
                 }
             }
 

@@ -8,9 +8,9 @@ use crate::access::{
 };
 use crate::interner::Name;
 use crate::sema::{
-    find_field_in_class, CallType, ClassDefinition, ClassDefinitionId, EnumDefinitionId,
-    EnumVariant, FctDefinitionId, IdentType, Sema, StructDefinition, StructDefinitionId,
-    TypeParamDefinition, TypeParamId,
+    find_field_in_class, new_identity_type_params, CallType, ClassDefinition, ClassDefinitionId,
+    EnumDefinitionId, EnumVariant, FctDefinitionId, IdentType, Sema, StructDefinition,
+    StructDefinitionId, TypeParamDefinition, TypeParamId,
 };
 use crate::specialize::replace_type;
 use crate::sym::SymbolKind;
@@ -229,11 +229,7 @@ fn check_expr_call_expr_lambda(
 
     // Type params are mapped to themselves.
     let type_params_count = ck.type_param_defs.len();
-    let type_params = (0..type_params_count)
-        .into_iter()
-        .map(|idx| SourceType::TypeParam(TypeParamId(idx)))
-        .collect::<Vec<SourceType>>();
-    let type_params = SourceTypeArray::with(type_params);
+    let type_params = new_identity_type_params(type_params_count);
 
     if !args_compatible(ck.sa, params.types(), false, arg_types, &type_params, None) {
         let fct_params = params.iter().map(|a| ck.ty_name(&a)).collect::<Vec<_>>();

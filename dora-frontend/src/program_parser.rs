@@ -13,8 +13,7 @@ use crate::sema::{
     FieldId, GlobalDefinition, ImplDefinition, ImplDefinitionId, ModuleDefinition,
     ModuleDefinitionId, PackageDefinition, PackageDefinitionId, PackageName, Param, Sema,
     SourceFile, SourceFileId, StructDefinition, StructDefinitionField, StructDefinitionFieldId,
-    TraitDefinition, TraitDefinitionId, TypeParamDefinition, TypeParamId, UseDefinition,
-    Visibility,
+    TraitDefinition, TraitDefinitionId, TypeParamDefinition, UseDefinition, Visibility,
 };
 use crate::sym::{SymTable, Symbol, SymbolKind};
 use crate::STDLIB;
@@ -1405,10 +1404,9 @@ fn parse_type_param_definition(
     }
 
     let mut names = HashSet::new();
-    let container_type_params = type_param_definition.len();
 
-    for (id, type_param) in ast_type_params.params.iter().enumerate() {
-        if let Some(ref ident) = type_param.name {
+    for type_param in ast_type_params.params.iter() {
+        let id = if let Some(ref ident) = type_param.name {
             let iname = sa.interner.intern(&ident.name_as_string);
 
             if !names.insert(iname) {
@@ -1417,13 +1415,11 @@ fn parse_type_param_definition(
                 sa.report(file_id, type_param.span, msg);
             }
 
-            type_param_definition.add_type_param(iname);
+            type_param_definition.add_type_param(iname)
         } else {
             let name = sa.interner.intern("<missing name>");
-            type_param_definition.add_type_param(name);
-        }
-
-        let id = TypeParamId(container_type_params + id);
+            type_param_definition.add_type_param(name)
+        };
 
         for bound in &type_param.bounds {
             type_param_definition.add_bound(id, bound.clone());
