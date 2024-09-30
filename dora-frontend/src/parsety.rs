@@ -81,7 +81,7 @@ pub enum ParsedTypeKind {
     Error,
 }
 
-pub fn parse_parsed_type(
+pub fn parse_type(
     sa: &Sema,
     table: &ModuleSymTable,
     file_id: SourceFileId,
@@ -90,6 +90,9 @@ pub fn parse_parsed_type(
     if let Some(node) = parsed_ty.ast.as_ref() {
         let ast = parse_type_inner(sa, table, file_id, node);
         assert!(parsed_ty.parsed_ast.set(ast).is_ok());
+
+        let ty = convert_type_inner(sa, parsed_ty.parsed_ast().unwrap());
+        parsed_ty.set_ty(ty);
     }
 }
 
@@ -233,24 +236,17 @@ pub struct TypeContext<'a> {
     pub type_param_definition: &'a TypeParamDefinition,
 }
 
-pub fn convert_parsed_type(sa: &Sema, parsed_ty: &ParsedType) {
-    if let Some(parsed_ty_ast) = parsed_ty.parsed_ast() {
-        let ty = convert_parsed_type_inner(sa, parsed_ty_ast);
-        *parsed_ty.ty.borrow_mut() = Some(ty.clone());
-    }
-}
-
-fn convert_parsed_type_inner(sa: &Sema, parsed_ty: &ParsedTypeAst) -> SourceType {
+fn convert_type_inner(sa: &Sema, parsed_ty: &ParsedTypeAst) -> SourceType {
     match parsed_ty.kind {
         ParsedTypeKind::This => SourceType::This,
-        ParsedTypeKind::Regular { .. } => convert_parsed_type_regular(sa, parsed_ty),
-        ParsedTypeKind::Tuple { .. } => convert_parsed_type_tuple(sa, parsed_ty),
-        ParsedTypeKind::Lambda { .. } => convert_parsed_type_lambda(sa, parsed_ty),
+        ParsedTypeKind::Regular { .. } => convert_type_regular(sa, parsed_ty),
+        ParsedTypeKind::Tuple { .. } => convert_type_tuple(sa, parsed_ty),
+        ParsedTypeKind::Lambda { .. } => convert_type_lambda(sa, parsed_ty),
         ParsedTypeKind::Error { .. } => SourceType::Error,
     }
 }
 
-fn convert_parsed_type_regular(sa: &Sema, parsed_ty: &ParsedTypeAst) -> SourceType {
+fn convert_type_regular(sa: &Sema, parsed_ty: &ParsedTypeAst) -> SourceType {
     let (sym, type_params) = match parsed_ty.kind {
         ParsedTypeKind::Regular {
             ref symbol,
@@ -276,7 +272,7 @@ fn convert_parsed_type_regular(sa: &Sema, parsed_ty: &ParsedTypeAst) -> SourceTy
         | SymbolKind::Trait(..) => {
             let type_params = type_params
                 .iter()
-                .map(|tp| convert_parsed_type_inner(sa, tp))
+                .map(|tp| convert_type_inner(sa, tp))
                 .collect::<Vec<_>>();
             let type_params = SourceTypeArray::with(type_params);
 
@@ -319,7 +315,7 @@ fn ty_for_sym(sa: &Sema, sym: SymbolKind, type_params: SourceTypeArray) -> Sourc
     }
 }
 
-fn convert_parsed_type_tuple(sa: &Sema, parsed_ty: &ParsedTypeAst) -> SourceType {
+fn convert_type_tuple(sa: &Sema, parsed_ty: &ParsedTypeAst) -> SourceType {
     let subtypes = match parsed_ty.kind {
         ParsedTypeKind::Tuple { ref subtypes } => subtypes,
         _ => unreachable!(),
@@ -327,7 +323,7 @@ fn convert_parsed_type_tuple(sa: &Sema, parsed_ty: &ParsedTypeAst) -> SourceType
 
     let subtypes = subtypes
         .iter()
-        .map(|t| convert_parsed_type_inner(sa, t))
+        .map(|t| convert_type_inner(sa, t))
         .collect::<Vec<_>>();
     let subtypes = SourceTypeArray::with(subtypes);
 
@@ -338,7 +334,7 @@ fn convert_parsed_type_tuple(sa: &Sema, parsed_ty: &ParsedTypeAst) -> SourceType
     }
 }
 
-fn convert_parsed_type_lambda(sa: &Sema, parsed_ty: &ParsedTypeAst) -> SourceType {
+fn convert_type_lambda(sa: &Sema, parsed_ty: &ParsedTypeAst) -> SourceType {
     let (params, return_ty) = match parsed_ty.kind {
         ParsedTypeKind::Lambda {
             ref params,
@@ -349,12 +345,12 @@ fn convert_parsed_type_lambda(sa: &Sema, parsed_ty: &ParsedTypeAst) -> SourceTyp
 
     let params = params
         .iter()
-        .map(|t| convert_parsed_type_inner(sa, t))
+        .map(|t| convert_type_inner(sa, t))
         .collect::<Vec<_>>();
     let params = SourceTypeArray::with(params);
 
     let return_ty = if let Some(return_ty) = return_ty {
-        convert_parsed_type_inner(sa, return_ty)
+        convert_type_inner(sa, return_ty)
     } else {
         SourceType::Unit
     };
@@ -362,9 +358,9 @@ fn convert_parsed_type_lambda(sa: &Sema, parsed_ty: &ParsedTypeAst) -> SourceTyp
     SourceType::Lambda(params, Box::new(return_ty))
 }
 
-pub fn check_parsed_type(sa: &Sema, ctxt: &TypeContext, parsed_ty: &ParsedType) -> SourceType {
+pub fn check_type(sa: &Sema, ctxt: &TypeContext, parsed_ty: &ParsedType) -> SourceType {
     if let Some(parsed_ty_ast) = parsed_ty.parsed_ast() {
-        let new_ty = check_parsed_type_inner(sa, ctxt, parsed_ty.ty(), parsed_ty_ast);
+        let new_ty = check_type_inner(sa, ctxt, parsed_ty.ty(), parsed_ty_ast);
         parsed_ty.set_ty(new_ty.clone());
         new_ty
     } else {
@@ -372,7 +368,7 @@ pub fn check_parsed_type(sa: &Sema, ctxt: &TypeContext, parsed_ty: &ParsedType) 
     }
 }
 
-fn check_parsed_type_inner(
+fn check_type_inner(
     sa: &Sema,
     ctxt: &TypeContext,
     ty: SourceType,
@@ -429,13 +425,13 @@ fn check_parsed_type_inner(
 
             for idx in 0..parsed_params.len() {
                 let parsed_param = &parsed_params[idx];
-                let ty = check_parsed_type_inner(sa, ctxt, params[idx].clone(), parsed_param);
+                let ty = check_type_inner(sa, ctxt, params[idx].clone(), parsed_param);
                 new_params.push(ty);
             }
 
             let new_params = SourceTypeArray::with(new_params);
             let new_return_type: SourceType = if let Some(parsed_return_type) = parsed_return_type {
-                check_parsed_type_inner(sa, ctxt, *return_type, parsed_return_type)
+                check_type_inner(sa, ctxt, *return_type, parsed_return_type)
             } else {
                 SourceType::Unit
             };
@@ -453,7 +449,7 @@ fn check_parsed_type_inner(
 
             for idx in 0..parsed_subtypes.len() {
                 let parsed_subtype = &parsed_subtypes[idx];
-                let ty = check_parsed_type_inner(sa, ctxt, subtypes[idx].clone(), parsed_subtype);
+                let ty = check_type_inner(sa, ctxt, subtypes[idx].clone(), parsed_subtype);
                 new_type_params.push(ty);
             }
 
@@ -462,13 +458,11 @@ fn check_parsed_type_inner(
         SourceType::Class(_, type_params)
         | SourceType::Struct(_, type_params)
         | SourceType::Enum(_, type_params)
-        | SourceType::Trait(_, type_params) => {
-            check_parsed_type_record(sa, ctxt, parsed_ty, type_params)
-        }
+        | SourceType::Trait(_, type_params) => check_type_record(sa, ctxt, parsed_ty, type_params),
     }
 }
 
-fn check_parsed_type_record(
+fn check_type_record(
     sa: &Sema,
     ctxt: &TypeContext,
     parsed_ty: &ParsedTypeAst,
@@ -493,7 +487,7 @@ fn check_parsed_type_record(
 
     for idx in 0..type_params.len() {
         let parsed_type_param = &parsed_type_params[idx];
-        let ty = check_parsed_type_inner(sa, ctxt, type_params[idx].clone(), parsed_type_param);
+        let ty = check_type_inner(sa, ctxt, type_params[idx].clone(), parsed_type_param);
         new_type_params.push(ty);
     }
 
@@ -514,7 +508,7 @@ fn check_parsed_type_record(
     }
 }
 
-pub fn expand_parsed_type(
+pub fn expand_type(
     sa: &Sema,
     parsed_ty: &ParsedType,
     replace_self: Option<SourceType>,

@@ -362,8 +362,7 @@ impl<'a> TypeCheck<'a> {
 
     pub(super) fn read_type(&mut self, t: &ast::Type) -> SourceType {
         let parsed_ty = ParsedType::new_ast(t.clone());
-        parsety::parse_parsed_type(self.sa, &self.symtable, self.file_id, &parsed_ty);
-        parsety::convert_parsed_type(self.sa, &parsed_ty);
+        parsety::parse_type(self.sa, &self.symtable, self.file_id, &parsed_ty);
 
         let ctxt = parsety::TypeContext {
             allow_self: self.self_ty.is_some(),
@@ -371,8 +370,8 @@ impl<'a> TypeCheck<'a> {
             file_id: self.file_id,
             type_param_definition: self.type_param_defs,
         };
-        parsety::check_parsed_type(self.sa, &ctxt, &parsed_ty);
-        let expanded_ty = parsety::expand_parsed_type(self.sa, &parsed_ty, self.self_ty.clone());
+        parsety::check_type(self.sa, &ctxt, &parsed_ty);
+        let expanded_ty = parsety::expand_type(self.sa, &parsed_ty, self.self_ty.clone());
 
         replace_type(self.sa, expanded_ty, None, self.self_ty.clone())
     }
