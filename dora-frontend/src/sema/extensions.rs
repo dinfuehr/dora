@@ -106,7 +106,7 @@ pub mod matching {
         ext_ty: SourceType,
         ext_type_param_defs: &TypeParamDefinition,
     ) -> Option<SourceTypeArray> {
-        let mut bindings = vec![None; ext_type_param_defs.len()];
+        let mut bindings = vec![None; ext_type_param_defs.type_param_count()];
 
         let result = matches(
             sa,

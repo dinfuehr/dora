@@ -4458,7 +4458,7 @@ pub fn impl_method_id_by_name(
     let trait_ = sa.trait_(trait_id);
     let name = sa.interner.intern(method_name);
     let trait_method_id = trait_.get_method(name, false).expect("missing method");
-    let impl_id = find_impl(sa, ty, &TypeParamDefinition::new(None), trait_ty)
+    let impl_id = find_impl(sa, ty, &TypeParamDefinition::empty(), trait_ty)
         .expect("missing impl")
         .id;
 

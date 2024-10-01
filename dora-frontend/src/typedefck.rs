@@ -123,7 +123,7 @@ fn parse_class_types(sa: &Sema) {
             cls.file_id(),
         );
 
-        let number_type_params = cls.type_param_definition().len();
+        let number_type_params = cls.type_param_definition().type_param_count();
         cls.ty
             .set(SourceType::Class(
                 cls_id,
@@ -204,12 +204,9 @@ fn parse_function_types(sa: &Sema) {
         let mut sym_table = ModuleSymTable::new(sa, fct.module_id);
         sym_table.push_level();
 
-        let mut type_param_definition = TypeParamDefinition::new(None);
-
         match fct.parent {
             FctParent::Impl(impl_id) => {
                 let impl_ = sa.impl_(impl_id);
-                type_param_definition.append(impl_.type_param_definition());
 
                 for &alias_id in impl_.aliases() {
                     let alias = sa.alias(alias_id);
@@ -217,14 +214,10 @@ fn parse_function_types(sa: &Sema) {
                 }
             }
 
-            FctParent::Extension(extension_id) => {
-                let extension = sa.extension(extension_id);
-                type_param_definition.append(extension.type_param_definition());
-            }
+            FctParent::Extension(..) => {}
 
             FctParent::Trait(trait_id) => {
                 let trait_ = sa.trait_(trait_id);
-                type_param_definition.append(&trait_.type_param_definition());
 
                 for &alias_id in trait_.aliases() {
                     let alias = sa.alias(alias_id);
@@ -239,7 +232,7 @@ fn parse_function_types(sa: &Sema) {
 
         parse_type_param_definition(sa, fct.type_param_definition(), &mut sym_table, fct.file_id);
 
-        for p in fct.params_without_self() {
+        for p in fct.params_with_self() {
             parsety::parse_type(sa, &sym_table, fct.file_id, p.parsed_ty());
         }
 
@@ -285,7 +278,7 @@ fn check_alias_types(sa: &Sema) {
     for (_id, alias) in sa.aliases.iter() {
         if let Some(parsed_ty) = alias.parsed_ty() {
             let type_param_definition = match alias.parent {
-                AliasParent::None => &TypeParamDefinition::new(None),
+                AliasParent::None => &TypeParamDefinition::empty(),
 
                 AliasParent::Impl(impl_id) => {
                     let impl_ = sa.impl_(impl_id);
@@ -325,7 +318,7 @@ fn check_const_types(sa: &Sema) {
             allow_self: false,
             module_id: const_.module_id,
             file_id: const_.file_id,
-            type_param_definition: &TypeParamDefinition::new(None),
+            type_param_definition: &TypeParamDefinition::empty(),
         };
         parsety::check_type(sa, &ctxt, const_.parsed_ty());
     }
@@ -337,7 +330,7 @@ fn check_global_types(sa: &Sema) {
             allow_self: false,
             module_id: global.module_id,
             file_id: global.file_id,
-            type_param_definition: &TypeParamDefinition::new(None),
+            type_param_definition: &TypeParamDefinition::empty(),
         };
         parsety::check_type(sa, &ctxt, global.parsed_ty());
     }
@@ -453,13 +446,11 @@ fn check_function_types(sa: &Sema) {
 
         check_type_param_definition(sa, &ctxt, fct.type_param_definition());
 
-        for param in fct.params_without_self() {
+        for param in fct.params_with_self() {
             parsety::check_type(sa, &ctxt, param.parsed_ty());
         }
 
-        if fct.ast.return_type.is_some() {
-            parsety::check_type(sa, &ctxt, fct.parsed_return_type());
-        }
+        parsety::check_type(sa, &ctxt, fct.parsed_return_type());
     }
 }
 

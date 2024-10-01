@@ -36,8 +36,8 @@ impl TypeParamDefinition {
         }
     }
 
-    pub fn len(&self) -> usize {
-        self.container_type_params + self.type_params.len()
+    pub fn empty() -> Rc<TypeParamDefinition> {
+        Rc::new(TypeParamDefinition::new(None))
     }
 
     pub fn name(&self, id: TypeParamId) -> Name {
@@ -69,11 +69,11 @@ impl TypeParamDefinition {
     }
 
     pub fn fct_type_params_len(&self) -> usize {
-        self.len() - self.container_type_params()
+        self.type_param_count() - self.container_type_params()
     }
 
     pub fn has_fct_type_params(&self) -> bool {
-        self.len() > self.container_type_params()
+        self.type_param_count() > self.container_type_params()
     }
 
     pub fn add_type_param(&mut self, name: Name) -> TypeParamId {
@@ -134,23 +134,19 @@ impl TypeParamDefinition {
             .map(|b| b.trait_ty())
     }
 
-    pub fn append(&mut self, other: &TypeParamDefinition) {
-        assert_eq!(self.type_params.len(), 0);
-        assert_eq!(self.bounds.len(), 0);
-
-        self.type_params = other.type_params.clone();
-        self.bounds = other.bounds.clone();
+    pub fn type_param_count(&self) -> usize {
+        self.container_type_params + self.type_params.len()
     }
 
     pub fn is_empty(&self) -> bool {
-        self.type_params.is_empty()
+        self.type_param_count() == 0
     }
 
     pub fn names(&self) -> TypeParamNameIter {
         TypeParamNameIter {
             data: self,
             current: 0,
-            total: self.len(),
+            total: self.type_param_count(),
         }
     }
 }

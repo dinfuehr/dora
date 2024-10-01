@@ -228,7 +228,7 @@ fn check_expr_call_expr_lambda(
     let (params, return_type) = expr_type.to_lambda().expect("lambda expected");
 
     // Type params are mapped to themselves.
-    let type_params_count = ck.type_param_definition.len();
+    let type_params_count = ck.type_param_definition.type_param_count();
     let type_params = new_identity_type_params(type_params_count);
 
     if !args_compatible(ck.sa, params.types(), false, arg_types, &type_params, None) {

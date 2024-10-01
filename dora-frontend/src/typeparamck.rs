@@ -96,10 +96,10 @@ struct TypeParamCheck<'a> {
 
 impl<'a> TypeParamCheck<'a> {
     fn check(&self, tps: &SourceTypeArray) -> bool {
-        if self.callee_type_param_defs.len() != tps.len() {
+        if self.callee_type_param_defs.type_param_count() != tps.len() {
             if let ErrorReporting::Yes(file_id, span) = self.error {
                 let msg = ErrorMessage::WrongNumberTypeParams(
-                    self.callee_type_param_defs.len(),
+                    self.callee_type_param_defs.type_param_count(),
                     tps.len(),
                 );
                 self.sa.report(file_id, span, msg);

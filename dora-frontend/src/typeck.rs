@@ -1,5 +1,3 @@
-use std::rc::Rc;
-
 use crate::sema::{
     AnalysisData, FctDefinition, FctParent, GlobalDefinition, LazyContextClassCreationData,
     LazyLambdaCreationData, Sema, TypeParamDefinition,
@@ -142,7 +140,7 @@ fn check_global(
 
         let mut typeck = TypeCheck {
             sa,
-            type_param_definition: &Rc::new(TypeParamDefinition::new(None)),
+            type_param_definition: &TypeParamDefinition::empty(),
             package_id: global.package_id,
             module_id: global.module_id,
             file_id: global.file_id,

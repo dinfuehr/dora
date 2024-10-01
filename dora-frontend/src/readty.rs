@@ -64,8 +64,11 @@ pub fn check_type_params(
     span: Span,
     type_param_defs: &TypeParamDefinition,
 ) -> bool {
-    if tp_definitions.len() != type_params.len() {
-        let msg = ErrorMessage::WrongNumberTypeParams(tp_definitions.len(), type_params.len());
+    if tp_definitions.type_param_count() != type_params.len() {
+        let msg = ErrorMessage::WrongNumberTypeParams(
+            tp_definitions.type_param_count(),
+            type_params.len(),
+        );
         sa.report(file_id, span, msg);
         return false;
     }

@@ -179,7 +179,7 @@ pub fn check_for_unconstrained_type_params(
     file_id: SourceFileId,
     span: Span,
 ) {
-    let mut bitset = FixedBitSet::with_capacity(type_params_defs.len());
+    let mut bitset = FixedBitSet::with_capacity(type_params_defs.type_param_count());
 
     discover_type_params(sa, ty, &mut bitset);
 

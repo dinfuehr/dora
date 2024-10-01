@@ -220,7 +220,7 @@ fn create_functions(sa: &Sema, e: &mut Emitter) -> Vec<FunctionData> {
             file_id: convert_source_file_id(global.file_id),
             package_id: convert_package_id(global.package_id),
             module_id: convert_module_id(global.module_id),
-            type_params: create_type_params(sa, &TypeParamDefinition::new(None)),
+            type_params: create_type_params(sa, &TypeParamDefinition::empty()),
             source_file_id: Some(convert_source_file_id(global.file_id)),
             params: Vec::new(),
             return_type: bty_from_ty(global.ty()),
