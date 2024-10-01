@@ -210,7 +210,7 @@ pub fn create_lambda_class(sa: &mut Sema) {
         None,
         class_name,
         Visibility::Public,
-        TypeParamDefinition::new(),
+        Rc::new(TypeParamDefinition::new(None)),
         fields,
     );
 

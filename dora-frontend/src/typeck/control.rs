@@ -127,7 +127,7 @@ fn type_supports_into_iterator_trait(
     let impl_match = find_impl(
         ck.sa,
         object_type.clone(),
-        &ck.type_param_defs,
+        &ck.type_param_definition,
         trait_ty.clone(),
     );
 
@@ -182,7 +182,7 @@ fn type_supports_iterator_trait(
     let impl_match = find_impl(
         ck.sa,
         object_type.clone(),
-        &ck.type_param_defs,
+        &ck.type_param_definition,
         trait_ty.clone(),
     );
 

@@ -1,4 +1,5 @@
 use std::cell::OnceCell;
+use std::rc::Rc;
 use std::str::Chars;
 use std::{f32, f64};
 
@@ -23,7 +24,7 @@ use dora_parser::{ast, NodeId};
 
 pub struct TypeCheck<'a> {
     pub sa: &'a Sema,
-    pub type_param_defs: &'a TypeParamDefinition,
+    pub type_param_definition: &'a Rc<TypeParamDefinition>,
     pub package_id: PackageDefinitionId,
     pub module_id: ModuleDefinitionId,
     pub file_id: SourceFileId,
@@ -280,7 +281,7 @@ impl<'a> TypeCheck<'a> {
             None,
             name,
             Visibility::Public,
-            self.type_param_defs.clone(),
+            self.type_param_definition.clone(),
             fields,
         );
 
@@ -292,7 +293,7 @@ impl<'a> TypeCheck<'a> {
     }
 
     fn add_type_params(&mut self) {
-        for (id, name) in self.type_param_defs.names() {
+        for (id, name) in self.type_param_definition.names() {
             self.symtable.insert(name, SymbolKind::TypeParam(id));
         }
     }
@@ -368,7 +369,7 @@ impl<'a> TypeCheck<'a> {
             allow_self: self.self_ty.is_some(),
             module_id: self.module_id,
             file_id: self.file_id,
-            type_param_definition: self.type_param_defs,
+            type_param_definition: self.type_param_definition,
         };
         parsety::check_type(self.sa, &ctxt, &parsed_ty);
         let expanded_ty = parsety::expand_type(self.sa, &parsed_ty, self.self_ty.clone());
@@ -393,7 +394,7 @@ impl<'a> TypeCheck<'a> {
     }
 
     pub(super) fn ty_name(&self, ty: &SourceType) -> String {
-        ty.name_with_type_params(self.sa, self.type_param_defs)
+        ty.name_with_type_params(self.sa, self.type_param_definition)
     }
 }
 

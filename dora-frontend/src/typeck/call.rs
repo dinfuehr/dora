@@ -108,7 +108,7 @@ fn check_expr_call_generic_static_method(
     let mut matched_methods = Vec::new();
     let interned_name = ck.sa.interner.intern(&name);
 
-    for trait_ty in ck.type_param_defs.bounds_for_type_param(tp_id) {
+    for trait_ty in ck.type_param_definition.bounds_for_type_param(tp_id) {
         let trait_id = trait_ty.trait_id().expect("trait expected");
         let trait_ = ck.sa.trait_(trait_id);
 
@@ -228,7 +228,7 @@ fn check_expr_call_expr_lambda(
     let (params, return_type) = expr_type.to_lambda().expect("lambda expected");
 
     // Type params are mapped to themselves.
-    let type_params_count = ck.type_param_defs.len();
+    let type_params_count = ck.type_param_definition.len();
     let type_params = new_identity_type_params(type_params_count);
 
     if !args_compatible(ck.sa, params.types(), false, arg_types, &type_params, None) {
@@ -260,7 +260,7 @@ fn check_expr_call_fct(
         ck.sa.report(ck.file_id, e.span, msg);
     }
 
-    let lookup = MethodLookup::new(ck.sa, ck.file_id, ck.type_param_defs)
+    let lookup = MethodLookup::new(ck.sa, ck.file_id, ck.type_param_definition)
         .span(e.span)
         .callee(fct_id)
         .args(&arg_types)
@@ -290,7 +290,7 @@ fn check_expr_call_static_method(
     arg_types: &[SourceType],
 ) -> SourceType {
     let interned_method_name = ck.sa.interner.intern(&method_name);
-    let lookup = MethodLookup::new(ck.sa, ck.file_id, ck.type_param_defs)
+    let lookup = MethodLookup::new(ck.sa, ck.file_id, ck.type_param_definition)
         .span(e.span)
         .static_method(object_type)
         .name(interned_method_name)
@@ -342,7 +342,7 @@ fn check_expr_call_method(
 
     let interned_method_name = ck.sa.interner.intern(&method_name);
 
-    let lookup = MethodLookup::new(ck.sa, ck.file_id, ck.type_param_defs)
+    let lookup = MethodLookup::new(ck.sa, ck.file_id, ck.type_param_definition)
         .no_error_reporting()
         .parent(ck.parent.clone())
         .method(object_type.clone())
@@ -383,7 +383,7 @@ fn check_expr_call_method(
         check_expr_call_field(ck, e, object_type, method_name, fct_type_params, arg_types)
     } else {
         // Lookup the method again, but this time with error reporting
-        let lookup = MethodLookup::new(ck.sa, ck.file_id, ck.type_param_defs)
+        let lookup = MethodLookup::new(ck.sa, ck.file_id, ck.type_param_definition)
             .parent(ck.parent.clone())
             .method(object_type)
             .name(interned_method_name)
@@ -448,7 +448,7 @@ fn check_expr_call_field(
     }
 
     // No field with that name as well, so report method
-    let lookup = MethodLookup::new(ck.sa, ck.file_id, ck.type_param_defs)
+    let lookup = MethodLookup::new(ck.sa, ck.file_id, ck.type_param_definition)
         .parent(ck.parent.clone())
         .method(object_type)
         .name(interned_method_name)
@@ -490,7 +490,7 @@ fn check_expr_call_struct(
     let ty = SourceType::Struct(struct_id, type_params.clone());
     let type_params_ok = typeparamck::check_struct(
         ck.sa,
-        ck.type_param_defs,
+        ck.type_param_definition,
         struct_id,
         &type_params,
         ErrorReporting::Yes(ck.file_id, e.span),
@@ -586,7 +586,7 @@ fn check_expr_call_class(
 
     if !typeparamck::check_class(
         ck.sa,
-        ck.type_param_defs,
+        ck.type_param_definition,
         cls_id,
         &type_params,
         ErrorReporting::Yes(ck.file_id, e.span),
@@ -647,7 +647,7 @@ fn check_expr_call_generic_type_param(
     let mut matched_methods = Vec::new();
     let interned_name = ck.sa.interner.intern(&name);
 
-    for trait_ty in ck.type_param_defs.bounds_for_type_param(id) {
+    for trait_ty in ck.type_param_definition.bounds_for_type_param(id) {
         if let Some(trait_id) = trait_ty.trait_id() {
             let trait_ = ck.sa.trait_(trait_id);
 
@@ -765,7 +765,7 @@ fn check_expr_call_path(
         Some(SymbolKind::Class(cls_id)) => {
             if typeparamck::check_class(
                 ck.sa,
-                ck.type_param_defs,
+                ck.type_param_definition,
                 cls_id,
                 &container_type_params,
                 ErrorReporting::Yes(ck.file_id, e.span),
@@ -788,7 +788,7 @@ fn check_expr_call_path(
 
             if typeparamck::check_struct(
                 ck.sa,
-                ck.type_param_defs,
+                ck.type_param_definition,
                 struct_id,
                 &container_type_params,
                 ErrorReporting::Yes(ck.file_id, e.span),
@@ -840,7 +840,7 @@ fn check_expr_call_path(
             } else {
                 if typeparamck::check_enum(
                     ck.sa,
-                    ck.type_param_defs,
+                    ck.type_param_definition,
                     enum_id,
                     &container_type_params,
                     ErrorReporting::Yes(ck.file_id, e.span),
@@ -963,7 +963,7 @@ pub(super) fn find_method(
     let descriptor = lookup_method(
         ck.sa,
         object_type.clone(),
-        ck.type_param_defs,
+        ck.type_param_definition,
         is_static,
         name,
         args,

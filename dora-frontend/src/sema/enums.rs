@@ -1,5 +1,6 @@
 use std::cell::{OnceCell, RefCell};
 use std::collections::HashMap;
+use std::rc::Rc;
 use std::sync::Arc;
 
 use crate::interner::Name;
@@ -28,7 +29,7 @@ pub struct EnumDefinition {
     pub span: Span,
     pub name: Name,
     pub visibility: Visibility,
-    pub type_params: TypeParamDefinition,
+    pub type_param_definition: Rc<TypeParamDefinition>,
     pub variants: Vec<EnumVariant>,
     pub extensions: RefCell<Vec<ExtensionDefinitionId>>,
     pub simple_enumeration: OnceCell<bool>,
@@ -43,7 +44,7 @@ impl EnumDefinition {
         node: &Arc<ast::Enum>,
         modifiers: ParsedModifierList,
         name: Name,
-        type_params: TypeParamDefinition,
+        type_param_definition: Rc<TypeParamDefinition>,
         variants: Vec<EnumVariant>,
         name_to_value: HashMap<Name, u32>,
     ) -> EnumDefinition {
@@ -55,7 +56,7 @@ impl EnumDefinition {
             ast: node.clone(),
             span: node.span,
             name,
-            type_params,
+            type_param_definition,
             visibility: modifiers.visibility(),
             variants,
             extensions: RefCell::new(Vec::new()),
@@ -68,8 +69,8 @@ impl EnumDefinition {
         self.id.expect("id missing")
     }
 
-    pub fn type_param_definition(&self) -> &TypeParamDefinition {
-        &self.type_params
+    pub fn type_param_definition(&self) -> &Rc<TypeParamDefinition> {
+        &self.type_param_definition
     }
 
     pub fn name_to_value(&self) -> &HashMap<Name, u32> {

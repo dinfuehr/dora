@@ -546,7 +546,7 @@ fn check_expr_conv(
         let implements = implements_trait(
             ck.sa,
             object_type.clone(),
-            &ck.type_param_defs,
+            &ck.type_param_definition,
             check_type.clone(),
         );
 
@@ -695,14 +695,14 @@ fn check_expr_template(
             if implements_trait(
                 ck.sa,
                 part_expr.clone(),
-                &ck.type_param_defs,
+                &ck.type_param_definition,
                 stringable_trait_ty.clone(),
             ) {
                 if !part_expr.is_type_param() {
                     let impl_match = find_impl(
                         ck.sa,
                         part_expr.clone(),
-                        &ck.type_param_defs,
+                        &ck.type_param_definition,
                         stringable_trait_ty.clone(),
                     )
                     .expect("missing impl");
@@ -779,7 +779,12 @@ fn check_expr_un_trait(
     let trait_ty = SourceType::new_trait(trait_id);
     let trait_method_name = ck.sa.interner.intern(trait_method_name);
 
-    let impl_match = find_impl(ck.sa, ty.clone(), &ck.type_param_defs, trait_ty.clone());
+    let impl_match = find_impl(
+        ck.sa,
+        ty.clone(),
+        &ck.type_param_definition,
+        trait_ty.clone(),
+    );
 
     if let Some(impl_match) = impl_match {
         let trait_ = ck.sa.trait_(trait_id);
@@ -804,7 +809,7 @@ fn check_expr_un_trait(
 
         return_type
     } else if ty.is_type_param()
-        && implements_trait(ck.sa, ty.clone(), ck.type_param_defs, trait_ty)
+        && implements_trait(ck.sa, ty.clone(), ck.type_param_definition, trait_ty)
     {
         let trait_ = &ck.sa.trait_(trait_id);
 
@@ -1012,14 +1017,19 @@ fn check_expr_bin_trait(
     let impl_match = find_impl(
         ck.sa,
         lhs_type.clone(),
-        &ck.type_param_defs,
+        &ck.type_param_definition,
         trait_ty.clone(),
     );
     let trait_method_name = ck.sa.interner.intern(trait_method_name);
 
     if let Some(impl_match) = impl_match {
-        let type_params = impl_matches(ck.sa, lhs_type.clone(), ck.type_param_defs, impl_match.id)
-            .expect("impl does not match");
+        let type_params = impl_matches(
+            ck.sa,
+            lhs_type.clone(),
+            ck.type_param_definition,
+            impl_match.id,
+        )
+        .expect("impl does not match");
 
         let trait_ = &ck.sa.trait_(trait_id);
         let trait_method_id = trait_
@@ -1057,7 +1067,7 @@ fn check_expr_bin_trait(
 
         return_type
     } else if lhs_type.is_type_param()
-        && implements_trait(ck.sa, lhs_type.clone(), ck.type_param_defs, trait_ty)
+        && implements_trait(ck.sa, lhs_type.clone(), ck.type_param_definition, trait_ty)
     {
         let trait_ = ck.sa.trait_(trait_id);
 
@@ -1248,7 +1258,7 @@ fn check_expr_lambda(
         {
             let mut typeck = TypeCheck {
                 sa: ck.sa,
-                type_param_defs: ck.type_param_defs,
+                type_param_definition: ck.type_param_definition,
                 package_id: ck.package_id,
                 module_id: ck.module_id,
                 file_id: ck.file_id,
@@ -1286,7 +1296,7 @@ fn check_expr_lambda(
         node,
         ParsedModifierList::default(),
         name,
-        ck.type_param_defs.clone(),
+        ck.type_param_definition.clone(),
         lambda_params,
         FctParent::Function,
     );
@@ -1331,7 +1341,7 @@ pub(super) fn check_enum_value_with_args(
 
     let type_params_ok = typeparamck::check_enum(
         ck.sa,
-        ck.type_param_defs,
+        ck.type_param_definition,
         enum_id,
         &type_params,
         ErrorReporting::Yes(ck.file_id, e.span),
@@ -1491,7 +1501,7 @@ fn check_enum_value_without_args(
 
     let type_params_ok = typeparamck::check_enum(
         ck.sa,
-        ck.type_param_defs,
+        ck.type_param_definition,
         enum_id,
         &type_params,
         ErrorReporting::Yes(ck.file_id, expr_span),
@@ -1649,7 +1659,7 @@ pub(super) fn check_enum_value_without_args_id(
 
     let type_params_ok = typeparamck::check_enum(
         ck.sa,
-        ck.type_param_defs,
+        ck.type_param_definition,
         enum_id,
         &type_params,
         ErrorReporting::Yes(ck.file_id, expr_span),

@@ -3,6 +3,7 @@ use std::collections::{HashMap, HashSet, VecDeque};
 use std::fs;
 use std::io::{Error, Read};
 use std::path::{Path, PathBuf};
+use std::rc::Rc;
 use std::sync::Arc;
 
 use crate::error::msg::ErrorMessage;
@@ -475,7 +476,7 @@ impl<'x> visit::Visitor for TopLevelDeclaration<'x> {
 
         let type_param_definition = parse_type_param_definition(
             self.sa,
-            TypeParamDefinition::new(),
+            None,
             node.type_params.as_ref(),
             node.where_bounds.as_ref(),
             self.file_id,
@@ -547,7 +548,7 @@ impl<'x> visit::Visitor for TopLevelDeclaration<'x> {
 
         let type_param_definition = parse_type_param_definition(
             self.sa,
-            TypeParamDefinition::new(),
+            None,
             node.type_params.as_ref(),
             node.where_bounds.as_ref(),
             self.file_id,
@@ -586,7 +587,7 @@ impl<'x> visit::Visitor for TopLevelDeclaration<'x> {
                 .set(extension_id)
                 .is_ok());
 
-            find_methods_in_extension(self.sa, extension_id, node);
+            find_elements_in_extension(self.sa, extension_id, node);
         }
     }
 
@@ -639,7 +640,7 @@ impl<'x> visit::Visitor for TopLevelDeclaration<'x> {
 
         let type_param_definition = parse_type_param_definition(
             self.sa,
-            TypeParamDefinition::new(),
+            None,
             node.type_params.as_ref(),
             node.where_bounds.as_ref(),
             self.file_id,
@@ -698,7 +699,7 @@ impl<'x> visit::Visitor for TopLevelDeclaration<'x> {
 
         let type_param_definition = parse_type_param_definition(
             self.sa,
-            TypeParamDefinition::new(),
+            None,
             node.type_params.as_ref(),
             node.where_bounds.as_ref(),
             self.file_id,
@@ -740,7 +741,7 @@ impl<'x> visit::Visitor for TopLevelDeclaration<'x> {
 
         let type_param_definition = parse_type_param_definition(
             self.sa,
-            TypeParamDefinition::new(),
+            None,
             node.type_params.as_ref(),
             node.where_bounds.as_ref(),
             self.file_id,
@@ -818,7 +819,7 @@ impl<'x> visit::Visitor for TopLevelDeclaration<'x> {
 
         let type_param_definition = parse_type_param_definition(
             self.sa,
-            TypeParamDefinition::new(),
+            None,
             node.type_params.as_ref(),
             node.where_bounds.as_ref(),
             self.file_id,
@@ -906,10 +907,9 @@ fn find_elements_in_trait(
                 );
 
                 let container_type_param_definition = trait_.type_param_definition().clone();
-                container_type_param_definition.set_container_type_params();
                 let type_param_definition = parse_type_param_definition(
                     sa,
-                    container_type_param_definition,
+                    Some(container_type_param_definition),
                     method_node.type_params.as_ref(),
                     method_node.where_bounds.as_ref(),
                     file_id,
@@ -1012,10 +1012,9 @@ fn find_elements_in_impl(
                 );
 
                 let container_type_param_definition = impl_.type_param_definition().clone();
-                container_type_param_definition.set_container_type_params();
                 let type_param_definition = parse_type_param_definition(
                     sa,
-                    container_type_param_definition,
+                    Some(container_type_param_definition),
                     method_node.type_params.as_ref(),
                     method_node.where_bounds.as_ref(),
                     file_id,
@@ -1092,7 +1091,7 @@ fn find_elements_in_impl(
     assert!(impl_.aliases.set(aliases).is_ok());
 }
 
-fn find_methods_in_extension(
+fn find_elements_in_extension(
     sa: &mut Sema,
     extension_id: ExtensionDefinitionId,
     node: &Arc<ast::Impl>,
@@ -1117,10 +1116,9 @@ fn find_methods_in_extension(
                 );
 
                 let container_type_param_definition = extension.type_param_definition().clone();
-                container_type_param_definition.set_container_type_params();
                 let type_param_definition = parse_type_param_definition(
                     sa,
-                    container_type_param_definition,
+                    Some(container_type_param_definition),
                     method_node.type_params.as_ref(),
                     method_node.where_bounds.as_ref(),
                     extension.file_id,
@@ -1387,13 +1385,15 @@ fn add_package(
 
 fn parse_type_param_definition(
     sa: &Sema,
-    mut type_param_definition: TypeParamDefinition,
+    parent: Option<Rc<TypeParamDefinition>>,
     ast_type_params: Option<&ast::TypeParams>,
     where_bounds: Option<&ast::WhereBounds>,
     file_id: SourceFileId,
-) -> TypeParamDefinition {
+) -> Rc<TypeParamDefinition> {
+    let mut type_param_definition = TypeParamDefinition::new(parent);
+
     if ast_type_params.is_none() {
-        return type_param_definition;
+        return Rc::new(type_param_definition);
     }
 
     let ast_type_params = ast_type_params.expect("type params expected");
@@ -1434,7 +1434,7 @@ fn parse_type_param_definition(
         }
     }
 
-    type_param_definition
+    Rc::new(type_param_definition)
 }
 
 fn parse_function_params(

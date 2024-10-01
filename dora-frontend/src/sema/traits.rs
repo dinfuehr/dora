@@ -1,5 +1,6 @@
 use std::cell::OnceCell;
 use std::collections::HashMap;
+use std::rc::Rc;
 use std::sync::Arc;
 
 use crate::interner::Name;
@@ -27,7 +28,7 @@ pub struct TraitDefinition {
     pub span: Span,
     pub name: Name,
     pub is_trait_object: bool,
-    pub type_params: TypeParamDefinition,
+    pub type_param_definition: Rc<TypeParamDefinition>,
     pub methods: OnceCell<Vec<FctDefinitionId>>,
     pub aliases: OnceCell<Vec<AliasDefinitionId>>,
     pub instance_names: OnceCell<HashMap<Name, FctDefinitionId>>,
@@ -43,7 +44,7 @@ impl TraitDefinition {
         node: &Arc<ast::Trait>,
         modifiers: ParsedModifierList,
         name: Name,
-        type_params: TypeParamDefinition,
+        type_params: Rc<TypeParamDefinition>,
     ) -> TraitDefinition {
         TraitDefinition {
             id: None,
@@ -55,7 +56,7 @@ impl TraitDefinition {
             span: node.span,
             name,
             is_trait_object: false,
-            type_params,
+            type_param_definition: type_params,
             methods: OnceCell::new(),
             aliases: OnceCell::new(),
             instance_names: OnceCell::new(),
@@ -68,8 +69,8 @@ impl TraitDefinition {
         self.id.expect("id missing")
     }
 
-    pub fn type_param_definition(&self) -> &TypeParamDefinition {
-        &self.type_params
+    pub fn type_param_definition(&self) -> &Rc<TypeParamDefinition> {
+        &self.type_param_definition
     }
 
     pub fn methods(&self) -> &[FctDefinitionId] {

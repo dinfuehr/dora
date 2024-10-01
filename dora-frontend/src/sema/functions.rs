@@ -1,4 +1,5 @@
 use std::cell::{Cell, OnceCell};
+use std::rc::Rc;
 use std::sync::Arc;
 
 use crate::interner::Name;
@@ -42,7 +43,7 @@ pub struct FctDefinition {
     pub vtable_index: OnceCell<u32>,
     pub analysis: OnceCell<AnalysisData>,
 
-    pub type_params: TypeParamDefinition,
+    pub type_params: Rc<TypeParamDefinition>,
     pub container_type_params: OnceCell<usize>,
     pub bytecode: OnceCell<BytecodeFunction>,
     pub intrinsic: OnceCell<Intrinsic>,
@@ -56,7 +57,7 @@ impl FctDefinition {
         ast: &Arc<ast::Function>,
         modifiers: ParsedModifierList,
         name: Name,
-        type_params: TypeParamDefinition,
+        type_params: Rc<TypeParamDefinition>,
         params: Vec<Param>,
         parent: FctParent,
     ) -> FctDefinition {
@@ -99,7 +100,7 @@ impl FctDefinition {
         self.id.expect("id missing")
     }
 
-    pub fn type_param_definition(&self) -> &TypeParamDefinition {
+    pub fn type_param_definition(&self) -> &Rc<TypeParamDefinition> {
         &self.type_params
     }
 

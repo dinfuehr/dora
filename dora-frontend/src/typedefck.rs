@@ -204,7 +204,7 @@ fn parse_function_types(sa: &Sema) {
         let mut sym_table = ModuleSymTable::new(sa, fct.module_id);
         sym_table.push_level();
 
-        let mut type_param_definition = TypeParamDefinition::new();
+        let mut type_param_definition = TypeParamDefinition::new(None);
 
         match fct.parent {
             FctParent::Impl(impl_id) => {
@@ -262,7 +262,7 @@ fn parse_type_param_definition(
         }
     }
 
-    for bound in type_param_definition.bounds() {
+    for bound in type_param_definition.own_bounds() {
         parsety::parse_type(sa, &symtable, file_id, bound.parsed_ty());
         parsety::parse_type(sa, &symtable, file_id, bound.parsed_trait_ty());
     }
@@ -285,7 +285,7 @@ fn check_alias_types(sa: &Sema) {
     for (_id, alias) in sa.aliases.iter() {
         if let Some(parsed_ty) = alias.parsed_ty() {
             let type_param_definition = match alias.parent {
-                AliasParent::None => &TypeParamDefinition::new(),
+                AliasParent::None => &TypeParamDefinition::new(None),
 
                 AliasParent::Impl(impl_id) => {
                     let impl_ = sa.impl_(impl_id);
@@ -325,7 +325,7 @@ fn check_const_types(sa: &Sema) {
             allow_self: false,
             module_id: const_.module_id,
             file_id: const_.file_id,
-            type_param_definition: &TypeParamDefinition::new(),
+            type_param_definition: &TypeParamDefinition::new(None),
         };
         parsety::check_type(sa, &ctxt, const_.parsed_ty());
     }
@@ -337,7 +337,7 @@ fn check_global_types(sa: &Sema) {
             allow_self: false,
             module_id: global.module_id,
             file_id: global.file_id,
-            type_param_definition: &TypeParamDefinition::new(),
+            type_param_definition: &TypeParamDefinition::new(None),
         };
         parsety::check_type(sa, &ctxt, global.parsed_ty());
     }
@@ -468,7 +468,7 @@ fn check_type_param_definition(
     ctxt: &parsety::TypeContext,
     type_param_definition: &TypeParamDefinition,
 ) {
-    for bound in type_param_definition.bounds() {
+    for bound in type_param_definition.own_bounds() {
         parsety::check_type(sa, &ctxt, bound.parsed_ty());
         parsety::check_type(sa, &ctxt, bound.parsed_trait_ty());
 
@@ -601,7 +601,7 @@ fn expand_type_param_definition(
     type_param_definition: &TypeParamDefinition,
     replace_self: Option<SourceType>,
 ) {
-    for bound in type_param_definition.bounds() {
+    for bound in type_param_definition.own_bounds() {
         parsety::expand_type(sa, bound.parsed_ty(), replace_self.clone());
         parsety::expand_type(sa, bound.parsed_trait_ty(), replace_self.clone());
     }

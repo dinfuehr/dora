@@ -1,5 +1,6 @@
 use std::cell::OnceCell;
 use std::collections::HashMap;
+use std::rc::Rc;
 use std::sync::Arc;
 
 use dora_parser::ast;
@@ -24,7 +25,7 @@ pub struct ImplDefinition {
     pub ast: Arc<ast::Impl>,
     pub declaration_span: Span,
     pub span: Span,
-    pub type_params: TypeParamDefinition,
+    pub type_param_definition: Rc<TypeParamDefinition>,
     pub parsed_trait_ty: ParsedType,
     pub parsed_extended_ty: ParsedType,
     pub methods: OnceCell<Vec<FctDefinitionId>>,
@@ -39,7 +40,7 @@ impl ImplDefinition {
         module_id: ModuleDefinitionId,
         file_id: SourceFileId,
         node: &Arc<ast::Impl>,
-        type_params: TypeParamDefinition,
+        type_param_definition: Rc<TypeParamDefinition>,
     ) -> ImplDefinition {
         ImplDefinition {
             id: OnceCell::new(),
@@ -47,7 +48,7 @@ impl ImplDefinition {
             module_id,
             file_id,
             ast: node.clone(),
-            type_params,
+            type_param_definition,
             declaration_span: node.declaration_span,
             span: node.span,
             parsed_trait_ty: ParsedType::new_ast(
@@ -68,8 +69,8 @@ impl ImplDefinition {
         self.id.get().expect("id missing").clone()
     }
 
-    pub fn type_param_definition(&self) -> &TypeParamDefinition {
-        &self.type_params
+    pub fn type_param_definition(&self) -> &Rc<TypeParamDefinition> {
+        &self.type_param_definition
     }
 
     pub fn trait_id(&self) -> TraitDefinitionId {

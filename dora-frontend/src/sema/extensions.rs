@@ -1,5 +1,6 @@
 use std::cell::{OnceCell, RefCell};
 use std::collections::HashMap;
+use std::rc::Rc;
 use std::sync::Arc;
 
 use crate::interner::Name;
@@ -24,7 +25,7 @@ pub struct ExtensionDefinition {
     pub file_id: SourceFileId,
     pub ast: Arc<ast::Impl>,
     pub span: Span,
-    pub type_params: TypeParamDefinition,
+    pub type_param_definition: Rc<TypeParamDefinition>,
     pub parsed_ty: ParsedType,
     pub methods: OnceCell<Vec<FctDefinitionId>>,
     pub instance_names: RefCell<HashMap<Name, FctDefinitionId>>,
@@ -37,7 +38,7 @@ impl ExtensionDefinition {
         module_id: ModuleDefinitionId,
         file_id: SourceFileId,
         node: &Arc<ast::Impl>,
-        type_params: TypeParamDefinition,
+        type_param_definition: Rc<TypeParamDefinition>,
     ) -> ExtensionDefinition {
         ExtensionDefinition {
             id: OnceCell::new(),
@@ -46,7 +47,7 @@ impl ExtensionDefinition {
             file_id,
             ast: node.clone(),
             span: node.span,
-            type_params,
+            type_param_definition,
             parsed_ty: ParsedType::new_ast(node.extended_type.clone()),
             methods: OnceCell::new(),
             instance_names: RefCell::new(HashMap::new()),
@@ -58,8 +59,8 @@ impl ExtensionDefinition {
         self.id.get().cloned().expect("id missing")
     }
 
-    pub fn type_param_definition(&self) -> &TypeParamDefinition {
-        &self.type_params
+    pub fn type_param_definition(&self) -> &Rc<TypeParamDefinition> {
+        &self.type_param_definition
     }
 
     pub fn parsed_ty(&self) -> &ParsedType {

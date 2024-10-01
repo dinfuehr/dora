@@ -4618,3 +4618,19 @@ fn f(x: (Int64, Int64)) {
         ErrorMessage::PatternWrongNumberOfParams(3, 2),
     );
 }
+
+#[test]
+fn type_param_failure_in_container() {
+    err(
+        "
+        struct Foo[T](value: T)
+
+        impl[T: Unknown] Foo[T] {
+            fn f() {}
+            fn g() {}
+        }
+    ",
+        (4, 17),
+        ErrorMessage::UnknownIdentifier("Unknown".into()),
+    );
+}

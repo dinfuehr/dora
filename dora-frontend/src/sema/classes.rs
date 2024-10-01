@@ -1,5 +1,6 @@
 use std::cell::{OnceCell, RefCell};
 use std::ops::{Index, IndexMut};
+use std::rc::Rc;
 use std::sync::Arc;
 
 use id_arena::Id;
@@ -35,7 +36,7 @@ pub struct ClassDefinition {
 
     pub extensions: RefCell<Vec<ExtensionDefinitionId>>,
 
-    pub type_params: TypeParamDefinition,
+    pub type_param_definition: Rc<TypeParamDefinition>,
 
     // true if this class is the generic Array class
     pub is_array: bool,
@@ -50,7 +51,7 @@ impl ClassDefinition {
         ast: &Arc<ast::Class>,
         modifiers: ParsedModifierList,
         name: Name,
-        type_param_definition: TypeParamDefinition,
+        type_param_definition: Rc<TypeParamDefinition>,
         fields: Vec<Field>,
     ) -> ClassDefinition {
         ClassDefinition {
@@ -70,7 +71,7 @@ impl ClassDefinition {
 
             extensions: RefCell::new(Vec::new()),
 
-            type_params: type_param_definition,
+            type_param_definition,
 
             is_array: false,
             is_str: false,
@@ -84,7 +85,7 @@ impl ClassDefinition {
         span: Option<Span>,
         name: Name,
         visibility: Visibility,
-        type_param_definition: TypeParamDefinition,
+        type_param_definition: Rc<TypeParamDefinition>,
         fields: Vec<Field>,
     ) -> ClassDefinition {
         ClassDefinition {
@@ -104,7 +105,7 @@ impl ClassDefinition {
 
             extensions: RefCell::new(Vec::new()),
 
-            type_params: type_param_definition,
+            type_param_definition,
 
             is_array: false,
             is_str: false,
@@ -127,8 +128,8 @@ impl ClassDefinition {
         self.span.expect("missing position")
     }
 
-    pub fn type_param_definition(&self) -> &TypeParamDefinition {
-        &self.type_params
+    pub fn type_param_definition(&self) -> &Rc<TypeParamDefinition> {
+        &self.type_param_definition
     }
 
     pub fn ty(&self) -> SourceType {

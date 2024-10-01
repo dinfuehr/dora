@@ -1,4 +1,4 @@
-use std::cell::OnceCell;
+use std::rc::Rc;
 
 use dora_parser::ast;
 
@@ -6,42 +6,66 @@ use crate::{Name, ParsedType, SourceType, SourceTypeArray};
 
 #[derive(Clone, Debug)]
 pub struct TypeParamDefinition {
+    #[allow(unused)]
+    parent: Option<Rc<TypeParamDefinition>>,
     type_params: Vec<TypeParam>,
     bounds: Vec<Bound>,
-    container_type_params: OnceCell<usize>,
+    container_type_params: usize,
+    container_bounds: usize,
 }
 
 impl TypeParamDefinition {
-    pub fn new() -> TypeParamDefinition {
+    pub fn new(parent: Option<Rc<TypeParamDefinition>>) -> TypeParamDefinition {
+        let container_type_params;
+        let container_bounds;
+
+        if let Some(ref parent) = parent {
+            container_type_params = parent.type_params.len();
+            container_bounds = parent.bounds.len();
+        } else {
+            container_type_params = 0;
+            container_bounds = 0;
+        }
+
         TypeParamDefinition {
+            parent,
             type_params: Vec::new(),
             bounds: Vec::new(),
-            container_type_params: OnceCell::new(),
+            container_type_params,
+            container_bounds,
         }
     }
 
     pub fn len(&self) -> usize {
-        self.type_params.len()
+        self.container_type_params + self.type_params.len()
     }
 
     pub fn name(&self, id: TypeParamId) -> Name {
-        self.type_params[id.index()].name
+        self.type_param(id).name
+    }
+
+    fn type_param(&self, id: TypeParamId) -> &TypeParam {
+        let id = id.index();
+
+        if id < self.container_type_params() {
+            let parent = self.parent.as_ref().expect("parent missing");
+            &parent.type_params[id]
+        } else {
+            &self.type_params[id - self.container_type_params()]
+        }
+    }
+
+    fn bound(&self, idx: usize) -> &Bound {
+        if idx < self.container_bounds {
+            let parent = self.parent.as_ref().expect("parent missing");
+            &parent.bounds[idx]
+        } else {
+            &self.bounds[idx - self.container_bounds]
+        }
     }
 
     pub fn container_type_params(&self) -> usize {
         self.container_type_params
-            .get()
-            .cloned()
-            .expect("uninitialized field")
-    }
-
-    pub fn set_container_type_params(&self) -> usize {
-        let container_type_params = self.type_params.len();
-        assert!(self
-            .container_type_params
-            .set(container_type_params)
-            .is_ok());
-        container_type_params
     }
 
     pub fn fct_type_params_len(&self) -> usize {
@@ -53,9 +77,9 @@ impl TypeParamDefinition {
     }
 
     pub fn add_type_param(&mut self, name: Name) -> TypeParamId {
-        let id = TypeParamId(self.type_params.len());
+        let id = self.container_type_params + self.type_params.len();
         self.type_params.push(TypeParam { name });
-        id
+        TypeParamId(id)
     }
 
     pub fn add_bound(&mut self, id: TypeParamId, ast_trait_ty: ast::Type) {
@@ -77,7 +101,7 @@ impl TypeParamDefinition {
     }
 
     pub fn implements_trait(&self, id: TypeParamId, trait_ty: SourceType) -> bool {
-        for bound in &self.bounds {
+        for bound in self.bounds() {
             if bound.ty() == SourceType::TypeParam(id) && bound.trait_ty() == trait_ty {
                 return true;
             }
@@ -85,16 +109,29 @@ impl TypeParamDefinition {
         false
     }
 
-    pub fn bounds(&self) -> &[Bound] {
-        &self.bounds
+    pub fn bounds(&self) -> BoundsIter {
+        BoundsIter {
+            data: self,
+            current: 0,
+            total: self.container_bounds + self.bounds.len(),
+        }
     }
 
-    pub fn bounds_for_type_param(&self, id: TypeParamId) -> TypeParamBoundsIter {
-        TypeParamBoundsIter {
-            bounds: &self.bounds,
-            current: 0,
-            id,
+    pub fn own_bounds(&self) -> BoundsIter {
+        BoundsIter {
+            data: self,
+            current: self.container_bounds,
+            total: self.container_bounds + self.bounds.len(),
         }
+    }
+
+    pub fn bounds_for_type_param<'a>(
+        &'a self,
+        id: TypeParamId,
+    ) -> impl Iterator<Item = SourceType> + 'a {
+        self.bounds()
+            .filter(move |b| b.ty() == SourceType::TypeParam(id))
+            .map(|b| b.trait_ty())
     }
 
     pub fn append(&mut self, other: &TypeParamDefinition) {
@@ -113,6 +150,7 @@ impl TypeParamDefinition {
         TypeParamNameIter {
             data: self,
             current: 0,
+            total: self.len(),
         }
     }
 }
@@ -148,40 +186,37 @@ impl Bound {
     }
 }
 
-pub struct TypeParamBoundsIter<'a> {
-    bounds: &'a [Bound],
+pub struct BoundsIter<'a> {
+    data: &'a TypeParamDefinition,
     current: usize,
-    id: TypeParamId,
+    total: usize,
 }
 
-impl<'a> Iterator for TypeParamBoundsIter<'a> {
-    type Item = SourceType;
+impl<'a> Iterator for BoundsIter<'a> {
+    type Item = &'a Bound;
 
-    fn next(&mut self) -> Option<SourceType> {
-        while self.current < self.bounds.len() {
-            let bound = &self.bounds[self.current];
-            if bound.ty() == SourceType::TypeParam(self.id) {
-                self.current += 1;
-                return Some(bound.trait_ty());
-            }
-
+    fn next(&mut self) -> Option<&'a Bound> {
+        if self.current < self.total {
+            let bound = self.data.bound(self.current);
             self.current += 1;
+            Some(bound)
+        } else {
+            None
         }
-
-        None
     }
 }
 
 pub struct TypeParamNameIter<'a> {
     data: &'a TypeParamDefinition,
     current: usize,
+    total: usize,
 }
 
 impl<'a> Iterator for TypeParamNameIter<'a> {
     type Item = (TypeParamId, Name);
 
     fn next(&mut self) -> Option<(TypeParamId, Name)> {
-        if self.current < self.data.len() {
+        if self.current < self.total {
             let current = TypeParamId(self.current);
             self.current += 1;
             Some((current, self.data.name(current)))

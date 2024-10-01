@@ -1,5 +1,6 @@
 use std::cell::RefCell;
 use std::collections::hash_map::HashMap;
+use std::rc::Rc;
 use std::sync::Arc;
 
 use id_arena::Id;
@@ -25,7 +26,7 @@ pub struct StructDefinition {
     pub file_id: SourceFileId,
     pub ast: Arc<ast::Struct>,
     pub primitive_ty: Option<SourceType>,
-    pub type_params: TypeParamDefinition,
+    pub type_param_definition: Rc<TypeParamDefinition>,
     pub visibility: Visibility,
     pub is_internal: bool,
     pub internal_resolved: bool,
@@ -44,7 +45,7 @@ impl StructDefinition {
         node: &Arc<ast::Struct>,
         modifiers: ParsedModifierList,
         name: Name,
-        type_params: TypeParamDefinition,
+        type_param_definition: Rc<TypeParamDefinition>,
         fields: Vec<StructDefinitionField>,
     ) -> StructDefinition {
         let mut field_names = HashMap::new();
@@ -69,7 +70,7 @@ impl StructDefinition {
             name,
             is_internal: modifiers.is_internal,
             internal_resolved: false,
-            type_params,
+            type_param_definition,
             fields,
             field_names,
             extensions: RefCell::new(Vec::new()),
@@ -80,8 +81,8 @@ impl StructDefinition {
         self.id.expect("missing id")
     }
 
-    pub fn type_param_definition(&self) -> &TypeParamDefinition {
-        &self.type_params
+    pub fn type_param_definition(&self) -> &Rc<TypeParamDefinition> {
+        &self.type_param_definition
     }
 
     pub fn name(&self, sa: &Sema) -> String {
