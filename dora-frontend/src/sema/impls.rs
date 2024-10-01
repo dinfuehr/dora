@@ -139,8 +139,6 @@ pub fn implements_trait(
     check_type_param_defs: &TypeParamDefinition,
     trait_ty: SourceType,
 ) -> bool {
-    let trait_ty = maybe_alias_ty(sa, trait_ty);
-
     if !trait_ty.is_trait() {
         return true;
     }
@@ -203,7 +201,7 @@ pub fn find_impl(
     trait_ty: SourceType,
 ) -> Option<ImplMatch> {
     for (_id, impl_) in sa.impls.iter() {
-        if maybe_alias_ty(sa, impl_.trait_ty()) != trait_ty {
+        if impl_.trait_ty() != trait_ty {
             continue;
         }
 

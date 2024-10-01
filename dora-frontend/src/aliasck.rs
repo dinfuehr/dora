@@ -266,7 +266,48 @@ mod tests {
     }
 
     #[test]
-    fn use_alias_trait_bound() {
+    fn use_alias_trait_in_impl_trait_ty() {
+        err(
+            "
+            trait Foo {}
+            type FooB = Foo;
+            impl FooB for Int64 {}
+        ",
+            (4, 18),
+            ErrorMessage::BoundExpected,
+        );
+    }
+
+    #[test]
+    fn use_alias_trait_as_type_param_bound() {
+        err(
+            "
+            trait Bar {}
+            type BarA = Bar;
+            fn f[T: BarA](x: T) {}
+        ",
+            (4, 21),
+            ErrorMessage::BoundExpected,
+        );
+    }
+
+    #[test]
+    fn use_alias_trait_as_bound_for_associated_type() {
+        err(
+            "
+            trait Foo {
+                type X: BarA;
+            }
+            trait Bar {}
+            type BarA = Bar;
+        ",
+            (3, 25),
+            ErrorMessage::BoundExpected,
+        );
+    }
+
+    #[test]
+    fn use_alias_in_impl_extended_type() {
         ok("
             trait Foo {}
             type Foo1 = Foo;
@@ -280,9 +321,9 @@ mod tests {
             type BazA = Baz;
             type BazB = BazA;
 
-            impl FooB for Baz2 {}
+            impl Foo for Baz2 {}
 
-            struct Bar[T: Foo2](value: T)
+            struct Bar[T: Foo](value: T)
 
             fn f(x: Bar[BazB]) {}
         ")

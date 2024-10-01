@@ -1,8 +1,8 @@
 use crate::sema::{
-    maybe_alias_ty, new_identity_type_params, AliasParent, FctDefinition, FctParent, Sema,
-    SourceFileId, TypeParamDefinition,
+    new_identity_type_params, AliasParent, FctDefinition, FctParent, Sema, SourceFileId,
+    TypeParamDefinition,
 };
-use crate::{parsety, ErrorMessage, ModuleSymTable, ParsedType, SourceType, SymbolKind};
+use crate::{parsety, ModuleSymTable, ParsedType, SourceType, SymbolKind};
 
 pub fn parse_types(sa: &Sema) {
     parse_trait_types(sa);
@@ -276,38 +276,33 @@ pub fn check_types(sa: &Sema) {
 
 fn check_alias_types(sa: &Sema) {
     for (_id, alias) in sa.aliases.iter() {
-        if let Some(parsed_ty) = alias.parsed_ty() {
-            let type_param_definition = match alias.parent {
-                AliasParent::None => &TypeParamDefinition::empty(),
+        let type_param_definition = match alias.parent {
+            AliasParent::None => &TypeParamDefinition::empty(),
 
-                AliasParent::Impl(impl_id) => {
-                    let impl_ = sa.impl_(impl_id);
-                    impl_.type_param_definition()
-                }
-
-                AliasParent::Trait(id) => {
-                    let trait_ = sa.trait_(id);
-                    trait_.type_param_definition()
-                }
-            };
-
-            let ctxt = parsety::TypeContext {
-                allow_self: false,
-                module_id: alias.module_id,
-                file_id: alias.file_id,
-                type_param_definition,
-            };
-            parsety::check_type(sa, &ctxt, parsed_ty);
-
-            for bound in alias.bounds() {
-                parsety::check_type(sa, &ctxt, bound.parsed_ty());
-
-                let bound_ty = maybe_alias_ty(sa, bound.ty());
-                if !bound_ty.is_trait() && !bound_ty.is_error() {
-                    let msg = ErrorMessage::BoundExpected;
-                    sa.report(alias.file_id, bound.ty_ast.span(), msg);
-                }
+            AliasParent::Impl(impl_id) => {
+                let impl_ = sa.impl_(impl_id);
+                impl_.type_param_definition()
             }
+
+            AliasParent::Trait(id) => {
+                let trait_ = sa.trait_(id);
+                trait_.type_param_definition()
+            }
+        };
+
+        let ctxt = parsety::TypeContext {
+            allow_self: false,
+            module_id: alias.module_id,
+            file_id: alias.file_id,
+            type_param_definition,
+        };
+
+        if let Some(parsed_ty) = alias.parsed_ty() {
+            parsety::check_type(sa, &ctxt, parsed_ty);
+        }
+
+        for bound in alias.bounds() {
+            parsety::check_trait_type(sa, &ctxt, bound.parsed_ty());
         }
     }
 }
@@ -416,7 +411,7 @@ fn check_impl_types(sa: &Sema) {
 
         let mut ctxt = ctxt;
         ctxt.allow_self = true;
-        parsety::check_type(sa, &ctxt, impl_.parsed_trait_ty());
+        parsety::check_trait_type(sa, &ctxt, impl_.parsed_trait_ty());
     }
 }
 
@@ -461,13 +456,7 @@ fn check_type_param_definition(
 ) {
     for bound in type_param_definition.own_bounds() {
         parsety::check_type(sa, &ctxt, bound.parsed_ty());
-        parsety::check_type(sa, &ctxt, bound.parsed_trait_ty());
-
-        let trait_ty = maybe_alias_ty(sa, bound.trait_ty());
-        if !trait_ty.is_trait() && !trait_ty.is_error() {
-            let msg = ErrorMessage::BoundExpected;
-            sa.report(ctxt.file_id, bound.parsed_trait_ty().span(), msg);
-        }
+        parsety::check_trait_type(sa, &ctxt, bound.parsed_trait_ty());
     }
 }
 

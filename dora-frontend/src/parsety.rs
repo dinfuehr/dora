@@ -508,6 +508,48 @@ fn check_type_record(
     }
 }
 
+pub fn check_trait_type(sa: &Sema, ctxt: &TypeContext, parsed_ty: &ParsedType) -> SourceType {
+    let parsed_ty_ast = parsed_ty.parsed_ast().expect("missing ast node");
+    let new_ty = check_trait_type_inner(sa, ctxt, parsed_ty.ty(), parsed_ty_ast);
+    parsed_ty.set_ty(new_ty.clone());
+    new_ty
+}
+
+fn check_trait_type_inner(
+    sa: &Sema,
+    ctxt: &TypeContext,
+    ty: SourceType,
+    parsed_ty: &ParsedTypeAst,
+) -> SourceType {
+    match ty.clone() {
+        SourceType::Any | SourceType::Ptr => {
+            unreachable!()
+        }
+        SourceType::Error => SourceType::Error,
+        SourceType::This
+        | SourceType::TypeAlias(..)
+        | SourceType::Unit
+        | SourceType::TypeParam(..)
+        | SourceType::Bool
+        | SourceType::UInt8
+        | SourceType::Char
+        | SourceType::Float32
+        | SourceType::Float64
+        | SourceType::Int32
+        | SourceType::Int64
+        | SourceType::Lambda(..)
+        | SourceType::Tuple(..)
+        | SourceType::Class(..)
+        | SourceType::Struct(..)
+        | SourceType::Enum(..) => {
+            let msg = ErrorMessage::BoundExpected;
+            sa.report(ctxt.file_id, parsed_ty.span, msg);
+            SourceType::Error
+        }
+        SourceType::Trait(_, type_params) => check_type_record(sa, ctxt, parsed_ty, type_params),
+    }
+}
+
 pub fn expand_type(
     sa: &Sema,
     parsed_ty: &ParsedType,
