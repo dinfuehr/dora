@@ -2,7 +2,7 @@ use dora_parser::ast;
 
 use crate::access::sym_accessible_from;
 use crate::readty::read_type_path;
-use crate::sema::{ModuleDefinitionId, SourceFileId, TypeParamDefinition};
+use crate::sema::{is_object_safe, ModuleDefinitionId, SourceFileId, TypeParamDefinition};
 use crate::sym::{ModuleSymTable, SymbolKind};
 use crate::{check_type_params, ErrorMessage, Sema, SourceType, SourceTypeArray, Span};
 use std::cell::{OnceCell, RefCell};
@@ -457,8 +457,20 @@ fn check_type_inner(
         }
         SourceType::Class(_, type_params)
         | SourceType::Struct(_, type_params)
-        | SourceType::Enum(_, type_params)
-        | SourceType::Trait(_, type_params) => check_type_record(sa, ctxt, parsed_ty, type_params),
+        | SourceType::Enum(_, type_params) => check_type_record(sa, ctxt, parsed_ty, type_params),
+        SourceType::Trait(trait_id, type_params) => {
+            let result_ty = check_type_record(sa, ctxt, parsed_ty, type_params);
+
+            if !is_object_safe(sa, trait_id) {
+                sa.report(
+                    ctxt.file_id,
+                    parsed_ty.span,
+                    ErrorMessage::TraitNotObjectSafe,
+                );
+            }
+
+            result_ty
+        }
     }
 }
 

@@ -232,7 +232,21 @@ mod tests {
                 x as Foo;
             }
         ",
-            (9, 17),
+            (9, 22),
+            ErrorMessage::TraitNotObjectSafe,
+        );
+
+        err(
+            "
+            trait Foo {
+                type X;
+            }
+            impl Foo for Int64 {
+                type X = String;
+            }
+            fn f(x: Foo) {}
+        ",
+            (8, 21),
             ErrorMessage::TraitNotObjectSafe,
         );
     }
@@ -251,7 +265,21 @@ mod tests {
                 x as Foo;
             }
         ",
-            (9, 17),
+            (9, 22),
+            ErrorMessage::TraitNotObjectSafe,
+        );
+
+        err(
+            "
+            trait Foo {
+                static fn f();
+            }
+            impl Foo for Int64 {
+                static fn f() {}
+            }
+            fn f(x: Foo) {}
+        ",
+            (8, 21),
             ErrorMessage::TraitNotObjectSafe,
         );
     }
@@ -285,7 +313,21 @@ mod tests {
                 x as Foo;
             }
         ",
-            (9, 17),
+            (9, 22),
+            ErrorMessage::TraitNotObjectSafe,
+        );
+
+        err(
+            "
+            trait Foo {
+                fn f[U](x: U): Self;
+            }
+            impl Foo for Int64 {
+                fn f[U](_x: U): Self { self }
+            }
+            fn f(x: Foo) {}
+        ",
+            (8, 21),
             ErrorMessage::TraitNotObjectSafe,
         );
     }
@@ -304,7 +346,21 @@ mod tests {
                 x as Foo;
             }
         ",
-            (9, 17),
+            (9, 22),
+            ErrorMessage::TraitNotObjectSafe,
+        );
+
+        err(
+            "
+            trait Foo {
+                fn f(x: Self);
+            }
+            impl Foo for Int64 {
+                fn f(x: Int64) {}
+            }
+            fn f(x: Foo) {}
+        ",
+            (8, 21),
             ErrorMessage::TraitNotObjectSafe,
         );
     }
@@ -323,7 +379,21 @@ mod tests {
                 x as Foo;
             }
         ",
-            (9, 17),
+            (9, 22),
+            ErrorMessage::TraitNotObjectSafe,
+        );
+
+        err(
+            "
+                trait Foo {
+                    fn f(): Self;
+                }
+                impl Foo for Int64 {
+                    fn f(): Int64 { self }
+                }
+                fn f(x: Foo) {}
+            ",
+            (8, 25),
             ErrorMessage::TraitNotObjectSafe,
         );
     }
