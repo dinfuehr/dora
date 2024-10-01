@@ -3046,7 +3046,10 @@ impl<'a> AstBytecodeGen<'a> {
         call_type: &CallType,
     ) -> ConstPoolIdx {
         let type_params = self.determine_call_type_params(call_type);
-        assert_eq!(fct.type_param_definition().type_param_count(), type_params.len());
+        assert_eq!(
+            fct.type_param_definition().type_param_count(),
+            type_params.len()
+        );
 
         match *call_type {
             CallType::GenericStaticMethod(id, ..) | CallType::GenericMethod(id, ..) => {
