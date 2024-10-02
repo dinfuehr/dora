@@ -418,7 +418,17 @@ pub struct TypeRegularType {
     pub green: GreenNode,
 
     pub path: Path,
-    pub params: Vec<Type>,
+    pub params: Vec<Arc<TypeArgument>>,
+}
+
+#[derive(Clone, Debug)]
+pub struct TypeArgument {
+    pub id: NodeId,
+    pub span: Span,
+    pub green: GreenNode,
+
+    pub name: Option<Ident>,
+    pub ty: Type,
 }
 
 #[derive(Clone, Debug)]
@@ -459,12 +469,12 @@ impl TypeData {
         TypeData::This(TypeSelfType { id, span, green })
     }
 
-    pub fn create_basic(
+    pub fn create_regular(
         id: NodeId,
         span: Span,
         green: GreenNode,
         path: Path,
-        params: Vec<Type>,
+        params: Vec<Arc<TypeArgument>>,
     ) -> TypeData {
         TypeData::Regular(TypeRegularType {
             id,
@@ -500,7 +510,7 @@ impl TypeData {
         })
     }
 
-    pub fn to_basic(&self) -> Option<&TypeRegularType> {
+    pub fn to_regular(&self) -> Option<&TypeRegularType> {
         match *self {
             TypeData::Regular(ref val) => Some(val),
             _ => None,

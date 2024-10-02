@@ -1095,7 +1095,7 @@ impl Parser {
                         TYPE_PARAM_RS,
                         ParseError::ExpectedType,
                         LIST,
-                        |p| p.parse_type_wrapper(),
+                        |p| p.parse_type_argument(),
                     )
                 } else {
                     Vec::new()
@@ -1103,7 +1103,7 @@ impl Parser {
 
                 let green = self.builder.finish_node(REGULAR_TYPE);
 
-                Arc::new(TypeData::create_basic(
+                Arc::new(TypeData::create_regular(
                     self.new_node_id(),
                     self.finish_node(),
                     green,
@@ -1157,6 +1157,39 @@ impl Parser {
                     span,
                 })
             }
+        }
+    }
+
+    fn parse_type_argument(&mut self) -> Option<Arc<TypeArgument>> {
+        self.start_node();
+        self.builder.start_node();
+
+        if self.is_pair(IDENTIFIER, EQ) {
+            let name = self.expect_identifier().expect("identifier expected");
+            self.assert(EQ);
+            let ty = self.parse_type();
+            let green = self.builder.finish_node(TYPE_ARGUMENT);
+
+            Some(Arc::new(TypeArgument {
+                id: self.new_node_id(),
+                span: self.finish_node(),
+                green,
+                name: Some(name),
+                ty,
+            }))
+        } else if let Some(ty) = self.parse_type_wrapper() {
+            let green = self.builder.finish_node(TYPE_ARGUMENT);
+
+            Some(Arc::new(TypeArgument {
+                id: self.new_node_id(),
+                span: self.finish_node(),
+                green,
+                name: None,
+                ty,
+            }))
+        } else {
+            self.builder.abandon_node();
+            None
         }
     }
 
@@ -2829,8 +2862,8 @@ mod tests {
         assert_eq!("a", p1.name.as_ref().unwrap().name_as_string);
         assert_eq!("a", p2.name.as_ref().unwrap().name_as_string);
 
-        assert_eq!("int", p1.data_type.to_basic().unwrap().name());
-        assert_eq!("int", p2.data_type.to_basic().unwrap().name());
+        assert_eq!("int", p1.data_type.to_regular().unwrap().name());
+        assert_eq!("int", p2.data_type.to_regular().unwrap().name());
     }
 
     #[test]
@@ -2852,11 +2885,11 @@ mod tests {
         assert_eq!("b", p1b.name.as_ref().unwrap().name_as_string);
         assert_eq!("b", p2b.name.as_ref().unwrap().name_as_string);
 
-        assert_eq!("int", p1a.data_type.to_basic().unwrap().name());
-        assert_eq!("int", p2a.data_type.to_basic().unwrap().name());
+        assert_eq!("int", p1a.data_type.to_regular().unwrap().name());
+        assert_eq!("int", p2a.data_type.to_regular().unwrap().name());
 
-        assert_eq!("str", p1b.data_type.to_basic().unwrap().name());
-        assert_eq!("str", p2b.data_type.to_basic().unwrap().name());
+        assert_eq!("str", p1b.data_type.to_regular().unwrap().name());
+        assert_eq!("str", p2b.data_type.to_regular().unwrap().name());
     }
 
     #[test]
@@ -3135,34 +3168,50 @@ mod tests {
     }
 
     #[test]
-    fn parse_type_basic() {
+    fn parse_type_regular() {
         let ty = parse_type("bla");
-        let basic = ty.to_basic().unwrap();
+        let ty = ty.to_regular().unwrap();
 
-        assert_eq!(0, basic.params.len());
-        assert_eq!("bla", basic.name());
+        assert_eq!(0, ty.params.len());
+        assert_eq!("bla", ty.name());
     }
 
     #[test]
-    fn parse_type_basic_mod() {
+    fn parse_type_regular_mod() {
         let ty = parse_type("foo::bla");
-        let basic = ty.to_basic().unwrap();
+        let regular = ty.to_regular().unwrap();
 
-        assert_eq!(0, basic.params.len());
-        assert_eq!(2, basic.path.names.len());
-        assert_eq!("foo", basic.path.names[0].name_as_string);
-        assert_eq!("bla", basic.path.names[1].name_as_string);
+        assert_eq!(0, regular.params.len());
+        assert_eq!(2, regular.path.names.len());
+        assert_eq!("foo", regular.path.names[0].name_as_string);
+        assert_eq!("bla", regular.path.names[1].name_as_string);
     }
 
     #[test]
-    fn parse_type_basic_with_params() {
+    fn parse_type_regular_with_params() {
         let ty = parse_type("Foo[A, B]");
-        let basic = ty.to_basic().unwrap();
+        let regular = ty.to_regular().unwrap();
 
-        assert_eq!(2, basic.params.len());
-        assert_eq!("Foo", basic.name());
-        assert_eq!("A", basic.params[0].to_basic().unwrap().name());
-        assert_eq!("B", basic.params[1].to_basic().unwrap().name());
+        assert_eq!(2, regular.params.len());
+        assert_eq!("Foo", regular.name());
+        assert_eq!("A", regular.params[0].ty.to_regular().unwrap().name());
+        assert_eq!("B", regular.params[1].ty.to_regular().unwrap().name());
+    }
+
+    #[test]
+    fn parse_type_regular_with_bindings() {
+        let ty = parse_type("Foo[A, X = B]");
+        let ty = ty.to_regular().unwrap();
+
+        assert_eq!(2, ty.params.len());
+        assert_eq!("Foo", ty.name());
+        let arg0 = &ty.params[0];
+        assert!(arg0.name.is_none());
+        assert_eq!("A", arg0.ty.to_regular().unwrap().name());
+
+        let arg1 = &ty.params[1];
+        assert_eq!("X", arg1.name.as_ref().unwrap().name_as_string);
+        assert_eq!("B", arg1.ty.to_regular().unwrap().name());
     }
 
     #[test]
@@ -3180,8 +3229,8 @@ mod tests {
         let fct = ty.to_fct().unwrap();
 
         assert_eq!(1, fct.params.len());
-        assert_eq!("A", fct.params[0].to_basic().unwrap().name());
-        assert_eq!("B", fct.ret.as_ref().unwrap().to_basic().unwrap().name());
+        assert_eq!("A", fct.params[0].to_regular().unwrap().name());
+        assert_eq!("B", fct.ret.as_ref().unwrap().to_regular().unwrap().name());
     }
 
     #[test]
@@ -3190,9 +3239,9 @@ mod tests {
         let fct = ty.to_fct().unwrap();
 
         assert_eq!(2, fct.params.len());
-        assert_eq!("A", fct.params[0].to_basic().unwrap().name());
-        assert_eq!("B", fct.params[1].to_basic().unwrap().name());
-        assert_eq!("C", fct.ret.as_ref().unwrap().to_basic().unwrap().name());
+        assert_eq!("A", fct.params[0].to_regular().unwrap().name());
+        assert_eq!("B", fct.params[1].to_regular().unwrap().name());
+        assert_eq!("C", fct.ret.as_ref().unwrap().to_regular().unwrap().name());
     }
 
     #[test]
@@ -3210,7 +3259,7 @@ mod tests {
         let subtypes = &ty.to_tuple().unwrap().subtypes;
         assert_eq!(1, subtypes.len());
 
-        let ty = subtypes[0].to_basic().unwrap();
+        let ty = subtypes[0].to_regular().unwrap();
         assert_eq!("c", ty.name());
     }
 
@@ -3221,10 +3270,10 @@ mod tests {
         let subtypes = &ty.to_tuple().unwrap().subtypes;
         assert_eq!(2, subtypes.len());
 
-        let ty1 = subtypes[0].to_basic().unwrap();
+        let ty1 = subtypes[0].to_regular().unwrap();
         assert_eq!("a", ty1.name());
 
-        let ty2 = subtypes[1].to_basic().unwrap();
+        let ty2 = subtypes[1].to_regular().unwrap();
         assert_eq!("b", ty2.name());
     }
 
@@ -3640,9 +3689,9 @@ mod tests {
         let expr = parse_expr("||: A {}");
         let lambda = expr.to_lambda().unwrap();
         let ret = lambda.return_type.as_ref().unwrap();
-        let basic = ret.to_basic().unwrap();
+        let regular = ret.to_regular().unwrap();
 
-        assert_eq!("A", basic.name());
+        assert_eq!("A", regular.name());
     }
 
     #[test]
@@ -3654,13 +3703,13 @@ mod tests {
 
         let param = &lambda.params[0];
         assert_eq!("a", param.name.as_ref().unwrap().name_as_string);
-        let basic = param.data_type.to_basic().unwrap();
-        assert_eq!("A", basic.name());
+        let ty = param.data_type.to_regular().unwrap();
+        assert_eq!("A", ty.name());
 
         let ret = lambda.return_type.as_ref().unwrap();
-        let basic = ret.to_basic().unwrap();
+        let ty = ret.to_regular().unwrap();
 
-        assert_eq!("B", basic.name());
+        assert_eq!("B", ty.name());
     }
 
     #[test]
@@ -3672,18 +3721,18 @@ mod tests {
 
         let param = &lambda.params[0];
         assert_eq!("a", param.name.as_ref().unwrap().name_as_string);
-        let basic = param.data_type.to_basic().unwrap();
-        assert_eq!("A", basic.name());
+        let ty = param.data_type.to_regular().unwrap();
+        assert_eq!("A", ty.name());
 
         let param = &lambda.params[1];
         assert_eq!("b", param.name.as_ref().unwrap().name_as_string);
-        let basic = param.data_type.to_basic().unwrap();
-        assert_eq!("B", basic.name());
+        let ty = param.data_type.to_regular().unwrap();
+        assert_eq!("B", ty.name());
 
         let ret = lambda.return_type.as_ref().unwrap();
-        let basic = ret.to_basic().unwrap();
+        let ty = ret.to_regular().unwrap();
 
-        assert_eq!("C", basic.name());
+        assert_eq!("C", ty.name());
     }
 
     #[test]

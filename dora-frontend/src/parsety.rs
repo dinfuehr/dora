@@ -2,9 +2,11 @@ use dora_parser::ast;
 
 use crate::access::sym_accessible_from;
 use crate::readty::read_type_path;
-use crate::sema::{is_object_safe, ModuleDefinitionId, SourceFileId, TypeParamDefinition};
+use crate::sema::{
+    is_object_safe, ModuleDefinitionId, SourceFileId, TraitDefinitionId, TypeParamDefinition,
+};
 use crate::sym::{ModuleSymTable, SymbolKind};
-use crate::{check_type_params, ErrorMessage, Sema, SourceType, SourceTypeArray, Span};
+use crate::{check_type_params, ErrorMessage, Name, Sema, SourceType, SourceTypeArray, Span};
 use std::cell::{OnceCell, RefCell};
 
 #[derive(Clone, Debug)]
@@ -66,7 +68,7 @@ pub enum ParsedTypeKind {
 
     Regular {
         symbol: SymbolKind,
-        type_params: Vec<Box<ParsedTypeAst>>,
+        type_arguments: Vec<ParsedTypeArgument>,
     },
 
     Tuple {
@@ -79,6 +81,12 @@ pub enum ParsedTypeKind {
     },
 
     Error,
+}
+
+#[derive(Clone, Debug)]
+pub struct ParsedTypeArgument {
+    name: Option<Name>,
+    ty: Box<ParsedTypeAst>,
 }
 
 pub fn parse_type(
@@ -131,23 +139,20 @@ fn parse_type_regular(
 
     let sym = sym.unwrap();
 
-    let mut type_params = Vec::new();
-
-    for param in &node.params {
-        let ty = parse_type_inner(sa, table, file_id, param);
-        type_params.push(ty);
-    }
-
     match sym {
-        Some(
-            SymbolKind::Class(..)
-            | SymbolKind::Trait(..)
-            | SymbolKind::Struct(..)
-            | SymbolKind::Enum(..),
-        ) => ParsedTypeKind::Regular {
-            symbol: sym.expect("missing symbol"),
-            type_params,
-        },
+        Some(SymbolKind::Trait(trait_id)) => {
+            parse_type_regular_trait(sa, table, file_id, trait_id, node)
+        }
+
+        Some(SymbolKind::Class(..) | SymbolKind::Struct(..) | SymbolKind::Enum(..)) => {
+            parse_type_regular_with_arguments(
+                sa,
+                table,
+                file_id,
+                sym.expect("missing symbol"),
+                node,
+            )
+        }
 
         Some(SymbolKind::TypeParam(..) | SymbolKind::TypeAlias(..)) => {
             if !node.params.is_empty() {
@@ -157,7 +162,7 @@ fn parse_type_regular(
 
             ParsedTypeKind::Regular {
                 symbol: sym.expect("missing symbol"),
-                type_params: Vec::new(),
+                type_arguments: Vec::new(),
             }
         }
 
@@ -188,6 +193,68 @@ fn parse_type_regular(
             sa.report(file_id, node.span, msg);
             ParsedTypeKind::Error
         }
+    }
+}
+
+fn parse_type_regular_trait(
+    sa: &Sema,
+    table: &ModuleSymTable,
+    file_id: SourceFileId,
+    trait_id: TraitDefinitionId,
+    node: &ast::TypeRegularType,
+) -> ParsedTypeKind {
+    let mut type_arguments = Vec::new();
+    let mut found_binding = false;
+
+    for param in &node.params {
+        let name = if let Some(ref name) = param.name {
+            found_binding = true;
+            Some(sa.interner.intern(&name.name_as_string))
+        } else {
+            if found_binding {
+                let msg = ErrorMessage::WrongOrderOfGenericsAndBindings;
+                sa.report(file_id, param.span, msg);
+                return ParsedTypeKind::Error;
+            }
+
+            None
+        };
+
+        let ty = parse_type_inner(sa, table, file_id, &param.ty);
+        let ty_arg = ParsedTypeArgument { name, ty };
+        type_arguments.push(ty_arg);
+    }
+
+    ParsedTypeKind::Regular {
+        symbol: SymbolKind::Trait(trait_id),
+        type_arguments,
+    }
+}
+
+fn parse_type_regular_with_arguments(
+    sa: &Sema,
+    table: &ModuleSymTable,
+    file_id: SourceFileId,
+    symbol: SymbolKind,
+    node: &ast::TypeRegularType,
+) -> ParsedTypeKind {
+    let mut type_arguments = Vec::new();
+
+    for param in &node.params {
+        if param.name.is_some() {
+            let msg = ErrorMessage::UnexpectedTypeBinding;
+            sa.report(file_id, param.span, msg);
+            return ParsedTypeKind::Error;
+        }
+
+        let ty = parse_type_inner(sa, table, file_id, &param.ty);
+        let ty_arg = ParsedTypeArgument { name: None, ty };
+        type_arguments.push(ty_arg);
+    }
+
+    ParsedTypeKind::Regular {
+        symbol,
+        type_arguments,
     }
 }
 
@@ -250,7 +317,7 @@ fn convert_type_regular(sa: &Sema, parsed_ty: &ParsedTypeAst) -> SourceType {
     let (sym, type_params) = match parsed_ty.kind {
         ParsedTypeKind::Regular {
             ref symbol,
-            ref type_params,
+            type_arguments: ref type_params,
         } => (symbol.clone(), type_params),
         _ => unreachable!(),
     };
@@ -272,7 +339,10 @@ fn convert_type_regular(sa: &Sema, parsed_ty: &ParsedTypeAst) -> SourceType {
         | SymbolKind::Trait(..) => {
             let type_params = type_params
                 .iter()
-                .map(|tp| convert_type_inner(sa, tp))
+                .map(|tp| {
+                    assert!(tp.name.is_none());
+                    convert_type_inner(sa, &tp.ty)
+                })
                 .collect::<Vec<_>>();
             let type_params = SourceTypeArray::with(type_params);
 
@@ -483,7 +553,7 @@ fn check_type_record(
     let (symbol, parsed_type_params) = match parsed_ty.kind {
         ParsedTypeKind::Regular {
             ref symbol,
-            ref type_params,
+            type_arguments: ref type_params,
             ..
         } => (symbol.clone(), type_params),
         _ => unreachable!(),
@@ -498,8 +568,9 @@ fn check_type_record(
     let mut new_type_params = Vec::with_capacity(parsed_type_params.len());
 
     for idx in 0..type_params.len() {
-        let parsed_type_param = &parsed_type_params[idx];
-        let ty = check_type_inner(sa, ctxt, type_params[idx].clone(), parsed_type_param);
+        let parsed_type_arg = &parsed_type_params[idx];
+        assert!(parsed_type_arg.name.is_none());
+        let ty = check_type_inner(sa, ctxt, type_params[idx].clone(), &parsed_type_arg.ty);
         new_type_params.push(ty);
     }
 
@@ -635,4 +706,34 @@ fn expand_sta(
         .map(|ty| expand_st(sa, ty, replace_self.clone()))
         .collect::<Vec<_>>();
     SourceTypeArray::with(new_array)
+}
+
+#[cfg(test)]
+mod tests {
+    use crate::tests::*;
+    use crate::ErrorMessage;
+
+    #[test]
+    fn class_type_with_named_type_arg() {
+        err(
+            "
+            class Foo[T](value: T)
+            fn f(x: Foo[T = Int64]) {}
+        ",
+            (3, 25),
+            ErrorMessage::UnexpectedTypeBinding,
+        )
+    }
+
+    #[test]
+    fn trait_type_with_named_before_generic_arg() {
+        err(
+            "
+            trait Foo[T] {}
+            fn f(x: Foo[T = Int64, Float32]) {}
+        ",
+            (3, 36),
+            ErrorMessage::WrongOrderOfGenericsAndBindings,
+        )
+    }
 }

@@ -191,6 +191,8 @@ pub enum ErrorMessage {
     ExtendingTypeDifferentPackage,
     ImplTraitForeignType,
     TraitNotObjectSafe,
+    UnexpectedTypeBinding,
+    WrongOrderOfGenericsAndBindings,
 }
 
 impl ErrorMessage {
@@ -659,6 +661,10 @@ impl ErrorMessage {
                 format!("Cannot implement foreign trait for a type of another package.")
             }
             ErrorMessage::TraitNotObjectSafe => format!("Trait not object safe"),
+            ErrorMessage::UnexpectedTypeBinding => format!("Type binding not allowed here."),
+            ErrorMessage::WrongOrderOfGenericsAndBindings => {
+                format!("Generic arguments should be ordered before type bindings.")
+            }
         }
     }
 }

@@ -255,6 +255,7 @@ pub enum TokenKind {
     REGULAR_TYPE,
     LAMBDA_TYPE,
     TUPLE_TYPE,
+    TYPE_ARGUMENT,
 
     // Expressions
     TUPLE_EXPR,
