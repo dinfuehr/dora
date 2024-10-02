@@ -13,7 +13,7 @@ use crate::gc::{formatted_size, Address};
 use crate::os;
 use crate::vm::{
     ensure_class_instance_for_lambda, ensure_class_instance_for_trait_object, execute_on_main,
-    find_trait_impl, specialize_bty, specialize_bty_array, ClassInstanceId, Code,
+    find_trait_impl, specialize_bty, specialize_bty_array, BytecodeTypeExt, ClassInstanceId, Code,
     LazyCompilationSite, ShapeKind, VM,
 };
 
@@ -324,14 +324,14 @@ impl<'a> TransitiveClosureComputation<'a> {
                 }
 
                 BytecodeInstruction::InvokeVirtual { fct, .. } => {
-                    let (trait_object_ty, trait_fct_id, trait_type_params) = match bytecode_function
-                        .const_pool(fct)
-                    {
-                        ConstPoolEntry::TraitObjectMethod(trait_object_ty, fct_id, type_params) => {
-                            (trait_object_ty.clone(), *fct_id, type_params)
+                    let (trait_object_ty, trait_fct_id) = match bytecode_function.const_pool(fct) {
+                        ConstPoolEntry::TraitObjectMethod(trait_object_ty, fct_id) => {
+                            (trait_object_ty.clone(), *fct_id)
                         }
                         _ => unreachable!(),
                     };
+
+                    let trait_type_params = trait_object_ty.type_params();
 
                     for impl_ in self.vm.program.impls.iter() {
                         if impl_.trait_ty == trait_object_ty {
@@ -505,7 +505,11 @@ fn prepare_lazy_call_sites(_vm: &VM, ctc: &CompiledTransitiveClosure) {
     for code in &ctc.code_objects {
         for (offset, site) in code.lazy_compilation().entries() {
             match site {
-                LazyCompilationSite::Direct(fct_id, type_params, const_pool_offset) => {
+                LazyCompilationSite::Direct {
+                    fct_id,
+                    type_params,
+                    const_pool_offset_from_ra: const_pool_offset,
+                } => {
                     let address = ctc.function_addresses.get(&(*fct_id, type_params.clone()));
                     if let Some(address) = address {
                         let ra = code.instruction_start().offset(*offset as usize);
@@ -517,7 +521,7 @@ fn prepare_lazy_call_sites(_vm: &VM, ctc: &CompiledTransitiveClosure) {
                     }
                 }
 
-                LazyCompilationSite::Lambda(..) | LazyCompilationSite::Virtual(..) => {
+                LazyCompilationSite::Lambda { .. } | LazyCompilationSite::Virtual { .. } => {
                     // Nothing to do.
                 }
             }

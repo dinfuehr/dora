@@ -480,6 +480,16 @@ pub fn ensure_class_instance_for_lambda(
     id
 }
 
+pub fn compute_vtable_index(vm: &VM, trait_id: TraitId, trait_fct_id: FunctionId) -> u32 {
+    let trait_ = vm.trait_(trait_id);
+    let vtable_index = trait_
+        .methods
+        .iter()
+        .position(|m| *m == trait_fct_id)
+        .expect("missing trait function");
+    vtable_index.try_into().expect("overflow")
+}
+
 pub fn ensure_class_instance_for_trait_object(
     vm: &VM,
     trait_id: TraitId,

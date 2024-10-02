@@ -15,6 +15,7 @@ use crate::handle::{create_handle, Handle};
 use crate::object::{byte_array_from_buffer, Ref, Str, UInt8Array};
 use crate::size::InstanceSize;
 use crate::threads::current_thread;
+use crate::vm::compute_vtable_index;
 use crate::vm::{
     create_class_instance, create_enum_instance, display_fct,
     ensure_class_instance_for_enum_variant, get_vm, impls, CodeDescriptor, FctImplementation, VM,
@@ -184,9 +185,10 @@ extern "C" fn get_function_address(data: Handle<UInt8Array>) -> Address {
     get_function_address_raw(vm, fct_id, type_params)
 }
 
-extern "C" fn get_function_vtable_index(fct_id: FunctionId) -> u32 {
+extern "C" fn get_function_vtable_index(trait_id: u32, trait_fct_id: FunctionId) -> u32 {
     let vm = get_vm();
-    vm.fct(fct_id).vtable_index.expect("vtable_index missing")
+    let trait_id = TraitId(trait_id);
+    compute_vtable_index(vm, trait_id, trait_fct_id)
 }
 
 extern "C" fn get_class_pointer_for_lambda(data: Handle<UInt8Array>) -> Address {

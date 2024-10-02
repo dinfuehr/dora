@@ -155,20 +155,31 @@ fn decode_lazy_compilation_site(reader: &mut ByteReader) -> LazyCompilationSite 
             let fct_id = FunctionId(reader.read_u32());
             let type_params = decode_bytecode_type_array(reader);
             let const_pool_offset = reader.read_u32() as i32;
-            LazyCompilationSite::Direct(fct_id, type_params, const_pool_offset)
+            LazyCompilationSite::Direct {
+                fct_id,
+                type_params,
+                const_pool_offset_from_ra: const_pool_offset,
+            }
         }
         LazyCompilationSiteKind::Virtual => {
             let receiver_is_first = reader.read_bool();
-            let fct_id = FunctionId(reader.read_u32());
-            let type_params = decode_bytecode_type_array(reader);
             let trait_object_ty = decode_bytecode_type(reader);
-            LazyCompilationSite::Virtual(receiver_is_first, trait_object_ty, fct_id, type_params)
+            let vtable_index = reader.read_u32();
+            LazyCompilationSite::Virtual {
+                receiver_is_first,
+                trait_object_ty,
+                vtable_index,
+            }
         }
         LazyCompilationSiteKind::Lambda => {
             let receiver_is_first = reader.read_bool();
             let params = decode_bytecode_type_array(reader);
-            let return_ty = decode_bytecode_type(reader);
-            LazyCompilationSite::Lambda(receiver_is_first, params, return_ty)
+            let return_type = decode_bytecode_type(reader);
+            LazyCompilationSite::Lambda {
+                receiver_is_first,
+                params,
+                return_type,
+            }
         }
     }
 }

@@ -4,7 +4,7 @@ use crate::cannon::codegen::register_ty;
 use crate::compiler::codegen::{compile_fct_to_code, select_compiler};
 use crate::compiler::CompilationMode;
 use crate::gc::Address;
-use crate::vm::{Code, CodeId, Compiler, VM};
+use crate::vm::{BytecodeTypeExt, Code, CodeId, Compiler, VM};
 use dora_bytecode::{
     BytecodeFunction, BytecodeType, BytecodeTypeArray, BytecodeWriter, ConstPoolEntry, FunctionId,
     FunctionKind, Register,
@@ -15,17 +15,17 @@ use super::codegen::CompilerInvocation;
 pub fn ensure_compiled_jit(
     vm: &VM,
     trait_fct_id: FunctionId,
-    trait_type_params: BytecodeTypeArray,
+    trait_object_ty: BytecodeType,
     actual_ty: BytecodeType,
 ) -> Address {
-    let trait_object_ty = trait_object_ty(vm, trait_fct_id, &trait_type_params);
-    let all_type_params = trait_type_params.append(actual_ty.clone());
+    let trait_type_params_with_actual_ty = trait_object_ty.type_params().append(actual_ty.clone());
 
     // Block here if compilation is already in progress.
-    if let Some(instruction_start) =
-        vm.compilation_database
-            .compilation_request(vm, trait_fct_id, all_type_params.clone())
-    {
+    if let Some(instruction_start) = vm.compilation_database.compilation_request(
+        vm,
+        trait_fct_id,
+        trait_type_params_with_actual_ty.clone(),
+    ) {
         return instruction_start;
     }
 
@@ -42,7 +42,7 @@ pub fn ensure_compiled_jit(
     let (code_id, code) = compile_thunk_to_code(
         vm,
         trait_fct_id,
-        &all_type_params,
+        &trait_type_params_with_actual_ty,
         trait_object_ty,
         actual_ty,
         compiler,
@@ -51,8 +51,11 @@ pub fn ensure_compiled_jit(
     );
 
     // Mark compilation as finished and resume threads waiting for compilation.
-    vm.compilation_database
-        .finish_compilation(trait_fct_id, all_type_params.clone(), code_id);
+    vm.compilation_database.finish_compilation(
+        trait_fct_id,
+        trait_type_params_with_actual_ty.clone(),
+        code_id,
+    );
 
     code.instruction_start()
 }

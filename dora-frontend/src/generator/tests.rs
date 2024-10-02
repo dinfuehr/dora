@@ -4083,7 +4083,6 @@ fn gen_trait_object_method_call() {
                         BytecodeTypeArray::empty()
                     ),
                     FunctionId(fct_id.index().try_into().expect("overflow")),
-                    BytecodeTypeArray::empty()
                 )
             );
         },

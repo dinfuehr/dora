@@ -225,8 +225,7 @@ fn decodeConstPoolEntry(reader: ByteReader): ConstPoolEntry {
     } else if opcode == opc::CONSTPOOL_OPCODE_TRAIT_OBJECT_METHOD {
         let trait_object_ty = decodeBytecodeType(reader);
         let fct_id = FunctionId(reader.readInt32());
-        let type_params = decodeBytecodeTypeArray(reader);
-        ConstPoolEntry::TraitObjectMethod(trait_object_ty, fct_id, type_params)
+        ConstPoolEntry::TraitObjectMethod(trait_object_ty, fct_id)
     } else if opcode == opc::CONSTPOOL_OPCODE_GENERIC {
         let idx = reader.readInt32();
         let fct_id = FunctionId(reader.readInt32());

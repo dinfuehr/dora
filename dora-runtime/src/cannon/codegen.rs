@@ -17,11 +17,12 @@ use crate::mode::MachineMode;
 use crate::object::{Header, Str};
 use crate::size::InstanceSize;
 use crate::vm::{
-    create_class_instance, create_enum_instance, create_struct_instance, display_fct, display_ty,
-    ensure_class_instance_for_enum_variant, ensure_class_instance_for_lambda,
-    ensure_class_instance_for_trait_object, find_trait_impl, get_concrete_tuple_bty,
-    get_concrete_tuple_bty_array, specialize_bty, specialize_bty_array, CodeDescriptor, EnumLayout,
-    GcPoint, Intrinsic, LazyCompilationSite, Trap, INITIALIZED, VM,
+    compute_vtable_index, create_class_instance, create_enum_instance, create_struct_instance,
+    display_fct, display_ty, ensure_class_instance_for_enum_variant,
+    ensure_class_instance_for_lambda, ensure_class_instance_for_trait_object, find_trait_impl,
+    get_concrete_tuple_bty, get_concrete_tuple_bty_array, specialize_bty, specialize_bty_array,
+    BytecodeTypeExt, CodeDescriptor, EnumLayout, GcPoint, Intrinsic, LazyCompilationSite, Trap,
+    INITIALIZED, VM,
 };
 use dora_bytecode::{
     read, BytecodeFunction, BytecodeOffset, BytecodeType, BytecodeTypeArray, BytecodeVisitor,
@@ -2362,27 +2363,17 @@ impl<'a> CannonCodeGen<'a> {
     }
 
     fn emit_invoke_virtual_from_bytecode(&mut self, dest: Register, fct_idx: ConstPoolIdx) {
-        let (trait_object_ty, fct_id, type_params) = match self.bytecode.const_pool(fct_idx) {
-            ConstPoolEntry::TraitObjectMethod(trait_object_ty, fct_id, type_params) => {
-                (trait_object_ty.clone(), *fct_id, type_params)
+        let (trait_object_ty, fct_id) = match self.bytecode.const_pool(fct_idx) {
+            ConstPoolEntry::TraitObjectMethod(trait_object_ty, fct_id) => {
+                (trait_object_ty.clone(), *fct_id)
             }
             _ => unreachable!(),
         };
 
-        let type_params = self.specialize_bty_array(type_params);
-        debug_assert!(type_params.iter().all(|ty| ty.is_concrete_type()));
-
         let location = self.bytecode.offset_location(self.current_offset.to_u32());
         let arguments = self.argument_stack.drain(..).collect::<Vec<_>>();
 
-        self.emit_invoke_virtual(
-            dest,
-            trait_object_ty,
-            fct_id,
-            type_params,
-            arguments,
-            location,
-        );
+        self.emit_invoke_virtual(dest, trait_object_ty, fct_id, arguments, location);
     }
 
     fn emit_invoke_lambda_from_bytecode(&mut self, dest: Register, idx: ConstPoolIdx) {
@@ -2433,8 +2424,11 @@ impl<'a> CannonCodeGen<'a> {
             0
         };
 
-        let lazy_compilation_site =
-            LazyCompilationSite::Lambda(self_index == 0, params_including_self, fct_return_type);
+        let lazy_compilation_site = LazyCompilationSite::Lambda {
+            receiver_is_first: self_index == 0,
+            params: params_including_self,
+            return_type: fct_return_type,
+        };
 
         self.asm.virtual_call(
             vtable_index,
@@ -2455,8 +2449,7 @@ impl<'a> CannonCodeGen<'a> {
         &mut self,
         dest: Register,
         trait_object_ty: BytecodeType,
-        fct_id: FunctionId,
-        type_params: BytecodeTypeArray,
+        trait_fct_id: FunctionId,
         arguments: Vec<Register>,
         location: Location,
     ) {
@@ -2467,14 +2460,17 @@ impl<'a> CannonCodeGen<'a> {
         let bytecode_type_self = self.bytecode.register_type(self_register);
         assert!(bytecode_type_self.is_ptr() || bytecode_type_self.is_trait());
 
-        let fct = self.vm.fct(fct_id);
+        let fct = self.vm.fct(trait_fct_id);
+        let type_params = trait_object_ty.type_params();
         let fct_return_type =
             self.specialize_bty(specialize_bty(fct.return_type.clone(), &type_params));
         assert!(fct_return_type.is_concrete_type());
 
         let argsize = self.emit_invoke_arguments(dest, fct_return_type.clone(), arguments);
 
-        let vtable_index = fct.vtable_index.unwrap();
+        let trait_id = trait_object_ty.trait_id().expect("trait expected");
+        let vtable_index = compute_vtable_index(self.vm, trait_id, trait_fct_id);
+
         let gcpoint = self.create_gcpoint();
 
         let (result_reg, result_mode) = self.call_result_reg_and_mode(bytecode_type);
@@ -2485,12 +2481,11 @@ impl<'a> CannonCodeGen<'a> {
             0
         };
 
-        let lazy_compilation_site = LazyCompilationSite::Virtual(
-            self_index == 0,
+        let lazy_compilation_site = LazyCompilationSite::Virtual {
+            receiver_is_first: self_index == 0,
             trait_object_ty,
-            fct_id,
-            type_params.clone(),
-        );
+            vtable_index,
+        };
 
         self.asm.virtual_call(
             vtable_index,

@@ -36,7 +36,6 @@ pub struct FunctionData {
     pub params: Vec<BytecodeType>,
     pub return_type: BytecodeType,
     pub is_internal: bool,
-    pub vtable_index: Option<u32>,
     pub is_test: bool,
     pub is_optimize_immediately: bool,
     pub is_variadic: bool,

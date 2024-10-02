@@ -2563,10 +2563,9 @@ pub struct AllocationData {
 }
 
 pub class VirtualFunctionInfo {
-    pub trait_object_ty: BytecodeType,
-    pub fct_id: FunctionId,
-    pub type_params: Array[BytecodeType],
     pub receiver_is_first: Bool,
+    pub trait_object_ty: BytecodeType,
+    pub vtable_index: Int32,
 }
 
 pub class LambdaFunctionInfo {

@@ -8,6 +8,7 @@ use crate::sema::{
 use crate::sym::{ModuleSymTable, SymbolKind};
 use crate::{check_type_params, ErrorMessage, Name, Sema, SourceType, SourceTypeArray, Span};
 use std::cell::{OnceCell, RefCell};
+use std::collections::HashSet;
 
 #[derive(Clone, Debug)]
 pub struct ParsedType {
@@ -87,6 +88,7 @@ pub enum ParsedTypeKind {
 pub struct ParsedTypeArgument {
     name: Option<Name>,
     ty: Box<ParsedTypeAst>,
+    span: Span,
 }
 
 pub fn parse_type(
@@ -99,7 +101,7 @@ pub fn parse_type(
         let ast = parse_type_inner(sa, table, file_id, node);
         assert!(parsed_ty.parsed_ast.set(ast).is_ok());
 
-        let ty = convert_type_inner(sa, parsed_ty.parsed_ast().unwrap());
+        let ty = convert_type_inner(sa, file_id, parsed_ty.parsed_ast().unwrap());
         parsed_ty.set_ty(ty);
     }
 }
@@ -221,7 +223,11 @@ fn parse_type_regular_trait(
         };
 
         let ty = parse_type_inner(sa, table, file_id, &param.ty);
-        let ty_arg = ParsedTypeArgument { name, ty };
+        let ty_arg = ParsedTypeArgument {
+            name,
+            ty,
+            span: param.span,
+        };
         type_arguments.push(ty_arg);
     }
 
@@ -248,7 +254,11 @@ fn parse_type_regular_with_arguments(
         }
 
         let ty = parse_type_inner(sa, table, file_id, &param.ty);
-        let ty_arg = ParsedTypeArgument { name: None, ty };
+        let ty_arg = ParsedTypeArgument {
+            name: None,
+            ty,
+            span: param.span,
+        };
         type_arguments.push(ty_arg);
     }
 
@@ -303,17 +313,17 @@ pub struct TypeContext<'a> {
     pub type_param_definition: &'a TypeParamDefinition,
 }
 
-fn convert_type_inner(sa: &Sema, parsed_ty: &ParsedTypeAst) -> SourceType {
+fn convert_type_inner(sa: &Sema, file_id: SourceFileId, parsed_ty: &ParsedTypeAst) -> SourceType {
     match parsed_ty.kind {
         ParsedTypeKind::This => SourceType::This,
-        ParsedTypeKind::Regular { .. } => convert_type_regular(sa, parsed_ty),
-        ParsedTypeKind::Tuple { .. } => convert_type_tuple(sa, parsed_ty),
-        ParsedTypeKind::Lambda { .. } => convert_type_lambda(sa, parsed_ty),
+        ParsedTypeKind::Regular { .. } => convert_type_regular(sa, file_id, parsed_ty),
+        ParsedTypeKind::Tuple { .. } => convert_type_tuple(sa, file_id, parsed_ty),
+        ParsedTypeKind::Lambda { .. } => convert_type_lambda(sa, file_id, parsed_ty),
         ParsedTypeKind::Error { .. } => SourceType::Error,
     }
 }
 
-fn convert_type_regular(sa: &Sema, parsed_ty: &ParsedTypeAst) -> SourceType {
+fn convert_type_regular(sa: &Sema, file_id: SourceFileId, parsed_ty: &ParsedTypeAst) -> SourceType {
     let (sym, type_params) = match parsed_ty.kind {
         ParsedTypeKind::Regular {
             ref symbol,
@@ -333,15 +343,16 @@ fn convert_type_regular(sa: &Sema, parsed_ty: &ParsedTypeAst) -> SourceType {
             SourceType::TypeParam(id)
         }
 
-        SymbolKind::Class(..)
-        | SymbolKind::Enum(..)
-        | SymbolKind::Struct(..)
-        | SymbolKind::Trait(..) => {
+        SymbolKind::Trait(trait_id) => {
+            convert_type_trait(sa, file_id, parsed_ty, trait_id, type_params)
+        }
+
+        SymbolKind::Class(..) | SymbolKind::Enum(..) | SymbolKind::Struct(..) => {
             let type_params = type_params
                 .iter()
                 .map(|tp| {
                     assert!(tp.name.is_none());
-                    convert_type_inner(sa, &tp.ty)
+                    convert_type_inner(sa, file_id, &tp.ty)
                 })
                 .collect::<Vec<_>>();
             let type_params = SourceTypeArray::with(type_params);
@@ -351,6 +362,55 @@ fn convert_type_regular(sa: &Sema, parsed_ty: &ParsedTypeAst) -> SourceType {
 
         _ => unreachable!(),
     }
+}
+
+fn convert_type_trait(
+    sa: &Sema,
+    file_id: SourceFileId,
+    _parsed_ty: &ParsedTypeAst,
+    trait_id: TraitDefinitionId,
+    type_params: &Vec<ParsedTypeArgument>,
+) -> SourceType {
+    let trait_ = sa.trait_(trait_id);
+    let mut idx = 0;
+    let mut generics = Vec::new();
+    let mut bindings = Vec::new();
+
+    while idx < type_params.len() {
+        let type_param = &type_params[idx];
+
+        if type_param.name.is_some() {
+            break;
+        }
+
+        let ty = convert_type_inner(sa, file_id, &type_param.ty);
+        generics.push(ty);
+        idx += 1;
+    }
+
+    let mut used_aliases = HashSet::new();
+
+    while idx < type_params.len() {
+        let type_param = &type_params[idx];
+        let name = type_param.name.expect("name expected");
+
+        if let Some(alias_id) = trait_.alias_names().get(&name) {
+            if used_aliases.insert(alias_id) {
+                let ty = convert_type_inner(sa, file_id, &type_param.ty);
+                bindings.push((alias_id, ty));
+            } else {
+                unimplemented!()
+            }
+        } else {
+            let msg = ErrorMessage::UnexpectedTypeBinding;
+            sa.report(file_id, type_param.span, msg);
+        }
+
+        idx += 1;
+    }
+
+    let type_params = SourceTypeArray::with(generics);
+    SourceType::Trait(trait_id, type_params)
 }
 
 fn sym_type_param_definition(sa: &Sema, sym: SymbolKind) -> &TypeParamDefinition {
@@ -385,7 +445,7 @@ fn ty_for_sym(sa: &Sema, sym: SymbolKind, type_params: SourceTypeArray) -> Sourc
     }
 }
 
-fn convert_type_tuple(sa: &Sema, parsed_ty: &ParsedTypeAst) -> SourceType {
+fn convert_type_tuple(sa: &Sema, file_id: SourceFileId, parsed_ty: &ParsedTypeAst) -> SourceType {
     let subtypes = match parsed_ty.kind {
         ParsedTypeKind::Tuple { ref subtypes } => subtypes,
         _ => unreachable!(),
@@ -393,7 +453,7 @@ fn convert_type_tuple(sa: &Sema, parsed_ty: &ParsedTypeAst) -> SourceType {
 
     let subtypes = subtypes
         .iter()
-        .map(|t| convert_type_inner(sa, t))
+        .map(|t| convert_type_inner(sa, file_id, t))
         .collect::<Vec<_>>();
     let subtypes = SourceTypeArray::with(subtypes);
 
@@ -404,7 +464,7 @@ fn convert_type_tuple(sa: &Sema, parsed_ty: &ParsedTypeAst) -> SourceType {
     }
 }
 
-fn convert_type_lambda(sa: &Sema, parsed_ty: &ParsedTypeAst) -> SourceType {
+fn convert_type_lambda(sa: &Sema, file_id: SourceFileId, parsed_ty: &ParsedTypeAst) -> SourceType {
     let (params, return_ty) = match parsed_ty.kind {
         ParsedTypeKind::Lambda {
             ref params,
@@ -415,12 +475,12 @@ fn convert_type_lambda(sa: &Sema, parsed_ty: &ParsedTypeAst) -> SourceType {
 
     let params = params
         .iter()
-        .map(|t| convert_type_inner(sa, t))
+        .map(|t| convert_type_inner(sa, file_id, t))
         .collect::<Vec<_>>();
     let params = SourceTypeArray::with(params);
 
     let return_ty = if let Some(return_ty) = return_ty {
-        convert_type_inner(sa, return_ty)
+        convert_type_inner(sa, file_id, return_ty)
     } else {
         SourceType::Unit
     };
@@ -734,6 +794,19 @@ mod tests {
         ",
             (3, 36),
             ErrorMessage::WrongOrderOfGenericsAndBindings,
+        )
+    }
+
+    #[test]
+    #[ignore]
+    fn trait_type_with_unknown_named_arg() {
+        err(
+            "
+            trait Foo[T] {}
+            fn f(x: Foo[Float32, T = Int64]) {}
+        ",
+            (3, 36),
+            ErrorMessage::Unimplemented,
         )
     }
 }

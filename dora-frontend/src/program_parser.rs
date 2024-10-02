@@ -9,12 +9,13 @@ use std::sync::Arc;
 use crate::error::msg::ErrorMessage;
 use crate::interner::Name;
 use crate::sema::{
-    AliasBound, AliasDefinition, AliasParent, ClassDefinition, ConstDefinition, EnumDefinition,
-    EnumVariant, ExtensionDefinition, ExtensionDefinitionId, FctDefinition, FctParent, Field,
-    FieldId, GlobalDefinition, ImplDefinition, ImplDefinitionId, ModuleDefinition,
-    ModuleDefinitionId, PackageDefinition, PackageDefinitionId, PackageName, Param, Sema,
-    SourceFile, SourceFileId, StructDefinition, StructDefinitionField, StructDefinitionFieldId,
-    TraitDefinition, TraitDefinitionId, TypeParamDefinition, UseDefinition, Visibility,
+    AliasBound, AliasDefinition, AliasDefinitionId, AliasParent, ClassDefinition, ConstDefinition,
+    EnumDefinition, EnumVariant, ExtensionDefinition, ExtensionDefinitionId, FctDefinition,
+    FctDefinitionId, FctParent, Field, FieldId, GlobalDefinition, ImplDefinition, ImplDefinitionId,
+    ModuleDefinition, ModuleDefinitionId, PackageDefinition, PackageDefinitionId, PackageName,
+    Param, Sema, SourceFile, SourceFileId, StructDefinition, StructDefinitionField,
+    StructDefinitionFieldId, TraitDefinition, TraitDefinitionId, TypeParamDefinition,
+    UseDefinition, Visibility,
 };
 use crate::sym::{SymTable, Symbol, SymbolKind};
 use crate::STDLIB;
@@ -894,6 +895,10 @@ fn find_elements_in_trait(
     let mut methods = Vec::new();
     let mut aliases = Vec::new();
 
+    let mut instance_names: HashMap<Name, FctDefinitionId> = HashMap::new();
+    let mut static_names: HashMap<Name, FctDefinitionId> = HashMap::new();
+    let mut alias_names: HashMap<Name, AliasDefinitionId> = HashMap::new();
+
     for child in &node.methods {
         match child.as_ref() {
             ast::ElemData::Function(ref method_node) => {
@@ -933,6 +938,27 @@ fn find_elements_in_trait(
                 let fct_id = sa.fcts.alloc(fct);
                 sa.fcts[fct_id].id = Some(fct_id);
                 methods.push(fct_id);
+
+                let fct = sa.fct(fct_id);
+
+                let table = if fct.is_static {
+                    &mut static_names
+                } else {
+                    &mut instance_names
+                };
+
+                if let Some(&existing_id) = table.get(&fct.name) {
+                    let existing_fct = sa.fct(existing_id);
+                    let method_name = sa.interner.str(fct.name).to_string();
+
+                    sa.report(
+                        file_id,
+                        method_node.span,
+                        ErrorMessage::AliasExists(method_name, existing_fct.span),
+                    );
+                } else {
+                    assert!(table.insert(fct.name, fct_id).is_none());
+                }
             }
 
             ast::ElemData::TypeAlias(ref node) => {
@@ -970,6 +996,19 @@ fn find_elements_in_trait(
                 assert!(sa.alias(id).id.set(id).is_ok());
 
                 aliases.push(id);
+
+                if let Some(&existing_id) = alias_names.get(&name) {
+                    let existing_alias = sa.alias(existing_id);
+                    let method_name = sa.interner.str(name).to_string();
+
+                    sa.report(
+                        file_id,
+                        node.span,
+                        ErrorMessage::TypeExists(method_name, existing_alias.node.span),
+                    );
+                } else {
+                    alias_names.insert(name, id);
+                }
             }
 
             ast::ElemData::Error { .. } => {
@@ -987,6 +1026,10 @@ fn find_elements_in_trait(
     let trait_ = sa.trait_(trait_id);
     assert!(trait_.methods.set(methods).is_ok());
     assert!(trait_.aliases.set(aliases).is_ok());
+
+    assert!(trait_.instance_names.set(instance_names).is_ok());
+    assert!(trait_.static_names.set(static_names).is_ok());
+    assert!(trait_.alias_names.set(alias_names).is_ok());
 }
 
 fn find_elements_in_impl(

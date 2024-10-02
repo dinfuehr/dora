@@ -468,9 +468,21 @@ impl LazyCompilationData {
 
 #[derive(Clone, Debug)]
 pub enum LazyCompilationSite {
-    Direct(FunctionId, BytecodeTypeArray, i32),
-    Virtual(bool, BytecodeType, FunctionId, BytecodeTypeArray),
-    Lambda(bool, BytecodeTypeArray, BytecodeType),
+    Direct {
+        fct_id: FunctionId,
+        type_params: BytecodeTypeArray,
+        const_pool_offset_from_ra: i32,
+    },
+    Virtual {
+        receiver_is_first: bool,
+        trait_object_ty: BytecodeType,
+        vtable_index: u32,
+    },
+    Lambda {
+        receiver_is_first: bool,
+        params: BytecodeTypeArray,
+        return_type: BytecodeType,
+    },
 }
 
 #[derive(Debug)]

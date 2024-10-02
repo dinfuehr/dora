@@ -40,7 +40,6 @@ pub struct FctDefinition {
     pub return_type: ParsedType,
     pub is_variadic: Cell<bool>,
 
-    pub vtable_index: OnceCell<u32>,
     pub analysis: OnceCell<AnalysisData>,
 
     pub type_params: Rc<TypeParamDefinition>,
@@ -86,7 +85,6 @@ impl FctDefinition {
             is_internal: modifiers.is_internal,
             is_force_inline: modifiers.is_force_inline,
             is_never_inline: modifiers.is_never_inline,
-            vtable_index: OnceCell::new(),
             is_variadic: Cell::new(false),
             analysis: OnceCell::new(),
             type_params,

@@ -3060,10 +3060,10 @@ impl<'a> AstBytecodeGen<'a> {
                 )
             }
             CallType::TraitObjectMethod(ref trait_object_ty, _) => {
+                assert!(type_params.is_empty());
                 self.builder.add_const(ConstPoolEntry::TraitObjectMethod(
                     bty_from_ty(trait_object_ty.clone()),
                     FunctionId(fct.id().index().try_into().expect("overflow")),
-                    bty_array_from_ty(&type_params),
                 ))
             }
 

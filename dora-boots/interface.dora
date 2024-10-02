@@ -1,7 +1,7 @@
 use std::collections::VecIter;
 
 use package::bytecode::{BytecodeFunction, BytecodeType, ConstPoolId, FunctionId, Location};
-use package::bytecode::{ClassId, EnumId, ClassFieldId, GlobalId, StructId, StructFieldId};
+use package::bytecode::{ClassId, EnumId, ClassFieldId, GlobalId, StructId, StructFieldId, TraitId};
 use package::compilation::CompilationInfo;
 use package::deserializer::decodeBytecodeFunction;
 use package::deserializer::{decodeCompilationInfo, decodeStructData, decodeEnumData};
@@ -26,7 +26,7 @@ pub const TRAP_OVERFLOW: Int32 = 8i32;
 
 @internal pub fn getSystemConfigRaw(): Array[UInt8];
 @internal pub fn getFunctionAddressRaw(data: Array[UInt8]): Int64;
-@internal pub fn getFunctionVtableIndexRaw(fct_id: Int32): Int32;
+@internal pub fn getFunctionVtableIndexRaw(trait_id: Int32, fct_id: Int32): Int32;
 @internal pub fn getFunctionDisplayNameRaw(fct_id: Int32): Array[UInt8];
 @internal pub fn getFunctionInfoForInliningRaw(fct_id: Int32): Array[UInt8];
 @internal pub fn getFieldOffsetRaw(data: Array[UInt8]): Int32;
@@ -92,8 +92,8 @@ pub fn getClassPointerForTraitObject(ci: CompilationInfo, info: TraitObjectInfo)
     Address(getClassPointerForTraitObjectRaw(writer.toArray()))
 }
 
-pub fn getFunctionVtableIndex(fct_id: FunctionId): Int32 {
-    getFunctionVtableIndexRaw(fct_id.value)
+pub fn getFunctionVtableIndex(trait_id: TraitId, fct_id: FunctionId): Int32 {
+    getFunctionVtableIndexRaw(trait_id.value, fct_id.value)
 }
 
 pub fn getFieldOffset(ci: CompilationInfo, cls_id: ClassId, type_params: Array[BytecodeType], field_id: ClassFieldId): Int32 {
@@ -426,9 +426,8 @@ pub struct LazyCompilationSiteDirect {
 
 pub struct LazyCompilationSiteVirtual {
     pub receiver_is_first: Bool,
-    pub fct_id: FunctionId,
-    pub type_params: Array[BytecodeType],
     pub trait_object_ty: BytecodeType,
+    pub vtable_index: Int32,
 }
 
 pub struct LazyCompilationSiteLambda {

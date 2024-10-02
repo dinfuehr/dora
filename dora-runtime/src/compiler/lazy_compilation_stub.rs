@@ -17,7 +17,7 @@ use crate::os;
 use crate::stack::DoraToNativeInfo;
 use crate::threads::{current_thread, ThreadLocalData};
 use crate::vm::{
-    create_enum_instance, get_vm, install_code_stub, Code, CodeKind, EnumLayout,
+    create_enum_instance, get_vm, install_code_stub, BytecodeTypeExt, Code, CodeKind, EnumLayout,
     LazyCompilationSite, ShapeKind, VM,
 };
 use dora_bytecode::{BytecodeType, BytecodeTypeArray, FunctionId};
@@ -348,9 +348,13 @@ fn lazy_compile(ra: usize, receiver1: Address, receiver2: Address) -> Address {
 
     handle_scope(|| {
         let receiver = match lazy_compilation_site {
-            LazyCompilationSite::Direct(..) => None,
-            LazyCompilationSite::Virtual(receiver_is_first, ..)
-            | LazyCompilationSite::Lambda(receiver_is_first, ..) => {
+            LazyCompilationSite::Direct { .. } => None,
+            LazyCompilationSite::Virtual {
+                receiver_is_first, ..
+            }
+            | LazyCompilationSite::Lambda {
+                receiver_is_first, ..
+            } => {
                 let right_receiver = if receiver_is_first {
                     receiver1
                 } else {
@@ -370,23 +374,30 @@ fn lazy_compile(ra: usize, receiver1: Address, receiver2: Address) -> Address {
         }
 
         match lazy_compilation_site {
-            LazyCompilationSite::Direct(fct_id, ref type_params, disp) => {
-                patch_direct_call(vm, ra, fct_id, type_params, disp)
-            }
+            LazyCompilationSite::Direct {
+                fct_id,
+                ref type_params,
+                const_pool_offset_from_ra: const_pool_offset,
+            } => patch_direct_call(vm, ra, fct_id, type_params, const_pool_offset),
 
-            LazyCompilationSite::Virtual(_, _, fct_id, ref type_params) => {
-                let vtable_index = vm.fct(fct_id).vtable_index.expect("missing vtable_index");
+            LazyCompilationSite::Virtual {
+                trait_object_ty,
+                vtable_index,
+                ..
+            } => {
+                let trait_id = trait_object_ty.trait_id().expect("trait expected");
+                let trait_fct_id = vm.trait_(trait_id).methods[vtable_index as usize];
 
                 patch_virtual_call(
                     vm,
                     receiver.expect("missing handle"),
-                    fct_id,
+                    trait_fct_id,
+                    trait_object_ty,
                     vtable_index,
-                    type_params,
                 )
             }
 
-            LazyCompilationSite::Lambda(..) => {
+            LazyCompilationSite::Lambda { .. } => {
                 patch_lambda_call(vm, receiver.expect("missing handle"))
             }
         }
@@ -414,8 +425,8 @@ fn patch_virtual_call(
     vm: &VM,
     receiver: Handle<Obj>,
     trait_fct_id: FunctionId,
+    trait_object_ty: BytecodeType,
     vtable_index: u32,
-    type_params: &BytecodeTypeArray,
 ) -> Address {
     let vtable = receiver.header().vtbl(vm.meta_space_start());
     let class_instance = vtable.class_instance();
@@ -425,7 +436,7 @@ fn patch_virtual_call(
             compiler::trait_object_thunk::ensure_compiled_jit(
                 vm,
                 trait_fct_id,
-                type_params.clone(),
+                trait_object_ty,
                 object_ty.clone(),
             )
         }

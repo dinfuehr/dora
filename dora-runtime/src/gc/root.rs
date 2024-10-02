@@ -6,7 +6,9 @@ use crate::compiler::lazy_compilation_stub;
 use crate::gc::Address;
 use crate::stack::DoraToNativeInfo;
 use crate::threads::DoraThread;
-use crate::vm::{specialize_bty, specialize_bty_array, CodeKind, LazyCompilationSite, VM};
+use crate::vm::{
+    specialize_bty, specialize_bty_array, BytecodeTypeExt, CodeKind, LazyCompilationSite, VM,
+};
 
 pub fn determine_strong_roots(vm: &VM, threads: &[Arc<DoraThread>]) -> Vec<Slot> {
     let mut rootset = Vec::new();
@@ -186,7 +188,11 @@ where
         .clone();
 
     let (params, is_variadic, return_type) = match _lazy_compilation_site {
-        LazyCompilationSite::Direct(fct_id, type_params, _) => {
+        LazyCompilationSite::Direct {
+            fct_id,
+            type_params,
+            ..
+        } => {
             let fct = vm.fct(fct_id);
             let params = BytecodeTypeArray::new(fct.params.clone());
             let params = specialize_bty_array(&params, &type_params);
@@ -194,18 +200,29 @@ where
             (params, fct.is_variadic, return_type)
         }
 
-        LazyCompilationSite::Virtual(_receiver_is_first, trait_object_ty, fct_id, type_params) => {
-            let fct = vm.fct(fct_id);
+        LazyCompilationSite::Virtual {
+            receiver_is_first: _receiver_is_first,
+            trait_object_ty,
+            vtable_index,
+        } => {
+            let trait_id = trait_object_ty.trait_id().expect("trait expected");
+            let trait_fct_id = vm.trait_(trait_id).methods[vtable_index as usize];
+            let fct = vm.fct(trait_fct_id);
             let mut params = fct.params.clone();
             assert_eq!(params[0], BytecodeType::This);
-            params[0] = trait_object_ty;
+            params[0] = trait_object_ty.clone();
+            let type_params = trait_object_ty.type_params();
             let params = BytecodeTypeArray::new(params);
             let params = specialize_bty_array(&params, &type_params);
             let return_type = specialize_bty(fct.return_type.clone(), &type_params);
             (params, fct.is_variadic, return_type)
         }
 
-        LazyCompilationSite::Lambda(_, params, return_type) => {
+        LazyCompilationSite::Lambda {
+            receiver_is_first: _receiver_is_first,
+            params,
+            return_type,
+        } => {
             debug_assert!(params.is_concrete_type());
             debug_assert!(return_type.is_concrete_type());
             assert!(!params.is_empty());

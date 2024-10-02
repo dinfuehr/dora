@@ -83,9 +83,8 @@ fn encodeLazyCompilationSite(writer: ByteWriter, site: LazyCompilationSite) {
         LazyCompilationSite::Virtual(site) => {
             writer.emitByte(opc::LAZY_COMPILATION_SITE_VIRTUAL.toUInt8());
             writer.emitBool(site.receiver_is_first);
-            writer.emitInt32(site.fct_id.value);
-            encodeBytecodeTypeArray(writer, site.type_params);
             encodeBytecodeType(writer, site.trait_object_ty);
+            writer.emitInt32(site.vtable_index);
         },
 
         LazyCompilationSite::Lambda(site) => {

@@ -137,7 +137,7 @@ pub fn dump(w: &mut dyn io::Write, prog: &Program, bc: &BytecodeFunction) -> std
                     fmt_name(prog, &fct.name, &type_params)
                 )?;
             }
-            ConstPoolEntry::TraitObjectMethod(trait_object_ty, fct_id, type_params) => {
+            ConstPoolEntry::TraitObjectMethod(trait_object_ty, fct_id) => {
                 let fct = &prog.functions[fct_id.0 as usize];
 
                 writeln!(
@@ -146,7 +146,7 @@ pub fn dump(w: &mut dyn io::Write, prog: &Program, bc: &BytecodeFunction) -> std
                     align,
                     idx,
                     fmt_ty(prog, &trait_object_ty),
-                    fmt_name(prog, &fct.name, &type_params)
+                    &fct.name
                 )?;
             }
             ConstPoolEntry::Generic(id, fct_id, type_params) => {
@@ -477,7 +477,7 @@ impl<'a> BytecodeDumper<'a> {
             ConstPoolEntry::Fct(fct_id, _) => fct_id,
             ConstPoolEntry::Generic(_, fct_id, _) => fct_id,
             ConstPoolEntry::Lambda(_, _) => return "lambda".into(),
-            ConstPoolEntry::TraitObjectMethod(_, fct_id, _) => fct_id,
+            ConstPoolEntry::TraitObjectMethod(_, trait_fct_id) => trait_fct_id,
             _ => unreachable!(),
         };
 

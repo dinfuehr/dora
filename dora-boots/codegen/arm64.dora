@@ -1700,17 +1700,16 @@ impl CodeGen for CodeGenArm64 {
         let obj = loc.getInput(receiver_idx).getRegister();
         let tmp = loc.getTemp(0).getRegister();
 
-        let vtable_index = iface::getFunctionVtableIndex(fct_info.fct_id);
+        let BytecodeType::Trait(trait_id, ..) = fct_info.trait_object_ty;
 
         let site = LazyCompilationSiteVirtual(
             fct_info.receiver_is_first,
-            fct_info.fct_id,
-            fct_info.type_params,
             fct_info.trait_object_ty,
+            fct_info.vtable_index,
         );
         let site = LazyCompilationSite::Virtual(site);
 
-        self.emitVirtualCall(obj, REG_TEMP, tmp, inst, vtable_index, site);
+        self.emitVirtualCall(obj, REG_TEMP, tmp, inst, fct_info.vtable_index, site);
     }
 
     fn emitInvokeLambda(inst: Inst) {

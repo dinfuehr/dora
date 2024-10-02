@@ -1316,8 +1316,10 @@ impl SsaGen {
 
         let inst = match kind {
             CallKind::Virtual => {
-                let ConstPoolEntry::TraitObjectMethod(trait_object_ty, fct_id, type_params) = self.bc.constPool(idx);
-                let info = VirtualFunctionInfo(trait_object_ty, fct_id, type_params, receiver_is_first);
+                let ConstPoolEntry::TraitObjectMethod(trait_object_ty, trait_fct_id) = self.bc.constPool(idx);
+                let BytecodeType::Trait(trait_id, ..) = trait_object_ty;
+                let vtable_index = iface::getFunctionVtableIndex(trait_id, trait_fct_id);
+                let info = VirtualFunctionInfo(receiver_is_first, trait_object_ty, vtable_index);
                 graph::createInvokeVirtualInst(info, args, returnTy)
             }
 

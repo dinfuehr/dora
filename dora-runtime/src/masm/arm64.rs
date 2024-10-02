@@ -89,11 +89,11 @@ impl MacroAssembler {
         self.asm.bl_r((*scratch).into());
 
         let pos = self.pos() as i32;
-        self.emit_lazy_compilation_site(LazyCompilationSite::Direct(
+        self.emit_lazy_compilation_site(LazyCompilationSite::Direct {
             fct_id,
             type_params,
-            disp + pos,
-        ));
+            const_pool_offset_from_ra: disp + pos,
+        });
     }
 
     pub fn raw_call(&mut self, ptr: Address) {
