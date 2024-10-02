@@ -1,4 +1,9 @@
-use crate::{interner::Name, program_parser::ParsedModifierList, ty::SourceType, ParsedType};
+use crate::{
+    interner::Name,
+    program_parser::ParsedModifierList,
+    ty::{SourceType, TraitType},
+    ParsedTraitType, ParsedType,
+};
 use std::cell::OnceCell;
 use std::sync::Arc;
 
@@ -83,22 +88,22 @@ impl AliasDefinition {
 
 pub struct AliasBound {
     pub ty_ast: ast::Type,
-    pub parsed_ty: ParsedType,
+    pub parsed_ty: ParsedTraitType,
 }
 
 impl AliasBound {
     pub fn new(ast: ast::Type) -> AliasBound {
         AliasBound {
             ty_ast: ast.clone(),
-            parsed_ty: ParsedType::new_ast(ast),
+            parsed_ty: ParsedTraitType::new_ast(ast),
         }
     }
 
-    pub fn ty(&self) -> SourceType {
+    pub fn ty(&self) -> Option<TraitType> {
         self.parsed_ty().ty()
     }
 
-    pub fn parsed_ty(&self) -> &ParsedType {
+    pub fn parsed_ty(&self) -> &ParsedTraitType {
         &self.parsed_ty
     }
 }

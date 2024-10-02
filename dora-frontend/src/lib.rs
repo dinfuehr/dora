@@ -2,13 +2,13 @@ pub use crate::error::msg::ErrorMessage;
 use crate::interner::Name;
 use crate::sema::{Sema, SourceFileId};
 use crate::sym::{ModuleSymTable, SymTable, Symbol, SymbolKind};
-use crate::ty::{contains_self, SourceType, SourceTypeArray};
+use crate::ty::{contains_self, SourceType, SourceTypeArray, TraitType};
 use dora_bytecode::{dump_stdout, Program};
 use dora_parser::ast;
 use dora_parser::Span;
 
 pub use crate::extensiondefck::package_for_type;
-pub use parsety::{ParsedType, ParsedTypeAst};
+pub use parsety::{ParsedTraitType, ParsedType, ParsedTypeAst};
 pub use program_emitter::emit_program;
 pub use readty::check_type_params;
 pub use specialize::{replace_type, specialize_type};

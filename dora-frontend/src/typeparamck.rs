@@ -111,20 +111,20 @@ impl<'a> TypeParamCheck<'a> {
 
         for bound in self.callee_type_param_defs.bounds() {
             let tp_ty = bound.ty();
-            let trait_ty = bound.trait_ty();
+            if let Some(trait_ty) = bound.trait_ty() {
+                let tp_ty = specialize_type(self.sa, tp_ty, tps);
 
-            let tp_ty = specialize_type(self.sa, tp_ty, tps);
-
-            if !implements_trait(
-                self.sa,
-                tp_ty.clone(),
-                self.caller_type_param_defs,
-                trait_ty.clone(),
-            ) {
-                if let ErrorReporting::Yes(file_id, span) = self.error {
-                    self.fail_trait_bound(file_id, span, trait_ty, tp_ty.clone());
+                if !implements_trait(
+                    self.sa,
+                    tp_ty.clone(),
+                    self.caller_type_param_defs,
+                    trait_ty.ty(),
+                ) {
+                    if let ErrorReporting::Yes(file_id, span) = self.error {
+                        self.fail_trait_bound(file_id, span, trait_ty.ty(), tp_ty.clone());
+                    }
+                    succeeded = false;
                 }
-                succeeded = false;
             }
         }
 

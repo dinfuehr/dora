@@ -831,6 +831,31 @@ impl<'a> SourceTypePrinter<'a> {
     }
 }
 
+#[derive(Clone, Debug)]
+pub struct TraitType {
+    pub trait_id: TraitDefinitionId,
+    pub type_params: SourceTypeArray,
+    pub bindings: Vec<(AliasDefinitionId, SourceType)>,
+}
+
+impl TraitType {
+    pub fn new_ty(ty: SourceType) -> TraitType {
+        match ty {
+            SourceType::Trait(trait_id, type_params) => TraitType {
+                trait_id,
+                type_params,
+                bindings: Vec::new(),
+            },
+
+            _ => unreachable!(),
+        }
+    }
+
+    pub fn ty(&self) -> SourceType {
+        SourceType::Trait(self.trait_id, self.type_params.clone())
+    }
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;

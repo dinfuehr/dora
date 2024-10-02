@@ -115,8 +115,8 @@ fn create_impls(sa: &Sema) -> Vec<ImplData> {
     for (_id, impl_) in sa.impls.iter() {
         let mut methods = Vec::new();
 
-        let trait_id = impl_.trait_id();
-        let trait_ = sa.trait_(trait_id);
+        let trait_ty = impl_.trait_ty().expect("trait expected");
+        let trait_ = sa.trait_(trait_ty.trait_id);
 
         // The methods array for impl should have the exact same order as for the trait.
         for method_id in trait_.methods() {
@@ -140,7 +140,7 @@ fn create_impls(sa: &Sema) -> Vec<ImplData> {
         result.push(ImplData {
             module_id: convert_module_id(impl_.module_id),
             type_params: create_type_params(sa, impl_.type_param_definition()),
-            trait_ty: bty_from_ty(impl_.trait_ty()),
+            trait_ty: bty_from_ty(trait_ty.ty()),
             extended_ty: bty_from_ty(impl_.extended_ty()),
             methods,
             trait_method_map,
@@ -324,7 +324,7 @@ fn create_type_params(sa: &Sema, type_params: &TypeParamDefinition) -> TypeParam
         .bounds()
         .map(|b| TypeParamBound {
             ty: bty_from_ty(b.ty()),
-            trait_ty: bty_from_ty(b.trait_ty()),
+            trait_ty: bty_from_ty(b.trait_ty().expect("missing trait type").ty()),
         })
         .collect();
 

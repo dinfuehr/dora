@@ -11,7 +11,7 @@ use crate::sema::{
     PackageDefinitionId, Sema, SourceFileId, TraitDefinitionId, TypeParamDefinition,
 };
 use crate::ty::{SourceType, SourceTypeArray};
-use crate::ParsedType;
+use crate::{ParsedTraitType, ParsedType, TraitType};
 use id_arena::Id;
 
 pub type ImplDefinitionId = Id<ImplDefinition>;
@@ -26,7 +26,7 @@ pub struct ImplDefinition {
     pub declaration_span: Span,
     pub span: Span,
     pub type_param_definition: Rc<TypeParamDefinition>,
-    pub parsed_trait_ty: ParsedType,
+    pub parsed_trait_ty: ParsedTraitType,
     pub parsed_extended_ty: ParsedType,
     pub methods: OnceCell<Vec<FctDefinitionId>>,
     pub aliases: OnceCell<Vec<AliasDefinitionId>>,
@@ -51,7 +51,7 @@ impl ImplDefinition {
             type_param_definition,
             declaration_span: node.declaration_span,
             span: node.span,
-            parsed_trait_ty: ParsedType::new_ast(
+            parsed_trait_ty: ParsedTraitType::new_ast(
                 node.trait_type
                     .as_ref()
                     .expect("missing trait type")
@@ -73,15 +73,15 @@ impl ImplDefinition {
         &self.type_param_definition
     }
 
-    pub fn trait_id(&self) -> TraitDefinitionId {
-        self.trait_ty().trait_id().expect("trait expected")
+    pub fn trait_id(&self) -> Option<TraitDefinitionId> {
+        self.trait_ty().map(|t| t.trait_id)
     }
 
-    pub fn trait_ty(&self) -> SourceType {
+    pub fn trait_ty(&self) -> Option<TraitType> {
         self.parsed_trait_ty().ty()
     }
 
-    pub fn parsed_trait_ty(&self) -> &ParsedType {
+    pub fn parsed_trait_ty(&self) -> &ParsedTraitType {
         &self.parsed_trait_ty
     }
 
@@ -201,16 +201,19 @@ pub fn find_impl(
     trait_ty: SourceType,
 ) -> Option<ImplMatch> {
     for (_id, impl_) in sa.impls.iter() {
-        if impl_.trait_ty() != trait_ty {
-            continue;
-        }
+        if let Some(impl_trait_ty) = impl_.trait_ty() {
+            if impl_trait_ty.ty() != trait_ty {
+                continue;
+            }
 
-        if let Some(binding) = impl_matches(sa, check_ty.clone(), check_type_param_defs, impl_.id())
-        {
-            return Some(ImplMatch {
-                id: impl_.id(),
-                binding,
-            });
+            if let Some(binding) =
+                impl_matches(sa, check_ty.clone(), check_type_param_defs, impl_.id())
+            {
+                return Some(ImplMatch {
+                    id: impl_.id(),
+                    binding,
+                });
+            }
         }
     }
 

@@ -41,7 +41,7 @@ fn parse_alias_types(sa: &Sema) {
                 }
 
                 for bound in &alias.bounds {
-                    parsety::parse_type(sa, &table, alias.file_id, bound.parsed_ty());
+                    parsety::parse_trait_type(sa, &table, alias.file_id, bound.parsed_ty());
                 }
             }
         }
@@ -98,7 +98,7 @@ fn parse_impl_types(sa: &Sema) {
             impl_.file_id,
         );
 
-        parsety::parse_type(sa, &symtable, impl_.file_id, impl_.parsed_trait_ty());
+        parsety::parse_trait_type(sa, &symtable, impl_.file_id, impl_.parsed_trait_ty());
 
         parsety::parse_type(
             sa,
@@ -257,7 +257,7 @@ fn parse_type_param_definition(
 
     for bound in type_param_definition.own_bounds() {
         parsety::parse_type(sa, &symtable, file_id, bound.parsed_ty());
-        parsety::parse_type(sa, &symtable, file_id, bound.parsed_trait_ty());
+        parsety::parse_trait_type(sa, &symtable, file_id, bound.parsed_trait_ty());
     }
 }
 
@@ -476,7 +476,7 @@ pub fn expand_types(sa: &Sema) {
 fn expand_impl_types(sa: &Sema) {
     for (_id, impl_) in sa.impls.iter() {
         parsety::expand_type(sa, impl_.parsed_extended_ty(), None);
-        parsety::expand_type(sa, impl_.parsed_trait_ty(), Some(impl_.extended_ty()));
+        parsety::expand_trait_type(sa, impl_.parsed_trait_ty(), Some(impl_.extended_ty()));
 
         expand_type_param_definition(sa, impl_.type_param_definition(), None);
     }
@@ -583,7 +583,7 @@ fn expand_type_param_definition(
 ) {
     for bound in type_param_definition.own_bounds() {
         parsety::expand_type(sa, bound.parsed_ty(), replace_self.clone());
-        parsety::expand_type(sa, bound.parsed_trait_ty(), replace_self.clone());
+        parsety::expand_trait_type(sa, bound.parsed_trait_ty(), replace_self.clone());
     }
 }
 

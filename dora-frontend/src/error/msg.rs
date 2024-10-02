@@ -193,6 +193,8 @@ pub enum ErrorMessage {
     TraitNotObjectSafe,
     UnexpectedTypeBinding,
     WrongOrderOfGenericsAndBindings,
+    UnknownTypeBinding,
+    TypeBindingDefinedAgain,
 }
 
 impl ErrorMessage {
@@ -662,8 +664,12 @@ impl ErrorMessage {
             }
             ErrorMessage::TraitNotObjectSafe => format!("Trait not object safe"),
             ErrorMessage::UnexpectedTypeBinding => format!("Type binding not allowed here."),
+            ErrorMessage::UnknownTypeBinding => format!("Type binding not allowed here."),
             ErrorMessage::WrongOrderOfGenericsAndBindings => {
                 format!("Generic arguments should be ordered before type bindings.")
+            }
+            ErrorMessage::TypeBindingDefinedAgain => {
+                format!("Type binding for this name already exists.")
             }
         }
     }

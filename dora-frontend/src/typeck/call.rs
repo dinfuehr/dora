@@ -109,8 +109,7 @@ fn check_expr_call_generic_static_method(
     let interned_name = ck.sa.interner.intern(&name);
 
     for trait_ty in ck.type_param_definition.bounds_for_type_param(tp_id) {
-        let trait_id = trait_ty.trait_id().expect("trait expected");
-        let trait_ = ck.sa.trait_(trait_id);
+        let trait_ = ck.sa.trait_(trait_ty.trait_id);
 
         if let Some(trait_method_id) = trait_.get_method(interned_name, true) {
             matched_methods.push((trait_method_id, trait_ty));
@@ -144,7 +143,7 @@ fn check_expr_call_generic_static_method(
         ck.sa,
         trait_method,
         args,
-        &trait_ty.type_params(),
+        &trait_ty.type_params,
         Some(tp.clone()),
     ) {
         let fct_params = trait_method
@@ -159,16 +158,16 @@ fn check_expr_call_generic_static_method(
 
     let call_type = CallType::GenericStaticMethod(
         tp_id,
-        trait_ty.trait_id().expect("trait expected"),
+        trait_ty.trait_id,
         trait_method_id,
-        trait_ty.type_params(),
+        trait_ty.type_params.clone(),
     );
     ck.analysis.map_calls.insert(e.id, Arc::new(call_type));
 
     let return_type = replace_type(
         ck.sa,
         trait_method.return_type(),
-        Some(&trait_ty.type_params()),
+        Some(&trait_ty.type_params),
         Some(tp),
     );
 
@@ -648,12 +647,10 @@ fn check_expr_call_generic_type_param(
     let interned_name = ck.sa.interner.intern(&name);
 
     for trait_ty in ck.type_param_definition.bounds_for_type_param(id) {
-        if let Some(trait_id) = trait_ty.trait_id() {
-            let trait_ = ck.sa.trait_(trait_id);
+        let trait_ = ck.sa.trait_(trait_ty.trait_id);
 
-            if let Some(trait_method_id) = trait_.get_method(interned_name, false) {
-                matched_methods.push((trait_method_id, trait_ty));
-            }
+        if let Some(trait_method_id) = trait_.get_method(interned_name, false) {
+            matched_methods.push((trait_method_id, trait_ty));
         }
     }
 
@@ -666,13 +663,13 @@ fn check_expr_call_generic_type_param(
         let return_type = replace_type(
             ck.sa,
             return_type,
-            Some(&trait_ty.type_params()),
+            Some(&trait_ty.type_params),
             Some(object_type.clone()),
         );
 
         ck.analysis.set_ty(e.id, return_type.clone());
 
-        let trait_type_params = trait_ty.type_params();
+        let trait_type_params = trait_ty.type_params;
 
         let call_type = CallType::GenericMethod(
             id,

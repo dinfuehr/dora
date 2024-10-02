@@ -967,13 +967,14 @@ fn lookup_impl_for_item(
     extended_ty: SymbolKind,
 ) -> Option<ImplDefinitionId> {
     for (id, impl_) in sa.impls.iter() {
-        match impl_.trait_ty() {
-            SourceType::Trait(impl_trait_id, ..) if impl_trait_id == trait_id => {}
-            _ => continue,
-        }
+        if let Some(trait_ty) = impl_.trait_ty() {
+            if trait_ty.trait_id != trait_id {
+                continue;
+            }
 
-        if ty_matches_symbol(sa, impl_.extended_ty(), extended_ty.clone()) {
-            return Some(id);
+            if ty_matches_symbol(sa, impl_.extended_ty(), extended_ty.clone()) {
+                return Some(id);
+            }
         }
     }
 

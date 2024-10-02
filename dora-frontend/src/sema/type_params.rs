@@ -2,7 +2,7 @@ use std::rc::Rc;
 
 use dora_parser::ast;
 
-use crate::{Name, ParsedType, SourceType, SourceTypeArray};
+use crate::{Name, ParsedTraitType, ParsedType, SourceType, SourceTypeArray, TraitType};
 
 #[derive(Clone, Debug)]
 pub struct TypeParamDefinition {
@@ -85,7 +85,7 @@ impl TypeParamDefinition {
     pub fn add_bound(&mut self, id: TypeParamId, ast_trait_ty: ast::Type) {
         let bound = Bound::new(
             ParsedType::new_ty(SourceType::TypeParam(id)),
-            ParsedType::new_ast(ast_trait_ty.clone()),
+            ParsedTraitType::new_ast(ast_trait_ty.clone()),
         );
 
         self.bounds.push(bound);
@@ -94,7 +94,7 @@ impl TypeParamDefinition {
     pub fn add_where_bound(&mut self, ast_ty: ast::Type, ast_trait_ty: ast::Type) {
         let bound = Bound::new(
             ParsedType::new_ast(ast_ty.clone()),
-            ParsedType::new_ast(ast_trait_ty.clone()),
+            ParsedTraitType::new_ast(ast_trait_ty.clone()),
         );
 
         self.bounds.push(bound);
@@ -102,8 +102,10 @@ impl TypeParamDefinition {
 
     pub fn implements_trait(&self, id: TypeParamId, trait_ty: SourceType) -> bool {
         for bound in self.bounds() {
-            if bound.ty() == SourceType::TypeParam(id) && bound.trait_ty() == trait_ty {
-                return true;
+            if let Some(bound_trait_ty) = bound.trait_ty() {
+                if bound.ty() == SourceType::TypeParam(id) && bound_trait_ty.ty() == trait_ty {
+                    return true;
+                }
             }
         }
         false
@@ -128,10 +130,10 @@ impl TypeParamDefinition {
     pub fn bounds_for_type_param<'a>(
         &'a self,
         id: TypeParamId,
-    ) -> impl Iterator<Item = SourceType> + 'a {
+    ) -> impl Iterator<Item = TraitType> + 'a {
         self.bounds()
-            .filter(move |b| b.ty() == SourceType::TypeParam(id))
-            .map(|b| b.trait_ty())
+            .filter(move |b| b.ty() == SourceType::TypeParam(id) && b.trait_ty().is_some())
+            .map(|b| b.trait_ty().expect("trait type expected"))
     }
 
     pub fn type_param_count(&self) -> usize {
@@ -154,11 +156,11 @@ impl TypeParamDefinition {
 #[derive(Clone, Debug)]
 pub struct Bound {
     parsed_ty: ParsedType,
-    parsed_trait_ty: ParsedType,
+    parsed_trait_ty: ParsedTraitType,
 }
 
 impl Bound {
-    pub fn new(parsed_ty: ParsedType, parsed_trait_ty: ParsedType) -> Bound {
+    pub fn new(parsed_ty: ParsedType, parsed_trait_ty: ParsedTraitType) -> Bound {
         Bound {
             parsed_ty,
             parsed_trait_ty,
@@ -173,11 +175,11 @@ impl Bound {
         &self.parsed_ty
     }
 
-    pub fn trait_ty(&self) -> SourceType {
+    pub fn trait_ty(&self) -> Option<TraitType> {
         self.parsed_trait_ty().ty()
     }
 
-    pub fn parsed_trait_ty(&self) -> &ParsedType {
+    pub fn parsed_trait_ty(&self) -> &ParsedTraitType {
         &self.parsed_trait_ty
     }
 }

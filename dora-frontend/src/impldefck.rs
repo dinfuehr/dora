@@ -5,7 +5,7 @@ use crate::sema::{
     implements_trait, new_identity_type_params, AliasDefinitionId, FctDefinition, FctDefinitionId,
     ImplDefinition, Sema, TraitDefinition,
 };
-use crate::{package_for_type, ErrorMessage, SourceType, SourceTypeArray};
+use crate::{package_for_type, ErrorMessage, SourceType, SourceTypeArray, TraitType};
 
 pub fn check_definition(sa: &Sema) {
     for (_id, impl_) in sa.impls.iter() {
@@ -14,10 +14,6 @@ pub fn check_definition(sa: &Sema) {
 }
 
 fn check_impl_definition(sa: &Sema, impl_: &ImplDefinition) {
-    if !impl_.trait_ty().is_trait() && !impl_.trait_ty().is_error() {
-        sa.report(impl_.file_id, impl_.ast.span, ErrorMessage::ExpectedTrait);
-    }
-
     match impl_.extended_ty() {
         SourceType::TypeAlias(..) => unimplemented!(),
         SourceType::Any | SourceType::Ptr | SourceType::This => {
@@ -49,8 +45,9 @@ fn check_impl_definition(sa: &Sema, impl_: &ImplDefinition) {
         impl_.ast.span,
     );
 
-    if impl_.trait_ty().is_trait() && !impl_.extended_ty().is_error() {
-        let is_trait_foreign = package_for_type(sa, impl_.trait_ty()) != Some(impl_.package_id);
+    if impl_.trait_ty().is_some() && !impl_.extended_ty().is_error() {
+        let trait_id = impl_.trait_id().expect("expected trait");
+        let is_trait_foreign = sa.trait_(trait_id).package_id != impl_.package_id;
         let is_extended_ty_foreign =
             package_for_type(sa, impl_.extended_ty()) != Some(impl_.package_id);
 
@@ -66,16 +63,19 @@ fn check_impl_definition(sa: &Sema, impl_: &ImplDefinition) {
 
 pub fn check_definition_against_trait(sa: &Sema) {
     for (_id, impl_) in sa.impls.iter() {
-        let trait_ty = impl_.trait_ty();
-
-        if let Some(trait_id) = trait_ty.trait_id() {
-            let trait_ = sa.trait_(trait_id);
-            check_impl_methods(sa, impl_, trait_);
+        if let Some(trait_ty) = impl_.trait_ty() {
+            let trait_ = sa.trait_(trait_ty.trait_id);
+            check_impl_methods(sa, impl_, &trait_ty, trait_);
         }
     }
 }
 
-fn check_impl_methods(sa: &Sema, impl_: &ImplDefinition, trait_: &TraitDefinition) {
+fn check_impl_methods(
+    sa: &Sema,
+    impl_: &ImplDefinition,
+    trait_ty: &TraitType,
+    trait_: &TraitDefinition,
+) {
     let mut remaining_trait_methods: HashSet<FctDefinitionId> =
         trait_.methods().iter().cloned().collect();
     let mut trait_method_map = HashMap::new();
@@ -108,7 +108,7 @@ fn check_impl_methods(sa: &Sema, impl_: &ImplDefinition, trait_: &TraitDefinitio
             if !method_definitions_compatible(
                 sa,
                 trait_method,
-                impl_.trait_ty().type_params(),
+                trait_ty.type_params.clone(),
                 &trait_alias_map,
                 impl_method,
                 impl_.extended_ty().clone(),
@@ -365,10 +365,8 @@ fn report_missing_methods(
 
 pub fn check_type_aliases(sa: &Sema) {
     for (_id, impl_) in sa.impls.iter() {
-        let trait_ty = impl_.trait_ty();
-
-        if let Some(trait_id) = trait_ty.trait_id() {
-            let trait_ = sa.trait_(trait_id);
+        if let Some(trait_ty) = impl_.trait_ty() {
+            let trait_ = sa.trait_(trait_ty.trait_id);
             check_impl_types(sa, impl_, trait_);
         }
     }
@@ -397,20 +395,22 @@ fn check_impl_types(sa: &Sema, impl_: &ImplDefinition, trait_: &TraitDefinition)
             let trait_alias = sa.alias(trait_alias_id);
 
             for bound in trait_alias.bounds() {
-                if !implements_trait(
-                    sa,
-                    impl_alias.ty(),
-                    impl_.type_param_definition(),
-                    bound.ty(),
-                ) {
-                    let name = impl_alias
-                        .ty()
-                        .name_with_type_params(sa, impl_.type_param_definition());
-                    let trait_name = bound
-                        .ty()
-                        .name_with_type_params(sa, trait_.type_param_definition());
-                    let msg = ErrorMessage::TypeNotImplementingTrait(name, trait_name);
-                    sa.report(impl_.file_id, impl_alias.node.span, msg);
+                if let Some(trait_ty) = bound.ty() {
+                    if !implements_trait(
+                        sa,
+                        impl_alias.ty(),
+                        impl_.type_param_definition(),
+                        trait_ty.ty(),
+                    ) {
+                        let name = impl_alias
+                            .ty()
+                            .name_with_type_params(sa, impl_.type_param_definition());
+                        let trait_name = trait_ty
+                            .ty()
+                            .name_with_type_params(sa, trait_.type_param_definition());
+                        let msg = ErrorMessage::TypeNotImplementingTrait(name, trait_name);
+                        sa.report(impl_.file_id, impl_alias.node.span, msg);
+                    }
                 }
             }
 

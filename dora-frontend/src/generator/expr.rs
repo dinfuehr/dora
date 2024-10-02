@@ -176,7 +176,7 @@ fn is_comparable_method(sa: &Sema, fct: &FctDefinition) -> bool {
     match fct.parent {
         FctParent::Impl(impl_id) => {
             let impl_ = &sa.impl_(impl_id);
-            impl_.trait_id() == sa.known.traits.comparable()
+            impl_.trait_id().expect("trait expected") == sa.known.traits.comparable()
         }
 
         FctParent::Trait(trait_id) => trait_id == sa.known.traits.comparable(),
