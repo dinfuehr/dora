@@ -831,7 +831,7 @@ impl<'a> SourceTypePrinter<'a> {
     }
 }
 
-#[derive(Clone, Debug)]
+#[derive(Clone, Debug, PartialEq, Eq)]
 pub struct TraitType {
     pub trait_id: TraitDefinitionId,
     pub type_params: SourceTypeArray,
@@ -848,6 +848,14 @@ impl TraitType {
             },
 
             _ => unreachable!(),
+        }
+    }
+
+    pub fn from_trait_id(id: TraitDefinitionId) -> TraitType {
+        TraitType {
+            trait_id: id,
+            type_params: SourceTypeArray::empty(),
+            bindings: Vec::new(),
         }
     }
 

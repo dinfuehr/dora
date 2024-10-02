@@ -7,6 +7,7 @@ use crate::error::msg::ErrorMessage;
 use crate::expr_always_returns;
 use crate::sema::{find_impl, FctDefinitionId, ForTypeInfo};
 use crate::sym::SymbolKind;
+use crate::ty::TraitType;
 use crate::typeck::{check_expr, check_pattern, read_ident, read_path, TypeCheck};
 use crate::{specialize_type, SourceType};
 
@@ -122,13 +123,13 @@ fn type_supports_into_iterator_trait(
         .cloned()
         .expect("missing Item alias");
 
-    let trait_ty = SourceType::new_trait(into_iterator_trait_id);
+    let trait_ty = TraitType::from_trait_id(into_iterator_trait_id);
 
     let impl_match = find_impl(
         ck.sa,
         object_type.clone(),
         &ck.type_param_definition,
-        trait_ty.clone(),
+        trait_ty,
     );
 
     if let Some(impl_match) = impl_match {
@@ -177,13 +178,13 @@ fn type_supports_iterator_trait(
         .cloned()
         .expect("missing Item alias");
 
-    let trait_ty = SourceType::new_trait(iterator_trait_id);
+    let trait_ty = TraitType::from_trait_id(iterator_trait_id);
 
     let impl_match = find_impl(
         ck.sa,
         object_type.clone(),
         &ck.type_param_definition,
-        trait_ty.clone(),
+        trait_ty,
     );
 
     if let Some(impl_match) = impl_match {

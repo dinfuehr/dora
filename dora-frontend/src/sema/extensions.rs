@@ -216,7 +216,7 @@ pub mod matching {
         ext_type_param_defs: &TypeParamDefinition,
     ) -> bool {
         for trait_ty in ext_type_param_defs.bounds_for_type_param(ext_tp_id) {
-            if !implements_trait(sa, check_ty.clone(), check_type_param_defs, trait_ty.ty()) {
+            if !implements_trait(sa, check_ty.clone(), check_type_param_defs, trait_ty) {
                 return false;
             }
         }

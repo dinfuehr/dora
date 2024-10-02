@@ -137,18 +137,12 @@ pub fn implements_trait(
     sa: &Sema,
     check_ty: SourceType,
     check_type_param_defs: &TypeParamDefinition,
-    trait_ty: SourceType,
+    trait_ty: TraitType,
 ) -> bool {
-    if !trait_ty.is_trait() {
-        return true;
-    }
-
-    let trait_id = trait_ty.trait_id().expect("expected trait");
-
     let check_ty = maybe_alias_ty(sa, check_ty);
 
-    if check_ty.is_primitive() && sa.known.traits.zero() == trait_id {
-        assert!(trait_ty.type_params().is_empty());
+    if check_ty.is_primitive() && sa.known.traits.zero() == trait_ty.trait_id {
+        assert!(trait_ty.type_params.is_empty());
         return true;
     }
 
@@ -170,7 +164,9 @@ pub fn implements_trait(
             find_impl(sa, check_ty, check_type_param_defs, trait_ty).is_some()
         }
 
-        SourceType::TypeParam(tp_id) => check_type_param_defs.implements_trait(tp_id, trait_ty),
+        SourceType::TypeParam(tp_id) => {
+            check_type_param_defs.implements_trait(tp_id, trait_ty.ty())
+        }
 
         SourceType::TypeAlias(..) => unreachable!(),
 
@@ -198,11 +194,11 @@ pub fn find_impl(
     sa: &Sema,
     check_ty: SourceType,
     check_type_param_defs: &TypeParamDefinition,
-    trait_ty: SourceType,
+    trait_ty: TraitType,
 ) -> Option<ImplMatch> {
     for (_id, impl_) in sa.impls.iter() {
         if let Some(impl_trait_ty) = impl_.trait_ty() {
-            if impl_trait_ty.ty() != trait_ty {
+            if impl_trait_ty != trait_ty {
                 continue;
             }
 

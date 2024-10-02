@@ -83,7 +83,7 @@ pub fn check_type_params(
         if let Some(trait_ty) = bound.trait_ty() {
             let tp_ty = specialize_type(sa, tp_ty, &type_params_sta);
 
-            if !implements_trait(sa, tp_ty.clone(), type_param_defs, trait_ty.ty().clone()) {
+            if !implements_trait(sa, tp_ty.clone(), type_param_defs, trait_ty.clone()) {
                 let name = tp_ty.name_with_type_params(sa, type_param_defs);
                 let trait_name = trait_ty.ty().name_with_type_params(sa, type_param_defs);
                 let msg = ErrorMessage::TypeNotImplementingTrait(name, trait_name);

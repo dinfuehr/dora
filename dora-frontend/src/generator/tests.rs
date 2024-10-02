@@ -10,8 +10,8 @@ use crate::sema::{
 };
 use crate::sym::ModuleSymTable;
 use crate::test;
-use crate::ty::{SourceType, SourceTypeArray};
 use crate::typeck::find_method_call_candidates;
+use crate::{SourceType, SourceTypeArray, TraitType};
 use dora_bytecode::{
     self as bytecode, BytecodeFunction, BytecodeOffset, BytecodeType, BytecodeTypeArray,
     BytecodeVisitor, ClassId, ConstPoolEntry, ConstPoolIdx, EnumId, FunctionId, GlobalId, Register,
@@ -4457,9 +4457,14 @@ pub fn impl_method_id_by_name(
     let trait_ = sa.trait_(trait_id);
     let name = sa.interner.intern(method_name);
     let trait_method_id = trait_.get_method(name, false).expect("missing method");
-    let impl_id = find_impl(sa, ty, &TypeParamDefinition::empty(), trait_ty)
-        .expect("missing impl")
-        .id;
+    let impl_id = find_impl(
+        sa,
+        ty,
+        &TypeParamDefinition::empty(),
+        TraitType::new_ty(trait_ty),
+    )
+    .expect("missing impl")
+    .id;
 
     sa.impl_(impl_id)
         .get_method_for_trait_method_id(trait_method_id)

@@ -400,7 +400,7 @@ fn check_impl_types(sa: &Sema, impl_: &ImplDefinition, trait_: &TraitDefinition)
                         sa,
                         impl_alias.ty(),
                         impl_.type_param_definition(),
-                        trait_ty.ty(),
+                        trait_ty.clone(),
                     ) {
                         let name = impl_alias
                             .ty()

@@ -118,7 +118,7 @@ impl<'a> TypeParamCheck<'a> {
                     self.sa,
                     tp_ty.clone(),
                     self.caller_type_param_defs,
-                    trait_ty.ty(),
+                    trait_ty.clone(),
                 ) {
                     if let ErrorReporting::Yes(file_id, span) = self.error {
                         self.fail_trait_bound(file_id, span, trait_ty.ty(), tp_ty.clone());
