@@ -862,6 +862,33 @@ impl TraitType {
     pub fn ty(&self) -> SourceType {
         SourceType::Trait(self.trait_id, self.type_params.clone())
     }
+
+    pub fn name_with_type_params(
+        &self,
+        sa: &Sema,
+        type_param_definition: &TypeParamDefinition,
+    ) -> String {
+        let trait_ = sa.trait_(self.trait_id);
+        let name = sa.interner.str(trait_.name).to_string();
+
+        if self.type_params.is_empty() {
+            name
+        } else {
+            let writer = SourceTypePrinter {
+                sa,
+                type_params: Some(type_param_definition),
+            };
+
+            let params = self
+                .type_params
+                .iter()
+                .map(|ty| writer.name(ty))
+                .collect::<Vec<_>>()
+                .join(", ");
+
+            format!("{}[{}]", name, params)
+        }
+    }
 }
 
 #[cfg(test)]

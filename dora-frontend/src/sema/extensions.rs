@@ -200,7 +200,7 @@ pub mod matching {
         let check_tp_id = check_ty.type_param_id().expect("expected type param");
 
         for trait_ty in ext_type_param_defs.bounds_for_type_param(ext_tp_id) {
-            if !check_type_param_defs.implements_trait(check_tp_id, trait_ty.ty()) {
+            if !check_type_param_defs.implements_trait(check_tp_id, trait_ty) {
                 return false;
             }
         }

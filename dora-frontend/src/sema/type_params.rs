@@ -100,10 +100,10 @@ impl TypeParamDefinition {
         self.bounds.push(bound);
     }
 
-    pub fn implements_trait(&self, id: TypeParamId, trait_ty: SourceType) -> bool {
+    pub fn implements_trait(&self, id: TypeParamId, trait_ty: TraitType) -> bool {
         for bound in self.bounds() {
             if let Some(bound_trait_ty) = bound.trait_ty() {
-                if bound.ty() == SourceType::TypeParam(id) && bound_trait_ty.ty() == trait_ty {
+                if bound.ty() == SourceType::TypeParam(id) && bound_trait_ty == trait_ty {
                     return true;
                 }
             }

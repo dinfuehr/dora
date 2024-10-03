@@ -192,9 +192,10 @@ pub enum ErrorMessage {
     ImplTraitForeignType,
     TraitNotObjectSafe,
     UnexpectedTypeBinding,
-    WrongOrderOfGenericsAndBindings,
+    TypeBindingOrder,
     UnknownTypeBinding,
-    TypeBindingDefinedAgain,
+    DuplicateTypeBinding,
+    MissingTypeBinding(String),
 }
 
 impl ErrorMessage {
@@ -665,11 +666,14 @@ impl ErrorMessage {
             ErrorMessage::TraitNotObjectSafe => format!("Trait not object safe"),
             ErrorMessage::UnexpectedTypeBinding => format!("Type binding not allowed here."),
             ErrorMessage::UnknownTypeBinding => format!("Type binding not allowed here."),
-            ErrorMessage::WrongOrderOfGenericsAndBindings => {
+            ErrorMessage::TypeBindingOrder => {
                 format!("Generic arguments should be ordered before type bindings.")
             }
-            ErrorMessage::TypeBindingDefinedAgain => {
+            ErrorMessage::DuplicateTypeBinding => {
                 format!("Type binding for this name already exists.")
+            }
+            ErrorMessage::MissingTypeBinding(ref name) => {
+                format!("Missing type binding `{}`.", name)
             }
         }
     }

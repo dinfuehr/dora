@@ -41,7 +41,7 @@ fn parse_alias_types(sa: &Sema) {
                 }
 
                 for bound in &alias.bounds {
-                    parsety::parse_trait_type(sa, &table, alias.file_id, bound.parsed_ty());
+                    parsety::parse_trait_bound_type(sa, &table, alias.file_id, bound.parsed_ty());
                 }
             }
         }
@@ -257,7 +257,7 @@ fn parse_type_param_definition(
 
     for bound in type_param_definition.own_bounds() {
         parsety::parse_type(sa, &symtable, file_id, bound.parsed_ty());
-        parsety::parse_trait_type(sa, &symtable, file_id, bound.parsed_trait_ty());
+        parsety::parse_trait_bound_type(sa, &symtable, file_id, bound.parsed_trait_ty());
     }
 }
 

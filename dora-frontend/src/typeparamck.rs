@@ -6,7 +6,7 @@ use crate::sema::{
     TypeParamDefinition,
 };
 use crate::specialize::specialize_type;
-use crate::ty::{SourceType, SourceTypeArray};
+use crate::{SourceType, SourceTypeArray, TraitType};
 
 pub enum ErrorReporting {
     Yes(SourceFileId, Span),
@@ -121,7 +121,7 @@ impl<'a> TypeParamCheck<'a> {
                     trait_ty.clone(),
                 ) {
                     if let ErrorReporting::Yes(file_id, span) = self.error {
-                        self.fail_trait_bound(file_id, span, trait_ty.ty(), tp_ty.clone());
+                        self.fail_trait_bound(file_id, span, trait_ty, tp_ty.clone());
                     }
                     succeeded = false;
                 }
@@ -135,7 +135,7 @@ impl<'a> TypeParamCheck<'a> {
         &self,
         file_id: SourceFileId,
         span: Span,
-        trait_ty: SourceType,
+        trait_ty: TraitType,
         ty: SourceType,
     ) {
         let name = ty.name_with_type_params(self.sa, self.caller_type_param_defs);

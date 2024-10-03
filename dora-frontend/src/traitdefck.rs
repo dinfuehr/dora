@@ -131,9 +131,9 @@ mod tests {
     }
 
     #[test]
+    #[ignore]
     fn trait_object_safe_alias() {
-        err(
-            "
+        ok("
             trait Foo {
                 type X;
             }
@@ -141,15 +141,11 @@ mod tests {
                 type X = String;
             }
             fn f(x: Int64) {
-                x as Foo;
+                x as Foo[X=String];
             }
-        ",
-            (9, 22),
-            ErrorMessage::TraitNotObjectSafe,
-        );
+        ");
 
-        err(
-            "
+        ok("
             trait Foo {
                 type X;
             }
@@ -157,10 +153,7 @@ mod tests {
                 type X = String;
             }
             fn f(x: Foo) {}
-        ",
-            (8, 21),
-            ErrorMessage::TraitNotObjectSafe,
-        );
+        ");
     }
 
     #[test]

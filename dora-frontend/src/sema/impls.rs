@@ -164,9 +164,7 @@ pub fn implements_trait(
             find_impl(sa, check_ty, check_type_param_defs, trait_ty).is_some()
         }
 
-        SourceType::TypeParam(tp_id) => {
-            check_type_param_defs.implements_trait(tp_id, trait_ty.ty())
-        }
+        SourceType::TypeParam(tp_id) => check_type_param_defs.implements_trait(tp_id, trait_ty),
 
         SourceType::TypeAlias(..) => unreachable!(),
 

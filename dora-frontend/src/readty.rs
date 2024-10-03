@@ -85,7 +85,7 @@ pub fn check_type_params(
 
             if !implements_trait(sa, tp_ty.clone(), type_param_defs, trait_ty.clone()) {
                 let name = tp_ty.name_with_type_params(sa, type_param_defs);
-                let trait_name = trait_ty.ty().name_with_type_params(sa, type_param_defs);
+                let trait_name = trait_ty.name_with_type_params(sa, type_param_defs);
                 let msg = ErrorMessage::TypeNotImplementingTrait(name, trait_name);
                 sa.report(file_id, span, msg);
                 success = false;
