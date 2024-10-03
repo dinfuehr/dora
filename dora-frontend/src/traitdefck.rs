@@ -131,8 +131,18 @@ mod tests {
     }
 
     #[test]
-    #[ignore]
     fn trait_object_safe_alias() {
+        ok("
+            trait Foo {
+                type X;
+            }
+            fn f(x: Foo[X=String]) {}
+        ");
+    }
+
+    #[test]
+    #[ignore]
+    fn trait_object_safe_alias_as() {
         ok("
             trait Foo {
                 type X;
@@ -143,16 +153,6 @@ mod tests {
             fn f(x: Int64) {
                 x as Foo[X=String];
             }
-        ");
-
-        ok("
-            trait Foo {
-                type X;
-            }
-            impl Foo for Int64 {
-                type X = String;
-            }
-            fn f(x: Foo) {}
         ");
     }
 

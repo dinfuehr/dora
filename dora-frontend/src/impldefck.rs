@@ -147,9 +147,9 @@ fn method_definitions_compatible(
         return false;
     }
 
-    let fct_type_params = trait_method.type_param_definition().fct_type_params_len();
+    let fct_type_params = trait_method.type_param_definition().own_type_params_len();
 
-    if fct_type_params != impl_method.type_param_definition().fct_type_params_len() {
+    if fct_type_params != impl_method.type_param_definition().own_type_params_len() {
         return false;
     }
 

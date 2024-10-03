@@ -3,15 +3,15 @@ use dora_parser::ast;
 use crate::access::{sym_accessible_from, trait_accessible_from};
 use crate::readty::read_type_path;
 use crate::sema::{
-    is_object_safe, AliasDefinitionId, ModuleDefinitionId, SourceFileId, TraitDefinitionId,
-    TypeParamDefinition,
+    implements_trait, is_object_safe, AliasDefinitionId, ModuleDefinitionId, SourceFileId,
+    TraitDefinition, TraitDefinitionId, TypeParamDefinition,
 };
 use crate::sym::{ModuleSymTable, SymbolKind};
 use crate::{
-    check_type_params, ErrorMessage, Name, Sema, SourceType, SourceTypeArray, Span, TraitType,
+    specialize_type, ErrorMessage, Name, Sema, SourceType, SourceTypeArray, Span, TraitType,
 };
 use std::cell::{OnceCell, RefCell};
-use std::collections::HashSet;
+use std::collections::{HashMap, HashSet};
 
 #[derive(Clone, Debug)]
 pub struct ParsedType {
@@ -388,7 +388,7 @@ fn convert_type_regular(sa: &Sema, file_id: SourceFileId, parsed_ty: &ParsedType
         }
 
         SymbolKind::Class(..) | SymbolKind::Enum(..) | SymbolKind::Struct(..) => {
-            let mut source_type_params = Vec::with_capacity(type_params.len());
+            let mut source_type_arguments = Vec::with_capacity(type_params.len());
 
             for ty_arg in type_params {
                 if ty_arg.name.is_some() {
@@ -397,11 +397,22 @@ fn convert_type_regular(sa: &Sema, file_id: SourceFileId, parsed_ty: &ParsedType
                 }
 
                 let ty = convert_type_inner(sa, file_id, &ty_arg.ty);
-                source_type_params.push(ty);
+                source_type_arguments.push(ty);
             }
 
-            let type_params = SourceTypeArray::with(source_type_params);
-            ty_for_sym(sa, sym, type_params)
+            let type_param_definition = sym_type_param_definition(sa, sym.clone());
+
+            if type_param_definition.type_param_count() == source_type_arguments.len() {
+                let type_params = SourceTypeArray::with(source_type_arguments);
+                ty_for_sym(sa, sym, type_params)
+            } else {
+                let msg = ErrorMessage::WrongNumberTypeParams(
+                    type_param_definition.type_param_count(),
+                    source_type_arguments.len(),
+                );
+                sa.report(file_id, parsed_ty.span, msg);
+                SourceType::Error
+            }
         }
 
         _ => unreachable!(),
@@ -418,7 +429,6 @@ fn convert_type_regular_trait_object(
     let trait_ = sa.trait_(trait_id);
     let mut idx = 0;
     let mut generics = Vec::new();
-    let mut bindings: Vec<(AliasDefinitionId, SourceType)> = Vec::new();
 
     while idx < type_params.len() {
         let type_param = &type_params[idx];
@@ -432,7 +442,7 @@ fn convert_type_regular_trait_object(
         idx += 1;
     }
 
-    let mut used_aliases = HashSet::new();
+    let mut used_aliases = HashMap::new();
 
     while idx < type_params.len() {
         let type_param = &type_params[idx];
@@ -445,9 +455,9 @@ fn convert_type_regular_trait_object(
         let name = type_param.name.expect("name expected");
 
         if let Some(&alias_id) = trait_.alias_names().get(&name) {
-            if used_aliases.insert(alias_id) {
+            if !used_aliases.contains_key(&alias_id) {
                 let ty = convert_type_inner(sa, file_id, &type_param.ty);
-                bindings.push((alias_id, ty));
+                used_aliases.insert(alias_id, ty);
             } else {
                 let msg = ErrorMessage::DuplicateTypeBinding;
                 sa.report(file_id, type_param.span, msg);
@@ -463,7 +473,9 @@ fn convert_type_regular_trait_object(
     }
 
     for alias_id in trait_.aliases() {
-        if !used_aliases.contains(alias_id) {
+        if let Some(ty) = used_aliases.remove(&alias_id) {
+            generics.push(ty);
+        } else {
             let name = sa.alias(*alias_id).name;
             let name = sa.interner.str(name).to_string();
             let msg = ErrorMessage::MissingTypeBinding(name);
@@ -722,17 +734,7 @@ fn check_type_inner(
         | SourceType::Struct(_, type_params)
         | SourceType::Enum(_, type_params) => check_type_record(sa, ctxt, parsed_ty, type_params),
         SourceType::Trait(trait_id, type_params) => {
-            let result_ty = check_type_record(sa, ctxt, parsed_ty, type_params);
-
-            if !is_object_safe(sa, trait_id) {
-                sa.report(
-                    ctxt.file_id,
-                    parsed_ty.span,
-                    ErrorMessage::TraitNotObjectSafe,
-                );
-            }
-
-            result_ty
+            check_type_trait_object(sa, ctxt, parsed_ty, trait_id, type_params)
         }
     }
 }
@@ -784,6 +786,81 @@ fn check_type_record(
     }
 }
 
+fn check_type_trait_object(
+    sa: &Sema,
+    ctxt: &TypeContext,
+    parsed_ty: &ParsedTypeAst,
+    trait_id: TraitDefinitionId,
+    type_params: SourceTypeArray,
+) -> SourceType {
+    let trait_ = sa.trait_(trait_id);
+
+    let parsed_type_arguments = match parsed_ty.kind {
+        ParsedTypeKind::Regular {
+            type_arguments: ref parsed_type_arguments,
+            ..
+        } => parsed_type_arguments,
+        _ => unreachable!(),
+    };
+
+    if !trait_accessible_from(sa, trait_id, ctxt.module_id) {
+        let msg = ErrorMessage::NotAccessible;
+        sa.report(ctxt.file_id, parsed_ty.span, msg);
+    }
+
+    if !is_object_safe(sa, trait_id) {
+        sa.report(
+            ctxt.file_id,
+            parsed_ty.span,
+            ErrorMessage::TraitNotObjectSafe,
+        );
+        return SourceType::Error;
+    }
+
+    let generic_count = trait_.type_param_definition().type_param_count();
+    let type_params = type_params.types();
+    let generic_args = &type_params[0..generic_count];
+    let type_bindings = &type_params[generic_count..];
+
+    assert_eq!(type_params.len(), parsed_type_arguments.len());
+    let mut new_type_params = Vec::with_capacity(generic_args.len());
+
+    for (idx, arg) in generic_args.iter().enumerate() {
+        let parsed_type_arg = &parsed_type_arguments[idx];
+        assert!(parsed_type_arg.name.is_none());
+        let ty = check_type_inner(sa, ctxt, arg.clone(), &parsed_type_arg.ty);
+        new_type_params.push(ty);
+    }
+
+    let mut new_bindings = Vec::with_capacity(type_bindings.len());
+
+    for (idx, arg) in type_bindings.iter().enumerate() {
+        let parsed_type_arg = &parsed_type_arguments[generic_count + idx];
+        assert!(parsed_type_arg.name.is_some());
+        let alias_id = trait_.aliases()[0];
+        let ty = check_type_inner(sa, ctxt, arg.clone(), &parsed_type_arg.ty);
+        new_bindings.push((alias_id, ty));
+    }
+
+    let result = if check_trait_type_params(
+        sa,
+        trait_,
+        &new_type_params,
+        &new_bindings,
+        ctxt.file_id,
+        parsed_ty.span,
+        ctxt.type_param_definition,
+    ) {
+        let mut new_bindings = new_bindings.into_iter().map(|b| b.1).collect();
+        new_type_params.append(&mut new_bindings);
+        SourceType::Trait(trait_id, SourceTypeArray::with(new_type_params))
+    } else {
+        SourceType::Error
+    };
+
+    result
+}
+
 pub fn check_trait_type(sa: &Sema, ctxt: &TypeContext, parsed_ty: &ParsedTraitType) {
     let parsed_ty_ast = parsed_ty.parsed_ast().expect("missing ast node");
 
@@ -799,12 +876,13 @@ fn check_trait_type_inner(
     trait_ty: TraitType,
     parsed_ty: &ParsedTypeAst,
 ) -> Option<TraitType> {
-    let (symbol, parsed_type_params) = match parsed_ty.kind {
+    let trait_ = sa.trait_(trait_ty.trait_id);
+
+    let parsed_type_params = match parsed_ty.kind {
         ParsedTypeKind::Regular {
-            ref symbol,
             type_arguments: ref type_params,
             ..
-        } => (symbol.clone(), type_params),
+        } => type_params,
         _ => unreachable!(),
     };
 
@@ -819,37 +897,141 @@ fn check_trait_type_inner(
     );
     let mut new_type_params = Vec::with_capacity(parsed_type_params.len());
 
-    for idx in 0..trait_ty.type_params.len() {
+    for (idx, arg) in trait_ty.type_params.iter().enumerate() {
         let parsed_type_arg = &parsed_type_params[idx];
         assert!(parsed_type_arg.name.is_none());
-        let ty = check_type_inner(
-            sa,
-            ctxt,
-            trait_ty.type_params[idx].clone(),
-            &parsed_type_arg.ty,
-        );
+        let ty = check_type_inner(sa, ctxt, arg, &parsed_type_arg.ty);
         new_type_params.push(ty);
     }
 
-    let new_type_params = SourceTypeArray::with(new_type_params);
-    let type_param_defs = sym_type_param_definition(sa, symbol.clone());
+    let mut new_bindings: Vec<(AliasDefinitionId, SourceType)> =
+        Vec::with_capacity(trait_ty.bindings.len());
 
-    if check_type_params(
+    for (idx, (alias_id, ty)) in trait_ty.bindings.iter().enumerate() {
+        let parsed_type_arg = &parsed_type_params[trait_ty.type_params.len() + idx];
+        assert!(parsed_type_arg.name.is_some());
+        let ty = check_type_inner(sa, ctxt, ty.clone(), &parsed_type_arg.ty);
+        new_bindings.push((*alias_id, ty));
+    }
+
+    if check_trait_type_params(
         sa,
-        type_param_defs,
-        new_type_params.types(),
+        trait_,
+        &new_type_params,
+        &new_bindings,
         ctxt.file_id,
         parsed_ty.span,
         ctxt.type_param_definition,
     ) {
         Some(TraitType {
             trait_id: trait_ty.trait_id,
-            type_params: new_type_params,
-            bindings: Vec::new(),
+            type_params: SourceTypeArray::with(new_type_params),
+            bindings: new_bindings,
         })
     } else {
         None
     }
+}
+
+fn check_type_params(
+    sa: &Sema,
+    type_param_definition: &TypeParamDefinition,
+    type_arguments: &[SourceType],
+    file_id: SourceFileId,
+    span: Span,
+    context_type_param_definition: &TypeParamDefinition,
+) -> bool {
+    assert_eq!(
+        type_param_definition.type_param_count(),
+        type_arguments.len()
+    );
+
+    let type_arguments = SourceTypeArray::with(type_arguments.to_vec());
+
+    let mut success = true;
+
+    for bound in type_param_definition.bounds() {
+        let tp_ty = bound.ty();
+
+        if let Some(trait_ty) = bound.trait_ty() {
+            let tp_ty = specialize_type(sa, tp_ty, &type_arguments);
+
+            if !implements_trait(
+                sa,
+                tp_ty.clone(),
+                context_type_param_definition,
+                trait_ty.clone(),
+            ) {
+                let name = tp_ty.name_with_type_params(sa, context_type_param_definition);
+                let trait_name = trait_ty.name_with_type_params(sa, context_type_param_definition);
+                let msg = ErrorMessage::TypeNotImplementingTrait(name, trait_name);
+                sa.report(file_id, span, msg);
+                success = false;
+            }
+        }
+    }
+
+    success
+}
+
+fn check_trait_type_params(
+    sa: &Sema,
+    trait_: &TraitDefinition,
+    generic_arguments: &[SourceType],
+    type_bindings: &[(AliasDefinitionId, SourceType)],
+    file_id: SourceFileId,
+    span: Span,
+    context_type_param_definition: &TypeParamDefinition,
+) -> bool {
+    let type_param_definition = trait_.type_param_definition();
+    let type_arguments = SourceTypeArray::with(generic_arguments.to_vec());
+
+    let mut success = true;
+
+    for bound in type_param_definition.bounds() {
+        let tp_ty = bound.ty();
+
+        if let Some(trait_ty) = bound.trait_ty() {
+            let tp_ty = specialize_type(sa, tp_ty, &type_arguments);
+
+            if !implements_trait(
+                sa,
+                tp_ty.clone(),
+                context_type_param_definition,
+                trait_ty.clone(),
+            ) {
+                let name = tp_ty.name_with_type_params(sa, context_type_param_definition);
+                let trait_name = trait_ty.name_with_type_params(sa, context_type_param_definition);
+                let msg = ErrorMessage::TypeNotImplementingTrait(name, trait_name);
+                sa.report(file_id, span, msg);
+                success = false;
+            }
+        }
+    }
+
+    for (alias_id, ty) in type_bindings {
+        let alias = sa.alias(*alias_id);
+
+        for bound in alias.bounds() {
+            if let Some(trait_ty) = bound.ty() {
+                if !implements_trait(
+                    sa,
+                    ty.clone(),
+                    context_type_param_definition,
+                    trait_ty.clone(),
+                ) {
+                    let name = ty.name_with_type_params(sa, context_type_param_definition);
+                    let trait_name =
+                        trait_ty.name_with_type_params(sa, context_type_param_definition);
+                    let msg = ErrorMessage::TypeNotImplementingTrait(name, trait_name);
+                    sa.report(file_id, span, msg);
+                    success = false;
+                }
+            }
+        }
+    }
+
+    success
 }
 
 pub fn expand_type(

@@ -6,7 +6,6 @@ use crate::{Name, ParsedTraitType, ParsedType, SourceType, SourceTypeArray, Trai
 
 #[derive(Clone, Debug)]
 pub struct TypeParamDefinition {
-    #[allow(unused)]
     parent: Option<Rc<TypeParamDefinition>>,
     type_params: Vec<TypeParam>,
     bounds: Vec<Bound>,
@@ -68,11 +67,11 @@ impl TypeParamDefinition {
         self.container_type_params
     }
 
-    pub fn fct_type_params_len(&self) -> usize {
+    pub fn own_type_params_len(&self) -> usize {
         self.type_param_count() - self.container_type_params()
     }
 
-    pub fn has_fct_type_params(&self) -> bool {
+    pub fn has_own_type_params(&self) -> bool {
         self.type_param_count() > self.container_type_params()
     }
 

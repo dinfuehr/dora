@@ -1,12 +1,9 @@
 use crate::error::msg::ErrorMessage;
-use crate::sema::{implements_trait, Sema, SourceFileId, TypeParamDefinition};
-use crate::specialize::specialize_type;
+use crate::sema::{Sema, SourceFileId};
 use crate::sym::{ModuleSymTable, SymTable, SymbolKind};
-use crate::{SourceType, SourceTypeArray};
 use std::rc::Rc;
 
 use dora_parser::ast;
-use dora_parser::Span;
 
 pub fn read_type_path(
     sa: &Sema,
@@ -54,46 +51,6 @@ fn table_for_module(
             Err(())
         }
     }
-}
-
-pub fn check_type_params(
-    sa: &Sema,
-    tp_definitions: &TypeParamDefinition,
-    type_params: &[SourceType],
-    file_id: SourceFileId,
-    span: Span,
-    type_param_defs: &TypeParamDefinition,
-) -> bool {
-    if tp_definitions.type_param_count() != type_params.len() {
-        let msg = ErrorMessage::WrongNumberTypeParams(
-            tp_definitions.type_param_count(),
-            type_params.len(),
-        );
-        sa.report(file_id, span, msg);
-        return false;
-    }
-
-    let type_params_sta = SourceTypeArray::with(type_params.to_vec());
-
-    let mut success = true;
-
-    for bound in tp_definitions.bounds() {
-        let tp_ty = bound.ty();
-
-        if let Some(trait_ty) = bound.trait_ty() {
-            let tp_ty = specialize_type(sa, tp_ty, &type_params_sta);
-
-            if !implements_trait(sa, tp_ty.clone(), type_param_defs, trait_ty.clone()) {
-                let name = tp_ty.name_with_type_params(sa, type_param_defs);
-                let trait_name = trait_ty.name_with_type_params(sa, type_param_defs);
-                let msg = ErrorMessage::TypeNotImplementingTrait(name, trait_name);
-                sa.report(file_id, span, msg);
-                success = false;
-            }
-        }
-    }
-
-    success
 }
 
 #[cfg(test)]
