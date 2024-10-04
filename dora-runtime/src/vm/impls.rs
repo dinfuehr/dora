@@ -1,4 +1,4 @@
-use crate::vm::{block_matches_ty, BytecodeTypeExt, VM};
+use crate::vm::{block_matches_ty, specialize_bty_array, BytecodeTypeExt, VM};
 use dora_bytecode::{
     BytecodeType, BytecodeTypeArray, FunctionId, ImplId, TypeParamBound, TypeParamData,
 };
@@ -41,16 +41,25 @@ fn find_impl(
     check_type_param_defs: &TypeParamData,
     trait_ty: BytecodeType,
 ) -> Option<ImplId> {
+    let trait_id = trait_ty.trait_id().expect("trait expected");
+
     for (impl_id, impl_) in vm.program.impls.iter().enumerate() {
         let impl_id = ImplId(impl_id.try_into().expect("doesn't fit"));
 
-        assert!(impl_.trait_ty.is_concrete_type());
-
-        if impl_.trait_ty != trait_ty {
+        if impl_.trait_ty.trait_id().expect("trait expected") != trait_id {
             continue;
         }
 
-        if impl_block_matches_ty(vm, check_ty.clone(), check_type_param_defs, impl_id).is_some() {
+        if let Some(binding) =
+            impl_block_matches_ty(vm, check_ty.clone(), check_type_param_defs, impl_id)
+        {
+            let impl_trait_ty_params =
+                specialize_bty_array(&impl_.trait_ty.type_params(), &binding);
+
+            if impl_trait_ty_params != trait_ty.type_params() {
+                continue;
+            }
+
             return Some(impl_id);
         }
     }

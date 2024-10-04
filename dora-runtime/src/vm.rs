@@ -37,7 +37,8 @@ pub use self::code::{
 pub use self::code_map::CodeMap;
 pub use self::compilation::CompilationDatabase;
 pub use self::display::{
-    display_fct, display_ty, display_ty_with_type_params, display_ty_without_type_params,
+    display_fct, display_ty, display_ty_array, display_ty_with_type_params,
+    display_ty_without_type_params,
 };
 pub use self::enums::{enum_definition_name, EnumInstance, EnumInstanceId, EnumLayout};
 pub use self::extensions::block_matches_ty;

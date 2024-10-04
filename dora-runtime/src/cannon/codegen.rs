@@ -2689,21 +2689,9 @@ impl<'a> CannonCodeGen<'a> {
         let arguments = self.argument_stack.drain(..).collect::<Vec<_>>();
 
         if is_static {
-            self.emit_invoke_static_or_intrinsic(
-                dest,
-                callee_id,
-                BytecodeTypeArray::empty(),
-                arguments,
-                pos,
-            );
+            self.emit_invoke_static_or_intrinsic(dest, callee_id, type_params, arguments, pos);
         } else {
-            self.emit_invoke_direct_or_intrinsic(
-                dest,
-                callee_id,
-                BytecodeTypeArray::empty(),
-                arguments,
-                pos,
-            );
+            self.emit_invoke_direct_or_intrinsic(dest, callee_id, type_params, arguments, pos);
         }
     }
 

@@ -151,7 +151,7 @@ fn generate_bytecode_for_thunk(
     let program_trait_fct = vm.fct(fct_id);
 
     let mut w = BytecodeWriter::new();
-    w.add_register(register_ty(trait_object_ty));
+    w.add_register(register_ty(trait_object_ty.clone()));
 
     for param_ty in program_trait_fct.params.iter().skip(1) {
         w.add_register(register_ty(param_ty.clone()));
@@ -171,7 +171,7 @@ fn generate_bytecode_for_thunk(
     let target_fct_idx = w.add_const(ConstPoolEntry::Generic(
         trait_object_type_param_id.try_into().expect("does not fit"),
         fct_id,
-        BytecodeTypeArray::empty(),
+        trait_object_ty.type_params(),
     ));
 
     let return_ty = register_ty(program_trait_fct.return_type.clone());

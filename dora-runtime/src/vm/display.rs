@@ -115,6 +115,18 @@ pub fn display_ty(vm: &VM, ty: &BytecodeType) -> String {
     printer.string()
 }
 
+pub fn display_ty_array(vm: &VM, array: &BytecodeTypeArray) -> String {
+    let mut result = "[".to_string();
+    for (idx, ty) in array.iter().enumerate() {
+        if idx > 0 {
+            result.push_str(", ");
+        }
+        result.push_str(&display_ty(vm, &ty));
+    }
+    result.push(']');
+    result
+}
+
 pub fn display_ty_without_type_params(vm: &VM, ty: &BytecodeType) -> String {
     let printer = BytecodeTypePrinter {
         vm,
