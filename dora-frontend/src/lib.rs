@@ -10,7 +10,7 @@ use dora_parser::Span;
 pub use crate::extensiondefck::package_for_type;
 pub use parsety::{ParsedTraitType, ParsedType, ParsedTypeAst};
 pub use program_emitter::emit_program;
-pub use specialize::{replace_type, specialize_type};
+pub use specialize::{replace_type, specialize_type, specialize_type_array};
 
 pub(crate) mod access;
 mod aliasck;

@@ -1029,7 +1029,6 @@ mod tests {
     }
 
     #[test]
-    #[ignore]
     fn impl_generic_extended_ty() {
         ok("
             trait Foo[T] { fn get(): T; }

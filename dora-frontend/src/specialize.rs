@@ -5,6 +5,19 @@ pub fn specialize_type(sa: &Sema, ty: SourceType, type_params: &SourceTypeArray)
     replace_type(sa, ty, Some(type_params), None)
 }
 
+pub fn specialize_type_array(
+    sa: &Sema,
+    types: &SourceTypeArray,
+    type_params: &SourceTypeArray,
+) -> SourceTypeArray {
+    let new_types = types
+        .iter()
+        .map(|ty| specialize_type(sa, ty, type_params))
+        .collect();
+
+    SourceTypeArray::with(new_types)
+}
+
 pub fn replace_type(
     sa: &Sema,
     ty: SourceType,

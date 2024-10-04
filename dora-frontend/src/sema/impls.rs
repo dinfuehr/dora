@@ -10,6 +10,7 @@ use crate::sema::{
     extension_matches_ty, AliasDefinitionId, FctDefinitionId, ModuleDefinitionId,
     PackageDefinitionId, Sema, SourceFileId, TraitDefinitionId, TypeParamDefinition,
 };
+use crate::specialize_type_array;
 use crate::ty::{SourceType, SourceTypeArray};
 use crate::{ParsedTraitType, ParsedType, TraitType};
 use id_arena::Id;
@@ -198,13 +199,17 @@ pub fn find_impl(
 ) -> Option<ImplMatch> {
     for (_id, impl_) in sa.impls.iter() {
         if let Some(impl_trait_ty) = impl_.trait_ty() {
-            if !trait_ty_match(sa, impl_, &impl_trait_ty, &trait_ty) {
+            if impl_trait_ty.trait_id != trait_ty.trait_id {
                 continue;
             }
 
             if let Some(binding) =
                 impl_matches(sa, check_ty.clone(), check_type_param_defs, impl_.id())
             {
+                if !trait_ty_match(sa, impl_, &impl_trait_ty, &binding, &trait_ty) {
+                    continue;
+                }
+
                 return Some(ImplMatch {
                     id: impl_.id(),
                     binding,
@@ -220,11 +225,13 @@ fn trait_ty_match(
     sa: &Sema,
     impl_: &ImplDefinition,
     impl_trait_ty: &TraitType,
+    binding: &SourceTypeArray,
     trait_ty: &TraitType,
 ) -> bool {
-    if impl_trait_ty.trait_id != trait_ty.trait_id
-        || impl_trait_ty.type_params != trait_ty.type_params
-    {
+    assert_eq!(impl_trait_ty.trait_id, trait_ty.trait_id);
+    let impl_trait_ty_type_params = specialize_type_array(sa, &impl_trait_ty.type_params, &binding);
+
+    if impl_trait_ty_type_params != trait_ty.type_params {
         return false;
     }
 

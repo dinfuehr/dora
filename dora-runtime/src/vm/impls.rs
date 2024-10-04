@@ -26,13 +26,13 @@ pub fn find_trait_impl(
     assert_eq!(impl_trait_id, trait_id);
 
     let trait_ = vm.trait_(trait_id);
-    let trait_entry_id = trait_
+    let trait_method_idx = trait_
         .methods
         .iter()
         .position(|mid| *mid == fct_id)
         .expect("trait method id not found");
 
-    impl_.methods[trait_entry_id]
+    impl_.methods[trait_method_idx]
 }
 
 fn find_impl(

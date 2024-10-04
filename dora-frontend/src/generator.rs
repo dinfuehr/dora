@@ -3020,39 +3020,18 @@ impl<'a> AstBytecodeGen<'a> {
         }
     }
 
-    fn determine_call_type_params(&self, call_type: &CallType) -> SourceTypeArray {
-        match call_type {
-            CallType::Method(_, _, ref type_params) => type_params.clone(),
-
-            CallType::Fct(_, ref type_params) => type_params.clone(),
-
-            CallType::Expr(_, _, ref type_params) => type_params.clone(),
-
-            CallType::TraitObjectMethod(..) => SourceTypeArray::empty(),
-            CallType::GenericMethod(_, _, _, ref type_params) => type_params.clone(),
-            CallType::GenericStaticMethod(_, _, _, ref type_params) => type_params.clone(),
-
-            CallType::NewClass(..)
-            | CallType::NewStruct(..)
-            | CallType::NewEnum(..)
-            | CallType::Intrinsic(..)
-            | CallType::Lambda(..) => unreachable!(),
-        }
-    }
-
     fn add_const_pool_entry_for_call(
         &mut self,
         fct: &FctDefinition,
         call_type: &CallType,
     ) -> ConstPoolIdx {
-        let type_params = self.determine_call_type_params(call_type);
-        assert_eq!(
-            fct.type_param_definition().type_param_count(),
-            type_params.len()
-        );
-
         match *call_type {
-            CallType::GenericStaticMethod(id, ..) | CallType::GenericMethod(id, ..) => {
+            CallType::GenericStaticMethod(id, .., ref type_params)
+            | CallType::GenericMethod(id, .., ref type_params) => {
+                assert_eq!(
+                    fct.type_param_definition().type_param_count(),
+                    type_params.len()
+                );
                 self.builder.add_const_generic(
                     id.index() as u32,
                     FunctionId(fct.id().index().try_into().expect("overflow")),
@@ -3060,14 +3039,19 @@ impl<'a> AstBytecodeGen<'a> {
                 )
             }
             CallType::TraitObjectMethod(ref trait_object_ty, _) => {
-                assert!(type_params.is_empty());
                 self.builder.add_const(ConstPoolEntry::TraitObjectMethod(
                     bty_from_ty(trait_object_ty.clone()),
                     FunctionId(fct.id().index().try_into().expect("overflow")),
                 ))
             }
 
-            CallType::Method(..) | CallType::Expr(..) | CallType::Fct(..) => {
+            CallType::Method(.., ref type_params)
+            | CallType::Expr(.., ref type_params)
+            | CallType::Fct(.., ref type_params) => {
+                assert_eq!(
+                    fct.type_param_definition().type_param_count(),
+                    type_params.len()
+                );
                 self.builder.add_const_fct_types(
                     FunctionId(fct.id().index().try_into().expect("overflow")),
                     bty_array_from_ty(&type_params),

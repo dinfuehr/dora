@@ -1,0 +1,18 @@
+//= ignore
+
+trait Foo[T] {
+    fn get(): T;
+}
+
+impl[T] Foo[T] for T {
+    fn get(): T { self }
+}
+
+fn f(x: Int64): Foo[Int64] {
+    x as Foo[Int64]
+}
+
+fn main() {
+    let foo = f(10);
+    assert(foo.get() == 10);
+}
