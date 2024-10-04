@@ -141,7 +141,6 @@ mod tests {
     }
 
     #[test]
-    #[ignore]
     fn trait_object_safe_alias_as() {
         ok("
             trait Foo {
@@ -154,6 +153,25 @@ mod tests {
                 x as Foo[X=String];
             }
         ");
+    }
+
+    #[test]
+    fn trait_object_safe_alias_as_wrong_binding() {
+        err(
+            "
+        trait Foo {
+            type X;
+        }
+        impl Foo for Int64 {
+            type X = Float64;
+        }
+        fn f(x: Int64) {
+            x as Foo[X=String];
+        }
+    ",
+            (9, 13),
+            ErrorMessage::TypeNotImplementingTrait("Int64".into(), "Foo[String]".into()),
+        );
     }
 
     #[test]

@@ -66,6 +66,8 @@ pub fn check_program(sa: &mut Sema) -> bool {
     typedefck::parse_types(sa);
     // Detect and clear alias cycles.
     aliasck::detect_cycles(sa);
+    // Connect aliases in impl to trait.
+    impldefck::connect_aliases_to_trait(sa);
     // Check types/type bounds for type params.
     typedefck::check_types(sa);
     // Expand all alias types.
@@ -73,16 +75,14 @@ pub fn check_program(sa: &mut Sema) -> bool {
 
     // Checks class/struct/trait/enum/impl definitions.
     impldefck::check_definition(sa);
+    impldefck::check_definition_against_trait(sa);
+    impldefck::check_type_aliases_bounds(sa);
     enumck::check(sa);
-    impldefck::check_type_aliases(sa);
     globaldefck::check(sa);
     extensiondefck::check(sa);
 
     // Check type definitions of params and return types in functions.
     fctdefck::check(sa);
-
-    // Check impl methods against trait definition.
-    impldefck::check_definition_against_trait(sa);
 
     // Define internal functions & methods.
     stdlib_lookup::resolve_internal_functions(sa);

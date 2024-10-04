@@ -94,11 +94,13 @@ impl ImplDefinition {
     }
 
     pub fn trait_method_map(&self) -> &HashMap<FctDefinitionId, FctDefinitionId> {
-        self.trait_method_map.get().expect("missing impl")
+        self.trait_method_map
+            .get()
+            .expect("missing trait_method_map")
     }
 
     pub fn trait_alias_map(&self) -> &HashMap<AliasDefinitionId, AliasDefinitionId> {
-        self.trait_alias_map.get().expect("missing impl")
+        self.trait_alias_map.get().expect("missing trait_alias_map")
     }
 
     pub fn get_method_for_trait_method_id(
@@ -196,7 +198,7 @@ pub fn find_impl(
 ) -> Option<ImplMatch> {
     for (_id, impl_) in sa.impls.iter() {
         if let Some(impl_trait_ty) = impl_.trait_ty() {
-            if impl_trait_ty != trait_ty {
+            if !trait_ty_match(sa, impl_, &impl_trait_ty, &trait_ty) {
                 continue;
             }
 
@@ -212,4 +214,30 @@ pub fn find_impl(
     }
 
     None
+}
+
+fn trait_ty_match(
+    sa: &Sema,
+    impl_: &ImplDefinition,
+    impl_trait_ty: &TraitType,
+    trait_ty: &TraitType,
+) -> bool {
+    if impl_trait_ty.trait_id != trait_ty.trait_id
+        || impl_trait_ty.type_params != trait_ty.type_params
+    {
+        return false;
+    }
+
+    let trait_alias_map = impl_.trait_alias_map();
+
+    for (trait_alias_id, type_binding) in &trait_ty.bindings {
+        let impl_alias_id = trait_alias_map.get(&trait_alias_id).expect("missing alias");
+        let impl_alias_ty = sa.alias(*impl_alias_id).ty();
+
+        if type_binding != &impl_alias_ty {
+            return false;
+        }
+    }
+
+    true
 }

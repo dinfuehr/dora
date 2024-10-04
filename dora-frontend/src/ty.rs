@@ -839,13 +839,31 @@ pub struct TraitType {
 }
 
 impl TraitType {
-    pub fn new_ty(ty: SourceType) -> TraitType {
+    pub fn new_ty(sa: &Sema, ty: SourceType) -> TraitType {
         match ty {
-            SourceType::Trait(trait_id, type_params) => TraitType {
-                trait_id,
-                type_params,
-                bindings: Vec::new(),
-            },
+            SourceType::Trait(trait_id, type_params) => {
+                let trait_ = sa.trait_(trait_id);
+                let type_params = type_params.types();
+                let generic_count = trait_.type_param_definition().type_param_count();
+                let generic_args = &type_params[0..generic_count];
+                let type_bindings = &type_params[generic_count..];
+
+                assert_eq!(trait_.aliases().len(), type_bindings.len());
+
+                let new_bindings = type_bindings
+                    .iter()
+                    .enumerate()
+                    .map(|(idx, ty)| (trait_.aliases()[idx], ty.clone()))
+                    .collect();
+
+                let trait_type = TraitType {
+                    trait_id,
+                    type_params: SourceTypeArray::with(generic_args.to_vec()),
+                    bindings: new_bindings,
+                };
+
+                trait_type
+            }
 
             _ => unreachable!(),
         }

@@ -543,7 +543,7 @@ fn check_expr_conv(
             ck.sa,
             object_type.clone(),
             &ck.type_param_definition,
-            TraitType::new_ty(check_type.clone()),
+            TraitType::new_ty(ck.sa, check_type.clone()),
         );
 
         if !implements {

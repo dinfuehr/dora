@@ -363,16 +363,16 @@ fn report_missing_methods(
     }
 }
 
-pub fn check_type_aliases(sa: &Sema) {
+pub fn connect_aliases_to_trait(sa: &Sema) {
     for (_id, impl_) in sa.impls.iter() {
         if let Some(trait_ty) = impl_.trait_ty() {
             let trait_ = sa.trait_(trait_ty.trait_id);
-            check_impl_types(sa, impl_, trait_);
+            connect_aliases_to_trait_inner(sa, impl_, trait_);
         }
     }
 }
 
-fn check_impl_types(sa: &Sema, impl_: &ImplDefinition, trait_: &TraitDefinition) {
+fn connect_aliases_to_trait_inner(sa: &Sema, impl_: &ImplDefinition, trait_: &TraitDefinition) {
     let mut remaining_aliases: HashSet<AliasDefinitionId> =
         trait_.aliases().iter().cloned().collect();
     let mut trait_alias_map = HashMap::new();
@@ -392,7 +392,33 @@ fn check_impl_types(sa: &Sema, impl_: &ImplDefinition, trait_: &TraitDefinition)
                 );
             }
 
+            remaining_aliases.remove(&trait_alias_id);
+        } else {
+            sa.report(
+                impl_.file_id,
+                impl_alias.node.span,
+                ErrorMessage::ElementNotInTrait,
+            )
+        }
+    }
+
+    assert!(impl_.trait_alias_map.set(trait_alias_map).is_ok());
+}
+
+pub fn check_type_aliases_bounds(sa: &Sema) {
+    for (_id, impl_) in sa.impls.iter() {
+        if let Some(trait_ty) = impl_.trait_ty() {
+            let trait_ = sa.trait_(trait_ty.trait_id);
+            check_type_aliases_bounds_inner(sa, impl_, trait_);
+        }
+    }
+}
+
+fn check_type_aliases_bounds_inner(sa: &Sema, impl_: &ImplDefinition, trait_: &TraitDefinition) {
+    for &trait_alias_id in trait_.aliases() {
+        if let Some(&impl_alias_id) = impl_.trait_alias_map().get(&trait_alias_id) {
             let trait_alias = sa.alias(trait_alias_id);
+            let impl_alias = sa.alias(impl_alias_id);
 
             for bound in trait_alias.bounds() {
                 if let Some(trait_ty) = bound.ty() {
@@ -412,18 +438,8 @@ fn check_impl_types(sa: &Sema, impl_: &ImplDefinition, trait_: &TraitDefinition)
                     }
                 }
             }
-
-            remaining_aliases.remove(&trait_alias_id);
-        } else {
-            sa.report(
-                impl_.file_id,
-                impl_alias.node.span,
-                ErrorMessage::ElementNotInTrait,
-            )
         }
     }
-
-    assert!(impl_.trait_alias_map.set(trait_alias_map).is_ok());
 }
 
 #[cfg(test)]
@@ -999,6 +1015,16 @@ mod tests {
             trait Foo[T] {}
             struct Bar[T](x: T)
             impl Foo[Self] for Bar[Int64] {}
+        ");
+    }
+
+    #[test]
+    #[ignore]
+    fn generic_impl() {
+        ok("
+            trait Foo[T] {}
+            impl[T] Foo[T] for Int64 {}
+            fn f(x: Int64): Foo[String] { x as Foo[String] }
         ");
     }
 }

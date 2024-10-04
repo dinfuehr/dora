@@ -4461,7 +4461,7 @@ pub fn impl_method_id_by_name(
         sa,
         ty,
         &TypeParamDefinition::empty(),
-        TraitType::new_ty(trait_ty),
+        TraitType::new_ty(sa, trait_ty),
     )
     .expect("missing impl")
     .id;
