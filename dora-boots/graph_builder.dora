@@ -1390,9 +1390,9 @@ impl SsaGen {
         if self.isIntrinsic(intrinsic) {
             let args = self.pushed_registers.toArray();
             self.pushed_registers.clear();
-            self.emitIntrinsic(intrinsic, dest, args, idx, Array[BytecodeType]::new())
+            self.emitIntrinsic(intrinsic, dest, args, idx, trait_type_params)
         } else {
-            self.emitCall(dest, kind, callee_id, Array[BytecodeType]::new());
+            self.emitCall(dest, kind, callee_id, trait_type_params);
             false
         }
     }
