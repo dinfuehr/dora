@@ -20,17 +20,15 @@ pub use self::classes::{
 };
 pub use self::consts::{ConstDefinition, ConstDefinitionId, ConstValue};
 pub use self::enums::{EnumDefinition, EnumDefinitionId, EnumVariant};
-pub use self::extensions::{
-    extension_matches, extension_matches_ty, ExtensionDefinition, ExtensionDefinitionId,
-};
+pub use self::extensions::{ExtensionDefinition, ExtensionDefinitionId};
 pub use self::functions::{
     emit_as_bytecode_operation, FctDefinition, FctDefinitionId, FctParent, Intrinsic, Param,
 };
 pub use self::globals::{GlobalDefinition, GlobalDefinitionId};
-pub use self::impls::{
-    find_impl, impl_matches, implements_trait, maybe_alias_ty, ImplDefinition, ImplDefinitionId,
-};
+pub use self::impl_matching::{find_impl, impl_matches, implements_trait, maybe_alias_ty};
+pub use self::impls::{ImplDefinition, ImplDefinitionId};
 pub use self::known::KnownElements;
+pub use self::matching::{block_matches_ty, extension_matches, match_arrays};
 pub use self::modules::{module_package, module_path, ModuleDefinition, ModuleDefinitionId};
 pub use self::packages::{PackageDefinition, PackageDefinitionId, PackageName};
 pub use self::source_files::{SourceFile, SourceFileId};
@@ -55,8 +53,10 @@ mod enums;
 mod extensions;
 mod functions;
 mod globals;
+mod impl_matching;
 mod impls;
 mod known;
+mod matching;
 mod modules;
 mod packages;
 mod source_files;

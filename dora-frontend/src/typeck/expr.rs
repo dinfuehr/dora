@@ -718,7 +718,7 @@ fn check_expr_template(
 
                     ck.analysis
                         .map_templates
-                        .insert(part.id(), (to_string_id, impl_match.binding));
+                        .insert(part.id(), (to_string_id, impl_match.bindings));
                 }
             } else {
                 let ty = ck.ty_name(&part_expr);

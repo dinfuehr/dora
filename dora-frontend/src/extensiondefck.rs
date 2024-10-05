@@ -1,7 +1,7 @@
 use std::collections::HashMap;
 
 use crate::sema::{
-    extension_matches_ty, ExtensionDefinition, FctDefinitionId, PackageDefinitionId, Sema,
+    block_matches_ty, ExtensionDefinition, FctDefinitionId, PackageDefinitionId, Sema,
     SourceFileId, TypeParamDefinition, TypeParamId,
 };
 use crate::{ErrorMessage, Name, SourceType};
@@ -39,7 +39,7 @@ pub fn check(sa: &Sema) {
                 let cmp_extension_id = cmp_fct.parent.extension_id().expect("extension expected");
                 let cmp_extension = sa.extension(cmp_extension_id);
 
-                if extension_matches_ty(
+                if block_matches_ty(
                     sa,
                     extension.ty().clone(),
                     extension.type_param_definition(),

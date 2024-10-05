@@ -150,7 +150,7 @@ fn type_supports_into_iterator_trait(
         let iterator_type_impl_alias = ck.sa.alias(iterator_type_impl_alias_id);
 
         let iterator_type =
-            specialize_type(ck.sa, iterator_type_impl_alias.ty(), &impl_match.binding);
+            specialize_type(ck.sa, iterator_type_impl_alias.ty(), &impl_match.bindings);
 
         Some((iter_impl_fct_id, iterator_type))
     } else {
@@ -206,8 +206,8 @@ fn type_supports_iterator_trait(
 
         let impl_alias = ck.sa.alias(item_impl_alias_id);
 
-        let value_type = specialize_type(ck.sa, impl_alias.ty(), &impl_match.binding);
-        let next_type = specialize_type(ck.sa, next_impl_fct.return_type(), &impl_match.binding);
+        let value_type = specialize_type(ck.sa, impl_alias.ty(), &impl_match.bindings);
+        let next_type = specialize_type(ck.sa, next_impl_fct.return_type(), &impl_match.bindings);
 
         Some((
             ForTypeInfo {
