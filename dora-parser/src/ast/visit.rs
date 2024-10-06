@@ -208,7 +208,6 @@ pub fn walk_param<V: Visitor>(v: &mut V, p: &Param) {
 
 pub fn walk_type<V: Visitor>(v: &mut V, t: &TypeData) {
     match *t {
-        TypeData::This(_) => {}
         TypeData::Regular(_) => {}
         TypeData::Tuple(ref tuple) => {
             for ty in &tuple.subtypes {

@@ -7,7 +7,6 @@ use dora_parser::{compute_line_column, Span};
 pub enum ErrorMessage {
     Unimplemented,
     UnknownClass(String),
-    UnknownType(String),
     UnknownIdentifier(String),
     UnknownStruct(String),
     UnknownFunction(String),
@@ -196,6 +195,7 @@ pub enum ErrorMessage {
     UnknownTypeBinding,
     DuplicateTypeBinding,
     MissingTypeBinding(String),
+    ExpectedTypeName,
 }
 
 impl ErrorMessage {
@@ -203,7 +203,6 @@ impl ErrorMessage {
         match *self {
             ErrorMessage::Unimplemented => format!("feature not implemented yet."),
             ErrorMessage::UnknownClass(ref name) => format!("class `{}` does not exist.", name),
-            ErrorMessage::UnknownType(ref name) => format!("type `{}` does not exist.", name),
             ErrorMessage::UnknownIdentifier(ref name) => format!("unknown identifier `{}`.", name),
             ErrorMessage::UnknownStruct(ref name) => format!("unknown struct `{}`.", name),
             ErrorMessage::UnknownFunction(ref name) => format!("unknown function `{}`", name),
@@ -675,6 +674,7 @@ impl ErrorMessage {
             ErrorMessage::MissingTypeBinding(ref name) => {
                 format!("Missing type binding `{}`.", name)
             }
+            ErrorMessage::ExpectedTypeName => format!("Type name expected."),
         }
     }
 }

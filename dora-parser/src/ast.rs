@@ -378,18 +378,10 @@ pub type Type = Arc<TypeData>;
 
 #[derive(Clone, Debug)]
 pub enum TypeData {
-    This(TypeSelfType),
     Regular(TypeRegularType),
     Tuple(TypeTupleType),
     Lambda(TypeLambdaType),
     Error { id: NodeId, span: Span },
-}
-
-#[derive(Clone, Debug)]
-pub struct TypeSelfType {
-    pub id: NodeId,
-    pub span: Span,
-    pub green: GreenNode,
 }
 
 #[derive(Clone, Debug)]
@@ -452,23 +444,17 @@ pub struct TypeGenericType {
 
 impl TypeRegularType {
     #[cfg(test)]
-    pub fn name(&self) -> String {
-        assert_eq!(self.path.names.len(), 1);
+    pub fn name(&self) -> &str {
+        assert_eq!(self.path.segments.len(), 1);
         self.path
-            .names
+            .segments
             .last()
-            .cloned()
-            .unwrap()
-            .name_as_string
-            .clone()
+            .expect("missing segment")
+            .as_name_str()
     }
 }
 
 impl TypeData {
-    pub fn create_self(id: NodeId, span: Span, green: GreenNode) -> TypeData {
-        TypeData::This(TypeSelfType { id, span, green })
-    }
-
     pub fn create_regular(
         id: NodeId,
         span: Span,
@@ -542,8 +528,7 @@ impl TypeData {
     #[cfg(test)]
     pub fn to_string(&self) -> String {
         match *self {
-            TypeData::This(_) => "Self".into(),
-            TypeData::Regular(ref val) => val.name(),
+            TypeData::Regular(ref val) => val.name().to_string(),
 
             TypeData::Tuple(ref val) => {
                 let types: Vec<String> = val.subtypes.iter().map(|t| t.to_string()).collect();
@@ -568,7 +553,6 @@ impl TypeData {
 
     pub fn span(&self) -> Span {
         match *self {
-            TypeData::This(ref val) => val.span,
             TypeData::Regular(ref val) => val.span,
             TypeData::Tuple(ref val) => val.span,
             TypeData::Lambda(ref val) => val.span,
@@ -578,7 +562,6 @@ impl TypeData {
 
     pub fn id(&self) -> NodeId {
         match *self {
-            TypeData::This(ref val) => val.id,
             TypeData::Regular(ref val) => val.id,
             TypeData::Tuple(ref val) => val.id,
             TypeData::Lambda(ref val) => val.id,
@@ -2184,7 +2167,64 @@ pub type Path = Arc<PathData>;
 pub struct PathData {
     pub id: NodeId,
     pub span: Span,
-    pub names: Vec<Ident>,
+    pub segments: Vec<PathSegment>,
+}
+
+pub type PathSegment = Arc<PathSegmentData>;
+
+#[derive(Clone, Debug)]
+pub enum PathSegmentData {
+    Self_(PathSegmentSelf),
+    Ident(PathSegmentIdent),
+    Error { id: NodeId, span: Span },
+}
+
+impl PathSegmentData {
+    pub fn id(&self) -> NodeId {
+        match self {
+            PathSegmentData::Self_(ref node) => node.id,
+            PathSegmentData::Ident(ref node) => node.id,
+            PathSegmentData::Error { id, .. } => id.clone(),
+        }
+    }
+
+    pub fn span(&self) -> Span {
+        match self {
+            PathSegmentData::Self_(ref node) => node.span,
+            PathSegmentData::Ident(ref node) => node.span,
+            PathSegmentData::Error { span, .. } => span.clone(),
+        }
+    }
+
+    pub fn to_ident(&self) -> Option<&PathSegmentIdent> {
+        match self {
+            PathSegmentData::Ident(ref node) => Some(node),
+            _ => None,
+        }
+    }
+}
+
+impl PathSegmentData {
+    #[cfg(test)]
+    pub fn as_name_str(&self) -> &str {
+        match self {
+            PathSegmentData::Ident(ref ident) => &ident.name.name_as_string,
+            _ => unreachable!(),
+        }
+    }
+}
+
+#[derive(Clone, Debug)]
+pub struct PathSegmentSelf {
+    pub id: NodeId,
+    pub span: Span,
+}
+
+#[derive(Clone, Debug)]
+pub struct PathSegmentIdent {
+    pub id: NodeId,
+    pub span: Span,
+    pub name: Ident,
 }
 
 #[derive(Clone, Debug)]

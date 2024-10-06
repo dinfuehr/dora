@@ -2998,7 +2998,7 @@ fn mod_path_in_type() {
         fn f(): bar::Foo { 1i32 }
     ",
         (2, 17),
-        ErrorMessage::ExpectedModule,
+        ErrorMessage::UnknownIdentifier("bar".into()),
     );
 
     err(
@@ -3007,7 +3007,7 @@ fn mod_path_in_type() {
         fn f(): bar::Foo { 1i32 }
     ",
         (3, 17),
-        ErrorMessage::ExpectedModule,
+        ErrorMessage::ExpectedPath,
     );
 
     err(
@@ -3015,8 +3015,8 @@ fn mod_path_in_type() {
         fn f(): foo::bar::Foo { 1i32 }
         mod foo {}
     ",
-        (2, 17),
-        ErrorMessage::ExpectedModule,
+        (2, 22),
+        ErrorMessage::UnknownIdentifierInModule("foo".into(), "bar".into()),
     );
 }
 

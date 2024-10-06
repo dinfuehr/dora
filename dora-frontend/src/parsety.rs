@@ -1,7 +1,7 @@
-use dora_parser::ast;
+use std::cell::{OnceCell, RefCell};
+use std::collections::{HashMap, HashSet};
 
 use crate::access::{sym_accessible_from, trait_accessible_from};
-use crate::readty::read_type_path;
 use crate::sema::{
     implements_trait, is_object_safe, AliasDefinitionId, ElementWithTypeParams, ModuleDefinitionId,
     SourceFileId, TraitDefinition, TraitDefinitionId, TypeParamDefinition,
@@ -10,8 +10,8 @@ use crate::sym::{ModuleSymTable, SymbolKind};
 use crate::{
     specialize_type, ErrorMessage, Name, Sema, SourceType, SourceTypeArray, Span, TraitType,
 };
-use std::cell::{OnceCell, RefCell};
-use std::collections::{HashMap, HashSet};
+
+use dora_parser::ast;
 
 #[derive(Clone, Debug)]
 pub struct ParsedType {
@@ -195,7 +195,6 @@ fn parse_type_inner(
     t: &ast::TypeData,
 ) -> Box<ParsedTypeAst> {
     let kind = match *t {
-        ast::TypeData::This(_) => ParsedTypeKind::This,
         ast::TypeData::Regular(ref node) => parse_type_regular(sa, table, file_id, node),
         ast::TypeData::Tuple(ref node) => parse_type_tuple(sa, table, file_id, node),
         ast::TypeData::Lambda(ref node) => parse_type_lambda(sa, table, file_id, node),
@@ -215,65 +214,126 @@ fn parse_type_regular(
     file_id: SourceFileId,
     node: &ast::TypeRegularType,
 ) -> ParsedTypeKind {
-    let sym = read_type_path(sa, table, file_id, node);
+    let segment_kind = parse_path(sa, table, file_id, node);
 
-    if sym.is_err() {
+    if segment_kind.is_err() {
         return ParsedTypeKind::Error;
     }
 
-    let sym = sym.unwrap();
+    let segment_kind = segment_kind.unwrap();
 
-    match sym {
-        Some(SymbolKind::Trait(..))
-        | Some(SymbolKind::Class(..) | SymbolKind::Struct(..) | SymbolKind::Enum(..)) => {
-            parse_type_regular_with_arguments(
-                sa,
-                table,
-                file_id,
-                sym.expect("missing symbol"),
-                node,
-            )
-        }
+    match segment_kind {
+        SegmentKind::Symbol(sym) => match sym {
+            SymbolKind::Trait(..)
+            | SymbolKind::Class(..)
+            | SymbolKind::Struct(..)
+            | SymbolKind::Enum(..) => {
+                parse_type_regular_with_arguments(sa, table, file_id, sym, node)
+            }
 
-        Some(SymbolKind::TypeParam(..) | SymbolKind::TypeAlias(..)) => {
-            if !node.params.is_empty() {
-                let msg = ErrorMessage::NoTypeParamsExpected;
+            SymbolKind::TypeParam(..) | SymbolKind::TypeAlias(..) => {
+                if !node.params.is_empty() {
+                    let msg = ErrorMessage::NoTypeParamsExpected;
+                    sa.report(file_id, node.span, msg);
+                }
+
+                ParsedTypeKind::Regular {
+                    symbol: sym,
+                    type_arguments: Vec::new(),
+                }
+            }
+
+            _ => {
+                let msg = ErrorMessage::ExpectedTypeName;
                 sa.report(file_id, node.span, msg);
+                ParsedTypeKind::Error
+            }
+        },
+
+        SegmentKind::Self_ => ParsedTypeKind::This,
+    }
+}
+
+pub enum SegmentKind {
+    Self_,
+    Symbol(SymbolKind),
+}
+
+pub fn parse_path(
+    sa: &Sema,
+    table: &ModuleSymTable,
+    file_id: SourceFileId,
+    basic: &ast::TypeRegularType,
+) -> Result<SegmentKind, ()> {
+    let segments = &basic.path.segments;
+    let first = segments.first().expect("no segment");
+
+    match first.as_ref() {
+        ast::PathSegmentData::Self_(..) => {
+            assert_eq!(segments.len(), 1);
+            Ok(SegmentKind::Self_)
+        }
+
+        ast::PathSegmentData::Ident(ref node) => {
+            let first_name = sa.interner.intern(&node.name.name_as_string);
+            let sym = table.get(first_name);
+
+            if sym.is_none() {
+                let msg = ErrorMessage::UnknownIdentifier(node.name.name_as_string.clone());
+                sa.report(file_id, node.span, msg);
+                return Err(());
             }
 
-            ParsedTypeKind::Regular {
-                symbol: sym.expect("missing symbol"),
-                type_arguments: Vec::new(),
+            let mut previous_sym = sym.expect("missing symbol");
+
+            for (idx, segment) in segments.iter().enumerate().skip(1) {
+                if !previous_sym.is_module() {
+                    let msg = ErrorMessage::ExpectedPath;
+                    sa.report(file_id, segments[idx - 1].span(), msg);
+                    return Err(());
+                }
+
+                match segment.as_ref() {
+                    ast::PathSegmentData::Self_(..) => unimplemented!(),
+                    ast::PathSegmentData::Ident(ref node) => {
+                        let name = sa.interner.intern(&node.name.name_as_string);
+                        let module_id = previous_sym.to_module().expect("expected module");
+                        let module = sa.module(module_id);
+                        let current_sym = module.table().get(name);
+
+                        if let Some(current_sym) = current_sym {
+                            if sym_accessible_from(sa, current_sym.clone(), module_id) {
+                                previous_sym = current_sym;
+                            } else {
+                                let module = sa.module(module_id);
+                                let name = node.name.name_as_string.clone();
+                                let msg =
+                                    ErrorMessage::NotAccessibleInModule(module.name(sa), name);
+                                sa.report(file_id, node.span, msg);
+                                return Err(());
+                            }
+                        } else {
+                            let module = sa.module(module_id);
+                            let name = node.name.name_as_string.clone();
+                            let module_name = module.name(sa);
+                            sa.report(
+                                file_id,
+                                node.span,
+                                ErrorMessage::UnknownIdentifierInModule(module_name, name),
+                            );
+                            return Err(());
+                        }
+                    }
+                    ast::PathSegmentData::Error { .. } => {
+                        return Err(());
+                    }
+                }
             }
+
+            Ok(SegmentKind::Symbol(previous_sym))
         }
 
-        Some(_) => {
-            let name = node
-                .path
-                .names
-                .last()
-                .cloned()
-                .unwrap()
-                .name_as_string
-                .clone();
-            let msg = ErrorMessage::UnknownType(name);
-            sa.report(file_id, node.span, msg);
-            ParsedTypeKind::Error
-        }
-
-        None => {
-            let name = node
-                .path
-                .names
-                .last()
-                .cloned()
-                .unwrap()
-                .name_as_string
-                .clone();
-            let msg = ErrorMessage::UnknownIdentifier(name);
-            sa.report(file_id, node.span, msg);
-            ParsedTypeKind::Error
-        }
+        ast::PathSegmentData::Error { .. } => Err(()),
     }
 }
 
