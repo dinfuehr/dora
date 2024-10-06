@@ -1,11 +1,12 @@
 use std::cell::OnceCell;
+use std::rc::Rc;
 use std::sync::Arc;
 
 use crate::interner::Name;
 use crate::program_parser::ParsedModifierList;
 use crate::sema::{
-    module_path, AnalysisData, FctDefinitionId, ModuleDefinitionId, PackageDefinitionId, Sema,
-    SourceFileId, Visibility,
+    module_path, AnalysisData, Element, FctDefinitionId, ModuleDefinitionId, PackageDefinitionId,
+    Sema, SourceFileId, TypeParamDefinition, Visibility,
 };
 use crate::ty::SourceType;
 use crate::ParsedType;
@@ -89,5 +90,23 @@ impl GlobalDefinition {
 
     pub fn bytecode(&self) -> &BytecodeFunction {
         self.bytecode.get().expect("missing bytecode")
+    }
+}
+
+impl Element for GlobalDefinition {
+    fn file_id(&self) -> SourceFileId {
+        self.file_id
+    }
+
+    fn module_id(&self) -> ModuleDefinitionId {
+        self.module_id
+    }
+
+    fn package_id(&self) -> PackageDefinitionId {
+        self.package_id
+    }
+
+    fn type_param_definition(&self) -> Option<&Rc<TypeParamDefinition>> {
+        None
     }
 }

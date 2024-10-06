@@ -9,7 +9,7 @@ use dora_parser::ast;
 use dora_parser::Span;
 
 use crate::sema::{
-    module_path, AliasDefinitionId, Candidate, Element, ElementWithTypeParams, FctDefinitionId,
+    module_path, AliasDefinitionId, Candidate, Element, ElementAccess, FctDefinitionId,
     ModuleDefinitionId, PackageDefinitionId, Sema, SourceFileId, TypeParamDefinition, Visibility,
 };
 use crate::{contains_self, SourceType, SourceTypeArray};
@@ -89,6 +89,10 @@ impl TraitDefinition {
         self.alias_names.get().expect("uninitialized")
     }
 
+    pub fn type_param_definition(&self) -> &Rc<TypeParamDefinition> {
+        &self.type_param_definition
+    }
+
     pub fn name(&self, sa: &Sema) -> String {
         module_path(sa, self.module_id, self.name)
     }
@@ -121,16 +125,6 @@ impl TraitDefinition {
 }
 
 impl Element for TraitDefinition {
-    type Id = TraitDefinitionId;
-
-    fn by_id(sa: &Sema, id: Self::Id) -> &Self {
-        sa.trait_(id)
-    }
-
-    fn id(&self) -> Self::Id {
-        self.id.expect("missing id")
-    }
-
     fn file_id(&self) -> SourceFileId {
         self.file_id
     }
@@ -142,11 +136,25 @@ impl Element for TraitDefinition {
     fn package_id(&self) -> PackageDefinitionId {
         self.package_id
     }
+
+    fn type_param_definition(&self) -> Option<&Rc<TypeParamDefinition>> {
+        Some(&self.type_param_definition)
+    }
+
+    fn to_trait(&self) -> Option<&TraitDefinition> {
+        Some(self)
+    }
 }
 
-impl ElementWithTypeParams for TraitDefinition {
-    fn type_param_definition(&self) -> &Rc<TypeParamDefinition> {
-        &self.type_param_definition
+impl ElementAccess for TraitDefinition {
+    type Id = TraitDefinitionId;
+
+    fn by_id(sa: &Sema, id: Self::Id) -> &Self {
+        sa.trait_(id)
+    }
+
+    fn id(&self) -> Self::Id {
+        self.id.expect("missing id")
     }
 }
 

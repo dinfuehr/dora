@@ -19,7 +19,7 @@ pub use self::classes::{
     find_field_in_class, Candidate, ClassDefinition, ClassDefinitionId, Field, FieldId, Visibility,
 };
 pub use self::consts::{ConstDefinition, ConstDefinitionId, ConstValue};
-pub use self::elements::{Element, ElementWithTypeParams};
+pub use self::elements::{Element, ElementAccess};
 pub use self::enums::{EnumDefinition, EnumDefinitionId, EnumVariant};
 pub use self::extensions::{ExtensionDefinition, ExtensionDefinitionId};
 pub use self::functions::{
@@ -150,7 +150,7 @@ impl Sema {
         }
     }
 
-    pub fn by_id<T: Element>(&self, id: T::Id) -> &T {
+    pub fn by_id<T: ElementAccess>(&self, id: T::Id) -> &T {
         T::by_id(self, id)
     }
 

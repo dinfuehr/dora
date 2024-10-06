@@ -3,12 +3,13 @@ use std::collections::{HashMap, HashSet};
 
 use crate::access::{sym_accessible_from, trait_accessible_from};
 use crate::sema::{
-    implements_trait, is_object_safe, AliasDefinitionId, ElementWithTypeParams, ModuleDefinitionId,
-    SourceFileId, TraitDefinition, TraitDefinitionId, TypeParamDefinition,
+    implements_trait, is_object_safe, AliasDefinitionId, Element, ModuleDefinitionId, SourceFileId,
+    TraitDefinition, TraitDefinitionId, TypeParamDefinition,
 };
 use crate::sym::{ModuleSymTable, SymbolKind};
 use crate::{
-    specialize_type, ErrorMessage, Name, Sema, SourceType, SourceTypeArray, Span, TraitType,
+    parse_path, specialize_type, ErrorMessage, Name, PathKind, Sema, SourceType, SourceTypeArray,
+    Span, TraitType,
 };
 
 use dora_parser::ast;
@@ -127,10 +128,12 @@ pub fn parse_type(
     sa: &Sema,
     table: &ModuleSymTable,
     file_id: SourceFileId,
+    element: &dyn Element,
+    allow_self: bool,
     parsed_ty: &ParsedType,
 ) {
     if let Some(node) = parsed_ty.ast.as_ref() {
-        let ast = parse_type_inner(sa, table, file_id, node);
+        let ast = parse_type_inner(sa, table, file_id, element, allow_self, node);
         assert!(parsed_ty.parsed_ast.set(ast).is_ok());
 
         let ty = convert_type_inner(sa, file_id, parsed_ty.parsed_ast().unwrap());
@@ -142,29 +145,35 @@ pub fn parse_trait_type(
     sa: &Sema,
     table: &ModuleSymTable,
     file_id: SourceFileId,
+    element: &dyn Element,
+    allow_self: bool,
     parsed_ty: &ParsedTraitType,
 ) {
-    parse_trait_type_inner(sa, table, file_id, parsed_ty, false);
+    parse_trait_type_inner(sa, table, file_id, element, allow_self, parsed_ty, false);
 }
 
 pub fn parse_trait_bound_type(
     sa: &Sema,
     table: &ModuleSymTable,
     file_id: SourceFileId,
+    element: &dyn Element,
+    allow_self: bool,
     parsed_ty: &ParsedTraitType,
 ) {
-    parse_trait_type_inner(sa, table, file_id, parsed_ty, true);
+    parse_trait_type_inner(sa, table, file_id, element, allow_self, parsed_ty, true);
 }
 
 fn parse_trait_type_inner(
     sa: &Sema,
     table: &ModuleSymTable,
     file_id: SourceFileId,
+    element: &dyn Element,
+    allow_self: bool,
     parsed_ty: &ParsedTraitType,
     allow_bindings: bool,
 ) {
     let node = parsed_ty.ast.as_ref().expect("missing ast node");
-    let parsed_ast = parse_type_inner(sa, table, file_id, node);
+    let parsed_ast = parse_type_inner(sa, table, file_id, element, allow_self, node);
     assert!(parsed_ty.parsed_ast.set(parsed_ast).is_ok());
 
     let parsed_ast = parsed_ty.parsed_ast().expect("missing ast");
@@ -192,12 +201,20 @@ fn parse_type_inner(
     sa: &Sema,
     table: &ModuleSymTable,
     file_id: SourceFileId,
+    element: &dyn Element,
+    allow_self: bool,
     t: &ast::TypeData,
 ) -> Box<ParsedTypeAst> {
     let kind = match *t {
-        ast::TypeData::Regular(ref node) => parse_type_regular(sa, table, file_id, node),
-        ast::TypeData::Tuple(ref node) => parse_type_tuple(sa, table, file_id, node),
-        ast::TypeData::Lambda(ref node) => parse_type_lambda(sa, table, file_id, node),
+        ast::TypeData::Regular(ref node) => {
+            parse_type_regular(sa, table, file_id, element, allow_self, node)
+        }
+        ast::TypeData::Tuple(ref node) => {
+            parse_type_tuple(sa, table, file_id, element, allow_self, node)
+        }
+        ast::TypeData::Lambda(ref node) => {
+            parse_type_lambda(sa, table, file_id, element, allow_self, node)
+        }
         ast::TypeData::Error { .. } => ParsedTypeKind::Error,
     };
 
@@ -212,9 +229,11 @@ fn parse_type_regular(
     sa: &Sema,
     table: &ModuleSymTable,
     file_id: SourceFileId,
+    element: &dyn Element,
+    allow_self: bool,
     node: &ast::TypeRegularType,
 ) -> ParsedTypeKind {
-    let segment_kind = parse_path(sa, table, file_id, node);
+    let segment_kind = parse_path(sa, table, file_id, element, allow_self, node);
 
     if segment_kind.is_err() {
         return ParsedTypeKind::Error;
@@ -223,13 +242,13 @@ fn parse_type_regular(
     let segment_kind = segment_kind.unwrap();
 
     match segment_kind {
-        SegmentKind::Symbol(sym) => match sym {
+        PathKind::Symbol(sym) => match sym {
             SymbolKind::Trait(..)
             | SymbolKind::Class(..)
             | SymbolKind::Struct(..)
-            | SymbolKind::Enum(..) => {
-                parse_type_regular_with_arguments(sa, table, file_id, sym, node)
-            }
+            | SymbolKind::Enum(..) => parse_type_regular_with_arguments(
+                sa, table, file_id, element, allow_self, sym, node,
+            ),
 
             SymbolKind::TypeParam(..) | SymbolKind::TypeAlias(..) => {
                 if !node.params.is_empty() {
@@ -250,90 +269,7 @@ fn parse_type_regular(
             }
         },
 
-        SegmentKind::Self_ => ParsedTypeKind::This,
-    }
-}
-
-pub enum SegmentKind {
-    Self_,
-    Symbol(SymbolKind),
-}
-
-pub fn parse_path(
-    sa: &Sema,
-    table: &ModuleSymTable,
-    file_id: SourceFileId,
-    basic: &ast::TypeRegularType,
-) -> Result<SegmentKind, ()> {
-    let segments = &basic.path.segments;
-    let first = segments.first().expect("no segment");
-
-    match first.as_ref() {
-        ast::PathSegmentData::Self_(..) => {
-            assert_eq!(segments.len(), 1);
-            Ok(SegmentKind::Self_)
-        }
-
-        ast::PathSegmentData::Ident(ref node) => {
-            let first_name = sa.interner.intern(&node.name.name_as_string);
-            let sym = table.get(first_name);
-
-            if sym.is_none() {
-                let msg = ErrorMessage::UnknownIdentifier(node.name.name_as_string.clone());
-                sa.report(file_id, node.span, msg);
-                return Err(());
-            }
-
-            let mut previous_sym = sym.expect("missing symbol");
-
-            for (idx, segment) in segments.iter().enumerate().skip(1) {
-                if !previous_sym.is_module() {
-                    let msg = ErrorMessage::ExpectedPath;
-                    sa.report(file_id, segments[idx - 1].span(), msg);
-                    return Err(());
-                }
-
-                match segment.as_ref() {
-                    ast::PathSegmentData::Self_(..) => unimplemented!(),
-                    ast::PathSegmentData::Ident(ref node) => {
-                        let name = sa.interner.intern(&node.name.name_as_string);
-                        let module_id = previous_sym.to_module().expect("expected module");
-                        let module = sa.module(module_id);
-                        let current_sym = module.table().get(name);
-
-                        if let Some(current_sym) = current_sym {
-                            if sym_accessible_from(sa, current_sym.clone(), module_id) {
-                                previous_sym = current_sym;
-                            } else {
-                                let module = sa.module(module_id);
-                                let name = node.name.name_as_string.clone();
-                                let msg =
-                                    ErrorMessage::NotAccessibleInModule(module.name(sa), name);
-                                sa.report(file_id, node.span, msg);
-                                return Err(());
-                            }
-                        } else {
-                            let module = sa.module(module_id);
-                            let name = node.name.name_as_string.clone();
-                            let module_name = module.name(sa);
-                            sa.report(
-                                file_id,
-                                node.span,
-                                ErrorMessage::UnknownIdentifierInModule(module_name, name),
-                            );
-                            return Err(());
-                        }
-                    }
-                    ast::PathSegmentData::Error { .. } => {
-                        return Err(());
-                    }
-                }
-            }
-
-            Ok(SegmentKind::Symbol(previous_sym))
-        }
-
-        ast::PathSegmentData::Error { .. } => Err(()),
+        PathKind::Self_ => ParsedTypeKind::This,
     }
 }
 
@@ -341,6 +277,8 @@ fn parse_type_regular_with_arguments(
     sa: &Sema,
     table: &ModuleSymTable,
     file_id: SourceFileId,
+    element: &dyn Element,
+    allow_self: bool,
     symbol: SymbolKind,
     node: &ast::TypeRegularType,
 ) -> ParsedTypeKind {
@@ -353,7 +291,7 @@ fn parse_type_regular_with_arguments(
             None
         };
 
-        let ty = parse_type_inner(sa, table, file_id, &param.ty);
+        let ty = parse_type_inner(sa, table, file_id, element, allow_self, &param.ty);
         let ty_arg = ParsedTypeArgument {
             name,
             ty,
@@ -372,17 +310,21 @@ fn parse_type_lambda(
     sa: &Sema,
     table: &ModuleSymTable,
     file_id: SourceFileId,
+    element: &dyn Element,
+    allow_self: bool,
     node: &ast::TypeLambdaType,
 ) -> ParsedTypeKind {
     let mut params = vec![];
 
     for param in &node.params {
-        let ty = parse_type_inner(sa, table, file_id, param);
+        let ty = parse_type_inner(sa, table, file_id, element, allow_self, param);
         params.push(ty);
     }
 
     let return_ty = if let Some(ref ret) = node.ret {
-        Some(parse_type_inner(sa, table, file_id, ret))
+        Some(parse_type_inner(
+            sa, table, file_id, element, allow_self, ret,
+        ))
     } else {
         None
     };
@@ -394,12 +336,14 @@ fn parse_type_tuple(
     sa: &Sema,
     table: &ModuleSymTable,
     file_id: SourceFileId,
+    element: &dyn Element,
+    allow_self: bool,
     node: &ast::TypeTupleType,
 ) -> ParsedTypeKind {
     let mut subtypes = Vec::new();
 
     for subtype in &node.subtypes {
-        let ty = parse_type_inner(sa, table, file_id, subtype);
+        let ty = parse_type_inner(sa, table, file_id, element, allow_self, subtype);
         subtypes.push(ty);
     }
 
@@ -713,18 +657,7 @@ fn check_type_inner(
         SourceType::Any | SourceType::Ptr => {
             unreachable!()
         }
-        SourceType::This => {
-            if ctxt.allow_self {
-                SourceType::This
-            } else {
-                sa.report(
-                    ctxt.file_id,
-                    parsed_ty.span,
-                    ErrorMessage::SelfTypeUnavailable,
-                );
-                SourceType::Error
-            }
-        }
+        SourceType::This => SourceType::This,
         SourceType::Error | SourceType::Unit | SourceType::TypeParam(..) => ty,
         SourceType::TypeAlias(..)
         | SourceType::Bool
@@ -1305,5 +1238,16 @@ mod tests {
             (6, 54),
             ErrorMessage::TypeBindingOrder,
         );
+    }
+
+    #[test]
+    #[ignore]
+    fn trait_alias_through_self() {
+        ok("
+            trait Foo {
+                type X;
+                fn get(): Self::X;
+            }
+        ")
     }
 }

@@ -2,8 +2,8 @@ use std::collections::{HashMap, HashSet};
 
 use crate::extensiondefck::check_for_unconstrained_type_params;
 use crate::sema::{
-    implements_trait, new_identity_type_params, AliasDefinitionId, ElementWithTypeParams,
-    FctDefinition, FctDefinitionId, ImplDefinition, Sema, TraitDefinition,
+    implements_trait, new_identity_type_params, AliasDefinitionId, FctDefinition, FctDefinitionId,
+    ImplDefinition, Sema, TraitDefinition,
 };
 use crate::{package_for_type, ErrorMessage, SourceType, SourceTypeArray, TraitType};
 

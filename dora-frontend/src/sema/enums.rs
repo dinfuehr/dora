@@ -12,7 +12,7 @@ use dora_parser::Span;
 use id_arena::Id;
 
 use crate::sema::{
-    module_path, Element, ElementWithTypeParams, ExtensionDefinitionId, ModuleDefinitionId,
+    module_path, Element, ElementAccess, ExtensionDefinitionId, ModuleDefinitionId,
     PackageDefinitionId, Sema, SourceFileId, TypeParamDefinition, Visibility,
 };
 use crate::ty::SourceTypeArray;
@@ -110,16 +110,6 @@ impl EnumDefinition {
 }
 
 impl Element for EnumDefinition {
-    type Id = EnumDefinitionId;
-
-    fn by_id(sa: &Sema, id: Self::Id) -> &Self {
-        sa.enum_(id)
-    }
-
-    fn id(&self) -> Self::Id {
-        self.id.expect("missing id")
-    }
-
     fn file_id(&self) -> SourceFileId {
         self.file_id
     }
@@ -131,11 +121,21 @@ impl Element for EnumDefinition {
     fn package_id(&self) -> PackageDefinitionId {
         self.package_id
     }
+
+    fn type_param_definition(&self) -> Option<&Rc<TypeParamDefinition>> {
+        Some(&self.type_param_definition)
+    }
 }
 
-impl ElementWithTypeParams for EnumDefinition {
-    fn type_param_definition(&self) -> &Rc<TypeParamDefinition> {
-        &self.type_param_definition
+impl ElementAccess for EnumDefinition {
+    type Id = EnumDefinitionId;
+
+    fn by_id(sa: &Sema, id: Self::Id) -> &Self {
+        sa.enum_(id)
+    }
+
+    fn id(&self) -> Self::Id {
+        self.id.expect("missing id")
     }
 }
 

@@ -15,9 +15,7 @@ use crate::sema::{
     self, ClassDefinition, EnumDefinition, FctDefinitionId, FctParent, ModuleDefinitionId,
     PackageDefinitionId, PackageName, StructDefinition, TypeParamDefinition,
 };
-use crate::sema::{
-    ElementWithTypeParams, ExtensionDefinitionId, GlobalDefinition, GlobalDefinitionId,
-};
+use crate::sema::{ExtensionDefinitionId, GlobalDefinition, GlobalDefinitionId};
 
 use super::sema::{ImplDefinitionId, TraitDefinitionId};
 

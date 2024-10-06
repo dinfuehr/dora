@@ -7,8 +7,8 @@ use dora_parser::ast;
 use dora_parser::Span;
 
 use crate::sema::{
-    AliasDefinitionId, FctDefinitionId, ModuleDefinitionId, PackageDefinitionId, SourceFileId,
-    TraitDefinitionId, TypeParamDefinition,
+    AliasDefinitionId, Element, FctDefinitionId, ModuleDefinitionId, PackageDefinitionId,
+    SourceFileId, TraitDefinitionId, TypeParamDefinition,
 };
 use crate::ty::SourceType;
 use crate::{ParsedTraitType, ParsedType, TraitType};
@@ -116,5 +116,23 @@ impl ImplDefinition {
 
     pub fn aliases(&self) -> &[AliasDefinitionId] {
         self.aliases.get().expect("missing methods")
+    }
+}
+
+impl Element for ImplDefinition {
+    fn file_id(&self) -> SourceFileId {
+        self.file_id
+    }
+
+    fn module_id(&self) -> ModuleDefinitionId {
+        self.module_id
+    }
+
+    fn package_id(&self) -> PackageDefinitionId {
+        self.package_id
+    }
+
+    fn type_param_definition(&self) -> Option<&Rc<TypeParamDefinition>> {
+        Some(&self.type_param_definition)
     }
 }

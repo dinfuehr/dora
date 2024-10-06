@@ -11,8 +11,9 @@ use id_arena::Id;
 
 use crate::generator::bty_from_ty;
 use crate::sema::{
-    module_path, AnalysisData, ExtensionDefinitionId, ImplDefinitionId, ModuleDefinitionId,
-    PackageDefinitionId, Sema, SourceFileId, TraitDefinitionId, TypeParamDefinition, Visibility,
+    module_path, AnalysisData, Element, ExtensionDefinitionId, ImplDefinitionId,
+    ModuleDefinitionId, PackageDefinitionId, Sema, SourceFileId, TraitDefinitionId,
+    TypeParamDefinition, Visibility,
 };
 use crate::ty::SourceType;
 use dora_bytecode::{BytecodeFunction, BytecodeType, BytecodeTypeArray};
@@ -42,7 +43,7 @@ pub struct FctDefinition {
 
     pub analysis: OnceCell<AnalysisData>,
 
-    pub type_params: Rc<TypeParamDefinition>,
+    pub type_param_definition: Rc<TypeParamDefinition>,
     pub container_type_params: OnceCell<usize>,
     pub bytecode: OnceCell<BytecodeFunction>,
     pub intrinsic: OnceCell<Intrinsic>,
@@ -87,7 +88,7 @@ impl FctDefinition {
             is_never_inline: modifiers.is_never_inline,
             is_variadic: Cell::new(false),
             analysis: OnceCell::new(),
-            type_params,
+            type_param_definition: type_params,
             container_type_params: OnceCell::new(),
             bytecode: OnceCell::new(),
             intrinsic: OnceCell::new(),
@@ -99,7 +100,7 @@ impl FctDefinition {
     }
 
     pub fn type_param_definition(&self) -> &Rc<TypeParamDefinition> {
-        &self.type_params
+        &self.type_param_definition
     }
 
     pub fn container_type_params(&self) -> usize {
@@ -239,6 +240,24 @@ impl FctDefinition {
 
     pub fn return_type_bty(&self) -> BytecodeType {
         bty_from_ty(self.return_type())
+    }
+}
+
+impl Element for FctDefinition {
+    fn file_id(&self) -> SourceFileId {
+        self.file_id
+    }
+
+    fn module_id(&self) -> ModuleDefinitionId {
+        self.module_id
+    }
+
+    fn package_id(&self) -> PackageDefinitionId {
+        self.package_id
+    }
+
+    fn type_param_definition(&self) -> Option<&Rc<TypeParamDefinition>> {
+        Some(&self.type_param_definition)
     }
 }
 

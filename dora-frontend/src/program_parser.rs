@@ -10,10 +10,10 @@ use crate::error::msg::ErrorMessage;
 use crate::interner::Name;
 use crate::sema::{
     AliasBound, AliasDefinition, AliasDefinitionId, AliasParent, ClassDefinition, ConstDefinition,
-    ElementWithTypeParams, EnumDefinition, EnumVariant, ExtensionDefinition, ExtensionDefinitionId,
-    FctDefinition, FctDefinitionId, FctParent, Field, FieldId, GlobalDefinition, ImplDefinition,
-    ImplDefinitionId, ModuleDefinition, ModuleDefinitionId, PackageDefinition, PackageDefinitionId,
-    PackageName, Param, Sema, SourceFile, SourceFileId, StructDefinition, StructDefinitionField,
+    EnumDefinition, EnumVariant, ExtensionDefinition, ExtensionDefinitionId, FctDefinition,
+    FctDefinitionId, FctParent, Field, FieldId, GlobalDefinition, ImplDefinition, ImplDefinitionId,
+    ModuleDefinition, ModuleDefinitionId, PackageDefinition, PackageDefinitionId, PackageName,
+    Param, Sema, SourceFile, SourceFileId, StructDefinition, StructDefinitionField,
     StructDefinitionFieldId, TraitDefinition, TraitDefinitionId, TypeParamDefinition,
     UseDefinition, Visibility,
 };

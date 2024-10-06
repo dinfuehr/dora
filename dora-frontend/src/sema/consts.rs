@@ -1,5 +1,6 @@
 use id_arena::Id;
 use std::cell::OnceCell;
+use std::rc::Rc;
 use std::sync::Arc;
 
 use crate::interner::Name;
@@ -8,7 +9,8 @@ use dora_parser::ast;
 use dora_parser::Span;
 
 use crate::sema::{
-    module_path, ModuleDefinitionId, PackageDefinitionId, Sema, SourceFileId, Visibility,
+    module_path, Element, ModuleDefinitionId, PackageDefinitionId, Sema, SourceFileId,
+    TypeParamDefinition, Visibility,
 };
 use crate::ty::SourceType;
 use crate::ParsedType;
@@ -72,6 +74,24 @@ impl ConstDefinition {
 
     pub fn value(&self) -> &ConstValue {
         self.value.get().expect("uninitialized")
+    }
+}
+
+impl Element for ConstDefinition {
+    fn file_id(&self) -> SourceFileId {
+        self.file_id
+    }
+
+    fn module_id(&self) -> ModuleDefinitionId {
+        self.module_id
+    }
+
+    fn package_id(&self) -> PackageDefinitionId {
+        self.package_id
+    }
+
+    fn type_param_definition(&self) -> Option<&Rc<TypeParamDefinition>> {
+        None
     }
 }
 

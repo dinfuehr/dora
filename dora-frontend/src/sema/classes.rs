@@ -11,7 +11,7 @@ use dora_parser::ast;
 use dora_parser::Span;
 
 use crate::sema::{
-    module_path, Element, ElementWithTypeParams, ExtensionDefinitionId, FctDefinitionId,
+    module_path, Element, ElementAccess, ExtensionDefinitionId, FctDefinitionId,
     ModuleDefinitionId, PackageDefinitionId, Sema, SourceFileId, TypeParamDefinition,
 };
 use crate::{replace_type, ParsedType, SourceType, SourceTypeArray};
@@ -183,16 +183,6 @@ impl ClassDefinition {
 }
 
 impl Element for ClassDefinition {
-    type Id = ClassDefinitionId;
-
-    fn by_id(sa: &Sema, id: Self::Id) -> &Self {
-        sa.class(id)
-    }
-
-    fn id(&self) -> Self::Id {
-        self.id.expect("missing id")
-    }
-
     fn file_id(&self) -> SourceFileId {
         self.file_id.expect("missing file_id")
     }
@@ -204,11 +194,21 @@ impl Element for ClassDefinition {
     fn package_id(&self) -> PackageDefinitionId {
         self.package_id
     }
+
+    fn type_param_definition(&self) -> Option<&Rc<TypeParamDefinition>> {
+        Some(&self.type_param_definition)
+    }
 }
 
-impl ElementWithTypeParams for ClassDefinition {
-    fn type_param_definition(&self) -> &Rc<TypeParamDefinition> {
-        &self.type_param_definition
+impl ElementAccess for ClassDefinition {
+    type Id = ClassDefinitionId;
+
+    fn by_id(sa: &Sema, id: Self::Id) -> &Self {
+        sa.class(id)
+    }
+
+    fn id(&self) -> Self::Id {
+        self.id.expect("missing id")
     }
 }
 

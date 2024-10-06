@@ -5,8 +5,8 @@ use std::{f32, f64};
 
 use crate::error::msg::ErrorMessage;
 use crate::sema::{
-    AnalysisData, ClassDefinition, ConstValue, ContextFieldId, FctDefinition, FctParent, Field,
-    FieldId, GlobalDefinition, IdentType, LazyContextClassCreationData, LazyContextData,
+    AnalysisData, ClassDefinition, ConstValue, ContextFieldId, Element, FctDefinition, FctParent,
+    Field, FieldId, GlobalDefinition, IdentType, LazyContextClassCreationData, LazyContextData,
     LazyLambdaCreationData, ModuleDefinitionId, NestedScopeId, NestedVarId, OuterContextIdx,
     PackageDefinitionId, Param, ScopeId, Sema, SourceFileId, TypeParamDefinition, Var, VarAccess,
     VarId, VarLocation, Visibility,
@@ -39,6 +39,7 @@ pub struct TypeCheck<'a> {
     pub is_self_available: bool,
     pub self_ty: Option<SourceType>,
     pub vars: &'a mut VarManager,
+    pub element: &'a dyn Element,
     // All nested contexts. There will be entries for all nested function/lambda
     // and block scopes even when we eventually learn that we don't need
     // a context class for some of them.
@@ -363,7 +364,14 @@ impl<'a> TypeCheck<'a> {
 
     pub(super) fn read_type(&mut self, t: &ast::Type) -> SourceType {
         let parsed_ty = ParsedType::new_ast(t.clone());
-        parsety::parse_type(self.sa, &self.symtable, self.file_id, &parsed_ty);
+        parsety::parse_type(
+            self.sa,
+            &self.symtable,
+            self.file_id,
+            self.element,
+            self.self_ty.is_some(),
+            &parsed_ty,
+        );
 
         let ctxt = parsety::TypeContext {
             allow_self: self.self_ty.is_some(),

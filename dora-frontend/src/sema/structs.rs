@@ -11,7 +11,7 @@ use dora_parser::ast;
 use dora_parser::Span;
 
 use crate::sema::{
-    module_path, new_identity_type_params, Element, ElementWithTypeParams, ExtensionDefinitionId,
+    module_path, new_identity_type_params, Element, ElementAccess, ExtensionDefinitionId,
     ModuleDefinitionId, PackageDefinitionId, Sema, SourceFileId, TypeParamDefinition, Visibility,
 };
 use crate::{ParsedType, SourceType, SourceTypeArray};
@@ -135,16 +135,6 @@ impl StructDefinition {
 }
 
 impl Element for StructDefinition {
-    type Id = StructDefinitionId;
-
-    fn by_id(sa: &Sema, id: Self::Id) -> &Self {
-        sa.struct_(id)
-    }
-
-    fn id(&self) -> Self::Id {
-        self.id.expect("missing id")
-    }
-
     fn file_id(&self) -> SourceFileId {
         self.file_id
     }
@@ -156,11 +146,21 @@ impl Element for StructDefinition {
     fn package_id(&self) -> PackageDefinitionId {
         self.package_id
     }
+
+    fn type_param_definition(&self) -> Option<&Rc<TypeParamDefinition>> {
+        Some(&self.type_param_definition)
+    }
 }
 
-impl ElementWithTypeParams for StructDefinition {
-    fn type_param_definition(&self) -> &Rc<TypeParamDefinition> {
-        &self.type_param_definition
+impl ElementAccess for StructDefinition {
+    type Id = StructDefinitionId;
+
+    fn by_id(sa: &Sema, id: Self::Id) -> &Self {
+        sa.struct_(id)
+    }
+
+    fn id(&self) -> Self::Id {
+        self.id.expect("missing id")
     }
 }
 

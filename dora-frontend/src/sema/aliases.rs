@@ -5,13 +5,14 @@ use crate::{
     ParsedTraitType, ParsedType,
 };
 use std::cell::OnceCell;
+use std::rc::Rc;
 use std::sync::Arc;
 
 use id_arena::Id;
 
 use crate::sema::{
-    ImplDefinitionId, ModuleDefinitionId, PackageDefinitionId, SourceFileId, TraitDefinitionId,
-    Visibility,
+    Element, ImplDefinitionId, ModuleDefinitionId, PackageDefinitionId, SourceFileId,
+    TraitDefinitionId, TypeParamDefinition, Visibility,
 };
 use dora_parser::ast;
 
@@ -83,6 +84,24 @@ impl AliasDefinition {
 
     pub fn bounds(&self) -> &[AliasBound] {
         &self.bounds
+    }
+}
+
+impl Element for AliasDefinition {
+    fn file_id(&self) -> SourceFileId {
+        self.file_id
+    }
+
+    fn module_id(&self) -> ModuleDefinitionId {
+        self.module_id
+    }
+
+    fn package_id(&self) -> PackageDefinitionId {
+        self.package_id
+    }
+
+    fn type_param_definition(&self) -> Option<&Rc<TypeParamDefinition>> {
+        None
     }
 }
 

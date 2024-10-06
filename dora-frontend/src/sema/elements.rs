@@ -4,17 +4,25 @@ use crate::sema::{
     ModuleDefinitionId, PackageDefinitionId, Sema, SourceFileId, TypeParamDefinition,
 };
 
+use super::TraitDefinition;
+
 pub trait Element {
-    type Id;
-
-    fn by_id(sa: &Sema, id: Self::Id) -> &Self;
-
-    fn id(&self) -> Self::Id;
     fn file_id(&self) -> SourceFileId;
     fn module_id(&self) -> ModuleDefinitionId;
     fn package_id(&self) -> PackageDefinitionId;
+    fn type_param_definition(&self) -> Option<&Rc<TypeParamDefinition>>;
+
+    fn is_trait(&self) -> bool {
+        self.to_trait().is_some()
+    }
+    fn to_trait(&self) -> Option<&TraitDefinition> {
+        None
+    }
 }
 
-pub trait ElementWithTypeParams: Element {
-    fn type_param_definition(&self) -> &Rc<TypeParamDefinition>;
+pub trait ElementAccess {
+    type Id;
+
+    fn by_id(sa: &Sema, id: Self::Id) -> &Self;
+    fn id(&self) -> Self::Id;
 }

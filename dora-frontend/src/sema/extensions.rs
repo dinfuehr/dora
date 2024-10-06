@@ -5,7 +5,8 @@ use std::sync::Arc;
 
 use crate::interner::Name;
 use crate::sema::{
-    FctDefinitionId, ModuleDefinitionId, PackageDefinitionId, SourceFileId, TypeParamDefinition,
+    Element, FctDefinitionId, ModuleDefinitionId, PackageDefinitionId, SourceFileId,
+    TypeParamDefinition,
 };
 use crate::ty::SourceType;
 use crate::ParsedType;
@@ -72,5 +73,23 @@ impl ExtensionDefinition {
 
     pub fn methods(&self) -> &[FctDefinitionId] {
         self.methods.get().expect("missing value")
+    }
+}
+
+impl Element for ExtensionDefinition {
+    fn file_id(&self) -> SourceFileId {
+        self.file_id
+    }
+
+    fn module_id(&self) -> ModuleDefinitionId {
+        self.module_id
+    }
+
+    fn package_id(&self) -> PackageDefinitionId {
+        self.package_id
+    }
+
+    fn type_param_definition(&self) -> Option<&Rc<TypeParamDefinition>> {
+        Some(&self.type_param_definition)
     }
 }
