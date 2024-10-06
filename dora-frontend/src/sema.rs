@@ -150,6 +150,10 @@ impl Sema {
         }
     }
 
+    pub fn by_id<T: Element>(&self, id: T::Id) -> &T {
+        T::by_id(self, id)
+    }
+
     pub fn file(&self, id: SourceFileId) -> &SourceFile {
         &self.source_files[id]
     }

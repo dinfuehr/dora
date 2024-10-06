@@ -11,10 +11,12 @@ use dora_bytecode::{
 
 use crate::generator::bty_from_ty;
 
-use crate::sema::{self as sa, ExtensionDefinitionId, GlobalDefinition, GlobalDefinitionId};
 use crate::sema::{
-    ClassDefinition, FctDefinitionId, FctParent, ModuleDefinitionId, PackageDefinitionId,
-    PackageName, StructDefinition, TypeParamDefinition,
+    self, ClassDefinition, EnumDefinition, FctDefinitionId, FctParent, ModuleDefinitionId,
+    PackageDefinitionId, PackageName, StructDefinition, TypeParamDefinition,
+};
+use crate::sema::{
+    ElementWithTypeParams, ExtensionDefinitionId, GlobalDefinition, GlobalDefinitionId,
 };
 
 use super::sema::{ImplDefinitionId, TraitDefinitionId};
@@ -359,7 +361,7 @@ fn create_enums(sa: &Sema) -> Vec<EnumData> {
     result
 }
 
-fn create_enum_variants(sa: &Sema, enum_: &sa::EnumDefinition) -> Vec<EnumVariant> {
+fn create_enum_variants(sa: &Sema, enum_: &EnumDefinition) -> Vec<EnumVariant> {
     let mut result = Vec::new();
 
     for variant in enum_.variants() {
@@ -452,7 +454,7 @@ fn convert_function_id(id: FctDefinitionId) -> FunctionId {
     FunctionId(id.index().try_into().expect("failure"))
 }
 
-fn convert_source_file_id(id: sa::SourceFileId) -> SourceFileId {
+fn convert_source_file_id(id: sema::SourceFileId) -> SourceFileId {
     SourceFileId(id.index().try_into().expect("failure"))
 }
 

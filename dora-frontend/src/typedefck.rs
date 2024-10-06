@@ -1,6 +1,6 @@
 use crate::sema::{
-    new_identity_type_params, AliasParent, FctDefinition, FctParent, Sema, SourceFileId,
-    TypeParamDefinition,
+    new_identity_type_params, AliasParent, ElementWithTypeParams, FctDefinition, FctParent, Sema,
+    SourceFileId, TypeParamDefinition,
 };
 use crate::{parsety, ModuleSymTable, ParsedType, SourceType, SymbolKind};
 

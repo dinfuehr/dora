@@ -2,8 +2,8 @@ use std::ops::Index;
 use std::sync::Arc;
 
 use crate::sema::{
-    AliasDefinitionId, ClassDefinition, ClassDefinitionId, EnumDefinition, EnumDefinitionId,
-    FctDefinition, Sema, StructDefinition, StructDefinitionId, TraitDefinitionId,
+    AliasDefinitionId, ClassDefinition, ClassDefinitionId, ElementWithTypeParams, EnumDefinition,
+    EnumDefinitionId, FctDefinition, Sema, StructDefinition, StructDefinitionId, TraitDefinitionId,
     TypeParamDefinition, TypeParamId,
 };
 

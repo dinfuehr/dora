@@ -69,10 +69,6 @@ impl TraitDefinition {
         self.id.expect("id missing")
     }
 
-    pub fn type_param_definition(&self) -> &Rc<TypeParamDefinition> {
-        &self.type_param_definition
-    }
-
     pub fn methods(&self) -> &[FctDefinitionId] {
         self.methods.get().expect("uninitialized")
     }
@@ -125,6 +121,16 @@ impl TraitDefinition {
 }
 
 impl Element for TraitDefinition {
+    type Id = TraitDefinitionId;
+
+    fn by_id(sa: &Sema, id: Self::Id) -> &Self {
+        sa.trait_(id)
+    }
+
+    fn id(&self) -> Self::Id {
+        self.id.expect("missing id")
+    }
+
     fn file_id(&self) -> SourceFileId {
         self.file_id
     }
@@ -139,7 +145,7 @@ impl Element for TraitDefinition {
 }
 
 impl ElementWithTypeParams for TraitDefinition {
-    fn type_param_definition(&self) -> &TypeParamDefinition {
+    fn type_param_definition(&self) -> &Rc<TypeParamDefinition> {
         &self.type_param_definition
     }
 }

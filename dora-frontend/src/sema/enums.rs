@@ -110,6 +110,16 @@ impl EnumDefinition {
 }
 
 impl Element for EnumDefinition {
+    type Id = EnumDefinitionId;
+
+    fn by_id(sa: &Sema, id: Self::Id) -> &Self {
+        sa.enum_(id)
+    }
+
+    fn id(&self) -> Self::Id {
+        self.id.expect("missing id")
+    }
+
     fn file_id(&self) -> SourceFileId {
         self.file_id
     }
@@ -124,7 +134,7 @@ impl Element for EnumDefinition {
 }
 
 impl ElementWithTypeParams for EnumDefinition {
-    fn type_param_definition(&self) -> &TypeParamDefinition {
+    fn type_param_definition(&self) -> &Rc<TypeParamDefinition> {
         &self.type_param_definition
     }
 }

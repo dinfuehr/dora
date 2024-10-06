@@ -183,6 +183,16 @@ impl ClassDefinition {
 }
 
 impl Element for ClassDefinition {
+    type Id = ClassDefinitionId;
+
+    fn by_id(sa: &Sema, id: Self::Id) -> &Self {
+        sa.class(id)
+    }
+
+    fn id(&self) -> Self::Id {
+        self.id.expect("missing id")
+    }
+
     fn file_id(&self) -> SourceFileId {
         self.file_id.expect("missing file_id")
     }
@@ -197,7 +207,7 @@ impl Element for ClassDefinition {
 }
 
 impl ElementWithTypeParams for ClassDefinition {
-    fn type_param_definition(&self) -> &TypeParamDefinition {
+    fn type_param_definition(&self) -> &Rc<TypeParamDefinition> {
         &self.type_param_definition
     }
 }

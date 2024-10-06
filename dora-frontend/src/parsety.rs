@@ -3,8 +3,8 @@ use dora_parser::ast;
 use crate::access::{sym_accessible_from, trait_accessible_from};
 use crate::readty::read_type_path;
 use crate::sema::{
-    implements_trait, is_object_safe, AliasDefinitionId, ModuleDefinitionId, SourceFileId,
-    TraitDefinition, TraitDefinitionId, TypeParamDefinition,
+    implements_trait, is_object_safe, AliasDefinitionId, ElementWithTypeParams, ModuleDefinitionId,
+    SourceFileId, TraitDefinition, TraitDefinitionId, TypeParamDefinition,
 };
 use crate::sym::{ModuleSymTable, SymbolKind};
 use crate::{

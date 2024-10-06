@@ -135,6 +135,16 @@ impl StructDefinition {
 }
 
 impl Element for StructDefinition {
+    type Id = StructDefinitionId;
+
+    fn by_id(sa: &Sema, id: Self::Id) -> &Self {
+        sa.struct_(id)
+    }
+
+    fn id(&self) -> Self::Id {
+        self.id.expect("missing id")
+    }
+
     fn file_id(&self) -> SourceFileId {
         self.file_id
     }
@@ -149,7 +159,7 @@ impl Element for StructDefinition {
 }
 
 impl ElementWithTypeParams for StructDefinition {
-    fn type_param_definition(&self) -> &TypeParamDefinition {
+    fn type_param_definition(&self) -> &Rc<TypeParamDefinition> {
         &self.type_param_definition
     }
 }
