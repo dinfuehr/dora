@@ -12,8 +12,8 @@ use dora_parser::Span;
 use id_arena::Id;
 
 use crate::sema::{
-    module_path, ExtensionDefinitionId, ModuleDefinitionId, PackageDefinitionId, Sema,
-    SourceFileId, TypeParamDefinition, Visibility,
+    module_path, Element, ElementWithTypeParams, ExtensionDefinitionId, ModuleDefinitionId,
+    PackageDefinitionId, Sema, SourceFileId, TypeParamDefinition, Visibility,
 };
 use crate::ty::SourceTypeArray;
 
@@ -106,6 +106,26 @@ impl EnumDefinition {
 
     pub fn variants(&self) -> &[EnumVariant] {
         &self.variants
+    }
+}
+
+impl Element for EnumDefinition {
+    fn file_id(&self) -> SourceFileId {
+        self.file_id
+    }
+
+    fn module_id(&self) -> ModuleDefinitionId {
+        self.module_id
+    }
+
+    fn package_id(&self) -> PackageDefinitionId {
+        self.package_id
+    }
+}
+
+impl ElementWithTypeParams for EnumDefinition {
+    fn type_param_definition(&self) -> &TypeParamDefinition {
+        &self.type_param_definition
     }
 }
 

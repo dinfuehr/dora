@@ -11,8 +11,8 @@ use dora_parser::ast;
 use dora_parser::Span;
 
 use crate::sema::{
-    module_path, ExtensionDefinitionId, FctDefinitionId, ModuleDefinitionId, PackageDefinitionId,
-    Sema, SourceFileId, TypeParamDefinition,
+    module_path, Element, ElementWithTypeParams, ExtensionDefinitionId, FctDefinitionId,
+    ModuleDefinitionId, PackageDefinitionId, Sema, SourceFileId, TypeParamDefinition,
 };
 use crate::{replace_type, ParsedType, SourceType, SourceTypeArray};
 
@@ -179,6 +179,26 @@ impl ClassDefinition {
         }
 
         true
+    }
+}
+
+impl Element for ClassDefinition {
+    fn file_id(&self) -> SourceFileId {
+        self.file_id.expect("missing file_id")
+    }
+
+    fn module_id(&self) -> ModuleDefinitionId {
+        self.module_id
+    }
+
+    fn package_id(&self) -> PackageDefinitionId {
+        self.package_id
+    }
+}
+
+impl ElementWithTypeParams for ClassDefinition {
+    fn type_param_definition(&self) -> &TypeParamDefinition {
+        &self.type_param_definition
     }
 }
 

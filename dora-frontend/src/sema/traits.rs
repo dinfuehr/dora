@@ -9,8 +9,8 @@ use dora_parser::ast;
 use dora_parser::Span;
 
 use crate::sema::{
-    module_path, AliasDefinitionId, Candidate, FctDefinitionId, ModuleDefinitionId,
-    PackageDefinitionId, Sema, SourceFileId, TypeParamDefinition, Visibility,
+    module_path, AliasDefinitionId, Candidate, Element, ElementWithTypeParams, FctDefinitionId,
+    ModuleDefinitionId, PackageDefinitionId, Sema, SourceFileId, TypeParamDefinition, Visibility,
 };
 use crate::{contains_self, SourceType, SourceTypeArray};
 use id_arena::Id;
@@ -121,6 +121,26 @@ impl TraitDefinition {
         };
 
         table.get(&name).cloned()
+    }
+}
+
+impl Element for TraitDefinition {
+    fn file_id(&self) -> SourceFileId {
+        self.file_id
+    }
+
+    fn module_id(&self) -> ModuleDefinitionId {
+        self.module_id
+    }
+
+    fn package_id(&self) -> PackageDefinitionId {
+        self.package_id
+    }
+}
+
+impl ElementWithTypeParams for TraitDefinition {
+    fn type_param_definition(&self) -> &TypeParamDefinition {
+        &self.type_param_definition
     }
 }
 

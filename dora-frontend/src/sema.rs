@@ -19,6 +19,7 @@ pub use self::classes::{
     find_field_in_class, Candidate, ClassDefinition, ClassDefinitionId, Field, FieldId, Visibility,
 };
 pub use self::consts::{ConstDefinition, ConstDefinitionId, ConstValue};
+pub use self::elements::{Element, ElementWithTypeParams};
 pub use self::enums::{EnumDefinition, EnumDefinitionId, EnumVariant};
 pub use self::extensions::{ExtensionDefinition, ExtensionDefinitionId};
 pub use self::functions::{
@@ -49,6 +50,7 @@ pub use self::uses::{UseDefinition, UseDefinitionId};
 mod aliases;
 mod classes;
 mod consts;
+mod elements;
 mod enums;
 mod extensions;
 mod functions;
