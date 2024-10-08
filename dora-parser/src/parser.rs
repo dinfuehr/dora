@@ -565,15 +565,19 @@ impl Parser {
         self.start_node();
         self.assert(TYPE_KW);
         let name = self.expect_identifier();
+        let type_params = self.parse_type_params();
+        let pre_where_bounds = self.parse_where();
         let bounds = if self.eat(COLON) {
             self.parse_type_bounds()
         } else {
             Vec::new()
         };
-        let ty = if self.eat(EQ) {
-            Some(self.parse_type())
+        let (ty, post_where_bounds) = if self.eat(EQ) {
+            let ty = self.parse_type();
+            let post_where_bounds = self.parse_where();
+            (Some(ty), post_where_bounds)
         } else {
-            None
+            (None, None)
         };
         self.expect(SEMICOLON);
 
@@ -585,8 +589,11 @@ impl Parser {
             span: self.finish_node(),
             modifiers,
             name,
+            type_params,
+            pre_where_bounds,
             bounds,
             ty,
+            post_where_bounds,
         })
     }
 

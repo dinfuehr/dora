@@ -858,6 +858,14 @@ impl<'x> visit::Visitor for TopLevelDeclaration<'x> {
             ParsedType::new_ty(SourceType::Error)
         };
 
+        let type_param_definition = parse_type_param_definition(
+            self.sa,
+            None,
+            node.type_params.as_ref(),
+            node.pre_where_bounds.as_ref(),
+            self.file_id,
+        );
+
         let alias = AliasDefinition::new(
             self.package_id,
             self.module_id,
@@ -866,6 +874,7 @@ impl<'x> visit::Visitor for TopLevelDeclaration<'x> {
             node,
             modifiers,
             ensure_name(self.sa, &node.name),
+            type_param_definition,
             Vec::new(),
             Some(parsed_ty),
         );
@@ -980,6 +989,16 @@ fn find_elements_in_trait(
                     )
                 }
 
+                let container_type_param_definition =
+                    sa.trait_(trait_id).type_param_definition().clone();
+                let type_param_definition = parse_type_param_definition(
+                    sa,
+                    Some(container_type_param_definition),
+                    node.type_params.as_ref(),
+                    node.pre_where_bounds.as_ref(),
+                    file_id,
+                );
+
                 let alias = AliasDefinition::new(
                     package_id,
                     module_id,
@@ -988,6 +1007,7 @@ fn find_elements_in_trait(
                     node,
                     modifiers,
                     name,
+                    type_param_definition,
                     bounds,
                     None,
                 );
@@ -1095,6 +1115,16 @@ fn find_elements_in_impl(
                     ParsedType::new_ty(SourceType::Error)
                 };
 
+                let container_type_param_definition =
+                    sa.impl_(impl_id).type_param_definition().clone();
+                let type_param_definition = parse_type_param_definition(
+                    sa,
+                    Some(container_type_param_definition),
+                    node.type_params.as_ref(),
+                    node.pre_where_bounds.as_ref(),
+                    file_id,
+                );
+
                 let alias = AliasDefinition::new(
                     package_id,
                     module_id,
@@ -1103,6 +1133,7 @@ fn find_elements_in_impl(
                     node,
                     modifiers,
                     name,
+                    type_param_definition,
                     Vec::new(),
                     Some(parsed_ty),
                 );

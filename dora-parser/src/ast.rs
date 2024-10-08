@@ -606,8 +606,11 @@ pub struct TypeAlias {
 
     pub modifiers: Option<ModifierList>,
     pub name: Option<Ident>,
+    pub type_params: Option<TypeParams>,
+    pub pre_where_bounds: Option<WhereBounds>,
     pub bounds: Vec<Type>,
     pub ty: Option<Type>,
+    pub post_where_bounds: Option<WhereBounds>,
 }
 
 #[derive(Clone, Debug)]

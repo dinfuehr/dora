@@ -50,6 +50,7 @@ pub struct AliasDefinition {
     pub modifiers: ParsedModifierList,
     pub name: Name,
     pub parsed_ty: Option<ParsedType>,
+    pub type_param_definition: Rc<TypeParamDefinition>,
     pub bounds: Vec<AliasBound>,
     pub visibility: Visibility,
 }
@@ -63,6 +64,7 @@ impl AliasDefinition {
         node: &Arc<ast::TypeAlias>,
         modifiers: ParsedModifierList,
         name: Name,
+        type_param_definition: Rc<TypeParamDefinition>,
         bounds: Vec<AliasBound>,
         parsed_ty: Option<ParsedType>,
     ) -> AliasDefinition {
@@ -76,6 +78,7 @@ impl AliasDefinition {
             visibility: modifiers.visibility(),
             modifiers,
             name,
+            type_param_definition,
             parsed_ty,
             bounds,
         }
