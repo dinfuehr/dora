@@ -573,7 +573,11 @@ fn arg_allows(sa: &Sema, def: SourceType, arg: SourceType, self_ty: Option<Sourc
 
         SourceType::Lambda(_, _) => def == arg,
 
-        SourceType::TypeAlias(id) => arg_allows(sa, sa.alias(id).ty(), arg, self_ty.clone()),
+        SourceType::Alias(id, type_params) => {
+            assert!(type_params.is_empty());
+            let alias = sa.alias(id);
+            arg_allows(sa, alias.ty(), arg, self_ty.clone())
+        }
     }
 }
 

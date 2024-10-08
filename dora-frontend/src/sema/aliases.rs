@@ -99,6 +99,10 @@ impl AliasDefinition {
     pub fn bounds(&self) -> &[AliasBound] {
         &self.bounds
     }
+
+    pub fn type_param_definition(&self) -> &Rc<TypeParamDefinition> {
+        &self.type_param_definition
+    }
 }
 
 impl Element for AliasDefinition {

@@ -380,7 +380,7 @@ fn convert_type_regular(sa: &Sema, file_id: SourceFileId, parsed_ty: &ParsedType
     match sym {
         SymbolKind::TypeAlias(id) => {
             assert!(type_params.is_empty());
-            SourceType::TypeAlias(id)
+            SourceType::Alias(id, SourceTypeArray::empty())
         }
 
         SymbolKind::TypeParam(id) => {
@@ -665,7 +665,7 @@ fn check_type_inner(
             unreachable!()
         }
         SourceType::This => SourceType::This,
-        SourceType::TypeAlias(..)
+        SourceType::Alias(..)
         | SourceType::Error
         | SourceType::Unit
         | SourceType::TypeParam(..) => ty,
@@ -1070,7 +1070,7 @@ pub fn expand_trait_type(
     replace_self: Option<SourceType>,
 ) {
     if let Some(trait_ty) = parsed_ty.ty() {
-        let new_type_params = expand_sta(sa, element, trait_ty.type_params, replace_self.clone());
+        let new_type_params = expand_sta(sa, element, &trait_ty.type_params, replace_self.clone());
         let new_bindings = trait_ty
             .bindings
             .into_iter()
@@ -1091,35 +1091,42 @@ fn expand_st(
     ty: SourceType,
     replace_self: Option<SourceType>,
 ) -> SourceType {
-    match ty {
+    match &ty {
         SourceType::Class(cls_id, type_params) => {
-            SourceType::Class(cls_id, expand_sta(sa, element, type_params, replace_self))
+            SourceType::Class(*cls_id, expand_sta(sa, element, type_params, replace_self))
         }
 
-        SourceType::Trait(trait_id, type_params) => {
-            SourceType::Trait(trait_id, expand_sta(sa, element, type_params, replace_self))
-        }
+        SourceType::Trait(trait_id, type_params) => SourceType::Trait(
+            *trait_id,
+            expand_sta(sa, element, type_params, replace_self),
+        ),
 
         SourceType::Struct(struct_id, type_params) => SourceType::Struct(
-            struct_id,
+            *struct_id,
             expand_sta(sa, element, type_params, replace_self),
         ),
 
         SourceType::Enum(enum_id, type_params) => {
-            SourceType::Enum(enum_id, expand_sta(sa, element, type_params, replace_self))
+            SourceType::Enum(*enum_id, expand_sta(sa, element, type_params, replace_self))
         }
 
         SourceType::Lambda(params, return_type) => SourceType::Lambda(
             expand_sta(sa, element, params, replace_self.clone()),
-            Box::new(expand_st(sa, element, *return_type, replace_self)),
+            Box::new(expand_st(
+                sa,
+                element,
+                return_type.as_ref().clone(),
+                replace_self,
+            )),
         ),
 
         SourceType::Tuple(subtypes) => {
             SourceType::Tuple(expand_sta(sa, element, subtypes, replace_self))
         }
 
-        SourceType::TypeAlias(id) => {
-            let alias = sa.alias(id);
+        SourceType::Alias(id, type_params) => {
+            assert!(type_params.is_empty());
+            let alias = sa.alias(*id);
 
             match alias.parent {
                 AliasParent::Trait(trait_id) => {
@@ -1167,7 +1174,7 @@ fn expand_st(
 fn expand_sta(
     sa: &Sema,
     element: &dyn Element,
-    array: SourceTypeArray,
+    array: &SourceTypeArray,
     replace_self: Option<SourceType>,
 ) -> SourceTypeArray {
     let new_array = array

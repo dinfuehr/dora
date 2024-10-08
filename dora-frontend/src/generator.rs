@@ -3253,7 +3253,8 @@ pub fn bty_from_ty(ty: SourceType) -> BytecodeType {
         ),
         SourceType::Ptr => BytecodeType::Ptr,
         SourceType::This => BytecodeType::This,
-        SourceType::TypeAlias(id) => {
+        SourceType::Alias(id, type_params) => {
+            assert!(type_params.is_empty());
             BytecodeType::TypeAlias(AliasId(id.index().try_into().expect("overflow")))
         }
         _ => panic!("SourceType {:?} cannot be converted to BytecodeType", ty),

@@ -72,38 +72,44 @@ fn expand_type(
     visiting: &mut FixedBitSet,
     context: &dyn Element,
 ) -> SourceType {
-    match ty {
+    match &ty {
         SourceType::Class(cls_id, type_params) => SourceType::Class(
-            cls_id,
+            *cls_id,
             expand_sta(sa, type_params, visited, visiting, context),
         ),
 
         SourceType::Trait(trait_id, type_params) => SourceType::Trait(
-            trait_id,
+            *trait_id,
             expand_sta(sa, type_params, visited, visiting, context),
         ),
 
         SourceType::Struct(struct_id, type_params) => SourceType::Struct(
-            struct_id,
+            *struct_id,
             expand_sta(sa, type_params, visited, visiting, context),
         ),
 
         SourceType::Enum(enum_id, type_params) => SourceType::Enum(
-            enum_id,
+            *enum_id,
             expand_sta(sa, type_params, visited, visiting, context),
         ),
 
         SourceType::Lambda(params, return_type) => SourceType::Lambda(
             expand_sta(sa, params, visited, visiting, context),
-            Box::new(expand_type(sa, *return_type, visited, visiting, context)),
+            Box::new(expand_type(
+                sa,
+                return_type.as_ref().clone(),
+                visited,
+                visiting,
+                context,
+            )),
         ),
 
         SourceType::Tuple(subtypes) => {
             SourceType::Tuple(expand_sta(sa, subtypes, visited, visiting, context))
         }
 
-        SourceType::TypeAlias(id) => {
-            let alias = sa.alias(id);
+        SourceType::Alias(id, _type_params) => {
+            let alias = sa.alias(*id);
             let found_cycle = detect_cycles_for_alias(sa, visited, visiting, context, alias);
 
             if found_cycle {
@@ -133,7 +139,7 @@ fn expand_type(
 
 fn expand_sta(
     sa: &Sema,
-    array: SourceTypeArray,
+    array: &SourceTypeArray,
     visited: &mut FixedBitSet,
     visiting: &mut FixedBitSet,
     context: &dyn Element,
@@ -380,6 +386,61 @@ mod tests {
         ",
             (4, 17),
             ErrorMessage::AliasCycle,
+        );
+    }
+
+    #[test]
+    fn alias_with_type_params() {
+        ok("
+            struct Foo[T](value: T)
+            type Bar[T] = Foo[T];
+        ")
+    }
+
+    #[test]
+    fn alias_with_type_params_missing_bound() {
+        err(
+            "
+            trait TraitA {}
+            struct Foo[T: TraitA](value: T)
+            type Bar[T] = Foo[T];
+        ",
+            (4, 27),
+            ErrorMessage::TypeNotImplementingTrait("T".into(), "TraitA".into()),
+        );
+    }
+
+    #[test]
+    fn alias_with_type_params_and_bound() {
+        ok("
+            trait TraitA {}
+            struct Foo[T](value: T)
+            type Bar[T: TraitA] = Foo[T];
+        ");
+
+        ok("
+            trait TraitA {}
+            struct Foo[T: TraitA](value: T)
+            type Bar[T] where T: TraitA = Foo[T];
+        ");
+
+        ok("
+            trait TraitA {}
+            struct Foo[T](value: T)
+            type Bar[T] where T: TraitA = Foo[T];
+        ");
+    }
+
+    #[test]
+    fn alias_with_type_params_and_where_in_wrong_position() {
+        err(
+            "
+            trait TraitA {}
+            struct Foo[T](value: T)
+            type Bar[T] = Foo[T] where T: TraitA;
+        ",
+            (4, 34),
+            ErrorMessage::UnexpectedWhere,
         );
     }
 }

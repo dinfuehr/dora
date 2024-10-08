@@ -22,35 +22,24 @@ fn parse_alias_types(sa: &Sema) {
         let mut table = ModuleSymTable::new(sa, alias.module_id);
         table.push_level();
 
-        match alias.parent {
-            AliasParent::None => {}
+        parse_type_param_definition(
+            sa,
+            alias.type_param_definition(),
+            &mut table,
+            alias.file_id,
+            alias,
+            false,
+        );
 
-            AliasParent::Impl(impl_id) => {
-                let impl_ = sa.impl_(impl_id);
-
-                for (id, name) in impl_.type_param_definition().names() {
-                    table.insert(name, SymbolKind::TypeParam(id));
-                }
-            }
-
-            AliasParent::Trait(id) => {
-                let trait_ = sa.trait_(id);
-
-                for (id, name) in trait_.type_param_definition().names() {
-                    table.insert(name, SymbolKind::TypeParam(id));
-                }
-
-                for bound in &alias.bounds {
-                    parsety::parse_trait_bound_type(
-                        sa,
-                        &table,
-                        alias.file_id,
-                        alias,
-                        false,
-                        bound.parsed_ty(),
-                    );
-                }
-            }
+        for bound in &alias.bounds {
+            parsety::parse_trait_bound_type(
+                sa,
+                &table,
+                alias.file_id,
+                alias,
+                false,
+                bound.parsed_ty(),
+            );
         }
 
         let allow_self = match alias.parent {
@@ -343,26 +332,14 @@ pub fn check_types(sa: &Sema) {
 
 fn check_alias_types(sa: &Sema) {
     for (_id, alias) in sa.aliases.iter() {
-        let type_param_definition = match alias.parent {
-            AliasParent::None => &TypeParamDefinition::empty(),
-
-            AliasParent::Impl(impl_id) => {
-                let impl_ = sa.impl_(impl_id);
-                impl_.type_param_definition()
-            }
-
-            AliasParent::Trait(id) => {
-                let trait_ = sa.trait_(id);
-                trait_.type_param_definition()
-            }
-        };
-
         let ctxt = parsety::TypeContext {
             allow_self: false,
             module_id: alias.module_id,
             file_id: alias.file_id,
-            type_param_definition,
+            type_param_definition: alias.type_param_definition(),
         };
+
+        check_type_param_definition(sa, alias, &ctxt, alias.type_param_definition());
 
         if let Some(parsed_ty) = alias.parsed_ty() {
             parsety::check_type(sa, alias, &ctxt, parsed_ty);
@@ -563,6 +540,8 @@ fn expand_trait_types(sa: &Sema) {
 
 fn expand_alias_types(sa: &Sema) {
     for (_id, alias) in sa.aliases.iter() {
+        expand_type_param_definition(sa, alias, alias.type_param_definition(), None);
+
         if let Some(parsed_ty) = alias.parsed_ty() {
             parsety::expand_type(sa, alias, parsed_ty, None);
         }

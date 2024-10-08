@@ -49,7 +49,7 @@ pub enum SourceType {
     TypeParam(TypeParamId),
 
     // Type alias.
-    TypeAlias(AliasDefinitionId),
+    Alias(AliasDefinitionId, SourceTypeArray),
 
     // some lambda
     Lambda(SourceTypeArray, Box<SourceType>),
@@ -371,7 +371,7 @@ impl SourceType {
                 *self == other
             }
             SourceType::Ptr => panic!("ptr does not allow any other types"),
-            SourceType::This | SourceType::TypeAlias(..) => unreachable!(),
+            SourceType::This | SourceType::Alias(..) => unreachable!(),
             SourceType::Class(self_cls_id, self_list) => {
                 if *self == other {
                     return true;
@@ -434,7 +434,7 @@ impl SourceType {
             | SourceType::Trait(_, _)
             | SourceType::Lambda(_, _)
             | SourceType::TypeParam(_) => true,
-            SourceType::TypeAlias(..) => unreachable!(),
+            SourceType::Alias(..) => unreachable!(),
             SourceType::Enum(_, params)
             | SourceType::Class(_, params)
             | SourceType::Struct(_, params) => {
@@ -470,7 +470,7 @@ impl SourceType {
             | SourceType::Float32
             | SourceType::Float64
             | SourceType::Ptr => true,
-            SourceType::TypeAlias(..) => unreachable!(),
+            SourceType::Alias(..) => unreachable!(),
             SourceType::Class(_, params)
             | SourceType::Enum(_, params)
             | SourceType::Struct(_, params)
@@ -521,7 +521,7 @@ pub fn contains_self(sa: &Sema, ty: SourceType) -> bool {
         | SourceType::Float32
         | SourceType::Float64
         | SourceType::TypeParam(..) => false,
-        SourceType::TypeAlias(..) => unimplemented!(),
+        SourceType::Alias(..) => unimplemented!(),
         SourceType::Class(_, params)
         | SourceType::Enum(_, params)
         | SourceType::Struct(_, params)
@@ -823,9 +823,21 @@ impl<'a> SourceTypePrinter<'a> {
                 format!("({})", types)
             }
 
-            SourceType::TypeAlias(id) => {
-                let alias = self.sa.alias(id);
-                format!("{}", self.sa.interner.str(alias.name))
+            SourceType::Alias(id, type_params) => {
+                let enum_ = self.sa.alias(id);
+                let name = self.sa.interner.str(enum_.name).to_string();
+
+                if type_params.len() == 0 {
+                    name
+                } else {
+                    let params = type_params
+                        .iter()
+                        .map(|ty| self.name(ty))
+                        .collect::<Vec<_>>()
+                        .join(", ");
+
+                    format!("{}[{}]", name, params)
+                }
             }
         }
     }

@@ -15,7 +15,7 @@ pub fn check_definition(sa: &Sema) {
 
 fn check_impl_definition(sa: &Sema, impl_: &ImplDefinition) {
     match impl_.extended_ty() {
-        SourceType::TypeAlias(..) => unimplemented!(),
+        SourceType::Alias(..) => unimplemented!(),
         SourceType::Any | SourceType::Ptr | SourceType::This => {
             unreachable!()
         }
@@ -292,7 +292,8 @@ fn trait_and_impl_arg_ty_compatible(
             }
         }
 
-        SourceType::TypeAlias(id) => {
+        SourceType::Alias(id, type_params) => {
+            assert!(type_params.is_empty());
             let ty = trait_alias_map.get(&id).expect("missing alias");
             ty == &impl_arg_ty
         }

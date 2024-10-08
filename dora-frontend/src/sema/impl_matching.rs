@@ -61,7 +61,7 @@ pub fn implements_trait(
 
         SourceType::TypeParam(tp_id) => check_type_param_defs.implements_trait(tp_id, trait_ty),
 
-        SourceType::TypeAlias(..) => unreachable!(),
+        SourceType::Alias(..) => unreachable!(),
 
         SourceType::Error => false,
 
@@ -70,7 +70,8 @@ pub fn implements_trait(
 }
 
 pub fn maybe_alias_ty(sa: &Sema, mut ty: SourceType) -> SourceType {
-    while let SourceType::TypeAlias(id) = ty {
+    while let SourceType::Alias(id, type_params) = ty {
+        assert!(type_params.is_empty());
         let alias = sa.alias(id);
         ty = alias.ty();
     }

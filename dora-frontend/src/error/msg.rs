@@ -198,6 +198,7 @@ pub enum ErrorMessage {
     ExpectedTypeName,
     UnknownAlias,
     UnexpectedAlias,
+    UnexpectedWhere,
 }
 
 impl ErrorMessage {
@@ -679,6 +680,7 @@ impl ErrorMessage {
             ErrorMessage::ExpectedTypeName => format!("Type name expected."),
             ErrorMessage::UnknownAlias => format!("Unknown associated type."),
             ErrorMessage::UnexpectedAlias => format!("No associated types in this context."),
+            ErrorMessage::UnexpectedWhere => format!("Where clauses not allowed here."),
         }
     }
 }

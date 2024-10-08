@@ -1010,9 +1010,10 @@ impl Parser {
     }
 
     fn parse_where(&mut self) -> Option<WhereBounds> {
-        if self.eat(WHERE_KW) {
+        if self.is(WHERE_KW) {
             self.start_node();
             self.builder.start_node();
+            self.assert(WHERE_KW);
 
             let mut clauses = Vec::new();
 

@@ -866,6 +866,14 @@ impl<'x> visit::Visitor for TopLevelDeclaration<'x> {
             self.file_id,
         );
 
+        if let Some(ref post_where_bounds) = node.post_where_bounds {
+            self.sa.report(
+                self.file_id,
+                post_where_bounds.span,
+                ErrorMessage::UnexpectedWhere,
+            );
+        }
+
         let alias = AliasDefinition::new(
             self.package_id,
             self.module_id,
@@ -986,7 +994,17 @@ fn find_elements_in_trait(
                         file_id,
                         node.span,
                         ErrorMessage::UnexpectedTypeAliasAssignment,
-                    )
+                    );
+
+                    if let Some(ref post_where_bounds) = node.post_where_bounds {
+                        sa.report(
+                            file_id,
+                            post_where_bounds.span,
+                            ErrorMessage::UnexpectedWhere,
+                        );
+                    }
+                } else {
+                    assert!(node.post_where_bounds.is_none());
                 }
 
                 let container_type_param_definition =
@@ -1115,13 +1133,28 @@ fn find_elements_in_impl(
                     ParsedType::new_ty(SourceType::Error)
                 };
 
+                let where_bounds = if node.ty.is_some() {
+                    if let Some(ref pre_where_bounds) = node.pre_where_bounds {
+                        sa.report(
+                            file_id,
+                            pre_where_bounds.span,
+                            ErrorMessage::UnexpectedWhere,
+                        );
+                    }
+
+                    node.post_where_bounds.as_ref()
+                } else {
+                    assert!(node.post_where_bounds.is_none());
+                    node.pre_where_bounds.as_ref()
+                };
+
                 let container_type_param_definition =
                     sa.impl_(impl_id).type_param_definition().clone();
                 let type_param_definition = parse_type_param_definition(
                     sa,
                     Some(container_type_param_definition),
                     node.type_params.as_ref(),
-                    node.pre_where_bounds.as_ref(),
+                    where_bounds,
                     file_id,
                 );
 
