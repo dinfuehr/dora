@@ -375,7 +375,7 @@ impl LocationTable {
 
 impl std::traits::IntoIterator for LocationTable {
     type IteratorType = VecIter[(Int32, InlinedLocation)];
-    fn iter(): IteratorType {
+    fn iter(): Self::IteratorType {
         self.entries.iter()
     }
 }
@@ -407,7 +407,7 @@ impl LazyCompilationData {
 
 impl std::traits::IntoIterator for LazyCompilationData {
     type IteratorType = VecIter[(Int32, LazyCompilationSite)];
-    fn iter(): IteratorType {
+    fn iter(): Self::IteratorType {
         self.entries.iter()
     }
 }
@@ -463,7 +463,7 @@ impl GcPointTable {
 
 impl std::traits::IntoIterator for GcPointTable {
     type IteratorType = VecIter[(Int32, GcPoint)];
-    fn iter(): IteratorType {
+    fn iter(): Self::IteratorType {
         self.entries.iter()
     }
 }
@@ -498,7 +498,7 @@ impl GcPoint {
 
 impl std::traits::IntoIterator for GcPoint {
     type IteratorType = VecIter[Int32];
-    fn iter(): IteratorType {
+    fn iter(): Self::IteratorType {
         self.offsets.iter()
     }
 }

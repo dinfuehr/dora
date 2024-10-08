@@ -3,7 +3,7 @@ use std::collections::HashMap;
 use dora_parser::ast;
 
 use crate::access::sym_accessible_from;
-use crate::sema::{AliasDefinitionId, Element, FctParent, Sema, SourceFileId};
+use crate::sema::{parent_element_or_self, AliasDefinitionId, Element, Sema, SourceFileId};
 use crate::{ErrorMessage, ModuleSymTable, Name, SymbolKind};
 
 pub enum PathKind {
@@ -127,22 +127,16 @@ fn available_aliases<'a>(
     sa: &'a Sema,
     element: &'a dyn Element,
 ) -> Option<&'a HashMap<Name, AliasDefinitionId>> {
+    let element = parent_element_or_self(sa, element);
+
     if let Some(trait_) = element.to_trait() {
         Some(trait_.alias_names())
-    } else if let Some(fct) = element.to_fct() {
-        match fct.parent {
-            FctParent::Trait(trait_id) => Some(sa.trait_(trait_id).alias_names()),
-            FctParent::Impl(impl_id) => {
-                let impl_ = sa.impl_(impl_id);
-                if let Some(trait_ty) = impl_.trait_ty() {
-                    let trait_ = sa.trait_(trait_ty.trait_id);
-                    Some(trait_.alias_names())
-                } else {
-                    None
-                }
-            }
-            FctParent::Function => None,
-            FctParent::Extension(..) | FctParent::None => None,
+    } else if let Some(impl_) = element.to_impl() {
+        if let Some(trait_ty) = impl_.trait_ty() {
+            let trait_ = sa.trait_(trait_ty.trait_id);
+            Some(trait_.alias_names())
+        } else {
+            None
         }
     } else {
         None

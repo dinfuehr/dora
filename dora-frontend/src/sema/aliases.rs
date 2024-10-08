@@ -31,6 +31,13 @@ impl AliasParent {
             _ => false,
         }
     }
+
+    pub fn is_impl(&self) -> bool {
+        match self {
+            AliasParent::Impl(..) => true,
+            _ => false,
+        }
+    }
 }
 
 pub struct AliasDefinition {
@@ -110,6 +117,10 @@ impl Element for AliasDefinition {
 
     fn type_param_definition(&self) -> Option<&Rc<TypeParamDefinition>> {
         None
+    }
+
+    fn to_alias(&self) -> Option<&AliasDefinition> {
+        Some(self)
     }
 }
 

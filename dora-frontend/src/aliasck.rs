@@ -1,48 +1,66 @@
 use fixedbitset::FixedBitSet;
 
-use crate::sema::{AliasDefinitionId, AliasParent};
+use crate::sema::{parent_element_or_self, AliasDefinition, AliasParent, Element};
 use crate::{ErrorMessage, Sema, SourceType, SourceTypeArray};
 
 pub fn detect_cycles(sa: &Sema) {
     let mut visited = FixedBitSet::with_capacity(sa.aliases.len());
 
-    for (id, alias) in sa.aliases.iter() {
-        match alias.parent {
-            AliasParent::None | AliasParent::Impl(..) => {
-                let mut visiting = FixedBitSet::with_capacity(sa.aliases.len());
-                detect_cycles_for_alias(sa, &mut visited, &mut visiting, id);
-                assert!(visiting.is_clear());
+    for (_id, alias) in sa.aliases.iter() {
+        let mut visiting = FixedBitSet::with_capacity(sa.aliases.len());
+        if let AliasParent::Impl(impl_id) = alias.parent {
+            let impl_ = sa.impl_(impl_id);
+            if let Some(trait_ty) = impl_.trait_ty() {
+                let trait_ = sa.trait_(trait_ty.trait_id);
+                if let Some(trait_alias_id) = trait_.alias_names().get(&alias.name) {
+                    let trait_alias = sa.alias(*trait_alias_id);
+                    detect_cycles_for_alias(sa, &mut visited, &mut visiting, impl_, trait_alias);
+                }
             }
-
-            AliasParent::Trait(..) => {}
+        } else {
+            let context = parent_element_or_self(sa, alias);
+            detect_cycles_for_alias(sa, &mut visited, &mut visiting, context, alias);
         }
+        assert!(visiting.is_clear());
     }
 }
 
-fn detect_cycles_for_alias(
-    sa: &Sema,
+fn detect_cycles_for_alias<'a>(
+    sa: &'a Sema,
     visited: &mut FixedBitSet,
     visiting: &mut FixedBitSet,
-    id: AliasDefinitionId,
+    context: &'a dyn Element,
+    mut alias: &'a AliasDefinition,
 ) -> bool {
-    let alias = sa.alias(id);
+    assert!(!alias.parent.is_impl());
 
-    if visited.contains(id.index()) {
+    if alias.parent.is_trait() {
+        if let Some(impl_) = context.to_impl() {
+            if let Some(impl_alias_id) = impl_.trait_alias_map().get(&alias.id()) {
+                alias = sa.alias(*impl_alias_id);
+            } else {
+                return false;
+            }
+        }
+    }
+
+    if visited.contains(alias.id().index()) {
         return false;
     }
 
-    if visiting.contains(id.index()) {
+    if visiting.contains(alias.id().index()) {
         sa.report(alias.file_id, alias.node.span, ErrorMessage::AliasCycle);
         return true;
     }
 
-    visiting.insert(id.index());
+    visiting.insert(alias.id().index());
+
     if let Some(parsed_ty) = alias.parsed_ty() {
-        let ty = expand_type(sa, parsed_ty.ty(), visited, visiting);
+        let ty = expand_type(sa, parsed_ty.ty(), visited, visiting, context);
         parsed_ty.set_ty(ty);
     }
-    visiting.remove(id.index());
-    visited.insert(id.index());
+    visiting.remove(alias.id().index());
+    visited.insert(alias.id().index());
 
     false
 }
@@ -52,35 +70,41 @@ fn expand_type(
     ty: SourceType,
     visited: &mut FixedBitSet,
     visiting: &mut FixedBitSet,
+    context: &dyn Element,
 ) -> SourceType {
     match ty {
-        SourceType::Class(cls_id, type_params) => {
-            SourceType::Class(cls_id, expand_sta(sa, type_params, visited, visiting))
-        }
+        SourceType::Class(cls_id, type_params) => SourceType::Class(
+            cls_id,
+            expand_sta(sa, type_params, visited, visiting, context),
+        ),
 
-        SourceType::Trait(trait_id, type_params) => {
-            SourceType::Trait(trait_id, expand_sta(sa, type_params, visited, visiting))
-        }
+        SourceType::Trait(trait_id, type_params) => SourceType::Trait(
+            trait_id,
+            expand_sta(sa, type_params, visited, visiting, context),
+        ),
 
-        SourceType::Struct(struct_id, type_params) => {
-            SourceType::Struct(struct_id, expand_sta(sa, type_params, visited, visiting))
-        }
+        SourceType::Struct(struct_id, type_params) => SourceType::Struct(
+            struct_id,
+            expand_sta(sa, type_params, visited, visiting, context),
+        ),
 
-        SourceType::Enum(enum_id, type_params) => {
-            SourceType::Enum(enum_id, expand_sta(sa, type_params, visited, visiting))
-        }
+        SourceType::Enum(enum_id, type_params) => SourceType::Enum(
+            enum_id,
+            expand_sta(sa, type_params, visited, visiting, context),
+        ),
 
         SourceType::Lambda(params, return_type) => SourceType::Lambda(
-            expand_sta(sa, params, visited, visiting),
-            Box::new(expand_type(sa, *return_type, visited, visiting)),
+            expand_sta(sa, params, visited, visiting, context),
+            Box::new(expand_type(sa, *return_type, visited, visiting, context)),
         ),
 
         SourceType::Tuple(subtypes) => {
-            SourceType::Tuple(expand_sta(sa, subtypes, visited, visiting))
+            SourceType::Tuple(expand_sta(sa, subtypes, visited, visiting, context))
         }
 
         SourceType::TypeAlias(id) => {
-            let found_cycle = detect_cycles_for_alias(sa, visited, visiting, id);
+            let alias = sa.alias(id);
+            let found_cycle = detect_cycles_for_alias(sa, visited, visiting, context, alias);
 
             if found_cycle {
                 SourceType::Error
@@ -112,10 +136,11 @@ fn expand_sta(
     array: SourceTypeArray,
     visited: &mut FixedBitSet,
     visiting: &mut FixedBitSet,
+    context: &dyn Element,
 ) -> SourceTypeArray {
     let new_array = array
         .iter()
-        .map(|ty| expand_type(sa, ty, visited, visiting))
+        .map(|ty| expand_type(sa, ty, visited, visiting, context))
         .collect::<Vec<_>>();
     SourceTypeArray::with(new_array)
 }
@@ -177,7 +202,7 @@ mod tests {
         ok("
             trait Foo {
                 type Bar;
-                fn f(): Bar;
+                fn f(): Self::Bar;
             }
         ")
     }
@@ -327,5 +352,34 @@ mod tests {
 
             fn f(x: Bar[BazB]) {}
         ")
+    }
+
+    #[test]
+    fn impl_alias_self_referring() {
+        err(
+            "
+            trait Foo { type X; }
+            impl Foo for String {
+                type X = Self::X;
+            }
+        ",
+            (4, 17),
+            ErrorMessage::AliasCycle,
+        );
+    }
+
+    #[test]
+    fn impl_alias_cycle() {
+        err(
+            "
+            trait Foo { type X; type Y; }
+            impl Foo for String {
+                type X = Self::Y;
+                type Y = Self::X;
+            }
+        ",
+            (4, 17),
+            ErrorMessage::AliasCycle,
+        );
     }
 }

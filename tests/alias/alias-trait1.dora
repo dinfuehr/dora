@@ -8,7 +8,7 @@ fn main() {
 
 trait MyIterator {
     type Item;
-    fn next(): Option[Item];
+    fn next(): Option[Self::Item];
 }
 
 class CX(current: Int64, limit: Int64)

@@ -143,10 +143,10 @@ pub trait Neg {
 
 pub trait Iterator {
   type Item;
-  fn next(): Option[Item];
+  fn next(): Option[Self::Item];
 }
 
 pub trait IntoIterator {
   type IteratorType: Iterator;
-  fn iter(): IteratorType;
+  fn iter(): Self::IteratorType;
 }

@@ -3093,7 +3093,7 @@ impl InstSet {
 impl std::traits::IntoIterator for InstSet {
   type IteratorType = InstSetIter;
 
-  fn iter(): IteratorType {
+  fn iter(): Self::IteratorType {
     InstSetIter(self.graph, self.data.iter())
   }
 }

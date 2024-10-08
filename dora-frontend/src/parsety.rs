@@ -3,8 +3,9 @@ use std::collections::{HashMap, HashSet};
 
 use crate::access::{sym_accessible_from, trait_accessible_from};
 use crate::sema::{
-    implements_trait, is_object_safe, AliasDefinitionId, AliasParent, Element, FctParent,
-    ModuleDefinitionId, SourceFileId, TraitDefinition, TraitDefinitionId, TypeParamDefinition,
+    implements_trait, is_object_safe, parent_element_or_self, AliasDefinitionId, AliasParent,
+    Element, ModuleDefinitionId, SourceFileId, TraitDefinition, TraitDefinitionId,
+    TypeParamDefinition,
 };
 use crate::sym::{ModuleSymTable, SymbolKind};
 use crate::{
@@ -664,9 +665,11 @@ fn check_type_inner(
             unreachable!()
         }
         SourceType::This => SourceType::This,
-        SourceType::Error | SourceType::Unit | SourceType::TypeParam(..) => ty,
         SourceType::TypeAlias(..)
-        | SourceType::Bool
+        | SourceType::Error
+        | SourceType::Unit
+        | SourceType::TypeParam(..) => ty,
+        SourceType::Bool
         | SourceType::UInt8
         | SourceType::Char
         | SourceType::Float32
@@ -1118,42 +1121,27 @@ fn expand_st(
         SourceType::TypeAlias(id) => {
             let alias = sa.alias(id);
 
-            if let AliasParent::Trait(trait_id) = alias.parent {
-                if let Some(impl_) = element.to_impl() {
-                    let impl_alias_id = impl_.trait_alias_map().get(&id).cloned();
-                    if let Some(impl_alias_id) = impl_alias_id {
-                        let impl_alias = sa.alias(impl_alias_id);
-                        impl_alias.ty()
+            match alias.parent {
+                AliasParent::Trait(trait_id) => {
+                    let element = parent_element_or_self(sa, element);
+                    if let Some(impl_) = element.to_impl() {
+                        let impl_alias_id = impl_.trait_alias_map().get(&id).cloned();
+                        if let Some(impl_alias_id) = impl_alias_id {
+                            let impl_alias = sa.alias(impl_alias_id);
+                            impl_alias.ty()
+                        } else {
+                            SourceType::Error
+                        }
+                    } else if let Some(trait_) = element.to_trait() {
+                        assert_eq!(trait_id, trait_.id());
+                        ty
                     } else {
-                        SourceType::Error
+                        unreachable!()
                     }
-                } else if let Some(fct) = element.to_fct() {
-                    match fct.parent {
-                        FctParent::Impl(impl_id) => {
-                            let impl_ = sa.impl_(impl_id);
-                            let impl_alias_id = impl_.trait_alias_map().get(&id).cloned();
-                            if let Some(impl_alias_id) = impl_alias_id {
-                                let impl_alias = sa.alias(impl_alias_id);
-                                impl_alias.ty()
-                            } else {
-                                SourceType::Error
-                            }
-                        }
-                        FctParent::Extension(..) | FctParent::None | FctParent::Function => {
-                            unreachable!()
-                        }
-                        FctParent::Trait(fct_trait_id) => {
-                            assert_eq!(trait_id, fct_trait_id);
-                            ty
-                        }
-                    }
-                } else {
-                    let element_trait_id = element.to_trait().expect("trait expected").id();
-                    assert_eq!(trait_id, element_trait_id);
-                    ty
                 }
-            } else {
-                expand_st(sa, element, alias.ty(), replace_self)
+
+                AliasParent::Impl(..) => unreachable!(),
+                AliasParent::None => expand_st(sa, element, alias.ty(), replace_self),
             }
         }
 
@@ -1352,7 +1340,7 @@ mod tests {
         ok("
             trait Foo {
                 type X;
-                fn get(): X;
+                fn get(): Self::X;
             }
             impl Foo for String {
                 type X = String;
@@ -1396,16 +1384,5 @@ mod tests {
             (4, 33),
             ErrorMessage::UnknownAlias,
         );
-    }
-
-    #[test]
-    #[ignore]
-    fn trait_alias_through_self_in_trait_method() {
-        ok("
-            trait Foo {
-                type X;
-                fn get(): Self::X;
-            }
-        ")
     }
 }

@@ -1,10 +1,11 @@
 use std::rc::Rc;
 
 use crate::sema::{
-    AliasDefinitionId, ClassDefinitionId, ConstDefinitionId, EnumDefinitionId,
-    ExtensionDefinitionId, FctDefinition, FctDefinitionId, GlobalDefinitionId, ImplDefinition,
-    ImplDefinitionId, ModuleDefinitionId, PackageDefinitionId, Sema, SourceFileId,
-    StructDefinitionId, TraitDefinition, TraitDefinitionId, TypeParamDefinition, UseDefinitionId,
+    AliasDefinition, AliasDefinitionId, AliasParent, ClassDefinitionId, ConstDefinitionId,
+    EnumDefinitionId, ExtensionDefinitionId, FctDefinition, FctDefinitionId, FctParent,
+    GlobalDefinitionId, ImplDefinition, ImplDefinitionId, ModuleDefinitionId, PackageDefinitionId,
+    Sema, SourceFileId, StructDefinitionId, TraitDefinition, TraitDefinitionId,
+    TypeParamDefinition, UseDefinitionId,
 };
 
 #[derive(Debug, Copy, Clone, PartialEq, Eq)]
@@ -50,6 +51,13 @@ pub trait Element {
     fn to_impl(&self) -> Option<&ImplDefinition> {
         None
     }
+
+    fn is_alias(&self) -> bool {
+        self.to_alias().is_some()
+    }
+    fn to_alias(&self) -> Option<&AliasDefinition> {
+        None
+    }
 }
 
 pub trait ElementAccess {
@@ -57,4 +65,24 @@ pub trait ElementAccess {
 
     fn by_id(sa: &Sema, id: Self::Id) -> &Self;
     fn id(&self) -> Self::Id;
+}
+
+pub fn parent_element_or_self<'a>(sa: &'a Sema, element: &'a dyn Element) -> &'a dyn Element {
+    if let Some(fct) = element.to_fct() {
+        match fct.parent {
+            FctParent::Extension(id) => sa.extension(id),
+            FctParent::Impl(id) => sa.impl_(id),
+            FctParent::Trait(id) => sa.trait_(id),
+            FctParent::Function => unreachable!(),
+            FctParent::None => element,
+        }
+    } else if let Some(alias) = element.to_alias() {
+        match alias.parent {
+            AliasParent::Impl(id) => sa.impl_(id),
+            AliasParent::Trait(id) => sa.trait_(id),
+            AliasParent::None => element,
+        }
+    } else {
+        element
+    }
 }

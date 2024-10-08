@@ -19,7 +19,7 @@ pub use self::classes::{
     find_field_in_class, Candidate, ClassDefinition, ClassDefinitionId, Field, FieldId, Visibility,
 };
 pub use self::consts::{ConstDefinition, ConstDefinitionId, ConstValue};
-pub use self::elements::{Element, ElementAccess, ElementId};
+pub use self::elements::{parent_element_or_self, Element, ElementAccess, ElementId};
 pub use self::enums::{EnumDefinition, EnumDefinitionId, EnumVariant};
 pub use self::extensions::{ExtensionDefinition, ExtensionDefinitionId};
 pub use self::functions::{

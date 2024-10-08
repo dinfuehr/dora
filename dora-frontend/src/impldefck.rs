@@ -749,12 +749,12 @@ mod tests {
         ok("
             trait MyTrait {
                 type X;
-                fn next(): Option[X];
+                fn next(): Option[Self::X];
             }
             class CX
             impl MyTrait for CX {
                 type X = Int64;
-                fn next(): Option[X] {
+                fn next(): Option[Self::X] {
                     None
                 }
             }
@@ -766,7 +766,7 @@ mod tests {
         ok("
             trait MyTrait {
                 type X;
-                fn next(): Option[X];
+                fn next(): Option[Self::X];
             }
             class CX
             impl MyTrait for CX {
@@ -781,7 +781,7 @@ mod tests {
             "
             trait MyTrait {
                 type X;
-                fn next(): Option[X];
+                fn next(): Option[Self::X];
             }
             class CX
             impl MyTrait for CX {
@@ -802,12 +802,12 @@ mod tests {
             type A = Int64;
             trait MyTrait {
                 type X;
-                fn f(a: A, x: X);
+                fn f(a: A, x: Self::X);
             }
             class CX
             impl MyTrait for CX {
                 type X = Int64;
-                fn f(a: Int64, x: X) {}
+                fn f(a: Int64, x: Self::X) {}
             }
         ");
     }

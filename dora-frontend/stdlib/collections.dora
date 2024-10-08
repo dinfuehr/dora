@@ -292,7 +292,7 @@ impl BitSet {
 impl std::traits::IntoIterator for BitSet {
   type IteratorType = BitSetIter;
 
-  fn iter(): IteratorType {
+  fn iter(): Self::IteratorType {
     BitSetIter(self, 0, !0i32)
   }
 }
@@ -462,7 +462,7 @@ impl BitVec {
 impl std::traits::IntoIterator for BitVec {
   type IteratorType = BitVecIter;
 
-  fn iter(): IteratorType {
+  fn iter(): Self::IteratorType {
     BitVecIter(self, 0, !0i32)
   }
 }
@@ -863,7 +863,7 @@ impl[K: Hash + Equals, V] HashMap[K, V] {
 impl[K: Hash + Equals, V] IntoIterator for HashMap[K, V] {
     type IteratorType = HashMapIter[K, V];
 
-    fn iter(): IteratorType {
+    fn iter(): Self::IteratorType {
         HashMapIter[K, V]::new(self)
     }
 }
@@ -945,7 +945,7 @@ impl[K: Hash + Equals] HashSet[K] {
 impl[K: Hash + Equals] std::traits::IntoIterator for HashSet[K] {
   type IteratorType = HashSetIter[K];
 
-  fn iter(): IteratorType {
+  fn iter(): Self::IteratorType {
     HashSetIter[K](self.map, 0)
   }
 }

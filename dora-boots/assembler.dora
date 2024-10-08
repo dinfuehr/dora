@@ -311,7 +311,7 @@ impl[T: RegisterType, V] RegMap[T, V] {
 
 impl[T: RegisterType, V] std::traits::IntoIterator for RegMap[T, V] {
     type IteratorType = RegMapIterator[T, V];
-    fn iter(): IteratorType {
+    fn iter(): Self::IteratorType {
         RegMapIterator(self, 0)
     }
 }
@@ -469,7 +469,7 @@ impl[T: RegisterType] RegSet[T] {
 
 impl[T: RegisterType] std::traits::IntoIterator for RegSet[T] {
     type IteratorType = RegSetIterator[T];
-    fn iter(): IteratorType {
+    fn iter(): Self::IteratorType {
         RegSetIterator(self.value, 0i32)
     }
 }
