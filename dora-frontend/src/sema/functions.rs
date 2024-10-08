@@ -11,7 +11,7 @@ use id_arena::Id;
 
 use crate::generator::bty_from_ty;
 use crate::sema::{
-    module_path, AnalysisData, Element, ExtensionDefinitionId, ImplDefinitionId,
+    module_path, AnalysisData, Element, ElementId, ExtensionDefinitionId, ImplDefinitionId,
     ModuleDefinitionId, PackageDefinitionId, Sema, SourceFileId, TraitDefinitionId,
     TypeParamDefinition, Visibility,
 };
@@ -244,6 +244,10 @@ impl FctDefinition {
 }
 
 impl Element for FctDefinition {
+    fn element_id(&self) -> ElementId {
+        ElementId::Fct(self.id())
+    }
+
     fn file_id(&self) -> SourceFileId {
         self.file_id
     }
@@ -258,6 +262,10 @@ impl Element for FctDefinition {
 
     fn type_param_definition(&self) -> Option<&Rc<TypeParamDefinition>> {
         Some(&self.type_param_definition)
+    }
+
+    fn to_fct(&self) -> Option<&FctDefinition> {
+        Some(self)
     }
 }
 

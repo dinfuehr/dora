@@ -11,8 +11,9 @@ use dora_parser::ast;
 use dora_parser::Span;
 
 use crate::sema::{
-    module_path, new_identity_type_params, Element, ElementAccess, ExtensionDefinitionId,
-    ModuleDefinitionId, PackageDefinitionId, Sema, SourceFileId, TypeParamDefinition, Visibility,
+    module_path, new_identity_type_params, Element, ElementAccess, ElementId,
+    ExtensionDefinitionId, ModuleDefinitionId, PackageDefinitionId, Sema, SourceFileId,
+    TypeParamDefinition, Visibility,
 };
 use crate::{ParsedType, SourceType, SourceTypeArray};
 
@@ -135,6 +136,10 @@ impl StructDefinition {
 }
 
 impl Element for StructDefinition {
+    fn element_id(&self) -> ElementId {
+        ElementId::Struct(self.id())
+    }
+
     fn file_id(&self) -> SourceFileId {
         self.file_id
     }

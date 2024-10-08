@@ -5,8 +5,8 @@ use std::sync::Arc;
 use crate::interner::Name;
 use crate::program_parser::ParsedModifierList;
 use crate::sema::{
-    module_path, AnalysisData, Element, FctDefinitionId, ModuleDefinitionId, PackageDefinitionId,
-    Sema, SourceFileId, TypeParamDefinition, Visibility,
+    module_path, AnalysisData, Element, ElementId, FctDefinitionId, ModuleDefinitionId,
+    PackageDefinitionId, Sema, SourceFileId, TypeParamDefinition, Visibility,
 };
 use crate::ty::SourceType;
 use crate::ParsedType;
@@ -94,6 +94,10 @@ impl GlobalDefinition {
 }
 
 impl Element for GlobalDefinition {
+    fn element_id(&self) -> ElementId {
+        ElementId::Global(self.id())
+    }
+
     fn file_id(&self) -> SourceFileId {
         self.file_id
     }

@@ -9,7 +9,7 @@ use dora_parser::ast;
 use dora_parser::Span;
 
 use crate::sema::{
-    module_path, Element, ModuleDefinitionId, PackageDefinitionId, Sema, SourceFileId,
+    module_path, Element, ElementId, ModuleDefinitionId, PackageDefinitionId, Sema, SourceFileId,
     TypeParamDefinition, Visibility,
 };
 use crate::ty::SourceType;
@@ -78,6 +78,10 @@ impl ConstDefinition {
 }
 
 impl Element for ConstDefinition {
+    fn element_id(&self) -> ElementId {
+        ElementId::Const(self.id())
+    }
+
     fn file_id(&self) -> SourceFileId {
         self.file_id
     }

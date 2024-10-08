@@ -1,7 +1,9 @@
+use std::collections::HashMap;
+
 use dora_parser::ast;
 
 use crate::access::sym_accessible_from;
-use crate::sema::{Element, Sema, SourceFileId};
+use crate::sema::{AliasDefinitionId, Element, FctParent, Sema, SourceFileId};
 use crate::{ErrorMessage, ModuleSymTable, Name, SymbolKind};
 
 pub enum PathKind {
@@ -88,23 +90,27 @@ fn parse_path_self(
     regular: &ast::TypeRegularType,
 ) -> Result<PathKind, ()> {
     let segments = &regular.path.segments;
+    assert!(segments[0].is_self());
 
     if allow_self {
-        if let Some(trait_) = element.to_trait() {
-            if let Some(second) = segments.get(1) {
-                let name = expect_ident(sa, file_id, second)?;
-                let alias_id = trait_.alias_names().get(&name).cloned();
+        if let Some(second) = segments.get(1) {
+            let name = expect_ident(sa, file_id, second)?;
+
+            let aliases = available_aliases(sa, element);
+            if let Some(aliases) = aliases {
+                let alias_id = aliases.get(&name).cloned();
 
                 if let Some(alias_id) = alias_id {
                     Ok(PathKind::Symbol(SymbolKind::TypeAlias(alias_id)))
                 } else {
-                    unimplemented!();
+                    sa.report(file_id, second.span(), ErrorMessage::UnknownAlias);
+                    Err(())
                 }
             } else {
-                Ok(PathKind::Self_)
+                sa.report(file_id, second.span(), ErrorMessage::UnexpectedAlias);
+                Err(())
             }
         } else {
-            assert_eq!(segments.len(), 1);
             Ok(PathKind::Self_)
         }
     } else {
@@ -114,6 +120,32 @@ fn parse_path_self(
             ErrorMessage::SelfTypeUnavailable,
         );
         Err(())
+    }
+}
+
+fn available_aliases<'a>(
+    sa: &'a Sema,
+    element: &'a dyn Element,
+) -> Option<&'a HashMap<Name, AliasDefinitionId>> {
+    if let Some(trait_) = element.to_trait() {
+        Some(trait_.alias_names())
+    } else if let Some(fct) = element.to_fct() {
+        match fct.parent {
+            FctParent::Trait(trait_id) => Some(sa.trait_(trait_id).alias_names()),
+            FctParent::Impl(impl_id) => {
+                let impl_ = sa.impl_(impl_id);
+                if let Some(trait_ty) = impl_.trait_ty() {
+                    let trait_ = sa.trait_(trait_ty.trait_id);
+                    Some(trait_.alias_names())
+                } else {
+                    None
+                }
+            }
+            FctParent::Function => None,
+            FctParent::Extension(..) | FctParent::None => None,
+        }
+    } else {
+        None
     }
 }
 

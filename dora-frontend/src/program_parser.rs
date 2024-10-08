@@ -1435,37 +1435,33 @@ fn parse_type_param_definition(
 ) -> Rc<TypeParamDefinition> {
     let mut type_param_definition = TypeParamDefinition::new(parent);
 
-    if ast_type_params.is_none() {
-        return Rc::new(type_param_definition);
-    }
+    if let Some(ast_type_params) = ast_type_params {
+        if ast_type_params.params.len() == 0 {
+            let msg = ErrorMessage::TypeParamsExpected;
+            sa.report(file_id, ast_type_params.span, msg);
+        }
 
-    let ast_type_params = ast_type_params.expect("type params expected");
+        let mut names = HashSet::new();
 
-    if ast_type_params.params.len() == 0 {
-        let msg = ErrorMessage::TypeParamsExpected;
-        sa.report(file_id, ast_type_params.span, msg);
-    }
+        for type_param in ast_type_params.params.iter() {
+            let id = if let Some(ref ident) = type_param.name {
+                let iname = sa.interner.intern(&ident.name_as_string);
 
-    let mut names = HashSet::new();
+                if !names.insert(iname) {
+                    let name = ident.name_as_string.clone();
+                    let msg = ErrorMessage::TypeParamNameNotUnique(name);
+                    sa.report(file_id, type_param.span, msg);
+                }
 
-    for type_param in ast_type_params.params.iter() {
-        let id = if let Some(ref ident) = type_param.name {
-            let iname = sa.interner.intern(&ident.name_as_string);
+                type_param_definition.add_type_param(iname)
+            } else {
+                let name = sa.interner.intern("<missing name>");
+                type_param_definition.add_type_param(name)
+            };
 
-            if !names.insert(iname) {
-                let name = ident.name_as_string.clone();
-                let msg = ErrorMessage::TypeParamNameNotUnique(name);
-                sa.report(file_id, type_param.span, msg);
+            for bound in &type_param.bounds {
+                type_param_definition.add_bound(id, bound.clone());
             }
-
-            type_param_definition.add_type_param(iname)
-        } else {
-            let name = sa.interner.intern("<missing name>");
-            type_param_definition.add_type_param(name)
-        };
-
-        for bound in &type_param.bounds {
-            type_param_definition.add_bound(id, bound.clone());
         }
     }
 

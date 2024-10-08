@@ -11,7 +11,7 @@ use std::sync::Arc;
 use id_arena::Id;
 
 use crate::sema::{
-    Element, ImplDefinitionId, ModuleDefinitionId, PackageDefinitionId, SourceFileId,
+    Element, ElementId, ImplDefinitionId, ModuleDefinitionId, PackageDefinitionId, SourceFileId,
     TraitDefinitionId, TypeParamDefinition, Visibility,
 };
 use dora_parser::ast;
@@ -74,6 +74,10 @@ impl AliasDefinition {
         }
     }
 
+    pub fn id(&self) -> AliasDefinitionId {
+        self.id.get().cloned().expect("missing id")
+    }
+
     pub fn parsed_ty(&self) -> Option<&ParsedType> {
         self.parsed_ty.as_ref()
     }
@@ -88,6 +92,10 @@ impl AliasDefinition {
 }
 
 impl Element for AliasDefinition {
+    fn element_id(&self) -> ElementId {
+        ElementId::Alias(self.id())
+    }
+
     fn file_id(&self) -> SourceFileId {
         self.file_id
     }

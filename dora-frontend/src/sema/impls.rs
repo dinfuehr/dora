@@ -7,8 +7,8 @@ use dora_parser::ast;
 use dora_parser::Span;
 
 use crate::sema::{
-    AliasDefinitionId, Element, FctDefinitionId, ModuleDefinitionId, PackageDefinitionId,
-    SourceFileId, TraitDefinitionId, TypeParamDefinition,
+    AliasDefinitionId, Element, ElementId, FctDefinitionId, ModuleDefinitionId,
+    PackageDefinitionId, SourceFileId, TraitDefinitionId, TypeParamDefinition,
 };
 use crate::ty::SourceType;
 use crate::{ParsedTraitType, ParsedType, TraitType};
@@ -120,6 +120,10 @@ impl ImplDefinition {
 }
 
 impl Element for ImplDefinition {
+    fn element_id(&self) -> ElementId {
+        ElementId::Impl(self.id())
+    }
+
     fn file_id(&self) -> SourceFileId {
         self.file_id
     }
@@ -134,5 +138,9 @@ impl Element for ImplDefinition {
 
     fn type_param_definition(&self) -> Option<&Rc<TypeParamDefinition>> {
         Some(&self.type_param_definition)
+    }
+
+    fn to_impl(&self) -> Option<&ImplDefinition> {
+        Some(self)
     }
 }

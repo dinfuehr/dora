@@ -379,8 +379,9 @@ impl<'a> TypeCheck<'a> {
             file_id: self.file_id,
             type_param_definition: self.type_param_definition,
         };
-        parsety::check_type(self.sa, &ctxt, &parsed_ty);
-        let expanded_ty = parsety::expand_type(self.sa, &parsed_ty, self.self_ty.clone());
+        parsety::check_type(self.sa, self.element, &ctxt, &parsed_ty);
+        let expanded_ty =
+            parsety::expand_type(self.sa, self.element, &parsed_ty, self.self_ty.clone());
 
         replace_type(self.sa, expanded_ty, None, self.self_ty.clone())
     }

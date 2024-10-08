@@ -1,12 +1,30 @@
 use std::rc::Rc;
 
 use crate::sema::{
-    ModuleDefinitionId, PackageDefinitionId, Sema, SourceFileId, TypeParamDefinition,
+    AliasDefinitionId, ClassDefinitionId, ConstDefinitionId, EnumDefinitionId,
+    ExtensionDefinitionId, FctDefinition, FctDefinitionId, GlobalDefinitionId, ImplDefinition,
+    ImplDefinitionId, ModuleDefinitionId, PackageDefinitionId, Sema, SourceFileId,
+    StructDefinitionId, TraitDefinition, TraitDefinitionId, TypeParamDefinition, UseDefinitionId,
 };
 
-use super::TraitDefinition;
+#[derive(Debug, Copy, Clone, PartialEq, Eq)]
+pub enum ElementId {
+    Alias(AliasDefinitionId),
+    Const(ConstDefinitionId),
+    Class(ClassDefinitionId),
+    Struct(StructDefinitionId),
+    Global(GlobalDefinitionId),
+    Use(UseDefinitionId),
+    Impl(ImplDefinitionId),
+    Extension(ExtensionDefinitionId),
+    Fct(FctDefinitionId),
+    Enum(EnumDefinitionId),
+    Trait(TraitDefinitionId),
+}
 
 pub trait Element {
+    fn element_id(&self) -> ElementId;
+
     fn file_id(&self) -> SourceFileId;
     fn module_id(&self) -> ModuleDefinitionId;
     fn package_id(&self) -> PackageDefinitionId;
@@ -16,6 +34,20 @@ pub trait Element {
         self.to_trait().is_some()
     }
     fn to_trait(&self) -> Option<&TraitDefinition> {
+        None
+    }
+
+    fn is_fct(&self) -> bool {
+        self.to_trait().is_some()
+    }
+    fn to_fct(&self) -> Option<&FctDefinition> {
+        None
+    }
+
+    fn is_impl(&self) -> bool {
+        self.to_impl().is_some()
+    }
+    fn to_impl(&self) -> Option<&ImplDefinition> {
         None
     }
 }

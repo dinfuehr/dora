@@ -5,7 +5,7 @@ use std::sync::Arc;
 
 use crate::interner::Name;
 use crate::sema::{
-    Element, FctDefinitionId, ModuleDefinitionId, PackageDefinitionId, SourceFileId,
+    Element, ElementId, FctDefinitionId, ModuleDefinitionId, PackageDefinitionId, SourceFileId,
     TypeParamDefinition,
 };
 use crate::ty::SourceType;
@@ -77,6 +77,10 @@ impl ExtensionDefinition {
 }
 
 impl Element for ExtensionDefinition {
+    fn element_id(&self) -> ElementId {
+        ElementId::Extension(self.id())
+    }
+
     fn file_id(&self) -> SourceFileId {
         self.file_id
     }

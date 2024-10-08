@@ -102,6 +102,7 @@ fn parse_trait_types(sa: &Sema) {
             &mut symtable,
             trait_.file_id,
             trait_,
+            true,
         );
 
         symtable.pop_level();
@@ -119,6 +120,7 @@ fn parse_impl_types(sa: &Sema) {
             &mut symtable,
             impl_.file_id,
             impl_,
+            true,
         );
 
         parsety::parse_trait_type(
@@ -154,6 +156,7 @@ fn parse_class_types(sa: &Sema) {
             &mut symtable,
             cls.file_id(),
             cls,
+            false,
         );
 
         let number_type_params = cls.type_param_definition().type_param_count();
@@ -183,6 +186,7 @@ fn parse_enum_types(sa: &Sema) {
             &mut symtable,
             enum_.file_id,
             enum_,
+            false,
         );
 
         for variant in &enum_.variants {
@@ -206,6 +210,7 @@ fn parse_struct_types(sa: &Sema) {
             &mut symtable,
             struct_.file_id,
             struct_,
+            false,
         );
 
         for field in &struct_.fields {
@@ -234,6 +239,7 @@ fn parse_extension_types(sa: &Sema) {
             &mut symtable,
             extension.file_id,
             extension,
+            true,
         );
 
         parsety::parse_type(
@@ -286,6 +292,7 @@ fn parse_function_types(sa: &Sema) {
             &mut sym_table,
             fct.file_id,
             fct,
+            fct.is_self_allowed(),
         );
 
         let allow_self = fct.is_self_allowed();
@@ -313,6 +320,7 @@ fn parse_type_param_definition(
     symtable: &mut ModuleSymTable,
     file_id: SourceFileId,
     element: &dyn Element,
+    allow_self: bool,
 ) {
     for (id, name) in type_param_definition.names() {
         if symtable.get(name).is_none() {
@@ -322,13 +330,20 @@ fn parse_type_param_definition(
     }
 
     for bound in type_param_definition.own_bounds() {
-        parsety::parse_type(sa, &symtable, file_id, element, false, bound.parsed_ty());
+        parsety::parse_type(
+            sa,
+            &symtable,
+            file_id,
+            element,
+            allow_self,
+            bound.parsed_ty(),
+        );
         parsety::parse_trait_bound_type(
             sa,
             &symtable,
             file_id,
             element,
-            false,
+            allow_self,
             bound.parsed_trait_ty(),
         );
     }
@@ -349,19 +364,20 @@ pub fn check_types(sa: &Sema) {
 
 fn check_alias_types(sa: &Sema) {
     for (_id, alias) in sa.aliases.iter() {
-        let type_param_definition = match alias.parent {
-            AliasParent::None => &TypeParamDefinition::empty(),
+        let (element, type_param_definition): (&dyn Element, &TypeParamDefinition) =
+            match alias.parent {
+                AliasParent::None => (alias, &TypeParamDefinition::empty()),
 
-            AliasParent::Impl(impl_id) => {
-                let impl_ = sa.impl_(impl_id);
-                impl_.type_param_definition()
-            }
+                AliasParent::Impl(impl_id) => {
+                    let impl_ = sa.impl_(impl_id);
+                    (impl_, impl_.type_param_definition())
+                }
 
-            AliasParent::Trait(id) => {
-                let trait_ = sa.trait_(id);
-                trait_.type_param_definition()
-            }
-        };
+                AliasParent::Trait(id) => {
+                    let trait_ = sa.trait_(id);
+                    (trait_, trait_.type_param_definition())
+                }
+            };
 
         let ctxt = parsety::TypeContext {
             allow_self: false,
@@ -371,11 +387,11 @@ fn check_alias_types(sa: &Sema) {
         };
 
         if let Some(parsed_ty) = alias.parsed_ty() {
-            parsety::check_type(sa, &ctxt, parsed_ty);
+            parsety::check_type(sa, element, &ctxt, parsed_ty);
         }
 
         for bound in alias.bounds() {
-            parsety::check_trait_type(sa, &ctxt, bound.parsed_ty());
+            parsety::check_trait_type(sa, element, &ctxt, bound.parsed_ty());
         }
     }
 }
@@ -388,7 +404,7 @@ fn check_const_types(sa: &Sema) {
             file_id: const_.file_id,
             type_param_definition: &TypeParamDefinition::empty(),
         };
-        parsety::check_type(sa, &ctxt, const_.parsed_ty());
+        parsety::check_type(sa, const_, &ctxt, const_.parsed_ty());
     }
 }
 
@@ -400,7 +416,7 @@ fn check_global_types(sa: &Sema) {
             file_id: global.file_id,
             type_param_definition: &TypeParamDefinition::empty(),
         };
-        parsety::check_type(sa, &ctxt, global.parsed_ty());
+        parsety::check_type(sa, global, &ctxt, global.parsed_ty());
     }
 }
 
@@ -413,7 +429,7 @@ fn check_trait_types(sa: &Sema) {
             type_param_definition: trait_.type_param_definition(),
         };
 
-        check_type_param_definition(sa, &ctxt, trait_.type_param_definition());
+        check_type_param_definition(sa, trait_, &ctxt, trait_.type_param_definition());
     }
 }
 
@@ -426,10 +442,10 @@ fn check_struct_types(sa: &Sema) {
             type_param_definition: struct_.type_param_definition(),
         };
 
-        check_type_param_definition(sa, &ctxt, struct_.type_param_definition());
+        check_type_param_definition(sa, struct_, &ctxt, struct_.type_param_definition());
 
         for field in &struct_.fields {
-            parsety::check_type(sa, &ctxt, field.parsed_ty());
+            parsety::check_type(sa, struct_, &ctxt, field.parsed_ty());
         }
     }
 }
@@ -443,10 +459,10 @@ fn check_class_types(sa: &Sema) {
             type_param_definition: class.type_param_definition(),
         };
 
-        check_type_param_definition(sa, &ctxt, class.type_param_definition());
+        check_type_param_definition(sa, class, &ctxt, class.type_param_definition());
 
         for field in &class.fields {
-            parsety::check_type(sa, &ctxt, field.parsed_ty());
+            parsety::check_type(sa, class, &ctxt, field.parsed_ty());
         }
     }
 }
@@ -460,11 +476,11 @@ fn check_enum_types(sa: &Sema) {
             type_param_definition: enum_.type_param_definition(),
         };
 
-        check_type_param_definition(sa, &ctxt, enum_.type_param_definition());
+        check_type_param_definition(sa, enum_, &ctxt, enum_.type_param_definition());
 
         for variant in enum_.variants() {
             for parsed_ty in variant.parsed_types() {
-                parsety::check_type(sa, &ctxt, parsed_ty);
+                parsety::check_type(sa, enum_, &ctxt, parsed_ty);
             }
         }
     }
@@ -479,12 +495,12 @@ fn check_impl_types(sa: &Sema) {
             type_param_definition: impl_.type_param_definition(),
         };
 
-        check_type_param_definition(sa, &ctxt, impl_.type_param_definition());
-        parsety::check_type(sa, &ctxt, impl_.parsed_extended_ty());
+        check_type_param_definition(sa, impl_, &ctxt, impl_.type_param_definition());
+        parsety::check_type(sa, impl_, &ctxt, impl_.parsed_extended_ty());
 
         let mut ctxt = ctxt;
         ctxt.allow_self = true;
-        parsety::check_trait_type(sa, &ctxt, impl_.parsed_trait_ty());
+        parsety::check_trait_type(sa, impl_, &ctxt, impl_.parsed_trait_ty());
     }
 }
 
@@ -497,9 +513,9 @@ fn check_extension_types(sa: &Sema) {
             type_param_definition: extension.type_param_definition(),
         };
 
-        check_type_param_definition(sa, &ctxt, extension.type_param_definition());
+        check_type_param_definition(sa, extension, &ctxt, extension.type_param_definition());
 
-        parsety::check_type(sa, &ctxt, extension.parsed_ty());
+        parsety::check_type(sa, extension, &ctxt, extension.parsed_ty());
     }
 }
 
@@ -512,24 +528,25 @@ fn check_function_types(sa: &Sema) {
             type_param_definition: fct.type_param_definition(),
         };
 
-        check_type_param_definition(sa, &ctxt, fct.type_param_definition());
+        check_type_param_definition(sa, fct, &ctxt, fct.type_param_definition());
 
         for param in fct.params_with_self() {
-            parsety::check_type(sa, &ctxt, param.parsed_ty());
+            parsety::check_type(sa, fct, &ctxt, param.parsed_ty());
         }
 
-        parsety::check_type(sa, &ctxt, fct.parsed_return_type());
+        parsety::check_type(sa, fct, &ctxt, fct.parsed_return_type());
     }
 }
 
 fn check_type_param_definition(
     sa: &Sema,
+    element: &dyn Element,
     ctxt: &parsety::TypeContext,
     type_param_definition: &TypeParamDefinition,
 ) {
     for bound in type_param_definition.own_bounds() {
-        parsety::check_type(sa, &ctxt, bound.parsed_ty());
-        parsety::check_trait_type(sa, &ctxt, bound.parsed_trait_ty());
+        parsety::check_type(sa, element, &ctxt, bound.parsed_ty());
+        parsety::check_trait_type(sa, element, &ctxt, bound.parsed_trait_ty());
     }
 }
 
@@ -548,31 +565,41 @@ pub fn expand_types(sa: &Sema) {
 
 fn expand_impl_types(sa: &Sema) {
     for (_id, impl_) in sa.impls.iter() {
-        parsety::expand_type(sa, impl_.parsed_extended_ty(), None);
-        parsety::expand_trait_type(sa, impl_.parsed_trait_ty(), Some(impl_.extended_ty()));
+        parsety::expand_type(sa, impl_, impl_.parsed_extended_ty(), None);
+        parsety::expand_trait_type(
+            sa,
+            impl_,
+            impl_.parsed_trait_ty(),
+            Some(impl_.extended_ty()),
+        );
 
-        expand_type_param_definition(sa, impl_.type_param_definition(), None);
+        expand_type_param_definition(sa, impl_, impl_.type_param_definition(), None);
     }
 }
 
 fn expand_trait_types(sa: &Sema) {
     for (_id, trait_) in sa.traits.iter() {
-        expand_type_param_definition(sa, trait_.type_param_definition(), None);
+        expand_type_param_definition(sa, trait_, trait_.type_param_definition(), None);
     }
 }
 
 fn expand_alias_types(sa: &Sema) {
     for (_id, alias) in sa.aliases.iter() {
         if let Some(parsed_ty) = alias.parsed_ty() {
-            parsety::expand_type(sa, parsed_ty, None);
+            parsety::expand_type(sa, alias, parsed_ty, None);
         }
     }
 }
 
 fn expand_extension_types(sa: &Sema) {
     for (_id, extension) in sa.extensions.iter() {
-        parsety::expand_type(sa, extension.parsed_ty(), Some(extension.ty()));
-        expand_type_param_definition(sa, extension.type_param_definition(), Some(extension.ty()));
+        parsety::expand_type(sa, extension, extension.parsed_ty(), Some(extension.ty()));
+        expand_type_param_definition(
+            sa,
+            extension,
+            extension.type_param_definition(),
+            Some(extension.ty()),
+        );
     }
 }
 
@@ -602,38 +629,38 @@ fn expand_function_type(sa: &Sema, fct: &FctDefinition, parsed_ty: &ParsedType) 
         FctParent::Function => unreachable!(),
     };
 
-    parsety::expand_type(sa, &parsed_ty, replace_self);
+    parsety::expand_type(sa, fct, &parsed_ty, replace_self);
 }
 
 fn expand_global_types(sa: &Sema) {
     for (_id, global) in sa.globals.iter() {
-        parsety::expand_type(sa, global.parsed_ty(), None);
+        parsety::expand_type(sa, global, global.parsed_ty(), None);
     }
 }
 
 fn expand_const_types(sa: &Sema) {
     for (_id, const_) in sa.consts.iter() {
-        parsety::expand_type(sa, const_.parsed_ty(), None);
+        parsety::expand_type(sa, const_, const_.parsed_ty(), None);
     }
 }
 
 fn expand_class_types(sa: &Sema) {
     for (_id, cls) in sa.classes.iter() {
         for field in &cls.fields {
-            parsety::expand_type(sa, field.parsed_ty(), None);
+            parsety::expand_type(sa, cls, field.parsed_ty(), None);
         }
 
-        expand_type_param_definition(sa, cls.type_param_definition(), None);
+        expand_type_param_definition(sa, cls, cls.type_param_definition(), None);
     }
 }
 
 fn expand_struct_types(sa: &Sema) {
     for (_id, struct_) in sa.structs.iter() {
         for field in &struct_.fields {
-            parsety::expand_type(sa, field.parsed_ty(), None);
+            parsety::expand_type(sa, struct_, field.parsed_ty(), None);
         }
 
-        expand_type_param_definition(sa, struct_.type_param_definition(), None);
+        expand_type_param_definition(sa, struct_, struct_.type_param_definition(), None);
     }
 }
 
@@ -641,22 +668,23 @@ fn expand_enum_types(sa: &Sema) {
     for (_id, enum_) in sa.enums.iter() {
         for variant in enum_.variants() {
             for parsed_ty in variant.parsed_types() {
-                parsety::expand_type(sa, parsed_ty, None);
+                parsety::expand_type(sa, enum_, parsed_ty, None);
             }
         }
 
-        expand_type_param_definition(sa, enum_.type_param_definition(), None);
+        expand_type_param_definition(sa, enum_, enum_.type_param_definition(), None);
     }
 }
 
 fn expand_type_param_definition(
     sa: &Sema,
+    element: &dyn Element,
     type_param_definition: &TypeParamDefinition,
     replace_self: Option<SourceType>,
 ) {
     for bound in type_param_definition.own_bounds() {
-        parsety::expand_type(sa, bound.parsed_ty(), replace_self.clone());
-        parsety::expand_trait_type(sa, bound.parsed_trait_ty(), replace_self.clone());
+        parsety::expand_type(sa, element, bound.parsed_ty(), replace_self.clone());
+        parsety::expand_trait_type(sa, element, bound.parsed_trait_ty(), replace_self.clone());
     }
 }
 

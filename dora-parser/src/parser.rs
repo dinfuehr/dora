@@ -3517,6 +3517,16 @@ mod tests {
     }
 
     #[test]
+    fn parse_type_path() {
+        let ty = parse_type("Foo::Bar::Baz");
+        let ty = ty.to_regular().unwrap();
+        assert_eq!(ty.path.segments.len(), 3);
+        assert_eq!(ty.path.segments[0].as_name_str(), "Foo");
+        assert_eq!(ty.path.segments[1].as_name_str(), "Bar");
+        assert_eq!(ty.path.segments[2].as_name_str(), "Baz");
+    }
+
+    #[test]
     fn parse_multiple_class_type_params() {
         let prog = parse("class Foo[A, B]");
         let cls = prog.cls0();

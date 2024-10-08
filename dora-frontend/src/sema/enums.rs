@@ -12,7 +12,7 @@ use dora_parser::Span;
 use id_arena::Id;
 
 use crate::sema::{
-    module_path, Element, ElementAccess, ExtensionDefinitionId, ModuleDefinitionId,
+    module_path, Element, ElementAccess, ElementId, ExtensionDefinitionId, ModuleDefinitionId,
     PackageDefinitionId, Sema, SourceFileId, TypeParamDefinition, Visibility,
 };
 use crate::ty::SourceTypeArray;
@@ -110,6 +110,10 @@ impl EnumDefinition {
 }
 
 impl Element for EnumDefinition {
+    fn element_id(&self) -> ElementId {
+        ElementId::Enum(self.id())
+    }
+
     fn file_id(&self) -> SourceFileId {
         self.file_id
     }

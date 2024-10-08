@@ -2202,6 +2202,13 @@ impl PathSegmentData {
             _ => None,
         }
     }
+
+    pub fn is_self(&self) -> bool {
+        match self {
+            PathSegmentData::Self_(..) => true,
+            _ => false,
+        }
+    }
 }
 
 impl PathSegmentData {

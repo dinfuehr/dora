@@ -3,8 +3,8 @@ use std::collections::{HashMap, HashSet};
 
 use crate::access::{sym_accessible_from, trait_accessible_from};
 use crate::sema::{
-    implements_trait, is_object_safe, AliasDefinitionId, Element, ModuleDefinitionId, SourceFileId,
-    TraitDefinition, TraitDefinitionId, TypeParamDefinition,
+    implements_trait, is_object_safe, AliasDefinitionId, AliasParent, Element, FctParent,
+    ModuleDefinitionId, SourceFileId, TraitDefinition, TraitDefinitionId, TypeParamDefinition,
 };
 use crate::sym::{ModuleSymTable, SymbolKind};
 use crate::{
@@ -637,9 +637,14 @@ fn convert_trait_type(
     })
 }
 
-pub fn check_type(sa: &Sema, ctxt: &TypeContext, parsed_ty: &ParsedType) -> SourceType {
+pub fn check_type(
+    sa: &Sema,
+    element: &dyn Element,
+    ctxt: &TypeContext,
+    parsed_ty: &ParsedType,
+) -> SourceType {
     if let Some(parsed_ty_ast) = parsed_ty.parsed_ast() {
-        let new_ty = check_type_inner(sa, ctxt, parsed_ty.ty(), parsed_ty_ast);
+        let new_ty = check_type_inner(sa, element, ctxt, parsed_ty.ty(), parsed_ty_ast);
         parsed_ty.set_ty(new_ty.clone());
         new_ty
     } else {
@@ -649,6 +654,7 @@ pub fn check_type(sa: &Sema, ctxt: &TypeContext, parsed_ty: &ParsedType) -> Sour
 
 fn check_type_inner(
     sa: &Sema,
+    element: &dyn Element,
     ctxt: &TypeContext,
     ty: SourceType,
     parsed_ty: &ParsedTypeAst,
@@ -693,13 +699,13 @@ fn check_type_inner(
 
             for idx in 0..parsed_params.len() {
                 let parsed_param = &parsed_params[idx];
-                let ty = check_type_inner(sa, ctxt, params[idx].clone(), parsed_param);
+                let ty = check_type_inner(sa, element, ctxt, params[idx].clone(), parsed_param);
                 new_params.push(ty);
             }
 
             let new_params = SourceTypeArray::with(new_params);
             let new_return_type: SourceType = if let Some(parsed_return_type) = parsed_return_type {
-                check_type_inner(sa, ctxt, *return_type, parsed_return_type)
+                check_type_inner(sa, element, ctxt, *return_type, parsed_return_type)
             } else {
                 SourceType::Unit
             };
@@ -717,7 +723,7 @@ fn check_type_inner(
 
             for idx in 0..parsed_subtypes.len() {
                 let parsed_subtype = &parsed_subtypes[idx];
-                let ty = check_type_inner(sa, ctxt, subtypes[idx].clone(), parsed_subtype);
+                let ty = check_type_inner(sa, element, ctxt, subtypes[idx].clone(), parsed_subtype);
                 new_type_params.push(ty);
             }
 
@@ -725,15 +731,18 @@ fn check_type_inner(
         }
         SourceType::Class(_, type_params)
         | SourceType::Struct(_, type_params)
-        | SourceType::Enum(_, type_params) => check_type_record(sa, ctxt, parsed_ty, type_params),
+        | SourceType::Enum(_, type_params) => {
+            check_type_record(sa, element, ctxt, parsed_ty, type_params)
+        }
         SourceType::Trait(trait_id, type_params) => {
-            check_type_trait_object(sa, ctxt, parsed_ty, trait_id, type_params)
+            check_type_trait_object(sa, element, ctxt, parsed_ty, trait_id, type_params)
         }
     }
 }
 
 fn check_type_record(
     sa: &Sema,
+    element: &dyn Element,
     ctxt: &TypeContext,
     parsed_ty: &ParsedTypeAst,
     type_params: SourceTypeArray,
@@ -758,7 +767,13 @@ fn check_type_record(
     for idx in 0..type_params.len() {
         let parsed_type_arg = &parsed_type_params[idx];
         assert!(parsed_type_arg.name.is_none());
-        let ty = check_type_inner(sa, ctxt, type_params[idx].clone(), &parsed_type_arg.ty);
+        let ty = check_type_inner(
+            sa,
+            element,
+            ctxt,
+            type_params[idx].clone(),
+            &parsed_type_arg.ty,
+        );
         new_type_params.push(ty);
     }
 
@@ -781,6 +796,7 @@ fn check_type_record(
 
 fn check_type_trait_object(
     sa: &Sema,
+    element: &dyn Element,
     ctxt: &TypeContext,
     parsed_ty: &ParsedTypeAst,
     trait_id: TraitDefinitionId,
@@ -821,7 +837,7 @@ fn check_type_trait_object(
     for (idx, arg) in generic_args.iter().enumerate() {
         let parsed_type_arg = &parsed_type_arguments[idx];
         assert!(parsed_type_arg.name.is_none());
-        let ty = check_type_inner(sa, ctxt, arg.clone(), &parsed_type_arg.ty);
+        let ty = check_type_inner(sa, element, ctxt, arg.clone(), &parsed_type_arg.ty);
         new_type_params.push(ty);
     }
 
@@ -831,7 +847,7 @@ fn check_type_trait_object(
         let parsed_type_arg = &parsed_type_arguments[generic_count + idx];
         assert!(parsed_type_arg.name.is_some());
         let alias_id = trait_.aliases()[0];
-        let ty = check_type_inner(sa, ctxt, arg.clone(), &parsed_type_arg.ty);
+        let ty = check_type_inner(sa, element, ctxt, arg.clone(), &parsed_type_arg.ty);
         new_bindings.push((alias_id, ty));
     }
 
@@ -854,17 +870,23 @@ fn check_type_trait_object(
     result
 }
 
-pub fn check_trait_type(sa: &Sema, ctxt: &TypeContext, parsed_ty: &ParsedTraitType) {
+pub fn check_trait_type(
+    sa: &Sema,
+    element: &dyn Element,
+    ctxt: &TypeContext,
+    parsed_ty: &ParsedTraitType,
+) {
     let parsed_ty_ast = parsed_ty.parsed_ast().expect("missing ast node");
 
     if let Some(trait_ty) = parsed_ty.ty() {
-        let new_ty = check_trait_type_inner(sa, ctxt, trait_ty, parsed_ty_ast);
+        let new_ty = check_trait_type_inner(sa, element, ctxt, trait_ty, parsed_ty_ast);
         parsed_ty.set_ty(new_ty);
     }
 }
 
 fn check_trait_type_inner(
     sa: &Sema,
+    element: &dyn Element,
     ctxt: &TypeContext,
     trait_ty: TraitType,
     parsed_ty: &ParsedTypeAst,
@@ -893,7 +915,7 @@ fn check_trait_type_inner(
     for (idx, arg) in trait_ty.type_params.iter().enumerate() {
         let parsed_type_arg = &parsed_type_params[idx];
         assert!(parsed_type_arg.name.is_none());
-        let ty = check_type_inner(sa, ctxt, arg, &parsed_type_arg.ty);
+        let ty = check_type_inner(sa, element, ctxt, arg, &parsed_type_arg.ty);
         new_type_params.push(ty);
     }
 
@@ -903,7 +925,7 @@ fn check_trait_type_inner(
     for (idx, (alias_id, ty)) in trait_ty.bindings.iter().enumerate() {
         let parsed_type_arg = &parsed_type_params[trait_ty.type_params.len() + idx];
         assert!(parsed_type_arg.name.is_some());
-        let ty = check_type_inner(sa, ctxt, ty.clone(), &parsed_type_arg.ty);
+        let ty = check_type_inner(sa, element, ctxt, ty.clone(), &parsed_type_arg.ty);
         new_bindings.push((*alias_id, ty));
     }
 
@@ -1029,21 +1051,27 @@ fn check_trait_type_params(
 
 pub fn expand_type(
     sa: &Sema,
+    element: &dyn Element,
     parsed_ty: &ParsedType,
     replace_self: Option<SourceType>,
 ) -> SourceType {
-    let new_ty = expand_st(sa, parsed_ty.ty(), replace_self);
+    let new_ty = expand_st(sa, element, parsed_ty.ty(), replace_self);
     parsed_ty.set_ty(new_ty.clone());
     new_ty
 }
 
-pub fn expand_trait_type(sa: &Sema, parsed_ty: &ParsedTraitType, replace_self: Option<SourceType>) {
+pub fn expand_trait_type(
+    sa: &Sema,
+    element: &dyn Element,
+    parsed_ty: &ParsedTraitType,
+    replace_self: Option<SourceType>,
+) {
     if let Some(trait_ty) = parsed_ty.ty() {
-        let new_type_params = expand_sta(sa, trait_ty.type_params, replace_self.clone());
+        let new_type_params = expand_sta(sa, element, trait_ty.type_params, replace_self.clone());
         let new_bindings = trait_ty
             .bindings
             .into_iter()
-            .map(|(id, ty)| (id, expand_st(sa, ty, replace_self.clone())))
+            .map(|(id, ty)| (id, expand_st(sa, element, ty, replace_self.clone())))
             .collect();
         let new_trait_ty = TraitType {
             trait_id: trait_ty.trait_id,
@@ -1054,37 +1082,78 @@ pub fn expand_trait_type(sa: &Sema, parsed_ty: &ParsedTraitType, replace_self: O
     }
 }
 
-fn expand_st(sa: &Sema, ty: SourceType, replace_self: Option<SourceType>) -> SourceType {
+fn expand_st(
+    sa: &Sema,
+    element: &dyn Element,
+    ty: SourceType,
+    replace_self: Option<SourceType>,
+) -> SourceType {
     match ty {
         SourceType::Class(cls_id, type_params) => {
-            SourceType::Class(cls_id, expand_sta(sa, type_params, replace_self))
+            SourceType::Class(cls_id, expand_sta(sa, element, type_params, replace_self))
         }
 
         SourceType::Trait(trait_id, type_params) => {
-            SourceType::Trait(trait_id, expand_sta(sa, type_params, replace_self))
+            SourceType::Trait(trait_id, expand_sta(sa, element, type_params, replace_self))
         }
 
-        SourceType::Struct(struct_id, type_params) => {
-            SourceType::Struct(struct_id, expand_sta(sa, type_params, replace_self))
-        }
+        SourceType::Struct(struct_id, type_params) => SourceType::Struct(
+            struct_id,
+            expand_sta(sa, element, type_params, replace_self),
+        ),
 
         SourceType::Enum(enum_id, type_params) => {
-            SourceType::Enum(enum_id, expand_sta(sa, type_params, replace_self))
+            SourceType::Enum(enum_id, expand_sta(sa, element, type_params, replace_self))
         }
 
         SourceType::Lambda(params, return_type) => SourceType::Lambda(
-            expand_sta(sa, params, replace_self.clone()),
-            Box::new(expand_st(sa, *return_type, replace_self)),
+            expand_sta(sa, element, params, replace_self.clone()),
+            Box::new(expand_st(sa, element, *return_type, replace_self)),
         ),
 
-        SourceType::Tuple(subtypes) => SourceType::Tuple(expand_sta(sa, subtypes, replace_self)),
+        SourceType::Tuple(subtypes) => {
+            SourceType::Tuple(expand_sta(sa, element, subtypes, replace_self))
+        }
 
         SourceType::TypeAlias(id) => {
             let alias = sa.alias(id);
-            if alias.parent.is_trait() {
-                ty
+
+            if let AliasParent::Trait(trait_id) = alias.parent {
+                if let Some(impl_) = element.to_impl() {
+                    let impl_alias_id = impl_.trait_alias_map().get(&id).cloned();
+                    if let Some(impl_alias_id) = impl_alias_id {
+                        let impl_alias = sa.alias(impl_alias_id);
+                        impl_alias.ty()
+                    } else {
+                        SourceType::Error
+                    }
+                } else if let Some(fct) = element.to_fct() {
+                    match fct.parent {
+                        FctParent::Impl(impl_id) => {
+                            let impl_ = sa.impl_(impl_id);
+                            let impl_alias_id = impl_.trait_alias_map().get(&id).cloned();
+                            if let Some(impl_alias_id) = impl_alias_id {
+                                let impl_alias = sa.alias(impl_alias_id);
+                                impl_alias.ty()
+                            } else {
+                                SourceType::Error
+                            }
+                        }
+                        FctParent::Extension(..) | FctParent::None | FctParent::Function => {
+                            unreachable!()
+                        }
+                        FctParent::Trait(fct_trait_id) => {
+                            assert_eq!(trait_id, fct_trait_id);
+                            ty
+                        }
+                    }
+                } else {
+                    let element_trait_id = element.to_trait().expect("trait expected").id();
+                    assert_eq!(trait_id, element_trait_id);
+                    ty
+                }
             } else {
-                expand_st(sa, alias.ty(), replace_self)
+                expand_st(sa, element, alias.ty(), replace_self)
             }
         }
 
@@ -1109,12 +1178,13 @@ fn expand_st(sa: &Sema, ty: SourceType, replace_self: Option<SourceType>) -> Sou
 
 fn expand_sta(
     sa: &Sema,
+    element: &dyn Element,
     array: SourceTypeArray,
     replace_self: Option<SourceType>,
 ) -> SourceTypeArray {
     let new_array = array
         .iter()
-        .map(|ty| expand_st(sa, ty, replace_self.clone()))
+        .map(|ty| expand_st(sa, element, ty, replace_self.clone()))
         .collect::<Vec<_>>();
     SourceTypeArray::with(new_array)
 }
@@ -1241,8 +1311,96 @@ mod tests {
     }
 
     #[test]
+    fn trait_alias_through_self_in_clause() {
+        ok("
+            trait Bar {}
+            trait Foo where Self::X: Bar {
+                type X;
+            }
+        ")
+    }
+
+    #[test]
+    fn trait_alias_through_self_in_clause_unknown() {
+        err(
+            "
+            trait Bar {}
+            trait Foo where Self::Y: Bar {
+                type X;
+            }
+        ",
+            (3, 35),
+            ErrorMessage::UnknownAlias,
+        )
+    }
+
+    #[test]
+    fn extension_alias_through_self_unknown() {
+        err(
+            "
+            struct Foo
+            trait Bar {}
+            impl Foo where Self::X: Bar {}
+        ",
+            (4, 34),
+            ErrorMessage::UnexpectedAlias,
+        )
+    }
+
+    #[test]
+    fn impl_alias_through_self_method() {
+        ok("
+            trait Foo {
+                type X;
+                fn get(): X;
+            }
+            impl Foo for String {
+                type X = String;
+                fn get(): Self::X { self }
+            }
+        ");
+    }
+
+    #[test]
+    fn impl_alias_through_self_method_unknown() {
+        err(
+            "
+            trait Foo {}
+            trait Bar {}
+            impl Foo for String where Self::X: Bar {}
+        ",
+            (4, 45),
+            ErrorMessage::UnexpectedAlias,
+        )
+    }
+
+    #[test]
+    fn trait_alias_through_self_in_method() {
+        ok("
+            trait Foo {
+                type X;
+                fn get(): Self::X;
+            }
+        ")
+    }
+
+    #[test]
+    fn trait_alias_through_self_in_method_unknown() {
+        err(
+            "
+            trait Foo {
+                type X;
+                fn get(): Self::Y;
+            }
+        ",
+            (4, 33),
+            ErrorMessage::UnknownAlias,
+        );
+    }
+
+    #[test]
     #[ignore]
-    fn trait_alias_through_self() {
+    fn trait_alias_through_self_in_trait_method() {
         ok("
             trait Foo {
                 type X;
