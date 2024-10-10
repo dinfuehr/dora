@@ -2,7 +2,7 @@ use std::collections::{HashMap, HashSet};
 
 use dora_bytecode::{
     BytecodeFunction, BytecodeType, BytecodeTypeArray, BytecodeWriter, ClassId, ConstPoolEntry,
-    ConstPoolIdx, EnumId, FunctionId, GlobalId, Label, Location, Register, StructId, TraitId,
+    ConstPoolIdx, EnumId, FunctionId, GlobalId, Label, Location, Register, StructId,
 };
 
 pub struct BytecodeBuilder {
@@ -144,12 +144,13 @@ impl BytecodeBuilder {
 
     pub fn add_const_trait(
         &mut self,
-        id: TraitId,
-        type_params: BytecodeTypeArray,
-        object_ty: BytecodeType,
+        trait_ty: BytecodeType,
+        actual_object_ty: BytecodeType,
     ) -> ConstPoolIdx {
-        self.writer
-            .add_const(ConstPoolEntry::Trait(id, type_params, object_ty))
+        self.writer.add_const(ConstPoolEntry::TraitObject {
+            trait_ty,
+            actual_object_ty,
+        })
     }
 
     pub fn add_const_tuple_element(

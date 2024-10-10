@@ -989,23 +989,26 @@ fn find_elements_in_trait(
                     bounds.push(AliasBound::new(ast_alias_bound.clone()));
                 }
 
-                if node.ty.is_some() {
+                let where_bounds = if let Some(ref node_ty) = node.ty {
                     sa.report(
                         file_id,
-                        node.span,
+                        node_ty.span(),
                         ErrorMessage::UnexpectedTypeAliasAssignment,
                     );
 
-                    if let Some(ref post_where_bounds) = node.post_where_bounds {
+                    if let Some(ref pre_where_bounds) = node.pre_where_bounds {
                         sa.report(
                             file_id,
-                            post_where_bounds.span,
+                            pre_where_bounds.span,
                             ErrorMessage::UnexpectedWhere,
                         );
                     }
+
+                    node.post_where_bounds.as_ref()
                 } else {
                     assert!(node.post_where_bounds.is_none());
-                }
+                    node.pre_where_bounds.as_ref()
+                };
 
                 let container_type_param_definition =
                     sa.trait_(trait_id).type_param_definition().clone();
@@ -1013,7 +1016,7 @@ fn find_elements_in_trait(
                     sa,
                     Some(container_type_param_definition),
                     node.type_params.as_ref(),
-                    node.pre_where_bounds.as_ref(),
+                    where_bounds,
                     file_id,
                 );
 

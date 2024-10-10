@@ -1214,22 +1214,15 @@ impl<'a> AstBytecodeGen<'a> {
     fn visit_expr_conv(&mut self, expr: &ast::ExprConvType, dest: DataDest) -> Register {
         let object_type = self.ty(expr.object.id());
         let check_type = self.ty(expr.data_type.id());
+        assert!(check_type.is_trait());
 
-        let (trait_id, type_params) = match check_type {
-            SourceType::Trait(trait_id, ref type_params) => (trait_id, type_params.clone()),
-            _ => unreachable!(),
-        };
-
-        let trait_id = TraitId(trait_id.index().try_into().expect("overflow"));
+        let check_type = bty_from_ty(check_type);
 
         let object = gen_expr(self, &expr.object, DataDest::Alloc);
-        let idx = self.builder.add_const_trait(
-            TraitId(trait_id.0),
-            bty_array_from_ty(&check_type.type_params()),
-            bty_from_ty(object_type),
-        );
-        let ty = BytecodeType::Trait(trait_id, bty_array_from_ty(&type_params));
-        let dest = self.ensure_register(dest, ty);
+        let idx = self
+            .builder
+            .add_const_trait(check_type.clone(), bty_from_ty(object_type));
+        let dest = self.ensure_register(dest, check_type);
         self.builder
             .emit_new_trait_object(dest, idx, object, self.loc(expr.span));
         self.free_if_temp(object);

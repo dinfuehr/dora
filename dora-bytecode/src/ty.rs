@@ -106,6 +106,13 @@ impl BytecodeType {
         }
     }
 
+    pub fn to_trait_id(&self) -> Option<TraitId> {
+        match self {
+            BytecodeType::Trait(id, ..) => Some(*id),
+            _ => None,
+        }
+    }
+
     pub fn is_type_param(&self) -> bool {
         match self {
             BytecodeType::TypeParam(_) => true,

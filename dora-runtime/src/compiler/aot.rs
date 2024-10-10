@@ -295,23 +295,19 @@ impl<'a> TransitiveClosureComputation<'a> {
                 }
 
                 BytecodeInstruction::NewTraitObject { idx, .. } => {
-                    let (trait_id, trait_type_params, object_ty) =
-                        match bytecode_function.const_pool(idx) {
-                            ConstPoolEntry::Trait(trait_id, trait_type_params, object_ty) => {
-                                (*trait_id, trait_type_params.clone(), object_ty.clone())
-                            }
-                            _ => unreachable!(),
-                        };
+                    let (trait_ty, actual_object_ty) = match bytecode_function.const_pool(idx) {
+                        ConstPoolEntry::TraitObject {
+                            trait_ty,
+                            actual_object_ty,
+                        } => (trait_ty.clone(), actual_object_ty.clone()),
+                        _ => unreachable!(),
+                    };
 
-                    let trait_type_params = specialize_bty_array(&trait_type_params, &type_params);
-                    let object_ty = specialize_bty(object_ty, &type_params);
+                    let trait_ty = specialize_bty(trait_ty, &type_params);
+                    let actual_object_ty = specialize_bty(actual_object_ty, &type_params);
 
-                    let class_instance_id = ensure_class_instance_for_trait_object(
-                        self.vm,
-                        trait_id,
-                        &trait_type_params,
-                        object_ty,
-                    );
+                    let class_instance_id =
+                        ensure_class_instance_for_trait_object(self.vm, trait_ty, actual_object_ty);
                     self.class_instances.push(class_instance_id);
                 }
 

@@ -1459,7 +1459,7 @@ impl SsaGen {
         } else if intrinsic == opc::INTRINSIC_INT64_TO_FLOAT64 {
             self.emitIntrinsicConvert(dest, args, Type::Float64, Type::Int64);
             false
-        } else if intrinsic == opc::INTRINSIC_INT64_TO_INT32 || intrinsic == opc::INTRINSIC_INT64_TO_CHAR {
+        } else if intrinsic == opc::INTRINSIC_INT64_TO_INT32 || intrinsic == opc::INTRINSIC_INT64_TO_CHAR_UNCHECKED {
             self.emitIntrinsicConvert(dest, args, Type::Int32, Type::Int64);
             false
         } else if intrinsic == opc::INTRINSIC_INT64_TO_UINT8 {
@@ -1597,7 +1597,7 @@ impl SsaGen {
         } else if intrinsic == opc::INTRINSIC_FLOAT32_SQRT {
             self.emitIntrinsicRounding(dest, args, Op::Sqrt, Type::Float32);
             false
-        } else if intrinsic == opc::INTRINSIC_INT32_TO_CHAR || intrinsic == opc::INTRINSIC_CHAR_TO_INT32 {
+        } else if intrinsic == opc::INTRINSIC_INT32_TO_CHAR_UNCHECKED || intrinsic == opc::INTRINSIC_CHAR_TO_INT32 {
             self.emitIntrinsicCastBetweenInt32AndChar(dest, args);
             false
         } else if intrinsic == opc::INTRINSIC_INT32_TO_UINT8 {
@@ -2144,9 +2144,9 @@ impl SsaGen {
     }
 
     fn emitNewTraitObject(dest: BytecodeRegister, obj: BytecodeRegister, idx: ConstPoolId) {
-        let ConstPoolEntry::Trait(trait_id, type_params, object_ty) = self.bc.constPool(idx);
+        let ConstPoolEntry::TraitObject(trait_ty, actual_object_ty) = self.bc.constPool(idx);
 
-        let info = TraitObjectInfo(trait_id, type_params, object_ty);
+        let info = TraitObjectInfo(trait_ty, actual_object_ty);
         let info = InstExtraData::TraitObjectInfo(info);
         let objInst = graph::createNewObjectInst(info);
         self.setCurrentInlinedLocation(objInst);

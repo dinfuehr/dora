@@ -408,32 +408,32 @@ fn check_expr_call_field(
     arg_types: &[SourceType],
 ) -> SourceType {
     let interned_method_name = ck.sa.interner.intern(&method_name);
-    if let Some((actual_type, field_id, field_type)) =
-        find_field_in_class(ck.sa, object_type.clone(), interned_method_name)
-    {
-        ck.analysis.set_ty(e.callee.id(), field_type.clone());
-        ck.analysis
-            .map_idents
-            .insert_or_replace(e.callee.id(), IdentType::Field(actual_type, field_id));
+    if let SourceType::Class(cls_id, ..) = object_type.clone() {
+        if let Some((field_id, field_type)) =
+            find_field_in_class(ck.sa, object_type.clone(), interned_method_name)
+        {
+            ck.analysis.set_ty(e.callee.id(), field_type.clone());
+            ck.analysis.map_idents.insert_or_replace(
+                e.callee.id(),
+                IdentType::Field(object_type.clone(), field_id),
+            );
 
-        let cls_id = object_type.cls_id().expect("class expected");
+            if !class_field_accessible_from(ck.sa, cls_id, field_id, ck.module_id) {
+                let msg = ErrorMessage::NotAccessible;
+                ck.sa.report(ck.file_id, e.span, msg);
+            }
 
-        if !class_field_accessible_from(ck.sa, cls_id, field_id, ck.module_id) {
-            let msg = ErrorMessage::NotAccessible;
-            ck.sa.report(ck.file_id, e.span, msg);
+            return check_expr_call_expr(ck, e, field_type, arg_types);
         }
-
-        return check_expr_call_expr(ck, e, field_type, arg_types);
     }
 
-    if let Some(struct_id) = object_type.struct_id() {
+    if let SourceType::Struct(struct_id, struct_type_params) = object_type.clone() {
         let struct_ = ck.sa.struct_(struct_id);
         if let Some(&field_id) = struct_.field_names.get(&interned_method_name) {
             let ident_type = IdentType::StructField(object_type.clone(), field_id);
             ck.analysis.map_idents.insert_or_replace(e.id, ident_type);
 
             let field = &struct_.fields[field_id.to_usize()];
-            let struct_type_params = object_type.type_params();
             let field_type = replace_type(ck.sa, field.ty(), Some(&struct_type_params), None);
 
             if !struct_field_accessible_from(ck.sa, struct_id, field_id, ck.module_id) {

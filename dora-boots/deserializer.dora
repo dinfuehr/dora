@@ -255,11 +255,10 @@ fn decodeConstPoolEntry(reader: ByteReader): ConstPoolEntry {
         let type_params = decodeBytecodeTypeArray(reader);
         let field_id = StructFieldId(reader.readInt32());
         ConstPoolEntry::StructField(struct_id, type_params, field_id)
-    } else if opcode == opc::CONSTPOOL_OPCODE_TRAIT {
-        let trait_id = TraitId(reader.readInt32());
-        let type_params = decodeBytecodeTypeArray(reader);
-        let ty = decodeBytecodeType(reader);
-        ConstPoolEntry::Trait(trait_id, type_params, ty)
+    } else if opcode == opc::CONSTPOOL_OPCODE_TRAIT_OBJECT {
+        let trait_ty = decodeBytecodeType(reader);
+        let actual_object_ty = decodeBytecodeType(reader);
+        ConstPoolEntry::TraitObject(trait_ty, actual_object_ty)
     } else if opcode == opc::CONSTPOOL_OPCODE_TUPLE_ELEMENT {
         let ty = decodeBytecodeType(reader);
         let idx = reader.readInt32();

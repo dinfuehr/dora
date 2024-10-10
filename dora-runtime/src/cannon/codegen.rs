@@ -2094,25 +2094,22 @@ impl<'a> CannonCodeGen<'a> {
     }
 
     fn emit_new_trait_object(&mut self, dest: Register, idx: ConstPoolIdx, src: Register) {
-        let (trait_id, type_params, object_ty) = match self.bytecode.const_pool(idx) {
-            ConstPoolEntry::Trait(trait_id, type_params, object_ty) => {
-                (*trait_id, type_params, object_ty.clone())
-            }
+        let (trait_ty, actual_object_ty) = match self.bytecode.const_pool(idx) {
+            ConstPoolEntry::TraitObject {
+                trait_ty,
+                actual_object_ty,
+            } => (trait_ty, actual_object_ty),
             _ => unreachable!(),
         };
 
-        let type_params = self.specialize_bty_array(type_params);
-        debug_assert!(type_params.iter().all(|ty| ty.is_concrete_type()));
+        let trait_ty = self.specialize_bty(trait_ty.clone());
+        debug_assert!(trait_ty.is_concrete_type());
 
-        let object_ty = self.specialize_bty(object_ty);
+        let object_ty = self.specialize_bty(actual_object_ty.clone());
         debug_assert!(object_ty.is_concrete_type());
 
-        let class_instance_id = ensure_class_instance_for_trait_object(
-            self.vm,
-            trait_id,
-            &type_params,
-            object_ty.clone(),
-        );
+        let class_instance_id =
+            ensure_class_instance_for_trait_object(self.vm, trait_ty, object_ty.clone());
 
         let cls = self.vm.class_instances.idx(class_instance_id);
 
@@ -4539,15 +4536,15 @@ impl<'a> BytecodeVisitor for CannonCodeGen<'a> {
 
     fn visit_new_trait_object(&mut self, dest: Register, src: Register, idx: ConstPoolIdx) {
         comment!(self, {
-            let (trait_id, type_params, object_ty) = match self.bytecode.const_pool(idx) {
-                ConstPoolEntry::Trait(trait_id, type_params, object_ty) => {
-                    (*trait_id, type_params, object_ty)
-                }
+            let (trait_ty, actual_object_ty) = match self.bytecode.const_pool(idx) {
+                ConstPoolEntry::TraitObject {
+                    trait_ty,
+                    actual_object_ty,
+                } => (trait_ty, actual_object_ty),
                 _ => unreachable!(),
             };
-            let trait_name =
-                display_ty(self.vm, &BytecodeType::Trait(trait_id, type_params.clone()));
-            let object_name = display_ty(self.vm, object_ty);
+            let trait_name = display_ty(self.vm, trait_ty);
+            let object_name = display_ty(self.vm, actual_object_ty);
             format!(
                 "NewTraitObject {}, ConstPoolIdx({}), {} # {} from object {}",
                 dest, idx.0, src, trait_name, object_name,

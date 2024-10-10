@@ -4033,11 +4033,13 @@ fn gen_trait_object() {
 
             assert_eq!(
                 fct.const_pool(ConstPoolIdx(0)),
-                &ConstPoolEntry::Trait(
-                    TraitId(trait_id.index().try_into().expect("overflow")),
-                    BytecodeTypeArray::empty(),
-                    bty_from_ty(object_ty)
-                )
+                &ConstPoolEntry::TraitObject {
+                    trait_ty: BytecodeType::Trait(
+                        TraitId(trait_id.index().try_into().expect("overflow")),
+                        BytecodeTypeArray::empty()
+                    ),
+                    actual_object_ty: bty_from_ty(object_ty)
+                }
             );
         },
     );

@@ -266,29 +266,25 @@ impl IndexMut<FieldId> for Vec<Field> {
 
 pub fn find_field_in_class(
     sa: &Sema,
-    class: SourceType,
+    object_type: SourceType,
     name: Name,
-) -> Option<(SourceType, FieldId, SourceType)> {
-    if class.cls_id().is_none() {
-        return None;
-    }
+) -> Option<(FieldId, SourceType)> {
+    if let SourceType::Class(cls_id, type_params) = object_type.clone() {
+        let cls = sa.class(cls_id);
 
-    let cls_id = class.cls_id().expect("no class");
-    let cls = sa.class(cls_id);
-
-    let type_list = class.type_params();
-
-    for field in &cls.fields {
-        if field.name == name {
-            return Some((
-                class,
-                field.id,
-                replace_type(sa, field.ty(), Some(&type_list), None),
-            ));
+        for field in &cls.fields {
+            if field.name == name {
+                return Some((
+                    field.id,
+                    replace_type(sa, field.ty(), Some(&type_params), None),
+                ));
+            }
         }
-    }
 
-    None
+        None
+    } else {
+        None
+    }
 }
 
 pub struct Candidate {

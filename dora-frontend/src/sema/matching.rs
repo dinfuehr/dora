@@ -239,10 +239,7 @@ fn match_concrete_types(
             _ => false,
         },
 
-        SourceType::Struct(..)
-        | SourceType::Enum(..)
-        | SourceType::Class(..)
-        | SourceType::Trait(..) => {
+        SourceType::Struct(..) | SourceType::Enum(..) | SourceType::Class(..) => {
             let check_sym = sym_for_ty(check_ty.clone()).expect("type expected");
             let ext_sym = sym_for_ty(ext_ty.clone());
 
@@ -259,6 +256,21 @@ fn match_concrete_types(
                 bindings,
             )
         }
+
+        SourceType::Trait(check_trait_id, check_type_params) => match ext_ty {
+            SourceType::Trait(ext_trait_id, ext_type_params) => {
+                check_trait_id == ext_trait_id
+                    && match_arrays(
+                        sa,
+                        &check_type_params,
+                        check_type_param_defs,
+                        &ext_type_params,
+                        ext_type_param_defs,
+                        bindings,
+                    )
+            }
+            _ => false,
+        },
 
         SourceType::Ptr | SourceType::Error | SourceType::This | SourceType::Any => {
             unreachable!()

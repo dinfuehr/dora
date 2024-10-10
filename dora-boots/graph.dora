@@ -2552,9 +2552,8 @@ pub class FunctionInfo {
 }
 
 pub class TraitObjectInfo {
-    pub trait_id: TraitId,
-    pub type_params: Array[BytecodeType],
-    pub object_ty: BytecodeType,
+    pub trait_ty: BytecodeType,
+    pub actual_object_ty: BytecodeType,
 }
 
 pub struct AllocationData {

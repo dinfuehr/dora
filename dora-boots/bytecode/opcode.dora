@@ -98,7 +98,7 @@ pub const CONSTPOOL_OPCODE_ENUM_VARIANT: Int32 = 12;
 pub const CONSTPOOL_OPCODE_ENUM_ELEMENT: Int32 = 13;
 pub const CONSTPOOL_OPCODE_STRUCT: Int32 = 14;
 pub const CONSTPOOL_OPCODE_STRUCT_FIELD: Int32 = 15;
-pub const CONSTPOOL_OPCODE_TRAIT: Int32 = 16;
+pub const CONSTPOOL_OPCODE_TRAIT_OBJECT: Int32 = 16;
 pub const CONSTPOOL_OPCODE_TUPLE_ELEMENT: Int32 = 17;
 pub const CONSTPOOL_OPCODE_TUPLE: Int32 = 18;
 pub const CONSTPOOL_OPCODE_LAMBDA: Int32 = 19;
@@ -138,7 +138,7 @@ pub const INTRINSIC_CHAR_CMP: Int32 = 22;
 pub const INTRINSIC_CHAR_TO_INT32: Int32 = 23;
 pub const INTRINSIC_CHAR_TO_INT64: Int32 = 24;
 pub const INTRINSIC_INT32_TO_UINT8: Int32 = 25;
-pub const INTRINSIC_INT32_TO_CHAR: Int32 = 26;
+pub const INTRINSIC_INT32_TO_CHAR_UNCHECKED: Int32 = 26;
 pub const INTRINSIC_INT32_TO_INT64: Int32 = 27;
 pub const INTRINSIC_INT32_TO_FLOAT32: Int32 = 28;
 pub const INTRINSIC_INT32_TO_FLOAT64: Int32 = 29;
@@ -173,7 +173,7 @@ pub const INTRINSIC_INT32_COUNT_ONE_BITS_LEADING: Int32 = 57;
 pub const INTRINSIC_INT32_COUNT_ZERO_BITS_TRAILING: Int32 = 58;
 pub const INTRINSIC_INT32_COUNT_ONE_BITS_TRAILING: Int32 = 59;
 pub const INTRINSIC_INT64_TO_INT32: Int32 = 60;
-pub const INTRINSIC_INT64_TO_CHAR: Int32 = 61;
+pub const INTRINSIC_INT64_TO_CHAR_UNCHECKED: Int32 = 61;
 pub const INTRINSIC_INT64_TO_UINT8: Int32 = 62;
 pub const INTRINSIC_INT64_TO_FLOAT32: Int32 = 63;
 pub const INTRINSIC_INT64_TO_FLOAT64: Int32 = 64;
@@ -371,7 +371,7 @@ pub fn intrinsicName(opcode: Int32): String {
   if opcode == INTRINSIC_CHAR_TO_INT32 { return "CharToInt32"; }
   if opcode == INTRINSIC_CHAR_TO_INT64 { return "CharToInt64"; }
   if opcode == INTRINSIC_INT32_TO_UINT8 { return "Int32ToUInt8"; }
-  if opcode == INTRINSIC_INT32_TO_CHAR { return "Int32ToChar"; }
+  if opcode == INTRINSIC_INT32_TO_CHAR_UNCHECKED { return "Int32ToCharUnchecked"; }
   if opcode == INTRINSIC_INT32_TO_INT64 { return "Int32ToInt64"; }
   if opcode == INTRINSIC_INT32_TO_FLOAT32 { return "Int32ToFloat32"; }
   if opcode == INTRINSIC_INT32_TO_FLOAT64 { return "Int32ToFloat64"; }
@@ -406,7 +406,7 @@ pub fn intrinsicName(opcode: Int32): String {
   if opcode == INTRINSIC_INT32_COUNT_ZERO_BITS_TRAILING { return "Int32CountZeroBitsTrailing"; }
   if opcode == INTRINSIC_INT32_COUNT_ONE_BITS_TRAILING { return "Int32CountOneBitsTrailing"; }
   if opcode == INTRINSIC_INT64_TO_INT32 { return "Int64ToInt32"; }
-  if opcode == INTRINSIC_INT64_TO_CHAR { return "Int64ToChar"; }
+  if opcode == INTRINSIC_INT64_TO_CHAR_UNCHECKED { return "Int64ToCharUnchecked"; }
   if opcode == INTRINSIC_INT64_TO_UINT8 { return "Int64ToUInt8"; }
   if opcode == INTRINSIC_INT64_TO_FLOAT32 { return "Int64ToFloat32"; }
   if opcode == INTRINSIC_INT64_TO_FLOAT64 { return "Int64ToFloat64"; }

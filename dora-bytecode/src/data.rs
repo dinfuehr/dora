@@ -3,7 +3,7 @@ use std::fmt;
 
 use crate::{
     BytecodeReader, BytecodeType, BytecodeTypeArray, ClassId, EnumId, FunctionId, GlobalId,
-    StructId, TraitId,
+    StructId,
 };
 use num_enum::{IntoPrimitive, TryFromPrimitive};
 
@@ -670,7 +670,7 @@ pub enum ConstPoolOpcode {
     EnumElement,
     Struct,
     StructField,
-    Trait,
+    TraitObject,
     TupleElement,
     Tuple,
     Lambda,
@@ -694,7 +694,10 @@ pub enum ConstPoolEntry {
     EnumElement(EnumId, BytecodeTypeArray, u32, u32),
     Struct(StructId, BytecodeTypeArray),
     StructField(StructId, BytecodeTypeArray, u32),
-    Trait(TraitId, BytecodeTypeArray, BytecodeType),
+    TraitObject {
+        trait_ty: BytecodeType,
+        actual_object_ty: BytecodeType,
+    },
     TupleElement(BytecodeType, u32),
     Tuple(BytecodeTypeArray),
     Lambda(BytecodeTypeArray, BytecodeType),

@@ -197,8 +197,10 @@ mod tests {
     fn type_alias_in_trait() {
         ok("trait Foo { type Bar; }");
         err(
-            "trait Foo { type Bar = Int64; }",
-            (1, 13),
+            "
+                trait Foo { type Bar = Int64; }
+            ",
+            (2, 40),
             ErrorMessage::UnexpectedTypeAliasAssignment,
         );
     }
@@ -440,6 +442,41 @@ mod tests {
             type Bar[T] = Foo[T] where T: TraitA;
         ",
             (4, 34),
+            ErrorMessage::UnexpectedWhere,
+        );
+    }
+
+    #[test]
+    fn trait_alias_with_where_in_wrong_position() {
+        errors(
+            "
+            trait TraitA {}
+            struct Foo[T](value: T)
+            trait TraitB {
+                type Bar[T] where T: TraitA = usize;
+            }
+        ",
+            &[
+                ((5, 47), ErrorMessage::UnexpectedTypeAliasAssignment),
+                ((5, 29), ErrorMessage::UnexpectedWhere),
+            ],
+        );
+    }
+
+    #[test]
+    fn impl_alias_with_where_in_wrong_position() {
+        err(
+            "
+            trait TraitA {}
+            struct Foo[T](value: T)
+            trait TraitB {
+                type Bar[T] where T: TraitA;
+            }
+            impl TraitB for Int64 {
+                type Bar[T] where T: TraitA = String where T: TraitA;
+            }
+        ",
+            (8, 29),
             ErrorMessage::UnexpectedWhere,
         );
     }

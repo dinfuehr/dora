@@ -360,11 +360,13 @@ fn encode_constpool_entry(vm: &VM, const_entry: &ConstPoolEntry, buffer: &mut By
             encode_bytecode_type_array(vm, source_type_array, buffer);
             buffer.emit_id(field_id as usize);
         }
-        &ConstPoolEntry::Trait(trait_id, ref source_type_array, ref source_type) => {
-            buffer.emit_u8(ConstPoolOpcode::Trait.into());
-            buffer.emit_id(trait_id.0 as usize);
-            encode_bytecode_type_array(vm, source_type_array, buffer);
-            encode_bytecode_type(vm, source_type, buffer);
+        &ConstPoolEntry::TraitObject {
+            ref trait_ty,
+            ref actual_object_ty,
+        } => {
+            buffer.emit_u8(ConstPoolOpcode::TraitObject.into());
+            encode_bytecode_type(vm, trait_ty, buffer);
+            encode_bytecode_type(vm, actual_object_ty, buffer);
         }
         &ConstPoolEntry::TupleElement(ref tuple_ty, element_idx) => {
             buffer.emit_u8(ConstPoolOpcode::TupleElement.into());

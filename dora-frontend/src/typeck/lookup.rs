@@ -337,12 +337,12 @@ pub fn find_method_call_candidates(
 ) -> Vec<Candidate> {
     let mut candidates = Vec::with_capacity(1);
 
-    if let Some(trait_id) = object_type.trait_id() {
+    if let SourceType::Trait(trait_id, trait_type_params) = object_type.clone() {
         let trait_ = sa.trait_(trait_id);
         if let Some(fct_id) = trait_.get_method(name, false) {
             candidates.push(Candidate {
                 object_type: object_type.clone(),
-                container_type_params: object_type.type_params(),
+                container_type_params: trait_type_params,
                 fct_id,
             });
             return candidates;

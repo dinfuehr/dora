@@ -492,10 +492,14 @@ pub fn compute_vtable_index(vm: &VM, trait_id: TraitId, trait_fct_id: FunctionId
 
 pub fn ensure_class_instance_for_trait_object(
     vm: &VM,
-    trait_id: TraitId,
-    trait_type_params: &BytecodeTypeArray,
+    trait_ty: BytecodeType,
     object_type: BytecodeType,
 ) -> ClassInstanceId {
+    let (trait_id, trait_type_params) = match trait_ty {
+        BytecodeType::Trait(trait_id, trait_type_params) => (trait_id, trait_type_params),
+        _ => unreachable!(),
+    };
+
     let trait_ = vm.trait_(trait_id);
     let combined_type_params = trait_type_params.append(object_type.clone());
 

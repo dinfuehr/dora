@@ -228,13 +228,11 @@ extern "C" fn get_class_pointer_for_trait_object_raw(data: Handle<UInt8Array>) -
     }
 
     let mut reader = ByteReader::new(serialized_data);
-    let trait_id = TraitId(reader.read_u32());
-    let type_params = decode_bytecode_type_array(&mut reader);
-    let object_ty = decode_bytecode_type(&mut reader);
+    let trait_ty = decode_bytecode_type(&mut reader);
+    let actual_object_ty = decode_bytecode_type(&mut reader);
     assert!(!reader.has_more());
 
-    let id =
-        crate::vm::ensure_class_instance_for_trait_object(vm, trait_id, &type_params, object_ty);
+    let id = crate::vm::ensure_class_instance_for_trait_object(vm, trait_ty, actual_object_ty);
     let cls = vm.class_instances.idx(id);
     cls.vtblptr()
 }
@@ -253,13 +251,11 @@ extern "C" fn get_class_size_for_trait_object_raw(data: Handle<UInt8Array>) -> i
     }
 
     let mut reader = ByteReader::new(serialized_data);
-    let trait_id = TraitId(reader.read_u32());
-    let type_params = decode_bytecode_type_array(&mut reader);
-    let object_ty = decode_bytecode_type(&mut reader);
+    let trait_ty = decode_bytecode_type(&mut reader);
+    let actual_object_ty = decode_bytecode_type(&mut reader);
     assert!(!reader.has_more());
 
-    let id =
-        crate::vm::ensure_class_instance_for_trait_object(vm, trait_id, &type_params, object_ty);
+    let id = crate::vm::ensure_class_instance_for_trait_object(vm, trait_ty, actual_object_ty);
     let cls = vm.class_instances.idx(id);
 
     match cls.size {

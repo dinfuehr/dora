@@ -78,17 +78,15 @@ pub fn getClassPointerForLambda(ci: CompilationInfo, fct_id: FunctionId, type_pa
 
 pub fn getClassSizeForTraitObject(ci: CompilationInfo, info: TraitObjectInfo): Int32 {
     let writer = ci.getByteWriter();
-    writer.emitInt32(info.trait_id.value);
-    encodeBytecodeTypeArray(writer, info.type_params);
-    encodeBytecodeType(writer, info.object_ty);
+    encodeBytecodeType(writer, info.trait_ty);
+    encodeBytecodeType(writer, info.actual_object_ty);
     getClassSizeForTraitObjectRaw(writer.toArray())
 }
 
 pub fn getClassPointerForTraitObject(ci: CompilationInfo, info: TraitObjectInfo): Address {
     let writer = ci.getByteWriter();
-    writer.emitInt32(info.trait_id.value);
-    encodeBytecodeTypeArray(writer, info.type_params);
-    encodeBytecodeType(writer, info.object_ty);
+    encodeBytecodeType(writer, info.trait_ty);
+    encodeBytecodeType(writer, info.actual_object_ty);
     Address(getClassPointerForTraitObjectRaw(writer.toArray()))
 }
 

@@ -320,19 +320,16 @@ fn check_expr_assign_field(ck: &mut TypeCheck, e: &ast::ExprBinType) {
 
     let object_type = check_expr(ck, &field_expr.lhs, SourceType::Any);
 
-    if object_type.cls_id().is_some() {
-        if let Some((cls_ty, field_id, _)) =
-            find_field_in_class(ck.sa, object_type.clone(), interned_name)
+    if let SourceType::Class(cls_id, class_type_params) = object_type.clone() {
+        if let Some((field_id, _)) = find_field_in_class(ck.sa, object_type.clone(), interned_name)
         {
-            let ident_type = IdentType::Field(cls_ty.clone(), field_id);
+            let ident_type = IdentType::Field(object_type.clone(), field_id);
             ck.analysis
                 .map_idents
                 .insert_or_replace(e.lhs.id(), ident_type);
 
-            let cls = ck.sa.class(cls_ty.cls_id().expect("no class"));
+            let cls = ck.sa.class(cls_id);
             let field = &cls.fields[field_id];
-
-            let class_type_params = cls_ty.type_params();
 
             let fty = replace_type(ck.sa, field.ty(), Some(&class_type_params), None);
 
@@ -406,14 +403,13 @@ pub(super) fn check_expr_dot(
 
     let interned_name = ck.sa.interner.intern(&name);
 
-    if let Some(struct_id) = object_type.struct_id() {
+    if let SourceType::Struct(struct_id, struct_type_params) = object_type.clone() {
         let struct_ = ck.sa.struct_(struct_id);
         if let Some(&field_id) = struct_.field_names.get(&interned_name) {
             let ident_type = IdentType::StructField(object_type.clone(), field_id);
             ck.analysis.map_idents.insert_or_replace(e.id, ident_type);
 
             let field = &struct_.fields[field_id.to_usize()];
-            let struct_type_params = object_type.type_params();
             let fty = replace_type(ck.sa, field.ty(), Some(&struct_type_params), None);
 
             if !struct_field_accessible_from(ck.sa, struct_id, field_id, ck.module_id) {
@@ -426,17 +422,14 @@ pub(super) fn check_expr_dot(
         }
     }
 
-    if object_type.cls_id().is_some() {
-        if let Some((cls_ty, field_id, _)) =
-            find_field_in_class(ck.sa, object_type.clone(), interned_name)
+    if let SourceType::Class(cls_id, class_type_params) = object_type.clone() {
+        if let Some((field_id, _)) = find_field_in_class(ck.sa, object_type.clone(), interned_name)
         {
-            let ident_type = IdentType::Field(cls_ty.clone(), field_id);
+            let ident_type = IdentType::Field(object_type.clone(), field_id);
             ck.analysis.map_idents.insert_or_replace(e.id, ident_type);
 
-            let cls_id = cls_ty.cls_id().expect("no class");
             let cls = ck.sa.class(cls_id);
             let field = &cls.fields[field_id];
-            let class_type_params = cls_ty.type_params();
             let fty = replace_type(ck.sa, field.ty(), Some(&class_type_params), None);
 
             if !class_field_accessible_from(ck.sa, cls_id, field_id, ck.module_id) {

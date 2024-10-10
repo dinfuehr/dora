@@ -161,17 +161,17 @@ pub fn dump(w: &mut dyn io::Write, prog: &Program, bc: &BytecodeFunction) -> std
                     fmt_name(prog, &fct.name, &type_params)
                 )?;
             }
-            ConstPoolEntry::Trait(trait_id, type_params, object_ty) => {
-                let trait_ = &prog.traits[trait_id.0 as usize];
-                writeln!(
-                    w,
-                    "{}{} => Trait {} from {}",
-                    align,
-                    idx,
-                    fmt_name(prog, &trait_.name, &type_params),
-                    fmt_ty(prog, &object_ty),
-                )?
-            }
+            ConstPoolEntry::TraitObject {
+                trait_ty,
+                actual_object_ty,
+            } => writeln!(
+                w,
+                "{}{} => Trait {} from {}",
+                align,
+                idx,
+                fmt_ty(prog, &trait_ty),
+                fmt_ty(prog, &actual_object_ty),
+            )?,
             ConstPoolEntry::TupleElement(_tuple_id, _idx) => {
                 writeln!(w, "{}{} => TupleElement {}.{}", align, idx, "subtypes", idx)?
             }
@@ -513,19 +513,21 @@ impl<'a> BytecodeDumper<'a> {
 
     fn emit_new_trait_object(&mut self, name: &str, r1: Register, r2: Register, idx: ConstPoolIdx) {
         self.emit_start(name);
-        let (trait_id, type_params, actual_ty) = match self.bc.const_pool(idx) {
-            ConstPoolEntry::Trait(trait_id, type_params, ty) => (*trait_id, type_params, ty),
+        let (trait_ty, actual_object_ty) = match self.bc.const_pool(idx) {
+            ConstPoolEntry::TraitObject {
+                trait_ty,
+                actual_object_ty,
+            } => (trait_ty, actual_object_ty),
             _ => unreachable!(),
         };
-        let trait_ = &self.prog.traits[trait_id.0 as usize];
         writeln!(
             self.w,
             " {}, {}, ConstPoolIdx({}) # {} wrapping {}",
             r1,
             r2,
             idx.0,
-            fmt_name(self.prog, &trait_.name, type_params),
-            fmt_ty(self.prog, actual_ty),
+            fmt_ty(self.prog, &trait_ty),
+            fmt_ty(self.prog, &actual_object_ty),
         )
         .expect("write! failed");
     }
