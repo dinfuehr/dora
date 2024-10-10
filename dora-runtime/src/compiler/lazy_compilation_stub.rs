@@ -432,14 +432,14 @@ fn patch_virtual_call(
     let class_instance = vtable.class_instance();
 
     let fct_ptr = match &class_instance.kind {
-        ShapeKind::TraitObject { object_ty, .. } => {
-            compiler::trait_object_thunk::ensure_compiled_jit(
-                vm,
-                trait_fct_id,
-                trait_object_ty,
-                object_ty.clone(),
-            )
-        }
+        ShapeKind::TraitObject {
+            actual_object_ty, ..
+        } => compiler::trait_object_thunk::ensure_compiled_jit(
+            vm,
+            trait_fct_id,
+            trait_object_ty,
+            actual_object_ty.clone(),
+        ),
 
         _ => unreachable!(),
     };

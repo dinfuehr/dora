@@ -6,13 +6,13 @@ use crate::mem;
 use crate::object::Header;
 use crate::size::InstanceSize;
 use crate::vm::{
-    create_class_instance_with_vtable, get_concrete_tuple_bty, ClassInstanceId, EnumInstance,
-    EnumInstanceId, EnumLayout, FieldInstance, ShapeKind, StructInstance, StructInstanceField,
-    StructInstanceId, VM,
+    create_class_instance_with_vtable, get_concrete_tuple_bty, BytecodeTypeExt, ClassInstanceId,
+    EnumInstance, EnumInstanceId, EnumLayout, FieldInstance, ShapeKind, StructInstance,
+    StructInstanceField, StructInstanceId, VM,
 };
 use dora_bytecode::{
     BytecodeType, BytecodeTypeArray, ClassData, ClassId, EnumData, EnumId, FunctionId, StructData,
-    StructId, TraitData, TraitId,
+    StructId, TraitId,
 };
 
 pub fn create_struct_instance(
@@ -493,40 +493,27 @@ pub fn compute_vtable_index(vm: &VM, trait_id: TraitId, trait_fct_id: FunctionId
 pub fn ensure_class_instance_for_trait_object(
     vm: &VM,
     trait_ty: BytecodeType,
-    object_type: BytecodeType,
+    actual_object_ty: BytecodeType,
 ) -> ClassInstanceId {
-    let (trait_id, trait_type_params) = match trait_ty {
-        BytecodeType::Trait(trait_id, trait_type_params) => (trait_id, trait_type_params),
-        _ => unreachable!(),
-    };
-
-    let trait_ = vm.trait_(trait_id);
-    let combined_type_params = trait_type_params.append(object_type.clone());
-
     if let Some(&id) = vm
         .trait_vtables
         .read()
-        .get(&(trait_id, combined_type_params.clone()))
+        .get(&(trait_ty.clone(), actual_object_ty.clone()))
     {
         return id;
     }
 
-    create_specialized_class_for_trait_object(
-        vm,
-        trait_id,
-        trait_,
-        combined_type_params,
-        object_type,
-    )
+    create_specialized_class_for_trait_object(vm, trait_ty, actual_object_ty)
 }
 
 fn create_specialized_class_for_trait_object(
     vm: &VM,
-    trait_id: TraitId,
-    trait_: &TraitData,
-    combined_type_params: BytecodeTypeArray,
-    object_type: BytecodeType,
+    trait_ty: BytecodeType,
+    actual_object_ty: BytecodeType,
 ) -> ClassInstanceId {
+    let trait_id = trait_ty.trait_id().expect("trait expected");
+    let trait_ = vm.trait_(trait_id);
+
     let mut csize;
     let mut fields;
     let mut ref_fields;
@@ -535,40 +522,39 @@ fn create_specialized_class_for_trait_object(
     ref_fields = Vec::new();
     csize = Header::size();
 
-    debug_assert!(object_type.is_concrete_type());
+    debug_assert!(actual_object_ty.is_concrete_type());
 
-    let field_size = size(vm, object_type.clone());
-    let field_align = align(vm, object_type.clone());
+    let field_size = size(vm, actual_object_ty.clone());
+    let field_align = align(vm, actual_object_ty.clone());
 
     let offset = mem::align_i32(csize, field_align);
     fields.push(FieldInstance {
         offset,
-        ty: object_type.clone(),
+        ty: actual_object_ty.clone(),
     });
-    add_ref_fields(vm, &mut ref_fields, offset, object_type.clone());
+    add_ref_fields(vm, &mut ref_fields, offset, actual_object_ty.clone());
     csize = offset + field_size;
     csize = mem::align_i32(csize, mem::ptr_width());
     let size = InstanceSize::Fixed(csize);
 
     let mut vtables = vm.trait_vtables.write();
 
-    if let Some(&id) = vtables.get(&(trait_id, combined_type_params.clone())) {
+    if let Some(&id) = vtables.get(&(trait_ty.clone(), actual_object_ty.clone())) {
         return id;
     }
 
     let class_instance_id = create_class_instance_with_vtable(
         vm,
         ShapeKind::TraitObject {
-            object_ty: object_type,
-            trait_id,
-            combined_type_params: combined_type_params.clone(),
+            trait_ty: trait_ty.clone(),
+            actual_object_ty: actual_object_ty.clone(),
         },
         size,
         fields,
         trait_.methods.len(),
     );
 
-    let old = vtables.insert((trait_id, combined_type_params), class_instance_id);
+    let old = vtables.insert((trait_ty, actual_object_ty), class_instance_id);
     assert!(old.is_none());
 
     class_instance_id

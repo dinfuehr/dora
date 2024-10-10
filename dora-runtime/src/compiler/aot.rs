@@ -545,11 +545,12 @@ fn prepare_virtual_method_tables(vm: &VM, tc: &TransitiveClosure, ctc: &Compiled
             }
 
             ShapeKind::TraitObject {
-                object_ty: _object_ty,
-                trait_id,
-                combined_type_params,
+                trait_ty,
+                actual_object_ty,
             } => {
-                let trait_ = vm.trait_(*trait_id);
+                let trait_id = trait_ty.trait_id().expect("trait expected");
+                let combined_type_params = trait_ty.type_params().append(actual_object_ty.clone());
+                let trait_ = vm.trait_(trait_id);
                 for (idx, &trait_fct_id) in trait_.methods.iter().enumerate() {
                     if let Some(address) = ctc
                         .function_addresses

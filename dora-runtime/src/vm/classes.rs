@@ -5,7 +5,7 @@ use crate::size::InstanceSize;
 use crate::utils::Id;
 use crate::vm::{add_ref_fields, VM};
 use crate::vtable::{VTable, VTableBox};
-use dora_bytecode::{BytecodeType, BytecodeTypeArray, ClassId, EnumId, FunctionId, TraitId};
+use dora_bytecode::{BytecodeType, BytecodeTypeArray, ClassId, EnumId, FunctionId};
 
 #[derive(Copy, Clone, Debug, PartialEq, Eq)]
 pub struct ClassInstanceId(usize);
@@ -37,9 +37,8 @@ pub enum ShapeKind {
     Class(ClassId, BytecodeTypeArray),
     Lambda(FunctionId, BytecodeTypeArray),
     TraitObject {
-        object_ty: BytecodeType,
-        trait_id: TraitId,
-        combined_type_params: BytecodeTypeArray,
+        trait_ty: BytecodeType,
+        actual_object_ty: BytecodeType,
     },
     Enum(EnumId, BytecodeTypeArray),
     Builtin,
@@ -58,13 +57,6 @@ pub struct ClassInstance {
 impl ClassInstance {
     pub fn id(&self) -> ClassInstanceId {
         self.id.expect("missing id")
-    }
-
-    pub fn trait_object(&self) -> Option<BytecodeType> {
-        match &self.kind {
-            ShapeKind::TraitObject { object_ty, .. } => Some(object_ty.clone()),
-            _ => None,
-        }
     }
 
     pub fn cls_id(&self) -> Option<ClassId> {

@@ -148,7 +148,7 @@ pub struct VM {
     pub compilation_database: CompilationDatabase,
     pub enum_specializations: RwLock<HashMap<(EnumId, BytecodeTypeArray), EnumInstanceId>>,
     pub enum_instances: GrowableVecNonIter<EnumInstance>, // stores all enum definitions
-    pub trait_vtables: RwLock<HashMap<(TraitId, BytecodeTypeArray), ClassInstanceId>>,
+    pub trait_vtables: RwLock<HashMap<(BytecodeType, BytecodeType), ClassInstanceId>>,
     pub lambda_vtables: RwLock<HashMap<(FunctionId, BytecodeTypeArray), ClassInstanceId>>,
     pub code_map: CodeMap, // stores all compiled functions
     pub global_variable_memory: Option<GlobalVariableMemory>,
