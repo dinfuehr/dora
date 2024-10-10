@@ -19,7 +19,7 @@ use crate::typeck::{
     find_method_call_candidates, read_path_expr, MethodLookup, TypeCheck,
 };
 use crate::typeparamck::{self, ErrorReporting};
-use crate::{specialize_type, ErrorMessage, SourceType, SourceTypeArray};
+use crate::{specialize_type, ty::error as ty_error, ErrorMessage, SourceType, SourceTypeArray};
 
 pub(super) fn check_expr_call(
     ck: &mut TypeCheck,
@@ -58,8 +58,8 @@ pub(super) fn check_expr_call(
                 let msg = ErrorMessage::NameExpected;
                 ck.sa.report(ck.file_id, e.span, msg);
 
-                ck.analysis.set_ty(e.id, SourceType::Error);
-                return SourceType::Error;
+                ck.analysis.set_ty(e.id, ty_error());
+                return ty_error();
             }
         };
         check_expr_call_method(ck, e, object_type, method_name, type_params, &arg_types)
@@ -125,13 +125,13 @@ fn check_expr_call_generic_static_method(
 
         ck.sa.report(ck.file_id, e.span, msg);
 
-        ck.analysis.set_ty(e.id, SourceType::Error);
-        return SourceType::Error;
+        ck.analysis.set_ty(e.id, ty_error());
+        return ty_error();
     }
 
-    if args.contains(&SourceType::Error) {
-        ck.analysis.set_ty(e.id, SourceType::Error);
-        return SourceType::Error;
+    if args.contains(&ty_error()) {
+        ck.analysis.set_ty(e.id, ty_error());
+        return ty_error();
     }
 
     let (trait_method_id, trait_ty) = matched_methods.pop().expect("missing method");
@@ -183,8 +183,8 @@ fn check_expr_call_expr(
     arg_types: &[SourceType],
 ) -> SourceType {
     if expr_type.is_error() {
-        ck.analysis.set_ty(e.id, SourceType::Error);
-        return SourceType::Error;
+        ck.analysis.set_ty(e.id, ty_error());
+        return ty_error();
     }
 
     if expr_type.is_lambda() {
@@ -212,9 +212,9 @@ fn check_expr_call_expr(
 
         descriptor.return_type
     } else {
-        ck.analysis.set_ty(e.id, SourceType::Error);
+        ck.analysis.set_ty(e.id, ty_error());
 
-        SourceType::Error
+        ty_error()
     }
 }
 
@@ -272,7 +272,7 @@ fn check_expr_call_fct(
 
         lookup.found_ret().unwrap()
     } else {
-        SourceType::Error
+        ty_error()
     };
 
     ck.analysis.set_ty(e.id, ty.clone());
@@ -314,9 +314,9 @@ fn check_expr_call_static_method(
 
         return_type
     } else {
-        ck.analysis.set_ty(e.id, SourceType::Error);
+        ck.analysis.set_ty(e.id, ty_error());
 
-        SourceType::Error
+        ty_error()
     }
 }
 
@@ -334,9 +334,9 @@ fn check_expr_call_method(
     }
 
     if object_type.is_error() {
-        ck.analysis.set_ty(e.id, SourceType::Error);
+        ck.analysis.set_ty(e.id, ty_error());
 
-        return SourceType::Error;
+        return ty_error();
     }
 
     let interned_method_name = ck.sa.interner.intern(&method_name);
@@ -393,9 +393,9 @@ fn check_expr_call_method(
 
         assert!(!lookup.find());
 
-        ck.analysis.set_ty(e.id, SourceType::Error);
+        ck.analysis.set_ty(e.id, ty_error());
 
-        SourceType::Error
+        ty_error()
     }
 }
 
@@ -457,9 +457,9 @@ fn check_expr_call_field(
         .find();
     assert!(!lookup.find());
 
-    ck.analysis.set_ty(e.id, SourceType::Error);
+    ck.analysis.set_ty(e.id, ty_error());
 
-    SourceType::Error
+    ty_error()
 }
 
 fn check_expr_call_struct(
@@ -496,8 +496,8 @@ fn check_expr_call_struct(
     );
 
     if !type_params_ok {
-        ck.analysis.set_ty(e.id, SourceType::Error);
-        return SourceType::Error;
+        ck.analysis.set_ty(e.id, ty_error());
+        return ty_error();
     }
 
     if !check_expr_call_struct_args(ck.sa, struct_, type_params.clone(), arg_types) {
@@ -577,7 +577,7 @@ fn check_expr_call_class(
         ck.sa.report(ck.file_id, e.span, msg);
     }
 
-    let type_params = if expected_ty.is_cls_id(cls_id) && type_params.is_empty() {
+    let type_params = if expected_ty.cls_id() == Some(cls_id) && type_params.is_empty() {
         expected_ty.type_params()
     } else {
         type_params
@@ -590,7 +590,7 @@ fn check_expr_call_class(
         &type_params,
         ErrorReporting::Yes(ck.file_id, e.span),
     ) {
-        return SourceType::Error;
+        return ty_error();
     };
 
     let cls = ck.sa.class(cls_id);
@@ -706,9 +706,9 @@ fn check_expr_call_generic_type_param(
         };
 
         ck.sa.report(ck.file_id, e.span, msg);
-        ck.analysis.set_ty(e.id, SourceType::Error);
+        ck.analysis.set_ty(e.id, ty_error());
 
-        SourceType::Error
+        ty_error()
     }
 }
 
@@ -741,8 +741,8 @@ fn check_expr_call_path(
     let sym = match read_path_expr(ck, container_expr) {
         Ok(sym) => sym,
         Err(()) => {
-            ck.analysis.set_ty(e.id, SourceType::Error);
-            return SourceType::Error;
+            ck.analysis.set_ty(e.id, ty_error());
+            return ty_error();
         }
     };
 
@@ -752,8 +752,8 @@ fn check_expr_call_path(
         let msg = ErrorMessage::ExpectedSomeIdentifier;
         ck.sa.report(ck.file_id, method_expr.span(), msg);
 
-        ck.analysis.set_ty(e.id, SourceType::Error);
-        return SourceType::Error;
+        ck.analysis.set_ty(e.id, ty_error());
+        return ty_error();
     };
 
     let interned_method_name = ck.sa.interner.intern(&method_name);
@@ -776,7 +776,7 @@ fn check_expr_call_path(
                     &arg_types,
                 )
             } else {
-                SourceType::Error
+                ty_error()
             }
         }
 
@@ -806,7 +806,7 @@ fn check_expr_call_path(
                     &arg_types,
                 )
             } else {
-                SourceType::Error
+                ty_error()
             }
         }
 
@@ -853,7 +853,7 @@ fn check_expr_call_path(
                         &arg_types,
                     )
                 } else {
-                    SourceType::Error
+                    ty_error()
                 }
             }
         }
@@ -897,9 +897,9 @@ fn check_expr_call_path(
             let msg = ErrorMessage::StaticMethodCallTargetExpected;
             ck.sa.report(ck.file_id, e.span, msg);
 
-            ck.analysis.set_ty(e.id, SourceType::Error);
+            ck.analysis.set_ty(e.id, ty_error());
 
-            SourceType::Error
+            ty_error()
         }
     }
 }

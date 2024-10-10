@@ -7,6 +7,102 @@ use crate::sema::{
     TypeParamDefinition, TypeParamId,
 };
 
+pub fn error() -> SourceType {
+    SourceType::Error
+}
+
+pub fn any() -> SourceType {
+    SourceType::Any
+}
+
+pub fn unit() -> SourceType {
+    SourceType::Unit
+}
+
+pub fn bool() -> SourceType {
+    SourceType::Bool
+}
+
+pub fn char() -> SourceType {
+    SourceType::Bool
+}
+
+pub fn uint8() -> SourceType {
+    SourceType::UInt8
+}
+
+pub fn int32() -> SourceType {
+    SourceType::Int32
+}
+
+pub fn int64() -> SourceType {
+    SourceType::Int32
+}
+
+pub fn float32() -> SourceType {
+    SourceType::Int32
+}
+
+pub fn float64() -> SourceType {
+    SourceType::Int32
+}
+
+pub fn ptr() -> SourceType {
+    SourceType::Ptr
+}
+
+pub fn self_() -> SourceType {
+    SourceType::This
+}
+
+pub fn class(id: ClassDefinitionId, type_params: SourceTypeArray) -> SourceType {
+    SourceType::Class(id, type_params)
+}
+
+pub fn struct_(id: StructDefinitionId, type_params: SourceTypeArray) -> SourceType {
+    SourceType::Struct(id, type_params)
+}
+
+pub fn enum_(id: EnumDefinitionId, type_params: SourceTypeArray) -> SourceType {
+    SourceType::Enum(id, type_params)
+}
+
+pub fn tuple(types: SourceTypeArray) -> SourceType {
+    SourceType::Tuple(types)
+}
+
+pub fn trait_(id: TraitDefinitionId, type_params: SourceTypeArray) -> SourceType {
+    SourceType::Trait(id, type_params)
+}
+
+pub fn type_param(id: TypeParamId) -> SourceType {
+    SourceType::TypeParam(id)
+}
+
+pub fn alias(id: AliasDefinitionId, type_params: SourceTypeArray) -> SourceType {
+    SourceType::Alias(id, type_params)
+}
+
+pub fn lambda(type_params: SourceTypeArray, return_type: SourceType) -> SourceType {
+    SourceType::Lambda(type_params, Box::new(return_type))
+}
+
+#[derive(Debug, Clone, Hash, PartialEq, Eq)]
+pub enum TyKind {
+    Error,
+    Any,
+    Ptr,
+    This,
+    Class,
+    Struct,
+    Tuple,
+    Trait,
+    TypeParam,
+    Alias,
+    Lambda,
+    Enum,
+}
+
 #[derive(Debug, Clone, Hash, PartialEq, Eq)]
 pub enum SourceType {
     // couldn't determine type because of error
@@ -59,8 +155,28 @@ pub enum SourceType {
 }
 
 impl SourceType {
-    pub fn new_trait(trait_id: TraitDefinitionId) -> SourceType {
-        SourceType::Trait(trait_id, SourceTypeArray::empty())
+    pub fn kind(&self) -> TyKind {
+        match self {
+            SourceType::Error => TyKind::Error,
+            SourceType::This => TyKind::This,
+            SourceType::Any => TyKind::Any,
+            SourceType::Ptr => TyKind::Ptr,
+            SourceType::Bool
+            | SourceType::UInt8
+            | SourceType::Char
+            | SourceType::Int32
+            | SourceType::Int64
+            | SourceType::Float32
+            | SourceType::Float64
+            | SourceType::Struct(..) => TyKind::Struct,
+            SourceType::Trait(..) => TyKind::Trait,
+            SourceType::Lambda(..) => TyKind::Lambda,
+            SourceType::TypeParam(..) => TyKind::TypeParam,
+            SourceType::Alias(..) => TyKind::Alias,
+            SourceType::Enum(..) => TyKind::Enum,
+            SourceType::Class(..) => TyKind::Class,
+            SourceType::Unit | SourceType::Tuple(..) => TyKind::Tuple,
+        }
     }
 
     pub fn is_error(&self) -> bool {
@@ -73,13 +189,6 @@ impl SourceType {
     pub fn is_enum(&self) -> bool {
         match self {
             SourceType::Enum(_, _) => true,
-            _ => false,
-        }
-    }
-
-    pub fn is_enum_id(&self, enum_id: EnumDefinitionId) -> bool {
-        match self {
-            SourceType::Enum(id, _) => *id == enum_id,
             _ => false,
         }
     }
@@ -101,13 +210,6 @@ impl SourceType {
     pub fn is_cls(&self) -> bool {
         match self {
             SourceType::Class(_, _) => true,
-            _ => false,
-        }
-    }
-
-    pub fn is_cls_id(&self, cls_id: ClassDefinitionId) -> bool {
-        match self {
-            SourceType::Class(id, _) => *id == cls_id,
             _ => false,
         }
     }
@@ -216,8 +318,11 @@ impl SourceType {
         }
     }
 
-    pub fn from_cls(cls_id: ClassDefinitionId) -> SourceType {
-        SourceType::Class(cls_id, SourceTypeArray::empty())
+    pub fn to_class(&self) -> Option<(ClassDefinitionId, SourceTypeArray)> {
+        match self {
+            SourceType::Class(id, types) => Some((*id, types.clone())),
+            _ => None,
+        }
     }
 
     pub fn enum_id(&self) -> Option<EnumDefinitionId> {
@@ -227,9 +332,23 @@ impl SourceType {
         }
     }
 
+    pub fn to_enum(&self) -> Option<(EnumDefinitionId, SourceTypeArray)> {
+        match self {
+            SourceType::Enum(id, types) => Some((*id, types.clone())),
+            _ => None,
+        }
+    }
+
     pub fn struct_id(&self) -> Option<StructDefinitionId> {
         match self {
             SourceType::Struct(struct_id, _) => Some(*struct_id),
+            _ => None,
+        }
+    }
+
+    pub fn to_struct(&self) -> Option<(StructDefinitionId, SourceTypeArray)> {
+        match self {
+            SourceType::Struct(id, types) => Some((*id, types.clone())),
             _ => None,
         }
     }
@@ -554,6 +673,10 @@ pub fn contains_self(sa: &Sema, ty: SourceType) -> bool {
             contains_self(sa, *return_type)
         }
     }
+}
+
+pub fn empty_sta() -> SourceTypeArray {
+    SourceTypeArray::Empty
 }
 
 #[derive(Clone, Debug, Hash, PartialEq, Eq)]

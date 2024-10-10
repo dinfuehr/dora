@@ -9,8 +9,8 @@ use crate::sema::{
     StructDefinitionId, TraitDefinitionId,
 };
 use crate::sym::ModuleSymTable;
-use crate::test;
 use crate::typeck::find_method_call_candidates;
+use crate::{empty_sta, test, ty};
 use crate::{SourceType, SourceTypeArray, TraitType};
 use dora_bytecode::{
     self as bytecode, BytecodeFunction, BytecodeOffset, BytecodeType, BytecodeTypeArray,
@@ -4455,7 +4455,7 @@ pub fn impl_method_id_by_name(
     method_name: &str,
     ty: SourceType,
 ) -> FctDefinitionId {
-    let trait_ty = SourceType::new_trait(trait_id);
+    let trait_ty = ty::trait_(trait_id, empty_sta());
     let trait_ = sa.trait_(trait_id);
     let name = sa.interner.intern(method_name);
     let trait_method_id = trait_.get_method(name, false).expect("missing method");

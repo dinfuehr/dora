@@ -19,7 +19,7 @@ use crate::sema::{
 };
 use crate::sym::{SymTable, Symbol, SymbolKind};
 use crate::STDLIB;
-use crate::{report_sym_shadow_span, ParsedType, SourceType};
+use crate::{report_sym_shadow_span, ty, ParsedType, SourceType};
 use dora_parser::ast::visit::Visitor;
 use dora_parser::ast::{self, visit, ModifierList};
 use dora_parser::parser::Parser;
@@ -855,7 +855,7 @@ impl<'x> visit::Visitor for TopLevelDeclaration<'x> {
         } else {
             self.sa
                 .report(self.file_id, node.span, ErrorMessage::TypeAliasMissingType);
-            ParsedType::new_ty(SourceType::Error)
+            ParsedType::new_ty(ty::error())
         };
 
         let type_param_definition = parse_type_param_definition(
@@ -1133,7 +1133,7 @@ fn find_elements_in_impl(
                     ParsedType::new_ast(ty.clone())
                 } else {
                     sa.report(file_id, node.span, ErrorMessage::TypeAliasMissingType);
-                    ParsedType::new_ty(SourceType::Error)
+                    ParsedType::new_ty(ty::error())
                 };
 
                 let where_bounds = if node.ty.is_some() {

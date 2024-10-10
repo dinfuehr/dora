@@ -1381,8 +1381,7 @@ impl<'a> AstBytecodeGen<'a> {
             return self.visit_expr_dot_tuple(expr, object_ty, dest);
         }
 
-        if let Some(struct_id) = object_ty.struct_id() {
-            let type_params = object_ty.type_params();
+        if let Some((struct_id, type_params)) = object_ty.to_struct() {
             return self.visit_expr_dot_struct(expr, struct_id, type_params, dest);
         }
 
@@ -1395,8 +1394,8 @@ impl<'a> AstBytecodeGen<'a> {
             }
         };
 
-        let cls_id = cls_ty.cls_id().expect("class expected");
-        let type_params = cls_ty.type_params();
+        let (cls_id, type_params) = cls_ty.to_class().expect("class expected");
+
         let field_idx = self.builder.add_const_field_types(
             ClassId(cls_id.index().try_into().expect("overflow")),
             bty_array_from_ty(&type_params),
@@ -1602,8 +1601,7 @@ impl<'a> AstBytecodeGen<'a> {
             self.builder.emit_push_register(arg_reg);
         }
 
-        let enum_id = enum_ty.enum_id().expect("enum expected");
-        let type_params = enum_ty.type_params();
+        let (enum_id, type_params) = enum_ty.to_enum().expect("enum expected");
 
         let idx = self.builder.add_const_enum_variant(
             EnumId(enum_id.index().try_into().expect("overflow")),
@@ -1838,8 +1836,7 @@ impl<'a> AstBytecodeGen<'a> {
         // We need array of elements
         let element_ty = arg_types.last().cloned().unwrap();
         let ty = self.sa.known.array_ty(element_ty.clone());
-        let cls_id = ty.cls_id().expect("class expected");
-        let type_params = ty.type_params();
+        let (cls_id, type_params) = ty.to_class().expect("class expected");
         let cls_idx = self.builder.add_const_cls_types(
             ClassId(cls_id.index().try_into().expect("overflow")),
             bty_array_from_ty(&type_params),
@@ -2309,11 +2306,9 @@ impl<'a> AstBytecodeGen<'a> {
 
                 Intrinsic::ArrayWithValues => {
                     let ty = self.ty(expr.id);
-                    assert_eq!(
-                        ty.cls_id().expect("class expected"),
-                        self.sa.known.classes.array()
-                    );
-                    let type_params = ty.type_params();
+
+                    let (cls_id, type_params) = ty.to_class().expect("class expected");
+                    assert_eq!(cls_id, self.sa.known.classes.array());
                     assert_eq!(1, type_params.len());
                     let element_ty = type_params[0].clone();
                     self.emit_array_with_variadic_arguments(expr, &[element_ty], 0, dest)
@@ -2327,8 +2322,7 @@ impl<'a> AstBytecodeGen<'a> {
     fn emit_intrinsic_new_array(&mut self, expr: &ast::ExprCallType, dest: DataDest) -> Register {
         // We need array of elements
         let element_ty = self.ty(expr.id);
-        let cls_id = element_ty.cls_id().expect("class expected");
-        let type_params = element_ty.type_params();
+        let (cls_id, type_params) = element_ty.to_class().expect("class expected");
         let cls_idx = self.builder.add_const_cls_types(
             ClassId(cls_id.index().try_into().expect("overflow")),
             bty_array_from_ty(&type_params),
@@ -2639,8 +2633,8 @@ impl<'a> AstBytecodeGen<'a> {
             }
         };
 
-        let cls_id = cls_ty.cls_id().expect("class expected");
-        let type_params = cls_ty.type_params();
+        let (cls_id, type_params) = cls_ty.to_class().expect("class expected");
+
         let field_idx = self.builder.add_const_field_types(
             ClassId(cls_id.index().try_into().expect("overflow")),
             bty_array_from_ty(&type_params),

@@ -6,7 +6,7 @@ use crate::sema::{
 };
 use crate::typeck::function::args_compatible_fct;
 use crate::typeparamck::{self, ErrorReporting};
-use crate::{replace_type, SourceType, SourceTypeArray};
+use crate::{replace_type, ty, SourceType, SourceTypeArray};
 use dora_parser::Span;
 
 pub struct MethodLookupResult {
@@ -237,7 +237,7 @@ impl<'a> MethodLookup<'a> {
             return result;
         }
 
-        if args.contains(&SourceType::Error) {
+        if args.contains(&ty::error()) {
             return result;
         }
 

@@ -14,7 +14,7 @@ use crate::typeck::{
     add_local, check_expr, check_lit_char, check_lit_str, compute_lit_float, compute_lit_int,
     get_subpatterns, read_path, TypeCheck,
 };
-use crate::{specialize_type, Name, SourceTypeArray, SymbolKind};
+use crate::{specialize_type, ty, Name, SourceTypeArray, SymbolKind};
 
 pub(super) fn check_stmt(ck: &mut TypeCheck, s: &ast::StmtData) {
     match *s {
@@ -479,10 +479,7 @@ fn check_subpatterns<'a>(
             }
 
             for (idx, subpattern) in subpatterns.iter().enumerate() {
-                let ty = expected_types
-                    .get(idx)
-                    .cloned()
-                    .unwrap_or(SourceType::Error);
+                let ty = expected_types.get(idx).cloned().unwrap_or(ty::error());
                 check_pattern_inner(ck, ctxt, subpattern.as_ref(), ty);
             }
         } else if rest_count == 1 {
@@ -504,10 +501,7 @@ fn check_subpatterns<'a>(
                 if subpattern.is_rest() {
                     idx += rest_len;
                 } else {
-                    let ty = expected_types
-                        .get(idx)
-                        .cloned()
-                        .unwrap_or(SourceType::Error);
+                    let ty = expected_types.get(idx).cloned().unwrap_or(ty::error());
                     check_pattern_inner(ck, ctxt, subpattern.as_ref(), ty);
                     idx += 1;
                 }
@@ -530,7 +524,7 @@ fn check_subpatterns_error(ck: &mut TypeCheck, ctxt: &mut Context, pattern: &ast
     if let Some(subpatterns) = get_subpatterns(pattern) {
         for subpattern in subpatterns {
             if !subpattern.is_rest() {
-                check_pattern_inner(ck, ctxt, subpattern.as_ref(), SourceType::Error);
+                check_pattern_inner(ck, ctxt, subpattern.as_ref(), ty::error());
             }
         }
     }

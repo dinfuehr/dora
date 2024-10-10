@@ -1,6 +1,6 @@
 use crate::error::msg::ErrorMessage;
 use crate::sema::{ConstDefinition, ConstValue, Sema};
-use crate::ty::SourceType;
+use crate::ty::{self, SourceType};
 use crate::typeck::compute_lit_int;
 use crate::typeck::function::{check_lit_char, check_lit_float, check_lit_int};
 
@@ -60,7 +60,7 @@ impl<'a> ConstCheck<'a> {
                 _ => {
                     let msg = ErrorMessage::ConstValueExpected;
                     self.sa.report(self.const_.file_id, expr.span(), msg);
-                    return (SourceType::Error, ConstValue::None);
+                    return (ty::error(), ConstValue::None);
                 }
             }
         };

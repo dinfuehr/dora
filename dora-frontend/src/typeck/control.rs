@@ -7,7 +7,7 @@ use crate::error::msg::ErrorMessage;
 use crate::expr_always_returns;
 use crate::sema::{find_impl, FctDefinitionId, ForTypeInfo};
 use crate::sym::SymbolKind;
-use crate::ty::TraitType;
+use crate::ty::{self, TraitType};
 use crate::typeck::{check_expr, check_pattern, read_ident, read_path, TypeCheck};
 use crate::{specialize_type, SourceType};
 
@@ -60,7 +60,7 @@ pub(super) fn check_expr_for(
     let object_type = check_expr(ck, &stmt.expr, SourceType::Any);
 
     if object_type.is_error() {
-        check_for_body(ck, stmt, SourceType::Error);
+        check_for_body(ck, stmt, ty::error());
         return SourceType::Unit;
     }
 
@@ -90,7 +90,7 @@ pub(super) fn check_expr_for(
     ck.sa.report(ck.file_id, stmt.expr.span(), msg);
 
     // set invalid error type
-    check_for_body(ck, stmt, SourceType::Error);
+    check_for_body(ck, stmt, ty::error());
     SourceType::Unit
 }
 
@@ -347,7 +347,7 @@ pub(super) fn check_expr_match(
     expected_ty: SourceType,
 ) -> SourceType {
     let expr_type = check_expr(ck, &node.expr, SourceType::Any);
-    let mut result_type = SourceType::Error;
+    let mut result_type = ty::error();
 
     for arm in &node.arms {
         ck.symtable.push_level();

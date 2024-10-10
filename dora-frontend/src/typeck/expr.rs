@@ -23,7 +23,7 @@ use crate::typeck::{
     is_simple_enum, TypeCheck,
 };
 use crate::typeparamck::{self, ErrorReporting};
-use crate::{replace_type, SourceType, SourceTypeArray, SymbolKind};
+use crate::{replace_type, ty::error as ty_error, SourceType, SourceTypeArray, SymbolKind};
 
 pub(super) fn check_expr(
     ck: &mut TypeCheck,
@@ -59,7 +59,7 @@ pub(super) fn check_expr(
         ast::ExprData::Break(..) | ast::ExprData::Continue(..) => {
             check_expr_break_and_continue(ck, e, expected_ty)
         }
-        ast::ExprData::Error { .. } => SourceType::Error,
+        ast::ExprData::Error { .. } => ty_error(),
     }
 }
 
@@ -179,13 +179,13 @@ pub(super) fn check_expr_ident(
                 e.span,
                 ErrorMessage::UnknownIdentifier(e.name.clone()),
             );
-            SourceType::Error
+            ty_error()
         }
 
         _ => {
             ck.sa
                 .report(ck.file_id, e.span, ErrorMessage::ValueExpected);
-            SourceType::Error
+            ty_error()
         }
     }
 }
@@ -311,7 +311,7 @@ fn check_expr_assign_field(ck: &mut TypeCheck, e: &ast::ExprBinType) {
             let msg = ErrorMessage::NameExpected;
             ck.sa.report(ck.file_id, e.span, msg);
 
-            ck.analysis.set_ty(e.id, SourceType::Error);
+            ck.analysis.set_ty(e.id, ty_error());
             return;
         }
     };
@@ -396,8 +396,8 @@ pub(super) fn check_expr_dot(
             let msg = ErrorMessage::NameExpected;
             ck.sa.report(ck.file_id, e.op_span, msg);
 
-            ck.analysis.set_ty(e.id, SourceType::Error);
-            return SourceType::Error;
+            ck.analysis.set_ty(e.id, ty_error());
+            return ty_error();
         }
     };
 
@@ -449,9 +449,9 @@ pub(super) fn check_expr_dot(
         ck.sa.report(ck.file_id, e.rhs.span(), msg);
     }
 
-    ck.analysis.set_ty(e.id, SourceType::Error);
+    ck.analysis.set_ty(e.id, ty_error());
 
-    SourceType::Error
+    ty_error()
 }
 
 fn check_expr_dot_tuple(
@@ -477,8 +477,8 @@ fn check_expr_dot_tuple(
             let msg = ErrorMessage::IndexExpected;
             ck.sa.report(ck.file_id, e.rhs.span(), msg);
 
-            ck.analysis.set_ty(e.id, SourceType::Error);
-            return SourceType::Error;
+            ck.analysis.set_ty(e.id, ty_error());
+            return ty_error();
         }
     };
 
@@ -488,8 +488,8 @@ fn check_expr_dot_tuple(
         let msg = ErrorMessage::IllegalTupleIndex(index, ck.ty_name(&object_type));
         ck.sa.report(ck.file_id, e.op_span, msg);
 
-        ck.analysis.set_ty(e.id, SourceType::Error);
-        return SourceType::Error;
+        ck.analysis.set_ty(e.id, ty_error());
+        return ty_error();
     }
 
     let ty = subtypes[usize::try_from(index).unwrap()].clone();
@@ -506,8 +506,8 @@ pub(super) fn check_expr_this(
     if !ck.is_self_available {
         let msg = ErrorMessage::ThisUnavailable;
         ck.sa.report(ck.file_id, e.span, msg);
-        ck.analysis.set_ty(e.id, SourceType::Error);
-        return SourceType::Error;
+        ck.analysis.set_ty(e.id, ty_error());
+        return ty_error();
     }
 
     assert!(ck.is_self_available);
@@ -556,11 +556,11 @@ fn check_expr_conv(
         let name = ck.ty_name(&check_type);
         ck.sa
             .report(ck.file_id, e.span, ErrorMessage::TraitExpected(name));
-        let ty = SourceType::Error;
+        let ty = ty_error();
         ck.analysis.set_ty(e.id, ty.clone());
         ty
     } else {
-        SourceType::Error
+        ty_error()
     }
 }
 
@@ -834,8 +834,8 @@ fn check_expr_un_trait(
         let msg = ErrorMessage::UnOpType(op.as_str().into(), ty);
         ck.sa.report(ck.file_id, e.span, msg);
 
-        ck.analysis.set_ty(e.id, SourceType::Error);
-        SourceType::Error
+        ck.analysis.set_ty(e.id, ty_error());
+        ty_error()
     }
 }
 
@@ -869,8 +869,8 @@ pub(super) fn check_expr_bin(
     let rhs_type = check_expr(ck, &e.rhs, SourceType::Any);
 
     if lhs_type.is_error() || rhs_type.is_error() {
-        ck.analysis.set_ty(e.id, SourceType::Error);
-        return SourceType::Error;
+        ck.analysis.set_ty(e.id, ty_error());
+        return ty_error();
     }
 
     match e.op {
@@ -1111,9 +1111,9 @@ fn check_expr_bin_trait(
 
         ck.sa.report(ck.file_id, e.span, msg);
 
-        ck.analysis.set_ty(e.id, SourceType::Error);
+        ck.analysis.set_ty(e.id, ty_error());
 
-        SourceType::Error
+        ty_error()
     }
 }
 
@@ -1207,7 +1207,7 @@ fn check_expr_cmp_enum(
 
         ck.sa.report(ck.file_id, e.span, msg);
 
-        ck.analysis.set_ty(e.id, SourceType::Error);
+        ck.analysis.set_ty(e.id, ty_error());
     }
 }
 
@@ -1323,7 +1323,7 @@ pub(super) fn check_enum_value_with_args(
         ck.sa.report(ck.file_id, e.span, msg);
     }
 
-    let type_params = if expected_ty.is_enum_id(enum_id) && type_params.is_empty() {
+    let type_params = if expected_ty.enum_id() == Some(enum_id) && type_params.is_empty() {
         expected_ty.type_params()
     } else {
         type_params
@@ -1338,8 +1338,8 @@ pub(super) fn check_enum_value_with_args(
     );
 
     if !type_params_ok {
-        ck.analysis.set_ty(e.id, SourceType::Error);
-        return SourceType::Error;
+        ck.analysis.set_ty(e.id, ty_error());
+        return ty_error();
     }
 
     if !check_expr_call_enum_args(ck.sa, enum_id, type_params.clone(), variant, arg_types) {
@@ -1392,8 +1392,8 @@ pub(super) fn check_expr_path(
     let sym = match read_path_expr(ck, container_expr) {
         Ok(sym) => sym,
         Err(()) => {
-            ck.analysis.set_ty(e.id, SourceType::Error);
-            return SourceType::Error;
+            ck.analysis.set_ty(e.id, ty_error());
+            return ty_error();
         }
     };
 
@@ -1402,7 +1402,7 @@ pub(super) fn check_expr_path(
     } else {
         let msg = ErrorMessage::ExpectedSomeIdentifier;
         ck.sa.report(ck.file_id, e.rhs.span(), msg);
-        return SourceType::Error;
+        return ty_error();
     };
 
     match sym {
@@ -1424,8 +1424,8 @@ pub(super) fn check_expr_path(
             let msg = ErrorMessage::InvalidLeftSideOfSeparator;
             ck.sa.report(ck.file_id, e.lhs.span(), msg);
 
-            ck.analysis.set_ty(e.id, SourceType::Error);
-            SourceType::Error
+            ck.analysis.set_ty(e.id, ty_error());
+            ty_error()
         }
     }
 }
@@ -1538,8 +1538,8 @@ fn check_enum_value_without_args(
         ck.analysis.set_ty(expr_id, ty.clone());
         ty
     } else {
-        ck.analysis.set_ty(expr_id, SourceType::Error);
-        SourceType::Error
+        ck.analysis.set_ty(expr_id, ty_error());
+        ty_error()
     }
 }
 
@@ -1571,8 +1571,8 @@ pub(super) fn check_expr_type_param(
                 ck.sa
                     .report(ck.file_id, e.op_span, ErrorMessage::NoTypeParamsExpected);
 
-                ck.analysis.set_ty(e.id, SourceType::Error);
-                SourceType::Error
+                ck.analysis.set_ty(e.id, ty_error());
+                ty_error()
             }
         }
     } else if let Some(path) = e.callee.to_path() {
@@ -1582,8 +1582,8 @@ pub(super) fn check_expr_type_param(
             let msg = ErrorMessage::ExpectedSomeIdentifier;
             ck.sa.report(ck.file_id, path.lhs.span(), msg);
 
-            ck.analysis.set_ty(e.id, SourceType::Error);
-            return SourceType::Error;
+            ck.analysis.set_ty(e.id, ty_error());
+            return ty_error();
         };
 
         let method_name = if let Some(ident) = path.rhs.to_ident() {
@@ -1592,8 +1592,8 @@ pub(super) fn check_expr_type_param(
             let msg = ErrorMessage::ExpectedSomeIdentifier;
             ck.sa.report(ck.file_id, path.rhs.span(), msg);
 
-            ck.analysis.set_ty(e.id, SourceType::Error);
-            return SourceType::Error;
+            ck.analysis.set_ty(e.id, ty_error());
+            return ty_error();
         };
 
         let sym = ck.symtable.get_string(ck.sa, &container_name);
@@ -1613,15 +1613,15 @@ pub(super) fn check_expr_type_param(
                 let msg = ErrorMessage::NoTypeParamsExpected;
                 ck.sa.report(ck.file_id, e.op_span, msg);
 
-                ck.analysis.set_ty(e.id, SourceType::Error);
-                SourceType::Error
+                ck.analysis.set_ty(e.id, ty_error());
+                ty_error()
             }
         }
     } else {
         ck.sa
             .report(ck.file_id, e.op_span, ErrorMessage::NoTypeParamsExpected);
-        ck.analysis.set_ty(e.id, SourceType::Error);
-        return SourceType::Error;
+        ck.analysis.set_ty(e.id, ty_error());
+        return ty_error();
     }
 }
 
@@ -1641,7 +1641,7 @@ pub(super) fn check_enum_value_without_args_id(
         ck.sa.report(ck.file_id, expr_span, msg);
     }
 
-    let type_params = if expected_ty.is_enum_id(enum_id) && type_params.is_empty() {
+    let type_params = if expected_ty.enum_id() == Some(enum_id) && type_params.is_empty() {
         expected_ty.type_params()
     } else {
         type_params
@@ -1682,8 +1682,8 @@ pub(super) fn check_enum_value_without_args_id(
         ck.analysis.set_ty(expr_id, ty.clone());
         ty
     } else {
-        ck.analysis.set_ty(expr_id, SourceType::Error);
-        SourceType::Error
+        ck.analysis.set_ty(expr_id, ty_error());
+        ty_error()
     }
 }
 
@@ -1750,13 +1750,13 @@ fn check_expr_path_module(
                 e.span,
                 ErrorMessage::UnknownIdentifierInModule(module, element_name),
             );
-            SourceType::Error
+            ty_error()
         }
 
         _ => {
             ck.sa
                 .report(ck.file_id, e.span, ErrorMessage::ValueExpected);
-            SourceType::Error
+            ty_error()
         }
     }
 }
