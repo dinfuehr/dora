@@ -433,7 +433,7 @@ fn convert_type_regular_trait_object(
 ) -> SourceType {
     let trait_ = sa.trait_(trait_id);
     let mut idx = 0;
-    let mut generics = Vec::new();
+    let mut trait_type_params = Vec::new();
 
     while idx < type_params.len() {
         let type_param = &type_params[idx];
@@ -443,7 +443,7 @@ fn convert_type_regular_trait_object(
         }
 
         let ty = convert_type_inner(sa, file_id, &type_param.ty);
-        generics.push(ty);
+        trait_type_params.push(ty);
         idx += 1;
     }
 
@@ -477,9 +477,11 @@ fn convert_type_regular_trait_object(
         idx += 1;
     }
 
+    let mut bindings = Vec::new();
+
     for alias_id in trait_.aliases() {
         if let Some(ty) = used_aliases.remove(&alias_id) {
-            generics.push(ty);
+            bindings.push(ty);
         } else {
             let name = sa.alias(*alias_id).name;
             let name = sa.interner.str(name).to_string();
@@ -489,8 +491,7 @@ fn convert_type_regular_trait_object(
         }
     }
 
-    let type_params = SourceTypeArray::with(generics);
-    SourceType::TraitObject(trait_id, type_params, ().into())
+    SourceType::TraitObject(trait_id, trait_type_params.into(), bindings.into())
 }
 
 fn sym_type_param_definition(sa: &Sema, sym: SymbolKind) -> &TypeParamDefinition {
@@ -520,7 +521,6 @@ fn ty_for_sym(sa: &Sema, sym: SymbolKind, type_params: SourceTypeArray) -> Sourc
             }
         }
         SymbolKind::Enum(id) => SourceType::Enum(id, type_params),
-        SymbolKind::Trait(id) => SourceType::TraitObject(id, type_params, ().into()),
         _ => unimplemented!(),
     }
 }
@@ -810,7 +810,7 @@ fn check_type_trait_object(
     parsed_ty: &ParsedTypeAst,
     trait_id: TraitDefinitionId,
     type_params: SourceTypeArray,
-    _bindings: SourceTypeArray,
+    bindings: SourceTypeArray,
 ) -> SourceType {
     let trait_ = sa.trait_(trait_id);
 
@@ -836,25 +836,24 @@ fn check_type_trait_object(
         return SourceType::Error;
     }
 
-    let generic_count = trait_.type_param_definition().type_param_count();
-    let type_params = type_params.types();
-    let generic_args = &type_params[0..generic_count];
-    let type_bindings = &type_params[generic_count..];
+    assert_eq!(
+        type_params.len() + bindings.len(),
+        parsed_type_arguments.len()
+    );
+    let mut new_type_params = Vec::with_capacity(type_params.len());
 
-    assert_eq!(type_params.len(), parsed_type_arguments.len());
-    let mut new_type_params = Vec::with_capacity(generic_args.len());
-
-    for (idx, arg) in generic_args.iter().enumerate() {
+    for (idx, arg) in type_params.iter().enumerate() {
         let parsed_type_arg = &parsed_type_arguments[idx];
         assert!(parsed_type_arg.name.is_none());
         let ty = check_type_inner(sa, element, ctxt, arg.clone(), &parsed_type_arg.ty);
         new_type_params.push(ty);
     }
 
-    let mut new_bindings = Vec::with_capacity(type_bindings.len());
+    let mut new_bindings = Vec::with_capacity(bindings.len());
+    let type_param_count = type_params.len();
 
-    for (idx, arg) in type_bindings.iter().enumerate() {
-        let parsed_type_arg = &parsed_type_arguments[generic_count + idx];
+    for (idx, arg) in bindings.iter().enumerate() {
+        let parsed_type_arg = &parsed_type_arguments[type_param_count + idx];
         assert!(parsed_type_arg.name.is_some());
         let alias_id = trait_.aliases()[0];
         let ty = check_type_inner(sa, element, ctxt, arg.clone(), &parsed_type_arg.ty);
@@ -870,9 +869,8 @@ fn check_type_trait_object(
         parsed_ty.span,
         ctxt.type_param_definition,
     ) {
-        let mut new_bindings = new_bindings.into_iter().map(|b| b.1).collect();
-        new_type_params.append(&mut new_bindings);
-        SourceType::TraitObject(trait_id, SourceTypeArray::with(new_type_params), ().into())
+        let new_bindings: Vec<SourceType> = new_bindings.into_iter().map(|b| b.1).collect();
+        SourceType::TraitObject(trait_id, new_type_params.into(), new_bindings.into())
     } else {
         SourceType::Error
     };

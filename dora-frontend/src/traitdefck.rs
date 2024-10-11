@@ -170,7 +170,7 @@ mod tests {
         }
     ",
             (9, 13),
-            ErrorMessage::TypeNotImplementingTrait("Int64".into(), "Foo[String]".into()),
+            ErrorMessage::TypeNotImplementingTrait("Int64".into(), "Foo[X = String]".into()),
         );
     }
 

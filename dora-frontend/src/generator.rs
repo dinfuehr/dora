@@ -14,7 +14,7 @@ use crate::sema::{
     LazyContextData, OuterContextIdx, ScopeId, Sema, SourceFileId, StructDefinitionId, VarId,
     VarLocation,
 };
-use crate::specialize::{replace_type, specialize_type};
+use crate::specialize::{replace_type, specialize_for_trait_object, specialize_type};
 use crate::ty::{SourceType, SourceTypeArray};
 use crate::typeck::is_pattern_check;
 use crate::{expr_always_returns, expr_block_always_returns};
@@ -3055,9 +3055,8 @@ impl<'a> AstBytecodeGen<'a> {
             | CallType::Expr(_, _, ref type_params)
             | CallType::Method(_, _, ref type_params) => specialize_type(self.sa, ty, type_params),
 
-            CallType::TraitObjectMethod(trait_ty, _) => {
-                let container_type_params = trait_ty.type_params();
-                specialize_type(self.sa, ty, &container_type_params)
+            CallType::TraitObjectMethod(trait_ty, _actual_object_ty) => {
+                specialize_for_trait_object(self.sa, ty, trait_ty.clone())
             }
             CallType::GenericMethod(id, _trait_id, _method_id, type_params)
             | CallType::GenericStaticMethod(id, _trait_id, _method_id, type_params) => {

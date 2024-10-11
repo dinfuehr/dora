@@ -365,8 +365,8 @@ impl SourceType {
         match self {
             SourceType::Class(_, params)
             | SourceType::Enum(_, params)
-            | SourceType::Struct(_, params)
-            | SourceType::TraitObject(_, params, _) => params.clone(),
+            | SourceType::Struct(_, params) => params.clone(),
+            SourceType::TraitObject(..) => unimplemented!(),
             _ => SourceTypeArray::empty(),
         }
     }
@@ -1036,16 +1036,12 @@ pub struct TraitType {
 impl TraitType {
     pub fn new_ty(sa: &Sema, ty: SourceType) -> TraitType {
         match ty {
-            SourceType::TraitObject(trait_id, type_params, _bindings) => {
+            SourceType::TraitObject(trait_id, type_params, bindings) => {
                 let trait_ = sa.trait_(trait_id);
-                let type_params = type_params.types();
-                let generic_count = trait_.type_param_definition().type_param_count();
-                let generic_args = &type_params[0..generic_count];
-                let type_bindings = &type_params[generic_count..];
 
-                assert_eq!(trait_.aliases().len(), type_bindings.len());
+                assert_eq!(trait_.aliases().len(), bindings.len());
 
-                let new_bindings = type_bindings
+                let new_bindings = bindings
                     .iter()
                     .enumerate()
                     .map(|(idx, ty)| (trait_.aliases()[idx], ty.clone()))
@@ -1053,7 +1049,7 @@ impl TraitType {
 
                 let trait_type = TraitType {
                     trait_id,
-                    type_params: SourceTypeArray::with(generic_args.to_vec()),
+                    type_params,
                     bindings: new_bindings,
                 };
 
