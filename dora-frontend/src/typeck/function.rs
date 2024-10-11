@@ -501,13 +501,13 @@ fn arg_allows(sa: &Sema, def: SourceType, arg: SourceType, self_ty: Option<Sourc
         | SourceType::Bool
         | SourceType::UInt8
         | SourceType::Char
-        | SourceType::Struct(_, _)
+        | SourceType::Struct(..)
         | SourceType::Int32
         | SourceType::Int64
         | SourceType::Float32
         | SourceType::Float64
-        | SourceType::Enum(_, _)
-        | SourceType::Trait(_, _) => def == arg,
+        | SourceType::Enum(..)
+        | SourceType::TraitObject(..) => def == arg,
         SourceType::Ptr => panic!("ptr should not occur in fct definition."),
         SourceType::This => {
             let real = self_ty.clone().expect("no Self type expected.");

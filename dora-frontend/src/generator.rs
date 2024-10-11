@@ -3220,10 +3220,13 @@ pub fn bty_from_ty(ty: SourceType) -> BytecodeType {
             ClassId(class_id.index().try_into().expect("overflow")),
             bty_array_from_ty(&type_params),
         ),
-        SourceType::Trait(trait_id, type_params) => BytecodeType::Trait(
-            TraitId(trait_id.index().try_into().expect("overflow")),
-            bty_array_from_ty(&type_params),
-        ),
+        SourceType::TraitObject(trait_id, type_params, bindings) => {
+            assert!(bindings.is_empty());
+            BytecodeType::Trait(
+                TraitId(trait_id.index().try_into().expect("overflow")),
+                bty_array_from_ty(&type_params),
+            )
+        }
         SourceType::Enum(enum_id, type_params) => BytecodeType::Enum(
             EnumId(enum_id.index().try_into().expect("overflow")),
             bty_array_from_ty(&type_params),
@@ -3259,10 +3262,13 @@ pub fn register_bty_from_ty(ty: SourceType) -> BytecodeType {
         SourceType::Float32 => BytecodeType::Float32,
         SourceType::Float64 => BytecodeType::Float64,
         SourceType::Class(_, _) => BytecodeType::Ptr,
-        SourceType::Trait(trait_id, type_params) => BytecodeType::Trait(
-            TraitId(trait_id.index().try_into().expect("overflow")),
-            bty_array_from_ty(&type_params),
-        ),
+        SourceType::TraitObject(trait_id, type_params, bindings) => {
+            assert!(bindings.is_empty());
+            BytecodeType::Trait(
+                TraitId(trait_id.index().try_into().expect("overflow")),
+                bty_array_from_ty(&type_params),
+            )
+        }
         SourceType::Enum(enum_id, type_params) => BytecodeType::Enum(
             EnumId(enum_id.index().try_into().expect("overflow")),
             bty_array_from_ty(&type_params),

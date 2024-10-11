@@ -49,13 +49,13 @@ pub fn implements_trait(
         | SourceType::Int64
         | SourceType::Float32
         | SourceType::Float64
-        | SourceType::Struct(_, _)
-        | SourceType::Enum(_, _)
-        | SourceType::Class(_, _)
-        | SourceType::Tuple(_)
+        | SourceType::Struct(..)
+        | SourceType::Enum(..)
+        | SourceType::Class(..)
+        | SourceType::Tuple(..)
         | SourceType::Unit
-        | SourceType::Trait(_, _)
-        | SourceType::Lambda(_, _) => {
+        | SourceType::TraitObject(..)
+        | SourceType::Lambda(..) => {
             find_impl(sa, check_ty, check_type_param_defs, trait_ty).is_some()
         }
 

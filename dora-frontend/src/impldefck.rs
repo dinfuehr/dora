@@ -30,7 +30,7 @@ fn check_impl_definition(sa: &Sema, impl_: &ImplDefinition) {
         | SourceType::Class(..)
         | SourceType::Struct(..)
         | SourceType::Enum(..)
-        | SourceType::Trait(..)
+        | SourceType::TraitObject(..)
         | SourceType::Unit
         | SourceType::Lambda(..)
         | SourceType::Tuple(..)
@@ -207,21 +207,35 @@ fn trait_and_impl_arg_ty_compatible(
             _ => false,
         },
 
-        SourceType::Trait(trait_trait_id, trait_trait_type_params) => match impl_arg_ty {
-            SourceType::Trait(impl_trait_id, impl_trait_type_params) => {
-                trait_trait_id == impl_trait_id
-                    && trait_and_impl_arg_ty_compatible_array(
-                        sa,
-                        trait_trait_type_params,
-                        trait_type_params,
-                        trait_alias_map,
-                        impl_trait_type_params,
-                        self_ty,
-                    )
-            }
+        SourceType::TraitObject(trait_trait_id, trait_trait_type_params, trait_trait_bindings) => {
+            match impl_arg_ty {
+                SourceType::TraitObject(
+                    impl_trait_id,
+                    impl_trait_type_params,
+                    impl_trait_bindings,
+                ) => {
+                    trait_trait_id == impl_trait_id
+                        && trait_and_impl_arg_ty_compatible_array(
+                            sa,
+                            trait_trait_type_params,
+                            trait_type_params.clone(),
+                            trait_alias_map,
+                            impl_trait_type_params,
+                            self_ty.clone(),
+                        )
+                        && trait_and_impl_arg_ty_compatible_array(
+                            sa,
+                            trait_trait_bindings,
+                            trait_type_params,
+                            trait_alias_map,
+                            impl_trait_bindings,
+                            self_ty,
+                        )
+                }
 
-            _ => false,
-        },
+                _ => false,
+            }
+        }
 
         SourceType::Struct(trait_struct_id, trait_struct_type_params) => match impl_arg_ty {
             SourceType::Struct(impl_struct_id, impl_struct_type_params) => {

@@ -75,7 +75,7 @@ pub fn package_for_type(sa: &Sema, ty: SourceType) -> Option<PackageDefinitionId
         SourceType::Class(id, ..) => Some(sa.class(id).package_id),
         SourceType::Struct(id, ..) => Some(sa.struct_(id).package_id),
         SourceType::Enum(id, ..) => Some(sa.enum_(id).package_id),
-        SourceType::Trait(id, ..) => Some(sa.trait_(id).package_id),
+        SourceType::TraitObject(id, ..) => Some(sa.trait_(id).package_id),
         SourceType::Alias(id, ..) => Some(sa.alias(id).package_id),
     }
 }
@@ -114,7 +114,7 @@ impl<'x> ExtensionCheck<'x> {
             | SourceType::Class(..)
             | SourceType::Struct(..)
             | SourceType::Enum(..)
-            | SourceType::Trait(..)
+            | SourceType::TraitObject(..)
             | SourceType::Unit
             | SourceType::Lambda(..)
             | SourceType::Tuple(..) => {}
@@ -205,8 +205,16 @@ fn discover_type_params(sa: &Sema, ty: SourceType, used_type_params: &mut FixedB
         | SourceType::Int64
         | SourceType::Float32
         | SourceType::Float64
-        | SourceType::Ptr
-        | SourceType::Trait(_, _) => {}
+        | SourceType::Ptr => {}
+        SourceType::TraitObject(_id, type_params, bindings) => {
+            for param in type_params.iter() {
+                discover_type_params(sa, param, used_type_params);
+            }
+
+            for param in bindings.iter() {
+                discover_type_params(sa, param, used_type_params);
+            }
+        }
         SourceType::Class(_, params)
         | SourceType::Enum(_, params)
         | SourceType::Struct(_, params) => {

@@ -78,9 +78,10 @@ fn expand_type(
             expand_sta(sa, type_params, visited, visiting, context),
         ),
 
-        SourceType::Trait(trait_id, type_params) => SourceType::Trait(
+        SourceType::TraitObject(trait_id, type_params, bindings) => SourceType::TraitObject(
             *trait_id,
             expand_sta(sa, type_params, visited, visiting, context),
+            expand_sta(sa, bindings, visited, visiting, context),
         ),
 
         SourceType::Struct(struct_id, type_params) => SourceType::Struct(

@@ -1,3 +1,4 @@
+use std::convert::From;
 use std::ops::Index;
 use std::sync::Arc;
 
@@ -72,7 +73,7 @@ pub fn tuple(types: SourceTypeArray) -> SourceType {
 }
 
 pub fn trait_(id: TraitDefinitionId, type_params: SourceTypeArray) -> SourceType {
-    SourceType::Trait(id, type_params)
+    SourceType::TraitObject(id, type_params, ().into())
 }
 
 pub fn type_param(id: TypeParamId) -> SourceType {
@@ -96,7 +97,7 @@ pub enum TyKind {
     Class,
     Struct,
     Tuple,
-    Trait,
+    TraitObject,
     TypeParam,
     Alias,
     Lambda,
@@ -139,7 +140,7 @@ pub enum SourceType {
     Tuple(SourceTypeArray),
 
     // some trait object
-    Trait(TraitDefinitionId, SourceTypeArray),
+    TraitObject(TraitDefinitionId, SourceTypeArray, SourceTypeArray),
 
     // some type variable
     TypeParam(TypeParamId),
@@ -169,7 +170,7 @@ impl SourceType {
             | SourceType::Float32
             | SourceType::Float64
             | SourceType::Struct(..) => TyKind::Struct,
-            SourceType::Trait(..) => TyKind::Trait,
+            SourceType::TraitObject(..) => TyKind::TraitObject,
             SourceType::Lambda(..) => TyKind::Lambda,
             SourceType::TypeParam(..) => TyKind::TypeParam,
             SourceType::Alias(..) => TyKind::Alias,
@@ -188,7 +189,7 @@ impl SourceType {
 
     pub fn is_enum(&self) -> bool {
         match self {
-            SourceType::Enum(_, _) => true,
+            SourceType::Enum(..) => true,
             _ => false,
         }
     }
@@ -209,14 +210,14 @@ impl SourceType {
 
     pub fn is_cls(&self) -> bool {
         match self {
-            SourceType::Class(_, _) => true,
+            SourceType::Class(..) => true,
             _ => false,
         }
     }
 
     pub fn is_trait(&self) -> bool {
         match self {
-            SourceType::Trait(_, _) => true,
+            SourceType::TraitObject(..) => true,
             _ => false,
         }
     }
@@ -365,7 +366,7 @@ impl SourceType {
             SourceType::Class(_, params)
             | SourceType::Enum(_, params)
             | SourceType::Struct(_, params)
-            | SourceType::Trait(_, params) => params.clone(),
+            | SourceType::TraitObject(_, params, _) => params.clone(),
             _ => SourceTypeArray::empty(),
         }
     }
@@ -373,9 +374,9 @@ impl SourceType {
     pub fn reference_type(&self) -> bool {
         match self {
             SourceType::Ptr => true,
-            SourceType::Class(_, _) => true,
-            SourceType::Trait(_, _) => true,
-            SourceType::Lambda(_, _) => true,
+            SourceType::Class(..) => true,
+            SourceType::TraitObject(..) => true,
+            SourceType::Lambda(..) => true,
             _ => false,
         }
     }
@@ -449,7 +450,7 @@ impl SourceType {
 
     pub fn trait_id(&self) -> Option<TraitDefinitionId> {
         match self {
-            SourceType::Trait(trait_id, _) => Some(*trait_id),
+            SourceType::TraitObject(trait_id, ..) => Some(*trait_id),
             _ => None,
         }
     }
@@ -483,9 +484,9 @@ impl SourceType {
             | SourceType::Bool
             | SourceType::UInt8
             | SourceType::Char
-            | SourceType::Struct(_, _)
-            | SourceType::Enum(_, _)
-            | SourceType::Trait(_, _) => *self == other,
+            | SourceType::Struct(..)
+            | SourceType::Enum(..)
+            | SourceType::TraitObject(..) => *self == other,
             SourceType::Int32 | SourceType::Int64 | SourceType::Float32 | SourceType::Float64 => {
                 *self == other
             }
@@ -550,8 +551,8 @@ impl SourceType {
             | SourceType::Int64
             | SourceType::Float32
             | SourceType::Float64
-            | SourceType::Trait(_, _)
-            | SourceType::Lambda(_, _)
+            | SourceType::TraitObject(..)
+            | SourceType::Lambda(..)
             | SourceType::TypeParam(_) => true,
             SourceType::Alias(..) => unreachable!(),
             SourceType::Enum(_, params)
@@ -592,9 +593,23 @@ impl SourceType {
             SourceType::Alias(..) => unreachable!(),
             SourceType::Class(_, params)
             | SourceType::Enum(_, params)
-            | SourceType::Struct(_, params)
-            | SourceType::Trait(_, params) => {
+            | SourceType::Struct(_, params) => {
                 for param in params.iter() {
+                    if !param.is_concrete_type() {
+                        return false;
+                    }
+                }
+
+                true
+            }
+
+            SourceType::TraitObject(_, params, bindings) => {
+                for param in params.iter() {
+                    if !param.is_concrete_type() {
+                        return false;
+                    }
+                }
+                for param in bindings.iter() {
                     if !param.is_concrete_type() {
                         return false;
                     }
@@ -643,9 +658,24 @@ pub fn contains_self(sa: &Sema, ty: SourceType) -> bool {
         SourceType::Alias(..) => unimplemented!(),
         SourceType::Class(_, params)
         | SourceType::Enum(_, params)
-        | SourceType::Struct(_, params)
-        | SourceType::Trait(_, params) => {
+        | SourceType::Struct(_, params) => {
             for param in params.iter() {
+                if contains_self(sa, param) {
+                    return true;
+                }
+            }
+
+            false
+        }
+
+        SourceType::TraitObject(_, type_params, bindings) => {
+            for param in type_params.iter() {
+                if contains_self(sa, param) {
+                    return true;
+                }
+            }
+
+            for param in bindings.iter() {
                 if contains_self(sa, param) {
                     return true;
                 }
@@ -805,6 +835,24 @@ impl Index<usize> for SourceTypeArray {
     }
 }
 
+impl From<Vec<SourceType>> for SourceTypeArray {
+    fn from(value: Vec<SourceType>) -> Self {
+        SourceTypeArray::with(value)
+    }
+}
+
+impl From<SourceType> for SourceTypeArray {
+    fn from(value: SourceType) -> Self {
+        SourceTypeArray::single(value)
+    }
+}
+
+impl From<()> for SourceTypeArray {
+    fn from(_value: ()) -> Self {
+        SourceTypeArray::empty()
+    }
+}
+
 pub struct SourceTypeArrayIter<'a> {
     params: &'a SourceTypeArray,
     idx: usize,
@@ -884,18 +932,30 @@ impl<'a> SourceTypePrinter<'a> {
                     format!("{}[{}]", name, params)
                 }
             }
-            SourceType::Trait(trait_id, type_params) => {
+            SourceType::TraitObject(trait_id, type_params, bindings) => {
                 let trait_ = self.sa.trait_(trait_id);
                 let name = self.sa.interner.str(trait_.name).to_string();
 
-                if type_params.len() == 0 {
+                if type_params.is_empty() && bindings.is_empty() {
                     name
                 } else {
-                    let params = type_params
+                    let mut params = type_params
                         .iter()
                         .map(|ty| self.name(ty))
                         .collect::<Vec<_>>()
                         .join(", ");
+
+                    for (idx, binding) in bindings.iter().enumerate() {
+                        if !params.is_empty() {
+                            params.push_str(", ");
+                        }
+
+                        let alias_id = trait_.aliases()[idx];
+                        let alias = self.sa.alias(alias_id);
+                        params.push_str(&self.sa.name(alias.name));
+                        params.push_str(" = ");
+                        params.push_str(&self.name(binding));
+                    }
 
                     format!("{}[{}]", name, params)
                 }
@@ -976,7 +1036,7 @@ pub struct TraitType {
 impl TraitType {
     pub fn new_ty(sa: &Sema, ty: SourceType) -> TraitType {
         match ty {
-            SourceType::Trait(trait_id, type_params) => {
+            SourceType::TraitObject(trait_id, type_params, _bindings) => {
                 let trait_ = sa.trait_(trait_id);
                 let type_params = type_params.types();
                 let generic_count = trait_.type_param_definition().type_param_count();
@@ -1013,7 +1073,7 @@ impl TraitType {
     }
 
     pub fn ty(&self) -> SourceType {
-        SourceType::Trait(self.trait_id, self.type_params.clone())
+        SourceType::TraitObject(self.trait_id, self.type_params.clone(), ().into())
     }
 
     pub fn name_with_type_params(

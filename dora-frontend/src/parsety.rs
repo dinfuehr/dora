@@ -490,7 +490,7 @@ fn convert_type_regular_trait_object(
     }
 
     let type_params = SourceTypeArray::with(generics);
-    SourceType::Trait(trait_id, type_params)
+    SourceType::TraitObject(trait_id, type_params, ().into())
 }
 
 fn sym_type_param_definition(sa: &Sema, sym: SymbolKind) -> &TypeParamDefinition {
@@ -520,7 +520,7 @@ fn ty_for_sym(sa: &Sema, sym: SymbolKind, type_params: SourceTypeArray) -> Sourc
             }
         }
         SymbolKind::Enum(id) => SourceType::Enum(id, type_params),
-        SymbolKind::Trait(id) => SourceType::Trait(id, type_params),
+        SymbolKind::Trait(id) => SourceType::TraitObject(id, type_params, ().into()),
         _ => unimplemented!(),
     }
 }
@@ -737,9 +737,15 @@ fn check_type_inner(
         | SourceType::Enum(_, type_params) => {
             check_type_record(sa, element, ctxt, parsed_ty, type_params)
         }
-        SourceType::Trait(trait_id, type_params) => {
-            check_type_trait_object(sa, element, ctxt, parsed_ty, trait_id, type_params)
-        }
+        SourceType::TraitObject(trait_id, type_params, bindings) => check_type_trait_object(
+            sa,
+            element,
+            ctxt,
+            parsed_ty,
+            trait_id,
+            type_params,
+            bindings,
+        ),
     }
 }
 
@@ -804,6 +810,7 @@ fn check_type_trait_object(
     parsed_ty: &ParsedTypeAst,
     trait_id: TraitDefinitionId,
     type_params: SourceTypeArray,
+    _bindings: SourceTypeArray,
 ) -> SourceType {
     let trait_ = sa.trait_(trait_id);
 
@@ -865,7 +872,7 @@ fn check_type_trait_object(
     ) {
         let mut new_bindings = new_bindings.into_iter().map(|b| b.1).collect();
         new_type_params.append(&mut new_bindings);
-        SourceType::Trait(trait_id, SourceTypeArray::with(new_type_params))
+        SourceType::TraitObject(trait_id, SourceTypeArray::with(new_type_params), ().into())
     } else {
         SourceType::Error
     };
@@ -1096,9 +1103,10 @@ fn expand_st(
             SourceType::Class(*cls_id, expand_sta(sa, element, type_params, replace_self))
         }
 
-        SourceType::Trait(trait_id, type_params) => SourceType::Trait(
+        SourceType::TraitObject(trait_id, type_params, bindings) => SourceType::TraitObject(
             *trait_id,
-            expand_sta(sa, element, type_params, replace_self),
+            expand_sta(sa, element, type_params, replace_self.clone()),
+            expand_sta(sa, element, bindings, replace_self),
         ),
 
         SourceType::Struct(struct_id, type_params) => SourceType::Struct(

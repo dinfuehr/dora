@@ -257,20 +257,30 @@ fn match_concrete_types(
             )
         }
 
-        SourceType::Trait(check_trait_id, check_type_params) => match ext_ty {
-            SourceType::Trait(ext_trait_id, ext_type_params) => {
-                check_trait_id == ext_trait_id
-                    && match_arrays(
-                        sa,
-                        &check_type_params,
-                        check_type_param_defs,
-                        &ext_type_params,
-                        ext_type_param_defs,
-                        bindings,
-                    )
+        SourceType::TraitObject(check_trait_id, check_type_params, check_bindings) => {
+            match ext_ty {
+                SourceType::TraitObject(ext_trait_id, ext_type_params, ext_bindings) => {
+                    check_trait_id == ext_trait_id
+                        && match_arrays(
+                            sa,
+                            &check_type_params,
+                            check_type_param_defs,
+                            &ext_type_params,
+                            ext_type_param_defs,
+                            bindings,
+                        )
+                        && match_arrays(
+                            sa,
+                            &check_bindings,
+                            check_type_param_defs,
+                            &ext_bindings,
+                            ext_type_param_defs,
+                            bindings,
+                        )
+                }
+                _ => false,
             }
-            _ => false,
-        },
+        }
 
         SourceType::Ptr | SourceType::Error | SourceType::This | SourceType::Any => {
             unreachable!()
@@ -283,7 +293,7 @@ fn sym_for_ty(ty: SourceType) -> Option<SymbolKind> {
         SourceType::Class(id, ..) => Some(SymbolKind::Class(id)),
         SourceType::Struct(id, ..) => Some(SymbolKind::Struct(id)),
         SourceType::Enum(id, ..) => Some(SymbolKind::Enum(id)),
-        SourceType::Trait(id, ..) => Some(SymbolKind::Trait(id)),
+        SourceType::TraitObject(id, ..) => Some(SymbolKind::Trait(id)),
         _ => None,
     }
 }

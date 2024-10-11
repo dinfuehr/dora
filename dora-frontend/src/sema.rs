@@ -12,7 +12,7 @@ use dora_parser::{compute_line_column, Span};
 
 use crate::error::diag::Diagnostic;
 use crate::error::msg::ErrorMessage;
-use crate::sym::SymTable;
+use crate::{Name, SymTable};
 
 pub use self::aliases::{AliasBound, AliasDefinition, AliasDefinitionId, AliasParent};
 pub use self::classes::{
@@ -307,5 +307,9 @@ impl Sema {
     pub fn generate_lambda_name(&self) -> String {
         let id = self.next_lambda_id.fetch_add(1, Ordering::Relaxed);
         format!("$Lambda{id}")
+    }
+
+    pub fn name(&self, name: Name) -> String {
+        self.interner.str(name).to_string()
     }
 }

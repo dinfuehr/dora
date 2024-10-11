@@ -30,9 +30,10 @@ pub fn replace_type(
             replace_sta(sa, cls_type_params, type_params, self_ty),
         ),
 
-        SourceType::Trait(trait_id, trait_type_params) => SourceType::Trait(
+        SourceType::TraitObject(trait_id, trait_type_params, bindings) => SourceType::TraitObject(
             trait_id,
-            replace_sta(sa, trait_type_params, type_params, self_ty),
+            replace_sta(sa, trait_type_params, type_params, self_ty.clone()),
+            replace_sta(sa, bindings, type_params, self_ty),
         ),
 
         SourceType::Struct(struct_id, struct_type_params) => SourceType::Struct(
