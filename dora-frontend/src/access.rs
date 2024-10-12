@@ -17,7 +17,7 @@ pub fn sym_accessible_from(sa: &Sema, sym: SymbolKind, module_id: ModuleDefiniti
         SymbolKind::Module(sym_module_id) => module_accessible_from(sa, sym_module_id, module_id),
         SymbolKind::Struct(struct_id) => struct_accessible_from(sa, struct_id, module_id),
         SymbolKind::Trait(trait_id) => trait_accessible_from(sa, trait_id, module_id),
-        SymbolKind::TypeAlias(alias_id) => alias_accessible_from(sa, alias_id, module_id),
+        SymbolKind::Alias(alias_id) => alias_accessible_from(sa, alias_id, module_id),
         SymbolKind::TypeParam(_) => unreachable!(),
         SymbolKind::Var(_) => unreachable!(),
     }

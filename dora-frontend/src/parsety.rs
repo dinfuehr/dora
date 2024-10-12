@@ -9,8 +9,8 @@ use crate::sema::{
 };
 use crate::sym::{ModuleSymTable, SymbolKind};
 use crate::{
-    parse_path, specialize_type, ErrorMessage, Name, PathKind, Sema, SourceType, SourceTypeArray,
-    Span, TraitType,
+    parse_path, replace_type, specialize_type, ErrorMessage, Name, PathKind, Sema, SourceType,
+    SourceTypeArray, Span, TraitType,
 };
 
 use dora_parser::ast;
@@ -247,11 +247,12 @@ fn parse_type_regular(
             SymbolKind::Trait(..)
             | SymbolKind::Class(..)
             | SymbolKind::Struct(..)
-            | SymbolKind::Enum(..) => parse_type_regular_with_arguments(
+            | SymbolKind::Enum(..)
+            | SymbolKind::Alias(..) => parse_type_regular_with_arguments(
                 sa, table, file_id, element, allow_self, sym, node,
             ),
 
-            SymbolKind::TypeParam(..) | SymbolKind::TypeAlias(..) => {
+            SymbolKind::TypeParam(..) => {
                 if !node.params.is_empty() {
                     let msg = ErrorMessage::NoTypeParamsExpected;
                     sa.report(file_id, node.span, msg);
@@ -378,11 +379,6 @@ fn convert_type_regular(sa: &Sema, file_id: SourceFileId, parsed_ty: &ParsedType
     };
 
     match sym {
-        SymbolKind::TypeAlias(id) => {
-            assert!(type_params.is_empty());
-            SourceType::Alias(id, SourceTypeArray::empty())
-        }
-
         SymbolKind::TypeParam(id) => {
             assert!(type_params.is_empty());
             SourceType::TypeParam(id)
@@ -392,7 +388,10 @@ fn convert_type_regular(sa: &Sema, file_id: SourceFileId, parsed_ty: &ParsedType
             convert_type_regular_trait_object(sa, file_id, parsed_ty, trait_id, type_params)
         }
 
-        SymbolKind::Class(..) | SymbolKind::Enum(..) | SymbolKind::Struct(..) => {
+        SymbolKind::Alias(..)
+        | SymbolKind::Class(..)
+        | SymbolKind::Enum(..)
+        | SymbolKind::Struct(..) => {
             let mut source_type_arguments = Vec::with_capacity(type_params.len());
 
             for ty_arg in type_params {
@@ -499,7 +498,7 @@ fn sym_type_param_definition(sa: &Sema, sym: SymbolKind) -> &TypeParamDefinition
         SymbolKind::Class(id) => sa.class(id).type_param_definition(),
         SymbolKind::Struct(id) => sa.struct_(id).type_param_definition(),
         SymbolKind::Enum(id) => sa.enum_(id).type_param_definition(),
-        SymbolKind::Trait(id) => sa.trait_(id).type_param_definition(),
+        SymbolKind::Alias(id) => sa.alias(id).type_param_definition(),
         _ => unimplemented!(),
     }
 }
@@ -521,6 +520,7 @@ fn ty_for_sym(sa: &Sema, sym: SymbolKind, type_params: SourceTypeArray) -> Sourc
             }
         }
         SymbolKind::Enum(id) => SourceType::Enum(id, type_params),
+        SymbolKind::Alias(id) => SourceType::Alias(id, type_params),
         _ => unimplemented!(),
     }
 }
@@ -1131,7 +1131,6 @@ fn expand_st(
         }
 
         SourceType::Alias(id, type_params) => {
-            assert!(type_params.is_empty());
             let alias = sa.alias(*id);
 
             match alias.parent {
@@ -1154,7 +1153,10 @@ fn expand_st(
                 }
 
                 AliasParent::Impl(..) => unreachable!(),
-                AliasParent::None => expand_st(sa, element, alias.ty(), replace_self),
+                AliasParent::None => {
+                    let alias_ty = replace_type(sa, alias.ty(), Some(type_params), None);
+                    expand_st(sa, element, alias_ty, replace_self)
+                }
             }
         }
 

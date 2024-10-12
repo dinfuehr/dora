@@ -101,7 +101,7 @@ fn parse_path_self(
                 let alias_id = aliases.get(&name).cloned();
 
                 if let Some(alias_id) = alias_id {
-                    Ok(PathKind::Symbol(SymbolKind::TypeAlias(alias_id)))
+                    Ok(PathKind::Symbol(SymbolKind::Alias(alias_id)))
                 } else {
                     sa.report(file_id, second.span(), ErrorMessage::UnknownAlias);
                     Err(())

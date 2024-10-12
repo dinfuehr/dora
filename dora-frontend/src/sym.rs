@@ -165,7 +165,7 @@ pub enum SymbolKind {
     Const(ConstDefinitionId),
     Module(ModuleDefinitionId),
     EnumVariant(EnumDefinitionId, u32),
-    TypeAlias(AliasDefinitionId),
+    Alias(AliasDefinitionId),
 }
 
 impl SymbolKind {

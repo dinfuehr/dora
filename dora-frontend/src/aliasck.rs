@@ -481,4 +481,16 @@ mod tests {
             ErrorMessage::UnexpectedWhere,
         );
     }
+
+    #[test]
+    fn alias_generic() {
+        ok("
+            struct Foo[T]
+            type X[T] = Foo[T];
+            fn f() {
+                g(Foo[Int64]())
+            }
+            fn g(foo: X[Int64]) {}
+        ");
+    }
 }

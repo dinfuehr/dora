@@ -81,7 +81,9 @@ pub fn replace_type(
         | SourceType::Float64
         | SourceType::Error => ty,
 
-        SourceType::Alias(..) | SourceType::Any | SourceType::Ptr => unreachable!(),
+        SourceType::Alias(..) => ty,
+
+        SourceType::Any | SourceType::Ptr => unreachable!(),
     }
 }
 

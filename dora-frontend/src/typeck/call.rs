@@ -883,7 +883,7 @@ fn check_expr_call_path(
             check_expr_call_sym(ck, e, expected_ty, callee, sym, type_params, arg_types)
         }
 
-        Some(SymbolKind::TypeAlias(alias_id)) => {
+        Some(SymbolKind::Alias(alias_id)) => {
             if !container_type_params.is_empty() {
                 let msg = ErrorMessage::NoTypeParamsExpected;
                 ck.sa.report(ck.file_id, callee_as_path.lhs.span(), msg);

@@ -894,7 +894,7 @@ impl<'x> visit::Visitor for TopLevelDeclaration<'x> {
                 .report(self.file_id, node.span, ErrorMessage::UnexpectedTypeBounds);
         }
 
-        let sym = SymbolKind::TypeAlias(id);
+        let sym = SymbolKind::Alias(id);
         if let Some((name, sym)) = self.insert_optional(&node.name, sym) {
             report_sym_shadow_span(self.sa, name, self.file_id, node.span, sym);
         }
