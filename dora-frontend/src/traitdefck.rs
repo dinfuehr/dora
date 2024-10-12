@@ -141,6 +141,20 @@ mod tests {
     }
 
     #[test]
+    fn trait_object_safe_generic_alias() {
+        err(
+            "
+            trait Foo {
+                type X[T];
+            }
+            fn f(x: Foo[X=String]) {}
+        ",
+            (5, 21),
+            ErrorMessage::TraitNotObjectSafe,
+        );
+    }
+
+    #[test]
     fn trait_object_safe_alias_as() {
         ok("
             trait Foo {

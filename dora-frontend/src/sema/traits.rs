@@ -165,6 +165,13 @@ impl ElementAccess for TraitDefinition {
 pub fn is_object_safe(sa: &Sema, trait_id: TraitDefinitionId) -> bool {
     let trait_ = sa.trait_(trait_id);
 
+    for &alias_id in trait_.aliases() {
+        let alias = sa.alias(alias_id);
+        if alias.type_param_definition().has_own_type_params() {
+            return false;
+        }
+    }
+
     for method_id in trait_.methods() {
         let method = sa.fct(*method_id);
 
