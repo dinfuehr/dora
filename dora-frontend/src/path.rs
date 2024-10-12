@@ -27,56 +27,7 @@ pub fn parse_path(
             parse_path_self(sa, file_id, element, allow_self, regular)
         }
 
-        ast::PathSegmentData::Ident(ref node) => {
-            let first_name = sa.interner.intern(&node.name.name_as_string);
-            let sym = table.get(first_name);
-
-            if sym.is_none() {
-                let msg = ErrorMessage::UnknownIdentifier(node.name.name_as_string.clone());
-                sa.report(file_id, node.span, msg);
-                return Err(());
-            }
-
-            let mut previous_sym = sym.expect("missing symbol");
-
-            for (idx, segment) in segments.iter().enumerate().skip(1) {
-                if !previous_sym.is_module() {
-                    let msg = ErrorMessage::ExpectedPath;
-                    sa.report(file_id, segments[idx - 1].span(), msg);
-                    return Err(());
-                }
-
-                let name = expect_ident(sa, file_id, segment)?;
-
-                let module_id = previous_sym.to_module().expect("expected module");
-                let module = sa.module(module_id);
-                let current_sym = module.table().get(name);
-
-                if let Some(current_sym) = current_sym {
-                    if sym_accessible_from(sa, current_sym.clone(), module_id) {
-                        previous_sym = current_sym;
-                    } else {
-                        let module = sa.module(module_id);
-                        let name = node.name.name_as_string.clone();
-                        let msg = ErrorMessage::NotAccessibleInModule(module.name(sa), name);
-                        sa.report(file_id, node.span, msg);
-                        return Err(());
-                    }
-                } else {
-                    let module = sa.module(module_id);
-                    let name = sa.interner.str(name).to_string();
-                    let module_name = module.name(sa);
-                    sa.report(
-                        file_id,
-                        segment.span(),
-                        ErrorMessage::UnknownIdentifierInModule(module_name, name),
-                    );
-                    return Err(());
-                }
-            }
-
-            Ok(PathKind::Symbol(previous_sym))
-        }
+        ast::PathSegmentData::Ident(..) => parse_path_ident(sa, table, file_id, regular),
 
         ast::PathSegmentData::Error { .. } => Err(()),
     }
@@ -121,6 +72,65 @@ fn parse_path_self(
         );
         Err(())
     }
+}
+
+fn parse_path_ident(
+    sa: &Sema,
+    table: &ModuleSymTable,
+    file_id: SourceFileId,
+    regular: &ast::TypeRegularType,
+) -> Result<PathKind, ()> {
+    let segments = &regular.path.segments;
+    let node = segments[0].to_ident().expect("ident expected");
+
+    let first_name = sa.interner.intern(&node.name.name_as_string);
+    let sym = table.get(first_name);
+
+    if sym.is_none() {
+        let msg = ErrorMessage::UnknownIdentifier(node.name.name_as_string.clone());
+        sa.report(file_id, node.span, msg);
+        return Err(());
+    }
+
+    let mut previous_sym = sym.expect("missing symbol");
+
+    for (idx, segment) in segments.iter().enumerate().skip(1) {
+        if !previous_sym.is_module() {
+            let msg = ErrorMessage::ExpectedPath;
+            sa.report(file_id, segments[idx - 1].span(), msg);
+            return Err(());
+        }
+
+        let name = expect_ident(sa, file_id, segment)?;
+
+        let module_id = previous_sym.to_module().expect("expected module");
+        let module = sa.module(module_id);
+        let current_sym = module.table().get(name);
+
+        if let Some(current_sym) = current_sym {
+            if sym_accessible_from(sa, current_sym.clone(), module_id) {
+                previous_sym = current_sym;
+            } else {
+                let module = sa.module(module_id);
+                let name = node.name.name_as_string.clone();
+                let msg = ErrorMessage::NotAccessibleInModule(module.name(sa), name);
+                sa.report(file_id, node.span, msg);
+                return Err(());
+            }
+        } else {
+            let module = sa.module(module_id);
+            let name = sa.interner.str(name).to_string();
+            let module_name = module.name(sa);
+            sa.report(
+                file_id,
+                segment.span(),
+                ErrorMessage::UnknownIdentifierInModule(module_name, name),
+            );
+            return Err(());
+        }
+    }
+
+    Ok(PathKind::Symbol(previous_sym))
 }
 
 fn available_aliases<'a>(

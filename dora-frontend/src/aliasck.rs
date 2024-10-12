@@ -493,4 +493,21 @@ mod tests {
             fn g(foo: X[Int64]) {}
         ");
     }
+
+    #[test]
+    #[ignore]
+    fn impl_alias_generic() {
+        ok("
+            struct Foo[T]
+            trait TraitA {
+                type X[T];
+            }
+            impl TraitA for String {
+                type X[T] = T;
+            }
+            fn f[T: TraitA](t: T): T::X[Int64] {
+                0
+            }
+        ");
+    }
 }
