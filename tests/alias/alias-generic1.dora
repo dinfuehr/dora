@@ -1,0 +1,19 @@
+//= ignore
+
+struct Foo[T](value: T)
+
+type Bar[T] = Foo[T];
+
+fn main() {
+    assert(getvalue1[Float64](Foo[Float64](2.5)) == 2.5);
+    assert(getvalue1[Bool](Foo[Bool](true)));
+    assert(getvalue2[Int64](Bar[Int64](142)) == 142);
+}
+
+fn getvalue1[T](bar: Bar[T]): T {
+    bar.value
+}
+
+fn getvalue2[T](foo: Foo[T]): T {
+    foo.value
+}
