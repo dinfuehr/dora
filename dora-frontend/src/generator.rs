@@ -3221,7 +3221,7 @@ pub fn bty_from_ty(ty: SourceType) -> BytecodeType {
         ),
         SourceType::TraitObject(trait_id, type_params, bindings) => {
             assert!(bindings.is_empty());
-            BytecodeType::Trait(
+            BytecodeType::TraitObject(
                 TraitId(trait_id.index().try_into().expect("overflow")),
                 bty_array_from_ty(&type_params),
             )
@@ -3263,7 +3263,7 @@ pub fn register_bty_from_ty(ty: SourceType) -> BytecodeType {
         SourceType::Class(_, _) => BytecodeType::Ptr,
         SourceType::TraitObject(trait_id, type_params, bindings) => {
             assert!(bindings.is_empty());
-            BytecodeType::Trait(
+            BytecodeType::TraitObject(
                 TraitId(trait_id.index().try_into().expect("overflow")),
                 bty_array_from_ty(&type_params),
             )

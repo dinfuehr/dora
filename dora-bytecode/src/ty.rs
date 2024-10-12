@@ -21,7 +21,7 @@ pub enum BytecodeType {
     Enum(EnumId, BytecodeTypeArray),
     Struct(StructId, BytecodeTypeArray),
     Class(ClassId, BytecodeTypeArray),
-    Trait(TraitId, BytecodeTypeArray),
+    TraitObject(TraitId, BytecodeTypeArray),
     Lambda(BytecodeTypeArray, Box<BytecodeType>),
     TypeAlias(AliasId),
 }
@@ -43,7 +43,7 @@ impl BytecodeType {
             BytecodeType::Enum(..) => BytecodeTypeKind::Enum,
             BytecodeType::Struct(..) => BytecodeTypeKind::Struct,
             BytecodeType::Class(..) => BytecodeTypeKind::Class,
-            BytecodeType::Trait(..) => BytecodeTypeKind::Trait,
+            BytecodeType::TraitObject(..) => BytecodeTypeKind::TraitObject,
             BytecodeType::Lambda(..) => BytecodeTypeKind::Lambda,
             BytecodeType::TypeAlias(..) => BytecodeTypeKind::TypeAlias,
             BytecodeType::This => unreachable!(),
@@ -101,14 +101,14 @@ impl BytecodeType {
 
     pub fn is_trait(&self) -> bool {
         match self {
-            BytecodeType::Trait(_, _) => true,
+            BytecodeType::TraitObject(_, _) => true,
             _ => false,
         }
     }
 
     pub fn to_trait_id(&self) -> Option<TraitId> {
         match self {
-            BytecodeType::Trait(id, ..) => Some(*id),
+            BytecodeType::TraitObject(id, ..) => Some(*id),
             _ => None,
         }
     }
@@ -141,7 +141,7 @@ impl BytecodeType {
             BytecodeType::Class(_, params)
             | BytecodeType::Enum(_, params)
             | BytecodeType::Struct(_, params)
-            | BytecodeType::Trait(_, params) => {
+            | BytecodeType::TraitObject(_, params) => {
                 for param in params.iter() {
                     if !param.is_concrete_type() {
                         return false;
@@ -178,7 +178,7 @@ impl BytecodeType {
         match self {
             BytecodeType::Ptr => true,
             BytecodeType::Class(..) => true,
-            BytecodeType::Trait(..) => true,
+            BytecodeType::TraitObject(..) => true,
             BytecodeType::Lambda(..) => true,
             _ => false,
         }

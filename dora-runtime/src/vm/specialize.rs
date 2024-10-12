@@ -273,7 +273,7 @@ pub fn add_ref_fields(vm: &VM, ref_fields: &mut Vec<i32>, offset: i32, ty: Bytec
         BytecodeType::Ptr
         | BytecodeType::Class(..)
         | BytecodeType::Lambda(..)
-        | BytecodeType::Trait(..) => {
+        | BytecodeType::TraitObject(..) => {
             ref_fields.push(offset);
         }
     }
@@ -386,7 +386,7 @@ fn create_specialized_class_array(
             BytecodeType::Unit => InstanceSize::UnitArray,
             BytecodeType::Ptr
             | BytecodeType::Class(_, _)
-            | BytecodeType::Trait(_, _)
+            | BytecodeType::TraitObject(_, _)
             | BytecodeType::Lambda(_, _) => InstanceSize::ObjArray,
 
             BytecodeType::Tuple(_) => {
@@ -580,9 +580,9 @@ pub fn specialize_bty(ty: BytecodeType, type_params: &BytecodeTypeArray) -> Byte
             BytecodeType::Class(cls_id, params)
         }
 
-        BytecodeType::Trait(trait_id, params) => {
+        BytecodeType::TraitObject(trait_id, params) => {
             let params = specialize_bty_array(&params, type_params);
-            BytecodeType::Trait(trait_id, params)
+            BytecodeType::TraitObject(trait_id, params)
         }
 
         BytecodeType::Struct(struct_id, params) => {

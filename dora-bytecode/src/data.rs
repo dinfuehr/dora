@@ -37,7 +37,7 @@ pub enum BytecodeTypeKind {
     Struct,
     TypeParam,
     Class,
-    Trait,
+    TraitObject,
     Lambda,
     TypeAlias,
 }

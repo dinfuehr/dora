@@ -204,7 +204,7 @@ impl<'a> CannonCodeGen<'a> {
         for (idx, ty) in self.bytecode.registers().iter().enumerate() {
             let ty = register_bty(self.specialize_bty(ty.clone()));
             match ty {
-                BytecodeType::Ptr | BytecodeType::Trait(_, _) => {
+                BytecodeType::Ptr | BytecodeType::TraitObject(_, _) => {
                     let offset = self.register_offset(Register(idx));
                     self.references.push(offset);
                 }
@@ -357,7 +357,7 @@ impl<'a> CannonCodeGen<'a> {
                 | BytecodeType::Int32
                 | BytecodeType::Int64
                 | BytecodeType::Class(_, _)
-                | BytecodeType::Trait(_, _)
+                | BytecodeType::TraitObject(_, _)
                 | BytecodeType::Lambda(_, _) => {
                     self.store_param_on_stack_core(
                         &mut reg_idx,
@@ -1582,7 +1582,7 @@ impl<'a> CannonCodeGen<'a> {
         let bytecode_type = self.specialize_register_type(lhs);
 
         match bytecode_type {
-            BytecodeType::Ptr | BytecodeType::Trait(_, _) => {
+            BytecodeType::Ptr | BytecodeType::TraitObject(_, _) => {
                 self.emit_load_register(lhs, REG_RESULT.into());
                 self.emit_load_register(rhs, REG_TMP1.into());
 
@@ -1747,7 +1747,7 @@ impl<'a> CannonCodeGen<'a> {
                 self.emit_load_register(src, reg.into());
             }
 
-            BytecodeType::Ptr | BytecodeType::Trait(_, _) => {
+            BytecodeType::Ptr | BytecodeType::TraitObject(_, _) => {
                 let reg = REG_RESULT;
                 self.emit_load_register(src, reg.into());
                 self.asm
@@ -2350,7 +2350,7 @@ impl<'a> CannonCodeGen<'a> {
             | BytecodeType::Float32
             | BytecodeType::Float64
             | BytecodeType::Ptr
-            | BytecodeType::Trait(_, _) => {
+            | BytecodeType::TraitObject(_, _) => {
                 let register = result_reg(self.vm, dest_type.clone());
                 self.asm
                     .load_array_elem(mode(self.vm, dest_type), register, REG_RESULT, REG_TMP1);
@@ -2677,7 +2677,7 @@ impl<'a> CannonCodeGen<'a> {
             FunctionKind::Trait(trait_id) => trait_id,
             _ => unreachable!(),
         };
-        let trait_ty = BytecodeType::Trait(trait_id, type_params.clone());
+        let trait_ty = BytecodeType::TraitObject(trait_id, type_params.clone());
 
         let ty = self.type_params[id as usize].clone();
         let callee_id = find_trait_impl(self.vm, trait_fct_id, trait_ty, ty);
@@ -3900,7 +3900,7 @@ impl<'a> CannonCodeGen<'a> {
                 | BytecodeType::Int64
                 | BytecodeType::Ptr
                 | BytecodeType::Enum(_, _)
-                | BytecodeType::Trait(_, _) => {
+                | BytecodeType::TraitObject(_, _) => {
                     let mode = mode(self.vm, bytecode_type);
 
                     if reg_idx < REG_PARAMS.len() {
@@ -4612,7 +4612,7 @@ pub fn result_passed_as_argument(ty: BytecodeType) -> bool {
         | BytecodeType::Class(..)
         | BytecodeType::Lambda(..)
         | BytecodeType::Ptr
-        | BytecodeType::Trait(..) => false,
+        | BytecodeType::TraitObject(..) => false,
         BytecodeType::TypeAlias(..) | BytecodeType::TypeParam(..) | BytecodeType::This => {
             panic!("unexpected type param")
         }
@@ -4677,7 +4677,7 @@ pub fn mode(vm: &VM, ty: BytecodeType) -> MachineMode {
         BytecodeType::Float32 => MachineMode::Float32,
         BytecodeType::Float64 => MachineMode::Float64,
         BytecodeType::Ptr
-        | BytecodeType::Trait(_, _)
+        | BytecodeType::TraitObject(_, _)
         | BytecodeType::Class(_, _)
         | BytecodeType::Lambda(_, _) => MachineMode::Ptr,
         BytecodeType::Enum(enum_id, type_params) => {
@@ -4711,7 +4711,7 @@ pub fn size(vm: &VM, ty: BytecodeType) -> i32 {
         BytecodeType::Float32 => 4,
         BytecodeType::Float64 => 8,
         BytecodeType::Ptr
-        | BytecodeType::Trait(_, _)
+        | BytecodeType::TraitObject(_, _)
         | BytecodeType::Class(_, _)
         | BytecodeType::Lambda(_, _) => mem::ptr_width(),
         BytecodeType::Tuple(_) => get_concrete_tuple_bty(vm, &ty).size(),
@@ -4747,7 +4747,7 @@ pub fn align(vm: &VM, ty: BytecodeType) -> i32 {
         BytecodeType::Float32 => 4,
         BytecodeType::Float64 => 8,
         BytecodeType::Ptr
-        | BytecodeType::Trait(_, _)
+        | BytecodeType::TraitObject(_, _)
         | BytecodeType::Class(_, _)
         | BytecodeType::Lambda(_, _) => mem::ptr_width(),
         BytecodeType::Tuple(_) => get_concrete_tuple_bty(vm, &ty).align(),

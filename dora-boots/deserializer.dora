@@ -150,7 +150,7 @@ fn decodeBytecodeType(reader: ByteReader): BytecodeType {
         let enum_id = EnumId(reader.readId());
         let typeParams = decodeBytecodeTypeArray(reader);
         BytecodeType::Enum(enum_id, typeParams)
-    } else if opcode == opc::BC_TYPE_TRAIT {
+    } else if opcode == opc::BC_TYPE_TRAIT_OBJECT {
         let trait_id = TraitId(reader.readId());
         let typeParams = decodeBytecodeTypeArray(reader);
         BytecodeType::Trait(trait_id, typeParams)

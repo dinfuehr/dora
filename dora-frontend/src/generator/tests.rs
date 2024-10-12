@@ -4034,7 +4034,7 @@ fn gen_trait_object() {
             assert_eq!(
                 fct.const_pool(ConstPoolIdx(0)),
                 &ConstPoolEntry::TraitObject {
-                    trait_ty: BytecodeType::Trait(
+                    trait_ty: BytecodeType::TraitObject(
                         TraitId(trait_id.index().try_into().expect("overflow")),
                         BytecodeTypeArray::empty()
                     ),
@@ -4080,7 +4080,7 @@ fn gen_trait_object_method_call() {
             assert_eq!(
                 fct.const_pool(ConstPoolIdx(0)),
                 &ConstPoolEntry::TraitObjectMethod(
-                    BytecodeType::Trait(
+                    BytecodeType::TraitObject(
                         TraitId(trait_id.index().try_into().expect("overflow")),
                         BytecodeTypeArray::empty()
                     ),

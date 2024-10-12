@@ -451,7 +451,7 @@ extern "C" fn find_trait_impl_raw(data: Handle<UInt8Array>) -> u32 {
         _ => unreachable!(),
     };
 
-    let trait_ty = BytecodeType::Trait(trait_id, trait_type_params);
+    let trait_ty = BytecodeType::TraitObject(trait_id, trait_type_params);
     let callee_id = impls::find_trait_impl(vm, trait_fct_id, trait_ty, object_ty);
 
     callee_id.0

@@ -189,7 +189,7 @@ impl<'a> BytecodeTypePrinter<'a> {
                 write!(fmt, "{}", struct_.name)?;
                 self.type_params(type_params, fmt)
             }
-            BytecodeType::Trait(tid, type_params) => {
+            BytecodeType::TraitObject(tid, type_params) => {
                 let trait_ = self.vm.trait_(*tid);
                 write!(fmt, "{}", trait_.name)?;
                 self.type_params(type_params, fmt)

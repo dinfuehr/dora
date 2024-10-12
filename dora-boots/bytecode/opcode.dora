@@ -78,7 +78,7 @@ pub const BC_TYPE_ENUM: Int32 = 10;
 pub const BC_TYPE_STRUCT: Int32 = 11;
 pub const BC_TYPE_TYPE_PARAM: Int32 = 12;
 pub const BC_TYPE_CLASS: Int32 = 13;
-pub const BC_TYPE_TRAIT: Int32 = 14;
+pub const BC_TYPE_TRAIT_OBJECT: Int32 = 14;
 pub const BC_TYPE_LAMBDA: Int32 = 15;
 pub const BC_TYPE_TYPE_ALIAS: Int32 = 16;
 
@@ -338,7 +338,7 @@ pub fn bytecodeTypeName(code: Int32): String {
   if code == BC_TYPE_STRUCT { return "Struct"; }
   if code == BC_TYPE_TYPE_PARAM { return "TypeParam"; }
   if code == BC_TYPE_CLASS { return "Class"; }
-  if code == BC_TYPE_TRAIT { return "Trait"; }
+  if code == BC_TYPE_TRAIT_OBJECT { return "TraitObject"; }
   if code == BC_TYPE_LAMBDA { return "Lambda"; }
   if code == BC_TYPE_TYPE_ALIAS { return "TypeAlias"; }
   unreachable[String]()

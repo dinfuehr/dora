@@ -212,10 +212,10 @@ pub fn decode_bytecode_type(reader: &mut ByteReader) -> BytecodeType {
             let type_params = decode_bytecode_type_array(reader);
             BytecodeType::Enum(EnumId(enum_id), type_params)
         }
-        BytecodeTypeKind::Trait => {
+        BytecodeTypeKind::TraitObject => {
             let trait_id = reader.read_u32();
             let type_params = decode_bytecode_type_array(reader);
-            BytecodeType::Trait(TraitId(trait_id), type_params)
+            BytecodeType::TraitObject(TraitId(trait_id), type_params)
         }
         BytecodeTypeKind::TypeParam => {
             let id = reader.read_u32();

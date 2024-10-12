@@ -94,7 +94,7 @@ fn trait_object_ty(
         _ => unreachable!(),
     };
 
-    BytecodeType::Trait(trait_id, type_params.clone())
+    BytecodeType::TraitObject(trait_id, type_params.clone())
 }
 
 fn compile_thunk_to_code(

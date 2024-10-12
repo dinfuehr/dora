@@ -219,7 +219,7 @@ pub fn encodeBytecodeType(writer: ByteWriter, ty: BytecodeType) {
             encodeBytecodeTypeArray(writer, source_type_array);
         },
         BytecodeType::Trait(trait_id, source_type_array) => {
-            writer.emitByte(opc::BC_TYPE_TRAIT.toUInt8());
+            writer.emitByte(opc::BC_TYPE_TRAIT_OBJECT.toUInt8());
             writer.emitInt32(trait_id.value);
             encodeBytecodeTypeArray(writer, source_type_array);
         },

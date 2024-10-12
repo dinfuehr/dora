@@ -192,7 +192,7 @@ fn lookup_extension_for_ty(vm: &VM, extended_ty: BytecodeType) -> Option<Extensi
 fn lookup_impl_for_ty(vm: &VM, trait_id: TraitId, extended_ty: BytecodeType) -> Option<ImplId> {
     for (id, impl_) in vm.program.impls.iter().enumerate() {
         match &impl_.trait_ty {
-            BytecodeType::Trait(impl_trait_id, ..) if *impl_trait_id == trait_id => {}
+            BytecodeType::TraitObject(impl_trait_id, ..) if *impl_trait_id == trait_id => {}
             _ => continue,
         }
 
@@ -207,7 +207,7 @@ fn lookup_impl_for_ty(vm: &VM, trait_id: TraitId, extended_ty: BytecodeType) -> 
 fn lookup_impl_for_item(vm: &VM, trait_id: TraitId, extended_ty: ModuleItem) -> Option<ImplId> {
     for (id, impl_) in vm.program.impls.iter().enumerate() {
         match &impl_.trait_ty {
-            BytecodeType::Trait(impl_trait_id, ..) if *impl_trait_id == trait_id => {}
+            BytecodeType::TraitObject(impl_trait_id, ..) if *impl_trait_id == trait_id => {}
             _ => continue,
         }
 
