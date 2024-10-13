@@ -46,6 +46,11 @@ pub fn replace_type(
             replace_sta(sa, enum_type_params, type_params, self_ty),
         ),
 
+        SourceType::Alias(alias_id, alias_type_params) => SourceType::Alias(
+            alias_id,
+            replace_sta(sa, alias_type_params, type_params, self_ty),
+        ),
+
         SourceType::Lambda(params, return_type) => SourceType::Lambda(
             replace_sta(sa, params, type_params, self_ty.clone()),
             Box::new(replace_type(sa, *return_type, type_params, self_ty)),
@@ -80,8 +85,6 @@ pub fn replace_type(
         | SourceType::Float32
         | SourceType::Float64
         | SourceType::Error => ty,
-
-        SourceType::Alias(..) => ty,
 
         SourceType::Any | SourceType::Ptr => unreachable!(),
     }

@@ -485,12 +485,14 @@ mod tests {
     #[test]
     fn alias_generic() {
         ok("
-            struct Foo[T]
-            type X[T] = Foo[T];
+            struct Foo[T1, T2]
+            type X[T1, T2, T3, T4] = Y[T2, T3, T4];
+            type Y[T1, T2, T3] = Z[T2, T3];
+            type Z[T1, T2] = Foo[T2, T1];
             fn f() {
-                g(Foo[Int64]())
+                g(Foo[Int64, Float64]())
             }
-            fn g(foo: X[Int64]) {}
+            fn g(foo: X[String, Bool, Float64, Int64]) {}
         ");
     }
 
