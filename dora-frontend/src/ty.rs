@@ -100,6 +100,7 @@ pub enum TyKind {
     TraitObject,
     TypeParam,
     Alias,
+    Assoc,
     Lambda,
     Enum,
 }
@@ -147,6 +148,7 @@ pub enum SourceType {
 
     // Type alias.
     Alias(AliasDefinitionId, SourceTypeArray),
+    Assoc(AliasDefinitionId, SourceTypeArray),
 
     // some lambda
     Lambda(SourceTypeArray, Box<SourceType>),
@@ -177,6 +179,7 @@ impl SourceType {
             SourceType::Enum(..) => TyKind::Enum,
             SourceType::Class(..) => TyKind::Class,
             SourceType::Unit | SourceType::Tuple(..) => TyKind::Tuple,
+            SourceType::Assoc(..) => TyKind::Assoc,
         }
     }
 
@@ -538,6 +541,8 @@ impl SourceType {
                 //                             sub class for return type
                 *self == other
             }
+
+            SourceType::Assoc(..) => unimplemented!(),
         }
     }
 
@@ -555,7 +560,7 @@ impl SourceType {
             | SourceType::TraitObject(..)
             | SourceType::Lambda(..)
             | SourceType::TypeParam(_) => true,
-            SourceType::Alias(..) => unreachable!(),
+            SourceType::Alias(..) | SourceType::Assoc(..) => unreachable!(),
             SourceType::Enum(_, params)
             | SourceType::Class(_, params)
             | SourceType::Struct(_, params) => {
@@ -637,7 +642,7 @@ impl SourceType {
 
                 return_type.is_concrete_type()
             }
-            SourceType::TypeParam(_) => false,
+            SourceType::TypeParam(_) | SourceType::Assoc(..) => false,
         }
     }
 }
@@ -656,7 +661,7 @@ pub fn contains_self(sa: &Sema, ty: SourceType) -> bool {
         | SourceType::Float32
         | SourceType::Float64
         | SourceType::TypeParam(..) => false,
-        SourceType::Alias(..) => unimplemented!(),
+        SourceType::Alias(..) | SourceType::Assoc(..) => unimplemented!(),
         SourceType::Class(_, params)
         | SourceType::Enum(_, params)
         | SourceType::Struct(_, params) => {
@@ -1023,6 +1028,7 @@ impl<'a> SourceTypePrinter<'a> {
                     format!("{}[{}]", name, params)
                 }
             }
+            SourceType::Assoc(..) => unimplemented!(),
         }
     }
 }

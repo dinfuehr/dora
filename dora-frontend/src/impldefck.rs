@@ -16,7 +16,7 @@ pub fn check_definition(sa: &Sema) {
 fn check_impl_definition(sa: &Sema, impl_: &ImplDefinition) {
     match impl_.extended_ty() {
         SourceType::Alias(..) => unimplemented!(),
-        SourceType::Any | SourceType::Ptr | SourceType::This => {
+        SourceType::Any | SourceType::Ptr | SourceType::This | SourceType::Assoc(..) => {
             unreachable!()
         }
         SourceType::Error
@@ -326,7 +326,7 @@ fn trait_and_impl_arg_ty_compatible(
         | SourceType::Float64
         | SourceType::Error => trait_arg_ty == impl_arg_ty,
 
-        SourceType::Any | SourceType::Ptr => unreachable!(),
+        SourceType::Any | SourceType::Ptr | SourceType::Assoc(..) => unreachable!(),
     }
 }
 

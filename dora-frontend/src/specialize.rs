@@ -86,7 +86,7 @@ pub fn replace_type(
         | SourceType::Float64
         | SourceType::Error => ty,
 
-        SourceType::Any | SourceType::Ptr => unreachable!(),
+        SourceType::Any | SourceType::Ptr | SourceType::Assoc(..) => unreachable!(),
     }
 }
 
@@ -170,7 +170,7 @@ pub fn specialize_for_element(
         | SourceType::Float64
         | SourceType::Error => ty,
 
-        SourceType::Any | SourceType::Ptr => unreachable!(),
+        SourceType::Any | SourceType::Ptr | SourceType::Assoc(..) => unreachable!(),
     }
 }
 
@@ -253,7 +253,7 @@ pub fn specialize_for_trait_object(sa: &Sema, ty: SourceType, trait_ty: SourceTy
         | SourceType::Float64
         | SourceType::Error => ty,
 
-        SourceType::Any | SourceType::Ptr => unreachable!(),
+        SourceType::Any | SourceType::Ptr | SourceType::Assoc(..) => unreachable!(),
     }
 }
 

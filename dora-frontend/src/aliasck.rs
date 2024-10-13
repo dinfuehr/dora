@@ -132,7 +132,7 @@ fn expand_type(
         | SourceType::This
         | SourceType::TypeParam(..) => ty,
 
-        SourceType::Any | SourceType::Ptr => {
+        SourceType::Assoc(..) | SourceType::Any | SourceType::Ptr => {
             panic!("unexpected type = {:?}", ty);
         }
     }

@@ -661,7 +661,7 @@ fn check_type_inner(
     parsed_ty: &ParsedTypeAst,
 ) -> SourceType {
     match ty.clone() {
-        SourceType::Any | SourceType::Ptr => {
+        SourceType::Any | SourceType::Ptr | SourceType::Assoc(..) => {
             unreachable!()
         }
         SourceType::This => SourceType::This,
@@ -1172,7 +1172,7 @@ fn expand_st(
         | SourceType::TypeParam(..) => ty,
         SourceType::This => replace_self.expect("self expected"),
 
-        SourceType::Any | SourceType::Ptr => {
+        SourceType::Any | SourceType::Ptr | SourceType::Assoc(..) => {
             panic!("unexpected type = {:?}", ty);
             // unreachable!()
         }

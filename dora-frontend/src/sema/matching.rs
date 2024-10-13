@@ -223,7 +223,7 @@ fn match_concrete_types(
             _ => false,
         },
 
-        SourceType::Alias(..) => {
+        SourceType::Alias(..) | SourceType::Assoc(..) => {
             unimplemented!()
         }
 
