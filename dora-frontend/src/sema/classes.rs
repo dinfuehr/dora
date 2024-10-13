@@ -14,7 +14,7 @@ use crate::sema::{
     module_path, Element, ElementAccess, ElementId, ExtensionDefinitionId, FctDefinitionId,
     ModuleDefinitionId, PackageDefinitionId, Sema, SourceFileId, TypeParamDefinition,
 };
-use crate::{replace_type, ParsedType, SourceType, SourceTypeArray};
+use crate::{specialize_for_element, ParsedType, SourceType, SourceTypeArray};
 
 pub type ClassDefinitionId = Id<ClassDefinition>;
 
@@ -202,6 +202,10 @@ impl Element for ClassDefinition {
     fn type_param_definition(&self) -> Option<&Rc<TypeParamDefinition>> {
         Some(&self.type_param_definition)
     }
+
+    fn self_ty(&self, _sa: &Sema) -> Option<SourceType> {
+        Some(self.ty())
+    }
 }
 
 impl ElementAccess for ClassDefinition {
@@ -276,7 +280,7 @@ pub fn find_field_in_class(
             if field.name == name {
                 return Some((
                     field.id,
-                    replace_type(sa, field.ty(), Some(&type_params), None),
+                    specialize_for_element(sa, field.ty(), cls, &type_params),
                 ));
             }
         }

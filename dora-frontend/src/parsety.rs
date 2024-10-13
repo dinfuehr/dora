@@ -1148,7 +1148,7 @@ fn expand_st(
                         assert_eq!(trait_id, trait_.id());
                         ty
                     } else {
-                        unreachable!()
+                        ty
                     }
                 }
 

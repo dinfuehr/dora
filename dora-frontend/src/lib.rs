@@ -12,7 +12,9 @@ pub use crate::extensiondefck::package_for_type;
 pub use parsety::{ParsedTraitType, ParsedType, ParsedTypeAst};
 pub use path::{parse_path, PathKind};
 pub use program_emitter::emit_program;
-pub use specialize::{replace_type, specialize_type, specialize_type_array};
+pub use specialize::{
+    replace_type, specialize_for_element, specialize_type, specialize_type_array,
+};
 
 pub(crate) mod access;
 mod aliasck;

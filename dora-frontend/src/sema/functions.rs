@@ -267,6 +267,16 @@ impl Element for FctDefinition {
     fn to_fct(&self) -> Option<&FctDefinition> {
         Some(self)
     }
+
+    fn self_ty(&self, sa: &Sema) -> Option<SourceType> {
+        match self.parent {
+            FctParent::Extension(id) => Some(sa.extension(id).ty()),
+            FctParent::Impl(id) => Some(sa.impl_(id).extended_ty()),
+            FctParent::Function => unreachable!(),
+            FctParent::Trait(..) => unimplemented!(),
+            FctParent::None => None,
+        }
+    }
 }
 
 fn path_for_type(sa: &Sema, ty: SourceType) -> String {

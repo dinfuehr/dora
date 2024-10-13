@@ -1,11 +1,14 @@
 use std::rc::Rc;
 
-use crate::sema::{
-    AliasDefinition, AliasDefinitionId, AliasParent, ClassDefinitionId, ConstDefinitionId,
-    EnumDefinitionId, ExtensionDefinitionId, FctDefinition, FctDefinitionId, FctParent,
-    GlobalDefinitionId, ImplDefinition, ImplDefinitionId, ModuleDefinitionId, PackageDefinitionId,
-    Sema, SourceFileId, StructDefinitionId, TraitDefinition, TraitDefinitionId,
-    TypeParamDefinition, UseDefinitionId,
+use crate::{
+    sema::{
+        AliasDefinition, AliasDefinitionId, AliasParent, ClassDefinitionId, ConstDefinitionId,
+        EnumDefinitionId, ExtensionDefinitionId, FctDefinition, FctDefinitionId, FctParent,
+        GlobalDefinitionId, ImplDefinition, ImplDefinitionId, ModuleDefinitionId,
+        PackageDefinitionId, Sema, SourceFileId, StructDefinitionId, TraitDefinition,
+        TraitDefinitionId, TypeParamDefinition, UseDefinitionId,
+    },
+    ty::SourceType,
 };
 
 #[derive(Debug, Copy, Clone, PartialEq, Eq)]
@@ -58,6 +61,8 @@ pub trait Element {
     fn to_alias(&self) -> Option<&AliasDefinition> {
         None
     }
+
+    fn self_ty(&self, sa: &Sema) -> Option<SourceType>;
 }
 
 pub trait ElementAccess {

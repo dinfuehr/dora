@@ -11,8 +11,8 @@ use std::sync::Arc;
 use id_arena::Id;
 
 use crate::sema::{
-    Element, ElementId, ImplDefinitionId, ModuleDefinitionId, PackageDefinitionId, SourceFileId,
-    TraitDefinitionId, TypeParamDefinition, Visibility,
+    Element, ElementId, ImplDefinitionId, ModuleDefinitionId, PackageDefinitionId, Sema,
+    SourceFileId, TraitDefinitionId, TypeParamDefinition, Visibility,
 };
 use dora_parser::ast;
 
@@ -128,6 +128,10 @@ impl Element for AliasDefinition {
 
     fn to_alias(&self) -> Option<&AliasDefinition> {
         Some(self)
+    }
+
+    fn self_ty(&self, _sa: &Sema) -> Option<SourceType> {
+        None
     }
 }
 

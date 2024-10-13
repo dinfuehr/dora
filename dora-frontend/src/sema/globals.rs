@@ -113,4 +113,8 @@ impl Element for GlobalDefinition {
     fn type_param_definition(&self) -> Option<&Rc<TypeParamDefinition>> {
         None
     }
+
+    fn self_ty(&self, _sa: &Sema) -> Option<SourceType> {
+        None
+    }
 }

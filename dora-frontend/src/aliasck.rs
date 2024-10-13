@@ -498,16 +498,19 @@ mod tests {
 
     #[test]
     #[ignore]
-    fn impl_alias_generic() {
+    fn impl_alias_as_return_type() {
         ok("
             struct Foo[T]
             trait TraitA {
-                type X[T];
+                type X;
             }
             impl TraitA for String {
-                type X[T] = T;
+                type X = Int64;
             }
-            fn f[T: TraitA](t: T): T::X[Int64] {
+            fn x() {
+                let x: Int64 = f[String](\"foo\");
+            }
+            fn f[T: TraitA](t: T): T::X {
                 0
             }
         ");

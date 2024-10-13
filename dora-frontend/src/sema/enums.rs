@@ -15,7 +15,9 @@ use crate::sema::{
     module_path, Element, ElementAccess, ElementId, ExtensionDefinitionId, ModuleDefinitionId,
     PackageDefinitionId, Sema, SourceFileId, TypeParamDefinition, Visibility,
 };
-use crate::ty::SourceTypeArray;
+use crate::{SourceType, SourceTypeArray};
+
+use super::new_identity_type_params;
 
 pub type EnumDefinitionId = Id<EnumDefinition>;
 
@@ -128,6 +130,12 @@ impl Element for EnumDefinition {
 
     fn type_param_definition(&self) -> Option<&Rc<TypeParamDefinition>> {
         Some(&self.type_param_definition)
+    }
+
+    fn self_ty(&self, _sa: &Sema) -> Option<SourceType> {
+        let type_params = self.type_param_definition().type_param_count();
+        let type_params = new_identity_type_params(type_params);
+        Some(SourceType::Enum(self.id(), type_params))
     }
 }
 

@@ -1,4 +1,4 @@
-use crate::sema::Sema;
+use crate::sema::{Element, Sema};
 use crate::{SourceType, SourceTypeArray};
 
 pub fn specialize_type(sa: &Sema, ty: SourceType, type_params: &SourceTypeArray) -> SourceType {
@@ -99,6 +99,90 @@ fn replace_sta(
     let new_array = array
         .iter()
         .map(|ty| replace_type(sa, ty, type_params.clone(), self_ty.clone()))
+        .collect::<Vec<_>>();
+    SourceTypeArray::with(new_array)
+}
+
+pub fn specialize_for_element(
+    sa: &Sema,
+    ty: SourceType,
+    element: &dyn Element,
+    type_params_for_element: &SourceTypeArray,
+) -> SourceType {
+    match ty {
+        SourceType::Class(cls_id, cls_type_params) => SourceType::Class(
+            cls_id,
+            specialize_for_element_array(sa, cls_type_params, element, type_params_for_element),
+        ),
+
+        SourceType::TraitObject(trait_id, trait_type_params, bindings) => SourceType::TraitObject(
+            trait_id,
+            specialize_for_element_array(sa, trait_type_params, element, type_params_for_element),
+            specialize_for_element_array(sa, bindings, element, type_params_for_element),
+        ),
+
+        SourceType::Struct(struct_id, struct_type_params) => SourceType::Struct(
+            struct_id,
+            specialize_for_element_array(sa, struct_type_params, element, type_params_for_element),
+        ),
+
+        SourceType::Enum(enum_id, enum_type_params) => SourceType::Enum(
+            enum_id,
+            specialize_for_element_array(sa, enum_type_params, element, type_params_for_element),
+        ),
+
+        SourceType::Alias(alias_id, alias_type_params) => SourceType::Alias(
+            alias_id,
+            specialize_for_element_array(sa, alias_type_params, element, type_params_for_element),
+        ),
+
+        SourceType::Lambda(params, return_type) => SourceType::Lambda(
+            specialize_for_element_array(sa, params, element, type_params_for_element),
+            Box::new(specialize_for_element(
+                sa,
+                *return_type,
+                element,
+                type_params_for_element,
+            )),
+        ),
+
+        SourceType::Tuple(subtypes) => SourceType::Tuple(specialize_for_element_array(
+            sa,
+            subtypes,
+            element,
+            type_params_for_element,
+        )),
+
+        SourceType::This => {
+            assert!(element.is_trait());
+            SourceType::This
+        }
+
+        SourceType::TypeParam(id) => type_params_for_element[id.index()].clone(),
+
+        SourceType::Unit
+        | SourceType::UInt8
+        | SourceType::Bool
+        | SourceType::Char
+        | SourceType::Int32
+        | SourceType::Int64
+        | SourceType::Float32
+        | SourceType::Float64
+        | SourceType::Error => ty,
+
+        SourceType::Any | SourceType::Ptr => unreachable!(),
+    }
+}
+
+fn specialize_for_element_array(
+    sa: &Sema,
+    array: SourceTypeArray,
+    element: &dyn Element,
+    type_params_for_element: &SourceTypeArray,
+) -> SourceTypeArray {
+    let new_array = array
+        .iter()
+        .map(|ty| specialize_for_element(sa, ty, element, type_params_for_element))
         .collect::<Vec<_>>();
     SourceTypeArray::with(new_array)
 }

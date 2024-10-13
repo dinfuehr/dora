@@ -6,7 +6,7 @@ use crate::sema::{
 };
 use crate::typeck::function::args_compatible_fct;
 use crate::typeparamck::{self, ErrorReporting};
-use crate::{replace_type, ty, SourceType, SourceTypeArray};
+use crate::{specialize_for_element, ty, SourceType, SourceTypeArray};
 use dora_parser::Span;
 
 pub struct MethodLookupResult {
@@ -260,7 +260,7 @@ impl<'a> MethodLookup<'a> {
 
         let cmp_type = {
             let type_list = container_tps.connect(&fct_tps);
-            replace_type(self.sa, fct.return_type(), Some(&type_list), None)
+            specialize_for_element(self.sa, fct.return_type(), fct, &type_list)
         };
 
         if self.ret.is_none() || self.ret.clone().unwrap() == cmp_type {

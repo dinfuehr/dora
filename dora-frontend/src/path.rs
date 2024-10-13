@@ -1,9 +1,11 @@
 use std::collections::HashMap;
 
-use dora_parser::ast;
+use dora_parser::{ast, Span};
 
 use crate::access::sym_accessible_from;
-use crate::sema::{parent_element_or_self, AliasDefinitionId, Element, Sema, SourceFileId};
+use crate::sema::{
+    parent_element_or_self, AliasDefinitionId, Element, Sema, SourceFileId, TypeParamId,
+};
 use crate::{ErrorMessage, ModuleSymTable, Name, SymbolKind};
 
 pub enum PathKind {
@@ -27,7 +29,7 @@ pub fn parse_path(
             parse_path_self(sa, file_id, element, allow_self, regular)
         }
 
-        ast::PathSegmentData::Ident(..) => parse_path_ident(sa, table, file_id, regular),
+        ast::PathSegmentData::Ident(..) => parse_path_ident(sa, file_id, table, element, regular),
 
         ast::PathSegmentData::Error { .. } => Err(()),
     }
@@ -76,8 +78,9 @@ fn parse_path_self(
 
 fn parse_path_ident(
     sa: &Sema,
-    table: &ModuleSymTable,
     file_id: SourceFileId,
+    table: &ModuleSymTable,
+    element: &dyn Element,
     regular: &ast::TypeRegularType,
 ) -> Result<PathKind, ()> {
     let segments = &regular.path.segments;
@@ -95,37 +98,50 @@ fn parse_path_ident(
     let mut previous_sym = sym.expect("missing symbol");
 
     for (idx, segment) in segments.iter().enumerate().skip(1) {
-        if !previous_sym.is_module() {
-            let msg = ErrorMessage::ExpectedPath;
-            sa.report(file_id, segments[idx - 1].span(), msg);
-            return Err(());
-        }
+        if previous_sym.is_module() {
+            let name = expect_ident(sa, file_id, segment)?;
 
-        let name = expect_ident(sa, file_id, segment)?;
+            let module_id = previous_sym.to_module().expect("expected module");
+            let module = sa.module(module_id);
+            let current_sym = module.table().get(name);
 
-        let module_id = previous_sym.to_module().expect("expected module");
-        let module = sa.module(module_id);
-        let current_sym = module.table().get(name);
-
-        if let Some(current_sym) = current_sym {
-            if sym_accessible_from(sa, current_sym.clone(), module_id) {
-                previous_sym = current_sym;
+            if let Some(current_sym) = current_sym {
+                if sym_accessible_from(sa, current_sym.clone(), module_id) {
+                    previous_sym = current_sym;
+                } else {
+                    let module = sa.module(module_id);
+                    let name = node.name.name_as_string.clone();
+                    let msg = ErrorMessage::NotAccessibleInModule(module.name(sa), name);
+                    sa.report(file_id, node.span, msg);
+                    return Err(());
+                }
             } else {
                 let module = sa.module(module_id);
-                let name = node.name.name_as_string.clone();
-                let msg = ErrorMessage::NotAccessibleInModule(module.name(sa), name);
-                sa.report(file_id, node.span, msg);
+                let name = sa.interner.str(name).to_string();
+                let module_name = module.name(sa);
+                sa.report(
+                    file_id,
+                    segment.span(),
+                    ErrorMessage::UnknownIdentifierInModule(module_name, name),
+                );
                 return Err(());
             }
+        } else if let SymbolKind::TypeParam(id) = previous_sym {
+            let name = expect_ident(sa, file_id, segment)?;
+
+            let avaiable = lookup_alias_on_type_param(sa, element, id, name).unwrap_or(Vec::new());
+
+            if avaiable.len() == 1 {
+                previous_sym = SymbolKind::Alias(avaiable[0]);
+            } else {
+                unimplemented!()
+            }
         } else {
-            let module = sa.module(module_id);
-            let name = sa.interner.str(name).to_string();
-            let module_name = module.name(sa);
-            sa.report(
-                file_id,
-                segment.span(),
-                ErrorMessage::UnknownIdentifierInModule(module_name, name),
-            );
+            let msg = ErrorMessage::ExpectedPath;
+            let start = segments[0].span().start();
+            let end = segments[idx - 1].span().end();
+            let span = Span::new(start, end);
+            sa.report(file_id, span, msg);
             return Err(());
         }
     }
@@ -151,6 +167,27 @@ fn available_aliases<'a>(
     } else {
         None
     }
+}
+
+fn lookup_alias_on_type_param<'a>(
+    sa: &'a Sema,
+    element: &'a dyn Element,
+    id: TypeParamId,
+    name: Name,
+) -> Option<Vec<AliasDefinitionId>> {
+    let type_param_definition = element.type_param_definition().expect("no type params");
+    let mut results = Vec::with_capacity(2);
+
+    for bound in type_param_definition.bounds_for_type_param(id) {
+        let trait_id = bound.trait_id;
+        let trait_ = sa.trait_(trait_id);
+
+        if let Some(id) = trait_.alias_names().get(&name) {
+            results.push(*id);
+        }
+    }
+
+    Some(results)
 }
 
 fn expect_ident(sa: &Sema, file_id: SourceFileId, segment: &ast::PathSegment) -> Result<Name, ()> {

@@ -148,6 +148,10 @@ impl Element for TraitDefinition {
     fn to_trait(&self) -> Option<&TraitDefinition> {
         Some(self)
     }
+
+    fn self_ty(&self, _sa: &Sema) -> Option<SourceType> {
+        Some(SourceType::This)
+    }
 }
 
 impl ElementAccess for TraitDefinition {

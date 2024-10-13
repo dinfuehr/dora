@@ -491,7 +491,8 @@ impl SourceType {
                 *self == other
             }
             SourceType::Ptr => panic!("ptr does not allow any other types"),
-            SourceType::This | SourceType::Alias(..) => unreachable!(),
+            SourceType::This => unreachable!(),
+            SourceType::Alias(..) => *self == other,
             SourceType::Class(self_cls_id, self_list) => {
                 if *self == other {
                     return true;
@@ -529,9 +530,9 @@ impl SourceType {
                 _ => false,
             },
 
-            SourceType::TypeParam(_) => *self == other,
+            SourceType::TypeParam(..) => *self == other,
 
-            SourceType::Lambda(_, _) => {
+            SourceType::Lambda(..) => {
                 // for now expect the exact same params and return types
                 // possible improvement: allow super classes for params,
                 //                             sub class for return type

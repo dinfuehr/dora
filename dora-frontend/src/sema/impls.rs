@@ -8,7 +8,7 @@ use dora_parser::Span;
 
 use crate::sema::{
     AliasDefinitionId, Element, ElementId, FctDefinitionId, ModuleDefinitionId,
-    PackageDefinitionId, SourceFileId, TraitDefinitionId, TypeParamDefinition,
+    PackageDefinitionId, Sema, SourceFileId, TraitDefinitionId, TypeParamDefinition,
 };
 use crate::ty::SourceType;
 use crate::{ParsedTraitType, ParsedType, TraitType};
@@ -142,5 +142,9 @@ impl Element for ImplDefinition {
 
     fn to_impl(&self) -> Option<&ImplDefinition> {
         Some(self)
+    }
+
+    fn self_ty(&self, _sa: &Sema) -> Option<SourceType> {
+        Some(self.extended_ty())
     }
 }

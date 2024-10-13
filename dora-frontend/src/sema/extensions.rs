@@ -5,8 +5,8 @@ use std::sync::Arc;
 
 use crate::interner::Name;
 use crate::sema::{
-    Element, ElementId, FctDefinitionId, ModuleDefinitionId, PackageDefinitionId, SourceFileId,
-    TypeParamDefinition,
+    Element, ElementId, FctDefinitionId, ModuleDefinitionId, PackageDefinitionId, Sema,
+    SourceFileId, TypeParamDefinition,
 };
 use crate::ty::SourceType;
 use crate::ParsedType;
@@ -95,5 +95,9 @@ impl Element for ExtensionDefinition {
 
     fn type_param_definition(&self) -> Option<&Rc<TypeParamDefinition>> {
         Some(&self.type_param_definition)
+    }
+
+    fn self_ty(&self, _sa: &Sema) -> Option<SourceType> {
+        Some(self.ty())
     }
 }
