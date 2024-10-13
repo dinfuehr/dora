@@ -210,7 +210,7 @@ impl<'a> BytecodeTypePrinter<'a> {
 
             BytecodeType::This => write!(fmt, "Self"),
 
-            BytecodeType::TypeAlias(..) => unimplemented!(),
+            BytecodeType::TypeAlias(..) | BytecodeType::Assoc(..) => unimplemented!(),
 
             BytecodeType::Lambda(params, return_type) => {
                 write!(fmt, "(")?;

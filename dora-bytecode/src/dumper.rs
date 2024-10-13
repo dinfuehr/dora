@@ -310,7 +310,7 @@ impl<'a> Display for BytecodeTypePrinter<'a> {
                     fmt_ty(self.prog, return_ty)
                 )
             }
-            BytecodeType::TypeAlias(alias_id) => {
+            BytecodeType::TypeAlias(alias_id) | BytecodeType::Assoc(alias_id, ..) => {
                 let alias = &self.prog.aliases[alias_id.0 as usize];
                 write!(f, "{}", alias.name)?;
                 if let Some(ref ty) = alias.ty {

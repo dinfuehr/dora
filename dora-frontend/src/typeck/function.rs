@@ -579,7 +579,7 @@ fn arg_allows(sa: &Sema, def: SourceType, arg: SourceType, self_ty: Option<Sourc
             arg_allows(sa, alias.ty(), arg, self_ty.clone())
         }
 
-        SourceType::Assoc(..) => unimplemented!(),
+        SourceType::Assoc(..) | SourceType::GenericAssoc(..) => unimplemented!(),
     }
 }
 

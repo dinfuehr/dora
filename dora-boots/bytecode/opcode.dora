@@ -81,6 +81,7 @@ pub const BC_TYPE_CLASS: Int32 = 13;
 pub const BC_TYPE_TRAIT_OBJECT: Int32 = 14;
 pub const BC_TYPE_LAMBDA: Int32 = 15;
 pub const BC_TYPE_TYPE_ALIAS: Int32 = 16;
+pub const BC_TYPE_ASSOC: Int32 = 17;
 
 pub const CONSTPOOL_OPCODE_STRING: Int32 = 0;
 pub const CONSTPOOL_OPCODE_FLOAT32: Int32 = 1;
@@ -341,6 +342,7 @@ pub fn bytecodeTypeName(code: Int32): String {
   if code == BC_TYPE_TRAIT_OBJECT { return "TraitObject"; }
   if code == BC_TYPE_LAMBDA { return "Lambda"; }
   if code == BC_TYPE_TYPE_ALIAS { return "TypeAlias"; }
+  if code == BC_TYPE_ASSOC { return "Assoc"; }
   unreachable[String]()
 }
 

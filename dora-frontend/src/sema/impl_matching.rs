@@ -61,7 +61,9 @@ pub fn implements_trait(
 
         SourceType::TypeParam(tp_id) => check_type_param_defs.implements_trait(tp_id, trait_ty),
 
-        SourceType::Alias(..) | SourceType::Assoc(..) => unreachable!(),
+        SourceType::Alias(..) | SourceType::Assoc(..) | SourceType::GenericAssoc(..) => {
+            unreachable!()
+        }
 
         SourceType::Error => false,
 
@@ -70,13 +72,17 @@ pub fn implements_trait(
 }
 
 pub fn maybe_alias_ty(sa: &Sema, mut ty: SourceType) -> SourceType {
-    while let SourceType::Alias(id, type_params) = ty {
-        assert!(type_params.is_empty());
-        let alias = sa.alias(id);
-        ty = alias.ty();
-    }
+    loop {
+        match ty {
+            SourceType::Alias(id, type_params) => {
+                assert!(type_params.is_empty());
+                let alias = sa.alias(id);
+                ty = alias.ty();
+            }
 
-    ty
+            _ => return ty,
+        }
+    }
 }
 
 pub struct ImplMatch {

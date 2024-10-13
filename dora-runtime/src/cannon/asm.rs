@@ -168,7 +168,10 @@ impl<'a> BaselineAssembler<'a> {
                 self.copy_struct(struct_id, type_params, dest, src);
             }
 
-            BytecodeType::TypeAlias(..) | BytecodeType::TypeParam(_) | BytecodeType::This => {
+            BytecodeType::TypeAlias(..)
+            | BytecodeType::Assoc(..)
+            | BytecodeType::TypeParam(_)
+            | BytecodeType::This => {
                 unreachable!()
             }
 
@@ -304,6 +307,7 @@ impl<'a> BaselineAssembler<'a> {
             }
 
             BytecodeType::TypeAlias(..)
+            | BytecodeType::Assoc(..)
             | BytecodeType::TypeParam(_)
             | BytecodeType::Lambda(_, _)
             | BytecodeType::This => {
@@ -410,6 +414,7 @@ impl<'a> BaselineAssembler<'a> {
             }
 
             BytecodeType::TypeAlias(..)
+            | BytecodeType::Assoc(..)
             | BytecodeType::TypeParam(_)
             | BytecodeType::Lambda(_, _)
             | BytecodeType::This => {
@@ -1288,7 +1293,10 @@ impl<'a> BaselineAssembler<'a> {
                 self.store_zero(mode, dest.mem());
             }
 
-            BytecodeType::TypeAlias(..) | BytecodeType::TypeParam(_) | BytecodeType::This => {
+            BytecodeType::TypeAlias(..)
+            | BytecodeType::Assoc(..)
+            | BytecodeType::TypeParam(_)
+            | BytecodeType::This => {
                 unreachable!()
             }
         }

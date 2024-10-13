@@ -238,7 +238,10 @@ fn compare_concrete_types(
             )
         }
 
-        BytecodeType::TypeAlias(..) | BytecodeType::Ptr | BytecodeType::This => {
+        BytecodeType::TypeAlias(..)
+        | BytecodeType::Assoc(..)
+        | BytecodeType::Ptr
+        | BytecodeType::This => {
             unreachable!()
         }
     }

@@ -122,7 +122,10 @@ pub fn ty_implements_trait(
             tp_implements_trait(&check_type_param_defs, tp_id, trait_ty)
         }
 
-        BytecodeType::TypeAlias(..) | BytecodeType::Ptr | BytecodeType::This => unreachable!(),
+        BytecodeType::TypeAlias(..)
+        | BytecodeType::Assoc(..)
+        | BytecodeType::Ptr
+        | BytecodeType::This => unreachable!(),
     }
 }
 

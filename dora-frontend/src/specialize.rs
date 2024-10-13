@@ -51,6 +51,11 @@ pub fn replace_type(
             replace_sta(sa, alias_type_params, type_params, self_ty),
         ),
 
+        SourceType::Assoc(alias_id, alias_type_params) => SourceType::Assoc(
+            alias_id,
+            replace_sta(sa, alias_type_params, type_params, self_ty),
+        ),
+
         SourceType::Lambda(params, return_type) => SourceType::Lambda(
             replace_sta(sa, params, type_params, self_ty.clone()),
             Box::new(replace_type(sa, *return_type, type_params, self_ty)),
@@ -86,7 +91,7 @@ pub fn replace_type(
         | SourceType::Float64
         | SourceType::Error => ty,
 
-        SourceType::Any | SourceType::Ptr | SourceType::Assoc(..) => unreachable!(),
+        SourceType::Any | SourceType::Ptr | SourceType::GenericAssoc(..) => unreachable!(),
     }
 }
 
@@ -170,7 +175,10 @@ pub fn specialize_for_element(
         | SourceType::Float64
         | SourceType::Error => ty,
 
-        SourceType::Any | SourceType::Ptr | SourceType::Assoc(..) => unreachable!(),
+        SourceType::Any
+        | SourceType::Ptr
+        | SourceType::Assoc(..)
+        | SourceType::GenericAssoc(..) => unreachable!(),
     }
 }
 
@@ -253,7 +261,10 @@ pub fn specialize_for_trait_object(sa: &Sema, ty: SourceType, trait_ty: SourceTy
         | SourceType::Float64
         | SourceType::Error => ty,
 
-        SourceType::Any | SourceType::Ptr | SourceType::Assoc(..) => unreachable!(),
+        SourceType::Any
+        | SourceType::Ptr
+        | SourceType::Assoc(..)
+        | SourceType::GenericAssoc(..) => unreachable!(),
     }
 }
 

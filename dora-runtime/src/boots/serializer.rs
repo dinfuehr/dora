@@ -262,7 +262,7 @@ fn encode_bytecode_type(vm: &VM, ty: &BytecodeType, buffer: &mut ByteBuffer) {
             encode_bytecode_type_array(vm, params, buffer);
             encode_bytecode_type(vm, ret.as_ref(), buffer);
         }
-        BytecodeType::TypeAlias(..) => unreachable!(),
+        BytecodeType::TypeAlias(..) | BytecodeType::Assoc(..) => unreachable!(),
     }
 }
 

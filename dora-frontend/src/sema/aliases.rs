@@ -38,6 +38,13 @@ impl AliasParent {
             _ => false,
         }
     }
+
+    pub fn is_none(&self) -> bool {
+        match self {
+            AliasParent::None => true,
+            _ => false,
+        }
+    }
 }
 
 pub struct AliasDefinition {

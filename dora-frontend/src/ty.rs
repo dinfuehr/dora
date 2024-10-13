@@ -101,22 +101,23 @@ pub enum TyKind {
     TypeParam,
     Alias,
     Assoc,
+    GenericAssoc,
     Lambda,
     Enum,
 }
 
 #[derive(Debug, Clone, Hash, PartialEq, Eq)]
 pub enum SourceType {
-    // couldn't determine type because of error
+    // Couldn't determine type because of error.
     Error,
 
     // Allow any type here, used for type inference
     Any,
 
-    // type with only one value: ()
+    // Type with only one value: ().
     Unit,
 
-    // primitives
+    // Primitives
     Bool,
     Char,
     UInt8,
@@ -125,35 +126,40 @@ pub enum SourceType {
     Float32,
     Float64,
 
-    // pointer to object, only used internally
+    // Pointer to object, only used internally.
     Ptr,
 
-    // self type
+    // Self type.
     This,
 
-    // some class
+    // Some class.
     Class(ClassDefinitionId, SourceTypeArray),
 
-    // some struct
+    // Some struct.
     Struct(StructDefinitionId, SourceTypeArray),
 
-    // some tuple
+    // Some tuple.
     Tuple(SourceTypeArray),
 
-    // some trait object
+    // Some trait object.
     TraitObject(TraitDefinitionId, SourceTypeArray, SourceTypeArray),
 
-    // some type variable
+    // Some type variable.
     TypeParam(TypeParamId),
 
     // Type alias.
     Alias(AliasDefinitionId, SourceTypeArray),
+
+    // Some associated type (used through Self::X).
     Assoc(AliasDefinitionId, SourceTypeArray),
 
-    // some lambda
+    // Some associated type on type parameter (T::X).
+    GenericAssoc(TraitDefinitionId, AliasDefinitionId, SourceTypeArray),
+
+    // Some lambda.
     Lambda(SourceTypeArray, Box<SourceType>),
 
-    // some enum
+    // Some enum.
     Enum(EnumDefinitionId, SourceTypeArray),
 }
 
@@ -180,6 +186,7 @@ impl SourceType {
             SourceType::Class(..) => TyKind::Class,
             SourceType::Unit | SourceType::Tuple(..) => TyKind::Tuple,
             SourceType::Assoc(..) => TyKind::Assoc,
+            SourceType::GenericAssoc(..) => TyKind::GenericAssoc,
         }
     }
 
@@ -489,27 +496,15 @@ impl SourceType {
             | SourceType::Char
             | SourceType::Struct(..)
             | SourceType::Enum(..)
-            | SourceType::TraitObject(..) => *self == other,
+            | SourceType::TraitObject(..)
+            | SourceType::Class(..)
+            | SourceType::Alias(..)
+            | SourceType::Assoc(..) => *self == other,
             SourceType::Int32 | SourceType::Int64 | SourceType::Float32 | SourceType::Float64 => {
                 *self == other
             }
             SourceType::Ptr => panic!("ptr does not allow any other types"),
             SourceType::This => unreachable!(),
-            SourceType::Alias(..) => *self == other,
-            SourceType::Class(self_cls_id, self_list) => {
-                if *self == other {
-                    return true;
-                }
-
-                let (other_cls_id, other_list) = match other {
-                    SourceType::Class(cls_id, ref other_list) => (cls_id, other_list.clone()),
-                    _ => {
-                        return false;
-                    }
-                };
-
-                *self_cls_id == other_cls_id && self_list == &other_list
-            }
             SourceType::Tuple(subtypes) => match other {
                 SourceType::Tuple(other_subtypes) => {
                     if subtypes.len() != other_subtypes.len() {
@@ -542,7 +537,7 @@ impl SourceType {
                 *self == other
             }
 
-            SourceType::Assoc(..) => unimplemented!(),
+            SourceType::GenericAssoc(..) => unimplemented!(),
         }
     }
 
@@ -560,7 +555,9 @@ impl SourceType {
             | SourceType::TraitObject(..)
             | SourceType::Lambda(..)
             | SourceType::TypeParam(_) => true,
-            SourceType::Alias(..) | SourceType::Assoc(..) => unreachable!(),
+            SourceType::Alias(..) | SourceType::Assoc(..) | SourceType::GenericAssoc(..) => {
+                unreachable!()
+            }
             SourceType::Enum(_, params)
             | SourceType::Class(_, params)
             | SourceType::Struct(_, params) => {
@@ -596,7 +593,6 @@ impl SourceType {
             | SourceType::Float32
             | SourceType::Float64
             | SourceType::Ptr => true,
-            SourceType::Alias(..) => unreachable!(),
             SourceType::Class(_, params)
             | SourceType::Enum(_, params)
             | SourceType::Struct(_, params) => {
@@ -642,7 +638,10 @@ impl SourceType {
 
                 return_type.is_concrete_type()
             }
-            SourceType::TypeParam(_) | SourceType::Assoc(..) => false,
+            SourceType::Alias(..)
+            | SourceType::TypeParam(_)
+            | SourceType::Assoc(..)
+            | SourceType::GenericAssoc(..) => false,
         }
     }
 }
@@ -661,7 +660,9 @@ pub fn contains_self(sa: &Sema, ty: SourceType) -> bool {
         | SourceType::Float32
         | SourceType::Float64
         | SourceType::TypeParam(..) => false,
-        SourceType::Alias(..) | SourceType::Assoc(..) => unimplemented!(),
+        SourceType::Alias(..) | SourceType::Assoc(..) | SourceType::GenericAssoc(..) => {
+            unimplemented!()
+        }
         SourceType::Class(_, params)
         | SourceType::Enum(_, params)
         | SourceType::Struct(_, params) => {
@@ -1013,8 +1014,8 @@ impl<'a> SourceTypePrinter<'a> {
             }
 
             SourceType::Alias(id, type_params) => {
-                let enum_ = self.sa.alias(id);
-                let name = self.sa.interner.str(enum_.name).to_string();
+                let alias = self.sa.alias(id);
+                let name = self.sa.interner.str(alias.name).to_string();
 
                 if type_params.len() == 0 {
                     name
@@ -1028,7 +1029,25 @@ impl<'a> SourceTypePrinter<'a> {
                     format!("{}[{}]", name, params)
                 }
             }
-            SourceType::Assoc(..) => unimplemented!(),
+
+            SourceType::Assoc(id, type_params) => {
+                let alias = self.sa.alias(id);
+                let name = self.sa.interner.str(alias.name).to_string();
+
+                if type_params.len() == 0 {
+                    name
+                } else {
+                    let params = type_params
+                        .iter()
+                        .map(|ty| self.name(ty))
+                        .collect::<Vec<_>>()
+                        .join(", ");
+
+                    format!("Self::{}[{}]", name, params)
+                }
+            }
+
+            SourceType::GenericAssoc(..) => unimplemented!(),
         }
     }
 }

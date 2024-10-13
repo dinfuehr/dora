@@ -282,6 +282,7 @@ pub fn iterate_roots<F>(
             }
 
             BytecodeType::TypeAlias(..)
+            | BytecodeType::Assoc(..)
             | BytecodeType::TypeParam(_)
             | BytecodeType::Unit
             | BytecodeType::This => {

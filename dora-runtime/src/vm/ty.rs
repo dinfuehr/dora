@@ -31,7 +31,7 @@ impl BytecodeTypeExt for BytecodeType {
             | &BytecodeType::Int64
             | &BytecodeType::Float32
             | &BytecodeType::Float64 => true,
-            BytecodeType::TypeAlias(..) => unreachable!(),
+            BytecodeType::TypeAlias(..) | BytecodeType::Assoc(..) => unreachable!(),
             &BytecodeType::Unit
             | &BytecodeType::Tuple(..)
             | &BytecodeType::Enum(..)
@@ -51,7 +51,7 @@ impl BytecodeTypeExt for BytecodeType {
             | BytecodeType::Enum(_, params)
             | BytecodeType::Struct(_, params)
             | BytecodeType::TraitObject(_, params) => params.clone(),
-            BytecodeType::TypeAlias(..) => unreachable!(),
+            BytecodeType::TypeAlias(..) | BytecodeType::Assoc(..) => unreachable!(),
             &BytecodeType::Bool
             | &BytecodeType::UInt8
             | &BytecodeType::Char

@@ -16,7 +16,11 @@ pub fn check_definition(sa: &Sema) {
 fn check_impl_definition(sa: &Sema, impl_: &ImplDefinition) {
     match impl_.extended_ty() {
         SourceType::Alias(..) => unimplemented!(),
-        SourceType::Any | SourceType::Ptr | SourceType::This | SourceType::Assoc(..) => {
+        SourceType::Any
+        | SourceType::Ptr
+        | SourceType::This
+        | SourceType::Assoc(..)
+        | SourceType::GenericAssoc(..) => {
             unreachable!()
         }
         SourceType::Error
@@ -312,6 +316,12 @@ fn trait_and_impl_arg_ty_compatible(
             ty == &impl_arg_ty
         }
 
+        SourceType::Assoc(id, type_params) => {
+            assert!(type_params.is_empty());
+            let ty = trait_alias_map.get(&id).expect("missing alias");
+            ty == &impl_arg_ty
+        }
+
         SourceType::TypeParam(id) => trait_type_params[id.index()] == impl_arg_ty,
 
         SourceType::This => self_ty == impl_arg_ty,
@@ -326,7 +336,7 @@ fn trait_and_impl_arg_ty_compatible(
         | SourceType::Float64
         | SourceType::Error => trait_arg_ty == impl_arg_ty,
 
-        SourceType::Any | SourceType::Ptr | SourceType::Assoc(..) => unreachable!(),
+        SourceType::Any | SourceType::Ptr | SourceType::GenericAssoc(..) => unreachable!(),
     }
 }
 

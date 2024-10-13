@@ -24,6 +24,7 @@ pub enum BytecodeType {
     TraitObject(TraitId, BytecodeTypeArray),
     Lambda(BytecodeTypeArray, Box<BytecodeType>),
     TypeAlias(AliasId),
+    Assoc(AliasId, BytecodeTypeArray),
 }
 
 impl BytecodeType {
@@ -46,6 +47,7 @@ impl BytecodeType {
             BytecodeType::TraitObject(..) => BytecodeTypeKind::TraitObject,
             BytecodeType::Lambda(..) => BytecodeTypeKind::Lambda,
             BytecodeType::TypeAlias(..) => BytecodeTypeKind::TypeAlias,
+            BytecodeType::Assoc(..) => BytecodeTypeKind::Assoc,
             BytecodeType::This => unreachable!(),
         }
     }
@@ -170,7 +172,9 @@ impl BytecodeType {
                 return_type.is_concrete_type()
             }
             BytecodeType::TypeParam(_) => false,
-            BytecodeType::TypeAlias(..) | BytecodeType::This => unreachable!(),
+            BytecodeType::TypeAlias(..) | BytecodeType::Assoc(..) | BytecodeType::This => {
+                unreachable!()
+            }
         }
     }
 

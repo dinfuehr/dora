@@ -244,6 +244,7 @@ impl<'a> CannonCodeGen<'a> {
                 }
 
                 BytecodeType::TypeAlias(..)
+                | BytecodeType::Assoc(..)
                 | BytecodeType::TypeParam(_)
                 | BytecodeType::Class(_, _)
                 | BytecodeType::Lambda(_, _)
@@ -369,6 +370,7 @@ impl<'a> CannonCodeGen<'a> {
                 }
 
                 BytecodeType::TypeAlias(..)
+                | BytecodeType::Assoc(..)
                 | BytecodeType::TypeParam(_)
                 | BytecodeType::Unit
                 | BytecodeType::This => {
@@ -1594,6 +1596,7 @@ impl<'a> CannonCodeGen<'a> {
             }
 
             BytecodeType::TypeAlias(..)
+            | BytecodeType::Assoc(..)
             | BytecodeType::Class(..)
             | BytecodeType::TypeParam(_)
             | BytecodeType::Struct(..)
@@ -1729,6 +1732,7 @@ impl<'a> CannonCodeGen<'a> {
             }
 
             BytecodeType::TypeAlias(..)
+            | BytecodeType::Assoc(..)
             | BytecodeType::TypeParam(_)
             | BytecodeType::Class(_, _)
             | BytecodeType::Lambda(_, _)
@@ -2336,6 +2340,7 @@ impl<'a> CannonCodeGen<'a> {
             }
 
             BytecodeType::TypeAlias(..)
+            | BytecodeType::Assoc(..)
             | BytecodeType::TypeParam(_)
             | BytecodeType::Class(_, _)
             | BytecodeType::Lambda(_, _)
@@ -3916,6 +3921,7 @@ impl<'a> CannonCodeGen<'a> {
                 }
 
                 BytecodeType::TypeAlias(..)
+                | BytecodeType::Assoc(..)
                 | BytecodeType::TypeParam(_)
                 | BytecodeType::Class(_, _)
                 | BytecodeType::Lambda(_, _)
@@ -4613,7 +4619,10 @@ pub fn result_passed_as_argument(ty: BytecodeType) -> bool {
         | BytecodeType::Lambda(..)
         | BytecodeType::Ptr
         | BytecodeType::TraitObject(..) => false,
-        BytecodeType::TypeAlias(..) | BytecodeType::TypeParam(..) | BytecodeType::This => {
+        BytecodeType::TypeAlias(..)
+        | BytecodeType::Assoc(..)
+        | BytecodeType::TypeParam(..)
+        | BytecodeType::This => {
             panic!("unexpected type param")
         }
         BytecodeType::Struct(..) | BytecodeType::Tuple(..) => true,
@@ -4690,6 +4699,7 @@ pub fn mode(vm: &VM, ty: BytecodeType) -> MachineMode {
             }
         }
         BytecodeType::TypeAlias(..)
+        | BytecodeType::Assoc(..)
         | BytecodeType::Tuple(_)
         | BytecodeType::TypeParam(_)
         | BytecodeType::This
@@ -4715,7 +4725,10 @@ pub fn size(vm: &VM, ty: BytecodeType) -> i32 {
         | BytecodeType::Class(_, _)
         | BytecodeType::Lambda(_, _) => mem::ptr_width(),
         BytecodeType::Tuple(_) => get_concrete_tuple_bty(vm, &ty).size(),
-        BytecodeType::TypeAlias(..) | BytecodeType::TypeParam(_) | BytecodeType::This => {
+        BytecodeType::TypeAlias(..)
+        | BytecodeType::Assoc(..)
+        | BytecodeType::TypeParam(_)
+        | BytecodeType::This => {
             unreachable!()
         }
         BytecodeType::Enum(enum_id, type_params) => {
@@ -4751,7 +4764,10 @@ pub fn align(vm: &VM, ty: BytecodeType) -> i32 {
         | BytecodeType::Class(_, _)
         | BytecodeType::Lambda(_, _) => mem::ptr_width(),
         BytecodeType::Tuple(_) => get_concrete_tuple_bty(vm, &ty).align(),
-        BytecodeType::TypeAlias(..) | BytecodeType::TypeParam(_) | BytecodeType::This => {
+        BytecodeType::TypeAlias(..)
+        | BytecodeType::Assoc(..)
+        | BytecodeType::TypeParam(_)
+        | BytecodeType::This => {
             unreachable!()
         }
         BytecodeType::Enum(enum_id, type_params) => {

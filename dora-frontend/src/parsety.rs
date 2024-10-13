@@ -520,7 +520,15 @@ fn ty_for_sym(sa: &Sema, sym: SymbolKind, type_params: SourceTypeArray) -> Sourc
             }
         }
         SymbolKind::Enum(id) => SourceType::Enum(id, type_params),
-        SymbolKind::Alias(id) => SourceType::Alias(id, type_params),
+        SymbolKind::Alias(id) => {
+            let alias = sa.alias(id);
+
+            if alias.parent.is_none() {
+                SourceType::Alias(id, type_params)
+            } else {
+                SourceType::Alias(id, type_params)
+            }
+        }
         _ => unimplemented!(),
     }
 }
@@ -661,7 +669,7 @@ fn check_type_inner(
     parsed_ty: &ParsedTypeAst,
 ) -> SourceType {
     match ty.clone() {
-        SourceType::Any | SourceType::Ptr | SourceType::Assoc(..) => {
+        SourceType::Any | SourceType::Ptr | SourceType::GenericAssoc(..) => {
             unreachable!()
         }
         SourceType::This => SourceType::This,
@@ -736,6 +744,49 @@ fn check_type_inner(
         | SourceType::Struct(_, type_params)
         | SourceType::Enum(_, type_params) => {
             check_type_record(sa, element, ctxt, parsed_ty, type_params)
+        }
+        SourceType::Assoc(id, type_params) => {
+            let alias = sa.alias(id);
+            assert!(alias.parent.is_impl() || alias.parent.is_trait());
+
+            let parsed_type_params = match parsed_ty.kind {
+                ParsedTypeKind::Regular {
+                    type_arguments: ref type_params,
+                    ..
+                } => type_params,
+                _ => unreachable!(),
+            };
+
+            assert_eq!(type_params.len(), parsed_type_params.len());
+            let mut new_type_params = Vec::with_capacity(parsed_type_params.len());
+
+            for idx in 0..type_params.len() {
+                let parsed_type_arg = &parsed_type_params[idx];
+                assert!(parsed_type_arg.name.is_none());
+                let ty = check_type_inner(
+                    sa,
+                    element,
+                    ctxt,
+                    type_params[idx].clone(),
+                    &parsed_type_arg.ty,
+                );
+                new_type_params.push(ty);
+            }
+
+            let new_type_params: SourceTypeArray = new_type_params.into();
+
+            if check_type_params(
+                sa,
+                alias.type_param_definition(),
+                new_type_params.types(),
+                ctxt.file_id,
+                parsed_ty.span,
+                ctxt.type_param_definition,
+            ) {
+                SourceType::Assoc(id, new_type_params)
+            } else {
+                SourceType::Error
+            }
         }
         SourceType::TraitObject(trait_id, type_params, bindings) => check_type_trait_object(
             sa,
@@ -1160,6 +1211,36 @@ fn expand_st(
             }
         }
 
+        SourceType::Assoc(id, type_params) => {
+            let alias = sa.alias(*id);
+
+            match alias.parent {
+                AliasParent::Trait(trait_id) => {
+                    let element = parent_element_or_self(sa, element);
+                    if let Some(impl_) = element.to_impl() {
+                        let impl_alias_id = impl_.trait_alias_map().get(&id).cloned();
+                        if let Some(impl_alias_id) = impl_alias_id {
+                            let impl_alias = sa.alias(impl_alias_id);
+                            impl_alias.ty()
+                        } else {
+                            SourceType::Error
+                        }
+                    } else if let Some(trait_) = element.to_trait() {
+                        assert_eq!(trait_id, trait_.id());
+                        ty
+                    } else {
+                        ty
+                    }
+                }
+
+                AliasParent::Impl(..) => unreachable!(),
+                AliasParent::None => {
+                    let alias_ty = replace_type(sa, alias.ty(), Some(type_params), None);
+                    expand_st(sa, element, alias_ty, replace_self)
+                }
+            }
+        }
+
         SourceType::Unit
         | SourceType::UInt8
         | SourceType::Bool
@@ -1172,7 +1253,7 @@ fn expand_st(
         | SourceType::TypeParam(..) => ty,
         SourceType::This => replace_self.expect("self expected"),
 
-        SourceType::Any | SourceType::Ptr | SourceType::Assoc(..) => {
+        SourceType::Any | SourceType::Ptr | SourceType::GenericAssoc(..) => {
             panic!("unexpected type = {:?}", ty);
             // unreachable!()
         }
