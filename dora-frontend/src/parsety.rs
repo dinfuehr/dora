@@ -3,9 +3,8 @@ use std::collections::{HashMap, HashSet};
 
 use crate::access::{sym_accessible_from, trait_accessible_from};
 use crate::sema::{
-    implements_trait, is_object_safe, parent_element_or_self, AliasDefinitionId, AliasParent,
-    Element, ModuleDefinitionId, SourceFileId, TraitDefinition, TraitDefinitionId,
-    TypeParamDefinition,
+    implements_trait, is_object_safe, parent_element_or_self, AliasDefinitionId, Element,
+    ModuleDefinitionId, SourceFileId, TraitDefinition, TraitDefinitionId, TypeParamDefinition,
 };
 use crate::sym::{ModuleSymTable, SymbolKind};
 use crate::{
@@ -526,7 +525,7 @@ fn ty_for_sym(sa: &Sema, sym: SymbolKind, type_params: SourceTypeArray) -> Sourc
             if alias.parent.is_none() {
                 SourceType::Alias(id, type_params)
             } else {
-                SourceType::Alias(id, type_params)
+                SourceType::Assoc(id, type_params)
             }
         }
         _ => unimplemented!(),
@@ -673,7 +672,7 @@ fn check_type_inner(
             unreachable!()
         }
         SourceType::This => SourceType::This,
-        SourceType::Alias(..)
+        SourceType::Assoc(..)
         | SourceType::Error
         | SourceType::Unit
         | SourceType::TypeParam(..) => ty,
@@ -742,51 +741,9 @@ fn check_type_inner(
         }
         SourceType::Class(_, type_params)
         | SourceType::Struct(_, type_params)
-        | SourceType::Enum(_, type_params) => {
+        | SourceType::Enum(_, type_params)
+        | SourceType::Alias(_, type_params) => {
             check_type_record(sa, element, ctxt, parsed_ty, type_params)
-        }
-        SourceType::Assoc(id, type_params) => {
-            let alias = sa.alias(id);
-            assert!(alias.parent.is_impl() || alias.parent.is_trait());
-
-            let parsed_type_params = match parsed_ty.kind {
-                ParsedTypeKind::Regular {
-                    type_arguments: ref type_params,
-                    ..
-                } => type_params,
-                _ => unreachable!(),
-            };
-
-            assert_eq!(type_params.len(), parsed_type_params.len());
-            let mut new_type_params = Vec::with_capacity(parsed_type_params.len());
-
-            for idx in 0..type_params.len() {
-                let parsed_type_arg = &parsed_type_params[idx];
-                assert!(parsed_type_arg.name.is_none());
-                let ty = check_type_inner(
-                    sa,
-                    element,
-                    ctxt,
-                    type_params[idx].clone(),
-                    &parsed_type_arg.ty,
-                );
-                new_type_params.push(ty);
-            }
-
-            let new_type_params: SourceTypeArray = new_type_params.into();
-
-            if check_type_params(
-                sa,
-                alias.type_param_definition(),
-                new_type_params.types(),
-                ctxt.file_id,
-                parsed_ty.span,
-                ctxt.type_param_definition,
-            ) {
-                SourceType::Assoc(id, new_type_params)
-            } else {
-                SourceType::Error
-            }
         }
         SourceType::TraitObject(trait_id, type_params, bindings) => check_type_trait_object(
             sa,
@@ -838,11 +795,11 @@ fn check_type_record(
     }
 
     let new_type_params = SourceTypeArray::with(new_type_params);
-    let type_param_defs = sym_type_param_definition(sa, symbol.clone());
+    let type_param_definition = sym_type_param_definition(sa, symbol.clone());
 
     if check_type_params(
         sa,
-        type_param_defs,
+        type_param_definition,
         new_type_params.types(),
         ctxt.file_id,
         parsed_ty.span,
@@ -1183,61 +1140,31 @@ fn expand_st(
 
         SourceType::Alias(id, type_params) => {
             let alias = sa.alias(*id);
+            assert!(alias.parent.is_none());
 
-            match alias.parent {
-                AliasParent::Trait(trait_id) => {
-                    let element = parent_element_or_self(sa, element);
-                    if let Some(impl_) = element.to_impl() {
-                        let impl_alias_id = impl_.trait_alias_map().get(&id).cloned();
-                        if let Some(impl_alias_id) = impl_alias_id {
-                            let impl_alias = sa.alias(impl_alias_id);
-                            impl_alias.ty()
-                        } else {
-                            SourceType::Error
-                        }
-                    } else if let Some(trait_) = element.to_trait() {
-                        assert_eq!(trait_id, trait_.id());
-                        ty
-                    } else {
-                        ty
-                    }
-                }
-
-                AliasParent::Impl(..) => unreachable!(),
-                AliasParent::None => {
-                    let alias_ty = replace_type(sa, alias.ty(), Some(type_params), None);
-                    expand_st(sa, element, alias_ty, replace_self)
-                }
-            }
+            let alias_ty = replace_type(sa, alias.ty(), Some(type_params), None);
+            expand_st(sa, element, alias_ty, replace_self)
         }
 
         SourceType::Assoc(id, type_params) => {
             let alias = sa.alias(*id);
+            let trait_id = alias.parent.to_trait_id().expect("trait expected");
+            assert!(type_params.is_empty());
 
-            match alias.parent {
-                AliasParent::Trait(trait_id) => {
-                    let element = parent_element_or_self(sa, element);
-                    if let Some(impl_) = element.to_impl() {
-                        let impl_alias_id = impl_.trait_alias_map().get(&id).cloned();
-                        if let Some(impl_alias_id) = impl_alias_id {
-                            let impl_alias = sa.alias(impl_alias_id);
-                            impl_alias.ty()
-                        } else {
-                            SourceType::Error
-                        }
-                    } else if let Some(trait_) = element.to_trait() {
-                        assert_eq!(trait_id, trait_.id());
-                        ty
-                    } else {
-                        ty
-                    }
+            let element = parent_element_or_self(sa, element);
+            if let Some(impl_) = element.to_impl() {
+                let impl_alias_id = impl_.trait_alias_map().get(&id).cloned();
+                if let Some(impl_alias_id) = impl_alias_id {
+                    let impl_alias = sa.alias(impl_alias_id);
+                    impl_alias.ty()
+                } else {
+                    SourceType::Error
                 }
-
-                AliasParent::Impl(..) => unreachable!(),
-                AliasParent::None => {
-                    let alias_ty = replace_type(sa, alias.ty(), Some(type_params), None);
-                    expand_st(sa, element, alias_ty, replace_self)
-                }
+            } else if let Some(trait_) = element.to_trait() {
+                assert_eq!(trait_id, trait_.id());
+                ty
+            } else {
+                unreachable!()
             }
         }
 

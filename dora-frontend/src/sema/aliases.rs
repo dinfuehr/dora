@@ -45,6 +45,13 @@ impl AliasParent {
             _ => false,
         }
     }
+
+    pub fn to_trait_id(&self) -> Option<TraitDefinitionId> {
+        match self {
+            AliasParent::Trait(id) => Some(*id),
+            _ => None,
+        }
+    }
 }
 
 pub struct AliasDefinition {
