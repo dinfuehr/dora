@@ -3287,6 +3287,7 @@ pub fn register_bty_from_ty(ty: SourceType) -> BytecodeType {
         SourceType::TypeParam(idx) => BytecodeType::TypeParam(idx.index() as u32),
         SourceType::Lambda(_, _) => BytecodeType::Ptr,
         SourceType::Ptr => BytecodeType::Ptr,
+        SourceType::This => BytecodeType::This,
         _ => panic!("SourceType {:?} cannot be converted to BytecodeType", ty),
     }
 }

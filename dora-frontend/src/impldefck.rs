@@ -129,8 +129,20 @@ fn check_impl_methods(
         }
     }
 
-    if !remaining_trait_methods.is_empty() {
-        report_missing_methods(sa, impl_, trait_, remaining_trait_methods);
+    for trait_method_id in &remaining_trait_methods {
+        let trait_method = sa.fct(*trait_method_id);
+
+        if trait_method.has_body() {
+            // Do nothing.
+        } else {
+            let mtd_name = sa.interner.str(trait_method.name).to_string();
+
+            sa.report(
+                impl_.file_id,
+                impl_.declaration_span,
+                ErrorMessage::ElementNotInImpl(mtd_name),
+            )
+        }
     }
 
     assert!(impl_.trait_method_map.set(trait_method_map).is_ok());
@@ -368,24 +380,6 @@ fn trait_and_impl_arg_ty_compatible_array(
     }
 
     true
-}
-
-fn report_missing_methods(
-    sa: &Sema,
-    impl_: &ImplDefinition,
-    _trait: &TraitDefinition,
-    missing_methods: HashSet<FctDefinitionId>,
-) {
-    for method_id in missing_methods {
-        let method = sa.fct(method_id);
-        let mtd_name = sa.interner.str(method.name).to_string();
-
-        sa.report(
-            impl_.file_id,
-            impl_.declaration_span,
-            ErrorMessage::ElementNotInImpl(mtd_name),
-        )
-    }
 }
 
 pub fn connect_aliases_to_trait(sa: &Sema) {
@@ -1062,5 +1056,38 @@ mod tests {
             }
             fn f(x: Int64): Foo[Int64] { x as Foo[Int64] }
         ");
+    }
+
+    #[test]
+    fn impl_reuse_trait_implementation() {
+        ok("
+            trait Foo {
+                fn f(): Int64;
+                fn g(): Int64 { 0 }
+            }
+
+            impl Foo for String {
+                fn f(): Int64 { 1 }
+            }
+        ")
+    }
+
+    #[test]
+    #[ignore]
+    fn impl_reuse_trait_implementation_with_call() {
+        ok("
+            trait Foo {
+                fn f(): Int64;
+                fn g(): Int64 { 0 }
+            }
+
+            impl Foo for String {
+                fn f(): Int64 { 1 }
+            }
+
+            fn x(a: String) {
+                a.g();
+            }
+        ")
     }
 }

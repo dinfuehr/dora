@@ -1,0 +1,16 @@
+//= ignore
+
+trait Foo {
+    fn f(): Int64 { 0}
+    fn g(): Int64 { 2 }
+}
+
+impl Foo for String {
+    fn f(): Int64 { 1 }
+}
+
+fn main() {
+    let a: String = "foo";
+    assert(a.f() == 1);
+    assert(a.g() == 2);
+}
