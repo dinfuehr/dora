@@ -60,7 +60,7 @@ impl AstDumper {
             ElemData::Module(ref node) => self.dump_module(node),
             ElemData::Use(ref node) => self.dump_use(node),
             ElemData::Extern(ref node) => self.dump_extern(node),
-            ElemData::TypeAlias(ref node) => self.dump_associated_type(node),
+            ElemData::Alias(ref node) => self.dump_associated_type(node),
             ElemData::Error { id, span } => {
                 dump!(self, "error @ {} {}", span, id);
             }
@@ -183,7 +183,7 @@ impl AstDumper {
         });
     }
 
-    fn dump_associated_type(&mut self, t: &TypeAlias) {
+    fn dump_associated_type(&mut self, t: &Alias) {
         dump!(self, "trait @ {} {}", t.span, t.id);
         self.indent(|d| {
             d.dump_ident(&t.name);

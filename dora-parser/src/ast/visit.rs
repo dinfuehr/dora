@@ -81,7 +81,7 @@ pub trait Visitor: Sized {
         walk_expr(self, e);
     }
 
-    fn visit_type_alias(&mut self, e: &Arc<TypeAlias>) {
+    fn visit_type_alias(&mut self, e: &Arc<Alias>) {
         walk_type_alias(self, e);
     }
 }
@@ -105,7 +105,7 @@ pub fn walk_elem<V: Visitor>(v: &mut V, e: &ElemData) {
         ElemData::Module(ref e) => v.visit_module(e),
         ElemData::Use(ref i) => v.visit_use(i),
         ElemData::Extern(ref stmt) => v.visit_extern(stmt),
-        ElemData::TypeAlias(ref node) => v.visit_type_alias(node),
+        ElemData::Alias(ref node) => v.visit_type_alias(node),
         ElemData::Error { .. } => {}
     }
 }
@@ -161,7 +161,7 @@ pub fn walk_extern<V: Visitor>(_v: &mut V, _use: &Arc<ExternPackage>) {
     // nothing to do
 }
 
-pub fn walk_type_alias<V: Visitor>(_v: &mut V, _node: &Arc<TypeAlias>) {
+pub fn walk_type_alias<V: Visitor>(_v: &mut V, _node: &Arc<Alias>) {
     // nothing to do
 }
 

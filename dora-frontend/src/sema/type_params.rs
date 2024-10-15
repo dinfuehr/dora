@@ -135,6 +135,12 @@ impl TypeParamDefinition {
             .map(|b| b.trait_ty().expect("trait type expected"))
     }
 
+    pub fn bounds_for_self<'a>(&'a self) -> impl Iterator<Item = TraitType> + 'a {
+        self.bounds()
+            .filter(move |b| b.ty() == SourceType::This && b.trait_ty().is_some())
+            .map(|b| b.trait_ty().expect("trait type expected"))
+    }
+
     pub fn type_param_count(&self) -> usize {
         self.container_type_params + self.type_params.len()
     }

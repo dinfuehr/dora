@@ -145,8 +145,8 @@ impl Parser {
             }
 
             TYPE_KW => {
-                let type_alias = self.parse_type_alias(modifiers);
-                Arc::new(ElemData::TypeAlias(type_alias))
+                let alias = self.parse_alias(modifiers);
+                Arc::new(ElemData::Alias(alias))
             }
 
             _ => {
@@ -567,7 +567,7 @@ impl Parser {
         })
     }
 
-    fn parse_type_alias(&mut self, modifiers: Option<ModifierList>) -> Arc<TypeAlias> {
+    fn parse_alias(&mut self, modifiers: Option<ModifierList>) -> Arc<Alias> {
         self.start_node();
         self.assert(TYPE_KW);
         let name = self.expect_identifier();
@@ -587,9 +587,9 @@ impl Parser {
         };
         self.expect(SEMICOLON);
 
-        let green = self.builder.finish_node(TYPE_ALIAS);
+        let green = self.builder.finish_node(ALIAS);
 
-        Arc::new(TypeAlias {
+        Arc::new(Alias {
             id: self.new_node_id(),
             green,
             span: self.finish_node(),
@@ -3882,7 +3882,7 @@ mod tests {
     }
 
     #[test]
-    fn parse_type_alias_in_trait() {
+    fn parse_alias_in_trait() {
         parse(
             "trait Foo {
             type MY_TYPE;

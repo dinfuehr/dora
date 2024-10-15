@@ -2,7 +2,7 @@ use crate::error::msg::ErrorMessage;
 use crate::interner::Name;
 use crate::sema::{
     extension_matches, impl_matches, Candidate, FctDefinitionId, FctParent, Sema, SourceFileId,
-    TraitDefinitionId, TypeParamDefinition,
+    TypeParamDefinition,
 };
 use crate::typeck::function::args_compatible_fct;
 use crate::typeparamck::{self, ErrorReporting};
@@ -55,7 +55,6 @@ impl MethodLookupResult {
 enum LookupKind {
     Method(SourceType),
     Static(SourceType),
-    Self_(TraitDefinitionId),
     Callee(FctDefinitionId),
 }
 
@@ -105,18 +104,7 @@ impl<'a> MethodLookup<'a> {
     }
 
     pub fn method(mut self, obj: SourceType) -> MethodLookup<'a> {
-        let kind = match obj {
-            SourceType::This => {
-                let parent = self.fct_parent.clone().expect("parent missing");
-                match parent {
-                    FctParent::Trait(id) => LookupKind::Self_(id),
-                    _ => unreachable!(),
-                }
-            }
-            _ => LookupKind::Method(obj),
-        };
-
-        self.kind = Some(kind);
+        self.kind = Some(LookupKind::Method(obj));
 
         self
     }
@@ -164,11 +152,6 @@ impl<'a> MethodLookup<'a> {
                 self.find_method(&mut result, obj.clone(), name, false)
             }
 
-            LookupKind::Self_(trait_id) => {
-                let name = self.name.expect("name not set");
-                self.find_method_in_trait(trait_id, name, false)
-            }
-
             LookupKind::Static(ref obj) => {
                 let name = self.name.expect("name not set");
                 self.find_method(&mut result, obj.clone(), name, true)
@@ -198,10 +181,6 @@ impl<'a> MethodLookup<'a> {
                     } else {
                         ErrorMessage::UnknownMethod(type_name, name, param_names)
                     }
-                }
-
-                LookupKind::Self_(..) => {
-                    ErrorMessage::UnknownMethod("Self".into(), name, param_names)
                 }
 
                 LookupKind::Static(ref obj) => {
@@ -301,16 +280,6 @@ impl<'a> MethodLookup<'a> {
         } else {
             None
         }
-    }
-
-    fn find_method_in_trait(
-        &mut self,
-        trait_id: TraitDefinitionId,
-        name: Name,
-        is_static: bool,
-    ) -> Option<FctDefinitionId> {
-        let trait_ = self.sa.trait_(trait_id);
-        trait_.get_method(name, is_static)
     }
 
     fn check_tps(&self, specified_tps: &TypeParamDefinition, tps: &SourceTypeArray) -> bool {

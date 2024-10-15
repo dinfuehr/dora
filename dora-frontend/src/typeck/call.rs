@@ -19,7 +19,9 @@ use crate::typeck::{
     find_method_call_candidates, read_path_expr, MethodLookup, TypeCheck,
 };
 use crate::typeparamck::{self, ErrorReporting};
-use crate::{specialize_type, ty::error as ty_error, ErrorMessage, SourceType, SourceTypeArray};
+use crate::{
+    empty_sta, specialize_type, ty::error as ty_error, ErrorMessage, SourceType, SourceTypeArray,
+};
 
 pub(super) fn check_expr_call(
     ck: &mut TypeCheck,
@@ -330,7 +332,17 @@ fn check_expr_call_method(
 ) -> SourceType {
     if let SourceType::TypeParam(id) = object_type {
         assert_eq!(fct_type_params.len(), 0);
-        return check_expr_call_generic(ck, e, id, method_name, arg_types);
+        return check_expr_call_generic_type_param(
+            ck,
+            e,
+            SourceType::TypeParam(id),
+            id,
+            method_name,
+            arg_types,
+        );
+    } else if object_type.is_self() {
+        assert_eq!(fct_type_params.len(), 0);
+        return check_expr_call_self(ck, e, method_name, arg_types);
     }
 
     if object_type.is_error() {
@@ -624,14 +636,79 @@ fn check_expr_call_class(
     cls_ty
 }
 
-fn check_expr_call_generic(
+fn check_expr_call_self(
     ck: &mut TypeCheck,
     e: &ast::ExprCallType,
-    tp_id: TypeParamId,
     name: String,
-    arg_types: &[SourceType],
+    args: &[SourceType],
 ) -> SourceType {
-    check_expr_call_generic_type_param(ck, e, SourceType::TypeParam(tp_id), tp_id, name, arg_types)
+    let mut matched_methods = Vec::new();
+    let interned_name = ck.sa.interner.intern(&name);
+
+    {
+        let trait_id = ck.parent.trait_id().expect("trait expected");
+        let trait_ = ck.sa.trait_(trait_id);
+
+        if let Some(trait_method_id) = trait_.get_method(interned_name, false) {
+            matched_methods.push(trait_method_id);
+        }
+    }
+
+    for trait_ty in ck.type_param_definition.bounds_for_self() {
+        let trait_ = ck.sa.trait_(trait_ty.trait_id);
+
+        if let Some(trait_method_id) = trait_.get_method(interned_name, false) {
+            matched_methods.push(trait_method_id);
+        }
+    }
+
+    if matched_methods.len() == 1 {
+        let trait_method_id = matched_methods.pop().expect("missing element");
+        let trait_type_params = empty_sta();
+
+        let trait_method = ck.sa.fct(trait_method_id);
+        let return_type = trait_method.return_type();
+
+        ck.analysis.set_ty(e.id, return_type.clone());
+
+        // This should likely become a generic call in the future, once
+        // the default trait method isn't copied into the impl method anymore.
+        let call_type =
+            CallType::Method(SourceType::This, trait_method_id, trait_type_params.clone());
+        ck.analysis.map_calls.insert(e.id, Arc::new(call_type));
+
+        if !args_compatible_fct(
+            ck.sa,
+            trait_method,
+            args,
+            &trait_type_params,
+            Some(SourceType::This),
+        ) {
+            let trait_params = trait_method
+                .params_without_self()
+                .iter()
+                .map(|a| specialize_type(ck.sa, a.ty(), &trait_type_params))
+                .map(|a| ck.ty_name(&a))
+                .collect::<Vec<String>>();
+            let param_names = args.iter().map(|a| ck.ty_name(a)).collect::<Vec<String>>();
+            let msg = ErrorMessage::ParamTypesIncompatible(name, trait_params, param_names);
+            ck.sa.report(ck.file_id, e.span, msg);
+        }
+
+        return_type
+    } else {
+        let param_names = args.iter().map(|a| ck.ty_name(a)).collect::<Vec<String>>();
+        let msg = if matched_methods.is_empty() {
+            ErrorMessage::UnknownMethod("Self".into(), name, param_names)
+        } else {
+            ErrorMessage::MultipleCandidatesForMethod("Self".into(), name, param_names)
+        };
+
+        ck.sa.report(ck.file_id, e.span, msg);
+        ck.analysis.set_ty(e.id, ty_error());
+
+        ty_error()
+    }
 }
 
 fn check_expr_call_generic_type_param(

@@ -847,7 +847,7 @@ impl<'x> visit::Visitor for TopLevelDeclaration<'x> {
         }
     }
 
-    fn visit_type_alias(&mut self, node: &Arc<ast::TypeAlias>) {
+    fn visit_type_alias(&mut self, node: &Arc<ast::Alias>) {
         let modifiers = check_modifiers(self.sa, self.file_id, &node.modifiers, &[Annotation::Pub]);
 
         let parsed_ty = if let Some(ref ty) = node.ty {
@@ -978,7 +978,7 @@ fn find_elements_in_trait(
                 }
             }
 
-            ast::ElemData::TypeAlias(ref node) => {
+            ast::ElemData::Alias(ref node) => {
                 let modifiers = check_modifiers(sa, file_id, &node.modifiers, &[]);
 
                 let name = ensure_name(sa, &node.name);
@@ -1124,7 +1124,7 @@ fn find_elements_in_impl(
                 methods.push(fct_id);
             }
 
-            ast::ElemData::TypeAlias(ref node) => {
+            ast::ElemData::Alias(ref node) => {
                 let modifiers = check_modifiers(sa, file_id, &node.modifiers, &[]);
 
                 let name = ensure_name(sa, &node.name);

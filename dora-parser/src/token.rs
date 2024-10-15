@@ -212,7 +212,6 @@ pub enum TokenKind {
     // Syntax tree nodes
     SOURCE_FILE,
 
-    ALIAS,
     FN,
     STRUCT,
     STRUCT_FIELD,
@@ -240,7 +239,7 @@ pub enum TokenKind {
     TYPE_LIST,
     ARG_LIST,
     PATTERN_LIST,
-    TYPE_ALIAS,
+    ALIAS,
 
     PARAM_LIST,
 
