@@ -2,7 +2,7 @@ use crate::error::msg::ErrorMessage;
 use crate::interner::Name;
 use crate::sema::{
     extension_matches, impl_matches, Candidate, FctDefinitionId, FctParent, Sema, SourceFileId,
-    TypeParamDefinition,
+    TraitDefinition, TypeParamDefinition,
 };
 use crate::typeck::function::args_compatible_fct;
 use crate::typeparamck::{self, ErrorReporting};
@@ -316,6 +316,14 @@ pub fn find_method_call_candidates(
             });
             return candidates;
         }
+
+        find_super_trait_methods_on_trait_object(
+            sa,
+            object_type.clone(),
+            trait_,
+            name,
+            &mut candidates,
+        );
     }
 
     for (_id, extension) in sa.extensions.iter() {
@@ -358,4 +366,31 @@ pub fn find_method_call_candidates(
     }
 
     candidates
+}
+
+fn find_super_trait_methods_on_trait_object(
+    sa: &Sema,
+    object_type: SourceType,
+    trait_: &TraitDefinition,
+    name: Name,
+    candidates: &mut Vec<Candidate>,
+) {
+    for bound in trait_.type_param_definition().bounds_for_self() {
+        let super_trait = sa.trait_(bound.trait_id);
+        if let Some(fct_id) = super_trait.get_method(name, false) {
+            candidates.push(Candidate {
+                object_type: object_type.clone(),
+                container_type_params: ().into(),
+                fct_id,
+            });
+        }
+
+        find_super_trait_methods_on_trait_object(
+            sa,
+            object_type.clone(),
+            super_trait,
+            name,
+            candidates,
+        );
+    }
 }

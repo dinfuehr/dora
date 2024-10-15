@@ -480,6 +480,7 @@ impl<'x> visit::Visitor for TopLevelDeclaration<'x> {
             None,
             node.type_params.as_ref(),
             node.where_bounds.as_ref(),
+            Some(&node.bounds),
             self.file_id,
         );
 
@@ -552,6 +553,7 @@ impl<'x> visit::Visitor for TopLevelDeclaration<'x> {
             None,
             node.type_params.as_ref(),
             node.where_bounds.as_ref(),
+            None,
             self.file_id,
         );
 
@@ -644,6 +646,7 @@ impl<'x> visit::Visitor for TopLevelDeclaration<'x> {
             None,
             node.type_params.as_ref(),
             node.where_bounds.as_ref(),
+            None,
             self.file_id,
         );
 
@@ -703,6 +706,7 @@ impl<'x> visit::Visitor for TopLevelDeclaration<'x> {
             None,
             node.type_params.as_ref(),
             node.where_bounds.as_ref(),
+            None,
             self.file_id,
         );
 
@@ -745,6 +749,7 @@ impl<'x> visit::Visitor for TopLevelDeclaration<'x> {
             None,
             node.type_params.as_ref(),
             node.where_bounds.as_ref(),
+            None,
             self.file_id,
         );
 
@@ -823,6 +828,7 @@ impl<'x> visit::Visitor for TopLevelDeclaration<'x> {
             None,
             node.type_params.as_ref(),
             node.where_bounds.as_ref(),
+            None,
             self.file_id,
         );
 
@@ -863,6 +869,7 @@ impl<'x> visit::Visitor for TopLevelDeclaration<'x> {
             None,
             node.type_params.as_ref(),
             node.pre_where_bounds.as_ref(),
+            None,
             self.file_id,
         );
 
@@ -934,6 +941,7 @@ fn find_elements_in_trait(
                     Some(container_type_param_definition),
                     method_node.type_params.as_ref(),
                     method_node.where_bounds.as_ref(),
+                    None,
                     file_id,
                 );
 
@@ -1017,6 +1025,7 @@ fn find_elements_in_trait(
                     Some(container_type_param_definition),
                     node.type_params.as_ref(),
                     where_bounds,
+                    None,
                     file_id,
                 );
 
@@ -1101,6 +1110,7 @@ fn find_elements_in_impl(
                     Some(container_type_param_definition),
                     method_node.type_params.as_ref(),
                     method_node.where_bounds.as_ref(),
+                    None,
                     file_id,
                 );
 
@@ -1158,6 +1168,7 @@ fn find_elements_in_impl(
                     Some(container_type_param_definition),
                     node.type_params.as_ref(),
                     where_bounds,
+                    None,
                     file_id,
                 );
 
@@ -1231,6 +1242,7 @@ fn find_elements_in_extension(
                     Some(container_type_param_definition),
                     method_node.type_params.as_ref(),
                     method_node.where_bounds.as_ref(),
+                    None,
                     extension.file_id,
                 );
 
@@ -1498,6 +1510,7 @@ fn parse_type_param_definition(
     parent: Option<Rc<TypeParamDefinition>>,
     ast_type_params: Option<&ast::TypeParams>,
     where_bounds: Option<&ast::WhereBounds>,
+    trait_bounds: Option<&Vec<ast::Type>>,
     file_id: SourceFileId,
 ) -> Rc<TypeParamDefinition> {
     let mut type_param_definition = TypeParamDefinition::new(parent);
@@ -1527,7 +1540,7 @@ fn parse_type_param_definition(
             };
 
             for bound in &type_param.bounds {
-                type_param_definition.add_bound(id, bound.clone());
+                type_param_definition.add_type_param_bound(id, bound.clone());
             }
         }
     }
@@ -1537,6 +1550,12 @@ fn parse_type_param_definition(
             for bound in &clause.bounds {
                 type_param_definition.add_where_bound(clause.ty.clone(), bound.clone());
             }
+        }
+    }
+
+    if let Some(trait_bounds) = trait_bounds {
+        for bound in trait_bounds {
+            type_param_definition.add_self_bound(bound.clone());
         }
     }
 

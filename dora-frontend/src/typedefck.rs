@@ -534,7 +534,12 @@ fn expand_impl_types(sa: &Sema) {
 
 fn expand_trait_types(sa: &Sema) {
     for (_id, trait_) in sa.traits.iter() {
-        expand_type_param_definition(sa, trait_, trait_.type_param_definition(), None);
+        expand_type_param_definition(
+            sa,
+            trait_,
+            trait_.type_param_definition(),
+            Some(SourceType::This),
+        );
     }
 }
 

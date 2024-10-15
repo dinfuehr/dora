@@ -868,8 +868,9 @@ fn check_type_trait_object(
         new_bindings.push((alias_id, ty));
     }
 
-    let result = if check_trait_type_params(
+    let result = if check_trait_type_param_definition(
         sa,
+        element,
         trait_,
         &new_type_params,
         &new_bindings,
@@ -945,8 +946,9 @@ fn check_trait_type_inner(
         new_bindings.push((*alias_id, ty));
     }
 
-    if check_trait_type_params(
+    if check_trait_type_param_definition(
         sa,
+        element,
         trait_,
         &new_type_params,
         &new_bindings,
@@ -956,7 +958,7 @@ fn check_trait_type_inner(
     ) {
         Some(TraitType {
             trait_id: trait_ty.trait_id,
-            type_params: SourceTypeArray::with(new_type_params),
+            type_params: new_type_params.into(),
             bindings: new_bindings,
         })
     } else {
@@ -1005,8 +1007,9 @@ fn check_type_params(
     success
 }
 
-fn check_trait_type_params(
+fn check_trait_type_param_definition(
     sa: &Sema,
+    element: &dyn Element,
     trait_: &TraitDefinition,
     generic_arguments: &[SourceType],
     type_bindings: &[(AliasDefinitionId, SourceType)],
@@ -1020,7 +1023,16 @@ fn check_trait_type_params(
     let mut success = true;
 
     for bound in type_param_definition.bounds() {
-        let tp_ty = bound.ty();
+        let mut tp_ty = bound.ty();
+
+        if tp_ty.is_self() {
+            if element.is_impl() {
+                let impl_ = element.to_impl().expect("impl expected");
+                tp_ty = impl_.extended_ty();
+            } else {
+                continue;
+            }
+        }
 
         if let Some(trait_ty) = bound.trait_ty() {
             let tp_ty = specialize_type(sa, tp_ty, &type_arguments);

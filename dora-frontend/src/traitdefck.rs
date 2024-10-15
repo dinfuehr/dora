@@ -334,4 +334,119 @@ mod tests {
             ErrorMessage::TraitNotObjectSafe,
         );
     }
+
+    #[test]
+    fn super_trait() {
+        ok("
+            trait Bar {}
+            trait Foo: Bar {}
+        ");
+    }
+
+    #[test]
+    fn super_trait_unknown() {
+        err(
+            "
+            trait Foo: Unknown {}
+        ",
+            (2, 24),
+            ErrorMessage::UnknownIdentifier("Unknown".into()),
+        );
+    }
+
+    #[test]
+    fn super_trait_call() {
+        ok("
+            trait Bar {
+                fn g();
+            }
+            trait Foo: Bar {
+                fn f() { self.g(); }
+            }
+        ");
+    }
+
+    #[test]
+    fn super_trait_unsatisfied_in_impl() {
+        err(
+            "
+            trait A {}
+            trait B: A {}
+            impl B for Int64 {}
+        ",
+            (4, 18),
+            ErrorMessage::TypeNotImplementingTrait("Int64".into(), "A".into()),
+        );
+
+        errors(
+            "
+            trait A {}
+            trait B: A {}
+            trait C: B {}
+            impl B for Int64 {}
+            impl C for Int64 {}
+        ",
+            &[
+                (
+                    (5, 18),
+                    ErrorMessage::TypeNotImplementingTrait("Int64".into(), "A".into()),
+                ),
+                (
+                    (6, 18),
+                    ErrorMessage::TypeNotImplementingTrait("Int64".into(), "B".into()),
+                ),
+            ],
+        );
+    }
+
+    #[test]
+    fn super_trait_in_impl() {
+        ok("
+            trait A {}
+            trait B: A {}
+            impl B for Int64 {}
+            impl A for Int64 {}
+        ");
+    }
+
+    #[test]
+    fn super_trait_generic_call_in_super_trait() {
+        ok("
+            trait A { fn f(); }
+            trait B: A { fn g(); }
+            fn f[T: B](value: T) {
+                value.f();
+            }
+        ");
+
+        ok("
+            trait A { fn f(); }
+            trait B: A { fn g(); }
+            trait C: B { fn h(); }
+            fn f[T: C](value: T) {
+                value.f();
+            }
+        ");
+    }
+
+    #[test]
+    fn super_trait_call_in_default_implementation() {
+        ok("
+            trait A { fn f(); }
+            trait B: A { fn g(); }
+            trait C: B { fn h() { self.f(); } }
+        ");
+    }
+
+    #[test]
+    fn super_trait_call_on_trait_object() {
+        ok("
+            trait A { fn f(); }
+            trait B: A { fn g(); }
+            trait C: B { fn h() { self.f(); } }
+            fn f(c: C) {
+                c.f();
+            }
+        ");
+    }
 }

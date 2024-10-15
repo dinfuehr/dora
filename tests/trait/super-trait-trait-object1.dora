@@ -1,0 +1,24 @@
+//= ignore
+
+trait A { fn f(): Int64; }
+trait B: A { fn g(): Int64; }
+trait C: B { fn h(): Int64; }
+
+impl A for Int64 {
+    fn f() { 100 }
+}
+
+impl B for Int64 {
+    fn g() { 200 }
+}
+
+impl C for Int64 {
+    fn g() { 300 }
+}
+
+fn main() {
+    let x = 12;
+    assert(x.f() == 100);
+    assert(x.g() == 200);
+    assert(x.h() == 300);
+}

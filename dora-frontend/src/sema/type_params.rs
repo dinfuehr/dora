@@ -81,9 +81,18 @@ impl TypeParamDefinition {
         TypeParamId(id)
     }
 
-    pub fn add_bound(&mut self, id: TypeParamId, ast_trait_ty: ast::Type) {
+    pub fn add_type_param_bound(&mut self, id: TypeParamId, ast_trait_ty: ast::Type) {
         let bound = Bound::new(
             ParsedType::new_ty(SourceType::TypeParam(id)),
+            ParsedTraitType::new_ast(ast_trait_ty.clone()),
+        );
+
+        self.bounds.push(bound);
+    }
+
+    pub fn add_self_bound(&mut self, ast_trait_ty: ast::Type) {
+        let bound = Bound::new(
+            ParsedType::new_ty(SourceType::This),
             ParsedTraitType::new_ast(ast_trait_ty.clone()),
         );
 

@@ -10,7 +10,7 @@ use crate::interner::Name;
 use crate::sema::{
     find_field_in_class, new_identity_type_params, CallType, ClassDefinition, ClassDefinitionId,
     EnumDefinitionId, EnumVariant, FctDefinitionId, IdentType, Sema, StructDefinition,
-    StructDefinitionId, TypeParamDefinition, TypeParamId,
+    StructDefinitionId, TraitDefinition, TypeParamDefinition, TypeParamId,
 };
 use crate::specialize::replace_type;
 use crate::sym::SymbolKind;
@@ -21,6 +21,7 @@ use crate::typeck::{
 use crate::typeparamck::{self, ErrorReporting};
 use crate::{
     empty_sta, specialize_type, ty::error as ty_error, ErrorMessage, SourceType, SourceTypeArray,
+    TraitType,
 };
 
 pub(super) fn check_expr_call(
@@ -636,6 +637,23 @@ fn check_expr_call_class(
     cls_ty
 }
 
+fn find_in_super_traits_self(
+    sa: &Sema,
+    trait_: &TraitDefinition,
+    name: Name,
+    matched_methods: &mut Vec<FctDefinitionId>,
+) {
+    for super_trait_ty in trait_.type_param_definition().bounds_for_self() {
+        let super_trait_ = sa.trait_(super_trait_ty.trait_id);
+
+        if let Some(trait_method_id) = super_trait_.get_method(name, false) {
+            matched_methods.push(trait_method_id);
+        }
+
+        find_in_super_traits_self(sa, super_trait_, name, matched_methods);
+    }
+}
+
 fn check_expr_call_self(
     ck: &mut TypeCheck,
     e: &ast::ExprCallType,
@@ -660,6 +678,8 @@ fn check_expr_call_self(
         if let Some(trait_method_id) = trait_.get_method(interned_name, false) {
             matched_methods.push(trait_method_id);
         }
+
+        find_in_super_traits_self(ck.sa, trait_, interned_name, &mut matched_methods);
     }
 
     if matched_methods.len() == 1 {
@@ -711,6 +731,23 @@ fn check_expr_call_self(
     }
 }
 
+fn find_in_super_traits(
+    sa: &Sema,
+    trait_: &TraitDefinition,
+    name: Name,
+    matched_methods: &mut Vec<(FctDefinitionId, TraitType)>,
+) {
+    for super_trait_ty in trait_.type_param_definition().bounds_for_self() {
+        let super_trait_ = sa.trait_(super_trait_ty.trait_id);
+
+        if let Some(trait_method_id) = super_trait_.get_method(name, false) {
+            matched_methods.push((trait_method_id, super_trait_ty));
+        }
+
+        find_in_super_traits(sa, super_trait_, name, matched_methods);
+    }
+}
+
 fn check_expr_call_generic_type_param(
     ck: &mut TypeCheck,
     e: &ast::ExprCallType,
@@ -729,6 +766,8 @@ fn check_expr_call_generic_type_param(
         if let Some(trait_method_id) = trait_.get_method(interned_name, false) {
             matched_methods.push((trait_method_id, trait_ty));
         }
+
+        find_in_super_traits(ck.sa, trait_, interned_name, &mut matched_methods);
     }
 
     if matched_methods.len() == 1 {
