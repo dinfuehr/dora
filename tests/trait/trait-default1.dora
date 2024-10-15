@@ -1,5 +1,5 @@
 trait Foo {
-    fn f(): Int64 { 0}
+    fn f(): Int64 { 0 }
     fn g(): Int64 { 2 }
 }
 
@@ -7,8 +7,16 @@ impl Foo for String {
     fn f(): Int64 { 1 }
 }
 
+impl Foo for Bool {
+    fn f(): Int64 { 101 }
+}
+
 fn main() {
     let a: String = "foo";
     assert(a.f() == 1);
+    assert(a.g() == 2);
+
+    let a: Bool = true;
+    assert(a.f() == 101);
     assert(a.g() == 2);
 }
