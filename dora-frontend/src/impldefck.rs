@@ -1,11 +1,12 @@
 use std::collections::{HashMap, HashSet};
 
 use crate::extensiondefck::check_for_unconstrained_type_params;
+use crate::program_parser::ParsedModifierList;
 use crate::sema::{
     implements_trait, new_identity_type_params, AliasDefinitionId, FctDefinition, FctDefinitionId,
-    ImplDefinition, Sema, TraitDefinition,
+    FctParent, ImplDefinition, ImplDefinitionId, Sema, TraitDefinition,
 };
-use crate::{package_for_type, ErrorMessage, SourceType, SourceTypeArray, TraitType};
+use crate::{package_for_type, replace_type, ErrorMessage, SourceType, SourceTypeArray, TraitType};
 
 pub fn check_definition(sa: &Sema) {
     for (_id, impl_) in sa.impls.iter() {
@@ -65,12 +66,76 @@ fn check_impl_definition(sa: &Sema, impl_: &ImplDefinition) {
     }
 }
 
-pub fn check_definition_against_trait(sa: &Sema) {
+struct LazyTraitMethodMapSetter {
+    impl_id: ImplDefinitionId,
+    trait_methods: Vec<FctDefinitionId>,
+    trait_method_map: HashMap<FctDefinitionId, FctDefinitionId>,
+}
+
+pub fn check_definition_against_trait(sa: &mut Sema) {
+    let mut lazy_trait_method_map_setters = Vec::new();
+
     for (_id, impl_) in sa.impls.iter() {
         if let Some(trait_ty) = impl_.trait_ty() {
             let trait_ = sa.trait_(trait_ty.trait_id);
-            check_impl_methods(sa, impl_, &trait_ty, trait_);
+            check_impl_methods(
+                sa,
+                impl_,
+                &trait_ty,
+                trait_,
+                &mut lazy_trait_method_map_setters,
+            );
         }
+    }
+
+    for setter in lazy_trait_method_map_setters {
+        let impl_id = setter.impl_id;
+        let mut trait_method_map = setter.trait_method_map;
+        let trait_methods = setter.trait_methods;
+        let mut new_fcts = Vec::new();
+
+        {
+            let impl_ = sa.impl_(setter.impl_id);
+
+            for trait_method_id in &trait_methods {
+                let trait_method = sa.fct(*trait_method_id);
+
+                let self_ty = Some(impl_.extended_ty());
+                let params = trait_method.params.clone();
+
+                for param in &params {
+                    param.set_ty(replace_type(sa, param.ty(), None, self_ty.clone()));
+                }
+
+                let return_type = trait_method.return_type();
+                let return_type = replace_type(sa, return_type, None, self_ty.clone());
+
+                let fct = FctDefinition::new(
+                    impl_.package_id,
+                    impl_.module_id,
+                    impl_.file_id,
+                    &trait_method.ast,
+                    ParsedModifierList::default(),
+                    trait_method.name,
+                    trait_method.type_param_definition().clone(),
+                    params,
+                    FctParent::Impl(impl_.id()),
+                );
+                fct.return_type.set_ty(return_type);
+                new_fcts.push(fct);
+            }
+        }
+
+        for (new_fct, trait_method_id) in new_fcts.into_iter().zip(trait_methods.into_iter()) {
+            let impl_method_id = sa.fcts.alloc(new_fct);
+            sa.fcts[impl_method_id].id = Some(impl_method_id);
+
+            let previous = trait_method_map.insert(trait_method_id, impl_method_id);
+            assert!(previous.is_none());
+        }
+
+        let impl_ = sa.impl_(impl_id);
+        assert!(impl_.trait_method_map.set(trait_method_map).is_ok());
     }
 }
 
@@ -79,6 +144,7 @@ fn check_impl_methods(
     impl_: &ImplDefinition,
     trait_ty: &TraitType,
     trait_: &TraitDefinition,
+    lazy_trait_method_map_setters: &mut Vec<LazyTraitMethodMapSetter>,
 ) {
     let mut remaining_trait_methods: HashSet<FctDefinitionId> =
         trait_.methods().iter().cloned().collect();
@@ -129,11 +195,13 @@ fn check_impl_methods(
         }
     }
 
+    let mut default_impl_methods = Vec::new();
+
     for trait_method_id in &remaining_trait_methods {
         let trait_method = sa.fct(*trait_method_id);
 
         if trait_method.has_body() {
-            // Do nothing.
+            default_impl_methods.push(*trait_method_id);
         } else {
             let mtd_name = sa.interner.str(trait_method.name).to_string();
 
@@ -145,7 +213,15 @@ fn check_impl_methods(
         }
     }
 
-    assert!(impl_.trait_method_map.set(trait_method_map).is_ok());
+    if default_impl_methods.is_empty() {
+        assert!(impl_.trait_method_map.set(trait_method_map).is_ok());
+    } else {
+        lazy_trait_method_map_setters.push(LazyTraitMethodMapSetter {
+            impl_id: impl_.id(),
+            trait_method_map,
+            trait_methods: default_impl_methods,
+        });
+    }
 }
 
 fn method_definitions_compatible(
