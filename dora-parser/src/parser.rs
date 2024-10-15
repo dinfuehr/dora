@@ -536,6 +536,11 @@ impl Parser {
         self.assert(TRAIT_KW);
         let name = self.expect_identifier();
         let type_params = self.parse_type_params();
+        let bounds = if self.eat(COLON) {
+            self.parse_type_bounds()
+        } else {
+            Vec::new()
+        };
         let where_bounds = self.parse_where();
 
         self.expect(L_BRACE);
@@ -555,6 +560,7 @@ impl Parser {
             green,
             modifiers: modifiers.clone(),
             type_params,
+            bounds,
             where_bounds,
             span: self.finish_node(),
             methods,
@@ -2466,6 +2472,11 @@ mod tests {
 
     fn parse(code: &'static str) -> Arc<File> {
         let (file, errors) = Parser::from_string(code).parse();
+        if !errors.is_empty() {
+            for error in &errors {
+                println!("{} at {}", error.error.message(), error.span);
+            }
+        }
         assert!(errors.is_empty());
         file
     }
@@ -3567,6 +3578,17 @@ mod tests {
 
         assert_eq!("Foo", trait_.name.as_ref().unwrap().name_as_string);
         assert_eq!(1, trait_.methods.len());
+    }
+
+    #[test]
+    fn parse_trait_with_bounds() {
+        let prog = parse("trait Foo: A + B {}");
+        let trait_ = prog.trait0();
+
+        assert_eq!("Foo", trait_.name.as_ref().unwrap().name_as_string);
+        assert_eq!(2, trait_.bounds.len());
+        assert_eq!("A", trait_.bounds[0].name());
+        assert_eq!("B", trait_.bounds[1].name());
     }
 
     #[test]

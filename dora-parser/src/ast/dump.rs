@@ -57,7 +57,6 @@ impl AstDumper {
             ElemData::Global(ref node) => self.dump_global(node),
             ElemData::Const(ref node) => self.dump_const(node),
             ElemData::Enum(ref node) => self.dump_enum(node),
-            ElemData::Alias(ref node) => self.dump_alias(node),
             ElemData::Module(ref node) => self.dump_module(node),
             ElemData::Use(ref node) => self.dump_use(node),
             ElemData::Extern(ref node) => self.dump_extern(node),
@@ -101,15 +100,6 @@ impl AstDumper {
 
     fn dump_use(&mut self, node: &Use) {
         dump!(self, "use @ {} {}", node.span, node.id);
-    }
-
-    fn dump_alias(&mut self, alias: &Alias) {
-        dump!(self, "alias @ {} {}", alias.span, alias.id);
-        self.dump_ident(&alias.name);
-
-        self.indent(|d| {
-            d.dump_type(&alias.ty);
-        });
     }
 
     fn dump_module(&mut self, module: &Module) {

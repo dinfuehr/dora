@@ -47,11 +47,6 @@ impl File {
     }
 
     #[cfg(test)]
-    pub fn alias0(&self) -> &Alias {
-        self.elements[0].to_alias().unwrap()
-    }
-
-    #[cfg(test)]
     pub fn module0(&self) -> &Module {
         self.elements[0].to_module().unwrap()
     }
@@ -103,7 +98,6 @@ pub enum ElemData {
     Global(Arc<Global>),
     Const(Arc<Const>),
     Enum(Arc<Enum>),
-    Alias(Arc<Alias>),
     Module(Arc<Module>),
     Use(Arc<Use>),
     Extern(Arc<ExternPackage>),
@@ -122,7 +116,6 @@ impl ElemData {
             ElemData::Global(ref node) => node.span,
             ElemData::Const(ref node) => node.span,
             ElemData::Enum(ref node) => node.span,
-            ElemData::Alias(ref node) => node.span,
             ElemData::Module(ref node) => node.span,
             ElemData::Use(ref node) => node.span,
             ElemData::Extern(ref node) => node.span,
@@ -148,13 +141,6 @@ impl ElemData {
     pub fn to_enum(&self) -> Option<&Enum> {
         match self {
             &ElemData::Enum(ref enum_) => Some(enum_),
-            _ => None,
-        }
-    }
-
-    pub fn to_alias(&self) -> Option<&Alias> {
-        match self {
-            &ElemData::Alias(ref alias) => Some(alias),
             _ => None,
         }
     }
@@ -319,16 +305,6 @@ pub struct EnumVariant {
     pub green: GreenNode,
     pub name: Option<Ident>,
     pub types: Option<Vec<Type>>,
-}
-
-#[derive(Clone, Debug)]
-pub struct Alias {
-    pub id: NodeId,
-    pub span: Span,
-    pub green: GreenNode,
-    pub modifiers: Option<ModifierList>,
-    pub name: Option<Ident>,
-    pub ty: Type,
 }
 
 #[derive(Clone, Debug)]
@@ -568,6 +544,14 @@ impl TypeData {
             TypeData::Error { id, .. } => id,
         }
     }
+
+    #[cfg(test)]
+    pub fn name(&self) -> &str {
+        match *self {
+            TypeData::Regular(ref regular) => regular.name(),
+            _ => unreachable!(),
+        }
+    }
 }
 
 #[derive(Clone, Debug)]
@@ -593,6 +577,7 @@ pub struct Trait {
     pub green: GreenNode,
     pub modifiers: Option<ModifierList>,
     pub type_params: Option<TypeParams>,
+    pub bounds: Vec<Type>,
     pub where_bounds: Option<WhereBounds>,
     pub span: Span,
     pub methods: Vec<Elem>,

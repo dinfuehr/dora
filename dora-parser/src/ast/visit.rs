@@ -37,10 +37,6 @@ pub trait Visitor: Sized {
         walk_enum(self, e);
     }
 
-    fn visit_alias(&mut self, e: &Arc<Alias>) {
-        walk_alias(self, e);
-    }
-
     fn visit_module(&mut self, e: &Arc<Module>) {
         walk_module(self, e);
     }
@@ -106,7 +102,6 @@ pub fn walk_elem<V: Visitor>(v: &mut V, e: &ElemData) {
         ElemData::Global(ref g) => v.visit_global(g),
         ElemData::Const(ref c) => v.visit_const(c),
         ElemData::Enum(ref e) => v.visit_enum(e),
-        ElemData::Alias(ref e) => v.visit_alias(e),
         ElemData::Module(ref e) => v.visit_module(e),
         ElemData::Use(ref i) => v.visit_use(i),
         ElemData::Extern(ref stmt) => v.visit_extern(stmt),
@@ -148,10 +143,6 @@ pub fn walk_const<V: Visitor>(v: &mut V, c: &Arc<Const>) {
 
 pub fn walk_enum<V: Visitor>(_v: &mut V, _e: &Arc<Enum>) {
     // nothing to do
-}
-
-pub fn walk_alias<V: Visitor>(v: &mut V, a: &Arc<Alias>) {
-    v.visit_type(&a.ty);
 }
 
 pub fn walk_module<V: Visitor>(v: &mut V, node: &Arc<Module>) {
