@@ -134,6 +134,26 @@ impl Read for OpenFile {
 }
 
 impl Write for OpenFile {
+    fn write(array: Array[UInt8], offset: Int64, len: Int64): Result[Int64, IOError] {
+        let written = fileWrite(self.fd, array, offset, len);
+
+        if written >= 0 {
+            Ok[Int64, IOError](written)
+        } else {
+            Err[Int64, IOError](IOError())
+        }
+    }
+
+    fn flush(): Result[(), IOError] {
+        Ok(())
+    }
+}
+
+pub trait Read {
+    fn read(array: Array[UInt8], offset: Int64, len: Int64): Result[Int64, IOError];
+}
+
+pub trait Write {
     fn writeAll(array: Array[UInt8], offset: Int64, len: Int64): Result[(), IOError] {
         let mut curr = offset;
         let end = offset + len;
@@ -156,28 +176,6 @@ impl Write for OpenFile {
 
         Ok(())
     }
-
-    fn write(array: Array[UInt8], offset: Int64, len: Int64): Result[Int64, IOError] {
-        let written = fileWrite(self.fd, array, offset, len);
-
-        if written >= 0 {
-            Ok[Int64, IOError](written)
-        } else {
-            Err[Int64, IOError](IOError())
-        }
-    }
-
-    fn flush(): Result[(), IOError] {
-        Ok(())
-    }
-}
-
-pub trait Read {
-    fn read(array: Array[UInt8], offset: Int64, len: Int64): Result[Int64, IOError];
-}
-
-pub trait Write {
-    fn writeAll(array: Array[UInt8], offset: Int64, len: Int64): Result[(), IOError];
     fn write(array: Array[UInt8], offset: Int64, len: Int64): Result[Int64, IOError];
     fn flush(): Result[(), IOError];
 }
@@ -213,24 +211,6 @@ impl BufferedWriter {
 }
 
 impl Write for BufferedWriter {
-    fn writeAll(array: Array[UInt8], offset: Int64, len: Int64): Result[(), IOError] {
-        if self.remainingCapacity() < len {
-            let result = self.flushBuffer();
-
-            if result.isErr() {
-                return Err(result.getErrOrPanic());
-            }
-        }
-
-        if len < self.buffer.size() {
-            Array[UInt8]::copy(array, offset, self.buffer, self.len, len);
-            self.len = self.len + len;
-            Ok[(), IOError](())
-        } else {
-            self.file.writeAll(array, offset, len)
-        }
-    }
-
     fn write(array: Array[UInt8], offset: Int64, len: Int64): Result[Int64, IOError] {
         if self.remainingCapacity() < len {
             let result = self.flushBuffer();

@@ -1149,7 +1149,6 @@ mod tests {
     }
 
     #[test]
-    #[ignore]
     fn impl_reuse_trait_implementation_with_call() {
         ok("
             trait Foo {
@@ -1163,6 +1162,24 @@ mod tests {
 
             fn x(a: String) {
                 a.g();
+            }
+        ")
+    }
+
+    #[test]
+    fn impl_reuse_trait_implementation_with_self_call() {
+        ok("
+            trait Foo {
+                fn f(): Int64;
+                fn g(): Int64 { self.f() }
+            }
+
+            impl Foo for String {
+                fn f(): Int64 { 1 }
+            }
+
+            fn x(a: String) {
+                a.f();
             }
         ")
     }

@@ -1,0 +1,22 @@
+trait Foo {
+    fn f(): Int64 { 0 }
+    fn g(): Int64 { self.f() + 1 }
+}
+
+impl Foo for String {
+    fn f(): Int64 { 100 }
+}
+
+impl Foo for Bool {
+    fn f(): Int64 { 200 }
+}
+
+fn main() {
+    let a: String = "foo";
+    assert(a.f() == 100);
+    assert(a.g() == 101);
+
+    let a: Bool = true;
+    assert(a.f() == 200);
+    assert(a.g() == 201);
+}
