@@ -474,4 +474,15 @@ mod tests {
             }
         ")
     }
+
+    #[test]
+    #[ignore]
+    fn check_super_trait_on_generic_impl() {
+        ok("
+            trait A {}
+            trait B: A {}
+            class Foo[T](value: T)
+            impl[T] B for Foo[T] {}
+        ")
+    }
 }
