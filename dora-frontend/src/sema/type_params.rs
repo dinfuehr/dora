@@ -2,6 +2,7 @@ use std::rc::Rc;
 
 use dora_parser::ast;
 
+use crate::sema::Sema;
 use crate::{Name, ParsedTraitType, ParsedType, SourceType, SourceTypeArray, TraitType};
 
 #[derive(Clone, Debug)]
@@ -108,14 +109,13 @@ impl TypeParamDefinition {
         self.bounds.push(bound);
     }
 
-    pub fn implements_trait(&self, id: TypeParamId, trait_ty: TraitType) -> bool {
-        for bound in self.bounds() {
-            if let Some(bound_trait_ty) = bound.trait_ty() {
-                if bound.ty() == SourceType::TypeParam(id) && bound_trait_ty == trait_ty {
-                    return true;
-                }
+    pub fn implements_trait(&self, sa: &Sema, id: TypeParamId, trait_ty: TraitType) -> bool {
+        for bound_trait_ty in self.bounds_for_type_param(id) {
+            if bound_trait_ty.implements_trait(sa, &trait_ty) {
+                return true;
             }
         }
+
         false
     }
 

@@ -449,4 +449,29 @@ mod tests {
             }
         ");
     }
+
+    #[test]
+    fn check_super_trait_on_generic() {
+        ok("
+            trait A {}
+            trait B: A {}
+            class Data[T: B]
+            impl A for Int64 {}
+            impl B for Int64 {}
+            fn f() {
+                let _ = Data[Int64]();
+            }
+        ")
+    }
+
+    #[test]
+    fn check_super_trait_operator_overloading() {
+        ok("
+            trait A: std::Equals {}
+            impl A for Int64 {}
+            fn f[T: A](lhs: T, rhs: T): Bool {
+                lhs == rhs
+            }
+        ")
+    }
 }

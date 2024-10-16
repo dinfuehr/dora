@@ -1098,6 +1098,22 @@ impl TraitType {
         SourceType::TraitObject(self.trait_id, self.type_params.clone(), ().into())
     }
 
+    pub fn implements_trait(&self, sa: &Sema, check_trait_ty: &TraitType) -> bool {
+        if check_trait_ty == self {
+            return true;
+        }
+
+        let trait_ = sa.trait_(self.trait_id);
+
+        for super_trait_ty in trait_.type_param_definition().bounds_for_self() {
+            if super_trait_ty.implements_trait(sa, check_trait_ty) {
+                return true;
+            }
+        }
+
+        false
+    }
+
     pub fn name_with_type_params(
         &self,
         sa: &Sema,

@@ -1,0 +1,11 @@
+trait A: std::Equals {}
+
+impl A for Int64 {}
+
+fn f[T: A](lhs: T, rhs: T): Bool {
+    lhs == rhs
+}
+
+fn main() {
+    assert(f[Int64](2, 2));
+}

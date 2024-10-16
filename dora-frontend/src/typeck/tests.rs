@@ -4634,3 +4634,40 @@ fn type_param_failure_in_container() {
         ErrorMessage::UnknownIdentifier("Unknown".into()),
     );
 }
+
+#[test]
+fn impl_method_lookup_on_missing_trait_method() {
+    errors(
+        "
+        trait A { fn f(): Int64; }
+        trait B: A { fn g(): Int64; }
+        trait C: B { fn h(): Int64; }
+
+        impl A for Int64 {
+            fn f(): Int64 { 100 }
+        }
+
+        impl B for Int64 {
+            fn g(): Int64 { 200 }
+        }
+
+        impl C for Int64 {
+            fn g(): Int64 { 300 }
+        }
+
+        fn f(x: Int64) {
+            x.f();
+            x.g();
+            x.h();
+        }
+    ",
+        &[
+            ((15, 13), ErrorMessage::ElementNotInTrait),
+            ((14, 9), ErrorMessage::ElementNotInImpl("h".into())),
+            (
+                (21, 13),
+                ErrorMessage::UnknownMethod("Int64".into(), "h".into(), Vec::new()),
+            ),
+        ],
+    );
+}
