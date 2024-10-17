@@ -8,13 +8,12 @@ use id_arena::Id;
 use crate::interner::Name;
 use crate::program_parser::ParsedModifierList;
 use dora_parser::ast;
-use dora_parser::Span;
 
 use crate::sema::{
     module_path, Element, ElementAccess, ElementId, ExtensionDefinitionId, FctDefinitionId,
     ModuleDefinitionId, PackageDefinitionId, Sema, SourceFileId, TypeParamDefinition,
 };
-use crate::{specialize_for_element, ParsedType, SourceType, SourceTypeArray};
+use crate::{specialize_for_element, ParsedType, SourceType, SourceTypeArray, Span};
 
 pub type ClassDefinitionId = Id<ClassDefinition>;
 
@@ -189,6 +188,10 @@ impl Element for ClassDefinition {
 
     fn file_id(&self) -> SourceFileId {
         self.file_id.expect("missing file_id")
+    }
+
+    fn span(&self) -> Span {
+        self.span()
     }
 
     fn module_id(&self) -> ModuleDefinitionId {

@@ -13,7 +13,8 @@ pub use parsety::{ParsedTraitType, ParsedType, ParsedTypeAst};
 pub use path::{parse_path, PathKind};
 pub use program_emitter::emit_program;
 pub use specialize::{
-    replace_type, specialize_for_element, specialize_type, specialize_type_array,
+    replace_type, specialize_for_element, specialize_trait_type, specialize_type,
+    specialize_type_array,
 };
 
 pub(crate) mod access;
@@ -82,6 +83,7 @@ pub fn check_program(sa: &mut Sema) -> bool {
     impldefck::check_definition(sa);
     impldefck::check_definition_against_trait(sa);
     impldefck::check_type_aliases_bounds(sa);
+    impldefck::check_super_traits(sa);
     enumck::check(sa);
     globaldefck::check(sa);
     extensiondefck::check(sa);
@@ -296,16 +298,39 @@ pub mod tests {
     }
 
     pub fn errors(code: &'static str, vec: &[((u32, u32), ErrorMessage)]) {
-        test::check(code, |vm| {
-            let diag = vm.diag.borrow();
-            let errors = diag.errors();
+        test::check(code, |sa| {
+            let diag = sa.diag.borrow();
+            let mut errors = diag.errors().to_vec();
+            errors.sort_by_key(|e| e.span);
 
-            println!("errors = {:?}", errors);
-            assert_eq!(vec.len(), errors.len());
+            println!("expected errors:");
+            for error in vec {
+                println!("{}:{}: {}", error.0 .0, error.0 .1, error.1.message());
+            }
+            println!("");
+
+            println!("actual errors:");
+            for error in &errors {
+                println!("{}", error.message(sa));
+            }
+            println!("\n");
+
+            assert_eq!(
+                vec.len(),
+                errors.len(),
+                "test expects {} errors but actually got {} errors.",
+                vec.len(),
+                errors.len()
+            );
 
             for (ind, error) in errors.iter().enumerate() {
+                println!("compare error {}", ind);
                 assert_eq!(Some(vec[ind].0), compute_pos(code, error));
-                assert_eq!(vec[ind].1, error.msg);
+                assert_eq!(
+                    vec[ind].1, error.msg,
+                    "\nexpected: {:?}\n but got: {:?}",
+                    vec[ind].1, error.msg
+                );
             }
         });
     }

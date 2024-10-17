@@ -1,15 +1,13 @@
 use std::rc::Rc;
 
-use crate::{
-    sema::{
-        AliasDefinition, AliasDefinitionId, AliasParent, ClassDefinitionId, ConstDefinitionId,
-        EnumDefinitionId, ExtensionDefinitionId, FctDefinition, FctDefinitionId, FctParent,
-        GlobalDefinitionId, ImplDefinition, ImplDefinitionId, ModuleDefinitionId,
-        PackageDefinitionId, Sema, SourceFileId, StructDefinitionId, TraitDefinition,
-        TraitDefinitionId, TypeParamDefinition, UseDefinitionId,
-    },
-    ty::SourceType,
+use crate::sema::{
+    AliasDefinition, AliasDefinitionId, AliasParent, ClassDefinitionId, ConstDefinitionId,
+    EnumDefinitionId, ExtensionDefinitionId, FctDefinition, FctDefinitionId, FctParent,
+    GlobalDefinitionId, ImplDefinition, ImplDefinitionId, ModuleDefinitionId, PackageDefinitionId,
+    Sema, SourceFileId, StructDefinitionId, TraitDefinition, TraitDefinitionId,
+    TypeParamDefinition, UseDefinitionId,
 };
+use crate::{SourceType, Span};
 
 #[derive(Debug, Copy, Clone, PartialEq, Eq)]
 pub enum ElementId {
@@ -30,6 +28,7 @@ pub trait Element {
     fn element_id(&self) -> ElementId;
 
     fn file_id(&self) -> SourceFileId;
+    fn span(&self) -> Span;
     fn module_id(&self) -> ModuleDefinitionId;
     fn package_id(&self) -> PackageDefinitionId;
     fn type_param_definition(&self) -> Option<&Rc<TypeParamDefinition>>;

@@ -4662,8 +4662,8 @@ fn impl_method_lookup_on_missing_trait_method() {
         }
     ",
         &[
-            ((15, 13), ErrorMessage::ElementNotInTrait),
             ((14, 9), ErrorMessage::ElementNotInImpl("h".into())),
+            ((15, 13), ErrorMessage::ElementNotInTrait),
             (
                 (21, 13),
                 ErrorMessage::UnknownMethod("Int64".into(), "h".into(), Vec::new()),

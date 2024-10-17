@@ -1,5 +1,17 @@
 use crate::sema::{Element, Sema};
-use crate::{SourceType, SourceTypeArray};
+use crate::{SourceType, SourceTypeArray, TraitType};
+
+pub fn specialize_trait_type(sa: &Sema, ty: TraitType, type_params: &SourceTypeArray) -> TraitType {
+    TraitType {
+        trait_id: ty.trait_id,
+        type_params: replace_sta(sa, ty.type_params, Some(type_params), None),
+        bindings: ty
+            .bindings
+            .into_iter()
+            .map(|(id, ty)| (id, replace_type(sa, ty, Some(type_params), None)))
+            .collect(),
+    }
+}
 
 pub fn specialize_type(sa: &Sema, ty: SourceType, type_params: &SourceTypeArray) -> SourceType {
     replace_type(sa, ty, Some(type_params), None)

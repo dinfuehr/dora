@@ -133,6 +133,10 @@ impl Element for TraitDefinition {
         self.file_id
     }
 
+    fn span(&self) -> Span {
+        self.span
+    }
+
     fn module_id(&self) -> ModuleDefinitionId {
         self.module_id
     }
@@ -194,6 +198,13 @@ pub fn is_object_safe(sa: &Sema, trait_id: TraitDefinitionId) -> bool {
         }
 
         if contains_self(sa, method.return_type()) {
+            return false;
+        }
+    }
+
+    let type_param_definition = trait_.type_param_definition();
+    for bound in type_param_definition.bounds_for_self() {
+        if !is_object_safe(sa, bound.trait_id) {
             return false;
         }
     }

@@ -1,7 +1,7 @@
 use std::fmt::{Display, Error, Formatter};
 use std::result::Result;
 
-#[derive(Copy, Clone, Debug, PartialEq, Eq)]
+#[derive(Copy, Clone, Debug, PartialEq, Eq, PartialOrd, Ord)]
 pub struct Span {
     start: u32,
     len: u32,

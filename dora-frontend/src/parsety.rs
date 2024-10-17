@@ -83,6 +83,10 @@ impl ParsedTraitType {
         *self.ty.borrow_mut() = ty;
     }
 
+    pub fn span(&self) -> Span {
+        self.parsed_ast().expect("missing ast node").span
+    }
+
     fn parsed_ast(&self) -> Option<&ParsedTypeAst> {
         self.parsed_ast.get().map(|ast| &**ast)
     }
@@ -1009,7 +1013,7 @@ fn check_type_params(
 
 fn check_trait_type_param_definition(
     sa: &Sema,
-    element: &dyn Element,
+    _element: &dyn Element,
     trait_: &TraitDefinition,
     generic_arguments: &[SourceType],
     type_bindings: &[(AliasDefinitionId, SourceType)],
@@ -1023,15 +1027,10 @@ fn check_trait_type_param_definition(
     let mut success = true;
 
     for bound in type_param_definition.bounds() {
-        let mut tp_ty = bound.ty();
+        let tp_ty = bound.ty();
 
         if tp_ty.is_self() {
-            if element.is_impl() {
-                let impl_ = element.to_impl().expect("impl expected");
-                tp_ty = impl_.extended_ty();
-            } else {
-                continue;
-            }
+            continue;
         }
 
         if let Some(trait_ty) = bound.trait_ty() {

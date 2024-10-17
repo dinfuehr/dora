@@ -287,6 +287,12 @@ impl Sema {
         Location::new(line, column)
     }
 
+    pub fn debug_loc(&self, element: &dyn Element) -> String {
+        let file = self.file(element.file_id());
+        let loc = self.compute_loc(element.file_id(), element.span());
+        format!("{}:{}", file.path.display(), loc)
+    }
+
     pub fn report(&self, file: SourceFileId, span: Span, msg: ErrorMessage) {
         self.diag.borrow_mut().report(file, span, msg);
     }

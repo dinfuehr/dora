@@ -14,6 +14,7 @@ use crate::sema::{
     Element, ElementId, ImplDefinitionId, ModuleDefinitionId, PackageDefinitionId, Sema,
     SourceFileId, TraitDefinitionId, TypeParamDefinition, Visibility,
 };
+use crate::Span;
 use dora_parser::ast;
 
 pub type AliasDefinitionId = Id<AliasDefinition>;
@@ -126,6 +127,10 @@ impl Element for AliasDefinition {
 
     fn file_id(&self) -> SourceFileId {
         self.file_id
+    }
+
+    fn span(&self) -> Span {
+        self.node.span
     }
 
     fn module_id(&self) -> ModuleDefinitionId {

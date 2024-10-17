@@ -1099,7 +1099,7 @@ impl TraitType {
     }
 
     pub fn implements_trait(&self, sa: &Sema, check_trait_ty: &TraitType) -> bool {
-        if check_trait_ty == self {
+        if self == check_trait_ty {
             return true;
         }
 

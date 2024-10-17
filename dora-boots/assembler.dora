@@ -129,11 +129,10 @@ fn testAssemblerBufferEmitInt() {
     assert(buffer.size() == 4i64);
 }
 
-pub trait RegisterType {
+pub trait RegisterType: Equals {
     static fn fromInt32(value: Int32): Self;
     fn toInt32(): Int32;
     fn toLocation(): Location;
-    fn equals(other: Self): Bool;
 }
 
 pub struct Register(pub value: UInt8)
@@ -166,10 +165,6 @@ impl RegisterType for Register {
 
     fn toLocation(): Location {
         Location::Reg(self)
-    }
-
-    fn equals(other: Register): Bool {
-        self.value == other.value
     }
 }
 
@@ -211,10 +206,6 @@ impl RegisterType for FloatRegister {
 
     fn toLocation(): Location {
         Location::FloatReg(self)
-    }
-
-    fn equals(other: FloatRegister): Bool {
-        self.value == other.value
     }
 }
 

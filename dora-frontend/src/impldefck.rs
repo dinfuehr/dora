@@ -537,6 +537,40 @@ fn check_type_aliases_bounds_inner(sa: &Sema, impl_: &ImplDefinition, trait_: &T
     }
 }
 
+pub fn check_super_traits(sa: &Sema) {
+    for (_id, impl_) in sa.impls.iter() {
+        if let Some(trait_ty) = impl_.trait_ty() {
+            check_super_traits_for_bound(sa, impl_, trait_ty);
+        }
+    }
+}
+
+fn check_super_traits_for_bound(sa: &Sema, impl_: &ImplDefinition, trait_ty: TraitType) {
+    let trait_ = sa.trait_(trait_ty.trait_id);
+    let type_param_definition = trait_.type_param_definition();
+
+    for bound in type_param_definition.bounds_for_self() {
+        if implements_trait(
+            sa,
+            impl_.extended_ty(),
+            impl_.type_param_definition(),
+            bound.clone(),
+        ) {
+            check_super_traits_for_bound(sa, impl_, bound);
+        } else {
+            let name = impl_
+                .extended_ty()
+                .name_with_type_params(sa, impl_.type_param_definition());
+
+            let bound_name = bound.name_with_type_params(sa, trait_.type_param_definition());
+            let msg = ErrorMessage::TypeNotImplementingTrait(name, bound_name);
+            sa.report(impl_.file_id, impl_.parsed_trait_ty().span(), msg);
+
+            impl_.parsed_trait_ty().set_ty(None);
+        }
+    }
+}
+
 #[cfg(test)]
 mod tests {
     use crate::error::msg::ErrorMessage;
@@ -1132,6 +1166,22 @@ mod tests {
             }
             fn f(x: Int64): Foo[Int64] { x as Foo[Int64] }
         ");
+    }
+
+    #[test]
+    fn impl_generic_extended_ty_with_trait_bound() {
+        err(
+            "
+            trait Foo[T] { fn get(): T; }
+            trait Bar {}
+            impl[T] Foo[T] for T where T: Bar {
+                fn get(): T { self }
+            }
+            fn f(x: Int64): Foo[Int64] { x as Foo[Int64] }
+        ",
+            (7, 42),
+            ErrorMessage::TypeNotImplementingTrait("Int64".into(), "Foo[Int64]".into()),
+        );
     }
 
     #[test]

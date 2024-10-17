@@ -252,6 +252,10 @@ impl Element for FctDefinition {
         self.file_id
     }
 
+    fn span(&self) -> Span {
+        self.span
+    }
+
     fn module_id(&self) -> ModuleDefinitionId {
         self.module_id
     }

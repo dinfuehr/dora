@@ -668,7 +668,7 @@ impl SimpleRegisterAllocator {
     fn allocateFixedRegisterGeneric[T: RegisterType](dest: T, registers: RegisterTracker[T], inst: Inst) {
         let current = registers.getRegister(inst);
 
-        if current is Some(current) && current.equals(dest) {
+        if current is Some(current) && current == dest {
             registers.protect(dest);
             return;
         }
@@ -763,7 +763,7 @@ impl[T: RegisterType] RegisterTracker[T] {
             let old_reg = self.locations.insert(value, reg);
             if old_reg is Some(old_reg) {
                 if !self.protected.contains(old_reg) {
-                    assert(!old_reg.equals(reg));
+                    assert(old_reg != reg);
                     self.free.add(old_reg);
                     self.data.free(old_reg);
                 }
@@ -864,7 +864,7 @@ impl[T: RegisterType] RegisterTracker[T] {
             if self.data.get(reg) is Some(inst) {
                 let current_reg = self.locations.get(inst);
 
-                if current_reg.isNone() || (current_reg is Some(current_reg) && !reg.equals(current_reg)) {
+                if current_reg.isNone() || (current_reg is Some(current_reg) && reg != current_reg) {
                     self.free.add(reg);
                     self.data.free(reg);
                 }

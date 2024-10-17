@@ -458,8 +458,8 @@ mod tests {
             }
         ",
             &[
-                ((5, 47), ErrorMessage::UnexpectedTypeAliasAssignment),
                 ((5, 29), ErrorMessage::UnexpectedWhere),
+                ((5, 47), ErrorMessage::UnexpectedTypeAliasAssignment),
             ],
         );
     }

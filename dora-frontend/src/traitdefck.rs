@@ -31,13 +31,13 @@ mod tests {
     }
 
     #[test]
-    #[ignore]
     fn trait_method_using_another_trait_method_generic() {
         ok("
-        trait Foo[T] {
-            fn foo(): Int64;
-            fn bar(): Int64 { self.foo() }
-        }");
+            trait Foo[T] {
+                fn foo(): Int64;
+                fn bar(): Int64 { self.foo() }
+            }
+        ");
     }
 
     #[test]
@@ -476,13 +476,51 @@ mod tests {
     }
 
     #[test]
-    #[ignore]
     fn check_super_trait_on_generic_impl() {
+        err(
+            "
+            trait A {}
+            trait B: A {}
+            class Foo[T](value: T)
+            impl[T] B for Foo[T] {}
+        ",
+            (5, 21),
+            ErrorMessage::TypeNotImplementingTrait("Foo[T]".into(), "A".into()),
+        );
+
         ok("
             trait A {}
             trait B: A {}
             class Foo[T](value: T)
             impl[T] B for Foo[T] {}
-        ")
+            impl[T] A for Foo[T] {}
+        ");
+    }
+
+    #[test]
+    fn super_trait_object_safe() {
+        ok("
+            trait A {
+                fn f();
+            }
+            trait B: A {
+                fn g();
+            }
+            fn f(b: B) {}
+        ");
+
+        err(
+            "
+            trait A {
+                static fn f();
+            }
+            trait B: A {
+                fn g();
+            }
+            fn f(b: B) {}
+        ",
+            (8, 21),
+            ErrorMessage::TraitNotObjectSafe,
+        );
     }
 }
