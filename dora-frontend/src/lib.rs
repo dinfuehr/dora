@@ -49,8 +49,6 @@ mod typedefck;
 mod typeparamck;
 mod useck;
 
-pub const STDLIB: &[(&str, &str)] = &include!(concat!(env!("OUT_DIR"), "/dora_stdlib_bundle.rs"));
-
 pub fn check_program(sa: &mut Sema) -> bool {
     // This phase loads and parses all files. Also creates all elements.
     let module_symtables = program_parser::parse(sa);
