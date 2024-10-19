@@ -1,0 +1,20 @@
+#!/bin/bash
+
+PROFILE=release
+
+cargo build -p dora --profile $PROFILE
+cargo build -p dora-language-server --profile $PROFILE
+
+INSTALL_DIR=$HOME/.dora
+INSTALL_DIR_BIN=$INSTALL_DIR/bin
+
+# Remove old install
+rm -rf $INSTALL_DIR
+
+mkdir -p $INSTALL_DIR
+mkdir -p $INSTALL_DIR_BIN
+
+cp target/$PROFILE/dora $INSTALL_DIR_BIN
+cp target/$PROFILE/dora-language-server $INSTALL_DIR_BIN
+
+cp -R dora-frontend/stdlib $INSTALL_DIR

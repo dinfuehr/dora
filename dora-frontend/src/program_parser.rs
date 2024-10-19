@@ -73,6 +73,20 @@ impl<'a> ProgramParser<'a> {
                 assert!(result.is_none());
             }
         }
+
+        if !self.packages.contains_key("stdlib") {
+            let path = std::env::current_exe().expect("illegal path");
+            let path = path.as_path();
+
+            for ancestor in path.ancestors() {
+                let stdlib_path = ancestor.join("stdlib/stdlib.dora");
+
+                if stdlib_path.exists() {
+                    self.packages.insert("stdlib".into(), stdlib_path);
+                    break;
+                }
+            }
+        }
     }
 
     fn add_all_packages(&mut self) {
