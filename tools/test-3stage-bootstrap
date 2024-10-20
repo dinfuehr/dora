@@ -2,4 +2,4 @@
 
 set -e
 
-cargo run -p dora -- --package boots dora-boots/boots.dora  --gc-verbose --emit-compiler --bootstrap-compiler tests/boots/hello.dora
+cargo run -p dora -- --include-boots --gc-verbose --emit-compiler --bootstrap-compiler tests/boots/hello.dora

@@ -85,10 +85,10 @@ impl<'a> ProgramParser<'a> {
         self.sa.set_stdlib_module_id(module_id);
         self.sa.set_stdlib_package_id(package_id);
 
-        if let Some(stdlib) = self.get_stdlib_path() {
-            self.add_file(package_id, module_id, PathBuf::from(stdlib), None);
+        if let Some(file_path) = self.get_stdlib_path() {
+            self.add_file(package_id, module_id, file_path, None);
         } else {
-            panic!("Missing standard library.");
+            panic!("Could not find standard library.");
         }
     }
 
@@ -100,7 +100,7 @@ impl<'a> ProgramParser<'a> {
             let path = path.as_path();
 
             for ancestor in path.ancestors() {
-                let stdlib_path = ancestor.join("stdlib/stdlib.dora");
+                let stdlib_path = ancestor.join("pkgs/std/std.dora");
 
                 if stdlib_path.exists() {
                     return Some(stdlib_path);
@@ -112,17 +112,43 @@ impl<'a> ProgramParser<'a> {
     }
 
     fn add_boots_package(&mut self) {
+        if !self.sa.args.include_boots {
+            return;
+        }
+
         let boots_name: String = "boots".into();
-        if let Some(boots_path) = self.packages.remove(&boots_name) {
-            let interned_boots_name = self.sa.interner.intern(&boots_name);
-            let (package_id, module_id) =
-                add_package(self.sa, PackageName::Boots, Some(interned_boots_name));
-            self.sa
-                .package_names
-                .insert(String::from(boots_name), package_id);
-            self.sa.set_boots_module_id(module_id);
-            self.sa.set_boots_package_id(package_id);
-            self.add_file(package_id, module_id, PathBuf::from(boots_path), None);
+        let interned_boots_name = self.sa.interner.intern(&boots_name);
+        let (package_id, module_id) =
+            add_package(self.sa, PackageName::Boots, Some(interned_boots_name));
+        self.sa
+            .package_names
+            .insert(String::from(boots_name), package_id);
+        self.sa.set_boots_module_id(module_id);
+        self.sa.set_boots_package_id(package_id);
+
+        if let Some(file_path) = self.get_boots_path() {
+            self.add_file(package_id, module_id, file_path, None);
+        } else {
+            panic!("Could not find standard library.");
+        }
+    }
+
+    fn get_boots_path(&self) -> Option<PathBuf> {
+        if let Some(path) = self.packages.get("boots") {
+            Some(path.clone())
+        } else {
+            let path = std::env::current_exe().expect("illegal path");
+            let path = path.as_path();
+
+            for ancestor in path.ancestors() {
+                let stdlib_path = ancestor.join("pkgs/boots/boots.dora");
+
+                if stdlib_path.exists() {
+                    return Some(stdlib_path);
+                }
+            }
+
+            None
         }
     }
 

@@ -74,6 +74,7 @@ pub struct Args {
     pub emit_compiler: bool,
     pub emit_stubs: bool,
     pub enable_perf: bool,
+    pub include_boots: bool,
     pub omit_bounds_check: bool,
     pub always_boots: bool,
     pub use_boots: Option<String>,
@@ -134,6 +135,7 @@ impl Default for Args {
             emit_debug_boots: false,
             emit_debug_entry: false,
             enable_perf: false,
+            include_boots: true,
             omit_bounds_check: false,
             always_boots: false,
             use_boots: None,
@@ -319,6 +321,10 @@ pub fn parse_arguments() -> Result<Args, String> {
             args.code_size = Some(argument_mem_size(arg)?);
         } else if arg.starts_with("--readonly-size=") {
             args.readonly_size = Some(argument_mem_size(arg)?);
+        } else if arg == "--include-boots" {
+            args.include_boots = true;
+        } else if arg == "--no-include-boots" {
+            args.include_boots = false;
         } else if arg == "--package" {
             if idx + 2 >= cli_arguments.len() {
                 return Err("--package needs two arguments".into());

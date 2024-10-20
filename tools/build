@@ -7,14 +7,18 @@ cargo build -p dora-language-server --profile $PROFILE
 
 INSTALL_DIR=$HOME/.dora
 INSTALL_DIR_BIN=$INSTALL_DIR/bin
+INSTALL_DIR_PKGS=$INSTALL_DIR/pkgs
 
 # Remove old install
 rm -rf $INSTALL_DIR
 
 mkdir -p $INSTALL_DIR
 mkdir -p $INSTALL_DIR_BIN
+mkdir -p $INSTALL_DIR_PKGS
 
 cp target/$PROFILE/dora $INSTALL_DIR_BIN
 cp target/$PROFILE/dora-language-server $INSTALL_DIR_BIN
 
-cp -R dora-frontend/stdlib $INSTALL_DIR
+cp -R pkgs/std $INSTALL_DIR_PKGS
+cp -R pkgs/boots $INSTALL_DIR_PKGS
+

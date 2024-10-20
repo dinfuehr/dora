@@ -555,7 +555,7 @@ def run_test(test_case, config, mutex)
 
   args = ""
   args << " #{config.flags}" unless config.flags.empty?
-  args << " --package boots dora-boots/boots.dora" if test_case.enable_boots || config.enable_boots
+  args << " --include-boots" if test_case.enable_boots || config.enable_boots
   args << " --check" if $check_only
   args << " #{test_case.vm_args}" unless test_case.vm_args.empty?
   args << " #{$extra_args}" if $extra_args

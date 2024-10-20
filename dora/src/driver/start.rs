@@ -111,6 +111,7 @@ fn compile_into_program(args: &Args, file: String) -> Result<Program, ()> {
         arg_file: Some(file),
         packages: args.packages.clone(),
         test_file_as_string: None,
+        include_boots: args.include_boots,
     };
 
     let mut sa = Sema::new(sem_args);

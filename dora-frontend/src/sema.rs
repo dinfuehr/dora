@@ -73,6 +73,7 @@ pub struct SemaArgs {
     pub packages: Vec<(String, PathBuf)>,
     pub arg_file: Option<String>,
     pub test_file_as_string: Option<String>,
+    pub include_boots: bool,
 }
 
 impl SemaArgs {
@@ -81,6 +82,7 @@ impl SemaArgs {
             packages: Vec::new(),
             arg_file: None,
             test_file_as_string: Some(input.into()),
+            include_boots: false,
         }
     }
 }
