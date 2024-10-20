@@ -2,6 +2,6 @@
 
 set -e
 
-cargo run -p dora -- test --include-boots --test-boots --gc-verify tests/hello-world.dora
-cargo run -p dora -- --include-boots  --gc-verbose --emit-compiler --bootstrap-compiler tests/boots/hello.dora
+cargo run -p dora -- test --boots --test-boots --gc-verify tests/hello-world.dora
+cargo run -p dora -- --boots  --gc-verbose --emit-compiler --bootstrap-compiler tests/boots/hello.dora
 ruby tools/tester.rb tests/boots

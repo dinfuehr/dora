@@ -79,7 +79,13 @@ pub fn start() -> i32 {
 
     let exit_code = if command.is_test() {
         if args.test_boots {
-            run_tests(&vm, &args, vm.program.boots_package_id.expect("no boots"))
+            run_tests(
+                &vm,
+                &args,
+                vm.program
+                    .boots_package_id
+                    .expect("boots package is missing"),
+            )
         } else {
             run_tests(&vm, &args, vm.program.program_package_id)
         }
@@ -111,7 +117,7 @@ fn compile_into_program(args: &Args, file: String) -> Result<Program, ()> {
         arg_file: Some(file),
         packages: args.packages.clone(),
         test_file_as_string: None,
-        include_boots: args.include_boots,
+        boots: args.boots,
     };
 
     let mut sa = Sema::new(sem_args);

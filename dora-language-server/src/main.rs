@@ -317,7 +317,7 @@ fn compile_project(project: ProjectConfig, sender: Sender<MainLoopTask>) {
         arg_file: Some(project.main.to_string_lossy().into_owned()),
         packages: Vec::new(),
         test_file_as_string: None,
-        include_boots: false,
+        boots: false,
     };
 
     let mut sa = Sema::new(sem_args);

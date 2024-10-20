@@ -3,6 +3,6 @@
 set -e
 
 TARGET=x86_64-apple-darwin
-cargo run -p dora --target $TARGET -- test --include-boots --test-boots --gc-verify tests/hello-world.dora
-cargo run -p dora --target $TARGET -- --include-boots --gc-verbose --emit-compiler --bootstrap-compiler tests/boots/hello.dora
+cargo run -p dora --target $TARGET -- test --boots --test-boots --gc-verify tests/hello-world.dora
+cargo run -p dora --target $TARGET -- --boots --gc-verbose --emit-compiler --bootstrap-compiler tests/boots/hello.dora
 ruby tools/tester.rb  --target $TARGET tests/boots

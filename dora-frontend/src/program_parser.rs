@@ -112,7 +112,7 @@ impl<'a> ProgramParser<'a> {
     }
 
     fn add_boots_package(&mut self) {
-        if !self.sa.args.include_boots {
+        if !self.sa.args.boots {
             return;
         }
 

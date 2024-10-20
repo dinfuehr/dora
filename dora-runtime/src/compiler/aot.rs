@@ -18,7 +18,11 @@ use crate::vm::{
 };
 
 pub fn compile_boots_aot(vm: &VM) {
-    if let Some(package_id) = vm.program.boots_package_id {
+    if vm.flags.boots {
+        let package_id = vm
+            .program
+            .boots_package_id
+            .expect("boots package is missing");
         let entry_id = vm.known.boots_compile_fct_id();
         let tests = compute_tests(vm, package_id);
         let tc = compute_transitive_closure(vm, package_id, entry_id, &tests);

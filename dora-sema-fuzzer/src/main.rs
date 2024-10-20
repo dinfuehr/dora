@@ -16,7 +16,7 @@ fn check_program(program: String) {
         arg_file: None,
         packages: Vec::new(),
         test_file_as_string: Some(program),
-        include_boots: false,
+        boots: false,
     };
 
     let mut sa = Sema::new(sem_args);
