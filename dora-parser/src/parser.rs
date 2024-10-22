@@ -1171,7 +1171,7 @@ impl Parser {
         self.start_node();
         self.builder.start_node();
 
-        if self.is_pair(IDENTIFIER, EQ) {
+        if self.is2(IDENTIFIER, EQ) {
             let name = self.expect_identifier().expect("identifier expected");
             self.assert(EQ);
             let ty = self.parse_type();
@@ -1508,21 +1508,21 @@ impl Parser {
                 span: self.finish_node(),
                 expr,
             }))
-        } else if self.is(INT_LITERAL) || self.is_pair(SUB, INT_LITERAL) {
+        } else if self.is(INT_LITERAL) || self.is2(SUB, INT_LITERAL) {
             let expr = self.parse_lit_int_minus();
             Arc::new(PatternAlt::LitInt(PatternLit {
                 id: self.new_node_id(),
                 span: self.finish_node(),
                 expr,
             }))
-        } else if self.is(FLOAT_LITERAL) || self.is_pair(SUB, FLOAT_LITERAL) {
+        } else if self.is(FLOAT_LITERAL) || self.is2(SUB, FLOAT_LITERAL) {
             let expr = self.parse_lit_float_minus();
             Arc::new(PatternAlt::LitFloat(PatternLit {
                 id: self.new_node_id(),
                 span: self.finish_node(),
                 expr,
             }))
-        } else if self.is_pair(MUT_KW, IDENTIFIER) {
+        } else if self.is2(MUT_KW, IDENTIFIER) {
             self.assert(MUT_KW);
             let name = self.expect_identifier().expect("identifier expected");
             Arc::new(PatternAlt::Ident(PatternIdent {
@@ -2321,23 +2321,18 @@ impl Parser {
         self.current() == kind
     }
 
-    fn is_pair(&self, fst: TokenKind, snd: TokenKind) -> bool {
+    fn is2(&self, fst: TokenKind, snd: TokenKind) -> bool {
         if !self.is(fst) {
             return false;
         }
 
         let mut idx = 1;
 
-        loop {
-            let curr = self.nth(idx);
-
-            if curr.is_trivia() {
-                idx += 1;
-                continue;
-            }
-
-            return curr == snd;
+        while self.nth(idx).is_trivia() {
+            idx += 1;
         }
+
+        self.nth(idx) == snd
     }
 
     fn is_set(&self, set: TokenSet) -> bool {

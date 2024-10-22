@@ -86,44 +86,43 @@ impl SimpleRegisterAllocator {
         self.registers = Some(RegisterTracker[Register]::new(self.codegen.allocatableRegisters()));
         self.float_registers = Some(RegisterTracker[FloatRegister]::new(self.codegen.allocatableFloatRegisters()));
 
+        let predecessorCount = block.predecessors.size();
+
         if block.isLoopHeader() {
             // For now everything is spilled at the beginning of a loop.
             for inst in block.getLiveIn() {
                 self.spill(inst);
             }
+        } else if predecessorCount == 0 {
+            // Do nothing.
         } else {
             let candidates = HashMap[Inst, Int64]::new();
-            let all_gp = HashMap[Inst, Register]::new();
-            let all_fp = HashMap[Inst, FloatRegister]::new();
-            let predecessorCount = block.predecessors.size();
+            let mut idx = 0;
 
             for predecessorEdge in block.predecessors {
                 let predecessor = predecessorEdge.source;
                 let trackers = predecessor.getTrackerOut();
 
-                self.processLiveRegisters[Register](all_gp, trackers.gp, block, candidates);
-                self.processLiveRegisters[FloatRegister](all_fp, trackers.fp, block, candidates);
-            }
-
-            for (inst, reg) in all_gp {
-                assert(self.registers().allocateFixedRegister(reg, inst));
-            }
-
-            for (inst, reg) in all_fp {
-                assert(self.float_registers().allocateFixedRegister(reg, inst));
+                self.processLiveRegisters[Register](block, self.registers(), idx, trackers.gp, candidates);
+                self.processLiveRegisters[FloatRegister](block, self.float_registers(),idx, trackers.fp, candidates);
+                idx = idx + 1;
             }
 
             for inst in block.getLiveIn() {
-                if all_gp.contains(inst) || all_fp.contains(inst) {
-                    continue;
-                }
+                let inRegister = if inst.getValueType().isAnyFloat() {
+                    self.float_registers().locations.contains(inst)
+                } else {
+                    self.registers().locations.contains(inst)
+                };
 
-                self.spill(inst);
+                if !inRegister {
+                    self.spill(inst);
+                }
             }
         }
     }
 
-    fn processLiveRegisters[T: RegisterType](all: HashMap[Inst, T], tracker: RegisterTracker[T], block: Block, candidates: HashMap[Inst, Int64]) {
+    fn processLiveRegisters[T: RegisterType](block: Block, registers: RegisterTracker[T], idx: Int, tracker: RegisterTracker[T], candidates: HashMap[Inst, Int64]) {
         let predecessorCount = block.predecessors.size();
 
         for (reg, inst) in tracker.data {
@@ -138,9 +137,8 @@ impl SimpleRegisterAllocator {
                 1
             };
             if current == predecessorCount {
-                assert(all.insert(inst, reg).isNone());
+                assert(registers.allocateFixedRegister(reg, inst));
             }
-            candidates.insert(inst, current);
         }
     }
 
