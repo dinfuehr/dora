@@ -96,7 +96,7 @@ impl SimpleRegisterAllocator {
         } else if predecessorCount == 0 {
             // Do nothing.
         } else {
-            let candidates = HashMap[Inst, Int64]::new();
+            let candidates = HashMap[Inst, Int]::new();
             let mut idx = 0;
 
             for predecessorEdge in block.predecessors {
@@ -130,14 +130,22 @@ impl SimpleRegisterAllocator {
                 continue;
             }
 
-            let current = candidates.get(inst);
-            let current = if current is Some(current) {
-                current + 1
-            } else {
-                1
-            };
-            if current == predecessorCount {
-                assert(registers.allocateFixedRegister(reg, inst));
+            let count = candidates.get(inst).unwrapOr(0);
+
+            if idx == 0 || count > 0 {
+                if idx + 1 == predecessorCount {
+                    if idx == count {
+                        assert(registers.allocateFixedRegister(reg, inst));
+                    }
+                } else if idx == 0 {
+                    assert(candidates.insert(inst, 1).isNone());
+                } else {
+                    if idx == count {
+                        candidates.insert(inst, count + 1);
+                    } else {
+                        candidates.remove(inst);
+                    }
+                }
             }
         }
     }
