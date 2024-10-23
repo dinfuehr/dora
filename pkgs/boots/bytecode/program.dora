@@ -1,3 +1,4 @@
+use std::{Equals, Hash};
 use package::bytecode::{BytecodeType, Location};
 
 pub struct PackageId(pub value: Int32)
@@ -66,6 +67,18 @@ pub class GlobalData {
 
 pub struct ClassId(pub value: Int32)
 
+impl Equals for ClassId {
+    fn equals(other: ClassId): Bool {
+        self.value == other.value
+    }
+}
+
+impl Hash for ClassId {
+    fn hash(): Int32 {
+        self.value
+    }
+}
+
 pub class ClassData {
     module_id: ModuleId,
     name: String,
@@ -81,6 +94,18 @@ pub class ClassField {
 }
 
 pub struct StructId(pub value: Int32)
+
+impl Equals for StructId {
+    fn equals(other: StructId): Bool {
+        self.value == other.value
+    }
+}
+
+impl Hash for StructId {
+    fn hash(): Int32 {
+        self.value
+    }
+}
 
 pub class StructData {
     module_id: ModuleId,
@@ -98,6 +123,18 @@ pub class StructField {
 
 pub struct EnumId(pub value: Int32)
 
+impl Equals for EnumId {
+    fn equals(other: EnumId): Bool {
+        self.value == other.value
+    }
+}
+
+impl Hash for EnumId {
+    fn hash(): Int32 {
+        self.value
+    }
+}
+
 pub class EnumData {
     module_id: ModuleId,
     name: String,
@@ -111,6 +148,18 @@ pub class EnumVariant {
 }
 
 pub struct TraitId(pub value: Int32)
+
+impl Equals for TraitId {
+    fn equals(other: TraitId): Bool {
+        self.value == other.value
+    }
+}
+
+impl Hash for TraitId {
+    fn hash(): Int32 {
+        self.value
+    }
+}
 
 pub class TraitData {
     module_id: ModuleId,
@@ -147,6 +196,18 @@ pub class ImplData {
 }
 
 pub struct AliasId(pub value: Int32)
+
+impl Equals for AliasId {
+    fn equals(other: AliasId): Bool {
+        self.value == other.value
+    }
+}
+
+impl Hash for AliasId {
+    fn hash(): Int32 {
+        self.value
+    }
+}
 
 pub class AliasData {
     name: String,

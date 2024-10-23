@@ -159,6 +159,18 @@ impl[T: Equals] Equals for Array[T] {
   }
 }
 
+impl[T: Hash] Hash for Array[T] {
+  fn hash(): Int32 {
+    let mut result: Int32 = self.size().hash();
+    let mut i = 0i64;
+    while i < self.size() {
+      result = result ^ self(i).hash();
+      i = i + 1i64;
+    }
+    result
+  }
+}
+
 impl[T: Equals] Array[T] {
   pub fn contains(value: T): Bool {
     let mut i = 0i64;

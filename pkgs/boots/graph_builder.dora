@@ -4,7 +4,7 @@ use std::{BitSet, BitVec};
 use package::bytecode::opcode as opc;
 use package::compilation::CompilationInfo;
 use package::graph;
-use package::graph::{AllocationData, Block, Graph, Inst, InstExtraData, Op};
+use package::graph::{AllocationData, Block, ClassFieldInfo, Graph, Inst, InstExtraData, Op};
 use package::graph::ty::Type;
 use package::graph::{ClassInfo, FunctionInfo, CallKind, VirtualFunctionInfo, LambdaFunctionInfo, TraitObjectInfo};
 use package::bytecode::{BytecodeFunction, BytecodeRegister, BytecodeType, ClassId, EnumId, FunctionId, ClassFieldId};
@@ -827,8 +827,10 @@ impl SsaGen {
         if !destType.isUnit() {
             let objInst = self.readVariable(obj, self.current());
             let type_params = type_params.specialize(self.typeParams);
+            let info = ClassInfo(cls_id, type_params);
+            let info = InstExtraData::ClassInfo(info);
             let offset = iface::getFieldOffset(self.ci, cls_id, type_params, field_id);
-            let value = self.loadField(destType, objInst, offset);
+            let value = self.loadField(destType, objInst, info, offset);
             self.writeVariable(dest, self.current(), value);
         }
     }
@@ -858,7 +860,7 @@ impl SsaGen {
             let structLayout = self.computeStructLayout(struct_id, type_params);
             let field = structLayout.fields(field_id.value.toInt64());
 
-            let inst = self.loadField(destTy, srcInst, field.offset);
+            let inst = self.loadField(destTy, srcInst, InstExtraData::None, field.offset);
             self.writeVariable(dest, self.current(), inst);
         }
     }
@@ -876,7 +878,7 @@ impl SsaGen {
         let offset = tupleLayout.fields(subtype_idx.toInt64()).offset;
 
         if !destTy.isUnit() {
-            let inst = self.loadField(destTy, srcInst, offset);
+            let inst = self.loadField(destTy, srcInst, InstExtraData::None, offset);
             self.writeVariable(dest, self.current(), inst);
         }
     }
@@ -915,7 +917,7 @@ impl SsaGen {
             EnumLayout::Tagged => {
                 let src = self.readVariable(src, self.current());
 
-                let inst = graph::createLoadInst(src, iface::OBJECT_HEADER_LENGTH, Type::Int32);
+                let inst = graph::createLoadInst(src, iface::OBJECT_HEADER_LENGTH, InstExtraData::None, Type::Int32);
                 self.setCurrentInlinedLocation(inst);
                 self.current().appendInst(inst);
 
@@ -951,7 +953,7 @@ impl SsaGen {
                     let src = self.readVariable(src, self.current());
 
                     let offset = iface::getFieldOffsetForEnumVariant(self.ci, enum_id, type_params, variant_id, field_id);
-                    let result = self.loadField(destTy, src, offset);
+                    let result = self.loadField(destTy, src, InstExtraData::None, offset);
 
                     self.writeVariable(dest, self.current(), result);
                 }
@@ -1153,7 +1155,7 @@ impl SsaGen {
     }
 
     fn loadArrayLength(obj: Inst): Inst {
-        let inst = graph::createLoadInst(obj, iface::OBJECT_HEADER_LENGTH, Type::Int64);
+        let inst = graph::createLoadInst(obj, iface::OBJECT_HEADER_LENGTH, InstExtraData::None, Type::Int64);
         self.current().appendInst(inst);
         inst
     }
@@ -1164,7 +1166,7 @@ impl SsaGen {
 
         if !ty.isUnit() {
             let offset = iface::OBJECT_HEADER_LENGTH;
-            let value = self.loadField(ty, srcInst, offset);
+            let value = self.loadField(ty, srcInst, InstExtraData::None, offset);
             self.writeVariable(dest, self.current(), value);
         }
     }
@@ -2027,7 +2029,7 @@ impl SsaGen {
                 self.writeVariable(dest, self.current(), result);
             }
             EnumLayout::Tagged => {
-                let variant_field = graph::createLoadInst(obj, iface::OBJECT_HEADER_LENGTH, Type::Int32);
+                let variant_field = graph::createLoadInst(obj, iface::OBJECT_HEADER_LENGTH, InstExtraData::None, Type::Int32);
                 self.setCurrentInlinedLocation(variant_field);
                 self.current().appendInst(variant_field);
 
@@ -2400,7 +2402,7 @@ impl SsaGen {
         }
     }
 
-    fn loadField(ty: BytecodeType, src: Inst, srcOffset: Int32): Inst {
+    fn loadField(ty: BytecodeType, src: Inst, info: InstExtraData, srcOffset: Int32): Inst {
         if ty is BytecodeType::Struct(struct_id, type_params) {
             let layout = self.computeStructLayout(struct_id, type_params);
 
@@ -2419,7 +2421,7 @@ impl SsaGen {
         } else {
             let ty = self.graphTy(ty);
             assert(!ty.isUnit());
-            let inst = graph::createLoadInst(src, srcOffset, ty);
+            let inst = graph::createLoadInst(src, srcOffset, info, ty);
             self.current().appendInst(inst);
             inst
         }
@@ -2497,7 +2499,7 @@ impl SsaGen {
             }
         } else if config.needsWriteBarrier && isReference(ty) {
             let ty = Type::Ptr;
-            let value = graph::createLoadInst(src, srcOffset, ty);
+            let value = graph::createLoadInst(src, srcOffset, InstExtraData::None, ty);
             self.current().appendInst(value);
 
             let inst = graph::createStoreArrayAddressWbInst(array, dest, destOffset, value, ty);
@@ -2506,7 +2508,7 @@ impl SsaGen {
             let ty = self.graphTy(ty);
 
             if !ty.isUnit() {
-                let value = graph::createLoadInst(src, srcOffset, ty);
+                let value = graph::createLoadInst(src, srcOffset, InstExtraData::None, ty);
                 self.current().appendInst(value);
 
                 let inst = graph::createStoreInst(dest, destOffset, value, ty);
@@ -2538,7 +2540,7 @@ impl SsaGen {
             self.copyTuple(ty, dest, destOffset, src, srcOffset, heap);
         } else if heap && config.needsWriteBarrier && isReference(ty) {
             let ty = Type::Ptr;
-            let value = graph::createLoadInst(src, srcOffset, ty);
+            let value = graph::createLoadInst(src, srcOffset, InstExtraData::None, ty);
             self.current().appendInst(value);
             let inst = graph::createStoreWbInst(dest, destOffset, value, ty);
             self.current().appendInst(inst);
@@ -2546,7 +2548,7 @@ impl SsaGen {
             let ty = self.graphTy(ty);
 
             if !ty.isUnit() {
-                let value = graph::createLoadInst(src, srcOffset, ty);
+                let value = graph::createLoadInst(src, srcOffset, InstExtraData::None, ty);
                 self.current().appendInst(value);
                 let inst = graph::createStoreInst(dest, destOffset, value, ty);
                 self.current().appendInst(inst);

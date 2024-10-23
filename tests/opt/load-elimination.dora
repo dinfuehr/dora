@@ -1,0 +1,15 @@
+//= boots
+
+class Foo {
+    a: Int,
+}
+
+fn main() {
+    let x = Foo(100);
+    assert(add(x) == 200);
+}
+
+@Optimize
+fn add(foo: Foo): Int {
+    foo.a + foo.a
+}

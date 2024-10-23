@@ -197,6 +197,7 @@ pub fn decode_bytecode_type(reader: &mut ByteReader) -> BytecodeType {
         BytecodeTypeKind::Float32 => BytecodeType::Float32,
         BytecodeTypeKind::Float64 => BytecodeType::Float64,
         BytecodeTypeKind::Ptr => BytecodeType::Ptr,
+        BytecodeTypeKind::This => BytecodeType::This,
         BytecodeTypeKind::Class => {
             let cls_id = reader.read_u32();
             let type_params = decode_bytecode_type_array(reader);

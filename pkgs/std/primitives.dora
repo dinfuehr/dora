@@ -372,7 +372,9 @@ impl Int64 {
   }
   pub @internal fn countOneBitsTrailing(): Int32 { self.not().countZeroBitsTrailing() }
 
-  pub fn hash(): Int32 { self.toInt32() }
+  pub fn hash(): Int32 {
+    (self >>> 32i32 | self).toInt32()
+  }
 
   pub static fn bits(): Int32 { 64i32 }
   pub static fn bytes(): Int32 { 8i32 }
@@ -574,7 +576,7 @@ impl Float64 {
   pub @internal fn isNan(): Bool;
   pub @internal fn sqrt(): Float64;
 
-  pub fn hash(): Int32 { self.asInt64().toInt32() }
+  pub fn hash(): Int32 { self.asInt64().hash() }
 
   // should be lets, not funs
   pub static fn bits(): Int32 { 64i32 }

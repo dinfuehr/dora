@@ -1285,14 +1285,14 @@ impl Inst {
         }
     }
 
-    pub fn hasFieldOffsetInfo(): Bool {
-        self.extra.isFieldOffsetInfo()
+    pub fn hasClassFieldInfo(): Bool {
+        self.extra.isClassFieldInfo()
     }
 
-    pub fn getFieldOffsetInfo(): Int32 {
+    pub fn getClassFieldInfo(): ClassFieldInfo {
         match self.extra {
-            InstExtraData::FieldOffsetInfo(offset) => offset,
-            _ => unreachable[Int32](),
+            InstExtraData::ClassFieldInfo(info) => info,
+            _ => unreachable[ClassFieldInfo](),
         }
     }
 
@@ -1685,7 +1685,7 @@ impl Stringable for Inst {
 
 pub enum InstExtraData {
     None,
-    FieldOffsetInfo(Int32),
+    ClassFieldInfo(ClassFieldInfo),
     FunctionInfo(FunctionInfo),
     FunctionAddress(Address),
     VirtualFunctionInfo(VirtualFunctionInfo),
@@ -1715,13 +1715,6 @@ impl InstExtraData {
         }
     }
 
-    fn isFieldOffsetInfo(): Bool {
-        match self {
-            InstExtraData::FieldOffsetInfo(_) => true,
-            _ => false,
-        }
-    }
-
     fn isRecordLayout(): Bool {
         match self {
             InstExtraData::RecordLayout(_) => true,
@@ -1746,6 +1739,13 @@ impl InstExtraData {
     fn isFunctionAddress(): Bool {
         match self {
             InstExtraData::FunctionAddress(_) => true,
+            _ => false,
+        }
+    }
+
+    fn isClassFieldInfo(): Bool {
+        match self {
+            InstExtraData::ClassFieldInfo(_) => true,
             _ => false,
         }
     }
@@ -2546,6 +2546,12 @@ pub fn createStoreArrayAddressWbInst(array: Inst, dest: Inst, destOffset: Int32,
     inst
 }
 
+pub class ClassFieldInfo {
+    pub cls_id: ClassId,
+    pub type_params: Array[BytecodeType],
+    pub field_id: ClassFieldId,
+}
+
 pub class FunctionInfo {
     pub fct_id: FunctionId,
     pub type_params: Array[BytecodeType],
@@ -2576,6 +2582,18 @@ pub class LambdaFunctionInfo {
 pub class ClassInfo {
     pub class_id: ClassId,
     pub type_params: Array[BytecodeType],
+}
+
+impl Equals for ClassInfo {
+    fn equals(other: ClassInfo): Bool {
+        self.class_id.value == other.class_id.value && self.type_params == other.type_params
+    }
+}
+
+impl Hash for ClassInfo {
+    fn hash(): Int32 {
+        self.class_id.hash() ^ self.type_params.hash()
+    }
 }
 
 pub fn createArgInst(index: Int32, ty: Type): Inst {
@@ -2671,11 +2689,12 @@ pub fn createAllocateStackInst(layout: RecordLayout): Inst {
     inst
 }
 
-pub fn createLoadInst(obj: Inst, field: Int32, ty: Type): Inst {
+pub fn createLoadInst(obj: Inst, field: Int32, info: InstExtraData, ty: Type): Inst {
     let inst = Inst::new();
     inst._op = Some(Op::Load);
     inst.ty = ty;
     inst.addInput(obj);
+    inst.extra = info;
     inst.aux = field.toInt64();
     inst
 }

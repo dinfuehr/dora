@@ -12,9 +12,9 @@ use crate::compiler::{compile_fct_aot, trait_object_thunk, NativeFct, NativeFctK
 use crate::gc::{formatted_size, Address};
 use crate::os;
 use crate::vm::{
-    ensure_class_instance_for_lambda, ensure_class_instance_for_trait_object, execute_on_main,
-    find_trait_impl, specialize_bty, specialize_bty_array, BytecodeTypeExt, ClassInstanceId, Code,
-    LazyCompilationSite, ShapeKind, VM,
+    display_fct, ensure_class_instance_for_lambda, ensure_class_instance_for_trait_object,
+    execute_on_main, find_trait_impl, specialize_bty, specialize_bty_array, BytecodeTypeExt,
+    ClassInstanceId, Code, LazyCompilationSite, ShapeKind, VM,
 };
 
 pub fn compile_boots_aot(vm: &VM) {
@@ -34,7 +34,7 @@ pub fn compile_boots_aot(vm: &VM) {
                     stage2_compiler(vm, &tc, entry_id, stage1_compiler_address);
                 let (stage3_compiler_address, stage3_ctc) =
                     stage3_compiler(vm, &tc, entry_id, stage2_compiler_address);
-                assert_builds_identical(&stage2_ctc, &stage3_ctc);
+                assert_builds_identical(vm, &stage2_ctc, &stage3_ctc);
 
                 (stage3_compiler_address, stage3_ctc)
             })
@@ -119,13 +119,19 @@ fn compiler_stage_n(
     (compile_address, ctc)
 }
 
-fn assert_builds_identical(stage2: &CompiledTransitiveClosure, stage3: &CompiledTransitiveClosure) {
+fn assert_builds_identical(
+    vm: &VM,
+    stage2: &CompiledTransitiveClosure,
+    stage3: &CompiledTransitiveClosure,
+) {
     assert_eq!(stage2.code_objects.len(), stage3.code_objects.len());
 
     for (stage2_code, stage3_code) in stage2.code_objects.iter().zip(&stage3.code_objects) {
         assert_eq!(
             stage2_code.instruction_slice(),
-            stage3_code.instruction_slice()
+            stage3_code.instruction_slice(),
+            "stage2 and stage3 differ in function {}",
+            display_fct(vm, stage2_code.fct_id())
         );
     }
 }

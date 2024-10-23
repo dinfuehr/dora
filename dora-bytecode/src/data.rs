@@ -41,6 +41,7 @@ pub enum BytecodeTypeKind {
     Lambda,
     TypeAlias,
     Assoc,
+    This,
 }
 
 #[derive(IntoPrimitive, TryFromPrimitive, Copy, Clone, PartialEq, Eq)]

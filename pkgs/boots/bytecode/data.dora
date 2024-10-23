@@ -4,6 +4,7 @@ use std::Equals;
 use std::Hash;
 
 use package::bytecode::{AliasId, ClassId, ClassFieldId, EnumId, FunctionId, StructId, StructFieldId, TraitId};
+use package::bytecode::opcode as opc;
 use package::graph::Block;
 
 pub class BytecodeFunction {
@@ -180,12 +181,6 @@ impl Stringable for BytecodeRegister {
 
 pub struct ConstPoolId(pub value: Int32)
 
-impl ConstPoolId {
-    fn equals(rhs: ConstPoolId): Bool {
-        self.value == rhs.value
-    }
-}
-
 pub enum BytecodeType {
     Unit,
     Ptr,
@@ -309,6 +304,163 @@ impl BytecodeType {
                 BytecodeType::Lambda(params.specialize(type_params), ret.specialize(type_params))
             },
             BytecodeType::TypeAlias(alias_id) => unreachable[BytecodeType](),
+        }
+    }
+}
+
+impl Equals for BytecodeType {
+    fn equals(other: BytecodeType): Bool {
+        match self {
+            BytecodeType::Unit => {
+                match other {
+                    BytecodeType::Unit => true,
+                    _ => false,
+                }
+            }
+
+            BytecodeType::Ptr => {
+                match other {
+                    BytecodeType::Ptr => true,
+                    _ => false,
+                }
+            }
+
+            BytecodeType::UInt8 => {
+                match other {
+                    BytecodeType::UInt8 => true,
+                    _ => false,
+                }
+            }
+
+            BytecodeType::Bool => {
+                match other {
+                    BytecodeType::Bool => true,
+                    _ => false,
+                }
+            }
+
+            BytecodeType::Char => {
+                match other {
+                    BytecodeType::Char => true,
+                    _ => false,
+                }
+            }
+
+            BytecodeType::Int32 => {
+                match other {
+                    BytecodeType::Int32 => true,
+                    _ => false,
+                }
+            }
+
+            BytecodeType::Int64 => {
+                match other {
+                    BytecodeType::Int64 => true,
+                    _ => false,
+                }
+            }
+
+            BytecodeType::Float32 => {
+                match other {
+                    BytecodeType::Float32 => true,
+                    _ => false,
+                }
+            }
+
+            BytecodeType::Float64 => {
+                match other {
+                    BytecodeType::Float64 => true,
+                    _ => false,
+                }
+            }
+
+            BytecodeType::This => {
+                match other {
+                    BytecodeType::This => true,
+                    _ => false,
+                }
+            }
+
+            BytecodeType::Struct(id, type_params) => {
+                match other {
+                    BytecodeType::Struct(other_id, other_type_params) => id == other_id && type_params == other_type_params,
+                    _ => false,
+                }
+            }
+
+            BytecodeType::Enum(id, type_params) => {
+                match other {
+                    BytecodeType::Enum(other_id, other_type_params) => id == other_id && type_params == other_type_params,
+                    _ => false,
+                }
+            }
+
+            BytecodeType::Class(id, type_params) => {
+                match other {
+                    BytecodeType::Class(other_id, other_type_params) => id == other_id && type_params == other_type_params,
+                    _ => false,
+                }
+            }
+
+            BytecodeType::Trait(id, type_params) => {
+                match other {
+                    BytecodeType::Trait(other_id, other_type_params) => id == other_id && type_params == other_type_params,
+                    _ => false,
+                }
+            }
+
+            BytecodeType::Tuple(subtypes) => {
+                match other {
+                    BytecodeType::Tuple(other_subtypes) => subtypes == other_subtypes,
+                    _ => false,
+                }
+            }
+
+            BytecodeType::TypeParam(id) => {
+                match other {
+                    BytecodeType::TypeParam(other_id) => id == other_id,
+                    _ => false,
+                }
+            }
+
+            BytecodeType::Lambda(params, ret) => {
+                match other {
+                    BytecodeType::Lambda(other_params, other_ret) => params == other_params && ret == other_ret,
+                    _ => false,
+                }
+            }
+
+            BytecodeType::TypeAlias(id) => {
+                match other {
+                    BytecodeType::TypeAlias(other_id) => id == other_id,
+                    _ => false,
+                }
+            }
+        }
+    }
+}
+
+impl Hash for BytecodeType {
+    fn hash(): Int32 {
+        match self {
+            BytecodeType::Unit => opc::BC_TYPE_UNIT,
+            BytecodeType::Ptr => opc::BC_TYPE_PTR,
+            BytecodeType::UInt8 => opc::BC_TYPE_U_INT8,
+            BytecodeType::Bool => opc::BC_TYPE_BOOL,
+            BytecodeType::Char => opc::BC_TYPE_CHAR,
+            BytecodeType::Int32 => opc::BC_TYPE_INT32,
+            BytecodeType::Int64 => opc::BC_TYPE_INT64,
+            BytecodeType::Float32 => opc::BC_TYPE_FLOAT32,
+            BytecodeType::Float64 => opc::BC_TYPE_FLOAT64,
+            BytecodeType::This => opc::BC_TYPE_THIS,
+            BytecodeType::Struct(id, type_params) => opc::BC_TYPE_STRUCT ^ id.hash() ^ type_params.hash(),
+            BytecodeType::Enum(id, type_params) => opc::BC_TYPE_ENUM ^ id.hash() ^ type_params.hash(),
+            BytecodeType::Class(id, type_params) => opc::BC_TYPE_CLASS ^ id.hash() ^ type_params.hash(),
+            BytecodeType::Trait(id, type_params) => opc::BC_TYPE_TRAIT_OBJECT ^ id.hash() ^ type_params.hash(),
+            BytecodeType::Tuple(subtypes) => opc::BC_TYPE_TUPLE ^ subtypes.hash(),
+            BytecodeType::TypeParam(id) => opc::BC_TYPE_TYPE_PARAM ^ id,
+            BytecodeType::Lambda(params, ret) => params.hash() ^ ret.hash(),
+            BytecodeType::TypeAlias(id) => opc::BC_TYPE_TYPE_ALIAS ^ id.hash(),
         }
     }
 }
