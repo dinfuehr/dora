@@ -5,9 +5,9 @@ fn main() {
   assert(1i32.hash() == 1i32);
 
   assert(1i64.hash() == 1i32);
-  assert((1 << 32i).hash() == (1 ^ 0));
-  assert((1 << 31i).hash() == (1 << 31i));
+  assert((1 << 32i32).hash() == (1i32 ^ 0i32));
+  assert((1 << 31i32).hash() == (1i32 << 31i32));
 
   assert(1.0f32.hash() == 1065353216i32);
-  assert(1.0.hash() == 1072693248);
+  assert(1.0.hash() == 1072693248i32);
 }
