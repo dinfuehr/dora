@@ -762,6 +762,30 @@ impl[K: Hash + Equals, V] HashMap[K, V] {
         Option[V]::None
     }
 
+    pub fn retainIf(predicate: (K, V): Bool) {
+      let mut idx = 0;
+
+      while idx < self.cap {
+          if self.isLive(idx) {
+              let key = self.keys.get(idx);
+              let value = self.values.get(idx);
+
+              if !predicate(key, value) {
+                  self.inserted_and_deleted.insert(2i64 * idx + 1i64);
+
+                  unsafeKillRefs[K](self.keys, idx);
+                  unsafeKillRefs[V](self.values, idx);
+
+                  self.entries = self.entries - 1i64;
+              }
+          }
+
+          idx = idx + 1;
+      }
+
+      self.shrink();
+    }
+
     fn ensureCapacity(elements_to_add: Int64) {
         if self.entries + elements_to_add < self.cap {
             if self.entries <= (self.cap - (self.cap / 4i64)) {
@@ -1364,5 +1388,11 @@ impl[T: Stringable] Vec[T] {
     }
     sb.append(")");
     return sb.toString();
+  }
+}
+
+impl[T1: Equals, T2: Equals] Equals for (T1, T2) {
+  fn equals(other: Self): Bool {
+    self.0 == other.0 && self.1 == other.1
   }
 }

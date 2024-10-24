@@ -1,0 +1,22 @@
+//= ignore
+
+use std::HashMap;
+
+fn main() {
+    let map = HashMap[Int, String]::new();
+
+    for i in std::range(0, 10) {
+        map.insert(i, i.toString());
+    }
+
+    map.retainIf(|k: Int, v: String|: Bool {
+        k % 2 == 0 && v != "4"
+    });
+
+    let iter = map.iter();
+    assert(Some[(Int, String)]((0, "0")) == iter.next());
+    assert(Some[(Int, String)]((8, "8")) == iter.next());
+    assert(Some[(Int, String)]((2, "2")) == iter.next());
+    assert(Some[(Int, String)]((6, "6")) == iter.next());
+    assert(None[(Int, String)] == iter.next());
+}

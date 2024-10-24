@@ -1691,6 +1691,7 @@ pub enum InstExtraData {
     VirtualFunctionInfo(VirtualFunctionInfo),
     LambdaFunctionInfo(LambdaFunctionInfo),
     ClassInfo(ClassInfo),
+    StructInfo(StructInfo),
     AllocationData(AllocationData),
     RecordLayout(RecordLayout),
     TraitObjectInfo(TraitObjectInfo),
@@ -2596,6 +2597,23 @@ impl Hash for ClassInfo {
     }
 }
 
+pub class StructInfo {
+    pub struct_id: StructId,
+    pub type_params: Array[BytecodeType],
+}
+
+impl Equals for StructInfo {
+    fn equals(other: StructInfo): Bool {
+        self.struct_id == other.struct_id && self.type_params == other.type_params
+    }
+}
+
+impl Hash for StructInfo {
+    fn hash(): Int32 {
+        self.struct_id.hash() ^ self.type_params.hash()
+    }
+}
+
 pub fn createArgInst(index: Int32, ty: Type): Inst {
     let inst = Inst::new();
     inst._op = Some(Op::Arg);
@@ -2699,24 +2717,26 @@ pub fn createLoadInst(obj: Inst, field: Int32, info: InstExtraData, ty: Type): I
     inst
 }
 
-pub fn createStoreInst(obj: Inst, field: Int32, value: Inst, ty: Type): Inst {
+pub fn createStoreInst(obj: Inst, info: InstExtraData, field: Int32, value: Inst, ty: Type): Inst {
     let inst = Inst::new();
     inst._op = Some(Op::Store);
     inst.aux = field.toInt64();
     inst.addInput(obj);
     inst.addInput(value);
+    inst.extra = info;
     inst.ty = ty;
 
     inst
 }
 
-pub fn createStoreWbInst(obj: Inst, field: Int32, value: Inst, ty: Type): Inst {
+pub fn createStoreWbInst(obj: Inst, info: InstExtraData, field: Int32, value: Inst, ty: Type): Inst {
     let inst = Inst::new();
     inst._op = Some(Op::StoreWb);
     inst.aux = field.toInt64();
     inst.addInput(obj);
     inst.addInput(value);
     inst.ty = ty;
+    inst.extra = info;
 
     inst
 }

@@ -35,6 +35,7 @@ pub fn lookup(vm: &mut VM) {
 
     lookup_known_classes(vm, &module_items);
     lookup_known_functions(vm, &module_items);
+    lookup_known_traits(vm, &module_items);
 
     for (fct_id, fct) in vm.program.functions.iter().enumerate() {
         let fct_id = FunctionId(fct_id as u32);
@@ -297,6 +298,14 @@ fn lookup_known_functions(vm: &mut VM, module_items: &ModuleItemMap) {
         resolve_path(vm, module_items, "stdlib::fatalError")
             .function_id()
             .expect("function expected"),
+    );
+}
+
+fn lookup_known_traits(vm: &mut VM, module_items: &ModuleItemMap) {
+    vm.known.zero_trait_id = Some(
+        resolve_path(vm, module_items, "stdlib::traits::Zero")
+            .trait_id()
+            .expect("trait expected"),
     );
 }
 
