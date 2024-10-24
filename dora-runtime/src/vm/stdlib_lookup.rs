@@ -4,10 +4,10 @@ use crate::boots::BOOTS_FUNCTIONS;
 use crate::gc::Address;
 use crate::stdlib::io::IO_FUNCTIONS;
 use crate::stdlib::STDLIB_FUNCTIONS;
-use crate::vm::{display_fct, BytecodeType, Intrinsic, VM};
+use crate::vm::{BytecodeType, Intrinsic, VM};
 use dora_bytecode::{
-    ClassId, EnumId, ExtensionId, FunctionId, FunctionKind, ImplId, ModuleId, PackageId, Program,
-    StructId, TraitId,
+    display_fct, ClassId, EnumId, ExtensionId, FunctionId, FunctionKind, ImplId, ModuleId,
+    PackageId, Program, StructId, TraitId,
 };
 
 #[derive(Clone)]

@@ -2,8 +2,8 @@ use std::mem;
 use std::ptr;
 
 use dora_bytecode::{
-    BytecodeType, BytecodeTypeArray, ClassId, EnumId, FunctionId, FunctionKind, GlobalId, StructId,
-    TraitId,
+    display_fct, BytecodeType, BytecodeTypeArray, ClassId, EnumId, FunctionId, FunctionKind,
+    GlobalId, StructId, TraitId,
 };
 
 use crate::boots::deserializer::{decode_code_descriptor, ByteReader};
@@ -17,8 +17,8 @@ use crate::size::InstanceSize;
 use crate::threads::current_thread;
 use crate::vm::compute_vtable_index;
 use crate::vm::{
-    create_class_instance, create_enum_instance, display_fct,
-    ensure_class_instance_for_enum_variant, get_vm, impls, CodeDescriptor, FctImplementation, VM,
+    create_class_instance, create_enum_instance, ensure_class_instance_for_enum_variant, get_vm,
+    impls, CodeDescriptor, FctImplementation, VM,
 };
 
 use self::deserializer::{decode_bytecode_type, decode_bytecode_type_array};

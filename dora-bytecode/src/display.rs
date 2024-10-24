@@ -1,6 +1,5 @@
-use crate::vm::{module_path, module_path_name};
-use dora_bytecode::{
-    BytecodeType, BytecodeTypeArray, FunctionId, FunctionKind, Program, TypeParamData,
+use crate::{
+    BytecodeType, BytecodeTypeArray, FunctionId, FunctionKind, ModuleId, Program, TypeParamData,
 };
 
 pub fn display_fct(prog: &Program, fct_id: FunctionId) -> String {
@@ -265,4 +264,46 @@ impl<'a> std::fmt::Display for BytecodeTypePrinter<'a> {
     fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
         self.name(&self.ty, f)
     }
+}
+
+pub fn module_path_name(prog: &Program, module_id: ModuleId, name: &str) -> String {
+    let mut result = module_path(prog, module_id);
+
+    if !result.is_empty() {
+        result.push_str("::");
+    }
+
+    result.push_str(name);
+    result
+}
+
+pub fn module_path(prog: &Program, module_id: ModuleId) -> String {
+    let mut path = String::new();
+
+    let current_id = module_id;
+
+    // Do not print name for the top program module.
+    if current_id == prog.program_module_id() {
+        return "".into();
+    }
+
+    let module = prog.module(current_id);
+    path.push_str(&module.name);
+
+    let mut module_id = module.parent_id;
+
+    while let Some(current_id) = module_id {
+        // Do not print name for the top program module.
+        if current_id == prog.program_module_id() {
+            break;
+        }
+
+        let module = prog.module(current_id);
+        assert_ne!("<root>", module.name);
+        path.insert_str(0, "::");
+        path.insert_str(0, &module.name);
+        module_id = module.parent_id;
+    }
+
+    path
 }

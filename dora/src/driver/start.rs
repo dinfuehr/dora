@@ -3,10 +3,10 @@ use std::io::{self, Read, Write};
 use std::path::PathBuf;
 
 use crate::driver::cmd::{self, Args};
-use dora_bytecode::{FunctionId, PackageId, Program};
+use dora_bytecode::{display_fct, FunctionId, PackageId, Program};
 use dora_frontend as language;
 use dora_frontend::sema::{Sema, SemaArgs};
-use dora_runtime::{clear_vm, display_fct, execute_on_main, set_vm, VM};
+use dora_runtime::{clear_vm, execute_on_main, set_vm, VM};
 
 pub fn start() -> i32 {
     let args = cmd::parse_arguments();

@@ -4,8 +4,9 @@ use std::cmp::Ordering;
 use std::collections::BTreeMap;
 
 use crate::gc::Address;
-use crate::vm::display_fct;
 use crate::vm::{CodeId, CodeKind, VM};
+
+use dora_bytecode::display_fct;
 
 pub struct CodeMap {
     tree: RwLock<BTreeMap<CodeSpan, CodeId>>,

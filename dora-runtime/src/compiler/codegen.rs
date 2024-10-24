@@ -8,13 +8,10 @@ use crate::cpu::{FReg, Reg};
 use crate::disassembler;
 use crate::gc::Address;
 use crate::os;
-use crate::vm::{
-    display_fct, display_ty_without_type_params, install_code, Code, CodeDescriptor, CodeId,
-    CodeKind, Compiler, VM,
-};
+use crate::vm::{install_code, Code, CodeDescriptor, CodeId, CodeKind, Compiler, VM};
 use dora_bytecode::{
-    dump_stdout, BytecodeFunction, BytecodeType, BytecodeTypeArray, FunctionData, FunctionId,
-    Location,
+    display_fct, display_ty_without_type_params, dump_stdout, BytecodeFunction, BytecodeType,
+    BytecodeTypeArray, FunctionData, FunctionId, Location,
 };
 
 #[derive(Clone, Copy)]

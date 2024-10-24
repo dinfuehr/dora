@@ -1,9 +1,9 @@
 use parking_lot::RwLock;
 
 use crate::utils::Id;
-use crate::vm::{module_path_name, ClassInstanceId, VM};
+use crate::vm::{ClassInstanceId, VM};
 use dora_bytecode::ty::BytecodeTypeArray;
-use dora_bytecode::{EnumData, EnumId};
+use dora_bytecode::{module_path_name, EnumData, EnumId};
 
 pub fn enum_definition_name(enum_: &EnumData, vm: &VM) -> String {
     module_path_name(&vm.program, enum_.module_id, &enum_.name)

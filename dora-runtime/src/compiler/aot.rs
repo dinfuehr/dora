@@ -3,8 +3,8 @@ use std::sync::Arc;
 use std::time::Instant;
 
 use dora_bytecode::{
-    BytecodeFunction, BytecodeInstruction, BytecodeReader, BytecodeType, BytecodeTypeArray,
-    ConstPoolEntry, FunctionId, FunctionKind, PackageId,
+    display_fct, BytecodeFunction, BytecodeInstruction, BytecodeReader, BytecodeType,
+    BytecodeTypeArray, ConstPoolEntry, FunctionId, FunctionKind, PackageId,
 };
 
 use crate::compiler::codegen::{ensure_runtime_entry_trampoline, CompilerInvocation};
@@ -12,9 +12,9 @@ use crate::compiler::{compile_fct_aot, trait_object_thunk, NativeFct, NativeFctK
 use crate::gc::{formatted_size, Address};
 use crate::os;
 use crate::vm::{
-    display_fct, ensure_class_instance_for_lambda, ensure_class_instance_for_trait_object,
-    execute_on_main, find_trait_impl, specialize_bty, specialize_bty_array, BytecodeTypeExt,
-    ClassInstanceId, Code, LazyCompilationSite, ShapeKind, VM,
+    ensure_class_instance_for_lambda, ensure_class_instance_for_trait_object, execute_on_main,
+    find_trait_impl, specialize_bty, specialize_bty_array, BytecodeTypeExt, ClassInstanceId, Code,
+    LazyCompilationSite, ShapeKind, VM,
 };
 
 pub fn compile_boots_aot(vm: &VM) {

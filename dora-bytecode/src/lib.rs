@@ -1,4 +1,5 @@
 pub mod data;
+pub mod display;
 pub mod dumper;
 pub mod program;
 pub mod reader;
@@ -9,6 +10,10 @@ pub mod writer;
 mod tests;
 
 pub use data::*;
+pub use display::{
+    display_fct, display_ty, display_ty_array, display_ty_with_type_params,
+    display_ty_without_type_params, module_path, module_path_name,
+};
 pub use dumper::{dump, dump_stdout};
 pub use program::{
     AliasData, AliasId, ClassData, ClassField, ClassId, EnumData, EnumId, EnumVariant,

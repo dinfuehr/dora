@@ -18,15 +18,15 @@ use crate::object::{Header, Str};
 use crate::size::InstanceSize;
 use crate::vm::{
     compute_vtable_index, create_class_instance, create_enum_instance, create_struct_instance,
-    display_fct, display_ty, ensure_class_instance_for_enum_variant,
-    ensure_class_instance_for_lambda, ensure_class_instance_for_trait_object, find_trait_impl,
-    get_concrete_tuple_bty, get_concrete_tuple_bty_array, specialize_bty, specialize_bty_array,
-    BytecodeTypeExt, CodeDescriptor, EnumLayout, GcPoint, Intrinsic, LazyCompilationSite, Trap,
-    INITIALIZED, VM,
+    ensure_class_instance_for_enum_variant, ensure_class_instance_for_lambda,
+    ensure_class_instance_for_trait_object, find_trait_impl, get_concrete_tuple_bty,
+    get_concrete_tuple_bty_array, specialize_bty, specialize_bty_array, BytecodeTypeExt,
+    CodeDescriptor, EnumLayout, GcPoint, Intrinsic, LazyCompilationSite, Trap, INITIALIZED, VM,
 };
 use dora_bytecode::{
-    read, BytecodeFunction, BytecodeOffset, BytecodeType, BytecodeTypeArray, BytecodeVisitor,
-    ConstPoolEntry, ConstPoolIdx, FunctionId, FunctionKind, GlobalId, Location, Register,
+    display_fct, display_ty, read, BytecodeFunction, BytecodeOffset, BytecodeType,
+    BytecodeTypeArray, BytecodeVisitor, ConstPoolEntry, ConstPoolIdx, FunctionId, FunctionKind,
+    GlobalId, Location, Register,
 };
 
 macro_rules! comment {

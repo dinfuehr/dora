@@ -1,11 +1,9 @@
-use dora_bytecode::{FunctionId, Location};
+use dora_bytecode::{display_fct, FunctionId, Location};
 
 use crate::handle::{create_handle, Handle};
 use crate::object::{Array, Int32Array, Ref, Stacktrace, StacktraceIterator, Str};
 use crate::threads::current_thread;
-use crate::vm::{
-    display_fct, get_vm, Code, CodeId, CodeKind, InlinedFunctionId, InlinedLocation, VM,
-};
+use crate::vm::{get_vm, Code, CodeId, CodeKind, InlinedFunctionId, InlinedLocation, VM};
 
 pub struct NativeStacktrace {
     elems: Vec<StackElem>,

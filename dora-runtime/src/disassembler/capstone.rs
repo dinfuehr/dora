@@ -4,8 +4,8 @@ use std::slice;
 
 use capstone::prelude::*;
 
-use crate::vm::{display_fct, display_ty, Code, VM};
-use dora_bytecode::{BytecodeTypeArray, FunctionId};
+use crate::vm::{Code, VM};
+use dora_bytecode::{display_fct, display_ty, BytecodeTypeArray, FunctionId};
 
 pub fn supported() -> bool {
     true

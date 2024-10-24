@@ -36,10 +36,6 @@ pub use self::code::{
 };
 pub use self::code_map::CodeMap;
 pub use self::compilation::CompilationDatabase;
-pub use self::display::{
-    display_fct, display_ty, display_ty_array, display_ty_with_type_params,
-    display_ty_without_type_params,
-};
 pub use self::enums::{enum_definition_name, EnumInstance, EnumInstanceId, EnumLayout};
 pub use self::extensions::block_matches_ty;
 pub use self::flags::{CollectorName, Compiler, Flags, MemSize};
@@ -48,7 +44,6 @@ pub use self::globals::{INITIALIZED, RUNNING, UNINITIALIZED};
 pub use self::impls::{bounds_for_tp, find_trait_impl, tp_implements_trait, ty_implements_trait};
 pub use self::known::Intrinsic;
 use self::known::KnownElements;
-pub use self::modules::{module_path, module_path_name};
 pub use self::natives::{setup_builtin_natives, NativeMethods};
 pub use self::specialize::{
     add_ref_fields, compute_vtable_index, create_class_instance, create_enum_instance,
@@ -66,7 +61,6 @@ mod classes;
 mod code;
 mod code_map;
 mod compilation;
-mod display;
 mod enums;
 mod extensions;
 mod flags;
@@ -74,7 +68,6 @@ mod globals;
 pub mod impls;
 mod initialize;
 mod known;
-mod modules;
 mod natives;
 mod specialize;
 mod stdlib_lookup;
