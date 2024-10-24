@@ -44,7 +44,10 @@ pub fn lookup(vm: &mut VM) {
             && vm.native_methods.get(fct_id).is_none()
             && vm.intrinsics.get(&fct_id).is_none()
         {
-            panic!("unknown internal function {}", display_fct(vm, fct_id));
+            panic!(
+                "unknown internal function {}",
+                display_fct(&vm.program, fct_id)
+            );
         }
     }
 }
@@ -123,7 +126,7 @@ fn apply_fct(
     if existed {
         panic!(
             "function {} was already initialized",
-            display_fct(vm, fct_id)
+            display_fct(&vm.program, fct_id)
         );
     }
 }

@@ -37,13 +37,13 @@ pub fn disassemble(vm: &VM, fct_id: FunctionId, type_params: &BytecodeTypeArray,
         .disasm_all(buf, start_addr)
         .expect("could not disassemble code");
 
-    let name = display_fct(vm, fct_id);
+    let name = display_fct(&vm.program, fct_id);
 
     let type_params = if !type_params.is_empty() {
         let mut ty_names = Vec::new();
 
         for ty in type_params.iter() {
-            ty_names.push(display_ty(vm, &ty));
+            ty_names.push(display_ty(&vm.program, &ty));
         }
 
         format!(" [{}]", ty_names.join(", "))

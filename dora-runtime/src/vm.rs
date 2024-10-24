@@ -283,9 +283,7 @@ impl VM {
     }
 
     pub fn program_module_id(&self) -> ModuleId {
-        let pkg_id = self.program.program_package_id.0 as usize;
-        let pkg = &self.program.packages[pkg_id];
-        pkg.root_module_id
+        self.program.program_module_id()
     }
 
     pub fn byte_array(&self) -> ClassInstanceId {

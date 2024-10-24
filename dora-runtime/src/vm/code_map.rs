@@ -28,16 +28,16 @@ impl CodeMap {
 
             match code.descriptor() {
                 CodeKind::BaselineFct(fct_id) => {
-                    println!("dora {}", display_fct(vm, fct_id));
+                    println!("dora {}", display_fct(&vm.program, fct_id));
                 }
                 CodeKind::OptimizedFct(fct_id) => {
-                    println!("dora(opt) {}", display_fct(vm, fct_id));
+                    println!("dora(opt) {}", display_fct(&vm.program, fct_id));
                 }
                 CodeKind::LazyCompilationStub => println!("compile_stub"),
                 CodeKind::TrapTrampoline => println!("trap_stub"),
                 CodeKind::AllocationFailureTrampoline => println!("alloc_stub"),
                 CodeKind::RuntimeEntryTrampoline(fct_id) => {
-                    println!("native stub {}", display_fct(vm, fct_id));
+                    println!("native stub {}", display_fct(&vm.program, fct_id));
                 }
                 CodeKind::DoraEntryTrampoline => println!("dora_stub"),
                 CodeKind::StackOverflowTrampoline => println!("guard_check_stub"),

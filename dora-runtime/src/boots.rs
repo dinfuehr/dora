@@ -469,7 +469,7 @@ extern "C" fn get_intrinsic_for_function_raw(id: u32) -> i32 {
 extern "C" fn get_function_display_name_raw(id: FunctionId) -> Ref<UInt8Array> {
     let vm = get_vm();
 
-    let name = display_fct(vm, id);
+    let name = display_fct(&vm.program, id);
 
     Str::from_buffer(vm, name.as_bytes()).cast()
 }

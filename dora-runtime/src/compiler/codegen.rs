@@ -132,7 +132,7 @@ pub(super) fn compile_fct_to_code(
     }
 
     if vm.flags.enable_perf {
-        let name = display_fct(vm, fct_id);
+        let name = display_fct(&vm.program, fct_id);
         os::perf::register_with_perf(&code, &name);
     }
 
@@ -155,7 +155,7 @@ fn compile_fct_to_descriptor(
     let emit_bytecode = should_emit_bytecode(vm, fct_id, compiler.to_compiler());
 
     if emit_bytecode {
-        println!("Bytecode for {}:", display_fct(vm, fct_id));
+        println!("Bytecode for {}:", display_fct(&vm.program, fct_id));
         dump_stdout(&vm.program, &bytecode_fct);
     }
 
@@ -196,7 +196,7 @@ fn compile_fct_to_descriptor(
 
     if emit_compiler {
         let duration = start.expect("missing start time").elapsed();
-        let mut name = display_fct(vm, fct_id);
+        let mut name = display_fct(&vm.program, fct_id);
         if type_params.len() > 0 {
             name.push_str(" with [");
             let mut first = true;
@@ -206,7 +206,7 @@ fn compile_fct_to_descriptor(
                     name.push_str(", ");
                 }
 
-                name.push_str(&display_ty_without_type_params(vm, &ty));
+                name.push_str(&display_ty_without_type_params(&vm.program, &ty));
                 first = false;
             }
 
@@ -301,7 +301,7 @@ fn fct_pattern_match(vm: &VM, fct_id: FunctionId, pattern: &str) -> (bool, bool)
         return (true, true);
     }
 
-    let fct_name = display_fct(vm, fct_id);
+    let fct_name = display_fct(&vm.program, fct_id);
 
     for part in pattern.split(';') {
         let (part, plus) = if part.ends_with('+') {

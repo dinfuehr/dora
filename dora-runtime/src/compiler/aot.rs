@@ -131,7 +131,7 @@ fn assert_builds_identical(
             stage2_code.instruction_slice(),
             stage3_code.instruction_slice(),
             "stage2 and stage3 differ in function {}",
-            display_fct(vm, stage2_code.fct_id())
+            display_fct(&vm.program, stage2_code.fct_id())
         );
     }
 }

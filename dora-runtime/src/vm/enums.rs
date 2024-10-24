@@ -6,7 +6,7 @@ use dora_bytecode::ty::BytecodeTypeArray;
 use dora_bytecode::{EnumData, EnumId};
 
 pub fn enum_definition_name(enum_: &EnumData, vm: &VM) -> String {
-    module_path_name(vm, enum_.module_id, &enum_.name)
+    module_path_name(&vm.program, enum_.module_id, &enum_.name)
 }
 
 #[derive(Copy, Clone, Debug, PartialEq, Eq, Hash)]

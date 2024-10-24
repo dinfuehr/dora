@@ -202,3 +202,47 @@ pub struct Program {
     pub boots_package_id: Option<PackageId>,
     pub main_fct_id: Option<FunctionId>,
 }
+
+impl Program {
+    pub fn fct(&self, id: FunctionId) -> &FunctionData {
+        &self.functions[id.0 as usize]
+    }
+
+    pub fn trait_(&self, id: TraitId) -> &TraitData {
+        &self.traits[id.0 as usize]
+    }
+
+    pub fn extension(&self, id: ExtensionId) -> &ExtensionData {
+        &self.extensions[id.0 as usize]
+    }
+
+    pub fn alias(&self, id: AliasId) -> &AliasData {
+        &self.aliases[id.0 as usize]
+    }
+
+    pub fn struct_(&self, id: StructId) -> &StructData {
+        &self.structs[id.0 as usize]
+    }
+
+    pub fn class(&self, id: ClassId) -> &ClassData {
+        &self.classes[id.0 as usize]
+    }
+
+    pub fn enum_(&self, id: EnumId) -> &EnumData {
+        &self.enums[id.0 as usize]
+    }
+
+    pub fn impl_(&self, id: ImplId) -> &ImplData {
+        &self.impls[id.0 as usize]
+    }
+
+    pub fn module(&self, id: ModuleId) -> &ModuleData {
+        &self.modules[id.0 as usize]
+    }
+
+    pub fn program_module_id(&self) -> ModuleId {
+        let pkg_id = self.program_package_id.0 as usize;
+        let pkg = &self.packages[pkg_id];
+        pkg.root_module_id
+    }
+}

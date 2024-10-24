@@ -1,19 +1,21 @@
-use crate::vm::{module_path, module_path_name, VM};
-use dora_bytecode::{BytecodeType, BytecodeTypeArray, FunctionId, FunctionKind, TypeParamData};
+use crate::vm::{module_path, module_path_name};
+use dora_bytecode::{
+    BytecodeType, BytecodeTypeArray, FunctionId, FunctionKind, Program, TypeParamData,
+};
 
-pub fn display_fct(vm: &VM, fct_id: FunctionId) -> String {
-    let fct = vm.fct(fct_id);
+pub fn display_fct(prog: &Program, fct_id: FunctionId) -> String {
+    let fct = prog.fct(fct_id);
     let mut container_type_params = 0;
     let mut repr = match fct.kind {
         FunctionKind::Trait(trait_id) => {
-            let trait_ = vm.trait_(trait_id);
-            module_path_name(vm, trait_.module_id, &trait_.name)
+            let trait_ = prog.trait_(trait_id);
+            module_path_name(prog, trait_.module_id, &trait_.name)
         }
 
         FunctionKind::Extension(extension_id) => {
-            let extension = vm.extension(extension_id);
+            let extension = prog.extension(extension_id);
             container_type_params = extension.type_params.names.len();
-            let mut result = module_path(vm, fct.module_id);
+            let mut result = module_path(prog, fct.module_id);
             if !result.is_empty() {
                 result.push_str("::");
             }
@@ -34,7 +36,7 @@ pub fn display_fct(vm: &VM, fct_id: FunctionId) -> String {
 
             result.push_str(" ");
             result.push_str(&display_ty_with_type_params(
-                vm,
+                prog,
                 &extension.extended_ty,
                 &extension.type_params,
             ));
@@ -44,9 +46,9 @@ pub fn display_fct(vm: &VM, fct_id: FunctionId) -> String {
         }
 
         FunctionKind::Impl(impl_id) => {
-            let impl_ = vm.impl_(impl_id);
+            let impl_ = prog.impl_(impl_id);
             container_type_params = impl_.type_params.names.len();
-            let mut result = module_path(vm, fct.module_id);
+            let mut result = module_path(prog, fct.module_id);
             if !result.is_empty() {
                 result.push_str("::");
             }
@@ -67,13 +69,13 @@ pub fn display_fct(vm: &VM, fct_id: FunctionId) -> String {
 
             result.push_str(" ");
             result.push_str(&display_ty_with_type_params(
-                vm,
+                prog,
                 &impl_.trait_ty,
                 &impl_.type_params,
             ));
             result.push_str(" for ");
             result.push_str(&display_ty_with_type_params(
-                vm,
+                prog,
                 &impl_.extended_ty,
                 &impl_.type_params,
             ));
@@ -81,7 +83,7 @@ pub fn display_fct(vm: &VM, fct_id: FunctionId) -> String {
             result
         }
 
-        FunctionKind::Function => return module_path_name(vm, fct.module_id, &fct.name),
+        FunctionKind::Function => return module_path_name(prog, fct.module_id, &fct.name),
 
         FunctionKind::Lambda => "lamba".into(),
     };
@@ -105,9 +107,9 @@ pub fn display_fct(vm: &VM, fct_id: FunctionId) -> String {
     repr
 }
 
-pub fn display_ty(vm: &VM, ty: &BytecodeType) -> String {
+pub fn display_ty(prog: &Program, ty: &BytecodeType) -> String {
     let printer = BytecodeTypePrinter {
-        vm,
+        prog,
         type_params: TypeParamMode::Unknown,
         ty: ty.clone(),
     };
@@ -115,21 +117,21 @@ pub fn display_ty(vm: &VM, ty: &BytecodeType) -> String {
     printer.string()
 }
 
-pub fn display_ty_array(vm: &VM, array: &BytecodeTypeArray) -> String {
+pub fn display_ty_array(prog: &Program, array: &BytecodeTypeArray) -> String {
     let mut result = "[".to_string();
     for (idx, ty) in array.iter().enumerate() {
         if idx > 0 {
             result.push_str(", ");
         }
-        result.push_str(&display_ty(vm, &ty));
+        result.push_str(&display_ty(prog, &ty));
     }
     result.push(']');
     result
 }
 
-pub fn display_ty_without_type_params(vm: &VM, ty: &BytecodeType) -> String {
+pub fn display_ty_without_type_params(prog: &Program, ty: &BytecodeType) -> String {
     let printer = BytecodeTypePrinter {
-        vm,
+        prog,
         type_params: TypeParamMode::None,
         ty: ty.clone(),
     };
@@ -138,12 +140,12 @@ pub fn display_ty_without_type_params(vm: &VM, ty: &BytecodeType) -> String {
 }
 
 pub fn display_ty_with_type_params(
-    vm: &VM,
+    prog: &Program,
     ty: &BytecodeType,
     type_params: &TypeParamData,
 ) -> String {
     let printer = BytecodeTypePrinter {
-        vm,
+        prog,
         type_params: TypeParamMode::TypeParams(type_params),
         ty: ty.clone(),
     };
@@ -158,7 +160,7 @@ enum TypeParamMode<'a> {
 }
 
 struct BytecodeTypePrinter<'a> {
-    vm: &'a VM,
+    prog: &'a Program,
     type_params: TypeParamMode<'a>,
     ty: BytecodeType,
 }
@@ -180,22 +182,22 @@ impl<'a> BytecodeTypePrinter<'a> {
             BytecodeType::Bool => write!(fmt, "Bool"),
             BytecodeType::Ptr => write!(fmt, "Ptr"),
             BytecodeType::Class(id, type_params) => {
-                let cls = self.vm.class(*id);
+                let cls = self.prog.class(*id);
                 write!(fmt, "{}", cls.name)?;
                 self.type_params(type_params, fmt)
             }
             BytecodeType::Struct(sid, type_params) => {
-                let struct_ = self.vm.struct_(*sid);
+                let struct_ = self.prog.struct_(*sid);
                 write!(fmt, "{}", struct_.name)?;
                 self.type_params(type_params, fmt)
             }
             BytecodeType::TraitObject(tid, type_params) => {
-                let trait_ = self.vm.trait_(*tid);
+                let trait_ = self.prog.trait_(*tid);
                 write!(fmt, "{}", trait_.name)?;
                 self.type_params(type_params, fmt)
             }
             BytecodeType::Enum(id, type_params) => {
-                let enum_ = self.vm.enum_(*id);
+                let enum_ = self.prog.enum_(*id);
                 write!(fmt, "{}", enum_.name)?;
                 self.type_params(type_params, fmt)
             }

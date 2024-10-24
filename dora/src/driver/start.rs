@@ -244,7 +244,7 @@ fn run_tests(vm: &VM, args: &Args, package_id: PackageId) -> i32 {
             {
                 tests += 1;
 
-                print!("test {} ... ", display_fct(vm, fct_id));
+                print!("test {} ... ", display_fct(&vm.program, fct_id));
 
                 vm.run_test(fct_id);
 
@@ -275,7 +275,7 @@ fn test_filter_matches(vm: &VM, args: &Args, fct_id: FunctionId) -> bool {
     }
 
     let filter = args.test_filter.as_ref().unwrap();
-    let name = display_fct(vm, fct_id);
+    let name = display_fct(&vm.program, fct_id);
 
     name.contains(filter)
 }
