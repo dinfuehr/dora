@@ -7,9 +7,20 @@ use package::graph::{ClassInfo, Graph, Inst, Op};
 
 pub fn performLoadElimination(ci: CompilationInfo, graph: Graph) {
     computePostOrder(graph);
+    let per_block_data = Array[Option[LoadData]]::fill(graph.blocks.size(), None[LoadData]);
 
     for block in graph.reversePostOrderIterator() {
-        let data = LoadData::new();
+        let data = if block.predecessors.size() == 1 {
+            // let p = block.predecessors(0).source;
+            // if per_block_data(p.id().toInt64()) is Some(data) {
+            //     data
+            // } else {
+            //     LoadData::new()
+            // }
+            LoadData::new()
+        } else {
+            LoadData::new()
+        };
 
         for inst in block.instructionsIterator() {
             let op = inst.op();
@@ -52,31 +63,37 @@ pub fn performLoadElimination(ci: CompilationInfo, graph: Graph) {
 
             } else if op == Op::Store {
                 if inst.hasClassInfo() {
-                    data.class_values.clear();
+                    let class_info = inst.getClassInfo();
+                    let field_offset = inst.getOffset();
+                    data.class_values.retainIf(|field: Field, value: Inst|: Bool {
+                        field.class_info != class_info || field.offset != field_offset
+                    });
                 }
 
             } else if op.isCall() {
                 data.kill();
             }
         }
+
+        per_block_data(block.id().toInt64()) = Some[LoadData](data);
     }
 }
 
 struct Field {
     object: Inst,
     class_info: ClassInfo,
-    field_offset: Int32,
+    offset: Int32,
 }
 
 impl Equals for Field {
     fn equals(other: Field): Bool {
-        self.object == other.object && self.class_info == other.class_info && self.field_offset == other.field_offset
+        self.object == other.object && self.class_info == other.class_info && self.offset == other.offset
     }
 }
 
 impl Hash for Field {
     fn hash(): Int32 {
-        self.object.hash() ^ self.class_info.hash() ^ self.field_offset
+        self.object.hash() ^ self.class_info.hash() ^ self.offset
     }
 }
 
@@ -114,5 +131,13 @@ impl LoadData {
     fn kill() {
         self.global_values.clear();
         self.class_values.clear();
+    }
+
+    fn clone(): LoadData {
+        LoadData(
+            self.initialized_globals.clone(),
+            self.global_values.clone(),
+            self.class_values.clone(),
+        )
     }
 }

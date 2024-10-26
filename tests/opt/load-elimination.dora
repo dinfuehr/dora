@@ -2,14 +2,35 @@
 
 class Foo {
     a: Int,
+    b: Int,
 }
 
 fn main() {
-    let x = Foo(100);
-    assert(add(x) == 200);
+    let x = Foo(100, 300);
+    assert(f1(x) == 200);
+
+    let x = Foo(100, 300);
+    assert(f2(x, x) == 110);
+
+    let x = Foo(100, 300);
+    assert(f3(x, x) == 200);
 }
 
 @Optimize
-fn add(foo: Foo): Int {
+fn f1(foo: Foo): Int {
     foo.a + foo.a
+}
+
+@Optimize
+fn f2(foo: Foo, foo2: Foo): Int {
+    let x = foo.a;
+    foo2.a = 10;
+    x + foo.a
+}
+
+@Optimize
+fn f3(foo: Foo, foo2: Foo): Int {
+    let x = foo.a;
+    foo2.b = 10;
+    x + foo.a
 }
