@@ -69,7 +69,7 @@ impl AstDumper {
 
     fn dump_global(&mut self, global: &Global) {
         dump!(self, "global @ {} {}", global.span, global.id);
-        self.dump_ident(&global.name);
+        self.dump_maybe_ident(&global.name);
 
         self.indent(|d| {
             d.dump_type(&global.data_type);
@@ -84,13 +84,13 @@ impl AstDumper {
 
     fn dump_extern(&mut self, stmt: &ExternPackage) {
         dump!(self, "extern package @ {} {}", stmt.span, stmt.id);
-        self.dump_ident(&stmt.name);
-        self.dump_ident(&stmt.identifier);
+        self.dump_maybe_ident(&stmt.name);
+        self.dump_maybe_ident(&stmt.identifier);
     }
 
     fn dump_const(&mut self, const_: &Const) {
         dump!(self, "const @ {} {}", const_.span, const_.id);
-        self.dump_ident(&const_.name);
+        self.dump_maybe_ident(&const_.name);
 
         self.indent(|d| {
             d.dump_type(&const_.data_type);
@@ -104,7 +104,7 @@ impl AstDumper {
 
     fn dump_module(&mut self, module: &Module) {
         dump!(self, "module @ {} {}", module.span, module.id);
-        self.dump_ident(&module.name);
+        self.dump_maybe_ident(&module.name);
 
         self.indent(|d| {
             if let Some(ref elements) = module.elements {
@@ -117,7 +117,7 @@ impl AstDumper {
 
     fn dump_enum(&mut self, enum_: &Enum) {
         dump!(self, "enum @ {} {}", enum_.span, enum_.id);
-        self.dump_ident(&enum_.name);
+        self.dump_maybe_ident(&enum_.name);
 
         self.indent(|d| {
             for value in &enum_.variants {
@@ -128,7 +128,7 @@ impl AstDumper {
 
     fn dump_enum_value(&mut self, value: &EnumVariant) {
         dump!(self, "enum variant @ {} {}", value.span, value.id);
-        self.dump_ident(&value.name);
+        self.dump_maybe_ident(&value.name);
 
         if let Some(ref types) = value.types {
             self.indent(|d| {
@@ -158,7 +158,7 @@ impl AstDumper {
 
     fn dump_struct(&mut self, struc: &Struct) {
         dump!(self, "struct @ {} {}", struc.span, struc.id);
-        self.dump_ident(&struc.name);
+        self.dump_maybe_ident(&struc.name);
 
         self.indent(|d| {
             for field in &struc.fields {
@@ -169,14 +169,14 @@ impl AstDumper {
 
     fn dump_struct_field(&mut self, field: &StructField) {
         dump!(self, "field @ {} {}", field.span, field.id);
-        self.dump_ident(&field.name);
+        self.dump_maybe_ident(&field.name);
         self.indent(|d| d.dump_type(&field.data_type));
     }
 
     fn dump_trait(&mut self, t: &Trait) {
         dump!(self, "trait @ {} {}", t.span, t.id);
         self.indent(|d| {
-            d.dump_ident(&t.name);
+            d.dump_maybe_ident(&t.name);
             for m in &t.methods {
                 d.dump_elem(m);
             }
@@ -186,13 +186,13 @@ impl AstDumper {
     fn dump_associated_type(&mut self, t: &Alias) {
         dump!(self, "trait @ {} {}", t.span, t.id);
         self.indent(|d| {
-            d.dump_ident(&t.name);
+            d.dump_maybe_ident(&t.name);
         });
     }
 
     fn dump_class(&mut self, cls: &Class) {
         dump!(self, "class @ {} {}", cls.span, cls.id);
-        self.dump_ident(&cls.name);
+        self.dump_maybe_ident(&cls.name);
 
         self.indent(|d| {
             dump!(d, "fields");
@@ -207,13 +207,13 @@ impl AstDumper {
 
     fn dump_field(&mut self, field: &Field) {
         dump!(self, "field @ {} {}", field.span, field.id);
-        self.dump_ident(&field.name);
+        self.dump_maybe_ident(&field.name);
         self.indent(|d| d.dump_type(&field.data_type));
     }
 
     fn dump_fct(&mut self, fct: &Function) {
         dump!(self, "fct @ {} {}", fct.span, fct.id);
-        self.dump_ident(&fct.name);
+        self.dump_maybe_ident(&fct.name);
 
         self.indent(|d| {
             dump!(d, "params");
@@ -245,7 +245,7 @@ impl AstDumper {
 
     fn dump_param(&mut self, param: &Param) {
         dump!(self, "param @ {} {}", param.span, param.id);
-        self.dump_ident(&param.name);
+        self.dump_maybe_ident(&param.name);
 
         self.indent(|d| d.dump_type(&param.data_type));
     }
@@ -516,7 +516,10 @@ impl AstDumper {
             d.indent(|d| d.dump_expr(&expr.callee));
 
             for arg in &expr.args {
-                d.dump_expr(arg);
+                if let Some(ref name) = arg.name {
+                    d.dump_ident(name);
+                }
+                d.dump_expr(&arg.expr);
             }
         });
     }
@@ -548,12 +551,16 @@ impl AstDumper {
         });
     }
 
-    fn dump_ident(&self, ident: &Option<Ident>) {
+    fn dump_maybe_ident(&self, ident: &Option<Ident>) {
         if let Some(ident) = ident {
             dump!(self, "ident {}", ident.name_as_string);
         } else {
             dump!(self, "missing ident");
         }
+    }
+
+    fn dump_ident(&self, ident: &Ident) {
+        dump!(self, "ident {}", ident.name_as_string);
     }
 
     fn indent<F>(&mut self, fct: F)

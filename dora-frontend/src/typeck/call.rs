@@ -44,7 +44,7 @@ pub(super) fn check_expr_call(
     let arg_types: Vec<SourceType> = e
         .args
         .iter()
-        .map(|arg| check_expr(ck, arg, SourceType::Any))
+        .map(|arg| check_expr(ck, &arg.expr, SourceType::Any))
         .collect();
 
     if let Some(expr_ident) = callee.to_ident() {

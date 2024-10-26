@@ -277,7 +277,7 @@ fn check_expr_assign_call(ck: &mut TypeCheck, e: &ast::ExprBinType) {
     let mut arg_types: Vec<SourceType> = call
         .args
         .iter()
-        .map(|arg| check_expr(ck, arg, SourceType::Any))
+        .map(|arg| check_expr(ck, &arg.expr, SourceType::Any))
         .collect();
 
     let value_type = check_expr(ck, &e.rhs, SourceType::Any);

@@ -1850,8 +1850,30 @@ impl Parser {
             ParseError::ExpectedExpression,
             ARG_LIST,
             |p| {
-                if p.is_set(EXPRESSION_FIRST) {
-                    Some(p.parse_expression())
+                if p.is2(IDENTIFIER, EQ) {
+                    let start = p.current_span().start();
+                    let name = p.expect_identifier();
+                    p.assert(EQ);
+                    let expr = p.parse_expression();
+                    let span = p.span_from(start);
+
+                    Some(Arc::new(Argument {
+                        id: p.new_node_id(),
+                        name,
+                        span,
+                        expr,
+                    }))
+                } else if p.is_set(EXPRESSION_FIRST) {
+                    let start = p.current_span().start();
+                    let expr = p.parse_expression();
+                    let span = p.span_from(start);
+
+                    Some(Arc::new(Argument {
+                        id: p.new_node_id(),
+                        name: None,
+                        span,
+                        expr,
+                    }))
                 } else {
                     None
                 }
@@ -3363,7 +3385,19 @@ mod tests {
         let call = expr.to_call().unwrap();
         assert_eq!("a", call.callee.to_ident().unwrap().name);
         assert_eq!(1, call.args.len());
-        assert_eq!("b", call.args[0].to_ident().unwrap().name);
+        assert_eq!("b", call.args[0].expr.to_ident().unwrap().name);
+    }
+
+    #[test]
+    fn parse_call_with_named_arguments() {
+        let expr = parse_expr("a(1, 2, x = 3, y = 4)");
+        let call = expr.to_call().unwrap();
+        assert!(call.callee.is_ident());
+        assert_eq!(4, call.args.len());
+        assert!(call.args[0].name.is_none());
+        assert!(call.args[1].name.is_none());
+        assert!(call.args[2].name.is_some());
+        assert!(call.args[3].name.is_some());
     }
 
     #[test]

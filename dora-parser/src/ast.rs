@@ -1218,7 +1218,7 @@ impl ExprData {
         })
     }
 
-    pub fn create_call(id: NodeId, span: Span, callee: Expr, args: Vec<Expr>) -> ExprData {
+    pub fn create_call(id: NodeId, span: Span, callee: Expr, args: Vec<Arc<Argument>>) -> ExprData {
         ExprData::Call(ExprCallType {
             id,
             span,
@@ -1875,7 +1875,7 @@ pub struct ExprCallType {
     pub span: Span,
 
     pub callee: Expr,
-    pub args: Vec<Expr>,
+    pub args: Vec<Arc<Argument>>,
 }
 
 impl ExprCallType {
@@ -1900,6 +1900,14 @@ impl ExprCallType {
     pub fn callee(&self) -> &ExprData {
         &self.callee
     }
+}
+
+#[derive(Clone, Debug)]
+pub struct Argument {
+    pub id: NodeId,
+    pub span: Span,
+    pub name: Option<Ident>,
+    pub expr: Expr,
 }
 
 #[derive(Clone, Debug)]
