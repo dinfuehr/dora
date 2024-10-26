@@ -311,7 +311,7 @@ fn decodeArchitecture(reader: ByteReader): Architecture {
     }
 }
 
-fn decodeBytecodeTypeArray(reader: ByteReader): Array[BytecodeType] {
+pub fn decodeBytecodeTypeArray(reader: ByteReader): Array[BytecodeType] {
     let size = reader.readInt32().toInt64();
     let data = Array[BytecodeType]::fill(size, BytecodeType::Unit);
 

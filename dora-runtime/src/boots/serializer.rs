@@ -183,7 +183,7 @@ fn encode_type_params(vm: &VM, type_params: &BytecodeTypeArray, buffer: &mut Byt
     encode_bytecode_type_array(vm, type_params, buffer);
 }
 
-fn encode_bytecode_type_array(vm: &VM, sta: &BytecodeTypeArray, buffer: &mut ByteBuffer) {
+pub fn encode_bytecode_type_array(vm: &VM, sta: &BytecodeTypeArray, buffer: &mut ByteBuffer) {
     buffer.emit_u32(sta.len() as u32);
 
     for ty in sta.iter() {

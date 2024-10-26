@@ -40,7 +40,7 @@ pub const TRAP_OVERFLOW: Int32 = 8i32;
 @internal pub fn hasGlobalInitialValueRaw(id: Int32): Bool;
 @internal pub fn getGlobalInitializerFunctionIdRaw(id: Int32): Int32;
 @internal pub fn getReadOnlyStringAddressRaw(id: String): Int64;
-@internal pub fn findTraitImplRaw(data: Array[UInt8]): Int32;
+@internal pub fn findTraitImplRaw(data: Array[UInt8]): Array[UInt8];
 @internal pub fn getIntrinsicForFunctionRaw(id: Int32): Int32;
 @internal pub fn getStructDataRaw(id: Int32): Array[UInt8];
 @internal pub fn getEnumDataRaw(id: Int32): Array[UInt8];
@@ -136,12 +136,17 @@ pub fn getReadOnlyStringAddress(value: String): Address {
     Address(getReadOnlyStringAddressRaw(value))
 }
 
-pub fn findTraitImpl(ci: CompilationInfo, trait_fct_id: FunctionId, trait_type_params: Array[BytecodeType], object_ty: BytecodeType): FunctionId {
+pub fn findTraitImpl(ci: CompilationInfo, trait_fct_id: FunctionId, trait_type_params: Array[BytecodeType], object_ty: BytecodeType): (FunctionId, Array[BytecodeType]) {
     let writer = ci.getByteWriter();
     writer.emitInt32(trait_fct_id.value);
     encodeBytecodeTypeArray(writer, trait_type_params);
     encodeBytecodeType(writer, object_ty);
-    FunctionId(findTraitImplRaw(writer.toArray()))
+    let encoded = findTraitImplRaw(writer.toArray());
+    let reader = ByteReader::new(encoded);
+    let fct_id = FunctionId(reader.readInt32());
+    let type_params = deserializer::decodeBytecodeTypeArray(reader);
+    assert(!reader.moreBytes());
+    (fct_id, type_params)
 }
 
 pub fn getIntrinsicForFunction(fct_id: FunctionId): Int32 {

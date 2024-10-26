@@ -282,7 +282,8 @@ impl<'a> TransitiveClosureComputation<'a> {
 
                     let ty = type_params[id as usize].clone();
 
-                    let callee_id = find_trait_impl(self.vm, callee_trait_fct_id, trait_ty, ty);
+                    let (callee_id, callee_type_params) =
+                        find_trait_impl(self.vm, callee_trait_fct_id, trait_ty, ty);
 
                     let callee_type_params =
                         specialize_bty_array(&callee_type_params, &type_params);

@@ -9,7 +9,7 @@ use crate::sema::{find_impl, FctDefinitionId, ForTypeInfo};
 use crate::sym::SymbolKind;
 use crate::ty::{self, TraitType};
 use crate::typeck::{check_expr, check_pattern, read_ident, read_path, TypeCheck};
-use crate::{specialize_type, SourceType};
+use crate::{specialize_type, SourceType, SourceTypeArray};
 
 pub(super) fn check_expr_while(
     ck: &mut TypeCheck,
@@ -71,14 +71,14 @@ pub(super) fn check_expr_for(
         return SourceType::Unit;
     }
 
-    if let Some((iter_fct_id, iterator_type)) =
+    if let Some((iter_fct_id, type_params, iterator_type)) =
         type_supports_into_iterator_trait(ck, object_type.clone())
     {
         let (mut for_type_info, ret_type) = type_supports_iterator_trait(ck, iterator_type.clone())
             .expect("type not implementing iterator trait");
 
         // store fct ids for code generation
-        for_type_info.iter = Some(iter_fct_id);
+        for_type_info.iter = Some((iter_fct_id, type_params));
         ck.analysis.map_fors.insert(stmt.id, for_type_info);
 
         check_for_body(ck, stmt, ret_type);
@@ -106,7 +106,7 @@ fn check_for_body(ck: &mut TypeCheck, stmt: &ast::ExprForType, ty: SourceType) {
 fn type_supports_into_iterator_trait(
     ck: &mut TypeCheck,
     object_type: SourceType,
-) -> Option<(FctDefinitionId, SourceType)> {
+) -> Option<(FctDefinitionId, SourceTypeArray, SourceType)> {
     let into_iterator_trait_id = ck.sa.known.traits.into_iterator();
     let into_iterator_trait = ck.sa.trait_(into_iterator_trait_id);
 
@@ -152,7 +152,7 @@ fn type_supports_into_iterator_trait(
         let iterator_type =
             specialize_type(ck.sa, iterator_type_impl_alias.ty(), &impl_match.bindings);
 
-        Some((iter_impl_fct_id, iterator_type))
+        Some((iter_impl_fct_id, impl_match.bindings, iterator_type))
     } else {
         None
     }

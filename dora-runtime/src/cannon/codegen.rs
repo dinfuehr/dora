@@ -2685,7 +2685,7 @@ impl<'a> CannonCodeGen<'a> {
         let trait_ty = BytecodeType::TraitObject(trait_id, type_params.clone());
 
         let ty = self.type_params[id as usize].clone();
-        let callee_id = find_trait_impl(self.vm, trait_fct_id, trait_ty, ty);
+        let (callee_id, type_params) = find_trait_impl(self.vm, trait_fct_id, trait_ty, ty);
 
         let pos = self.bytecode.offset_location(self.current_offset.to_u32());
         let arguments = self.argument_stack.drain(..).collect::<Vec<_>>();

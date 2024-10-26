@@ -426,7 +426,7 @@ extern "C" fn get_read_only_string_address_raw(data: Handle<Str>) -> Address {
     handle.address()
 }
 
-extern "C" fn find_trait_impl_raw(data: Handle<UInt8Array>) -> u32 {
+extern "C" fn find_trait_impl_raw(data: Handle<UInt8Array>) -> Ref<UInt8Array> {
     let vm = get_vm();
 
     let mut serialized_data = vec![0; data.len()];
@@ -452,9 +452,12 @@ extern "C" fn find_trait_impl_raw(data: Handle<UInt8Array>) -> u32 {
     };
 
     let trait_ty = BytecodeType::TraitObject(trait_id, trait_type_params);
-    let callee_id = impls::find_trait_impl(vm, trait_fct_id, trait_ty, object_ty);
+    let (callee_id, type_params) = impls::find_trait_impl(vm, trait_fct_id, trait_ty, object_ty);
 
-    callee_id.0
+    let mut buffer = ByteBuffer::new();
+    buffer.emit_u32(callee_id.0);
+    serializer::encode_bytecode_type_array(vm, &type_params, &mut buffer);
+    byte_array_from_buffer(vm, buffer.data()).cast()
 }
 
 extern "C" fn get_intrinsic_for_function_raw(id: u32) -> i32 {

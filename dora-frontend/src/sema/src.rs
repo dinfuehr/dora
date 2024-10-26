@@ -305,7 +305,7 @@ pub struct ContextFieldId(pub usize);
 
 #[derive(Debug, Clone)]
 pub struct ForTypeInfo {
-    pub iter: Option<FctDefinitionId>,
+    pub iter: Option<(FctDefinitionId, SourceTypeArray)>,
     pub next: FctDefinitionId,
     pub iterator_type: SourceType,
     pub next_type: SourceType,

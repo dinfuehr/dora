@@ -107,6 +107,12 @@ pub struct TypeParamData {
     pub bounds: Vec<TypeParamBound>,
 }
 
+impl TypeParamData {
+    pub fn type_param_count(&self) -> usize {
+        self.names.len()
+    }
+}
+
 #[derive(Debug, Decode, Encode)]
 pub struct TypeParamBound {
     pub ty: BytecodeType,
@@ -238,6 +244,10 @@ impl Program {
 
     pub fn module(&self, id: ModuleId) -> &ModuleData {
         &self.modules[id.0 as usize]
+    }
+
+    pub fn global(&self, id: GlobalId) -> &GlobalData {
+        &self.globals[id.0 as usize]
     }
 
     pub fn program_module_id(&self) -> ModuleId {

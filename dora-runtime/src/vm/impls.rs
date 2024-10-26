@@ -8,7 +8,7 @@ pub fn find_trait_impl(
     fct_id: FunctionId,
     trait_ty: BytecodeType,
     object_type: BytecodeType,
-) -> FunctionId {
+) -> (FunctionId, BytecodeTypeArray) {
     debug_assert!(object_type.is_concrete_type());
 
     let type_param_data = TypeParamData {
@@ -16,7 +16,7 @@ pub fn find_trait_impl(
         bounds: Vec::new(),
     };
 
-    let impl_id = find_impl(vm, object_type, &type_param_data, trait_ty.clone())
+    let (impl_id, bindings) = find_impl(vm, object_type, &type_param_data, trait_ty.clone())
         .expect("no impl found for generic trait method call");
 
     let impl_ = vm.impl_(impl_id);
@@ -32,7 +32,9 @@ pub fn find_trait_impl(
         .position(|mid| *mid == fct_id)
         .expect("trait method id not found");
 
-    impl_.methods[trait_method_idx]
+    let impl_fct_id = impl_.methods[trait_method_idx];
+
+    (impl_fct_id, bindings)
 }
 
 fn find_impl(
@@ -40,7 +42,7 @@ fn find_impl(
     check_ty: BytecodeType,
     check_type_param_defs: &TypeParamData,
     trait_ty: BytecodeType,
-) -> Option<ImplId> {
+) -> Option<(ImplId, BytecodeTypeArray)> {
     let trait_id = trait_ty.trait_id().expect("trait expected");
 
     for (impl_id, impl_) in vm.program.impls.iter().enumerate() {
@@ -60,7 +62,7 @@ fn find_impl(
                 continue;
             }
 
-            return Some(impl_id);
+            return Some((impl_id, binding));
         }
     }
 

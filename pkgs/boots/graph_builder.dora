@@ -1387,16 +1387,16 @@ impl SsaGen {
 
         let ConstPoolEntry::Generic(type_param_idx, trait_fct_id, trait_type_params) = self.bc.constPool(idx);
         let object_ty = self.typeParams(type_param_idx.toInt64());
-        let callee_id = iface::findTraitImpl(self.ci, trait_fct_id, trait_type_params, object_ty);
+        let (callee_id, type_params) = iface::findTraitImpl(self.ci, trait_fct_id, trait_type_params, object_ty);
 
         let intrinsic = iface::getIntrinsicForFunction(callee_id);
 
         if self.isIntrinsic(intrinsic) {
             let args = self.pushed_registers.toArray();
             self.pushed_registers.clear();
-            self.emitIntrinsic(intrinsic, dest, args, idx, trait_type_params)
+            self.emitIntrinsic(intrinsic, dest, args, idx, type_params)
         } else {
-            self.emitCall(dest, kind, callee_id, trait_type_params);
+            self.emitCall(dest, kind, callee_id, type_params);
             false
         }
     }

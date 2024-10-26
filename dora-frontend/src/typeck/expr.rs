@@ -10,8 +10,8 @@ use crate::error::msg::ErrorMessage;
 use crate::interner::Name;
 use crate::program_parser::ParsedModifierList;
 use crate::sema::{
-    create_tuple, find_field_in_class, find_impl, impl_matches, implements_trait, AnalysisData,
-    CallType, ConstValue, EnumDefinitionId, FctDefinition, FctParent, IdentType, Intrinsic,
+    create_tuple, find_field_in_class, find_impl, implements_trait, AnalysisData, CallType,
+    ConstValue, EnumDefinitionId, FctDefinition, FctParent, IdentType, Intrinsic,
     LazyLambdaCreationData, LazyLambdaId, ModuleDefinitionId, NestedVarId, Param, Sema,
     SourceFileId, TraitDefinitionId,
 };
@@ -1012,13 +1012,7 @@ fn check_expr_bin_trait(
     let trait_method_name = ck.sa.interner.intern(trait_method_name);
 
     if let Some(impl_match) = impl_match {
-        let type_params = impl_matches(
-            ck.sa,
-            lhs_type.clone(),
-            ck.type_param_definition,
-            impl_match.id,
-        )
-        .expect("impl does not match");
+        let type_params = impl_match.bindings;
 
         let trait_ = &ck.sa.trait_(trait_id);
         let trait_method_id = trait_

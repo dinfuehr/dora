@@ -2,8 +2,8 @@ use std::fmt::Display;
 use std::io;
 
 use crate::{
-    read, BytecodeFunction, BytecodeOffset, BytecodeType, BytecodeTypeArray, BytecodeVisitor,
-    ConstPoolEntry, ConstPoolIdx, GlobalId, Program, Register,
+    display_fct, module_path_name, read, BytecodeFunction, BytecodeOffset, BytecodeType,
+    BytecodeTypeArray, BytecodeVisitor, ConstPoolEntry, ConstPoolIdx, GlobalId, Program, Register,
 };
 
 pub fn dump_stdout(prog: &Program, bc: &BytecodeFunction) {
@@ -47,118 +47,119 @@ pub fn dump(w: &mut dyn io::Write, prog: &Program, bc: &BytecodeFunction) -> std
             }
             ConstPoolEntry::Char(ref value) => writeln!(w, "{}{} => Char {}", align, idx, value)?,
             ConstPoolEntry::Class(cls_id, type_params) => {
-                let cls = &prog.classes[cls_id.0 as usize];
+                let cls = &prog.class(*cls_id);
+                let cls_name = module_path_name(prog, cls.module_id, &cls.name);
                 writeln!(
                     w,
                     "{}{} => Class {}{}",
                     align,
                     idx,
                     cls.name,
-                    fmt_name(prog, &cls.name, &type_params)
+                    fmt_name(prog, &cls_name, &type_params)
                 )?;
             }
             ConstPoolEntry::Struct(struct_id, type_params) => {
-                let struct_ = &prog.structs[struct_id.0 as usize];
+                let struct_ = prog.struct_(*struct_id);
+                let struct_name = module_path_name(prog, struct_.module_id, &struct_.name);
                 writeln!(
                     w,
                     "{}{} => Struct {}",
                     align,
                     idx,
-                    fmt_name(prog, &struct_.name, &type_params)
+                    fmt_name(prog, &struct_name, &type_params)
                 )?;
             }
             ConstPoolEntry::StructField(struct_id, type_params, field_idx) => {
-                let struct_ = &prog.structs[struct_id.0 as usize];
+                let struct_ = prog.struct_(*struct_id);
+                let struct_name = module_path_name(prog, struct_.module_id, &struct_.name);
                 let field = &struct_.fields[*field_idx as usize];
                 writeln!(
                     w,
                     "{}{} => StructField {}.{}",
                     align,
                     idx,
-                    fmt_name(prog, &struct_.name, &type_params),
+                    fmt_name(prog, &struct_name, &type_params),
                     field.name
                 )?;
             }
             ConstPoolEntry::Enum(enum_id, type_params) => {
-                let enum_ = &prog.enums[enum_id.0 as usize];
+                let enum_ = prog.enum_(*enum_id);
+                let enum_name = module_path_name(prog, enum_.module_id, &enum_.name);
                 writeln!(
                     w,
                     "{}{} => Enum {}",
                     align,
                     idx,
-                    fmt_name(prog, &enum_.name, &type_params)
+                    fmt_name(prog, &enum_name, &type_params)
                 )?;
             }
             ConstPoolEntry::EnumVariant(enum_id, type_params, variant_idx) => {
-                let enum_ = &prog.enums[enum_id.0 as usize];
+                let enum_ = prog.enum_(*enum_id);
+                let enum_name = module_path_name(prog, enum_.module_id, &enum_.name);
                 let variant = &enum_.variants[*variant_idx as usize];
                 writeln!(
                     w,
                     "{}{} => EnumVariant {}::{}",
                     align,
                     idx,
-                    fmt_name(prog, &enum_.name, &type_params),
+                    fmt_name(prog, &enum_name, &type_params),
                     variant.name,
                 )?;
             }
             ConstPoolEntry::EnumElement(enum_id, type_params, variant_idx, element_idx) => {
-                let enum_ = &prog.enums[enum_id.0 as usize];
+                let enum_ = &prog.enum_(*enum_id);
+                let enum_name = module_path_name(prog, enum_.module_id, &enum_.name);
                 let variant = &enum_.variants[*variant_idx as usize];
                 writeln!(
                     w,
                     "{}{} => EnumVariantElement {}::{}::{}",
                     align,
                     idx,
-                    fmt_name(prog, &enum_.name, &type_params),
+                    fmt_name(prog, &enum_name, &type_params),
                     variant.name,
                     element_idx,
                 )?;
             }
             ConstPoolEntry::Field(cls_id, type_params, field_id) => {
-                let cls = &prog.classes[cls_id.0 as usize];
+                let cls = prog.class(*cls_id);
+                let cls_name = module_path_name(prog, cls.module_id, &cls.name);
                 let field = &cls.fields[*field_id as usize];
                 writeln!(
                     w,
                     "{}{} => Field {}.{}",
                     align,
                     idx,
-                    fmt_name(prog, &cls.name, &type_params),
+                    fmt_name(prog, &cls_name, &type_params),
                     field.name
                 )?;
             }
             ConstPoolEntry::Fct(fct_id, type_params) => {
-                let fct = &prog.functions[fct_id.0 as usize];
-
                 writeln!(
                     w,
                     "{}{} => Fct {}",
                     align,
                     idx,
-                    fmt_name(prog, &fct.name, &type_params)
+                    fmt_name(prog, &display_fct(prog, *fct_id), &type_params)
                 )?;
             }
             ConstPoolEntry::TraitObjectMethod(trait_object_ty, fct_id) => {
-                let fct = &prog.functions[fct_id.0 as usize];
-
                 writeln!(
                     w,
                     "{}{} => TraitObjectMethod {}.{}",
                     align,
                     idx,
                     fmt_ty(prog, &trait_object_ty),
-                    &fct.name
+                    &display_fct(prog, *fct_id)
                 )?;
             }
             ConstPoolEntry::Generic(id, fct_id, type_params) => {
-                let fct = &prog.functions[fct_id.0 as usize];
-
                 writeln!(
                     w,
                     "{}{} => TypeParam({}) Method {}",
                     align,
                     idx,
                     id,
-                    fmt_name(prog, &fct.name, &type_params)
+                    fmt_name(prog, &display_fct(prog, *fct_id), &type_params)
                 )?;
             }
             ConstPoolEntry::TraitObject {
@@ -287,19 +288,19 @@ impl<'a> Display for BytecodeTypePrinter<'a> {
             BytecodeType::Tuple(ref types) => write!(f, "{}", fmt_tuple(self.prog, types)),
             BytecodeType::TypeParam(idx) => write!(f, "T#{}", idx),
             BytecodeType::Enum(enum_id, type_params) => {
-                let enum_ = &self.prog.enums[enum_id.0 as usize];
+                let enum_ = self.prog.enum_(*enum_id);
                 write!(f, "{}", fmt_name(self.prog, &enum_.name, type_params))
             }
             BytecodeType::Struct(struct_id, type_params) => {
-                let struct_ = &self.prog.structs[struct_id.0 as usize];
+                let struct_ = self.prog.struct_(*struct_id);
                 write!(f, "{}", fmt_name(self.prog, &struct_.name, type_params))
             }
             BytecodeType::Class(class_id, type_params) => {
-                let class = &self.prog.classes[class_id.0 as usize];
+                let class = self.prog.class(*class_id);
                 write!(f, "{}", fmt_name(self.prog, &class.name, type_params))
             }
             BytecodeType::TraitObject(trait_id, type_params) => {
-                let trait_ = &self.prog.traits[trait_id.0 as usize];
+                let trait_ = self.prog.trait_(*trait_id);
                 write!(f, "{}", fmt_name(self.prog, &trait_.name, type_params))
             }
             BytecodeType::Lambda(params, return_ty) => {
@@ -311,7 +312,7 @@ impl<'a> Display for BytecodeTypePrinter<'a> {
                 )
             }
             BytecodeType::TypeAlias(alias_id) | BytecodeType::Assoc(alias_id, ..) => {
-                let alias = &self.prog.aliases[alias_id.0 as usize];
+                let alias = self.prog.alias(*alias_id);
                 write!(f, "{}", alias.name)?;
                 if let Some(ref ty) = alias.ty {
                     write!(f, "{}", fmt_ty(self.prog, ty))
@@ -371,7 +372,7 @@ impl<'a> BytecodeDumper<'a> {
             }
             _ => unreachable!(),
         };
-        let enum_ = &self.prog.enums[enum_id.0 as usize];
+        let enum_ = self.prog.enum_(enum_id);
         let variant = &enum_.variants[variant_idx as usize];
         writeln!(
             self.w,
@@ -393,7 +394,7 @@ impl<'a> BytecodeDumper<'a> {
             ConstPoolEntry::Enum(enum_id, type_params) => (*enum_id, type_params),
             _ => unreachable!(),
         };
-        let enum_ = &self.prog.enums[enum_id.0 as usize];
+        let enum_ = self.prog.enum_(enum_id);
         writeln!(
             self.w,
             " {}, {}, ConstPoolIdx({}) # {}",
@@ -426,7 +427,7 @@ impl<'a> BytecodeDumper<'a> {
         self.emit_start(name);
         match self.bc.const_pool(field_idx) {
             ConstPoolEntry::Field(cls_id, type_params, field_id) => {
-                let cls = &self.prog.classes[cls_id.0 as usize];
+                let cls = self.prog.class(*cls_id);
                 let field = &cls.fields[*field_id as usize];
 
                 writeln!(
@@ -441,7 +442,7 @@ impl<'a> BytecodeDumper<'a> {
                 .expect("write! failed");
             }
             ConstPoolEntry::StructField(struct_id, type_params, field_id) => {
-                let struct_ = &self.prog.structs[struct_id.0 as usize];
+                let struct_ = self.prog.struct_(*struct_id);
                 let field = &struct_.fields[*field_id as usize];
 
                 writeln!(
@@ -461,7 +462,7 @@ impl<'a> BytecodeDumper<'a> {
 
     fn emit_global(&mut self, name: &str, r1: Register, gid: GlobalId) {
         self.emit_start(name);
-        let global_var = &self.prog.globals[gid.0 as usize];
+        let global_var = self.prog.global(gid);
         writeln!(self.w, " {}, GlobalId({}) # {}", r1, gid.0, global_var.name)
             .expect("write! failed");
     }
@@ -481,7 +482,7 @@ impl<'a> BytecodeDumper<'a> {
             _ => unreachable!(),
         };
 
-        self.prog.functions[fct_id.0 as usize].name.clone()
+        display_fct(&self.prog, *fct_id)
     }
 
     fn emit_new_lambda(&mut self, name: &str, r1: Register, idx: ConstPoolIdx) {
@@ -490,7 +491,7 @@ impl<'a> BytecodeDumper<'a> {
             ConstPoolEntry::Fct(fct_id, type_params) => (*fct_id, type_params.clone()),
             _ => unreachable!(),
         };
-        let fct = &self.prog.functions[fct_id.0 as usize];
+        let fct = self.prog.fct(fct_id);
         writeln!(self.w, " {}, ConstPoolIdx({}) # {}", r1, idx.0, fct.name).expect("write! failed");
     }
 
@@ -500,7 +501,7 @@ impl<'a> BytecodeDumper<'a> {
             ConstPoolEntry::Class(cls_id, type_params) => (*cls_id, type_params),
             _ => unreachable!(),
         };
-        let cls = &self.prog.classes[cls_id.0 as usize];
+        let cls = self.prog.class(cls_id);
         writeln!(
             self.w,
             " {}, ConstPoolIdx({}) # {}",
@@ -538,7 +539,7 @@ impl<'a> BytecodeDumper<'a> {
             ConstPoolEntry::Class(cls_id, type_params) => (*cls_id, type_params),
             _ => unreachable!(),
         };
-        let cls = &self.prog.classes[cls_id.0 as usize];
+        let cls = self.prog.class(cls_id);
         writeln!(
             self.w,
             " {}, {}, ConstPoolIdx({}) # {}",
@@ -567,7 +568,7 @@ impl<'a> BytecodeDumper<'a> {
             }
             _ => unreachable!(),
         };
-        let enum_ = &self.prog.enums[enum_id.0 as usize];
+        let enum_ = self.prog.enum_(enum_id);
         let variant = &enum_.variants[variant_idx as usize];
         writeln!(
             self.w,
@@ -586,7 +587,7 @@ impl<'a> BytecodeDumper<'a> {
             ConstPoolEntry::Struct(struct_id, type_params) => (*struct_id, type_params),
             _ => unreachable!(),
         };
-        let struct_ = &self.prog.structs[struct_id.0 as usize];
+        let struct_ = self.prog.struct_(struct_id);
         writeln!(
             self.w,
             " {}, ConstPoolIdx({}) # {}",

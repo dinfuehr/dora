@@ -10,8 +10,8 @@ use crate::gc::Address;
 use crate::os;
 use crate::vm::{install_code, Code, CodeDescriptor, CodeId, CodeKind, Compiler, VM};
 use dora_bytecode::{
-    display_fct, display_ty_without_type_params, dump_stdout, BytecodeFunction, BytecodeType,
-    BytecodeTypeArray, FunctionData, FunctionId, Location,
+    display_fct, display_ty_array, display_ty_without_type_params, dump_stdout, BytecodeFunction,
+    BytecodeType, BytecodeTypeArray, FunctionData, FunctionId, Location,
 };
 
 #[derive(Clone, Copy)]
@@ -149,10 +149,26 @@ fn compile_fct_to_descriptor(
 ) -> (CodeDescriptor, Compiler, CodeKind) {
     debug_assert!(type_params.iter().all(|ty| ty.is_concrete_type()));
 
+    // let fct = vm.fct(fct_id);
+    // if type_params.len() != fct.type_params.type_param_count() {
+    //     println!("wrong type params for {}", display_fct(&vm.program, fct_id));
+    //     println!(
+    //         " type params are {}",
+    //         display_ty_array(&vm.program, &params)
+    //     );
+    //     println!(" expected {},", fct.type_params.type_param_count());
+    //     println!(" but got {} .", type_params.len());
+    // }
+    // assert_eq!(type_params.len(), fct.type_params.type_param_count());
+
     let emit_bytecode = should_emit_bytecode(vm, fct_id, compiler.to_compiler());
 
     if emit_bytecode {
-        println!("Bytecode for {}:", display_fct(&vm.program, fct_id));
+        println!(
+            "Compile bytecode for {} with {} as type params:",
+            display_fct(&vm.program, fct_id),
+            display_ty_array(&vm.program, type_params)
+        );
         dump_stdout(&vm.program, &bytecode_fct);
     }
 
