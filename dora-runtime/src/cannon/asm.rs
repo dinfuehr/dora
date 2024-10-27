@@ -182,7 +182,6 @@ impl<'a> BaselineAssembler<'a> {
                 let mode: MachineMode = MachineMode::Ptr;
                 let reg = self.get_scratch();
                 self.load_mem(mode, (*reg).into(), src.mem());
-                self.test_if_nil_bailout(Location::new(1, 1), *reg, Trap::ILLEGAL);
                 self.store_mem(mode, dest.mem(), (*reg).into());
             }
 

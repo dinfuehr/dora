@@ -1,0 +1,18 @@
+use std::HashMap;
+
+struct Foo {
+    x: String,
+    y: String,
+}
+
+fn main() {
+    let map = HashMap[Int, Foo]::new();
+    map.insert(1, Foo("foo", "bar"));
+    // This used to crash because of internal null becauses of Array::unsafeNew.
+    let map = map.clone();
+    for (k, v) in map {
+        assert(k == 1);
+        assert("foo" == v.x);
+        assert("bar" == v.y);
+    }
+}

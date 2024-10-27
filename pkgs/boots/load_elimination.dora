@@ -11,13 +11,12 @@ pub fn performLoadElimination(ci: CompilationInfo, graph: Graph) {
 
     for block in graph.reversePostOrderIterator() {
         let data = if block.predecessors.size() == 1 {
-            // let p = block.predecessors(0).source;
-            // if per_block_data(p.id().toInt64()) is Some(data) {
-            //     data
-            // } else {
-            //     LoadData::new()
-            // }
-            LoadData::new()
+            let p = block.predecessors(0).source;
+            if per_block_data(p.id().toInt64()) is Some(data) {
+                data.clone()
+            } else {
+                LoadData::new()
+            }
         } else {
             LoadData::new()
         };
