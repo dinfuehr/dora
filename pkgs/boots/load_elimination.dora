@@ -64,9 +64,22 @@ pub fn performLoadElimination(ci: CompilationInfo, graph: Graph) {
                 if inst.hasClassInfo() {
                     let class_info = inst.getClassInfo();
                     let field_offset = inst.getOffset();
+
+                    let object = inst.getInput(0).getValue();
+                    let field = Field(object, class_info, field_offset);
+                    let cur_value = data.class_values.get(field);
+
                     data.class_values.retainIf(|field: Field, value: Inst|: Bool {
                         field.class_info != class_info || field.offset != field_offset
                     });
+
+                    let new_value = inst.getInput(1).getValue();
+                    if cur_value is Some(cur_value) && cur_value == new_value {
+                        assert(!inst.hasUses());
+                        inst.remove();
+                    }
+
+                    data.class_values.insert(field, new_value);
                 }
 
             } else if op.isCall() {

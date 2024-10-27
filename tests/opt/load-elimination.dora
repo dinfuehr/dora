@@ -14,6 +14,9 @@ fn main() {
 
     let x = Foo(100, 300);
     assert(f3(x, x) == 200);
+
+    let x = Foo(100, 300);
+    assert(f4(x, 12) == 12);
 }
 
 @Optimize
@@ -33,4 +36,12 @@ fn f3(foo: Foo, foo2: Foo): Int {
     let x = foo.a;
     foo2.b = 10;
     x + foo.a
+}
+
+@Optimize
+fn f4(foo: Foo, value: Int): Int {
+    let tmp = foo.a;
+    foo.a = value;
+    foo.a = value;
+    foo.a
 }
