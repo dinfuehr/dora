@@ -1,4 +1,4 @@
 pub use self::start::*;
 
-pub mod cmd;
+pub mod flags;
 pub mod start;

@@ -2,17 +2,17 @@ use std::fs::File;
 use std::io::{self, Read, Write};
 use std::path::PathBuf;
 
-use crate::driver::cmd::{self, DriverFlags};
+use crate::driver::flags::{self, create_sema_flags, DriverFlags};
 use dora_bytecode::{display_fct, FunctionId, PackageId, Program};
 use dora_frontend as language;
-use dora_frontend::sema::{Sema, SemaFlags};
+use dora_frontend::sema::Sema;
 use dora_runtime::{clear_vm, execute_on_main, set_vm, VM};
 
 pub fn start() -> i32 {
-    let flags = cmd::parse_arguments();
+    let flags = flags::parse_arguments();
 
     if let Err(msg) = flags {
-        cmd::print_help();
+        flags::print_help();
         println!();
         println!("{}", msg);
         return 1;
@@ -26,7 +26,7 @@ pub fn start() -> i32 {
     }
 
     if flags.help {
-        cmd::print_help();
+        flags::print_help();
         return 0;
     }
 
@@ -67,7 +67,7 @@ pub fn start() -> i32 {
 
     let command = flags.command;
 
-    let vm_flags = cmd::create_vm_flags(&flags);
+    let vm_flags = flags::create_vm_flags(&flags);
 
     // Now create a VM instance from the serialized data alone.
     let program_args = std::mem::replace(&mut flags.arg_argument, None).unwrap_or(Vec::new());
@@ -113,12 +113,7 @@ pub fn start() -> i32 {
 }
 
 fn compile_into_program(flags: &DriverFlags, file: String) -> Result<Program, ()> {
-    let sema_flags = SemaFlags {
-        arg_file: Some(file),
-        packages: flags.packages.clone(),
-        test_file_as_string: None,
-        boots: flags.include_boots(),
-    };
+    let sema_flags = create_sema_flags(flags, PathBuf::from(file));
 
     let mut sa = Sema::new(sema_flags);
 

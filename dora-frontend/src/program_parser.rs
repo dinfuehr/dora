@@ -157,7 +157,7 @@ impl<'a> ProgramParser<'a> {
         self.sa.set_program_module_id(module_id);
         self.sa.set_program_package_id(package_id);
 
-        if let Some(ref file) = self.sa.flags.arg_file {
+        if let Some(ref file) = self.sa.flags.program_file {
             let path = PathBuf::from(file);
             self.add_file(package_id, module_id, path, None);
         } else if let Some(ref content) = self.sa.flags.test_file_as_string {

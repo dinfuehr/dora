@@ -13,7 +13,7 @@ fn main() {
 
 fn check_program(program: String) {
     let sem_args = SemaFlags {
-        arg_file: None,
+        program_file: None,
         packages: Vec::new(),
         test_file_as_string: Some(program),
         boots: false,

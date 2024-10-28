@@ -71,7 +71,7 @@ mod uses;
 
 pub struct SemaFlags {
     pub packages: Vec<(String, PathBuf)>,
-    pub arg_file: Option<String>,
+    pub program_file: Option<PathBuf>,
     pub test_file_as_string: Option<String>,
     pub boots: bool,
 }
@@ -80,7 +80,7 @@ impl SemaFlags {
     pub fn for_test(input: &'static str) -> SemaFlags {
         SemaFlags {
             packages: Vec::new(),
-            arg_file: None,
+            program_file: None,
             test_file_as_string: Some(input.into()),
             boots: false,
         }

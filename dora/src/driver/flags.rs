@@ -1,6 +1,7 @@
 use std::default::Default;
 use std::path::PathBuf;
 
+use dora_frontend::sema::SemaFlags;
 use dora_runtime::VmFlags;
 use dora_runtime::{CollectorName, Compiler, MemSize};
 
@@ -419,6 +420,15 @@ fn parse_mem_size(value: &str) -> Result<MemSize, String> {
 
 pub fn print_help() {
     println!("{}", USAGE);
+}
+
+pub fn create_sema_flags(flags: &DriverFlags, program_file: PathBuf) -> SemaFlags {
+    SemaFlags {
+        program_file: Some(program_file),
+        packages: flags.packages.clone(),
+        test_file_as_string: None,
+        boots: flags.include_boots(),
+    }
 }
 
 pub fn create_vm_flags(flags: &DriverFlags) -> VmFlags {
