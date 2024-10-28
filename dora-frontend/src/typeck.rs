@@ -1,3 +1,8 @@
+use std::collections::HashMap;
+use std::sync::Arc;
+
+use dora_parser::ast;
+
 use crate::sema::{
     AnalysisData, FctDefinition, FctParent, GlobalDefinition, LazyContextClassCreationData,
     LazyLambdaCreationData, Sema, TypeParamDefinition,
@@ -21,7 +26,7 @@ use crate::typeck::function::{
 pub use crate::typeck::lookup::find_method_call_candidates;
 use crate::typeck::lookup::MethodLookup;
 use crate::typeck::stmt::{check_pattern, check_stmt};
-use crate::SourceType;
+use crate::{ErrorMessage, Name, SourceType};
 
 mod call;
 mod constck;
@@ -184,5 +189,24 @@ fn create_lambda_functions(sa: &mut Sema, lazy_lambdas: Vec<LazyLambdaCreationDa
         let fct_id = sa.fcts.alloc(lazy_lambda.fct_definition);
         sa.fcts[fct_id].id = Some(fct_id);
         lazy_lambda.id.set_fct_id(fct_id);
+    }
+}
+
+pub struct CallArguments {
+    positional: Vec<Arc<ast::Argument>>,
+    named: HashMap<Name, Arc<ast::Argument>>,
+}
+
+impl CallArguments {
+    fn assume_all_positional(self, ck: &TypeCheck) -> Vec<SourceType> {
+        for (_name, node) in self.named {
+            ck.sa
+                .report(ck.file_id, node.span, ErrorMessage::UnexpectedNamedArgument);
+        }
+
+        self.positional
+            .iter()
+            .map(|p| ck.analysis.ty(p.id))
+            .collect::<Vec<SourceType>>()
     }
 }

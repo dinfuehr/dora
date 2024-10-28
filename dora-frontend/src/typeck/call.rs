@@ -1,3 +1,4 @@
+use std::collections::HashMap;
 use std::sync::Arc;
 
 use dora_parser::{ast, Span};
@@ -16,7 +17,7 @@ use crate::specialize::replace_type;
 use crate::sym::SymbolKind;
 use crate::typeck::{
     args_compatible, args_compatible_fct, check_enum_value_with_args, check_expr,
-    find_method_call_candidates, read_path_expr, MethodLookup, TypeCheck,
+    find_method_call_candidates, read_path_expr, CallArguments, MethodLookup, TypeCheck,
 };
 use crate::typeparamck::{self, ErrorReporting};
 use crate::{
@@ -41,16 +42,12 @@ pub(super) fn check_expr_call(
         (&e.callee, SourceTypeArray::empty())
     };
 
-    let arg_types: Vec<SourceType> = e
-        .args
-        .iter()
-        .map(|arg| check_expr(ck, &arg.expr, SourceType::Any))
-        .collect();
+    let arguments = create_call_arguments(ck, e);
 
     if let Some(expr_ident) = callee.to_ident() {
         let sym = ck.symtable.get_string(ck.sa, &expr_ident.name);
 
-        check_expr_call_sym(ck, e, expected_ty, callee, sym, type_params, &arg_types)
+        check_expr_call_sym(ck, e, expected_ty, callee, sym, type_params, arguments)
     } else if let Some(expr_dot) = callee.to_dot() {
         let object_type = check_expr(ck, &expr_dot.lhs, SourceType::Any);
 
@@ -65,9 +62,10 @@ pub(super) fn check_expr_call(
                 return ty_error();
             }
         };
+        let arg_types = arguments.assume_all_positional(ck);
         check_expr_call_method(ck, e, object_type, method_name, type_params, &arg_types)
     } else if let Some(_expr_path) = callee.to_path() {
-        check_expr_call_path(ck, e, expected_ty, callee, type_params, &arg_types)
+        check_expr_call_path(ck, e, expected_ty, callee, type_params, arguments)
     } else {
         if !type_params.is_empty() {
             let msg = ErrorMessage::NoTypeParamsExpected;
@@ -75,8 +73,45 @@ pub(super) fn check_expr_call(
         }
 
         let expr_type = check_expr(ck, callee, SourceType::Any);
+        let arg_types = arguments.assume_all_positional(ck);
         check_expr_call_expr(ck, e, expr_type, &arg_types)
     }
+}
+
+fn create_call_arguments(ck: &mut TypeCheck, e: &ast::ExprCallType) -> CallArguments {
+    let mut arguments = CallArguments {
+        positional: Vec::new(),
+        named: HashMap::new(),
+    };
+
+    let mut found_named = false;
+
+    for arg in e.args.iter() {
+        let ty = check_expr(ck, &arg.expr, SourceType::Any);
+        ck.analysis.set_ty(arg.id, ty);
+
+        if let Some(ref ident) = arg.name {
+            let name = ck.sa.interner.intern(&ident.name_as_string);
+            if !arguments.named.contains_key(&name) {
+                assert!(arguments.named.insert(name, arg.clone()).is_none());
+            } else {
+                ck.sa
+                    .report(ck.file_id, arg.span, ErrorMessage::DuplicateNamedArgument);
+            }
+
+            found_named = true;
+        } else if found_named {
+            ck.sa.report(
+                ck.file_id,
+                arg.span,
+                ErrorMessage::UnexpectedPositionalArgument,
+            );
+        } else {
+            arguments.positional.push(arg.clone());
+        }
+    }
+
+    arguments
 }
 
 pub(super) fn check_expr_call_enum_args(
@@ -581,7 +616,7 @@ fn check_expr_call_class(
     expected_ty: SourceType,
     cls_id: ClassDefinitionId,
     type_params: SourceTypeArray,
-    arg_types: &[SourceType],
+    arguments: CallArguments,
 ) -> SourceType {
     let is_class_accessible = class_accessible_from(ck.sa, cls_id, ck.module_id);
 
@@ -617,7 +652,9 @@ fn check_expr_call_class(
         ck.sa.report(ck.file_id, e.span, msg);
     }
 
-    if !check_expr_call_class_args(ck.sa, cls, type_params.clone(), arg_types) {
+    let arg_types = arguments.assume_all_positional(ck);
+
+    if !check_expr_call_class_args(ck.sa, cls, type_params.clone(), &arg_types) {
         let class_name = cls.name(ck.sa);
         let field_types = cls
             .fields
@@ -834,7 +871,7 @@ fn check_expr_call_path(
     expected_ty: SourceType,
     callee: &ast::ExprData,
     type_params: SourceTypeArray,
-    arg_types: &[SourceType],
+    arguments: CallArguments,
 ) -> SourceType {
     let callee_as_path = callee.to_path().unwrap();
 
@@ -883,6 +920,7 @@ fn check_expr_call_path(
                 &container_type_params,
                 ErrorReporting::Yes(ck.file_id, e.span),
             ) {
+                let arg_types = arguments.assume_all_positional(ck);
                 check_expr_call_static_method(
                     ck,
                     e,
@@ -913,6 +951,7 @@ fn check_expr_call_path(
                     SourceType::Struct(struct_id, container_type_params)
                 };
 
+                let arg_types = arguments.assume_all_positional(ck);
                 check_expr_call_static_method(
                     ck,
                     e,
@@ -941,6 +980,8 @@ fn check_expr_call_path(
                     type_params
                 };
 
+                let arg_types = arguments.assume_all_positional(ck);
+
                 check_enum_value_with_args(
                     ck,
                     e,
@@ -959,6 +1000,7 @@ fn check_expr_call_path(
                     ErrorReporting::Yes(ck.file_id, e.span),
                 ) {
                     let object_ty = SourceType::Enum(enum_id, container_type_params);
+                    let arg_types = arguments.assume_all_positional(ck);
 
                     check_expr_call_static_method(
                         ck,
@@ -980,6 +1022,7 @@ fn check_expr_call_path(
                 ck.sa.report(ck.file_id, callee_as_path.lhs.span(), msg);
             }
 
+            let arg_types = arguments.assume_all_positional(ck);
             check_expr_call_generic_static_method(ck, e, id, method_name, &arg_types)
         }
 
@@ -996,7 +1039,7 @@ fn check_expr_call_path(
                 table.get(interned_method_name)
             };
 
-            check_expr_call_sym(ck, e, expected_ty, callee, sym, type_params, arg_types)
+            check_expr_call_sym(ck, e, expected_ty, callee, sym, type_params, arguments)
         }
 
         Some(SymbolKind::Alias(alias_id)) => {
@@ -1006,7 +1049,9 @@ fn check_expr_call_path(
             }
 
             let alias_ty = ck.sa.alias(alias_id).ty();
-            check_expr_call_static_method(ck, e, alias_ty, method_name, type_params, arg_types)
+            let arg_types = arguments.assume_all_positional(ck);
+
+            check_expr_call_static_method(ck, e, alias_ty, method_name, type_params, &arg_types)
         }
 
         _ => {
@@ -1027,30 +1072,35 @@ fn check_expr_call_sym(
     callee: &ast::ExprData,
     sym: Option<SymbolKind>,
     type_params: SourceTypeArray,
-    arg_types: &[SourceType],
+    arguments: CallArguments,
 ) -> SourceType {
     match sym {
         Some(SymbolKind::Fct(fct_id)) => {
+            let arg_types = arguments.assume_all_positional(ck);
             check_expr_call_fct(ck, e, fct_id, type_params, &arg_types)
         }
 
         Some(SymbolKind::Class(cls_id)) => {
-            check_expr_call_class(ck, e, expected_ty, cls_id, type_params, &arg_types)
+            check_expr_call_class(ck, e, expected_ty, cls_id, type_params, arguments)
         }
 
         Some(SymbolKind::Struct(struct_id)) => {
+            let arg_types = arguments.assume_all_positional(ck);
             check_expr_call_struct(ck, e, struct_id, type_params, &arg_types)
         }
 
-        Some(SymbolKind::EnumVariant(enum_id, variant_idx)) => check_enum_value_with_args(
-            ck,
-            e,
-            expected_ty,
-            enum_id,
-            type_params,
-            variant_idx,
-            &arg_types,
-        ),
+        Some(SymbolKind::EnumVariant(enum_id, variant_idx)) => {
+            let arg_types = arguments.assume_all_positional(ck);
+            check_enum_value_with_args(
+                ck,
+                e,
+                expected_ty,
+                enum_id,
+                type_params,
+                variant_idx,
+                &arg_types,
+            )
+        }
 
         _ => {
             if !type_params.is_empty() {
@@ -1059,6 +1109,7 @@ fn check_expr_call_sym(
             }
 
             let expr_type = check_expr(ck, callee, SourceType::Any);
+            let arg_types = arguments.assume_all_positional(ck);
             check_expr_call_expr(ck, e, expr_type, &arg_types)
         }
     }

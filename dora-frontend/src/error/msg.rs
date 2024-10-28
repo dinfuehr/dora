@@ -199,6 +199,9 @@ pub enum ErrorMessage {
     UnknownAlias,
     UnexpectedAlias,
     UnexpectedWhere,
+    UnexpectedPositionalArgument,
+    UnexpectedNamedArgument,
+    DuplicateNamedArgument,
 }
 
 impl ErrorMessage {
@@ -681,6 +684,13 @@ impl ErrorMessage {
             ErrorMessage::UnknownAlias => format!("Unknown associated type."),
             ErrorMessage::UnexpectedAlias => format!("No associated types in this context."),
             ErrorMessage::UnexpectedWhere => format!("Where clauses not allowed here."),
+            ErrorMessage::UnexpectedNamedArgument => format!("Named argument not expected here."),
+            ErrorMessage::UnexpectedPositionalArgument => {
+                format!("Positional argument not allowed anymore after named argument.")
+            }
+            ErrorMessage::DuplicateNamedArgument => {
+                format!("Named argument with that name already exists.")
+            }
         }
     }
 }

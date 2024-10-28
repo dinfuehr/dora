@@ -304,14 +304,18 @@ pub mod tests {
             errors.sort_by_key(|e| e.span);
 
             println!("expected errors:");
-            for error in vec {
-                println!("{}:{}: {}", error.0 .0, error.0 .1, error.1.message());
+            for ((line, col), err) in vec {
+                println!("{}:{}: {:?} -> {}", line, col, err, err.message());
             }
             println!("");
 
             println!("actual errors:");
             for error in &errors {
-                println!("{}", error.message(sa));
+                if let Some((line, col)) = error.line_column(sa) {
+                    print!("{}:{}: ", line, col);
+                }
+
+                println!("{:?} -> {}", error.msg, error.message(sa));
             }
             println!("\n");
 

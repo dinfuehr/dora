@@ -761,8 +761,8 @@ fn test_invoke_static_method_as_instance_method() {
         ErrorMessage::UnknownMethod("A".into(), "foo".into(), vec![]),
     );
 }
-
 #[test]
+
 fn test_invoke_method_as_static() {
     err(
         "class A
@@ -4668,6 +4668,51 @@ fn impl_method_lookup_on_missing_trait_method() {
                 (21, 13),
                 ErrorMessage::UnknownMethod("Int64".into(), "h".into(), Vec::new()),
             ),
+        ],
+    );
+}
+
+#[test]
+fn call_with_named_arguments() {
+    errors(
+        "
+        fn f(x: Int, y: Int) {}
+        fn g() {
+            f(1, 2, y = 3);
+        }
+    ",
+        &[((4, 21), ErrorMessage::UnexpectedNamedArgument)],
+    );
+}
+
+#[test]
+fn positional_argument_after_named_argument() {
+    errors(
+        "
+        fn f(x: Int, y: Int) {}
+        fn g() {
+            f(1, 2, y = 3, 1);
+        }
+    ",
+        &[
+            ((4, 21), ErrorMessage::UnexpectedNamedArgument),
+            ((4, 28), ErrorMessage::UnexpectedPositionalArgument),
+        ],
+    );
+}
+
+#[test]
+fn duplicate_named_argument() {
+    errors(
+        "
+        fn f(x: Int, y: Int) {}
+        fn g() {
+            f(1, 2, y = 3, y = 4);
+        }
+    ",
+        &[
+            ((4, 21), ErrorMessage::UnexpectedNamedArgument),
+            ((4, 28), ErrorMessage::DuplicateNamedArgument),
         ],
     );
 }
