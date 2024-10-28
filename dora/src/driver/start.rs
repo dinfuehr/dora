@@ -129,10 +129,6 @@ fn compile_into_program(flags: &DriverFlags, file: String) -> Result<Program, ()
         return Err(());
     }
 
-    if report_errors(&sa) {
-        return Err(());
-    }
-
     if let Some(ref filter) = flags.emit_ast {
         language::emit_ast(&sa, filter);
     }
