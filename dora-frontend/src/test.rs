@@ -1,5 +1,5 @@
 use crate::check_program;
-use crate::sema::{Sema, SemaArgs};
+use crate::sema::{Sema, SemaFlags};
 
 pub fn check_valid<F, T>(code: &'static str, f: F) -> T
 where
@@ -20,7 +20,7 @@ pub fn check<F, T>(code: &'static str, f: F) -> T
 where
     F: FnOnce(&Sema) -> T,
 {
-    let args: SemaArgs = SemaArgs::for_test(code);
+    let args: SemaFlags = SemaFlags::for_test(code);
     let mut sa = Sema::new(args);
 
     let result = check_program(&mut sa);

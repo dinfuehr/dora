@@ -18,7 +18,7 @@ use crate::vm::{
 };
 
 pub fn compile_boots_aot(vm: &VM) {
-    if vm.flags.boots {
+    if vm.has_boots() {
         let package_id = vm
             .program
             .boots_package_id

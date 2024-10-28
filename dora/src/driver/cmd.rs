@@ -1,7 +1,7 @@
 use std::default::Default;
 use std::path::PathBuf;
 
-use dora_runtime::Flags as VmArgs;
+use dora_runtime::VmFlags;
 use dora_runtime::{CollectorName, Compiler, MemSize};
 
 // Write the Docopt usage string.
@@ -58,7 +58,7 @@ Options:
 ";
 
 #[derive(Debug)]
-pub struct Args {
+pub struct DriverFlags {
     pub arg_argument: Option<Vec<String>>,
     pub arg_file: Option<String>,
 
@@ -112,9 +112,15 @@ pub struct Args {
     pub command: Command,
 }
 
-impl Default for Args {
-    fn default() -> Args {
-        Args {
+impl DriverFlags {
+    pub fn include_boots(&self) -> bool {
+        self.boots || self.always_boots || self.use_boots.is_some()
+    }
+}
+
+impl Default for DriverFlags {
+    fn default() -> DriverFlags {
+        DriverFlags {
             arg_argument: None,
             arg_file: None,
 
@@ -201,80 +207,80 @@ impl Command {
     }
 }
 
-pub fn parse_arguments() -> Result<Args, String> {
+pub fn parse_arguments() -> Result<DriverFlags, String> {
     let cli_arguments: Vec<String> = std::env::args().collect();
-    let mut args: Args = Default::default();
+    let mut flags: DriverFlags = Default::default();
     let mut idx = 1;
 
     while idx < cli_arguments.len() {
         let arg = &cli_arguments[idx];
 
         if arg == "test" && idx == 1 {
-            args.command = Command::Test;
+            flags.command = Command::Test;
         } else if arg == "build" && idx == 1 {
-            args.command = Command::Build;
+            flags.command = Command::Build;
         } else if arg == "--version" || arg == "-v" {
-            args.version = true;
+            flags.version = true;
         } else if arg == "--check" {
-            args.check = true;
+            flags.check = true;
         } else if arg == "-h" || arg == "--help" {
-            args.help = true;
+            flags.help = true;
         } else if arg.starts_with("--emit-ast=") {
-            args.emit_ast = Some(argument_value(arg).into());
+            flags.emit_ast = Some(argument_value(arg).into());
         } else if arg.starts_with("--emit-asm=") {
-            args.emit_asm = Some(argument_value(arg).into());
+            flags.emit_asm = Some(argument_value(arg).into());
         } else if arg.starts_with("--emit-asm-file=") {
-            args.emit_asm_file = Some(argument_value(arg).into());
+            flags.emit_asm_file = Some(argument_value(arg).into());
         } else if arg == "--emit-asm-boots" {
-            args.emit_asm_boots = true;
+            flags.emit_asm_boots = true;
         } else if arg.starts_with("--emit-graph=") {
-            args.emit_graph = Some(argument_value(arg).into());
+            flags.emit_graph = Some(argument_value(arg).into());
         } else if arg.starts_with("--emit-bytecode=") {
-            args.emit_bytecode = Some(argument_value(arg).into());
+            flags.emit_bytecode = Some(argument_value(arg).into());
         } else if arg.starts_with("--emit-bytecode-compiler") {
-            args.emit_bytecode_compiler = Some("all".into());
+            flags.emit_bytecode_compiler = Some("all".into());
         } else if arg.starts_with("--emit-bytecode-compiler=") {
-            args.emit_bytecode_compiler = Some(argument_value(arg).into());
+            flags.emit_bytecode_compiler = Some(argument_value(arg).into());
         } else if arg == "--emit-bytecode-boots" {
-            args.emit_bytecode_boots = true;
+            flags.emit_bytecode_boots = true;
         } else if arg == "--always-boots" {
-            args.always_boots = true;
+            flags.always_boots = true;
         } else if arg.starts_with("--use-boots=") {
-            args.use_boots = Some(argument_value(arg).into());
+            flags.use_boots = Some(argument_value(arg).into());
         } else if arg == "--emit-stubs" {
-            args.emit_stubs = true;
+            flags.emit_stubs = true;
         } else if arg.starts_with("--emit-debug=") {
-            args.emit_debug = Some(argument_value(arg).into());
+            flags.emit_debug = Some(argument_value(arg).into());
         } else if arg == "--emit-compiler" {
-            args.emit_compiler = true;
+            flags.emit_compiler = true;
         } else if arg == "--emit-debug-boots" {
-            args.emit_debug_boots = true;
+            flags.emit_debug_boots = true;
         } else if arg == "--emit-debug-native" {
-            args.emit_debug_native = true;
+            flags.emit_debug_native = true;
         } else if arg == "--emit-debug-compile" {
-            args.emit_debug_compile = true;
+            flags.emit_debug_compile = true;
         } else if arg == "--emit-debug-entry" {
-            args.emit_debug_entry = true;
+            flags.emit_debug_entry = true;
         } else if arg == "--omit-bounds-check" {
-            args.omit_bounds_check = true;
+            flags.omit_bounds_check = true;
         } else if arg == "--enable-perf" {
-            args.enable_perf = true;
+            flags.enable_perf = true;
         } else if arg == "--gc-events" {
-            args.gc_events = true;
+            flags.gc_events = true;
         } else if arg == "--gc-stress" {
-            args.gc_stress = true;
+            flags.gc_stress = true;
         } else if arg == "--gc-stress-in-lazy-compile" {
-            args.gc_stress_in_lazy_compile = true;
+            flags.gc_stress_in_lazy_compile = true;
         } else if arg == "--gc-stress-minor" {
-            args.gc_stress_minor = true;
+            flags.gc_stress_minor = true;
         } else if arg == "--gc-stats" {
-            args.gc_stats = true;
+            flags.gc_stats = true;
         } else if arg == "--gc-verbose" {
-            args.gc_verbose = true;
+            flags.gc_verbose = true;
         } else if arg == "--gc-verify" {
-            args.gc_verify = true;
+            flags.gc_verify = true;
         } else if arg.starts_with("--gc-worker=") {
-            args.gc_worker = argument_usize(arg)?;
+            flags.gc_worker = argument_usize(arg)?;
         } else if arg.starts_with("--gc=") {
             let value = argument_value(arg);
             let value = match value {
@@ -284,11 +290,11 @@ pub fn parse_arguments() -> Result<Args, String> {
                 "swiper" => CollectorName::Swiper,
                 _ => return Err(format!("--gc: unknown collector '{}'", value)),
             };
-            args.gc = Some(value);
+            flags.gc = Some(value);
         } else if arg.starts_with("--gc-young-size=") {
-            args.gc_young_size = Some(argument_mem_size(arg)?);
+            flags.gc_young_size = Some(argument_mem_size(arg)?);
         } else if arg.starts_with("--gc-semi-ratio=") {
-            args.gc_semi_ratio = Some(argument_usize(arg)?);
+            flags.gc_semi_ratio = Some(argument_usize(arg)?);
         } else if arg.starts_with("--compiler=") {
             let value = argument_value(arg);
             let value = match value {
@@ -296,33 +302,33 @@ pub fn parse_arguments() -> Result<Args, String> {
                 "boots" => Compiler::Boots,
                 _ => return Err(format!("--compiler: unknown compiler '{}'", value)),
             };
-            args.compiler = Some(value);
+            flags.compiler = Some(value);
         } else if arg.starts_with("--test-filter=") {
-            args.test_filter = Some(argument_value(arg).into());
+            flags.test_filter = Some(argument_value(arg).into());
         } else if arg == "--test-boots" {
-            args.test_boots = true;
+            flags.test_boots = true;
         } else if arg == "--disable-tlab" {
-            args.disable_tlab = true;
+            flags.disable_tlab = true;
         } else if arg == "--bootstrap-compiler" {
-            args.bootstrap_compiler = true;
+            flags.bootstrap_compiler = true;
         } else if arg == "-o" {
             if idx + 1 >= cli_arguments.len() {
                 return Err("-o needs argument".into());
             }
-            args.output = Some(cli_arguments[idx + 1].clone());
+            flags.output = Some(cli_arguments[idx + 1].clone());
             idx += 1;
         } else if arg == "--disable-barrier" {
-            args.disable_barrier = true;
+            flags.disable_barrier = true;
         } else if arg.starts_with("--min-heap-size=") {
-            args.min_heap_size = Some(argument_mem_size(arg)?);
+            flags.min_heap_size = Some(argument_mem_size(arg)?);
         } else if arg.starts_with("--max-heap-size=") {
-            args.max_heap_size = Some(argument_mem_size(arg)?);
+            flags.max_heap_size = Some(argument_mem_size(arg)?);
         } else if arg.starts_with("--code-size=") {
-            args.code_size = Some(argument_mem_size(arg)?);
+            flags.code_size = Some(argument_mem_size(arg)?);
         } else if arg.starts_with("--readonly-size=") {
-            args.readonly_size = Some(argument_mem_size(arg)?);
+            flags.readonly_size = Some(argument_mem_size(arg)?);
         } else if arg == "--boots" {
-            args.boots = true;
+            flags.boots = true;
         } else if arg == "--package" {
             if idx + 2 >= cli_arguments.len() {
                 return Err("--package needs two arguments".into());
@@ -332,22 +338,22 @@ pub fn parse_arguments() -> Result<Args, String> {
             let path = cli_arguments[idx + 2].clone();
             let path = PathBuf::from(path);
 
-            args.packages.push((name, path));
+            flags.packages.push((name, path));
             idx += 2;
         } else if arg.starts_with("-") {
             return Err(format!("unknown flag {}", arg));
-        } else if args.arg_file.is_none() {
-            args.arg_file = Some(arg.clone());
+        } else if flags.arg_file.is_none() {
+            flags.arg_file = Some(arg.clone());
 
             // In `run` mode all arguments after the input file are arguments
             // for the program.
-            if args.command.is_run() {
+            if flags.command.is_run() {
                 let count = cli_arguments.len() - idx - 1;
                 let mut arguments: Vec<String> = Vec::with_capacity(count);
                 for arg in &cli_arguments[idx + 1..] {
                     arguments.push(arg.clone());
                 }
-                args.arg_argument = Some(arguments);
+                flags.arg_argument = Some(arguments);
                 break;
             }
         } else {
@@ -357,7 +363,7 @@ pub fn parse_arguments() -> Result<Args, String> {
         idx = idx + 1;
     }
 
-    Ok(args)
+    Ok(flags)
 }
 
 fn argument_value(arg: &str) -> &str {
@@ -415,44 +421,43 @@ pub fn print_help() {
     println!("{}", USAGE);
 }
 
-pub fn create_vm_args(args: &Args) -> VmArgs {
-    VmArgs {
-        emit_asm: args.emit_asm.clone(),
-        emit_asm_boots: args.emit_asm_boots,
-        emit_asm_file: args.emit_asm_file.clone(),
-        emit_bytecode_boots: args.emit_bytecode_boots,
-        emit_bytecode_compiler: args.emit_bytecode_compiler.clone(),
-        emit_compiler: args.emit_compiler,
-        emit_graph: args.emit_graph.clone(),
-        emit_stubs: args.emit_stubs,
-        always_boots: args.always_boots,
-        boots: args.boots,
-        use_boots: args.use_boots.clone(),
-        enable_perf: args.enable_perf,
-        omit_bounds_check: args.omit_bounds_check,
-        emit_debug: args.emit_debug.clone(),
-        emit_debug_boots: args.emit_debug_boots,
-        emit_debug_native: args.emit_debug_native,
-        emit_debug_compile: args.emit_debug_compile,
-        emit_debug_entry: args.emit_debug_entry,
-        gc_events: args.gc_events,
-        gc_stress: args.gc_stress,
-        gc_stress_in_lazy_compile: args.gc_stress_in_lazy_compile,
-        gc_stress_minor: args.gc_stress_minor,
-        gc_stats: args.gc_stats,
-        gc_verbose: args.gc_verbose,
-        gc_verify: args.gc_verify,
-        gc_worker: args.gc_worker,
-        gc_young_size: args.gc_young_size,
-        gc_semi_ratio: args.gc_semi_ratio,
-        gc: args.gc,
-        compiler: args.compiler,
-        min_heap_size: args.min_heap_size,
-        max_heap_size: args.max_heap_size,
-        code_size: args.code_size,
-        readonly_size: args.readonly_size,
-        disable_tlab: args.disable_tlab,
-        disable_barrier: args.disable_barrier,
-        bootstrap_compiler: args.bootstrap_compiler,
+pub fn create_vm_flags(flags: &DriverFlags) -> VmFlags {
+    VmFlags {
+        emit_asm: flags.emit_asm.clone(),
+        emit_asm_boots: flags.emit_asm_boots,
+        emit_asm_file: flags.emit_asm_file.clone(),
+        emit_bytecode_boots: flags.emit_bytecode_boots,
+        emit_bytecode_compiler: flags.emit_bytecode_compiler.clone(),
+        emit_compiler: flags.emit_compiler,
+        emit_graph: flags.emit_graph.clone(),
+        emit_stubs: flags.emit_stubs,
+        always_boots: flags.always_boots,
+        use_boots: flags.use_boots.clone(),
+        enable_perf: flags.enable_perf,
+        omit_bounds_check: flags.omit_bounds_check,
+        emit_debug: flags.emit_debug.clone(),
+        emit_debug_boots: flags.emit_debug_boots,
+        emit_debug_native: flags.emit_debug_native,
+        emit_debug_compile: flags.emit_debug_compile,
+        emit_debug_entry: flags.emit_debug_entry,
+        gc_events: flags.gc_events,
+        gc_stress: flags.gc_stress,
+        gc_stress_in_lazy_compile: flags.gc_stress_in_lazy_compile,
+        gc_stress_minor: flags.gc_stress_minor,
+        gc_stats: flags.gc_stats,
+        gc_verbose: flags.gc_verbose,
+        gc_verify: flags.gc_verify,
+        gc_worker: flags.gc_worker,
+        gc_young_size: flags.gc_young_size,
+        gc_semi_ratio: flags.gc_semi_ratio,
+        gc: flags.gc,
+        compiler: flags.compiler,
+        min_heap_size: flags.min_heap_size,
+        max_heap_size: flags.max_heap_size,
+        code_size: flags.code_size,
+        readonly_size: flags.readonly_size,
+        disable_tlab: flags.disable_tlab,
+        disable_barrier: flags.disable_barrier,
+        bootstrap_compiler: flags.bootstrap_compiler,
     }
 }

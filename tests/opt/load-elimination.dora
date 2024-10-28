@@ -5,6 +5,10 @@ class Foo {
     b: Int,
 }
 
+class Bar {
+    x: Foo,
+}
+
 fn main() {
     let x = Foo(100, 300);
     assert(f1(x) == 200);
@@ -17,6 +21,11 @@ fn main() {
 
     let x = Foo(100, 300);
     assert(f4(x, 12) == 12);
+
+    let x = Foo(10, 30);
+    let b = Bar(x);
+    let new_x = Foo(121, 2);
+    assert(f5(b, b, new_x) == 131);
 }
 
 @Optimize
@@ -44,4 +53,11 @@ fn f4(foo: Foo, value: Int): Int {
     foo.a = value;
     foo.a = value;
     foo.a
+}
+
+@Optimize
+fn f5(foo: Bar, foo2: Bar, new_x: Foo): Int {
+    let x = foo.x;
+    foo2.x = new_x;
+    x.a + foo.x.a
 }

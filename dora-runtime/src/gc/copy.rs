@@ -13,7 +13,7 @@ use crate::object::{Obj, VtblptrWordKind};
 use crate::os::{self, MemoryPermission};
 use crate::threads::DoraThread;
 use crate::timer::Timer;
-use crate::vm::{Flags, VM};
+use crate::vm::{VmFlags, VM};
 
 pub struct CopyCollector {
     total: Region,
@@ -25,7 +25,7 @@ pub struct CopyCollector {
 }
 
 impl CopyCollector {
-    pub fn new(args: &Flags) -> CopyCollector {
+    pub fn new(args: &VmFlags) -> CopyCollector {
         let alignment = 2 * os::page_size();
         let heap_size = mem::align_usize_up(args.max_heap_size(), alignment);
         let heap_start = os::commit(heap_size, false);

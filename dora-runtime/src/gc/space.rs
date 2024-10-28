@@ -4,7 +4,7 @@ use std::sync::atomic::{AtomicUsize, Ordering};
 use crate::gc::{Address, Region, PAGE_SIZE};
 use crate::mem;
 use crate::os::{self, MemoryPermission, Reservation};
-use crate::vm::Flags;
+use crate::vm::VmFlags;
 
 /// Configuration for a space.
 /// This makes it possible to use `Space` both for the
@@ -16,7 +16,7 @@ pub struct SpaceConfig {
     pub object_alignment: usize,
 }
 
-pub fn default_readonly_space_config(flags: &Flags) -> SpaceConfig {
+pub fn default_readonly_space_config(flags: &VmFlags) -> SpaceConfig {
     SpaceConfig {
         executable: false,
         chunk: PAGE_SIZE,

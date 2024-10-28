@@ -2,40 +2,40 @@ use std::fs::File;
 use std::io::{self, Read, Write};
 use std::path::PathBuf;
 
-use crate::driver::cmd::{self, Args};
+use crate::driver::cmd::{self, DriverFlags};
 use dora_bytecode::{display_fct, FunctionId, PackageId, Program};
 use dora_frontend as language;
-use dora_frontend::sema::{Sema, SemaArgs};
+use dora_frontend::sema::{Sema, SemaFlags};
 use dora_runtime::{clear_vm, execute_on_main, set_vm, VM};
 
 pub fn start() -> i32 {
-    let args = cmd::parse_arguments();
+    let flags = cmd::parse_arguments();
 
-    if let Err(msg) = args {
+    if let Err(msg) = flags {
         cmd::print_help();
         println!();
         println!("{}", msg);
         return 1;
     }
 
-    let mut args = args.unwrap();
+    let mut flags = flags.unwrap();
 
-    if args.version {
+    if flags.version {
         println!("dora v0.01b");
         return 0;
     }
 
-    if args.help {
+    if flags.help {
         cmd::print_help();
         return 0;
     }
 
-    if args.arg_file.is_none() {
+    if flags.arg_file.is_none() {
         eprintln!("missing input argument.");
         return 1;
     }
 
-    let file = args.arg_file.as_ref().expect("missing argument");
+    let file = flags.arg_file.as_ref().expect("missing argument");
 
     let prog = if file.ends_with(".dora-package") {
         match decode_input_program(&file) {
@@ -45,7 +45,7 @@ pub fn start() -> i32 {
             }
         }
     } else {
-        match compile_into_program(&args, file.clone()) {
+        match compile_into_program(&flags, file.clone()) {
             Ok(result) => result,
             Err(_) => {
                 return 1;
@@ -54,40 +54,40 @@ pub fn start() -> i32 {
     };
 
     // if --check given, stop after type/semantic check
-    if args.check {
+    if flags.check {
         return 0;
     }
 
-    if args.command.is_build() {
-        return command_build(&args, prog);
+    if flags.command.is_build() {
+        return command_build(&flags, prog);
     }
 
     // Now for fun encode the program into a buffer and create a new Program from the buffer.
     let prog = encode_and_decode_for_testing(prog);
 
-    let command = args.command;
+    let command = flags.command;
 
-    let vm_args = cmd::create_vm_args(&args);
+    let vm_flags = cmd::create_vm_flags(&flags);
 
     // Now create a VM instance from the serialized data alone.
-    let program_args = std::mem::replace(&mut args.arg_argument, None).unwrap_or(Vec::new());
-    let vm = VM::new(prog, vm_args, program_args);
+    let program_args = std::mem::replace(&mut flags.arg_argument, None).unwrap_or(Vec::new());
+    let vm = VM::new(prog, vm_flags, program_args);
 
     set_vm(&vm);
 
     vm.compile_boots_aot();
 
     let exit_code = if command.is_test() {
-        if args.test_boots {
+        if flags.test_boots {
             run_tests(
                 &vm,
-                &args,
+                &flags,
                 vm.program
                     .boots_package_id
                     .expect("boots package is missing"),
             )
         } else {
-            run_tests(&vm, &args, vm.program.program_package_id)
+            run_tests(&vm, &flags, vm.program.program_package_id)
         }
     } else {
         if vm.program.main_fct_id.is_none() {
@@ -112,15 +112,15 @@ pub fn start() -> i32 {
     exit_code
 }
 
-fn compile_into_program(args: &Args, file: String) -> Result<Program, ()> {
-    let sem_args = SemaArgs {
+fn compile_into_program(flags: &DriverFlags, file: String) -> Result<Program, ()> {
+    let sema_flags = SemaFlags {
         arg_file: Some(file),
-        packages: args.packages.clone(),
+        packages: flags.packages.clone(),
         test_file_as_string: None,
-        boots: args.boots,
+        boots: flags.include_boots(),
     };
 
-    let mut sa = Sema::new(sem_args);
+    let mut sa = Sema::new(sema_flags);
 
     let success = language::check_program(&mut sa);
     assert_eq!(success, !sa.diag.borrow().has_errors());
@@ -133,7 +133,7 @@ fn compile_into_program(args: &Args, file: String) -> Result<Program, ()> {
         return Err(());
     }
 
-    if let Some(ref filter) = args.emit_ast {
+    if let Some(ref filter) = flags.emit_ast {
         language::emit_ast(&sa, filter);
     }
 
@@ -143,15 +143,15 @@ fn compile_into_program(args: &Args, file: String) -> Result<Program, ()> {
     // Here we drop the generated AST.
     let prog = language::emit_program(sa);
 
-    if let Some(ref filter) = args.emit_bytecode {
+    if let Some(ref filter) = flags.emit_bytecode {
         language::emit_bytecode(&prog, filter);
     }
 
     Ok(prog)
 }
 
-fn command_build(args: &Args, prog: Program) -> i32 {
-    if args.output.is_none() {
+fn command_build(flags: &DriverFlags, prog: Program) -> i32 {
+    if flags.output.is_none() {
         eprintln!("missing output file");
         return 1;
     }
@@ -159,7 +159,7 @@ fn command_build(args: &Args, prog: Program) -> i32 {
     let config = bincode::config::standard();
     let encoded_program = bincode::encode_to_vec(prog, config).expect("serialization failed");
 
-    let file = args.output.as_ref().expect("missing output");
+    let file = flags.output.as_ref().expect("missing output");
 
     match write_program_into_file(&encoded_program, file) {
         Ok(()) => 0,
@@ -232,7 +232,7 @@ fn report_errors(sa: &Sema) -> bool {
     }
 }
 
-fn run_tests(vm: &VM, args: &Args, package_id: PackageId) -> i32 {
+fn run_tests(vm: &VM, flags: &DriverFlags, package_id: PackageId) -> i32 {
     let mut tests = 0;
     let mut passed = 0;
 
@@ -240,7 +240,7 @@ fn run_tests(vm: &VM, args: &Args, package_id: PackageId) -> i32 {
         for (fct_id, fct) in vm.program.functions.iter().enumerate() {
             let fct_id = FunctionId(fct_id as u32);
 
-            if fct.package_id == package_id && fct.is_test && test_filter_matches(vm, args, fct_id)
+            if fct.package_id == package_id && fct.is_test && test_filter_matches(vm, flags, fct_id)
             {
                 tests += 1;
 
@@ -269,12 +269,12 @@ fn run_tests(vm: &VM, args: &Args, package_id: PackageId) -> i32 {
     }
 }
 
-fn test_filter_matches(vm: &VM, args: &Args, fct_id: FunctionId) -> bool {
-    if args.test_filter.is_none() {
+fn test_filter_matches(vm: &VM, flags: &DriverFlags, fct_id: FunctionId) -> bool {
+    if flags.test_filter.is_none() {
         return true;
     }
 
-    let filter = args.test_filter.as_ref().unwrap();
+    let filter = flags.test_filter.as_ref().unwrap();
     let name = display_fct(&vm.program, fct_id);
 
     name.contains(filter)

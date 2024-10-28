@@ -69,16 +69,16 @@ mod tuples;
 mod type_params;
 mod uses;
 
-pub struct SemaArgs {
+pub struct SemaFlags {
     pub packages: Vec<(String, PathBuf)>,
     pub arg_file: Option<String>,
     pub test_file_as_string: Option<String>,
     pub boots: bool,
 }
 
-impl SemaArgs {
-    pub fn for_test(input: &'static str) -> SemaArgs {
-        SemaArgs {
+impl SemaFlags {
+    pub fn for_test(input: &'static str) -> SemaFlags {
+        SemaFlags {
             packages: Vec::new(),
             arg_file: None,
             test_file_as_string: Some(input.into()),
@@ -88,7 +88,7 @@ impl SemaArgs {
 }
 
 pub struct Sema {
-    pub args: SemaArgs,
+    pub flags: SemaFlags,
     pub interner: Interner,
     pub source_files: Arena<SourceFile>,
     pub diag: RefCell<Diagnostic>,
@@ -119,9 +119,9 @@ pub struct Sema {
 }
 
 impl Sema {
-    pub fn new(args: SemaArgs) -> Sema {
+    pub fn new(args: SemaFlags) -> Sema {
         Sema {
-            args,
+            flags: args,
             source_files: Arena::new(),
             aliases: Arena::new(),
             consts: Arena::new(),

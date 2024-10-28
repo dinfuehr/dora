@@ -10,7 +10,7 @@ use crate::gc::{
 };
 use crate::os;
 use crate::timer::Timer;
-use crate::vm::{Flags, VM};
+use crate::vm::{VmFlags, VM};
 
 pub struct SweepCollector {
     heap: Region,
@@ -20,7 +20,7 @@ pub struct SweepCollector {
 }
 
 impl SweepCollector {
-    pub fn new(args: &Flags) -> SweepCollector {
+    pub fn new(args: &VmFlags) -> SweepCollector {
         let heap_size = args.max_heap_size();
         let heap_start = os::commit(heap_size, false);
 

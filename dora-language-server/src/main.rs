@@ -312,8 +312,8 @@ fn did_save_notification(server_state: &mut ServerState, notification: Notificat
 }
 
 fn compile_project(project: ProjectConfig, sender: Sender<MainLoopTask>) {
-    use dora_frontend::sema::{Sema, SemaArgs};
-    let sem_args = SemaArgs {
+    use dora_frontend::sema::{Sema, SemaFlags};
+    let sem_args = SemaFlags {
         arg_file: Some(project.main.to_string_lossy().into_owned()),
         packages: Vec::new(),
         test_file_as_string: None,

@@ -57,7 +57,7 @@ impl<'a> ProgramParser<'a> {
     }
 
     fn prepare_packages(&mut self) {
-        for (name, file) in &self.sa.args.packages {
+        for (name, file) in &self.sa.flags.packages {
             if self.packages.contains_key(name) {
                 self.sa
                     .report_without_location(ErrorMessage::PackageAlreadyExists(name.clone()));
@@ -112,7 +112,7 @@ impl<'a> ProgramParser<'a> {
     }
 
     fn add_boots_package(&mut self) {
-        if !self.sa.args.boots {
+        if !self.sa.flags.boots {
             return;
         }
 
@@ -157,10 +157,10 @@ impl<'a> ProgramParser<'a> {
         self.sa.set_program_module_id(module_id);
         self.sa.set_program_package_id(package_id);
 
-        if let Some(ref file) = self.sa.args.arg_file {
+        if let Some(ref file) = self.sa.flags.arg_file {
             let path = PathBuf::from(file);
             self.add_file(package_id, module_id, path, None);
-        } else if let Some(ref content) = self.sa.args.test_file_as_string {
+        } else if let Some(ref content) = self.sa.flags.test_file_as_string {
             self.create_source_file_for_content(
                 package_id,
                 module_id,

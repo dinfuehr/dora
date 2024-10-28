@@ -1,7 +1,7 @@
 use crate::gc::bump::BumpAllocator;
 use crate::gc::{default_readonly_space_config, Address, Collector, GcReason, Region, Space};
 use crate::os::{self, MemoryPermission, Reservation};
-use crate::vm::{Flags, VM};
+use crate::vm::{VmFlags, VM};
 
 pub struct ZeroCollector {
     start: Address,
@@ -12,7 +12,7 @@ pub struct ZeroCollector {
 }
 
 impl ZeroCollector {
-    pub fn new(args: &Flags) -> ZeroCollector {
+    pub fn new(args: &VmFlags) -> ZeroCollector {
         let heap_size: usize = args.max_heap_size();
 
         let reservation = os::reserve_align(heap_size, 0, false);

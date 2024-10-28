@@ -60,7 +60,7 @@ pub fn performLoadElimination(ci: CompilationInfo, graph: Graph) {
                     }
                 }
 
-            } else if op == Op::Store {
+            } else if op == Op::Store || op == Op::StoreWb {
                 if inst.hasClassInfo() {
                     let class_info = inst.getClassInfo();
                     let field_offset = inst.getOffset();

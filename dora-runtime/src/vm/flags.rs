@@ -6,7 +6,7 @@ use std::fmt;
 use std::ops::Deref;
 
 #[derive(Debug)]
-pub struct Flags {
+pub struct VmFlags {
     pub emit_asm: Option<String>,
     pub emit_asm_file: Option<String>,
     pub emit_asm_boots: bool,
@@ -16,7 +16,6 @@ pub struct Flags {
     pub emit_graph: Option<String>,
     pub emit_stubs: bool,
     pub enable_perf: bool,
-    pub boots: bool,
     pub always_boots: bool,
     pub use_boots: Option<String>,
     pub omit_bounds_check: bool,
@@ -46,7 +45,7 @@ pub struct Flags {
     pub bootstrap_compiler: bool,
 }
 
-impl Flags {
+impl VmFlags {
     pub fn min_heap_size(&self) -> usize {
         let min_heap_size = self.min_heap_size.map(|s| *s).unwrap_or(32 * M);
         let max_heap_size = self.max_heap_size();

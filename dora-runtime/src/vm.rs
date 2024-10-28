@@ -38,7 +38,7 @@ pub use self::code_map::CodeMap;
 pub use self::compilation::CompilationDatabase;
 pub use self::enums::{enum_definition_name, EnumInstance, EnumInstanceId, EnumLayout};
 pub use self::extensions::block_matches_ty;
-pub use self::flags::{CollectorName, Compiler, Flags, MemSize};
+pub use self::flags::{CollectorName, Compiler, MemSize, VmFlags};
 use self::globals::GlobalVariableMemory;
 pub use self::globals::{INITIALIZED, RUNNING, UNINITIALIZED};
 pub use self::impls::{bounds_for_tp, find_trait_impl, tp_implements_trait, ty_implements_trait};
@@ -129,7 +129,7 @@ impl VmState {
 }
 
 pub struct VM {
-    pub flags: Flags,
+    pub flags: VmFlags,
     pub program_args: Vec<String>,
     pub program: Program,
     pub known: KnownElements,
@@ -155,7 +155,7 @@ pub struct VM {
 }
 
 impl VM {
-    pub fn new(program: Program, args: Flags, program_args: Vec<String>) -> Box<VM> {
+    pub fn new(program: Program, args: VmFlags, program_args: Vec<String>) -> Box<VM> {
         let gc = Gc::new(&args);
 
         let mut vm = Box::new(VM {
@@ -375,6 +375,10 @@ impl VM {
 
     pub fn trait_(&self, id: TraitId) -> &TraitData {
         &self.program.traits[id.0 as usize]
+    }
+
+    pub fn has_boots(&self) -> bool {
+        self.program.boots_package_id.is_some()
     }
 }
 

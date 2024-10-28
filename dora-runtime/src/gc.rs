@@ -20,7 +20,7 @@ use crate::object::{Header, Obj};
 use crate::safepoint;
 use crate::stdlib;
 use crate::threads::DoraThread;
-use crate::vm::{CollectorName, Flags, Trap, VM};
+use crate::vm::{CollectorName, VmFlags, Trap, VM};
 
 pub use crate::gc::root::{iterate_strong_roots, iterate_weak_roots, Slot};
 
@@ -60,7 +60,7 @@ pub struct Gc {
 }
 
 impl Gc {
-    pub fn new(args: &Flags) -> Gc {
+    pub fn new(args: &VmFlags) -> Gc {
         let collector_name = args.gc.unwrap_or(CollectorName::Swiper);
 
         let collector: Box<dyn Collector + Sync> = match collector_name {

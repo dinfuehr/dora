@@ -27,7 +27,7 @@ pub fn lookup(vm: &mut VM) {
         apply_fct(vm, &module_items, path, implementation.clone());
     }
 
-    if vm.flags.boots {
+    if vm.has_boots() {
         for (path, implementation) in BOOTS_FUNCTIONS {
             apply_fct(vm, &module_items, path, implementation.clone());
         }
@@ -283,7 +283,7 @@ fn lookup_known_classes(vm: &mut VM, module_items: &ModuleItemMap) {
 }
 
 fn lookup_known_functions(vm: &mut VM, module_items: &ModuleItemMap) {
-    if vm.flags.boots {
+    if vm.has_boots() {
         vm.known.boots_compile_fct_id = Some(
             resolve_path(vm, module_items, "boots::interface::compile")
                 .function_id()

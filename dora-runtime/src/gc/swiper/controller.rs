@@ -9,9 +9,9 @@ use crate::gc::swiper::young::YoungGen;
 use crate::gc::swiper::{align_page_down, align_page_up, CollectionKind, Heap, PAGE_SIZE};
 use crate::gc::{formatted_size, AllNumbers, GcReason};
 use crate::stdlib;
-use crate::vm::{Flags, Trap, VM};
+use crate::vm::{Trap, VmFlags, VM};
 
-pub fn init(config: &mut HeapController, args: &Flags) {
+pub fn init(config: &mut HeapController, args: &VmFlags) {
     assert!(config.min_heap_size <= config.max_heap_size);
 
     let young_size = if let Some(young_size) = args.young_size() {
@@ -56,7 +56,7 @@ pub fn stop(
     kind: CollectionKind,
     heap: &Heap,
     young: &YoungGen,
-    args: &Flags,
+    args: &VmFlags,
     reason: GcReason,
 ) {
     let mut config = config.lock();

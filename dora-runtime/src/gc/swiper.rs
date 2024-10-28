@@ -23,7 +23,7 @@ use crate::mem;
 use crate::object::Obj;
 use crate::os::{self, Reservation};
 use crate::threads::DoraThread;
-use crate::vm::{get_vm, Flags, VM};
+use crate::vm::{get_vm, VmFlags, VM};
 
 mod controller;
 mod full;
@@ -85,7 +85,7 @@ pub struct Swiper {
 }
 
 impl Swiper {
-    pub fn new(args: &Flags) -> Swiper {
+    pub fn new(args: &VmFlags) -> Swiper {
         let max_heap_size = align_page_up(args.max_heap_size());
         let min_heap_size = align_page_up(args.min_heap_size());
 
