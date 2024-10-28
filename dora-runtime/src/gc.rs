@@ -20,7 +20,7 @@ use crate::object::{Header, Obj};
 use crate::safepoint;
 use crate::stdlib;
 use crate::threads::DoraThread;
-use crate::vm::{CollectorName, VmFlags, Trap, VM};
+use crate::vm::{CollectorName, Trap, VmFlags, VM};
 
 pub use crate::gc::root::{iterate_strong_roots, iterate_weak_roots, Slot};
 
