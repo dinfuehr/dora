@@ -1,4 +1,4 @@
-use std::collections::HashMap;
+use std::collections::{HashMap, HashSet};
 use std::sync::Arc;
 
 use dora_parser::{ast, Span};
@@ -82,6 +82,7 @@ fn create_call_arguments(ck: &mut TypeCheck, e: &ast::ExprCallType) -> CallArgum
     let mut arguments = CallArguments {
         positional: Vec::new(),
         named: HashMap::new(),
+        span: e.span,
     };
 
     let mut found_named = false;
@@ -589,6 +590,51 @@ fn check_expr_call_struct_args(
     true
 }
 
+fn check_expr_call_class_named_args(
+    ck: &mut TypeCheck,
+    cls: &ClassDefinition,
+    type_params: SourceTypeArray,
+    arguments: &CallArguments,
+) -> bool {
+    let mut fields_by_name: HashSet<Name> = HashSet::new();
+
+    for arg in &arguments.positional {
+        ck.sa.report(
+            ck.file_id,
+            arg.span,
+            ErrorMessage::UnexpectedPositionalArgument,
+        );
+    }
+
+    for field in &cls.fields {
+        fields_by_name.insert(field.name);
+
+        if let Some(arg) = arguments.named.get(&field.name) {
+            let def_ty = replace_type(ck.sa, field.ty(), Some(&type_params), None);
+
+            if !def_ty.allows(ck.sa, ck.analysis.ty(arg.id).clone()) {
+                return false;
+            }
+        } else {
+            let name = ck.sa.interner.str(field.name).to_string();
+            ck.sa.report(
+                ck.file_id,
+                arguments.span,
+                ErrorMessage::MissingNamedArgument(name),
+            );
+        }
+    }
+
+    for (name, arg) in &arguments.named {
+        if !fields_by_name.contains(name) {
+            ck.sa
+                .report(ck.file_id, arg.span, ErrorMessage::UseOfUnknownArgument);
+        }
+    }
+
+    true
+}
+
 fn check_expr_call_class_args(
     sa: &Sema,
     cls: &ClassDefinition,
@@ -652,18 +698,22 @@ fn check_expr_call_class(
         ck.sa.report(ck.file_id, e.span, msg);
     }
 
-    let arg_types = arguments.assume_all_positional(ck);
+    if !arguments.named.is_empty() {
+        check_expr_call_class_named_args(ck, cls, type_params.clone(), &arguments);
+    } else {
+        let arg_types = arguments.assume_all_positional(ck);
 
-    if !check_expr_call_class_args(ck.sa, cls, type_params.clone(), &arg_types) {
-        let class_name = cls.name(ck.sa);
-        let field_types = cls
-            .fields
-            .iter()
-            .map(|field| field.ty().name_cls(ck.sa, &*cls))
-            .collect::<Vec<_>>();
-        let arg_types = arg_types.iter().map(|a| ck.ty_name(a)).collect::<Vec<_>>();
-        let msg = ErrorMessage::ParamTypesIncompatible(class_name, field_types, arg_types);
-        ck.sa.report(ck.file_id, e.span, msg);
+        if !check_expr_call_class_args(ck.sa, cls, type_params.clone(), &arg_types) {
+            let class_name = cls.name(ck.sa);
+            let field_types = cls
+                .fields
+                .iter()
+                .map(|field| field.ty().name_cls(ck.sa, &*cls))
+                .collect::<Vec<_>>();
+            let arg_types = arg_types.iter().map(|a| ck.ty_name(a)).collect::<Vec<_>>();
+            let msg = ErrorMessage::ParamTypesIncompatible(class_name, field_types, arg_types);
+            ck.sa.report(ck.file_id, e.span, msg);
+        }
     }
 
     ck.analysis

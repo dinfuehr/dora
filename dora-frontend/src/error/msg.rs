@@ -202,6 +202,8 @@ pub enum ErrorMessage {
     UnexpectedPositionalArgument,
     UnexpectedNamedArgument,
     DuplicateNamedArgument,
+    MissingNamedArgument(String),
+    UseOfUnknownArgument,
 }
 
 impl ErrorMessage {
@@ -690,6 +692,12 @@ impl ErrorMessage {
             }
             ErrorMessage::DuplicateNamedArgument => {
                 format!("Named argument with that name already exists.")
+            }
+            ErrorMessage::MissingNamedArgument(ref name) => {
+                format!("Named argument `{}` is missing.", name)
+            }
+            ErrorMessage::UseOfUnknownArgument => {
+                format!("Named argument with this name does not exist.")
             }
         }
     }

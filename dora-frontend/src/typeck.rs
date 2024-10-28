@@ -26,7 +26,7 @@ use crate::typeck::function::{
 pub use crate::typeck::lookup::find_method_call_candidates;
 use crate::typeck::lookup::MethodLookup;
 use crate::typeck::stmt::{check_pattern, check_stmt};
-use crate::{ErrorMessage, Name, SourceType};
+use crate::{ErrorMessage, Name, SourceType, Span};
 
 mod call;
 mod constck;
@@ -195,6 +195,7 @@ fn create_lambda_functions(sa: &mut Sema, lazy_lambdas: Vec<LazyLambdaCreationDa
 pub struct CallArguments {
     positional: Vec<Arc<ast::Argument>>,
     named: HashMap<Name, Arc<ast::Argument>>,
+    span: Span,
 }
 
 impl CallArguments {

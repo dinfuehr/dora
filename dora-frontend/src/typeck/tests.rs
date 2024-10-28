@@ -4716,3 +4716,47 @@ fn duplicate_named_argument() {
         ],
     );
 }
+
+#[test]
+fn class_ctor_with_named_argument() {
+    ok("
+        class Foo(a: Int, b: String)
+        fn f() {
+            Foo(a=1, b=\"bar\");
+            Foo(b=\"bar\", a=1);
+        }
+    ");
+
+    err(
+        "
+        class Foo(a: Int, b: Bool)
+        fn f() {
+            Foo(b=true);
+        }
+    ",
+        (4, 13),
+        ErrorMessage::MissingNamedArgument("a".into()),
+    );
+
+    err(
+        "
+        class Foo(a: Int, b: Bool)
+        fn f() {
+            Foo(b=true, a=1, c=2.4);
+        }
+    ",
+        (4, 30),
+        ErrorMessage::UseOfUnknownArgument,
+    );
+
+    err(
+        "
+        class Foo(a: Int, b: Bool)
+        fn f() {
+            Foo(1, b=true, a=1);
+        }
+    ",
+        (4, 17),
+        ErrorMessage::UnexpectedPositionalArgument,
+    );
+}
