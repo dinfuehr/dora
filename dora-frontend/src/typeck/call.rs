@@ -615,6 +615,8 @@ fn check_expr_call_class_named_args(
             if !def_ty.allows(ck.sa, ck.analysis.ty(arg.id).clone()) {
                 return false;
             }
+
+            ck.analysis.map_argument.insert(arg.id, field.id.0);
         } else {
             let name = ck.sa.interner.str(field.name).to_string();
             ck.sa.report(
@@ -636,21 +638,25 @@ fn check_expr_call_class_named_args(
 }
 
 fn check_expr_call_class_args(
-    sa: &Sema,
+    ck: &mut TypeCheck,
     cls: &ClassDefinition,
     type_params: SourceTypeArray,
-    arg_types: &[SourceType],
+    arguments: &CallArguments,
 ) -> bool {
-    if cls.fields.len() != arg_types.len() {
+    arguments.assume_all_positional(ck);
+
+    if cls.fields.len() != arguments.positional.len() {
         return false;
     }
 
-    for (def_ty, arg_ty) in cls.fields.iter().zip(arg_types) {
-        let def_ty = replace_type(sa, def_ty.ty(), Some(&type_params), None);
+    for (field, argument) in cls.fields.iter().zip(&arguments.positional) {
+        let def_ty = replace_type(ck.sa, field.ty(), Some(&type_params), None);
 
-        if !def_ty.allows(sa, arg_ty.clone()) {
+        if !def_ty.allows(ck.sa, ck.analysis.ty(argument.id)) {
             return false;
         }
+
+        ck.analysis.map_argument.insert(argument.id, field.id.0);
     }
 
     true
@@ -701,15 +707,14 @@ fn check_expr_call_class(
     if !arguments.named.is_empty() {
         check_expr_call_class_named_args(ck, cls, type_params.clone(), &arguments);
     } else {
-        let arg_types = arguments.assume_all_positional(ck);
-
-        if !check_expr_call_class_args(ck.sa, cls, type_params.clone(), &arg_types) {
+        if !check_expr_call_class_args(ck, cls, type_params.clone(), &arguments) {
             let class_name = cls.name(ck.sa);
             let field_types = cls
                 .fields
                 .iter()
                 .map(|field| field.ty().name_cls(ck.sa, &*cls))
                 .collect::<Vec<_>>();
+            let arg_types = arguments.positional_types(ck);
             let arg_types = arg_types.iter().map(|a| ck.ty_name(a)).collect::<Vec<_>>();
             let msg = ErrorMessage::ParamTypesIncompatible(class_name, field_types, arg_types);
             ck.sa.report(ck.file_id, e.span, msg);

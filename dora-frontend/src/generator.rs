@@ -1702,13 +1702,22 @@ impl<'a> AstBytecodeGen<'a> {
         type_params: &SourceTypeArray,
         dest: DataDest,
     ) -> Register {
-        let mut arguments = Vec::new();
+        let mut arguments: Vec<Option<Register>> = vec![None; expr.args.len()];
 
         for arg in &expr.args {
-            arguments.push(gen_expr(self, &arg.expr, DataDest::Alloc));
+            let reg = gen_expr(self, &arg.expr, DataDest::Alloc);
+            let target_idx = self
+                .analysis
+                .map_argument
+                .get(arg.id)
+                .expect("missing argument idx")
+                .clone();
+
+            arguments[target_idx] = Some(reg);
         }
 
         for &arg_reg in &arguments {
+            let arg_reg = arg_reg.expect("missing register");
             self.builder.emit_push_register(arg_reg);
         }
 
@@ -1721,7 +1730,7 @@ impl<'a> AstBytecodeGen<'a> {
             .emit_new_object_initialized(dest_reg, idx, self.loc(expr.span));
 
         for arg_reg in arguments {
-            self.free_if_temp(arg_reg);
+            self.free_if_temp(arg_reg.expect("missing register"));
         }
 
         dest_reg

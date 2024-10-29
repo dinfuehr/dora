@@ -1,0 +1,15 @@
+class Foo { a: Int, b: Bool, c: String }
+
+impl std::Equals for Foo {
+    fn equals(other: Self): Bool {
+        self.a == other.a && self.b == other.b && self.c == other.c
+    }
+}
+
+fn main() {
+    let x = Foo(a=1,b=true,c="bla");
+    let y = Foo(b=true,a=1,c="bla");
+    let z = Foo(c="bla",a=1,b=true);
+
+    assert(x == y && y == z && x == z);
+}

@@ -199,12 +199,16 @@ pub struct CallArguments {
 }
 
 impl CallArguments {
-    fn assume_all_positional(self, ck: &TypeCheck) -> Vec<SourceType> {
-        for (_name, node) in self.named {
+    fn assume_all_positional(&self, ck: &TypeCheck) -> Vec<SourceType> {
+        for (_name, node) in &self.named {
             ck.sa
                 .report(ck.file_id, node.span, ErrorMessage::UnexpectedNamedArgument);
         }
 
+        self.positional_types(ck)
+    }
+
+    fn positional_types(&self, ck: &TypeCheck) -> Vec<SourceType> {
         self.positional
             .iter()
             .map(|p| ck.analysis.ty(p.id))
