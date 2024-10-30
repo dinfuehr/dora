@@ -609,6 +609,7 @@ pub struct Class {
     pub fields: Vec<Field>,
     pub type_params: Option<TypeParams>,
     pub where_bounds: Option<WhereBounds>,
+    pub uses_braces: bool,
 }
 
 #[derive(Clone, Debug)]

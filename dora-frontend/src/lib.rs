@@ -230,17 +230,13 @@ pub mod tests {
     use dora_parser::{compute_line_column, compute_line_starts};
 
     pub fn ok(code: &'static str) {
-        test::check(code, |vm| {
-            let diag = vm.diag.borrow();
-            let errors = diag.errors();
+        test::check(code, |sa| {
+            report_errors(sa);
 
-            for e in errors {
-                println!("{}", e.message(vm));
-                println!("{:?}", e);
-                println!();
-            }
-
-            assert!(!diag.has_errors(), "program should not have errors.");
+            assert!(
+                !sa.diag.borrow().has_errors(),
+                "program should not have errors."
+            );
         });
     }
 
@@ -248,61 +244,23 @@ pub mod tests {
     where
         F: FnOnce(&Sema) -> R,
     {
-        test::check(code, |vm| {
-            let diag = vm.diag.borrow();
-            let errors = diag.errors();
+        test::check(code, |sa| {
+            report_errors(sa);
+            assert!(
+                !sa.diag.borrow().has_errors(),
+                "program should not have errors."
+            );
 
-            for e in errors {
-                println!("{}", e.message(vm));
-                println!("{:?}", e);
-                println!();
-            }
-
-            assert!(!diag.has_errors(), "program should not have errors.");
-
-            f(vm)
+            f(sa)
         })
     }
 
     pub fn err(code: &'static str, loc: (u32, u32), msg: ErrorMessage) {
-        test::check(code, |vm| {
-            let diag = vm.diag.borrow();
-            let errors = diag.errors();
-
-            let error_loc = if errors.len() == 1 {
-                compute_pos(code, &errors[0])
-            } else {
-                None
-            };
-
-            if errors.len() != 1 || error_loc != Some(loc) || errors[0].msg != msg {
-                println!("expected:");
-                println!("\t{:?} at {}:{}", msg, loc.0, loc.1);
-                println!();
-                if errors.is_empty() {
-                    println!("but got no error.");
-                    println!();
-                } else {
-                    println!("but got:");
-                    for error in errors {
-                        println!("\t{:?} at {:?}", error.msg, compute_pos(code, error));
-                        println!();
-                    }
-                }
-            }
-
-            assert_eq!(1, errors.len(), "found {} errors instead", errors.len());
-            assert_eq!(Some(loc), error_loc);
-            assert_eq!(msg, errors[0].msg);
-        });
+        errors(code, &[(loc, msg)]);
     }
 
     pub fn errors(code: &'static str, vec: &[((u32, u32), ErrorMessage)]) {
         test::check(code, |sa| {
-            let diag = sa.diag.borrow();
-            let mut errors = diag.errors().to_vec();
-            errors.sort_by_key(|e| e.span);
-
             println!("expected errors:");
             for ((line, col), err) in vec {
                 println!("{}:{}: {:?} -> {}", line, col, err, err.message());
@@ -310,14 +268,10 @@ pub mod tests {
             println!("");
 
             println!("actual errors:");
-            for error in &errors {
-                if let Some((line, col)) = error.line_column(sa) {
-                    print!("{}:{}: ", line, col);
-                }
+            report_errors(sa);
 
-                println!("{:?} -> {}", error.msg, error.message(sa));
-            }
-            println!("\n");
+            let diag = sa.diag.borrow();
+            let errors = diag.errors();
 
             assert_eq!(
                 vec.len(),
@@ -337,6 +291,19 @@ pub mod tests {
                 );
             }
         });
+    }
+
+    fn report_errors(sa: &Sema) {
+        let mut diag = sa.diag.borrow_mut();
+        diag.sort();
+
+        for e in diag.errors() {
+            if let Some((line, col)) = e.line_column(sa) {
+                print!("{}:{}: ", line, col);
+            }
+
+            println!("{:?} -> {}", e.msg, e.msg.message());
+        }
     }
 
     fn compute_pos(code: &str, error: &ErrorDescriptor) -> Option<(u32, u32)> {

@@ -690,6 +690,7 @@ impl Parser {
         let name = self.expect_identifier();
         let type_params = self.parse_type_params();
         let where_bounds = self.parse_where();
+        let mut uses_braces = false;
 
         let fields = if self.is(L_PAREN) {
             self.parse_list(
@@ -708,6 +709,8 @@ impl Parser {
                 },
             )
         } else if self.is(L_BRACE) {
+            uses_braces = true;
+
             self.parse_list(
                 L_BRACE,
                 COMMA,
@@ -738,6 +741,7 @@ impl Parser {
             fields,
             type_params,
             where_bounds,
+            uses_braces,
         })
     }
 

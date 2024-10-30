@@ -204,6 +204,7 @@ pub enum ErrorMessage {
     DuplicateNamedArgument,
     MissingNamedArgument(String),
     UseOfUnknownArgument,
+    WarnCallRequiresNamedArgument,
 }
 
 impl ErrorMessage {
@@ -699,6 +700,9 @@ impl ErrorMessage {
             ErrorMessage::UseOfUnknownArgument => {
                 format!("Named argument with this name does not exist.")
             }
+            ErrorMessage::WarnCallRequiresNamedArgument => {
+                format!("Call requires named arguments.")
+            }
         }
     }
 }
@@ -734,24 +738,6 @@ impl ErrorDescriptor {
             Some(compute_line_column(&file.line_starts, span.start()))
         } else {
             None
-        }
-    }
-
-    pub fn message(&self, sa: &Sema) -> String {
-        if let Some(file) = self.file_id {
-            let file = sa.file(file);
-            let (line, column) = self.line_column(sa).expect("missing location");
-
-            format!(
-                "error in {:?} at {}:{}: {}",
-                file.path,
-                line,
-                column,
-                self.msg.message()
-            )
-        } else {
-            assert!(self.span.is_none());
-            format!("error: {}", self.msg.message())
         }
     }
 }

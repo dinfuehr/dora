@@ -209,14 +209,6 @@ fn encode_and_decode_for_testing(prog: Program) -> Program {
 fn report_errors(sa: &Sema) -> bool {
     if sa.diag.borrow().has_errors() {
         sa.diag.borrow_mut().dump(&sa);
-        let no_errors = sa.diag.borrow().errors().len();
-
-        if no_errors == 1 {
-            eprintln!("{} error found.", no_errors);
-        } else {
-            eprintln!("{} errors found.", no_errors);
-        }
-
         true
     } else {
         false

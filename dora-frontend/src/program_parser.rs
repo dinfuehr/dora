@@ -597,6 +597,7 @@ impl<'x> visit::Visitor for TopLevelDeclaration<'x> {
             modifiers,
             ensure_name(self.sa, &node.name),
             type_param_definition,
+            node.uses_braces,
             fields,
         );
         let class_id = self.sa.classes.alloc(class);

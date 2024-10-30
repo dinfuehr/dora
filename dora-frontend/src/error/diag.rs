@@ -38,16 +38,32 @@ impl Diagnostic {
         !self.errors.is_empty()
     }
 
+    pub fn has_errors_or_warnings(&self) -> bool {
+        !self.errors.is_empty() || !self.warnings.is_empty()
+    }
+
     pub fn dump(&mut self, sa: &Sema) {
         self.sort();
 
         for err in &self.errors {
-            eprintln!("{}", &err.message(sa));
+            eprintln!("{}", message_for_error(err, "error", sa));
+        }
+
+        for err in &self.warnings {
+            eprintln!("{}", message_for_error(err, "warning", sa));
+        }
+
+        let no_errors = self.errors.len();
+
+        if no_errors == 1 {
+            eprintln!("{} error found.", no_errors);
+        } else {
+            eprintln!("{} errors found.", no_errors);
         }
     }
 
-    fn sort(&mut self) {
-        self.errors.sort_by(|el1, el2| {
+    pub fn sort(&mut self) {
+        let criteria = |el1: &ErrorDescriptor, el2: &ErrorDescriptor| {
             if el1.file_id.is_none() {
                 return Ordering::Less;
             }
@@ -69,6 +85,28 @@ impl Diagnostic {
             } else {
                 result
             }
-        });
+        };
+
+        self.errors.sort_by(criteria);
+        self.warnings.sort_by(criteria);
+    }
+}
+
+pub fn message_for_error(err: &ErrorDescriptor, kind: &str, sa: &Sema) -> String {
+    if let Some(file) = err.file_id {
+        let file = sa.file(file);
+        let (line, column) = err.line_column(sa).expect("missing location");
+
+        format!(
+            "{} in {:?} at {}:{}: {}",
+            kind,
+            file.path,
+            line,
+            column,
+            err.msg.message()
+        )
+    } else {
+        assert!(err.span.is_none());
+        format!("{}: {}", kind, err.msg.message())
     }
 }

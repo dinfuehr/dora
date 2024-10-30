@@ -30,6 +30,7 @@ pub struct ClassDefinition {
     pub is_internal: bool,
     pub internal_resolved: bool,
     pub visibility: Visibility,
+    pub requires_named_arguments: bool,
 
     pub fields: Vec<Field>,
 
@@ -51,6 +52,7 @@ impl ClassDefinition {
         modifiers: ParsedModifierList,
         name: Name,
         type_param_definition: Rc<TypeParamDefinition>,
+        requires_named_arguments: bool,
         fields: Vec<Field>,
     ) -> ClassDefinition {
         ClassDefinition {
@@ -65,6 +67,7 @@ impl ClassDefinition {
             is_internal: modifiers.is_internal,
             internal_resolved: false,
             visibility: modifiers.visibility(),
+            requires_named_arguments,
 
             fields,
 
@@ -99,6 +102,7 @@ impl ClassDefinition {
             is_internal: false,
             internal_resolved: false,
             visibility,
+            requires_named_arguments: false,
 
             fields,
 

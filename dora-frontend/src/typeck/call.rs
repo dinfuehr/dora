@@ -707,6 +707,14 @@ fn check_expr_call_class(
     if !arguments.named.is_empty() {
         check_expr_call_class_named_args(ck, cls, type_params.clone(), &arguments);
     } else {
+        if cls.requires_named_arguments && !arguments.positional.is_empty() {
+            ck.sa.warn(
+                ck.file_id,
+                e.span,
+                ErrorMessage::WarnCallRequiresNamedArgument,
+            );
+        }
+
         if !check_expr_call_class_args(ck, cls, type_params.clone(), &arguments) {
             let class_name = cls.name(ck.sa);
             let field_types = cls
