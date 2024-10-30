@@ -83,7 +83,7 @@ pub class ArrayIter[T] {
 
 impl[T] ArrayIter[T] {
   static fn new(data: Array[T]): ArrayIter[T] {
-    ArrayIter[T](data, 0)
+    ArrayIter[T](array = data, idx = 0)
   }
 }
 
@@ -108,7 +108,7 @@ pub class ArrayEnumerator[T] {
 
 impl[T] ArrayEnumerator[T] {
   static fn new(data: Array[T]): ArrayEnumerator[T] {
-    ArrayEnumerator[T](data, 0)
+    ArrayEnumerator[T](array = data, idx = 0)
   }
 }
 
@@ -236,10 +236,10 @@ pub class BitSet {
 impl BitSet {
   pub static fn new(capacity: Int64): BitSet {
     if capacity == 0 {
-      BitSet(Array[Int32]::new(), 0)
+      BitSet(data = Array[Int32]::new(), capacity = 0)
     } else {
       let entries = (capacity + 31) / 32;
-      BitSet(Array[Int32]::zero(entries), capacity)
+      BitSet(data = Array[Int32]::zero(entries), capacity = capacity)
     }
   }
 
@@ -295,8 +295,8 @@ impl BitSet {
 
   pub fn clone(): BitSet {
     BitSet(
-      self.data.clone(),
-      self.capacity,
+      data = self.data.clone(),
+      capacity = self.capacity,
     )
   }
 }
@@ -305,7 +305,7 @@ impl std::traits::IntoIterator for BitSet {
   type IteratorType = BitSetIter;
 
   fn iter(): Self::IteratorType {
-    BitSetIter(self, 0, !0i32)
+    BitSetIter(bitset = self, idx = 0, mask = !0i32)
   }
 }
 
@@ -351,7 +351,7 @@ pub class BitVec {
 
 impl BitVec {
   pub static fn new(): BitVec {
-    BitVec(Array[Int32]::new())
+    BitVec(data = Array[Int32]::new())
   }
 
   pub fn contains(idx: Int64): Bool {
@@ -467,7 +467,7 @@ impl BitVec {
   }
 
   pub fn clone(): BitVec {
-    BitVec(self.data.clone())
+    BitVec(data = self.data.clone())
   }
 }
 
@@ -475,7 +475,7 @@ impl std::traits::IntoIterator for BitVec {
   type IteratorType = BitVecIter;
 
   fn iter(): Self::IteratorType {
-    BitVecIter(self, 0, !0i32)
+    BitVecIter(bitvec = self, idx = 0, mask = !0i32)
   }
 }
 
@@ -523,7 +523,7 @@ pub class Queue[T] {
 
 impl[T] Queue[T] {
   pub static fn new(): Queue[T] {
-    Queue[T](Array[T]::unsafeNew(4), 0, 0)
+    Queue[T](elements = Array[T]::unsafeNew(4), front = 0, count = 0)
   }
 
   pub fn enqueue(value: T) {
@@ -601,11 +601,11 @@ impl[K: Hash + Equals, V] HashMap[K, V] {
     // BitSet.size == capacity * 2
     // [bit 0: inserted; bit 1: deleted] * capacity
     let map = HashMap[K, V](
-      BitSet::new(0),
-      Array[K]::new(),
-      Array[V]::new(),
-      0,
-      0,
+      inserted_and_deleted = BitSet::new(0),
+      keys = Array[K]::new(),
+      values = Array[V]::new(),
+      entries = 0,
+      cap = 0,
     );
 
     for entry in entries {
@@ -866,11 +866,11 @@ impl[K: Hash + Equals, V] HashMap[K, V] {
 
     pub fn clone(): HashMap[K, V] {
       HashMap(
-        self.inserted_and_deleted.clone(),
-        self.keys.clone(),
-        self.values.clone(),
-        self.entries,
-        self.cap,
+        inserted_and_deleted = self.inserted_and_deleted.clone(),
+        keys = self.keys.clone(),
+        values = self.values.clone(),
+        entries = self.entries,
+        cap = self.cap,
       )
     }
 
@@ -911,7 +911,7 @@ pub class HashMapIter[K: Hash + Equals, V] {
 
 impl[K: Hash + Equals, V] HashMapIter[K, V] {
     pub static fn new(map: HashMap[K, V]): HashMapIter[K, V] {
-      HashMapIter[K, V](map, 0)
+      HashMapIter[K, V](map = map, idx = 0)
     }
 }
 
@@ -946,7 +946,7 @@ impl[K: Hash + Equals] HashSet[K] {
         map.insert(key, ());
     }
 
-    HashSet[K](map)
+    HashSet[K](map = map)
   }
 
   pub fn insert(key: K): Bool {
@@ -974,7 +974,7 @@ impl[K: Hash + Equals] HashSet[K] {
   }
 
   pub fn clone(): HashSet[K] {
-    HashSet[K](self.map.clone())
+    HashSet[K](map = self.map.clone())
   }
 }
 
@@ -982,19 +982,13 @@ impl[K: Hash + Equals] std::traits::IntoIterator for HashSet[K] {
   type IteratorType = HashSetIter[K];
 
   fn iter(): Self::IteratorType {
-    HashSetIter[K](self.map, 0)
+    HashSetIter[K](map = self.map, idx = 0)
   }
 }
 
 pub class HashSetIter[K: Hash + Equals] {
     map: HashMap[K, ()],
     idx: Int64,
-}
-
-impl[K: Hash + Equals] HashSetIter[K] {
-    pub static fn new(set: HashSet[K]): HashSetIter[K] {
-        HashSetIter[K](set.map, 0)
-    }
 }
 
 impl[K: Hash + Equals] Iterator for HashSetIter[K] {
@@ -1022,12 +1016,12 @@ pub class Vec[T] {
 
 impl[T] Vec[T] {
   pub static fn new(values: T...): Vec[T] {
-    Vec[T](values, values.size())
+    Vec[T](array = values, len = values.size())
   }
 
   pub static fn newWithCapacity(capacity: Int64): Vec[T] {
     let array = Array[T]::unsafeNew(capacity);
-    Vec[T](array, 0)
+    Vec[T](array = array, len = 0)
   }
 
   pub fn get(idx: Int64): T {
@@ -1241,7 +1235,7 @@ impl[T] Vec[T] {
   }
 
   pub fn clone(): Vec[T] {
-    Vec[T](self.array.clone(), self.len)
+    Vec[T](array = self.array.clone(), len = self.len)
   }
 }
 
@@ -1260,7 +1254,7 @@ pub class VecEnumerator[T] {
 
 impl[T] VecEnumerator[T] {
   static fn new(data: Vec[T]): VecEnumerator[T] {
-    VecEnumerator[T](data, 0)
+    VecEnumerator[T](data = data, idx = 0)
   }
 }
 
@@ -1285,7 +1279,7 @@ pub class VecIter[T] {
 
 impl[T] VecIter[T] {
   static fn new(data: Vec[T]): VecIter[T] {
-    VecIter[T](data, 0)
+    VecIter[T](data = data, idx = 0)
   }
 }
 
@@ -1310,7 +1304,7 @@ pub class ReverseVecIter[T] {
 
 impl[T] ReverseVecIter[T] {
   static fn new(data: Vec[T]): ReverseVecIter[T] {
-    ReverseVecIter(data, data.size() - 1)
+    ReverseVecIter(data = data, idx = data.size() - 1)
   }
 }
 

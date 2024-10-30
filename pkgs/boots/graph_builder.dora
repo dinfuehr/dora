@@ -79,25 +79,25 @@ impl SsaGen {
         SsaGen(
             ci,
             graph,
-            None[InlinedFunctionId],
-            ci.bc,
-            ci.typeParams,
-            ci.returnType,
+            inlined_function_id = None[InlinedFunctionId],
+            bc = ci.bc,
+            typeParams = ci.typeParams,
+            returnType = ci.returnType,
             analysis,
-            None[Block],
-            0i32,
-            RegisterTable::new(ci.bc.registers.size()),
-            Array[Option[Block]]::fill(ci.bc.code.size(), None[Block]),
-            HashMap[Block, Int32]::new(),
-            None[Block],
-            None[Block],
-            None[Inst],
-            None[Inst],
-            Vec[BytecodeRegister]::new(),
-            BitVec::new(),
-            BitVec::new(),
-            HashMap[Block, HashMap[BytecodeRegister, Inst]]::new(),
-            Vec[Inst]::new(),
+            currentBlock = None[Block],
+            offset = 0i32,
+            currentDef = RegisterTable::new(ci.bc.registers.size()),
+            blocks = Array[Option[Block]]::fill(ci.bc.code.size(), None[Block]),
+            blockPositions = HashMap[Block, Int32]::new(),
+            entryBlock = None[Block],
+            exitBlock = None[Block],
+            returnValueArgInst = None[Inst],
+            returnValue = None[Inst],
+            pushed_registers = Vec[BytecodeRegister]::new(),
+            filledBlocks = BitVec::new(),
+            sealedBlocks = BitVec::new(),
+            incompletePhis = HashMap[Block, HashMap[BytecodeRegister, Inst]]::new(),
+            currentReplacements = Vec[Inst]::new(),
         )
     }
 
@@ -105,25 +105,25 @@ impl SsaGen {
         SsaGen(
             ci,
             graph,
-            Some[InlinedFunctionId](inlined_function_id),
+            inlined_function_id = Some[InlinedFunctionId](inlined_function_id),
             bc,
             typeParams,
             returnType,
             analysis,
-            None[Block],
-            0i32,
-            RegisterTable::new(bc.registers.size()),
-            Array[Option[Block]]::fill(bc.code.size(), None[Block]),
-            HashMap[Block, Int32]::new(),
-            Some[Block](entryBlock),
-            Some[Block](exitBlock),
-            None[Inst],
-            None[Inst],
-            Vec[BytecodeRegister]::new(),
-            BitVec::new(),
-            BitVec::new(),
-            HashMap[Block, HashMap[BytecodeRegister, Inst]]::new(),
-            Vec[Inst]::new(),
+            currentBlock = None[Block],
+            offset = 0i32,
+            currentDef = RegisterTable::new(bc.registers.size()),
+            blocks = Array[Option[Block]]::fill(bc.code.size(), None[Block]),
+            blockPositions = HashMap[Block, Int32]::new(),
+            entryBlock = Some[Block](entryBlock),
+            exitBlock = Some[Block](exitBlock),
+            returnValueArgInst = None[Inst],
+            returnValue = None[Inst],
+            pushed_registers = Vec[BytecodeRegister]::new(),
+            filledBlocks = BitVec::new(),
+            sealedBlocks = BitVec::new(),
+            incompletePhis = HashMap[Block, HashMap[BytecodeRegister, Inst]]::new(),
+            currentReplacements = Vec[Inst]::new(),
         )
     }
 
@@ -827,7 +827,7 @@ impl SsaGen {
         if !destType.isUnit() {
             let objInst = self.readVariable(obj, self.current());
             let type_params = type_params.specialize(self.typeParams);
-            let info = ClassInfo(cls_id, type_params);
+            let info = ClassInfo(class_id = cls_id, type_params);
             let info = InstExtraData::ClassInfo(info);
             let offset = iface::getFieldOffset(self.ci, cls_id, type_params, field_id);
             let value = self.loadField(destType, objInst, info, offset);
@@ -846,7 +846,7 @@ impl SsaGen {
             let objInst = self.readVariable(obj, self.current());
 
             let offset = iface::getFieldOffset(self.ci, cls_id, type_params, field_id);
-            let info = ClassInfo(cls_id, type_params);
+            let info = ClassInfo(class_id = cls_id, type_params);
             let info = InstExtraData::ClassInfo(info);
             self.storeField(srcType, objInst, info, offset, srcInst, true);
         }
@@ -2665,7 +2665,7 @@ impl RegisterTable {
             data.push(HashMap[Block, Inst]::new());
         }
 
-        RegisterTable(data.toArray())
+        RegisterTable(data = data.toArray())
     }
 
     fn get(register: BytecodeRegister, block: Block): Option[Inst] {

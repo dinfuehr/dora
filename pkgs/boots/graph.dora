@@ -43,19 +43,19 @@ impl Graph {
         insts.push(None[Inst]);
 
         Graph(
-            None[Block],
-            None[Block],
-            Vec[Option[Block]]::new(),
-            insts,
-            None[Vec[Block]],
-            0i32,
-            0i32,
-            None[Int32],
-            HashMap[Int64, Inst]::new(),
-            HashMap[Int32, Inst]::new(),
-            HashMap[UInt8, Inst]::new(),
-            None[Inst],
-            None[Inst],
+            entryBlock = None[Block],
+            exitBlock = None[Block],
+            blocks = Vec[Option[Block]]::new(),
+            instById = insts,
+            postOrder = None[Vec[Block]],
+            nextBlockIdValue = 0i32,
+            nextInstIdValue = 0i32,
+            stackSize = None[Int32],
+            constsByValInt64 = HashMap[Int64, Inst]::new(),
+            constsByValInt32 = HashMap[Int32, Inst]::new(),
+            constsByValUInt8 = HashMap[UInt8, Inst]::new(),
+            constTrue = None[Inst],
+            constFalse = None[Inst],
         )
     }
 
@@ -224,7 +224,7 @@ class InsertionOrderIterator {
 
 impl InsertionOrderIterator {
     static fn new(blocks: Array[Option[Block]]): InsertionOrderIterator {
-        InsertionOrderIterator(blocks, 0)
+        InsertionOrderIterator(blocks, idx = 0)
     }
 
     fn findNextBlock() {
@@ -263,7 +263,7 @@ class PostOrderIterator {
 
 impl PostOrderIterator {
     static pub fn new(postOrder: Array[Block]): PostOrderIterator {
-        PostOrderIterator(postOrder, 0)
+        PostOrderIterator(postOrder, idx = 0)
     }
 }
 
@@ -288,7 +288,7 @@ class ReversePostOrderIterator {
 
 impl ReversePostOrderIterator {
     static pub fn new(postOrder: Array[Block]): ReversePostOrderIterator {
-        ReversePostOrderIterator(postOrder, postOrder.size() - 1)
+        ReversePostOrderIterator(postOrder, idx = postOrder.size() - 1)
     }
 }
 
@@ -340,22 +340,22 @@ pub class Block {
 impl Block {
     static pub fn new(): Block {
         Block(
-            None[Int32],
-            InstLinkedList::new(),
-            InstLinkedList::new(),
-            None[Label],
-            None[Graph],
-            None[String],
-            None[Int32],
-            None[Block],
-            Vec[Block]::new(),
-            None[InstSet],
-            None[RegisterTrackers],
-            None[RegisterTrackers],
-            Vec[Edge]::new(),
-            Vec[Edge]::new(),
-            None[LoopData],
-            -1i32
+            _id = None[Int32],
+            phis = InstLinkedList::new(),
+            instructions = InstLinkedList::new(),
+            label = None[Label],
+            graph = None[Graph],
+            name = None[String],
+            bytecodePosition = None[Int32],
+            dominator = None[Block],
+            dominatedBlocks = Vec[Block]::new(),
+            liveIn = None[InstSet],
+            trackerIn = None[RegisterTrackers],
+            trackerOut = None[RegisterTrackers],
+            predecessors = Vec[Edge]::new(),
+            successors = Vec[Edge]::new(),
+            loopData = None[LoopData],
+            postOrderIdx = -1i32,
         )
     }
 
@@ -580,11 +580,11 @@ impl LoopData {
     pub static fn new(header: Block): LoopData {
         LoopData(
             header,
-            Vec[Edge]::new(),
-            BitVec::new(),
-            None[LoopData],
-            0,
-            Vec[LoopData]::new(),
+            backEdges = Vec[Edge]::new(),
+            blocks = BitVec::new(),
+            parent = None[LoopData],
+            depth = 0,
+            subloops = Vec[LoopData]::new(),
         )
     }
 
@@ -657,10 +657,10 @@ impl Input {
             idx,
             value,
             usedBy,
-            None[Input],
-            None[Input],
-            None[Int32],
-            false,
+            previousUse = None[Input],
+            nextUse = None[Input],
+            linearOrderIdxInActualUser = None[Int32],
+            isLastUse = false,
         )
     }
 
@@ -1000,20 +1000,20 @@ pub class Inst {
 impl Inst {
     pub static fn new(): Inst {
         Inst(
-            0i32,
-            None[Block],
-            None[Int32],
-            None[Op],
-            None[InlinedLocation],
-            0,
-            None[Inst],
-            None[Inst],
-            Type::Unit,
-            InstExtraData::None,
-            None[LocationData],
-            None[Input],
-            None[Input],
-            Vec[Input]::new(),
+            _id = 0i32,
+            block = None[Block],
+            linear_index = None[Int32],
+            _op = None[Op],
+            inlinedLocation = None[InlinedLocation],
+            aux = 0,
+            previous = None[Inst],
+            next = None[Inst],
+            ty = Type::Unit,
+            extra = InstExtraData::None,
+            location_data = None[LocationData],
+            useListHead = None[Input],
+            useListTail = None[Input],
+            inputs = Vec[Input]::new(),
         )
     }
 
@@ -1800,15 +1800,15 @@ impl LocationData {
 
         LocationData(
             inputs,
-            Vec[Operand]::new(),
-            None[Operand],
-            true,
-            Location::None,
-            None[Int32],
-            None[Int32],
-            false,
-            None[RegisterTrackers],
-            None[InstSet],
+            temps = Vec[Operand]::new(),
+            output = None[Operand],
+            output_overlaps = true,
+            hint = Location::None,
+            spill_slot = None[Int32],
+            stack_slot = None[Int32],
+            needsRegisterSnapshot = false,
+            snapshot = None[RegisterTrackers],
+            live_values = None[InstSet],
         )
     }
 
@@ -1817,15 +1817,15 @@ impl LocationData {
 
         LocationData(
             inputs,
-            Vec[Operand]::new(),
-            None[Operand],
-            true,
-            Location::None,
-            None[Int32],
-            None[Int32],
-            false,
-            None[RegisterTrackers],
-            None[InstSet],
+            temps = Vec[Operand]::new(),
+            output = None[Operand],
+            output_overlaps = true,
+            hint = Location::None,
+            spill_slot = None[Int32],
+            stack_slot = None[Int32],
+            needsRegisterSnapshot = false,
+            snapshot = None[RegisterTrackers],
+            live_values = None[InstSet],
         )
     }
 
@@ -1866,7 +1866,10 @@ impl LocationData {
 
     pub fn initOutput(operand: Location) {
         assert(self.output.isNone());
-        self.output = Some(Operand(Policy::None, operand));
+        self.output = Some(Operand(
+            policy = Policy::None,
+            location = operand,
+        ));
     }
 
     pub fn hasInputAt(idx: Int64): Bool {
@@ -2256,7 +2259,7 @@ class UseIterator {
 
 impl UseIterator {
     static fn new(inst: Inst): UseIterator {
-        UseIterator(inst.useListHead)
+        UseIterator(current = inst.useListHead)
     }
 }
 
@@ -2300,8 +2303,8 @@ pub fn createMoveInst(ty: Type, dest: Location, source: Location): Inst {
     inst.ty = ty;
 
     let loc = LocationData::newWith(1);
-    loc.output = Some(Operand(Policy::None, dest));
-    loc.inputs(0) = Some[Operand](Operand(Policy::None, source));
+    loc.output = Some(Operand(policy = Policy::None, location = dest));
+    loc.inputs(0) = Some[Operand](Operand(policy = Policy::None, location = source));
     inst.setLocationData(loc);
 
     inst
@@ -2313,7 +2316,7 @@ pub fn createRematerializeInst(dest: Location, value: Inst): Inst {
     inst.extra = InstExtraData::Inst(value);
 
     let loc = LocationData::newWith(1);
-    loc.output = Some(Operand(Policy::None, dest));
+    loc.output = Some(Operand(policy = Policy::None, location = dest));
     inst.setLocationData(loc);
 
     inst
@@ -2890,7 +2893,7 @@ class InstLinkedList {
 
 impl InstLinkedList {
     static fn new(): InstLinkedList {
-        InstLinkedList(None[Inst], None[Inst])
+        InstLinkedList(first = None[Inst], last = None[Inst])
     }
 
     fn isEmpty(): Bool {
@@ -2961,7 +2964,7 @@ impl InstLinkedList {
         self.last = Some(location);
         location.next = None;
         next.previous = None;
-        InstLinkedList(Some[Inst](next), Some[Inst](last))
+        InstLinkedList(first = Some[Inst](next), last = Some[Inst](last))
     }
 
     fn removeInst(inst: Inst) {
@@ -2985,7 +2988,7 @@ class InstIterator {
 
 impl InstIterator {
     static fn new(block: Block): InstIterator {
-        InstIterator(block.instructions.first)
+        InstIterator(current = block.instructions.first)
     }
 }
 
@@ -3008,7 +3011,7 @@ class PhiInstIterator {
 
 impl PhiInstIterator {
     static fn new(block: Block): PhiInstIterator {
-        PhiInstIterator(block.phis.first)
+        PhiInstIterator(current = block.phis.first)
     }
 }
 
@@ -3031,7 +3034,7 @@ class BackwardInstIterator {
 
 impl BackwardInstIterator {
     static fn new(block: Block): BackwardInstIterator {
-        BackwardInstIterator(block.instructions.last)
+        BackwardInstIterator(current = block.instructions.last)
     }
 }
 
@@ -3063,7 +3066,7 @@ impl Edge {
             sourceIdx,
             target,
             targetIdx,
-            false,
+            backward = false,
         )
     }
 
@@ -3103,7 +3106,7 @@ pub class InstSet {
 
 impl InstSet {
     pub static fn new(graph: Graph): InstSet {
-        InstSet(graph, BitVec::new())
+        InstSet(graph, data = BitVec::new())
     }
 
     pub fn contains(inst: Inst): Bool {
@@ -3124,7 +3127,7 @@ impl InstSet {
     }
 
     pub fn clone(): InstSet {
-        InstSet(self.graph, self.data.clone())
+        InstSet(graph = self.graph, data = self.data.clone())
     }
 }
 
@@ -3132,7 +3135,7 @@ impl std::traits::IntoIterator for InstSet {
   type IteratorType = InstSetIter;
 
   fn iter(): Self::IteratorType {
-    InstSetIter(self.graph, self.data.iter())
+    InstSetIter(graph = self.graph, iter = self.data.iter())
   }
 }
 

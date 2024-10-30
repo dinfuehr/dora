@@ -32,13 +32,13 @@ pub fn decodeConfig(encoded: Array[UInt8]): Config {
         object_write_barrier_slow_path,
         allocation_slow_path,
         meta_space_start,
-        is_windows,
-        is_unix,
-        needs_write_barrier,
-        use_tlab,
-        is_debug,
-        has_lse_atomics,
-        has_avx2,
+        isWindows = is_windows,
+        isUnix = is_unix,
+        needsWriteBarrier = needs_write_barrier,
+        useTlab = use_tlab,
+        isDebug = is_debug,
+        hasLseAtomics = has_lse_atomics,
+        hasAvx2 = has_avx2,
     )
 }
 
@@ -58,13 +58,19 @@ pub fn decodeCompilationInfo(reader: ByteReader): CompilationInfo {
 pub fn decodeStructData(reader: ByteReader): StructData {
     let typeParams = reader.readInt32();
     let types = decodeBytecodeTypeArray(reader);
-    StructData(typeParams, types)
+    StructData(
+        typeParams,
+        fields = types
+    )
 }
 
 pub fn decodeEnumData(reader: ByteReader): EnumData {
     let typeParams = reader.readInt32();
     let variants = decodeEnumVariants(reader);
-    EnumData(typeParams, variants)
+    EnumData(
+        typeParams,
+        variants = variants
+    )
 }
 
 fn decodeEnumVariants(reader: ByteReader): Array[EnumVariantData] {
@@ -83,7 +89,7 @@ fn decodeEnumVariants(reader: ByteReader): Array[EnumVariantData] {
 
 fn decodeEnumVariantData(reader: ByteReader): EnumVariantData {
     let fields = decodeBytecodeTypeArray(reader);
-    EnumVariantData(fields)
+    EnumVariantData(fields = fields)
 }
 
 pub fn decodeBytecodeFunction(reader: ByteReader): BytecodeFunction {
@@ -92,7 +98,13 @@ pub fn decodeBytecodeFunction(reader: ByteReader): BytecodeFunction {
     let registers = decodeRegisters(reader);
     let locations = decodeLocations(reader);
     let arguments = reader.readInt32();
-    BytecodeFunction(code, constpool, registers, locations, arguments)
+    BytecodeFunction(
+        code = code,
+        const_pool = constpool,
+        registers = registers,
+        locations = locations,
+        arguments = arguments
+    )
 }
 
 fn decodeBytecodeArray(reader: ByteReader): Array[UInt8] {
@@ -348,7 +360,7 @@ pub class ByteReader {
 
 impl ByteReader {
     static pub fn new(array: Array[UInt8]): ByteReader {
-        ByteReader(array, 0)
+        ByteReader(array = array, idx = 0)
     }
 
     pub fn moreBytes(): Bool {

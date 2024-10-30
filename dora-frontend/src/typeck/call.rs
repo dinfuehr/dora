@@ -1,4 +1,4 @@
-use std::collections::{HashMap, HashSet};
+use std::collections::HashMap;
 use std::sync::Arc;
 
 use dora_parser::{ast, Span};
@@ -80,36 +80,15 @@ pub(super) fn check_expr_call(
 
 fn create_call_arguments(ck: &mut TypeCheck, e: &ast::ExprCallType) -> CallArguments {
     let mut arguments = CallArguments {
-        positional: Vec::new(),
-        named: HashMap::new(),
+        arguments: Vec::with_capacity(e.args.len()),
         span: e.span,
     };
-
-    let mut found_named = false;
 
     for arg in e.args.iter() {
         let ty = check_expr(ck, &arg.expr, SourceType::Any);
         ck.analysis.set_ty(arg.id, ty);
 
-        if let Some(ref ident) = arg.name {
-            let name = ck.sa.interner.intern(&ident.name_as_string);
-            if !arguments.named.contains_key(&name) {
-                assert!(arguments.named.insert(name, arg.clone()).is_none());
-            } else {
-                ck.sa
-                    .report(ck.file_id, arg.span, ErrorMessage::DuplicateNamedArgument);
-            }
-
-            found_named = true;
-        } else if found_named {
-            ck.sa.report(
-                ck.file_id,
-                arg.span,
-                ErrorMessage::UnexpectedPositionalArgument,
-            );
-        } else {
-            arguments.positional.push(arg.clone());
-        }
+        arguments.arguments.push(arg.clone());
     }
 
     arguments
@@ -595,25 +574,48 @@ fn check_expr_call_class_named_args(
     cls: &ClassDefinition,
     type_params: SourceTypeArray,
     arguments: &CallArguments,
-) -> bool {
-    let mut fields_by_name: HashSet<Name> = HashSet::new();
+) {
+    let mut args_by_name: HashMap<Name, Arc<ast::Argument>> = HashMap::new();
 
-    for arg in &arguments.positional {
-        ck.sa.report(
-            ck.file_id,
-            arg.span,
-            ErrorMessage::UnexpectedPositionalArgument,
-        );
+    let mut add_named_argument = |arg: &Arc<ast::Argument>, name: Name| {
+        if args_by_name.contains_key(&name) {
+            ck.sa
+                .report(ck.file_id, arg.span, ErrorMessage::DuplicateNamedArgument);
+        } else {
+            assert!(args_by_name.insert(name, arg.clone()).is_none());
+        }
+    };
+
+    for arg in &arguments.arguments {
+        if let Some(ref name) = arg.name {
+            let name = ck.sa.interner.intern(&name.name_as_string);
+            add_named_argument(arg, name);
+        } else if let Some(ident) = arg.expr.to_ident() {
+            let name = ck.sa.interner.intern(&ident.name);
+            add_named_argument(arg, name);
+        } else {
+            ck.sa.report(
+                ck.file_id,
+                arg.span,
+                ErrorMessage::UnexpectedPositionalArgument,
+            );
+        }
     }
 
     for field in &cls.fields {
-        fields_by_name.insert(field.name);
-
-        if let Some(arg) = arguments.named.get(&field.name) {
+        if let Some(arg) = args_by_name.remove(&field.name) {
             let def_ty = replace_type(ck.sa, field.ty(), Some(&type_params), None);
+            let arg_ty = ck.analysis.ty(arg.id);
 
-            if !def_ty.allows(ck.sa, ck.analysis.ty(arg.id).clone()) {
-                return false;
+            if !def_ty.allows(ck.sa, arg_ty.clone()) {
+                let exp = ck.ty_name(&def_ty);
+                let got = ck.ty_name(&arg_ty);
+
+                ck.sa.report(
+                    ck.file_id,
+                    arg.span,
+                    ErrorMessage::WrongTypeForNamedArgument(exp, got),
+                );
             }
 
             ck.analysis.map_argument.insert(arg.id, field.id.0);
@@ -627,14 +629,10 @@ fn check_expr_call_class_named_args(
         }
     }
 
-    for (name, arg) in &arguments.named {
-        if !fields_by_name.contains(name) {
-            ck.sa
-                .report(ck.file_id, arg.span, ErrorMessage::UseOfUnknownArgument);
-        }
+    for (_name, arg) in args_by_name {
+        ck.sa
+            .report(ck.file_id, arg.span, ErrorMessage::UseOfUnknownArgument);
     }
-
-    true
 }
 
 fn check_expr_call_class_args(
@@ -645,11 +643,11 @@ fn check_expr_call_class_args(
 ) -> bool {
     arguments.assume_all_positional(ck);
 
-    if cls.fields.len() != arguments.positional.len() {
+    if cls.fields.len() != arguments.arguments.len() {
         return false;
     }
 
-    for (field, argument) in cls.fields.iter().zip(&arguments.positional) {
+    for (field, argument) in cls.fields.iter().zip(&arguments.arguments) {
         let def_ty = replace_type(ck.sa, field.ty(), Some(&type_params), None);
 
         if !def_ty.allows(ck.sa, ck.analysis.ty(argument.id)) {
@@ -704,10 +702,10 @@ fn check_expr_call_class(
         ck.sa.report(ck.file_id, e.span, msg);
     }
 
-    if !arguments.named.is_empty() {
+    if cls.requires_named_arguments && arguments.only_named_arguments() {
         check_expr_call_class_named_args(ck, cls, type_params.clone(), &arguments);
     } else {
-        if cls.requires_named_arguments && !arguments.positional.is_empty() {
+        if cls.requires_named_arguments && !arguments.arguments.is_empty() {
             ck.sa.warn(
                 ck.file_id,
                 e.span,

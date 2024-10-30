@@ -108,7 +108,10 @@ pub class Stacktrace {
 
 impl Stacktrace {
   pub static fn new(): Stacktrace {
-    let trace = Stacktrace(None[Array[Int32]], None[Array[StacktraceElement]]);
+    let trace = Stacktrace(
+      backtrace = None[Array[Int32]],
+      symbolized_backtrace = None[Array[StacktraceElement]]
+    );
     trace.capture();
     trace
   }
@@ -128,7 +131,12 @@ impl Stacktrace {
     let mut i = 0i64;
     let symbolized_backtrace = Vec[StacktraceElement]::new();
     symbolized_backtrace.reserve(backtrace.size());
-    let iterator = StacktraceIterator(0i32, 0i32, None[String], -1i32);
+    let iterator = StacktraceIterator(
+      code_id = 0i32,
+      offset = 0i32,
+      text = None[String],
+      inlined_function_id = -1i32
+    );
 
     while i < backtrace.size() {
       let code_id = backtrace(i);
@@ -138,12 +146,12 @@ impl Stacktrace {
       iterator.text = None[String];
       iterator.inlined_function_id = -1i32;
       symbolizeStacktraceElement(iterator);
-      let element = StacktraceElement(iterator.text.getOrPanic());
+      let element = StacktraceElement(text = iterator.text.getOrPanic());
       symbolized_backtrace.push(element);
 
       while iterator.inlined_function_id != -1i32 {
         symbolizeStacktraceElement(iterator);
-        let element = StacktraceElement(iterator.text.getOrPanic());
+        let element = StacktraceElement(text = iterator.text.getOrPanic());
         symbolized_backtrace.push(element);
       }
 

@@ -260,12 +260,18 @@ impl BytecodeBuilder {
     pub fn generate(): BytecodeFunction {
         self.resolveJumps();
         let code = self.code.toArray();
-        let constPool = self.constPool.toArray();
+        let const_pool = self.constPool.toArray();
         let registers = self.registers.toArray();
         let locations = Array[(Int32, Location)]::new();
         let arguments = self.arguments;
         assert(arguments.toInt64() <= registers.size());
-        BytecodeFunction(code, constPool, registers, locations, arguments)
+        BytecodeFunction(
+            code,
+            const_pool,
+            registers,
+            locations,
+            arguments
+        )
     }
 
     fn resolveJumps() {
@@ -305,7 +311,7 @@ impl BytecodeBuilder {
         let target = self.code.size().toInt32();
         self.emitInt32Fixed(0i32);
 
-        self.unresolvedJumps.push(UnresolvedJump(start, target, lbl));
+        self.unresolvedJumps.push(UnresolvedJump(inst = start, target, label = lbl));
     }
 
     fn emitInst(inst: Int32) {
@@ -454,4 +460,8 @@ impl BytecodeLabel {
     }
 }
 
-class UnresolvedJump(inst: Int32, target: Int32, label: BytecodeLabel)
+class UnresolvedJump {
+    inst: Int32,
+    target: Int32,
+    label: BytecodeLabel
+}

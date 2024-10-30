@@ -23,12 +23,3 @@ tools/test.bat && tools/test-release.bat # Windows
 Note that the test runner is implemented in [Ruby](https://www.ruby-lang.org/)
 and therefore a Ruby interpreter needs to be installed on your system (e.g.
 `brew/dnf/apt install ruby`).
-
-## Working on the standard library
-
-The standard library (stdlib) is included into the `dora`-binary at compile
-time. Changing the stdlib therefore requires recompiling Dora, even though the
-stdlib is written in Dora. In order to avoid this recompilation when working on
-the stdlib, simply pass your working directory of the stdlib to Dora using the
-`--stdlib` argument. With this parameter, Dora loads the stdlib from the
-specified directory instead of the one bundled in the executable.

@@ -54,7 +54,7 @@ pub class Mutex {
 
 impl Mutex {
     pub static fn new(): Mutex {
-        Mutex(AtomicInt32::new(UNLOCKED), 0)
+        Mutex(data = AtomicInt32::new(UNLOCKED), owner_thread_id = 0)
     }
 
     pub fn lock[T](fct: (): T): T {
@@ -121,7 +121,7 @@ pub class Condition {
 
 impl Condition {
     pub static fn new(): Condition {
-        Condition(AtomicInt32::new(0i32))
+        Condition(waiters = AtomicInt32::new(0i32))
     }
 
     pub fn wait(mtx: Mutex) {

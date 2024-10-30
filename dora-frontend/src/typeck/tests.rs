@@ -4686,41 +4686,22 @@ fn call_with_named_arguments() {
 }
 
 #[test]
-fn positional_argument_after_named_argument() {
-    errors(
-        "
-        fn f(x: Int, y: Int) {}
-        fn g() {
-            f(1, 2, y = 3, 1);
-        }
-    ",
-        &[
-            ((4, 21), ErrorMessage::UnexpectedNamedArgument),
-            ((4, 28), ErrorMessage::UnexpectedPositionalArgument),
-        ],
-    );
-}
-
-#[test]
 fn duplicate_named_argument() {
     errors(
         "
-        fn f(x: Int, y: Int) {}
+        class Foo { x: Int, y: Int }
         fn g() {
-            f(1, 2, y = 3, y = 4);
+            Foo(x = 1, y = 3, y = 4);
         }
     ",
-        &[
-            ((4, 21), ErrorMessage::UnexpectedNamedArgument),
-            ((4, 28), ErrorMessage::DuplicateNamedArgument),
-        ],
+        &[((4, 31), ErrorMessage::DuplicateNamedArgument)],
     );
 }
 
 #[test]
 fn class_ctor_with_named_argument() {
     ok("
-        class Foo(a: Int, b: String)
+        class Foo { a: Int, b: String }
         fn f() {
             Foo(a=1, b=\"bar\");
             Foo(b=\"bar\", a=1);
@@ -4729,7 +4710,7 @@ fn class_ctor_with_named_argument() {
 
     err(
         "
-        class Foo(a: Int, b: Bool)
+        class Foo { a: Int, b: Bool }
         fn f() {
             Foo(b=true);
         }
@@ -4740,7 +4721,7 @@ fn class_ctor_with_named_argument() {
 
     err(
         "
-        class Foo(a: Int, b: Bool)
+        class Foo { a: Int, b: Bool }
         fn f() {
             Foo(b=true, a=1, c=2.4);
         }
@@ -4748,15 +4729,28 @@ fn class_ctor_with_named_argument() {
         (4, 30),
         ErrorMessage::UseOfUnknownArgument,
     );
+}
 
+#[test]
+fn class_ctor_with_named_argument_of_wrong_type() {
     err(
         "
-        class Foo(a: Int, b: Bool)
+        class Foo { a: Int, b: Bool }
         fn f() {
-            Foo(1, b=true, a=1);
+            Foo(a = 1, b = 2);
         }
     ",
-        (4, 17),
-        ErrorMessage::UnexpectedPositionalArgument,
+        (4, 24),
+        ErrorMessage::WrongTypeForNamedArgument("Bool".into(), "Int64".into()),
     );
+}
+
+#[test]
+fn class_ctor_with_ident_expr_used_as_named_argument() {
+    ok("
+        class Foo { a: Int, b: Bool }
+        fn f(a: Int, b: Bool) {
+            Foo(a, b);
+        }
+    ");
 }

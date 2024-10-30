@@ -200,7 +200,7 @@ pub struct Range[T: Comparable] {
 impl std::traits::IntoIterator for Range[Int64] {
   type IteratorType = Int64RangeIter;
   fn iter(): Self::IteratorType {
-    Int64RangeIter(self.lower, self.upper)
+    Int64RangeIter(next = self.lower, limit = self.upper)
   }
 }
 
@@ -209,7 +209,7 @@ pub class Int64Range(lower: Int64, upper: Int64)
 impl std::traits::IntoIterator for Int64Range {
   type IteratorType = Int64RangeIter;
   fn iter(): Self::IteratorType {
-    Int64RangeIter(self.lower, self.upper)
+    Int64RangeIter(next = self.lower, limit = self.upper)
   }
 }
 

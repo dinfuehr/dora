@@ -264,7 +264,7 @@ pub class StringBuffer {
 
 impl StringBuffer {
   pub static fn new(): StringBuffer {
-    StringBuffer(Array[UInt8]::new(), 0)
+    StringBuffer(buf = Array[UInt8]::new(), len = 0)
   }
 
   pub fn size(): Int64 {

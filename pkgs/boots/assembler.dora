@@ -14,7 +14,7 @@ class AssemblerBuffer {
 
 impl AssemblerBuffer {
     static fn new(): AssemblerBuffer {
-        AssemblerBuffer(Vec[UInt8]::new(), 0)
+        AssemblerBuffer(buffer = Vec[UInt8]::new(), pos = 0)
     }
 
     fn position(): Int64 {
@@ -96,7 +96,7 @@ pub class Label {
 
 impl Label {
     static fn new(): Label {
-        Label(-1)
+        Label(offset = -1)
     }
 
     fn bindTo(pos: Int64) {
@@ -227,7 +227,7 @@ class MachineCode {
 
 impl MachineCode {
     static fn new(bytes: Array[UInt8]): MachineCode {
-        MachineCode(bytes, 0)
+        MachineCode(bytes = bytes, start = 0)
     }
 
     fn getInt32(idx: Int64): Int32 {
@@ -247,17 +247,17 @@ pub class RegMap[T: RegisterType, V] {
 impl[T: RegisterType, V] RegMap[T, V] {
     pub static fn new(rs: RegSet[T]): RegMap[T, V] {
         RegMap(
-            rs.value,
-            0,
-            Array[Option[V]]::fill(64, None[V])
+            allocatable = rs.value,
+            in_use = 0,
+            data = Array[Option[V]]::fill(64, None[V])
         )
     }
 
     pub fn clone(): RegMap[T, V] {
         RegMap(
-            self.allocatable,
-            self.in_use,
-            self.data.clone()
+            allocatable = self.allocatable,
+            in_use = self.in_use,
+            data = self.data.clone()
         )
     }
 
@@ -303,7 +303,7 @@ impl[T: RegisterType, V] RegMap[T, V] {
 impl[T: RegisterType, V] std::traits::IntoIterator for RegMap[T, V] {
     type IteratorType = RegMapIterator[T, V];
     fn iter(): Self::IteratorType {
-        RegMapIterator(self, 0)
+        RegMapIterator(map = self, idx = 0)
     }
 }
 
@@ -338,7 +338,7 @@ pub class RegSet[T: RegisterType] {
 
 impl[T: RegisterType] RegSet[T] {
     pub static fn new(registers: T...): RegSet[T] {
-        let rs = RegSet[T](0);
+        let rs = RegSet[T](value = 0);
 
         for reg in registers {
             rs.add(reg);
@@ -348,7 +348,7 @@ impl[T: RegisterType] RegSet[T] {
     }
 
     pub static fn firstN(registers: Int32): RegSet[T] {
-        RegSet[T]((1 << registers) - 1)
+        RegSet[T](value = (1 << registers) - 1)
     }
 
     pub fn add(reg: T): Bool {
@@ -423,20 +423,20 @@ impl[T: RegisterType] RegSet[T] {
     }
 
     pub fn intersect(other: RegSet[T]): RegSet[T] {
-        RegSet(self.value & other.value)
+        RegSet(value = self.value & other.value)
     }
 
     pub fn union(other: RegSet[T]): RegSet[T] {
-        RegSet(self.value | other.value)
+        RegSet(value = self.value | other.value)
     }
 
     pub fn difference(other: RegSet[T]): RegSet[T] {
-        RegSet(self.value & !other.value)
+        RegSet(value = self.value & !other.value)
     }
 
     pub fn clone(): RegSet[T] {
         RegSet(
-            self.value,
+            value = self.value,
         )
     }
 
@@ -461,7 +461,7 @@ impl[T: RegisterType] RegSet[T] {
 impl[T: RegisterType] std::traits::IntoIterator for RegSet[T] {
     type IteratorType = RegSetIterator[T];
     fn iter(): Self::IteratorType {
-        RegSetIterator(self.value, 0i32)
+        RegSetIterator(value = self.value, idx = 0i32)
     }
 }
 

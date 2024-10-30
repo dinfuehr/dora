@@ -14,15 +14,15 @@ pub class File {
 
 impl File {
     pub static fn new(path: String): File {
-        File(path)
+        File(path = path)
     }
 
     pub static fn create(path: String): OpenFile {
-        OpenFile(fileCreate(path))
+        OpenFile(fd = fileCreate(path))
     }
 
     pub static fn open(path: String): OpenFile {
-        OpenFile(fileOpen(path))
+        OpenFile(fd = fileOpen(path))
     }
 
     pub fn readAsString(): Result[String, IOError] {
@@ -45,7 +45,7 @@ impl File {
         if fd == -1 {
             return Err(IOError());
         }
-        let file = OpenFile(fd);
+        let file = OpenFile(fd = fd);
         let result = Vec[UInt8]::new();
         let buffer = Array[UInt8]::zero(DEFAULT_BUFFER_SIZE);
 
@@ -80,7 +80,7 @@ impl File {
         if fd == -1 {
             return Err(IOError());
         }
-        let file = OpenFile(fd);
+        let file = OpenFile(fd = fd);
         let mut written = 0;
 
         while written < buffer.size() {
@@ -105,9 +105,9 @@ impl File {
     }
 }
 
-pub let stdin: OpenFile = OpenFile(getStdHandle(0i32));
-pub let stdout: OpenFile = OpenFile(getStdHandle(1i32));
-pub let stderr: OpenFile = OpenFile(getStdHandle(2i32));
+pub let stdin: OpenFile = OpenFile(fd = getStdHandle(0i32));
+pub let stdout: OpenFile = OpenFile(fd = getStdHandle(1i32));
+pub let stderr: OpenFile = OpenFile(fd = getStdHandle(2i32));
 
 pub class OpenFile {
     fd: Int64,
@@ -191,9 +191,9 @@ pub class BufferedWriter {
 impl BufferedWriter {
     pub static fn new(file: OpenFile): BufferedWriter {
         BufferedWriter(
-            file,
-            Array[UInt8]::zero(DEFAULT_BUFFER_SIZE),
-            0,
+            file = file,
+            buffer = Array[UInt8]::zero(DEFAULT_BUFFER_SIZE),
+            len = 0,
         )
     }
 }
@@ -240,7 +240,7 @@ pub class Directory {
 
 impl Directory {
     pub fn new(path: String): Directory {
-        Directory(path)
+        Directory(path = path)
     }
 }
 
@@ -260,7 +260,7 @@ impl TcpListener {
     pub static fn bind(addr: String): Result[TcpListener, IOError] {
         let fd = socketBind(addr);
         if fd != -1 {
-            Ok[TcpListener, IOError](TcpListener(fd))
+            Ok[TcpListener, IOError](TcpListener(fd = fd))
         } else {
             Err[TcpListener, IOError](IOError())
         }
@@ -270,7 +270,7 @@ impl TcpListener {
         let stream_fd = socketAccept(self.fd);
 
         if stream_fd != -1 {
-            Ok[TcpStream, IOError](TcpStream(stream_fd))
+            Ok[TcpStream, IOError](TcpStream(fd = stream_fd))
         } else {
             Err[TcpStream, IOError](IOError())
         }
@@ -292,7 +292,7 @@ impl TcpStream {
     pub static fn connect(addr: String): Result[TcpStream, IOError] {
         let fd = socketConnect(addr);
         if fd != -1 {
-            Ok[TcpStream, IOError](TcpStream(fd))
+            Ok[TcpStream, IOError](TcpStream(fd = fd))
         } else {
             Err[TcpStream, IOError](IOError())
         }

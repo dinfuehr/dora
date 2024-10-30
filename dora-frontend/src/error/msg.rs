@@ -205,6 +205,7 @@ pub enum ErrorMessage {
     MissingNamedArgument(String),
     UseOfUnknownArgument,
     WarnCallRequiresNamedArgument,
+    WrongTypeForNamedArgument(String, String),
 }
 
 impl ErrorMessage {
@@ -702,6 +703,12 @@ impl ErrorMessage {
             }
             ErrorMessage::WarnCallRequiresNamedArgument => {
                 format!("Call requires named arguments.")
+            }
+            ErrorMessage::WrongTypeForNamedArgument(ref exp, ref got) => {
+                format!(
+                    "Named argument expects value of type `{}` but got `{}`.",
+                    exp, got
+                )
             }
         }
     }
