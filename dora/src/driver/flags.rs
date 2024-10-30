@@ -81,6 +81,7 @@ pub struct DriverFlags {
     pub use_boots: Option<String>,
     pub version: bool,
     pub help: bool,
+    pub report_all_warnings: bool,
     pub emit_debug: Option<String>,
     pub emit_debug_native: bool,
     pub emit_debug_compile: bool,
@@ -148,6 +149,7 @@ impl Default for DriverFlags {
             use_boots: None,
             version: false,
             help: false,
+            report_all_warnings: false,
             gc_events: false,
             gc_stress: false,
             gc_stress_in_lazy_compile: false,
@@ -226,6 +228,8 @@ pub fn parse_arguments() -> Result<DriverFlags, String> {
             flags.check = true;
         } else if arg == "-h" || arg == "--help" {
             flags.help = true;
+        } else if arg == "--report-all-warnings" {
+            flags.report_all_warnings = true;
         } else if arg.starts_with("--emit-ast=") {
             flags.emit_ast = Some(argument_value(arg).into());
         } else if arg.starts_with("--emit-asm=") {

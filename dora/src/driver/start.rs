@@ -120,7 +120,7 @@ fn compile_into_program(flags: &DriverFlags, file: String) -> Result<Program, ()
     let success = language::check_program(&mut sa);
     assert_eq!(success, !sa.diag.borrow().has_errors());
 
-    if report_errors(&sa) {
+    if report_errors(&sa, flags.report_all_warnings) {
         return Err(());
     }
 
@@ -206,10 +206,10 @@ fn encode_and_decode_for_testing(prog: Program) -> Program {
     decoded_prog
 }
 
-fn report_errors(sa: &Sema) -> bool {
-    if sa.diag.borrow().has_errors() {
-        sa.diag.borrow_mut().dump(&sa);
-        true
+fn report_errors(sa: &Sema, report_all_warnings: bool) -> bool {
+    if sa.diag.borrow().has_errors_or_warnings() {
+        sa.diag.borrow_mut().dump(&sa, report_all_warnings);
+        sa.diag.borrow().has_errors()
     } else {
         false
     }

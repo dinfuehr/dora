@@ -42,7 +42,7 @@ impl Diagnostic {
         !self.errors.is_empty() || !self.warnings.is_empty()
     }
 
-    pub fn dump(&mut self, sa: &Sema) {
+    pub fn dump(&mut self, sa: &Sema, report_all_warnings: bool) {
         self.sort();
 
         for err in &self.errors {
@@ -50,15 +50,24 @@ impl Diagnostic {
         }
 
         for err in &self.warnings {
+            if let Some(file_id) = err.file_id {
+                let file = sa.file(file_id);
+                if !report_all_warnings && file.package_id != sa.program_package_id() {
+                    // Do not report warnings by default in standard library or boots for now.
+                    continue;
+                }
+            }
             eprintln!("{}", message_for_error(err, "warning", sa));
         }
 
-        let no_errors = self.errors.len();
+        if !self.errors.is_empty() {
+            let no_errors = self.errors.len();
 
-        if no_errors == 1 {
-            eprintln!("{} error found.", no_errors);
-        } else {
-            eprintln!("{} errors found.", no_errors);
+            if no_errors == 1 {
+                eprintln!("{} error found.", no_errors);
+            } else {
+                eprintln!("{} errors found.", no_errors);
+            }
         }
     }
 

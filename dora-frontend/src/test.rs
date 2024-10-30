@@ -7,9 +7,9 @@ where
 {
     check(code, |sa| {
         if sa.diag.borrow().has_errors() {
-            sa.diag.borrow_mut().dump(sa);
+            sa.diag.borrow_mut().dump(sa, false);
             println!("{}", code);
-            panic!("unexpected error in test::parse()");
+            panic!("unexpected error in test");
         }
 
         f(sa)
