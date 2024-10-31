@@ -208,16 +208,6 @@ impl CallArguments {
         self.positional_types(ck)
     }
 
-    fn only_named_arguments(&self) -> bool {
-        for arg in &self.arguments {
-            if arg.name.is_none() && !arg.expr.is_ident() {
-                return false;
-            }
-        }
-
-        true
-    }
-
     fn positional_types(&self, ck: &TypeCheck) -> Vec<SourceType> {
         self.arguments
             .iter()

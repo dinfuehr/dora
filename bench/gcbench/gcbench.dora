@@ -11,7 +11,7 @@ class Node {
 
 impl Node {
     static fn new(left: Option[Node], right: Option[Node]): Node {
-        Node(left, right, 0i32, 0i32)
+        Node(left, right, i = 0i32, j = 0i32)
     }
 
     static fn leaf(): Node {

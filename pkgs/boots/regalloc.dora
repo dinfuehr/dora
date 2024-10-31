@@ -41,11 +41,11 @@ impl SimpleRegisterAllocator {
         SimpleRegisterAllocator(
             graph,
             codegen,
-            None[RegisterTracker[Register]],
-            None[RegisterTracker[FloatRegister]],
-            0i32,
-            None[Inst],
-            InstSet::new(graph),
+            registers = None[RegisterTracker[Register]],
+            float_registers = None[RegisterTracker[FloatRegister]],
+            currentStackSize = 0i32,
+            currentInst = None[Inst],
+            currentlyLive = InstSet::new(graph),
         )
     }
 
@@ -742,11 +742,11 @@ pub class RegisterTracker[T: RegisterType] {
 impl[T: RegisterType] RegisterTracker[T] {
     static fn new(allocatable: RegSet[T]): RegisterTracker[T] {
         RegisterTracker(
-            allocatable.clone(),
-            allocatable.clone(),
-            RegSet[T]::new(),
-            RegMap[T, Inst]::new(allocatable),
-            HashMap[Inst, T]::new(),
+            allocatable = allocatable.clone(),
+            free = allocatable.clone(),
+            protected = RegSet[T]::new(),
+            data = RegMap[T, Inst]::new(allocatable),
+            locations = HashMap[Inst, T]::new(),
         )
     }
 
@@ -882,11 +882,11 @@ impl[T: RegisterType] RegisterTracker[T] {
 
     fn snapshot(): RegisterTracker[T] {
         RegisterTracker(
-            self.allocatable.clone(),
-            self.free.clone(),
-            RegSet[T]::new(),
-            self.data.clone(),
-            self.locations.clone(),
+            allocatable = self.allocatable.clone(),
+            free = self.free.clone(),
+            protected = RegSet[T]::new(),
+            data = self.data.clone(),
+            locations = self.locations.clone(),
         )
     }
 
@@ -1034,7 +1034,13 @@ fn computeRecordLayout(fieldTypes: Array[BytecodeType], start_size: Int32, start
     }
 
     record_size = (record_size + (record_align - 1i32)) & !(record_align - 1i32);
-    RecordLayout(record_size, record_align, fields.toArray(), refs.toArray())
+
+    RecordLayout(
+        size = record_size,
+        alignment = record_align,
+        fields = fields.toArray(),
+        refs = refs.toArray()
+    )
 }
 
 pub fn computeClassLayout(class_id: ClassId, type_params: Array[BytecodeType]): RecordLayout {

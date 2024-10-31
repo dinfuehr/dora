@@ -12,7 +12,11 @@ use package::interface::{Architecture, config};
 
 pub fn createHtmlWriter(ci: CompilationInfo): HtmlWriter {
     let file = File::create("ssa.html");
-    let html = HtmlWriter(ci, file, BufferedWriter::new(file));
+    let html = HtmlWriter(
+        ci,
+        file,
+        writer = BufferedWriter::new(file)
+    );
     html.start();
     html
 }
@@ -174,7 +178,7 @@ function passCollapse(element, event) {
         self.write("<div class=\"pass\">");
         self.write("<div class=\"pass-name\">bytecode</div>");
         self.write("<div class=\"graph\"><code>");
-        let dumper = HtmlBytecodeDumper(self.writer as Write) as BytecodeDumper;
+        let dumper = HtmlBytecodeDumper(writer = self.writer as Write) as BytecodeDumper;
 
         for blockStart in analysis.starts {
             self.write("<div class=\"block-name\">block at ${blockStart}:</div>");

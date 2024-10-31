@@ -20,9 +20,9 @@ pub class GraphBuilder {
 impl GraphBuilder {
     pub static fn new(): GraphBuilder {
         GraphBuilder(
-            Graph::new(),
-            None[Block],
-            None[Block],
+            graph = Graph::new(),
+            insertion = None[Block],
+            entryBlock = None[Block],
         )
     }
 

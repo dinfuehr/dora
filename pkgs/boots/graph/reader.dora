@@ -12,7 +12,7 @@ class GraphReader {
 
 impl GraphReader {
     static fn new(content: String): GraphReader {
-        GraphReader(content, Lexer::new(content))
+        GraphReader(content, lexer = Lexer::new(content))
     }
 
     fn read() {
@@ -27,7 +27,7 @@ class Lexer {
 
 impl Lexer {
     static fn new(content: String): Lexer {
-        Lexer(content, 0)
+        Lexer(content, idx = 0)
     }
 
     fn look(): Option[Char] {

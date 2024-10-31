@@ -5,7 +5,16 @@ fn main() {
   let x = Foo1();
   x.f(1i32, 2i32, 3i32, 4i32, 5i32, 6i32, 7i32, 8i32);
 
-  let x = Foo2(1i32, 2i32, 3i32, 4i32, 5i32, 6i32, 7i32, 8i32);
+  let x = Foo2(
+    a = 1i32,
+    b = 2i32,
+    c = 3i32,
+    d = 4i32,
+    e = 5i32,
+    f = 6i32,
+    g = 7i32,
+    h = 8i32
+  );
   assert(x.a == 1i32);
   assert(x.b == 2i32);
   assert(x.c == 3i32);

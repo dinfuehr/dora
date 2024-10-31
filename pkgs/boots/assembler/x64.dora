@@ -73,9 +73,9 @@ pub class AssemblerX64 {
 impl AssemblerX64 {
     static pub fn new(hasAvx2: Bool): AssemblerX64 {
         AssemblerX64(
-            AssemblerBuffer::new(),
-            Vec[(Int64, Label, JumpDistance)]::new(),
-            hasAvx2,
+            buffer = AssemblerBuffer::new(),
+            jumps = Vec[(Int64, Label, JumpDistance)]::new(),
+            hasAvx2 = hasAvx2,
         )
     }
 
@@ -2462,7 +2462,11 @@ pub class Address {
 
 impl Address {
     static fn new(): Address {
-        Address(0u8, 0, Array[UInt8]::zero(6i64))
+        Address(
+            rex = 0u8,
+            length = 0,
+            bytes = Array[UInt8]::zero(6i64)
+        )
     }
 
     fn set_modrm(mode: Int32, reg: Register) {

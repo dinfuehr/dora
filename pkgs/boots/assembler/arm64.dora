@@ -183,8 +183,8 @@ pub class AssemblerArm64 {
 impl AssemblerArm64 {
     pub static fn new(): AssemblerArm64 {
         AssemblerArm64(
-            AssemblerBuffer::new(),
-            Vec[ForwardJump]::new()
+            buffer = AssemblerBuffer::new(),
+            jumps = Vec[ForwardJump]::new()
         )
     }
 
@@ -355,9 +355,9 @@ impl AssemblerArm64 {
             let pos = self.buffer.position();
             self.emit(0i32);
             self.jumps.push(ForwardJump(
-                pos,
-                target,
-                JumpKind::Unconditional(false),
+                offset = pos,
+                label = target,
+                kind = JumpKind::Unconditional(false),
             ));
         }
     }
@@ -377,9 +377,9 @@ impl AssemblerArm64 {
             self.emit(0i32);
             self.emit(0i32);
             self.jumps.push(ForwardJump(
-                pos,
-                target,
-                JumpKind::Conditional(cond),
+                offset = pos,
+                label = target,
+                kind = JumpKind::Conditional(cond),
             ));
         }
     }
@@ -431,9 +431,9 @@ impl AssemblerArm64 {
             let pos = self.buffer.position();
             self.emit(0i32);
             self.jumps.push(ForwardJump(
-                pos,
-                target,
-                JumpKind::Unconditional(true),
+                offset = pos,
+                label = target,
+                kind = JumpKind::Unconditional(true),
             ));
         }
     }
@@ -530,9 +530,9 @@ impl AssemblerArm64 {
             self.emit(0i32);
 
             self.jumps.push(ForwardJump(
-                pos,
-                target,
-                JumpKind::Zero(sf, value, reg),
+                offset = pos,
+                label = target,
+                kind = JumpKind::Zero(sf, value, reg),
             ));
         }
     }
@@ -2129,9 +2129,9 @@ impl AssemblerArm64 {
             self.emit(0i32);
 
             self.jumps.push(ForwardJump(
-                pos,
-                target,
-                JumpKind::Test(is_non_zero, bit, rt),
+                offset = pos,
+                label = target,
+                kind = JumpKind::Test(is_non_zero, bit, rt),
             ));
         }
     }

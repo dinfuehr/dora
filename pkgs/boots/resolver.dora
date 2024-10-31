@@ -131,13 +131,13 @@ class ParallelMoveResolver {
 impl ParallelMoveResolver {
     static fn new(): ParallelMoveResolver {
         ParallelMoveResolver(
-            Vec[Move]::new(),
-            Vec[Move]::new(),
-            Vec[RematerializeMove]::new(),
-            HashMap[Location, Type]::new(),
-            HashMap[Location, Location]::new(),
-            HashMap[Location, Location]::new(),
-            HashSet[Location]::new(),
+            parallelMoves = Vec[Move]::new(),
+            orderedMoves = Vec[Move]::new(),
+            rematerialize = Vec[RematerializeMove]::new(),
+            types = HashMap[Location, Type]::new(),
+            directpreds = HashMap[Location, Location]::new(),
+            locations = HashMap[Location, Location]::new(),
+            todo = HashSet[Location]::new(),
         )
     }
 

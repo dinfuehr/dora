@@ -5,7 +5,10 @@ class Object
 const THREADS: Int32 = 20i32;
 const ITERATIONS: Int32 = 10_000i32;
 
-class MyThread(mtx: std::Mutex, value: SharedInt)
+class MyThread {
+    mtx: std::Mutex,
+    value: SharedInt
+}
 
 impl MyThread {
     fn run() {
@@ -36,7 +39,7 @@ class SharedInt {
 
 impl SharedInt {
     static fn new(): SharedInt {
-        SharedInt(0i32)
+        SharedInt(value = 0i32)
     }
 
     fn increment(): Int32 {
@@ -54,7 +57,7 @@ fn main() {
 
     while i < THREADS {
         let thread = std::thread::spawn(|| {
-            MyThread(mtx, shared).run();
+            MyThread(mtx, value = shared).run();
         });
         threads.push(thread);
         i = i + 1i32;

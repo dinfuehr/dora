@@ -22,7 +22,12 @@ class GraphDumper {
 
 impl GraphDumper {
     static fn new(ci: Option[CompilationInfo], graph: Graph, architecture: Architecture): GraphDumper {
-        GraphDumper(ci, graph, architecture, StringBuffer::new())
+        GraphDumper(
+            ci,
+            graph,
+            architecture,
+            buffer = StringBuffer::new()
+        )
     }
 
     fn dump(): String {
@@ -429,9 +434,9 @@ class Output {
 impl Output {
     static fn new(text: String): Output {
         let output = Output(
-            CodepointIterator::new(text),
-            '\0',
-            '\0',
+            iterator = CodepointIterator::new(text),
+            current = '\0',
+            next = '\0',
         );
 
         output.advance();

@@ -89,16 +89,16 @@ impl CodeGenX64 {
     pub static fn new(ci: CompilationInfo, graph: Graph): CodeGenX64 {
         CodeGenX64(
             ci,
-            AssemblerX64::new(config.hasAvx2),
+            asm = AssemblerX64::new(config.hasAvx2),
             graph,
-            ConstPool::new(),
-            LocationTable::new(),
-            LazyCompilationData::new(),
-            GcPointTable::new(),
-            CommentTable::new(),
-            Vec[(): ()]::new(),
-            None[ArgumentLocations],
-            config.hasAvx2,
+            constPool = ConstPool::new(),
+            locations = LocationTable::new(),
+            lazyCompilation = LazyCompilationData::new(),
+            gcPoints = GcPointTable::new(),
+            comments = CommentTable::new(),
+            deferred = Vec[(): ()]::new(),
+            argumentLocations = None[ArgumentLocations],
+            hasAvx2 = config.hasAvx2,
         )
     }
 
@@ -3252,13 +3252,13 @@ impl CodeGen for CodeGenX64 {
         let code = self.asm.finalize();
 
         CodeDescriptor(
-            self.constPool,
+            constPool = self.constPool,
             code,
-            self.lazyCompilation,
-            self.gcPoints,
-            self.locations,
-            self.comments,
-            self.ci.getInlinedFunctions(),
+            lazyCompilation = self.lazyCompilation,
+            gcPoints = self.gcPoints,
+            locations = self.locations,
+            comments = self.comments,
+            inlinedFunctions = self.ci.getInlinedFunctions(),
         )
     }
 }

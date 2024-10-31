@@ -46,7 +46,11 @@ fn loops(iterations: Int32, depth: Int32) {
 
 fn createTree(depth: Int32): TreeNode {
   let mut depth = depth;
-  let node = TreeNode(0i32, Option[TreeNode]::None, Option[TreeNode]::None);
+  let node = TreeNode(
+    item = 0i32,
+    left = Option[TreeNode]::None,
+    right = Option[TreeNode]::None
+  );
 
   if depth > 0i32 {
     depth = depth - 1i32;

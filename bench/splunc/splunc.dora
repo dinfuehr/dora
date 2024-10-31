@@ -12,7 +12,13 @@ class Node {
 
 impl Node {
     static fn new(payload: Option[Array[Int32]]): Node {
-        Node(payload, 0i32, 0i32, None[Node], None[Node])
+        Node(
+            payload,
+            birthday = 0i32,
+            value = 0i32,
+            left = None[Node],
+            right = None[Node]
+        )
     }
 
     fn printAge(date: Int32) {

@@ -82,7 +82,11 @@ fn bytesToHeight(bytes: Int64): Int32 {
 }
 
 fn makeTree(h: Int32): TreeNode {
-    let res = TreeNode(Option[TreeNode]::None, Option[TreeNode]::None, 0i32);
+    let res = TreeNode(
+        left = Option[TreeNode]::None,
+        right = Option[TreeNode]::None,
+        value = 0i32
+    );
     nodes = nodes + 1i64;
     if h > 1i32 {
         res.left = Option[TreeNode]::Some(makeTree(h-1i32));
@@ -94,7 +98,11 @@ fn makeTree(h: Int32): TreeNode {
 
 fn initialize() {
     let ntrees = (size * MEG).toInt64() / treeSize;
-    let default = TreeNode(Option[TreeNode]::None, Option[TreeNode]::None, 0i32);
+    let default = TreeNode(
+        left = Option[TreeNode]::None,
+        right = Option[TreeNode]::None,
+        value = 0i32
+    );
     trees = Array[TreeNode]::fill(ntrees, default);
 
     println("Allocating " + ntrees.toString() + " trees.");

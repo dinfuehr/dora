@@ -15,7 +15,7 @@ impl GraphVerifier {
     static fn new(graph: Graph): GraphVerifier {
         GraphVerifier(
             graph,
-            graph.getEntryBlock(),
+            currentBlock = graph.getEntryBlock(),
         )
     }
 

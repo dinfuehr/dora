@@ -514,8 +514,8 @@ pub class ConstPool {
 impl ConstPool {
     pub static fn new(): ConstPool {
         ConstPool(
-            Vec[ConstPoolEntry]::new(),
-            0i32,
+            entries = Vec[ConstPoolEntry]::new(),
+            size = 0i32,
         )
     }
 

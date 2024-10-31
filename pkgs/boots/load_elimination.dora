@@ -118,9 +118,9 @@ class LoadData {
 impl LoadData {
     static fn new(): LoadData {
         LoadData(
-            HashSet[Int32]::new(),
-            HashMap[Int32, Inst]::new(),
-            HashMap[Field, Inst]::new(),
+            initialized_globals = HashSet[Int32]::new(),
+            global_values = HashMap[Int32, Inst]::new(),
+            class_values = HashMap[Field, Inst]::new(),
         )
     }
 
@@ -147,9 +147,9 @@ impl LoadData {
 
     fn clone(): LoadData {
         LoadData(
-            self.initialized_globals.clone(),
-            self.global_values.clone(),
-            self.class_values.clone(),
+            initialized_globals = self.initialized_globals.clone(),
+            global_values = self.global_values.clone(),
+            class_values = self.class_values.clone(),
         )
     }
 }

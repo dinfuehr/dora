@@ -241,7 +241,7 @@ pub class ByteWriter {
 impl ByteWriter {
     pub static fn new(): ByteWriter {
         ByteWriter(
-            Vec[UInt8]::new(),
+            buffer = Vec[UInt8]::new(),
         )
     }
 

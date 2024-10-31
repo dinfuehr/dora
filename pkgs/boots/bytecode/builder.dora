@@ -13,11 +13,11 @@ pub class BytecodeBuilder {
 impl BytecodeBuilder {
     pub static fn new(): BytecodeBuilder {
         BytecodeBuilder(
-            Vec[UInt8]::new(),
-            Vec[ConstPoolEntry]::new(),
-            Vec[BytecodeType]::new(),
-            Vec[UnresolvedJump]::new(),
-            0i32
+            code = Vec[UInt8]::new(),
+            constPool = Vec[ConstPoolEntry]::new(),
+            registers = Vec[BytecodeType]::new(),
+            unresolvedJumps = Vec[UnresolvedJump]::new(),
+            arguments = 0i32
         )
     }
 

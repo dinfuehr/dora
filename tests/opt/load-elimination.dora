@@ -10,21 +10,21 @@ class Bar {
 }
 
 fn main() {
-    let x = Foo(100, 300);
+    let x = Foo(a = 100, b = 300);
     assert(f1(x) == 200);
 
-    let x = Foo(100, 300);
+    let x = Foo(a = 100, b = 300);
     assert(f2(x, x) == 110);
 
-    let x = Foo(100, 300);
+    let x = Foo(a = 100, b = 300);
     assert(f3(x, x) == 200);
 
-    let x = Foo(100, 300);
+    let x = Foo(a = 100, b = 300);
     assert(f4(x, 12) == 12);
 
-    let x = Foo(10, 30);
+    let x = Foo(a = 10, b = 30);
     let b = Bar(x);
-    let new_x = Foo(121, 2);
+    let new_x = Foo(a = 121, b = 2);
     assert(f5(b, b, new_x) == 131);
 }
 

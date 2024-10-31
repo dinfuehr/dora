@@ -39,10 +39,10 @@ class Benchmark {
 impl Benchmark {
     static fn new(): Benchmark {
         Benchmark(
-            SplayTree::new(),
-            0i32,
-            0,
-            0,
+            splayTree = SplayTree::new(),
+            splaySamples = 0i32,
+            splaySampleTimeStart = 0,
+            splaySumOfSquaredPauses = 0,
         )
     }
 
@@ -150,13 +150,17 @@ fn generatePayloadTree(depth: Int32, tag: String): PayloadNode {
         }
 
         let text = "String for key " + tag + " in leaf node";
-        return PayloadNode(Option[Array[Int32]]::Some(arr), text, Option[PayloadNode]::None, Option[PayloadNode]::None);
+        return PayloadNode(
+            array = Option[Array[Int32]]::Some(arr),
+            text,
+            left = Option[PayloadNode]::None,
+            right = Option[PayloadNode]::None);
     } else {
         return PayloadNode(
-            Option[Array[Int32]]::None,
-            "",
-            Option[PayloadNode]::Some(generatePayloadTree(depth-1i32, tag)),
-            Option[PayloadNode]::Some(generatePayloadTree(depth-1i32, tag)),
+            array = Option[Array[Int32]]::None,
+            text = "",
+            left = Option[PayloadNode]::Some(generatePayloadTree(depth-1i32, tag)),
+            right = Option[PayloadNode]::Some(generatePayloadTree(depth-1i32, tag)),
         );
     }
 }
@@ -377,7 +381,12 @@ class SplayNode {
 
 impl SplayNode {
     static fn new(key: Int32, value: Option[PayloadNode]): SplayNode {
-        SplayNode(key, value, None[SplayNode], None[SplayNode])
+        SplayNode(
+            key,
+            value,
+            left = None[SplayNode],
+            right = None[SplayNode]
+        )
     }
 }
 

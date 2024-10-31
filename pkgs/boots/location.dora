@@ -9,7 +9,13 @@ pub fn ensureLocationData(graph: Graph, codegen: CodeGen, ci: CompilationInfo): 
     let argumentLocations = computeArgumentLocations(codegen, ci);
     codegen.setArgumentLocations(argumentLocations);
 
-    let annotator = LocationAnnotation(graph, codegen, ci, 0i32, argumentLocations);
+    let annotator = LocationAnnotation(
+        graph,
+        codegen,
+        ci,
+        maxOutgoingArgsSize = 0i32,
+        argumentLocations
+    );
     annotator.annotate();
     annotator.maxOutgoingArgsSize
 }
@@ -517,7 +523,7 @@ fn computeArgumentLocations(codegen: CodeGen, ci: CompilationInfo): ArgumentLoca
     }
 
 
-    ArgumentLocations(locations.toArray())
+    ArgumentLocations(locations = locations.toArray())
 }
 
 fn annotateCall(inst: Inst, loc: LocationData, codegen: CodeGen, ci: CompilationInfo): Int32 {

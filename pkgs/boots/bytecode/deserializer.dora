@@ -12,7 +12,7 @@ pub class Deserializer {
 
 impl Deserializer {
     static pub fn new(array: Array[UInt8]): Deserializer {
-        Deserializer(array, 0)
+        Deserializer(array, idx = 0)
     }
 
     pub fn deserializeProgram(): Program {

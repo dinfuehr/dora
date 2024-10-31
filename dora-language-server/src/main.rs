@@ -4,8 +4,9 @@ use dora_parser::compute_line_column;
 use lsp_server::{Connection, Message, Notification};
 use lsp_types::notification::Notification as _;
 use lsp_types::{
-    ClientCapabilities, Diagnostic, InitializeParams, OneOf, Position, PublishDiagnosticsParams,
-    Range, ServerCapabilities, TextDocumentSyncCapability, TextDocumentSyncKind, Url,
+    ClientCapabilities, Diagnostic, DiagnosticSeverity, InitializeParams, OneOf, Position,
+    PublishDiagnosticsParams, Range, ServerCapabilities, TextDocumentSyncCapability,
+    TextDocumentSyncKind, Url,
 };
 use serde::{Deserialize, Serialize};
 use std::collections::{HashMap, HashSet};
@@ -348,6 +349,28 @@ fn compile_project(project: ProjectConfig, sender: Sender<MainLoopTask>) {
         } else {
             unimplemented!()
         }
+    }
+
+    for warning in sa.diag.borrow().warnings() {
+        let file_id = warning.file_id.expect("missing file");
+        let span = warning.span.expect("missing location");
+        let source_file = sa.file(file_id);
+        let line_starts = &source_file.line_starts;
+
+        let (line, column) = compute_line_column(&line_starts, span.start());
+        let start = Position::new(line - 1, column - 1);
+        let (line, column) = compute_line_column(&line_starts, span.end());
+        let end = Position::new(line - 1, column - 1);
+
+        errors_by_file
+            .entry(source_file.path.clone())
+            .or_default()
+            .push(Diagnostic {
+                range: Range::new(start, end),
+                severity: Some(DiagnosticSeverity::WARNING),
+                message: warning.msg.message(),
+                ..Default::default()
+            })
     }
 
     sender

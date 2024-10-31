@@ -593,6 +593,8 @@ fn check_expr_call_class_named_args(
         } else if let Some(ident) = arg.expr.to_ident() {
             let name = ck.sa.interner.intern(&ident.name);
             add_named_argument(arg, name);
+        } else if arguments.arguments.len() == 1 && cls.fields.len() == 1 {
+            add_named_argument(arg, cls.fields[0].name);
         } else {
             ck.sa.report(
                 ck.file_id,
@@ -702,17 +704,9 @@ fn check_expr_call_class(
         ck.sa.report(ck.file_id, e.span, msg);
     }
 
-    if cls.requires_named_arguments && arguments.only_named_arguments() {
+    if cls.requires_named_arguments {
         check_expr_call_class_named_args(ck, cls, type_params.clone(), &arguments);
     } else {
-        if cls.requires_named_arguments {
-            ck.sa.warn(
-                ck.file_id,
-                e.span,
-                ErrorMessage::WarnCallRequiresNamedArgument,
-            );
-        }
-
         if !check_expr_call_class_args(ck, cls, type_params.clone(), &arguments) {
             let class_name = cls.name(ck.sa);
             let field_types = cls

@@ -21,11 +21,11 @@ pub class BytecodeIterator {
 
 impl BytecodeIterator {
     pub static fn new(data: Array[UInt8]): BytecodeIterator {
-        BytecodeIterator(data, 0, data.size())
+        BytecodeIterator(data, pos = 0, length = data.size())
     }
 
     pub static fn newAtPos(data: Array[UInt8], pos: Int64): BytecodeIterator {
-        BytecodeIterator(data, pos, data.size())
+        BytecodeIterator(data, pos, length = data.size())
     }
 
     fn readInstruction(): BytecodeInstructionInfo {

@@ -75,15 +75,15 @@ impl CodeGenArm64 {
     pub static fn new(ci: CompilationInfo, graph: Graph): CodeGenArm64 {
         CodeGenArm64(
             ci,
-            AssemblerArm64::new(),
+            asm = AssemblerArm64::new(),
             graph,
-            ConstPool::new(),
-            LazyCompilationData::new(),
-            GcPointTable::new(),
-            LocationTable::new(),
-            CommentTable::new(),
-            Vec[(): ()]::new(),
-            None[ArgumentLocations],
+            constPool = ConstPool::new(),
+            lazyCompilation = LazyCompilationData::new(),
+            gcPoints = GcPointTable::new(),
+            locations = LocationTable::new(),
+            comments = CommentTable::new(),
+            deferred = Vec[(): ()]::new(),
+            argumentLocations = None[ArgumentLocations],
         )
     }
 
@@ -3003,13 +3003,13 @@ impl CodeGen for CodeGenArm64 {
         let code = self.asm.finalize();
 
         CodeDescriptor(
-            self.constPool,
+            constPool = self.constPool,
             code,
-            self.lazyCompilation,
-            self.gcPoints,
-            self.locations,
-            self.comments,
-            self.ci.getInlinedFunctions(),
+            lazyCompilation = self.lazyCompilation,
+            gcPoints = self.gcPoints,
+            locations = self.locations,
+            comments = self.comments,
+            inlinedFunctions = self.ci.getInlinedFunctions(),
         )
     }
 }

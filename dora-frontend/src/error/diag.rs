@@ -22,6 +22,10 @@ impl Diagnostic {
         &self.errors
     }
 
+    pub fn warnings(&self) -> &[ErrorDescriptor] {
+        &self.warnings
+    }
+
     pub fn report(&mut self, file: SourceFileId, span: Span, msg: ErrorMessage) {
         self.errors.push(ErrorDescriptor::new(file, span, msg));
     }
