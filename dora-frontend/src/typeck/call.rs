@@ -9,9 +9,9 @@ use crate::access::{
 };
 use crate::interner::Name;
 use crate::sema::{
-    find_field_in_class, new_identity_type_params, CallType, ClassDefinition, ClassDefinitionId,
-    EnumDefinitionId, EnumVariant, FctDefinitionId, IdentType, Sema, StructDefinition,
-    StructDefinitionId, TraitDefinition, TypeParamDefinition, TypeParamId,
+    find_field_in_class, new_identity_type_params, CallType, ClassDefinitionId, ElementWithFields,
+    EnumDefinitionId, EnumVariant, FctDefinitionId, IdentType, Sema, StructDefinitionId,
+    TraitDefinition, TypeParamDefinition, TypeParamId,
 };
 use crate::specialize::replace_type;
 use crate::sym::SymbolKind;
@@ -495,7 +495,7 @@ fn check_expr_call_struct(
     e: &ast::ExprCallType,
     struct_id: StructDefinitionId,
     type_params: SourceTypeArray,
-    arg_types: &[SourceType],
+    arguments: CallArguments,
 ) -> SourceType {
     let is_struct_accessible = struct_accessible_from(ck.sa, struct_id, ck.module_id);
 
@@ -528,16 +528,18 @@ fn check_expr_call_struct(
         return ty_error();
     }
 
-    if !check_expr_call_struct_args(ck.sa, struct_, type_params.clone(), arg_types) {
-        let struct_name = ck.sa.interner.str(struct_.name).to_string();
-        let field_types = struct_
-            .fields
-            .iter()
-            .map(|field| field.ty().name_struct(ck.sa, &*struct_))
-            .collect::<Vec<_>>();
-        let arg_types = arg_types.iter().map(|a| ck.ty_name(a)).collect::<Vec<_>>();
-        let msg = ErrorMessage::StructArgsIncompatible(struct_name, field_types, arg_types);
-        ck.sa.report(ck.file_id, e.span, msg);
+    if struct_.requires_named_arguments() && arguments.all_named() {
+        check_expr_call_ctor_with_named_fields(ck, struct_, type_params.clone(), &arguments);
+    } else {
+        if struct_.requires_named_arguments() && arguments.arguments.len() > 1 {
+            ck.sa.warn(
+                ck.file_id,
+                arguments.span,
+                ErrorMessage::CallRequiresNamedArgument,
+            );
+        }
+
+        check_expr_call_ctor_with_unnamed_fields(ck, struct_, type_params.clone(), &arguments);
     }
 
     ck.analysis
@@ -548,30 +550,9 @@ fn check_expr_call_struct(
     ty
 }
 
-fn check_expr_call_struct_args(
-    sa: &Sema,
-    struct_: &StructDefinition,
-    type_params: SourceTypeArray,
-    arg_types: &[SourceType],
-) -> bool {
-    if struct_.fields.len() != arg_types.len() {
-        return false;
-    }
-
-    for (def_ty, arg_ty) in struct_.fields.iter().zip(arg_types) {
-        let def_ty = replace_type(sa, def_ty.ty(), Some(&type_params), None);
-
-        if !def_ty.allows(sa, arg_ty.clone()) {
-            return false;
-        }
-    }
-
-    true
-}
-
-fn check_expr_call_class_named_args(
+fn check_expr_call_ctor_with_named_fields(
     ck: &mut TypeCheck,
-    cls: &ClassDefinition,
+    element: &dyn ElementWithFields,
     type_params: SourceTypeArray,
     arguments: &CallArguments,
 ) {
@@ -593,8 +574,8 @@ fn check_expr_call_class_named_args(
         } else if let Some(ident) = arg.expr.to_ident() {
             let name = ck.sa.interner.intern(&ident.name);
             add_named_argument(arg, name);
-        } else if arguments.arguments.len() == 1 && cls.fields.len() == 1 {
-            add_named_argument(arg, cls.fields[0].name);
+        } else if arguments.arguments.len() == 1 && element.fields_len() == 1 {
+            add_named_argument(arg, element.field_name(0));
         } else {
             ck.sa.report(
                 ck.file_id,
@@ -604,9 +585,9 @@ fn check_expr_call_class_named_args(
         }
     }
 
-    for field in &cls.fields {
+    for field in element.fields() {
         if let Some(arg) = args_by_name.remove(&field.name) {
-            let def_ty = replace_type(ck.sa, field.ty(), Some(&type_params), None);
+            let def_ty = replace_type(ck.sa, field.ty, Some(&type_params), None);
             let arg_ty = ck.analysis.ty(arg.id);
 
             if !def_ty.allows(ck.sa, arg_ty.clone()) {
@@ -616,11 +597,11 @@ fn check_expr_call_class_named_args(
                 ck.sa.report(
                     ck.file_id,
                     arg.span,
-                    ErrorMessage::WrongTypeForNamedArgument(exp, got),
+                    ErrorMessage::WrongTypeForArgument(exp, got),
                 );
             }
 
-            ck.analysis.map_argument.insert(arg.id, field.id.0);
+            ck.analysis.map_argument.insert(arg.id, field.id);
         } else {
             let name = ck.sa.interner.str(field.name).to_string();
             ck.sa.report(
@@ -637,26 +618,48 @@ fn check_expr_call_class_named_args(
     }
 }
 
-fn check_expr_call_class_args(
+fn check_expr_call_ctor_with_unnamed_fields(
     ck: &mut TypeCheck,
-    cls: &ClassDefinition,
+    element: &dyn ElementWithFields,
     type_params: SourceTypeArray,
     arguments: &CallArguments,
 ) -> bool {
-    arguments.assume_all_positional(ck);
+    for (field, argument) in element.fields().zip(&arguments.arguments) {
+        let def_ty = replace_type(ck.sa, field.ty, Some(&type_params), None);
+        let arg_ty = ck.analysis.ty(argument.id);
 
-    if cls.fields.len() != arguments.arguments.len() {
-        return false;
-    }
-
-    for (field, argument) in cls.fields.iter().zip(&arguments.arguments) {
-        let def_ty = replace_type(ck.sa, field.ty(), Some(&type_params), None);
-
-        if !def_ty.allows(ck.sa, ck.analysis.ty(argument.id)) {
-            return false;
+        if let Some(ref name) = argument.name {
+            ck.sa
+                .report(ck.file_id, name.span, ErrorMessage::UnexpectedNamedArgument);
         }
 
-        ck.analysis.map_argument.insert(argument.id, field.id.0);
+        if !def_ty.allows(ck.sa, arg_ty.clone()) {
+            let exp = ck.ty_name(&def_ty);
+            let got = ck.ty_name(&arg_ty);
+
+            ck.sa.report(
+                ck.file_id,
+                argument.expr.span(),
+                ErrorMessage::WrongTypeForArgument(exp, got),
+            );
+        }
+
+        ck.analysis.map_argument.insert(argument.id, field.id);
+    }
+
+    let fields = element.fields_len();
+
+    if arguments.arguments.len() < fields {
+        ck.sa.report(
+            ck.file_id,
+            arguments.span,
+            ErrorMessage::MissingArguments(fields, arguments.arguments.len()),
+        );
+    } else {
+        for arg in &arguments.arguments[fields..] {
+            ck.sa
+                .report(ck.file_id, arg.span, ErrorMessage::SuperfluousArgument);
+        }
     }
 
     true
@@ -705,20 +708,9 @@ fn check_expr_call_class(
     }
 
     if cls.requires_named_arguments {
-        check_expr_call_class_named_args(ck, cls, type_params.clone(), &arguments);
+        check_expr_call_ctor_with_named_fields(ck, cls, type_params.clone(), &arguments);
     } else {
-        if !check_expr_call_class_args(ck, cls, type_params.clone(), &arguments) {
-            let class_name = cls.name(ck.sa);
-            let field_types = cls
-                .fields
-                .iter()
-                .map(|field| field.ty().name_cls(ck.sa, &*cls))
-                .collect::<Vec<_>>();
-            let arg_types = arguments.positional_types(ck);
-            let arg_types = arg_types.iter().map(|a| ck.ty_name(a)).collect::<Vec<_>>();
-            let msg = ErrorMessage::ParamTypesIncompatible(class_name, field_types, arg_types);
-            ck.sa.report(ck.file_id, e.span, msg);
-        }
+        check_expr_call_ctor_with_unnamed_fields(ck, cls, type_params.clone(), &arguments);
     }
 
     ck.analysis
@@ -1140,8 +1132,7 @@ fn check_expr_call_sym(
         }
 
         Some(SymbolKind::Struct(struct_id)) => {
-            let arg_types = arguments.assume_all_positional(ck);
-            check_expr_call_struct(ck, e, struct_id, type_params, &arg_types)
+            check_expr_call_struct(ck, e, struct_id, type_params, arguments)
         }
 
         Some(SymbolKind::EnumVariant(enum_id, variant_idx)) => {

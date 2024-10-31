@@ -103,11 +103,11 @@ fn processPhi[T: RegisterType](phi: Inst, predecessorEdge: Edge, predecessor_reg
 }
 
 
-struct Move {
+struct Move(
     ty: Type,
     dest: Location,
     src: Location,
-}
+)
 
 struct RematerializeMove {
     dest: Location,

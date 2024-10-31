@@ -1970,11 +1970,11 @@ pub struct StackSlot {
 
 impl StackSlot {
     pub static fn fp(offset: Int32): StackSlot {
-        StackSlot(true, offset)
+        StackSlot(fp = true, offset)
     }
 
     pub static fn sp(offset: Int32): StackSlot {
-        StackSlot(false, offset)
+        StackSlot(fp = false, offset)
     }
 
     pub fn isFp(): Bool {

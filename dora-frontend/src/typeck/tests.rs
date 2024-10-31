@@ -1133,8 +1133,8 @@ fn test_ctor_with_type_param() {
 
             class Bar[T](a: T)
             ",
-        (5, 21),
-        ErrorMessage::ParamTypesIncompatible("Bar".into(), vec!["T".into()], vec!["Int32".into()]),
+        (5, 28),
+        ErrorMessage::WrongTypeForArgument("T".into(), "Int32".into()),
     );
 }
 
@@ -1242,8 +1242,8 @@ fn test_new_call_class_wrong_params() {
         class X
         fn f() { X(1i32); }
     ",
-        (3, 18),
-        ErrorMessage::ParamTypesIncompatible("X".into(), Vec::new(), vec!["Int32".into()]),
+        (3, 20),
+        ErrorMessage::SuperfluousArgument,
     );
 }
 
@@ -1555,18 +1555,14 @@ fn test_struct() {
         struct Foo(f1: Int32)
         fn f(): Foo { Foo() }",
         (3, 23),
-        ErrorMessage::StructArgsIncompatible("Foo".into(), vec!["Int32".into()], Vec::new()),
+        ErrorMessage::MissingArguments(1, 0),
     );
     err(
         "
         struct Foo(f1: Int32)
         fn f(): Foo { Foo(true) }",
-        (3, 23),
-        ErrorMessage::StructArgsIncompatible(
-            "Foo".into(),
-            vec!["Int32".into()],
-            vec!["Bool".into()],
-        ),
+        (3, 27),
+        ErrorMessage::WrongTypeForArgument("Int32".into(), "Bool".into()),
     );
 }
 
@@ -4741,7 +4737,7 @@ fn class_ctor_with_named_argument_of_wrong_type() {
         }
     ",
         (4, 24),
-        ErrorMessage::WrongTypeForNamedArgument("Bool".into(), "Int64".into()),
+        ErrorMessage::WrongTypeForArgument("Bool".into(), "Int64".into()),
     );
 }
 

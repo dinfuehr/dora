@@ -291,7 +291,8 @@ fn decodeConstPoolEntry(reader: ByteReader): ConstPoolEntry {
 fn decodeLocations(reader: ByteReader): Array[(Int32, Location)] {
     let size = reader.readInt32().toInt64();
 
-    let data = Array[(Int32, Location)]::fill(size, (0i32, Location(0i32, 0i32)));
+    let loc = Location(line = 0i32, column = 0i32);
+    let data = Array[(Int32, Location)]::fill(size, (0i32, loc));
     let mut i = 0i64;
 
     while i < size {

@@ -7,7 +7,7 @@ use crate::sema::{
     Sema, SourceFileId, StructDefinitionId, TraitDefinition, TraitDefinitionId,
     TypeParamDefinition, UseDefinitionId,
 };
-use crate::{SourceType, Span};
+use crate::{Name, SourceType, Span};
 
 #[derive(Debug, Copy, Clone, PartialEq, Eq)]
 pub enum ElementId {
@@ -69,6 +69,19 @@ pub trait ElementAccess {
 
     fn by_id(sa: &Sema, id: Self::Id) -> &Self;
     fn id(&self) -> Self::Id;
+}
+
+pub trait ElementWithFields {
+    fn requires_named_arguments(&self) -> bool;
+    fn fields_len(&self) -> usize;
+    fn fields<'a>(&'a self) -> Box<dyn Iterator<Item = ElementField> + 'a>;
+    fn field_name(&self, idx: usize) -> Name;
+}
+
+pub struct ElementField {
+    pub id: usize,
+    pub name: Name,
+    pub ty: SourceType,
 }
 
 pub fn parent_element_or_self<'a>(sa: &'a Sema, element: &'a dyn Element) -> &'a dyn Element {

@@ -50,7 +50,7 @@ pub fn performLoadElimination(ci: CompilationInfo, graph: Graph) {
                 if inst.hasClassInfo() {
                     let class_info = inst.getClassInfo();
                     let object = inst.getInput(0).getValue();
-                    let field = Field(object, class_info, inst.getOffset());
+                    let field = Field(object, class_info, offset = inst.getOffset());
 
                     if data.class_values.get(field) is Some(value) {
                         inst.replaceAllUsesWith(value);
@@ -66,7 +66,7 @@ pub fn performLoadElimination(ci: CompilationInfo, graph: Graph) {
                     let field_offset = inst.getOffset();
 
                     let object = inst.getInput(0).getValue();
-                    let field = Field(object, class_info, field_offset);
+                    let field = Field(object, class_info, offset = field_offset);
                     let cur_value = data.class_values.get(field);
 
                     data.class_values.retainIf(|field: Field, value: Inst|: Bool {

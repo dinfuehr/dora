@@ -10,8 +10,9 @@ use crate::program_parser::ParsedModifierList;
 use dora_parser::ast;
 
 use crate::sema::{
-    module_path, Element, ElementAccess, ElementId, ExtensionDefinitionId, FctDefinitionId,
-    ModuleDefinitionId, PackageDefinitionId, Sema, SourceFileId, TypeParamDefinition,
+    module_path, Element, ElementAccess, ElementField, ElementId, ElementWithFields,
+    ExtensionDefinitionId, FctDefinitionId, ModuleDefinitionId, PackageDefinitionId, Sema,
+    SourceFileId, TypeParamDefinition,
 };
 use crate::{specialize_for_element, ParsedType, SourceType, SourceTypeArray, Span};
 
@@ -52,7 +53,6 @@ impl ClassDefinition {
         modifiers: ParsedModifierList,
         name: Name,
         type_param_definition: Rc<TypeParamDefinition>,
-        requires_named_arguments: bool,
         fields: Vec<Field>,
     ) -> ClassDefinition {
         ClassDefinition {
@@ -67,7 +67,7 @@ impl ClassDefinition {
             is_internal: modifiers.is_internal,
             internal_resolved: false,
             visibility: modifiers.visibility(),
-            requires_named_arguments,
+            requires_named_arguments: ast.uses_braces,
 
             fields,
 
@@ -224,6 +224,28 @@ impl ElementAccess for ClassDefinition {
 
     fn id(&self) -> Self::Id {
         self.id.expect("missing id")
+    }
+}
+
+impl ElementWithFields for ClassDefinition {
+    fn requires_named_arguments(&self) -> bool {
+        self.requires_named_arguments
+    }
+
+    fn field_name(&self, idx: usize) -> Name {
+        self.fields[idx].name
+    }
+
+    fn fields_len(&self) -> usize {
+        self.fields.len()
+    }
+
+    fn fields<'a>(&'a self) -> Box<dyn Iterator<Item = ElementField> + 'a> {
+        Box::new(self.fields.iter().map(|f| ElementField {
+            id: f.id.to_usize(),
+            name: f.name,
+            ty: f.ty(),
+        }))
     }
 }
 

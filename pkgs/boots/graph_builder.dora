@@ -2602,7 +2602,10 @@ impl SsaGen {
 
     fn getInlinedLocation(offset: Int32): InlinedLocation {
         let loc = self.bc.getLocationAt(offset);
-        InlinedLocation(self.inlined_function_id, loc)
+        InlinedLocation(
+            inlined_function_id = self.inlined_function_id,
+            location = loc
+        )
     }
 
     fn isInlining(): Bool {

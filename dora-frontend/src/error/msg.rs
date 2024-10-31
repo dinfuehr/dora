@@ -204,8 +204,10 @@ pub enum ErrorMessage {
     DuplicateNamedArgument,
     MissingNamedArgument(String),
     UseOfUnknownArgument,
-    WarnCallRequiresNamedArgument,
-    WrongTypeForNamedArgument(String, String),
+    CallRequiresNamedArgument,
+    WrongTypeForArgument(String, String),
+    SuperfluousArgument,
+    MissingArguments(usize, usize),
 }
 
 impl ErrorMessage {
@@ -701,13 +703,22 @@ impl ErrorMessage {
             ErrorMessage::UseOfUnknownArgument => {
                 format!("Named argument with this name does not exist.")
             }
-            ErrorMessage::WarnCallRequiresNamedArgument => {
+            ErrorMessage::CallRequiresNamedArgument => {
                 format!("Call requires named arguments.")
             }
-            ErrorMessage::WrongTypeForNamedArgument(ref exp, ref got) => {
+            ErrorMessage::WrongTypeForArgument(ref exp, ref got) => {
                 format!(
-                    "Named argument expects value of type `{}` but got `{}`.",
+                    "Argument expects value of type `{}` but got `{}`.",
                     exp, got
+                )
+            }
+            ErrorMessage::SuperfluousArgument => {
+                format!("Superfluous argument.")
+            }
+            ErrorMessage::MissingArguments(expected, got) => {
+                format!(
+                    "Call should have {} arguments but got only {}.",
+                    expected, got
                 )
             }
         }

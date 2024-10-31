@@ -578,7 +578,7 @@ impl CodeGenArm64 {
         let site = LazyCompilationSiteDirect(
             fct_id,
             type_params,
-            pos + cp_entry.disp,
+            const_pool_offset = pos + cp_entry.disp,
         );
 
         self.lazyCompilation.insert(pos, LazyCompilationSite::Direct(site));
@@ -795,7 +795,11 @@ impl CodeGen for CodeGenArm64 {
         self.deferred.push(|| {
             self.emitComment("slow path for stack limit check");
             self.asm.bindLabel(lbl_stack_overflow);
-            self.trap(REG_TEMP, iface::TRAP_STACK_OVERFLOW, InlinedLocation(None[InlinedFunctionId], self.ci.loc));
+            let iloc = InlinedLocation(
+                inlined_function_id = None[InlinedFunctionId],
+                location = self.ci.loc
+            );
+            self.trap(REG_TEMP, iface::TRAP_STACK_OVERFLOW, iloc);
         });
     }
 
@@ -1703,9 +1707,9 @@ impl CodeGen for CodeGenArm64 {
         let BytecodeType::Trait(trait_id, ..) = fct_info.trait_object_ty;
 
         let site = LazyCompilationSiteVirtual(
-            fct_info.receiver_is_first,
-            fct_info.trait_object_ty,
-            fct_info.vtable_index,
+            receiver_is_first = fct_info.receiver_is_first,
+            trait_object_ty = fct_info.trait_object_ty,
+            vtable_index = fct_info.vtable_index,
         );
         let site = LazyCompilationSite::Virtual(site);
 
@@ -1725,9 +1729,9 @@ impl CodeGen for CodeGenArm64 {
         params_including_self.append(fct_info.params);
 
         let site = LazyCompilationSiteLambda(
-            fct_info.receiver_is_first,
-            params_including_self.toArray(),
-            fct_info.return_type,
+            receiver_is_first = fct_info.receiver_is_first,
+            params = params_including_self.toArray(),
+            return_ty = fct_info.return_type,
         );
         let site = LazyCompilationSite::Lambda(site);
 
@@ -2982,7 +2986,11 @@ impl CodeGen for CodeGenArm64 {
             self.asm.bl_r(REG_TEMP);
             let pos = self.asm.position();
             self.gcPoints.insert(pos, gc_point);
-            self.locations.insert(pos, InlinedLocation(None[InlinedFunctionId], self.ci.loc));
+            let iloc = InlinedLocation(
+                inlined_function_id = None[InlinedFunctionId],
+                location = self.ci.loc
+            );
+            self.locations.insert(pos, iloc);
 
             self.restoreRegistersForCall(snapshot);
 

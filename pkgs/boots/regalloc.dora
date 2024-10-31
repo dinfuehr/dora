@@ -72,7 +72,10 @@ impl SimpleRegisterAllocator {
     }
 
     fn snapshotRegisterTrackers(): RegisterTrackers {
-        RegisterTrackers(self.registers().snapshot(), self.float_registers().snapshot())
+        RegisterTrackers(
+            gp = self.registers().snapshot(),
+            fp = self.float_registers().snapshot()
+        )
     }
 
     fn snapshotRegisters(inst: Inst) {

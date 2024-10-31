@@ -345,7 +345,7 @@ impl BytecodeIterator {
         };
 
         let size = self.pos - start;
-        BytecodeInstructionInfo(start, opcode, size, inst)
+        BytecodeInstructionInfo(start, opcode, size, op = inst)
     }
 
     fn readRegister(): BytecodeRegister {

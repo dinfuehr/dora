@@ -528,7 +528,7 @@ impl ConstPool {
         let entry_alignment = entry_size;
         let start = (self.size + (entry_alignment - 1i32)) & !(entry_alignment - 1i32);
         let new_size = start + entry_size;
-        let entry = ConstPoolEntry(new_size, value);
+        let entry = ConstPoolEntry(disp = new_size, value);
         self.size = new_size;
         self.entries.push(entry);
         entry

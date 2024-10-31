@@ -65,7 +65,7 @@ impl CompilationInfo {
 
     pub fn addInlinedFunction(fct_id: FunctionId, type_params: Array[BytecodeType], location: iface::InlinedLocation): iface::InlinedFunctionId {
         let id = self.inlinedFunctions.size();
-        self.inlinedFunctions.push(iface::InlinedFunction(fct_id, type_params, location));
+        self.inlinedFunctions.push(iface::InlinedFunction(fct_id, type_params, inlined_location = location));
         iface::InlinedFunctionId(id.toInt32())
     }
 

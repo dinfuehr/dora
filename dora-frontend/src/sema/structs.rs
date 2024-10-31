@@ -11,9 +11,9 @@ use dora_parser::ast;
 use dora_parser::Span;
 
 use crate::sema::{
-    module_path, new_identity_type_params, Element, ElementAccess, ElementId,
-    ExtensionDefinitionId, ModuleDefinitionId, PackageDefinitionId, Sema, SourceFileId,
-    TypeParamDefinition, Visibility,
+    module_path, new_identity_type_params, Element, ElementAccess, ElementField, ElementId,
+    ElementWithFields, ExtensionDefinitionId, ModuleDefinitionId, PackageDefinitionId, Sema,
+    SourceFileId, TypeParamDefinition, Visibility,
 };
 use crate::{ParsedType, SourceType, SourceTypeArray};
 
@@ -36,6 +36,7 @@ pub struct StructDefinition {
     pub fields: Vec<StructDefinitionField>,
     pub field_names: HashMap<Name, StructDefinitionFieldId>,
     pub extensions: RefCell<Vec<ExtensionDefinitionId>>,
+    pub requires_named_arguments: bool,
 }
 
 impl StructDefinition {
@@ -75,6 +76,7 @@ impl StructDefinition {
             fields,
             field_names,
             extensions: RefCell::new(Vec::new()),
+            requires_named_arguments: node.uses_braces,
         }
     }
 
@@ -174,6 +176,28 @@ impl ElementAccess for StructDefinition {
 
     fn id(&self) -> Self::Id {
         self.id.expect("missing id")
+    }
+}
+
+impl ElementWithFields for StructDefinition {
+    fn requires_named_arguments(&self) -> bool {
+        self.requires_named_arguments
+    }
+
+    fn fields_len(&self) -> usize {
+        self.fields.len()
+    }
+
+    fn field_name(&self, idx: usize) -> Name {
+        self.fields[idx].name
+    }
+
+    fn fields<'a>(&'a self) -> Box<dyn Iterator<Item = super::ElementField> + 'a> {
+        Box::new(self.fields.iter().map(|f| ElementField {
+            id: f.id.to_usize(),
+            name: f.name,
+            ty: f.ty(),
+        }))
     }
 }
 
