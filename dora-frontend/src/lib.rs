@@ -298,6 +298,10 @@ pub mod tests {
         diag.sort();
 
         for e in diag.errors() {
+            if let Some(file_id) = e.file_id {
+                println!("{}:", sa.file(file_id).path.display());
+            }
+
             if let Some((line, col)) = e.line_column(sa) {
                 print!("{}:{}: ", line, col);
             }

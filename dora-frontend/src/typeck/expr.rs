@@ -385,8 +385,8 @@ pub(super) fn check_expr_dot(
 ) -> SourceType {
     let object_type = check_expr(ck, &e.lhs, SourceType::Any);
 
-    if object_type.is_tuple() {
-        return check_expr_dot_tuple(ck, e, object_type);
+    if e.rhs.is_lit_int() {
+        return check_expr_dot_lit_int(ck, e, object_type);
     }
 
     let name = match e.rhs.to_ident() {
@@ -454,48 +454,45 @@ pub(super) fn check_expr_dot(
     ty_error()
 }
 
-fn check_expr_dot_tuple(
+fn check_expr_dot_lit_int(
     ck: &mut TypeCheck,
     e: &ast::ExprDotType,
     object_type: SourceType,
 ) -> SourceType {
-    let index = match e.rhs.to_lit_int() {
-        Some(literal) => {
-            let (ty, value) = compute_lit_int(ck.sa, ck.file_id, &e.rhs, SourceType::Any);
+    let literal = e.rhs.to_lit_int().expect("literal expected");
 
-            if ty.is_float() {
-                ck.sa
-                    .report(ck.file_id, literal.span, ErrorMessage::IndexExpected);
-            }
+    let (ty, value) = compute_lit_int(ck.sa, ck.file_id, &e.rhs, SourceType::Any);
 
-            ck.analysis.set_const_value(literal.id, value.clone());
+    if ty.is_float() {
+        ck.sa
+            .report(ck.file_id, literal.span, ErrorMessage::IndexExpected);
+    }
 
-            value.to_i64().unwrap_or(0) as u64
-        }
+    ck.analysis.set_const_value(literal.id, value.clone());
 
-        None => {
-            let msg = ErrorMessage::IndexExpected;
-            ck.sa.report(ck.file_id, e.rhs.span(), msg);
+    let index = value.to_i64().unwrap_or(0) as u64;
+
+    if object_type.is_tuple() {
+        let subtypes = object_type.tuple_subtypes().expect("tuple expected");
+
+        if index >= subtypes.len() as u64 {
+            let msg = ErrorMessage::IllegalTupleIndex(index, ck.ty_name(&object_type));
+            ck.sa.report(ck.file_id, e.op_span, msg);
 
             ck.analysis.set_ty(e.id, ty_error());
             return ty_error();
         }
-    };
 
-    let subtypes = object_type.tuple_subtypes().expect("tuple expected");
-
-    if index >= subtypes.len() as u64 {
-        let msg = ErrorMessage::IllegalTupleIndex(index, ck.ty_name(&object_type));
-        ck.sa.report(ck.file_id, e.op_span, msg);
-
-        ck.analysis.set_ty(e.id, ty_error());
-        return ty_error();
+        let ty = subtypes[usize::try_from(index).unwrap()].clone();
+        ck.analysis.set_ty(e.id, ty.clone());
+        ty
+    } else {
+        let name = index.to_string();
+        let expr_name = ck.ty_name(&object_type);
+        let msg = ErrorMessage::UnknownField(name, expr_name);
+        ck.sa.report(ck.file_id, e.rhs.span(), msg);
+        SourceType::Error
     }
-
-    let ty = subtypes[usize::try_from(index).unwrap()].clone();
-    ck.analysis.set_ty(e.id, ty.clone());
-
-    ty
 }
 
 pub(super) fn check_expr_this(
