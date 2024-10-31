@@ -45,10 +45,6 @@ pub trait Visitor: Sized {
         walk_use(self, i);
     }
 
-    fn visit_struct_field(&mut self, f: &StructField) {
-        walk_struct_field(self, f);
-    }
-
     fn visit_ctor(&mut self, m: &Arc<Function>) {
         walk_fct(self, &m);
     }
@@ -57,7 +53,7 @@ pub trait Visitor: Sized {
         walk_fct(self, &m);
     }
 
-    fn visit_field(&mut self, p: &Field) {
+    fn visit_field(&mut self, p: &Arc<Field>) {
         walk_field(self, p);
     }
 
@@ -167,12 +163,8 @@ pub fn walk_type_alias<V: Visitor>(_v: &mut V, _node: &Arc<Alias>) {
 
 pub fn walk_struct<V: Visitor>(v: &mut V, s: &Struct) {
     for f in &s.fields {
-        v.visit_struct_field(f);
+        v.visit_field(f);
     }
-}
-
-pub fn walk_struct_field<V: Visitor>(v: &mut V, f: &StructField) {
-    v.visit_type(&f.data_type);
 }
 
 pub fn walk_field<V: Visitor>(v: &mut V, f: &Field) {

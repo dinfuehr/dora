@@ -528,7 +528,7 @@ fn check_expr_call_struct(
         return ty_error();
     }
 
-    if struct_.requires_named_arguments() {
+    if struct_.field_name_style.is_named() {
         check_expr_call_ctor_with_named_fields(ck, struct_, type_params.clone(), &arguments);
     } else {
         check_expr_call_ctor_with_unnamed_fields(ck, struct_, type_params.clone(), &arguments);
@@ -699,7 +699,7 @@ fn check_expr_call_class(
         ck.sa.report(ck.file_id, e.span, msg);
     }
 
-    if cls.requires_named_arguments {
+    if cls.field_name_style.is_named() {
         check_expr_call_ctor_with_named_fields(ck, cls, type_params.clone(), &arguments);
     } else {
         check_expr_call_ctor_with_unnamed_fields(ck, cls, type_params.clone(), &arguments);

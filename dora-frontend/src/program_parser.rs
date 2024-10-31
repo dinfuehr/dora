@@ -575,7 +575,7 @@ impl<'x> visit::Visitor for TopLevelDeclaration<'x> {
                 id: FieldId(idx),
                 name,
                 parsed_ty: ParsedType::new_ast(field.data_type.clone()),
-                mutable: field.mutable,
+                mutable: true,
                 visibility: modifiers.visibility(),
             });
         }

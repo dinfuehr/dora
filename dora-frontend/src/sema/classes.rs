@@ -31,7 +31,7 @@ pub struct ClassDefinition {
     pub is_internal: bool,
     pub internal_resolved: bool,
     pub visibility: Visibility,
-    pub requires_named_arguments: bool,
+    pub field_name_style: ast::FieldNameStyle,
 
     pub fields: Vec<Field>,
 
@@ -67,7 +67,7 @@ impl ClassDefinition {
             is_internal: modifiers.is_internal,
             internal_resolved: false,
             visibility: modifiers.visibility(),
-            requires_named_arguments: ast.uses_braces,
+            field_name_style: ast.field_name_style,
 
             fields,
 
@@ -102,7 +102,7 @@ impl ClassDefinition {
             is_internal: false,
             internal_resolved: false,
             visibility,
-            requires_named_arguments: false,
+            field_name_style: ast::FieldNameStyle::Positional,
 
             fields,
 
@@ -228,10 +228,6 @@ impl ElementAccess for ClassDefinition {
 }
 
 impl ElementWithFields for ClassDefinition {
-    fn requires_named_arguments(&self) -> bool {
-        self.requires_named_arguments
-    }
-
     fn field_name(&self, idx: usize) -> Name {
         self.fields[idx].name
     }

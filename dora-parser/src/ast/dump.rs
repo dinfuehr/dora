@@ -162,12 +162,12 @@ impl AstDumper {
 
         self.indent(|d| {
             for field in &struc.fields {
-                d.dump_struct_field(field);
+                d.dump_field(field);
             }
         });
     }
 
-    fn dump_struct_field(&mut self, field: &StructField) {
+    fn dump_field(&mut self, field: &Arc<Field>) {
         dump!(self, "field @ {} {}", field.span, field.id);
         self.dump_maybe_ident(&field.name);
         self.indent(|d| d.dump_type(&field.data_type));
@@ -203,12 +203,6 @@ impl AstDumper {
                 }
             });
         });
-    }
-
-    fn dump_field(&mut self, field: &Field) {
-        dump!(self, "field @ {} {}", field.span, field.id);
-        self.dump_maybe_ident(&field.name);
-        self.indent(|d| d.dump_type(&field.data_type));
     }
 
     fn dump_fct(&mut self, fct: &Function) {

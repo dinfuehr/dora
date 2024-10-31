@@ -72,7 +72,6 @@ pub trait ElementAccess {
 }
 
 pub trait ElementWithFields {
-    fn requires_named_arguments(&self) -> bool;
     fn fields_len(&self) -> usize;
     fn fields<'a>(&'a self) -> Box<dyn Iterator<Item = ElementField> + 'a>;
     fn field_name(&self, idx: usize) -> Name;

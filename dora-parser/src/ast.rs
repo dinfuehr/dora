@@ -314,20 +314,26 @@ pub struct Struct {
     pub green: GreenNode,
     pub modifiers: Option<ModifierList>,
     pub name: Option<Ident>,
-    pub fields: Vec<StructField>,
+    pub fields: Vec<Arc<Field>>,
     pub type_params: Option<TypeParams>,
     pub where_bounds: Option<WhereBounds>,
-    pub uses_braces: bool,
+    pub field_style: FieldNameStyle,
 }
 
-#[derive(Clone, Debug)]
-pub struct StructField {
-    pub id: NodeId,
-    pub span: Span,
-    pub green: GreenNode,
-    pub modifiers: Option<ModifierList>,
-    pub name: Option<Ident>,
-    pub data_type: Type,
+#[derive(Copy, Clone, Debug)]
+pub enum FieldNameStyle {
+    Named,
+    Positional,
+    Old,
+}
+
+impl FieldNameStyle {
+    pub fn is_named(&self) -> bool {
+        match self {
+            FieldNameStyle::Named => true,
+            _ => false,
+        }
+    }
 }
 
 pub type WhereBounds = Arc<WhereBoundsData>;
@@ -607,10 +613,10 @@ pub struct Class {
     pub modifiers: Option<ModifierList>,
     pub name: Option<Ident>,
 
-    pub fields: Vec<Field>,
+    pub fields: Vec<Arc<Field>>,
     pub type_params: Option<TypeParams>,
     pub where_bounds: Option<WhereBounds>,
-    pub uses_braces: bool,
+    pub field_name_style: FieldNameStyle,
 }
 
 #[derive(Clone, Debug)]
@@ -644,9 +650,6 @@ pub struct Field {
     pub modifiers: Option<ModifierList>,
     pub name: Option<Ident>,
     pub data_type: Type,
-    pub primary_ctor: bool,
-    pub expr: Option<Expr>,
-    pub mutable: bool,
 }
 
 #[derive(Clone, Debug)]

@@ -7,8 +7,8 @@ use crate::error::{ParseError, ParseErrorWithLocation};
 use crate::green::{GreenTreeBuilder, Marker};
 use crate::token::{
     ELEM_FIRST, EMPTY, ENUM_VARIANT_ARGUMENT_RS, ENUM_VARIANT_RS, EXPRESSION_FIRST, FIELD_FIRST,
-    MODIFIER_FIRST, PARAM_LIST_RS, PATTERN_FIRST, PATTERN_RS, TYPE_PARAM_RS, USE_PATH_ATOM_FIRST,
-    USE_PATH_FIRST,
+    MODIFIER_FIRST, PARAM_LIST_RS, PATTERN_FIRST, PATTERN_RS, TYPE_FIRST, TYPE_PARAM_RS,
+    UNNAMED_FIELD_FIRST, USE_PATH_ATOM_FIRST, USE_PATH_FIRST,
 };
 use crate::TokenKind::*;
 use crate::{lex, Span, TokenKind, TokenSet};
@@ -609,9 +609,28 @@ impl Parser {
         let ident = self.expect_identifier();
         let type_params = self.parse_type_params();
         let where_bounds = self.parse_where();
-        let mut uses_braces = false;
+        let field_style;
 
-        let fields = if self.is(L_PAREN) {
+        let fields = if self.is2(AND, L_PAREN) {
+            field_style = FieldNameStyle::Positional;
+            self.assert(AND);
+            self.parse_list(
+                L_PAREN,
+                COMMA,
+                R_PAREN,
+                ELEM_FIRST,
+                ParseError::ExpectedField,
+                LIST,
+                |p| {
+                    if p.is_set(UNNAMED_FIELD_FIRST) {
+                        Some(p.parse_unnamed_field())
+                    } else {
+                        None
+                    }
+                },
+            )
+        } else if self.is(L_PAREN) {
+            field_style = FieldNameStyle::Old;
             self.parse_list(
                 L_PAREN,
                 COMMA,
@@ -621,14 +640,14 @@ impl Parser {
                 LIST,
                 |p| {
                     if p.is_set(FIELD_FIRST) {
-                        Some(p.parse_struct_field())
+                        Some(p.parse_named_field())
                     } else {
                         None
                     }
                 },
             )
         } else if self.is(L_BRACE) {
-            uses_braces = true;
+            field_style = FieldNameStyle::Named;
 
             self.parse_list(
                 L_BRACE,
@@ -639,13 +658,14 @@ impl Parser {
                 LIST,
                 |p| {
                     if p.is_set(FIELD_FIRST) {
-                        Some(p.parse_struct_field())
+                        Some(p.parse_named_field())
                     } else {
                         None
                     }
                 },
             )
         } else {
+            field_style = FieldNameStyle::Positional;
             Vec::new()
         };
 
@@ -660,11 +680,11 @@ impl Parser {
             fields,
             type_params,
             where_bounds,
-            uses_braces,
+            field_style,
         })
     }
 
-    fn parse_struct_field(&mut self) -> StructField {
+    fn parse_named_field(&mut self) -> Arc<Field> {
         self.start_node();
         self.builder.start_node();
 
@@ -677,14 +697,33 @@ impl Parser {
 
         let green = self.builder.finish_node(STRUCT_FIELD);
 
-        StructField {
+        Arc::new(Field {
             id: self.new_node_id(),
             span: self.finish_node(),
             green,
             modifiers,
             name: ident,
             data_type: ty,
-        }
+        })
+    }
+
+    fn parse_unnamed_field(&mut self) -> Arc<Field> {
+        self.start_node();
+        self.builder.start_node();
+
+        let modifiers = self.parse_modifiers();
+        let ty = self.parse_type();
+
+        let green = self.builder.finish_node(STRUCT_FIELD);
+
+        Arc::new(Field {
+            id: self.new_node_id(),
+            span: self.finish_node(),
+            green,
+            modifiers,
+            name: None,
+            data_type: ty,
+        })
     }
 
     fn parse_class(&mut self, modifiers: Option<ModifierList>) -> Arc<Class> {
@@ -694,9 +733,12 @@ impl Parser {
         let name = self.expect_identifier();
         let type_params = self.parse_type_params();
         let where_bounds = self.parse_where();
-        let mut uses_braces = false;
+        let field_name_style;
 
-        let fields = if self.is(L_PAREN) {
+        let fields = if self.is2(AND, L_PAREN) {
+            self.assert(AND);
+            field_name_style = FieldNameStyle::Positional;
+
             self.parse_list(
                 L_PAREN,
                 COMMA,
@@ -706,14 +748,32 @@ impl Parser {
                 LIST,
                 |p| {
                     if p.is_set(FIELD_FIRST) {
-                        Some(p.parse_class_field())
+                        Some(p.parse_unnamed_field())
+                    } else {
+                        None
+                    }
+                },
+            )
+        } else if self.is(L_PAREN) {
+            field_name_style = FieldNameStyle::Old;
+
+            self.parse_list(
+                L_PAREN,
+                COMMA,
+                R_PAREN,
+                ELEM_FIRST,
+                ParseError::ExpectedField,
+                LIST,
+                |p| {
+                    if p.is_set(FIELD_FIRST) {
+                        Some(p.parse_named_field())
                     } else {
                         None
                     }
                 },
             )
         } else if self.is(L_BRACE) {
-            uses_braces = true;
+            field_name_style = FieldNameStyle::Named;
 
             self.parse_list(
                 L_BRACE,
@@ -724,13 +784,14 @@ impl Parser {
                 LIST,
                 |p| {
                     if p.is_set(FIELD_FIRST) {
-                        Some(p.parse_class_field())
+                        Some(p.parse_named_field())
                     } else {
                         None
                     }
                 },
             )
         } else {
+            field_name_style = FieldNameStyle::Positional;
             Vec::new()
         };
 
@@ -745,34 +806,8 @@ impl Parser {
             fields,
             type_params,
             where_bounds,
-            uses_braces,
+            field_name_style,
         })
-    }
-
-    fn parse_class_field(&mut self) -> Field {
-        self.start_node();
-        self.builder.start_node();
-
-        let modifiers = self.parse_modifiers();
-
-        let name = self.expect_identifier();
-
-        self.expect(COLON);
-        let data_type = self.parse_type();
-
-        let green = self.builder.finish_node(CLASS_FIELD);
-
-        Field {
-            id: self.new_node_id(),
-            span: self.finish_node(),
-            green,
-            modifiers,
-            name,
-            data_type,
-            primary_ctor: false,
-            expr: None,
-            mutable: true,
-        }
     }
 
     fn parse_type_params(&mut self) -> Option<TypeParams> {
@@ -1088,7 +1123,7 @@ impl Parser {
     }
 
     fn parse_type_wrapper(&mut self) -> Option<Type> {
-        if self.is(UPCASE_SELF_KW) || self.is(IDENTIFIER) || self.is(L_PAREN) {
+        if self.is_set(TYPE_FIRST) {
             Some(self.parse_type())
         } else {
             None
@@ -3343,7 +3378,6 @@ mod tests {
         let class = prog.cls0();
 
         assert_eq!(1, class.fields.len());
-        assert_eq!(true, class.fields[0].mutable);
     }
 
     #[test]
@@ -3415,11 +3449,9 @@ mod tests {
 
         let f1 = &cls.fields[0];
         assert_eq!("f1", f1.name.as_ref().unwrap().name_as_string);
-        assert_eq!(true, f1.mutable);
 
         let f2 = &cls.fields[1];
         assert_eq!("f2", f2.name.as_ref().unwrap().name_as_string);
-        assert_eq!(true, f2.mutable);
     }
 
     #[test]
@@ -3447,6 +3479,22 @@ mod tests {
         let struc = prog.struct0();
         assert_eq!(0, struc.fields.len());
         assert_eq!("Foo", struc.name.as_ref().unwrap().name_as_string);
+    }
+
+    #[test]
+    fn parse_struct_unnamed() {
+        let prog = parse("struct Foo &(A, B)");
+        let struc = prog.struct0();
+        assert_eq!(2, struc.fields.len());
+        assert_eq!("Foo", struc.name.as_ref().unwrap().name_as_string);
+    }
+
+    #[test]
+    fn parse_class_unnamed() {
+        let prog = parse("class Foo &(A, B)");
+        let cls = prog.cls0();
+        assert_eq!(2, cls.fields.len());
+        assert_eq!("Foo", cls.name.as_ref().unwrap().name_as_string);
     }
 
     #[test]

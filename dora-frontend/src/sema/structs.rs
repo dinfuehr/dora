@@ -36,7 +36,7 @@ pub struct StructDefinition {
     pub fields: Vec<StructDefinitionField>,
     pub field_names: HashMap<Name, StructDefinitionFieldId>,
     pub extensions: RefCell<Vec<ExtensionDefinitionId>>,
-    pub requires_named_arguments: bool,
+    pub field_name_style: ast::FieldNameStyle,
 }
 
 impl StructDefinition {
@@ -76,7 +76,7 @@ impl StructDefinition {
             fields,
             field_names,
             extensions: RefCell::new(Vec::new()),
-            requires_named_arguments: node.uses_braces,
+            field_name_style: node.field_style,
         }
     }
 
@@ -180,10 +180,6 @@ impl ElementAccess for StructDefinition {
 }
 
 impl ElementWithFields for StructDefinition {
-    fn requires_named_arguments(&self) -> bool {
-        self.requires_named_arguments
-    }
-
     fn fields_len(&self) -> usize {
         self.fields.len()
     }
