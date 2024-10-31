@@ -528,17 +528,9 @@ fn check_expr_call_struct(
         return ty_error();
     }
 
-    if struct_.requires_named_arguments() && arguments.all_named() {
+    if struct_.requires_named_arguments() {
         check_expr_call_ctor_with_named_fields(ck, struct_, type_params.clone(), &arguments);
     } else {
-        if struct_.requires_named_arguments() && arguments.arguments.len() > 1 {
-            ck.sa.warn(
-                ck.file_id,
-                arguments.span,
-                ErrorMessage::CallRequiresNamedArgument,
-            );
-        }
-
         check_expr_call_ctor_with_unnamed_fields(ck, struct_, type_params.clone(), &arguments);
     }
 

@@ -7,7 +7,7 @@ struct Data {
 enum Foo { A(Int32, String, Data, (Int32, Int32), Float64), B }
 
 fn main() {
-    let value = Foo::A(112i32, "abc", Data(12i32, 47i32, "def"), (3i32, 4i32), 105.5);
+    let value = Foo::A(112i32, "abc", Data(x = 12i32, y = 47i32, z = "def"), (3i32, 4i32), 105.5);
     match value {
         Foo::A(a, b, c, d, e) => {
             assert(a == 112i32);

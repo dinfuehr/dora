@@ -4,10 +4,10 @@ struct Foo {
     c: Int64,
 }
 
-let mut foo: Foo = Foo(100, 200, 300);
+let mut foo: Foo = Foo(a = 100, b = 200, c = 300);
 
 fn main() {
-    foo = Foo(300, 400, 500);
+    foo = Foo(a = 300, b = 400, c = 500);
     assert(foo.a == 300);
     assert(foo.b == 400);
     assert(foo.c == 500);

@@ -2436,7 +2436,7 @@ fn gen_new_struct() {
     gen_fct(
         "
         struct Foo { f1: Int32, f2: Bool }
-        fn f(): Foo { Foo(10i32, false) }
+        fn f(): Foo { Foo(f1 = 10i32, f2 = false) }
     ",
         |sa, code, fct| {
             let struct_id = struct_by_name(sa, "Foo");
@@ -2463,7 +2463,7 @@ fn gen_new_struct() {
     gen_fct(
         "
         struct Foo[T] { f1: T, f2: Bool }
-        fn f[T](val: T): Foo[T] { Foo[T](val, false) }
+        fn f[T](val: T): Foo[T] { Foo[T](f1 = val, f2 = false) }
     ",
         |sa, code, fct| {
             let struct_id = struct_by_name(sa, "Foo");

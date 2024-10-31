@@ -19,7 +19,7 @@ fn main() {
 }
 
 fn build_vec(): Vec[Foo] {
-    Vec[Foo]::new(Foo(1i32, "a" + "b" + "c"), Foo(2i32, "d" + "e" + "f"), Foo(3i32, "g" + "h" + "i"))
+    Vec[Foo]::new(Foo(a = 1i32, b = "a" + "b" + "c"), Foo(a = 2i32, b = "d" + "e" + "f"), Foo(a = 3i32, b = "g" + "h" + "i"))
 }
 
 fn pop_vec(vec: Vec[Foo], expected: String) {

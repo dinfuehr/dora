@@ -5,7 +5,7 @@ fn main() {
     std::forceCollect();
 
     let new_bar = Bar(2100);
-    vec.push(Foo(10i32, new_bar, old_bar));
+    vec.push(Foo(value = 10i32, bar1 = new_bar, bar2 = old_bar));
 }
 
 struct Foo {

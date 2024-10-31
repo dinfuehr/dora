@@ -7,7 +7,7 @@ struct Foo {
 
 fn main() {
     let map = HashMap[Int, Foo]::new();
-    map.insert(1, Foo("foo", "bar"));
+    map.insert(1, Foo(x = "foo", y = "bar"));
     // This used to crash because of Array::copy observing null. However, this is
     // fine because HashMap uses Array::unsafeNew internally and does not expose null.
     let map = map.clone();

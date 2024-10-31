@@ -56,5 +56,5 @@ fn test3(arg1: Int64, arg2: Int64, arg3: Int64, arg4: Int64, arg5: Int64, arg6: 
 }
 
 fn test4(f: Foo): MyPair {
-    MyPair(f.x, f.y)
+    MyPair(x = f.x, y = f.y)
 }

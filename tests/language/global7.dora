@@ -4,7 +4,7 @@ struct Foo {
     c: Int64,
 }
 
-let foo: Foo = Foo(100, 200, 300);
+let foo: Foo = Foo(a = 100, b = 200, c = 300);
 
 fn main() {
     let tmp = foo;
