@@ -310,7 +310,7 @@ pub class CommentTable {
 impl CommentTable {
     pub static fn new(): CommentTable {
         CommentTable(
-            Vec[(Int32, String)]::new(),
+            entries = Vec[(Int32, String)]::new(),
         )
     }
 
@@ -358,7 +358,7 @@ pub class LocationTable {
 impl LocationTable {
     pub static fn new(): LocationTable {
         LocationTable(
-            Vec[(Int32, InlinedLocation)]::new(),
+            entries = Vec[(Int32, InlinedLocation)]::new(),
         )
     }
 
@@ -390,7 +390,7 @@ pub class LazyCompilationData {
 impl LazyCompilationData {
     pub static fn new(): LazyCompilationData {
         LazyCompilationData(
-            Vec[(Int32, LazyCompilationSite)]::new(),
+            entries = Vec[(Int32, LazyCompilationSite)]::new(),
         )
     }
 
@@ -446,7 +446,7 @@ pub class GcPointTable {
 impl GcPointTable {
     pub static fn new(): GcPointTable {
         GcPointTable(
-            Vec[(Int32, GcPoint)]::new(),
+            entries = Vec[(Int32, GcPoint)]::new(),
         )
     }
 
@@ -478,7 +478,7 @@ pub class GcPoint {
 impl GcPoint {
     pub static fn new(): GcPoint {
         GcPoint(
-            Vec[Int32]::new(),
+            offsets = Vec[Int32]::new(),
         )
     }
 

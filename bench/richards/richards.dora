@@ -79,12 +79,12 @@ class Scheduler {
 impl Scheduler {
     static fn new(): Scheduler {
         Scheduler(
-            0i32,
-            0i32,
-            Array[Option[TaskControlBlock]]::fill(NUMBER_OF_IDS.toInt64(), Option[TaskControlBlock]::None),
-            None[TaskControlBlock],
-            None[TaskControlBlock],
-            None[Int32],
+            queueCount = 0i32,
+            holdCount = 0i32,
+            blocks = Array[Option[TaskControlBlock]]::fill(NUMBER_OF_IDS.toInt64(), Option[TaskControlBlock]::None),
+            currentTcb = None[TaskControlBlock],
+            list = None[TaskControlBlock],
+            currentId = None[Int32],
         )
     }
     fn addIdleTask(id: Int32, priority: Int32, queue: Option[Packet], count: Int32) {
@@ -220,9 +220,9 @@ impl TaskControlBlock {
 
     static fn new(link: Option[TaskControlBlock], id: Int32, priority: Int32, queue: Option[Packet], task: Task): TaskControlBlock {
         if queue.isNone() {
-            return TaskControlBlock(link, id, priority, queue, task, STATE_SUSPENDED);
+            return TaskControlBlock(link, id, priority, queue, task, state = STATE_SUSPENDED);
         } else {
-            return TaskControlBlock(link, id, priority, queue, task, STATE_SUSPENDED_RUNNABLE);
+            return TaskControlBlock(link, id, priority, queue, task, state = STATE_SUSPENDED_RUNNABLE);
         }
     }
 }
@@ -277,7 +277,7 @@ class DeviceTask {
 
 impl DeviceTask {
     static fn new(scheduler: Scheduler): DeviceTask {
-        DeviceTask(scheduler, None[Packet])
+        DeviceTask(scheduler, seed = None[Packet])
     }
 }
 
@@ -351,7 +351,7 @@ class HandlerTask {
 
 impl HandlerTask {
     static fn new(scheduler: Scheduler): HandlerTask {
-        HandlerTask(scheduler, None[Packet], None[Packet])
+        HandlerTask(scheduler, v1 = None[Packet], v2 = None[Packet])
     }
 }
 
@@ -422,6 +422,6 @@ impl Packet {
 
     static fn new(link: Option[Packet], id: Int32, kind: Int32): Packet {
         let array: Array[Int32] = Array[Int32]::newDefault(DATA_SIZE.toInt64());
-        return Packet(link, id, kind, 0i32, array);
+        return Packet(link, id, kind, a1 = 0i32, a2 = array);
     }
 }

@@ -705,7 +705,7 @@ fn check_expr_call_class(
     if cls.requires_named_arguments && arguments.only_named_arguments() {
         check_expr_call_class_named_args(ck, cls, type_params.clone(), &arguments);
     } else {
-        if cls.requires_named_arguments && !arguments.arguments.is_empty() {
+        if cls.requires_named_arguments {
             ck.sa.warn(
                 ck.file_id,
                 e.span,
