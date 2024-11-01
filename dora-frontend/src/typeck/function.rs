@@ -236,7 +236,7 @@ impl<'a> TypeCheck<'a> {
             let name = self.sa.interner.intern("parent_context");
             let field = Field {
                 id: FieldId(0),
-                name,
+                name: Some(name),
                 parsed_ty: ParsedType::new_ty(SourceType::Ptr),
                 mutable: true,
                 visibility: Visibility::Module,
@@ -263,7 +263,7 @@ impl<'a> TypeCheck<'a> {
             let id = FieldId(fields.len());
             let field = Field {
                 id,
-                name: var.name,
+                name: Some(var.name),
                 parsed_ty: ParsedType::new_ty(var.ty.clone()),
                 mutable: true,
                 visibility: Visibility::Module,

@@ -195,7 +195,7 @@ pub fn create_lambda_class(sa: &mut Sema) {
 
     let field = Field {
         id: FieldId(0),
-        name: context_name,
+        name: Some(context_name),
         parsed_ty: ParsedType::new_ty(SourceType::Ptr),
         mutable: false,
         visibility: Visibility::Public,

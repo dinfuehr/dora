@@ -141,7 +141,7 @@ impl ClassDefinition {
 
     pub fn field_by_name(&self, name: Name) -> FieldId {
         for field in &self.fields {
-            if field.name == name {
+            if field.name == Some(name) {
                 return field.id;
             }
         }
@@ -229,7 +229,7 @@ impl ElementAccess for ClassDefinition {
 
 impl ElementWithFields for ClassDefinition {
     fn field_name(&self, idx: usize) -> Name {
-        self.fields[idx].name
+        self.fields[idx].name.expect("name expected")
     }
 
     fn fields_len(&self) -> usize {
@@ -239,7 +239,7 @@ impl ElementWithFields for ClassDefinition {
     fn fields<'a>(&'a self) -> Box<dyn Iterator<Item = ElementField> + 'a> {
         Box::new(self.fields.iter().map(|f| ElementField {
             id: f.id.to_usize(),
-            name: f.name,
+            name: f.name.expect("name expected"),
             ty: f.ty(),
         }))
     }
@@ -263,7 +263,7 @@ impl From<usize> for FieldId {
 #[derive(Debug)]
 pub struct Field {
     pub id: FieldId,
-    pub name: Name,
+    pub name: Option<Name>,
     pub parsed_ty: ParsedType,
     pub mutable: bool,
     pub visibility: Visibility,
@@ -302,7 +302,7 @@ pub fn find_field_in_class(
         let cls = sa.class(cls_id);
 
         for field in &cls.fields {
-            if field.name == name {
+            if field.name == Some(name) {
                 return Some((
                     field.id,
                     specialize_for_element(sa, field.ty(), cls, &type_params),

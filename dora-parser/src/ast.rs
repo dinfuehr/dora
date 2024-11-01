@@ -341,6 +341,13 @@ impl FieldNameStyle {
             _ => false,
         }
     }
+
+    pub fn is_positional(&self) -> bool {
+        match self {
+            FieldNameStyle::Positional => true,
+            _ => false,
+        }
+    }
 }
 
 pub type WhereBounds = Arc<WhereBoundsData>;

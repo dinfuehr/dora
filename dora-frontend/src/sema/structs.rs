@@ -53,11 +53,13 @@ impl StructDefinition {
         let mut field_names = HashMap::new();
 
         for field in &fields {
-            if field_names.contains_key(&field.name) {
-                continue;
-            }
+            if let Some(name) = field.name {
+                if field_names.contains_key(&name) {
+                    continue;
+                }
 
-            field_names.insert(field.name, field.id);
+                field_names.insert(name, field.id);
+            }
         }
 
         StructDefinition {
@@ -185,13 +187,13 @@ impl ElementWithFields for StructDefinition {
     }
 
     fn field_name(&self, idx: usize) -> Name {
-        self.fields[idx].name
+        self.fields[idx].name.expect("name expected")
     }
 
     fn fields<'a>(&'a self) -> Box<dyn Iterator<Item = super::ElementField> + 'a> {
         Box::new(self.fields.iter().map(|f| ElementField {
             id: f.id.to_usize(),
-            name: f.name,
+            name: f.name.expect("name expected"),
             ty: f.ty(),
         }))
     }
@@ -216,7 +218,7 @@ impl StructDefinitionFieldId {
 pub struct StructDefinitionField {
     pub id: StructDefinitionFieldId,
     pub span: Span,
-    pub name: Name,
+    pub name: Option<Name>,
     pub parsed_ty: ParsedType,
     pub visibility: Visibility,
 }

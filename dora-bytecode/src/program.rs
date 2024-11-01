@@ -80,7 +80,7 @@ pub struct ClassData {
 #[derive(Debug, Decode, Encode)]
 pub struct ClassField {
     pub ty: BytecodeType,
-    pub name: String,
+    pub name: Option<String>,
 }
 
 #[derive(Copy, Clone, Debug, PartialEq, Eq, Hash, Decode, Encode)]
@@ -98,7 +98,7 @@ pub struct StructData {
 #[derive(Debug, Decode, Encode)]
 pub struct StructField {
     pub ty: BytecodeType,
-    pub name: String,
+    pub name: Option<String>,
 }
 
 #[derive(Debug, Decode, Encode)]

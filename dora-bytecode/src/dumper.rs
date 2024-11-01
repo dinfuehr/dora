@@ -73,13 +73,18 @@ pub fn dump(w: &mut dyn io::Write, prog: &Program, bc: &BytecodeFunction) -> std
                 let struct_ = prog.struct_(*struct_id);
                 let struct_name = module_path_name(prog, struct_.module_id, &struct_.name);
                 let field = &struct_.fields[*field_idx as usize];
+                let name = if let Some(ref name) = field.name {
+                    name
+                } else {
+                    &field_idx.to_string()
+                };
                 writeln!(
                     w,
                     "{}{} => StructField {}.{}",
                     align,
                     idx,
                     fmt_name(prog, &struct_name, &type_params),
-                    field.name
+                    name
                 )?;
             }
             ConstPoolEntry::Enum(enum_id, type_params) => {
@@ -124,13 +129,18 @@ pub fn dump(w: &mut dyn io::Write, prog: &Program, bc: &BytecodeFunction) -> std
                 let cls = prog.class(*cls_id);
                 let cls_name = module_path_name(prog, cls.module_id, &cls.name);
                 let field = &cls.fields[*field_id as usize];
+                let name = if let Some(ref name) = field.name {
+                    name
+                } else {
+                    &field_id.to_string()
+                };
                 writeln!(
                     w,
                     "{}{} => Field {}.{}",
                     align,
                     idx,
                     fmt_name(prog, &cls_name, &type_params),
-                    field.name
+                    name
                 )?;
             }
             ConstPoolEntry::Fct(fct_id, type_params) => {
@@ -429,7 +439,11 @@ impl<'a> BytecodeDumper<'a> {
             ConstPoolEntry::Field(cls_id, type_params, field_id) => {
                 let cls = self.prog.class(*cls_id);
                 let field = &cls.fields[*field_id as usize];
-
+                let name = if let Some(ref name) = field.name {
+                    name
+                } else {
+                    &field_id.to_string()
+                };
                 writeln!(
                     self.w,
                     " {}, {}, ConstPoolIdx({}) # {}.{}",
@@ -437,13 +451,18 @@ impl<'a> BytecodeDumper<'a> {
                     r2,
                     field_idx.0,
                     fmt_name(self.prog, &cls.name, type_params),
-                    field.name,
+                    name,
                 )
                 .expect("write! failed");
             }
             ConstPoolEntry::StructField(struct_id, type_params, field_id) => {
                 let struct_ = self.prog.struct_(*struct_id);
                 let field = &struct_.fields[*field_id as usize];
+                let name = if let Some(ref name) = field.name {
+                    name
+                } else {
+                    &field_id.to_string()
+                };
 
                 writeln!(
                     self.w,
@@ -452,7 +471,7 @@ impl<'a> BytecodeDumper<'a> {
                     r2,
                     field_idx.0,
                     fmt_name(self.prog, &struct_.name, type_params),
-                    field.name,
+                    name,
                 )
                 .expect("write! failed");
             }

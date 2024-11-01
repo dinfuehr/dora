@@ -292,7 +292,7 @@ fn create_class_fields(sa: &Sema, class: &ClassDefinition) -> Vec<ClassField> {
         .iter()
         .map(|f| ClassField {
             ty: bty_from_ty(f.ty()),
-            name: sa.interner.str(f.name).to_string(),
+            name: f.name.map(|n| sa.interner.str(n).to_string()),
         })
         .collect()
 }
@@ -337,7 +337,7 @@ fn create_struct_fields(sa: &Sema, struct_: &StructDefinition) -> Vec<StructFiel
         .iter()
         .map(|f| StructField {
             ty: bty_from_ty(f.ty()),
-            name: sa.interner.str(f.name).to_string(),
+            name: f.name.map(|n| sa.interner.str(n).to_string()),
         })
         .collect()
 }

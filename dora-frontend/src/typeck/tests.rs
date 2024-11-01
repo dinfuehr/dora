@@ -4750,3 +4750,87 @@ fn class_ctor_with_ident_expr_used_as_named_argument() {
         }
     ");
 }
+
+#[test]
+fn unnamed_class_field() {
+    ok("
+        class Foo &(Int, Bool)
+        fn f(x: Foo): Int {
+            x.0
+        }
+    ");
+
+    ok("
+        class Foo &(Int, Bool)
+        fn f(x: Foo): Bool {
+            x.1
+        }
+    ");
+
+    err(
+        "
+        class Foo &(Int, Bool)
+        fn f(x: Foo): Bool {
+            x.2
+        }
+    ",
+        (4, 15),
+        ErrorMessage::UnknownField("2".into(), "Foo".into()),
+    );
+
+    err(
+        "
+        mod m {
+            pub class Foo &(Int, Bool)
+        }
+
+        fn f(x: m::Foo): Int {
+            x.0
+        }
+    ",
+        (7, 15),
+        ErrorMessage::NotAccessible,
+    );
+}
+
+#[test]
+fn unnamed_struct_field() {
+    ok("
+        struct Foo &(Int, Bool)
+        fn f(x: Foo): Int {
+            x.0
+        }
+    ");
+
+    ok("
+        struct Foo &(Int, Bool)
+        fn f(x: Foo): Bool {
+            x.1
+        }
+    ");
+
+    err(
+        "
+        struct Foo &(Int, Bool)
+        fn f(x: Foo): Bool {
+            x.2
+        }
+    ",
+        (4, 15),
+        ErrorMessage::UnknownField("2".into(), "Foo".into()),
+    );
+
+    err(
+        "
+        mod m {
+            pub struct Foo &(Int, Bool)
+        }
+
+        fn f(x: m::Foo): Int {
+            x.0
+        }
+    ",
+        (7, 15),
+        ErrorMessage::NotAccessible,
+    );
+}

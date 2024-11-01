@@ -567,9 +567,13 @@ impl<'x> visit::Visitor for TopLevelDeclaration<'x> {
             let modifiers =
                 check_modifiers(self.sa, self.file_id, &field.modifiers, &[Annotation::Pub]);
 
-            let name = ensure_name(self.sa, &field.name);
-
-            check_if_symbol_exists(self.sa, self.file_id, &mut used_names, name, field.span);
+            let name = if node.field_name_style.is_positional() {
+                None
+            } else {
+                let name = ensure_name(self.sa, &field.name);
+                check_if_symbol_exists(self.sa, self.file_id, &mut used_names, name, field.span);
+                Some(name)
+            };
 
             fields.push(Field {
                 id: FieldId(idx),
@@ -627,9 +631,13 @@ impl<'x> visit::Visitor for TopLevelDeclaration<'x> {
             let modifiers =
                 check_modifiers(self.sa, self.file_id, &field.modifiers, &[Annotation::Pub]);
 
-            let name = ensure_name(self.sa, &field.name);
-
-            check_if_symbol_exists(self.sa, self.file_id, &mut used_names, name, field.span);
+            let name = if node.field_style.is_positional() {
+                None
+            } else {
+                let name = ensure_name(self.sa, &field.name);
+                check_if_symbol_exists(self.sa, self.file_id, &mut used_names, name, field.span);
+                Some(name)
+            };
 
             fields.push(StructDefinitionField {
                 id: StructDefinitionFieldId(idx),

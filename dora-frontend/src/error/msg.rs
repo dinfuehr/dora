@@ -163,7 +163,7 @@ pub enum ErrorMessage {
     MatchBranchTypesIncompatible(String, String),
     NameExpected,
     IndexExpected,
-    IllegalTupleIndex(u64, String),
+    IllegalTupleIndex(usize, String),
     UninitializedVar,
     DirectoryNotFound(PathBuf),
     FileForModuleNotFound,

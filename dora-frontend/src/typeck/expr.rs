@@ -502,7 +502,7 @@ fn check_expr_dot_lit_int(
 
     ck.analysis.set_const_value(literal.id, value.clone());
 
-    let index = value.to_i64().unwrap_or(0) as u64;
+    let index = value.to_i64().unwrap_or(0) as usize;
 
     match object_type.clone() {
         SourceType::Error
@@ -523,9 +523,7 @@ fn check_expr_dot_lit_int(
         | SourceType::Lambda(..)
         | SourceType::Alias(..)
         | SourceType::Assoc(..)
-        | SourceType::GenericAssoc(..)
-        | SourceType::Class(..)
-        | SourceType::Struct(..) => {
+        | SourceType::GenericAssoc(..) => {
             let name = index.to_string();
             let expr_name = ck.ty_name(&object_type);
             let msg = ErrorMessage::UnknownField(name, expr_name);
@@ -533,8 +531,58 @@ fn check_expr_dot_lit_int(
             SourceType::Error
         }
 
+        SourceType::Class(class_id, class_type_params) => {
+            let cls = ck.sa.class(class_id);
+            if !cls.field_name_style.is_named() && index < cls.fields.len() {
+                let field = &cls.fields[index];
+                let ident_type = IdentType::Field(object_type.clone(), field.id);
+                ck.analysis.map_idents.insert_or_replace(e.id, ident_type);
+
+                let fty = replace_type(ck.sa, field.ty(), Some(&class_type_params), None);
+
+                if !class_field_accessible_from(ck.sa, class_id, field.id, ck.module_id) {
+                    let msg = ErrorMessage::NotAccessible;
+                    ck.sa.report(ck.file_id, e.rhs.span(), msg);
+                }
+
+                ck.analysis.set_ty(e.id, fty.clone());
+                fty
+            } else {
+                let name = index.to_string();
+                let expr_name = ck.ty_name(&object_type);
+                let msg = ErrorMessage::UnknownField(name, expr_name);
+                ck.sa.report(ck.file_id, e.rhs.span(), msg);
+                SourceType::Error
+            }
+        }
+
+        SourceType::Struct(struct_id, struct_type_params) => {
+            let struct_ = ck.sa.struct_(struct_id);
+            if !struct_.field_name_style.is_named() && index < struct_.fields.len() {
+                let field = &struct_.fields[index];
+                let ident_type = IdentType::StructField(object_type.clone(), field.id);
+                ck.analysis.map_idents.insert_or_replace(e.id, ident_type);
+
+                let fty = replace_type(ck.sa, field.ty(), Some(&struct_type_params), None);
+
+                if !struct_field_accessible_from(ck.sa, struct_id, field.id, ck.module_id) {
+                    let msg = ErrorMessage::NotAccessible;
+                    ck.sa.report(ck.file_id, e.rhs.span(), msg);
+                }
+
+                ck.analysis.set_ty(e.id, fty.clone());
+                fty
+            } else {
+                let name = index.to_string();
+                let expr_name = ck.ty_name(&object_type);
+                let msg = ErrorMessage::UnknownField(name, expr_name);
+                ck.sa.report(ck.file_id, e.rhs.span(), msg);
+                SourceType::Error
+            }
+        }
+
         SourceType::Tuple(subtypes) => {
-            if index >= subtypes.len() as u64 {
+            if index >= subtypes.len() {
                 let msg = ErrorMessage::IllegalTupleIndex(index, ck.ty_name(&object_type));
                 ck.sa.report(ck.file_id, e.op_span, msg);
 

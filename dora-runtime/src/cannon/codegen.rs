@@ -4159,10 +4159,15 @@ impl<'a> BytecodeVisitor for CannonCodeGen<'a> {
             );
 
             let field = &struct_.fields[field_id as usize];
+            let name = if let Some(ref name) = field.name {
+                name
+            } else {
+                &field_id.to_string()
+            };
 
             format!(
                 "LoadStructField {}, {}, ConstPoolIdx({}) # {}.{}",
-                dest, obj, field_idx.0, struct_name, field.name
+                dest, obj, field_idx.0, struct_name, name
             )
         });
         self.emit_load_struct_field(dest, obj, field_idx);
@@ -4179,10 +4184,15 @@ impl<'a> BytecodeVisitor for CannonCodeGen<'a> {
 
                     let cls = self.vm.class(*cls_id);
                     let field = &cls.fields[*field_id as usize];
+                    let name = if let Some(ref name) = field.name {
+                        name
+                    } else {
+                        &field_id.to_string()
+                    };
 
                     format!(
                         "LoadField {}, {}, ConstPoolIdx({}) # {}.{}",
-                        dest, obj, field_idx.0, cname, field.name
+                        dest, obj, field_idx.0, cname, name
                     )
                 }
                 _ => unreachable!(),
@@ -4206,10 +4216,15 @@ impl<'a> BytecodeVisitor for CannonCodeGen<'a> {
 
             let cls = self.vm.class(cls_id);
             let field = &cls.fields[field_id as usize];
+            let name = if let Some(ref name) = field.name {
+                name
+            } else {
+                &field_id.to_string()
+            };
 
             format!(
                 "StoreField {}, {}, ConstPoolIdx({}) # {}.{}",
-                src, obj, field_idx.0, cname, field.name
+                src, obj, field_idx.0, cname, name
             )
         });
         self.emit_store_field(src, obj, field_idx);
