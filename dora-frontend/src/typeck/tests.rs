@@ -4794,6 +4794,31 @@ fn unnamed_class_field() {
 }
 
 #[test]
+fn unnamed_access_on_named_field() {
+    err(
+        "
+        class Foo { a: Int, b: Bool }
+        fn f(x: Foo): Int {
+            x.0
+        }
+    ",
+        (4, 15),
+        ErrorMessage::UnknownField("0".into(), "Foo".into()),
+    );
+
+    err(
+        "
+        struct Foo { a: Int, b: Bool }
+        fn f(x: Foo): Int {
+            x.0
+        }
+    ",
+        (4, 15),
+        ErrorMessage::UnknownField("0".into(), "Foo".into()),
+    );
+}
+
+#[test]
 fn unnamed_struct_field() {
     ok("
         struct Foo &(Int, Bool)
