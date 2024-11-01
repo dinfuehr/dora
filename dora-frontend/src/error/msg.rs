@@ -208,6 +208,7 @@ pub enum ErrorMessage {
     WrongTypeForArgument(String, String),
     SuperfluousArgument,
     MissingArguments(usize, usize),
+    FieldShouldBeUnnamed,
 }
 
 impl ErrorMessage {
@@ -720,6 +721,9 @@ impl ErrorMessage {
                     "Call should have {} arguments but got only {}.",
                     expected, got
                 )
+            }
+            ErrorMessage::FieldShouldBeUnnamed => {
+                format!("Field access should be unnamed.")
             }
         }
     }

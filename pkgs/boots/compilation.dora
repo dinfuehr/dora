@@ -2,7 +2,7 @@ use package::bytecode::{BytecodeFunction, BytecodeType, FunctionId, Location};
 use package::interface as iface;
 use package::serializer::ByteWriter;
 
-pub class CompilationInfo(
+pub class CompilationInfo {
     pub bc: BytecodeFunction,
     pub fctId: Option[FunctionId],
     pub typeParams: Array[BytecodeType],
@@ -17,7 +17,7 @@ pub class CompilationInfo(
     displayName: Option[String],
     inlinedFunctions: Vec[iface::InlinedFunction],
     byteWriter: ByteWriter,
-)
+}
 
 impl CompilationInfo {
     pub static fn new(
@@ -33,7 +33,7 @@ impl CompilationInfo {
     ): CompilationInfo {
         CompilationInfo(
             bc,
-            Some[FunctionId](id),
+            fctId = Some[FunctionId](id),
             typeParams,
             returnType,
             loc,
@@ -41,11 +41,11 @@ impl CompilationInfo {
             emitGraph,
             emitHtml,
             emitCodeComments,
-            true,
-            true,
-            None[String],
-            Vec[iface::InlinedFunction]::new(),
-            ByteWriter::new(),
+            inline = true,
+            optimize = true,
+            displayName = None[String],
+            inlinedFunctions = Vec[iface::InlinedFunction]::new(),
+            byteWriter = ByteWriter::new(),
         )
     }
 

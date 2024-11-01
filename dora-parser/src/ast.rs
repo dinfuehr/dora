@@ -334,6 +334,13 @@ impl FieldNameStyle {
             _ => false,
         }
     }
+
+    pub fn is_old(&self) -> bool {
+        match self {
+            FieldNameStyle::Old => true,
+            _ => false,
+        }
+    }
 }
 
 pub type WhereBounds = Arc<WhereBoundsData>;
