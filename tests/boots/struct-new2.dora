@@ -8,15 +8,15 @@ fn main() {
     assert(foo.bar.c.value == 3);
 }
 
-struct Foo(a: Value, bar: Bar)
-struct Bar(b: Value, c: Value)
+struct Foo { a: Value, bar: Bar }
+struct Bar { b: Value, c: Value }
 class Value(value: Int64)
 
 @Optimize fn getfoo(): Foo {
     let a = Value(1);
     let b = Value(2);
     let c = Value(3);
-    let foo = Foo(a, Bar(b, c));
+    let foo = Foo(a, bar = Bar(b, c));
     std::forceCollect();
     foo
 }

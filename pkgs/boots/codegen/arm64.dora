@@ -372,7 +372,7 @@ impl CodeGenArm64 {
             metadata_part = metadata_part | 1i32 << METADATA_REMEMBERED_BIT;
         }
 
-        let classptr_part = classptr.value - config.meta_space_start.value;
+        let classptr_part = classptr.toInt64() - config.meta_space_start.toInt64();
 
         let header_word = metadata_part.toInt64() << 32i32 | classptr_part;
         self.mov_imm(tmp, header_word);
@@ -387,7 +387,7 @@ impl CodeGenArm64 {
 
     fn emitArrayInitialization(obj: Register, size: Register, length: Register, classptr: Address, tmp1: Register, tmp2: Register) {
         let metadata_part = 0xFF_FF_FF_FCi32;
-        let classptr_part = classptr.value - config.meta_space_start.value;
+        let classptr_part = classptr.toInt64() - config.meta_space_start.toInt64();
 
         let header_word = metadata_part.toInt64() << 32i32 | classptr_part;
         self.mov_imm(tmp1, header_word);
@@ -589,7 +589,7 @@ impl CodeGenArm64 {
     fn emitVirtualCall(obj: Register, tmp1: Register, tmp2: Register, inst: Inst, vtable_index: Int32, site: LazyCompilationSite) {
         self.asm.ldr_imm_w(tmp1, obj, 0i32);
 
-        self.mov_imm(tmp2, config.meta_space_start.value);
+        self.mov_imm(tmp2, config.meta_space_start.toInt64());
         self.asm.add(tmp1, tmp1, tmp2);
 
         let vtable_entry_offset = 32i32 + vtable_index * PTR_SIZE;
@@ -1688,7 +1688,7 @@ impl CodeGen for CodeGenArm64 {
             self.emitCall(fct_info.fct_id, fct_info.type_params, inst.getInlinedLocation(), gc_point);
         } else {
             let address = inst.getFunctionAddress();
-            self.mov_imm(REG_TEMP, address.value);
+            self.mov_imm(REG_TEMP, address.toInt64());
             self.asm.bl_r(REG_TEMP);
 
             let pos = self.asm.position();
@@ -1918,7 +1918,7 @@ impl CodeGen for CodeGenArm64 {
 
         let global_id = inst.getGlobalId();
         let value_address = iface::getGlobalValueAddress(global_id);
-        self.mov_imm(REG_TEMP, value_address.value);
+        self.mov_imm(REG_TEMP, value_address.toInt64());
 
         let ty = inst.getValueType();
 
@@ -1961,7 +1961,7 @@ impl CodeGen for CodeGenArm64 {
 
         let global_id = inst.getGlobalId();
         let value_address = iface::getGlobalValueAddress(global_id);
-        self.mov_imm(dest, value_address.value);
+        self.mov_imm(dest, value_address.toInt64());
     }
 
     fn emitEnsureGlobalInitialized(inst: Inst) {
@@ -1972,7 +1972,7 @@ impl CodeGen for CodeGenArm64 {
 
         let global_id = inst.getGlobalId();
         let state_address = iface::getGlobalStateAddress(global_id);
-        self.mov_imm(REG_TEMP, state_address.value);
+        self.mov_imm(REG_TEMP, state_address.toInt64());
         self.asm.ldrb_imm(REG_TEMP, REG_TEMP, 0i32);
         self.asm.movz(tmp, GLOBAL_STATE_INITIALIZED, 0i32);
         self.asm.cmp(REG_TEMP, tmp);
@@ -1992,7 +1992,7 @@ impl CodeGen for CodeGenArm64 {
             if ty == Type::Address {
                 // Pass address of global to function as first argument.
                 let value_address = iface::getGlobalValueAddress(global_id);
-                self.mov_imm(REG_PARAMS(0), value_address.value);
+                self.mov_imm(REG_PARAMS(0), value_address.toInt64());
             }
 
             // Compute initial value.
@@ -2002,7 +2002,7 @@ impl CodeGen for CodeGenArm64 {
 
             if ty != Type::Address && ty != Type::Unit {
                 // Store initial value in global variable.
-                self.mov_imm(REG_TEMP, value_address.value);
+                self.mov_imm(REG_TEMP, value_address.toInt64());
 
                 match inst.getOperationType() {
                     Type::UInt8 | Type::Bool => {
@@ -2032,7 +2032,7 @@ impl CodeGen for CodeGenArm64 {
             }
 
             // Set global variable state to INITIALIZED.
-            self.mov_imm(REG_TEMP, state_address.value);
+            self.mov_imm(REG_TEMP, state_address.toInt64());
             self.asm.movz(tmp, GLOBAL_STATE_INITIALIZED, 0i32);
             self.asm.strb_imm(tmp, REG_TEMP, 0i32);
 
@@ -2048,7 +2048,7 @@ impl CodeGen for CodeGenArm64 {
         let global_id = inst.getGlobalId();
 
         let value_address = iface::getGlobalValueAddress(global_id);
-        self.mov_imm(REG_TEMP, value_address.value);
+        self.mov_imm(REG_TEMP, value_address.toInt64());
 
         match inst.getOperationType() {
             Type::UInt8 | Type::Bool => {
@@ -2090,7 +2090,7 @@ impl CodeGen for CodeGenArm64 {
 
         // Store initial value in global variable.
         let state_address = iface::getGlobalStateAddress(global_id);
-        self.mov_imm(REG_TEMP, state_address.value);
+        self.mov_imm(REG_TEMP, state_address.toInt64());
         self.asm.movz(tmp, GLOBAL_STATE_INITIALIZED, 0i32);
         self.asm.strb_imm(tmp, REG_TEMP, 0i32);
     }

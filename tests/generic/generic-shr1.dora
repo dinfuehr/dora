@@ -13,7 +13,7 @@ fn shr[T: std::traits::Shr](lhs: T, by: Int32): T {
     lhs >>> by
 }
 
-struct Wrapper(value: Int64)
+struct Wrapper { value: Int64 }
 
 impl std::traits::Shr for Wrapper {
     fn shr(by: Int32): Wrapper {

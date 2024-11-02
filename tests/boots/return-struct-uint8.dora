@@ -6,7 +6,7 @@ fn main() {
     assert(f.b == 2u8);
 }
 
-struct Foo(a: UInt8, b: UInt8)
+struct Foo { a: UInt8, b: UInt8 }
 
 @Optimize fn makefoo(a: UInt8, b: UInt8): Foo {
     Foo(a, b)

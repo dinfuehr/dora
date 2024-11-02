@@ -1,12 +1,12 @@
-struct MyInt(x: Int64)
+struct MyInt(Int64)
 
 impl std::traits::Add for MyInt {
     fn add(rhs: MyInt): MyInt {
-        MyInt(self.x + rhs.x)
+        MyInt(self.0 + rhs.0)
     }
 }
 
 fn main() {
     let result = MyInt(1) + MyInt(2);
-    assert(result.x == 3);
+    assert(result.0 == 3);
 }

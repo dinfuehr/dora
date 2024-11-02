@@ -33,7 +33,7 @@ fn testBytecodeRetInt() {
 
     match instructions(0).op {
         BytecodeInstruction::Ret(opnd) => {
-            assert(opnd.value == 17i32);
+            assert(opnd.0 == 17i32);
         },
         _ => unreachable[()]()
     }
@@ -50,7 +50,7 @@ fn testBytecodeRetWide() {
 
     match instructions(0).op {
         BytecodeInstruction::Ret(opnd) => {
-            assert(opnd.value == 256i32);
+            assert(opnd.0 == 256i32);
         },
         _ => unreachable[()]()
     }
@@ -67,7 +67,7 @@ fn testBytecodeMov() {
 
     match instructions(0).op {
         BytecodeInstruction::Mov(dest, src) => {
-            assert(dest.value == 0i32 && src.value == 1i32);
+            assert(dest.0 == 0i32 && src.0 == 1i32);
         },
         _ => unreachable[()]()
     }
@@ -84,7 +84,7 @@ fn testBytecodeMovWide() {
 
     match instructions(0).op {
         BytecodeInstruction::Mov(dest, src) => {
-            assert(dest.value == 256i32 && src.value == 255i32);
+            assert(dest.0 == 256i32 && src.0 == 255i32);
         },
         _ => unreachable[()]()
     }
@@ -101,7 +101,7 @@ fn testBytecodeConstByte() {
 
     match instructions(0).op {
         BytecodeInstruction::ConstUInt8(dest, value) => {
-            assert(dest.value == 127i32 && value == 255u8);
+            assert(dest.0 == 127i32 && value == 255u8);
         },
         _ => unreachable[()]()
     }
@@ -118,7 +118,7 @@ fn testBytecodeConstByteWide() {
 
     match instructions(0).op {
         BytecodeInstruction::ConstUInt8(dest, value) => {
-            assert(dest.value == 128i32 && value == 255u8);
+            assert(dest.0 == 128i32 && value == 255u8);
         },
         _ => unreachable[()]()
     }
@@ -135,7 +135,7 @@ fn testBytecodeConstString() {
 
     match instructions(0).op {
         BytecodeInstruction::ConstString(dest, idx) => {
-            assert(dest.value == 7i32 && idx.value == 0i32);
+            assert(dest.0 == 7i32 && idx.0 == 0i32);
         },
         _ => unreachable[()]()
     }
@@ -152,7 +152,7 @@ fn testBytecodeSubFloat32() {
 
     match instructions(0).op {
         BytecodeInstruction::Sub(dest, lhs, rhs) => {
-            assert(dest.value == 2i32 && lhs.value == 9i32 && rhs.value == 127i32);
+            assert(dest.0 == 2i32 && lhs.0 == 9i32 && rhs.0 == 127i32);
         },
         _ => unreachable[()]()
     }

@@ -1,12 +1,12 @@
-struct MyInt(x: Int64)
+struct MyInt(Int64)
 
 impl std::traits::Mod for MyInt {
     fn modulo(rhs: MyInt): MyInt {
-        MyInt(self.x % rhs.x)
+        MyInt(self.0 % rhs.0)
     }
 }
 
 fn main() {
     let result = MyInt(10) % MyInt(3);
-    assert(result.x == 1);
+    assert(result.0 == 1);
 }

@@ -1,12 +1,12 @@
-struct Foo(f1: Int32, f2: Bool)
+struct Foo { f1: Int32, f2: Bool }
 
 fn f(): Int32 {
-    let x = Foo(10i32, false);
+    let x = Foo(f1 = 10i32, f2 = false);
     x.f1
 }
 
 fn g(): Bool {
-    let x = Foo(10i32, false);
+    let x = Foo(f1 = 10i32, f2 = false);
     x.f2
 }
 

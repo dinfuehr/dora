@@ -1,6 +1,6 @@
 fn main() {
-    let mut x = Pair("my string", true);
-    let mut y = Pair("another string", false);
+    let mut x = Pair(first = "my string", second = true);
+    let mut y = Pair(first = "another string", second = false);
     let mut tmp = x;
     x = y;
     y = tmp;
@@ -10,4 +10,4 @@ fn main() {
     assert(!x.second);
 }
 
-struct Pair(first: String, second: Bool)
+struct Pair { first: String, second: Bool }

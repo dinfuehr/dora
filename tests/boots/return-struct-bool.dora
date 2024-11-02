@@ -6,7 +6,7 @@ fn main() {
     assert(!f.b);
 }
 
-struct Foo(a: Bool, b: Bool)
+struct Foo { a: Bool, b: Bool }
 
 @Optimize fn makefoo(a: Bool, b: Bool): Foo {
     Foo(a, b)

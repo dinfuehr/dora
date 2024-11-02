@@ -32,7 +32,7 @@ mod tests {
     fn alias_type_as_struct_field() {
         ok("
             type MyInt = Int64;
-            struct Foo(x: MyInt)
+            struct Foo(MyInt)
             fn f(v: Int64): Foo {
                 Foo(v)
             }

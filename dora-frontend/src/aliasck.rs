@@ -357,7 +357,7 @@ mod tests {
 
             impl Foo for Baz2 {}
 
-            struct Bar[T: Foo](value: T)
+            struct Bar[T: Foo](T)
 
             fn f(x: Bar[BazB]) {}
         ")
@@ -395,7 +395,7 @@ mod tests {
     #[test]
     fn alias_with_type_params() {
         ok("
-            struct Foo[T](value: T)
+            struct Foo[T](T)
             type Bar[T] = Foo[T];
         ")
     }
@@ -405,7 +405,7 @@ mod tests {
         err(
             "
             trait TraitA {}
-            struct Foo[T: TraitA](value: T)
+            struct Foo[T: TraitA](T)
             type Bar[T] = Foo[T];
         ",
             (4, 27),
@@ -417,19 +417,19 @@ mod tests {
     fn alias_with_type_params_and_bound() {
         ok("
             trait TraitA {}
-            struct Foo[T](value: T)
+            struct Foo[T](T)
             type Bar[T: TraitA] = Foo[T];
         ");
 
         ok("
             trait TraitA {}
-            struct Foo[T: TraitA](value: T)
+            struct Foo[T: TraitA](T)
             type Bar[T] where T: TraitA = Foo[T];
         ");
 
         ok("
             trait TraitA {}
-            struct Foo[T](value: T)
+            struct Foo[T](T)
             type Bar[T] where T: TraitA = Foo[T];
         ");
     }
@@ -439,7 +439,7 @@ mod tests {
         err(
             "
             trait TraitA {}
-            struct Foo[T](value: T)
+            struct Foo[T](T)
             type Bar[T] = Foo[T] where T: TraitA;
         ",
             (4, 34),
@@ -452,7 +452,7 @@ mod tests {
         errors(
             "
             trait TraitA {}
-            struct Foo[T](value: T)
+            struct Foo[T](T)
             trait TraitB {
                 type Bar[T] where T: TraitA = usize;
             }
@@ -469,7 +469,7 @@ mod tests {
         err(
             "
             trait TraitA {}
-            struct Foo[T](value: T)
+            struct Foo[T](T)
             trait TraitB {
                 type Bar[T] where T: TraitA;
             }

@@ -1,4 +1,4 @@
-struct Foo(a: Int64, b: Int64)
+struct Foo(Int64, Int64)
 
 fn main() {
     assert(f(Foo(1, 2)) == 3);

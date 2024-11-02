@@ -1286,7 +1286,7 @@ mod tests {
             trait Foo[T] {
                 type X;
             }
-            struct Bar[T](value: T)
+            struct Bar[T](T)
             fn f[T](x: Bar[T]) where T: Foo[String, X=Int64] {}
         ");
     }
@@ -1297,7 +1297,7 @@ mod tests {
             trait Foo[T] {
                 type X;
             }
-            struct Bar[T](value: T)
+            struct Bar[T](T)
             fn f[T](x: Bar[T]) where T: Foo[String] {}
         ");
     }
@@ -1309,7 +1309,7 @@ mod tests {
             trait Foo[T] {
                 type X;
             }
-            struct Bar[T](value: T)
+            struct Bar[T](T)
             fn f[T](x: Bar[T]) where T: Foo[String, X=Int64, X=Int64] {}
         ",
             (6, 62),
@@ -1324,7 +1324,7 @@ mod tests {
             trait Foo[T] {
                 type X;
             }
-            struct Bar[T](value: T)
+            struct Bar[T](T)
             fn f[T](x: Bar[T]) where T: Foo[X=Int64, Int64] {}
         ",
             (6, 54),

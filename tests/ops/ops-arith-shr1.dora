@@ -1,12 +1,12 @@
-struct MyInt(x: Int64)
+struct MyInt(Int64)
 
 impl std::traits::Sar for MyInt {
     fn sar(shift: Int32): MyInt {
-        MyInt(self.x >> shift)
+        MyInt(self.0 >> shift)
     }
 }
 
 fn main() {
     let result = MyInt(-2) >> 1i32;
-    assert(result.x == -1);
+    assert(result.0 == -1);
 }

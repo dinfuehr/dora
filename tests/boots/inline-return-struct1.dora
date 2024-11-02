@@ -2,11 +2,11 @@
 
 fn main() {
     let result = f();
-    assert(result.a == 12);
-    assert(result.b == 17);
+    assert(result.0 == 12);
+    assert(result.1 == 17);
 }
 
-struct Foo(a: Int64, b: Int64)
+struct Foo(Int64, Int64)
 
 @Optimize fn f(): Foo { g(12, 17) }
 @ForceInline fn g(a: Int64, b: Int64): Foo { Foo(a, b) }

@@ -7,7 +7,7 @@ fn main() {
     assert(foo.b.value == 2);
 }
 
-struct Foo(a: Bar, b: Bar)
+struct Foo { a: Bar, b: Bar }
 class Bar(value: Int64)
 
 @Optimize fn getfoo(): Foo {

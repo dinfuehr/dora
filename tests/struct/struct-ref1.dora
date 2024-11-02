@@ -1,8 +1,8 @@
 //= vm-args "--gc=copy --disable-tlab --gc-stress"
 
-class Foo(value: Int32)
+class Foo &(Int32)
 
-struct Bar(f1: Foo, f2: Foo, f3: Foo)
+struct Bar { f1: Foo, f2: Foo, f3: Foo }
 
 fn main() {
     assert(tpl1() == 1i32);
@@ -12,25 +12,25 @@ fn main() {
 }
 
 fn tpl1(): Int32 {
-    let x = Bar(Foo(1i32), Foo(2i32), Foo(3i32));
+    let x = Bar(f1 = Foo(1i32), f2 = Foo(2i32), f3 = Foo(3i32));
     std::forceCollect();
-    x.f1.value
+    x.f1.0
 }
 
 fn tpl2(): Int32 {
-    let x = Bar(Foo(1i32), Foo(2i32), Foo(3i32));
+    let x = Bar(f1 = Foo(1i32), f2 = Foo(2i32), f3 = Foo(3i32));
     std::forceCollect();
-    x.f2.value
+    x.f2.0
 }
 
 fn tpl3(): Int32 {
-    let x = Bar(Foo(1i32), Foo(2i32), Foo(3i32));
+    let x = Bar(f1 = Foo(1i32), f2 = Foo(2i32), f3 = Foo(3i32));
     std::forceCollect();
-    x.f3.value
+    x.f3.0
 }
 
 fn tplsum(): Int32 {
-    let x = Bar(Foo(1i32), Foo(2i32), Foo(3i32));
+    let x = Bar(f1 = Foo(1i32), f2 = Foo(2i32), f3 = Foo(3i32));
     std::forceCollect();
-    x.f1.value + x.f2.value + x.f3.value
+    x.f1.0 + x.f2.0 + x.f3.0
 }

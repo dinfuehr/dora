@@ -1,4 +1,4 @@
-struct Foo[T](value: T)
+struct Foo[T](T)
 
 type Bar[T] = Foo[T];
 
@@ -9,9 +9,9 @@ fn main() {
 }
 
 fn getvalue1[T](bar: Bar[T]): T {
-    bar.value
+    bar.0
 }
 
 fn getvalue2[T](foo: Foo[T]): T {
-    foo.value
+    foo.0
 }

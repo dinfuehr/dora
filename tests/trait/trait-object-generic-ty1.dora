@@ -18,7 +18,7 @@ fn h(x: Bar): Foo[Bar] {
     x as Foo[Bar]
 }
 
-struct Bar(x: Int64, y: Int64)
+struct Bar { x: Int64, y: Int64 }
 
 fn main() {
     let foo = f(10);
@@ -31,7 +31,7 @@ fn main() {
     let foo = g(msg);
     assert(foo.get() === msg);
 
-    let foo = h(Bar(17, 42));
+    let foo = h(Bar(x = 17, y = 42));
     let result = foo.get();
     assert(result.x == 17);
     assert(result.y == 42);

@@ -135,7 +135,7 @@ pub trait RegisterType: Equals {
     fn toLocation(): Location;
 }
 
-pub struct Register(pub value: UInt8)
+pub struct Register(pub UInt8)
 
 impl Register {
     fn value(): UInt8 {
@@ -178,7 +178,7 @@ impl std::Stringable for Register {
     }
 }
 
-pub struct FloatRegister(pub value: UInt8)
+pub struct FloatRegister(pub UInt8)
 
 impl FloatRegister {
     fn value(): Int32 {

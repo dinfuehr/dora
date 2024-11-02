@@ -1,9 +1,9 @@
 //= vm-args "--gc=copy --disable-tlab"
 
-struct Foo(f1: AnotherStruct, f2: MyClass, f3: MyEnum)
+struct Foo { f1: AnotherStruct, f2: MyClass, f3: MyEnum }
 
-struct AnotherStruct(first: Float32, second: MyClass)
-class MyClass(value: Int32)
+struct AnotherStruct(Float32, MyClass)
+class MyClass &(Int32)
 enum MyEnum {
     A(Int32),
     B(MyClass)
@@ -11,11 +11,11 @@ enum MyEnum {
 
 fn main() {
     let foo = Foo(
-        AnotherStruct(3.5f32, MyClass(10i32)),
-        MyClass(11i32),
-        MyEnum::B(MyClass(12i32))
+        f1 = AnotherStruct(3.5f32, MyClass(10i32)),
+        f2 = MyClass(11i32),
+        f3 = MyEnum::B(MyClass(12i32))
     );
     std::forceCollect();
-    assert(foo.f1.second.value == 10i32);
-    assert(foo.f2.value == 11i32);
+    assert(foo.f1.1 .0 == 10i32);
+    assert(foo.f2.0 == 11i32);
 }

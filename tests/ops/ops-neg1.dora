@@ -1,12 +1,12 @@
-struct MyInt(x: Int64)
+struct MyInt(Int64)
 
 impl std::traits::Neg for MyInt {
     fn neg(): MyInt {
-        MyInt(-self.x)
+        MyInt(-self.0)
     }
 }
 
 fn main() {
     let result = -MyInt(7);
-    assert(result.x == -7);
+    assert(result.0 == -7);
 }

@@ -1,15 +1,15 @@
 trait Foo { fn test(): Int32; }
 
-class Baz(value: Int32)
+class Baz &(Int32)
 
 impl Foo for Baz {
-    fn test(): Int32 { self.value }
+    fn test(): Int32 { self.0 }
 }
 
-struct Bar(value: Int32)
+struct Bar(Int32)
 
 impl Foo for Bar {
-    fn test(): Int32 { self.value }
+    fn test(): Int32 { self.0 }
 }
 
 fn main() {

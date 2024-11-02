@@ -6,7 +6,7 @@ fn main() {
     assert(f.b == 2);
 }
 
-struct Foo(a: Int64, b: Int64)
+struct Foo { a: Int64, b: Int64 }
 
 @Optimize fn makefoo(a: Int64, b: Int64): Foo {
     Foo(a, b)

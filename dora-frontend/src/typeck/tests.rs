@@ -1547,19 +1547,19 @@ fn test_fct_and_class_type_params() {
 #[test]
 fn test_struct() {
     ok("
-        struct Foo(f1: Int32)
+        struct Foo(Int32)
         fn f(): Foo { Foo(1i32) }
     ");
     err(
         "
-        struct Foo(f1: Int32)
+        struct Foo(Int32)
         fn f(): Foo { Foo() }",
         (3, 23),
         ErrorMessage::MissingArguments(1, 0),
     );
     err(
         "
-        struct Foo(f1: Int32)
+        struct Foo(Int32)
         fn f(): Foo { Foo(true) }",
         (3, 27),
         ErrorMessage::WrongTypeForArgument("Int32".into(), "Bool".into()),
@@ -1569,14 +1569,14 @@ fn test_struct() {
 #[test]
 fn test_struct_field() {
     ok("
-        struct Foo(f1: Int32)
-        fn f(x: Foo): Int32 { x.f1 }
+        struct Foo(Int32)
+        fn f(x: Foo): Int32 { x.0 }
     ");
 
     err(
         "
-        struct Foo(f1: Bool)
-        fn f(x: Foo): Int32 { x.f1 }
+        struct Foo(Bool)
+        fn f(x: Foo): Int32 { x.0 }
     ",
         (3, 29),
         ErrorMessage::ReturnType("Int32".into(), "Bool".into()),
@@ -1584,7 +1584,7 @@ fn test_struct_field() {
 
     err(
         "
-        struct Foo(f1: Bool)
+        struct Foo(Bool)
         fn f(x: Foo): Int32 { x.unknown }
     ",
         (3, 33),
@@ -1595,7 +1595,7 @@ fn test_struct_field() {
 #[test]
 fn test_struct_field_array() {
     ok("
-        struct Foo(f1: Array[Int32])
+        struct Foo { f1: Array[Int32] }
         fn f(x: Foo): Int32 { x.f1(0) }
     ");
 }
@@ -1603,12 +1603,12 @@ fn test_struct_field_array() {
 #[test]
 fn test_struct_with_type_params() {
     ok("
-        struct Foo[T](f1: Int32)
+        struct Foo[T](Int32)
         fn f(): Foo[Int32] { Foo[Int32](1i32) }
     ");
     err(
         "
-        struct Foo[T](f1: Int32)
+        struct Foo[T](Int32)
         fn f(): Foo[Int32] { Foo(1i32) }
     ",
         (3, 30),
@@ -1616,7 +1616,7 @@ fn test_struct_with_type_params() {
     );
     err(
         "
-        struct Foo[T](f1: Int32)
+        struct Foo[T](Int32)
         fn f(): Foo[Int32] { Foo[Int32, Bool](1i32) }
     ",
         (3, 30),
@@ -1625,7 +1625,7 @@ fn test_struct_with_type_params() {
     err(
         "
         trait MyTrait {}
-        struct Foo[T: MyTrait](f1: Int32)
+        struct Foo[T: MyTrait](Int32)
         fn f(x: Foo[Int32]) {}
     ",
         (4, 17),
@@ -1635,12 +1635,12 @@ fn test_struct_with_type_params() {
         trait MyTrait {}
         class Bar
         impl MyTrait for Bar {}
-        struct Foo[T: MyTrait](f1: Int32)
+        struct Foo[T: MyTrait](Int32)
         fn f(): Foo[Bar] { Foo[Bar](1i32) }
     ");
     err(
         "
-        struct Foo[T](f1: Int32)
+        struct Foo[T](Int32)
         fn f(): Foo[Int32] { Foo[Bool](1i32) }
     ",
         (3, 28),
@@ -1648,7 +1648,7 @@ fn test_struct_with_type_params() {
     );
     err(
         "
-        struct Foo[T](f1: T, f2: Bool)
+        struct Foo[T](T, Bool)
         fn f[T](val: T): Foo[T] { Foo(val, false) }",
         (3, 35),
         ErrorMessage::WrongNumberTypeParams(1, 0),
@@ -1660,7 +1660,7 @@ fn test_struct_mod() {
     err(
         "
         fn f() { foo::Foo(1i32); }
-        mod foo { struct Foo(f1: Int32) }
+        mod foo { struct Foo(Int32) }
         ",
         (2, 18),
         ErrorMessage::NotAccessible,
@@ -1670,7 +1670,7 @@ fn test_struct_mod() {
 #[test]
 fn test_struct_with_static_method() {
     ok("
-        struct Foo(value: Int32)
+        struct Foo(Int32)
         impl Foo {
             static fn bar() {}
         }
@@ -1680,7 +1680,7 @@ fn test_struct_with_static_method() {
         ");
 
     ok("
-        struct Foo[T](value: Int32)
+        struct Foo[T](Int32)
         impl[T] Foo[T] {
             static fn bar() {}
         }
@@ -1691,7 +1691,7 @@ fn test_struct_with_static_method() {
 
     err(
         "
-            struct Foo(value: Int32)
+            struct Foo(Int32)
             fn f() {
                 Foo[Int32]::bar();
             }
@@ -2352,7 +2352,7 @@ fn extension_bind_type_param_twice() {
 #[test]
 fn extension_struct_with_type_param() {
     ok("
-        struct Foo[T](value: T)
+        struct Foo[T](T)
         trait MyTrait {}
         impl[T: MyTrait] Foo[T] { fn foo(): Int32 { 12i32 } }
         impl MyTrait for Int32 {}
@@ -2360,7 +2360,7 @@ fn extension_struct_with_type_param() {
     ");
 
     ok("
-        struct Foo[T](value: T)
+        struct Foo[T](T)
         impl Foo[Int32] { fn foo() {} }
         impl Foo[Float32] { fn bar() {} }
         fn f(x: Foo[Int32]) { x.foo() }
@@ -2369,7 +2369,7 @@ fn extension_struct_with_type_param() {
 
     err(
         "
-        struct Foo[T](value: T)
+        struct Foo[T](T)
         impl Foo[Float32] { fn bar() {} }
         fn f(x: Foo[Int32]) { x.bar() }
     ",
@@ -2448,7 +2448,7 @@ fn impl_struct_type_params() {
     err(
         "
         trait MyTrait { fn bar(); }
-        struct Foo[T](value: T)
+        struct Foo[T](T)
         impl MyTrait for Foo[String] { fn bar() {} }
         fn bar(x: Foo[Int32]) { x.bar(); }
     ",
@@ -2458,7 +2458,7 @@ fn impl_struct_type_params() {
 
     ok("
         trait MyTrait { fn bar(); }
-        struct Foo[T](value: T)
+        struct Foo[T](T)
         impl MyTrait for Foo[Int32] { fn bar() {} }
         fn bar(x: Foo[Int32]) { x.bar(); }
     ");
@@ -2467,9 +2467,9 @@ fn impl_struct_type_params() {
 #[test]
 fn impl_struct_method_with_self() {
     ok("
-        struct Foo(value: Int32)
+        struct Foo(Int32)
         trait AsInt32 { fn value(): Int32; }
-        impl AsInt32 for Foo { fn value(): Int32 { self.value } }
+        impl AsInt32 for Foo { fn value(): Int32 { self.0 } }
     ");
 }
 
@@ -2947,7 +2947,7 @@ fn mod_struct_field() {
     err(
         "
         fn f(x: foo::Foo) { let a = x.bar; }
-        mod foo { pub struct Foo(bar: Int32) }
+        mod foo { pub struct Foo { bar: Int32 } }
     ",
         (2, 39),
         ErrorMessage::NotAccessible,
@@ -2955,13 +2955,15 @@ fn mod_struct_field() {
 
     ok("
         fn f(x: foo::Foo) { let a = x.bar(10i64); }
-        mod foo { pub struct Foo(pub bar: Array[Int32]) }
+        mod foo { pub struct Foo {
+            pub bar: Array[Int32]
+        } }
     ");
 
     err(
         "
         fn f(x: foo::Foo) { let a = x.bar(10i64); }
-        mod foo { pub struct Foo(bar: Array[Int32]) }
+        mod foo { pub struct Foo { bar: Array[Int32] } }
     ",
         (2, 37),
         ErrorMessage::NotAccessible,
@@ -2970,7 +2972,7 @@ fn mod_struct_field() {
     err(
         "
         fn f(x: foo::Foo) { x.bar(10i64) = 10i32; }
-        mod foo { pub struct Foo(bar: Array[Int32]) }
+        mod foo { pub struct Foo { bar: Array[Int32] } }
     ",
         (2, 31),
         ErrorMessage::NotAccessible,
@@ -2978,7 +2980,7 @@ fn mod_struct_field() {
 
     ok("
         fn f(x: foo::Foo) { let a = x.bar; }
-        mod foo { pub struct Foo(pub bar: Int32) }
+        mod foo { pub struct Foo { pub bar: Int32 } }
     ");
 }
 
@@ -3119,7 +3121,7 @@ fn mod_struct() {
         "
         fn f() { foo::Foo(1i32); }
         mod foo {
-            struct Foo(f: Int32)
+            struct Foo(Int32)
         }
     ",
         (2, 18),
@@ -3130,7 +3132,7 @@ fn mod_struct() {
         "
         fn f() { foo::Foo(1i32); }
         mod foo {
-            struct Foo(pub f: Int32)
+            struct Foo(pub Int32)
         }
     ",
         (2, 18),
@@ -3141,7 +3143,7 @@ fn mod_struct() {
         "
         fn f() { foo::Foo(1i32); }
         mod foo {
-            pub struct Foo(f: Int32)
+            pub struct Foo(Int32)
         }
     ",
         (2, 18),
@@ -3151,14 +3153,14 @@ fn mod_struct() {
     ok("
         fn f() { foo::Foo(1i32); }
         mod foo {
-            pub struct Foo(pub f: Int32)
+            pub struct Foo(pub Int32)
         }
     ");
 
     ok("
         fn f(value: foo::Foo) {}
         mod foo {
-            pub struct Foo(f: Int32)
+            pub struct Foo(Int32)
         }
     ");
 
@@ -3166,7 +3168,7 @@ fn mod_struct() {
         "
         fn f(value: foo::Foo) {}
         mod foo {
-            struct Foo(f: Int32)
+            struct Foo(Int32)
         }
     ",
         (2, 21),
@@ -3746,7 +3748,7 @@ fn f() { ''; }
 fn immutable_struct_fields() {
     err(
         "
-        struct Foo(value: Int64)
+        struct Foo { value: Int64 }
 
         fn f(f: Foo) {
             f.value = 10;
@@ -3783,7 +3785,7 @@ fn use_needs_pub() {
         fn foo(x: Bar) {}
         mod test {
             use Foo as Bar;
-            pub struct Foo(i: Int64)
+            pub struct Foo { i: Int64 }
         }
     ",
         (2, 19),
@@ -4397,7 +4399,7 @@ fn f(x: Foo) {
 #[test]
 fn pattern_struct_with_args() {
     ok("
-        struct Foo(a: Int64, b: String)
+        struct Foo(Int64, String)
         fn f(x: Foo): Int64 {
             let Foo(a, b) = x;
             a
@@ -4406,8 +4408,8 @@ fn pattern_struct_with_args() {
 
     err(
         "
-    struct Foo(a: Int64, b: String)
-    struct Bar(a: Int64, b: String)
+    struct Foo(Int64, String)
+    struct Bar(Int64, String)
     fn f(x: Foo): Int64 {
         let Bar(a, b) = x;
         b
@@ -4419,7 +4421,7 @@ fn pattern_struct_with_args() {
 
     err(
         "
-    struct Foo(a: Int64)
+    struct Foo(Int64)
     fn f(x: Foo): Int64 {
         let Foo(a, b) = x;
         b
@@ -4441,7 +4443,7 @@ fn pattern_struct_no_args() {
 
     err(
         "
-struct Foo(a: Int64)
+struct Foo(Int64)
 fn f(x: Foo) {
     let Foo = x;
 }
@@ -4456,7 +4458,7 @@ fn pattern_struct_private_ctor() {
     err(
         "
         mod n {
-            pub struct Foo(pub a: Int64, b: String)
+            pub struct Foo(pub Int64, String)
         }
         fn f(x: n::Foo): Int64 {
             let n::Foo(a, b) = x;
@@ -4489,7 +4491,7 @@ fn pattern_class_private_ctor() {
 fn pattern_duplicate_binding() {
     err(
         "
-        struct Foo(a: Int64, b: String)
+        struct Foo(Int64, String)
         fn f(x: Foo): Int64 {
             let Foo(a, a) = x;
             a
@@ -4619,7 +4621,7 @@ fn f(x: (Int64, Int64)) {
 fn type_param_failure_in_container() {
     err(
         "
-        struct Foo[T](value: T)
+        struct Foo[T](T)
 
         impl[T: Unknown] Foo[T] {
             fn f() {}
@@ -4821,14 +4823,14 @@ fn unnamed_access_on_named_field() {
 #[test]
 fn unnamed_struct_field() {
     ok("
-        struct Foo &(Int, Bool)
+        struct Foo(Int, Bool)
         fn f(x: Foo): Int {
             x.0
         }
     ");
 
     ok("
-        struct Foo &(Int, Bool)
+        struct Foo(Int, Bool)
         fn f(x: Foo): Bool {
             x.1
         }
@@ -4836,7 +4838,7 @@ fn unnamed_struct_field() {
 
     err(
         "
-        struct Foo &(Int, Bool)
+        struct Foo(Int, Bool)
         fn f(x: Foo): Bool {
             x.2
         }
@@ -4848,7 +4850,7 @@ fn unnamed_struct_field() {
     err(
         "
         mod m {
-            pub struct Foo &(Int, Bool)
+            pub struct Foo(Int, Bool)
         }
 
         fn f(x: m::Foo): Int {

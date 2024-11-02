@@ -7,9 +7,9 @@ fn main() {
     assert(f.bar.c == 3);
 }
 
-struct Foo(a: Int64, bar: Bar)
-struct Bar(b: Int64, c: Int64)
+struct Foo { a: Int64, bar: Bar }
+struct Bar { b: Int64, c: Int64 }
 
 @Optimize fn makefoo(a: Int64, b: Int64, c: Int64): Foo {
-    Foo(a, Bar(b, c))
+    Foo(a, bar = Bar(b, c))
 }

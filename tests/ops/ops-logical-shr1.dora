@@ -1,12 +1,12 @@
-struct MyInt(x: Int64)
+struct MyInt(Int64)
 
 impl std::traits::Shr for MyInt {
     fn shr(shift: Int32): MyInt {
-        MyInt(self.x >>> shift)
+        MyInt(self.0 >>> shift)
     }
 }
 
 fn main() {
     let result = MyInt(3) >>> 1i32;
-    assert(result.x == 1);
+    assert(result.0 == 1);
 }

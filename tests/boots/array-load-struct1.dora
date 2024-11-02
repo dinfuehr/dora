@@ -1,8 +1,8 @@
 //= boots
 
 fn main() {
-    let arr = Array[Foo]::fill(100, Foo(1, 2));
-    arr(47) = Foo(3, 4);
+    let arr = Array[Foo]::fill(100, Foo(a = 1, b = 2));
+    arr(47) = Foo(a = 3, b = 4);
 
     let foo = f(arr, 46);
     assert(foo.a == 1);
@@ -17,6 +17,6 @@ fn main() {
     assert(foo.b == 2);
 }
 
-struct Foo(a: Int64, b: Int64)
+struct Foo { a: Int64, b: Int64 }
 
 @Optimize fn f(x: Array[Foo], idx: Int64): Foo { x(idx) }

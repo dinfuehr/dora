@@ -1,10 +1,10 @@
 //= boots
 
 fn main() {
-    let arr = Array[Foo]::fill(100, Foo(0, Bar::A));
+    let arr = Array[Foo]::fill(100, Foo(a = 0, b = Bar::A));
     std::forceCollect();
 
-    f(arr, 47, Foo(3, Bar::C(10)));
+    f(arr, 47, Foo(a = 3, b = Bar::C(10)));
     assert(arr(46).a == 0);
     match arr(46).b {
         Bar::A => {}
@@ -26,7 +26,7 @@ fn main() {
     std::forceCollect();
 }
 
-struct Foo(a: Int64, b: Bar)
+struct Foo { a: Int64, b: Bar }
 enum Bar { A, B, C(Int64) }
 
 @Optimize fn f(x: Array[Foo], idx: Int64, foo: Foo) { x(idx) = foo; }

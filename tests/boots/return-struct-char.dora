@@ -6,7 +6,7 @@ fn main() {
     assert(f.b == '2');
 }
 
-struct Foo(a: Char, b: Char)
+struct Foo { a: Char, b: Char }
 
 @Optimize fn makefoo(a: Char, b: Char): Foo {
     Foo(a, b)

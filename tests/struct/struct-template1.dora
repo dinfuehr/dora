@@ -3,19 +3,19 @@
 fn main() {
     let result = tpl[String]("test");
     std::forceCollect();
-    assert(result.first == "test");
-    assert(result.second);
+    assert(result.0 == "test");
+    assert(result.1);
 
     let result = tpl[Bar](Bar(9i32));
     std::forceCollect();
-    assert(result.first.value == 9i32);
-    assert(result.second);
+    assert(result.0 .0 == 9i32);
+    assert(result.1);
 }
 
 fn tpl[T](value: T): Foo[T] {
     Foo[T](value, true)
 }
 
-struct Foo[T](first: T, second: Bool)
+struct Foo[T](T, Bool)
 
-class Bar(value: Int32)
+class Bar &(Int32)

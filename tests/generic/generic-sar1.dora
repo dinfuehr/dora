@@ -2,8 +2,8 @@ fn main() {
     assert(sar[Int64](-2, 1i32) == -1);
     assert(sar[Int64](4, 2i32) == 1);
 
-    assert(sar[Wrapper](Wrapper(-2), 1i32).value == -1);
-    assert(sar[Wrapper](Wrapper(4), 2i32).value == 1);
+    assert(sar[Wrapper](Wrapper(-2), 1i32).0 == -1);
+    assert(sar[Wrapper](Wrapper(4), 2i32).0 == 1);
 
     assert(sar[Int32](-2i32, 1i32) == -1i32);
     assert(sar[Int32](4i32, 2i32) == 1i32);
@@ -13,10 +13,10 @@ fn sar[T: std::traits::Sar](lhs: T, by: Int32): T {
     lhs >> by
 }
 
-struct Wrapper(value: Int64)
+struct Wrapper(Int64)
 
 impl std::traits::Sar for Wrapper {
     fn sar(by: Int32): Wrapper {
-        Wrapper(self.value >> by)
+        Wrapper(self.0 >> by)
     }
 }

@@ -1,12 +1,12 @@
 //= boots
 
 fn main() {
-    let foo = Foo(1, 2);
+    let foo = Foo(a = 1, b = 2);
     assert(geta(foo) == 1);
     assert(getb(foo) == 2);
 }
 
-struct Foo(a: Int64, b: Int64)
+struct Foo { a: Int64, b: Int64 }
 
 @Optimize fn geta(x: Foo): Int64 {
     x.a

@@ -19,10 +19,10 @@ fn eq[T: std::traits::Equals](lhs: T, rhs: T): Bool {
     lhs == rhs
 }
 
-struct Wrapper(value: Int64)
+struct Wrapper(Int64)
 
 impl std::traits::Equals for Wrapper {
     fn equals(rhs: Wrapper): Bool {
-        self.value == rhs.value
+        self.0 == rhs.0
     }
 }

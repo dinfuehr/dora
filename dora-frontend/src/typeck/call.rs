@@ -566,8 +566,11 @@ fn check_expr_call_ctor_with_named_fields(
         } else if let Some(ident) = arg.expr.to_ident() {
             let name = ck.sa.interner.intern(&ident.name);
             add_named_argument(arg, name);
-        } else if arguments.arguments.len() == 1 && element.fields_len() == 1 {
-            add_named_argument(arg, element.field_name(0));
+        } else if arguments.arguments.len() == 1
+            && element.fields_len() == 1
+            && element.field_name(0).is_some()
+        {
+            add_named_argument(arg, element.field_name(0).expect("name expected"));
         } else {
             ck.sa.report(
                 ck.file_id,
@@ -578,29 +581,31 @@ fn check_expr_call_ctor_with_named_fields(
     }
 
     for field in element.fields() {
-        if let Some(arg) = args_by_name.remove(&field.name) {
-            let def_ty = replace_type(ck.sa, field.ty, Some(&type_params), None);
-            let arg_ty = ck.analysis.ty(arg.id);
+        if let Some(name) = field.name {
+            if let Some(arg) = args_by_name.remove(&name) {
+                let def_ty = replace_type(ck.sa, field.ty, Some(&type_params), None);
+                let arg_ty = ck.analysis.ty(arg.id);
 
-            if !def_ty.allows(ck.sa, arg_ty.clone()) {
-                let exp = ck.ty_name(&def_ty);
-                let got = ck.ty_name(&arg_ty);
+                if !def_ty.allows(ck.sa, arg_ty.clone()) {
+                    let exp = ck.ty_name(&def_ty);
+                    let got = ck.ty_name(&arg_ty);
 
+                    ck.sa.report(
+                        ck.file_id,
+                        arg.span,
+                        ErrorMessage::WrongTypeForArgument(exp, got),
+                    );
+                }
+
+                ck.analysis.map_argument.insert(arg.id, field.id);
+            } else {
+                let name = ck.sa.interner.str(name).to_string();
                 ck.sa.report(
                     ck.file_id,
-                    arg.span,
-                    ErrorMessage::WrongTypeForArgument(exp, got),
+                    arguments.span,
+                    ErrorMessage::MissingNamedArgument(name),
                 );
             }
-
-            ck.analysis.map_argument.insert(arg.id, field.id);
-        } else {
-            let name = ck.sa.interner.str(field.name).to_string();
-            ck.sa.report(
-                ck.file_id,
-                arguments.span,
-                ErrorMessage::MissingNamedArgument(name),
-            );
         }
     }
 

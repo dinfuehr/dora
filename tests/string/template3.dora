@@ -19,10 +19,10 @@ impl[T: Stringable] Stringable for MyOption[T] {
   }
 }
 
-struct Foo(value: Int64)
+struct Foo(Int64)
 
 impl Stringable for Foo {
     fn toString(): String {
-        self.value.toString()
+        self.0.toString()
     }
 }

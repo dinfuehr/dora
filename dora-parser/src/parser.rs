@@ -611,9 +611,8 @@ impl Parser {
         let where_bounds = self.parse_where();
         let field_style;
 
-        let fields = if self.is2(AND, L_PAREN) {
+        let fields = if self.is(L_PAREN) {
             field_style = FieldNameStyle::Positional;
-            self.assert(AND);
             self.parse_list(
                 L_PAREN,
                 COMMA,
@@ -624,23 +623,6 @@ impl Parser {
                 |p| {
                     if p.is_set(UNNAMED_FIELD_FIRST) {
                         Some(p.parse_unnamed_field())
-                    } else {
-                        None
-                    }
-                },
-            )
-        } else if self.is(L_PAREN) {
-            field_style = FieldNameStyle::Old;
-            self.parse_list(
-                L_PAREN,
-                COMMA,
-                R_PAREN,
-                ELEM_FIRST,
-                ParseError::ExpectedField,
-                LIST,
-                |p| {
-                    if p.is_set(FIELD_FIRST) {
-                        Some(p.parse_named_field())
                     } else {
                         None
                     }
@@ -3483,7 +3465,7 @@ mod tests {
 
     #[test]
     fn parse_struct_unnamed() {
-        let prog = parse("struct Foo &(A, B)");
+        let prog = parse("struct Foo (A, B)");
         let struc = prog.struct0();
         assert_eq!(2, struc.fields.len());
         assert_eq!("Foo", struc.name.as_ref().unwrap().name_as_string);

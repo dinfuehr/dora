@@ -6,7 +6,7 @@ fn main() {
     assert(foo.b == 2);
 }
 
-struct Foo(a: Int64, b: Int64)
+struct Foo { a: Int64, b: Int64 }
 
 @Optimize fn f(): Foo {
     let foo = g();
@@ -14,5 +14,5 @@ struct Foo(a: Int64, b: Int64)
 }
 
 fn g(): Foo {
-    Foo(1, 2)
+    Foo(a = 1, b = 2)
 }

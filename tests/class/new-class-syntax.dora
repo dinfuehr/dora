@@ -1,20 +1,20 @@
 //= vm-args "--gc=swiper --gc-verify"
 
-struct MyStruct(x: Int64, y: Foo)
+struct MyStruct { x: Int64, y: Foo }
 
-class Foo(a: Int64, b: Bool)
-class Bar(c: (Int64, Foo), d: MyStruct)
+class Foo { a: Int64, b: Bool }
+class Bar { c: (Int64, Foo), d: MyStruct }
 
 fn main() {
-    let foo1 = Foo(1, false);
+    let foo1 = Foo(a = 1, b = false);
     std::forceCollect();
     assert(foo1.a == 1 && !foo1.b);
 
-    let foo2 = Foo(101, true);
+    let foo2 = Foo(a = 101, b = true);
     std::forceCollect();
     assert(foo2.a == 101 && foo2.b);
 
-    let bar = Bar((42, foo1), MyStruct(57, foo2));
+    let bar = Bar(c = (42, foo1), d = MyStruct(x = 57, y = foo2));
     std::forceCollect();
     assert(bar.c.0 == 42 && bar.c.1 === foo1);
     assert(bar.d.x == 57 && bar.d.y === foo2);

@@ -6,8 +6,6 @@ fn main() {
     assert(getb(foo) == 2);
 }
 
-struct Foo(a: Int64, b: Int64)
-
 @Optimize fn geta(x: (Int64, Int64)): Int64 {
     x.0
 }

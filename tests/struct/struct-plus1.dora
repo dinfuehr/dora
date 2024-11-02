@@ -1,15 +1,15 @@
-struct Foo(value: Int32)
+struct Foo(Int32)
 
 impl std::traits::Add for Foo {
     fn add(other: Foo): Foo {
-        Foo(self.value + other.value)
+        Foo(self.0 + other.0)
     }
 }
 
 fn f(a: Foo, b: Foo): Foo { a + b }
 
 fn main() {
-    assert(f(Foo(11i32), Foo(17i32)).value == 28i32);
-    assert(f(Foo(-12i32), Foo(12i32)).value == 0i32);
-    assert(f(Foo(3i32), Foo(7i32)).value == 10i32);
+    assert(f(Foo(11i32), Foo(17i32)).0 == 28i32);
+    assert(f(Foo(-12i32), Foo(12i32)).0 == 0i32);
+    assert(f(Foo(3i32), Foo(7i32)).0 == 10i32);
 }

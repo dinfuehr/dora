@@ -7,8 +7,8 @@ fn main() {
     assert(f.1.b == 3);
 }
 
-struct Foo(a: Int64, b: Int64)
+struct Foo { a: Int64, b: Int64 }
 
 @Optimize fn makefoo(a: Int64, b: Int64, c: Int64): (Int64, Foo) {
-    (a, Foo(b, c))
+    (a, Foo(a = b, b = c))
 }

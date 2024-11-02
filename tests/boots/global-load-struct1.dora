@@ -4,12 +4,12 @@ let g: Foo = Foo(10, Bar(11));
 
 fn main() {
     let local_g = getg();
-    assert(local_g.a == 10);
-    assert(local_g.b.value == 11);
+    assert(local_g.0 == 10);
+    assert(local_g.1 .0 == 11);
 }
 
-struct Foo(a: Int64, b: Bar)
-class Bar(value: Int64)
+struct Foo(Int64, Bar)
+class Bar &(Int64)
 
 @Optimize fn getg(): Foo {
     g

@@ -74,12 +74,12 @@ pub trait ElementAccess {
 pub trait ElementWithFields {
     fn fields_len(&self) -> usize;
     fn fields<'a>(&'a self) -> Box<dyn Iterator<Item = ElementField> + 'a>;
-    fn field_name(&self, idx: usize) -> Name;
+    fn field_name(&self, idx: usize) -> Option<Name>;
 }
 
 pub struct ElementField {
     pub id: usize,
-    pub name: Name,
+    pub name: Option<Name>,
     pub ty: SourceType,
 }
 

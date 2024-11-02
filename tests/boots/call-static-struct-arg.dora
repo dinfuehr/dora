@@ -5,13 +5,13 @@ fn main() {
     f(3, foo);
 }
 
-struct Foo(a: Int64, b: Int64)
+struct Foo(Int64, Int64)
 
 @Optimize fn f(x: Int64, foo: Foo) {
     g(foo);
 }
 
 fn g(foo: Foo) {
-    assert(foo.a == 1);
-    assert(foo.b == 2);
+    assert(foo.0 == 1);
+    assert(foo.1 == 2);
 }

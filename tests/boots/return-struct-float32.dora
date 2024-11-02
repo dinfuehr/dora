@@ -6,7 +6,7 @@ fn main() {
     assert(f.b == 2.0f32);
 }
 
-struct Foo(a: Float32, b: Float32)
+struct Foo { a: Float32, b: Float32 }
 
 @Optimize fn makefoo(a: Float32, b: Float32): Foo {
     Foo(a, b)

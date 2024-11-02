@@ -236,7 +236,7 @@ pub fn compile(encoded: Array[UInt8]): Array[UInt8] {
     writer.toArray()
 }
 
-pub struct Address(pub value: Int64)
+pub struct Address(pub Int64)
 
 impl Address {
     pub static fn null(): Address {

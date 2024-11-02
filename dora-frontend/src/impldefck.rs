@@ -640,18 +640,18 @@ mod tests {
     fn impl_struct() {
         ok("
             trait Foo {}
-            struct A(x: Int32)
+            struct A(Int32)
             impl Foo for A {}
         ");
         ok("
             trait Foo {}
-            struct A[T](x: Int32)
+            struct A[T](Int32)
             impl Foo for A[Int32] {}
             impl Foo for A[Float32] {}
         ");
         ok("
             trait Foo {}
-            struct A[T](x: Int32)
+            struct A[T](Int32)
             impl[T] Foo for A[T] {}
         ");
     }
@@ -1130,7 +1130,7 @@ mod tests {
         err(
             "
             trait Foo {}
-            struct Bar[T](x: T)
+            struct Bar[T](T)
             impl Foo for Bar[Self] {}
         ",
             (4, 30),
@@ -1142,7 +1142,7 @@ mod tests {
     fn impl_self_in_trait_ty() {
         ok("
             trait Foo[T] {}
-            struct Bar[T](x: T)
+            struct Bar[T](T)
             impl Foo[Self] for Bar[Int64] {}
         ");
     }

@@ -311,7 +311,7 @@ pub struct RegisterTrackers {
     pub fp: RegisterTracker[FloatRegister],
 }
 
-struct BlockId(value: Int32)
+struct BlockId(Int32)
 
 pub class Block {
     _id: Option[Int32],
@@ -965,7 +965,7 @@ pub fn opName(op: Op): String {
     }
 }
 
-pub struct InstId(value: Int32)
+pub struct InstId(Int32)
 
 impl Stringable for InstId {
     fn toString(): String {

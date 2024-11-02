@@ -161,7 +161,7 @@ impl Stringable for ConstPoolEntry {
     }
 }
 
-pub struct BytecodeRegister(pub value: Int32)
+pub struct BytecodeRegister(pub Int32)
 
 impl Equals for BytecodeRegister {
     fn equals(other: BytecodeRegister): Bool {
@@ -179,7 +179,7 @@ impl Stringable for BytecodeRegister {
     fn toString(): String { "r${self.0}" }
 }
 
-pub struct ConstPoolId(pub value: Int32)
+pub struct ConstPoolId(pub Int32)
 
 impl Stringable for ConstPoolId {
     fn toString(): String {

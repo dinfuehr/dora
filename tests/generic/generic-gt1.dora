@@ -19,10 +19,10 @@ fn gt[T: std::traits::Comparable](lhs: T, rhs: T): Bool {
     lhs > rhs
 }
 
-struct Wrapper(value: Int64)
+struct Wrapper(Int64)
 
 impl std::traits::Comparable for Wrapper {
     fn cmp(rhs: Wrapper): std::traits::Ordering {
-        self.value.cmp(rhs.value)
+        self.0.cmp(rhs.0)
     }
 }

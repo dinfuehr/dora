@@ -228,8 +228,8 @@ impl ElementAccess for ClassDefinition {
 }
 
 impl ElementWithFields for ClassDefinition {
-    fn field_name(&self, idx: usize) -> Name {
-        self.fields[idx].name.expect("name expected")
+    fn field_name(&self, idx: usize) -> Option<Name> {
+        self.fields[idx].name
     }
 
     fn fields_len(&self) -> usize {
@@ -239,7 +239,7 @@ impl ElementWithFields for ClassDefinition {
     fn fields<'a>(&'a self) -> Box<dyn Iterator<Item = ElementField> + 'a> {
         Box::new(self.fields.iter().map(|f| ElementField {
             id: f.id.to_usize(),
-            name: f.name.expect("name expected"),
+            name: f.name,
             ty: f.ty(),
         }))
     }

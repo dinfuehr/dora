@@ -399,11 +399,11 @@ mod tests {
     #[test]
     fn extension_struct_type_params() {
         ok("
-            struct Foo[T](value: T)
+            struct Foo[T](T)
             trait MyTrait { fn bar(): Int32; }
             impl[X: MyTrait] Foo[X] {
                 fn getmyhash(): Int32 {
-                    self.value.bar()
+                    self.0.bar()
                 }
             }
         ");
@@ -519,7 +519,7 @@ mod tests {
     fn extension_self_in_extended_ty() {
         err(
             "
-            struct Foo[T](value: T)
+            struct Foo[T](T)
             impl Foo[Self] {}
         ",
             (3, 22),

@@ -6,11 +6,11 @@ fn main() {
     assert(x.second.value == 17i32);
 }
 
-struct Pair(first: Int32, second: Foo)
+struct Pair { first: Int32, second: Foo }
 
 fn tpl1(value: Int32): Pair {
     assert(value == 42i32);
-    Pair(1i32, Foo(17i32))
+    Pair(first = 1i32, second = Foo(17i32))
 }
 
 class Foo(value: Int32)

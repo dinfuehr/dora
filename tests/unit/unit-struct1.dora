@@ -1,4 +1,4 @@
-struct A(value: ())
+struct A(())
 
 fn main() {
     let a = A(());
@@ -8,10 +8,10 @@ fn main() {
     let b2 = bar[()](());
 }
 
-fn foo(a: A): () { a.value }
+fn foo(a: A): () { a.0 }
 
 fn bar[T](value: T): B[T] {
     B[T](value)
 }
 
-struct B[T](value: T)
+struct B[T](T)

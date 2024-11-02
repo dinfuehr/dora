@@ -68,7 +68,7 @@ let CALLEE_SAVED_FREGS: RegSet[FloatRegister] = if config.isWindows {
 };
 
 fn msb(reg: FloatRegister): Bool {
-    ((reg.value.toInt64() >> 3i32) & 1) != 0
+    ((reg.0.toInt64() >> 3i32) & 1) != 0
 }
 
 pub class CodeGenX64 {
@@ -328,7 +328,7 @@ impl CodeGenX64 {
             metadata_part = metadata_part | 1i32 << METADATA_REMEMBERED_BIT;
         }
 
-        let classptr_part = classptr.value - config.meta_space_start.value;
+        let classptr_part = classptr.toInt64() - config.meta_space_start.toInt64();
 
         let header_word = metadata_part.toInt64() << 32i32 | classptr_part;
         self.asm.movq_ri(tmp1, Immediate(header_word));
@@ -389,7 +389,7 @@ impl CodeGenX64 {
 
     fn emitArrayInitialization(obj: Register, size: Register, length: Register, classptr: Address, tmp1: Register, tmp2: Register) {
         let metadata_part = 0xFF_FF_FF_FCi32;
-        let classptr_part = classptr.value - config.meta_space_start.value;
+        let classptr_part = classptr.toInt64() - config.meta_space_start.toInt64();
 
         let header_word = metadata_part.toInt64() << 32i32 | classptr_part;
         self.asm.movq_ri(tmp1, Immediate(header_word));
@@ -627,7 +627,7 @@ impl CodeGenX64 {
     fn emitVirtualCall(obj: Register, tmp1: Register, tmp2: Register, inst: Inst, vtable_index: Int32, site: LazyCompilationSite) {
         self.asm.movl_ra(tmp1, AsmAddress::offset(obj, 0i32));
 
-        self.asm.movq_ri(tmp2, Immediate(config.meta_space_start.value));
+        self.asm.movq_ri(tmp2, Immediate(config.meta_space_start.toInt64()));
         self.asm.addq_rr(tmp1, tmp2);
 
         let vtable_entry_offset = 32i32 + vtable_index * PTR_SIZE;
@@ -1788,7 +1788,7 @@ impl CodeGen for CodeGenX64 {
             self.emitCall(fct_info.fct_id, fct_info.type_params, inst.getInlinedLocation(), gc_point);
         } else {
             let address = inst.getFunctionAddress();
-            self.asm.movq_ri(REG_TEMP, Immediate(address.value));
+            self.asm.movq_ri(REG_TEMP, Immediate(address.toInt64()));
             self.asm.call_r(REG_TEMP);
 
             let pos = self.asm.position();
@@ -2022,7 +2022,7 @@ impl CodeGen for CodeGenX64 {
 
         let global_id = inst.getGlobalId();
         let value_address = getGlobalValueAddress(global_id);
-        self.asm.movq_ri(REG_TEMP, Immediate(value_address.value));
+        self.asm.movq_ri(REG_TEMP, Immediate(value_address.toInt64()));
 
         let ty = inst.getValueType();
 
@@ -2072,7 +2072,7 @@ impl CodeGen for CodeGenX64 {
 
         let global_id = inst.getGlobalId();
         let value_address = getGlobalValueAddress(global_id);
-        self.asm.movq_ri(dest, Immediate(value_address.value));
+        self.asm.movq_ri(dest, Immediate(value_address.toInt64()));
     }
 
     fn emitEnsureGlobalInitialized(inst: Inst) {
@@ -2083,7 +2083,7 @@ impl CodeGen for CodeGenX64 {
 
         let global_id = inst.getGlobalId();
         let state_address = getGlobalStateAddress(global_id);
-        self.asm.movq_ri(REG_TEMP, Immediate(state_address.value));
+        self.asm.movq_ri(REG_TEMP, Immediate(state_address.toInt64()));
         self.asm.cmpb_ai(AsmAddress::offset(REG_TEMP, 0i32), Immediate(GLOBAL_STATE_INITIALIZED.toInt64()));
         self.asm.jcc(Condition::NotEqual, lbl_global_slow_path);
         let lbl_return = self.asm.createAndBindLabel();
@@ -2100,7 +2100,7 @@ impl CodeGen for CodeGenX64 {
 
             if ty == Type::Address {
                 // Pass address of global to function as first argument.
-                self.asm.movq_ri(REG_PARAMS(0), Immediate(value_address.value));
+                self.asm.movq_ri(REG_PARAMS(0), Immediate(value_address.toInt64()));
             }
 
             // Compute initial value.
@@ -2110,7 +2110,7 @@ impl CodeGen for CodeGenX64 {
 
             if ty != Type::Address && ty != Type::Unit {
                 // Store initial value in global variable.
-                self.asm.movq_ri(REG_TEMP, Immediate(value_address.value));
+                self.asm.movq_ri(REG_TEMP, Immediate(value_address.toInt64()));
 
                 match inst.getOperationType() {
                     Type::UInt8 | Type::Bool => {
@@ -2148,7 +2148,7 @@ impl CodeGen for CodeGenX64 {
             }
 
             // Set global variable state to INITIALIZED.
-            self.asm.movq_ri(REG_TEMP, Immediate(state_address.value));
+            self.asm.movq_ri(REG_TEMP, Immediate(state_address.toInt64()));
             self.asm.movb_ai(AsmAddress::offset(REG_TEMP, 0i32), Immediate(GLOBAL_STATE_INITIALIZED.toInt64()));
 
             self.restoreRegistersForCall(snapshot, alignment);
@@ -2163,7 +2163,7 @@ impl CodeGen for CodeGenX64 {
         let global_id = inst.getGlobalId();
 
         let value_address = getGlobalValueAddress(global_id);
-        self.asm.movq_ri(REG_TEMP, Immediate(value_address.value));
+        self.asm.movq_ri(REG_TEMP, Immediate(value_address.toInt64()));
 
         match inst.getOperationType() {
             Type::UInt8 | Type::Bool => {
@@ -2209,7 +2209,7 @@ impl CodeGen for CodeGenX64 {
         let global_id = inst.getGlobalId();
 
         let state_address = getGlobalStateAddress(global_id);
-        self.asm.movq_ri(REG_TEMP, Immediate(state_address.value));
+        self.asm.movq_ri(REG_TEMP, Immediate(state_address.toInt64()));
         self.asm.movb_ai(AsmAddress::offset(REG_TEMP, 0i32), Immediate(GLOBAL_STATE_INITIALIZED.toInt64()));
     }
 

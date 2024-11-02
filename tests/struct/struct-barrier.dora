@@ -8,7 +8,7 @@ impl TupleClass {
     }
 }
 
-struct Pair(first: Foo, second: Int64)
+struct Pair(Foo, Int64)
 class Foo(value: Int32)
 
 fn main() {
@@ -16,6 +16,6 @@ fn main() {
     std::forceCollect();
     tpl.value = Pair(Foo(4711i32), 4712i64);
     std::forceMinorCollect();
-    assert(tpl.value.first.value == 4711i32);
-    assert(tpl.value.second == 4712i64);
+    assert(tpl.value.0.value == 4711i32);
+    assert(tpl.value.1 == 4712i64);
 }

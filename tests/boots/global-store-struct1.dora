@@ -5,11 +5,11 @@ let mut g: Foo = Foo(1, Bar(2));
 fn main() {
     setg(Foo(17, Bar(0)));
     std::forceCollect();
-    assert(g.a == 17);
-    assert(g.b.value == 0);
+    assert(g.0 == 17);
+    assert(g.1.value == 0);
 }
 
-struct Foo(a: Int64, b: Bar)
+struct Foo(Int64, Bar)
 class Bar(value: Int64)
 
 @Optimize fn setg(value: Foo) {

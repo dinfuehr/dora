@@ -186,14 +186,14 @@ impl ElementWithFields for StructDefinition {
         self.fields.len()
     }
 
-    fn field_name(&self, idx: usize) -> Name {
-        self.fields[idx].name.expect("name expected")
+    fn field_name(&self, idx: usize) -> Option<Name> {
+        self.fields[idx].name
     }
 
     fn fields<'a>(&'a self) -> Box<dyn Iterator<Item = super::ElementField> + 'a> {
         Box::new(self.fields.iter().map(|f| ElementField {
             id: f.id.to_usize(),
-            name: f.name.expect("name expected"),
+            name: f.name,
             ty: f.ty(),
         }))
     }

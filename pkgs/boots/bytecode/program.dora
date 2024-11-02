@@ -1,21 +1,21 @@
 use std::{Equals, Hash, Stringable};
 use package::bytecode::{BytecodeType, Location};
 
-pub struct PackageId(pub value: Int32)
+pub struct PackageId(pub Int32)
 
 pub class PackageData {
     name: String,
     root_module_id: ModuleId,
 }
 
-pub struct ModuleId(pub value: Int32)
+pub struct ModuleId(pub Int32)
 
 pub struct ModuleData {
     name: String,
     parent_id: Option[ModuleId],
 }
 
-pub struct FunctionId(pub value: Int32)
+pub struct FunctionId(pub Int32)
 
 impl Stringable for FunctionId {
     fn toString(): String {
@@ -61,7 +61,7 @@ pub class TypeParamBound {
     trait_ty: BytecodeType,
 }
 
-pub struct GlobalId(pub value: Int32)
+pub struct GlobalId(pub Int32)
 
 impl Stringable for GlobalId {
     fn toString(): String {
@@ -77,7 +77,7 @@ pub class GlobalData {
     initial_value: Option[FunctionId],
 }
 
-pub struct ClassId(pub value: Int32)
+pub struct ClassId(pub Int32)
 
 impl Stringable for ClassId {
     fn toString(): String {
@@ -104,7 +104,7 @@ pub class ClassData {
     fields: Array[ClassField],
 }
 
-pub struct ClassFieldId(pub value: Int32)
+pub struct ClassFieldId(pub Int32)
 
 impl Stringable for ClassFieldId {
     fn toString(): String {
@@ -117,7 +117,7 @@ pub class ClassField {
     name: String,
 }
 
-pub struct StructId(pub value: Int32)
+pub struct StructId(pub Int32)
 
 impl Stringable for StructId {
     fn toString(): String {
@@ -144,7 +144,7 @@ pub class StructData {
     fields: Array[StructField],
 }
 
-pub struct StructFieldId(pub value: Int32)
+pub struct StructFieldId(pub Int32)
 
 impl Stringable for StructFieldId {
     fn toString(): String {
@@ -157,7 +157,7 @@ pub class StructField {
     name: String,
 }
 
-pub struct EnumId(pub value: Int32)
+pub struct EnumId(pub Int32)
 
 impl Stringable for EnumId {
     fn toString(): String {
@@ -189,7 +189,7 @@ pub class EnumVariant {
     arguments: Array[BytecodeType],
 }
 
-pub struct TraitId(pub value: Int32)
+pub struct TraitId(pub Int32)
 
 impl Stringable for TraitId {
     fn toString(): String {
@@ -216,14 +216,14 @@ pub class TraitData {
     methods: Array[FunctionId],
 }
 
-pub struct SourceFileId(pub value: Int32)
+pub struct SourceFileId(pub Int32)
 
 pub class SourceFileData {
     path: String,
 }
 
 
-pub struct ExtensionId(pub value: Int32)
+pub struct ExtensionId(pub Int32)
 
 pub class ExtensionData {
     module_id: ModuleId,
@@ -232,7 +232,7 @@ pub class ExtensionData {
     methods: Array[FunctionId],
 }
 
-pub struct ImplId(pub value: Int32)
+pub struct ImplId(pub Int32)
 
 pub class ImplData {
     module_id: ModuleId,
@@ -243,7 +243,7 @@ pub class ImplData {
     trait_method_map: Array[(FunctionId, FunctionId)],
 }
 
-pub struct AliasId(pub value: Int32)
+pub struct AliasId(pub Int32)
 
 impl Stringable for AliasId {
     fn toString(): String {

@@ -2,8 +2,8 @@ fn main() {
     assert(div[Int64](6, 2) == 3);
     assert(div[Int64](-4, 4) == -1);
 
-    assert(div[Wrapper](Wrapper(6), Wrapper(2)).value == 3);
-    assert(div[Wrapper](Wrapper(-4), Wrapper(4)).value == -1);
+    assert(div[Wrapper](Wrapper(6), Wrapper(2)).0 == 3);
+    assert(div[Wrapper](Wrapper(-4), Wrapper(4)).0 == -1);
 
     assert(div[Int32](6i32, 2i32) == 3i32);
     assert(div[Int32](-4i32, 4i32) == -1i32);
@@ -19,10 +19,10 @@ fn div[T: std::traits::Div](lhs: T, rhs: T): T {
     lhs / rhs
 }
 
-struct Wrapper(value: Int64)
+struct Wrapper(Int64)
 
 impl std::traits::Div for Wrapper {
     fn div(rhs: Wrapper): Wrapper {
-        Wrapper(self.value / rhs.value)
+        Wrapper(self.0 / rhs.0)
     }
 }

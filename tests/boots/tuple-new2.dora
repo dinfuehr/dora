@@ -8,8 +8,8 @@ fn main() {
     assert(foo.1.c.value == 3);
 }
 
-struct Foo(b: Value, c: Value)
-class Value(value: Int64)
+struct Foo { b: Value, c: Value }
+class Value { value: Int64 }
 
 @Optimize fn getfoo(): (Value, Foo) {
     let a = Value(1);

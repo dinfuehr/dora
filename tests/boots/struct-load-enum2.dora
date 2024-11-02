@@ -1,7 +1,7 @@
 //= boots
 
 fn main() {
-    let foo = Foo(1, Bar::C(10));
+    let foo = Foo(a = 1, bar = Bar::C(10));
     let bar = getbar(foo);
     match bar {
         Bar::C(x) => assert(x == 10),
@@ -9,7 +9,7 @@ fn main() {
     }
 }
 
-struct Foo(a: Int64, bar: Bar)
+struct Foo { a: Int64, bar: Bar }
 enum Bar { A, B, C(Int64) }
 
 @Optimize fn getbar(x: Foo): Bar {

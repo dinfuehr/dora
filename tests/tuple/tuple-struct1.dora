@@ -1,4 +1,4 @@
-struct Pair(x: Int32, y: Int32)
+struct Pair { x: Int32, y: Int32 }
 
 fn main() {
     let (p1, p2) = f();
@@ -6,5 +6,5 @@ fn main() {
 }
 
 fn f(): (Pair, Pair) {
-    (Pair(1i32, 2i32), Pair(5i32, 1i32))
+    (Pair(x = 1i32, y = 2i32), Pair(x = 5i32, y = 1i32))
 }

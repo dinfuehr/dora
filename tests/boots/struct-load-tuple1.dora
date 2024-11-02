@@ -1,13 +1,13 @@
 //= boots
 
 fn main() {
-    let foo = Foo(1, (2, 3));
+    let foo = Foo(a = 1, bar = (2, 3));
     let bar = getbar(foo);
     assert(bar.0 == 2);
     assert(bar.1 == 3);
 }
 
-struct Foo(a: Int64, bar: (Int64, Int64))
+struct Foo { a: Int64, bar: (Int64, Int64) }
 
 @Optimize fn getbar(x: Foo): (Int64, Int64) {
     x.bar

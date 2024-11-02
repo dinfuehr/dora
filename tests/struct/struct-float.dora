@@ -6,23 +6,23 @@ fn main() {
 }
 
 fn tpl1(): Float32 {
-    let x = Floats(1.0f32, 2.0f32, 3.0f32);
+    let x = Floats(f1 = 1.0f32, f2 = 2.0f32, f3 = 3.0f32);
     x.f1
 }
 
 fn tpl2(): Float32 {
-    let x = Floats(1.0f32, 2.0f32, 3.0f32);
+    let x = Floats(f1 = 1.0f32, f2 = 2.0f32, f3 = 3.0f32);
     x.f2
 }
 
 fn tpl3(): Float32 {
-    let x = Floats(1.0f32, 2.0f32, 3.0f32);
+    let x = Floats(f1 = 1.0f32, f2 = 2.0f32, f3 = 3.0f32);
     x.f3
 }
 
 fn tplsum(): Float32 {
-    let x = Floats(1.0f32, 2.0f32, 3.0f32);
+    let x = Floats(f1 = 1.0f32, f2 = 2.0f32, f3 = 3.0f32);
     x.f1 + x.f2 + x.f3
 }
 
-struct Floats(f1: Float32, f2: Float32, f3: Float32)
+struct Floats { f1: Float32, f2: Float32, f3: Float32 }
