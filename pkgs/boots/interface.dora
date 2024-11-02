@@ -51,18 +51,18 @@ pub const TRAP_OVERFLOW: Int32 = 8i32;
 
 pub fn getFunctionAddress(ci: CompilationInfo, fct_id: FunctionId, type_params: Array[BytecodeType]): Address {
     let writer = ci.getByteWriter();
-    writer.emitInt32(fct_id.value);
+    writer.emitInt32(fct_id.0);
     encodeBytecodeTypeArray(writer, type_params);
     Address(getFunctionAddressRaw(writer.toArray()))
 }
 
 pub fn getFunctionDisplayName(fct_id: FunctionId): String {
-    let encoded = getFunctionDisplayNameRaw(fct_id.value);
+    let encoded = getFunctionDisplayNameRaw(fct_id.0);
     String::fromBytes(encoded).getOrPanic()
 }
 
 pub fn getFunctionInfoForInlining(fct_id: FunctionId): FunctionInliningInfo {
-    let encoded = getFunctionInfoForInliningRaw(fct_id.value);
+    let encoded = getFunctionInfoForInliningRaw(fct_id.0);
     let reader = ByteReader::new(encoded);
     let decoded = deserializer::decodeFunctionInliningInfo(reader);
     assert(!reader.moreBytes());
@@ -71,7 +71,7 @@ pub fn getFunctionInfoForInlining(fct_id: FunctionId): FunctionInliningInfo {
 
 pub fn getClassPointerForLambda(ci: CompilationInfo, fct_id: FunctionId, type_params: Array[BytecodeType]): Address {
     let writer = ci.getByteWriter();
-    writer.emitInt32(fct_id.value);
+    writer.emitInt32(fct_id.0);
     encodeBytecodeTypeArray(writer, type_params);
     Address(getClassPointerForLambdaRaw(writer.toArray()))
 }
@@ -91,45 +91,45 @@ pub fn getClassPointerForTraitObject(ci: CompilationInfo, info: TraitObjectInfo)
 }
 
 pub fn getFunctionVtableIndex(trait_id: TraitId, fct_id: FunctionId): Int32 {
-    getFunctionVtableIndexRaw(trait_id.value, fct_id.value)
+    getFunctionVtableIndexRaw(trait_id.0, fct_id.0)
 }
 
 pub fn getFieldOffset(ci: CompilationInfo, cls_id: ClassId, type_params: Array[BytecodeType], field_id: ClassFieldId): Int32 {
     let writer = ci.getByteWriter();
-    writer.emitInt32(cls_id.value);
+    writer.emitInt32(cls_id.0);
     encodeBytecodeTypeArray(writer, type_params);
-    writer.emitInt32(field_id.value);
+    writer.emitInt32(field_id.0);
     getFieldOffsetRaw(writer.toArray())
 }
 
 pub fn getClassSize(ci: CompilationInfo, cls_id: ClassId, type_params: Array[BytecodeType]): Int32 {
     let writer = ci.getByteWriter();
-    writer.emitInt32(cls_id.value);
+    writer.emitInt32(cls_id.0);
     encodeBytecodeTypeArray(writer, type_params);
     getClassSizeRaw(writer.toArray())
 }
 
 pub fn getClassPointer(ci: CompilationInfo, cls_id: ClassId, type_params: Array[BytecodeType]): Address {
     let writer = ci.getByteWriter();
-    writer.emitInt32(cls_id.value);
+    writer.emitInt32(cls_id.0);
     encodeBytecodeTypeArray(writer, type_params);
     Address(getClassPointerRaw(writer.toArray()))
 }
 
 pub fn getGlobalValueAddress(id: GlobalId): Address {
-    Address(getGlobalValueAddressRaw(id.value))
+    Address(getGlobalValueAddressRaw(id.0))
 }
 
 pub fn getGlobalStateAddress(id: GlobalId): Address {
-    Address(getGlobalStateAddressRaw(id.value))
+    Address(getGlobalStateAddressRaw(id.0))
 }
 
 pub fn hasGlobalInitialValue(id: GlobalId): Bool {
-    hasGlobalInitialValueRaw(id.value)
+    hasGlobalInitialValueRaw(id.0)
 }
 
 pub fn getGlobalInitializerFunctionId(id: GlobalId): FunctionId {
-    FunctionId(getGlobalInitializerFunctionIdRaw(id.value))
+    FunctionId(getGlobalInitializerFunctionIdRaw(id.0))
 }
 
 pub fn getReadOnlyStringAddress(value: String): Address {
@@ -138,7 +138,7 @@ pub fn getReadOnlyStringAddress(value: String): Address {
 
 pub fn findTraitImpl(ci: CompilationInfo, trait_fct_id: FunctionId, trait_type_params: Array[BytecodeType], object_ty: BytecodeType): (FunctionId, Array[BytecodeType]) {
     let writer = ci.getByteWriter();
-    writer.emitInt32(trait_fct_id.value);
+    writer.emitInt32(trait_fct_id.0);
     encodeBytecodeTypeArray(writer, trait_type_params);
     encodeBytecodeType(writer, object_ty);
     let encoded = findTraitImplRaw(writer.toArray());
@@ -150,11 +150,11 @@ pub fn findTraitImpl(ci: CompilationInfo, trait_fct_id: FunctionId, trait_type_p
 }
 
 pub fn getIntrinsicForFunction(fct_id: FunctionId): Int32 {
-    getIntrinsicForFunctionRaw(fct_id.value)
+    getIntrinsicForFunctionRaw(fct_id.0)
 }
 
 pub fn getStructData(struct_id: StructId): StructData {
-    let encoded = getStructDataRaw(struct_id.value);
+    let encoded = getStructDataRaw(struct_id.0);
     let reader = ByteReader::new(encoded);
     let structData = decodeStructData(reader);
     assert(!reader.moreBytes());
@@ -162,7 +162,7 @@ pub fn getStructData(struct_id: StructId): StructData {
 }
 
 pub fn getEnumData(enum_id: EnumId): EnumData {
-    let encoded = getEnumDataRaw(enum_id.value);
+    let encoded = getEnumDataRaw(enum_id.0);
     let reader = ByteReader::new(encoded);
     let enumData = decodeEnumData(reader);
     assert(!reader.moreBytes());
@@ -171,7 +171,7 @@ pub fn getEnumData(enum_id: EnumId): EnumData {
 
 pub fn getClassDataForEnumVariant(ci: CompilationInfo, id: EnumId, type_params: Array[BytecodeType], variant: Int32): (Address, Int32) {
     let writer = ci.getByteWriter();
-    writer.emitInt32(id.value);
+    writer.emitInt32(id.0);
     encodeBytecodeTypeArray(writer, type_params);
     writer.emitInt32(variant);
     let encoded = getClassDataForEnumVariantRaw(writer.toArray());
@@ -184,7 +184,7 @@ pub fn getClassDataForEnumVariant(ci: CompilationInfo, id: EnumId, type_params: 
 
 pub fn getFieldOffsetForEnumVariant(ci: CompilationInfo, enum_id: EnumId, type_params: Array[BytecodeType], variant_id: Int32, field_id: Int32): Int32 {
     let writer = ci.getByteWriter();
-    writer.emitInt32(enum_id.value);
+    writer.emitInt32(enum_id.0);
     encodeBytecodeTypeArray(writer, type_params);
     writer.emitInt32(variant_id);
     writer.emitInt32(field_id);
@@ -193,13 +193,13 @@ pub fn getFieldOffsetForEnumVariant(ci: CompilationInfo, enum_id: EnumId, type_p
 
 pub fn getElementSize(ci: CompilationInfo, cls_id: ClassId, type_params: Array[BytecodeType]): Int32 {
     let writer = ci.getByteWriter();
-    writer.emitInt32(cls_id.value);
+    writer.emitInt32(cls_id.0);
     encodeBytecodeTypeArray(writer, type_params);
     getElementSizeRaw(writer.toArray())
 }
 
 pub fn getFunctionDataForInlining(fct_id: FunctionId): FunctionInliningData {
-    let encoded = getFunctionDataForInliningRaw(fct_id.value);
+    let encoded = getFunctionDataForInliningRaw(fct_id.0);
     let reader = ByteReader::new(encoded);
     let decoded = deserializer::decodeFunctionInliningData(reader);
     assert(!reader.moreBytes());
@@ -244,7 +244,7 @@ impl Address {
     }
 
     pub fn toInt64(): Int64 {
-        self.value
+        self.0
     }
 }
 

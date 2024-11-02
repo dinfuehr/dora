@@ -26,7 +26,7 @@ impl BytecodeFunction {
     }
 
     pub fn constPool(idx: ConstPoolId): ConstPoolEntry {
-        self.const_pool(idx.value.toInt64())
+        self.const_pool(idx.0.toInt64())
     }
 
     pub fn codeAt(idx: Int32): Int32 {
@@ -143,16 +143,16 @@ impl Stringable for ConstPoolEntry {
             ConstPoolEntry::Float64(value) => "Float64 ${value}",
             ConstPoolEntry::Char(value) => "Char ${value}",
             ConstPoolEntry::String(value) => "String ${value}",
-            ConstPoolEntry::Class(id, typeParams) => "Class ${id.value}${typeParams}",
-            ConstPoolEntry::Field(id, typeParams, fieldId) => "Field ${id.value}${typeParams}.${fieldId.value}",
-            ConstPoolEntry::Fct(id, typeParams) => "Fct ${id.value}${typeParams}",
-            ConstPoolEntry::TraitObjectMethod(ty, id) => "TraitObjectMethod ${ty} ${id.value}",
-            ConstPoolEntry::Generic(tp, id, typeParams) => "Generic ${tp} ${id.value}${typeParams}",
-            ConstPoolEntry::Enum(id, typeParams) => "Enum ${id.value}${typeParams}",
-            ConstPoolEntry::EnumVariant(id, typeParams, variant) => "EnumVariant ${id.value}${typeParams}::${variant}",
-            ConstPoolEntry::EnumElement(id, typeParams, variant, element) => "EnumVariant ${id.value}${typeParams}::${variant}.${element}",
-            ConstPoolEntry::Struct(id, typeParams) => "Struct ${id.value}${typeParams}",
-            ConstPoolEntry::StructField(id, typeParams, fieldId) => "StructField ${id.value}${typeParams}.${fieldId.value}",
+            ConstPoolEntry::Class(id, typeParams) => "Class ${id}${typeParams}",
+            ConstPoolEntry::Field(id, typeParams, fieldId) => "Field ${id}${typeParams}.${fieldId}",
+            ConstPoolEntry::Fct(id, typeParams) => "Fct ${id}${typeParams}",
+            ConstPoolEntry::TraitObjectMethod(ty, id) => "TraitObjectMethod ${ty} ${id}",
+            ConstPoolEntry::Generic(tp, id, typeParams) => "Generic ${tp} ${id}${typeParams}",
+            ConstPoolEntry::Enum(id, typeParams) => "Enum ${id}${typeParams}",
+            ConstPoolEntry::EnumVariant(id, typeParams, variant) => "EnumVariant ${id}${typeParams}::${variant}",
+            ConstPoolEntry::EnumElement(id, typeParams, variant, element) => "EnumVariant ${id}${typeParams}::${variant}.${element}",
+            ConstPoolEntry::Struct(id, typeParams) => "Struct ${id}${typeParams}",
+            ConstPoolEntry::StructField(id, typeParams, fieldId) => "StructField ${id}${typeParams}.${fieldId}",
             ConstPoolEntry::TraitObject(trait_ty, actual_object_ty) => "Trait ${trait_ty}.${actual_object_ty}",
             ConstPoolEntry::TupleElement(ty, idx) => "TupleElement ${ty}.${idx}",
             ConstPoolEntry::Tuple(types) => "Tuple ${types}",
@@ -165,21 +165,27 @@ pub struct BytecodeRegister(pub value: Int32)
 
 impl Equals for BytecodeRegister {
     fn equals(other: BytecodeRegister): Bool {
-        self.value == other.value
+        self.0 == other.0
     }
 }
 
 impl Hash for BytecodeRegister {
     fn hash(): Int32 {
-        self.value
+        self.0
     }
 }
 
 impl Stringable for BytecodeRegister {
-    fn toString(): String { "r${self.value}" }
+    fn toString(): String { "r${self.0}" }
 }
 
 pub struct ConstPoolId(pub value: Int32)
+
+impl Stringable for ConstPoolId {
+    fn toString(): String {
+        self.0.toString()
+    }
+}
 
 pub enum BytecodeType {
     Unit,
@@ -478,14 +484,14 @@ impl Stringable for BytecodeType {
             BytecodeType::Float32 => "Float32",
             BytecodeType::Float64 => "Float64",
             BytecodeType::This => "This",
-            BytecodeType::Struct(id, params) => "Struct(${id.value}, ${params})",
-            BytecodeType::Enum(id, params) => "Enum(${id.value}, ${params})",
-            BytecodeType::Class(id, params) => "Class(${id.value}, ${params})",
-            BytecodeType::Trait(id, params) => "Trait(${id.value}, ${params})",
+            BytecodeType::Struct(id, params) => "Struct(${id}, ${params})",
+            BytecodeType::Enum(id, params) => "Enum(${id}, ${params})",
+            BytecodeType::Class(id, params) => "Class(${id}, ${params})",
+            BytecodeType::Trait(id, params) => "Trait(${id}, ${params})",
             BytecodeType::Tuple(types) => "Tuple(${types})",
             BytecodeType::TypeParam(idx) => "TypeParam(${idx})",
             BytecodeType::Lambda(params, ty) => "Lambda(${params}, ${ty})",
-            BytecodeType::TypeAlias(id) => "TypeAlias(${id.value})",
+            BytecodeType::TypeAlias(id) => "TypeAlias(${id})",
         }
     }
 }

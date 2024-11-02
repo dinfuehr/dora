@@ -1,4 +1,4 @@
-use std::{Equals, Hash};
+use std::{Equals, Hash, Stringable};
 use package::bytecode::{BytecodeType, Location};
 
 pub struct PackageId(pub value: Int32)
@@ -16,6 +16,12 @@ pub struct ModuleData {
 }
 
 pub struct FunctionId(pub value: Int32)
+
+impl Stringable for FunctionId {
+    fn toString(): String {
+        self.0.toString()
+    }
+}
 
 pub struct FunctionData {
     name: String,
@@ -57,6 +63,12 @@ pub class TypeParamBound {
 
 pub struct GlobalId(pub value: Int32)
 
+impl Stringable for GlobalId {
+    fn toString(): String {
+        self.0.toString()
+    }
+}
+
 pub class GlobalData {
     module_id: ModuleId,
     ty: BytecodeType,
@@ -67,15 +79,21 @@ pub class GlobalData {
 
 pub struct ClassId(pub value: Int32)
 
+impl Stringable for ClassId {
+    fn toString(): String {
+        self.0.toString()
+    }
+}
+
 impl Equals for ClassId {
     fn equals(other: ClassId): Bool {
-        self.value == other.value
+        self.0 == other.0
     }
 }
 
 impl Hash for ClassId {
     fn hash(): Int32 {
-        self.value
+        self.0
     }
 }
 
@@ -88,6 +106,12 @@ pub class ClassData {
 
 pub struct ClassFieldId(pub value: Int32)
 
+impl Stringable for ClassFieldId {
+    fn toString(): String {
+        self.0.toString()
+    }
+}
+
 pub class ClassField {
     ty: BytecodeType,
     name: String,
@@ -95,15 +119,21 @@ pub class ClassField {
 
 pub struct StructId(pub value: Int32)
 
+impl Stringable for StructId {
+    fn toString(): String {
+        self.0.toString()
+    }
+}
+
 impl Equals for StructId {
     fn equals(other: StructId): Bool {
-        self.value == other.value
+        self.0 == other.0
     }
 }
 
 impl Hash for StructId {
     fn hash(): Int32 {
-        self.value
+        self.0
     }
 }
 
@@ -116,6 +146,12 @@ pub class StructData {
 
 pub struct StructFieldId(pub value: Int32)
 
+impl Stringable for StructFieldId {
+    fn toString(): String {
+        self.0.toString()
+    }
+}
+
 pub class StructField {
     ty: BytecodeType,
     name: String,
@@ -123,15 +159,21 @@ pub class StructField {
 
 pub struct EnumId(pub value: Int32)
 
+impl Stringable for EnumId {
+    fn toString(): String {
+        self.0.toString()
+    }
+}
+
 impl Equals for EnumId {
     fn equals(other: EnumId): Bool {
-        self.value == other.value
+        self.0 == other.0
     }
 }
 
 impl Hash for EnumId {
     fn hash(): Int32 {
-        self.value
+        self.0
     }
 }
 
@@ -149,15 +191,21 @@ pub class EnumVariant {
 
 pub struct TraitId(pub value: Int32)
 
+impl Stringable for TraitId {
+    fn toString(): String {
+        self.0.toString()
+    }
+}
+
 impl Equals for TraitId {
     fn equals(other: TraitId): Bool {
-        self.value == other.value
+        self.0 == other.0
     }
 }
 
 impl Hash for TraitId {
     fn hash(): Int32 {
-        self.value
+        self.0
     }
 }
 
@@ -197,15 +245,21 @@ pub class ImplData {
 
 pub struct AliasId(pub value: Int32)
 
+impl Stringable for AliasId {
+    fn toString(): String {
+        self.0.toString()
+    }
+}
+
 impl Equals for AliasId {
     fn equals(other: AliasId): Bool {
-        self.value == other.value
+        self.0 == other.0
     }
 }
 
 impl Hash for AliasId {
     fn hash(): Int32 {
-        self.value
+        self.0
     }
 }
 

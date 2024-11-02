@@ -269,7 +269,7 @@ impl BytecodeDumper for StdoutBytecodeDumper {
 
     fn emitReg2AndIdx(inst: BytecodeInstructionInfo, name: String, r1: BytecodeRegister, r2: BytecodeRegister, idx: ConstPoolId) {
         self.emitStart(inst, name);
-        println(" ${r1}, ${r2}, @${idx.value}");
+        println(" ${r1}, ${r2}, @${idx}");
     }
 
     fn emitReg1(inst: BytecodeInstructionInfo, name: String, r1: BytecodeRegister) {
@@ -284,7 +284,7 @@ impl BytecodeDumper for StdoutBytecodeDumper {
 
     fn emitReg1AndIdx(inst: BytecodeInstructionInfo, name: String, r1: BytecodeRegister, idx: ConstPoolId) {
         self.emitStart(inst, name);
-        println(" ${r1}, @${idx.value}")
+        println(" ${r1}, @${idx}")
     }
 
     fn emitConditionalJump(inst: BytecodeInstructionInfo, name: String, r: BytecodeRegister, offset: Int32) {
@@ -304,6 +304,6 @@ impl BytecodeDumper for StdoutBytecodeDumper {
 
     fn emitGlobal(inst: BytecodeInstructionInfo, name: String, r1: BytecodeRegister, gid: GlobalId) {
         self.emitStart(inst, name);
-        println(" ${r1}, ${gid.value}");
+        println(" ${r1}, ${gid}");
     }
 }

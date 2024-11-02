@@ -75,7 +75,7 @@ fn encodeLazyCompilationSite(writer: ByteWriter, site: LazyCompilationSite) {
     match site {
         LazyCompilationSite::Direct(site) => {
             writer.emitByte(opc::LAZY_COMPILATION_SITE_DIRECT.toUInt8());
-            writer.emitInt32(site.fct_id.value);
+            writer.emitInt32(site.fct_id.0);
             encodeBytecodeTypeArray(writer, site.type_params);
             writer.emitInt32(site.const_pool_offset);
         },
@@ -150,7 +150,7 @@ fn encodeInlinedFunctionTable(writer: ByteWriter, table: Array[InlinedFunction])
 }
 
 fn encodeInlinedFunction(writer: ByteWriter, inlined: InlinedFunction) {
-    writer.emitInt32(inlined.fct_id.value);
+    writer.emitInt32(inlined.fct_id.0);
     encodeBytecodeTypeArray(writer, inlined.type_params);
     encodeInlinedLocation(writer, inlined.inlined_location);
 }
@@ -205,22 +205,22 @@ pub fn encodeBytecodeType(writer: ByteWriter, ty: BytecodeType) {
         },
         BytecodeType::Enum(enum_id, source_type_array) => {
             writer.emitByte(opc::BC_TYPE_ENUM.toUInt8());
-            writer.emitInt32(enum_id.value);
+            writer.emitInt32(enum_id.0);
             encodeBytecodeTypeArray(writer, source_type_array);
         },
         BytecodeType::Struct(struct_id, source_type_array) => {
             writer.emitByte(opc::BC_TYPE_STRUCT.toUInt8());
-            writer.emitInt32(struct_id.value);
+            writer.emitInt32(struct_id.0);
             encodeBytecodeTypeArray(writer, source_type_array);
         },
         BytecodeType::Class(class_id, source_type_array) => {
             writer.emitByte(opc::BC_TYPE_CLASS.toUInt8());
-            writer.emitInt32(class_id.value);
+            writer.emitInt32(class_id.0);
             encodeBytecodeTypeArray(writer, source_type_array);
         },
         BytecodeType::Trait(trait_id, source_type_array) => {
             writer.emitByte(opc::BC_TYPE_TRAIT_OBJECT.toUInt8());
-            writer.emitInt32(trait_id.value);
+            writer.emitInt32(trait_id.0);
             encodeBytecodeTypeArray(writer, source_type_array);
         },
         BytecodeType::Lambda(params, ret) => {
@@ -246,7 +246,7 @@ impl ByteWriter {
     }
 
     pub fn emitAddress(address: Address) {
-        self.emitInt64(address.value);
+        self.emitInt64(address.toInt64());
     }
 
     pub fn emitInt64(value: Int64) {

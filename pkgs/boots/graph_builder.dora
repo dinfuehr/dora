@@ -860,7 +860,7 @@ impl SsaGen {
         if !destTy.isUnit() {
             let srcInst = self.readVariable(src, self.current());
             let structLayout = self.computeStructLayout(struct_id, type_params);
-            let field = structLayout.fields(field_id.value.toInt64());
+            let field = structLayout.fields(field_id.0.toInt64());
 
             let inst = self.loadField(destTy, srcInst, InstExtraData::None, field.offset);
             self.writeVariable(dest, self.current(), inst);
@@ -2647,7 +2647,7 @@ impl SsaGen {
     }
 
     fn reg(id: BytecodeRegister): BytecodeType {
-        self.regId(id.value)
+        self.regId(id.0)
     }
 
     fn regId(id: Int32): BytecodeType {
@@ -2672,11 +2672,11 @@ impl RegisterTable {
     }
 
     fn get(register: BytecodeRegister, block: Block): Option[Inst] {
-        self.data(register.value.toInt64()).get(block)
+        self.data(register.0.toInt64()).get(block)
     }
 
     fn insert(register: BytecodeRegister, block: Block, value: Inst) {
-        self.data(register.value.toInt64()).insert(block, value);
+        self.data(register.0.toInt64()).insert(block, value);
     }
 }
 

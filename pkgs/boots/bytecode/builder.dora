@@ -238,7 +238,7 @@ impl BytecodeBuilder {
     }
 
     pub fn emitNewObject(dest: BytecodeRegister, cls: ClassId) {
-        self.emitVal3(opc::BC_NEW_OBJECT, dest.value, cls.value);
+        self.emitVal3(opc::BC_NEW_OBJECT, dest.0, cls.0);
     }
 
     pub fn emitArrayLength(dest: BytecodeRegister) {
@@ -290,11 +290,11 @@ impl BytecodeBuilder {
     }
 
     fn emitFctVoid(inst: Int32, fct: FunctionId, start: BytecodeRegister, count: Int32) {
-        self.emitVal4(inst, fct.value, start.value, count);
+        self.emitVal4(inst, fct.0, start.0, count);
     }
 
     fn emitFct(inst: Int32, dest: BytecodeRegister, fct: FunctionId, start: BytecodeRegister, count: Int32) {
-        self.emitVal5(inst, dest.value, fct.value, start.value, count);
+        self.emitVal5(inst, dest.0, fct.0, start.0, count);
     }
 
     fn emitJmp(inst: Int32, offset: Int32) {
@@ -306,7 +306,7 @@ impl BytecodeBuilder {
 
         self.emitOpcode(inst);
         if opnd.isSome() {
-            self.emitInt32Variable(opnd.getOrPanic().value);
+            self.emitInt32Variable(opnd.getOrPanic().0);
         }
         let target = self.code.size().toInt32();
         self.emitInt32Fixed(0i32);
@@ -324,36 +324,36 @@ impl BytecodeBuilder {
     }
 
     fn emitReg1(inst: Int32, r1: BytecodeRegister) {
-        self.emitVal2(inst, r1.value);
+        self.emitVal2(inst, r1.0);
     }
 
     fn emitReg1AndIdx(inst: Int32, r1: BytecodeRegister, idx: ConstPoolId) {
-        self.emitVal3(inst, r1.value, idx.value);
+        self.emitVal3(inst, r1.0, idx.0);
     }
 
     fn emitReg1AndByte(inst: Int32, r1: BytecodeRegister, offset: UInt8) {
-        self.emitVal2(inst, r1.value);
+        self.emitVal2(inst, r1.0);
         self.emitByte(offset.toInt32());
     }
 
     fn emitReg1AndCls(inst: Int32, r1: BytecodeRegister, cls: ClassId) {
-        self.emitVal3(inst, r1.value, cls.value);
+        self.emitVal3(inst, r1.0, cls.0);
     }
 
     fn emitReg2(inst: Int32, r1: BytecodeRegister, r2: BytecodeRegister) {
-        self.emitVal3(inst, r1.value, r2.value);
+        self.emitVal3(inst, r1.0, r2.0);
     }
 
     fn emitReg2AndCls(inst: Int32, r1: BytecodeRegister, r2: BytecodeRegister, cls: ClassId) {
-        self.emitVal4(inst, r1.value, r2.value, cls.value);
+        self.emitVal4(inst, r1.0, r2.0, cls.0);
     }
 
     fn emitReg3(inst: Int32, r1: BytecodeRegister, r2: BytecodeRegister, r3: BytecodeRegister) {
-        self.emitVal4(inst, r1.value, r2.value, r3.value);
+        self.emitVal4(inst, r1.0, r2.0, r3.0);
     }
 
     fn emitGlobal(inst: Int32, r1: BytecodeRegister, glob: GlobalId) {
-        self.emitVal3(inst, r1.value, glob.value);
+        self.emitVal3(inst, r1.0, glob.0);
     }
 
     fn emitField(
@@ -363,7 +363,7 @@ impl BytecodeBuilder {
         cls: ClassId,
         field: ClassFieldId,
     ) {
-        self.emitVal5(inst, r1.value, r2.value, cls.value, field.value);
+        self.emitVal5(inst, r1.0, r2.0, cls.0, field.0);
     }
 
     fn emitVal1(opcode: Int32) {
@@ -451,12 +451,12 @@ impl BytecodeLabel {
     }
 
     fn isBound(): Bool {
-        self.off >= 0i32
+        self.0 >= 0i32
     }
 
     fn offset(): Int32 {
         assert(self.isBound());
-        self.off
+        self.0
     }
 }
 

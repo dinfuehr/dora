@@ -138,19 +138,23 @@ pub trait RegisterType: Equals {
 pub struct Register(pub value: UInt8)
 
 impl Register {
+    fn value(): UInt8 {
+        self.0
+    }
+
     fn equals(rhs: Register): Bool {
-        self.value == rhs.value
+        self.0 == rhs.0
     }
 }
 
 impl Hash for Register {
     fn hash(): Int32 {
-        self.value.toInt32()
+        self.0.toInt32()
     }
 }
 
 impl Equals for Register {
-  fn equals(other: Register): Bool { self.value == other.value }
+  fn equals(other: Register): Bool { self.0 == other.0 }
 }
 
 impl RegisterType for Register {
@@ -160,7 +164,7 @@ impl RegisterType for Register {
     }
 
     fn toInt32(): Int32 {
-        self.value.toInt32()
+        self.0.toInt32()
     }
 
     fn toLocation(): Location {
@@ -170,7 +174,7 @@ impl RegisterType for Register {
 
 impl std::Stringable for Register {
     fn toString(): String {
-        "Reg(${self.value})"
+        "Reg(${self.0})"
     }
 }
 
@@ -178,19 +182,19 @@ pub struct FloatRegister(pub value: UInt8)
 
 impl FloatRegister {
     fn value(): Int32 {
-        self.value.toInt32()
+        self.0.toInt32()
     }
 }
 
 impl Equals for FloatRegister {
     fn equals(rhs: FloatRegister): Bool {
-        self.value == rhs.value
+        self.0 == rhs.0
     }
 }
 
 impl Hash for FloatRegister {
     fn hash(): Int32 {
-        self.value.toInt32()
+        self.0.toInt32()
     }
 }
 
@@ -201,7 +205,7 @@ impl RegisterType for FloatRegister {
     }
 
     fn toInt32(): Int32 {
-        self.value.toInt32()
+        self.0.toInt32()
     }
 
     fn toLocation(): Location {
@@ -212,12 +216,12 @@ impl RegisterType for FloatRegister {
 
 impl std::Stringable for FloatRegister {
     fn toString(): String {
-        "FloatReg(${self.value})"
+        "FloatReg(${self.value()})"
     }
 }
 
 impl Equals for Register {
-  fn equals(other: Register): Bool { self.value == other.value }
+  fn equals(other: Register): Bool { self.0 == other.0 }
 }
 
 class MachineCode {
@@ -491,27 +495,27 @@ mod tests {
     fn iterateRegSet() {
         let regset = RegSet[Register]::new(Register(1u8), Register(15u8), Register(63u8));
         let iter = regset.iter();
-        assert(iter.next().getOrPanic().value == 1u8);
-        assert(iter.next().getOrPanic().value == 15u8);
-        assert(iter.next().getOrPanic().value == 63u8);
+        assert(iter.next().getOrPanic().0 == 1u8);
+        assert(iter.next().getOrPanic().0 == 15u8);
+        assert(iter.next().getOrPanic().0 == 63u8);
         assert(iter.next().isNone());
     }
 
     @Test
     fn popLowestIndexFromRegSet() {
         let regset = RegSet[Register]::new(Register(1u8), Register(15u8), Register(63u8));
-        assert(regset.popLowestIndex().getOrPanic().value == 1u8);
-        assert(regset.popLowestIndex().getOrPanic().value == 15u8);
-        assert(regset.popLowestIndex().getOrPanic().value == 63u8);
+        assert(regset.popLowestIndex().getOrPanic().0 == 1u8);
+        assert(regset.popLowestIndex().getOrPanic().0 == 15u8);
+        assert(regset.popLowestIndex().getOrPanic().0 == 63u8);
         assert(regset.popLowestIndex().isNone());
     }
 
     @Test
     fn popHighestIndexFromRegSet() {
         let regset = RegSet[Register]::new(Register(1u8), Register(15u8), Register(63u8));
-        assert(regset.popHighestIndex().getOrPanic().value == 63u8);
-        assert(regset.popHighestIndex().getOrPanic().value == 15u8);
-        assert(regset.popHighestIndex().getOrPanic().value == 1u8);
+        assert(regset.popHighestIndex().getOrPanic().0 == 63u8);
+        assert(regset.popHighestIndex().getOrPanic().0 == 15u8);
+        assert(regset.popHighestIndex().getOrPanic().0 == 1u8);
         assert(regset.popHighestIndex().isNone());
     }
 }

@@ -125,15 +125,15 @@ impl LoadData {
     }
 
     fn initializeGlobal(id: GlobalId): Bool {
-        self.initialized_globals.insert(id.value)
+        self.initialized_globals.insert(id.0)
     }
 
     fn getGlobalValue(id: GlobalId): Option[Inst] {
-        self.global_values.get(id.value)
+        self.global_values.get(id.0)
     }
 
     fn setGlobalValue(id: GlobalId, value: Inst) {
-        self.global_values.insert(id.value, value);
+        self.global_values.insert(id.0, value);
     }
 
     fn loadClassField(field: Field, value: Inst) {

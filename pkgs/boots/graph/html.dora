@@ -438,16 +438,16 @@ impl BytecodeDumper for HtmlBytecodeDumper {
     }
 
     fn emitGlobal(inst: BytecodeInstructionInfo, name: String, r1: BytecodeRegister, gid: GlobalId) {
-        self.write("${name} ${reg(r1)}, ${gid.value}");
+        self.write("${name} ${reg(r1)}, ${gid}");
     }
 }
 
 fn reg(r: BytecodeRegister): String {
-    "<span class=\"r${r.value} selectable\">${r}</span>"
+    "<span class=\"r${r.0} selectable\">${r}</span>"
 }
 
 fn cp(id: ConstPoolId): String {
-    "<span class=\"cp${id.value} selectable\">@${id.value}</span>"
+    "<span class=\"cp${id.0} selectable\">@${id}</span>"
 }
 
 fn opnd(operand: Operand): String {
@@ -462,7 +462,7 @@ fn location(loc: Location): String {
                 Architecture::X64 => registerNameOnX64(reg),
             };
 
-            "<span class=\"cpu-reg${reg.value} selectable\">${name}</span>"
+            "<span class=\"cpu-reg${reg.0} selectable\">${name}</span>"
         },
         Location::FloatReg(reg) => {
             let name = match config.architecture {
@@ -470,7 +470,7 @@ fn location(loc: Location): String {
                 Architecture::X64 => floatRegisterNameOnX64(reg),
             };
 
-            "<span class=\"cpu-freg${reg.value} selectable\">${name}</span>"
+            "<span class=\"cpu-freg${reg.0} selectable\">${name}</span>"
         },
 
         Location::Stack(slot) => {

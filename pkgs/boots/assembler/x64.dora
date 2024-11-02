@@ -29,11 +29,11 @@ pub let REG_NAMES: Array[String] = Array[String]::new(
 );
 
 pub fn registerName(register: Register): String {
-    REG_NAMES(register.value.toInt64())
+    REG_NAMES(register.0.toInt64())
 }
 
 pub fn floatRegisterName(register: FloatRegister): String {
-    "XMM${register.value}"
+    "XMM${register.0}"
 }
 
 pub let XMM0: FloatRegister = FloatRegister(0u8);
@@ -55,8 +55,8 @@ pub let XMM14: FloatRegister = FloatRegister(14u8);
 pub let XMM15: FloatRegister = FloatRegister(15u8);
 
 impl FloatRegister {
-    pub fn lowBits(): Int32 { self.value.toInt32() & 0b111i32 }
-    pub fn needsRexBit(): Bool { self.value.toInt32() > 7i32 }
+    pub fn lowBits(): Int32 { self.0.toInt32() & 0b111i32 }
+    pub fn needsRexBit(): Bool { self.0.toInt32() > 7i32 }
 }
 
 enum JumpDistance {
@@ -1141,7 +1141,7 @@ impl AssemblerX64 {
         if imm.isUInt8() {
             if lhs == RAX {
                 self.emitByte(0xA8u8);
-            } else if lhs.value < 4u8 {
+            } else if lhs.0 < 4u8 {
                 self.emitByte(0xF6u8);
                 self.emitModRmOpcode(0b000i32, lhs);
             } else {
@@ -2061,13 +2061,13 @@ impl AssemblerX64 {
     }
 
     fn emitRex32ModRmByteOptional(modrm_reg: Register, modrm_rm: Register) {
-        if modrm_reg.needsRexBit() || modrm_rm.needsRexBit() || modrm_rm.value > 3u8 {
+        if modrm_reg.needsRexBit() || modrm_rm.needsRexBit() || modrm_rm.0 > 3u8 {
             self.emitRex(false, modrm_reg.needsRexBit(), false, modrm_rm.needsRexBit());
         }
     }
 
     fn emitRexByteModRmOptional(modrm_reg: Register, modrm_rm: Register) {
-        if modrm_reg.needsRexBit() || modrm_reg.value > 3u8 || modrm_rm.needsRexBit() || modrm_rm.value > 3u8 {
+        if modrm_reg.needsRexBit() || modrm_reg.0 > 3u8 || modrm_rm.needsRexBit() || modrm_rm.0 > 3u8 {
             self.emitRex(false, modrm_reg.needsRexBit(), false, modrm_rm.needsRexBit());
         }
     }
@@ -2080,7 +2080,7 @@ impl AssemblerX64 {
     }
 
     fn emitRex32ModRmAddressByteOptional(reg: Register, address: Address) {
-        if address.rex != 0u8 || reg.value > 3u8 {
+        if address.rex != 0u8 || reg.0 > 3u8 {
             let rex = 0x40i32 | address.rex.toInt32() | if reg.needsRexBit() { 0x04i32 } else { 0i32 };
             self.emitByte(rex.toUInt8());
         };
@@ -2401,33 +2401,33 @@ pub struct Immediate(pub value: Int64)
 impl Immediate {
     fn isInt8(): Bool {
         let limit = 1i64 << 7i32;
-        -limit <= self.value && self.value < limit
+        -limit <= self.0 && self.0 < limit
     }
 
     fn isUInt8(): Bool {
-        0i64 <= self.value && self.value < 256i64
+        0i64 <= self.0 && self.0 < 256i64
     }
 
     fn isInt32(): Bool {
         let limit = 1i64 << 31i32;
-        -limit <= self.value && self.value < limit
+        -limit <= self.0 && self.0 < limit
     }
 
     fn isUInt32(): Bool {
         let limit = 1i64 << 32i32;
-        0i64 <= self.value && self.value < limit
+        0i64 <= self.0 && self.0 < limit
     }
 
     fn toUInt8(): UInt8 {
-        self.value.toUInt8()
+        self.0.toUInt8()
     }
 
     fn toInt32(): Int32 {
-        self.value.toInt32()
+        self.0.toInt32()
     }
 
     fn toInt64(): Int64 {
-        self.value
+        self.0
     }
 }
 
@@ -2691,8 +2691,8 @@ fn testConditionCodes() {
 }
 
 impl Register {
-    fn lowBits(): Int32 { self.value.toInt32() & 0b111i32 }
-    fn needsRexBit(): Bool { self.value > 7u8 }
+    fn lowBits(): Int32 { self.0.toInt32() & 0b111i32 }
+    fn needsRexBit(): Bool { self.0 > 7u8 }
 }
 
 mod tests {

@@ -37,8 +37,8 @@ pub let R29: Register = Register(29u8);
 pub let R30: Register = Register(30u8);
 
 pub fn registerName(register: Register): String {
-    if register.value <= 30u8 {
-        "x${register.value}"
+    if register.0 <= 30u8 {
+        "x${register.0}"
     } else if register == REG_ZERO {
         "xzr"
     } else if register == REG_SP {
@@ -49,7 +49,7 @@ pub fn registerName(register: Register): String {
 }
 
 pub fn floatRegisterName(register: FloatRegister): String {
-    "f${register.value}"
+    "f${register.0}"
 }
 
 pub let REG_ZERO: Register = Register(32u8);
@@ -63,7 +63,7 @@ const FLOAT_TYPE_DOUBLE: Int32 = 0b01;
 
 impl FloatRegister {
     fn encoding(): Int32 {
-        self.value.toInt32()
+        self.0.toInt32()
     }
 }
 
@@ -2286,7 +2286,7 @@ pub fn fitsAddSubImm(value: Int64): Bool {
 
 impl Register {
     fn isGpr(): Bool {
-        self.value <= 30u8
+        self.0 <= 30u8
     }
 
     fn isGprOrZero(): Bool {
@@ -2299,14 +2299,14 @@ impl Register {
 
     fn encoding(): Int32 {
         assert(self.isGpr());
-        self.value.toInt32()
+        self.0.toInt32()
     }
 
     fn encodingZero(): Int32 {
         assert(self.isGprOrZero());
 
         if self.isGpr() {
-            self.value.toInt32()
+            self.0.toInt32()
         } else {
             31i32
         }
@@ -2316,7 +2316,7 @@ impl Register {
         assert(self.isGprOrSp());
 
         if self.isGpr() {
-            self.value.toInt32()
+            self.0.toInt32()
         } else {
             31i32
         }

@@ -64,7 +64,7 @@ impl Graph {
         assert(block._id.isNone());
 
         block.graph = Some(self);
-        block._id = Some(self.nextBlockId().value);
+        block._id = Some(self.nextBlockId().0);
         self.blocks.push(Some[Block](block));
     }
 
@@ -89,7 +89,7 @@ impl Graph {
     }
 
     pub fn getInstById(id: InstId): Inst {
-        self.instById(id.value.toInt64()).getOrPanic()
+        self.instById(id.0.toInt64()).getOrPanic()
     }
 
     fn assignNextInstId(inst: Inst) {
@@ -969,7 +969,7 @@ pub struct InstId(value: Int32)
 
 impl Stringable for InstId {
     fn toString(): String {
-        self.value.toString()
+        self.0.toString()
     }
 }
 
@@ -1667,7 +1667,7 @@ impl Inst {
 
 impl Hash for Inst {
     fn hash(): Int32 {
-        self.id().value.hash()
+        self.id().0.hash()
     }
 }
 
@@ -2095,8 +2095,8 @@ impl Hash for Location {
     fn hash(): Int32 {
         match self {
             Location::None => 1i32,
-            Location::Reg(reg) => reg.value.toInt32() << 1i32,
-            Location::FloatReg(reg) => reg.value.toInt32() << 1i32,
+            Location::Reg(reg) => reg.toInt32() << 1i32,
+            Location::FloatReg(reg) => reg.toInt32() << 1i32,
             Location::Stack(slot) => slot.getOffset() << 2i32 + slot.isFp().toInt32() << 1i32 + 1i32,
         }
     }
@@ -2106,8 +2106,8 @@ impl Stringable for Location {
     fn toString(): String {
         match self {
             Location::None => "None",
-            Location::Reg(reg) => "Reg(${reg.value})",
-            Location::FloatReg(reg) => "FloatReg(${reg.value})",
+            Location::Reg(reg) => "Reg(${reg.toInt32()})",
+            Location::FloatReg(reg) => "FloatReg(${reg.toInt32()})",
             Location::Stack(slot) => "Stack(${slot})",
         }
     }
@@ -2391,7 +2391,7 @@ pub fn createFloat64Const(value: Float64): Inst {
 pub fn createEnsureGlobalInitializedInst(global: GlobalId, ty: Type): Inst {
     let inst = Inst::new();
     inst._op = Some(Op::EnsureGlobalInitialized);
-    inst.aux = global.value.toInt64();
+    inst.aux = global.0.toInt64();
     inst.ty = ty;
     inst
 }
@@ -2399,7 +2399,7 @@ pub fn createEnsureGlobalInitializedInst(global: GlobalId, ty: Type): Inst {
 pub fn createMarkGlobalInitializedInst(global: GlobalId): Inst {
     let inst = Inst::new();
     inst._op = Some(Op::MarkGlobalInitialized);
-    inst.aux = global.value.toInt64();
+    inst.aux = global.0.toInt64();
     inst
 }
 
@@ -2407,21 +2407,21 @@ pub fn createLoadGlobalInst(ty: Type, global: GlobalId): Inst {
     let inst = Inst::new();
     inst._op = Some(Op::LoadGlobal);
     inst.ty = ty;
-    inst.aux = global.value.toInt64();
+    inst.aux = global.0.toInt64();
     inst
 }
 
 pub fn createGetGlobalAddressInst(global: GlobalId): Inst {
     let inst = Inst::new();
     inst._op = Some(Op::GetGlobalAddress);
-    inst.aux = global.value.toInt64();
+    inst.aux = global.0.toInt64();
     inst
 }
 
 pub fn createStoreGlobalInst(ty: Type, global: GlobalId, value: Inst): Inst {
     let inst = Inst::new();
     inst._op = Some(Op::StoreGlobal);
-    inst.aux = global.value.toInt64();
+    inst.aux = global.0.toInt64();
     inst.addInput(value);
     inst.ty = ty;
     inst
@@ -2590,7 +2590,7 @@ pub class ClassInfo {
 
 impl Equals for ClassInfo {
     fn equals(other: ClassInfo): Bool {
-        self.class_id.value == other.class_id.value && self.type_params == other.type_params
+        self.class_id == other.class_id && self.type_params == other.type_params
     }
 }
 
@@ -3110,15 +3110,15 @@ impl InstSet {
     }
 
     pub fn contains(inst: Inst): Bool {
-        self.data.contains(inst.id().value.toInt64())
+        self.data.contains(inst.id().0.toInt64())
     }
 
     pub fn insert(inst: Inst): Bool {
-        self.data.insert(inst.id().value.toInt64())
+        self.data.insert(inst.id().0.toInt64())
     }
 
     pub fn remove(inst: Inst): Bool {
-        self.data.remove(inst.id().value.toInt64())
+        self.data.remove(inst.id().0.toInt64())
     }
 
     pub fn unionWith(rhs: InstSet) {

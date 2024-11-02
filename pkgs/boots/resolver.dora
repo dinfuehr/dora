@@ -103,11 +103,11 @@ fn processPhi[T: RegisterType](phi: Inst, predecessorEdge: Edge, predecessor_reg
 }
 
 
-struct Move(
+struct Move {
     ty: Type,
     dest: Location,
     src: Location,
-)
+}
 
 struct RematerializeMove {
     dest: Location,
@@ -287,8 +287,8 @@ fn testRegisterMovesWithDependency() {
     moves.resolve(Register(10u8), FloatRegister(100u8));
 
     expectMoves(moves, Array[Move]::new(
-        Move(Type::Int64, r(2), r(1)),
-        Move(Type::Int64, r(1), r(0)),
+        Move(ty = Type::Int64, dest = r(2), src = r(1)),
+        Move(ty = Type::Int64, dest = r(1), src = r(0)),
     ));
 }
 
@@ -300,8 +300,8 @@ fn testRegisterMovesWithDependencyAndDifferentTypes() {
     moves.resolve(Register(10u8), FloatRegister(100u8));
 
     expectMoves(moves, Array[Move]::new(
-        Move(Type::Int64, r(2), r(1)),
-        Move(Type::Int32, r(1), r(0)),
+        Move(ty = Type::Int64, dest = r(2), src = r(1)),
+        Move(ty = Type::Int32, dest = r(1), src = r(0)),
     ));
 }
 
@@ -313,8 +313,8 @@ fn testFloatRegisterMovesWithDependency() {
     moves.resolve(Register(10u8), FloatRegister(100u8));
 
     expectMoves(moves, Array[Move]::new(
-        Move(Type::Float64, f(2), f(1)),
-        Move(Type::Float64, f(1), f(0)),
+        Move(ty = Type::Float64, dest = f(2), src = f(1)),
+        Move(ty = Type::Float64, dest = f(1), src = f(0)),
     ));
 }
 
@@ -326,8 +326,8 @@ fn testStackMovesWithDependency() {
     moves.resolve(Register(10u8), FloatRegister(1u8));
 
     expectMoves(moves, Array[Move]::new(
-        Move(Type::Int32, r(2), s(1)),
-        Move(Type::Int32, s(1), r(0)),
+        Move(ty = Type::Int32, dest = r(2), src = s(1)),
+        Move(ty = Type::Int32, dest = s(1), src = r(0)),
     ));
 }
 
@@ -340,10 +340,10 @@ fn testRegisterMovesWithCycle() {
     moves.resolve(Register(100u8), FloatRegister(100u8));
 
     expectMoves(moves, Array[Move]::new(
-        Move(Type::Int64, r(100), r(2)),
-        Move(Type::Int64, r(2), r(1)),
-        Move(Type::Int64, r(1), r(0)),
-        Move(Type::Int64, r(0), r(100)),
+        Move(ty = Type::Int64, dest = r(100), src = r(2)),
+        Move(ty = Type::Int64, dest = r(2), src = r(1)),
+        Move(ty = Type::Int64, dest = r(1), src = r(0)),
+        Move(ty = Type::Int64, dest = r(0), src = r(100)),
     ));
 }
 
@@ -356,10 +356,10 @@ fn testFloatRegisterMovesWithCycle() {
     moves.resolve(Register(100u8), FloatRegister(5u8));
 
     expectMoves(moves, Array[Move]::new(
-        Move(Type::Float64, f(5), f(2)),
-        Move(Type::Float64, f(2), f(1)),
-        Move(Type::Float64, f(1), f(0)),
-        Move(Type::Float64, f(0), f(5)),
+        Move(ty = Type::Float64, dest = f(5), src = f(2)),
+        Move(ty = Type::Float64, dest = f(2), src = f(1)),
+        Move(ty = Type::Float64, dest = f(1), src = f(0)),
+        Move(ty = Type::Float64, dest = f(0), src = f(5)),
     ));
 }
 
@@ -372,10 +372,10 @@ fn testStackMovesWithCycle() {
     moves.resolve(Register(100u8), FloatRegister(100u8));
 
     expectMoves(moves, Array[Move]::new(
-        Move(Type::Int64, r(100), s(2)),
-        Move(Type::Int64, s(2), s(1)),
-        Move(Type::Int64, s(1), s(0)),
-        Move(Type::Int64, s(0), r(100)),
+        Move(ty = Type::Int64, dest = r(100), src = s(2)),
+        Move(ty = Type::Int64, dest = s(2), src = s(1)),
+        Move(ty = Type::Int64, dest = s(1), src = s(0)),
+        Move(ty = Type::Int64, dest = s(0),src =  r(100)),
     ));
 }
 
