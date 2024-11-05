@@ -228,7 +228,7 @@ fn check_expr_assign_ident(ck: &mut TypeCheck, e: &ast::ExprBinType) {
         Some(SymbolKind::Global(global_id)) => {
             let global_var = ck.sa.global(global_id);
 
-            if !e.initializer && !global_var.mutable {
+            if !global_var.mutable {
                 ck.sa
                     .report(ck.file_id, e.span, ErrorMessage::LetReassigned);
             }
@@ -302,9 +302,15 @@ fn check_expr_assign_call(ck: &mut TypeCheck, e: &ast::ExprBinType) {
 }
 
 fn check_expr_assign_field(ck: &mut TypeCheck, e: &ast::ExprBinType) {
-    let field_expr = e.lhs.to_dot().unwrap();
+    let dot_expr = e.lhs.to_dot().unwrap();
+    let object_type = check_expr(ck, &dot_expr.lhs, SourceType::Any);
 
-    let name = match field_expr.rhs.to_ident() {
+    if dot_expr.rhs.is_lit_int() {
+        check_expr_assign_unnamed_field(ck, e, dot_expr, object_type);
+        return;
+    }
+
+    let name = match dot_expr.rhs.to_ident() {
         Some(ident) => ident.name.clone(),
 
         None => {
@@ -317,8 +323,6 @@ fn check_expr_assign_field(ck: &mut TypeCheck, e: &ast::ExprBinType) {
     };
 
     let interned_name = ck.sa.interner.intern(&name);
-
-    let object_type = check_expr(ck, &field_expr.lhs, SourceType::Any);
 
     if let SourceType::Class(cls_id, class_type_params) = object_type.clone() {
         if let Some((field_id, _)) = find_field_in_class(ck.sa, object_type.clone(), interned_name)
@@ -333,7 +337,7 @@ fn check_expr_assign_field(ck: &mut TypeCheck, e: &ast::ExprBinType) {
 
             let fty = replace_type(ck.sa, field.ty(), Some(&class_type_params), None);
 
-            if !e.initializer && !field.mutable {
+            if !field.mutable {
                 ck.sa
                     .report(ck.file_id, e.span, ErrorMessage::LetReassigned);
             }
@@ -373,9 +377,99 @@ fn check_expr_assign_field(ck: &mut TypeCheck, e: &ast::ExprBinType) {
     // field not found, report error
     let expr_name = ck.ty_name(&object_type);
     let msg = ErrorMessage::UnknownField(name, expr_name);
-    ck.sa.report(ck.file_id, field_expr.op_span, msg);
+    ck.sa.report(ck.file_id, dot_expr.op_span, msg);
 
     ck.analysis.set_ty(e.id, SourceType::Unit);
+}
+
+fn check_expr_assign_unnamed_field(
+    ck: &mut TypeCheck,
+    e: &ast::ExprBinType,
+    dot_expr: &ast::ExprDotType,
+    object_type: SourceType,
+) {
+    let literal = dot_expr.rhs.to_lit_int().expect("literal expected");
+
+    let (ty, value) = compute_lit_int(ck.sa, ck.file_id, &dot_expr.rhs, SourceType::Any);
+
+    if ty.is_float() {
+        ck.sa
+            .report(ck.file_id, literal.span, ErrorMessage::IndexExpected);
+    }
+
+    ck.analysis.set_const_value(literal.id, value.clone());
+
+    let index = value.to_i64().unwrap_or(0) as usize;
+
+    match object_type.clone() {
+        SourceType::Error
+        | SourceType::Any
+        | SourceType::Unit
+        | SourceType::UInt8
+        | SourceType::Char
+        | SourceType::Int32
+        | SourceType::Int64
+        | SourceType::Float32
+        | SourceType::Float64
+        | SourceType::Bool
+        | SourceType::Ptr
+        | SourceType::This
+        | SourceType::TraitObject(..)
+        | SourceType::Enum(..)
+        | SourceType::TypeParam(..)
+        | SourceType::Lambda(..)
+        | SourceType::Alias(..)
+        | SourceType::Assoc(..)
+        | SourceType::GenericAssoc(..) => {
+            let name = index.to_string();
+            let expr_name = ck.ty_name(&object_type);
+            let msg = ErrorMessage::UnknownField(name, expr_name);
+            ck.sa.report(ck.file_id, e.rhs.span(), msg);
+
+            check_expr(ck, &e.rhs, SourceType::Any);
+        }
+
+        SourceType::Struct(..) | SourceType::Tuple(..) => unimplemented!(),
+
+        SourceType::Class(class_id, class_type_params) => {
+            let cls = ck.sa.class(class_id);
+            if !cls.field_name_style.is_named() && index < cls.fields.len() {
+                let field = &cls.fields[index];
+                let ident_type = IdentType::Field(object_type.clone(), field.id);
+                ck.analysis
+                    .map_idents
+                    .insert_or_replace(dot_expr.id, ident_type);
+
+                let fty = replace_type(ck.sa, field.ty(), Some(&class_type_params), None);
+
+                if !class_field_accessible_from(ck.sa, class_id, field.id, ck.module_id) {
+                    let msg = ErrorMessage::NotAccessible;
+                    ck.sa.report(ck.file_id, dot_expr.rhs.span(), msg);
+                }
+
+                let rhs_type = check_expr(ck, &e.rhs, fty.clone());
+
+                if !fty.allows(ck.sa, rhs_type.clone()) && !rhs_type.is_error() {
+                    let name = index.to_string();
+                    let object_type = ck.ty_name(&object_type);
+                    let lhs_type = ck.ty_name(&fty);
+                    let rhs_type = ck.ty_name(&rhs_type);
+
+                    let msg = ErrorMessage::AssignField(name, object_type, lhs_type, rhs_type);
+                    ck.sa.report(ck.file_id, e.span, msg);
+                }
+
+                ck.analysis.set_ty(e.id, fty.clone());
+            } else {
+                let name = index.to_string();
+                let expr_name = ck.ty_name(&object_type);
+                let msg = ErrorMessage::UnknownField(name, expr_name);
+                ck.sa.report(ck.file_id, dot_expr.rhs.span(), msg);
+
+                check_expr(ck, &e.rhs, SourceType::Any);
+            }
+        }
+    }
 }
 
 pub(super) fn check_expr_dot(
@@ -386,7 +480,7 @@ pub(super) fn check_expr_dot(
     let object_type = check_expr(ck, &e.lhs, SourceType::Any);
 
     if e.rhs.is_lit_int() {
-        return check_expr_dot_lit_int(ck, e, object_type);
+        return check_expr_dot_unnamed_field(ck, e, object_type);
     }
 
     let name = match e.rhs.to_ident() {
@@ -486,7 +580,7 @@ pub(super) fn check_expr_dot(
     ty_error()
 }
 
-fn check_expr_dot_lit_int(
+fn check_expr_dot_unnamed_field(
     ck: &mut TypeCheck,
     e: &ast::ExprDotType,
     object_type: SourceType,

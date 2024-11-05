@@ -1135,7 +1135,6 @@ impl ExprData {
             span,
 
             op,
-            initializer: false,
             lhs,
             rhs,
         })
@@ -1806,7 +1805,6 @@ pub struct ExprBinType {
     pub span: Span,
 
     pub op: BinOp,
-    pub initializer: bool,
     pub lhs: Expr,
     pub rhs: Expr,
 }

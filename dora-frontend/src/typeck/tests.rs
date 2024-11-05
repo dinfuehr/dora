@@ -4796,21 +4796,66 @@ fn unnamed_class_field() {
 }
 
 #[test]
-fn unnamed_access_on_named_field() {
+fn unnamed_class_field_assignment() {
+    ok("
+        class Foo &(Int, Bool)
+        fn f(x: Foo, v: Int) {
+            x.0 = v;
+        }
+    ");
+
+    ok("
+        class Foo &(Int, Bool)
+        fn f(x: Foo, v: Bool) {
+            x.1 = v;
+        }
+    ");
+
+    err(
+        "
+        class Foo &(Int, Bool)
+        fn f(x: Foo, v: String) {
+            x.2 = v;
+        }
+    ",
+        (4, 15),
+        ErrorMessage::UnknownField("2".into(), "Foo".into()),
+    );
+
+    err(
+        "
+        mod m {
+            pub class Foo &(Int, Bool)
+        }
+
+        fn f(x: m::Foo, v: Int) {
+            x.0 = v;
+        }
+    ",
+        (7, 15),
+        ErrorMessage::NotAccessible,
+    );
+}
+
+#[test]
+fn unnamed_class_field_assignment_to_named_field() {
     err(
         "
         class Foo { a: Int, b: Bool }
-        fn f(x: Foo): Int {
-            x.0
+        fn f(x: Foo, v: Int) {
+            x.0 = v;
         }
     ",
         (4, 15),
         ErrorMessage::UnknownField("0".into(), "Foo".into()),
     );
+}
 
+#[test]
+fn unnamed_access_on_named_field() {
     err(
         "
-        struct Foo { a: Int, b: Bool }
+        class Foo { a: Int, b: Bool }
         fn f(x: Foo): Int {
             x.0
         }

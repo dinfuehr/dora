@@ -1,0 +1,12 @@
+class Foo &(Int, Bool)
+
+fn main() {
+    let x = Foo(1, true);
+    set_first(x, 10);
+    assert(x.0 == 10);
+    assert(x.1 == true);
+}
+
+fn set_first(foo: Foo, value: Int) {
+    foo.0 = value;
+}
