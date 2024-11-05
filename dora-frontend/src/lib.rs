@@ -290,6 +290,8 @@ pub mod tests {
                     vec[ind].1, error.msg
                 );
             }
+
+            println!("============\n\n");
         });
     }
 

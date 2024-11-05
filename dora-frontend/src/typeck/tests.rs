@@ -3755,7 +3755,7 @@ fn immutable_struct_fields() {
         }
     ",
         (5, 13),
-        ErrorMessage::StructFieldImmutable,
+        ErrorMessage::ImmutableField,
     );
 }
 
@@ -4904,5 +4904,105 @@ fn unnamed_struct_field() {
     ",
         (7, 15),
         ErrorMessage::NotAccessible,
+    );
+}
+
+#[test]
+fn unnamed_struct_field_assignment() {
+    err(
+        "
+        struct Foo(Int, Bool)
+        fn f(x: Foo, v: Int) {
+            x.0 = v;
+        }
+    ",
+        (4, 13),
+        ErrorMessage::ImmutableField,
+    );
+
+    errors(
+        "
+        struct Foo(Int, Bool)
+        fn f(x: Foo, v: Bool) {
+            x.0 = v;
+        }
+    ",
+        &[
+            (
+                (4, 13),
+                ErrorMessage::AssignField("0".into(), "Foo".into(), "Int64".into(), "Bool".into()),
+            ),
+            ((4, 13), ErrorMessage::ImmutableField),
+        ],
+    );
+
+    err(
+        "
+        struct Foo(Int, Bool)
+        fn f(x: Foo, v: Bool) {
+            x.2 = v;
+        }
+    ",
+        (4, 15),
+        ErrorMessage::UnknownField("2".into(), "Foo".into()),
+    );
+
+    errors(
+        "
+        mod m {
+            pub struct Foo(Int, Bool)
+        }
+
+        fn f(x: m::Foo, v: Int) {
+            x.0 = v;
+        }
+    ",
+        &[
+            ((7, 13), ErrorMessage::ImmutableField),
+            ((7, 15), ErrorMessage::NotAccessible),
+        ],
+    );
+}
+
+#[test]
+fn unnamed_tuple_field_assignment() {
+    err(
+        "
+        fn f(x: (Int, Bool), v: Int) {
+            x.0 = v;
+        }
+    ",
+        (3, 13),
+        ErrorMessage::ImmutableField,
+    );
+
+    err(
+        "
+        fn f(x: (Int, Bool), v: Int) {
+            x.2 = v;
+        }
+    ",
+        (3, 15),
+        ErrorMessage::UnknownField("2".into(), "(Int64, Bool)".into()),
+    );
+
+    errors(
+        "
+        fn f(x: (Int, Bool), v: Bool) {
+            x.0 = v;
+        }
+    ",
+        &[
+            (
+                (3, 13),
+                ErrorMessage::AssignField(
+                    "0".into(),
+                    "(Int64, Bool)".into(),
+                    "Int64".into(),
+                    "Bool".into(),
+                ),
+            ),
+            ((3, 13), ErrorMessage::ImmutableField),
+        ],
     );
 }

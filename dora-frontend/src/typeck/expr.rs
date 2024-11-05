@@ -360,7 +360,7 @@ fn check_expr_assign_field(ck: &mut TypeCheck, e: &ast::ExprBinType) {
 
     if object_type.is_struct() {
         ck.sa
-            .report(ck.file_id, e.span, ErrorMessage::StructFieldImmutable);
+            .report(ck.file_id, e.span, ErrorMessage::ImmutableField);
 
         // We want to see syntax expressions in the assignment expressions even when we can't
         // find the given field.
@@ -429,7 +429,72 @@ fn check_expr_assign_unnamed_field(
             check_expr(ck, &e.rhs, SourceType::Any);
         }
 
-        SourceType::Struct(..) | SourceType::Tuple(..) => unimplemented!(),
+        SourceType::Struct(struct_id, struct_type_params) => {
+            let struct_ = ck.sa.struct_(struct_id);
+            if !struct_.field_name_style.is_named() && index < struct_.fields.len() {
+                let field = &struct_.fields[index];
+                let ident_type = IdentType::StructField(object_type.clone(), field.id);
+                ck.analysis
+                    .map_idents
+                    .insert_or_replace(dot_expr.id, ident_type);
+
+                let fty = replace_type(ck.sa, field.ty(), Some(&struct_type_params), None);
+
+                if !struct_field_accessible_from(ck.sa, struct_id, field.id, ck.module_id) {
+                    let msg = ErrorMessage::NotAccessible;
+                    ck.sa.report(ck.file_id, dot_expr.rhs.span(), msg);
+                }
+
+                let rhs_type = check_expr(ck, &e.rhs, fty.clone());
+
+                if !fty.allows(ck.sa, rhs_type.clone()) && !rhs_type.is_error() {
+                    let name = index.to_string();
+                    let object_type = ck.ty_name(&object_type);
+                    let lhs_type = ck.ty_name(&fty);
+                    let rhs_type = ck.ty_name(&rhs_type);
+
+                    let msg = ErrorMessage::AssignField(name, object_type, lhs_type, rhs_type);
+                    ck.sa.report(ck.file_id, e.span, msg);
+                }
+
+                let msg = ErrorMessage::ImmutableField;
+                ck.sa.report(ck.file_id, e.span, msg);
+            } else {
+                let name = index.to_string();
+                let expr_name = ck.ty_name(&object_type);
+                let msg = ErrorMessage::UnknownField(name, expr_name);
+                ck.sa.report(ck.file_id, dot_expr.rhs.span(), msg);
+
+                check_expr(ck, &e.rhs, SourceType::Any);
+            }
+        }
+
+        SourceType::Tuple(subtypes) => {
+            if index < subtypes.len() {
+                let ty = subtypes[usize::try_from(index).unwrap()].clone();
+                let rhs_type = check_expr(ck, &e.rhs, ty.clone());
+
+                if !ty.allows(ck.sa, rhs_type.clone()) && !rhs_type.is_error() {
+                    let name = index.to_string();
+                    let object_type = ck.ty_name(&object_type);
+                    let lhs_type = ck.ty_name(&ty);
+                    let rhs_type = ck.ty_name(&rhs_type);
+
+                    let msg = ErrorMessage::AssignField(name, object_type, lhs_type, rhs_type);
+                    ck.sa.report(ck.file_id, e.span, msg);
+                }
+
+                let msg = ErrorMessage::ImmutableField;
+                ck.sa.report(ck.file_id, e.span, msg);
+            } else {
+                let name = index.to_string();
+                let expr_name = ck.ty_name(&object_type);
+                let msg = ErrorMessage::UnknownField(name, expr_name);
+                ck.sa.report(ck.file_id, dot_expr.rhs.span(), msg);
+
+                check_expr(ck, &e.rhs, SourceType::Any);
+            }
+        }
 
         SourceType::Class(class_id, class_type_params) => {
             let cls = ck.sa.class(class_id);

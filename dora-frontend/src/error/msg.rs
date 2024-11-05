@@ -127,7 +127,7 @@ pub enum ErrorMessage {
     NotAccessible,
     UnexpectedTypeAliasAssignment,
     StructConstructorNotAccessible(String),
-    StructFieldImmutable,
+    ImmutableField,
     ClassConstructorNotAccessible(String),
     NotAccessibleInModule(String, String),
     RecursiveStructure,
@@ -322,8 +322,8 @@ impl ErrorMessage {
                     struct_, def, struct_, expr
                 )
             }
-            ErrorMessage::StructFieldImmutable => {
-                format!("struct fields are not mutable.")
+            ErrorMessage::ImmutableField => {
+                format!("Fields of this type are immutable.")
             }
             ErrorMessage::EnumArgsNoParens(ref name, ref variant) => {
                 format!("{}::{} needs to be used without parens.", name, variant)
