@@ -437,7 +437,7 @@ impl BytecodeBuilder {
     }
 }
 
-class BytecodeLabel(off: Int32)
+class BytecodeLabel &(Int32)
 
 impl BytecodeLabel {
     static fn new(): BytecodeLabel {
@@ -446,7 +446,7 @@ impl BytecodeLabel {
 
     fn bindTo(offset: Int32): BytecodeLabel {
         assert(offset >= 0i32);
-        self.off = offset;
+        self.0 = offset;
         self
     }
 

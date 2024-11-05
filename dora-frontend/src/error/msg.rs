@@ -209,6 +209,7 @@ pub enum ErrorMessage {
     SuperfluousArgument,
     MissingArguments(usize, usize),
     FieldShouldBeUnnamed,
+    OldClassDefinition,
 }
 
 impl ErrorMessage {
@@ -724,6 +725,9 @@ impl ErrorMessage {
             }
             ErrorMessage::FieldShouldBeUnnamed => {
                 format!("Field access should be unnamed.")
+            }
+            ErrorMessage::OldClassDefinition => {
+                format!("Switch code to new class definition syntax.")
             }
         }
     }

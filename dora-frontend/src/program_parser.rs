@@ -614,6 +614,11 @@ impl<'x> visit::Visitor for TopLevelDeclaration<'x> {
         for field in &node.fields {
             check_modifiers(self.sa, self.file_id, &field.modifiers, &[Annotation::Pub]);
         }
+
+        if node.field_name_style.is_old() {
+            self.sa
+                .warn(self.file_id, node.span, ErrorMessage::OldClassDefinition);
+        }
     }
 
     fn visit_struct(&mut self, node: &Arc<ast::Struct>) {

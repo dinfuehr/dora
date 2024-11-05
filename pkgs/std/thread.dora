@@ -15,7 +15,9 @@ impl Thread {
 
 @internal pub fn spawn(action: (): ()): Thread;
 
-pub class AtomicInt32(value: Int32)
+pub class AtomicInt32 {
+    value: Int32
+}
 
 impl AtomicInt32 {
     pub static fn new(value: Int32): AtomicInt32 {
@@ -29,7 +31,9 @@ impl AtomicInt32 {
     pub @internal fn fetchAdd(value: Int32): Int32;
 }
 
-pub class AtomicInt64(value: Int64)
+pub class AtomicInt64 {
+    value: Int64
+}
 
 impl AtomicInt64 {
     pub static fn new(value: Int64): AtomicInt64 {

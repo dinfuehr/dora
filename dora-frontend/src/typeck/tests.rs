@@ -12,15 +12,15 @@ fn type_method_len() {
 
 #[test]
 fn type_object_field() {
-    ok("class Foo(a:Int32) fn f(x: Foo): Int32 { return x.a; }");
-    ok("class Foo(a:String) fn f(x: Foo): String { return x.a; }");
+    ok("class Foo{a:Int32} fn f(x: Foo): Int32 { return x.a; }");
+    ok("class Foo{a:String} fn f(x: Foo): String { return x.a; }");
     err(
-        "class Foo(a:Int32) fn f(x: Foo): Bool { return x.a; }",
+        "class Foo{a:Int32} fn f(x: Foo): Bool { return x.a; }",
         (1, 41),
         ErrorMessage::ReturnType("Bool".into(), "Int32".into()),
     );
     err(
-        "class Foo(a:Int32) fn f(x: Foo): Int32 { return x.b; }",
+        "class Foo{a:Int32} fn f(x: Foo): Int32 { return x.b; }",
         (1, 51),
         ErrorMessage::UnknownField("b".into(), "Foo".into()),
     );
@@ -28,9 +28,9 @@ fn type_object_field() {
 
 #[test]
 fn type_object_set_field() {
-    ok("class Foo(a: Int32) fn f(x: Foo) { x.a = 1; }");
+    ok("class Foo{a: Int32} fn f(x: Foo) { x.a = 1; }");
     err(
-        "class Foo(a: Int32) fn f(x: Foo) { x.a = false; }",
+        "class Foo{a: Int32} fn f(x: Foo) { x.a = false; }",
         (1, 36),
         ErrorMessage::AssignField("a".into(), "Foo".into(), "Int32".into(), "Bool".into()),
     );
@@ -39,12 +39,12 @@ fn type_object_set_field() {
 #[test]
 fn type_object_field_without_self() {
     err(
-        "class Foo(a: Int32) impl Foo { fn f(): Int32 { return a; } }",
+        "class Foo{a: Int32} impl Foo { fn f(): Int32 { return a; } }",
         (1, 55),
         ErrorMessage::UnknownIdentifier("a".into()),
     );
     err(
-        "class Foo(a: Int32) impl Foo { fn set(x: Int32) { a = x; } }",
+        "class Foo{a: Int32} impl Foo { fn set(x: Int32) { a = x; } }",
         (1, 51),
         ErrorMessage::UnknownIdentifier("a".into()),
     );
@@ -139,12 +139,12 @@ fn type_self() {
         ErrorMessage::ThisUnavailable,
     );
 
-    ok("class Foo(a: Int32, b: Int32)
+    ok("class Foo{a: Int32, b: Int32}
         impl Foo {
             fn bar(): Int32 { return self.a + self.b; }
         }");
 
-    ok("class Foo(a: Int32)
+    ok("class Foo{a: Int32}
         impl Foo {
             fn setA(a: Int32) { self.a = a; }
         }");
@@ -185,7 +185,7 @@ fn type_unknown_method() {
 #[test]
 fn type_ctor() {
     ok("class Foo fn f(): Foo { return Foo(); }");
-    ok("class Foo(a: Int32) fn f(): Foo { return Foo(1i32); }");
+    ok("class Foo&(Int32) fn f(): Foo { return Foo(1i32); }");
     err(
         "class Foo fn f(): Foo { return 1i32; }",
         (1, 25),
@@ -497,7 +497,7 @@ fn type_array_assign() {
 #[test]
 fn type_array_field() {
     ok("
-        class Foo(x: Array[Int32])
+        class Foo { x: Array[Int32] }
         fn f(a: Foo): Int32 { return a.x(1i64); }
     ");
 }
@@ -533,7 +533,7 @@ fn reassign_param() {
 
 #[test]
 fn reassign_field() {
-    ok("class Foo(x: Int32) fn foo(f: Foo) { f.x = 1; }");
+    ok("class Foo {x: Int32} fn foo(f: Foo) { f.x = 1; }");
 }
 
 #[test]
@@ -2205,7 +2205,7 @@ fn zero_trait_err() {
 #[test]
 fn extension_method_call() {
     ok("
-        class Foo(value: Int32)
+        class Foo { value: Int32 }
         impl Foo { fn foo(): Int32 { self.value } }
         fn bar(x: Foo): Int32 { x.foo() }
     ");
@@ -2866,7 +2866,7 @@ fn mod_class_field() {
     err(
         "
         fn f(x: foo::Foo) { let a = x.bar; }
-        mod foo { pub class Foo(bar: Int32) }
+        mod foo { pub class Foo { bar: Int32 } }
     ",
         (2, 39),
         ErrorMessage::NotAccessible,
@@ -2875,7 +2875,7 @@ fn mod_class_field() {
     err(
         "
         fn f(x: foo::Foo) { let a = x.bar(10i64); }
-        mod foo { pub class Foo(bar: Array[Int32]) }
+        mod foo { pub class Foo { bar: Array[Int32] } }
     ",
         (2, 37),
         ErrorMessage::NotAccessible,
@@ -2884,7 +2884,7 @@ fn mod_class_field() {
     err(
         "
         fn f(x: foo::Foo) { x.bar(10i64) = 10i32; }
-        mod foo { pub class Foo(bar: Array[Int32]) }
+        mod foo { pub class Foo { bar: Array[Int32] } }
     ",
         (2, 31),
         ErrorMessage::NotAccessible,
@@ -2892,7 +2892,7 @@ fn mod_class_field() {
 
     ok("
         fn f(x: foo::Foo) { let a = x.bar; }
-        mod foo { pub class Foo(pub bar: Int32) }
+        mod foo { pub class Foo { pub bar: Int32 } }
     ");
 }
 
@@ -3063,7 +3063,7 @@ fn mod_impl() {
 fn mod_class() {
     ok("
         mod foo {
-            class Foo(x: Bar)
+            class Foo&(Bar)
             impl Foo {
                 fn foo(x: Bar) {}
             }
@@ -3076,7 +3076,7 @@ fn mod_class() {
 fn mod_class_new() {
     ok("
         mod foo {
-            class Foo(x: Bar)
+            class Foo&(Bar)
             class Bar
         }
     ");
@@ -3085,7 +3085,7 @@ fn mod_class_new() {
         "
         fn f() { foo::Foo(1i32); }
         mod foo {
-            class Foo(f: Int32)
+            class Foo&(Int32)
         }
     ",
         (2, 18),
@@ -3096,7 +3096,7 @@ fn mod_class_new() {
         "
         fn f() { foo::Foo(1i32); }
         mod foo {
-            class Foo(pub f: Int32)
+            class Foo&(pub Int32)
         }
     ",
         (2, 18),
@@ -3107,7 +3107,7 @@ fn mod_class_new() {
         "
         fn f() { foo::Foo(1i32); }
         mod foo {
-            pub class Foo(f: Int32)
+            pub class Foo&(Int32)
         }
     ",
         (2, 18),
@@ -4342,7 +4342,7 @@ fn pattern_in_expression() {
 #[test]
 fn pattern_class_with_args() {
     ok("
-        class Foo(a: Int64, b: String)
+        class Foo&(Int64, String)
         fn f(x: Foo): Int64 {
             let Foo(a, b) = x;
             a
@@ -4351,8 +4351,8 @@ fn pattern_class_with_args() {
 
     err(
         "
-    class Foo(a: Int64, b: String)
-    class Bar(a: Int64, b: String)
+    class Foo&(Int64, String)
+    class Bar&(Int64, String)
     fn f(x: Foo): Int64 {
         let Bar(a, b) = x;
         b
@@ -4364,7 +4364,7 @@ fn pattern_class_with_args() {
 
     err(
         "
-    class Foo(a: Int64)
+    class Foo&(Int64)
     fn f(x: Foo): Int64 {
         let Foo(a, b) = x;
         b
@@ -4475,7 +4475,7 @@ fn pattern_class_private_ctor() {
     err(
         "
         mod n {
-            pub class Foo(pub a: Int64, b: String)
+            pub class Foo&(pub Int64, String)
         }
         fn f(x: n::Foo): Int64 {
             let n::Foo(a, b) = x;
