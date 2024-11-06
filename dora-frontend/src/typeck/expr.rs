@@ -599,11 +599,6 @@ pub(super) fn check_expr_dot(
                     ck.sa.report(ck.file_id, e.rhs.span(), msg);
                 }
 
-                if cls.field_name_style.is_old() {
-                    let msg = ErrorMessage::FieldShouldBeUnnamed;
-                    ck.sa.warn(ck.file_id, e.rhs.span(), msg);
-                }
-
                 ck.analysis.set_ty(e.id, fty.clone());
                 return fty;
             }
@@ -620,11 +615,6 @@ pub(super) fn check_expr_dot(
                 if !struct_field_accessible_from(ck.sa, struct_id, field_id, ck.module_id) {
                     let msg = ErrorMessage::NotAccessible;
                     ck.sa.report(ck.file_id, e.rhs.span(), msg);
-                }
-
-                if struct_.field_name_style.is_old() {
-                    let msg = ErrorMessage::FieldShouldBeUnnamed;
-                    ck.sa.warn(ck.file_id, e.rhs.span(), msg);
                 }
 
                 ck.analysis.set_ty(e.id, fty.clone());

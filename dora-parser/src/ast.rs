@@ -324,20 +324,12 @@ pub struct Struct {
 pub enum FieldNameStyle {
     Named,
     Positional,
-    Old,
 }
 
 impl FieldNameStyle {
     pub fn is_named(&self) -> bool {
         match self {
             FieldNameStyle::Named => true,
-            _ => false,
-        }
-    }
-
-    pub fn is_old(&self) -> bool {
-        match self {
-            FieldNameStyle::Old => true,
             _ => false,
         }
     }

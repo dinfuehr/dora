@@ -481,7 +481,7 @@ mod tests {
             "
             trait A {}
             trait B: A {}
-            class Foo[T]&(T)
+            class Foo[T](T)
             impl[T] B for Foo[T] {}
         ",
             (5, 21),
@@ -491,7 +491,7 @@ mod tests {
         ok("
             trait A {}
             trait B: A {}
-            class Foo[T]&(T)
+            class Foo[T](T)
             impl[T] B for Foo[T] {}
             impl[T] A for Foo[T] {}
         ");

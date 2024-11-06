@@ -717,8 +717,7 @@ impl Parser {
         let where_bounds = self.parse_where();
         let field_name_style;
 
-        let fields = if self.is2(AND, L_PAREN) {
-            self.assert(AND);
+        let fields = if self.is(L_PAREN) {
             field_name_style = FieldNameStyle::Positional;
 
             self.parse_list(
@@ -731,24 +730,6 @@ impl Parser {
                 |p| {
                     if p.is_set(FIELD_FIRST) {
                         Some(p.parse_unnamed_field())
-                    } else {
-                        None
-                    }
-                },
-            )
-        } else if self.is(L_PAREN) {
-            field_name_style = FieldNameStyle::Old;
-
-            self.parse_list(
-                L_PAREN,
-                COMMA,
-                R_PAREN,
-                ELEM_FIRST,
-                ParseError::ExpectedField,
-                LIST,
-                |p| {
-                    if p.is_set(FIELD_FIRST) {
-                        Some(p.parse_named_field())
                     } else {
                         None
                     }
@@ -3349,22 +3330,14 @@ mod tests {
 
     #[test]
     fn parse_class_with_param() {
-        let prog = parse("class Foo(a: int)");
+        let prog = parse("class Foo{a: int}");
         let class = prog.cls0();
-        assert_eq!(1, class.fields.len());
-    }
-
-    #[test]
-    fn parse_class_with_param_var() {
-        let prog = parse("class Foo(a: int)");
-        let class = prog.cls0();
-
         assert_eq!(1, class.fields.len());
     }
 
     #[test]
     fn parse_class_with_params() {
-        let prog = parse("class Foo(a: int, b: int)");
+        let prog = parse("class Foo{a: int, b: int}");
         let class = prog.cls0();
 
         assert_eq!(2, class.fields.len());
@@ -3376,7 +3349,7 @@ mod tests {
         let class = prog.cls0();
         assert_eq!(class.fields.len(), 2);
 
-        let prog = parse("class Foo(a: Int64, b: Bool)");
+        let prog = parse("class Foo { a: Int64, b: Bool }");
         let class = prog.cls0();
         assert_eq!(class.fields.len(), 2);
 
@@ -3473,7 +3446,7 @@ mod tests {
 
     #[test]
     fn parse_class_unnamed() {
-        let prog = parse("class Foo &(A, B)");
+        let prog = parse("class Foo(A, B)");
         let cls = prog.cls0();
         assert_eq!(2, cls.fields.len());
         assert_eq!("Foo", cls.name.as_ref().unwrap().name_as_string);

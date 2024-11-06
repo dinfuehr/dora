@@ -185,7 +185,7 @@ fn type_unknown_method() {
 #[test]
 fn type_ctor() {
     ok("class Foo fn f(): Foo { return Foo(); }");
-    ok("class Foo&(Int32) fn f(): Foo { return Foo(1i32); }");
+    ok("class Foo(Int32) fn f(): Foo { return Foo(1i32); }");
     err(
         "class Foo fn f(): Foo { return 1i32; }",
         (1, 25),
@@ -1131,7 +1131,7 @@ fn test_ctor_with_type_param() {
                 }
             }
 
-            class Bar[T]&(T)
+            class Bar[T](T)
             ",
         (5, 28),
         ErrorMessage::WrongTypeForArgument("T".into(), "Int32".into()),
@@ -2214,7 +2214,7 @@ fn extension_method_call() {
 #[test]
 fn extension_class_with_type_param() {
     ok("
-        class Foo[T]&(T)
+        class Foo[T](T)
         trait MyTrait {}
         impl[T: MyTrait] Foo[T] { fn foo(): Int32 { 12i32 } }
         impl MyTrait for Int32 {}
@@ -2222,7 +2222,7 @@ fn extension_class_with_type_param() {
     ");
 
     ok("
-        class Foo[T]&(T)
+        class Foo[T](T)
         impl Foo[Int32] { fn foo() {} }
         impl Foo[Float32] { fn bar() {} }
         fn f(x: Foo[Int32]) { x.foo() }
@@ -2231,7 +2231,7 @@ fn extension_class_with_type_param() {
 
     err(
         "
-        class Foo[T]&(T)
+        class Foo[T](T)
         impl Foo[Float32] { fn bar() {} }
         fn f(x: Foo[Int32]) { x.bar() }
     ",
@@ -2243,7 +2243,7 @@ fn extension_class_with_type_param() {
 #[test]
 fn extension_class_tuple() {
     ok("
-        class Foo[T]&(T)
+        class Foo[T](T)
         impl Foo[(Int32, Int32)] {
             fn bar() {}
         }
@@ -3063,7 +3063,7 @@ fn mod_impl() {
 fn mod_class() {
     ok("
         mod foo {
-            class Foo&(Bar)
+            class Foo(Bar)
             impl Foo {
                 fn foo(x: Bar) {}
             }
@@ -3076,7 +3076,7 @@ fn mod_class() {
 fn mod_class_new() {
     ok("
         mod foo {
-            class Foo&(Bar)
+            class Foo(Bar)
             class Bar
         }
     ");
@@ -3085,7 +3085,7 @@ fn mod_class_new() {
         "
         fn f() { foo::Foo(1i32); }
         mod foo {
-            class Foo&(Int32)
+            class Foo(Int32)
         }
     ",
         (2, 18),
@@ -3096,7 +3096,7 @@ fn mod_class_new() {
         "
         fn f() { foo::Foo(1i32); }
         mod foo {
-            class Foo&(pub Int32)
+            class Foo(pub Int32)
         }
     ",
         (2, 18),
@@ -3107,7 +3107,7 @@ fn mod_class_new() {
         "
         fn f() { foo::Foo(1i32); }
         mod foo {
-            pub class Foo&(Int32)
+            pub class Foo(Int32)
         }
     ",
         (2, 18),
@@ -4342,7 +4342,7 @@ fn pattern_in_expression() {
 #[test]
 fn pattern_class_with_args() {
     ok("
-        class Foo&(Int64, String)
+        class Foo(Int64, String)
         fn f(x: Foo): Int64 {
             let Foo(a, b) = x;
             a
@@ -4351,8 +4351,8 @@ fn pattern_class_with_args() {
 
     err(
         "
-    class Foo&(Int64, String)
-    class Bar&(Int64, String)
+    class Foo(Int64, String)
+    class Bar(Int64, String)
     fn f(x: Foo): Int64 {
         let Bar(a, b) = x;
         b
@@ -4364,7 +4364,7 @@ fn pattern_class_with_args() {
 
     err(
         "
-    class Foo&(Int64)
+    class Foo(Int64)
     fn f(x: Foo): Int64 {
         let Foo(a, b) = x;
         b
@@ -4386,7 +4386,7 @@ fn pattern_class_no_args() {
 
     err(
         "
-            class Foo &(Int64)
+            class Foo(Int64)
             fn f(x: Foo) {
                 let Foo = x;
             }
@@ -4475,7 +4475,7 @@ fn pattern_class_private_ctor() {
     err(
         "
         mod n {
-            pub class Foo&(pub Int64, String)
+            pub class Foo(pub Int64, String)
         }
         fn f(x: n::Foo): Int64 {
             let n::Foo(a, b) = x;
@@ -4756,14 +4756,14 @@ fn class_ctor_with_ident_expr_used_as_named_argument() {
 #[test]
 fn unnamed_class_field() {
     ok("
-        class Foo &(Int, Bool)
+        class Foo(Int, Bool)
         fn f(x: Foo): Int {
             x.0
         }
     ");
 
     ok("
-        class Foo &(Int, Bool)
+        class Foo(Int, Bool)
         fn f(x: Foo): Bool {
             x.1
         }
@@ -4771,7 +4771,7 @@ fn unnamed_class_field() {
 
     err(
         "
-        class Foo &(Int, Bool)
+        class Foo(Int, Bool)
         fn f(x: Foo): Bool {
             x.2
         }
@@ -4783,7 +4783,7 @@ fn unnamed_class_field() {
     err(
         "
         mod m {
-            pub class Foo &(Int, Bool)
+            pub class Foo(Int, Bool)
         }
 
         fn f(x: m::Foo): Int {
@@ -4798,14 +4798,14 @@ fn unnamed_class_field() {
 #[test]
 fn unnamed_class_field_assignment() {
     ok("
-        class Foo &(Int, Bool)
+        class Foo(Int, Bool)
         fn f(x: Foo, v: Int) {
             x.0 = v;
         }
     ");
 
     ok("
-        class Foo &(Int, Bool)
+        class Foo(Int, Bool)
         fn f(x: Foo, v: Bool) {
             x.1 = v;
         }
@@ -4813,7 +4813,7 @@ fn unnamed_class_field_assignment() {
 
     err(
         "
-        class Foo &(Int, Bool)
+        class Foo(Int, Bool)
         fn f(x: Foo, v: String) {
             x.2 = v;
         }
@@ -4825,7 +4825,7 @@ fn unnamed_class_field_assignment() {
     err(
         "
         mod m {
-            pub class Foo &(Int, Bool)
+            pub class Foo(Int, Bool)
         }
 
         fn f(x: m::Foo, v: Int) {

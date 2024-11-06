@@ -7,7 +7,7 @@ mod tests {
     #[test]
     fn test_class_definition() {
         ok("class Foo");
-        ok("class Foo&()");
+        ok("class Foo()");
         ok("class Foo { a: Int32 }");
         ok("class Foo { a: Int32, b:Int32 }");
         ok("class Foo { a: Foo }");
@@ -80,7 +80,7 @@ mod tests {
     fn alias_type_as_class_field() {
         ok("
             type MyInt = Int64;
-            class Foo&(MyInt)
+            class Foo(MyInt)
             fn f(v: Int64): Foo {
                 Foo(v)
             }
