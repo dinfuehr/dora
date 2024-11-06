@@ -7,4 +7,4 @@ fn main() {
   assert(x(4i64).x == 2i32);
 }
 
-class Foo(x: Int32)
+class Foo { x: Int32 }

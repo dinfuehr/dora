@@ -1,5 +1,5 @@
 fn main() {
-    let cx = CX(0, 3);
+    let cx = CX(current = 0, limit = 3);
     assert(cx.next().getOrPanic() == 0);
     assert(cx.next().getOrPanic() == 1);
     assert(cx.next().getOrPanic() == 2);
@@ -11,7 +11,7 @@ trait MyIterator {
     fn next(): Option[Self::Item];
 }
 
-class CX(current: Int64, limit: Int64)
+class CX { current: Int64, limit: Int64 }
 
 impl MyIterator for CX {
     type Item = Int64;

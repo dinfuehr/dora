@@ -14,4 +14,4 @@ struct Foo {
     bar2: Bar,
 }
 
-class Bar(value: Int64)
+class Bar { value: Int64 }

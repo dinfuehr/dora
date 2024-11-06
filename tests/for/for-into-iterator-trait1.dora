@@ -1,5 +1,5 @@
 fn main() {
-    let cx = CX(0, 10);
+    let cx = CX(current = 0, limit = 10);
     let mut sum = 0;
     let mut idx = 0;
     for el in cx {
@@ -11,14 +11,14 @@ fn main() {
     assert(sum == 45);
 }
 
-class CX(current: Int64, limit: Int64)
+class CX { current: Int64, limit: Int64 }
 
-class CXIter(current: Int64, limit: Int64)
+class CXIter { current: Int64, limit: Int64 }
 
 impl std::traits::IntoIterator for CX {
     type IteratorType = CXIter;
     fn iter(): CXIter {
-        CXIter(self.current, self.limit)
+        CXIter(current = self.current, limit = self.limit)
     }
 }
 

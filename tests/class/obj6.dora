@@ -9,7 +9,7 @@ fn main() {
   assert(101i32 == a1);
 }
 
-class Foo(a: Int32)
+class Foo { a: Int32 }
 
 impl Foo {
   fn a1(): Int32 { return self.a; }

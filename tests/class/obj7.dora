@@ -1,8 +1,8 @@
 fn main() {
   let f1 = Foo1(1i32);
-  let f2 = Foo2(1i32, 2i32);
+  let f2 = Foo2(a = 1i32, b = 2i32);
   assert(f2.a == 1i32);
 }
 
-class Foo1(a: Int32)
-class Foo2(a: Int32, b: Int32)
+class Foo1 { a: Int32 }
+class Foo2 { a: Int32, b: Int32 }

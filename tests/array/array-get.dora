@@ -48,4 +48,4 @@ fn foo_array_get(x: Array[Foo], idx: Int64): Foo {
   return x(idx);
 }
 
-class Foo(y: Int32)
+class Foo { y: Int32 }

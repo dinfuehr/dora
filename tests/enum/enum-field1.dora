@@ -1,7 +1,7 @@
 //= vm-args "--gc-verify"
 
 enum Foo { A(Int32, String, Float32), B }
-class Bar(foo: Foo)
+class Bar { foo: Foo }
 
 fn main() {
     let object = Bar(Foo::B);

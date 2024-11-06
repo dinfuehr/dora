@@ -54,4 +54,4 @@ fn foo_array_set(x: Array[Foo], idx: Int64, val: Foo) {
   x(idx) = val;
 }
 
-class Foo(y: Int32)
+class Foo { y: Int32 }

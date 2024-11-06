@@ -17,4 +17,4 @@ fn sum_args(x: Foo...): Int32 {
     result
 }
 
-class Foo(value: Int32)
+class Foo { value: Int32 }
