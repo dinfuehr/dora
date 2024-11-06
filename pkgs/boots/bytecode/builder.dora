@@ -437,7 +437,7 @@ impl BytecodeBuilder {
     }
 }
 
-class BytecodeLabel &(Int32)
+class BytecodeLabel(Int32)
 
 impl BytecodeLabel {
     static fn new(): BytecodeLabel {
