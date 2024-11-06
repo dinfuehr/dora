@@ -13,7 +13,7 @@ fn main() {
     assert(x == "a12b5c0d4e");
 }
 
-class Foo(i: Int32)
+class Foo { i: Int32 }
 
 impl std::Stringable for Foo {
     fn toString(): String {

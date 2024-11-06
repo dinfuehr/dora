@@ -5,4 +5,4 @@ fn main() {
     print(a.x.toString());
 }
 
-class A[T](x: T)
+class A[T] { x: T }

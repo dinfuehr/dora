@@ -10,4 +10,4 @@ fn main() {
     assert(x.next.getOrPanic().next.isNone());
 }
 
-class Foo(next: Option[Foo])
+class Foo { next: Option[Foo] }

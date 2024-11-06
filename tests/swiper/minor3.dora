@@ -19,4 +19,4 @@ fn main() {
     }
 }
 
-class Foo(next: Foo)
+class Foo { next: Foo }

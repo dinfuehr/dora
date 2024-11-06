@@ -6,11 +6,11 @@ fn main() {
     consume2(b.x);
 }
 
-class A[T](default: T, x: Array[T])
+class A[T] { default: T, x: Array[T] }
 
 impl[T] A[T] {
     static fn new(default: T): A[T] {
-        A[T](default, Array[T]::fill(10, default))
+        A[T](default, x = Array[T]::fill(10, default))
     }
 }
 

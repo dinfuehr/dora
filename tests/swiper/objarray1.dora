@@ -14,4 +14,4 @@ fn main() {
   assert(z(511i64).a == 3i32);
 }
 
-class Foo(a: Int32)
+class Foo { a: Int32 }

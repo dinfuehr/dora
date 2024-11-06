@@ -1,6 +1,6 @@
 //= stdout "self=1 another=101\nself=2 another=102\n"
 
-class MyClass[T](value: Int32)
+class MyClass[T] { value: Int32 }
 class Foo
 
 impl MyClass[Foo] {

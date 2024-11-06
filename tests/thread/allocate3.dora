@@ -20,11 +20,11 @@ fn allocator() {
 
     while i < 10_000i32 {
         let foo = {
-            let v1 = Foo(i, None[Foo]);
-            let v2 = Foo(i + 1i32, Some[Foo](v1));
-            let v3 = Foo(i + 2i32, Some[Foo](v2));
-            let v4 = Foo(i + 3i32, Some[Foo](v3));
-            Foo(i + 4i32, Some[Foo](v4))
+            let v1 = Foo(value=i, next=None[Foo]);
+            let v2 = Foo(value=i + 1i32, next=Some[Foo](v1));
+            let v3 = Foo(value=i + 2i32, next=Some[Foo](v2));
+            let v4 = Foo(value=i + 3i32, next=Some[Foo](v3));
+            Foo(value=i + 4i32, next=Some[Foo](v4))
         };
 
         if i % 500i32 == 0i32 { std::forceMinorCollect(); }
@@ -44,4 +44,7 @@ fn allocator() {
     }
 }
 
-class Foo(value: Int32, next: Option[Foo])
+class Foo {
+    value: Int32,
+    next: Option[Foo],
+}

@@ -17,10 +17,10 @@ fn main() {
 
 fn allocator() {
     let mut i = 1i32;
-    let mut list = Foo(0i32, None[Foo]);
+    let mut list = Foo(key = 0i32, prev = None[Foo]);
 
     while i < 10_000i32 {
-        list = Foo(i, Some[Foo](list));
+        list = Foo(key = i, prev = Some[Foo](list));
         i = i + 1i32;
     }
 
@@ -35,4 +35,6 @@ fn allocator() {
     assert(list.prev.isNone());
 }
 
-class Foo(key: Int32, prev: Option[Foo])
+class Foo {
+    key: Int32, prev: Option[Foo]
+}

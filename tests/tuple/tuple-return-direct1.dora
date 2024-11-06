@@ -4,7 +4,7 @@ fn main() {
     assert(x.1.value == 17i32);
 }
 
-class Bar(value: Int32)
+class Bar { value: Int32 }
 
 impl Bar {
     fn tpl1(): (Int32, Foo) {
@@ -13,4 +13,4 @@ impl Bar {
     }
 }
 
-class Foo(value: Int32)
+class Foo { value: Int32 }

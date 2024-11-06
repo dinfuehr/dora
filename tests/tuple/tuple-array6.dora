@@ -1,6 +1,6 @@
 //= vm-args "--gc=copy --disable-tlab --gc-stress"
 
-class Foo (value: Int32)
+class Foo { value: Int32 }
 
 fn main() {
     let x = Array[(Int32, Foo)]::fill(1024i64, (0i32, Foo(0i32)));

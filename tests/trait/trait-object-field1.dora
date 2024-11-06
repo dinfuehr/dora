@@ -20,7 +20,7 @@ struct SomeData {
     foo: Foo,
 }
 
-class SomeClass(foo: Foo)
+class SomeClass { foo: Foo }
 
 fn main() {
     let data = SomeData(Baz() as Foo);

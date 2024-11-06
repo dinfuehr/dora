@@ -1,11 +1,15 @@
 fn main() {
-  let node = Node(10i32,
-      Some[Node](Node(9i32, None[Node], None[Node])),
-      Some[Node](Node(11i32, None[Node], None[Node])));
+  let node = Node(value = 10i32,
+      lhs = Some[Node](Node(value = 9i32, lhs = None[Node], rhs = None[Node])),
+      rhs = Some[Node](Node(value = 11i32, lhs = None[Node], rhs = None[Node])));
   std::forceCollect();
   assert(node.lhs.getOrPanic().value == 9i32);
   assert(node.value == 10i32);
   assert(node.rhs.getOrPanic().value == 11i32);
 }
 
-class Node(value: Int32, lhs: Option[Node], rhs: Option[Node])
+class Node {
+  value: Int32,
+  lhs: Option[Node],
+  rhs: Option[Node]
+}

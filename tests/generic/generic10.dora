@@ -8,12 +8,12 @@ fn main() {
     assert(bar.x.snd == 10i32);
 }
 
-class Bar[T](val: T, x: Pair[T, Int32])
+class Bar[T] { val: T, x: Pair[T, Int32] }
 
 impl[T] Bar[T] {
     static fn new(val: T): Bar[T] {
-        Bar[T](val, Pair[T, Int32](val, 10i32))
+        Bar[T](val, x = Pair[T, Int32](fst = val, snd = 10i32))
     }
 }
 
-class Pair[A, B](fst: A, snd: B)
+class Pair[A, B] { fst: A, snd: B }

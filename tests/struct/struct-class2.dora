@@ -4,7 +4,7 @@ class TupleClass {
     value: Pair,
 }
 
-class Foo(value: Int32)
+class Foo { value: Int32 }
 
 fn main() {
     let tpl = TupleClass(Pair(first = Foo(4711i32), second = 4712i64));

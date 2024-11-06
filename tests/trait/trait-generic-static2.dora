@@ -10,7 +10,7 @@ fn f[T: X + std::Stringable](): String {
     T::foo().toString()
 }
 
-class Bar(x: Int32)
+class Bar { x: Int32 }
 
 impl std::Stringable for Bar {
     fn toString(): String { "BAR${self.x}" }
@@ -20,7 +20,7 @@ impl X for Bar {
     static fn foo(): Bar { Bar(1i32) }
 }
 
-class Baz(x: Int32)
+class Baz { x: Int32 }
 
 impl std::Stringable for Baz {
     fn toString(): String { "BAZ${self.x}" }

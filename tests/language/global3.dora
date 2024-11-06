@@ -14,4 +14,4 @@ fn create(): A {
     return A(10i32);
 }
 
-class A(val: Int32)
+class A { val: Int32 }

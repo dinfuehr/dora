@@ -6,7 +6,7 @@ fn main() {
   assert(foo.x == "hey");
 }
 
-class Foo[T](x: T)
+class Foo[T] { x: T }
 
 impl[T] Foo[T] {
   fn getx(): T {

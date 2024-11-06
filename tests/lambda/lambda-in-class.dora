@@ -35,4 +35,4 @@ fn mystruct(l0: (): Int64, l1: (): Int64): MyStruct {
     MyStruct(l0, l1)
 }
 
-class MyClass(l0: (): Int64, l1: (): Int64)
+class MyClass { l0: (): Int64, l1: (): Int64 }

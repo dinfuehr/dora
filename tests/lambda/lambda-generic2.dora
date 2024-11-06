@@ -1,4 +1,4 @@
-class Foo[T1](value1: T1)
+class Foo[T1] { value1: T1 }
 
 enum Either[A, B] {
     Left(A),

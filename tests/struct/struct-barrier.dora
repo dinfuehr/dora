@@ -1,6 +1,6 @@
 //= vm-args "--gc=swiper --gc-verify"
 
-class TupleClass(value: Pair)
+class TupleClass { value: Pair }
 
 impl TupleClass {
     static fn new(): TupleClass {
@@ -9,7 +9,7 @@ impl TupleClass {
 }
 
 struct Pair(Foo, Int64)
-class Foo(value: Int32)
+class Foo { value: Int32 }
 
 fn main() {
     let tpl = TupleClass::new();

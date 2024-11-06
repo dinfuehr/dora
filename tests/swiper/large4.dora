@@ -3,7 +3,7 @@
 use std::forceCollect;
 use std::forceMinorCollect;
 
-class Foo(x: Int32)
+class Foo { x: Int32 }
 
 fn main() {
     let default = Foo(100i32);

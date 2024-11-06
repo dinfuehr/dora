@@ -9,4 +9,4 @@ fn main() {
 
 }
 
-class A(a: Int32)
+class A { a: Int32 }

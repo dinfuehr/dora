@@ -1,4 +1,4 @@
-class Foo(value: Int64)
+class Foo { value: Int64 }
 
 impl Foo {
     fn bar(): (): Int64 {

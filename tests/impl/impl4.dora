@@ -7,7 +7,7 @@ trait DefaultValue {
     static fn default(): Self;
 }
 
-class A(a: Int32)
+class A { a: Int32 }
 
 impl DefaultValue for A {
     static fn default(): A {

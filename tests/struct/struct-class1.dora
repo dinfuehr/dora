@@ -1,6 +1,6 @@
 //= vm-args "--gc=copy --disable-tlab"
 
-class TupleClass(value: Pair)
+class TupleClass { value: Pair }
 class Foo &(Int32)
 
 fn main() {

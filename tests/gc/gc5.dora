@@ -6,11 +6,11 @@ fn main() {
 }
 
 fn nested(): Foo {
-  let x = Foo(3i32, None[Foo]);
-  let y = Foo(2i32, Some[Foo](x));
-  let z = Foo(1i32, Some[Foo](y));
+  let x = Foo(value = 3i32, next = None[Foo]);
+  let y = Foo(value = 2i32, next = Some[Foo](x));
+  let z = Foo(value = 1i32, next = Some[Foo](y));
 
   return z;
 }
 
-class Foo(value: Int32, next: Option[Foo])
+class Foo { value: Int32, next: Option[Foo] }

@@ -4,7 +4,7 @@ trait Foo {
     fn bar(): Int32;
 }
 
-class A[T: Foo](t: T)
+class A[T: Foo] { t: T }
 
 impl[T: Foo] A[T] {
     fn bar(): Int32 {
