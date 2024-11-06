@@ -11,8 +11,8 @@ fn main() {
     assert(foo.bar.b.value == 4);
 }
 
-class Foo(bar: Bar)
+class Foo { bar: Bar }
 struct Bar { a: MyInt, b: MyInt }
-class MyInt(value: Int64)
+class MyInt { value: Int64 }
 
 @Optimize fn f(x: Foo, bar: Bar) { x.bar = bar; }

@@ -18,6 +18,6 @@ fn main() {
 }
 
 struct Foo { a: Int64, b: Bar }
-class Bar(value: Int64)
+class Bar { value: Int64 }
 
 @Optimize fn f(x: Array[Foo], idx: Int64, foo: Foo) { x(idx) = foo; }

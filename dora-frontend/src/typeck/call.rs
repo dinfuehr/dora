@@ -563,14 +563,14 @@ fn check_expr_call_ctor_with_named_fields(
         if let Some(ref name) = arg.name {
             let name = ck.sa.interner.intern(&name.name_as_string);
             add_named_argument(arg, name);
-        } else if let Some(ident) = arg.expr.to_ident() {
-            let name = ck.sa.interner.intern(&ident.name);
-            add_named_argument(arg, name);
         } else if arguments.arguments.len() == 1
             && element.fields_len() == 1
             && element.field_name(0).is_some()
         {
             add_named_argument(arg, element.field_name(0).expect("name expected"));
+        } else if let Some(ident) = arg.expr.to_ident() {
+            let name = ck.sa.interner.intern(&ident.name);
+            add_named_argument(arg, name);
         } else {
             ck.sa.report(
                 ck.file_id,

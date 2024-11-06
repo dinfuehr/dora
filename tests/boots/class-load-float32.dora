@@ -1,13 +1,13 @@
 //= boots
 
 fn main() {
-    assert(geta(Foo(10.5f32, 11.0f32)) == 10.5f32);
-    assert(getb(Foo(10.5f32, 11.0f32)) == 11.0f32);
-    assert(geta(Foo(17.5f32, 14.0f32)) == 17.5f32);
-    assert(getb(Foo(17.5f32, 14.0f32)) == 14.0f32);
+    assert(geta(Foo(a=10.5f32, b=11.0f32)) == 10.5f32);
+    assert(getb(Foo(a=10.5f32, b=11.0f32)) == 11.0f32);
+    assert(geta(Foo(a=17.5f32, b=14.0f32)) == 17.5f32);
+    assert(getb(Foo(a=17.5f32, b=14.0f32)) == 14.0f32);
 }
 
-class Foo(a: Float32, b: Float32)
+class Foo { a: Float32, b: Float32 }
 
 @Optimize fn geta(x: Foo): Float32 { x.a }
 @Optimize fn getb(x: Foo): Float32 { x.b }

@@ -5,7 +5,7 @@ fn main() {
     assert(isNone(None[Foo]));
 }
 
-class Foo(value: Int64)
+class Foo { value: Int64 }
 
 @Optimize fn isNone(value: Option[Foo]): Bool {
     match value {

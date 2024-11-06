@@ -19,7 +19,7 @@ fn main() {
     std::forceCollect();
 }
 
-class Foo(bar: Bar)
+class Foo { bar: Bar }
 trait Bar {
     fn get(): Int64;
 }

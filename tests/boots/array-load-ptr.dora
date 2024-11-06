@@ -8,6 +8,6 @@ fn main() {
     assert(f(arr, 48).val == 0);
 }
 
-class Foo(val: Int64)
+class Foo { val: Int64 }
 
 @Optimize fn f(x: Array[Foo], idx: Int64): Foo { x(idx) }

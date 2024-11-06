@@ -719,7 +719,7 @@ mod tests {
     fn impl_generic_trait() {
         ok("
             trait MyEquals[T] { fn equals(val: T): Bool; }
-            class Foo(x: Int64)
+            class Foo { x: Int64 }
             impl MyEquals[Foo] for Foo {
                 fn equals(val: Foo): Bool {
                     self.x == val.x

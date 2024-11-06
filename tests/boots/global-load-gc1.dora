@@ -8,7 +8,7 @@ fn main() {
     assert(getg(Foo(10)) == 22);
 }
 
-class Foo(value: Int64)
+class Foo { value: Int64 }
 
 @Optimize fn getg(x: Foo): Int64 {
     let result = g;

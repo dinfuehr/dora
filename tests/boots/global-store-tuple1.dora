@@ -9,7 +9,7 @@ fn main() {
     assert(g.1.value == 17);
 }
 
-class Foo(value: Int64)
+class Foo { value: Int64 }
 
 @Optimize fn setg(value: (Foo, Foo)) {
     g = value;

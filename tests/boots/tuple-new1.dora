@@ -7,7 +7,7 @@ fn main() {
     assert(foo.1.value == 2);
 }
 
-class Value(value: Int64)
+class Value { value: Int64 }
 
 @Optimize fn getfoo(): (Value, Value) {
     let a = Value(1);

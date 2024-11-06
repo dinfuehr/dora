@@ -12,7 +12,7 @@ fn main() {
     assert(value == 17);
 }
 
-class Foo(value: Int64)
+class Foo { value: Int64 }
 
 @Optimize
 fn f(a0: Int64, a1: Int64, a2: Int64, a3: Int64,

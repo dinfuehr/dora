@@ -10,6 +10,6 @@ fn main() {
     assert(foo.val == 17.0);
 }
 
-class Foo(val: Float64)
+class Foo { val: Float64 }
 
 @Optimize fn f(x: Foo, y: Float64) { x.val = y; }

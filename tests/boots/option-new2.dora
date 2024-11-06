@@ -5,7 +5,7 @@ fn main() {
     assert(f(foo).isSome());
 }
 
-class Foo(value: Int64)
+class Foo { value: Int64 }
 
 @Optimize fn f(value: Foo): Option[Foo] {
     Some[Foo](value)

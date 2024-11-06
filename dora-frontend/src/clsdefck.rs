@@ -7,19 +7,19 @@ mod tests {
     #[test]
     fn test_class_definition() {
         ok("class Foo");
-        ok("class Foo()");
-        ok("class Foo(a: Int32)");
-        ok("class Foo(a: Int32, b:Int32)");
-        ok("class Foo(a: Foo)");
-        ok("class Foo(a: Bar) class Bar");
+        ok("class Foo&()");
+        ok("class Foo { a: Int32 }");
+        ok("class Foo { a: Int32, b:Int32 }");
+        ok("class Foo { a: Foo }");
+        ok("class Foo { a: Bar } class Bar");
         err(
-            "class Foo(a: Unknown)",
-            (1, 14),
+            "class Foo { a: Unknown }",
+            (1, 16),
             ErrorMessage::UnknownIdentifier("Unknown".into()),
         );
         err(
-            "class Foo(a: Int32, a: Int32)",
-            (1, 21),
+            "class Foo { a: Int32, a: Int32 }",
+            (1, 23),
             ErrorMessage::ShadowField("a".to_string()),
         );
     }
@@ -27,8 +27,8 @@ mod tests {
     #[test]
     fn field_defined_twice() {
         err(
-            "class Foo(a: Int32, a: Int32)",
-            (1, 21),
+            "class Foo { a: Int32, a: Int32 }",
+            (1, 23),
             ErrorMessage::ShadowField("a".into()),
         );
     }
@@ -47,7 +47,7 @@ mod tests {
 
     #[test]
     fn test_generic_argument() {
-        ok("class A[T](val: T)");
+        ok("class A[T] { val: T }");
     }
 
     #[test]
@@ -80,7 +80,7 @@ mod tests {
     fn alias_type_as_class_field() {
         ok("
             type MyInt = Int64;
-            class Foo(x: MyInt)
+            class Foo&(MyInt)
             fn f(v: Int64): Foo {
                 Foo(v)
             }

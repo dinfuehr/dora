@@ -10,7 +10,7 @@ fn main() {
     x
 }
 
-class Foo(value: UInt8)
+class Foo { value: UInt8 }
 
 impl Foo {
     fn g(x: UInt8): UInt8 {

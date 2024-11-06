@@ -10,7 +10,7 @@ fn main() {
 }
 
 struct Foo(Int64, Bar)
-class Bar(value: Int64)
+class Bar { value: Int64 }
 
 @Optimize fn setg(value: Foo) {
     g = value;

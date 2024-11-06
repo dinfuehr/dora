@@ -6,7 +6,7 @@ fn main() {
     assert(getg().value == 10);
 }
 
-class Foo(value: Int64)
+class Foo { value: Int64 }
 
 @Optimize fn getg(): Foo {
     g

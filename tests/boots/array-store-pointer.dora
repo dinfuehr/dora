@@ -12,7 +12,7 @@ fn main() {
     std::forceCollect();
 }
 
-class Foo(val: Int64)
+class Foo { val: Int64 }
 
 @Optimize
 fn f(x: Array[Foo], idx: Int64, value: Foo) {

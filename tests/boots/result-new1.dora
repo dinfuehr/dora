@@ -5,8 +5,8 @@ fn main() {
     assert(f(foo).isOk());
 }
 
-class Foo(value: Int64)
-class Bar(value: Int64)
+class Foo { value: Int64 }
+class Bar { value: Int64 }
 
 @Optimize fn f(foo: Foo): Result[Foo, Bar] {
     Ok[Foo, Bar](foo)

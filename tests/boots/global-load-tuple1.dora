@@ -11,7 +11,7 @@ fn main() {
     assert(local_g.1.value == 11);
 }
 
-class Bar(value: Int64)
+class Bar { value: Int64 }
 
 @Optimize fn getg(): (Int64, Bar) {
     g

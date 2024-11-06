@@ -9,7 +9,7 @@ fn main() {
     foo.g()
 }
 
-class Foo(value: Int64)
+class Foo { value: Int64 }
 
 impl Foo {
     fn g(): Int64 {

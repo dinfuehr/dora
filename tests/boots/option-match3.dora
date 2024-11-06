@@ -5,7 +5,7 @@ fn main() {
     assert(f(None[Foo]) == -1);
 }
 
-class Foo(value: Int64)
+class Foo { value: Int64 }
 
 @Optimize fn f(value: Option[Foo]): Int64 {
     match value {

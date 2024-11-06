@@ -10,6 +10,6 @@ fn main() {
     assert(foo.val == 17u8);
 }
 
-class Foo(val: UInt8)
+class Foo { val: UInt8 }
 
 @Optimize fn f(x: Foo, y: UInt8) { x.val = y; }

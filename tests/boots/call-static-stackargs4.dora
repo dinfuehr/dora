@@ -4,7 +4,7 @@ fn main() {
     f('x', 13u8, Foo(16));
 }
 
-class Foo(value: Int64)
+class Foo { value: Int64 }
 
 @Optimize fn f(x: Char, y: UInt8, foo: Foo) {
     g(0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, y, true, x, foo, 17.0f32, 18.0);

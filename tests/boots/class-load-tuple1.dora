@@ -6,6 +6,6 @@ fn main() {
     assert(bar.1 == 2);
 }
 
-class Foo(bar: (Int64, Int64))
+class Foo { bar: (Int64, Int64) }
 
 @Optimize fn f(x: Foo): (Int64, Int64) { x.bar }

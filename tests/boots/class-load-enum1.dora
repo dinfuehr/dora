@@ -5,7 +5,7 @@ fn main() {
     assert(f(Foo(Bar::B)) == Bar::B);
 }
 
-class Foo(bar: Bar)
+class Foo { bar: Bar }
 enum Bar { A, B, C }
 
 @Optimize fn f(x: Foo): Bar {

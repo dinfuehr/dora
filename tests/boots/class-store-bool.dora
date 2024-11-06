@@ -10,6 +10,6 @@ fn main() {
     assert(foo.val);
 }
 
-class Foo(val: Bool)
+class Foo { val: Bool }
 
 @Optimize fn f(x: Foo, y: Bool) { x.val = y; }

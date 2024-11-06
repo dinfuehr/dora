@@ -117,7 +117,7 @@ fn gen_generic_direct_trait() {
 #[test]
 fn gen_load_field_uint8() {
     gen_fct(
-        "class Foo(bar: UInt8) fn f(a: Foo): UInt8 { return a.bar; }",
+        "class Foo { bar: UInt8 } fn f(a: Foo): UInt8 { return a.bar; }",
         |sa, code, fct| {
             let (cls, field) = field_by_name(sa, "Foo", "bar");
             let expected = vec![LoadField(r(1), r(0), ConstPoolIdx(0)), Ret(r(1))];
@@ -137,7 +137,7 @@ fn gen_load_field_uint8() {
 
 #[test]
 fn gen_position_load_field_uint8() {
-    let result = position("class Foo(bar: UInt8) fn f(a: Foo): UInt8 { return a.bar; }");
+    let result = position("class Foo { bar: UInt8 } fn f(a: Foo): UInt8 { return a.bar; }");
     let expected = vec![(0, 1)];
     assert_eq!(expected, result);
 }
@@ -145,7 +145,7 @@ fn gen_position_load_field_uint8() {
 #[test]
 fn gen_store_field_uint8() {
     gen_fct(
-        "class Foo(bar: UInt8) fn f(a: Foo, b: UInt8) { a.bar = b; }",
+        "class Foo{bar: UInt8} fn f(a: Foo, b: UInt8) { a.bar = b; }",
         |sa, code, fct| {
             let (cls, field) = field_by_name(sa, "Foo", "bar");
             let expected = vec![StoreField(r(1), r(0), ConstPoolIdx(0)), Ret(r(2))];
@@ -164,7 +164,7 @@ fn gen_store_field_uint8() {
 
 #[test]
 fn gen_position_store_field_uint8() {
-    let result = position("class Foo(bar: UInt8) fn f(a: Foo, b: UInt8) { a.bar = b; }");
+    let result = position("class Foo{bar: UInt8} fn f(a: Foo, b: UInt8) { a.bar = b; }");
     let expected = vec![(0, 1)];
     assert_eq!(expected, result);
 }
@@ -2704,7 +2704,7 @@ fn gen_new_object() {
 fn gen_new_object_initialized() {
     gen_fct(
         "
-        class Foo(a: Int64, b: Bool)
+        class Foo { a: Int64, b: Bool }
         fn f(a: Int64, b: Bool): Foo { return Foo(a, b); }",
         |sa, code, fct| {
             let cls_id = cls_by_name(sa, "Foo");
@@ -3040,8 +3040,10 @@ fn gen_position_store_array_ptr() {
 fn gen_new_object_with_multiple_args() {
     gen_fct(
         "
-            class Foo(a: Int32, b: Int32, c: Int32)
-            fn f(): Foo { return Foo(1i32, 2i32, 3i32); }
+            class Foo { a: Int32, b: Int32, c: Int32 }
+            fn f(): Foo {
+                return Foo(a = 1i32, b = 2i32, c = 3i32);
+            }
             ",
         |sa, code, fct| {
             let cls_id = cls_by_name(sa, "Foo");
@@ -3071,10 +3073,12 @@ fn gen_new_object_with_multiple_args() {
 fn gen_position_new_object_with_multiple_args() {
     let result = position(
         "
-            class Foo(a: Int32, b: Int32, c: Int32)
-            fn f(): Foo { return Foo(1i32, 2i32, 3i32); }",
+            class Foo { a: Int32, b: Int32, c: Int32 }
+            fn f(): Foo {
+                return Foo(a = 1i32, b = 2i32, c = 3i32);
+            }",
     );
-    let expected = vec![(15, 3)];
+    let expected = vec![(15, 4)];
     assert_eq!(expected, result);
 }
 

@@ -12,6 +12,15 @@ fn main() {
     assert(foo.f == 6);
 }
 
-class Foo(a: Float64, b: Float64, c: Float64, d: Int64, e: Int64, f: Int64)
+class Foo {
+    a: Float64,
+    b: Float64,
+    c: Float64,
+    d: Int64,
+    e: Int64,
+    f: Int64
+}
 
-@Optimize fn getfoo(): Foo { Foo(1.0, 2.0, 3.0, 4, 5, 6) }
+@Optimize fn getfoo(): Foo {
+    Foo(a = 1.0, b = 2.0, c = 3.0, d = 4, e = 5, f = 6)
+}

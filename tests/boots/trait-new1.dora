@@ -5,7 +5,7 @@ fn main() {
     assert(foo.get() == 12);
 }
 
-class Foo(value: Int64)
+class Foo { value: Int64 }
 
 trait Bar {
     fn get(): Int64;

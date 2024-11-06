@@ -7,7 +7,7 @@ fn main() {
     assert(g.value == 12);
 }
 
-class Foo(value: Int64)
+class Foo { value: Int64 }
 
 @Optimize fn setg(value: Foo) {
     g = value;

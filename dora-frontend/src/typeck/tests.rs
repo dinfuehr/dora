@@ -1050,7 +1050,7 @@ fn generic_trait_method_call() {
     ok("trait Foo { fn bar(); }
             fn f[T: Foo](t: T) { t.bar(); }");
     ok("trait Foo { fn bar(); }
-            class A[T: Foo](t: T)
+            class A[T: Foo] { t: T }
             impl[T: Foo] A[T] {
                 fn baz() { self.t.bar(); }
             }");
@@ -1131,7 +1131,7 @@ fn test_ctor_with_type_param() {
                 }
             }
 
-            class Bar[T](a: T)
+            class Bar[T]&(T)
             ",
         (5, 28),
         ErrorMessage::WrongTypeForArgument("T".into(), "Int32".into()),
@@ -2214,7 +2214,7 @@ fn extension_method_call() {
 #[test]
 fn extension_class_with_type_param() {
     ok("
-        class Foo[T](value: T)
+        class Foo[T]&(T)
         trait MyTrait {}
         impl[T: MyTrait] Foo[T] { fn foo(): Int32 { 12i32 } }
         impl MyTrait for Int32 {}
@@ -2222,7 +2222,7 @@ fn extension_class_with_type_param() {
     ");
 
     ok("
-        class Foo[T](value: T)
+        class Foo[T]&(T)
         impl Foo[Int32] { fn foo() {} }
         impl Foo[Float32] { fn bar() {} }
         fn f(x: Foo[Int32]) { x.foo() }
@@ -2231,7 +2231,7 @@ fn extension_class_with_type_param() {
 
     err(
         "
-        class Foo[T](value: T)
+        class Foo[T]&(T)
         impl Foo[Float32] { fn bar() {} }
         fn f(x: Foo[Int32]) { x.bar() }
     ",
@@ -2243,7 +2243,7 @@ fn extension_class_with_type_param() {
 #[test]
 fn extension_class_tuple() {
     ok("
-        class Foo[T](value: T)
+        class Foo[T]&(T)
         impl Foo[(Int32, Int32)] {
             fn bar() {}
         }
@@ -4386,12 +4386,12 @@ fn pattern_class_no_args() {
 
     err(
         "
-class Foo(a: Int64)
-fn f(x: Foo) {
-    let Foo = x;
-}
-",
-        (4, 9),
+            class Foo &(Int64)
+            fn f(x: Foo) {
+                let Foo = x;
+            }
+        ",
+        (4, 21),
         ErrorMessage::PatternWrongNumberOfParams(0, 1),
     );
 }

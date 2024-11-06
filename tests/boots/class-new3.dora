@@ -9,6 +9,6 @@ fn main() {
     assert(foo.d == 4);
 }
 
-class Foo(a: Int64, b: Int64, c: Int64, d: Int64)
+class Foo { a: Int64, b: Int64, c: Int64, d: Int64 }
 
-@Optimize fn getfoo(): Foo { Foo(1, 2, 3, 4) }
+@Optimize fn getfoo(): Foo { Foo(a = 1, b = 2, c = 3, d = 4) }

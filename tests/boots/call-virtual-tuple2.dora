@@ -7,7 +7,7 @@ fn main() {
     assert(result.1.value == 2);
 }
 
-class Value(value: Int64)
+class Value { value: Int64 }
 
 @Optimize fn f(bar: Bar): (Value, Value) {
     let result = bar.bar();
@@ -19,7 +19,7 @@ trait Bar {
     fn bar(): (Value, Value);
 }
 
-class Foo(value: Int64)
+class Foo { value: Int64 }
 
 impl Bar for Foo {
     fn bar(): (Value, Value) {

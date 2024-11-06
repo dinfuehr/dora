@@ -5,8 +5,8 @@ fn main() {
     assert(f(Err[Foo, Bar](Bar(1))) == 1);
 }
 
-class Foo(value: Int64)
-class Bar(value: Int64)
+class Foo { value: Int64 }
+class Bar { value: Int64 }
 
 @Optimize fn f(value: Result[Foo, Bar]): Int64 {
     match value {

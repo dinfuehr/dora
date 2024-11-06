@@ -15,7 +15,7 @@ fn main() {
     std::forceCollect();
 }
 
-class Foo(bar: Bar)
-class Bar(val: Int64)
+class Foo { bar: Bar }
+class Bar { val: Int64 }
 
 @Optimize fn f(x: Foo, y: Bar) { x.bar = y; }

@@ -19,7 +19,7 @@ trait Bar {
     fn baz(): Int64;
 }
 
-class Foo(value: Int64)
+class Foo { value: Int64 }
 
 impl Bar for Foo {
     fn bar(): Int64 {

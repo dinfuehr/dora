@@ -12,7 +12,7 @@ fn main() {
     }
 }
 
-class Foo(bar: Bar)
+class Foo { bar: Bar }
 enum Bar { A, B, C(Int64) }
 
 @Optimize fn f(x: Foo): Bar {

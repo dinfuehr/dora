@@ -1,13 +1,13 @@
 //= boots
 
 fn main() {
-    assert(geta(Foo(10, 12)) == 10);
-    assert(getb(Foo(10, 12)) == 12);
-    assert(geta(Foo(17, 14)) == 17);
-    assert(getb(Foo(17, 14)) == 14);
+    assert(geta(Foo(a = 10, b = 12)) == 10);
+    assert(getb(Foo(a = 10, b = 12)) == 12);
+    assert(geta(Foo(a = 17, b = 14)) == 17);
+    assert(getb(Foo(a = 17, b = 14)) == 14);
 }
 
-class Foo(a: Int64, b: Int64)
+class Foo { a: Int64, b: Int64 }
 
 @Optimize fn geta(x: Foo): Int64 { x.a }
 @Optimize fn getb(x: Foo): Int64 { x.b }

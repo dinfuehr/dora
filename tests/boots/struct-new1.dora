@@ -8,7 +8,7 @@ fn main() {
 }
 
 struct Foo { a: Bar, b: Bar }
-class Bar(value: Int64)
+class Bar { value: Int64 }
 
 @Optimize fn getfoo(): Foo {
     let a = Bar(1);

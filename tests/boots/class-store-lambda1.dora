@@ -19,6 +19,6 @@ fn main() {
     std::forceCollect();
 }
 
-class Foo(lambda: (Int64): Int64)
+class Foo { lambda: (Int64): Int64 }
 
 @Optimize fn f(x: Foo, y: (Int64): Int64) { x.lambda = y; }

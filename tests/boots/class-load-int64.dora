@@ -5,6 +5,6 @@ fn main() {
     assert(f(Foo(17)) == 17);
 }
 
-class Foo(val: Int64)
+class Foo { val: Int64 }
 
 @Optimize fn f(x: Foo): Int64 { x.val }

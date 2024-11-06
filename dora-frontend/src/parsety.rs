@@ -1220,7 +1220,7 @@ mod tests {
     fn class_type_with_named_type_arg() {
         err(
             "
-            class Foo[T](value: T)
+            class Foo[T]&(T)
             fn f(x: Foo[T = Int64]) {}
         ",
             (3, 25),

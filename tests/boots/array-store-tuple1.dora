@@ -17,6 +17,6 @@ fn main() {
     std::forceCollect();
 }
 
-class Bar(value: Int64)
+class Bar { value: Int64 }
 
 @Optimize fn f(x: Array[(Int64, Bar)], idx: Int64, foo: (Int64, Bar)) { x(idx) = foo; }

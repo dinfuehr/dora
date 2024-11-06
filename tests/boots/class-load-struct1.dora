@@ -6,7 +6,7 @@ fn main() {
     assert(bar.1 == 2);
 }
 
-class Foo(bar: Bar)
+class Foo { bar: Bar }
 struct Bar(Int64, Int64)
 
 @Optimize fn f(x: Foo): Bar { x.bar }

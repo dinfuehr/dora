@@ -9,7 +9,7 @@ fn main() {
     assert(getg(Foo(7.5), 2.25) == 22.25);
 }
 
-class Foo(value: Float64)
+class Foo { value: Float64 }
 
 @Optimize fn getg(x: Foo, y: Float64): Float64 {
     let result = g;

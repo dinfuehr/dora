@@ -15,7 +15,7 @@ fn main() {
     std::forceCollect();
 }
 
-class Foo(bar: Bar)
+class Foo { bar: Bar }
 enum Bar { A, B, C }
 
 @Optimize fn f(x: Foo, y: Bar) {
