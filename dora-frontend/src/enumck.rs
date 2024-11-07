@@ -5,7 +5,7 @@ pub fn check(sa: &Sema) {
         let mut simple_enumeration = true;
 
         for variant in enum_.variants() {
-            if variant.parsed_types().len() > 0 {
+            if variant.fields.len() > 0 {
                 simple_enumeration = false;
             }
         }
@@ -49,13 +49,8 @@ mod tests {
             fn give_me_a(): Foo { Foo::A(2.0f32) }
 
         ",
-            (3, 35),
-            ErrorMessage::EnumArgsIncompatible(
-                "Foo".into(),
-                "A".into(),
-                vec!["Int32".into()],
-                vec!["Float32".into()],
-            ),
+            (3, 42),
+            ErrorMessage::WrongTypeForArgument("Int32".into(), "Float32".into()),
         );
     }
 
@@ -68,12 +63,7 @@ mod tests {
 
         ",
             (3, 38),
-            ErrorMessage::EnumArgsIncompatible(
-                "Foo".into(),
-                "A".into(),
-                vec!["Int32".into()],
-                Vec::new(),
-            ),
+            ErrorMessage::EnumVariantMissingArguments,
         );
     }
 
@@ -86,12 +76,7 @@ mod tests {
 
         ",
             (3, 35),
-            ErrorMessage::EnumArgsIncompatible(
-                "Foo".into(),
-                "C".into(),
-                Vec::new(),
-                vec!["Float32".into()],
-            ),
+            ErrorMessage::UnexpectedArgumentsForEnumVariant,
         );
     }
 
@@ -103,7 +88,7 @@ mod tests {
             fn give_me_c(): Foo { Foo::C() }
         ",
             (3, 35),
-            ErrorMessage::EnumArgsNoParens("Foo".into(), "C".into()),
+            ErrorMessage::UnexpectedArgumentsForEnumVariant,
         );
     }
 
@@ -173,13 +158,8 @@ mod tests {
             enum Foo { A(Int32), B }
             fn foo(): Foo { Foo::A(true) }
         ",
-            (3, 29),
-            ErrorMessage::EnumArgsIncompatible(
-                "Foo".into(),
-                "A".into(),
-                vec!["Int32".into()],
-                vec!["Bool".into()],
-            ),
+            (3, 36),
+            ErrorMessage::WrongTypeForArgument("Int32".into(), "Bool".into()),
         );
     }
 
@@ -213,13 +193,8 @@ mod tests {
             enum Foo[T] { A(T), B }
             fn foo() { let tmp = Foo[Int32]::A(true); }
         ",
-            (3, 34),
-            ErrorMessage::EnumArgsIncompatible(
-                "Foo".into(),
-                "A".into(),
-                vec!["T".into()],
-                vec!["Bool".into()],
-            ),
+            (3, 48),
+            ErrorMessage::WrongTypeForArgument("Int32".into(), "Bool".into()),
         );
     }
 

@@ -44,7 +44,8 @@ pub enum ErrorMessage {
     NoEnumVariant,
     EnumArgsIncompatible(String, String, Vec<String>, Vec<String>),
     StructArgsIncompatible(String, Vec<String>, Vec<String>),
-    EnumArgsNoParens(String, String),
+    UnexpectedArgumentsForEnumVariant,
+    EnumVariantMissingArguments,
     PatternNoParens,
     PatternWrongNumberOfParams(usize, usize),
     EnumExpected,
@@ -326,8 +327,11 @@ impl ErrorMessage {
             ErrorMessage::ImmutableField => {
                 format!("Fields of this type are immutable.")
             }
-            ErrorMessage::EnumArgsNoParens(ref name, ref variant) => {
-                format!("{}::{} needs to be used without parens.", name, variant)
+            ErrorMessage::UnexpectedArgumentsForEnumVariant => {
+                format!("Enum variant does not have any arguments")
+            }
+            ErrorMessage::EnumVariantMissingArguments => {
+                format!("Fields missing for enum variant.")
             }
             ErrorMessage::PatternNoParens => "pattern should be used without parens.".into(),
             ErrorMessage::PatternWrongNumberOfParams(given_params, expected_params) => {

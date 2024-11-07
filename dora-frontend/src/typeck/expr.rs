@@ -17,10 +17,10 @@ use crate::sema::{
 };
 use crate::ty::TraitType;
 use crate::typeck::{
-    check_expr_break_and_continue, check_expr_call, check_expr_call_enum_args, check_expr_for,
-    check_expr_if, check_expr_match, check_expr_return, check_expr_while, check_lit_char,
-    check_lit_float, check_lit_int, check_lit_str, check_pattern, check_stmt, find_method,
-    is_simple_enum, TypeCheck,
+    check_expr_break_and_continue, check_expr_call, check_expr_for, check_expr_if,
+    check_expr_match, check_expr_return, check_expr_while, check_lit_char, check_lit_float,
+    check_lit_int, check_lit_str, check_pattern, check_stmt, find_method, is_simple_enum,
+    TypeCheck,
 };
 use crate::typeparamck::{self, ErrorReporting};
 use crate::{replace_type, ty::error as ty_error, SourceType, SourceTypeArray, SymbolKind};
@@ -163,7 +163,7 @@ pub(super) fn check_expr_ident(
             const_.ty()
         }
 
-        Some(SymbolKind::EnumVariant(enum_id, variant_idx)) => check_enum_value_without_args_id(
+        Some(SymbolKind::EnumVariant(enum_id, variant_idx)) => check_enum_variant_without_args_id(
             ck,
             e.id,
             e.span,
@@ -1548,71 +1548,6 @@ fn check_expr_lambda(
     ty
 }
 
-pub(super) fn check_enum_value_with_args(
-    ck: &mut TypeCheck,
-    e: &ast::ExprCallType,
-    expected_ty: SourceType,
-    enum_id: EnumDefinitionId,
-    type_params: SourceTypeArray,
-    variant_idx: u32,
-    arg_types: &[SourceType],
-) -> SourceType {
-    let enum_ = ck.sa.enum_(enum_id);
-    let variant = &enum_.variants()[variant_idx as usize];
-
-    if !enum_accessible_from(ck.sa, enum_id, ck.module_id) {
-        let msg = ErrorMessage::NotAccessible;
-        ck.sa.report(ck.file_id, e.span, msg);
-    }
-
-    let type_params = if expected_ty.enum_id() == Some(enum_id) && type_params.is_empty() {
-        expected_ty.type_params()
-    } else {
-        type_params
-    };
-
-    let type_params_ok = typeparamck::check_enum(
-        ck.sa,
-        ck.type_param_definition,
-        enum_id,
-        &type_params,
-        ErrorReporting::Yes(ck.file_id, e.span),
-    );
-
-    if !type_params_ok {
-        ck.analysis.set_ty(e.id, ty_error());
-        return ty_error();
-    }
-
-    if !check_expr_call_enum_args(ck.sa, enum_id, type_params.clone(), variant, arg_types) {
-        let enum_name = ck.sa.interner.str(enum_.name).to_string();
-        let variant_name = ck.sa.interner.str(variant.name).to_string();
-        let variant_types = variant
-            .parsed_types()
-            .iter()
-            .map(|a| a.ty().name_enum(ck.sa, &*enum_))
-            .collect::<Vec<_>>();
-        let arg_types = arg_types.iter().map(|a| ck.ty_name(a)).collect::<Vec<_>>();
-        let msg =
-            ErrorMessage::EnumArgsIncompatible(enum_name, variant_name, variant_types, arg_types);
-        ck.sa.report(ck.file_id, e.span, msg);
-    } else if variant.parsed_types().is_empty() {
-        let enum_name = ck.sa.interner.str(enum_.name).to_string();
-        let variant_name = ck.sa.interner.str(variant.name).to_string();
-        let msg = ErrorMessage::EnumArgsNoParens(enum_name, variant_name);
-        ck.sa.report(ck.file_id, e.span, msg);
-    }
-
-    let ty = SourceType::Enum(enum_id, type_params);
-
-    ck.analysis
-        .map_calls
-        .insert(e.id, Arc::new(CallType::NewEnum(ty.clone(), variant_idx)));
-
-    ck.analysis.set_ty(e.id, ty.clone());
-    ty
-}
-
 pub(super) fn check_expr_path(
     ck: &mut TypeCheck,
     e: &ast::ExprPathType,
@@ -1648,7 +1583,7 @@ pub(super) fn check_expr_path(
     };
 
     match sym {
-        Some(SymbolKind::Enum(id)) => check_enum_value_without_args(
+        Some(SymbolKind::Enum(id)) => check_enum_variant_without_args(
             ck,
             e.id,
             e.op_span,
@@ -1715,7 +1650,7 @@ pub(super) fn read_path_expr(
     }
 }
 
-fn check_enum_value_without_args(
+fn check_enum_variant_without_args(
     ck: &mut TypeCheck,
     expr_id: ast::NodeId,
     expr_span: Span,
@@ -1742,23 +1677,10 @@ fn check_enum_value_without_args(
     let interned_name = ck.sa.interner.intern(&name);
 
     if let Some(&value) = enum_.name_to_value().get(&interned_name) {
-        let variant = &enum_.variants()[value as usize];
+        let variant = &enum_.variants[value as usize];
 
-        if !variant.parsed_types().is_empty() {
-            let enum_name = ck.sa.interner.str(enum_.name).to_string();
-            let variant_name = ck.sa.interner.str(variant.name).to_string();
-            let variant_types = variant
-                .parsed_types()
-                .iter()
-                .map(|a| a.ty().name_enum(ck.sa, &*enum_))
-                .collect::<Vec<_>>();
-            let arg_types = Vec::new();
-            let msg = ErrorMessage::EnumArgsIncompatible(
-                enum_name,
-                variant_name,
-                variant_types,
-                arg_types,
-            );
+        if !variant.fields.is_empty() {
+            let msg = ErrorMessage::EnumVariantMissingArguments;
             ck.sa.report(ck.file_id, expr_span, msg);
         }
 
@@ -1798,7 +1720,7 @@ pub(super) fn check_expr_type_param(
 
         match sym {
             Some(SymbolKind::EnumVariant(enum_id, variant_idx)) => {
-                check_enum_value_without_args_id(
+                check_enum_variant_without_args_id(
                     ck,
                     e.id,
                     e.op_span,
@@ -1841,7 +1763,7 @@ pub(super) fn check_expr_type_param(
         let sym = ck.symtable.get_string(ck.sa, &container_name);
 
         match sym {
-            Some(SymbolKind::Enum(enum_id)) => check_enum_value_without_args(
+            Some(SymbolKind::Enum(enum_id)) => check_enum_variant_without_args(
                 ck,
                 e.id,
                 e.op_span,
@@ -1867,7 +1789,7 @@ pub(super) fn check_expr_type_param(
     }
 }
 
-pub(super) fn check_enum_value_without_args_id(
+pub(super) fn check_enum_variant_without_args_id(
     ck: &mut TypeCheck,
     expr_id: ast::NodeId,
     expr_span: Span,
@@ -1899,17 +1821,8 @@ pub(super) fn check_enum_value_without_args_id(
 
     let variant = &enum_.variants()[variant_idx as usize];
 
-    if !variant.parsed_types().is_empty() {
-        let enum_name = ck.sa.interner.str(enum_.name).to_string();
-        let variant_name = ck.sa.interner.str(variant.name).to_string();
-        let variant_types = variant
-            .parsed_types()
-            .iter()
-            .map(|a| a.ty().name_enum(ck.sa, &*enum_))
-            .collect::<Vec<_>>();
-        let arg_types = Vec::new();
-        let msg =
-            ErrorMessage::EnumArgsIncompatible(enum_name, variant_name, variant_types, arg_types);
+    if !variant.fields.is_empty() {
+        let msg = ErrorMessage::EnumVariantMissingArguments;
         ck.sa.report(ck.file_id, expr_span, msg);
     }
 
@@ -1975,7 +1888,7 @@ fn check_expr_path_module(
             const_.ty()
         }
 
-        Some(SymbolKind::EnumVariant(enum_id, variant_idx)) => check_enum_value_without_args_id(
+        Some(SymbolKind::EnumVariant(enum_id, variant_idx)) => check_enum_variant_without_args_id(
             ck,
             e.id,
             e.op_span,

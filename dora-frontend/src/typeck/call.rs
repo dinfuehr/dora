@@ -4,20 +4,21 @@ use std::sync::Arc;
 use dora_parser::{ast, Span};
 
 use crate::access::{
-    class_accessible_from, class_field_accessible_from, fct_accessible_from, is_default_accessible,
-    method_accessible_from, struct_accessible_from, struct_field_accessible_from,
+    class_accessible_from, class_field_accessible_from, enum_accessible_from, fct_accessible_from,
+    is_default_accessible, method_accessible_from, struct_accessible_from,
+    struct_field_accessible_from,
 };
 use crate::interner::Name;
 use crate::sema::{
     find_field_in_class, new_identity_type_params, CallType, ClassDefinitionId, ElementWithFields,
-    EnumDefinitionId, EnumVariant, FctDefinitionId, IdentType, Sema, StructDefinitionId,
-    TraitDefinition, TypeParamDefinition, TypeParamId,
+    EnumDefinitionId, FctDefinitionId, IdentType, Sema, StructDefinitionId, TraitDefinition,
+    TypeParamDefinition, TypeParamId,
 };
 use crate::specialize::replace_type;
 use crate::sym::SymbolKind;
 use crate::typeck::{
-    args_compatible, args_compatible_fct, check_enum_value_with_args, check_expr,
-    find_method_call_candidates, read_path_expr, CallArguments, MethodLookup, TypeCheck,
+    args_compatible, args_compatible_fct, check_expr, find_method_call_candidates, read_path_expr,
+    CallArguments, MethodLookup, TypeCheck,
 };
 use crate::typeparamck::{self, ErrorReporting};
 use crate::{
@@ -92,28 +93,6 @@ fn create_call_arguments(ck: &mut TypeCheck, e: &ast::ExprCallType) -> CallArgum
     }
 
     arguments
-}
-
-pub(super) fn check_expr_call_enum_args(
-    sa: &Sema,
-    _enum_id: EnumDefinitionId,
-    type_params: SourceTypeArray,
-    variant: &EnumVariant,
-    arg_types: &[SourceType],
-) -> bool {
-    if variant.parsed_types().len() != arg_types.len() {
-        return false;
-    }
-
-    for (def_ty, arg_ty) in variant.parsed_types().iter().zip(arg_types) {
-        let def_ty = replace_type(sa, def_ty.ty(), Some(&type_params), None);
-
-        if !def_ty.allows(sa, arg_ty.clone()) {
-            return false;
-        }
-    }
-
-    true
 }
 
 fn check_expr_call_generic_static_method(
@@ -718,6 +697,63 @@ fn check_expr_call_class(
     cls_ty
 }
 
+pub(super) fn check_expr_call_enum_variant(
+    ck: &mut TypeCheck,
+    e: &ast::ExprCallType,
+    expected_ty: SourceType,
+    enum_id: EnumDefinitionId,
+    type_params: SourceTypeArray,
+    variant_idx: u32,
+    arguments: CallArguments,
+) -> SourceType {
+    let enum_ = ck.sa.enum_(enum_id);
+    let variant = &enum_.variants[variant_idx as usize];
+
+    if !enum_accessible_from(ck.sa, enum_id, ck.module_id) {
+        let msg = ErrorMessage::NotAccessible;
+        ck.sa.report(ck.file_id, e.span, msg);
+    }
+
+    let type_params = if expected_ty.enum_id() == Some(enum_id) && type_params.is_empty() {
+        expected_ty.type_params()
+    } else {
+        type_params
+    };
+
+    let type_params_ok = typeparamck::check_enum(
+        ck.sa,
+        ck.type_param_definition,
+        enum_id,
+        &type_params,
+        ErrorReporting::Yes(ck.file_id, e.span),
+    );
+
+    if !type_params_ok {
+        ck.analysis.set_ty(e.id, ty_error());
+        return ty_error();
+    }
+
+    if variant.fields.is_empty() {
+        let msg = ErrorMessage::UnexpectedArgumentsForEnumVariant;
+        ck.sa.report(ck.file_id, e.span, msg);
+    } else {
+        if variant.field_name_style.is_named() {
+            check_expr_call_ctor_with_named_fields(ck, variant, type_params.clone(), &arguments);
+        } else {
+            check_expr_call_ctor_with_unnamed_fields(ck, variant, type_params.clone(), &arguments);
+        }
+    }
+
+    let ty = SourceType::Enum(enum_id, type_params);
+
+    ck.analysis
+        .map_calls
+        .insert(e.id, Arc::new(CallType::NewEnum(ty.clone(), variant_idx)));
+
+    ck.analysis.set_ty(e.id, ty.clone());
+    ty
+}
+
 fn find_in_super_traits_self(
     sa: &Sema,
     trait_: &TraitDefinition,
@@ -1024,16 +1060,14 @@ fn check_expr_call_path(
                     type_params
                 };
 
-                let arg_types = arguments.assume_all_positional(ck);
-
-                check_enum_value_with_args(
+                check_expr_call_enum_variant(
                     ck,
                     e,
                     expected_ty,
                     enum_id,
                     used_type_params,
                     variant_idx,
-                    &arg_types,
+                    arguments,
                 )
             } else {
                 if typeparamck::check_enum(
@@ -1132,18 +1166,15 @@ fn check_expr_call_sym(
             check_expr_call_struct(ck, e, struct_id, type_params, arguments)
         }
 
-        Some(SymbolKind::EnumVariant(enum_id, variant_idx)) => {
-            let arg_types = arguments.assume_all_positional(ck);
-            check_enum_value_with_args(
-                ck,
-                e,
-                expected_ty,
-                enum_id,
-                type_params,
-                variant_idx,
-                &arg_types,
-            )
-        }
+        Some(SymbolKind::EnumVariant(enum_id, variant_idx)) => check_expr_call_enum_variant(
+            ck,
+            e,
+            expected_ty,
+            enum_id,
+            type_params,
+            variant_idx,
+            arguments,
+        ),
 
         _ => {
             if !type_params.is_empty() {

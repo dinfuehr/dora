@@ -304,7 +304,8 @@ pub struct EnumVariant {
     pub span: Span,
     pub green: GreenNode,
     pub name: Option<Ident>,
-    pub types: Option<Vec<Type>>,
+    pub field_name_style: FieldNameStyle,
+    pub fields: Vec<Arc<Field>>,
 }
 
 #[derive(Clone, Debug)]

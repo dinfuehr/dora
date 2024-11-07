@@ -184,8 +184,15 @@ fn parse_enum_types(sa: &Sema) {
         );
 
         for variant in &enum_.variants {
-            for parsed_ty in &variant.parsed_types {
-                parsety::parse_type(sa, &symtable, enum_.file_id, enum_, false, parsed_ty);
+            for field in &variant.fields {
+                parsety::parse_type(
+                    sa,
+                    &symtable,
+                    enum_.file_id,
+                    enum_,
+                    false,
+                    &field.parsed_type,
+                );
             }
         }
 
@@ -434,8 +441,8 @@ fn check_enum_types(sa: &Sema) {
         check_type_param_definition(sa, enum_, &ctxt, enum_.type_param_definition());
 
         for variant in enum_.variants() {
-            for parsed_ty in variant.parsed_types() {
-                parsety::check_type(sa, enum_, &ctxt, parsed_ty);
+            for field in &variant.fields {
+                parsety::check_type(sa, enum_, &ctxt, &field.parsed_type);
             }
         }
     }
@@ -629,8 +636,8 @@ fn expand_struct_types(sa: &Sema) {
 fn expand_enum_types(sa: &Sema) {
     for (_id, enum_) in sa.enums.iter() {
         for variant in enum_.variants() {
-            for parsed_ty in variant.parsed_types() {
-                parsety::expand_type(sa, enum_, parsed_ty, None);
+            for field in &variant.fields {
+                parsety::expand_type(sa, enum_, &field.parsed_type, None);
             }
         }
 

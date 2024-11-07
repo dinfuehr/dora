@@ -1761,7 +1761,7 @@ fn test_enum() {
     err(
         "enum A[T] { V1(T), V2 } fn f(): A[Int32] { A[Int32]::V1 }",
         (1, 52),
-        ErrorMessage::EnumArgsIncompatible("A".into(), "V1".into(), vec!["T".into()], Vec::new()),
+        ErrorMessage::EnumVariantMissingArguments,
     );
 
     err(
@@ -2048,23 +2048,13 @@ fn test_use_enum_value() {
     err(
         "enum A { V1(Int32), V2 } use A::V1; fn f(): A { V1 }",
         (1, 49),
-        ErrorMessage::EnumArgsIncompatible(
-            "A".into(),
-            "V1".into(),
-            vec!["Int32".into()],
-            Vec::new(),
-        ),
+        ErrorMessage::EnumVariantMissingArguments,
     );
 
     err(
         "enum A { V1(Int32), V2 } use A::V2; fn f(): A { V2(0i32) }",
         (1, 49),
-        ErrorMessage::EnumArgsIncompatible(
-            "A".into(),
-            "V2".into(),
-            Vec::new(),
-            vec!["Int32".into()],
-        ),
+        ErrorMessage::UnexpectedArgumentsForEnumVariant,
     );
 
     ok("enum A[T] { V1(Int32), V2 } use A::V2; fn f(): A[Int32] { V2 }");
@@ -3768,12 +3758,7 @@ fn missing_enum_arguments() {
         }
     ",
         (3, 17),
-        ErrorMessage::EnumArgsIncompatible(
-            "Option".into(),
-            "Some".into(),
-            vec!["T".into()],
-            vec![],
-        ),
+        ErrorMessage::EnumVariantMissingArguments,
     );
 }
 

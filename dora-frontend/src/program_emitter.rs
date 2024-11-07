@@ -364,9 +364,9 @@ fn create_enum_variants(sa: &Sema, enum_: &EnumDefinition) -> Vec<EnumVariant> {
 
     for variant in enum_.variants() {
         let arguments = variant
-            .parsed_types()
+            .fields
             .iter()
-            .map(|pty| bty_from_ty(pty.ty()))
+            .map(|f| bty_from_ty(f.parsed_type.ty()))
             .collect();
         result.push(EnumVariant {
             name: sa.interner.str(variant.name).to_string(),

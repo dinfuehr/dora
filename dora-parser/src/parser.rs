@@ -6,9 +6,9 @@ use crate::error::{ParseError, ParseErrorWithLocation};
 
 use crate::green::{GreenTreeBuilder, Marker};
 use crate::token::{
-    ELEM_FIRST, EMPTY, ENUM_VARIANT_ARGUMENT_RS, ENUM_VARIANT_RS, EXPRESSION_FIRST, FIELD_FIRST,
-    MODIFIER_FIRST, PARAM_LIST_RS, PATTERN_FIRST, PATTERN_RS, TYPE_FIRST, TYPE_PARAM_RS,
-    UNNAMED_FIELD_FIRST, USE_PATH_ATOM_FIRST, USE_PATH_FIRST,
+    ELEM_FIRST, EMPTY, ENUM_VARIANT_RS, EXPRESSION_FIRST, FIELD_FIRST, MODIFIER_FIRST,
+    PARAM_LIST_RS, PATTERN_FIRST, PATTERN_RS, TYPE_FIRST, TYPE_PARAM_RS, UNNAMED_FIELD_FIRST,
+    USE_PATH_ATOM_FIRST, USE_PATH_FIRST,
 };
 use crate::TokenKind::*;
 use crate::{lex, Span, TokenKind, TokenSet};
@@ -405,19 +405,47 @@ impl Parser {
         self.start_node();
         self.builder.start_node();
         let name = self.expect_identifier();
+        let field_name_style;
 
-        let types = if self.is(L_PAREN) {
-            Some(self.parse_list(
+        let fields = if self.is(L_PAREN) {
+            field_name_style = FieldNameStyle::Positional;
+
+            self.parse_list(
                 L_PAREN,
                 COMMA,
                 R_PAREN,
-                ENUM_VARIANT_ARGUMENT_RS,
-                ParseError::ExpectedType,
-                ENUM_VARIANT_ARGUMENT_LIST,
-                |p| p.parse_type_wrapper(),
-            ))
+                ELEM_FIRST,
+                ParseError::ExpectedField,
+                LIST,
+                |p| {
+                    if p.is_set(UNNAMED_FIELD_FIRST) {
+                        Some(p.parse_unnamed_field())
+                    } else {
+                        None
+                    }
+                },
+            )
+        } else if self.is(L_BRACE) {
+            field_name_style = FieldNameStyle::Named;
+
+            self.parse_list(
+                L_BRACE,
+                COMMA,
+                R_BRACE,
+                ELEM_FIRST,
+                ParseError::ExpectedField,
+                LIST,
+                |p| {
+                    if p.is_set(FIELD_FIRST) {
+                        Some(p.parse_named_field())
+                    } else {
+                        None
+                    }
+                },
+            )
         } else {
-            None
+            field_name_style = FieldNameStyle::Positional;
+            Vec::new()
         };
 
         let green = self.builder.finish_node(ENUM_VARIANT);
@@ -427,7 +455,8 @@ impl Parser {
             span: self.finish_node(),
             green,
             name,
-            types,
+            field_name_style,
+            fields,
         }
     }
 
@@ -728,7 +757,7 @@ impl Parser {
                 ParseError::ExpectedField,
                 LIST,
                 |p| {
-                    if p.is_set(FIELD_FIRST) {
+                    if p.is_set(UNNAMED_FIELD_FIRST) {
                         Some(p.parse_unnamed_field())
                     } else {
                         None
@@ -3891,8 +3920,8 @@ mod tests {
         let prog = parse("enum MyOption[T] { None, Some(T), }");
         let enum_ = prog.enum0();
         assert_eq!(enum_.variants.len(), 2);
-        assert!(enum_.variants[0].types.is_none());
-        assert_eq!(enum_.variants[1].types.as_ref().unwrap().len(), 1);
+        assert!(enum_.variants[0].fields.is_empty());
+        assert_eq!(enum_.variants[1].fields.len(), 1);
     }
 
     #[test]

@@ -7,16 +7,14 @@ use crate::sema::{
     LazyLambdaCreationData, Sema, TypeParamDefinition,
 };
 use crate::sym::ModuleSymTable;
-use crate::typeck::call::{check_expr_call, check_expr_call_enum_args, find_method};
+use crate::typeck::call::{check_expr_call, find_method};
 use crate::typeck::constck::ConstCheck;
 pub use crate::typeck::control::is_pattern_check;
 use crate::typeck::control::{
     check_expr_break_and_continue, check_expr_for, check_expr_if, check_expr_match,
     check_expr_return, check_expr_while, get_subpatterns,
 };
-use crate::typeck::expr::{
-    check_enum_value_with_args, check_expr, read_ident, read_path, read_path_expr,
-};
+use crate::typeck::expr::{check_expr, read_ident, read_path, read_path_expr};
 pub use crate::typeck::expr::{compute_lit_float, compute_lit_int};
 use crate::typeck::function::{
     add_local, args_compatible, args_compatible_fct, check_lit_char, check_lit_float,

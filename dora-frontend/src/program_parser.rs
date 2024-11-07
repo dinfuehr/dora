@@ -10,10 +10,10 @@ use crate::error::msg::ErrorMessage;
 use crate::interner::Name;
 use crate::sema::{
     AliasBound, AliasDefinition, AliasDefinitionId, AliasParent, ClassDefinition, ConstDefinition,
-    EnumDefinition, EnumVariant, ExtensionDefinition, ExtensionDefinitionId, FctDefinition,
-    FctDefinitionId, FctParent, Field, FieldId, GlobalDefinition, ImplDefinition, ImplDefinitionId,
-    ModuleDefinition, ModuleDefinitionId, PackageDefinition, PackageDefinitionId, PackageName,
-    Param, Sema, SourceFile, SourceFileId, StructDefinition, StructDefinitionField,
+    EnumDefinition, EnumField, EnumVariant, ExtensionDefinition, ExtensionDefinitionId,
+    FctDefinition, FctDefinitionId, FctParent, Field, FieldId, GlobalDefinition, ImplDefinition,
+    ImplDefinitionId, ModuleDefinition, ModuleDefinitionId, PackageDefinition, PackageDefinitionId,
+    PackageName, Param, Sema, SourceFile, SourceFileId, StructDefinition, StructDefinitionField,
     StructDefinitionFieldId, TraitDefinition, TraitDefinitionId, TypeParamDefinition,
     UseDefinition, Visibility,
 };
@@ -727,37 +727,56 @@ impl<'x> visit::Visitor for TopLevelDeclaration<'x> {
         let mut variants = Vec::new();
         let mut name_to_value = HashMap::new();
 
-        for value in &node.variants {
-            if value.name.is_none() {
+        for variant in &node.variants {
+            if variant.name.is_none() {
                 continue;
             }
 
             let name = self
                 .sa
                 .interner
-                .intern(&value.name.as_ref().expect("missing name").name_as_string);
+                .intern(&variant.name.as_ref().expect("missing name").name_as_string);
 
-            let mut parsed_types = Vec::new();
+            let mut fields = Vec::new();
+            let mut used_names: HashSet<Name> = HashSet::new();
 
-            if let Some(ref types) = value.types {
-                for arg in types {
-                    parsed_types.push(ParsedType::new_ast(arg.clone()));
-                }
+            for field in &variant.fields {
+                let name = if variant.field_name_style.is_positional() {
+                    None
+                } else {
+                    let name = ensure_name(self.sa, &field.name);
+                    check_if_symbol_exists(
+                        self.sa,
+                        self.file_id,
+                        &mut used_names,
+                        name,
+                        field.span,
+                    );
+                    Some(name)
+                };
+
+                let field = EnumField {
+                    name,
+                    parsed_type: ParsedType::new_ast(field.data_type.clone()),
+                };
+
+                fields.push(field);
             }
 
-            let variant = EnumVariant {
+            let enum_variant = EnumVariant {
                 id: next_variant_id,
                 name: name,
-                parsed_types,
+                field_name_style: variant.field_name_style,
+                fields,
             };
 
-            variants.push(variant);
+            variants.push(enum_variant);
 
             if name_to_value.insert(name, next_variant_id).is_some() {
                 let name = self.sa.interner.str(name).to_string();
                 self.sa.report(
                     self.file_id,
-                    value.span,
+                    variant.span,
                     ErrorMessage::ShadowEnumVariant(name),
                 );
             }

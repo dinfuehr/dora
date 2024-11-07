@@ -12,8 +12,9 @@ use dora_parser::Span;
 use id_arena::Id;
 
 use crate::sema::{
-    module_path, Element, ElementAccess, ElementId, ExtensionDefinitionId, ModuleDefinitionId,
-    PackageDefinitionId, Sema, SourceFileId, TypeParamDefinition, Visibility,
+    module_path, Element, ElementAccess, ElementField, ElementId, ElementWithFields,
+    ExtensionDefinitionId, ModuleDefinitionId, PackageDefinitionId, Sema, SourceFileId,
+    TypeParamDefinition, Visibility,
 };
 use crate::{SourceType, SourceTypeArray};
 
@@ -159,11 +160,30 @@ impl ElementAccess for EnumDefinition {
 pub struct EnumVariant {
     pub id: u32,
     pub name: Name,
-    pub parsed_types: Vec<ParsedType>,
+    pub field_name_style: ast::FieldNameStyle,
+    pub fields: Vec<EnumField>,
 }
 
-impl EnumVariant {
-    pub fn parsed_types(&self) -> &Vec<ParsedType> {
-        &self.parsed_types
+impl ElementWithFields for EnumVariant {
+    fn field_name(&self, idx: usize) -> Option<Name> {
+        self.fields[idx].name
     }
+
+    fn fields<'a>(&'a self) -> Box<dyn Iterator<Item = super::ElementField> + 'a> {
+        Box::new(self.fields.iter().enumerate().map(|(id, f)| ElementField {
+            id,
+            name: f.name,
+            ty: f.parsed_type.ty(),
+        }))
+    }
+
+    fn fields_len(&self) -> usize {
+        self.fields.len()
+    }
+}
+
+#[derive(Debug)]
+pub struct EnumField {
+    pub name: Option<Name>,
+    pub parsed_type: ParsedType,
 }

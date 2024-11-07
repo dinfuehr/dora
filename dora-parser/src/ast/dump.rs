@@ -130,13 +130,11 @@ impl AstDumper {
         dump!(self, "enum variant @ {} {}", value.span, value.id);
         self.dump_maybe_ident(&value.name);
 
-        if let Some(ref types) = value.types {
-            self.indent(|d| {
-                for ty in types {
-                    d.dump_type(ty);
-                }
-            });
-        }
+        self.indent(|d| {
+            for field in &value.fields {
+                d.dump_type(&field.data_type);
+            }
+        });
     }
 
     fn dump_impl(&mut self, impl_: &Impl) {
