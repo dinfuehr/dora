@@ -4991,3 +4991,55 @@ fn unnamed_tuple_field_assignment() {
         ],
     );
 }
+
+#[test]
+fn enum_variant_named_fields() {
+    ok("
+        enum Foo {
+            A(Int, Int),
+            B { a: Int, b: Int },
+        }
+        fn f() {
+            Foo::A(1, 2);
+            Foo::B(a=1, b=2);
+        }
+    ");
+}
+
+#[test]
+fn enum_variant_missing_named_field() {
+    err(
+        "
+        enum Foo {
+            A,
+            B { a: Int, b: Int },
+        }
+        fn f() {
+            Foo::B(a=1);
+        }
+    ",
+        (7, 13),
+        ErrorMessage::MissingNamedArgument("b".into()),
+    );
+}
+
+#[test]
+fn enum_variant_positional_argument_for_named_field() {
+    errors(
+        "
+        enum Foo {
+            A,
+            B { a: Int, b: Int },
+        }
+        fn f() {
+            Foo::B(1, 2);
+        }
+    ",
+        &[
+            ((7, 13), ErrorMessage::MissingNamedArgument("a".into())),
+            ((7, 13), ErrorMessage::MissingNamedArgument("b".into())),
+            ((7, 20), ErrorMessage::UnexpectedPositionalArgument),
+            ((7, 23), ErrorMessage::UnexpectedPositionalArgument),
+        ],
+    );
+}
