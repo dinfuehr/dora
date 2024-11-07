@@ -392,14 +392,14 @@ impl<'a> AstBytecodeGen<'a> {
             ast::PatternAlt::ClassOrStructOrEnum(ref p) => {
                 if let Some(ref params) = p.params {
                     for param in params {
-                        self.setup_pattern_vars(param);
+                        self.setup_pattern_vars(&param.pattern);
                     }
                 }
             }
 
             ast::PatternAlt::Tuple(ref tuple) => {
                 for param in &tuple.params {
-                    self.setup_pattern_vars(param);
+                    self.setup_pattern_vars(&param.pattern);
                 }
             }
         }
@@ -734,7 +734,7 @@ impl<'a> AstBytecodeGen<'a> {
             self.builder
                 .emit_load_enum_element(field_reg, value, idx, self.loc(pattern.span()));
 
-            self.destruct_pattern_inner(pck, param, field_reg, element_ty);
+            self.destruct_pattern_inner(pck, &param.pattern, field_reg, element_ty);
             self.free_temp(field_reg);
         });
 
@@ -754,7 +754,7 @@ impl<'a> AstBytecodeGen<'a> {
     ) {
         let struct_ = self.sa.struct_(struct_id);
 
-        iterate_subpatterns(pattern, struct_.fields.len(), |idx, subpattern| {
+        iterate_subpatterns(pattern, struct_.fields.len(), |idx, field| {
             let field_ty = struct_.fields[idx].ty();
             let field_ty = specialize_type(self.sa, field_ty, struct_type_params);
             let register_ty = register_bty_from_ty(field_ty.clone());
@@ -765,7 +765,7 @@ impl<'a> AstBytecodeGen<'a> {
             );
             let temp_reg = self.alloc_temp(register_ty);
             self.builder.emit_load_struct_field(temp_reg, value, idx);
-            self.destruct_pattern_inner(pck, subpattern, temp_reg, field_ty);
+            self.destruct_pattern_inner(pck, &field.pattern, temp_reg, field_ty);
             self.free_temp(temp_reg);
         })
     }
@@ -781,7 +781,7 @@ impl<'a> AstBytecodeGen<'a> {
     ) {
         let class = self.sa.class(class_id);
 
-        iterate_subpatterns(pattern, class.fields.len(), |idx, subpattern| {
+        iterate_subpatterns(pattern, class.fields.len(), |idx, field_pattern| {
             let field_ty = class.fields[idx].ty();
             let field_ty = specialize_type(self.sa, field_ty, class_type_params);
             let register_ty = register_bty_from_ty(field_ty.clone());
@@ -793,7 +793,7 @@ impl<'a> AstBytecodeGen<'a> {
             let temp_reg = self.alloc_temp(register_ty);
             self.builder
                 .emit_load_field(temp_reg, value, idx, self.loc(pattern.span()));
-            self.destruct_pattern_inner(pck, subpattern, temp_reg, field_ty);
+            self.destruct_pattern_inner(pck, &field_pattern.pattern, temp_reg, field_ty);
             self.free_temp(temp_reg);
         })
     }
@@ -812,7 +812,7 @@ impl<'a> AstBytecodeGen<'a> {
         } else {
             let tuple_subtypes = ty.tuple_subtypes().expect("tuple expected");
 
-            iterate_subpatterns(pattern, tuple_subtypes.len(), |idx, subpattern| {
+            iterate_subpatterns(pattern, tuple_subtypes.len(), |idx, field_pattern| {
                 let subtype = tuple_subtypes[idx].clone();
                 let register_ty = register_bty_from_ty(subtype.clone());
                 let cp_idx = self
@@ -821,7 +821,7 @@ impl<'a> AstBytecodeGen<'a> {
                 let temp_reg = self.alloc_temp(register_ty);
                 self.builder
                     .emit_load_tuple_element(temp_reg, value, cp_idx);
-                self.destruct_pattern_inner(pck, subpattern, temp_reg, subtype);
+                self.destruct_pattern_inner(pck, &field_pattern.pattern, temp_reg, subtype);
                 self.free_temp(temp_reg);
             });
         }
@@ -3308,7 +3308,7 @@ fn field_id_from_context_idx(context_idx: ContextFieldId, has_outer_context_slot
     FieldId(start_idx + context_idx)
 }
 
-fn get_subpatterns(p: &ast::PatternAlt) -> Option<&Vec<Arc<ast::Pattern>>> {
+fn get_subpatterns(p: &ast::PatternAlt) -> Option<&Vec<Arc<ast::PatternField>>> {
     match p {
         ast::PatternAlt::Underscore(..)
         | ast::PatternAlt::LitBool(..)
@@ -3327,10 +3327,10 @@ fn get_subpatterns(p: &ast::PatternAlt) -> Option<&Vec<Arc<ast::Pattern>>> {
 
 fn iterate_subpatterns<F>(p: &ast::PatternAlt, def_length: usize, mut f: F)
 where
-    F: FnMut(usize, &ast::Pattern),
+    F: FnMut(usize, &ast::PatternField),
 {
     if let Some(subpatterns) = get_subpatterns(p) {
-        let rest_len = if subpatterns.iter().find(|p| p.is_rest()).is_some() {
+        let rest_len = if subpatterns.iter().find(|p| p.pattern.is_rest()).is_some() {
             def_length - (subpatterns.len() - 1)
         } else {
             0
@@ -3339,9 +3339,9 @@ where
         let mut idx = 0;
 
         for subpattern in subpatterns {
-            if subpattern.is_rest() {
+            if subpattern.pattern.is_rest() {
                 idx += rest_len;
-            } else if subpattern.is_underscore() {
+            } else if subpattern.pattern.is_underscore() {
                 idx += 1;
             } else {
                 f(idx, subpattern.as_ref());

@@ -511,7 +511,7 @@ fn check_coverage(ck: &mut TypeCheck, node: &ast::ExprMatchType, expr_type: Sour
     }
 }
 
-pub(super) fn get_subpatterns(p: &ast::PatternAlt) -> Option<&Vec<Arc<ast::Pattern>>> {
+pub(super) fn get_subpatterns(p: &ast::PatternAlt) -> Option<&Vec<Arc<ast::PatternField>>> {
     match p {
         ast::PatternAlt::Underscore(..)
         | ast::PatternAlt::LitBool(..)

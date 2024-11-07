@@ -1517,7 +1517,14 @@ impl Parser {
                 PATTERN_LIST,
                 |p| {
                     if p.is_set(PATTERN_FIRST) {
-                        Some(p.parse_pattern())
+                        p.start_node();
+                        let pattern = p.parse_pattern();
+                        Some(Arc::new(PatternField {
+                            id: p.new_node_id(),
+                            span: p.finish_node(),
+                            ident: None,
+                            pattern,
+                        }))
                     } else {
                         None
                     }
@@ -1589,7 +1596,15 @@ impl Parser {
                     PATTERN_LIST,
                     |p| {
                         if p.is_set(PATTERN_FIRST) {
-                            Some(p.parse_pattern())
+                            p.start_node();
+                            let pattern = p.parse_pattern();
+
+                            Some(Arc::new(PatternField {
+                                id: p.new_node_id(),
+                                span: p.finish_node(),
+                                ident: None,
+                                pattern,
+                            }))
                         } else {
                             None
                         }
@@ -3016,11 +3031,11 @@ mod tests {
 
         let pattern = let_decl.pattern.first_alt().unwrap();
         let tuple = pattern.to_tuple().unwrap();
-        let first: &Arc<Pattern> = tuple.params.first().unwrap();
+        let first: &Arc<Pattern> = &tuple.params.first().unwrap().pattern;
         let first = first.first_alt().unwrap();
         assert!(first.is_ident());
         assert!(first.to_ident().unwrap().mutable);
-        let last = tuple.params.last().unwrap();
+        let last = &tuple.params.last().unwrap().pattern;
         let last = last.first_alt().unwrap();
         assert!(last.is_tuple());
     }
@@ -3032,8 +3047,8 @@ mod tests {
 
         let pattern = let_decl.pattern.first_alt().unwrap();
         let tuple = pattern.to_tuple().unwrap();
-        assert!(tuple.params[0].first_alt().unwrap().is_ident());
-        assert!(tuple.params[1].first_alt().unwrap().is_lit_bool());
+        assert!(tuple.params[0].pattern.first_alt().unwrap().is_ident());
+        assert!(tuple.params[1].pattern.first_alt().unwrap().is_lit_bool());
     }
 
     #[test]
@@ -3043,8 +3058,8 @@ mod tests {
 
         let pattern = let_decl.pattern.first_alt().unwrap();
         let tuple = pattern.to_tuple().unwrap();
-        assert!(tuple.params[0].is_ident());
-        assert!(tuple.params[1].is_lit_char());
+        assert!(tuple.params[0].pattern.is_ident());
+        assert!(tuple.params[1].pattern.is_lit_char());
     }
 
     #[test]
@@ -3054,8 +3069,8 @@ mod tests {
 
         let pattern = let_decl.pattern.first_alt().unwrap();
         let tuple = pattern.to_tuple().unwrap();
-        assert!(tuple.params[0].is_ident());
-        assert!(tuple.params[1].is_lit_string());
+        assert!(tuple.params[0].pattern.is_ident());
+        assert!(tuple.params[1].pattern.is_lit_string());
     }
 
     #[test]
@@ -3065,8 +3080,8 @@ mod tests {
 
         let pattern = let_decl.pattern.first_alt().unwrap();
         let tuple = pattern.to_tuple().unwrap();
-        assert!(tuple.params[0].is_ident());
-        assert!(tuple.params[1].is_lit_int());
+        assert!(tuple.params[0].pattern.is_ident());
+        assert!(tuple.params[1].pattern.is_lit_int());
     }
 
     #[test]
@@ -3076,8 +3091,8 @@ mod tests {
 
         let pattern = let_decl.pattern.first_alt().unwrap();
         let tuple = pattern.to_tuple().unwrap();
-        assert!(tuple.params[0].is_ident());
-        assert!(tuple.params[1].is_lit_int());
+        assert!(tuple.params[0].pattern.is_ident());
+        assert!(tuple.params[1].pattern.is_lit_int());
     }
 
     #[test]
@@ -3087,8 +3102,8 @@ mod tests {
 
         let pattern = let_decl.pattern.first_alt().unwrap();
         let tuple = pattern.to_tuple().unwrap();
-        assert!(tuple.params[0].is_ident());
-        assert!(tuple.params[1].is_lit_float());
+        assert!(tuple.params[0].pattern.is_ident());
+        assert!(tuple.params[1].pattern.is_lit_float());
     }
 
     #[test]
@@ -3098,8 +3113,8 @@ mod tests {
 
         let pattern = let_decl.pattern.first_alt().unwrap();
         let tuple = pattern.to_tuple().unwrap();
-        assert!(tuple.params[0].is_ident());
-        assert!(tuple.params[1].is_lit_float());
+        assert!(tuple.params[0].pattern.is_ident());
+        assert!(tuple.params[1].pattern.is_lit_float());
     }
 
     #[test]

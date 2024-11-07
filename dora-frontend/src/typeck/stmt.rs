@@ -467,7 +467,7 @@ fn check_subpatterns<'a>(
     let subpatterns = get_subpatterns(pattern);
 
     if let Some(subpatterns) = subpatterns {
-        let rest_count = subpatterns.iter().filter(|p| p.is_rest()).count();
+        let rest_count = subpatterns.iter().filter(|p| p.pattern.is_rest()).count();
 
         if rest_count == 0 {
             if subpatterns.len() != expected_types.len() {
@@ -480,7 +480,7 @@ fn check_subpatterns<'a>(
 
             for (idx, subpattern) in subpatterns.iter().enumerate() {
                 let ty = expected_types.get(idx).cloned().unwrap_or(ty::error());
-                check_pattern_inner(ck, ctxt, subpattern.as_ref(), ty);
+                check_pattern_inner(ck, ctxt, &subpattern.pattern, ty);
             }
         } else if rest_count == 1 {
             let pattern_count = subpatterns.len() - 1;
@@ -498,11 +498,11 @@ fn check_subpatterns<'a>(
             let mut idx = 0;
 
             for subpattern in subpatterns {
-                if subpattern.is_rest() {
+                if subpattern.pattern.is_rest() {
                     idx += rest_len;
                 } else {
                     let ty = expected_types.get(idx).cloned().unwrap_or(ty::error());
-                    check_pattern_inner(ck, ctxt, subpattern.as_ref(), ty);
+                    check_pattern_inner(ck, ctxt, &subpattern.pattern, ty);
                     idx += 1;
                 }
             }
@@ -523,8 +523,8 @@ fn check_subpatterns<'a>(
 fn check_subpatterns_error(ck: &mut TypeCheck, ctxt: &mut Context, pattern: &ast::PatternAlt) {
     if let Some(subpatterns) = get_subpatterns(pattern) {
         for subpattern in subpatterns {
-            if !subpattern.is_rest() {
-                check_pattern_inner(ck, ctxt, subpattern.as_ref(), ty::error());
+            if !subpattern.pattern.is_rest() {
+                check_pattern_inner(ck, ctxt, &subpattern.pattern, ty::error());
             }
         }
     }
