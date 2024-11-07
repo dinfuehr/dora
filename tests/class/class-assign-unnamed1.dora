@@ -1,4 +1,4 @@
-class Foo &(Int, Bool)
+class Foo(Int, Bool)
 
 fn main() {
     let x = Foo(1, true);

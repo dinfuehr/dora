@@ -18,4 +18,4 @@ fn tpl[T](value: T): Foo[T] {
 
 struct Foo[T](T, Bool)
 
-class Bar &(Int32)
+class Bar(Int32)

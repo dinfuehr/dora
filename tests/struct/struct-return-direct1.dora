@@ -7,7 +7,7 @@ fn main() {
 } 
 
 struct Pair(Int32, Foo)
-class Bar &(Int32)
+class Bar(Int32)
 
 impl Bar {
     fn tpl1(): Pair {
@@ -16,4 +16,4 @@ impl Bar {
     }
 }
 
-class Foo &(Int32)
+class Foo(Int32)
