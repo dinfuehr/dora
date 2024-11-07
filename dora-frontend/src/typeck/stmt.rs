@@ -7,7 +7,8 @@ use crate::access::{
 };
 use crate::error::msg::ErrorMessage;
 use crate::sema::{
-    ClassDefinitionId, ConstValue, EnumDefinitionId, IdentType, StructDefinitionId, VarId,
+    ClassDefinitionId, ConstValue, ElementWithFields, EnumDefinitionId, IdentType,
+    StructDefinitionId, VarId,
 };
 use crate::ty::SourceType;
 use crate::typeck::{
@@ -446,7 +447,11 @@ fn check_pattern_struct(
             .map(|f| specialize_type(ck.sa, f.ty(), &value_type_params))
             .collect::<Vec<_>>();
 
-        check_subpatterns(ck, ctxt, pattern, &expected_types);
+        if struct_.field_name_style.is_named() {
+            check_subpatterns_named(ck, ctxt, pattern, struct_);
+        } else {
+            check_subpatterns(ck, ctxt, pattern, &expected_types);
+        }
     } else {
         if !ty.is_error() {
             let ty = ty.name(ck.sa);
@@ -455,6 +460,67 @@ fn check_pattern_struct(
         }
 
         check_subpatterns_error(ck, ctxt, pattern);
+    }
+}
+
+fn check_subpatterns_named<'a>(
+    ck: &mut TypeCheck,
+    ctxt: &mut Context,
+    pattern: &ast::PatternAlt,
+    element: &dyn ElementWithFields,
+) {
+    let params = match pattern {
+        ast::PatternAlt::ClassOrStructOrEnum(ref p) => p.params.as_ref(),
+        ast::PatternAlt::Ident(..) => None,
+        _ => unreachable!(),
+    };
+
+    if let Some(params) = params {
+        let mut used_names = HashMap::new();
+        let mut rest_seen = false;
+
+        for (idx, param) in params.iter().enumerate() {
+            if let Some(ref ident) = param.ident {
+                let name = ck.sa.interner.intern(&ident.name_as_string);
+                assert!(used_names.insert(name, idx).is_none());
+            } else if param.pattern.is_ident() {
+                let ident = param.pattern.to_ident().expect("ident expected");
+                let name = ck.sa.interner.intern(&ident.name.name_as_string);
+                assert!(used_names.insert(name, idx).is_none());
+            } else if param.pattern.is_rest() {
+                rest_seen = true;
+                if idx + 1 != params.len() {
+                    let msg = ErrorMessage::PatternRestShouldBeLast;
+                    ck.sa.report(ck.file_id, param.span, msg);
+                }
+            } else {
+                unimplemented!();
+            }
+        }
+
+        for field in element.fields() {
+            if let Some(name) = field.name {
+                if let Some(idx) = used_names.remove(&name) {
+                    let field_pattern = &params[idx];
+                    check_pattern_inner(ck, ctxt, &field_pattern.pattern, field.ty);
+                } else if !rest_seen {
+                    let name = ck.sa.interner.str(name).to_string();
+                    let msg = ErrorMessage::MissingNamedArgument(name);
+                    ck.sa.report(ck.file_id, pattern.span(), msg);
+                }
+            }
+        }
+
+        for (_name, idx) in used_names {
+            let param = &params[idx];
+            ck.sa.report(
+                ck.file_id,
+                param.span,
+                ErrorMessage::UnexpectedNamedArgument,
+            );
+        }
+    } else {
+        unimplemented!();
     }
 }
 

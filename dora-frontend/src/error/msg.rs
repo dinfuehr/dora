@@ -188,6 +188,7 @@ pub enum ErrorMessage {
     PatternBindingNotDefinedInAllAlternatives(String),
     PatternUnexpectedRest,
     PatternMultipleRest,
+    PatternRestShouldBeLast,
     ExtendingTypeDifferentPackage,
     ImplTraitForeignType,
     TraitNotObjectSafe,
@@ -732,6 +733,9 @@ impl ErrorMessage {
             }
             ErrorMessage::OldClassDefinition => {
                 format!("Switch code to new class definition syntax.")
+            }
+            ErrorMessage::PatternRestShouldBeLast => {
+                format!("Rest pattern should be last.")
             }
         }
     }

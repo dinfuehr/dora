@@ -4,6 +4,6 @@ set -e
 
 cargo build
 cargo test
-cargo run -p dora -- --boots --report-all-warnings --gc-verbose --emit-compiler --bootstrap-compiler tests/boots/hello.dora
+cargo run -p dora -- --boots --report-all-warnings --emit-compiler --bootstrap-compiler tests/boots/hello.dora
 ruby tools/tester.rb $@
 cargo run -p dora -- test --boots --test-boots --gc-verify tests/hello-world.dora

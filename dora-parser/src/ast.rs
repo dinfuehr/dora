@@ -1973,6 +1973,11 @@ impl Pattern {
         self.alts.len() == 1 && self.alts[0].is_ident()
     }
 
+    pub fn to_ident(&self) -> Option<&PatternIdent> {
+        assert!(self.alts.len() == 1);
+        self.alts[0].to_ident()
+    }
+
     pub fn is_lit_bool(&self) -> bool {
         self.alts.len() == 1 && self.alts[0].is_lit_bool()
     }

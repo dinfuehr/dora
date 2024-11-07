@@ -1595,7 +1595,19 @@ impl Parser {
                     ParseError::ExpectedPattern,
                     PATTERN_LIST,
                     |p| {
-                        if p.is_set(PATTERN_FIRST) {
+                        if p.is2(IDENTIFIER, EQ) {
+                            p.start_node();
+                            let ident = p.expect_identifier().expect("identifier expected");
+                            p.assert(EQ);
+                            let pattern = p.parse_pattern();
+
+                            Some(Arc::new(PatternField {
+                                id: p.new_node_id(),
+                                span: p.finish_node(),
+                                ident: Some(ident),
+                                pattern,
+                            }))
+                        } else if p.is_set(PATTERN_FIRST) {
                             p.start_node();
                             let pattern = p.parse_pattern();
 

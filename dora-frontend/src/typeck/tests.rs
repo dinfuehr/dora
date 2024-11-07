@@ -5043,3 +5043,78 @@ fn enum_variant_positional_argument_for_named_field() {
         ],
     );
 }
+
+#[test]
+fn struct_named_pattern() {
+    ok("
+        struct Foo { a: Int, b: Int }
+        fn f(x: Foo): Int {
+            let Foo(a = a, b = b) = x;
+            a + b
+        }
+    ");
+
+    ok("
+        struct Foo { a: Int, b: Int }
+        fn f(x: Foo): Int {
+            let Foo(a, b) = x;
+            a + b
+        }
+    ");
+}
+
+#[test]
+fn struct_named_pattern_missing_argument() {
+    err(
+        "
+        struct Foo { a: Int, b: Int }
+        fn f(x: Foo): Int {
+            let Foo(a) = x;
+            a
+        }
+    ",
+        (4, 17),
+        ErrorMessage::MissingNamedArgument("b".into()),
+    );
+}
+
+#[test]
+fn struct_named_pattern_unexpected_argument() {
+    err(
+        "
+        struct Foo { a: Int, b: Int }
+        fn f(x: Foo): Int {
+            let Foo(a, b, c) = x;
+            a
+        }
+    ",
+        (4, 27),
+        ErrorMessage::UnexpectedNamedArgument,
+    );
+}
+
+#[test]
+fn struct_named_pattern_rest() {
+    ok("
+        struct Foo { a: Int, b: Int }
+        fn f(x: Foo): Int {
+            let Foo(a, ..) = x;
+            a
+        }
+    ");
+}
+
+#[test]
+fn struct_named_pattern_rest_last() {
+    err(
+        "
+        struct Foo { a: Int, b: Int }
+        fn f(x: Foo): Int {
+            let Foo(.., a) = x;
+            a
+        }
+    ",
+        (4, 21),
+        ErrorMessage::PatternRestShouldBeLast,
+    );
+}
