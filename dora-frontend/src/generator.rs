@@ -718,25 +718,34 @@ impl<'a> AstBytecodeGen<'a> {
 
         let variant = &enum_.variants[variant_idx as usize];
 
-        iterate_subpatterns(pattern, variant.fields.len(), |idx, param| {
-            let element_ty = variant.fields[idx].parsed_type.ty();
-            let element_ty = specialize_type(self.sa, element_ty, enum_type_params);
-            let ty = register_bty_from_ty(element_ty.clone());
-            let field_reg = self.alloc_temp(ty);
+        iterate_subpatterns(
+            self.analysis,
+            pattern,
+            variant.fields.len(),
+            |idx, param| {
+                let element_ty = variant.fields[idx].parsed_type.ty();
+                let element_ty = specialize_type(self.sa, element_ty, enum_type_params);
+                let ty = register_bty_from_ty(element_ty.clone());
+                let field_reg = self.alloc_temp(ty);
 
-            let idx = self.builder.add_const_enum_element(
-                bc_enum_id,
-                bc_enum_type_params.clone(),
-                variant_idx,
-                idx as u32,
-            );
+                let idx = self.builder.add_const_enum_element(
+                    bc_enum_id,
+                    bc_enum_type_params.clone(),
+                    variant_idx,
+                    idx as u32,
+                );
 
-            self.builder
-                .emit_load_enum_element(field_reg, value, idx, self.loc(pattern.span()));
+                self.builder.emit_load_enum_element(
+                    field_reg,
+                    value,
+                    idx,
+                    self.loc(pattern.span()),
+                );
 
-            self.destruct_pattern_inner(pck, &param.pattern, field_reg, element_ty);
-            self.free_temp(field_reg);
-        });
+                self.destruct_pattern_inner(pck, &param.pattern, field_reg, element_ty);
+                self.free_temp(field_reg);
+            },
+        );
 
         self.free_temp(actual_variant_reg);
         self.free_temp(expected_variant_reg);
@@ -754,20 +763,25 @@ impl<'a> AstBytecodeGen<'a> {
     ) {
         let struct_ = self.sa.struct_(struct_id);
 
-        iterate_subpatterns(pattern, struct_.fields.len(), |idx, field| {
-            let field_ty = struct_.fields[idx].ty();
-            let field_ty = specialize_type(self.sa, field_ty, struct_type_params);
-            let register_ty = register_bty_from_ty(field_ty.clone());
-            let idx = self.builder.add_const_struct_field(
-                StructId(struct_id.index().try_into().expect("overflow")),
-                bty_array_from_ty(struct_type_params),
-                idx as u32,
-            );
-            let temp_reg = self.alloc_temp(register_ty);
-            self.builder.emit_load_struct_field(temp_reg, value, idx);
-            self.destruct_pattern_inner(pck, &field.pattern, temp_reg, field_ty);
-            self.free_temp(temp_reg);
-        })
+        iterate_subpatterns(
+            self.analysis,
+            pattern,
+            struct_.fields.len(),
+            |idx, field| {
+                let field_ty = struct_.fields[idx].ty();
+                let field_ty = specialize_type(self.sa, field_ty, struct_type_params);
+                let register_ty = register_bty_from_ty(field_ty.clone());
+                let idx = self.builder.add_const_struct_field(
+                    StructId(struct_id.index().try_into().expect("overflow")),
+                    bty_array_from_ty(struct_type_params),
+                    idx as u32,
+                );
+                let temp_reg = self.alloc_temp(register_ty);
+                self.builder.emit_load_struct_field(temp_reg, value, idx);
+                self.destruct_pattern_inner(pck, &field.pattern, temp_reg, field_ty);
+                self.free_temp(temp_reg);
+            },
+        )
     }
 
     fn destruct_pattern_class(
@@ -781,21 +795,26 @@ impl<'a> AstBytecodeGen<'a> {
     ) {
         let class = self.sa.class(class_id);
 
-        iterate_subpatterns(pattern, class.fields.len(), |idx, field_pattern| {
-            let field_ty = class.fields[idx].ty();
-            let field_ty = specialize_type(self.sa, field_ty, class_type_params);
-            let register_ty = register_bty_from_ty(field_ty.clone());
-            let idx = self.builder.add_const_field_types(
-                ClassId(class_id.index().try_into().expect("overflow")),
-                bty_array_from_ty(class_type_params),
-                idx as u32,
-            );
-            let temp_reg = self.alloc_temp(register_ty);
-            self.builder
-                .emit_load_field(temp_reg, value, idx, self.loc(pattern.span()));
-            self.destruct_pattern_inner(pck, &field_pattern.pattern, temp_reg, field_ty);
-            self.free_temp(temp_reg);
-        })
+        iterate_subpatterns(
+            self.analysis,
+            pattern,
+            class.fields.len(),
+            |idx, field_pattern| {
+                let field_ty = class.fields[idx].ty();
+                let field_ty = specialize_type(self.sa, field_ty, class_type_params);
+                let register_ty = register_bty_from_ty(field_ty.clone());
+                let idx = self.builder.add_const_field_types(
+                    ClassId(class_id.index().try_into().expect("overflow")),
+                    bty_array_from_ty(class_type_params),
+                    idx as u32,
+                );
+                let temp_reg = self.alloc_temp(register_ty);
+                self.builder
+                    .emit_load_field(temp_reg, value, idx, self.loc(pattern.span()));
+                self.destruct_pattern_inner(pck, &field_pattern.pattern, temp_reg, field_ty);
+                self.free_temp(temp_reg);
+            },
+        )
     }
 
     fn destruct_pattern_tuple(
@@ -812,18 +831,23 @@ impl<'a> AstBytecodeGen<'a> {
         } else {
             let tuple_subtypes = ty.tuple_subtypes().expect("tuple expected");
 
-            iterate_subpatterns(pattern, tuple_subtypes.len(), |idx, field_pattern| {
-                let subtype = tuple_subtypes[idx].clone();
-                let register_ty = register_bty_from_ty(subtype.clone());
-                let cp_idx = self
-                    .builder
-                    .add_const_tuple_element(bty_from_ty(ty.clone()), idx as u32);
-                let temp_reg = self.alloc_temp(register_ty);
-                self.builder
-                    .emit_load_tuple_element(temp_reg, value, cp_idx);
-                self.destruct_pattern_inner(pck, &field_pattern.pattern, temp_reg, subtype);
-                self.free_temp(temp_reg);
-            });
+            iterate_subpatterns(
+                self.analysis,
+                pattern,
+                tuple_subtypes.len(),
+                |idx, field_pattern| {
+                    let subtype = tuple_subtypes[idx].clone();
+                    let register_ty = register_bty_from_ty(subtype.clone());
+                    let cp_idx = self
+                        .builder
+                        .add_const_tuple_element(bty_from_ty(ty.clone()), idx as u32);
+                    let temp_reg = self.alloc_temp(register_ty);
+                    self.builder
+                        .emit_load_tuple_element(temp_reg, value, cp_idx);
+                    self.destruct_pattern_inner(pck, &field_pattern.pattern, temp_reg, subtype);
+                    self.free_temp(temp_reg);
+                },
+            );
         }
     }
 
@@ -3325,7 +3349,7 @@ fn get_subpatterns(p: &ast::PatternAlt) -> Option<&Vec<Arc<ast::PatternField>>> 
     }
 }
 
-fn iterate_subpatterns<F>(p: &ast::PatternAlt, def_length: usize, mut f: F)
+fn iterate_subpatterns<F>(a: &AnalysisData, p: &ast::PatternAlt, def_length: usize, mut f: F)
 where
     F: FnMut(usize, &ast::PatternField),
 {
@@ -3344,7 +3368,8 @@ where
             } else if subpattern.pattern.is_underscore() {
                 idx += 1;
             } else {
-                f(idx, subpattern.as_ref());
+                let field_id = a.map_field_ids.get(subpattern.id).cloned().unwrap_or(idx);
+                f(field_id, subpattern.as_ref());
                 idx += 1;
             }
         }

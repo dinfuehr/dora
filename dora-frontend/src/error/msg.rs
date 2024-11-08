@@ -212,6 +212,7 @@ pub enum ErrorMessage {
     MissingArguments(usize, usize),
     FieldShouldBeUnnamed,
     OldClassDefinition,
+    ExpectedNamedPattern,
 }
 
 impl ErrorMessage {
@@ -736,6 +737,9 @@ impl ErrorMessage {
             }
             ErrorMessage::PatternRestShouldBeLast => {
                 format!("Rest pattern should be last.")
+            }
+            ErrorMessage::ExpectedNamedPattern => {
+                format!("Expected named pattern field.")
             }
         }
     }

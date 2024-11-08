@@ -5094,6 +5094,51 @@ fn struct_named_pattern_unexpected_argument() {
 }
 
 #[test]
+fn struct_named_pattern_duplicate_argument() {
+    err(
+        "
+        struct Foo { a: Int, b: Int }
+        fn f(x: Foo): Int {
+            let Foo(a, b, a) = x;
+            a
+        }
+    ",
+        (4, 27),
+        ErrorMessage::DuplicateNamedArgument,
+    );
+}
+
+#[test]
+fn struct_named_pattern_expected() {
+    err(
+        "
+        struct Foo { a: Int, b: Int }
+        fn f(x: Foo): Int {
+            let Foo(1, a, b) = x;
+            a
+        }
+    ",
+        (4, 21),
+        ErrorMessage::ExpectedNamedPattern,
+    );
+}
+
+#[test]
+fn struct_named_pattern_no_args() {
+    err(
+        "
+        struct Foo { a: Int, b: Int }
+        fn f(x: Foo): Int {
+            let Foo = x;
+            0
+        }
+    ",
+        (4, 17),
+        ErrorMessage::PatternWrongNumberOfParams(0, 2),
+    );
+}
+
+#[test]
 fn struct_named_pattern_rest() {
     ok("
         struct Foo { a: Int, b: Int }

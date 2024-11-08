@@ -1,4 +1,5 @@
 use std::collections::{HashMap, HashSet};
+use std::sync::Arc;
 
 use dora_parser::ast;
 
@@ -479,14 +480,23 @@ fn check_subpatterns_named<'a>(
         let mut used_names = HashMap::new();
         let mut rest_seen = false;
 
+        let mut add_field = |idx: usize, name: Name, param: &Arc<ast::PatternField>| {
+            if used_names.contains_key(&name) {
+                let msg = ErrorMessage::DuplicateNamedArgument;
+                ck.sa.report(ck.file_id, param.span, msg);
+            } else {
+                assert!(used_names.insert(name, idx).is_none());
+            }
+        };
+
         for (idx, param) in params.iter().enumerate() {
             if let Some(ref ident) = param.ident {
                 let name = ck.sa.interner.intern(&ident.name_as_string);
-                assert!(used_names.insert(name, idx).is_none());
+                add_field(idx, name, param);
             } else if param.pattern.is_ident() {
                 let ident = param.pattern.to_ident().expect("ident expected");
                 let name = ck.sa.interner.intern(&ident.name.name_as_string);
-                assert!(used_names.insert(name, idx).is_none());
+                add_field(idx, name, param);
             } else if param.pattern.is_rest() {
                 rest_seen = true;
                 if idx + 1 != params.len() {
@@ -494,7 +504,8 @@ fn check_subpatterns_named<'a>(
                     ck.sa.report(ck.file_id, param.span, msg);
                 }
             } else {
-                unimplemented!();
+                let msg = ErrorMessage::ExpectedNamedPattern;
+                ck.sa.report(ck.file_id, param.span, msg);
             }
         }
 
@@ -502,6 +513,7 @@ fn check_subpatterns_named<'a>(
             if let Some(name) = field.name {
                 if let Some(idx) = used_names.remove(&name) {
                     let field_pattern = &params[idx];
+                    ck.analysis.map_field_ids.insert(field_pattern.id, field.id);
                     check_pattern_inner(ck, ctxt, &field_pattern.pattern, field.ty);
                 } else if !rest_seen {
                     let name = ck.sa.interner.str(name).to_string();
@@ -520,7 +532,10 @@ fn check_subpatterns_named<'a>(
             );
         }
     } else {
-        unimplemented!();
+        let fields = element.fields_len();
+        assert!(fields > 0);
+        let msg = ErrorMessage::PatternWrongNumberOfParams(0, fields);
+        ck.sa.report(ck.file_id, pattern.span(), msg);
     }
 }
 
