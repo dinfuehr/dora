@@ -322,12 +322,16 @@ fn check_pattern_enum(
             ck.sa.report(ck.file_id, pattern.span(), msg);
         }
 
-        let expected_types = variant
-            .fields
-            .iter()
-            .map(|f| specialize_type(ck.sa, f.parsed_type.ty(), &value_type_params))
-            .collect::<Vec<_>>();
-        check_subpatterns(ck, ctxt, pattern, &expected_types);
+        if variant.field_name_style.is_named() {
+            check_subpatterns_named(ck, ctxt, pattern, variant, &value_type_params);
+        } else {
+            let expected_types = variant
+                .fields
+                .iter()
+                .map(|f| specialize_type(ck.sa, f.parsed_type.ty(), &value_type_params))
+                .collect::<Vec<_>>();
+            check_subpatterns(ck, ctxt, pattern, &expected_types);
+        }
     } else {
         if !ty.is_error() {
             let ty = ty.name(ck.sa);
@@ -397,13 +401,16 @@ fn check_pattern_class(
             IdentType::Class(cls_id, value_type_params.clone()),
         );
 
-        let expected_types = cls
-            .fields
-            .iter()
-            .map(|f| specialize_type(ck.sa, f.ty(), &value_type_params))
-            .collect::<Vec<_>>();
-
-        check_subpatterns(ck, ctxt, pattern, &expected_types);
+        if cls.field_name_style.is_named() {
+            check_subpatterns_named(ck, ctxt, pattern, cls, &value_type_params);
+        } else {
+            let expected_types = cls
+                .fields
+                .iter()
+                .map(|f| specialize_type(ck.sa, f.ty(), &value_type_params))
+                .collect::<Vec<_>>();
+            check_subpatterns(ck, ctxt, pattern, &expected_types);
+        }
     } else {
         if !ty.is_error() {
             let ty = ty.name(ck.sa);
@@ -442,15 +449,15 @@ fn check_pattern_struct(
             IdentType::Struct(struct_id, value_type_params.clone()),
         );
 
-        let expected_types = struct_
-            .fields
-            .iter()
-            .map(|f| specialize_type(ck.sa, f.ty(), &value_type_params))
-            .collect::<Vec<_>>();
-
         if struct_.field_name_style.is_named() {
-            check_subpatterns_named(ck, ctxt, pattern, struct_);
+            check_subpatterns_named(ck, ctxt, pattern, struct_, &value_type_params);
         } else {
+            let expected_types = struct_
+                .fields
+                .iter()
+                .map(|f| specialize_type(ck.sa, f.ty(), &value_type_params))
+                .collect::<Vec<_>>();
+
             check_subpatterns(ck, ctxt, pattern, &expected_types);
         }
     } else {
@@ -469,6 +476,7 @@ fn check_subpatterns_named<'a>(
     ctxt: &mut Context,
     pattern: &ast::PatternAlt,
     element: &dyn ElementWithFields,
+    element_type_params: &SourceTypeArray,
 ) {
     let params = match pattern {
         ast::PatternAlt::ClassOrStructOrEnum(ref p) => p.params.as_ref(),
@@ -514,7 +522,8 @@ fn check_subpatterns_named<'a>(
                 if let Some(idx) = used_names.remove(&name) {
                     let field_pattern = &params[idx];
                     ck.analysis.map_field_ids.insert(field_pattern.id, field.id);
-                    check_pattern_inner(ck, ctxt, &field_pattern.pattern, field.ty);
+                    let ty = specialize_type(ck.sa, field.ty, element_type_params);
+                    check_pattern_inner(ck, ctxt, &field_pattern.pattern, ty);
                 } else if !rest_seen {
                     let name = ck.sa.interner.str(name).to_string();
                     let msg = ErrorMessage::MissingNamedArgument(name);
