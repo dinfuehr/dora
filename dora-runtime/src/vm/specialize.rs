@@ -3,7 +3,7 @@ use std::cmp::max;
 
 use crate::cannon::codegen::{align, size};
 use crate::mem;
-use crate::object::Header;
+use crate::mirror::Header;
 use crate::size::InstanceSize;
 use crate::vm::{
     create_class_instance_with_vtable, get_concrete_tuple_bty, BytecodeTypeExt, ClassInstanceId,

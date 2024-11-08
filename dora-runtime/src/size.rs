@@ -1,5 +1,5 @@
 use crate::mem;
-use crate::object::Header;
+use crate::mirror::Header;
 
 #[derive(Copy, Clone, Debug, PartialEq, Eq)]
 pub enum InstanceSize {

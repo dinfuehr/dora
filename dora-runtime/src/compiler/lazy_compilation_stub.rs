@@ -11,8 +11,8 @@ use crate::gc::{Address, Slot};
 use crate::handle::{handle_scope, Handle};
 use crate::masm::{MacroAssembler, Mem};
 use crate::mem;
+use crate::mirror::Object;
 use crate::mode::MachineMode;
-use crate::object::Obj;
 use crate::os;
 use crate::stack::DoraToNativeInfo;
 use crate::threads::{current_thread, ThreadLocalData};
@@ -362,7 +362,7 @@ fn lazy_compile(ra: usize, receiver1: Address, receiver2: Address) -> Address {
                     receiver2
                 };
 
-                let handle: Handle<Obj> = current_thread()
+                let handle: Handle<Object> = current_thread()
                     .handles
                     .create_handle(right_receiver.into());
 
@@ -405,7 +405,7 @@ fn lazy_compile(ra: usize, receiver1: Address, receiver2: Address) -> Address {
     })
 }
 
-fn patch_lambda_call(vm: &VM, receiver: Handle<Obj>) -> Address {
+fn patch_lambda_call(vm: &VM, receiver: Handle<Object>) -> Address {
     let vtable = receiver.header().vtbl(vm.meta_space_start());
     let class_instance = vtable.class_instance();
 
@@ -424,7 +424,7 @@ fn patch_lambda_call(vm: &VM, receiver: Handle<Obj>) -> Address {
 
 fn patch_virtual_call(
     vm: &VM,
-    receiver: Handle<Obj>,
+    receiver: Handle<Object>,
     trait_fct_id: FunctionId,
     trait_object_ty: BytecodeType,
     vtable_index: u32,

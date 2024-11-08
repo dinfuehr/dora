@@ -1,7 +1,7 @@
 use dora_bytecode::{display_fct, FunctionId, Location};
 
 use crate::handle::{create_handle, Handle};
-use crate::object::{Array, Int32Array, Ref, Stacktrace, StacktraceIterator, Str};
+use crate::mirror::{Array, Int32Array, Ref, Stacktrace, StacktraceIterator, Str};
 use crate::threads::current_thread;
 use crate::vm::{get_vm, Code, CodeId, CodeKind, InlinedFunctionId, InlinedLocation, VM};
 

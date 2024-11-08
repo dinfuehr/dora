@@ -11,7 +11,7 @@ use crate::gc::swiper::young::YoungGen;
 use crate::gc::swiper::{BasePage, Swiper, LARGE_OBJECT_SIZE};
 use crate::gc::tlab::{MAX_TLAB_OBJECT_SIZE, MAX_TLAB_SIZE, MIN_TLAB_SIZE};
 use crate::gc::{fill_region, iterate_weak_roots, Address, GcReason, GenerationAllocator};
-use crate::object::{ForwardResult, Obj, VtblptrWordKind};
+use crate::mirror::{ForwardResult, Object, VtblptrWordKind};
 use crate::threads::DoraThread;
 use crate::vm::VM;
 
@@ -627,7 +627,7 @@ impl<'a> CopyTask<'a> {
         page.is_survivor()
     }
 
-    fn promote_object(&mut self, vtblptr: Address, obj: &Obj, obj_size: usize) -> Option<Address> {
+    fn promote_object(&mut self, vtblptr: Address, obj: &Object, obj_size: usize) -> Option<Address> {
         let copy_addr = self.alloc_old(obj_size);
 
         // if there isn't enough space in old gen keep it in the

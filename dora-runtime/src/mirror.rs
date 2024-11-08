@@ -3,17 +3,18 @@ use std::cmp;
 use std::marker::PhantomData;
 use std::ops::{Deref, DerefMut};
 use std::ptr;
-use std::slice;
-use std::str;
 use std::sync::atomic::{AtomicUsize, Ordering};
 
 use crate::gc::root::Slot;
 use crate::gc::{Address, Region};
 use crate::handle::{create_handle, Handle};
 use crate::mem;
+pub use crate::mirror::string::Str;
 use crate::size::InstanceSize;
 use crate::vm::{ClassInstance, ClassInstanceId, VM};
 use crate::vtable::VTable;
+
+mod string;
 
 #[repr(C)]
 pub struct Header {
@@ -295,12 +296,12 @@ impl Header {
 
 // is used to reference any object
 #[repr(C)]
-pub struct Obj {
+pub struct Object {
     header: Header,
     data: u8,
 }
 
-impl Obj {
+impl Object {
     #[inline(always)]
     pub fn address(&self) -> Address {
         Address::from_ptr(self as *const _)
@@ -348,7 +349,7 @@ impl Obj {
     pub fn copy_to(&self, dest: Address, size: usize) {
         unsafe {
             ptr::copy(
-                self as *const Obj as *const u8,
+                self as *const Object as *const u8,
                 dest.to_mut_ptr::<u8>(),
                 size,
             );
@@ -457,9 +458,9 @@ fn visit_struct_array_refs<F>(
     }
 }
 
-fn determine_array_size(obj: &Obj, element_size: usize) -> usize {
+fn determine_array_size(obj: &Object, element_size: usize) -> usize {
     let handle: Ref<UInt8Array> = Ref {
-        ptr: obj as *const Obj as *const UInt8Array,
+        ptr: obj as *const Object as *const UInt8Array,
     };
 
     let calc =
@@ -533,130 +534,6 @@ impl<T> Into<Ref<T>> for Address {
     }
 }
 
-#[repr(C)]
-pub struct Str {
-    header: Header,
-    length: usize,
-    data: u8,
-}
-
-impl Str {
-    #[allow(dead_code)]
-    pub fn header(&self) -> &Header {
-        &self.header
-    }
-
-    pub fn header_mut(&mut self) -> &mut Header {
-        &mut self.header
-    }
-
-    pub fn len(&self) -> usize {
-        self.length
-    }
-
-    pub fn data(&self) -> *const u8 {
-        &self.data as *const u8
-    }
-
-    pub fn content(&self) -> &[u8] {
-        unsafe { slice::from_raw_parts(self.data(), self.len()) }
-    }
-
-    pub fn content_utf8(&self) -> &str {
-        str::from_utf8(self.content()).expect("invalid encoding")
-    }
-
-    /// allocates string from buffer in permanent space
-    pub fn from_buffer_in_perm(vm: &VM, buf: &[u8]) -> Ref<Str> {
-        let mut handle = str_alloc_perm(vm, buf.len());
-        handle.length = buf.len();
-
-        let data = handle.data() as *mut u8;
-        unsafe {
-            // copy buffer content into Str
-            ptr::copy_nonoverlapping(buf.as_ptr(), data, buf.len());
-        }
-
-        handle
-    }
-
-    /// allocates string from buffer in heap
-    pub fn from_buffer(vm: &VM, buf: &[u8]) -> Ref<Str> {
-        let mut handle = str_alloc_heap(vm, buf.len());
-        handle.length = buf.len();
-
-        let data = handle.data() as *mut u8;
-        unsafe {
-            // copy buffer content into Str
-            ptr::copy_nonoverlapping(buf.as_ptr(), data, buf.len());
-        }
-
-        handle
-    }
-
-    pub fn from_str(vm: &VM, val: Handle<Str>, offset: usize, len: usize) -> Ref<Str> {
-        let total_len = val.len();
-
-        if offset > total_len {
-            return Ref::null();
-        }
-
-        let len = std::cmp::min(total_len - offset, len);
-
-        let slice = unsafe {
-            let data = val.data().offset(offset as isize);
-            slice::from_raw_parts(data, len)
-        };
-
-        if let Ok(_) = str::from_utf8(slice) {
-            let mut handle = str_alloc_heap(vm, len);
-            handle.length = len;
-
-            let dest = handle.data() as *mut u8;
-            unsafe {
-                let src = val.data().offset(offset as isize);
-
-                // copy buffer content into Str
-                ptr::copy_nonoverlapping(src, dest, len);
-            }
-
-            handle
-        } else {
-            Ref::null()
-        }
-    }
-
-    pub fn concat(vm: &VM, lhs: Handle<Str>, rhs: Handle<Str>) -> Handle<Str> {
-        let len = lhs.len() + rhs.len();
-        let mut handle = create_handle(str_alloc_heap(vm, len));
-
-        handle.length = len;
-        unsafe {
-            ptr::copy_nonoverlapping(lhs.data(), handle.data() as *mut u8, lhs.len());
-            ptr::copy_nonoverlapping(
-                rhs.data(),
-                handle.data().offset(lhs.len() as isize) as *mut u8,
-                rhs.len(),
-            );
-        }
-
-        handle
-    }
-
-    // duplicate string into a new object
-    pub fn dup(&self, vm: &VM) -> Ref<Str> {
-        let len = self.len();
-        let mut handle = str_alloc_heap(vm, len);
-
-        handle.length = len;
-        unsafe {
-            ptr::copy_nonoverlapping(self.data(), handle.data() as *mut u8, len);
-        }
-
-        handle
-    }
-}
-
 pub fn byte_array_from_buffer(vm: &VM, buf: &[u8]) -> Ref<UInt8Array> {
     let mut handle = byte_array_alloc_heap(vm, buf.len());
     handle.length = buf.len();
@@ -691,41 +568,6 @@ fn byte_array_alloc_heap(vm: &VM, len: usize) -> Ref<UInt8Array> {
         is_remembered,
     );
     handle.length = len;
-
-    handle
-}
-
-fn str_alloc_heap(vm: &VM, len: usize) -> Ref<Str> {
-    str_alloc(vm, len, |vm, size| vm.gc.alloc(vm, size), false)
-}
-
-fn str_alloc_perm(vm: &VM, len: usize) -> Ref<Str> {
-    str_alloc(vm, len, |vm, size| vm.gc.alloc_readonly(vm, size), true)
-}
-
-fn str_alloc<F>(vm: &VM, len: usize, alloc: F, is_readonly: bool) -> Ref<Str>
-where
-    F: FnOnce(&VM, usize) -> Address,
-{
-    let size = Header::size() as usize      // Object header
-                + mem::ptr_width() as usize // length field
-                + len; // string content
-
-    let size = mem::align_usize_up(size, mem::ptr_width() as usize);
-    let ptr = alloc(vm, size);
-
-    let clsid = vm.str();
-    let cls = vm.class_instances.idx(clsid);
-    let vtable = cls.vtable.read();
-    let vtable: &VTable = vtable.as_ref().unwrap();
-    let handle: Ref<Str> = ptr.into();
-    let (is_marked, is_remembered) = vm.gc.initial_metadata_value(size, is_readonly);
-    handle.header().setup_header_word(
-        Address::from_ptr(vtable as *const VTable),
-        vm.meta_space_start(),
-        is_marked,
-        is_remembered,
-    );
 
     handle
 }
@@ -858,7 +700,7 @@ pub type UInt8Array = Array<u8>;
 pub type Int32Array = Array<i32>;
 pub type StrArray = Array<Ref<Str>>;
 
-pub fn alloc(vm: &VM, clsid: ClassInstanceId) -> Ref<Obj> {
+pub fn alloc(vm: &VM, clsid: ClassInstanceId) -> Ref<Object> {
     let cls_def = vm.class_instances.idx(clsid);
 
     let size = match cls_def.size {
@@ -871,7 +713,7 @@ pub fn alloc(vm: &VM, clsid: ClassInstanceId) -> Ref<Obj> {
     let ptr = vm.gc.alloc(vm, size).to_usize();
     let vtable = cls_def.vtable.read();
     let vtable: &VTable = vtable.as_ref().unwrap();
-    let object: Ref<Obj> = ptr.into();
+    let object: Ref<Object> = ptr.into();
     let (is_marked, is_remembered) = vm.gc.initial_metadata_value(size, false);
     object.header().setup_header_word(
         Address::from_ptr(vtable),
@@ -887,7 +729,7 @@ pub fn alloc(vm: &VM, clsid: ClassInstanceId) -> Ref<Obj> {
 pub struct Stacktrace {
     pub header: Header,
     pub backtrace: Ref<Int32Array>,
-    pub elements: Ref<Obj>,
+    pub elements: Ref<Object>,
 }
 
 #[repr(C)]

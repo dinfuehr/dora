@@ -6,8 +6,8 @@ use crate::compiler::codegen::AnyReg;
 use crate::cpu::{Reg, SCRATCH};
 use crate::gc::Address;
 use crate::mem;
+use crate::mirror::Header;
 use crate::mode::MachineMode;
-use crate::object::Header;
 use crate::vm::{
     CodeDescriptor, CommentTable, ConstPool, GcPoint, GcPointTable, InlinedLocation,
     LazyCompilationData, LazyCompilationSite, LocationTable, RelocationTable, Trap, CODE_ALIGNMENT,

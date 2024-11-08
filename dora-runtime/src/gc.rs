@@ -16,7 +16,7 @@ use crate::gc::tlab::MAX_TLAB_OBJECT_SIZE;
 pub use crate::gc::worklist::{Worklist, WorklistSegment};
 use crate::gc::zero::ZeroCollector;
 use crate::mem;
-use crate::object::{Header, Obj};
+use crate::mirror::{Header, Object};
 use crate::safepoint;
 use crate::stdlib;
 use crate::threads::DoraThread;
@@ -310,8 +310,8 @@ impl Address {
     }
 
     #[inline(always)]
-    pub fn to_obj(self) -> &'static Obj {
-        unsafe { &*self.to_mut_ptr::<Obj>() }
+    pub fn to_obj(self) -> &'static Object {
+        unsafe { &*self.to_mut_ptr::<Object>() }
     }
 
     #[inline(always)]

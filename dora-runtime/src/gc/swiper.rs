@@ -20,7 +20,7 @@ use crate::gc::swiper::young::YoungGen;
 use crate::gc::tlab::{MAX_TLAB_SIZE, MIN_TLAB_SIZE};
 use crate::gc::{Address, Collector, GcReason, Region, Worklist, WorklistSegment, K, M};
 use crate::mem;
-use crate::object::Obj;
+use crate::mirror::Object;
 use crate::os::{self, Reservation};
 use crate::threads::DoraThread;
 use crate::vm::{get_vm, VmFlags, VM};
@@ -401,7 +401,7 @@ impl fmt::Display for CollectionKind {
 
 pub fn walk_region<F>(vm: &VM, region: Region, mut fct: F)
 where
-    F: FnMut(&Obj, Address, usize),
+    F: FnMut(&Object, Address, usize),
 {
     let mut scan = region.start;
 

@@ -8,7 +8,7 @@ use std::sync::Arc;
 use crate::cpu::flush_icache;
 use crate::gc::Address;
 use crate::mem;
-use crate::object::Header;
+use crate::mirror::Header;
 use crate::os;
 use crate::vm::VM;
 use crate::vtable::VTable;

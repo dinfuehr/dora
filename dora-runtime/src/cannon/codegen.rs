@@ -13,8 +13,8 @@ use crate::cpu::{
 use crate::gc::Address;
 use crate::masm::{CondCode, Label, Mem};
 use crate::mem::{self, align_i32};
+use crate::mirror::{Header, Str};
 use crate::mode::MachineMode;
-use crate::object::{Header, Str};
 use crate::size::InstanceSize;
 use crate::vm::{
     compute_vtable_index, create_class_instance, create_enum_instance, create_struct_instance,

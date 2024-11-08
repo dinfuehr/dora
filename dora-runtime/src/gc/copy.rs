@@ -9,7 +9,7 @@ use crate::gc::{
     Address, CollectionStats, Collector, GcReason, Region, Space,
 };
 use crate::mem;
-use crate::object::{Obj, VtblptrWordKind};
+use crate::mirror::{Object, VtblptrWordKind};
 use crate::os::{self, MemoryPermission};
 use crate::threads::DoraThread;
 use crate::timer::Timer;
@@ -146,7 +146,7 @@ impl CopyCollector {
         });
 
         while scan < top {
-            let object: &Obj = scan.to_obj();
+            let object: &Object = scan.to_obj();
 
             object.visit_reference_fields(vm.meta_space_start(), |field| {
                 let field_ptr = field.get();

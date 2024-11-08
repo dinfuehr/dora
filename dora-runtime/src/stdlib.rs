@@ -9,7 +9,7 @@ use std::time::Duration;
 
 use crate::gc::{Address, GcReason};
 use crate::handle::{create_handle, handle_scope, Handle};
-use crate::object::{Obj, Ref, Str, UInt8Array};
+use crate::mirror::{Object, Ref, Str, UInt8Array};
 use crate::stack;
 use crate::stack::stacktrace_from_last_dtn;
 use crate::stdlib;
@@ -846,7 +846,7 @@ pub extern "C" fn str_from_bytes(val: Handle<UInt8Array>, offset: usize, len: us
     })
 }
 
-pub extern "C" fn gc_alloc(size: usize) -> *mut Obj {
+pub extern "C" fn gc_alloc(size: usize) -> *mut Object {
     let vm = get_vm();
     vm.gc.alloc(vm, size).to_mut_ptr()
 }
@@ -965,7 +965,7 @@ pub extern "C" fn stack_overflow() {
     trap(Trap::STACK_OVERFLOW as u32);
 }
 
-pub extern "C" fn spawn_thread(runner: Handle<Obj>) -> Address {
+pub extern "C" fn spawn_thread(runner: Handle<Object>) -> Address {
     let vm = get_vm();
 
     handle_scope(|| {
@@ -1013,7 +1013,7 @@ fn thread_main(thread: &DoraThread, thread_location: Address, runner_location: A
 
     let vm = get_vm();
     let _thread_handle: Handle<ManagedThread> = Handle::from_address(thread_location);
-    let runner_handle: Handle<Obj> = Handle::from_address(runner_location);
+    let runner_handle: Handle<Object> = Handle::from_address(runner_location);
 
     thread.tld.set_managed_thread_handle(thread_location);
 
@@ -1038,7 +1038,7 @@ fn thread_main(thread: &DoraThread, thread_location: Address, runner_location: A
 
     // execute the runner/lambda
     let dora_stub_address = vm.native_methods.dora_entry_trampoline();
-    let fct: extern "C" fn(Address, Address, Ref<Obj>) =
+    let fct: extern "C" fn(Address, Address, Ref<Object>) =
         unsafe { mem::transmute(dora_stub_address) };
     fct(tld, fct_ptr, runner_handle.direct());
 
@@ -1069,17 +1069,17 @@ pub extern "C" fn condition_enqueue(cond: Handle<ManagedCondition>) {
     vm.wait_lists.enqueue(cond);
 }
 
-pub extern "C" fn condition_block_after_enqueue(_cond: Handle<Obj>) {
+pub extern "C" fn condition_block_after_enqueue(_cond: Handle<Object>) {
     let thread = current_thread();
     thread.block();
 }
 
-pub extern "C" fn condition_wakeup_one(cond: Handle<Obj>) {
+pub extern "C" fn condition_wakeup_one(cond: Handle<Object>) {
     let vm = get_vm();
     vm.wait_lists.wakeup(cond.direct_ptr());
 }
 
-pub extern "C" fn condition_wakeup_all(cond: Handle<Obj>) {
+pub extern "C" fn condition_wakeup_all(cond: Handle<Object>) {
     let vm = get_vm();
     vm.wait_lists.wakeup_all(cond.direct_ptr());
 }

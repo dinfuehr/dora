@@ -12,7 +12,7 @@ use crate::cannon::codegen::get_function_address as get_function_address_raw;
 use crate::compiler::{CompilationData, CompilationMode};
 use crate::gc::Address;
 use crate::handle::{create_handle, Handle};
-use crate::object::{byte_array_from_buffer, Ref, Str, UInt8Array};
+use crate::mirror::{byte_array_from_buffer, Ref, Str, UInt8Array};
 use crate::size::InstanceSize;
 use crate::threads::current_thread;
 use crate::vm::compute_vtable_index;

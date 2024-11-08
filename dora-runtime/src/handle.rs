@@ -2,7 +2,7 @@ use std::cell::UnsafeCell;
 use std::ops::{Deref, DerefMut};
 
 use crate::gc::Address;
-use crate::object::{Obj, Ref};
+use crate::mirror::{Object, Ref};
 use crate::os::{self, Reservation};
 use crate::threads::current_thread;
 use crate::vm::get_vm;
@@ -249,9 +249,9 @@ pub struct HandleMemoryIter<'a> {
 }
 
 impl<'a> Iterator for HandleMemoryIter<'a> {
-    type Item = Handle<Obj>;
+    type Item = Handle<Object>;
 
-    fn next(&mut self) -> Option<Handle<Obj>> {
+    fn next(&mut self) -> Option<Handle<Object>> {
         if self.next < self.limit {
             let current = Handle::from_address(self.next);
             self.next = self.next.add_ptr(1);

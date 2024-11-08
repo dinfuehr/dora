@@ -10,8 +10,8 @@ use crate::cpu::{
 use crate::gc::tlab::MAX_TLAB_OBJECT_SIZE;
 use crate::gc::Address;
 use crate::masm::{CondCode, Label, MacroAssembler, Mem, ScratchReg};
+use crate::mirror::Header;
 use crate::mode::MachineMode;
-use crate::object::Header;
 use crate::size::InstanceSize;
 use crate::threads::ThreadLocalData;
 use crate::vm::{

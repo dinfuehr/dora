@@ -1,7 +1,7 @@
 use crate::gc::root::Slot;
 use crate::gc::Address;
 use crate::handle::Handle;
-use crate::object::{Header, Ref};
+use crate::mirror::{Header, Ref};
 use crate::threads::{current_thread, DoraThreadPtr};
 use crate::vm::get_vm;
 use parking_lot::Mutex;

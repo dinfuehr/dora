@@ -5,7 +5,7 @@ use byteorder::{LittleEndian, WriteBytesExt};
 use crate::boots::data::InstructionSet;
 use crate::compiler::codegen::CompilationData;
 use crate::gc::Address;
-use crate::object::{byte_array_from_buffer, Obj, Ref, UInt8Array};
+use crate::mirror::{byte_array_from_buffer, Object, Ref, UInt8Array};
 use crate::vm::VM;
 use dora_bytecode::{
     BytecodeFunction, BytecodeTypeArray, ConstPoolEntry, ConstPoolOpcode, EnumData, FunctionData,
@@ -58,7 +58,10 @@ fn has_avx2() -> bool {
     false
 }
 
-pub fn allocate_encoded_compilation_info(vm: &VM, compilation_data: &CompilationData) -> Ref<Obj> {
+pub fn allocate_encoded_compilation_info(
+    vm: &VM,
+    compilation_data: &CompilationData,
+) -> Ref<Object> {
     let mut buffer = ByteBuffer::new();
     encode_compilation_info(vm, compilation_data, &mut buffer);
     byte_array_from_buffer(vm, buffer.data()).cast()

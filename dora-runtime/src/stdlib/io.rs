@@ -6,7 +6,7 @@ use std::str::FromStr;
 use std::u64;
 
 use crate::handle::Handle;
-use crate::object::{Str, UInt8Array};
+use crate::mirror::{Str, UInt8Array};
 use crate::threads::parked_scope;
 use crate::vm::FctImplementation;
 

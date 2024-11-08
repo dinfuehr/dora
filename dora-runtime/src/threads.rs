@@ -10,7 +10,7 @@ use std::sync::Arc;
 use crate::gc::swiper::get_swiper;
 use crate::gc::{tlab, Address, Region, WorklistSegment, K};
 use crate::handle::HandleMemory;
-use crate::object::{alloc, Header, Ref};
+use crate::mirror::{alloc, Header, Ref};
 use crate::stack::DoraToNativeInfo;
 use crate::vm::{get_vm, VM};
 
