@@ -627,7 +627,12 @@ impl<'a> CopyTask<'a> {
         page.is_survivor()
     }
 
-    fn promote_object(&mut self, vtblptr: Address, obj: &Object, obj_size: usize) -> Option<Address> {
+    fn promote_object(
+        &mut self,
+        vtblptr: Address,
+        obj: &Object,
+        obj_size: usize,
+    ) -> Option<Address> {
         let copy_addr = self.alloc_old(obj_size);
 
         // if there isn't enough space in old gen keep it in the
