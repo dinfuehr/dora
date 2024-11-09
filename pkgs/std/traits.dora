@@ -151,12 +151,14 @@ pub trait IntoIterator {
   fn iter(): Self::IteratorType;
 }
 
-// pub trait IndexGet[T] {
-//   type Item;
-//   fn get(index: T): Self::Item;
-// }
+pub trait IndexGet {
+  type Index;
+  type Item;
+  fn get(index: Self::Index): Self::Item;
+}
 
-// pub trait IndexSet[T] {
-//   type Item;
-//   fn set(index: T, value: Self::Item);
-// }
+pub trait IndexSet {
+  type Index;
+  type Item;
+  fn set(index: Self::Index, value: Self::Item);
+}

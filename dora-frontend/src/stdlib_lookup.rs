@@ -97,6 +97,8 @@ pub fn lookup_known_fundamental_types(sa: &mut Sema) {
     sa.known.traits.stringable = Some(find_trait(sa, stdlib_id, "string::Stringable"));
     sa.known.traits.sub = Some(find_trait(sa, stdlib_id, "traits::Sub"));
     sa.known.traits.zero = Some(find_trait(sa, stdlib_id, "traits::Zero"));
+    sa.known.traits.index_get = Some(find_trait(sa, stdlib_id, "traits::IndexGet"));
+    sa.known.traits.index_set = Some(find_trait(sa, stdlib_id, "traits::IndexSet"));
 
     sa.known.enums.option = Some(find_enum(sa, stdlib_id, "primitives::Option"));
     sa.known.enums.ordering = Some(find_enum(sa, stdlib_id, "traits::Ordering"));
