@@ -4546,7 +4546,7 @@ fn test_pattern_rest() {
             let (.., a, ..) = x;
         }
     ",
-        (3, 17),
+        (3, 25),
         ErrorMessage::PatternMultipleRest,
     );
 
@@ -5162,4 +5162,50 @@ fn struct_named_pattern_rest_last() {
         (4, 21),
         ErrorMessage::PatternRestShouldBeLast,
     );
+}
+
+#[test]
+fn class_named_pattern() {
+    ok("
+        class Foo { a: Int, b: Int }
+        fn f(x: Foo): Int {
+            let Foo(a = x, b = y) = x;
+            x + y
+        }
+    ");
+
+    ok("
+        class Foo { a: Int, b: Int }
+        fn f(x: Foo): Int {
+            let Foo(a, b) = x;
+            a + b
+        }
+    ");
+}
+
+#[test]
+fn enum_named_pattern() {
+    ok("
+        enum Foo {
+            A,
+            B { a: Int, b: Int }
+        }
+
+        fn f(x: Foo): Int {
+            let Foo::B(a = x, b = y) = x;
+            x + y
+        }
+    ");
+
+    ok("
+        enum Foo {
+            A,
+            B { a: Int, b: Int }
+        }
+
+        fn f(x: Foo): Int {
+            let Foo::B(a, b) = x;
+            a + b
+        }
+    ");
 }

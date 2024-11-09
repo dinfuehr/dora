@@ -1,0 +1,18 @@
+struct Foo { a: Int, b: Int, c: Int, d: Int }
+
+fn get_a1(x: Foo): Int {
+    let Foo(a, c, ..) = x;
+    a
+}
+
+fn get_a2(x: Foo): Int {
+    let Foo(c, a, ..) = x;
+    a
+}
+
+fn main() {
+    let x = Foo(a=10, b=23, c=47, d=91);
+    let a1 = get_a1(x);
+    let a2 = get_a2(x);
+    assert(a1 == 10 && a2 == 10);
+}

@@ -557,50 +557,45 @@ fn check_subpatterns<'a>(
     let subpatterns = get_subpatterns(pattern);
 
     if let Some(subpatterns) = subpatterns {
-        let rest_count = subpatterns.iter().filter(|p| p.pattern.is_rest()).count();
+        let mut idx = 0;
+        let mut rest_seen = false;
+        let mut pattern_count: usize = 0;
 
-        if rest_count == 0 {
-            if subpatterns.len() != expected_types.len() {
+        for subpattern in subpatterns {
+            if subpattern.pattern.is_rest() {
+                if rest_seen {
+                    let msg = ErrorMessage::PatternMultipleRest;
+                    ck.sa.report(ck.file_id, subpattern.span, msg);
+                } else {
+                    idx += expected_types
+                        .len()
+                        .checked_sub(subpatterns.len() - 1)
+                        .unwrap_or(0);
+                    rest_seen = true;
+                }
+            } else {
+                let ty = expected_types.get(idx).cloned().unwrap_or(ty::error());
+                ck.analysis.map_field_ids.insert(subpattern.id, idx);
+                check_pattern_inner(ck, ctxt, &subpattern.pattern, ty);
+                idx += 1;
+                pattern_count += 1;
+            }
+        }
+
+        if rest_seen {
+            if pattern_count > expected_types.len() {
+                let msg =
+                    ErrorMessage::PatternWrongNumberOfParams(pattern_count, expected_types.len());
+                ck.sa.report(ck.file_id, pattern.span(), msg);
+            }
+        } else {
+            if expected_types.len() != pattern_count {
                 let msg = ErrorMessage::PatternWrongNumberOfParams(
                     subpatterns.len(),
                     expected_types.len(),
                 );
                 ck.sa.report(ck.file_id, pattern.span(), msg);
             }
-
-            for (idx, subpattern) in subpatterns.iter().enumerate() {
-                let ty = expected_types.get(idx).cloned().unwrap_or(ty::error());
-                check_pattern_inner(ck, ctxt, &subpattern.pattern, ty);
-            }
-        } else if rest_count == 1 {
-            let pattern_count = subpatterns.len() - 1;
-
-            if pattern_count > expected_types.len() {
-                let msg =
-                    ErrorMessage::PatternWrongNumberOfParams(pattern_count, expected_types.len());
-                ck.sa.report(ck.file_id, pattern.span(), msg);
-
-                check_subpatterns_error(ck, ctxt, pattern);
-                return;
-            }
-
-            let rest_len = expected_types.len() - pattern_count;
-            let mut idx = 0;
-
-            for subpattern in subpatterns {
-                if subpattern.pattern.is_rest() {
-                    idx += rest_len;
-                } else {
-                    let ty = expected_types.get(idx).cloned().unwrap_or(ty::error());
-                    check_pattern_inner(ck, ctxt, &subpattern.pattern, ty);
-                    idx += 1;
-                }
-            }
-        } else {
-            let msg = ErrorMessage::PatternMultipleRest;
-            ck.sa.report(ck.file_id, pattern.span(), msg);
-
-            check_subpatterns_error(ck, ctxt, pattern);
         }
     } else {
         if expected_types.len() > 0 {
