@@ -186,6 +186,8 @@ pub struct KnownTraits {
     pub stringable: Option<TraitDefinitionId>,
     pub sub: Option<TraitDefinitionId>,
     pub zero: Option<TraitDefinitionId>,
+    pub index_get: Option<TraitDefinitionId>,
+    pub index_set: Option<TraitDefinitionId>,
 }
 
 impl KnownTraits {
@@ -210,6 +212,8 @@ impl KnownTraits {
             stringable: None,
             sub: None,
             zero: None,
+            index_get: None,
+            index_set: None,
         }
     }
 
