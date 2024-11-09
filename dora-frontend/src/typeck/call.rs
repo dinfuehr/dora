@@ -10,9 +10,9 @@ use crate::access::{
 };
 use crate::interner::Name;
 use crate::sema::{
-    find_field_in_class, new_identity_type_params, CallType, ClassDefinitionId, ElementWithFields,
-    EnumDefinitionId, FctDefinitionId, IdentType, Sema, StructDefinitionId, TraitDefinition,
-    TypeParamDefinition, TypeParamId,
+    find_field_in_class, find_impl, new_identity_type_params, CallType, ClassDefinitionId,
+    ElementWithFields, EnumDefinitionId, FctDefinitionId, IdentType, Sema, StructDefinitionId,
+    TraitDefinition, TypeParamDefinition, TypeParamId,
 };
 use crate::specialize::replace_type;
 use crate::sym::SymbolKind;
@@ -188,9 +188,41 @@ fn check_expr_call_expr(
         return check_expr_call_expr_lambda(ck, e, expr_type, arg_types);
     }
 
+    let trait_id = ck.sa.known.traits.index_get();
+    let trait_ty = TraitType::from_trait_id(trait_id);
     let get = ck.sa.interner.intern("get");
 
-    if let Some(descriptor) = find_method(
+    let impl_match = find_impl(
+        ck.sa,
+        expr_type.clone(),
+        &ck.type_param_definition,
+        trait_ty.clone(),
+    );
+
+    if let Some(impl_match) = impl_match {
+        let trait_method_name = ck.sa.interner.intern("get");
+        let trait_ = ck.sa.trait_(trait_id);
+        let trait_method_id = trait_
+            .get_method(trait_method_name, false)
+            .expect("missing method");
+        let method_id = ck
+            .sa
+            .impl_(impl_match.id)
+            .get_method_for_trait_method_id(trait_method_id)
+            .expect("method not found");
+
+        let call_type = CallType::Method(expr_type.clone(), method_id, SourceTypeArray::empty());
+        ck.analysis
+            .map_calls
+            .insert_or_replace(e.id, Arc::new(call_type));
+
+        let method = ck.sa.fct(method_id);
+
+        let return_type = method.return_type();
+        ck.analysis.set_ty(e.id, return_type.clone());
+
+        return_type
+    } else if let Some(descriptor) = find_method(
         ck,
         e.span,
         expr_type.clone(),

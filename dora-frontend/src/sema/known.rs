@@ -285,6 +285,14 @@ impl KnownTraits {
         self.zero.expect("uninitialized")
     }
 
+    pub fn index_get(&self) -> TraitDefinitionId {
+        self.index_get.expect("uninitialized")
+    }
+
+    pub fn index_set(&self) -> TraitDefinitionId {
+        self.index_set.expect("uninitialized")
+    }
+
     pub fn iterator(&self) -> TraitDefinitionId {
         self.iterator.expect("uninitialized")
     }

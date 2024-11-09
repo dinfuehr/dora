@@ -285,7 +285,33 @@ fn check_expr_assign_call(ck: &mut TypeCheck, e: &ast::ExprBinType) {
     let name = ck.sa.interner.intern("set");
     arg_types.push(value_type);
 
-    if let Some(descriptor) = find_method(
+    let trait_id = ck.sa.known.traits.index_set();
+    let trait_ty = TraitType::from_trait_id(trait_id);
+
+    let impl_match = find_impl(
+        ck.sa,
+        expr_type.clone(),
+        &ck.type_param_definition,
+        trait_ty.clone(),
+    );
+
+    if let Some(impl_match) = impl_match {
+        let trait_method_name = ck.sa.interner.intern("set");
+        let trait_ = ck.sa.trait_(trait_id);
+        let trait_method_id = trait_
+            .get_method(trait_method_name, false)
+            .expect("missing method");
+        let method_id = ck
+            .sa
+            .impl_(impl_match.id)
+            .get_method_for_trait_method_id(trait_method_id)
+            .expect("method not found");
+
+        let call_type = CallType::Method(expr_type.clone(), method_id, SourceTypeArray::empty());
+        ck.analysis
+            .map_calls
+            .insert_or_replace(e.id, Arc::new(call_type));
+    } else if let Some(descriptor) = find_method(
         ck,
         e.span,
         expr_type.clone(),

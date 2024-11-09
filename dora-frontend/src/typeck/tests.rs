@@ -5209,3 +5209,47 @@ fn enum_named_pattern() {
         }
     ");
 }
+
+#[test]
+fn struct_index_get() {
+    ok("
+        struct Foo { a: Float64, b: Float64 }
+        impl std::traits::IndexGet for Foo {
+            type Index = Int;
+            type Item = Float64;
+            fn get(index: Self::Index): Self::Item {
+                if index == 0 {
+                    self.a
+                } else {
+                    assert(index == 1);
+                    self.b
+                }
+            }
+        }
+        fn f(x: Foo): Float64 {
+            x(0)
+        }
+    ")
+}
+
+#[test]
+fn class_index_set() {
+    ok("
+        class Foo { a: Float64, b: Float64 }
+        impl std::traits::IndexSet for Foo {
+            type Index = Int;
+            type Item = Float64;
+            fn set(index: Self::Index, value: Self::Item) {
+                if index == 0 {
+                    self.a = value;
+                } else {
+                    assert(index == 1);
+                    self.b = value;
+                }
+            }
+        }
+        fn f(x: Foo, value: Float64) {
+            x(0) = value;
+        }
+    ")
+}
