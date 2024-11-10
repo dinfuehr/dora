@@ -1778,7 +1778,7 @@ impl<'a> AstBytecodeGen<'a> {
             CallType::Method(..)
             | CallType::GenericMethod(..)
             | CallType::TraitObjectMethod(..) => {
-                let obj_expr = expr.object().expect("method target required");
+                let obj_expr = expr.object().unwrap_or(expr.callee());
                 let reg = gen_expr(self, obj_expr, DataDest::Alloc);
 
                 Some(reg)

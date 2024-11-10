@@ -1,0 +1,29 @@
+struct Foo { a: Float64, b: Float64 }
+
+impl std::traits::IndexGet for Foo {
+    type Index = Int;
+    type Item = Float64;
+
+    fn get(index: Self::Index): Self::Item {
+        if index == 0 {
+            self.a
+        } else {
+            assert(index == 1);
+            self.b
+        }
+    }
+}
+
+fn get0(x: Foo): Float64 {
+    x(0)
+}
+
+fn get1(x: Foo): Float64 {
+    x(1)
+}
+
+fn main() {
+    let x = Foo(a=12.0, b=17.0);
+    assert(get0(x) == 12.0);
+    assert(get1(x) == 17.0);
+}

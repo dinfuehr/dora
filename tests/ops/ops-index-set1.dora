@@ -1,0 +1,34 @@
+class Foo { a: Float64, b: Float64 }
+
+impl std::traits::IndexSet for Foo {
+    type Index = Int;
+    type Item = Float64;
+
+    fn set(index: Self::Index, value: Self::Item) {
+        if index == 0 {
+            self.a = value;
+        } else {
+            assert(index == 1);
+            self.b = value;
+        }
+    }
+}
+
+fn set0(x: Foo, value: Float64) {
+    x(0) = value;
+}
+
+fn set1(x: Foo, value: Float64) {
+    x(1) = value;
+}
+
+fn main() {
+    let x = Foo(a=12.0, b=18.0);
+    set0(x, 16.0);
+    assert(x.a == 16.0);
+    assert(x.b == 18.0);
+
+    set1(x, 32.0);
+    assert(x.a == 16.0);
+    assert(x.b == 32.0);
+}
