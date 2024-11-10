@@ -5233,6 +5233,33 @@ fn struct_index_get() {
 }
 
 #[test]
+#[ignore]
+fn struct_index_get_wrong_index_type() {
+    err(
+        "
+        struct Foo { a: Float64, b: Float64 }
+        impl std::traits::IndexGet for Foo {
+            type Index = Int;
+            type Item = Float64;
+            fn get(index: Self::Index): Self::Item {
+                if index == 0 {
+                    self.a
+                } else {
+                    assert(index == 1);
+                    self.b
+                }
+            }
+        }
+        fn f(x: Foo): Float64 {
+            x(0.0)
+        }
+    ",
+        (1, 1),
+        ErrorMessage::Unimplemented,
+    );
+}
+
+#[test]
 fn class_index_set() {
     ok("
         class Foo { a: Float64, b: Float64 }

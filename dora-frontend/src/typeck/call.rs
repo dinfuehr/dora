@@ -63,8 +63,7 @@ pub(super) fn check_expr_call(
                 return ty_error();
             }
         };
-        let arg_types = arguments.assume_all_positional(ck);
-        check_expr_call_method(ck, e, object_type, method_name, type_params, &arg_types)
+        check_expr_call_method(ck, e, object_type, method_name, type_params, arguments)
     } else if let Some(_expr_path) = callee.to_path() {
         check_expr_call_path(ck, e, expected_ty, callee, type_params, arguments)
     } else {
@@ -74,8 +73,7 @@ pub(super) fn check_expr_call(
         }
 
         let expr_type = check_expr(ck, callee, SourceType::Any);
-        let arg_types = arguments.assume_all_positional(ck);
-        check_expr_call_expr(ck, e, expr_type, &arg_types)
+        check_expr_call_expr(ck, e, expr_type, arguments)
     }
 }
 
@@ -177,15 +175,17 @@ fn check_expr_call_expr(
     ck: &mut TypeCheck,
     e: &ast::ExprCallType,
     expr_type: SourceType,
-    arg_types: &[SourceType],
+    arguments: CallArguments,
 ) -> SourceType {
     if expr_type.is_error() {
         ck.analysis.set_ty(e.id, ty_error());
         return ty_error();
     }
 
+    let arg_types = arguments.assume_all_positional(ck);
+
     if expr_type.is_lambda() {
-        return check_expr_call_expr_lambda(ck, e, expr_type, arg_types);
+        return check_expr_call_expr_lambda(ck, e, expr_type, &arg_types);
     }
 
     let trait_id = ck.sa.known.traits.index_get();
@@ -218,6 +218,10 @@ fn check_expr_call_expr(
 
         let method = ck.sa.fct(method_id);
 
+        if !args_compatible_fct(ck.sa, method, &arg_types, &SourceTypeArray::empty(), None) {
+            unimplemented!()
+        }
+
         let return_type = method.return_type();
         ck.analysis.set_ty(e.id, return_type.clone());
 
@@ -228,7 +232,7 @@ fn check_expr_call_expr(
         expr_type.clone(),
         false,
         get,
-        arg_types,
+        &arg_types,
         &SourceTypeArray::empty(),
     ) {
         let call_type =
@@ -281,12 +285,14 @@ fn check_expr_call_fct(
     e: &ast::ExprCallType,
     fct_id: FctDefinitionId,
     type_params: SourceTypeArray,
-    arg_types: &[SourceType],
+    arguments: CallArguments,
 ) -> SourceType {
     if !fct_accessible_from(ck.sa, fct_id, ck.module_id) {
         let msg = ErrorMessage::NotAccessible;
         ck.sa.report(ck.file_id, e.span, msg);
     }
+
+    let arg_types = arguments.assume_all_positional(ck);
 
     let lookup = MethodLookup::new(ck.sa, ck.file_id, ck.type_param_definition)
         .span(e.span)
@@ -355,8 +361,10 @@ fn check_expr_call_method(
     object_type: SourceType,
     method_name: String,
     fct_type_params: SourceTypeArray,
-    arg_types: &[SourceType],
+    arguments: CallArguments,
 ) -> SourceType {
+    let arg_types = arguments.assume_all_positional(ck);
+
     if let SourceType::TypeParam(id) = object_type {
         assert_eq!(fct_type_params.len(), 0);
         return check_expr_call_generic_type_param(
@@ -365,11 +373,11 @@ fn check_expr_call_method(
             SourceType::TypeParam(id),
             id,
             method_name,
-            arg_types,
+            &arg_types,
         );
     } else if object_type.is_self() {
         assert_eq!(fct_type_params.len(), 0);
-        return check_expr_call_self(ck, e, method_name, arg_types);
+        return check_expr_call_self(ck, e, method_name, &arg_types);
     }
 
     if object_type.is_error() {
@@ -386,7 +394,7 @@ fn check_expr_call_method(
         .method(object_type.clone())
         .name(interned_method_name)
         .fct_type_params(&fct_type_params)
-        .args(arg_types)
+        .args(&arg_types)
         .find();
 
     if lookup.find() {
@@ -418,7 +426,7 @@ fn check_expr_call_method(
         return_type
     } else if lookup.found_fct_id().is_none() {
         // No method with this name found, so this might actually be a field
-        check_expr_call_field(ck, e, object_type, method_name, fct_type_params, arg_types)
+        check_expr_call_field(ck, e, object_type, method_name, fct_type_params, arguments)
     } else {
         // Lookup the method again, but this time with error reporting
         let lookup = MethodLookup::new(ck.sa, ck.file_id, ck.type_param_definition)
@@ -427,7 +435,7 @@ fn check_expr_call_method(
             .name(interned_method_name)
             .fct_type_params(&fct_type_params)
             .span(e.span)
-            .args(arg_types)
+            .args(&arg_types)
             .find();
 
         assert!(!lookup.find());
@@ -444,7 +452,7 @@ fn check_expr_call_field(
     object_type: SourceType,
     method_name: String,
     type_params: SourceTypeArray,
-    arg_types: &[SourceType],
+    arguments: CallArguments,
 ) -> SourceType {
     let interned_method_name = ck.sa.interner.intern(&method_name);
     if let SourceType::Class(cls_id, ..) = object_type.clone() {
@@ -462,7 +470,7 @@ fn check_expr_call_field(
                 ck.sa.report(ck.file_id, e.span, msg);
             }
 
-            return check_expr_call_expr(ck, e, field_type, arg_types);
+            return check_expr_call_expr(ck, e, field_type, arguments);
         }
     }
 
@@ -481,9 +489,11 @@ fn check_expr_call_field(
             }
 
             ck.analysis.set_ty(e.id, field_type.clone());
-            return check_expr_call_expr(ck, e, field_type, arg_types);
+            return check_expr_call_expr(ck, e, field_type, arguments);
         }
     }
+
+    let arg_types = &arguments.assume_all_positional(ck);
 
     // No field with that name as well, so report method
     let lookup = MethodLookup::new(ck.sa, ck.file_id, ck.type_param_definition)
@@ -1185,10 +1195,7 @@ fn check_expr_call_sym(
     arguments: CallArguments,
 ) -> SourceType {
     match sym {
-        Some(SymbolKind::Fct(fct_id)) => {
-            let arg_types = arguments.assume_all_positional(ck);
-            check_expr_call_fct(ck, e, fct_id, type_params, &arg_types)
-        }
+        Some(SymbolKind::Fct(fct_id)) => check_expr_call_fct(ck, e, fct_id, type_params, arguments),
 
         Some(SymbolKind::Class(cls_id)) => {
             check_expr_call_class(ck, e, expected_ty, cls_id, type_params, arguments)
@@ -1215,8 +1222,7 @@ fn check_expr_call_sym(
             }
 
             let expr_type = check_expr(ck, callee, SourceType::Any);
-            let arg_types = arguments.assume_all_positional(ck);
-            check_expr_call_expr(ck, e, expr_type, &arg_types)
+            check_expr_call_expr(ck, e, expr_type, arguments)
         }
     }
 }
