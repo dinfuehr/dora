@@ -1,3 +1,5 @@
+use std::str::FromStr;
+
 use crossbeam::channel::{Receiver, Sender};
 use crossbeam::select;
 use dora_parser::compute_line_column;
@@ -6,7 +8,7 @@ use lsp_types::notification::Notification as _;
 use lsp_types::{
     ClientCapabilities, Diagnostic, DiagnosticSeverity, InitializeParams, OneOf, Position,
     PublishDiagnosticsParams, Range, ServerCapabilities, TextDocumentSyncCapability,
-    TextDocumentSyncKind, Url,
+    TextDocumentSyncKind, Uri,
 };
 use serde::{Deserialize, Serialize};
 use std::collections::{HashMap, HashSet};
@@ -16,6 +18,7 @@ use std::io::Read;
 use std::path::{Path, PathBuf};
 use std::sync::Arc;
 use threadpool::ThreadPool;
+use url::Url;
 use walkdir::WalkDir;
 
 use crate::symbols::document_symbol_request;
@@ -35,10 +38,7 @@ fn main() -> Result<(), Box<dyn Error + Sync + Send>> {
     let mut workspace_folders = Vec::new();
 
     for workspace_folder in client_workspace_folders {
-        let file_path = workspace_folder
-            .uri
-            .to_file_path()
-            .expect("file path expected");
+        let file_path = uri_to_file_path(&workspace_folder.uri);
         assert!(file_path.is_absolute());
         eprintln!("workspace folder: {}", file_path.display());
         workspace_folders.push(file_path);
@@ -174,7 +174,7 @@ fn handle_main_loop_task(
 
             for (file, errors) in errors_by_file {
                 let params = PublishDiagnosticsParams {
-                    uri: Url::from_file_path(&file).expect("broken file path"),
+                    uri: file_path_to_uri(&file),
                     version: None,
                     diagnostics: errors,
                 };
@@ -189,7 +189,7 @@ fn handle_main_loop_task(
 
             for file in last_files_with_errors {
                 let params = PublishDiagnosticsParams {
-                    uri: Url::from_file_path(&file).expect("broken file path"),
+                    uri: file_path_to_uri(&file),
                     version: None,
                     diagnostics: Vec::new(),
                 };
@@ -239,11 +239,7 @@ fn did_change_notification(server_state: &mut ServerState, notification: Notific
         serde_json::from_value::<lsp_types::DidChangeTextDocumentParams>(notification.params);
     match result {
         Ok(result) => {
-            let path = result
-                .text_document
-                .uri
-                .to_file_path()
-                .expect("file path expected");
+            let path = uri_to_file_path(&result.text_document.uri);
             let content = Arc::new(result.content_changes[0].text.clone());
             eprintln!(
                 "CHANGE: {} --> {} lines",
@@ -265,11 +261,7 @@ fn did_open_notification(_server_state: &mut ServerState, notification: Notifica
         serde_json::from_value::<lsp_types::DidOpenTextDocumentParams>(notification.params);
     match result {
         Ok(result) => {
-            let path = result
-                .text_document
-                .uri
-                .to_file_path()
-                .expect("file path expected");
+            let path = uri_to_file_path(&result.text_document.uri);
             let text = result.text_document.text;
 
             _server_state.opened_files.insert(path, Arc::new(text));
@@ -283,11 +275,7 @@ fn did_close_notification(_server_state: &mut ServerState, notification: Notific
         serde_json::from_value::<lsp_types::DidCloseTextDocumentParams>(notification.params);
     match result {
         Ok(result) => {
-            let path = result
-                .text_document
-                .uri
-                .to_file_path()
-                .expect("file path expected");
+            let path = uri_to_file_path(&result.text_document.uri);
             _server_state.opened_files.remove(&path);
         }
         Err(_) => {}
@@ -418,6 +406,16 @@ fn read_project_json(path: &Path) -> Result<ProjectJsonConfig, Box<dyn Error>> {
     let parsed_value = serde_json::from_value::<ProjectJsonConfig>(value)?;
 
     Ok(parsed_value)
+}
+
+fn uri_to_file_path(uri: &Uri) -> PathBuf {
+    let url = Url::parse(uri.as_str()).expect("uri expected");
+    url.to_file_path().expect("file path expected")
+}
+
+fn file_path_to_uri(path: &Path) -> Uri {
+    let url = Url::from_file_path(path).expect("uri expected");
+    Uri::from_str(url.as_str()).expect("uri expected")
 }
 
 enum MainLoopTask {

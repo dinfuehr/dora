@@ -7,6 +7,7 @@ use lsp_types::{DocumentSymbol, DocumentSymbolResponse, Position, Range, SymbolK
 use dora_parser::ast::{self, visit};
 use dora_parser::{compute_line_column, compute_line_starts, Parser, Span};
 
+use super::uri_to_file_path;
 use crate::{MainLoopTask, ServerState};
 
 pub(super) fn document_symbol_request(server_state: &mut ServerState, request: Request) {
@@ -14,11 +15,7 @@ pub(super) fn document_symbol_request(server_state: &mut ServerState, request: R
     let result = serde_json::from_value::<lsp_types::DocumentSymbolParams>(request.params);
     match result {
         Ok(result) => {
-            let path = result
-                .text_document
-                .uri
-                .to_file_path()
-                .expect("file path expected");
+            let path = uri_to_file_path(&result.text_document.uri);
             if let Some(content) = server_state.opened_files.get(&path) {
                 let content = content.clone();
                 eprintln!(
