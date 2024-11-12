@@ -11,16 +11,16 @@ pub enum ErrorMessage {
     UnknownStruct(String),
     UnknownFunction(String),
     UnknownField(String, String),
-    UnknownMethod(String, String, Vec<String>),
+    UnknownMethod(String, String),
     UnknownEnumVariant(String),
     UnknownSuffix,
-    MultipleCandidatesForMethod(String, String, Vec<String>),
+    MultipleCandidatesForMethod(String, String),
     VariadicParameterNeedsToBeLast,
     UnknownMethodForTypeParam,
     MultipleCandidatesForTypeParam,
     MultipleCandidatesForStaticMethodWithTypeParam,
     UnknownStaticMethodWithTypeParam,
-    UnknownStaticMethod(String, String, Vec<String>),
+    UnknownStaticMethod(String, String),
     UnknownCtor,
     AliasExists(String, Span),
     TypeExists(String, Span),
@@ -223,22 +223,17 @@ impl ErrorMessage {
             ErrorMessage::UnknownIdentifier(ref name) => format!("unknown identifier `{}`.", name),
             ErrorMessage::UnknownStruct(ref name) => format!("unknown struct `{}`.", name),
             ErrorMessage::UnknownFunction(ref name) => format!("unknown function `{}`", name),
-            ErrorMessage::UnknownMethod(ref cls, ref name, ref args) => {
-                let args = args.join(", ");
-                format!(
-                    "no method with definition `{}({})` in type `{}`.",
-                    name, args, cls
-                )
+            ErrorMessage::UnknownMethod(ref cls, ref name) => {
+                format!("no method with name `{}` in type `{}`.", name, cls)
             }
             ErrorMessage::UnknownEnumVariant(ref name) => {
                 format!("no variant with name `{}` in enumeration.", name)
             }
             ErrorMessage::UnknownSuffix => "unknown integer suffix".into(),
-            ErrorMessage::MultipleCandidatesForMethod(ref cls, ref name, ref args) => {
-                let args = args.join(", ");
+            ErrorMessage::MultipleCandidatesForMethod(ref cls, ref name) => {
                 format!(
-                    "multiple candidates for definition `{}({})` in class `{}`.",
-                    name, args, cls
+                    "multiple candidates for method named `{}` in type `{}`.",
+                    name, cls
                 )
             }
             ErrorMessage::VariadicParameterNeedsToBeLast => {
@@ -256,9 +251,8 @@ impl ErrorMessage {
             ErrorMessage::UnknownStaticMethodWithTypeParam => {
                 "no static method with this name found for type param.".into()
             }
-            ErrorMessage::UnknownStaticMethod(ref cls, ref name, ref args) => {
-                let args = args.join(", ");
-                format!("no static method `{}::{}({})`.", cls, name, args)
+            ErrorMessage::UnknownStaticMethod(ref cls, ref name) => {
+                format!("no static method of name `{}` for type `{}`.", name, cls,)
             }
             ErrorMessage::UnexpectedTypeAliasAssignment => "no type expected.".into(),
             ErrorMessage::UnknownCtor => "class does not have constructor.".into(),

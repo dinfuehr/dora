@@ -213,4 +213,8 @@ impl CallArguments {
             .map(|p| ck.analysis.ty(p.id))
             .collect::<Vec<SourceType>>()
     }
+
+    fn len(&self) -> usize {
+        self.arguments.len()
+    }
 }

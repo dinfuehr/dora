@@ -141,7 +141,6 @@ impl<'a> MethodLookup<'a> {
 
     pub fn find(&mut self) -> MethodLookupResult {
         let kind = self.kind.clone().expect("kind not set");
-        let args = self.args.expect("args not set");
         let mut result = MethodLookupResult::new();
 
         let fct_id = match kind {
@@ -164,12 +163,7 @@ impl<'a> MethodLookup<'a> {
             fct_id
         } else if self.report_errors {
             let name = self.name.expect("name not set");
-
             let name = self.sa.interner.str(name).to_string();
-            let param_names = args
-                .iter()
-                .map(|a| self.ty_name(a))
-                .collect::<Vec<String>>();
 
             let msg = match kind {
                 LookupKind::Callee(_) => unreachable!(),
@@ -177,15 +171,15 @@ impl<'a> MethodLookup<'a> {
                     let type_name = self.ty_name(obj);
 
                     if result.found_multiple_functions {
-                        ErrorMessage::MultipleCandidatesForMethod(type_name, name, param_names)
+                        ErrorMessage::MultipleCandidatesForMethod(type_name, name)
                     } else {
-                        ErrorMessage::UnknownMethod(type_name, name, param_names)
+                        ErrorMessage::UnknownMethod(type_name, name)
                     }
                 }
 
                 LookupKind::Static(ref obj) => {
                     let type_name = self.ty_name(obj);
-                    ErrorMessage::UnknownStaticMethod(type_name, name, param_names)
+                    ErrorMessage::UnknownStaticMethod(type_name, name)
                 }
             };
 
@@ -215,6 +209,8 @@ impl<'a> MethodLookup<'a> {
         if !self.check_tps(fct.type_param_definition(), &type_params) {
             return result;
         }
+
+        let args = self.args.expect("args not set");
 
         if args.contains(&ty::error()) {
             return result;

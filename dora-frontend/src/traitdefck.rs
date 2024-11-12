@@ -11,7 +11,7 @@ mod tests {
         err(
             "trait Foo { fn foo() { self.bar(); } }",
             (1, 24),
-            ErrorMessage::UnknownMethod("Self".into(), "bar".into(), Vec::new()),
+            ErrorMessage::UnknownMethod("Self".into(), "bar".into()),
         );
 
         err(

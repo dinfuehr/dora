@@ -1074,7 +1074,7 @@ mod tests {
         }
     ",
             (9, 13),
-            ErrorMessage::UnknownMethod("(Int64, String) -> Int64".into(), "foo".into(), vec![]),
+            ErrorMessage::UnknownMethod("(Int64, String) -> Int64".into(), "foo".into()),
         );
 
         err(
@@ -1090,7 +1090,7 @@ mod tests {
         }
     ",
             (9, 13),
-            ErrorMessage::UnknownMethod("(Int64, Int64) -> Bool".into(), "foo".into(), vec![]),
+            ErrorMessage::UnknownMethod("(Int64, Int64) -> Bool".into(), "foo".into()),
         );
     }
 

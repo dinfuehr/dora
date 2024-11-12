@@ -876,11 +876,10 @@ fn check_expr_call_self(
 
         return_type
     } else {
-        let param_names = args.iter().map(|a| ck.ty_name(a)).collect::<Vec<String>>();
         let msg = if matched_methods.is_empty() {
-            ErrorMessage::UnknownMethod("Self".into(), name, param_names)
+            ErrorMessage::UnknownMethod("Self".into(), name)
         } else {
-            ErrorMessage::MultipleCandidatesForMethod("Self".into(), name, param_names)
+            ErrorMessage::MultipleCandidatesForMethod("Self".into(), name)
         };
 
         ck.sa.report(ck.file_id, e.span, msg);
@@ -1249,11 +1248,10 @@ pub(super) fn find_method(
     if descriptor.is_none() {
         let type_name = ck.ty_name(&object_type);
         let name = ck.sa.interner.str(name).to_string();
-        let param_names = args.iter().map(|a| ck.ty_name(a)).collect::<Vec<String>>();
         let msg = if is_static {
-            ErrorMessage::UnknownStaticMethod(type_name, name, param_names)
+            ErrorMessage::UnknownStaticMethod(type_name, name)
         } else {
-            ErrorMessage::UnknownMethod(type_name, name, param_names)
+            ErrorMessage::UnknownMethod(type_name, name)
         };
 
         ck.sa.report(ck.file_id, span, msg);

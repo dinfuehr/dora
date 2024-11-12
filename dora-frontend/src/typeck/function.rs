@@ -11,7 +11,7 @@ use crate::sema::{
     PackageDefinitionId, Param, ScopeId, Sema, SourceFileId, TypeParamDefinition, Var, VarAccess,
     VarId, VarLocation, Visibility,
 };
-use crate::typeck::{check_expr, check_stmt};
+use crate::typeck::{check_expr, check_stmt, CallArguments};
 use crate::{
     always_returns, expr_always_returns, replace_type, report_sym_shadow_span, ModuleSymTable,
     SourceType, SourceTypeArray, SymbolKind,
@@ -444,6 +444,26 @@ pub(super) fn args_compatible_fct(
     )
 }
 
+#[allow(unused)]
+pub(super) fn args_compatible_fct2(
+    ck: &TypeCheck,
+    callee: &FctDefinition,
+    args: CallArguments,
+    type_params: &SourceTypeArray,
+    self_ty: Option<SourceType>,
+) -> bool {
+    let arg_types = callee.params_without_self();
+    let variadic_arguments = callee.is_variadic.get();
+    args_compatible2(
+        ck,
+        arg_types,
+        variadic_arguments,
+        &args,
+        type_params,
+        self_ty,
+    )
+}
+
 pub(super) fn args_compatible(
     sa: &Sema,
     fct_arg_types: &[SourceType],
@@ -485,6 +505,66 @@ pub(super) fn args_compatible(
 
         for expr_ty in &args[ind..] {
             if !arg_allows(sa, rest_ty.clone(), expr_ty.clone(), self_ty.clone()) {
+                return false;
+            }
+        }
+    }
+
+    true
+}
+
+pub(super) fn args_compatible2(
+    ck: &TypeCheck,
+    fct_params: &[Param],
+    is_variadic: bool,
+    args: &CallArguments,
+    type_params: &SourceTypeArray,
+    self_ty: Option<SourceType>,
+) -> bool {
+    let right_number_of_arguments = if is_variadic {
+        fct_params.len() - 1 <= args.len()
+    } else {
+        fct_params.len() == args.len()
+    };
+
+    if !right_number_of_arguments {
+        return false;
+    }
+
+    let (fixed_params, variadic_param): (&[Param], Option<&Param>) = if is_variadic {
+        (&fct_params[0..fct_params.len() - 1], fct_params.last())
+    } else {
+        (&fct_params, None)
+    };
+
+    for (ind, param) in fixed_params.iter().enumerate() {
+        let param_ty = replace_type(
+            ck.sa,
+            param.ty().clone(),
+            Some(&type_params),
+            self_ty.clone(),
+        );
+        let arg = &args.arguments[ind];
+        let arg_ty = ck.analysis.ty(arg.id);
+
+        if !arg_allows(ck.sa, param_ty, arg_ty, self_ty.clone()) {
+            return false;
+        }
+    }
+
+    if let Some(variadic_param) = variadic_param {
+        let ind = fixed_params.len();
+        let variadic_ty = replace_type(
+            ck.sa,
+            variadic_param.ty(),
+            Some(&type_params),
+            self_ty.clone(),
+        );
+
+        for arg in &args.arguments[ind..] {
+            let arg_ty = ck.analysis.ty(arg.id);
+
+            if !arg_allows(ck.sa, variadic_ty.clone(), arg_ty, self_ty.clone()) {
                 return false;
             }
         }

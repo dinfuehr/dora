@@ -178,7 +178,7 @@ fn type_unknown_method() {
         "class Foo
               fn f(x: Foo) { x.bar(1i32); }",
         (2, 30),
-        ErrorMessage::UnknownMethod("Foo".into(), "bar".into(), vec!["Int32".into()]),
+        ErrorMessage::UnknownMethod("Foo".into(), "bar".into()),
     );
 }
 
@@ -486,11 +486,7 @@ fn type_array_assign() {
     err(
         "fn f(a: Array[Int32]) { a(3) = \"b\"; }",
         (1, 25),
-        ErrorMessage::UnknownMethod(
-            "Array[Int32]".into(),
-            "set".into(),
-            vec!["Int64".into(), "String".into()],
-        ),
+        ErrorMessage::UnknownMethod("Array[Int32]".into(), "set".into()),
     );
 }
 
@@ -758,7 +754,7 @@ fn test_invoke_static_method_as_instance_method() {
             fn test() { self.foo(); }
         }",
         (4, 25),
-        ErrorMessage::UnknownMethod("A".into(), "foo".into(), vec![]),
+        ErrorMessage::UnknownMethod("A".into(), "foo".into()),
     );
 }
 #[test]
@@ -771,7 +767,7 @@ fn test_invoke_method_as_static() {
             static fn test() { A::foo(); }
         }",
         (4, 32),
-        ErrorMessage::UnknownStaticMethod("A".into(), "foo".into(), vec![]),
+        ErrorMessage::UnknownStaticMethod("A".into(), "foo".into()),
     );
 }
 
@@ -1041,7 +1037,7 @@ fn method_call_with_multiple_matching_traits() {
 
             fn g(a: A) { a.f(); }",
         (8, 26),
-        ErrorMessage::MultipleCandidatesForMethod("A".into(), "f".into(), Vec::new()),
+        ErrorMessage::MultipleCandidatesForMethod("A".into(), "f".into()),
     );
 }
 
@@ -1338,11 +1334,7 @@ fn test_array_syntax_set_wrong_value() {
     err(
         "fn f(t: Array[Int32]) { t(0) = true; }",
         (1, 25),
-        ErrorMessage::UnknownMethod(
-            "Array[Int32]".into(),
-            "set".into(),
-            vec!["Int64".into(), "Bool".into()],
-        ),
+        ErrorMessage::UnknownMethod("Array[Int32]".into(), "set".into()),
     );
 }
 
@@ -1351,11 +1343,7 @@ fn test_array_syntax_set_wrong_index() {
     err(
         "fn f(t: Array[Int32]){ t(\"bla\") = 9i32; }",
         (1, 24),
-        ErrorMessage::UnknownMethod(
-            "Array[Int32]".into(),
-            "set".into(),
-            vec!["String".into(), "Int32".into()],
-        ),
+        ErrorMessage::UnknownMethod("Array[Int32]".into(), "set".into()),
     );
 }
 
@@ -2184,11 +2172,7 @@ fn zero_trait_err() {
     err(
         "fn f() { Array[String]::zero(12i64); }",
         (1, 10),
-        ErrorMessage::UnknownStaticMethod(
-            "Array[String]".into(),
-            "zero".into(),
-            vec!["Int64".into()],
-        ),
+        ErrorMessage::UnknownStaticMethod("Array[String]".into(), "zero".into()),
     );
 }
 
@@ -2226,7 +2210,7 @@ fn extension_class_with_type_param() {
         fn f(x: Foo[Int32]) { x.bar() }
     ",
         (4, 31),
-        ErrorMessage::UnknownMethod("Foo[Int32]".into(), "bar".into(), Vec::new()),
+        ErrorMessage::UnknownMethod("Foo[Int32]".into(), "bar".into()),
     );
 }
 
@@ -2264,7 +2248,7 @@ fn extension_class_tuple() {
         }
     ",
         (7, 13),
-        ErrorMessage::UnknownMethod("Foo[(Int32, Int32)]".into(), "bar".into(), Vec::new()),
+        ErrorMessage::UnknownMethod("Foo[(Int32, Int32)]".into(), "bar".into()),
     );
 }
 
@@ -2284,7 +2268,7 @@ fn extension_nested() {
         }
     ",
         (10, 13),
-        ErrorMessage::UnknownMethod("Foo[Foo[Int32]]".into(), "bar".into(), Vec::new()),
+        ErrorMessage::UnknownMethod("Foo[Foo[Int32]]".into(), "bar".into()),
     );
 }
 
@@ -2321,7 +2305,7 @@ fn extension_bind_type_param_twice() {
         }
     ",
         (7, 13),
-        ErrorMessage::UnknownMethod("Foo[(Int32, Float32)]".into(), "bar".into(), Vec::new()),
+        ErrorMessage::UnknownMethod("Foo[(Int32, Float32)]".into(), "bar".into()),
     );
 
     err(
@@ -2335,7 +2319,7 @@ fn extension_bind_type_param_twice() {
         }
     ",
         (7, 13),
-        ErrorMessage::UnknownMethod("Foo[(T, Float32)]".into(), "bar".into(), Vec::new()),
+        ErrorMessage::UnknownMethod("Foo[(T, Float32)]".into(), "bar".into()),
     );
 }
 
@@ -2364,7 +2348,7 @@ fn extension_struct_with_type_param() {
         fn f(x: Foo[Int32]) { x.bar() }
     ",
         (4, 31),
-        ErrorMessage::UnknownMethod("Foo[Int32]".into(), "bar".into(), Vec::new()),
+        ErrorMessage::UnknownMethod("Foo[Int32]".into(), "bar".into()),
     );
 }
 
@@ -2393,7 +2377,7 @@ fn extension_enum_with_type_param() {
         fn f(x: Foo[Int32]) { x.bar() }
     ",
         (4, 31),
-        ErrorMessage::UnknownMethod("Foo[Int32]".into(), "bar".into(), Vec::new()),
+        ErrorMessage::UnknownMethod("Foo[Int32]".into(), "bar".into()),
     );
 }
 
@@ -2407,7 +2391,7 @@ fn impl_class_type_params() {
         fn bar(x: Foo[Int32]) { x.bar(); }
     ",
         (5, 33),
-        ErrorMessage::UnknownMethod("Foo[Int32]".into(), "bar".into(), Vec::new()),
+        ErrorMessage::UnknownMethod("Foo[Int32]".into(), "bar".into()),
     );
 
     ok("
@@ -2443,7 +2427,7 @@ fn impl_struct_type_params() {
         fn bar(x: Foo[Int32]) { x.bar(); }
     ",
         (5, 33),
-        ErrorMessage::UnknownMethod("Foo[Int32]".into(), "bar".into(), Vec::new()),
+        ErrorMessage::UnknownMethod("Foo[Int32]".into(), "bar".into()),
     );
 
     ok("
@@ -2473,7 +2457,7 @@ fn impl_enum_type_params() {
         fn bar(x: Foo[Int32]) { x.bar(); }
     ",
         (5, 33),
-        ErrorMessage::UnknownMethod("Foo[Int32]".into(), "bar".into(), Vec::new()),
+        ErrorMessage::UnknownMethod("Foo[Int32]".into(), "bar".into()),
     );
 
     ok("
@@ -2489,7 +2473,7 @@ fn method_call_on_unit() {
     err(
         "fn foo(a: ()) { a.foo(); }",
         (1, 17),
-        ErrorMessage::UnknownMethod("()".into(), "foo".into(), Vec::new()),
+        ErrorMessage::UnknownMethod("()".into(), "foo".into()),
     );
 }
 
@@ -2700,7 +2684,7 @@ fn shadow_function() {
     err(
         "fn f() { let f = 1i32; f(); }",
         (1, 24),
-        ErrorMessage::UnknownMethod("Int32".into(), "get".into(), Vec::new()),
+        ErrorMessage::UnknownMethod("Int32".into(), "get".into()),
     );
 }
 
@@ -3464,7 +3448,7 @@ fn different_fct_call_kinds() {
             ((1, 10), ErrorMessage::NoTypeParamsExpected),
             (
                 (1, 10),
-                ErrorMessage::UnknownMethod("Int32".into(), "get".into(), Vec::new()),
+                ErrorMessage::UnknownMethod("Int32".into(), "get".into()),
             ),
         ],
     );
@@ -4649,7 +4633,7 @@ fn impl_method_lookup_on_missing_trait_method() {
             ((15, 13), ErrorMessage::ElementNotInTrait),
             (
                 (21, 13),
-                ErrorMessage::UnknownMethod("Int64".into(), "h".into(), Vec::new()),
+                ErrorMessage::UnknownMethod("Int64".into(), "h".into()),
             ),
         ],
     );
