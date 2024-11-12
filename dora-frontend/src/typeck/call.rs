@@ -211,16 +211,16 @@ fn check_expr_call_expr(
             .get_method_for_trait_method_id(trait_method_id)
             .expect("method not found");
 
-        let call_type = CallType::Method(expr_type.clone(), method_id, SourceTypeArray::empty());
+        let call_type = CallType::Method(expr_type.clone(), method_id, impl_match.bindings.clone());
         ck.analysis
             .map_calls
             .insert_or_replace(e.id, Arc::new(call_type));
 
         let method = ck.sa.fct(method_id);
 
-        check_args_compatible_fct(ck, method, arguments, &SourceTypeArray::empty(), None);
+        check_args_compatible_fct(ck, method, arguments, &impl_match.bindings, None);
 
-        let return_type = method.return_type();
+        let return_type = specialize_type(ck.sa, method.return_type(), &impl_match.bindings);
         ck.analysis.set_ty(e.id, return_type.clone());
 
         return_type

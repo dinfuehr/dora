@@ -15,6 +15,7 @@ use crate::sema::{
     LazyLambdaCreationData, LazyLambdaId, ModuleDefinitionId, NestedVarId, Param, Params, Sema,
     SourceFileId, TraitDefinitionId,
 };
+use crate::specialize_type;
 use crate::ty::TraitType;
 use crate::typeck::{
     arg_allows, check_args_compatible, check_expr_break_and_continue, check_expr_call,
@@ -316,17 +317,25 @@ fn check_expr_assign_call(ck: &mut TypeCheck, e: &ast::ExprBinType) {
             .expect("missing alias");
         let impl_item_type_alias = ck.sa.alias(impl_item_type_alias_id);
 
-        let call_type = CallType::Method(expr_type.clone(), method_id, SourceTypeArray::empty());
+        let call_type = CallType::Method(expr_type.clone(), method_id, impl_match.bindings.clone());
         ck.analysis
             .map_calls
             .insert_or_replace(e.id, Arc::new(call_type));
 
         let method = ck.sa.fct(method_id);
         let index_param = &method.params.params[1..2];
-        check_args_compatible(ck, index_param, None, args, &SourceTypeArray::empty(), None);
+        check_args_compatible(ck, index_param, None, args, &impl_match.bindings, None);
 
-        if !arg_allows(ck.sa, impl_item_type_alias.ty(), value_type.clone(), None) {
-            let exp = ck.ty_name(&impl_item_type_alias.ty());
+        let impl_item_type_alias_ty = impl_item_type_alias.ty();
+        let impl_item_type_alias_ty =
+            specialize_type(ck.sa, impl_item_type_alias_ty, &impl_match.bindings);
+        if !arg_allows(
+            ck.sa,
+            impl_item_type_alias_ty.clone(),
+            value_type.clone(),
+            None,
+        ) {
+            let exp = ck.ty_name(&impl_item_type_alias_ty);
             let got = ck.ty_name(&value_type);
             ck.sa.report(
                 ck.file_id,

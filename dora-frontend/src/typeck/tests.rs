@@ -5301,6 +5301,50 @@ fn class_index_set() {
 }
 
 #[test]
+fn class_index_get_generic() {
+    ok("
+        class Foo[T] { a: T, b: T }
+        impl[T] std::traits::IndexGet for Foo[T] {
+            type Index = Int;
+            type Item = T;
+            fn get(index: Self::Index): Self::Item {
+                if index == 0 {
+                    self.a
+                } else {
+                    assert(index == 1);
+                    self.b
+                }
+            }
+        }
+        fn f(x: Foo[Float64]): Float64 {
+            x(0)
+        }
+    ")
+}
+
+#[test]
+fn class_index_set_generic() {
+    ok("
+        class Foo[T] { a: T, b: T }
+        impl[T] std::traits::IndexSet for Foo[T] {
+            type Index = Int;
+            type Item = T;
+            fn set(index: Self::Index, value: Self::Item) {
+                if index == 0 {
+                    self.a = value;
+                } else {
+                    assert(index == 1);
+                    self.b = value;
+                }
+            }
+        }
+        fn f(x: Foo[Float64], value: Float64) {
+            x(0) = value;
+        }
+    ")
+}
+
+#[test]
 fn class_index_set_wrong_type() {
     err(
         "
