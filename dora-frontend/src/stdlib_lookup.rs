@@ -255,7 +255,7 @@ fn internal_struct(
     struct_id
 }
 
-fn resolve_name(sa: &Sema, name: &str, module_id: ModuleDefinitionId) -> SymbolKind {
+pub fn resolve_name(sa: &Sema, name: &str, module_id: ModuleDefinitionId) -> SymbolKind {
     let path = name.split("::");
     let mut sym = SymbolKind::Module(module_id);
 
@@ -897,8 +897,16 @@ fn resolve_int64(sa: &Sema) {
 
 fn resolve_array(sa: &Sema) {
     intrinsic_method(sa, "collections::Array#size", Intrinsic::ArrayLen);
-    intrinsic_method(sa, "collections::Array#get", Intrinsic::ArrayGet);
-    intrinsic_method(sa, "collections::Array#set", Intrinsic::ArraySet);
+    intrinsic_method(
+        sa,
+        "traits::IndexGet for collections::Array#get",
+        Intrinsic::ArrayGet,
+    );
+    intrinsic_method(
+        sa,
+        "traits::IndexSet for collections::Array#set",
+        Intrinsic::ArraySet,
+    );
 
     intrinsic_method(
         sa,
@@ -924,7 +932,7 @@ fn intrinsic_method(sa: &Sema, path: &str, intrinsic: Intrinsic) -> FctDefinitio
     id
 }
 
-fn lookup_fct(sa: &Sema, path: &str) -> FctDefinitionId {
+pub fn lookup_fct(sa: &Sema, path: &str) -> FctDefinitionId {
     let module_id = sa.stdlib_module_id();
 
     if path.contains("#") {

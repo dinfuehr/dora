@@ -7,7 +7,7 @@ use crate::sema::{
     LazyLambdaCreationData, Sema, TypeParamDefinition,
 };
 use crate::sym::ModuleSymTable;
-use crate::typeck::call::{check_expr_call, create_call_arguments, find_method};
+use crate::typeck::call::{check_expr_call, create_call_arguments};
 use crate::typeck::constck::ConstCheck;
 pub use crate::typeck::control::is_pattern_check;
 use crate::typeck::control::{
@@ -21,6 +21,7 @@ use crate::typeck::function::{
     check_args_compatible_fct, check_lit_char, check_lit_float, check_lit_int, check_lit_str,
     is_simple_enum, TypeCheck, VarManager,
 };
+#[cfg(test)]
 pub use crate::typeck::lookup::find_method_call_candidates;
 use crate::typeck::lookup::MethodLookup;
 use crate::typeck::stmt::{check_pattern, check_stmt};

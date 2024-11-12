@@ -8,6 +8,7 @@ use crate::sema::{
     ClassDefinitionId, ConstDefinitionId, EnumDefinitionId, FieldId, GlobalDefinitionId,
     StructDefinitionId, TraitDefinitionId,
 };
+use crate::stdlib_lookup::lookup_fct;
 use crate::sym::ModuleSymTable;
 use crate::typeck::find_method_call_candidates;
 use crate::{empty_sta, test, ty};
@@ -3891,7 +3892,7 @@ fn gen_vec_load() {
     gen_fct(
         "fn f(x: Vec[Int32], idx: Int64): Int32 { x(idx) }",
         |sa, code, fct| {
-            let fct_id = cls_method_by_name(sa, "Vec", "get", false).unwrap();
+            let fct_id = lookup_fct(sa, "traits::IndexGet for collections::Vec#get");
             let expected = vec![
                 PushRegister(r(0)),
                 PushRegister(r(1)),
@@ -3915,7 +3916,7 @@ fn gen_vec_store() {
     gen_fct(
         "fn f(x: Vec[Int32], idx: Int64, value: Int32) { x(idx) = value; }",
         |sa, code, fct| {
-            let fct_id = cls_method_by_name(sa, "Vec", "set", false).unwrap();
+            let fct_id = lookup_fct(sa, "traits::IndexSet for collections::Vec#set");
             let expected = vec![
                 PushRegister(r(0)),
                 PushRegister(r(1)),

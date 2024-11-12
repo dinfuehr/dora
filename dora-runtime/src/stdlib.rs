@@ -619,8 +619,14 @@ pub const STDLIB_FUNCTIONS: &[(&'static str, FctImplementation)] = &[
     ("stdlib::string::String#getByte", I(Intrinsic::StrGet)),
     // Array
     ("stdlib::collections::Array#size", I(Intrinsic::ArrayLen)),
-    ("stdlib::collections::Array#get", I(Intrinsic::ArrayGet)),
-    ("stdlib::collections::Array#set", I(Intrinsic::ArraySet)),
+    (
+        "stdlib::traits::IndexGet for stdlib::collections::Array#get",
+        I(Intrinsic::ArrayGet),
+    ),
+    (
+        "stdlib::traits::IndexSet for stdlib::collections::Array#set",
+        I(Intrinsic::ArraySet),
+    ),
     (
         "stdlib::collections::Array#unsafeNew",
         I(Intrinsic::ArrayNewOfSize),

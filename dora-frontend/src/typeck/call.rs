@@ -1,7 +1,7 @@
 use std::collections::HashMap;
 use std::sync::Arc;
 
-use dora_parser::{ast, Span};
+use dora_parser::ast;
 
 use crate::access::{
     class_accessible_from, class_field_accessible_from, enum_accessible_from, fct_accessible_from,
@@ -12,13 +12,13 @@ use crate::interner::Name;
 use crate::sema::{
     find_field_in_class, find_impl, new_identity_type_params, CallType, ClassDefinitionId,
     ElementWithFields, EnumDefinitionId, FctDefinitionId, IdentType, Sema, StructDefinitionId,
-    TraitDefinition, TypeParamDefinition, TypeParamId,
+    TraitDefinition, TypeParamId,
 };
 use crate::specialize::replace_type;
 use crate::sym::SymbolKind;
 use crate::typeck::{
-    args_compatible, args_compatible_fct, check_args_compatible_fct, check_expr,
-    find_method_call_candidates, read_path_expr, CallArguments, MethodLookup, TypeCheck,
+    args_compatible, args_compatible_fct, check_args_compatible_fct, check_expr, read_path_expr,
+    CallArguments, MethodLookup, TypeCheck,
 };
 use crate::typeparamck::{self, ErrorReporting};
 use crate::{
@@ -190,7 +190,6 @@ fn check_expr_call_expr(
 
     let trait_id = ck.sa.known.traits.index_get();
     let trait_ty = TraitType::from_trait_id(trait_id);
-    let get = ck.sa.interner.intern("get");
 
     let impl_match = find_impl(
         ck.sa,
@@ -211,7 +210,7 @@ fn check_expr_call_expr(
             .get_method_for_trait_method_id(trait_method_id)
             .expect("method not found");
 
-        let call_type = CallType::Method(expr_type.clone(), method_id, impl_match.bindings.clone());
+        let call_type = CallType::Expr(expr_type.clone(), method_id, impl_match.bindings.clone());
         ck.analysis
             .map_calls
             .insert_or_replace(e.id, Arc::new(call_type));
@@ -224,24 +223,6 @@ fn check_expr_call_expr(
         ck.analysis.set_ty(e.id, return_type.clone());
 
         return_type
-    } else if let Some(descriptor) = find_method(
-        ck,
-        e.span,
-        expr_type.clone(),
-        false,
-        get,
-        &arg_types,
-        &SourceTypeArray::empty(),
-    ) {
-        let call_type =
-            CallType::Expr(expr_type.clone(), descriptor.fct_id, descriptor.type_params);
-        ck.analysis
-            .map_calls
-            .insert_or_replace(e.id, Arc::new(call_type));
-
-        ck.analysis.set_ty(e.id, descriptor.return_type.clone());
-
-        descriptor.return_type
     } else {
         let ty = ck.ty_name(&expr_type);
         ck.sa.report(
@@ -1229,76 +1210,4 @@ fn check_expr_call_sym(
             check_expr_call_expr(ck, e, expr_type, arguments)
         }
     }
-}
-
-pub(super) fn find_method(
-    ck: &mut TypeCheck,
-    span: Span,
-    object_type: SourceType,
-    is_static: bool,
-    name: Name,
-    args: &[SourceType],
-    fct_type_params: &SourceTypeArray,
-) -> Option<MethodDescriptor> {
-    let descriptor = lookup_method(
-        ck.sa,
-        object_type.clone(),
-        ck.type_param_definition,
-        is_static,
-        name,
-        args,
-        fct_type_params,
-    );
-
-    if descriptor.is_none() {
-        let type_name = ck.ty_name(&object_type);
-        let name = ck.sa.interner.str(name).to_string();
-        let msg = if is_static {
-            ErrorMessage::UnknownStaticMethod(type_name, name)
-        } else {
-            ErrorMessage::UnknownMethod(type_name, name)
-        };
-
-        ck.sa.report(ck.file_id, span, msg);
-    }
-
-    descriptor
-}
-
-pub(super) struct MethodDescriptor {
-    pub fct_id: FctDefinitionId,
-    pub type_params: SourceTypeArray,
-    pub return_type: SourceType,
-}
-
-pub(super) fn lookup_method(
-    sa: &Sema,
-    object_type: SourceType,
-    type_param_defs: &TypeParamDefinition,
-    is_static: bool,
-    name: Name,
-    args: &[SourceType],
-    fct_type_params: &SourceTypeArray,
-) -> Option<MethodDescriptor> {
-    let candidates = find_method_call_candidates(sa, object_type, type_param_defs, name, is_static);
-
-    if candidates.len() == 1 {
-        let method_id = candidates[0].fct_id;
-        let method = sa.fct(method_id);
-
-        let container_type_params = &candidates[0].container_type_params;
-        let type_params = container_type_params.connect(fct_type_params);
-
-        if args_compatible_fct(sa, method, args, &type_params, None) {
-            let cmp_type = replace_type(sa, method.return_type(), Some(&type_params), None);
-
-            return Some(MethodDescriptor {
-                fct_id: method_id,
-                type_params: type_params,
-                return_type: cmp_type,
-            });
-        }
-    }
-
-    None
 }

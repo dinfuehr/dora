@@ -332,7 +332,7 @@ impl SsaGen {
             block.appendPhi(incomplete);
 
             if self.incompletePhis.contains(block) {
-                self.incompletePhis(block).getOrPanic().insert(register, incomplete);
+                self.incompletePhis.get(block).getOrPanic().insert(register, incomplete);
             } else {
                 let map = HashMap[BytecodeRegister, Inst]::new();
                 map.insert(register, incomplete);
@@ -791,7 +791,7 @@ impl SsaGen {
         assert(!self.sealedBlocks.contains(block.id().toInt64()));
         self.sealedBlocks.insert(block.id().toInt64());
 
-        let map = self.incompletePhis(block);
+        let map = self.incompletePhis.get(block);
         if map.isNone() { return; }
 
         for (register, phi) in map.getOrPanic() {

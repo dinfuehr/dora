@@ -1,4 +1,4 @@
-use std::traits::{Comparable, Hash, Equals, Default, Zero, IndexGet, IntoIterator, Iterator};
+use std::traits::{Comparable, Hash, Equals, Default, Zero, IndexGet, IndexSet, IntoIterator, Iterator};
 use std::string::{Stringable, StringBuffer};
 use std::{fatalError, unsafeKillRefs};
 
@@ -8,8 +8,6 @@ impl[T] Array[T] {
   pub static @internal fn new(values: T...): Array[T];
 
   pub @internal fn size(): Int64;
-  pub @internal fn get(idx: Int64): T;
-  pub @internal fn set(idx: Int64, val: T);
 
   pub fn isEmpty(): Bool { self.size() == 0i64 }
 
@@ -45,6 +43,22 @@ impl[T] Array[T] {
       i = i + 1i64;
     }
   }
+}
+
+impl[T] IndexGet for Array[T] {
+  type Index = Int;
+  type Item = T;
+
+  @internal
+  fn get(index: Self::Index): Self::Item;
+}
+
+impl[T] IndexSet for Array[T] {
+  type Index = Int;
+  type Item = T;
+
+  @internal
+  fn set(index: Self::Index, item: Self::Item);
 }
 
 impl[T: Default] Array[T] {
@@ -1024,22 +1038,6 @@ impl[T] Vec[T] {
     Vec[T](array = array, len = 0)
   }
 
-  pub fn get(idx: Int64): T {
-    if idx < 0i64 || idx >= self.len {
-      fatalError[()]("index out of bounds for vector");
-    }
-
-    return self.array(idx);
-  }
-
-  pub fn set(idx: Int64, val: T) {
-    if idx < 0i64 || idx >= self.len {
-      fatalError[()]("index out of bounds for vector");
-    }
-
-    self.array.set(idx, val);
-  }
-
   pub fn reserve(newcap: Int64) {
     assert(newcap >= 0i64);
 
@@ -1236,6 +1234,32 @@ impl[T] Vec[T] {
 
   pub fn clone(): Vec[T] {
     Vec[T](array = self.array.clone(), len = self.len)
+  }
+}
+
+impl[T] IndexGet for Vec[T] {
+  type Index = Int;
+  type Item = T;
+
+  fn get(index: Self::Index): Self::Item {
+    if index < 0i64 || index >= self.len {
+      fatalError[()]("index out of bounds for vector");
+    }
+
+    self.array(index)
+  }
+}
+
+impl[T] IndexSet for Vec[T] {
+  type Index = Int;
+  type Item = T;
+
+  fn set(index: Self::Index, item: Self::Item) {
+    if index < 0i64 || index >= self.len {
+      fatalError[()]("index out of bounds for vector");
+    }
+
+    self.array.set(index, item);
   }
 }
 

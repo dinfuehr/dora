@@ -21,7 +21,7 @@ use crate::typeck::{
     arg_allows, check_args_compatible, check_expr_break_and_continue, check_expr_call,
     check_expr_for, check_expr_if, check_expr_match, check_expr_return, check_expr_while,
     check_lit_char, check_lit_float, check_lit_int, check_lit_str, check_pattern, check_stmt,
-    create_call_arguments, find_method, is_simple_enum, TypeCheck,
+    create_call_arguments, is_simple_enum, TypeCheck,
 };
 use crate::typeparamck::{self, ErrorReporting};
 use crate::{replace_type, ty::error as ty_error, SourceType, SourceTypeArray, SymbolKind};
@@ -280,8 +280,6 @@ fn check_expr_assign_call(ck: &mut TypeCheck, e: &ast::ExprBinType) {
     let value_type = check_expr(ck, &e.rhs, SourceType::Any);
     ck.analysis.set_ty(e.rhs.id(), value_type.clone());
 
-    let name = ck.sa.interner.intern("set");
-
     let mut arg_types = args.assume_all_positional(ck);
     arg_types.push(value_type.clone());
 
@@ -317,7 +315,7 @@ fn check_expr_assign_call(ck: &mut TypeCheck, e: &ast::ExprBinType) {
             .expect("missing alias");
         let impl_item_type_alias = ck.sa.alias(impl_item_type_alias_id);
 
-        let call_type = CallType::Method(expr_type.clone(), method_id, impl_match.bindings.clone());
+        let call_type = CallType::Expr(expr_type.clone(), method_id, impl_match.bindings.clone());
         ck.analysis
             .map_calls
             .insert_or_replace(e.id, Arc::new(call_type));
@@ -343,19 +341,6 @@ fn check_expr_assign_call(ck: &mut TypeCheck, e: &ast::ExprBinType) {
                 ErrorMessage::WrongTypeForArgument(exp, got),
             );
         }
-    } else if let Some(descriptor) = find_method(
-        ck,
-        e.span,
-        expr_type.clone(),
-        false,
-        name,
-        &arg_types,
-        &SourceTypeArray::empty(),
-    ) {
-        let call_type = CallType::Expr(expr_type, descriptor.fct_id, descriptor.type_params);
-        ck.analysis
-            .map_calls
-            .insert_or_replace(e.id, Arc::new(call_type));
     } else {
         let ty = ck.ty_name(&expr_type);
         ck.sa.report(

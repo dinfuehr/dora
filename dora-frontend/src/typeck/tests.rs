@@ -485,16 +485,10 @@ fn type_array_assign() {
     );
     errors(
         "fn f(a: Array[Int32]) { a(3) = \"b\"; }",
-        &[
-            (
-                (1, 25),
-                ErrorMessage::UnknownMethod("Array[Int32]".into(), "set".into()),
-            ),
-            (
-                (1, 25),
-                ErrorMessage::IndexSetNotImplemented("Array[Int32]".into()),
-            ),
-        ],
+        &[(
+            (1, 32),
+            ErrorMessage::WrongTypeForArgument("Int32".into(), "String".into()),
+        )],
     );
 }
 
@@ -1340,17 +1334,13 @@ fn test_array_syntax_set() {
 #[test]
 fn test_array_syntax_set_wrong_value() {
     errors(
-        "fn f(t: Array[Int32]) { t(0) = true; }",
-        &[
-            (
-                (1, 25),
-                ErrorMessage::UnknownMethod("Array[Int32]".into(), "set".into()),
-            ),
-            (
-                (1, 25),
-                ErrorMessage::IndexSetNotImplemented("Array[Int32]".into()),
-            ),
-        ],
+        "
+            fn f(t: Array[Int32]) { t(0) = true; }
+        ",
+        &[(
+            (2, 44),
+            ErrorMessage::WrongTypeForArgument("Int32".into(), "Bool".into()),
+        )],
     );
 }
 
@@ -1358,16 +1348,10 @@ fn test_array_syntax_set_wrong_value() {
 fn test_array_syntax_set_wrong_index() {
     errors(
         "fn f(t: Array[Int32]){ t(\"bla\") = 9i32; }",
-        &[
-            (
-                (1, 24),
-                ErrorMessage::UnknownMethod("Array[Int32]".into(), "set".into()),
-            ),
-            (
-                (1, 24),
-                ErrorMessage::IndexSetNotImplemented("Array[Int32]".into()),
-            ),
-        ],
+        &[(
+            (1, 26),
+            ErrorMessage::WrongTypeForArgument("Int64".into(), "String".into()),
+        )],
     );
 }
 
@@ -2707,16 +2691,10 @@ fn shadow_function() {
     ok("fn f() { let f = 1i32; }");
     errors(
         "fn f() { let f = 1i32; f(); }",
-        &[
-            (
-                (1, 24),
-                ErrorMessage::UnknownMethod("Int32".into(), "get".into()),
-            ),
-            (
-                (1, 24),
-                ErrorMessage::IndexGetNotImplemented("Int32".into()),
-            ),
-        ],
+        &[(
+            (1, 24),
+            ErrorMessage::IndexGetNotImplemented("Int32".into()),
+        )],
     );
 }
 
@@ -3478,10 +3456,6 @@ fn different_fct_call_kinds() {
         "fn f() { 1i32[Int32](); }",
         &[
             ((1, 10), ErrorMessage::NoTypeParamsExpected),
-            (
-                (1, 10),
-                ErrorMessage::UnknownMethod("Int32".into(), "get".into()),
-            ),
             (
                 (1, 10),
                 ErrorMessage::IndexGetNotImplemented("Int32".into()),

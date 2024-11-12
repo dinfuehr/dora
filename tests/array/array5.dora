@@ -1,3 +1,5 @@
+use std::traits::IndexGet;
+
 fn main() {
   assert(1i32 == A()("hello"));
 
@@ -7,7 +9,10 @@ fn main() {
 
 class A
 
-impl A {
+impl IndexGet for A {
+  type Index = String;
+  type Item = Int32;
+
   fn get(index: String): Int32 {
     1i32
   }
@@ -15,7 +20,10 @@ impl A {
 
 class B 
 
-impl B {
+impl IndexGet for B {
+  type Index = Bool;
+  type Item = Bool;
+
   fn get(index: Bool): Bool {
     index
   }
