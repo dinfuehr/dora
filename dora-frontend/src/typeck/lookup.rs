@@ -5,6 +5,7 @@ use crate::sema::{
     TraitDefinition, TypeParamDefinition,
 };
 use crate::typeck::function::args_compatible_fct;
+use crate::typeck::CallArguments;
 use crate::typeparamck::{self, ErrorReporting};
 use crate::{specialize_for_element, ty, SourceType, SourceTypeArray};
 use dora_parser::Span;
@@ -64,6 +65,7 @@ pub struct MethodLookup<'a> {
     kind: Option<LookupKind>,
     name: Option<Name>,
     args: Option<&'a [SourceType]>,
+    args2: Option<&'a CallArguments>,
     fct_tps: Option<&'a SourceTypeArray>,
     type_param_defs: &'a TypeParamDefinition,
     ret: Option<SourceType>,
@@ -84,6 +86,7 @@ impl<'a> MethodLookup<'a> {
             kind: None,
             name: None,
             args: None,
+            args2: None,
             fct_tps: None,
             ret: None,
             fct_parent: None,
@@ -121,6 +124,12 @@ impl<'a> MethodLookup<'a> {
 
     pub fn args(mut self, args: &'a [SourceType]) -> MethodLookup<'a> {
         self.args = Some(args);
+        self
+    }
+
+    #[allow(unused)]
+    pub fn arguments(mut self, arguments: &'a CallArguments) -> MethodLookup<'a> {
+        self.args2 = Some(arguments);
         self
     }
 
@@ -210,27 +219,31 @@ impl<'a> MethodLookup<'a> {
             return result;
         }
 
-        let args = self.args.expect("args not set");
-
-        if args.contains(&ty::error()) {
-            return result;
-        }
-
-        if !args_compatible_fct(self.sa, &*fct, args, &type_params, None) {
-            if !self.report_errors {
+        if let Some(args) = self.args {
+            if args.contains(&ty::error()) {
                 return result;
             }
 
-            let fct_name = self.sa.interner.str(fct.name).to_string();
-            let fct_params = fct
-                .params_without_self()
-                .iter()
-                .map(|a| a.ty().name_fct(self.sa, &*fct))
-                .collect::<Vec<_>>();
-            let call_types = args.iter().map(|a| self.ty_name(a)).collect::<Vec<_>>();
-            let msg = ErrorMessage::ParamTypesIncompatible(fct_name, fct_params, call_types);
-            self.report_error(msg);
-            return result;
+            if !args_compatible_fct(self.sa, &*fct, args, &type_params, None) {
+                if !self.report_errors {
+                    return result;
+                }
+
+                let fct_name = self.sa.interner.str(fct.name).to_string();
+                let fct_params = fct
+                    .params_without_self()
+                    .iter()
+                    .map(|a| a.ty().name_fct(self.sa, &*fct))
+                    .collect::<Vec<_>>();
+                let call_types = args.iter().map(|a| self.ty_name(a)).collect::<Vec<_>>();
+                let msg = ErrorMessage::ParamTypesIncompatible(fct_name, fct_params, call_types);
+                self.report_error(msg);
+                return result;
+            }
+        } else if let Some(_arguments) = self.args2 {
+            unimplemented!()
+        } else {
+            unreachable!()
         }
 
         let cmp_type = {

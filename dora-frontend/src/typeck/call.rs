@@ -17,8 +17,8 @@ use crate::sema::{
 use crate::specialize::replace_type;
 use crate::sym::SymbolKind;
 use crate::typeck::{
-    args_compatible, args_compatible_fct, check_expr, find_method_call_candidates, read_path_expr,
-    CallArguments, MethodLookup, TypeCheck,
+    args_compatible, args_compatible_fct, check_args_compatible_fct, check_expr,
+    find_method_call_candidates, read_path_expr, CallArguments, MethodLookup, TypeCheck,
 };
 use crate::typeparamck::{self, ErrorReporting};
 use crate::{
@@ -77,7 +77,7 @@ pub(super) fn check_expr_call(
     }
 }
 
-fn create_call_arguments(ck: &mut TypeCheck, e: &ast::ExprCallType) -> CallArguments {
+pub(super) fn create_call_arguments(ck: &mut TypeCheck, e: &ast::ExprCallType) -> CallArguments {
     let mut arguments = CallArguments {
         arguments: Vec::with_capacity(e.args.len()),
         span: e.span,
@@ -218,9 +218,7 @@ fn check_expr_call_expr(
 
         let method = ck.sa.fct(method_id);
 
-        if !args_compatible_fct(ck.sa, method, &arg_types, &SourceTypeArray::empty(), None) {
-            unimplemented!()
-        }
+        check_args_compatible_fct(ck, method, arguments, &SourceTypeArray::empty(), None);
 
         let return_type = method.return_type();
         ck.analysis.set_ty(e.id, return_type.clone());
@@ -245,6 +243,13 @@ fn check_expr_call_expr(
 
         descriptor.return_type
     } else {
+        let ty = ck.ty_name(&expr_type);
+        ck.sa.report(
+            ck.file_id,
+            e.callee.span(),
+            ErrorMessage::IndexGetNotImplemented(ty),
+        );
+
         ck.analysis.set_ty(e.id, ty_error());
 
         ty_error()

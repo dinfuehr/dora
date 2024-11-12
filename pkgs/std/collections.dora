@@ -1,4 +1,4 @@
-use std::traits::{Comparable, Hash, Equals, Default, Zero, IntoIterator, Iterator};
+use std::traits::{Comparable, Hash, Equals, Default, Zero, IndexGet, IntoIterator, Iterator};
 use std::string::{Stringable, StringBuffer};
 use std::{fatalError, unsafeKillRefs};
 

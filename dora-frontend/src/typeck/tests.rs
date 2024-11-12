@@ -483,10 +483,18 @@ fn type_array_assign() {
         (1, 32),
         ErrorMessage::ReturnType("Int32".into(), "()".into()),
     );
-    err(
+    errors(
         "fn f(a: Array[Int32]) { a(3) = \"b\"; }",
-        (1, 25),
-        ErrorMessage::UnknownMethod("Array[Int32]".into(), "set".into()),
+        &[
+            (
+                (1, 25),
+                ErrorMessage::UnknownMethod("Array[Int32]".into(), "set".into()),
+            ),
+            (
+                (1, 25),
+                ErrorMessage::IndexSetNotImplemented("Array[Int32]".into()),
+            ),
+        ],
     );
 }
 
@@ -1331,19 +1339,35 @@ fn test_array_syntax_set() {
 
 #[test]
 fn test_array_syntax_set_wrong_value() {
-    err(
+    errors(
         "fn f(t: Array[Int32]) { t(0) = true; }",
-        (1, 25),
-        ErrorMessage::UnknownMethod("Array[Int32]".into(), "set".into()),
+        &[
+            (
+                (1, 25),
+                ErrorMessage::UnknownMethod("Array[Int32]".into(), "set".into()),
+            ),
+            (
+                (1, 25),
+                ErrorMessage::IndexSetNotImplemented("Array[Int32]".into()),
+            ),
+        ],
     );
 }
 
 #[test]
 fn test_array_syntax_set_wrong_index() {
-    err(
+    errors(
         "fn f(t: Array[Int32]){ t(\"bla\") = 9i32; }",
-        (1, 24),
-        ErrorMessage::UnknownMethod("Array[Int32]".into(), "set".into()),
+        &[
+            (
+                (1, 24),
+                ErrorMessage::UnknownMethod("Array[Int32]".into(), "set".into()),
+            ),
+            (
+                (1, 24),
+                ErrorMessage::IndexSetNotImplemented("Array[Int32]".into()),
+            ),
+        ],
     );
 }
 
@@ -2549,7 +2573,7 @@ fn variadic_parameter() {
     );
     err(
         "fn f(x: Int32..., y: Int32) {}",
-        (1, 19),
+        (1, 6),
         ErrorMessage::VariadicParameterNeedsToBeLast,
     );
 }
@@ -2681,10 +2705,18 @@ fn show_type_param_with_name() {
 #[test]
 fn shadow_function() {
     ok("fn f() { let f = 1i32; }");
-    err(
+    errors(
         "fn f() { let f = 1i32; f(); }",
-        (1, 24),
-        ErrorMessage::UnknownMethod("Int32".into(), "get".into()),
+        &[
+            (
+                (1, 24),
+                ErrorMessage::UnknownMethod("Int32".into(), "get".into()),
+            ),
+            (
+                (1, 24),
+                ErrorMessage::IndexGetNotImplemented("Int32".into()),
+            ),
+        ],
     );
 }
 
@@ -3449,6 +3481,10 @@ fn different_fct_call_kinds() {
             (
                 (1, 10),
                 ErrorMessage::UnknownMethod("Int32".into(), "get".into()),
+            ),
+            (
+                (1, 10),
+                ErrorMessage::IndexGetNotImplemented("Int32".into()),
             ),
         ],
     );
@@ -5217,7 +5253,6 @@ fn struct_index_get() {
 }
 
 #[test]
-#[ignore]
 fn struct_index_get_wrong_index_type() {
     err(
         "
@@ -5238,8 +5273,8 @@ fn struct_index_get_wrong_index_type() {
             x(0.0)
         }
     ",
-        (1, 1),
-        ErrorMessage::Unimplemented,
+        (16, 15),
+        ErrorMessage::WrongTypeForArgument("Int64".into(), "Float64".into()),
     );
 }
 
@@ -5263,4 +5298,56 @@ fn class_index_set() {
             x(0) = value;
         }
     ")
+}
+
+#[test]
+fn class_index_set_wrong_type() {
+    err(
+        "
+        class Foo { a: Float64, b: Float64 }
+        impl std::traits::IndexSet for Foo {
+            type Index = Int;
+            type Item = Float64;
+            fn set(index: Self::Index, value: Self::Item) {
+                if index == 0 {
+                    self.a = value;
+                } else {
+                    assert(index == 1);
+                    self.b = value;
+                }
+            }
+        }
+        fn f(x: Foo, value: Float64) {
+            x(0.0) = value;
+        }
+    ",
+        (16, 15),
+        ErrorMessage::WrongTypeForArgument("Int64".into(), "Float64".into()),
+    );
+}
+
+#[test]
+fn class_index_set_wrong_item_type() {
+    err(
+        "
+        class Foo { a: Float64, b: Float64 }
+        impl std::traits::IndexSet for Foo {
+            type Index = Int;
+            type Item = Float64;
+            fn set(index: Self::Index, value: Self::Item) {
+                if index == 0 {
+                    self.a = value;
+                } else {
+                    assert(index == 1);
+                    self.b = value;
+                }
+            }
+        }
+        fn f(x: Foo, value: Float32) {
+            x(0) = value;
+        }
+    ",
+        (16, 20),
+        ErrorMessage::WrongTypeForArgument("Float64".into(), "Float32".into()),
+    );
 }

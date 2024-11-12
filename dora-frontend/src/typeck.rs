@@ -7,7 +7,7 @@ use crate::sema::{
     LazyLambdaCreationData, Sema, TypeParamDefinition,
 };
 use crate::sym::ModuleSymTable;
-use crate::typeck::call::{check_expr_call, find_method};
+use crate::typeck::call::{check_expr_call, create_call_arguments, find_method};
 use crate::typeck::constck::ConstCheck;
 pub use crate::typeck::control::is_pattern_check;
 use crate::typeck::control::{
@@ -17,8 +17,9 @@ use crate::typeck::control::{
 use crate::typeck::expr::{check_expr, read_ident, read_path, read_path_expr};
 pub use crate::typeck::expr::{compute_lit_float, compute_lit_int};
 use crate::typeck::function::{
-    add_local, args_compatible, args_compatible_fct, check_lit_char, check_lit_float,
-    check_lit_int, check_lit_str, is_simple_enum, TypeCheck, VarManager,
+    add_local, arg_allows, args_compatible, args_compatible_fct, check_args_compatible,
+    check_args_compatible_fct, check_lit_char, check_lit_float, check_lit_int, check_lit_str,
+    is_simple_enum, TypeCheck, VarManager,
 };
 pub use crate::typeck::lookup::find_method_call_candidates;
 use crate::typeck::lookup::MethodLookup;
@@ -203,18 +204,10 @@ impl CallArguments {
             }
         }
 
-        self.positional_types(ck)
-    }
-
-    fn positional_types(&self, ck: &TypeCheck) -> Vec<SourceType> {
         self.arguments
             .iter()
             .filter(|a| a.name.is_none())
             .map(|p| ck.analysis.ty(p.id))
             .collect::<Vec<SourceType>>()
-    }
-
-    fn len(&self) -> usize {
-        self.arguments.len()
     }
 }

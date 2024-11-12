@@ -213,6 +213,8 @@ pub enum ErrorMessage {
     FieldShouldBeUnnamed,
     OldClassDefinition,
     ExpectedNamedPattern,
+    IndexGetNotImplemented(String),
+    IndexSetNotImplemented(String),
 }
 
 impl ErrorMessage {
@@ -734,6 +736,12 @@ impl ErrorMessage {
             }
             ErrorMessage::ExpectedNamedPattern => {
                 format!("Expected named pattern field.")
+            }
+            ErrorMessage::IndexGetNotImplemented(ref ty) => {
+                format!("Type `{}` does not implement trait IndexGet.", ty)
+            }
+            ErrorMessage::IndexSetNotImplemented(ref ty) => {
+                format!("Type `{}` does not implement trait IndexGet.", ty)
             }
         }
     }

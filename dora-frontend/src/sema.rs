@@ -25,7 +25,7 @@ pub use self::elements::{
 pub use self::enums::{EnumDefinition, EnumDefinitionId, EnumField, EnumVariant};
 pub use self::extensions::{ExtensionDefinition, ExtensionDefinitionId};
 pub use self::functions::{
-    emit_as_bytecode_operation, FctDefinition, FctDefinitionId, FctParent, Intrinsic, Param,
+    emit_as_bytecode_operation, FctDefinition, FctDefinitionId, FctParent, Intrinsic, Param, Params,
 };
 pub use self::globals::{GlobalDefinition, GlobalDefinitionId};
 pub use self::impl_matching::{find_impl, impl_matches, implements_trait, maybe_alias_ty};

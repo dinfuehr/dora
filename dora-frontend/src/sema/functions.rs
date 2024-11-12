@@ -1,4 +1,4 @@
-use std::cell::{Cell, OnceCell};
+use std::cell::OnceCell;
 use std::rc::Rc;
 use std::sync::Arc;
 
@@ -37,9 +37,8 @@ pub struct FctDefinition {
     pub is_internal: bool,
     pub is_force_inline: bool,
     pub is_never_inline: bool,
-    pub params: Vec<Param>,
+    pub params: Params,
     pub return_type: ParsedType,
-    pub is_variadic: Cell<bool>,
 
     pub analysis: OnceCell<AnalysisData>,
 
@@ -58,7 +57,7 @@ impl FctDefinition {
         modifiers: ParsedModifierList,
         name: Name,
         type_params: Rc<TypeParamDefinition>,
-        params: Vec<Param>,
+        params: Params,
         parent: FctParent,
     ) -> FctDefinition {
         let return_type = if let Some(ref ast_return_type) = ast.return_type {
@@ -86,7 +85,6 @@ impl FctDefinition {
             is_internal: modifiers.is_internal,
             is_force_inline: modifiers.is_force_inline,
             is_never_inline: modifiers.is_never_inline,
-            is_variadic: Cell::new(false),
             analysis: OnceCell::new(),
             type_param_definition: type_params,
             container_type_params: OnceCell::new(),
@@ -181,10 +179,6 @@ impl FctDefinition {
         self.ast.kind.is_lambda()
     }
 
-    pub fn is_variadic(&self) -> bool {
-        self.is_variadic.get()
-    }
-
     pub fn span(&self) -> Span {
         self.span
     }
@@ -202,7 +196,7 @@ impl FctDefinition {
     }
 
     pub fn params_with_self(&self) -> &[Param] {
-        &self.params
+        &self.params.params
     }
 
     pub fn params_without_self(&self) -> &[Param] {
@@ -215,7 +209,7 @@ impl FctDefinition {
 
     pub fn self_param(&self) -> Option<&Param> {
         if self.has_hidden_self_argument() {
-            Some(&self.params[0])
+            Some(&self.params.params[0])
         } else {
             None
         }
@@ -346,6 +340,42 @@ impl FctParent {
             &FctParent::Extension(id) => Some(id),
             _ => None,
         }
+    }
+}
+
+#[derive(Debug, Clone)]
+pub struct Params {
+    pub params: Vec<Param>,
+    pub has_self: bool,
+    pub is_variadic: bool,
+}
+
+impl Params {
+    pub fn new(params: Vec<Param>, has_self: bool, is_variadic: bool) -> Params {
+        Params {
+            params,
+            has_self,
+            is_variadic,
+        }
+    }
+
+    pub fn regular_params(&self) -> &[Param] {
+        let start = self.has_self as usize;
+        let end = self.params.len() - self.is_variadic as usize;
+
+        &self.params[start..end]
+    }
+
+    pub fn variadic_param(&self) -> Option<&Param> {
+        if self.is_variadic() {
+            Some(self.params.last().expect("missing param"))
+        } else {
+            None
+        }
+    }
+
+    pub fn is_variadic(&self) -> bool {
+        self.is_variadic
     }
 }
 

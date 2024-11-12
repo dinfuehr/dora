@@ -13,9 +13,9 @@ use crate::sema::{
     EnumDefinition, EnumField, EnumVariant, ExtensionDefinition, ExtensionDefinitionId,
     FctDefinition, FctDefinitionId, FctParent, Field, FieldId, GlobalDefinition, ImplDefinition,
     ImplDefinitionId, ModuleDefinition, ModuleDefinitionId, PackageDefinition, PackageDefinitionId,
-    PackageName, Param, Sema, SourceFile, SourceFileId, StructDefinition, StructDefinitionField,
-    StructDefinitionFieldId, TraitDefinition, TraitDefinitionId, TypeParamDefinition,
-    UseDefinition, Visibility,
+    PackageName, Param, Params, Sema, SourceFile, SourceFileId, StructDefinition,
+    StructDefinitionField, StructDefinitionFieldId, TraitDefinition, TraitDefinitionId,
+    TypeParamDefinition, UseDefinition, Visibility,
 };
 use crate::sym::{SymTable, Symbol, SymbolKind};
 use crate::{report_sym_shadow_span, ty, ParsedType, SourceType};
@@ -529,7 +529,7 @@ impl<'x> visit::Visitor for TopLevelDeclaration<'x> {
                 .set(extension_id)
                 .is_ok());
 
-            find_elements_in_extension(self.sa, extension_id, node);
+            find_elements_in_extension(self.sa, self.file_id, extension_id, node);
         }
     }
 
@@ -701,7 +701,7 @@ impl<'x> visit::Visitor for TopLevelDeclaration<'x> {
         );
 
         let parent = FctParent::None;
-        let params = parse_function_params(self.sa, node, parent.clone(), &modifiers);
+        let params = parse_function_params(self.sa, self.file_id, node, parent.clone(), &modifiers);
 
         let fct = FctDefinition::new(
             self.package_id,
@@ -912,7 +912,8 @@ fn find_elements_in_trait(
                 );
 
                 let parent = FctParent::Trait(trait_id);
-                let params = parse_function_params(sa, method_node, parent.clone(), &modifiers);
+                let params =
+                    parse_function_params(sa, file_id, method_node, parent.clone(), &modifiers);
 
                 let fct = FctDefinition::new(
                     trait_.package_id,
@@ -1081,7 +1082,8 @@ fn find_elements_in_impl(
                 );
 
                 let parent = FctParent::Impl(impl_id);
-                let params = parse_function_params(sa, method_node, parent.clone(), &modifiers);
+                let params =
+                    parse_function_params(sa, file_id, method_node, parent.clone(), &modifiers);
 
                 let fct = FctDefinition::new(
                     impl_.package_id,
@@ -1180,6 +1182,7 @@ fn find_elements_in_impl(
 
 fn find_elements_in_extension(
     sa: &mut Sema,
+    file_id: SourceFileId,
     extension_id: ExtensionDefinitionId,
     node: &Arc<ast::Impl>,
 ) {
@@ -1213,7 +1216,8 @@ fn find_elements_in_extension(
                 );
 
                 let parent = FctParent::Extension(extension_id);
-                let params = parse_function_params(sa, method_node, parent.clone(), &modifiers);
+                let params =
+                    parse_function_params(sa, file_id, method_node, parent.clone(), &modifiers);
 
                 let fct = FctDefinition::new(
                     extension.package_id,
@@ -1529,16 +1533,19 @@ fn parse_type_param_definition(
 }
 
 fn parse_function_params(
-    _sa: &Sema,
+    sa: &Sema,
+    file_id: SourceFileId,
     ast: &ast::Function,
     parent: FctParent,
     modifiers: &ParsedModifierList,
-) -> Vec<Param> {
+) -> Params {
     let mut params: Vec<Param> = Vec::new();
+    let mut has_self = false;
 
     match parent {
         FctParent::Impl(..) | FctParent::Extension(..) | FctParent::Trait(..) => {
             if !modifiers.is_static {
+                has_self = true;
                 params.push(Param::new_ty(SourceType::This));
             }
         }
@@ -1548,12 +1555,26 @@ fn parse_function_params(
         FctParent::Function => unreachable!(),
     }
 
-    for p in &ast.params {
-        let param = Param::new(p.clone());
+    let mut is_variadic = false;
+
+    for (idx, ast_param) in ast.params.iter().enumerate() {
+        if ast_param.variadic {
+            if idx + 1 == ast.params.len() {
+                is_variadic = true;
+            } else {
+                sa.report(
+                    file_id,
+                    ast_param.span,
+                    ErrorMessage::VariadicParameterNeedsToBeLast,
+                );
+            }
+        }
+
+        let param = Param::new(ast_param.clone());
         params.push(param);
     }
 
-    params
+    Params::new(params, has_self, is_variadic)
 }
 
 #[cfg(test)]

@@ -3,22 +3,6 @@ use crate::ErrorMessage;
 
 pub fn check(sa: &Sema) {
     for (_id, fct) in sa.fcts.iter() {
-        for p in fct.params_without_self() {
-            let ast_node = p.ast.as_ref().expect("missing ast");
-
-            if fct.is_variadic() {
-                sa.report(
-                    fct.file_id,
-                    ast_node.span,
-                    ErrorMessage::VariadicParameterNeedsToBeLast,
-                );
-            }
-
-            if ast_node.variadic {
-                fct.is_variadic.set(true);
-            }
-        }
-
         check_test(sa, &*fct);
     }
 }

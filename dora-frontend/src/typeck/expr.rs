@@ -12,15 +12,15 @@ use crate::program_parser::ParsedModifierList;
 use crate::sema::{
     create_tuple, find_field_in_class, find_impl, implements_trait, AnalysisData, CallType,
     ConstValue, EnumDefinitionId, FctDefinition, FctParent, IdentType, Intrinsic,
-    LazyLambdaCreationData, LazyLambdaId, ModuleDefinitionId, NestedVarId, Param, Sema,
+    LazyLambdaCreationData, LazyLambdaId, ModuleDefinitionId, NestedVarId, Param, Params, Sema,
     SourceFileId, TraitDefinitionId,
 };
 use crate::ty::TraitType;
 use crate::typeck::{
-    check_expr_break_and_continue, check_expr_call, check_expr_for, check_expr_if,
-    check_expr_match, check_expr_return, check_expr_while, check_lit_char, check_lit_float,
-    check_lit_int, check_lit_str, check_pattern, check_stmt, find_method, is_simple_enum,
-    TypeCheck,
+    arg_allows, check_args_compatible, check_expr_break_and_continue, check_expr_call,
+    check_expr_for, check_expr_if, check_expr_match, check_expr_return, check_expr_while,
+    check_lit_char, check_lit_float, check_lit_int, check_lit_str, check_pattern, check_stmt,
+    create_call_arguments, find_method, is_simple_enum, TypeCheck,
 };
 use crate::typeparamck::{self, ErrorReporting};
 use crate::{replace_type, ty::error as ty_error, SourceType, SourceTypeArray, SymbolKind};
@@ -274,16 +274,15 @@ fn check_expr_assign_call(ck: &mut TypeCheck, e: &ast::ExprBinType) {
     let call = e.lhs.to_call().unwrap();
     let expr_type = check_expr(ck, &call.callee, SourceType::Any);
 
-    let mut arg_types: Vec<SourceType> = call
-        .args
-        .iter()
-        .map(|arg| check_expr(ck, &arg.expr, SourceType::Any))
-        .collect();
+    let args = create_call_arguments(ck, call);
 
     let value_type = check_expr(ck, &e.rhs, SourceType::Any);
+    ck.analysis.set_ty(e.rhs.id(), value_type.clone());
 
     let name = ck.sa.interner.intern("set");
-    arg_types.push(value_type);
+
+    let mut arg_types = args.assume_all_positional(ck);
+    arg_types.push(value_type.clone());
 
     let trait_id = ck.sa.known.traits.index_set();
     let trait_ty = TraitType::from_trait_id(trait_id);
@@ -301,16 +300,40 @@ fn check_expr_assign_call(ck: &mut TypeCheck, e: &ast::ExprBinType) {
         let trait_method_id = trait_
             .get_method(trait_method_name, false)
             .expect("missing method");
+        let item_name = ck.sa.interner.intern("Item");
+        let trait_item_type_alias_id = trait_.alias_names().get(&item_name).expect("missing Item");
         let method_id = ck
             .sa
             .impl_(impl_match.id)
             .get_method_for_trait_method_id(trait_method_id)
             .expect("method not found");
 
+        let impl_ = ck.sa.impl_(impl_match.id);
+        let impl_item_type_alias_id = impl_
+            .trait_alias_map()
+            .get(&trait_item_type_alias_id)
+            .cloned()
+            .expect("missing alias");
+        let impl_item_type_alias = ck.sa.alias(impl_item_type_alias_id);
+
         let call_type = CallType::Method(expr_type.clone(), method_id, SourceTypeArray::empty());
         ck.analysis
             .map_calls
             .insert_or_replace(e.id, Arc::new(call_type));
+
+        let method = ck.sa.fct(method_id);
+        let index_param = &method.params.params[1..2];
+        check_args_compatible(ck, index_param, None, args, &SourceTypeArray::empty(), None);
+
+        if !arg_allows(ck.sa, impl_item_type_alias.ty(), value_type.clone(), None) {
+            let exp = ck.ty_name(&impl_item_type_alias.ty());
+            let got = ck.ty_name(&value_type);
+            ck.sa.report(
+                ck.file_id,
+                e.rhs.span(),
+                ErrorMessage::WrongTypeForArgument(exp, got),
+            );
+        }
     } else if let Some(descriptor) = find_method(
         ck,
         e.span,
@@ -324,6 +347,13 @@ fn check_expr_assign_call(ck: &mut TypeCheck, e: &ast::ExprBinType) {
         ck.analysis
             .map_calls
             .insert_or_replace(e.id, Arc::new(call_type));
+    } else {
+        let ty = ck.ty_name(&expr_type);
+        ck.sa.report(
+            ck.file_id,
+            call.callee.span(),
+            ErrorMessage::IndexSetNotImplemented(ty),
+        );
     }
 }
 
@@ -1555,7 +1585,7 @@ fn check_expr_lambda(
         ParsedModifierList::default(),
         name,
         ck.type_param_definition.clone(),
-        lambda_params,
+        Params::new(lambda_params, true, false),
         FctParent::Function,
     );
     lambda.parsed_return_type().set_ty(lambda_return_type);

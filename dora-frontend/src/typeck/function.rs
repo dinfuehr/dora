@@ -433,7 +433,7 @@ pub(super) fn args_compatible_fct(
     self_ty: Option<SourceType>,
 ) -> bool {
     let arg_types = callee.params_without_self();
-    let variadic_arguments = callee.is_variadic.get();
+    let variadic_arguments = callee.params.is_variadic();
     args_compatible(
         sa,
         &arg_types.iter().map(|p| p.ty()).collect::<Vec<_>>(),
@@ -444,24 +444,97 @@ pub(super) fn args_compatible_fct(
     )
 }
 
-#[allow(unused)]
-pub(super) fn args_compatible_fct2(
+pub(super) fn check_args_compatible_fct(
     ck: &TypeCheck,
     callee: &FctDefinition,
     args: CallArguments,
     type_params: &SourceTypeArray,
     self_ty: Option<SourceType>,
-) -> bool {
-    let arg_types = callee.params_without_self();
-    let variadic_arguments = callee.is_variadic.get();
-    args_compatible2(
+) {
+    check_args_compatible(
         ck,
-        arg_types,
-        variadic_arguments,
-        &args,
+        callee.params.regular_params(),
+        callee.params.variadic_param(),
+        args,
         type_params,
         self_ty,
-    )
+    );
+}
+
+pub(super) fn check_args_compatible(
+    ck: &TypeCheck,
+    regular_params: &[Param],
+    variadic_param: Option<&Param>,
+    args: CallArguments,
+    type_params: &SourceTypeArray,
+    self_ty: Option<SourceType>,
+) {
+    for arg in &args.arguments {
+        if let Some(ref name) = arg.name {
+            ck.sa
+                .report(ck.file_id, name.span, ErrorMessage::UnexpectedNamedArgument);
+        }
+    }
+
+    for (param, arg) in regular_params.iter().zip(&args.arguments) {
+        let param_ty = replace_type(
+            ck.sa,
+            param.ty().clone(),
+            Some(&type_params),
+            self_ty.clone(),
+        );
+        let arg_ty = ck.analysis.ty(arg.id);
+
+        if !arg_allows(ck.sa, param_ty.clone(), arg_ty.clone(), self_ty.clone()) {
+            let exp = ck.ty_name(&param_ty);
+            let got = ck.ty_name(&arg_ty);
+
+            ck.sa.report(
+                ck.file_id,
+                arg.expr.span(),
+                ErrorMessage::WrongTypeForArgument(exp, got),
+            );
+        }
+    }
+
+    let no_regular_params = regular_params.len();
+
+    if args.arguments.len() < no_regular_params {
+        ck.sa.report(
+            ck.file_id,
+            args.span,
+            ErrorMessage::MissingArguments(no_regular_params, args.arguments.len()),
+        );
+    } else {
+        if let Some(variadic_param) = variadic_param {
+            let variadic_ty = replace_type(
+                ck.sa,
+                variadic_param.ty(),
+                Some(&type_params),
+                self_ty.clone(),
+            );
+
+            for arg in &args.arguments[no_regular_params..] {
+                let arg_ty = ck.analysis.ty(arg.id);
+
+                if !arg_allows(ck.sa, variadic_ty.clone(), arg_ty.clone(), self_ty.clone()) {
+                    let exp = ck.ty_name(&variadic_ty);
+                    let got = ck.ty_name(&arg_ty);
+
+                    ck.sa.report(
+                        ck.file_id,
+                        arg.expr.span(),
+                        ErrorMessage::WrongTypeForArgument(exp, got),
+                    );
+                }
+            }
+        } else {
+            for arg in &args.arguments[no_regular_params..] {
+                ck.sa
+                    .report(ck.file_id, arg.span, ErrorMessage::SuperfluousArgument);
+            }
+        }
+    }
 }
 
 pub(super) fn args_compatible(
@@ -513,67 +586,12 @@ pub(super) fn args_compatible(
     true
 }
 
-pub(super) fn args_compatible2(
-    ck: &TypeCheck,
-    fct_params: &[Param],
-    is_variadic: bool,
-    args: &CallArguments,
-    type_params: &SourceTypeArray,
+pub(super) fn arg_allows(
+    sa: &Sema,
+    def: SourceType,
+    arg: SourceType,
     self_ty: Option<SourceType>,
 ) -> bool {
-    let right_number_of_arguments = if is_variadic {
-        fct_params.len() - 1 <= args.len()
-    } else {
-        fct_params.len() == args.len()
-    };
-
-    if !right_number_of_arguments {
-        return false;
-    }
-
-    let (fixed_params, variadic_param): (&[Param], Option<&Param>) = if is_variadic {
-        (&fct_params[0..fct_params.len() - 1], fct_params.last())
-    } else {
-        (&fct_params, None)
-    };
-
-    for (ind, param) in fixed_params.iter().enumerate() {
-        let param_ty = replace_type(
-            ck.sa,
-            param.ty().clone(),
-            Some(&type_params),
-            self_ty.clone(),
-        );
-        let arg = &args.arguments[ind];
-        let arg_ty = ck.analysis.ty(arg.id);
-
-        if !arg_allows(ck.sa, param_ty, arg_ty, self_ty.clone()) {
-            return false;
-        }
-    }
-
-    if let Some(variadic_param) = variadic_param {
-        let ind = fixed_params.len();
-        let variadic_ty = replace_type(
-            ck.sa,
-            variadic_param.ty(),
-            Some(&type_params),
-            self_ty.clone(),
-        );
-
-        for arg in &args.arguments[ind..] {
-            let arg_ty = ck.analysis.ty(arg.id);
-
-            if !arg_allows(ck.sa, variadic_ty.clone(), arg_ty, self_ty.clone()) {
-                return false;
-            }
-        }
-    }
-
-    true
-}
-
-fn arg_allows(sa: &Sema, def: SourceType, arg: SourceType, self_ty: Option<SourceType>) -> bool {
     match def {
         SourceType::Error => true,
         SourceType::Any => unreachable!(),

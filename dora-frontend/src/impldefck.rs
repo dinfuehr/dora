@@ -103,7 +103,7 @@ pub fn check_definition_against_trait(sa: &mut Sema) {
                 let self_ty = Some(impl_.extended_ty());
                 let params = trait_method.params.clone();
 
-                for param in &params {
+                for param in &params.params {
                     param.set_ty(replace_type(sa, param.ty(), None, self_ty.clone()));
                 }
 

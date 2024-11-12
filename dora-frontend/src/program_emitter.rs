@@ -197,7 +197,7 @@ fn create_functions(sa: &Sema, e: &mut Emitter) -> Vec<FunctionData> {
             is_internal: fct.is_internal,
             is_test: fct.is_test,
             is_optimize_immediately: fct.is_optimize_immediately,
-            is_variadic: fct.is_variadic.get(),
+            is_variadic: fct.params.is_variadic(),
             is_force_inline: fct.is_force_inline,
             is_never_inline: fct.is_never_inline,
             bytecode: fct.bytecode.get().cloned(),
