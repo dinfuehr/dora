@@ -2304,10 +2304,9 @@ impl<'a> AstBytecodeGen<'a> {
             match intrinsic {
                 Intrinsic::Assert => self.visit_expr_assert(expr, dest),
 
-                Intrinsic::ArrayGet => self.emit_intrinsic_bin(
+                Intrinsic::ArrayGet => self.emit_intrinsic_array_get(
                     &expr.callee,
                     &expr.args[0].expr,
-                    info,
                     self.loc(expr.span),
                     dest,
                 ),
@@ -2405,6 +2404,36 @@ impl<'a> AstBytecodeGen<'a> {
         dest
     }
 
+    fn emit_intrinsic_array_get(
+        &mut self,
+        obj: &ast::ExprData,
+        idx: &ast::ExprData,
+        location: Location,
+        dest: DataDest,
+    ) -> Register {
+        let ty = self.ty(obj.id());
+        let ty: BytecodeType = if ty.cls_id() == Some(self.sa.known.classes.string()) {
+            BytecodeType::UInt8
+        } else {
+            let ty = ty.type_params();
+            let ty = ty[0].clone();
+
+            register_bty_from_ty(ty)
+        };
+
+        let dest = self.ensure_register(dest, ty.clone());
+
+        let arr = gen_expr(self, obj, DataDest::Alloc);
+        let idx = gen_expr(self, idx, DataDest::Alloc);
+
+        self.builder.emit_load_array(dest, arr, idx, location);
+
+        self.free_if_temp(arr);
+        self.free_if_temp(idx);
+
+        dest
+    }
+
     fn emit_intrinsic_array_set(
         &mut self,
         arr: &ast::ExprData,
@@ -2476,27 +2505,7 @@ impl<'a> AstBytecodeGen<'a> {
 
         match intrinsic {
             Intrinsic::ArrayGet | Intrinsic::StrGet => {
-                let ty = self.ty(lhs.id());
-                let ty: BytecodeType = if ty.cls_id() == Some(self.sa.known.classes.string()) {
-                    BytecodeType::UInt8
-                } else {
-                    let ty = ty.type_params();
-                    let ty = ty[0].clone();
-
-                    register_bty_from_ty(ty)
-                };
-
-                let dest = self.ensure_register(dest, ty.clone());
-
-                let arr = gen_expr(self, lhs, DataDest::Alloc);
-                let idx = gen_expr(self, rhs, DataDest::Alloc);
-
-                self.builder.emit_load_array(dest, arr, idx, location);
-
-                self.free_if_temp(arr);
-                self.free_if_temp(idx);
-
-                return dest;
+                return self.emit_intrinsic_array_get(lhs, rhs, location, dest);
             }
 
             _ => {}
