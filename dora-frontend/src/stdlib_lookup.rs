@@ -16,46 +16,39 @@ pub fn lookup_known_fundamental_types(sa: &mut Sema) {
 
     sa.known.structs.bool = Some(internal_struct(
         sa,
-        stdlib_id,
-        "primitives::Bool",
+        "std::primitives::Bool",
         Some(SourceType::Bool),
     ));
 
     sa.known.structs.uint8 = Some(internal_struct(
         sa,
-        stdlib_id,
-        "primitives::UInt8",
+        "std::primitives::UInt8",
         Some(SourceType::UInt8),
     ));
     sa.known.structs.char = Some(internal_struct(
         sa,
-        stdlib_id,
-        "primitives::Char",
+        "std::primitives::Char",
         Some(SourceType::Char),
     ));
     sa.known.structs.int32 = Some(internal_struct(
         sa,
-        stdlib_id,
-        "primitives::Int32",
+        "std::primitives::Int32",
         Some(SourceType::Int32),
     ));
     sa.known.structs.int64 = Some(internal_struct(
         sa,
-        stdlib_id,
-        "primitives::Int64",
+        "std::primitives::Int64",
         Some(SourceType::Int64),
     ));
 
     sa.known.structs.float32 = Some(internal_struct(
         sa,
-        stdlib_id,
-        "primitives::Float32",
+        "std::primitives::Float32",
         Some(SourceType::Float32),
     ));
     sa.known.structs.float64 = Some(internal_struct(
         sa,
-        stdlib_id,
-        "primitives::Float64",
+        "std::primitives::Float64",
         Some(SourceType::Float64),
     ));
 
@@ -131,7 +124,7 @@ pub fn setup_prelude(sa: &mut Sema) {
     let mut prelude_table = SymTable::new();
 
     for name in &symbols {
-        let sym = resolve_name(sa, name, stdlib_id);
+        let sym = resolve_name(sa, name, Some(stdlib_id));
         let name = final_path_name(sa, name);
         let old_sym = prelude_table.insert(name, sym);
         assert!(old_sym.is_none());
@@ -139,7 +132,7 @@ pub fn setup_prelude(sa: &mut Sema) {
 
     {
         // include None and Some from Option
-        let enum_id = resolve_name(sa, "primitives::Option", stdlib_id)
+        let enum_id = resolve_name(sa, "primitives::Option", Some(stdlib_id))
             .to_enum()
             .expect("enum expected");
 
@@ -154,7 +147,7 @@ pub fn setup_prelude(sa: &mut Sema) {
 
     {
         // include Ok and Err from Result
-        let enum_id = resolve_name(sa, "primitives::Result", stdlib_id)
+        let enum_id = resolve_name(sa, "primitives::Result", Some(stdlib_id))
             .to_enum()
             .expect("enum expected");
 
@@ -222,7 +215,7 @@ pub fn create_lambda_class(sa: &mut Sema) {
 }
 
 fn find_class(sa: &Sema, module_id: ModuleDefinitionId, name: &str) -> ClassDefinitionId {
-    resolve_name(sa, name, module_id)
+    resolve_name(sa, name, Some(module_id))
         .to_class()
         .expect("class expected")
 }
@@ -237,13 +230,8 @@ fn internal_class(sa: &mut Sema, module_id: ModuleDefinitionId, name: &str) -> C
     cls_id
 }
 
-fn internal_struct(
-    sa: &mut Sema,
-    module_id: ModuleDefinitionId,
-    name: &str,
-    ty: Option<SourceType>,
-) -> StructDefinitionId {
-    let struct_id = resolve_name(sa, name, module_id)
+fn internal_struct(sa: &mut Sema, name: &str, ty: Option<SourceType>) -> StructDefinitionId {
+    let struct_id = resolve_name(sa, name, None)
         .to_struct()
         .expect("struct expected");
 
@@ -255,35 +243,47 @@ fn internal_struct(
     struct_id
 }
 
-pub fn resolve_name(sa: &Sema, name: &str, module_id: ModuleDefinitionId) -> SymbolKind {
-    let path = name.split("::");
-    let mut sym = SymbolKind::Module(module_id);
+pub fn resolve_name(sa: &Sema, name: &str, module_id: Option<ModuleDefinitionId>) -> SymbolKind {
+    let mut path = name.split("::");
 
-    for name in path {
+    let module_lookup = |sym: SymbolKind, name| {
         let module_id = sym.to_module().expect("module expected");
         let table = sa.module(module_id).table();
 
         let interned_name = sa.interner.intern(name);
 
         if let Some(current_sym) = table.get(interned_name) {
-            sym = current_sym;
+            current_sym
         } else {
             let module = sa.module(module_id);
             panic!("{} not found in module {}.", name, module.name(sa));
         }
+    };
+
+    let package_name = path.next().expect("missing package");
+    let mut sym = if let Some(package_id) = sa.package_names.get(package_name) {
+        let package = &sa.packages[*package_id];
+        SymbolKind::Module(package.top_level_module_id())
+    } else {
+        let sym = SymbolKind::Module(module_id.expect("missing module"));
+        module_lookup(sym, package_name)
+    };
+
+    for name in path {
+        sym = module_lookup(sym, name);
     }
 
     sym
 }
 
 fn find_trait(sa: &Sema, module_id: ModuleDefinitionId, name: &str) -> TraitDefinitionId {
-    resolve_name(sa, name, module_id)
+    resolve_name(sa, name, Some(module_id))
         .to_trait()
         .expect("trait expected")
 }
 
 fn find_enum(sa: &Sema, module_id: ModuleDefinitionId, name: &str) -> EnumDefinitionId {
-    resolve_name(sa, name, module_id)
+    resolve_name(sa, name, Some(module_id))
         .to_enum()
         .expect("enum not found")
 }
@@ -948,16 +948,16 @@ pub fn lookup_fct(sa: &Sema, path: &str) -> FctDefinitionId {
             let trait_path = parts[0];
             let extended_ty_path = parts[1];
 
-            let trait_id = resolve_name(sa, trait_path, module_id)
+            let trait_id = resolve_name(sa, trait_path, Some(module_id))
                 .to_trait()
                 .expect("trait expected");
-            let extended_ty = resolve_name(sa, extended_ty_path, module_id);
+            let extended_ty = resolve_name(sa, extended_ty_path, Some(module_id));
             let impl_id = lookup_impl_for_item(sa, trait_id, extended_ty).expect("impl not found");
 
             lookup_fct_by_impl_id_and_name(sa, impl_id, method_name)
                 .expect("method in impl not found")
         } else {
-            let extended_ty = resolve_name(sa, path, module_id);
+            let extended_ty = resolve_name(sa, path, Some(module_id));
             let extension_id =
                 lookup_extension_for_item(sa, extended_ty).expect("extension not found");
 
@@ -965,7 +965,7 @@ pub fn lookup_fct(sa: &Sema, path: &str) -> FctDefinitionId {
                 .expect("method in impl not found")
         }
     } else {
-        resolve_name(sa, path, module_id)
+        resolve_name(sa, path, Some(module_id))
             .to_fct()
             .expect("function expected")
     }
