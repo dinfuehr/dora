@@ -38,7 +38,7 @@ fn position(code: &'static str) -> Vec<(u32, u32)> {
     })
 }
 
-fn setup(code: &'static str) -> Sema {
+fn sema(code: &'static str) -> Sema {
     let args: SemaFlags = SemaFlags::for_test(code);
     let mut sa = Sema::new(args);
 
@@ -48,10 +48,12 @@ fn setup(code: &'static str) -> Sema {
     sa
 }
 
-fn bc(sa: &Sema, path: &str) -> Vec<Bytecode> {
+fn bc(sa: &Sema, path: &str) -> (BytecodeFunction, Vec<Bytecode>) {
     let fct_id = lookup_fct(sa, path);
-    let fct = generate_fct_id(sa, fct_id);
-    build(&fct)
+    let bc_fct = generate_fct_id(sa, fct_id);
+    let code = build(&bc_fct);
+
+    (bc_fct, code)
 }
 
 fn gen_fct<F>(code: &'static str, testfct: F)
@@ -69,51 +71,52 @@ where
 
 #[test]
 fn gen_generic_identity() {
-    let result = code("fn f[T](x: T): T { x }");
+    let sa = sema("fn f[T](x: T): T { x }");
+    let (_, code) = bc(&sa, "<prog>::f");
     let expected = vec![Ret(r(0))];
-    assert_eq!(expected, result);
+    assert_eq!(expected, code);
 
-    let result = code("fn f[T](x: T): T { let y = x; y }");
+    let sa = sema("fn f[T](x: T): T { let y = x; y }");
+    let (_, code) = bc(&sa, "<prog>::f");
     let expected = vec![Mov(r(1), r(0)), Ret(r(1))];
-    assert_eq!(expected, result);
+    assert_eq!(expected, code);
 }
 
 #[test]
 fn gen_generic_static_trait() {
-    let result = code("trait Foo { static fn baz(); } fn f[T: Foo]() { T::baz() }");
+    let sa = sema("trait Foo { static fn baz(); } fn f[T: Foo]() { T::baz() }");
+    let (_, code) = bc(&sa, "<prog>::f");
     let expected = vec![InvokeGenericStatic(r(0), ConstPoolIdx(0)), Ret(r(0))];
-    assert_eq!(expected, result);
+    assert_eq!(expected, code);
 }
 
 #[test]
 fn gen_generic_direct_trait() {
-    let result = code("trait Foo { fn baz(); } fn f[T: Foo](obj: T) { obj.baz() }");
+    let sa = sema("trait Foo { fn baz(); } fn f[T: Foo](obj: T) { obj.baz() }");
+    let (_, code) = bc(&sa, "<prog>::f");
     let expected = vec![
         PushRegister(r(0)),
         InvokeGenericDirect(r(1), ConstPoolIdx(0)),
         Ret(r(1)),
     ];
-    assert_eq!(expected, result);
+    assert_eq!(expected, code);
 }
 
 #[test]
 fn gen_load_field_uint8() {
-    gen_fct(
-        "class Foo { bar: UInt8 } fn f(a: Foo): UInt8 { return a.bar; }",
-        |sa, code, fct| {
-            let (cls, field) = field_by_name(sa, "Foo", "bar");
-            let expected = vec![LoadField(r(1), r(0), ConstPoolIdx(0)), Ret(r(1))];
-            assert_eq!(expected, code);
+    let sa = sema("class Foo { bar: UInt8 } fn f(a: Foo): UInt8 { return a.bar; }");
+    let (fct, code) = bc(&sa, "<prog>::f");
+    let (cls, field) = field_by_name(&sa, "Foo", "bar");
+    let expected = vec![LoadField(r(1), r(0), ConstPoolIdx(0)), Ret(r(1))];
+    assert_eq!(expected, code);
 
-            assert_eq!(
-                fct.const_pool(ConstPoolIdx(0)),
-                &ConstPoolEntry::Field(
-                    ClassId(cls.index().try_into().expect("overflow")),
-                    BytecodeTypeArray::empty(),
-                    field.0 as u32
-                )
-            );
-        },
+    assert_eq!(
+        fct.const_pool(ConstPoolIdx(0)),
+        &ConstPoolEntry::Field(
+            ClassId(cls.index().try_into().expect("overflow")),
+            BytecodeTypeArray::empty(),
+            field.0 as u32
+        )
     );
 }
 
@@ -126,21 +129,18 @@ fn gen_position_load_field_uint8() {
 
 #[test]
 fn gen_store_field_uint8() {
-    gen_fct(
-        "class Foo{bar: UInt8} fn f(a: Foo, b: UInt8) { a.bar = b; }",
-        |sa, code, fct| {
-            let (cls, field) = field_by_name(sa, "Foo", "bar");
-            let expected = vec![StoreField(r(1), r(0), ConstPoolIdx(0)), Ret(r(2))];
-            assert_eq!(expected, code);
-            assert_eq!(
-                fct.const_pool(ConstPoolIdx(0)),
-                &ConstPoolEntry::Field(
-                    ClassId(cls.index().try_into().expect("overflow")),
-                    BytecodeTypeArray::empty(),
-                    field.0 as u32
-                )
-            );
-        },
+    let sa = sema("class Foo{bar: UInt8} fn f(a: Foo, b: UInt8) { a.bar = b; }");
+    let (fct, code) = bc(&sa, "<prog>::f");
+    let (cls, field) = field_by_name(&sa, "Foo", "bar");
+    let expected = vec![StoreField(r(1), r(0), ConstPoolIdx(0)), Ret(r(2))];
+    assert_eq!(expected, code);
+    assert_eq!(
+        fct.const_pool(ConstPoolIdx(0)),
+        &ConstPoolEntry::Field(
+            ClassId(cls.index().try_into().expect("overflow")),
+            BytecodeTypeArray::empty(),
+            field.0 as u32
+        )
     );
 }
 
@@ -153,82 +153,92 @@ fn gen_position_store_field_uint8() {
 
 #[test]
 fn gen_add_int() {
-    let result = code("fn f(): Int32 { return 1i32 + 2i32; }");
+    let sa = sema("fn f(): Int32 { return 1i32 + 2i32; }");
+    let (_, code) = bc(&sa, "<prog>::f");
     let expected = vec![
         ConstInt32(r(1), 1),
         ConstInt32(r(2), 2),
         Add(r(0), r(1), r(2)),
         Ret(r(0)),
     ];
-    assert_eq!(expected, result);
+    assert_eq!(expected, code);
 }
 
 #[test]
 fn gen_add_float32() {
-    let result = code("fn f(): Float32 { return 1f32 + 2f32; }");
+    let sa = sema("fn f(): Float32 { return 1f32 + 2f32; }");
+    let (_, code) = bc(&sa, "<prog>::f");
     let expected = vec![
         ConstFloat32(r(1), 1_f32),
         ConstFloat32(r(2), 2_f32),
         Add(r(0), r(1), r(2)),
         Ret(r(0)),
     ];
-    assert_eq!(expected, result);
+    assert_eq!(expected, code);
 }
 
 #[test]
 fn gen_add_float64() {
-    let result = code("fn f(a: Float64, b: Float64): Float64 { return a + b; }");
+    let sa = sema("fn f(a: Float64, b: Float64): Float64 { return a + b; }");
+    let (_, code) = bc(&sa, "<prog>::f");
     let expected = vec![Add(r(2), r(0), r(1)), Ret(r(2))];
-    assert_eq!(expected, result);
+    assert_eq!(expected, code);
 }
 
 #[test]
 fn gen_id_int() {
-    let result = code("fn f(a: Int32): Int32 { return a; }");
+    let sa = sema("fn f(a: Int32): Int32 { return a; }");
+    let (_, code) = bc(&sa, "<prog>::f");
     let expected = vec![Ret(r(0))];
-    assert_eq!(expected, result);
+    assert_eq!(expected, code);
 }
 
 #[test]
 fn gen_id_ptr() {
-    let result = code("class Object fn f(a: Object): Object { return a; }");
+    let sa = sema("class Object fn f(a: Object): Object { return a; }");
+    let (_, code) = bc(&sa, "<prog>::f");
     let expected = vec![Ret(r(0))];
-    assert_eq!(expected, result);
+    assert_eq!(expected, code);
 }
 
 #[test]
 fn gen_ptr_is() {
-    let result = code("class Object fn f(a: Object, b: Object): Bool { return a === b; }");
+    let sa = sema("class Object fn f(a: Object, b: Object): Bool { return a === b; }");
+    let (_, code) = bc(&sa, "<prog>::f");
     let expected = vec![TestIdentity(r(2), r(0), r(1)), Ret(r(2))];
-    assert_eq!(expected, result);
+    assert_eq!(expected, code);
 }
 
 #[test]
 fn gen_ptr_is_not() {
-    let result = code("class Object fn f(a: Object, b: Object): Bool { return a !== b; }");
+    let sa = sema("class Object fn f(a: Object, b: Object): Bool { return a !== b; }");
+    let (_, code) = bc(&sa, "<prog>::f");
     let expected = vec![TestIdentity(r(2), r(0), r(1)), Not(r(2), r(2)), Ret(r(2))];
-    assert_eq!(expected, result);
+    assert_eq!(expected, code);
 }
 
 #[test]
 fn gen_sub_int() {
-    let result = code("fn f(a: Int32, b: Int32): Int32 { return a - b; }");
+    let sa = sema("fn f(a: Int32, b: Int32): Int32 { return a - b; }");
+    let (_, code) = bc(&sa, "<prog>::f");
     let expected = vec![Sub(r(2), r(0), r(1)), Ret(r(2))];
-    assert_eq!(expected, result);
+    assert_eq!(expected, code);
 }
 
 #[test]
 fn gen_sub_float32() {
-    let result = code("fn f(a: Float32, b: Float32): Float32 { return a - b; }");
+    let sa = sema("fn f(a: Float32, b: Float32): Float32 { return a - b; }");
+    let (_, code) = bc(&sa, "<prog>::f");
     let expected = vec![Sub(r(2), r(0), r(1)), Ret(r(2))];
-    assert_eq!(expected, result);
+    assert_eq!(expected, code);
 }
 
 #[test]
 fn gen_sub_float64() {
-    let result = code("fn f(a: Float64, b: Float64): Float64 { return a - b; }");
+    let sa = sema("fn f(a: Float64, b: Float64): Float64 { return a - b; }");
+    let (_, code) = bc(&sa, "<prog>::f");
     let expected = vec![Sub(r(2), r(0), r(1)), Ret(r(2))];
-    assert_eq!(expected, result);
+    assert_eq!(expected, code);
 }
 
 #[test]
@@ -1059,16 +1069,16 @@ fn gen_expr_assign() {
 
 #[test]
 fn gen_expr_self() {
-    let sa = setup("class Foo impl Foo { fn f(): Foo { return self; } }");
-    let result = bc(&sa, "<prog>::Foo#f");
+    let sa = sema("class Foo impl Foo { fn f(): Foo { return self; } }");
+    let (_, result) = bc(&sa, "<prog>::Foo#f");
     let expected = vec![Ret(r(0))];
     assert_eq!(expected, result);
 }
 
 #[test]
 fn gen_expr_self_assign() {
-    let sa = setup("class Foo impl Foo { fn f() { let x = self; } }");
-    let result = bc(&sa, "<prog>::Foo#f");
+    let sa = sema("class Foo impl Foo { fn f() { let x = self; } }");
+    let (_, result) = bc(&sa, "<prog>::Foo#f");
     let expected = vec![Mov(r(1), r(0)), Ret(r(2))];
     assert_eq!(expected, result);
 }
@@ -1089,8 +1099,8 @@ fn gen_expr_returnvoid() {
 
 #[test]
 fn gen_load_global() {
-    let sa = setup("let a: Int32 = 0i32; fn f(): Int32 { return a; }");
-    let code = bc(&sa, "<prog>::f");
+    let sa = sema("let a: Int32 = 0i32; fn f(): Int32 { return a; }");
+    let (_, code) = bc(&sa, "<prog>::f");
     let gid = global_by_name(&sa, "a");
     let expected = vec![
         LoadGlobal(r(0), GlobalId(gid.index().try_into().expect("overflow"))),
@@ -1101,8 +1111,8 @@ fn gen_load_global() {
 
 #[test]
 fn gen_store_global() {
-    let sa = setup("let mut a: Bool = false; fn f(x: Bool) { a = x; }");
-    let code = bc(&sa, "<prog>::f");
+    let sa = sema("let mut a: Bool = false; fn f(x: Bool) { a = x; }");
+    let (_, code) = bc(&sa, "<prog>::f");
     let gid = global_by_name(&sa, "a");
     let expected = vec![
         StoreGlobal(r(0), GlobalId(gid.index().try_into().expect("overflow"))),
@@ -3062,168 +3072,168 @@ fn gen_position_new_object_with_multiple_args() {
 
 #[test]
 fn gen_self_for_bool() {
-    let sa = setup(
+    let sa = sema(
         "trait MyId { fn f(): Self; }
             impl MyId for Bool { fn f(): Bool { return self; } }
             ",
     );
-    let result = bc(&sa, "<prog>::MyId for std::primitives::Bool#f");
+    let (_, result) = bc(&sa, "<prog>::MyId for std::primitives::Bool#f");
     let expected = vec![Ret(r(0))];
     assert_eq!(expected, result);
 }
 
 #[test]
 fn gen_self_for_uint8() {
-    let sa = setup(
+    let sa = sema(
         "trait MyId { fn f(): Self; }
             impl MyId for UInt8 { fn f(): UInt8 { return self; } }
             ",
     );
-    let result = bc(&sa, "<prog>::MyId for std::primitives::UInt8#f");
+    let (_, result) = bc(&sa, "<prog>::MyId for std::primitives::UInt8#f");
     let expected = vec![Ret(r(0))];
     assert_eq!(expected, result);
 }
 
 #[test]
 fn gen_self_for_int32() {
-    let sa = setup(
+    let sa = sema(
         "trait MyId { fn f(): Self; }
             impl MyId for Int32 { fn f(): Int32 { return self; } }
             ",
     );
-    let result = bc(&sa, "<prog>::MyId for std::primitives::Int32#f");
+    let (_, result) = bc(&sa, "<prog>::MyId for std::primitives::Int32#f");
     let expected = vec![Ret(r(0))];
     assert_eq!(expected, result);
 }
 
 #[test]
 fn gen_self_for_int64() {
-    let sa = setup(
+    let sa = sema(
         "trait MyId { fn f(): Self; }
             impl MyId for Int64 { fn f(): Int64 { return self; } }
             ",
     );
-    let result = bc(&sa, "<prog>::MyId for std::primitives::Int64#f");
+    let (_, result) = bc(&sa, "<prog>::MyId for std::primitives::Int64#f");
     let expected = vec![Ret(r(0))];
     assert_eq!(expected, result);
 }
 
 #[test]
 fn gen_self_for_float32() {
-    let sa = setup(
+    let sa = sema(
         "trait MyId { fn f(): Self; }
             impl MyId for Float32 { fn f(): Float32 { return self; } }
             ",
     );
-    let result = bc(&sa, "<prog>::MyId for std::primitives::Float32#f");
+    let (_, result) = bc(&sa, "<prog>::MyId for std::primitives::Float32#f");
     let expected = vec![Ret(r(0))];
     assert_eq!(expected, result);
 }
 
 #[test]
 fn gen_self_for_float64() {
-    let sa = setup(
+    let sa = sema(
         "trait MyId { fn f(): Self; }
             impl MyId for Float64 { fn f(): Float64 { return self; } }
             ",
     );
-    let result = bc(&sa, "<prog>::MyId for std::primitives::Float64#f");
+    let (_, result) = bc(&sa, "<prog>::MyId for std::primitives::Float64#f");
     let expected = vec![Ret(r(0))];
     assert_eq!(expected, result);
 }
 
 #[test]
 fn gen_self_for_string() {
-    let sa = setup(
+    let sa = sema(
         "trait MyId { fn f(): Self; }
             impl MyId for String { fn f(): String { return self; } }
             ",
     );
-    let result = bc(&sa, "<prog>::MyId for std::string::String#f");
+    let (_, result) = bc(&sa, "<prog>::MyId for std::string::String#f");
     let expected = vec![Ret(r(0))];
     assert_eq!(expected, result);
 }
 
 #[test]
 fn gen_self_assign_for_bool() {
-    let sa = setup(
+    let sa = sema(
         "trait MyId { fn f(); }
             impl MyId for Bool { fn f() { let x = self; } }
             ",
     );
-    let result = bc(&sa, "<prog>::MyId for std::primitives::Bool#f");
+    let (_, result) = bc(&sa, "<prog>::MyId for std::primitives::Bool#f");
     let expected = vec![Mov(r(1), r(0)), Ret(r(2))];
     assert_eq!(expected, result);
 }
 
 #[test]
 fn gen_self_assign_for_uint8() {
-    let sa = setup(
+    let sa = sema(
         "trait MyId { fn f(); }
             impl MyId for UInt8 { fn f() { let x = self; } }
             ",
     );
-    let result = bc(&sa, "<prog>::MyId for std::primitives::UInt8#f");
+    let (_, result) = bc(&sa, "<prog>::MyId for std::primitives::UInt8#f");
     let expected = vec![Mov(r(1), r(0)), Ret(r(2))];
     assert_eq!(expected, result);
 }
 
 #[test]
 fn gen_self_assign_for_int32() {
-    let sa = setup(
+    let sa = sema(
         "trait MyId { fn f(); }
             impl MyId for Int32 { fn f() { let x = self; } }
             ",
     );
-    let result = bc(&sa, "<prog>::MyId for std::primitives::Int32#f");
+    let (_, result) = bc(&sa, "<prog>::MyId for std::primitives::Int32#f");
     let expected = vec![Mov(r(1), r(0)), Ret(r(2))];
     assert_eq!(expected, result);
 }
 
 #[test]
 fn gen_self_assign_for_int64() {
-    let sa = setup(
+    let sa = sema(
         "trait MyId { fn f(); }
             impl MyId for Int64 { fn f() { let x = self; } }
             ",
     );
-    let result = bc(&sa, "<prog>::MyId for std::primitives::Int64#f");
+    let (_, result) = bc(&sa, "<prog>::MyId for std::primitives::Int64#f");
     let expected = vec![Mov(r(1), r(0)), Ret(r(2))];
     assert_eq!(expected, result);
 }
 
 #[test]
 fn gen_self_assign_for_float32() {
-    let sa = setup(
+    let sa = sema(
         "trait MyId { fn f(); }
             impl MyId for Float32 { fn f() { let x = self; } }
             ",
     );
-    let result = bc(&sa, "<prog>::MyId for std::primitives::Float32#f");
+    let (_, result) = bc(&sa, "<prog>::MyId for std::primitives::Float32#f");
     let expected = vec![Mov(r(1), r(0)), Ret(r(2))];
     assert_eq!(expected, result);
 }
 
 #[test]
 fn gen_self_assign_for_float64() {
-    let sa = setup(
+    let sa = sema(
         "trait MyId { fn f(); }
             impl MyId for Float64 { fn f() { let x = self; } }
             ",
     );
-    let result = bc(&sa, "<prog>::MyId for std::primitives::Float64#f");
+    let (_, result) = bc(&sa, "<prog>::MyId for std::primitives::Float64#f");
     let expected = vec![Mov(r(1), r(0)), Ret(r(2))];
     assert_eq!(expected, result);
 }
 
 #[test]
 fn gen_self_assign_for_string() {
-    let sa = setup(
+    let sa = sema(
         "trait MyId { fn f(); }
             impl MyId for String { fn f() { let x = self; } }
             ",
     );
-    let result = bc(&sa, "<prog>::MyId for std::string::String#f");
+    let (_, result) = bc(&sa, "<prog>::MyId for std::string::String#f");
     let expected = vec![Mov(r(1), r(0)), Ret(r(2))];
     assert_eq!(expected, result);
 }
@@ -4031,13 +4041,13 @@ fn gen_trait_object() {
 
 #[test]
 fn gen_trait_object_copy() {
-    let sa = setup(
+    let sa = sema(
         "
         trait Foo { fn bar(): Int32; }
         fn f(x: Foo): Foo { let y = x; y }
     ",
     );
-    let code = bc(&sa, "<prog>::f");
+    let (_, code) = bc(&sa, "<prog>::f");
     let expected = vec![Mov(r(1), r(0)), Ret(r(1))];
     assert_eq!(expected, code);
 }
