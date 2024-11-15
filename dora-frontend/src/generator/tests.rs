@@ -5,14 +5,14 @@ use self::Bytecode::*;
 use crate::generator::{bty_from_ty, generate_fct_id};
 use crate::sema::{create_tuple, find_impl, FctDefinitionId, Sema, TypeParamDefinition};
 use crate::sema::{
-    ClassDefinitionId, ConstDefinitionId, EnumDefinitionId, FieldId, GlobalDefinitionId,
+    ClassDefinitionId, ConstDefinitionId, EnumDefinitionId, FieldId, GlobalDefinitionId, SemaFlags,
     StructDefinitionId, TraitDefinitionId,
 };
 use crate::stdlib_lookup::lookup_fct;
 use crate::sym::ModuleSymTable;
 use crate::typeck::find_method_call_candidates;
+use crate::{check_program, SourceType, SourceTypeArray, TraitType};
 use crate::{empty_sta, test, ty};
-use crate::{SourceType, SourceTypeArray, TraitType};
 use dora_bytecode::{
     self as bytecode, BytecodeFunction, BytecodeOffset, BytecodeType, BytecodeTypeArray,
     BytecodeVisitor, ClassId, ConstPoolEntry, ConstPoolIdx, EnumId, FunctionId, GlobalId, Register,
@@ -58,6 +58,24 @@ fn code_method_with_struct_name(code: &'static str, struct_name: &'static str) -
         let fct = generate_fct_id(sa, fct_id);
         build(&fct)
     })
+}
+
+#[allow(unused)]
+fn setup(code: &'static str) -> Sema {
+    let args: SemaFlags = SemaFlags::for_test(code);
+    let mut sa = Sema::new(args);
+
+    let result = check_program(&mut sa);
+    assert!(result);
+
+    sa
+}
+
+#[allow(unused)]
+fn bc(sa: &Sema, path: &str) -> Vec<Bytecode> {
+    let fct_id = lookup_fct(sa, path);
+    let fct = generate_fct_id(sa, fct_id);
+    build(&fct)
 }
 
 fn gen<F>(code: &'static str, testfct: F)
