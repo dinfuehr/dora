@@ -259,7 +259,9 @@ pub fn resolve_path(sa: &Sema, name: &str) -> SymbolKind {
     };
 
     let package_name = path.next().expect("missing package");
-    let mut sym = if let Some(package_id) = sa.package_names.get(package_name) {
+    let mut sym = if package_name == "<prog>" {
+        SymbolKind::Module(sa.program_module_id())
+    } else if let Some(package_id) = sa.package_names.get(package_name) {
         let package = &sa.packages[*package_id];
         SymbolKind::Module(package.top_level_module_id())
     } else {

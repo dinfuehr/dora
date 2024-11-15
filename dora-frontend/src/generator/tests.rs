@@ -38,29 +38,6 @@ fn position(code: &'static str) -> Vec<(u32, u32)> {
     })
 }
 
-fn code_method(code: &'static str) -> Vec<Bytecode> {
-    code_method_with_class_name(code, "Foo")
-}
-
-fn code_method_with_class_name(code: &'static str, class_name: &'static str) -> Vec<Bytecode> {
-    test::check_valid(code, |sa| {
-        let fct_id = cls_method_by_name(sa, class_name, "f", false)
-            .unwrap_or_else(|| panic!("no function `f` in Class `{}`.", class_name));
-        let fct = generate_fct_id(sa, fct_id);
-        build(&fct)
-    })
-}
-
-fn code_method_with_struct_name(code: &'static str, struct_name: &'static str) -> Vec<Bytecode> {
-    test::check_valid(code, |sa| {
-        let fct_id = struct_method_by_name(sa, struct_name, "f", false)
-            .unwrap_or_else(|| panic!("no function `f` in Class `{}`.", struct_name));
-        let fct = generate_fct_id(sa, fct_id);
-        build(&fct)
-    })
-}
-
-#[allow(unused)]
 fn setup(code: &'static str) -> Sema {
     let args: SemaFlags = SemaFlags::for_test(code);
     let mut sa = Sema::new(args);
@@ -71,7 +48,6 @@ fn setup(code: &'static str) -> Sema {
     sa
 }
 
-#[allow(unused)]
 fn bc(sa: &Sema, path: &str) -> Vec<Bytecode> {
     let fct_id = lookup_fct(sa, path);
     let fct = generate_fct_id(sa, fct_id);
@@ -1096,14 +1072,16 @@ fn gen_expr_assign() {
 
 #[test]
 fn gen_expr_self() {
-    let result = code_method("class Foo impl Foo { fn f(): Foo { return self; } }");
+    let sa = setup("class Foo impl Foo { fn f(): Foo { return self; } }");
+    let result = bc(&sa, "<prog>::Foo#f");
     let expected = vec![Ret(r(0))];
     assert_eq!(expected, result);
 }
 
 #[test]
 fn gen_expr_self_assign() {
-    let result = code_method("class Foo impl Foo { fn f() { let x = self; } }");
+    let sa = setup("class Foo impl Foo { fn f() { let x = self; } }");
+    let result = bc(&sa, "<prog>::Foo#f");
     let expected = vec![Mov(r(1), r(0)), Ret(r(2))];
     assert_eq!(expected, result);
 }
@@ -3103,168 +3081,168 @@ fn gen_position_new_object_with_multiple_args() {
 
 #[test]
 fn gen_self_for_bool() {
-    let result = code_method_with_struct_name(
+    let sa = setup(
         "trait MyId { fn f(): Self; }
             impl MyId for Bool { fn f(): Bool { return self; } }
             ",
-        "Bool",
     );
+    let result = bc(&sa, "<prog>::MyId for std::primitives::Bool#f");
     let expected = vec![Ret(r(0))];
     assert_eq!(expected, result);
 }
 
 #[test]
 fn gen_self_for_uint8() {
-    let result = code_method_with_struct_name(
+    let sa = setup(
         "trait MyId { fn f(): Self; }
             impl MyId for UInt8 { fn f(): UInt8 { return self; } }
             ",
-        "UInt8",
     );
+    let result = bc(&sa, "<prog>::MyId for std::primitives::UInt8#f");
     let expected = vec![Ret(r(0))];
     assert_eq!(expected, result);
 }
 
 #[test]
-fn gen_self_for_int() {
-    let result = code_method_with_struct_name(
+fn gen_self_for_int32() {
+    let sa = setup(
         "trait MyId { fn f(): Self; }
             impl MyId for Int32 { fn f(): Int32 { return self; } }
             ",
-        "Int32",
     );
+    let result = bc(&sa, "<prog>::MyId for std::primitives::Int32#f");
     let expected = vec![Ret(r(0))];
     assert_eq!(expected, result);
 }
 
 #[test]
 fn gen_self_for_int64() {
-    let result = code_method_with_struct_name(
+    let sa = setup(
         "trait MyId { fn f(): Self; }
             impl MyId for Int64 { fn f(): Int64 { return self; } }
             ",
-        "Int64",
     );
+    let result = bc(&sa, "<prog>::MyId for std::primitives::Int64#f");
     let expected = vec![Ret(r(0))];
     assert_eq!(expected, result);
 }
 
 #[test]
 fn gen_self_for_float32() {
-    let result = code_method_with_struct_name(
+    let sa = setup(
         "trait MyId { fn f(): Self; }
             impl MyId for Float32 { fn f(): Float32 { return self; } }
             ",
-        "Float32",
     );
+    let result = bc(&sa, "<prog>::MyId for std::primitives::Float32#f");
     let expected = vec![Ret(r(0))];
     assert_eq!(expected, result);
 }
 
 #[test]
 fn gen_self_for_float64() {
-    let result = code_method_with_struct_name(
+    let sa = setup(
         "trait MyId { fn f(): Self; }
             impl MyId for Float64 { fn f(): Float64 { return self; } }
             ",
-        "Float64",
     );
+    let result = bc(&sa, "<prog>::MyId for std::primitives::Float64#f");
     let expected = vec![Ret(r(0))];
     assert_eq!(expected, result);
 }
 
 #[test]
 fn gen_self_for_string() {
-    let result = code_method_with_class_name(
+    let sa = setup(
         "trait MyId { fn f(): Self; }
             impl MyId for String { fn f(): String { return self; } }
             ",
-        "String",
     );
+    let result = bc(&sa, "<prog>::MyId for std::string::String#f");
     let expected = vec![Ret(r(0))];
     assert_eq!(expected, result);
 }
 
 #[test]
 fn gen_self_assign_for_bool() {
-    let result = code_method_with_struct_name(
+    let sa = setup(
         "trait MyId { fn f(); }
             impl MyId for Bool { fn f() { let x = self; } }
             ",
-        "Bool",
     );
+    let result = bc(&sa, "<prog>::MyId for std::primitives::Bool#f");
     let expected = vec![Mov(r(1), r(0)), Ret(r(2))];
     assert_eq!(expected, result);
 }
 
 #[test]
 fn gen_self_assign_for_uint8() {
-    let result = code_method_with_struct_name(
+    let sa = setup(
         "trait MyId { fn f(); }
             impl MyId for UInt8 { fn f() { let x = self; } }
             ",
-        "UInt8",
     );
+    let result = bc(&sa, "<prog>::MyId for std::primitives::UInt8#f");
     let expected = vec![Mov(r(1), r(0)), Ret(r(2))];
     assert_eq!(expected, result);
 }
 
 #[test]
-fn gen_self_assign_for_int() {
-    let result = code_method_with_struct_name(
+fn gen_self_assign_for_int32() {
+    let sa = setup(
         "trait MyId { fn f(); }
             impl MyId for Int32 { fn f() { let x = self; } }
             ",
-        "Int32",
     );
+    let result = bc(&sa, "<prog>::MyId for std::primitives::Int32#f");
     let expected = vec![Mov(r(1), r(0)), Ret(r(2))];
     assert_eq!(expected, result);
 }
 
 #[test]
 fn gen_self_assign_for_int64() {
-    let result = code_method_with_struct_name(
+    let sa = setup(
         "trait MyId { fn f(); }
             impl MyId for Int64 { fn f() { let x = self; } }
             ",
-        "Int64",
     );
+    let result = bc(&sa, "<prog>::MyId for std::primitives::Int64#f");
     let expected = vec![Mov(r(1), r(0)), Ret(r(2))];
     assert_eq!(expected, result);
 }
 
 #[test]
 fn gen_self_assign_for_float32() {
-    let result = code_method_with_struct_name(
+    let sa = setup(
         "trait MyId { fn f(); }
             impl MyId for Float32 { fn f() { let x = self; } }
             ",
-        "Float32",
     );
+    let result = bc(&sa, "<prog>::MyId for std::primitives::Float32#f");
     let expected = vec![Mov(r(1), r(0)), Ret(r(2))];
     assert_eq!(expected, result);
 }
 
 #[test]
 fn gen_self_assign_for_float64() {
-    let result = code_method_with_struct_name(
+    let sa = setup(
         "trait MyId { fn f(); }
             impl MyId for Float64 { fn f() { let x = self; } }
             ",
-        "Float64",
     );
+    let result = bc(&sa, "<prog>::MyId for std::primitives::Float64#f");
     let expected = vec![Mov(r(1), r(0)), Ret(r(2))];
     assert_eq!(expected, result);
 }
 
 #[test]
 fn gen_self_assign_for_string() {
-    let result = code_method_with_class_name(
+    let sa = setup(
         "trait MyId { fn f(); }
             impl MyId for String { fn f() { let x = self; } }
             ",
-        "String",
     );
+    let result = bc(&sa, "<prog>::MyId for std::string::String#f");
     let expected = vec![Mov(r(1), r(0)), Ret(r(2))];
     assert_eq!(expected, result);
 }
