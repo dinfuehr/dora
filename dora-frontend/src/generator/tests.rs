@@ -3407,7 +3407,7 @@ fn gen_convert_int32_to_float64() {
     gen_fct(
         "fn f(a: Int32): Float64 { a.toFloat64() }",
         |sa, code, fct| {
-            let fct_id = struct_method_by_name(sa, "Int32", "toFloat64", false).unwrap();
+            let fct_id = lookup_fct(sa, "std::primitives::Int32#toFloat64");
             let expected = vec![
                 PushRegister(r(0)),
                 InvokeDirect(r(1), ConstPoolIdx(0)),
@@ -3430,7 +3430,7 @@ fn gen_convert_int64_to_float32() {
     gen_fct(
         "fn f(a: Int64): Float32 { a.toFloat32() }",
         |sa, code, fct| {
-            let fct_id = struct_method_by_name(sa, "Int64", "toFloat32", false).unwrap();
+            let fct_id = lookup_fct(sa, "std::primitives::Int64#toFloat32");
             let expected = vec![
                 PushRegister(r(0)),
                 InvokeDirect(r(1), ConstPoolIdx(0)),
@@ -3453,7 +3453,7 @@ fn gen_convert_int64_to_float64() {
     gen_fct(
         "fn f(a: Int64): Float64 { a.toFloat64() }",
         |sa, code, fct| {
-            let fct_id = struct_method_by_name(sa, "Int64", "toFloat64", false).unwrap();
+            let fct_id = lookup_fct(sa, "std::primitives::Int64#toFloat64");
             let expected = vec![
                 PushRegister(r(0)),
                 InvokeDirect(r(1), ConstPoolIdx(0)),
@@ -3476,7 +3476,7 @@ fn gen_truncate_float32_to_int32() {
     gen_fct(
         "fn f(a: Float32): Int32 { a.toInt32() }",
         |sa, code, fct| {
-            let fct_id = struct_method_by_name(sa, "Float32", "toInt32", false).unwrap();
+            let fct_id = lookup_fct(sa, "std::primitives::Float32#toInt32");
             let expected = vec![
                 PushRegister(r(0)),
                 InvokeDirect(r(1), ConstPoolIdx(0)),
@@ -3499,7 +3499,7 @@ fn gen_truncate_float32_to_int64() {
     gen_fct(
         "fn f(a: Float32): Int64 { a.toInt64() }",
         |sa, code, fct| {
-            let fct_id = struct_method_by_name(sa, "Float32", "toInt64", false).unwrap();
+            let fct_id = lookup_fct(sa, "std::primitives::Float32#toInt64");
             let expected = vec![
                 PushRegister(r(0)),
                 InvokeDirect(r(1), ConstPoolIdx(0)),
@@ -3522,7 +3522,7 @@ fn gen_truncate_float64_to_int32() {
     gen_fct(
         "fn f(a: Float64): Int32 { a.toInt32() }",
         |sa, code, fct| {
-            let fct_id = struct_method_by_name(sa, "Float64", "toInt32", false).unwrap();
+            let fct_id = lookup_fct(sa, "std::primitives::Float64#toInt32");
             let expected = vec![
                 PushRegister(r(0)),
                 InvokeDirect(r(1), ConstPoolIdx(0)),
@@ -3545,7 +3545,7 @@ fn gen_truncate_float64_to_int64() {
     gen_fct(
         "fn f(a: Float64): Int64 { a.toInt64() }",
         |sa, code, fct| {
-            let fct_id = struct_method_by_name(sa, "Float64", "toInt64", false).unwrap();
+            let fct_id = lookup_fct(sa, "std::primitives::Float64#toInt64");
             let expected = vec![
                 PushRegister(r(0)),
                 InvokeDirect(r(1), ConstPoolIdx(0)),
@@ -3726,8 +3726,10 @@ fn gen_string_equals() {
 #[test]
 fn gen_bool_to_string() {
     gen_fct("fn f(a: Bool): String { a.toString() }", |sa, code, fct| {
-        let fct_id =
-            struct_method_by_name(sa, "Bool", "toString", false).expect("Bool::toString not found");
+        let fct_id = lookup_fct(
+            sa,
+            "std::string::Stringable for std::primitives::Bool#toString",
+        );
         let expected = vec![
             PushRegister(r(0)),
             InvokeDirect(r(1), ConstPoolIdx(0)),
