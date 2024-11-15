@@ -20,11 +20,13 @@ use crate::typeck::{
     args_compatible, args_compatible_fct, check_args_compatible_fct, check_expr, read_path_expr,
     CallArguments, MethodLookup, TypeCheck,
 };
-use crate::typeparamck::{self, ErrorReporting};
+use crate::typeparamck;
 use crate::{
     empty_sta, specialize_type, ty::error as ty_error, ErrorMessage, SourceType, SourceTypeArray,
     TraitType,
 };
+
+use super::lookup::find_method_call_candidates;
 
 pub(super) fn check_expr_call(
     ck: &mut TypeCheck,
@@ -374,61 +376,60 @@ fn check_expr_call_method(
 
     let interned_method_name = ck.sa.interner.intern(&method_name);
 
-    let lookup = MethodLookup::new(ck.sa, ck.file_id, ck.type_param_definition)
-        .no_error_reporting()
-        .parent(ck.parent.clone())
-        .method(object_type.clone())
-        .name(interned_method_name)
-        .fct_type_params(&fct_type_params)
-        .args(&arg_types)
-        .find();
+    let candidates = find_method_call_candidates(
+        ck.sa,
+        object_type.clone(),
+        &ck.type_param_definition,
+        interned_method_name,
+        false,
+    );
 
-    if lookup.find() {
-        let fct_id = lookup.found_fct_id().unwrap();
-        let fct = ck.sa.fct(fct_id);
-        let return_type = lookup.found_ret().unwrap();
-
-        let call_type = if object_type.is_self() {
-            CallType::TraitObjectMethod(object_type, fct_id)
-        } else if object_type.is_trait() && fct.parent.is_trait() {
-            CallType::TraitObjectMethod(object_type, fct_id)
-        } else {
-            let method_type = lookup.found_class_type().unwrap();
-            let container_type_params = lookup.found_container_type_params().clone().unwrap();
-            let type_params = container_type_params.connect(&fct_type_params);
-            CallType::Method(method_type, fct_id, type_params)
-        };
-
-        ck.analysis
-            .map_calls
-            .insert_or_replace(e.id, Arc::new(call_type));
-        ck.analysis.set_ty(e.id, return_type.clone());
-
-        if !method_accessible_from(ck.sa, fct_id, ck.module_id) {
-            let msg = ErrorMessage::NotAccessible;
-            ck.sa.report(ck.file_id, e.span, msg);
-        }
-
-        return_type
-    } else if lookup.found_fct_id().is_none() {
+    if candidates.is_empty() {
         // No method with this name found, so this might actually be a field
         check_expr_call_field(ck, e, object_type, method_name, fct_type_params, arguments)
     } else {
         // Lookup the method again, but this time with error reporting
         let lookup = MethodLookup::new(ck.sa, ck.file_id, ck.type_param_definition)
             .parent(ck.parent.clone())
-            .method(object_type)
+            .method(object_type.clone())
             .name(interned_method_name)
             .fct_type_params(&fct_type_params)
             .span(e.span)
             .args(&arg_types)
             .find();
 
-        assert!(!lookup.find());
+        if lookup.find() {
+            let fct_id = lookup.found_fct_id().unwrap();
+            let fct = ck.sa.fct(fct_id);
+            let return_type = lookup.found_ret().unwrap();
 
-        ck.analysis.set_ty(e.id, ty_error());
+            let call_type = if object_type.is_self() {
+                CallType::TraitObjectMethod(object_type, fct_id)
+            } else if object_type.is_trait() && fct.parent.is_trait() {
+                CallType::TraitObjectMethod(object_type, fct_id)
+            } else {
+                let method_type = lookup.found_class_type().unwrap();
+                let container_type_params = lookup.found_container_type_params().clone().unwrap();
+                let type_params = container_type_params.connect(&fct_type_params);
+                CallType::Method(method_type, fct_id, type_params)
+            };
 
-        ty_error()
+            ck.analysis
+                .map_calls
+                .insert_or_replace(e.id, Arc::new(call_type));
+            ck.analysis.set_ty(e.id, return_type.clone());
+
+            if !method_accessible_from(ck.sa, fct_id, ck.module_id) {
+                let msg = ErrorMessage::NotAccessible;
+                ck.sa.report(ck.file_id, e.span, msg);
+            }
+
+            return_type
+        } else {
+            ck.analysis.set_ty(e.id, ty_error());
+
+            ty_error()
+        }
     }
 }
 
@@ -522,12 +523,13 @@ fn check_expr_call_struct(
     }
 
     let ty = SourceType::Struct(struct_id, type_params.clone());
-    let type_params_ok = typeparamck::check_struct(
+    let type_params_ok = typeparamck::check(
         ck.sa,
         ck.type_param_definition,
-        struct_id,
+        struct_,
         &type_params,
-        ErrorReporting::Yes(ck.file_id, e.span),
+        ck.file_id,
+        e.span,
     );
 
     if !type_params_ok {
@@ -690,17 +692,19 @@ fn check_expr_call_class(
         type_params
     };
 
-    if !typeparamck::check_class(
+    let cls = ck.sa.class(cls_id);
+
+    if !typeparamck::check(
         ck.sa,
         ck.type_param_definition,
-        cls_id,
+        cls,
         &type_params,
-        ErrorReporting::Yes(ck.file_id, e.span),
+        ck.file_id,
+        e.span,
     ) {
         return ty_error();
     };
 
-    let cls = ck.sa.class(cls_id);
     let cls_ty = SourceType::Class(cls_id, type_params.clone());
 
     if !is_default_accessible(ck.sa, cls.module_id, ck.module_id)
@@ -748,12 +752,13 @@ pub(super) fn check_expr_call_enum_variant(
         type_params
     };
 
-    let type_params_ok = typeparamck::check_enum(
+    let type_params_ok = typeparamck::check(
         ck.sa,
         ck.type_param_definition,
-        enum_id,
+        enum_,
         &type_params,
-        ErrorReporting::Yes(ck.file_id, e.span),
+        ck.file_id,
+        e.span,
     );
 
     if !type_params_ok {
@@ -1020,12 +1025,14 @@ fn check_expr_call_path(
 
     match sym {
         Some(SymbolKind::Class(cls_id)) => {
-            if typeparamck::check_class(
+            let cls = ck.sa.class(cls_id);
+            if typeparamck::check(
                 ck.sa,
                 ck.type_param_definition,
-                cls_id,
+                cls,
                 &container_type_params,
-                ErrorReporting::Yes(ck.file_id, e.span),
+                ck.file_id,
+                e.span,
             ) {
                 let arg_types = arguments.assume_all_positional(ck);
                 check_expr_call_static_method(
@@ -1044,12 +1051,13 @@ fn check_expr_call_path(
         Some(SymbolKind::Struct(struct_id)) => {
             let struct_ = ck.sa.struct_(struct_id);
 
-            if typeparamck::check_struct(
+            if typeparamck::check(
                 ck.sa,
                 ck.type_param_definition,
-                struct_id,
+                struct_,
                 &container_type_params,
-                ErrorReporting::Yes(ck.file_id, e.span),
+                ck.file_id,
+                e.span,
             ) {
                 let object_ty = if let Some(ref primitive_ty) = struct_.primitive_ty {
                     assert!(container_type_params.is_empty());
@@ -1097,12 +1105,13 @@ fn check_expr_call_path(
                     arguments,
                 )
             } else {
-                if typeparamck::check_enum(
+                if typeparamck::check(
                     ck.sa,
                     ck.type_param_definition,
-                    enum_id,
+                    enum_,
                     &container_type_params,
-                    ErrorReporting::Yes(ck.file_id, e.span),
+                    ck.file_id,
+                    e.span,
                 ) {
                     let object_ty = SourceType::Enum(enum_id, container_type_params);
                     let arg_types = arguments.assume_all_positional(ck);

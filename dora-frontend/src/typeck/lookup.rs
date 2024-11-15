@@ -6,7 +6,7 @@ use crate::sema::{
 };
 use crate::typeck::function::args_compatible_fct;
 use crate::typeck::CallArguments;
-use crate::typeparamck::{self, ErrorReporting};
+use crate::typeparamck;
 use crate::{specialize_for_element, ty, SourceType, SourceTypeArray};
 use dora_parser::Span;
 
@@ -71,7 +71,6 @@ pub struct MethodLookup<'a> {
     ret: Option<SourceType>,
     fct_parent: Option<FctParent>,
     span: Option<Span>,
-    report_errors: bool,
 }
 
 impl<'a> MethodLookup<'a> {
@@ -91,7 +90,6 @@ impl<'a> MethodLookup<'a> {
             ret: None,
             fct_parent: None,
             span: None,
-            report_errors: true,
             type_param_defs: caller_type_param_defs,
         }
     }
@@ -109,11 +107,6 @@ impl<'a> MethodLookup<'a> {
     pub fn method(mut self, obj: SourceType) -> MethodLookup<'a> {
         self.kind = Some(LookupKind::Method(obj));
 
-        self
-    }
-
-    pub fn no_error_reporting(mut self) -> MethodLookup<'a> {
-        self.report_errors = false;
         self
     }
 
@@ -170,7 +163,7 @@ impl<'a> MethodLookup<'a> {
 
         let fct_id = if let Some(fct_id) = fct_id {
             fct_id
-        } else if self.report_errors {
+        } else {
             let name = self.name.expect("name not set");
             let name = self.sa.interner.str(name).to_string();
 
@@ -193,8 +186,6 @@ impl<'a> MethodLookup<'a> {
             };
 
             self.report_error(msg);
-            return result;
-        } else {
             return result;
         };
 
@@ -225,10 +216,6 @@ impl<'a> MethodLookup<'a> {
             }
 
             if !args_compatible_fct(self.sa, &*fct, args, &type_params, None) {
-                if !self.report_errors {
-                    return result;
-                }
-
                 let fct_name = self.sa.interner.str(fct.name).to_string();
                 let fct_params = fct
                     .params_without_self()
@@ -292,13 +279,14 @@ impl<'a> MethodLookup<'a> {
     }
 
     fn check_tps(&self, specified_tps: &TypeParamDefinition, tps: &SourceTypeArray) -> bool {
-        let error = if self.report_errors {
-            ErrorReporting::Yes(self.file, self.span.expect("no pos"))
-        } else {
-            ErrorReporting::No
-        };
-
-        typeparamck::check_params(self.sa, self.type_param_defs, specified_tps, tps, error)
+        typeparamck::check_params(
+            self.sa,
+            self.type_param_defs,
+            specified_tps,
+            tps,
+            self.file,
+            self.span.expect("no pos"),
+        )
     }
 
     fn ty_name(&self, ty: &SourceType) -> String {

@@ -23,7 +23,7 @@ use crate::typeck::{
     check_lit_char, check_lit_float, check_lit_int, check_lit_str, check_pattern, check_stmt,
     create_call_arguments, is_simple_enum, TypeCheck,
 };
-use crate::typeparamck::{self, ErrorReporting};
+use crate::typeparamck;
 use crate::{replace_type, ty::error as ty_error, SourceType, SourceTypeArray, SymbolKind};
 
 pub(super) fn check_expr(
@@ -1716,12 +1716,13 @@ fn check_enum_variant_without_args(
         ck.sa.report(ck.file_id, expr_span, msg);
     }
 
-    let type_params_ok = typeparamck::check_enum(
+    let type_params_ok = typeparamck::check(
         ck.sa,
         ck.type_param_definition,
-        enum_id,
+        enum_,
         &type_params,
-        ErrorReporting::Yes(ck.file_id, expr_span),
+        ck.file_id,
+        expr_span,
     );
 
     let interned_name = ck.sa.interner.intern(&name);
@@ -1861,12 +1862,13 @@ pub(super) fn check_enum_variant_without_args_id(
         type_params
     };
 
-    let type_params_ok = typeparamck::check_enum(
+    let type_params_ok = typeparamck::check(
         ck.sa,
         ck.type_param_definition,
-        enum_id,
+        enum_,
         &type_params,
-        ErrorReporting::Yes(ck.file_id, expr_span),
+        ck.file_id,
+        expr_span,
     );
 
     let variant = &enum_.variants()[variant_idx as usize];
