@@ -54,19 +54,6 @@ fn bc(sa: &Sema, path: &str) -> Vec<Bytecode> {
     build(&fct)
 }
 
-fn gen<F>(code: &'static str, testfct: F)
-where
-    F: FnOnce(&Sema, Vec<Bytecode>),
-{
-    test::check_valid(code, |sa| {
-        let fct_id = fct_by_name(sa, "f");
-        let fct = generate_fct_id(sa, fct_id);
-        let code = build(&fct);
-
-        testfct(sa, code);
-    })
-}
-
 fn gen_fct<F>(code: &'static str, testfct: F)
 where
     F: FnOnce(&Sema, Vec<Bytecode>, BytecodeFunction),
@@ -1102,32 +1089,26 @@ fn gen_expr_returnvoid() {
 
 #[test]
 fn gen_load_global() {
-    gen(
-        "let a: Int32 = 0i32; fn f(): Int32 { return a; }",
-        |sa, code| {
-            let gid = global_by_name(sa, "a");
-            let expected = vec![
-                LoadGlobal(r(0), GlobalId(gid.index().try_into().expect("overflow"))),
-                Ret(r(0)),
-            ];
-            assert_eq!(expected, code);
-        },
-    );
+    let sa = setup("let a: Int32 = 0i32; fn f(): Int32 { return a; }");
+    let code = bc(&sa, "<prog>::f");
+    let gid = global_by_name(&sa, "a");
+    let expected = vec![
+        LoadGlobal(r(0), GlobalId(gid.index().try_into().expect("overflow"))),
+        Ret(r(0)),
+    ];
+    assert_eq!(expected, code);
 }
 
 #[test]
 fn gen_store_global() {
-    gen(
-        "let mut a: Bool = false; fn f(x: Bool) { a = x; }",
-        |sa, code| {
-            let gid = global_by_name(sa, "a");
-            let expected = vec![
-                StoreGlobal(r(0), GlobalId(gid.index().try_into().expect("overflow"))),
-                Ret(r(1)),
-            ];
-            assert_eq!(expected, code);
-        },
-    );
+    let sa = setup("let mut a: Bool = false; fn f(x: Bool) { a = x; }");
+    let code = bc(&sa, "<prog>::f");
+    let gid = global_by_name(&sa, "a");
+    let expected = vec![
+        StoreGlobal(r(0), GlobalId(gid.index().try_into().expect("overflow"))),
+        Ret(r(1)),
+    ];
+    assert_eq!(expected, code);
 }
 
 #[test]
@@ -4050,16 +4031,15 @@ fn gen_trait_object() {
 
 #[test]
 fn gen_trait_object_copy() {
-    gen(
+    let sa = setup(
         "
         trait Foo { fn bar(): Int32; }
         fn f(x: Foo): Foo { let y = x; y }
     ",
-        |_sa, code| {
-            let expected = vec![Mov(r(1), r(0)), Ret(r(1))];
-            assert_eq!(expected, code);
-        },
     );
+    let code = bc(&sa, "<prog>::f");
+    let expected = vec![Mov(r(1), r(0)), Ret(r(1))];
+    assert_eq!(expected, code);
 }
 
 #[test]
