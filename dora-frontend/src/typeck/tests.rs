@@ -1,6 +1,6 @@
 use crate::error::msg::ErrorMessage;
-use crate::generator::tests::const_by_name;
 use crate::sema::ConstValue;
+use crate::stdlib_lookup::resolve_path;
 use crate::tests::*;
 use dora_parser::Span;
 
@@ -856,37 +856,51 @@ fn test_const_values() {
                         const e: Float64 = 6.0;",
         |sa| {
             {
-                let id = const_by_name(sa, "yes");
+                let id = resolve_path(sa, "<prog>::yes")
+                    .to_const()
+                    .expect("const expected");
                 assert_eq!(&ConstValue::Bool(true), sa.const_(id).value());
             }
 
             {
-                let id = const_by_name(sa, "x");
+                let id = resolve_path(sa, "<prog>::x")
+                    .to_const()
+                    .expect("const expected");
                 assert_eq!(&ConstValue::Int(255), sa.const_(id).value());
             }
 
             {
-                let id = const_by_name(sa, "a");
+                let id = resolve_path(sa, "<prog>::a")
+                    .to_const()
+                    .expect("const expected");
                 assert_eq!(&ConstValue::Int(100), sa.const_(id).value());
             }
 
             {
-                let id = const_by_name(sa, "b");
+                let id = resolve_path(sa, "<prog>::b")
+                    .to_const()
+                    .expect("const expected");
                 assert_eq!(&ConstValue::Int(200), sa.const_(id).value());
             }
 
             {
-                let id = const_by_name(sa, "c");
+                let id = resolve_path(sa, "<prog>::c")
+                    .to_const()
+                    .expect("const expected");
                 assert_eq!(&ConstValue::Char('A'), sa.const_(id).value());
             }
 
             {
-                let id = const_by_name(sa, "d");
+                let id = resolve_path(sa, "<prog>::d")
+                    .to_const()
+                    .expect("const expected");
                 assert_eq!(&ConstValue::Float(3.0), sa.const_(id).value());
             }
 
             {
-                let id = const_by_name(sa, "e");
+                let id = resolve_path(sa, "<prog>::e")
+                    .to_const()
+                    .expect("const expected");
                 assert_eq!(&ConstValue::Float(6.0), sa.const_(id).value());
             }
         },

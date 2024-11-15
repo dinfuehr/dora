@@ -1043,11 +1043,24 @@ pub fn lookup_fct(sa: &Sema, path: &str) -> FctDefinitionId {
                 .expect("method in impl not found")
         } else {
             let extended_ty = resolve_path(sa, path);
-            let extension_id =
-                lookup_extension_for_item(sa, extended_ty).expect("extension not found");
 
-            lookup_fct_by_extension_id_and_name(sa, extension_id, method_name)
-                .expect("method in impl not found")
+            if extended_ty.is_trait() {
+                let trait_id = extended_ty.to_trait().expect("trait expected");
+                let trait_ = sa.trait_(trait_id);
+                let method_name = sa.interner.intern(method_name);
+
+                trait_
+                    .instance_names()
+                    .get(&method_name)
+                    .cloned()
+                    .expect("missing fct")
+            } else {
+                let extension_id =
+                    lookup_extension_for_item(sa, extended_ty).expect("extension not found");
+
+                lookup_fct_by_extension_id_and_name(sa, extension_id, method_name)
+                    .expect("method in impl not found")
+            }
         }
     } else {
         resolve_path(sa, path).to_fct().expect("function expected")
