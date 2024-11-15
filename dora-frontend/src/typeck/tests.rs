@@ -439,30 +439,22 @@ fn type_function_params() {
         "
         fn foo() {}
         fn f() { foo(1i32); }",
-        (3, 18),
-        ErrorMessage::ParamTypesIncompatible("foo".into(), vec![], vec!["Int32".into()]),
+        (3, 22),
+        ErrorMessage::SuperfluousArgument,
     );
     err(
         "
         fn foo(a: Int32) {}
         fn f() { foo(true); }",
-        (3, 18),
-        ErrorMessage::ParamTypesIncompatible(
-            "foo".into(),
-            vec!["Int32".into()],
-            vec!["Bool".into()],
-        ),
+        (3, 22),
+        ErrorMessage::WrongTypeForArgument("Int32".into(), "Bool".into()),
     );
     err(
         "
         fn foo(a: Int32, b: Bool) {}
         fn f() { foo(1i32, 2i32); }",
-        (3, 18),
-        ErrorMessage::ParamTypesIncompatible(
-            "foo".into(),
-            vec!["Int32".into(), "Bool".into()],
-            vec!["Int32".into(), "Int32".into()],
-        ),
+        (3, 28),
+        ErrorMessage::WrongTypeForArgument("Bool".into(), "Int32".into()),
     );
 }
 
@@ -1198,8 +1190,8 @@ fn test_new_call_fct() {
 fn test_new_call_fct_wrong_params() {
     err(
         "fn g() {} fn f() { g(1i32); }",
-        (1, 20),
-        ErrorMessage::ParamTypesIncompatible("g".into(), Vec::new(), vec!["Int32".into()]),
+        (1, 22),
+        ErrorMessage::SuperfluousArgument,
     );
 }
 
@@ -2544,8 +2536,8 @@ fn variadic_parameter() {
             f(true);
         }
     ",
-        (4, 13),
-        ErrorMessage::ParamTypesIncompatible("f".into(), vec!["Int32".into()], vec!["Bool".into()]),
+        (4, 15),
+        ErrorMessage::WrongTypeForArgument("Int32".into(), "Bool".into()),
     );
     ok("
         fn f(x: Int32, y: Int32...) {}
@@ -2563,11 +2555,7 @@ fn variadic_parameter() {
         }
     ",
         (4, 13),
-        ErrorMessage::ParamTypesIncompatible(
-            "f".into(),
-            vec!["Int32".into(), "Int32".into()],
-            Vec::new(),
-        ),
+        ErrorMessage::MissingArguments(1, 0),
     );
     err(
         "fn f(x: Int32..., y: Int32) {}",
@@ -2649,8 +2637,8 @@ fn check_wrong_number_type_params() {
             fn foo() { bar[Int32](false); }
             fn bar[T](x: T) {}
         ",
-        (2, 24),
-        ErrorMessage::ParamTypesIncompatible("bar".into(), vec!["T".into()], vec!["Bool".into()]),
+        (2, 35),
+        ErrorMessage::WrongTypeForArgument("Int32".into(), "Bool".into()),
     );
 }
 
@@ -4672,7 +4660,10 @@ fn call_with_named_arguments() {
             f(1, 2, y = 3);
         }
     ",
-        &[((4, 21), ErrorMessage::UnexpectedNamedArgument)],
+        &[
+            ((4, 21), ErrorMessage::UnexpectedNamedArgument),
+            ((4, 21), ErrorMessage::SuperfluousArgument),
+        ],
     );
 }
 

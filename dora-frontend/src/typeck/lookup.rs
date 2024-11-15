@@ -56,7 +56,6 @@ impl MethodLookupResult {
 enum LookupKind {
     Method(SourceType),
     Static(SourceType),
-    Callee(FctDefinitionId),
 }
 
 pub struct MethodLookup<'a> {
@@ -92,11 +91,6 @@ impl<'a> MethodLookup<'a> {
             span: None,
             type_param_defs: caller_type_param_defs,
         }
-    }
-
-    pub fn callee(mut self, fct_id: FctDefinitionId) -> MethodLookup<'a> {
-        self.kind = Some(LookupKind::Callee(fct_id));
-        self
     }
 
     pub fn parent(mut self, parent: FctParent) -> MethodLookup<'a> {
@@ -146,8 +140,6 @@ impl<'a> MethodLookup<'a> {
         let mut result = MethodLookupResult::new();
 
         let fct_id = match kind {
-            LookupKind::Callee(fct_id) => Some(fct_id),
-
             LookupKind::Method(ref obj) => {
                 let name = self.name.expect("name not set");
                 self.find_method(&mut result, obj.clone(), name, false)
@@ -168,7 +160,6 @@ impl<'a> MethodLookup<'a> {
             let name = self.sa.interner.str(name).to_string();
 
             let msg = match kind {
-                LookupKind::Callee(_) => unreachable!(),
                 LookupKind::Method(ref obj) => {
                     let type_name = self.ty_name(obj);
 
@@ -195,7 +186,6 @@ impl<'a> MethodLookup<'a> {
             LookupKind::Method(_) | LookupKind::Static(_) => {
                 result.found_container_type_params.clone().unwrap()
             }
-            _ => SourceTypeArray::empty(),
         };
 
         let fct_tps: SourceTypeArray = if let Some(fct_tps) = self.fct_tps {

@@ -275,30 +275,31 @@ fn check_expr_call_fct(
     type_params: SourceTypeArray,
     arguments: CallArguments,
 ) -> SourceType {
+    let fct = ck.sa.fct(fct_id);
+
     if !fct_accessible_from(ck.sa, fct_id, ck.module_id) {
         let msg = ErrorMessage::NotAccessible;
         ck.sa.report(ck.file_id, e.span, msg);
     }
 
-    let arg_types = arguments.assume_all_positional(ck);
-
-    let lookup = MethodLookup::new(ck.sa, ck.file_id, ck.type_param_definition)
-        .span(e.span)
-        .callee(fct_id)
-        .args(&arg_types)
-        .fct_type_params(&type_params)
-        .find();
-
-    let ty = if lookup.find() {
-        let call_type = CallType::Fct(fct_id, type_params.clone());
-        ck.analysis.map_calls.insert(e.id, Arc::new(call_type));
-
-        lookup.found_ret().unwrap()
+    let ty = if typeparamck::check(
+        ck.sa,
+        &ck.type_param_definition,
+        fct,
+        &type_params,
+        ck.file_id,
+        e.span,
+    ) {
+        check_args_compatible_fct(ck, fct, arguments, &type_params, None);
+        specialize_type(ck.sa, fct.return_type(), &type_params)
     } else {
         ty_error()
     };
 
     ck.analysis.set_ty(e.id, ty.clone());
+
+    let call_type = CallType::Fct(fct_id, type_params.clone());
+    ck.analysis.map_calls.insert(e.id, Arc::new(call_type));
 
     ty
 }
