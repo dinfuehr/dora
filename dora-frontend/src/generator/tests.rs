@@ -243,9 +243,10 @@ fn gen_sub_float64() {
 
 #[test]
 fn gen_div_int() {
-    let result = code("fn f(a: Int32, b: Int32): Int32 { return a / b; }");
+    let sa = sema("fn f(a: Int32, b: Int32): Int32 { return a / b; }");
+    let (_, code) = bc(&sa, "<prog>::f");
     let expected = vec![Div(r(2), r(0), r(1)), Ret(r(2))];
-    assert_eq!(expected, result);
+    assert_eq!(expected, code);
 }
 
 #[test]
@@ -257,44 +258,50 @@ fn gen_position_div_int() {
 
 #[test]
 fn gen_div_float32() {
-    let result = code("fn f(a: Float32, b: Float32): Float32 { return a / b; }");
+    let sa = sema("fn f(a: Float32, b: Float32): Float32 { return a / b; }");
+    let (_, code) = bc(&sa, "<prog>::f");
     let expected = vec![Div(r(2), r(0), r(1)), Ret(r(2))];
-    assert_eq!(expected, result);
+    assert_eq!(expected, code);
 }
 
 #[test]
 fn gen_div_float64() {
-    let result = code("fn f(a: Float64, b: Float64): Float64 { return a / b; }");
+    let sa = sema("fn f(a: Float64, b: Float64): Float64 { return a / b; }");
+    let (_, code) = bc(&sa, "<prog>::f");
     let expected = vec![Div(r(2), r(0), r(1)), Ret(r(2))];
-    assert_eq!(expected, result);
+    assert_eq!(expected, code);
 }
 
 #[test]
 fn gen_mul_int() {
-    let result = code("fn f(a: Int32, b: Int32): Int32 { return a * b; }");
+    let sa = sema("fn f(a: Int32, b: Int32): Int32 { return a * b; }");
+    let (_, code) = bc(&sa, "<prog>::f");
     let expected = vec![Mul(r(2), r(0), r(1)), Ret(r(2))];
-    assert_eq!(expected, result);
+    assert_eq!(expected, code);
 }
 
 #[test]
 fn gen_mul_float32() {
-    let result = code("fn f(a: Float32, b: Float32): Float32 { return a * b; }");
+    let sa = sema("fn f(a: Float32, b: Float32): Float32 { return a * b; }");
+    let (_, code) = bc(&sa, "<prog>::f");
     let expected = vec![Mul(r(2), r(0), r(1)), Ret(r(2))];
-    assert_eq!(expected, result);
+    assert_eq!(expected, code);
 }
 
 #[test]
 fn gen_mul_float64() {
-    let result = code("fn f(a: Float64, b: Float64): Float64 { return a * b; }");
+    let sa = sema("fn f(a: Float64, b: Float64): Float64 { return a * b; }");
+    let (_, code) = bc(&sa, "<prog>::f");
     let expected = vec![Mul(r(2), r(0), r(1)), Ret(r(2))];
-    assert_eq!(expected, result);
+    assert_eq!(expected, code);
 }
 
 #[test]
 fn gen_stmt_var_init() {
-    let result = code("fn f() { let x = 1i32; }");
+    let sa = sema("fn f() { let x = 1i32; }");
+    let (_, code) = bc(&sa, "<prog>::f");
     let expected = vec![ConstInt32(r(1), 1), Mov(r(0), r(1)), Ret(r(2))];
-    assert_eq!(expected, result);
+    assert_eq!(expected, code);
 }
 
 #[test]
@@ -428,87 +435,86 @@ fn gen_stmt_let_tuple() {
 
 #[test]
 fn gen_stmt_let_unit() {
-    let result = code("fn f(value: ()) { let () = value; }");
+    let sa = sema("fn f(value: ()) { let () = value; }");
+    let (_, code) = bc(&sa, "<prog>::f");
     let expected = vec![Ret(r(0))];
-    assert_eq!(expected, result);
+    assert_eq!(expected, code);
 
-    let result = code("fn f() { let x = (); }");
+    let sa = sema("fn f() { let x = (); }");
+    let (_, code) = bc(&sa, "<prog>::f");
     let expected = vec![Ret(r(0))];
-    assert_eq!(expected, result);
+    assert_eq!(expected, code);
 
-    gen_fct(
-        "fn f(value: (Int32, (Int32, ()))): Int32 { let (x, (y, z)) = value; x+y }",
-        |sa, code, fct| {
-            let inner_tuple_ty = create_tuple(sa, vec![SourceType::Int32, SourceType::Unit]);
-            let tuple_ty = create_tuple(sa, vec![SourceType::Int32, inner_tuple_ty.clone()]);
-            let expected = vec![
-                LoadTupleElement(r(4), r(0), ConstPoolIdx(0)),
-                Mov(r(1), r(4)),
-                LoadTupleElement(r(5), r(0), ConstPoolIdx(1)),
-                LoadTupleElement(r(4), r(5), ConstPoolIdx(2)),
-                Mov(r(2), r(4)),
-                LoadTupleElement(r(3), r(5), ConstPoolIdx(3)),
-                Add(r(4), r(1), r(2)),
-                Ret(r(4)),
-            ];
-            assert_eq!(expected, code);
+    let sa = sema("fn f(value: (Int32, (Int32, ()))): Int32 { let (x, (y, z)) = value; x+y }");
+    let (fct, code) = bc(&sa, "<prog>::f");
 
-            assert_eq!(
-                fct.const_pool(ConstPoolIdx(0)),
-                &ConstPoolEntry::TupleElement(bty_from_ty(tuple_ty.clone()), 0)
-            );
+    let inner_tuple_ty = create_tuple(&sa, vec![SourceType::Int32, SourceType::Unit]);
+    let tuple_ty = create_tuple(&sa, vec![SourceType::Int32, inner_tuple_ty.clone()]);
+    let expected = vec![
+        LoadTupleElement(r(4), r(0), ConstPoolIdx(0)),
+        Mov(r(1), r(4)),
+        LoadTupleElement(r(5), r(0), ConstPoolIdx(1)),
+        LoadTupleElement(r(4), r(5), ConstPoolIdx(2)),
+        Mov(r(2), r(4)),
+        LoadTupleElement(r(3), r(5), ConstPoolIdx(3)),
+        Add(r(4), r(1), r(2)),
+        Ret(r(4)),
+    ];
+    assert_eq!(expected, code);
 
-            assert_eq!(
-                fct.const_pool(ConstPoolIdx(1)),
-                &ConstPoolEntry::TupleElement(bty_from_ty(tuple_ty), 1)
-            );
-
-            assert_eq!(
-                fct.const_pool(ConstPoolIdx(2)),
-                &ConstPoolEntry::TupleElement(bty_from_ty(inner_tuple_ty), 0)
-            );
-        },
+    assert_eq!(
+        fct.const_pool(ConstPoolIdx(0)),
+        &ConstPoolEntry::TupleElement(bty_from_ty(tuple_ty.clone()), 0)
     );
 
-    gen_fct(
-        "fn f(value: (Int32, (Int32, ()))): Int32 { let (x, (y, ())) = value; x+y }",
-        |sa, code, fct| {
-            let nested_tuple_ty = create_tuple(sa, vec![SourceType::Int32, SourceType::Unit]);
-            let tuple_ty = create_tuple(sa, vec![SourceType::Int32, nested_tuple_ty.clone()]);
-            let expected = vec![
-                LoadTupleElement(r(3), r(0), ConstPoolIdx(0)),
-                Mov(r(1), r(3)),
-                LoadTupleElement(r(4), r(0), ConstPoolIdx(1)),
-                LoadTupleElement(r(3), r(4), ConstPoolIdx(2)),
-                Mov(r(2), r(3)),
-                LoadTupleElement(r(5), r(4), ConstPoolIdx(3)),
-                Add(r(3), r(1), r(2)),
-                Ret(r(3)),
-            ];
-            assert_eq!(expected, code);
+    assert_eq!(
+        fct.const_pool(ConstPoolIdx(1)),
+        &ConstPoolEntry::TupleElement(bty_from_ty(tuple_ty), 1)
+    );
 
-            assert_eq!(
-                fct.const_pool(ConstPoolIdx(0)),
-                &ConstPoolEntry::TupleElement(bty_from_ty(tuple_ty.clone()), 0)
-            );
+    assert_eq!(
+        fct.const_pool(ConstPoolIdx(2)),
+        &ConstPoolEntry::TupleElement(bty_from_ty(inner_tuple_ty), 0)
+    );
 
-            assert_eq!(
-                fct.const_pool(ConstPoolIdx(1)),
-                &ConstPoolEntry::TupleElement(bty_from_ty(tuple_ty), 1)
-            );
+    let sa = sema("fn f(value: (Int32, (Int32, ()))): Int32 { let (x, (y, ())) = value; x+y }");
+    let (fct, code) = bc(&sa, "<prog>::f");
 
-            assert_eq!(
-                fct.const_pool(ConstPoolIdx(2)),
-                &ConstPoolEntry::TupleElement(bty_from_ty(nested_tuple_ty), 0)
-            );
-        },
+    let nested_tuple_ty = create_tuple(&sa, vec![SourceType::Int32, SourceType::Unit]);
+    let tuple_ty = create_tuple(&sa, vec![SourceType::Int32, nested_tuple_ty.clone()]);
+    let expected = vec![
+        LoadTupleElement(r(3), r(0), ConstPoolIdx(0)),
+        Mov(r(1), r(3)),
+        LoadTupleElement(r(4), r(0), ConstPoolIdx(1)),
+        LoadTupleElement(r(3), r(4), ConstPoolIdx(2)),
+        Mov(r(2), r(3)),
+        LoadTupleElement(r(5), r(4), ConstPoolIdx(3)),
+        Add(r(3), r(1), r(2)),
+        Ret(r(3)),
+    ];
+    assert_eq!(expected, code);
+
+    assert_eq!(
+        fct.const_pool(ConstPoolIdx(0)),
+        &ConstPoolEntry::TupleElement(bty_from_ty(tuple_ty.clone()), 0)
+    );
+
+    assert_eq!(
+        fct.const_pool(ConstPoolIdx(1)),
+        &ConstPoolEntry::TupleElement(bty_from_ty(tuple_ty), 1)
+    );
+
+    assert_eq!(
+        fct.const_pool(ConstPoolIdx(2)),
+        &ConstPoolEntry::TupleElement(bty_from_ty(nested_tuple_ty), 0)
     );
 }
 
 #[test]
 fn gen_stmt_while() {
-    let result = code("fn f() { while true { 0; } }");
-    let code = vec![
+    let sa = sema("fn f() { while true { 0; } }");
+    let (_, code) = bc(&sa, "<prog>::f");
+    let expected = vec![
         LoopStart,
         ConstTrue(r(0)),
         JumpIfFalse(r(0), 5),
@@ -516,12 +522,13 @@ fn gen_stmt_while() {
         JumpLoop(0),
         Ret(r(2)),
     ];
-    assert_eq!(code, result);
+    assert_eq!(expected, code);
 }
 
 #[test]
 fn gen_stmt_if() {
-    let result = code("fn f(a: Bool): Int32 { if a { return 1; } return 0; }");
+    let sa = sema("fn f(a: Bool): Int32 { if a { return 1; } return 0; }");
+    let (_, code) = bc(&sa, "<prog>::f");
     let expected = vec![
         JumpIfFalse(r(0), 3),
         ConstInt32(r(2), 1),
@@ -529,12 +536,13 @@ fn gen_stmt_if() {
         ConstInt32(r(2), 0),
         Ret(r(2)),
     ];
-    assert_eq!(expected, result);
+    assert_eq!(expected, code);
 }
 
 #[test]
 fn gen_stmt_if_else_with_return() {
-    let result = code("fn f(a: Bool): Int32 { if a { return 1; } else { return 2; } }");
+    let sa = sema("fn f(a: Bool): Int32 { if a { return 1; } else { return 2; } }");
+    let (_, code) = bc(&sa, "<prog>::f");
     let expected = vec![
         JumpIfFalse(r(0), 3),
         ConstInt32(r(2), 1),
@@ -542,18 +550,19 @@ fn gen_stmt_if_else_with_return() {
         ConstInt32(r(2), 2),
         Ret(r(2)),
     ];
-    assert_eq!(expected, result);
+    assert_eq!(expected, code);
 }
 
 #[test]
 fn gen_stmt_if_else_without_return() {
-    let result = code(
+    let sa = sema(
         "fn f(b: Bool): Bool {
         let mut a = b;
         if a { a = false; } else { a = true; }
         return a;
     }",
     );
+    let (_, code) = bc(&sa, "<prog>::f");
     let expected = vec![
         Mov(r(1), r(0)),
         JumpIfFalse(r(1), 4),
@@ -562,12 +571,13 @@ fn gen_stmt_if_else_without_return() {
         ConstTrue(r(1)),
         Ret(r(1)),
     ];
-    assert_eq!(expected, result);
+    assert_eq!(expected, code);
 }
 
 #[test]
 fn gen_stmt_break() {
-    let result = code("fn f() { while true { break; } }");
+    let sa = sema("fn f() { while true { break; } }");
+    let (_, code) = bc(&sa, "<prog>::f");
     let expected = vec![
         LoopStart,
         ConstTrue(r(0)),
@@ -576,12 +586,13 @@ fn gen_stmt_break() {
         JumpLoop(0),
         Ret(r(1)),
     ];
-    assert_eq!(expected, result);
+    assert_eq!(expected, code);
 }
 
 #[test]
 fn gen_stmt_continue() {
-    let result = code("fn f() { while true { continue; } }");
+    let sa = sema("fn f() { while true { continue; } }");
+    let (_, code) = bc(&sa, "<prog>::f");
     let expected = vec![
         LoopStart,
         ConstTrue(r(0)),
@@ -590,61 +601,69 @@ fn gen_stmt_continue() {
         JumpLoop(0),
         Ret(r(1)),
     ];
-    assert_eq!(expected, result);
+    assert_eq!(expected, code);
 }
 
 #[test]
 fn gen_expr_lit_char() {
-    let result = code("fn f(): Char { return '1'; }");
+    let sa = sema("fn f(): Char { return '1'; }");
+    let (_, code) = bc(&sa, "<prog>::f");
     let expected = vec![ConstChar(r(0), '1'), Ret(r(0))];
-    assert_eq!(expected, result);
+    assert_eq!(expected, code);
 }
 
 #[test]
 fn gen_expr_lit_int() {
-    let result = code("fn f(): Int32 { return 1; }");
+    let sa = sema("fn f(): Int32 { return 1; }");
+    let (_, code) = bc(&sa, "<prog>::f");
     let expected = vec![ConstInt32(r(0), 1), Ret(r(0))];
-    assert_eq!(expected, result);
+    assert_eq!(expected, code);
 }
 
 #[test]
 fn gen_expr_lit_uint8() {
-    let result = code("fn f(): UInt8 { return 1u8; }");
+    let sa = sema("fn f(): UInt8 { return 1u8; }");
+    let (_, code) = bc(&sa, "<prog>::f");
     let expected = vec![ConstUInt8(r(0), 1), Ret(r(0))];
-    assert_eq!(expected, result);
+    assert_eq!(expected, code);
 }
 
 #[test]
 fn gen_expr_lit_int64() {
-    let result = code("fn f(): Int64 { return 1i64; }");
+    let sa = sema("fn f(): Int64 { return 1i64; }");
+    let (_, code) = bc(&sa, "<prog>::f");
     let expected = vec![ConstInt64(r(0), 1), Ret(r(0))];
-    assert_eq!(expected, result);
+    assert_eq!(expected, code);
 }
 
 #[test]
 fn gen_expr_lit_float32() {
-    let result = code("fn f(): Float32 { return 1f32; }");
+    let sa = sema("fn f(): Float32 { return 1f32; }");
+    let (_, code) = bc(&sa, "<prog>::f");
     let expected = vec![ConstFloat32(r(0), 1_f32), Ret(r(0))];
-    assert_eq!(expected, result);
+    assert_eq!(expected, code);
 }
 
 #[test]
 fn gen_expr_lit_float64() {
-    let result = code("fn f(): Float64 { return 1f64; }");
+    let sa = sema("fn f(): Float64 { return 1f64; }");
+    let (_, code) = bc(&sa, "<prog>::f");
     let expected = vec![ConstFloat64(r(0), 1_f64), Ret(r(0))];
-    assert_eq!(expected, result);
+    assert_eq!(expected, code);
 }
 
 #[test]
 fn gen_expr_lit_string() {
-    let result = code("fn f(): String { return \"z\"; }");
+    let sa = sema("fn f(): String { return \"z\"; }");
+    let (_, code) = bc(&sa, "<prog>::f");
     let expected = vec![ConstString(r(0), "z".to_string()), Ret(r(0))];
-    assert_eq!(expected, result);
+    assert_eq!(expected, code);
 }
 
 #[test]
 fn gen_expr_lit_string_duplicate() {
-    let result = code("fn f() { let a = \"z\"; let b = \"z\"; }");
+    let sa = sema("fn f() { let a = \"z\"; let b = \"z\"; }");
+    let (_, code) = bc(&sa, "<prog>::f");
     let expected = vec![
         ConstString(r(1), "z".to_string()),
         Mov(r(0), r(1)),
@@ -652,12 +671,13 @@ fn gen_expr_lit_string_duplicate() {
         Mov(r(1), r(2)),
         Ret(r(3)),
     ];
-    assert_eq!(expected, result);
+    assert_eq!(expected, code);
 }
 
 #[test]
 fn gen_expr_lit_string_multiple() {
-    let result = code("fn f() { let a = \"z\"; let b = \"y\"; }");
+    let sa = sema("fn f() { let a = \"z\"; let b = \"y\"; }");
+    let (_, code) = bc(&sa, "<prog>::f");
     let expected = vec![
         ConstString(r(1), "z".to_string()),
         Mov(r(0), r(1)),
@@ -665,94 +685,105 @@ fn gen_expr_lit_string_multiple() {
         Mov(r(1), r(2)),
         Ret(r(3)),
     ];
-    assert_eq!(expected, result);
+    assert_eq!(expected, code);
 }
 
 #[test]
 fn gen_expr_lit_byte_zero() {
-    let result = code("fn f(): UInt8 { return 0u8; }");
+    let sa = sema("fn f(): UInt8 { return 0u8; }");
+    let (_, code) = bc(&sa, "<prog>::f");
     let expected = vec![ConstUInt8(r(0), 0), Ret(r(0))];
-    assert_eq!(expected, result);
+    assert_eq!(expected, code);
 }
 
 #[test]
 fn gen_expr_lit_int_zero() {
-    let result = code("fn f(): Int32 { return 0; }");
+    let sa = sema("fn f(): Int32 { return 0; }");
+    let (_, code) = bc(&sa, "<prog>::f");
     let expected = vec![ConstInt32(r(0), 0), Ret(r(0))];
-    assert_eq!(expected, result);
+    assert_eq!(expected, code);
 }
 
 #[test]
 fn gen_expr_lit_int64_zero() {
-    let result = code("fn f(): Int64 { return 0i64; }");
+    let sa = sema("fn f(): Int64 { return 0i64; }");
+    let (_, code) = bc(&sa, "<prog>::f");
     let expected = vec![ConstInt64(r(0), 0), Ret(r(0))];
-    assert_eq!(expected, result);
+    assert_eq!(expected, code);
 }
 
 #[test]
 fn gen_expr_lit_float32_zero() {
-    let result = code("fn f(): Float32 { return 0f32; }");
+    let sa = sema("fn f(): Float32 { return 0f32; }");
+    let (_, code) = bc(&sa, "<prog>::f");
     let expected = vec![ConstFloat32(r(0), 0.0), Ret(r(0))];
-    assert_eq!(expected, result);
+    assert_eq!(expected, code);
 }
 
 #[test]
 fn gen_expr_lit_float64_zero() {
-    let result = code("fn f(): Float64 { return 0f64; }");
+    let sa = sema("fn f(): Float64 { return 0f64; }");
+    let (_, code) = bc(&sa, "<prog>::f");
     let expected = vec![ConstFloat64(r(0), 0.0), Ret(r(0))];
-    assert_eq!(expected, result);
+    assert_eq!(expected, code);
 }
 
 #[test]
 fn gen_expr_or() {
-    let result = code("fn f(a: Bool, b: Bool): Bool { return a || b; }");
+    let sa = sema("fn f(a: Bool, b: Bool): Bool { return a || b; }");
+    let (_, code) = bc(&sa, "<prog>::f");
     let expected = vec![
         Mov(r(2), r(0)),
         JumpIfTrue(r(2), 3),
         Mov(r(2), r(1)),
         Ret(r(2)),
     ];
-    assert_eq!(expected, result);
+    assert_eq!(expected, code);
 }
 
 #[test]
 fn gen_expr_and() {
-    let result = code("fn f(a: Bool, b: Bool): Bool { return a && b; }");
+    let sa = sema("fn f(a: Bool, b: Bool): Bool { return a && b; }");
+    let (_, code) = bc(&sa, "<prog>::f");
     let expected = vec![
         Mov(r(2), r(0)),
         JumpIfFalse(r(2), 3),
         Mov(r(2), r(1)),
         Ret(r(2)),
     ];
-    assert_eq!(expected, result);
+    assert_eq!(expected, code);
 }
 
 #[test]
 fn gen_int32_neg() {
-    let result = code("fn f(a: Int32): Int32 { return -a; }");
+    let sa = sema("fn f(a: Int32): Int32 { return -a; }");
+    let (_, code) = bc(&sa, "<prog>::f");
     let expected = vec![Neg(r(1), r(0)), Ret(r(1))];
-    assert_eq!(expected, result);
+    assert_eq!(expected, code);
 }
 
 #[test]
 fn gen_int64_neg() {
-    let result = code("fn f(a: Int64): Int64 { return -a; }");
+    let sa = sema("fn f(a: Int64): Int64 { return -a; }");
+    let (_, code) = bc(&sa, "<prog>::f");
     let expected = vec![Neg(r(1), r(0)), Ret(r(1))];
-    assert_eq!(expected, result);
+    assert_eq!(expected, code);
 }
 
 #[test]
 fn gen_expr_not() {
-    let result = code("fn f(a: Bool): Bool { return !a; }");
+    let sa = sema("fn f(a: Bool): Bool { return !a; }");
+    let (_, code) = bc(&sa, "<prog>::f");
     let expected = vec![Not(r(1), r(0)), Ret(r(1))];
-    assert_eq!(expected, result);
+    assert_eq!(expected, code);
 }
 
 #[test]
 fn gen_expr_mod() {
-    let result = code("fn f(a: Int32, b: Int32): Int32 { return a % b; }");
+    let sa = sema("fn f(a: Int32, b: Int32): Int32 { return a % b; }");
+    let (_, code) = bc(&sa, "<prog>::f");
     let expected = vec![Mod(r(2), r(0), r(1)), Ret(r(2))];
-    assert_eq!(expected, result);
+    assert_eq!(expected, code);
 }
 
 #[test]
@@ -764,176 +795,200 @@ fn gen_position_mod_int32() {
 
 #[test]
 fn gen_expr_bit_or() {
-    let result = code("fn f(a: Int32, b: Int32): Int32 { return a | b; }");
+    let sa = sema("fn f(a: Int32, b: Int32): Int32 { return a | b; }");
+    let (_, code) = bc(&sa, "<prog>::f");
     let expected = vec![Or(r(2), r(0), r(1)), Ret(r(2))];
-    assert_eq!(expected, result);
+    assert_eq!(expected, code);
 }
 
 #[test]
 fn gen_expr_bit_and() {
-    let result = code("fn f(a: Int32, b: Int32): Int32 { return a & b; }");
+    let sa = sema("fn f(a: Int32, b: Int32): Int32 { return a & b; }");
+    let (_, code) = bc(&sa, "<prog>::f");
     let expected = vec![And(r(2), r(0), r(1)), Ret(r(2))];
-    assert_eq!(expected, result);
+    assert_eq!(expected, code);
 }
 
 #[test]
 fn gen_expr_bit_xor() {
-    let result = code("fn f(a: Int32, b: Int32): Int32 { return a ^ b; }");
+    let sa = sema("fn f(a: Int32, b: Int32): Int32 { return a ^ b; }");
+    let (_, code) = bc(&sa, "<prog>::f");
     let expected = vec![Xor(r(2), r(0), r(1)), Ret(r(2))];
-    assert_eq!(expected, result);
+    assert_eq!(expected, code);
 }
 
 #[test]
 fn gen_expr_bit_shiftl() {
-    let result = code("fn f(a: Int32, b: Int32): Int32 { return a << b; }");
+    let sa = sema("fn f(a: Int32, b: Int32): Int32 { return a << b; }");
+    let (_, code) = bc(&sa, "<prog>::f");
     let expected = vec![Shl(r(2), r(0), r(1)), Ret(r(2))];
-    assert_eq!(expected, result);
+    assert_eq!(expected, code);
 }
 
 #[test]
 fn gen_expr_bit_shiftr() {
-    let result = code("fn f(a: Int32, b: Int32): Int32 { return a >>> b; }");
+    let sa = sema("fn f(a: Int32, b: Int32): Int32 { return a >>> b; }");
+    let (_, code) = bc(&sa, "<prog>::f");
     let expected = vec![Shr(r(2), r(0), r(1)), Ret(r(2))];
-    assert_eq!(expected, result);
+    assert_eq!(expected, code);
 }
 
 #[test]
 fn gen_expr_bit_ashiftr() {
-    let result = code("fn f(a: Int32, b: Int32): Int32 { return a >> b; }");
+    let sa = sema("fn f(a: Int32, b: Int32): Int32 { return a >> b; }");
+    let (_, code) = bc(&sa, "<prog>::f");
     let expected = vec![Sar(r(2), r(0), r(1)), Ret(r(2))];
-    assert_eq!(expected, result);
+    assert_eq!(expected, code);
 }
 
 #[test]
 fn gen_expr_test_equal_bool() {
-    let result = code("fn f(a: Bool, b: Bool): Bool { return a == b; }");
+    let sa = sema("fn f(a: Bool, b: Bool): Bool { return a == b; }");
+    let (_, code) = bc(&sa, "<prog>::f");
     let expected = vec![TestEq(r(2), r(0), r(1)), Ret(r(2))];
-    assert_eq!(expected, result);
+    assert_eq!(expected, code);
 }
 
 #[test]
 fn gen_expr_test_notequal_bool() {
-    let result = code("fn f(a: Bool, b: Bool): Bool { return a != b; }");
+    let sa = sema("fn f(a: Bool, b: Bool): Bool { return a != b; }");
+    let (_, code) = bc(&sa, "<prog>::f");
     let expected = vec![TestNe(r(2), r(0), r(1)), Ret(r(2))];
-    assert_eq!(expected, result);
+    assert_eq!(expected, code);
 }
 
 #[test]
 fn gen_expr_test_equal_uint8() {
-    let result = code("fn f(a: UInt8, b: UInt8): Bool { return a == b; }");
+    let sa = sema("fn f(a: UInt8, b: UInt8): Bool { return a == b; }");
+    let (_, code) = bc(&sa, "<prog>::f");
     let expected = vec![TestEq(r(2), r(0), r(1)), Ret(r(2))];
-    assert_eq!(expected, result);
+    assert_eq!(expected, code);
 }
 
 #[test]
 fn gen_expr_test_notequal_uint8() {
-    let result = code("fn f(a: UInt8, b: UInt8): Bool { return a != b; }");
+    let sa = sema("fn f(a: UInt8, b: UInt8): Bool { return a != b; }");
+    let (_, code) = bc(&sa, "<prog>::f");
     let expected = vec![TestNe(r(2), r(0), r(1)), Ret(r(2))];
-    assert_eq!(expected, result);
+    assert_eq!(expected, code);
 }
 
 #[test]
 fn gen_expr_test_lessthan_uint8() {
-    let result = code("fn f(a: UInt8, b: UInt8): Bool { return a < b; }");
+    let sa = sema("fn f(a: UInt8, b: UInt8): Bool { return a < b; }");
+    let (_, code) = bc(&sa, "<prog>::f");
     let expected = vec![TestLt(r(2), r(0), r(1)), Ret(r(2))];
-    assert_eq!(expected, result);
+    assert_eq!(expected, code);
 }
 
 #[test]
 fn gen_expr_test_lessthanequal_uint8() {
-    let result = code("fn f(a: UInt8, b: UInt8): Bool { return a <= b; }");
+    let sa = sema("fn f(a: UInt8, b: UInt8): Bool { return a <= b; }");
+    let (_, code) = bc(&sa, "<prog>::f");
     let expected = vec![TestLe(r(2), r(0), r(1)), Ret(r(2))];
-    assert_eq!(expected, result);
+    assert_eq!(expected, code);
 }
 
 #[test]
 fn gen_expr_test_greaterthan_uint8() {
-    let result = code("fn f(a: UInt8, b: UInt8): Bool { return a > b; }");
+    let sa = sema("fn f(a: UInt8, b: UInt8): Bool { return a > b; }");
+    let (_, code) = bc(&sa, "<prog>::f");
     let expected = vec![TestGt(r(2), r(0), r(1)), Ret(r(2))];
-    assert_eq!(expected, result);
+    assert_eq!(expected, code);
 }
 
 #[test]
 fn gen_expr_test_greaterthanequal_uint8() {
-    let result = code("fn f(a: UInt8, b: UInt8): Bool { return a >= b; }");
+    let sa = sema("fn f(a: UInt8, b: UInt8): Bool { return a >= b; }");
+    let (_, code) = bc(&sa, "<prog>::f");
     let expected = vec![TestGe(r(2), r(0), r(1)), Ret(r(2))];
-    assert_eq!(expected, result);
+    assert_eq!(expected, code);
 }
 
 #[test]
 fn gen_expr_test_equal_char() {
-    let result = code("fn f(a: Char, b: Char): Bool { return a == b; }");
+    let sa = sema("fn f(a: Char, b: Char): Bool { return a == b; }");
+    let (_, code) = bc(&sa, "<prog>::f");
     let expected = vec![TestEq(r(2), r(0), r(1)), Ret(r(2))];
-    assert_eq!(expected, result);
+    assert_eq!(expected, code);
 }
 
 #[test]
 fn gen_expr_test_notequal_char() {
-    let result = code("fn f(a: Char, b: Char): Bool { return a != b; }");
+    let sa = sema("fn f(a: Char, b: Char): Bool { return a != b; }");
+    let (_, code) = bc(&sa, "<prog>::f");
     let expected = vec![TestNe(r(2), r(0), r(1)), Ret(r(2))];
-    assert_eq!(expected, result);
+    assert_eq!(expected, code);
 }
 
 #[test]
 fn gen_expr_test_lessthan_char() {
-    let result = code("fn f(a: Char, b: Char): Bool { return a < b; }");
+    let sa = sema("fn f(a: Char, b: Char): Bool { return a < b; }");
+    let (_, code) = bc(&sa, "<prog>::f");
     let expected = vec![TestLt(r(2), r(0), r(1)), Ret(r(2))];
-    assert_eq!(expected, result);
+    assert_eq!(expected, code);
 }
 
 #[test]
 fn gen_expr_test_lessthanequal_char() {
-    let result = code("fn f(a: Char, b: Char): Bool { return a <= b; }");
+    let sa = sema("fn f(a: Char, b: Char): Bool { return a <= b; }");
+    let (_, code) = bc(&sa, "<prog>::f");
     let expected = vec![TestLe(r(2), r(0), r(1)), Ret(r(2))];
-    assert_eq!(expected, result);
+    assert_eq!(expected, code);
 }
 
 #[test]
 fn gen_expr_test_greaterthan_char() {
-    let result = code("fn f(a: Char, b: Char): Bool { return a > b; }");
+    let sa = sema("fn f(a: Char, b: Char): Bool { return a > b; }");
+    let (_, code) = bc(&sa, "<prog>::f");
     let expected = vec![TestGt(r(2), r(0), r(1)), Ret(r(2))];
-    assert_eq!(expected, result);
+    assert_eq!(expected, code);
 }
 
 #[test]
 fn gen_expr_test_greaterthanequal_char() {
-    let result = code("fn f(a: Char, b: Char): Bool { return a >= b; }");
+    let sa = sema("fn f(a: Char, b: Char): Bool { return a >= b; }");
+    let (_, code) = bc(&sa, "<prog>::f");
     let expected = vec![TestGe(r(2), r(0), r(1)), Ret(r(2))];
-    assert_eq!(expected, result);
+    assert_eq!(expected, code);
 }
 
 #[test]
 fn gen_expr_test_equal_enum() {
-    let result = code(
+    let sa = sema(
         "fn f(a: Foo, b: Foo): Bool { return a == b; }
          enum Foo { A, B }",
     );
+    let (_, code) = bc(&sa, "<prog>::f");
     let expected = vec![TestEq(r(2), r(0), r(1)), Ret(r(2))];
-    assert_eq!(expected, result);
+    assert_eq!(expected, code);
 }
 
 #[test]
 fn gen_expr_test_notequal_enum() {
-    let result = code(
+    let sa = sema(
         "fn f(a: Foo, b: Foo): Bool { return a != b; }
          enum Foo { A, B }",
     );
+    let (_, code) = bc(&sa, "<prog>::f");
     let expected = vec![TestNe(r(2), r(0), r(1)), Ret(r(2))];
-    assert_eq!(expected, result);
+    assert_eq!(expected, code);
 }
 
 #[test]
 fn gen_expr_test_equal_int() {
-    let result = code("fn f(a: Int32, b: Int32): Bool { return a == b; }");
+    let sa = sema("fn f(a: Int32, b: Int32): Bool { return a == b; }");
+    let (_, code) = bc(&sa, "<prog>::f");
     let expected = vec![TestEq(r(2), r(0), r(1)), Ret(r(2))];
-    assert_eq!(expected, result);
+    assert_eq!(expected, code);
 }
 
 #[test]
 fn gen_expr_test_notequal_int() {
-    let result = code("fn f(a: Int32, b: Int32): Bool { return a != b; }");
+    let sa = sema("fn f(a: Int32, b: Int32): Bool { return a != b; }");
+    let (_, code) = bc(&sa, "<prog>::f");
     let expected = vec![TestNe(r(2), r(0), r(1)), Ret(r(2))];
-    assert_eq!(expected, result);
+    assert_eq!(expected, code);
 }
 
 #[test]
