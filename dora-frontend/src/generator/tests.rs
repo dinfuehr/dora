@@ -19,14 +19,6 @@ use dora_bytecode::{
     StructId, TraitId,
 };
 
-fn code(code: &'static str) -> Vec<Bytecode> {
-    test::check_valid(code, |sa| {
-        let fct_id = fct_by_name(sa, "f");
-        let fct = generate_fct_id(sa, fct_id);
-        build(&fct)
-    })
-}
-
 fn position(code: &'static str) -> Vec<(u32, u32)> {
     test::check_valid(code, |sa| {
         let fct_id = fct_by_name(sa, "f");
@@ -43,6 +35,7 @@ fn sema(code: &'static str) -> Sema {
     let mut sa = Sema::new(args);
 
     let result = check_program(&mut sa);
+    assert!(!sa.diag.borrow().has_errors());
     assert!(result);
 
     sa
@@ -54,19 +47,6 @@ fn bc(sa: &Sema, path: &str) -> (BytecodeFunction, Vec<Bytecode>) {
     let code = build(&bc_fct);
 
     (bc_fct, code)
-}
-
-fn gen_fct<F>(code: &'static str, testfct: F)
-where
-    F: FnOnce(&Sema, Vec<Bytecode>, BytecodeFunction),
-{
-    test::check_valid(code, |sa| {
-        let fct_id = fct_by_name(sa, "f");
-        let fct = generate_fct_id(sa, fct_id);
-        let code = build(&fct);
-
-        testfct(sa, code, fct);
-    })
 }
 
 #[test]
@@ -306,130 +286,122 @@ fn gen_stmt_var_init() {
 
 #[test]
 fn gen_generic_not() {
-    gen_fct(
-        "fn f[T: std::traits::Not](value: T): T { !value }",
-        |sa, code, fct| {
-            let trait_id = sa.known.traits.not();
-            let fct_id = method_in_trait_by_name(sa, trait_id, "not");
-            let expected = vec![
-                PushRegister(r(0)),
-                InvokeGenericDirect(r(1), ConstPoolIdx(0)),
-                Ret(r(1)),
-            ];
-            assert_eq!(expected, code);
+    let sa = sema("fn f[T: std::traits::Not](value: T): T { !value }");
+    let (fct, code) = bc(&sa, "<prog>::f");
 
-            assert_eq!(
-                fct.const_pool(ConstPoolIdx(0)),
-                &ConstPoolEntry::Generic(
-                    0,
-                    FunctionId(fct_id.index().try_into().expect("overflow")),
-                    BytecodeTypeArray::empty()
-                )
-            );
-        },
+    let trait_id = sa.known.traits.not();
+    let fct_id = method_in_trait_by_name(&sa, trait_id, "not");
+    let expected = vec![
+        PushRegister(r(0)),
+        InvokeGenericDirect(r(1), ConstPoolIdx(0)),
+        Ret(r(1)),
+    ];
+    assert_eq!(expected, code);
+
+    assert_eq!(
+        fct.const_pool(ConstPoolIdx(0)),
+        &ConstPoolEntry::Generic(
+            0,
+            FunctionId(fct_id.index().try_into().expect("overflow")),
+            BytecodeTypeArray::empty()
+        )
     );
 }
 
 #[test]
 fn gen_stmt_let_tuple() {
-    gen_fct(
-        "fn f(value: (Int32, Int32)): Int32 { let (x, y) = value; x+y }",
-        |sa, code, fct| {
-            let tuple_ty = create_tuple(sa, vec![SourceType::Int32, SourceType::Int32]);
-            let expected = vec![
-                LoadTupleElement(r(3), r(0), ConstPoolIdx(0)),
-                Mov(r(1), r(3)),
-                LoadTupleElement(r(3), r(0), ConstPoolIdx(1)),
-                Mov(r(2), r(3)),
-                Add(r(3), r(1), r(2)),
-                Ret(r(3)),
-            ];
-            assert_eq!(expected, code);
+    let sa = sema("fn f(value: (Int32, Int32)): Int32 { let (x, y) = value; x+y }");
+    let (fct, code) = bc(&sa, "<prog>::f");
 
-            assert_eq!(
-                fct.const_pool(ConstPoolIdx(0)),
-                &ConstPoolEntry::TupleElement(bty_from_ty(tuple_ty.clone()), 0)
-            );
+    let tuple_ty = create_tuple(&sa, vec![SourceType::Int32, SourceType::Int32]);
+    let expected = vec![
+        LoadTupleElement(r(3), r(0), ConstPoolIdx(0)),
+        Mov(r(1), r(3)),
+        LoadTupleElement(r(3), r(0), ConstPoolIdx(1)),
+        Mov(r(2), r(3)),
+        Add(r(3), r(1), r(2)),
+        Ret(r(3)),
+    ];
+    assert_eq!(expected, code);
 
-            assert_eq!(
-                fct.const_pool(ConstPoolIdx(1)),
-                &ConstPoolEntry::TupleElement(bty_from_ty(tuple_ty), 1)
-            );
-        },
+    assert_eq!(
+        fct.const_pool(ConstPoolIdx(0)),
+        &ConstPoolEntry::TupleElement(bty_from_ty(tuple_ty.clone()), 0)
     );
 
-    gen_fct(
-        "fn f(value: (Int32, (Int32, Int32))): Int32 { let (x, (y, z)) = value; x+y+z }",
-        |sa, code, fct| {
-            let nested_tuple_ty = create_tuple(sa, vec![SourceType::Int32, SourceType::Int32]);
-            let tuple_ty = create_tuple(sa, vec![SourceType::Int32, nested_tuple_ty.clone()]);
-            let expected = vec![
-                LoadTupleElement(r(4), r(0), ConstPoolIdx(0)),
-                Mov(r(1), r(4)),
-                LoadTupleElement(r(5), r(0), ConstPoolIdx(1)),
-                LoadTupleElement(r(4), r(5), ConstPoolIdx(2)),
-                Mov(r(2), r(4)),
-                LoadTupleElement(r(4), r(5), ConstPoolIdx(3)),
-                Mov(r(3), r(4)),
-                Add(r(6), r(1), r(2)),
-                Add(r(4), r(6), r(3)),
-                Ret(r(4)),
-            ];
-            assert_eq!(expected, code);
-
-            assert_eq!(
-                fct.const_pool(ConstPoolIdx(0)),
-                &ConstPoolEntry::TupleElement(bty_from_ty(tuple_ty.clone()), 0)
-            );
-
-            assert_eq!(
-                fct.const_pool(ConstPoolIdx(1)),
-                &ConstPoolEntry::TupleElement(bty_from_ty(tuple_ty), 1)
-            );
-
-            assert_eq!(
-                fct.const_pool(ConstPoolIdx(2)),
-                &ConstPoolEntry::TupleElement(bty_from_ty(nested_tuple_ty.clone()), 0)
-            );
-
-            assert_eq!(
-                fct.const_pool(ConstPoolIdx(3)),
-                &ConstPoolEntry::TupleElement(bty_from_ty(nested_tuple_ty), 1)
-            );
-        },
+    assert_eq!(
+        fct.const_pool(ConstPoolIdx(1)),
+        &ConstPoolEntry::TupleElement(bty_from_ty(tuple_ty), 1)
     );
 
-    gen_fct(
-        "fn f(value: (Int32, (Int32, Int32))): Int32 { let (x, (_, z)) = value; x+z }",
-        |sa, code, fct| {
-            let nested_tuple_ty = create_tuple(sa, vec![SourceType::Int32, SourceType::Int32]);
-            let tuple_ty = create_tuple(sa, vec![SourceType::Int32, nested_tuple_ty.clone()]);
-            let expected = vec![
-                LoadTupleElement(r(3), r(0), ConstPoolIdx(0)),
-                Mov(r(1), r(3)),
-                LoadTupleElement(r(4), r(0), ConstPoolIdx(1)),
-                LoadTupleElement(r(3), r(4), ConstPoolIdx(2)),
-                Mov(r(2), r(3)),
-                Add(r(3), r(1), r(2)),
-                Ret(r(3)),
-            ];
-            assert_eq!(expected, code);
+    let sa = sema("fn f(value: (Int32, (Int32, Int32))): Int32 { let (x, (y, z)) = value; x+y+z }");
+    let (fct, code) = bc(&sa, "<prog>::f");
 
-            assert_eq!(
-                fct.const_pool(ConstPoolIdx(0)),
-                &ConstPoolEntry::TupleElement(bty_from_ty(tuple_ty.clone()), 0)
-            );
+    let nested_tuple_ty = create_tuple(&sa, vec![SourceType::Int32, SourceType::Int32]);
+    let tuple_ty = create_tuple(&sa, vec![SourceType::Int32, nested_tuple_ty.clone()]);
+    let expected = vec![
+        LoadTupleElement(r(4), r(0), ConstPoolIdx(0)),
+        Mov(r(1), r(4)),
+        LoadTupleElement(r(5), r(0), ConstPoolIdx(1)),
+        LoadTupleElement(r(4), r(5), ConstPoolIdx(2)),
+        Mov(r(2), r(4)),
+        LoadTupleElement(r(4), r(5), ConstPoolIdx(3)),
+        Mov(r(3), r(4)),
+        Add(r(6), r(1), r(2)),
+        Add(r(4), r(6), r(3)),
+        Ret(r(4)),
+    ];
+    assert_eq!(expected, code);
 
-            assert_eq!(
-                fct.const_pool(ConstPoolIdx(1)),
-                &ConstPoolEntry::TupleElement(bty_from_ty(tuple_ty), 1)
-            );
+    assert_eq!(
+        fct.const_pool(ConstPoolIdx(0)),
+        &ConstPoolEntry::TupleElement(bty_from_ty(tuple_ty.clone()), 0)
+    );
 
-            assert_eq!(
-                fct.const_pool(ConstPoolIdx(2)),
-                &ConstPoolEntry::TupleElement(bty_from_ty(nested_tuple_ty), 1)
-            );
-        },
+    assert_eq!(
+        fct.const_pool(ConstPoolIdx(1)),
+        &ConstPoolEntry::TupleElement(bty_from_ty(tuple_ty), 1)
+    );
+
+    assert_eq!(
+        fct.const_pool(ConstPoolIdx(2)),
+        &ConstPoolEntry::TupleElement(bty_from_ty(nested_tuple_ty.clone()), 0)
+    );
+
+    assert_eq!(
+        fct.const_pool(ConstPoolIdx(3)),
+        &ConstPoolEntry::TupleElement(bty_from_ty(nested_tuple_ty), 1)
+    );
+
+    let sa = sema("fn f(value: (Int32, (Int32, Int32))): Int32 { let (x, (_, z)) = value; x+z }");
+    let (fct, code) = bc(&sa, "<prog>::f");
+
+    let nested_tuple_ty = create_tuple(&sa, vec![SourceType::Int32, SourceType::Int32]);
+    let tuple_ty = create_tuple(&sa, vec![SourceType::Int32, nested_tuple_ty.clone()]);
+    let expected = vec![
+        LoadTupleElement(r(3), r(0), ConstPoolIdx(0)),
+        Mov(r(1), r(3)),
+        LoadTupleElement(r(4), r(0), ConstPoolIdx(1)),
+        LoadTupleElement(r(3), r(4), ConstPoolIdx(2)),
+        Mov(r(2), r(3)),
+        Add(r(3), r(1), r(2)),
+        Ret(r(3)),
+    ];
+    assert_eq!(expected, code);
+
+    assert_eq!(
+        fct.const_pool(ConstPoolIdx(0)),
+        &ConstPoolEntry::TupleElement(bty_from_ty(tuple_ty.clone()), 0)
+    );
+
+    assert_eq!(
+        fct.const_pool(ConstPoolIdx(1)),
+        &ConstPoolEntry::TupleElement(bty_from_ty(tuple_ty), 1)
+    );
+
+    assert_eq!(
+        fct.const_pool(ConstPoolIdx(2)),
+        &ConstPoolEntry::TupleElement(bty_from_ty(nested_tuple_ty), 1)
     );
 }
 
@@ -993,133 +965,151 @@ fn gen_expr_test_notequal_int() {
 
 #[test]
 fn gen_expr_test_lessthan_int() {
-    let result = code("fn f(a: Int32, b: Int32): Bool { return a < b; }");
+    let sa = sema("fn f(a: Int32, b: Int32): Bool { return a < b; }");
+    let (_, code) = bc(&sa, "<prog>::f");
     let expected = vec![TestLt(r(2), r(0), r(1)), Ret(r(2))];
-    assert_eq!(expected, result);
+    assert_eq!(expected, code);
 }
 
 #[test]
 fn gen_expr_test_lessthanequal_int() {
-    let result = code("fn f(a: Int32, b: Int32): Bool { return a <= b; }");
+    let sa = sema("fn f(a: Int32, b: Int32): Bool { return a <= b; }");
+    let (_, code) = bc(&sa, "<prog>::f");
     let expected = vec![TestLe(r(2), r(0), r(1)), Ret(r(2))];
-    assert_eq!(expected, result);
+    assert_eq!(expected, code);
 }
 
 #[test]
 fn gen_expr_test_greaterthan_int() {
-    let result = code("fn f(a: Int32, b: Int32): Bool { return a > b; }");
+    let sa = sema("fn f(a: Int32, b: Int32): Bool { return a > b; }");
+    let (_, code) = bc(&sa, "<prog>::f");
     let expected = vec![TestGt(r(2), r(0), r(1)), Ret(r(2))];
-    assert_eq!(expected, result);
+    assert_eq!(expected, code);
 }
 
 #[test]
 fn gen_expr_test_greaterthanequal_int() {
-    let result = code("fn f(a: Int32, b: Int32): Bool { return a >= b; }");
+    let sa = sema("fn f(a: Int32, b: Int32): Bool { return a >= b; }");
+    let (_, code) = bc(&sa, "<prog>::f");
     let expected = vec![TestGe(r(2), r(0), r(1)), Ret(r(2))];
-    assert_eq!(expected, result);
+    assert_eq!(expected, code);
 }
 
 #[test]
 fn gen_expr_test_equal_float32() {
-    let result = code("fn f(a: Float32, b: Float32): Bool { return a == b; }");
+    let sa = sema("fn f(a: Float32, b: Float32): Bool { return a == b; }");
+    let (_, code) = bc(&sa, "<prog>::f");
     let expected = vec![TestEq(r(2), r(0), r(1)), Ret(r(2))];
-    assert_eq!(expected, result);
+    assert_eq!(expected, code);
 }
 
 #[test]
 fn gen_expr_test_notequal_float32() {
-    let result = code("fn f(a: Float32, b: Float32): Bool { return a != b; }");
+    let sa = sema("fn f(a: Float32, b: Float32): Bool { return a != b; }");
+    let (_, code) = bc(&sa, "<prog>::f");
     let expected = vec![TestNe(r(2), r(0), r(1)), Ret(r(2))];
-    assert_eq!(expected, result);
+    assert_eq!(expected, code);
 }
 
 #[test]
 fn gen_expr_test_lessthan_float32() {
-    let result = code("fn f(a: Float32, b: Float32): Bool { return a < b; }");
+    let sa = sema("fn f(a: Float32, b: Float32): Bool { return a < b; }");
+    let (_, code) = bc(&sa, "<prog>::f");
     let expected = vec![TestLt(r(2), r(0), r(1)), Ret(r(2))];
-    assert_eq!(expected, result);
+    assert_eq!(expected, code);
 }
 
 #[test]
 fn gen_expr_test_lessthanequal_float32() {
-    let result = code("fn f(a: Float32, b: Float32): Bool { return a <= b; }");
+    let sa = sema("fn f(a: Float32, b: Float32): Bool { return a <= b; }");
+    let (_, code) = bc(&sa, "<prog>::f");
     let expected = vec![TestLe(r(2), r(0), r(1)), Ret(r(2))];
-    assert_eq!(expected, result);
+    assert_eq!(expected, code);
 }
 
 #[test]
 fn gen_expr_test_greaterthan_float32() {
-    let result = code("fn f(a: Float32, b: Float32): Bool { return a > b; }");
+    let sa = sema("fn f(a: Float32, b: Float32): Bool { return a > b; }");
+    let (_, code) = bc(&sa, "<prog>::f");
     let expected = vec![TestGt(r(2), r(0), r(1)), Ret(r(2))];
-    assert_eq!(expected, result);
+    assert_eq!(expected, code);
 }
 
 #[test]
 fn gen_expr_test_greaterthanequal_float32() {
-    let result = code("fn f(a: Float32, b: Float32): Bool { return a >= b; }");
+    let sa = sema("fn f(a: Float32, b: Float32): Bool { return a >= b; }");
+    let (_, code) = bc(&sa, "<prog>::f");
     let expected = vec![TestGe(r(2), r(0), r(1)), Ret(r(2))];
-    assert_eq!(expected, result);
+    assert_eq!(expected, code);
 }
 
 #[test]
 fn gen_expr_test_equal_float64() {
-    let result = code("fn f(a: Float64, b: Float64): Bool { return a == b; }");
+    let sa = sema("fn f(a: Float64, b: Float64): Bool { return a == b; }");
+    let (_, code) = bc(&sa, "<prog>::f");
     let expected = vec![TestEq(r(2), r(0), r(1)), Ret(r(2))];
-    assert_eq!(expected, result);
+    assert_eq!(expected, code);
 }
 
 #[test]
 fn gen_expr_test_notequal_float64() {
-    let result = code("fn f(a: Float64, b: Float64): Bool { return a != b; }");
+    let sa = sema("fn f(a: Float64, b: Float64): Bool { return a != b; }");
+    let (_, code) = bc(&sa, "<prog>::f");
     let expected = vec![TestNe(r(2), r(0), r(1)), Ret(r(2))];
-    assert_eq!(expected, result);
+    assert_eq!(expected, code);
 }
 
 #[test]
 fn gen_expr_test_lessthan_float64() {
-    let result = code("fn f(a: Float64, b: Float64): Bool { return a < b; }");
+    let sa = sema("fn f(a: Float64, b: Float64): Bool { return a < b; }");
+    let (_, code) = bc(&sa, "<prog>::f");
     let expected = vec![TestLt(r(2), r(0), r(1)), Ret(r(2))];
-    assert_eq!(expected, result);
+    assert_eq!(expected, code);
 }
 
 #[test]
 fn gen_expr_test_lessthanequal_float64() {
-    let result = code("fn f(a: Float64, b: Float64): Bool { return a <= b; }");
+    let sa = sema("fn f(a: Float64, b: Float64): Bool { return a <= b; }");
+    let (_, code) = bc(&sa, "<prog>::f");
     let expected = vec![TestLe(r(2), r(0), r(1)), Ret(r(2))];
-    assert_eq!(expected, result);
+    assert_eq!(expected, code);
 }
 
 #[test]
 fn gen_expr_test_greaterthan_float64() {
-    let result = code("fn f(a: Float64, b: Float64): Bool { return a > b; }");
+    let sa = sema("fn f(a: Float64, b: Float64): Bool { return a > b; }");
+    let (_, code) = bc(&sa, "<prog>::f");
     let expected = vec![TestGt(r(2), r(0), r(1)), Ret(r(2))];
-    assert_eq!(expected, result);
+    assert_eq!(expected, code);
 }
 
 #[test]
 fn gen_expr_test_greaterthanequal_float64() {
-    let result = code("fn f(a: Float64, b: Float64): Bool { return a >= b; }");
+    let sa = sema("fn f(a: Float64, b: Float64): Bool { return a >= b; }");
+    let (_, code) = bc(&sa, "<prog>::f");
     let expected = vec![TestGe(r(2), r(0), r(1)), Ret(r(2))];
-    assert_eq!(expected, result);
+    assert_eq!(expected, code);
 }
 
 #[test]
 fn gen_expr_ident() {
-    let result = code("fn f(): Int32 { let x = 1i32; return x; }");
+    let sa = sema("fn f(): Int32 { let x = 1i32; return x; }");
+    let (_, code) = bc(&sa, "<prog>::f");
     let expected = vec![ConstInt32(r(1), 1), Mov(r(0), r(1)), Ret(r(0))];
-    assert_eq!(expected, result);
+    assert_eq!(expected, code);
 }
 
 #[test]
 fn gen_expr_assign() {
-    let result = code("fn f() { let mut x = 1i32; x = 2i32; }");
+    let sa = sema("fn f() { let mut x = 1i32; x = 2i32; }");
+    let (_, code) = bc(&sa, "<prog>::f");
     let expected = vec![
         ConstInt32(r(1), 1),
         Mov(r(0), r(1)),
         ConstInt32(r(0), 2),
         Ret(r(2)),
     ];
-    assert_eq!(expected, result);
+    assert_eq!(expected, code);
 }
 
 #[test]
@@ -1140,16 +1130,18 @@ fn gen_expr_self_assign() {
 
 #[test]
 fn gen_expr_return() {
-    let result = code("fn f(): Int32 { return 1i32; }");
+    let sa = sema("fn f(): Int32 { return 1i32; }");
+    let (_, code) = bc(&sa, "<prog>::f");
     let expected = vec![ConstInt32(r(0), 1), Ret(r(0))];
-    assert_eq!(expected, result);
+    assert_eq!(expected, code);
 }
 
 #[test]
 fn gen_expr_returnvoid() {
-    let result = code("fn f() { }");
+    let sa = sema("fn f() { }");
+    let (_, code) = bc(&sa, "<prog>::f");
     let expected = vec![Ret(r(0))];
-    assert_eq!(expected, result);
+    assert_eq!(expected, code);
 }
 
 #[test]
@@ -1178,189 +1170,186 @@ fn gen_store_global() {
 
 #[test]
 fn gen_fct_call_void_with_0_args() {
-    gen_fct(
+    let sa = sema(
         "
             fn f() { g(); }
             fn g() { }
             ",
-        |sa, code, fct| {
-            let fct_id = fct_by_name(sa, "g");
-            let expected = vec![InvokeStatic(r(0), ConstPoolIdx(0)), Ret(r(0))];
-            assert_eq!(expected, code);
-            assert_eq!(
-                fct.const_pool(ConstPoolIdx(0)),
-                &ConstPoolEntry::Fct(
-                    FunctionId(fct_id.index().try_into().expect("overflow")),
-                    BytecodeTypeArray::empty()
-                )
-            );
-        },
+    );
+    let (fct, code) = bc(&sa, "<prog>::f");
+
+    let fct_id = fct_by_name(&sa, "g");
+    let expected = vec![InvokeStatic(r(0), ConstPoolIdx(0)), Ret(r(0))];
+    assert_eq!(expected, code);
+    assert_eq!(
+        fct.const_pool(ConstPoolIdx(0)),
+        &ConstPoolEntry::Fct(
+            FunctionId(fct_id.index().try_into().expect("overflow")),
+            BytecodeTypeArray::empty()
+        )
     );
 }
 
 #[test]
 fn gen_fct_call_int_with_0_args() {
-    gen_fct(
+    let sa = sema(
         "
             fn f(): Int32 { return g(); }
             fn g(): Int32 { return 1i32; }
             ",
-        |sa, code, fct| {
-            let fct_id = fct_by_name(sa, "g");
-            let expected = vec![InvokeStatic(r(0), ConstPoolIdx(0)), Ret(r(0))];
-            assert_eq!(expected, code);
-            assert_eq!(
-                fct.const_pool(ConstPoolIdx(0)),
-                &ConstPoolEntry::Fct(
-                    FunctionId(fct_id.index().try_into().expect("overflow")),
-                    BytecodeTypeArray::empty()
-                )
-            );
-        },
+    );
+    let (fct, code) = bc(&sa, "<prog>::f");
+    let fct_id = fct_by_name(&sa, "g");
+    let expected = vec![InvokeStatic(r(0), ConstPoolIdx(0)), Ret(r(0))];
+    assert_eq!(expected, code);
+    assert_eq!(
+        fct.const_pool(ConstPoolIdx(0)),
+        &ConstPoolEntry::Fct(
+            FunctionId(fct_id.index().try_into().expect("overflow")),
+            BytecodeTypeArray::empty()
+        )
     );
 }
 
 #[test]
 fn gen_fct_call_int_with_0_args_and_unused_result() {
-    gen_fct(
+    let sa = sema(
         "
             fn f() { g(); }
             fn g(): Int32 { return 1i32; }
             ",
-        |sa, code, fct| {
-            let fct_id = fct_by_name(sa, "g");
-            let expected = vec![InvokeStatic(r(0), ConstPoolIdx(0)), Ret(r(1))];
-            assert_eq!(expected, code);
-            assert_eq!(
-                fct.const_pool(ConstPoolIdx(0)),
-                &ConstPoolEntry::Fct(
-                    FunctionId(fct_id.index().try_into().expect("overflow")),
-                    BytecodeTypeArray::empty()
-                )
-            );
-        },
+    );
+    let (fct, code) = bc(&sa, "<prog>::f");
+    let fct_id = fct_by_name(&sa, "g");
+    let expected = vec![InvokeStatic(r(0), ConstPoolIdx(0)), Ret(r(1))];
+    assert_eq!(expected, code);
+    assert_eq!(
+        fct.const_pool(ConstPoolIdx(0)),
+        &ConstPoolEntry::Fct(
+            FunctionId(fct_id.index().try_into().expect("overflow")),
+            BytecodeTypeArray::empty()
+        )
     );
 }
 
 #[test]
 fn gen_fct_call_void_with_1_arg() {
-    gen_fct(
+    let sa = sema(
         "
             fn f() { g(1i32); }
             fn g(a: Int32) { }
             ",
-        |sa, code, fct| {
-            let fct_id = fct_by_name(sa, "g");
-            let expected = vec![
-                ConstInt32(r(1), 1),
-                PushRegister(r(1)),
-                InvokeStatic(r(0), ConstPoolIdx(0)),
-                Ret(r(0)),
-            ];
-            assert_eq!(expected, code);
-            assert_eq!(
-                fct.const_pool(ConstPoolIdx(0)),
-                &ConstPoolEntry::Fct(
-                    FunctionId(fct_id.index().try_into().expect("overflow")),
-                    BytecodeTypeArray::empty()
-                )
-            );
-        },
+    );
+    let (fct, code) = bc(&sa, "<prog>::f");
+
+    let fct_id = fct_by_name(&sa, "g");
+    let expected = vec![
+        ConstInt32(r(1), 1),
+        PushRegister(r(1)),
+        InvokeStatic(r(0), ConstPoolIdx(0)),
+        Ret(r(0)),
+    ];
+    assert_eq!(expected, code);
+    assert_eq!(
+        fct.const_pool(ConstPoolIdx(0)),
+        &ConstPoolEntry::Fct(
+            FunctionId(fct_id.index().try_into().expect("overflow")),
+            BytecodeTypeArray::empty()
+        )
     );
 }
 
 #[test]
 fn gen_fct_call_void_with_3_args() {
-    gen_fct(
+    let sa = sema(
         "
             fn f() { g(1i32, 2i32, 3i32); }
             fn g(a: Int32, b: Int32, c: Int32) { }
             ",
-        |sa, code, fct| {
-            let fct_id = fct_by_name(sa, "g");
-            let expected = vec![
-                ConstInt32(r(1), 1),
-                ConstInt32(r(2), 2),
-                ConstInt32(r(3), 3),
-                PushRegister(r(1)),
-                PushRegister(r(2)),
-                PushRegister(r(3)),
-                InvokeStatic(r(0), ConstPoolIdx(0)),
-                Ret(r(0)),
-            ];
-            assert_eq!(expected, code);
-            assert_eq!(
-                fct.const_pool(ConstPoolIdx(0)),
-                &ConstPoolEntry::Fct(
-                    FunctionId(fct_id.index().try_into().expect("overflow")),
-                    BytecodeTypeArray::empty()
-                )
-            );
-        },
+    );
+    let (fct, code) = bc(&sa, "<prog>::f");
+    let fct_id = fct_by_name(&sa, "g");
+    let expected = vec![
+        ConstInt32(r(1), 1),
+        ConstInt32(r(2), 2),
+        ConstInt32(r(3), 3),
+        PushRegister(r(1)),
+        PushRegister(r(2)),
+        PushRegister(r(3)),
+        InvokeStatic(r(0), ConstPoolIdx(0)),
+        Ret(r(0)),
+    ];
+    assert_eq!(expected, code);
+    assert_eq!(
+        fct.const_pool(ConstPoolIdx(0)),
+        &ConstPoolEntry::Fct(
+            FunctionId(fct_id.index().try_into().expect("overflow")),
+            BytecodeTypeArray::empty()
+        )
     );
 }
 
 #[test]
 fn gen_fct_call_int_with_1_arg() {
-    gen_fct(
+    let sa = sema(
         "
             fn f(): Int32 { return g(1i32); }
             fn g(a: Int32): Int32 { return a; }
             ",
-        |sa, code, fct| {
-            let fct_id = fct_by_name(sa, "g");
-            let expected = vec![
-                ConstInt32(r(1), 1),
-                PushRegister(r(1)),
-                InvokeStatic(r(0), ConstPoolIdx(0)),
-                Ret(r(0)),
-            ];
-            assert_eq!(expected, code);
-            assert_eq!(
-                fct.const_pool(ConstPoolIdx(0)),
-                &ConstPoolEntry::Fct(
-                    FunctionId(fct_id.index().try_into().expect("overflow")),
-                    BytecodeTypeArray::empty()
-                )
-            );
-        },
+    );
+    let (fct, code) = bc(&sa, "<prog>::f");
+    let fct_id = fct_by_name(&sa, "g");
+    let expected = vec![
+        ConstInt32(r(1), 1),
+        PushRegister(r(1)),
+        InvokeStatic(r(0), ConstPoolIdx(0)),
+        Ret(r(0)),
+    ];
+    assert_eq!(expected, code);
+    assert_eq!(
+        fct.const_pool(ConstPoolIdx(0)),
+        &ConstPoolEntry::Fct(
+            FunctionId(fct_id.index().try_into().expect("overflow")),
+            BytecodeTypeArray::empty()
+        )
     );
 }
 
 #[test]
 fn gen_fct_call_int_with_3_args() {
-    gen_fct(
+    let sa = sema(
         "
             fn f(): Int32 { return g(1i32, 2i32, 3i32); }
             fn g(a: Int32, b: Int32, c: Int32): Int32 { return 1i32; }
             ",
-        |sa, code, fct| {
-            let fct_id = fct_by_name(sa, "g");
-            let expected = vec![
-                ConstInt32(r(1), 1),
-                ConstInt32(r(2), 2),
-                ConstInt32(r(3), 3),
-                PushRegister(r(1)),
-                PushRegister(r(2)),
-                PushRegister(r(3)),
-                InvokeStatic(r(0), ConstPoolIdx(0)),
-                Ret(r(0)),
-            ];
-            assert_eq!(expected, code);
-            assert_eq!(
-                fct.const_pool(ConstPoolIdx(0)),
-                &ConstPoolEntry::Fct(
-                    FunctionId(fct_id.index().try_into().expect("overflow")),
-                    BytecodeTypeArray::empty()
-                )
-            );
-        },
+    );
+
+    let (fct, code) = bc(&sa, "<prog>::f");
+
+    let fct_id = fct_by_name(&sa, "g");
+    let expected = vec![
+        ConstInt32(r(1), 1),
+        ConstInt32(r(2), 2),
+        ConstInt32(r(3), 3),
+        PushRegister(r(1)),
+        PushRegister(r(2)),
+        PushRegister(r(3)),
+        InvokeStatic(r(0), ConstPoolIdx(0)),
+        Ret(r(0)),
+    ];
+    assert_eq!(expected, code);
+    assert_eq!(
+        fct.const_pool(ConstPoolIdx(0)),
+        &ConstPoolEntry::Fct(
+            FunctionId(fct_id.index().try_into().expect("overflow")),
+            BytecodeTypeArray::empty()
+        )
     );
 }
 
 #[test]
 fn gen_method_call_void_check_correct_self() {
-    gen_fct(
+    let sa = sema(
         "
             fn f(i: Int32, foo: Foo) { foo.g(); }
             class Foo
@@ -1368,28 +1357,27 @@ fn gen_method_call_void_check_correct_self() {
                 fn g() { }
             }
             ",
-        |sa, code, fct| {
-            let fct_id = cls_method_by_name(sa, "Foo", "g", false).expect("g not found");
-            let expected = vec![
-                PushRegister(r(1)),
-                InvokeDirect(r(2), ConstPoolIdx(0)),
-                Ret(r(2)),
-            ];
-            assert_eq!(expected, code);
-            assert_eq!(
-                fct.const_pool(ConstPoolIdx(0)),
-                &ConstPoolEntry::Fct(
-                    FunctionId(fct_id.index().try_into().expect("overflow")),
-                    BytecodeTypeArray::empty()
-                )
-            );
-        },
+    );
+    let (fct, code) = bc(&sa, "<prog>::f");
+    let fct_id = cls_method_by_name(&sa, "Foo", "g", false).expect("g not found");
+    let expected = vec![
+        PushRegister(r(1)),
+        InvokeDirect(r(2), ConstPoolIdx(0)),
+        Ret(r(2)),
+    ];
+    assert_eq!(expected, code);
+    assert_eq!(
+        fct.const_pool(ConstPoolIdx(0)),
+        &ConstPoolEntry::Fct(
+            FunctionId(fct_id.index().try_into().expect("overflow")),
+            BytecodeTypeArray::empty()
+        )
     );
 }
 
 #[test]
 fn gen_method_call_void_with_0_args() {
-    gen_fct(
+    let sa = sema(
         "
             fn f(foo: Foo) { foo.g(); }
             class Foo
@@ -1397,28 +1385,27 @@ fn gen_method_call_void_with_0_args() {
                 fn g() { }
             }
             ",
-        |sa, code, fct| {
-            let fct_id = cls_method_by_name(sa, "Foo", "g", false).expect("g not found");
-            let expected = vec![
-                PushRegister(r(0)),
-                InvokeDirect(r(1), ConstPoolIdx(0)),
-                Ret(r(1)),
-            ];
-            assert_eq!(expected, code);
-            assert_eq!(
-                fct.const_pool(ConstPoolIdx(0)),
-                &ConstPoolEntry::Fct(
-                    FunctionId(fct_id.index().try_into().expect("overflow")),
-                    BytecodeTypeArray::empty()
-                )
-            );
-        },
+    );
+    let (fct, code) = bc(&sa, "<prog>::f");
+    let fct_id = cls_method_by_name(&sa, "Foo", "g", false).expect("g not found");
+    let expected = vec![
+        PushRegister(r(0)),
+        InvokeDirect(r(1), ConstPoolIdx(0)),
+        Ret(r(1)),
+    ];
+    assert_eq!(expected, code);
+    assert_eq!(
+        fct.const_pool(ConstPoolIdx(0)),
+        &ConstPoolEntry::Fct(
+            FunctionId(fct_id.index().try_into().expect("overflow")),
+            BytecodeTypeArray::empty()
+        )
     );
 }
 
 #[test]
 fn gen_method_call_void_with_1_arg() {
-    gen_fct(
+    let sa = sema(
         "
             fn f(foo: Foo) { foo.g(1i32); }
             class Foo
@@ -1426,30 +1413,29 @@ fn gen_method_call_void_with_1_arg() {
                 fn g(a: Int32) { }
             }
             ",
-        |sa, code, fct| {
-            let fct_id = cls_method_by_name(sa, "Foo", "g", false).expect("g not found");
-            let expected = vec![
-                ConstInt32(r(2), 1),
-                PushRegister(r(0)),
-                PushRegister(r(2)),
-                InvokeDirect(r(1), ConstPoolIdx(0)),
-                Ret(r(1)),
-            ];
-            assert_eq!(expected, code);
-            assert_eq!(
-                fct.const_pool(ConstPoolIdx(0)),
-                &ConstPoolEntry::Fct(
-                    FunctionId(fct_id.index().try_into().expect("overflow")),
-                    BytecodeTypeArray::empty()
-                )
-            );
-        },
+    );
+    let (fct, code) = bc(&sa, "<prog>::f");
+    let fct_id = cls_method_by_name(&sa, "Foo", "g", false).expect("g not found");
+    let expected = vec![
+        ConstInt32(r(2), 1),
+        PushRegister(r(0)),
+        PushRegister(r(2)),
+        InvokeDirect(r(1), ConstPoolIdx(0)),
+        Ret(r(1)),
+    ];
+    assert_eq!(expected, code);
+    assert_eq!(
+        fct.const_pool(ConstPoolIdx(0)),
+        &ConstPoolEntry::Fct(
+            FunctionId(fct_id.index().try_into().expect("overflow")),
+            BytecodeTypeArray::empty()
+        )
     );
 }
 
 #[test]
 fn gen_method_call_void_with_3_args() {
-    gen_fct(
+    let sa = sema(
         "
             fn f(foo: Foo) { foo.g(1i32, 2i32, 3i32); }
             class Foo
@@ -1457,34 +1443,33 @@ fn gen_method_call_void_with_3_args() {
                 fn g(a: Int32, b: Int32, c: Int32) { }
             }
             ",
-        |sa, code, fct| {
-            let fct_id = cls_method_by_name(sa, "Foo", "g", false).expect("g not found");
-            let expected = vec![
-                ConstInt32(r(2), 1),
-                ConstInt32(r(3), 2),
-                ConstInt32(r(4), 3),
-                PushRegister(r(0)),
-                PushRegister(r(2)),
-                PushRegister(r(3)),
-                PushRegister(r(4)),
-                InvokeDirect(r(1), ConstPoolIdx(0)),
-                Ret(r(1)),
-            ];
-            assert_eq!(expected, code);
-            assert_eq!(
-                fct.const_pool(ConstPoolIdx(0)),
-                &ConstPoolEntry::Fct(
-                    FunctionId(fct_id.index().try_into().expect("overflow")),
-                    BytecodeTypeArray::empty()
-                )
-            );
-        },
+    );
+    let (fct, code) = bc(&sa, "<prog>::f");
+    let fct_id = cls_method_by_name(&sa, "Foo", "g", false).expect("g not found");
+    let expected = vec![
+        ConstInt32(r(2), 1),
+        ConstInt32(r(3), 2),
+        ConstInt32(r(4), 3),
+        PushRegister(r(0)),
+        PushRegister(r(2)),
+        PushRegister(r(3)),
+        PushRegister(r(4)),
+        InvokeDirect(r(1), ConstPoolIdx(0)),
+        Ret(r(1)),
+    ];
+    assert_eq!(expected, code);
+    assert_eq!(
+        fct.const_pool(ConstPoolIdx(0)),
+        &ConstPoolEntry::Fct(
+            FunctionId(fct_id.index().try_into().expect("overflow")),
+            BytecodeTypeArray::empty()
+        )
     );
 }
 
 #[test]
 fn gen_method_call_bool_with_0_args() {
-    gen_fct(
+    let sa = sema(
         "
             fn f(foo: Foo): Bool { return foo.g(); }
             class Foo
@@ -1492,28 +1477,28 @@ fn gen_method_call_bool_with_0_args() {
                 fn g(): Bool { return true; }
             }
             ",
-        |sa, code, fct| {
-            let fct_id = cls_method_by_name(sa, "Foo", "g", false).expect("g not found");
-            let expected = vec![
-                PushRegister(r(0)),
-                InvokeDirect(r(1), ConstPoolIdx(0)),
-                Ret(r(1)),
-            ];
-            assert_eq!(expected, code);
-            assert_eq!(
-                fct.const_pool(ConstPoolIdx(0)),
-                &ConstPoolEntry::Fct(
-                    FunctionId(fct_id.index().try_into().expect("overflow")),
-                    BytecodeTypeArray::empty()
-                )
-            );
-        },
+    );
+    let (fct, code) = bc(&sa, "<prog>::f");
+
+    let fct_id = cls_method_by_name(&sa, "Foo", "g", false).expect("g not found");
+    let expected = vec![
+        PushRegister(r(0)),
+        InvokeDirect(r(1), ConstPoolIdx(0)),
+        Ret(r(1)),
+    ];
+    assert_eq!(expected, code);
+    assert_eq!(
+        fct.const_pool(ConstPoolIdx(0)),
+        &ConstPoolEntry::Fct(
+            FunctionId(fct_id.index().try_into().expect("overflow")),
+            BytecodeTypeArray::empty()
+        )
     );
 }
 
 #[test]
 fn gen_method_call_bool_with_0_args_and_unused_result() {
-    gen_fct(
+    let sa = sema(
         "
             fn f(foo: Foo) { foo.g(); }
             class Foo
@@ -1521,28 +1506,28 @@ fn gen_method_call_bool_with_0_args_and_unused_result() {
                 fn g(): Bool { return true; }
             }
             ",
-        |sa, code, fct| {
-            let fct_id = cls_method_by_name(sa, "Foo", "g", false).expect("g not found");
-            let expected = vec![
-                PushRegister(r(0)),
-                InvokeDirect(r(1), ConstPoolIdx(0)),
-                Ret(r(2)),
-            ];
-            assert_eq!(expected, code);
-            assert_eq!(
-                fct.const_pool(ConstPoolIdx(0)),
-                &ConstPoolEntry::Fct(
-                    FunctionId(fct_id.index().try_into().expect("overflow")),
-                    BytecodeTypeArray::empty()
-                )
-            );
-        },
+    );
+    let (fct, code) = bc(&sa, "<prog>::f");
+
+    let fct_id = cls_method_by_name(&sa, "Foo", "g", false).expect("g not found");
+    let expected = vec![
+        PushRegister(r(0)),
+        InvokeDirect(r(1), ConstPoolIdx(0)),
+        Ret(r(2)),
+    ];
+    assert_eq!(expected, code);
+    assert_eq!(
+        fct.const_pool(ConstPoolIdx(0)),
+        &ConstPoolEntry::Fct(
+            FunctionId(fct_id.index().try_into().expect("overflow")),
+            BytecodeTypeArray::empty()
+        )
     );
 }
 
 #[test]
 fn gen_method_call_bool_with_1_arg() {
-    gen_fct(
+    let sa = sema(
         "
             fn f(foo: Foo): Bool { return foo.g(true); }
             class Foo
@@ -1550,30 +1535,30 @@ fn gen_method_call_bool_with_1_arg() {
                 fn g(a: Bool): Bool { return true; }
             }
             ",
-        |sa, code, fct| {
-            let fct_id = cls_method_by_name(sa, "Foo", "g", false).expect("g not found");
-            let expected = vec![
-                ConstTrue(r(2)),
-                PushRegister(r(0)),
-                PushRegister(r(2)),
-                InvokeDirect(r(1), ConstPoolIdx(0)),
-                Ret(r(1)),
-            ];
-            assert_eq!(expected, code);
-            assert_eq!(
-                fct.const_pool(ConstPoolIdx(0)),
-                &ConstPoolEntry::Fct(
-                    FunctionId(fct_id.index().try_into().expect("overflow")),
-                    BytecodeTypeArray::empty()
-                )
-            );
-        },
+    );
+    let (fct, code) = bc(&sa, "<prog>::f");
+
+    let fct_id = cls_method_by_name(&sa, "Foo", "g", false).expect("g not found");
+    let expected = vec![
+        ConstTrue(r(2)),
+        PushRegister(r(0)),
+        PushRegister(r(2)),
+        InvokeDirect(r(1), ConstPoolIdx(0)),
+        Ret(r(1)),
+    ];
+    assert_eq!(expected, code);
+    assert_eq!(
+        fct.const_pool(ConstPoolIdx(0)),
+        &ConstPoolEntry::Fct(
+            FunctionId(fct_id.index().try_into().expect("overflow")),
+            BytecodeTypeArray::empty()
+        )
     );
 }
 
 #[test]
 fn gen_method_call_bool_with_3_args() {
-    gen_fct(
+    let sa = sema(
         "
             fn f(foo: Foo): Bool { return foo.g(true, false, true); }
             class Foo
@@ -1581,34 +1566,34 @@ fn gen_method_call_bool_with_3_args() {
                 fn g(a: Bool, b: Bool, c: Bool): Bool { return true; }
             }
             ",
-        |sa, code, fct| {
-            let fct_id = cls_method_by_name(sa, "Foo", "g", false).expect("g not found");
-            let expected = vec![
-                ConstTrue(r(2)),
-                ConstFalse(r(3)),
-                ConstTrue(r(4)),
-                PushRegister(r(0)),
-                PushRegister(r(2)),
-                PushRegister(r(3)),
-                PushRegister(r(4)),
-                InvokeDirect(r(1), ConstPoolIdx(0)),
-                Ret(r(1)),
-            ];
-            assert_eq!(expected, code);
-            assert_eq!(
-                fct.const_pool(ConstPoolIdx(0)),
-                &ConstPoolEntry::Fct(
-                    FunctionId(fct_id.index().try_into().expect("overflow")),
-                    BytecodeTypeArray::empty()
-                )
-            );
-        },
+    );
+    let (fct, code) = bc(&sa, "<prog>::f");
+
+    let fct_id = cls_method_by_name(&sa, "Foo", "g", false).expect("g not found");
+    let expected = vec![
+        ConstTrue(r(2)),
+        ConstFalse(r(3)),
+        ConstTrue(r(4)),
+        PushRegister(r(0)),
+        PushRegister(r(2)),
+        PushRegister(r(3)),
+        PushRegister(r(4)),
+        InvokeDirect(r(1), ConstPoolIdx(0)),
+        Ret(r(1)),
+    ];
+    assert_eq!(expected, code);
+    assert_eq!(
+        fct.const_pool(ConstPoolIdx(0)),
+        &ConstPoolEntry::Fct(
+            FunctionId(fct_id.index().try_into().expect("overflow")),
+            BytecodeTypeArray::empty()
+        )
     );
 }
 
 #[test]
 fn gen_method_call_byte_with_0_args() {
-    gen_fct(
+    let sa = sema(
         "
             fn f(foo: Foo): UInt8 { return foo.g(); }
             class Foo
@@ -1616,28 +1601,28 @@ fn gen_method_call_byte_with_0_args() {
                 fn g(): UInt8 { return 1u8; }
             }
             ",
-        |sa, code, fct| {
-            let fct_id = cls_method_by_name(sa, "Foo", "g", false).expect("g not found");
-            let expected = vec![
-                PushRegister(r(0)),
-                InvokeDirect(r(1), ConstPoolIdx(0)),
-                Ret(r(1)),
-            ];
-            assert_eq!(expected, code);
-            assert_eq!(
-                fct.const_pool(ConstPoolIdx(0)),
-                &ConstPoolEntry::Fct(
-                    FunctionId(fct_id.index().try_into().expect("overflow")),
-                    BytecodeTypeArray::empty()
-                )
-            );
-        },
+    );
+    let (fct, code) = bc(&sa, "<prog>::f");
+
+    let fct_id = cls_method_by_name(&sa, "Foo", "g", false).expect("g not found");
+    let expected = vec![
+        PushRegister(r(0)),
+        InvokeDirect(r(1), ConstPoolIdx(0)),
+        Ret(r(1)),
+    ];
+    assert_eq!(expected, code);
+    assert_eq!(
+        fct.const_pool(ConstPoolIdx(0)),
+        &ConstPoolEntry::Fct(
+            FunctionId(fct_id.index().try_into().expect("overflow")),
+            BytecodeTypeArray::empty()
+        )
     );
 }
 
 #[test]
 fn gen_method_call_byte_with_0_args_and_unused_result() {
-    gen_fct(
+    let sa = sema(
         "
             fn f(foo: Foo) { foo.g(); }
             class Foo
@@ -1645,28 +1630,28 @@ fn gen_method_call_byte_with_0_args_and_unused_result() {
                 fn g(): UInt8 { return 1u8; }
             }
             ",
-        |sa, code, fct| {
-            let fct_id = cls_method_by_name(sa, "Foo", "g", false).expect("g not found");
-            let expected = vec![
-                PushRegister(r(0)),
-                InvokeDirect(r(1), ConstPoolIdx(0)),
-                Ret(r(2)),
-            ];
-            assert_eq!(expected, code);
-            assert_eq!(
-                fct.const_pool(ConstPoolIdx(0)),
-                &ConstPoolEntry::Fct(
-                    FunctionId(fct_id.index().try_into().expect("overflow")),
-                    BytecodeTypeArray::empty()
-                )
-            );
-        },
+    );
+    let (fct, code) = bc(&sa, "<prog>::f");
+
+    let fct_id = cls_method_by_name(&sa, "Foo", "g", false).expect("g not found");
+    let expected = vec![
+        PushRegister(r(0)),
+        InvokeDirect(r(1), ConstPoolIdx(0)),
+        Ret(r(2)),
+    ];
+    assert_eq!(expected, code);
+    assert_eq!(
+        fct.const_pool(ConstPoolIdx(0)),
+        &ConstPoolEntry::Fct(
+            FunctionId(fct_id.index().try_into().expect("overflow")),
+            BytecodeTypeArray::empty()
+        )
     );
 }
 
 #[test]
 fn gen_method_call_byte_with_1_arg() {
-    gen_fct(
+    let sa = sema(
         "
             fn f(foo: Foo): UInt8 { return foo.g(1u8); }
             class Foo
@@ -1674,30 +1659,30 @@ fn gen_method_call_byte_with_1_arg() {
                 fn g(a: UInt8): UInt8 { return 1u8; }
             }
             ",
-        |sa, code, fct| {
-            let fct_id = cls_method_by_name(sa, "Foo", "g", false).expect("g not found");
-            let expected = vec![
-                ConstUInt8(r(2), 1),
-                PushRegister(r(0)),
-                PushRegister(r(2)),
-                InvokeDirect(r(1), ConstPoolIdx(0)),
-                Ret(r(1)),
-            ];
-            assert_eq!(expected, code);
-            assert_eq!(
-                fct.const_pool(ConstPoolIdx(0)),
-                &ConstPoolEntry::Fct(
-                    FunctionId(fct_id.index().try_into().expect("overflow")),
-                    BytecodeTypeArray::empty()
-                )
-            );
-        },
+    );
+    let (fct, code) = bc(&sa, "<prog>::f");
+
+    let fct_id = cls_method_by_name(&sa, "Foo", "g", false).expect("g not found");
+    let expected = vec![
+        ConstUInt8(r(2), 1),
+        PushRegister(r(0)),
+        PushRegister(r(2)),
+        InvokeDirect(r(1), ConstPoolIdx(0)),
+        Ret(r(1)),
+    ];
+    assert_eq!(expected, code);
+    assert_eq!(
+        fct.const_pool(ConstPoolIdx(0)),
+        &ConstPoolEntry::Fct(
+            FunctionId(fct_id.index().try_into().expect("overflow")),
+            BytecodeTypeArray::empty()
+        )
     );
 }
 
 #[test]
 fn gen_method_call_byte_with_3_args() {
-    gen_fct(
+    let sa = sema(
         "
             fn f(foo: Foo): UInt8 { return foo.g(1u8, 2u8, 3u8); }
             class Foo
@@ -1705,34 +1690,34 @@ fn gen_method_call_byte_with_3_args() {
                 fn g(a: UInt8, b: UInt8, c: UInt8): UInt8 { return 1u8; }
             }
             ",
-        |sa, code, fct| {
-            let fct_id = cls_method_by_name(sa, "Foo", "g", false).expect("g not found");
-            let expected = vec![
-                ConstUInt8(r(2), 1),
-                ConstUInt8(r(3), 2),
-                ConstUInt8(r(4), 3),
-                PushRegister(r(0)),
-                PushRegister(r(2)),
-                PushRegister(r(3)),
-                PushRegister(r(4)),
-                InvokeDirect(r(1), ConstPoolIdx(0)),
-                Ret(r(1)),
-            ];
-            assert_eq!(expected, code);
-            assert_eq!(
-                fct.const_pool(ConstPoolIdx(0)),
-                &ConstPoolEntry::Fct(
-                    FunctionId(fct_id.index().try_into().expect("overflow")),
-                    BytecodeTypeArray::empty()
-                )
-            );
-        },
+    );
+    let (fct, code) = bc(&sa, "<prog>::f");
+
+    let fct_id = cls_method_by_name(&sa, "Foo", "g", false).expect("g not found");
+    let expected = vec![
+        ConstUInt8(r(2), 1),
+        ConstUInt8(r(3), 2),
+        ConstUInt8(r(4), 3),
+        PushRegister(r(0)),
+        PushRegister(r(2)),
+        PushRegister(r(3)),
+        PushRegister(r(4)),
+        InvokeDirect(r(1), ConstPoolIdx(0)),
+        Ret(r(1)),
+    ];
+    assert_eq!(expected, code);
+    assert_eq!(
+        fct.const_pool(ConstPoolIdx(0)),
+        &ConstPoolEntry::Fct(
+            FunctionId(fct_id.index().try_into().expect("overflow")),
+            BytecodeTypeArray::empty()
+        )
     );
 }
 
 #[test]
 fn gen_method_call_char_with_0_args() {
-    gen_fct(
+    let sa = sema(
         "
             fn f(foo: Foo): Char { return foo.g(); }
             class Foo
@@ -1740,28 +1725,28 @@ fn gen_method_call_char_with_0_args() {
                 fn g(): Char { return '1'; }
             }
             ",
-        |sa, code, fct| {
-            let fct_id = cls_method_by_name(sa, "Foo", "g", false).expect("g not found");
-            let expected = vec![
-                PushRegister(r(0)),
-                InvokeDirect(r(1), ConstPoolIdx(0)),
-                Ret(r(1)),
-            ];
-            assert_eq!(expected, code);
-            assert_eq!(
-                fct.const_pool(ConstPoolIdx(0)),
-                &ConstPoolEntry::Fct(
-                    FunctionId(fct_id.index().try_into().expect("overflow")),
-                    BytecodeTypeArray::empty()
-                )
-            );
-        },
+    );
+    let (fct, code) = bc(&sa, "<prog>::f");
+
+    let fct_id = cls_method_by_name(&sa, "Foo", "g", false).expect("g not found");
+    let expected = vec![
+        PushRegister(r(0)),
+        InvokeDirect(r(1), ConstPoolIdx(0)),
+        Ret(r(1)),
+    ];
+    assert_eq!(expected, code);
+    assert_eq!(
+        fct.const_pool(ConstPoolIdx(0)),
+        &ConstPoolEntry::Fct(
+            FunctionId(fct_id.index().try_into().expect("overflow")),
+            BytecodeTypeArray::empty()
+        )
     );
 }
 
 #[test]
 fn gen_method_call_char_with_0_args_and_unused_result() {
-    gen_fct(
+    let sa = sema(
         "
             fn f(foo: Foo) { foo.g(); }
             class Foo
@@ -1769,28 +1754,28 @@ fn gen_method_call_char_with_0_args_and_unused_result() {
                 fn g(): Char { return '1'; }
             }
             ",
-        |sa, code, fct| {
-            let fct_id = cls_method_by_name(sa, "Foo", "g", false).expect("g not found");
-            let expected = vec![
-                PushRegister(r(0)),
-                InvokeDirect(r(1), ConstPoolIdx(0)),
-                Ret(r(2)),
-            ];
-            assert_eq!(expected, code);
-            assert_eq!(
-                fct.const_pool(ConstPoolIdx(0)),
-                &ConstPoolEntry::Fct(
-                    FunctionId(fct_id.index().try_into().expect("overflow")),
-                    BytecodeTypeArray::empty()
-                )
-            );
-        },
+    );
+    let (fct, code) = bc(&sa, "<prog>::f");
+
+    let fct_id = cls_method_by_name(&sa, "Foo", "g", false).expect("g not found");
+    let expected = vec![
+        PushRegister(r(0)),
+        InvokeDirect(r(1), ConstPoolIdx(0)),
+        Ret(r(2)),
+    ];
+    assert_eq!(expected, code);
+    assert_eq!(
+        fct.const_pool(ConstPoolIdx(0)),
+        &ConstPoolEntry::Fct(
+            FunctionId(fct_id.index().try_into().expect("overflow")),
+            BytecodeTypeArray::empty()
+        )
     );
 }
 
 #[test]
 fn gen_method_call_char_with_1_arg() {
-    gen_fct(
+    let sa = sema(
         "
             fn f(foo: Foo): Char { return foo.g('1'); }
             class Foo
@@ -1798,30 +1783,30 @@ fn gen_method_call_char_with_1_arg() {
                 fn g(a: Char): Char { return '1'; }
             }
             ",
-        |sa, code, fct| {
-            let fct_id = cls_method_by_name(sa, "Foo", "g", false).expect("g not found");
-            let expected = vec![
-                ConstChar(r(2), '1'),
-                PushRegister(r(0)),
-                PushRegister(r(2)),
-                InvokeDirect(r(1), ConstPoolIdx(0)),
-                Ret(r(1)),
-            ];
-            assert_eq!(expected, code);
-            assert_eq!(
-                fct.const_pool(ConstPoolIdx(0)),
-                &ConstPoolEntry::Fct(
-                    FunctionId(fct_id.index().try_into().expect("overflow")),
-                    BytecodeTypeArray::empty()
-                )
-            );
-        },
+    );
+    let (fct, code) = bc(&sa, "<prog>::f");
+
+    let fct_id = cls_method_by_name(&sa, "Foo", "g", false).expect("g not found");
+    let expected = vec![
+        ConstChar(r(2), '1'),
+        PushRegister(r(0)),
+        PushRegister(r(2)),
+        InvokeDirect(r(1), ConstPoolIdx(0)),
+        Ret(r(1)),
+    ];
+    assert_eq!(expected, code);
+    assert_eq!(
+        fct.const_pool(ConstPoolIdx(0)),
+        &ConstPoolEntry::Fct(
+            FunctionId(fct_id.index().try_into().expect("overflow")),
+            BytecodeTypeArray::empty()
+        )
     );
 }
 
 #[test]
 fn gen_method_call_char_with_3_args() {
-    gen_fct(
+    let sa = sema(
         "
             fn f(foo: Foo): Char { return foo.g('1', '2', '3'); }
             class Foo
@@ -1829,34 +1814,34 @@ fn gen_method_call_char_with_3_args() {
                 fn g(a: Char, b: Char, c: Char): Char { return '1'; }
             }
             ",
-        |sa, code, fct| {
-            let fct_id = cls_method_by_name(sa, "Foo", "g", false).expect("g not found");
-            let expected = vec![
-                ConstChar(r(2), '1'),
-                ConstChar(r(3), '2'),
-                ConstChar(r(4), '3'),
-                PushRegister(r(0)),
-                PushRegister(r(2)),
-                PushRegister(r(3)),
-                PushRegister(r(4)),
-                InvokeDirect(r(1), ConstPoolIdx(0)),
-                Ret(r(1)),
-            ];
-            assert_eq!(expected, code);
-            assert_eq!(
-                fct.const_pool(ConstPoolIdx(0)),
-                &ConstPoolEntry::Fct(
-                    FunctionId(fct_id.index().try_into().expect("overflow")),
-                    BytecodeTypeArray::empty()
-                )
-            );
-        },
+    );
+    let (fct, code) = bc(&sa, "<prog>::f");
+
+    let fct_id = cls_method_by_name(&sa, "Foo", "g", false).expect("g not found");
+    let expected = vec![
+        ConstChar(r(2), '1'),
+        ConstChar(r(3), '2'),
+        ConstChar(r(4), '3'),
+        PushRegister(r(0)),
+        PushRegister(r(2)),
+        PushRegister(r(3)),
+        PushRegister(r(4)),
+        InvokeDirect(r(1), ConstPoolIdx(0)),
+        Ret(r(1)),
+    ];
+    assert_eq!(expected, code);
+    assert_eq!(
+        fct.const_pool(ConstPoolIdx(0)),
+        &ConstPoolEntry::Fct(
+            FunctionId(fct_id.index().try_into().expect("overflow")),
+            BytecodeTypeArray::empty()
+        )
     );
 }
 
 #[test]
 fn gen_method_call_int_with_0_args() {
-    gen_fct(
+    let sa = sema(
         "
             fn f(foo: Foo): Int32 { return foo.g(); }
             class Foo
@@ -1864,28 +1849,28 @@ fn gen_method_call_int_with_0_args() {
                 fn g(): Int32 { return 1; }
             }
             ",
-        |sa, code, fct| {
-            let fct_id = cls_method_by_name(sa, "Foo", "g", false).expect("g not found");
-            let expected = vec![
-                PushRegister(r(0)),
-                InvokeDirect(r(1), ConstPoolIdx(0)),
-                Ret(r(1)),
-            ];
-            assert_eq!(expected, code);
-            assert_eq!(
-                fct.const_pool(ConstPoolIdx(0)),
-                &ConstPoolEntry::Fct(
-                    FunctionId(fct_id.index().try_into().expect("overflow")),
-                    BytecodeTypeArray::empty()
-                )
-            );
-        },
+    );
+    let (fct, code) = bc(&sa, "<prog>::f");
+
+    let fct_id = cls_method_by_name(&sa, "Foo", "g", false).expect("g not found");
+    let expected = vec![
+        PushRegister(r(0)),
+        InvokeDirect(r(1), ConstPoolIdx(0)),
+        Ret(r(1)),
+    ];
+    assert_eq!(expected, code);
+    assert_eq!(
+        fct.const_pool(ConstPoolIdx(0)),
+        &ConstPoolEntry::Fct(
+            FunctionId(fct_id.index().try_into().expect("overflow")),
+            BytecodeTypeArray::empty()
+        )
     );
 }
 
 #[test]
 fn gen_method_call_int_with_0_args_and_unused_result() {
-    gen_fct(
+    let sa = sema(
         "
             fn f(foo: Foo) { foo.g(); }
             class Foo
@@ -1893,28 +1878,28 @@ fn gen_method_call_int_with_0_args_and_unused_result() {
                 fn g(): Int32 { return 1; }
             }
             ",
-        |sa, code, fct| {
-            let fct_id = cls_method_by_name(sa, "Foo", "g", false).expect("g not found");
-            let expected = vec![
-                PushRegister(r(0)),
-                InvokeDirect(r(1), ConstPoolIdx(0)),
-                Ret(r(2)),
-            ];
-            assert_eq!(expected, code);
-            assert_eq!(
-                fct.const_pool(ConstPoolIdx(0)),
-                &ConstPoolEntry::Fct(
-                    FunctionId(fct_id.index().try_into().expect("overflow")),
-                    BytecodeTypeArray::empty()
-                )
-            );
-        },
+    );
+    let (fct, code) = bc(&sa, "<prog>::f");
+
+    let fct_id = cls_method_by_name(&sa, "Foo", "g", false).expect("g not found");
+    let expected = vec![
+        PushRegister(r(0)),
+        InvokeDirect(r(1), ConstPoolIdx(0)),
+        Ret(r(2)),
+    ];
+    assert_eq!(expected, code);
+    assert_eq!(
+        fct.const_pool(ConstPoolIdx(0)),
+        &ConstPoolEntry::Fct(
+            FunctionId(fct_id.index().try_into().expect("overflow")),
+            BytecodeTypeArray::empty()
+        )
     );
 }
 
 #[test]
 fn gen_method_call_int_with_1_arg() {
-    gen_fct(
+    let sa = sema(
         "
             fn f(foo: Foo): Int32 { return foo.g(1i32); }
             class Foo
@@ -1922,30 +1907,30 @@ fn gen_method_call_int_with_1_arg() {
                 fn g(a: Int32): Int32 { return 1i32; }
             }
             ",
-        |sa, code, fct| {
-            let fct_id = cls_method_by_name(sa, "Foo", "g", false).expect("g not found");
-            let expected = vec![
-                ConstInt32(r(2), 1),
-                PushRegister(r(0)),
-                PushRegister(r(2)),
-                InvokeDirect(r(1), ConstPoolIdx(0)),
-                Ret(r(1)),
-            ];
-            assert_eq!(expected, code);
-            assert_eq!(
-                fct.const_pool(ConstPoolIdx(0)),
-                &ConstPoolEntry::Fct(
-                    FunctionId(fct_id.index().try_into().expect("overflow")),
-                    BytecodeTypeArray::empty()
-                )
-            );
-        },
+    );
+    let (fct, code) = bc(&sa, "<prog>::f");
+
+    let fct_id = cls_method_by_name(&sa, "Foo", "g", false).expect("g not found");
+    let expected = vec![
+        ConstInt32(r(2), 1),
+        PushRegister(r(0)),
+        PushRegister(r(2)),
+        InvokeDirect(r(1), ConstPoolIdx(0)),
+        Ret(r(1)),
+    ];
+    assert_eq!(expected, code);
+    assert_eq!(
+        fct.const_pool(ConstPoolIdx(0)),
+        &ConstPoolEntry::Fct(
+            FunctionId(fct_id.index().try_into().expect("overflow")),
+            BytecodeTypeArray::empty()
+        )
     );
 }
 
 #[test]
 fn gen_method_call_int_with_3_args() {
-    gen_fct(
+    let sa = sema(
         "
             fn f(foo: Foo): Int32 { return foo.g(1i32, 2i32, 3i32); }
             class Foo
@@ -1953,34 +1938,34 @@ fn gen_method_call_int_with_3_args() {
                 fn g(a: Int32, b: Int32, c: Int32): Int32 { return 1i32; }
             }
             ",
-        |sa, code, fct| {
-            let fct_id = cls_method_by_name(sa, "Foo", "g", false).expect("g not found");
-            let expected = vec![
-                ConstInt32(r(2), 1),
-                ConstInt32(r(3), 2),
-                ConstInt32(r(4), 3),
-                PushRegister(r(0)),
-                PushRegister(r(2)),
-                PushRegister(r(3)),
-                PushRegister(r(4)),
-                InvokeDirect(r(1), ConstPoolIdx(0)),
-                Ret(r(1)),
-            ];
-            assert_eq!(expected, code);
-            assert_eq!(
-                fct.const_pool(ConstPoolIdx(0)),
-                &ConstPoolEntry::Fct(
-                    FunctionId(fct_id.index().try_into().expect("overflow")),
-                    BytecodeTypeArray::empty()
-                )
-            );
-        },
+    );
+    let (fct, code) = bc(&sa, "<prog>::f");
+
+    let fct_id = cls_method_by_name(&sa, "Foo", "g", false).expect("g not found");
+    let expected = vec![
+        ConstInt32(r(2), 1),
+        ConstInt32(r(3), 2),
+        ConstInt32(r(4), 3),
+        PushRegister(r(0)),
+        PushRegister(r(2)),
+        PushRegister(r(3)),
+        PushRegister(r(4)),
+        InvokeDirect(r(1), ConstPoolIdx(0)),
+        Ret(r(1)),
+    ];
+    assert_eq!(expected, code);
+    assert_eq!(
+        fct.const_pool(ConstPoolIdx(0)),
+        &ConstPoolEntry::Fct(
+            FunctionId(fct_id.index().try_into().expect("overflow")),
+            BytecodeTypeArray::empty()
+        )
     );
 }
 
 #[test]
 fn gen_method_call_int64_with_0_args() {
-    gen_fct(
+    let sa = sema(
         "
             fn f(foo: Foo): Int64 { return foo.g(); }
             class Foo
@@ -1988,28 +1973,28 @@ fn gen_method_call_int64_with_0_args() {
                 fn g(): Int64 { return 1i64; }
             }
             ",
-        |sa, code, fct| {
-            let fct_id = cls_method_by_name(sa, "Foo", "g", false).expect("g not found");
-            let expected = vec![
-                PushRegister(r(0)),
-                InvokeDirect(r(1), ConstPoolIdx(0)),
-                Ret(r(1)),
-            ];
-            assert_eq!(expected, code);
-            assert_eq!(
-                fct.const_pool(ConstPoolIdx(0)),
-                &ConstPoolEntry::Fct(
-                    FunctionId(fct_id.index().try_into().expect("overflow")),
-                    BytecodeTypeArray::empty()
-                )
-            );
-        },
+    );
+    let (fct, code) = bc(&sa, "<prog>::f");
+
+    let fct_id = cls_method_by_name(&sa, "Foo", "g", false).expect("g not found");
+    let expected = vec![
+        PushRegister(r(0)),
+        InvokeDirect(r(1), ConstPoolIdx(0)),
+        Ret(r(1)),
+    ];
+    assert_eq!(expected, code);
+    assert_eq!(
+        fct.const_pool(ConstPoolIdx(0)),
+        &ConstPoolEntry::Fct(
+            FunctionId(fct_id.index().try_into().expect("overflow")),
+            BytecodeTypeArray::empty()
+        )
     );
 }
 
 #[test]
 fn gen_method_call_int64_with_0_args_and_unused_result() {
-    gen_fct(
+    let sa = sema(
         "
             fn f(foo: Foo) { foo.g(); }
             class Foo
@@ -2017,28 +2002,28 @@ fn gen_method_call_int64_with_0_args_and_unused_result() {
                 fn g(): Int64 { return 1i64; }
             }
             ",
-        |sa, code, fct| {
-            let fct_id = cls_method_by_name(sa, "Foo", "g", false).expect("g not found");
-            let expected = vec![
-                PushRegister(r(0)),
-                InvokeDirect(r(1), ConstPoolIdx(0)),
-                Ret(r(2)),
-            ];
-            assert_eq!(expected, code);
-            assert_eq!(
-                fct.const_pool(ConstPoolIdx(0)),
-                &ConstPoolEntry::Fct(
-                    FunctionId(fct_id.index().try_into().expect("overflow")),
-                    BytecodeTypeArray::empty()
-                )
-            );
-        },
+    );
+    let (fct, code) = bc(&sa, "<prog>::f");
+
+    let fct_id = cls_method_by_name(&sa, "Foo", "g", false).expect("g not found");
+    let expected = vec![
+        PushRegister(r(0)),
+        InvokeDirect(r(1), ConstPoolIdx(0)),
+        Ret(r(2)),
+    ];
+    assert_eq!(expected, code);
+    assert_eq!(
+        fct.const_pool(ConstPoolIdx(0)),
+        &ConstPoolEntry::Fct(
+            FunctionId(fct_id.index().try_into().expect("overflow")),
+            BytecodeTypeArray::empty()
+        )
     );
 }
 
 #[test]
 fn gen_method_call_int64_with_1_arg() {
-    gen_fct(
+    let sa = sema(
         "
             fn f(foo: Foo): Int64 { return foo.g(1i64); }
             class Foo
@@ -2046,30 +2031,30 @@ fn gen_method_call_int64_with_1_arg() {
                 fn g(a: Int64): Int64 { return 1i64; }
             }
             ",
-        |sa, code, fct| {
-            let fct_id = cls_method_by_name(sa, "Foo", "g", false).expect("g not found");
-            let expected = vec![
-                ConstInt64(r(2), 1),
-                PushRegister(r(0)),
-                PushRegister(r(2)),
-                InvokeDirect(r(1), ConstPoolIdx(0)),
-                Ret(r(1)),
-            ];
-            assert_eq!(expected, code);
-            assert_eq!(
-                fct.const_pool(ConstPoolIdx(0)),
-                &ConstPoolEntry::Fct(
-                    FunctionId(fct_id.index().try_into().expect("overflow")),
-                    BytecodeTypeArray::empty()
-                )
-            );
-        },
+    );
+    let (fct, code) = bc(&sa, "<prog>::f");
+
+    let fct_id = cls_method_by_name(&sa, "Foo", "g", false).expect("g not found");
+    let expected = vec![
+        ConstInt64(r(2), 1),
+        PushRegister(r(0)),
+        PushRegister(r(2)),
+        InvokeDirect(r(1), ConstPoolIdx(0)),
+        Ret(r(1)),
+    ];
+    assert_eq!(expected, code);
+    assert_eq!(
+        fct.const_pool(ConstPoolIdx(0)),
+        &ConstPoolEntry::Fct(
+            FunctionId(fct_id.index().try_into().expect("overflow")),
+            BytecodeTypeArray::empty()
+        )
     );
 }
 
 #[test]
 fn gen_method_call_int64_with_3_args() {
-    gen_fct(
+    let sa = sema(
         "
             fn f(foo: Foo): Int64 { return foo.g(1i64, 2i64, 3i64); }
             class Foo
@@ -2077,34 +2062,34 @@ fn gen_method_call_int64_with_3_args() {
                 fn g(a: Int64, b: Int64, c: Int64): Int64 { return 1i64; }
             }
             ",
-        |sa, code, fct| {
-            let fct_id = cls_method_by_name(sa, "Foo", "g", false).expect("g not found");
-            let expected = vec![
-                ConstInt64(r(2), 1),
-                ConstInt64(r(3), 2),
-                ConstInt64(r(4), 3),
-                PushRegister(r(0)),
-                PushRegister(r(2)),
-                PushRegister(r(3)),
-                PushRegister(r(4)),
-                InvokeDirect(r(1), ConstPoolIdx(0)),
-                Ret(r(1)),
-            ];
-            assert_eq!(expected, code);
-            assert_eq!(
-                fct.const_pool(ConstPoolIdx(0)),
-                &ConstPoolEntry::Fct(
-                    FunctionId(fct_id.index().try_into().expect("overflow")),
-                    BytecodeTypeArray::empty()
-                )
-            );
-        },
+    );
+    let (fct, code) = bc(&sa, "<prog>::f");
+
+    let fct_id = cls_method_by_name(&sa, "Foo", "g", false).expect("g not found");
+    let expected = vec![
+        ConstInt64(r(2), 1),
+        ConstInt64(r(3), 2),
+        ConstInt64(r(4), 3),
+        PushRegister(r(0)),
+        PushRegister(r(2)),
+        PushRegister(r(3)),
+        PushRegister(r(4)),
+        InvokeDirect(r(1), ConstPoolIdx(0)),
+        Ret(r(1)),
+    ];
+    assert_eq!(expected, code);
+    assert_eq!(
+        fct.const_pool(ConstPoolIdx(0)),
+        &ConstPoolEntry::Fct(
+            FunctionId(fct_id.index().try_into().expect("overflow")),
+            BytecodeTypeArray::empty()
+        )
     );
 }
 
 #[test]
 fn gen_method_call_float32_with_0_args() {
-    gen_fct(
+    let sa = sema(
         "
             fn f(foo: Foo): Float32 { return foo.g(); }
             class Foo
@@ -2112,28 +2097,28 @@ fn gen_method_call_float32_with_0_args() {
                 fn g(): Float32 { return 1f32; }
             }
             ",
-        |sa, code, fct| {
-            let fct_id = cls_method_by_name(sa, "Foo", "g", false).expect("g not found");
-            let expected = vec![
-                PushRegister(r(0)),
-                InvokeDirect(r(1), ConstPoolIdx(0)),
-                Ret(r(1)),
-            ];
-            assert_eq!(expected, code);
-            assert_eq!(
-                fct.const_pool(ConstPoolIdx(0)),
-                &ConstPoolEntry::Fct(
-                    FunctionId(fct_id.index().try_into().expect("overflow")),
-                    BytecodeTypeArray::empty()
-                )
-            );
-        },
+    );
+    let (fct, code) = bc(&sa, "<prog>::f");
+
+    let fct_id = cls_method_by_name(&sa, "Foo", "g", false).expect("g not found");
+    let expected = vec![
+        PushRegister(r(0)),
+        InvokeDirect(r(1), ConstPoolIdx(0)),
+        Ret(r(1)),
+    ];
+    assert_eq!(expected, code);
+    assert_eq!(
+        fct.const_pool(ConstPoolIdx(0)),
+        &ConstPoolEntry::Fct(
+            FunctionId(fct_id.index().try_into().expect("overflow")),
+            BytecodeTypeArray::empty()
+        )
     );
 }
 
 #[test]
 fn gen_method_call_float32_with_0_args_and_unused_result() {
-    gen_fct(
+    let sa = sema(
         "
             fn f(foo: Foo) { foo.g(); }
             class Foo
@@ -2141,28 +2126,28 @@ fn gen_method_call_float32_with_0_args_and_unused_result() {
                 fn g(): Float32 { return 1f32; }
             }
             ",
-        |sa, code, fct| {
-            let fct_id = cls_method_by_name(sa, "Foo", "g", false).expect("g not found");
-            let expected = vec![
-                PushRegister(r(0)),
-                InvokeDirect(r(1), ConstPoolIdx(0)),
-                Ret(r(2)),
-            ];
-            assert_eq!(expected, code);
-            assert_eq!(
-                fct.const_pool(ConstPoolIdx(0)),
-                &ConstPoolEntry::Fct(
-                    FunctionId(fct_id.index().try_into().expect("overflow")),
-                    BytecodeTypeArray::empty()
-                )
-            );
-        },
+    );
+    let (fct, code) = bc(&sa, "<prog>::f");
+
+    let fct_id = cls_method_by_name(&sa, "Foo", "g", false).expect("g not found");
+    let expected = vec![
+        PushRegister(r(0)),
+        InvokeDirect(r(1), ConstPoolIdx(0)),
+        Ret(r(2)),
+    ];
+    assert_eq!(expected, code);
+    assert_eq!(
+        fct.const_pool(ConstPoolIdx(0)),
+        &ConstPoolEntry::Fct(
+            FunctionId(fct_id.index().try_into().expect("overflow")),
+            BytecodeTypeArray::empty()
+        )
     );
 }
 
 #[test]
 fn gen_method_call_float32_with_1_arg() {
-    gen_fct(
+    let sa = sema(
         "
             fn f(foo: Foo): Float32 { return foo.g(1f32); }
             class Foo
@@ -2170,30 +2155,30 @@ fn gen_method_call_float32_with_1_arg() {
                 fn g(a: Float32): Float32 { return 1f32; }
             }
             ",
-        |sa, code, fct| {
-            let fct_id = cls_method_by_name(sa, "Foo", "g", false).expect("g not found");
-            let expected = vec![
-                ConstFloat32(r(2), 1_f32),
-                PushRegister(r(0)),
-                PushRegister(r(2)),
-                InvokeDirect(r(1), ConstPoolIdx(0)),
-                Ret(r(1)),
-            ];
-            assert_eq!(expected, code);
-            assert_eq!(
-                fct.const_pool(ConstPoolIdx(0)),
-                &ConstPoolEntry::Fct(
-                    FunctionId(fct_id.index().try_into().expect("overflow")),
-                    BytecodeTypeArray::empty()
-                )
-            );
-        },
+    );
+    let (fct, code) = bc(&sa, "<prog>::f");
+
+    let fct_id = cls_method_by_name(&sa, "Foo", "g", false).expect("g not found");
+    let expected = vec![
+        ConstFloat32(r(2), 1_f32),
+        PushRegister(r(0)),
+        PushRegister(r(2)),
+        InvokeDirect(r(1), ConstPoolIdx(0)),
+        Ret(r(1)),
+    ];
+    assert_eq!(expected, code);
+    assert_eq!(
+        fct.const_pool(ConstPoolIdx(0)),
+        &ConstPoolEntry::Fct(
+            FunctionId(fct_id.index().try_into().expect("overflow")),
+            BytecodeTypeArray::empty()
+        )
     );
 }
 
 #[test]
 fn gen_method_call_float32_with_3_args() {
-    gen_fct(
+    let sa = sema(
         "
             fn f(foo: Foo): Float32 { return foo.g(1f32, 2f32, 3f32); }
             class Foo
@@ -2201,34 +2186,34 @@ fn gen_method_call_float32_with_3_args() {
                 fn g(a: Float32, b: Float32, c: Float32): Float32 { return 1f32; }
             }
             ",
-        |sa, code, fct| {
-            let fct_id = cls_method_by_name(sa, "Foo", "g", false).expect("g not found");
-            let expected = vec![
-                ConstFloat32(r(2), 1_f32),
-                ConstFloat32(r(3), 2_f32),
-                ConstFloat32(r(4), 3_f32),
-                PushRegister(r(0)),
-                PushRegister(r(2)),
-                PushRegister(r(3)),
-                PushRegister(r(4)),
-                InvokeDirect(r(1), ConstPoolIdx(0)),
-                Ret(r(1)),
-            ];
-            assert_eq!(expected, code);
-            assert_eq!(
-                fct.const_pool(ConstPoolIdx(0)),
-                &ConstPoolEntry::Fct(
-                    FunctionId(fct_id.index().try_into().expect("overflow")),
-                    BytecodeTypeArray::empty()
-                )
-            );
-        },
+    );
+    let (fct, code) = bc(&sa, "<prog>::f");
+
+    let fct_id = cls_method_by_name(&sa, "Foo", "g", false).expect("g not found");
+    let expected = vec![
+        ConstFloat32(r(2), 1_f32),
+        ConstFloat32(r(3), 2_f32),
+        ConstFloat32(r(4), 3_f32),
+        PushRegister(r(0)),
+        PushRegister(r(2)),
+        PushRegister(r(3)),
+        PushRegister(r(4)),
+        InvokeDirect(r(1), ConstPoolIdx(0)),
+        Ret(r(1)),
+    ];
+    assert_eq!(expected, code);
+    assert_eq!(
+        fct.const_pool(ConstPoolIdx(0)),
+        &ConstPoolEntry::Fct(
+            FunctionId(fct_id.index().try_into().expect("overflow")),
+            BytecodeTypeArray::empty()
+        )
     );
 }
 
 #[test]
 fn gen_method_call_float64_with_0_args() {
-    gen_fct(
+    let sa = sema(
         "
             fn f(foo: Foo): Float64 { return foo.g(); }
             class Foo
@@ -2236,28 +2221,28 @@ fn gen_method_call_float64_with_0_args() {
                 fn g(): Float64 { return 1f64; }
             }
             ",
-        |sa, code, fct| {
-            let fct_id = cls_method_by_name(sa, "Foo", "g", false).expect("g not found");
-            let expected = vec![
-                PushRegister(r(0)),
-                InvokeDirect(r(1), ConstPoolIdx(0)),
-                Ret(r(1)),
-            ];
-            assert_eq!(expected, code);
-            assert_eq!(
-                fct.const_pool(ConstPoolIdx(0)),
-                &ConstPoolEntry::Fct(
-                    FunctionId(fct_id.index().try_into().expect("overflow")),
-                    BytecodeTypeArray::empty()
-                )
-            );
-        },
+    );
+    let (fct, code) = bc(&sa, "<prog>::f");
+
+    let fct_id = cls_method_by_name(&sa, "Foo", "g", false).expect("g not found");
+    let expected = vec![
+        PushRegister(r(0)),
+        InvokeDirect(r(1), ConstPoolIdx(0)),
+        Ret(r(1)),
+    ];
+    assert_eq!(expected, code);
+    assert_eq!(
+        fct.const_pool(ConstPoolIdx(0)),
+        &ConstPoolEntry::Fct(
+            FunctionId(fct_id.index().try_into().expect("overflow")),
+            BytecodeTypeArray::empty()
+        )
     );
 }
 
 #[test]
 fn gen_method_call_float64_with_0_args_and_unused_result() {
-    gen_fct(
+    let sa = sema(
         "
             fn f(foo: Foo) { foo.g(); }
             class Foo
@@ -2265,28 +2250,28 @@ fn gen_method_call_float64_with_0_args_and_unused_result() {
                 fn g(): Float64 { return 1f64; }
             }
             ",
-        |sa, code, fct| {
-            let fct_id = cls_method_by_name(sa, "Foo", "g", false).expect("g not found");
-            let expected = vec![
-                PushRegister(r(0)),
-                InvokeDirect(r(1), ConstPoolIdx(0)),
-                Ret(r(2)),
-            ];
-            assert_eq!(expected, code);
-            assert_eq!(
-                fct.const_pool(ConstPoolIdx(0)),
-                &ConstPoolEntry::Fct(
-                    FunctionId(fct_id.index().try_into().expect("overflow")),
-                    BytecodeTypeArray::empty()
-                )
-            );
-        },
+    );
+    let (fct, code) = bc(&sa, "<prog>::f");
+
+    let fct_id = cls_method_by_name(&sa, "Foo", "g", false).expect("g not found");
+    let expected = vec![
+        PushRegister(r(0)),
+        InvokeDirect(r(1), ConstPoolIdx(0)),
+        Ret(r(2)),
+    ];
+    assert_eq!(expected, code);
+    assert_eq!(
+        fct.const_pool(ConstPoolIdx(0)),
+        &ConstPoolEntry::Fct(
+            FunctionId(fct_id.index().try_into().expect("overflow")),
+            BytecodeTypeArray::empty()
+        )
     );
 }
 
 #[test]
 fn gen_method_call_float64_with_1_arg() {
-    gen_fct(
+    let sa = sema(
         "
             fn f(foo: Foo): Float64 { return foo.g(1f64); }
             class Foo
@@ -2294,30 +2279,30 @@ fn gen_method_call_float64_with_1_arg() {
                 fn g(a: Float64): Float64 { return 1f64; }
             }
             ",
-        |sa, code, fct| {
-            let fct_id = cls_method_by_name(sa, "Foo", "g", false).expect("g not found");
-            let expected = vec![
-                ConstFloat64(r(2), 1_f64),
-                PushRegister(r(0)),
-                PushRegister(r(2)),
-                InvokeDirect(r(1), ConstPoolIdx(0)),
-                Ret(r(1)),
-            ];
-            assert_eq!(expected, code);
-            assert_eq!(
-                fct.const_pool(ConstPoolIdx(0)),
-                &ConstPoolEntry::Fct(
-                    FunctionId(fct_id.index().try_into().expect("overflow")),
-                    BytecodeTypeArray::empty()
-                )
-            );
-        },
+    );
+    let (fct, code) = bc(&sa, "<prog>::f");
+
+    let fct_id = cls_method_by_name(&sa, "Foo", "g", false).expect("g not found");
+    let expected = vec![
+        ConstFloat64(r(2), 1_f64),
+        PushRegister(r(0)),
+        PushRegister(r(2)),
+        InvokeDirect(r(1), ConstPoolIdx(0)),
+        Ret(r(1)),
+    ];
+    assert_eq!(expected, code);
+    assert_eq!(
+        fct.const_pool(ConstPoolIdx(0)),
+        &ConstPoolEntry::Fct(
+            FunctionId(fct_id.index().try_into().expect("overflow")),
+            BytecodeTypeArray::empty()
+        )
     );
 }
 
 #[test]
 fn gen_method_call_float64_with_3_args() {
-    gen_fct(
+    let sa = sema(
         "
             fn f(foo: Foo): Float64 { return foo.g(1f64, 2f64, 3f64); }
             class Foo
@@ -2325,34 +2310,34 @@ fn gen_method_call_float64_with_3_args() {
                 fn g(a: Float64, b: Float64, c: Float64): Float64 { return 1f64; }
             }
             ",
-        |sa, code, fct| {
-            let fct_id = cls_method_by_name(sa, "Foo", "g", false).expect("g not found");
-            let expected = vec![
-                ConstFloat64(r(2), 1_f64),
-                ConstFloat64(r(3), 2_f64),
-                ConstFloat64(r(4), 3_f64),
-                PushRegister(r(0)),
-                PushRegister(r(2)),
-                PushRegister(r(3)),
-                PushRegister(r(4)),
-                InvokeDirect(r(1), ConstPoolIdx(0)),
-                Ret(r(1)),
-            ];
-            assert_eq!(expected, code);
-            assert_eq!(
-                fct.const_pool(ConstPoolIdx(0)),
-                &ConstPoolEntry::Fct(
-                    FunctionId(fct_id.index().try_into().expect("overflow")),
-                    BytecodeTypeArray::empty()
-                )
-            );
-        },
+    );
+    let (fct, code) = bc(&sa, "<prog>::f");
+
+    let fct_id = cls_method_by_name(&sa, "Foo", "g", false).expect("g not found");
+    let expected = vec![
+        ConstFloat64(r(2), 1_f64),
+        ConstFloat64(r(3), 2_f64),
+        ConstFloat64(r(4), 3_f64),
+        PushRegister(r(0)),
+        PushRegister(r(2)),
+        PushRegister(r(3)),
+        PushRegister(r(4)),
+        InvokeDirect(r(1), ConstPoolIdx(0)),
+        Ret(r(1)),
+    ];
+    assert_eq!(expected, code);
+    assert_eq!(
+        fct.const_pool(ConstPoolIdx(0)),
+        &ConstPoolEntry::Fct(
+            FunctionId(fct_id.index().try_into().expect("overflow")),
+            BytecodeTypeArray::empty()
+        )
     );
 }
 
 #[test]
 fn gen_method_call_ptr_with_0_args() {
-    gen_fct(
+    let sa = sema(
         "
             fn f(foo: Foo): String { return foo.g(); }
             class Foo
@@ -2360,28 +2345,28 @@ fn gen_method_call_ptr_with_0_args() {
                 fn g(): String { return \"1\"; }
             }
             ",
-        |sa, code, fct| {
-            let fct_id = cls_method_by_name(sa, "Foo", "g", false).expect("g not found");
-            let expected = vec![
-                PushRegister(r(0)),
-                InvokeDirect(r(1), ConstPoolIdx(0)),
-                Ret(r(1)),
-            ];
-            assert_eq!(expected, code);
-            assert_eq!(
-                fct.const_pool(ConstPoolIdx(0)),
-                &ConstPoolEntry::Fct(
-                    FunctionId(fct_id.index().try_into().expect("overflow")),
-                    BytecodeTypeArray::empty()
-                )
-            );
-        },
+    );
+    let (fct, code) = bc(&sa, "<prog>::f");
+
+    let fct_id = cls_method_by_name(&sa, "Foo", "g", false).expect("g not found");
+    let expected = vec![
+        PushRegister(r(0)),
+        InvokeDirect(r(1), ConstPoolIdx(0)),
+        Ret(r(1)),
+    ];
+    assert_eq!(expected, code);
+    assert_eq!(
+        fct.const_pool(ConstPoolIdx(0)),
+        &ConstPoolEntry::Fct(
+            FunctionId(fct_id.index().try_into().expect("overflow")),
+            BytecodeTypeArray::empty()
+        )
     );
 }
 
 #[test]
 fn gen_method_call_ptr_with_0_args_and_unused_result() {
-    gen_fct(
+    let sa = sema(
         "
             fn f(foo: Foo) { foo.g(); }
             class Foo
@@ -2389,28 +2374,28 @@ fn gen_method_call_ptr_with_0_args_and_unused_result() {
                 fn g(): String { return \"1\"; }
             }
             ",
-        |sa, code, fct| {
-            let fct_id = cls_method_by_name(sa, "Foo", "g", false).expect("g not found");
-            let expected = vec![
-                PushRegister(r(0)),
-                InvokeDirect(r(1), ConstPoolIdx(0)),
-                Ret(r(2)),
-            ];
-            assert_eq!(expected, code);
-            assert_eq!(
-                fct.const_pool(ConstPoolIdx(0)),
-                &ConstPoolEntry::Fct(
-                    FunctionId(fct_id.index().try_into().expect("overflow")),
-                    BytecodeTypeArray::empty()
-                )
-            );
-        },
+    );
+    let (fct, code) = bc(&sa, "<prog>::f");
+
+    let fct_id = cls_method_by_name(&sa, "Foo", "g", false).expect("g not found");
+    let expected = vec![
+        PushRegister(r(0)),
+        InvokeDirect(r(1), ConstPoolIdx(0)),
+        Ret(r(2)),
+    ];
+    assert_eq!(expected, code);
+    assert_eq!(
+        fct.const_pool(ConstPoolIdx(0)),
+        &ConstPoolEntry::Fct(
+            FunctionId(fct_id.index().try_into().expect("overflow")),
+            BytecodeTypeArray::empty()
+        )
     );
 }
 
 #[test]
 fn gen_method_call_ptr_with_1_arg() {
-    gen_fct(
+    let sa = sema(
         "
             fn f(foo: Foo): String { return foo.g(\"1\"); }
             class Foo
@@ -2418,30 +2403,30 @@ fn gen_method_call_ptr_with_1_arg() {
                 fn g(a: String): String { return \"1\"; }
             }
             ",
-        |sa, code, fct| {
-            let fct_id = cls_method_by_name(sa, "Foo", "g", false).expect("g not found");
-            let expected = vec![
-                ConstString(r(2), "1".to_string()),
-                PushRegister(r(0)),
-                PushRegister(r(2)),
-                InvokeDirect(r(1), ConstPoolIdx(0)),
-                Ret(r(1)),
-            ];
-            assert_eq!(expected, code);
-            assert_eq!(
-                fct.const_pool(ConstPoolIdx(0)),
-                &ConstPoolEntry::Fct(
-                    FunctionId(fct_id.index().try_into().expect("overflow")),
-                    BytecodeTypeArray::empty()
-                )
-            );
-        },
+    );
+    let (fct, code) = bc(&sa, "<prog>::f");
+
+    let fct_id = cls_method_by_name(&sa, "Foo", "g", false).expect("g not found");
+    let expected = vec![
+        ConstString(r(2), "1".to_string()),
+        PushRegister(r(0)),
+        PushRegister(r(2)),
+        InvokeDirect(r(1), ConstPoolIdx(0)),
+        Ret(r(1)),
+    ];
+    assert_eq!(expected, code);
+    assert_eq!(
+        fct.const_pool(ConstPoolIdx(0)),
+        &ConstPoolEntry::Fct(
+            FunctionId(fct_id.index().try_into().expect("overflow")),
+            BytecodeTypeArray::empty()
+        )
     );
 }
 
 #[test]
 fn gen_method_call_ptr_with_3_args() {
-    gen_fct(
+    let sa = sema(
         "
             fn f(foo: Foo): String { return foo.g(\"1\", \"2\", \"3\"); }
             class Foo
@@ -2449,323 +2434,324 @@ fn gen_method_call_ptr_with_3_args() {
                 fn g(a: String, b: String, c: String): String { return \"1\"; }
             }
             ",
-        |sa, code, fct| {
-            let fct_id = cls_method_by_name(sa, "Foo", "g", false).expect("g not found");
-            let expected = vec![
-                ConstString(r(2), "1".to_string()),
-                ConstString(r(3), "2".to_string()),
-                ConstString(r(4), "3".to_string()),
-                PushRegister(r(0)),
-                PushRegister(r(2)),
-                PushRegister(r(3)),
-                PushRegister(r(4)),
-                InvokeDirect(r(1), ConstPoolIdx(0)),
-                Ret(r(1)),
-            ];
-            assert_eq!(expected, code);
-            assert_eq!(
-                fct.const_pool(ConstPoolIdx(0)),
-                &ConstPoolEntry::Fct(
-                    FunctionId(fct_id.index().try_into().expect("overflow")),
-                    BytecodeTypeArray::empty()
-                )
-            );
-        },
+    );
+    let (fct, code) = bc(&sa, "<prog>::f");
+
+    let fct_id = cls_method_by_name(&sa, "Foo", "g", false).expect("g not found");
+    let expected = vec![
+        ConstString(r(2), "1".to_string()),
+        ConstString(r(3), "2".to_string()),
+        ConstString(r(4), "3".to_string()),
+        PushRegister(r(0)),
+        PushRegister(r(2)),
+        PushRegister(r(3)),
+        PushRegister(r(4)),
+        InvokeDirect(r(1), ConstPoolIdx(0)),
+        Ret(r(1)),
+    ];
+    assert_eq!(expected, code);
+    assert_eq!(
+        fct.const_pool(ConstPoolIdx(0)),
+        &ConstPoolEntry::Fct(
+            FunctionId(fct_id.index().try_into().expect("overflow")),
+            BytecodeTypeArray::empty()
+        )
     );
 }
 
 #[test]
 fn gen_new_struct() {
-    gen_fct(
+    let sa = sema(
         "
         struct Foo { f1: Int32, f2: Bool }
         fn f(): Foo { Foo(f1 = 10i32, f2 = false) }
     ",
-        |sa, code, fct| {
-            let struct_id = struct_by_name(sa, "Foo");
-            let expected = vec![
-                ConstInt32(r(0), 10),
-                ConstFalse(r(1)),
-                PushRegister(r(0)),
-                PushRegister(r(1)),
-                NewStruct(r(2), ConstPoolIdx(1)),
-                Ret(r(2)),
-            ];
-            assert_eq!(expected, code);
+    );
+    let (fct, code) = bc(&sa, "<prog>::f");
 
-            assert_eq!(
-                fct.const_pool(ConstPoolIdx(1)),
-                &ConstPoolEntry::Struct(
-                    StructId(struct_id.index().try_into().expect("overflow")),
-                    BytecodeTypeArray::empty()
-                )
-            );
-        },
+    let struct_id = struct_by_name(&sa, "Foo");
+    let expected = vec![
+        ConstInt32(r(0), 10),
+        ConstFalse(r(1)),
+        PushRegister(r(0)),
+        PushRegister(r(1)),
+        NewStruct(r(2), ConstPoolIdx(1)),
+        Ret(r(2)),
+    ];
+    assert_eq!(expected, code);
+
+    assert_eq!(
+        fct.const_pool(ConstPoolIdx(1)),
+        &ConstPoolEntry::Struct(
+            StructId(struct_id.index().try_into().expect("overflow")),
+            BytecodeTypeArray::empty()
+        )
     );
 
-    gen_fct(
+    let sa = sema(
         "
         struct Foo[T] { f1: T, f2: Bool }
         fn f[T](val: T): Foo[T] { Foo[T](f1 = val, f2 = false) }
     ",
-        |sa, code, fct| {
-            let struct_id = struct_by_name(sa, "Foo");
-            let expected = vec![
-                ConstFalse(r(1)),
-                PushRegister(r(0)),
-                PushRegister(r(1)),
-                NewStruct(r(2), ConstPoolIdx(0)),
-                Ret(r(2)),
-            ];
-            assert_eq!(expected, code);
+    );
+    let (fct, code) = bc(&sa, "<prog>::f");
 
-            assert_eq!(
-                fct.const_pool(ConstPoolIdx(0)),
-                &ConstPoolEntry::Struct(
-                    StructId(struct_id.index().try_into().expect("overflow")),
-                    BytecodeTypeArray::one(BytecodeType::TypeParam(0))
-                )
-            );
-        },
+    let struct_id = struct_by_name(&sa, "Foo");
+    let expected = vec![
+        ConstFalse(r(1)),
+        PushRegister(r(0)),
+        PushRegister(r(1)),
+        NewStruct(r(2), ConstPoolIdx(0)),
+        Ret(r(2)),
+    ];
+    assert_eq!(expected, code);
+
+    assert_eq!(
+        fct.const_pool(ConstPoolIdx(0)),
+        &ConstPoolEntry::Struct(
+            StructId(struct_id.index().try_into().expect("overflow")),
+            BytecodeTypeArray::one(BytecodeType::TypeParam(0))
+        )
     );
 }
 
 #[test]
 fn gen_move_struct() {
-    let result = code(
+    let sa = sema(
         "
         struct Foo { f1: Int32, f2: Bool }
         fn f(x: Foo): Foo { let y = x; y }
     ",
     );
+    let (_, code) = bc(&sa, "<prog>::f");
     let expected = vec![Mov(r(1), r(0)), Ret(r(1))];
-    assert_eq!(expected, result);
+    assert_eq!(expected, code);
 }
 
 #[test]
 fn gen_struct_field() {
-    gen_fct(
+    let sa = sema(
         "
         struct Foo { f1: Int32, f2: Bool }
         fn f(x: Foo): Int32 { x.f1 }
     ",
-        |sa, code, fct| {
-            let struct_id = struct_by_name(sa, "Foo");
-            let expected = vec![LoadStructField(r(1), r(0), ConstPoolIdx(0)), Ret(r(1))];
-            assert_eq!(expected, code);
-            assert_eq!(
-                fct.const_pool(ConstPoolIdx(0)),
-                &ConstPoolEntry::StructField(
-                    StructId(struct_id.index().try_into().expect("overflow")),
-                    BytecodeTypeArray::empty(),
-                    0
-                )
-            );
-        },
+    );
+    let (fct, code) = bc(&sa, "<prog>::f");
+
+    let struct_id = struct_by_name(&sa, "Foo");
+    let expected = vec![LoadStructField(r(1), r(0), ConstPoolIdx(0)), Ret(r(1))];
+    assert_eq!(expected, code);
+    assert_eq!(
+        fct.const_pool(ConstPoolIdx(0)),
+        &ConstPoolEntry::StructField(
+            StructId(struct_id.index().try_into().expect("overflow")),
+            BytecodeTypeArray::empty(),
+            0
+        )
     );
 
-    gen_fct(
+    let sa = sema(
         "
         struct Foo[T] { f1: T, f2: Bool }
         fn f(x: Foo[Int32]): Int32 { x.f1 }
     ",
-        |sa, code, fct| {
-            let struct_id = struct_by_name(sa, "Foo");
-            let expected = vec![LoadStructField(r(1), r(0), ConstPoolIdx(0)), Ret(r(1))];
-            assert_eq!(expected, code);
-            assert_eq!(
-                fct.const_pool(ConstPoolIdx(0)),
-                &ConstPoolEntry::StructField(
-                    StructId(struct_id.index().try_into().expect("overflow")),
-                    BytecodeTypeArray::one(BytecodeType::Int32),
-                    0
-                )
-            );
-        },
+    );
+    let (fct, code) = bc(&sa, "<prog>::f");
+
+    let struct_id = struct_by_name(&sa, "Foo");
+    let expected = vec![LoadStructField(r(1), r(0), ConstPoolIdx(0)), Ret(r(1))];
+    assert_eq!(expected, code);
+    assert_eq!(
+        fct.const_pool(ConstPoolIdx(0)),
+        &ConstPoolEntry::StructField(
+            StructId(struct_id.index().try_into().expect("overflow")),
+            BytecodeTypeArray::one(BytecodeType::Int32),
+            0
+        )
     );
 }
 
 #[test]
 fn gen_struct_array() {
-    let result = code(
+    let sa = sema(
         "
         struct Foo { f1: Int32, f2: Bool }
         fn f(x: Array[Foo], idx: Int64): Foo { x(idx) }
     ",
     );
+    let (_, code) = bc(&sa, "<prog>::f");
     let expected = vec![LoadArray(r(2), r(0), r(1)), Ret(r(2))];
-    assert_eq!(expected, result);
+    assert_eq!(expected, code);
 
-    let result = code(
+    let sa = sema(
         "
         struct Foo { f1: Int32, f2: Bool }
         fn f(x: Array[Foo], idx: Int64, value: Foo) { x(idx) = value; }
     ",
     );
+    let (_, code) = bc(&sa, "<prog>::f");
     let expected = vec![StoreArray(r(2), r(0), r(1)), Ret(r(3))];
-    assert_eq!(expected, result);
+    assert_eq!(expected, code);
 }
 
 #[test]
 fn gen_new_enum() {
-    gen_fct(
+    let sa = sema(
         "
         enum Foo { A(Int32), B }
         fn f(): Foo { Foo::A(10i32) }
     ",
-        |sa, code, fct| {
-            let enum_id = enum_by_name(sa, "Foo");
-            let expected = vec![
-                ConstInt32(r(0), 10),
-                PushRegister(r(0)),
-                NewEnum(r(1), ConstPoolIdx(1)),
-                Ret(r(1)),
-            ];
-            assert_eq!(expected, code);
+    );
+    let (fct, code) = bc(&sa, "<prog>::f");
 
-            assert_eq!(
-                fct.const_pool(ConstPoolIdx(1)),
-                &ConstPoolEntry::EnumVariant(
-                    EnumId(enum_id.index().try_into().expect("overflow")),
-                    BytecodeTypeArray::empty(),
-                    0
-                )
-            );
-        },
+    let enum_id = enum_by_name(&sa, "Foo");
+    let expected = vec![
+        ConstInt32(r(0), 10),
+        PushRegister(r(0)),
+        NewEnum(r(1), ConstPoolIdx(1)),
+        Ret(r(1)),
+    ];
+    assert_eq!(expected, code);
+
+    assert_eq!(
+        fct.const_pool(ConstPoolIdx(1)),
+        &ConstPoolEntry::EnumVariant(
+            EnumId(enum_id.index().try_into().expect("overflow")),
+            BytecodeTypeArray::empty(),
+            0
+        )
     );
 
-    gen_fct(
+    let sa = sema(
         "
         enum Foo[T] { A(T), B }
         fn f(): Foo[Int32] { Foo[Int32]::A(10i32) }
     ",
-        |sa, code, fct| {
-            let enum_id = enum_by_name(sa, "Foo");
-            let expected = vec![
-                ConstInt32(r(0), 10),
-                PushRegister(r(0)),
-                NewEnum(r(1), ConstPoolIdx(1)),
-                Ret(r(1)),
-            ];
-            assert_eq!(expected, code);
+    );
+    let (fct, code) = bc(&sa, "<prog>::f");
 
-            assert_eq!(
-                fct.const_pool(ConstPoolIdx(1)),
-                &ConstPoolEntry::EnumVariant(
-                    EnumId(enum_id.index().try_into().expect("overflow")),
-                    BytecodeTypeArray::one(BytecodeType::Int32),
-                    0
-                )
-            );
-        },
+    let enum_id = enum_by_name(&sa, "Foo");
+    let expected = vec![
+        ConstInt32(r(0), 10),
+        PushRegister(r(0)),
+        NewEnum(r(1), ConstPoolIdx(1)),
+        Ret(r(1)),
+    ];
+    assert_eq!(expected, code);
+
+    assert_eq!(
+        fct.const_pool(ConstPoolIdx(1)),
+        &ConstPoolEntry::EnumVariant(
+            EnumId(enum_id.index().try_into().expect("overflow")),
+            BytecodeTypeArray::one(BytecodeType::Int32),
+            0
+        )
     );
 
-    gen_fct(
+    let sa = sema(
         "
         enum Foo { A(Int32), B }
         fn f(): Foo { Foo::B }
     ",
-        |sa, code, fct| {
-            let enum_id = enum_by_name(sa, "Foo");
-            let expected = vec![NewEnum(r(0), ConstPoolIdx(0)), Ret(r(0))];
-            assert_eq!(expected, code);
+    );
+    let (fct, code) = bc(&sa, "<prog>::f");
 
-            assert_eq!(
-                fct.const_pool(ConstPoolIdx(0)),
-                &ConstPoolEntry::EnumVariant(
-                    EnumId(enum_id.index().try_into().expect("overflow")),
-                    BytecodeTypeArray::empty(),
-                    1
-                )
-            );
-        },
+    let enum_id = enum_by_name(&sa, "Foo");
+    let expected = vec![NewEnum(r(0), ConstPoolIdx(0)), Ret(r(0))];
+    assert_eq!(expected, code);
+
+    assert_eq!(
+        fct.const_pool(ConstPoolIdx(0)),
+        &ConstPoolEntry::EnumVariant(
+            EnumId(enum_id.index().try_into().expect("overflow")),
+            BytecodeTypeArray::empty(),
+            1
+        )
     );
 
-    gen_fct(
+    let sa = sema(
         "
         enum Foo[T] { A(T), B }
         fn f(): Foo[Int32] { Foo[Int32]::B }
     ",
-        |sa, code, fct| {
-            let enum_id = enum_by_name(sa, "Foo");
-            let expected = vec![NewEnum(r(0), ConstPoolIdx(0)), Ret(r(0))];
-            assert_eq!(expected, code);
+    );
+    let (fct, code) = bc(&sa, "<prog>::f");
 
-            assert_eq!(
-                fct.const_pool(ConstPoolIdx(0)),
-                &ConstPoolEntry::EnumVariant(
-                    EnumId(enum_id.index().try_into().expect("overflow")),
-                    BytecodeTypeArray::one(BytecodeType::Int32),
-                    1
-                )
-            );
-        },
+    let enum_id = enum_by_name(&sa, "Foo");
+    let expected = vec![NewEnum(r(0), ConstPoolIdx(0)), Ret(r(0))];
+    assert_eq!(expected, code);
+
+    assert_eq!(
+        fct.const_pool(ConstPoolIdx(0)),
+        &ConstPoolEntry::EnumVariant(
+            EnumId(enum_id.index().try_into().expect("overflow")),
+            BytecodeTypeArray::one(BytecodeType::Int32),
+            1
+        )
     );
 
-    gen_fct(
+    let sa = sema(
         "
         enum Foo[T] { A(T), B }
         fn f(): Foo[Int32] { Foo::B[Int32] }
     ",
-        |sa, code, fct| {
-            let enum_id = enum_by_name(sa, "Foo");
-            let expected = vec![NewEnum(r(0), ConstPoolIdx(0)), Ret(r(0))];
-            assert_eq!(expected, code);
+    );
+    let (fct, code) = bc(&sa, "<prog>::f");
 
-            assert_eq!(
-                fct.const_pool(ConstPoolIdx(0)),
-                &ConstPoolEntry::EnumVariant(
-                    EnumId(enum_id.index().try_into().expect("overflow")),
-                    BytecodeTypeArray::one(BytecodeType::Int32),
-                    1
-                )
-            );
-        },
+    let enum_id = enum_by_name(&sa, "Foo");
+    let expected = vec![NewEnum(r(0), ConstPoolIdx(0)), Ret(r(0))];
+    assert_eq!(expected, code);
+
+    assert_eq!(
+        fct.const_pool(ConstPoolIdx(0)),
+        &ConstPoolEntry::EnumVariant(
+            EnumId(enum_id.index().try_into().expect("overflow")),
+            BytecodeTypeArray::one(BytecodeType::Int32),
+            1
+        )
     );
 }
 
 #[test]
 fn gen_new_object() {
-    gen_fct(
-        "class Object fn f(): Object { return Object(); }",
-        |sa, code, fct| {
-            let cls_id = cls_by_name(sa, "Object");
-            let expected = vec![NewObjectInitialized(r(0), ConstPoolIdx(0)), Ret(r(0))];
-            assert_eq!(expected, code);
-            assert_eq!(
-                fct.const_pool(ConstPoolIdx(0)),
-                &ConstPoolEntry::Class(
-                    ClassId(cls_id.index().try_into().expect("overflow")),
-                    BytecodeTypeArray::empty()
-                )
-            );
-        },
+    let sa = sema("class Object fn f(): Object { return Object(); }");
+    let (fct, code) = bc(&sa, "<prog>::f");
+
+    let cls_id = cls_by_name(&sa, "Object");
+    let expected = vec![NewObjectInitialized(r(0), ConstPoolIdx(0)), Ret(r(0))];
+    assert_eq!(expected, code);
+    assert_eq!(
+        fct.const_pool(ConstPoolIdx(0)),
+        &ConstPoolEntry::Class(
+            ClassId(cls_id.index().try_into().expect("overflow")),
+            BytecodeTypeArray::empty()
+        )
     );
 }
 
 #[test]
 fn gen_new_object_initialized() {
-    gen_fct(
+    let sa = sema(
         "
         class Foo { a: Int64, b: Bool }
         fn f(a: Int64, b: Bool): Foo { return Foo(a, b); }",
-        |sa, code, fct| {
-            let cls_id = cls_by_name(sa, "Foo");
-            let expected = vec![
-                PushRegister(r(0)),
-                PushRegister(r(1)),
-                NewObjectInitialized(r(2), ConstPoolIdx(0)),
-                Ret(r(2)),
-            ];
-            assert_eq!(expected, code);
-            assert_eq!(
-                fct.const_pool(ConstPoolIdx(0)),
-                &ConstPoolEntry::Class(
-                    ClassId(cls_id.index().try_into().expect("overflow")),
-                    BytecodeTypeArray::empty()
-                )
-            );
-        },
+    );
+    let (fct, code) = bc(&sa, "<prog>::f");
+
+    let cls_id = cls_by_name(&sa, "Foo");
+    let expected = vec![
+        PushRegister(r(0)),
+        PushRegister(r(1)),
+        NewObjectInitialized(r(2), ConstPoolIdx(0)),
+        Ret(r(2)),
+    ];
+    assert_eq!(expected, code);
+    assert_eq!(
+        fct.const_pool(ConstPoolIdx(0)),
+        &ConstPoolEntry::Class(
+            ClassId(cls_id.index().try_into().expect("overflow")),
+            BytecodeTypeArray::empty()
+        )
     );
 }
 
@@ -2778,42 +2764,41 @@ fn gen_position_new_object() {
 
 #[test]
 fn gen_new_array() {
-    gen_fct(
-        "fn f(): Array[Int32] { Array[Int32]::new(1i32, 2i32, 3i32) }",
-        |sa, code, fct| {
-            let cls_id = cls_by_name(sa, "Array");
-            let expected = vec![
-                ConstInt64(r(0), 3),
-                NewArray(r(1), ConstPoolIdx(0), r(0)),
-                ConstInt32(r(3), 1),
-                ConstInt64(r(2), 0),
-                StoreArray(r(3), r(1), r(2)),
-                ConstInt32(r(3), 2),
-                ConstInt64(r(2), 1),
-                StoreArray(r(3), r(1), r(2)),
-                ConstInt32(r(3), 3),
-                ConstInt64(r(2), 2),
-                StoreArray(r(3), r(1), r(2)),
-                Ret(r(1)),
-            ];
-            assert_eq!(expected, code);
+    let sa = sema("fn f(): Array[Int32] { Array[Int32]::new(1i32, 2i32, 3i32) }");
+    let (fct, code) = bc(&sa, "<prog>::f");
 
-            assert_eq!(
-                fct.const_pool(ConstPoolIdx(0)),
-                &ConstPoolEntry::Class(
-                    ClassId(cls_id.index().try_into().expect("overflow")),
-                    BytecodeTypeArray::one(BytecodeType::Int32)
-                )
-            );
-        },
+    let cls_id = cls_by_name(&sa, "Array");
+    let expected = vec![
+        ConstInt64(r(0), 3),
+        NewArray(r(1), ConstPoolIdx(0), r(0)),
+        ConstInt32(r(3), 1),
+        ConstInt64(r(2), 0),
+        StoreArray(r(3), r(1), r(2)),
+        ConstInt32(r(3), 2),
+        ConstInt64(r(2), 1),
+        StoreArray(r(3), r(1), r(2)),
+        ConstInt32(r(3), 3),
+        ConstInt64(r(2), 2),
+        StoreArray(r(3), r(1), r(2)),
+        Ret(r(1)),
+    ];
+    assert_eq!(expected, code);
+
+    assert_eq!(
+        fct.const_pool(ConstPoolIdx(0)),
+        &ConstPoolEntry::Class(
+            ClassId(cls_id.index().try_into().expect("overflow")),
+            BytecodeTypeArray::one(BytecodeType::Int32)
+        )
     );
 }
 
 #[test]
 fn gen_array_length() {
-    let result = code("fn f(a: Array[Int32]): Int64 { return a.size(); }");
+    let sa = sema("fn f(a: Array[Int32]): Int64 { return a.size(); }");
+    let (_, code) = bc(&sa, "<prog>::f");
     let expected = vec![ArrayLength(r(1), r(0)), Ret(r(1))];
-    assert_eq!(expected, result);
+    assert_eq!(expected, code);
 }
 
 #[test]
@@ -2825,9 +2810,10 @@ fn gen_position_array_length() {
 
 #[test]
 fn gen_array_length_effect() {
-    let result = code("fn f(a: Array[Int32]) { a.size(); }");
+    let sa = sema("fn f(a: Array[Int32]) { a.size(); }");
+    let (_, code) = bc(&sa, "<prog>::f");
     let expected = vec![ArrayLength(r(1), r(0)), Ret(r(2))];
-    assert_eq!(expected, result);
+    assert_eq!(expected, code);
 }
 
 #[test]
@@ -2839,58 +2825,66 @@ fn gen_position_array_length_effect() {
 
 #[test]
 fn gen_load_array_uint8() {
-    let result = code("fn f(a: Array[UInt8]): UInt8 { return a(0); }");
+    let sa = sema("fn f(a: Array[UInt8]): UInt8 { return a(0); }");
+    let (_, code) = bc(&sa, "<prog>::f");
     let expected = vec![ConstInt64(r(2), 0), LoadArray(r(1), r(0), r(2)), Ret(r(1))];
-    assert_eq!(expected, result);
+    assert_eq!(expected, code);
 }
 
 #[test]
 fn gen_load_array_bool() {
-    let result = code("fn f(a: Array[Bool], idx: Int64): Bool { return a(idx); }");
+    let sa = sema("fn f(a: Array[Bool], idx: Int64): Bool { return a(idx); }");
+    let (_, code) = bc(&sa, "<prog>::f");
     let expected = vec![LoadArray(r(2), r(0), r(1)), Ret(r(2))];
-    assert_eq!(expected, result);
+    assert_eq!(expected, code);
 }
 
 #[test]
 fn gen_load_array_char() {
-    let result = code("fn f(a: Array[Char], idx: Int64): Char { return a(idx); }");
+    let sa = sema("fn f(a: Array[Char], idx: Int64): Char { return a(idx); }");
+    let (_, code) = bc(&sa, "<prog>::f");
     let expected = vec![LoadArray(r(2), r(0), r(1)), Ret(r(2))];
-    assert_eq!(expected, result);
+    assert_eq!(expected, code);
 }
 
 #[test]
 fn gen_load_array_int32() {
-    let result = code("fn f(a: Array[Int32], idx: Int64): Int32 { return a(idx); }");
+    let sa = sema("fn f(a: Array[Int32], idx: Int64): Int32 { return a(idx); }");
+    let (_, code) = bc(&sa, "<prog>::f");
     let expected = vec![LoadArray(r(2), r(0), r(1)), Ret(r(2))];
-    assert_eq!(expected, result);
+    assert_eq!(expected, code);
 }
 
 #[test]
 fn gen_load_array_int64() {
-    let result = code("fn f(a: Array[Int64], idx: Int64): Int64 { return a(idx); }");
+    let sa = sema("fn f(a: Array[Int64], idx: Int64): Int64 { return a(idx); }");
+    let (_, code) = bc(&sa, "<prog>::f");
     let expected = vec![LoadArray(r(2), r(0), r(1)), Ret(r(2))];
-    assert_eq!(expected, result);
+    assert_eq!(expected, code);
 }
 
 #[test]
 fn gen_load_array_float32() {
-    let result = code("fn f(a: Array[Float32], idx: Int64): Float32 { return a(idx); }");
+    let sa = sema("fn f(a: Array[Float32], idx: Int64): Float32 { return a(idx); }");
+    let (_, code) = bc(&sa, "<prog>::f");
     let expected = vec![LoadArray(r(2), r(0), r(1)), Ret(r(2))];
-    assert_eq!(expected, result);
+    assert_eq!(expected, code);
 }
 
 #[test]
 fn gen_load_array_float64() {
-    let result = code("fn f(a: Array[Float64], idx: Int64): Float64 { return a(idx); }");
+    let sa = sema("fn f(a: Array[Float64], idx: Int64): Float64 { return a(idx); }");
+    let (_, code) = bc(&sa, "<prog>::f");
     let expected = vec![LoadArray(r(2), r(0), r(1)), Ret(r(2))];
-    assert_eq!(expected, result);
+    assert_eq!(expected, code);
 }
 
 #[test]
 fn gen_load_array_ptr() {
-    let result = code("class Object fn f(a: Array[Object], idx: Int64): Object { return a(idx); }");
+    let sa = sema("class Object fn f(a: Array[Object], idx: Int64): Object { return a(idx); }");
+    let (_, code) = bc(&sa, "<prog>::f");
     let expected = vec![LoadArray(r(2), r(0), r(1)), Ret(r(2))];
-    assert_eq!(expected, result);
+    assert_eq!(expected, code);
 }
 
 #[test]
@@ -2944,90 +2938,98 @@ fn gen_position_load_array_ptr() {
 
 #[test]
 fn gen_store_array_uint8() {
-    let result = code("fn f(a: Array[UInt8], b: UInt8) { a(0) = b; }");
+    let sa = sema("fn f(a: Array[UInt8], b: UInt8) { a(0) = b; }");
+    let (_, code) = bc(&sa, "<prog>::f");
     let expected = vec![
         ConstInt64(Register(2), 0),
         StoreArray(r(1), r(0), r(2)),
         Ret(r(3)),
     ];
-    assert_eq!(expected, result);
+    assert_eq!(expected, code);
 }
 
 #[test]
 fn gen_store_array_bool() {
-    let result = code("fn f(a: Array[Bool], b: Bool) { a(0) = b; }");
+    let sa = sema("fn f(a: Array[Bool], b: Bool) { a(0) = b; }");
+    let (_, code) = bc(&sa, "<prog>::f");
     let expected = vec![
         ConstInt64(Register(2), 0),
         StoreArray(r(1), r(0), r(2)),
         Ret(r(3)),
     ];
-    assert_eq!(expected, result);
+    assert_eq!(expected, code);
 }
 
 #[test]
 fn gen_store_array_char() {
-    let result = code("fn f(a: Array[Char], b: Char) { a(0) = b; }");
+    let sa = sema("fn f(a: Array[Char], b: Char) { a(0) = b; }");
+    let (_, code) = bc(&sa, "<prog>::f");
     let expected = vec![
         ConstInt64(Register(2), 0),
         StoreArray(r(1), r(0), r(2)),
         Ret(r(3)),
     ];
-    assert_eq!(expected, result);
+    assert_eq!(expected, code);
 }
 
 #[test]
 fn gen_store_array_int32() {
-    let result = code("fn f(a: Array[Int32], b: Int32) { a(0) = b; }");
+    let sa = sema("fn f(a: Array[Int32], b: Int32) { a(0) = b; }");
+    let (_, code) = bc(&sa, "<prog>::f");
     let expected = vec![
         ConstInt64(Register(2), 0),
         StoreArray(r(1), r(0), r(2)),
         Ret(r(3)),
     ];
-    assert_eq!(expected, result);
+    assert_eq!(expected, code);
 }
 
 #[test]
 fn gen_store_array_int64() {
-    let result = code("fn f(a: Array[Int64], b: Int64) { a(0) = b; }");
+    let sa = sema("fn f(a: Array[Int64], b: Int64) { a(0) = b; }");
+    let (_, code) = bc(&sa, "<prog>::f");
     let expected = vec![
         ConstInt64(Register(2), 0),
         StoreArray(r(1), r(0), r(2)),
         Ret(r(3)),
     ];
-    assert_eq!(expected, result);
+    assert_eq!(expected, code);
 }
 
 #[test]
 fn gen_store_array_float32() {
-    let result = code("fn f(a: Array[Float32], b: Float32) { a(0) = b; }");
+    let sa = sema("fn f(a: Array[Float32], b: Float32) { a(0) = b; }");
+    let (_, code) = bc(&sa, "<prog>::f");
     let expected = vec![
         ConstInt64(Register(2), 0),
         StoreArray(r(1), r(0), r(2)),
         Ret(r(3)),
     ];
-    assert_eq!(expected, result);
+    assert_eq!(expected, code);
 }
 
 #[test]
 fn gen_store_array_float64() {
-    let result = code("fn f(a: Array[Float64], b: Float64) { a(0) = b; }");
+    let sa = sema("fn f(a: Array[Float64], b: Float64) { a(0) = b; }");
+    let (_, code) = bc(&sa, "<prog>::f");
     let expected = vec![
         ConstInt64(Register(2), 0),
         StoreArray(r(1), r(0), r(2)),
         Ret(r(3)),
     ];
-    assert_eq!(expected, result);
+    assert_eq!(expected, code);
 }
 
 #[test]
 fn gen_store_array_ptr() {
-    let result = code("class Object fn f(a: Array[Object], b: Object) { a(0) = b; }");
+    let sa = sema("class Object fn f(a: Array[Object], b: Object) { a(0) = b; }");
+    let (_, code) = bc(&sa, "<prog>::f");
     let expected = vec![
         ConstInt64(Register(2), 0),
         StoreArray(r(1), r(0), r(2)),
         Ret(r(3)),
     ];
-    assert_eq!(expected, result);
+    assert_eq!(expected, code);
 }
 
 #[test]
@@ -3081,34 +3083,33 @@ fn gen_position_store_array_ptr() {
 
 #[test]
 fn gen_new_object_with_multiple_args() {
-    gen_fct(
+    let sa = sema(
         "
             class Foo { a: Int32, b: Int32, c: Int32 }
             fn f(): Foo {
                 return Foo(a = 1i32, b = 2i32, c = 3i32);
             }
             ",
-        |sa, code, fct| {
-            let cls_id = cls_by_name(sa, "Foo");
-            let expected = vec![
-                ConstInt32(r(0), 1),
-                ConstInt32(r(1), 2),
-                ConstInt32(r(2), 3),
-                PushRegister(r(0)),
-                PushRegister(r(1)),
-                PushRegister(r(2)),
-                NewObjectInitialized(r(3), ConstPoolIdx(3)),
-                Ret(r(3)),
-            ];
-            assert_eq!(expected, code);
-            assert_eq!(
-                fct.const_pool(ConstPoolIdx(3)),
-                &ConstPoolEntry::Class(
-                    ClassId(cls_id.index().try_into().expect("overflow")),
-                    BytecodeTypeArray::empty()
-                )
-            );
-        },
+    );
+    let (fct, code) = bc(&sa, "<prog>::f");
+    let cls_id = cls_by_name(&sa, "Foo");
+    let expected = vec![
+        ConstInt32(r(0), 1),
+        ConstInt32(r(1), 2),
+        ConstInt32(r(2), 3),
+        PushRegister(r(0)),
+        PushRegister(r(1)),
+        PushRegister(r(2)),
+        NewObjectInitialized(r(3), ConstPoolIdx(3)),
+        Ret(r(3)),
+    ];
+    assert_eq!(expected, code);
+    assert_eq!(
+        fct.const_pool(ConstPoolIdx(3)),
+        &ConstPoolEntry::Class(
+            ClassId(cls_id.index().try_into().expect("overflow")),
+            BytecodeTypeArray::empty()
+        )
     );
 }
 
@@ -3295,632 +3296,625 @@ fn gen_self_assign_for_string() {
 
 #[test]
 fn gen_reinterpret_float32_as_int32() {
-    gen_fct(
-        "fn f(a: Float32): Int32 { a.asInt32() }",
-        |sa, code, fct| {
-            let fct_id = lookup_fct(sa, "std::primitives::Float32#asInt32");
-            let expected = vec![
-                PushRegister(r(0)),
-                InvokeDirect(r(1), ConstPoolIdx(0)),
-                Ret(r(1)),
-            ];
-            assert_eq!(expected, code);
-            assert_eq!(
-                fct.const_pool(ConstPoolIdx(0)),
-                &ConstPoolEntry::Fct(
-                    FunctionId(fct_id.index().try_into().expect("overflow")),
-                    BytecodeTypeArray::empty()
-                )
-            );
-        },
+    let sa = sema("fn f(a: Float32): Int32 { a.asInt32() }");
+    let (fct, code) = bc(&sa, "<prog>::f");
+
+    let fct_id = lookup_fct(&sa, "std::primitives::Float32#asInt32");
+    let expected = vec![
+        PushRegister(r(0)),
+        InvokeDirect(r(1), ConstPoolIdx(0)),
+        Ret(r(1)),
+    ];
+    assert_eq!(expected, code);
+    assert_eq!(
+        fct.const_pool(ConstPoolIdx(0)),
+        &ConstPoolEntry::Fct(
+            FunctionId(fct_id.index().try_into().expect("overflow")),
+            BytecodeTypeArray::empty()
+        )
     );
 }
 
 #[test]
 fn gen_reinterpret_int32_as_float32() {
-    gen_fct(
-        "fn f(a: Int32): Float32 { a.asFloat32() }",
-        |sa, code, fct| {
-            let fct_id = lookup_fct(sa, "std::primitives::Int32#asFloat32");
-            let expected = vec![
-                PushRegister(r(0)),
-                InvokeDirect(r(1), ConstPoolIdx(0)),
-                Ret(r(1)),
-            ];
-            assert_eq!(expected, code);
-            assert_eq!(
-                fct.const_pool(ConstPoolIdx(0)),
-                &ConstPoolEntry::Fct(
-                    FunctionId(fct_id.index().try_into().expect("overflow")),
-                    BytecodeTypeArray::empty()
-                )
-            );
-        },
+    let sa = sema("fn f(a: Int32): Float32 { a.asFloat32() }");
+    let (fct, code) = bc(&sa, "<prog>::f");
+
+    let fct_id = lookup_fct(&sa, "std::primitives::Int32#asFloat32");
+    let expected = vec![
+        PushRegister(r(0)),
+        InvokeDirect(r(1), ConstPoolIdx(0)),
+        Ret(r(1)),
+    ];
+    assert_eq!(expected, code);
+    assert_eq!(
+        fct.const_pool(ConstPoolIdx(0)),
+        &ConstPoolEntry::Fct(
+            FunctionId(fct_id.index().try_into().expect("overflow")),
+            BytecodeTypeArray::empty()
+        )
     );
 }
 
 #[test]
 fn gen_reinterpret_float64_as_int64() {
-    gen_fct(
-        "fn f(a: Float64): Int64 { a.asInt64() }",
-        |sa, code, fct| {
-            let fct_id = lookup_fct(sa, "std::primitives::Float64#asInt64");
-            let expected = vec![
-                PushRegister(r(0)),
-                InvokeDirect(r(1), ConstPoolIdx(0)),
-                Ret(r(1)),
-            ];
-            assert_eq!(expected, code);
-            assert_eq!(
-                fct.const_pool(ConstPoolIdx(0)),
-                &ConstPoolEntry::Fct(
-                    FunctionId(fct_id.index().try_into().expect("overflow")),
-                    BytecodeTypeArray::empty()
-                )
-            );
-        },
+    let sa = sema("fn f(a: Float64): Int64 { a.asInt64() }");
+    let (fct, code) = bc(&sa, "<prog>::f");
+
+    let fct_id = lookup_fct(&sa, "std::primitives::Float64#asInt64");
+    let expected = vec![
+        PushRegister(r(0)),
+        InvokeDirect(r(1), ConstPoolIdx(0)),
+        Ret(r(1)),
+    ];
+    assert_eq!(expected, code);
+    assert_eq!(
+        fct.const_pool(ConstPoolIdx(0)),
+        &ConstPoolEntry::Fct(
+            FunctionId(fct_id.index().try_into().expect("overflow")),
+            BytecodeTypeArray::empty()
+        )
     );
 }
 
 #[test]
 fn gen_reinterpret_int64_as_float64() {
-    gen_fct(
-        "fn f(a: Int64): Float64 { a.asFloat64() }",
-        |sa, code, fct| {
-            let fct_id = lookup_fct(sa, "std::primitives::Int64#asFloat64");
-            let expected = vec![
-                PushRegister(r(0)),
-                InvokeDirect(r(1), ConstPoolIdx(0)),
-                Ret(r(1)),
-            ];
-            assert_eq!(expected, code);
-            assert_eq!(
-                fct.const_pool(ConstPoolIdx(0)),
-                &ConstPoolEntry::Fct(
-                    FunctionId(fct_id.index().try_into().expect("overflow")),
-                    BytecodeTypeArray::empty()
-                )
-            );
-        },
+    let sa = sema("fn f(a: Int64): Float64 { a.asFloat64() }");
+    let (fct, code) = bc(&sa, "<prog>::f");
+
+    let fct_id = lookup_fct(&sa, "std::primitives::Int64#asFloat64");
+    let expected = vec![
+        PushRegister(r(0)),
+        InvokeDirect(r(1), ConstPoolIdx(0)),
+        Ret(r(1)),
+    ];
+    assert_eq!(expected, code);
+    assert_eq!(
+        fct.const_pool(ConstPoolIdx(0)),
+        &ConstPoolEntry::Fct(
+            FunctionId(fct_id.index().try_into().expect("overflow")),
+            BytecodeTypeArray::empty()
+        )
     );
 }
 
 #[test]
 fn gen_float32_is_nan() {
-    let result = code("fn f(a: Float32): Bool { a.isNan() }");
+    let sa = sema("fn f(a: Float32): Bool { a.isNan() }");
+    let (_, code) = bc(&sa, "<prog>::f");
     let expected = vec![TestNe(r(1), r(0), r(0)), Ret(r(1))];
-    assert_eq!(expected, result);
+    assert_eq!(expected, code);
 }
 
 #[test]
 fn gen_float64_is_nan() {
-    let result = code("fn f(a: Float64): Bool { a.isNan() }");
+    let sa = sema("fn f(a: Float64): Bool { a.isNan() }");
+    let (_, code) = bc(&sa, "<prog>::f");
     let expected = vec![TestNe(r(1), r(0), r(0)), Ret(r(1))];
-    assert_eq!(expected, result);
+    assert_eq!(expected, code);
 }
 
 #[test]
 fn gen_extend_int_to_int64() {
-    let result = code("fn f(a: Int32): Int64 { a.toInt64() }");
+    let sa = sema("fn f(a: Int32): Int64 { a.toInt64() }");
+    let (_, code) = bc(&sa, "<prog>::f");
     let expected = vec![
         PushRegister(r(0)),
         InvokeDirect(r(1), ConstPoolIdx(0)),
         Ret(r(1)),
     ];
-    assert_eq!(expected, result);
+    assert_eq!(expected, code);
 }
 
 #[test]
 fn gen_cast_int64_to_int32() {
-    let result = code("fn f(a: Int64): Int32 { a.toInt32() }");
+    let sa = sema("fn f(a: Int64): Int32 { a.toInt32() }");
+    let (_, code) = bc(&sa, "<prog>::f");
     let expected = vec![
         PushRegister(r(0)),
         InvokeDirect(r(1), ConstPoolIdx(0)),
         Ret(r(1)),
     ];
-    assert_eq!(expected, result);
+    assert_eq!(expected, code);
 }
 
 #[test]
 fn gen_convert_int32_to_float32() {
-    gen_fct(
-        "fn f(a: Int32): Float32 { a.toFloat32() }",
-        |sa, code, fct| {
-            let fct_id = lookup_fct(sa, "std::primitives::Int32#toFloat32");
-            let expected = vec![
-                PushRegister(r(0)),
-                InvokeDirect(r(1), ConstPoolIdx(0)),
-                Ret(r(1)),
-            ];
-            assert_eq!(expected, code);
-            assert_eq!(
-                fct.const_pool(ConstPoolIdx(0)),
-                &ConstPoolEntry::Fct(
-                    FunctionId(fct_id.index().try_into().expect("overflow")),
-                    BytecodeTypeArray::empty()
-                )
-            );
-        },
+    let sa = sema("fn f(a: Int32): Float32 { a.toFloat32() }");
+    let (fct, code) = bc(&sa, "<prog>::f");
+
+    let fct_id = lookup_fct(&sa, "std::primitives::Int32#toFloat32");
+    let expected = vec![
+        PushRegister(r(0)),
+        InvokeDirect(r(1), ConstPoolIdx(0)),
+        Ret(r(1)),
+    ];
+    assert_eq!(expected, code);
+    assert_eq!(
+        fct.const_pool(ConstPoolIdx(0)),
+        &ConstPoolEntry::Fct(
+            FunctionId(fct_id.index().try_into().expect("overflow")),
+            BytecodeTypeArray::empty()
+        )
     );
 }
 
 #[test]
 fn gen_convert_int32_to_float64() {
-    gen_fct(
-        "fn f(a: Int32): Float64 { a.toFloat64() }",
-        |sa, code, fct| {
-            let fct_id = lookup_fct(sa, "std::primitives::Int32#toFloat64");
-            let expected = vec![
-                PushRegister(r(0)),
-                InvokeDirect(r(1), ConstPoolIdx(0)),
-                Ret(r(1)),
-            ];
-            assert_eq!(expected, code);
-            assert_eq!(
-                fct.const_pool(ConstPoolIdx(0)),
-                &ConstPoolEntry::Fct(
-                    FunctionId(fct_id.index().try_into().expect("overflow")),
-                    BytecodeTypeArray::empty()
-                )
-            );
-        },
+    let sa = sema("fn f(a: Int32): Float64 { a.toFloat64() }");
+    let (fct, code) = bc(&sa, "<prog>::f");
+
+    let fct_id = lookup_fct(&sa, "std::primitives::Int32#toFloat64");
+    let expected = vec![
+        PushRegister(r(0)),
+        InvokeDirect(r(1), ConstPoolIdx(0)),
+        Ret(r(1)),
+    ];
+    assert_eq!(expected, code);
+    assert_eq!(
+        fct.const_pool(ConstPoolIdx(0)),
+        &ConstPoolEntry::Fct(
+            FunctionId(fct_id.index().try_into().expect("overflow")),
+            BytecodeTypeArray::empty()
+        )
     );
 }
 
 #[test]
 fn gen_convert_int64_to_float32() {
-    gen_fct(
-        "fn f(a: Int64): Float32 { a.toFloat32() }",
-        |sa, code, fct| {
-            let fct_id = lookup_fct(sa, "std::primitives::Int64#toFloat32");
-            let expected = vec![
-                PushRegister(r(0)),
-                InvokeDirect(r(1), ConstPoolIdx(0)),
-                Ret(r(1)),
-            ];
-            assert_eq!(expected, code);
-            assert_eq!(
-                fct.const_pool(ConstPoolIdx(0)),
-                &ConstPoolEntry::Fct(
-                    FunctionId(fct_id.index().try_into().expect("overflow")),
-                    BytecodeTypeArray::empty()
-                )
-            );
-        },
+    let sa = sema("fn f(a: Int64): Float32 { a.toFloat32() }");
+    let (fct, code) = bc(&sa, "<prog>::f");
+
+    let fct_id = lookup_fct(&sa, "std::primitives::Int64#toFloat32");
+    let expected = vec![
+        PushRegister(r(0)),
+        InvokeDirect(r(1), ConstPoolIdx(0)),
+        Ret(r(1)),
+    ];
+    assert_eq!(expected, code);
+    assert_eq!(
+        fct.const_pool(ConstPoolIdx(0)),
+        &ConstPoolEntry::Fct(
+            FunctionId(fct_id.index().try_into().expect("overflow")),
+            BytecodeTypeArray::empty()
+        )
     );
 }
 
 #[test]
 fn gen_convert_int64_to_float64() {
-    gen_fct(
-        "fn f(a: Int64): Float64 { a.toFloat64() }",
-        |sa, code, fct| {
-            let fct_id = lookup_fct(sa, "std::primitives::Int64#toFloat64");
-            let expected = vec![
-                PushRegister(r(0)),
-                InvokeDirect(r(1), ConstPoolIdx(0)),
-                Ret(r(1)),
-            ];
-            assert_eq!(expected, code);
-            assert_eq!(
-                fct.const_pool(ConstPoolIdx(0)),
-                &ConstPoolEntry::Fct(
-                    FunctionId(fct_id.index().try_into().expect("overflow")),
-                    BytecodeTypeArray::empty()
-                )
-            );
-        },
+    let sa = sema("fn f(a: Int64): Float64 { a.toFloat64() }");
+    let (fct, code) = bc(&sa, "<prog>::f");
+
+    let fct_id = lookup_fct(&sa, "std::primitives::Int64#toFloat64");
+    let expected = vec![
+        PushRegister(r(0)),
+        InvokeDirect(r(1), ConstPoolIdx(0)),
+        Ret(r(1)),
+    ];
+    assert_eq!(expected, code);
+    assert_eq!(
+        fct.const_pool(ConstPoolIdx(0)),
+        &ConstPoolEntry::Fct(
+            FunctionId(fct_id.index().try_into().expect("overflow")),
+            BytecodeTypeArray::empty()
+        )
     );
 }
 
 #[test]
 fn gen_truncate_float32_to_int32() {
-    gen_fct(
-        "fn f(a: Float32): Int32 { a.toInt32() }",
-        |sa, code, fct| {
-            let fct_id = lookup_fct(sa, "std::primitives::Float32#toInt32");
-            let expected = vec![
-                PushRegister(r(0)),
-                InvokeDirect(r(1), ConstPoolIdx(0)),
-                Ret(r(1)),
-            ];
-            assert_eq!(expected, code);
-            assert_eq!(
-                fct.const_pool(ConstPoolIdx(0)),
-                &ConstPoolEntry::Fct(
-                    FunctionId(fct_id.index().try_into().expect("overflow")),
-                    BytecodeTypeArray::empty()
-                )
-            );
-        },
+    let sa = sema("fn f(a: Float32): Int32 { a.toInt32() }");
+    let (fct, code) = bc(&sa, "<prog>::f");
+
+    let fct_id = lookup_fct(&sa, "std::primitives::Float32#toInt32");
+    let expected = vec![
+        PushRegister(r(0)),
+        InvokeDirect(r(1), ConstPoolIdx(0)),
+        Ret(r(1)),
+    ];
+    assert_eq!(expected, code);
+    assert_eq!(
+        fct.const_pool(ConstPoolIdx(0)),
+        &ConstPoolEntry::Fct(
+            FunctionId(fct_id.index().try_into().expect("overflow")),
+            BytecodeTypeArray::empty()
+        )
     );
 }
 
 #[test]
 fn gen_truncate_float32_to_int64() {
-    gen_fct(
-        "fn f(a: Float32): Int64 { a.toInt64() }",
-        |sa, code, fct| {
-            let fct_id = lookup_fct(sa, "std::primitives::Float32#toInt64");
-            let expected = vec![
-                PushRegister(r(0)),
-                InvokeDirect(r(1), ConstPoolIdx(0)),
-                Ret(r(1)),
-            ];
-            assert_eq!(expected, code);
-            assert_eq!(
-                fct.const_pool(ConstPoolIdx(0)),
-                &ConstPoolEntry::Fct(
-                    FunctionId(fct_id.index().try_into().expect("overflow")),
-                    BytecodeTypeArray::empty()
-                )
-            );
-        },
+    let sa = sema("fn f(a: Float32): Int64 { a.toInt64() }");
+    let (fct, code) = bc(&sa, "<prog>::f");
+
+    let fct_id = lookup_fct(&sa, "std::primitives::Float32#toInt64");
+    let expected = vec![
+        PushRegister(r(0)),
+        InvokeDirect(r(1), ConstPoolIdx(0)),
+        Ret(r(1)),
+    ];
+    assert_eq!(expected, code);
+    assert_eq!(
+        fct.const_pool(ConstPoolIdx(0)),
+        &ConstPoolEntry::Fct(
+            FunctionId(fct_id.index().try_into().expect("overflow")),
+            BytecodeTypeArray::empty()
+        )
     );
 }
 
 #[test]
 fn gen_truncate_float64_to_int32() {
-    gen_fct(
-        "fn f(a: Float64): Int32 { a.toInt32() }",
-        |sa, code, fct| {
-            let fct_id = lookup_fct(sa, "std::primitives::Float64#toInt32");
-            let expected = vec![
-                PushRegister(r(0)),
-                InvokeDirect(r(1), ConstPoolIdx(0)),
-                Ret(r(1)),
-            ];
-            assert_eq!(expected, code);
-            assert_eq!(
-                fct.const_pool(ConstPoolIdx(0)),
-                &ConstPoolEntry::Fct(
-                    FunctionId(fct_id.index().try_into().expect("overflow")),
-                    BytecodeTypeArray::empty()
-                )
-            );
-        },
+    let sa = sema("fn f(a: Float64): Int32 { a.toInt32() }");
+    let (fct, code) = bc(&sa, "<prog>::f");
+
+    let fct_id = lookup_fct(&sa, "std::primitives::Float64#toInt32");
+    let expected = vec![
+        PushRegister(r(0)),
+        InvokeDirect(r(1), ConstPoolIdx(0)),
+        Ret(r(1)),
+    ];
+    assert_eq!(expected, code);
+    assert_eq!(
+        fct.const_pool(ConstPoolIdx(0)),
+        &ConstPoolEntry::Fct(
+            FunctionId(fct_id.index().try_into().expect("overflow")),
+            BytecodeTypeArray::empty()
+        )
     );
 }
 
 #[test]
 fn gen_truncate_float64_to_int64() {
-    gen_fct(
-        "fn f(a: Float64): Int64 { a.toInt64() }",
-        |sa, code, fct| {
-            let fct_id = lookup_fct(sa, "std::primitives::Float64#toInt64");
-            let expected = vec![
-                PushRegister(r(0)),
-                InvokeDirect(r(1), ConstPoolIdx(0)),
-                Ret(r(1)),
-            ];
-            assert_eq!(expected, code);
-            assert_eq!(
-                fct.const_pool(ConstPoolIdx(0)),
-                &ConstPoolEntry::Fct(
-                    FunctionId(fct_id.index().try_into().expect("overflow")),
-                    BytecodeTypeArray::empty()
-                )
-            );
-        },
+    let sa = sema("fn f(a: Float64): Int64 { a.toInt64() }");
+    let (fct, code) = bc(&sa, "<prog>::f");
+
+    let fct_id = lookup_fct(&sa, "std::primitives::Float64#toInt64");
+    let expected = vec![
+        PushRegister(r(0)),
+        InvokeDirect(r(1), ConstPoolIdx(0)),
+        Ret(r(1)),
+    ];
+    assert_eq!(expected, code);
+    assert_eq!(
+        fct.const_pool(ConstPoolIdx(0)),
+        &ConstPoolEntry::Fct(
+            FunctionId(fct_id.index().try_into().expect("overflow")),
+            BytecodeTypeArray::empty()
+        )
     );
 }
 
 #[test]
 fn gen_enum_value() {
-    gen_fct(
-        "enum MyEnum { A, B } fn f(): MyEnum { MyEnum::A }",
-        |sa, code, fct| {
-            let enum_id = enum_by_name(sa, "MyEnum");
-            let expected = vec![NewEnum(r(0), ConstPoolIdx(0)), Ret(r(0))];
-            assert_eq!(expected, code);
+    let sa = sema("enum MyEnum { A, B } fn f(): MyEnum { MyEnum::A }");
+    let (fct, code) = bc(&sa, "<prog>::f");
 
-            assert_eq!(
-                fct.const_pool(ConstPoolIdx(0)),
-                &ConstPoolEntry::EnumVariant(
-                    EnumId(enum_id.index().try_into().expect("overflow")),
-                    BytecodeTypeArray::empty(),
-                    0
-                )
-            )
-        },
-    );
+    let enum_id = enum_by_name(&sa, "MyEnum");
+    let expected = vec![NewEnum(r(0), ConstPoolIdx(0)), Ret(r(0))];
+    assert_eq!(expected, code);
+
+    assert_eq!(
+        fct.const_pool(ConstPoolIdx(0)),
+        &ConstPoolEntry::EnumVariant(
+            EnumId(enum_id.index().try_into().expect("overflow")),
+            BytecodeTypeArray::empty(),
+            0
+        )
+    )
 }
 
 #[test]
 fn gen_enum_mov_generic() {
-    let result = code(
+    let sa = sema(
         "enum MyEnum { A(Int32), B }
         fn f(x: MyEnum): MyEnum {
             let tmp = x;
             tmp
         }",
     );
+    let (_, code) = bc(&sa, "<prog>::f");
     let expected = vec![Mov(r(1), r(0)), Ret(r(1))];
-    assert_eq!(expected, result);
+    assert_eq!(expected, code);
 }
 
 #[test]
 fn gen_unreachable() {
-    gen_fct("fn f(): Int32 { unreachable[Int32]() }", |sa, code, fct| {
-        let fct_id = fct_by_name(sa, "unreachable");
-        let expected = vec![InvokeStatic(r(0), ConstPoolIdx(0)), Ret(r(0))];
-        assert_eq!(expected, code);
-        assert_eq!(
-            fct.const_pool(ConstPoolIdx(0)),
-            &ConstPoolEntry::Fct(
-                FunctionId(fct_id.index().try_into().expect("overflow")),
-                BytecodeTypeArray::one(BytecodeType::Int32)
-            )
-        );
-    });
+    let sa = sema("fn f(): Int32 { unreachable[Int32]() }");
+    let (fct, code) = bc(&sa, "<prog>::f");
+
+    let fct_id = fct_by_name(&sa, "unreachable");
+    let expected = vec![InvokeStatic(r(0), ConstPoolIdx(0)), Ret(r(0))];
+    assert_eq!(expected, code);
+    assert_eq!(
+        fct.const_pool(ConstPoolIdx(0)),
+        &ConstPoolEntry::Fct(
+            FunctionId(fct_id.index().try_into().expect("overflow")),
+            BytecodeTypeArray::one(BytecodeType::Int32)
+        )
+    );
 }
 
 #[test]
 fn gen_enum_array() {
-    let result = code(
+    let sa = sema(
         "enum MyEnum { A(Int32), B }
         fn f(arr: Array[MyEnum], idx: Int64): MyEnum {
             arr(idx)
         }",
     );
-
+    let (_, code) = bc(&sa, "<prog>::f");
     let expected = vec![LoadArray(r(2), r(0), r(1)), Ret(r(2))];
-    assert_eq!(expected, result);
+    assert_eq!(expected, code);
 
-    let result = code(
+    let sa = sema(
         "enum MyEnum { A(Int32), B }
         fn f(arr: Array[MyEnum], idx: Int64, value: MyEnum) {
             arr(idx) = value;
         }",
     );
+    let (_, code) = bc(&sa, "<prog>::f");
     let expected = vec![StoreArray(r(2), r(0), r(1)), Ret(r(3))];
-    assert_eq!(expected, result);
+    assert_eq!(expected, code);
 }
 
 #[test]
 fn gen_string_length() {
-    let result = code("fn f(x: String): Int64 { x.size() }");
+    let sa = sema("fn f(x: String): Int64 { x.size() }");
+    let (_, code) = bc(&sa, "<prog>::f");
     let expected = vec![ArrayLength(r(1), r(0)), Ret(r(1))];
-    assert_eq!(expected, result);
+    assert_eq!(expected, code);
 }
 
 #[test]
 fn gen_string_get_uint8() {
-    let result = code("fn f(x: String, idx: Int64): UInt8 { x.getByte(idx) }");
+    let sa = sema("fn f(x: String, idx: Int64): UInt8 { x.getByte(idx) }");
+    let (_, code) = bc(&sa, "<prog>::f");
     let expected = vec![LoadArray(r(2), r(0), r(1)), Ret(r(2))];
-    assert_eq!(expected, result);
+    assert_eq!(expected, code);
 }
 
 #[test]
 fn gen_array_get() {
-    let result = code("fn f(x: Array[Float32], idx: Int64): Float32 { x(idx) }");
+    let sa = sema("fn f(x: Array[Float32], idx: Int64): Float32 { x(idx) }");
+    let (_, code) = bc(&sa, "<prog>::f");
     let expected = vec![LoadArray(r(2), r(0), r(1)), Ret(r(2))];
-    assert_eq!(expected, result);
+    assert_eq!(expected, code);
 }
 
 #[test]
 fn gen_array_get_method() {
-    let result = code("fn f(x: Array[Float32], idx: Int64): Float32 { x.get(idx) }");
+    let sa = sema("fn f(x: Array[Float32], idx: Int64): Float32 { x.get(idx) }");
+    let (_, code) = bc(&sa, "<prog>::f");
     let expected = vec![LoadArray(r(2), r(0), r(1)), Ret(r(2))];
-    assert_eq!(expected, result);
+    assert_eq!(expected, code);
 }
 
 #[test]
 fn gen_array_set_method() {
-    let result = code("fn f(x: Array[Float32], idx: Int64, value: Float32) { x.set(idx, value); }");
+    let sa = sema("fn f(x: Array[Float32], idx: Int64, value: Float32) { x.set(idx, value); }");
+    let (_, code) = bc(&sa, "<prog>::f");
     let expected = vec![StoreArray(r(2), r(0), r(1)), Ret(r(3))];
-    assert_eq!(expected, result);
+    assert_eq!(expected, code);
 }
 
 #[test]
 fn gen_string_concat() {
-    gen_fct(
-        "fn f(a: String, b: String): String { a + b }",
-        |sa, code, fct| {
-            let cls_id = sa.known.classes.string();
-            let cls_ty = SourceType::Class(cls_id, SourceTypeArray::empty());
-            let fct_id = impl_method_id_by_name(sa, sa.known.traits.add(), "add", cls_ty);
-            let expected = vec![
-                PushRegister(r(0)),
-                PushRegister(r(1)),
-                InvokeDirect(r(2), ConstPoolIdx(0)),
-                Ret(r(2)),
-            ];
-            assert_eq!(expected, code);
-            assert_eq!(
-                fct.const_pool(ConstPoolIdx(0)),
-                &ConstPoolEntry::Fct(
-                    FunctionId(fct_id.index().try_into().expect("overflow")),
-                    BytecodeTypeArray::empty()
-                )
-            );
-        },
+    let sa = sema("fn f(a: String, b: String): String { a + b }");
+    let (fct, code) = bc(&sa, "<prog>::f");
+
+    let cls_id = sa.known.classes.string();
+    let cls_ty = SourceType::Class(cls_id, SourceTypeArray::empty());
+    let fct_id = impl_method_id_by_name(&sa, sa.known.traits.add(), "add", cls_ty);
+    let expected = vec![
+        PushRegister(r(0)),
+        PushRegister(r(1)),
+        InvokeDirect(r(2), ConstPoolIdx(0)),
+        Ret(r(2)),
+    ];
+    assert_eq!(expected, code);
+    assert_eq!(
+        fct.const_pool(ConstPoolIdx(0)),
+        &ConstPoolEntry::Fct(
+            FunctionId(fct_id.index().try_into().expect("overflow")),
+            BytecodeTypeArray::empty()
+        )
     );
 }
 
 #[test]
 fn gen_string_equals() {
-    gen_fct(
-        "fn f(a: String, b: String): Bool { a != b }",
-        |sa, code, fct| {
-            let cls_id = sa.known.classes.string();
-            let cls_ty = SourceType::Class(cls_id, SourceTypeArray::empty());
-            let fct_id = impl_method_id_by_name(sa, sa.known.traits.equals(), "equals", cls_ty);
-            let expected = vec![
-                PushRegister(r(0)),
-                PushRegister(r(1)),
-                InvokeDirect(r(2), ConstPoolIdx(0)),
-                Not(r(2), r(2)),
-                Ret(r(2)),
-            ];
-            assert_eq!(expected, code);
-            assert_eq!(
-                fct.const_pool(ConstPoolIdx(0)),
-                &ConstPoolEntry::Fct(
-                    FunctionId(fct_id.index().try_into().expect("overflow")),
-                    BytecodeTypeArray::empty()
-                )
-            );
-        },
+    let sa = sema("fn f(a: String, b: String): Bool { a != b }");
+    let (fct, code) = bc(&sa, "<prog>::f");
+
+    let cls_id = sa.known.classes.string();
+    let cls_ty = SourceType::Class(cls_id, SourceTypeArray::empty());
+    let fct_id = impl_method_id_by_name(&sa, sa.known.traits.equals(), "equals", cls_ty);
+    let expected = vec![
+        PushRegister(r(0)),
+        PushRegister(r(1)),
+        InvokeDirect(r(2), ConstPoolIdx(0)),
+        Not(r(2), r(2)),
+        Ret(r(2)),
+    ];
+    assert_eq!(expected, code);
+    assert_eq!(
+        fct.const_pool(ConstPoolIdx(0)),
+        &ConstPoolEntry::Fct(
+            FunctionId(fct_id.index().try_into().expect("overflow")),
+            BytecodeTypeArray::empty()
+        )
     );
 }
 
 #[test]
 fn gen_bool_to_string() {
-    gen_fct("fn f(a: Bool): String { a.toString() }", |sa, code, fct| {
-        let fct_id = lookup_fct(
-            sa,
-            "std::string::Stringable for std::primitives::Bool#toString",
-        );
-        let expected = vec![
-            PushRegister(r(0)),
-            InvokeDirect(r(1), ConstPoolIdx(0)),
-            Ret(r(1)),
-        ];
-        assert_eq!(expected, code);
-        assert_eq!(
-            fct.const_pool(ConstPoolIdx(0)),
-            &ConstPoolEntry::Fct(
-                FunctionId(fct_id.index().try_into().expect("overflow")),
-                BytecodeTypeArray::empty()
-            )
-        );
-    });
+    let sa = sema("fn f(a: Bool): String { a.toString() }");
+    let (fct, code) = bc(&sa, "<prog>::f");
+
+    let fct_id = lookup_fct(
+        &sa,
+        "std::string::Stringable for std::primitives::Bool#toString",
+    );
+    let expected = vec![
+        PushRegister(r(0)),
+        InvokeDirect(r(1), ConstPoolIdx(0)),
+        Ret(r(1)),
+    ];
+    assert_eq!(expected, code);
+    assert_eq!(
+        fct.const_pool(ConstPoolIdx(0)),
+        &ConstPoolEntry::Fct(
+            FunctionId(fct_id.index().try_into().expect("overflow")),
+            BytecodeTypeArray::empty()
+        )
+    );
 }
 
 #[test]
 fn gen_cmp_strings() {
-    gen_fct(
-        "fn f(a: String, b: String): Bool { a < b }",
-        |sa, code, fct| {
-            let cls_id = sa.known.classes.string();
-            let cls_ty = SourceType::Class(cls_id, SourceTypeArray::empty());
-            let fct_id = impl_method_id_by_name(sa, sa.known.traits.comparable(), "cmp", cls_ty);
-            let expected = vec![
-                PushRegister(r(0)),
-                PushRegister(r(1)),
-                InvokeDirect(r(3), ConstPoolIdx(0)),
-                PushRegister(r(3)),
-                InvokeDirect(r(2), ConstPoolIdx(1)),
-                Ret(r(2)),
-            ];
-            assert_eq!(expected, code);
-            assert_eq!(
-                fct.const_pool(ConstPoolIdx(0)),
-                &ConstPoolEntry::Fct(
-                    FunctionId(fct_id.index().try_into().expect("overflow")),
-                    BytecodeTypeArray::empty()
-                )
-            );
-        },
+    let sa = sema("fn f(a: String, b: String): Bool { a < b }");
+    let (fct, code) = bc(&sa, "<prog>::f");
+
+    let cls_id = sa.known.classes.string();
+    let cls_ty = SourceType::Class(cls_id, SourceTypeArray::empty());
+    let fct_id = impl_method_id_by_name(&sa, sa.known.traits.comparable(), "cmp", cls_ty);
+    let expected = vec![
+        PushRegister(r(0)),
+        PushRegister(r(1)),
+        InvokeDirect(r(3), ConstPoolIdx(0)),
+        PushRegister(r(3)),
+        InvokeDirect(r(2), ConstPoolIdx(1)),
+        Ret(r(2)),
+    ];
+    assert_eq!(expected, code);
+    assert_eq!(
+        fct.const_pool(ConstPoolIdx(0)),
+        &ConstPoolEntry::Fct(
+            FunctionId(fct_id.index().try_into().expect("overflow")),
+            BytecodeTypeArray::empty()
+        )
     );
 }
 
 #[test]
 fn gen_extend_uint8() {
-    let result = code("fn f(x: UInt8): Int32 { x.toInt32() }");
+    let sa = sema("fn f(x: UInt8): Int32 { x.toInt32() }");
+    let (_, code) = bc(&sa, "<prog>::f");
     let expected = vec![
         PushRegister(r(0)),
         InvokeDirect(r(1), ConstPoolIdx(0)),
         Ret(r(1)),
     ];
-    assert_eq!(expected, result);
+    assert_eq!(expected, code);
 
-    let result = code("fn f(x: UInt8): Int64 { x.toInt64() }");
+    let sa = sema("fn f(x: UInt8): Int64 { x.toInt64() }");
+    let (_, code) = bc(&sa, "<prog>::f");
     let expected = vec![
         PushRegister(r(0)),
         InvokeDirect(r(1), ConstPoolIdx(0)),
         Ret(r(1)),
     ];
-    assert_eq!(expected, result);
+    assert_eq!(expected, code);
 }
 
 #[test]
 fn gen_extend_int() {
-    let result = code("fn f(x: Int32): Int64 { x.toInt64() }");
+    let sa = sema("fn f(x: Int32): Int64 { x.toInt64() }");
+    let (_, code) = bc(&sa, "<prog>::f");
     let expected = vec![
         PushRegister(r(0)),
         InvokeDirect(r(1), ConstPoolIdx(0)),
         Ret(r(1)),
     ];
-    assert_eq!(expected, result);
+    assert_eq!(expected, code);
 }
 
 #[test]
 fn gen_cast_char() {
-    let result = code("fn f(x: Char): Int32 { x.toInt32() }");
+    let sa = sema("fn f(x: Char): Int32 { x.toInt32() }");
+    let (_, code) = bc(&sa, "<prog>::f");
     let expected = vec![
         PushRegister(r(0)),
         InvokeDirect(r(1), ConstPoolIdx(0)),
         Ret(r(1)),
     ];
-    assert_eq!(expected, result);
+    assert_eq!(expected, code);
 
-    let result = code("fn f(x: Char): Int64 { x.toInt64() }");
+    let sa = sema("fn f(x: Char): Int64 { x.toInt64() }");
+    let (_, code) = bc(&sa, "<prog>::f");
     let expected = vec![
         PushRegister(r(0)),
         InvokeDirect(r(1), ConstPoolIdx(0)),
         Ret(r(1)),
     ];
-    assert_eq!(expected, result);
+    assert_eq!(expected, code);
 }
 
 #[test]
 fn gen_cast_int() {
-    let result = code("fn f(x: Int32): UInt8 { x.toUInt8() }");
+    let sa = sema("fn f(x: Int32): UInt8 { x.toUInt8() }");
+    let (_, code) = bc(&sa, "<prog>::f");
     let expected = vec![
         PushRegister(r(0)),
         InvokeDirect(r(1), ConstPoolIdx(0)),
         Ret(r(1)),
     ];
-    assert_eq!(expected, result);
+    assert_eq!(expected, code);
 
-    let result = code("fn f(x: Int32): Char { x.toCharUnchecked() }");
+    let sa = sema("fn f(x: Int32): Char { x.toCharUnchecked() }");
+    let (_, code) = bc(&sa, "<prog>::f");
     let expected = vec![
         PushRegister(r(0)),
         InvokeDirect(r(1), ConstPoolIdx(0)),
         Ret(r(1)),
     ];
-    assert_eq!(expected, result);
+    assert_eq!(expected, code);
 }
 
 #[test]
 fn gen_cast_int64() {
-    let result = code("fn f(x: Int64): UInt8 { x.toUInt8() }");
+    let sa = sema("fn f(x: Int64): UInt8 { x.toUInt8() }");
+    let (_, code) = bc(&sa, "<prog>::f");
     let expected = vec![
         PushRegister(r(0)),
         InvokeDirect(r(1), ConstPoolIdx(0)),
         Ret(r(1)),
     ];
-    assert_eq!(expected, result);
+    assert_eq!(expected, code);
 
-    let result = code("fn f(x: Int64): Char { x.toCharUnchecked() }");
+    let sa = sema("fn f(x: Int64): Char { x.toCharUnchecked() }");
+    let (_, code) = bc(&sa, "<prog>::f");
     let expected = vec![
         PushRegister(r(0)),
         InvokeDirect(r(1), ConstPoolIdx(0)),
         Ret(r(1)),
     ];
-    assert_eq!(expected, result);
+    assert_eq!(expected, code);
 
-    let result = code("fn f(x: Int64): Int32 { x.toInt32() }");
+    let sa = sema("fn f(x: Int64): Int32 { x.toInt32() }");
+    let (_, code) = bc(&sa, "<prog>::f");
     let expected = vec![
         PushRegister(r(0)),
         InvokeDirect(r(1), ConstPoolIdx(0)),
         Ret(r(1)),
     ];
-    assert_eq!(expected, result);
+    assert_eq!(expected, code);
 }
 
 #[test]
-fn gen_const_int() {
-    let result = code("const X: Int32 = 1i32; fn f(): Int32 { X }");
+fn gen_const_int32() {
+    let sa = sema("const X: Int32 = 1i32; fn f(): Int32 { X }");
+    let (_, code) = bc(&sa, "<prog>::f");
     let expected = vec![ConstInt32(r(0), 1), Ret(r(0))];
-    assert_eq!(expected, result);
+    assert_eq!(expected, code);
 }
 
 #[test]
 fn gen_while_with_break() {
-    let result = code("fn f(x: Bool) { while x { break; } }");
+    let sa = sema("fn f(x: Bool) { while x { break; } }");
+    let (_, code) = bc(&sa, "<prog>::f");
     let expected = vec![
         LoopStart,
         JumpIfFalse(r(0), 4),
@@ -3928,143 +3922,147 @@ fn gen_while_with_break() {
         JumpLoop(0),
         Ret(r(1)),
     ];
-    assert_eq!(expected, result);
+    assert_eq!(expected, code);
 }
 
 #[test]
 fn gen_vec_load() {
-    gen_fct(
-        "fn f(x: Vec[Int32], idx: Int64): Int32 { x(idx) }",
-        |sa, code, fct| {
-            let fct_id = lookup_fct(sa, "std::traits::IndexGet for std::collections::Vec#get");
-            let expected = vec![
-                PushRegister(r(0)),
-                PushRegister(r(1)),
-                InvokeDirect(r(2), ConstPoolIdx(0)),
-                Ret(r(2)),
-            ];
-            assert_eq!(expected, code);
-            assert_eq!(
-                fct.const_pool(ConstPoolIdx(0)),
-                &ConstPoolEntry::Fct(
-                    FunctionId(fct_id.index().try_into().expect("overflow")),
-                    BytecodeTypeArray::one(BytecodeType::Int32)
-                )
-            );
-        },
+    let sa = sema("fn f(x: Vec[Int32], idx: Int64): Int32 { x(idx) }");
+    let (fct, code) = bc(&sa, "<prog>::f");
+
+    let fct_id = lookup_fct(&sa, "std::traits::IndexGet for std::collections::Vec#get");
+    let expected = vec![
+        PushRegister(r(0)),
+        PushRegister(r(1)),
+        InvokeDirect(r(2), ConstPoolIdx(0)),
+        Ret(r(2)),
+    ];
+    assert_eq!(expected, code);
+    assert_eq!(
+        fct.const_pool(ConstPoolIdx(0)),
+        &ConstPoolEntry::Fct(
+            FunctionId(fct_id.index().try_into().expect("overflow")),
+            BytecodeTypeArray::one(BytecodeType::Int32)
+        )
     );
 }
 
 #[test]
 fn gen_vec_store() {
-    gen_fct(
-        "fn f(x: Vec[Int32], idx: Int64, value: Int32) { x(idx) = value; }",
-        |sa, code, fct| {
-            let fct_id = lookup_fct(sa, "std::traits::IndexSet for std::collections::Vec#set");
-            let expected = vec![
-                PushRegister(r(0)),
-                PushRegister(r(1)),
-                PushRegister(r(2)),
-                InvokeDirect(r(3), ConstPoolIdx(0)),
-                Ret(r(3)),
-            ];
-            assert_eq!(expected, code);
-            assert_eq!(
-                fct.const_pool(ConstPoolIdx(0)),
-                &ConstPoolEntry::Fct(
-                    FunctionId(fct_id.index().try_into().expect("overflow")),
-                    BytecodeTypeArray::one(BytecodeType::Int32)
-                )
-            );
-        },
+    let sa = sema("fn f(x: Vec[Int32], idx: Int64, value: Int32) { x(idx) = value; }");
+    let (fct, code) = bc(&sa, "<prog>::f");
+
+    let fct_id = lookup_fct(&sa, "std::traits::IndexSet for std::collections::Vec#set");
+    let expected = vec![
+        PushRegister(r(0)),
+        PushRegister(r(1)),
+        PushRegister(r(2)),
+        InvokeDirect(r(3), ConstPoolIdx(0)),
+        Ret(r(3)),
+    ];
+    assert_eq!(expected, code);
+    assert_eq!(
+        fct.const_pool(ConstPoolIdx(0)),
+        &ConstPoolEntry::Fct(
+            FunctionId(fct_id.index().try_into().expect("overflow")),
+            BytecodeTypeArray::one(BytecodeType::Int32)
+        )
     );
 }
 
 #[test]
 fn gen_byte_to_char() {
-    let result = code("fn f(x: UInt8): Char { x.toChar() }");
+    let sa = sema("fn f(x: UInt8): Char { x.toChar() }");
+    let (_, code) = bc(&sa, "<prog>::f");
     let expected = vec![
         PushRegister(r(0)),
         InvokeDirect(r(1), ConstPoolIdx(0)),
         Ret(r(1)),
     ];
-    assert_eq!(expected, result);
+    assert_eq!(expected, code);
 }
 
 #[test]
-fn gen_int_min_value() {
-    let result = code("fn f(): Int32 { -2147483648i32 }");
+fn gen_int32_min_value() {
+    let sa = sema("fn f(): Int32 { -2147483648i32 }");
+    let (_, code) = bc(&sa, "<prog>::f");
     let expected = vec![ConstInt32(r(0), -2147483648), Ret(r(0))];
-    assert_eq!(expected, result);
+    assert_eq!(expected, code);
 }
 
 #[test]
-fn gen_int_max_value() {
-    let result = code("fn f(): Int32 { 2147483647i32 }");
+fn gen_int32_max_value() {
+    let sa = sema("fn f(): Int32 { 2147483647i32 }");
+    let (_, code) = bc(&sa, "<prog>::f");
     let expected = vec![ConstInt32(r(0), 2147483647), Ret(r(0))];
-    assert_eq!(expected, result);
+    assert_eq!(expected, code);
 }
 
 #[test]
 fn gen_int64_min_value() {
-    let result = code("fn f(): Int64 { -9223372036854775808i64 }");
+    let sa = sema("fn f(): Int64 { -9223372036854775808i64 }");
+    let (_, code) = bc(&sa, "<prog>::f");
     let expected = vec![ConstInt64(r(0), -9223372036854775808), Ret(r(0))];
-    assert_eq!(expected, result);
+    assert_eq!(expected, code);
 }
 
 #[test]
 fn gen_int64_max_value() {
-    let result = code("fn f(): Int64 { 9223372036854775807i64 }");
+    let sa = sema("fn f(): Int64 { 9223372036854775807i64 }");
+    let (_, code) = bc(&sa, "<prog>::f");
     let expected = vec![ConstInt64(r(0), 9223372036854775807), Ret(r(0))];
-    assert_eq!(expected, result);
+    assert_eq!(expected, code);
 }
 
 #[test]
 fn gen_tuple_var() {
-    gen_fct("fn f() { let x = (1i32, 2i32); }", |_, code, fct| {
-        let subtypes = vec![BytecodeType::Int32, BytecodeType::Int32];
-        let expected = vec![
-            ConstInt32(r(2), 1),
-            ConstInt32(r(3), 2),
-            PushRegister(r(2)),
-            PushRegister(r(3)),
-            NewTuple(r(1), ConstPoolIdx(2)),
-            Mov(r(0), r(1)),
-            Ret(r(4)),
-        ];
-        assert_eq!(expected, code);
+    let sa = sema("fn f() { let x = (1i32, 2i32); }");
+    let (fct, code) = bc(&sa, "<prog>::f");
 
-        assert_eq!(
-            fct.const_pool(ConstPoolIdx(2)),
-            &ConstPoolEntry::Tuple(BytecodeTypeArray::new(subtypes))
-        );
-    });
+    let subtypes = vec![BytecodeType::Int32, BytecodeType::Int32];
+    let expected = vec![
+        ConstInt32(r(2), 1),
+        ConstInt32(r(3), 2),
+        PushRegister(r(2)),
+        PushRegister(r(3)),
+        NewTuple(r(1), ConstPoolIdx(2)),
+        Mov(r(0), r(1)),
+        Ret(r(4)),
+    ];
+    assert_eq!(expected, code);
+
+    assert_eq!(
+        fct.const_pool(ConstPoolIdx(2)),
+        &ConstPoolEntry::Tuple(BytecodeTypeArray::new(subtypes))
+    );
 }
 
 #[test]
 fn gen_tuple_move() {
-    let result = code("fn f(x: (Int32, Int32)) { let y = x; }");
+    let sa = sema("fn f(x: (Int32, Int32)) { let y = x; }");
+    let (_, code) = bc(&sa, "<prog>::f");
     let expected = vec![Mov(r(1), r(0)), Ret(r(2))];
-    assert_eq!(expected, result);
+    assert_eq!(expected, code);
 }
 
 #[test]
 fn gen_tuple_element() {
-    gen_fct("fn f(x: (Int32, Int32)): Int32 { x.0 }", |sa, code, fct| {
-        let tuple_ty = create_tuple(sa, vec![SourceType::Int32, SourceType::Int32]);
-        let expected = vec![LoadTupleElement(r(1), r(0), ConstPoolIdx(0)), Ret(r(1))];
-        assert_eq!(expected, code);
+    let sa = sema("fn f(x: (Int32, Int32)): Int32 { x.0 }");
+    let (fct, code) = bc(&sa, "<prog>::f");
 
-        assert_eq!(
-            fct.const_pool(ConstPoolIdx(0)),
-            &ConstPoolEntry::TupleElement(bty_from_ty(tuple_ty), 0)
-        );
-    });
+    let tuple_ty = create_tuple(&sa, vec![SourceType::Int32, SourceType::Int32]);
+    let expected = vec![LoadTupleElement(r(1), r(0), ConstPoolIdx(0)), Ret(r(1))];
+    assert_eq!(expected, code);
+
+    assert_eq!(
+        fct.const_pool(ConstPoolIdx(0)),
+        &ConstPoolEntry::TupleElement(bty_from_ty(tuple_ty), 0)
+    );
 }
 
 #[test]
 fn gen_trait_object() {
-    gen_fct(
+    let sa = sema(
         "
         trait Foo { fn bar(): Int32; }
         class Bar
@@ -4073,24 +4071,24 @@ fn gen_trait_object() {
         }
         fn f(x: Bar): Foo { x as Foo }
     ",
-        |sa, code, fct| {
-            let trait_id = trait_by_name(sa, "Foo");
-            let cls_id = cls_by_name(sa, "Bar");
-            let object_ty = SourceType::Class(cls_id, SourceTypeArray::empty());
-            let expected = vec![NewTraitObject(r(1), ConstPoolIdx(0), r(0)), Ret(r(1))];
-            assert_eq!(expected, code);
+    );
+    let (fct, code) = bc(&sa, "<prog>::f");
 
-            assert_eq!(
-                fct.const_pool(ConstPoolIdx(0)),
-                &ConstPoolEntry::TraitObject {
-                    trait_ty: BytecodeType::TraitObject(
-                        TraitId(trait_id.index().try_into().expect("overflow")),
-                        BytecodeTypeArray::empty()
-                    ),
-                    actual_object_ty: bty_from_ty(object_ty)
-                }
-            );
-        },
+    let trait_id = trait_by_name(&sa, "Foo");
+    let cls_id = cls_by_name(&sa, "Bar");
+    let object_ty = SourceType::Class(cls_id, SourceTypeArray::empty());
+    let expected = vec![NewTraitObject(r(1), ConstPoolIdx(0), r(0)), Ret(r(1))];
+    assert_eq!(expected, code);
+
+    assert_eq!(
+        fct.const_pool(ConstPoolIdx(0)),
+        &ConstPoolEntry::TraitObject {
+            trait_ty: BytecodeType::TraitObject(
+                TraitId(trait_id.index().try_into().expect("overflow")),
+                BytecodeTypeArray::empty()
+            ),
+            actual_object_ty: bty_from_ty(object_ty)
+        }
     );
 }
 
@@ -4109,56 +4107,56 @@ fn gen_trait_object_copy() {
 
 #[test]
 fn gen_trait_object_method_call() {
-    gen_fct(
+    let sa = sema(
         "
         trait Foo { fn bar(): Int32; }
         fn f(x: Foo): Int32 { x.bar() }
     ",
-        |sa, code, fct| {
-            let trait_id = trait_by_name(sa, "Foo");
+    );
+    let (fct, code) = bc(&sa, "<prog>::f");
 
-            let fct_id = trait_method_by_name(sa, "Foo", "bar");
-            let expected = vec![
-                PushRegister(r(0)),
-                InvokeVirtual(r(1), ConstPoolIdx(0)),
-                Ret(r(1)),
-            ];
-            assert_eq!(expected, code);
+    let trait_id = trait_by_name(&sa, "Foo");
 
-            assert_eq!(
-                fct.const_pool(ConstPoolIdx(0)),
-                &ConstPoolEntry::TraitObjectMethod(
-                    BytecodeType::TraitObject(
-                        TraitId(trait_id.index().try_into().expect("overflow")),
-                        BytecodeTypeArray::empty()
-                    ),
-                    FunctionId(fct_id.index().try_into().expect("overflow")),
-                )
-            );
-        },
+    let fct_id = trait_method_by_name(&sa, "Foo", "bar");
+    let expected = vec![
+        PushRegister(r(0)),
+        InvokeVirtual(r(1), ConstPoolIdx(0)),
+        Ret(r(1)),
+    ];
+    assert_eq!(expected, code);
+
+    assert_eq!(
+        fct.const_pool(ConstPoolIdx(0)),
+        &ConstPoolEntry::TraitObjectMethod(
+            BytecodeType::TraitObject(
+                TraitId(trait_id.index().try_into().expect("overflow")),
+                BytecodeTypeArray::empty()
+            ),
+            FunctionId(fct_id.index().try_into().expect("overflow")),
+        )
     );
 }
 
 #[test]
 fn gen_new_lambda() {
-    gen_fct(
+    let sa = sema(
         "
         fn f(): (): Int32 {
             ||: Int32 { 12 }
         }
     ",
-        |_sa, code, fct| {
-            let expected = vec![NewLambda(r(0), ConstPoolIdx(0)), Ret(r(0))];
-            assert_eq!(expected, code);
-
-            assert!(fct.const_pool(ConstPoolIdx(0)).is_fct());
-        },
     );
+    let (fct, code) = bc(&sa, "<prog>::f");
+
+    let expected = vec![NewLambda(r(0), ConstPoolIdx(0)), Ret(r(0))];
+    assert_eq!(expected, code);
+
+    assert!(fct.const_pool(ConstPoolIdx(0)).is_fct());
 }
 
 #[test]
 fn gen_context_allocated_var() {
-    gen_fct(
+    let sa = sema(
         "
         fn f(): (): Int64 {
             let mut x = 10;
@@ -4167,62 +4165,62 @@ fn gen_context_allocated_var() {
             ||: Int64 { x }
         }
     ",
-        |_sa, code, _fct| {
-            let expected = vec![
-                NewObject(r(0), ConstPoolIdx(0)),
-                ConstInt64(r(1), 10),
-                StoreField(r(1), r(0), ConstPoolIdx(2)),
-                ConstInt64(r(1), 11),
-                StoreField(r(1), r(0), ConstPoolIdx(4)),
-                LoadField(r(3), r(0), ConstPoolIdx(5)),
-                Mov(r(1), r(3)),
-                PushRegister(r(0)),
-                NewLambda(r(4), ConstPoolIdx(6)),
-                Ret(r(4)),
-            ];
-            assert_eq!(expected, code);
-        },
     );
+    let (_, code) = bc(&sa, "<prog>::f");
+
+    let expected = vec![
+        NewObject(r(0), ConstPoolIdx(0)),
+        ConstInt64(r(1), 10),
+        StoreField(r(1), r(0), ConstPoolIdx(2)),
+        ConstInt64(r(1), 11),
+        StoreField(r(1), r(0), ConstPoolIdx(4)),
+        LoadField(r(3), r(0), ConstPoolIdx(5)),
+        Mov(r(1), r(3)),
+        PushRegister(r(0)),
+        NewLambda(r(4), ConstPoolIdx(6)),
+        Ret(r(4)),
+    ];
+    assert_eq!(expected, code);
 }
 
 #[test]
 fn gen_invoke_lambda() {
-    gen_fct(
+    let sa = sema(
         "
         fn f(x: (): Int32): Int32 {
             x()
         }
     ",
-        |_sa, code, _fct| {
-            let expected = vec![
-                PushRegister(r(0)),
-                InvokeLambda(r(1), ConstPoolIdx(0)),
-                Ret(r(1)),
-            ];
-            assert_eq!(expected, code);
-        },
     );
+    let (_, code) = bc(&sa, "<prog>::f");
 
-    gen_fct(
+    let expected = vec![
+        PushRegister(r(0)),
+        InvokeLambda(r(1), ConstPoolIdx(0)),
+        Ret(r(1)),
+    ];
+    assert_eq!(expected, code);
+
+    let sa = sema(
         "
         fn f(x: (): ()) {
             x()
         }
     ",
-        |_sa, code, _fct| {
-            let expected = vec![
-                PushRegister(r(0)),
-                InvokeLambda(r(1), ConstPoolIdx(0)),
-                Ret(r(1)),
-            ];
-            assert_eq!(expected, code);
-        },
     );
+    let (_, code) = bc(&sa, "<prog>::f");
+
+    let expected = vec![
+        PushRegister(r(0)),
+        InvokeLambda(r(1), ConstPoolIdx(0)),
+        Ret(r(1)),
+    ];
+    assert_eq!(expected, code);
 }
 
 #[test]
 fn gen_comparable_trait() {
-    gen_fct(
+    let sa = sema(
         "
         use std::traits::{Comparable, Ordering};
         class X
@@ -4233,99 +4231,99 @@ fn gen_comparable_trait() {
             a > b
         }
     ",
-        |sa, code, fct| {
-            let expected = vec![
-                PushRegister(r(0)),
-                PushRegister(r(1)),
-                InvokeDirect(r(3), ConstPoolIdx(0)),
-                PushRegister(r(3)),
-                InvokeDirect(r(2), ConstPoolIdx(1)),
-                Ret(r(2)),
-            ];
-            assert_eq!(expected, code);
+    );
+    let (fct, code) = bc(&sa, "<prog>::f");
 
-            let cls_id = cls_by_name(sa, "X");
-            let cmp_fct_id = impl_method_id_by_name(
-                sa,
-                sa.known.traits.comparable(),
-                "cmp",
-                SourceType::Class(cls_id, SourceTypeArray::empty()),
-            );
+    let expected = vec![
+        PushRegister(r(0)),
+        PushRegister(r(1)),
+        InvokeDirect(r(3), ConstPoolIdx(0)),
+        PushRegister(r(3)),
+        InvokeDirect(r(2), ConstPoolIdx(1)),
+        Ret(r(2)),
+    ];
+    assert_eq!(expected, code);
 
-            assert_eq!(
-                fct.const_pool(ConstPoolIdx(0)),
-                &ConstPoolEntry::Fct(
-                    FunctionId(cmp_fct_id.index().try_into().expect("overflow")),
-                    BytecodeTypeArray::empty()
-                )
-            );
+    let cls_id = cls_by_name(&sa, "X");
+    let cmp_fct_id = impl_method_id_by_name(
+        &sa,
+        sa.known.traits.comparable(),
+        "cmp",
+        SourceType::Class(cls_id, SourceTypeArray::empty()),
+    );
 
-            assert_eq!(
-                fct.const_pool(ConstPoolIdx(1)),
-                &ConstPoolEntry::Fct(
-                    FunctionId(
-                        sa.known
-                            .functions
-                            .ordering_is_gt()
-                            .index()
-                            .try_into()
-                            .expect("overflow")
-                    ),
-                    BytecodeTypeArray::empty()
-                )
-            );
-        },
+    assert_eq!(
+        fct.const_pool(ConstPoolIdx(0)),
+        &ConstPoolEntry::Fct(
+            FunctionId(cmp_fct_id.index().try_into().expect("overflow")),
+            BytecodeTypeArray::empty()
+        )
+    );
+
+    assert_eq!(
+        fct.const_pool(ConstPoolIdx(1)),
+        &ConstPoolEntry::Fct(
+            FunctionId(
+                sa.known
+                    .functions
+                    .ordering_is_gt()
+                    .index()
+                    .try_into()
+                    .expect("overflow")
+            ),
+            BytecodeTypeArray::empty()
+        )
     );
 }
 
 #[test]
 fn gen_comparable_trait_generic() {
-    gen_fct(
+    let sa = sema(
         "
         fn f[T: std::traits::Comparable](a: T, b: T): Bool {
             a < b
         }
     ",
-        |sa, code, fct| {
-            let expected = vec![
-                PushRegister(r(0)),
-                PushRegister(r(1)),
-                InvokeGenericDirect(r(3), ConstPoolIdx(0)),
-                PushRegister(r(3)),
-                InvokeDirect(r(2), ConstPoolIdx(1)),
-                Ret(r(2)),
-            ];
-            assert_eq!(expected, code);
+    );
+    let (fct, code) = bc(&sa, "<prog>::f");
 
-            let trait_id = sa.known.traits.comparable();
-            let trait_ = sa.trait_(trait_id);
-            let name = sa.interner.intern("cmp");
-            let cmp_fct_id = trait_.get_method(name, false).expect("missing fct");
+    let expected = vec![
+        PushRegister(r(0)),
+        PushRegister(r(1)),
+        InvokeGenericDirect(r(3), ConstPoolIdx(0)),
+        PushRegister(r(3)),
+        InvokeDirect(r(2), ConstPoolIdx(1)),
+        Ret(r(2)),
+    ];
+    assert_eq!(expected, code);
 
-            assert_eq!(
-                fct.const_pool(ConstPoolIdx(0)),
-                &ConstPoolEntry::Generic(
-                    0,
-                    FunctionId(cmp_fct_id.index().try_into().expect("overflow")),
-                    BytecodeTypeArray::empty()
-                )
-            );
+    let trait_id = sa.known.traits.comparable();
+    let trait_ = sa.trait_(trait_id);
+    let name = sa.interner.intern("cmp");
+    let cmp_fct_id = trait_.get_method(name, false).expect("missing fct");
 
-            assert_eq!(
-                fct.const_pool(ConstPoolIdx(1)),
-                &ConstPoolEntry::Fct(
-                    FunctionId(
-                        sa.known
-                            .functions
-                            .ordering_is_lt()
-                            .index()
-                            .try_into()
-                            .expect("overflow")
-                    ),
-                    BytecodeTypeArray::empty()
-                )
-            );
-        },
+    assert_eq!(
+        fct.const_pool(ConstPoolIdx(0)),
+        &ConstPoolEntry::Generic(
+            0,
+            FunctionId(cmp_fct_id.index().try_into().expect("overflow")),
+            BytecodeTypeArray::empty()
+        )
+    );
+
+    assert_eq!(
+        fct.const_pool(ConstPoolIdx(1)),
+        &ConstPoolEntry::Fct(
+            FunctionId(
+                sa.known
+                    .functions
+                    .ordering_is_lt()
+                    .index()
+                    .try_into()
+                    .expect("overflow")
+            ),
+            BytecodeTypeArray::empty()
+        )
     );
 }
 
