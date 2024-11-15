@@ -439,7 +439,7 @@ fn check_expr_call_field(
     e: &ast::ExprCallType,
     object_type: SourceType,
     method_name: String,
-    type_params: SourceTypeArray,
+    _type_params: SourceTypeArray,
     arguments: CallArguments,
 ) -> SourceType {
     let interned_method_name = ck.sa.interner.intern(&method_name);
@@ -481,18 +481,12 @@ fn check_expr_call_field(
         }
     }
 
-    let arg_types = &arguments.assume_all_positional(ck);
-
-    // No field with that name as well, so report method
-    let lookup = MethodLookup::new(ck.sa, ck.file_id, ck.type_param_definition)
-        .parent(ck.parent.clone())
-        .method(object_type)
-        .name(interned_method_name)
-        .fct_type_params(&type_params)
-        .span(e.span)
-        .args(arg_types)
-        .find();
-    assert!(!lookup.find());
+    let ty = ck.ty_name(&object_type);
+    ck.sa.report(
+        ck.file_id,
+        e.span,
+        ErrorMessage::UnknownMethod(ty, method_name),
+    );
 
     ck.analysis.set_ty(e.id, ty_error());
 
