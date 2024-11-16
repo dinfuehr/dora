@@ -443,6 +443,7 @@ def run_tests
   passed = 0
   failed = 0
   ignore = 0
+  start_time = Time.now
 
   threads = []
 
@@ -543,6 +544,12 @@ def run_tests
     puts "#{passed}; #{ignore}; #{failed}"
   else
     puts "#{passed}; #{failed}"
+  end
+
+  if !$stress
+    end_time = Time.now
+    duration = end_time - start_time
+    puts "Ran in %.1f seconds." % duration
   end
 
   ret_success
