@@ -171,7 +171,7 @@ fn type_unknown_method() {
 
             fn f(x: Foo) { x.bar(); }",
         (6, 28),
-        ErrorMessage::ParamTypesIncompatible("bar".into(), vec!["Int32".into()], Vec::new()),
+        ErrorMessage::MissingArguments(1, 0),
     );
 
     err(
@@ -988,8 +988,8 @@ fn test_find_class_method_precedence() {
             trait Foo { fn foo(a: Int32); }
             impl Foo for A { fn foo(a: Int32) {} }
             fn test(a: A) { a.foo(1i32); }",
-        (5, 29),
-        ErrorMessage::ParamTypesIncompatible("foo".into(), Vec::new(), vec!["Int32".into()]),
+        (5, 35),
+        ErrorMessage::SuperfluousArgument,
     );
 
     ok("class A
@@ -1220,8 +1220,8 @@ fn test_new_call_static_method_wrong_params() {
     err(
         "class Foo impl Foo { static fn bar() {} }
             fn f() { Foo::bar(1i32); }",
-        (2, 22),
-        ErrorMessage::ParamTypesIncompatible("bar".into(), Vec::new(), vec!["Int32".into()]),
+        (2, 31),
+        ErrorMessage::SuperfluousArgument,
     );
 }
 
@@ -1296,8 +1296,8 @@ fn test_new_call_method_wrong_params() {
         class X
         impl X { fn f() {} }
         fn f(x: X) { x.f(1i32); }",
-        (4, 22),
-        ErrorMessage::ParamTypesIncompatible("f".into(), Vec::new(), vec!["Int32".into()]),
+        (4, 26),
+        ErrorMessage::SuperfluousArgument,
     );
 }
 
@@ -3572,8 +3572,8 @@ fn method_call_type_mismatch_with_type_params() {
             foo.f(value);
         }
     ",
-        (7, 13),
-        ErrorMessage::ParamTypesIncompatible("f".into(), vec!["String".into()], vec!["T".into()]),
+        (7, 19),
+        ErrorMessage::WrongTypeForArgument("String".into(), "T".into()),
     );
 }
 

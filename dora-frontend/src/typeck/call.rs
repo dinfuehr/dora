@@ -17,16 +17,14 @@ use crate::sema::{
 use crate::specialize::replace_type;
 use crate::sym::SymbolKind;
 use crate::typeck::{
-    args_compatible, args_compatible_fct, check_args_compatible_fct, check_expr, read_path_expr,
-    CallArguments, MethodLookup, TypeCheck,
+    args_compatible, args_compatible_fct, check_args_compatible_fct, check_expr,
+    find_method_call_candidates, read_path_expr, CallArguments, TypeCheck,
 };
 use crate::typeparamck;
 use crate::{
     empty_sta, specialize_type, ty::error as ty_error, ErrorMessage, SourceType, SourceTypeArray,
     TraitType,
 };
-
-use super::lookup::find_method_call_candidates;
 
 pub(super) fn check_expr_call(
     ck: &mut TypeCheck,
@@ -310,23 +308,52 @@ fn check_expr_call_static_method(
     object_type: SourceType,
     method_name: String,
     fct_type_params: SourceTypeArray,
-    arg_types: &[SourceType],
+    arguments: CallArguments,
 ) -> SourceType {
     let interned_method_name = ck.sa.interner.intern(&method_name);
-    let lookup = MethodLookup::new(ck.sa, ck.file_id, ck.type_param_definition)
-        .span(e.span)
-        .static_method(object_type)
-        .name(interned_method_name)
-        .args(arg_types)
-        .fct_type_params(&fct_type_params)
-        .find();
 
-    if lookup.find() {
-        let fct_id = lookup.found_fct_id().unwrap();
-        let return_type = lookup.found_ret().unwrap();
-        let container_type_params = lookup.found_container_type_params().unwrap();
-        let type_params = container_type_params.connect(&fct_type_params);
-        let call_type = Arc::new(CallType::Fct(fct_id, type_params));
+    let candidates = find_method_call_candidates(
+        ck.sa,
+        object_type.clone(),
+        &ck.type_param_definition,
+        interned_method_name,
+        true,
+    );
+
+    if candidates.is_empty() {
+        let type_name = ck.ty_name(&object_type);
+        let msg = ErrorMessage::UnknownStaticMethod(type_name, method_name);
+        ck.sa.report(ck.file_id, e.span, msg);
+        ck.analysis.set_ty(e.id, ty_error());
+        ty_error()
+    } else if candidates.len() > 1 {
+        let type_name = ck.ty_name(&object_type);
+        let msg = ErrorMessage::MultipleCandidatesForMethod(type_name, method_name);
+        ck.sa.report(ck.file_id, e.span, msg);
+        ck.analysis.set_ty(e.id, ty_error());
+        ty_error()
+    } else {
+        let candidate = &candidates[0];
+        let fct_id = candidate.fct_id;
+        let fct = ck.sa.fct(fct_id);
+
+        let full_type_params = candidate.container_type_params.connect(&fct_type_params);
+
+        let ty = if typeparamck::check(
+            ck.sa,
+            &ck.type_param_definition,
+            fct,
+            &full_type_params,
+            ck.file_id,
+            e.span,
+        ) {
+            check_args_compatible_fct(ck, fct, arguments, &full_type_params, None);
+            specialize_type(ck.sa, fct.return_type(), &full_type_params)
+        } else {
+            ty_error()
+        };
+
+        let call_type = Arc::new(CallType::Fct(fct_id, full_type_params));
         ck.analysis.map_calls.insert(e.id, call_type.clone());
 
         if !method_accessible_from(ck.sa, fct_id, ck.module_id) {
@@ -334,13 +361,8 @@ fn check_expr_call_static_method(
             ck.sa.report(ck.file_id, e.span, msg);
         }
 
-        ck.analysis.set_ty(e.id, return_type.clone());
-
-        return_type
-    } else {
-        ck.analysis.set_ty(e.id, ty_error());
-
-        ty_error()
+        ck.analysis.set_ty(e.id, ty.clone());
+        ty
     }
 }
 
@@ -388,49 +410,50 @@ fn check_expr_call_method(
     if candidates.is_empty() {
         // No method with this name found, so this might actually be a field
         check_expr_call_field(ck, e, object_type, method_name, fct_type_params, arguments)
+    } else if candidates.len() > 1 {
+        let type_name = ck.ty_name(&object_type);
+        let msg = ErrorMessage::MultipleCandidatesForMethod(type_name, method_name);
+        ck.sa.report(ck.file_id, e.span, msg);
+        ck.analysis.set_ty(e.id, ty_error());
+        ty_error()
     } else {
-        // Lookup the method again, but this time with error reporting
-        let lookup = MethodLookup::new(ck.sa, ck.file_id, ck.type_param_definition)
-            .parent(ck.parent.clone())
-            .method(object_type.clone())
-            .name(interned_method_name)
-            .fct_type_params(&fct_type_params)
-            .span(e.span)
-            .args(&arg_types)
-            .find();
+        let candidate = &candidates[0];
+        let fct_id = candidate.fct_id;
+        let fct = ck.sa.fct(fct_id);
 
-        if lookup.find() {
-            let fct_id = lookup.found_fct_id().unwrap();
-            let fct = ck.sa.fct(fct_id);
-            let return_type = lookup.found_ret().unwrap();
+        let full_type_params = candidate.container_type_params.connect(&fct_type_params);
 
-            let call_type = if object_type.is_self() {
-                CallType::TraitObjectMethod(object_type, fct_id)
-            } else if object_type.is_trait() && fct.parent.is_trait() {
-                CallType::TraitObjectMethod(object_type, fct_id)
-            } else {
-                let method_type = lookup.found_class_type().unwrap();
-                let container_type_params = lookup.found_container_type_params().clone().unwrap();
-                let type_params = container_type_params.connect(&fct_type_params);
-                CallType::Method(method_type, fct_id, type_params)
-            };
-
-            ck.analysis
-                .map_calls
-                .insert_or_replace(e.id, Arc::new(call_type));
-            ck.analysis.set_ty(e.id, return_type.clone());
-
-            if !method_accessible_from(ck.sa, fct_id, ck.module_id) {
-                let msg = ErrorMessage::NotAccessible;
-                ck.sa.report(ck.file_id, e.span, msg);
-            }
-
-            return_type
+        let ty = if typeparamck::check(
+            ck.sa,
+            &ck.type_param_definition,
+            fct,
+            &full_type_params,
+            ck.file_id,
+            e.span,
+        ) {
+            check_args_compatible_fct(ck, fct, arguments, &full_type_params, None);
+            specialize_type(ck.sa, fct.return_type(), &full_type_params)
         } else {
-            ck.analysis.set_ty(e.id, ty_error());
-
             ty_error()
+        };
+
+        let call_type = if object_type.is_self() {
+            CallType::TraitObjectMethod(object_type, fct_id)
+        } else if object_type.is_trait() && fct.parent.is_trait() {
+            CallType::TraitObjectMethod(object_type, fct_id)
+        } else {
+            CallType::Method(object_type, fct_id, full_type_params)
+        };
+
+        ck.analysis.map_calls.insert(e.id, Arc::new(call_type));
+
+        if !method_accessible_from(ck.sa, fct_id, ck.module_id) {
+            let msg = ErrorMessage::NotAccessible;
+            ck.sa.report(ck.file_id, e.span, msg);
         }
+
+        ck.analysis.set_ty(e.id, ty.clone());
+        ty
     }
 }
 
@@ -1029,14 +1052,13 @@ fn check_expr_call_path(
                 ck.file_id,
                 e.span,
             ) {
-                let arg_types = arguments.assume_all_positional(ck);
                 check_expr_call_static_method(
                     ck,
                     e,
                     SourceType::Class(cls_id, container_type_params),
                     method_name,
                     type_params,
-                    &arg_types,
+                    arguments,
                 )
             } else {
                 ty_error()
@@ -1061,15 +1083,7 @@ fn check_expr_call_path(
                     SourceType::Struct(struct_id, container_type_params)
                 };
 
-                let arg_types = arguments.assume_all_positional(ck);
-                check_expr_call_static_method(
-                    ck,
-                    e,
-                    object_ty,
-                    method_name,
-                    type_params,
-                    &arg_types,
-                )
+                check_expr_call_static_method(ck, e, object_ty, method_name, type_params, arguments)
             } else {
                 ty_error()
             }
@@ -1109,7 +1123,6 @@ fn check_expr_call_path(
                     e.span,
                 ) {
                     let object_ty = SourceType::Enum(enum_id, container_type_params);
-                    let arg_types = arguments.assume_all_positional(ck);
 
                     check_expr_call_static_method(
                         ck,
@@ -1117,7 +1130,7 @@ fn check_expr_call_path(
                         object_ty,
                         method_name,
                         type_params,
-                        &arg_types,
+                        arguments,
                     )
                 } else {
                     ty_error()
@@ -1158,9 +1171,8 @@ fn check_expr_call_path(
             }
 
             let alias_ty = ck.sa.alias(alias_id).ty();
-            let arg_types = arguments.assume_all_positional(ck);
 
-            check_expr_call_static_method(ck, e, alias_ty, method_name, type_params, &arg_types)
+            check_expr_call_static_method(ck, e, alias_ty, method_name, type_params, arguments)
         }
 
         _ => {

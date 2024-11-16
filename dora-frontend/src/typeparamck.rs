@@ -5,25 +5,6 @@ use crate::sema::{implements_trait, Element, Sema, SourceFileId, TypeParamDefini
 use crate::specialize::specialize_type;
 use crate::{SourceType, SourceTypeArray, TraitType};
 
-pub fn check_params<'a>(
-    sa: &'a Sema,
-    caller_type_param_defs: &'a TypeParamDefinition,
-    callee_type_param_defs: &'a TypeParamDefinition,
-    params: &'a SourceTypeArray,
-    file_id: SourceFileId,
-    span: Span,
-) -> bool {
-    let checker = TypeParamCheck {
-        sa,
-        caller_type_param_defs,
-        callee_type_param_defs,
-        file_id,
-        span,
-    };
-
-    checker.check(params)
-}
-
 pub fn check<'a>(
     sa: &'a Sema,
     caller_type_param_defs: &'a TypeParamDefinition,
