@@ -5433,3 +5433,41 @@ fn impl_trait_for_type_in_dependency() {
         &[],
     );
 }
+
+#[test]
+fn impl_trait_for_type_in_dependency_with_invalid_impl() {
+    test_with_pkgs(
+        "
+        extern package dep1;
+
+        use dep1::{Bar, MyClass};
+
+        impl Bar for MyClass {
+            fn f() {}
+        }
+    ",
+        &[(
+            "dep1",
+            "
+        pub trait Foo {
+            fn f();
+        }
+
+        pub trait Bar {
+            fn f();
+        }
+
+        pub class MyClass
+
+        impl Foo for MyClass {
+            fn f() {}
+        }
+
+        fn f(x: MyClass) {
+            x.f();
+        }
+            ",
+        )],
+        &[((6, 9), ErrorMessage::ImplTraitForeignType)],
+    );
+}
