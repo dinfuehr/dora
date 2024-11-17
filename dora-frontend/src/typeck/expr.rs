@@ -280,9 +280,6 @@ fn check_expr_assign_call(ck: &mut TypeCheck, e: &ast::ExprBinType) {
     let value_type = check_expr(ck, &e.rhs, SourceType::Any);
     ck.analysis.set_ty(e.rhs.id(), value_type.clone());
 
-    let mut arg_types = args.assume_all_positional(ck);
-    arg_types.push(value_type.clone());
-
     let trait_id = ck.sa.known.traits.index_set();
     let trait_ty = TraitType::from_trait_id(trait_id);
 

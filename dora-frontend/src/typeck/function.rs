@@ -425,25 +425,6 @@ pub(super) fn add_local(
     }
 }
 
-pub(super) fn args_compatible_fct(
-    sa: &Sema,
-    callee: &FctDefinition,
-    args: &[SourceType],
-    type_params: &SourceTypeArray,
-    self_ty: Option<SourceType>,
-) -> bool {
-    let arg_types = callee.params_without_self();
-    let variadic_arguments = callee.params.is_variadic();
-    args_compatible(
-        sa,
-        &arg_types.iter().map(|p| p.ty()).collect::<Vec<_>>(),
-        variadic_arguments,
-        args,
-        type_params,
-        self_ty,
-    )
-}
-
 pub(super) fn check_args_compatible_fct(
     ck: &TypeCheck,
     callee: &FctDefinition,
@@ -535,55 +516,6 @@ pub(super) fn check_args_compatible(
             }
         }
     }
-}
-
-pub(super) fn args_compatible(
-    sa: &Sema,
-    fct_arg_types: &[SourceType],
-    variadic_arguments: bool,
-    args: &[SourceType],
-    type_params: &SourceTypeArray,
-    self_ty: Option<SourceType>,
-) -> bool {
-    let right_number_of_arguments = if variadic_arguments {
-        fct_arg_types.len() - 1 <= args.len()
-    } else {
-        fct_arg_types.len() == args.len()
-    };
-
-    if !right_number_of_arguments {
-        return false;
-    }
-
-    let (def, rest_ty): (&[SourceType], Option<SourceType>) = if variadic_arguments {
-        (
-            &fct_arg_types[0..fct_arg_types.len() - 1],
-            fct_arg_types.last().cloned(),
-        )
-    } else {
-        (&fct_arg_types, None)
-    };
-
-    for (ind, def_arg) in def.iter().enumerate() {
-        let def_arg = replace_type(sa, def_arg.clone(), Some(&type_params), self_ty.clone());
-
-        if !arg_allows(sa, def_arg, args[ind].clone(), self_ty.clone()) {
-            return false;
-        }
-    }
-
-    if let Some(rest_ty) = rest_ty {
-        let ind = def.len();
-        let rest_ty = replace_type(sa, rest_ty, Some(&type_params), self_ty.clone());
-
-        for expr_ty in &args[ind..] {
-            if !arg_allows(sa, rest_ty.clone(), expr_ty.clone(), self_ty.clone()) {
-                return false;
-            }
-        }
-    }
-
-    true
 }
 
 pub(super) fn arg_allows(

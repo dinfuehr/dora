@@ -17,13 +17,12 @@ use crate::typeck::control::{
 use crate::typeck::expr::{check_expr, read_ident, read_path, read_path_expr};
 pub use crate::typeck::expr::{compute_lit_float, compute_lit_int};
 use crate::typeck::function::{
-    add_local, arg_allows, args_compatible, args_compatible_fct, check_args_compatible,
-    check_args_compatible_fct, check_lit_char, check_lit_float, check_lit_int, check_lit_str,
-    is_simple_enum, TypeCheck, VarManager,
+    add_local, arg_allows, check_args_compatible, check_args_compatible_fct, check_lit_char,
+    check_lit_float, check_lit_int, check_lit_str, is_simple_enum, TypeCheck, VarManager,
 };
 use crate::typeck::lookup::find_method_call_candidates;
 use crate::typeck::stmt::{check_pattern, check_stmt};
-use crate::{ErrorMessage, SourceType, Span};
+use crate::{SourceType, Span};
 
 mod call;
 mod constck;
@@ -192,21 +191,4 @@ fn create_lambda_functions(sa: &mut Sema, lazy_lambdas: Vec<LazyLambdaCreationDa
 pub struct CallArguments {
     arguments: Vec<Arc<ast::Argument>>,
     span: Span,
-}
-
-impl CallArguments {
-    fn assume_all_positional(&self, ck: &TypeCheck) -> Vec<SourceType> {
-        for arg in &self.arguments {
-            if arg.name.is_some() {
-                ck.sa
-                    .report(ck.file_id, arg.span, ErrorMessage::UnexpectedNamedArgument);
-            }
-        }
-
-        self.arguments
-            .iter()
-            .filter(|a| a.name.is_none())
-            .map(|p| ck.analysis.ty(p.id))
-            .collect::<Vec<SourceType>>()
-    }
 }

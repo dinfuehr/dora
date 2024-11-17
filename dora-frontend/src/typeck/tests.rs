@@ -1505,8 +1505,8 @@ fn test_static_method_call_with_type_param() {
     err(
         "trait X { static fn foo(): Int32; }
         fn f[T: X](): Int32 { return T::foo(1i32); }",
-        (2, 38),
-        ErrorMessage::ParamTypesIncompatible("foo".into(), Vec::new(), vec!["Int32".into()]),
+        (2, 45),
+        ErrorMessage::SuperfluousArgument,
     );
 
     ok("trait X { static fn foo(): Int32; }
@@ -3596,10 +3596,7 @@ fn basic_lambda() {
         foo(1i32)
     }",
         (2, 9),
-        ErrorMessage::LambdaParamTypesIncompatible(
-            vec!["Int32".into(), "Int32".into()],
-            vec!["Int32".into()],
-        ),
+        ErrorMessage::MissingArguments(2, 1),
     );
 }
 
@@ -3915,12 +3912,8 @@ fn test_generic_trait_method_call() {
             t.foo(1, 2);
         }
     ",
-        (4, 13),
-        ErrorMessage::ParamTypesIncompatible(
-            "foo".into(),
-            vec!["Int64".into()],
-            vec!["Int64".into(), "Int64".into()],
-        ),
+        (4, 22),
+        ErrorMessage::SuperfluousArgument,
     );
 }
 
