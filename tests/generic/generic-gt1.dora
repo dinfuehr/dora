@@ -1,3 +1,5 @@
+use std::traits::Comparable;
+
 fn main() {
     assert(!gt[Int64](10, 10));
     assert(gt[Int64](12, 10));

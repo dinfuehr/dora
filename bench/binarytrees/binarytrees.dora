@@ -1,3 +1,5 @@
+use std::string::Stringable;
+
 fn main() {
   let mut maxDepth = 6i32;
 

@@ -1,4 +1,5 @@
 //= stdout "a\n"
+use std::string::Stringable;
 
 fn main() {
     let ch = 'a';

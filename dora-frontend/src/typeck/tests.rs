@@ -2585,7 +2585,9 @@ fn for_with_array() {
 
 #[test]
 fn for_with_vec() {
-    ok("fn f(x: Vec[Int32]): Int32 {
+    ok("
+    use std::traits::IntoIterator;
+    fn f(x: Vec[Int32]): Int32 {
         let mut result = 0i32;
         for i in x.iter() {
             result = result + i;
@@ -3972,6 +3974,7 @@ fn alias_in_local_type() {
 #[test]
 fn for_iterator_trait() {
     ok("
+        use std::traits::IntoIterator;
         fn f() {
             let it = Array[Int64]::new(1, 2, 3).iter();
             let mut sum = 0;

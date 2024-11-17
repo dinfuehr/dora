@@ -1,3 +1,5 @@
+use std::traits::Comparable;
+
 fn main() {
     assert(ge[Int64](10, 10));
     assert(ge[Int64](12, 10));

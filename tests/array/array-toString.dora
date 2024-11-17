@@ -1,3 +1,5 @@
+use std::string::Stringable;
+
 fn main() {
   assert(Array[Int32]::new().toString() == "Array()");
   assert(Array[Int32]::new(1i32).toString() == "Array(1)");

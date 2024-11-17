@@ -1,4 +1,5 @@
 use std::collections::{HashMap, HashSet};
+use std::traits::{IntoIterator, Iterator};
 
 use package::assembler::{FloatRegister, Register, RegisterType};
 use package::codegen::CodeGen;

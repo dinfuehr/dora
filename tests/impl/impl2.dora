@@ -1,5 +1,7 @@
 //= stdout "1\n"
 
+use std::string::Stringable;
+
 trait Foo {
     fn bla();
 }

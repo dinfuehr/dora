@@ -1,9 +1,9 @@
 trait Foo[T] {
-    fn getter(): T;
+    fn get(): T;
 }
 
 impl[T] Foo[T] for T {
-    fn getter(): T { self }
+    fn get(): T { self }
 }
 
 fn f(x: Int64): Foo[Int64] {
@@ -22,17 +22,17 @@ struct Bar { x: Int64, y: Int64 }
 
 fn main() {
     let foo = f(10);
-    assert(foo.getter() == 10);
+    assert(foo.get() == 10);
 
     let foo = f(64);
-    assert(foo.getter() == 64);
+    assert(foo.get() == 64);
 
     let msg = "test";
     let foo = g(msg);
-    assert(foo.getter() === msg);
+    assert(foo.get() === msg);
 
     let foo = h(Bar(x = 17, y = 42));
-    let result = foo.getter();
+    let result = foo.get();
     assert(result.x == 17);
     assert(result.y == 42);
 }

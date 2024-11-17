@@ -1,4 +1,5 @@
 //= stdout "321"
+use std::string::Stringable;
 
 fn main() {
     let x = Vec[String]::new();

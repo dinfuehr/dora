@@ -1,6 +1,7 @@
 use std::argc;
 use std::argv;
 use std::timestamp;
+use std::string::Stringable;
 
 class Node {
     left: Option[Node],

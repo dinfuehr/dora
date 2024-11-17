@@ -1,3 +1,5 @@
+use std::traits::{IntoIterator, Iterator};
+
 fn main() {
     let s1 = std::BitVec::new();
     s1.insert(0);

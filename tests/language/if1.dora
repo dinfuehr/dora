@@ -1,5 +1,7 @@
 //= vm-args "--gc=copy"
 
+use std::string::Stringable;
+
 fn main() {
     assert(f(true) == 1i32);
     assert(f(false) == 2i32);

@@ -1,6 +1,7 @@
 //= boots
 
 use std::Ordering;
+use std::traits::Comparable;
 
 fn main() {
     assert(f(1u8, 2u8) == Ordering::Less);

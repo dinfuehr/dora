@@ -1,3 +1,5 @@
+use std::traits::{Add, BitAnd, BitOr, BitXor, Div, Mod, Mul, Neg, Not, Sub};
+
 fn main() {
     let x = 1i64.neg();
     assert(x == -1i64);

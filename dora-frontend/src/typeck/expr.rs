@@ -329,7 +329,8 @@ fn check_expr_assign_call(ck: &mut TypeCheck, e: &ast::ExprBinType) {
             impl_item_type_alias_ty.clone(),
             value_type.clone(),
             None,
-        ) {
+        ) && !value_type.is_error()
+        {
             let exp = ck.ty_name(&impl_item_type_alias_ty);
             let got = ck.ty_name(&value_type);
             ck.sa.report(

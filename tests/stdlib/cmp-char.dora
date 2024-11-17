@@ -1,4 +1,5 @@
 use std::traits::Ordering;
+use std::traits::Comparable;
 
 fn main() {
     assert('a'.cmp('b') == Ordering::Less);

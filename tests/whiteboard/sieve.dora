@@ -1,4 +1,5 @@
 //= stdout file
+use std::string::Stringable;
 
 fn main() {
     let primes = sieve(100);

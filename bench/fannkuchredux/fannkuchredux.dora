@@ -1,3 +1,5 @@
+use std::string::Stringable;
+
 fn main() {
   let mut n = 7i32;
   if std::argc() > 0i32 { n = std::argv(0i32).toInt32().getOrPanic(); }

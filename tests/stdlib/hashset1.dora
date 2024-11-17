@@ -1,3 +1,5 @@
+use std::traits::Not;
+
 fn main() {
     let set = std::HashSet[Int32]::new();
     set.insert(1i32);

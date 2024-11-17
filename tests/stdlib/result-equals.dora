@@ -1,3 +1,5 @@
+use std::traits::{Equals, Not};
+
 fn main() {
   let ok = "ok";
   let ok1 = Result[String, Int32]::Ok(ok);

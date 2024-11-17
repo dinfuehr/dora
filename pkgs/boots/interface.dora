@@ -1,4 +1,5 @@
 use std::collections::VecIter;
+use std::traits::IntoIterator;
 
 use package::bytecode::{BytecodeFunction, BytecodeType, ConstPoolId, FunctionId, Location};
 use package::bytecode::{ClassId, EnumId, ClassFieldId, GlobalId, StructId, StructFieldId, TraitId};

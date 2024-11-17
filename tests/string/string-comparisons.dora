@@ -1,4 +1,4 @@
-use std::traits::Ordering;
+use std::traits::{Add, Comparable, Equals, Ordering};
 
 fn main() {
   let x = "hello";

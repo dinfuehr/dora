@@ -1,5 +1,6 @@
 use std::fatalError;
 use std::timestamp;
+use std::string::Stringable;
 
 fn main() {
     if std::argc() != 3i32 {

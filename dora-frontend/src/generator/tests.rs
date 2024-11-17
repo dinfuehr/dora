@@ -25,6 +25,9 @@ fn sema(code: &'static str) -> Sema {
     let mut sa = Sema::new(args);
 
     let result = check_program(&mut sa);
+    if sa.diag.borrow().has_errors() {
+        sa.diag.borrow_mut().dump(&sa, true);
+    }
     assert!(!sa.diag.borrow().has_errors());
     assert!(result);
 
@@ -3750,7 +3753,10 @@ fn gen_array_get() {
 
 #[test]
 fn gen_array_get_method() {
-    let sa = sema("fn f(x: Array[Float32], idx: Int64): Float32 { x.get(idx) }");
+    let sa = sema(
+        "use std::traits::IndexGet;
+        fn f(x: Array[Float32], idx: Int64): Float32 { x.get(idx) }",
+    );
     let (_, code) = bc(&sa, "<prog>::f");
     let expected = vec![LoadArray(r(2), r(0), r(1)), Ret(r(2))];
     assert_eq!(expected, code);
@@ -3758,7 +3764,11 @@ fn gen_array_get_method() {
 
 #[test]
 fn gen_array_set_method() {
-    let sa = sema("fn f(x: Array[Float32], idx: Int64, value: Float32) { x.set(idx, value); }");
+    let sa = sema(
+        "
+        use std::traits::IndexSet;
+        fn f(x: Array[Float32], idx: Int64, value: Float32) { x.set(idx, value); }",
+    );
     let (_, code) = bc(&sa, "<prog>::f");
     let expected = vec![StoreArray(r(2), r(0), r(1)), Ret(r(3))];
     assert_eq!(expected, code);
@@ -3811,7 +3821,12 @@ fn gen_string_equals() {
 
 #[test]
 fn gen_bool_to_string() {
-    let sa = sema("fn f(a: Bool): String { a.toString() }");
+    let sa = sema(
+        "
+        use std::string::Stringable;
+        fn f(a: Bool): String { a.toString() }
+    ",
+    );
     let (fct, code) = bc(&sa, "<prog>::f");
 
     let fct_id = lookup_fct(

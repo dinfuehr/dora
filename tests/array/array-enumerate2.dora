@@ -1,3 +1,5 @@
+use std::traits::Iterator;
+
 fn main() {
     iterateManually();
     iterateWithForIn();

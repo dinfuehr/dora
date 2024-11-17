@@ -1,3 +1,5 @@
+use std::string::Stringable;
+
 class TreeNode {
     left: Option[TreeNode],
     right: Option[TreeNode],

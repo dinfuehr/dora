@@ -302,6 +302,7 @@ fn check_expr_call_static_method(
 
     let candidates = find_method_call_candidates(
         ck.sa,
+        &ck.symtable,
         object_type.clone(),
         &ck.type_param_definition,
         interned_method_name,
@@ -387,6 +388,7 @@ fn check_expr_call_method(
 
     let candidates = find_method_call_candidates(
         ck.sa,
+        &ck.symtable,
         object_type.clone(),
         &ck.type_param_definition,
         interned_method_name,
@@ -599,7 +601,7 @@ fn check_expr_call_ctor_with_named_fields(
                 let def_ty = replace_type(ck.sa, field.ty, Some(&type_params), None);
                 let arg_ty = ck.analysis.ty(arg.id);
 
-                if !def_ty.allows(ck.sa, arg_ty.clone()) {
+                if !def_ty.allows(ck.sa, arg_ty.clone()) && !arg_ty.is_error() {
                     let exp = ck.ty_name(&def_ty);
                     let got = ck.ty_name(&arg_ty);
 
@@ -643,7 +645,7 @@ fn check_expr_call_ctor_with_unnamed_fields(
                 .report(ck.file_id, name.span, ErrorMessage::UnexpectedNamedArgument);
         }
 
-        if !def_ty.allows(ck.sa, arg_ty.clone()) {
+        if !def_ty.allows(ck.sa, arg_ty.clone()) && !arg_ty.is_error() {
             let exp = ck.ty_name(&def_ty);
             let got = ck.ty_name(&arg_ty);
 

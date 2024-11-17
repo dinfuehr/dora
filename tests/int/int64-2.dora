@@ -1,3 +1,5 @@
+use std::traits::Add;
+
 fn main() {
     let x: Int64 = 1i64;
     let y = 2i64;

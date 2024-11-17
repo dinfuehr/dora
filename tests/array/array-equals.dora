@@ -1,3 +1,5 @@
+use std::traits::Equals;
+
 fn main() {
   assert(Array[Int32]::new() == Array[Int32]::new());
   assert(Array[Int32]::new().equals(Array[Int32]::new()));

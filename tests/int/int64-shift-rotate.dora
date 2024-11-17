@@ -1,3 +1,5 @@
+use std::traits::{Sar, Shl, Shr};
+
 fn main() {
     let x = 1i64.shl(1i32);
     assert(x == 2i64);

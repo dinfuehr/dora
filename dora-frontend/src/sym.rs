@@ -1,6 +1,6 @@
 use parking_lot::RwLock;
 
-use std::collections::HashMap;
+use std::collections::{HashMap, HashSet};
 use std::rc::Rc;
 use std::sync::Arc;
 
@@ -81,6 +81,24 @@ impl ModuleSymTable {
         None
     }
 
+    pub fn contains_trait(&self, trait_id: TraitDefinitionId) -> bool {
+        for level in self.levels.iter().rev() {
+            if level.contains_trait(trait_id) {
+                return true;
+            }
+        }
+
+        if self.outer.contains_trait(trait_id) {
+            return true;
+        }
+
+        if self.prelude.contains_trait(trait_id) {
+            return true;
+        }
+
+        false
+    }
+
     pub fn insert(&mut self, name: Name, sym: SymbolKind) -> Option<Symbol> {
         self.levels.last_mut().unwrap().insert(name, sym)
     }
@@ -89,6 +107,7 @@ impl ModuleSymTable {
 #[derive(Debug)]
 pub struct SymTable {
     table: HashMap<Name, Symbol>,
+    traits: HashSet<TraitDefinitionId>,
 }
 
 impl SymTable {
@@ -96,6 +115,7 @@ impl SymTable {
     pub fn new() -> SymTable {
         SymTable {
             table: HashMap::new(),
+            traits: HashSet::new(),
         }
     }
 
@@ -105,6 +125,10 @@ impl SymTable {
 
     pub fn get_sym(&self, name: Name) -> Option<&Symbol> {
         self.table.get(&name)
+    }
+
+    pub fn contains_trait(&self, trait_id: TraitDefinitionId) -> bool {
+        self.traits.contains(&trait_id)
     }
 
     pub fn insert(&mut self, name: Name, kind: SymbolKind) -> Option<Symbol> {
@@ -125,6 +149,9 @@ impl SymTable {
             visibility: Some(visibility),
             kind,
         };
+        if let SymbolKind::Trait(trait_id) = kind {
+            self.traits.insert(trait_id);
+        }
         self.table.insert(name, symbol)
     }
 
@@ -151,7 +178,7 @@ impl Symbol {
     }
 }
 
-#[derive(Debug, Clone, PartialEq, Eq)]
+#[derive(Debug, Copy, Clone, PartialEq, Eq)]
 pub enum SymbolKind {
     Class(ClassDefinitionId),
     Struct(StructDefinitionId),

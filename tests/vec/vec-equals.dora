@@ -1,3 +1,5 @@
+use std::traits::Equals;
+
 fn main() {
   assert(Vec[Int32]::new() == Vec[Int32]::new());
   assert(Vec[Int32]::new().equals(Vec[Int32]::new()));

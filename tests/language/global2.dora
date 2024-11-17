@@ -1,5 +1,7 @@
 //= stdout "x = 1\ny = 2\nz = 3\n"
 
+use std::string::Stringable;
+
 let mut x: Int32 = 0i32;
 let mut y: Int32 = 0i32;
 let mut z: Int32 = 0i32;

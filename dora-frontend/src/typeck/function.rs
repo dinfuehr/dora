@@ -466,7 +466,9 @@ pub(super) fn check_args_compatible(
         );
         let arg_ty = ck.analysis.ty(arg.id);
 
-        if !arg_allows(ck.sa, param_ty.clone(), arg_ty.clone(), self_ty.clone()) {
+        if !arg_allows(ck.sa, param_ty.clone(), arg_ty.clone(), self_ty.clone())
+            && !arg_ty.is_error()
+        {
             let exp = ck.ty_name(&param_ty);
             let got = ck.ty_name(&arg_ty);
 
@@ -498,7 +500,9 @@ pub(super) fn check_args_compatible(
             for arg in &args.arguments[no_regular_params..] {
                 let arg_ty = ck.analysis.ty(arg.id);
 
-                if !arg_allows(ck.sa, variadic_ty.clone(), arg_ty.clone(), self_ty.clone()) {
+                if !arg_allows(ck.sa, variadic_ty.clone(), arg_ty.clone(), self_ty.clone())
+                    && !arg_ty.is_error()
+                {
                     let exp = ck.ty_name(&variadic_ty);
                     let got = ck.ty_name(&arg_ty);
 

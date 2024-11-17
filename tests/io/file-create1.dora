@@ -1,3 +1,5 @@
+use std::io::Write;
+
 fn main() {
     let file = std::io::File::create("tests/io/test123.txt");
     let bytes = "hello\n".asBytes();

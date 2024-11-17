@@ -1160,9 +1160,9 @@ mod tests {
     #[test]
     fn impl_generic_extended_ty() {
         ok("
-            trait Foo[T] { fn getter(): T; }
+            trait Foo[T] { fn get(): T; }
             impl[T] Foo[T] for T {
-                fn getter(): T { self }
+                fn get(): T { self }
             }
             fn f(x: Int64): Foo[Int64] { x as Foo[Int64] }
         ");

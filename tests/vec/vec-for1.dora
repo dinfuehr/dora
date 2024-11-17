@@ -1,3 +1,5 @@
+use std::traits::IntoIterator;
+
 fn main() {
     assert(mysum1(Vec[Int32]::new()) == 0i32);
     assert(mysum1(Vec[Int32]::new(1i32)) == 1i32);

@@ -1,6 +1,6 @@
 use std::Hash;
 use std::Equals;
-use std::traits::Iterator;
+use std::traits::{IntoIterator, Iterator};
 
 use package::graph::Location;
 

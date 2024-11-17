@@ -1,4 +1,5 @@
 //= stdout "01234"
+use std::string::Stringable;
 
 fn main() {
     for i in std::range(0, 5) {

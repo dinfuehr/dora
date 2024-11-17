@@ -2,16 +2,19 @@ use crate::interner::Name;
 use crate::sema::{
     extension_matches, impl_matches, Candidate, Sema, TraitDefinition, TypeParamDefinition,
 };
-use crate::SourceType;
+use crate::sym::ModuleSymTable;
+use crate::{package_for_type, SourceType};
 
 pub fn find_method_call_candidates(
     sa: &Sema,
+    table: &ModuleSymTable,
     object_type: SourceType,
     type_param_defs: &TypeParamDefinition,
     name: Name,
     is_static: bool,
 ) -> Vec<Candidate> {
     let mut candidates = Vec::with_capacity(1);
+    let package_id = sa.module(table.module_id()).package_id();
 
     if let SourceType::TraitObject(trait_id, trait_type_params, _bindings) = object_type.clone() {
         let trait_ = sa.trait_(trait_id);
@@ -55,10 +58,20 @@ pub fn find_method_call_candidates(
     }
 
     for (_id, impl_) in sa.impls.iter() {
-        if let Some(bindings) = impl_matches(sa, object_type.clone(), type_param_defs, impl_.id()) {
-            if let Some(trait_ty) = impl_.trait_ty() {
-                let trait_ = &sa.trait_(trait_ty.trait_id);
+        if let Some(trait_ty) = impl_.trait_ty() {
+            let trait_ = &sa.trait_(trait_ty.trait_id);
 
+            let is_trait_foreign = trait_.package_id != package_id;
+            let is_extended_ty_foreign =
+                package_for_type(sa, impl_.extended_ty()) != Some(package_id);
+
+            if is_trait_foreign && !table.contains_trait(trait_.id()) && is_extended_ty_foreign {
+                continue;
+            }
+
+            if let Some(bindings) =
+                impl_matches(sa, object_type.clone(), type_param_defs, impl_.id())
+            {
                 if let Some(trait_method_id) = trait_.get_method(name, is_static) {
                     if let Some(fct_id) = impl_.get_method_for_trait_method_id(trait_method_id) {
                         candidates.push(Candidate {

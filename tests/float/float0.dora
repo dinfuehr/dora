@@ -1,3 +1,5 @@
+use std::traits::{Add, Div, Mod, Mul, Neg, Not, Sub};
+
 fn main() {
   let x = 1.0f32.neg();
   assert(x == -1.0f32);

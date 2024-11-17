@@ -1,4 +1,6 @@
 use std::HashMap;
+use std::traits::{IntoIterator, Iterator};
+use std::string::Stringable;
 
 fn main() {
     let map = HashMap[Int, String]::new();

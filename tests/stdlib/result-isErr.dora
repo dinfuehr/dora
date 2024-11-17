@@ -1,3 +1,5 @@
+use std::traits::Not;
+
 fn main() {
   assert(Result[Int32, String]::Ok(23i32).isErr().not());
   assert(Result[Int32, String]::Err("err").isErr());

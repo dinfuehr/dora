@@ -1,6 +1,7 @@
 const MIN_DEPTH: Int32 = 4i32;
 const DEFAULT_DEPTH: Int32 = 6i32;
 const DEFAULT_THREADS: Int32 = 4i32;
+use std::string::Stringable;
 
 fn main() {
     let maxDepth = if std::argc() > 0i32 {

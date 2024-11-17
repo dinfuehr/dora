@@ -1,4 +1,6 @@
 use std::HashMap;
+use std::string::Stringable;
+use std::traits::Not;
 
 fn main() {
     let map = HashMap[Int32, String]::new();

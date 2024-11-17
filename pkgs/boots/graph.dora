@@ -3,7 +3,7 @@ use std::collections::{BitVecIter, HashMap};
 use std::Equals;
 use std::Hash;
 use std::Stringable;
-use std::traits::Iterator;
+use std::traits::{IndexGet, IntoIterator, Iterator};
 
 use package::assembler::{FloatRegister, Label, Register, RegMap, RegSet};
 use package::bytecode::{BytecodeType, ClassId, FunctionId, ClassFieldId, GlobalId, StructId, TraitId};

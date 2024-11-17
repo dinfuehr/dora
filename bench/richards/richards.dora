@@ -1,6 +1,7 @@
 // Dora implementation of Richards benchmark. 
 // Originally implemented in BCPL (http://www.cl.cam.ac.uk/~mr10/Bench.html)
 // Used in Octane 2.0 (https://developers.google.com/octane/benchmark)
+use std::traits::{IndexGet, IndexSet, Not};
 
 fn main() {
     let mut iterations = 8200i32;

@@ -1,3 +1,5 @@
+use std::string::Stringable;
+
 fn main() {
   let val = 101i32.toString();
   assert(val == "101");

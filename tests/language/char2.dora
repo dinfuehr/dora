@@ -1,3 +1,5 @@
+use std::string::Stringable;
+
 fn main() {
     let x = Array[Char]::new();
     assert(x.size() == 0i64);

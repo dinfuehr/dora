@@ -1,6 +1,7 @@
 use std::argc;
 use std::argv;
 use std::exit;
+use std::string::Stringable;
 
 class Node {
     payload: Option[Array[Int32]],
