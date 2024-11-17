@@ -548,6 +548,7 @@ fn keywords_in_map() -> HashMap<&'static str, TokenKind> {
     keywords.insert("mod", MOD_KW);
     keywords.insert("use", USE_KW);
     keywords.insert("package", PACKAGE_KW);
+    keywords.insert("extern", EXTERN_KW);
 
     // "small" shapes
     keywords.insert("fn", FN_KW);

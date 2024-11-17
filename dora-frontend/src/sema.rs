@@ -71,19 +71,37 @@ mod tuples;
 mod type_params;
 mod uses;
 
+#[derive(Clone, Debug)]
+pub enum FileContent {
+    Path(PathBuf),
+    Content(String),
+}
+
+impl FileContent {
+    pub fn to_path(&self) -> Option<&PathBuf> {
+        match self {
+            FileContent::Path(ref path) => Some(path),
+            _ => None,
+        }
+    }
+}
+
 pub struct SemaFlags {
-    pub packages: Vec<(String, PathBuf)>,
-    pub program_file: Option<PathBuf>,
-    pub test_file_as_string: Option<String>,
+    pub packages: Vec<(String, FileContent)>,
+    pub program_file: Option<FileContent>,
     pub boots: bool,
 }
 
 impl SemaFlags {
-    pub fn for_test(input: &'static str) -> SemaFlags {
+    pub fn for_test(input: &str, packages: &[(&str, &str)]) -> SemaFlags {
+        let packages = packages
+            .iter()
+            .map(|(name, content)| (name.to_string(), FileContent::Content(content.to_string())))
+            .collect::<Vec<_>>();
+
         SemaFlags {
-            packages: Vec::new(),
-            program_file: None,
-            test_file_as_string: Some(input.into()),
+            packages,
+            program_file: Some(FileContent::Content(input.to_string())),
             boots: false,
         }
     }

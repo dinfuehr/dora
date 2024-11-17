@@ -301,11 +301,10 @@ fn did_save_notification(server_state: &mut ServerState, notification: Notificat
 }
 
 fn compile_project(project: ProjectConfig, sender: Sender<MainLoopTask>) {
-    use dora_frontend::sema::{Sema, SemaFlags};
+    use dora_frontend::sema::{FileContent, Sema, SemaFlags};
     let sem_args = SemaFlags {
-        program_file: Some(project.main.clone()),
+        program_file: Some(FileContent::Path(project.main.clone())),
         packages: Vec::new(),
-        test_file_as_string: None,
         boots: false,
     };
 

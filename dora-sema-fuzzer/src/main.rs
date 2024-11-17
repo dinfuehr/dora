@@ -1,7 +1,7 @@
 #[macro_use]
 extern crate afl;
 
-use dora_frontend::sema::{Sema, SemaFlags};
+use dora_frontend::sema::{FileContent, Sema, SemaFlags};
 
 fn main() {
     fuzz!(|data: &[u8]| {
@@ -13,9 +13,8 @@ fn main() {
 
 fn check_program(program: String) {
     let sem_args = SemaFlags {
-        program_file: None,
+        program_file: Some(FileContent::Content(program)),
         packages: Vec::new(),
-        test_file_as_string: Some(program),
         boots: false,
     };
 

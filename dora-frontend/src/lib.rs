@@ -225,8 +225,8 @@ pub fn report_sym_shadow_span(sa: &Sema, name: Name, file: SourceFileId, span: S
 #[cfg(test)]
 pub mod tests {
     use crate::error::msg::{ErrorDescriptor, ErrorMessage};
-    use crate::sema::Sema;
-    use crate::test;
+    use crate::sema::{Sema, SemaFlags};
+    use crate::{check_program, test};
     use dora_parser::{compute_line_column, compute_line_starts};
 
     pub fn ok(code: &'static str) {
@@ -260,39 +260,50 @@ pub mod tests {
     }
 
     pub fn errors(code: &'static str, vec: &[((u32, u32), ErrorMessage)]) {
-        test::check(code, |sa| {
-            println!("expected errors:");
-            for ((line, col), err) in vec {
-                println!("{}:{}: {:?} -> {}", line, col, err, err.message());
-            }
-            println!("");
+        test_with_pkgs(code, &[], vec);
+    }
 
-            println!("actual errors:");
-            report_errors(sa);
+    pub fn test_with_pkgs(
+        code: &str,
+        packages: &[(&str, &str)],
+        vec: &[((u32, u32), ErrorMessage)],
+    ) {
+        let args: SemaFlags = SemaFlags::for_test(code, packages);
+        let mut sa = Sema::new(args);
 
-            let diag = sa.diag.borrow();
-            let errors = diag.errors();
+        check_program(&mut sa);
 
+        println!("expected errors:");
+        for ((line, col), err) in vec {
+            println!("{}:{}: {:?} -> {}", line, col, err, err.message());
+        }
+        println!("");
+
+        println!("actual errors:");
+        report_errors(&sa);
+
+        let diag = sa.diag.borrow();
+        let errors = diag.errors();
+
+        assert_eq!(
+            vec.len(),
+            errors.len(),
+            "test expects {} errors but actually got {} errors.",
+            vec.len(),
+            errors.len()
+        );
+
+        for (ind, error) in errors.iter().enumerate() {
+            println!("compare error {}", ind);
+            assert_eq!(Some(vec[ind].0), compute_pos(code, error));
             assert_eq!(
-                vec.len(),
-                errors.len(),
-                "test expects {} errors but actually got {} errors.",
-                vec.len(),
-                errors.len()
+                vec[ind].1, error.msg,
+                "\nexpected: {:?}\n but got: {:?}",
+                vec[ind].1, error.msg
             );
+        }
 
-            for (ind, error) in errors.iter().enumerate() {
-                println!("compare error {}", ind);
-                assert_eq!(Some(vec[ind].0), compute_pos(code, error));
-                assert_eq!(
-                    vec[ind].1, error.msg,
-                    "\nexpected: {:?}\n but got: {:?}",
-                    vec[ind].1, error.msg
-                );
-            }
-
-            println!("============\n\n");
-        });
+        println!("============\n\n");
     }
 
     fn report_errors(sa: &Sema) {

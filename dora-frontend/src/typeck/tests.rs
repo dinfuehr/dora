@@ -5370,3 +5370,67 @@ fn class_index_set_wrong_item_type() {
         ErrorMessage::WrongTypeForArgument("Float64".into(), "Float32".into()),
     );
 }
+
+#[test]
+fn trait_import_missing() {
+    errors(
+        "
+        fn f(a: Int, b: Int): Int {
+            a.add(b)
+        }
+    ",
+        &[(
+            (3, 13),
+            ErrorMessage::UnknownMethod("Int64".into(), "add".into()),
+        )],
+    );
+}
+
+#[test]
+fn import_trait_for_impl_call() {
+    ok("
+        use std::traits::Add;
+        fn f(a: Int, b: Int): Int {
+            a.add(b)
+        }
+    ");
+}
+
+#[test]
+#[ignore]
+fn impl_trait_for_type_in_dependency() {
+    test_with_pkgs(
+        "
+        extern package dep1;
+
+        use dep1::MyClass;
+
+        pub trait Bar {
+            fn f();
+        }
+
+        impl Bar for MyClass {
+            fn f() {}
+        }
+    ",
+        &[(
+            "dep1",
+            "
+        pub trait Foo {
+            fn f();
+        }
+
+        pub class MyClass
+
+        impl Foo for MyClass {
+            fn f() {}
+        }
+
+        fn f(x: MyClass) {
+            x.f();
+        }
+            ",
+        )],
+        &[],
+    );
+}

@@ -11,11 +11,11 @@ use crate::interner::Name;
 use crate::sema::{
     AliasBound, AliasDefinition, AliasDefinitionId, AliasParent, ClassDefinition, ConstDefinition,
     EnumDefinition, EnumField, EnumVariant, ExtensionDefinition, ExtensionDefinitionId,
-    FctDefinition, FctDefinitionId, FctParent, Field, FieldId, GlobalDefinition, ImplDefinition,
-    ImplDefinitionId, ModuleDefinition, ModuleDefinitionId, PackageDefinition, PackageDefinitionId,
-    PackageName, Param, Params, Sema, SourceFile, SourceFileId, StructDefinition,
-    StructDefinitionField, StructDefinitionFieldId, TraitDefinition, TraitDefinitionId,
-    TypeParamDefinition, UseDefinition, Visibility,
+    FctDefinition, FctDefinitionId, FctParent, Field, FieldId, FileContent, GlobalDefinition,
+    ImplDefinition, ImplDefinitionId, ModuleDefinition, ModuleDefinitionId, PackageDefinition,
+    PackageDefinitionId, PackageName, Param, Params, Sema, SourceFile, SourceFileId,
+    StructDefinition, StructDefinitionField, StructDefinitionFieldId, TraitDefinition,
+    TraitDefinitionId, TypeParamDefinition, UseDefinition, Visibility,
 };
 use crate::sym::{SymTable, Symbol, SymbolKind};
 use crate::{report_sym_shadow_span, ty, ParsedType, SourceType};
@@ -33,7 +33,7 @@ pub fn parse(sa: &mut Sema) -> HashMap<ModuleDefinitionId, SymTable> {
 struct ProgramParser<'a> {
     sa: &'a mut Sema,
     worklist: VecDeque<SourceFileId>,
-    packages: HashMap<String, PathBuf>,
+    packages: HashMap<String, FileContent>,
     module_symtables: HashMap<ModuleDefinitionId, SymTable>,
 }
 
@@ -93,8 +93,8 @@ impl<'a> ProgramParser<'a> {
     }
 
     fn get_stdlib_path(&self) -> Option<PathBuf> {
-        if let Some(path) = self.packages.get("stdlib") {
-            Some(path.clone())
+        if let Some(file_content) = self.packages.get("stdlib") {
+            Some(file_content.to_path().cloned().expect("path expected"))
         } else {
             let path = std::env::current_exe().expect("illegal path");
             let path = path.as_path();
@@ -134,8 +134,8 @@ impl<'a> ProgramParser<'a> {
     }
 
     fn get_boots_path(&self) -> Option<PathBuf> {
-        if let Some(path) = self.packages.get("boots") {
-            Some(path.clone())
+        if let Some(file_content) = self.packages.get("boots") {
+            Some(file_content.to_path().cloned().expect("path expected"))
         } else {
             let path = std::env::current_exe().expect("illegal path");
             let path = path.as_path();
@@ -157,16 +157,21 @@ impl<'a> ProgramParser<'a> {
         self.sa.set_program_module_id(module_id);
         self.sa.set_program_package_id(package_id);
 
-        if let Some(ref file) = self.sa.flags.program_file {
-            let path = PathBuf::from(file);
-            self.add_file(package_id, module_id, path, None);
-        } else if let Some(ref content) = self.sa.flags.test_file_as_string {
-            self.create_source_file_for_content(
-                package_id,
-                module_id,
-                PathBuf::from("<<code>>"),
-                content.to_string(),
-            );
+        if let Some(ref file_content) = self.sa.flags.program_file {
+            match file_content {
+                FileContent::Path(path) => {
+                    self.add_file(package_id, module_id, path.clone(), None);
+                }
+
+                FileContent::Content(ref content) => {
+                    self.create_source_file_for_content(
+                        package_id,
+                        module_id,
+                        PathBuf::from("<<code>>"),
+                        content.to_string(),
+                    );
+                }
+            }
         } else {
             self.sa
                 .report_without_location(ErrorMessage::MissingFileArgument);
@@ -176,13 +181,26 @@ impl<'a> ProgramParser<'a> {
     fn add_dependency_packages(&mut self) {
         let packages = std::mem::replace(&mut self.packages, HashMap::new());
 
-        for (name, path) in packages {
+        for (name, file_content) in packages {
             let iname = self.sa.interner.intern(&name);
             let package_name = PackageName::External(name.clone());
             let (package_id, module_id) = add_package(self.sa, package_name, Some(iname));
             self.sa.package_names.insert(name, package_id);
 
-            self.add_file(package_id, module_id, path, None);
+            match file_content {
+                FileContent::Path(path) => {
+                    self.add_file(package_id, module_id, path.clone(), None);
+                }
+
+                FileContent::Content(ref content) => {
+                    self.create_source_file_for_content(
+                        package_id,
+                        module_id,
+                        PathBuf::from("<<code>>"),
+                        content.to_string(),
+                    );
+                }
+            }
         }
     }
 

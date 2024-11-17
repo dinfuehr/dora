@@ -175,6 +175,7 @@ impl Parser {
         } else {
             None
         };
+        self.expect(SEMICOLON);
 
         let green = self.builder.finish_node(EXTERN);
 
@@ -4005,5 +4006,10 @@ mod tests {
         parse_expr("x is Foo");
         parse_expr("x is Foo::Bar");
         parse_expr("x is Foo::Bar(a, b, c)");
+    }
+
+    #[test]
+    fn parse_extern_decl() {
+        parse("extern package foo;");
     }
 }

@@ -5,7 +5,7 @@ pub fn check<F, T>(code: &'static str, f: F) -> T
 where
     F: FnOnce(&Sema) -> T,
 {
-    let args: SemaFlags = SemaFlags::for_test(code);
+    let args: SemaFlags = SemaFlags::for_test(code, &[]);
     let mut sa = Sema::new(args);
 
     let result = check_program(&mut sa);
