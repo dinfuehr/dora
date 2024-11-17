@@ -5397,7 +5397,7 @@ fn import_trait_for_impl_call() {
 }
 
 #[test]
-fn impl_trait_for_type_in_dependency() {
+fn impl_method_call_with_impl_in_another_package() {
     test_with_pkgs(
         "
         extern package dep1;
@@ -5435,7 +5435,7 @@ fn impl_trait_for_type_in_dependency() {
 }
 
 #[test]
-fn impl_trait_for_type_in_dependency_with_invalid_impl() {
+fn impl_method_call_with_invalid_impl_in_another_package() {
     test_with_pkgs(
         "
         extern package dep1;
