@@ -41,15 +41,12 @@ impl PackageDefinition {
         package_id: PackageDefinitionId,
         top_level_module_id: ModuleDefinitionId,
     ) -> bool {
-        let table = self.table.write();
+        let mut table = self.table.write();
 
         if table.get(name).is_some() {
             false
         } else {
-            let old_value = self
-                .table
-                .write()
-                .insert(name, SymbolKind::Module(top_level_module_id));
+            let old_value = table.insert(name, SymbolKind::Module(top_level_module_id));
             assert!(old_value.is_none());
             self.dependencies
                 .push(PackageDependency { name, package_id });

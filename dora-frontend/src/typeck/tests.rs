@@ -5397,7 +5397,6 @@ fn import_trait_for_impl_call() {
 }
 
 #[test]
-#[ignore]
 fn impl_trait_for_type_in_dependency() {
     test_with_pkgs(
         "

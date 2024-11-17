@@ -3,7 +3,7 @@ use crate::sema::{
     extension_matches, impl_matches, Candidate, Sema, TraitDefinition, TypeParamDefinition,
 };
 use crate::sym::ModuleSymTable;
-use crate::{package_for_type, SourceType};
+use crate::SourceType;
 
 pub fn find_method_call_candidates(
     sa: &Sema,
@@ -61,11 +61,9 @@ pub fn find_method_call_candidates(
         if let Some(trait_ty) = impl_.trait_ty() {
             let trait_ = &sa.trait_(trait_ty.trait_id);
 
-            let is_trait_foreign = trait_.package_id != package_id;
-            let is_extended_ty_foreign =
-                package_for_type(sa, impl_.extended_ty()) != Some(package_id);
+            let is_impl_foreign = impl_.package_id != package_id;
 
-            if is_trait_foreign && !table.contains_trait(trait_.id()) && is_extended_ty_foreign {
+            if is_impl_foreign && !table.contains_trait(trait_.id()) {
                 continue;
             }
 
