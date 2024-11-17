@@ -5398,7 +5398,7 @@ fn import_trait_for_impl_call() {
 
 #[test]
 fn impl_method_call_with_impl_in_another_package() {
-    test_with_pkgs(
+    pkg_test(
         "
         extern package dep1;
 
@@ -5436,7 +5436,7 @@ fn impl_method_call_with_impl_in_another_package() {
 
 #[test]
 fn impl_method_call_with_invalid_impl_in_another_package() {
-    test_with_pkgs(
+    pkg_test(
         "
         extern package dep1;
 

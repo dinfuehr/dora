@@ -230,14 +230,7 @@ pub mod tests {
     use dora_parser::{compute_line_column, compute_line_starts};
 
     pub fn ok(code: &'static str) {
-        test::check(code, |sa| {
-            report_errors(sa);
-
-            assert!(
-                !sa.diag.borrow().has_errors(),
-                "program should not have errors."
-            );
-        });
+        pkg_test(code, &[], &[]);
     }
 
     pub fn ok_with_test<F, R>(code: &'static str, f: F) -> R
@@ -260,14 +253,10 @@ pub mod tests {
     }
 
     pub fn errors(code: &'static str, vec: &[((u32, u32), ErrorMessage)]) {
-        test_with_pkgs(code, &[], vec);
+        pkg_test(code, &[], vec);
     }
 
-    pub fn test_with_pkgs(
-        code: &str,
-        packages: &[(&str, &str)],
-        vec: &[((u32, u32), ErrorMessage)],
-    ) {
+    pub fn pkg_test(code: &str, packages: &[(&str, &str)], vec: &[((u32, u32), ErrorMessage)]) {
         let args: SemaFlags = SemaFlags::for_test(code, packages);
         let mut sa = Sema::new(args);
 
