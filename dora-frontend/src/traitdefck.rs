@@ -461,7 +461,7 @@ mod tests {
             fn f() {
                 let _ = Data[Int64]();
             }
-        ")
+        ");
     }
 
     #[test]
@@ -472,7 +472,7 @@ mod tests {
             fn f[T: A](lhs: T, rhs: T): Bool {
                 lhs == rhs
             }
-        ")
+        ");
     }
 
     #[test]

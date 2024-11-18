@@ -615,6 +615,6 @@ mod tests {
                     ErrorMessage::UnknownIdentifierInModule("foo".into(), "b".into()),
                 ),
             ],
-        )
+        );
     }
 }

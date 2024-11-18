@@ -465,7 +465,7 @@ mod tests {
             fn f(x: (Int64, Int64)) {
                 x.f();
             }
-        ")
+        ");
     }
 
     #[test]
@@ -480,7 +480,7 @@ mod tests {
             fn f(x: (Int64, Int64): Bool): Bool {
                 x.f()
             }
-        ")
+        ");
     }
 
     #[test]
@@ -499,7 +499,7 @@ mod tests {
             fn f(x: TraitA): Int64 {
                 x.plus1()
             }
-        ")
+        ");
     }
 
     #[test]
@@ -512,7 +512,7 @@ mod tests {
         ",
             (2, 21),
             ErrorMessage::ExpectedExtensionType,
-        )
+        );
     }
 
     #[test]
@@ -524,6 +524,6 @@ mod tests {
         ",
             (3, 22),
             ErrorMessage::SelfTypeUnavailable,
-        )
+        );
     }
 }

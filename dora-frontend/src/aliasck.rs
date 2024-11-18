@@ -213,7 +213,7 @@ mod tests {
                 type Bar;
                 fn f(): Self::Bar;
             }
-        ")
+        ");
     }
 
     #[test]
@@ -360,7 +360,7 @@ mod tests {
             struct Bar[T: Foo](T)
 
             fn f(x: Bar[BazB]) {}
-        ")
+        ");
     }
 
     #[test]
@@ -397,7 +397,7 @@ mod tests {
         ok("
             struct Foo[T](T)
             type Bar[T] = Foo[T];
-        ")
+        ");
     }
 
     #[test]

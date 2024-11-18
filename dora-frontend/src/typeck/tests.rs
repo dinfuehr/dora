@@ -838,65 +838,61 @@ fn test_const_check() {
 
 #[test]
 fn test_const_values() {
-    ok_with_test(
-        "  const yes: Bool = true;
+    let sa = ok("  const yes: Bool = true;
                         const x: UInt8 = 255u8;
                         const a: Int32 = 100i32;
                         const b: Int64 = 200i64;
                         const c: Char = 'A';
                         const d: Float32 = 3.0f32;
-                        const e: Float64 = 6.0;",
-        |sa| {
-            {
-                let id = resolve_path(sa, "<prog>::yes")
-                    .to_const()
-                    .expect("const expected");
-                assert_eq!(&ConstValue::Bool(true), sa.const_(id).value());
-            }
+                        const e: Float64 = 6.0;");
+    {
+        let id = resolve_path(&sa, "<prog>::yes")
+            .to_const()
+            .expect("const expected");
+        assert_eq!(&ConstValue::Bool(true), sa.const_(id).value());
+    }
 
-            {
-                let id = resolve_path(sa, "<prog>::x")
-                    .to_const()
-                    .expect("const expected");
-                assert_eq!(&ConstValue::Int(255), sa.const_(id).value());
-            }
+    {
+        let id = resolve_path(&sa, "<prog>::x")
+            .to_const()
+            .expect("const expected");
+        assert_eq!(&ConstValue::Int(255), sa.const_(id).value());
+    }
 
-            {
-                let id = resolve_path(sa, "<prog>::a")
-                    .to_const()
-                    .expect("const expected");
-                assert_eq!(&ConstValue::Int(100), sa.const_(id).value());
-            }
+    {
+        let id = resolve_path(&sa, "<prog>::a")
+            .to_const()
+            .expect("const expected");
+        assert_eq!(&ConstValue::Int(100), sa.const_(id).value());
+    }
 
-            {
-                let id = resolve_path(sa, "<prog>::b")
-                    .to_const()
-                    .expect("const expected");
-                assert_eq!(&ConstValue::Int(200), sa.const_(id).value());
-            }
+    {
+        let id = resolve_path(&sa, "<prog>::b")
+            .to_const()
+            .expect("const expected");
+        assert_eq!(&ConstValue::Int(200), sa.const_(id).value());
+    }
 
-            {
-                let id = resolve_path(sa, "<prog>::c")
-                    .to_const()
-                    .expect("const expected");
-                assert_eq!(&ConstValue::Char('A'), sa.const_(id).value());
-            }
+    {
+        let id = resolve_path(&sa, "<prog>::c")
+            .to_const()
+            .expect("const expected");
+        assert_eq!(&ConstValue::Char('A'), sa.const_(id).value());
+    }
 
-            {
-                let id = resolve_path(sa, "<prog>::d")
-                    .to_const()
-                    .expect("const expected");
-                assert_eq!(&ConstValue::Float(3.0), sa.const_(id).value());
-            }
+    {
+        let id = resolve_path(&sa, "<prog>::d")
+            .to_const()
+            .expect("const expected");
+        assert_eq!(&ConstValue::Float(3.0), sa.const_(id).value());
+    }
 
-            {
-                let id = resolve_path(sa, "<prog>::e")
-                    .to_const()
-                    .expect("const expected");
-                assert_eq!(&ConstValue::Float(6.0), sa.const_(id).value());
-            }
-        },
-    );
+    {
+        let id = resolve_path(&sa, "<prog>::e")
+            .to_const()
+            .expect("const expected");
+        assert_eq!(&ConstValue::Float(6.0), sa.const_(id).value());
+    }
 }
 
 #[test]
@@ -2148,7 +2144,7 @@ fn test_tuple_in_call() {
         fn g() {
             f((1i32, true));
         }
-    ")
+    ");
 }
 
 #[test]
@@ -3782,7 +3778,7 @@ fn trait_for_tuple() {
         fn g() {
             f[(Int64, Int64)]((1, 2));
         }
-    ")
+    ");
 }
 
 #[test]
@@ -3794,7 +3790,7 @@ fn trait_for_unit() {
         fn g() {
             f[()](());
         }
-    ")
+    ");
 }
 
 #[test]
@@ -3803,7 +3799,7 @@ fn option_equals() {
         fn ck(lhs: Option[Int64], rhs: Option[Int64]): Bool {
             lhs == rhs
         }
-    ")
+    ");
 }
 
 #[test]
@@ -3957,7 +3953,7 @@ fn alias_as_argument() {
         type MyInt = Int64;
         fn x(v: MyInt) {}
         fn f() { x(6); }
-    ")
+    ");
 }
 
 #[test]
@@ -3968,7 +3964,7 @@ fn alias_in_local_type() {
             let x: MyInt = 8;
             x == y
         }
-    ")
+    ");
 }
 
 #[test]
@@ -5224,7 +5220,7 @@ fn struct_index_get() {
         fn f(x: Foo): Float64 {
             x(0)
         }
-    ")
+    ");
 }
 
 #[test]
@@ -5272,7 +5268,7 @@ fn class_index_set() {
         fn f(x: Foo, value: Float64) {
             x(0) = value;
         }
-    ")
+    ");
 }
 
 #[test]
@@ -5294,7 +5290,7 @@ fn class_index_get_generic() {
         fn f(x: Foo[Float64]): Float64 {
             x(0)
         }
-    ")
+    ");
 }
 
 #[test]
@@ -5316,7 +5312,7 @@ fn class_index_set_generic() {
         fn f(x: Foo[Float64], value: Float64) {
             x(0) = value;
         }
-    ")
+    ");
 }
 
 #[test]

@@ -19,6 +19,6 @@ mod tests {
         ok("
             type MyInt = Int64;
             const x: MyInt = 10;
-        ")
+        ");
     }
 }

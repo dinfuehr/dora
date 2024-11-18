@@ -40,8 +40,6 @@ mod specialize;
 mod stdlib_lookup;
 mod structdefck;
 pub mod sym;
-#[cfg(test)]
-mod test;
 mod traitdefck;
 pub mod ty;
 mod typeck;
@@ -223,40 +221,29 @@ pub fn report_sym_shadow_span(sa: &Sema, name: Name, file: SourceFileId, span: S
 }
 
 #[cfg(test)]
-pub mod tests {
+mod tests {
+    use crate::check_program;
     use crate::error::msg::{ErrorDescriptor, ErrorMessage};
     use crate::sema::{Sema, SemaFlags};
-    use crate::{check_program, test};
     use dora_parser::{compute_line_column, compute_line_starts};
 
-    pub fn ok(code: &'static str) {
-        pkg_test(code, &[], &[]);
+    pub(crate) fn ok(code: &'static str) -> Sema {
+        pkg_test(code, &[], &[])
     }
 
-    pub fn ok_with_test<F, R>(code: &'static str, f: F) -> R
-    where
-        F: FnOnce(&Sema) -> R,
-    {
-        test::check(code, |sa| {
-            report_errors(sa);
-            assert!(
-                !sa.diag.borrow().has_errors(),
-                "program should not have errors."
-            );
-
-            f(sa)
-        })
+    pub(crate) fn err(code: &'static str, loc: (u32, u32), msg: ErrorMessage) -> Sema {
+        pkg_test(code, &[], &[(loc, msg)])
     }
 
-    pub fn err(code: &'static str, loc: (u32, u32), msg: ErrorMessage) {
-        errors(code, &[(loc, msg)]);
+    pub(crate) fn errors(code: &'static str, vec: &[((u32, u32), ErrorMessage)]) -> Sema {
+        pkg_test(code, &[], vec)
     }
 
-    pub fn errors(code: &'static str, vec: &[((u32, u32), ErrorMessage)]) {
-        pkg_test(code, &[], vec);
-    }
-
-    pub fn pkg_test(code: &str, packages: &[(&str, &str)], vec: &[((u32, u32), ErrorMessage)]) {
+    pub(crate) fn pkg_test(
+        code: &str,
+        packages: &[(&str, &str)],
+        vec: &[((u32, u32), ErrorMessage)],
+    ) -> Sema {
         let args: SemaFlags = SemaFlags::for_test(code, packages);
         let mut sa = Sema::new(args);
 
@@ -271,8 +258,7 @@ pub mod tests {
         println!("actual errors:");
         report_errors(&sa);
 
-        let diag = sa.diag.borrow();
-        let errors = diag.errors();
+        let errors = sa.diag.borrow().errors().to_vec();
 
         assert_eq!(
             vec.len(),
@@ -293,6 +279,7 @@ pub mod tests {
         }
 
         println!("============\n\n");
+        sa
     }
 
     fn report_errors(sa: &Sema) {

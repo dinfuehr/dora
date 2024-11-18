@@ -725,7 +725,7 @@ mod tests {
                     self.x == val.x
                 }
             }
-        ")
+        ");
     }
 
     #[test]
@@ -1044,7 +1044,7 @@ mod tests {
             fn f(x: (Int64, Int64)): Int64 {
                 x.foo()
             }
-        ")
+        ");
     }
 
     #[test]
@@ -1195,7 +1195,7 @@ mod tests {
             impl Foo for String {
                 fn f(): Int64 { 1 }
             }
-        ")
+        ");
     }
 
     #[test]
@@ -1213,7 +1213,7 @@ mod tests {
             fn x(a: String) {
                 a.g();
             }
-        ")
+        ");
     }
 
     #[test]
@@ -1231,6 +1231,6 @@ mod tests {
             fn x(a: String) {
                 a.f();
             }
-        ")
+        ");
     }
 }

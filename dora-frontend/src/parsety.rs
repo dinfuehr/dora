@@ -1225,7 +1225,7 @@ mod tests {
         ",
             (3, 25),
             ErrorMessage::UnexpectedTypeBinding,
-        )
+        );
     }
 
     #[test]
@@ -1237,7 +1237,7 @@ mod tests {
         ",
             (3, 36),
             ErrorMessage::TypeBindingOrder,
-        )
+        );
     }
 
     #[test]
@@ -1249,7 +1249,7 @@ mod tests {
         ",
             (3, 34),
             ErrorMessage::UnknownTypeBinding,
-        )
+        );
     }
 
     #[test]
@@ -1263,7 +1263,7 @@ mod tests {
         ",
             (5, 45),
             ErrorMessage::DuplicateTypeBinding,
-        )
+        );
     }
 
     #[test]
@@ -1277,7 +1277,7 @@ mod tests {
         ",
             (5, 22),
             ErrorMessage::UnexpectedTypeBinding,
-        )
+        );
     }
 
     #[test]
@@ -1339,7 +1339,7 @@ mod tests {
             trait Foo where Self::X: Bar {
                 type X;
             }
-        ")
+        ");
     }
 
     #[test]
@@ -1353,7 +1353,7 @@ mod tests {
         ",
             (3, 35),
             ErrorMessage::UnknownAlias,
-        )
+        );
     }
 
     #[test]
@@ -1366,7 +1366,7 @@ mod tests {
         ",
             (4, 34),
             ErrorMessage::UnexpectedAlias,
-        )
+        );
     }
 
     #[test]
@@ -1393,7 +1393,7 @@ mod tests {
         ",
             (4, 45),
             ErrorMessage::UnexpectedAlias,
-        )
+        );
     }
 
     #[test]
@@ -1403,7 +1403,7 @@ mod tests {
                 type X;
                 fn get(): Self::X;
             }
-        ")
+        ");
     }
 
     #[test]
