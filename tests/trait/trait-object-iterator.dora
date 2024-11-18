@@ -1,0 +1,16 @@
+//= ignore
+
+use std::traits::{IntoIterator, Iterator};
+
+fn main() {
+    let it = get_iterator_trait_object();
+    assert(it.next() == Some(10));
+    assert(it.next() == Some(10));
+    assert(it.next() == Some(10));
+    assert(it.next().isNone());
+}
+
+fn get_iterator_trait_object(): Iterator[Item=Int] {
+    let x = Vec[Int]::new(10, 100, 17);
+    x.iter() as Iterator[Item=Int]
+}
