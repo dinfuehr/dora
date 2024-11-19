@@ -1704,7 +1704,7 @@ impl CodeGen for CodeGenArm64 {
         let obj = loc.getInput(receiver_idx).getRegister();
         let tmp = loc.getTemp(0).getRegister();
 
-        let BytecodeType::Trait(trait_id, ..) = fct_info.trait_object_ty;
+        let BytecodeType::TraitObject(trait_id, ..) = fct_info.trait_object_ty;
 
         let site = LazyCompilationSiteVirtual(
             receiver_is_first = fct_info.receiver_is_first,

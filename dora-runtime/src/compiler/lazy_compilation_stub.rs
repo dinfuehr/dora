@@ -275,8 +275,8 @@ pub fn iterate_roots<F>(
             }
 
             BytecodeType::Ptr
-            | BytecodeType::Class(_, _)
-            | BytecodeType::TraitObject(_, _)
+            | BytecodeType::Class(..)
+            | BytecodeType::TraitObject(..)
             | BytecodeType::Lambda(_, _) => {
                 reg_offset_pointer(&mut reg_idx, fp, &mut stack_address, &mut callback);
             }

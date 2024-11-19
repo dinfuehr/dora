@@ -1321,7 +1321,7 @@ impl SsaGen {
         let inst = match kind {
             CallKind::Virtual => {
                 let ConstPoolEntry::TraitObjectMethod(trait_object_ty, trait_fct_id) = self.bc.constPool(idx);
-                let BytecodeType::Trait(trait_id, ..) = trait_object_ty;
+                let BytecodeType::TraitObject(trait_id, ..) = trait_object_ty;
                 let vtable_index = iface::getFunctionVtableIndex(trait_id, trait_fct_id);
                 let info = VirtualFunctionInfo(receiver_is_first, trait_object_ty, vtable_index);
                 graph::createInvokeVirtualInst(info, args, returnTy)
@@ -1729,7 +1729,7 @@ impl SsaGen {
             BytecodeType::Class(..)
             | BytecodeType::Ptr
             | BytecodeType::Lambda(..)
-            | BytecodeType::Trait(..) => {
+            | BytecodeType::TraitObject(..) => {
                 self.clearArrayElementPointer(array, index);
             }
             BytecodeType::Enum(enum_id, type_params) => {
@@ -2630,7 +2630,7 @@ impl SsaGen {
             BytecodeType::Class(..)
             | BytecodeType::Ptr
             | BytecodeType::Lambda(..)
-            | BytecodeType::Trait(..) => Type::Ptr,
+            | BytecodeType::TraitObject(..) => Type::Ptr,
             BytecodeType::Enum(enum_id, type_params) => {
                 let layout = self.computeEnumLayout(enum_id, type_params);
                 match layout {

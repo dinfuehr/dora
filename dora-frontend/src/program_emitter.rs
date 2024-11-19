@@ -157,6 +157,7 @@ fn create_aliases(sa: &Sema) -> Vec<AliasData> {
         result.push(AliasData {
             name: sa.interner.str(alias.name).to_string(),
             ty: None,
+            idx_in_trait: alias.idx_in_trait,
         })
     }
 

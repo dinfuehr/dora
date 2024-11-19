@@ -176,9 +176,9 @@ impl<'a> BaselineAssembler<'a> {
             }
 
             BytecodeType::Ptr
-            | BytecodeType::TraitObject(_, _)
-            | BytecodeType::Class(_, _)
-            | BytecodeType::Lambda(_, _) => {
+            | BytecodeType::TraitObject(..)
+            | BytecodeType::Class(..)
+            | BytecodeType::Lambda(..) => {
                 let mode: MachineMode = MachineMode::Ptr;
                 let reg = self.get_scratch();
                 self.load_mem(mode, (*reg).into(), src.mem());
@@ -338,7 +338,7 @@ impl<'a> BaselineAssembler<'a> {
                 self.store_mem(mode, Mem::Base(host_reg, host_offset), (*value_reg).into());
             }
 
-            BytecodeType::Ptr | BytecodeType::TraitObject(_, _) | BytecodeType::Class(_, _) => {
+            BytecodeType::Ptr | BytecodeType::TraitObject(..) | BytecodeType::Class(..) => {
                 let value_reg = self.masm.get_scratch();
                 let mode = MachineMode::Ptr;
 
@@ -431,7 +431,7 @@ impl<'a> BaselineAssembler<'a> {
                 self.store_mem(mode, Mem::Base(element_reg, offset), (*value_reg).into());
             }
 
-            BytecodeType::Ptr | BytecodeType::TraitObject(_, _) | BytecodeType::Class(_, _) => {
+            BytecodeType::Ptr | BytecodeType::TraitObject(..) | BytecodeType::Class(..) => {
                 let mode = mode(self.vm, ty.clone());
 
                 let value_reg = self.get_scratch();
@@ -1285,9 +1285,9 @@ impl<'a> BaselineAssembler<'a> {
             | BytecodeType::Int64
             | BytecodeType::Float32
             | BytecodeType::Float64
-            | BytecodeType::Class(_, _)
-            | BytecodeType::TraitObject(_, _)
-            | BytecodeType::Lambda(_, _) => {
+            | BytecodeType::Class(..)
+            | BytecodeType::TraitObject(..)
+            | BytecodeType::Lambda(..) => {
                 let mode = mode(self.vm, ty);
                 self.store_zero(mode, dest.mem());
             }

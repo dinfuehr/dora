@@ -49,7 +49,7 @@ pub use self::specialize::{
     add_ref_fields, compute_vtable_index, create_class_instance, create_enum_instance,
     create_struct_instance, ensure_class_instance_for_enum_variant,
     ensure_class_instance_for_lambda, ensure_class_instance_for_trait_object, specialize_bty,
-    specialize_bty_array,
+    specialize_bty_array, specialize_bty_for_trait_object,
 };
 pub use self::stdlib_lookup::FctImplementation;
 pub use self::structs::{StructInstance, StructInstanceField, StructInstanceId};

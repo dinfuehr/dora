@@ -21,7 +21,7 @@ pub enum BytecodeType {
     Enum(EnumId, BytecodeTypeArray),
     Struct(StructId, BytecodeTypeArray),
     Class(ClassId, BytecodeTypeArray),
-    TraitObject(TraitId, BytecodeTypeArray),
+    TraitObject(TraitId, BytecodeTypeArray, BytecodeTypeArray),
     Lambda(BytecodeTypeArray, Box<BytecodeType>),
     TypeAlias(AliasId),
     Assoc(AliasId, BytecodeTypeArray),
@@ -101,9 +101,9 @@ impl BytecodeType {
         }
     }
 
-    pub fn is_trait(&self) -> bool {
+    pub fn is_trait_object(&self) -> bool {
         match self {
-            BytecodeType::TraitObject(_, _) => true,
+            BytecodeType::TraitObject(..) => true,
             _ => false,
         }
     }
@@ -142,34 +142,15 @@ impl BytecodeType {
             | BytecodeType::Ptr => true,
             BytecodeType::Class(_, params)
             | BytecodeType::Enum(_, params)
-            | BytecodeType::Struct(_, params)
-            | BytecodeType::TraitObject(_, params) => {
-                for param in params.iter() {
-                    if !param.is_concrete_type() {
-                        return false;
-                    }
-                }
+            | BytecodeType::Struct(_, params) => params.is_concrete_type(),
 
-                true
+            BytecodeType::TraitObject(_, params, bindings) => {
+                params.is_concrete_type() && bindings.is_concrete_type()
             }
 
-            BytecodeType::Tuple(subtypes) => {
-                for subtype in subtypes.iter() {
-                    if !subtype.is_concrete_type() {
-                        return false;
-                    }
-                }
-
-                true
-            }
+            BytecodeType::Tuple(subtypes) => subtypes.is_concrete_type(),
             BytecodeType::Lambda(params, return_type) => {
-                for param in params.iter() {
-                    if !param.is_concrete_type() {
-                        return false;
-                    }
-                }
-
-                return_type.is_concrete_type()
+                params.is_concrete_type() && return_type.is_concrete_type()
             }
             BytecodeType::TypeParam(_) => false,
             BytecodeType::TypeAlias(..) | BytecodeType::Assoc(..) | BytecodeType::This => {

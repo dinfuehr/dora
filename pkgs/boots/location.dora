@@ -494,7 +494,7 @@ fn computeArgumentLocations(codegen: CodeGen, ci: CompilationInfo): ArgumentLoca
             | BytecodeType::Class(..)
             | BytecodeType::Ptr
             | BytecodeType::Lambda(..)
-            | BytecodeType::Trait(..)
+            | BytecodeType::TraitObject(..)
             | BytecodeType::Enum(..) => false,
             BytecodeType::Unit
             | BytecodeType::This

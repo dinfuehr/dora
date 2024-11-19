@@ -216,7 +216,8 @@ pub fn decode_bytecode_type(reader: &mut ByteReader) -> BytecodeType {
         BytecodeTypeKind::TraitObject => {
             let trait_id = reader.read_u32();
             let type_params = decode_bytecode_type_array(reader);
-            BytecodeType::TraitObject(TraitId(trait_id), type_params)
+            let bindings = decode_bytecode_type_array(reader);
+            BytecodeType::TraitObject(TraitId(trait_id), type_params, bindings)
         }
         BytecodeTypeKind::TypeParam => {
             let id = reader.read_u32();

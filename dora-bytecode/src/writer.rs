@@ -366,6 +366,7 @@ impl BytecodeWriter {
             self.registers,
             self.arguments,
             self.line_number_table,
+            self.return_type,
         )
     }
 
@@ -380,6 +381,7 @@ impl BytecodeWriter {
             registers,
             self.arguments,
             self.line_number_table,
+            self.return_type,
         )
     }
 

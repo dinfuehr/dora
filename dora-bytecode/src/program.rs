@@ -187,6 +187,13 @@ pub struct AliasId(pub u32);
 pub struct AliasData {
     pub name: String,
     pub ty: Option<BytecodeType>,
+    pub idx_in_trait: Option<usize>,
+}
+
+impl AliasData {
+    pub fn idx_in_trait(&self) -> usize {
+        self.idx_in_trait.expect("missing idx")
+    }
 }
 
 #[derive(Debug, Decode, Encode)]

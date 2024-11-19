@@ -92,7 +92,7 @@ pub fn ty_implements_trait(
     trait_ty: BytecodeType,
 ) -> bool {
     let trait_id = match trait_ty {
-        BytecodeType::TraitObject(trait_id, _) => trait_id,
+        BytecodeType::TraitObject(trait_id, ..) => trait_id,
         _ => unreachable!(),
     };
 
@@ -104,8 +104,8 @@ pub fn ty_implements_trait(
     match check_ty.clone() {
         BytecodeType::Tuple(_)
         | BytecodeType::Unit
-        | BytecodeType::TraitObject(_, _)
-        | BytecodeType::Lambda(_, _) => false,
+        | BytecodeType::TraitObject(..)
+        | BytecodeType::Lambda(..) => false,
 
         BytecodeType::Bool
         | BytecodeType::UInt8

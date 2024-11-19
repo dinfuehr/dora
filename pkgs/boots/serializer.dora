@@ -218,10 +218,11 @@ pub fn encodeBytecodeType(writer: ByteWriter, ty: BytecodeType) {
             writer.emitInt32(class_id.0);
             encodeBytecodeTypeArray(writer, source_type_array);
         },
-        BytecodeType::Trait(trait_id, source_type_array) => {
+        BytecodeType::TraitObject(trait_id, source_type_array, assoc_types) => {
             writer.emitByte(opc::BC_TYPE_TRAIT_OBJECT.toUInt8());
             writer.emitInt32(trait_id.0);
             encodeBytecodeTypeArray(writer, source_type_array);
+            encodeBytecodeTypeArray(writer, assoc_types);
         },
         BytecodeType::Lambda(params, ret) => {
             writer.emitByte(opc::BC_TYPE_LAMBDA.toUInt8());

@@ -588,6 +588,7 @@ pub struct BytecodeFunction {
     const_pool: Vec<ConstPoolEntry>,
     arguments: u32,
     locations: Vec<(BytecodeOffset, Location)>,
+    return_ty: BytecodeType,
 }
 
 impl BytecodeFunction {
@@ -597,6 +598,7 @@ impl BytecodeFunction {
         registers: Vec<BytecodeType>,
         arguments: u32,
         locations: Vec<(BytecodeOffset, Location)>,
+        return_ty: BytecodeType,
     ) -> BytecodeFunction {
         BytecodeFunction {
             code,
@@ -604,6 +606,7 @@ impl BytecodeFunction {
             registers,
             arguments,
             locations,
+            return_ty,
         }
     }
     pub fn code(&self) -> &[u8] {
@@ -627,6 +630,10 @@ impl BytecodeFunction {
 
     pub fn arguments(&self) -> u32 {
         self.arguments
+    }
+
+    pub fn return_type(&self) -> &BytecodeType {
+        &self.return_ty
     }
 
     pub fn const_pool_entries(&self) -> &[ConstPoolEntry] {

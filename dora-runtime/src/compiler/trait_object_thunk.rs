@@ -4,7 +4,7 @@ use crate::cannon::codegen::register_ty;
 use crate::compiler::codegen::{compile_fct_to_code, select_compiler};
 use crate::compiler::CompilationMode;
 use crate::gc::Address;
-use crate::vm::{BytecodeTypeExt, Code, CodeId, Compiler, VM};
+use crate::vm::{specialize_bty_for_trait_object, BytecodeTypeExt, Code, CodeId, Compiler, VM};
 use dora_bytecode::{
     BytecodeFunction, BytecodeType, BytecodeTypeArray, BytecodeWriter, ConstPoolEntry, FunctionId,
     FunctionKind, Register,
@@ -94,7 +94,7 @@ fn trait_object_ty(
         _ => unreachable!(),
     };
 
-    BytecodeType::TraitObject(trait_id, type_params.clone())
+    BytecodeType::TraitObject(trait_id, type_params.clone(), BytecodeTypeArray::empty())
 }
 
 fn compile_thunk_to_code(
@@ -133,6 +133,7 @@ fn compile_thunk_to_code(
         trait_fct_id,
         trait_fct,
         params,
+        bytecode_fct.return_type().clone(),
         &bytecode_fct,
         type_params,
         compiler,
@@ -150,11 +151,25 @@ fn generate_bytecode_for_thunk(
 ) -> BytecodeFunction {
     let program_trait_fct = vm.fct(fct_id);
 
+    let (trait_id, trait_type_params, trait_assoc_types) = match &trait_object_ty {
+        BytecodeType::TraitObject(trait_id, trait_type_params, trait_assoc_types) => {
+            (*trait_id, trait_type_params, trait_assoc_types)
+        }
+        _ => unreachable!(),
+    };
+
     let mut w = BytecodeWriter::new();
     w.add_register(register_ty(trait_object_ty.clone()));
 
     for param_ty in program_trait_fct.params.iter().skip(1) {
-        w.add_register(register_ty(param_ty.clone()));
+        let param_ty = specialize_bty_for_trait_object(
+            &vm.program,
+            param_ty.clone(),
+            trait_id,
+            trait_type_params,
+            trait_assoc_types,
+        );
+        w.add_register(register_ty(param_ty));
     }
 
     w.set_arguments(program_trait_fct.params.len() as u32 + 1);
@@ -174,7 +189,15 @@ fn generate_bytecode_for_thunk(
         trait_object_ty.type_params(),
     ));
 
-    let return_ty = register_ty(program_trait_fct.return_type.clone());
+    let return_ty = specialize_bty_for_trait_object(
+        &vm.program,
+        program_trait_fct.return_type.clone(),
+        trait_id,
+        trait_type_params,
+        trait_assoc_types,
+    );
+    let return_ty = register_ty(return_ty);
+    w.set_return_type(return_ty.clone());
     let result_reg = w.add_register(return_ty);
     w.set_location(program_trait_fct.loc);
     w.emit_invoke_generic_direct(result_reg, target_fct_idx);

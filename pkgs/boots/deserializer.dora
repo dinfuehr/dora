@@ -165,7 +165,8 @@ fn decodeBytecodeType(reader: ByteReader): BytecodeType {
     } else if opcode == opc::BC_TYPE_TRAIT_OBJECT {
         let trait_id = TraitId(reader.readId());
         let typeParams = decodeBytecodeTypeArray(reader);
-        BytecodeType::Trait(trait_id, typeParams)
+        let assocTypes = decodeBytecodeTypeArray(reader);
+        BytecodeType::TraitObject(trait_id, typeParams, assocTypes)
     } else if opcode == opc::BC_TYPE_TUPLE {
         let typeParams = decodeBytecodeTypeArray(reader);
         BytecodeType::Tuple(typeParams)

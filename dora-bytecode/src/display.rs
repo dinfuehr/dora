@@ -190,10 +190,11 @@ impl<'a> BytecodeTypePrinter<'a> {
                 write!(fmt, "{}", struct_.name)?;
                 self.type_params(type_params, fmt)
             }
-            BytecodeType::TraitObject(tid, type_params) => {
+            BytecodeType::TraitObject(tid, type_params, bindings) => {
                 let trait_ = self.prog.trait_(*tid);
                 write!(fmt, "{}", trait_.name)?;
-                self.type_params(type_params, fmt)
+                self.type_params(type_params, fmt)?;
+                self.type_params(bindings, fmt)
             }
             BytecodeType::Enum(id, type_params) => {
                 let enum_ = self.prog.enum_(*id);

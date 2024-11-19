@@ -1811,7 +1811,7 @@ impl CodeGen for CodeGenX64 {
         );
         let site = LazyCompilationSite::Virtual(site);
 
-        let BytecodeType::Trait(trait_id, ..) = fct_info.trait_object_ty;
+        let BytecodeType::TraitObject(trait_id, ..) = fct_info.trait_object_ty;
 
         self.emitVirtualCall(obj, REG_TEMP, tmp, inst, fct_info.vtable_index, site);
     }

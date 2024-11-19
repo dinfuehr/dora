@@ -11,8 +11,8 @@ use crate::vm::{
     StructInstanceField, StructInstanceId, VM,
 };
 use dora_bytecode::{
-    BytecodeType, BytecodeTypeArray, ClassData, ClassId, EnumData, EnumId, FunctionId, StructData,
-    StructId, TraitId,
+    BytecodeType, BytecodeTypeArray, ClassData, ClassId, EnumData, EnumId, FunctionId, Program,
+    StructData, StructId, TraitId,
 };
 
 pub fn create_struct_instance(
@@ -388,9 +388,9 @@ fn create_specialized_class_array(
         match element_ty {
             BytecodeType::Unit => InstanceSize::UnitArray,
             BytecodeType::Ptr
-            | BytecodeType::Class(_, _)
-            | BytecodeType::TraitObject(_, _)
-            | BytecodeType::Lambda(_, _) => InstanceSize::ObjArray,
+            | BytecodeType::Class(..)
+            | BytecodeType::TraitObject(..)
+            | BytecodeType::Lambda(..) => InstanceSize::ObjArray,
 
             BytecodeType::Tuple(_) => {
                 let tuple = get_concrete_tuple_bty(vm, &element_ty);
@@ -586,9 +586,10 @@ pub fn specialize_bty(ty: BytecodeType, type_params: &BytecodeTypeArray) -> Byte
             BytecodeType::Class(cls_id, params)
         }
 
-        BytecodeType::TraitObject(trait_id, params) => {
+        BytecodeType::TraitObject(trait_id, params, assoc_types) => {
             let params = specialize_bty_array(&params, type_params);
-            BytecodeType::TraitObject(trait_id, params)
+            let assoc_types = specialize_bty_array(&assoc_types, type_params);
+            BytecodeType::TraitObject(trait_id, params, assoc_types)
         }
 
         BytecodeType::Struct(struct_id, params) => {
@@ -626,4 +627,130 @@ pub fn specialize_bty(ty: BytecodeType, type_params: &BytecodeTypeArray) -> Byte
         | BytecodeType::Float64
         | BytecodeType::Ptr => ty,
     }
+}
+
+pub fn specialize_bty_for_trait_object(
+    program: &Program,
+    ty: BytecodeType,
+    trait_id: TraitId,
+    type_params: &BytecodeTypeArray,
+    assoc_types: &BytecodeTypeArray,
+) -> BytecodeType {
+    match ty {
+        BytecodeType::TypeParam(tpid) => type_params[tpid as usize].clone(),
+
+        BytecodeType::Class(cls_id, params) => {
+            let params = specialize_bty_for_trait_object_array(
+                program,
+                &params,
+                trait_id,
+                type_params,
+                assoc_types,
+            );
+            BytecodeType::Class(cls_id, params)
+        }
+
+        BytecodeType::TraitObject(trait_id, trait_params, trait_assoc_types) => {
+            let trait_params = specialize_bty_for_trait_object_array(
+                program,
+                &trait_params,
+                trait_id,
+                type_params,
+                assoc_types,
+            );
+            let trait_assoc_types = specialize_bty_for_trait_object_array(
+                program,
+                &trait_assoc_types,
+                trait_id,
+                type_params,
+                assoc_types,
+            );
+            BytecodeType::TraitObject(trait_id, trait_params, trait_assoc_types)
+        }
+
+        BytecodeType::Struct(struct_id, params) => {
+            let params = specialize_bty_for_trait_object_array(
+                program,
+                &params,
+                trait_id,
+                type_params,
+                assoc_types,
+            );
+            BytecodeType::Struct(struct_id, params)
+        }
+
+        BytecodeType::Enum(enum_id, params) => {
+            let params = specialize_bty_for_trait_object_array(
+                program,
+                &params,
+                trait_id,
+                type_params,
+                assoc_types,
+            );
+            BytecodeType::Enum(enum_id, params)
+        }
+
+        BytecodeType::Lambda(params, return_type) => {
+            let params = specialize_bty_for_trait_object_array(
+                program,
+                &params,
+                trait_id,
+                type_params,
+                assoc_types,
+            );
+            let return_type = specialize_bty_for_trait_object(
+                program,
+                *return_type,
+                trait_id,
+                type_params,
+                assoc_types,
+            );
+            BytecodeType::Lambda(params, Box::new(return_type))
+        }
+
+        BytecodeType::Tuple(subtypes) => {
+            let subtypes = specialize_bty_for_trait_object_array(
+                program,
+                &subtypes,
+                trait_id,
+                type_params,
+                assoc_types,
+            );
+            BytecodeType::Tuple(subtypes)
+        }
+
+        BytecodeType::Assoc(alias_id, alias_type_params) => {
+            let alias = program.alias(alias_id);
+            assert!(alias_type_params.is_empty());
+            assoc_types[alias.idx_in_trait()].clone()
+        }
+
+        BytecodeType::TypeAlias(..) | BytecodeType::This => {
+            unreachable!()
+        }
+
+        BytecodeType::Unit
+        | BytecodeType::UInt8
+        | BytecodeType::Bool
+        | BytecodeType::Char
+        | BytecodeType::Int32
+        | BytecodeType::Int64
+        | BytecodeType::Float32
+        | BytecodeType::Float64
+        | BytecodeType::Ptr => ty,
+    }
+}
+
+pub fn specialize_bty_for_trait_object_array(
+    program: &Program,
+    types: &BytecodeTypeArray,
+    trait_id: TraitId,
+    type_params: &BytecodeTypeArray,
+    assoc_types: &BytecodeTypeArray,
+) -> BytecodeTypeArray {
+    let types = types
+        .iter()
+        .map(|p| specialize_bty_for_trait_object(program, p, trait_id, type_params, assoc_types))
+        .collect();
+    BytecodeTypeArray::new(types)
 }

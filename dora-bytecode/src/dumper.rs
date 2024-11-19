@@ -309,7 +309,7 @@ impl<'a> Display for BytecodeTypePrinter<'a> {
                 let class = self.prog.class(*class_id);
                 write!(f, "{}", fmt_name(self.prog, &class.name, type_params))
             }
-            BytecodeType::TraitObject(trait_id, type_params) => {
+            BytecodeType::TraitObject(trait_id, type_params, _assoc_types) => {
                 let trait_ = self.prog.trait_(*trait_id);
                 write!(f, "{}", fmt_name(self.prog, &trait_.name, type_params))
             }

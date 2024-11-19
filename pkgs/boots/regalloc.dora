@@ -998,7 +998,7 @@ fn computeRecordLayout(fieldTypes: Array[BytecodeType], start_size: Int32, start
             }
             BytecodeType::Class(..)
             | BytecodeType::Lambda(..)
-            | BytecodeType::Trait(..) => {
+            | BytecodeType::TraitObject(..) => {
                 let offset = addField(8i32, 8i32, fieldTy);
                 refs.push(offset);
             }
@@ -1119,7 +1119,7 @@ pub fn isReference(ty: BytecodeType): Bool {
         BytecodeType::Class(..)
         | BytecodeType::Ptr
         | BytecodeType::Lambda(..)
-        | BytecodeType::Trait(..) => true,
+        | BytecodeType::TraitObject(..) => true,
         BytecodeType::This
         | BytecodeType::TypeParam(_) => unreachable[Bool](),
         BytecodeType::Enum(enum_id, type_params) => {

@@ -17,7 +17,7 @@ impl BytecodeTypeExt for BytecodeType {
 
     fn trait_id(&self) -> Option<TraitId> {
         match self {
-            BytecodeType::TraitObject(trait_id, _) => Some(*trait_id),
+            BytecodeType::TraitObject(trait_id, ..) => Some(*trait_id),
             _ => None,
         }
     }
@@ -50,7 +50,7 @@ impl BytecodeTypeExt for BytecodeType {
             BytecodeType::Class(_, params)
             | BytecodeType::Enum(_, params)
             | BytecodeType::Struct(_, params)
-            | BytecodeType::TraitObject(_, params) => params.clone(),
+            | BytecodeType::TraitObject(_, params, ..) => params.clone(),
             BytecodeType::TypeAlias(..) | BytecodeType::Assoc(..) => unreachable!(),
             &BytecodeType::Bool
             | &BytecodeType::UInt8

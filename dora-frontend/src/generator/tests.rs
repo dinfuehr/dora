@@ -4163,6 +4163,7 @@ fn gen_trait_object() {
         &ConstPoolEntry::TraitObject {
             trait_ty: BytecodeType::TraitObject(
                 TraitId(trait_id.index().try_into().expect("overflow")),
+                BytecodeTypeArray::empty(),
                 BytecodeTypeArray::empty()
             ),
             actual_object_ty: bty_from_ty(object_ty)
@@ -4209,6 +4210,7 @@ fn gen_trait_object_method_call() {
         &ConstPoolEntry::TraitObjectMethod(
             BytecodeType::TraitObject(
                 TraitId(trait_id.index().try_into().expect("overflow")),
+                BytecodeTypeArray::empty(),
                 BytecodeTypeArray::empty()
             ),
             FunctionId(fct_id.index().try_into().expect("overflow")),

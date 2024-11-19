@@ -451,7 +451,8 @@ extern "C" fn find_trait_impl_raw(data: Handle<UInt8Array>) -> Ref<UInt8Array> {
         _ => unreachable!(),
     };
 
-    let trait_ty = BytecodeType::TraitObject(trait_id, trait_type_params);
+    let trait_ty =
+        BytecodeType::TraitObject(trait_id, trait_type_params, BytecodeTypeArray::empty());
     let (callee_id, type_params) = impls::find_trait_impl(vm, trait_fct_id, trait_ty, object_ty);
 
     let mut buffer = ByteBuffer::new();

@@ -257,10 +257,11 @@ fn encode_bytecode_type(vm: &VM, ty: &BytecodeType, buffer: &mut ByteBuffer) {
             buffer.emit_id(class_id.0 as usize);
             encode_bytecode_type_array(vm, source_type_array, buffer);
         }
-        BytecodeType::TraitObject(trait_id, ref source_type_array) => {
+        BytecodeType::TraitObject(trait_id, ref source_type_array, assoc_types) => {
             buffer.emit_u8(BytecodeTypeKind::TraitObject as u8);
             buffer.emit_id(trait_id.0 as usize);
             encode_bytecode_type_array(vm, source_type_array, buffer);
+            encode_bytecode_type_array(vm, assoc_types, buffer);
         }
         BytecodeType::Lambda(params, ret) => {
             buffer.emit_u8(BytecodeTypeKind::Lambda as u8);

@@ -144,7 +144,7 @@ fn compare_concrete_types(
         | BytecodeType::Float64
         | BytecodeType::TypeParam(_) => check_ty == block_ty,
 
-        BytecodeType::Lambda(_, _) | BytecodeType::TraitObject(_, _) => {
+        BytecodeType::Lambda(..) | BytecodeType::TraitObject(..) => {
             unimplemented!()
         }
 

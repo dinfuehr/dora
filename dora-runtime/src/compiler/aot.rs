@@ -278,7 +278,11 @@ impl<'a> TransitiveClosureComputation<'a> {
                         FunctionKind::Trait(trait_id) => trait_id,
                         _ => unreachable!(),
                     };
-                    let trait_ty = BytecodeType::TraitObject(trait_id, callee_type_params.clone());
+                    let trait_ty = BytecodeType::TraitObject(
+                        trait_id,
+                        callee_type_params.clone(),
+                        BytecodeTypeArray::empty(),
+                    );
 
                     let ty = type_params[id as usize].clone();
 

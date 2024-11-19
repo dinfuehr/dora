@@ -14,10 +14,10 @@ use crate::sema::{
     LazyContextData, OuterContextIdx, ScopeId, Sema, SourceFileId, StructDefinitionId, VarId,
     VarLocation,
 };
-use crate::specialize::{replace_type, specialize_for_trait_object, specialize_type};
+use crate::specialize::{replace_type, specialize_type};
 use crate::ty::{SourceType, SourceTypeArray};
 use crate::typeck::is_pattern_check;
-use crate::{expr_always_returns, expr_block_always_returns};
+use crate::{expr_always_returns, expr_block_always_returns, specialize_ty_for_trait_object};
 use dora_bytecode::{
     AliasId, BytecodeFunction, BytecodeType, BytecodeTypeArray, ClassId, ConstPoolEntry,
     ConstPoolIdx, EnumId, FunctionId, GlobalId, Label, Location, Register, StructId, TraitId,
@@ -3075,7 +3075,13 @@ impl<'a> AstBytecodeGen<'a> {
             | CallType::Method(_, _, ref type_params) => specialize_type(self.sa, ty, type_params),
 
             CallType::TraitObjectMethod(trait_ty, _actual_object_ty) => {
-                specialize_for_trait_object(self.sa, ty, trait_ty.clone())
+                let (trait_id, type_params, assoc_types) = match trait_ty {
+                    SourceType::TraitObject(trait_id, type_params, assoc_types) => {
+                        (*trait_id, type_params, assoc_types)
+                    }
+                    _ => unreachable!(),
+                };
+                specialize_ty_for_trait_object(self.sa, ty, trait_id, type_params, assoc_types)
             }
             CallType::GenericMethod(id, _trait_id, _method_id, type_params)
             | CallType::GenericStaticMethod(id, _trait_id, _method_id, type_params) => {
@@ -3238,13 +3244,11 @@ pub fn bty_from_ty(ty: SourceType) -> BytecodeType {
             ClassId(class_id.index().try_into().expect("overflow")),
             bty_array_from_ty(&type_params),
         ),
-        SourceType::TraitObject(trait_id, type_params, bindings) => {
-            assert!(bindings.is_empty());
-            BytecodeType::TraitObject(
-                TraitId(trait_id.index().try_into().expect("overflow")),
-                bty_array_from_ty(&type_params),
-            )
-        }
+        SourceType::TraitObject(trait_id, type_params, bindings) => BytecodeType::TraitObject(
+            TraitId(trait_id.index().try_into().expect("overflow")),
+            bty_array_from_ty(&type_params),
+            bty_array_from_ty(&bindings),
+        ),
         SourceType::Enum(enum_id, type_params) => BytecodeType::Enum(
             EnumId(enum_id.index().try_into().expect("overflow")),
             bty_array_from_ty(&type_params),
@@ -3287,13 +3291,11 @@ pub fn register_bty_from_ty(ty: SourceType) -> BytecodeType {
         SourceType::Float32 => BytecodeType::Float32,
         SourceType::Float64 => BytecodeType::Float64,
         SourceType::Class(_, _) => BytecodeType::Ptr,
-        SourceType::TraitObject(trait_id, type_params, bindings) => {
-            assert!(bindings.is_empty());
-            BytecodeType::TraitObject(
-                TraitId(trait_id.index().try_into().expect("overflow")),
-                bty_array_from_ty(&type_params),
-            )
-        }
+        SourceType::TraitObject(trait_id, type_params, bindings) => BytecodeType::TraitObject(
+            TraitId(trait_id.index().try_into().expect("overflow")),
+            bty_array_from_ty(&type_params),
+            bty_array_from_ty(&bindings),
+        ),
         SourceType::Enum(enum_id, type_params) => BytecodeType::Enum(
             EnumId(enum_id.index().try_into().expect("overflow")),
             bty_array_from_ty(&type_params),

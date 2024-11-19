@@ -201,7 +201,7 @@ pub enum BytecodeType {
     Struct(StructId, Array[BytecodeType]),
     Enum(EnumId, Array[BytecodeType]),
     Class(ClassId, Array[BytecodeType]),
-    Trait(TraitId, Array[BytecodeType]),
+    TraitObject(TraitId, Array[BytecodeType], Array[BytecodeType]),
     Tuple(Array[BytecodeType]),
     TypeParam(Int32),
     Lambda(Array[BytecodeType], BytecodeType),
@@ -238,7 +238,7 @@ impl BytecodeType {
             BytecodeType::Struct(struct_id, type_params) => type_params.isGeneric(),
             BytecodeType::Enum(enum_id, type_params) => type_params.isGeneric(),
             BytecodeType::Class(class_id, type_params) => type_params.isGeneric(),
-            BytecodeType::Trait(trait_id, type_params) => type_params.isGeneric(),
+            BytecodeType::TraitObject(trait_id, type_params, _assocTypes) => type_params.isGeneric(),
             BytecodeType::Tuple(subtypes) => subtypes.isGeneric(),
             BytecodeType::TypeParam(idx) => true,
             BytecodeType::Lambda(params, ret) => params.isGeneric() || ret.isGeneric(),
@@ -299,8 +299,8 @@ impl BytecodeType {
             BytecodeType::Class(class_id, class_type_params) => {
                 BytecodeType::Class(class_id, class_type_params.specialize(type_params))
             },
-            BytecodeType::Trait(trait_id, trait_type_params) => {
-                BytecodeType::Trait(trait_id, trait_type_params.specialize(type_params))
+            BytecodeType::TraitObject(trait_id, trait_type_params, assoc_types) => {
+                BytecodeType::TraitObject(trait_id, trait_type_params.specialize(type_params), assoc_types.specialize(type_params))
             },
             BytecodeType::Tuple(subtypes) => {
                 BytecodeType::Tuple(subtypes.specialize(type_params))
@@ -408,9 +408,9 @@ impl Equals for BytecodeType {
                 }
             }
 
-            BytecodeType::Trait(id, type_params) => {
+            BytecodeType::TraitObject(id, type_params, assoc_types) => {
                 match other {
-                    BytecodeType::Trait(other_id, other_type_params) => id == other_id && type_params == other_type_params,
+                    BytecodeType::TraitObject(other_id, other_type_params, other_assoc_types) => id == other_id && type_params == other_type_params && assoc_types == other_assoc_types,
                     _ => false,
                 }
             }
@@ -462,7 +462,7 @@ impl Hash for BytecodeType {
             BytecodeType::Struct(id, type_params) => opc::BC_TYPE_STRUCT ^ id.hash() ^ type_params.hash(),
             BytecodeType::Enum(id, type_params) => opc::BC_TYPE_ENUM ^ id.hash() ^ type_params.hash(),
             BytecodeType::Class(id, type_params) => opc::BC_TYPE_CLASS ^ id.hash() ^ type_params.hash(),
-            BytecodeType::Trait(id, type_params) => opc::BC_TYPE_TRAIT_OBJECT ^ id.hash() ^ type_params.hash(),
+            BytecodeType::TraitObject(id, type_params, assoc_types) => opc::BC_TYPE_TRAIT_OBJECT ^ id.hash() ^ type_params.hash() ^ assoc_types.hash(),
             BytecodeType::Tuple(subtypes) => opc::BC_TYPE_TUPLE ^ subtypes.hash(),
             BytecodeType::TypeParam(id) => opc::BC_TYPE_TYPE_PARAM ^ id,
             BytecodeType::Lambda(params, ret) => params.hash() ^ ret.hash(),
@@ -487,7 +487,7 @@ impl Stringable for BytecodeType {
             BytecodeType::Struct(id, params) => "Struct(${id}, ${params})",
             BytecodeType::Enum(id, params) => "Enum(${id}, ${params})",
             BytecodeType::Class(id, params) => "Class(${id}, ${params})",
-            BytecodeType::Trait(id, params) => "Trait(${id}, ${params})",
+            BytecodeType::TraitObject(id, params, assoc) => "TraitObject(${id}, ${params}, ${assoc})",
             BytecodeType::Tuple(types) => "Tuple(${types})",
             BytecodeType::TypeParam(idx) => "TypeParam(${idx})",
             BytecodeType::Lambda(params, ty) => "Lambda(${params}, ${ty})",
