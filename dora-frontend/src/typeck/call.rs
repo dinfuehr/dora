@@ -427,7 +427,7 @@ fn check_expr_call_method(
 
         let call_type = if object_type.is_self() {
             CallType::TraitObjectMethod(object_type, fct_id)
-        } else if object_type.is_trait() && fct.parent.is_trait() {
+        } else if object_type.is_trait_object() && fct.parent.is_trait() {
             CallType::TraitObjectMethod(object_type, fct_id)
         } else {
             CallType::Method(object_type, fct_id, full_type_params)

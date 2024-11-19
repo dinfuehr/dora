@@ -4,9 +4,9 @@ use std::traits::{IntoIterator, Iterator};
 
 fn main() {
     let it = get_iterator_trait_object();
-    assert(it.next() == Some(10));
-    assert(it.next() == Some(10));
-    assert(it.next() == Some(10));
+    assert(it.next() == Some[Int](10));
+    assert(it.next() == Some[Int](100));
+    assert(it.next() == Some[Int](17));
     assert(it.next().isNone());
 }
 

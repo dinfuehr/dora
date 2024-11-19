@@ -1211,7 +1211,7 @@ impl<'a> AstBytecodeGen<'a> {
     fn visit_expr_conv(&mut self, expr: &ast::ExprConvType, dest: DataDest) -> Register {
         let object_type = self.ty(expr.object.id());
         let check_type = self.ty(expr.data_type.id());
-        assert!(check_type.is_trait());
+        assert!(check_type.is_trait_object());
 
         let check_type = bty_from_ty(check_type);
 

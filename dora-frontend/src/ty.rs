@@ -218,14 +218,14 @@ impl SourceType {
         }
     }
 
-    pub fn is_cls(&self) -> bool {
+    pub fn is_class(&self) -> bool {
         match self {
             SourceType::Class(..) => true,
             _ => false,
         }
     }
 
-    pub fn is_trait(&self) -> bool {
+    pub fn is_trait_object(&self) -> bool {
         match self {
             SourceType::TraitObject(..) => true,
             _ => false,
@@ -659,8 +659,10 @@ pub fn contains_self(sa: &Sema, ty: SourceType) -> bool {
         | SourceType::Int64
         | SourceType::Float32
         | SourceType::Float64
-        | SourceType::TypeParam(..) => false,
-        SourceType::Alias(..) | SourceType::Assoc(..) | SourceType::GenericAssoc(..) => {
+        | SourceType::TypeParam(..)
+        | SourceType::Assoc(..) => false,
+
+        SourceType::Alias(..) | SourceType::GenericAssoc(..) => {
             unimplemented!()
         }
         SourceType::Class(_, params)

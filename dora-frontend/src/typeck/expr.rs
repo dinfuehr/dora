@@ -827,7 +827,7 @@ fn check_expr_conv(
     let check_type = ck.read_type(&e.data_type);
     ck.analysis.set_ty(e.data_type.id(), check_type.clone());
 
-    if check_type.is_trait() {
+    if check_type.is_trait_object() {
         let implements = implements_trait(
             ck.sa,
             object_type.clone(),
@@ -1424,7 +1424,7 @@ fn check_expr_bin_cmp(
                     e.span,
                     ErrorMessage::TypesIncompatible(lhs_type, rhs_type),
                 );
-            } else if !lhs_type.is_cls() && !lhs_type.is_lambda() && !lhs_type.is_trait() {
+            } else if !lhs_type.is_class() && !lhs_type.is_lambda() && !lhs_type.is_trait_object() {
                 let lhs_type = ck.ty_name(&lhs_type);
                 ck.sa.report(
                     ck.file_id,

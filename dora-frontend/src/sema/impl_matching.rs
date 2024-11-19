@@ -1,7 +1,7 @@
 use crate::sema::{
     block_matches_ty, match_arrays, ImplDefinition, ImplDefinitionId, Sema, TypeParamDefinition,
 };
-use crate::{SourceType, SourceTypeArray, TraitType};
+use crate::{specialize_type, SourceType, SourceTypeArray, TraitType};
 
 pub fn impl_matches(
     sa: &Sema,
@@ -102,7 +102,7 @@ pub fn find_impl(
                 continue;
             }
 
-            if let Some(mut bindings) = block_matches_ty(
+            if let Some(mut opt_bindings) = block_matches_ty(
                 sa,
                 check_ty.clone(),
                 check_type_param_definition,
@@ -115,13 +115,13 @@ pub fn find_impl(
                     &impl_trait_ty,
                     &trait_ty,
                     check_type_param_definition,
-                    &mut bindings,
+                    &mut opt_bindings,
                 ) {
                     continue;
                 }
 
                 let bindings = SourceTypeArray::with(
-                    bindings
+                    opt_bindings
                         .into_iter()
                         .map(|t| t.expect("missing binding"))
                         .collect(),
@@ -144,7 +144,7 @@ fn trait_ty_match(
     impl_trait_ty: &TraitType,
     check_trait_ty: &TraitType,
     check_type_param_definition: &TypeParamDefinition,
-    bindings: &mut Vec<Option<SourceType>>,
+    opt_bindings: &mut Vec<Option<SourceType>>,
 ) -> bool {
     assert_eq!(impl_trait_ty.trait_id, check_trait_ty.trait_id);
     assert_eq!(
@@ -158,16 +158,25 @@ fn trait_ty_match(
         check_type_param_definition,
         &impl_trait_ty.type_params,
         impl_.type_param_definition(),
-        bindings,
+        opt_bindings,
     ) {
         return false;
     }
+
+    let bindings = SourceTypeArray::with(
+        opt_bindings
+            .clone()
+            .into_iter()
+            .map(|t| t.expect("missing binding"))
+            .collect(),
+    );
 
     let trait_alias_map = impl_.trait_alias_map();
 
     for (trait_alias_id, type_binding) in &check_trait_ty.bindings {
         let impl_alias_id = trait_alias_map.get(&trait_alias_id).expect("missing alias");
         let impl_alias_ty = sa.alias(*impl_alias_id).ty();
+        let impl_alias_ty = specialize_type(sa, impl_alias_ty, &bindings);
 
         if type_binding != &impl_alias_ty {
             return false;
