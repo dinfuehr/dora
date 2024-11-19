@@ -876,6 +876,7 @@ impl<'x> visit::Visitor for TopLevelDeclaration<'x> {
             type_param_definition,
             Vec::new(),
             Some(parsed_ty),
+            None,
         );
         let id = self.sa.aliases.alloc(alias);
         assert!(self.sa.alias(id).id.set(id).is_ok());
@@ -906,6 +907,8 @@ fn find_elements_in_trait(
     let mut instance_names: HashMap<Name, FctDefinitionId> = HashMap::new();
     let mut static_names: HashMap<Name, FctDefinitionId> = HashMap::new();
     let mut alias_names: HashMap<Name, AliasDefinitionId> = HashMap::new();
+
+    let mut alias_idx_in_trait = 0;
 
     for child in &node.methods {
         match child.as_ref() {
@@ -1025,7 +1028,10 @@ fn find_elements_in_trait(
                     type_param_definition,
                     bounds,
                     None,
+                    Some(alias_idx_in_trait),
                 );
+
+                alias_idx_in_trait += 1;
 
                 let id = sa.aliases.alloc(alias);
                 assert!(sa.alias(id).id.set(id).is_ok());
@@ -1169,6 +1175,7 @@ fn find_elements_in_impl(
                     type_param_definition,
                     Vec::new(),
                     Some(parsed_ty),
+                    None,
                 );
 
                 let id = sa.aliases.alloc(alias);

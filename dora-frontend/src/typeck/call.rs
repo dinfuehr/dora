@@ -22,8 +22,8 @@ use crate::typeck::{
 };
 use crate::typeparamck;
 use crate::{
-    empty_sta, specialize_type, ty::error as ty_error, ErrorMessage, SourceType, SourceTypeArray,
-    TraitType,
+    empty_sta, specialize_ty_for_trait_object, specialize_type, ty::error as ty_error,
+    ErrorMessage, SourceType, SourceTypeArray, TraitType,
 };
 
 pub(super) fn check_expr_call(
@@ -420,7 +420,18 @@ fn check_expr_call_method(
             e.span,
         ) {
             check_args_compatible_fct(ck, fct, arguments, &full_type_params, None);
-            specialize_type(ck.sa, fct.return_type(), &full_type_params)
+            match &object_type {
+                SourceType::TraitObject(trait_id, type_params, assoc_types) => {
+                    specialize_ty_for_trait_object(
+                        ck.sa,
+                        fct.return_type(),
+                        *trait_id,
+                        &type_params,
+                        &assoc_types,
+                    )
+                }
+                _ => specialize_type(ck.sa, fct.return_type(), &full_type_params),
+            }
         } else {
             ty_error()
         };

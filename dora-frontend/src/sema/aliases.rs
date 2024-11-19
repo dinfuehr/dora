@@ -68,6 +68,7 @@ pub struct AliasDefinition {
     pub type_param_definition: Rc<TypeParamDefinition>,
     pub bounds: Vec<AliasBound>,
     pub visibility: Visibility,
+    pub idx_in_trait: Option<usize>,
 }
 
 impl AliasDefinition {
@@ -82,6 +83,7 @@ impl AliasDefinition {
         type_param_definition: Rc<TypeParamDefinition>,
         bounds: Vec<AliasBound>,
         parsed_ty: Option<ParsedType>,
+        idx_in_trait: Option<usize>,
     ) -> AliasDefinition {
         AliasDefinition {
             id: OnceCell::new(),
@@ -96,6 +98,7 @@ impl AliasDefinition {
             type_param_definition,
             parsed_ty,
             bounds,
+            idx_in_trait,
         }
     }
 
@@ -117,6 +120,10 @@ impl AliasDefinition {
 
     pub fn type_param_definition(&self) -> &Rc<TypeParamDefinition> {
         &self.type_param_definition
+    }
+
+    pub fn idx_in_trait(&self) -> usize {
+        self.idx_in_trait.expect("missing idx")
     }
 }
 
