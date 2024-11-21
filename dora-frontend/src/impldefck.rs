@@ -1233,4 +1233,42 @@ mod tests {
             }
         ");
     }
+
+    #[test]
+    #[ignore]
+    fn impl_same_trait_twice_assoc_types() {
+        err(
+            "
+            trait Foo {
+                type X;
+            }
+
+            impl Foo for Int { type X = Bool; }
+            impl Foo for Int { type X = Float32; }
+        ",
+            (1, 1),
+            ErrorMessage::Unimplemented,
+        );
+    }
+
+    #[test]
+    fn impl_same_generic_traits_twice_with_different_type_argument() {
+        ok("
+            trait Foo[T] {}
+
+            impl Foo[Bool] for Int {}
+            impl Foo[Float32] for Int {}
+        ");
+    }
+
+    #[test]
+    #[ignore]
+    fn impl_same_generic_traits_twice_with_same_type_argument() {
+        ok("
+            trait Foo[T] {}
+
+            impl Foo[Bool] for Int {}
+            impl Foo[Bool] for Int {}
+        ");
+    }
 }

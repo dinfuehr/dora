@@ -5467,3 +5467,78 @@ fn impl_method_call_with_invalid_impl_in_another_package() {
         &[((6, 9), ErrorMessage::ImplTraitForeignType)],
     );
 }
+
+#[test]
+fn trait_object_argument_with_assoc_type() {
+    ok("
+        trait Foo {
+            type X;
+        }
+        fn accept(x: Foo[X=Int]) {}
+    ");
+}
+
+#[test]
+fn convert_to_trait_object_with_assoc_type() {
+    ok("
+        trait Foo {
+            type X;
+        }
+        impl Foo for Int { type X=Bool; }
+        fn accept(x: Int) {
+            x as Foo[X=Bool];
+        }
+    ");
+
+    err(
+        "
+        trait Foo {
+            type X;
+        }
+        impl Foo for Int { type X=Bool; }
+        fn accept(x: Int) {
+            x as Foo[X=String];
+        }
+    ",
+        (7, 13),
+        ErrorMessage::TypeNotImplementingTrait("Int64".into(), "Foo[X = String]".into()),
+    );
+}
+
+#[test]
+#[ignore]
+fn trait_object_method_with_assoc_type_parameter() {
+    ok("
+        trait Foo {
+            type X;
+            fn accept(v: Self::X);
+        }
+        impl Foo for Int {
+            type X = Int;
+            fn accept(v: Int) {}
+        }
+        fn accept(x: Foo[X=Int]) {
+            x.accept(10);
+        }
+    ");
+}
+
+#[test]
+fn call_trait_object_extension_method_with_assoc_type_parameter() {
+    ok("
+        trait Foo {
+            type X;
+            fn accept(v: Self::X);
+        }
+        impl Foo for Int {
+            type X = Int;
+            fn accept(v: Int) {}
+        }
+        impl Foo[X=Int] {
+            fn another(v: Int) {}
+        }
+        fn accept(x: Foo[X=Int]) {
+            x.another(10);
+        }
+    ");
+}
