@@ -962,7 +962,7 @@ impl BinOp {
 
     pub fn is_any_assign(&self) -> bool {
         match *self {
-            BinOp::Assign => true,
+            BinOp::Assign | BinOp::AddAssign => true,
             _ => false,
         }
     }

@@ -259,15 +259,44 @@ fn check_expr_assign_ident(ck: &mut TypeCheck, e: &ast::ExprBinType) {
     };
 
     let rhs_type = check_expr(ck, &e.rhs, lhs_type.clone());
+    check_assign_type(ck, e, lhs_type, rhs_type);
+}
 
-    if !lhs_type.is_error() && !rhs_type.is_error() && !lhs_type.allows(ck.sa, rhs_type.clone()) {
-        let lhs_type = ck.ty_name(&lhs_type);
-        let rhs_type = ck.ty_name(&rhs_type);
+fn check_assign_type(
+    ck: &mut TypeCheck,
+    e: &ast::ExprBinType,
+    lhs_type: SourceType,
+    rhs_type: SourceType,
+) {
+    ck.analysis.set_ty(e.id, SourceType::Unit);
 
-        ck.analysis.set_ty(e.id, SourceType::Unit);
+    match e.op {
+        ast::BinOp::AddAssign => {
+            check_expr_bin_trait(
+                ck,
+                e,
+                e.op,
+                ck.sa.known.traits.add(),
+                "add",
+                lhs_type,
+                rhs_type,
+            );
+        }
 
-        let msg = ErrorMessage::AssignType(lhs_type, rhs_type);
-        ck.sa.report(ck.file_id, e.span, msg);
+        ast::BinOp::Assign => {
+            if !lhs_type.is_error()
+                && !rhs_type.is_error()
+                && !lhs_type.allows(ck.sa, rhs_type.clone())
+            {
+                let lhs_type = ck.ty_name(&lhs_type);
+                let rhs_type = ck.ty_name(&rhs_type);
+
+                let msg = ErrorMessage::AssignType(lhs_type, rhs_type);
+                ck.sa.report(ck.file_id, e.span, msg);
+            }
+        }
+
+        _ => unreachable!(),
     }
 }
 
@@ -391,17 +420,7 @@ fn check_expr_assign_field(ck: &mut TypeCheck, e: &ast::ExprBinType) {
             }
 
             let rhs_type = check_expr(ck, &e.rhs, fty.clone());
-
-            if !fty.allows(ck.sa, rhs_type.clone()) && !rhs_type.is_error() {
-                let object_type = ck.ty_name(&object_type);
-                let lhs_type = ck.ty_name(&fty);
-                let rhs_type = ck.ty_name(&rhs_type);
-
-                let msg = ErrorMessage::AssignField(name, object_type, lhs_type, rhs_type);
-                ck.sa.report(ck.file_id, e.span, msg);
-            }
-
-            ck.analysis.set_ty(e.id, SourceType::Unit);
+            check_assign_type(ck, e, fty, rhs_type);
             return;
         }
     }

@@ -535,10 +535,12 @@ fn gen_stmt_if_else_without_return() {
     let (_, code) = bc(&sa, "<prog>::f");
     let expected = vec![
         Mov(r(1), r(0)),
-        JumpIfFalse(r(1), 4),
-        ConstFalse(r(1)),
-        Jump(5),
-        ConstTrue(r(1)),
+        JumpIfFalse(r(1), 5),
+        ConstFalse(r(3)),
+        Mov(r(1), r(3)),
+        Jump(7),
+        ConstTrue(r(3)),
+        Mov(r(1), r(3)),
         Ret(r(1)),
     ];
     assert_eq!(expected, code);
@@ -1106,7 +1108,8 @@ fn gen_expr_assign() {
     let expected = vec![
         ConstInt32(r(1), 1),
         Mov(r(0), r(1)),
-        ConstInt32(r(0), 2),
+        ConstInt32(r(1), 2),
+        Mov(r(0), r(1)),
         Ret(r(2)),
     ];
     assert_eq!(expected, code);

@@ -32,7 +32,7 @@ fn type_object_set_field() {
     err(
         "class Foo{a: Int32} fn f(x: Foo) { x.a = false; }",
         (1, 36),
-        ErrorMessage::AssignField("a".into(), "Foo".into(), "Int32".into(), "Bool".into()),
+        ErrorMessage::AssignType("Int32".into(), "Bool".into()),
     );
 }
 
@@ -5541,4 +5541,40 @@ fn call_trait_object_extension_method_with_assoc_type_parameter() {
             x.another(10);
         }
     ");
+}
+
+#[test]
+fn add_assign_operator_for_int() {
+    ok("
+        fn f(mut x: Int, y: Int): Int {
+            x += y;
+            x
+        }
+    ");
+
+    err(
+        "
+        fn f(mut x: Int, y: Int32): Int {
+            x += y;
+            x
+        }
+    ",
+        (3, 13),
+        ErrorMessage::BinOpType("+=".into(), "Int64".into(), "Int32".into()),
+    );
+}
+
+#[test]
+fn add_assign_operator_error() {
+    err(
+        "
+        struct MyInt(Int)
+        fn f(mut x: MyInt, y: MyInt): MyInt {
+            x += y;
+            x
+        }
+    ",
+        (4, 13),
+        ErrorMessage::BinOpType("+=".into(), "MyInt".into(), "MyInt".into()),
+    );
 }

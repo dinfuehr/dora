@@ -1,0 +1,7 @@
+//= ignore
+
+fn main() {
+    let mut result: Int = 1;
+    result += 2;
+    assert(result == 3);
+}

@@ -6,7 +6,7 @@ use dora_parser::ast::CmpOp;
 use dora_parser::{ast, Span};
 
 use self::bytecode::BytecodeBuilder;
-use self::expr::{gen_expr, gen_expr_bin_cmp, gen_fatal_error};
+use self::expr::{gen_expr, gen_expr_bin_cmp, gen_fatal_error, gen_intrinsic_bin, gen_method_bin};
 use crate::sema::{
     emit_as_bytecode_operation, new_identity_type_params, AnalysisData, CallType,
     ClassDefinitionId, ConstDefinitionId, ContextFieldId, EnumDefinitionId, FctDefinition,
@@ -2521,50 +2521,7 @@ impl<'a> AstBytecodeGen<'a> {
         let lhs_reg = gen_expr(self, lhs, DataDest::Alloc);
         let rhs_reg = gen_expr(self, rhs, DataDest::Alloc);
 
-        match intrinsic {
-            Intrinsic::UInt8Eq
-            | Intrinsic::BoolEq
-            | Intrinsic::CharEq
-            | Intrinsic::Int32Eq
-            | Intrinsic::Int64Eq
-            | Intrinsic::Float32Eq
-            | Intrinsic::Float64Eq => self.builder.emit_test_eq(dest, lhs_reg, rhs_reg),
-            Intrinsic::Int32Add => self.builder.emit_add(dest, lhs_reg, rhs_reg, location),
-            Intrinsic::Int32Sub => self.builder.emit_sub(dest, lhs_reg, rhs_reg, location),
-            Intrinsic::Int32Mul => self.builder.emit_mul(dest, lhs_reg, rhs_reg, location),
-            Intrinsic::Int32Div => self.builder.emit_div(dest, lhs_reg, rhs_reg, location),
-            Intrinsic::Int32Mod => self.builder.emit_mod(dest, lhs_reg, rhs_reg, location),
-            Intrinsic::Int32Or => self.builder.emit_or(dest, lhs_reg, rhs_reg),
-            Intrinsic::Int32And => self.builder.emit_and(dest, lhs_reg, rhs_reg),
-            Intrinsic::Int32Xor => self.builder.emit_xor(dest, lhs_reg, rhs_reg),
-            Intrinsic::Int32Shl => self.builder.emit_shl(dest, lhs_reg, rhs_reg),
-            Intrinsic::Int32Shr => self.builder.emit_shr(dest, lhs_reg, rhs_reg),
-            Intrinsic::Int32Sar => self.builder.emit_sar(dest, lhs_reg, rhs_reg),
-
-            Intrinsic::Int64Add => self.builder.emit_add(dest, lhs_reg, rhs_reg, location),
-            Intrinsic::Int64Sub => self.builder.emit_sub(dest, lhs_reg, rhs_reg, location),
-            Intrinsic::Int64Mul => self.builder.emit_mul(dest, lhs_reg, rhs_reg, location),
-            Intrinsic::Int64Div => self.builder.emit_div(dest, lhs_reg, rhs_reg, location),
-            Intrinsic::Int64Mod => self.builder.emit_mod(dest, lhs_reg, rhs_reg, location),
-            Intrinsic::Int64Or => self.builder.emit_or(dest, lhs_reg, rhs_reg),
-            Intrinsic::Int64And => self.builder.emit_and(dest, lhs_reg, rhs_reg),
-            Intrinsic::Int64Xor => self.builder.emit_xor(dest, lhs_reg, rhs_reg),
-            Intrinsic::Int64Shl => self.builder.emit_shl(dest, lhs_reg, rhs_reg),
-            Intrinsic::Int64Shr => self.builder.emit_shr(dest, lhs_reg, rhs_reg),
-            Intrinsic::Int64Sar => self.builder.emit_sar(dest, lhs_reg, rhs_reg),
-
-            Intrinsic::Float32Add => self.builder.emit_add(dest, lhs_reg, rhs_reg, location),
-            Intrinsic::Float32Sub => self.builder.emit_sub(dest, lhs_reg, rhs_reg, location),
-            Intrinsic::Float32Mul => self.builder.emit_mul(dest, lhs_reg, rhs_reg, location),
-            Intrinsic::Float32Div => self.builder.emit_div(dest, lhs_reg, rhs_reg, location),
-
-            Intrinsic::Float64Add => self.builder.emit_add(dest, lhs_reg, rhs_reg, location),
-            Intrinsic::Float64Sub => self.builder.emit_sub(dest, lhs_reg, rhs_reg, location),
-            Intrinsic::Float64Mul => self.builder.emit_mul(dest, lhs_reg, rhs_reg, location),
-            Intrinsic::Float64Div => self.builder.emit_div(dest, lhs_reg, rhs_reg, location),
-
-            _ => unimplemented!(),
-        }
+        gen_intrinsic_bin(self, intrinsic, dest, lhs_reg, rhs_reg, location);
 
         self.free_if_temp(lhs_reg);
         self.free_if_temp(rhs_reg);
@@ -2574,15 +2531,21 @@ impl<'a> AstBytecodeGen<'a> {
 
     fn visit_expr_assign(&mut self, expr: &ast::ExprBinType, _dest: DataDest) -> Register {
         if expr.lhs.is_ident() {
+            let value_reg = gen_expr(self, &expr.rhs, DataDest::Alloc);
             let ident_type = self.analysis.map_idents.get(expr.lhs.id()).unwrap();
             match ident_type {
-                &IdentType::Var(var_id) => self.visit_expr_assign_var(expr, var_id),
-                &IdentType::Context(level, field_id) => {
-                    self.visit_expr_assign_context(expr, level, field_id)
+                &IdentType::Var(var_id) => {
+                    self.visit_expr_assign_var(expr, var_id, value_reg);
                 }
-                &IdentType::Global(gid) => self.visit_expr_assign_global(expr, gid),
+                &IdentType::Context(level, field_id) => {
+                    self.visit_expr_assign_context(expr, level, field_id, value_reg);
+                }
+                &IdentType::Global(gid) => {
+                    self.visit_expr_assign_global(gid, value_reg);
+                }
                 _ => unreachable!(),
             }
+            self.free_if_temp(value_reg);
         } else {
             match *expr.lhs {
                 ast::ExprData::Dot(ref dot) => self.visit_expr_assign_dot(expr, dot),
@@ -2661,13 +2624,13 @@ impl<'a> AstBytecodeGen<'a> {
         );
 
         let obj = gen_expr(self, &dot.lhs, DataDest::Alloc);
-        let src = gen_expr(self, &expr.rhs, DataDest::Alloc);
+        let value = gen_expr(self, &expr.rhs, DataDest::Alloc);
 
         self.builder
-            .emit_store_field(src, obj, field_idx, self.loc(expr.span));
+            .emit_store_field(value, obj, field_idx, self.loc(expr.span));
 
         self.free_if_temp(obj);
-        self.free_if_temp(src);
+        self.free_if_temp(value);
     }
 
     fn visit_expr_assign_context(
@@ -2675,9 +2638,8 @@ impl<'a> AstBytecodeGen<'a> {
         expr: &ast::ExprBinType,
         level: OuterContextIdx,
         context_idx: ContextFieldId,
+        value: Register,
     ) {
-        let value_reg = gen_expr(self, &expr.rhs, DataDest::Alloc);
-
         let self_reg = self.var_reg(SELF_VAR_ID);
 
         // Load context field of lambda object in self.
@@ -2727,36 +2689,52 @@ impl<'a> AstBytecodeGen<'a> {
             field_id.0 as u32,
         );
         self.builder
-            .emit_store_field(value_reg, outer_context_reg, idx, self.loc(expr.span));
+            .emit_store_field(value, outer_context_reg, idx, self.loc(expr.span));
 
         self.free_temp(outer_context_reg);
-        self.free_if_temp(value_reg);
     }
 
-    fn visit_expr_assign_var(&mut self, expr: &ast::ExprBinType, var_id: VarId) {
+    fn visit_expr_assign_var(&mut self, expr: &ast::ExprBinType, var_id: VarId, value: Register) {
         let var = self.analysis.vars.get_var(var_id);
+
+        if expr.op != ast::BinOp::Assign {
+            let current = match var.location {
+                VarLocation::Context(scope_id, field_id) => {
+                    let ty = register_bty_from_ty(var.ty.clone());
+                    let dest_reg = self.alloc_temp(ty);
+                    self.load_from_context(dest_reg, scope_id, field_id, self.loc(expr.span));
+                    dest_reg
+                }
+
+                VarLocation::Stack => self.var_reg(var_id),
+            };
+
+            let location = self.loc(expr.span);
+
+            if let Some(info) = self.get_intrinsic(expr.id) {
+                gen_intrinsic_bin(self, info.intrinsic, value, current, value, location);
+            } else {
+                gen_method_bin(self, expr, value, current, value, location);
+            }
+
+            self.free_if_temp(current);
+        }
 
         match var.location {
             VarLocation::Context(scope_id, field_id) => {
-                let value_reg = gen_expr(self, &expr.rhs, DataDest::Alloc);
-                self.store_in_context(value_reg, scope_id, field_id, self.loc(expr.span));
-                self.free_if_temp(value_reg);
+                self.store_in_context(value, scope_id, field_id, self.loc(expr.span));
             }
 
             VarLocation::Stack => {
                 let var_reg = self.var_reg(var_id);
-                gen_expr(self, &expr.rhs, DataDest::Reg(var_reg));
+                self.builder.emit_mov(var_reg, value);
             }
         }
     }
 
-    fn visit_expr_assign_global(&mut self, expr: &ast::ExprBinType, gid: GlobalDefinitionId) {
-        let src = gen_expr(self, &expr.rhs, DataDest::Alloc);
-
+    fn visit_expr_assign_global(&mut self, gid: GlobalDefinitionId, value: Register) {
         self.builder
-            .emit_store_global(src, GlobalId(gid.index().try_into().expect("overflow")));
-
-        self.free_if_temp(src);
+            .emit_store_global(value, GlobalId(gid.index().try_into().expect("overflow")));
     }
 
     fn visit_expr_ident(&mut self, ident: &ast::ExprIdentType, dest: DataDest) -> Register {
