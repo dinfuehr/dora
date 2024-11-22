@@ -168,6 +168,9 @@ pub enum TokenKind {
     GT,
     GE,
 
+    // compound assignment operators
+    ADD_EQ,
+
     // operators – shifts
     GT_GT,
     GT_GT_GT,

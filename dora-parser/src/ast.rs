@@ -921,6 +921,7 @@ impl CmpOp {
 #[derive(PartialEq, Eq, Debug, Copy, Clone)]
 pub enum BinOp {
     Assign,
+    AddAssign,
     Add,
     Sub,
     Mul,
@@ -941,6 +942,7 @@ impl BinOp {
     pub fn as_str(&self) -> &'static str {
         match *self {
             BinOp::Assign => "=",
+            BinOp::AddAssign => "+=",
             BinOp::Add => "+",
             BinOp::Sub => "-",
             BinOp::Mul => "*",

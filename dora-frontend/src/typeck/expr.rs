@@ -1271,7 +1271,7 @@ pub(super) fn check_expr_bin(
             lhs_type,
             rhs_type,
         ),
-        ast::BinOp::Assign => unreachable!(),
+        ast::BinOp::Assign | ast::BinOp::AddAssign => unreachable!(),
     }
 }
 

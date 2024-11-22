@@ -218,7 +218,14 @@ impl<'a> Lexer<'a> {
         let nnch = self.lookahead().unwrap_or('x');
 
         match ch {
-            '+' => ADD,
+            '+' => {
+                if nch == '=' {
+                    self.eat_char();
+                    ADD_EQ
+                } else {
+                    ADD
+                }
+            }
             '-' => {
                 if nch == '>' {
                     self.eat_char();

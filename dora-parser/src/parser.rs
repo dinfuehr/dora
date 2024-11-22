@@ -1745,7 +1745,7 @@ impl Parser {
 
         loop {
             let right_precedence = match self.current() {
-                EQ => 1,
+                EQ | ADD_EQ => 1,
                 OR_OR => 2,
                 AND_AND => 3,
                 EQ_EQ | NOT_EQ | LT | LE | GT | GE | EQ_EQ_EQ | NOT_EQ_EQ => 4,
@@ -1953,6 +1953,7 @@ impl Parser {
     fn create_binary(&mut self, kind: TokenKind, start: u32, left: Expr, right: Expr) -> Expr {
         let op = match kind {
             EQ => BinOp::Assign,
+            ADD_EQ => BinOp::AddAssign,
             OR_OR => BinOp::Or,
             AND_AND => BinOp::And,
             EQ_EQ => BinOp::Cmp(CmpOp::Eq),
@@ -4011,5 +4012,10 @@ mod tests {
     #[test]
     fn parse_extern_decl() {
         parse("extern package foo;");
+    }
+
+    #[test]
+    fn parse_compound_assignments() {
+        parse_expr("x += 12");
     }
 }
