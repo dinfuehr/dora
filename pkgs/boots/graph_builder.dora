@@ -1278,7 +1278,11 @@ impl SsaGen {
         args.reserve(self.pushed_registers.size());
         let destTy = self.reg(dest);
 
-        let returnTy = self.prepareReturnValue(dest, destTy, args);
+        let (returnAllocInst, returnTy) = self.prepareReturnValue(destTy);
+
+        if returnAllocInst is Some(inst) {
+            args.push(inst);
+        }
 
         for reg in self.pushed_registers {
             let ty = self.regGraphTy(reg);
@@ -1298,7 +1302,9 @@ impl SsaGen {
         self.setCurrentInlinedLocation(inst);
         self.current().appendInst(inst);
 
-        if !returnTy.isUnit() {
+        if returnAllocInst is Some(inst) {
+            self.writeVariable(dest, self.current(), inst);
+        } else if !returnTy.isUnit() {
             self.writeVariable(dest, self.current(), inst);
         }
     }
@@ -1308,7 +1314,12 @@ impl SsaGen {
         args.reserve(self.pushed_registers.size());
         let destTy = self.reg(dest);
 
-        let returnTy = self.prepareReturnValue(dest, destTy, args);
+        let (returnAllocInst, returnTy) = self.prepareReturnValue(destTy);
+
+        if returnAllocInst is Some(inst) {
+            args.push(inst);
+        }
+
         let receiver_is_first = args.size() == 0;
 
         for reg in self.pushed_registers {
@@ -1341,12 +1352,14 @@ impl SsaGen {
         self.setCurrentInlinedLocation(inst);
         self.current().appendInst(inst);
 
-        if !returnTy.isUnit() {
+        if returnAllocInst is Some(inst) {
+            self.writeVariable(dest, self.current(), inst);
+        } else if !returnTy.isUnit() {
             self.writeVariable(dest, self.current(), inst);
         }
     }
 
-    fn prepareReturnValue(dest: BytecodeRegister, destTy: BytecodeType, args: Vec[Inst]): Type {
+    fn prepareReturnValue(destTy: BytecodeType): (Option[Inst], Type) {
         if destTy.isStruct() || destTy.isTuple() {
             let layout = match destTy {
                 BytecodeType::Struct(struct_id, type_params) => {
@@ -1362,7 +1375,6 @@ impl SsaGen {
 
             let allocInst = graph::createAllocateStackInst(layout);
             self.current().appendInst(allocInst);
-            args.push(allocInst);
 
             if layout.refs.size() > 0 {
                 let zero = graph::createNullConst();
@@ -1372,13 +1384,11 @@ impl SsaGen {
                     let inst = graph::createStoreInst(allocInst, InstExtraData::None, ref, zero, Type::Ptr);
                     self.current().appendInst(inst);
                 }
-            }
+            };
 
-            self.writeVariable(dest, self.current(), allocInst);
-
-            Type::Unit
+            (Some[Inst](allocInst), Type::Unit)
         } else {
-            self.graphTy(destTy)
+            (None[Inst], self.graphTy(destTy))
         }
     }
 

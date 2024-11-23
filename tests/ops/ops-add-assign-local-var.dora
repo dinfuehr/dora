@@ -1,5 +1,3 @@
-//= ignore
-
 struct MyInt(Int64)
 
 impl std::traits::Add for MyInt {
