@@ -1,16 +1,8 @@
-struct MyInt(Int64)
-
-impl std::traits::Add for MyInt {
-    fn add(rhs: MyInt): MyInt {
-        MyInt(self.0 + rhs.0)
-    }
-}
-
-let mut result: MyInt = MyInt(1);
+let mut result: Int = 1;
 
 fn main() {
-    result += MyInt(2);
-    assert(result.0 == 3);
-    result += MyInt(2);
-    assert(result.0 == 5);
+    result += 2;
+    assert(result == 3);
+    result += 2;
+    assert(result == 5);
 }

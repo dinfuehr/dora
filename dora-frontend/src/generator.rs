@@ -2626,8 +2626,27 @@ impl<'a> AstBytecodeGen<'a> {
         let obj = gen_expr(self, &dot.lhs, DataDest::Alloc);
         let value = gen_expr(self, &expr.rhs, DataDest::Alloc);
 
+        let location = self.loc(expr.span);
+
+        if expr.op != ast::BinOp::Assign {
+            let cls = self.sa.class(cls_id);
+            let ty = cls.fields[field_id.0].ty();
+            let ty = register_bty_from_ty(ty);
+            let current = self.alloc_temp(ty);
+            self.builder
+                .emit_load_field(current, obj, field_idx, location);
+
+            if let Some(info) = self.get_intrinsic(expr.id) {
+                gen_intrinsic_bin(self, info.intrinsic, value, current, value, location);
+            } else {
+                gen_method_bin(self, expr, value, current, value, location);
+            }
+
+            self.free_if_temp(current);
+        }
+
         self.builder
-            .emit_store_field(value, obj, field_idx, self.loc(expr.span));
+            .emit_store_field(value, obj, field_idx, location);
 
         self.free_if_temp(obj);
         self.free_if_temp(value);
