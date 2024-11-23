@@ -2541,7 +2541,7 @@ impl<'a> AstBytecodeGen<'a> {
                     self.visit_expr_assign_context(expr, level, field_id, value_reg);
                 }
                 &IdentType::Global(gid) => {
-                    self.visit_expr_assign_global(gid, value_reg);
+                    self.visit_expr_assign_global(expr, gid, value_reg);
                 }
                 _ => unreachable!(),
             }
@@ -2696,9 +2696,31 @@ impl<'a> AstBytecodeGen<'a> {
         }
     }
 
-    fn visit_expr_assign_global(&mut self, gid: GlobalDefinitionId, value: Register) {
-        self.builder
-            .emit_store_global(value, GlobalId(gid.index().try_into().expect("overflow")));
+    fn visit_expr_assign_global(
+        &mut self,
+        expr: &ast::ExprBinType,
+        gid: GlobalDefinitionId,
+        value: Register,
+    ) {
+        let bc_gid = GlobalId(gid.index().try_into().expect("overflow"));
+        let location = self.loc(expr.span);
+
+        if expr.op != ast::BinOp::Assign {
+            let global = self.sa.global(gid);
+            let ty = register_bty_from_ty(global.ty());
+            let current = self.alloc_temp(ty);
+            self.builder.emit_load_global(current, bc_gid, location);
+
+            if let Some(info) = self.get_intrinsic(expr.id) {
+                gen_intrinsic_bin(self, info.intrinsic, value, current, value, location);
+            } else {
+                gen_method_bin(self, expr, value, current, value, location);
+            }
+
+            self.free_temp(current);
+        }
+
+        self.builder.emit_store_global(value, bc_gid);
     }
 
     fn visit_expr_ident(&mut self, ident: &ast::ExprIdentType, dest: DataDest) -> Register {

@@ -1,0 +1,8 @@
+let mut result: Int = 1;
+
+fn main() {
+    result += 2;
+    assert(result == 3);
+    result += 2;
+    assert(result == 5);
+}
