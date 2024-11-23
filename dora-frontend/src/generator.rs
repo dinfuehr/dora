@@ -2636,62 +2636,26 @@ impl<'a> AstBytecodeGen<'a> {
     fn visit_expr_assign_context(
         &mut self,
         expr: &ast::ExprBinType,
-        level: OuterContextIdx,
-        context_idx: ContextFieldId,
+        outer_context_id: OuterContextIdx,
+        context_field_id: ContextFieldId,
         value: Register,
     ) {
-        let self_reg = self.var_reg(SELF_VAR_ID);
+        let location = self.loc(expr.span);
 
-        // Load context field of lambda object in self.
-        let outer_context_reg = self.alloc_temp(BytecodeType::Ptr);
-        let lambda_cls_id = self.sa.known.classes.lambda();
-        let idx = self.builder.add_const_field_types(
-            ClassId(lambda_cls_id.index().try_into().expect("overflow")),
-            BytecodeTypeArray::empty(),
-            0,
-        );
-        self.builder
-            .emit_load_field(outer_context_reg, self_reg, idx, self.loc(expr.span));
+        if expr.op != ast::BinOp::Assign {
+            let current =
+                self.load_from_outer_context(outer_context_id, context_field_id, location);
 
-        assert!(level.0 < self.analysis.outer_contexts.len());
-
-        for outer_context_class in self.analysis.outer_contexts.iter().skip(level.0 + 1).rev() {
-            if outer_context_class.has_class_id() {
-                let outer_cls_id = outer_context_class.class_id();
-
-                let idx = self.builder.add_const_field_types(
-                    ClassId(outer_cls_id.index().try_into().expect("overflow")),
-                    bty_array_from_ty(&self.identity_type_params()),
-                    0,
-                );
-                self.builder.emit_load_field(
-                    outer_context_reg,
-                    outer_context_reg,
-                    idx,
-                    self.loc(expr.span),
-                );
+            if let Some(info) = self.get_intrinsic(expr.id) {
+                gen_intrinsic_bin(self, info.intrinsic, value, current, value, location);
+            } else {
+                gen_method_bin(self, expr, value, current, value, location);
             }
+
+            self.free_if_temp(current);
         }
 
-        // Store value in context field
-        let outer_context_info = self.analysis.outer_contexts[level.0].clone();
-
-        let field_id = field_id_from_context_idx(context_idx, outer_context_info.has_parent_slot());
-        let idx = self.builder.add_const_field_types(
-            ClassId(
-                outer_context_info
-                    .class_id()
-                    .index()
-                    .try_into()
-                    .expect("overflow"),
-            ),
-            bty_array_from_ty(&self.identity_type_params()),
-            field_id.0 as u32,
-        );
-        self.builder
-            .emit_store_field(value, outer_context_reg, idx, self.loc(expr.span));
-
-        self.free_temp(outer_context_reg);
+        self.store_in_outer_context(outer_context_id, context_field_id, value, location);
     }
 
     fn visit_expr_assign_var(&mut self, expr: &ast::ExprBinType, var_id: VarId, value: Register) {
@@ -2940,6 +2904,128 @@ impl<'a> AstBytecodeGen<'a> {
                 dest
             }
         }
+    }
+
+    fn store_in_outer_context(
+        &mut self,
+        level: OuterContextIdx,
+        context_idx: ContextFieldId,
+        value: Register,
+        location: Location,
+    ) {
+        let self_reg = self.var_reg(SELF_VAR_ID);
+
+        // Load context field of lambda object in self.
+        let outer_context_reg = self.alloc_temp(BytecodeType::Ptr);
+        let lambda_cls_id = self.sa.known.classes.lambda();
+        let idx = self.builder.add_const_field_types(
+            ClassId(lambda_cls_id.index().try_into().expect("overflow")),
+            BytecodeTypeArray::empty(),
+            0,
+        );
+        self.builder
+            .emit_load_field(outer_context_reg, self_reg, idx, location);
+
+        assert!(level.0 < self.analysis.outer_contexts.len());
+
+        for outer_context_class in self.analysis.outer_contexts.iter().skip(level.0 + 1).rev() {
+            if outer_context_class.has_class_id() {
+                let outer_cls_id = outer_context_class.class_id();
+
+                let idx = self.builder.add_const_field_types(
+                    ClassId(outer_cls_id.index().try_into().expect("overflow")),
+                    bty_array_from_ty(&self.identity_type_params()),
+                    0,
+                );
+                self.builder
+                    .emit_load_field(outer_context_reg, outer_context_reg, idx, location);
+            }
+        }
+
+        // Store value in context field
+        let outer_context_info = self.analysis.outer_contexts[level.0].clone();
+
+        let field_id = field_id_from_context_idx(context_idx, outer_context_info.has_parent_slot());
+        let idx = self.builder.add_const_field_types(
+            ClassId(
+                outer_context_info
+                    .class_id()
+                    .index()
+                    .try_into()
+                    .expect("overflow"),
+            ),
+            bty_array_from_ty(&self.identity_type_params()),
+            field_id.0 as u32,
+        );
+        self.builder
+            .emit_store_field(value, outer_context_reg, idx, location);
+
+        self.free_temp(outer_context_reg);
+    }
+
+    fn load_from_outer_context(
+        &mut self,
+        context_id: OuterContextIdx,
+        field_id: ContextFieldId,
+        location: Location,
+    ) -> Register {
+        assert!(self.is_lambda);
+        let self_reg = self.var_reg(SELF_VAR_ID);
+
+        // Load context field of lambda object (in self register).
+        let outer_context_reg = self.alloc_temp(BytecodeType::Ptr);
+        let lambda_cls_id = self.sa.known.classes.lambda();
+        let idx = self.builder.add_const_field_types(
+            ClassId(lambda_cls_id.index().try_into().expect("overflow")),
+            BytecodeTypeArray::empty(),
+            0,
+        );
+        self.builder
+            .emit_load_field(outer_context_reg, self_reg, idx, location);
+
+        assert!(context_id.0 < self.analysis.outer_contexts.len());
+
+        for outer_context_class in self
+            .analysis
+            .outer_contexts
+            .iter()
+            .skip(context_id.0 + 1)
+            .rev()
+        {
+            if outer_context_class.has_class_id() {
+                let outer_cls_id = outer_context_class.class_id();
+                let idx = self.builder.add_const_field_types(
+                    ClassId(outer_cls_id.index().try_into().expect("overflow")),
+                    bty_array_from_ty(&self.identity_type_params()),
+                    0,
+                );
+                assert!(outer_context_class.has_parent_slot());
+                self.builder
+                    .emit_load_field(outer_context_reg, outer_context_reg, idx, location);
+            }
+        }
+
+        let outer_context_info = self.analysis.outer_contexts[context_id.0].clone();
+        let outer_cls_id = outer_context_info.class_id();
+
+        let outer_cls = self.sa.class(outer_cls_id);
+        let field_id = field_id_from_context_idx(field_id, outer_context_info.has_parent_slot());
+        let field = &outer_cls.fields[field_id];
+
+        let ty: BytecodeType = register_bty_from_ty(field.ty());
+        let dest = self.alloc_temp(ty);
+
+        let idx = self.builder.add_const_field_types(
+            ClassId(outer_cls_id.index().try_into().expect("overflow")),
+            bty_array_from_ty(&self.identity_type_params()),
+            field_id.0 as u32,
+        );
+        self.builder
+            .emit_load_field(dest, outer_context_reg, idx, location);
+
+        self.free_temp(outer_context_reg);
+
+        dest
     }
 
     fn store_in_context(
