@@ -6,7 +6,7 @@ impl std::traits::Add for MyInt {
     }
 }
 
-let mut result: Int = MyInt(1);
+let mut result: MyInt = MyInt(1);
 
 fn main() {
     result += MyInt(2);
