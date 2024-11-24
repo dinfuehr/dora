@@ -5578,3 +5578,24 @@ fn add_assign_operator_error() {
         ErrorMessage::BinOpType("+=".into(), "MyInt".into(), "MyInt".into()),
     );
 }
+
+#[test]
+fn sub_assign_operator_for_int() {
+    ok("
+        fn f(mut x: Int, y: Int): Int {
+            x -= y;
+            x
+        }
+    ");
+
+    err(
+        "
+        fn f(mut x: Int, y: Int32): Int {
+            x -= y;
+            x
+        }
+    ",
+        (3, 13),
+        ErrorMessage::BinOpType("-=".into(), "Int64".into(), "Int32".into()),
+    );
+}

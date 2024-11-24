@@ -1745,7 +1745,8 @@ impl Parser {
 
         loop {
             let right_precedence = match self.current() {
-                EQ | ADD_EQ => 1,
+                EQ | ADD_EQ | SUB_EQ | MUL_EQ | DIV_EQ | MOD_EQ | OR_EQ | AND_EQ | CARET_EQ
+                | LT_LT_EQ | GT_GT_EQ | GT_GT_GT_EQ => 1,
                 OR_OR => 2,
                 AND_AND => 3,
                 EQ_EQ | NOT_EQ | LT | LE | GT | GE | EQ_EQ_EQ | NOT_EQ_EQ => 4,
@@ -1953,7 +1954,6 @@ impl Parser {
     fn create_binary(&mut self, kind: TokenKind, start: u32, left: Expr, right: Expr) -> Expr {
         let op = match kind {
             EQ => BinOp::Assign,
-            ADD_EQ => BinOp::AddAssign,
             OR_OR => BinOp::Or,
             AND_AND => BinOp::And,
             EQ_EQ => BinOp::Cmp(CmpOp::Eq),
@@ -1965,16 +1965,27 @@ impl Parser {
             EQ_EQ_EQ => BinOp::Cmp(CmpOp::Is),
             NOT_EQ_EQ => BinOp::Cmp(CmpOp::IsNot),
             OR => BinOp::BitOr,
+            OR_EQ => BinOp::BitOrAssign,
             AND => BinOp::BitAnd,
+            AND_EQ => BinOp::BitAndAssign,
             CARET => BinOp::BitXor,
+            CARET_EQ => BinOp::BitXorAssign,
             ADD => BinOp::Add,
+            ADD_EQ => BinOp::AddAssign,
             SUB => BinOp::Sub,
+            SUB_EQ => BinOp::SubAssign,
             MUL => BinOp::Mul,
+            MUL_EQ => BinOp::MulAssign,
             DIV => BinOp::Div,
+            DIV_EQ => BinOp::DivAssign,
             MODULO => BinOp::Mod,
+            MOD_EQ => BinOp::ModAssign,
             LT_LT => BinOp::ShiftL,
+            LT_LT_EQ => BinOp::ShiftLAssign,
             GT_GT => BinOp::ArithShiftR,
+            GT_GT_EQ => BinOp::ArithShiftRAssign,
             GT_GT_GT => BinOp::LogicalShiftR,
+            GT_GT_GT_EQ => BinOp::LogicalShiftRAssign,
             _ => panic!("unimplemented token {:?}", kind),
         };
 

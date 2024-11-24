@@ -1,0 +1,16 @@
+struct MyInt(Int64)
+
+impl std::traits::Sub for MyInt {
+    fn sub(rhs: MyInt): MyInt {
+        MyInt(self.0 - rhs.0)
+    }
+}
+
+fn main() {
+    let mut result = MyInt(5);
+    let fct = || { result -= MyInt(2) };
+    fct();
+    assert(result.0 == 3);
+    fct();
+    assert(result.0 == 1);
+}

@@ -1,0 +1,17 @@
+class Foo { value: MyInt }
+
+struct MyInt(Int64)
+
+impl std::traits::Sub for MyInt {
+    fn sub(rhs: MyInt): MyInt {
+        MyInt(self.0 - rhs.0)
+    }
+}
+
+fn main() {
+    let result = Foo(value = MyInt(5));
+    result.value -= MyInt(2);
+    assert(result.value.0 == 3);
+    result.value -= MyInt(2);
+    assert(result.value.0 == 1);
+}

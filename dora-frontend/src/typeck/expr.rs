@@ -283,6 +283,54 @@ fn check_assign_type(
             );
         }
 
+        ast::BinOp::SubAssign => {
+            check_expr_bin_trait(
+                ck,
+                e,
+                e.op,
+                ck.sa.known.traits.sub(),
+                "sub",
+                lhs_type,
+                rhs_type,
+            );
+        }
+
+        ast::BinOp::MulAssign => {
+            check_expr_bin_trait(
+                ck,
+                e,
+                e.op,
+                ck.sa.known.traits.mul(),
+                "mul",
+                lhs_type,
+                rhs_type,
+            );
+        }
+
+        ast::BinOp::DivAssign => {
+            check_expr_bin_trait(
+                ck,
+                e,
+                e.op,
+                ck.sa.known.traits.div(),
+                "div",
+                lhs_type,
+                rhs_type,
+            );
+        }
+
+        ast::BinOp::ModAssign => {
+            check_expr_bin_trait(
+                ck,
+                e,
+                e.op,
+                ck.sa.known.traits.mod_(),
+                "modulo",
+                lhs_type,
+                rhs_type,
+            );
+        }
+
         ast::BinOp::Assign => {
             if !lhs_type.is_error()
                 && !rhs_type.is_error()
