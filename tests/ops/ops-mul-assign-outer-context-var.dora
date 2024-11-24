@@ -1,0 +1,16 @@
+struct MyInt(Int64)
+
+impl std::traits::Mul for MyInt {
+    fn mul(rhs: MyInt): MyInt {
+        MyInt(self.0 * rhs.0)
+    }
+}
+
+fn main() {
+    let mut result = MyInt(5);
+    let fct = || { result *= MyInt(2) };
+    fct();
+    assert(result.0 == 10);
+    fct();
+    assert(result.0 == 20);
+}

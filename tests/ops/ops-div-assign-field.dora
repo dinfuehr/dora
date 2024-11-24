@@ -1,0 +1,17 @@
+class Foo { value: MyInt }
+
+struct MyInt(Int64)
+
+impl std::traits::Div for MyInt {
+    fn div(rhs: MyInt): MyInt {
+        MyInt(self.0 / rhs.0)
+    }
+}
+
+fn main() {
+    let result = Foo(value = MyInt(10));
+    result.value /= MyInt(2);
+    assert(result.value.0 == 5);
+    result.value /= MyInt(3);
+    assert(result.value.0 == 1);
+}

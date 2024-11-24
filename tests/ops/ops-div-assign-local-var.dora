@@ -1,0 +1,13 @@
+struct MyInt(Int64)
+
+impl std::traits::Div for MyInt {
+    fn div(rhs: MyInt): MyInt {
+        MyInt(self.0 / rhs.0)
+    }
+}
+
+fn main() {
+    let mut result = MyInt(10);
+    result /= MyInt(2);
+    assert(result.0 == 5);
+}

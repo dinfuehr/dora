@@ -1,0 +1,8 @@
+fn main() {
+    let mut result = 5;
+    let fct = || { result *= 2; };
+    fct();
+    assert(result == 10);
+    fct();
+    assert(result == 20);
+}
