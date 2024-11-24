@@ -170,6 +170,16 @@ pub enum TokenKind {
 
     // compound assignment operators
     ADD_EQ,
+    SUB_EQ,
+    MUL_EQ,
+    DIV_EQ,
+    MOD_EQ,
+    OR_EQ,
+    AND_EQ,
+    CARET_EQ,
+    GT_GT_EQ,
+    GT_GT_GT_EQ,
+    LT_LT_EQ,
 
     // operators – shifts
     GT_GT,

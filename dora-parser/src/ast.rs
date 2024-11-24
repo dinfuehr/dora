@@ -924,45 +924,76 @@ pub enum BinOp {
     AddAssign,
     Add,
     Sub,
+    SubAssign,
     Mul,
+    MulAssign,
     Div,
+    DivAssign,
     Mod,
+    ModAssign,
     Cmp(CmpOp),
     Or,
     And,
     BitOr,
+    BitOrAssign,
     BitAnd,
+    BitAndAssign,
     BitXor,
+    BitXorAssign,
     ShiftL,
+    ShiftLAssign,
     ArithShiftR,
+    ArithShiftRAssign,
     LogicalShiftR,
+    LogicalShiftRAssign,
 }
 
 impl BinOp {
     pub fn as_str(&self) -> &'static str {
         match *self {
             BinOp::Assign => "=",
-            BinOp::AddAssign => "+=",
             BinOp::Add => "+",
+            BinOp::AddAssign => "+=",
             BinOp::Sub => "-",
+            BinOp::SubAssign => "-=",
             BinOp::Mul => "*",
+            BinOp::MulAssign => "*=",
             BinOp::Div => "/",
+            BinOp::DivAssign => "/=",
             BinOp::Mod => "%",
+            BinOp::ModAssign => "%=",
             BinOp::Cmp(op) => op.as_str(),
             BinOp::Or => "||",
             BinOp::And => "&&",
             BinOp::BitOr => "|",
+            BinOp::BitOrAssign => "|=",
             BinOp::BitAnd => "&",
+            BinOp::BitAndAssign => "&=",
             BinOp::BitXor => "^",
+            BinOp::BitXorAssign => "^=",
             BinOp::ShiftL => "<<",
+            BinOp::ShiftLAssign => "<<=",
             BinOp::ArithShiftR => ">>",
+            BinOp::ArithShiftRAssign => ">>=",
             BinOp::LogicalShiftR => ">>>",
+            BinOp::LogicalShiftRAssign => ">>>=",
         }
     }
 
     pub fn is_any_assign(&self) -> bool {
         match *self {
-            BinOp::Assign | BinOp::AddAssign => true,
+            BinOp::Assign
+            | BinOp::AddAssign
+            | BinOp::SubAssign
+            | BinOp::MulAssign
+            | BinOp::ModAssign
+            | BinOp::DivAssign
+            | BinOp::BitOrAssign
+            | BinOp::BitAndAssign
+            | BinOp::BitXorAssign
+            | BinOp::ShiftLAssign
+            | BinOp::ArithShiftRAssign
+            | BinOp::LogicalShiftRAssign => true,
             _ => false,
         }
     }

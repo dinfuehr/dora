@@ -1290,7 +1290,18 @@ pub(super) fn check_expr_bin(
             lhs_type,
             rhs_type,
         ),
-        ast::BinOp::Assign | ast::BinOp::AddAssign => unreachable!(),
+        ast::BinOp::Assign
+        | ast::BinOp::AddAssign
+        | ast::BinOp::SubAssign
+        | ast::BinOp::MulAssign
+        | ast::BinOp::ModAssign
+        | ast::BinOp::DivAssign
+        | ast::BinOp::BitOrAssign
+        | ast::BinOp::BitAndAssign
+        | ast::BinOp::BitXorAssign
+        | ast::BinOp::ShiftLAssign
+        | ast::BinOp::ArithShiftRAssign
+        | ast::BinOp::LogicalShiftRAssign => unreachable!(),
     }
 }
 

@@ -227,16 +227,40 @@ impl<'a> Lexer<'a> {
                 }
             }
             '-' => {
-                if nch == '>' {
+                if nch == '=' {
+                    self.eat_char();
+                    SUB_EQ
+                } else if nch == '>' {
                     self.eat_char();
                     ARROW
                 } else {
                     SUB
                 }
             }
-            '*' => MUL,
-            '/' => DIV,
-            '%' => MODULO,
+            '*' => {
+                if nch == '=' {
+                    self.eat_char();
+                    MUL_EQ
+                } else {
+                    MUL
+                }
+            }
+            '/' => {
+                if nch == '=' {
+                    self.eat_char();
+                    DIV_EQ
+                } else {
+                    DIV
+                }
+            }
+            '%' => {
+                if nch == '=' {
+                    self.eat_char();
+                    MOD_EQ
+                } else {
+                    MODULO
+                }
+            }
 
             '(' => L_PAREN,
             ')' => R_PAREN,
@@ -261,7 +285,10 @@ impl<'a> Lexer<'a> {
             }
 
             '|' => {
-                if nch == '|' {
+                if nch == '=' {
+                    self.eat_char();
+                    OR_EQ
+                } else if nch == '|' {
                     self.eat_char();
                     OR_OR
                 } else {
@@ -270,7 +297,10 @@ impl<'a> Lexer<'a> {
             }
 
             '&' => {
-                if nch == '&' {
+                if nch == '=' {
+                    self.eat_char();
+                    AND_EQ
+                } else if nch == '&' {
                     self.eat_char();
                     AND_AND
                 } else {
@@ -278,7 +308,14 @@ impl<'a> Lexer<'a> {
                 }
             }
 
-            '^' => CARET,
+            '^' => {
+                if nch == '=' {
+                    self.eat_char();
+                    CARET_EQ
+                } else {
+                    CARET
+                }
+            }
             ',' => COMMA,
             ';' => SEMICOLON,
             ':' => {
@@ -328,7 +365,13 @@ impl<'a> Lexer<'a> {
 
                 '<' => {
                     self.eat_char();
-                    LT_LT
+
+                    if nnch == '=' {
+                        self.eat_char();
+                        LT_LT_EQ
+                    } else {
+                        LT_LT
+                    }
                 }
 
                 _ => LT,
@@ -343,9 +386,20 @@ impl<'a> Lexer<'a> {
                 '>' => {
                     self.eat_char();
 
-                    if nnch == '>' {
+                    if nnch == '=' {
                         self.eat_char();
-                        GT_GT_GT
+                        GT_GT_EQ
+                    } else if nnch == '>' {
+                        self.eat_char();
+
+                        let n = self.curr().unwrap_or('x');
+
+                        if n == '=' {
+                            self.eat_char();
+                            GT_GT_GT_EQ
+                        } else {
+                            GT_GT_GT
+                        }
                     } else {
                         GT_GT
                     }

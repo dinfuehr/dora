@@ -4017,5 +4017,15 @@ mod tests {
     #[test]
     fn parse_compound_assignments() {
         parse_expr("x += 12");
+        parse_expr("x -= 12");
+        parse_expr("x *= 12");
+        parse_expr("x /= 12");
+        parse_expr("x %= 12");
+        parse_expr("x |= 12");
+        parse_expr("x &= 12");
+        parse_expr("x ^= 12");
+        parse_expr("x <<= 12");
+        parse_expr("x >>= 12");
+        parse_expr("x >>>= 12");
     }
 }
