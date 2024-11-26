@@ -1,0 +1,7 @@
+fn main() {
+    let mut result: Int = 1;
+    result <<= 2i32;
+    let fct = ||: Int { result };
+    assert(result == 4);
+    assert(fct() == 4);
+}

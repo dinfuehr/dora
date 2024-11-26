@@ -1,0 +1,17 @@
+class Foo { value: MyInt }
+
+struct MyInt(Int64)
+
+impl std::traits::Shr for MyInt {
+    fn shr(rhs: Int32): MyInt {
+        MyInt(self.0 >>> rhs)
+    }
+}
+
+fn main() {
+    let result = Foo(value = MyInt(11));
+    result.value >>>= 1i32;
+    assert(result.value.0 == 5);
+    result.value >>>= 1i32;
+    assert(result.value.0 == 2);
+}

@@ -1,0 +1,8 @@
+let mut result: Int = 1;
+
+fn main() {
+    result <<= 2i32;
+    assert(result == 4);
+    result <<= 1i32;
+    assert(result == 8);
+}

@@ -1,0 +1,16 @@
+struct MyInt(Int64)
+
+impl std::traits::Shr for MyInt {
+    fn shr(rhs: Int32): MyInt {
+        MyInt(self.0 >>> rhs)
+    }
+}
+
+fn main() {
+    let mut result = MyInt(11);
+    let fct = || { result >>>= 1i32; };
+    fct();
+    assert(result.0 == 5);
+    fct();
+    assert(result.0 == 2);
+}

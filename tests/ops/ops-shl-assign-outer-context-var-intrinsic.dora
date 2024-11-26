@@ -1,0 +1,8 @@
+fn main() {
+    let mut result = 1;
+    let fct = || { result <<= 1i32; };
+    fct();
+    assert(result == 2);
+    fct();
+    assert(result == 4);
+}

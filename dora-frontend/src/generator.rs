@@ -2628,7 +2628,7 @@ impl<'a> AstBytecodeGen<'a> {
 
         let location = self.loc(expr.span);
 
-        if expr.op != ast::BinOp::Assign {
+        let assign_value = if expr.op != ast::BinOp::Assign {
             let cls = self.sa.class(cls_id);
             let ty = cls.fields[field_id.0].ty();
             let ty = register_bty_from_ty(ty);
@@ -2637,16 +2637,22 @@ impl<'a> AstBytecodeGen<'a> {
                 .emit_load_field(current, obj, field_idx, location);
 
             if let Some(info) = self.get_intrinsic(expr.id) {
-                gen_intrinsic_bin(self, info.intrinsic, value, current, value, location);
+                gen_intrinsic_bin(self, info.intrinsic, current, current, value, location);
             } else {
-                gen_method_bin(self, expr, value, current, value, location);
+                gen_method_bin(self, expr, current, current, value, location);
             }
 
-            self.free_if_temp(current);
-        }
+            current
+        } else {
+            value
+        };
 
         self.builder
-            .emit_store_field(value, obj, field_idx, location);
+            .emit_store_field(assign_value, obj, field_idx, location);
+
+        if expr.op != ast::BinOp::Assign {
+            self.free_temp(assign_value);
+        }
 
         self.free_if_temp(obj);
         self.free_if_temp(value);
@@ -2661,26 +2667,32 @@ impl<'a> AstBytecodeGen<'a> {
     ) {
         let location = self.loc(expr.span);
 
-        if expr.op != ast::BinOp::Assign {
+        let assign_value = if expr.op != ast::BinOp::Assign {
             let current =
                 self.load_from_outer_context(outer_context_id, context_field_id, location);
 
             if let Some(info) = self.get_intrinsic(expr.id) {
-                gen_intrinsic_bin(self, info.intrinsic, value, current, value, location);
+                gen_intrinsic_bin(self, info.intrinsic, current, current, value, location);
             } else {
-                gen_method_bin(self, expr, value, current, value, location);
+                gen_method_bin(self, expr, current, current, value, location);
             }
 
-            self.free_if_temp(current);
-        }
+            current
+        } else {
+            value
+        };
 
-        self.store_in_outer_context(outer_context_id, context_field_id, value, location);
+        self.store_in_outer_context(outer_context_id, context_field_id, assign_value, location);
+
+        if expr.op != ast::BinOp::Assign {
+            self.free_temp(assign_value);
+        }
     }
 
     fn visit_expr_assign_var(&mut self, expr: &ast::ExprBinType, var_id: VarId, value: Register) {
         let var = self.analysis.vars.get_var(var_id);
 
-        if expr.op != ast::BinOp::Assign {
+        let assign_value = if expr.op != ast::BinOp::Assign {
             let current = match var.location {
                 VarLocation::Context(scope_id, field_id) => {
                     let ty = register_bty_from_ty(var.ty.clone());
@@ -2695,23 +2707,29 @@ impl<'a> AstBytecodeGen<'a> {
             let location = self.loc(expr.span);
 
             if let Some(info) = self.get_intrinsic(expr.id) {
-                gen_intrinsic_bin(self, info.intrinsic, value, current, value, location);
+                gen_intrinsic_bin(self, info.intrinsic, current, current, value, location);
             } else {
-                gen_method_bin(self, expr, value, current, value, location);
+                gen_method_bin(self, expr, current, current, value, location);
             }
 
-            self.free_if_temp(current);
-        }
+            current
+        } else {
+            value
+        };
 
         match var.location {
             VarLocation::Context(scope_id, field_id) => {
-                self.store_in_context(value, scope_id, field_id, self.loc(expr.span));
+                self.store_in_context(assign_value, scope_id, field_id, self.loc(expr.span));
             }
 
             VarLocation::Stack => {
                 let var_reg = self.var_reg(var_id);
-                self.builder.emit_mov(var_reg, value);
+                self.builder.emit_mov(var_reg, assign_value);
             }
+        }
+
+        if expr.op != ast::BinOp::Assign {
+            self.free_if_temp(assign_value);
         }
     }
 
@@ -2724,22 +2742,28 @@ impl<'a> AstBytecodeGen<'a> {
         let bc_gid = GlobalId(gid.index().try_into().expect("overflow"));
         let location = self.loc(expr.span);
 
-        if expr.op != ast::BinOp::Assign {
+        let assign_value = if expr.op != ast::BinOp::Assign {
             let global = self.sa.global(gid);
             let ty = register_bty_from_ty(global.ty());
             let current = self.alloc_temp(ty);
             self.builder.emit_load_global(current, bc_gid, location);
 
             if let Some(info) = self.get_intrinsic(expr.id) {
-                gen_intrinsic_bin(self, info.intrinsic, value, current, value, location);
+                gen_intrinsic_bin(self, info.intrinsic, current, current, value, location);
             } else {
-                gen_method_bin(self, expr, value, current, value, location);
+                gen_method_bin(self, expr, current, current, value, location);
             }
 
-            self.free_temp(current);
-        }
+            current
+        } else {
+            value
+        };
 
-        self.builder.emit_store_global(value, bc_gid);
+        self.builder.emit_store_global(assign_value, bc_gid);
+
+        if expr.op != ast::BinOp::Assign {
+            self.free_temp(assign_value);
+        }
     }
 
     fn visit_expr_ident(&mut self, ident: &ast::ExprIdentType, dest: DataDest) -> Register {

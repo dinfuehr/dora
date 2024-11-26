@@ -319,6 +319,18 @@ fn check_assign_type(
             );
         }
 
+        ast::BinOp::ModAssign => {
+            check_expr_bin_trait(
+                ck,
+                e,
+                e.op,
+                ck.sa.known.traits.mod_(),
+                "modulo",
+                lhs_type,
+                rhs_type,
+            );
+        }
+
         ast::BinOp::BitOrAssign => {
             check_expr_bin_trait(
                 ck,
@@ -355,13 +367,37 @@ fn check_assign_type(
             );
         }
 
-        ast::BinOp::ModAssign => {
+        ast::BinOp::ShiftLAssign => {
             check_expr_bin_trait(
                 ck,
                 e,
                 e.op,
-                ck.sa.known.traits.mod_(),
-                "modulo",
+                ck.sa.known.traits.shl(),
+                "shl",
+                lhs_type,
+                rhs_type,
+            );
+        }
+
+        ast::BinOp::LogicalShiftRAssign => {
+            check_expr_bin_trait(
+                ck,
+                e,
+                e.op,
+                ck.sa.known.traits.shr(),
+                "shr",
+                lhs_type,
+                rhs_type,
+            );
+        }
+
+        ast::BinOp::ArithShiftRAssign => {
+            check_expr_bin_trait(
+                ck,
+                e,
+                e.op,
+                ck.sa.known.traits.sar(),
+                "sar",
                 lhs_type,
                 rhs_type,
             );
@@ -1431,34 +1467,38 @@ fn check_expr_bin_trait(
         let method_id = ck
             .sa
             .impl_(impl_match.id)
-            .get_method_for_trait_method_id(trait_method_id)
-            .expect("method not found");
+            .get_method_for_trait_method_id(trait_method_id);
 
-        let call_type = CallType::Method(lhs_type.clone(), method_id, type_params.clone());
-        ck.analysis
-            .map_calls
-            .insert_or_replace(e.id, Arc::new(call_type));
+        if let Some(method_id) = method_id {
+            let call_type = CallType::Method(lhs_type.clone(), method_id, type_params.clone());
+            ck.analysis
+                .map_calls
+                .insert_or_replace(e.id, Arc::new(call_type));
 
-        let method = ck.sa.fct(method_id);
-        let params = method.params_without_self();
+            let method = ck.sa.fct(method_id);
+            let params = method.params_without_self();
 
-        assert_eq!(params.len(), 1);
+            assert_eq!(params.len(), 1);
 
-        let param = params[0].ty();
-        let param = replace_type(ck.sa, param, Some(&type_params), None);
+            let param = params[0].ty();
+            let param = replace_type(ck.sa, param, Some(&type_params), None);
 
-        if !param.allows(ck.sa, rhs_type.clone()) {
-            let lhs_type = ck.ty_name(&lhs_type);
-            let rhs_type = ck.ty_name(&rhs_type);
-            let msg = ErrorMessage::BinOpType(op.as_str().into(), lhs_type, rhs_type);
+            if !param.allows(ck.sa, rhs_type.clone()) {
+                let lhs_type = ck.ty_name(&lhs_type);
+                let rhs_type = ck.ty_name(&rhs_type);
+                let msg = ErrorMessage::BinOpType(op.as_str().into(), lhs_type, rhs_type);
 
-            ck.sa.report(ck.file_id, e.span, msg);
+                ck.sa.report(ck.file_id, e.span, msg);
+            }
+
+            let return_type = method.return_type();
+            ck.analysis.set_ty(e.id, return_type.clone());
+
+            return_type
+        } else {
+            ck.analysis.set_ty(e.id, ty_error());
+            ty_error()
         }
-
-        let return_type = method.return_type();
-        ck.analysis.set_ty(e.id, return_type.clone());
-
-        return_type
     } else if lhs_type.is_type_param()
         && implements_trait(ck.sa, lhs_type.clone(), ck.type_param_definition, trait_ty)
     {

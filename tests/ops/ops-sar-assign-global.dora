@@ -1,0 +1,16 @@
+struct MyInt(Int64)
+
+impl std::traits::Sar for MyInt {
+    fn sar(rhs: Int32): MyInt {
+        MyInt(self.0 >> rhs)
+    }
+}
+
+let mut result: MyInt = MyInt(11);
+
+fn main() {
+    result >>= 1i32;
+    assert(result.0 == 5);
+    result >>= 1i32;
+    assert(result.0 == 2);
+}

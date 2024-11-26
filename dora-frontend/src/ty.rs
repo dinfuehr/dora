@@ -482,6 +482,10 @@ impl SourceType {
     }
 
     pub fn allows(&self, sa: &Sema, other: SourceType) -> bool {
+        if other.is_error() {
+            return true;
+        }
+
         match self {
             // allow all types for Error, there is already an error,
             // don't report too many messages for the same error
