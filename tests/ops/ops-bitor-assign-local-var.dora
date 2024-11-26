@@ -1,0 +1,13 @@
+struct MyInt(Int64)
+
+impl std::traits::BitOr for MyInt {
+    fn bitor(rhs: MyInt): MyInt {
+        MyInt(self.0 | rhs.0)
+    }
+}
+
+fn main() {
+    let mut result = MyInt(9);
+    result |= MyInt(3);
+    assert(result.0 == 11);
+}

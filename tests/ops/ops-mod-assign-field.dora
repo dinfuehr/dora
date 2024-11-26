@@ -1,0 +1,17 @@
+class Foo { value: MyInt }
+
+struct MyInt(Int64)
+
+impl std::traits::Mod for MyInt {
+    fn modulo(rhs: MyInt): MyInt {
+        MyInt(self.0 % rhs.0)
+    }
+}
+
+fn main() {
+    let result = Foo(value = MyInt(15));
+    result.value %= MyInt(10);
+    assert(result.value.0 == 5);
+    result.value %= MyInt(3);
+    assert(result.value.0 == 2);
+}

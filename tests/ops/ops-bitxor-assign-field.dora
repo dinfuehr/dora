@@ -1,0 +1,17 @@
+class Foo { value: MyInt }
+
+struct MyInt(Int64)
+
+impl std::traits::BitXor for MyInt {
+    fn bitxor(rhs: MyInt): MyInt {
+        MyInt(self.0 ^ rhs.0)
+    }
+}
+
+fn main() {
+    let result = Foo(value = MyInt(10));
+    result.value ^= MyInt(29);
+    assert(result.value.0 == 23);
+    result.value ^= MyInt(7);
+    assert(result.value.0 == 16);
+}

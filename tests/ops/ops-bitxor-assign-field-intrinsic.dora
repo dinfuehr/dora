@@ -1,0 +1,9 @@
+class Foo { value: Int }
+
+fn main() {
+    let result = Foo(value = 10);
+    result.value ^= 29;
+    assert(result.value == 23);
+    result.value ^= 7;
+    assert(result.value == 16);
+}

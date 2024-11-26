@@ -1,0 +1,16 @@
+struct MyInt(Int64)
+
+impl std::traits::BitXor for MyInt {
+    fn bitxor(rhs: MyInt): MyInt {
+        MyInt(self.0 ^ rhs.0)
+    }
+}
+
+let mut result: MyInt = MyInt(10);
+
+fn main() {
+    result ^= MyInt(29);
+    assert(result.0 == 23);
+    result ^= MyInt(7);
+    assert(result.0 == 16);
+}

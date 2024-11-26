@@ -319,6 +319,42 @@ fn check_assign_type(
             );
         }
 
+        ast::BinOp::BitOrAssign => {
+            check_expr_bin_trait(
+                ck,
+                e,
+                e.op,
+                ck.sa.known.traits.bit_or(),
+                "bitor",
+                lhs_type,
+                rhs_type,
+            );
+        }
+
+        ast::BinOp::BitAndAssign => {
+            check_expr_bin_trait(
+                ck,
+                e,
+                e.op,
+                ck.sa.known.traits.bit_and(),
+                "bitand",
+                lhs_type,
+                rhs_type,
+            );
+        }
+
+        ast::BinOp::BitXorAssign => {
+            check_expr_bin_trait(
+                ck,
+                e,
+                e.op,
+                ck.sa.known.traits.bit_xor(),
+                "bitxor",
+                lhs_type,
+                rhs_type,
+            );
+        }
+
         ast::BinOp::ModAssign => {
             check_expr_bin_trait(
                 ck,

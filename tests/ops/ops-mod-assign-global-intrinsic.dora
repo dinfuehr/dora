@@ -1,0 +1,8 @@
+let mut result: Int = 15;
+
+fn main() {
+    result %= 10;
+    assert(result == 5);
+    result %= 3;
+    assert(result == 2);
+}

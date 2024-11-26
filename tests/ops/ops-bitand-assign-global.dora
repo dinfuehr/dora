@@ -1,0 +1,16 @@
+struct MyInt(Int64)
+
+impl std::traits::BitAnd for MyInt {
+    fn bitand(rhs: MyInt): MyInt {
+        MyInt(self.0 & rhs.0)
+    }
+}
+
+let mut result: MyInt = MyInt(11);
+
+fn main() {
+    result &= MyInt(7);
+    assert(result.0 == 3);
+    result &= MyInt(1);
+    assert(result.0 == 1);
+}

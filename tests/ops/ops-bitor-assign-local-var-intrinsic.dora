@@ -1,0 +1,5 @@
+fn main() {
+    let mut result: Int = 9;
+    result |= 3;
+    assert(result == 11);
+}
