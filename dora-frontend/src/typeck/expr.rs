@@ -266,141 +266,119 @@ fn check_assign_type(
     e: &ast::ExprBinType,
     lhs_type: SourceType,
     rhs_type: SourceType,
-) {
+) -> OpTraitInfo {
     ck.analysis.set_ty(e.id, SourceType::Unit);
 
     match e.op {
-        ast::BinOp::AddAssign => {
-            check_expr_bin_trait(
-                ck,
-                e,
-                e.op,
-                ck.sa.known.traits.add(),
-                "add",
-                lhs_type,
-                rhs_type,
-            );
-        }
+        ast::BinOp::AddAssign => check_expr_bin_trait(
+            ck,
+            e,
+            e.op,
+            ck.sa.known.traits.add(),
+            "add",
+            lhs_type,
+            rhs_type,
+        ),
 
-        ast::BinOp::SubAssign => {
-            check_expr_bin_trait(
-                ck,
-                e,
-                e.op,
-                ck.sa.known.traits.sub(),
-                "sub",
-                lhs_type,
-                rhs_type,
-            );
-        }
+        ast::BinOp::SubAssign => check_expr_bin_trait(
+            ck,
+            e,
+            e.op,
+            ck.sa.known.traits.sub(),
+            "sub",
+            lhs_type,
+            rhs_type,
+        ),
 
-        ast::BinOp::MulAssign => {
-            check_expr_bin_trait(
-                ck,
-                e,
-                e.op,
-                ck.sa.known.traits.mul(),
-                "mul",
-                lhs_type,
-                rhs_type,
-            );
-        }
+        ast::BinOp::MulAssign => check_expr_bin_trait(
+            ck,
+            e,
+            e.op,
+            ck.sa.known.traits.mul(),
+            "mul",
+            lhs_type,
+            rhs_type,
+        ),
 
-        ast::BinOp::DivAssign => {
-            check_expr_bin_trait(
-                ck,
-                e,
-                e.op,
-                ck.sa.known.traits.div(),
-                "div",
-                lhs_type,
-                rhs_type,
-            );
-        }
+        ast::BinOp::DivAssign => check_expr_bin_trait(
+            ck,
+            e,
+            e.op,
+            ck.sa.known.traits.div(),
+            "div",
+            lhs_type,
+            rhs_type,
+        ),
 
-        ast::BinOp::ModAssign => {
-            check_expr_bin_trait(
-                ck,
-                e,
-                e.op,
-                ck.sa.known.traits.mod_(),
-                "modulo",
-                lhs_type,
-                rhs_type,
-            );
-        }
+        ast::BinOp::ModAssign => check_expr_bin_trait(
+            ck,
+            e,
+            e.op,
+            ck.sa.known.traits.mod_(),
+            "modulo",
+            lhs_type,
+            rhs_type,
+        ),
 
-        ast::BinOp::BitOrAssign => {
-            check_expr_bin_trait(
-                ck,
-                e,
-                e.op,
-                ck.sa.known.traits.bit_or(),
-                "bitor",
-                lhs_type,
-                rhs_type,
-            );
-        }
+        ast::BinOp::BitOrAssign => check_expr_bin_trait(
+            ck,
+            e,
+            e.op,
+            ck.sa.known.traits.bit_or(),
+            "bitor",
+            lhs_type,
+            rhs_type,
+        ),
 
-        ast::BinOp::BitAndAssign => {
-            check_expr_bin_trait(
-                ck,
-                e,
-                e.op,
-                ck.sa.known.traits.bit_and(),
-                "bitand",
-                lhs_type,
-                rhs_type,
-            );
-        }
+        ast::BinOp::BitAndAssign => check_expr_bin_trait(
+            ck,
+            e,
+            e.op,
+            ck.sa.known.traits.bit_and(),
+            "bitand",
+            lhs_type,
+            rhs_type,
+        ),
 
-        ast::BinOp::BitXorAssign => {
-            check_expr_bin_trait(
-                ck,
-                e,
-                e.op,
-                ck.sa.known.traits.bit_xor(),
-                "bitxor",
-                lhs_type,
-                rhs_type,
-            );
-        }
+        ast::BinOp::BitXorAssign => check_expr_bin_trait(
+            ck,
+            e,
+            e.op,
+            ck.sa.known.traits.bit_xor(),
+            "bitxor",
+            lhs_type,
+            rhs_type,
+        ),
 
-        ast::BinOp::ShiftLAssign => {
-            check_expr_bin_trait(
-                ck,
-                e,
-                e.op,
-                ck.sa.known.traits.shl(),
-                "shl",
-                lhs_type,
-                rhs_type,
-            );
-        }
+        ast::BinOp::ShiftLAssign => check_expr_bin_trait(
+            ck,
+            e,
+            e.op,
+            ck.sa.known.traits.shl(),
+            "shl",
+            lhs_type,
+            rhs_type,
+        ),
 
-        ast::BinOp::LogicalShiftRAssign => {
-            check_expr_bin_trait(
-                ck,
-                e,
-                e.op,
-                ck.sa.known.traits.shr(),
-                "shr",
-                lhs_type,
-                rhs_type,
-            );
-        }
+        ast::BinOp::LogicalShiftRAssign => check_expr_bin_trait(
+            ck,
+            e,
+            e.op,
+            ck.sa.known.traits.shr(),
+            "shr",
+            lhs_type,
+            rhs_type,
+        ),
 
-        ast::BinOp::ArithShiftRAssign => {
-            check_expr_bin_trait(
-                ck,
-                e,
-                e.op,
-                ck.sa.known.traits.sar(),
-                "sar",
-                lhs_type,
-                rhs_type,
-            );
-        }
+        ast::BinOp::ArithShiftRAssign => check_expr_bin_trait(
+            ck,
+            e,
+            e.op,
+            ck.sa.known.traits.sar(),
+            "sar",
+            lhs_type,
+            rhs_type,
+        ),
 
         ast::BinOp::Assign => {
             if !lhs_type.is_error()
@@ -412,6 +390,11 @@ fn check_assign_type(
 
                 let msg = ErrorMessage::AssignType(lhs_type, rhs_type);
                 ck.sa.report(ck.file_id, e.span, msg);
+            }
+
+            OpTraitInfo {
+                rhs_type: ty_error(),
+                return_type: ty_error(),
             }
         }
 
@@ -431,10 +414,12 @@ fn check_expr_assign_call(ck: &mut TypeCheck, e: &ast::ExprBinType) {
     let mut array_assignment = ArrayAssignment::new();
     let index_type;
     let item_type;
+    let rhs_type;
 
     if e.op == ast::BinOp::Assign {
         (index_type, item_type) =
             check_index_trait_on_ty(ck, e, &mut array_assignment, object_type.clone(), false);
+        rhs_type = item_type.clone();
     } else {
         let (index_get_index, index_get_item) =
             check_index_trait_on_ty(ck, e, &mut array_assignment, object_type.clone(), true);
@@ -459,7 +444,8 @@ fn check_expr_assign_call(ck: &mut TypeCheck, e: &ast::ExprBinType) {
         index_type = index_get_index;
         item_type = index_get_item.clone();
 
-        check_assign_type(ck, e, index_get_item, value_type.clone());
+        let op_trait_info = check_assign_type(ck, e, index_get_item, value_type.clone());
+        rhs_type = op_trait_info.rhs_type;
     }
 
     let arg_index_type = args
@@ -481,11 +467,9 @@ fn check_expr_assign_call(ck: &mut TypeCheck, e: &ast::ExprBinType) {
         );
     }
 
-    if !item_type.allows(ck.sa, value_type.clone())
-        && !item_type.is_error()
-        && !value_type.is_error()
+    if !rhs_type.allows(ck.sa, value_type.clone()) && !rhs_type.is_error() && !value_type.is_error()
     {
-        let exp = ck.ty_name(&item_type);
+        let exp = ck.ty_name(&rhs_type);
         let got = ck.ty_name(&value_type);
 
         ck.sa.report(
@@ -1433,105 +1417,138 @@ pub(super) fn check_expr_bin(
     match e.op {
         ast::BinOp::Or | ast::BinOp::And => check_expr_bin_bool(ck, e, e.op, lhs_type, rhs_type),
         ast::BinOp::Cmp(cmp) => check_expr_bin_cmp(ck, e, cmp, lhs_type, rhs_type),
-        ast::BinOp::Add => check_expr_bin_trait(
-            ck,
-            e,
-            e.op,
-            ck.sa.known.traits.add(),
-            "add",
-            lhs_type,
-            rhs_type,
-        ),
-        ast::BinOp::Sub => check_expr_bin_trait(
-            ck,
-            e,
-            e.op,
-            ck.sa.known.traits.sub(),
-            "sub",
-            lhs_type,
-            rhs_type,
-        ),
-        ast::BinOp::Mul => check_expr_bin_trait(
-            ck,
-            e,
-            e.op,
-            ck.sa.known.traits.mul(),
-            "mul",
-            lhs_type,
-            rhs_type,
-        ),
-        ast::BinOp::Div => check_expr_bin_trait(
-            ck,
-            e,
-            e.op,
-            ck.sa.known.traits.div(),
-            "div",
-            lhs_type,
-            rhs_type,
-        ),
-        ast::BinOp::Mod => check_expr_bin_trait(
-            ck,
-            e,
-            e.op,
-            ck.sa.known.traits.mod_(),
-            "modulo",
-            lhs_type,
-            rhs_type,
-        ),
-        ast::BinOp::BitOr => check_expr_bin_trait(
-            ck,
-            e,
-            e.op,
-            ck.sa.known.traits.bit_or(),
-            "bitor",
-            lhs_type,
-            rhs_type,
-        ),
-        ast::BinOp::BitAnd => check_expr_bin_trait(
-            ck,
-            e,
-            e.op,
-            ck.sa.known.traits.bit_and(),
-            "bitand",
-            lhs_type,
-            rhs_type,
-        ),
-        ast::BinOp::BitXor => check_expr_bin_trait(
-            ck,
-            e,
-            e.op,
-            ck.sa.known.traits.bit_xor(),
-            "bitxor",
-            lhs_type,
-            rhs_type,
-        ),
-        ast::BinOp::ShiftL => check_expr_bin_trait(
-            ck,
-            e,
-            e.op,
-            ck.sa.known.traits.shl(),
-            "shl",
-            lhs_type,
-            rhs_type,
-        ),
-        ast::BinOp::ArithShiftR => check_expr_bin_trait(
-            ck,
-            e,
-            e.op,
-            ck.sa.known.traits.sar(),
-            "sar",
-            lhs_type,
-            rhs_type,
-        ),
-        ast::BinOp::LogicalShiftR => check_expr_bin_trait(
-            ck,
-            e,
-            e.op,
-            ck.sa.known.traits.shr(),
-            "shr",
-            lhs_type,
-            rhs_type,
-        ),
+        ast::BinOp::Add => {
+            check_expr_bin_trait(
+                ck,
+                e,
+                e.op,
+                ck.sa.known.traits.add(),
+                "add",
+                lhs_type,
+                rhs_type,
+            )
+            .return_type
+        }
+        ast::BinOp::Sub => {
+            check_expr_bin_trait(
+                ck,
+                e,
+                e.op,
+                ck.sa.known.traits.sub(),
+                "sub",
+                lhs_type,
+                rhs_type,
+            )
+            .return_type
+        }
+        ast::BinOp::Mul => {
+            check_expr_bin_trait(
+                ck,
+                e,
+                e.op,
+                ck.sa.known.traits.mul(),
+                "mul",
+                lhs_type,
+                rhs_type,
+            )
+            .return_type
+        }
+        ast::BinOp::Div => {
+            check_expr_bin_trait(
+                ck,
+                e,
+                e.op,
+                ck.sa.known.traits.div(),
+                "div",
+                lhs_type,
+                rhs_type,
+            )
+            .return_type
+        }
+        ast::BinOp::Mod => {
+            check_expr_bin_trait(
+                ck,
+                e,
+                e.op,
+                ck.sa.known.traits.mod_(),
+                "modulo",
+                lhs_type,
+                rhs_type,
+            )
+            .return_type
+        }
+        ast::BinOp::BitOr => {
+            check_expr_bin_trait(
+                ck,
+                e,
+                e.op,
+                ck.sa.known.traits.bit_or(),
+                "bitor",
+                lhs_type,
+                rhs_type,
+            )
+            .return_type
+        }
+        ast::BinOp::BitAnd => {
+            check_expr_bin_trait(
+                ck,
+                e,
+                e.op,
+                ck.sa.known.traits.bit_and(),
+                "bitand",
+                lhs_type,
+                rhs_type,
+            )
+            .return_type
+        }
+        ast::BinOp::BitXor => {
+            check_expr_bin_trait(
+                ck,
+                e,
+                e.op,
+                ck.sa.known.traits.bit_xor(),
+                "bitxor",
+                lhs_type,
+                rhs_type,
+            )
+            .return_type
+        }
+        ast::BinOp::ShiftL => {
+            check_expr_bin_trait(
+                ck,
+                e,
+                e.op,
+                ck.sa.known.traits.shl(),
+                "shl",
+                lhs_type,
+                rhs_type,
+            )
+            .return_type
+        }
+        ast::BinOp::ArithShiftR => {
+            check_expr_bin_trait(
+                ck,
+                e,
+                e.op,
+                ck.sa.known.traits.sar(),
+                "sar",
+                lhs_type,
+                rhs_type,
+            )
+            .return_type
+        }
+        ast::BinOp::LogicalShiftR => {
+            check_expr_bin_trait(
+                ck,
+                e,
+                e.op,
+                ck.sa.known.traits.shr(),
+                "shr",
+                lhs_type,
+                rhs_type,
+            )
+            .return_type
+        }
         ast::BinOp::Assign
         | ast::BinOp::AddAssign
         | ast::BinOp::SubAssign
@@ -1560,6 +1577,11 @@ fn check_expr_bin_bool(
     SourceType::Bool
 }
 
+struct OpTraitInfo {
+    rhs_type: SourceType,
+    return_type: SourceType,
+}
+
 fn check_expr_bin_trait(
     ck: &mut TypeCheck,
     e: &ast::ExprBinType,
@@ -1568,7 +1590,7 @@ fn check_expr_bin_trait(
     trait_method_name: &str,
     lhs_type: SourceType,
     rhs_type: SourceType,
-) -> SourceType {
+) -> OpTraitInfo {
     let trait_ty = TraitType::from_trait_id(trait_id);
 
     let impl_match = find_impl(
@@ -1619,10 +1641,16 @@ fn check_expr_bin_trait(
             let return_type = method.return_type();
             ck.analysis.set_ty(e.id, return_type.clone());
 
-            return_type
+            OpTraitInfo {
+                rhs_type,
+                return_type,
+            }
         } else {
             ck.analysis.set_ty(e.id, ty_error());
-            ty_error()
+            OpTraitInfo {
+                rhs_type: ty_error(),
+                return_type: ty_error(),
+            }
         }
     } else if lhs_type.is_type_param()
         && implements_trait(ck.sa, lhs_type.clone(), ck.type_param_definition, trait_ty)
@@ -1672,7 +1700,10 @@ fn check_expr_bin_trait(
 
         ck.analysis.set_ty(e.id, return_type.clone());
 
-        return_type
+        OpTraitInfo {
+            rhs_type,
+            return_type,
+        }
     } else {
         if !lhs_type.is_error() && !rhs_type.is_error() {
             let lhs_type = ck.ty_name(&lhs_type);
@@ -1684,7 +1715,10 @@ fn check_expr_bin_trait(
 
         ck.analysis.set_ty(e.id, ty_error());
 
-        ty_error()
+        OpTraitInfo {
+            rhs_type: ty_error(),
+            return_type: ty_error(),
+        }
     }
 }
 

@@ -1,0 +1,7 @@
+fn main() {
+    let result = Array[Int]::new(10);
+    result(0) ^= 29;
+    assert(result(0) == 23);
+    result(0) ^= 7;
+    assert(result(0) == 16);
+}

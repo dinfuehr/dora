@@ -1,0 +1,15 @@
+struct MyInt(Int64)
+
+impl std::traits::Mod for MyInt {
+    fn modulo(rhs: MyInt): MyInt {
+        MyInt(self.0 % rhs.0)
+    }
+}
+
+fn main() {
+    let result = Array[MyInt]::new(MyInt(15));
+    result(0) %= MyInt(10);
+    assert(result(0).0 == 5);
+    result(0) %= MyInt(3);
+    assert(result(0).0 == 2);
+}

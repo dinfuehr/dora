@@ -1,0 +1,7 @@
+fn main() {
+    let result = Array[Int]::new(11);
+    result(0) >>>= 1i32;
+    assert(result(0) == 5);
+    result(0) >>>= 1i32;
+    assert(result(0) == 2);
+}

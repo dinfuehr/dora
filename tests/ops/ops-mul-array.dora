@@ -1,0 +1,15 @@
+struct MyInt(Int64)
+
+impl std::traits::Mul for MyInt {
+    fn mul(rhs: MyInt): MyInt {
+        MyInt(self.0 * rhs.0)
+    }
+}
+
+fn main() {
+    let result = Array[MyInt]::new(MyInt(5));
+    result(0) *= MyInt(2);
+    assert(result(0).0 == 10);
+    result(0) *= MyInt(3);
+    assert(result(0).0 == 30);
+}

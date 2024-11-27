@@ -1,0 +1,15 @@
+struct MyInt(Int64)
+
+impl std::traits::Sar for MyInt {
+    fn sar(rhs: Int32): MyInt {
+        MyInt(self.0 >> rhs)
+    }
+}
+
+fn main() {
+    let result = Array[MyInt]::new(MyInt(11));
+    result(0) >>= 1i32;
+    assert(result(0).0 == 5);
+    result(0) >>= 1i32;
+    assert(result(0).0 == 2);
+}

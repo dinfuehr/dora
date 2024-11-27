@@ -1,0 +1,9 @@
+class Foo { value: Int }
+
+fn main() {
+    let result = Array[Int]::new(1);
+    result(0) <<= 2i32;
+    assert(result(0) == 4);
+    result(0) <<= 1i32;
+    assert(result(0) == 8);
+}
