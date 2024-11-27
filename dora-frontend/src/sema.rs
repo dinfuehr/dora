@@ -36,10 +36,10 @@ pub use self::modules::{module_package, module_path, ModuleDefinition, ModuleDef
 pub use self::packages::{PackageDefinition, PackageDefinitionId, PackageName};
 pub use self::source_files::{SourceFile, SourceFileId};
 pub use self::src::{
-    AnalysisData, CallType, ContextData, ContextFieldId, ForTypeInfo, IdentType, InnerContextId,
-    LazyContextClassCreationData, LazyContextData, LazyLambdaCreationData, LazyLambdaId,
-    NestedScopeId, NestedVarId, NodeMap, OuterContextIdx, ScopeId, Var, VarAccess, VarId,
-    VarLocation,
+    AnalysisData, ArrayAssignment, CallType, ContextData, ContextFieldId, ForTypeInfo, IdentType,
+    InnerContextId, LazyContextClassCreationData, LazyContextData, LazyLambdaCreationData,
+    LazyLambdaId, NestedScopeId, NestedVarId, NodeMap, OuterContextIdx, ScopeId, Var, VarAccess,
+    VarId, VarLocation,
 };
 pub use self::structs::{
     StructDefinition, StructDefinitionField, StructDefinitionFieldId, StructDefinitionId,

@@ -436,7 +436,7 @@ pub(super) fn check_args_compatible_fct(
         ck,
         callee.params.regular_params(),
         callee.params.variadic_param(),
-        args,
+        &args,
         type_params,
         self_ty,
     );
@@ -446,7 +446,7 @@ pub(super) fn check_args_compatible(
     ck: &TypeCheck,
     regular_params: &[Param],
     variadic_param: Option<&Param>,
-    args: CallArguments,
+    args: &CallArguments,
     type_params: &SourceTypeArray,
     self_ty: Option<SourceType>,
 ) {

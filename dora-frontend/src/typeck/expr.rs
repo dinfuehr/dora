@@ -10,18 +10,17 @@ use crate::error::msg::ErrorMessage;
 use crate::interner::Name;
 use crate::program_parser::ParsedModifierList;
 use crate::sema::{
-    create_tuple, find_field_in_class, find_impl, implements_trait, AnalysisData, CallType,
-    ConstValue, EnumDefinitionId, FctDefinition, FctParent, IdentType, Intrinsic,
+    create_tuple, find_field_in_class, find_impl, implements_trait, AnalysisData, ArrayAssignment,
+    CallType, ConstValue, EnumDefinitionId, FctDefinition, FctParent, IdentType, Intrinsic,
     LazyLambdaCreationData, LazyLambdaId, ModuleDefinitionId, NestedVarId, Param, Params, Sema,
     SourceFileId, TraitDefinitionId,
 };
-use crate::specialize_type;
 use crate::ty::TraitType;
 use crate::typeck::{
-    arg_allows, check_args_compatible, check_expr_break_and_continue, check_expr_call,
-    check_expr_for, check_expr_if, check_expr_match, check_expr_return, check_expr_while,
-    check_lit_char, check_lit_float, check_lit_int, check_lit_str, check_pattern, check_stmt,
-    create_call_arguments, is_simple_enum, TypeCheck,
+    check_expr_break_and_continue, check_expr_call, check_expr_for, check_expr_if,
+    check_expr_match, check_expr_return, check_expr_while, check_lit_char, check_lit_float,
+    check_lit_int, check_lit_str, check_pattern, check_stmt, create_call_arguments, is_simple_enum,
+    TypeCheck,
 };
 use crate::typeparamck;
 use crate::{replace_type, ty::error as ty_error, SourceType, SourceTypeArray, SymbolKind};
@@ -422,15 +421,122 @@ fn check_assign_type(
 
 fn check_expr_assign_call(ck: &mut TypeCheck, e: &ast::ExprBinType) {
     let call = e.lhs.to_call().unwrap();
-    let expr_type = check_expr(ck, &call.callee, SourceType::Any);
+    let object_type = check_expr(ck, &call.callee, SourceType::Any);
 
     let args = create_call_arguments(ck, call);
 
     let value_type = check_expr(ck, &e.rhs, SourceType::Any);
     ck.analysis.set_ty(e.rhs.id(), value_type.clone());
 
-    let trait_id = ck.sa.known.traits.index_set();
+    let mut array_assignment = ArrayAssignment::new();
+    let index_type;
+    let item_type;
+
+    if e.op == ast::BinOp::Assign {
+        (index_type, item_type) =
+            check_index_trait_on_ty(ck, e, &mut array_assignment, object_type.clone(), false);
+    } else {
+        let (index_get_index, index_get_item) =
+            check_index_trait_on_ty(ck, e, &mut array_assignment, object_type.clone(), true);
+
+        let (index_set_index, index_set_item) =
+            check_index_trait_on_ty(ck, e, &mut array_assignment, object_type.clone(), false);
+
+        if (index_get_index != index_set_index
+            && !index_get_index.is_error()
+            && !index_set_index.is_error())
+            || (index_get_item != index_set_item
+                && !index_get_item.is_error()
+                && !index_set_item.is_error())
+        {
+            ck.sa.report(
+                ck.file_id,
+                call.callee.span(),
+                ErrorMessage::IndexGetAndIndexSetDoNotMatch,
+            );
+        }
+
+        index_type = index_get_index;
+        item_type = index_get_item.clone();
+
+        check_assign_type(ck, e, index_get_item, value_type.clone());
+    }
+
+    let arg_index_type = args
+        .arguments
+        .get(0)
+        .map(|a| ck.analysis.ty(a.id))
+        .unwrap_or(ty_error());
+
+    if !index_type.allows(ck.sa, arg_index_type.clone()) && !index_type.is_error() {
+        let arg = &args.arguments[0];
+
+        let exp = ck.ty_name(&index_type);
+        let got = ck.ty_name(&arg_index_type);
+
+        ck.sa.report(
+            ck.file_id,
+            arg.span,
+            ErrorMessage::WrongTypeForArgument(exp, got),
+        );
+    }
+
+    if !item_type.allows(ck.sa, value_type.clone())
+        && !item_type.is_error()
+        && !value_type.is_error()
+    {
+        let exp = ck.ty_name(&item_type);
+        let got = ck.ty_name(&value_type);
+
+        ck.sa.report(
+            ck.file_id,
+            e.rhs.span(),
+            ErrorMessage::WrongTypeForArgument(exp, got),
+        );
+    }
+
+    for arg in &args.arguments {
+        if let Some(ref name) = arg.name {
+            ck.sa
+                .report(ck.file_id, name.span, ErrorMessage::UnexpectedNamedArgument);
+        }
+    }
+
+    if args.arguments.len() > 1 {
+        for arg in &args.arguments[1..] {
+            ck.sa
+                .report(ck.file_id, arg.span, ErrorMessage::SuperfluousArgument);
+        }
+    }
+
+    ck.analysis.set_ty(e.id, SourceType::Unit);
+    array_assignment.item_ty = Some(item_type);
+    ck.analysis
+        .map_array_assignments
+        .insert(e.id, array_assignment);
+}
+
+fn check_index_trait_on_ty(
+    ck: &mut TypeCheck,
+    e: &ast::ExprBinType,
+    array_assignment: &mut ArrayAssignment,
+    expr_type: SourceType,
+    is_get: bool,
+) -> (SourceType, SourceType) {
+    let trait_id;
+    let method_name;
+
+    if is_get {
+        trait_id = ck.sa.known.traits.index_get();
+        method_name = "get";
+    } else {
+        trait_id = ck.sa.known.traits.index_set();
+        method_name = "set";
+    };
+
     let trait_ty = TraitType::from_trait_id(trait_id);
+
+    let call = e.lhs.to_call().expect("call expected");
 
     let impl_match = find_impl(
         ck.sa,
@@ -440,11 +546,14 @@ fn check_expr_assign_call(ck: &mut TypeCheck, e: &ast::ExprBinType) {
     );
 
     if let Some(impl_match) = impl_match {
-        let trait_method_name = ck.sa.interner.intern("set");
+        let trait_method_name = ck.sa.interner.intern(method_name);
         let trait_ = ck.sa.trait_(trait_id);
         let trait_method_id = trait_
             .get_method(trait_method_name, false)
             .expect("missing method");
+        let index_name = ck.sa.interner.intern("Index");
+        let trait_index_type_alias_id =
+            trait_.alias_names().get(&index_name).expect("missing Item");
         let item_name = ck.sa.interner.intern("Item");
         let trait_item_type_alias_id = trait_.alias_names().get(&item_name).expect("missing Item");
         let method_id = ck
@@ -454,6 +563,14 @@ fn check_expr_assign_call(ck: &mut TypeCheck, e: &ast::ExprBinType) {
             .expect("method not found");
 
         let impl_ = ck.sa.impl_(impl_match.id);
+
+        let impl_index_type_alias_id = impl_
+            .trait_alias_map()
+            .get(&trait_index_type_alias_id)
+            .cloned()
+            .expect("missing alias");
+        let impl_index_type_alias = ck.sa.alias(impl_index_type_alias_id);
+
         let impl_item_type_alias_id = impl_
             .trait_alias_map()
             .get(&trait_item_type_alias_id)
@@ -461,40 +578,45 @@ fn check_expr_assign_call(ck: &mut TypeCheck, e: &ast::ExprBinType) {
             .expect("missing alias");
         let impl_item_type_alias = ck.sa.alias(impl_item_type_alias_id);
 
-        let call_type = CallType::Expr(expr_type.clone(), method_id, impl_match.bindings.clone());
-        ck.analysis
-            .map_calls
-            .insert_or_replace(e.id, Arc::new(call_type));
+        let call_type = Arc::new(CallType::Expr(
+            expr_type.clone(),
+            method_id,
+            impl_match.bindings.clone(),
+        ));
+        if is_get {
+            array_assignment.index_get = Some(call_type);
+        } else {
+            array_assignment.index_set = Some(call_type);
+        }
 
-        let method = ck.sa.fct(method_id);
-        let index_param = &method.params.params[1..2];
-        check_args_compatible(ck, index_param, None, args, &impl_match.bindings, None);
+        let impl_index_type_alias_ty = impl_index_type_alias.ty();
+        let impl_index_type_alias_ty = replace_type(
+            ck.sa,
+            impl_index_type_alias_ty,
+            Some(&impl_match.bindings),
+            Some(expr_type.clone()),
+        );
 
         let impl_item_type_alias_ty = impl_item_type_alias.ty();
-        let impl_item_type_alias_ty =
-            specialize_type(ck.sa, impl_item_type_alias_ty, &impl_match.bindings);
-        if !arg_allows(
+        let impl_item_type_alias_ty = replace_type(
             ck.sa,
-            impl_item_type_alias_ty.clone(),
-            value_type.clone(),
-            None,
-        ) && !value_type.is_error()
-        {
-            let exp = ck.ty_name(&impl_item_type_alias_ty);
-            let got = ck.ty_name(&value_type);
-            ck.sa.report(
-                ck.file_id,
-                e.rhs.span(),
-                ErrorMessage::WrongTypeForArgument(exp, got),
-            );
-        }
+            impl_item_type_alias_ty,
+            Some(&impl_match.bindings),
+            Some(expr_type),
+        );
+
+        (impl_index_type_alias_ty, impl_item_type_alias_ty)
     } else {
         let ty = ck.ty_name(&expr_type);
-        ck.sa.report(
-            ck.file_id,
-            call.callee.span(),
-            ErrorMessage::IndexSetNotImplemented(ty),
-        );
+        let msg = if is_get {
+            ErrorMessage::IndexGetNotImplemented(ty)
+        } else {
+            assert_eq!(method_name, "set");
+            ErrorMessage::IndexSetNotImplemented(ty)
+        };
+        ck.sa.report(ck.file_id, call.callee.span(), msg);
+
+        (ty_error(), ty_error())
     }
 }
 
@@ -1483,7 +1605,10 @@ fn check_expr_bin_trait(
             let param = params[0].ty();
             let param = replace_type(ck.sa, param, Some(&type_params), None);
 
-            if !param.allows(ck.sa, rhs_type.clone()) {
+            if !param.allows(ck.sa, rhs_type.clone())
+                && !lhs_type.is_error()
+                && !rhs_type.is_error()
+            {
                 let lhs_type = ck.ty_name(&lhs_type);
                 let rhs_type = ck.ty_name(&rhs_type);
                 let msg = ErrorMessage::BinOpType(op.as_str().into(), lhs_type, rhs_type);
@@ -1549,11 +1674,13 @@ fn check_expr_bin_trait(
 
         return_type
     } else {
-        let lhs_type = ck.ty_name(&lhs_type);
-        let rhs_type = ck.ty_name(&rhs_type);
-        let msg = ErrorMessage::BinOpType(op.as_str().into(), lhs_type, rhs_type);
+        if !lhs_type.is_error() && !rhs_type.is_error() {
+            let lhs_type = ck.ty_name(&lhs_type);
+            let rhs_type = ck.ty_name(&rhs_type);
+            let msg = ErrorMessage::BinOpType(op.as_str().into(), lhs_type, rhs_type);
 
-        ck.sa.report(ck.file_id, e.span, msg);
+            ck.sa.report(ck.file_id, e.span, msg);
+        }
 
         ck.analysis.set_ty(e.id, ty_error());
 

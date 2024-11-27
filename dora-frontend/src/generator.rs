@@ -2562,33 +2562,72 @@ impl<'a> AstBytecodeGen<'a> {
         let index = &call_expr.args[0].expr;
         let value = &expr.rhs;
 
-        if let Some(info) = self.get_intrinsic(expr.id) {
-            match info.intrinsic {
-                Intrinsic::ArraySet => {
-                    let result = self.emit_intrinsic_array_set(
-                        object,
-                        index,
-                        value,
-                        self.loc(expr.span),
-                        DataDest::Alloc,
-                    );
-                    self.free_if_temp(result);
-                }
-                _ => panic!("unexpected intrinsic {:?}", info.intrinsic),
-            }
-        } else {
-            let call_type = self.analysis.map_calls.get(expr.id).unwrap();
+        let obj_reg = gen_expr(self, object, DataDest::Alloc);
+        let idx_reg = gen_expr(self, index, DataDest::Alloc);
+        let val_reg = gen_expr(self, value, DataDest::Alloc);
+
+        let array_assignment = self
+            .analysis
+            .map_array_assignments
+            .get(expr.id)
+            .expect("missing assignment data")
+            .clone();
+
+        let location = self.loc(expr.span);
+
+        let assign_value = if expr.op != ast::BinOp::Assign {
+            let ty = register_bty_from_ty(array_assignment.item_ty.expect("missing item type"));
+            let current = self.alloc_temp(ty);
+
+            let call_type = array_assignment.index_get.expect("missing index_get");
             let fct_id = call_type.fct_id().unwrap();
+            let fct = self.sa.fct(fct_id);
 
-            let obj_reg = gen_expr(self, object, DataDest::Alloc);
-            let idx_reg = gen_expr(self, index, DataDest::Alloc);
-            let val_reg = gen_expr(self, value, DataDest::Alloc);
+            if let Some(intrinsic) = fct.intrinsic.get() {
+                assert_eq!(*intrinsic, Intrinsic::ArrayGet);
+                self.builder
+                    .emit_load_array(current, obj_reg, idx_reg, location);
+            } else {
+                let obj_ty = self.ty(object.id());
 
+                self.builder.emit_push_register(obj_reg);
+                self.builder.emit_push_register(idx_reg);
+
+                let type_params = obj_ty.type_params();
+
+                let callee_idx = self.builder.add_const_fct_types(
+                    FunctionId(fct_id.index().try_into().expect("overflow")),
+                    bty_array_from_ty(&type_params),
+                );
+                self.builder
+                    .emit_invoke_direct(current, callee_idx, location);
+            }
+
+            if let Some(info) = self.get_intrinsic(expr.id) {
+                gen_intrinsic_bin(self, info.intrinsic, current, current, val_reg, location);
+            } else {
+                gen_method_bin(self, expr, current, current, val_reg, location);
+            }
+
+            current
+        } else {
+            val_reg
+        };
+
+        let call_type = array_assignment.index_set.expect("missing index_set");
+        let fct_id = call_type.fct_id().unwrap();
+        let fct = self.sa.fct(fct_id);
+
+        if let Some(intrinsic) = fct.intrinsic.get() {
+            assert_eq!(*intrinsic, Intrinsic::ArraySet);
+            self.builder
+                .emit_store_array(assign_value, obj_reg, idx_reg, location);
+        } else {
             let obj_ty = self.ty(object.id());
 
             self.builder.emit_push_register(obj_reg);
             self.builder.emit_push_register(idx_reg);
-            self.builder.emit_push_register(val_reg);
+            self.builder.emit_push_register(assign_value);
 
             let type_params = obj_ty.type_params();
 
@@ -2597,13 +2636,13 @@ impl<'a> AstBytecodeGen<'a> {
                 bty_array_from_ty(&type_params),
             );
             let dest = self.ensure_unit_register();
-            self.builder
-                .emit_invoke_direct(dest, callee_idx, self.loc(expr.span));
-
-            self.free_if_temp(obj_reg);
-            self.free_if_temp(idx_reg);
-            self.free_if_temp(val_reg);
+            self.builder.emit_invoke_direct(dest, callee_idx, location);
         }
+
+        self.free_if_temp(obj_reg);
+        self.free_if_temp(idx_reg);
+        self.free_if_temp(val_reg);
+        self.free_if_temp(assign_value);
     }
 
     fn visit_expr_assign_dot(&mut self, expr: &ast::ExprBinType, dot: &ast::ExprDotType) {

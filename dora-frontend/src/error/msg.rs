@@ -215,6 +215,7 @@ pub enum ErrorMessage {
     ExpectedNamedPattern,
     IndexGetNotImplemented(String),
     IndexSetNotImplemented(String),
+    IndexGetAndIndexSetDoNotMatch,
 }
 
 impl ErrorMessage {
@@ -742,6 +743,9 @@ impl ErrorMessage {
             }
             ErrorMessage::IndexSetNotImplemented(ref ty) => {
                 format!("Type `{}` does not implement trait IndexGet.", ty)
+            }
+            ErrorMessage::IndexGetAndIndexSetDoNotMatch => {
+                format!("`IndexGet` and `IndexSet` do not match for both `Index` and `Item`.")
             }
         }
     }

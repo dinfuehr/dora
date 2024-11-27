@@ -8,12 +8,10 @@ use dora_parser::ast;
 
 use crate::sema::{
     ClassDefinition, ClassDefinitionId, ConstDefinitionId, ConstValue, EnumDefinitionId,
-    FctDefinitionId, FieldId, GlobalDefinitionId, Intrinsic, StructDefinitionFieldId,
-    StructDefinitionId, TraitDefinitionId, TypeParamId,
+    FctDefinition, FctDefinitionId, FieldId, GlobalDefinitionId, Intrinsic,
+    StructDefinitionFieldId, StructDefinitionId, TraitDefinitionId, TypeParamId,
 };
 use crate::ty::{SourceType, SourceTypeArray};
-
-use super::FctDefinition;
 
 #[derive(Debug)]
 pub struct AnalysisData {
@@ -30,6 +28,7 @@ pub struct AnalysisData {
     pub map_block_contexts: NodeMap<LazyContextData>,
     pub map_argument: NodeMap<usize>,
     pub map_field_ids: NodeMap<usize>,
+    pub map_array_assignments: NodeMap<ArrayAssignment>,
 
     // All variables defined in this function (including
     // context allocated ones).
@@ -56,6 +55,7 @@ impl AnalysisData {
             map_block_contexts: NodeMap::new(),
             map_argument: NodeMap::new(),
             map_field_ids: NodeMap::new(),
+            map_array_assignments: NodeMap::new(),
 
             vars: VarAccess::empty(),
             function_context_data: OnceCell::new(),
@@ -223,6 +223,23 @@ where
 
 #[derive(Debug, Copy, Clone)]
 pub struct OuterContextIdx(pub usize);
+
+#[derive(Debug, Clone)]
+pub struct ArrayAssignment {
+    pub index_get: Option<Arc<CallType>>,
+    pub index_set: Option<Arc<CallType>>,
+    pub item_ty: Option<SourceType>,
+}
+
+impl ArrayAssignment {
+    pub fn new() -> ArrayAssignment {
+        ArrayAssignment {
+            index_get: None,
+            index_set: None,
+            item_ty: None,
+        }
+    }
+}
 
 #[derive(Debug, Clone)]
 pub enum IdentType {

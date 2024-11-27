@@ -239,7 +239,7 @@ fn check_expr_call_expr_lambda(
         ck,
         regular_params.as_slice(),
         None,
-        arguments,
+        &arguments,
         &type_params,
         None,
     );

@@ -5599,3 +5599,102 @@ fn sub_assign_operator_for_int() {
         ErrorMessage::BinOpType("-=".into(), "Int64".into(), "Int32".into()),
     );
 }
+
+#[test]
+fn array_compound_assignment() {
+    ok("
+        fn f(array: Array[Int], value: Int) {
+            array(99) += value;
+        }
+
+        fn g(array: Array[Int], value: Int) {
+            array(87) -= value;
+        }
+    ");
+}
+
+#[test]
+fn array_compound_assignment_missing_op_trait() {
+    err(
+        "
+        fn f(array: Array[Float64], value: Float64) {
+            array(99) %= value;
+        }
+    ",
+        (3, 13),
+        ErrorMessage::BinOpType("%=".into(), "Float64".into(), "Float64".into()),
+    );
+}
+
+#[test]
+fn array_compound_assignment_missing_index_get() {
+    err(
+        "
+        struct Foo(Int)
+
+        impl std::traits::IndexSet for Foo {
+            type Index = Int;
+            type Item = Float64;
+
+            fn set(index: Int, value: Float64) {}
+        }
+
+        fn f(array: Foo, value: Float64) {
+            array(99) += value;
+        }
+    ",
+        (12, 13),
+        ErrorMessage::IndexGetNotImplemented("Foo".into()),
+    );
+}
+
+#[test]
+fn array_compound_assignment_missing_index_set() {
+    err(
+        "
+        struct Foo(Int)
+
+        impl std::traits::IndexGet for Foo {
+            type Index = Int;
+            type Item = Float64;
+
+            fn get(index: Int): Float64 { 0.0 }
+        }
+
+        fn f(array: Foo, value: Float64) {
+            array(99) += value;
+        }
+    ",
+        (12, 13),
+        ErrorMessage::IndexSetNotImplemented("Foo".into()),
+    );
+}
+
+#[test]
+fn array_compound_assignment_mismatch() {
+    err(
+        "
+        struct Foo(Int)
+
+        impl std::traits::IndexGet for Foo {
+            type Index = Int;
+            type Item = Float64;
+
+            fn get(index: Int): Float64 { 0.0 }
+        }
+
+        impl std::traits::IndexSet for Foo {
+            type Index = Int;
+            type Item = Float32;
+
+            fn set(index: Int, value: Float32) {}
+        }
+
+        fn f(array: Foo, value: Float64) {
+            array(99) += value;
+        }
+    ",
+        (19, 13),
+        ErrorMessage::IndexGetAndIndexSetDoNotMatch,
+    );
+}
