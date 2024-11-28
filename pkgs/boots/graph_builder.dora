@@ -172,7 +172,7 @@ impl SsaGen {
 
         if retTy.isStruct() || retTy.isTuple() {
             let argInst = graph::createArgInst(argIdx, Type::Address);
-            argIdx = argIdx + 1i32;
+            argIdx += 1i32;
             block.appendInst(argInst);
             self.returnValueArgInst = Some[Inst](argInst);
         }
@@ -186,10 +186,10 @@ impl SsaGen {
                 let argInst = graph::createArgInst(argIdx, ty);
                 block.appendInst(argInst);
                 self.writeVariable(BytecodeRegister(regIdx), block, argInst);
-                argIdx = argIdx + 1i32;
+                argIdx += 1i32;
             }
 
-            regIdx = regIdx + 1i32;
+            regIdx += 1i32;
         }
     }
 
@@ -200,7 +200,7 @@ impl SsaGen {
         if retTy.isStruct() || retTy.isTuple() {
             let arg = callInst.getInput(argIdx).getValue();
             self.returnValueArgInst = Some[Inst](arg);
-            argIdx = argIdx + 1;
+            argIdx += 1;
         }
 
         let mut regIdx = 0i32;
@@ -211,10 +211,10 @@ impl SsaGen {
             if !ty.isUnit() {
                 let arg = callInst.getInput(argIdx).getValue();
                 self.writeVariable(BytecodeRegister(regIdx), block, arg);
-                argIdx = argIdx + 1;
+                argIdx += 1;
             }
 
-            regIdx = regIdx + 1i32;
+            regIdx += 1i32;
         }
     }
 
@@ -2128,7 +2128,7 @@ impl SsaGen {
                 self.storeField(argTy, objInst, info, offset, arg, true);
             }
 
-            field_id = field_id + 1i32;
+            field_id += 1i32;
         }
 
         self.pushed_registers.clear();
@@ -2202,7 +2202,7 @@ impl SsaGen {
                 self.storeField(field.ty, allocInst, info, field.offset, arg, false);
             }
 
-            fieldId = fieldId + 1i32;
+            fieldId += 1i32;
         }
 
         self.pushed_registers.clear();
@@ -2259,7 +2259,7 @@ impl SsaGen {
                         self.storeField(argTy, objInst, InstExtraData::None, offset, arg, true);
                     }
 
-                    field_id = field_id + 1i32;
+                    field_id += 1i32;
                 }
             }
         }
@@ -2282,7 +2282,7 @@ impl SsaGen {
                 let reg = self.pushed_registers(regIdx);
                 let arg = self.readVariable(reg, self.current());
                 self.storeField(field.ty, allocInst, InstExtraData::None, field.offset, arg, false);
-                regIdx = regIdx + 1;
+                regIdx += 1;
             }
         }
 
@@ -2788,7 +2788,7 @@ fn countPredecessors(bc: BytecodeFunction, starts: BitSet): Array[Int32] {
 
     let pushOnWorklist = |offset: Int64| {
         assert(starts.contains(offset));
-        predecessorCounts(offset) = predecessorCounts(offset) + 1i32;
+        predecessorCounts(offset) += 1i32;
         if predecessorCounts(offset) == 1i32 {
             worklist.push(offset);
         }

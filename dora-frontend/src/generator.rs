@@ -2546,6 +2546,16 @@ impl<'a> AstBytecodeGen<'a> {
                 _ => unreachable!(),
             }
             self.free_if_temp(value_reg);
+        } else if expr.lhs.is_path() {
+            let value_reg = gen_expr(self, &expr.rhs, DataDest::Alloc);
+            let ident_type = self.analysis.map_idents.get(expr.lhs.id()).unwrap();
+            match ident_type {
+                &IdentType::Global(gid) => {
+                    self.visit_expr_assign_global(expr, gid, value_reg);
+                }
+                _ => unreachable!(),
+            }
+            self.free_if_temp(value_reg);
         } else {
             match *expr.lhs {
                 ast::ExprData::Dot(ref dot) => self.visit_expr_assign_dot(expr, dot),

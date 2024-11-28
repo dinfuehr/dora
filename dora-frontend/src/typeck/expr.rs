@@ -197,6 +197,8 @@ pub(super) fn check_expr_assign(ck: &mut TypeCheck, e: &ast::ExprBinType) {
         check_expr_assign_field(ck, e);
     } else if e.lhs.is_ident() {
         check_expr_assign_ident(ck, e);
+    } else if e.lhs.is_path() {
+        check_expr_assign_path(ck, e);
     } else {
         ck.sa
             .report(ck.file_id, e.span, ErrorMessage::LvalueExpected);
@@ -205,9 +207,30 @@ pub(super) fn check_expr_assign(ck: &mut TypeCheck, e: &ast::ExprBinType) {
     ck.analysis.set_ty(e.id, SourceType::Unit);
 }
 
-fn check_expr_assign_ident(ck: &mut TypeCheck, e: &ast::ExprBinType) {
-    ck.analysis.set_ty(e.id, SourceType::Unit);
+fn check_expr_assign_path(ck: &mut TypeCheck, e: &ast::ExprBinType) {
+    let lhs_type = match read_path_expr(ck, &e.lhs) {
+        Ok(Some(SymbolKind::Global(global_id))) => {
+            let global = ck.sa.global(global_id);
+            ck.analysis
+                .map_idents
+                .insert(e.lhs.id(), IdentType::Global(global_id));
+            global.ty()
+        }
 
+        Ok(_) => {
+            let msg = ErrorMessage::LvalueExpected;
+            ck.sa.report(ck.file_id, e.lhs.span(), msg);
+            ty_error()
+        }
+
+        Err(()) => ty_error(),
+    };
+
+    let rhs_type = check_expr(ck, &e.rhs, lhs_type.clone());
+    check_assign_type(ck, e, lhs_type, rhs_type);
+}
+
+fn check_expr_assign_ident(ck: &mut TypeCheck, e: &ast::ExprBinType) {
     let lhs_ident = e.lhs.to_ident().unwrap();
     let sym = ck.symtable.get_string(ck.sa, &lhs_ident.name);
 

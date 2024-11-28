@@ -1,0 +1,12 @@
+mod foo {
+    pub mod bar {
+        pub let mut result: Int = 1;
+    }
+}
+
+fn main() {
+    foo::bar::result += 2;
+    assert(foo::bar::result == 3);
+    foo::bar::result += 2;
+    assert(foo::bar::result == 5);
+}

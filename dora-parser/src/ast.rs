@@ -1699,14 +1699,14 @@ impl ExprData {
         }
     }
 
-    pub fn needs_semicolon(&self) -> bool {
+    pub fn is_blocklike(&self) -> bool {
         match self {
-            &ExprData::Block(_) => false,
-            &ExprData::If(_) => false,
-            &ExprData::Match(_) => false,
-            &ExprData::For(_) => false,
-            &ExprData::While(_) => false,
-            _ => true,
+            &ExprData::Block(_) => true,
+            &ExprData::If(_) => true,
+            &ExprData::Match(_) => true,
+            &ExprData::For(_) => true,
+            &ExprData::While(_) => true,
+            _ => false,
         }
     }
 

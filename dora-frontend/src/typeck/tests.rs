@@ -5698,3 +5698,33 @@ fn array_compound_assignment_mismatch() {
         ErrorMessage::IndexGetAndIndexSetDoNotMatch,
     );
 }
+
+#[test]
+fn assign_to_global_with_path() {
+    ok("
+        mod foo {
+            pub mod bar {
+                let x: Int = 0;
+            }
+        }
+
+        fn f(value: Int) {
+            foo::bar::x = value;
+        }
+    ");
+}
+
+#[test]
+fn avoid_call_after_block() {
+    ok("
+        fn f(value: Bool): (Int, Int) {
+            if (value) {
+                1
+            } else {
+                2
+            }
+
+            (1, 2)
+        }
+    ");
+}
