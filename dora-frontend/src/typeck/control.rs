@@ -347,6 +347,7 @@ pub(super) fn check_expr_match(
     expected_ty: SourceType,
 ) -> SourceType {
     let expr_type = check_expr(ck, &node.expr, SourceType::Any);
+    ck.analysis.set_ty(node.expr.id(), expr_type.clone());
     let mut result_type = ty::error();
 
     for arm in &node.arms {
