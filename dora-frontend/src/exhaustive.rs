@@ -29,6 +29,7 @@ impl<'a> Visitor for Exhaustiveness<'a> {
         match *e {
             ast::ExprData::Match(ref expr) => {
                 check_coverage(self.sa, self.analysis, self.file_id, expr);
+                visit::walk_expr(self, e);
             }
             ast::ExprData::Lambda(..) => (),
             _ => {

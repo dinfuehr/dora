@@ -325,6 +325,12 @@ pub fn walk_expr<V: Visitor>(v: &mut V, e: &ExprData) {
 
         ExprData::Match(ref value) => {
             v.visit_expr(&value.expr);
+            for arm in &value.arms {
+                if let Some(ref cond) = arm.cond {
+                    v.visit_expr(cond);
+                }
+                v.visit_expr(&arm.value);
+            }
         }
 
         ExprData::Return(ref value) => {
