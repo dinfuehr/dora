@@ -2324,20 +2324,6 @@ pub(super) fn check_type(
     }
 }
 
-pub(super) fn read_ident(ck: &mut TypeCheck, ident: &ast::IdentData) -> Result<SymbolKind, ()> {
-    let sym = ck.symtable.get_string(ck.sa, &ident.name_as_string);
-
-    if let Some(sym) = sym {
-        Ok(sym)
-    } else {
-        let name = ident.name_as_string.clone();
-        let msg = ErrorMessage::UnknownIdentifier(name);
-        ck.sa.report(ck.file_id, ident.span, msg);
-
-        Err(())
-    }
-}
-
 pub(super) fn read_path(ck: &mut TypeCheck, path: &ast::PathData) -> Result<SymbolKind, ()> {
     let names = &path.segments;
     let mut sym = ck.symtable.get_string(

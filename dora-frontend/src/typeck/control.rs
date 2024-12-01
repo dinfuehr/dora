@@ -1,14 +1,12 @@
 use std::sync::Arc;
 
 use dora_parser::ast;
-use fixedbitset::FixedBitSet;
 
 use crate::error::msg::ErrorMessage;
 use crate::expr_always_returns;
 use crate::sema::{find_impl, FctDefinitionId, ForTypeInfo};
-use crate::sym::SymbolKind;
 use crate::ty::{self, TraitType};
-use crate::typeck::{check_expr, check_pattern, read_ident, read_path, TypeCheck};
+use crate::typeck::{check_expr, check_pattern, TypeCheck};
 use crate::{specialize_type, SourceType, SourceTypeArray};
 
 pub(super) fn check_expr_while(
@@ -362,8 +360,6 @@ pub(super) fn check_expr_match(
         ck.symtable.pop_level();
     }
 
-    check_coverage(ck, node, expr_type);
-
     ck.analysis.set_ty(node.id, result_type.clone());
 
     result_type
@@ -401,114 +397,6 @@ fn check_expr_match_arm(
         let arm_ty_name = ck.ty_name(&arm_ty);
         let msg = ErrorMessage::MatchBranchTypesIncompatible(result_type_name, arm_ty_name);
         ck.sa.report(ck.file_id, arm.value.span(), msg);
-    }
-}
-
-fn check_coverage(ck: &mut TypeCheck, node: &ast::ExprMatchType, expr_type: SourceType) {
-    if !expr_type.is_enum() {
-        ck.sa
-            .report(ck.file_id, node.expr.span(), ErrorMessage::EnumExpected);
-        return;
-    }
-
-    let enum_id = expr_type.enum_id().expect("enum expected");
-
-    let enum_ = ck.sa.enum_(enum_id);
-    let enum_variants = enum_.variants().len();
-
-    let mut used_variants = FixedBitSet::with_capacity(enum_variants);
-
-    for arm in &node.arms {
-        if arm.cond.is_some() {
-            continue;
-        }
-
-        let pattern = arm.pattern.as_ref();
-        for pattern in &pattern.alts {
-            match pattern.as_ref() {
-                ast::PatternAlt::Underscore(..) => {
-                    let mut negated_used_variants = used_variants.clone();
-                    negated_used_variants.toggle_range(..);
-
-                    if negated_used_variants.count_ones(..) == 0 {
-                        let msg = ErrorMessage::MatchUnreachablePattern;
-                        ck.sa.report(ck.file_id, arm.span, msg);
-                    }
-
-                    used_variants.insert_range(..);
-                }
-
-                ast::PatternAlt::Rest(..) => unreachable!(),
-
-                ast::PatternAlt::LitBool(..)
-                | ast::PatternAlt::LitChar(..)
-                | ast::PatternAlt::LitString(..)
-                | ast::PatternAlt::LitInt(..)
-                | ast::PatternAlt::LitFloat(..)
-                | ast::PatternAlt::Tuple(..) => unreachable!(),
-
-                ast::PatternAlt::Ident(ref ident) => {
-                    let sym = read_ident(ck, &ident.name);
-
-                    match sym {
-                        Ok(SymbolKind::EnumVariant(pattern_enum_id, variant_idx)) => {
-                            if pattern_enum_id == enum_id {
-                                if used_variants.contains(variant_idx as usize) {
-                                    let msg = ErrorMessage::MatchUnreachablePattern;
-                                    ck.sa.report(ck.file_id, arm.span, msg);
-                                }
-
-                                used_variants.insert(variant_idx as usize);
-                            } else {
-                                let msg = ErrorMessage::EnumVariantExpected;
-                                ck.sa.report(ck.file_id, ident.span, msg);
-                            }
-                        }
-
-                        Ok(_) => {
-                            let msg = ErrorMessage::EnumVariantExpected;
-                            ck.sa.report(ck.file_id, ident.span, msg);
-                        }
-
-                        Err(()) => {}
-                    }
-                }
-
-                ast::PatternAlt::ClassOrStructOrEnum(ref ident) => {
-                    let sym = read_path(ck, &ident.path);
-
-                    match sym {
-                        Ok(SymbolKind::EnumVariant(pattern_enum_id, variant_idx)) => {
-                            if pattern_enum_id == enum_id {
-                                if used_variants.contains(variant_idx as usize) {
-                                    let msg = ErrorMessage::MatchUnreachablePattern;
-                                    ck.sa.report(ck.file_id, arm.span, msg);
-                                }
-
-                                used_variants.insert(variant_idx as usize);
-                            } else {
-                                let msg = ErrorMessage::EnumVariantExpected;
-                                ck.sa.report(ck.file_id, ident.span, msg);
-                            }
-                        }
-
-                        Ok(_) => {
-                            let msg = ErrorMessage::EnumVariantExpected;
-                            ck.sa.report(ck.file_id, ident.path.span, msg);
-                        }
-
-                        Err(()) => {}
-                    }
-                }
-            }
-        }
-    }
-
-    used_variants.toggle_range(..);
-
-    if used_variants.count_ones(..) != 0 {
-        let msg = ErrorMessage::MatchUncoveredVariant;
-        ck.sa.report(ck.file_id, node.expr.span(), msg);
     }
 }
 
