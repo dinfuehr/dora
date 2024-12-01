@@ -62,10 +62,7 @@ fn check_coverage(
         for pattern in &pattern.alts {
             match pattern.as_ref() {
                 ast::PatternAlt::Underscore(..) => {
-                    let mut negated_used_variants = used_variants.clone();
-                    negated_used_variants.toggle_range(..);
-
-                    if negated_used_variants.count_ones(..) == 0 {
+                    if used_variants.count_zeroes(..) == 0 {
                         let msg = ErrorMessage::MatchUnreachablePattern;
                         sa.report(file_id, arm.span, msg);
                     }
@@ -98,10 +95,7 @@ fn check_coverage(
                         }
 
                         IdentType::Var(_var_id) => {
-                            let mut negated_used_variants = used_variants.clone();
-                            negated_used_variants.toggle_range(..);
-
-                            if negated_used_variants.count_ones(..) == 0 {
+                            if used_variants.count_zeroes(..) == 0 {
                                 let msg = ErrorMessage::MatchUnreachablePattern;
                                 sa.report(file_id, arm.span, msg);
                             }
