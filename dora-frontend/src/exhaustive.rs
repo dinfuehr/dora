@@ -140,3 +140,81 @@ fn check_coverage(
         sa.report(file_id, node.expr.span(), msg);
     }
 }
+
+#[cfg(test)]
+mod tests {
+    use crate::tests::err;
+    use crate::ErrorMessage;
+
+    #[test]
+    fn test_missing_arm() {
+        err(
+            "
+            enum Foo { A, B, C }
+            fn f(x: Foo) {
+                match x {
+                    Foo::A => {}
+                    Foo::B => {}
+                }
+            }
+        ",
+            (4, 23),
+            ErrorMessage::MatchUncoveredVariant,
+        );
+    }
+
+    #[test]
+    fn test_duplicate_arm() {
+        err(
+            "
+            enum Foo { A, B, C }
+            fn f(x: Foo) {
+                match x {
+                    Foo::A => {}
+                    Foo::B => {}
+                    Foo::B => {}
+                    Foo::C => {}
+                }
+            }
+        ",
+            (7, 21),
+            ErrorMessage::MatchUnreachablePattern,
+        );
+    }
+
+    #[test]
+    fn test_duplicate_arm_after_underscore() {
+        err(
+            "
+            enum Foo { A, B, C }
+            fn f(x: Foo) {
+                match x {
+                    Foo::A => {}
+                    _ => {}
+                    Foo::C => {}
+                }
+            }
+        ",
+            (7, 21),
+            ErrorMessage::MatchUnreachablePattern,
+        );
+    }
+
+    #[test]
+    fn test_duplicate_arm_after_var() {
+        err(
+            "
+            enum Foo { A, B, C }
+            fn f(x: Foo) {
+                match x {
+                    Foo::A => {}
+                    v => {}
+                    Foo::C => {}
+                }
+            }
+        ",
+            (7, 21),
+            ErrorMessage::MatchUnreachablePattern,
+        );
+    }
+}
