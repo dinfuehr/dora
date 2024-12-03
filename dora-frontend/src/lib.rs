@@ -23,7 +23,7 @@ mod clsdefck;
 mod constdefck;
 mod enumck;
 pub mod error;
-mod exhaustive;
+mod exhaustiveness;
 mod extensiondefck;
 mod fctdefck;
 pub mod generator;
@@ -100,7 +100,7 @@ pub fn check_program(sa: &mut Sema) -> bool {
     typeck::check(sa);
 
     if !sa.diag.borrow().has_errors() {
-        exhaustive::check(sa);
+        exhaustiveness::check(sa);
     }
 
     !sa.diag.borrow().has_errors()

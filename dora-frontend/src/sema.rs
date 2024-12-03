@@ -90,6 +90,7 @@ pub struct SemaFlags {
     pub packages: Vec<(String, FileContent)>,
     pub program_file: Option<FileContent>,
     pub boots: bool,
+    pub new_exhaustiveness: bool,
 }
 
 impl SemaFlags {
@@ -103,6 +104,21 @@ impl SemaFlags {
             packages,
             program_file: Some(FileContent::Content(input.to_string())),
             boots: false,
+            new_exhaustiveness: false,
+        }
+    }
+
+    pub fn for_new_exhaustiveness_test(input: &str, packages: &[(&str, &str)]) -> SemaFlags {
+        let packages = packages
+            .iter()
+            .map(|(name, content)| (name.to_string(), FileContent::Content(content.to_string())))
+            .collect::<Vec<_>>();
+
+        SemaFlags {
+            packages,
+            program_file: Some(FileContent::Content(input.to_string())),
+            boots: false,
+            new_exhaustiveness: true,
         }
     }
 }
