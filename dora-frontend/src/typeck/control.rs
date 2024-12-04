@@ -400,19 +400,20 @@ fn check_expr_match_arm(
     }
 }
 
-pub(super) fn get_subpatterns(p: &ast::PatternAlt) -> Option<&Vec<Arc<ast::PatternField>>> {
+pub(super) fn get_subpatterns(p: &ast::Pattern) -> Option<&Vec<Arc<ast::PatternField>>> {
     match p {
-        ast::PatternAlt::Underscore(..)
-        | ast::PatternAlt::LitBool(..)
-        | ast::PatternAlt::LitChar(..)
-        | ast::PatternAlt::LitString(..)
-        | ast::PatternAlt::LitInt(..)
-        | ast::PatternAlt::LitFloat(..)
-        | ast::PatternAlt::Rest(..) => {
+        ast::Pattern::Underscore(..)
+        | ast::Pattern::LitBool(..)
+        | ast::Pattern::LitChar(..)
+        | ast::Pattern::LitString(..)
+        | ast::Pattern::LitInt(..)
+        | ast::Pattern::LitFloat(..)
+        | ast::Pattern::Rest(..)
+        | ast::Pattern::Alt(..)
+        | ast::Pattern::Tuple(..) => {
             unreachable!()
         }
-        ast::PatternAlt::Ident(..) => None,
-        ast::PatternAlt::ClassOrStructOrEnum(p) => p.params.as_ref(),
-        ast::PatternAlt::Tuple(p) => Some(p.params.as_ref()),
+        ast::Pattern::Ident(..) => None,
+        ast::Pattern::ClassOrStructOrEnum(p) => p.params.as_ref(),
     }
 }

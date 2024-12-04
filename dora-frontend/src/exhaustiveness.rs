@@ -63,73 +63,7 @@ fn check_match(
             continue;
         }
 
-        let pattern = arm.pattern.as_ref();
-        for pattern in &pattern.alts {
-            match pattern.as_ref() {
-                ast::PatternAlt::Underscore(..) => {
-                    if used_variants.count_zeroes(..) == 0 {
-                        let msg = ErrorMessage::MatchUnreachablePattern;
-                        sa.report(file_id, arm.span, msg);
-                    }
-
-                    used_variants.insert_range(..);
-                }
-
-                ast::PatternAlt::Rest(..) => unreachable!(),
-
-                ast::PatternAlt::LitBool(..)
-                | ast::PatternAlt::LitChar(..)
-                | ast::PatternAlt::LitString(..)
-                | ast::PatternAlt::LitInt(..)
-                | ast::PatternAlt::LitFloat(..)
-                | ast::PatternAlt::Tuple(..) => unreachable!(),
-
-                ast::PatternAlt::Ident(ref pattern_ident) => {
-                    let ident = analysis
-                        .map_idents
-                        .get(pattern_ident.id)
-                        .expect("missing ident");
-                    match ident {
-                        IdentType::EnumVariant(_pattern_enum_id, _type_params, variant_idx) => {
-                            if used_variants.contains(*variant_idx as usize) {
-                                let msg = ErrorMessage::MatchUnreachablePattern;
-                                sa.report(file_id, arm.span, msg);
-                            }
-
-                            used_variants.insert(*variant_idx as usize);
-                        }
-
-                        IdentType::Var(_var_id) => {
-                            if used_variants.count_zeroes(..) == 0 {
-                                let msg = ErrorMessage::MatchUnreachablePattern;
-                                sa.report(file_id, arm.span, msg);
-                            }
-
-                            used_variants.insert_range(..);
-                        }
-
-                        _ => unreachable!(),
-                    }
-                }
-
-                ast::PatternAlt::ClassOrStructOrEnum(ref ident) => {
-                    let ident = analysis.map_idents.get(ident.id).expect("missing ident");
-
-                    match ident {
-                        IdentType::EnumVariant(_pattern_enum_id, _type_params, variant_idx) => {
-                            if used_variants.contains(*variant_idx as usize) {
-                                let msg = ErrorMessage::MatchUnreachablePattern;
-                                sa.report(file_id, arm.span, msg);
-                            }
-
-                            used_variants.insert(*variant_idx as usize);
-                        }
-
-                        _ => unreachable!(),
-                    }
-                }
-            }
-        }
+        check_pattern(sa, analysis, file_id, &arm.pattern, &mut used_variants);
     }
 
     used_variants.toggle_range(..);
@@ -137,6 +71,85 @@ fn check_match(
     if used_variants.count_ones(..) != 0 {
         let msg = ErrorMessage::MatchUncoveredVariant;
         sa.report(file_id, node.expr.span(), msg);
+    }
+}
+
+fn check_pattern(
+    sa: &Sema,
+    analysis: &AnalysisData,
+    file_id: SourceFileId,
+    pattern: &ast::Pattern,
+    used_variants: &mut FixedBitSet,
+) {
+    match pattern {
+        ast::Pattern::Underscore(..) => {
+            if used_variants.count_zeroes(..) == 0 {
+                let msg = ErrorMessage::MatchUnreachablePattern;
+                sa.report(file_id, pattern.span(), msg);
+            }
+
+            used_variants.insert_range(..);
+        }
+
+        ast::Pattern::Rest(..) => unreachable!(),
+
+        ast::Pattern::LitBool(..)
+        | ast::Pattern::LitChar(..)
+        | ast::Pattern::LitString(..)
+        | ast::Pattern::LitInt(..)
+        | ast::Pattern::LitFloat(..)
+        | ast::Pattern::Tuple(..) => unreachable!(),
+
+        ast::Pattern::Ident(ref pattern_ident) => {
+            let ident = analysis
+                .map_idents
+                .get(pattern_ident.id)
+                .expect("missing ident");
+            match ident {
+                IdentType::EnumVariant(_pattern_enum_id, _type_params, variant_idx) => {
+                    if used_variants.contains(*variant_idx as usize) {
+                        let msg = ErrorMessage::MatchUnreachablePattern;
+                        sa.report(file_id, pattern_ident.span, msg);
+                    }
+
+                    used_variants.insert(*variant_idx as usize);
+                }
+
+                IdentType::Var(_var_id) => {
+                    if used_variants.count_zeroes(..) == 0 {
+                        let msg = ErrorMessage::MatchUnreachablePattern;
+                        sa.report(file_id, pattern_ident.span, msg);
+                    }
+
+                    used_variants.insert_range(..);
+                }
+
+                _ => unreachable!(),
+            }
+        }
+
+        ast::Pattern::Alt(ref p) => {
+            for alt in &p.alts {
+                check_pattern(sa, analysis, file_id, &alt, used_variants);
+            }
+        }
+
+        ast::Pattern::ClassOrStructOrEnum(ref p) => {
+            let ident = analysis.map_idents.get(p.id).expect("missing ident");
+
+            match ident {
+                IdentType::EnumVariant(_pattern_enum_id, _type_params, variant_idx) => {
+                    if used_variants.contains(*variant_idx as usize) {
+                        let msg = ErrorMessage::MatchUnreachablePattern;
+                        sa.report(file_id, p.span, msg);
+                    }
+
+                    used_variants.insert(*variant_idx as usize);
+                }
+
+                _ => unreachable!(),
+            }
+        }
     }
 }
 
@@ -149,13 +162,15 @@ fn check_match2(
     let mut matrix = Vec::new();
 
     for arm in &node.arms {
-        for alt in &arm.pattern.alts {
-            let pattern = vec![convert_pattern(sa, analysis, &arm.pattern)];
-            if is_useful(matrix.as_slice(), pattern.as_ref()) {
-                matrix.push(pattern);
-            } else {
-                sa.report(file_id, alt.span(), ErrorMessage::MatchUnreachablePattern);
-            }
+        let pattern = vec![convert_pattern(sa, analysis, &arm.pattern)];
+        if is_useful(matrix.as_slice(), pattern.as_ref()) {
+            matrix.push(pattern);
+        } else {
+            sa.report(
+                file_id,
+                arm.pattern.span(),
+                ErrorMessage::MatchUnreachablePattern,
+            );
         }
     }
 
@@ -170,8 +185,19 @@ fn check_match2(
     }
 }
 
-fn is_exhaustive(_matrix: Vec<Vec<Pattern>>, _n: usize) -> Vec<Vec<Pattern>> {
-    Vec::new()
+fn is_exhaustive(matrix: Vec<Vec<Pattern>>, n: usize) -> Vec<Vec<Pattern>> {
+    if matrix.is_empty() {
+        return vec![vec![Pattern::Any; n]];
+    }
+
+    if n == 0 {
+        assert_eq!(matrix.len(), 1);
+        return Vec::new();
+    }
+
+    let _p = matrix[0].last().expect("missing pattern");
+
+    unimplemented!()
 }
 
 fn is_useful(_matrix: &[Vec<Pattern>], _new_pattern: &[Pattern]) -> bool {
@@ -179,13 +205,17 @@ fn is_useful(_matrix: &[Vec<Pattern>], _new_pattern: &[Pattern]) -> bool {
 }
 
 #[allow(unused)]
+#[derive(Clone)]
 enum LiteralValue {
     Bool(bool),
+    Char(char),
     Int(i64),
     Float(f64),
+    String(String),
 }
 
 #[allow(unused)]
+#[derive(Clone)]
 enum Pattern {
     Any,
     Literal(LiteralValue),
@@ -195,33 +225,49 @@ enum Pattern {
 }
 
 fn convert_pattern(sa: &Sema, analysis: &AnalysisData, pattern: &ast::Pattern) -> Pattern {
-    if pattern.alts.len() == 1 {
-        convert_pattern_alt(sa, analysis, &pattern.alts[0])
-    } else {
-        Pattern::Alt(
-            pattern
-                .alts
-                .iter()
-                .map(|alt| convert_pattern_alt(sa, analysis, alt.as_ref()))
-                .collect(),
-        )
-    }
-}
-
-fn convert_pattern_alt(sa: &Sema, analysis: &AnalysisData, pattern: &ast::PatternAlt) -> Pattern {
     match pattern {
-        ast::PatternAlt::Underscore(..) => Pattern::Any,
+        ast::Pattern::Underscore(..) => Pattern::Any,
 
-        ast::PatternAlt::Rest(..) => unreachable!(),
+        ast::Pattern::Rest(..) => unreachable!(),
 
-        ast::PatternAlt::LitBool(..)
-        | ast::PatternAlt::LitChar(..)
-        | ast::PatternAlt::LitString(..)
-        | ast::PatternAlt::LitInt(..)
-        | ast::PatternAlt::LitFloat(..)
-        | ast::PatternAlt::Tuple(..) => unreachable!(),
+        ast::Pattern::LitBool(ref lit) => {
+            Pattern::Literal(LiteralValue::Bool(lit.expr.is_lit_true()))
+        }
 
-        ast::PatternAlt::Ident(ref pattern_ident) => {
+        ast::Pattern::LitInt(ref lit) => {
+            let value = analysis.const_value(lit.id).to_i64().expect("i64 expected");
+            Pattern::Literal(LiteralValue::Int(value))
+        }
+
+        ast::Pattern::LitString(ref lit) => {
+            let value = analysis
+                .const_value(lit.id)
+                .to_string()
+                .cloned()
+                .expect("string expected");
+            Pattern::Literal(LiteralValue::String(value))
+        }
+
+        ast::Pattern::LitFloat(ref lit) => {
+            let value = analysis.const_value(lit.id).to_f64().expect("f64 expected");
+            Pattern::Literal(LiteralValue::Float(value))
+        }
+
+        ast::Pattern::LitChar(ref lit) => {
+            let value = analysis.const_value(lit.id).to_char();
+            Pattern::Literal(LiteralValue::Char(value))
+        }
+
+        ast::Pattern::Tuple(ref tuple) => {
+            let patterns = tuple
+                .params
+                .iter()
+                .map(|p| convert_pattern(sa, analysis, &p))
+                .collect();
+            Pattern::Tuple(patterns)
+        }
+
+        ast::Pattern::Ident(ref pattern_ident) => {
             let ident = analysis
                 .map_idents
                 .get(pattern_ident.id)
@@ -237,7 +283,14 @@ fn convert_pattern_alt(sa: &Sema, analysis: &AnalysisData, pattern: &ast::Patter
             }
         }
 
-        ast::PatternAlt::ClassOrStructOrEnum(ref ident) => {
+        ast::Pattern::Alt(ref p) => Pattern::Alt(
+            p.alts
+                .iter()
+                .map(|alt| convert_pattern(sa, analysis, alt.as_ref()))
+                .collect(),
+        ),
+
+        ast::Pattern::ClassOrStructOrEnum(ref ident) => {
             let subpatterns = ident
                 .params
                 .as_ref()

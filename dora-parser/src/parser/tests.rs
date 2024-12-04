@@ -516,7 +516,7 @@ fn parse_let_without_type() {
 fn parse_let_rest() {
     let stmt = parse_let("let .. = 1;");
     let var = stmt.to_let().unwrap();
-    assert!(var.pattern.first_alt().unwrap().is_rest());
+    assert!(var.pattern.is_rest());
 
     assert!(var.data_type.is_none());
     assert!(var.expr.as_ref().unwrap().is_lit_int());
@@ -535,9 +535,7 @@ fn parse_let_with_type() {
 fn parse_let_underscore() {
     let stmt = parse_let("let _ = 1;");
     let let_decl = stmt.to_let().unwrap();
-
-    let pattern = let_decl.pattern.first_alt().unwrap();
-    assert!(pattern.is_underscore());
+    assert!(let_decl.pattern.is_underscore());
 }
 
 #[test]
@@ -545,14 +543,11 @@ fn parse_let_tuple() {
     let stmt = parse_let("let (mut a, b, (c, d)) = 1;");
     let let_decl = stmt.to_let().unwrap();
 
-    let pattern = let_decl.pattern.first_alt().unwrap();
-    let tuple = pattern.to_tuple().unwrap();
-    let first: &Arc<Pattern> = &tuple.params.first().unwrap().pattern;
-    let first = first.first_alt().unwrap();
+    let tuple = let_decl.pattern.to_tuple().unwrap();
+    let first: &Arc<Pattern> = &tuple.params.first().unwrap();
     assert!(first.is_ident());
     assert!(first.to_ident().unwrap().mutable);
-    let last = &tuple.params.last().unwrap().pattern;
-    let last = last.first_alt().unwrap();
+    let last = &tuple.params.last().unwrap();
     assert!(last.is_tuple());
 }
 
@@ -561,10 +556,9 @@ fn parse_let_lit_bool() {
     let stmt = parse_let("let (a, true) = 1;");
     let let_decl = stmt.to_let().unwrap();
 
-    let pattern = let_decl.pattern.first_alt().unwrap();
-    let tuple = pattern.to_tuple().unwrap();
-    assert!(tuple.params[0].pattern.first_alt().unwrap().is_ident());
-    assert!(tuple.params[1].pattern.first_alt().unwrap().is_lit_bool());
+    let tuple = let_decl.pattern.to_tuple().unwrap();
+    assert!(tuple.params[0].is_ident());
+    assert!(tuple.params[1].is_lit_bool());
 }
 
 #[test]
@@ -572,10 +566,9 @@ fn parse_let_lit_char() {
     let stmt = parse_let("let (a, 'x') = 1;");
     let let_decl = stmt.to_let().unwrap();
 
-    let pattern = let_decl.pattern.first_alt().unwrap();
-    let tuple = pattern.to_tuple().unwrap();
-    assert!(tuple.params[0].pattern.is_ident());
-    assert!(tuple.params[1].pattern.is_lit_char());
+    let tuple = let_decl.pattern.to_tuple().unwrap();
+    assert!(tuple.params[0].is_ident());
+    assert!(tuple.params[1].is_lit_char());
 }
 
 #[test]
@@ -583,10 +576,9 @@ fn parse_let_lit_string() {
     let stmt = parse_let("let (a, \"x\") = 1;");
     let let_decl = stmt.to_let().unwrap();
 
-    let pattern = let_decl.pattern.first_alt().unwrap();
-    let tuple = pattern.to_tuple().unwrap();
-    assert!(tuple.params[0].pattern.is_ident());
-    assert!(tuple.params[1].pattern.is_lit_string());
+    let tuple = let_decl.pattern.to_tuple().unwrap();
+    assert!(tuple.params[0].is_ident());
+    assert!(tuple.params[1].is_lit_string());
 }
 
 #[test]
@@ -594,10 +586,9 @@ fn parse_let_lit_int() {
     let stmt = parse_let("let (a, 17) = 1;");
     let let_decl = stmt.to_let().unwrap();
 
-    let pattern = let_decl.pattern.first_alt().unwrap();
-    let tuple = pattern.to_tuple().unwrap();
-    assert!(tuple.params[0].pattern.is_ident());
-    assert!(tuple.params[1].pattern.is_lit_int());
+    let tuple = let_decl.pattern.to_tuple().unwrap();
+    assert!(tuple.params[0].is_ident());
+    assert!(tuple.params[1].is_lit_int());
 }
 
 #[test]
@@ -605,10 +596,9 @@ fn parse_let_lit_int_neg() {
     let stmt = parse_let("let (a, -17) = 1;");
     let let_decl = stmt.to_let().unwrap();
 
-    let pattern = let_decl.pattern.first_alt().unwrap();
-    let tuple = pattern.to_tuple().unwrap();
-    assert!(tuple.params[0].pattern.is_ident());
-    assert!(tuple.params[1].pattern.is_lit_int());
+    let tuple = let_decl.pattern.to_tuple().unwrap();
+    assert!(tuple.params[0].is_ident());
+    assert!(tuple.params[1].is_lit_int());
 }
 
 #[test]
@@ -616,10 +606,9 @@ fn parse_let_lit_float() {
     let stmt = parse_let("let (a, 17.5) = 1;");
     let let_decl = stmt.to_let().unwrap();
 
-    let pattern = let_decl.pattern.first_alt().unwrap();
-    let tuple = pattern.to_tuple().unwrap();
-    assert!(tuple.params[0].pattern.is_ident());
-    assert!(tuple.params[1].pattern.is_lit_float());
+    let tuple = let_decl.pattern.to_tuple().unwrap();
+    assert!(tuple.params[0].is_ident());
+    assert!(tuple.params[1].is_lit_float());
 }
 
 #[test]
@@ -627,10 +616,9 @@ fn parse_let_lit_float_neg() {
     let stmt = parse_let("let (a, -17.5) = 1;");
     let let_decl = stmt.to_let().unwrap();
 
-    let pattern = let_decl.pattern.first_alt().unwrap();
-    let tuple = pattern.to_tuple().unwrap();
-    assert!(tuple.params[0].pattern.is_ident());
-    assert!(tuple.params[1].pattern.is_lit_float());
+    let tuple = let_decl.pattern.to_tuple().unwrap();
+    assert!(tuple.params[0].is_ident());
+    assert!(tuple.params[1].is_lit_float());
 }
 
 #[test]
@@ -638,8 +626,7 @@ fn parse_let_ident() {
     let stmt = parse_let("let x = 1;");
     let let_decl = stmt.to_let().unwrap();
 
-    let pattern = let_decl.pattern.first_alt().unwrap();
-    assert!(pattern.is_ident());
+    assert!(let_decl.pattern.is_ident());
 }
 
 #[test]
@@ -647,8 +634,7 @@ fn parse_let_ident_mut() {
     let stmt = parse_let("let mut x = 1;");
     let let_decl = stmt.to_let().unwrap();
 
-    let pattern = let_decl.pattern.first_alt().unwrap();
-    assert!(pattern.to_ident().unwrap().mutable);
+    assert!(let_decl.pattern.to_ident().unwrap().mutable);
 }
 
 #[test]

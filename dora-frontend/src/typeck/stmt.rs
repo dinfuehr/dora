@@ -122,63 +122,8 @@ fn check_pattern_inner(
     pattern: &ast::Pattern,
     ty: SourceType,
 ) {
-    if pattern.alts.len() == 1 {
-        check_pattern_alt(ck, ctxt, pattern.alts[0].as_ref(), ty.clone());
-    } else {
-        let mut bindings = Bindings::new();
-        let mut alt_bindings: Vec<HashSet<Name>> = Vec::with_capacity(pattern.alts.len());
-
-        for alt in &pattern.alts {
-            let mut alt_ctxt = Context {
-                alt: bindings,
-                current: ctxt.current.clone(),
-            };
-
-            check_pattern_alt(ck, &mut alt_ctxt, alt.as_ref(), ty.clone());
-            bindings = alt_ctxt.alt;
-
-            let new_bindings = alt_ctxt
-                .current
-                .difference(&ctxt.current)
-                .map(|n| *n)
-                .collect::<HashSet<Name>>();
-            alt_bindings.push(new_bindings);
-        }
-
-        let mut all = alt_bindings.pop().expect("no element");
-        let mut intersect = all.clone();
-
-        for alt in alt_bindings {
-            all = all.union(&alt).map(|n| *n).collect::<HashSet<Name>>();
-            intersect = intersect
-                .intersection(&alt)
-                .map(|n| *n)
-                .collect::<HashSet<Name>>();
-        }
-
-        for &name in all.difference(&intersect) {
-            let name = ck.sa.interner.str(name).to_string();
-            let msg = ErrorMessage::PatternBindingNotDefinedInAllAlternatives(name);
-            ck.sa.report(ck.file_id, pattern.span, msg);
-        }
-
-        for (name, data) in bindings.map {
-            let old = ctxt.alt.map.insert(name, data.clone());
-            assert!(old.is_none());
-
-            assert!(ctxt.current.insert(name));
-        }
-    }
-}
-
-fn check_pattern_alt(
-    ck: &mut TypeCheck,
-    ctxt: &mut Context,
-    pattern: &ast::PatternAlt,
-    ty: SourceType,
-) {
     match pattern {
-        ast::PatternAlt::Ident(ref ident) => {
+        ast::Pattern::Ident(ref ident) => {
             let sym = ck.symtable.get_string(ck.sa, &ident.name.name_as_string);
 
             match sym {
@@ -200,25 +145,25 @@ fn check_pattern_alt(
             }
         }
 
-        ast::PatternAlt::LitBool(..) => {
+        ast::Pattern::LitBool(..) => {
             check_literal_ty(ck, pattern, SourceType::Bool, ty);
         }
 
-        ast::PatternAlt::LitChar(ref p) => {
+        ast::Pattern::LitChar(ref p) => {
             let e = p.expr.to_lit_char().expect("char expected");
             let value = check_lit_char(ck.sa, ck.file_id, e);
             ck.analysis.set_const_value(p.id, ConstValue::Char(value));
             check_literal_ty(ck, pattern, SourceType::Char, ty);
         }
 
-        ast::PatternAlt::LitInt(ref p) => {
+        ast::Pattern::LitInt(ref p) => {
             let (value_ty, value) = compute_lit_int(ck.sa, ck.file_id, &p.expr, ty.clone());
             ck.analysis.set_const_value(p.id, value);
             ck.analysis.set_ty(p.id, value_ty.clone());
             check_literal_ty(ck, pattern, value_ty, ty);
         }
 
-        ast::PatternAlt::LitString(ref p) => {
+        ast::Pattern::LitString(ref p) => {
             let e = p.expr.to_lit_str().expect("string expected");
             let value = check_lit_str(ck.sa, ck.file_id, e);
             ck.analysis.set_const_value(p.id, ConstValue::String(value));
@@ -226,18 +171,64 @@ fn check_pattern_alt(
             check_literal_ty(ck, pattern, str_ty, ty);
         }
 
-        ast::PatternAlt::LitFloat(ref p) => {
+        ast::Pattern::LitFloat(ref p) => {
             let (value_ty, value) = compute_lit_float(ck.sa, ck.file_id, &p.expr);
             ck.analysis.set_const_value(p.id, ConstValue::Float(value));
             ck.analysis.set_ty(p.id, value_ty.clone());
             check_literal_ty(ck, pattern, value_ty, ty);
         }
 
-        ast::PatternAlt::Underscore(..) => {
+        ast::Pattern::Underscore(..) => {
             // nothing to do
         }
 
-        ast::PatternAlt::ClassOrStructOrEnum(ref p) => {
+        ast::Pattern::Alt(ref p) => {
+            let mut bindings = Bindings::new();
+            let mut alt_bindings: Vec<HashSet<Name>> = Vec::with_capacity(p.alts.len());
+
+            for alt in &p.alts {
+                let mut alt_ctxt = Context {
+                    alt: bindings,
+                    current: ctxt.current.clone(),
+                };
+
+                check_pattern_inner(ck, &mut alt_ctxt, alt.as_ref(), ty.clone());
+                bindings = alt_ctxt.alt;
+
+                let new_bindings = alt_ctxt
+                    .current
+                    .difference(&ctxt.current)
+                    .map(|n| *n)
+                    .collect::<HashSet<Name>>();
+                alt_bindings.push(new_bindings);
+            }
+
+            let mut all = alt_bindings.pop().expect("no element");
+            let mut intersect = all.clone();
+
+            for alt in alt_bindings {
+                all = all.union(&alt).map(|n| *n).collect::<HashSet<Name>>();
+                intersect = intersect
+                    .intersection(&alt)
+                    .map(|n| *n)
+                    .collect::<HashSet<Name>>();
+            }
+
+            for &name in all.difference(&intersect) {
+                let name = ck.sa.interner.str(name).to_string();
+                let msg = ErrorMessage::PatternBindingNotDefinedInAllAlternatives(name);
+                ck.sa.report(ck.file_id, p.span, msg);
+            }
+
+            for (name, data) in bindings.map {
+                let old = ctxt.alt.map.insert(name, data.clone());
+                assert!(old.is_none());
+
+                assert!(ctxt.current.insert(name));
+            }
+        }
+
+        ast::Pattern::ClassOrStructOrEnum(ref p) => {
             let sym = read_path(ck, &p.path);
 
             match sym {
@@ -262,11 +253,11 @@ fn check_pattern_alt(
             }
         }
 
-        ast::PatternAlt::Tuple(..) => {
-            check_pattern_tuple(ck, ctxt, pattern, ty);
+        ast::Pattern::Tuple(ref p) => {
+            check_pattern_tuple(ck, ctxt, p, ty);
         }
 
-        ast::PatternAlt::Rest(ref p) => {
+        ast::Pattern::Rest(ref p) => {
             let msg = ErrorMessage::PatternUnexpectedRest;
             ck.sa.report(ck.file_id, p.span, msg);
         }
@@ -275,7 +266,7 @@ fn check_pattern_alt(
 
 fn check_literal_ty(
     ck: &mut TypeCheck,
-    pattern: &ast::PatternAlt,
+    pattern: &ast::Pattern,
     ty: SourceType,
     expected_ty: SourceType,
 ) {
@@ -293,7 +284,7 @@ fn check_literal_ty(
 fn check_pattern_enum(
     ck: &mut TypeCheck,
     ctxt: &mut Context,
-    pattern: &ast::PatternAlt,
+    pattern: &ast::Pattern,
     ty: SourceType,
     enum_id: EnumDefinitionId,
     variant_id: u32,
@@ -346,22 +337,26 @@ fn check_pattern_enum(
 fn check_pattern_tuple(
     ck: &mut TypeCheck,
     ctxt: &mut Context,
-    pattern: &ast::PatternAlt,
+    pattern: &ast::PatternTuple,
     ty: SourceType,
 ) {
-    let tuple_pattern = pattern.to_tuple().expect("tuple expected");
+    let subpatterns = pattern.params.as_slice();
 
     if !ty.is_tuple_or_unit() {
         if !ty.is_error() {
             let ty_name = ck.ty_name(&ty);
             ck.sa.report(
                 ck.file_id,
-                tuple_pattern.span,
+                pattern.span,
                 ErrorMessage::PatternTupleExpected(ty_name),
             );
         }
 
-        check_subpatterns_error(ck, ctxt, pattern);
+        for subpattern in subpatterns {
+            if !subpattern.is_rest() {
+                check_pattern_inner(ck, ctxt, &subpattern, ty::error());
+            }
+        }
         return;
     }
 
@@ -371,13 +366,51 @@ fn check_pattern_tuple(
         ty.tuple_subtypes().expect("tuple expected")
     };
 
-    check_subpatterns(ck, ctxt, pattern, subtypes.types());
+    let mut idx = 0;
+    let mut rest_seen = false;
+    let mut pattern_count: usize = 0;
+
+    let expected_types = subtypes.types();
+
+    for subpattern in subpatterns {
+        if subpattern.is_rest() {
+            if rest_seen {
+                let msg = ErrorMessage::PatternMultipleRest;
+                ck.sa.report(ck.file_id, subpattern.span(), msg);
+            } else {
+                idx += expected_types
+                    .len()
+                    .checked_sub(subpatterns.len() - 1)
+                    .unwrap_or(0);
+                rest_seen = true;
+            }
+        } else {
+            let ty = expected_types.get(idx).cloned().unwrap_or(ty::error());
+            ck.analysis.map_field_ids.insert(subpattern.id(), idx);
+            check_pattern_inner(ck, ctxt, &subpattern, ty);
+            idx += 1;
+            pattern_count += 1;
+        }
+    }
+
+    if rest_seen {
+        if pattern_count > expected_types.len() {
+            let msg = ErrorMessage::PatternWrongNumberOfParams(pattern_count, expected_types.len());
+            ck.sa.report(ck.file_id, pattern.span, msg);
+        }
+    } else {
+        if expected_types.len() != pattern_count {
+            let msg =
+                ErrorMessage::PatternWrongNumberOfParams(subpatterns.len(), expected_types.len());
+            ck.sa.report(ck.file_id, pattern.span, msg);
+        }
+    }
 }
 
 fn check_pattern_class(
     ck: &mut TypeCheck,
     ctxt: &mut Context,
-    pattern: &ast::PatternAlt,
+    pattern: &ast::Pattern,
     ty: SourceType,
     cls_id: ClassDefinitionId,
 ) {
@@ -425,7 +458,7 @@ fn check_pattern_class(
 fn check_pattern_struct(
     ck: &mut TypeCheck,
     ctxt: &mut Context,
-    pattern: &ast::PatternAlt,
+    pattern: &ast::Pattern,
     ty: SourceType,
     struct_id: StructDefinitionId,
 ) {
@@ -474,13 +507,13 @@ fn check_pattern_struct(
 fn check_subpatterns_named<'a>(
     ck: &mut TypeCheck,
     ctxt: &mut Context,
-    pattern: &ast::PatternAlt,
+    pattern: &ast::Pattern,
     element: &dyn ElementWithFields,
     element_type_params: &SourceTypeArray,
 ) {
     let params = match pattern {
-        ast::PatternAlt::ClassOrStructOrEnum(ref p) => p.params.as_ref(),
-        ast::PatternAlt::Ident(..) => None,
+        ast::Pattern::ClassOrStructOrEnum(ref p) => p.params.as_ref(),
+        ast::Pattern::Ident(..) => None,
         _ => unreachable!(),
     };
 
@@ -551,7 +584,7 @@ fn check_subpatterns_named<'a>(
 fn check_subpatterns<'a>(
     ck: &mut TypeCheck,
     ctxt: &mut Context,
-    pattern: &ast::PatternAlt,
+    pattern: &ast::Pattern,
     expected_types: &'a [SourceType],
 ) {
     let subpatterns = get_subpatterns(pattern);
@@ -605,7 +638,7 @@ fn check_subpatterns<'a>(
     }
 }
 
-fn check_subpatterns_error(ck: &mut TypeCheck, ctxt: &mut Context, pattern: &ast::PatternAlt) {
+fn check_subpatterns_error(ck: &mut TypeCheck, ctxt: &mut Context, pattern: &ast::Pattern) {
     if let Some(subpatterns) = get_subpatterns(pattern) {
         for subpattern in subpatterns {
             if !subpattern.pattern.is_rest() {

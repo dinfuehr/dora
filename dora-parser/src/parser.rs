@@ -1468,36 +1468,42 @@ impl Parser {
     fn parse_pattern(&mut self) -> Arc<Pattern> {
         self.start_node();
 
-        let first = self.parse_pattern_alt();
-        let mut alts = vec![first];
+        let pattern = self.parse_pattern_alt();
 
-        while self.eat(OR) {
-            alts.push(self.parse_pattern_alt());
+        if self.is(OR) {
+            let mut alts = vec![pattern];
+
+            while self.eat(OR) {
+                alts.push(self.parse_pattern_alt());
+            }
+
+            Arc::new(Pattern::Alt(PatternAlt {
+                id: self.new_node_id(),
+                span: self.finish_node(),
+                alts,
+            }))
+        } else {
+            self.cancel_node();
+            pattern
         }
-
-        Arc::new(Pattern {
-            id: self.new_node_id(),
-            span: self.finish_node(),
-            alts,
-        })
     }
 
-    fn parse_pattern_alt(&mut self) -> Arc<PatternAlt> {
+    fn parse_pattern_alt(&mut self) -> Arc<Pattern> {
         self.start_node();
 
         if self.eat(UNDERSCORE) {
-            Arc::new(PatternAlt::Underscore(PatternUnderscore {
+            Arc::new(Pattern::Underscore(PatternUnderscore {
                 id: self.new_node_id(),
                 span: self.finish_node(),
             }))
         } else if self.eat(DOT_DOT) {
-            Arc::new(PatternAlt::Rest(PatternRest {
+            Arc::new(Pattern::Rest(PatternRest {
                 id: self.new_node_id(),
                 span: self.finish_node(),
             }))
         } else if self.is(TRUE) || self.is(FALSE) {
             let expr = self.parse_lit_bool();
-            Arc::new(PatternAlt::LitBool(PatternLit {
+            Arc::new(Pattern::LitBool(PatternLit {
                 id: self.new_node_id(),
                 span: self.finish_node(),
                 expr,
@@ -1512,49 +1518,42 @@ impl Parser {
                 PATTERN_LIST,
                 |p| {
                     if p.is_set(PATTERN_FIRST) {
-                        p.start_node();
-                        let pattern = p.parse_pattern();
-                        Some(Arc::new(PatternField {
-                            id: p.new_node_id(),
-                            span: p.finish_node(),
-                            ident: None,
-                            pattern,
-                        }))
+                        Some(p.parse_pattern())
                     } else {
                         None
                     }
                 },
             );
 
-            Arc::new(PatternAlt::Tuple(PatternTuple {
+            Arc::new(Pattern::Tuple(PatternTuple {
                 id: self.new_node_id(),
                 span: self.finish_node(),
                 params,
             }))
         } else if self.is(CHAR_LITERAL) {
             let expr = self.parse_lit_char();
-            Arc::new(PatternAlt::LitChar(PatternLit {
+            Arc::new(Pattern::LitChar(PatternLit {
                 id: self.new_node_id(),
                 span: self.finish_node(),
                 expr,
             }))
         } else if self.is(STRING_LITERAL) {
             let expr = self.parse_string();
-            Arc::new(PatternAlt::LitString(PatternLit {
+            Arc::new(Pattern::LitString(PatternLit {
                 id: self.new_node_id(),
                 span: self.finish_node(),
                 expr,
             }))
         } else if self.is(INT_LITERAL) || self.is2(SUB, INT_LITERAL) {
             let expr = self.parse_lit_int_minus();
-            Arc::new(PatternAlt::LitInt(PatternLit {
+            Arc::new(Pattern::LitInt(PatternLit {
                 id: self.new_node_id(),
                 span: self.finish_node(),
                 expr,
             }))
         } else if self.is(FLOAT_LITERAL) || self.is2(SUB, FLOAT_LITERAL) {
             let expr = self.parse_lit_float_minus();
-            Arc::new(PatternAlt::LitFloat(PatternLit {
+            Arc::new(Pattern::LitFloat(PatternLit {
                 id: self.new_node_id(),
                 span: self.finish_node(),
                 expr,
@@ -1562,7 +1561,7 @@ impl Parser {
         } else if self.is2(MUT_KW, IDENTIFIER) {
             self.assert(MUT_KW);
             let name = self.expect_identifier().expect("identifier expected");
-            Arc::new(PatternAlt::Ident(PatternIdent {
+            Arc::new(Pattern::Ident(PatternIdent {
                 id: self.new_node_id(),
                 span: self.finish_node(),
                 mutable: true,
@@ -1571,7 +1570,7 @@ impl Parser {
         } else if self.is(IDENTIFIER) {
             if !self.nth_is(1, COLON_COLON) && !self.nth_is(1, L_PAREN) {
                 let name = self.expect_identifier().expect("identifier expected");
-                return Arc::new(PatternAlt::Ident(PatternIdent {
+                return Arc::new(Pattern::Ident(PatternIdent {
                     id: self.new_node_id(),
                     span: self.finish_node(),
                     mutable: false,
@@ -1623,14 +1622,12 @@ impl Parser {
                 None
             };
 
-            Arc::new(PatternAlt::ClassOrStructOrEnum(
-                PatternClassOrStructOrEnum {
-                    id: self.new_node_id(),
-                    span: self.finish_node(),
-                    path,
-                    params,
-                },
-            ))
+            Arc::new(Pattern::ClassOrStructOrEnum(PatternClassOrStructOrEnum {
+                id: self.new_node_id(),
+                span: self.finish_node(),
+                path,
+                params,
+            }))
         } else {
             unreachable!()
         }
@@ -2451,6 +2448,10 @@ impl Parser {
 
     fn start_node(&mut self) {
         self.nodes.push((self.token_idx, self.offset));
+    }
+
+    fn cancel_node(&mut self) {
+        self.nodes.pop().expect("missing scope");
     }
 
     fn finish_node(&mut self) -> Span {
