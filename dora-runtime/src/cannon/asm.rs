@@ -12,12 +12,12 @@ use crate::gc::Address;
 use crate::masm::{CondCode, Label, MacroAssembler, Mem, ScratchReg};
 use crate::mirror::Header;
 use crate::mode::MachineMode;
-use crate::size::InstanceSize;
 use crate::threads::ThreadLocalData;
 use crate::vm::{
-    create_enum_instance, create_struct_instance, get_concrete_tuple_bty_array, ClassInstance,
-    CodeDescriptor, EnumLayout, GcPoint, LazyCompilationSite, Trap, INITIALIZED, VM,
+    create_enum_instance, create_struct_instance, get_concrete_tuple_bty_array, CodeDescriptor,
+    EnumLayout, GcPoint, LazyCompilationSite, Trap, INITIALIZED, VM,
 };
+use crate::VTable;
 use dora_bytecode::{BytecodeType, BytecodeTypeArray, FunctionId, GlobalId, Location, StructId};
 
 pub struct BaselineAssembler<'a> {
@@ -1098,18 +1098,14 @@ impl<'a> BaselineAssembler<'a> {
         ));
     }
 
-    pub fn initialize_object(&mut self, obj: Reg, class_instance: &ClassInstance) {
-        let size = match class_instance.size {
-            InstanceSize::Fixed(size) => size,
-            _ => unreachable!(),
-        };
-
+    pub fn initialize_object(&mut self, obj: Reg, vtable: &VTable) {
+        let size = vtable.instance_size();
         let tmp_reg = self.get_scratch();
 
         // Store classptr/vtable in object.
         let (is_marked, is_remembered) = self.vm.gc.initial_metadata_value(size as usize, false);
         let header_word_value = Header::compute_header_word(
-            class_instance.vtblptr(),
+            vtable.address(),
             self.vm.meta_space_start(),
             is_marked,
             is_remembered,
@@ -1134,7 +1130,7 @@ impl<'a> BaselineAssembler<'a> {
     pub fn initialize_array_header(
         &mut self,
         obj: Reg,
-        class_instance: &ClassInstance,
+        vtable: &VTable,
         length_reg: Reg,
         size_reg: Reg,
     ) {
@@ -1142,12 +1138,8 @@ impl<'a> BaselineAssembler<'a> {
         assert!(obj != length_reg && length_reg != *tmp_reg && obj != *tmp_reg);
 
         // store classptr in object
-        let header_word_value = Header::compute_header_word(
-            class_instance.vtblptr(),
-            self.vm.meta_space_start(),
-            false,
-            false,
-        );
+        let header_word_value =
+            Header::compute_header_word(vtable.address(), self.vm.meta_space_start(), false, false);
 
         self.masm.load_int_const(
             MachineMode::IntPtr,

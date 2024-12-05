@@ -1,20 +1,20 @@
-use std::cell::OnceCell;
 use std::collections::HashMap;
+use std::{cell::OnceCell, ptr};
 
 use crate::{gc::Address, vtable::VTable};
 use dora_bytecode::{ClassId, FunctionId, TraitId};
 
 #[derive(Debug)]
 pub struct KnownElements {
-    pub byte_array_vtable: Address,
-    pub int32_array_vtable: Address,
-    pub string_vtable: Address,
-    pub thread_vtable: Address,
+    pub byte_array_vtable: *const VTable,
+    pub int32_array_vtable: *const VTable,
+    pub string_vtable: *const VTable,
+    pub thread_vtable: *const VTable,
 
-    pub filler_word_vtable: Address,
-    pub filler_array_vtable: Address,
-    pub free_space_vtable: Address,
-    pub code_vtable: Address,
+    pub filler_word_vtable: *const VTable,
+    pub filler_array_vtable: *const VTable,
+    pub free_space_vtable: *const VTable,
+    pub code_vtable: *const VTable,
 
     pub zero_trait_id: Option<TraitId>,
     pub array_class_id: Option<ClassId>,
@@ -30,15 +30,15 @@ pub struct KnownElements {
 impl KnownElements {
     pub fn new() -> KnownElements {
         KnownElements {
-            byte_array_vtable: Address::null(),
-            int32_array_vtable: Address::null(),
-            string_vtable: Address::null(),
-            thread_vtable: Address::null(),
+            byte_array_vtable: ptr::null(),
+            int32_array_vtable: ptr::null(),
+            string_vtable: ptr::null(),
+            thread_vtable: ptr::null(),
 
-            free_space_vtable: Address::null(),
-            filler_word_vtable: Address::null(),
-            filler_array_vtable: Address::null(),
-            code_vtable: Address::null(),
+            free_space_vtable: ptr::null(),
+            filler_word_vtable: ptr::null(),
+            filler_array_vtable: ptr::null(),
+            code_vtable: ptr::null(),
 
             zero_trait_id: None,
             array_class_id: None,
@@ -53,35 +53,35 @@ impl KnownElements {
     }
 
     pub fn byte_array_vtable(&self) -> &VTable {
-        unsafe { &*self.byte_array_vtable.to_ptr::<VTable>() }
+        unsafe { &*self.byte_array_vtable }
     }
 
     pub fn int32_array_vtable(&self) -> &VTable {
-        unsafe { &*self.int32_array_vtable.to_ptr::<VTable>() }
+        unsafe { &*self.int32_array_vtable }
     }
 
     pub fn string_vtable(&self) -> &VTable {
-        unsafe { &*self.string_vtable.to_ptr::<VTable>() }
+        unsafe { &*self.string_vtable }
     }
 
     pub fn thread_vtable(&self) -> &VTable {
-        unsafe { &*self.thread_vtable.to_ptr::<VTable>() }
+        unsafe { &*self.thread_vtable }
     }
 
     pub fn filler_word_vtable(&self) -> &VTable {
-        unsafe { &*self.filler_word_vtable.to_ptr::<VTable>() }
+        unsafe { &*self.filler_word_vtable }
     }
 
     pub fn filler_array_vtable(&self) -> &VTable {
-        unsafe { &*self.filler_array_vtable.to_ptr::<VTable>() }
+        unsafe { &*self.filler_array_vtable }
     }
 
     pub fn free_space_vtable(&self) -> &VTable {
-        unsafe { &*self.free_space_vtable.to_ptr::<VTable>() }
+        unsafe { &*self.free_space_vtable }
     }
 
     pub fn code_vtable(&self) -> &VTable {
-        unsafe { &*self.code_vtable.to_ptr::<VTable>() }
+        unsafe { &*self.code_vtable }
     }
 
     pub fn zero_trait_id(&self) -> TraitId {

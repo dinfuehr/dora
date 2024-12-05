@@ -14,55 +14,55 @@ pub(super) fn setup(vm: &mut VM) {
 }
 
 fn create_special_classes(vm: &mut VM) {
-    let (_, filler_word_class_address) = create_class_instance_with_vtable(
+    let (_, filler_word_vtable) = create_class_instance_with_vtable(
         vm,
         ShapeKind::Builtin,
         InstanceSize::FillerWord,
         Vec::new(),
         0,
     );
-    vm.known.filler_word_vtable = Address::from_ptr(filler_word_class_address);
+    vm.known.filler_word_vtable = filler_word_vtable;
 
-    let (_, filler_array_class_address) = create_class_instance_with_vtable(
+    let (_, filler_array_vtable) = create_class_instance_with_vtable(
         vm,
         ShapeKind::Builtin,
         InstanceSize::FillerArray,
         Vec::new(),
         0,
     );
-    vm.known.filler_array_vtable = Address::from_ptr(filler_array_class_address);
+    vm.known.filler_array_vtable = filler_array_vtable;
 
-    let (_, free_space_class_address) = create_class_instance_with_vtable(
+    let (_, free_space_vtable) = create_class_instance_with_vtable(
         vm,
         ShapeKind::Builtin,
         InstanceSize::FreeSpace,
         Vec::new(),
         0,
     );
-    vm.known.free_space_vtable = Address::from_ptr(free_space_class_address);
+    vm.known.free_space_vtable = free_space_vtable;
 
-    let (_, code_class_address) = create_class_instance_with_vtable(
+    let (_, code_vtable) = create_class_instance_with_vtable(
         vm,
         ShapeKind::Builtin,
         InstanceSize::CodeObject,
         Vec::new(),
         0,
     );
-    vm.known.code_vtable = Address::from_ptr(code_class_address);
+    vm.known.code_vtable = code_vtable;
 
     let type_args = BytecodeTypeArray::one(BytecodeType::UInt8);
-    let cls_id = create_class_instance(vm, vm.known.array_class_id(), &type_args);
-    vm.known.byte_array_vtable = address_from_class_instance_id(vm, cls_id);
+    let vtable = create_class_instance(vm, vm.known.array_class_id(), &type_args);
+    vm.known.byte_array_vtable = vtable;
 
     let type_args = BytecodeTypeArray::one(BytecodeType::Int32);
-    let cls_id = create_class_instance(vm, vm.known.array_class_id(), &type_args);
-    vm.known.int32_array_vtable = address_from_class_instance_id(vm, cls_id);
+    let vtable = create_class_instance(vm, vm.known.array_class_id(), &type_args);
+    vm.known.int32_array_vtable = vtable;
 
-    let cls_id = create_class_instance(vm, vm.known.string_class_id(), &BytecodeTypeArray::empty());
-    vm.known.string_vtable = address_from_class_instance_id(vm, cls_id);
+    let vtable = create_class_instance(vm, vm.known.string_class_id(), &BytecodeTypeArray::empty());
+    vm.known.string_vtable = vtable;
 
-    let cls_id = create_class_instance(vm, vm.known.thread_class_id(), &BytecodeTypeArray::empty());
-    vm.known.thread_vtable = address_from_class_instance_id(vm, cls_id);
+    let vtable = create_class_instance(vm, vm.known.thread_class_id(), &BytecodeTypeArray::empty());
+    vm.known.thread_vtable = vtable;
 }
 
 fn address_from_class_instance_id(vm: &VM, id: ClassInstanceId) -> Address {

@@ -67,13 +67,15 @@ impl ClassInstance {
     }
 
     pub fn vtable(&self) -> &VTable {
-        let vtable = self.vtable.get().cloned().expect("missing VTable");
-        unsafe { &*vtable }
+        unsafe { &*self.vtable_ptr() }
     }
 
-    pub fn vtblptr(&self) -> Address {
-        let vtable = self.vtable.get().cloned().expect("missing VTable");
-        Address::from_ptr(vtable)
+    pub fn vtable_ptr(&self) -> *const VTable {
+        self.vtable.get().cloned().expect("missing VTable")
+    }
+
+    pub fn vtable_address(&self) -> Address {
+        Address::from_ptr(self.vtable_ptr())
     }
 }
 

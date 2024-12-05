@@ -15,9 +15,8 @@ use crate::masm::{CondCode, Label, Mem};
 use crate::mem::{self, align_i32};
 use crate::mirror::{Header, Str};
 use crate::mode::MachineMode;
-use crate::size::InstanceSize;
 use crate::vm::{
-    compute_vtable_index, create_class_instance, create_enum_instance, create_struct_instance,
+    compute_vtable_index, create_enum_instance, create_struct_instance,
     ensure_class_instance_for_enum_variant, ensure_class_instance_for_lambda,
     ensure_class_instance_for_trait_object, find_trait_impl, get_concrete_tuple_bty,
     get_concrete_tuple_bty_array, specialize_bty, specialize_bty_array,
@@ -1324,21 +1323,19 @@ impl<'a> CannonCodeGen<'a> {
     fn emit_load_field(&mut self, dest: Register, obj: Register, field_idx: ConstPoolIdx) {
         assert!(self.bytecode.register_type(obj).is_ptr());
 
-        let (class_instance_id, field_id) = match self.bytecode.const_pool(field_idx) {
+        let (vtable, field_id) = match self.bytecode.const_pool(field_idx) {
             ConstPoolEntry::Field(cls_id, type_params, field_id) => {
                 let type_params = self.specialize_bty_array(&type_params);
                 debug_assert!(type_params.iter().all(|ty| ty.is_concrete_type()));
 
-                let class_instance_id = create_class_instance(self.vm, *cls_id, &type_params);
+                let vtable = self.vm.vtable_for_class(*cls_id, &type_params);
 
-                (class_instance_id, *field_id)
+                (vtable, *field_id)
             }
             _ => unreachable!(),
         };
 
-        let cls = self.vm.class_instances.idx(class_instance_id);
-
-        let field = &cls.fields[field_id as usize];
+        let field = &vtable.fields[field_id as usize];
 
         let obj_reg = REG_TMP1;
         self.emit_load_register(obj, obj_reg.into());
@@ -1366,10 +1363,8 @@ impl<'a> CannonCodeGen<'a> {
         let type_params = self.specialize_bty_array(&type_params);
         debug_assert!(type_params.iter().all(|ty| ty.is_concrete_type()));
 
-        let class_instance_id = create_class_instance(self.vm, cls_id, &type_params);
-        let cls = self.vm.class_instances.idx(class_instance_id);
-
-        let field = &cls.fields[field_id as usize];
+        let vtable = self.vm.vtable_for_class(cls_id, &type_params);
+        let field = &vtable.fields[field_id as usize];
 
         assert!(self.bytecode.register_type(obj).is_ptr());
         let obj_reg = REG_TMP1;
@@ -1776,16 +1771,9 @@ impl<'a> CannonCodeGen<'a> {
         let type_params = self.specialize_bty_array(&type_params);
         debug_assert!(type_params.iter().all(|ty| ty.is_concrete_type()));
 
-        let class_instance_id = create_class_instance(self.vm, cls_id, &type_params);
-        let class_instance = self.vm.class_instances.idx(class_instance_id);
-
-        let alloc_size = match class_instance.size {
-            InstanceSize::Fixed(size) => AllocationSize::Fixed(size as usize),
-            _ => unreachable!(
-                "class size type {:?} for new object not supported",
-                class_instance.size
-            ),
-        };
+        let vtable = self.vm.vtable_for_class(cls_id, &type_params);
+        let alloc_size = vtable.instance_size();
+        let alloc_size = AllocationSize::Fixed(alloc_size);
 
         let gcpoint = self.create_gcpoint();
         let position = self.bytecode.offset_location(self.current_offset.to_u32());
@@ -1795,7 +1783,7 @@ impl<'a> CannonCodeGen<'a> {
         // store gc object in temporary storage
         self.emit_store_register(REG_RESULT.into(), dest);
 
-        self.asm.initialize_object(REG_RESULT, &*class_instance);
+        self.asm.initialize_object(REG_RESULT, vtable);
     }
 
     fn emit_new_object_initialized(&mut self, dest: Register, idx: ConstPoolIdx) {
@@ -1813,16 +1801,10 @@ impl<'a> CannonCodeGen<'a> {
         let type_params = self.specialize_bty_array(&type_params);
         debug_assert!(type_params.iter().all(|ty| ty.is_concrete_type()));
 
-        let class_instance_id = create_class_instance(self.vm, cls_id, &type_params);
-        let class_instance = self.vm.class_instances.idx(class_instance_id);
+        let vtable = self.vm.vtable_for_class(cls_id, &type_params);
 
-        let alloc_size = match class_instance.size {
-            InstanceSize::Fixed(size) => AllocationSize::Fixed(size as usize),
-            _ => unreachable!(
-                "class size type {:?} for new object not supported",
-                class_instance.size
-            ),
-        };
+        let alloc_size = vtable.instance_size();
+        let alloc_size = AllocationSize::Fixed(alloc_size);
 
         let gcpoint = self.create_gcpoint();
         let position = self.bytecode.offset_location(self.current_offset.to_u32());
@@ -1832,15 +1814,15 @@ impl<'a> CannonCodeGen<'a> {
         // store gc object in temporary storage
         self.emit_store_register(REG_RESULT.into(), dest);
 
-        self.asm.initialize_object(REG_RESULT, &*class_instance);
+        self.asm.initialize_object(REG_RESULT, vtable);
 
         let obj_reg = REG_TMP1;
         self.emit_load_register(dest, obj_reg.into());
 
-        assert_eq!(arguments.len(), class_instance.fields.len());
+        assert_eq!(arguments.len(), vtable.fields.len());
 
         // Initialize all class fields.
-        for (&argument, field) in arguments.iter().zip(class_instance.fields.iter()) {
+        for (&argument, field) in arguments.iter().zip(vtable.fields.iter()) {
             let ty = self.specialize_register_type(argument);
             let argument = self.reg(argument);
             self.asm.store_field(obj_reg, field.offset, argument, ty);
@@ -1860,8 +1842,7 @@ impl<'a> CannonCodeGen<'a> {
 
         let type_params = self.specialize_bty_array(&type_params);
 
-        let class_instance_id = create_class_instance(self.vm, cls_id, &type_params);
-        let class_instance = self.vm.class_instances.idx(class_instance_id);
+        let vtable = self.vm.vtable_for_class(cls_id, &type_params);
 
         let length_reg = REG_TMP1;
         let size_reg = REG_TMP2;
@@ -1869,23 +1850,13 @@ impl<'a> CannonCodeGen<'a> {
 
         let array_header_size = Header::size() as usize + mem::ptr_width_usize();
 
-        let alloc_size = match class_instance.size {
-            InstanceSize::PrimitiveArray(size) | InstanceSize::StructArray(size) => {
-                assert_ne!(size, 0);
-                self.asm
-                    .determine_array_size(size_reg, length_reg, size, true);
-                AllocationSize::Dynamic(size_reg)
-            }
-            InstanceSize::ObjArray => {
-                self.asm
-                    .determine_array_size(size_reg, length_reg, mem::ptr_width(), true);
-                AllocationSize::Dynamic(size_reg)
-            }
-            InstanceSize::UnitArray => AllocationSize::Fixed(array_header_size),
-            _ => unreachable!(
-                "class size type {:?} for new array not supported",
-                class_instance.size
-            ),
+        let element_size = vtable.element_size();
+        let alloc_size = if element_size > 0 {
+            self.asm
+                .determine_array_size(size_reg, length_reg, element_size as i32, true);
+            AllocationSize::Dynamic(size_reg)
+        } else {
+            AllocationSize::Fixed(array_header_size)
         };
 
         // REG_TMP1 and REG_TMP2 should be restored in the slow path of the allocation.
@@ -1901,17 +1872,10 @@ impl<'a> CannonCodeGen<'a> {
         self.emit_store_register(REG_RESULT.into(), dest);
 
         self.asm
-            .initialize_array_header(REG_RESULT, &*class_instance, length_reg, size_reg);
+            .initialize_array_header(REG_RESULT, vtable, length_reg, size_reg);
 
-        match class_instance.size {
-            InstanceSize::PrimitiveArray(size) | InstanceSize::StructArray(size) => {
-                self.emit_array_initialization(REG_RESULT, length_reg, size);
-            }
-            InstanceSize::ObjArray => {
-                self.emit_array_initialization(REG_RESULT, length_reg, mem::ptr_width());
-            }
-            InstanceSize::UnitArray => {}
-            _ => unreachable!(),
+        if element_size > 0 {
+            self.emit_array_initialization(REG_RESULT, length_reg, element_size as i32);
         }
     }
 
@@ -2008,16 +1972,8 @@ impl<'a> CannonCodeGen<'a> {
                     &*enum_,
                     variant_idx,
                 );
-
-                let cls = self.vm.class_instances.idx(cls_def_id);
-
-                let alloc_size = match cls.size {
-                    InstanceSize::Fixed(size) => size as usize,
-                    _ => unreachable!(
-                        "class size type {:?} for new object not supported",
-                        cls.size
-                    ),
-                };
+                let vtable = self.vm.vtable_for_class_instance_id(cls_def_id);
+                let alloc_size = vtable.instance_size();
 
                 let gcpoint = self.create_gcpoint();
                 let position = self.bytecode.offset_location(self.current_offset.to_u32());
@@ -2036,7 +1992,7 @@ impl<'a> CannonCodeGen<'a> {
                 self.emit_store_register_as(REG_TMP1.into(), dest, MachineMode::Ptr);
 
                 comment!(self, format!("NewEnum: initialize object"));
-                self.asm.initialize_object(REG_TMP1, &*cls);
+                self.asm.initialize_object(REG_TMP1, vtable);
 
                 // store variant_idx
                 comment!(self, format!("NewEnum: store variant_idx {}", variant_idx));
@@ -2050,11 +2006,11 @@ impl<'a> CannonCodeGen<'a> {
 
                 let mut field_idx = 1; // first field is variant_idx
 
-                assert_eq!(arguments.len(), cls.fields.len() - 1);
+                assert_eq!(arguments.len(), vtable.fields.len() - 1);
 
                 for arg in arguments {
                     let ty = self.specialize_register_type(arg);
-                    let field = &cls.fields[field_idx];
+                    let field = &vtable.fields[field_idx];
                     comment!(self, format!("NewEnum: store register {} in object", arg));
 
                     let dest = RegOrOffset::RegWithOffset(REG_TMP1, field.offset);
@@ -2115,16 +2071,8 @@ impl<'a> CannonCodeGen<'a> {
 
         let class_instance_id =
             ensure_class_instance_for_trait_object(self.vm, trait_ty, object_ty.clone());
-
-        let cls = self.vm.class_instances.idx(class_instance_id);
-
-        let alloc_size = match cls.size {
-            InstanceSize::Fixed(size) => size as usize,
-            _ => unreachable!(
-                "class size type {:?} for new object not supported",
-                cls.size
-            ),
-        };
+        let vtable = self.vm.vtable_for_class_instance_id(class_instance_id);
+        let alloc_size = vtable.instance_size();
 
         let gcpoint = self.create_gcpoint();
         let position = self.bytecode.offset_location(self.current_offset.to_u32());
@@ -2143,10 +2091,10 @@ impl<'a> CannonCodeGen<'a> {
         self.emit_store_register_as(REG_TMP1.into(), dest, MachineMode::Ptr);
 
         comment!(self, format!("NewTraitObject: initialize object"));
-        self.asm.initialize_object(REG_TMP1, &*cls);
+        self.asm.initialize_object(REG_TMP1, vtable);
 
-        assert_eq!(cls.fields.len(), 1);
-        let field = &cls.fields[0];
+        assert_eq!(vtable.fields.len(), 1);
+        let field = &vtable.fields[0];
         comment!(
             self,
             format!("NewTraitObject: store register {} in object", src)
@@ -2170,18 +2118,11 @@ impl<'a> CannonCodeGen<'a> {
         debug_assert!(type_params.iter().all(|ty| ty.is_concrete_type()));
 
         let cls_def_id = ensure_class_instance_for_lambda(self.vm, fct_id, type_params);
+        let vtable = self.vm.vtable_for_class_instance_id(cls_def_id);
 
         let arguments = self.argument_stack.drain(..).collect::<Vec<_>>();
 
-        let cls = self.vm.class_instances.idx(cls_def_id);
-
-        let alloc_size = match cls.size {
-            InstanceSize::Fixed(size) => size as usize,
-            _ => unreachable!(
-                "class size type {:?} for new object not supported",
-                cls.size
-            ),
-        };
+        let alloc_size = vtable.instance_size();
 
         let gcpoint = self.create_gcpoint();
         let position = self.bytecode.offset_location(self.current_offset.to_u32());
@@ -2202,7 +2143,7 @@ impl<'a> CannonCodeGen<'a> {
         self.emit_store_register_as(REG_TMP1.into(), dest, MachineMode::Ptr);
 
         comment!(self, format!("NewLambda: initialize object"));
-        self.asm.initialize_object(object_reg, &*cls);
+        self.asm.initialize_object(object_reg, vtable);
 
         // Store context pointer.
         if arguments.is_empty() {

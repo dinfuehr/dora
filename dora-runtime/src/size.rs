@@ -38,7 +38,7 @@ impl InstanceSize {
             InstanceSize::Fixed(_) | InstanceSize::FillerWord => None,
             InstanceSize::FillerArray | InstanceSize::FreeSpace => Some(mem::ptr_width()),
             InstanceSize::StructArray(esize) => Some(*esize),
-            InstanceSize::UnitArray => None,
+            InstanceSize::UnitArray => Some(0),
             InstanceSize::CodeObject => Some(mem::ptr_width()),
         }
     }

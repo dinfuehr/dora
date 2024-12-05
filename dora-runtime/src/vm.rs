@@ -20,6 +20,8 @@ use crate::threads::{
     STACK_SIZE,
 };
 use crate::utils::GrowableVecNonIter;
+use crate::VTable;
+
 use dora_bytecode::{
     BytecodeType, BytecodeTypeArray, ClassId, EnumId, FunctionId, ModuleId, Program, StructId,
     TraitId,
@@ -135,7 +137,7 @@ pub struct VM {
     pub known: KnownElements,
     pub struct_specializations: RwLock<HashMap<(StructId, BytecodeTypeArray), StructInstanceId>>,
     pub struct_instances: GrowableVecNonIter<StructInstance>, // stores all struct definitions
-    pub class_specializations: RwLock<HashMap<(ClassId, BytecodeTypeArray), ClassInstanceId>>,
+    pub class_specializations: RwLock<HashMap<(ClassId, BytecodeTypeArray), *const VTable>>,
     pub class_instances: GrowableVecNonIter<ClassInstance>, // stores all class definitions
     pub code_objects: CodeObjects,
     pub compilation_database: CompilationDatabase,
@@ -285,6 +287,16 @@ impl VM {
 
     pub fn meta_space_size(&self) -> usize {
         self.gc.meta_space_size()
+    }
+
+    pub fn vtable_for_class(&self, class_id: ClassId, type_params: &BytecodeTypeArray) -> &VTable {
+        let vtable = create_class_instance(self, class_id, type_params);
+        unsafe { &*vtable }
+    }
+
+    pub fn vtable_for_class_instance_id(&self, id: ClassInstanceId) -> &VTable {
+        let vtable = self.class_instances.idx(id).vtable_ptr();
+        unsafe { &*vtable }
     }
 
     pub fn class(&self, id: ClassId) -> &ClassData {
