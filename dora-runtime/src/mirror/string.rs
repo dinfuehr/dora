@@ -153,8 +153,7 @@ where
 
     let clsid = vm.str();
     let cls = vm.class_instances.idx(clsid);
-    let vtable = cls.vtable.read();
-    let vtable: &VTable = vtable.as_ref().unwrap();
+    let vtable = cls.vtable();
     let handle: Ref<Str> = ptr.into();
     let (is_marked, is_remembered) = vm.gc.initial_metadata_value(size, is_readonly);
     handle.header().setup_header_word(

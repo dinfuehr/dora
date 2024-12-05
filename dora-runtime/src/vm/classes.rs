@@ -1,10 +1,10 @@
-use parking_lot::RwLock;
+use std::sync::OnceLock;
 
 use crate::gc::Address;
 use crate::size::InstanceSize;
 use crate::utils::Id;
-use crate::vm::{add_ref_fields, VM};
-use crate::vtable::{VTable, VTableBox};
+use crate::vm::add_ref_fields;
+use crate::{ShapeVisitor, VTable, VM};
 use dora_bytecode::{BytecodeType, BytecodeTypeArray, ClassId, EnumId, FunctionId};
 
 #[derive(Copy, Clone, Debug, PartialEq, Eq)]
@@ -32,7 +32,7 @@ impl Id for ClassInstance {
     }
 }
 
-#[derive(Debug)]
+#[derive(Clone, Debug)]
 pub enum ShapeKind {
     Class(ClassId, BytecodeTypeArray),
     Lambda(FunctionId, BytecodeTypeArray),
@@ -51,7 +51,7 @@ pub struct ClassInstance {
     pub fields: Vec<FieldInstance>,
     pub size: InstanceSize,
     pub ref_fields: Vec<i32>,
-    pub vtable: RwLock<Option<VTableBox>>,
+    pub vtable: OnceLock<*const VTable>,
 }
 
 impl ClassInstance {
@@ -66,10 +66,14 @@ impl ClassInstance {
         }
     }
 
+    pub fn vtable(&self) -> &VTable {
+        let vtable = self.vtable.get().cloned().expect("missing VTable");
+        unsafe { &*vtable }
+    }
+
     pub fn vtblptr(&self) -> Address {
-        let vtable = self.vtable.read();
-        let vtable: &VTable = vtable.as_ref().unwrap();
-        Address::from_ptr(vtable as *const _)
+        let vtable = self.vtable.get().cloned().expect("missing VTable");
+        Address::from_ptr(vtable)
     }
 }
 
@@ -85,7 +89,7 @@ pub fn create_class_instance_with_vtable(
     size: InstanceSize,
     fields: Vec<FieldInstance>,
     vtable_entries: usize,
-) -> ClassInstanceId {
+) -> (ClassInstanceId, *const VTable) {
     let ref_fields = build_ref_fields(vm, &kind, size, &fields);
 
     let size = match size {
@@ -97,17 +101,29 @@ pub fn create_class_instance_with_vtable(
 
     let class_instance_id = vm.class_instances.push(ClassInstance {
         id: None,
-        kind,
+        kind: kind.clone(),
         fields,
         size,
-        ref_fields,
-        vtable: RwLock::new(None),
+        ref_fields: ref_fields.clone(),
+        vtable: OnceLock::new(),
     });
     let class_instance = vm.class_instances.idx(class_instance_id);
-    let class_instance_ptr = &*class_instance as *const ClassInstance as *mut ClassInstance;
 
     let instance_size = size.instance_size().unwrap_or(0) as usize;
     let element_size = size.element_size().unwrap_or(-1) as usize;
+
+    let visitor = match size {
+        InstanceSize::PrimitiveArray(_) => ShapeVisitor::None,
+        InstanceSize::ObjArray => ShapeVisitor::PointerArray,
+        InstanceSize::Str => ShapeVisitor::None,
+        InstanceSize::Fixed(..) => ShapeVisitor::Regular,
+        InstanceSize::FillerWord | InstanceSize::FillerArray | InstanceSize::FreeSpace => {
+            ShapeVisitor::None
+        }
+        InstanceSize::StructArray(_) => ShapeVisitor::RecordArray,
+        InstanceSize::UnitArray => ShapeVisitor::None,
+        InstanceSize::CodeObject => ShapeVisitor::Invalid,
+    };
 
     let vtable_mtdptrs = if vtable_entries > 0 {
         let compilation_stub = vm.native_methods.lazy_compilation_stub().to_usize();
@@ -116,17 +132,19 @@ pub fn create_class_instance_with_vtable(
         Vec::new()
     };
 
-    let vtable = VTableBox::new(
+    let vtable = VTable::new(
         vm,
-        class_instance_ptr,
+        kind,
+        visitor,
+        ref_fields,
         instance_size,
         element_size,
         &vtable_mtdptrs,
     );
 
-    *class_instance.vtable.write() = Some(vtable);
+    assert!(class_instance.vtable.set(vtable).is_ok());
 
-    class_instance_id
+    (class_instance_id, vtable)
 }
 
 fn build_ref_fields(

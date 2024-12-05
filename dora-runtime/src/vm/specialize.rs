@@ -211,7 +211,7 @@ pub fn ensure_class_instance_for_enum_variant(
 
     let instance_size = mem::align_i32(csize, mem::ptr_width());
 
-    let class_instance_id = create_class_instance_with_vtable(
+    let (class_instance_id, _) = create_class_instance_with_vtable(
         vm,
         ShapeKind::Enum(edef.enum_id, edef.type_params.clone()),
         InstanceSize::Fixed(instance_size),
@@ -359,7 +359,7 @@ fn create_specialized_class_regular(
         return id;
     }
 
-    let class_instance_id = create_class_instance_with_vtable(
+    let (class_instance_id, _) = create_class_instance_with_vtable(
         vm,
         ShapeKind::Class(cls_id, type_params.clone()),
         size,
@@ -440,7 +440,7 @@ fn create_specialized_class_array(
         return id;
     }
 
-    let class_instance_id = create_class_instance_with_vtable(
+    let (class_instance_id, _) = create_class_instance_with_vtable(
         vm,
         ShapeKind::Class(cls_id, type_params.clone()),
         size,
@@ -474,7 +474,7 @@ pub fn ensure_class_instance_for_lambda(
         ty: BytecodeType::Ptr,
     }];
 
-    let id = create_class_instance_with_vtable(
+    let (id, _) = create_class_instance_with_vtable(
         vm,
         ShapeKind::Lambda(fct_id, type_params),
         size,
@@ -549,7 +549,7 @@ fn create_specialized_class_for_trait_object(
         return id;
     }
 
-    let class_instance_id = create_class_instance_with_vtable(
+    let (class_instance_id, _) = create_class_instance_with_vtable(
         vm,
         ShapeKind::TraitObject {
             trait_ty: trait_ty.clone(),

@@ -11,7 +11,6 @@ use crate::mem;
 use crate::mirror::Header;
 use crate::os;
 use crate::vm::VM;
-use crate::vtable::VTable;
 use dora_bytecode::{BytecodeType, BytecodeTypeArray, FunctionId, Location};
 
 pub const CODE_ALIGNMENT: usize = 16;
@@ -99,15 +98,10 @@ pub fn install_code(vm: &VM, code_descriptor: CodeDescriptor, kind: CodeKind) ->
 
     os::jit_writable();
 
-    let clsid = vm.known.code_class_instance();
-    let cls = vm.class_instances.idx(clsid);
-    let vtable = cls.vtable.read();
-    let vtable: &VTable = vtable.as_ref().expect("missing vtable");
-
     let code_header = object_start.to_mut_ptr::<ManagedCodeHeader>();
     let code_header = unsafe { &mut *code_header };
     code_header.object_header.setup_header_word(
-        Address::from_ptr(vtable as *const VTable),
+        vm.known.code_class_address(),
         vm.meta_space_start(),
         false,
         false,

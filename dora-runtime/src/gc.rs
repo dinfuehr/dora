@@ -100,8 +100,8 @@ impl Gc {
         self.code_space.alloc(size)
     }
 
-    pub fn alloc_meta(&self, align: usize, size: usize) -> Address {
-        self.meta_space.alloc(align, size)
+    pub fn alloc_meta(&self, size: usize, align: usize) -> Address {
+        self.meta_space.alloc(size, align)
     }
 
     pub fn alloc_readonly(&self, vm: &VM, size: usize) -> Address {

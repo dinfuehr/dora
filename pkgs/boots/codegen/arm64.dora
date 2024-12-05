@@ -592,7 +592,7 @@ impl CodeGenArm64 {
         self.mov_imm(tmp2, config.meta_space_start.toInt64());
         self.asm.add(tmp1, tmp1, tmp2);
 
-        let vtable_entry_offset = 32i32 + vtable_index * PTR_SIZE;
+        let vtable_entry_offset = config.vtable_method_table_offset + vtable_index * PTR_SIZE;
         self.asm.ldr_imm(REG_TEMP, REG_TEMP, vtable_entry_offset);
         self.asm.bl_r(REG_TEMP);
 

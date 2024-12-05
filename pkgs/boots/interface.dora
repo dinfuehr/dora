@@ -216,6 +216,7 @@ pub class Config {
     pub object_write_barrier_slow_path: Address,
     pub allocation_slow_path: Address,
     pub meta_space_start: Address,
+    pub vtable_method_table_offset: Int32,
     pub isWindows: Bool,
     pub isUnix: Bool,
     pub needsWriteBarrier: Bool,

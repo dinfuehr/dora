@@ -407,9 +407,8 @@ fn lazy_compile(ra: usize, receiver1: Address, receiver2: Address) -> Address {
 
 fn patch_lambda_call(vm: &VM, receiver: Handle<Object>) -> Address {
     let vtable = receiver.header().vtbl(vm.meta_space_start());
-    let class_instance = vtable.class_instance();
 
-    let (lambda_id, type_params) = match &class_instance.kind {
+    let (lambda_id, type_params) = match vtable.kind() {
         ShapeKind::Lambda(lambda_id, type_params) => (*lambda_id, type_params.clone()),
         _ => unreachable!(),
     };
@@ -430,9 +429,8 @@ fn patch_virtual_call(
     vtable_index: u32,
 ) -> Address {
     let vtable = receiver.header().vtbl(vm.meta_space_start());
-    let class_instance = vtable.class_instance();
 
-    let fct_ptr = match &class_instance.kind {
+    let fct_ptr = match vtable.kind() {
         ShapeKind::TraitObject {
             actual_object_ty, ..
         } => compiler::trait_object_thunk::ensure_compiled_jit(

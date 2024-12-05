@@ -14,14 +14,10 @@ pub struct KnownElements {
     pub string_class_instance_id: Mutex<Option<ClassInstanceId>>,
     pub ste_class_instance_id: Mutex<Option<ClassInstanceId>>,
 
-    pub filler_word_class_instance_id: Option<ClassInstanceId>,
-    pub filler_array_class_instance_id: Option<ClassInstanceId>,
-    pub free_space_class_instance_id: Option<ClassInstanceId>,
-    pub code_class_instance_id: Option<ClassInstanceId>,
-
     pub filler_word_class_address: Address,
     pub filler_array_class_address: Address,
     pub free_space_class_address: Address,
+    pub code_class_address: Address,
 
     pub zero_trait_id: Option<TraitId>,
     pub array_class_id: Option<ClassId>,
@@ -42,14 +38,10 @@ impl KnownElements {
             string_class_instance_id: Mutex::new(None),
             ste_class_instance_id: Mutex::new(None),
 
-            filler_word_class_instance_id: None,
-            filler_array_class_instance_id: None,
-            free_space_class_instance_id: None,
-            code_class_instance_id: None,
-
             free_space_class_address: Address::null(),
             filler_word_class_address: Address::null(),
             filler_array_class_address: Address::null(),
+            code_class_address: Address::null(),
 
             zero_trait_id: None,
             array_class_id: None,
@@ -63,32 +55,20 @@ impl KnownElements {
         }
     }
 
-    pub fn filler_word_class_instance(&self) -> ClassInstanceId {
-        self.filler_word_class_instance_id.expect("uninitialized")
-    }
-
     pub fn filler_word_class_address(&self) -> Address {
         self.filler_word_class_address
-    }
-
-    pub fn filler_array_class_instance(&self) -> ClassInstanceId {
-        self.filler_array_class_instance_id.expect("uninitialized")
     }
 
     pub fn filler_array_class_address(&self) -> Address {
         self.filler_array_class_address
     }
 
-    pub fn free_space_class_instance(&self) -> ClassInstanceId {
-        self.free_space_class_instance_id.expect("uninitialized")
-    }
-
     pub fn free_space_class_address(&self) -> Address {
         self.free_space_class_address
     }
 
-    pub fn code_class_instance(&self) -> ClassInstanceId {
-        self.code_class_instance_id.expect("uninitialized")
+    pub fn code_class_address(&self) -> Address {
+        self.code_class_address
     }
 
     pub fn zero_trait_id(&self) -> TraitId {

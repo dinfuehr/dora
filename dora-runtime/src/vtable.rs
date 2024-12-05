@@ -1,24 +1,47 @@
 use std::mem::align_of;
-use std::ops::{Deref, DerefMut};
-use std::{self, fmt, ptr, slice};
+use std::{self, ptr, slice};
 
 use crate::gc::Address;
-use crate::vm::{ClassInstance, VM};
+use crate::vm::VM;
+use crate::ShapeKind;
 
-pub struct VTableBox(*mut VTable);
+#[derive(Debug)]
+#[repr(u8)]
+pub enum ShapeVisitor {
+    Regular,
+    PointerArray,
+    RecordArray,
+    None,
+    Invalid,
+}
 
-impl VTableBox {
+#[derive(Debug)]
+#[repr(C)]
+pub struct VTable {
+    pub shape_kind: ShapeKind,
+    pub visitor: ShapeVisitor,
+    pub refs: Vec<i32>,
+    pub instance_size: usize,
+    pub element_size: usize,
+    pub table_length: usize,
+}
+
+impl VTable {
     pub fn new(
         vm: &VM,
-        class_instance_ptr: *const ClassInstance,
+        shape_kind: ShapeKind,
+        visitor: ShapeVisitor,
+        refs: Vec<i32>,
         instance_size: usize,
         element_size: usize,
         entries: &[usize],
-    ) -> VTableBox {
+    ) -> *const VTable {
         let size = VTable::size_of(entries.len());
 
         let vtable = VTable {
-            class_instance_ptr,
+            shape_kind,
+            visitor,
+            refs,
             instance_size,
             element_size,
             table_length: entries.len(),
@@ -37,54 +60,17 @@ impl VTableBox {
                 (&*ptr).table_ptr() as *mut _,
                 entries.len(),
             );
-
-            VTableBox(ptr)
         }
+
+        ptr
     }
-}
 
-impl fmt::Debug for VTableBox {
-    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-        let vtable = self.deref();
-
-        vtable.fmt(f)
-    }
-}
-
-impl Deref for VTableBox {
-    type Target = VTable;
-
-    fn deref(&self) -> &VTable {
-        unsafe { &*self.0 }
-    }
-}
-
-impl DerefMut for VTableBox {
-    fn deref_mut(&mut self) -> &mut VTable {
-        unsafe { &mut *self.0 }
-    }
-}
-
-#[derive(Debug)]
-#[repr(C)]
-pub struct VTable {
-    pub class_instance_ptr: *const ClassInstance,
-    pub instance_size: usize,
-    pub element_size: usize,
-    pub table_length: usize,
-}
-
-impl VTable {
     pub const fn size_of(table_length: usize) -> usize {
         std::mem::size_of::<VTable>() + table_length * std::mem::size_of::<usize>()
     }
 
-    pub fn initialize_class_instance(&mut self, classptr: *const ClassInstance) {
-        self.class_instance_ptr = classptr;
-    }
-
-    pub fn class_instance(&self) -> &ClassInstance {
-        unsafe { &*self.class_instance_ptr }
+    pub fn kind(&self) -> &ShapeKind {
+        &self.shape_kind
     }
 
     pub fn instance_size(&self) -> usize {

@@ -630,7 +630,7 @@ impl CodeGenX64 {
         self.asm.movq_ri(tmp2, Immediate(config.meta_space_start.toInt64()));
         self.asm.addq_rr(tmp1, tmp2);
 
-        let vtable_entry_offset = 32i32 + vtable_index * PTR_SIZE;
+        let vtable_entry_offset = config.vtable_method_table_offset + vtable_index * PTR_SIZE;
         self.asm.movq_ra(tmp1, AsmAddress::offset(tmp1, vtable_entry_offset));
         self.asm.call_r(tmp1);
 

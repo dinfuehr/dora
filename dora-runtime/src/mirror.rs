@@ -1,18 +1,17 @@
 use std;
-use std::cmp;
 use std::marker::PhantomData;
 use std::ops::{Deref, DerefMut};
 use std::ptr;
 use std::sync::atomic::{AtomicUsize, Ordering};
 
 use crate::gc::root::Slot;
-use crate::gc::{Address, Region};
+use crate::gc::Address;
 use crate::handle::{create_handle, Handle};
 use crate::mem;
 pub use crate::mirror::string::Str;
 use crate::size::InstanceSize;
-use crate::vm::{ClassInstance, ClassInstanceId, VM};
-use crate::vtable::VTable;
+use crate::vm::{ClassInstanceId, VM};
+use crate::{ShapeVisitor, VTable};
 
 mod string;
 
@@ -337,10 +336,7 @@ impl Object {
         F: FnMut(Slot),
     {
         let vtable = self.header().vtbl(meta_space_start);
-        let classptr = vtable.class_instance_ptr;
-        let cls = unsafe { &*classptr };
-
-        visit_refs(self.address(), cls, f);
+        visit_refs(vtable, self.address(), f);
     }
 
     // TODO: Remove this inline-annotation. It is only required to silence a
@@ -365,38 +361,33 @@ impl Object {
     }
 }
 
-fn visit_refs<F>(object: Address, cls: &ClassInstance, f: F)
+fn visit_refs<F>(vtable: &VTable, object: Address, f: F)
 where
     F: FnMut(Slot),
 {
-    match cls.size {
-        InstanceSize::ObjArray => {
+    match vtable.visitor {
+        ShapeVisitor::PointerArray => {
             visit_object_array_refs(object, f);
         }
 
-        InstanceSize::StructArray(element_size) => {
-            visit_struct_array_refs(object, cls, element_size as usize, None, f);
+        ShapeVisitor::RecordArray => {
+            visit_struct_array_refs(vtable, object, vtable.element_size as usize, f);
         }
 
-        InstanceSize::UnitArray | InstanceSize::PrimitiveArray(_) | InstanceSize::Str => {}
-
-        InstanceSize::FillerWord | InstanceSize::FillerArray | InstanceSize::FreeSpace => {
-            unreachable!()
+        ShapeVisitor::Regular => {
+            visit_regular_object(vtable, object, f);
         }
 
-        InstanceSize::Fixed(_) => {
-            visit_fixed_object(object, cls, f);
-        }
-
-        InstanceSize::CodeObject => unreachable!(),
+        ShapeVisitor::None => {}
+        ShapeVisitor::Invalid => unreachable!(),
     }
 }
 
-fn visit_fixed_object<F>(object: Address, cls: &ClassInstance, mut f: F)
+fn visit_regular_object<F>(vtable: &VTable, object: Address, mut f: F)
 where
     F: FnMut(Slot),
 {
-    for &offset in &cls.ref_fields {
+    for &offset in &vtable.refs {
         f(Slot::at(object.offset(offset as usize)));
     }
 }
@@ -417,41 +408,23 @@ where
     }
 }
 
-fn visit_struct_array_refs<F>(
-    object: Address,
-    cls: &ClassInstance,
-    element_size: usize,
-    range: Option<Region>,
-    mut f: F,
-) where
+fn visit_struct_array_refs<F>(vtable: &VTable, object: Address, element_size: usize, mut f: F)
+where
     F: FnMut(Slot),
 {
     let array = unsafe { &*object.to_ptr::<StrArray>() };
-
-    if cls.ref_fields.is_empty() {
-        return;
-    }
+    debug_assert!(!vtable.refs.is_empty());
 
     // walk through all elements in array
     let array_start = array.data_address();
     let array_size_without_header = element_size * array.len() as usize;
-    let array_limit = array_start.offset(array_size_without_header);
+    let array_end = array_start.offset(array_size_without_header);
 
     let mut ptr = array_start;
-    let mut limit = array_limit;
 
-    if let Some(range) = range {
-        if ptr < range.start {
-            let skip = (range.start.offset_from(ptr) + element_size - 1) / element_size;
-            ptr = ptr.offset(skip * element_size);
-        }
-
-        limit = cmp::min(limit, range.end);
-    }
-
-    while ptr < limit {
+    while ptr < array_end {
         // each of those elements might have multiple references
-        for &offset in &cls.ref_fields {
+        for &offset in &vtable.refs {
             f(Slot::at(ptr.offset(offset as usize)));
         }
         ptr = ptr.offset(element_size as usize);
@@ -557,8 +530,7 @@ fn byte_array_alloc_heap(vm: &VM, len: usize) -> Ref<UInt8Array> {
 
     let clsid = vm.byte_array();
     let cls = vm.class_instances.idx(clsid);
-    let vtable = cls.vtable.read();
-    let vtable: &VTable = vtable.as_ref().unwrap();
+    let vtable = cls.vtable();
     let mut handle: Ref<UInt8Array> = ptr.into();
     let (is_marked, is_remembered) = vm.gc.initial_metadata_value(size, false);
     handle.header_mut().setup_header_word(
@@ -666,8 +638,7 @@ where
 
         let ptr = vm.gc.alloc(vm, size).to_usize();
         let cls = vm.class_instances.idx(clsid);
-        let vtable = cls.vtable.read();
-        let vtable: &VTable = vtable.as_ref().unwrap();
+        let vtable = cls.vtable();
         let mut handle: Ref<Array<T>> = ptr.into();
         let (is_marked, is_remembered) = vm.gc.initial_metadata_value(size, false);
         handle.header_mut().setup_header_word(
@@ -711,8 +682,7 @@ pub fn alloc(vm: &VM, clsid: ClassInstanceId) -> Ref<Object> {
     let size = mem::align_usize_up(size, mem::ptr_width() as usize);
 
     let ptr = vm.gc.alloc(vm, size).to_usize();
-    let vtable = cls_def.vtable.read();
-    let vtable: &VTable = vtable.as_ref().unwrap();
+    let vtable = cls_def.vtable();
     let object: Ref<Object> = ptr.into();
     let (is_marked, is_remembered) = vm.gc.initial_metadata_value(size, false);
     object.header().setup_header_word(

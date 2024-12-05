@@ -553,8 +553,7 @@ fn prepare_virtual_method_tables(vm: &VM, tc: &TransitiveClosure, ctc: &Compiled
                     .cloned()
                     .expect("missing function");
 
-                let mut vtable = class_instance.vtable.write();
-                let vtable = vtable.as_mut().expect("missing vtable");
+                let vtable = class_instance.vtable();
                 let methodtable = vtable.table_mut();
                 methodtable[0] = address.to_usize();
             }
@@ -572,8 +571,7 @@ fn prepare_virtual_method_tables(vm: &VM, tc: &TransitiveClosure, ctc: &Compiled
                         .get(&(trait_fct_id, combined_type_params.clone()))
                         .cloned()
                     {
-                        let mut vtable = class_instance.vtable.write();
-                        let vtable = vtable.as_mut().expect("missing vtable");
+                        let vtable = class_instance.vtable();
                         let methodtable = vtable.table_mut();
                         methodtable[idx] = address.to_usize();
                     }
