@@ -101,7 +101,7 @@ pub fn install_code(vm: &VM, code_descriptor: CodeDescriptor, kind: CodeKind) ->
     let code_header = object_start.to_mut_ptr::<ManagedCodeHeader>();
     let code_header = unsafe { &mut *code_header };
     code_header.object_header.setup_header_word(
-        vm.known.code_class_address(),
+        vm.known.code_vtable().address(),
         vm.meta_space_start(),
         false,
         false,

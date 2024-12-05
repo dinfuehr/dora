@@ -279,56 +279,6 @@ impl VM {
         self.program.program_module_id()
     }
 
-    pub fn byte_array(&self) -> ClassInstanceId {
-        let mut byte_array_def = self.known.byte_array_class_instance_id.lock();
-
-        if let Some(cls_id) = *byte_array_def {
-            cls_id
-        } else {
-            let type_args = BytecodeTypeArray::one(BytecodeType::UInt8);
-            let cls_id = create_class_instance(self, self.known.array_class_id(), &type_args);
-            *byte_array_def = Some(cls_id);
-            cls_id
-        }
-    }
-
-    pub fn int_array(&self) -> ClassInstanceId {
-        let mut int_array_def = self.known.int_array_class_instance_id.lock();
-
-        if let Some(cls_id) = *int_array_def {
-            cls_id
-        } else {
-            let type_args = BytecodeTypeArray::one(BytecodeType::Int32);
-            let cls_id = create_class_instance(self, self.known.array_class_id(), &type_args);
-            *int_array_def = Some(cls_id);
-            cls_id
-        }
-    }
-
-    pub fn str(&self) -> ClassInstanceId {
-        let mut str_class_def = self.known.string_class_instance_id.lock();
-
-        if let Some(cls_id) = *str_class_def {
-            cls_id
-        } else {
-            let cls_id = create_class_instance(
-                self,
-                self.known.string_class_id(),
-                &BytecodeTypeArray::empty(),
-            );
-            *str_class_def = Some(cls_id);
-            cls_id
-        }
-    }
-
-    pub fn thread_class_instance(&self) -> ClassInstanceId {
-        create_class_instance(
-            self,
-            self.known.thread_class_id(),
-            &BytecodeTypeArray::empty(),
-        )
-    }
-
     pub fn meta_space_start(&self) -> Address {
         self.gc.meta_space_start()
     }

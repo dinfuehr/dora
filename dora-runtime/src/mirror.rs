@@ -9,8 +9,7 @@ use crate::gc::Address;
 use crate::handle::{create_handle, Handle};
 use crate::mem;
 pub use crate::mirror::string::Str;
-use crate::size::InstanceSize;
-use crate::vm::{ClassInstanceId, VM};
+use crate::vm::VM;
 use crate::{ShapeVisitor, VTable};
 
 mod string;
@@ -355,9 +354,9 @@ impl Object {
     pub fn is_filler(&self, vm: &VM) -> bool {
         let vtblptr = self.header().raw_vtblptr(vm.meta_space_start());
 
-        vtblptr == vm.known.filler_word_class_address()
-            || vtblptr == vm.known.filler_array_class_address()
-            || vtblptr == vm.known.free_space_class_address()
+        vtblptr == vm.known.filler_word_vtable().address()
+            || vtblptr == vm.known.filler_array_vtable().address()
+            || vtblptr == vm.known.free_space_vtable().address()
     }
 }
 
@@ -528,13 +527,10 @@ fn byte_array_alloc_heap(vm: &VM, len: usize) -> Ref<UInt8Array> {
     let size = mem::align_usize_up(size, mem::ptr_width() as usize);
     let ptr = vm.gc.alloc(vm, size);
 
-    let clsid = vm.byte_array();
-    let cls = vm.class_instances.idx(clsid);
-    let vtable = cls.vtable();
     let mut handle: Ref<UInt8Array> = ptr.into();
     let (is_marked, is_remembered) = vm.gc.initial_metadata_value(size, false);
     handle.header_mut().setup_header_word(
-        Address::from_ptr(vtable as *const VTable),
+        vm.known.byte_array_vtable().address(),
         vm.meta_space_start(),
         is_marked,
         is_remembered,
@@ -631,18 +627,16 @@ where
         }
     }
 
-    pub fn alloc(vm: &VM, len: usize, elem: T, clsid: ClassInstanceId) -> Ref<Array<T>> {
+    pub fn alloc(vm: &VM, len: usize, elem: T, vtable: &VTable) -> Ref<Array<T>> {
         let size = Header::size() as usize        // Object header
                    + mem::ptr_width() as usize    // length field
                    + len * std::mem::size_of::<T>(); // array content
 
         let ptr = vm.gc.alloc(vm, size).to_usize();
-        let cls = vm.class_instances.idx(clsid);
-        let vtable = cls.vtable();
         let mut handle: Ref<Array<T>> = ptr.into();
         let (is_marked, is_remembered) = vm.gc.initial_metadata_value(size, false);
         handle.header_mut().setup_header_word(
-            Address::from_ptr(vtable as *const VTable),
+            vtable.address(),
             vm.meta_space_start(),
             is_marked,
             is_remembered,
@@ -671,22 +665,15 @@ pub type UInt8Array = Array<u8>;
 pub type Int32Array = Array<i32>;
 pub type StrArray = Array<Ref<Str>>;
 
-pub fn alloc(vm: &VM, clsid: ClassInstanceId) -> Ref<Object> {
-    let cls_def = vm.class_instances.idx(clsid);
-
-    let size = match cls_def.size {
-        InstanceSize::Fixed(size) => size as usize,
-        _ => panic!("alloc only supports fix-sized types"),
-    };
-
-    let size = mem::align_usize_up(size, mem::ptr_width() as usize);
+pub fn alloc(vm: &VM, vtable: &VTable) -> Ref<Object> {
+    let size = mem::align_usize_up(vtable.instance_size(), mem::ptr_width() as usize);
+    assert!(size > 0);
 
     let ptr = vm.gc.alloc(vm, size).to_usize();
-    let vtable = cls_def.vtable();
     let object: Ref<Object> = ptr.into();
     let (is_marked, is_remembered) = vm.gc.initial_metadata_value(size, false);
     object.header().setup_header_word(
-        Address::from_ptr(vtable),
+        vtable.address(),
         vm.meta_space_start(),
         is_marked,
         is_remembered,

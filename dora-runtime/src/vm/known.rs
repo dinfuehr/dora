@@ -1,23 +1,20 @@
-use parking_lot::Mutex;
-
 use std::cell::OnceCell;
 use std::collections::HashMap;
 
-use crate::gc::Address;
-use crate::vm::ClassInstanceId;
+use crate::{gc::Address, vtable::VTable};
 use dora_bytecode::{ClassId, FunctionId, TraitId};
 
 #[derive(Debug)]
 pub struct KnownElements {
-    pub byte_array_class_instance_id: Mutex<Option<ClassInstanceId>>,
-    pub int_array_class_instance_id: Mutex<Option<ClassInstanceId>>,
-    pub string_class_instance_id: Mutex<Option<ClassInstanceId>>,
-    pub ste_class_instance_id: Mutex<Option<ClassInstanceId>>,
+    pub byte_array_vtable: Address,
+    pub int32_array_vtable: Address,
+    pub string_vtable: Address,
+    pub thread_vtable: Address,
 
-    pub filler_word_class_address: Address,
-    pub filler_array_class_address: Address,
-    pub free_space_class_address: Address,
-    pub code_class_address: Address,
+    pub filler_word_vtable: Address,
+    pub filler_array_vtable: Address,
+    pub free_space_vtable: Address,
+    pub code_vtable: Address,
 
     pub zero_trait_id: Option<TraitId>,
     pub array_class_id: Option<ClassId>,
@@ -33,15 +30,15 @@ pub struct KnownElements {
 impl KnownElements {
     pub fn new() -> KnownElements {
         KnownElements {
-            byte_array_class_instance_id: Mutex::new(None),
-            int_array_class_instance_id: Mutex::new(None),
-            string_class_instance_id: Mutex::new(None),
-            ste_class_instance_id: Mutex::new(None),
+            byte_array_vtable: Address::null(),
+            int32_array_vtable: Address::null(),
+            string_vtable: Address::null(),
+            thread_vtable: Address::null(),
 
-            free_space_class_address: Address::null(),
-            filler_word_class_address: Address::null(),
-            filler_array_class_address: Address::null(),
-            code_class_address: Address::null(),
+            free_space_vtable: Address::null(),
+            filler_word_vtable: Address::null(),
+            filler_array_vtable: Address::null(),
+            code_vtable: Address::null(),
 
             zero_trait_id: None,
             array_class_id: None,
@@ -55,20 +52,36 @@ impl KnownElements {
         }
     }
 
-    pub fn filler_word_class_address(&self) -> Address {
-        self.filler_word_class_address
+    pub fn byte_array_vtable(&self) -> &VTable {
+        unsafe { &*self.byte_array_vtable.to_ptr::<VTable>() }
     }
 
-    pub fn filler_array_class_address(&self) -> Address {
-        self.filler_array_class_address
+    pub fn int32_array_vtable(&self) -> &VTable {
+        unsafe { &*self.int32_array_vtable.to_ptr::<VTable>() }
     }
 
-    pub fn free_space_class_address(&self) -> Address {
-        self.free_space_class_address
+    pub fn string_vtable(&self) -> &VTable {
+        unsafe { &*self.string_vtable.to_ptr::<VTable>() }
     }
 
-    pub fn code_class_address(&self) -> Address {
-        self.code_class_address
+    pub fn thread_vtable(&self) -> &VTable {
+        unsafe { &*self.thread_vtable.to_ptr::<VTable>() }
+    }
+
+    pub fn filler_word_vtable(&self) -> &VTable {
+        unsafe { &*self.filler_word_vtable.to_ptr::<VTable>() }
+    }
+
+    pub fn filler_array_vtable(&self) -> &VTable {
+        unsafe { &*self.filler_array_vtable.to_ptr::<VTable>() }
+    }
+
+    pub fn free_space_vtable(&self) -> &VTable {
+        unsafe { &*self.free_space_vtable.to_ptr::<VTable>() }
+    }
+
+    pub fn code_vtable(&self) -> &VTable {
+        unsafe { &*self.code_vtable.to_ptr::<VTable>() }
     }
 
     pub fn zero_trait_id(&self) -> TraitId {

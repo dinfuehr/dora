@@ -6,7 +6,6 @@ use crate::gc::Address;
 use crate::mem;
 use crate::mirror::{create_handle, Handle, Header, Ref};
 use crate::vm::VM;
-use crate::vtable::VTable;
 
 #[repr(C)]
 pub struct Str {
@@ -151,13 +150,10 @@ where
     let size = mem::align_usize_up(size, mem::ptr_width() as usize);
     let ptr = alloc(vm, size);
 
-    let clsid = vm.str();
-    let cls = vm.class_instances.idx(clsid);
-    let vtable = cls.vtable();
     let handle: Ref<Str> = ptr.into();
     let (is_marked, is_remembered) = vm.gc.initial_metadata_value(size, is_readonly);
     handle.header().setup_header_word(
-        Address::from_ptr(vtable as *const VTable),
+        vm.known.string_vtable().address(),
         vm.meta_space_start(),
         is_marked,
         is_remembered,

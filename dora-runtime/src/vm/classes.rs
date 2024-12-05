@@ -102,7 +102,7 @@ pub fn create_class_instance_with_vtable(
     let class_instance_id = vm.class_instances.push(ClassInstance {
         id: None,
         kind: kind.clone(),
-        fields,
+        fields: fields.clone(),
         size,
         ref_fields: ref_fields.clone(),
         vtable: OnceLock::new(),
@@ -137,6 +137,7 @@ pub fn create_class_instance_with_vtable(
         kind,
         visitor,
         ref_fields,
+        fields,
         instance_size,
         element_size,
         &vtable_mtdptrs,

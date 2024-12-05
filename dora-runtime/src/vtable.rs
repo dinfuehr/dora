@@ -2,7 +2,7 @@ use std::mem::align_of;
 use std::{self, ptr, slice};
 
 use crate::gc::Address;
-use crate::vm::VM;
+use crate::vm::{FieldInstance, VM};
 use crate::ShapeKind;
 
 #[derive(Debug)]
@@ -21,6 +21,7 @@ pub struct VTable {
     pub shape_kind: ShapeKind,
     pub visitor: ShapeVisitor,
     pub refs: Vec<i32>,
+    pub fields: Vec<FieldInstance>,
     pub instance_size: usize,
     pub element_size: usize,
     pub table_length: usize,
@@ -32,6 +33,7 @@ impl VTable {
         shape_kind: ShapeKind,
         visitor: ShapeVisitor,
         refs: Vec<i32>,
+        fields: Vec<FieldInstance>,
         instance_size: usize,
         element_size: usize,
         entries: &[usize],
@@ -42,6 +44,7 @@ impl VTable {
             shape_kind,
             visitor,
             refs,
+            fields,
             instance_size,
             element_size,
             table_length: entries.len(),
@@ -67,6 +70,10 @@ impl VTable {
 
     pub const fn size_of(table_length: usize) -> usize {
         std::mem::size_of::<VTable>() + table_length * std::mem::size_of::<usize>()
+    }
+
+    pub fn address(&self) -> Address {
+        Address::from_ptr(self as *const _)
     }
 
     pub fn kind(&self) -> &ShapeKind {
