@@ -1,7 +1,8 @@
 use parking_lot::RwLock;
 
 use crate::utils::Id;
-use crate::vm::{ClassInstanceId, VM};
+use crate::vm::VM;
+use crate::vtable::VTable;
 use dora_bytecode::ty::BytecodeTypeArray;
 use dora_bytecode::{module_path_name, EnumData, EnumId};
 
@@ -31,7 +32,7 @@ pub struct EnumInstance {
     pub enum_id: EnumId,
     pub type_params: BytecodeTypeArray,
     pub layout: EnumLayout,
-    pub variants: RwLock<Vec<Option<ClassInstanceId>>>,
+    pub variants: RwLock<Vec<Option<*const VTable>>>,
 }
 
 impl EnumInstance {

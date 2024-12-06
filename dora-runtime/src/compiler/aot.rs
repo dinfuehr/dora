@@ -13,9 +13,10 @@ use crate::gc::{formatted_size, Address};
 use crate::os;
 use crate::vm::{
     ensure_class_instance_for_lambda, ensure_class_instance_for_trait_object, execute_on_main,
-    find_trait_impl, specialize_bty, specialize_bty_array, BytecodeTypeExt, ClassInstanceId, Code,
+    find_trait_impl, specialize_bty, specialize_bty_array, BytecodeTypeExt, Code,
     LazyCompilationSite, ShapeKind, VM,
 };
+use crate::VTable;
 
 pub fn compile_boots_aot(vm: &VM) {
     if vm.has_boots() {
@@ -194,7 +195,7 @@ fn compute_test_addresses(
 struct TransitiveClosure {
     functions: Vec<(FunctionId, BytecodeTypeArray)>,
     thunks: Vec<(FunctionId, BytecodeTypeArray, BytecodeType)>,
-    class_instances: Vec<ClassInstanceId>,
+    vtables: Vec<*const VTable>,
 }
 
 struct TransitiveClosureComputation<'a> {
@@ -203,7 +204,7 @@ struct TransitiveClosureComputation<'a> {
     worklist_idx: usize,
     visited: HashSet<(FunctionId, BytecodeTypeArray)>,
     counter: usize,
-    class_instances: Vec<ClassInstanceId>,
+    vtables: Vec<*const VTable>,
     thunks: Vec<(FunctionId, BytecodeTypeArray, BytecodeType)>,
 }
 
@@ -214,7 +215,7 @@ impl<'a> TransitiveClosureComputation<'a> {
             worklist: Vec::new(),
             worklist_idx: 0,
             visited: HashSet::new(),
-            class_instances: Vec::new(),
+            vtables: Vec::new(),
             counter: 0,
             thunks: Vec::new(),
         }
@@ -228,7 +229,7 @@ impl<'a> TransitiveClosureComputation<'a> {
         TransitiveClosure {
             functions: self.worklist,
             thunks: self.thunks,
-            class_instances: self.class_instances,
+            vtables: self.vtables,
         }
     }
 
@@ -304,9 +305,9 @@ impl<'a> TransitiveClosureComputation<'a> {
                         specialize_bty_array(&callee_type_params, &type_params);
                     self.push(callee_id, callee_type_params.clone());
 
-                    let class_instance_id =
+                    let vtable =
                         ensure_class_instance_for_lambda(self.vm, callee_id, callee_type_params);
-                    self.class_instances.push(class_instance_id);
+                    self.vtables.push(vtable);
                 }
 
                 BytecodeInstruction::NewTraitObject { idx, .. } => {
@@ -321,9 +322,9 @@ impl<'a> TransitiveClosureComputation<'a> {
                     let trait_ty = specialize_bty(trait_ty, &type_params);
                     let actual_object_ty = specialize_bty(actual_object_ty, &type_params);
 
-                    let class_instance_id =
+                    let vtable =
                         ensure_class_instance_for_trait_object(self.vm, trait_ty, actual_object_ty);
-                    self.class_instances.push(class_instance_id);
+                    self.vtables.push(vtable);
                 }
 
                 BytecodeInstruction::LoadGlobal { global_id, .. }
@@ -543,19 +544,16 @@ fn prepare_lazy_call_sites(_vm: &VM, ctc: &CompiledTransitiveClosure) {
 }
 
 fn prepare_virtual_method_tables(vm: &VM, tc: &TransitiveClosure, ctc: &CompiledTransitiveClosure) {
-    for class_instance_id in &tc.class_instances {
-        let class_instance = vm.class_instances.idx(*class_instance_id);
-        match &class_instance.kind {
+    for vtable in &tc.vtables {
+        let vtable = unsafe { &**vtable };
+        match vtable.kind() {
             ShapeKind::Lambda(fct_id, type_params) => {
                 let address = ctc
                     .function_addresses
                     .get(&(*fct_id, type_params.clone()))
                     .cloned()
                     .expect("missing function");
-
-                let vtable = class_instance.vtable();
-                let methodtable = vtable.table_mut();
-                methodtable[0] = address.to_usize();
+                vtable.set_method_table_entry(0, address);
             }
 
             ShapeKind::TraitObject {
@@ -571,9 +569,7 @@ fn prepare_virtual_method_tables(vm: &VM, tc: &TransitiveClosure, ctc: &Compiled
                         .get(&(trait_fct_id, combined_type_params.clone()))
                         .cloned()
                     {
-                        let vtable = class_instance.vtable();
-                        let methodtable = vtable.table_mut();
-                        methodtable[idx] = address.to_usize();
+                        vtable.set_method_table_entry(idx, address);
                     }
                 }
             }

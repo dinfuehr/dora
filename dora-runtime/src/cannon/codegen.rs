@@ -16,10 +16,8 @@ use crate::mem::{self, align_i32};
 use crate::mirror::{Header, Str};
 use crate::mode::MachineMode;
 use crate::vm::{
-    compute_vtable_index, create_enum_instance, create_struct_instance,
-    ensure_class_instance_for_enum_variant, ensure_class_instance_for_lambda,
-    ensure_class_instance_for_trait_object, find_trait_impl, get_concrete_tuple_bty,
-    get_concrete_tuple_bty_array, specialize_bty, specialize_bty_array,
+    compute_vtable_index, create_enum_instance, create_struct_instance, find_trait_impl,
+    get_concrete_tuple_bty, get_concrete_tuple_bty_array, specialize_bty, specialize_bty_array,
     specialize_bty_for_trait_object, CodeDescriptor, EnumLayout, GcPoint, Intrinsic,
     LazyCompilationSite, Trap, INITIALIZED, VM,
 };
@@ -1202,14 +1200,9 @@ impl<'a> CannonCodeGen<'a> {
             }
 
             EnumLayout::Tagged => {
-                let cls_def_id = ensure_class_instance_for_enum_variant(
-                    self.vm,
-                    &*enum_instance,
-                    &*enum_,
-                    variant_idx,
-                );
-
-                let cls = self.vm.class_instances.idx(cls_def_id);
+                let vtable = self
+                    .vm
+                    .vtable_for_enum_variant(&*enum_instance, &*enum_, variant_idx);
 
                 self.emit_load_register_as(src, REG_TMP1.into(), MachineMode::Ptr);
                 self.asm.load_mem(
@@ -1225,7 +1218,7 @@ impl<'a> CannonCodeGen<'a> {
                 self.asm.emit_bailout(lbl_bailout, Trap::ILLEGAL, pos);
 
                 let field_id = enum_instance.field_id(&*enum_, variant_idx, element_idx);
-                let field = &cls.fields[field_id as usize];
+                let field = &vtable.fields[field_id as usize];
 
                 let bty = register_ty(field.ty.clone());
                 assert_eq!(bty, self.specialize_register_type(dest));
@@ -1966,13 +1959,9 @@ impl<'a> CannonCodeGen<'a> {
             }
 
             EnumLayout::Tagged => {
-                let cls_def_id = ensure_class_instance_for_enum_variant(
-                    self.vm,
-                    &*enum_instance,
-                    &*enum_,
-                    variant_idx,
-                );
-                let vtable = self.vm.vtable_for_class_instance_id(cls_def_id);
+                let vtable = self
+                    .vm
+                    .vtable_for_enum_variant(&*enum_instance, &*enum_, variant_idx);
                 let alloc_size = vtable.instance_size();
 
                 let gcpoint = self.create_gcpoint();
@@ -2069,9 +2058,7 @@ impl<'a> CannonCodeGen<'a> {
         let object_ty = self.specialize_bty(actual_object_ty.clone());
         debug_assert!(object_ty.is_concrete_type());
 
-        let class_instance_id =
-            ensure_class_instance_for_trait_object(self.vm, trait_ty, object_ty.clone());
-        let vtable = self.vm.vtable_for_class_instance_id(class_instance_id);
+        let vtable = self.vm.vtable_for_trait_object(trait_ty, object_ty.clone());
         let alloc_size = vtable.instance_size();
 
         let gcpoint = self.create_gcpoint();
@@ -2117,8 +2104,7 @@ impl<'a> CannonCodeGen<'a> {
         let type_params = self.specialize_bty_array(&type_params);
         debug_assert!(type_params.iter().all(|ty| ty.is_concrete_type()));
 
-        let cls_def_id = ensure_class_instance_for_lambda(self.vm, fct_id, type_params);
-        let vtable = self.vm.vtable_for_class_instance_id(cls_def_id);
+        let vtable = self.vm.vtable_for_lambda(fct_id, type_params);
 
         let arguments = self.argument_stack.drain(..).collect::<Vec<_>>();
 
@@ -3661,16 +3647,11 @@ impl<'a> CannonCodeGen<'a> {
                     location,
                 );
 
-                let class_instance_id = ensure_class_instance_for_enum_variant(
-                    self.vm,
-                    &*enum_instance,
-                    &*enum_,
-                    some_variant_id,
-                );
+                let vtable =
+                    self.vm
+                        .vtable_for_enum_variant(&*enum_instance, &*enum_, some_variant_id);
 
-                let cls = self.vm.class_instances.idx(class_instance_id);
-
-                let field = &cls.fields[1];
+                let field = &vtable.fields[1];
                 let dest_offset = self.register_offset(dest);
 
                 self.asm.copy_bytecode_ty(

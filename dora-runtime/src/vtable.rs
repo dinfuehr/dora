@@ -92,11 +92,15 @@ impl VTable {
         unsafe { slice::from_raw_parts(self.table_ptr(), self.table_length) }
     }
 
-    pub fn table_mut(&self) -> &mut [usize] {
+    pub fn set_method_table_entry(&self, idx: usize, value: Address) {
+        self.table_mut()[idx] = value.to_usize();
+    }
+
+    fn table_mut(&self) -> &mut [usize] {
         unsafe { slice::from_raw_parts_mut(self.table_ptr() as *mut usize, self.table_length) }
     }
 
-    pub fn table_ptr(&self) -> *const usize {
+    fn table_ptr(&self) -> *const usize {
         let address = Address::from_ptr(self as *const _);
         address
             .offset(VTable::offset_of_method_table() as usize)

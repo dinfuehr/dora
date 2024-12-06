@@ -1,36 +1,7 @@
-use std::sync::OnceLock;
-
-use crate::gc::Address;
 use crate::size::InstanceSize;
-use crate::utils::Id;
 use crate::vm::add_ref_fields;
 use crate::{ShapeVisitor, VTable, VM};
 use dora_bytecode::{BytecodeType, BytecodeTypeArray, ClassId, EnumId, FunctionId};
-
-#[derive(Copy, Clone, Debug, PartialEq, Eq)]
-pub struct ClassInstanceId(usize);
-
-impl ClassInstanceId {
-    pub fn to_usize(self) -> usize {
-        self.0
-    }
-}
-
-impl Id for ClassInstance {
-    type IdType = ClassInstanceId;
-
-    fn id_to_usize(id: ClassInstanceId) -> usize {
-        id.0 as usize
-    }
-
-    fn usize_to_id(value: usize) -> ClassInstanceId {
-        ClassInstanceId(value.try_into().unwrap())
-    }
-
-    fn store_id(value: &mut ClassInstance, id: ClassInstanceId) {
-        value.id = Some(id);
-    }
-}
 
 #[derive(Clone, Debug)]
 pub enum ShapeKind {
@@ -42,41 +13,6 @@ pub enum ShapeKind {
     },
     Enum(EnumId, BytecodeTypeArray),
     Builtin,
-}
-
-#[derive(Debug)]
-pub struct ClassInstance {
-    pub id: Option<ClassInstanceId>,
-    pub kind: ShapeKind,
-    pub fields: Vec<FieldInstance>,
-    pub size: InstanceSize,
-    pub ref_fields: Vec<i32>,
-    pub vtable: OnceLock<*const VTable>,
-}
-
-impl ClassInstance {
-    pub fn id(&self) -> ClassInstanceId {
-        self.id.expect("missing id")
-    }
-
-    pub fn cls_id(&self) -> Option<ClassId> {
-        match &self.kind {
-            ShapeKind::Class(cls_id, _) => Some(*cls_id),
-            _ => None,
-        }
-    }
-
-    pub fn vtable(&self) -> &VTable {
-        unsafe { &*self.vtable_ptr() }
-    }
-
-    pub fn vtable_ptr(&self) -> *const VTable {
-        self.vtable.get().cloned().expect("missing VTable")
-    }
-
-    pub fn vtable_address(&self) -> Address {
-        Address::from_ptr(self.vtable_ptr())
-    }
 }
 
 #[derive(Debug, Clone)]
@@ -91,7 +27,7 @@ pub fn create_class_instance_with_vtable(
     size: InstanceSize,
     fields: Vec<FieldInstance>,
     vtable_entries: usize,
-) -> (ClassInstanceId, *const VTable) {
+) -> *const VTable {
     let ref_fields = build_ref_fields(vm, &kind, size, &fields);
 
     let size = match size {
@@ -100,16 +36,6 @@ pub fn create_class_instance_with_vtable(
         }
         _ => size,
     };
-
-    let class_instance_id = vm.class_instances.push(ClassInstance {
-        id: None,
-        kind: kind.clone(),
-        fields: fields.clone(),
-        size,
-        ref_fields: ref_fields.clone(),
-        vtable: OnceLock::new(),
-    });
-    let class_instance = vm.class_instances.idx(class_instance_id);
 
     let instance_size = size.instance_size().unwrap_or(0) as usize;
     let element_size = size.element_size().unwrap_or(-1) as usize;
@@ -145,9 +71,7 @@ pub fn create_class_instance_with_vtable(
         &vtable_mtdptrs,
     );
 
-    assert!(class_instance.vtable.set(vtable).is_ok());
-
-    (class_instance_id, vtable)
+    vtable
 }
 
 fn build_ref_fields(

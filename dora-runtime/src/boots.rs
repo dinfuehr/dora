@@ -13,13 +13,9 @@ use crate::compiler::{CompilationData, CompilationMode};
 use crate::gc::Address;
 use crate::handle::{create_handle, Handle};
 use crate::mirror::{byte_array_from_buffer, Ref, Str, UInt8Array};
-use crate::size::InstanceSize;
 use crate::threads::current_thread;
 use crate::vm::compute_vtable_index;
-use crate::vm::{
-    create_enum_instance, ensure_class_instance_for_enum_variant, get_vm, impls, CodeDescriptor,
-    FctImplementation, VM,
-};
+use crate::vm::{create_enum_instance, get_vm, impls, CodeDescriptor, FctImplementation, VM};
 
 use self::deserializer::{decode_bytecode_type, decode_bytecode_type_array};
 
@@ -209,9 +205,8 @@ extern "C" fn get_class_pointer_for_lambda(data: Handle<UInt8Array>) -> Address 
     let type_params = decode_bytecode_type_array(&mut reader);
     assert!(!reader.has_more());
 
-    let id = crate::vm::ensure_class_instance_for_lambda(vm, fct_id, type_params);
-    let cls = vm.class_instances.idx(id);
-    cls.vtable_address()
+    let vtable = crate::vm::ensure_class_instance_for_lambda(vm, fct_id, type_params);
+    Address::from_ptr(vtable)
 }
 
 extern "C" fn get_class_pointer_for_trait_object_raw(data: Handle<UInt8Array>) -> Address {
@@ -232,9 +227,8 @@ extern "C" fn get_class_pointer_for_trait_object_raw(data: Handle<UInt8Array>) -
     let actual_object_ty = decode_bytecode_type(&mut reader);
     assert!(!reader.has_more());
 
-    let id = crate::vm::ensure_class_instance_for_trait_object(vm, trait_ty, actual_object_ty);
-    let cls = vm.class_instances.idx(id);
-    cls.vtable_address()
+    vm.vtable_for_trait_object(trait_ty, actual_object_ty)
+        .address()
 }
 
 extern "C" fn get_class_size_for_trait_object_raw(data: Handle<UInt8Array>) -> i32 {
@@ -255,13 +249,8 @@ extern "C" fn get_class_size_for_trait_object_raw(data: Handle<UInt8Array>) -> i
     let actual_object_ty = decode_bytecode_type(&mut reader);
     assert!(!reader.has_more());
 
-    let id = crate::vm::ensure_class_instance_for_trait_object(vm, trait_ty, actual_object_ty);
-    let cls = vm.class_instances.idx(id);
-
-    match cls.size {
-        InstanceSize::Fixed(size) => size,
-        _ => unreachable!(),
-    }
+    let vtable = vm.vtable_for_trait_object(trait_ty, actual_object_ty);
+    vtable.instance_size() as i32
 }
 
 extern "C" fn get_global_value_address(id: GlobalId) -> Address {
@@ -515,21 +504,11 @@ extern "C" fn get_class_data_for_enum_variant_raw(data: Handle<UInt8Array>) -> R
     let enum_instance_id = create_enum_instance(vm, enum_id, type_params.clone());
     let enum_instance = vm.enum_instances.idx(enum_instance_id);
 
-    let cls_def_id =
-        ensure_class_instance_for_enum_variant(vm, &*enum_instance, &*enum_, variant_id);
-
-    let cls = vm.class_instances.idx(cls_def_id);
-
-    let alloc_size = match cls.size {
-        InstanceSize::Fixed(size) => size as usize,
-        _ => unreachable!(
-            "class size type {:?} for new object not supported",
-            cls.size
-        ),
-    };
+    let vtable = vm.vtable_for_enum_variant(&*enum_instance, &*enum_, variant_id);
+    let alloc_size = vtable.instance_size();
 
     let mut buffer = ByteBuffer::new();
-    buffer.emit_address(cls.vtable_address());
+    buffer.emit_address(vtable.address());
     buffer.emit_u32(alloc_size as u32);
     byte_array_from_buffer(vm, buffer.data()).cast()
 }
@@ -558,11 +537,8 @@ extern "C" fn get_field_offset_for_enum_variant_raw(data: Handle<UInt8Array>) ->
     let enum_instance_id = create_enum_instance(vm, enum_id, type_params.clone());
     let enum_instance = vm.enum_instances.idx(enum_instance_id);
 
-    let cls_def_id =
-        ensure_class_instance_for_enum_variant(vm, &*enum_instance, &*enum_, variant_id);
-
+    let vtable = vm.vtable_for_enum_variant(&*enum_instance, &*enum_, variant_id);
     let field_id = enum_instance.field_id(&*enum_, variant_id, field_id);
 
-    let cls = vm.class_instances.idx(cls_def_id);
-    cls.fields[field_id as usize].offset
+    vtable.fields[field_id as usize].offset
 }

@@ -414,9 +414,7 @@ fn patch_lambda_call(vm: &VM, receiver: Handle<Object>) -> Address {
     };
 
     let fct_ptr = compiler::compile_fct_jit(vm, lambda_id, &type_params);
-
-    let methodtable = vtable.table_mut();
-    methodtable[0] = fct_ptr.to_usize();
+    vtable.set_method_table_entry(0, fct_ptr);
 
     fct_ptr
 }
@@ -443,8 +441,7 @@ fn patch_virtual_call(
         _ => unreachable!(),
     };
 
-    let methodtable = vtable.table_mut();
-    methodtable[vtable_index as usize] = fct_ptr.to_usize();
+    vtable.set_method_table_entry(vtable_index as usize, fct_ptr);
 
     fct_ptr
 }

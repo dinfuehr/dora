@@ -27,9 +27,7 @@ use dora_bytecode::{
     TraitId,
 };
 
-pub use self::classes::{
-    create_class_instance_with_vtable, ClassInstance, ClassInstanceId, FieldInstance, ShapeKind,
-};
+pub use self::classes::{create_class_instance_with_vtable, FieldInstance, ShapeKind};
 pub use self::code::{
     install_code, install_code_stub, Code, CodeDescriptor, CodeId, CodeKind, CodeObjects,
     CommentTable, ConstPool, ConstPoolEntry, ConstPoolValue, GcPoint, GcPointTable,
@@ -138,13 +136,12 @@ pub struct VM {
     pub struct_specializations: RwLock<HashMap<(StructId, BytecodeTypeArray), StructInstanceId>>,
     pub struct_instances: GrowableVecNonIter<StructInstance>, // stores all struct definitions
     pub class_specializations: RwLock<HashMap<(ClassId, BytecodeTypeArray), *const VTable>>,
-    pub class_instances: GrowableVecNonIter<ClassInstance>, // stores all class definitions
     pub code_objects: CodeObjects,
     pub compilation_database: CompilationDatabase,
     pub enum_specializations: RwLock<HashMap<(EnumId, BytecodeTypeArray), EnumInstanceId>>,
     pub enum_instances: GrowableVecNonIter<EnumInstance>, // stores all enum definitions
-    pub trait_vtables: RwLock<HashMap<(BytecodeType, BytecodeType), ClassInstanceId>>,
-    pub lambda_vtables: RwLock<HashMap<(FunctionId, BytecodeTypeArray), ClassInstanceId>>,
+    pub trait_vtables: RwLock<HashMap<(BytecodeType, BytecodeType), *const VTable>>,
+    pub lambda_vtables: RwLock<HashMap<(FunctionId, BytecodeTypeArray), *const VTable>>,
     pub code_map: CodeMap, // stores all compiled functions
     pub global_variable_memory: Option<GlobalVariableMemory>,
     pub gc: Gc, // garbage collector
@@ -157,17 +154,16 @@ pub struct VM {
 }
 
 impl VM {
-    pub fn new(program: Program, args: VmFlags, program_args: Vec<String>) -> Box<VM> {
-        let gc = Gc::new(&args);
+    pub fn new(program: Program, flags: VmFlags, program_args: Vec<String>) -> Box<VM> {
+        let gc = Gc::new(&flags);
 
         let mut vm = Box::new(VM {
-            flags: args,
+            flags,
             program_args,
             program,
             struct_specializations: RwLock::new(HashMap::new()),
             struct_instances: GrowableVecNonIter::new(),
             class_specializations: RwLock::new(HashMap::new()),
-            class_instances: GrowableVecNonIter::new(),
             enum_specializations: RwLock::new(HashMap::new()),
             enum_instances: GrowableVecNonIter::new(),
             trait_vtables: RwLock::new(HashMap::new()),
@@ -294,8 +290,27 @@ impl VM {
         unsafe { &*vtable }
     }
 
-    pub fn vtable_for_class_instance_id(&self, id: ClassInstanceId) -> &VTable {
-        let vtable = self.class_instances.idx(id).vtable_ptr();
+    pub fn vtable_for_enum_variant(
+        &self,
+        enum_instance: &EnumInstance,
+        enum_: &EnumData,
+        variant_id: u32,
+    ) -> &VTable {
+        let vtable = ensure_class_instance_for_enum_variant(self, enum_instance, enum_, variant_id);
+        unsafe { &*vtable }
+    }
+
+    pub fn vtable_for_lambda(&self, fct_id: FunctionId, type_params: BytecodeTypeArray) -> &VTable {
+        let vtable = ensure_class_instance_for_lambda(self, fct_id, type_params);
+        unsafe { &*vtable }
+    }
+
+    pub fn vtable_for_trait_object(
+        &self,
+        trait_ty: BytecodeType,
+        actual_object_ty: BytecodeType,
+    ) -> &VTable {
+        let vtable = ensure_class_instance_for_trait_object(self, trait_ty, actual_object_ty);
         unsafe { &*vtable }
     }
 
