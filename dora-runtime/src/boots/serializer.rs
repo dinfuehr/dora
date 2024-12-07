@@ -6,7 +6,7 @@ use crate::boots::data::InstructionSet;
 use crate::compiler::codegen::CompilationData;
 use crate::gc::Address;
 use crate::mirror::{byte_array_from_buffer, Object, Ref, UInt8Array};
-use crate::{VTable, VM};
+use crate::{Shape, VM};
 use dora_bytecode::{
     BytecodeFunction, BytecodeTypeArray, ConstPoolEntry, ConstPoolOpcode, EnumData, FunctionData,
     Location, StructData,
@@ -29,7 +29,7 @@ fn encode_system_config(vm: &VM, buffer: &mut ByteBuffer) {
     buffer.emit_address(ptr);
     buffer.emit_address(vm.native_methods.gc_allocation_trampoline());
     buffer.emit_address(vm.meta_space_start());
-    buffer.emit_u32(VTable::offset_of_method_table() as u32);
+    buffer.emit_u32(Shape::offset_of_vtable() as u32);
     buffer.emit_bool(cfg!(target_family = "windows"));
     buffer.emit_bool(cfg!(target_family = "unix"));
     buffer.emit_bool(vm.gc.needs_write_barrier());

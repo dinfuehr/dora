@@ -20,14 +20,14 @@ use crate::threads::{
     STACK_SIZE,
 };
 use crate::utils::GrowableVecNonIter;
-use crate::VTable;
+use crate::Shape;
 
 use dora_bytecode::{
     BytecodeType, BytecodeTypeArray, ClassId, EnumId, FunctionId, ModuleId, Program, StructId,
     TraitId,
 };
 
-pub use self::classes::{create_class_instance_with_vtable, FieldInstance, ShapeKind};
+pub use self::classes::{create_shape, FieldInstance, ShapeKind};
 pub use self::code::{
     install_code, install_code_stub, Code, CodeDescriptor, CodeId, CodeKind, CodeObjects,
     CommentTable, ConstPool, ConstPoolEntry, ConstPoolValue, GcPoint, GcPointTable,
@@ -46,10 +46,10 @@ pub use self::known::Intrinsic;
 use self::known::KnownElements;
 pub use self::natives::{setup_builtin_natives, NativeMethods};
 pub use self::specialize::{
-    add_ref_fields, compute_vtable_index, create_class_instance, create_enum_instance,
-    create_struct_instance, ensure_class_instance_for_enum_variant,
-    ensure_class_instance_for_lambda, ensure_class_instance_for_trait_object, specialize_bty,
-    specialize_bty_array, specialize_bty_for_trait_object,
+    add_ref_fields, compute_vtable_index, create_enum_instance, create_shape_for_class,
+    create_struct_instance, ensure_shape_for_enum_variant, ensure_shape_for_lambda,
+    ensure_shape_for_trait_object, specialize_bty, specialize_bty_array,
+    specialize_bty_for_trait_object,
 };
 pub use self::stdlib_lookup::FctImplementation;
 pub use self::structs::{StructInstance, StructInstanceField, StructInstanceId};
@@ -135,13 +135,13 @@ pub struct VM {
     pub known: KnownElements,
     pub struct_specializations: RwLock<HashMap<(StructId, BytecodeTypeArray), StructInstanceId>>,
     pub struct_instances: GrowableVecNonIter<StructInstance>, // stores all struct definitions
-    pub class_specializations: RwLock<HashMap<(ClassId, BytecodeTypeArray), *const VTable>>,
+    pub class_shapes: RwLock<HashMap<(ClassId, BytecodeTypeArray), *const Shape>>,
     pub code_objects: CodeObjects,
     pub compilation_database: CompilationDatabase,
     pub enum_specializations: RwLock<HashMap<(EnumId, BytecodeTypeArray), EnumInstanceId>>,
     pub enum_instances: GrowableVecNonIter<EnumInstance>, // stores all enum definitions
-    pub trait_vtables: RwLock<HashMap<(BytecodeType, BytecodeType), *const VTable>>,
-    pub lambda_vtables: RwLock<HashMap<(FunctionId, BytecodeTypeArray), *const VTable>>,
+    pub trait_shapes: RwLock<HashMap<(BytecodeType, BytecodeType), *const Shape>>,
+    pub lambda_shapes: RwLock<HashMap<(FunctionId, BytecodeTypeArray), *const Shape>>,
     pub code_map: CodeMap, // stores all compiled functions
     pub global_variable_memory: Option<GlobalVariableMemory>,
     pub gc: Gc, // garbage collector
@@ -163,11 +163,11 @@ impl VM {
             program,
             struct_specializations: RwLock::new(HashMap::new()),
             struct_instances: GrowableVecNonIter::new(),
-            class_specializations: RwLock::new(HashMap::new()),
+            class_shapes: RwLock::new(HashMap::new()),
             enum_specializations: RwLock::new(HashMap::new()),
             enum_instances: GrowableVecNonIter::new(),
-            trait_vtables: RwLock::new(HashMap::new()),
-            lambda_vtables: RwLock::new(HashMap::new()),
+            trait_shapes: RwLock::new(HashMap::new()),
+            lambda_shapes: RwLock::new(HashMap::new()),
             global_variable_memory: None,
             known: KnownElements::new(),
             gc,
@@ -285,33 +285,33 @@ impl VM {
         self.gc.meta_space_size()
     }
 
-    pub fn vtable_for_class(&self, class_id: ClassId, type_params: &BytecodeTypeArray) -> &VTable {
-        let vtable = create_class_instance(self, class_id, type_params);
-        unsafe { &*vtable }
+    pub fn shape_for_class(&self, class_id: ClassId, type_params: &BytecodeTypeArray) -> &Shape {
+        let shape = create_shape_for_class(self, class_id, type_params);
+        unsafe { &*shape }
     }
 
-    pub fn vtable_for_enum_variant(
+    pub fn shape_for_enum_variant(
         &self,
         enum_instance: &EnumInstance,
         enum_: &EnumData,
         variant_id: u32,
-    ) -> &VTable {
-        let vtable = ensure_class_instance_for_enum_variant(self, enum_instance, enum_, variant_id);
-        unsafe { &*vtable }
+    ) -> &Shape {
+        let shape = ensure_shape_for_enum_variant(self, enum_instance, enum_, variant_id);
+        unsafe { &*shape }
     }
 
-    pub fn vtable_for_lambda(&self, fct_id: FunctionId, type_params: BytecodeTypeArray) -> &VTable {
-        let vtable = ensure_class_instance_for_lambda(self, fct_id, type_params);
-        unsafe { &*vtable }
+    pub fn shape_for_lambda(&self, fct_id: FunctionId, type_params: BytecodeTypeArray) -> &Shape {
+        let shape = ensure_shape_for_lambda(self, fct_id, type_params);
+        unsafe { &*shape }
     }
 
-    pub fn vtable_for_trait_object(
+    pub fn shape_for_trait_object(
         &self,
         trait_ty: BytecodeType,
         actual_object_ty: BytecodeType,
-    ) -> &VTable {
-        let vtable = ensure_class_instance_for_trait_object(self, trait_ty, actual_object_ty);
-        unsafe { &*vtable }
+    ) -> &Shape {
+        let shape = ensure_shape_for_trait_object(self, trait_ty, actual_object_ty);
+        unsafe { &*shape }
     }
 
     pub fn class(&self, id: ClassId) -> &ClassData {

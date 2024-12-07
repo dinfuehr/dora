@@ -1,6 +1,6 @@
 use crate::size::InstanceSize;
 use crate::vm::add_ref_fields;
-use crate::{ShapeVisitor, VTable, VM};
+use crate::{Shape, ShapeVisitor, VM};
 use dora_bytecode::{BytecodeType, BytecodeTypeArray, ClassId, EnumId, FunctionId};
 
 #[derive(Clone, Debug)]
@@ -21,13 +21,13 @@ pub struct FieldInstance {
     pub ty: BytecodeType,
 }
 
-pub fn create_class_instance_with_vtable(
+pub fn create_shape(
     vm: &VM,
     kind: ShapeKind,
     size: InstanceSize,
     fields: Vec<FieldInstance>,
     vtable_entries: usize,
-) -> *const VTable {
+) -> *const Shape {
     let ref_fields = build_ref_fields(vm, &kind, size, &fields);
 
     let size = match size {
@@ -60,7 +60,7 @@ pub fn create_class_instance_with_vtable(
         Vec::new()
     };
 
-    let vtable = VTable::new(
+    let shape = Shape::new(
         vm,
         kind,
         visitor,
@@ -71,7 +71,7 @@ pub fn create_class_instance_with_vtable(
         &vtable_mtdptrs,
     );
 
-    vtable
+    shape
 }
 
 fn build_ref_fields(

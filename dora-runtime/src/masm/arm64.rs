@@ -8,7 +8,7 @@ use crate::mirror::{offset_of_array_data, offset_of_array_length, Header, REMEMB
 use crate::mode::MachineMode;
 use crate::threads::ThreadLocalData;
 use crate::vm::{get_vm, LazyCompilationSite, Trap};
-use crate::vtable::VTable;
+use crate::Shape;
 pub use dora_asm::arm64::AssemblerArm64 as Assembler;
 use dora_asm::arm64::{self as asm, Cond, Extend, MemOperand, NeonRegister, Shift};
 use dora_bytecode::{BytecodeTypeArray, FunctionId, Location};
@@ -121,11 +121,11 @@ impl MacroAssembler {
         // since REG_RESULT (x0) is also the first parameter
         let scratch = self.get_scratch();
 
-        // scratch = [obj] (load vtable)
+        // scratch = [obj] (load shape pointer)
         self.load_mem(
             MachineMode::Int32,
             (*scratch).into(),
-            Mem::Base(obj, Header::offset_vtable_word() as i32),
+            Mem::Base(obj, Header::offset_shape_word() as i32),
         );
 
         let meta_space_start_reg = REG_TMP1;
@@ -141,8 +141,8 @@ impl MacroAssembler {
             meta_space_start_reg.into(),
         );
 
-        // calculate offset of VTable entry
-        let disp = VTable::offset_of_method_table() + (vtable_index as i32) * ptr_width();
+        // calculate offset of vtable entry in Shape
+        let disp = Shape::offset_of_vtable() + (vtable_index as i32) * ptr_width();
 
         // load vtable entry into scratch
         self.load_mem(

@@ -12,11 +12,11 @@ use crate::compiler::{compile_fct_aot, trait_object_thunk, NativeFct, NativeFctK
 use crate::gc::{formatted_size, Address};
 use crate::os;
 use crate::vm::{
-    ensure_class_instance_for_lambda, ensure_class_instance_for_trait_object, execute_on_main,
+    ensure_shape_for_lambda, ensure_shape_for_trait_object, execute_on_main,
     find_trait_impl, specialize_bty, specialize_bty_array, BytecodeTypeExt, Code,
     LazyCompilationSite, ShapeKind, VM,
 };
-use crate::VTable;
+use crate::Shape;
 
 pub fn compile_boots_aot(vm: &VM) {
     if vm.has_boots() {
@@ -195,7 +195,7 @@ fn compute_test_addresses(
 struct TransitiveClosure {
     functions: Vec<(FunctionId, BytecodeTypeArray)>,
     thunks: Vec<(FunctionId, BytecodeTypeArray, BytecodeType)>,
-    vtables: Vec<*const VTable>,
+    shapes: Vec<*const Shape>,
 }
 
 struct TransitiveClosureComputation<'a> {
@@ -204,7 +204,7 @@ struct TransitiveClosureComputation<'a> {
     worklist_idx: usize,
     visited: HashSet<(FunctionId, BytecodeTypeArray)>,
     counter: usize,
-    vtables: Vec<*const VTable>,
+    shapes: Vec<*const Shape>,
     thunks: Vec<(FunctionId, BytecodeTypeArray, BytecodeType)>,
 }
 
@@ -215,7 +215,7 @@ impl<'a> TransitiveClosureComputation<'a> {
             worklist: Vec::new(),
             worklist_idx: 0,
             visited: HashSet::new(),
-            vtables: Vec::new(),
+            shapes: Vec::new(),
             counter: 0,
             thunks: Vec::new(),
         }
@@ -229,7 +229,7 @@ impl<'a> TransitiveClosureComputation<'a> {
         TransitiveClosure {
             functions: self.worklist,
             thunks: self.thunks,
-            vtables: self.vtables,
+            shapes: self.shapes,
         }
     }
 
@@ -305,9 +305,9 @@ impl<'a> TransitiveClosureComputation<'a> {
                         specialize_bty_array(&callee_type_params, &type_params);
                     self.push(callee_id, callee_type_params.clone());
 
-                    let vtable =
-                        ensure_class_instance_for_lambda(self.vm, callee_id, callee_type_params);
-                    self.vtables.push(vtable);
+                    let shape =
+                        ensure_shape_for_lambda(self.vm, callee_id, callee_type_params);
+                    self.shapes.push(shape);
                 }
 
                 BytecodeInstruction::NewTraitObject { idx, .. } => {
@@ -322,9 +322,8 @@ impl<'a> TransitiveClosureComputation<'a> {
                     let trait_ty = specialize_bty(trait_ty, &type_params);
                     let actual_object_ty = specialize_bty(actual_object_ty, &type_params);
 
-                    let vtable =
-                        ensure_class_instance_for_trait_object(self.vm, trait_ty, actual_object_ty);
-                    self.vtables.push(vtable);
+                    let shape = ensure_shape_for_trait_object(self.vm, trait_ty, actual_object_ty);
+                    self.shapes.push(shape);
                 }
 
                 BytecodeInstruction::LoadGlobal { global_id, .. }
@@ -544,16 +543,16 @@ fn prepare_lazy_call_sites(_vm: &VM, ctc: &CompiledTransitiveClosure) {
 }
 
 fn prepare_virtual_method_tables(vm: &VM, tc: &TransitiveClosure, ctc: &CompiledTransitiveClosure) {
-    for vtable in &tc.vtables {
-        let vtable = unsafe { &**vtable };
-        match vtable.kind() {
+    for shape in &tc.shapes {
+        let shape = unsafe { &**shape };
+        match shape.kind() {
             ShapeKind::Lambda(fct_id, type_params) => {
                 let address = ctc
                     .function_addresses
                     .get(&(*fct_id, type_params.clone()))
                     .cloned()
                     .expect("missing function");
-                vtable.set_method_table_entry(0, address);
+                shape.set_method_table_entry(0, address);
             }
 
             ShapeKind::TraitObject {
@@ -569,7 +568,7 @@ fn prepare_virtual_method_tables(vm: &VM, tc: &TransitiveClosure, ctc: &Compiled
                         .get(&(trait_fct_id, combined_type_params.clone()))
                         .cloned()
                     {
-                        vtable.set_method_table_entry(idx, address);
+                        shape.set_method_table_entry(idx, address);
                     }
                 }
             }

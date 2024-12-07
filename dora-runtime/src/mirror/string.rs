@@ -153,7 +153,7 @@ where
     let handle: Ref<Str> = ptr.into();
     let (is_marked, is_remembered) = vm.gc.initial_metadata_value(size, is_readonly);
     handle.header().setup_header_word(
-        vm.known.string_vtable().address(),
+        vm.known.string_shape().address(),
         vm.meta_space_start(),
         is_marked,
         is_remembered,

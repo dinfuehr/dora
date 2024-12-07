@@ -17,7 +17,7 @@ use crate::vm::{
     create_enum_instance, create_struct_instance, get_concrete_tuple_bty_array, CodeDescriptor,
     EnumLayout, GcPoint, LazyCompilationSite, Trap, INITIALIZED, VM,
 };
-use crate::VTable;
+use crate::Shape;
 use dora_bytecode::{BytecodeType, BytecodeTypeArray, FunctionId, GlobalId, Location, StructId};
 
 pub struct BaselineAssembler<'a> {
@@ -1098,14 +1098,14 @@ impl<'a> BaselineAssembler<'a> {
         ));
     }
 
-    pub fn initialize_object(&mut self, obj: Reg, vtable: &VTable) {
-        let size = vtable.instance_size();
+    pub fn initialize_object(&mut self, obj: Reg, shape: &Shape) {
+        let size = shape.instance_size();
         let tmp_reg = self.get_scratch();
 
-        // Store classptr/vtable in object.
+        // Store shape pointer in object.
         let (is_marked, is_remembered) = self.vm.gc.initial_metadata_value(size as usize, false);
         let header_word_value = Header::compute_header_word(
-            vtable.address(),
+            shape.address(),
             self.vm.meta_space_start(),
             is_marked,
             is_remembered,
@@ -1119,7 +1119,7 @@ impl<'a> BaselineAssembler<'a> {
 
         self.store_mem(
             MachineMode::Ptr,
-            Mem::Base(obj, Header::offset_vtable_word() as i32),
+            Mem::Base(obj, Header::offset_shape_word() as i32),
             (*tmp_reg).into(),
         );
 
@@ -1130,7 +1130,7 @@ impl<'a> BaselineAssembler<'a> {
     pub fn initialize_array_header(
         &mut self,
         obj: Reg,
-        vtable: &VTable,
+        shape: &Shape,
         length_reg: Reg,
         size_reg: Reg,
     ) {
@@ -1139,7 +1139,7 @@ impl<'a> BaselineAssembler<'a> {
 
         // store classptr in object
         let header_word_value =
-            Header::compute_header_word(vtable.address(), self.vm.meta_space_start(), false, false);
+            Header::compute_header_word(shape.address(), self.vm.meta_space_start(), false, false);
 
         self.masm.load_int_const(
             MachineMode::IntPtr,
@@ -1155,7 +1155,7 @@ impl<'a> BaselineAssembler<'a> {
 
         self.store_mem(
             MachineMode::Ptr,
-            Mem::Base(obj, Header::offset_vtable_word() as i32),
+            Mem::Base(obj, Header::offset_shape_word() as i32),
             (*tmp_reg).into(),
         );
 

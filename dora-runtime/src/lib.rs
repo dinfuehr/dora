@@ -23,6 +23,7 @@ mod mirror;
 mod mode;
 mod os;
 mod safepoint;
+mod shape;
 mod size;
 mod stack;
 mod stdlib;
@@ -30,10 +31,10 @@ mod threads;
 mod timer;
 mod utils;
 pub mod vm;
-mod vtable;
 
+use gc::Address;
+use shape::{Shape, ShapeVisitor};
 pub use vm::VM;
 pub use vm::{
     clear_vm, execute_on_main, set_vm, CollectorName, Compiler, MemSize, ShapeKind, VmFlags,
 };
-use vtable::{ShapeVisitor, VTable};

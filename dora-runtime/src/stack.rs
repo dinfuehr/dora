@@ -166,7 +166,7 @@ pub extern "C" fn capture_stack_trace(mut obj: Handle<Stacktrace>) {
     let stacktrace = stacktrace_from_last_dtn(vm);
 
     let array: Ref<Int32Array> =
-        Array::alloc(vm, stacktrace.len() * 2, 0, vm.known.int32_array_vtable());
+        Array::alloc(vm, stacktrace.len() * 2, 0, vm.known.int32_array_shape());
     let mut array = create_handle(array);
     let mut i = 0;
 

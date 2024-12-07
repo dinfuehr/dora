@@ -14,7 +14,7 @@ pub fn decodeConfig(encoded: Array[UInt8]): Config {
     let object_write_barrier_slow_path = reader.readAddress();
     let allocation_slow_path = reader.readAddress();
     let meta_space_start = reader.readAddress();
-    let vtable_method_table_offset = reader.readInt32();
+    let vtable_offset_in_shape = reader.readInt32();
     let is_windows = reader.readBool();
     let is_unix = reader.readBool();
     let needs_write_barrier = reader.readBool();
@@ -33,7 +33,7 @@ pub fn decodeConfig(encoded: Array[UInt8]): Config {
         object_write_barrier_slow_path,
         allocation_slow_path,
         meta_space_start,
-        vtable_method_table_offset,
+        vtable_offset_in_shape,
         isWindows = is_windows,
         isUnix = is_unix,
         needsWriteBarrier = needs_write_barrier,

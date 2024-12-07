@@ -1031,9 +1031,9 @@ fn thread_main(thread: &DoraThread, thread_location: Address, runner_location: A
     // before we dereference handle.
     thread.unpark(vm);
 
-    let vtable = runner_handle.header().vtbl(vm.meta_space_start());
+    let shape = runner_handle.header().shape(vm.meta_space_start());
 
-    let (lambda_id, type_params) = match vtable.kind() {
+    let (lambda_id, type_params) = match shape.kind() {
         ShapeKind::Lambda(lambda_id, type_params) => (*lambda_id, type_params.clone()),
         _ => unreachable!(),
     };

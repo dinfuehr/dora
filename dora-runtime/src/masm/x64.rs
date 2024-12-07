@@ -6,9 +6,9 @@ use crate::masm::{CondCode, Label, MacroAssembler, Mem};
 use crate::mem::{fits_i32, ptr_width};
 use crate::mirror::{offset_of_array_data, offset_of_array_length, Header, REMEMBERED_BIT_SHIFT};
 use crate::mode::MachineMode;
+use crate::shape::Shape;
 use crate::threads::ThreadLocalData;
 use crate::vm::{get_vm, LazyCompilationSite, Trap};
-use crate::vtable::VTable;
 pub use dora_asm::x64::AssemblerX64 as Assembler;
 use dora_asm::x64::Register as AsmRegister;
 use dora_asm::x64::{Address as AsmAddress, Condition, Immediate, ScaleFactor, XmmRegister};
@@ -112,11 +112,11 @@ impl MacroAssembler {
         let obj = REG_PARAMS[self_index as usize];
         self.test_if_nil_bailout(location, obj, Trap::NIL);
 
-        // REG_RESULT = [obj] (load vtable)
+        // REG_RESULT = [obj] (load shape pointer)
         self.load_mem(
             MachineMode::Int32,
             REG_RESULT.into(),
-            Mem::Base(obj, Header::offset_vtable_word() as i32),
+            Mem::Base(obj, Header::offset_shape_word() as i32),
         );
 
         self.load_int_const(
@@ -127,8 +127,8 @@ impl MacroAssembler {
 
         self.asm.addq_rr(REG_RESULT.into(), REG_TMP1.into());
 
-        // calculate offset of VTable entry
-        let disp = VTable::offset_of_method_table() + (vtable_index as i32) * ptr_width();
+        // calculate offset of vtable entry
+        let disp = Shape::offset_of_vtable() + (vtable_index as i32) * ptr_width();
 
         // load vtable entry
         self.load_mem(

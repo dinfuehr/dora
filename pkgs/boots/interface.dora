@@ -216,7 +216,7 @@ pub class Config {
     pub object_write_barrier_slow_path: Address,
     pub allocation_slow_path: Address,
     pub meta_space_start: Address,
-    pub vtable_method_table_offset: Int32,
+    pub vtable_offset_in_shape: Int32,
     pub isWindows: Bool,
     pub isUnix: Bool,
     pub needsWriteBarrier: Bool,
@@ -280,7 +280,7 @@ pub const THREAD_LOCAL_DATA_MANAGED_THREAD_HANDLE_OFFSET: Int32 = 32;
 pub const THREAD_LOCAL_DATA_MARKING_OFFSET: Int32 = 40;
 pub const THREAD_LOCAL_DATA_STATE_OFFSET: Int32 = 41;
 
-pub const OBJECT_VTABLE_OFFSET: Int32 = 0;
+pub const OBJECT_SHAPE_OFFSET: Int32 = 0;
 pub const OBJECT_METADATA_OFFSET: Int32 = 4;
 pub const OBJECT_HEADER_LENGTH: Int32 = 8;
 pub const ARRAY_HEADER_LENGTH: Int32 = 16;

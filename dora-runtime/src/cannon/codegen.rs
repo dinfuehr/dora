@@ -1200,9 +1200,9 @@ impl<'a> CannonCodeGen<'a> {
             }
 
             EnumLayout::Tagged => {
-                let vtable = self
+                let shape = self
                     .vm
-                    .vtable_for_enum_variant(&*enum_instance, &*enum_, variant_idx);
+                    .shape_for_enum_variant(&*enum_instance, &*enum_, variant_idx);
 
                 self.emit_load_register_as(src, REG_TMP1.into(), MachineMode::Ptr);
                 self.asm.load_mem(
@@ -1218,7 +1218,7 @@ impl<'a> CannonCodeGen<'a> {
                 self.asm.emit_bailout(lbl_bailout, Trap::ILLEGAL, pos);
 
                 let field_id = enum_instance.field_id(&*enum_, variant_idx, element_idx);
-                let field = &vtable.fields[field_id as usize];
+                let field = &shape.fields[field_id as usize];
 
                 let bty = register_ty(field.ty.clone());
                 assert_eq!(bty, self.specialize_register_type(dest));
@@ -1316,19 +1316,19 @@ impl<'a> CannonCodeGen<'a> {
     fn emit_load_field(&mut self, dest: Register, obj: Register, field_idx: ConstPoolIdx) {
         assert!(self.bytecode.register_type(obj).is_ptr());
 
-        let (vtable, field_id) = match self.bytecode.const_pool(field_idx) {
+        let (shape, field_id) = match self.bytecode.const_pool(field_idx) {
             ConstPoolEntry::Field(cls_id, type_params, field_id) => {
                 let type_params = self.specialize_bty_array(&type_params);
                 debug_assert!(type_params.iter().all(|ty| ty.is_concrete_type()));
 
-                let vtable = self.vm.vtable_for_class(*cls_id, &type_params);
+                let shape = self.vm.shape_for_class(*cls_id, &type_params);
 
-                (vtable, *field_id)
+                (shape, *field_id)
             }
             _ => unreachable!(),
         };
 
-        let field = &vtable.fields[field_id as usize];
+        let field = &shape.fields[field_id as usize];
 
         let obj_reg = REG_TMP1;
         self.emit_load_register(obj, obj_reg.into());
@@ -1356,8 +1356,8 @@ impl<'a> CannonCodeGen<'a> {
         let type_params = self.specialize_bty_array(&type_params);
         debug_assert!(type_params.iter().all(|ty| ty.is_concrete_type()));
 
-        let vtable = self.vm.vtable_for_class(cls_id, &type_params);
-        let field = &vtable.fields[field_id as usize];
+        let shape = self.vm.shape_for_class(cls_id, &type_params);
+        let field = &shape.fields[field_id as usize];
 
         assert!(self.bytecode.register_type(obj).is_ptr());
         let obj_reg = REG_TMP1;
@@ -1764,8 +1764,8 @@ impl<'a> CannonCodeGen<'a> {
         let type_params = self.specialize_bty_array(&type_params);
         debug_assert!(type_params.iter().all(|ty| ty.is_concrete_type()));
 
-        let vtable = self.vm.vtable_for_class(cls_id, &type_params);
-        let alloc_size = vtable.instance_size();
+        let shape = self.vm.shape_for_class(cls_id, &type_params);
+        let alloc_size = shape.instance_size();
         let alloc_size = AllocationSize::Fixed(alloc_size);
 
         let gcpoint = self.create_gcpoint();
@@ -1776,7 +1776,7 @@ impl<'a> CannonCodeGen<'a> {
         // store gc object in temporary storage
         self.emit_store_register(REG_RESULT.into(), dest);
 
-        self.asm.initialize_object(REG_RESULT, vtable);
+        self.asm.initialize_object(REG_RESULT, shape);
     }
 
     fn emit_new_object_initialized(&mut self, dest: Register, idx: ConstPoolIdx) {
@@ -1794,9 +1794,9 @@ impl<'a> CannonCodeGen<'a> {
         let type_params = self.specialize_bty_array(&type_params);
         debug_assert!(type_params.iter().all(|ty| ty.is_concrete_type()));
 
-        let vtable = self.vm.vtable_for_class(cls_id, &type_params);
+        let shape = self.vm.shape_for_class(cls_id, &type_params);
 
-        let alloc_size = vtable.instance_size();
+        let alloc_size = shape.instance_size();
         let alloc_size = AllocationSize::Fixed(alloc_size);
 
         let gcpoint = self.create_gcpoint();
@@ -1807,15 +1807,15 @@ impl<'a> CannonCodeGen<'a> {
         // store gc object in temporary storage
         self.emit_store_register(REG_RESULT.into(), dest);
 
-        self.asm.initialize_object(REG_RESULT, vtable);
+        self.asm.initialize_object(REG_RESULT, shape);
 
         let obj_reg = REG_TMP1;
         self.emit_load_register(dest, obj_reg.into());
 
-        assert_eq!(arguments.len(), vtable.fields.len());
+        assert_eq!(arguments.len(), shape.fields.len());
 
         // Initialize all class fields.
-        for (&argument, field) in arguments.iter().zip(vtable.fields.iter()) {
+        for (&argument, field) in arguments.iter().zip(shape.fields.iter()) {
             let ty = self.specialize_register_type(argument);
             let argument = self.reg(argument);
             self.asm.store_field(obj_reg, field.offset, argument, ty);
@@ -1835,7 +1835,7 @@ impl<'a> CannonCodeGen<'a> {
 
         let type_params = self.specialize_bty_array(&type_params);
 
-        let vtable = self.vm.vtable_for_class(cls_id, &type_params);
+        let shape = self.vm.shape_for_class(cls_id, &type_params);
 
         let length_reg = REG_TMP1;
         let size_reg = REG_TMP2;
@@ -1843,7 +1843,7 @@ impl<'a> CannonCodeGen<'a> {
 
         let array_header_size = Header::size() as usize + mem::ptr_width_usize();
 
-        let element_size = vtable.element_size();
+        let element_size = shape.element_size();
         let alloc_size = if element_size > 0 {
             self.asm
                 .determine_array_size(size_reg, length_reg, element_size as i32, true);
@@ -1865,7 +1865,7 @@ impl<'a> CannonCodeGen<'a> {
         self.emit_store_register(REG_RESULT.into(), dest);
 
         self.asm
-            .initialize_array_header(REG_RESULT, vtable, length_reg, size_reg);
+            .initialize_array_header(REG_RESULT, shape, length_reg, size_reg);
 
         if element_size > 0 {
             self.emit_array_initialization(REG_RESULT, length_reg, element_size as i32);
@@ -1959,10 +1959,10 @@ impl<'a> CannonCodeGen<'a> {
             }
 
             EnumLayout::Tagged => {
-                let vtable = self
+                let shape = self
                     .vm
-                    .vtable_for_enum_variant(&*enum_instance, &*enum_, variant_idx);
-                let alloc_size = vtable.instance_size();
+                    .shape_for_enum_variant(&*enum_instance, &*enum_, variant_idx);
+                let alloc_size = shape.instance_size();
 
                 let gcpoint = self.create_gcpoint();
                 let position = self.bytecode.offset_location(self.current_offset.to_u32());
@@ -1981,7 +1981,7 @@ impl<'a> CannonCodeGen<'a> {
                 self.emit_store_register_as(REG_TMP1.into(), dest, MachineMode::Ptr);
 
                 comment!(self, format!("NewEnum: initialize object"));
-                self.asm.initialize_object(REG_TMP1, vtable);
+                self.asm.initialize_object(REG_TMP1, shape);
 
                 // store variant_idx
                 comment!(self, format!("NewEnum: store variant_idx {}", variant_idx));
@@ -1995,11 +1995,11 @@ impl<'a> CannonCodeGen<'a> {
 
                 let mut field_idx = 1; // first field is variant_idx
 
-                assert_eq!(arguments.len(), vtable.fields.len() - 1);
+                assert_eq!(arguments.len(), shape.fields.len() - 1);
 
                 for arg in arguments {
                     let ty = self.specialize_register_type(arg);
-                    let field = &vtable.fields[field_idx];
+                    let field = &shape.fields[field_idx];
                     comment!(self, format!("NewEnum: store register {} in object", arg));
 
                     let dest = RegOrOffset::RegWithOffset(REG_TMP1, field.offset);
@@ -2058,8 +2058,8 @@ impl<'a> CannonCodeGen<'a> {
         let object_ty = self.specialize_bty(actual_object_ty.clone());
         debug_assert!(object_ty.is_concrete_type());
 
-        let vtable = self.vm.vtable_for_trait_object(trait_ty, object_ty.clone());
-        let alloc_size = vtable.instance_size();
+        let shape = self.vm.shape_for_trait_object(trait_ty, object_ty.clone());
+        let alloc_size = shape.instance_size();
 
         let gcpoint = self.create_gcpoint();
         let position = self.bytecode.offset_location(self.current_offset.to_u32());
@@ -2078,10 +2078,10 @@ impl<'a> CannonCodeGen<'a> {
         self.emit_store_register_as(REG_TMP1.into(), dest, MachineMode::Ptr);
 
         comment!(self, format!("NewTraitObject: initialize object"));
-        self.asm.initialize_object(REG_TMP1, vtable);
+        self.asm.initialize_object(REG_TMP1, shape);
 
-        assert_eq!(vtable.fields.len(), 1);
-        let field = &vtable.fields[0];
+        assert_eq!(shape.fields.len(), 1);
+        let field = &shape.fields[0];
         comment!(
             self,
             format!("NewTraitObject: store register {} in object", src)
@@ -2104,11 +2104,11 @@ impl<'a> CannonCodeGen<'a> {
         let type_params = self.specialize_bty_array(&type_params);
         debug_assert!(type_params.iter().all(|ty| ty.is_concrete_type()));
 
-        let vtable = self.vm.vtable_for_lambda(fct_id, type_params);
+        let shape = self.vm.shape_for_lambda(fct_id, type_params);
 
         let arguments = self.argument_stack.drain(..).collect::<Vec<_>>();
 
-        let alloc_size = vtable.instance_size();
+        let alloc_size = shape.instance_size();
 
         let gcpoint = self.create_gcpoint();
         let position = self.bytecode.offset_location(self.current_offset.to_u32());
@@ -2129,7 +2129,7 @@ impl<'a> CannonCodeGen<'a> {
         self.emit_store_register_as(REG_TMP1.into(), dest, MachineMode::Ptr);
 
         comment!(self, format!("NewLambda: initialize object"));
-        self.asm.initialize_object(object_reg, vtable);
+        self.asm.initialize_object(object_reg, shape);
 
         // Store context pointer.
         if arguments.is_empty() {
@@ -3647,11 +3647,11 @@ impl<'a> CannonCodeGen<'a> {
                     location,
                 );
 
-                let vtable =
+                let shape =
                     self.vm
-                        .vtable_for_enum_variant(&*enum_instance, &*enum_, some_variant_id);
+                        .shape_for_enum_variant(&*enum_instance, &*enum_, some_variant_id);
 
-                let field = &vtable.fields[1];
+                let field = &shape.fields[1];
                 let dest_offset = self.register_offset(dest);
 
                 self.asm.copy_bytecode_ty(

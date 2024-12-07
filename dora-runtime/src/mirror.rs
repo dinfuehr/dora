@@ -10,7 +10,7 @@ use crate::handle::{create_handle, Handle};
 use crate::mem;
 pub use crate::mirror::string::Str;
 use crate::vm::VM;
-use crate::{ShapeVisitor, VTable};
+use crate::{Shape, ShapeVisitor};
 
 mod string;
 
@@ -67,8 +67,8 @@ impl HeaderWord {
     ) -> ForwardResult {
         let current_value = self.raw();
 
-        let compressed_vtable = expected_vtblptr.offset_from(meta_space_start);
-        let expected_value = current_value & (0xFFFF_FFFF << 32) | compressed_vtable;
+        let compressed_shape = expected_vtblptr.offset_from(meta_space_start);
+        let expected_value = current_value & (0xFFFF_FFFF << 32) | compressed_shape;
 
         let fwd = new_address.to_usize() | 1;
         let result =
@@ -194,8 +194,8 @@ impl Header {
     }
 
     #[inline(always)]
-    pub fn vtbl(&self, meta_space_start: Address) -> &mut VTable {
-        unsafe { &mut *self.raw_vtblptr(meta_space_start).to_mut_ptr::<VTable>() }
+    pub fn shape(&self, meta_space_start: Address) -> &Shape {
+        unsafe { &*self.raw_vtblptr(meta_space_start).to_ptr::<Shape>() }
     }
 
     pub fn compressed_vtblptr(&self) -> usize {
@@ -278,7 +278,7 @@ impl Header {
         HeaderWord::compute_word(vtblptr, meta_space_start, is_marked, is_remembered)
     }
 
-    pub fn offset_vtable_word() -> usize {
+    pub fn offset_shape_word() -> usize {
         offset_of!(Header, word)
     }
 
@@ -316,7 +316,7 @@ impl Object {
     }
 
     pub fn size_for_vtblptr(&self, vtblptr: Address) -> usize {
-        let vtbl = unsafe { &*vtblptr.to_mut_ptr::<VTable>() };
+        let vtbl = unsafe { &*vtblptr.to_mut_ptr::<Shape>() };
         let instance_size = vtbl.instance_size;
 
         if instance_size != 0 {
@@ -334,8 +334,8 @@ impl Object {
     where
         F: FnMut(Slot),
     {
-        let vtable = self.header().vtbl(meta_space_start);
-        visit_refs(vtable, self.address(), f);
+        let shape = self.header().shape(meta_space_start);
+        visit_refs(shape, self.address(), f);
     }
 
     // TODO: Remove this inline-annotation. It is only required to silence a
@@ -354,27 +354,27 @@ impl Object {
     pub fn is_filler(&self, vm: &VM) -> bool {
         let vtblptr = self.header().raw_vtblptr(vm.meta_space_start());
 
-        vtblptr == vm.known.filler_word_vtable().address()
-            || vtblptr == vm.known.filler_array_vtable().address()
-            || vtblptr == vm.known.free_space_vtable().address()
+        vtblptr == vm.known.filler_word_shape().address()
+            || vtblptr == vm.known.filler_array_shape().address()
+            || vtblptr == vm.known.free_space_shape().address()
     }
 }
 
-fn visit_refs<F>(vtable: &VTable, object: Address, f: F)
+fn visit_refs<F>(shape: &Shape, object: Address, f: F)
 where
     F: FnMut(Slot),
 {
-    match vtable.visitor {
+    match shape.visitor {
         ShapeVisitor::PointerArray => {
             visit_object_array_refs(object, f);
         }
 
         ShapeVisitor::RecordArray => {
-            visit_struct_array_refs(vtable, object, vtable.element_size as usize, f);
+            visit_struct_array_refs(shape, object, shape.element_size as usize, f);
         }
 
         ShapeVisitor::Regular => {
-            visit_regular_object(vtable, object, f);
+            visit_regular_object(shape, object, f);
         }
 
         ShapeVisitor::None => {}
@@ -382,11 +382,11 @@ where
     }
 }
 
-fn visit_regular_object<F>(vtable: &VTable, object: Address, mut f: F)
+fn visit_regular_object<F>(shape: &Shape, object: Address, mut f: F)
 where
     F: FnMut(Slot),
 {
-    for &offset in &vtable.refs {
+    for &offset in &shape.refs {
         f(Slot::at(object.offset(offset as usize)));
     }
 }
@@ -407,12 +407,12 @@ where
     }
 }
 
-fn visit_struct_array_refs<F>(vtable: &VTable, object: Address, element_size: usize, mut f: F)
+fn visit_struct_array_refs<F>(shape: &Shape, object: Address, element_size: usize, mut f: F)
 where
     F: FnMut(Slot),
 {
     let array = unsafe { &*object.to_ptr::<StrArray>() };
-    debug_assert!(!vtable.refs.is_empty());
+    debug_assert!(!shape.refs.is_empty());
 
     // walk through all elements in array
     let array_start = array.data_address();
@@ -423,7 +423,7 @@ where
 
     while ptr < array_end {
         // each of those elements might have multiple references
-        for &offset in &vtable.refs {
+        for &offset in &shape.refs {
             f(Slot::at(ptr.offset(offset as usize)));
         }
         ptr = ptr.offset(element_size as usize);
@@ -530,7 +530,7 @@ fn byte_array_alloc_heap(vm: &VM, len: usize) -> Ref<UInt8Array> {
     let mut handle: Ref<UInt8Array> = ptr.into();
     let (is_marked, is_remembered) = vm.gc.initial_metadata_value(size, false);
     handle.header_mut().setup_header_word(
-        vm.known.byte_array_vtable().address(),
+        vm.known.byte_array_shape().address(),
         vm.meta_space_start(),
         is_marked,
         is_remembered,
@@ -627,7 +627,7 @@ where
         }
     }
 
-    pub fn alloc(vm: &VM, len: usize, elem: T, vtable: &VTable) -> Ref<Array<T>> {
+    pub fn alloc(vm: &VM, len: usize, elem: T, shape: &Shape) -> Ref<Array<T>> {
         let size = Header::size() as usize        // Object header
                    + mem::ptr_width() as usize    // length field
                    + len * std::mem::size_of::<T>(); // array content
@@ -636,7 +636,7 @@ where
         let mut handle: Ref<Array<T>> = ptr.into();
         let (is_marked, is_remembered) = vm.gc.initial_metadata_value(size, false);
         handle.header_mut().setup_header_word(
-            vtable.address(),
+            shape.address(),
             vm.meta_space_start(),
             is_marked,
             is_remembered,
@@ -665,15 +665,15 @@ pub type UInt8Array = Array<u8>;
 pub type Int32Array = Array<i32>;
 pub type StrArray = Array<Ref<Str>>;
 
-pub fn alloc(vm: &VM, vtable: &VTable) -> Ref<Object> {
-    let size = mem::align_usize_up(vtable.instance_size(), mem::ptr_width() as usize);
+pub fn alloc(vm: &VM, shape: &Shape) -> Ref<Object> {
+    let size = mem::align_usize_up(shape.instance_size(), mem::ptr_width() as usize);
     assert!(size > 0);
 
     let ptr = vm.gc.alloc(vm, size).to_usize();
     let object: Ref<Object> = ptr.into();
     let (is_marked, is_remembered) = vm.gc.initial_metadata_value(size, false);
     object.header().setup_header_word(
-        vtable.address(),
+        shape.address(),
         vm.meta_space_start(),
         is_marked,
         is_remembered,

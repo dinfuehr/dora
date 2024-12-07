@@ -205,8 +205,7 @@ extern "C" fn get_class_pointer_for_lambda(data: Handle<UInt8Array>) -> Address 
     let type_params = decode_bytecode_type_array(&mut reader);
     assert!(!reader.has_more());
 
-    let vtable = crate::vm::ensure_class_instance_for_lambda(vm, fct_id, type_params);
-    Address::from_ptr(vtable)
+    vm.shape_for_lambda(fct_id, type_params).address()
 }
 
 extern "C" fn get_class_pointer_for_trait_object_raw(data: Handle<UInt8Array>) -> Address {
@@ -227,7 +226,7 @@ extern "C" fn get_class_pointer_for_trait_object_raw(data: Handle<UInt8Array>) -
     let actual_object_ty = decode_bytecode_type(&mut reader);
     assert!(!reader.has_more());
 
-    vm.vtable_for_trait_object(trait_ty, actual_object_ty)
+    vm.shape_for_trait_object(trait_ty, actual_object_ty)
         .address()
 }
 
@@ -249,8 +248,8 @@ extern "C" fn get_class_size_for_trait_object_raw(data: Handle<UInt8Array>) -> i
     let actual_object_ty = decode_bytecode_type(&mut reader);
     assert!(!reader.has_more());
 
-    let vtable = vm.vtable_for_trait_object(trait_ty, actual_object_ty);
-    vtable.instance_size() as i32
+    let shape = vm.shape_for_trait_object(trait_ty, actual_object_ty);
+    shape.instance_size() as i32
 }
 
 extern "C" fn get_global_value_address(id: GlobalId) -> Address {
@@ -301,8 +300,8 @@ extern "C" fn get_class_size(data: Handle<UInt8Array>) -> u32 {
 }
 
 fn get_class_size_raw(vm: &VM, cls_id: ClassId, type_params: BytecodeTypeArray) -> u32 {
-    let vtable = vm.vtable_for_class(cls_id, &type_params);
-    vtable.instance_size() as u32
+    let shape = vm.shape_for_class(cls_id, &type_params);
+    shape.instance_size() as u32
 }
 
 fn get_element_size_raw(data: Handle<UInt8Array>) -> u32 {
@@ -323,8 +322,8 @@ fn get_element_size_raw(data: Handle<UInt8Array>) -> u32 {
     let type_params = decode_bytecode_type_array(&mut reader);
     assert!(!reader.has_more());
 
-    let vtable = vm.vtable_for_class(cls_id, &type_params);
-    vtable.element_size() as u32
+    let shape = vm.shape_for_class(cls_id, &type_params);
+    shape.element_size() as u32
 }
 
 extern "C" fn get_class_pointer(data: Handle<UInt8Array>) -> Address {
@@ -349,7 +348,7 @@ extern "C" fn get_class_pointer(data: Handle<UInt8Array>) -> Address {
 }
 
 fn get_class_pointer_raw(vm: &VM, cls_id: ClassId, type_params: BytecodeTypeArray) -> Address {
-    vm.vtable_for_class(cls_id, &type_params).address()
+    vm.shape_for_class(cls_id, &type_params).address()
 }
 
 extern "C" fn get_field_offset(data: Handle<UInt8Array>) -> u32 {
@@ -380,8 +379,8 @@ fn get_field_offset_raw(
     type_params: BytecodeTypeArray,
     field_id: u32,
 ) -> u32 {
-    let vtable = vm.vtable_for_class(cls_id, &type_params);
-    let field = &vtable.fields[field_id as usize];
+    let shape = vm.shape_for_class(cls_id, &type_params);
+    let field = &shape.fields[field_id as usize];
     field.offset.try_into().expect("overflow")
 }
 
@@ -504,11 +503,11 @@ extern "C" fn get_class_data_for_enum_variant_raw(data: Handle<UInt8Array>) -> R
     let enum_instance_id = create_enum_instance(vm, enum_id, type_params.clone());
     let enum_instance = vm.enum_instances.idx(enum_instance_id);
 
-    let vtable = vm.vtable_for_enum_variant(&*enum_instance, &*enum_, variant_id);
-    let alloc_size = vtable.instance_size();
+    let shape = vm.shape_for_enum_variant(&*enum_instance, &*enum_, variant_id);
+    let alloc_size = shape.instance_size();
 
     let mut buffer = ByteBuffer::new();
-    buffer.emit_address(vtable.address());
+    buffer.emit_address(shape.address());
     buffer.emit_u32(alloc_size as u32);
     byte_array_from_buffer(vm, buffer.data()).cast()
 }
@@ -537,8 +536,8 @@ extern "C" fn get_field_offset_for_enum_variant_raw(data: Handle<UInt8Array>) ->
     let enum_instance_id = create_enum_instance(vm, enum_id, type_params.clone());
     let enum_instance = vm.enum_instances.idx(enum_instance_id);
 
-    let vtable = vm.vtable_for_enum_variant(&*enum_instance, &*enum_, variant_id);
+    let shape = vm.shape_for_enum_variant(&*enum_instance, &*enum_, variant_id);
     let field_id = enum_instance.field_id(&*enum_, variant_id, field_id);
 
-    vtable.fields[field_id as usize].offset
+    shape.fields[field_id as usize].offset
 }

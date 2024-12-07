@@ -1,20 +1,20 @@
 use std::collections::HashMap;
 use std::{cell::OnceCell, ptr};
 
-use crate::{gc::Address, vtable::VTable};
+use crate::{Address, Shape};
 use dora_bytecode::{ClassId, FunctionId, TraitId};
 
 #[derive(Debug)]
 pub struct KnownElements {
-    pub byte_array_vtable: *const VTable,
-    pub int32_array_vtable: *const VTable,
-    pub string_vtable: *const VTable,
-    pub thread_vtable: *const VTable,
+    pub byte_array_shape: *const Shape,
+    pub int32_array_shape: *const Shape,
+    pub string_shape: *const Shape,
+    pub thread_shape: *const Shape,
 
-    pub filler_word_vtable: *const VTable,
-    pub filler_array_vtable: *const VTable,
-    pub free_space_vtable: *const VTable,
-    pub code_vtable: *const VTable,
+    pub filler_word_shape: *const Shape,
+    pub filler_array_shape: *const Shape,
+    pub free_space_shape: *const Shape,
+    pub code_shape: *const Shape,
 
     pub zero_trait_id: Option<TraitId>,
     pub array_class_id: Option<ClassId>,
@@ -30,15 +30,15 @@ pub struct KnownElements {
 impl KnownElements {
     pub fn new() -> KnownElements {
         KnownElements {
-            byte_array_vtable: ptr::null(),
-            int32_array_vtable: ptr::null(),
-            string_vtable: ptr::null(),
-            thread_vtable: ptr::null(),
+            byte_array_shape: ptr::null(),
+            int32_array_shape: ptr::null(),
+            string_shape: ptr::null(),
+            thread_shape: ptr::null(),
 
-            free_space_vtable: ptr::null(),
-            filler_word_vtable: ptr::null(),
-            filler_array_vtable: ptr::null(),
-            code_vtable: ptr::null(),
+            free_space_shape: ptr::null(),
+            filler_word_shape: ptr::null(),
+            filler_array_shape: ptr::null(),
+            code_shape: ptr::null(),
 
             zero_trait_id: None,
             array_class_id: None,
@@ -52,36 +52,36 @@ impl KnownElements {
         }
     }
 
-    pub fn byte_array_vtable(&self) -> &VTable {
-        unsafe { &*self.byte_array_vtable }
+    pub fn byte_array_shape(&self) -> &Shape {
+        unsafe { &*self.byte_array_shape }
     }
 
-    pub fn int32_array_vtable(&self) -> &VTable {
-        unsafe { &*self.int32_array_vtable }
+    pub fn int32_array_shape(&self) -> &Shape {
+        unsafe { &*self.int32_array_shape }
     }
 
-    pub fn string_vtable(&self) -> &VTable {
-        unsafe { &*self.string_vtable }
+    pub fn string_shape(&self) -> &Shape {
+        unsafe { &*self.string_shape }
     }
 
-    pub fn thread_vtable(&self) -> &VTable {
-        unsafe { &*self.thread_vtable }
+    pub fn thread_shape(&self) -> &Shape {
+        unsafe { &*self.thread_shape }
     }
 
-    pub fn filler_word_vtable(&self) -> &VTable {
-        unsafe { &*self.filler_word_vtable }
+    pub fn filler_word_shape(&self) -> &Shape {
+        unsafe { &*self.filler_word_shape }
     }
 
-    pub fn filler_array_vtable(&self) -> &VTable {
-        unsafe { &*self.filler_array_vtable }
+    pub fn filler_array_shape(&self) -> &Shape {
+        unsafe { &*self.filler_array_shape }
     }
 
-    pub fn free_space_vtable(&self) -> &VTable {
-        unsafe { &*self.free_space_vtable }
+    pub fn free_space_shape(&self) -> &Shape {
+        unsafe { &*self.free_space_shape }
     }
 
-    pub fn code_vtable(&self) -> &VTable {
-        unsafe { &*self.code_vtable }
+    pub fn code_shape(&self) -> &Shape {
+        unsafe { &*self.code_shape }
     }
 
     pub fn zero_trait_id(&self) -> TraitId {

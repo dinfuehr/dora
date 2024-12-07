@@ -6,11 +6,11 @@ use crate::mem;
 use crate::mirror::Header;
 use crate::size::InstanceSize;
 use crate::vm::{
-    create_class_instance_with_vtable, get_concrete_tuple_bty, BytecodeTypeExt, EnumInstance,
-    EnumInstanceId, EnumLayout, FieldInstance, ShapeKind, StructInstance, StructInstanceField,
-    StructInstanceId, VM,
+    create_shape, get_concrete_tuple_bty, BytecodeTypeExt, EnumInstance, EnumInstanceId,
+    EnumLayout, FieldInstance, ShapeKind, StructInstance, StructInstanceField, StructInstanceId,
+    VM,
 };
-use crate::VTable;
+use crate::Shape;
 use dora_bytecode::{
     BytecodeType, BytecodeTypeArray, ClassData, ClassId, EnumData, EnumId, FunctionId, Program,
     StructData, StructId, TraitId,
@@ -171,12 +171,12 @@ fn enum_is_ptr(_vm: &VM, enum_: &EnumData, type_params: &BytecodeTypeArray) -> b
             .is_reference_type()
 }
 
-pub fn ensure_class_instance_for_enum_variant(
+pub fn ensure_shape_for_enum_variant(
     vm: &VM,
     edef: &EnumInstance,
     enum_: &EnumData,
     variant_idx: u32,
-) -> *const VTable {
+) -> *const Shape {
     let mut variants = edef.variants.write();
     let variant = variants[variant_idx as usize];
 
@@ -212,7 +212,7 @@ pub fn ensure_class_instance_for_enum_variant(
 
     let instance_size = mem::align_i32(csize, mem::ptr_width());
 
-    let vtable = create_class_instance_with_vtable(
+    let shape = create_shape(
         vm,
         ShapeKind::Enum(edef.enum_id, edef.type_params.clone()),
         InstanceSize::Fixed(instance_size),
@@ -220,9 +220,9 @@ pub fn ensure_class_instance_for_enum_variant(
         0,
     );
 
-    variants[variant_idx as usize] = Some(vtable);
+    variants[variant_idx as usize] = Some(shape);
 
-    vtable
+    shape
 }
 
 pub fn add_ref_fields(vm: &VM, ref_fields: &mut Vec<i32>, offset: i32, ty: BytecodeType) {
@@ -283,36 +283,32 @@ pub fn add_ref_fields(vm: &VM, ref_fields: &mut Vec<i32>, offset: i32, ty: Bytec
     }
 }
 
-pub fn create_class_instance(
+pub fn create_shape_for_class(
     vm: &VM,
     cls_id: ClassId,
     type_params: &BytecodeTypeArray,
-) -> *const VTable {
+) -> *const Shape {
     let cls = vm.class(cls_id);
 
-    if let Some(&vtable) = vm
-        .class_specializations
-        .read()
-        .get(&(cls_id, type_params.clone()))
-    {
-        return vtable;
+    if let Some(&shape) = vm.class_shapes.read().get(&(cls_id, type_params.clone())) {
+        return shape;
     }
 
     debug_assert!(type_params.iter().all(|ty| ty.is_concrete_type()));
 
     if vm.known.array_class_id() == cls_id || vm.known.string_class_id() == cls_id {
-        create_specialized_class_array(vm, cls_id, cls, type_params)
+        create_shape_for_array_class(vm, cls_id, cls, type_params)
     } else {
-        create_specialized_class_regular(vm, cls_id, cls, type_params)
+        create_shape_for_regular_class(vm, cls_id, cls, type_params)
     }
 }
 
-fn create_specialized_class_regular(
+fn create_shape_for_regular_class(
     vm: &VM,
     cls_id: ClassId,
     cls: &ClassData,
     type_params: &BytecodeTypeArray,
-) -> *const VTable {
+) -> *const Shape {
     let mut csize = Header::size();
     let mut fields = Vec::new();
     let mut ref_fields = Vec::new();
@@ -337,13 +333,13 @@ fn create_specialized_class_regular(
 
     let size = InstanceSize::Fixed(mem::align_i32(csize, mem::ptr_width()));
 
-    let mut specializations = vm.class_specializations.write();
+    let mut specializations = vm.class_shapes.write();
 
-    if let Some(&vtable) = specializations.get(&(cls_id, type_params.clone())) {
-        return vtable;
+    if let Some(&shape) = specializations.get(&(cls_id, type_params.clone())) {
+        return shape;
     }
 
-    let vtable = create_class_instance_with_vtable(
+    let shape = create_shape(
         vm,
         ShapeKind::Class(cls_id, type_params.clone()),
         size,
@@ -351,18 +347,18 @@ fn create_specialized_class_regular(
         0,
     );
 
-    let old = specializations.insert((cls_id, type_params.clone()), vtable);
+    let old = specializations.insert((cls_id, type_params.clone()), shape);
     assert!(old.is_none());
 
-    vtable
+    shape
 }
 
-fn create_specialized_class_array(
+fn create_shape_for_array_class(
     vm: &VM,
     cls_id: ClassId,
     cls: &ClassData,
     type_params: &BytecodeTypeArray,
-) -> *const VTable {
+) -> *const Shape {
     assert!(cls.fields.is_empty());
 
     let size = if vm.known.array_class_id() == cls_id {
@@ -418,13 +414,13 @@ fn create_specialized_class_array(
         InstanceSize::Str
     };
 
-    let mut specializations = vm.class_specializations.write();
+    let mut specializations = vm.class_shapes.write();
 
-    if let Some(&vtable) = specializations.get(&(cls_id, type_params.clone())) {
-        return vtable;
+    if let Some(&shape) = specializations.get(&(cls_id, type_params.clone())) {
+        return shape;
     }
 
-    let vtable = create_class_instance_with_vtable(
+    let shape = create_shape(
         vm,
         ShapeKind::Class(cls_id, type_params.clone()),
         size,
@@ -432,23 +428,23 @@ fn create_specialized_class_array(
         0,
     );
 
-    let old = specializations.insert((cls_id, type_params.clone()), vtable);
+    let old = specializations.insert((cls_id, type_params.clone()), shape);
     assert!(old.is_none());
 
-    vtable
+    shape
 }
 
-pub fn ensure_class_instance_for_lambda(
+pub fn ensure_shape_for_lambda(
     vm: &VM,
     fct_id: FunctionId,
     type_params: BytecodeTypeArray,
-) -> *const VTable {
+) -> *const Shape {
     let key = (fct_id, type_params.clone());
 
-    let mut lambda_vtables = vm.lambda_vtables.write();
+    let mut lambda_shapes = vm.lambda_shapes.write();
 
-    if let Some(&vtable) = lambda_vtables.get(&key) {
-        return vtable;
+    if let Some(&shape) = lambda_shapes.get(&key) {
+        return shape;
     }
 
     // Lambda object only has context field at the moment.
@@ -458,16 +454,10 @@ pub fn ensure_class_instance_for_lambda(
         ty: BytecodeType::Ptr,
     }];
 
-    let vtable = create_class_instance_with_vtable(
-        vm,
-        ShapeKind::Lambda(fct_id, type_params),
-        size,
-        fields,
-        1,
-    );
+    let shape = create_shape(vm, ShapeKind::Lambda(fct_id, type_params), size, fields, 1);
 
-    lambda_vtables.insert(key, vtable);
-    vtable
+    lambda_shapes.insert(key, shape);
+    shape
 }
 
 pub fn compute_vtable_index(vm: &VM, trait_id: TraitId, trait_fct_id: FunctionId) -> u32 {
@@ -480,27 +470,27 @@ pub fn compute_vtable_index(vm: &VM, trait_id: TraitId, trait_fct_id: FunctionId
     vtable_index.try_into().expect("overflow")
 }
 
-pub fn ensure_class_instance_for_trait_object(
+pub fn ensure_shape_for_trait_object(
     vm: &VM,
     trait_ty: BytecodeType,
     actual_object_ty: BytecodeType,
-) -> *const VTable {
-    if let Some(&vtable) = vm
-        .trait_vtables
+) -> *const Shape {
+    if let Some(&shape) = vm
+        .trait_shapes
         .read()
         .get(&(trait_ty.clone(), actual_object_ty.clone()))
     {
-        return vtable;
+        return shape;
     }
 
-    create_specialized_class_for_trait_object(vm, trait_ty, actual_object_ty)
+    create_shape_for_trait_object(vm, trait_ty, actual_object_ty)
 }
 
-fn create_specialized_class_for_trait_object(
+fn create_shape_for_trait_object(
     vm: &VM,
     trait_ty: BytecodeType,
     actual_object_ty: BytecodeType,
-) -> *const VTable {
+) -> *const Shape {
     let trait_id = trait_ty.trait_id().expect("trait expected");
     let trait_ = vm.trait_(trait_id);
 
@@ -527,13 +517,13 @@ fn create_specialized_class_for_trait_object(
     csize = mem::align_i32(csize, mem::ptr_width());
     let size = InstanceSize::Fixed(csize);
 
-    let mut vtables = vm.trait_vtables.write();
+    let mut shapes = vm.trait_shapes.write();
 
-    if let Some(&vtable) = vtables.get(&(trait_ty.clone(), actual_object_ty.clone())) {
-        return vtable;
+    if let Some(&shape) = shapes.get(&(trait_ty.clone(), actual_object_ty.clone())) {
+        return shape;
     }
 
-    let vtable = create_class_instance_with_vtable(
+    let shape = create_shape(
         vm,
         ShapeKind::TraitObject {
             trait_ty: trait_ty.clone(),
@@ -544,10 +534,10 @@ fn create_specialized_class_for_trait_object(
         trait_.methods.len(),
     );
 
-    let old = vtables.insert((trait_ty, actual_object_ty), vtable);
+    let old = shapes.insert((trait_ty, actual_object_ty), shape);
     assert!(old.is_none());
 
-    vtable
+    shape
 }
 
 pub fn specialize_bty_array(

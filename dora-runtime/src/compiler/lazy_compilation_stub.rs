@@ -406,15 +406,15 @@ fn lazy_compile(ra: usize, receiver1: Address, receiver2: Address) -> Address {
 }
 
 fn patch_lambda_call(vm: &VM, receiver: Handle<Object>) -> Address {
-    let vtable = receiver.header().vtbl(vm.meta_space_start());
+    let shape = receiver.header().shape(vm.meta_space_start());
 
-    let (lambda_id, type_params) = match vtable.kind() {
+    let (lambda_id, type_params) = match shape.kind() {
         ShapeKind::Lambda(lambda_id, type_params) => (*lambda_id, type_params.clone()),
         _ => unreachable!(),
     };
 
     let fct_ptr = compiler::compile_fct_jit(vm, lambda_id, &type_params);
-    vtable.set_method_table_entry(0, fct_ptr);
+    shape.set_method_table_entry(0, fct_ptr);
 
     fct_ptr
 }
@@ -426,9 +426,9 @@ fn patch_virtual_call(
     trait_object_ty: BytecodeType,
     vtable_index: u32,
 ) -> Address {
-    let vtable = receiver.header().vtbl(vm.meta_space_start());
+    let shape = receiver.header().shape(vm.meta_space_start());
 
-    let fct_ptr = match vtable.kind() {
+    let fct_ptr = match shape.kind() {
         ShapeKind::TraitObject {
             actual_object_ty, ..
         } => compiler::trait_object_thunk::ensure_compiled_jit(
@@ -441,7 +441,7 @@ fn patch_virtual_call(
         _ => unreachable!(),
     };
 
-    vtable.set_method_table_entry(vtable_index as usize, fct_ptr);
+    shape.set_method_table_entry(vtable_index as usize, fct_ptr);
 
     fct_ptr
 }
