@@ -437,7 +437,6 @@ pub fn create_sema_flags(flags: &DriverFlags, program_file: PathBuf) -> SemaFlag
         program_file: Some(FileContent::Path(program_file)),
         packages,
         boots: flags.include_boots(),
-        new_exhaustiveness: false,
     }
 }
 

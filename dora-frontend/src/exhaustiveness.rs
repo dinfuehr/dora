@@ -1,3 +1,5 @@
+use std::collections::HashSet;
+
 use dora_parser::ast;
 use dora_parser::ast::visit::{self, Visitor};
 use fixedbitset::FixedBitSet;
@@ -12,6 +14,7 @@ pub fn check(sa: &Sema) {
                 sa,
                 file_id: fct.file_id,
                 analysis: fct.analysis(),
+                is_new_exhaustiveness: fct.is_new_exhaustiveness,
             };
             visit::walk_fct(&mut visitor, &fct.ast);
         }
@@ -22,13 +25,14 @@ struct Exhaustiveness<'a> {
     sa: &'a Sema,
     analysis: &'a AnalysisData,
     file_id: SourceFileId,
+    is_new_exhaustiveness: bool,
 }
 
 impl<'a> Visitor for Exhaustiveness<'a> {
     fn visit_expr(&mut self, e: &ast::ExprData) {
         match *e {
             ast::ExprData::Match(ref expr) => {
-                if self.sa.flags.new_exhaustiveness {
+                if self.is_new_exhaustiveness {
                     // Improved exhaustiveness check is WIP and not enabled by default.
                     check_match2(self.sa, self.analysis, self.file_id, expr);
                 } else {
@@ -176,7 +180,7 @@ fn check_match2(
 
     let missing_patterns = check_exhaustive(matrix, 1);
 
-    if missing_patterns.is_empty() {
+    if !missing_patterns.is_empty() {
         sa.report(
             file_id,
             node.expr.span(),
@@ -217,7 +221,29 @@ fn check_exhaustive(matrix: Vec<Vec<Pattern>>, n: usize) -> Vec<Vec<Pattern>> {
             result
         }
 
-        Signature::Complete => unimplemented!(),
+        Signature::Complete => {
+            let ctors = discover_constructors(&matrix);
+            let arity = 0;
+            let ctors_count = 2;
+
+            if ctors.len() == ctors_count {
+                let mut combined_result = Vec::new();
+
+                for id in 0..ctors.len() {
+                    let new_matrix = matrix
+                        .iter()
+                        .flat_map(|r| specialize_row_for_constructor(r, id, arity))
+                        .collect::<Vec<_>>();
+
+                    let mut result = check_exhaustive(new_matrix, n - 1);
+                    combined_result.append(&mut result);
+                }
+
+                combined_result
+            } else {
+                unimplemented!()
+            }
+        }
     }
 }
 
@@ -231,11 +257,38 @@ fn discover_signature(matrix: &[Vec<Pattern>]) -> Signature {
 
     match row.last().expect("missing pattern") {
         Pattern::Alt(..) => unimplemented!(),
-        Pattern::Literal(_) => unimplemented!(),
+        Pattern::Literal(value) => match value {
+            LiteralValue::Bool(..) => Signature::Complete,
+            LiteralValue::Char(..)
+            | LiteralValue::Float(..)
+            | LiteralValue::Int(..)
+            | LiteralValue::String(..) => Signature::Incomplete,
+        },
         Pattern::Any => Signature::Incomplete,
         Pattern::Ctor(..) => Signature::Complete,
         Pattern::Tuple(..) => Signature::Complete,
     }
+}
+
+fn discover_constructors(matrix: &[Vec<Pattern>]) -> HashSet<usize> {
+    let mut constructors = HashSet::new();
+
+    for row in matrix {
+        match row.last().expect("missing pattern") {
+            Pattern::Alt(..) => unimplemented!(),
+            Pattern::Literal(value) => match value {
+                LiteralValue::Bool(value) => {
+                    constructors.insert(*value as usize);
+                }
+                _ => unimplemented!(),
+            },
+            Pattern::Any => unimplemented!(),
+            Pattern::Ctor(..) => unimplemented!(),
+            Pattern::Tuple(..) => unimplemented!(),
+        }
+    }
+
+    constructors
 }
 
 fn check_useful(_matrix: &[Vec<Pattern>], _new_pattern: &[Pattern]) -> bool {
@@ -244,11 +297,51 @@ fn check_useful(_matrix: &[Vec<Pattern>], _new_pattern: &[Pattern]) -> bool {
 
 fn specialize_row_for_any(row: &[Pattern]) -> Option<Vec<Pattern>> {
     let last = row.last().expect("missing pattern");
-    if last.is_any() {
-        let count = row.len();
-        Some(row[0..count - 1].to_vec())
-    } else {
-        None
+
+    match last {
+        Pattern::Alt(..) => unimplemented!(),
+        Pattern::Literal(..) | Pattern::Ctor(..) => None,
+        Pattern::Any => {
+            let count = row.len();
+            Some(row[0..count - 1].to_vec())
+        }
+        Pattern::Tuple(..) => unimplemented!(),
+    }
+}
+
+fn specialize_row_for_constructor(
+    row: &[Pattern],
+    id: usize,
+    arity: usize,
+) -> Option<Vec<Pattern>> {
+    let last = row.last().expect("missing pattern");
+
+    match last {
+        Pattern::Alt(..) => unimplemented!(),
+        Pattern::Literal(value) => match value {
+            LiteralValue::Bool(value) => {
+                assert_eq!(arity, 0);
+                if id == *value as usize {
+                    Some(row[0..row.len() - 1].to_vec())
+                } else {
+                    None
+                }
+            }
+
+            _ => unimplemented!(),
+        },
+        Pattern::Ctor(ctor_id, params) => {
+            assert_eq!(arity, params.len());
+            if id == *ctor_id {
+                let mut result = row[0..row.len() - 1].to_vec();
+                result.extend_from_slice(params);
+                Some(result)
+            } else {
+                None
+            }
+        }
+        Pattern::Any => unimplemented!(),
+        Pattern::Tuple(..) => unimplemented!(),
     }
 }
 
@@ -270,15 +363,6 @@ enum Pattern {
     Tuple(Vec<Pattern>),
     Ctor(usize, Vec<Pattern>),
     Alt(Vec<Pattern>),
-}
-
-impl Pattern {
-    fn is_any(&self) -> bool {
-        match self {
-            Pattern::Any => true,
-            _ => false,
-        }
-    }
 }
 
 fn convert_pattern(sa: &Sema, analysis: &AnalysisData, pattern: &ast::Pattern) -> Pattern {
@@ -372,7 +456,7 @@ fn convert_pattern(sa: &Sema, analysis: &AnalysisData, pattern: &ast::Pattern) -
 
 #[cfg(test)]
 mod tests {
-    use crate::tests::err;
+    use crate::tests::{err, ok};
     use crate::ErrorMessage;
 
     #[test]
@@ -445,5 +529,32 @@ mod tests {
             (7, 21),
             ErrorMessage::MatchUnreachablePattern,
         );
+    }
+
+    #[test]
+    fn exhaustive_bool() {
+        ok("
+            @NewExhaustiveness
+            fn f(v: Bool) {
+                match v {
+                    true => {}
+                    false => {}
+                }
+            }
+        ");
+    }
+
+    #[test]
+    fn exhaustive_int() {
+        ok("
+            @NewExhaustiveness
+            fn f(v: Int) {
+                match v {
+                    1 => {}
+                    2 => {}
+                    _ => {}
+                }
+            }
+        ");
     }
 }
