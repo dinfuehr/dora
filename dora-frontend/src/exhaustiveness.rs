@@ -163,7 +163,7 @@ fn check_match2(
 
     for arm in &node.arms {
         let pattern = vec![convert_pattern(sa, analysis, &arm.pattern)];
-        if is_useful(matrix.as_slice(), pattern.as_ref()) {
+        if check_useful(matrix.as_slice(), pattern.as_ref()) {
             matrix.push(pattern);
         } else {
             sa.report(
@@ -174,7 +174,7 @@ fn check_match2(
         }
     }
 
-    let missing_patterns = is_exhaustive(matrix, 1);
+    let missing_patterns = check_exhaustive(matrix, 1);
 
     if missing_patterns.is_empty() {
         sa.report(
@@ -185,7 +185,7 @@ fn check_match2(
     }
 }
 
-fn is_exhaustive(matrix: Vec<Vec<Pattern>>, n: usize) -> Vec<Vec<Pattern>> {
+fn check_exhaustive(matrix: Vec<Vec<Pattern>>, n: usize) -> Vec<Vec<Pattern>> {
     if matrix.is_empty() {
         return vec![vec![Pattern::Any; n]];
     }
@@ -195,13 +195,61 @@ fn is_exhaustive(matrix: Vec<Vec<Pattern>>, n: usize) -> Vec<Vec<Pattern>> {
         return Vec::new();
     }
 
-    let _p = matrix[0].last().expect("missing pattern");
+    let signature = discover_signature(&matrix);
 
-    unimplemented!()
+    match signature {
+        Signature::Incomplete => {
+            let new_matrix = matrix
+                .iter()
+                .filter_map(|r| specialize_row_for_any(r))
+                .collect::<Vec<_>>();
+
+            let mut result = check_exhaustive(new_matrix, n - 1);
+
+            if result.is_empty() {
+                return Vec::new();
+            }
+
+            for row in &mut result {
+                row.push(Pattern::Any);
+            }
+
+            result
+        }
+
+        Signature::Complete => unimplemented!(),
+    }
 }
 
-fn is_useful(_matrix: &[Vec<Pattern>], _new_pattern: &[Pattern]) -> bool {
+enum Signature {
+    Complete,
+    Incomplete,
+}
+
+fn discover_signature(matrix: &[Vec<Pattern>]) -> Signature {
+    let row = matrix.first().expect("missing row");
+
+    match row.last().expect("missing pattern") {
+        Pattern::Alt(..) => unimplemented!(),
+        Pattern::Literal(_) => unimplemented!(),
+        Pattern::Any => Signature::Incomplete,
+        Pattern::Ctor(..) => Signature::Complete,
+        Pattern::Tuple(..) => Signature::Complete,
+    }
+}
+
+fn check_useful(_matrix: &[Vec<Pattern>], _new_pattern: &[Pattern]) -> bool {
     true
+}
+
+fn specialize_row_for_any(row: &[Pattern]) -> Option<Vec<Pattern>> {
+    let last = row.last().expect("missing pattern");
+    if last.is_any() {
+        let count = row.len();
+        Some(row[0..count - 1].to_vec())
+    } else {
+        None
+    }
 }
 
 #[allow(unused)]
@@ -222,6 +270,15 @@ enum Pattern {
     Tuple(Vec<Pattern>),
     Ctor(usize, Vec<Pattern>),
     Alt(Vec<Pattern>),
+}
+
+impl Pattern {
+    fn is_any(&self) -> bool {
+        match self {
+            Pattern::Any => true,
+            _ => false,
+        }
+    }
 }
 
 fn convert_pattern(sa: &Sema, analysis: &AnalysisData, pattern: &ast::Pattern) -> Pattern {
