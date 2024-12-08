@@ -12,9 +12,9 @@ use crate::compiler::{compile_fct_aot, trait_object_thunk, NativeFct, NativeFctK
 use crate::gc::{formatted_size, Address};
 use crate::os;
 use crate::vm::{
-    ensure_shape_for_lambda, ensure_shape_for_trait_object, execute_on_main,
-    find_trait_impl, specialize_bty, specialize_bty_array, BytecodeTypeExt, Code,
-    LazyCompilationSite, ShapeKind, VM,
+    ensure_shape_for_lambda, ensure_shape_for_trait_object, execute_on_main, find_trait_impl,
+    specialize_bty, specialize_bty_array, BytecodeTypeExt, Code, LazyCompilationSite, ShapeKind,
+    VM,
 };
 use crate::Shape;
 
@@ -305,8 +305,7 @@ impl<'a> TransitiveClosureComputation<'a> {
                         specialize_bty_array(&callee_type_params, &type_params);
                     self.push(callee_id, callee_type_params.clone());
 
-                    let shape =
-                        ensure_shape_for_lambda(self.vm, callee_id, callee_type_params);
+                    let shape = ensure_shape_for_lambda(self.vm, callee_id, callee_type_params);
                     self.shapes.push(shape);
                 }
 
