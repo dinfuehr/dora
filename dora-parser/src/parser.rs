@@ -1454,7 +1454,7 @@ impl Parser {
 
         self.expect(DOUBLE_ARROW);
 
-        let value = self.parse_expr();
+        let value = self.parse_expr_stmt();
 
         Arc::new(MatchArmType {
             id: self.new_node_id(),

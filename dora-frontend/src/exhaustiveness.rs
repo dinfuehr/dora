@@ -1,4 +1,5 @@
 use std::collections::HashMap;
+use std::fmt;
 
 use dora_parser::ast;
 use dora_parser::ast::visit::{self, Visitor};
@@ -190,6 +191,10 @@ fn check_match2(
 }
 
 fn check_exhaustive(sa: &Sema, matrix: Vec<Vec<Pattern>>, n: usize) -> Vec<Vec<Pattern>> {
+    for row in &matrix {
+        assert_eq!(row.len(), n);
+    }
+
     if matrix.is_empty() {
         return vec![vec![Pattern::Any; n]];
     }
@@ -230,16 +235,16 @@ fn check_exhaustive(sa: &Sema, matrix: Vec<Vec<Pattern>>, n: usize) -> Vec<Vec<P
                         .iter()
                         .flat_map(|r| specialize_row_for_constructor(r, id, arity))
                         .collect::<Vec<_>>();
-
                     let uncovered = check_exhaustive(sa, new_matrix, n + arity - 1);
 
                     if !uncovered.is_empty() {
-                        let tail = n - arity;
+                        let tail = n - 1;
 
                         let result = uncovered
                             .into_iter()
                             .map(|mut row| {
                                 let ctor_params = row.drain(tail..).collect::<Vec<_>>();
+                                assert_eq!(ctor_params.len(), arity);
                                 row.push(ctor_data.kind.pattern(id, ctor_params));
                                 row
                             })
@@ -404,15 +409,16 @@ fn specialize_row_for_constructor(
     id: usize,
     arity: usize,
 ) -> Option<Vec<Pattern>> {
-    let last = row.last().expect("missing pattern");
+    let mut result_row = row.to_vec();
+    let last = result_row.pop().expect("missing pattern");
 
     match last {
         Pattern::Alt(..) => unimplemented!(),
         Pattern::Literal(value) => match value {
             LiteralValue::Bool(value) => {
                 assert_eq!(arity, 0);
-                if id == *value as usize {
-                    Some(row[0..row.len() - 1].to_vec())
+                if id == value as usize {
+                    Some(result_row)
                 } else {
                     None
                 }
@@ -420,18 +426,21 @@ fn specialize_row_for_constructor(
 
             _ => unimplemented!(),
         },
-        Pattern::EnumVariant(_enum_id, ctor_id, params) => {
+        Pattern::EnumVariant(_enum_id, ctor_id, mut params) => {
             assert_eq!(arity, params.len());
-            if id == *ctor_id {
-                let mut result = row[0..row.len() - 1].to_vec();
-                result.extend_from_slice(params);
-                Some(result)
+            if id == ctor_id {
+                result_row.append(&mut params);
+                Some(result_row)
             } else {
                 None
             }
         }
         Pattern::Any => unimplemented!(),
-        Pattern::Tuple(..) => unimplemented!(),
+        Pattern::Tuple(mut params) => {
+            assert_eq!(id, 0);
+            result_row.append(&mut params);
+            Some(result_row)
+        }
     }
 }
 
@@ -445,6 +454,18 @@ enum LiteralValue {
     String(String),
 }
 
+impl fmt::Debug for LiteralValue {
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        match self {
+            LiteralValue::Bool(value) => write!(f, "{}", *value),
+            LiteralValue::Char(value) => write!(f, "{}", *value),
+            LiteralValue::Int(value) => write!(f, "{}", *value),
+            LiteralValue::Float(value) => write!(f, "{}", *value),
+            LiteralValue::String(value) => write!(f, "{:?}", value),
+        }
+    }
+}
+
 #[allow(unused)]
 #[derive(Clone)]
 enum Pattern {
@@ -453,6 +474,56 @@ enum Pattern {
     Tuple(Vec<Pattern>),
     EnumVariant(EnumDefinitionId, usize, Vec<Pattern>),
     Alt(Vec<Pattern>),
+}
+
+impl fmt::Debug for Pattern {
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        match self {
+            Pattern::Any => write!(f, "_"),
+            Pattern::Literal(_lit) => unimplemented!(),
+            Pattern::EnumVariant(enum_id, variant_idx, params) => {
+                write!(f, "e{}::{}", enum_id.index(), *variant_idx)?;
+
+                if !params.is_empty() {
+                    write!(f, "(")?;
+                    let mut first = true;
+                    for param in params {
+                        if !first {
+                            write!(f, ", ")?;
+                        }
+                        write!(f, "{:?}", param)?;
+                        first = false;
+                    }
+                    write!(f, ")")
+                } else {
+                    Ok(())
+                }
+            }
+            Pattern::Tuple(params) => {
+                write!(f, "(")?;
+                let mut first = true;
+                for param in params {
+                    if !first {
+                        write!(f, ", ")?;
+                    }
+                    write!(f, "{:?}", param)?;
+                    first = false;
+                }
+                write!(f, ")")
+            }
+            Pattern::Alt(params) => {
+                let mut first = true;
+                for param in params {
+                    if !first {
+                        write!(f, " | ")?;
+                    }
+                    write!(f, "{:?}", param)?;
+                    first = false;
+                }
+                Ok(())
+            }
+        }
+    }
 }
 
 fn convert_pattern(sa: &Sema, analysis: &AnalysisData, pattern: &ast::Pattern) -> Pattern {
@@ -493,6 +564,7 @@ fn convert_pattern(sa: &Sema, analysis: &AnalysisData, pattern: &ast::Pattern) -
             let patterns = tuple
                 .params
                 .iter()
+                .rev()
                 .map(|p| convert_pattern(sa, analysis, &p))
                 .collect();
             Pattern::Tuple(patterns)
@@ -527,6 +599,7 @@ fn convert_pattern(sa: &Sema, analysis: &AnalysisData, pattern: &ast::Pattern) -
                 .as_ref()
                 .map(|v| {
                     v.iter()
+                        .rev()
                         .map(|p| convert_pattern(sa, analysis, p.pattern.as_ref()))
                         .collect::<Vec<_>>()
                 })
@@ -688,6 +761,64 @@ mod tests {
                     Foo::C => {}
                     Foo::D => {}
                     _ => {}
+                }
+            }
+        ");
+    }
+
+    #[test]
+    fn exhaustive_only_underscore() {
+        ok("
+            enum Foo { A, B, C, D }
+            @NewExhaustiveness
+            fn f(v: Foo) {
+                match v {
+                    _ => {}
+                }
+            }
+        ");
+    }
+
+    #[test]
+    fn exhaustive_only_underscore_tuple() {
+        ok("
+            enum Foo { A, B, C, D }
+            @NewExhaustiveness
+            fn f(v: (Foo, Foo)) {
+                match v {
+                    _ => {}
+                }
+            }
+        ");
+    }
+
+    #[test]
+    fn exhaustive_underscore_tuple_pattern() {
+        ok("
+            enum Foo { A, B, C, D }
+            @NewExhaustiveness
+            fn f(v: (Foo, Foo)) {
+                match v {
+                    (_, _) => {}
+                }
+            }
+        ");
+    }
+
+    #[test]
+    fn exhaustive_tuple_pattern() {
+        ok("
+            enum Foo { A, B, C, D }
+            @NewExhaustiveness
+            fn f(v: (Foo, Foo)) {
+                match v {
+                    (Foo::A, _) => {}
+                    (Foo::B, _) => {}
+                    (Foo::C, Foo::A) => {}
+                    (Foo::C, Foo::B) => {}
+                    (Foo::C, Foo::C) => {}
+                    (Foo::C, Foo::D) => {}
+                    (Foo::D, _) => {}
                 }
             }
         ");
