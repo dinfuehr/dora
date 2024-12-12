@@ -1,5 +1,5 @@
 use std::collections::HashMap;
-use std::fmt;
+use std::fmt::{self, Write};
 
 use dora_parser::ast;
 use dora_parser::ast::visit::{self, Visitor};
@@ -182,11 +182,91 @@ fn check_match2(
     let missing_patterns = check_exhaustive(sa, matrix, 1);
 
     if !missing_patterns.is_empty() {
+        let mut patterns = Vec::new();
+
+        for mut row in missing_patterns {
+            assert_eq!(row.len(), 1);
+            let mut pattern_as_string = String::new();
+            display_pattern(
+                sa,
+                row.pop().expect("missing pattern"),
+                &mut pattern_as_string,
+            )
+            .expect("stringify failed for pattern");
+            patterns.push(pattern_as_string);
+        }
+
         sa.report(
             file_id,
             node.expr.span(),
-            ErrorMessage::MatchUncoveredVariant,
+            ErrorMessage::MatchUncoveredVariantWithPattern(patterns),
         );
+    }
+}
+
+fn display_pattern(sa: &Sema, pattern: Pattern, output: &mut String) -> fmt::Result {
+    match pattern {
+        Pattern::Alt(params) => {
+            assert!(params.len() > 1);
+            let mut first = true;
+
+            for param in params.into_iter().rev() {
+                if !first {
+                    output.write_str(" | ")?;
+                }
+                display_pattern(sa, param, output)?;
+                first = false;
+            }
+            Ok(())
+        }
+
+        Pattern::Literal(value) => match value {
+            LiteralValue::Bool(value) => write!(output, "{}", value),
+            LiteralValue::Char(value) => write!(output, "{}", value),
+            LiteralValue::Int(value) => write!(output, "{}", value),
+            LiteralValue::Float(value) => write!(output, "{}", value),
+            LiteralValue::String(value) => write!(output, "{:?}", value),
+        },
+
+        Pattern::EnumVariant(enum_id, variant_id, params) => {
+            let enum_ = sa.enum_(enum_id);
+            let variant = enum_.variants()[variant_id].name;
+            write!(output, "{}::{}", enum_.name(sa), sa.interner.str(variant))?;
+
+            if !params.is_empty() {
+                let mut first = true;
+                write!(output, "(")?;
+
+                for param in params.into_iter().rev() {
+                    if !first {
+                        output.write_str(", ")?;
+                    }
+                    display_pattern(sa, param, output)?;
+                    first = false;
+                }
+
+                write!(output, ")")?;
+            }
+
+            Ok(())
+        }
+
+        Pattern::Any => write!(output, "_"),
+
+        Pattern::Tuple(params) => {
+            let mut first = true;
+            write!(output, "(")?;
+
+            for param in params.into_iter().rev() {
+                if !first {
+                    output.write_str(", ")?;
+                }
+                display_pattern(sa, param, output)?;
+                first = false;
+            }
+
+            write!(output, ")")
+        }
     }
 }
 
@@ -210,7 +290,7 @@ fn check_exhaustive(sa: &Sema, matrix: Vec<Vec<Pattern>>, n: usize) -> Vec<Vec<P
         Signature::Incomplete => {
             let new_matrix = matrix
                 .iter()
-                .filter_map(|r| specialize_row_for_any(r))
+                .flat_map(|r| specialize_row_for_any(r))
                 .collect::<Vec<_>>();
 
             let mut result = check_exhaustive(sa, new_matrix, n - 1);
@@ -228,9 +308,12 @@ fn check_exhaustive(sa: &Sema, matrix: Vec<Vec<Pattern>>, n: usize) -> Vec<Vec<P
 
         Signature::Complete => {
             let ctor_data = discover_constructors(&matrix);
+            let ctors_total = ctor_data.total(sa);
+            assert!(ctor_data.ctors.len() <= ctors_total);
 
-            if ctor_data.ctors.len() == ctor_data.total(sa) {
-                for (&id, &arity) in &ctor_data.ctors {
+            if ctor_data.ctors.len() == ctors_total {
+                for id in 0..ctors_total {
+                    let arity = ctor_data.ctors.get(&id).cloned().expect("missing ctor id");
                     let new_matrix = matrix
                         .iter()
                         .flat_map(|r| specialize_row_for_constructor(r, id, arity))
@@ -260,13 +343,38 @@ fn check_exhaustive(sa: &Sema, matrix: Vec<Vec<Pattern>>, n: usize) -> Vec<Vec<P
             } else {
                 let new_matrix = matrix
                     .iter()
-                    .filter_map(|r| specialize_row_for_any(r))
+                    .flat_map(|r| specialize_row_for_any(r))
                     .collect::<Vec<_>>();
 
                 let mut result = check_exhaustive(sa, new_matrix, n - 1);
 
                 if result.is_empty() {
                     return Vec::new();
+                }
+
+                if result.len() == 1 {
+                    let mut result_with_ctor = Vec::new();
+                    let row = result.first().expect("missing row");
+
+                    for ctor_id in 0..ctors_total {
+                        if ctor_data.ctors.contains_key(&ctor_id) {
+                            continue;
+                        }
+
+                        let mut result_row = row.clone();
+
+                        // Avoid too many failure patterns.
+                        if result_with_ctor.len() == 5 {
+                            result_row.push(Pattern::Any);
+                            result_with_ctor.push(result_row);
+                            break;
+                        } else {
+                            result_row.push(ctor_data.kind.pattern(ctor_id, Vec::new()));
+                            result_with_ctor.push(result_row);
+                        }
+                    }
+
+                    return result_with_ctor;
                 }
 
                 for row in &mut result {
@@ -286,9 +394,13 @@ enum Signature {
 
 fn discover_signature(matrix: &[Vec<Pattern>]) -> Signature {
     let row = matrix.first().expect("missing row");
+    let pattern = row.last().expect("missing pattern");
+    discover_signature_for_pattern(pattern)
+}
 
-    match row.last().expect("missing pattern") {
-        Pattern::Alt(..) => unimplemented!(),
+fn discover_signature_for_pattern(pattern: &Pattern) -> Signature {
+    match pattern {
+        Pattern::Alt(ref params) => discover_signature_for_pattern(&params[0]),
         Pattern::Literal(value) => match value {
             LiteralValue::Bool(..) => Signature::Complete,
             LiteralValue::Char(..)
@@ -347,37 +459,8 @@ fn discover_constructors(matrix: &[Vec<Pattern>]) -> CtorData {
     let mut kind = None;
 
     for row in matrix {
-        match row.last().expect("missing pattern") {
-            Pattern::Alt(..) => unimplemented!(),
-            Pattern::Literal(value) => match value {
-                LiteralValue::Bool(value) => {
-                    match kind {
-                        None => kind = Some(CtorKind::Bool),
-                        Some(CtorKind::Bool) => (),
-                        Some(_) => unreachable!(),
-                    }
-                    ctors.insert(*value as usize, 0);
-                }
-                _ => unimplemented!(),
-            },
-            Pattern::Any => (),
-            Pattern::EnumVariant(enum_id, id, params) => {
-                match kind {
-                    None => kind = Some(CtorKind::Enum(*enum_id)),
-                    Some(CtorKind::Enum(exp_enum_id)) => assert_eq!(exp_enum_id, *enum_id),
-                    Some(_) => unreachable!(),
-                }
-                ctors.insert(*id as usize, params.len());
-            }
-            Pattern::Tuple(ref params) => {
-                match kind {
-                    None => kind = Some(CtorKind::Tuple),
-                    Some(CtorKind::Tuple) => (),
-                    Some(_) => unreachable!(),
-                }
-                ctors.insert(0, params.len());
-            }
-        }
+        let pattern = row.last().expect("missing pattern");
+        discover_constructors_for_pattern(pattern, &mut ctors, &mut kind);
     }
 
     CtorData {
@@ -386,60 +469,119 @@ fn discover_constructors(matrix: &[Vec<Pattern>]) -> CtorData {
     }
 }
 
+fn discover_constructors_for_pattern(
+    pattern: &Pattern,
+    ctors: &mut HashMap<usize, usize>,
+    kind: &mut Option<CtorKind>,
+) {
+    match pattern {
+        Pattern::Alt(ref params) => {
+            for param in params {
+                discover_constructors_for_pattern(param, ctors, kind);
+            }
+        }
+        Pattern::Literal(value) => match value {
+            LiteralValue::Bool(value) => {
+                match kind {
+                    None => *kind = Some(CtorKind::Bool),
+                    Some(CtorKind::Bool) => (),
+                    Some(_) => unreachable!(),
+                }
+                ctors.insert(*value as usize, 0);
+            }
+            _ => unimplemented!(),
+        },
+        Pattern::Any => (),
+        Pattern::EnumVariant(enum_id, id, params) => {
+            match *kind {
+                None => *kind = Some(CtorKind::Enum(*enum_id)),
+                Some(CtorKind::Enum(exp_enum_id)) => assert_eq!(exp_enum_id, *enum_id),
+                Some(_) => unreachable!(),
+            }
+            ctors.insert(*id as usize, params.len());
+        }
+        Pattern::Tuple(ref params) => {
+            match *kind {
+                None => *kind = Some(CtorKind::Tuple),
+                Some(CtorKind::Tuple) => (),
+                Some(_) => unreachable!(),
+            }
+            ctors.insert(0, params.len());
+        }
+    }
+}
+
 fn check_useful(_matrix: &[Vec<Pattern>], _new_pattern: &[Pattern]) -> bool {
     true
 }
 
-fn specialize_row_for_any(row: &[Pattern]) -> Option<Vec<Pattern>> {
-    let last = row.last().expect("missing pattern");
-
-    match last {
-        Pattern::Alt(..) => unimplemented!(),
-        Pattern::Literal(..) | Pattern::EnumVariant(..) => None,
-        Pattern::Any => {
-            let count = row.len();
-            Some(row[0..count - 1].to_vec())
-        }
-        Pattern::Tuple(..) => unimplemented!(),
-    }
-}
-
-fn specialize_row_for_constructor(
-    row: &[Pattern],
-    id: usize,
-    arity: usize,
-) -> Option<Vec<Pattern>> {
+fn specialize_row_for_any(row: &[Pattern]) -> Vec<Vec<Pattern>> {
     let mut result_row = row.to_vec();
     let last = result_row.pop().expect("missing pattern");
 
     match last {
-        Pattern::Alt(..) => unimplemented!(),
+        Pattern::Alt(params) => params
+            .into_iter()
+            .flat_map(|p| {
+                result_row.push(p);
+                let rows = specialize_row_for_any(&result_row);
+                result_row.pop();
+                rows
+            })
+            .collect::<Vec<_>>(),
+        Pattern::Literal(..) | Pattern::EnumVariant(..) => Vec::new(),
+        Pattern::Any => vec![result_row],
+        // This should never be reached as long as all patterns are useful.
+        // This is because tuples conceptually have a single constructor and thus
+        // should always reach the complete signature code path.
+        Pattern::Tuple(..) => unreachable!(),
+    }
+}
+
+fn specialize_row_for_constructor(row: &[Pattern], id: usize, arity: usize) -> Vec<Vec<Pattern>> {
+    let mut result_row = row.to_vec();
+    let last = result_row.pop().expect("missing pattern");
+
+    match last {
+        Pattern::Alt(params) => params
+            .into_iter()
+            .flat_map(|p| {
+                result_row.push(p);
+                let rows = specialize_row_for_constructor(&result_row, id, arity);
+                result_row.pop();
+                rows
+            })
+            .collect::<Vec<_>>(),
         Pattern::Literal(value) => match value {
             LiteralValue::Bool(value) => {
                 assert_eq!(arity, 0);
                 if id == value as usize {
-                    Some(result_row)
+                    vec![result_row]
                 } else {
-                    None
+                    Vec::new()
                 }
             }
 
             _ => unimplemented!(),
         },
         Pattern::EnumVariant(_enum_id, ctor_id, mut params) => {
-            assert_eq!(arity, params.len());
             if id == ctor_id {
+                assert_eq!(arity, params.len());
                 result_row.append(&mut params);
-                Some(result_row)
+                vec![result_row]
             } else {
-                None
+                Vec::new()
             }
         }
-        Pattern::Any => unimplemented!(),
+        Pattern::Any => {
+            result_row.extend(std::iter::repeat(Pattern::Any).take(arity));
+            vec![result_row]
+        }
+
         Pattern::Tuple(mut params) => {
             assert_eq!(id, 0);
             result_row.append(&mut params);
-            Some(result_row)
+            vec![result_row]
         }
     }
 }
@@ -705,6 +847,32 @@ mod tests {
                 }
             }
         ");
+
+        err(
+            "
+            @NewExhaustiveness
+            fn f(v: Bool) {
+                match v {
+                    true => {}
+                }
+            }
+        ",
+            (4, 23),
+            ErrorMessage::MatchUncoveredVariantWithPattern(vec!["false".into()]),
+        );
+
+        err(
+            "
+            @NewExhaustiveness
+            fn f(v: Bool) {
+                match v {
+                    false => {}
+                }
+            }
+        ",
+            (4, 23),
+            ErrorMessage::MatchUncoveredVariantWithPattern(vec!["true".into()]),
+        );
     }
 
     #[test]
@@ -719,6 +887,20 @@ mod tests {
                 }
             }
         ");
+
+        err(
+            "
+            @NewExhaustiveness
+            fn f(v: Int) {
+                match v {
+                    1 => {}
+                    2 => {}
+                }
+            }
+        ",
+            (4, 23),
+            ErrorMessage::MatchUncoveredVariantWithPattern(vec!["_".into()]),
+        );
     }
 
     #[test]
@@ -748,6 +930,46 @@ mod tests {
                 }
             }
         ");
+
+        err(
+            "
+            enum Foo { A, B, C, D }
+            @NewExhaustiveness
+            fn f(v: Foo) {
+                match v {
+                    Foo::A => {}
+                    Foo::D => {}
+                }
+            }
+        ",
+            (5, 23),
+            ErrorMessage::MatchUncoveredVariantWithPattern(vec!["Foo::B".into(), "Foo::C".into()]),
+        );
+    }
+
+    #[test]
+    fn exhaustive_enum_with_many_variants() {
+        err(
+            "
+            enum Foo { C1, C2, C3, C4, C5, C6, C7, C8, C9, C10 }
+            @NewExhaustiveness
+            fn f(v: Foo) {
+                match v {
+                    Foo::C3 => {}
+                    Foo::C5 => {}
+                }
+            }
+        ",
+            (5, 23),
+            ErrorMessage::MatchUncoveredVariantWithPattern(vec![
+                "Foo::C1".into(),
+                "Foo::C2".into(),
+                "Foo::C4".into(),
+                "Foo::C6".into(),
+                "Foo::C7".into(),
+                "_".into(),
+            ]),
+        );
     }
 
     #[test]
@@ -806,6 +1028,20 @@ mod tests {
     }
 
     #[test]
+    fn exhaustive_int_tuple_pattern() {
+        ok("
+            @NewExhaustiveness
+            fn f(v: (Int, Int)) {
+                match v {
+                    (1, 1) => {}
+                    (3, _) => {}
+                    _ => {}
+                }
+            }
+        ");
+    }
+
+    #[test]
     fn exhaustive_tuple_pattern() {
         ok("
             enum Foo { A, B, C, D }
@@ -822,5 +1058,120 @@ mod tests {
                 }
             }
         ");
+
+        err(
+            "
+            enum Foo { A, B, C, D }
+            @NewExhaustiveness
+            fn f(v: (Foo, Foo)) {
+                match v {
+                    (Foo::A, _) => {}
+                    (Foo::B, _) => {}
+                    (Foo::C, Foo::A) => {}
+                    (Foo::C, Foo::C) => {}
+                    (Foo::C, Foo::D) => {}
+                    (Foo::D, _) => {}
+                }
+            }
+        ",
+            (5, 23),
+            ErrorMessage::MatchUncoveredVariantWithPattern(vec!["(Foo::C, Foo::B)".into()]),
+        );
+
+        err(
+            "
+            enum Foo { A, B, C, D }
+            @NewExhaustiveness
+            fn f(v: (Foo, Bool)) {
+                match v {
+                    (Foo::A, _) => {}
+                    (Foo::B, _) => {}
+                    (Foo::D, true) => {}
+                    (Foo::C, _) => {}
+                }
+            }
+        ",
+            (5, 23),
+            ErrorMessage::MatchUncoveredVariantWithPattern(vec!["(Foo::D, false)".into()]),
+        );
+    }
+
+    #[test]
+    fn exhaustive_enum_with_payload() {
+        ok("
+            enum Foo { A(Int), C(Bool), D(Bar, Bool) }
+            enum Bar { X, Y }
+            @NewExhaustiveness
+            fn f(v: Foo) {
+                match v {
+                    Foo::A(1) => {}
+                    Foo::A(2) => {}
+                    Foo::A(_) => {}
+                    Foo::C(_) => {}
+                    Foo::D(Bar::X, true) => {}
+                    Foo::D(Bar::X, false) => {}
+                    Foo::D(Bar::Y, _) => {}
+                }
+            }
+        ");
+    }
+
+    #[test]
+    fn exhaustive_enum_with_payload_and_alternatives() {
+        ok("
+            enum Foo { A(Int), C(Bool), D(Bar, Bool) }
+            enum Bar { X, Y }
+            @NewExhaustiveness
+            fn f(v: Foo) {
+                match v {
+                    Foo::A(1 | 2) | Foo::C(_) => {}
+                    Foo::A(_) => {}
+                    Foo::D(Bar::X, true | false)
+                    | Foo::D(Bar::Y, _) => {}
+                }
+            }
+        ");
+    }
+
+    #[test]
+    fn exhaustive_enum_with_payload_with_uncovered_int() {
+        err(
+            "
+            enum Foo { A(Int), C(Bool), D(Bar, Bool) }
+            enum Bar { X, Y }
+            @NewExhaustiveness
+            fn f(v: Foo) {
+                match v {
+                    Foo::A(1) => {}
+                    Foo::A(2) => {}
+                    Foo::C(_) => {}
+                    Foo::D(Bar::X, true) => {}
+                    Foo::D(Bar::Y, _) => {}
+                }
+            }
+        ",
+            (6, 23),
+            ErrorMessage::MatchUncoveredVariantWithPattern(vec!["Foo::A(_)".into()]),
+        );
+
+        err(
+            "
+            enum Foo { A(Int), C(Bool), D(Bar, Bool) }
+            enum Bar { X, Y }
+            @NewExhaustiveness
+            fn f(v: Foo) {
+                match v {
+                    Foo::A(1) => {}
+                    Foo::A(2) => {}
+                    Foo::A(_) => {}
+                    Foo::C(_) => {}
+                    Foo::D(Bar::X, true) => {}
+                    Foo::D(Bar::Y, _) => {}
+                }
+            }
+        ",
+            (6, 23),
+            ErrorMessage::MatchUncoveredVariantWithPattern(vec!["Foo::D(Bar::X, false)".into()]),
+        );
     }
 }
