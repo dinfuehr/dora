@@ -168,15 +168,17 @@ fn check_match2(
 
     for arm in &node.arms {
         let pattern = vec![convert_pattern(sa, analysis, &arm.pattern)];
-        if check_useful(matrix.as_slice(), pattern.as_ref()) {
-            matrix.push(pattern);
-        } else {
-            sa.report(
-                file_id,
-                arm.pattern.span(),
-                ErrorMessage::MatchUnreachablePattern,
-            );
-        }
+        matrix.push(pattern);
+
+        // if check_useful(matrix.clone(), pattern.clone()) {
+        //     matrix.push(pattern);
+        // } else {
+        //     sa.report(
+        //         file_id,
+        //         arm.pattern.span(),
+        //         ErrorMessage::MatchUnreachablePattern,
+        //     );
+        // }
     }
 
     let missing_patterns = check_exhaustive(sa, matrix, 1);
@@ -511,8 +513,62 @@ fn discover_constructors_for_pattern(
     }
 }
 
-fn check_useful(_matrix: &[Vec<Pattern>], _new_pattern: &[Pattern]) -> bool {
-    true
+#[allow(unused)]
+fn check_useful(matrix: Vec<Vec<Pattern>>, mut pattern: Vec<Pattern>) -> bool {
+    let n = pattern.len();
+
+    for row in &matrix {
+        assert_eq!(row.len(), n);
+    }
+
+    if matrix.is_empty() {
+        return true;
+    }
+
+    if n == 0 {
+        return false;
+    }
+
+    let last = pattern.pop().expect("missing pattern");
+
+    match last {
+        Pattern::Alt(..) => unimplemented!(),
+
+        Pattern::Literal(literal) => match literal {
+            LiteralValue::Bool(..) => unimplemented!(),
+            _ => unimplemented!(),
+        },
+
+        Pattern::Any => {
+            let new_matrix = matrix
+                .iter()
+                .flat_map(|r| specialize_row_for_any(r))
+                .collect::<Vec<_>>();
+
+            check_useful(new_matrix, pattern)
+        }
+
+        Pattern::EnumVariant(_enum_id, variant_id, params) => {
+            let arity = params.len();
+            let new_matrix = matrix
+                .iter()
+                .flat_map(|r| specialize_row_for_constructor(r, variant_id, arity))
+                .collect::<Vec<_>>();
+
+            check_useful(new_matrix, pattern)
+        }
+
+        Pattern::Tuple(params) => {
+            let arity = params.len();
+
+            let new_matrix = matrix
+                .iter()
+                .flat_map(|r| specialize_row_for_constructor(r, 0, arity))
+                .collect::<Vec<_>>();
+
+            check_useful(new_matrix, pattern)
+        }
+    }
 }
 
 fn specialize_row_for_any(row: &[Pattern]) -> Vec<Vec<Pattern>> {
@@ -562,7 +618,12 @@ fn specialize_row_for_constructor(row: &[Pattern], id: usize, arity: usize) -> V
                 }
             }
 
-            _ => unimplemented!(),
+            // These cases here should be unreachable. This is because
+            // literal values of these types never have a complete signature.
+            LiteralValue::Char(..)
+            | LiteralValue::Float(..)
+            | LiteralValue::Int(..)
+            | LiteralValue::String(..) => unreachable!(),
         },
         Pattern::EnumVariant(_enum_id, ctor_id, mut params) => {
             if id == ctor_id {
@@ -967,6 +1028,27 @@ mod tests {
                 "Foo::C4".into(),
                 "Foo::C6".into(),
                 "Foo::C7".into(),
+                "_".into(),
+            ]),
+        );
+
+        err(
+            "
+            enum Foo { C1, C2, C3, C4, C5, C6, C7, C8, C9, C10 }
+            @NewExhaustiveness
+            fn f(v: Foo) {
+                match v {
+                    Foo::C3 | Foo::C4 | Foo::C5 | Foo::C8 => {}
+                }
+            }
+        ",
+            (5, 23),
+            ErrorMessage::MatchUncoveredVariantWithPattern(vec![
+                "Foo::C1".into(),
+                "Foo::C2".into(),
+                "Foo::C6".into(),
+                "Foo::C7".into(),
+                "Foo::C9".into(),
                 "_".into(),
             ]),
         );
