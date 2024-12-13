@@ -509,8 +509,10 @@ fn discover_signature_for_pattern(
 fn check_useful(matrix: Vec<Vec<Pattern>>, mut pattern: Vec<Pattern>) -> bool {
     let n = pattern.len();
 
-    for row in &matrix {
-        assert_eq!(row.len(), n);
+    if n > 0 {
+        for row in &matrix {
+            assert_eq!(row.len(), n);
+        }
     }
 
     if matrix.is_empty() {
@@ -715,7 +717,7 @@ impl fmt::Debug for Pattern {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         match self {
             Pattern::Any => write!(f, "_"),
-            Pattern::Literal(_lit) => unimplemented!(),
+            Pattern::Literal(lit) => write!(f, "{:?}", lit),
             Pattern::EnumVariant(enum_id, variant_idx, params) => {
                 write!(f, "e{}::{}", enum_id.index(), *variant_idx)?;
 
@@ -948,9 +950,9 @@ mod tests {
     }
 
     #[test]
-    #[ignore]
     fn usefulness_tuple() {
-        ok("
+        err(
+            "
             @NewExhaustiveness @CheckUsefulness
             fn f(v: (Int, Int)) {
                 match v {
@@ -958,7 +960,10 @@ mod tests {
                     (1, 1) => {}
                 }
             }
-        ");
+        ",
+            (6, 21),
+            ErrorMessage::MatchUnreachablePattern,
+        );
     }
 
     #[test]
