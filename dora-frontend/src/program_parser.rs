@@ -707,6 +707,7 @@ impl<'x> visit::Visitor for TopLevelDeclaration<'x> {
                 Annotation::ForceInline,
                 Annotation::NeverInline,
                 Annotation::NewExhaustiveness,
+                Annotation::CheckUsefulness,
             ],
         );
 
@@ -1298,6 +1299,7 @@ pub struct ParsedModifierList {
     pub is_force_inline: bool,
     pub is_never_inline: bool,
     pub is_new_exhaustiveness: bool,
+    pub is_check_usefulness: bool,
 }
 
 impl ParsedModifierList {
@@ -1321,6 +1323,7 @@ enum Annotation {
     NeverInline,
     Error,
     NewExhaustiveness,
+    CheckUsefulness,
 }
 
 impl Annotation {
@@ -1338,6 +1341,7 @@ impl Annotation {
             Annotation::ForceInline => "ForceInline",
             Annotation::NeverInline => "NeverInline",
             Annotation::NewExhaustiveness => "NewExhaustiveness",
+            Annotation::CheckUsefulness => "CheckUsefulness",
             Annotation::Error => "<error>",
         }
     }
@@ -1423,6 +1427,11 @@ fn check_modifier(
                 "NewExhaustiveness" => {
                     parsed_modifiers.is_new_exhaustiveness = true;
                     Annotation::NewExhaustiveness
+                }
+
+                "CheckUsefulness" => {
+                    parsed_modifiers.is_check_usefulness = true;
+                    Annotation::CheckUsefulness
                 }
 
                 _ => {

@@ -322,8 +322,7 @@ impl SsaGen {
         let ty = self.regGraphTy(register);
 
         let value: Inst = if !self.sealedBlocks.contains(block.id().toInt64()) {
-            // While all blocks are created with predecessors and successors before
-            // this pass in the BlockBuilder already, we still need to handle unsealed blocks.
+            // We need to handle unsealed blocks here:
             // E.g. Register is accessed in while header and updated in the while body.
             // In this case the while header is filled before the while body. If we wouldn't
             // handle unsealed blocks we wouldn't create a Phi instruction, since the
@@ -331,8 +330,8 @@ impl SsaGen {
             let incomplete = graph::createPhiInst(ty);
             block.appendPhi(incomplete);
 
-            if self.incompletePhis.contains(block) {
-                self.incompletePhis.get(block).getOrPanic().insert(register, incomplete);
+            if self.incompletePhis.get(block) is Some(map) {
+                map.insert(register, incomplete);
             } else {
                 let map = HashMap[BytecodeRegister, Inst]::new();
                 map.insert(register, incomplete);
@@ -369,7 +368,7 @@ impl SsaGen {
         for inp in phi.getInputs() {
             let op = inp.getValue();
 
-            if same.isSome() && same.getOrPanic() === op {
+            if same is Some(same) && same === op {
                 continue;
             }
 
@@ -791,13 +790,12 @@ impl SsaGen {
         assert(!self.sealedBlocks.contains(block.id().toInt64()));
         self.sealedBlocks.insert(block.id().toInt64());
 
-        let map = self.incompletePhis.get(block);
-        if map.isNone() { return; }
-
-        for (register, phi) in map.getOrPanic() {
-            assert(phi.hasId());
-            let value = self.addPhiOperands(register, phi);
-            self.writeVariable(register, block, value);
+        if self.incompletePhis.get(block) is Some(map) {
+            for (register, phi) in map {
+                assert(phi.hasId());
+                let value = self.addPhiOperands(register, phi);
+                self.writeVariable(register, block, value);
+            }
         }
     }
 

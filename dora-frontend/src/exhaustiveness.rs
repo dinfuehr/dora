@@ -16,6 +16,7 @@ pub fn check(sa: &Sema) {
                 file_id: fct.file_id,
                 analysis: fct.analysis(),
                 is_new_exhaustiveness: fct.is_new_exhaustiveness,
+                is_check_usefulness: fct.is_check_usefulness,
             };
             visit::walk_fct(&mut visitor, &fct.ast);
         }
@@ -27,6 +28,7 @@ struct Exhaustiveness<'a> {
     analysis: &'a AnalysisData,
     file_id: SourceFileId,
     is_new_exhaustiveness: bool,
+    is_check_usefulness: bool,
 }
 
 impl<'a> Visitor for Exhaustiveness<'a> {
@@ -35,7 +37,13 @@ impl<'a> Visitor for Exhaustiveness<'a> {
             ast::ExprData::Match(ref expr) => {
                 if self.is_new_exhaustiveness {
                     // Improved exhaustiveness check is WIP and not enabled by default.
-                    check_match2(self.sa, self.analysis, self.file_id, expr);
+                    check_match2(
+                        self.sa,
+                        self.analysis,
+                        self.file_id,
+                        expr,
+                        self.is_check_usefulness,
+                    );
                 } else {
                     check_match(self.sa, self.analysis, self.file_id, expr);
                 }
@@ -163,22 +171,24 @@ fn check_match2(
     analysis: &AnalysisData,
     file_id: SourceFileId,
     node: &ast::ExprMatchType,
+    is_check_usefulness: bool,
 ) {
     let mut matrix = Vec::new();
 
     for arm in &node.arms {
         let pattern = vec![convert_pattern(sa, analysis, &arm.pattern)];
-        matrix.push(pattern);
 
-        // if check_useful(matrix.clone(), pattern.clone()) {
-        //     matrix.push(pattern);
-        // } else {
-        //     sa.report(
-        //         file_id,
-        //         arm.pattern.span(),
-        //         ErrorMessage::MatchUnreachablePattern,
-        //     );
-        // }
+        if is_check_usefulness {
+            if !check_useful(matrix.clone(), pattern.clone()) {
+                sa.report(
+                    file_id,
+                    arm.pattern.span(),
+                    ErrorMessage::MatchUnreachablePattern,
+                );
+            }
+        }
+
+        matrix.push(pattern);
     }
 
     let missing_patterns = check_exhaustive(sa, matrix, 1);
@@ -282,7 +292,10 @@ fn check_exhaustive(sa: &Sema, matrix: Vec<Vec<Pattern>>, n: usize) -> Vec<Vec<P
     }
 
     if n == 0 {
-        assert_eq!(matrix.len(), 1);
+        // With useless patterns in the matrix, the matrix might have
+        // more than one row, so this assertion does not hold:
+        // assert_eq!(matrix.len(), 1);
+        assert!(matrix.len() > 0);
         return Vec::new();
     }
 
@@ -308,14 +321,13 @@ fn check_exhaustive(sa: &Sema, matrix: Vec<Vec<Pattern>>, n: usize) -> Vec<Vec<P
             result
         }
 
-        Signature::Complete => {
-            let ctor_data = discover_constructors(&matrix);
-            let ctors_total = ctor_data.total(sa);
-            assert!(ctor_data.ctors.len() <= ctors_total);
+        Signature::Complete { ctors, kind } => {
+            let ctors_total = kind.total(sa);
+            assert!(ctors.len() <= ctors_total);
 
-            if ctor_data.ctors.len() == ctors_total {
+            if ctors.len() == ctors_total {
                 for id in 0..ctors_total {
-                    let arity = ctor_data.ctors.get(&id).cloned().expect("missing ctor id");
+                    let arity = ctors.get(&id).cloned().expect("missing ctor id");
                     let new_matrix = matrix
                         .iter()
                         .flat_map(|r| specialize_row_for_constructor(r, id, arity))
@@ -330,7 +342,7 @@ fn check_exhaustive(sa: &Sema, matrix: Vec<Vec<Pattern>>, n: usize) -> Vec<Vec<P
                             .map(|mut row| {
                                 let ctor_params = row.drain(tail..).collect::<Vec<_>>();
                                 assert_eq!(ctor_params.len(), arity);
-                                row.push(ctor_data.kind.pattern(id, ctor_params));
+                                row.push(kind.pattern(id, ctor_params));
                                 row
                             })
                             .collect::<Vec<_>>();
@@ -359,7 +371,7 @@ fn check_exhaustive(sa: &Sema, matrix: Vec<Vec<Pattern>>, n: usize) -> Vec<Vec<P
                     let row = result.first().expect("missing row");
 
                     for ctor_id in 0..ctors_total {
-                        if ctor_data.ctors.contains_key(&ctor_id) {
+                        if ctors.contains_key(&ctor_id) {
                             continue;
                         }
 
@@ -371,7 +383,7 @@ fn check_exhaustive(sa: &Sema, matrix: Vec<Vec<Pattern>>, n: usize) -> Vec<Vec<P
                             result_with_ctor.push(result_row);
                             break;
                         } else {
-                            result_row.push(ctor_data.kind.pattern(ctor_id, Vec::new()));
+                            result_row.push(kind.pattern(ctor_id, Vec::new()));
                             result_with_ctor.push(result_row);
                         }
                     }
@@ -390,30 +402,11 @@ fn check_exhaustive(sa: &Sema, matrix: Vec<Vec<Pattern>>, n: usize) -> Vec<Vec<P
 }
 
 enum Signature {
-    Complete,
+    Complete {
+        ctors: HashMap<usize, usize>,
+        kind: CtorKind,
+    },
     Incomplete,
-}
-
-fn discover_signature(matrix: &[Vec<Pattern>]) -> Signature {
-    let row = matrix.first().expect("missing row");
-    let pattern = row.last().expect("missing pattern");
-    discover_signature_for_pattern(pattern)
-}
-
-fn discover_signature_for_pattern(pattern: &Pattern) -> Signature {
-    match pattern {
-        Pattern::Alt(ref params) => discover_signature_for_pattern(&params[0]),
-        Pattern::Literal(value) => match value {
-            LiteralValue::Bool(..) => Signature::Complete,
-            LiteralValue::Char(..)
-            | LiteralValue::Float(..)
-            | LiteralValue::Int(..)
-            | LiteralValue::String(..) => Signature::Incomplete,
-        },
-        Pattern::Any => Signature::Incomplete,
-        Pattern::EnumVariant(..) => Signature::Complete,
-        Pattern::Tuple(..) => Signature::Complete,
-    }
 }
 
 enum CtorKind {
@@ -439,39 +432,36 @@ impl CtorKind {
             CtorKind::Enum(enum_id) => Pattern::EnumVariant(*enum_id, id, params),
         }
     }
-}
 
-struct CtorData {
-    kind: CtorKind,
-    ctors: HashMap<usize, usize>,
-}
-
-impl CtorData {
     fn total(&self, sa: &Sema) -> usize {
-        match self.kind {
+        match self {
             CtorKind::Bool => 2,
-            CtorKind::Enum(enum_id) => sa.enum_(enum_id).variants.len(),
+            CtorKind::Enum(enum_id) => sa.enum_(*enum_id).variants.len(),
             CtorKind::Tuple => 1,
         }
     }
 }
 
-fn discover_constructors(matrix: &[Vec<Pattern>]) -> CtorData {
+fn discover_signature(matrix: &[Vec<Pattern>]) -> Signature {
     let mut ctors = HashMap::new();
     let mut kind = None;
 
     for row in matrix {
         let pattern = row.last().expect("missing pattern");
-        discover_constructors_for_pattern(pattern, &mut ctors, &mut kind);
+        discover_signature_for_pattern(pattern, &mut ctors, &mut kind);
     }
 
-    CtorData {
-        kind: kind.expect("missing kind"),
-        ctors: ctors,
+    match kind {
+        Some(kind) => {
+            assert!(!ctors.is_empty());
+            Signature::Complete { ctors, kind }
+        }
+
+        None => Signature::Incomplete,
     }
 }
 
-fn discover_constructors_for_pattern(
+fn discover_signature_for_pattern(
     pattern: &Pattern,
     ctors: &mut HashMap<usize, usize>,
     kind: &mut Option<CtorKind>,
@@ -479,7 +469,7 @@ fn discover_constructors_for_pattern(
     match pattern {
         Pattern::Alt(ref params) => {
             for param in params {
-                discover_constructors_for_pattern(param, ctors, kind);
+                discover_signature_for_pattern(param, ctors, kind);
             }
         }
         Pattern::Literal(value) => match value {
@@ -491,7 +481,10 @@ fn discover_constructors_for_pattern(
                 }
                 ctors.insert(*value as usize, 0);
             }
-            _ => unimplemented!(),
+            LiteralValue::Char(..)
+            | LiteralValue::Float(..)
+            | LiteralValue::Int(..)
+            | LiteralValue::String(..) => {}
         },
         Pattern::Any => (),
         Pattern::EnumVariant(enum_id, id, params) => {
@@ -513,7 +506,6 @@ fn discover_constructors_for_pattern(
     }
 }
 
-#[allow(unused)]
 fn check_useful(matrix: Vec<Vec<Pattern>>, mut pattern: Vec<Pattern>) -> bool {
     let n = pattern.len();
 
@@ -532,12 +524,26 @@ fn check_useful(matrix: Vec<Vec<Pattern>>, mut pattern: Vec<Pattern>) -> bool {
     let last = pattern.pop().expect("missing pattern");
 
     match last {
-        Pattern::Alt(..) => unimplemented!(),
+        Pattern::Alt(params) => {
+            for param in params {
+                let mut param_pattern = pattern.clone();
+                param_pattern.push(param);
+                if check_useful(matrix.clone(), param_pattern) {
+                    return true;
+                }
+            }
 
-        Pattern::Literal(literal) => match literal {
-            LiteralValue::Bool(..) => unimplemented!(),
-            _ => unimplemented!(),
-        },
+            false
+        }
+
+        Pattern::Literal(literal) => {
+            let new_matrix = matrix
+                .iter()
+                .flat_map(|r| specialize_row_for_literal(r, literal.clone()))
+                .collect::<Vec<_>>();
+
+            check_useful(new_matrix, pattern)
+        }
 
         Pattern::Any => {
             let new_matrix = matrix
@@ -590,6 +596,34 @@ fn specialize_row_for_any(row: &[Pattern]) -> Vec<Vec<Pattern>> {
         // This should never be reached as long as all patterns are useful.
         // This is because tuples conceptually have a single constructor and thus
         // should always reach the complete signature code path.
+        Pattern::Tuple(..) => unreachable!(),
+    }
+}
+
+fn specialize_row_for_literal(row: &[Pattern], literal: LiteralValue) -> Vec<Vec<Pattern>> {
+    let mut result_row = row.to_vec();
+    let last = result_row.pop().expect("missing pattern");
+
+    match last {
+        Pattern::Alt(params) => params
+            .into_iter()
+            .flat_map(|p| {
+                result_row.push(p);
+                let rows = specialize_row_for_literal(&result_row, literal.clone());
+                result_row.pop();
+                rows
+            })
+            .collect::<Vec<_>>(),
+        Pattern::Literal(lit) => {
+            if lit == literal {
+                vec![result_row]
+            } else {
+                Vec::new()
+            }
+        }
+        Pattern::EnumVariant(..) => Vec::new(),
+        Pattern::Any => vec![result_row],
+        // This should never be reached because literals and tuples shouldn't type check.
         Pattern::Tuple(..) => unreachable!(),
     }
 }
@@ -647,8 +681,7 @@ fn specialize_row_for_constructor(row: &[Pattern], id: usize, arity: usize) -> V
     }
 }
 
-#[allow(unused)]
-#[derive(Clone)]
+#[derive(Clone, PartialEq)]
 enum LiteralValue {
     Bool(bool),
     Char(char),
@@ -669,7 +702,6 @@ impl fmt::Debug for LiteralValue {
     }
 }
 
-#[allow(unused)]
 #[derive(Clone)]
 enum Pattern {
     Any,
@@ -895,6 +927,38 @@ mod tests {
             (7, 21),
             ErrorMessage::MatchUnreachablePattern,
         );
+    }
+
+    #[test]
+    fn usefulness_bool() {
+        err(
+            "
+            @NewExhaustiveness @CheckUsefulness
+            fn f(v: Bool) {
+                match v {
+                    true => {}
+                    true => {}
+                    false => {}
+                }
+            }
+        ",
+            (6, 21),
+            ErrorMessage::MatchUnreachablePattern,
+        );
+    }
+
+    #[test]
+    #[ignore]
+    fn usefulness_tuple() {
+        ok("
+            @NewExhaustiveness @CheckUsefulness
+            fn f(v: (Int, Int)) {
+                match v {
+                    _ => {}
+                    (1, 1) => {}
+                }
+            }
+        ");
     }
 
     #[test]
