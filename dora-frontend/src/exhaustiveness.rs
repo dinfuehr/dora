@@ -509,10 +509,8 @@ fn discover_signature_for_pattern(
 fn check_useful(matrix: Vec<Vec<Pattern>>, mut pattern: Vec<Pattern>) -> bool {
     let n = pattern.len();
 
-    if n > 0 {
-        for row in &matrix {
-            assert_eq!(row.len(), n);
-        }
+    for row in &matrix {
+        assert_eq!(row.len(), n);
     }
 
     if matrix.is_empty() {
@@ -556,17 +554,18 @@ fn check_useful(matrix: Vec<Vec<Pattern>>, mut pattern: Vec<Pattern>) -> bool {
             check_useful(new_matrix, pattern)
         }
 
-        Pattern::EnumVariant(_enum_id, variant_id, params) => {
+        Pattern::EnumVariant(_enum_id, variant_id, mut params) => {
             let arity = params.len();
             let new_matrix = matrix
                 .iter()
                 .flat_map(|r| specialize_row_for_constructor(r, variant_id, arity))
                 .collect::<Vec<_>>();
 
+            pattern.append(&mut params);
             check_useful(new_matrix, pattern)
         }
 
-        Pattern::Tuple(params) => {
+        Pattern::Tuple(mut params) => {
             let arity = params.len();
 
             let new_matrix = matrix
@@ -574,6 +573,7 @@ fn check_useful(matrix: Vec<Vec<Pattern>>, mut pattern: Vec<Pattern>) -> bool {
                 .flat_map(|r| specialize_row_for_constructor(r, 0, arity))
                 .collect::<Vec<_>>();
 
+            pattern.append(&mut params);
             check_useful(new_matrix, pattern)
         }
     }
@@ -962,6 +962,26 @@ mod tests {
             }
         ",
             (6, 21),
+            ErrorMessage::MatchUnreachablePattern,
+        );
+    }
+
+    #[test]
+    fn usefulness_enum() {
+        err(
+            "
+            enum Foo { A(Int), C(Bool), D(Int, Bool) }
+
+            @NewExhaustiveness @CheckUsefulness
+            fn f(v: Foo) {
+                match v {
+                    Foo::C(_) => {}
+                    Foo::C(_) => {}
+                    _ => {}
+                }
+            }
+        ",
+            (8, 21),
             ErrorMessage::MatchUnreachablePattern,
         );
     }
