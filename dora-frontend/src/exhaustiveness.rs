@@ -16,7 +16,6 @@ pub fn check(sa: &Sema) {
                 file_id: fct.file_id,
                 analysis: fct.analysis(),
                 is_new_exhaustiveness: fct.is_new_exhaustiveness,
-                is_check_usefulness: fct.is_check_usefulness,
             };
             visit::walk_fct(&mut visitor, &fct.ast);
         }
@@ -28,7 +27,6 @@ struct Exhaustiveness<'a> {
     analysis: &'a AnalysisData,
     file_id: SourceFileId,
     is_new_exhaustiveness: bool,
-    is_check_usefulness: bool,
 }
 
 impl<'a> Visitor for Exhaustiveness<'a> {
@@ -37,13 +35,7 @@ impl<'a> Visitor for Exhaustiveness<'a> {
             ast::ExprData::Match(ref expr) => {
                 if self.is_new_exhaustiveness {
                     // Improved exhaustiveness check is WIP and not enabled by default.
-                    check_match2(
-                        self.sa,
-                        self.analysis,
-                        self.file_id,
-                        expr,
-                        self.is_check_usefulness,
-                    );
+                    check_match2(self.sa, self.analysis, self.file_id, expr);
                 } else {
                     check_match(self.sa, self.analysis, self.file_id, expr);
                 }
@@ -171,21 +163,18 @@ fn check_match2(
     analysis: &AnalysisData,
     file_id: SourceFileId,
     node: &ast::ExprMatchType,
-    is_check_usefulness: bool,
 ) {
     let mut matrix = Vec::new();
 
     for arm in &node.arms {
         let pattern = vec![convert_pattern(sa, analysis, &arm.pattern)];
 
-        if is_check_usefulness {
-            if !check_useful(sa, matrix.clone(), pattern.clone()) {
-                sa.report(
-                    file_id,
-                    arm.pattern.span(),
-                    ErrorMessage::MatchUnreachablePattern,
-                );
-            }
+        if !check_useful(sa, matrix.clone(), pattern.clone()) {
+            sa.report(
+                file_id,
+                arm.pattern.span(),
+                ErrorMessage::MatchUnreachablePattern,
+            );
         }
 
         matrix.push(pattern);
@@ -569,7 +558,10 @@ fn check_useful(sa: &Sema, matrix: Vec<Vec<Pattern>>, mut pattern: Vec<Pattern>)
                                 .flat_map(|r| specialize_row_for_constructor(r, id, arity))
                                 .collect::<Vec<_>>();
 
-                            if check_useful(sa, new_matrix, pattern.clone()) {
+                            let mut new_pattern = pattern.clone();
+                            new_pattern.extend(std::iter::repeat(Pattern::Any).take(arity));
+
+                            if check_useful(sa, new_matrix, new_pattern) {
                                 return true;
                             }
                         }
@@ -968,7 +960,7 @@ mod tests {
     fn usefulness_bool() {
         err(
             "
-            @NewExhaustiveness @CheckUsefulness
+            @NewExhaustiveness
             fn f(v: Bool) {
                 match v {
                     true => {}
@@ -986,11 +978,28 @@ mod tests {
     fn usefulness_tuple() {
         err(
             "
-            @NewExhaustiveness @CheckUsefulness
+            @NewExhaustiveness
             fn f(v: (Int, Int)) {
                 match v {
                     _ => {}
                     (1, 1) => {}
+                }
+            }
+        ",
+            (6, 21),
+            ErrorMessage::MatchUnreachablePattern,
+        );
+    }
+
+    #[test]
+    fn usefulness_tuple_unreachable_any() {
+        err(
+            "
+            @NewExhaustiveness
+            fn f(v: (Int, Int)) {
+                match v {
+                    (_, _) => {}
+                    _ => {}
                 }
             }
         ",
@@ -1005,7 +1014,7 @@ mod tests {
             "
             enum Foo { A(Int), C(Bool), D(Int, Bool) }
 
-            @NewExhaustiveness @CheckUsefulness
+            @NewExhaustiveness
             fn f(v: Foo) {
                 match v {
                     Foo::C(_) => {}
@@ -1025,7 +1034,7 @@ mod tests {
             "
             enum Foo { A, B, C }
 
-            @NewExhaustiveness @CheckUsefulness
+            @NewExhaustiveness
             fn f(v: Foo) {
                 match v {
                     Foo::A => {}
@@ -1044,7 +1053,7 @@ mod tests {
     fn usefulness_int() {
         err(
             "
-            @NewExhaustiveness @CheckUsefulness
+            @NewExhaustiveness
             fn f(v: Int) {
                 match v {
                     1 => {}
