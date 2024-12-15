@@ -179,7 +179,7 @@ fn check_match2(
         let pattern = vec![convert_pattern(sa, analysis, &arm.pattern)];
 
         if is_check_usefulness {
-            if !check_useful(matrix.clone(), pattern.clone()) {
+            if !check_useful(sa, matrix.clone(), pattern.clone()) {
                 sa.report(
                     file_id,
                     arm.pattern.span(),
@@ -506,7 +506,7 @@ fn discover_signature_for_pattern(
     }
 }
 
-fn check_useful(matrix: Vec<Vec<Pattern>>, mut pattern: Vec<Pattern>) -> bool {
+fn check_useful(sa: &Sema, matrix: Vec<Vec<Pattern>>, mut pattern: Vec<Pattern>) -> bool {
     let n = pattern.len();
 
     for row in &matrix {
@@ -528,7 +528,7 @@ fn check_useful(matrix: Vec<Vec<Pattern>>, mut pattern: Vec<Pattern>) -> bool {
             for param in params {
                 let mut param_pattern = pattern.clone();
                 param_pattern.push(param);
-                if check_useful(matrix.clone(), param_pattern) {
+                if check_useful(sa, matrix.clone(), param_pattern) {
                     return true;
                 }
             }
@@ -542,16 +542,49 @@ fn check_useful(matrix: Vec<Vec<Pattern>>, mut pattern: Vec<Pattern>) -> bool {
                 .flat_map(|r| specialize_row_for_literal(r, literal.clone()))
                 .collect::<Vec<_>>();
 
-            check_useful(new_matrix, pattern)
+            check_useful(sa, new_matrix, pattern)
         }
 
         Pattern::Any => {
-            let new_matrix = matrix
-                .iter()
-                .flat_map(|r| specialize_row_for_any(r))
-                .collect::<Vec<_>>();
+            let signature = discover_signature(&matrix);
 
-            check_useful(new_matrix, pattern)
+            match signature {
+                Signature::Incomplete => {
+                    let new_matrix = matrix
+                        .iter()
+                        .flat_map(|r| specialize_row_for_any(r))
+                        .collect::<Vec<_>>();
+
+                    check_useful(sa, new_matrix, pattern)
+                }
+                Signature::Complete { ctors, kind } => {
+                    let ctors_total = kind.total(sa);
+                    assert!(ctors.len() <= ctors_total);
+
+                    if ctors.len() == ctors_total {
+                        for id in 0..ctors_total {
+                            let arity = ctors.get(&id).cloned().expect("missing ctor");
+                            let new_matrix = matrix
+                                .iter()
+                                .flat_map(|r| specialize_row_for_constructor(r, id, arity))
+                                .collect::<Vec<_>>();
+
+                            if check_useful(sa, new_matrix, pattern.clone()) {
+                                return true;
+                            }
+                        }
+
+                        false
+                    } else {
+                        let new_matrix = matrix
+                            .iter()
+                            .flat_map(|r| specialize_row_for_any(r))
+                            .collect::<Vec<_>>();
+
+                        check_useful(sa, new_matrix, pattern)
+                    }
+                }
+            }
         }
 
         Pattern::EnumVariant(_enum_id, variant_id, mut params) => {
@@ -562,7 +595,7 @@ fn check_useful(matrix: Vec<Vec<Pattern>>, mut pattern: Vec<Pattern>) -> bool {
                 .collect::<Vec<_>>();
 
             pattern.append(&mut params);
-            check_useful(new_matrix, pattern)
+            check_useful(sa, new_matrix, pattern)
         }
 
         Pattern::Tuple(mut params) => {
@@ -574,7 +607,7 @@ fn check_useful(matrix: Vec<Vec<Pattern>>, mut pattern: Vec<Pattern>) -> bool {
                 .collect::<Vec<_>>();
 
             pattern.append(&mut params);
-            check_useful(new_matrix, pattern)
+            check_useful(sa, new_matrix, pattern)
         }
     }
 }
@@ -977,6 +1010,46 @@ mod tests {
                 match v {
                     Foo::C(_) => {}
                     Foo::C(_) => {}
+                    _ => {}
+                }
+            }
+        ",
+            (8, 21),
+            ErrorMessage::MatchUnreachablePattern,
+        );
+    }
+
+    #[test]
+    fn usefulness_enum_all_variants() {
+        err(
+            "
+            enum Foo { A, B, C }
+
+            @NewExhaustiveness @CheckUsefulness
+            fn f(v: Foo) {
+                match v {
+                    Foo::A => {}
+                    Foo::B => {}
+                    Foo::C => {}
+                    _ => {}
+                }
+            }
+        ",
+            (10, 21),
+            ErrorMessage::MatchUnreachablePattern,
+        );
+    }
+
+    #[test]
+    fn usefulness_int() {
+        err(
+            "
+            @NewExhaustiveness @CheckUsefulness
+            fn f(v: Int) {
+                match v {
+                    1 => {}
+                    2 => {}
+                    _ => {}
                     _ => {}
                 }
             }
