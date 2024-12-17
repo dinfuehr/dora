@@ -166,10 +166,21 @@ fn check_match2(
 ) {
     let mut matrix = Vec::new();
 
-    for arm in &node.arms {
-        let pattern = vec![convert_pattern(sa, analysis, &arm.pattern)];
+    let any_arm_has_guard = node.arms.iter().find(|a| a.cond.is_some()).is_some();
+    let patterns_per_row = if any_arm_has_guard { 2 } else { 1 };
 
-        if !check_useful(sa, matrix.clone(), pattern.clone()) {
+    for arm in &node.arms {
+        let mut row = Vec::with_capacity(patterns_per_row);
+        if any_arm_has_guard {
+            if arm.cond.is_some() {
+                row.push(Pattern::Guard);
+            } else {
+                row.push(Pattern::Any);
+            }
+        }
+        row.push(convert_pattern(sa, analysis, &arm.pattern));
+
+        if !check_useful(sa, matrix.clone(), row.clone()) {
             sa.report(
                 file_id,
                 arm.pattern.span(),
@@ -177,16 +188,16 @@ fn check_match2(
             );
         }
 
-        matrix.push(pattern);
+        matrix.push(row);
     }
 
-    let missing_patterns = check_exhaustive(sa, matrix, 1);
+    let missing_patterns = check_exhaustive(sa, matrix, patterns_per_row);
 
     if !missing_patterns.is_empty() {
         let mut patterns = Vec::new();
 
         for mut row in missing_patterns {
-            assert_eq!(row.len(), 1);
+            assert_eq!(row.len(), patterns_per_row);
             let mut pattern_as_string = String::new();
             display_pattern(
                 sa,
@@ -268,6 +279,8 @@ fn display_pattern(sa: &Sema, pattern: Pattern, output: &mut String) -> fmt::Res
 
             write!(output, ")")
         }
+
+        Pattern::Guard => unreachable!(),
     }
 }
 
@@ -492,6 +505,7 @@ fn discover_signature_for_pattern(
             }
             ctors.insert(0, params.len());
         }
+        Pattern::Guard => (),
     }
 }
 
@@ -601,6 +615,17 @@ fn check_useful(sa: &Sema, matrix: Vec<Vec<Pattern>>, mut pattern: Vec<Pattern>)
             pattern.append(&mut params);
             check_useful(sa, new_matrix, pattern)
         }
+        Pattern::Guard => {
+            // Should be last item in row.
+            assert!(pattern.is_empty());
+
+            let new_matrix = matrix
+                .iter()
+                .flat_map(|r| specialize_row_for_any(r))
+                .collect::<Vec<_>>();
+
+            check_useful(sa, new_matrix, pattern)
+        }
     }
 }
 
@@ -619,6 +644,7 @@ fn specialize_row_for_any(row: &[Pattern]) -> Vec<Vec<Pattern>> {
             })
             .collect::<Vec<_>>(),
         Pattern::Literal(..) | Pattern::EnumVariant(..) => Vec::new(),
+        Pattern::Guard => Vec::new(),
         Pattern::Any => vec![result_row],
         // This should never be reached as long as all patterns are useful.
         // This is because tuples conceptually have a single constructor and thus
@@ -652,6 +678,7 @@ fn specialize_row_for_literal(row: &[Pattern], literal: LiteralValue) -> Vec<Vec
         Pattern::Any => vec![result_row],
         // This should never be reached because literals and tuples shouldn't type check.
         Pattern::Tuple(..) => unreachable!(),
+        Pattern::Guard => unimplemented!(),
     }
 }
 
@@ -705,6 +732,7 @@ fn specialize_row_for_constructor(row: &[Pattern], id: usize, arity: usize) -> V
             result_row.append(&mut params);
             vec![result_row]
         }
+        Pattern::Guard => unimplemented!(),
     }
 }
 
@@ -736,6 +764,7 @@ enum Pattern {
     Tuple(Vec<Pattern>),
     EnumVariant(EnumDefinitionId, usize, Vec<Pattern>),
     Alt(Vec<Pattern>),
+    Guard,
 }
 
 impl fmt::Debug for Pattern {
@@ -784,6 +813,7 @@ impl fmt::Debug for Pattern {
                 }
                 Ok(())
             }
+            Pattern::Guard => write!(f, "GUARD"),
         }
     }
 }
@@ -1104,6 +1134,35 @@ mod tests {
         ",
             (4, 23),
             ErrorMessage::MatchUncoveredVariantWithPattern(vec!["true".into()]),
+        );
+    }
+
+    #[test]
+    fn exhaustive_bool_with_guard() {
+        ok("
+            @NewExhaustiveness
+            fn f(v: Bool) {
+                match v {
+                    true if true => {}
+                    true => {}
+                    false => {}
+                }
+            }
+        ");
+
+        err(
+            "
+            @NewExhaustiveness
+            fn f(v: Bool) {
+                match v {
+                    true => {}
+                    true if true => {}
+                    false => {}
+                }
+            }
+        ",
+            (6, 21),
+            ErrorMessage::MatchUnreachablePattern,
         );
     }
 
