@@ -532,33 +532,131 @@ fn discover_signature_for_pattern(
 }
 
 #[allow(unused)]
-fn check_useful_expand(
-    sa: &Sema,
-    matrix: Vec<Vec<Pattern>>,
-    mut row: Vec<Pattern>,
-) -> HashSet<Span> {
-    check_useful_expand_inner(
-        sa,
-        matrix,
-        Vec::new(),
-        Vec::new(),
-        row,
-        Vec::new(),
-        Vec::new(),
-    )
+fn check_useful_expand(sa: &Sema, matrix: Vec<Vec<Pattern>>, mut row: Vec<Pattern>) -> Useless {
+    let matrix = matrix.into_iter().map(|row| SplitRow::new(row)).collect();
+    check_useful_expand_inner(sa, matrix, SplitRow::new(row))
 }
 
 #[allow(unused)]
-fn check_useful_expand_inner(
-    sa: &Sema,
-    matrix_p: Vec<Vec<Pattern>>,
-    matrix_q: Vec<Vec<Pattern>>,
-    matrix_r: Vec<Vec<Pattern>>,
-    mut pattern_p: Vec<Pattern>,
-    mut pattern_q: Vec<Pattern>,
-    mut pattern_r: Vec<Pattern>,
-) -> HashSet<Span> {
-    unimplemented!()
+#[derive(Clone)]
+struct SplitRow {
+    p: Vec<Pattern>,
+    q: Vec<Pattern>,
+    r: Vec<Pattern>,
+}
+
+impl SplitRow {
+    fn new(p: Vec<Pattern>) -> SplitRow {
+        SplitRow {
+            p,
+            q: Vec::new(),
+            r: Vec::new(),
+        }
+    }
+}
+
+#[allow(unused)]
+enum Useless {
+    // The whole pattern is useless.
+    Yes,
+    // The set of useless subpatterns.
+    Set(HashSet<Span>),
+    // Pattern is not useless (so fully useful).
+    No,
+}
+
+#[allow(unused)]
+fn check_useful_expand_inner(sa: &Sema, matrix: Vec<SplitRow>, mut pattern: SplitRow) -> Useless {
+    let p_len = pattern.p.len();
+    let q_len = pattern.q.len();
+    let r_len = pattern.r.len();
+
+    for row in &matrix {
+        assert_eq!(row.p.len(), p_len);
+        assert_eq!(row.q.len(), q_len);
+        assert_eq!(row.r.len(), r_len);
+    }
+
+    if let Some(last) = pattern.p.pop() {
+        match last {
+            Pattern::Literal { value, .. } => {
+                let new_matrix = matrix
+                    .into_iter()
+                    .flat_map(|r| specialize_split_row_for_literal(r, value.clone()))
+                    .collect::<Vec<_>>();
+
+                check_useful_expand_inner(sa, new_matrix, pattern)
+            }
+            Pattern::EnumVariant {
+                variant_id,
+                mut params,
+                ..
+            } => {
+                let arity = params.len();
+                let new_matrix = matrix
+                    .into_iter()
+                    .flat_map(|r| specialize_split_row_for_constructor(r, variant_id, arity))
+                    .collect::<Vec<_>>();
+
+                pattern.p.append(&mut params);
+                check_useful_expand_inner(sa, new_matrix, pattern)
+            }
+            Pattern::Tuple { mut params, .. } => {
+                let arity = params.len();
+                let new_matrix = matrix
+                    .into_iter()
+                    .flat_map(|r| specialize_split_row_for_constructor(r, 0, arity))
+                    .collect::<Vec<_>>();
+
+                pattern.p.append(&mut params);
+                check_useful_expand_inner(sa, new_matrix, pattern)
+            }
+            Pattern::Any { .. } => {
+                let new_matrix = matrix
+                    .into_iter()
+                    .map(|mut row| {
+                        let pattern = row.p.pop().expect("missing pattern");
+                        row.q.push(pattern);
+                        row
+                    })
+                    .collect::<Vec<_>>();
+                check_useful_expand_inner(sa, new_matrix, pattern)
+            }
+            Pattern::Alt { .. } => {
+                let new_matrix = matrix
+                    .into_iter()
+                    .map(|mut row| {
+                        let pattern = row.p.pop().expect("missing pattern");
+                        row.r.push(pattern);
+                        row
+                    })
+                    .collect::<Vec<_>>();
+                check_useful_expand_inner(sa, new_matrix, pattern)
+            }
+            Pattern::Guard => {
+                // Should be last item in row.
+                assert!(pattern.p.is_empty());
+
+                let new_matrix = matrix
+                    .into_iter()
+                    .flat_map(|r| specialize_split_row_for_any(r))
+                    .collect::<Vec<_>>();
+
+                check_useful_expand_inner(sa, new_matrix, pattern)
+            }
+        }
+    } else if pattern.r.is_empty() {
+        let matrix = matrix.into_iter().map(|r| r.q).collect::<Vec<_>>();
+        let pattern = pattern.q;
+
+        if check_useful(sa, matrix, pattern) {
+            Useless::No
+        } else {
+            Useless::Yes
+        }
+    } else {
+        unimplemented!()
+    }
 }
 
 fn check_useful(sa: &Sema, matrix: Vec<Vec<Pattern>>, mut pattern: Vec<Pattern>) -> bool {
@@ -710,6 +808,11 @@ fn specialize_row_for_any(row: &[Pattern]) -> Vec<Vec<Pattern>> {
     }
 }
 
+#[allow(unused)]
+fn specialize_split_row_for_any(row: SplitRow) -> Vec<SplitRow> {
+    unimplemented!()
+}
+
 fn specialize_row_for_literal(row: &[Pattern], literal: LiteralValue) -> Vec<Vec<Pattern>> {
     let mut result_row = row.to_vec();
     let last = result_row.pop().expect("missing pattern");
@@ -737,6 +840,11 @@ fn specialize_row_for_literal(row: &[Pattern], literal: LiteralValue) -> Vec<Vec
         Pattern::Tuple { .. } => unreachable!(),
         Pattern::Guard => unimplemented!(),
     }
+}
+
+#[allow(unused)]
+fn specialize_split_row_for_literal(_row: SplitRow, _literal: LiteralValue) -> Vec<SplitRow> {
+    unimplemented!()
 }
 
 fn specialize_row_for_constructor(row: &[Pattern], id: usize, arity: usize) -> Vec<Vec<Pattern>> {
@@ -795,6 +903,15 @@ fn specialize_row_for_constructor(row: &[Pattern], id: usize, arity: usize) -> V
         }
         Pattern::Guard => unimplemented!(),
     }
+}
+
+#[allow(unused)]
+fn specialize_split_row_for_constructor(
+    _row: SplitRow,
+    _id: usize,
+    _arity: usize,
+) -> Vec<SplitRow> {
+    unimplemented!()
 }
 
 #[derive(Clone, PartialEq)]
