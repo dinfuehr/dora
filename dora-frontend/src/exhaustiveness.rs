@@ -1355,7 +1355,7 @@ fn convert_pattern(sa: &Sema, analysis: &AnalysisData, pattern: &ast::Pattern) -
 
 #[cfg(test)]
 mod tests {
-    use crate::tests::{err, ok};
+    use crate::tests::{err, errors, ok};
     use crate::ErrorMessage;
 
     #[test]
@@ -1543,7 +1543,7 @@ mod tests {
     }
 
     #[test]
-    fn usefulness_int_with_or_pattern() {
+    fn usefulness_int_with_2_alternatives() {
         err(
             "
             @NewExhaustiveness @Expand
@@ -1557,6 +1557,26 @@ mod tests {
         ",
             (7, 25),
             ErrorMessage::MatchUnreachablePattern,
+        );
+    }
+
+    #[test]
+    fn usefulness_int_with_3_alternatives() {
+        errors(
+            "
+            @NewExhaustiveness @Expand
+            fn f(v: Int) {
+                match v {
+                    1 => {}
+                    2 => {}
+                    _ | 3 | 4 => {}
+                }
+            }
+        ",
+            &[
+                ((7, 25), ErrorMessage::MatchUnreachablePattern),
+                ((7, 29), ErrorMessage::MatchUnreachablePattern),
+            ],
         );
     }
 
