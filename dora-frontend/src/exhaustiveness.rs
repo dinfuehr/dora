@@ -17,6 +17,7 @@ pub fn check(sa: &Sema) {
                 file_id: fct.file_id,
                 analysis: fct.analysis(),
                 is_new_exhaustiveness: fct.is_new_exhaustiveness,
+                is_expand: fct.is_expand,
             };
             visit::walk_fct(&mut visitor, &fct.ast);
         }
@@ -28,6 +29,7 @@ struct Exhaustiveness<'a> {
     analysis: &'a AnalysisData,
     file_id: SourceFileId,
     is_new_exhaustiveness: bool,
+    is_expand: bool,
 }
 
 impl<'a> Visitor for Exhaustiveness<'a> {
@@ -36,7 +38,7 @@ impl<'a> Visitor for Exhaustiveness<'a> {
             ast::ExprData::Match(ref expr) => {
                 if self.is_new_exhaustiveness {
                     // Improved exhaustiveness check is WIP and not enabled by default.
-                    check_match2(self.sa, self.analysis, self.file_id, expr);
+                    check_match2(self.sa, self.analysis, self.file_id, self.is_expand, expr);
                 } else {
                     check_match(self.sa, self.analysis, self.file_id, expr);
                 }
@@ -163,6 +165,7 @@ fn check_match2(
     sa: &Sema,
     analysis: &AnalysisData,
     file_id: SourceFileId,
+    is_expand: bool,
     node: &ast::ExprMatchType,
 ) {
     let mut matrix = Vec::new();
@@ -181,12 +184,27 @@ fn check_match2(
         }
         row.push(convert_pattern(sa, analysis, &arm.pattern));
 
-        if !check_useful(sa, matrix.clone(), row.clone()) {
-            sa.report(
-                file_id,
-                arm.pattern.span(),
-                ErrorMessage::MatchUnreachablePattern,
-            );
+        let spans = if is_expand {
+            let useless = check_useful_expand(sa, matrix.clone(), row.clone());
+
+            match useless {
+                Useless::Set(spans) => spans,
+                Useless::Yes => {
+                    let mut spans = HashSet::new();
+                    spans.insert(arm.pattern.span());
+                    spans
+                }
+            }
+        } else {
+            let mut spans = HashSet::new();
+            if !check_useful(sa, matrix.clone(), row.clone()) {
+                spans.insert(arm.pattern.span());
+            }
+            spans
+        };
+
+        for span in spans {
+            sa.report(file_id, span, ErrorMessage::MatchUnreachablePattern);
         }
 
         matrix.push(row);
@@ -531,13 +549,11 @@ fn discover_signature_for_pattern(
     }
 }
 
-#[allow(unused)]
-fn check_useful_expand(sa: &Sema, matrix: Vec<Vec<Pattern>>, mut row: Vec<Pattern>) -> Useless {
+fn check_useful_expand(sa: &Sema, matrix: Vec<Vec<Pattern>>, row: Vec<Pattern>) -> Useless {
     let matrix = matrix.into_iter().map(|row| SplitRow::new(row)).collect();
     check_useful_expand_inner(sa, matrix, SplitRow::new(row))
 }
 
-#[allow(unused)]
 #[derive(Clone)]
 struct SplitRow {
     p: Vec<Pattern>,
@@ -554,17 +570,26 @@ impl SplitRow {
         }
     }
 
-    #[allow(unused)]
-    fn remove_column_from_r(&mut self, r_idx: usize) -> Pattern {
-        self.r.remove(r_idx)
+    fn shift_p_into_q(&mut self) {
+        let pattern = self.p.pop().expect("missing pattern");
+        self.q.push(pattern);
+    }
+
+    fn shift_p_into_r(&mut self) {
+        let pattern = self.p.pop().expect("missing pattern");
+        self.r.push(pattern);
     }
 }
 
-#[allow(unused)]
+impl fmt::Debug for SplitRow {
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        write!(f, "{{p={:?}, q={:?}, r={:?}}}", self.p, self.q, self.r)
+    }
+}
+
 trait SplitMatrixExt {
     fn extract_matrix_q(&self) -> Vec<Vec<Pattern>>;
     fn extract_matrix_r(&self) -> Vec<Vec<Pattern>>;
-    fn remove_column_from_r(&mut self, r_idx: usize) -> Vec<Vec<Pattern>>;
     fn from_matrices(p: Vec<Vec<Pattern>>, q: Vec<Vec<Pattern>>, r: Vec<Vec<Pattern>>) -> Self;
 }
 
@@ -575,15 +600,6 @@ impl SplitMatrixExt for Vec<SplitRow> {
 
     fn extract_matrix_q(&self) -> Vec<Vec<Pattern>> {
         self.iter().map(|row| row.q.clone()).collect()
-    }
-
-    fn remove_column_from_r(&mut self, r_idx: usize) -> Vec<Vec<Pattern>> {
-        let mut result = Vec::with_capacity(self.len());
-        for row in self.iter_mut() {
-            let el = row.remove_column_from_r(r_idx);
-            result.push(vec![el]);
-        }
-        result
     }
 
     fn from_matrices(
@@ -603,7 +619,6 @@ impl SplitMatrixExt for Vec<SplitRow> {
     }
 }
 
-#[allow(unused)]
 trait MatrixExt {
     fn concat(&mut self, other: Vec<Vec<Pattern>>);
     fn remove_column(&mut self, idx: usize) -> Vec<Vec<Pattern>>;
@@ -628,7 +643,6 @@ impl MatrixExt for Vec<Vec<Pattern>> {
     }
 }
 
-#[allow(unused)]
 enum Useless {
     // The whole pattern is useless.
     Yes,
@@ -636,7 +650,6 @@ enum Useless {
     Set(HashSet<Span>),
 }
 
-#[allow(unused)]
 impl Useless {
     fn yes() -> Useless {
         Useless::Yes
@@ -644,13 +657,6 @@ impl Useless {
 
     fn no() -> Useless {
         Useless::Set(HashSet::new())
-    }
-
-    fn spans(self) -> HashSet<Span> {
-        match self {
-            Useless::Set(spans) => spans,
-            _ => unreachable!(),
-        }
     }
 
     fn union_all(results: Vec<(Useless, Span)>) -> Useless {
@@ -673,32 +679,8 @@ impl Useless {
             Useless::Set(spans)
         }
     }
-
-    fn union(lhs: Useless, lhs_span: Span, rhs: Useless, rhs_span: Span) -> Useless {
-        if matches!(lhs, Useless::Yes) && matches!(rhs, Useless::Yes) {
-            Useless::Yes
-        } else if matches!(lhs, Useless::Yes) {
-            let mut spans = rhs.spans();
-            spans.insert(lhs_span);
-            Useless::Set(spans)
-        } else if matches!(rhs, Useless::Yes) {
-            let mut spans = lhs.spans();
-            spans.insert(rhs_span);
-            Useless::Set(spans)
-        } else {
-            let mut lhs_spans = lhs.spans();
-            let rhs_spans = rhs.spans();
-
-            for span in rhs_spans {
-                assert!(lhs_spans.insert(span));
-            }
-
-            Useless::Set(lhs_spans)
-        }
-    }
 }
 
-#[allow(unused)]
 fn check_useful_expand_inner(sa: &Sema, matrix: Vec<SplitRow>, mut pattern: SplitRow) -> Useless {
     let p_len = pattern.p.len();
     let q_len = pattern.q.len();
@@ -748,22 +730,22 @@ fn check_useful_expand_inner(sa: &Sema, matrix: Vec<SplitRow>, mut pattern: Spli
                 let new_matrix = matrix
                     .into_iter()
                     .map(|mut row| {
-                        let pattern = row.p.pop().expect("missing pattern");
-                        row.q.push(pattern);
+                        row.shift_p_into_q();
                         row
                     })
                     .collect::<Vec<_>>();
+                pattern.q.push(last);
                 check_useful_expand_inner(sa, new_matrix, pattern)
             }
             Pattern::Alt { .. } => {
                 let new_matrix = matrix
                     .into_iter()
                     .map(|mut row| {
-                        let pattern = row.p.pop().expect("missing pattern");
-                        row.r.push(pattern);
+                        row.shift_p_into_r();
                         row
                     })
                     .collect::<Vec<_>>();
+                pattern.r.push(last);
                 check_useful_expand_inner(sa, new_matrix, pattern)
             }
             Pattern::Guard => {
@@ -803,8 +785,6 @@ fn check_useful_expand_inner(sa: &Sema, matrix: Vec<SplitRow>, mut pattern: Spli
             let mut new_matrix_q = matrix.extract_matrix_q();
             new_matrix_q.concat(matrix_r_no_j);
 
-            let new_matrix_r = vec![Vec::new(); matrix.len()];
-
             let q_concat_r_no_j = {
                 let mut q = pattern.q.clone();
                 let mut r = pattern.r.clone();
@@ -814,17 +794,26 @@ fn check_useful_expand_inner(sa: &Sema, matrix: Vec<SplitRow>, mut pattern: Spli
             };
 
             for alt in alts {
+                let new_matrix_r = vec![Vec::new(); new_matrix_p.len()];
+
+                // println!("new_matrix_p = {:?}", new_matrix_p);
+                // println!("new_matrix_q = {:?}", new_matrix_q);
+                // println!("new_matrix_r = {:?}", new_matrix_r);
+
                 let new_matrix: Vec<SplitRow> = SplitMatrixExt::from_matrices(
                     new_matrix_p.clone(),
                     new_matrix_q.clone(),
                     new_matrix_r.clone(),
                 );
+                // println!("new_matrix = {:?}", new_matrix);
 
                 let new_pattern = SplitRow {
                     p: vec![alt.clone()],
                     q: q_concat_r_no_j.clone(),
                     r: Vec::new(),
                 };
+
+                // println!("new_pattern = {:?}", new_pattern);
 
                 let alt_result = check_useful_expand_inner(sa, new_matrix, new_pattern);
                 results.push((alt_result, alt.span()));
@@ -1145,7 +1134,6 @@ impl fmt::Debug for LiteralValue {
 }
 
 #[derive(Clone)]
-#[allow(unused)]
 enum Pattern {
     Any {
         span: Option<Span>,
@@ -1176,7 +1164,6 @@ impl Pattern {
         Pattern::Any { span: None }
     }
 
-    #[allow(unused)]
     fn span(&self) -> Span {
         match self {
             Pattern::Any { span } => span.clone().expect("missing span"),
@@ -1447,7 +1434,7 @@ mod tests {
     fn usefulness_bool() {
         err(
             "
-            @NewExhaustiveness
+            @NewExhaustiveness @Expand
             fn f(v: Bool) {
                 match v {
                     true => {}
@@ -1465,7 +1452,7 @@ mod tests {
     fn usefulness_tuple() {
         err(
             "
-            @NewExhaustiveness
+            @NewExhaustiveness @Expand
             fn f(v: (Int, Int)) {
                 match v {
                     _ => {}
@@ -1482,7 +1469,7 @@ mod tests {
     fn usefulness_tuple_unreachable_any() {
         err(
             "
-            @NewExhaustiveness
+            @NewExhaustiveness @Expand
             fn f(v: (Int, Int)) {
                 match v {
                     (_, _) => {}
@@ -1501,7 +1488,7 @@ mod tests {
             "
             enum Foo { A(Int), C(Bool), D(Int, Bool) }
 
-            @NewExhaustiveness
+            @NewExhaustiveness @Expand
             fn f(v: Foo) {
                 match v {
                     Foo::C(_) => {}
@@ -1521,7 +1508,7 @@ mod tests {
             "
             enum Foo { A, B, C }
 
-            @NewExhaustiveness
+            @NewExhaustiveness @Expand
             fn f(v: Foo) {
                 match v {
                     Foo::A => {}
@@ -1540,7 +1527,7 @@ mod tests {
     fn usefulness_int() {
         err(
             "
-            @NewExhaustiveness
+            @NewExhaustiveness @Expand
             fn f(v: Int) {
                 match v {
                     1 => {}
@@ -1556,9 +1543,27 @@ mod tests {
     }
 
     #[test]
+    fn usefulness_int_with_or_pattern() {
+        err(
+            "
+            @NewExhaustiveness @Expand
+            fn f(v: Int) {
+                match v {
+                    1 => {}
+                    2 => {}
+                    _ | 3 => {}
+                }
+            }
+        ",
+            (7, 25),
+            ErrorMessage::MatchUnreachablePattern,
+        );
+    }
+
+    #[test]
     fn exhaustive_bool() {
         ok("
-            @NewExhaustiveness
+            @NewExhaustiveness @Expand
             fn f(v: Bool) {
                 match v {
                     true => {}
@@ -1569,7 +1574,7 @@ mod tests {
 
         err(
             "
-            @NewExhaustiveness
+            @NewExhaustiveness @Expand
             fn f(v: Bool) {
                 match v {
                     true => {}
@@ -1582,7 +1587,7 @@ mod tests {
 
         err(
             "
-            @NewExhaustiveness
+            @NewExhaustiveness @Expand
             fn f(v: Bool) {
                 match v {
                     false => {}
@@ -1597,7 +1602,7 @@ mod tests {
     #[test]
     fn exhaustive_bool_with_guard() {
         ok("
-            @NewExhaustiveness
+            @NewExhaustiveness @Expand
             fn f(v: Bool) {
                 match v {
                     true if true => {}
@@ -1611,7 +1616,7 @@ mod tests {
 
         err(
             "
-            @NewExhaustiveness
+            @NewExhaustiveness @Expand
             fn f(v: Bool) {
                 match v {
                     true => {}
@@ -1628,7 +1633,7 @@ mod tests {
     #[test]
     fn exhaustive_int() {
         ok("
-            @NewExhaustiveness
+            @NewExhaustiveness @Expand
             fn f(v: Int) {
                 match v {
                     1 => {}
@@ -1640,7 +1645,7 @@ mod tests {
 
         err(
             "
-            @NewExhaustiveness
+            @NewExhaustiveness @Expand
             fn f(v: Int) {
                 match v {
                     1 => {}
@@ -1657,7 +1662,7 @@ mod tests {
     fn exhaustive_enum() {
         ok("
             enum Foo { A, B, C, D }
-            @NewExhaustiveness
+            @NewExhaustiveness @Expand
             fn f(v: Foo) {
                 match v {
                     Foo::A => {}
@@ -1670,7 +1675,7 @@ mod tests {
 
         ok("
             enum Foo { A, B, C, D }
-            @NewExhaustiveness
+            @NewExhaustiveness @Expand
             fn f(v: Foo) {
                 match v {
                     Foo::A => {}
@@ -1684,7 +1689,7 @@ mod tests {
         err(
             "
             enum Foo { A, B, C, D }
-            @NewExhaustiveness
+            @NewExhaustiveness @Expand
             fn f(v: Foo) {
                 match v {
                     Foo::A => {}
@@ -1702,7 +1707,7 @@ mod tests {
         err(
             "
             enum Foo { C1, C2, C3, C4, C5, C6, C7, C8, C9, C10 }
-            @NewExhaustiveness
+            @NewExhaustiveness @Expand
             fn f(v: Foo) {
                 match v {
                     Foo::C3 => {}
@@ -1724,7 +1729,7 @@ mod tests {
         err(
             "
             enum Foo { C1, C2, C3, C4, C5, C6, C7, C8, C9, C10 }
-            @NewExhaustiveness
+            @NewExhaustiveness @Expand
             fn f(v: Foo) {
                 match v {
                     Foo::C3 | Foo::C4 | Foo::C5 | Foo::C8 => {}
@@ -1747,7 +1752,7 @@ mod tests {
     fn exhaustive_enum_through_underscore() {
         ok("
             enum Foo { A, B, C, D }
-            @NewExhaustiveness
+            @NewExhaustiveness @Expand
             fn f(v: Foo) {
                 match v {
                     Foo::A => {}
@@ -1763,7 +1768,7 @@ mod tests {
     fn exhaustive_enum_through_underscore_with_guard() {
         ok("
             enum Foo { A, B, C, D }
-            @NewExhaustiveness
+            @NewExhaustiveness @Expand
             fn f(v: Foo) {
                 match v {
                     Foo::A => {}
@@ -1779,7 +1784,7 @@ mod tests {
     fn exhaustive_only_underscore() {
         ok("
             enum Foo { A, B, C, D }
-            @NewExhaustiveness
+            @NewExhaustiveness @Expand
             fn f(v: Foo) {
                 match v {
                     _ => {}
@@ -1792,7 +1797,7 @@ mod tests {
     fn exhaustive_only_underscore_tuple() {
         ok("
             enum Foo { A, B, C, D }
-            @NewExhaustiveness
+            @NewExhaustiveness @Expand
             fn f(v: (Foo, Foo)) {
                 match v {
                     _ => {}
@@ -1805,7 +1810,7 @@ mod tests {
     fn exhaustive_underscore_tuple_pattern() {
         ok("
             enum Foo { A, B, C, D }
-            @NewExhaustiveness
+            @NewExhaustiveness @Expand
             fn f(v: (Foo, Foo)) {
                 match v {
                     (_, _) => {}
@@ -1817,7 +1822,7 @@ mod tests {
     #[test]
     fn exhaustive_int_tuple_pattern() {
         ok("
-            @NewExhaustiveness
+            @NewExhaustiveness @Expand
             fn f(v: (Int, Int)) {
                 match v {
                     (1, 1) => {}
@@ -1832,7 +1837,7 @@ mod tests {
     fn exhaustive_tuple_pattern() {
         ok("
             enum Foo { A, B, C, D }
-            @NewExhaustiveness
+            @NewExhaustiveness @Expand
             fn f(v: (Foo, Foo)) {
                 match v {
                     (Foo::A, _) => {}
@@ -1849,7 +1854,7 @@ mod tests {
         err(
             "
             enum Foo { A, B, C, D }
-            @NewExhaustiveness
+            @NewExhaustiveness @Expand
             fn f(v: (Foo, Foo)) {
                 match v {
                     (Foo::A, _) => {}
@@ -1868,7 +1873,7 @@ mod tests {
         err(
             "
             enum Foo { A, B, C, D }
-            @NewExhaustiveness
+            @NewExhaustiveness @Expand
             fn f(v: (Foo, Bool)) {
                 match v {
                     (Foo::A, _) => {}
@@ -1888,7 +1893,7 @@ mod tests {
         ok("
             enum Foo { A(Int), C(Bool), D(Bar, Bool) }
             enum Bar { X, Y }
-            @NewExhaustiveness
+            @NewExhaustiveness @Expand
             fn f(v: Foo) {
                 match v {
                     Foo::A(1) => {}
@@ -1926,7 +1931,7 @@ mod tests {
             "
             enum Foo { A(Int), C(Bool), D(Bar, Bool) }
             enum Bar { X, Y }
-            @NewExhaustiveness
+            @NewExhaustiveness @Expand
             fn f(v: Foo) {
                 match v {
                     Foo::A(1) => {}
@@ -1945,7 +1950,7 @@ mod tests {
             "
             enum Foo { A(Int), C(Bool), D(Bar, Bool) }
             enum Bar { X, Y }
-            @NewExhaustiveness
+            @NewExhaustiveness @Expand
             fn f(v: Foo) {
                 match v {
                     Foo::A(1) => {}

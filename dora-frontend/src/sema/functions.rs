@@ -38,6 +38,7 @@ pub struct FctDefinition {
     pub is_force_inline: bool,
     pub is_never_inline: bool,
     pub is_new_exhaustiveness: bool,
+    pub is_expand: bool,
     pub params: Params,
     pub return_type: ParsedType,
 
@@ -87,6 +88,7 @@ impl FctDefinition {
             is_force_inline: modifiers.is_force_inline,
             is_never_inline: modifiers.is_never_inline,
             is_new_exhaustiveness: modifiers.is_new_exhaustiveness,
+            is_expand: modifiers.is_expand,
             analysis: OnceCell::new(),
             type_param_definition: type_params,
             container_type_params: OnceCell::new(),
