@@ -312,7 +312,7 @@ fn check_exhaustive(sa: &Sema, matrix: Vec<Vec<Pattern>>, n: usize) -> Vec<Vec<P
     match signature {
         Signature::Incomplete => {
             let new_matrix = matrix
-                .iter()
+                .into_iter()
                 .flat_map(|r| specialize_row_for_any(r))
                 .collect::<Vec<_>>();
 
@@ -338,7 +338,7 @@ fn check_exhaustive(sa: &Sema, matrix: Vec<Vec<Pattern>>, n: usize) -> Vec<Vec<P
                     let arity = ctors.get(&id).cloned().expect("missing ctor id");
                     let new_matrix = matrix
                         .iter()
-                        .flat_map(|r| specialize_row_for_constructor(r, id, arity))
+                        .flat_map(|r| specialize_row_for_constructor(r.clone(), id, arity))
                         .collect::<Vec<_>>();
                     let uncovered = check_exhaustive(sa, new_matrix, n + arity - 1);
 
@@ -364,7 +364,7 @@ fn check_exhaustive(sa: &Sema, matrix: Vec<Vec<Pattern>>, n: usize) -> Vec<Vec<P
                 Vec::new()
             } else {
                 let new_matrix = matrix
-                    .iter()
+                    .into_iter()
                     .flat_map(|r| specialize_row_for_any(r))
                     .collect::<Vec<_>>();
 
@@ -553,6 +553,79 @@ impl SplitRow {
             r: Vec::new(),
         }
     }
+
+    #[allow(unused)]
+    fn remove_column_from_r(&mut self, r_idx: usize) -> Pattern {
+        self.r.remove(r_idx)
+    }
+}
+
+#[allow(unused)]
+trait SplitMatrixExt {
+    fn extract_matrix_q(&self) -> Vec<Vec<Pattern>>;
+    fn extract_matrix_r(&self) -> Vec<Vec<Pattern>>;
+    fn remove_column_from_r(&mut self, r_idx: usize) -> Vec<Vec<Pattern>>;
+    fn from_matrices(p: Vec<Vec<Pattern>>, q: Vec<Vec<Pattern>>, r: Vec<Vec<Pattern>>) -> Self;
+}
+
+impl SplitMatrixExt for Vec<SplitRow> {
+    fn extract_matrix_r(&self) -> Vec<Vec<Pattern>> {
+        self.iter().map(|row| row.r.clone()).collect()
+    }
+
+    fn extract_matrix_q(&self) -> Vec<Vec<Pattern>> {
+        self.iter().map(|row| row.q.clone()).collect()
+    }
+
+    fn remove_column_from_r(&mut self, r_idx: usize) -> Vec<Vec<Pattern>> {
+        let mut result = Vec::with_capacity(self.len());
+        for row in self.iter_mut() {
+            let el = row.remove_column_from_r(r_idx);
+            result.push(vec![el]);
+        }
+        result
+    }
+
+    fn from_matrices(
+        p: Vec<Vec<Pattern>>,
+        q: Vec<Vec<Pattern>>,
+        r: Vec<Vec<Pattern>>,
+    ) -> Vec<SplitRow> {
+        assert_eq!(p.len(), q.len());
+        assert_eq!(q.len(), r.len());
+
+        p.into_iter()
+            .zip(q.into_iter())
+            .into_iter()
+            .zip(r.into_iter())
+            .map(|((p, q), r)| SplitRow { p, q, r })
+            .collect()
+    }
+}
+
+#[allow(unused)]
+trait MatrixExt {
+    fn concat(&mut self, other: Vec<Vec<Pattern>>);
+    fn remove_column(&mut self, idx: usize) -> Vec<Vec<Pattern>>;
+}
+
+impl MatrixExt for Vec<Vec<Pattern>> {
+    fn concat(&mut self, other: Vec<Vec<Pattern>>) {
+        assert_eq!(self.len(), other.len());
+
+        for (row, mut other_row) in self.iter_mut().zip(other.into_iter()) {
+            row.append(&mut other_row);
+        }
+    }
+
+    fn remove_column(&mut self, idx: usize) -> Vec<Vec<Pattern>> {
+        let mut result = Vec::with_capacity(self.len());
+        for row in self.iter_mut() {
+            let el = row.remove(idx);
+            result.push(vec![el]);
+        }
+        result
+    }
 }
 
 #[allow(unused)]
@@ -561,8 +634,68 @@ enum Useless {
     Yes,
     // The set of useless subpatterns.
     Set(HashSet<Span>),
-    // Pattern is not useless (so fully useful).
-    No,
+}
+
+#[allow(unused)]
+impl Useless {
+    fn yes() -> Useless {
+        Useless::Yes
+    }
+
+    fn no() -> Useless {
+        Useless::Set(HashSet::new())
+    }
+
+    fn spans(self) -> HashSet<Span> {
+        match self {
+            Useless::Set(spans) => spans,
+            _ => unreachable!(),
+        }
+    }
+
+    fn union_all(results: Vec<(Useless, Span)>) -> Useless {
+        if results.iter().all(|e| matches!(e.0, Useless::Yes)) {
+            Useless::Yes
+        } else {
+            let mut spans = HashSet::new();
+
+            for (useless, span) in results {
+                match useless {
+                    Useless::Yes => assert!(spans.insert(span)),
+                    Useless::Set(set) => {
+                        for span in set {
+                            assert!(spans.insert(span));
+                        }
+                    }
+                }
+            }
+
+            Useless::Set(spans)
+        }
+    }
+
+    fn union(lhs: Useless, lhs_span: Span, rhs: Useless, rhs_span: Span) -> Useless {
+        if matches!(lhs, Useless::Yes) && matches!(rhs, Useless::Yes) {
+            Useless::Yes
+        } else if matches!(lhs, Useless::Yes) {
+            let mut spans = rhs.spans();
+            spans.insert(lhs_span);
+            Useless::Set(spans)
+        } else if matches!(rhs, Useless::Yes) {
+            let mut spans = lhs.spans();
+            spans.insert(rhs_span);
+            Useless::Set(spans)
+        } else {
+            let mut lhs_spans = lhs.spans();
+            let rhs_spans = rhs.spans();
+
+            for span in rhs_spans {
+                assert!(lhs_spans.insert(span));
+            }
+
+            Useless::Set(lhs_spans)
+        }
+    }
 }
 
 #[allow(unused)]
@@ -582,7 +715,7 @@ fn check_useful_expand_inner(sa: &Sema, matrix: Vec<SplitRow>, mut pattern: Spli
             Pattern::Literal { value, .. } => {
                 let new_matrix = matrix
                     .into_iter()
-                    .flat_map(|r| specialize_split_row_for_literal(r, value.clone()))
+                    .flat_map(|r| specialize_row_for_literal(r, value.clone()))
                     .collect::<Vec<_>>();
 
                 check_useful_expand_inner(sa, new_matrix, pattern)
@@ -595,7 +728,7 @@ fn check_useful_expand_inner(sa: &Sema, matrix: Vec<SplitRow>, mut pattern: Spli
                 let arity = params.len();
                 let new_matrix = matrix
                     .into_iter()
-                    .flat_map(|r| specialize_split_row_for_constructor(r, variant_id, arity))
+                    .flat_map(|r| specialize_row_for_constructor(r, variant_id, arity))
                     .collect::<Vec<_>>();
 
                 pattern.p.append(&mut params);
@@ -605,7 +738,7 @@ fn check_useful_expand_inner(sa: &Sema, matrix: Vec<SplitRow>, mut pattern: Spli
                 let arity = params.len();
                 let new_matrix = matrix
                     .into_iter()
-                    .flat_map(|r| specialize_split_row_for_constructor(r, 0, arity))
+                    .flat_map(|r| specialize_row_for_constructor(r, 0, arity))
                     .collect::<Vec<_>>();
 
                 pattern.p.append(&mut params);
@@ -639,7 +772,7 @@ fn check_useful_expand_inner(sa: &Sema, matrix: Vec<SplitRow>, mut pattern: Spli
 
                 let new_matrix = matrix
                     .into_iter()
-                    .flat_map(|r| specialize_split_row_for_any(r))
+                    .flat_map(|r| specialize_row_for_any(r))
                     .collect::<Vec<_>>();
 
                 check_useful_expand_inner(sa, new_matrix, pattern)
@@ -650,12 +783,61 @@ fn check_useful_expand_inner(sa: &Sema, matrix: Vec<SplitRow>, mut pattern: Spli
         let pattern = pattern.q;
 
         if check_useful(sa, matrix, pattern) {
-            Useless::No
+            Useless::no()
         } else {
-            Useless::Yes
+            Useless::yes()
         }
     } else {
-        unimplemented!()
+        let mut r_pattern_useless = Vec::new();
+
+        for (r_idx, r_pattern) in pattern.r.iter().enumerate() {
+            let alts = match r_pattern {
+                Pattern::Alt { alts, .. } => alts,
+                _ => unreachable!(),
+            };
+
+            let mut results = Vec::with_capacity(alts.len());
+            let mut matrix_r_no_j = matrix.extract_matrix_r();
+            let mut new_matrix_p = matrix_r_no_j.remove_column(r_idx);
+
+            let mut new_matrix_q = matrix.extract_matrix_q();
+            new_matrix_q.concat(matrix_r_no_j);
+
+            let new_matrix_r = vec![Vec::new(); matrix.len()];
+
+            let q_concat_r_no_j = {
+                let mut q = pattern.q.clone();
+                let mut r = pattern.r.clone();
+                r.remove(r_idx);
+                q.append(&mut r);
+                q
+            };
+
+            for alt in alts {
+                let new_matrix: Vec<SplitRow> = SplitMatrixExt::from_matrices(
+                    new_matrix_p.clone(),
+                    new_matrix_q.clone(),
+                    new_matrix_r.clone(),
+                );
+
+                let new_pattern = SplitRow {
+                    p: vec![alt.clone()],
+                    q: q_concat_r_no_j.clone(),
+                    r: Vec::new(),
+                };
+
+                let alt_result = check_useful_expand_inner(sa, new_matrix, new_pattern);
+                results.push((alt_result, alt.span()));
+
+                new_matrix_p.push(vec![alt.clone()]);
+                new_matrix_q.push(q_concat_r_no_j.clone());
+            }
+
+            let r_pattern_result = Useless::union_all(results);
+            r_pattern_useless.push((r_pattern_result, r_pattern.span()));
+        }
+
+        Useless::union_all(r_pattern_useless)
     }
 }
 
@@ -691,7 +873,7 @@ fn check_useful(sa: &Sema, matrix: Vec<Vec<Pattern>>, mut pattern: Vec<Pattern>)
 
         Pattern::Literal { value, .. } => {
             let new_matrix = matrix
-                .iter()
+                .into_iter()
                 .flat_map(|r| specialize_row_for_literal(r, value.clone()))
                 .collect::<Vec<_>>();
 
@@ -704,7 +886,7 @@ fn check_useful(sa: &Sema, matrix: Vec<Vec<Pattern>>, mut pattern: Vec<Pattern>)
             match signature {
                 Signature::Incomplete => {
                     let new_matrix = matrix
-                        .iter()
+                        .into_iter()
                         .flat_map(|r| specialize_row_for_any(r))
                         .collect::<Vec<_>>();
 
@@ -719,7 +901,7 @@ fn check_useful(sa: &Sema, matrix: Vec<Vec<Pattern>>, mut pattern: Vec<Pattern>)
                             let arity = ctors.get(&id).cloned().expect("missing ctor");
                             let new_matrix = matrix
                                 .iter()
-                                .flat_map(|r| specialize_row_for_constructor(r, id, arity))
+                                .flat_map(|r| specialize_row_for_constructor(r.clone(), id, arity))
                                 .collect::<Vec<_>>();
 
                             let mut new_pattern = pattern.clone();
@@ -734,7 +916,7 @@ fn check_useful(sa: &Sema, matrix: Vec<Vec<Pattern>>, mut pattern: Vec<Pattern>)
                         false
                     } else {
                         let new_matrix = matrix
-                            .iter()
+                            .into_iter()
                             .flat_map(|r| specialize_row_for_any(r))
                             .collect::<Vec<_>>();
 
@@ -751,7 +933,7 @@ fn check_useful(sa: &Sema, matrix: Vec<Vec<Pattern>>, mut pattern: Vec<Pattern>)
         } => {
             let arity = params.len();
             let new_matrix = matrix
-                .iter()
+                .into_iter()
                 .flat_map(|r| specialize_row_for_constructor(r, variant_id, arity))
                 .collect::<Vec<_>>();
 
@@ -763,7 +945,7 @@ fn check_useful(sa: &Sema, matrix: Vec<Vec<Pattern>>, mut pattern: Vec<Pattern>)
             let arity = params.len();
 
             let new_matrix = matrix
-                .iter()
+                .into_iter()
                 .flat_map(|r| specialize_row_for_constructor(r, 0, arity))
                 .collect::<Vec<_>>();
 
@@ -775,7 +957,7 @@ fn check_useful(sa: &Sema, matrix: Vec<Vec<Pattern>>, mut pattern: Vec<Pattern>)
             assert!(pattern.is_empty());
 
             let new_matrix = matrix
-                .iter()
+                .into_iter()
                 .flat_map(|r| specialize_row_for_any(r))
                 .collect::<Vec<_>>();
 
@@ -784,23 +966,22 @@ fn check_useful(sa: &Sema, matrix: Vec<Vec<Pattern>>, mut pattern: Vec<Pattern>)
     }
 }
 
-fn specialize_row_for_any(row: &[Pattern]) -> Vec<Vec<Pattern>> {
-    let mut result_row = row.to_vec();
-    let last = result_row.pop().expect("missing pattern");
+fn specialize_row_for_any<T: SpecializeRow + Clone>(mut row: T) -> Vec<T> {
+    let last = row.pop();
 
     match last {
         Pattern::Alt { alts, .. } => alts
             .into_iter()
             .flat_map(|p| {
-                result_row.push(p);
-                let rows = specialize_row_for_any(&result_row);
-                result_row.pop();
+                let mut p_row = row.clone();
+                p_row.push(p);
+                let rows = specialize_row_for_any(p_row);
                 rows
             })
             .collect::<Vec<_>>(),
         Pattern::Literal { .. } | Pattern::EnumVariant { .. } => Vec::new(),
         Pattern::Guard => Vec::new(),
-        Pattern::Any { .. } => vec![result_row],
+        Pattern::Any { .. } => vec![row],
         // This should never be reached as long as all patterns are useful.
         // This is because tuples conceptually have a single constructor and thus
         // should always reach the complete signature code path.
@@ -808,56 +989,95 @@ fn specialize_row_for_any(row: &[Pattern]) -> Vec<Vec<Pattern>> {
     }
 }
 
-#[allow(unused)]
-fn specialize_split_row_for_any(row: SplitRow) -> Vec<SplitRow> {
-    unimplemented!()
-}
-
-fn specialize_row_for_literal(row: &[Pattern], literal: LiteralValue) -> Vec<Vec<Pattern>> {
-    let mut result_row = row.to_vec();
-    let last = result_row.pop().expect("missing pattern");
+fn specialize_row_for_literal<T: SpecializeRow + Clone>(
+    mut row: T,
+    literal: LiteralValue,
+) -> Vec<T> {
+    let last = row.pop();
 
     match last {
         Pattern::Alt { alts, .. } => alts
             .into_iter()
             .flat_map(|p| {
-                result_row.push(p);
-                let rows = specialize_row_for_literal(&result_row, literal.clone());
-                result_row.pop();
+                let mut p_row = row.clone();
+                p_row.push(p);
+                let rows = specialize_row_for_literal(p_row, literal.clone());
                 rows
             })
             .collect::<Vec<_>>(),
         Pattern::Literal { value, .. } => {
             if value == literal {
-                vec![result_row]
+                vec![row]
             } else {
                 Vec::new()
             }
         }
         Pattern::EnumVariant { .. } => Vec::new(),
-        Pattern::Any { .. } => vec![result_row],
+        Pattern::Any { .. } => vec![row],
         // This should never be reached because literals and tuples shouldn't type check.
         Pattern::Tuple { .. } => unreachable!(),
         Pattern::Guard => unimplemented!(),
     }
 }
 
-#[allow(unused)]
-fn specialize_split_row_for_literal(_row: SplitRow, _literal: LiteralValue) -> Vec<SplitRow> {
-    unimplemented!()
+trait SpecializeRow {
+    fn pop(&mut self) -> Pattern;
+    fn push(&mut self, p: Pattern);
+    fn append(&mut self, patterns: Vec<Pattern>);
+    fn append_any(&mut self, arity: usize);
 }
 
-fn specialize_row_for_constructor(row: &[Pattern], id: usize, arity: usize) -> Vec<Vec<Pattern>> {
-    let mut result_row = row.to_vec();
-    let last = result_row.pop().expect("missing pattern");
+impl SpecializeRow for SplitRow {
+    fn pop(&mut self) -> Pattern {
+        self.p.pop().expect("missing pattern")
+    }
+
+    fn push(&mut self, p: Pattern) {
+        self.p.push(p);
+    }
+
+    fn append(&mut self, mut patterns: Vec<Pattern>) {
+        self.p.append(&mut patterns);
+    }
+
+    fn append_any(&mut self, arity: usize) {
+        self.p
+            .extend(std::iter::repeat(Pattern::any_no_span()).take(arity));
+    }
+}
+
+impl SpecializeRow for Vec<Pattern> {
+    fn pop(&mut self) -> Pattern {
+        self.pop().expect("missing pattern")
+    }
+
+    fn push(&mut self, p: Pattern) {
+        self.push(p);
+    }
+
+    fn append(&mut self, mut patterns: Vec<Pattern>) {
+        self.append(&mut patterns);
+    }
+
+    fn append_any(&mut self, arity: usize) {
+        self.extend(std::iter::repeat(Pattern::any_no_span()).take(arity));
+    }
+}
+
+fn specialize_row_for_constructor<T: SpecializeRow + Clone>(
+    mut row: T,
+    id: usize,
+    arity: usize,
+) -> Vec<T> {
+    let last = row.pop();
 
     match last {
         Pattern::Alt { alts, .. } => alts
             .into_iter()
             .flat_map(|p| {
-                result_row.push(p);
-                let rows = specialize_row_for_constructor(&result_row, id, arity);
-                result_row.pop();
+                let mut p_row = row.clone();
+                p_row.push(p);
+                let rows = specialize_row_for_constructor(p_row, id, arity);
                 rows
             })
             .collect::<Vec<_>>(),
@@ -865,7 +1085,7 @@ fn specialize_row_for_constructor(row: &[Pattern], id: usize, arity: usize) -> V
             LiteralValue::Bool(value) => {
                 assert_eq!(arity, 0);
                 if id == value as usize {
-                    vec![result_row]
+                    vec![row]
                 } else {
                     Vec::new()
                 }
@@ -879,39 +1099,28 @@ fn specialize_row_for_constructor(row: &[Pattern], id: usize, arity: usize) -> V
             | LiteralValue::String(..) => unreachable!(),
         },
         Pattern::EnumVariant {
-            variant_id,
-            mut params,
-            ..
+            variant_id, params, ..
         } => {
             if id == variant_id {
                 assert_eq!(arity, params.len());
-                result_row.append(&mut params);
-                vec![result_row]
+                row.append(params);
+                vec![row]
             } else {
                 Vec::new()
             }
         }
         Pattern::Any { .. } => {
-            result_row.extend(std::iter::repeat(Pattern::any_no_span()).take(arity));
-            vec![result_row]
+            row.append_any(arity);
+            vec![row]
         }
 
-        Pattern::Tuple { mut params, .. } => {
+        Pattern::Tuple { params, .. } => {
             assert_eq!(id, 0);
-            result_row.append(&mut params);
-            vec![result_row]
+            row.append(params);
+            vec![row]
         }
         Pattern::Guard => unimplemented!(),
     }
-}
-
-#[allow(unused)]
-fn specialize_split_row_for_constructor(
-    _row: SplitRow,
-    _id: usize,
-    _arity: usize,
-) -> Vec<SplitRow> {
-    unimplemented!()
 }
 
 #[derive(Clone, PartialEq)]
