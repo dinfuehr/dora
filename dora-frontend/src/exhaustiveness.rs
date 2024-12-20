@@ -792,10 +792,9 @@ fn check_useful_expand_inner(sa: &Sema, matrix: Vec<SplitRow>, mut pattern: Spli
                 q.append(&mut r);
                 q
             };
+            let mut new_matrix_r = vec![Vec::new(); new_matrix_p.len()];
 
             for alt in alts {
-                let new_matrix_r = vec![Vec::new(); new_matrix_p.len()];
-
                 // println!("new_matrix_p = {:?}", new_matrix_p);
                 // println!("new_matrix_q = {:?}", new_matrix_q);
                 // println!("new_matrix_r = {:?}", new_matrix_r);
@@ -820,6 +819,7 @@ fn check_useful_expand_inner(sa: &Sema, matrix: Vec<SplitRow>, mut pattern: Spli
 
                 new_matrix_p.push(vec![alt.clone()]);
                 new_matrix_q.push(q_concat_r_no_j.clone());
+                new_matrix_r.push(Vec::new());
             }
 
             let r_pattern_result = Useless::union_all(results);
@@ -1933,7 +1933,7 @@ mod tests {
         ok("
             enum Foo { A(Int), C(Bool), D(Bar, Bool) }
             enum Bar { X, Y }
-            @NewExhaustiveness
+            @NewExhaustiveness @Expand
             fn f(v: Foo) {
                 match v {
                     Foo::A(1 | 2) | Foo::C(_) => {}
