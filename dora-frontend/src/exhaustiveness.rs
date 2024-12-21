@@ -4,7 +4,6 @@ use std::fmt::{self, Write};
 use dora_parser::ast;
 use dora_parser::ast::visit::{self, Visitor};
 use dora_parser::Span;
-use fixedbitset::FixedBitSet;
 
 use crate::sema::{AnalysisData, EnumDefinitionId, IdentType, Sema, SourceFileId};
 use crate::ErrorMessage;
@@ -16,8 +15,6 @@ pub fn check(sa: &Sema) {
                 sa,
                 file_id: fct.file_id,
                 analysis: fct.analysis(),
-                is_new_exhaustiveness: fct.is_new_exhaustiveness,
-                is_expand: fct.is_expand,
             };
             visit::walk_fct(&mut visitor, &fct.ast);
         }
@@ -28,20 +25,13 @@ struct Exhaustiveness<'a> {
     sa: &'a Sema,
     analysis: &'a AnalysisData,
     file_id: SourceFileId,
-    is_new_exhaustiveness: bool,
-    is_expand: bool,
 }
 
 impl<'a> Visitor for Exhaustiveness<'a> {
     fn visit_expr(&mut self, e: &ast::ExprData) {
         match *e {
             ast::ExprData::Match(ref expr) => {
-                if self.is_new_exhaustiveness {
-                    // Improved exhaustiveness check is WIP and not enabled by default.
-                    check_match2(self.sa, self.analysis, self.file_id, self.is_expand, expr);
-                } else {
-                    check_match(self.sa, self.analysis, self.file_id, expr);
-                }
+                check_match(self.sa, self.analysis, self.file_id, expr);
                 visit::walk_expr(self, e);
             }
             ast::ExprData::Lambda(..) => (),
@@ -56,116 +46,6 @@ fn check_match(
     sa: &Sema,
     analysis: &AnalysisData,
     file_id: SourceFileId,
-    node: &ast::ExprMatchType,
-) {
-    let expr_type = analysis.ty(node.expr.id());
-    let enum_id = expr_type.enum_id().expect("enum expected");
-
-    let enum_ = sa.enum_(enum_id);
-    let enum_variants = enum_.variants().len();
-
-    let mut used_variants = FixedBitSet::with_capacity(enum_variants);
-
-    for arm in &node.arms {
-        if arm.cond.is_some() {
-            continue;
-        }
-
-        check_pattern(sa, analysis, file_id, &arm.pattern, &mut used_variants);
-    }
-
-    used_variants.toggle_range(..);
-
-    if used_variants.count_ones(..) != 0 {
-        let msg = ErrorMessage::MatchUncoveredVariant;
-        sa.report(file_id, node.expr.span(), msg);
-    }
-}
-
-fn check_pattern(
-    sa: &Sema,
-    analysis: &AnalysisData,
-    file_id: SourceFileId,
-    pattern: &ast::Pattern,
-    used_variants: &mut FixedBitSet,
-) {
-    match pattern {
-        ast::Pattern::Underscore(..) => {
-            if used_variants.count_zeroes(..) == 0 {
-                let msg = ErrorMessage::MatchUnreachablePattern;
-                sa.report(file_id, pattern.span(), msg);
-            }
-
-            used_variants.insert_range(..);
-        }
-
-        ast::Pattern::Rest(..) => unreachable!(),
-
-        ast::Pattern::LitBool(..)
-        | ast::Pattern::LitChar(..)
-        | ast::Pattern::LitString(..)
-        | ast::Pattern::LitInt(..)
-        | ast::Pattern::LitFloat(..)
-        | ast::Pattern::Tuple(..) => unreachable!(),
-
-        ast::Pattern::Ident(ref pattern_ident) => {
-            let ident = analysis
-                .map_idents
-                .get(pattern_ident.id)
-                .expect("missing ident");
-            match ident {
-                IdentType::EnumVariant(_pattern_enum_id, _type_params, variant_idx) => {
-                    if used_variants.contains(*variant_idx as usize) {
-                        let msg = ErrorMessage::MatchUnreachablePattern;
-                        sa.report(file_id, pattern_ident.span, msg);
-                    }
-
-                    used_variants.insert(*variant_idx as usize);
-                }
-
-                IdentType::Var(_var_id) => {
-                    if used_variants.count_zeroes(..) == 0 {
-                        let msg = ErrorMessage::MatchUnreachablePattern;
-                        sa.report(file_id, pattern_ident.span, msg);
-                    }
-
-                    used_variants.insert_range(..);
-                }
-
-                _ => unreachable!(),
-            }
-        }
-
-        ast::Pattern::Alt(ref p) => {
-            for alt in &p.alts {
-                check_pattern(sa, analysis, file_id, &alt, used_variants);
-            }
-        }
-
-        ast::Pattern::ClassOrStructOrEnum(ref p) => {
-            let ident = analysis.map_idents.get(p.id).expect("missing ident");
-
-            match ident {
-                IdentType::EnumVariant(_pattern_enum_id, _type_params, variant_idx) => {
-                    if used_variants.contains(*variant_idx as usize) {
-                        let msg = ErrorMessage::MatchUnreachablePattern;
-                        sa.report(file_id, p.span, msg);
-                    }
-
-                    used_variants.insert(*variant_idx as usize);
-                }
-
-                _ => unreachable!(),
-            }
-        }
-    }
-}
-
-fn check_match2(
-    sa: &Sema,
-    analysis: &AnalysisData,
-    file_id: SourceFileId,
-    is_expand: bool,
     node: &ast::ExprMatchType,
 ) {
     let mut matrix = Vec::new();
@@ -184,23 +64,15 @@ fn check_match2(
         }
         row.push(convert_pattern(sa, analysis, &arm.pattern));
 
-        let spans = if is_expand {
-            let useless = check_useful_expand(sa, matrix.clone(), row.clone());
+        let useless = check_useful_expand(sa, matrix.clone(), row.clone());
 
-            match useless {
-                Useless::Set(spans) => spans,
-                Useless::Yes => {
-                    let mut spans = HashSet::new();
-                    spans.insert(arm.pattern.span());
-                    spans
-                }
-            }
-        } else {
-            let mut spans = HashSet::new();
-            if !check_useful(sa, matrix.clone(), row.clone()) {
+        let spans = match useless {
+            Useless::Set(spans) => spans,
+            Useless::Yes => {
+                let mut spans = HashSet::new();
                 spans.insert(arm.pattern.span());
+                spans
             }
-            spans
         };
 
         for span in spans {
@@ -1325,31 +1197,61 @@ fn convert_pattern(sa: &Sema, analysis: &AnalysisData, pattern: &ast::Pattern) -
         },
 
         ast::Pattern::ClassOrStructOrEnum(ref p) => {
-            let subpatterns = p
-                .params
-                .as_ref()
-                .map(|v| {
-                    v.iter()
-                        .rev()
-                        .map(|p| convert_pattern(sa, analysis, p.pattern.as_ref()))
-                        .collect::<Vec<_>>()
-                })
-                .unwrap_or_default();
             let ident = analysis.map_idents.get(p.id).expect("missing ident");
 
             match ident {
                 IdentType::EnumVariant(pattern_enum_id, _type_params, variant_id) => {
+                    let enum_ = sa.enum_(*pattern_enum_id);
+                    let variant = &enum_.variants[*variant_id as usize];
+
                     Pattern::EnumVariant {
                         span: p.span,
                         enum_id: *pattern_enum_id,
                         variant_id: *variant_id as usize,
-                        params: subpatterns,
+                        params: convert_subpatterns(sa, analysis, p, variant.fields.len()),
                     }
+                }
+
+                IdentType::Class(_cls_id, _type_params) => {
+                    unimplemented!()
                 }
 
                 _ => unreachable!(),
             }
         }
+    }
+}
+
+fn convert_subpatterns(
+    sa: &Sema,
+    analysis: &AnalysisData,
+    p: &ast::PatternClassOrStructOrEnum,
+    n: usize,
+) -> Vec<Pattern> {
+    if let Some(ref params) = p.params {
+        let mut result = vec![None; n];
+
+        for subpattern in params {
+            if subpattern.pattern.is_rest() {
+                // Do nothing
+            } else {
+                let field_id = analysis
+                    .map_field_ids
+                    .get(subpattern.id)
+                    .cloned()
+                    .expect("missing field_id");
+                let p = convert_pattern(sa, analysis, &subpattern.pattern);
+                result[field_id] = Some(p);
+            }
+        }
+
+        result
+            .into_iter()
+            .rev()
+            .map(|t| t.unwrap_or_else(|| Pattern::any_no_span()))
+            .collect()
+    } else {
+        Vec::new()
     }
 }
 
@@ -1371,7 +1273,7 @@ mod tests {
             }
         ",
             (4, 23),
-            ErrorMessage::MatchUncoveredVariant,
+            ErrorMessage::MatchUncoveredVariantWithPattern(vec!["Foo::C".into()]),
         );
     }
 
@@ -1434,7 +1336,6 @@ mod tests {
     fn usefulness_bool() {
         err(
             "
-            @NewExhaustiveness @Expand
             fn f(v: Bool) {
                 match v {
                     true => {}
@@ -1443,7 +1344,7 @@ mod tests {
                 }
             }
         ",
-            (6, 21),
+            (5, 21),
             ErrorMessage::MatchUnreachablePattern,
         );
     }
@@ -1452,7 +1353,6 @@ mod tests {
     fn usefulness_tuple() {
         err(
             "
-            @NewExhaustiveness @Expand
             fn f(v: (Int, Int)) {
                 match v {
                     _ => {}
@@ -1460,7 +1360,7 @@ mod tests {
                 }
             }
         ",
-            (6, 21),
+            (5, 21),
             ErrorMessage::MatchUnreachablePattern,
         );
     }
@@ -1469,7 +1369,6 @@ mod tests {
     fn usefulness_tuple_unreachable_any() {
         err(
             "
-            @NewExhaustiveness @Expand
             fn f(v: (Int, Int)) {
                 match v {
                     (_, _) => {}
@@ -1477,7 +1376,7 @@ mod tests {
                 }
             }
         ",
-            (6, 21),
+            (5, 21),
             ErrorMessage::MatchUnreachablePattern,
         );
     }
@@ -1488,7 +1387,6 @@ mod tests {
             "
             enum Foo { A(Int), C(Bool), D(Int, Bool) }
 
-            @NewExhaustiveness @Expand
             fn f(v: Foo) {
                 match v {
                     Foo::C(_) => {}
@@ -1497,7 +1395,7 @@ mod tests {
                 }
             }
         ",
-            (8, 21),
+            (7, 21),
             ErrorMessage::MatchUnreachablePattern,
         );
     }
@@ -1508,7 +1406,6 @@ mod tests {
             "
             enum Foo { A, B, C }
 
-            @NewExhaustiveness @Expand
             fn f(v: Foo) {
                 match v {
                     Foo::A => {}
@@ -1518,7 +1415,7 @@ mod tests {
                 }
             }
         ",
-            (10, 21),
+            (9, 21),
             ErrorMessage::MatchUnreachablePattern,
         );
     }
@@ -1527,7 +1424,6 @@ mod tests {
     fn usefulness_int() {
         err(
             "
-            @NewExhaustiveness @Expand
             fn f(v: Int) {
                 match v {
                     1 => {}
@@ -1537,7 +1433,7 @@ mod tests {
                 }
             }
         ",
-            (8, 21),
+            (7, 21),
             ErrorMessage::MatchUnreachablePattern,
         );
     }
@@ -1546,7 +1442,6 @@ mod tests {
     fn usefulness_int_with_2_alternatives() {
         err(
             "
-            @NewExhaustiveness @Expand
             fn f(v: Int) {
                 match v {
                     1 => {}
@@ -1555,7 +1450,7 @@ mod tests {
                 }
             }
         ",
-            (7, 25),
+            (6, 25),
             ErrorMessage::MatchUnreachablePattern,
         );
     }
@@ -1564,7 +1459,6 @@ mod tests {
     fn usefulness_int_with_3_alternatives() {
         errors(
             "
-            @NewExhaustiveness @Expand
             fn f(v: Int) {
                 match v {
                     1 => {}
@@ -1574,8 +1468,8 @@ mod tests {
             }
         ",
             &[
-                ((7, 25), ErrorMessage::MatchUnreachablePattern),
-                ((7, 29), ErrorMessage::MatchUnreachablePattern),
+                ((6, 25), ErrorMessage::MatchUnreachablePattern),
+                ((6, 29), ErrorMessage::MatchUnreachablePattern),
             ],
         );
     }
@@ -1583,7 +1477,6 @@ mod tests {
     #[test]
     fn exhaustive_bool() {
         ok("
-            @NewExhaustiveness @Expand
             fn f(v: Bool) {
                 match v {
                     true => {}
@@ -1594,27 +1487,25 @@ mod tests {
 
         err(
             "
-            @NewExhaustiveness @Expand
             fn f(v: Bool) {
                 match v {
                     true => {}
                 }
             }
         ",
-            (4, 23),
+            (3, 23),
             ErrorMessage::MatchUncoveredVariantWithPattern(vec!["false".into()]),
         );
 
         err(
             "
-            @NewExhaustiveness @Expand
             fn f(v: Bool) {
                 match v {
                     false => {}
                 }
             }
         ",
-            (4, 23),
+            (3, 23),
             ErrorMessage::MatchUncoveredVariantWithPattern(vec!["true".into()]),
         );
     }
@@ -1622,7 +1513,6 @@ mod tests {
     #[test]
     fn exhaustive_bool_with_guard() {
         ok("
-            @NewExhaustiveness @Expand
             fn f(v: Bool) {
                 match v {
                     true if true => {}
@@ -1636,7 +1526,6 @@ mod tests {
 
         err(
             "
-            @NewExhaustiveness @Expand
             fn f(v: Bool) {
                 match v {
                     true => {}
@@ -1645,7 +1534,7 @@ mod tests {
                 }
             }
         ",
-            (6, 21),
+            (5, 21),
             ErrorMessage::MatchUnreachablePattern,
         );
     }
@@ -1653,7 +1542,6 @@ mod tests {
     #[test]
     fn exhaustive_int() {
         ok("
-            @NewExhaustiveness @Expand
             fn f(v: Int) {
                 match v {
                     1 => {}
@@ -1665,7 +1553,6 @@ mod tests {
 
         err(
             "
-            @NewExhaustiveness @Expand
             fn f(v: Int) {
                 match v {
                     1 => {}
@@ -1673,16 +1560,29 @@ mod tests {
                 }
             }
         ",
-            (4, 23),
+            (3, 23),
             ErrorMessage::MatchUncoveredVariantWithPattern(vec!["_".into()]),
         );
+    }
+
+    #[test]
+    #[ignore]
+    fn exhaustive_class() {
+        ok("
+            class Foo(Int, Bool)
+            fn f(v: Foo) {
+                match v {
+                    Foo(_, true) => {}
+                    Foo(_, false) => {}
+                }
+            }
+        ");
     }
 
     #[test]
     fn exhaustive_enum() {
         ok("
             enum Foo { A, B, C, D }
-            @NewExhaustiveness @Expand
             fn f(v: Foo) {
                 match v {
                     Foo::A => {}
@@ -1695,7 +1595,6 @@ mod tests {
 
         ok("
             enum Foo { A, B, C, D }
-            @NewExhaustiveness @Expand
             fn f(v: Foo) {
                 match v {
                     Foo::A => {}
@@ -1709,7 +1608,6 @@ mod tests {
         err(
             "
             enum Foo { A, B, C, D }
-            @NewExhaustiveness @Expand
             fn f(v: Foo) {
                 match v {
                     Foo::A => {}
@@ -1717,7 +1615,7 @@ mod tests {
                 }
             }
         ",
-            (5, 23),
+            (4, 23),
             ErrorMessage::MatchUncoveredVariantWithPattern(vec!["Foo::B".into(), "Foo::C".into()]),
         );
     }
@@ -1727,7 +1625,6 @@ mod tests {
         err(
             "
             enum Foo { C1, C2, C3, C4, C5, C6, C7, C8, C9, C10 }
-            @NewExhaustiveness @Expand
             fn f(v: Foo) {
                 match v {
                     Foo::C3 => {}
@@ -1735,7 +1632,7 @@ mod tests {
                 }
             }
         ",
-            (5, 23),
+            (4, 23),
             ErrorMessage::MatchUncoveredVariantWithPattern(vec![
                 "Foo::C1".into(),
                 "Foo::C2".into(),
@@ -1749,14 +1646,13 @@ mod tests {
         err(
             "
             enum Foo { C1, C2, C3, C4, C5, C6, C7, C8, C9, C10 }
-            @NewExhaustiveness @Expand
             fn f(v: Foo) {
                 match v {
                     Foo::C3 | Foo::C4 | Foo::C5 | Foo::C8 => {}
                 }
             }
         ",
-            (5, 23),
+            (4, 23),
             ErrorMessage::MatchUncoveredVariantWithPattern(vec![
                 "Foo::C1".into(),
                 "Foo::C2".into(),
@@ -1772,7 +1668,6 @@ mod tests {
     fn exhaustive_enum_through_underscore() {
         ok("
             enum Foo { A, B, C, D }
-            @NewExhaustiveness @Expand
             fn f(v: Foo) {
                 match v {
                     Foo::A => {}
@@ -1788,7 +1683,6 @@ mod tests {
     fn exhaustive_enum_through_underscore_with_guard() {
         ok("
             enum Foo { A, B, C, D }
-            @NewExhaustiveness @Expand
             fn f(v: Foo) {
                 match v {
                     Foo::A => {}
@@ -1804,7 +1698,6 @@ mod tests {
     fn exhaustive_only_underscore() {
         ok("
             enum Foo { A, B, C, D }
-            @NewExhaustiveness @Expand
             fn f(v: Foo) {
                 match v {
                     _ => {}
@@ -1817,7 +1710,6 @@ mod tests {
     fn exhaustive_only_underscore_tuple() {
         ok("
             enum Foo { A, B, C, D }
-            @NewExhaustiveness @Expand
             fn f(v: (Foo, Foo)) {
                 match v {
                     _ => {}
@@ -1830,7 +1722,6 @@ mod tests {
     fn exhaustive_underscore_tuple_pattern() {
         ok("
             enum Foo { A, B, C, D }
-            @NewExhaustiveness @Expand
             fn f(v: (Foo, Foo)) {
                 match v {
                     (_, _) => {}
@@ -1842,7 +1733,6 @@ mod tests {
     #[test]
     fn exhaustive_int_tuple_pattern() {
         ok("
-            @NewExhaustiveness @Expand
             fn f(v: (Int, Int)) {
                 match v {
                     (1, 1) => {}
@@ -1857,7 +1747,6 @@ mod tests {
     fn exhaustive_tuple_pattern() {
         ok("
             enum Foo { A, B, C, D }
-            @NewExhaustiveness @Expand
             fn f(v: (Foo, Foo)) {
                 match v {
                     (Foo::A, _) => {}
@@ -1874,7 +1763,6 @@ mod tests {
         err(
             "
             enum Foo { A, B, C, D }
-            @NewExhaustiveness @Expand
             fn f(v: (Foo, Foo)) {
                 match v {
                     (Foo::A, _) => {}
@@ -1886,14 +1774,13 @@ mod tests {
                 }
             }
         ",
-            (5, 23),
+            (4, 23),
             ErrorMessage::MatchUncoveredVariantWithPattern(vec!["(Foo::C, Foo::B)".into()]),
         );
 
         err(
             "
             enum Foo { A, B, C, D }
-            @NewExhaustiveness @Expand
             fn f(v: (Foo, Bool)) {
                 match v {
                     (Foo::A, _) => {}
@@ -1903,7 +1790,7 @@ mod tests {
                 }
             }
         ",
-            (5, 23),
+            (4, 23),
             ErrorMessage::MatchUncoveredVariantWithPattern(vec!["(Foo::D, false)".into()]),
         );
     }
@@ -1913,7 +1800,6 @@ mod tests {
         ok("
             enum Foo { A(Int), C(Bool), D(Bar, Bool) }
             enum Bar { X, Y }
-            @NewExhaustiveness @Expand
             fn f(v: Foo) {
                 match v {
                     Foo::A(1) => {}
@@ -1929,11 +1815,27 @@ mod tests {
     }
 
     #[test]
+    fn exhaustive_enum_with_payload_and_rest() {
+        ok("
+            enum Foo { A(Int), C(Bool), D(Bar, Bool) }
+            enum Bar { X, Y }
+            fn f(v: Foo) {
+                match v {
+                    Foo::A(1) => {}
+                    Foo::A(2) => {}
+                    Foo::A(_) => {}
+                    Foo::D(..) => {}
+                    Foo::C(_) => {}
+                }
+            }
+        ");
+    }
+
+    #[test]
     fn exhaustive_enum_with_payload_and_alternatives() {
         ok("
             enum Foo { A(Int), C(Bool), D(Bar, Bool) }
             enum Bar { X, Y }
-            @NewExhaustiveness @Expand
             fn f(v: Foo) {
                 match v {
                     Foo::A(1 | 2) | Foo::C(_) => {}
@@ -1951,7 +1853,6 @@ mod tests {
             "
             enum Foo { A(Int), C(Bool), D(Bar, Bool) }
             enum Bar { X, Y }
-            @NewExhaustiveness @Expand
             fn f(v: Foo) {
                 match v {
                     Foo::A(1) => {}
@@ -1962,7 +1863,7 @@ mod tests {
                 }
             }
         ",
-            (6, 23),
+            (5, 23),
             ErrorMessage::MatchUncoveredVariantWithPattern(vec!["Foo::A(_)".into()]),
         );
 
@@ -1970,7 +1871,6 @@ mod tests {
             "
             enum Foo { A(Int), C(Bool), D(Bar, Bool) }
             enum Bar { X, Y }
-            @NewExhaustiveness @Expand
             fn f(v: Foo) {
                 match v {
                     Foo::A(1) => {}
@@ -1982,7 +1882,7 @@ mod tests {
                 }
             }
         ",
-            (6, 23),
+            (5, 23),
             ErrorMessage::MatchUncoveredVariantWithPattern(vec!["Foo::D(Bar::X, false)".into()]),
         );
     }
