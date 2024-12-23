@@ -1176,8 +1176,13 @@ fn convert_pattern(sa: &Sema, analysis: &AnalysisData, pattern: &ast::Pattern) -
                     }
                 }
 
-                IdentType::Class(_cls_id, _type_params) => {
-                    unimplemented!()
+                IdentType::Class(cls_id, _type_params) => {
+                    let class = sa.class(*cls_id);
+                    Pattern::Constructor {
+                        span: p.span,
+                        constructor_id: ConstructorId::Class(*cls_id),
+                        params: convert_subpatterns(sa, analysis, p, class.fields.len()),
+                    }
                 }
 
                 _ => unreachable!(),
