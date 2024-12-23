@@ -134,17 +134,38 @@ fn display_pattern(sa: &Sema, pattern: Pattern, output: &mut String) -> fmt::Res
             LiteralValue::String(value) => write!(output, "{:?}", value),
         },
 
-        Pattern::EnumVariant {
-            enum_id,
-            variant_id,
+        Pattern::Any { .. } => write!(output, "_"),
+
+        Pattern::Constructor {
+            constructor_id,
             params,
             ..
         } => {
-            let enum_ = sa.enum_(enum_id);
-            let variant = enum_.variants()[variant_id].name;
-            write!(output, "{}::{}", enum_.name(sa), sa.interner.str(variant))?;
+            let mut is_tuple = false;
 
-            if !params.is_empty() {
+            match constructor_id {
+                ConstructorId::Bool => unreachable!(),
+
+                ConstructorId::Enum(enum_id, variant_id) => {
+                    let enum_ = sa.enum_(enum_id);
+                    let variant = enum_.variants()[variant_id].name;
+                    write!(output, "{}::{}", enum_.name(sa), sa.interner.str(variant))?;
+                }
+
+                ConstructorId::Class(class_id) => {
+                    let class = sa.class(class_id);
+                    write!(output, "{}", class.name(sa))?;
+                }
+
+                ConstructorId::Struct(struct_id) => {
+                    let struct_ = sa.struct_(struct_id);
+                    write!(output, "{}", struct_.name(sa))?;
+                }
+
+                ConstructorId::Tuple => is_tuple = true,
+            }
+
+            if !params.is_empty() || is_tuple {
                 let mut first = true;
                 write!(output, "(")?;
 
@@ -160,25 +181,6 @@ fn display_pattern(sa: &Sema, pattern: Pattern, output: &mut String) -> fmt::Res
             }
 
             Ok(())
-        }
-
-        Pattern::Any { .. } => write!(output, "_"),
-
-        Pattern::Constructor { .. } => unimplemented!(),
-
-        Pattern::Tuple { params, .. } => {
-            let mut first = true;
-            write!(output, "(")?;
-
-            for param in params.into_iter().rev() {
-                if !first {
-                    output.write_str(", ")?;
-                }
-                display_pattern(sa, param, output)?;
-                first = false;
-            }
-
-            write!(output, ")")
         }
 
         Pattern::Guard => unreachable!(),
@@ -224,8 +226,8 @@ fn check_exhaustive(sa: &Sema, matrix: Vec<Vec<Pattern>>, n: usize) -> Vec<Vec<P
             result
         }
 
-        Signature::Complete { ctors, kind } => {
-            let ctors_total = kind.total(sa);
+        Signature::Complete { ctors, first } => {
+            let ctors_total = first.total(sa);
             assert!(ctors.len() <= ctors_total);
 
             if ctors.len() == ctors_total {
@@ -245,7 +247,7 @@ fn check_exhaustive(sa: &Sema, matrix: Vec<Vec<Pattern>>, n: usize) -> Vec<Vec<P
                             .map(|mut row| {
                                 let ctor_params = row.drain(tail..).collect::<Vec<_>>();
                                 assert_eq!(ctor_params.len(), arity);
-                                row.push(kind.pattern(id, ctor_params));
+                                row.push(first.pattern(id, ctor_params));
                                 row
                             })
                             .collect::<Vec<_>>();
@@ -286,7 +288,7 @@ fn check_exhaustive(sa: &Sema, matrix: Vec<Vec<Pattern>>, n: usize) -> Vec<Vec<P
                             result_with_ctor.push(result_row);
                             break;
                         } else {
-                            result_row.push(kind.pattern(ctor_id, Vec::new()));
+                            result_row.push(first.pattern(ctor_id, Vec::new()));
                             result_with_ctor.push(result_row);
                         }
                     }
@@ -307,81 +309,24 @@ fn check_exhaustive(sa: &Sema, matrix: Vec<Vec<Pattern>>, n: usize) -> Vec<Vec<P
 enum Signature {
     Complete {
         ctors: HashMap<usize, usize>,
-        kind: CtorKind,
+        first: ConstructorId,
     },
     Incomplete,
 }
 
-#[allow(unused)]
-enum CtorKind {
-    Bool,
-    Tuple,
-    Enum(EnumDefinitionId),
-    Constructor(ConstructorId),
-}
-
-impl CtorKind {
-    fn pattern(&self, id: usize, params: Vec<Pattern>) -> Pattern {
-        match self {
-            CtorKind::Bool => {
-                assert!(params.is_empty());
-                assert!(id == 0 || id == 1);
-                Pattern::Literal {
-                    span: Span::new(1, 1),
-                    value: LiteralValue::Bool(id == 1),
-                }
-            }
-
-            CtorKind::Tuple => {
-                assert!(id == 0);
-                Pattern::Tuple {
-                    span: Span::new(1, 1),
-                    params,
-                }
-            }
-
-            CtorKind::Enum(enum_id) => Pattern::EnumVariant {
-                span: Span::new(1, 1),
-                enum_id: *enum_id,
-                variant_id: id,
-                params,
-            },
-
-            CtorKind::Constructor(constructor_id) => Pattern::Constructor {
-                span: Span::new(1, 1),
-                constructor_id: constructor_id.clone(),
-                params,
-            },
-        }
-    }
-
-    fn total(&self, sa: &Sema) -> usize {
-        match self {
-            CtorKind::Bool => 2,
-            CtorKind::Enum(enum_id) => sa.enum_(*enum_id).variants.len(),
-            CtorKind::Constructor(constructor_id) => match constructor_id {
-                ConstructorId::Bool(..) => 2,
-                ConstructorId::Class(..) | ConstructorId::Struct(..) | ConstructorId::Tuple => 1,
-                ConstructorId::Enum(enum_id, _) => sa.enum_(*enum_id).variants.len(),
-            },
-            CtorKind::Tuple => 1,
-        }
-    }
-}
-
 fn discover_signature(matrix: &[Vec<Pattern>]) -> Signature {
     let mut ctors = HashMap::new();
-    let mut kind = None;
+    let mut first = None;
 
     for row in matrix {
         let pattern = row.last().expect("missing pattern");
-        discover_signature_for_pattern(pattern, &mut ctors, &mut kind);
+        discover_signature_for_pattern(pattern, &mut ctors, &mut first);
     }
 
-    match kind {
-        Some(kind) => {
+    match first {
+        Some(first) => {
             assert!(!ctors.is_empty());
-            Signature::Complete { ctors, kind }
+            Signature::Complete { ctors, first }
         }
 
         None => Signature::Incomplete,
@@ -391,7 +336,7 @@ fn discover_signature(matrix: &[Vec<Pattern>]) -> Signature {
 fn discover_signature_for_pattern(
     pattern: &Pattern,
     ctors: &mut HashMap<usize, usize>,
-    kind: &mut Option<CtorKind>,
+    kind: &mut Option<ConstructorId>,
 ) {
     match pattern {
         Pattern::Alt { ref alts, .. } => {
@@ -402,8 +347,8 @@ fn discover_signature_for_pattern(
         Pattern::Literal { value, .. } => match value {
             LiteralValue::Bool(value) => {
                 match kind {
-                    None => *kind = Some(CtorKind::Bool),
-                    Some(CtorKind::Bool) => (),
+                    None => *kind = Some(ConstructorId::Bool),
+                    Some(ConstructorId::Bool) => (),
                     Some(_) => unreachable!(),
                 }
                 ctors.insert(*value as usize, 0);
@@ -414,27 +359,16 @@ fn discover_signature_for_pattern(
             | LiteralValue::String(..) => {}
         },
         Pattern::Any { .. } => (),
-        Pattern::EnumVariant {
-            enum_id,
-            variant_id,
-            params,
+        Pattern::Constructor {
+            constructor_id,
+            ref params,
             ..
         } => {
             match *kind {
-                None => *kind = Some(CtorKind::Enum(*enum_id)),
-                Some(CtorKind::Enum(exp_enum_id)) => assert_eq!(exp_enum_id, *enum_id),
-                Some(_) => unreachable!(),
+                None => *kind = Some(constructor_id.clone()),
+                Some(..) => (),
             }
-            ctors.insert(*variant_id as usize, params.len());
-        }
-        Pattern::Constructor { .. } => unimplemented!(),
-        Pattern::Tuple { ref params, .. } => {
-            match *kind {
-                None => *kind = Some(CtorKind::Tuple),
-                Some(CtorKind::Tuple) => (),
-                Some(_) => unreachable!(),
-            }
-            ctors.insert(0, params.len());
+            ctors.insert(constructor_id.variant_id(), params.len());
         }
         Pattern::Guard => (),
     }
@@ -593,26 +527,17 @@ fn check_useful_expand_inner(sa: &Sema, matrix: Vec<SplitRow>, mut pattern: Spli
 
                 check_useful_expand_inner(sa, new_matrix, pattern)
             }
-            Pattern::EnumVariant {
-                variant_id,
+            Pattern::Constructor {
+                constructor_id,
                 mut params,
                 ..
             } => {
                 let arity = params.len();
                 let new_matrix = matrix
                     .into_iter()
-                    .flat_map(|r| specialize_row_for_constructor(r, variant_id, arity))
-                    .collect::<Vec<_>>();
-
-                pattern.p.append(&mut params);
-                check_useful_expand_inner(sa, new_matrix, pattern)
-            }
-            Pattern::Constructor { .. } => unimplemented!(),
-            Pattern::Tuple { mut params, .. } => {
-                let arity = params.len();
-                let new_matrix = matrix
-                    .into_iter()
-                    .flat_map(|r| specialize_row_for_constructor(r, 0, arity))
+                    .flat_map(|r| {
+                        specialize_row_for_constructor(r, constructor_id.variant_id(), arity)
+                    })
                     .collect::<Vec<_>>();
 
                 pattern.p.append(&mut params);
@@ -687,24 +612,17 @@ fn check_useful_expand_inner(sa: &Sema, matrix: Vec<SplitRow>, mut pattern: Spli
             let mut new_matrix_r = vec![Vec::new(); new_matrix_p.len()];
 
             for alt in alts {
-                // println!("new_matrix_p = {:?}", new_matrix_p);
-                // println!("new_matrix_q = {:?}", new_matrix_q);
-                // println!("new_matrix_r = {:?}", new_matrix_r);
-
                 let new_matrix: Vec<SplitRow> = SplitMatrixExt::from_matrices(
                     new_matrix_p.clone(),
                     new_matrix_q.clone(),
                     new_matrix_r.clone(),
                 );
-                // println!("new_matrix = {:?}", new_matrix);
 
                 let new_pattern = SplitRow {
                     p: vec![alt.clone()],
                     q: q_concat_r_no_j.clone(),
                     r: Vec::new(),
                 };
-
-                // println!("new_pattern = {:?}", new_pattern);
 
                 let alt_result = check_useful_expand_inner(sa, new_matrix, new_pattern);
                 results.push((alt_result, alt.span()));
@@ -773,8 +691,8 @@ fn check_useful(sa: &Sema, matrix: Vec<Vec<Pattern>>, mut pattern: Vec<Pattern>)
 
                     check_useful(sa, new_matrix, pattern)
                 }
-                Signature::Complete { ctors, kind } => {
-                    let ctors_total = kind.total(sa);
+                Signature::Complete { ctors, first } => {
+                    let ctors_total = first.total(sa);
                     assert!(ctors.len() <= ctors_total);
 
                     if ctors.len() == ctors_total {
@@ -807,34 +725,21 @@ fn check_useful(sa: &Sema, matrix: Vec<Vec<Pattern>>, mut pattern: Vec<Pattern>)
             }
         }
 
-        Pattern::EnumVariant {
-            variant_id,
+        Pattern::Constructor {
+            constructor_id,
             mut params,
             ..
         } => {
             let arity = params.len();
             let new_matrix = matrix
                 .into_iter()
-                .flat_map(|r| specialize_row_for_constructor(r, variant_id, arity))
+                .flat_map(|r| specialize_row_for_constructor(r, constructor_id.variant_id(), arity))
                 .collect::<Vec<_>>();
 
             pattern.append(&mut params);
             check_useful(sa, new_matrix, pattern)
         }
 
-        Pattern::Constructor { .. } => unimplemented!(),
-
-        Pattern::Tuple { mut params, .. } => {
-            let arity = params.len();
-
-            let new_matrix = matrix
-                .into_iter()
-                .flat_map(|r| specialize_row_for_constructor(r, 0, arity))
-                .collect::<Vec<_>>();
-
-            pattern.append(&mut params);
-            check_useful(sa, new_matrix, pattern)
-        }
         Pattern::Guard => {
             // Should be last item in row.
             assert!(pattern.is_empty());
@@ -862,14 +767,9 @@ fn specialize_row_for_any<T: SpecializeRow + Clone>(mut row: T) -> Vec<T> {
                 rows
             })
             .collect::<Vec<_>>(),
-        Pattern::Literal { .. } | Pattern::EnumVariant { .. } => Vec::new(),
+        Pattern::Literal { .. } | Pattern::Constructor { .. } => Vec::new(),
         Pattern::Guard => Vec::new(),
         Pattern::Any { .. } => vec![row],
-        Pattern::Constructor { .. } => unimplemented!(),
-        // This should never be reached as long as all patterns are useful.
-        // This is because tuples conceptually have a single constructor and thus
-        // should always reach the complete signature code path.
-        Pattern::Tuple { .. } => unreachable!(),
     }
 }
 
@@ -896,12 +796,11 @@ fn specialize_row_for_literal<T: SpecializeRow + Clone>(
                 Vec::new()
             }
         }
-        Pattern::Constructor { .. } => unreachable!(),
-        Pattern::EnumVariant { .. } => Vec::new(),
         Pattern::Any { .. } => vec![row],
         // This should never be reached because literals and tuples shouldn't type check.
-        Pattern::Tuple { .. } => unreachable!(),
-        Pattern::Guard => unimplemented!(),
+        Pattern::Constructor { .. } | Pattern::Guard => {
+            unreachable!()
+        }
     }
 }
 
@@ -983,17 +882,6 @@ fn specialize_row_for_constructor<T: SpecializeRow + Clone>(
             | LiteralValue::Int(..)
             | LiteralValue::String(..) => unreachable!(),
         },
-        Pattern::EnumVariant {
-            variant_id, params, ..
-        } => {
-            if id == variant_id {
-                assert_eq!(arity, params.len());
-                row.append(params);
-                vec![row]
-            } else {
-                Vec::new()
-            }
-        }
         Pattern::Constructor {
             constructor_id,
             params,
@@ -1012,11 +900,6 @@ fn specialize_row_for_constructor<T: SpecializeRow + Clone>(
             vec![row]
         }
 
-        Pattern::Tuple { params, .. } => {
-            assert_eq!(id, 0);
-            row.append(params);
-            vec![row]
-        }
         Pattern::Guard => unimplemented!(),
     }
 }
@@ -1045,7 +928,7 @@ impl fmt::Debug for LiteralValue {
 #[derive(Clone, Debug)]
 #[allow(unused)]
 enum ConstructorId {
-    Bool(bool),
+    Bool,
     Enum(EnumDefinitionId, usize),
     Class(ClassDefinitionId),
     Struct(StructDefinitionId),
@@ -1055,15 +938,58 @@ enum ConstructorId {
 impl ConstructorId {
     fn variant_id(&self) -> usize {
         match self {
-            ConstructorId::Bool(..) => unreachable!(),
+            ConstructorId::Bool => unreachable!(),
             ConstructorId::Enum(_, variant_id) => *variant_id,
             ConstructorId::Tuple | ConstructorId::Class(..) | ConstructorId::Struct(..) => 0,
+        }
+    }
+
+    fn pattern(&self, id: usize, params: Vec<Pattern>) -> Pattern {
+        match self {
+            ConstructorId::Bool => {
+                assert!(params.is_empty());
+                Pattern::Literal {
+                    span: Span::new(1, 1),
+                    value: LiteralValue::Bool(id == 1),
+                }
+            }
+
+            ConstructorId::Class(..) => Pattern::Constructor {
+                span: Span::new(1, 1),
+                constructor_id: self.clone(),
+                params,
+            },
+
+            ConstructorId::Struct(..) => Pattern::Constructor {
+                span: Span::new(1, 1),
+                constructor_id: self.clone(),
+                params,
+            },
+
+            ConstructorId::Tuple => Pattern::Constructor {
+                span: Span::new(1, 1),
+                constructor_id: ConstructorId::Tuple,
+                params,
+            },
+
+            ConstructorId::Enum(enum_id, _) => Pattern::Constructor {
+                span: Span::new(1, 1),
+                constructor_id: ConstructorId::Enum(*enum_id, id),
+                params,
+            },
+        }
+    }
+
+    fn total(&self, sa: &Sema) -> usize {
+        match self {
+            ConstructorId::Bool => 2,
+            ConstructorId::Class(..) | ConstructorId::Struct(..) | ConstructorId::Tuple => 1,
+            ConstructorId::Enum(enum_id, _) => sa.enum_(*enum_id).variants.len(),
         }
     }
 }
 
 #[derive(Clone)]
-#[allow(unused)]
 enum Pattern {
     Any {
         span: Option<Span>,
@@ -1075,16 +1001,6 @@ enum Pattern {
     Constructor {
         span: Span,
         constructor_id: ConstructorId,
-        params: Vec<Pattern>,
-    },
-    Tuple {
-        span: Span,
-        params: Vec<Pattern>,
-    },
-    EnumVariant {
-        span: Span,
-        enum_id: EnumDefinitionId,
-        variant_id: usize,
         params: Vec<Pattern>,
     },
     Alt {
@@ -1103,8 +1019,6 @@ impl Pattern {
         match self {
             Pattern::Any { span } => span.clone().expect("missing span"),
             Pattern::Literal { span, .. } => span.clone(),
-            Pattern::Tuple { span, .. } => span.clone(),
-            Pattern::EnumVariant { span, .. } => span.clone(),
             Pattern::Alt { span, .. } => span.clone(),
             Pattern::Constructor { span, .. } => span.clone(),
             Pattern::Guard => unreachable!(),
@@ -1117,29 +1031,6 @@ impl fmt::Debug for Pattern {
         match self {
             Pattern::Any { .. } => write!(f, "_"),
             Pattern::Literal { value, .. } => write!(f, "{:?}", value),
-            Pattern::EnumVariant {
-                enum_id,
-                variant_id,
-                params,
-                ..
-            } => {
-                write!(f, "e{}::{}", enum_id.index(), *variant_id)?;
-
-                if !params.is_empty() {
-                    write!(f, "(")?;
-                    let mut first = true;
-                    for param in params {
-                        if !first {
-                            write!(f, ", ")?;
-                        }
-                        write!(f, "{:?}", param)?;
-                        first = false;
-                    }
-                    write!(f, ")")
-                } else {
-                    Ok(())
-                }
-            }
             Pattern::Constructor {
                 constructor_id,
                 params,
@@ -1161,18 +1052,6 @@ impl fmt::Debug for Pattern {
                 } else {
                     Ok(())
                 }
-            }
-            Pattern::Tuple { params, .. } => {
-                write!(f, "(")?;
-                let mut first = true;
-                for param in params {
-                    if !first {
-                        write!(f, ", ")?;
-                    }
-                    write!(f, "{:?}", param)?;
-                    first = false;
-                }
-                write!(f, ")")
             }
             Pattern::Alt { alts, .. } => {
                 let mut first = true;
@@ -1244,8 +1123,9 @@ fn convert_pattern(sa: &Sema, analysis: &AnalysisData, pattern: &ast::Pattern) -
                 .rev()
                 .map(|p| convert_pattern(sa, analysis, &p))
                 .collect();
-            Pattern::Tuple {
+            Pattern::Constructor {
                 span: tuple.span,
+                constructor_id: ConstructorId::Tuple,
                 params: patterns,
             }
         }
@@ -1257,10 +1137,9 @@ fn convert_pattern(sa: &Sema, analysis: &AnalysisData, pattern: &ast::Pattern) -
                 .expect("missing ident");
             match ident {
                 IdentType::EnumVariant(pattern_enum_id, _type_params, variant_id) => {
-                    Pattern::EnumVariant {
+                    Pattern::Constructor {
                         span: pattern_ident.span,
-                        enum_id: *pattern_enum_id,
-                        variant_id: *variant_id as usize,
+                        constructor_id: ConstructorId::Enum(*pattern_enum_id, *variant_id as usize),
                         params: Vec::new(),
                     }
                 }
@@ -1290,10 +1169,9 @@ fn convert_pattern(sa: &Sema, analysis: &AnalysisData, pattern: &ast::Pattern) -
                     let enum_ = sa.enum_(*pattern_enum_id);
                     let variant = &enum_.variants[*variant_id as usize];
 
-                    Pattern::EnumVariant {
+                    Pattern::Constructor {
                         span: p.span,
-                        enum_id: *pattern_enum_id,
-                        variant_id: *variant_id as usize,
+                        constructor_id: ConstructorId::Enum(enum_.id(), variant.id as usize),
                         params: convert_subpatterns(sa, analysis, p, variant.fields.len()),
                     }
                 }
