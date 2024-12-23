@@ -1,4 +1,4 @@
-use crate::error::msg::ErrorMessage;
+use crate::error::msg::{ErrorLevel, ErrorMessage};
 use crate::sema::ConstValue;
 use crate::stdlib_lookup::resolve_path;
 use crate::tests::*;
@@ -1951,66 +1951,6 @@ fn test_enum_match_params() {
     ",
         (5, 26),
         ErrorMessage::PatternDuplicateBinding,
-    );
-}
-
-#[test]
-fn test_enum_match_missing_variants() {
-    err(
-        "
-        enum A { V1(Int32, Int32, Int32), V2, V3 }
-        fn f(x: A): Int32 {
-            match x {
-                A::V1(a, _, c) => a + c,
-                A::V2 => 1i32,
-            }
-        }
-    ",
-        (4, 19),
-        ErrorMessage::NonExhaustiveMatch(vec!["A::V3".into()]),
-    );
-
-    err(
-        "
-        enum A { V1(Int32, Int32, Int32), V2, V3 }
-        fn f(x: A): Int32 {
-            match x {
-                A::V1(a, _, c) => a + c,
-                A::V2 => 1i32,
-                A::V3 => 2i32,
-                A::V2 => 4i32,
-            }
-        }
-    ",
-        (8, 17),
-        ErrorMessage::MatchUnreachablePattern,
-    );
-}
-
-#[test]
-fn test_enum_match_underscore() {
-    ok("
-        enum A { V1, V2, V3 }
-        fn f(x: A): Bool {
-            match x {
-                A::V1 => true,
-                _ => false,
-            }
-        }
-    ");
-
-    err(
-        "
-        enum A { V1, V2, V3 }
-        fn f(x: A): Bool {
-            match x {
-                _ => false,
-                A::V1 => true,
-            }
-        }
-    ",
-        (6, 17),
-        ErrorMessage::MatchUnreachablePattern,
     );
 }
 
@@ -5464,7 +5404,12 @@ fn impl_method_call_with_invalid_impl_in_another_package() {
         }
             ",
         )],
-        &[((6, 9), ErrorMessage::ImplTraitForeignType)],
+        &[(
+            (6, 9),
+            None,
+            ErrorLevel::Error,
+            ErrorMessage::ImplTraitForeignType,
+        )],
     );
 }
 

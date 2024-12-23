@@ -1,4 +1,4 @@
-pub use crate::error::msg::ErrorMessage;
+pub use crate::error::msg::{ErrorLevel, ErrorMessage};
 use crate::interner::Name;
 use crate::sema::{Sema, SourceFileId};
 use crate::sym::{ModuleSymTable, SymTable, Symbol, SymbolKind};
@@ -228,7 +228,7 @@ pub fn report_sym_shadow_span(sa: &Sema, name: Name, file: SourceFileId, span: S
 #[cfg(test)]
 mod tests {
     use crate::check_program;
-    use crate::error::msg::{ErrorDescriptor, ErrorMessage};
+    use crate::error::msg::{ErrorDescriptor, ErrorLevel, ErrorMessage};
     use crate::sema::{Sema, SemaFlags};
     use dora_parser::{compute_line_column, compute_line_starts};
 
@@ -237,17 +237,32 @@ mod tests {
     }
 
     pub(crate) fn err(code: &'static str, loc: (u32, u32), msg: ErrorMessage) -> Sema {
-        pkg_test(code, &[], &[(loc, msg)])
+        pkg_test(code, &[], &[(loc, None, ErrorLevel::Error, msg)])
     }
 
     pub(crate) fn errors(code: &'static str, vec: &[((u32, u32), ErrorMessage)]) -> Sema {
-        pkg_test(code, &[], vec)
+        let errors = vec
+            .into_iter()
+            .map(|(pos, msg)| (pos.clone(), None, ErrorLevel::Error, msg.clone()))
+            .collect::<Vec<_>>();
+        pkg_test(code, &[], errors.as_slice())
+    }
+
+    pub(crate) fn errors2(
+        code: &'static str,
+        vec: Vec<((u32, u32), u32, ErrorLevel, ErrorMessage)>,
+    ) -> Sema {
+        let errors = vec
+            .into_iter()
+            .map(|(pos, len, level, msg)| (pos, Some(len), level, msg))
+            .collect::<Vec<_>>();
+        pkg_test(code, &[], &errors)
     }
 
     pub(crate) fn pkg_test(
         code: &str,
         packages: &[(&str, &str)],
-        vec: &[((u32, u32), ErrorMessage)],
+        vec: &[((u32, u32), Option<u32>, ErrorLevel, ErrorMessage)],
     ) -> Sema {
         let args: SemaFlags = SemaFlags::for_test(code, packages);
         let mut sa = Sema::new(args);
@@ -255,15 +270,36 @@ mod tests {
         check_program(&mut sa);
 
         println!("expected errors:");
-        for ((line, col), err) in vec {
-            println!("{}:{}: {:?} -> {}", line, col, err, err.message());
+        for ((line, col), len, level, err) in vec {
+            let name = match level {
+                ErrorLevel::Error => "Error",
+                ErrorLevel::Warn => "Warning",
+            };
+
+            println!(
+                "{} at {}:{} (len={:?}): {:?} -> {}",
+                name,
+                line,
+                col,
+                len,
+                err,
+                err.message()
+            );
         }
         println!("");
 
-        println!("actual errors:");
-        report_errors(&sa);
+        // By default warnings are ignored. Only when warnings should be matched.
+        let uses_warnings = vec.iter().find(|e| e.2 == ErrorLevel::Warn).is_some();
 
-        let errors = sa.diag.borrow().errors().to_vec();
+        let mut errors = sa.diag.borrow().errors().to_vec();
+
+        if uses_warnings {
+            let mut warnings = sa.diag.borrow().warnings().to_vec();
+            errors.append(&mut warnings);
+        }
+
+        println!("actual errors:");
+        report_errors(&sa, &mut errors);
 
         assert_eq!(
             vec.len(),
@@ -276,10 +312,19 @@ mod tests {
         for (ind, error) in errors.iter().enumerate() {
             println!("compare error {}", ind);
             assert_eq!(Some(vec[ind].0), compute_pos(code, error));
+            if let Some(len) = vec[ind].1 {
+                let got = error.span.expect("missing span").len();
+                assert_eq!(len, got, "\nexpected length {} but got {}", len, got);
+            }
             assert_eq!(
-                vec[ind].1, error.msg,
+                vec[ind].2, error.level,
                 "\nexpected: {:?}\n but got: {:?}",
-                vec[ind].1, error.msg
+                vec[ind].2, error.level
+            );
+            assert_eq!(
+                vec[ind].3, error.msg,
+                "\nexpected: {:?}\n but got: {:?}",
+                vec[ind].3, error.msg
             );
         }
 
@@ -287,11 +332,10 @@ mod tests {
         sa
     }
 
-    fn report_errors(sa: &Sema) {
-        let mut diag = sa.diag.borrow_mut();
-        diag.sort();
+    fn report_errors(sa: &Sema, errors: &mut Vec<ErrorDescriptor>) {
+        errors.sort_by(crate::error::diag::sort_by);
 
-        for e in diag.errors() {
+        for e in errors {
             if let Some(file_id) = e.file_id {
                 println!("{}:", sa.file(file_id).path.display());
             }

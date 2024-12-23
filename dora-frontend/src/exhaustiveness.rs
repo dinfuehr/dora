@@ -79,7 +79,7 @@ fn check_match(
         };
 
         for span in spans {
-            sa.report(file_id, span, ErrorMessage::MatchUnreachablePattern);
+            sa.warn(file_id, span, ErrorMessage::UselessPattern);
         }
 
         matrix.push(row);
@@ -1235,8 +1235,8 @@ fn convert_subpatterns(
 
 #[cfg(test)]
 mod tests {
-    use crate::tests::{err, errors, ok};
-    use crate::ErrorMessage;
+    use crate::tests::{err, errors2, ok};
+    use crate::{ErrorLevel, ErrorMessage};
 
     #[test]
     fn test_missing_arm() {
@@ -1257,7 +1257,7 @@ mod tests {
 
     #[test]
     fn test_duplicate_arm() {
-        err(
+        errors2(
             "
             enum Foo { A, B, C }
             fn f(x: Foo) {
@@ -1269,14 +1269,13 @@ mod tests {
                 }
             }
         ",
-            (7, 21),
-            ErrorMessage::MatchUnreachablePattern,
+            vec![((7, 21), 6, ErrorLevel::Warn, ErrorMessage::UselessPattern)],
         );
     }
 
     #[test]
     fn test_duplicate_arm_after_underscore() {
-        err(
+        errors2(
             "
             enum Foo { A, B, C }
             fn f(x: Foo) {
@@ -1287,14 +1286,13 @@ mod tests {
                 }
             }
         ",
-            (7, 21),
-            ErrorMessage::MatchUnreachablePattern,
+            vec![((7, 21), 6, ErrorLevel::Warn, ErrorMessage::UselessPattern)],
         );
     }
 
     #[test]
     fn test_duplicate_arm_after_var() {
-        err(
+        errors2(
             "
             enum Foo { A, B, C }
             fn f(x: Foo) {
@@ -1305,14 +1303,13 @@ mod tests {
                 }
             }
         ",
-            (7, 21),
-            ErrorMessage::MatchUnreachablePattern,
+            vec![((7, 21), 6, ErrorLevel::Warn, ErrorMessage::UselessPattern)],
         );
     }
 
     #[test]
     fn usefulness_bool() {
-        err(
+        errors2(
             "
             fn f(v: Bool) {
                 match v {
@@ -1322,14 +1319,13 @@ mod tests {
                 }
             }
         ",
-            (5, 21),
-            ErrorMessage::MatchUnreachablePattern,
+            vec![((5, 21), 4, ErrorLevel::Warn, ErrorMessage::UselessPattern)],
         );
     }
 
     #[test]
     fn usefulness_tuple() {
-        err(
+        errors2(
             "
             fn f(v: (Int, Int)) {
                 match v {
@@ -1338,14 +1334,13 @@ mod tests {
                 }
             }
         ",
-            (5, 21),
-            ErrorMessage::MatchUnreachablePattern,
+            vec![((5, 21), 6, ErrorLevel::Warn, ErrorMessage::UselessPattern)],
         );
     }
 
     #[test]
     fn usefulness_tuple_unreachable_any() {
-        err(
+        errors2(
             "
             fn f(v: (Int, Int)) {
                 match v {
@@ -1354,14 +1349,13 @@ mod tests {
                 }
             }
         ",
-            (5, 21),
-            ErrorMessage::MatchUnreachablePattern,
+            vec![((5, 21), 1, ErrorLevel::Warn, ErrorMessage::UselessPattern)],
         );
     }
 
     #[test]
     fn usefulness_enum() {
-        err(
+        errors2(
             "
             enum Foo { A(Int), C(Bool), D(Int, Bool) }
 
@@ -1373,14 +1367,13 @@ mod tests {
                 }
             }
         ",
-            (7, 21),
-            ErrorMessage::MatchUnreachablePattern,
+            vec![((7, 21), 9, ErrorLevel::Warn, ErrorMessage::UselessPattern)],
         );
     }
 
     #[test]
     fn usefulness_enum_all_variants() {
-        err(
+        errors2(
             "
             enum Foo { A, B, C }
 
@@ -1393,14 +1386,13 @@ mod tests {
                 }
             }
         ",
-            (9, 21),
-            ErrorMessage::MatchUnreachablePattern,
+            vec![((9, 21), 1, ErrorLevel::Warn, ErrorMessage::UselessPattern)],
         );
     }
 
     #[test]
     fn usefulness_int() {
-        err(
+        errors2(
             "
             fn f(v: Int) {
                 match v {
@@ -1411,14 +1403,13 @@ mod tests {
                 }
             }
         ",
-            (7, 21),
-            ErrorMessage::MatchUnreachablePattern,
+            vec![((7, 21), 1, ErrorLevel::Warn, ErrorMessage::UselessPattern)],
         );
     }
 
     #[test]
     fn usefulness_int_with_2_alternatives() {
-        err(
+        errors2(
             "
             fn f(v: Int) {
                 match v {
@@ -1428,14 +1419,13 @@ mod tests {
                 }
             }
         ",
-            (6, 25),
-            ErrorMessage::MatchUnreachablePattern,
+            vec![((6, 25), 1, ErrorLevel::Warn, ErrorMessage::UselessPattern)],
         );
     }
 
     #[test]
     fn usefulness_int_with_3_alternatives() {
-        errors(
+        errors2(
             "
             fn f(v: Int) {
                 match v {
@@ -1445,9 +1435,9 @@ mod tests {
                 }
             }
         ",
-            &[
-                ((6, 25), ErrorMessage::MatchUnreachablePattern),
-                ((6, 29), ErrorMessage::MatchUnreachablePattern),
+            vec![
+                ((6, 25), 1, ErrorLevel::Warn, ErrorMessage::UselessPattern),
+                ((6, 29), 1, ErrorLevel::Warn, ErrorMessage::UselessPattern),
             ],
         );
     }
@@ -1502,7 +1492,7 @@ mod tests {
             }
         ");
 
-        err(
+        errors2(
             "
             fn f(v: Bool) {
                 match v {
@@ -1512,8 +1502,7 @@ mod tests {
                 }
             }
         ",
-            (5, 21),
-            ErrorMessage::MatchUnreachablePattern,
+            vec![((5, 21), 4, ErrorLevel::Warn, ErrorMessage::UselessPattern)],
         );
     }
 

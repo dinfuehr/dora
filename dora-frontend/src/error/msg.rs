@@ -4,6 +4,12 @@ use crate::sema::{Sema, SourceFileId};
 use dora_parser::{compute_line_column, Span};
 
 #[derive(Clone, PartialEq, Eq, Debug)]
+pub enum ErrorLevel {
+    Warn,
+    Error,
+}
+
+#[derive(Clone, PartialEq, Eq, Debug)]
 pub enum ErrorMessage {
     Unimplemented,
     UnknownClass(String),
@@ -52,7 +58,7 @@ pub enum ErrorMessage {
     EnumMismatch(String, String),
     EnumVariantExpected,
     NonExhaustiveMatch(Vec<String>),
-    MatchUnreachablePattern,
+    UselessPattern,
     VarNeedsTypeOrExpression,
     ParamTypesIncompatible(String, Vec<String>, Vec<String>),
     LambdaParamTypesIncompatible(Vec<String>, Vec<String>),
@@ -351,7 +357,7 @@ impl ErrorMessage {
                     missing
                 )
             }
-            ErrorMessage::MatchUnreachablePattern => "unreachable pattern.".into(),
+            ErrorMessage::UselessPattern => "unreachable pattern.".into(),
             ErrorMessage::VarNeedsTypeOrExpression => {
                 format!("variable needs either type declaration or expression.")
             }
@@ -761,14 +767,21 @@ impl ErrorMessage {
 pub struct ErrorDescriptor {
     pub file_id: Option<SourceFileId>,
     pub span: Option<Span>,
+    pub level: ErrorLevel,
     pub msg: ErrorMessage,
 }
 
 impl ErrorDescriptor {
-    pub fn new(file: SourceFileId, span: Span, msg: ErrorMessage) -> ErrorDescriptor {
+    pub fn new(
+        file: SourceFileId,
+        span: Span,
+        level: ErrorLevel,
+        msg: ErrorMessage,
+    ) -> ErrorDescriptor {
         ErrorDescriptor {
             file_id: Some(file),
             span: Some(span),
+            level,
             msg,
         }
     }
@@ -777,6 +790,7 @@ impl ErrorDescriptor {
         ErrorDescriptor {
             file_id: None,
             span: None,
+            level: ErrorLevel::Error,
             msg,
         }
     }

@@ -1,6 +1,6 @@
 use std::cmp::Ordering;
 
-use crate::error::msg::{ErrorDescriptor, ErrorMessage};
+use crate::error::msg::{ErrorDescriptor, ErrorLevel, ErrorMessage};
 use crate::sema::{Sema, SourceFileId};
 
 use dora_parser::Span;
@@ -27,11 +27,13 @@ impl Diagnostic {
     }
 
     pub fn report(&mut self, file: SourceFileId, span: Span, msg: ErrorMessage) {
-        self.errors.push(ErrorDescriptor::new(file, span, msg));
+        self.errors
+            .push(ErrorDescriptor::new(file, span, ErrorLevel::Error, msg));
     }
 
     pub fn warn(&mut self, file: SourceFileId, span: Span, msg: ErrorMessage) {
-        self.warnings.push(ErrorDescriptor::new(file, span, msg));
+        self.warnings
+            .push(ErrorDescriptor::new(file, span, ErrorLevel::Warn, msg));
     }
 
     pub fn report_without_location(&mut self, msg: ErrorMessage) {
@@ -76,32 +78,32 @@ impl Diagnostic {
     }
 
     pub fn sort(&mut self) {
-        let criteria = |el1: &ErrorDescriptor, el2: &ErrorDescriptor| {
-            if el1.file_id.is_none() {
-                return Ordering::Less;
-            }
+        self.errors.sort_by(sort_by);
+        self.warnings.sort_by(sort_by);
+    }
+}
 
-            if el2.file_id.is_none() {
-                return Ordering::Greater;
-            }
+pub fn sort_by(el1: &ErrorDescriptor, el2: &ErrorDescriptor) -> Ordering {
+    if el1.file_id.is_none() {
+        return Ordering::Less;
+    }
 
-            let el1_file = el1.file_id.expect("missing location");
-            let el1_span = el1.span.expect("missing span");
+    if el2.file_id.is_none() {
+        return Ordering::Greater;
+    }
 
-            let el2_file = el2.file_id.expect("missing location");
-            let el2_span = el2.span.expect("missing span");
+    let el1_file = el1.file_id.expect("missing location");
+    let el1_span = el1.span.expect("missing span");
 
-            let result = el1_file.cmp(&el2_file);
+    let el2_file = el2.file_id.expect("missing location");
+    let el2_span = el2.span.expect("missing span");
 
-            if result.is_eq() {
-                el1_span.start().cmp(&el2_span.start())
-            } else {
-                result
-            }
-        };
+    let result = el1_file.cmp(&el2_file);
 
-        self.errors.sort_by(criteria);
-        self.warnings.sort_by(criteria);
+    if result.is_eq() {
+        el1_span.start().cmp(&el2_span.start())
+    } else {
+        result
     }
 }
 
