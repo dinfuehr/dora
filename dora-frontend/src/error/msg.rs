@@ -51,8 +51,7 @@ pub enum ErrorMessage {
     EnumExpected,
     EnumMismatch(String, String),
     EnumVariantExpected,
-    MatchUncoveredVariant,
-    MatchUncoveredVariantWithPattern(Vec<String>),
+    NonExhaustiveMatch(Vec<String>),
     MatchUnreachablePattern,
     VarNeedsTypeOrExpression,
     ParamTypesIncompatible(String, Vec<String>, Vec<String>),
@@ -345,8 +344,7 @@ impl ErrorMessage {
                 format!("value of type {} but pattern of type {}.", value, pattern)
             }
             ErrorMessage::EnumVariantExpected => format!("enum variant expected."),
-            ErrorMessage::MatchUncoveredVariant => "not all variants are covered.".into(),
-            ErrorMessage::MatchUncoveredVariantWithPattern(ref patterns) => {
+            ErrorMessage::NonExhaustiveMatch(ref patterns) => {
                 let missing = patterns.join(", ");
                 format!(
                     "`match` does not cover all possible values. Missing patterns: {}",

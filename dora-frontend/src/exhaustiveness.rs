@@ -105,7 +105,7 @@ fn check_match(
         sa.report(
             file_id,
             node.expr.span(),
-            ErrorMessage::MatchUncoveredVariantWithPattern(patterns),
+            ErrorMessage::NonExhaustiveMatch(patterns),
         );
     }
 }
@@ -1251,7 +1251,7 @@ mod tests {
             }
         ",
             (4, 23),
-            ErrorMessage::MatchUncoveredVariantWithPattern(vec!["Foo::C".into()]),
+            ErrorMessage::NonExhaustiveMatch(vec!["Foo::C".into()]),
         );
     }
 
@@ -1472,7 +1472,7 @@ mod tests {
             }
         ",
             (3, 23),
-            ErrorMessage::MatchUncoveredVariantWithPattern(vec!["false".into()]),
+            ErrorMessage::NonExhaustiveMatch(vec!["false".into()]),
         );
 
         err(
@@ -1484,7 +1484,7 @@ mod tests {
             }
         ",
             (3, 23),
-            ErrorMessage::MatchUncoveredVariantWithPattern(vec!["true".into()]),
+            ErrorMessage::NonExhaustiveMatch(vec!["true".into()]),
         );
     }
 
@@ -1539,7 +1539,7 @@ mod tests {
             }
         ",
             (3, 23),
-            ErrorMessage::MatchUncoveredVariantWithPattern(vec!["_".into()]),
+            ErrorMessage::NonExhaustiveMatch(vec!["_".into()]),
         );
     }
 
@@ -1557,6 +1557,22 @@ mod tests {
     }
 
     #[test]
+    fn non_exhaustive_class() {
+        err(
+            "
+            class Foo(Int, Bool)
+            fn f(v: Foo) {
+                match v {
+                    Foo(_, true) => {}
+                }
+            }
+        ",
+            (4, 23),
+            ErrorMessage::NonExhaustiveMatch(vec!["Foo(_, false)".into()]),
+        );
+    }
+
+    #[test]
     fn exhaustive_struct() {
         ok("
             struct Foo(Int, Bool)
@@ -1567,6 +1583,22 @@ mod tests {
                 }
             }
         ");
+    }
+
+    #[test]
+    fn non_exhaustive_struct() {
+        err(
+            "
+            struct Foo(Int, Bool)
+            fn f(v: Foo) {
+                match v {
+                    Foo(_, false) => {}
+                }
+            }
+        ",
+            (4, 23),
+            ErrorMessage::NonExhaustiveMatch(vec!["Foo(_, true)".into()]),
+        );
     }
 
     #[test]
@@ -1640,7 +1672,7 @@ mod tests {
             }
         ",
             (4, 23),
-            ErrorMessage::MatchUncoveredVariantWithPattern(vec!["Foo::B".into(), "Foo::C".into()]),
+            ErrorMessage::NonExhaustiveMatch(vec!["Foo::B".into(), "Foo::C".into()]),
         );
     }
 
@@ -1657,7 +1689,7 @@ mod tests {
             }
         ",
             (4, 23),
-            ErrorMessage::MatchUncoveredVariantWithPattern(vec![
+            ErrorMessage::NonExhaustiveMatch(vec![
                 "Foo::C1".into(),
                 "Foo::C2".into(),
                 "Foo::C4".into(),
@@ -1677,7 +1709,7 @@ mod tests {
             }
         ",
             (4, 23),
-            ErrorMessage::MatchUncoveredVariantWithPattern(vec![
+            ErrorMessage::NonExhaustiveMatch(vec![
                 "Foo::C1".into(),
                 "Foo::C2".into(),
                 "Foo::C6".into(),
@@ -1799,7 +1831,7 @@ mod tests {
             }
         ",
             (4, 23),
-            ErrorMessage::MatchUncoveredVariantWithPattern(vec!["(Foo::C, Foo::B)".into()]),
+            ErrorMessage::NonExhaustiveMatch(vec!["(Foo::C, Foo::B)".into()]),
         );
 
         err(
@@ -1815,7 +1847,7 @@ mod tests {
             }
         ",
             (4, 23),
-            ErrorMessage::MatchUncoveredVariantWithPattern(vec!["(Foo::D, false)".into()]),
+            ErrorMessage::NonExhaustiveMatch(vec!["(Foo::D, false)".into()]),
         );
     }
 
@@ -1888,7 +1920,7 @@ mod tests {
             }
         ",
             (5, 23),
-            ErrorMessage::MatchUncoveredVariantWithPattern(vec!["Foo::A(_)".into()]),
+            ErrorMessage::NonExhaustiveMatch(vec!["Foo::A(_)".into()]),
         );
 
         err(
@@ -1907,7 +1939,7 @@ mod tests {
             }
         ",
             (5, 23),
-            ErrorMessage::MatchUncoveredVariantWithPattern(vec!["Foo::D(Bar::X, false)".into()]),
+            ErrorMessage::NonExhaustiveMatch(vec!["Foo::D(Bar::X, false)".into()]),
         );
     }
 }

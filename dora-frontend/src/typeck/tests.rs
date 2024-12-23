@@ -1967,7 +1967,7 @@ fn test_enum_match_missing_variants() {
         }
     ",
         (4, 19),
-        ErrorMessage::MatchUncoveredVariantWithPattern(vec!["A::V3".into()]),
+        ErrorMessage::NonExhaustiveMatch(vec!["A::V3".into()]),
     );
 
     err(
