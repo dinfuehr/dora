@@ -1185,6 +1185,15 @@ fn convert_pattern(sa: &Sema, analysis: &AnalysisData, pattern: &ast::Pattern) -
                     }
                 }
 
+                IdentType::Struct(struct_id, _type_params) => {
+                    let struct_ = sa.struct_(*struct_id);
+                    Pattern::Constructor {
+                        span: p.span,
+                        constructor_id: ConstructorId::Struct(*struct_id),
+                        params: convert_subpatterns(sa, analysis, p, struct_.fields.len()),
+                    }
+                }
+
                 _ => unreachable!(),
             }
         }
@@ -1535,7 +1544,6 @@ mod tests {
     }
 
     #[test]
-    #[ignore]
     fn exhaustive_class() {
         ok("
             class Foo(Int, Bool)
@@ -1543,6 +1551,53 @@ mod tests {
                 match v {
                     Foo(_, true) => {}
                     Foo(_, false) => {}
+                }
+            }
+        ");
+    }
+
+    #[test]
+    fn exhaustive_struct() {
+        ok("
+            struct Foo(Int, Bool)
+            fn f(v: Foo) {
+                match v {
+                    Foo(_, true) => {}
+                    Foo(_, false) => {}
+                }
+            }
+        ");
+    }
+
+    #[test]
+    fn exhaustive_class_named_fields() {
+        ok("
+            class Foo {
+                field0: Int,
+                field1: Bool
+            }
+
+            fn f(v: Foo) {
+                match v {
+                    Foo(field1 = true, ..) => {}
+                    Foo(field1 = false, ..) => {}
+                }
+            }
+        ");
+    }
+
+    #[test]
+    fn exhaustive_struct_named_fields() {
+        ok("
+            struct Foo {
+                field0: Int,
+                field1: Bool
+            }
+
+            fn f(v: Foo) {
+                match v {
+                    Foo(field1 = true, ..) => {}
+                    Foo(field1 = false, ..) => {}
                 }
             }
         ");
