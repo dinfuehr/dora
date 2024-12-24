@@ -288,7 +288,7 @@ mod tests {
         }
         println!("");
 
-        // By default warnings are ignored. Only when warnings should be matched.
+        // By default warnings are ignored. They are only included when warnings are expected by the test.
         let uses_warnings = vec.iter().find(|e| e.2 == ErrorLevel::Warn).is_some();
 
         let mut errors = sa.diag.borrow().errors().to_vec();

@@ -1354,6 +1354,70 @@ mod tests {
     }
 
     #[test]
+    fn usefulness_tuple_with_alternative() {
+        errors2(
+            "
+            fn f(v: (Int, Int)) {
+                match v {
+                    (1|2, _) => {}
+                    (1|2, _) => {}
+                    _ => {}
+                }
+            }
+        ",
+            vec![((5, 21), 8, ErrorLevel::Warn, ErrorMessage::UselessPattern)],
+        );
+    }
+
+    #[test]
+    fn usefulness_tuple_with_multiple_alternatives() {
+        errors2(
+            "
+            fn f(v: (Int, Int)) {
+                match v {
+                    (1|2, _) => {}
+                    (1|2, 1|2|3|4|_) => {}
+                    _ => {}
+                }
+            }
+        ",
+            vec![((5, 21), 16, ErrorLevel::Warn, ErrorMessage::UselessPattern)],
+        );
+    }
+
+    #[test]
+    fn usefulness_tuple_with_useless_subpattern() {
+        errors2(
+            "
+            fn f(v: (Int, Int)) {
+                match v {
+                    (1|2, _) => {}
+                    (1|2|3, 1|2|3|4|_) => {}
+                    _ => {}
+                }
+            }
+        ",
+            vec![
+                ((5, 22), 1, ErrorLevel::Warn, ErrorMessage::UselessPattern),
+                ((5, 24), 1, ErrorLevel::Warn, ErrorMessage::UselessPattern),
+            ],
+        );
+    }
+
+    #[test]
+    fn usefulness_tuple_with_useless_pattern_combination() {
+        ok("
+            fn f(v: (Int, Int)) {
+                match v {
+                    (1|2, 3|4) => {}
+                    (1|2|3, 3|4|5) => {}
+                    _ => {}
+                }
+            }
+        ");
+    }
+
+    #[test]
     fn usefulness_enum() {
         errors2(
             "
