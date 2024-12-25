@@ -228,6 +228,10 @@ impl ElementAccess for ClassDefinition {
 }
 
 impl ElementWithFields for ClassDefinition {
+    fn field_name_style(&self) -> ast::FieldNameStyle {
+        self.field_name_style
+    }
+
     fn field_name(&self, idx: usize) -> Option<Name> {
         self.fields[idx].name
     }
@@ -236,7 +240,7 @@ impl ElementWithFields for ClassDefinition {
         self.fields.len()
     }
 
-    fn fields<'a>(&'a self) -> Box<dyn Iterator<Item = ElementField> + 'a> {
+    fn fields<'a>(&'a self) -> Box<dyn DoubleEndedIterator<Item = ElementField> + 'a> {
         Box::new(self.fields.iter().map(|f| ElementField {
             id: f.id.to_usize(),
             name: f.name,

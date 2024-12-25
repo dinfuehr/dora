@@ -6,8 +6,8 @@ use dora_parser::ast::visit::{self, Visitor};
 use dora_parser::Span;
 
 use crate::sema::{
-    AnalysisData, ClassDefinitionId, EnumDefinitionId, IdentType, Sema, SourceFileId,
-    StructDefinitionId,
+    AnalysisData, ClassDefinitionId, ElementWithFields, EnumDefinitionId, IdentType, Sema,
+    SourceFileId, StructDefinitionId,
 };
 use crate::ErrorMessage;
 
@@ -140,32 +140,34 @@ fn display_pattern(sa: &Sema, pattern: Pattern, output: &mut String) -> fmt::Res
             constructor_id,
             params,
             ..
-        } => {
-            let mut is_tuple = false;
+        } => match constructor_id {
+            ConstructorId::Bool => unreachable!(),
 
-            match constructor_id {
-                ConstructorId::Bool => unreachable!(),
-
-                ConstructorId::Enum(enum_id, variant_id) => {
-                    let enum_ = sa.enum_(enum_id);
-                    let variant = enum_.variants()[variant_id].name;
-                    write!(output, "{}::{}", enum_.name(sa), sa.interner.str(variant))?;
-                }
-
-                ConstructorId::Class(class_id) => {
-                    let class = sa.class(class_id);
-                    write!(output, "{}", class.name(sa))?;
-                }
-
-                ConstructorId::Struct(struct_id) => {
-                    let struct_ = sa.struct_(struct_id);
-                    write!(output, "{}", struct_.name(sa))?;
-                }
-
-                ConstructorId::Tuple => is_tuple = true,
+            ConstructorId::Enum(enum_id, variant_id) => {
+                let enum_ = sa.enum_(enum_id);
+                let variant = &enum_.variants[variant_id];
+                write!(
+                    output,
+                    "{}::{}",
+                    enum_.name(sa),
+                    sa.interner.str(variant.name)
+                )?;
+                display_params(sa, variant, params, output)
             }
 
-            if !params.is_empty() || is_tuple {
+            ConstructorId::Class(class_id) => {
+                let class = sa.class(class_id);
+                write!(output, "{}", class.name(sa))?;
+                display_params(sa, class, params, output)
+            }
+
+            ConstructorId::Struct(struct_id) => {
+                let struct_ = sa.struct_(struct_id);
+                write!(output, "{}", struct_.name(sa))?;
+                display_params(sa, struct_, params, output)
+            }
+
+            ConstructorId::Tuple => {
                 let mut first = true;
                 write!(output, "(")?;
 
@@ -177,13 +179,42 @@ fn display_pattern(sa: &Sema, pattern: Pattern, output: &mut String) -> fmt::Res
                     first = false;
                 }
 
-                write!(output, ")")?;
+                write!(output, ")")
             }
-
-            Ok(())
-        }
+        },
 
         Pattern::Guard => unreachable!(),
+    }
+}
+
+fn display_params(
+    sa: &Sema,
+    element: &dyn ElementWithFields,
+    params: Vec<Pattern>,
+    output: &mut String,
+) -> fmt::Result {
+    if element.fields_len() > 0 {
+        let mut first = true;
+        write!(output, "(")?;
+        let emit_names = element.field_name_style().is_named();
+
+        for (field, param) in element.fields().zip(params.into_iter().rev()) {
+            if !first {
+                output.write_str(", ")?;
+            }
+
+            if emit_names {
+                let name = field.name.expect("missing name");
+                write!(output, "{} = ", sa.interner.str(name))?;
+            }
+
+            display_pattern(sa, param, output)?;
+            first = false;
+        }
+
+        write!(output, ")")
+    } else {
+        Ok(())
     }
 }
 
@@ -1921,6 +1952,63 @@ mod tests {
                 }
             }
         ");
+    }
+
+    #[test]
+    fn non_exhaustive_enum_with_named_fields() {
+        err(
+            "
+            enum Foo { A { a: Bool, b: Int }, B(Int, Int) }
+            fn f(v: Foo) {
+                match v {
+                    Foo::A(a = true, b = Int) => {}
+                    Foo::B(_, _) => {}
+                }
+            }
+        ",
+            (4, 23),
+            ErrorMessage::NonExhaustiveMatch(vec!["Foo::A(a = false, b = _)".into()]),
+        );
+    }
+
+    #[test]
+    fn non_exhaustive_class_named_fields() {
+        err(
+            "
+            class Foo {
+                a: Bool,
+                b: Int
+            }
+
+            fn f(v: Foo) {
+                match v {
+                    Foo(a = true, ..) => {}
+                }
+            }
+        ",
+            (8, 23),
+            ErrorMessage::NonExhaustiveMatch(vec!["Foo(a = false, b = _)".into()]),
+        );
+    }
+
+    #[test]
+    fn non_exhaustive_struct_named_fields() {
+        err(
+            "
+            struct Foo {
+                a: Int,
+                b: Bool
+            }
+
+            fn f(v: Foo) {
+                match v {
+                    Foo(b = true, ..) => {}
+                }
+            }
+        ",
+            (8, 23),
+            ErrorMessage::NonExhaustiveMatch(vec!["Foo(a = _, b = false)".into()]),
+        );
     }
 
     #[test]

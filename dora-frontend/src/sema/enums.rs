@@ -165,11 +165,15 @@ pub struct EnumVariant {
 }
 
 impl ElementWithFields for EnumVariant {
+    fn field_name_style(&self) -> ast::FieldNameStyle {
+        self.field_name_style
+    }
+
     fn field_name(&self, idx: usize) -> Option<Name> {
         self.fields[idx].name
     }
 
-    fn fields<'a>(&'a self) -> Box<dyn Iterator<Item = super::ElementField> + 'a> {
+    fn fields<'a>(&'a self) -> Box<dyn DoubleEndedIterator<Item = ElementField> + 'a> {
         Box::new(self.fields.iter().enumerate().map(|(id, f)| ElementField {
             id,
             name: f.name,

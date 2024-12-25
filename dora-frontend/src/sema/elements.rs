@@ -1,5 +1,7 @@
 use std::rc::Rc;
 
+use dora_parser::ast;
+
 use crate::sema::{
     AliasDefinition, AliasDefinitionId, AliasParent, ClassDefinitionId, ConstDefinitionId,
     EnumDefinitionId, ExtensionDefinitionId, FctDefinition, FctDefinitionId, FctParent,
@@ -72,8 +74,9 @@ pub trait ElementAccess {
 }
 
 pub trait ElementWithFields {
+    fn field_name_style(&self) -> ast::FieldNameStyle;
     fn fields_len(&self) -> usize;
-    fn fields<'a>(&'a self) -> Box<dyn Iterator<Item = ElementField> + 'a>;
+    fn fields<'a>(&'a self) -> Box<dyn DoubleEndedIterator<Item = ElementField> + 'a>;
     fn field_name(&self, idx: usize) -> Option<Name>;
 }
 

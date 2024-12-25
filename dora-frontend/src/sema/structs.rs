@@ -182,6 +182,10 @@ impl ElementAccess for StructDefinition {
 }
 
 impl ElementWithFields for StructDefinition {
+    fn field_name_style(&self) -> ast::FieldNameStyle {
+        self.field_name_style
+    }
+
     fn fields_len(&self) -> usize {
         self.fields.len()
     }
@@ -190,7 +194,7 @@ impl ElementWithFields for StructDefinition {
         self.fields[idx].name
     }
 
-    fn fields<'a>(&'a self) -> Box<dyn Iterator<Item = super::ElementField> + 'a> {
+    fn fields<'a>(&'a self) -> Box<dyn DoubleEndedIterator<Item = ElementField> + 'a> {
         Box::new(self.fields.iter().map(|f| ElementField {
             id: f.id.to_usize(),
             name: f.name,
