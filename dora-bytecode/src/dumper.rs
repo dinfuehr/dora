@@ -197,6 +197,22 @@ pub fn dump(w: &mut dyn io::Write, prog: &Program, bc: &BytecodeFunction) -> std
                 fmt_tuple(prog, params),
                 fmt_ty(prog, return_type)
             )?,
+            ConstPoolEntry::JumpTable {
+                targets,
+                default_target,
+            } => {
+                writeln!(w, "{}{} => JumTable ", align, idx)?;
+
+                for (idx, target) in targets.iter().enumerate() {
+                    if idx > 0 {
+                        write!(w, ", ")?;
+                    }
+
+                    write!(w, "{}", *target)?;
+                }
+
+                write!(w, ", default {}", default_target)?
+            }
         }
     }
 

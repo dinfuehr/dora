@@ -389,6 +389,17 @@ fn encode_constpool_entry(vm: &VM, const_entry: &ConstPoolEntry, buffer: &mut By
             encode_bytecode_type_array(vm, params, buffer);
             encode_bytecode_type(vm, return_type, buffer);
         }
+        &ConstPoolEntry::JumpTable {
+            ref targets,
+            default_target,
+        } => {
+            buffer.emit_u8(ConstPoolOpcode::JumpTable.into());
+            buffer.emit_u32(targets.len() as u32);
+            for target in targets {
+                buffer.emit_u32(*target);
+            }
+            buffer.emit_u32(default_target);
+        }
     }
 }
 

@@ -102,6 +102,7 @@ pub enum BytecodeOpcode {
     Jump,
     JumpIfFalse,
     JumpIfTrue,
+    Switch,
 
     InvokeDirect,
     InvokeVirtual,
@@ -440,6 +441,9 @@ pub enum BytecodeInstruction {
         opnd: Register,
         offset: u32,
     },
+    Switch {
+        idx: ConstPoolIdx,
+    },
 
     InvokeDirect {
         dest: Register,
@@ -683,6 +687,7 @@ pub enum ConstPoolOpcode {
     TupleElement,
     Tuple,
     Lambda,
+    JumpTable,
 }
 
 #[derive(Clone, Debug, PartialEq, Decode, Encode)]
@@ -710,6 +715,10 @@ pub enum ConstPoolEntry {
     TupleElement(BytecodeType, u32),
     Tuple(BytecodeTypeArray),
     Lambda(BytecodeTypeArray, BytecodeType),
+    JumpTable {
+        targets: Vec<u32>,
+        default_target: u32,
+    },
 }
 
 impl ConstPoolEntry {

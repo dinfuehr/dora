@@ -88,6 +88,7 @@ pub enum ConstPoolEntry {
     TupleElement(BytecodeType, Int32),
     Tuple(Array[BytecodeType]),
     Lambda(Array[BytecodeType], BytecodeType),
+    JumpTable { targets: Array[Int32], default: Int32 },
 }
 
 impl ConstPoolEntry {
@@ -157,6 +158,19 @@ impl Stringable for ConstPoolEntry {
             ConstPoolEntry::TupleElement(ty, idx) => "TupleElement ${ty}.${idx}",
             ConstPoolEntry::Tuple(types) => "Tuple ${types}",
             ConstPoolEntry::Lambda(params, ret) => "Lambda ${params}:${ret}",
+            ConstPoolEntry::JumpTable(targets, default) => {
+                let output = StringBuffer::new();
+
+                for (idx, target) in targets.enumerate() {
+                    if idx > 0 {
+                        output.append(", ");
+                    }
+
+                    output.append("${idx} -> ${target}");
+                }
+
+                "JumpTable ${output.toString()}, default ${default}"
+            }
         }
     }
 }

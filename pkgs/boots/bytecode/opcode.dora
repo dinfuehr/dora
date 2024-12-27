@@ -44,25 +44,26 @@ pub const BC_LOOP_START: Int32 = 40;
 pub const BC_JUMP: Int32 = 41;
 pub const BC_JUMP_IF_FALSE: Int32 = 42;
 pub const BC_JUMP_IF_TRUE: Int32 = 43;
-pub const BC_INVOKE_DIRECT: Int32 = 44;
-pub const BC_INVOKE_VIRTUAL: Int32 = 45;
-pub const BC_INVOKE_STATIC: Int32 = 46;
-pub const BC_INVOKE_LAMBDA: Int32 = 47;
-pub const BC_INVOKE_GENERIC_STATIC: Int32 = 48;
-pub const BC_INVOKE_GENERIC_DIRECT: Int32 = 49;
-pub const BC_NEW_OBJECT: Int32 = 50;
-pub const BC_NEW_OBJECT_INITIALIZED: Int32 = 51;
-pub const BC_NEW_ARRAY: Int32 = 52;
-pub const BC_NEW_TUPLE: Int32 = 53;
-pub const BC_NEW_ENUM: Int32 = 54;
-pub const BC_NEW_STRUCT: Int32 = 55;
-pub const BC_NEW_TRAIT_OBJECT: Int32 = 56;
-pub const BC_NEW_LAMBDA: Int32 = 57;
-pub const BC_ARRAY_LENGTH: Int32 = 58;
-pub const BC_LOAD_ARRAY: Int32 = 59;
-pub const BC_STORE_ARRAY: Int32 = 60;
-pub const BC_LOAD_TRAIT_OBJECT_VALUE: Int32 = 61;
-pub const BC_RET: Int32 = 62;
+pub const BC_SWITCH: Int32 = 44;
+pub const BC_INVOKE_DIRECT: Int32 = 45;
+pub const BC_INVOKE_VIRTUAL: Int32 = 46;
+pub const BC_INVOKE_STATIC: Int32 = 47;
+pub const BC_INVOKE_LAMBDA: Int32 = 48;
+pub const BC_INVOKE_GENERIC_STATIC: Int32 = 49;
+pub const BC_INVOKE_GENERIC_DIRECT: Int32 = 50;
+pub const BC_NEW_OBJECT: Int32 = 51;
+pub const BC_NEW_OBJECT_INITIALIZED: Int32 = 52;
+pub const BC_NEW_ARRAY: Int32 = 53;
+pub const BC_NEW_TUPLE: Int32 = 54;
+pub const BC_NEW_ENUM: Int32 = 55;
+pub const BC_NEW_STRUCT: Int32 = 56;
+pub const BC_NEW_TRAIT_OBJECT: Int32 = 57;
+pub const BC_NEW_LAMBDA: Int32 = 58;
+pub const BC_ARRAY_LENGTH: Int32 = 59;
+pub const BC_LOAD_ARRAY: Int32 = 60;
+pub const BC_STORE_ARRAY: Int32 = 61;
+pub const BC_LOAD_TRAIT_OBJECT_VALUE: Int32 = 62;
+pub const BC_RET: Int32 = 63;
 
 pub const BC_TYPE_UNIT: Int32 = 0;
 pub const BC_TYPE_BOOL: Int32 = 1;
@@ -104,6 +105,7 @@ pub const CONSTPOOL_OPCODE_TRAIT_OBJECT: Int32 = 16;
 pub const CONSTPOOL_OPCODE_TUPLE_ELEMENT: Int32 = 17;
 pub const CONSTPOOL_OPCODE_TUPLE: Int32 = 18;
 pub const CONSTPOOL_OPCODE_LAMBDA: Int32 = 19;
+pub const CONSTPOOL_OPCODE_JUMP_TABLE: Int32 = 20;
 
 pub const LAZY_COMPILATION_SITE_DIRECT: Int32 = 0;
 pub const LAZY_COMPILATION_SITE_VIRTUAL: Int32 = 1;
@@ -303,6 +305,7 @@ pub fn bytecodeName(opcode: Int32): String {
   if opcode == BC_JUMP { return "Jump"; }
   if opcode == BC_JUMP_IF_FALSE { return "JumpIfFalse"; }
   if opcode == BC_JUMP_IF_TRUE { return "JumpIfTrue"; }
+  if opcode == BC_SWITCH { return "Switch"; }
   if opcode == BC_INVOKE_DIRECT { return "InvokeDirect"; }
   if opcode == BC_INVOKE_VIRTUAL { return "InvokeVirtual"; }
   if opcode == BC_INVOKE_STATIC { return "InvokeStatic"; }

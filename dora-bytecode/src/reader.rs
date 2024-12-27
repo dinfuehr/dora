@@ -281,6 +281,10 @@ impl<'a> BytecodeReader<'a> {
                 let offset = self.read_forward_offset();
                 BytecodeInstruction::JumpIfTrue { opnd, offset }
             }
+            BytecodeOpcode::Switch => {
+                let idx = self.read_const_pool_idx();
+                BytecodeInstruction::Switch { idx }
+            }
             BytecodeOpcode::Jump => {
                 let offset = self.read_forward_offset();
                 BytecodeInstruction::Jump { offset }
@@ -651,6 +655,9 @@ where
             BytecodeInstruction::Jump { offset } => {
                 self.visitor.visit_jump(offset);
             }
+            BytecodeInstruction::Switch { idx } => {
+                self.visitor.visit_switch(idx);
+            }
 
             BytecodeInstruction::InvokeDirect { dest, fct } => {
                 self.visitor.visit_invoke_direct(dest, fct);
@@ -898,6 +905,9 @@ pub trait BytecodeVisitor {
         unimplemented!();
     }
     fn visit_jump(&mut self, _offset: u32) {
+        unimplemented!();
+    }
+    fn visit_switch(&mut self, _idx: ConstPoolIdx) {
         unimplemented!();
     }
 

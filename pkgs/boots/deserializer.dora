@@ -285,6 +285,14 @@ fn decodeConstPoolEntry(reader: ByteReader): ConstPoolEntry {
         let params = decodeBytecodeTypeArray(reader);
         let return_ty = decodeBytecodeType(reader);
         ConstPoolEntry::Lambda(params, return_ty)
+    } else if opcode == opc::CONSTPOOL_OPCODE_JUMP_TABLE {
+        let len = reader.readInt32().toInt64();
+        let targets = Vec[Int32]::newWithCapacity(len);
+        for _ in std::range(0, len) {
+            targets.push(reader.readInt32());
+        }
+        let default = reader.readInt32();
+        ConstPoolEntry::JumpTable(targets = targets.toArray(), default)
     } else {
         println("unknown ConstPoolEntry opcode = ${opcode}");
         unreachable[ConstPoolEntry]()
