@@ -144,6 +144,16 @@ pub trait Neg {
 pub trait Iterator {
   type Item;
   fn next(): Option[Self::Item];
+
+  // fn count(): Int64 {
+  //   let mut result = 0;
+
+  //   while self.next() is Some(_) {
+  //     result += 1;
+  //   }
+
+  //   result
+  // }
 }
 
 pub trait IntoIterator {

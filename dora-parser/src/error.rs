@@ -27,6 +27,7 @@ pub enum ParseError {
     UnclosedStringTemplate,
     ExpectedIdentifier,
     ExpectedExpression,
+    ExpectedStatement,
 }
 
 impl ParseError {
@@ -66,6 +67,7 @@ impl ParseError {
                 format!("identifier expected.")
             }
             ParseError::ExpectedExpression => "expected expression.".into(),
+            ParseError::ExpectedStatement => "expected statement.".into(),
         }
     }
 }

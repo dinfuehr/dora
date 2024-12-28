@@ -64,6 +64,25 @@ fn parse(code: &'static str) -> Arc<File> {
     file
 }
 
+fn parse_with_error(code: &'static str, expected: Vec<(u32, u32, u32, ParseError)>) -> Arc<File> {
+    let (file, errors) = Parser::from_string(code).parse();
+    assert_eq!(expected.len(), errors.len());
+    let line_starts = compute_line_starts(code);
+
+    for ((exp_line, exp_col, exp_len, exp_error), actual_error) in expected.into_iter().zip(errors)
+    {
+        let (line, col) = compute_line_column(&line_starts, actual_error.span.start());
+
+        assert_eq!(line, exp_line);
+        assert_eq!(col, exp_col);
+        assert_eq!(actual_error.span.len(), exp_len);
+
+        assert_eq!(exp_error, actual_error.error);
+    }
+
+    file
+}
+
 #[test]
 fn parse_ident() {
     let expr = parse_expr("a");
@@ -1515,4 +1534,15 @@ fn parse_compound_assignments() {
     parse_expr("x <<= 12");
     parse_expr("x >>= 12");
     parse_expr("x >>>= 12");
+}
+
+#[test]
+fn parse_invalid_expr_in_block() {
+    parse_with_error(
+        "fn f() { 0..10 }",
+        vec![
+            (1, 11, 2, ParseError::ExpectedToken(";".into())),
+            (1, 13, 2, ParseError::ExpectedStatement),
+        ],
+    );
 }

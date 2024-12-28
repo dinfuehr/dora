@@ -1353,21 +1353,40 @@ impl Parser {
         match self.current() {
             LET_KW => StmtOrExpr::Stmt(self.parse_let()),
             _ => {
-                let expr = self.parse_expr_stmt();
+                if self.is_set(EXPRESSION_FIRST) {
+                    let expr = self.parse_expr_stmt();
 
-                if self.is(R_BRACE) {
-                    StmtOrExpr::Expr(expr)
-                } else {
-                    if expr.is_blocklike() {
-                        self.eat(SEMICOLON);
+                    if self.is(R_BRACE) {
+                        StmtOrExpr::Expr(expr)
                     } else {
-                        self.expect(SEMICOLON);
+                        if expr.is_blocklike() {
+                            self.eat(SEMICOLON);
+                        } else {
+                            self.expect(SEMICOLON);
+                        }
+
+                        StmtOrExpr::Stmt(Arc::new(StmtData::create_expr(
+                            self.new_node_id(),
+                            expr.span(),
+                            expr,
+                        )))
                     }
+                } else {
+                    let span = self.current_span();
+
+                    if !self.is(R_BRACE) {
+                        self.advance();
+                    }
+
+                    self.report_error(ParseError::ExpectedStatement);
 
                     StmtOrExpr::Stmt(Arc::new(StmtData::create_expr(
                         self.new_node_id(),
-                        expr.span(),
-                        expr,
+                        span,
+                        Arc::new(ExprData::Error {
+                            id: self.new_node_id(),
+                            span,
+                        }),
                     )))
                 }
             }

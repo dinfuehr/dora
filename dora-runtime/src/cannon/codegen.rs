@@ -4371,6 +4371,10 @@ impl<'a> BytecodeVisitor for CannonCodeGen<'a> {
         );
         self.emit_jump(target);
     }
+    fn visit_switch(&mut self, _idx: ConstPoolIdx) {
+        comment!(self, format!("Switch"));
+        unimplemented!()
+    }
     fn visit_loop_start(&mut self) {
         comment!(self, format!("LoopStart"));
         let label = self.asm.create_and_bind_label();
