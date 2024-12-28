@@ -1373,12 +1373,11 @@ impl Parser {
                     }
                 } else {
                     let span = self.current_span();
+                    self.report_error(ParseError::ExpectedStatement);
 
                     if !self.is(R_BRACE) {
                         self.advance();
                     }
-
-                    self.report_error(ParseError::ExpectedStatement);
 
                     StmtOrExpr::Stmt(Arc::new(StmtData::create_expr(
                         self.new_node_id(),

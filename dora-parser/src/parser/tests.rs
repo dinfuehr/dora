@@ -1542,7 +1542,7 @@ fn parse_invalid_expr_in_block() {
         "fn f() { 0..10 }",
         vec![
             (1, 11, 2, ParseError::ExpectedToken(";".into())),
-            (1, 13, 2, ParseError::ExpectedStatement),
+            (1, 11, 2, ParseError::ExpectedStatement),
         ],
     );
 }
