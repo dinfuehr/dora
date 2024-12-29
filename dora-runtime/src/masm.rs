@@ -69,6 +69,11 @@ impl MacroAssembler {
         }
     }
 
+    pub fn data(mut self) -> Vec<u8> {
+        self.finish();
+        self.asm.finalize(1).code()
+    }
+
     pub fn code(mut self) -> CodeDescriptor {
         self.finish();
 
