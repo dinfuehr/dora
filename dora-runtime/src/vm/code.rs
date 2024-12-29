@@ -89,8 +89,8 @@ pub fn install_code(vm: &VM, code_descriptor: CodeDescriptor, kind: CodeKind) ->
     let array_length =
         (object_size - (Header::size() as usize) - mem::ptr_width_usize()) / mem::ptr_width_usize();
 
-    let constpool_start = object_start.offset(object_header_size);
-    let instruction_start = constpool_start.offset(code_descriptor.constpool.size() as usize);
+    let object_payload_start = object_start.offset(object_header_size);
+    let instruction_start = object_payload_start.offset(code_descriptor.constpool.size() as usize);
 
     if object_start.is_null() {
         panic!("out of memory: not enough executable memory left!");
@@ -110,14 +110,32 @@ pub fn install_code(vm: &VM, code_descriptor: CodeDescriptor, kind: CodeKind) ->
     code_header.native_code_object = Address::null();
     code_header.padding = 0;
 
-    code_descriptor.constpool.install(constpool_start.to_ptr());
+    // Fill constant pool.
+    code_descriptor
+        .constpool
+        .install(object_payload_start.to_ptr());
 
+    // Copy machine code into object.
     unsafe {
         ptr::copy_nonoverlapping(
             code_descriptor.code.as_ptr(),
             instruction_start.to_mut_ptr(),
             code_descriptor.code.len(),
         );
+    }
+
+    // Initialize jump table entries.
+    for (offset, reloc_kind) in &code_descriptor.relocations.entries {
+        match reloc_kind {
+            RelocationKind::JumpTableEntry(pos) => {
+                let jump_target = instruction_start.add_ptr(*pos as usize);
+                let address = object_payload_start.offset(*offset as usize);
+                unsafe {
+                    *address.to_mut_ptr::<Address>() = jump_target;
+                }
+            }
+            _ => (),
+        }
     }
 
     let native_code_object = Arc::new(Code {
@@ -129,6 +147,7 @@ pub fn install_code(vm: &VM, code_descriptor: CodeDescriptor, kind: CodeKind) ->
         gcpoints: code_descriptor.gcpoints,
         comments: code_descriptor.comments,
         locations: code_descriptor.positions,
+        relocations: code_descriptor.relocations,
         inlined_functions: code_descriptor.inlined_functions,
     });
 
@@ -156,6 +175,7 @@ pub struct Code {
     gcpoints: GcPointTable,
     comments: CommentTable,
     locations: LocationTable,
+    relocations: RelocationTable,
     inlined_functions: Vec<InlinedFunction>,
 }
 
@@ -619,7 +639,7 @@ mod tests {
 
 #[derive(Debug)]
 pub struct RelocationTable {
-    entries: Vec<(u32, RelocationKind)>,
+    pub entries: Vec<(u32, RelocationKind)>,
 }
 
 impl From<Vec<(u32, RelocationKind)>> for RelocationTable {
