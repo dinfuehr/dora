@@ -223,12 +223,10 @@ impl AssemblerArm64 {
         self.buffer.offset(lbl)
     }
 
-    pub fn finalize(mut self, alignment: Option<usize>) -> Vec<u8> {
+    pub fn finalize(mut self, alignment: usize) -> AssemblerBuffer {
         self.resolve_jumps();
-        if let Some(alignment) = alignment {
-            self.align_to(alignment);
-        }
-        self.buffer.code
+        self.align_to(alignment);
+        self.buffer
     }
 
     fn align_to(&mut self, alignment: usize) {
@@ -3451,7 +3449,7 @@ mod tests {
             $(
                 expected.write_u32::<LittleEndian>($expr).unwrap();
             )*
-            let data = buf.finalize(None);
+            let data = buf.finalize(4).code();
 
             if expected != data {
                 print!("exp: ");

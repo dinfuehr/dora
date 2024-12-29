@@ -36,7 +36,7 @@ pub trait BytecodeDumper {
     fn emitBackwardJump(inst: BytecodeInstructionInfo, name: String, offset: Int32);
     fn emitJump(inst: BytecodeInstructionInfo, name: String, offset: Int32);
     fn emitConditionalJump(inst: BytecodeInstructionInfo, name: String, r: BytecodeRegister, offset: Int32);
-    fn emitSwitch(inst: BytecodeInstructionInfo, idx: ConstPoolId);
+    fn emitSwitch(inst: BytecodeInstructionInfo, r1: BytecodeRegister, idx: ConstPoolId);
 }
 
 pub fn dumpInstruction(inst: BytecodeInstructionInfo, dumper: BytecodeDumper) {
@@ -182,8 +182,8 @@ pub fn dumpInstruction(inst: BytecodeInstructionInfo, dumper: BytecodeDumper) {
         BytecodeInstruction::JumpIfTrue(opnd, distance) => {
             dumper.emitConditionalJump(inst, "JumpIfTrue", opnd, distance);
         },
-        BytecodeInstruction::Switch(idx) => {
-            dumper.emitSwitch(inst, idx);
+        BytecodeInstruction::Switch(opnd, idx) => {
+            dumper.emitSwitch(inst, opnd, idx);
         },
 
         BytecodeInstruction::InvokeDirect(dest, idx) => {
@@ -296,9 +296,9 @@ impl BytecodeDumper for StdoutBytecodeDumper {
         println(" ${r}, ${inst.start + offset.toInt64()} (+${offset})");
     }
 
-    fn emitSwitch(inst: BytecodeInstructionInfo, idx: ConstPoolId) {
+    fn emitSwitch(inst: BytecodeInstructionInfo, opnd: BytecodeRegister, idx: ConstPoolId) {
         self.emitStart(inst, "Switch");
-        println(" @${idx}");
+        println(" ${opnd}, @${idx}");
     }
 
     fn emitBackwardJump(inst: BytecodeInstructionInfo, name: String, offset: Int32) {

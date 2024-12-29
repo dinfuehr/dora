@@ -442,6 +442,7 @@ pub enum BytecodeInstruction {
         offset: u32,
     },
     Switch {
+        opnd: Register,
         idx: ConstPoolIdx,
     },
 

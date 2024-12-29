@@ -53,7 +53,7 @@ pub enum BytecodeInstruction {
     Jump(Int32),
     JumpIfFalse(BytecodeRegister, Int32),
     JumpIfTrue(BytecodeRegister, Int32),
-    Switch(ConstPoolId),
+    Switch(BytecodeRegister, ConstPoolId),
 
     InvokeDirect(BytecodeRegister, ConstPoolId),
     InvokeVirtual(BytecodeRegister, ConstPoolId),

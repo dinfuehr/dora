@@ -8,7 +8,7 @@ use std::convert::TryInto;
 #[derive(Copy, Clone, PartialEq, Eq, Debug)]
 pub struct Label(usize);
 
-struct AssemblerBuffer {
+pub struct AssemblerBuffer {
     code: Vec<u8>,
     position: usize,
     labels: Vec<Option<u32>>,
@@ -40,7 +40,11 @@ impl AssemblerBuffer {
         self.labels[idx] = Some(self.position().try_into().unwrap());
     }
 
-    fn offset(&self, lbl: Label) -> Option<u32> {
+    pub fn code(self) -> Vec<u8> {
+        self.code
+    }
+
+    pub fn offset(&self, lbl: Label) -> Option<u32> {
         let Label(idx) = lbl;
         self.labels[idx]
     }

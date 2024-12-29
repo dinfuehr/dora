@@ -32,7 +32,7 @@ pub use self::code::{
     install_code, install_code_stub, Code, CodeDescriptor, CodeId, CodeKind, CodeObjects,
     CommentTable, ConstPool, ConstPoolEntry, ConstPoolValue, GcPoint, GcPointTable,
     InlinedFunction, InlinedFunctionId, InlinedLocation, LazyCompilationData, LazyCompilationSite,
-    LocationTable, ManagedCodeHeader, RelocationTable, CODE_ALIGNMENT,
+    LocationTable, ManagedCodeHeader, RelocationKind, RelocationTable, CODE_ALIGNMENT,
 };
 pub use self::code_map::CodeMap;
 pub use self::compilation::CompilationDatabase;

@@ -128,6 +128,10 @@ impl<'a> BaselineAssembler<'a> {
         self.masm.jump(label);
     }
 
+    pub fn jump_reg(&mut self, reg: Reg) {
+        self.masm.jump_reg(reg);
+    }
+
     pub fn jump_if(&mut self, cond: CondCode, label: Label) {
         self.masm.jump_if(cond, label);
     }
@@ -580,6 +584,10 @@ impl<'a> BaselineAssembler<'a> {
             host,
             value,
         });
+    }
+
+    pub fn emit_jump_table(&mut self, targets: &[Label]) -> i32 {
+        self.masm.emit_jump_table(targets)
     }
 
     pub fn emit_bailout(&mut self, lbl: Label, trap: Trap, location: Location) {

@@ -429,8 +429,8 @@ impl BytecodeDumper for HtmlBytecodeDumper {
         self.write("${name} ${reg(r)}, ${inst.start + offset.toInt64()} (+${offset})");
     }
 
-    fn emitSwitch(inst: BytecodeInstructionInfo, idx: ConstPoolId) {
-        self.write("Switch ${cp(idx)}");
+    fn emitSwitch(inst: BytecodeInstructionInfo, opnd: BytecodeRegister, idx: ConstPoolId) {
+        self.write("Switch ${reg(opnd)}, ${cp(idx)}");
     }
 
     fn emitBackwardJump(inst: BytecodeInstructionInfo, name: String, offset: Int32) {

@@ -246,6 +246,10 @@ impl BytecodeIterator {
         } else if opcode == opc::BC_JUMP {
             let offset = self.readForwardOffset();
             BytecodeInstruction::Jump(offset)
+        } else if opcode == opc::BC_SWITCH {
+            let opnd = self.readRegister();
+            let idx = self.readConstPoolId();
+            BytecodeInstruction::Switch(opnd, idx)
 
         } else if opcode == opc::BC_INVOKE_DIRECT {
             let dest = self.readRegister();

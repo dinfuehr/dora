@@ -661,7 +661,7 @@ impl SsaGen {
                 self.emitConditionalJump(opnd, true, target, fallthrough);
                 true
             }
-            BytecodeInstruction::Switch(idx) => {
+            BytecodeInstruction::Switch(opnd, idx) => {
                 unimplemented[Bool]()
             }
             BytecodeInstruction::InvokeDirect(dest, idx) => {

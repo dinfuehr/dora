@@ -1638,6 +1638,44 @@ impl<'a> CannonCodeGen<'a> {
         self.asm.jump(loop_start);
     }
 
+    fn emit_switch(&mut self, opnd: Register, idx: ConstPoolIdx) {
+        let const_pool_entry = self.bytecode.const_pool(idx);
+
+        let (targets, default_target) = match const_pool_entry {
+            ConstPoolEntry::JumpTable {
+                targets,
+                default_target,
+            } => (targets, *default_target),
+            _ => unreachable!(),
+        };
+
+        let target_labels = targets
+            .iter()
+            .map(|&target| self.ensure_forward_label(BytecodeOffset(target)))
+            .collect::<Vec<_>>();
+
+        let default_label = self.ensure_forward_label(BytecodeOffset(default_target));
+
+        self.emit_load_register(opnd, REG_TMP1.into());
+        let number_cases: u32 = targets.len().try_into().expect("overflow");
+        self.asm
+            .cmp_reg_imm(MachineMode::Int32, REG_TMP1, number_cases as i32);
+        self.asm.jump_if(CondCode::UnsignedGreaterEq, default_label);
+
+        let disp = self.asm.emit_jump_table(&target_labels);
+        let pos = self.asm.pos() as i32;
+        self.asm.load_constpool(REG_TMP2, pos + disp);
+
+        // Load target address out of jump table.
+        self.asm.load_mem(
+            MachineMode::Ptr,
+            REG_TMP1.into(),
+            Mem::Index(REG_TMP2, REG_TMP1, 8, 0),
+        );
+        self.asm.jump_reg(REG_TMP1);
+        unimplemented!()
+    }
+
     fn ensure_forward_label(&mut self, target: BytecodeOffset) -> Label {
         assert!(target > self.current_offset);
 
@@ -4371,9 +4409,9 @@ impl<'a> BytecodeVisitor for CannonCodeGen<'a> {
         );
         self.emit_jump(target);
     }
-    fn visit_switch(&mut self, _idx: ConstPoolIdx) {
+    fn visit_switch(&mut self, opnd: Register, idx: ConstPoolIdx) {
         comment!(self, format!("Switch"));
-        unimplemented!()
+        self.emit_switch(opnd, idx);
     }
     fn visit_loop_start(&mut self) {
         comment!(self, format!("LoopStart"));

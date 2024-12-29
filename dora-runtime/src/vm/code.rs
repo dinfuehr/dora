@@ -619,8 +619,13 @@ mod tests {
 
 #[derive(Debug)]
 pub struct RelocationTable {
-    #[allow(dead_code)]
     entries: Vec<(u32, RelocationKind)>,
+}
+
+impl From<Vec<(u32, RelocationKind)>> for RelocationTable {
+    fn from(entries: Vec<(u32, RelocationKind)>) -> Self {
+        RelocationTable { entries }
+    }
 }
 
 impl RelocationTable {
@@ -634,6 +639,7 @@ impl RelocationTable {
 #[derive(Debug)]
 #[allow(dead_code)]
 pub enum RelocationKind {
+    JumpTableEntry(u32),
     CodeTarget,
     Object,
 }

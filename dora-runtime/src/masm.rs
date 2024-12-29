@@ -10,7 +10,8 @@ use crate::mirror::Header;
 use crate::mode::MachineMode;
 use crate::vm::{
     CodeDescriptor, CommentTable, ConstPool, GcPoint, GcPointTable, InlinedLocation,
-    LazyCompilationData, LazyCompilationSite, LocationTable, RelocationTable, Trap, CODE_ALIGNMENT,
+    LazyCompilationData, LazyCompilationSite, LocationTable, RelocationKind, RelocationTable, Trap,
+    CODE_ALIGNMENT,
 };
 pub use dora_asm::Label;
 use dora_bytecode::Location;
@@ -49,7 +50,7 @@ pub struct MacroAssembler {
     gcpoints: GcPointTable,
     comments: CommentTable,
     positions: LocationTable,
-    relocations: RelocationTable,
+    relocations: Vec<(i32, Label)>,
     scratch_registers: ScratchRegisters,
 }
 
@@ -63,7 +64,7 @@ impl MacroAssembler {
             gcpoints: GcPointTable::new(),
             comments: CommentTable::new(),
             positions: LocationTable::new(),
-            relocations: RelocationTable::new(),
+            relocations: Vec::new(),
             scratch_registers: ScratchRegisters::new(),
         }
     }
@@ -71,28 +72,33 @@ impl MacroAssembler {
     pub fn code(mut self) -> CodeDescriptor {
         self.finish();
 
-        // align data such that code starts at address that is
-        // aligned to 16
-        self.constpool.align(CODE_ALIGNMENT as i32);
+        // Align data such that code start is properly aligned.
+        let cp_size = self.constpool.align(CODE_ALIGNMENT as i32);
 
-        let code = self.asm.finalize(Some(CODE_ALIGNMENT));
+        let asm = self.asm.finalize(CODE_ALIGNMENT);
+
+        let relocations = self
+            .relocations
+            .into_iter()
+            .map(|(pos, label)| {
+                let offset = asm.offset(label).expect("unresolved label");
+                (
+                    (cp_size + pos) as u32,
+                    RelocationKind::JumpTableEntry(offset),
+                )
+            })
+            .collect::<Vec<_>>();
 
         CodeDescriptor {
             constpool: self.constpool,
-            code,
+            code: asm.code(),
             lazy_compilation: self.lazy_compilation,
             gcpoints: self.gcpoints,
             comments: self.comments,
             positions: self.positions,
-            relocations: self.relocations,
+            relocations: RelocationTable::from(relocations),
             inlined_functions: Vec::new(),
         }
-    }
-
-    pub fn data(mut self) -> Vec<u8> {
-        self.finish();
-
-        self.asm.finalize(None)
     }
 
     fn finish(&mut self) {
@@ -269,6 +275,17 @@ impl MacroAssembler {
         // jump to begin of loop
         self.jump(start);
         self.bind_label(done);
+    }
+
+    pub fn emit_jump_table(&mut self, targets: &[Label]) -> i32 {
+        assert!(!targets.is_empty());
+        let start = self.constpool.add_addr(Address::null());
+        self.relocations.push((start, targets[0]));
+        for &target in &targets[1..] {
+            let offset = self.constpool.add_addr(Address::null());
+            self.relocations.push((offset, target));
+        }
+        start
     }
 }
 

@@ -9,7 +9,7 @@ use dora_parser::ast;
 use dora_parser::Span;
 
 use crate::sema::{
-    module_path, AliasDefinitionId, Candidate, Element, ElementAccess, ElementId, FctDefinitionId,
+    module_path, AliasDefinitionId, Element, ElementAccess, ElementId, FctDefinitionId,
     ModuleDefinitionId, PackageDefinitionId, Sema, SourceFileId, TypeParamDefinition, Visibility,
 };
 use crate::{contains_self, SourceType, SourceTypeArray};
@@ -210,15 +210,4 @@ pub fn is_object_safe(sa: &Sema, trait_id: TraitDefinitionId) -> bool {
     }
 
     true
-}
-
-#[allow(unused)]
-pub fn find_methods_in_trait(
-    sa: &Sema,
-    object_type: SourceType,
-    type_param_defs: &TypeParamDefinition,
-    name: Name,
-    is_static: bool,
-) -> Vec<Candidate> {
-    unimplemented!()
 }
