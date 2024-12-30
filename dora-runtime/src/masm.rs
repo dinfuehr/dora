@@ -73,10 +73,20 @@ impl NewConstPool {
         self.data.len()
     }
 
-    fn align(&mut self, alignment: usize) {
-        let missing = self.data.len() % alignment;
-        self.data.extend(std::iter::repeat_n(0, missing));
+    fn add_i128(&mut self, value: i128) -> usize {
+        self.align(std::mem::size_of::<i128>());
+        self.data.write_i128::<LittleEndian>(value).unwrap();
+        self.data.len()
+    }
+
+    fn align(&mut self, alignment: usize) -> usize {
+        let off = self.data.len() % alignment;
+        if off != 0 {
+            assert!(alignment > off);
+            self.data.extend(std::iter::repeat_n(0, alignment - off));
+        }
         assert_eq!(self.data.len() % alignment, 0);
+        self.data.len()
     }
 }
 
@@ -119,6 +129,8 @@ impl MacroAssembler {
 
         // Align data such that code start is properly aligned.
         let cp_size = self.constpool.align(CODE_ALIGNMENT as i32);
+        let new_cp_size = self.new_constpool.align(CODE_ALIGNMENT);
+        assert_eq!(cp_size, new_cp_size as i32);
 
         let asm = self.asm.finalize(CODE_ALIGNMENT);
 
@@ -164,19 +176,27 @@ impl MacroAssembler {
     }
 
     pub fn add_const_addr(&mut self, ptr: Address) -> i32 {
-        self.constpool.add_addr(ptr)
+        let result = self.constpool.add_addr(ptr);
+        assert_eq!(result, self.new_constpool.add_addr(ptr) as i32);
+        result
     }
 
     fn add_const_f32(&mut self, value: f32) -> i32 {
-        self.constpool.add_f32(value)
+        let result = self.constpool.add_f32(value);
+        assert_eq!(result, self.new_constpool.add_f32(value) as i32);
+        result
     }
 
     fn add_const_f64(&mut self, value: f64) -> i32 {
-        self.constpool.add_f64(value)
+        let result = self.constpool.add_f64(value);
+        assert_eq!(result, self.new_constpool.add_f64(value) as i32);
+        result
     }
 
     fn add_const_i128(&mut self, value: i128) -> i32 {
-        self.constpool.add_i128(value)
+        let result = self.constpool.add_i128(value);
+        assert_eq!(result, self.new_constpool.add_i128(value) as i32);
+        result
     }
 
     pub fn pos(&self) -> usize {

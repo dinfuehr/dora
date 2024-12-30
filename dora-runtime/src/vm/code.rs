@@ -570,16 +570,6 @@ impl ConstPool {
         }
     }
 
-    pub fn add_addr_reuse(&mut self, ptr: Address) -> i32 {
-        for entry in &self.entries {
-            if entry.value == ConstPoolValue::Ptr(ptr) {
-                return entry.disp;
-            }
-        }
-
-        self.add_addr(ptr)
-    }
-
     pub fn add_addr(&mut self, ptr: Address) -> i32 {
         self.add_value(ConstPoolValue::Ptr(ptr))
     }
@@ -627,13 +617,6 @@ mod tests {
         let mut constpool = ConstPool::new();
         assert_eq!(mem::ptr_width(), constpool.add_addr(1.into()));
         assert_eq!(2 * mem::ptr_width(), constpool.add_addr(1.into()));
-    }
-
-    #[test]
-    fn test_add_addr_reuse() {
-        let mut constpool = ConstPool::new();
-        assert_eq!(mem::ptr_width(), constpool.add_addr_reuse(1.into()));
-        assert_eq!(mem::ptr_width(), constpool.add_addr_reuse(1.into()));
     }
 }
 
