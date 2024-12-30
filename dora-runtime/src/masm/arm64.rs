@@ -884,8 +884,8 @@ impl MacroAssembler {
 
     pub fn load_float_const(&mut self, mode: MachineMode, dest: FReg, imm: f64) {
         let off = match mode {
-            MachineMode::Float32 => self.constpool.add_f32(imm as f32),
-            MachineMode::Float64 => self.constpool.add_f64(imm),
+            MachineMode::Float32 => self.add_const_f32(imm as f32),
+            MachineMode::Float64 => self.add_const_f64(imm),
             _ => unreachable!(),
         };
 
