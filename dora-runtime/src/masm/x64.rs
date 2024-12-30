@@ -79,7 +79,7 @@ impl MacroAssembler {
         ptr: Address,
         type_params: BytecodeTypeArray,
     ) {
-        let disp = self.add_addr(ptr);
+        let disp = self.add_const_addr(ptr);
         let pos = self.pos() as i32;
 
         self.load_constpool(REG_RESULT, disp + pos);
@@ -94,7 +94,7 @@ impl MacroAssembler {
     }
 
     pub fn raw_call(&mut self, ptr: Address) {
-        let disp = self.add_addr(ptr);
+        let disp = self.add_const_addr(ptr);
         let pos = self.pos() as i32;
 
         self.load_constpool(REG_RESULT, disp + pos);
@@ -1274,8 +1274,8 @@ impl MacroAssembler {
 
         if has_avx2() {
             let const_offset = match mode {
-                MachineMode::Float32 => self.constpool.add_f32(imm as f32),
-                MachineMode::Float64 => self.constpool.add_f64(imm),
+                MachineMode::Float32 => self.add_const_f32(imm as f32),
+                MachineMode::Float64 => self.add_const_f64(imm),
                 _ => unreachable!(),
             };
 
@@ -1302,7 +1302,7 @@ impl MacroAssembler {
 
             match mode {
                 MachineMode::Float32 => {
-                    let const_offset = self.constpool.add_f32(imm as f32);
+                    let const_offset = self.add_const_f32(imm as f32);
                     self.asm.movss_ra(
                         dest.into(),
                         AsmAddress::rip(-(const_offset + pos + inst_size)),
@@ -1310,7 +1310,7 @@ impl MacroAssembler {
                 }
 
                 MachineMode::Float64 => {
-                    let const_offset = self.constpool.add_f64(imm);
+                    let const_offset = self.add_const_f64(imm);
                     self.asm.movsd_ra(
                         dest.into(),
                         AsmAddress::rip(-(const_offset + pos + inst_size)),
@@ -1497,7 +1497,7 @@ impl MacroAssembler {
             (1 << 63) - 1
         };
 
-        let const_offset = self.constpool.add_i128(value);
+        let const_offset = self.add_const_i128(value);
         let inst_start = self.pos() as i32;
 
         if has_avx2() {
@@ -1546,7 +1546,7 @@ impl MacroAssembler {
             1 << 63
         };
 
-        let const_offset = self.constpool.add_i128(value);
+        let const_offset = self.add_const_i128(value);
         let inst_start = self.pos() as i32;
 
         if has_avx2() {

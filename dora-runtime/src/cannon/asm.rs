@@ -619,7 +619,7 @@ impl<'a> BaselineAssembler<'a> {
     }
 
     pub fn add_addr(&mut self, ptr: Address) -> i32 {
-        self.masm.add_addr(ptr)
+        self.masm.add_const_addr(ptr)
     }
 
     pub fn set(&mut self, dest: Reg, op: CondCode) {
@@ -1219,7 +1219,7 @@ impl<'a> BaselineAssembler<'a> {
             .unwrap()
             .address_init(global_id);
 
-        let disp = self.masm.add_addr(address_init);
+        let disp = self.masm.add_const_addr(address_init);
         let pos = self.masm.pos() as i32;
         self.masm.load_constpool(REG_RESULT, disp + pos);
         self.masm.load_int8_synchronized(REG_RESULT, REG_RESULT);
@@ -1489,7 +1489,7 @@ impl<'a> BaselineAssembler<'a> {
             .as_ref()
             .unwrap()
             .address_value(global_id);
-        let disp = self.masm.add_addr(address_value);
+        let disp = self.masm.add_const_addr(address_value);
         let pos = self.masm.pos() as i32;
         self.masm.load_constpool(REG_TMP1, disp + pos);
 
@@ -1513,7 +1513,7 @@ impl<'a> BaselineAssembler<'a> {
             .unwrap()
             .address_init(global_id);
 
-        let disp = self.masm.add_addr(address_init);
+        let disp = self.masm.add_const_addr(address_init);
         let pos = self.masm.pos() as i32;
         self.masm.load_constpool(REG_RESULT, disp + pos);
         self.masm

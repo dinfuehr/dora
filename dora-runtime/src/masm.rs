@@ -1,3 +1,5 @@
+use byteorder::{LittleEndian, WriteBytesExt};
+
 use std::cell::Cell;
 use std::ops::Deref;
 use std::rc::Rc;
@@ -42,11 +44,46 @@ pub enum Mem {
     Offset(Reg, i32, i32),
 }
 
+struct NewConstPool {
+    data: Vec<u8>,
+}
+
+impl NewConstPool {
+    fn new() -> NewConstPool {
+        NewConstPool { data: Vec::new() }
+    }
+
+    fn add_addr(&mut self, value: usize) -> usize {
+        self.align(std::mem::size_of::<usize>());
+        self.data.write_u64::<LittleEndian>(value as u64).unwrap();
+        self.data.len()
+    }
+
+    fn add_f32(&mut self, value: f32) -> usize {
+        self.align(std::mem::size_of::<f32>());
+        self.data.write_f32::<LittleEndian>(value).unwrap();
+        self.data.len()
+    }
+
+    fn add_f64(&mut self, value: f64) -> usize {
+        self.align(std::mem::size_of::<f64>());
+        self.data.write_f64::<LittleEndian>(value).unwrap();
+        self.data.len()
+    }
+
+    fn align(&mut self, alignment: usize) {
+        let missing = self.data.len() % alignment;
+        self.data.extend(std::iter::repeat_n(0, missing));
+        assert_eq!(self.data.len() % alignment, 0);
+    }
+}
+
 pub struct MacroAssembler {
     asm: Assembler,
     bailouts: Vec<(Label, Trap, Location)>,
     lazy_compilation: LazyCompilationData,
     constpool: ConstPool,
+    constpool2: NewConstPool,
     gcpoints: GcPointTable,
     comments: CommentTable,
     positions: LocationTable,
@@ -61,6 +98,7 @@ impl MacroAssembler {
             bailouts: Vec::new(),
             lazy_compilation: LazyCompilationData::new(),
             constpool: ConstPool::new(),
+            constpool2: NewConstPool::new(),
             gcpoints: GcPointTable::new(),
             comments: CommentTable::new(),
             positions: LocationTable::new(),
@@ -70,12 +108,12 @@ impl MacroAssembler {
     }
 
     pub fn data(mut self) -> Vec<u8> {
-        self.finish();
+        self.emit_bailouts();
         self.asm.finalize(1).code()
     }
 
     pub fn code(mut self) -> CodeDescriptor {
-        self.finish();
+        self.emit_bailouts();
 
         // Align data such that code start is properly aligned.
         let cp_size = self.constpool.align(CODE_ALIGNMENT as i32);
@@ -106,7 +144,7 @@ impl MacroAssembler {
         }
     }
 
-    fn finish(&mut self) {
+    fn emit_bailouts(&mut self) {
         let bailouts = self.bailouts.drain(0..).collect::<Vec<_>>();
 
         for bailout in &bailouts {
@@ -123,8 +161,20 @@ impl MacroAssembler {
         }
     }
 
-    pub fn add_addr(&mut self, ptr: Address) -> i32 {
+    pub fn add_const_addr(&mut self, ptr: Address) -> i32 {
         self.constpool.add_addr(ptr)
+    }
+
+    fn add_const_f32(&mut self, value: f32) -> i32 {
+        self.constpool.add_f32(value)
+    }
+
+    fn add_const_f64(&mut self, value: f64) -> i32 {
+        self.constpool.add_f64(value)
+    }
+
+    fn add_const_i128(&mut self, value: i128) -> i32 {
+        self.constpool.add_i128(value)
     }
 
     pub fn pos(&self) -> usize {
@@ -284,10 +334,10 @@ impl MacroAssembler {
 
     pub fn emit_jump_table(&mut self, targets: &[Label]) -> i32 {
         assert!(!targets.is_empty());
-        let start = self.constpool.add_addr(Address::null());
+        let start = self.add_const_addr(Address::null());
         self.relocations.push((start, targets[0]));
         for &target in &targets[1..] {
-            let offset = self.constpool.add_addr(Address::null());
+            let offset = self.add_const_addr(Address::null());
             self.relocations.push((offset, target));
         }
         start
