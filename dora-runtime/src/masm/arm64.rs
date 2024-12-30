@@ -1717,7 +1717,7 @@ mod tests {
             $($expr:expr),*;
             $name:ident
         ) => {{
-            $name.finish();
+            $name.emit_bailouts();
             let expected: Vec<u32> = vec![$($expr,)*];
             let mut buffer: Vec<u8> = Vec::new();
 
