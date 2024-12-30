@@ -53,9 +53,11 @@ impl NewConstPool {
         NewConstPool { data: Vec::new() }
     }
 
-    fn add_addr(&mut self, value: usize) -> usize {
+    fn add_addr(&mut self, value: Address) -> usize {
         self.align(std::mem::size_of::<usize>());
-        self.data.write_u64::<LittleEndian>(value as u64).unwrap();
+        self.data
+            .write_u64::<LittleEndian>(value.to_usize() as u64)
+            .unwrap();
         self.data.len()
     }
 
@@ -83,7 +85,7 @@ pub struct MacroAssembler {
     bailouts: Vec<(Label, Trap, Location)>,
     lazy_compilation: LazyCompilationData,
     constpool: ConstPool,
-    constpool2: NewConstPool,
+    new_constpool: NewConstPool,
     gcpoints: GcPointTable,
     comments: CommentTable,
     positions: LocationTable,
@@ -98,7 +100,7 @@ impl MacroAssembler {
             bailouts: Vec::new(),
             lazy_compilation: LazyCompilationData::new(),
             constpool: ConstPool::new(),
-            constpool2: NewConstPool::new(),
+            new_constpool: NewConstPool::new(),
             gcpoints: GcPointTable::new(),
             comments: CommentTable::new(),
             positions: LocationTable::new(),

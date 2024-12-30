@@ -80,7 +80,7 @@ impl MacroAssembler {
         ptr: Address,
         type_params: BytecodeTypeArray,
     ) {
-        let disp = self.add_addr(ptr);
+        let disp = self.add_const_addr(ptr);
         let pos = self.pos() as i32;
 
         let scratch = self.get_scratch();
@@ -97,7 +97,7 @@ impl MacroAssembler {
     }
 
     pub fn raw_call(&mut self, ptr: Address) {
-        let disp = self.add_addr(ptr);
+        let disp = self.add_const_addr(ptr);
         let pos = self.pos() as i32;
 
         let scratch = self.get_scratch();
