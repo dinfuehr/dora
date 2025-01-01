@@ -1,4 +1,4 @@
-use byteorder::{LittleEndian, WriteBytesExt};
+use byteorder::{BigEndian, WriteBytesExt};
 
 use std::cell::Cell;
 use std::ops::Deref;
@@ -56,26 +56,26 @@ impl NewConstPool {
     fn add_addr(&mut self, value: Address) -> usize {
         self.align(std::mem::size_of::<usize>());
         self.data
-            .write_u64::<LittleEndian>(value.to_usize() as u64)
+            .write_u64::<BigEndian>(value.to_usize() as u64)
             .unwrap();
         self.data.len()
     }
 
     fn add_f32(&mut self, value: f32) -> usize {
         self.align(std::mem::size_of::<f32>());
-        self.data.write_f32::<LittleEndian>(value).unwrap();
+        self.data.write_f32::<BigEndian>(value).unwrap();
         self.data.len()
     }
 
     fn add_f64(&mut self, value: f64) -> usize {
         self.align(std::mem::size_of::<f64>());
-        self.data.write_f64::<LittleEndian>(value).unwrap();
+        self.data.write_f64::<BigEndian>(value).unwrap();
         self.data.len()
     }
 
     fn add_i128(&mut self, value: i128) -> usize {
         self.align(std::mem::size_of::<i128>());
-        self.data.write_i128::<LittleEndian>(value).unwrap();
+        self.data.write_i128::<BigEndian>(value).unwrap();
         self.data.len()
     }
 
@@ -146,8 +146,11 @@ impl MacroAssembler {
             })
             .collect::<Vec<_>>();
 
+        let new_constpool = self.new_constpool.data.into_iter().rev().collect();
+
         CodeDescriptor {
             constpool: self.constpool,
+            new_constpool: Some(new_constpool),
             code: asm.code(),
             lazy_compilation: self.lazy_compilation,
             gcpoints: self.gcpoints,

@@ -110,10 +110,21 @@ pub fn install_code(vm: &VM, code_descriptor: CodeDescriptor, kind: CodeKind) ->
     code_header.native_code_object = Address::null();
     code_header.padding = 0;
 
-    // Fill constant pool.
-    code_descriptor
-        .constpool
-        .install(object_payload_start.to_ptr());
+    if let Some(new_constpool) = code_descriptor.new_constpool {
+        // Copy embedded constants into object.
+        unsafe {
+            ptr::copy_nonoverlapping(
+                new_constpool.as_ptr(),
+                object_payload_start.to_mut_ptr(),
+                new_constpool.len(),
+            );
+        }
+    } else {
+        // Fill constant pool.
+        code_descriptor
+            .constpool
+            .install(object_payload_start.to_ptr());
+    }
 
     // Copy machine code into object.
     unsafe {
@@ -268,6 +279,7 @@ impl fmt::Debug for Code {
 
 pub struct CodeDescriptor {
     pub constpool: ConstPool,
+    pub new_constpool: Option<Vec<u8>>,
     pub code: Vec<u8>,
     pub lazy_compilation: LazyCompilationData,
     pub gcpoints: GcPointTable,

@@ -22,6 +22,7 @@ pub fn decode_code_descriptor(reader: &mut ByteReader) -> CodeDescriptor {
         code,
         comments,
         constpool,
+        new_constpool: None,
         lazy_compilation,
         gcpoints,
         positions,
