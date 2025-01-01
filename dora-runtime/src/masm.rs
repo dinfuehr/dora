@@ -11,9 +11,9 @@ use crate::mem;
 use crate::mirror::Header;
 use crate::mode::MachineMode;
 use crate::vm::{
-    CodeDescriptor, CommentTable, ConstPool, GcPoint, GcPointTable, InlinedLocation,
-    LazyCompilationData, LazyCompilationSite, LocationTable, RelocationKind, RelocationTable, Trap,
-    CODE_ALIGNMENT,
+    CodeDescriptor, CommentTable, ConstPool, ConstPoolValue, GcPoint, GcPointTable,
+    InlinedLocation, LazyCompilationData, LazyCompilationSite, LocationTable, RelocationKind,
+    RelocationTable, Trap, CODE_ALIGNMENT,
 };
 pub use dora_asm::Label;
 use dora_bytecode::Location;
@@ -96,6 +96,7 @@ pub struct MacroAssembler {
     lazy_compilation: LazyCompilationData,
     constpool: ConstPool,
     new_constpool: NewConstPool,
+    epilog_constants: Vec<(Label, ConstPoolValue)>,
     gcpoints: GcPointTable,
     comments: CommentTable,
     positions: LocationTable,
@@ -111,6 +112,7 @@ impl MacroAssembler {
             lazy_compilation: LazyCompilationData::new(),
             constpool: ConstPool::new(),
             new_constpool: NewConstPool::new(),
+            epilog_constants: Vec::new(),
             gcpoints: GcPointTable::new(),
             comments: CommentTable::new(),
             positions: LocationTable::new(),
@@ -121,11 +123,13 @@ impl MacroAssembler {
 
     pub fn data(mut self) -> Vec<u8> {
         self.emit_bailouts();
+        self.emit_epilog_constants();
         self.asm.finalize(1).code()
     }
 
     pub fn code(mut self) -> CodeDescriptor {
         self.emit_bailouts();
+        self.emit_epilog_constants();
 
         // Align data such that code start is properly aligned.
         let cp_size = self.constpool.align(CODE_ALIGNMENT as i32);
@@ -175,6 +179,27 @@ impl MacroAssembler {
         // in code map, even though return address is at function end.
         if bailouts.len() > 0 {
             self.nop();
+        }
+    }
+
+    fn emit_epilog_constants(&mut self) {
+        for (label, value) in &self.epilog_constants {
+            self.asm.bind_label(*label);
+            match value {
+                ConstPoolValue::Ptr(value) => {
+                    self.asm.emit_u64(value.to_usize() as u64);
+                }
+
+                ConstPoolValue::Float32(value) => {
+                    self.asm.emit_u32(unsafe { std::mem::transmute(*value) });
+                }
+
+                ConstPoolValue::Float64(value) => {
+                    self.asm.emit_u64(unsafe { std::mem::transmute(*value) });
+                }
+
+                _ => unreachable!(),
+            }
         }
     }
 

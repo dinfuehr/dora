@@ -769,6 +769,19 @@ impl AssemblerX64 {
         }
     }
 
+    pub fn movq_rl(&mut self, dest: Register, label: Label) {
+        self.emit_rex(true, dest.needs_rex(), false, false);
+        self.emit_u8(0x8B);
+        self.emit_modrm(0b00, dest.low_bits(), 0b101);
+
+        self.unresolved_jumps.push(ForwardJump {
+            offset: self.position().try_into().unwrap(),
+            label,
+            distance: JumpDistance::Far,
+        });
+        self.emit_u32(0);
+    }
+
     pub fn movq_rr(&mut self, dest: Register, src: Register) {
         self.emit_rex64_modrm(src, dest);
         self.emit_u8(0x89);
@@ -1688,6 +1701,29 @@ impl AssemblerX64 {
         self.emit_address(dest.low_bits(), src);
     }
 
+    pub fn vmovsd_rl(&mut self, dest: XmmRegister, label: Label) {
+        debug_assert!(self.has_avx2);
+        self.emit_vex(
+            dest.needs_rex(),
+            false,
+            false,
+            VEX_MMMMM_0F,
+            VEX_W0,
+            VEX_VVVV_UNUSED,
+            VEX_L_SCALAR_128,
+            VEX_PP_F2,
+        );
+        self.emit_u8(0x10);
+        self.emit_modrm(0b00, dest.low_bits(), 0b101);
+
+        self.unresolved_jumps.push(ForwardJump {
+            offset: self.position().try_into().unwrap(),
+            label,
+            distance: JumpDistance::Far,
+        });
+        self.emit_u32(0);
+    }
+
     pub fn vmovsd_rr(&mut self, dest: XmmRegister, lhs: XmmRegister, rhs: XmmRegister) {
         debug_assert!(self.has_avx2);
         self.emit_vex(
@@ -1734,6 +1770,29 @@ impl AssemblerX64 {
         );
         self.emit_u8(0x10);
         self.emit_address(dest.low_bits(), src);
+    }
+
+    pub fn vmovss_rl(&mut self, dest: XmmRegister, label: Label) {
+        debug_assert!(self.has_avx2);
+        self.emit_vex(
+            dest.needs_rex(),
+            false,
+            false,
+            VEX_MMMMM_0F,
+            VEX_W0,
+            VEX_VVVV_UNUSED,
+            VEX_L_SCALAR_128,
+            VEX_PP_F3,
+        );
+        self.emit_u8(0x10);
+        self.emit_modrm(0b00, dest.low_bits(), 0b101);
+
+        self.unresolved_jumps.push(ForwardJump {
+            offset: self.position().try_into().unwrap(),
+            label,
+            distance: JumpDistance::Far,
+        });
+        self.emit_u32(0);
     }
 
     pub fn vmovss_rr(&mut self, dest: XmmRegister, lhs: XmmRegister, rhs: XmmRegister) {
@@ -4030,5 +4089,15 @@ mod tests {
     #[test]
     fn test_vmovapd_rr() {
         assert_emit!(0xc5, 0xf9, 0x28, 0xc1; vmovapd_rr(XMM0, XMM1); avx2);
+    }
+
+    #[test]
+    fn test_movq_rl() {
+        let mut buf = AssemblerX64::new(false);
+        let lbl = buf.create_label();
+        buf.movq_rl(RAX, lbl);
+        buf.bind_label(lbl);
+
+        assert_asm_bytes(vec![0x48, 0x8b, 0x05, 0, 0, 0, 0], buf.finalize(1).code());
     }
 }

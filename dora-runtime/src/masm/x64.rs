@@ -8,7 +8,7 @@ use crate::mirror::{offset_of_array_data, offset_of_array_length, Header, REMEMB
 use crate::mode::MachineMode;
 use crate::shape::Shape;
 use crate::threads::ThreadLocalData;
-use crate::vm::{get_vm, LazyCompilationSite, Trap};
+use crate::vm::{get_vm, ConstPoolValue, LazyCompilationSite, Trap};
 pub use dora_asm::x64::AssemblerX64 as Assembler;
 use dora_asm::x64::Register as AsmRegister;
 use dora_asm::x64::{Address as AsmAddress, Condition, Immediate, ScaleFactor, XmmRegister};
@@ -1273,29 +1273,25 @@ impl MacroAssembler {
         }
 
         if has_avx2() {
-            let const_offset = match mode {
-                MachineMode::Float32 => self.add_const_f32(imm as f32),
-                MachineMode::Float64 => self.add_const_f64(imm),
+            let const_value = match mode {
+                MachineMode::Float32 => ConstPoolValue::Float32(imm as f32),
+                MachineMode::Float64 => ConstPoolValue::Float64(imm),
                 _ => unreachable!(),
             };
+            let label = self.asm.create_label();
+            self.epilog_constants.push((label, const_value));
 
             match mode {
                 MachineMode::Float32 => {
-                    self.asm.vmovss_ra(dest.into(), AsmAddress::rip(0));
+                    self.asm.vmovss_rl(dest.into(), label);
                 }
 
                 MachineMode::Float64 => {
-                    self.asm.vmovsd_ra(dest.into(), AsmAddress::rip(0));
+                    self.asm.vmovsd_rl(dest.into(), label);
                 }
 
                 _ => unreachable!(),
             }
-
-            let inst_end = self.pos() as i32;
-            let disp = -(const_offset + inst_end);
-            self.asm.set_position(self.pos() - 4);
-            self.asm.emit_u32(disp as u32);
-            self.asm.set_position_end();
         } else {
             let pos = self.pos() as i32;
             let inst_size = 8 + if dest.msb() != 0 { 1 } else { 0 };
