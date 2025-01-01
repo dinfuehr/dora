@@ -94,10 +94,8 @@ impl MacroAssembler {
     }
 
     pub fn raw_call(&mut self, ptr: Address) {
-        let disp = self.add_const_addr(ptr);
-        let pos = self.pos() as i32;
-
-        self.load_constpool(REG_RESULT, disp + pos);
+        self.asm
+            .movq_ri(REG_RESULT.into(), Immediate(ptr.to_usize() as i64));
         self.call_reg(REG_RESULT);
     }
 
