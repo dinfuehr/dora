@@ -1272,15 +1272,15 @@ impl MacroAssembler {
             return;
         }
 
-        if has_avx2() {
-            let const_value = match mode {
-                MachineMode::Float32 => ConstPoolValue::Float32(imm as f32),
-                MachineMode::Float64 => ConstPoolValue::Float64(imm),
-                _ => unreachable!(),
-            };
-            let label = self.asm.create_label();
-            self.epilog_constants.push((label, const_value));
+        let const_value = match mode {
+            MachineMode::Float32 => ConstPoolValue::Float32(imm as f32),
+            MachineMode::Float64 => ConstPoolValue::Float64(imm),
+            _ => unreachable!(),
+        };
+        let label = self.asm.create_label();
+        self.epilog_constants.push((label, const_value));
 
+        if has_avx2() {
             match mode {
                 MachineMode::Float32 => {
                     self.asm.vmovss_rl(dest.into(), label);
@@ -1293,26 +1293,9 @@ impl MacroAssembler {
                 _ => unreachable!(),
             }
         } else {
-            let pos = self.pos() as i32;
-            let inst_size = 8 + if dest.msb() != 0 { 1 } else { 0 };
-
             match mode {
-                MachineMode::Float32 => {
-                    let const_offset = self.add_const_f32(imm as f32);
-                    self.asm.movss_ra(
-                        dest.into(),
-                        AsmAddress::rip(-(const_offset + pos + inst_size)),
-                    )
-                }
-
-                MachineMode::Float64 => {
-                    let const_offset = self.add_const_f64(imm);
-                    self.asm.movsd_ra(
-                        dest.into(),
-                        AsmAddress::rip(-(const_offset + pos + inst_size)),
-                    )
-                }
-
+                MachineMode::Float32 => self.asm.movss_rl(dest.into(), label),
+                MachineMode::Float64 => self.asm.movsd_rl(dest.into(), label),
                 _ => unreachable!(),
             }
         }
