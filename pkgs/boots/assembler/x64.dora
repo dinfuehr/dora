@@ -726,6 +726,17 @@ impl AssemblerX64 {
         self.emitAddress(dest.lowBits(), src);
     }
 
+    pub fn movsd_rl(dest: FloatRegister, label: Label) {
+        assert(!self.hasAvx2);
+        self.emitByte(0xF2u8);
+        if dest.needsRexBit() {
+            self.emitRex(false, true, false, false);
+        }
+        self.emitByte(0x0Fu8);
+        self.emitByte(0x10u8);
+        self.emitLabelAddress(dest.lowBits(), label);
+    }
+
     pub fn movsd_ar(dest: Address, src: FloatRegister) {
         assert(!self.hasAvx2);
         self.emitByte(0xF2u8);
@@ -1612,6 +1623,22 @@ impl AssemblerX64 {
         );
         self.emitByte(0x10u8);
         self.emitAddress(dest.lowBits(), src);
+    }
+
+    pub fn vmovsd_rl(dest: FloatRegister, label: Label) {
+        assert(self.hasAvx2);
+        self.emitVex(
+            dest.needsRexBit(),
+            false,
+            false,
+            VEX_MMMMM_0F,
+            VEX_W0,
+            VEX_VVVV_UNUSED,
+            VEX_L_SCALAR_128,
+            VEX_PP_F2,
+        );
+        self.emitByte(0x10u8);
+        self.emitLabelAddress(dest.lowBits(), label);
     }
 
     pub fn vmovsd_rr(dest: FloatRegister, lhs: FloatRegister, rhs: FloatRegister) {

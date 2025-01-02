@@ -159,20 +159,14 @@ impl CodeGenX64 {
     }
 
     fn mov_imm_f64(dest: FloatRegister, value: Float64) {
-        let entry = self.constPool.push(ConstPoolValue::Float64(value));
-        let const_offset = entry.disp;
+        let label = self.asm.createLabel();
+        self.epilogConstants.push((label, ConstPoolValue::Float64(value)));
 
         if self.hasAvx2 {
-            self.asm.vmovsd_ra(dest, AsmAddress::rip(0i32));
+            self.asm.vmovsd_rl(dest, label);
         } else {
-            self.asm.movsd_ra(dest, AsmAddress::rip(0i32));
+            self.asm.movsd_rl(dest, label);
         }
-
-        let inst_end = self.asm.position();
-        let disp = -(const_offset + inst_end);
-        self.asm.setPosition(inst_end - 4i32);
-        self.asm.emitInt32(disp);
-        self.asm.setPositionEnd();
     }
 
     fn andps_ri128(dest: FloatRegister, src: FloatRegister, lower: Int64, upper: Int64) {
