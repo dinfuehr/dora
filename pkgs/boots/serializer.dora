@@ -77,7 +77,7 @@ fn encodeLazyCompilationSite(writer: ByteWriter, site: LazyCompilationSite) {
             writer.emitByte(opc::LAZY_COMPILATION_SITE_DIRECT.toUInt8());
             writer.emitInt32(site.fct_id.0);
             encodeBytecodeTypeArray(writer, site.type_params);
-            writer.emitInt32(site.const_pool_offset);
+            writer.emitInt32(site.const_pool_offset_from_ra);
         },
 
         LazyCompilationSite::Virtual(site) => {

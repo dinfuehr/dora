@@ -92,7 +92,7 @@ impl MacroAssembler {
         self.emit_lazy_compilation_site(LazyCompilationSite::Direct {
             fct_id,
             type_params,
-            const_pool_offset_from_ra: disp + pos,
+            const_pool_offset_from_ra: -(disp + pos),
         });
     }
 

@@ -518,12 +518,12 @@ fn prepare_lazy_call_sites(_vm: &VM, ctc: &CompiledTransitiveClosure) {
                 LazyCompilationSite::Direct {
                     fct_id,
                     type_params,
-                    const_pool_offset_from_ra: const_pool_offset,
+                    const_pool_offset_from_ra,
                 } => {
                     let address = ctc.function_addresses.get(&(*fct_id, type_params.clone()));
                     if let Some(address) = address {
                         let ra = code.instruction_start().offset(*offset as usize);
-                        let const_pool_address = ra.sub(*const_pool_offset as usize);
+                        let const_pool_address = ra.ioffset(*const_pool_offset_from_ra as isize);
 
                         unsafe {
                             *const_pool_address.to_mut_ptr::<Address>() = *address;

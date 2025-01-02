@@ -14,6 +14,7 @@ use std::time::Instant;
 
 use crate::compiler;
 use crate::gc::{Address, Gc};
+use crate::mirror::Str;
 use crate::threads::ManagedThread;
 use crate::threads::{
     current_thread, deinit_current_thread, init_current_thread, DoraThread, ThreadState, Threads,
@@ -151,6 +152,7 @@ pub struct VM {
     pub wait_lists: WaitLists,
     pub state: AtomicU8,
     pub startup_time: OnceLock<Instant>,
+    pub string_table: RwLock<HashMap<String, Address>>,
 }
 
 impl VM {
@@ -180,6 +182,7 @@ impl VM {
             wait_lists: WaitLists::new(),
             state: AtomicU8::new(VmState::Running.into()),
             startup_time: OnceLock::new(),
+            string_table: RwLock::new(HashMap::new()),
         });
 
         vm.setup();
@@ -203,6 +206,18 @@ impl VM {
 
     pub fn startup_time(&self) -> Instant {
         self.startup_time.get().expect("time missing").clone()
+    }
+
+    pub fn internalize_string_constant(&self, str: &str) -> Address {
+        let mut lock = self.string_table.write();
+        if let Some(address) = lock.get(str) {
+            *address
+        } else {
+            let handle = Str::from_buffer_in_perm(self, str.as_bytes());
+            let address = handle.address();
+            lock.insert(str.to_owned(), address);
+            address
+        }
     }
 
     fn setup(&mut self) {

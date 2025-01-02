@@ -378,8 +378,8 @@ fn lazy_compile(ra: usize, receiver1: Address, receiver2: Address) -> Address {
             LazyCompilationSite::Direct {
                 fct_id,
                 ref type_params,
-                const_pool_offset_from_ra: const_pool_offset,
-            } => patch_direct_call(vm, ra, fct_id, type_params, const_pool_offset),
+                const_pool_offset_from_ra,
+            } => patch_direct_call(vm, ra, fct_id, type_params, const_pool_offset_from_ra),
 
             LazyCompilationSite::Virtual {
                 trait_object_ty,
@@ -451,10 +451,10 @@ fn patch_direct_call(
     ra: usize,
     fct_id: FunctionId,
     type_params: &BytecodeTypeArray,
-    disp: i32,
+    const_pool_offset_from_ra: i32,
 ) -> Address {
     let fct_ptr = compiler::compile_fct_jit(vm, fct_id, type_params);
-    let fct_addr: *mut usize = (ra as isize - disp as isize) as *mut _;
+    let fct_addr: *mut usize = (ra as isize + const_pool_offset_from_ra as isize) as *mut _;
 
     // update function pointer in data segment
     os::jit_writable();

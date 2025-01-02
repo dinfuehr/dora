@@ -391,11 +391,8 @@ extern "C" fn get_system_config_raw() -> Ref<UInt8Array> {
 
 extern "C" fn get_read_only_string_address_raw(data: Handle<Str>) -> Address {
     let vm = get_vm();
-    let content = data.content();
-    let content = content.to_vec();
 
-    let handle = Str::from_buffer_in_perm(vm, &content);
-    handle.address()
+    vm.internalize_string_constant(data.content_utf8())
 }
 
 extern "C" fn find_trait_impl_raw(data: Handle<UInt8Array>) -> Ref<UInt8Array> {

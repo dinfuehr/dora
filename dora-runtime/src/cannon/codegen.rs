@@ -13,7 +13,7 @@ use crate::cpu::{
 use crate::gc::Address;
 use crate::masm::{CondCode, Label, Mem};
 use crate::mem::{self, align_i32};
-use crate::mirror::{Header, Str};
+use crate::mirror::Header;
 use crate::mode::MachineMode;
 use crate::vm::{
     compute_vtable_index, create_enum_instance, create_struct_instance, find_trait_impl,
@@ -1493,8 +1493,8 @@ impl<'a> CannonCodeGen<'a> {
         let bytecode_type = self.specialize_register_type(dest);
         assert_eq!(bytecode_type, BytecodeType::Ptr);
 
-        let handle = Str::from_buffer_in_perm(self.vm, lit_value.as_bytes());
-        let disp = self.asm.add_addr(handle.address());
+        let address = self.vm.internalize_string_constant(lit_value);
+        let disp = self.asm.add_addr(address);
         let pos = self.asm.pos() as i32;
 
         self.asm.load_constpool(REG_RESULT, disp + pos);

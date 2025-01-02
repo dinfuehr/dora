@@ -681,6 +681,12 @@ impl AssemblerX64 {
         self.emitAddress(dest.lowBits(), src);
     }
 
+    pub fn movq_rl(dest: Register, src: Label) {
+        self.emitRex(true, dest.needsRexBit(), false, false);
+        self.emitByte(0x8Bu8);
+        self.emitLabelAddress(dest.lowBits(), src);
+    }
+
     pub fn movq_ri(dest: Register, imm: Immediate) {
         if imm.isInt32() {
             self.emitRex64RmField(dest);

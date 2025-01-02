@@ -426,7 +426,7 @@ pub enum LazyCompilationSite {
 pub struct LazyCompilationSiteDirect {
     pub fct_id: FunctionId,
     pub type_params: Array[BytecodeType],
-    pub const_pool_offset: Int32,
+    pub const_pool_offset_from_ra: Int32,
 }
 
 pub struct LazyCompilationSiteVirtual {

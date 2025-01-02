@@ -147,7 +147,9 @@ impl CodeGenX64 {
                     self.asm.emitInt64(high);
                 }
 
-                _ => unreachable[()](),
+                ConstPoolValue::Address(value) => {
+                    self.asm.emitInt64(value.toInt64());
+                }
             }
         }
     }
@@ -623,7 +625,7 @@ impl CodeGenX64 {
         let site = LazyCompilationSiteDirect(
             fct_id,
             type_params,
-            const_pool_offset = pos + cp_entry.disp,
+            const_pool_offset_from_ra = -(pos + cp_entry.disp),
         );
 
         self.lazyCompilation.insert(pos, LazyCompilationSite::Direct(site));
@@ -847,8 +849,7 @@ impl CodeGen for CodeGenX64 {
         let register = loc.getOutput().getRegister();
 
         let address = iface::getReadOnlyStringAddress(inst.getValueAsString());
-        let cp_entry = self.constPool.push(ConstPoolValue::Address(address));
-        self.loadConstPool(register, cp_entry);
+        self.asm.movq_ri(register, Immediate(address.toInt64()));
     }
 
     fn emitTrueConst(inst: Inst) {

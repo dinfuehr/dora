@@ -578,7 +578,7 @@ impl CodeGenArm64 {
         let site = LazyCompilationSiteDirect(
             fct_id,
             type_params,
-            const_pool_offset = pos + cp_entry.disp,
+            const_pool_offset_from_ra = -(pos + cp_entry.disp),
         );
 
         self.lazyCompilation.insert(pos, LazyCompilationSite::Direct(site));
