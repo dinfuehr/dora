@@ -155,6 +155,16 @@ impl AssemblerX64 {
         self.emitAddress(dest.lowBits(), src);
     }
 
+    pub fn andps_rl(dest: FloatRegister, src: Label) {
+        assert(!self.hasAvx2);
+        if dest.needsRexBit() {
+            self.emitRex(false, true, false, false);
+        }
+        self.emitByte(0x0fu8);
+        self.emitByte(0x54u8);
+        self.emitLabelAddress(dest.lowBits(), src);
+    }
+
     pub fn andq_ri(lhs: Register, imm: Immediate) {
         self.emitAlu64Imm(lhs, imm, 0b100i32, 0x25u8);
     }
@@ -1305,6 +1315,22 @@ impl AssemblerX64 {
         self.emitAddress(dest.lowBits(), rhs);
     }
 
+    pub fn vandps_rl(dest: FloatRegister, lhs: FloatRegister, rhs: Label) {
+        assert(self.hasAvx2);
+        self.emitVex(
+            dest.needsRexBit(),
+            false,
+            false,
+            VEX_MMMMM_0F,
+            VEX_W0,
+            lhs.value(),
+            VEX_L_SCALAR_128,
+            VEX_PP_NONE,
+        );
+        self.emitByte(0x54u8);
+        self.emitLabelAddress(dest.lowBits(), rhs);
+    }
+
     pub fn vcvtsd2ss_rr(dest: FloatRegister, lhs: FloatRegister, rhs: FloatRegister) {
         assert(self.hasAvx2);
         self.emitVex(
@@ -1931,6 +1957,22 @@ impl AssemblerX64 {
         self.emitAddress(dest.lowBits(), rhs);
     }
 
+    pub fn vxorpd_rl(dest: FloatRegister, lhs: FloatRegister, rhs: Label) {
+        assert(self.hasAvx2);
+        self.emitVex(
+            dest.needsRexBit(),
+            false,
+            false,
+            VEX_MMMMM_0F,
+            VEX_W0,
+            lhs.value(),
+            VEX_L_SCALAR_128,
+            VEX_PP_66,
+        );
+        self.emitByte(0x57u8);
+        self.emitLabelAddress(dest.lowBits(), rhs);
+    }
+
     pub fn vxorps_ra(dest: FloatRegister, lhs: FloatRegister, rhs: Address) {
         assert(self.hasAvx2);
         self.emitVex(
@@ -1945,6 +1987,22 @@ impl AssemblerX64 {
         );
         self.emitByte(0x57u8);
         self.emitAddress(dest.lowBits(), rhs);
+    }
+
+    pub fn vxorps_rl(dest: FloatRegister, lhs: FloatRegister, rhs: Label) {
+        assert(self.hasAvx2);
+        self.emitVex(
+            dest.needsRexBit(),
+            false,
+            false,
+            VEX_MMMMM_0F,
+            VEX_W0,
+            lhs.value(),
+            VEX_L_SCALAR_128,
+            VEX_PP_NONE,
+        );
+        self.emitByte(0x57u8);
+        self.emitLabelAddress(dest.lowBits(), rhs);
     }
 
     pub fn vxorps_rr(dest: FloatRegister, lhs: FloatRegister, rhs: FloatRegister) {
@@ -2018,12 +2076,33 @@ impl AssemblerX64 {
         self.emitAddress(dest.lowBits(), src);
     }
 
+    pub fn xorpd_rl(dest: FloatRegister, src: Label) {
+        assert(!self.hasAvx2);
+        self.emitByte(0x66u8);
+        if dest.needsRexBit() {
+            self.emitRex(false, true, false, false);
+        }
+        self.emitByte(0x0Fu8);
+        self.emitByte(0x57u8);
+        self.emitLabelAddress(dest.lowBits(), src);
+    }
+
     pub fn xorps_ra(dest: FloatRegister, src: Address) {
         assert(!self.hasAvx2);
         self.emitRexSseAddressOptional(dest, src);
         self.emitByte(0x0Fu8);
         self.emitByte(0x57u8);
         self.emitAddress(dest.lowBits(), src);
+    }
+
+    pub fn xorps_rl(dest: FloatRegister, src: Label) {
+        assert(!self.hasAvx2);
+        if dest.needsRexBit() {
+            self.emitRex(false, true, false, false);
+        }
+        self.emitByte(0x0Fu8);
+        self.emitByte(0x57u8);
+        self.emitLabelAddress(dest.lowBits(), src);
     }
 
     pub fn xorps_rr(dest: FloatRegister, src: FloatRegister) {

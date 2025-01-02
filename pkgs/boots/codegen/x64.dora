@@ -142,6 +142,11 @@ impl CodeGenX64 {
                     self.asm.emitInt64(value.asInt64());
                 }
 
+                ConstPoolValue::Int128(low, high) => {
+                    self.asm.emitInt64(low);
+                    self.asm.emitInt64(high);
+                }
+
                 _ => unreachable[()](),
             }
         }
@@ -170,23 +175,17 @@ impl CodeGenX64 {
     }
 
     fn andps_ri128(dest: FloatRegister, src: FloatRegister, lower: Int64, upper: Int64) {
-        let entry = self.constPool.push(ConstPoolValue::Int128(lower, upper));
-        let const_offset = entry.disp;
+        let label = self.asm.createLabel();
+        self.epilogConstants.push((label, ConstPoolValue::Int128(lower, upper)));
 
         if self.hasAvx2 {
-            self.asm.vandps_ra(dest, src, AsmAddress::rip(0i32));
+            self.asm.vandps_rl(dest, src, label);
         } else {
             if dest != src {
                 self.asm.movaps_rr(dest, src);
             }
-            self.asm.andps_ra(dest, AsmAddress::rip(0i32));
+            self.asm.andps_rl(dest, label);
         }
-
-        let inst_end = self.asm.position();
-        let disp = -(const_offset + inst_end);
-        self.asm.setPosition(inst_end - 4i32);
-        self.asm.emitInt32(disp);
-        self.asm.setPositionEnd();
     }
 
     fn movq_ra_gp(dest: Register, address: AsmAddress, ty: Type) {
@@ -660,31 +659,26 @@ impl CodeGenX64 {
             1 << 63i32
         };
 
-        let const_offset = self.constPool.push(ConstPoolValue::Int128(value, 0)).disp;
+        let label = self.asm.createLabel();
+        self.epilogConstants.push((label, ConstPoolValue::Int128(value, 0)));
 
         if self.hasAvx2 {
             if ty == Type::Float32 {
-                self.asm.vxorps_ra(dest, src, AsmAddress::rip(0i32))
+                self.asm.vxorps_rl(dest, src, label);
             } else {
                 assert(ty == Type::Float64);
-                self.asm.vxorpd_ra(dest, src, AsmAddress::rip(0i32))
+                self.asm.vxorpd_rl(dest, src, label);
             }
         } else {
             if ty == Type::Float32 {
                 self.asm.movss_rr(dest, src);
-                self.asm.xorps_ra(dest, AsmAddress::rip(0i32))
+                self.asm.xorps_rl(dest, label);
             } else {
                 assert(ty == Type::Float64);
                 self.asm.movsd_rr(dest, src);
-                self.asm.xorpd_ra(dest, AsmAddress::rip(0i32))
+                self.asm.xorpd_rl(dest, label);
             }
         }
-
-        let inst_end = self.asm.position();
-        let disp = -(const_offset + inst_end);
-        self.asm.setPosition(inst_end - 4i32);
-        self.asm.emitInt32(disp);
-        self.asm.setPositionEnd();
     }
 }
 
