@@ -128,10 +128,13 @@ pub fn compile(
     vm: &VM,
     compile_address: Address,
     compilation_data: CompilationData,
-    _mode: CompilationMode,
+    mode: CompilationMode,
 ) -> CodeDescriptor {
-    let encoded_compilation_info =
-        create_handle(allocate_encoded_compilation_info(vm, &compilation_data));
+    let encoded_compilation_info = create_handle(allocate_encoded_compilation_info(
+        vm,
+        &compilation_data,
+        mode,
+    ));
 
     let tld_address = current_thread().tld_address();
 

@@ -16,6 +16,13 @@ pub enum CompilationMode {
 }
 
 impl CompilationMode {
+    pub fn is_aot(&self) -> bool {
+        match self {
+            CompilationMode::Jit => true,
+            CompilationMode::Aot => false,
+        }
+    }
+
     pub fn is_jit(&self) -> bool {
         match self {
             CompilationMode::Jit => true,

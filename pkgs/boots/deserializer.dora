@@ -50,11 +50,12 @@ pub fn decodeCompilationInfo(reader: ByteReader): CompilationInfo {
     let typeParams = decodeTypeParams(reader);
     let returnType = decodeBytecodeType(reader);
     let loc = decodeLocation(reader);
+    let isAotMode = reader.readBool();
     let emitDebug = reader.readBool();
     let emitGraph = reader.readBool();
     let emitHtml = reader.readBool();
     let emitCodeComments = reader.readBool();
-    CompilationInfo::new(bc, fctId, typeParams, returnType, loc, emitDebug, emitGraph, emitHtml, emitCodeComments)
+    CompilationInfo::new(bc, fctId, typeParams, returnType, loc, isAotMode, emitDebug, emitGraph, emitHtml, emitCodeComments)
 }
 
 pub fn decodeStructData(reader: ByteReader): StructData {

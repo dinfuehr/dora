@@ -3,7 +3,7 @@ use std::convert::TryInto;
 use byteorder::{LittleEndian, WriteBytesExt};
 
 use crate::boots::data::InstructionSet;
-use crate::compiler::codegen::CompilationData;
+use crate::compiler::{CompilationData, CompilationMode};
 use crate::gc::Address;
 use crate::mirror::{byte_array_from_buffer, Object, Ref, UInt8Array};
 use crate::{Shape, VM};
@@ -62,18 +62,25 @@ fn has_avx2() -> bool {
 pub fn allocate_encoded_compilation_info(
     vm: &VM,
     compilation_data: &CompilationData,
+    mode: CompilationMode,
 ) -> Ref<Object> {
     let mut buffer = ByteBuffer::new();
-    encode_compilation_info(vm, compilation_data, &mut buffer);
+    encode_compilation_info(vm, compilation_data, mode, &mut buffer);
     byte_array_from_buffer(vm, buffer.data()).cast()
 }
 
-fn encode_compilation_info(vm: &VM, compilation_data: &CompilationData, buffer: &mut ByteBuffer) {
+fn encode_compilation_info(
+    vm: &VM,
+    compilation_data: &CompilationData,
+    mode: CompilationMode,
+    buffer: &mut ByteBuffer,
+) {
     encode_bytecode_function(vm, &compilation_data.bytecode_fct, buffer);
     buffer.emit_id(compilation_data.fct_id.0 as usize);
     encode_type_params(vm, &compilation_data.type_params, buffer);
     encode_bytecode_type(vm, &compilation_data.return_type, buffer);
     encode_location(&compilation_data.loc, buffer);
+    buffer.emit_bool(mode.is_aot());
     buffer.emit_bool(compilation_data.emit_debug);
     buffer.emit_bool(compilation_data.emit_graph);
     buffer.emit_bool(compilation_data.emit_html);
