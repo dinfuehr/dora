@@ -753,6 +753,17 @@ impl AssemblerX64 {
         self.emitAddress(dest.lowBits(), src);
     }
 
+    pub fn movss_rl(dest: FloatRegister, label: Label) {
+        assert(!self.hasAvx2);
+        self.emitByte(0xF3u8);
+        if dest.needsRexBit() {
+            self.emitRex(false, true, false, false);
+        }
+        self.emitByte(0x0Fu8);
+        self.emitByte(0x10u8);
+        self.emitLabelAddress(dest.lowBits(), label);
+    }
+
     pub fn movss_rr(dest: FloatRegister, src: FloatRegister) {
         assert(!self.hasAvx2);
         self.emitByte(0xF3u8);
@@ -1651,6 +1662,22 @@ impl AssemblerX64 {
         self.emitAddress(dest.lowBits(), src);
     }
 
+    pub fn vmovss_rl(dest: FloatRegister, label: Label) {
+        assert(self.hasAvx2);
+        self.emitVex(
+            dest.needsRexBit(),
+            false,
+            false,
+            VEX_MMMMM_0F,
+            VEX_W0,
+            VEX_VVVV_UNUSED,
+            VEX_L_SCALAR_128,
+            VEX_PP_F3,
+        );
+        self.emitByte(0x10u8);
+        self.emitLabelAddress(dest.lowBits(), label);
+    }
+
     pub fn vmovss_rr(dest: FloatRegister, lhs: FloatRegister, rhs: FloatRegister) {
         assert(self.hasAvx2);
         self.emitVex(
@@ -2146,6 +2173,13 @@ impl AssemblerX64 {
         }
     }
 
+    fn emitLabelAddress(reg: Int32, label: Label) {
+        self.emitModRm(0b00i32, reg, 0b101i32);
+        let pc = self.buffer.size();
+        self.jumps.push((pc, label, JumpDistance::Far));
+        self.emitInt32(0i32);
+    }
+
     // r - rex.r bit (1 bit)
     // x - rex.x bit (1 bit)
     // b - rex.b bit (1 bit)
@@ -2253,7 +2287,7 @@ impl AssemblerX64 {
         self.buffer.emitInt32(value);
     }
 
-    fn emitInt64(value: Int64) {
+    pub fn emitInt64(value: Int64) {
         self.buffer.emitInt64(value);
     }
 

@@ -76,6 +76,7 @@ pub class CodeGenX64 {
     asm: AssemblerX64,
     graph: Graph,
     constPool: ConstPool,
+    epilogConstants: Vec[(Label, ConstPoolValue)],
     locations: LocationTable,
     lazyCompilation: LazyCompilationData,
     gcPoints: GcPointTable,
@@ -92,6 +93,7 @@ impl CodeGenX64 {
             asm = AssemblerX64::new(config.hasAvx2),
             graph,
             constPool = ConstPool::new(),
+            epilogConstants = Vec[(Label, ConstPoolValue)]::new(),
             locations = LocationTable::new(),
             lazyCompilation = LazyCompilationData::new(),
             gcPoints = GcPointTable::new(),
@@ -127,21 +129,33 @@ impl CodeGenX64 {
         }
     }
 
+    fn emitEpilogConstants() {
+        for (label, constant) in self.epilogConstants {
+            self.asm.bindLabel(label);
+
+            match constant {
+                ConstPoolValue::Float32(value) => {
+                    self.asm.emitInt32(value.asInt32());
+                }
+
+                ConstPoolValue::Float64(value) => {
+                    self.asm.emitInt64(value.asInt64());
+                }
+
+                _ => unreachable[()](),
+            }
+        }
+    }
+
     fn mov_imm_f32(dest: FloatRegister, value: Float32) {
-        let entry = self.constPool.push(ConstPoolValue::Float32(value));
-        let const_offset = entry.disp;
+        let label = self.asm.createLabel();
+        self.epilogConstants.push((label, ConstPoolValue::Float32(value)));
 
         if self.hasAvx2 {
-            self.asm.vmovss_ra(dest, AsmAddress::rip(0i32));
+            self.asm.vmovss_rl(dest, label);
         } else {
-            self.asm.movss_ra(dest, AsmAddress::rip(0i32));
+            self.asm.movss_rl(dest, label);
         }
-
-        let inst_end = self.asm.position();
-        let disp = -(const_offset + inst_end);
-        self.asm.setPosition(inst_end - 4i32);
-        self.asm.emitInt32(disp);
-        self.asm.setPositionEnd();
     }
 
     fn mov_imm_f64(dest: FloatRegister, value: Float64) {
@@ -3249,6 +3263,7 @@ impl CodeGen for CodeGenX64 {
 
     fn finalize(): CodeDescriptor {
         self.emitDeferredCode();
+        self.emitEpilogConstants();
         self.asm.resolveJumps();
         self.asm.nop();
 
