@@ -18,15 +18,15 @@ pub enum CompilationMode {
 impl CompilationMode {
     pub fn is_aot(&self) -> bool {
         match self {
-            CompilationMode::Jit => true,
-            CompilationMode::Aot => false,
+            CompilationMode::Aot => true,
+            _ => false,
         }
     }
 
     pub fn is_jit(&self) -> bool {
         match self {
             CompilationMode::Jit => true,
-            CompilationMode::Aot => false,
+            _ => false,
         }
     }
 }

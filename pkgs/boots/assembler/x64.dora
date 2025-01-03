@@ -181,6 +181,11 @@ impl AssemblerX64 {
         self.emitModRmOpcode(0b010i32, src);
     }
 
+    pub fn call_rel32(disp: Int32) {
+        self.emitByte(0xE8u8);
+        self.emitInt32(disp);
+    }
+
     pub fn cdq() {
         self.emitByte(0x99u8);
     }
