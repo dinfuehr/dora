@@ -437,7 +437,7 @@ fn compile_transitive_closure(
 ) -> CompiledTransitiveClosure {
     let mut ctc = CompiledTransitiveClosure::new();
     compile_functions(vm, tc, &mut ctc, compiler);
-    compile_thunks(vm, tc, &mut ctc);
+    compile_thunks(vm, tc, &mut ctc, compiler);
     prepare_lazy_call_sites(vm, &ctc);
     prepare_virtual_method_tables(vm, tc, &ctc);
     ctc
@@ -489,13 +489,19 @@ fn compile_function(
     }
 }
 
-fn compile_thunks(vm: &VM, tc: &TransitiveClosure, ctc: &mut CompiledTransitiveClosure) {
+fn compile_thunks(
+    vm: &VM,
+    tc: &TransitiveClosure,
+    ctc: &mut CompiledTransitiveClosure,
+    compiler: CompilerInvocation,
+) {
     for (trait_fct_id, trait_type_params, actual_ty) in &tc.thunks {
         let (_code_id, code) = trait_object_thunk::ensure_compiled_aot(
             vm,
             *trait_fct_id,
             trait_type_params.clone(),
             actual_ty.clone(),
+            compiler,
         );
 
         let combined_type_params = trait_type_params.append(actual_ty.clone());

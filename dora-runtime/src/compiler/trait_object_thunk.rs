@@ -65,6 +65,7 @@ pub fn ensure_compiled_aot(
     trait_fct_id: FunctionId,
     trait_type_params: BytecodeTypeArray,
     actual_ty: BytecodeType,
+    compiler: CompilerInvocation,
 ) -> (CodeId, Arc<Code>) {
     let trait_object_ty = trait_object_ty(vm, trait_fct_id, &trait_type_params);
     let all_type_params = trait_type_params.append(actual_ty.clone());
@@ -74,7 +75,7 @@ pub fn ensure_compiled_aot(
         &all_type_params,
         trait_object_ty,
         actual_ty,
-        CompilerInvocation::Cannon,
+        compiler,
         false,
         CompilationMode::Aot,
     );
