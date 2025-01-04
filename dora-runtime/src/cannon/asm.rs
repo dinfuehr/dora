@@ -467,6 +467,10 @@ impl<'a> BaselineAssembler<'a> {
         self.masm.lea(dest, mem);
     }
 
+    pub fn lea_label(&mut self, dest: Reg, label: Label) {
+        self.masm.lea_label(dest, label);
+    }
+
     pub fn load_mem(&mut self, mode: MachineMode, dest: AnyReg, mem: Mem) {
         self.masm.load_mem(mode, dest, mem);
     }
@@ -586,7 +590,7 @@ impl<'a> BaselineAssembler<'a> {
         });
     }
 
-    pub fn emit_jump_table(&mut self, targets: &[Label]) -> i32 {
+    pub fn emit_jump_table(&mut self, targets: Vec<Label>) -> Label {
         self.masm.emit_jump_table(targets)
     }
 
@@ -616,10 +620,6 @@ impl<'a> BaselineAssembler<'a> {
 
     pub fn cmp_mem(&mut self, mode: MachineMode, mem: Mem, rhs: Reg) {
         self.masm.cmp_mem(mode, mem, rhs);
-    }
-
-    pub fn add_addr(&mut self, ptr: Address) -> i32 {
-        self.masm.add_const_addr(ptr)
     }
 
     pub fn set(&mut self, dest: Reg, op: CondCode) {
@@ -1219,9 +1219,11 @@ impl<'a> BaselineAssembler<'a> {
             .unwrap()
             .address_init(global_id);
 
-        let disp = self.masm.add_const_addr(address_init);
-        let pos = self.masm.pos() as i32;
-        self.masm.load_constpool(REG_RESULT, disp + pos);
+        self.masm.load_int_const(
+            MachineMode::IntPtr,
+            REG_RESULT,
+            address_init.to_usize() as i64,
+        );
         self.masm.load_int8_synchronized(REG_RESULT, REG_RESULT);
         self.masm
             .cmp_reg_imm(MachineMode::Ptr, REG_RESULT, INITIALIZED as i32);
@@ -1489,9 +1491,11 @@ impl<'a> BaselineAssembler<'a> {
             .as_ref()
             .unwrap()
             .address_value(global_id);
-        let disp = self.masm.add_const_addr(address_value);
-        let pos = self.masm.pos() as i32;
-        self.masm.load_constpool(REG_TMP1, disp + pos);
+        self.masm.load_int_const(
+            MachineMode::IntPtr,
+            REG_TMP1,
+            address_value.to_usize() as i64,
+        );
 
         if store_result_on_stack {
             self.copy_bytecode_ty(
@@ -1513,9 +1517,11 @@ impl<'a> BaselineAssembler<'a> {
             .unwrap()
             .address_init(global_id);
 
-        let disp = self.masm.add_const_addr(address_init);
-        let pos = self.masm.pos() as i32;
-        self.masm.load_constpool(REG_RESULT, disp + pos);
+        self.masm.load_int_const(
+            MachineMode::IntPtr,
+            REG_RESULT,
+            address_init.to_usize() as i64,
+        );
         self.masm
             .load_int_const(MachineMode::Int32, REG_TMP1, INITIALIZED as i64);
         self.masm.store_int8_synchronized(REG_TMP1, REG_RESULT);

@@ -1397,9 +1397,11 @@ impl<'a> CannonCodeGen<'a> {
             .unwrap()
             .address_value(global_id);
 
-        let disp = self.asm.add_addr(address_value);
-        let pos = self.asm.pos() as i32;
-        self.asm.load_constpool(REG_TMP1, disp + pos);
+        self.asm.load_int_const(
+            MachineMode::IntPtr,
+            REG_TMP1,
+            address_value.to_usize() as i64,
+        );
 
         let bytecode_type = self.bytecode.register_type(dest);
 
@@ -1423,10 +1425,11 @@ impl<'a> CannonCodeGen<'a> {
             .unwrap()
             .address_value(global_id);
 
-        let disp = self.asm.add_addr(address_value);
-        let pos = self.asm.pos() as i32;
-
-        self.asm.load_constpool(REG_TMP1, disp + pos);
+        self.asm.load_int_const(
+            MachineMode::IntPtr,
+            REG_TMP1,
+            address_value.to_usize() as i64,
+        );
 
         let bytecode_type = self.bytecode.register_type(src);
 
@@ -1442,9 +1445,11 @@ impl<'a> CannonCodeGen<'a> {
                 .unwrap()
                 .address_init(global_id);
 
-            let disp = self.asm.add_addr(address_init);
-            let pos = self.asm.pos() as i32;
-            self.asm.load_constpool(REG_RESULT, disp + pos);
+            self.asm.load_int_const(
+                MachineMode::IntPtr,
+                REG_RESULT,
+                address_init.to_usize() as i64,
+            );
             self.asm
                 .load_int_const(MachineMode::Int8, REG_TMP1, INITIALIZED as i64);
             self.asm
@@ -1494,10 +1499,8 @@ impl<'a> CannonCodeGen<'a> {
         assert_eq!(bytecode_type, BytecodeType::Ptr);
 
         let address = self.vm.internalize_string_constant(lit_value);
-        let disp = self.asm.add_addr(address);
-        let pos = self.asm.pos() as i32;
-
-        self.asm.load_constpool(REG_RESULT, disp + pos);
+        self.asm
+            .load_int_const(MachineMode::IntPtr, REG_RESULT, address.to_usize() as i64);
 
         self.emit_store_register(REG_RESULT.into(), dest);
     }
@@ -1662,9 +1665,8 @@ impl<'a> CannonCodeGen<'a> {
             .cmp_reg_imm(MachineMode::Int32, REG_TMP1, number_cases as i32);
         self.asm.jump_if(CondCode::UnsignedGreaterEq, default_label);
 
-        let disp = self.asm.emit_jump_table(&target_labels);
-        let pos = self.asm.pos() as i32;
-        self.asm.load_constpool(REG_TMP2, pos + disp);
+        let label = self.asm.emit_jump_table(target_labels);
+        self.asm.lea_label(REG_TMP2, label);
 
         // Load target address out of jump table.
         self.asm.load_mem(

@@ -1311,6 +1311,10 @@ impl MacroAssembler {
         }
     }
 
+    pub fn lea_label(&mut self, _dest: Reg, _label: Label) {
+        unimplemented!();
+    }
+
     pub fn emit_object_write_barrier_fast_path(&mut self, host: Reg) -> Label {
         let scratch = self.get_scratch();
         self.asm.ldrb_imm(

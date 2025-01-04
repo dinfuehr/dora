@@ -11,9 +11,9 @@ use crate::mem;
 use crate::mirror::Header;
 use crate::mode::MachineMode;
 use crate::vm::{
-    CodeDescriptor, CommentTable, ConstPool, ConstPoolValue, GcPoint, GcPointTable,
-    InlinedLocation, LazyCompilationData, LazyCompilationSite, LocationTable, RelocationKind,
-    RelocationTable, Trap, CODE_ALIGNMENT,
+    CodeDescriptor, CommentTable, ConstPool, GcPoint, GcPointTable, InlinedLocation,
+    LazyCompilationData, LazyCompilationSite, LocationTable, RelocationKind, RelocationTable, Trap,
+    CODE_ALIGNMENT,
 };
 pub use dora_asm::Label;
 use dora_bytecode::Location;
@@ -90,13 +90,20 @@ impl NewConstPool {
     }
 }
 
+pub enum EpilogConstant {
+    Float32(f32),
+    Float64(f64),
+    Address(Address),
+    JumpTable(Vec<Label>),
+}
+
 pub struct MacroAssembler {
     asm: Assembler,
     bailouts: Vec<(Label, Trap, Location)>,
     lazy_compilation: LazyCompilationData,
     constpool: ConstPool,
     new_constpool: NewConstPool,
-    epilog_constants: Vec<(Label, ConstPoolValue)>,
+    epilog_constants: Vec<(Label, EpilogConstant)>,
     gcpoints: GcPointTable,
     comments: CommentTable,
     positions: LocationTable,
@@ -186,19 +193,26 @@ impl MacroAssembler {
         for (label, value) in &self.epilog_constants {
             self.asm.bind_label(*label);
             match value {
-                ConstPoolValue::Ptr(value) => {
+                EpilogConstant::Address(value) => {
                     self.asm.emit_u64(value.to_usize() as u64);
                 }
 
-                ConstPoolValue::Float32(value) => {
+                EpilogConstant::Float32(value) => {
                     self.asm.emit_u32(unsafe { std::mem::transmute(*value) });
                 }
 
-                ConstPoolValue::Float64(value) => {
+                EpilogConstant::Float64(value) => {
                     self.asm.emit_u64(unsafe { std::mem::transmute(*value) });
                 }
 
-                _ => unreachable!(),
+                EpilogConstant::JumpTable(targets) => {
+                    for target in targets {
+                        let offset = self.asm.position();
+                        self.asm.emit_u64(0);
+                        self.relocations
+                            .push((offset.try_into().expect("overflow"), *target));
+                    }
+                }
             }
         }
     }
@@ -382,15 +396,12 @@ impl MacroAssembler {
         self.bind_label(done);
     }
 
-    pub fn emit_jump_table(&mut self, targets: &[Label]) -> i32 {
+    pub fn emit_jump_table(&mut self, targets: Vec<Label>) -> Label {
         assert!(!targets.is_empty());
-        let start = self.add_const_addr(Address::null());
-        self.relocations.push((start, targets[0]));
-        for &target in &targets[1..] {
-            let offset = self.add_const_addr(Address::null());
-            self.relocations.push((offset, target));
-        }
-        start
+        let label = self.create_label();
+        self.epilog_constants
+            .push((label, EpilogConstant::JumpTable(targets)));
+        label
     }
 }
 

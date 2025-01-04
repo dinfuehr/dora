@@ -2,13 +2,13 @@ use crate::compiler::codegen::AnyReg;
 use crate::cpu::*;
 use crate::gc::swiper::LARGE_OBJECT_SIZE;
 use crate::gc::Address;
-use crate::masm::{CondCode, Label, MacroAssembler, Mem};
+use crate::masm::{CondCode, EpilogConstant, Label, MacroAssembler, Mem};
 use crate::mem::{fits_i32, ptr_width};
 use crate::mirror::{offset_of_array_data, offset_of_array_length, Header, REMEMBERED_BIT_SHIFT};
 use crate::mode::MachineMode;
 use crate::shape::Shape;
 use crate::threads::ThreadLocalData;
-use crate::vm::{get_vm, ConstPoolValue, LazyCompilationSite, Trap};
+use crate::vm::{get_vm, LazyCompilationSite, Trap};
 pub use dora_asm::x64::AssemblerX64 as Assembler;
 use dora_asm::x64::Register as AsmRegister;
 use dora_asm::x64::{Address as AsmAddress, Condition, Immediate, ScaleFactor, XmmRegister};
@@ -1121,6 +1121,10 @@ impl MacroAssembler {
         self.asm.lea(dest.into(), address_from_mem(mem));
     }
 
+    pub fn lea_label(&mut self, dest: Reg, label: Label) {
+        self.asm.movq_rl(dest.into(), label);
+    }
+
     pub fn emit_object_write_barrier_fast_path(&mut self, host: Reg) -> Label {
         let remembered_bit_index =
             (REMEMBERED_BIT_SHIFT - Header::offset_metadata_word() * 8) as u32;
@@ -1271,8 +1275,8 @@ impl MacroAssembler {
         }
 
         let const_value = match mode {
-            MachineMode::Float32 => ConstPoolValue::Float32(imm as f32),
-            MachineMode::Float64 => ConstPoolValue::Float64(imm),
+            MachineMode::Float32 => EpilogConstant::Float32(imm as f32),
+            MachineMode::Float64 => EpilogConstant::Float64(imm),
             _ => unreachable!(),
         };
         let label = self.asm.create_label();
