@@ -2309,7 +2309,7 @@ mod inst {
     }
 }
 
-mod cls {
+pub mod cls {
     use super::*;
 
     pub(super) fn addsub_extreg(
@@ -3083,7 +3083,7 @@ mod cls {
             | rt
     }
 
-    pub(super) fn uncond_branch_imm(op: u32, imm26: i32) -> u32 {
+    pub fn uncond_branch_imm(op: u32, imm26: i32) -> u32 {
         assert!(fits_bit(op));
         assert!(fits_i26(imm26));
 

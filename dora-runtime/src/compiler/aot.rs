@@ -555,20 +555,16 @@ fn prepare_lazy_call_sites(
                         .expect("missing function");
                     let ra = code.instruction_start().offset(*offset as usize);
 
-                    if mode.is_stage2_or_3() && cfg!(target_arch = "x86_64") {
-                        let distance = target.to_usize() as isize - ra.to_usize() as isize;
-                        let distance: i32 = distance.try_into().expect("overflow");
-
-                        unsafe {
-                            assert_eq!(std::ptr::read(ra.sub(5).to_ptr::<u8>()), 0xE8);
-                            assert_eq!(std::ptr::read(ra.sub(4).to_ptr::<i32>()), 0);
-                            std::ptr::write(ra.sub(4).to_mut_ptr(), distance);
-                        }
+                    if mode.is_stage2_or_3() {
+                        crate::cpu::patch_direct_call_site(ra, target);
                     } else {
                         let const_pool_address = ra.ioffset(*const_pool_offset_from_ra as isize);
 
                         unsafe {
-                            *const_pool_address.to_mut_ptr::<Address>() = target;
+                            std::ptr::write_unaligned(
+                                const_pool_address.to_mut_ptr::<Address>(),
+                                target,
+                            );
                         }
                     }
                 }

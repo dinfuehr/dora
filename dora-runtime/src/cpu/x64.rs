@@ -177,7 +177,10 @@ impl FReg {
     }
 }
 
-pub fn patch_direct_call_site(ra: Address, distance: i32) {
+pub fn patch_direct_call_site(ra: Address, target: Address) {
+    let distance = target.to_usize() as isize - ra.to_usize() as isize;
+    let distance: i32 = distance.try_into().expect("overflow");
+
     unsafe {
         assert_eq!(std::ptr::read(ra.sub(5).to_ptr::<u8>()), 0xE8);
         assert_eq!(std::ptr::read(ra.sub(4).to_ptr::<i32>()), 0);

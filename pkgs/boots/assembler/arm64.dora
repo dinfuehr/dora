@@ -438,6 +438,12 @@ impl AssemblerArm64 {
         }
     }
 
+    pub fn bl_imm(diff: Int32) {
+        assert(diff % 4i32 == 0i32);
+        let inst = encoding::uncond_branch_imm(1i32, diff / 4i32);
+        self.emit(inst);
+    }
+
     pub fn bl_r(rn: Register) {
         let inst = encoding::uncond_branch_reg(0b0001i32, 0b11111i32, 0i32, rn, 0i32);
         self.emit(inst);

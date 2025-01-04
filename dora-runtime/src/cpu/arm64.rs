@@ -1,10 +1,12 @@
 #[cfg(not(target_os = "macos"))]
 use std::arch::asm;
 
+use dora_asm::arm64::cls::uncond_branch_imm;
 use dora_asm::arm64::Cond;
 use lazy_static::lazy_static;
 
 use crate::masm::CondCode;
+use crate::Address;
 
 #[cfg(target_os = "macos")]
 pub fn flush_icache(start: *const u8, len: usize) {
@@ -296,6 +298,18 @@ pub fn next_param_offset(param_offset: i32) -> i32 {
     param_offset + 8
 }
 
-pub fn patch_direct_call_site(_ra: Address, _distance: i32) {
-    unimplemented!();
+pub fn patch_direct_call_site(ra: Address, target: Address) {
+    let distance = target.to_usize() as isize - ra.to_usize() as isize + 4;
+    assert_eq!(distance % 4, 0);
+    let distance: i32 = distance.try_into().expect("overflow");
+    let distance = distance / 4;
+    let call = ra.sub(4).to_mut_ptr::<u32>();
+
+    let expected = uncond_branch_imm(1, 0);
+    let inst = uncond_branch_imm(1, distance);
+
+    unsafe {
+        assert_eq!(expected, std::ptr::read(call));
+        std::ptr::write(call, inst);
+    }
 }
