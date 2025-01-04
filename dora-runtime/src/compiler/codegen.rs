@@ -77,6 +77,7 @@ pub fn compile_fct_aot(
     fct_id: FunctionId,
     type_params: &BytecodeTypeArray,
     compiler: CompilerInvocation,
+    mode: CompilationMode,
 ) -> (CodeId, Arc<Code>) {
     let program_fct = vm.fct(fct_id);
     let params = BytecodeTypeArray::new(program_fct.params.clone());
@@ -92,7 +93,7 @@ pub fn compile_fct_aot(
         type_params,
         compiler,
         false,
-        CompilationMode::Aot,
+        mode,
     );
     (code_id, code)
 }

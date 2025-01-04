@@ -1,4 +1,4 @@
-use package::interface::{Address, Config, StructData, EnumData, EnumVariantData};
+use package::interface::{Address, Config, StructData, EnumData, EnumVariantData, CompilationMode};
 use package::bytecode::{AliasId, BytecodeFunction, BytecodeType, ClassId, ConstPoolEntry, EnumId, FunctionId, ClassFieldId, Location, StructId, StructFieldId, TraitId};
 use package::bytecode::opcode as opc;
 use package::compilation::CompilationInfo;
@@ -50,12 +50,12 @@ pub fn decodeCompilationInfo(reader: ByteReader): CompilationInfo {
     let typeParams = decodeTypeParams(reader);
     let returnType = decodeBytecodeType(reader);
     let loc = decodeLocation(reader);
-    let isAotMode = reader.readBool();
+    let compilationMode = decodeCompilationMode(reader);
     let emitDebug = reader.readBool();
     let emitGraph = reader.readBool();
     let emitHtml = reader.readBool();
     let emitCodeComments = reader.readBool();
-    CompilationInfo::new(bc, fctId, typeParams, returnType, loc, isAotMode, emitDebug, emitGraph, emitHtml, emitCodeComments)
+    CompilationInfo::new(bc, fctId, typeParams, returnType, loc, compilationMode, emitDebug, emitGraph, emitHtml, emitCodeComments)
 }
 
 pub fn decodeStructData(reader: ByteReader): StructData {
@@ -297,6 +297,23 @@ fn decodeConstPoolEntry(reader: ByteReader): ConstPoolEntry {
     } else {
         println("unknown ConstPoolEntry opcode = ${opcode}");
         unreachable[ConstPoolEntry]()
+    }
+}
+
+fn decodeCompilationMode(reader: ByteReader): CompilationMode {
+    let opcode = reader.readUInt8().toInt32();
+
+    if opcode == opc::COMPILATION_MODE_STAGE1 {
+        CompilationMode::Stage1
+    } else if opcode == opc::COMPILATION_MODE_STAGE2 {
+        CompilationMode::Stage2
+    } else if opcode == opc::COMPILATION_MODE_STAGE3 {
+        CompilationMode::Stage3
+    } else if opcode == opc::COMPILATION_MODE_JIT {
+        CompilationMode::Jit
+    } else {
+        println("unknown CompilationMode opcode = ${opcode}");
+        unreachable[CompilationMode]()
     }
 }
 

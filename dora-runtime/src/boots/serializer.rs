@@ -80,7 +80,7 @@ fn encode_compilation_info(
     encode_type_params(vm, &compilation_data.type_params, buffer);
     encode_bytecode_type(vm, &compilation_data.return_type, buffer);
     encode_location(&compilation_data.loc, buffer);
-    buffer.emit_bool(mode.is_aot());
+    buffer.emit_u8(mode as u8);
     buffer.emit_bool(compilation_data.emit_debug);
     buffer.emit_bool(compilation_data.emit_graph);
     buffer.emit_bool(compilation_data.emit_html);

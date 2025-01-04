@@ -9,16 +9,19 @@ pub mod lazy_compilation_stub;
 pub mod runtime_entry_trampoline;
 pub mod trait_object_thunk;
 
-#[derive(Copy, Clone)]
+#[derive(Copy, Clone, Debug)]
+#[repr(u8)]
 pub enum CompilationMode {
-    Aot,
+    Stage1,
+    Stage2,
+    Stage3,
     Jit,
 }
 
 impl CompilationMode {
-    pub fn is_aot(&self) -> bool {
+    pub fn is_stage2_or_3(&self) -> bool {
         match self {
-            CompilationMode::Aot => true,
+            CompilationMode::Stage2 | CompilationMode::Stage3 => true,
             _ => false,
         }
     }

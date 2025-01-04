@@ -3,6 +3,8 @@ use std::sync::atomic::{compiler_fence, Ordering};
 
 use dora_asm::x64::Register;
 
+use crate::Address;
+
 pub fn flush_icache(_: *const u8, _: usize) {
     // no flushing needed on x86_64, but emit compiler barrier
     compiler_fence(Ordering::SeqCst);
@@ -172,6 +174,14 @@ impl FReg {
 
     pub fn and7(self) -> u8 {
         self.0 & 0x07
+    }
+}
+
+pub fn patch_direct_call_site(ra: Address, distance: i32) {
+    unsafe {
+        assert_eq!(std::ptr::read(ra.sub(5).to_ptr::<u8>()), 0xE8);
+        assert_eq!(std::ptr::read(ra.sub(4).to_ptr::<i32>()), 0);
+        std::ptr::write(ra.sub(4).to_mut_ptr(), distance);
     }
 }
 

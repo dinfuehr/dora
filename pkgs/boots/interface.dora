@@ -579,3 +579,19 @@ pub struct FunctionInliningInfo {
     pub hasForceInlineAnnotation: Bool,
     pub hasNeverInlineAnnotation: Bool,
 }
+
+pub enum CompilationMode {
+    Stage1,
+    Stage2,
+    Stage3,
+    Jit,
+}
+
+impl CompilationMode {
+    pub fn isStage2or3(): Bool {
+        match self {
+            CompilationMode::Stage2 | CompilationMode::Stage3 => true,
+            CompilationMode::Stage1 | CompilationMode::Jit => false,
+        }
+    }
+}

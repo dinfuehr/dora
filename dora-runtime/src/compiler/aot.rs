@@ -8,7 +8,9 @@ use dora_bytecode::{
 };
 
 use crate::compiler::codegen::{compile_runtime_entry_trampoline, CompilerInvocation};
-use crate::compiler::{compile_fct_aot, trait_object_thunk, NativeFct, NativeFctKind};
+use crate::compiler::{
+    compile_fct_aot, trait_object_thunk, CompilationMode, NativeFct, NativeFctKind,
+};
 use crate::gc::{formatted_size, Address};
 use crate::os;
 use crate::vm::{
@@ -59,8 +61,14 @@ fn stage1_compiler(
     tc: &TransitiveClosure,
     entry_id: FunctionId,
 ) -> (Address, CompiledTransitiveClosure) {
-    let (compile_address, ctc) =
-        compiler_stage_n(vm, tc, entry_id, "stage1", CompilerInvocation::Cannon);
+    let (compile_address, ctc) = compiler_stage_n(
+        vm,
+        tc,
+        entry_id,
+        "stage1",
+        CompilerInvocation::Cannon,
+        CompilationMode::Stage1,
+    );
     (compile_address, ctc)
 }
 
@@ -76,6 +84,7 @@ fn stage2_compiler(
         entry_id,
         "stage2",
         CompilerInvocation::Boots(stage1_compiler_address),
+        CompilationMode::Stage2,
     )
 }
 
@@ -91,6 +100,7 @@ fn stage3_compiler(
         entry_id,
         "stage3",
         CompilerInvocation::Boots(stage2_compiler_address),
+        CompilationMode::Stage3,
     )
 }
 
@@ -100,10 +110,11 @@ fn compiler_stage_n(
     entry_id: FunctionId,
     name: &str,
     compiler: CompilerInvocation,
+    mode: CompilationMode,
 ) -> (Address, CompiledTransitiveClosure) {
     let start = Instant::now();
     let start_code_size = vm.gc.current_code_size();
-    let ctc = compile_transitive_closure(vm, &tc, compiler);
+    let ctc = compile_transitive_closure(vm, &tc, compiler, mode);
     let compile_address = ctc.get_address(entry_id).expect("missing entry point");
     let duration = start.elapsed();
     let code_size = vm.gc.current_code_size() - start_code_size;
@@ -434,11 +445,12 @@ fn compile_transitive_closure(
     vm: &VM,
     tc: &TransitiveClosure,
     compiler: CompilerInvocation,
+    mode: CompilationMode,
 ) -> CompiledTransitiveClosure {
     let mut ctc = CompiledTransitiveClosure::new();
-    compile_functions(vm, tc, &mut ctc, compiler);
-    compile_thunks(vm, tc, &mut ctc, compiler);
-    prepare_lazy_call_sites(vm, &ctc);
+    compile_functions(vm, tc, &mut ctc, compiler, mode);
+    compile_thunks(vm, tc, &mut ctc, compiler, mode);
+    prepare_lazy_call_sites(vm, &ctc, compiler, mode);
     prepare_virtual_method_tables(vm, tc, &ctc);
     ctc
 }
@@ -448,9 +460,10 @@ fn compile_functions(
     tc: &TransitiveClosure,
     ctc: &mut CompiledTransitiveClosure,
     compiler: CompilerInvocation,
+    mode: CompilationMode,
 ) {
     for (fct_id, type_params) in &tc.functions {
-        compile_function(vm, *fct_id, type_params.clone(), ctc, compiler);
+        compile_function(vm, *fct_id, type_params.clone(), ctc, compiler, mode);
     }
 }
 
@@ -460,6 +473,7 @@ fn compile_function(
     type_params: BytecodeTypeArray,
     ctc: &mut CompiledTransitiveClosure,
     compiler: CompilerInvocation,
+    mode: CompilationMode,
 ) {
     let fct = vm.fct(fct_id);
 
@@ -480,7 +494,7 @@ fn compile_function(
         assert!(existing.is_none());
         ctc.code_objects.push(code);
     } else if let Some(_) = fct.bytecode {
-        let (_code_id, code) = compile_fct_aot(vm, fct_id, &type_params, compiler);
+        let (_code_id, code) = compile_fct_aot(vm, fct_id, &type_params, compiler, mode);
         ctc.counter += 1;
         let existing = ctc
             .function_addresses
@@ -495,6 +509,7 @@ fn compile_thunks(
     tc: &TransitiveClosure,
     ctc: &mut CompiledTransitiveClosure,
     compiler: CompilerInvocation,
+    mode: CompilationMode,
 ) {
     for (trait_fct_id, trait_type_params, actual_ty) in &tc.thunks {
         let (_code_id, code) = trait_object_thunk::ensure_compiled_aot(
@@ -503,6 +518,7 @@ fn compile_thunks(
             trait_type_params.clone(),
             actual_ty.clone(),
             compiler,
+            mode,
         );
 
         let combined_type_params = trait_type_params.append(actual_ty.clone());
@@ -516,7 +532,12 @@ fn compile_thunks(
     }
 }
 
-fn prepare_lazy_call_sites(_vm: &VM, ctc: &CompiledTransitiveClosure) {
+fn prepare_lazy_call_sites(
+    _vm: &VM,
+    ctc: &CompiledTransitiveClosure,
+    _compiler: CompilerInvocation,
+    mode: CompilationMode,
+) {
     os::jit_writable();
 
     for code in &ctc.code_objects {
@@ -527,16 +548,28 @@ fn prepare_lazy_call_sites(_vm: &VM, ctc: &CompiledTransitiveClosure) {
                     type_params,
                     const_pool_offset_from_ra,
                 } => {
-                    let address = ctc
+                    let target = ctc
                         .function_addresses
                         .get(&(*fct_id, type_params.clone()))
                         .cloned()
                         .expect("missing function");
                     let ra = code.instruction_start().offset(*offset as usize);
-                    let const_pool_address = ra.ioffset(*const_pool_offset_from_ra as isize);
 
-                    unsafe {
-                        *const_pool_address.to_mut_ptr::<Address>() = address;
+                    if mode.is_stage2_or_3() && cfg!(target_arch = "x86_64") {
+                        let distance = target.to_usize() as isize - ra.to_usize() as isize;
+                        let distance: i32 = distance.try_into().expect("overflow");
+
+                        unsafe {
+                            assert_eq!(std::ptr::read(ra.sub(5).to_ptr::<u8>()), 0xE8);
+                            assert_eq!(std::ptr::read(ra.sub(4).to_ptr::<i32>()), 0);
+                            std::ptr::write(ra.sub(4).to_mut_ptr(), distance);
+                        }
+                    } else {
+                        let const_pool_address = ra.ioffset(*const_pool_offset_from_ra as isize);
+
+                        unsafe {
+                            *const_pool_address.to_mut_ptr::<Address>() = target;
+                        }
                     }
                 }
 

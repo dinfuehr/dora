@@ -295,3 +295,7 @@ pub static PARAM_OFFSET: i32 = 16;
 pub fn next_param_offset(param_offset: i32) -> i32 {
     param_offset + 8
 }
+
+pub fn patch_direct_call_site(_ra: Address, _distance: i32) {
+    unimplemented!();
+}

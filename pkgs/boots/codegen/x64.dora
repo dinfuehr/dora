@@ -616,18 +616,24 @@ impl CodeGenX64 {
     }
 
     fn emitCall(fct_id: FunctionId, type_params: Array[BytecodeType], inlined_location: InlinedLocation, gc_point: GcPoint) {
-        let address = iface::getFunctionAddress(self.ci, fct_id, type_params);
-        let cp_entry = self.constPool.push(ConstPoolValue::Address(address));
-        self.loadConstPool(REG_TEMP, cp_entry);
-        self.asm.call_r(REG_TEMP);
+        let const_pool_offset_from_ra = if self.ci.compilationMode.isStage2or3() {
+            self.asm.call_rel32(0i32);
+            0i32
+        } else {
+            let address = iface::getFunctionAddress(self.ci, fct_id, type_params);
+            let cp_entry = self.constPool.push(ConstPoolValue::Address(address));
+            self.loadConstPool(REG_TEMP, cp_entry);
+            self.asm.call_r(REG_TEMP);
+            -(self.asm.position() + cp_entry.disp)
+        };
 
-        let pos = self.asm.position();
         let site = LazyCompilationSiteDirect(
             fct_id,
             type_params,
-            const_pool_offset_from_ra = -(pos + cp_entry.disp),
+            const_pool_offset_from_ra,
         );
 
+        let pos = self.asm.position();
         self.lazyCompilation.insert(pos, LazyCompilationSite::Direct(site));
         self.locations.insert(pos, inlined_location);
         self.gcPoints.insert(pos, gc_point);
