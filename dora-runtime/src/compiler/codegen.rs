@@ -401,24 +401,33 @@ pub fn ensure_runtime_entry_trampoline(
         if let Some(instruction_start) = native_stubs.find_fct(ptr) {
             instruction_start
         } else {
-            let dbg = if let Some(fct_id) = fct_id {
-                should_emit_debug(vm, fct_id, Compiler::Cannon)
-            } else {
-                false
-            };
-
-            let code = runtime_entry_trampoline::generate(vm, native_fct, dbg);
-
-            if let Some(fct_id) = fct_id {
-                if should_emit_asm(vm, fct_id, Compiler::Cannon) {
-                    disassembler::disassemble(vm, fct_id, &BytecodeTypeArray::empty(), &code);
-                }
-            }
-
+            let code = compile_runtime_entry_trampoline(vm, fct_id, native_fct);
             native_stubs.insert_fct(ptr, code.instruction_start());
             code.instruction_start()
         }
     })
+}
+
+pub fn compile_runtime_entry_trampoline(
+    vm: &VM,
+    fct_id: Option<FunctionId>,
+    native_fct: NativeFct,
+) -> Arc<Code> {
+    let dbg = if let Some(fct_id) = fct_id {
+        should_emit_debug(vm, fct_id, Compiler::Cannon)
+    } else {
+        false
+    };
+
+    let code = runtime_entry_trampoline::generate(vm, native_fct, dbg);
+
+    if let Some(fct_id) = fct_id {
+        if should_emit_asm(vm, fct_id, Compiler::Cannon) {
+            disassembler::disassemble(vm, fct_id, &BytecodeTypeArray::empty(), &code);
+        }
+    }
+
+    code
 }
 
 pub struct CompilationData<'a> {

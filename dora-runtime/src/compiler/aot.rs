@@ -7,7 +7,7 @@ use dora_bytecode::{
     BytecodeTypeArray, ConstPoolEntry, FunctionId, FunctionKind, PackageId,
 };
 
-use crate::compiler::codegen::{ensure_runtime_entry_trampoline, CompilerInvocation};
+use crate::compiler::codegen::{compile_runtime_entry_trampoline, CompilerInvocation};
 use crate::compiler::{compile_fct_aot, trait_object_thunk, NativeFct, NativeFctKind};
 use crate::gc::{formatted_size, Address};
 use crate::os;
@@ -472,12 +472,13 @@ fn compile_function(
             desc: NativeFctKind::RuntimeEntryTrampoline(fct_id),
         };
 
-        let fctptr_wrapper = ensure_runtime_entry_trampoline(vm, Some(fct_id), internal_fct);
+        let code = compile_runtime_entry_trampoline(vm, Some(fct_id), internal_fct);
 
         let existing = ctc
             .function_addresses
-            .insert((fct_id, type_params), fctptr_wrapper);
+            .insert((fct_id, type_params), code.instruction_start());
         assert!(existing.is_none());
+        ctc.code_objects.push(code);
     } else if let Some(_) = fct.bytecode {
         let (_code_id, code) = compile_fct_aot(vm, fct_id, &type_params, compiler);
         ctc.counter += 1;
