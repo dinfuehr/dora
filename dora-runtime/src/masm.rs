@@ -1,5 +1,3 @@
-use byteorder::{BigEndian, WriteBytesExt};
-
 use std::cell::Cell;
 use std::ops::Deref;
 use std::rc::Rc;
@@ -44,52 +42,6 @@ pub enum Mem {
     Offset(Reg, i32, i32),
 }
 
-struct NewConstPool {
-    data: Vec<u8>,
-}
-
-impl NewConstPool {
-    fn new() -> NewConstPool {
-        NewConstPool { data: Vec::new() }
-    }
-
-    fn add_addr(&mut self, value: Address) -> usize {
-        self.align(std::mem::size_of::<usize>());
-        self.data
-            .write_u64::<BigEndian>(value.to_usize() as u64)
-            .unwrap();
-        self.data.len()
-    }
-
-    fn add_f32(&mut self, value: f32) -> usize {
-        self.align(std::mem::size_of::<f32>());
-        self.data.write_f32::<BigEndian>(value).unwrap();
-        self.data.len()
-    }
-
-    fn add_f64(&mut self, value: f64) -> usize {
-        self.align(std::mem::size_of::<f64>());
-        self.data.write_f64::<BigEndian>(value).unwrap();
-        self.data.len()
-    }
-
-    fn add_i128(&mut self, value: i128) -> usize {
-        self.align(std::mem::size_of::<i128>());
-        self.data.write_i128::<BigEndian>(value).unwrap();
-        self.data.len()
-    }
-
-    fn align(&mut self, alignment: usize) -> usize {
-        let off = self.data.len() % alignment;
-        if off != 0 {
-            assert!(alignment > off);
-            self.data.extend(std::iter::repeat_n(0, alignment - off));
-        }
-        assert_eq!(self.data.len() % alignment, 0);
-        self.data.len()
-    }
-}
-
 pub enum EpilogConstant {
     Float32(f32),
     Float64(f64),
@@ -103,7 +55,6 @@ pub struct MacroAssembler {
     bailouts: Vec<(Label, Trap, Location)>,
     lazy_compilation: LazyCompilationData,
     constpool: ConstPool,
-    new_constpool: NewConstPool,
     epilog_constants: Vec<(Label, EpilogConstant)>,
     gcpoints: GcPointTable,
     comments: CommentTable,
@@ -119,7 +70,6 @@ impl MacroAssembler {
             bailouts: Vec::new(),
             lazy_compilation: LazyCompilationData::new(),
             constpool: ConstPool::new(),
-            new_constpool: NewConstPool::new(),
             epilog_constants: Vec::new(),
             gcpoints: GcPointTable::new(),
             comments: CommentTable::new(),
@@ -141,8 +91,6 @@ impl MacroAssembler {
 
         // Align data such that code start is properly aligned.
         let cp_size = self.constpool.align(CODE_ALIGNMENT as i32);
-        let new_cp_size = self.new_constpool.align(CODE_ALIGNMENT);
-        assert_eq!(cp_size, new_cp_size as i32);
 
         let asm = self.asm.finalize(CODE_ALIGNMENT);
 
@@ -158,11 +106,8 @@ impl MacroAssembler {
             })
             .collect::<Vec<_>>();
 
-        let new_constpool = self.new_constpool.data.into_iter().rev().collect();
-
         CodeDescriptor {
             constpool: self.constpool,
-            new_constpool: Some(new_constpool),
             code: asm.code(),
             lazy_compilation: self.lazy_compilation,
             gcpoints: self.gcpoints,
@@ -223,9 +168,7 @@ impl MacroAssembler {
     }
 
     pub fn add_const_addr(&mut self, ptr: Address) -> i32 {
-        let result = self.constpool.add_addr(ptr);
-        assert_eq!(result, self.new_constpool.add_addr(ptr) as i32);
-        result
+        self.constpool.add_addr(ptr)
     }
 
     pub fn pos(&self) -> usize {
