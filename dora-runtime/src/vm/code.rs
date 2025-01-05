@@ -475,6 +475,17 @@ impl LazyCompilationData {
         }
     }
 
+    pub fn get_mut(&mut self, offset: u32) -> Option<&mut LazyCompilationSite> {
+        let result = self
+            .entries
+            .binary_search_by_key(&offset, |&(offset, _)| offset);
+
+        match result {
+            Ok(idx) => Some(&mut self.entries[idx].1),
+            Err(_) => None,
+        }
+    }
+
     pub fn entries(&self) -> &[(u32, LazyCompilationSite)] {
         &self.entries
     }

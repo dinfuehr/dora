@@ -79,18 +79,18 @@ impl MacroAssembler {
         ptr: Address,
         type_params: BytecodeTypeArray,
     ) {
-        let disp = self.add_const_addr(ptr);
-        let pos = self.pos() as i32;
+        let label = self.emit_epilog_const(EpilogConstant::Address(ptr));
 
-        self.load_constpool(REG_RESULT, disp + pos);
+        self.asm.movq_rl(REG_RESULT.into(), label);
         self.call_reg(REG_RESULT);
 
-        let pos = self.pos() as i32;
+        let pos = self.pos() as u32;
         self.emit_lazy_compilation_site(LazyCompilationSite::Direct {
             fct_id,
             type_params,
-            const_pool_offset_from_ra: -(disp + pos),
+            const_pool_offset_from_ra: 0,
         });
+        self.direct_call_sites.push((pos, label));
     }
 
     pub fn raw_call(&mut self, ptr: Address) {

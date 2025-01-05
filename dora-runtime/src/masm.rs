@@ -54,12 +54,12 @@ pub struct MacroAssembler {
     asm: Assembler,
     bailouts: Vec<(Label, Trap, Location)>,
     lazy_compilation: LazyCompilationData,
-    constpool: ConstPool,
+    direct_call_sites: Vec<(u32, Label)>,
     epilog_constants: Vec<(Label, EpilogConstant)>,
     gcpoints: GcPointTable,
     comments: CommentTable,
     positions: LocationTable,
-    relocations: Vec<(i32, Label)>,
+    relocations: Vec<(u32, Label)>,
     scratch_registers: ScratchRegisters,
 }
 
@@ -69,7 +69,7 @@ impl MacroAssembler {
             asm: MacroAssembler::create_assembler(),
             bailouts: Vec::new(),
             lazy_compilation: LazyCompilationData::new(),
-            constpool: ConstPool::new(),
+            direct_call_sites: Vec::new(),
             epilog_constants: Vec::new(),
             gcpoints: GcPointTable::new(),
             comments: CommentTable::new(),
@@ -89,8 +89,30 @@ impl MacroAssembler {
         self.emit_bailouts();
         self.emit_epilog_constants();
 
-        // Align data such that code start is properly aligned.
-        let cp_size = self.constpool.align(CODE_ALIGNMENT as i32);
+        for (pos, label) in self.direct_call_sites {
+            let entry = self
+                .lazy_compilation
+                .get_mut(pos)
+                .expect("missing call site");
+            match entry.clone() {
+                LazyCompilationSite::Direct {
+                    fct_id,
+                    type_params,
+                    const_pool_offset_from_ra,
+                } => {
+                    if const_pool_offset_from_ra == 0 {
+                        let label_pos = self.asm.offset(label).expect("missing label");
+                        let const_pool_offset_from_ra = label_pos as i32 - pos as i32;
+                        *entry = LazyCompilationSite::Direct {
+                            fct_id,
+                            type_params,
+                            const_pool_offset_from_ra,
+                        };
+                    }
+                }
+                _ => unreachable!(),
+            }
+        }
 
         let asm = self.asm.finalize(CODE_ALIGNMENT);
 
@@ -99,15 +121,12 @@ impl MacroAssembler {
             .into_iter()
             .map(|(pos, label)| {
                 let offset = asm.offset(label).expect("unresolved label");
-                (
-                    (cp_size + pos) as u32,
-                    RelocationKind::JumpTableEntry(offset),
-                )
+                (pos, RelocationKind::JumpTableEntry(offset))
             })
             .collect::<Vec<_>>();
 
         CodeDescriptor {
-            constpool: self.constpool,
+            constpool: ConstPool::new(),
             code: asm.code(),
             lazy_compilation: self.lazy_compilation,
             gcpoints: self.gcpoints,
@@ -137,7 +156,17 @@ impl MacroAssembler {
 
     fn emit_epilog_constants(&mut self) {
         for (label, value) in &self.epilog_constants {
+            let align = match value {
+                EpilogConstant::Float32(..) => std::mem::size_of::<u32>(),
+                EpilogConstant::Address(..)
+                | EpilogConstant::Float64(..)
+                | EpilogConstant::Int128(..)
+                | EpilogConstant::JumpTable(..) => std::mem::size_of::<u64>(),
+            };
+
+            self.asm.align_to(align);
             self.asm.bind_label(*label);
+
             match value {
                 EpilogConstant::Address(value) => {
                     self.asm.emit_u64(value.to_usize() as u64);
@@ -165,10 +194,6 @@ impl MacroAssembler {
                 }
             }
         }
-    }
-
-    pub fn add_const_addr(&mut self, ptr: Address) -> i32 {
-        self.constpool.add_addr(ptr)
     }
 
     pub fn emit_epilog_const(&mut self, value: EpilogConstant) -> Label {

@@ -220,7 +220,7 @@ impl AssemblerArm64 {
         self.buffer.bind_label(lbl);
     }
 
-    fn offset(&self, lbl: Label) -> Option<u32> {
+    pub fn offset(&self, lbl: Label) -> Option<u32> {
         self.buffer.offset(lbl)
     }
 
@@ -230,7 +230,7 @@ impl AssemblerArm64 {
         self.buffer
     }
 
-    fn align_to(&mut self, alignment: usize) {
+    pub fn align_to(&mut self, alignment: usize) {
         while self.buffer.code.len() % alignment != 0 {
             self.brk(0);
         }
