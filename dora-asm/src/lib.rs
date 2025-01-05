@@ -91,4 +91,15 @@ impl AssemblerBuffer {
         }
         self.position += 8;
     }
+
+    fn emit_u128(&mut self, value: u128) {
+        if self.position == self.code.len() {
+            self.code.write_u128::<LittleEndian>(value).unwrap()
+        } else {
+            (&mut self.code[self.position..])
+                .write_u128::<LittleEndian>(value)
+                .unwrap();
+        }
+        self.position += 16;
+    }
 }

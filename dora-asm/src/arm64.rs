@@ -260,6 +260,10 @@ impl AssemblerArm64 {
     pub fn emit_u64(&mut self, value: u64) {
         self.buffer.emit_u64(value);
     }
+
+    pub fn emit_u128(&mut self, value: u128) {
+        self.buffer.emit_u128(value);
+    }
 }
 
 impl AssemblerArm64 {

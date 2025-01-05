@@ -137,6 +137,10 @@ impl AssemblerX64 {
     pub fn emit_u64(&mut self, value: u64) {
         self.buffer.emit_u64(value);
     }
+
+    pub fn emit_u128(&mut self, value: u128) {
+        self.buffer.emit_u128(value);
+    }
 }
 
 impl AssemblerX64 {
@@ -216,6 +220,16 @@ impl AssemblerX64 {
         self.emit_u8(0x0f);
         self.emit_u8(0x54);
         self.emit_address(dest.low_bits(), src);
+    }
+
+    pub fn andps_rl(&mut self, dest: XmmRegister, src: Label) {
+        debug_assert!(!self.has_avx2);
+        if dest.needs_rex() {
+            self.emit_rex(false, true, false, false);
+        }
+        self.emit_u8(0x0f);
+        self.emit_u8(0x54);
+        self.emit_label_address(dest.low_bits(), src);
     }
 
     pub fn andq_ri(&mut self, dest: Register, imm: Immediate) {
@@ -1380,6 +1394,22 @@ impl AssemblerX64 {
         self.emit_address(dest.low_bits(), rhs);
     }
 
+    pub fn vandpd_rl(&mut self, dest: XmmRegister, lhs: XmmRegister, rhs: Label) {
+        debug_assert!(self.has_avx2);
+        self.emit_vex(
+            dest.needs_rex(),
+            false,
+            false,
+            VEX_MMMMM_0F,
+            VEX_W0,
+            lhs.value(),
+            VEX_L_SCALAR_128,
+            VEX_PP_66,
+        );
+        self.emit_u8(0x54);
+        self.emit_label_address(dest.low_bits(), rhs);
+    }
+
     pub fn vandps_ra(&mut self, dest: XmmRegister, lhs: XmmRegister, rhs: Address) {
         debug_assert!(self.has_avx2);
         self.emit_vex(
@@ -1394,6 +1424,22 @@ impl AssemblerX64 {
         );
         self.emit_u8(0x54);
         self.emit_address(dest.low_bits(), rhs);
+    }
+
+    pub fn vandps_rl(&mut self, dest: XmmRegister, lhs: XmmRegister, label: Label) {
+        debug_assert!(self.has_avx2);
+        self.emit_vex(
+            dest.needs_rex(),
+            false,
+            false,
+            VEX_MMMMM_0F,
+            VEX_W0,
+            lhs.value(),
+            VEX_L_SCALAR_128,
+            VEX_PP_NONE,
+        );
+        self.emit_u8(0x54);
+        self.emit_label_address(dest.low_bits(), label);
     }
 
     pub fn vcvtsd2ss_rr(&mut self, dest: XmmRegister, lhs: XmmRegister, rhs: XmmRegister) {

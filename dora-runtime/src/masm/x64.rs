@@ -1478,41 +1478,22 @@ impl MacroAssembler {
             (1 << 63) - 1
         };
 
-        let const_offset = self.add_const_i128(value);
-        let inst_start = self.pos() as i32;
+        let label = self.create_label();
+        self.epilog_constants
+            .push((label, EpilogConstant::Int128(value)));
 
         if has_avx2() {
             match mode {
-                MachineMode::Float32 => {
-                    self.asm
-                        .vandps_ra(dest.into(), src.into(), AsmAddress::rip(0))
-                }
-                MachineMode::Float64 => {
-                    self.asm
-                        .vandpd_ra(dest.into(), src.into(), AsmAddress::rip(0))
-                }
+                MachineMode::Float32 => self.asm.vandps_rl(dest.into(), src.into(), label),
+                MachineMode::Float64 => self.asm.vandpd_rl(dest.into(), src.into(), label),
                 _ => unimplemented!(),
             }
-
-            let inst_end = self.pos() as i32;
-            let disp = -(const_offset + inst_end);
-            self.asm.set_position(self.pos() - 4);
-            self.asm.emit_u32(disp as u32);
-            self.asm.set_position_end();
         } else {
-            let xmm_reg: XmmRegister = src.into();
-
-            let inst_size = 7 + if xmm_reg.needs_rex() { 1 } else { 0 };
-
-            let address = AsmAddress::rip(-(const_offset + inst_start + inst_size));
-
             match mode {
-                MachineMode::Float32 => self.asm.andps_ra(src.into(), address),
-                MachineMode::Float64 => self.asm.andps_ra(src.into(), address),
+                MachineMode::Float32 => self.asm.andps_rl(src.into(), label),
+                MachineMode::Float64 => self.asm.andps_rl(src.into(), label),
                 _ => unimplemented!(),
             }
-
-            assert_eq!(inst_size, self.pos() as i32 - inst_start);
 
             if dest != src {
                 self.copy_freg(mode, dest, src);

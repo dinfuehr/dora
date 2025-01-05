@@ -93,6 +93,7 @@ impl NewConstPool {
 pub enum EpilogConstant {
     Float32(f32),
     Float64(f64),
+    Int128(u128),
     Address(Address),
     JumpTable(Vec<Label>),
 }
@@ -203,6 +204,10 @@ impl MacroAssembler {
 
                 EpilogConstant::Float64(value) => {
                     self.asm.emit_u64(unsafe { std::mem::transmute(*value) });
+                }
+
+                EpilogConstant::Int128(value) => {
+                    self.asm.emit_u128(*value);
                 }
 
                 EpilogConstant::JumpTable(targets) => {
