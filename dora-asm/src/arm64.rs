@@ -147,6 +147,7 @@ struct ForwardJump {
 }
 
 enum JumpKind {
+    Adr(Register),
     Unconditional,
     Conditional(Cond),
     Zero {
@@ -276,6 +277,11 @@ impl AssemblerArm64 {
                 self.set_position(jmp.offset as usize);
 
                 match jmp.kind {
+                    JumpKind::Adr(rd) => {
+                        let distance: i32 = lbl_offset as i32 - jmp.offset as i32;
+                        self.adr_imm(rd, distance);
+                    }
+
                     JumpKind::Conditional(cond) => {
                         self.bc_imm(cond.into(), distance);
                     }
@@ -434,6 +440,15 @@ impl AssemblerArm64 {
 
     pub fn adr_imm(&mut self, rd: Register, imm: i32) {
         self.emit_u32(cls::pcrel(0, imm, rd));
+    }
+
+    pub fn adr_label(&mut self, rd: Register, label: Label) {
+        self.unresolved_jumps.push(ForwardJump {
+            offset: self.position().try_into().expect("overflow"),
+            label,
+            kind: JumpKind::Adr(rd),
+        });
+        self.emit_u32(0);
     }
 
     pub fn adrp_imm(&mut self, rd: Register, imm: i32) {
