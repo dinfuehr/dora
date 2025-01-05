@@ -171,6 +171,12 @@ impl MacroAssembler {
         self.constpool.add_addr(ptr)
     }
 
+    pub fn emit_epilog_const(&mut self, value: EpilogConstant) -> Label {
+        let label = self.create_label();
+        self.epilog_constants.push((label, value));
+        label
+    }
+
     pub fn pos(&self) -> usize {
         self.asm.position()
     }
@@ -328,10 +334,7 @@ impl MacroAssembler {
 
     pub fn emit_jump_table(&mut self, targets: Vec<Label>) -> Label {
         assert!(!targets.is_empty());
-        let label = self.create_label();
-        self.epilog_constants
-            .push((label, EpilogConstant::JumpTable(targets)));
-        label
+        self.emit_epilog_const(EpilogConstant::JumpTable(targets))
     }
 }
 

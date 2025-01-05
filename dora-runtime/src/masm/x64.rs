@@ -1279,8 +1279,7 @@ impl MacroAssembler {
             MachineMode::Float64 => EpilogConstant::Float64(imm),
             _ => unreachable!(),
         };
-        let label = self.asm.create_label();
-        self.epilog_constants.push((label, const_value));
+        let label = self.emit_epilog_const(const_value);
 
         if has_avx2() {
             match mode {
