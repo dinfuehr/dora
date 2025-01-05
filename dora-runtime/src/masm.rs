@@ -223,18 +223,6 @@ impl MacroAssembler {
         result
     }
 
-    fn add_const_f32(&mut self, value: f32) -> i32 {
-        let result = self.constpool.add_f32(value);
-        assert_eq!(result, self.new_constpool.add_f32(value) as i32);
-        result
-    }
-
-    fn add_const_f64(&mut self, value: f64) -> i32 {
-        let result = self.constpool.add_f64(value);
-        assert_eq!(result, self.new_constpool.add_f64(value) as i32);
-        result
-    }
-
     fn add_const_i128(&mut self, value: i128) -> i32 {
         let result = self.constpool.add_i128(value);
         assert_eq!(result, self.new_constpool.add_i128(value) as i32);

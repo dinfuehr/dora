@@ -97,12 +97,8 @@ impl MacroAssembler {
     }
 
     pub fn raw_call(&mut self, ptr: Address) {
-        let disp = self.add_const_addr(ptr);
-        let pos = self.pos() as i32;
-
         let scratch = self.get_scratch();
-
-        self.load_constpool(*scratch, disp + pos);
+        self.load_int_const(MachineMode::IntPtr, *scratch, ptr.to_usize() as i64);
         self.asm.bl_r((*scratch).into());
     }
 
