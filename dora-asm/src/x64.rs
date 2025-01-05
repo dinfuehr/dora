@@ -2036,6 +2036,22 @@ impl AssemblerX64 {
         self.emit_address(dest.low_bits(), rhs);
     }
 
+    pub fn vxorpd_rl(&mut self, dest: XmmRegister, lhs: XmmRegister, rhs: Label) {
+        debug_assert!(self.has_avx2);
+        self.emit_vex(
+            dest.needs_rex(),
+            false,
+            false,
+            VEX_MMMMM_0F,
+            VEX_W0,
+            lhs.value(),
+            VEX_L_SCALAR_128,
+            VEX_PP_66,
+        );
+        self.emit_u8(0x57);
+        self.emit_label_address(dest.low_bits(), rhs);
+    }
+
     pub fn vxorps_ra(&mut self, dest: XmmRegister, lhs: XmmRegister, rhs: Address) {
         debug_assert!(self.has_avx2);
         self.emit_vex(
@@ -2050,6 +2066,22 @@ impl AssemblerX64 {
         );
         self.emit_u8(0x57);
         self.emit_address(dest.low_bits(), rhs);
+    }
+
+    pub fn vxorps_rl(&mut self, dest: XmmRegister, lhs: XmmRegister, rhs: Label) {
+        debug_assert!(self.has_avx2);
+        self.emit_vex(
+            dest.needs_rex(),
+            false,
+            false,
+            VEX_MMMMM_0F,
+            VEX_W0,
+            lhs.value(),
+            VEX_L_SCALAR_128,
+            VEX_PP_NONE,
+        );
+        self.emit_u8(0x57);
+        self.emit_label_address(dest.low_bits(), rhs);
     }
 
     pub fn vxorps_rr(&mut self, dest: XmmRegister, lhs: XmmRegister, rhs: XmmRegister) {
@@ -2118,11 +2150,30 @@ impl AssemblerX64 {
         self.emit_address(dest.low_bits(), src);
     }
 
+    pub fn xorpd_rl(&mut self, dest: XmmRegister, src: Label) {
+        self.emit_u8(0x66);
+        if dest.needs_rex() {
+            self.emit_rex(false, true, false, false);
+        }
+        self.emit_u8(0x0f);
+        self.emit_u8(0x57);
+        self.emit_label_address(dest.low_bits(), src);
+    }
+
     pub fn xorps_ra(&mut self, dest: XmmRegister, src: Address) {
         self.emit_rex_sse_address_optional(dest, src);
         self.emit_u8(0x0f);
         self.emit_u8(0x57);
         self.emit_address(dest.low_bits(), src);
+    }
+
+    pub fn xorps_rl(&mut self, dest: XmmRegister, src: Label) {
+        if dest.needs_rex() {
+            self.emit_rex(false, true, false, false);
+        }
+        self.emit_u8(0x0f);
+        self.emit_u8(0x57);
+        self.emit_label_address(dest.low_bits(), src);
     }
 
     pub fn xorps_rr(&mut self, dest: XmmRegister, src: XmmRegister) {

@@ -228,12 +228,6 @@ impl MacroAssembler {
         result
     }
 
-    fn add_const_i128(&mut self, value: i128) -> i32 {
-        let result = self.constpool.add_i128(value);
-        assert_eq!(result, self.new_constpool.add_i128(value) as i32);
-        result
-    }
-
     pub fn pos(&self) -> usize {
         self.asm.position()
     }
