@@ -1,3 +1,4 @@
+
 use package::assembler::AssemblerBuffer;
 use package::assembler::Label;
 use package::assembler::MachineCode;
@@ -108,6 +109,7 @@ class ForwardJump {
 }
 
 enum JumpKind {
+    Adr(Register),
     Unconditional(Bool),
     Conditional(Cond),
     Zero(Bool, Bool, Register),
@@ -302,6 +304,15 @@ impl AssemblerArm64 {
 
     pub fn adr_imm(rd: Register, imm: Int32) {
         self.emit(encoding::pcrel(0i32, imm, rd));
+    }
+
+    pub fn adr_label(rd: Register, label: Label) {
+        self.jumps.push(ForwardJump(
+            offset = self.buffer.position(),
+            label,
+            kind = JumpKind::Adr(rd),
+        ));
+        self.emit(0i32);
     }
 
     pub fn adrp_imm(rd: Register, imm: Int64) {
@@ -2194,6 +2205,10 @@ impl AssemblerArm64 {
             self.buffer.setPosition(jmp.offset);
 
             match jmp.kind {
+                JumpKind::Adr(rd) => {
+                    let distance = jmp.label.offset - jmp.offset;
+                    self.adr_imm(rd, distance.toInt32());
+                },
                 JumpKind::Conditional(cond) => {
                     if encoding::fitsI19(distance) {
                         self.bc_imm(cond, distance);
@@ -2245,6 +2260,14 @@ impl AssemblerArm64 {
 
     fn emit(value: Int32) {
         self.buffer.emitInt32(value);
+    }
+
+    pub fn emitInt32(value: Int32) {
+        self.buffer.emitInt32(value);
+    }
+
+    pub fn emitInt64(value: Int64) {
+        self.buffer.emitInt64(value);
     }
 }
 
