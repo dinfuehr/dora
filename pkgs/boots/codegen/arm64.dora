@@ -158,16 +158,16 @@ impl CodeGenArm64 {
     }
 
     fn mov_imm_f32(dest: FloatRegister, scratch: Register, value: Float32) {
-        let entry = self.constPool.push(ConstPoolValue::Float32(value));
-        let disp = self.asm.position() + entry.disp;
-        self.asm.adr_imm(scratch, -disp);
+        let label = self.asm.createLabel();
+        self.epilogConstants.push((label, ConstPoolValue::Float32(value)));
+        self.asm.adr_label(scratch, label);
         self.asm.ldr_imm_s(dest, scratch, 0i32);
     }
 
     fn mov_imm_f64(dest: FloatRegister, scratch: Register, value: Float64) {
-        let entry = self.constPool.push(ConstPoolValue::Float64(value));
-        let disp = self.asm.position() + entry.disp;
-        self.asm.adr_imm(scratch, -disp);
+        let label = self.asm.createLabel();
+        self.epilogConstants.push((label, ConstPoolValue::Float64(value)));
+        self.asm.adr_label(scratch, label);
         self.asm.ldr_imm_d(dest, scratch, 0i32);
     }
 
