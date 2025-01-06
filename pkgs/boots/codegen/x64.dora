@@ -5,7 +5,7 @@ use package::assembler::x64::{R8, R9, R10, R11, R12, R13, R14, R15};
 use package::assembler::x64::{XMM0, XMM1, XMM2, XMM3, XMM4, XMM5, XMM6, XMM7, XMM8, XMM9, XMM10, XMM11, XMM12, XMM13, XMM14, XMM15};
 use package::assembler::{FloatRegister, Label, Register, RegSet};
 use package::bytecode::data::ConstPoolId;
-use package::codegen::{CODE_SIZE_ALIGNMENT, STACK_FRAME_ALIGNMENT, CodeGen, computeOffsetsInLiveSet, getLiveValuesWithoutCurrentInst, getRegisterSnapshotWithout};
+use package::codegen::{CODE_SIZE_ALIGNMENT, STACK_FRAME_ALIGNMENT, CodeGen, computeOffsetsInLiveSet, getLiveValuesWithoutCurrentInst, getRegisterSnapshotWithout, fixupDirectCallSites};
 use package::compilation::CompilationInfo;
 use package::interface::{Address, Architecture, ConstPool, ConstPoolEntry, ConstPoolValue, config, LazyCompilationSite, LazyCompilationSiteDirect, getClassSize, getClassPointer, getFunctionVtableIndex, getGlobalValueAddress, getGlobalStateAddress, getGlobalInitializerFunctionId, InlinedFunction, InlinedFunctionId, InlinedLocation};
 use package::interface::{LAMBDA_SIZE, PTR_SIZE, GLOBAL_STATE_INITIALIZED};
@@ -79,6 +79,7 @@ pub class CodeGenX64 {
     epilogConstants: Vec[(Label, ConstPoolValue)],
     locations: LocationTable,
     lazyCompilation: LazyCompilationData,
+    directCalls: Vec[(Int32, Label, LazyCompilationSiteDirect)],
     gcPoints: GcPointTable,
     comments: CommentTable,
     deferred: Vec[(): ()],
@@ -96,6 +97,7 @@ impl CodeGenX64 {
             epilogConstants = Vec[(Label, ConstPoolValue)]::new(),
             locations = LocationTable::new(),
             lazyCompilation = LazyCompilationData::new(),
+            directCalls = Vec[(Int32, Label, LazyCompilationSiteDirect)]::new(),
             gcPoints = GcPointTable::new(),
             comments = CommentTable::new(),
             deferred = Vec[(): ()]::new(),
@@ -118,11 +120,6 @@ impl CodeGenX64 {
         self.locations.insert(self.asm.position(), inlined_location);
     }
 
-    fn loadConstPool(dest: Register, entry: ConstPoolEntry) {
-        let offset = -(self.asm.position() + 7i32 + entry.disp);
-        self.asm.movq_ra(dest, AsmAddress::rip(offset));
-    }
-
     fn emitDeferredCode() {
         for code in self.deferred {
             code();
@@ -131,6 +128,14 @@ impl CodeGenX64 {
 
     fn emitEpilogConstants() {
         for (label, constant) in self.epilogConstants {
+            let align = match constant {
+                ConstPoolValue::Float32(..) => 4,
+                ConstPoolValue::Float64(..)
+                | ConstPoolValue::Int128(..)
+                | ConstPoolValue::Address(..) => 8,
+            };
+
+            self.asm.alignCodeSize(align);
             self.asm.bindLabel(label);
 
             match constant {
@@ -616,22 +621,25 @@ impl CodeGenX64 {
     }
 
     fn emitCall(fct_id: FunctionId, type_params: Array[BytecodeType], inlined_location: InlinedLocation, gc_point: GcPoint) {
-        let const_pool_offset_from_ra = if self.ci.compilationMode.isStage2or3() {
-            self.asm.call_rel32(0i32);
-            0i32
-        } else {
-            let address = iface::getFunctionAddress(self.ci, fct_id, type_params);
-            let cp_entry = self.constPool.push(ConstPoolValue::Address(address));
-            self.loadConstPool(REG_TEMP, cp_entry);
-            self.asm.call_r(REG_TEMP);
-            -(self.asm.position() + cp_entry.disp)
-        };
-
         let site = LazyCompilationSiteDirect(
             fct_id,
             type_params,
-            const_pool_offset_from_ra,
+            const_pool_offset_from_ra = 0i32,
         );
+
+        if self.ci.compilationMode.isStage2or3() {
+            self.asm.call_rel32(0i32);
+        } else {
+            let address = iface::getFunctionAddress(self.ci, fct_id, type_params);
+
+            let label = self.asm.createLabel();
+            self.epilogConstants.push((label, ConstPoolValue::Address(address)));
+
+            self.asm.movq_rl(REG_TEMP, label);
+            self.asm.call_r(REG_TEMP);
+            let pos = self.asm.position();
+            self.directCalls.push((pos, label, site));
+        }
 
         let pos = self.asm.position();
         self.lazyCompilation.insert(pos, LazyCompilationSite::Direct(site));
@@ -3259,6 +3267,7 @@ impl CodeGen for CodeGenX64 {
     fn finalize(): CodeDescriptor {
         self.emitDeferredCode();
         self.emitEpilogConstants();
+        fixupDirectCallSites(self.directCalls);
         self.asm.resolveJumps();
         self.asm.nop();
 

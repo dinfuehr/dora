@@ -423,7 +423,7 @@ pub enum LazyCompilationSite {
     Lambda(LazyCompilationSiteLambda),
 }
 
-pub struct LazyCompilationSiteDirect {
+pub class LazyCompilationSiteDirect {
     pub fct_id: FunctionId,
     pub type_params: Array[BytecodeType],
     pub const_pool_offset_from_ra: Int32,

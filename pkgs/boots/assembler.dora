@@ -104,6 +104,14 @@ impl Label {
         self.offset = pos;
     }
 
+    pub fn getOffset(): Option[Int64] {
+        if self.offset != -1 {
+            Some[Int64](self.offset)
+        } else {
+            None[Int64]
+        }
+    }
+
     fn isBound(): Bool {
         self.offset >= 0i64
     }

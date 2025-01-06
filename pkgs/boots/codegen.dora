@@ -3,7 +3,7 @@ use package::codegen::x64::CodeGenX64;
 use package::codegen::arm64::CodeGenArm64;
 use package::compilation::CompilationInfo;
 use package::assembler::{FloatRegister, Label, Register, RegSet};
-use package::interface::{Address, Architecture, config};
+use package::interface::{Address, Architecture, config, LazyCompilationSiteDirect};
 use package::location::ArgumentLocations;
 use package::graph::{Graph, Inst, InstSet, Location, LocationData, Op, Operand, Policy, RegisterTrackers, Type};
 use package::CodeDescriptor;
@@ -652,4 +652,11 @@ fn getLiveValuesWithoutCurrentInst(inst: Inst): InstSet {
     let live = inst.getLocationData().getLiveValues();
     live.remove(inst);
     live
+}
+
+fn fixupDirectCallSites(directCalls: Vec[(Int32, Label, LazyCompilationSiteDirect)]) {
+    for (ra, label, site) in directCalls {
+        let labelOffset = label.getOffset().getOrPanic();
+        site.const_pool_offset_from_ra = labelOffset.toInt32() - ra;
+    }
 }
