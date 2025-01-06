@@ -2182,7 +2182,7 @@ impl AssemblerArm64 {
     }
 
     pub fn alignCodeSize(align: Int64) {
-        while self.buffer.size() % 16 != 0 {
+        while self.buffer.size() % align != 0 {
             self.brk(0i32);
         }
     }

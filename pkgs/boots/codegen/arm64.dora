@@ -603,24 +603,28 @@ impl CodeGenArm64 {
     }
 
     fn emitCall(fct_id: FunctionId, type_params: Array[BytecodeType], inlined_location: InlinedLocation, gc_point: GcPoint) {
-        let const_pool_offset_from_ra = if self.ci.compilationMode.isStage2or3() {
-            self.asm.bl_imm(0i32);
-            0i32
-        } else {
-            let address = iface::getFunctionAddress(self.ci, fct_id, type_params);
-            let cp_entry = self.constPool.push(ConstPoolValue::Address(address));
-            self.loadConstPool(REG_TEMP, cp_entry, REG_TEMP2);
-            self.asm.bl_r(REG_TEMP);
-            -(self.asm.position() + cp_entry.disp)
-        };
-
-        let pos = self.asm.position();
         let site = LazyCompilationSiteDirect(
             fct_id,
             type_params,
-            const_pool_offset_from_ra,
+            const_pool_offset_from_ra = 0i32,
         );
 
+        if self.ci.compilationMode.isStage2or3() {
+            self.asm.bl_imm(0i32);
+        } else {
+            let address = iface::getFunctionAddress(self.ci, fct_id, type_params);
+
+            let label = self.asm.createLabel();
+            self.epilogConstants.push((label, ConstPoolValue::Address(address)));
+
+            self.asm.adr_label(REG_TEMP, label);
+            self.asm.ldr_imm(REG_TEMP, REG_TEMP, 0i32);
+            self.asm.bl_r(REG_TEMP);
+            let pos = self.asm.position();
+            self.directCalls.push((pos, label, site));
+        };
+
+        let pos = self.asm.position();
         self.lazyCompilation.insert(pos, LazyCompilationSite::Direct(site));
         self.locations.insert(pos, inlined_location);
         self.gcPoints.insert(pos, gc_point);

@@ -2422,7 +2422,7 @@ impl AssemblerX64 {
     }
 
     pub fn alignCodeSize(align: Int64) {
-        while self.buffer.size() % 16 != 0 {
+        while self.buffer.size() % align != 0 {
             self.int3();
         }
     }
