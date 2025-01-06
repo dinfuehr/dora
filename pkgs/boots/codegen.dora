@@ -14,6 +14,13 @@ pub mod x64;
 const CODE_SIZE_ALIGNMENT: Int64 = 16;
 pub const STACK_FRAME_ALIGNMENT: Int64 = 16;
 
+pub enum EpilogConstant {
+    Address(Address),
+    Float32(Float32),
+    Float64(Float64),
+    Int128(Int64, Int64),
+}
+
 pub fn createCodeGen(ci: CompilationInfo, graph: Graph): CodeGen {
     match config.architecture {
         Architecture::X64 => CodeGenX64::new(ci, graph) as CodeGen,

@@ -1,9 +1,8 @@
-use crate::boots::data::{ConstPoolEntryKind, LazyCompilationSiteKind};
+use crate::boots::data::LazyCompilationSiteKind;
 use crate::gc::Address;
 use crate::vm::{
-    CodeDescriptor, CommentTable, ConstPool, ConstPoolValue, GcPoint, GcPointTable,
-    InlinedFunction, InlinedFunctionId, InlinedLocation, LazyCompilationData, LazyCompilationSite,
-    LocationTable, RelocationTable, CODE_ALIGNMENT,
+    CodeDescriptor, CommentTable, GcPoint, GcPointTable, InlinedFunction, InlinedFunctionId,
+    InlinedLocation, LazyCompilationData, LazyCompilationSite, LocationTable, RelocationTable,
 };
 use dora_bytecode::{
     BytecodeType, BytecodeTypeArray, BytecodeTypeKind, ClassId, EnumId, FunctionId, Location,
@@ -11,7 +10,6 @@ use dora_bytecode::{
 };
 
 pub fn decode_code_descriptor(reader: &mut ByteReader) -> CodeDescriptor {
-    let constpool = decode_const_pool(reader);
     let code = decode_code(reader);
     let lazy_compilation = decode_lazy_compilation(reader);
     let gcpoints = decode_gcpoint_table(reader);
@@ -21,36 +19,11 @@ pub fn decode_code_descriptor(reader: &mut ByteReader) -> CodeDescriptor {
     CodeDescriptor {
         code,
         comments,
-        constpool,
         lazy_compilation,
         gcpoints,
         positions,
         relocations: RelocationTable::new(),
         inlined_functions,
-    }
-}
-
-fn decode_const_pool(reader: &mut ByteReader) -> ConstPool {
-    let length = reader.read_u32() as usize;
-    let mut pool = ConstPool::new();
-
-    for _ in 0..length {
-        let value = decode_const_pool_value(reader);
-        pool.add_value(value);
-    }
-
-    pool.align(CODE_ALIGNMENT as i32);
-    pool
-}
-
-fn decode_const_pool_value(reader: &mut ByteReader) -> ConstPoolValue {
-    let kind: ConstPoolEntryKind = reader.read_u8().try_into().expect("illegal kind");
-
-    match kind {
-        ConstPoolEntryKind::Address => ConstPoolValue::Ptr(reader.read_address()),
-        ConstPoolEntryKind::Float32 => ConstPoolValue::Float32(f32::from_bits(reader.read_u32())),
-        ConstPoolEntryKind::Float64 => ConstPoolValue::Float64(f64::from_bits(reader.read_u64())),
-        ConstPoolEntryKind::Int128 => ConstPoolValue::Int128(reader.read_u128() as i128),
     }
 }
 

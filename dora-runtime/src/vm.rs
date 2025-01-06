@@ -31,9 +31,9 @@ use dora_bytecode::{
 pub use self::classes::{create_shape, FieldInstance, ShapeKind};
 pub use self::code::{
     install_code, install_code_stub, Code, CodeDescriptor, CodeId, CodeKind, CodeObjects,
-    CommentTable, ConstPool, ConstPoolEntry, ConstPoolValue, GcPoint, GcPointTable,
-    InlinedFunction, InlinedFunctionId, InlinedLocation, LazyCompilationData, LazyCompilationSite,
-    LocationTable, ManagedCodeHeader, RelocationKind, RelocationTable, CODE_ALIGNMENT,
+    CommentTable, GcPoint, GcPointTable, InlinedFunction, InlinedFunctionId, InlinedLocation,
+    LazyCompilationData, LazyCompilationSite, LocationTable, ManagedCodeHeader, RelocationKind,
+    RelocationTable, CODE_ALIGNMENT,
 };
 pub use self::code_map::CodeMap;
 pub use self::compilation::CompilationDatabase;

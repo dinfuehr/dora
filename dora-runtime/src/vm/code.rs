@@ -75,11 +75,9 @@ impl ManagedCodeHeader {
 pub fn install_code(vm: &VM, code_descriptor: CodeDescriptor, kind: CodeKind) -> Arc<Code> {
     let object_header_size = std::mem::size_of::<ManagedCodeHeader>();
     debug_assert!(object_header_size % CODE_ALIGNMENT == 0);
-    debug_assert!(code_descriptor.constpool.size() as usize % CODE_ALIGNMENT == 0);
     debug_assert!(code_descriptor.code.len() as usize % CODE_ALIGNMENT == 0);
 
-    let object_size =
-        object_header_size + code_descriptor.constpool.size() as usize + code_descriptor.code.len();
+    let object_size = object_header_size + code_descriptor.code.len();
 
     debug_assert!(object_size % CODE_ALIGNMENT == 0);
 
@@ -90,7 +88,7 @@ pub fn install_code(vm: &VM, code_descriptor: CodeDescriptor, kind: CodeKind) ->
         (object_size - (Header::size() as usize) - mem::ptr_width_usize()) / mem::ptr_width_usize();
 
     let object_payload_start = object_start.offset(object_header_size);
-    let instruction_start = object_payload_start.offset(code_descriptor.constpool.size() as usize);
+    let instruction_start = object_payload_start;
 
     if object_start.is_null() {
         panic!("out of memory: not enough executable memory left!");
@@ -109,11 +107,6 @@ pub fn install_code(vm: &VM, code_descriptor: CodeDescriptor, kind: CodeKind) ->
     code_header.length = array_length;
     code_header.native_code_object = Address::null();
     code_header.padding = 0;
-
-    // Fill constant pool.
-    code_descriptor
-        .constpool
-        .install(object_payload_start.to_ptr());
 
     // Copy machine code into object.
     unsafe {
@@ -267,7 +260,6 @@ impl fmt::Debug for Code {
 }
 
 pub struct CodeDescriptor {
-    pub constpool: ConstPool,
     pub code: Vec<u8>,
     pub lazy_compilation: LazyCompilationData,
     pub gcpoints: GcPointTable,
@@ -508,127 +500,6 @@ pub enum LazyCompilationSite {
         params: BytecodeTypeArray,
         return_type: BytecodeType,
     },
-}
-
-#[derive(Debug)]
-pub struct ConstPool {
-    entries: Vec<ConstPoolEntry>,
-    size: i32,
-}
-
-#[derive(Debug)]
-pub struct ConstPoolEntry {
-    pub disp: i32,
-    pub value: ConstPoolValue,
-}
-
-#[derive(Debug, PartialEq)]
-pub enum ConstPoolValue {
-    Ptr(Address),
-    Float32(f32),
-    Float64(f64),
-    Int128(i128),
-}
-
-impl ConstPoolValue {
-    fn size(&self) -> i32 {
-        match self {
-            &ConstPoolValue::Ptr(_) => mem::ptr_width(),
-            &ConstPoolValue::Float32(_) => std::mem::size_of::<f32>() as i32,
-            &ConstPoolValue::Float64(_) => std::mem::size_of::<f64>() as i32,
-            &ConstPoolValue::Int128(_) => std::mem::size_of::<i128>() as i32,
-        }
-    }
-}
-
-impl ConstPool {
-    pub fn new() -> ConstPool {
-        ConstPool {
-            entries: Vec::new(),
-            size: 0,
-        }
-    }
-
-    pub fn size(&self) -> i32 {
-        self.size
-    }
-
-    pub fn install(&self, ptr: *const u8) {
-        for entry in &self.entries {
-            let offset = self.size - entry.disp;
-
-            unsafe {
-                let entry_ptr = ptr.offset(offset as isize);
-
-                match entry.value {
-                    ConstPoolValue::Ptr(v) => {
-                        *(entry_ptr as *mut Address) = v;
-                    }
-
-                    ConstPoolValue::Float32(v) => {
-                        *(entry_ptr as *mut f32) = v;
-                    }
-
-                    ConstPoolValue::Float64(v) => {
-                        *(entry_ptr as *mut f64) = v;
-                    }
-
-                    ConstPoolValue::Int128(v) => {
-                        *(entry_ptr as *mut i128) = v;
-                    }
-                }
-            }
-        }
-    }
-
-    pub fn add_addr(&mut self, ptr: Address) -> i32 {
-        self.add_value(ConstPoolValue::Ptr(ptr))
-    }
-
-    pub fn add_f32(&mut self, value: f32) -> i32 {
-        self.add_value(ConstPoolValue::Float32(value))
-    }
-
-    pub fn add_f64(&mut self, value: f64) -> i32 {
-        self.add_value(ConstPoolValue::Float64(value))
-    }
-
-    pub fn add_i128(&mut self, value: i128) -> i32 {
-        self.add_value(ConstPoolValue::Int128(value))
-    }
-
-    pub fn add_value(&mut self, value: ConstPoolValue) -> i32 {
-        let size = value.size();
-        self.size = mem::align_i32(self.size + size, size);
-
-        let entry = ConstPoolEntry {
-            disp: self.size,
-            value,
-        };
-
-        self.entries.push(entry);
-
-        self.size
-    }
-
-    pub fn align(&mut self, size: i32) -> i32 {
-        assert!(size > 0);
-        self.size = mem::align_i32(self.size, size);
-
-        self.size
-    }
-}
-
-#[cfg(test)]
-mod tests {
-    use super::*;
-
-    #[test]
-    fn test_add_addr() {
-        let mut constpool = ConstPool::new();
-        assert_eq!(mem::ptr_width(), constpool.add_addr(1.into()));
-        assert_eq!(2 * mem::ptr_width(), constpool.add_addr(1.into()));
-    }
 }
 
 #[derive(Debug)]

@@ -1,48 +1,14 @@
 use package::bytecode::BytecodeType;
 use package::bytecode::opcode as opc;
-use package::interface::{Address, CodeDescriptor, CommentTable, ConstPool, ConstPoolEntry, ConstPoolValue, GcPoint, GcPointTable, InlinedFunction, LazyCompilationData, LazyCompilationSite, LocationTable, InlinedLocation};
+use package::interface::{Address, CodeDescriptor, CommentTable, GcPoint, GcPointTable, InlinedFunction, LazyCompilationData, LazyCompilationSite, LocationTable, InlinedLocation};
 
 pub fn encodeCodeDescriptor(writer: ByteWriter, descriptor: CodeDescriptor) {
-    encodeConstPool(writer, descriptor.constPool);
     encodeArrayUInt8(writer, descriptor.code);
     encodeLazyCompilationTable(writer, descriptor.lazyCompilation);
     encodeGcPointTable(writer, descriptor.gcPoints);
     encodeLocationTable(writer, descriptor.locations);
     encodeCommentTable(writer, descriptor.comments);
     encodeInlinedFunctionTable(writer, descriptor.inlinedFunctions);
-}
-
-fn encodeConstPool(writer: ByteWriter, table: ConstPool) {
-    writer.emitInt32(table.size().toInt32());
-
-    for entry in table {
-        encodeConstPoolValue(writer, entry.value);
-    }
-}
-
-fn encodeConstPoolValue(writer: ByteWriter, value: ConstPoolValue) {
-    match value {
-        ConstPoolValue::Address(value) => {
-            writer.emitByte(opc::CONST_POOL_ENTRY_KIND_ADDRESS.toUInt8());
-            writer.emitAddress(value);
-        },
-
-        ConstPoolValue::Float32(value) => {
-            writer.emitByte(opc::CONST_POOL_ENTRY_KIND_FLOAT32.toUInt8());
-            writer.emitInt32(value.asInt32());
-        },
-
-        ConstPoolValue::Float64(value) => {
-            writer.emitByte(opc::CONST_POOL_ENTRY_KIND_FLOAT64.toUInt8());
-            writer.emitInt64(value.asInt64());
-        },
-
-        ConstPoolValue::Int128(lower, upper) => {
-            writer.emitByte(opc::CONST_POOL_ENTRY_KIND_INT128.toUInt8());
-            writer.emitInt64(lower);
-            writer.emitInt64(upper);
-        },
-    }
 }
 
 fn encodeArrayUInt8(writer: ByteWriter, array: Array[UInt8]) {

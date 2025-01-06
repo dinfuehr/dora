@@ -5,9 +5,9 @@ use package::assembler::x64::{R8, R9, R10, R11, R12, R13, R14, R15};
 use package::assembler::x64::{XMM0, XMM1, XMM2, XMM3, XMM4, XMM5, XMM6, XMM7, XMM8, XMM9, XMM10, XMM11, XMM12, XMM13, XMM14, XMM15};
 use package::assembler::{FloatRegister, Label, Register, RegSet};
 use package::bytecode::data::ConstPoolId;
-use package::codegen::{CODE_SIZE_ALIGNMENT, STACK_FRAME_ALIGNMENT, CodeGen, computeOffsetsInLiveSet, getLiveValuesWithoutCurrentInst, getRegisterSnapshotWithout, fixupDirectCallSites};
+use package::codegen::{CODE_SIZE_ALIGNMENT, STACK_FRAME_ALIGNMENT, CodeGen, EpilogConstant, computeOffsetsInLiveSet, getLiveValuesWithoutCurrentInst, getRegisterSnapshotWithout, fixupDirectCallSites};
 use package::compilation::CompilationInfo;
-use package::interface::{Address, Architecture, ConstPool, ConstPoolEntry, ConstPoolValue, config, LazyCompilationSite, LazyCompilationSiteDirect, getClassSize, getClassPointer, getFunctionVtableIndex, getGlobalValueAddress, getGlobalStateAddress, getGlobalInitializerFunctionId, InlinedFunction, InlinedFunctionId, InlinedLocation};
+use package::interface::{Address, Architecture, config, LazyCompilationSite, LazyCompilationSiteDirect, getClassSize, getClassPointer, getFunctionVtableIndex, getGlobalValueAddress, getGlobalStateAddress, getGlobalInitializerFunctionId, InlinedFunction, InlinedFunctionId, InlinedLocation};
 use package::interface::{LAMBDA_SIZE, PTR_SIZE, GLOBAL_STATE_INITIALIZED};
 use package::interface::{THREAD_LOCAL_DATA_TLAB_TOP_OFFSET, THREAD_LOCAL_DATA_TLAB_END_OFFSET, THREAD_LOCAL_DATA_STACK_LIMIT_OFFSET, THREAD_LOCAL_DATA_STATE_OFFSET, THREAD_LOCAL_DATA_MARKING_OFFSET, OBJECT_HEADER_LENGTH, OBJECT_METADATA_OFFSET, METADATA_REMEMBERED_BIT, ARRAY_HEADER_LENGTH, THREAD_LOCAL_DATA_MANAGED_THREAD_HANDLE_OFFSET};
 use package::interface as iface;
@@ -75,8 +75,7 @@ pub class CodeGenX64 {
     ci: CompilationInfo,
     asm: AssemblerX64,
     graph: Graph,
-    constPool: ConstPool,
-    epilogConstants: Vec[(Label, ConstPoolValue)],
+    epilogConstants: Vec[(Label, EpilogConstant)],
     locations: LocationTable,
     lazyCompilation: LazyCompilationData,
     directCalls: Vec[(Int32, Label, LazyCompilationSiteDirect)],
@@ -93,8 +92,7 @@ impl CodeGenX64 {
             ci,
             asm = AssemblerX64::new(config.hasAvx2),
             graph,
-            constPool = ConstPool::new(),
-            epilogConstants = Vec[(Label, ConstPoolValue)]::new(),
+            epilogConstants = Vec[(Label, EpilogConstant)]::new(),
             locations = LocationTable::new(),
             lazyCompilation = LazyCompilationData::new(),
             directCalls = Vec[(Int32, Label, LazyCompilationSiteDirect)]::new(),
@@ -129,30 +127,30 @@ impl CodeGenX64 {
     fn emitEpilogConstants() {
         for (label, constant) in self.epilogConstants {
             let align = match constant {
-                ConstPoolValue::Float32(..) => 4,
-                ConstPoolValue::Float64(..)
-                | ConstPoolValue::Int128(..)
-                | ConstPoolValue::Address(..) => 8,
+                EpilogConstant::Float32(..) => 4,
+                EpilogConstant::Float64(..)
+                | EpilogConstant::Int128(..)
+                | EpilogConstant::Address(..) => 8,
             };
 
             self.asm.alignCodeSize(align);
             self.asm.bindLabel(label);
 
             match constant {
-                ConstPoolValue::Float32(value) => {
+                EpilogConstant::Float32(value) => {
                     self.asm.emitInt32(value.asInt32());
                 }
 
-                ConstPoolValue::Float64(value) => {
+                EpilogConstant::Float64(value) => {
                     self.asm.emitInt64(value.asInt64());
                 }
 
-                ConstPoolValue::Int128(low, high) => {
+                EpilogConstant::Int128(low, high) => {
                     self.asm.emitInt64(low);
                     self.asm.emitInt64(high);
                 }
 
-                ConstPoolValue::Address(value) => {
+                EpilogConstant::Address(value) => {
                     self.asm.emitInt64(value.toInt64());
                 }
             }
@@ -161,7 +159,7 @@ impl CodeGenX64 {
 
     fn mov_imm_f32(dest: FloatRegister, value: Float32) {
         let label = self.asm.createLabel();
-        self.epilogConstants.push((label, ConstPoolValue::Float32(value)));
+        self.epilogConstants.push((label, EpilogConstant::Float32(value)));
 
         if self.hasAvx2 {
             self.asm.vmovss_rl(dest, label);
@@ -172,7 +170,7 @@ impl CodeGenX64 {
 
     fn mov_imm_f64(dest: FloatRegister, value: Float64) {
         let label = self.asm.createLabel();
-        self.epilogConstants.push((label, ConstPoolValue::Float64(value)));
+        self.epilogConstants.push((label, EpilogConstant::Float64(value)));
 
         if self.hasAvx2 {
             self.asm.vmovsd_rl(dest, label);
@@ -183,7 +181,7 @@ impl CodeGenX64 {
 
     fn andps_ri128(dest: FloatRegister, src: FloatRegister, lower: Int64, upper: Int64) {
         let label = self.asm.createLabel();
-        self.epilogConstants.push((label, ConstPoolValue::Int128(lower, upper)));
+        self.epilogConstants.push((label, EpilogConstant::Int128(lower, upper)));
 
         if self.hasAvx2 {
             self.asm.vandps_rl(dest, src, label);
@@ -633,7 +631,7 @@ impl CodeGenX64 {
             let address = iface::getFunctionAddress(self.ci, fct_id, type_params);
 
             let label = self.asm.createLabel();
-            self.epilogConstants.push((label, ConstPoolValue::Address(address)));
+            self.epilogConstants.push((label, EpilogConstant::Address(address)));
 
             self.asm.movq_rl(REG_TEMP, label);
             self.asm.call_r(REG_TEMP);
@@ -676,7 +674,7 @@ impl CodeGenX64 {
         };
 
         let label = self.asm.createLabel();
-        self.epilogConstants.push((label, ConstPoolValue::Int128(value, 0)));
+        self.epilogConstants.push((label, EpilogConstant::Int128(value, 0)));
 
         if self.hasAvx2 {
             if ty == Type::Float32 {
@@ -3279,7 +3277,6 @@ impl CodeGen for CodeGenX64 {
         let code = self.asm.finalize();
 
         CodeDescriptor(
-            constPool = self.constPool,
             code,
             lazyCompilation = self.lazyCompilation,
             gcPoints = self.gcPoints,

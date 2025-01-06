@@ -296,7 +296,6 @@ pub const GLOBAL_STATE_RUNNING: Int32 = 1;
 pub const GLOBAL_STATE_INITIALIZED: Int32 = 2;
 
 pub class CodeDescriptor {
-    pub constPool: ConstPool,
     pub code: Array[UInt8],
     pub lazyCompilation: LazyCompilationData,
     pub gcPoints: GcPointTable,
@@ -505,66 +504,6 @@ impl std::traits::IntoIterator for GcPoint {
     type IteratorType = VecIter[Int32];
     fn iter(): Self::IteratorType {
         self.offsets.iter()
-    }
-}
-
-pub class ConstPool {
-    entries: Vec[ConstPoolEntry],
-    size: Int32,
-}
-
-impl ConstPool {
-    pub static fn new(): ConstPool {
-        ConstPool(
-            entries = Vec[ConstPoolEntry]::new(),
-            size = 0i32,
-        )
-    }
-
-    pub fn size(): Int64 {
-        self.entries.size()
-    }
-
-    pub fn push(value: ConstPoolValue): ConstPoolEntry {
-        let entry_size = value.size();
-        let entry_alignment = entry_size;
-        let start = (self.size + (entry_alignment - 1i32)) & !(entry_alignment - 1i32);
-        let new_size = start + entry_size;
-        let entry = ConstPoolEntry(disp = new_size, value);
-        self.size = new_size;
-        self.entries.push(entry);
-        entry
-    }
-}
-
-impl std::traits::IntoIterator for ConstPool {
-    type IteratorType = VecIter[ConstPoolEntry];
-
-    fn iter(): VecIter[ConstPoolEntry] {
-        self.entries.iter()
-    }
-}
-
-pub struct ConstPoolEntry {
-    pub disp: Int32,
-    pub value: ConstPoolValue
-}
-
-pub enum ConstPoolValue {
-    Address(Address),
-    Float32(Float32),
-    Float64(Float64),
-    Int128(Int64, Int64),
-}
-
-impl ConstPoolValue {
-    fn size(): Int32 {
-        match self {
-            ConstPoolValue::Address(address) => 8i32,
-            ConstPoolValue::Float64(value) => 8i32,
-            ConstPoolValue::Float32(value) => 4i32,
-            ConstPoolValue::Int128(lower, upper) => 16i32,
-        }
     }
 }
 

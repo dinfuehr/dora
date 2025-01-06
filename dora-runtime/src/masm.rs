@@ -9,9 +9,8 @@ use crate::mem;
 use crate::mirror::Header;
 use crate::mode::MachineMode;
 use crate::vm::{
-    CodeDescriptor, CommentTable, ConstPool, GcPoint, GcPointTable, InlinedLocation,
-    LazyCompilationData, LazyCompilationSite, LocationTable, RelocationKind, RelocationTable, Trap,
-    CODE_ALIGNMENT,
+    CodeDescriptor, CommentTable, GcPoint, GcPointTable, InlinedLocation, LazyCompilationData,
+    LazyCompilationSite, LocationTable, RelocationKind, RelocationTable, Trap, CODE_ALIGNMENT,
 };
 pub use dora_asm::Label;
 use dora_bytecode::Location;
@@ -126,7 +125,6 @@ impl MacroAssembler {
             .collect::<Vec<_>>();
 
         CodeDescriptor {
-            constpool: ConstPool::new(),
             code: asm.code(),
             lazy_compilation: self.lazy_compilation,
             gcpoints: self.gcpoints,

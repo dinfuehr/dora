@@ -1,11 +1,11 @@
 use package::bytecode::{ConstPoolId, FunctionId, BytecodeType};
 use package::compilation::CompilationInfo;
-use package::interface::{Address, Architecture, ConstPool, ConstPoolEntry, ConstPoolValue, config, InlinedFunction};
+use package::interface::{Address, Architecture, config, InlinedFunction};
 use package::interface::{THREAD_LOCAL_DATA_STACK_LIMIT_OFFSET, THREAD_LOCAL_DATA_STATE_OFFSET, THREAD_LOCAL_DATA_MARKING_OFFSET, OBJECT_HEADER_LENGTH, OBJECT_METADATA_OFFSET, METADATA_REMEMBERED_BIT, ARRAY_HEADER_LENGTH, LAMBDA_SIZE};
 use package::interface::{THREAD_LOCAL_DATA_TLAB_TOP_OFFSET, THREAD_LOCAL_DATA_TLAB_END_OFFSET, THREAD_LOCAL_DATA_MANAGED_THREAD_HANDLE_OFFSET};
 use package::interface::{PTR_SIZE, GLOBAL_STATE_INITIALIZED, InlinedLocation, InlinedFunctionId};
 use package::interface as iface;
-use package::codegen::{CODE_SIZE_ALIGNMENT, CodeGen, computeOffsetsInLiveSet, getLiveValuesWithoutCurrentInst, getRegisterSnapshotWithout, fixupDirectCallSites};
+use package::codegen::{CODE_SIZE_ALIGNMENT, CodeGen, EpilogConstant, computeOffsetsInLiveSet, getLiveValuesWithoutCurrentInst, getRegisterSnapshotWithout, fixupDirectCallSites};
 use package::assembler::arm64;
 use package::assembler::arm64::{F0, F1, F2, F3, F4, F5, F6, F7, F8, F9, F10, F11, F12, F13, F14, F15, F31};
 use package::assembler::arm64::{AssemblerArm64, Cond, Extend, Shift, registerName, fitsMovz, fitsMovn};
@@ -62,8 +62,7 @@ pub class CodeGenArm64 {
     ci: CompilationInfo,
     asm: AssemblerArm64,
     graph: Graph,
-    constPool: ConstPool,
-    epilogConstants: Vec[(Label, ConstPoolValue)],
+    epilogConstants: Vec[(Label, EpilogConstant)],
     lazyCompilation: LazyCompilationData,
     directCalls: Vec[(Int32, Label, LazyCompilationSiteDirect)],
     gcPoints: GcPointTable,
@@ -79,8 +78,7 @@ impl CodeGenArm64 {
             ci,
             asm = AssemblerArm64::new(),
             graph,
-            constPool = ConstPool::new(),
-            epilogConstants = Vec[(Label, ConstPoolValue)]::new(),
+            epilogConstants = Vec[(Label, EpilogConstant)]::new(),
             lazyCompilation = LazyCompilationData::new(),
             directCalls = Vec[(Int32, Label, LazyCompilationSiteDirect)]::new(),
             gcPoints = GcPointTable::new(),
@@ -159,14 +157,14 @@ impl CodeGenArm64 {
 
     fn mov_imm_f32(dest: FloatRegister, scratch: Register, value: Float32) {
         let label = self.asm.createLabel();
-        self.epilogConstants.push((label, ConstPoolValue::Float32(value)));
+        self.epilogConstants.push((label, EpilogConstant::Float32(value)));
         self.asm.adr_label(scratch, label);
         self.asm.ldr_imm_s(dest, scratch, 0i32);
     }
 
     fn mov_imm_f64(dest: FloatRegister, scratch: Register, value: Float64) {
         let label = self.asm.createLabel();
-        self.epilogConstants.push((label, ConstPoolValue::Float64(value)));
+        self.epilogConstants.push((label, EpilogConstant::Float64(value)));
         self.asm.adr_label(scratch, label);
         self.asm.ldr_imm_d(dest, scratch, 0i32);
     }
@@ -182,21 +180,6 @@ impl CodeGenArm64 {
         }
     }
 
-    fn loadConstPool(dest: Register, entry: ConstPoolEntry, temp: Register) {
-        assert(dest != temp);
-        let offset = -(self.asm.position() + entry.disp);
-
-        if arm64::fitsAdrImm(offset) {
-            self.asm.adr_imm(dest, offset);
-            self.asm.ldr_imm(dest, dest, 0i32);
-        } else {
-            self.asm.adr_imm(dest, 0i32);
-            self.mov_imm(temp, offset.toInt64());
-            self.asm.add(dest, dest, temp);
-            self.asm.ldr_imm(dest, dest, 0i32);
-        }
-    }
-
     fn emitDeferredCode() {
         for code in self.deferred {
             code();
@@ -206,27 +189,27 @@ impl CodeGenArm64 {
     fn emitEpilogConstants() {
         for (label, constant) in self.epilogConstants {
             let align = match constant {
-                ConstPoolValue::Float32(..) => 4,
-                ConstPoolValue::Float64(..)
-                | ConstPoolValue::Address(..) => 8,
-                ConstPoolValue::Int128(..) => unreachable[Int64](),
+                EpilogConstant::Float32(..) => 4,
+                EpilogConstant::Float64(..)
+                | EpilogConstant::Address(..) => 8,
+                EpilogConstant::Int128(..) => unreachable[Int64](),
             };
 
             self.asm.alignCodeSize(align);
             self.asm.bindLabel(label);
 
             match constant {
-                ConstPoolValue::Float32(value) => {
+                EpilogConstant::Float32(value) => {
                     self.asm.emitInt32(value.asInt32());
                 }
 
-                ConstPoolValue::Float64(value) => {
+                EpilogConstant::Float64(value) => {
                     self.asm.emitInt64(value.asInt64());
                 }
 
-                ConstPoolValue::Int128(..) => unreachable[()](),
+                EpilogConstant::Int128(..) => unreachable[()](),
 
-                ConstPoolValue::Address(value) => {
+                EpilogConstant::Address(value) => {
                     self.asm.emitInt64(value.toInt64());
                 }
             }
@@ -615,7 +598,7 @@ impl CodeGenArm64 {
             let address = iface::getFunctionAddress(self.ci, fct_id, type_params);
 
             let label = self.asm.createLabel();
-            self.epilogConstants.push((label, ConstPoolValue::Address(address)));
+            self.epilogConstants.push((label, EpilogConstant::Address(address)));
 
             self.asm.adr_label(REG_TEMP, label);
             self.asm.ldr_imm(REG_TEMP, REG_TEMP, 0i32);
@@ -3056,7 +3039,6 @@ impl CodeGen for CodeGenArm64 {
         let code = self.asm.finalize();
 
         CodeDescriptor(
-            constPool = self.constPool,
             code,
             lazyCompilation = self.lazyCompilation,
             gcPoints = self.gcPoints,
