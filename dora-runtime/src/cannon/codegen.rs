@@ -1674,8 +1674,11 @@ impl<'a> CannonCodeGen<'a> {
             REG_TMP1.into(),
             Mem::Index(REG_TMP2, REG_TMP1, 8, 0),
         );
+        // Jump to target.
         self.asm.jump_reg(REG_TMP1);
-        unimplemented!()
+
+        // This should never be reached.
+        self.asm.debug()
     }
 
     fn ensure_forward_label(&mut self, target: BytecodeOffset) -> Label {

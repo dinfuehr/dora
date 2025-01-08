@@ -288,12 +288,17 @@ impl SsaGen {
         if block.isSome() {
             block.getOrPanic()
         } else {
-            let block = Block::new();
-            self.graph.addBlock(block);
+            let block = self.createBlock();
             self.blocks(pos) = Some[Block](block);
             self.blockPositions.insert(block, pos.toInt32());
             block
         }
+    }
+
+    fn createBlock(): Block {
+        let block = Block::new();
+        self.graph.addBlock(block);
+        block
     }
 
     fn writeVariable(register: BytecodeRegister, block: Block, value: Inst) {
@@ -662,7 +667,8 @@ impl SsaGen {
                 true
             }
             BytecodeInstruction::Switch(opnd, idx) => {
-                unimplemented[Bool]()
+                self.emitSwitch(opnd, idx);
+                true
             }
             BytecodeInstruction::InvokeDirect(dest, idx) => {
                 self.emitInvokeDirect(dest, idx)
@@ -1272,6 +1278,37 @@ impl SsaGen {
             self.emitCall(dest, CallKind::Static, fct_id, type_params);
             false
         }
+    }
+
+    fn emitSwitch(opnd: BytecodeRegister, idx: ConstPoolId) {
+        let opndInst = self.readVariable(opnd, self.current());
+        let ConstPoolEntry::JumpTable(targets, default) = self.bc.constPool(idx);
+
+        let targetBlocks = Vec[Block]::new();
+
+        for target in targets {
+            let targetBlock = self.ensureBlockAt(target.toInt64());
+            targetBlocks.push(targetBlock);
+        }
+
+        let defaultBlock = self.ensureBlockAt(default.toInt64());
+
+        let constInst = graph::createInt32Const(targets.size().toInt32());
+        self.current().appendInst(constInst);
+
+        let condInst = graph::createBinaryInst(Op::GreaterOrEqual, Type::Int32, opndInst, constInst);
+        self.current().appendInst(condInst);
+
+        let switchBlock = self.createBlock();
+
+        let ifInst = graph::createIfInst(condInst, defaultBlock, switchBlock);
+        self.current().appendInst(ifInst);
+        self.current().addSuccessor(defaultBlock);
+        self.current().addSuccessor(switchBlock);
+
+        self.currentBlock = Some[Block](switchBlock);
+        let switchInst = graph::createSwitchInst(opndInst, targetBlocks.toArray());
+        self.current().appendInst(switchInst);
     }
 
     fn emitCall(dest: BytecodeRegister, kind: CallKind, fct_id: FunctionId, type_params: Array[BytecodeType]) {

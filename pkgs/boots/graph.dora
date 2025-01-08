@@ -724,6 +724,7 @@ pub enum Op {
     BoundsCheck,
     Goto,
     If,
+    Switch,
     Return,
     Abort,
     Assert,
@@ -892,6 +893,7 @@ pub fn opName(op: Op): String {
         Op::BoundsCheck => "BoundsCheck",
         Op::Goto => "Goto",
         Op::If => "If",
+        Op::Switch => "Switch",
         Op::Return => "Return",
         Op::Abort => "Abort",
         Op::Assert => "Assert",
@@ -1103,6 +1105,7 @@ impl Inst {
             Op::BoundsCheck => Some[Type](Type::Unit),
             Op::Goto => None[Type],
             Op::If => None[Type],
+            Op::Switch => None[Type],
             Op::Return => None[Type],
             Op::Abort => None[Type],
             Op::Assert => None[Type],
@@ -1591,6 +1594,7 @@ impl Inst {
             Op::BoundsCheck => true,
             Op::Goto => true,
             Op::If => true,
+            Op::Switch => true,
             Op::Return => true,
             Op::Abort => true,
             Op::Assert => true,
@@ -1699,6 +1703,7 @@ pub enum InstExtraData {
     If(Block, Block),
     Goto(Block),
     String(String),
+    Switch(Array[Block]),
 }
 
 impl InstExtraData {
@@ -2644,6 +2649,14 @@ pub fn createIfInst(cond: Inst, thenBlock: Block, elseBlock: Block): Inst {
     let inst = Inst::new();
     inst._op = Some(Op::If);
     inst.extra = InstExtraData::If(thenBlock, elseBlock);
+    inst.addInput(cond);
+    inst
+}
+
+pub fn createSwitchInst(cond: Inst, targets: Array[Block]): Inst {
+    let inst = Inst::new();
+    inst._op = Some(Op::If);
+    inst.extra = InstExtraData::Switch(targets);
     inst.addInput(cond);
     inst
 }

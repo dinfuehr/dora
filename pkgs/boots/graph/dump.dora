@@ -282,6 +282,7 @@ fn dumpInstName(inst: Inst): String {
         Op::If => {
             "If(@${inst.getTrueBlock().id()}, @${inst.getFalseBlock().id()})"
         },
+        Op::Switch => "Switch",
         Op::Return => {
             if !inst.hasInput() {
                 "Ret.Void"
