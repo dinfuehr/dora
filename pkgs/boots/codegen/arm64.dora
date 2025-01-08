@@ -5,7 +5,7 @@ use package::interface::{THREAD_LOCAL_DATA_STACK_LIMIT_OFFSET, THREAD_LOCAL_DATA
 use package::interface::{THREAD_LOCAL_DATA_TLAB_TOP_OFFSET, THREAD_LOCAL_DATA_TLAB_END_OFFSET, THREAD_LOCAL_DATA_MANAGED_THREAD_HANDLE_OFFSET};
 use package::interface::{PTR_SIZE, GLOBAL_STATE_INITIALIZED, InlinedLocation, InlinedFunctionId};
 use package::interface as iface;
-use package::codegen::{CODE_SIZE_ALIGNMENT, CodeGen, EpilogConstant, computeOffsetsInLiveSet, convertRelocations, getLiveValuesWithoutCurrentInst, getRegisterSnapshotWithout, fixupDirectCallSites};
+use package::codegen::{CODE_SIZE_ALIGNMENT, CodeGen, EmbeddedConstant, computeOffsetsInLiveSet, convertRelocations, getLiveValuesWithoutCurrentInst, getRegisterSnapshotWithout, fixupDirectCallSites};
 use package::assembler::arm64;
 use package::assembler::arm64::{F0, F1, F2, F3, F4, F5, F6, F7, F8, F9, F10, F11, F12, F13, F14, F15, F31};
 use package::assembler::arm64::{AssemblerArm64, Cond, Extend, Shift, registerName, fitsMovz, fitsMovn};
@@ -62,7 +62,7 @@ pub class CodeGenArm64 {
     ci: CompilationInfo,
     asm: AssemblerArm64,
     graph: Graph,
-    epilogConstants: Vec[(Label, EpilogConstant)],
+    embeddedConstants: Vec[(Label, EmbeddedConstant)],
     lazyCompilation: LazyCompilationData,
     directCalls: Vec[(Int32, Label, LazyCompilationSiteDirect)],
     relocations: Vec[(Int32, Label)],
@@ -79,7 +79,7 @@ impl CodeGenArm64 {
             ci,
             asm = AssemblerArm64::new(),
             graph,
-            epilogConstants = Vec[(Label, EpilogConstant)]::new(),
+            embeddedConstants = Vec[(Label, EmbeddedConstant)]::new(),
             lazyCompilation = LazyCompilationData::new(),
             directCalls = Vec[(Int32, Label, LazyCompilationSiteDirect)]::new(),
             relocations = Vec[(Int32, Label)]::new(),
@@ -158,13 +158,13 @@ impl CodeGenArm64 {
     }
 
     fn mov_imm_f32(dest: FloatRegister, scratch: Register, value: Float32) {
-        let label = self.emitConst(EpilogConstant::Float32(value));
+        let label = self.emitConst(EmbeddedConstant::Float32(value));
         self.asm.adr_label(scratch, label);
         self.asm.ldr_imm_s(dest, scratch, 0i32);
     }
 
     fn mov_imm_f64(dest: FloatRegister, scratch: Register, value: Float64) {
-        let label = self.emitConst(EpilogConstant::Float64(value));
+        let label = self.emitConst(EmbeddedConstant::Float64(value));
         self.asm.adr_label(scratch, label);
         self.asm.ldr_imm_d(dest, scratch, 0i32);
     }
@@ -187,34 +187,34 @@ impl CodeGenArm64 {
     }
 
     fn emitEpilogConstants() {
-        for (label, constant) in self.epilogConstants {
+        for (label, constant) in self.embeddedConstants {
             let align = match constant {
-                EpilogConstant::Float32(..) => 4,
-                EpilogConstant::Float64(..)
-                | EpilogConstant::Address(..)
-                | EpilogConstant::JumpTable(..) => 8,
-                EpilogConstant::Int128(..) => unreachable[Int64](),
+                EmbeddedConstant::Float32(..) => 4,
+                EmbeddedConstant::Float64(..)
+                | EmbeddedConstant::Address(..)
+                | EmbeddedConstant::JumpTable(..) => 8,
+                EmbeddedConstant::Int128(..) => unreachable[Int64](),
             };
 
             self.asm.alignCodeSize(align);
             self.asm.bindLabel(label);
 
             match constant {
-                EpilogConstant::Float32(value) => {
+                EmbeddedConstant::Float32(value) => {
                     self.asm.emitInt32(value.asInt32());
                 }
 
-                EpilogConstant::Float64(value) => {
+                EmbeddedConstant::Float64(value) => {
                     self.asm.emitInt64(value.asInt64());
                 }
 
-                EpilogConstant::Int128(..) => unreachable[()](),
+                EmbeddedConstant::Int128(..) => unreachable[()](),
 
-                EpilogConstant::Address(value) => {
+                EmbeddedConstant::Address(value) => {
                     self.asm.emitInt64(value.toInt64());
                 }
 
-                EpilogConstant::JumpTable(targets) => {
+                EmbeddedConstant::JumpTable(targets) => {
                     for target in targets {
                         let pos = self.asm.position();
                         self.asm.emitInt64(0);
@@ -606,7 +606,7 @@ impl CodeGenArm64 {
         } else {
             let address = iface::getFunctionAddress(self.ci, fct_id, type_params);
 
-            let label = self.emitConst(EpilogConstant::Address(address));
+            let label = self.emitConst(EmbeddedConstant::Address(address));
 
             self.asm.adr_label(REG_TEMP, label);
             self.asm.ldr_imm(REG_TEMP, REG_TEMP, 0i32);
@@ -761,9 +761,9 @@ impl CodeGenArm64 {
         }
     }
 
-    fn emitConst(value: EpilogConstant): Label {
+    fn emitConst(value: EmbeddedConstant): Label {
         let label = self.asm.createLabel();
-        self.epilogConstants.push((label, value));
+        self.embeddedConstants.push((label, value));
         label
     }
 }
@@ -1463,7 +1463,7 @@ impl CodeGen for CodeGenArm64 {
         let opnd = loc.getInput(0).getRegister();
         let targets = inst.getTargetBlocks();
 
-        let label = self.emitConst(EpilogConstant::JumpTable(targets));
+        let label = self.emitConst(EmbeddedConstant::JumpTable(targets));
 
         self.asm.adr_label(REG_TEMP, label);
         self.asm.ldr_reg(REG_TEMP, REG_TEMP, opnd, Extend::LSL, 3i32);

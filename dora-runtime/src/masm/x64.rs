@@ -2,7 +2,7 @@ use crate::compiler::codegen::AnyReg;
 use crate::cpu::*;
 use crate::gc::swiper::LARGE_OBJECT_SIZE;
 use crate::gc::Address;
-use crate::masm::{CondCode, EpilogConstant, Label, MacroAssembler, Mem};
+use crate::masm::{CondCode, EmbeddedConstant, Label, MacroAssembler, Mem};
 use crate::mem::{fits_i32, ptr_width};
 use crate::mirror::{offset_of_array_data, offset_of_array_length, Header, REMEMBERED_BIT_SHIFT};
 use crate::mode::MachineMode;
@@ -79,7 +79,7 @@ impl MacroAssembler {
         ptr: Address,
         type_params: BytecodeTypeArray,
     ) {
-        let label = self.emit_epilog_const(EpilogConstant::Address(ptr));
+        let label = self.emit_const(EmbeddedConstant::Address(ptr));
 
         self.asm.movq_rl(REG_RESULT.into(), label);
         self.call_reg(REG_RESULT);
@@ -1275,11 +1275,11 @@ impl MacroAssembler {
         }
 
         let const_value = match mode {
-            MachineMode::Float32 => EpilogConstant::Float32(imm as f32),
-            MachineMode::Float64 => EpilogConstant::Float64(imm),
+            MachineMode::Float32 => EmbeddedConstant::Float32(imm as f32),
+            MachineMode::Float64 => EmbeddedConstant::Float64(imm),
             _ => unreachable!(),
         };
-        let label = self.emit_epilog_const(const_value);
+        let label = self.emit_const(const_value);
 
         if has_avx2() {
             match mode {
@@ -1478,8 +1478,8 @@ impl MacroAssembler {
         };
 
         let label = self.create_label();
-        self.epilog_constants
-            .push((label, EpilogConstant::Int128(value)));
+        self.embedded_constants
+            .push((label, EmbeddedConstant::Int128(value)));
 
         if has_avx2() {
             match mode {
@@ -1508,8 +1508,8 @@ impl MacroAssembler {
         };
 
         let label = self.create_label();
-        self.epilog_constants
-            .push((label, EpilogConstant::Int128(value)));
+        self.embedded_constants
+            .push((label, EmbeddedConstant::Int128(value)));
 
         if has_avx2() {
             match mode {

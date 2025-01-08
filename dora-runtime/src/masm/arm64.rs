@@ -2,7 +2,7 @@ use crate::compiler::codegen::AnyReg;
 use crate::cpu::*;
 use crate::gc::swiper::LARGE_OBJECT_SIZE;
 use crate::gc::Address;
-use crate::masm::{CondCode, EpilogConstant, Label, MacroAssembler, Mem};
+use crate::masm::{CondCode, EmbeddedConstant, Label, MacroAssembler, Mem};
 use crate::mem::ptr_width;
 use crate::mirror::{offset_of_array_data, offset_of_array_length, Header, REMEMBERED_BIT_SHIFT};
 use crate::mode::MachineMode;
@@ -80,7 +80,7 @@ impl MacroAssembler {
         ptr: Address,
         type_params: BytecodeTypeArray,
     ) {
-        let label = self.emit_epilog_const(EpilogConstant::Address(ptr));
+        let label = self.emit_const(EmbeddedConstant::Address(ptr));
 
         let scratch = self.get_scratch();
 
@@ -881,11 +881,11 @@ impl MacroAssembler {
 
     pub fn load_float_const(&mut self, mode: MachineMode, dest: FReg, imm: f64) {
         let const_value = match mode {
-            MachineMode::Float32 => EpilogConstant::Float32(imm as f32),
-            MachineMode::Float64 => EpilogConstant::Float64(imm),
+            MachineMode::Float32 => EmbeddedConstant::Float32(imm as f32),
+            MachineMode::Float64 => EmbeddedConstant::Float64(imm),
             _ => unreachable!(),
         };
-        let label = self.emit_epilog_const(const_value);
+        let label = self.emit_const(const_value);
 
         let scratch = self.get_scratch();
         self.asm.adr_label((*scratch).into(), label);

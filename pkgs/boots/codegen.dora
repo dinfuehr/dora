@@ -14,7 +14,7 @@ pub mod x64;
 const CODE_SIZE_ALIGNMENT: Int64 = 16;
 pub const STACK_FRAME_ALIGNMENT: Int64 = 16;
 
-pub enum EpilogConstant {
+pub enum EmbeddedConstant {
     Address(Address),
     Float32(Float32),
     Float64(Float64),

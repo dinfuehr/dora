@@ -41,7 +41,7 @@ pub enum Mem {
     Offset(Reg, i32, i32),
 }
 
-pub enum EpilogConstant {
+pub enum EmbeddedConstant {
     Float32(f32),
     Float64(f64),
     Int128(u128),
@@ -54,7 +54,7 @@ pub struct MacroAssembler {
     bailouts: Vec<(Label, Trap, Location)>,
     lazy_compilation: LazyCompilationData,
     direct_call_sites: Vec<(u32, Label)>,
-    epilog_constants: Vec<(Label, EpilogConstant)>,
+    embedded_constants: Vec<(Label, EmbeddedConstant)>,
     gcpoints: GcPointTable,
     comments: CommentTable,
     positions: LocationTable,
@@ -69,7 +69,7 @@ impl MacroAssembler {
             bailouts: Vec::new(),
             lazy_compilation: LazyCompilationData::new(),
             direct_call_sites: Vec::new(),
-            epilog_constants: Vec::new(),
+            embedded_constants: Vec::new(),
             gcpoints: GcPointTable::new(),
             comments: CommentTable::new(),
             positions: LocationTable::new(),
@@ -80,13 +80,13 @@ impl MacroAssembler {
 
     pub fn data(mut self) -> Vec<u8> {
         self.emit_bailouts();
-        self.emit_epilog_constants();
+        self.emit_embedded_constants();
         self.asm.finalize(1).code()
     }
 
     pub fn code(mut self) -> CodeDescriptor {
         self.emit_bailouts();
-        self.emit_epilog_constants();
+        self.emit_embedded_constants();
 
         for (pos, label) in self.direct_call_sites {
             let entry = self
@@ -152,37 +152,37 @@ impl MacroAssembler {
         }
     }
 
-    fn emit_epilog_constants(&mut self) {
-        for (label, value) in &self.epilog_constants {
+    fn emit_embedded_constants(&mut self) {
+        for (label, value) in &self.embedded_constants {
             let align = match value {
-                EpilogConstant::Float32(..) => std::mem::size_of::<u32>(),
-                EpilogConstant::Address(..)
-                | EpilogConstant::Float64(..)
-                | EpilogConstant::Int128(..)
-                | EpilogConstant::JumpTable(..) => std::mem::size_of::<u64>(),
+                EmbeddedConstant::Float32(..) => std::mem::size_of::<u32>(),
+                EmbeddedConstant::Address(..)
+                | EmbeddedConstant::Float64(..)
+                | EmbeddedConstant::Int128(..)
+                | EmbeddedConstant::JumpTable(..) => std::mem::size_of::<u64>(),
             };
 
             self.asm.align_to(align);
             self.asm.bind_label(*label);
 
             match value {
-                EpilogConstant::Address(value) => {
+                EmbeddedConstant::Address(value) => {
                     self.asm.emit_u64(value.to_usize() as u64);
                 }
 
-                EpilogConstant::Float32(value) => {
+                EmbeddedConstant::Float32(value) => {
                     self.asm.emit_u32(unsafe { std::mem::transmute(*value) });
                 }
 
-                EpilogConstant::Float64(value) => {
+                EmbeddedConstant::Float64(value) => {
                     self.asm.emit_u64(unsafe { std::mem::transmute(*value) });
                 }
 
-                EpilogConstant::Int128(value) => {
+                EmbeddedConstant::Int128(value) => {
                     self.asm.emit_u128(*value);
                 }
 
-                EpilogConstant::JumpTable(targets) => {
+                EmbeddedConstant::JumpTable(targets) => {
                     for target in targets {
                         let offset = self.asm.position();
                         self.asm.emit_u64(0);
@@ -194,9 +194,9 @@ impl MacroAssembler {
         }
     }
 
-    pub fn emit_epilog_const(&mut self, value: EpilogConstant) -> Label {
+    pub fn emit_const(&mut self, value: EmbeddedConstant) -> Label {
         let label = self.create_label();
-        self.epilog_constants.push((label, value));
+        self.embedded_constants.push((label, value));
         label
     }
 
@@ -357,7 +357,7 @@ impl MacroAssembler {
 
     pub fn emit_jump_table(&mut self, targets: Vec<Label>) -> Label {
         assert!(!targets.is_empty());
-        self.emit_epilog_const(EpilogConstant::JumpTable(targets))
+        self.emit_const(EmbeddedConstant::JumpTable(targets))
     }
 }
 
