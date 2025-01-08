@@ -1,6 +1,6 @@
 use package::bytecode::BytecodeType;
 use package::bytecode::opcode as opc;
-use package::interface::{Address, CodeDescriptor, CommentTable, GcPoint, GcPointTable, InlinedFunction, LazyCompilationData, LazyCompilationSite, LocationTable, InlinedLocation};
+use package::interface::{Address, CodeDescriptor, CommentTable, GcPoint, GcPointTable, InlinedFunction, LazyCompilationData, LazyCompilationSite, LocationTable, InlinedLocation, RelocationKind, RelocationTable};
 
 pub fn encodeCodeDescriptor(writer: ByteWriter, descriptor: CodeDescriptor) {
     encodeArrayUInt8(writer, descriptor.code);
@@ -8,6 +8,7 @@ pub fn encodeCodeDescriptor(writer: ByteWriter, descriptor: CodeDescriptor) {
     encodeGcPointTable(writer, descriptor.gcPoints);
     encodeLocationTable(writer, descriptor.locations);
     encodeCommentTable(writer, descriptor.comments);
+    encodeRelocationTable(writer, descriptor.relocations);
     encodeInlinedFunctionTable(writer, descriptor.inlinedFunctions);
 }
 
@@ -25,6 +26,25 @@ fn encodeCommentTable(writer: ByteWriter, table: CommentTable) {
     for (offset, comment) in table {
         writer.emitInt32(offset);
         encodeString(writer, comment);
+    }
+}
+
+fn encodeRelocationTable(writer: ByteWriter, table: RelocationTable) {
+    writer.emitInt32(table.size().toInt32());
+
+    for (offset, kind) in table {
+        writer.emitInt32(offset);
+        encodeRelocationKind(writer, kind);
+    }
+}
+
+fn encodeRelocationKind(writer: ByteWriter, kind: RelocationKind) {
+    match kind {
+        RelocationKind::JumpTableEntry(target) => {
+            writer.emitByte(opc::RELOCATION_KIND_JUMP_TABLE_ENTRY.toUInt8());
+        },
+
+        RelocationKind::CodeTarget | RelocationKind::Object => unreachable[()](),
     }
 }
 

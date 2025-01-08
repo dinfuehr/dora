@@ -519,6 +519,14 @@ impl RelocationTable {
             entries: Vec::new(),
         }
     }
+
+    pub fn insert(&mut self, offset: u32, kind: RelocationKind) {
+        if let Some(last) = self.entries.last() {
+            debug_assert!(offset > last.0);
+        }
+
+        self.entries.push((offset, kind));
+    }
 }
 
 #[derive(Debug)]

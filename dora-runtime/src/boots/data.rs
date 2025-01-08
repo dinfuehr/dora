@@ -14,3 +14,11 @@ pub enum LazyCompilationSiteKind {
     Virtual,
     Lambda,
 }
+
+#[derive(TryFromPrimitive, IntoPrimitive)]
+#[repr(u8)]
+pub enum RelocationKindKind {
+    JumpTableEntry,
+    TargetObject,
+    Code,
+}

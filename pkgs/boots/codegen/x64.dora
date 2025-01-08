@@ -5,7 +5,7 @@ use package::assembler::x64::{R8, R9, R10, R11, R12, R13, R14, R15};
 use package::assembler::x64::{XMM0, XMM1, XMM2, XMM3, XMM4, XMM5, XMM6, XMM7, XMM8, XMM9, XMM10, XMM11, XMM12, XMM13, XMM14, XMM15};
 use package::assembler::{FloatRegister, Label, Register, RegSet};
 use package::bytecode::data::ConstPoolId;
-use package::codegen::{CODE_SIZE_ALIGNMENT, STACK_FRAME_ALIGNMENT, CodeGen, EpilogConstant, computeOffsetsInLiveSet, getLiveValuesWithoutCurrentInst, getRegisterSnapshotWithout, fixupDirectCallSites};
+use package::codegen::{CODE_SIZE_ALIGNMENT, STACK_FRAME_ALIGNMENT, CodeGen, EpilogConstant, computeOffsetsInLiveSet, convertRelocations, getLiveValuesWithoutCurrentInst, getRegisterSnapshotWithout, fixupDirectCallSites};
 use package::compilation::CompilationInfo;
 use package::interface::{Address, Architecture, config, LazyCompilationSite, LazyCompilationSiteDirect, getClassSize, getClassPointer, getFunctionVtableIndex, getGlobalValueAddress, getGlobalStateAddress, getGlobalInitializerFunctionId, InlinedFunction, InlinedFunctionId, InlinedLocation};
 use package::interface::{LAMBDA_SIZE, PTR_SIZE, GLOBAL_STATE_INITIALIZED};
@@ -79,6 +79,7 @@ pub class CodeGenX64 {
     locations: LocationTable,
     lazyCompilation: LazyCompilationData,
     directCalls: Vec[(Int32, Label, LazyCompilationSiteDirect)],
+    relocations: Vec[(Int32, Label)],
     gcPoints: GcPointTable,
     comments: CommentTable,
     deferred: Vec[(): ()],
@@ -96,6 +97,7 @@ impl CodeGenX64 {
             locations = LocationTable::new(),
             lazyCompilation = LazyCompilationData::new(),
             directCalls = Vec[(Int32, Label, LazyCompilationSiteDirect)]::new(),
+            relocations = Vec[(Int32, Label)]::new(),
             gcPoints = GcPointTable::new(),
             comments = CommentTable::new(),
             deferred = Vec[(): ()]::new(),
@@ -130,7 +132,8 @@ impl CodeGenX64 {
                 EpilogConstant::Float32(..) => 4,
                 EpilogConstant::Float64(..)
                 | EpilogConstant::Int128(..)
-                | EpilogConstant::Address(..) => 8,
+                | EpilogConstant::Address(..)
+                | EpilogConstant::JumpTable(..) => 8,
             };
 
             self.asm.alignCodeSize(align);
@@ -153,13 +156,20 @@ impl CodeGenX64 {
                 EpilogConstant::Address(value) => {
                     self.asm.emitInt64(value.toInt64());
                 }
+
+                EpilogConstant::JumpTable(targets) => {
+                    for target in targets {
+                        let pos = self.asm.position();
+                        self.asm.emitInt64(0);
+                        self.relocations.push((pos, target.getLabel()));
+                    }
+                }
             }
         }
     }
 
     fn mov_imm_f32(dest: FloatRegister, value: Float32) {
-        let label = self.asm.createLabel();
-        self.epilogConstants.push((label, EpilogConstant::Float32(value)));
+        let label = self.emitConst(EpilogConstant::Float32(value));
 
         if self.hasAvx2 {
             self.asm.vmovss_rl(dest, label);
@@ -169,8 +179,7 @@ impl CodeGenX64 {
     }
 
     fn mov_imm_f64(dest: FloatRegister, value: Float64) {
-        let label = self.asm.createLabel();
-        self.epilogConstants.push((label, EpilogConstant::Float64(value)));
+        let label = self.emitConst(EpilogConstant::Float64(value));
 
         if self.hasAvx2 {
             self.asm.vmovsd_rl(dest, label);
@@ -180,8 +189,7 @@ impl CodeGenX64 {
     }
 
     fn andps_ri128(dest: FloatRegister, src: FloatRegister, lower: Int64, upper: Int64) {
-        let label = self.asm.createLabel();
-        self.epilogConstants.push((label, EpilogConstant::Int128(lower, upper)));
+        let label = self.emitConst(EpilogConstant::Int128(lower, upper));
 
         if self.hasAvx2 {
             self.asm.vandps_rl(dest, src, label);
@@ -630,8 +638,7 @@ impl CodeGenX64 {
         } else {
             let address = iface::getFunctionAddress(self.ci, fct_id, type_params);
 
-            let label = self.asm.createLabel();
-            self.epilogConstants.push((label, EpilogConstant::Address(address)));
+            let label = self.emitConst(EpilogConstant::Address(address));
 
             self.asm.movq_rl(REG_TEMP, label);
             self.asm.call_r(REG_TEMP);
@@ -673,8 +680,7 @@ impl CodeGenX64 {
             1 << 63i32
         };
 
-        let label = self.asm.createLabel();
-        self.epilogConstants.push((label, EpilogConstant::Int128(value, 0)));
+        let label = self.emitConst(EpilogConstant::Int128(value, 0));
 
         if self.hasAvx2 {
             if ty == Type::Float32 {
@@ -693,6 +699,12 @@ impl CodeGenX64 {
                 self.asm.xorpd_rl(dest, label);
             }
         }
+    }
+
+    fn emitConst(value: EpilogConstant): Label {
+        let label = self.asm.createLabel();
+        self.epilogConstants.push((label, value));
+        label
     }
 }
 
@@ -1458,6 +1470,18 @@ impl CodeGen for CodeGenX64 {
             self.asm.testb_rr(opnd, opnd);
             self.asm.jcc(Condition::NotZero, trueBlock.getLabel());
         }
+    }
+
+    fn emitSwitch(inst: Inst) {
+        let loc = inst.getLocationData();
+        let opnd = loc.getInput(0).getRegister();
+        let targets = inst.getTargetBlocks();
+
+        let label = self.emitConst(EpilogConstant::JumpTable(targets));
+
+        self.asm.movq_rl(REG_TEMP, label);
+        self.asm.movq_ra(REG_TEMP, AsmAddress::array(REG_TEMP, opnd, ScaleFactor::Eight, 0i32));
+        self.asm.jmp_r(REG_TEMP);
     }
 
     fn emitGoto(inst: Inst) {
@@ -3283,6 +3307,7 @@ impl CodeGen for CodeGenX64 {
             locations = self.locations,
             comments = self.comments,
             inlinedFunctions = self.ci.getInlinedFunctions(),
+            relocations = convertRelocations(self.relocations),
         )
     }
 }

@@ -3,9 +3,9 @@ use package::codegen::x64::CodeGenX64;
 use package::codegen::arm64::CodeGenArm64;
 use package::compilation::CompilationInfo;
 use package::assembler::{FloatRegister, Label, Register, RegSet};
-use package::interface::{Address, Architecture, config, LazyCompilationSiteDirect};
+use package::interface::{Address, Architecture, config, LazyCompilationSiteDirect, RelocationKind, RelocationTable};
 use package::location::ArgumentLocations;
-use package::graph::{Graph, Inst, InstSet, Location, LocationData, Op, Operand, Policy, RegisterTrackers, Type};
+use package::graph::{Block, Graph, Inst, InstSet, Location, LocationData, Op, Operand, Policy, RegisterTrackers, Type};
 use package::CodeDescriptor;
 
 pub mod arm64;
@@ -19,6 +19,7 @@ pub enum EpilogConstant {
     Float32(Float32),
     Float64(Float64),
     Int128(Int64, Int64),
+    JumpTable(Array[Block]),
 }
 
 pub fn createCodeGen(ci: CompilationInfo, graph: Graph): CodeGen {
@@ -207,6 +208,11 @@ fn emitInst(codegen: CodeGen, inst: Inst) {
             codegen.emitComment("If");
             codegen.emitIf(inst);
         },
+
+        Op::Switch => {
+            codegen.emitComment("Switch");
+            codegen.emitSwitch(inst);
+        }
 
         Op::Goto => {
             codegen.emitComment("Goto");
@@ -569,6 +575,7 @@ pub trait CodeGen {
     fn emitDivZeroCheck(inst: Inst);
     fn emitCheckedNeg(inst: Inst);
     fn emitIf(inst: Inst);
+    fn emitSwitch(inst: Inst);
     fn emitGoto(inst: Inst);
     fn emitReturn(inst: Inst);
     fn emitMove(inst: Inst);
@@ -666,4 +673,15 @@ fn fixupDirectCallSites(directCalls: Vec[(Int32, Label, LazyCompilationSiteDirec
         let labelOffset = label.getOffset().getOrPanic();
         site.const_pool_offset_from_ra = labelOffset.toInt32() - ra;
     }
+}
+
+fn convertRelocations(entries: Vec[(Int32, Label)]): RelocationTable {
+    let relocations = RelocationTable::new();
+
+    for (pos, label) in entries {
+        let target = label.getOffset().getOrPanic().toInt32();
+        relocations.insert(pos, RelocationKind::JumpTableEntry(target));
+    }
+
+    relocations
 }

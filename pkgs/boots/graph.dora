@@ -761,6 +761,7 @@ pub enum Op {
     GreaterOrEqual,
     Less,
     LessOrEqual,
+    UnsignedGreaterOrEqual,
 
     Phi,
     DivZeroCheck,
@@ -924,6 +925,7 @@ pub fn opName(op: Op): String {
         Op::NotEqual => "NotEqual",
         Op::Greater => "Greater",
         Op::GreaterOrEqual => "GreaterOrEqual",
+        Op::UnsignedGreaterOrEqual => "UnsignedGreaterOrEqual",
         Op::Less => "Less",
         Op::LessOrEqual => "LessOrEqual",
         Op::Phi => "Phi",
@@ -1136,6 +1138,7 @@ impl Inst {
             Op::NotEqual => Some[Type](Type::Bool),
             Op::Greater => Some[Type](Type::Bool),
             Op::GreaterOrEqual => Some[Type](Type::Bool),
+            Op::UnsignedGreaterOrEqual => Some[Type](Type::Bool),
             Op::Less => Some[Type](Type::Bool),
             Op::LessOrEqual => Some[Type](Type::Bool),
             Op::Phi => Some[Type](self.ty),
@@ -1552,6 +1555,14 @@ impl Inst {
         }
     }
 
+    pub fn getTargetBlocks(): Array[Block] {
+        assert(self.op() == Op::Switch);
+        match self.extra {
+            InstExtraData::Switch(targets) => targets,
+            _ => unreachable[Array[Block]](),
+        }
+    }
+
     pub fn setFalseBlock(block: Block) {
         assert(self.op() == Op::If);
         match self.extra {
@@ -1625,6 +1636,7 @@ impl Inst {
             Op::NotEqual => false,
             Op::Greater => false,
             Op::GreaterOrEqual => false,
+            Op::UnsignedGreaterOrEqual => false,
             Op::Less => false,
             Op::LessOrEqual => false,
             Op::Phi => true,

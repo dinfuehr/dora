@@ -1293,10 +1293,9 @@ impl SsaGen {
 
         let defaultBlock = self.ensureBlockAt(default.toInt64());
 
-        let constInst = graph::createInt32Const(targets.size().toInt32());
-        self.current().appendInst(constInst);
+        let constInst = self.graph.ensureConstInt32Inst(targets.size().toInt32());
 
-        let condInst = graph::createBinaryInst(Op::GreaterOrEqual, Type::Int32, opndInst, constInst);
+        let condInst = graph::createBinaryInst(Op::UnsignedGreaterOrEqual, Type::Int32, opndInst, constInst);
         self.current().appendInst(condInst);
 
         let switchBlock = self.createBlock();
@@ -1309,6 +1308,10 @@ impl SsaGen {
         self.currentBlock = Some[Block](switchBlock);
         let switchInst = graph::createSwitchInst(opndInst, targetBlocks.toArray());
         self.current().appendInst(switchInst);
+
+        for targetBlock in targetBlocks {
+            self.current().addSuccessor(targetBlock);
+        }
     }
 
     fn emitCall(dest: BytecodeRegister, kind: CallKind, fct_id: FunctionId, type_params: Array[BytecodeType]) {
@@ -2089,8 +2092,7 @@ impl SsaGen {
                     Op::NotEqual
                 };
 
-                let some_const = graph::createInt32Const(some_variant_id);
-                self.current().appendInst(some_const);
+                let some_const = self.graph.ensureConstInt32Inst(some_variant_id);
 
                 let result = graph::createBinaryInst(op, Type::Int32, variant_field, some_const);
                 self.current().appendInst(result);
@@ -2254,8 +2256,7 @@ impl SsaGen {
         match layout {
             EnumLayout::Int32 => {
                 assert(self.pushed_registers.isEmpty());
-                let inst = graph::createInt32Const(variant_id);
-                self.current().appendInst(inst);
+                let inst = self.graph.ensureConstInt32Inst(variant_id);
                 self.writeVariable(dest, self.current(), inst);
             }
 
@@ -2284,8 +2285,7 @@ impl SsaGen {
                 self.writeVariable(dest, self.current(), objInst);
                 let mut field_id = 0i32;
 
-                let variant_id_inst = graph::createInt32Const(variant_id);
-                self.current().appendInst(variant_id_inst);
+                let variant_id_inst = self.graph.ensureConstInt32Inst(variant_id);
                 self.storeField(BytecodeType::Int32, objInst, InstExtraData::None, iface::OBJECT_HEADER_LENGTH, variant_id_inst, true);
 
                 for reg in self.pushed_registers {
@@ -2334,8 +2334,7 @@ impl SsaGen {
 
         let type_params = type_params.specialize(self.typeParams);
         let element_size = iface::getElementSize(self.ci, class_id, type_params);
-        let element_size_inst = graph::createInt64Const(element_size.toInt64());
-        self.current().appendInst(element_size_inst);
+        let element_size_inst = self.graph.ensureConstInt64Inst(element_size.toInt64());
 
         let length = self.readVariable(length, self.current());
 
@@ -2343,8 +2342,7 @@ impl SsaGen {
         self.setCurrentInlinedLocation(tmp);
         self.current().appendInst(tmp);
 
-        let header_size = graph::createInt64Const(iface::ARRAY_HEADER_LENGTH.toInt64());
-        self.current().appendInst(header_size);
+        let header_size = self.graph.ensureConstInt64Inst(iface::ARRAY_HEADER_LENGTH.toInt64());
 
         let unaligned_size = graph::createBinaryInst(Op::CheckedAdd, Type::Int64, tmp, header_size);
         self.setCurrentInlinedLocation(unaligned_size);
@@ -2352,15 +2350,13 @@ impl SsaGen {
 
         let size = if element_size % iface::PTR_SIZE != 0i32 {
             let ptr_size_minus_1 = (iface::PTR_SIZE - 1i32).toInt64();
-            let tmp = graph::createInt64Const(ptr_size_minus_1);
-            self.current().appendInst(tmp);
+            let tmp = self.graph.ensureConstInt64Inst(ptr_size_minus_1);
 
             let tmp = graph::createBinaryInst(Op::CheckedAdd, Type::Int64, unaligned_size, tmp);
             self.setCurrentInlinedLocation(tmp);
             self.current().appendInst(tmp);
 
-            let mask = graph::createInt64Const(!ptr_size_minus_1);
-            self.current().appendInst(mask);
+            let mask = self.graph.ensureConstInt64Inst(!ptr_size_minus_1);
 
             let tmp = graph::createBinaryInst(Op::And, Type::Int64, tmp, mask);
             self.current().appendInst(tmp);

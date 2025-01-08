@@ -302,6 +302,7 @@ pub class CodeDescriptor {
     pub locations: LocationTable,
     pub comments: CommentTable,
     pub inlinedFunctions: Array[InlinedFunction],
+    pub relocations: RelocationTable,
 }
 
 pub class CommentTable {
@@ -438,6 +439,43 @@ pub struct LazyCompilationSiteLambda {
     pub receiver_is_first: Bool,
     pub params: Array[BytecodeType],
     pub return_ty: BytecodeType,
+}
+
+pub class RelocationTable {
+    entries: Vec[(Int32, RelocationKind)],
+}
+
+impl RelocationTable {
+    pub static fn new(): RelocationTable {
+        RelocationTable(
+            entries = Vec[(Int32, RelocationKind)]::new(),
+        )
+    }
+
+    pub fn insert(offset: Int32, kind: RelocationKind) {
+        if self.entries.last() is Some(last) {
+            assert(last.0 <= offset);
+        }
+
+        self.entries.push((offset, kind));
+    }
+
+    pub fn size(): Int64 {
+        self.entries.size()
+    }
+}
+
+impl std::traits::IntoIterator for RelocationTable {
+    type IteratorType = VecIter[(Int32, RelocationKind)];
+    fn iter(): Self::IteratorType {
+        self.entries.iter()
+    }
+}
+
+pub enum RelocationKind {
+    JumpTableEntry(Int32),
+    CodeTarget,
+    Object,
 }
 
 pub class GcPointTable {

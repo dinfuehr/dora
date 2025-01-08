@@ -1,8 +1,9 @@
-use crate::boots::data::LazyCompilationSiteKind;
+use crate::boots::data::{LazyCompilationSiteKind, RelocationKindKind};
 use crate::gc::Address;
 use crate::vm::{
     CodeDescriptor, CommentTable, GcPoint, GcPointTable, InlinedFunction, InlinedFunctionId,
-    InlinedLocation, LazyCompilationData, LazyCompilationSite, LocationTable, RelocationTable,
+    InlinedLocation, LazyCompilationData, LazyCompilationSite, LocationTable, RelocationKind,
+    RelocationTable,
 };
 use dora_bytecode::{
     BytecodeType, BytecodeTypeArray, BytecodeTypeKind, ClassId, EnumId, FunctionId, Location,
@@ -15,6 +16,7 @@ pub fn decode_code_descriptor(reader: &mut ByteReader) -> CodeDescriptor {
     let gcpoints = decode_gcpoint_table(reader);
     let positions = decode_location_table(reader);
     let comments = decode_comment_table(reader);
+    let relocations = decode_relocation_table(reader);
     let inlined_functions = decode_inlined_function_table(reader);
     CodeDescriptor {
         code,
@@ -22,7 +24,7 @@ pub fn decode_code_descriptor(reader: &mut ByteReader) -> CodeDescriptor {
         lazy_compilation,
         gcpoints,
         positions,
-        relocations: RelocationTable::new(),
+        relocations,
         inlined_functions,
     }
 }
@@ -42,6 +44,32 @@ fn decode_location_table(reader: &mut ByteReader) -> LocationTable {
     }
 
     result
+}
+
+fn decode_relocation_table(reader: &mut ByteReader) -> RelocationTable {
+    let length = reader.read_u32() as usize;
+    let mut result = RelocationTable::new();
+
+    for _ in 0..length {
+        let pos = reader.read_u32();
+        let kind = decode_relocation_kind(reader);
+        result.insert(pos, kind);
+    }
+
+    result
+}
+
+fn decode_relocation_kind(reader: &mut ByteReader) -> RelocationKind {
+    let kind = RelocationKindKind::try_from(reader.read_u8()).expect("wrong kind");
+
+    match kind {
+        RelocationKindKind::JumpTableEntry => {
+            let target = reader.read_u32();
+            RelocationKind::JumpTableEntry(target)
+        }
+
+        RelocationKindKind::Code | RelocationKindKind::TargetObject => unreachable!(),
+    }
 }
 
 fn decode_inlined_location(reader: &mut ByteReader) -> InlinedLocation {

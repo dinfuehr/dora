@@ -319,6 +319,7 @@ fn dumpInstName(inst: Inst): String {
         Op::NotEqual => "NotEqual.${inst.getOperationType()}",
         Op::Greater => "Greater.${inst.getOperationType()}",
         Op::GreaterOrEqual => "GreaterOrEqual.${inst.getOperationType()}",
+        Op::UnsignedGreaterOrEqual => "UnsignedGreaterOrEqual.${inst.getOperationType()}",
         Op::Less => "Less.${inst.getOperationType()}",
         Op::LessOrEqual => "LessOrEqual.${inst.getOperationType()}",
         Op::Phi => "Phi.${inst.getValueType()}",
