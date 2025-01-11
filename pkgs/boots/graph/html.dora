@@ -273,9 +273,10 @@ function passCollapse(element, event) {
             }
         }
 
-        self.write("${inst.op()}");
+        let op = inst.op();
+        self.write("${op}");
 
-        match inst.op() {
+        match op {
             Op::Goto => {
                 self.write("&nbsp;<span class=\"block-use\">${inst.getTargetBlock()}</span>");
             }
@@ -327,43 +328,16 @@ function passCollapse(element, event) {
                 self.write("&nbsp;${inst.getArgIndex()}");
             }
 
+            Op::Load => {
+                self.emitInputs(inst);
+                let offset = inst.getOffset();
+                self.write("&nbsp;at offset ${offset}");
+                self.emitLocationData(inst);
+            }
+
             _ => {
-                if !inst.getInputs().isEmpty() {
-                    let mut idx = 0;
-                    self.write(" ");
-                    for input in inst.getInputs() {
-                        if idx > 0 {
-                            self.write(", ");
-                        }
-                        let id = input.getValue().id();
-                        self.write("<span class=\"inst${id} selectable\">%${id}</span>");
-                        if inst.hasLocationData() {
-                            let loc = inst.getLocationData();
-                            if loc.hasInputAt(idx) {
-                                self.write(" in ${opnd(loc.getInput(idx))}");
-                            }
-                        }
-                        idx = idx + 1;
-                    }
-                }
-
-                if inst.hasLocationData() {
-                    let loc = inst.getLocationData();
-                    if !loc.getTemps().isEmpty() {
-                        self.write(" (temps: ");
-                        let mut first = true;
-                        for temp in loc.getTemps() {
-                            if !first { self.write(", "); }
-                            self.write(opnd(temp));
-                            first = false;
-                        }
-                        self.write(")");
-                    }
-
-                    if !loc.getHint().isNone() {
-                        self.write(" (hint ${location(loc.getHint())})");
-                    }
-                }
+                self.emitInputs(inst);
+                self.emitLocationData(inst);
             }
         }
 
@@ -377,6 +351,47 @@ function passCollapse(element, event) {
 </html>
 ");
         self.file.close();
+    }
+
+    fn emitInputs(inst: Inst) {
+        if !inst.getInputs().isEmpty() {
+            let mut idx = 0;
+            self.write(" ");
+            for input in inst.getInputs() {
+                if idx > 0 {
+                    self.write(", ");
+                }
+                let id = input.getValue().id();
+                self.write("<span class=\"inst${id} selectable\">%${id}</span>");
+                if inst.hasLocationData() {
+                    let loc = inst.getLocationData();
+                    if loc.hasInputAt(idx) {
+                        self.write(" in ${opnd(loc.getInput(idx))}");
+                    }
+                }
+                idx = idx + 1;
+            }
+        }
+    }
+
+    fn emitLocationData(inst: Inst) {
+        if inst.hasLocationData() {
+            let loc = inst.getLocationData();
+            if !loc.getTemps().isEmpty() {
+                self.write(" (temps: ");
+                let mut first = true;
+                for temp in loc.getTemps() {
+                    if !first { self.write(", "); }
+                    self.write(opnd(temp));
+                    first = false;
+                }
+                self.write(")");
+            }
+
+            if !loc.getHint().isNone() {
+                self.write(" (hint ${location(loc.getHint())})");
+            }
+        }
     }
 
     fn write(text: String) {

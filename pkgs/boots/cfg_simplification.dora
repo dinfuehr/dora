@@ -1,0 +1,24 @@
+use package::compilation::CompilationInfo;
+use package::graph::{Block, Graph, Op};
+
+pub fn performCfgSimplification(ci: CompilationInfo, graph: Graph) {
+    for block in graph.insertionOrderIterator() {
+        let inst = block.lastInst();
+
+        match inst.op() {
+            Op::Goto => {
+                let targetBlock = inst.getTargetBlock();
+
+                if canMergeBlocks(block, targetBlock) {
+
+                }
+            }
+
+            _ => (),
+        }
+    }
+}
+
+fn canMergeBlocks(block: Block, targetBlock: Block): Bool {
+    false
+}

@@ -52,7 +52,7 @@ fn mergePredecessors(block: Block, per_block_data: Array[Option[LoadData]]): Loa
         while i < p {
             let predData = predecessorData(i).getOrPanic();
 
-            if predData.initialized_globals.contains(global) {
+            if !predData.initialized_globals.contains(global) {
                 in_all = false;
                 break;
             }
@@ -72,7 +72,7 @@ fn mergePredecessors(block: Block, per_block_data: Array[Option[LoadData]]): Loa
         while i < p {
             let predData = predecessorData(i).getOrPanic();
 
-            if predData.global_values.get(global) is Some(x) && x == value {
+            if !(predData.global_values.get(global) is Some(x) && x == value) {
                 in_all = false;
                 break;
             }
@@ -85,25 +85,25 @@ fn mergePredecessors(block: Block, per_block_data: Array[Option[LoadData]]): Loa
         }
     }
 
-    // for (field, value) in first.class_values {
-    //     let mut i = 1;
-    //     let mut in_all = true;
+    for (field, value) in first.class_values {
+        let mut i = 1;
+        let mut in_all = true;
 
-    //     while i < p {
-    //         let predData = predecessorData(i).getOrPanic();
+        while i < p {
+            let predData = predecessorData(i).getOrPanic();
 
-    //         if predData.class_values.get(field) is Some(x) && x == value {
-    //             in_all = false;
-    //             break;
-    //         }
+            if !(predData.class_values.get(field) is Some(x) && x == value) {
+                in_all = false;
+                break;
+            }
 
-    //         i += 1;
-    //     }
+            i += 1;
+        }
 
-    //     if in_all {
-    //         result.class_values.insert(field, value);
-    //     }
-    // }
+        if in_all {
+            result.class_values.insert(field, value);
+        }
+    }
 
     result
 }
