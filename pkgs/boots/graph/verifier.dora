@@ -32,7 +32,10 @@ impl GraphVerifier {
         assert(block.getGraph() === self.graph);
 
         for phi in block.phisIterator() {
+            assert(phi.isPhi());
             assert(phi.getInputs().size() == block.predecessors.size());
+
+            self.verifyInst(phi);
         }
 
         for inst in block.instructionsIterator() {
@@ -47,6 +50,13 @@ impl GraphVerifier {
     }
 
     fn verifyInst(inst: Inst) {
+        let mut idx = 0i32;
+
+        for input in inst.getInputs() {
+            assert(input.getIdx() == idx);
+            idx += 1i32;
+        }
+
         assert(inst.getBlock() === self.currentBlock);
     }
 }

@@ -1,7 +1,9 @@
 use package::compilation::CompilationInfo;
-use package::graph::{Block, Graph, Op};
+use package::graph::{createGotoInst, Block, Graph, Op};
 
 pub fn performCfgSimplification(ci: CompilationInfo, graph: Graph) {
+    let mut changed = false;
+
     for block in graph.insertionOrderIterator() {
         let inst = block.lastInst();
 
@@ -14,8 +16,32 @@ pub fn performCfgSimplification(ci: CompilationInfo, graph: Graph) {
                 }
             }
 
+            Op::If => {
+                let cond = inst.getInput(0).getValue();
+
+                if cond.op().getBoolConst() is Some(cond) {
+                    let target = inst.getTargetBlockForValue(cond);
+
+                    for edge in block.successors.clone() {
+                        let succ = edge.target;
+                        succ.removePredecessor(edge);
+                        edge.remove();
+                    }
+
+                    inst.insertBefore(createGotoInst(target));
+                    inst.remove();
+
+                    block.addSuccessor(target);
+                    changed = true;
+                }
+            }
+
             _ => (),
         }
+    }
+
+    if changed {
+        graph.removeUnreachableBlocks();
     }
 }
 

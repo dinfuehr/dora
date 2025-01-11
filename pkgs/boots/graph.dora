@@ -1,4 +1,4 @@
-use std::BitVec;
+use std::{BitVec, BitSet};
 use std::collections::{BitVecIter, HashMap};
 use std::Equals;
 use std::Hash;
@@ -214,6 +214,72 @@ impl Graph {
     fn appendEntryBlock(inst: Inst) {
         let terminator = self.getEntryBlock().lastInst();
         terminator.insertBefore(inst);
+    }
+
+    pub fn removeUnreachableBlocks() {
+        let reachable = findReachableBlocks(self);
+        removeUnreachableBlocks(self, reachable);
+    }
+}
+
+
+fn findReachableBlocks(graph: Graph): BitSet {
+    let worklist = Vec[Block]::new();
+    let reachable = BitSet::new(graph.blockCount().toInt64());
+
+    worklist.push(graph.getEntryBlock());
+    reachable.insert(graph.getEntryBlock().id().toInt64());
+
+    while !worklist.isEmpty() {
+        let block = worklist.last().getOrPanic();
+        worklist.pop();
+
+        for succEdge in block.successors {
+            let succ = succEdge.target;
+
+            if !reachable.contains(succ.id().toInt64()) {
+                worklist.push(succ);
+                reachable.insert(succ.id().toInt64());
+            }
+        }
+    }
+
+    reachable
+}
+
+fn removeUnreachableBlocks(graph: Graph, reachable: BitSet) {
+    // Remove instructions as user from other instructions.
+    for block in graph.insertionOrderIterator() {
+        if reachable.contains(block.id().toInt64()) {
+            continue;
+        }
+
+        for phi in block.phisIterator() {
+            phi.removeAsUser();
+        }
+
+        for inst in block.instructionsIterator() {
+            inst.removeAsUser();
+        }
+    }
+
+    // Now remove unreachable blocks from graph.
+    for block in graph.insertionOrderIterator() {
+        if reachable.contains(block.id().toInt64()) {
+            continue;
+        }
+
+        for edge in block.successors {
+            let successor = edge.target;
+
+            if reachable.contains(successor.id().toInt64()) {
+                successor.removePredecessor(edge);
+                edge.remove();
+            }
+        }
+
+        graph.blocks(block.id().toInt64()) = None[Block];
+        block.graph = None;
     }
 }
 
@@ -466,6 +532,30 @@ impl Block {
         }
 
         newBlock
+    }
+
+    pub fn removePredecessor(edge: Edge) {
+        assert(edge.target === self);
+        assert(self.predecessors(edge.targetIdx) === edge);
+
+        if self.predecessors.size() == 2 {
+            let remainingIdx = edge.targetIdx ^ 1;
+
+            for phi in self.phisIterator() {
+                let remaining = phi.getInput(remainingIdx).getValue();
+                phi.replaceAllUsesWith(remaining);
+            }
+
+            for phi in self.phisIterator() {
+                phi.remove();
+            }
+        } else {
+            let idx = edge.targetIdx;
+
+            for phi in self.phisIterator() {
+                phi.removeInput(idx);
+            }
+        }
     }
 
     pub fn isLoopHeader(): Bool {
@@ -853,6 +943,14 @@ impl Op {
         }
     }
 
+    pub fn getBoolConst(): Option[Bool] {
+        match self {
+            Op::TrueConst => Some[Bool](true),
+            Op::FalseConst => Some[Bool](false),
+            _ => None[Bool],
+        }
+    }
+
     pub fn isTerminator(): Bool {
         match self {
             Op::Goto
@@ -1073,6 +1171,16 @@ impl Inst {
 
     pub fn getInput(idx: Int64): Input {
         self.inputs(idx)
+    }
+
+    pub fn removeInput(mut idx: Int64) {
+        self.inputs.removeAt(idx);
+
+        while idx < self.inputs.size() {
+            let input = self.inputs(idx);
+            input.idx -=1;
+            idx += 1;
+        }
     }
 
     pub fn isPhi(): Bool {
@@ -1551,6 +1659,20 @@ impl Inst {
         assert(self.op() == Op::If);
         match self.extra {
             InstExtraData::If(then_block, else_block) => else_block,
+            _ => unreachable[Block](),
+        }
+    }
+
+    pub fn getTargetBlockForValue(value: Bool): Block {
+        assert(self.op() == Op::If);
+        match self.extra {
+            InstExtraData::If(then_block, else_block) => {
+                if value {
+                    then_block
+                } else {
+                    else_block
+                }
+            },
             _ => unreachable[Block](),
         }
     }
