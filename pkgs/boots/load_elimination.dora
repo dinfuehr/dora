@@ -3,91 +3,114 @@ use std::{Equals, Hash, HashSet, HashMap};
 use package::bytecode::{ClassId, GlobalId};
 use package::compilation::CompilationInfo;
 use package::dominator::computePostOrder;
-use package::graph::{ClassInfo, Graph, Inst, Op};
+use package::graph::{Block, ClassInfo, Graph, Inst, Op};
 
 pub fn performLoadElimination(ci: CompilationInfo, graph: Graph) {
     computePostOrder(graph);
     let per_block_data = Array[Option[LoadData]]::fill(graph.blocks.size(), None[LoadData]);
 
     for block in graph.reversePostOrderIterator() {
-        let data = if block.predecessors.size() == 1 {
-            let p = block.predecessors(0).source;
-            if per_block_data(p.id().toInt64()) is Some(data) {
-                data.clone()
-            } else {
-                LoadData::new()
+        let data = mergePredecessors(block, per_block_data);
+        processBlock(block, data);
+        per_block_data(block.id().toInt64()) = Some[LoadData](data);
+    }
+}
+
+fn mergePredecessors(block: Block, per_block_data: Array[Option[LoadData]]): LoadData {
+    let p = block.predecessors.size();
+
+    if p == 0 {
+        return LoadData::new();
+    }
+
+    let predecessorData = Array[Option[LoadData]]::fill(p, None[LoadData]);
+    let mut i = 0;
+
+    for predEdge in block.predecessors {
+        let data = per_block_data(predEdge.source.id().toInt64());
+
+        if data.isNone() {
+            return LoadData::new();
+        }
+
+        predecessorData(i) = data;
+        i += 1;
+    }
+
+    let first = predecessorData(0).getOrPanic();
+
+    if p == 1 {
+        return first.clone();
+    }
+
+    LoadData::new()
+}
+
+fn processBlock(block: Block, data: LoadData) {
+    for inst in block.instructionsIterator() {
+        let op = inst.op();
+
+        if op == Op::EnsureGlobalInitialized {
+            let id = inst.getGlobalId();
+
+            if !data.initializeGlobal(id) {
+                inst.remove();
             }
-        } else {
-            LoadData::new()
-        };
 
-        for inst in block.instructionsIterator() {
-            let op = inst.op();
+        } else if op == Op::LoadGlobal {
+            let id = inst.getGlobalId();
 
-            if op == Op::EnsureGlobalInitialized {
-                let id = inst.getGlobalId();
+            if data.getGlobalValue(id) is Some(value) {
+                inst.replaceAllUsesWith(value);
+                inst.remove();
+            } else {
+                data.setGlobalValue(id, inst);
+            }
 
-                if !data.initializeGlobal(id) {
-                    inst.remove();
-                }
+        } else if op == Op::StoreGlobal {
+            let id = inst.getGlobalId();
+            let value = inst.getInput(0).getValue();
+            data.setGlobalValue(id, value);
 
-            } else if op == Op::LoadGlobal {
-                let id = inst.getGlobalId();
+        } else if op == Op::Load {
+            if inst.hasClassInfo() {
+                let class_info = inst.getClassInfo();
+                let object = inst.getInput(0).getValue();
+                let field = Field(object, class_info, offset = inst.getOffset());
 
-                if data.getGlobalValue(id) is Some(value) {
+                if data.class_values.get(field) is Some(value) {
                     inst.replaceAllUsesWith(value);
                     inst.remove();
                 } else {
-                    data.setGlobalValue(id, inst);
+                    data.class_values.insert(field, inst);
                 }
-
-            } else if op == Op::StoreGlobal {
-                let id = inst.getGlobalId();
-                let value = inst.getInput(0).getValue();
-                data.setGlobalValue(id, value);
-
-            } else if op == Op::Load {
-                if inst.hasClassInfo() {
-                    let class_info = inst.getClassInfo();
-                    let object = inst.getInput(0).getValue();
-                    let field = Field(object, class_info, offset = inst.getOffset());
-
-                    if data.class_values.get(field) is Some(value) {
-                        inst.replaceAllUsesWith(value);
-                        inst.remove();
-                    } else {
-                        data.class_values.insert(field, inst);
-                    }
-                }
-
-            } else if op == Op::Store || op == Op::StoreWb {
-                if inst.hasClassInfo() {
-                    let class_info = inst.getClassInfo();
-                    let field_offset = inst.getOffset();
-
-                    let object = inst.getInput(0).getValue();
-                    let field = Field(object, class_info, offset = field_offset);
-                    let cur_value = data.class_values.get(field);
-
-                    data.class_values.retainIf(|field: Field, value: Inst|: Bool {
-                        field.class_info != class_info || field.offset != field_offset
-                    });
-
-                    let new_value = inst.getInput(1).getValue();
-                    if cur_value is Some(cur_value) && cur_value == new_value {
-                        assert(!inst.hasUses());
-                        inst.remove();
-                    }
-
-                    data.class_values.insert(field, new_value);
-                }
-
-            } else if op.isCall() {
-                data.kill();
             }
-        }
 
-        per_block_data(block.id().toInt64()) = Some[LoadData](data);
+        } else if op == Op::Store || op == Op::StoreWb {
+            if inst.hasClassInfo() {
+                let class_info = inst.getClassInfo();
+                let field_offset = inst.getOffset();
+
+                let object = inst.getInput(0).getValue();
+                let field = Field(object, class_info, offset = field_offset);
+                let cur_value = data.class_values.get(field);
+
+                data.class_values.retainIf(|field: Field, value: Inst|: Bool {
+                    field.class_info != class_info || field.offset != field_offset
+                });
+
+                let new_value = inst.getInput(1).getValue();
+                if cur_value is Some(cur_value) && cur_value == new_value {
+                    assert(!inst.hasUses());
+                    inst.remove();
+                }
+
+                data.class_values.insert(field, new_value);
+            }
+
+        } else if op.isCall() {
+            data.kill();
+        }
     }
 }
 
