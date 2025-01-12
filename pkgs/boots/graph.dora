@@ -260,14 +260,9 @@ fn removeUnreachableBlocks(graph: Graph, reachable: BitSet) {
         for inst in block.instructionsIterator() {
             inst.removeAsUser();
         }
-    }
 
-    // Now remove unreachable blocks from graph.
-    for block in graph.insertionOrderIterator() {
-        if reachable.contains(block.id().toInt64()) {
-            continue;
-        }
-
+        // Unreachable block might still be a predecessor of a reachable block.
+        // In this case Phi arguments need to be removed from the successor.
         for edge in block.successors {
             let successor = edge.target;
 
@@ -275,6 +270,13 @@ fn removeUnreachableBlocks(graph: Graph, reachable: BitSet) {
                 successor.removePredecessor(edge);
                 edge.remove();
             }
+        }
+    }
+
+    // Now remove unreachable blocks from graph.
+    for block in graph.insertionOrderIterator() {
+        if reachable.contains(block.id().toInt64()) {
+            continue;
         }
 
         block.remove();
