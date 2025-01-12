@@ -92,8 +92,7 @@ fn removeUnreachableBlocks(graph: Graph, visited: BitSet) {
             successor.predecessors.removeIf(|e: Edge|: Bool { e === edge });
         }
 
-        graph.blocks(block.id().toInt64()) = None[Block];
-        block.graph = None;
+        block.remove();
     }
 }
 

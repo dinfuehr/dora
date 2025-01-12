@@ -27,8 +27,6 @@ pub class Graph {
     pub blocks: Vec[Option[Block]],
     instById: Vec[Option[Inst]],
     postOrder: Option[Vec[Block]],
-    nextBlockIdValue: Int32,
-    nextInstIdValue: Int32,
     stackSize: Option[Int32],
     constsByValInt64: HashMap[Int64, Inst],
     constsByValInt32: HashMap[Int32, Inst],
@@ -39,17 +37,18 @@ pub class Graph {
 
 impl Graph {
     static pub fn new(): Graph {
+        let blocks = Vec[Option[Block]]::new();
+        blocks.push(None[Block]);
+
         let insts = Vec[Option[Inst]]::new();
         insts.push(None[Inst]);
 
         Graph(
             entryBlock = None[Block],
             exitBlock = None[Block],
-            blocks = Vec[Option[Block]]::new(),
+            blocks,
             instById = insts,
             postOrder = None[Vec[Block]],
-            nextBlockIdValue = 0i32,
-            nextInstIdValue = 0i32,
             stackSize = None[Int32],
             constsByValInt64 = HashMap[Int64, Inst]::new(),
             constsByValInt32 = HashMap[Int32, Inst]::new(),
@@ -61,10 +60,10 @@ impl Graph {
 
     pub fn addBlock(block: Block) {
         assert(block.graph.isNone());
-        assert(block._id.isNone());
+        assert(!block.hasId());
 
         block.graph = Some(self);
-        block._id = Some(self.nextBlockId().0);
+        block._id = self.nextBlockId().0;
         self.blocks.push(Some[Block](block));
     }
 
@@ -100,14 +99,14 @@ impl Graph {
     }
 
     fn nextBlockId(): BlockId {
-        let id = self.nextBlockIdValue;
-        self.nextBlockIdValue = id + 1i32;
+        let id = self.blocks.size().toInt32();
+        assert(id > 0i32);
 
         BlockId(id)
     }
 
     pub fn blockCount(): Int32 {
-        self.nextBlockIdValue
+        self.blocks.size().toInt32()
     }
 
     pub fn setPostOrder(postOrder: Vec[Block]) {
@@ -278,8 +277,7 @@ fn removeUnreachableBlocks(graph: Graph, reachable: BitSet) {
             }
         }
 
-        graph.blocks(block.id().toInt64()) = None[Block];
-        block.graph = None;
+        block.remove();
     }
 }
 
@@ -380,7 +378,7 @@ pub struct RegisterTrackers {
 struct BlockId(Int32)
 
 pub class Block {
-    _id: Option[Int32],
+    _id: Int32,
     phis: InstLinkedList,
     instructions: InstLinkedList,
 
@@ -406,7 +404,7 @@ pub class Block {
 impl Block {
     static pub fn new(): Block {
         Block(
-            _id = None[Int32],
+            _id = 0i32,
             phis = InstLinkedList::new(),
             instructions = InstLinkedList::new(),
             label = None[Label],
@@ -426,7 +424,12 @@ impl Block {
     }
 
     pub fn id(): Int32 {
-        self._id.getOrPanic()
+        assert(self.hasId());
+        self._id
+    }
+
+    pub fn hasId(): Bool {
+        self._id > 0i32
     }
 
     pub fn getGraph(): Graph {
@@ -556,6 +559,13 @@ impl Block {
                 phi.removeInput(idx);
             }
         }
+    }
+
+    pub fn remove() {
+        let graph = self.getGraph();
+        graph.blocks(self.id().toInt64()) = None[Block];
+        self._id = -self._id;
+        self.graph = None;
     }
 
     pub fn isLoopHeader(): Bool {
@@ -1469,6 +1479,17 @@ impl Inst {
         block.getGraph().instById(id.toInt64()) = None[Inst];
         self._id = -id;
         assert(!self.hasId());
+    }
+
+    pub fn removeAndAppend(newBlock: Block) {
+        assert(self.block.isSome());
+        let block = self.block.getOrPanic();
+        assert(block.getGraph() === newBlock.getGraph());
+        assert(!self.isPhi());
+        assert(block.instructions.firstInst() === self);
+        block.instructions.removeInst(self);
+        newBlock.instructions.appendInst(self);
+        self.block = Some[Block](newBlock);
     }
 
     pub fn registerUses() {

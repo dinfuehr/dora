@@ -1,50 +1,76 @@
 use package::compilation::CompilationInfo;
-use package::graph::{createGotoInst, Block, Graph, Op};
+use package::graph::{createGotoInst, createUnreachableInst, Block, Graph, Op};
 
 pub fn performCfgSimplification(ci: CompilationInfo, graph: Graph) {
-    let mut changed = false;
+    while true {
+        let mut changed = false;
 
-    for block in graph.insertionOrderIterator() {
-        let inst = block.lastInst();
+        for block in graph.insertionOrderIterator() {
+            let inst = block.lastInst();
 
-        match inst.op() {
-            Op::Goto => {
-                let targetBlock = inst.getTargetBlock();
+            match inst.op() {
+                Op::Goto => {
+                    let targetBlock = inst.getTargetBlock();
 
-                if canMergeBlocks(block, targetBlock) {
-                    // TODO
+                    if canMergeBlocks(block, targetBlock) {
+                        // assert(block.successors.size() == 1);
+                        // let targetEdge = block.successors(0);
+                        // targetEdge.remove();
+
+                        // inst.remove();
+
+                        // assert(targetBlock.phisIterator().next().isNone());
+
+                        // for inst in targetBlock.instructionsIterator() {
+                        //     inst.removeAndAppend(block);
+                        // }
+
+                        // targetBlock.appendInst(createUnreachableInst());
+
+                        // assert(block.successors.isEmpty());
+
+                        // for edge in targetBlock.successors.clone() {
+                        //     let target = edge.target;
+                        //     edge.remove();
+                        //     block.addSuccessor(target);
+                        // }
+
+                        // changed = true;
+                    }
                 }
-            }
 
-            Op::If => {
-                let cond = inst.getInput(0).getValue();
+                Op::If => {
+                    let cond = inst.getInput(0).getValue();
 
-                if cond.op().getBoolConst() is Some(cond) {
-                    let target = inst.getTargetBlockForValue(cond);
-                    assert(block.successors.size() == 2);
-                    let alwaysTakenIdx = (!cond).toInt64();
-                    let neverTakenIdx = alwaysTakenIdx ^ 1;
-                    let neverTakenEdge = block.successors(neverTakenIdx);
+                    if cond.op().getBoolConst() is Some(cond) {
+                        let target = inst.getTargetBlockForValue(cond);
+                        assert(block.successors.size() == 2);
+                        let alwaysTakenIdx = (!cond).toInt64();
+                        let neverTakenIdx = alwaysTakenIdx ^ 1;
+                        let neverTakenEdge = block.successors(neverTakenIdx);
 
-                    neverTakenEdge.target.removePredecessor(neverTakenEdge);
-                    neverTakenEdge.remove();
+                        neverTakenEdge.target.removePredecessor(neverTakenEdge);
+                        neverTakenEdge.remove();
 
-                    inst.insertBefore(createGotoInst(target));
-                    inst.remove();
+                        inst.insertBefore(createGotoInst(target));
+                        inst.remove();
 
-                    changed = true;
+                        changed = true;
+                    }
                 }
-            }
 
-            _ => (),
+                _ => (),
+            }
         }
-    }
 
-    if changed {
-        graph.removeUnreachableBlocks();
+        if changed {
+            graph.removeUnreachableBlocks();
+        } else {
+            break;
+        }
     }
 }
 
 fn canMergeBlocks(block: Block, targetBlock: Block): Bool {
-    false
+    !block.isEntryBlock() && targetBlock.predecessors.size() == 1
 }
