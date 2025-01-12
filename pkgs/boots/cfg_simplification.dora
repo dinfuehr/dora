@@ -12,7 +12,7 @@ pub fn performCfgSimplification(ci: CompilationInfo, graph: Graph) {
                 let targetBlock = inst.getTargetBlock();
 
                 if canMergeBlocks(block, targetBlock) {
-
+                    // TODO
                 }
             }
 
@@ -21,17 +21,17 @@ pub fn performCfgSimplification(ci: CompilationInfo, graph: Graph) {
 
                 if cond.op().getBoolConst() is Some(cond) {
                     let target = inst.getTargetBlockForValue(cond);
+                    assert(block.successors.size() == 2);
+                    let alwaysTakenIdx = (!cond).toInt64();
+                    let neverTakenIdx = alwaysTakenIdx ^ 1;
+                    let neverTakenEdge = block.successors(neverTakenIdx);
 
-                    for edge in block.successors.clone() {
-                        let succ = edge.target;
-                        succ.removePredecessor(edge);
-                        edge.remove();
-                    }
+                    neverTakenEdge.target.removePredecessor(neverTakenEdge);
+                    neverTakenEdge.remove();
 
                     inst.insertBefore(createGotoInst(target));
                     inst.remove();
 
-                    block.addSuccessor(target);
                     changed = true;
                 }
             }

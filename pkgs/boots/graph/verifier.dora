@@ -1,6 +1,4 @@
-use package::graph::Graph;
-use package::graph::Block;
-use package::graph::Inst;
+use package::graph::{Block, Graph, Inst, Op};
 
 pub fn verifyGraph(graph: Graph) {
     GraphVerifier::new(graph).run()
@@ -55,6 +53,22 @@ impl GraphVerifier {
         for input in inst.getInputs() {
             assert(input.getIdx() == idx);
             idx += 1i32;
+        }
+
+        match inst.op() {
+            Op::Goto => {
+                let target = inst.getTargetBlock();
+                assert(target.getGraph() === self.graph);
+            }
+
+            Op::If => {
+                let trueBlock = inst.getTrueBlock();
+                assert(self.currentBlock.successors(0).target === trueBlock);
+                let falseBlock = inst.getFalseBlock();
+                assert(self.currentBlock.successors(1).target === falseBlock);
+            }
+
+            _ => (),
         }
 
         assert(inst.getBlock() === self.currentBlock);

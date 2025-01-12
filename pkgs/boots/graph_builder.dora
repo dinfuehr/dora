@@ -1125,8 +1125,14 @@ impl SsaGen {
         };
 
         self.current().appendInst(cond);
-        self.current().addSuccessor(targetBlock);
-        self.current().addSuccessor(fallthroughBlock);
+
+        if value {
+            self.current().addSuccessor(targetBlock);
+            self.current().addSuccessor(fallthroughBlock);
+        } else {
+            self.current().addSuccessor(fallthroughBlock);
+            self.current().addSuccessor(targetBlock);
+        }
     }
 
     fn emitLoadArray(dest: BytecodeRegister, arr: BytecodeRegister, idx: BytecodeRegister) {
@@ -1663,6 +1669,9 @@ impl SsaGen {
             false
         } else if intrinsic == opc::INTRINSIC_BOOL_TO_INT32 {
             self.emitIntrinsicConvert(dest, args, Type::Int32, Type::Bool);
+            false
+        } else if intrinsic == opc::INTRINSIC_BOOL_TO_INT64 {
+            self.emitIntrinsicConvert(dest, args, Type::Int64, Type::Bool);
             false
         } else if intrinsic == opc::INTRINSIC_U_INT8_TO_INT64 {
             self.emitIntrinsicConvert(dest, args, Type::Int64, Type::UInt8);
