@@ -1,5 +1,5 @@
 use package::compilation::CompilationInfo;
-use package::graph::{createGotoInst, createUnreachableInst, Block, Graph, Op};
+use package::graph::{createGotoInst, createUnreachableInst, Block, Edge, Graph, Op};
 
 pub fn performCfgSimplification(ci: CompilationInfo, graph: Graph) {
     while true {
@@ -13,29 +13,31 @@ pub fn performCfgSimplification(ci: CompilationInfo, graph: Graph) {
                     let targetBlock = inst.getTargetBlock();
 
                     if canMergeBlocks(block, targetBlock) {
-                        // assert(block.successors.size() == 1);
-                        // let targetEdge = block.successors(0);
-                        // targetEdge.remove();
+                        assert(block !== targetBlock);
 
-                        // inst.remove();
+                        assert(block.successors.size() == 1);
+                        let targetEdge = block.successors(0);
+                        targetEdge.remove();
 
-                        // assert(targetBlock.phisIterator().next().isNone());
+                        inst.remove();
 
-                        // for inst in targetBlock.instructionsIterator() {
-                        //     inst.removeAndAppend(block);
-                        // }
+                        assert(targetBlock.phisIterator().next().isNone());
 
-                        // targetBlock.appendInst(createUnreachableInst());
+                        for inst in targetBlock.instructionsIterator() {
+                            inst.removeAndAppend(block);
+                        }
 
-                        // assert(block.successors.isEmpty());
+                        targetBlock.appendInst(createUnreachableInst());
 
-                        // for edge in targetBlock.successors.clone() {
-                        //     let target = edge.target;
-                        //     edge.remove();
-                        //     block.addSuccessor(target);
-                        // }
+                        assert(block.successors.isEmpty());
 
-                        // changed = true;
+                        for edge in targetBlock.successors {
+                            edge.source = block;
+                        }
+
+                        block.successors = targetBlock.successors;
+                        targetBlock.successors = Vec[Edge]::new();
+                        changed = true;
                     }
                 }
 
