@@ -145,15 +145,15 @@ fn computeDominators(graph: Graph) {
 
         let mut newIdom: Option[Block] = None;
 
-        for pred in block.predecessors {
-            let pred = pred.source;
+        for predEdge in block.predecessors {
+            let pred = predEdge.source;
 
-            if newIdom.isNone() {
-                newIdom = Some(pred);
+            if predEdge.isBackward() {
                 continue;
             }
 
-            if pred.getDominator().isNone() {
+            if newIdom.isNone() {
+                newIdom = Some(pred);
                 continue;
             }
 
