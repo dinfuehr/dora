@@ -81,7 +81,7 @@ pub fn compileFunction(ci: CompilationInfo): CodeDescriptor {
 
         verify(graph);
 
-        performCfgSimplification(ci, graph);
+        // performCfgSimplification(ci, graph);
 
         if htmlWriter.isSome() {
             htmlWriter.getOrPanic().dumpGraph("after cfg simplification", graph);
