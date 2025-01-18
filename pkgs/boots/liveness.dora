@@ -1,7 +1,7 @@
-use std::collections::BitVec;
+use std::collections::{BitSet, BitVec};
 use std::collections::HashSet;
 
-use package::graph::{Graph, Input, InstSet};
+use package::graph::{Block, Graph, Input, InstSet};
 
 pub fn computeLiveness(graph: Graph) {
     computeLinearOrderIndex(graph);
@@ -95,15 +95,83 @@ pub fn computeLiveness(graph: Graph) {
 
 fn computeLinearOrderIndex(graph: Graph) {
     let mut idx = 1i32;
+    let mut deferred = Vec[Block]::new();
+    let mut failureBlocks = computeFailureBlocks(graph);
+    let mut linearOrder = Vec[Block]::new();
 
     for block in graph.reversePostOrderIterator() {
-        for phi in block.phisIterator() {
-            phi.setLinearOrderIndex(idx);
+        if failureBlocks.contains(block.id().toInt64()) {
+            deferred.push(block);
+            continue;
         }
 
-        for inst in block.instructionsIterator() {
-            inst.setLinearOrderIndex(idx);
-            idx = idx + 1i32;
+        linearOrder.push(block);
+        idx = setLinearOrderIndex(block, idx);
+    }
+
+    for block in deferred {
+        linearOrder.push(block);
+        idx = setLinearOrderIndex(block, idx);
+    }
+
+    graph.setLinearOrder(linearOrder);
+}
+
+fn setLinearOrderIndex(block: Block, mut idx: Int32): Int32 {
+    for phi in block.phisIterator() {
+        phi.setLinearOrderIndex(idx);
+    }
+
+    for inst in block.instructionsIterator() {
+        inst.setLinearOrderIndex(idx);
+        idx = idx + 1i32;
+    }
+
+    idx
+}
+
+fn computeFailureBlocks(graph: Graph): BitSet {
+    let mut failure = BitSet::new(graph.blockCount().toInt64());
+
+    for block in graph.insertionOrderIterator() {
+        if block.lastInst().isUnreachable() {
+            failure.insert(block.id().toInt64());
         }
     }
+
+    while true {
+        let mut changed = false;
+
+        for block in graph.insertionOrderIterator() {
+            if failure.contains(block.id().toInt64()) {
+                continue;
+            }
+
+            if block.successors.isEmpty() {
+                continue;
+            }
+
+            let mut insert = true;
+
+            for edge in block.successors {
+                let target = edge.target;
+
+                if !failure.contains(target.id().toInt64()) {
+                    insert = false;
+                    break;
+                }
+            }
+
+            if insert {
+                failure.insert(block.id().toInt64());
+                changed = true;
+            }
+        }
+
+        if !changed {
+            break;
+        }
+    }
+
+    failure
 }

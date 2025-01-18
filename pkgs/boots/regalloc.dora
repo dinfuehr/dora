@@ -50,7 +50,7 @@ impl SimpleRegisterAllocator {
     }
 
     fn allocateRegisters() {
-        for block in self.graph.reversePostOrderIterator() {
+        for block in self.graph.linearOrderIterator() {
             self.allocateBlock(block);
         }
     }
@@ -104,10 +104,14 @@ impl SimpleRegisterAllocator {
 
             for predecessorEdge in block.predecessors {
                 let predecessor = predecessorEdge.source;
-                let trackers = predecessor.getTrackerOut();
 
-                self.processLiveRegisters[Register](block, self.registers(), idx, trackers.gp, candidates);
-                self.processLiveRegisters[FloatRegister](block, self.float_registers(),idx, trackers.fp, candidates);
+                if predecessor.hasTrackerOut() {
+                    let trackers = predecessor.getTrackerOut();
+
+                    self.processLiveRegisters[Register](block, self.registers(), idx, trackers.gp, candidates);
+                    self.processLiveRegisters[FloatRegister](block, self.float_registers(),idx, trackers.fp, candidates);
+                }
+
                 idx = idx + 1;
             }
 

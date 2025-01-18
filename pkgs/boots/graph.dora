@@ -27,6 +27,7 @@ pub class Graph {
     pub blocks: Vec[Option[Block]],
     instById: Vec[Option[Inst]],
     postOrder: Option[Vec[Block]],
+    linearOrder: Option[Vec[Block]],
     stackSize: Option[Int32],
     constsByValInt64: HashMap[Int64, Inst],
     constsByValInt32: HashMap[Int32, Inst],
@@ -49,6 +50,7 @@ impl Graph {
             blocks,
             instById = insts,
             postOrder = None[Vec[Block]],
+            linearOrder = None[Vec[Block]],
             stackSize = None[Int32],
             constsByValInt64 = HashMap[Int64, Inst]::new(),
             constsByValInt32 = HashMap[Int32, Inst]::new(),
@@ -117,6 +119,10 @@ impl Graph {
         }
     }
 
+    pub fn setLinearOrder(linearOrder: Vec[Block]) {
+        self.linearOrder = Some(linearOrder);
+    }
+
     pub fn rebuildDominatorTree() {
         // TODO: clear data of dominance and loop analysis
         self.buildDominatorTree();
@@ -138,6 +144,11 @@ impl Graph {
     pub fn reversePostOrderIterator(): ReversePostOrderIterator {
         let postOrder = self.postOrder.getOrPanic().toArray();
         ReversePostOrderIterator::new(postOrder)
+    }
+
+    pub fn linearOrderIterator(): BlockIterator {
+        let linearOrder = self.linearOrder.getOrPanic().toArray();
+        BlockIterator::new(linearOrder)
     }
 
     pub fn getStackSize(): Int32 {
@@ -365,6 +376,31 @@ impl Iterator for ReversePostOrderIterator {
         if self.idx != -1 {
             let block = self.postOrder(self.idx);
             self.idx = self.idx - 1;
+            Some[Block](block)
+        } else {
+            None[Block]
+        }
+    }
+}
+
+class BlockIterator {
+    order: Array[Block],
+    idx: Int64,
+}
+
+impl BlockIterator {
+    static pub fn new(order: Array[Block]): BlockIterator {
+        BlockIterator(order, idx = 0)
+    }
+}
+
+impl Iterator for BlockIterator {
+    type Item = Block;
+
+    fn next(): Option[Block] {
+        if self.idx < self.order.size() {
+            let block = self.order(self.idx);
+            self.idx = self.idx + 1;
             Some[Block](block)
         } else {
             None[Block]
@@ -639,6 +675,10 @@ impl Block {
     pub fn setTrackerOut(trackerOut: RegisterTrackers) {
         assert(self.trackerOut.isNone());
         self.trackerOut = Some(trackerOut);
+    }
+
+    pub fn hasTrackerOut(): Bool {
+        self.trackerOut.isSome()
     }
 
     pub fn getTrackerOut(): RegisterTrackers {
@@ -1197,6 +1237,10 @@ impl Inst {
 
     pub fn isPhi(): Bool {
         self.op() == Op::Phi
+    }
+
+    pub fn isUnreachable(): Bool {
+        self.op() == Op::Unreachable
     }
 
     pub fn isConst(): Bool {

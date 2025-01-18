@@ -1,0 +1,9 @@
+//= boots
+
+fn main() {
+    assert(get(Some[Int](10)) == 10);
+}
+
+@Optimize fn get(x: Option[Int]): Int {
+    x.getOrPanic()
+}

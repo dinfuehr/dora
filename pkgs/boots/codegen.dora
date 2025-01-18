@@ -47,7 +47,7 @@ pub fn generateCode(graph: Graph, codegen: CodeGen, ci: CompilationInfo): CodeDe
         block.setLabel(codegen.createLabel());
     }
 
-    for block in graph.reversePostOrderIterator() {
+    for block in graph.linearOrderIterator() {
         codegen.emitComment("Block ${block.id()}");
         codegen.bindLabel(block.getLabel());
 
