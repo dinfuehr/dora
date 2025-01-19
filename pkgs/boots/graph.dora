@@ -1142,6 +1142,7 @@ pub class Inst {
     inlinedLocation: Option[InlinedLocation],
 
     aux: Int64,
+    emitAtUseSite: Bool,
 
     previous: Option[Inst],
     next: Option[Inst],
@@ -1166,6 +1167,7 @@ impl Inst {
             _op = None[Op],
             inlinedLocation = None[InlinedLocation],
             aux = 0,
+            emitAtUseSite = false,
             previous = None[Inst],
             next = None[Inst],
             ty = Type::Unit,
@@ -1695,6 +1697,14 @@ impl Inst {
     pub fn getValueAsFloat32(): Float32 {
         assert(self.op() == Op::Float32Const);
         self.aux.toInt32().asFloat32()
+    }
+
+    pub fn getEmitAtUseSite(): Bool {
+        self.emitAtUseSite
+    }
+
+    pub fn setEmitAtUseSite() {
+        self.emitAtUseSite = true;
     }
 
     pub fn getValueAsFloat64(): Float64 {

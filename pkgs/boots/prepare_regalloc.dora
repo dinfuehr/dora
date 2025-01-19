@@ -1,0 +1,7 @@
+use package::codegen::CodeGen;
+use package::compilation::CompilationInfo;
+use package::graph::Graph;
+
+pub fn prepareRegisterAllocation(graph: Graph, codegen: CodeGen, ci: CompilationInfo) {
+    // TODO
+}

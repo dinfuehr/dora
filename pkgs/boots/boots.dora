@@ -15,6 +15,7 @@ use package::inlining::performInlining;
 use package::interface::{Architecture, CodeDescriptor, CommentTable, GcPointTable, GcPoint, LazyCompilationData, LazyCompilationSite, LazyCompilationSiteDirect, LazyCompilationSiteVirtual, LazyCompilationSiteLambda, LocationTable};
 use package::interface::{compile, config, getFunctionAddressRaw, getFieldOffsetRaw, getClassSizeRaw, getClassPointerRaw, getFunctionVtableIndexRaw, getClassPointerForLambdaRaw, getGlobalValueAddressRaw, getGlobalStateAddressRaw, hasGlobalInitialValueRaw};
 use package::load_elimination::performLoadElimination;
+use package::prepare_regalloc::prepareRegisterAllocation;
 use package::regalloc::performRegisterAllocation;
 use package::cfg_simplification::performCfgSimplification;
 use package::liveness::computeLiveness;
@@ -34,6 +35,7 @@ mod interface;
 mod liveness;
 mod load_elimination;
 mod location;
+mod prepare_regalloc;
 mod regalloc;
 mod resolver;
 mod serializer;
@@ -120,6 +122,8 @@ pub fn compileFunction(ci: CompilationInfo): CodeDescriptor {
 
         verify(graph);
     }
+
+    prepareRegisterAllocation(graph, codegen, ci);
 
     splitCriticalEdges(graph);
     buildDominatorTree(graph);
