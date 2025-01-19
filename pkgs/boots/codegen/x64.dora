@@ -1462,11 +1462,11 @@ impl CodeGen for CodeGenX64 {
         let trueBlock = inst.getTrueBlock();
         let falseBlock = inst.getFalseBlock();
 
-        if currentBlock.postOrderIdx == trueBlock.postOrderIdx + 1i32 {
+        if currentBlock.linearOrderIdx + 1i32 == trueBlock.linearOrderIdx {
             self.asm.testb_rr(opnd, opnd);
             self.asm.jcc(Condition::Zero, falseBlock.getLabel());
         } else {
-            assert(currentBlock.postOrderIdx == falseBlock.postOrderIdx + 1i32);
+            assert(currentBlock.linearOrderIdx + 1i32 == falseBlock.linearOrderIdx);
             self.asm.testb_rr(opnd, opnd);
             self.asm.jcc(Condition::NotZero, trueBlock.getLabel());
         }

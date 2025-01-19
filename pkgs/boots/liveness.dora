@@ -97,7 +97,7 @@ fn computeLinearOrderIndex(graph: Graph) {
     let mut idx = 1i32;
     let mut linearOrder = Vec[Block]::new();
 
-    if true {
+    if false {
         for block in graph.reversePostOrderIterator() {
             linearOrder.push(block);
             idx = setLinearOrderIndex(block, idx);

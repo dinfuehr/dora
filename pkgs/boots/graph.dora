@@ -121,6 +121,10 @@ impl Graph {
 
     pub fn setLinearOrder(linearOrder: Vec[Block]) {
         self.linearOrder = Some(linearOrder);
+
+        for (idx, block) in linearOrder.enumerate() {
+            block.linearOrderIdx = idx.toInt32();
+        }
     }
 
     pub fn rebuildDominatorTree() {
@@ -437,6 +441,7 @@ pub class Block {
 
     loopData: Option[LoopData],
     pub postOrderIdx: Int32,
+    pub linearOrderIdx: Int32,
 }
 
 impl Block {
@@ -458,6 +463,7 @@ impl Block {
             successors = Vec[Edge]::new(),
             loopData = None[LoopData],
             postOrderIdx = -1i32,
+            linearOrderIdx = -1i32,
         )
     }
 

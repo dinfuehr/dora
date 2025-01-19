@@ -1450,10 +1450,10 @@ impl CodeGen for CodeGenArm64 {
         let trueBlock = inst.getTrueBlock();
         let falseBlock = inst.getFalseBlock();
 
-        if currentBlock.postOrderIdx == trueBlock.postOrderIdx + 1i32 {
+        if currentBlock.linearOrderIdx + 1i32 == trueBlock.linearOrderIdx {
             self.asm.cbz(opnd, falseBlock.getLabel());
         } else {
-            assert(currentBlock.postOrderIdx == falseBlock.postOrderIdx + 1i32);
+            assert(currentBlock.linearOrderIdx + 1i32 == falseBlock.linearOrderIdx);
             self.asm.cbnz(opnd, trueBlock.getLabel());
         }
     }
