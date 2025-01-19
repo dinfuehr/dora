@@ -66,8 +66,21 @@ fn parse(code: &'static str) -> Arc<File> {
 
 fn parse_with_error(code: &'static str, expected: Vec<(u32, u32, u32, ParseError)>) -> Arc<File> {
     let (file, errors) = Parser::from_string(code).parse();
-    assert_eq!(expected.len(), errors.len());
     let line_starts = compute_line_starts(code);
+
+    for error in &errors {
+        let (line, col) = compute_line_column(&line_starts, error.span.start());
+
+        println!(
+            "{} at {}:{} of length {}",
+            error.error.message(),
+            line,
+            col,
+            error.span.len()
+        );
+    }
+
+    assert_eq!(expected.len(), errors.len());
 
     for ((exp_line, exp_col, exp_len, exp_error), actual_error) in expected.into_iter().zip(errors)
     {
@@ -1484,6 +1497,19 @@ fn parse_match() {
     parse_expr("match x { A(x, b) if foo => 1, B => 2 }");
     parse_expr("match x { A(x, b) => 1, B | C => 2 }");
     parse_expr("match x { A(x, b) => { 1 } B | C => { 2 } }");
+
+    parse_with_error(
+        "
+            fn main() {
+                match x { A(x, b) => 1, as }
+            }
+        ",
+        vec![
+            (3, 41, 2, ParseError::ExpectedPattern),
+            (3, 44, 1, ParseError::ExpectedToken("=>".into())),
+            (3, 44, 1, ParseError::ExpectedExpression),
+        ],
+    );
 }
 
 #[test]

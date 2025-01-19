@@ -1647,6 +1647,9 @@ impl Parser {
                 params,
             }))
         } else {
+            self.report_error(ParseError::ExpectedPattern);
+            self.advance();
+
             Arc::new(Pattern::Error(PatternError {
                 id: self.new_node_id(),
                 span: self.finish_node(),
