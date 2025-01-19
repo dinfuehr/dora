@@ -1103,6 +1103,7 @@ impl fmt::Debug for Pattern {
 fn convert_pattern(sa: &Sema, analysis: &AnalysisData, pattern: &ast::Pattern) -> Pattern {
     match pattern {
         ast::Pattern::Underscore(ref p) => Pattern::Any { span: Some(p.span) },
+        ast::Pattern::Error(ref p) => Pattern::Any { span: Some(p.span) },
 
         ast::Pattern::Rest(..) => unreachable!(),
 

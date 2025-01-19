@@ -382,6 +382,8 @@ impl<'a> AstBytecodeGen<'a> {
                 // nothing to do
             }
 
+            ast::Pattern::Error(..) => unreachable!(),
+
             ast::Pattern::ClassOrStructOrEnum(ref p) => {
                 if let Some(ref params) = p.params {
                     for param in params {
@@ -591,6 +593,8 @@ impl<'a> AstBytecodeGen<'a> {
             ast::Pattern::Underscore(_) => {
                 // nothing to do
             }
+
+            ast::Pattern::Error(..) => unreachable!(),
 
             ast::Pattern::Alt(ref p) => {
                 let mut alt_labels = Vec::with_capacity(p.alts.len() + 1);
@@ -3504,7 +3508,8 @@ fn get_subpatterns(p: &ast::Pattern) -> Option<&Vec<Arc<ast::PatternField>>> {
         | ast::Pattern::LitFloat(..)
         | ast::Pattern::Rest(..)
         | ast::Pattern::Alt(..)
-        | ast::Pattern::Tuple(..) => {
+        | ast::Pattern::Tuple(..)
+        | ast::Pattern::Error(..) => {
             unreachable!()
         }
         ast::Pattern::Ident(..) => None,

@@ -1001,6 +1001,19 @@ impl Op {
         }
     }
 
+    pub fn isCompare(): Bool {
+        match self {
+            Op::Equal
+            | Op::NotEqual
+            | Op::Greater
+            | Op::GreaterOrEqual
+            | Op::Less
+            | Op::LessOrEqual
+            | Op::UnsignedGreaterOrEqual => true,
+            _ => false,
+        }
+    }
+
     pub fn getBoolConst(): Option[Bool] {
         match self {
             Op::TrueConst => Some[Bool](true),

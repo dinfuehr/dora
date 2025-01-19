@@ -410,7 +410,8 @@ pub(super) fn get_subpatterns(p: &ast::Pattern) -> Option<&Vec<Arc<ast::PatternF
         | ast::Pattern::LitFloat(..)
         | ast::Pattern::Rest(..)
         | ast::Pattern::Alt(..)
-        | ast::Pattern::Tuple(..) => {
+        | ast::Pattern::Tuple(..)
+        | ast::Pattern::Error(..) => {
             unreachable!()
         }
         ast::Pattern::Ident(..) => None,

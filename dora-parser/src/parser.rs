@@ -1647,7 +1647,10 @@ impl Parser {
                 params,
             }))
         } else {
-            unreachable!()
+            Arc::new(Pattern::Error(PatternError {
+                id: self.new_node_id(),
+                span: self.finish_node(),
+            }))
         }
     }
 

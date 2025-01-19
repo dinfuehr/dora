@@ -3,5 +3,11 @@ use package::compilation::CompilationInfo;
 use package::graph::Graph;
 
 pub fn prepareRegisterAllocation(graph: Graph, codegen: CodeGen, ci: CompilationInfo) {
-    // TODO
+    for block in graph.insertionOrderIterator() {
+        for inst in block.instructionsIterator() {
+            if inst.op().isCompare() {
+                // TODO
+            }
+        }
+    }
 }

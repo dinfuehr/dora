@@ -1982,6 +1982,12 @@ pub struct MatchArmType {
 }
 
 #[derive(Clone, Debug)]
+pub struct PatternError {
+    pub id: NodeId,
+    pub span: Span,
+}
+
+#[derive(Clone, Debug)]
 pub struct PatternAlt {
     pub id: NodeId,
     pub span: Span,
@@ -2045,6 +2051,7 @@ pub enum Pattern {
     ClassOrStructOrEnum(PatternClassOrStructOrEnum),
     Rest(PatternRest),
     Alt(PatternAlt),
+    Error(PatternError),
 }
 
 impl Pattern {
@@ -2061,6 +2068,7 @@ impl Pattern {
             Pattern::ClassOrStructOrEnum(p) => p.id,
             Pattern::Rest(p) => p.id,
             Pattern::Alt(p) => p.id,
+            Pattern::Error(p) => p.id,
         }
     }
 
@@ -2077,6 +2085,7 @@ impl Pattern {
             Pattern::ClassOrStructOrEnum(p) => p.span,
             Pattern::Rest(p) => p.span,
             Pattern::Alt(p) => p.span,
+            Pattern::Error(p) => p.span,
         }
     }
 

@@ -178,7 +178,7 @@ fn check_pattern_inner(
             check_literal_ty(ck, pattern, value_ty, ty);
         }
 
-        ast::Pattern::Underscore(..) => {
+        ast::Pattern::Underscore(..) | ast::Pattern::Error(..) => {
             // nothing to do
         }
 
