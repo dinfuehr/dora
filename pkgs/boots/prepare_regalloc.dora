@@ -1,12 +1,18 @@
 use package::codegen::CodeGen;
 use package::compilation::CompilationInfo;
-use package::graph::Graph;
+use package::graph::{Graph, Op};
 
 pub fn prepareRegisterAllocation(graph: Graph, codegen: CodeGen, ci: CompilationInfo) {
     for block in graph.insertionOrderIterator() {
         for inst in block.instructionsIterator() {
-            if inst.op().isCompare() {
-                // TODO
+            if inst.op() == Op::Equal {
+                if inst.hasOneUser() {
+                    let user = inst.firstUse().getOrPanic().getUsedBy();
+
+                    if user.op() == Op::If {
+                        inst.setEmitAtUseSite();
+                    }
+                }
             }
         }
     }

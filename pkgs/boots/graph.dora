@@ -1577,6 +1577,14 @@ impl Inst {
         result
     }
 
+    pub fn hasOneUser(): Bool {
+        if self.useListHead is Some(head) {
+            head === self.useListTail.getOrPanic()
+        } else {
+            false
+        }
+    }
+
     pub fn insertBefore(inst: Inst) {
         assert(inst.block.isNone() && !inst.hasId());
 
