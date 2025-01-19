@@ -95,23 +95,31 @@ pub fn computeLiveness(graph: Graph) {
 
 fn computeLinearOrderIndex(graph: Graph) {
     let mut idx = 1i32;
-    let mut deferred = Vec[Block]::new();
-    let mut failureBlocks = computeFailureBlocks(graph);
     let mut linearOrder = Vec[Block]::new();
 
-    for block in graph.reversePostOrderIterator() {
-        if failureBlocks.contains(block.id().toInt64()) {
-            deferred.push(block);
-            continue;
+    if true {
+        for block in graph.reversePostOrderIterator() {
+            linearOrder.push(block);
+            idx = setLinearOrderIndex(block, idx);
+        }
+    } else {
+        let mut deferred = Vec[Block]::new();
+        let mut failureBlocks = computeFailureBlocks(graph);
+
+        for block in graph.reversePostOrderIterator() {
+            if failureBlocks.contains(block.id().toInt64()) {
+                deferred.push(block);
+                continue;
+            }
+
+            linearOrder.push(block);
+            idx = setLinearOrderIndex(block, idx);
         }
 
-        linearOrder.push(block);
-        idx = setLinearOrderIndex(block, idx);
-    }
-
-    for block in deferred {
-        linearOrder.push(block);
-        idx = setLinearOrderIndex(block, idx);
+        for block in deferred {
+            linearOrder.push(block);
+            idx = setLinearOrderIndex(block, idx);
+        }
     }
 
     graph.setLinearOrder(linearOrder);
