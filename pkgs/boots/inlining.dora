@@ -44,5 +44,10 @@ fn inline(ci: CompilationInfo, graph: Graph, inst: Inst, fctId: FunctionId, type
         let returnValue = returnValue.getOrPanic();
         inst.replaceAllUsesWith(returnValue);
     }
+    if inst.hasUses() {
+        println("ouch: ${ci.getDisplayName()}");
+        // println(dumpGraph(Some[CompilationInfo](ci), graph, config.architecture));
+        // println("ouch");
+    }
     inst.remove();
 }

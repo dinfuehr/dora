@@ -271,6 +271,15 @@ pub enum Architecture {
     Arm64,
 }
 
+impl Architecture {
+    pub fn isX64(): Bool {
+        match self {
+            Architecture::X64 => true,
+            _ => false,
+        }
+    }
+}
+
 pub const PTR_SIZE: Int32 = 8;
 pub const THREAD_LOCAL_DATA_TLAB_TOP_OFFSET: Int32 = 0;
 pub const THREAD_LOCAL_DATA_TLAB_END_OFFSET: Int32 = 8;

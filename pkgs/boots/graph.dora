@@ -1205,6 +1205,14 @@ impl Inst {
         self._op.getOrPanic()
     }
 
+    pub fn getPreviousInst(): Option[Inst] {
+        self.previous
+    }
+
+    pub fn getNextInst(): Option[Inst] {
+        self.next
+    }
+
     pub fn hasLinearOrderIndex(): Bool {
         self.linear_index.isSome()
     }
@@ -1720,7 +1728,7 @@ impl Inst {
         self.aux.toInt32().asFloat32()
     }
 
-    pub fn getEmitAtUseSite(): Bool {
+    pub fn isEmitAtUseSite(): Bool {
         self.emitAtUseSite
     }
 

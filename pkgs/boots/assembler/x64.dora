@@ -2545,6 +2545,39 @@ impl Condition {
             unreachable[Int32]()
         }
     }
+
+    pub fn negate(): Condition {
+        match self {
+            Condition::Overflow => unimplemented[Condition](),
+            Condition::NoOverflow => unimplemented[Condition](),
+            Condition::Below => unimplemented[Condition](),
+            Condition::NeitherAboveNorEqual => unimplemented[Condition](),
+            Condition::NotBelow => unimplemented[Condition](),
+            Condition::AboveOrEqual => unimplemented[Condition](),
+            Condition::Equal => Condition::NotEqual,
+            Condition::Zero => unimplemented[Condition](),
+            Condition::NotEqual => Condition::Equal,
+            Condition::NotZero => unimplemented[Condition](),
+            Condition::BelowOrEqual => unimplemented[Condition](),
+            Condition::NotAbove => unimplemented[Condition](),
+            Condition::NeitherBelowNorEqual => unimplemented[Condition](),
+            Condition::Above => unimplemented[Condition](),
+            Condition::Sign => unimplemented[Condition](),
+            Condition::NoSign => unimplemented[Condition](),
+            Condition::Parity => unimplemented[Condition](),
+            Condition::ParityEven => unimplemented[Condition](),
+            Condition::NoParity => unimplemented[Condition](),
+            Condition::ParityOdd => unimplemented[Condition](),
+            Condition::Less => unimplemented[Condition](),
+            Condition::NeitherGreaterNorEqual => unimplemented[Condition](),
+            Condition::NotLess => unimplemented[Condition](),
+            Condition::GreaterOrEqual => unimplemented[Condition](),
+            Condition::LessOrEqual => unimplemented[Condition](),
+            Condition::NotGreater => unimplemented[Condition](),
+            Condition::NeitherLessNorEqual => unimplemented[Condition](),
+            Condition::Greater => unimplemented[Condition](),
+        }
+    }
 }
 
 pub struct Immediate(pub Int64)

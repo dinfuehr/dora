@@ -1456,19 +1456,48 @@ impl CodeGen for CodeGenX64 {
 
     fn emitIf(inst: Inst) {
         let loc = inst.getLocationData();
-        let opnd = loc.getInput(0).getRegister();
+        let cond = inst.getInput(0).getValue();
 
         let currentBlock = inst.getBlock();
         let trueBlock = inst.getTrueBlock();
         let falseBlock = inst.getFalseBlock();
 
-        if currentBlock.linearOrderIdx + 1i32 == trueBlock.linearOrderIdx {
-            self.asm.testb_rr(opnd, opnd);
-            self.asm.jcc(Condition::Zero, falseBlock.getLabel());
+        if cond.isEmitAtUseSite() {
+            let cond_loc = cond.getLocationData();
+            let lhs = cond_loc.getInput(0).getRegister();
+            let rhs = cond_loc.getInput(1).getRegister();
+
+            let condition = match cond.op() {
+                Op::Greater => Condition::Greater,
+                Op::GreaterOrEqual => Condition::GreaterOrEqual,
+                Op::Less => Condition::Less,
+                Op::LessOrEqual => Condition::LessOrEqual,
+                Op::Equal => Condition::Equal,
+                Op::NotEqual => Condition::NotEqual,
+                _ => unreachable[Condition](),
+            };
+
+            assert(cond.getOperationType() == Type::Int32);
+            self.asm.cmpl_rr(lhs, rhs);
+
+            if currentBlock.linearOrderIdx + 1i32 == trueBlock.linearOrderIdx {
+                self.asm.jcc(condition.negate(), falseBlock.getLabel());
+            } else {
+                assert(currentBlock.linearOrderIdx + 1i32 == falseBlock.linearOrderIdx);
+                self.asm.jcc(condition, trueBlock.getLabel());
+            }
+
         } else {
-            assert(currentBlock.linearOrderIdx + 1i32 == falseBlock.linearOrderIdx);
+            let opnd = loc.getInput(0).getRegister();
             self.asm.testb_rr(opnd, opnd);
-            self.asm.jcc(Condition::NotZero, trueBlock.getLabel());
+
+            if currentBlock.linearOrderIdx + 1i32 == trueBlock.linearOrderIdx {
+                self.asm.jcc(Condition::Zero, falseBlock.getLabel());
+            } else {
+                assert(currentBlock.linearOrderIdx + 1i32 == falseBlock.linearOrderIdx);
+                self.asm.testb_rr(opnd, opnd);
+                self.asm.jcc(Condition::NotZero, trueBlock.getLabel());
+            }
         }
     }
 
@@ -1716,6 +1745,10 @@ impl CodeGen for CodeGenX64 {
     }
 
     fn emitCompare(inst: Inst) {
+        if inst.isEmitAtUseSite() {
+            return;
+        }
+
         let loc = inst.getLocationData();
         let ty = inst.getOperationType();
 
@@ -1785,7 +1818,6 @@ impl CodeGen for CodeGenX64 {
             let lhs = loc.getInput(0).getRegister();
             let rhs = loc.getInput(1).getRegister();
             let dest = loc.getOutput().getRegister();
-
 
             let cond = if ty == Type::UInt8 {
                 match inst.op() {

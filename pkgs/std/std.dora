@@ -18,6 +18,7 @@ pub @internal fn abort();
 pub @internal fn exit(status: Int32);
 pub @internal fn unreachable[T](): T;
 
+@NeverInline
 pub fn unimplemented[T](): T {
   fatalError[T]("not yet implemented")
 }
