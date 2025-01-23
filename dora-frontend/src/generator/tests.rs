@@ -307,7 +307,7 @@ fn gen_generic_not() {
 }
 
 #[test]
-fn gen_stmt_let_tuple() {
+fn gen_stmt_let_tuple_pair() {
     let sa = sema("fn f(value: (Int32, Int32)): Int32 { let (x, y) = value; x+y }");
     let (fct, code) = bc(&sa, "<prog>::f");
 
@@ -331,7 +331,10 @@ fn gen_stmt_let_tuple() {
         fct.const_pool(ConstPoolIdx(1)),
         &ConstPoolEntry::TupleElement(bty_from_ty(tuple_ty), 1)
     );
+}
 
+#[test]
+fn gen_stmt_let_tuple_nested_pair() {
     let sa = sema("fn f(value: (Int32, (Int32, Int32))): Int32 { let (x, (y, z)) = value; x+y+z }");
     let (fct, code) = bc(&sa, "<prog>::f");
 
@@ -370,7 +373,10 @@ fn gen_stmt_let_tuple() {
         fct.const_pool(ConstPoolIdx(3)),
         &ConstPoolEntry::TupleElement(bty_from_ty(nested_tuple_ty), 1)
     );
+}
 
+#[test]
+fn gen_stmt_let_tuple_nested_pair_any() {
     let sa = sema("fn f(value: (Int32, (Int32, Int32))): Int32 { let (x, (_, z)) = value; x+z }");
     let (fct, code) = bc(&sa, "<prog>::f");
 

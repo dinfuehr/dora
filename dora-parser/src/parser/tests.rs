@@ -10,6 +10,7 @@ fn parse_expr(code: &'static str) -> Expr {
 
     let result = parser.parse_expr();
     assert!(parser.errors.is_empty());
+    assert!(parser.current().is_eof());
 
     result
 }
@@ -767,19 +768,19 @@ fn parse_block_with_multiple_stmts() {
 
 #[test]
 fn parse_break() {
-    let expr = parse_expr("break;");
+    let expr = parse_expr("break");
     assert!(expr.is_break());
 }
 
 #[test]
 fn parse_continue() {
-    let expr = parse_expr("continue;");
+    let expr = parse_expr("continue");
     assert!(expr.is_continue());
 }
 
 #[test]
 fn parse_return_value() {
-    let expr = parse_expr("return 1;");
+    let expr = parse_expr("return 1");
     let ret = expr.to_return().unwrap();
 
     assert_eq!(
@@ -790,7 +791,7 @@ fn parse_return_value() {
 
 #[test]
 fn parse_return() {
-    let expr = parse_expr("return;");
+    let expr = parse_expr("return");
     let ret = expr.to_return().unwrap();
 
     assert!(ret.expr.is_none());
@@ -1540,6 +1541,7 @@ fn parse_is() {
     parse_expr("x is Foo");
     parse_expr("x is Foo::Bar");
     parse_expr("x is Foo::Bar(a, b, c)");
+    parse_expr("x is Foo && y > 0");
 }
 
 #[test]

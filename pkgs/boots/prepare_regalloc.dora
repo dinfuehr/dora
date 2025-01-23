@@ -10,7 +10,7 @@ pub fn prepareRegisterAllocation(graph: Graph, codegen: CodeGen, ci: Compilation
                 if inst.hasOneUser() {
                     let user = inst.firstUse().getOrPanic().getUsedBy();
 
-                    if user.op() == Op::If && config.architecture.isX64() && (inst.getNextInst() is Some(x) && x === user) {
+                    if user.op() == Op::If && config.architecture.isX64() && inst.getNextInst() is Some(x) && x === user {
                         inst.setEmitAtUseSite();
                     }
                 }

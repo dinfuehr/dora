@@ -151,7 +151,8 @@ impl FctDefinition {
 
             FctParent::Impl(impl_id) => {
                 let impl_ = sa.impl_(impl_id);
-                path_for_type(sa, impl_.extended_ty())
+                let module = sa.module(impl_.module_id());
+                module.name(sa)
             }
 
             FctParent::None => {

@@ -1,13 +1,11 @@
-//= ignore
-
 fn main() {
-    assert(f(true, Some[Int64](101)));
-    assert(!f(false, Some[Int64](101)));
-    assert(!f(true, Some[Int64](100)));
-    assert(!f(true, Some[Int64](99)));
-    assert(!f(true, None[Int64]));
+    assert(myf(true, Some[Int64](101)));
+    assert(!myf(false, Some[Int64](101)));
+    assert(!myf(true, Some[Int64](100)));
+    assert(!myf(true, Some[Int64](99)));
+    assert(!myf(true, None[Int64]));
 }
 
-fn f(cond: Bool, x: Option[Int64]): Bool {
+fn myf(cond: Bool, x: Option[Int64]): Bool {
     cond && x is Some(x) && x > 100
 }

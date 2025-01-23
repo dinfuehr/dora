@@ -1724,11 +1724,11 @@ impl Parser {
         self.start_node();
         self.builder.start_node();
         self.assert(RETURN_KW);
-        let expr = if self.is(SEMICOLON) {
-            None
-        } else {
+        let expr = if self.is_set(EXPRESSION_FIRST) {
             let expr = self.parse_expr();
             Some(expr)
+        } else {
+            None
         };
 
         let green = self.builder.finish_node(RETURN_EXPR);
@@ -1742,14 +1742,14 @@ impl Parser {
     }
 
     fn parse_expr(&mut self) -> Expr {
-        self.parse_binary_expr(0, false)
+        self.parse_expr_bp(0, false)
     }
 
     fn parse_expr_stmt(&mut self) -> Expr {
-        self.parse_binary_expr(0, true)
+        self.parse_expr_bp(0, true)
     }
 
-    fn parse_binary_expr(&mut self, precedence: u32, prefer_stmt: bool) -> Expr {
+    fn parse_expr_bp(&mut self, min_bp: u32, prefer_stmt: bool) -> Expr {
         if !self.is_set(EXPRESSION_FIRST) {
             self.report_error(ParseError::ExpectedExpression);
             return Arc::new(ExprData::Error {
@@ -1763,29 +1763,11 @@ impl Parser {
         let mut left = self.parse_unary_expr(prefer_stmt);
 
         loop {
-            let right_precedence = match self.current() {
-                EQ | ADD_EQ | SUB_EQ | MUL_EQ | DIV_EQ | MOD_EQ | OR_EQ | AND_EQ | CARET_EQ
-                | LT_LT_EQ | GT_GT_EQ | GT_GT_GT_EQ => 1,
-                OR_OR => 2,
-                AND_AND => 3,
-                EQ_EQ | NOT_EQ | LT | LE | GT | GE | EQ_EQ_EQ | NOT_EQ_EQ => 4,
-                ADD | SUB | OR | CARET => 5,
-                MUL | DIV | MODULO | AND | LT_LT | GT_GT | GT_GT_GT => 6,
-                AS_KW | IS_KW => 7,
-                _ => {
-                    return left;
-                }
-            };
+            let op = self.current();
 
-            if precedence >= right_precedence {
-                return left;
-            }
-
-            let kind = self.current();
-            self.advance();
-
-            left = match kind {
+            left = match op {
                 AS_KW => {
+                    self.assert(AS_KW);
                     let right = self.parse_type();
                     let span = self.span_from(start);
 
@@ -1798,6 +1780,7 @@ impl Parser {
                 }
 
                 IS_KW => {
+                    self.assert(IS_KW);
                     let right = self.parse_pattern();
                     let span = self.span_from(start);
 
@@ -1809,13 +1792,33 @@ impl Parser {
                     Arc::new(expr)
                 }
 
+                _ => left,
+            };
+
+            let op = self.current();
+            let (l_bp, r_bp) = match op {
+                EQ | ADD_EQ | SUB_EQ | MUL_EQ | DIV_EQ | MOD_EQ | OR_EQ | AND_EQ | CARET_EQ
+                | LT_LT_EQ | GT_GT_EQ | GT_GT_GT_EQ => (1, 2),
+                OR_OR => (2, 1),
+                AND_AND => (3, 2),
+                EQ_EQ | NOT_EQ | LT | LE | GT | GE | EQ_EQ_EQ | NOT_EQ_EQ => (4, 5),
+                ADD | SUB | OR | CARET => (5, 6),
+                MUL | DIV | MODULO | AND | LT_LT | GT_GT | GT_GT_GT => (6, 7),
                 _ => {
-                    let right = self.parse_binary_expr(right_precedence, prefer_stmt);
-                    self.builder
-                        .finish_node_starting_at(BINARY_EXPR, marker.clone());
-                    self.create_binary(kind, start, left, right)
+                    return left;
                 }
             };
+
+            if l_bp < min_bp {
+                return left;
+            }
+
+            self.advance();
+
+            let right = self.parse_expr_bp(r_bp, prefer_stmt);
+            self.builder
+                .finish_node_starting_at(BINARY_EXPR, marker.clone());
+            left = self.create_binary(op, start, left, right);
         }
     }
 

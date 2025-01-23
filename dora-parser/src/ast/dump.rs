@@ -381,16 +381,21 @@ impl AstDumper {
 
         self.indent(|d| {
             if block.stmts.is_empty() {
-                dump!(d, "no statements");
+                dump!(d, "<no statements>");
             } else {
-                for stmt in &block.stmts {
-                    d.dump_stmt(stmt);
+                for (idx, stmt) in block.stmts.iter().enumerate() {
+                    dump!(d, "<block stmt {}>", idx);
+                    d.indent(|d| {
+                        d.dump_stmt(stmt);
+                    });
                 }
             }
 
             if let Some(ref expr) = block.expr {
-                dump!(d, "value");
-                d.dump_expr(expr);
+                dump!(d, "<block result>");
+                d.indent(|d| {
+                    d.dump_expr(expr);
+                });
             }
         });
 
