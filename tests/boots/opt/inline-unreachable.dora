@@ -1,0 +1,18 @@
+//= boots
+//= error code 1
+
+fn main() {
+    testme();
+}
+
+@Optimize
+fn testme(): Int {
+    let x = myFatalError[Int]();
+    // Everything here is unreachable after inlining.
+    println("x = ${x}");
+    x + 1
+}
+
+fn myFatalError[T](): T {
+  std::fatalError[T]("not yet implemented")
+}

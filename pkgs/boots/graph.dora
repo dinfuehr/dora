@@ -556,6 +556,18 @@ impl Block {
         inst
     }
 
+    pub fn prependInst(inst: Inst): Inst {
+        assert(inst.block.isNone() && !inst.hasId());
+
+        inst.block = Some(self);
+        self.graph.getOrPanic().assignNextInstId(inst);
+
+        self.instructions.prependInst(inst);
+        inst.registerUses();
+
+        inst
+    }
+
     pub fn splitAfter(inst: Inst): Block {
         assert(inst.getBlock() === self);
         assert(!inst.isTerminator());
@@ -3165,6 +3177,16 @@ impl InstLinkedList {
 
     fn lastInst(): Inst {
         self.last.getOrPanic()
+    }
+
+    fn prependInst(inst: Inst) {
+        let first = self.first.getOrPanic();
+        first.previous = Some(inst);
+
+        inst.previous = None[Inst];
+        inst.next = Some[Inst](first);
+
+        self.first = Some(inst);
     }
 
     fn appendInst(inst: Inst) {

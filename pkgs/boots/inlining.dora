@@ -1,6 +1,6 @@
 use package::bytecode::{BytecodeType, FunctionId};
 use package::compilation::CompilationInfo;
-use package::graph::{Graph, Inst, Op};
+use package::graph::{createUndefInst, Graph, Inst, Op};
 use package::graph_builder;
 use package::interface as iface;
 
@@ -43,11 +43,18 @@ fn inline(ci: CompilationInfo, graph: Graph, inst: Inst, fctId: FunctionId, type
     if returnValue.isSome() {
         let returnValue = returnValue.getOrPanic();
         inst.replaceAllUsesWith(returnValue);
-    }
-    if inst.hasUses() {
-        println("ouch: ${ci.getDisplayName()}");
-        // println(dumpGraph(Some[CompilationInfo](ci), graph, config.architecture));
-        // println("ouch");
+    } else if inst.hasUses() {
+        // This call has users but the inlined function has no return value
+        // because it e.g. crashes unconditionally. In this case newBlock is
+        // unreachable and will be removed by cfg_simplification.
+        // There is no value to replace all uses of the call return value, so
+        // replace it with Undef. Undef also needs to be in newBlock to not
+        // break SSA.
+        let undef = createUndefInst();
+        newBlock.prependInst(undef);
+        inst.replaceAllUsesWith(undef);
+    } else {
+        assert(inst.getValueType().isUnit());
     }
     inst.remove();
 }

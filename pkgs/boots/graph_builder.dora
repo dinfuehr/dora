@@ -1206,9 +1206,7 @@ impl SsaGen {
                 let value = self.readVariable(opnd, self.current());
                 let ty = self.graphTy(ty);
 
-                if self.returnValue.isSome() {
-                    let returnValue = self.returnValue.getOrPanic();
-
+                if self.returnValue is Some(returnValue) {
                     let phi = if returnValue.getBlock() == exitBlock {
                         assert(returnValue.isPhi());
                         returnValue
@@ -1219,8 +1217,8 @@ impl SsaGen {
                         phi
                     };
 
-                    // Here we add input to phi after the phi was  already appended to
-                    // the graph. Therefore we need to register the input manually.
+                    // Here we add another input to the phi after the phi was already appended
+                    // to the graph. Therefore we need to register the input manually.
                     let input = phi.addInput(value);
                     value.addUse(input);
                     self.returnValue = Some(phi);
