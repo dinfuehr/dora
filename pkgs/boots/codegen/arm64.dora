@@ -1444,17 +1444,49 @@ impl CodeGen for CodeGenArm64 {
 
     fn emitIf(inst: Inst) {
         let loc = inst.getLocationData();
-        let opnd = loc.getInput(0).getRegister();
+        let cond = inst.getInput(0).getValue();
 
         let currentBlock = inst.getBlock();
         let trueBlock = inst.getTrueBlock();
         let falseBlock = inst.getFalseBlock();
 
-        if currentBlock.linearOrderIdx + 1i32 == trueBlock.linearOrderIdx {
-            self.asm.cbz(opnd, falseBlock.getLabel());
+        if cond.isEmitAtUseSite() {
+            let cond_loc = cond.getLocationData();
+            let lhs = cond_loc.getInput(0).getRegister();
+            let rhs = cond_loc.getInput(1).getRegister();
+
+            let condition = match cond.op() {
+                Op::Greater => Cond::GT,
+                Op::GreaterOrEqual => Cond::GE,
+                Op::Less => Cond::LT,
+                Op::LessOrEqual => Cond::LE,
+                Op::Equal => Cond::EQ,
+                Op::NotEqual => Cond::NE,
+                _ => unreachable[Cond](),
+            };
+
+            match cond.getOperationType() {
+                Type::Bool | Type::UInt8 | Type::Int32 => self.asm.cmp_w(lhs, rhs),
+                Type::Int64 | Type::Ptr => self.asm.cmp(lhs, rhs),
+                _ => std::unimplemented[()](),
+            }
+
+            if currentBlock.linearOrderIdx + 1i32 == trueBlock.linearOrderIdx {
+                self.asm.bc(condition.invert(), falseBlock.getLabel());
+            } else {
+                assert(currentBlock.linearOrderIdx + 1i32 == falseBlock.linearOrderIdx);
+                self.asm.bc(condition, trueBlock.getLabel());
+            }
+
         } else {
-            assert(currentBlock.linearOrderIdx + 1i32 == falseBlock.linearOrderIdx);
-            self.asm.cbnz(opnd, trueBlock.getLabel());
+            let opnd = loc.getInput(0).getRegister();
+
+            if currentBlock.linearOrderIdx + 1i32 == trueBlock.linearOrderIdx {
+                self.asm.cbz(opnd, falseBlock.getLabel());
+            } else {
+                assert(currentBlock.linearOrderIdx + 1i32 == falseBlock.linearOrderIdx);
+                self.asm.cbnz(opnd, trueBlock.getLabel());
+            }
         }
     }
 
@@ -1682,6 +1714,10 @@ impl CodeGen for CodeGenArm64 {
     }
 
     fn emitCompare(inst: Inst) {
+        if inst.isEmitAtUseSite() {
+            return;
+        }
+
         let loc = inst.getLocationData();
         let ty = inst.getOperationType();
 
