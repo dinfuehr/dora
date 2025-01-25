@@ -6,7 +6,7 @@ use package::interface::config;
 pub fn prepareRegisterAllocation(graph: Graph, codegen: CodeGen, ci: CompilationInfo) {
     for block in graph.insertionOrderIterator() {
         for inst in block.instructionsIterator() {
-            if inst.op() == Op::Equal && isSupportedType(inst) && hasSingleUseInIf(inst) && config.architecture.isX64() {
+            if inst.op().isCompare() && isSupportedType(inst) && hasSingleUseInIf(inst) && config.architecture.isX64() {
                 inst.setEmitAtUseSite();
             }
         }
