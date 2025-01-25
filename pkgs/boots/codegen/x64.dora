@@ -1477,8 +1477,11 @@ impl CodeGen for CodeGenX64 {
                 _ => unreachable[Condition](),
             };
 
-            assert(cond.getOperationType() == Type::Int32);
-            self.asm.cmpl_rr(lhs, rhs);
+            match cond.getOperationType() {
+                Type::Int32 => self.asm.cmpl_rr(lhs, rhs),
+                Type::Int64 | Type::Ptr => self.asm.cmpq_rr(lhs, rhs),
+                _ => std::unimplemented[()](),
+            }
 
             if currentBlock.linearOrderIdx + 1i32 == trueBlock.linearOrderIdx {
                 self.asm.jcc(condition.negate(), falseBlock.getLabel());
