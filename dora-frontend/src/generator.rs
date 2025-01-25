@@ -1243,6 +1243,8 @@ impl<'a> AstBytecodeGen<'a> {
         self.builder.bind_label(merge_lbl);
         self.pop_scope();
 
+        self.free_if_temp(value_reg);
+
         dest
     }
 
