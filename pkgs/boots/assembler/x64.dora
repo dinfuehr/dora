@@ -2485,97 +2485,56 @@ pub enum Condition {
 
 impl Condition {
     fn toInt32(): Int32 {
-        if self == Condition::Overflow {
-            0b0000i32
-        } else if self == Condition::NoOverflow {
-            0b0001i32
-        } else if self == Condition::Below {
-            0b0010i32
-        } else if self == Condition::NeitherAboveNorEqual {
-            0b0010i32
-        } else if self == Condition::NotBelow {
-            0b0011i32
-        } else if self == Condition::AboveOrEqual {
-            0b0011i32
-        } else if self == Condition::Equal {
-            0b0100i32
-        } else if self == Condition::Zero {
-            0b0100i32
-        } else if self == Condition::NotEqual {
-            0b0101i32
-        } else if self == Condition::NotZero {
-            0b0101i32
-        } else if self == Condition::BelowOrEqual {
-            0b0110i32
-        } else if self == Condition::NotAbove {
-            0b0110i32
-        } else if self == Condition::NeitherBelowNorEqual {
-            0b0111i32
-        } else if self == Condition::Above {
-            0b0111i32
-        } else if self == Condition::Sign {
-            0b1000i32
-        } else if self == Condition::NoSign {
-            0b1001i32
-        } else if self == Condition::Parity {
-            0b1010i32
-        } else if self == Condition::ParityEven {
-            0b1010i32
-        } else if self == Condition::NoParity {
-            0b1011i32
-        } else if self == Condition::ParityOdd {
-            0b1011i32
-        } else if self == Condition::Less {
-            0b1100i32
-        } else if self == Condition::NeitherGreaterNorEqual {
-            0b1100i32
-        } else if self == Condition::NotLess {
-            0b1101i32
-        } else if self == Condition::GreaterOrEqual {
-            0b1101i32
-        } else if self == Condition::LessOrEqual {
-            0b1110i32
-        } else if self == Condition::NotGreater {
-            0b1110i32
-        } else if self == Condition::NeitherLessNorEqual {
-            0b1111i32
-        } else if self == Condition::Greater {
-            0b1111i32
-        } else {
-            unreachable[Int32]()
+        match self {
+            Condition::Overflow => 0b0000i32,
+            Condition::NoOverflow => 0b0001i32,
+            Condition::Below | Condition::NeitherAboveNorEqual => 0b0010i32,
+            Condition::NotBelow | Condition::AboveOrEqual => 0b0011i32,
+            Condition::Equal | Condition::Zero => 0b0100i32,
+            Condition::NotEqual | Condition::NotZero => 0b0101i32,
+            Condition::BelowOrEqual | Condition::NotAbove => 0b0110i32,
+            Condition::NeitherBelowNorEqual | Condition::Above => 0b0111i32,
+            Condition::Sign => 0b1000i32,
+            Condition::NoSign => 0b1001i32,
+            Condition::Parity | Condition::ParityEven => 0b1010i32,
+            Condition::NoParity | Condition::ParityOdd => 0b1011i32,
+            Condition::Less | Condition::NeitherGreaterNorEqual => 0b1100i32,
+            Condition::NotLess | Condition::GreaterOrEqual => 0b1101i32,
+            Condition::LessOrEqual | Condition::NotGreater => 0b1110i32,
+            Condition::NeitherLessNorEqual | Condition::Greater => 0b1111i32,
         }
     }
 
     pub fn negate(): Condition {
         match self {
-            Condition::Overflow => unimplemented[Condition](),
-            Condition::NoOverflow => unimplemented[Condition](),
-            Condition::Below => unimplemented[Condition](),
-            Condition::NeitherAboveNorEqual => unimplemented[Condition](),
-            Condition::NotBelow => unimplemented[Condition](),
-            Condition::AboveOrEqual => unimplemented[Condition](),
+            Condition::Overflow => Condition::NoOverflow,
+            Condition::NoOverflow => Condition::Overflow,
+            Condition::Below => Condition::NotBelow,
+            Condition::NeitherAboveNorEqual => Condition::AboveOrEqual,
+            Condition::NotBelow => Condition::Below,
+            Condition::AboveOrEqual => Condition::NeitherAboveNorEqual,
             Condition::Equal => Condition::NotEqual,
-            Condition::Zero => unimplemented[Condition](),
+            Condition::Zero => Condition::NotZero,
             Condition::NotEqual => Condition::Equal,
-            Condition::NotZero => unimplemented[Condition](),
-            Condition::BelowOrEqual => unimplemented[Condition](),
-            Condition::NotAbove => unimplemented[Condition](),
-            Condition::NeitherBelowNorEqual => unimplemented[Condition](),
-            Condition::Above => unimplemented[Condition](),
-            Condition::Sign => unimplemented[Condition](),
-            Condition::NoSign => unimplemented[Condition](),
-            Condition::Parity => unimplemented[Condition](),
-            Condition::ParityEven => unimplemented[Condition](),
-            Condition::NoParity => unimplemented[Condition](),
-            Condition::ParityOdd => unimplemented[Condition](),
-            Condition::Less => unimplemented[Condition](),
-            Condition::NeitherGreaterNorEqual => unimplemented[Condition](),
-            Condition::NotLess => unimplemented[Condition](),
-            Condition::GreaterOrEqual => unimplemented[Condition](),
-            Condition::LessOrEqual => unimplemented[Condition](),
-            Condition::NotGreater => unimplemented[Condition](),
-            Condition::NeitherLessNorEqual => unimplemented[Condition](),
-            Condition::Greater => unimplemented[Condition](),
+            Condition::NotZero => Condition::Zero,
+            Condition::BelowOrEqual => Condition::NeitherBelowNorEqual,
+            Condition::NotAbove => Condition::Above,
+            Condition::NeitherBelowNorEqual => Condition::BelowOrEqual,
+            Condition::Above => Condition::NotAbove,
+            Condition::Sign => Condition::NoSign,
+            Condition::NoSign => Condition::Sign,
+            Condition::Parity => Condition::NoParity,
+            Condition::ParityEven => Condition::ParityOdd,
+            Condition::NoParity => Condition::Parity,
+            Condition::ParityOdd => Condition::ParityEven,
+            Condition::Less => Condition::NotLess,
+            Condition::NeitherGreaterNorEqual => Condition::GreaterOrEqual,
+            Condition::NotLess => Condition::Less,
+            Condition::GreaterOrEqual => Condition::NeitherGreaterNorEqual,
+            Condition::LessOrEqual => Condition::NeitherLessNorEqual,
+            Condition::NotGreater => Condition::Greater,
+            Condition::NeitherLessNorEqual => Condition::LessOrEqual,
+            Condition::Greater => Condition::NotGreater,
         }
     }
 }
@@ -2871,7 +2830,42 @@ fn testConditionCodes() {
 
     assert(Condition::NeitherLessNorEqual.toInt32() == 0b1111i32);
     assert(Condition::Greater.toInt32() == 0b1111i32);
+}
 
+@Test
+fn testNegateConditionCodes() {
+    assertNegCondCode(Condition::Overflow);
+    assertNegCondCode(Condition::NoOverflow);
+    assertNegCondCode(Condition::Below);
+    assertNegCondCode(Condition::NeitherAboveNorEqual);
+    assertNegCondCode(Condition::NotBelow);
+    assertNegCondCode(Condition::AboveOrEqual);
+    assertNegCondCode(Condition::Equal);
+    assertNegCondCode(Condition::Zero);
+    assertNegCondCode(Condition::NotEqual);
+    assertNegCondCode(Condition::NotZero);
+    assertNegCondCode(Condition::BelowOrEqual);
+    assertNegCondCode(Condition::NotAbove);
+    assertNegCondCode(Condition::NeitherBelowNorEqual);
+    assertNegCondCode(Condition::Above);
+    assertNegCondCode(Condition::Sign);
+    assertNegCondCode(Condition::NoSign);
+    assertNegCondCode(Condition::Parity);
+    assertNegCondCode(Condition::ParityEven);
+    assertNegCondCode(Condition::NoParity);
+    assertNegCondCode(Condition::ParityOdd);
+    assertNegCondCode(Condition::Less);
+    assertNegCondCode(Condition::NeitherGreaterNorEqual);
+    assertNegCondCode(Condition::NotLess);
+    assertNegCondCode(Condition::GreaterOrEqual);
+    assertNegCondCode(Condition::LessOrEqual);
+    assertNegCondCode(Condition::NotGreater);
+    assertNegCondCode(Condition::NeitherLessNorEqual);
+    assertNegCondCode(Condition::Greater);
+}
+
+fn assertNegCondCode(cond: Condition) {
+    assert(cond.toInt32() ^ 1i32 == cond.negate().toInt32());
 }
 
 impl Register {
