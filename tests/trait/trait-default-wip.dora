@@ -1,0 +1,60 @@
+//= ignore
+
+trait MyIterator {
+    type Item;
+    fn next(): Option[Self::Item];
+
+    fn count(): Int64 {
+        let mut result = 0;
+
+        while self.next() is Some(_) {
+            result += 1;
+        }
+
+        result
+    }
+
+    fn enumerate(): Enumerate[Self] {
+        Enumerate[Self](it = self, idx = 0)
+    }
+}
+
+class Range {
+    value: Int
+}
+
+impl MyIterator for Range {
+    fn next(): Option[Int] {
+        if self.value <= 0 {
+            None[Int]
+        } else {
+            let result = self.value;
+            self.value -= 1;
+            Some[Int](result)
+        }
+    }
+}
+
+class Enumerate[I: MyIterator] {
+    it: I,
+    idx: Int,
+}
+
+// impl[I: MyIterator] MyIterator for Enumerate[I] {
+//     type Item = (Int, [I as MyIterator]::Item);
+
+//     fn next(): Option[(Int, [I as MyIterator]::Item)] {
+//         if self.it.next() is Some(value) {
+//             let idx = self.idx;
+//             self.idx += 1;
+//             Some((idx, value))
+//         } else {
+//             None
+//         }
+//     }
+// }
+
+fn main() {
+    assert(Range(2).count() == 2);
+    assert(Range(7).count() == 7);
+}
