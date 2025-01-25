@@ -398,21 +398,15 @@ fn trait_and_impl_arg_ty_compatible(
             }
         }
 
-        SourceType::Alias(id, type_params) => {
-            assert!(type_params.is_empty());
-            let ty = trait_alias_map.get(&id).expect("missing alias");
-            ty == &impl_arg_ty
-        }
-
         SourceType::Assoc(id, type_params) => {
             assert!(type_params.is_empty());
-            let ty = trait_alias_map.get(&id).expect("missing alias");
-            ty == &impl_arg_ty
+            let ty = trait_alias_map.get(&id).unwrap_or(&SourceType::Error);
+            ty.allows(sa, impl_arg_ty)
         }
 
-        SourceType::TypeParam(id) => trait_type_params[id.index()] == impl_arg_ty,
+        SourceType::TypeParam(id) => trait_type_params[id.index()].allows(sa, impl_arg_ty),
 
-        SourceType::This => self_ty == impl_arg_ty,
+        SourceType::This => self_ty.allows(sa, impl_arg_ty),
 
         SourceType::Unit
         | SourceType::UInt8
@@ -421,10 +415,14 @@ fn trait_and_impl_arg_ty_compatible(
         | SourceType::Int32
         | SourceType::Int64
         | SourceType::Float32
-        | SourceType::Float64
-        | SourceType::Error => trait_arg_ty == impl_arg_ty,
+        | SourceType::Float64 => trait_arg_ty.allows(sa, impl_arg_ty),
 
-        SourceType::Any | SourceType::Ptr | SourceType::GenericAssoc(..) => unreachable!(),
+        SourceType::Error => true,
+
+        SourceType::Alias(..)
+        | SourceType::Any
+        | SourceType::Ptr
+        | SourceType::GenericAssoc(..) => unreachable!(),
     }
 }
 
@@ -1270,5 +1268,50 @@ mod tests {
             impl Foo[Bool] for Int {}
             impl Foo[Bool] for Int {}
         ");
+    }
+
+    #[test]
+    fn impl_missing_assoc_type() {
+        ok("
+            trait Foo {
+                type X;
+                fn bar(): Self::X;
+            }
+            impl Foo for Int {
+                fn bar(): Int { 0 }
+            }
+        ");
+    }
+
+    #[test]
+    fn impl_error_in_trait_type() {
+        err(
+            "
+            trait Foo {
+                fn bar(): Unknown;
+            }
+            impl Foo for Int {
+                fn bar(): Int { 0 }
+            }
+        ",
+            (3, 27),
+            ErrorMessage::UnknownIdentifier("Unknown".into()),
+        );
+    }
+
+    #[test]
+    fn impl_error_in_impl_type() {
+        err(
+            "
+            trait Foo {
+                fn bar(): Int;
+            }
+            impl Foo for Int {
+                fn bar(): Unknown { 0 }
+            }
+        ",
+            (6, 27),
+            ErrorMessage::UnknownIdentifier("Unknown".into()),
+        );
     }
 }

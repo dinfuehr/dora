@@ -1574,3 +1574,17 @@ fn parse_invalid_expr_in_block() {
         ],
     );
 }
+
+#[test]
+#[ignore]
+fn parse_invalid_type_with_unclosed_bracket() {
+    parse_with_error(
+        "
+            trait MyIterator {
+                fn next(): Option[Self::X;",
+        vec![
+            (1, 11, 2, ParseError::ExpectedToken(";".into())),
+            (1, 11, 2, ParseError::ExpectedStatement),
+        ],
+    );
+}
