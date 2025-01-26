@@ -16,26 +16,12 @@ pub(super) fn check_expr_while(
 ) -> SourceType {
     ck.enter_block_scope();
 
-    if let Some((is_expr, cond)) = is_pattern_check(&expr.cond) {
-        let ty = check_expr(ck, &is_expr.value, SourceType::Any);
-        check_pattern(ck, &is_expr.pattern, ty);
-        if let Some(cond) = cond {
-            let ty = check_expr(ck, cond, SourceType::Bool);
+    let cond_ty = check_expr_condition(ck, &expr.cond);
 
-            if !ty.is_bool() && !ty.is_error() {
-                let expr_type = ck.ty_name(&ty);
-                let msg = ErrorMessage::IfCondType(expr_type);
-                ck.sa.report(ck.file_id, cond.span(), msg);
-            }
-        }
-    } else {
-        let expr_type = check_expr(ck, &expr.cond, SourceType::Bool);
-
-        if !expr_type.is_error() && !expr_type.is_bool() {
-            let expr_type = ck.ty_name(&expr_type);
-            let msg = ErrorMessage::WhileCondType(expr_type);
-            ck.sa.report(ck.file_id, expr.span, msg);
-        }
+    if !cond_ty.is_error() && !cond_ty.is_bool() {
+        let cond_ty = ck.ty_name(&cond_ty);
+        let msg = ErrorMessage::WhileCondType(cond_ty);
+        ck.sa.report(ck.file_id, expr.span, msg);
     }
 
     check_loop_body(ck, &expr.block);
@@ -256,26 +242,12 @@ pub(super) fn check_expr_if(
 ) -> SourceType {
     ck.symtable.push_level();
 
-    if let Some((is_expr, cond)) = is_pattern_check(&expr.cond) {
-        let ty = check_expr(ck, &is_expr.value, SourceType::Any);
-        check_pattern(ck, &is_expr.pattern, ty);
-        if let Some(cond) = cond {
-            let ty = check_expr(ck, cond, SourceType::Bool);
+    let ty = check_expr_condition(ck, &expr.cond);
 
-            if !ty.is_bool() && !ty.is_error() {
-                let expr_type = ck.ty_name(&ty);
-                let msg = ErrorMessage::IfCondType(expr_type);
-                ck.sa.report(ck.file_id, expr.span, msg);
-            }
-        }
-    } else {
-        let ty = check_expr(ck, &expr.cond, SourceType::Any);
-
-        if !ty.is_bool() && !ty.is_error() {
-            let expr_type = ck.ty_name(&ty);
-            let msg = ErrorMessage::IfCondType(expr_type);
-            ck.sa.report(ck.file_id, expr.span, msg);
-        }
+    if !ty.is_bool() && !ty.is_error() {
+        let expr_type = ck.ty_name(&ty);
+        let msg = ErrorMessage::IfCondType(expr_type);
+        ck.sa.report(ck.file_id, expr.cond.span(), msg);
     }
 
     let then_type = check_expr(ck, &expr.then_block, expected_ty.clone());
@@ -309,6 +281,39 @@ pub(super) fn check_expr_if(
     ck.analysis.set_ty(expr.id, merged_type.clone());
 
     merged_type
+}
+
+pub fn check_expr_condition(ck: &mut TypeCheck, cond: &ast::Expr) -> SourceType {
+    if let Some(bin_expr) = cond.to_bin_and() {
+        if let Some(lhs_is_expr) = bin_expr.lhs.to_is() {
+            let ty = check_expr(ck, &lhs_is_expr.value, SourceType::Any);
+            check_pattern(ck, &lhs_is_expr.pattern, ty);
+        } else {
+            let lhs_ty = check_expr(ck, &bin_expr.lhs, SourceType::Bool);
+
+            if !lhs_ty.is_bool() && !lhs_ty.is_error() {
+                let lhs_ty = lhs_ty.name(ck.sa);
+                let msg = ErrorMessage::WrongType("Bool".into(), lhs_ty);
+                ck.sa.report(ck.file_id, bin_expr.lhs.span(), msg);
+            }
+        }
+
+        let rhs_ty = check_expr_condition(ck, &bin_expr.rhs);
+
+        if !rhs_ty.is_bool() && !rhs_ty.is_error() {
+            let rhs_ty = rhs_ty.name(ck.sa);
+            let msg = ErrorMessage::WrongType("Bool".into(), rhs_ty);
+            ck.sa.report(ck.file_id, bin_expr.rhs.span(), msg);
+        }
+
+        SourceType::Bool
+    } else if let Some(is_expr) = cond.to_is() {
+        let ty = check_expr(ck, &is_expr.value, SourceType::Any);
+        check_pattern(ck, &is_expr.pattern, ty);
+        SourceType::Bool
+    } else {
+        check_expr(ck, cond, SourceType::Bool)
+    }
 }
 
 pub fn is_pattern_check(e: &ast::Expr) -> Option<(&ast::ExprIsType, Option<&ast::Expr>)> {

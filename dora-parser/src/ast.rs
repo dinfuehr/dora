@@ -1379,6 +1379,10 @@ impl ExprData {
         }
     }
 
+    pub fn to_bin_and(&self) -> Option<&ExprBinType> {
+        self.to_bin().filter(|e| e.op == BinOp::And)
+    }
+
     pub fn is_bin(&self) -> bool {
         match *self {
             ExprData::Bin(_) => true,
