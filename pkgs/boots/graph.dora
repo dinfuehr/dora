@@ -492,8 +492,8 @@ impl Block {
         self.dominator
     }
 
-    pub fn setDominator(block: Block) {
-        self.dominator = Some(block);
+    pub fn setDominator(block: Option[Block]) {
+        self.dominator = block;
     }
 
     pub fn dominates(other: Block): Bool {
@@ -507,12 +507,16 @@ impl Block {
     pub fn strictlyDominates(other: Block): Bool {
         let mut current = other.getDominator();
 
-        while current.isSome() {
-            if self === current.getOrPanic() { return true; }
-            current = current.getOrPanic().getDominator();
+        while current is Some(c) {
+            if self === c { return true; }
+            current = c.getDominator();
         }
 
         false
+    }
+
+    pub fn clearDominatedBlocks() {
+        self.dominatedBlocks.clear();
     }
 
     pub fn getDominatedBlocks(): Vec[Block] {

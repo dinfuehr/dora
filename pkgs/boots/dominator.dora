@@ -137,6 +137,13 @@ pub fn computePostOrder(graph: Graph) {
 }
 
 fn computeDominators(graph: Graph) {
+    let blocks = graph.blockCount().toInt64();
+    let filled = BitSet::new(blocks);
+    let dominators = Array[Option[Block]]::fill(blocks, None[Block]);
+
+    let entry = graph.getEntryBlock().id().toInt64();
+    filled.insert(entry);
+
     // Algorithm from paper "A Simple, Fast Dominance Algorithm".
     for block in graph.reversePostOrderIterator() {
         if block.isEntryBlock() {
@@ -148,19 +155,26 @@ fn computeDominators(graph: Graph) {
         for predEdge in block.predecessors {
             let pred = predEdge.source;
 
-            if predEdge.isBackward() {
-                continue;
-            }
+            if filled.contains(pred.id().toInt64()) {
+                let block = if newIdom is Some(newIdom) {
+                    commonDominator(dominators, newIdom, pred)
+                } else {
+                    pred
+                };
 
-            if newIdom.isNone() {
-                newIdom = Some(pred);
-                continue;
+                newIdom = Some(block);
             }
-
-            newIdom = Some(commonDominator(newIdom.getOrPanic(), pred));
         }
 
-        block.setDominator(newIdom.getOrPanic());
+        assert(newIdom.isSome());
+        let blockId = block.id().toInt64();
+        dominators(blockId) = newIdom;
+        filled.insert(blockId);
+    }
+
+    for block in graph.insertionOrderIterator() {
+        block.setDominator(dominators(block.id().toInt64()));
+        block.clearDominatedBlocks();
     }
 
     // Assert that we have a reducible graph.
@@ -188,16 +202,13 @@ fn computeDominators(graph: Graph) {
         for pred in block.predecessors {
             let pred = pred.source;
 
-            if newIdom.isNone() {
-                newIdom = Some(pred);
-                continue;
-            }
+            let block = if newIdom is Some(newIdom) {
+                commonDominator(dominators, newIdom, pred)
+            } else {
+                pred
+            };
 
-            if pred.getDominator().isNone() {
-                continue;
-            }
-
-            newIdom = Some(commonDominator(newIdom.getOrPanic(), pred));
+            newIdom = Some(block);
         }
 
         assert(block.getDominator().getOrPanic() === newIdom.getOrPanic());
@@ -213,17 +224,17 @@ fn computeDominators(graph: Graph) {
     }
 }
 
-fn commonDominator(b1: Block, b2: Block): Block {
+fn commonDominator(dominators: Array[Option[Block]], b1: Block, b2: Block): Block {
     let mut finger1 = b1;
     let mut finger2 = b2;
 
     while finger1 != finger2 {
         while finger1.postOrderIdx < finger2.postOrderIdx {
-            finger1 = finger1.getDominator().getOrPanic();
+            finger1 = dominators(finger1.id().toInt64()).getOrPanic();
         }
 
         while finger2.postOrderIdx < finger1.postOrderIdx {
-            finger2 = finger2.getDominator().getOrPanic();
+            finger2 = dominators(finger2.id().toInt64()).getOrPanic();
         }
     }
 
