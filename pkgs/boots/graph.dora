@@ -1621,6 +1621,21 @@ impl Inst {
         inst.registerUses();
     }
 
+    pub fn moveBefore(inst: Inst) {
+        assert(!self.isTerminator());
+        assert(self.hasId());
+
+        if self.getNextInst() is Some(x) && x === inst {
+            return;
+        }
+
+        let block = self.getBlock();
+        block.instructions.removeInst(self);
+
+        let block = inst.getBlock();
+        block.instructions.insertBefore(self, inst);
+    }
+
     pub fn replaceAllUsesWith(replacement: Inst) {
         while self.useListHead is Some(input) {
             input.usedBy.replaceInput(replacement, input.idx);

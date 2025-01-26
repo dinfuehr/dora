@@ -6,8 +6,11 @@ use package::interface::config;
 pub fn prepareRegisterAllocation(graph: Graph, codegen: CodeGen, ci: CompilationInfo) {
     for block in graph.insertionOrderIterator() {
         for inst in block.instructionsIterator() {
-            if inst.op().isCompare() && isSupportedType(inst) && hasSingleUseInIf(inst) {
-                inst.setEmitAtUseSite();
+            if inst.op().isCompare() && isSupportedType(inst) {
+                if getSingleIfUser(inst) is Some(user) {
+                    inst.moveBefore(user);
+                    inst.setEmitAtUseSite();
+                }
             }
         }
     }
@@ -21,11 +24,17 @@ fn isSupportedType(inst: Inst): Bool {
     }
 }
 
-fn hasSingleUseInIf(inst: Inst): Bool {
+fn getSingleIfUser(inst: Inst): Option[Inst] {
     if inst.hasOneUser() {
         let user = inst.firstUse().getOrPanic().getUsedBy();
-        user.op() == Op::If && inst.getNextInst() is Some(x) && x === user
+
+        if user.op() == Op::If {
+            Some[Inst](user)
+        } else {
+            None[Inst]
+        }
+
     } else {
-        false
+        None[Inst]
     }
 }
