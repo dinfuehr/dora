@@ -1467,12 +1467,11 @@ impl CodeGen for CodeGenX64 {
             let cond_loc = cond.getLocationData();
 
             if ty.isAnyFloat() {
-                let mut lhs = loc.getInput(0).getFloatRegister();
-                let mut rhs = loc.getInput(1).getFloatRegister();
-                let dest = loc.getOutput().getRegister();
+                let mut lhs = cond_loc.getInput(0).getFloatRegister();
+                let mut rhs = cond_loc.getInput(1).getFloatRegister();
 
-                if inst.op() == Op::Equal || inst.op() == Op::NotEqual {
-                    if inst.op() == Op::Equal {
+                if cond.op() == Op::Equal || cond.op() == Op::NotEqual {
+                    if cond.op() == Op::Equal {
                         self.asm.xorl_rr(REG_TEMP, REG_TEMP);
                     } else {
                         self.asm.movl_ri(REG_TEMP, Immediate(1));
@@ -1491,7 +1490,7 @@ impl CodeGen for CodeGenX64 {
                         }
                     }
 
-                    let cond = match inst.op() {
+                    let cond = match cond.op() {
                         Op::Equal => Condition::Equal,
                         Op::NotEqual => Condition::NotEqual,
                         _ => unreachable[Condition](),
@@ -1554,7 +1553,7 @@ impl CodeGen for CodeGenX64 {
                 };
 
                 match cond.getOperationType() {
-                    Type::UInt8 => self.asm.cmpb_rr(lhs, rhs),
+                    Type::Bool | Type::UInt8 => self.asm.cmpb_rr(lhs, rhs),
                     Type::Int32 => self.asm.cmpl_rr(lhs, rhs),
                     Type::Int64 | Type::Ptr => self.asm.cmpq_rr(lhs, rhs),
                     _ => std::unimplemented[()](),
