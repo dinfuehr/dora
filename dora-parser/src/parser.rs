@@ -1235,6 +1235,7 @@ impl Parser {
             }))
         } else {
             self.builder.abandon_node();
+            self.cancel_node();
             None
         }
     }
