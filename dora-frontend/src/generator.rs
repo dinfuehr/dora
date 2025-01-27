@@ -6,7 +6,10 @@ use dora_parser::ast::CmpOp;
 use dora_parser::{ast, Span};
 
 use self::bytecode::BytecodeBuilder;
-use self::expr::{gen_expr, gen_expr_bin_cmp, gen_fatal_error, gen_intrinsic_bin, gen_method_bin};
+use self::expr::{
+    gen_expr, gen_expr_bin_cmp, gen_expr_condition, gen_fatal_error, gen_intrinsic_bin,
+    gen_method_bin,
+};
 use crate::sema::{
     emit_as_bytecode_operation, new_identity_type_params, AnalysisData, CallType,
     ClassDefinitionId, ConstDefinitionId, ContextFieldId, EnumDefinitionId, FctDefinition,
@@ -1317,23 +1320,7 @@ impl<'a> AstBytecodeGen<'a> {
 
         self.push_scope();
 
-        if let Some((is_expr, cond)) = is_pattern_check(&expr.cond) {
-            let value_reg = gen_expr(self, &is_expr.value, DataDest::Alloc);
-            let value_ty = self.ty(is_expr.value.id());
-            self.setup_pattern_vars(&is_expr.pattern);
-            self.destruct_pattern(&is_expr.pattern, value_reg, value_ty, Some(else_lbl));
-            self.free_if_temp(value_reg);
-
-            if let Some(cond) = cond {
-                let cond_reg = gen_expr(self, cond, DataDest::Alloc);
-                self.builder.emit_jump_if_false(cond_reg, else_lbl);
-                self.free_if_temp(cond_reg);
-            }
-        } else {
-            let cond_reg = gen_expr(self, &expr.cond, DataDest::Alloc);
-            self.builder.emit_jump_if_false(cond_reg, else_lbl);
-            self.free_if_temp(cond_reg);
-        }
+        gen_expr_condition(self, &expr.cond, else_lbl);
 
         gen_expr(self, &expr.then_block, DataDest::Reg(dest));
 

@@ -2,7 +2,7 @@ use dora_bytecode::{BytecodeType, BytecodeTypeArray, FunctionId, Location, Regis
 use dora_parser::ast::{self, CmpOp};
 use dora_parser::Span;
 
-use crate::generator::{bty_array_from_ty, register_bty_from_ty, AstBytecodeGen, DataDest};
+use crate::generator::{bty_array_from_ty, register_bty_from_ty, AstBytecodeGen, DataDest, Label};
 use crate::sema::{FctDefinition, FctParent, Intrinsic, Sema};
 use crate::ty::{SourceType, SourceTypeArray};
 
@@ -36,6 +36,35 @@ pub(super) fn gen_expr(g: &mut AstBytecodeGen, expr: &ast::ExprData, dest: DataD
         ast::ExprData::Continue(ref node) => g.visit_expr_continue(node, dest),
         ast::ExprData::Return(ref ret) => g.visit_expr_return(ret, dest),
         ast::ExprData::Error { .. } => unreachable!(),
+    }
+}
+
+pub(super) fn gen_expr_condition(g: &mut AstBytecodeGen, expr: &ast::ExprData, false_lbl: Label) {
+    expr.to_bin();
+    if let Some(bin_expr) = expr.to_bin_and() {
+        if let Some(is_expr) = bin_expr.lhs.to_is() {
+            let value_reg = gen_expr(g, &is_expr.value, DataDest::Alloc);
+            let value_ty = g.ty(is_expr.value.id());
+            g.setup_pattern_vars(&is_expr.pattern);
+            g.destruct_pattern(&is_expr.pattern, value_reg, value_ty, Some(false_lbl));
+            g.free_if_temp(value_reg);
+        } else {
+            let cond_reg = gen_expr(g, &expr, DataDest::Alloc);
+            g.builder.emit_jump_if_false(cond_reg, false_lbl);
+            g.free_if_temp(cond_reg);
+        }
+
+        gen_expr_condition(g, &bin_expr.rhs, false_lbl);
+    } else if let Some(is_expr) = expr.to_is() {
+        let value_reg = gen_expr(g, &is_expr.value, DataDest::Alloc);
+        let value_ty = g.ty(is_expr.value.id());
+        g.setup_pattern_vars(&is_expr.pattern);
+        g.destruct_pattern(&is_expr.pattern, value_reg, value_ty, Some(false_lbl));
+        g.free_if_temp(value_reg);
+    } else {
+        let cond_reg = gen_expr(g, &expr, DataDest::Alloc);
+        g.builder.emit_jump_if_false(cond_reg, false_lbl);
+        g.free_if_temp(cond_reg);
     }
 }
 

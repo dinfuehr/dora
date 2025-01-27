@@ -1,0 +1,13 @@
+fn main() {
+    assert(myf(Some[Int](1), Some[Int](2), Some[Int](3)) == 6);
+    assert(myf(Some[Int](1), Some[Int](2), Some[Int](0)) == 0);
+    assert(myf(Some[Int](1), Some[Int](-2), Some[Int](3)) == 0);
+}
+
+fn myf(x: Option[Int], y: Option[Int], z: Option[Int]): Int {
+    if x is Some(x) && y is Some(y) && z is Some(z) && x > 0 && y > 0 && z > 0 {
+        x + y + z
+    } else {
+        0
+    }
+}
