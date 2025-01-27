@@ -40,7 +40,6 @@ pub(super) fn gen_expr(g: &mut AstBytecodeGen, expr: &ast::ExprData, dest: DataD
 }
 
 pub(super) fn gen_expr_condition(g: &mut AstBytecodeGen, expr: &ast::ExprData, false_lbl: Label) {
-    expr.to_bin();
     if let Some(bin_expr) = expr.to_bin_and() {
         if let Some(is_expr) = bin_expr.lhs.to_is() {
             let value_reg = gen_expr(g, &is_expr.value, DataDest::Alloc);
@@ -49,7 +48,7 @@ pub(super) fn gen_expr_condition(g: &mut AstBytecodeGen, expr: &ast::ExprData, f
             g.destruct_pattern(&is_expr.pattern, value_reg, value_ty, Some(false_lbl));
             g.free_if_temp(value_reg);
         } else {
-            let cond_reg = gen_expr(g, &expr, DataDest::Alloc);
+            let cond_reg = gen_expr(g, &bin_expr.lhs, DataDest::Alloc);
             g.builder.emit_jump_if_false(cond_reg, false_lbl);
             g.free_if_temp(cond_reg);
         }

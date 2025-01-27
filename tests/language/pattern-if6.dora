@@ -1,0 +1,12 @@
+fn main() {
+    assert(myf(true, Some[Int](1)) == 2);
+    assert(myf(true, Some[Int](7)) == 14);
+}
+
+fn myf(v: Bool, x: Option[Int]): Int {
+    if v && x is Some(x) && x > 0 {
+        x * 2
+    } else {
+        0
+    }
+}
