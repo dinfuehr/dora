@@ -4220,6 +4220,53 @@ fn pattern_in_if_with_condition() {
 }
 
 #[test]
+fn pattern_in_if_with_condition_with_parens() {
+    err(
+        "
+        fn f(x: Option[Int]): Int {
+            if (x is Some(y) && y > 0) {
+                y
+            } else {
+                0
+            }
+        }
+    ",
+        (4, 17),
+        ErrorMessage::UnknownIdentifier("y".into()),
+    );
+
+    errors(
+        "
+        fn f(x: Option[Int], y: Option[Int]): Int {
+            if (x is Some(x1) && x1 > 0) && (y is Some(y1) && y1 == 0) {
+                x1 + y1
+            } else {
+                0
+            }
+        }
+    ",
+        &[
+            ((4, 17), ErrorMessage::UnknownIdentifier("x1".into())),
+            ((4, 22), ErrorMessage::UnknownIdentifier("y1".into())),
+        ],
+    );
+}
+
+#[test]
+fn multiple_pattern_in_if_with_condition() {
+    ok("
+        fn f(x: Option[Int], y: Option[Int], z: Option[Int]): Int {
+            if x is Some(x) && y is Some(y) && z is Some(z) &&
+                x > 0 && y == 0 && z < 0 {
+                x + y + z
+            } else {
+                0
+            }
+        }
+    ");
+}
+
+#[test]
 fn pattern_in_while_with_condition() {
     ok("
         enum Foo { A(Int64), B }
