@@ -9,7 +9,6 @@ use crate::sema::{
 use crate::sym::ModuleSymTable;
 use crate::typeck::call::{check_expr_call, create_call_arguments};
 use crate::typeck::constck::ConstCheck;
-pub use crate::typeck::control::is_pattern_check;
 use crate::typeck::control::{
     check_expr_break_and_continue, check_expr_for, check_expr_if, check_expr_match,
     check_expr_return, check_expr_while, get_subpatterns,

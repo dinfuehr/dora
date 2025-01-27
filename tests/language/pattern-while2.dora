@@ -1,0 +1,18 @@
+fn main() {
+    assert(myf(Some[Int](1), Some[Int](4)) == 5);
+    assert(myf(Some[Int](3), Some[Int](3)) == (3 + 3) + (2 + 1));
+    assert(myf(Some[Int](2), Some[Int](100)) == (2 + 100) + (1 + 98));
+}
+
+fn myf(mut x: Option[Int], mut y: Option[Int]): Int {
+    let mut sum = 0;
+
+    while x is Some(x1) && y is Some(y1) && x1 > 0 && y1 > 0 {
+        x = Some[Int](x1-1);
+        y = Some[Int](y1-2);
+
+        sum += x1 + y1;
+    }
+
+    sum
+}

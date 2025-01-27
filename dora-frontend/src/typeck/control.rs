@@ -316,21 +316,6 @@ pub fn check_expr_condition(ck: &mut TypeCheck, cond: &ast::Expr) -> SourceType 
     }
 }
 
-pub fn is_pattern_check(e: &ast::Expr) -> Option<(&ast::ExprIsType, Option<&ast::Expr>)> {
-    if let Some(is_expr) = e.to_is() {
-        Some((is_expr, None))
-    } else if let Some(e) = e.to_bin() {
-        if e.lhs.is_is() && e.op == ast::BinOp::And {
-            let is_expr = e.lhs.to_is().expect("missing is");
-            Some((is_expr, Some(&e.rhs)))
-        } else {
-            None
-        }
-    } else {
-        None
-    }
-}
-
 pub(super) fn check_expr_break_and_continue(
     ck: &mut TypeCheck,
     expr: &ast::ExprData,

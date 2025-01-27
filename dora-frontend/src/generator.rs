@@ -19,7 +19,6 @@ use crate::sema::{
 };
 use crate::specialize::{replace_type, specialize_type};
 use crate::ty::{SourceType, SourceTypeArray};
-use crate::typeck::is_pattern_check;
 use crate::{expr_always_returns, expr_block_always_returns, specialize_ty_for_trait_object};
 use dora_bytecode::{
     AliasId, BytecodeFunction, BytecodeType, BytecodeTypeArray, ClassId, ConstPoolEntry,
@@ -988,23 +987,7 @@ impl<'a> AstBytecodeGen<'a> {
         self.builder.emit_loop_start();
         self.enter_block_context(stmt.id);
 
-        if let Some((is_expr, cond)) = is_pattern_check(&stmt.cond) {
-            let value_reg = gen_expr(self, &is_expr.value, DataDest::Alloc);
-            let value_ty = self.ty(is_expr.value.id());
-            self.setup_pattern_vars(&is_expr.pattern);
-            self.destruct_pattern(&is_expr.pattern, value_reg, value_ty, Some(end_lbl));
-            self.free_if_temp(value_reg);
-
-            if let Some(cond) = cond {
-                let cond_reg = gen_expr(self, cond, DataDest::Alloc);
-                self.builder.emit_jump_if_false(cond_reg, end_lbl);
-                self.free_if_temp(cond_reg);
-            }
-        } else {
-            let cond_reg = gen_expr(self, &stmt.cond, DataDest::Alloc);
-            self.builder.emit_jump_if_false(cond_reg, end_lbl);
-            self.free_if_temp(cond_reg);
-        }
+        gen_expr_condition(self, &stmt.cond, end_lbl);
 
         self.loops.push(LoopLabels::new(cond_lbl, end_lbl));
         self.emit_expr_for_effect(&stmt.block);
