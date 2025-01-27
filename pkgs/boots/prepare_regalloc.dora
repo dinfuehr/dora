@@ -6,11 +6,9 @@ use package::interface::config;
 pub fn prepareRegisterAllocation(graph: Graph, codegen: CodeGen, ci: CompilationInfo) {
     for block in graph.insertionOrderIterator() {
         for inst in block.instructionsIterator() {
-            if inst.op().isCompare() && isSupportedType(inst) {
-                if getSingleIfUser(inst) is Some(user) {
-                    inst.moveBefore(user);
-                    inst.setEmitAtUseSite();
-                }
+            if inst.op().isCompare() && isSupportedType(inst) && getSingleIfUser(inst) is Some(user) {
+                inst.moveBefore(user);
+                inst.setEmitAtUseSite();
             }
         }
     }
