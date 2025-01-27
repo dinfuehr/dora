@@ -43,13 +43,12 @@ fn inline(ci: CompilationInfo, graph: Graph, inst: Inst, fctId: FunctionId, type
     if returnValue.isSome() {
         let returnValue = returnValue.getOrPanic();
         inst.replaceAllUsesWith(returnValue);
-    } else if inst.hasUses() {
-        // This call has users but the inlined function has no return value
-        // because it e.g. crashes unconditionally. In this case newBlock is
-        // unreachable and will be removed by cfg_simplification.
+    } else if newBlock.predecessors.isEmpty() {
+        // This call has no return value because it e.g. crashes unconditionally. In this
+        // case newBlock is unreachable and will be removed by cfg_simplification.
         // There is no value to replace all uses of the call return value, so
         // replace it with Undef. Undef also needs to be in newBlock to not
-        // break SSA.
+        // break SSA. Both Undef and its uses will be removed later.
         let undef = createUndefInst();
         newBlock.prependInst(undef);
         inst.replaceAllUsesWith(undef);
