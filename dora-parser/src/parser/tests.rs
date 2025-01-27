@@ -1576,7 +1576,6 @@ fn parse_invalid_expr_in_block() {
 }
 
 #[test]
-#[ignore]
 fn parse_invalid_type_with_unclosed_bracket() {
     parse_with_error(
         "fn next(): Option[Self::X;",
