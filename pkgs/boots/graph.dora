@@ -922,10 +922,13 @@ pub enum Op {
     Equal,
     NotEqual,
     Greater,
+    UnsignedGreater,
     GreaterOrEqual,
-    Less,
-    LessOrEqual,
     UnsignedGreaterOrEqual,
+    Less,
+    UnsignedLess,
+    LessOrEqual,
+    UnsignedLessOrEqual,
 
     Phi,
     DivZeroCheck,
@@ -1109,10 +1112,13 @@ pub fn opName(op: Op): String {
         Op::Equal => "Equal",
         Op::NotEqual => "NotEqual",
         Op::Greater => "Greater",
+        Op::UnsignedGreater => "UnsignedGreater",
         Op::GreaterOrEqual => "GreaterOrEqual",
         Op::UnsignedGreaterOrEqual => "UnsignedGreaterOrEqual",
         Op::Less => "Less",
+        Op::UnsignedLess => "UnsignedLess",
         Op::LessOrEqual => "LessOrEqual",
+        Op::UnsignedLessOrEqual => "UnsignedLessOrEqual",
         Op::Phi => "Phi",
         Op::DivZeroCheck => "DivZeroCheck",
         Op::LoadArray => "LoadArray",
@@ -1346,10 +1352,13 @@ impl Inst {
             Op::Equal => Some[Type](Type::Bool),
             Op::NotEqual => Some[Type](Type::Bool),
             Op::Greater => Some[Type](Type::Bool),
+            Op::UnsignedGreater => Some[Type](Type::Bool),
             Op::GreaterOrEqual => Some[Type](Type::Bool),
             Op::UnsignedGreaterOrEqual => Some[Type](Type::Bool),
             Op::Less => Some[Type](Type::Bool),
+            Op::UnsignedLess => Some[Type](Type::Bool),
             Op::LessOrEqual => Some[Type](Type::Bool),
+            Op::UnsignedLessOrEqual => Some[Type](Type::Bool),
             Op::Phi => Some[Type](self.ty),
             Op::DivZeroCheck => None[Type],
             Op::LoadArray => Some[Type](self.ty),
@@ -1897,13 +1906,16 @@ impl Inst {
             Op::Invoke => true,
             Op::InvokeVirtual => true,
             Op::InvokeLambda => true,
-            Op::Equal => false,
-            Op::NotEqual => false,
-            Op::Greater => false,
-            Op::GreaterOrEqual => false,
-            Op::UnsignedGreaterOrEqual => false,
-            Op::Less => false,
-            Op::LessOrEqual => false,
+            Op::Equal |
+                Op::NotEqual |
+                Op::Greater |
+                Op::UnsignedGreater |
+                Op::GreaterOrEqual |
+                Op::UnsignedGreaterOrEqual |
+                Op::Less |
+                Op::UnsignedLess |
+                Op::LessOrEqual |
+                Op::UnsignedLessOrEqual => false,
             Op::Phi => true,
             Op::DivZeroCheck => true,
             Op::LoadArray => false,

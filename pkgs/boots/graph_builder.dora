@@ -619,27 +619,27 @@ impl SsaGen {
                 false
             }
             BytecodeInstruction::TestEq(dest, lhs, rhs) => {
-                self.emitBin(dest, lhs, rhs, Op::Equal);
+                self.emitCompare(dest, lhs, rhs, Op::Equal);
                 false
             }
             BytecodeInstruction::TestNe(dest, lhs, rhs) => {
-                self.emitBin(dest, lhs, rhs, Op::NotEqual);
+                self.emitCompare(dest, lhs, rhs, Op::NotEqual);
                 false
             }
             BytecodeInstruction::TestGt(dest, lhs, rhs) => {
-                self.emitBin(dest, lhs, rhs, Op::Greater);
+                self.emitCompare(dest, lhs, rhs, Op::Greater);
                 false
             }
             BytecodeInstruction::TestGe(dest, lhs, rhs) => {
-                self.emitBin(dest, lhs, rhs, Op::GreaterOrEqual);
+                self.emitCompare(dest, lhs, rhs, Op::GreaterOrEqual);
                 false
             }
             BytecodeInstruction::TestLt(dest, lhs, rhs) => {
-                self.emitBin(dest, lhs, rhs, Op::Less);
+                self.emitCompare(dest, lhs, rhs, Op::Less);
                 false
             }
             BytecodeInstruction::TestLe(dest, lhs, rhs) => {
-                self.emitBin(dest, lhs, rhs, Op::LessOrEqual);
+                self.emitCompare(dest, lhs, rhs, Op::LessOrEqual);
                 false
             }
             BytecodeInstruction::JumpLoop(distance) => {
@@ -998,6 +998,29 @@ impl SsaGen {
         if op == Op::CheckedDiv || op == Op::CheckedMod || op == Op::CheckedAdd || op == Op::CheckedSub || op == Op::CheckedMul {
             self.setCurrentInlinedLocation(destInst);
         }
+        self.current().appendInst(destInst);
+        self.writeVariable(dest, self.current(), destInst);
+    }
+
+    fn emitCompare(dest: BytecodeRegister, lhs: BytecodeRegister, rhs: BytecodeRegister, op: Op) {
+        let ty = self.regGraphTy(lhs);
+
+        let mut lhsInst = self.readVariable(lhs, self.current());
+        let mut rhsInst = self.readVariable(rhs, self.current());
+
+        let op = if  ty == Type::UInt8 {
+            match op {
+                Op::Greater => Op::UnsignedGreater,
+                Op::GreaterOrEqual => Op::UnsignedGreaterOrEqual,
+                Op::Less => Op::UnsignedLess,
+                Op::LessOrEqual => Op::UnsignedLessOrEqual,
+                _ => op,
+            }
+        } else {
+            op
+        };
+
+        let destInst = graph::createBinaryInst(op, ty, lhsInst, rhsInst);
         self.current().appendInst(destInst);
         self.writeVariable(dest, self.current(), destInst);
     }

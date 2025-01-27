@@ -1451,25 +1451,48 @@ impl CodeGen for CodeGenArm64 {
         let falseBlock = inst.getFalseBlock();
 
         if cond.isEmitAtUseSite() {
+            let ty = cond.getOperationType();
             let cond_loc = cond.getLocationData();
-            let lhs = cond_loc.getInput(0).getRegister();
-            let rhs = cond_loc.getInput(1).getRegister();
 
-            let condition = match cond.op() {
-                Op::Greater => Cond::GT,
-                Op::GreaterOrEqual => Cond::GE,
-                Op::Less => Cond::LT,
-                Op::LessOrEqual => Cond::LE,
-                Op::Equal => Cond::EQ,
-                Op::NotEqual => Cond::NE,
-                _ => unreachable[Cond](),
+            let condition = if ty.isAnyFloat() {
+                let lhs = cond_loc.getInput(0).getFloatRegister();
+                let rhs = cond_loc.getInput(1).getFloatRegister();
+
+                match ty {
+                    Type::Float32 => self.asm.fcmp_s(lhs, rhs),
+                    Type::Float64 => self.asm.fcmp_d(lhs, rhs),
+                    _ => unreachable[()](),
+                }
+
+                match cond.op() {
+                    Op::Greater => Cond::GT,
+                    Op::GreaterOrEqual => Cond::GE,
+                    Op::Less => Cond::MI,
+                    Op::LessOrEqual => Cond::LS,
+                    Op::Equal => Cond::EQ,
+                    Op::NotEqual => Cond::NE,
+                    _ => unreachable[Cond](),
+                }
+            } else {
+                let lhs = cond_loc.getInput(0).getRegister();
+                let rhs = cond_loc.getInput(1).getRegister();
+
+                match cond.getOperationType() {
+                    Type::Bool | Type::UInt8 | Type::Int32 => self.asm.cmp_w(lhs, rhs),
+                    Type::Int64 | Type::Ptr => self.asm.cmp(lhs, rhs),
+                    _ => std::unimplemented[()](),
+                }
+
+                match cond.op() {
+                    Op::Greater | Op::UnsignedGreater => Cond::GT,
+                    Op::GreaterOrEqual | Op::UnsignedGreaterOrEqual => Cond::GE,
+                    Op::Less | Op::UnsignedLess => Cond::LT,
+                    Op::LessOrEqual | Op::UnsignedLessOrEqual => Cond::LE,
+                    Op::Equal => Cond::EQ,
+                    Op::NotEqual => Cond::NE,
+                    _ => unreachable[Cond](),
+                }
             };
-
-            match cond.getOperationType() {
-                Type::Bool | Type::UInt8 | Type::Int32 => self.asm.cmp_w(lhs, rhs),
-                Type::Int64 | Type::Ptr => self.asm.cmp(lhs, rhs),
-                _ => std::unimplemented[()](),
-            }
 
             if currentBlock.linearOrderIdx + 1i32 == trueBlock.linearOrderIdx {
                 self.asm.bc(condition.invert(), falseBlock.getLabel());
@@ -1746,10 +1769,10 @@ impl CodeGen for CodeGenArm64 {
             self.asm.cset_w(dest, cond);
         } else {
             let cond = match inst.op() {
-                Op::Greater => Cond::GT,
-                Op::GreaterOrEqual => Cond::GE,
-                Op::Less => Cond::LT,
-                Op::LessOrEqual => Cond::LE,
+                Op::Greater | Op::UnsignedGreater => Cond::GT,
+                Op::GreaterOrEqual | Op::UnsignedGreaterOrEqual => Cond::GE,
+                Op::Less | Op::UnsignedLess => Cond::LT,
+                Op::LessOrEqual | Op::UnsignedLessOrEqual => Cond::LE,
                 Op::Equal => Cond::EQ,
                 Op::NotEqual => Cond::NE,
                 _ => unreachable[Cond](),

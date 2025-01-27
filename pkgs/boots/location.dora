@@ -96,9 +96,13 @@ impl LocationAnnotation {
             }
 
             Op::Greater
+            | Op::UnsignedGreater
             | Op::GreaterOrEqual
+            | Op::UnsignedGreaterOrEqual
             | Op::Less
+            | Op::UnsignedLess
             | Op::LessOrEqual
+            | Op::UnsignedLessOrEqual
             | Op::Equal
             | Op::NotEqual => {
                 if inst.getOperationType().isAnyFloat() {

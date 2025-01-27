@@ -1463,31 +1463,109 @@ impl CodeGen for CodeGenX64 {
         let falseBlock = inst.getFalseBlock();
 
         if cond.isEmitAtUseSite() {
+            let ty = cond.getOperationType();
             let cond_loc = cond.getLocationData();
-            let lhs = cond_loc.getInput(0).getRegister();
-            let rhs = cond_loc.getInput(1).getRegister();
 
-            let condition = match cond.op() {
-                Op::Greater => Condition::Greater,
-                Op::GreaterOrEqual => Condition::GreaterOrEqual,
-                Op::Less => Condition::Less,
-                Op::LessOrEqual => Condition::LessOrEqual,
-                Op::Equal => Condition::Equal,
-                Op::NotEqual => Condition::NotEqual,
-                _ => unreachable[Condition](),
-            };
+            if ty.isAnyFloat() {
+                let mut lhs = loc.getInput(0).getFloatRegister();
+                let mut rhs = loc.getInput(1).getFloatRegister();
+                let dest = loc.getOutput().getRegister();
 
-            match cond.getOperationType() {
-                Type::Int32 => self.asm.cmpl_rr(lhs, rhs),
-                Type::Int64 | Type::Ptr => self.asm.cmpq_rr(lhs, rhs),
-                _ => std::unimplemented[()](),
-            }
+                if inst.op() == Op::Equal || inst.op() == Op::NotEqual {
+                    if inst.op() == Op::Equal {
+                        self.asm.xorl_rr(REG_TEMP, REG_TEMP);
+                    } else {
+                        self.asm.movl_ri(REG_TEMP, Immediate(1));
+                    }
+                    if self.hasAvx2 {
+                        match ty {
+                            Type::Float32 => self.asm.vucomiss_rr(lhs, rhs),
+                            Type::Float64 => self.asm.vucomisd_rr(lhs, rhs),
+                            _ => unreachable[()](),
+                        }
+                    } else {
+                        match ty {
+                            Type::Float32 => self.asm.ucomiss_rr(lhs, rhs),
+                            Type::Float64 => self.asm.ucomisd_rr(lhs, rhs),
+                            _ => unreachable[()](),
+                        }
+                    }
 
-            if currentBlock.linearOrderIdx + 1i32 == trueBlock.linearOrderIdx {
-                self.asm.jcc(condition.negate(), falseBlock.getLabel());
+                    let cond = match inst.op() {
+                        Op::Equal => Condition::Equal,
+                        Op::NotEqual => Condition::NotEqual,
+                        _ => unreachable[Condition](),
+                    };
+
+                    self.asm.jcc(Condition::Parity, falseBlock.getLabel());
+
+                    if currentBlock.linearOrderIdx + 1i32 == trueBlock.linearOrderIdx {
+                        self.asm.jcc(cond.negate(), falseBlock.getLabel());
+                    } else {
+                        assert(currentBlock.linearOrderIdx + 1i32 == falseBlock.linearOrderIdx);
+                        self.asm.jcc(cond, trueBlock.getLabel());
+                    }
+                } else {
+                    if inst.op() == Op::Less || inst.op() == Op::LessOrEqual {
+                        let mut temp = lhs;
+                        lhs = rhs;
+                        rhs = temp;
+                    }
+
+                    let cond = match inst.op() {
+                        Op::Greater | Op::Less => Condition::Above,
+                        Op::GreaterOrEqual | Op::LessOrEqual => Condition::AboveOrEqual,
+                        _ => unreachable[Condition](),
+                    };
+
+                    if self.hasAvx2 {
+                        match ty {
+                            Type::Float32 => self.asm.vucomiss_rr(lhs, rhs),
+                            Type::Float64 => self.asm.vucomisd_rr(lhs, rhs),
+                            _ => unreachable[()](),
+                        }
+                    } else {
+                        match ty {
+                            Type::Float32 => self.asm.ucomiss_rr(lhs, rhs),
+                            Type::Float64 => self.asm.ucomisd_rr(lhs, rhs),
+                            _ => unreachable[()](),
+                        }
+                    }
+
+                    if currentBlock.linearOrderIdx + 1i32 == trueBlock.linearOrderIdx {
+                        self.asm.jcc(cond.negate(), falseBlock.getLabel());
+                    } else {
+                        assert(currentBlock.linearOrderIdx + 1i32 == falseBlock.linearOrderIdx);
+                        self.asm.jcc(cond, trueBlock.getLabel());
+                    }
+                }
             } else {
-                assert(currentBlock.linearOrderIdx + 1i32 == falseBlock.linearOrderIdx);
-                self.asm.jcc(condition, trueBlock.getLabel());
+                let lhs = cond_loc.getInput(0).getRegister();
+                let rhs = cond_loc.getInput(1).getRegister();
+
+                let condition = match cond.op() {
+                    Op::Greater | Op::UnsignedGreater => Condition::Greater,
+                    Op::GreaterOrEqual | Op::UnsignedGreaterOrEqual => Condition::GreaterOrEqual,
+                    Op::Less | Op::UnsignedLess => Condition::Less,
+                    Op::LessOrEqual | Op::UnsignedLessOrEqual => Condition::LessOrEqual,
+                    Op::Equal => Condition::Equal,
+                    Op::NotEqual => Condition::NotEqual,
+                    _ => unreachable[Condition](),
+                };
+
+                match cond.getOperationType() {
+                    Type::UInt8 => self.asm.cmpb_rr(lhs, rhs),
+                    Type::Int32 => self.asm.cmpl_rr(lhs, rhs),
+                    Type::Int64 | Type::Ptr => self.asm.cmpq_rr(lhs, rhs),
+                    _ => std::unimplemented[()](),
+                }
+
+                if currentBlock.linearOrderIdx + 1i32 == trueBlock.linearOrderIdx {
+                    self.asm.jcc(condition.negate(), falseBlock.getLabel());
+                } else {
+                    assert(currentBlock.linearOrderIdx + 1i32 == falseBlock.linearOrderIdx);
+                    self.asm.jcc(condition, trueBlock.getLabel());
+                }
             }
 
         } else {
@@ -1822,26 +1900,18 @@ impl CodeGen for CodeGenX64 {
             let rhs = loc.getInput(1).getRegister();
             let dest = loc.getOutput().getRegister();
 
-            let cond = if ty == Type::UInt8 {
-                match inst.op() {
-                    Op::Greater => Condition::Above,
-                    Op::GreaterOrEqual => Condition::AboveOrEqual,
-                    Op::Less => Condition::Below,
-                    Op::LessOrEqual => Condition::BelowOrEqual,
-                    Op::Equal => Condition::Equal,
-                    Op::NotEqual => Condition::NotEqual,
-                    _ => unreachable[Condition](),
-                }
-            } else {
-                match inst.op() {
-                    Op::Greater => Condition::Greater,
-                    Op::GreaterOrEqual => Condition::GreaterOrEqual,
-                    Op::Less => Condition::Less,
-                    Op::LessOrEqual => Condition::LessOrEqual,
-                    Op::Equal => Condition::Equal,
-                    Op::NotEqual => Condition::NotEqual,
-                    _ => unreachable[Condition](),
-                }
+            let cond = match inst.op() {
+                Op::Greater => Condition::Greater,
+                Op::UnsignedGreater => Condition::Above,
+                Op::GreaterOrEqual => Condition::GreaterOrEqual,
+                Op::UnsignedGreaterOrEqual => Condition::AboveOrEqual,
+                Op::Less => Condition::Less,
+                Op::UnsignedLess => Condition::Below,
+                Op::LessOrEqual => Condition::LessOrEqual,
+                Op::UnsignedLessOrEqual => Condition::BelowOrEqual,
+                Op::Equal => Condition::Equal,
+                Op::NotEqual => Condition::NotEqual,
+                _ => unreachable[Condition](),
             };
 
             match ty {

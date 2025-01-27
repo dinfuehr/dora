@@ -43,6 +43,7 @@ pub fn generateCode(graph: Graph, codegen: CodeGen, ci: CompilationInfo): CodeDe
     codegen.emitComment("stack limit check");
     codegen.emitStackLimitCheck();
 
+
     for block in graph.insertionOrderIterator() {
         block.setLabel(codegen.createLabel());
     }
@@ -235,9 +236,13 @@ fn emitInst(codegen: CodeGen, inst: Inst) {
         },
 
         Op::Greater
+        | Op::UnsignedGreater
         | Op::GreaterOrEqual
+        | Op::UnsignedGreaterOrEqual
         | Op::Less
+        | Op::UnsignedLess
         | Op::LessOrEqual
+        | Op::UnsignedLessOrEqual
         | Op::Equal
         | Op::NotEqual => {
             codegen.emitComment("${inst.op().name()}");
