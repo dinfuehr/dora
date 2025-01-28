@@ -1,0 +1,16 @@
+pub class SparseSet {
+    sparse: Array[Int32],
+    dense: Array[Int32],
+    members: Int32,
+}
+
+impl SparseSet {
+    pub static fn new(length: Int32): SparseSet {
+
+        SparseSet(
+            sparse = Array[Int32]::zero(length.toInt64()),
+            dense = Array[Int32]::zero(length.toInt64()),
+            members = 0i32,
+        )
+    }
+}

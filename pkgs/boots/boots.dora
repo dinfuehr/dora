@@ -17,6 +17,7 @@ use package::interface::{compile, config, getFunctionAddressRaw, getFieldOffsetR
 use package::load_elimination::performLoadElimination;
 use package::prepare_regalloc::prepareRegisterAllocation;
 use package::regalloc::performRegisterAllocation;
+use package::sparse_set::SparseSet;
 use package::cfg_simplification::performCfgSimplification;
 use package::liveness::computeLiveness;
 
@@ -39,6 +40,7 @@ mod prepare_regalloc;
 mod regalloc;
 mod resolver;
 mod serializer;
+mod sparse_set;
 
 pub fn compileFunction(ci: CompilationInfo): CodeDescriptor {
     let htmlWriter: Option[HtmlWriter] = if ci.emitHtml {
