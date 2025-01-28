@@ -159,17 +159,22 @@ impl[T] Iterator for ArrayEnumerator[T] {
 impl[T: Comparable] Array[T] {
   // a stable in-place sort, currently implemented by insertion sort
   pub static fn sortStable(array: Array[T]) {
-    let mut i = 1;
-    while i < array.size() {
-      let mut temp = array.get(i);
-      let mut j = i;
-      while j > 0 && array(j - 1) > temp {
-        array(j) = array(j - 1);
-        j = j - 1;
-      }
-      array(j) = temp;
-      i = i + 1;
+    internalSortStable[T](array, 0, array.size());
+  }
+}
+
+fn internalSortStable[T: Comparable](array: Array[T], start: Int, length: Int) {
+  let mut i = start + 1;
+
+  while i < length {
+    let mut temp = array.get(i);
+    let mut j = i;
+    while j > 0 && array(j - 1) > temp {
+      array(j) = array(j - 1);
+      j = j - 1;
     }
+    array(j) = temp;
+    i = i + 1;
   }
 }
 
@@ -1284,6 +1289,12 @@ impl[T] IntoIterator for Vec[T] {
 
   fn iter(): VecIter[T] {
     VecIter[T]::new(self)
+  }
+}
+
+impl[T: Comparable] Vec[T] {
+  pub fn sort() {
+    internalSortStable[T](self.array, 0, self.len);
   }
 }
 

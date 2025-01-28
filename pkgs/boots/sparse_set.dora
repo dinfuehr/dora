@@ -1,3 +1,5 @@
+use std::traits::{Iterator, IntoIterator};
+
 pub class SparseSet {
     sparse: Array[Int32],
     dense: Array[Int32],
@@ -54,11 +56,38 @@ impl SparseSet {
     }
 }
 
+impl IntoIterator for SparseSet {
+    type IteratorType = SparseSetIter;
+
+    fn iter(): SparseSetIter {
+        SparseSetIter(sparseSet = self, idx = 0)
+    }
+}
+
+class SparseSetIter {
+    sparseSet: SparseSet,
+    idx: Int,
+}
+
+impl Iterator for SparseSetIter {
+    type Item = Int32;
+
+    fn next(): Option[Int32] {
+        if self.idx < self.sparseSet.members.toInt64() {
+            let a = self.sparseSet.dense(self.idx);
+            self.idx += 1;
+            Some[Int32](a)
+        } else {
+            None[Int32]
+        }
+    }
+}
+
 mod tests {
     use super::SparseSet;
 
     @Test
-    fn testBasicSparseSetOperations() {
+    fn basicSparseSetOperations() {
         let set = SparseSet::new(10i32);
         assert(set.isEmpty());
 
@@ -84,5 +113,22 @@ mod tests {
         assert(!set.contains(1i32));
         assert(set.size() == 0i32);
         assert(set.isEmpty());
+    }
+
+    @Test
+    fn sparseSetIterator() {
+        let set = SparseSet::new(10i32);
+        set.insert(0i32);
+        set.insert(9i32);
+        set.insert(1i32);
+
+        let elements = Vec[Int32]::new();
+
+        for x in set {
+            elements.push(x);
+        }
+
+        elements.sort();
+        assert(elements == Vec[Int32]::new(0i32, 1i32, 9i32));
     }
 }

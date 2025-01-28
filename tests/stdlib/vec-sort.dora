@@ -1,0 +1,8 @@
+fn main() {
+    let vec = Vec[Int32]::new();
+    vec.push(0i32);
+    vec.push(9i32);
+    vec.push(1i32);
+    vec.sort();
+    assert(vec == Vec[Int32]::new(0i32, 1i32, 9i32));
+}
