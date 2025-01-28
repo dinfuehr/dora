@@ -1121,6 +1121,89 @@ fn test_for_supports_into_iterator() {
 }
 
 #[test]
+fn test_for_supports_into_iterator_with_missing_assoc_type() {
+    errors(
+        "
+            class Foo
+            impl std::traits::IntoIterator for Foo {
+                fn iter(): FooIter { return FooIter(); }
+            }
+
+            class FooIter
+
+            impl std::traits::Iterator for FooIter {
+                type Item = Int32;
+                fn next(): Option[Int32] { Some[Int32](0i32) }
+            }
+
+            fn f(): Int32 {
+                for i in Foo() {
+                    return i;
+                }
+                return 0i32;
+            }
+    ",
+        &[(
+            (3, 13),
+            ErrorMessage::MissingAssocType("IteratorType".into()),
+        )],
+    );
+}
+
+#[test]
+fn test_for_supports_into_iterator_with_missing_method() {
+    errors(
+        "
+            class Foo
+            impl std::traits::IntoIterator for Foo {
+                type IteratorType = FooIter;
+            }
+
+            class FooIter
+
+            impl std::traits::Iterator for FooIter {
+                type Item = Int32;
+                fn next(): Option[Int32] { Some[Int32](0i32) }
+            }
+
+            fn f(): Int32 {
+                for i in Foo() {
+                    return i;
+                }
+                return 0i32;
+            }
+    ",
+        &[((3, 13), ErrorMessage::ElementNotInImpl("iter".into()))],
+    );
+}
+
+#[test]
+fn test_for_supports_into_iterator_with_invalid_type() {
+    errors(
+        "
+            class Foo
+            impl std::traits::IntoIterator for Foo {
+                type IteratorType = FooIter;
+                fn iter(): FooIter { return FooIter(); }
+            }
+
+            class FooIter
+
+            fn f(): Int32 {
+                for i in Foo() {
+                    return i;
+                }
+                return 0i32;
+            }
+    ",
+        &[(
+            (4, 17),
+            ErrorMessage::TypeNotImplementingTrait("FooIter".into(), "Iterator".into()),
+        )],
+    );
+}
+
+#[test]
 fn test_ctor_with_type_param() {
     err(
         "

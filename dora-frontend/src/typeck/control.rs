@@ -55,15 +55,20 @@ pub(super) fn check_expr_for(
         return SourceType::Unit;
     }
 
-    if let Some((iter_fct_id, type_params, iterator_type)) =
-        type_supports_into_iterator_trait(ck, object_type.clone())
-    {
-        let (mut for_type_info, ret_type) = type_supports_iterator_trait(ck, iterator_type.clone())
-            .expect("type not implementing iterator trait");
+    if let Some(into_iterator_data) = type_supports_into_iterator_trait(ck, object_type.clone()) {
+        let ret_type = if let Some((mut for_type_info, ret_type)) =
+            type_supports_iterator_trait(ck, into_iterator_data.iterator_type.clone())
+        {
+            if let Some(iter_impl_fct_id) = into_iterator_data.iter_impl_fct_id {
+                // store fct ids for code generation
+                for_type_info.iter = Some((iter_impl_fct_id, into_iterator_data.bindings));
+                ck.analysis.map_fors.insert(stmt.id, for_type_info);
+            }
 
-        // store fct ids for code generation
-        for_type_info.iter = Some((iter_fct_id, type_params));
-        ck.analysis.map_fors.insert(stmt.id, for_type_info);
+            ret_type
+        } else {
+            SourceType::Error
+        };
 
         check_for_body(ck, stmt, ret_type);
         return SourceType::Unit;
@@ -87,10 +92,16 @@ fn check_for_body(ck: &mut TypeCheck, stmt: &ast::ExprForType, ty: SourceType) {
     ck.symtable.pop_level();
 }
 
+struct IntoIteratorData {
+    iter_impl_fct_id: Option<FctDefinitionId>,
+    bindings: SourceTypeArray,
+    iterator_type: SourceType,
+}
+
 fn type_supports_into_iterator_trait(
     ck: &mut TypeCheck,
     object_type: SourceType,
-) -> Option<(FctDefinitionId, SourceTypeArray, SourceType)> {
+) -> Option<IntoIteratorData> {
     let into_iterator_trait_id = ck.sa.known.traits.into_iterator();
     let into_iterator_trait = ck.sa.trait_(into_iterator_trait_id);
 
@@ -119,24 +130,25 @@ fn type_supports_into_iterator_trait(
     if let Some(impl_match) = impl_match {
         let impl_ = ck.sa.impl_(impl_match.id);
 
-        let iter_impl_fct_id = impl_
-            .trait_method_map()
-            .get(&iter_trait_fct_id)
-            .cloned()
-            .expect("missing impl next() method");
+        let iter_impl_fct_id = impl_.trait_method_map().get(&iter_trait_fct_id).cloned();
 
-        let iterator_type_impl_alias_id = impl_
+        let iterator_type = if let Some(iterator_type_impl_alias_id) = impl_
             .trait_alias_map()
             .get(&iterator_type_trait_alias_id)
             .cloned()
-            .expect("missing impl alias");
+        {
+            let iterator_type_impl_alias = ck.sa.alias(iterator_type_impl_alias_id);
 
-        let iterator_type_impl_alias = ck.sa.alias(iterator_type_impl_alias_id);
+            specialize_type(ck.sa, iterator_type_impl_alias.ty(), &impl_match.bindings)
+        } else {
+            SourceType::Error
+        };
 
-        let iterator_type =
-            specialize_type(ck.sa, iterator_type_impl_alias.ty(), &impl_match.bindings);
-
-        Some((iter_impl_fct_id, impl_match.bindings, iterator_type))
+        Some(IntoIteratorData {
+            iter_impl_fct_id,
+            bindings: impl_match.bindings,
+            iterator_type,
+        })
     } else {
         None
     }

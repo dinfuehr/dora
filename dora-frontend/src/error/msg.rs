@@ -222,6 +222,7 @@ pub enum ErrorMessage {
     IndexGetNotImplemented(String),
     IndexSetNotImplemented(String),
     IndexGetAndIndexSetDoNotMatch,
+    MissingAssocType(String),
 }
 
 impl ErrorMessage {
@@ -758,6 +759,9 @@ impl ErrorMessage {
             }
             ErrorMessage::IndexGetAndIndexSetDoNotMatch => {
                 format!("`IndexGet` and `IndexSet` do not match for both `Index` and `Item`.")
+            }
+            ErrorMessage::MissingAssocType(ref name) => {
+                format!("Missing associated type `{}`.", name)
             }
         }
     }

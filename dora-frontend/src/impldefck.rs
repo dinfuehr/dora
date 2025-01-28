@@ -3,8 +3,8 @@ use std::collections::{HashMap, HashSet};
 use crate::extensiondefck::check_for_unconstrained_type_params;
 use crate::program_parser::ParsedModifierList;
 use crate::sema::{
-    implements_trait, new_identity_type_params, AliasDefinitionId, FctDefinition, FctDefinitionId,
-    FctParent, ImplDefinition, ImplDefinitionId, Sema, TraitDefinition,
+    implements_trait, new_identity_type_params, AliasDefinitionId, Element, FctDefinition,
+    FctDefinitionId, FctParent, ImplDefinition, ImplDefinitionId, Sema, TraitDefinition,
 };
 use crate::{package_for_type, replace_type, ErrorMessage, SourceType, SourceTypeArray, TraitType};
 
@@ -493,6 +493,16 @@ fn connect_aliases_to_trait_inner(sa: &Sema, impl_: &ImplDefinition, trait_: &Tr
                 ErrorMessage::ElementNotInTrait,
             )
         }
+    }
+
+    for remaining_alias_id in remaining_aliases {
+        let remaining_alias = sa.alias(remaining_alias_id);
+        let name = sa.interner.str(remaining_alias.name).to_string();
+        sa.report(
+            impl_.file_id,
+            impl_.span(),
+            ErrorMessage::MissingAssocType(name),
+        );
     }
 
     assert!(impl_.trait_alias_map.set(trait_alias_map).is_ok());
@@ -1272,7 +1282,8 @@ mod tests {
 
     #[test]
     fn impl_missing_assoc_type() {
-        ok("
+        err(
+            "
             trait Foo {
                 type X;
                 fn bar(): Self::X;
@@ -1280,7 +1291,10 @@ mod tests {
             impl Foo for Int {
                 fn bar(): Int { 0 }
             }
-        ");
+        ",
+            (6, 13),
+            ErrorMessage::MissingAssocType("X".into()),
+        );
     }
 
     #[test]
