@@ -6,11 +6,83 @@ pub class SparseSet {
 
 impl SparseSet {
     pub static fn new(length: Int32): SparseSet {
-
         SparseSet(
             sparse = Array[Int32]::zero(length.toInt64()),
             dense = Array[Int32]::zero(length.toInt64()),
             members = 0i32,
         )
+    }
+
+    pub fn contains(idx: Int32): Bool {
+        let a = self.sparse(idx.toInt64());
+        a < self.members && self.dense(a.toInt64()) == idx
+    }
+
+    pub fn insert(idx: Int32) {
+        let a = self.sparse(idx.toInt64());
+        let n = self.members;
+
+        if a >= n || self.dense(a.toInt64()) != idx {
+            self.sparse(idx.toInt64()) = n;
+            self.dense(n.toInt64()) = idx;
+            self.members = n + 1i32;
+        }
+    }
+
+    pub fn remove(idx: Int32) {
+        let a = self.sparse(idx.toInt64());
+        let n = self.members - 1i32;
+
+        if a <= n && self.dense(a.toInt64()) == idx {
+            let e = self.dense(n.toInt64());
+            self.members = n;
+            self.dense(a.toInt64()) = e;
+            self.sparse(e.toInt64()) = a;
+        }
+    }
+
+    pub fn size(): Int32 {
+        self.members
+    }
+
+    pub fn isEmpty(): Bool {
+        self.members == 0i32
+    }
+
+    pub fn clear() {
+        self.members = 0i32;
+    }
+}
+
+mod tests {
+    use super::SparseSet;
+
+    @Test
+    fn testBasicSparseSetOperations() {
+        let set = SparseSet::new(10i32);
+        assert(set.isEmpty());
+
+        set.insert(1i32);
+        assert(set.contains(1i32));
+        assert(set.size() == 1i32);
+
+        set.insert(9i32);
+        assert(set.contains(9i32));
+        assert(set.size() == 2i32);
+
+        set.insert(9i32);
+        assert(set.size() == 2i32);
+
+        set.remove(8i32);
+        assert(set.size() == 2i32);
+
+        set.remove(9i32);
+        assert(!set.contains(9i32));
+        assert(set.size() == 1i32);
+
+        set.remove(1i32);
+        assert(!set.contains(1i32));
+        assert(set.size() == 0i32);
+        assert(set.isEmpty());
     }
 }
