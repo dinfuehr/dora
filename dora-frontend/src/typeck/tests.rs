@@ -1204,6 +1204,46 @@ fn test_for_supports_into_iterator_with_invalid_type() {
 }
 
 #[test]
+fn test_for_supports_iterator_with_missing_item() {
+    errors(
+        "
+            class Foo
+            impl std::traits::Iterator for Foo {
+                fn next(): Option[Int] { None }
+            }
+
+            fn f(x: Foo): Int {
+                for i in x {
+                    return i;
+                }
+                0
+            }
+    ",
+        &[((3, 13), ErrorMessage::MissingAssocType("Item".into()))],
+    );
+}
+
+#[test]
+fn test_for_supports_iterator_with_missing_next() {
+    errors(
+        "
+            class Foo
+            impl std::traits::Iterator for Foo {
+                type Item = Int;
+            }
+
+            fn f(x: Foo): Int {
+                for i in x {
+                    return i;
+                }
+                0
+            }
+    ",
+        &[((3, 13), ErrorMessage::ElementNotInImpl("next".into()))],
+    );
+}
+
+#[test]
 fn test_ctor_with_type_param() {
     err(
         "

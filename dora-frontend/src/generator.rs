@@ -897,7 +897,14 @@ impl<'a> AstBytecodeGen<'a> {
         let next_result_reg = self.alloc_temp(next_result_ty);
 
         let fct_idx = self.builder.add_const_fct_types(
-            FunctionId(for_type_info.next.index().try_into().expect("overflow")),
+            FunctionId(
+                for_type_info
+                    .next
+                    .expect("missing fct id")
+                    .index()
+                    .try_into()
+                    .expect("overflow"),
+            ),
             iterator_type_params,
         );
 

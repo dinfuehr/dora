@@ -185,25 +185,23 @@ fn type_supports_iterator_trait(
 
     if let Some(impl_match) = impl_match {
         let impl_ = ck.sa.impl_(impl_match.id);
+        let next_impl_fct_id = impl_.trait_method_map().get(&next_trait_fct_id).cloned();
 
-        let next_impl_fct_id = impl_
-            .trait_method_map()
-            .get(&next_trait_fct_id)
-            .cloned()
-            .expect("missing impl next() method");
+        let next_type = if let Some(next_impl_fct_id) = next_impl_fct_id {
+            let next_impl_fct = ck.sa.fct(next_impl_fct_id);
+            specialize_type(ck.sa, next_impl_fct.return_type(), &impl_match.bindings)
+        } else {
+            SourceType::Error
+        };
 
-        let next_impl_fct = ck.sa.fct(next_impl_fct_id);
-
-        let item_impl_alias_id = impl_
-            .trait_alias_map()
-            .get(&item_trait_alias_id)
-            .cloned()
-            .expect("missing impl alias");
-
-        let impl_alias = ck.sa.alias(item_impl_alias_id);
-
-        let value_type = specialize_type(ck.sa, impl_alias.ty(), &impl_match.bindings);
-        let next_type = specialize_type(ck.sa, next_impl_fct.return_type(), &impl_match.bindings);
+        let value_type = if let Some(item_impl_alias_id) =
+            impl_.trait_alias_map().get(&item_trait_alias_id).cloned()
+        {
+            let impl_alias = ck.sa.alias(item_impl_alias_id);
+            specialize_type(ck.sa, impl_alias.ty(), &impl_match.bindings)
+        } else {
+            SourceType::Error
+        };
 
         Some((
             ForTypeInfo {
