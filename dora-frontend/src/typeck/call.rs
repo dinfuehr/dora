@@ -177,6 +177,7 @@ fn check_expr_call_expr(
 
     let impl_match = find_impl(
         ck.sa,
+        ck.element,
         expr_type.clone(),
         &ck.type_param_definition,
         trait_ty.clone(),
@@ -270,6 +271,7 @@ fn check_expr_call_fct(
 
     let ty = if typeparamck::check(
         ck.sa,
+        ck.element,
         &ck.type_param_definition,
         fct,
         &type_params,
@@ -302,6 +304,7 @@ fn check_expr_call_static_method(
 
     let candidates = find_method_call_candidates(
         ck.sa,
+        ck.element,
         &ck.symtable,
         object_type.clone(),
         &ck.type_param_definition,
@@ -330,6 +333,7 @@ fn check_expr_call_static_method(
 
         let ty = if typeparamck::check(
             ck.sa,
+            ck.element,
             &ck.type_param_definition,
             fct,
             &full_type_params,
@@ -388,6 +392,7 @@ fn check_expr_call_method(
 
     let candidates = find_method_call_candidates(
         ck.sa,
+        ck.element,
         &ck.symtable,
         object_type.clone(),
         &ck.type_param_definition,
@@ -413,6 +418,7 @@ fn check_expr_call_method(
 
         let ty = if typeparamck::check(
             ck.sa,
+            ck.element,
             &ck.type_param_definition,
             fct,
             &full_type_params,
@@ -542,6 +548,7 @@ fn check_expr_call_struct(
     let ty = SourceType::Struct(struct_id, type_params.clone());
     let type_params_ok = typeparamck::check(
         ck.sa,
+        ck.element,
         ck.type_param_definition,
         struct_,
         &type_params,
@@ -713,6 +720,7 @@ fn check_expr_call_class(
 
     if !typeparamck::check(
         ck.sa,
+        ck.element,
         ck.type_param_definition,
         cls,
         &type_params,
@@ -771,6 +779,7 @@ pub(super) fn check_expr_call_enum_variant(
 
     let type_params_ok = typeparamck::check(
         ck.sa,
+        ck.element,
         ck.type_param_definition,
         enum_,
         &type_params,
@@ -1025,6 +1034,7 @@ fn check_expr_call_path(
             let cls = ck.sa.class(cls_id);
             if typeparamck::check(
                 ck.sa,
+                ck.element,
                 ck.type_param_definition,
                 cls,
                 &container_type_params,
@@ -1049,6 +1059,7 @@ fn check_expr_call_path(
 
             if typeparamck::check(
                 ck.sa,
+                ck.element,
                 ck.type_param_definition,
                 struct_,
                 &container_type_params,
@@ -1095,6 +1106,7 @@ fn check_expr_call_path(
             } else {
                 if typeparamck::check(
                     ck.sa,
+                    ck.element,
                     ck.type_param_definition,
                     enum_,
                     &container_type_params,

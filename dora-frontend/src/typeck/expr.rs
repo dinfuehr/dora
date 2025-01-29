@@ -547,6 +547,7 @@ fn check_index_trait_on_ty(
 
     let impl_match = find_impl(
         ck.sa,
+        ck.element,
         expr_type.clone(),
         &ck.type_param_definition,
         trait_ty.clone(),
@@ -1099,6 +1100,7 @@ fn check_expr_conv(
         let implements = implements_trait(
             ck.sa,
             object_type.clone(),
+            ck.element,
             &ck.type_param_definition,
             TraitType::new_ty(ck.sa, check_type.clone()),
         );
@@ -1248,12 +1250,14 @@ fn check_expr_template(
             if implements_trait(
                 ck.sa,
                 part_expr.clone(),
+                ck.element,
                 &ck.type_param_definition,
                 stringable_trait_ty.clone(),
             ) {
                 if !part_expr.is_type_param() {
                     let impl_match = find_impl(
                         ck.sa,
+                        ck.element,
                         part_expr.clone(),
                         &ck.type_param_definition,
                         stringable_trait_ty.clone(),
@@ -1334,6 +1338,7 @@ fn check_expr_un_trait(
 
     let impl_match = find_impl(
         ck.sa,
+        ck.element,
         ty.clone(),
         &ck.type_param_definition,
         trait_ty.clone(),
@@ -1362,7 +1367,13 @@ fn check_expr_un_trait(
 
         return_type
     } else if ty.is_type_param()
-        && implements_trait(ck.sa, ty.clone(), ck.type_param_definition, trait_ty)
+        && implements_trait(
+            ck.sa,
+            ty.clone(),
+            ck.element,
+            ck.type_param_definition,
+            trait_ty,
+        )
     {
         let trait_ = &ck.sa.trait_(trait_id);
 
@@ -1618,6 +1629,7 @@ fn check_expr_bin_trait(
 
     let impl_match = find_impl(
         ck.sa,
+        ck.element,
         lhs_type.clone(),
         &ck.type_param_definition,
         trait_ty.clone(),
@@ -1676,7 +1688,13 @@ fn check_expr_bin_trait(
             }
         }
     } else if lhs_type.is_type_param()
-        && implements_trait(ck.sa, lhs_type.clone(), ck.type_param_definition, trait_ty)
+        && implements_trait(
+            ck.sa,
+            lhs_type.clone(),
+            ck.element,
+            ck.type_param_definition,
+            trait_ty,
+        )
     {
         let trait_ = ck.sa.trait_(trait_id);
 
@@ -2054,6 +2072,7 @@ fn check_enum_variant_without_args(
 
     let type_params_ok = typeparamck::check(
         ck.sa,
+        ck.element,
         ck.type_param_definition,
         enum_,
         &type_params,
@@ -2200,6 +2219,7 @@ pub(super) fn check_enum_variant_without_args_id(
 
     let type_params_ok = typeparamck::check(
         ck.sa,
+        ck.element,
         ck.type_param_definition,
         enum_,
         &type_params,

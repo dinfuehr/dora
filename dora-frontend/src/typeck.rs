@@ -4,7 +4,7 @@ use dora_parser::ast;
 
 use crate::sema::{
     AnalysisData, Element, FctDefinition, FctParent, GlobalDefinition,
-    LazyContextClassCreationData, LazyLambdaCreationData, Sema, TypeParamDefinition,
+    LazyContextClassCreationData, LazyLambdaCreationData, Sema,
 };
 use crate::sym::ModuleSymTable;
 use crate::typeck::call::{check_expr_call, create_call_arguments};
@@ -141,7 +141,7 @@ fn check_global(
 
         let mut typeck = TypeCheck {
             sa,
-            type_param_definition: &TypeParamDefinition::empty(),
+            type_param_definition: global.type_param_definition(),
             package_id: global.package_id,
             module_id: global.module_id,
             file_id: global.file_id,

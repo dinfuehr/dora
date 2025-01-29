@@ -7,6 +7,7 @@ use crate::SourceType;
 
 pub fn find_method_call_candidates(
     sa: &Sema,
+    check_element: &dyn Element,
     table: &ModuleSymTable,
     object_type: SourceType,
     type_param_defs: &TypeParamDefinition,
@@ -37,9 +38,13 @@ pub fn find_method_call_candidates(
     }
 
     for (_id, extension) in sa.extensions.iter() {
-        if let Some(bindings) =
-            extension_matches(sa, object_type.clone(), type_param_defs, extension.id())
-        {
+        if let Some(bindings) = extension_matches(
+            sa,
+            object_type.clone(),
+            check_element,
+            type_param_defs,
+            extension.id(),
+        ) {
             let table = if is_static {
                 &extension.static_names
             } else {
@@ -67,9 +72,13 @@ pub fn find_method_call_candidates(
                 continue;
             }
 
-            if let Some(bindings) =
-                impl_matches(sa, object_type.clone(), type_param_defs, impl_.id())
-            {
+            if let Some(bindings) = impl_matches(
+                sa,
+                object_type.clone(),
+                check_element,
+                type_param_defs,
+                impl_.id(),
+            ) {
                 if let Some(trait_method_id) = trait_.get_method(name, is_static) {
                     if let Some(fct_id) = impl_.get_method_for_trait_method_id(trait_method_id) {
                         candidates.push(Candidate {

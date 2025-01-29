@@ -407,7 +407,8 @@ fn convert_type_regular(sa: &Sema, file_id: SourceFileId, parsed_ty: &ParsedType
                 source_type_arguments.push(ty);
             }
 
-            let type_param_definition = sym_type_param_definition(sa, sym.clone());
+            let sym_element = get_sym_element(sa, sym.clone());
+            let type_param_definition = sym_element.type_param_definition();
 
             if type_param_definition.type_param_count() == source_type_arguments.len() {
                 let type_params = SourceTypeArray::with(source_type_arguments);
@@ -496,12 +497,12 @@ fn convert_type_regular_trait_object(
     SourceType::TraitObject(trait_id, trait_type_params.into(), bindings.into())
 }
 
-fn sym_type_param_definition(sa: &Sema, sym: SymbolKind) -> &TypeParamDefinition {
+fn get_sym_element(sa: &Sema, sym: SymbolKind) -> &dyn Element {
     match sym {
-        SymbolKind::Class(id) => sa.class(id).type_param_definition(),
-        SymbolKind::Struct(id) => sa.struct_(id).type_param_definition(),
-        SymbolKind::Enum(id) => sa.enum_(id).type_param_definition(),
-        SymbolKind::Alias(id) => sa.alias(id).type_param_definition(),
+        SymbolKind::Class(id) => sa.class(id),
+        SymbolKind::Struct(id) => sa.struct_(id),
+        SymbolKind::Enum(id) => sa.enum_(id),
+        SymbolKind::Alias(id) => sa.alias(id),
         _ => unimplemented!(),
     }
 }
@@ -651,12 +652,12 @@ fn convert_trait_type(
 
 pub fn check_type(
     sa: &Sema,
-    element: &dyn Element,
+    ctxt_element: &dyn Element,
     ctxt: &TypeContext,
     parsed_ty: &ParsedType,
 ) -> SourceType {
     if let Some(parsed_ty_ast) = parsed_ty.parsed_ast() {
-        let new_ty = check_type_inner(sa, element, ctxt, parsed_ty.ty(), parsed_ty_ast);
+        let new_ty = check_type_inner(sa, ctxt_element, ctxt, parsed_ty.ty(), parsed_ty_ast);
         parsed_ty.set_ty(new_ty.clone());
         new_ty
     } else {
@@ -666,7 +667,7 @@ pub fn check_type(
 
 fn check_type_inner(
     sa: &Sema,
-    element: &dyn Element,
+    ctxt_element: &dyn Element,
     ctxt: &TypeContext,
     ty: SourceType,
     parsed_ty: &ParsedTypeAst,
@@ -713,13 +714,14 @@ fn check_type_inner(
 
             for idx in 0..parsed_params.len() {
                 let parsed_param = &parsed_params[idx];
-                let ty = check_type_inner(sa, element, ctxt, params[idx].clone(), parsed_param);
+                let ty =
+                    check_type_inner(sa, ctxt_element, ctxt, params[idx].clone(), parsed_param);
                 new_params.push(ty);
             }
 
             let new_params = SourceTypeArray::with(new_params);
             let new_return_type: SourceType = if let Some(parsed_return_type) = parsed_return_type {
-                check_type_inner(sa, element, ctxt, *return_type, parsed_return_type)
+                check_type_inner(sa, ctxt_element, ctxt, *return_type, parsed_return_type)
             } else {
                 SourceType::Unit
             };
@@ -737,7 +739,13 @@ fn check_type_inner(
 
             for idx in 0..parsed_subtypes.len() {
                 let parsed_subtype = &parsed_subtypes[idx];
-                let ty = check_type_inner(sa, element, ctxt, subtypes[idx].clone(), parsed_subtype);
+                let ty = check_type_inner(
+                    sa,
+                    ctxt_element,
+                    ctxt,
+                    subtypes[idx].clone(),
+                    parsed_subtype,
+                );
                 new_type_params.push(ty);
             }
 
@@ -747,11 +755,11 @@ fn check_type_inner(
         | SourceType::Struct(_, type_params)
         | SourceType::Enum(_, type_params)
         | SourceType::Alias(_, type_params) => {
-            check_type_record(sa, element, ctxt, parsed_ty, type_params)
+            check_type_record(sa, ctxt_element, ctxt, parsed_ty, type_params)
         }
         SourceType::TraitObject(trait_id, type_params, bindings) => check_type_trait_object(
             sa,
-            element,
+            ctxt_element,
             ctxt,
             parsed_ty,
             trait_id,
@@ -763,7 +771,7 @@ fn check_type_inner(
 
 fn check_type_record(
     sa: &Sema,
-    element: &dyn Element,
+    ctxt_element: &dyn Element,
     ctxt: &TypeContext,
     parsed_ty: &ParsedTypeAst,
     type_params: SourceTypeArray,
@@ -790,7 +798,7 @@ fn check_type_record(
         assert!(parsed_type_arg.name.is_none());
         let ty = check_type_inner(
             sa,
-            element,
+            ctxt_element,
             ctxt,
             type_params[idx].clone(),
             &parsed_type_arg.ty,
@@ -799,15 +807,17 @@ fn check_type_record(
     }
 
     let new_type_params = SourceTypeArray::with(new_type_params);
-    let type_param_definition = sym_type_param_definition(sa, symbol.clone());
+    let callee_element = get_sym_element(sa, symbol.clone());
+    let callee_type_param_definition = callee_element.type_param_definition();
 
     if check_type_params(
         sa,
-        type_param_definition,
+        callee_element,
+        callee_type_param_definition,
         new_type_params.types(),
+        ctxt_element,
         ctxt.file_id,
         parsed_ty.span,
-        ctxt.type_param_definition,
     ) {
         ty_for_sym(sa, symbol, new_type_params)
     } else {
@@ -972,22 +982,24 @@ fn check_trait_type_inner(
 
 fn check_type_params(
     sa: &Sema,
-    type_param_definition: &TypeParamDefinition,
+    _callee_element: &dyn Element,
+    callee_type_param_definition: &TypeParamDefinition,
     type_arguments: &[SourceType],
+    ctxt_element: &dyn Element,
     file_id: SourceFileId,
     span: Span,
-    context_type_param_definition: &TypeParamDefinition,
 ) -> bool {
     assert_eq!(
-        type_param_definition.type_param_count(),
+        callee_type_param_definition.type_param_count(),
         type_arguments.len()
     );
 
     let type_arguments = SourceTypeArray::with(type_arguments.to_vec());
+    let ctxt_type_param_definition = ctxt_element.type_param_definition();
 
     let mut success = true;
 
-    for bound in type_param_definition.bounds() {
+    for bound in callee_type_param_definition.bounds() {
         let tp_ty = bound.ty();
 
         if let Some(trait_ty) = bound.trait_ty() {
@@ -996,11 +1008,12 @@ fn check_type_params(
             if !implements_trait(
                 sa,
                 tp_ty.clone(),
-                context_type_param_definition,
+                ctxt_element,
+                ctxt_type_param_definition,
                 trait_ty.clone(),
             ) {
-                let name = tp_ty.name_with_type_params(sa, context_type_param_definition);
-                let trait_name = trait_ty.name_with_type_params(sa, context_type_param_definition);
+                let name = tp_ty.name_with_type_params(sa, ctxt_type_param_definition);
+                let trait_name = trait_ty.name_with_type_params(sa, ctxt_type_param_definition);
                 let msg = ErrorMessage::TypeNotImplementingTrait(name, trait_name);
                 sa.report(file_id, span, msg);
                 success = false;
@@ -1013,7 +1026,7 @@ fn check_type_params(
 
 fn check_trait_type_param_definition(
     sa: &Sema,
-    _element: &dyn Element,
+    element: &dyn Element,
     trait_: &TraitDefinition,
     generic_arguments: &[SourceType],
     type_bindings: &[(AliasDefinitionId, SourceType)],
@@ -1039,6 +1052,7 @@ fn check_trait_type_param_definition(
             if !implements_trait(
                 sa,
                 tp_ty.clone(),
+                element,
                 context_type_param_definition,
                 trait_ty.clone(),
             ) {
@@ -1059,6 +1073,7 @@ fn check_trait_type_param_definition(
                 if !implements_trait(
                     sa,
                     ty.clone(),
+                    element,
                     context_type_param_definition,
                     trait_ty.clone(),
                 ) {

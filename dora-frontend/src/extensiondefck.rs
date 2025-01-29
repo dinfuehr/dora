@@ -42,6 +42,7 @@ pub fn check(sa: &Sema) {
                 if block_matches_ty(
                     sa,
                     extension.ty().clone(),
+                    fct,
                     extension.type_param_definition(),
                     cmp_extension.ty().clone(),
                     cmp_extension.type_param_definition(),

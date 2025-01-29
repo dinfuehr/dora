@@ -7,8 +7,9 @@ use crate::{SourceType, SourceTypeArray, TraitType};
 
 pub fn check<'a>(
     sa: &'a Sema,
+    caller_element: &'a dyn Element,
     caller_type_param_defs: &'a TypeParamDefinition,
-    element: &'a dyn Element,
+    callee_element: &'a dyn Element,
     params: &'a SourceTypeArray,
     file_id: SourceFileId,
     span: Span,
@@ -16,7 +17,9 @@ pub fn check<'a>(
     let checker = TypeParamCheck {
         sa,
         caller_type_param_defs,
-        callee_type_param_defs: element.type_param_definition(),
+        caller_element,
+        callee_type_param_defs: callee_element.type_param_definition(),
+        _callee_element: callee_element,
         file_id,
         span,
     };
@@ -27,7 +30,9 @@ pub fn check<'a>(
 struct TypeParamCheck<'a> {
     sa: &'a Sema,
     caller_type_param_defs: &'a TypeParamDefinition,
+    caller_element: &'a dyn Element,
     callee_type_param_defs: &'a TypeParamDefinition,
+    _callee_element: &'a dyn Element,
     file_id: SourceFileId,
     span: Span,
 }
@@ -53,6 +58,7 @@ impl<'a> TypeParamCheck<'a> {
                 if !implements_trait(
                     self.sa,
                     tp_ty.clone(),
+                    self.caller_element,
                     self.caller_type_param_defs,
                     trait_ty.clone(),
                 ) {

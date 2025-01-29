@@ -7,6 +7,7 @@ use crate::{SourceType, SourceTypeArray, SymbolKind};
 pub fn extension_matches(
     sa: &Sema,
     check_ty: SourceType,
+    check_element: &dyn Element,
     check_type_param_defs: &TypeParamDefinition,
     extension_id: ExtensionDefinitionId,
 ) -> Option<SourceTypeArray> {
@@ -14,6 +15,7 @@ pub fn extension_matches(
     let bindings = block_matches_ty(
         sa,
         check_ty,
+        check_element,
         check_type_param_defs,
         extension.ty().clone(),
         extension.type_param_definition(),
@@ -32,6 +34,7 @@ pub fn extension_matches(
 pub fn block_matches_ty(
     sa: &Sema,
     check_ty: SourceType,
+    check_element: &dyn Element,
     check_type_param_defs: &TypeParamDefinition,
     ext_ty: SourceType,
     ext_type_param_defs: &TypeParamDefinition,
@@ -41,6 +44,7 @@ pub fn block_matches_ty(
     let result = match_types(
         sa,
         check_ty,
+        check_element,
         check_type_param_defs,
         ext_ty.clone(),
         ext_type_param_defs,
@@ -57,6 +61,7 @@ pub fn block_matches_ty(
 pub fn match_arrays(
     sa: &Sema,
     check_array: &SourceTypeArray,
+    check_element: &dyn Element,
     check_type_param_definition: &TypeParamDefinition,
     extended_array: &SourceTypeArray,
     extended_type_param_definition: &TypeParamDefinition,
@@ -70,6 +75,7 @@ pub fn match_arrays(
         if !match_types(
             sa,
             check_ty,
+            check_element,
             check_type_param_definition,
             extended_ty,
             extended_type_param_definition,
@@ -85,6 +91,7 @@ pub fn match_arrays(
 fn match_types(
     sa: &Sema,
     check_ty: SourceType,
+    check_element: &dyn Element,
     check_type_param_defs: &TypeParamDefinition,
     ext_ty: SourceType,
     ext_type_param_defs: &TypeParamDefinition,
@@ -100,6 +107,7 @@ fn match_types(
             match_concrete_types(
                 sa,
                 check_ty,
+                check_element,
                 check_type_param_defs,
                 binding,
                 ext_type_param_defs,
@@ -118,6 +126,7 @@ fn match_types(
                 match_concrete_against_bounds(
                     sa,
                     check_ty.clone(),
+                    check_element,
                     check_type_param_defs,
                     ext_tp_id,
                     ext_type_param_defs,
@@ -135,6 +144,7 @@ fn match_types(
             match_concrete_types(
                 sa,
                 check_ty,
+                check_element,
                 check_type_param_defs,
                 ext_ty,
                 ext_type_param_defs,
@@ -166,12 +176,19 @@ fn match_type_params(
 fn match_concrete_against_bounds(
     sa: &Sema,
     check_ty: SourceType,
+    check_element: &dyn Element,
     check_type_param_defs: &TypeParamDefinition,
     ext_tp_id: TypeParamId,
     ext_type_param_defs: &TypeParamDefinition,
 ) -> bool {
     for trait_ty in ext_type_param_defs.bounds_for_type_param(ext_tp_id) {
-        if !implements_trait(sa, check_ty.clone(), check_type_param_defs, trait_ty) {
+        if !implements_trait(
+            sa,
+            check_ty.clone(),
+            check_element,
+            check_type_param_defs,
+            trait_ty,
+        ) {
             return false;
         }
     }
@@ -182,6 +199,7 @@ fn match_concrete_against_bounds(
 fn match_concrete_types(
     sa: &Sema,
     check_ty: SourceType,
+    check_element: &dyn Element,
     check_type_param_defs: &TypeParamDefinition,
     ext_ty: SourceType,
     ext_type_param_defs: &TypeParamDefinition,
@@ -207,6 +225,7 @@ fn match_concrete_types(
                 match_arrays(
                     sa,
                     &check_params,
+                    check_element,
                     check_type_param_defs,
                     &ext_params,
                     ext_type_param_defs,
@@ -214,6 +233,7 @@ fn match_concrete_types(
                 ) && match_types(
                     sa,
                     *check_ret_type,
+                    check_element,
                     check_type_param_defs,
                     *ext_ret_type,
                     ext_type_param_defs,
@@ -232,6 +252,7 @@ fn match_concrete_types(
             SourceType::Tuple(ext_subtypes) => match_arrays(
                 sa,
                 &check_subtypes,
+                check_element,
                 check_type_param_defs,
                 &ext_subtypes,
                 ext_type_param_defs,
@@ -251,6 +272,7 @@ fn match_concrete_types(
             match_arrays(
                 sa,
                 &check_ty.type_params(),
+                check_element,
                 check_type_param_defs,
                 &ext_ty.type_params(),
                 ext_type_param_defs,
@@ -265,6 +287,7 @@ fn match_concrete_types(
                         && match_arrays(
                             sa,
                             &check_type_params,
+                            check_element,
                             check_type_param_defs,
                             &ext_type_params,
                             ext_type_param_defs,
@@ -273,6 +296,7 @@ fn match_concrete_types(
                         && match_arrays(
                             sa,
                             &check_bindings,
+                            check_element,
                             check_type_param_defs,
                             &ext_bindings,
                             ext_type_param_defs,

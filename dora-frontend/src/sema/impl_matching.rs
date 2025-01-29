@@ -7,6 +7,7 @@ use crate::{specialize_type, SourceType, SourceTypeArray, TraitType};
 pub fn impl_matches(
     sa: &Sema,
     check_ty: SourceType,
+    check_element: &dyn Element,
     check_type_param_defs: &TypeParamDefinition,
     impl_id: ImplDefinitionId,
 ) -> Option<SourceTypeArray> {
@@ -14,6 +15,7 @@ pub fn impl_matches(
     let bindings = block_matches_ty(
         sa,
         check_ty,
+        check_element,
         check_type_param_defs,
         impl_.extended_ty(),
         impl_.type_param_definition(),
@@ -32,9 +34,14 @@ pub fn impl_matches(
 pub fn implements_trait(
     sa: &Sema,
     check_ty: SourceType,
+    check_element: &dyn Element,
     check_type_param_defs: &TypeParamDefinition,
     trait_ty: TraitType,
 ) -> bool {
+    assert_eq!(
+        check_element.type_param_definition().as_ref() as *const _,
+        check_type_param_defs as *const _
+    );
     let check_ty = maybe_alias_ty(sa, check_ty);
 
     if check_ty.is_primitive() && sa.known.traits.zero() == trait_ty.trait_id {
@@ -57,7 +64,7 @@ pub fn implements_trait(
         | SourceType::Unit
         | SourceType::TraitObject(..)
         | SourceType::Lambda(..) => {
-            find_impl(sa, check_ty, check_type_param_defs, trait_ty).is_some()
+            find_impl(sa, check_element, check_ty, check_type_param_defs, trait_ty).is_some()
         }
 
         SourceType::TypeParam(tp_id) => check_type_param_defs.implements_trait(sa, tp_id, trait_ty),
@@ -93,6 +100,7 @@ pub struct ImplMatch {
 
 pub fn find_impl(
     sa: &Sema,
+    check_element: &dyn Element,
     check_ty: SourceType,
     check_type_param_definition: &TypeParamDefinition,
     trait_ty: TraitType,
@@ -106,6 +114,7 @@ pub fn find_impl(
             if let Some(mut opt_bindings) = block_matches_ty(
                 sa,
                 check_ty.clone(),
+                check_element,
                 check_type_param_definition,
                 impl_.extended_ty(),
                 impl_.type_param_definition(),
@@ -115,6 +124,7 @@ pub fn find_impl(
                     impl_,
                     &impl_trait_ty,
                     &trait_ty,
+                    check_element,
                     check_type_param_definition,
                     &mut opt_bindings,
                 ) {
@@ -144,6 +154,7 @@ fn trait_ty_match(
     impl_: &ImplDefinition,
     impl_trait_ty: &TraitType,
     check_trait_ty: &TraitType,
+    check_element: &dyn Element,
     check_type_param_definition: &TypeParamDefinition,
     opt_bindings: &mut Vec<Option<SourceType>>,
 ) -> bool {
@@ -156,6 +167,7 @@ fn trait_ty_match(
     if !match_arrays(
         sa,
         &check_trait_ty.type_params,
+        check_element,
         check_type_param_definition,
         &impl_trait_ty.type_params,
         impl_.type_param_definition(),

@@ -528,6 +528,7 @@ fn check_type_aliases_bounds_inner(sa: &Sema, impl_: &ImplDefinition, trait_: &T
                     if !implements_trait(
                         sa,
                         impl_alias.ty(),
+                        impl_,
                         impl_.type_param_definition(),
                         trait_ty.clone(),
                     ) {
@@ -561,6 +562,7 @@ fn check_super_traits_for_bound(sa: &Sema, impl_: &ImplDefinition, trait_ty: Tra
         if implements_trait(
             sa,
             impl_.extended_ty(),
+            impl_,
             impl_.type_param_definition(),
             bound.clone(),
         ) {
