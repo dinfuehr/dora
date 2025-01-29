@@ -1721,7 +1721,7 @@ impl CodeGen for CodeGenX64 {
                 } else if ty == Type::Int32 {
                     self.asm.movl_ar(AsmAddress::offset(stack_reg, offset), src.getRegister());
                 } else {
-                    assert(ty == Type::Bool);
+                    assert(ty == Type::Bool || ty == Type::UInt8);
                     self.asm.movb_ar(AsmAddress::offset(stack_reg, offset), src.getRegister());
                 }
             } else {
