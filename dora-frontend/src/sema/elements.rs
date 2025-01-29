@@ -33,7 +33,7 @@ pub trait Element {
     fn span(&self) -> Span;
     fn module_id(&self) -> ModuleDefinitionId;
     fn package_id(&self) -> PackageDefinitionId;
-    fn type_param_definition(&self) -> Option<&Rc<TypeParamDefinition>>;
+    fn type_param_definition(&self) -> &Rc<TypeParamDefinition>;
 
     fn is_trait(&self) -> bool {
         self.to_trait().is_some()

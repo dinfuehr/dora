@@ -16,9 +16,7 @@ pub fn check<'a>(
     let checker = TypeParamCheck {
         sa,
         caller_type_param_defs,
-        callee_type_param_defs: element
-            .type_param_definition()
-            .expect("missing type params"),
+        callee_type_param_defs: element.type_param_definition(),
         file_id,
         span,
     };

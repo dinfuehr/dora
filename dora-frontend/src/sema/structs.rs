@@ -160,8 +160,8 @@ impl Element for StructDefinition {
         self.package_id
     }
 
-    fn type_param_definition(&self) -> Option<&Rc<TypeParamDefinition>> {
-        Some(&self.type_param_definition)
+    fn type_param_definition(&self) -> &Rc<TypeParamDefinition> {
+        &self.type_param_definition
     }
 
     fn self_ty(&self, _sa: &Sema) -> Option<SourceType> {

@@ -29,6 +29,7 @@ pub struct GlobalDefinition {
     pub parsed_ty: ParsedType,
     pub mutable: bool,
     pub name: Name,
+    pub type_param_definition: Rc<TypeParamDefinition>,
     pub initializer: OnceCell<FctDefinitionId>,
     pub analysis: OnceCell<AnalysisData>,
     pub bytecode: OnceCell<BytecodeFunction>,
@@ -54,6 +55,7 @@ impl GlobalDefinition {
             visibility: modifiers.visibility(),
             parsed_ty: ParsedType::new_ast(node.data_type.clone()),
             mutable: node.mutable,
+            type_param_definition: TypeParamDefinition::empty(),
             initializer: OnceCell::new(),
             analysis: OnceCell::new(),
             bytecode: OnceCell::new(),
@@ -114,8 +116,8 @@ impl Element for GlobalDefinition {
         self.package_id
     }
 
-    fn type_param_definition(&self) -> Option<&Rc<TypeParamDefinition>> {
-        None
+    fn type_param_definition(&self) -> &Rc<TypeParamDefinition> {
+        &self.type_param_definition
     }
 
     fn self_ty(&self, _sa: &Sema) -> Option<SourceType> {

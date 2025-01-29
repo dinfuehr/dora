@@ -148,8 +148,8 @@ impl Element for AliasDefinition {
         self.package_id
     }
 
-    fn type_param_definition(&self) -> Option<&Rc<TypeParamDefinition>> {
-        None
+    fn type_param_definition(&self) -> &Rc<TypeParamDefinition> {
+        unreachable!()
     }
 
     fn to_alias(&self) -> Option<&AliasDefinition> {

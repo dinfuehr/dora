@@ -175,7 +175,7 @@ fn lookup_alias_on_type_param<'a>(
     id: TypeParamId,
     name: Name,
 ) -> Option<Vec<AliasDefinitionId>> {
-    let type_param_definition = element.type_param_definition().expect("no type params");
+    let type_param_definition = element.type_param_definition();
     let mut results = Vec::with_capacity(2);
 
     for bound in type_param_definition.bounds_for_type_param(id) {

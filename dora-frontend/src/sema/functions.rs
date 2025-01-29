@@ -259,8 +259,8 @@ impl Element for FctDefinition {
         self.package_id
     }
 
-    fn type_param_definition(&self) -> Option<&Rc<TypeParamDefinition>> {
-        Some(&self.type_param_definition)
+    fn type_param_definition(&self) -> &Rc<TypeParamDefinition> {
+        &self.type_param_definition
     }
 
     fn to_fct(&self) -> Option<&FctDefinition> {

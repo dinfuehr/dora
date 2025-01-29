@@ -28,6 +28,7 @@ pub struct ConstDefinition {
     pub span: Span,
     pub name: Name,
     pub parsed_ty: ParsedType,
+    pub type_param_definition: Rc<TypeParamDefinition>,
     pub expr: ast::Expr,
     pub value: OnceCell<ConstValue>,
 }
@@ -50,6 +51,7 @@ impl ConstDefinition {
             span: node.span,
             name,
             visibility: modifiers.visibility(),
+            type_param_definition: TypeParamDefinition::empty(),
             parsed_ty: ParsedType::new_ast(node.data_type.clone()),
             expr: node.expr.clone(),
             value: OnceCell::new(),
@@ -98,8 +100,8 @@ impl Element for ConstDefinition {
         self.package_id
     }
 
-    fn type_param_definition(&self) -> Option<&Rc<TypeParamDefinition>> {
-        None
+    fn type_param_definition(&self) -> &Rc<TypeParamDefinition> {
+        &self.type_param_definition
     }
 
     fn self_ty(&self, _sa: &Sema) -> Option<SourceType> {
