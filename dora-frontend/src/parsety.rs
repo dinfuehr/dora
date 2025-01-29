@@ -4,7 +4,7 @@ use std::collections::{HashMap, HashSet};
 use crate::access::{sym_accessible_from, trait_accessible_from};
 use crate::sema::{
     implements_trait, is_object_safe, parent_element_or_self, AliasDefinitionId, Element,
-    ModuleDefinitionId, SourceFileId, TraitDefinition, TraitDefinitionId, TypeParamDefinition,
+    SourceFileId, TraitDefinition, TraitDefinitionId, TypeParamDefinition,
 };
 use crate::sym::{ModuleSymTable, SymbolKind};
 use crate::{
@@ -355,13 +355,6 @@ fn parse_type_tuple(
     ParsedTypeKind::Tuple { subtypes }
 }
 
-pub struct TypeContext<'a> {
-    pub allow_self: bool,
-    pub module_id: ModuleDefinitionId,
-    pub file_id: SourceFileId,
-    pub type_param_definition: &'a TypeParamDefinition,
-}
-
 fn convert_type_inner(sa: &Sema, file_id: SourceFileId, parsed_ty: &ParsedTypeAst) -> SourceType {
     match parsed_ty.kind {
         ParsedTypeKind::This => SourceType::This,
@@ -650,14 +643,9 @@ fn convert_trait_type(
     })
 }
 
-pub fn check_type(
-    sa: &Sema,
-    ctxt_element: &dyn Element,
-    ctxt: &TypeContext,
-    parsed_ty: &ParsedType,
-) -> SourceType {
+pub fn check_type(sa: &Sema, ctxt_element: &dyn Element, parsed_ty: &ParsedType) -> SourceType {
     if let Some(parsed_ty_ast) = parsed_ty.parsed_ast() {
-        let new_ty = check_type_inner(sa, ctxt_element, ctxt, parsed_ty.ty(), parsed_ty_ast);
+        let new_ty = check_type_inner(sa, ctxt_element, parsed_ty.ty(), parsed_ty_ast);
         parsed_ty.set_ty(new_ty.clone());
         new_ty
     } else {
@@ -668,7 +656,6 @@ pub fn check_type(
 fn check_type_inner(
     sa: &Sema,
     ctxt_element: &dyn Element,
-    ctxt: &TypeContext,
     ty: SourceType,
     parsed_ty: &ParsedTypeAst,
 ) -> SourceType {
@@ -693,9 +680,9 @@ fn check_type_inner(
                 _ => unreachable!(),
             };
 
-            if !sym_accessible_from(sa, symbol, ctxt.module_id) {
+            if !sym_accessible_from(sa, symbol, ctxt_element.module_id()) {
                 let msg = ErrorMessage::NotAccessible;
-                sa.report(ctxt.file_id, parsed_ty.span, msg);
+                sa.report(ctxt_element.file_id(), parsed_ty.span, msg);
             }
 
             ty
@@ -714,14 +701,13 @@ fn check_type_inner(
 
             for idx in 0..parsed_params.len() {
                 let parsed_param = &parsed_params[idx];
-                let ty =
-                    check_type_inner(sa, ctxt_element, ctxt, params[idx].clone(), parsed_param);
+                let ty = check_type_inner(sa, ctxt_element, params[idx].clone(), parsed_param);
                 new_params.push(ty);
             }
 
             let new_params = SourceTypeArray::with(new_params);
             let new_return_type: SourceType = if let Some(parsed_return_type) = parsed_return_type {
-                check_type_inner(sa, ctxt_element, ctxt, *return_type, parsed_return_type)
+                check_type_inner(sa, ctxt_element, *return_type, parsed_return_type)
             } else {
                 SourceType::Unit
             };
@@ -739,13 +725,7 @@ fn check_type_inner(
 
             for idx in 0..parsed_subtypes.len() {
                 let parsed_subtype = &parsed_subtypes[idx];
-                let ty = check_type_inner(
-                    sa,
-                    ctxt_element,
-                    ctxt,
-                    subtypes[idx].clone(),
-                    parsed_subtype,
-                );
+                let ty = check_type_inner(sa, ctxt_element, subtypes[idx].clone(), parsed_subtype);
                 new_type_params.push(ty);
             }
 
@@ -755,24 +735,17 @@ fn check_type_inner(
         | SourceType::Struct(_, type_params)
         | SourceType::Enum(_, type_params)
         | SourceType::Alias(_, type_params) => {
-            check_type_record(sa, ctxt_element, ctxt, parsed_ty, type_params)
+            check_type_record(sa, ctxt_element, parsed_ty, type_params)
         }
-        SourceType::TraitObject(trait_id, type_params, bindings) => check_type_trait_object(
-            sa,
-            ctxt_element,
-            ctxt,
-            parsed_ty,
-            trait_id,
-            type_params,
-            bindings,
-        ),
+        SourceType::TraitObject(trait_id, type_params, bindings) => {
+            check_type_trait_object(sa, ctxt_element, parsed_ty, trait_id, type_params, bindings)
+        }
     }
 }
 
 fn check_type_record(
     sa: &Sema,
     ctxt_element: &dyn Element,
-    ctxt: &TypeContext,
     parsed_ty: &ParsedTypeAst,
     type_params: SourceTypeArray,
 ) -> SourceType {
@@ -785,9 +758,9 @@ fn check_type_record(
         _ => unreachable!(),
     };
 
-    if !sym_accessible_from(sa, symbol.clone(), ctxt.module_id) {
+    if !sym_accessible_from(sa, symbol.clone(), ctxt_element.module_id()) {
         let msg = ErrorMessage::NotAccessible;
-        sa.report(ctxt.file_id, parsed_ty.span, msg);
+        sa.report(ctxt_element.file_id(), parsed_ty.span, msg);
     }
 
     assert_eq!(type_params.len(), parsed_type_params.len());
@@ -799,7 +772,6 @@ fn check_type_record(
         let ty = check_type_inner(
             sa,
             ctxt_element,
-            ctxt,
             type_params[idx].clone(),
             &parsed_type_arg.ty,
         );
@@ -816,7 +788,6 @@ fn check_type_record(
         callee_type_param_definition,
         new_type_params.types(),
         ctxt_element,
-        ctxt.file_id,
         parsed_ty.span,
     ) {
         ty_for_sym(sa, symbol, new_type_params)
@@ -827,8 +798,7 @@ fn check_type_record(
 
 fn check_type_trait_object(
     sa: &Sema,
-    element: &dyn Element,
-    ctxt: &TypeContext,
+    ctxt_element: &dyn Element,
     parsed_ty: &ParsedTypeAst,
     trait_id: TraitDefinitionId,
     type_params: SourceTypeArray,
@@ -844,14 +814,14 @@ fn check_type_trait_object(
         _ => unreachable!(),
     };
 
-    if !trait_accessible_from(sa, trait_id, ctxt.module_id) {
+    if !trait_accessible_from(sa, trait_id, ctxt_element.module_id()) {
         let msg = ErrorMessage::NotAccessible;
-        sa.report(ctxt.file_id, parsed_ty.span, msg);
+        sa.report(ctxt_element.file_id(), parsed_ty.span, msg);
     }
 
     if !is_object_safe(sa, trait_id) {
         sa.report(
-            ctxt.file_id,
+            ctxt_element.file_id(),
             parsed_ty.span,
             ErrorMessage::TraitNotObjectSafe,
         );
@@ -867,7 +837,7 @@ fn check_type_trait_object(
     for (idx, arg) in type_params.iter().enumerate() {
         let parsed_type_arg = &parsed_type_arguments[idx];
         assert!(parsed_type_arg.name.is_none());
-        let ty = check_type_inner(sa, element, ctxt, arg.clone(), &parsed_type_arg.ty);
+        let ty = check_type_inner(sa, ctxt_element, arg.clone(), &parsed_type_arg.ty);
         new_type_params.push(ty);
     }
 
@@ -878,19 +848,19 @@ fn check_type_trait_object(
         let parsed_type_arg = &parsed_type_arguments[type_param_count + idx];
         assert!(parsed_type_arg.name.is_some());
         let alias_id = trait_.aliases()[0];
-        let ty = check_type_inner(sa, element, ctxt, arg.clone(), &parsed_type_arg.ty);
+        let ty = check_type_inner(sa, ctxt_element, arg.clone(), &parsed_type_arg.ty);
         new_bindings.push((alias_id, ty));
     }
 
     let result = if check_trait_type_param_definition(
         sa,
-        element,
+        ctxt_element,
         trait_,
         &new_type_params,
         &new_bindings,
-        ctxt.file_id,
+        ctxt_element.file_id(),
         parsed_ty.span,
-        ctxt.type_param_definition,
+        ctxt_element.type_param_definition(),
     ) {
         let new_bindings: Vec<SourceType> = new_bindings.into_iter().map(|b| b.1).collect();
         SourceType::TraitObject(trait_id, new_type_params.into(), new_bindings.into())
@@ -901,24 +871,18 @@ fn check_type_trait_object(
     result
 }
 
-pub fn check_trait_type(
-    sa: &Sema,
-    element: &dyn Element,
-    ctxt: &TypeContext,
-    parsed_ty: &ParsedTraitType,
-) {
+pub fn check_trait_type(sa: &Sema, element: &dyn Element, parsed_ty: &ParsedTraitType) {
     let parsed_ty_ast = parsed_ty.parsed_ast().expect("missing ast node");
 
     if let Some(trait_ty) = parsed_ty.ty() {
-        let new_ty = check_trait_type_inner(sa, element, ctxt, trait_ty, parsed_ty_ast);
+        let new_ty = check_trait_type_inner(sa, element, trait_ty, parsed_ty_ast);
         parsed_ty.set_ty(new_ty);
     }
 }
 
 fn check_trait_type_inner(
     sa: &Sema,
-    element: &dyn Element,
-    ctxt: &TypeContext,
+    ctxt_element: &dyn Element,
     trait_ty: TraitType,
     parsed_ty: &ParsedTypeAst,
 ) -> Option<TraitType> {
@@ -932,9 +896,9 @@ fn check_trait_type_inner(
         _ => unreachable!(),
     };
 
-    if !trait_accessible_from(sa, trait_ty.trait_id, ctxt.module_id) {
+    if !trait_accessible_from(sa, trait_ty.trait_id, ctxt_element.module_id()) {
         let msg = ErrorMessage::NotAccessible;
-        sa.report(ctxt.file_id, parsed_ty.span, msg);
+        sa.report(ctxt_element.file_id(), parsed_ty.span, msg);
     }
 
     assert_eq!(
@@ -946,7 +910,7 @@ fn check_trait_type_inner(
     for (idx, arg) in trait_ty.type_params.iter().enumerate() {
         let parsed_type_arg = &parsed_type_params[idx];
         assert!(parsed_type_arg.name.is_none());
-        let ty = check_type_inner(sa, element, ctxt, arg, &parsed_type_arg.ty);
+        let ty = check_type_inner(sa, ctxt_element, arg, &parsed_type_arg.ty);
         new_type_params.push(ty);
     }
 
@@ -956,19 +920,19 @@ fn check_trait_type_inner(
     for (idx, (alias_id, ty)) in trait_ty.bindings.iter().enumerate() {
         let parsed_type_arg = &parsed_type_params[trait_ty.type_params.len() + idx];
         assert!(parsed_type_arg.name.is_some());
-        let ty = check_type_inner(sa, element, ctxt, ty.clone(), &parsed_type_arg.ty);
+        let ty = check_type_inner(sa, ctxt_element, ty.clone(), &parsed_type_arg.ty);
         new_bindings.push((*alias_id, ty));
     }
 
     if check_trait_type_param_definition(
         sa,
-        element,
+        ctxt_element,
         trait_,
         &new_type_params,
         &new_bindings,
-        ctxt.file_id,
+        ctxt_element.file_id(),
         parsed_ty.span,
-        ctxt.type_param_definition,
+        ctxt_element.type_param_definition(),
     ) {
         Some(TraitType {
             trait_id: trait_ty.trait_id,
@@ -986,7 +950,6 @@ fn check_type_params(
     callee_type_param_definition: &TypeParamDefinition,
     type_arguments: &[SourceType],
     ctxt_element: &dyn Element,
-    file_id: SourceFileId,
     span: Span,
 ) -> bool {
     assert_eq!(
@@ -1015,7 +978,7 @@ fn check_type_params(
                 let name = tp_ty.name_with_type_params(sa, ctxt_type_param_definition);
                 let trait_name = trait_ty.name_with_type_params(sa, ctxt_type_param_definition);
                 let msg = ErrorMessage::TypeNotImplementingTrait(name, trait_name);
-                sa.report(file_id, span, msg);
+                sa.report(ctxt_element.file_id(), span, msg);
                 success = false;
             }
         }

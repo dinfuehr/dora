@@ -339,110 +339,63 @@ pub fn check_types(sa: &Sema) {
 
 fn check_alias_types(sa: &Sema) {
     for (_id, alias) in sa.aliases.iter() {
-        let ctxt = parsety::TypeContext {
-            allow_self: false,
-            module_id: alias.module_id,
-            file_id: alias.file_id,
-            type_param_definition: alias.type_param_definition(),
-        };
-
-        check_type_param_definition(sa, alias, &ctxt, alias.type_param_definition());
+        check_type_param_definition(sa, alias, alias.type_param_definition());
 
         if let Some(parsed_ty) = alias.parsed_ty() {
-            parsety::check_type(sa, alias, &ctxt, parsed_ty);
+            parsety::check_type(sa, alias, parsed_ty);
         }
 
         for bound in alias.bounds() {
-            parsety::check_trait_type(sa, alias, &ctxt, bound.parsed_ty());
+            parsety::check_trait_type(sa, alias, bound.parsed_ty());
         }
     }
 }
 
 fn check_const_types(sa: &Sema) {
     for (_id, const_) in sa.consts.iter() {
-        let ctxt = parsety::TypeContext {
-            allow_self: false,
-            module_id: const_.module_id,
-            file_id: const_.file_id,
-            type_param_definition: &TypeParamDefinition::empty(),
-        };
-        parsety::check_type(sa, const_, &ctxt, const_.parsed_ty());
+        parsety::check_type(sa, const_, const_.parsed_ty());
     }
 }
 
 fn check_global_types(sa: &Sema) {
     for (_id, global) in sa.globals.iter() {
-        let ctxt = parsety::TypeContext {
-            allow_self: false,
-            module_id: global.module_id,
-            file_id: global.file_id,
-            type_param_definition: &TypeParamDefinition::empty(),
-        };
-        parsety::check_type(sa, global, &ctxt, global.parsed_ty());
+        parsety::check_type(sa, global, global.parsed_ty());
     }
 }
 
 fn check_trait_types(sa: &Sema) {
     for (_id, trait_) in sa.traits.iter() {
-        let ctxt = parsety::TypeContext {
-            allow_self: true,
-            module_id: trait_.module_id,
-            file_id: trait_.file_id,
-            type_param_definition: trait_.type_param_definition(),
-        };
-
-        check_type_param_definition(sa, trait_, &ctxt, trait_.type_param_definition());
+        check_type_param_definition(sa, trait_, trait_.type_param_definition());
     }
 }
 
 fn check_struct_types(sa: &Sema) {
     for (_id, struct_) in sa.structs.iter() {
-        let ctxt = parsety::TypeContext {
-            allow_self: false,
-            module_id: struct_.module_id,
-            file_id: struct_.file_id,
-            type_param_definition: struct_.type_param_definition(),
-        };
-
-        check_type_param_definition(sa, struct_, &ctxt, struct_.type_param_definition());
+        check_type_param_definition(sa, struct_, struct_.type_param_definition());
 
         for field in &struct_.fields {
-            parsety::check_type(sa, struct_, &ctxt, field.parsed_ty());
+            parsety::check_type(sa, struct_, field.parsed_ty());
         }
     }
 }
 
 fn check_class_types(sa: &Sema) {
     for (_id, class) in sa.classes.iter() {
-        let ctxt = parsety::TypeContext {
-            allow_self: false,
-            module_id: class.module_id,
-            file_id: class.file_id(),
-            type_param_definition: class.type_param_definition(),
-        };
-
-        check_type_param_definition(sa, class, &ctxt, class.type_param_definition());
+        check_type_param_definition(sa, class, class.type_param_definition());
 
         for field in &class.fields {
-            parsety::check_type(sa, class, &ctxt, field.parsed_ty());
+            parsety::check_type(sa, class, field.parsed_ty());
         }
     }
 }
 
 fn check_enum_types(sa: &Sema) {
     for (_id, enum_) in sa.enums.iter() {
-        let ctxt = parsety::TypeContext {
-            allow_self: false,
-            module_id: enum_.module_id,
-            file_id: enum_.file_id,
-            type_param_definition: enum_.type_param_definition(),
-        };
-
-        check_type_param_definition(sa, enum_, &ctxt, enum_.type_param_definition());
+        check_type_param_definition(sa, enum_, enum_.type_param_definition());
 
         for variant in enum_.variants() {
             for field in &variant.fields {
-                parsety::check_type(sa, enum_, &ctxt, &field.parsed_type);
+                parsety::check_type(sa, enum_, &field.parsed_type);
             }
         }
     }
@@ -450,65 +403,41 @@ fn check_enum_types(sa: &Sema) {
 
 fn check_impl_types(sa: &Sema) {
     for (_id, impl_) in sa.impls.iter() {
-        let ctxt: parsety::TypeContext<'_> = parsety::TypeContext {
-            allow_self: false,
-            module_id: impl_.module_id,
-            file_id: impl_.file_id,
-            type_param_definition: impl_.type_param_definition(),
-        };
+        check_type_param_definition(sa, impl_, impl_.type_param_definition());
+        parsety::check_type(sa, impl_, impl_.parsed_extended_ty());
 
-        check_type_param_definition(sa, impl_, &ctxt, impl_.type_param_definition());
-        parsety::check_type(sa, impl_, &ctxt, impl_.parsed_extended_ty());
-
-        let mut ctxt = ctxt;
-        ctxt.allow_self = true;
-        parsety::check_trait_type(sa, impl_, &ctxt, impl_.parsed_trait_ty());
+        parsety::check_trait_type(sa, impl_, impl_.parsed_trait_ty());
     }
 }
 
 fn check_extension_types(sa: &Sema) {
     for (_id, extension) in sa.extensions.iter() {
-        let ctxt: parsety::TypeContext<'_> = parsety::TypeContext {
-            allow_self: false,
-            module_id: extension.module_id,
-            file_id: extension.file_id,
-            type_param_definition: extension.type_param_definition(),
-        };
+        check_type_param_definition(sa, extension, extension.type_param_definition());
 
-        check_type_param_definition(sa, extension, &ctxt, extension.type_param_definition());
-
-        parsety::check_type(sa, extension, &ctxt, extension.parsed_ty());
+        parsety::check_type(sa, extension, extension.parsed_ty());
     }
 }
 
 fn check_function_types(sa: &Sema) {
     for (_id, fct) in sa.fcts.iter() {
-        let ctxt: parsety::TypeContext<'_> = parsety::TypeContext {
-            allow_self: fct.is_self_allowed(),
-            module_id: fct.module_id,
-            file_id: fct.file_id,
-            type_param_definition: fct.type_param_definition(),
-        };
-
-        check_type_param_definition(sa, fct, &ctxt, fct.type_param_definition());
+        check_type_param_definition(sa, fct, fct.type_param_definition());
 
         for param in fct.params_with_self() {
-            parsety::check_type(sa, fct, &ctxt, param.parsed_ty());
+            parsety::check_type(sa, fct, param.parsed_ty());
         }
 
-        parsety::check_type(sa, fct, &ctxt, fct.parsed_return_type());
+        parsety::check_type(sa, fct, fct.parsed_return_type());
     }
 }
 
 fn check_type_param_definition(
     sa: &Sema,
     element: &dyn Element,
-    ctxt: &parsety::TypeContext,
     type_param_definition: &TypeParamDefinition,
 ) {
     for bound in type_param_definition.own_bounds() {
-        parsety::check_type(sa, element, &ctxt, bound.parsed_ty());
-        parsety::check_trait_type(sa, element, &ctxt, bound.parsed_trait_ty());
+        parsety::check_type(sa, element, bound.parsed_ty());
+        parsety::check_trait_type(sa, element, bound.parsed_trait_ty());
     }
 }
 
