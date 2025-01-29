@@ -1,6 +1,6 @@
 use crate::interner::Name;
 use crate::sema::{
-    extension_matches, impl_matches, Candidate, Sema, TraitDefinition, TypeParamDefinition,
+    extension_matches, impl_matches, Candidate, Element, Sema, TraitDefinition, TypeParamDefinition,
 };
 use crate::sym::ModuleSymTable;
 use crate::SourceType;

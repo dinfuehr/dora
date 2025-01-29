@@ -131,10 +131,6 @@ impl ClassDefinition {
         self.span.expect("missing position")
     }
 
-    pub fn type_param_definition(&self) -> &Rc<TypeParamDefinition> {
-        &self.type_param_definition
-    }
-
     pub fn ty(&self) -> SourceType {
         self.ty.get().expect("not initialized").clone()
     }

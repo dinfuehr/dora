@@ -10,7 +10,7 @@ use crate::error::msg::ErrorMessage;
 use crate::interner::Name;
 use crate::sema::{
     AliasBound, AliasDefinition, AliasDefinitionId, AliasParent, ClassDefinition, ConstDefinition,
-    EnumDefinition, EnumField, EnumVariant, ExtensionDefinition, ExtensionDefinitionId,
+    Element, EnumDefinition, EnumField, EnumVariant, ExtensionDefinition, ExtensionDefinitionId,
     FctDefinition, FctDefinitionId, FctParent, Field, FieldId, FileContent, GlobalDefinition,
     ImplDefinition, ImplDefinitionId, ModuleDefinition, ModuleDefinitionId, PackageDefinition,
     PackageDefinitionId, PackageName, Param, Params, Sema, SourceFile, SourceFileId,

@@ -69,10 +69,6 @@ impl ImplDefinition {
         self.id.get().expect("id missing").clone()
     }
 
-    pub fn type_param_definition(&self) -> &Rc<TypeParamDefinition> {
-        &self.type_param_definition
-    }
-
     pub fn trait_id(&self) -> Option<TraitDefinitionId> {
         self.trait_ty().map(|t| t.trait_id)
     }

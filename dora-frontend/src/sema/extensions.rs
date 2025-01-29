@@ -59,10 +59,6 @@ impl ExtensionDefinition {
         self.id.get().cloned().expect("id missing")
     }
 
-    pub fn type_param_definition(&self) -> &Rc<TypeParamDefinition> {
-        &self.type_param_definition
-    }
-
     pub fn parsed_ty(&self) -> &ParsedType {
         &self.parsed_ty
     }

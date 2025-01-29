@@ -97,10 +97,6 @@ impl FctDefinition {
         self.id.expect("id missing")
     }
 
-    pub fn type_param_definition(&self) -> &Rc<TypeParamDefinition> {
-        &self.type_param_definition
-    }
-
     pub fn container_type_params(&self) -> usize {
         self.container_type_params
             .get()

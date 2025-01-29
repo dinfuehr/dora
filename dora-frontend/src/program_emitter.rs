@@ -12,7 +12,7 @@ use dora_bytecode::{
 use crate::generator::bty_from_ty;
 
 use crate::sema::{
-    self, ClassDefinition, EnumDefinition, FctDefinitionId, FctParent, ModuleDefinitionId,
+    self, ClassDefinition, Element, EnumDefinition, FctDefinitionId, FctParent, ModuleDefinitionId,
     PackageDefinitionId, PackageName, StructDefinition, TypeParamDefinition,
 };
 use crate::sema::{ExtensionDefinitionId, GlobalDefinition, GlobalDefinitionId};

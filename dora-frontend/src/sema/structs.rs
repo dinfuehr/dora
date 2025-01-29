@@ -86,10 +86,6 @@ impl StructDefinition {
         self.id.expect("missing id")
     }
 
-    pub fn type_param_definition(&self) -> &Rc<TypeParamDefinition> {
-        &self.type_param_definition
-    }
-
     pub fn name(&self, sa: &Sema) -> String {
         module_path(sa, self.module_id, self.name)
     }

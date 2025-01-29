@@ -1,4 +1,4 @@
-use crate::sema::{FctDefinition, Sema};
+use crate::sema::{Element, FctDefinition, Sema};
 use crate::ErrorMessage;
 
 pub fn check(sa: &Sema) {

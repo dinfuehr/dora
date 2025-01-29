@@ -118,10 +118,6 @@ impl AliasDefinition {
         &self.bounds
     }
 
-    pub fn type_param_definition(&self) -> &Rc<TypeParamDefinition> {
-        &self.type_param_definition
-    }
-
     pub fn idx_in_trait(&self) -> usize {
         self.idx_in_trait.expect("missing idx")
     }
@@ -149,7 +145,7 @@ impl Element for AliasDefinition {
     }
 
     fn type_param_definition(&self) -> &Rc<TypeParamDefinition> {
-        unreachable!()
+        &self.type_param_definition
     }
 
     fn to_alias(&self) -> Option<&AliasDefinition> {

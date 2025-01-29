@@ -3,8 +3,8 @@ use std::sync::Arc;
 use dora_parser::ast;
 
 use crate::sema::{
-    AnalysisData, FctDefinition, FctParent, GlobalDefinition, LazyContextClassCreationData,
-    LazyLambdaCreationData, Sema, TypeParamDefinition,
+    AnalysisData, Element, FctDefinition, FctParent, GlobalDefinition,
+    LazyContextClassCreationData, LazyLambdaCreationData, Sema, TypeParamDefinition,
 };
 use crate::sym::ModuleSymTable;
 use crate::typeck::call::{check_expr_call, create_call_arguments};

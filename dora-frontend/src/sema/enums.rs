@@ -72,10 +72,6 @@ impl EnumDefinition {
         self.id.expect("id missing")
     }
 
-    pub fn type_param_definition(&self) -> &Rc<TypeParamDefinition> {
-        &self.type_param_definition
-    }
-
     pub fn name_to_value(&self) -> &HashMap<Name, u32> {
         &self.name_to_value
     }

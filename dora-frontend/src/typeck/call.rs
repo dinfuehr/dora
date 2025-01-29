@@ -10,7 +10,7 @@ use crate::access::{
 };
 use crate::interner::Name;
 use crate::sema::{
-    find_field_in_class, find_impl, new_identity_type_params, CallType, ClassDefinitionId,
+    find_field_in_class, find_impl, new_identity_type_params, CallType, ClassDefinitionId, Element,
     ElementWithFields, EnumDefinitionId, FctDefinitionId, IdentType, Param, Sema,
     StructDefinitionId, TraitDefinition, TypeParamId,
 };

@@ -1,5 +1,6 @@
 use crate::sema::{
-    block_matches_ty, match_arrays, ImplDefinition, ImplDefinitionId, Sema, TypeParamDefinition,
+    block_matches_ty, match_arrays, Element, ImplDefinition, ImplDefinitionId, Sema,
+    TypeParamDefinition,
 };
 use crate::{specialize_type, SourceType, SourceTypeArray, TraitType};
 

@@ -12,7 +12,7 @@ use self::expr::{
 };
 use crate::sema::{
     emit_as_bytecode_operation, new_identity_type_params, AnalysisData, CallType,
-    ClassDefinitionId, ConstDefinitionId, ContextFieldId, EnumDefinitionId, FctDefinition,
+    ClassDefinitionId, ConstDefinitionId, ContextFieldId, Element, EnumDefinitionId, FctDefinition,
     FctDefinitionId, FieldId, GlobalDefinition, GlobalDefinitionId, IdentType, Intrinsic,
     LazyContextData, OuterContextIdx, ScopeId, Sema, SourceFileId, StructDefinitionId, VarId,
     VarLocation,
