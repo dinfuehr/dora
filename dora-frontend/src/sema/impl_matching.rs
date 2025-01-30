@@ -76,6 +76,8 @@ pub fn implements_trait(
             let trait_id = fct.trait_id();
             let self_trait_ty = TraitType::from_trait_id(trait_id);
 
+            // No need to check type param definition for the current trait,
+            // because `implements_trait` will follow super traits automatically.
             self_trait_ty.implements_trait(sa, &trait_ty)
         }
 

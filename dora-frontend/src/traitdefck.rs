@@ -538,6 +538,21 @@ mod tests {
     }
 
     #[test]
+    fn trait_default_method_containing_self_and_super() {
+        ok("
+            trait SuperTrait {}
+
+            trait TraitA: SuperTrait {
+                fn f(): Foo[Self] {
+                    Foo[Self]()
+                }
+            }
+
+            class Foo[T: TraitA + SuperTrait]
+        ");
+    }
+
+    #[test]
     fn trait_default_method_containing_and_using_self() {
         ok("
             trait TraitA {
