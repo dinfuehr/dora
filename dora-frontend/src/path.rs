@@ -4,12 +4,19 @@ use dora_parser::{ast, Span};
 
 use crate::access::sym_accessible_from;
 use crate::sema::{
-    parent_element_or_self, AliasDefinitionId, Element, Sema, SourceFileId, TypeParamId,
+    parent_element_or_self, AliasDefinitionId, Element, Sema, SourceFileId, TraitDefinitionId,
+    TypeParamId,
 };
 use crate::{ErrorMessage, ModuleSymTable, Name, SymbolKind};
 
+#[derive(Clone, Debug)]
 pub enum PathKind {
     Self_,
+    GenericAssoc {
+        tp_id: TypeParamId,
+        trait_id: TraitDefinitionId,
+        assoc_id: AliasDefinitionId,
+    },
     Symbol(SymbolKind),
 }
 
@@ -96,6 +103,7 @@ fn parse_path_ident(
     }
 
     let mut previous_sym = sym.expect("missing symbol");
+    let mut result: Option<PathKind> = None;
 
     for (idx, segment) in segments.iter().enumerate().skip(1) {
         if previous_sym.is_module() {
@@ -129,10 +137,17 @@ fn parse_path_ident(
         } else if let SymbolKind::TypeParam(id) = previous_sym {
             let name = expect_ident(sa, file_id, segment)?;
 
-            let avaiable = lookup_alias_on_type_param(sa, element, id, name).unwrap_or(Vec::new());
+            let mut available =
+                lookup_alias_on_type_param(sa, element, id, name).unwrap_or(Vec::new());
 
-            if avaiable.len() == 1 {
-                previous_sym = SymbolKind::Alias(avaiable[0]);
+            if available.len() == 1 {
+                let (trait_id, assoc_id) = available.pop().expect("element expected");
+                previous_sym = SymbolKind::Alias(available[0].1);
+                result = Some(PathKind::GenericAssoc {
+                    tp_id: id,
+                    trait_id,
+                    assoc_id,
+                });
             } else {
                 unimplemented!()
             }
@@ -146,7 +161,11 @@ fn parse_path_ident(
         }
     }
 
-    Ok(PathKind::Symbol(previous_sym))
+    if let Some(path_kind) = result {
+        Ok(path_kind)
+    } else {
+        Ok(PathKind::Symbol(previous_sym))
+    }
 }
 
 fn available_aliases<'a>(
@@ -174,7 +193,7 @@ fn lookup_alias_on_type_param<'a>(
     element: &'a dyn Element,
     id: TypeParamId,
     name: Name,
-) -> Option<Vec<AliasDefinitionId>> {
+) -> Option<Vec<(TraitDefinitionId, AliasDefinitionId)>> {
     let type_param_definition = element.type_param_definition();
     let mut results = Vec::with_capacity(2);
 
@@ -183,7 +202,7 @@ fn lookup_alias_on_type_param<'a>(
         let trait_ = sa.trait_(trait_id);
 
         if let Some(id) = trait_.alias_names().get(&name) {
-            results.push(*id);
+            results.push((trait_id, *id));
         }
     }
 

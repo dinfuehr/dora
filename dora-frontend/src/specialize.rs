@@ -103,7 +103,7 @@ pub fn replace_type(
         | SourceType::Float64
         | SourceType::Error => ty,
 
-        SourceType::Any | SourceType::Ptr | SourceType::GenericAssoc(..) => unreachable!(),
+        SourceType::Any | SourceType::Ptr | SourceType::GenericAssoc { .. } => unreachable!(),
     }
 }
 
@@ -221,7 +221,7 @@ pub fn specialize_ty_for_trait_object(
         | SourceType::Float64
         | SourceType::Error => ty,
 
-        SourceType::This | SourceType::Any | SourceType::Ptr | SourceType::GenericAssoc(..) => {
+        SourceType::This | SourceType::Any | SourceType::Ptr | SourceType::GenericAssoc { .. } => {
             unreachable!()
         }
     }
@@ -311,7 +311,7 @@ pub fn specialize_for_element(
         SourceType::Any
         | SourceType::Ptr
         | SourceType::Assoc(..)
-        | SourceType::GenericAssoc(..) => unreachable!(),
+        | SourceType::GenericAssoc { .. } => unreachable!(),
     }
 }
 

@@ -21,7 +21,7 @@ fn check_impl_definition(sa: &Sema, impl_: &ImplDefinition) {
         | SourceType::Ptr
         | SourceType::This
         | SourceType::Assoc(..)
-        | SourceType::GenericAssoc(..) => {
+        | SourceType::GenericAssoc { .. } => {
             unreachable!()
         }
         SourceType::Error
@@ -424,7 +424,7 @@ fn trait_and_impl_arg_ty_compatible(
         SourceType::Alias(..)
         | SourceType::Any
         | SourceType::Ptr
-        | SourceType::GenericAssoc(..) => unreachable!(),
+        | SourceType::GenericAssoc { .. } => unreachable!(),
     }
 }
 

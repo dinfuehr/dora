@@ -105,7 +105,8 @@ pub enum ParsedTypeKind {
     This,
 
     Regular {
-        symbol: SymbolKind,
+        symbol: Option<SymbolKind>,
+        kind: Option<PathKind>,
         type_arguments: Vec<ParsedTypeArgument>,
     },
 
@@ -184,7 +185,8 @@ fn parse_trait_type_inner(
 
     match &parsed_ast.kind {
         ParsedTypeKind::Regular {
-            symbol: SymbolKind::Trait(trait_id),
+            symbol: Some(SymbolKind::Trait(trait_id)),
+            kind: None,
             type_arguments,
         } => {
             let trait_ty =
@@ -237,15 +239,15 @@ fn parse_type_regular(
     allow_self: bool,
     node: &ast::TypeRegularType,
 ) -> ParsedTypeKind {
-    let segment_kind = parse_path(sa, table, file_id, element, allow_self, node);
+    let path_kind = parse_path(sa, table, file_id, element, allow_self, node);
 
-    if segment_kind.is_err() {
+    if path_kind.is_err() {
         return ParsedTypeKind::Error;
     }
 
-    let segment_kind = segment_kind.unwrap();
+    let path_kind = path_kind.unwrap();
 
-    match segment_kind {
+    match path_kind {
         PathKind::Symbol(sym) => match sym {
             SymbolKind::Trait(..)
             | SymbolKind::Class(..)
@@ -262,7 +264,8 @@ fn parse_type_regular(
                 }
 
                 ParsedTypeKind::Regular {
-                    symbol: sym,
+                    symbol: Some(sym),
+                    kind: None,
                     type_arguments: Vec::new(),
                 }
             }
@@ -272,6 +275,12 @@ fn parse_type_regular(
                 sa.report(file_id, node.span, msg);
                 ParsedTypeKind::Error
             }
+        },
+
+        PathKind::GenericAssoc { .. } => ParsedTypeKind::Regular {
+            symbol: None,
+            kind: Some(path_kind),
+            type_arguments: Vec::new(),
         },
 
         PathKind::Self_ => ParsedTypeKind::This,
@@ -306,7 +315,8 @@ fn parse_type_regular_with_arguments(
     }
 
     ParsedTypeKind::Regular {
-        symbol,
+        symbol: Some(symbol),
+        kind: None,
         type_arguments,
     }
 }
@@ -369,8 +379,9 @@ fn convert_type_regular(sa: &Sema, file_id: SourceFileId, parsed_ty: &ParsedType
     let (sym, type_params) = match parsed_ty.kind {
         ParsedTypeKind::Regular {
             ref symbol,
+            kind: None,
             type_arguments: ref type_params,
-        } => (symbol.clone(), type_params),
+        } => (symbol.clone().expect("symbol expected"), type_params),
         _ => unreachable!(),
     };
 
@@ -660,7 +671,7 @@ fn check_type_inner(
     parsed_ty: &ParsedTypeAst,
 ) -> SourceType {
     match ty.clone() {
-        SourceType::Any | SourceType::Ptr | SourceType::GenericAssoc(..) => {
+        SourceType::Any | SourceType::Ptr | SourceType::GenericAssoc { .. } => {
             unreachable!()
         }
         SourceType::This => SourceType::This,
@@ -676,7 +687,7 @@ fn check_type_inner(
         | SourceType::Int32
         | SourceType::Int64 => {
             let symbol = match &parsed_ty.kind {
-                ParsedTypeKind::Regular { symbol, .. } => symbol.clone(),
+                ParsedTypeKind::Regular { symbol, .. } => symbol.clone().expect("symbol expected"),
                 _ => unreachable!(),
             };
 
@@ -754,7 +765,7 @@ fn check_type_record(
             ref symbol,
             type_arguments: ref type_params,
             ..
-        } => (symbol.clone(), type_params),
+        } => (symbol.clone().expect("symbol expected"), type_params),
         _ => unreachable!(),
     };
 
@@ -1151,7 +1162,7 @@ fn expand_st(
         | SourceType::TypeParam(..) => ty,
         SourceType::This => replace_self.expect("self expected"),
 
-        SourceType::Any | SourceType::Ptr | SourceType::GenericAssoc(..) => {
+        SourceType::Any | SourceType::Ptr | SourceType::GenericAssoc { .. } => {
             panic!("unexpected type = {:?}", ty);
             // unreachable!()
         }

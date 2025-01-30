@@ -737,7 +737,7 @@ fn check_expr_assign_unnamed_field(
         | SourceType::Lambda(..)
         | SourceType::Alias(..)
         | SourceType::Assoc(..)
-        | SourceType::GenericAssoc(..) => {
+        | SourceType::GenericAssoc { .. } => {
             let name = index.to_string();
             let expr_name = ck.ty_name(&object_type);
             let msg = ErrorMessage::UnknownField(name, expr_name);
@@ -899,7 +899,7 @@ pub(super) fn check_expr_dot(
         | SourceType::Tuple(..)
         | SourceType::Alias(..)
         | SourceType::Assoc(..)
-        | SourceType::GenericAssoc(..) => {}
+        | SourceType::GenericAssoc { .. } => {}
         SourceType::Class(cls_id, class_type_params) => {
             if let Some((field_id, _)) =
                 find_field_in_class(ck.sa, object_type.clone(), interned_name)
@@ -989,7 +989,7 @@ fn check_expr_dot_unnamed_field(
         | SourceType::Lambda(..)
         | SourceType::Alias(..)
         | SourceType::Assoc(..)
-        | SourceType::GenericAssoc(..) => {
+        | SourceType::GenericAssoc { .. } => {
             let name = index.to_string();
             let expr_name = ck.ty_name(&object_type);
             let msg = ErrorMessage::UnknownField(name, expr_name);

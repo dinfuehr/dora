@@ -154,7 +154,12 @@ pub enum SourceType {
     Assoc(AliasDefinitionId, SourceTypeArray),
 
     // Some associated type on type parameter (T::X).
-    GenericAssoc(TraitDefinitionId, AliasDefinitionId, SourceTypeArray),
+    GenericAssoc {
+        tp_id: TypeParamId,
+        trait_id: TraitDefinitionId,
+        assoc_id: AliasDefinitionId,
+        type_params: SourceTypeArray,
+    },
 
     // Some lambda.
     Lambda(SourceTypeArray, Box<SourceType>),
@@ -186,7 +191,7 @@ impl SourceType {
             SourceType::Class(..) => TyKind::Class,
             SourceType::Unit | SourceType::Tuple(..) => TyKind::Tuple,
             SourceType::Assoc(..) => TyKind::Assoc,
-            SourceType::GenericAssoc(..) => TyKind::GenericAssoc,
+            SourceType::GenericAssoc { .. } => TyKind::GenericAssoc,
         }
     }
 
@@ -541,7 +546,7 @@ impl SourceType {
                 *self == other
             }
 
-            SourceType::GenericAssoc(..) => unimplemented!(),
+            SourceType::GenericAssoc { .. } => unimplemented!(),
         }
     }
 
@@ -559,7 +564,7 @@ impl SourceType {
             | SourceType::TraitObject(..)
             | SourceType::Lambda(..)
             | SourceType::TypeParam(_) => true,
-            SourceType::Alias(..) | SourceType::Assoc(..) | SourceType::GenericAssoc(..) => {
+            SourceType::Alias(..) | SourceType::Assoc(..) | SourceType::GenericAssoc { .. } => {
                 unreachable!()
             }
             SourceType::Enum(_, params)
@@ -645,7 +650,7 @@ impl SourceType {
             SourceType::Alias(..)
             | SourceType::TypeParam(_)
             | SourceType::Assoc(..)
-            | SourceType::GenericAssoc(..) => false,
+            | SourceType::GenericAssoc { .. } => false,
         }
     }
 }
@@ -666,7 +671,7 @@ pub fn contains_self(sa: &Sema, ty: SourceType) -> bool {
         | SourceType::TypeParam(..)
         | SourceType::Assoc(..) => false,
 
-        SourceType::Alias(..) | SourceType::GenericAssoc(..) => {
+        SourceType::Alias(..) | SourceType::GenericAssoc { .. } => {
             unimplemented!()
         }
         SourceType::Class(_, params)
@@ -1053,7 +1058,7 @@ impl<'a> SourceTypePrinter<'a> {
                 }
             }
 
-            SourceType::GenericAssoc(..) => unimplemented!(),
+            SourceType::GenericAssoc { .. } => unimplemented!(),
         }
     }
 }
