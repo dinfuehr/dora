@@ -24,6 +24,8 @@ class Range {
 }
 
 impl MyIterator for Range {
+    type Item = Int;
+
     fn next(): Option[Int] {
         if self.value <= 0 {
             None[Int]
@@ -47,9 +49,9 @@ impl[I: MyIterator] MyIterator for Enumerate[I] {
         if self.it.next() is Some(value) {
             let idx = self.idx;
             self.idx += 1;
-            Some((idx, value))
+            Some[(Int, I::Item)]((idx, value))
         } else {
-            None
+            None[(Int, I::Item)]
         }
     }
 }

@@ -117,7 +117,9 @@ pub fn check_definition_against_trait(sa: &mut Sema) {
                     &trait_method.ast,
                     ParsedModifierList::default(),
                     trait_method.name,
-                    trait_method.type_param_definition().clone(),
+                    trait_method
+                        .type_param_definition()
+                        .clone_with_new_parent(impl_.type_param_definition().to_owned()),
                     params,
                     FctParent::Impl(impl_.id()),
                 );

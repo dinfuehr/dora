@@ -36,6 +36,22 @@ impl TypeParamDefinition {
         }
     }
 
+    pub fn clone_with_new_parent(
+        &self,
+        parent: Rc<TypeParamDefinition>,
+    ) -> Rc<TypeParamDefinition> {
+        let container_type_params = parent.type_params.len();
+        let container_bounds = parent.bounds.len();
+
+        Rc::new(TypeParamDefinition {
+            parent: Some(parent),
+            type_params: self.type_params.clone(),
+            bounds: self.bounds.clone(),
+            container_type_params,
+            container_bounds,
+        })
+    }
+
     pub fn empty() -> Rc<TypeParamDefinition> {
         Rc::new(TypeParamDefinition::new(None))
     }
