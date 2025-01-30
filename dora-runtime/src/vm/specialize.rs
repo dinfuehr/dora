@@ -269,6 +269,7 @@ pub fn add_ref_fields(vm: &VM, ref_fields: &mut Vec<i32>, offset: i32, ty: Bytec
 
         BytecodeType::TypeAlias(..)
         | BytecodeType::Assoc(..)
+        | BytecodeType::GenericAssoc { .. }
         | BytecodeType::TypeParam(..)
         | BytecodeType::This => {
             unreachable!()
@@ -404,6 +405,7 @@ fn create_shape_for_array_class(
 
             BytecodeType::TypeAlias(..)
             | BytecodeType::Assoc(..)
+            | BytecodeType::GenericAssoc { .. }
             | BytecodeType::TypeParam(_)
             | BytecodeType::This => {
                 unreachable!()
@@ -587,7 +589,10 @@ pub fn specialize_bty(ty: BytecodeType, type_params: &BytecodeTypeArray) -> Byte
             BytecodeType::Tuple(subtypes)
         }
 
-        BytecodeType::TypeAlias(..) | BytecodeType::Assoc(..) | BytecodeType::This => {
+        BytecodeType::TypeAlias(..)
+        | BytecodeType::Assoc(..)
+        | BytecodeType::GenericAssoc { .. }
+        | BytecodeType::This => {
             unreachable!()
         }
 
@@ -698,6 +703,8 @@ pub fn specialize_bty_for_trait_object(
             assert!(alias_type_params.is_empty());
             assoc_types[alias.idx_in_trait()].clone()
         }
+
+        BytecodeType::GenericAssoc { .. } => unreachable!(),
 
         BytecodeType::TypeAlias(..) | BytecodeType::This => {
             unreachable!()

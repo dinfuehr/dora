@@ -346,6 +346,7 @@ impl<'a> Display for BytecodeTypePrinter<'a> {
                     Ok(())
                 }
             }
+            BytecodeType::GenericAssoc { .. } => unimplemented!(),
         }
     }
 }

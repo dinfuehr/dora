@@ -59,4 +59,10 @@ impl[I: MyIterator] MyIterator for Enumerate[I] {
 fn main() {
     assert(Range(2).count() == 2);
     assert(Range(7).count() == 7);
+
+    let r = Range(2).enumerate();
+
+    assert(Some[(Int, Int)](0, 2) == r.next());
+    assert(Some[(Int, Int)](1, 1) == r.next());
+    assert(r.next().isNone());
 }

@@ -19,6 +19,7 @@ use dora_parser::ast;
 
 pub type AliasDefinitionId = Id<AliasDefinition>;
 
+#[derive(PartialEq, Eq, Debug)]
 pub enum AliasParent {
     None,
     Trait(TraitDefinitionId),

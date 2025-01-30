@@ -25,6 +25,11 @@ pub enum BytecodeType {
     Lambda(BytecodeTypeArray, Box<BytecodeType>),
     TypeAlias(AliasId),
     Assoc(AliasId, BytecodeTypeArray),
+    GenericAssoc {
+        type_param_id: u32,
+        trait_id: TraitId,
+        assoc_id: AliasId,
+    },
 }
 
 impl BytecodeType {
@@ -48,6 +53,7 @@ impl BytecodeType {
             BytecodeType::Lambda(..) => BytecodeTypeKind::Lambda,
             BytecodeType::TypeAlias(..) => BytecodeTypeKind::TypeAlias,
             BytecodeType::Assoc(..) => BytecodeTypeKind::Assoc,
+            BytecodeType::GenericAssoc { .. } => BytecodeTypeKind::GenericAssoc,
             BytecodeType::This => unreachable!(),
         }
     }
@@ -153,7 +159,10 @@ impl BytecodeType {
                 params.is_concrete_type() && return_type.is_concrete_type()
             }
             BytecodeType::TypeParam(_) => false,
-            BytecodeType::TypeAlias(..) | BytecodeType::Assoc(..) | BytecodeType::This => {
+            BytecodeType::TypeAlias(..)
+            | BytecodeType::GenericAssoc { .. }
+            | BytecodeType::Assoc(..)
+            | BytecodeType::This => {
                 unreachable!()
             }
         }

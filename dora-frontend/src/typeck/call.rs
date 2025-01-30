@@ -22,8 +22,8 @@ use crate::typeck::{
 };
 use crate::typeparamck;
 use crate::{
-    empty_sta, specialize_ty_for_trait_object, specialize_type, ty::error as ty_error,
-    ErrorMessage, SourceType, SourceTypeArray, TraitType,
+    empty_sta, specialize_ty_for_generic, specialize_ty_for_trait_object, specialize_type,
+    ty::error as ty_error, ErrorMessage, SourceType, SourceTypeArray, TraitType,
 };
 
 pub(super) fn check_expr_call(
@@ -947,6 +947,9 @@ fn check_expr_call_generic_type_param(
             Some(&trait_ty.type_params),
             Some(object_type.clone()),
         );
+
+        let return_type =
+            specialize_ty_for_generic(ck.sa, return_type, id, trait_method.trait_id());
 
         ck.analysis.set_ty(e.id, return_type.clone());
 

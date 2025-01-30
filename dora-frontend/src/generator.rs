@@ -3434,6 +3434,15 @@ pub fn bty_from_ty(ty: SourceType) -> BytecodeType {
                 bty_array_from_ty(&type_params),
             )
         }
+        SourceType::GenericAssoc {
+            tp_id,
+            trait_id,
+            assoc_id,
+        } => BytecodeType::GenericAssoc {
+            type_param_id: tp_id.index().try_into().expect("overflow"),
+            trait_id: TraitId(trait_id.index().try_into().expect("overflow")),
+            assoc_id: AliasId(assoc_id.index().try_into().expect("overflow")),
+        },
         _ => panic!("SourceType {:?} cannot be converted to BytecodeType", ty),
     }
 }
@@ -3467,6 +3476,15 @@ pub fn register_bty_from_ty(ty: SourceType) -> BytecodeType {
         SourceType::Lambda(_, _) => BytecodeType::Ptr,
         SourceType::Ptr => BytecodeType::Ptr,
         SourceType::This => BytecodeType::This,
+        SourceType::GenericAssoc {
+            tp_id,
+            trait_id,
+            assoc_id,
+        } => BytecodeType::GenericAssoc {
+            type_param_id: tp_id.index().try_into().expect("overflow"),
+            trait_id: TraitId(trait_id.index().try_into().expect("overflow")),
+            assoc_id: AliasId(assoc_id.index().try_into().expect("overflow")),
+        },
         _ => panic!("SourceType {:?} cannot be converted to BytecodeType", ty),
     }
 }

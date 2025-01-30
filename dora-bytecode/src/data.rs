@@ -41,6 +41,7 @@ pub enum BytecodeTypeKind {
     Lambda,
     TypeAlias,
     Assoc,
+    GenericAssoc,
     This,
 }
 

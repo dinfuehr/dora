@@ -235,7 +235,9 @@ pub fn decode_bytecode_type(reader: &mut ByteReader) -> BytecodeType {
             BytecodeType::Lambda(params, Box::new(return_ty))
         }
 
-        BytecodeTypeKind::TypeAlias | BytecodeTypeKind::Assoc => unreachable!(),
+        BytecodeTypeKind::TypeAlias
+        | BytecodeTypeKind::Assoc
+        | BytecodeTypeKind::GenericAssoc { .. } => unreachable!(),
     }
 }
 
