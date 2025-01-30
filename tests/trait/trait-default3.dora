@@ -1,5 +1,5 @@
 trait TraitA {
-    fn f(): Foo[Self] {
+    fn myf(): Foo[Self] {
         Foo[Self](self)
     }
 }
@@ -7,8 +7,12 @@ trait TraitA {
 class Foo[T: TraitA](T)
 
 impl TraitA for Int {}
+impl TraitA for String {}
 
 fn main() {
-    let foo = 12.f();
+    let foo = 12.myf();
     assert(foo.0 == 12);
+
+    let foo = "bar".myf();
+    assert(foo.0 == "bar");
 }

@@ -40,19 +40,19 @@ class Enumerate[I: MyIterator] {
     idx: Int,
 }
 
-// impl[I: MyIterator] MyIterator for Enumerate[I] {
-//     type Item = (Int, [I as MyIterator]::Item);
+impl[I: MyIterator] MyIterator for Enumerate[I] {
+    type Item = (Int, I::Item);
 
-//     fn next(): Option[(Int, [I as MyIterator]::Item)] {
-//         if self.it.next() is Some(value) {
-//             let idx = self.idx;
-//             self.idx += 1;
-//             Some((idx, value))
-//         } else {
-//             None
-//         }
-//     }
-// }
+    fn next(): Option[(Int, I::Item)] {
+        if self.it.next() is Some(value) {
+            let idx = self.idx;
+            self.idx += 1;
+            Some((idx, value))
+        } else {
+            None
+        }
+    }
+}
 
 fn main() {
     assert(Range(2).count() == 2);
