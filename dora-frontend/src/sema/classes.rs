@@ -209,6 +209,10 @@ impl Element for ClassDefinition {
     fn self_ty(&self, _sa: &Sema) -> Option<SourceType> {
         Some(self.ty())
     }
+
+    fn visibility(&self) -> Visibility {
+        self.visibility
+    }
 }
 
 impl ElementAccess for ClassDefinition {

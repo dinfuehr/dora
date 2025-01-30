@@ -147,4 +147,8 @@ impl Element for ImplDefinition {
     fn self_ty(&self, _sa: &Sema) -> Option<SourceType> {
         Some(self.extended_ty())
     }
+
+    fn visibility(&self) -> super::Visibility {
+        unreachable!()
+    }
 }

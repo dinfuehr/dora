@@ -101,12 +101,13 @@ pub struct ParsedTypeAst {
 }
 
 #[derive(Clone, Debug)]
+#[allow(unused)]
 pub enum ParsedTypeKind {
     This,
 
     Regular {
-        symbol: Option<SymbolKind>,
-        kind: Option<PathKind>,
+        symbol: SymbolKind,
+        kind: PathKind,
         type_arguments: Vec<ParsedTypeArgument>,
     },
 
@@ -185,9 +186,9 @@ fn parse_trait_type_inner(
 
     match &parsed_ast.kind {
         ParsedTypeKind::Regular {
-            symbol: Some(SymbolKind::Trait(trait_id)),
-            kind: None,
+            symbol: SymbolKind::Trait(trait_id),
             type_arguments,
+            ..
         } => {
             let trait_ty =
                 convert_trait_type(sa, file_id, *trait_id, &type_arguments, allow_bindings);
@@ -257,15 +258,15 @@ fn parse_type_regular(
                 sa, table, file_id, element, allow_self, sym, node,
             ),
 
-            SymbolKind::TypeParam(..) => {
+            SymbolKind::TypeParam(id) => {
                 if !node.params.is_empty() {
                     let msg = ErrorMessage::NoTypeParamsExpected;
                     sa.report(file_id, node.span, msg);
                 }
 
                 ParsedTypeKind::Regular {
-                    symbol: Some(sym),
-                    kind: None,
+                    symbol: SymbolKind::TypeParam(id),
+                    kind: PathKind::TypeParam(id),
                     type_arguments: Vec::new(),
                 }
             }
@@ -277,11 +278,18 @@ fn parse_type_regular(
             }
         },
 
-        PathKind::GenericAssoc { .. } => ParsedTypeKind::Regular {
-            symbol: None,
-            kind: Some(path_kind),
+        PathKind::GenericAssoc { trait_id, .. } => ParsedTypeKind::Regular {
+            symbol: SymbolKind::Trait(trait_id), // Placeholder
+            kind: path_kind,
             type_arguments: Vec::new(),
         },
+
+        PathKind::Class(..)
+        | PathKind::Enum(..)
+        | PathKind::Struct(..)
+        | PathKind::Alias(..)
+        | PathKind::Trait(..)
+        | PathKind::TypeParam(..) => unreachable!(),
 
         PathKind::Self_ => ParsedTypeKind::This,
     }
@@ -314,9 +322,18 @@ fn parse_type_regular_with_arguments(
         type_arguments.push(ty_arg);
     }
 
+    let path_kind = match symbol {
+        SymbolKind::Alias(id) => PathKind::Alias(id),
+        SymbolKind::Trait(id) => PathKind::Trait(id),
+        SymbolKind::Class(id) => PathKind::Class(id),
+        SymbolKind::Struct(id) => PathKind::Struct(id),
+        SymbolKind::Enum(id) => PathKind::Enum(id),
+        _ => unreachable!(),
+    };
+
     ParsedTypeKind::Regular {
-        symbol: Some(symbol),
-        kind: None,
+        symbol: symbol,
+        kind: path_kind,
         type_arguments,
     }
 }
@@ -376,29 +393,29 @@ fn convert_type_inner(sa: &Sema, file_id: SourceFileId, parsed_ty: &ParsedTypeAs
 }
 
 fn convert_type_regular(sa: &Sema, file_id: SourceFileId, parsed_ty: &ParsedTypeAst) -> SourceType {
-    let (sym, type_params) = match parsed_ty.kind {
+    let (sym, path_kind, type_params) = match parsed_ty.kind {
         ParsedTypeKind::Regular {
             ref symbol,
-            kind: None,
+            ref kind,
             type_arguments: ref type_params,
-        } => (symbol.clone().expect("symbol expected"), type_params),
-        _ => unreachable!(),
+            ..
+        } => (symbol.clone(), kind.clone(), type_params),
+        _ => {
+            unreachable!()
+        }
     };
 
-    match sym {
-        SymbolKind::TypeParam(id) => {
+    match path_kind {
+        PathKind::TypeParam(id) => {
             assert!(type_params.is_empty());
             SourceType::TypeParam(id)
         }
 
-        SymbolKind::Trait(trait_id) => {
+        PathKind::Trait(trait_id) => {
             convert_type_regular_trait_object(sa, file_id, parsed_ty, trait_id, type_params)
         }
 
-        SymbolKind::Alias(..)
-        | SymbolKind::Class(..)
-        | SymbolKind::Enum(..)
-        | SymbolKind::Struct(..) => {
+        PathKind::Alias(..) | PathKind::Class(..) | PathKind::Enum(..) | PathKind::Struct(..) => {
             let mut source_type_arguments = Vec::with_capacity(type_params.len());
 
             for ty_arg in type_params {
@@ -411,7 +428,7 @@ fn convert_type_regular(sa: &Sema, file_id: SourceFileId, parsed_ty: &ParsedType
                 source_type_arguments.push(ty);
             }
 
-            let sym_element = get_sym_element(sa, sym.clone());
+            let sym_element = get_path_kind_element(sa, path_kind);
             let type_param_definition = sym_element.type_param_definition();
 
             if type_param_definition.type_param_count() == source_type_arguments.len() {
@@ -426,6 +443,16 @@ fn convert_type_regular(sa: &Sema, file_id: SourceFileId, parsed_ty: &ParsedType
                 SourceType::Error
             }
         }
+
+        PathKind::GenericAssoc {
+            tp_id,
+            trait_id,
+            assoc_id,
+        } => SourceType::GenericAssoc {
+            tp_id,
+            trait_id,
+            assoc_id,
+        },
 
         _ => unreachable!(),
     }
@@ -501,12 +528,12 @@ fn convert_type_regular_trait_object(
     SourceType::TraitObject(trait_id, trait_type_params.into(), bindings.into())
 }
 
-fn get_sym_element(sa: &Sema, sym: SymbolKind) -> &dyn Element {
+fn get_path_kind_element(sa: &Sema, sym: PathKind) -> &dyn Element {
     match sym {
-        SymbolKind::Class(id) => sa.class(id),
-        SymbolKind::Struct(id) => sa.struct_(id),
-        SymbolKind::Enum(id) => sa.enum_(id),
-        SymbolKind::Alias(id) => sa.alias(id),
+        PathKind::Class(id) => sa.class(id),
+        PathKind::Struct(id) => sa.struct_(id),
+        PathKind::Enum(id) => sa.enum_(id),
+        PathKind::Alias(id) => sa.alias(id),
         _ => unimplemented!(),
     }
 }
@@ -671,14 +698,15 @@ fn check_type_inner(
     parsed_ty: &ParsedTypeAst,
 ) -> SourceType {
     match ty.clone() {
-        SourceType::Any | SourceType::Ptr | SourceType::GenericAssoc { .. } => {
+        SourceType::Any | SourceType::Ptr => {
             unreachable!()
         }
         SourceType::This => SourceType::This,
         SourceType::Assoc(..)
         | SourceType::Error
         | SourceType::Unit
-        | SourceType::TypeParam(..) => ty,
+        | SourceType::TypeParam(..)
+        | SourceType::GenericAssoc { .. } => ty,
         SourceType::Bool
         | SourceType::UInt8
         | SourceType::Char
@@ -687,7 +715,7 @@ fn check_type_inner(
         | SourceType::Int32
         | SourceType::Int64 => {
             let symbol = match &parsed_ty.kind {
-                ParsedTypeKind::Regular { symbol, .. } => symbol.clone().expect("symbol expected"),
+                ParsedTypeKind::Regular { symbol, .. } => symbol.clone(),
                 _ => unreachable!(),
             };
 
@@ -760,12 +788,13 @@ fn check_type_record(
     parsed_ty: &ParsedTypeAst,
     type_params: SourceTypeArray,
 ) -> SourceType {
-    let (symbol, parsed_type_params) = match parsed_ty.kind {
+    let (symbol, path_kind, parsed_type_params) = match parsed_ty.kind {
         ParsedTypeKind::Regular {
             ref symbol,
+            ref kind,
             type_arguments: ref type_params,
             ..
-        } => (symbol.clone().expect("symbol expected"), type_params),
+        } => (symbol.clone(), kind.clone(), type_params),
         _ => unreachable!(),
     };
 
@@ -790,7 +819,7 @@ fn check_type_record(
     }
 
     let new_type_params = SourceTypeArray::with(new_type_params);
-    let callee_element = get_sym_element(sa, symbol.clone());
+    let callee_element = get_path_kind_element(sa, path_kind);
     let callee_type_param_definition = callee_element.type_param_definition();
 
     if check_type_params(
@@ -1159,10 +1188,11 @@ fn expand_st(
         | SourceType::Float32
         | SourceType::Float64
         | SourceType::Error
-        | SourceType::TypeParam(..) => ty,
+        | SourceType::TypeParam(..)
+        | SourceType::GenericAssoc { .. } => ty,
         SourceType::This => replace_self.expect("self expected"),
 
-        SourceType::Any | SourceType::Ptr | SourceType::GenericAssoc { .. } => {
+        SourceType::Any | SourceType::Ptr => {
             panic!("unexpected type = {:?}", ty);
             // unreachable!()
         }

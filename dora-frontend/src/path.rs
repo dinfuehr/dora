@@ -4,14 +4,20 @@ use dora_parser::{ast, Span};
 
 use crate::access::sym_accessible_from;
 use crate::sema::{
-    parent_element_or_self, AliasDefinitionId, Element, Sema, SourceFileId, TraitDefinitionId,
-    TypeParamId,
+    parent_element_or_self, AliasDefinitionId, ClassDefinitionId, Element, EnumDefinitionId, Sema,
+    SourceFileId, StructDefinitionId, TraitDefinitionId, TypeParamId,
 };
 use crate::{ErrorMessage, ModuleSymTable, Name, SymbolKind};
 
 #[derive(Clone, Debug)]
 pub enum PathKind {
     Self_,
+    Class(ClassDefinitionId),
+    Enum(EnumDefinitionId),
+    Struct(StructDefinitionId),
+    Trait(TraitDefinitionId),
+    Alias(AliasDefinitionId),
+    TypeParam(TypeParamId),
     GenericAssoc {
         tp_id: TypeParamId,
         trait_id: TraitDefinitionId,
@@ -142,7 +148,7 @@ fn parse_path_ident(
 
             if available.len() == 1 {
                 let (trait_id, assoc_id) = available.pop().expect("element expected");
-                previous_sym = SymbolKind::Alias(available[0].1);
+                previous_sym = SymbolKind::Alias(assoc_id);
                 result = Some(PathKind::GenericAssoc {
                     tp_id: id,
                     trait_id,

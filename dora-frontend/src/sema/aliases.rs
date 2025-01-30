@@ -155,6 +155,10 @@ impl Element for AliasDefinition {
     fn self_ty(&self, _sa: &Sema) -> Option<SourceType> {
         None
     }
+
+    fn visibility(&self) -> Visibility {
+        self.visibility
+    }
 }
 
 pub struct AliasBound {

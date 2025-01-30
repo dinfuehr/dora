@@ -272,6 +272,10 @@ impl Element for FctDefinition {
             FctParent::None => None,
         }
     }
+
+    fn visibility(&self) -> Visibility {
+        self.visibility
+    }
 }
 
 fn path_for_type(sa: &Sema, ty: SourceType) -> String {

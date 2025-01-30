@@ -130,9 +130,10 @@ fn expand_type(
         | SourceType::Float64
         | SourceType::Error
         | SourceType::This
-        | SourceType::TypeParam(..) => ty,
+        | SourceType::TypeParam(..)
+        | SourceType::GenericAssoc { .. } => ty,
 
-        SourceType::GenericAssoc { .. } | SourceType::Any | SourceType::Ptr => {
+        SourceType::Any | SourceType::Ptr => {
             panic!("unexpected type = {:?}", ty);
         }
     }

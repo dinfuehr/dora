@@ -101,9 +101,10 @@ pub fn replace_type(
         | SourceType::Int64
         | SourceType::Float32
         | SourceType::Float64
-        | SourceType::Error => ty,
+        | SourceType::Error
+        | SourceType::GenericAssoc { .. } => ty,
 
-        SourceType::Any | SourceType::Ptr | SourceType::GenericAssoc { .. } => unreachable!(),
+        SourceType::Any | SourceType::Ptr => unreachable!(),
     }
 }
 
@@ -219,9 +220,10 @@ pub fn specialize_ty_for_trait_object(
         | SourceType::Int64
         | SourceType::Float32
         | SourceType::Float64
-        | SourceType::Error => ty,
+        | SourceType::Error
+        | SourceType::GenericAssoc { .. } => ty,
 
-        SourceType::This | SourceType::Any | SourceType::Ptr | SourceType::GenericAssoc { .. } => {
+        SourceType::This | SourceType::Any | SourceType::Ptr => {
             unreachable!()
         }
     }

@@ -138,6 +138,10 @@ impl Element for EnumDefinition {
         let type_params = new_identity_type_params(type_params);
         Some(SourceType::Enum(self.id(), type_params))
     }
+
+    fn visibility(&self) -> Visibility {
+        self.visibility
+    }
 }
 
 impl ElementAccess for EnumDefinition {

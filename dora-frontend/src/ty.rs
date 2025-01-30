@@ -158,7 +158,6 @@ pub enum SourceType {
         tp_id: TypeParamId,
         trait_id: TraitDefinitionId,
         assoc_id: AliasDefinitionId,
-        type_params: SourceTypeArray,
     },
 
     // Some lambda.
@@ -509,7 +508,10 @@ impl SourceType {
             | SourceType::Class(..)
             | SourceType::Alias(..)
             | SourceType::Assoc(..)
-            | SourceType::This => *self == other,
+            | SourceType::This
+            | SourceType::TypeParam(..)
+            | SourceType::Lambda(..)
+            | SourceType::GenericAssoc { .. } => *self == other,
             SourceType::Int32 | SourceType::Int64 | SourceType::Float32 | SourceType::Float64 => {
                 *self == other
             }
@@ -536,17 +538,6 @@ impl SourceType {
 
                 _ => false,
             },
-
-            SourceType::TypeParam(..) => *self == other,
-
-            SourceType::Lambda(..) => {
-                // for now expect the exact same params and return types
-                // possible improvement: allow super classes for params,
-                //                             sub class for return type
-                *self == other
-            }
-
-            SourceType::GenericAssoc { .. } => unimplemented!(),
         }
     }
 
@@ -1058,7 +1049,25 @@ impl<'a> SourceTypePrinter<'a> {
                 }
             }
 
-            SourceType::GenericAssoc { .. } => unimplemented!(),
+            SourceType::GenericAssoc {
+                tp_id,
+                trait_id,
+                assoc_id,
+            } => {
+                let tp_name = if let Some(type_params) = self.type_params {
+                    self.sa.interner.str(type_params.name(tp_id)).to_string()
+                } else {
+                    format!("TypeParam({})", tp_id.index())
+                };
+
+                let trait_ = self.sa.trait_(trait_id);
+                let trait_name = self.sa.interner.str(trait_.name);
+
+                let alias = self.sa.alias(assoc_id);
+                let alias_name = self.sa.interner.str(alias.name);
+
+                format!("[{} as {}]::{}", tp_name, trait_name, alias_name)
+            }
         }
     }
 }

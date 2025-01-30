@@ -1,7 +1,7 @@
 use crate::sema::{
-    AliasDefinitionId, ClassDefinitionId, ConstDefinitionId, EnumDefinitionId, FctDefinitionId,
-    FctParent, FieldId, GlobalDefinitionId, ModuleDefinitionId, Sema, StructDefinitionFieldId,
-    StructDefinitionId, TraitDefinitionId, Visibility,
+    AliasDefinitionId, ClassDefinitionId, ConstDefinitionId, Element, EnumDefinitionId,
+    FctDefinitionId, FctParent, FieldId, GlobalDefinitionId, ModuleDefinitionId, Sema,
+    StructDefinitionFieldId, StructDefinitionId, TraitDefinitionId, Visibility,
 };
 use crate::sym::SymbolKind;
 
@@ -21,6 +21,15 @@ pub fn sym_accessible_from(sa: &Sema, sym: SymbolKind, module_id: ModuleDefiniti
         SymbolKind::TypeParam(_) => unreachable!(),
         SymbolKind::Var(_) => unreachable!(),
     }
+}
+
+#[allow(unused)]
+pub fn element_accessible_from(
+    sa: &Sema,
+    element: &dyn Element,
+    module_id: ModuleDefinitionId,
+) -> bool {
+    accessible_from(sa, element.module_id(), element.visibility(), module_id)
 }
 
 pub fn alias_accessible_from(

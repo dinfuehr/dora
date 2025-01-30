@@ -100,4 +100,8 @@ impl Element for ExtensionDefinition {
     fn self_ty(&self, _sa: &Sema) -> Option<SourceType> {
         Some(self.ty())
     }
+
+    fn visibility(&self) -> super::Visibility {
+        unreachable!()
+    }
 }

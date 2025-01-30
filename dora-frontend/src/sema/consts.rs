@@ -107,6 +107,10 @@ impl Element for ConstDefinition {
     fn self_ty(&self, _sa: &Sema) -> Option<SourceType> {
         None
     }
+
+    fn visibility(&self) -> Visibility {
+        self.visibility
+    }
 }
 
 #[derive(Clone, Debug, PartialEq)]

@@ -152,6 +152,10 @@ impl Element for TraitDefinition {
     fn self_ty(&self, _sa: &Sema) -> Option<SourceType> {
         Some(SourceType::This)
     }
+
+    fn visibility(&self) -> Visibility {
+        self.visibility
+    }
 }
 
 impl ElementAccess for TraitDefinition {

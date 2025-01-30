@@ -7,7 +7,7 @@ use crate::sema::{
     EnumDefinitionId, ExtensionDefinitionId, FctDefinition, FctDefinitionId, FctParent,
     GlobalDefinitionId, ImplDefinition, ImplDefinitionId, ModuleDefinitionId, PackageDefinitionId,
     Sema, SourceFileId, StructDefinitionId, TraitDefinition, TraitDefinitionId,
-    TypeParamDefinition, UseDefinitionId,
+    TypeParamDefinition, UseDefinitionId, Visibility,
 };
 use crate::{Name, SourceType, Span};
 
@@ -34,6 +34,7 @@ pub trait Element {
     fn module_id(&self) -> ModuleDefinitionId;
     fn package_id(&self) -> PackageDefinitionId;
     fn type_param_definition(&self) -> &Rc<TypeParamDefinition>;
+    fn visibility(&self) -> Visibility;
 
     fn is_trait(&self) -> bool {
         self.to_trait().is_some()
@@ -66,7 +67,7 @@ pub trait Element {
     fn self_ty(&self, sa: &Sema) -> Option<SourceType>;
 }
 
-pub trait ElementAccess {
+pub trait ElementAccess: Element {
     type Id;
 
     fn by_id(sa: &Sema, id: Self::Id) -> &Self;
