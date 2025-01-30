@@ -74,6 +74,9 @@ jobs:
         with:
           ruby-version: '3.0'
 
+      - name: Set env
+        run: echo "RUST_MIN_STACK=16777216" >> $GITHUB_ENV
+
       - name: Test
         if: matrix.os != 'windows-latest'
         run: tools/test
