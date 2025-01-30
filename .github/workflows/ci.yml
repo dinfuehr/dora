@@ -14,9 +14,7 @@ jobs:
           submodules: true
 
       - name: Install rust
-        uses: hecrj/setup-rust-action@v1
-        with:
-          rust-version: "nightly"
+        uses: actions-rust-lang/setup-rust-toolchain@v1
 
       - name: Install rustfmt
         run: rustup component add rustfmt
