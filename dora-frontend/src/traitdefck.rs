@@ -523,4 +523,30 @@ mod tests {
             ErrorMessage::TraitNotObjectSafe,
         );
     }
+
+    #[test]
+    fn trait_default_method_containing_self() {
+        ok("
+            trait TraitA {
+                fn f(): Foo[Self] {
+                    Foo[Self]()
+                }
+            }
+
+            class Foo[T: TraitA]
+        ");
+    }
+
+    #[test]
+    fn trait_default_method_containing_and_using_self() {
+        ok("
+            trait TraitA {
+                fn f(): Foo[Self] {
+                    Foo[Self](self)
+                }
+            }
+
+            class Foo[T: TraitA](T)
+        ");
+    }
 }

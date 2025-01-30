@@ -1101,7 +1101,6 @@ fn check_expr_conv(
             ck.sa,
             object_type.clone(),
             ck.element,
-            &ck.type_param_definition,
             TraitType::new_ty(ck.sa, check_type.clone()),
         );
 
@@ -1251,7 +1250,6 @@ fn check_expr_template(
                 ck.sa,
                 part_expr.clone(),
                 ck.element,
-                &ck.type_param_definition,
                 stringable_trait_ty.clone(),
             ) {
                 if !part_expr.is_type_param() {
@@ -1366,15 +1364,7 @@ fn check_expr_un_trait(
         ck.analysis.set_ty(e.id, return_type.clone());
 
         return_type
-    } else if ty.is_type_param()
-        && implements_trait(
-            ck.sa,
-            ty.clone(),
-            ck.element,
-            ck.type_param_definition,
-            trait_ty,
-        )
-    {
+    } else if ty.is_type_param() && implements_trait(ck.sa, ty.clone(), ck.element, trait_ty) {
         let trait_ = &ck.sa.trait_(trait_id);
 
         let method_id = trait_
@@ -1688,13 +1678,7 @@ fn check_expr_bin_trait(
             }
         }
     } else if lhs_type.is_type_param()
-        && implements_trait(
-            ck.sa,
-            lhs_type.clone(),
-            ck.element,
-            ck.type_param_definition,
-            trait_ty,
-        )
+        && implements_trait(ck.sa, lhs_type.clone(), ck.element, trait_ty)
     {
         let trait_ = ck.sa.trait_(trait_id);
 

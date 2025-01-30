@@ -35,14 +35,10 @@ pub fn implements_trait(
     sa: &Sema,
     check_ty: SourceType,
     check_element: &dyn Element,
-    check_type_param_defs: &TypeParamDefinition,
     trait_ty: TraitType,
 ) -> bool {
-    assert_eq!(
-        check_element.type_param_definition().as_ref() as *const _,
-        check_type_param_defs as *const _
-    );
     let check_ty = maybe_alias_ty(sa, check_ty);
+    let check_type_param_defs = check_element.type_param_definition();
 
     if check_ty.is_primitive() && sa.known.traits.zero() == trait_ty.trait_id {
         assert!(trait_ty.type_params.is_empty());
@@ -75,7 +71,15 @@ pub fn implements_trait(
 
         SourceType::Error => false,
 
-        SourceType::Ptr | SourceType::This | SourceType::Any => unreachable!(),
+        SourceType::This => {
+            let fct = check_element.to_fct().expect("fct expected");
+            let trait_id = fct.trait_id();
+            let self_trait_ty = TraitType::from_trait_id(trait_id);
+
+            self_trait_ty.implements_trait(sa, &trait_ty)
+        }
+
+        SourceType::Ptr | SourceType::Any => unreachable!(),
     }
 }
 

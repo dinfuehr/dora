@@ -127,7 +127,6 @@ fn match_types(
                     sa,
                     check_ty.clone(),
                     check_element,
-                    check_type_param_defs,
                     ext_tp_id,
                     ext_type_param_defs,
                 )
@@ -177,18 +176,11 @@ fn match_concrete_against_bounds(
     sa: &Sema,
     check_ty: SourceType,
     check_element: &dyn Element,
-    check_type_param_defs: &TypeParamDefinition,
     ext_tp_id: TypeParamId,
     ext_type_param_defs: &TypeParamDefinition,
 ) -> bool {
     for trait_ty in ext_type_param_defs.bounds_for_type_param(ext_tp_id) {
-        if !implements_trait(
-            sa,
-            check_ty.clone(),
-            check_element,
-            check_type_param_defs,
-            trait_ty,
-        ) {
+        if !implements_trait(sa, check_ty.clone(), check_element, trait_ty) {
             return false;
         }
     }

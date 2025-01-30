@@ -59,7 +59,6 @@ impl<'a> TypeParamCheck<'a> {
                     self.sa,
                     tp_ty.clone(),
                     self.caller_element,
-                    self.caller_type_param_defs,
                     trait_ty.clone(),
                 ) {
                     self.fail_trait_bound(self.file_id, self.span, trait_ty, tp_ty.clone());

@@ -968,13 +968,7 @@ fn check_type_params(
         if let Some(trait_ty) = bound.trait_ty() {
             let tp_ty = specialize_type(sa, tp_ty, &type_arguments);
 
-            if !implements_trait(
-                sa,
-                tp_ty.clone(),
-                ctxt_element,
-                ctxt_type_param_definition,
-                trait_ty.clone(),
-            ) {
+            if !implements_trait(sa, tp_ty.clone(), ctxt_element, trait_ty.clone()) {
                 let name = tp_ty.name_with_type_params(sa, ctxt_type_param_definition);
                 let trait_name = trait_ty.name_with_type_params(sa, ctxt_type_param_definition);
                 let msg = ErrorMessage::TypeNotImplementingTrait(name, trait_name);
@@ -1012,13 +1006,7 @@ fn check_trait_type_param_definition(
         if let Some(trait_ty) = bound.trait_ty() {
             let tp_ty = specialize_type(sa, tp_ty, &type_arguments);
 
-            if !implements_trait(
-                sa,
-                tp_ty.clone(),
-                element,
-                context_type_param_definition,
-                trait_ty.clone(),
-            ) {
+            if !implements_trait(sa, tp_ty.clone(), element, trait_ty.clone()) {
                 let name = tp_ty.name_with_type_params(sa, context_type_param_definition);
                 let trait_name = trait_ty.name_with_type_params(sa, context_type_param_definition);
                 let msg = ErrorMessage::TypeNotImplementingTrait(name, trait_name);
@@ -1033,13 +1021,7 @@ fn check_trait_type_param_definition(
 
         for bound in alias.bounds() {
             if let Some(trait_ty) = bound.ty() {
-                if !implements_trait(
-                    sa,
-                    ty.clone(),
-                    element,
-                    context_type_param_definition,
-                    trait_ty.clone(),
-                ) {
+                if !implements_trait(sa, ty.clone(), element, trait_ty.clone()) {
                     let name = ty.name_with_type_params(sa, context_type_param_definition);
                     let trait_name =
                         trait_ty.name_with_type_params(sa, context_type_param_definition);

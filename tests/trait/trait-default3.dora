@@ -1,0 +1,14 @@
+trait TraitA {
+    fn f(): Foo[Self] {
+        Foo[Self](self)
+    }
+}
+
+class Foo[T: TraitA](T)
+
+impl TraitA for Int {}
+
+fn main() {
+    let foo = 12.f();
+    assert(foo.0 == 12);
+}

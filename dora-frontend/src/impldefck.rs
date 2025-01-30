@@ -525,13 +525,7 @@ fn check_type_aliases_bounds_inner(sa: &Sema, impl_: &ImplDefinition, trait_: &T
 
             for bound in trait_alias.bounds() {
                 if let Some(trait_ty) = bound.ty() {
-                    if !implements_trait(
-                        sa,
-                        impl_alias.ty(),
-                        impl_,
-                        impl_.type_param_definition(),
-                        trait_ty.clone(),
-                    ) {
+                    if !implements_trait(sa, impl_alias.ty(), impl_, trait_ty.clone()) {
                         let name = impl_alias
                             .ty()
                             .name_with_type_params(sa, impl_.type_param_definition());
@@ -559,13 +553,7 @@ fn check_super_traits_for_bound(sa: &Sema, impl_: &ImplDefinition, trait_ty: Tra
     let type_param_definition = trait_.type_param_definition();
 
     for bound in type_param_definition.bounds_for_self() {
-        if implements_trait(
-            sa,
-            impl_.extended_ty(),
-            impl_,
-            impl_.type_param_definition(),
-            bound.clone(),
-        ) {
+        if implements_trait(sa, impl_.extended_ty(), impl_, bound.clone()) {
             check_super_traits_for_bound(sa, impl_, bound);
         } else {
             let name = impl_

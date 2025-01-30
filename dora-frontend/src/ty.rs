@@ -503,12 +503,12 @@ impl SourceType {
             | SourceType::TraitObject(..)
             | SourceType::Class(..)
             | SourceType::Alias(..)
-            | SourceType::Assoc(..) => *self == other,
+            | SourceType::Assoc(..)
+            | SourceType::This => *self == other,
             SourceType::Int32 | SourceType::Int64 | SourceType::Float32 | SourceType::Float64 => {
                 *self == other
             }
             SourceType::Ptr => panic!("ptr does not allow any other types"),
-            SourceType::This => unreachable!(),
             SourceType::Tuple(subtypes) => match other {
                 SourceType::Tuple(other_subtypes) => {
                     if subtypes.len() != other_subtypes.len() {
