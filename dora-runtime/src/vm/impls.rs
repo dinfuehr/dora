@@ -37,7 +37,7 @@ pub fn find_trait_impl(
     (impl_fct_id, bindings)
 }
 
-fn find_impl(
+pub fn find_impl(
     vm: &VM,
     check_ty: BytecodeType,
     check_type_param_defs: &TypeParamData,

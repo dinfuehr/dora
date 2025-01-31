@@ -3,17 +3,17 @@ use std::collections::HashMap;
 use crate::Sema;
 use dora_bytecode::program::{AliasData, ImplData};
 use dora_bytecode::{
-    ClassData, ClassField, EnumData, EnumVariant, ExtensionData, ExtensionId, FunctionData,
-    FunctionId, FunctionKind, GlobalData, ImplId, ModuleData, ModuleId, PackageData, PackageId,
-    Program, SourceFileData, SourceFileId, StructData, StructField, TraitData, TraitId,
+    AliasId, ClassData, ClassField, EnumData, EnumVariant, ExtensionData, ExtensionId,
+    FunctionData, FunctionId, FunctionKind, GlobalData, ImplId, ModuleData, ModuleId, PackageData,
+    PackageId, Program, SourceFileData, SourceFileId, StructData, StructField, TraitData, TraitId,
     TypeParamBound, TypeParamData,
 };
 
 use crate::generator::bty_from_ty;
 
 use crate::sema::{
-    self, ClassDefinition, Element, EnumDefinition, FctDefinitionId, FctParent, ModuleDefinitionId,
-    PackageDefinitionId, PackageName, StructDefinition, TypeParamDefinition,
+    self, AliasDefinitionId, ClassDefinition, Element, EnumDefinition, FctDefinitionId, FctParent,
+    ModuleDefinitionId, PackageDefinitionId, PackageName, StructDefinition, TypeParamDefinition,
 };
 use crate::sema::{ExtensionDefinitionId, GlobalDefinition, GlobalDefinitionId};
 
@@ -137,6 +137,15 @@ fn create_impls(sa: &Sema) -> Vec<ImplData> {
             ))
         }
 
+        let mut trait_alias_map = Vec::new();
+
+        for (trait_alias_id, impl_alias_id) in impl_.trait_alias_map() {
+            trait_alias_map.push((
+                convert_alias_id(*trait_alias_id),
+                convert_alias_id(*impl_alias_id),
+            ));
+        }
+
         result.push(ImplData {
             module_id: convert_module_id(impl_.module_id),
             type_params: create_type_params(sa, impl_.type_param_definition()),
@@ -144,6 +153,7 @@ fn create_impls(sa: &Sema) -> Vec<ImplData> {
             extended_ty: bty_from_ty(impl_.extended_ty()),
             methods,
             trait_method_map,
+            trait_alias_map,
         });
     }
 
@@ -156,7 +166,7 @@ fn create_aliases(sa: &Sema) -> Vec<AliasData> {
     for (_id, alias) in sa.aliases.iter() {
         result.push(AliasData {
             name: sa.interner.str(alias.name).to_string(),
-            ty: None,
+            ty: alias.parsed_ty().map(|pty| bty_from_ty(pty.ty())),
             idx_in_trait: alias.idx_in_trait,
         })
     }
@@ -439,6 +449,10 @@ fn find_main_fct_id(sa: &Sema) -> Option<FunctionId> {
     } else {
         Some(convert_function_id(fct.id()))
     }
+}
+
+fn convert_alias_id(id: AliasDefinitionId) -> AliasId {
+    AliasId(id.index().try_into().expect("failure"))
 }
 
 fn convert_package_id(id: PackageDefinitionId) -> PackageId {

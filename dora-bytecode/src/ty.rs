@@ -252,3 +252,9 @@ impl<'a> Iterator for BytecodeTypeArrayIter<'a> {
         }
     }
 }
+
+pub struct BytecodeTraitType {
+    pub trait_id: TraitId,
+    pub type_params: BytecodeTypeArray,
+    pub bindings: Vec<(AliasId, BytecodeType)>,
+}

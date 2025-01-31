@@ -17,7 +17,7 @@ use crate::mirror::Header;
 use crate::mode::MachineMode;
 use crate::vm::{
     compute_vtable_index, create_enum_instance, create_struct_instance, find_trait_impl,
-    get_concrete_tuple_bty, get_concrete_tuple_bty_array, specialize_bty, specialize_bty_array,
+    get_concrete_tuple_bty, get_concrete_tuple_bty_array, specialize_ty, specialize_ty_array,
     CodeDescriptor, EnumLayout, GcPoint, Intrinsic, LazyCompilationSite, Trap, INITIALIZED, VM,
 };
 use dora_bytecode::{
@@ -3929,11 +3929,11 @@ impl<'a> CannonCodeGen<'a> {
     }
 
     fn specialize_bty(&self, ty: BytecodeType) -> BytecodeType {
-        specialize_bty(ty, &self.type_params)
+        specialize_ty(self.vm, ty, &self.type_params)
     }
 
     fn specialize_bty_array(&self, types: &BytecodeTypeArray) -> BytecodeTypeArray {
-        specialize_bty_array(types, &self.type_params)
+        specialize_ty_array(self.vm, types, &self.type_params)
     }
 
     fn register_offset(&self, reg: Register) -> i32 {

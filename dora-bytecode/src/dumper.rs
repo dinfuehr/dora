@@ -26,7 +26,7 @@ pub fn dump(w: &mut dyn io::Write, prog: &Program, bc: &BytecodeFunction) -> std
     writeln!(w, "  Registers:")?;
 
     for (idx, ty) in bc.registers().iter().enumerate() {
-        writeln!(w, "{}{} => {:?}", align, idx, ty)?;
+        writeln!(w, "{}{} => {}", align, idx, fmt_ty(prog, ty))?;
     }
 
     writeln!(w)?;
@@ -346,7 +346,14 @@ impl<'a> Display for BytecodeTypePrinter<'a> {
                     Ok(())
                 }
             }
-            BytecodeType::GenericAssoc { .. } => unimplemented!(),
+            BytecodeType::GenericAssoc {
+                type_param_id,
+                assoc_id,
+                ..
+            } => {
+                let assoc = self.prog.alias(*assoc_id);
+                write!(f, "T#{}::{}", &type_param_id, assoc.name)
+            }
         }
     }
 }

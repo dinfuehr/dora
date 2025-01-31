@@ -24,8 +24,8 @@ use crate::utils::GrowableVecNonIter;
 use crate::Shape;
 
 use dora_bytecode::{
-    BytecodeType, BytecodeTypeArray, ClassId, EnumId, FunctionId, ModuleId, Program, StructId,
-    TraitId,
+    AliasData, AliasId, BytecodeType, BytecodeTypeArray, ClassId, EnumId, FunctionId, ModuleId,
+    Program, StructId, TraitId,
 };
 
 pub use self::classes::{create_shape, FieldInstance, ShapeKind};
@@ -42,7 +42,9 @@ pub use self::extensions::block_matches_ty;
 pub use self::flags::{CollectorName, Compiler, MemSize, VmFlags};
 use self::globals::GlobalVariableMemory;
 pub use self::globals::{INITIALIZED, RUNNING, UNINITIALIZED};
-pub use self::impls::{bounds_for_tp, find_trait_impl, tp_implements_trait, ty_implements_trait};
+pub use self::impls::{
+    bounds_for_tp, find_impl, find_trait_impl, tp_implements_trait, ty_implements_trait,
+};
 pub use self::known::Intrinsic;
 use self::known::KnownElements;
 pub use self::natives::{setup_builtin_natives, NativeMethods};
@@ -50,7 +52,7 @@ pub use self::specialize::{
     add_ref_fields, compute_vtable_index, create_enum_instance, create_shape_for_class,
     create_struct_instance, ensure_shape_for_enum_variant, ensure_shape_for_lambda,
     ensure_shape_for_trait_object, specialize_bty, specialize_bty_array,
-    specialize_bty_for_trait_object,
+    specialize_bty_for_trait_object, specialize_ty, specialize_ty_array,
 };
 pub use self::stdlib_lookup::FctImplementation;
 pub use self::structs::{StructInstance, StructInstanceField, StructInstanceId};
@@ -327,6 +329,10 @@ impl VM {
     ) -> &Shape {
         let shape = ensure_shape_for_trait_object(self, trait_ty, actual_object_ty);
         unsafe { &*shape }
+    }
+
+    pub fn alias(&self, id: AliasId) -> &AliasData {
+        &self.program.aliases[id.0 as usize]
     }
 
     pub fn class(&self, id: ClassId) -> &ClassData {

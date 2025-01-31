@@ -178,6 +178,7 @@ pub struct ImplData {
     pub extended_ty: BytecodeType,
     pub methods: Vec<FunctionId>,
     pub trait_method_map: Vec<(FunctionId, FunctionId)>,
+    pub trait_alias_map: Vec<(AliasId, AliasId)>,
 }
 
 #[derive(Copy, Clone, Debug, PartialEq, Eq, Hash, Decode, Encode)]
