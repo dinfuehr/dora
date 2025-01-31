@@ -1,4 +1,4 @@
-use crate::sema::{AliasParent, Element, Sema, TraitDefinitionId, TypeParamId};
+use crate::sema::{find_impl, AliasParent, Element, Sema, TraitDefinitionId, TypeParamId};
 use crate::{SourceType, SourceTypeArray, TraitType};
 
 pub fn specialize_trait_type(sa: &Sema, ty: TraitType, type_params: &SourceTypeArray) -> TraitType {
@@ -129,33 +129,34 @@ pub struct CallSpecializationData {
 pub fn specialize_ty_for_call(
     sa: &Sema,
     ty: SourceType,
+    element: &dyn Element,
     call_data: &CallSpecializationData,
 ) -> SourceType {
     match ty {
         SourceType::Class(cls_id, cls_type_params) => SourceType::Class(
             cls_id,
-            specialize_ty_for_call_array(sa, cls_type_params, call_data),
+            specialize_ty_for_call_array(sa, cls_type_params, element, call_data),
         ),
 
         SourceType::TraitObject(trait_id, trait_type_params, bindings) => SourceType::TraitObject(
             trait_id,
-            specialize_ty_for_call_array(sa, trait_type_params, call_data),
-            specialize_ty_for_call_array(sa, bindings, call_data),
+            specialize_ty_for_call_array(sa, trait_type_params, element, call_data),
+            specialize_ty_for_call_array(sa, bindings, element, call_data),
         ),
 
         SourceType::Struct(struct_id, struct_type_params) => SourceType::Struct(
             struct_id,
-            specialize_ty_for_call_array(sa, struct_type_params, call_data),
+            specialize_ty_for_call_array(sa, struct_type_params, element, call_data),
         ),
 
         SourceType::Enum(enum_id, enum_type_params) => SourceType::Enum(
             enum_id,
-            specialize_ty_for_call_array(sa, enum_type_params, call_data),
+            specialize_ty_for_call_array(sa, enum_type_params, element, call_data),
         ),
 
         SourceType::Alias(alias_id, alias_type_params) => SourceType::Alias(
             alias_id,
-            specialize_ty_for_call_array(sa, alias_type_params, call_data),
+            specialize_ty_for_call_array(sa, alias_type_params, element, call_data),
         ),
 
         SourceType::Assoc(alias_id, alias_type_params) => {
@@ -172,19 +173,49 @@ pub fn specialize_ty_for_call(
             }
         }
 
-        SourceType::GenericAssoc { assoc_id, .. } => {
-            let _assoc = sa.alias(assoc_id);
-            unimplemented!()
+        SourceType::GenericAssoc {
+            tp_id,
+            trait_id,
+            assoc_id,
+        } => {
+            let assoc = sa.alias(assoc_id);
+            assert!(assoc.parent.is_trait());
+            let type_param_ty = call_data.type_params[tp_id.index()].clone();
+            let trait_ty = TraitType::from_trait_id(trait_id);
+
+            if type_param_ty.is_type_param() {
+                SourceType::GenericAssoc {
+                    tp_id,
+                    trait_id,
+                    assoc_id,
+                }
+            } else if let Some(impl_match) = find_impl(
+                sa,
+                element,
+                type_param_ty,
+                element.type_param_definition(),
+                trait_ty,
+            ) {
+                let impl_ = sa.impl_(impl_match.id);
+                let ty = impl_
+                    .trait_alias_map()
+                    .get(&assoc_id)
+                    .map(|a| sa.alias(*a).ty())
+                    .unwrap_or(SourceType::Error);
+                specialize_ty_for_call(sa, ty, element, call_data)
+            } else {
+                unimplemented!()
+            }
         }
 
         SourceType::Lambda(params, return_type) => SourceType::Lambda(
-            specialize_ty_for_call_array(sa, params, call_data),
-            Box::new(specialize_ty_for_call(sa, *return_type, call_data)),
+            specialize_ty_for_call_array(sa, params, element, call_data),
+            Box::new(specialize_ty_for_call(sa, *return_type, element, call_data)),
         ),
 
-        SourceType::Tuple(subtypes) => {
-            SourceType::Tuple(specialize_ty_for_call_array(sa, subtypes, call_data))
-        }
+        SourceType::Tuple(subtypes) => SourceType::Tuple(specialize_ty_for_call_array(
+            sa, subtypes, element, call_data,
+        )),
 
         SourceType::TypeParam(id) => call_data.type_params[id.index()].clone(),
 
@@ -207,11 +238,12 @@ pub fn specialize_ty_for_call(
 fn specialize_ty_for_call_array(
     sa: &Sema,
     array: SourceTypeArray,
+    element: &dyn Element,
     call_data: &CallSpecializationData,
 ) -> SourceTypeArray {
     let new_array = array
         .iter()
-        .map(|ty| specialize_ty_for_call(sa, ty, call_data))
+        .map(|ty| specialize_ty_for_call(sa, ty, element, call_data))
         .collect::<Vec<_>>();
     SourceTypeArray::with(new_array)
 }

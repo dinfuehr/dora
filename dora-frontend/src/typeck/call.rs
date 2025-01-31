@@ -432,7 +432,7 @@ fn check_expr_call_method(
                 type_params: full_type_params.clone(),
             };
 
-            specialize_ty_for_call(ck.sa, fct.return_type(), &call_data)
+            specialize_ty_for_call(ck.sa, fct.return_type(), ck.element, &call_data)
         } else {
             ty_error()
         };

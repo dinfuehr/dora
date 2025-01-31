@@ -62,7 +62,7 @@ fn main() {
 
     let r = Range(2).enumerate();
 
-    assert(Some[(Int, Int)](0, 2) == r.next());
-    assert(Some[(Int, Int)](1, 1) == r.next());
+    assert(Some[(Int, Int)]((0, 2)) == r.next());
+    assert(Some[(Int, Int)]((1, 1)) == r.next());
     assert(r.next().isNone());
 }

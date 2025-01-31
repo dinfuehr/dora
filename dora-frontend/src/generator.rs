@@ -1529,7 +1529,8 @@ impl<'a> AstBytecodeGen<'a> {
         let callee_idx = self.add_const_pool_entry_for_call(&callee, &call_type);
 
         // Determine types for arguments and return values
-        let (arg_types, return_type) = self.determine_callee_types(&call_type, &*callee);
+        let (arg_types, _return_type) = self.determine_callee_types(&call_type, &*callee);
+        let return_type = self.analysis.ty(expr.id);
 
         // Allocate register for result
         let return_reg = self.ensure_register(dest, register_bty_from_ty(return_type.clone()));
