@@ -20,11 +20,11 @@ use crate::typeck::{
     check_args_compatible, check_args_compatible_fct, check_expr, find_method_call_candidates,
     read_path_expr, CallArguments, TypeCheck,
 };
-use crate::typeparamck;
 use crate::{
-    empty_sta, specialize_ty_for_generic, specialize_ty_for_trait_object, specialize_type,
-    ty::error as ty_error, ErrorMessage, SourceType, SourceTypeArray, TraitType,
+    empty_sta, specialize_ty_for_generic, specialize_type, ty::error as ty_error,
+    CallSpecializationData, ErrorMessage, SourceType, SourceTypeArray, TraitType,
 };
+use crate::{specialize_ty_for_call, typeparamck};
 
 pub(super) fn check_expr_call(
     ck: &mut TypeCheck,
@@ -426,18 +426,13 @@ fn check_expr_call_method(
             e.span,
         ) {
             check_args_compatible_fct(ck, fct, arguments, &full_type_params, None);
-            match &object_type {
-                SourceType::TraitObject(trait_id, type_params, assoc_types) => {
-                    specialize_ty_for_trait_object(
-                        ck.sa,
-                        fct.return_type(),
-                        *trait_id,
-                        &type_params,
-                        &assoc_types,
-                    )
-                }
-                _ => specialize_type(ck.sa, fct.return_type(), &full_type_params),
-            }
+
+            let call_data = CallSpecializationData {
+                object_ty: candidate.object_type.clone(),
+                type_params: full_type_params.clone(),
+            };
+
+            specialize_ty_for_call(ck.sa, fct.return_type(), &call_data)
         } else {
             ty_error()
         };

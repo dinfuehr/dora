@@ -121,6 +121,101 @@ fn replace_sta(
     SourceTypeArray::with(new_array)
 }
 
+pub struct CallSpecializationData {
+    pub object_ty: SourceType,
+    pub type_params: SourceTypeArray,
+}
+
+pub fn specialize_ty_for_call(
+    sa: &Sema,
+    ty: SourceType,
+    call_data: &CallSpecializationData,
+) -> SourceType {
+    match ty {
+        SourceType::Class(cls_id, cls_type_params) => SourceType::Class(
+            cls_id,
+            specialize_ty_for_call_array(sa, cls_type_params, call_data),
+        ),
+
+        SourceType::TraitObject(trait_id, trait_type_params, bindings) => SourceType::TraitObject(
+            trait_id,
+            specialize_ty_for_call_array(sa, trait_type_params, call_data),
+            specialize_ty_for_call_array(sa, bindings, call_data),
+        ),
+
+        SourceType::Struct(struct_id, struct_type_params) => SourceType::Struct(
+            struct_id,
+            specialize_ty_for_call_array(sa, struct_type_params, call_data),
+        ),
+
+        SourceType::Enum(enum_id, enum_type_params) => SourceType::Enum(
+            enum_id,
+            specialize_ty_for_call_array(sa, enum_type_params, call_data),
+        ),
+
+        SourceType::Alias(alias_id, alias_type_params) => SourceType::Alias(
+            alias_id,
+            specialize_ty_for_call_array(sa, alias_type_params, call_data),
+        ),
+
+        SourceType::Assoc(alias_id, alias_type_params) => {
+            let alias = sa.alias(alias_id);
+            assert!(alias_type_params.is_empty());
+
+            match &call_data.object_ty {
+                SourceType::TraitObject(_trait_id, _type_params, assoc_types) => {
+                    assoc_types[alias.idx_in_trait()].clone()
+                }
+
+                // Associated types should only be used in traits.
+                _ => unreachable!(),
+            }
+        }
+
+        SourceType::GenericAssoc { assoc_id, .. } => {
+            let _assoc = sa.alias(assoc_id);
+            unimplemented!()
+        }
+
+        SourceType::Lambda(params, return_type) => SourceType::Lambda(
+            specialize_ty_for_call_array(sa, params, call_data),
+            Box::new(specialize_ty_for_call(sa, *return_type, call_data)),
+        ),
+
+        SourceType::Tuple(subtypes) => {
+            SourceType::Tuple(specialize_ty_for_call_array(sa, subtypes, call_data))
+        }
+
+        SourceType::TypeParam(id) => call_data.type_params[id.index()].clone(),
+
+        SourceType::Unit
+        | SourceType::UInt8
+        | SourceType::Bool
+        | SourceType::Char
+        | SourceType::Int32
+        | SourceType::Int64
+        | SourceType::Float32
+        | SourceType::Float64
+        | SourceType::Error => ty,
+
+        SourceType::This | SourceType::Any | SourceType::Ptr => {
+            unreachable!()
+        }
+    }
+}
+
+fn specialize_ty_for_call_array(
+    sa: &Sema,
+    array: SourceTypeArray,
+    call_data: &CallSpecializationData,
+) -> SourceTypeArray {
+    let new_array = array
+        .iter()
+        .map(|ty| specialize_ty_for_call(sa, ty, call_data))
+        .collect::<Vec<_>>();
+    SourceTypeArray::with(new_array)
+}
+
 pub fn specialize_ty_for_trait_object(
     sa: &Sema,
     ty: SourceType,

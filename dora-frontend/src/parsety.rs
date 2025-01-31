@@ -1167,7 +1167,7 @@ fn expand_st(
                 let impl_alias_id = impl_.trait_alias_map().get(&id).cloned();
                 if let Some(impl_alias_id) = impl_alias_id {
                     let impl_alias = sa.alias(impl_alias_id);
-                    impl_alias.ty()
+                    expand_st(sa, element, impl_alias.ty(), replace_self)
                 } else {
                     SourceType::Error
                 }
