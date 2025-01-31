@@ -18,8 +18,7 @@ use crate::mode::MachineMode;
 use crate::vm::{
     compute_vtable_index, create_enum_instance, create_struct_instance, find_trait_impl,
     get_concrete_tuple_bty, get_concrete_tuple_bty_array, specialize_bty, specialize_bty_array,
-    specialize_bty_for_trait_object, CodeDescriptor, EnumLayout, GcPoint, Intrinsic,
-    LazyCompilationSite, Trap, INITIALIZED, VM,
+    CodeDescriptor, EnumLayout, GcPoint, Intrinsic, LazyCompilationSite, Trap, INITIALIZED, VM,
 };
 use dora_bytecode::{
     display_fct, display_ty, read, BytecodeFunction, BytecodeOffset, BytecodeType,
@@ -2370,7 +2369,7 @@ impl<'a> CannonCodeGen<'a> {
         &mut self,
         dest: Register,
         params: BytecodeTypeArray,
-        return_type: BytecodeType,
+        _return_type: BytecodeType,
         arguments: Vec<Register>,
         location: Location,
     ) {
@@ -2381,22 +2380,19 @@ impl<'a> CannonCodeGen<'a> {
         let bytecode_type_self = self.bytecode.register_type(self_register);
         assert!(bytecode_type_self.is_ptr());
 
-        let fct_return_type = self.specialize_bty(return_type);
-        assert!(fct_return_type.is_concrete_type());
-
         let mut params_including_self = params.to_vec();
         params_including_self.insert(0, BytecodeType::Ptr);
         let params_including_self = BytecodeTypeArray::new(params_including_self);
         let params_including_self = self.specialize_bty_array(&params_including_self);
 
-        let argsize = self.emit_invoke_arguments(dest, fct_return_type.clone(), arguments);
+        let argsize = self.emit_invoke_arguments(dest, bytecode_type.clone(), arguments);
 
         let vtable_index = 0;
         let gcpoint = self.create_gcpoint();
 
-        let (result_reg, result_mode) = self.call_result_reg_and_mode(bytecode_type);
+        let (result_reg, result_mode) = self.call_result_reg_and_mode(bytecode_type.clone());
 
-        let self_index = if result_passed_as_argument(fct_return_type.clone()) {
+        let self_index = if result_passed_as_argument(bytecode_type.clone()) {
             1
         } else {
             0
@@ -2405,7 +2401,7 @@ impl<'a> CannonCodeGen<'a> {
         let lazy_compilation_site = LazyCompilationSite::Lambda {
             receiver_is_first: self_index == 0,
             params: params_including_self,
-            return_type: fct_return_type,
+            return_type: bytecode_type,
         };
 
         self.asm.virtual_call(
@@ -2438,33 +2434,20 @@ impl<'a> CannonCodeGen<'a> {
         let bytecode_type_self = self.bytecode.register_type(self_register);
         assert!(bytecode_type_self.is_ptr() || bytecode_type_self.is_trait_object());
 
-        let (trait_id, trait_type_params, trait_assoc_types) = match &trait_object_ty {
-            BytecodeType::TraitObject(trait_id, trait_type_params, trait_assoc_types) => {
-                (*trait_id, trait_type_params, trait_assoc_types)
-            }
+        let trait_id = match &trait_object_ty {
+            BytecodeType::TraitObject(trait_id, ..) => *trait_id,
             _ => unreachable!(),
         };
 
-        let fct = self.vm.fct(trait_fct_id);
-        let fct_return_type = specialize_bty_for_trait_object(
-            &self.vm.program,
-            fct.return_type.clone(),
-            trait_id,
-            trait_type_params,
-            trait_assoc_types,
-        );
-        let fct_return_type = self.specialize_bty(fct_return_type);
-        assert!(fct_return_type.is_concrete_type());
-
-        let argsize = self.emit_invoke_arguments(dest, fct_return_type.clone(), arguments);
+        let argsize = self.emit_invoke_arguments(dest, bytecode_type.clone(), arguments);
 
         let vtable_index = compute_vtable_index(self.vm, trait_id, trait_fct_id);
 
         let gcpoint = self.create_gcpoint();
 
-        let (result_reg, result_mode) = self.call_result_reg_and_mode(bytecode_type);
+        let (result_reg, result_mode) = self.call_result_reg_and_mode(bytecode_type.clone());
 
-        let self_index = if result_passed_as_argument(fct_return_type.clone()) {
+        let self_index = if result_passed_as_argument(bytecode_type) {
             1
         } else {
             0
@@ -2533,11 +2516,6 @@ impl<'a> CannonCodeGen<'a> {
 
         let dest_ty = self.specialize_register_type(dest);
 
-        let fct = self.vm.fct(fct_id);
-        let fct_return_type =
-            self.specialize_bty(specialize_bty(fct.return_type.clone(), &type_params));
-        assert!(fct_return_type.is_concrete_type());
-
         let bytecode_type_self = self.bytecode.register_type(self_register);
 
         if bytecode_type_self.is_ptr() {
@@ -2547,7 +2525,7 @@ impl<'a> CannonCodeGen<'a> {
                 .test_if_nil_bailout(location, REG_RESULT.into(), Trap::NIL);
         }
 
-        let argsize = self.emit_invoke_arguments(dest, fct_return_type.clone(), arguments);
+        let argsize = self.emit_invoke_arguments(dest, dest_ty.clone(), arguments);
 
         let ptr = get_function_address(self.vm, fct_id, type_params.clone());
         let gcpoint = self.create_gcpoint();
@@ -2609,12 +2587,7 @@ impl<'a> CannonCodeGen<'a> {
     ) {
         let bytecode_type = self.specialize_register_type(dest);
 
-        let fct = self.vm.fct(fct_id);
-        let fct_return_type =
-            self.specialize_bty(specialize_bty(fct.return_type.clone(), &type_params));
-        assert!(fct_return_type.is_concrete_type());
-
-        let argsize = self.emit_invoke_arguments(dest, fct_return_type.clone(), arguments);
+        let argsize = self.emit_invoke_arguments(dest, bytecode_type.clone(), arguments);
 
         let ptr = get_function_address(self.vm, fct_id, type_params.clone());
         let gcpoint = self.create_gcpoint();
