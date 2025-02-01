@@ -156,7 +156,7 @@ pub enum SourceType {
     // Some associated type on type parameter (T::X).
     GenericAssoc {
         tp_id: TypeParamId,
-        trait_id: TraitDefinitionId,
+        trait_ty: TraitType,
         assoc_id: AliasDefinitionId,
     },
 
@@ -1051,7 +1051,7 @@ impl<'a> SourceTypePrinter<'a> {
 
             SourceType::GenericAssoc {
                 tp_id,
-                trait_id,
+                trait_ty,
                 assoc_id,
             } => {
                 let tp_name = if let Some(type_params) = self.type_params {
@@ -1060,7 +1060,7 @@ impl<'a> SourceTypePrinter<'a> {
                     format!("TypeParam({})", tp_id.index())
                 };
 
-                let trait_ = self.sa.trait_(trait_id);
+                let trait_ = self.sa.trait_(trait_ty.trait_id);
                 let trait_name = self.sa.interner.str(trait_.name);
 
                 let alias = self.sa.alias(assoc_id);
@@ -1072,7 +1072,7 @@ impl<'a> SourceTypePrinter<'a> {
     }
 }
 
-#[derive(Clone, Debug, PartialEq, Eq)]
+#[derive(Clone, Debug, PartialEq, Eq, Hash)]
 pub struct TraitType {
     pub trait_id: TraitDefinitionId,
     pub type_params: SourceTypeArray,

@@ -7,7 +7,7 @@ use crate::sema::{
     parent_element_or_self, AliasDefinitionId, ClassDefinitionId, Element, EnumDefinitionId, Sema,
     SourceFileId, StructDefinitionId, TraitDefinitionId, TypeParamId,
 };
-use crate::{ErrorMessage, ModuleSymTable, Name, SymbolKind};
+use crate::{ErrorMessage, ModuleSymTable, Name, SymbolKind, TraitType};
 
 #[derive(Clone, Debug)]
 pub enum PathKind {
@@ -20,7 +20,7 @@ pub enum PathKind {
     TypeParam(TypeParamId),
     GenericAssoc {
         tp_id: TypeParamId,
-        trait_id: TraitDefinitionId,
+        trait_ty: TraitType,
         assoc_id: AliasDefinitionId,
     },
     Symbol(SymbolKind),
@@ -147,11 +147,11 @@ fn parse_path_ident(
                 lookup_alias_on_type_param(sa, element, id, name).unwrap_or(Vec::new());
 
             if available.len() == 1 {
-                let (trait_id, assoc_id) = available.pop().expect("element expected");
+                let (trait_ty, assoc_id) = available.pop().expect("element expected");
                 previous_sym = SymbolKind::Alias(assoc_id);
                 result = Some(PathKind::GenericAssoc {
                     tp_id: id,
-                    trait_id,
+                    trait_ty,
                     assoc_id,
                 });
             } else {
@@ -199,7 +199,7 @@ fn lookup_alias_on_type_param<'a>(
     element: &'a dyn Element,
     id: TypeParamId,
     name: Name,
-) -> Option<Vec<(TraitDefinitionId, AliasDefinitionId)>> {
+) -> Option<Vec<(TraitType, AliasDefinitionId)>> {
     let type_param_definition = element.type_param_definition();
     let mut results = Vec::with_capacity(2);
 
@@ -208,7 +208,7 @@ fn lookup_alias_on_type_param<'a>(
         let trait_ = sa.trait_(trait_id);
 
         if let Some(id) = trait_.alias_names().get(&name) {
-            results.push((trait_id, *id));
+            results.push((bound, *id));
         }
     }
 

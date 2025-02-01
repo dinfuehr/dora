@@ -278,9 +278,17 @@ fn parse_type_regular(
             }
         },
 
-        PathKind::GenericAssoc { trait_id, .. } => ParsedTypeKind::Regular {
-            symbol: SymbolKind::Trait(trait_id), // Placeholder
-            kind: path_kind,
+        PathKind::GenericAssoc {
+            trait_ty,
+            assoc_id,
+            tp_id,
+        } => ParsedTypeKind::Regular {
+            symbol: SymbolKind::Trait(trait_ty.trait_id), // Placeholder
+            kind: PathKind::GenericAssoc {
+                tp_id,
+                trait_ty,
+                assoc_id,
+            },
             type_arguments: Vec::new(),
         },
 
@@ -446,11 +454,11 @@ fn convert_type_regular(sa: &Sema, file_id: SourceFileId, parsed_ty: &ParsedType
 
         PathKind::GenericAssoc {
             tp_id,
-            trait_id,
+            trait_ty,
             assoc_id,
         } => SourceType::GenericAssoc {
             tp_id,
-            trait_id,
+            trait_ty,
             assoc_id,
         },
 

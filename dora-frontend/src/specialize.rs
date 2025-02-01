@@ -175,18 +175,17 @@ pub fn specialize_ty_for_call(
 
         SourceType::GenericAssoc {
             tp_id,
-            trait_id,
+            trait_ty,
             assoc_id,
         } => {
             let assoc = sa.alias(assoc_id);
             assert!(assoc.parent.is_trait());
             let type_param_ty = call_data.type_params[tp_id.index()].clone();
-            let trait_ty = TraitType::from_trait_id(trait_id);
 
             if type_param_ty.is_type_param() {
                 SourceType::GenericAssoc {
                     tp_id,
-                    trait_id,
+                    trait_ty,
                     assoc_id,
                 }
             } else if let Some(impl_match) = find_impl(
@@ -409,7 +408,7 @@ pub fn specialize_ty_for_generic(
             assert!(alias_type_params.is_empty());
             SourceType::GenericAssoc {
                 tp_id: type_param_id,
-                trait_id,
+                trait_ty: TraitType::from_trait_id(trait_id),
                 assoc_id: alias_id,
             }
         }
