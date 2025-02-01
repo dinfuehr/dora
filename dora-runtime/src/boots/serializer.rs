@@ -210,7 +210,7 @@ fn encode_bytecode_type_slice(vm: &VM, sta: &[BytecodeType], buffer: &mut ByteBu
     }
 }
 
-fn encode_bytecode_type(vm: &VM, ty: &BytecodeType, buffer: &mut ByteBuffer) {
+pub fn encode_bytecode_type(vm: &VM, ty: &BytecodeType, buffer: &mut ByteBuffer) {
     match ty {
         BytecodeType::Unit => {
             buffer.emit_u8(BytecodeTypeKind::Unit as u8);

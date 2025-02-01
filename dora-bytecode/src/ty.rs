@@ -135,6 +135,13 @@ impl BytecodeType {
         }
     }
 
+    pub fn is_generic_assoc(&self) -> bool {
+        match self {
+            BytecodeType::GenericAssoc { .. } => true,
+            _ => false,
+        }
+    }
+
     pub fn is_concrete_type(&self) -> bool {
         match self {
             BytecodeType::Unit

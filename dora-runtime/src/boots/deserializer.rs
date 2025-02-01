@@ -6,8 +6,8 @@ use crate::vm::{
     RelocationTable,
 };
 use dora_bytecode::{
-    BytecodeType, BytecodeTypeArray, BytecodeTypeKind, ClassId, EnumId, FunctionId, Location,
-    StructId, TraitId,
+    AliasId, BytecodeTraitType, BytecodeType, BytecodeTypeArray, BytecodeTypeKind, ClassId, EnumId,
+    FunctionId, Location, StructId, TraitId,
 };
 
 pub fn decode_code_descriptor(reader: &mut ByteReader) -> CodeDescriptor {
@@ -235,9 +235,37 @@ pub fn decode_bytecode_type(reader: &mut ByteReader) -> BytecodeType {
             BytecodeType::Lambda(params, Box::new(return_ty))
         }
 
-        BytecodeTypeKind::TypeAlias
-        | BytecodeTypeKind::Assoc
-        | BytecodeTypeKind::GenericAssoc { .. } => unreachable!(),
+        BytecodeTypeKind::GenericAssoc => {
+            let type_param_id = reader.read_u32();
+            let trait_ty = decode_bytecode_trait_ty(reader);
+            let assoc_id = AliasId(reader.read_u32());
+            BytecodeType::GenericAssoc {
+                type_param_id,
+                trait_ty,
+                assoc_id,
+            }
+        }
+
+        BytecodeTypeKind::TypeAlias | BytecodeTypeKind::Assoc => unreachable!(),
+    }
+}
+
+fn decode_bytecode_trait_ty(reader: &mut ByteReader) -> BytecodeTraitType {
+    let trait_id = TraitId(reader.read_u32());
+    let type_params = decode_bytecode_type_array(reader);
+    let length = reader.read_u32() as usize;
+    let mut bindings = Vec::with_capacity(length);
+
+    for _ in 0..length {
+        let alias_id = AliasId(reader.read_u32());
+        let ty = decode_bytecode_type(reader);
+        bindings.push((alias_id, ty));
+    }
+
+    BytecodeTraitType {
+        trait_id,
+        type_params,
+        bindings,
     }
 }
 

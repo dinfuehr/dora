@@ -1,0 +1,53 @@
+trait MyIterator {
+    type Item;
+    fn next(): Option[Self::Item];
+
+    fn enumerate(): Enumerate[Self] {
+        Enumerate[Self](it = self, idx = 0)
+    }
+}
+
+class Range {
+    value: Int
+}
+
+impl MyIterator for Range {
+    type Item = Int;
+
+    fn next(): Option[Int] {
+        if self.value <= 0 {
+            None[Int]
+        } else {
+            let result = self.value;
+            self.value -= 1;
+            Some[Int](result)
+        }
+    }
+}
+
+class Enumerate[I: MyIterator] {
+    it: I,
+    idx: Int,
+}
+
+impl[I: MyIterator] MyIterator for Enumerate[I] {
+    type Item = (Int, I::Item);
+
+    fn next(): Option[(Int, I::Item)] {
+        if self.it.next() is Some(value) {
+            let idx = self.idx;
+            self.idx += 1;
+            Some[(Int, I::Item)]((idx, value))
+        } else {
+            None[(Int, I::Item)]
+        }
+    }
+}
+
+fn main() {
+    let r = Range(2).enumerate();
+
+    assert(Some[(Int, Int)]((0, 2)) == r.next());
+    assert(Some[(Int, Int)]((1, 1)) == r.next());
+    assert(r.next().isNone());
+}

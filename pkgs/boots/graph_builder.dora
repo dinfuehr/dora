@@ -15,6 +15,7 @@ use package::interface as iface;
 use package::interface::{config, InlinedLocation, InlinedFunctionId};
 use package::regalloc::{EnumLayout, isReference, RecordLayout};
 use package::regalloc;
+use package::specialize::{specializeArray, specializeTy};
 
 pub fn createGraph(ci: CompilationInfo, analysis: BytecodeAnalysis): Graph {
     let graph = Graph::new();
@@ -168,7 +169,7 @@ impl SsaGen {
 
     fn setupArguments(block: Block) {
         let mut argIdx = 0i32;
-        let retTy = self.returnType.specialize(self.typeParams);
+        let retTy = self.specializeTy(self.returnType);
 
         if retTy.isStruct() || retTy.isTuple() {
             let argInst = graph::createArgInst(argIdx, Type::Address);
@@ -195,7 +196,7 @@ impl SsaGen {
 
     fn connectArguments(block: Block, callInst: Inst) {
         let mut argIdx = 0;
-        let retTy = self.returnType.specialize(self.typeParams);
+        let retTy = self.specializeTy(self.returnType);
 
         if retTy.isStruct() || retTy.isTuple() {
             let arg = callInst.getInput(argIdx).getValue();
@@ -833,7 +834,7 @@ impl SsaGen {
 
         if !destType.isUnit() {
             let objInst = self.readVariable(obj, self.current());
-            let type_params = type_params.specialize(self.typeParams);
+            let type_params = self.specializeArray(type_params);
             let info = ClassInfo(class_id = cls_id, type_params);
             let info = InstExtraData::ClassInfo(info);
             let offset = iface::getFieldOffset(self.ci, cls_id, type_params, field_id);
@@ -846,7 +847,7 @@ impl SsaGen {
         let srcType = self.reg(src);
 
         let ConstPoolEntry::Field(cls_id, type_params, field_id) = self.bc.constPool(idx);
-        let type_params = type_params.specialize(self.typeParams);
+        let type_params = self.specializeArray(type_params);
 
         if !srcType.isUnit() {
             let srcInst = self.readVariable(src, self.current());
@@ -938,7 +939,7 @@ impl SsaGen {
     fn emitLoadEnumElement(dest: BytecodeRegister, src: BytecodeRegister, idx: ConstPoolId) {
         let ConstPoolEntry::EnumElement(enum_id, type_params, variant_id, field_id) = self.bc.constPool(idx);
         let layout = self.computeEnumLayout(enum_id, type_params);
-        let type_params = type_params.specialize(self.typeParams);
+        let type_params = self.specializeArray(type_params);
 
         match layout {
             EnumLayout::Int32 => {
@@ -1363,7 +1364,7 @@ impl SsaGen {
 
         self.pushed_registers.clear();
 
-        let type_params = type_params.specialize(self.typeParams);
+        let type_params = self.specializeArray(type_params);
         let info = InstExtraData::FunctionInfo(FunctionInfo(fct_id, type_params));
 
         let inst = graph::createInvokeInst(info, kind, args, returnTy);
@@ -1408,8 +1409,8 @@ impl SsaGen {
 
             CallKind::Lambda => {
                 let ConstPoolEntry::Lambda(params, return_type) = self.bc.constPool(idx);
-                let params = params.specialize(self.typeParams);
-                let return_type = return_type.specialize(self.typeParams);
+                let params = self.specializeArray(params);
+                let return_type = self.specializeTy(return_type);
                 let info = LambdaFunctionInfo(params, return_type, receiver_is_first);
                 graph::createInvokeLambdaInst(info, args, returnTy)
             }
@@ -1794,7 +1795,7 @@ impl SsaGen {
         assert(type_params.size() == 1);
         let array = self.readVariable(args(0), self.current());
         let index = self.readVariable(args(1), self.current());
-        let ty = type_params(0).specialize(self.typeParams);
+        let ty = self.specializeTy(type_params(0));
 
         match ty {
             BytecodeType::Unit |
@@ -2178,7 +2179,7 @@ impl SsaGen {
     fn emitNewObject(dest: BytecodeRegister, idx: ConstPoolId) {
         let ConstPoolEntry::Class(class_id, type_params) = self.bc.constPool(idx);
 
-        let type_params = type_params.specialize(self.typeParams);
+        let type_params = self.specializeArray(type_params);
         let info = ClassInfo(class_id, type_params);
         let info = InstExtraData::ClassInfo(info);
         let objInst = graph::createNewObjectInst(info);
@@ -2209,7 +2210,7 @@ impl SsaGen {
     fn emitNewLambda(dest: BytecodeRegister, idx: ConstPoolId) {
         let ConstPoolEntry::Fct(fct_id, type_params) = self.bc.constPool(idx);
 
-        let type_params = type_params.specialize(self.typeParams);
+        let type_params = self.specializeArray(type_params);
         let info = FunctionInfo(fct_id, type_params);
         let info = InstExtraData::FunctionInfo(info);
         let objInst = graph::createNewObjectInst(info);
@@ -2283,7 +2284,7 @@ impl SsaGen {
     fn emitNewEnum(dest: BytecodeRegister, idx: ConstPoolId) {
         let ConstPoolEntry::EnumVariant(enum_id, type_params, variant_id) = self.bc.constPool(idx);
         let layout = self.computeEnumLayout(enum_id, type_params);
-        let type_params = type_params.specialize(self.typeParams);
+        let type_params = self.specializeArray(type_params);
 
         match layout {
             EnumLayout::Int32 => {
@@ -2364,7 +2365,7 @@ impl SsaGen {
     fn emitNewArray(dest: BytecodeRegister, length: BytecodeRegister, idx: ConstPoolId) {
         let ConstPoolEntry::Class(class_id, type_params) = self.bc.constPool(idx);
 
-        let type_params = type_params.specialize(self.typeParams);
+        let type_params = self.specializeArray(type_params);
         let element_size = iface::getElementSize(self.ci, class_id, type_params);
         let element_size_inst = self.graph.ensureConstInt64Inst(element_size.toInt64());
 
@@ -2657,17 +2658,17 @@ impl SsaGen {
     }
 
     fn computeStructLayout(struct_id: StructId, type_params: Array[BytecodeType]): RecordLayout {
-        let type_params = type_params.specialize(self.typeParams);
+        let type_params = self.specializeArray(type_params);
         regalloc::computeStructLayout(struct_id, type_params)
     }
 
     fn computeTupleLayout(subtypes: Array[BytecodeType]): RecordLayout {
-        let subtypes = subtypes.specialize(self.typeParams);
+        let subtypes = self.specializeArray(subtypes);
         regalloc::computeTupleLayout(subtypes)
     }
 
     fn computeEnumLayout(enum_id: EnumId, type_params: Array[BytecodeType]): EnumLayout {
-        let type_params = type_params.specialize(self.typeParams);
+        let type_params = self.specializeArray(type_params);
         regalloc::computeEnumLayout(enum_id, type_params)
     }
 
@@ -2691,6 +2692,14 @@ impl SsaGen {
     fn regGraphTy(id: BytecodeRegister): Type {
         let ty = self.reg(id);
         self.graphTy(ty)
+    }
+
+    fn specializeTy(ty: BytecodeType): BytecodeType {
+        specializeTy(self.ci, ty, self.typeParams)
+    }
+
+    fn specializeArray(array: Array[BytecodeType]): Array[BytecodeType] {
+        specializeArray(self.ci, array, self.typeParams)
     }
 
     fn graphTy(ty: BytecodeType): Type {
@@ -2728,7 +2737,7 @@ impl SsaGen {
 
     fn regId(id: Int32): BytecodeType {
         let ty = self.bc.registers(id.toInt64());
-        ty.specialize(self.typeParams)
+        self.specializeTy(ty)
     }
 }
 

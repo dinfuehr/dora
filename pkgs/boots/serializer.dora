@@ -1,4 +1,4 @@
-use package::bytecode::BytecodeType;
+use package::bytecode::{BytecodeType, BytecodeTraitType};
 use package::bytecode::opcode as opc;
 use package::interface::{Address, CodeDescriptor, CommentTable, GcPoint, GcPointTable, InlinedFunction, LazyCompilationData, LazyCompilationSite, LocationTable, InlinedLocation, RelocationKind, RelocationTable};
 
@@ -215,9 +215,26 @@ pub fn encodeBytecodeType(writer: ByteWriter, ty: BytecodeType) {
             encodeBytecodeTypeArray(writer, params);
             encodeBytecodeType(writer, ret);
         },
-        BytecodeType::TypeAlias(..) | BytecodeType::Assoc(..) | BytecodeType::GenericAssoc(..) => {
+        BytecodeType::GenericAssoc(typeParamId, traitTy, assocId) => {
+            writer.emitByte(opc::BC_TYPE_GENERIC_ASSOC.toUInt8());
+            writer.emitInt32(typeParamId);
+            encodeBytecodeTraitType(writer, traitTy);
+            writer.emitInt32(assocId.0);
+        }
+        BytecodeType::TypeAlias(..) | BytecodeType::Assoc(..) => {
             unimplemented[()]();
         }
+    }
+}
+
+pub fn encodeBytecodeTraitType(writer: ByteWriter, traitTy: BytecodeTraitType) {
+    writer.emitInt32(traitTy.trait_id.0);
+    encodeBytecodeTypeArray(writer, traitTy.typeParams);
+    writer.emitInt32(traitTy.bindings.size().toInt32());
+
+    for (aliasId, ty) in traitTy.bindings {
+        writer.emitInt32(aliasId.0);
+        encodeBytecodeType(writer, ty);
     }
 }
 

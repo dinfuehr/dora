@@ -1,0 +1,37 @@
+trait MyIterator {
+    type Item;
+    fn next(): Option[Self::Item];
+
+    fn count(): Int {
+        let mut result = 0;
+
+        while self.next() is Some(_) {
+            result += 1;
+        }
+
+        result
+    }
+}
+
+class Range {
+    value: Int
+}
+
+impl MyIterator for Range {
+    type Item = Int;
+
+    fn next(): Option[Int] {
+        if self.value <= 0 {
+            None[Int]
+        } else {
+            let result = self.value;
+            self.value -= 1;
+            Some[Int](result)
+        }
+    }
+}
+
+fn main() {
+    assert(Range(2).count() == 2);
+    assert(Range(7).count() == 7);
+}

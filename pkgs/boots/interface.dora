@@ -1,8 +1,8 @@
 use std::collections::VecIter;
 use std::traits::IntoIterator;
 
-use package::bytecode::{BytecodeFunction, BytecodeType, ConstPoolId, FunctionId, Location};
-use package::bytecode::{ClassId, EnumId, ClassFieldId, GlobalId, StructId, StructFieldId, TraitId};
+use package::bytecode::{BytecodeFunction, BytecodeTraitType, BytecodeType, ConstPoolId, FunctionId, Location};
+use package::bytecode::{ClassId, EnumId, ClassFieldId, GlobalId, ImplId, StructId, StructFieldId, TraitId};
 use package::compilation::CompilationInfo;
 use package::deserializer::decodeBytecodeFunction;
 use package::deserializer::{decodeCompilationInfo, decodeStructData, decodeEnumData};
@@ -13,7 +13,7 @@ use package::codegen::x64::CodeGenX64;
 use package::codegen::arm64::CodeGenArm64;
 use package::compileFunction;
 use package::graph::TraitObjectInfo;
-use package::serializer::{ByteWriter, encodeBytecodeType, encodeBytecodeTypeArray, encodeCodeDescriptor};
+use package::serializer::{ByteWriter, encodeBytecodeTraitType, encodeBytecodeType, encodeBytecodeTypeArray, encodeCodeDescriptor};
 
 pub const TRAP_DIV0: Int32 = 0i32;
 pub const TRAP_ASSERT: Int32 = 1i32;
@@ -42,6 +42,7 @@ pub const TRAP_OVERFLOW: Int32 = 8i32;
 @internal pub fn getGlobalInitializerFunctionIdRaw(id: Int32): Int32;
 @internal pub fn getReadOnlyStringAddressRaw(id: String): Int64;
 @internal pub fn findTraitImplRaw(data: Array[UInt8]): Array[UInt8];
+@internal pub fn specializeTyRaw(data: Array[UInt8]): Array[UInt8];
 @internal pub fn getIntrinsicForFunctionRaw(id: Int32): Int32;
 @internal pub fn getStructDataRaw(id: Int32): Array[UInt8];
 @internal pub fn getEnumDataRaw(id: Int32): Array[UInt8];
@@ -148,6 +149,25 @@ pub fn findTraitImpl(ci: CompilationInfo, trait_fct_id: FunctionId, trait_type_p
     let type_params = deserializer::decodeBytecodeTypeArray(reader);
     assert(!reader.moreBytes());
     (fct_id, type_params)
+}
+
+pub fn specializeTy(ci: CompilationInfo, ty: BytecodeType, typeParams: Array[BytecodeType]): BytecodeType {
+    let writer = ci.getByteWriter();
+    encodeBytecodeType(writer, ty);
+    encodeBytecodeTypeArray(writer, typeParams);
+    let encoded = specializeTyRaw(writer.toArray());
+    let reader = ByteReader::new(encoded);
+    let ty = deserializer::decodeBytecodeType(reader);
+    assert(!reader.moreBytes());
+    ty
+}
+
+pub fn findImpl(ci: CompilationInfo, fct_id: FunctionId, ty: BytecodeType, trait_ty: BytecodeTraitType): Option[(ImplId, Array[BytecodeType])] {
+    let writer = ci.getByteWriter();
+    writer.emitInt32(fct_id.0);
+    encodeBytecodeType(writer, ty);
+    encodeBytecodeTraitType(writer, trait_ty);
+    unimplemented[Option[(ImplId, Array[BytecodeType])]]()
 }
 
 pub fn getIntrinsicForFunction(fct_id: FunctionId): Int32 {

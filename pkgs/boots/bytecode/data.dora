@@ -326,13 +326,7 @@ impl BytecodeType {
             BytecodeType::Lambda(params, ret) => {
                 BytecodeType::Lambda(params.specialize(type_params), ret.specialize(type_params))
             },
-            BytecodeType::GenericAssoc(typeParamId, ..) => {
-                let typeParamTy = type_params(typeParamId.toInt64());
-                assert(!typeParamTy.isGeneric());
-
-                unimplemented[BytecodeType]()
-            }
-            BytecodeType::TypeAlias(..) | BytecodeType::Assoc(..) => unreachable[BytecodeType](),
+            BytecodeType::TypeAlias(..) | BytecodeType::Assoc(..) | BytecodeType::GenericAssoc(..) => unreachable[BytecodeType](),
         }
     }
 }

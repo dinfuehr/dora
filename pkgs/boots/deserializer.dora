@@ -132,7 +132,7 @@ fn decodeRegisters(reader: ByteReader): Array[BytecodeType] {
     data
 }
 
-fn decodeBytecodeType(reader: ByteReader): BytecodeType {
+pub fn decodeBytecodeType(reader: ByteReader): BytecodeType {
     let opcode = reader.readUInt8().toInt32();
 
     if opcode == opc::BC_TYPE_UNIT {

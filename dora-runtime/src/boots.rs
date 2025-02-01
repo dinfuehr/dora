@@ -15,6 +15,7 @@ use crate::handle::{create_handle, Handle};
 use crate::mirror::{byte_array_from_buffer, Ref, Str, UInt8Array};
 use crate::threads::current_thread;
 use crate::vm::compute_vtable_index;
+use crate::vm::specialize_ty;
 use crate::vm::{create_enum_instance, get_vm, impls, CodeDescriptor, FctImplementation, VM};
 
 use self::deserializer::{decode_bytecode_type, decode_bytecode_type_array};
@@ -85,6 +86,10 @@ pub const BOOTS_FUNCTIONS: &[(&'static str, FctImplementation)] = &[
     (
         "boots::interface::findTraitImplRaw",
         N(find_trait_impl_raw as *const u8),
+    ),
+    (
+        "boots::interface::specializeTyRaw",
+        N(specialize_ty_raw as *const u8),
     ),
     (
         "boots::interface::getIntrinsicForFunctionRaw",
@@ -433,6 +438,32 @@ extern "C" fn find_trait_impl_raw(data: Handle<UInt8Array>) -> Ref<UInt8Array> {
     let mut buffer = ByteBuffer::new();
     buffer.emit_u32(callee_id.0);
     serializer::encode_bytecode_type_array(vm, &type_params, &mut buffer);
+    byte_array_from_buffer(vm, buffer.data()).cast()
+}
+
+extern "C" fn specialize_ty_raw(data: Handle<UInt8Array>) -> Ref<UInt8Array> {
+    let vm = get_vm();
+
+    let mut serialized_data = vec![0; data.len()];
+
+    unsafe {
+        ptr::copy_nonoverlapping(
+            data.data() as *mut u8,
+            serialized_data.as_mut_ptr(),
+            data.len(),
+        );
+    }
+
+    let mut reader = ByteReader::new(serialized_data);
+    let generic_assoc_ty = decode_bytecode_type(&mut reader);
+    assert!(generic_assoc_ty.is_generic_assoc());
+    let type_params = decode_bytecode_type_array(&mut reader);
+    assert!(!reader.has_more());
+
+    let ty = specialize_ty(vm, generic_assoc_ty, &type_params);
+
+    let mut buffer = ByteBuffer::new();
+    serializer::encode_bytecode_type(vm, &ty, &mut buffer);
     byte_array_from_buffer(vm, buffer.data()).cast()
 }
 
