@@ -9,7 +9,7 @@ use dora_bytecode::{
     TypeParamBound, TypeParamData,
 };
 
-use crate::generator::bty_from_ty;
+use crate::generator::{bty_from_ty, convert_trait_type};
 
 use crate::sema::{
     self, AliasDefinitionId, ClassDefinition, Element, EnumDefinition, FctDefinitionId, FctParent,
@@ -335,7 +335,7 @@ fn create_type_params(sa: &Sema, type_params: &TypeParamDefinition) -> TypeParam
         .bounds()
         .map(|b| TypeParamBound {
             ty: bty_from_ty(b.ty()),
-            trait_ty: bty_from_ty(b.trait_ty().expect("missing trait type").ty()),
+            trait_ty: convert_trait_type(b.trait_ty().as_ref().expect("missing trait type")),
         })
         .collect();
 

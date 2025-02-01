@@ -18,11 +18,12 @@ use crate::sema::{
     VarLocation,
 };
 use crate::specialize::{replace_type, specialize_type};
-use crate::ty::{SourceType, SourceTypeArray};
+use crate::ty::{SourceType, SourceTypeArray, TraitType};
 use crate::{expr_always_returns, expr_block_always_returns, specialize_ty_for_trait_object};
 use dora_bytecode::{
-    AliasId, BytecodeFunction, BytecodeType, BytecodeTypeArray, ClassId, ConstPoolEntry,
-    ConstPoolIdx, EnumId, FunctionId, GlobalId, Label, Location, Register, StructId, TraitId,
+    AliasId, BytecodeFunction, BytecodeTraitType, BytecodeType, BytecodeTypeArray, ClassId,
+    ConstPoolEntry, ConstPoolIdx, EnumId, FunctionId, GlobalId, Label, Location, Register,
+    StructId, TraitId,
 };
 
 mod bytecode;
@@ -3389,6 +3390,23 @@ pub fn bty_array_from_ty(ty: &SourceTypeArray) -> BytecodeTypeArray {
     BytecodeTypeArray::new(bytecode_subtypes)
 }
 
+pub fn convert_trait_type(trait_ty: &TraitType) -> BytecodeTraitType {
+    BytecodeTraitType {
+        trait_id: TraitId(trait_ty.trait_id.index().try_into().expect("overflow")),
+        type_params: bty_array_from_ty(&trait_ty.type_params),
+        bindings: trait_ty
+            .bindings
+            .iter()
+            .map(|(alias_id, ty)| {
+                (
+                    AliasId(alias_id.index().try_into().expect("overflow")),
+                    bty_from_ty(ty.clone()),
+                )
+            })
+            .collect::<Vec<_>>(),
+    }
+}
+
 pub fn bty_from_ty(ty: SourceType) -> BytecodeType {
     match ty {
         SourceType::Unit => BytecodeType::Unit,
@@ -3441,7 +3459,7 @@ pub fn bty_from_ty(ty: SourceType) -> BytecodeType {
             assoc_id,
         } => BytecodeType::GenericAssoc {
             type_param_id: tp_id.index().try_into().expect("overflow"),
-            trait_id: TraitId(trait_ty.trait_id.index().try_into().expect("overflow")),
+            trait_ty: convert_trait_type(&trait_ty),
             assoc_id: AliasId(assoc_id.index().try_into().expect("overflow")),
         },
         _ => panic!("SourceType {:?} cannot be converted to BytecodeType", ty),
@@ -3483,7 +3501,7 @@ pub fn register_bty_from_ty(ty: SourceType) -> BytecodeType {
             assoc_id,
         } => BytecodeType::GenericAssoc {
             type_param_id: tp_id.index().try_into().expect("overflow"),
-            trait_id: TraitId(trait_ty.trait_id.index().try_into().expect("overflow")),
+            trait_ty: convert_trait_type(&trait_ty),
             assoc_id: AliasId(assoc_id.index().try_into().expect("overflow")),
         },
         _ => panic!("SourceType {:?} cannot be converted to BytecodeType", ty),

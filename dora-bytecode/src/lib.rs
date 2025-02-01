@@ -23,5 +23,5 @@ pub use program::{
     TypeParamData,
 };
 pub use reader::*;
-pub use ty::{BytecodeType, BytecodeTypeArray};
+pub use ty::{BytecodeTraitType, BytecodeType, BytecodeTypeArray};
 pub use writer::*;

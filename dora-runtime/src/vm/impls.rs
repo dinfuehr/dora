@@ -1,12 +1,13 @@
 use crate::vm::{block_matches_ty, specialize_bty_array, BytecodeTypeExt, VM};
 use dora_bytecode::{
-    BytecodeType, BytecodeTypeArray, FunctionId, ImplId, TypeParamBound, TypeParamData,
+    BytecodeTraitType, BytecodeType, BytecodeTypeArray, FunctionId, ImplId, TypeParamBound,
+    TypeParamData,
 };
 
 pub fn find_trait_impl(
     vm: &VM,
     fct_id: FunctionId,
-    trait_ty: BytecodeType,
+    trait_ty: BytecodeTraitType,
     object_type: BytecodeType,
 ) -> (FunctionId, BytecodeTypeArray) {
     debug_assert!(object_type.is_concrete_type());
@@ -20,12 +21,11 @@ pub fn find_trait_impl(
         .expect("no impl found for generic trait method call");
 
     let impl_ = vm.impl_(impl_id);
-    let trait_id = trait_ty.trait_id().expect("expected trait type");
     let impl_trait_id = impl_.trait_ty.trait_id().expect("expected trait type");
 
-    assert_eq!(impl_trait_id, trait_id);
+    assert_eq!(impl_trait_id, trait_ty.trait_id);
 
-    let trait_ = vm.trait_(trait_id);
+    let trait_ = vm.trait_(trait_ty.trait_id);
     let trait_method_idx = trait_
         .methods
         .iter()
@@ -41,9 +41,9 @@ pub fn find_impl(
     vm: &VM,
     check_ty: BytecodeType,
     check_type_param_defs: &TypeParamData,
-    trait_ty: BytecodeType,
+    trait_ty: BytecodeTraitType,
 ) -> Option<(ImplId, BytecodeTypeArray)> {
-    let trait_id = trait_ty.trait_id().expect("trait expected");
+    let trait_id = trait_ty.trait_id;
 
     for (impl_id, impl_) in vm.program.impls.iter().enumerate() {
         let impl_id = ImplId(impl_id.try_into().expect("doesn't fit"));
@@ -58,7 +58,7 @@ pub fn find_impl(
             let impl_trait_ty_params =
                 specialize_bty_array(&impl_.trait_ty.type_params(), &binding);
 
-            if impl_trait_ty_params != trait_ty.type_params() {
+            if impl_trait_ty_params != trait_ty.type_params {
                 continue;
             }
 
@@ -89,15 +89,12 @@ pub fn ty_implements_trait(
     vm: &VM,
     check_ty: BytecodeType,
     check_type_param_defs: &TypeParamData,
-    trait_ty: BytecodeType,
+    trait_ty: BytecodeTraitType,
 ) -> bool {
-    let trait_id = match trait_ty {
-        BytecodeType::TraitObject(trait_id, ..) => trait_id,
-        _ => unreachable!(),
-    };
+    let trait_id = trait_ty.trait_id;
 
     if check_ty.is_zeroable_primitive() && vm.known.zero_trait_id() == trait_id {
-        assert!(trait_ty.type_params().is_empty());
+        assert!(trait_ty.type_params.is_empty());
         return true;
     }
 
@@ -135,7 +132,7 @@ pub fn ty_implements_trait(
 pub fn tp_implements_trait(
     type_param_defs: &TypeParamData,
     tp_id: u32,
-    trait_ty: BytecodeType,
+    trait_ty: BytecodeTraitType,
 ) -> bool {
     let ty = BytecodeType::TypeParam(tp_id);
 
@@ -163,9 +160,9 @@ pub struct TypeParamBoundsIter<'a> {
 }
 
 impl<'a> Iterator for TypeParamBoundsIter<'a> {
-    type Item = BytecodeType;
+    type Item = BytecodeTraitType;
 
-    fn next(&mut self) -> Option<BytecodeType> {
+    fn next(&mut self) -> Option<BytecodeTraitType> {
         while self.current < self.bounds.len() {
             let bound = &self.bounds[self.current];
             if bound.ty == BytecodeType::TypeParam(self.id) {

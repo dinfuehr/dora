@@ -21,9 +21,9 @@ use crate::vm::{
     CodeDescriptor, EnumLayout, GcPoint, Intrinsic, LazyCompilationSite, Trap, INITIALIZED, VM,
 };
 use dora_bytecode::{
-    display_fct, display_ty, read, BytecodeFunction, BytecodeOffset, BytecodeType,
-    BytecodeTypeArray, BytecodeVisitor, ConstPoolEntry, ConstPoolIdx, FunctionId, FunctionKind,
-    GlobalId, Location, Register,
+    display_fct, display_ty, read, BytecodeFunction, BytecodeOffset, BytecodeTraitType,
+    BytecodeType, BytecodeTypeArray, BytecodeVisitor, ConstPoolEntry, ConstPoolIdx, FunctionId,
+    FunctionKind, GlobalId, Location, Register,
 };
 
 macro_rules! comment {
@@ -2642,8 +2642,11 @@ impl<'a> CannonCodeGen<'a> {
             FunctionKind::Trait(trait_id) => trait_id,
             _ => unreachable!(),
         };
-        let trait_ty =
-            BytecodeType::TraitObject(trait_id, type_params.clone(), BytecodeTypeArray::empty());
+        let trait_ty = BytecodeTraitType {
+            trait_id,
+            type_params: type_params.clone(),
+            bindings: Vec::new(),
+        };
 
         let ty = self.type_params[id as usize].clone();
         let (callee_id, type_params) = find_trait_impl(self.vm, trait_fct_id, trait_ty, ty);

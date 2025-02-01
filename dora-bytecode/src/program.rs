@@ -1,4 +1,4 @@
-use crate::{BytecodeFunction, BytecodeType, Location};
+use crate::{BytecodeFunction, BytecodeTraitType, BytecodeType, Location};
 use bincode::{Decode, Encode};
 
 #[derive(Copy, Clone, Debug, PartialEq, Eq, Hash, Decode, Encode)]
@@ -116,7 +116,7 @@ impl TypeParamData {
 #[derive(Debug, Decode, Encode)]
 pub struct TypeParamBound {
     pub ty: BytecodeType,
-    pub trait_ty: BytecodeType,
+    pub trait_ty: BytecodeTraitType,
 }
 
 #[derive(Copy, Clone, Debug, PartialEq, Eq, Hash, Decode, Encode)]

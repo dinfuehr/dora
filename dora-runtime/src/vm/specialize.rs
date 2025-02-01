@@ -658,7 +658,7 @@ pub fn specialize_ty(vm: &VM, ty: BytecodeType, type_params: &BytecodeTypeArray)
 
         BytecodeType::GenericAssoc {
             type_param_id,
-            trait_id,
+            trait_ty,
             assoc_id,
         } => {
             let type_param_ty = type_params[type_param_id as usize].clone();
@@ -668,12 +668,6 @@ pub fn specialize_ty(vm: &VM, ty: BytecodeType, type_params: &BytecodeTypeArray)
                 names: Vec::new(),
                 bounds: Vec::new(),
             };
-
-            let trait_ty = BytecodeType::TraitObject(
-                trait_id,
-                BytecodeTypeArray::empty(),
-                BytecodeTypeArray::empty(),
-            );
 
             let (impl_id, bindings) =
                 find_impl(vm, type_param_ty, &type_param_data, trait_ty.clone())

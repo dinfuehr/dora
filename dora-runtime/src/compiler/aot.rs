@@ -3,8 +3,8 @@ use std::sync::Arc;
 use std::time::Instant;
 
 use dora_bytecode::{
-    display_fct, BytecodeFunction, BytecodeInstruction, BytecodeReader, BytecodeType,
-    BytecodeTypeArray, ConstPoolEntry, FunctionId, FunctionKind, PackageId,
+    display_fct, BytecodeFunction, BytecodeInstruction, BytecodeReader, BytecodeTraitType,
+    BytecodeType, BytecodeTypeArray, ConstPoolEntry, FunctionId, FunctionKind, PackageId,
 };
 
 use crate::compiler::codegen::{compile_runtime_entry_trampoline, CompilerInvocation};
@@ -290,11 +290,11 @@ impl<'a> TransitiveClosureComputation<'a> {
                         FunctionKind::Trait(trait_id) => trait_id,
                         _ => unreachable!(),
                     };
-                    let trait_ty = BytecodeType::TraitObject(
+                    let trait_ty = BytecodeTraitType {
                         trait_id,
-                        callee_type_params.clone(),
-                        BytecodeTypeArray::empty(),
-                    );
+                        type_params: callee_type_params.clone(),
+                        bindings: Vec::new(),
+                    };
 
                     let ty = type_params[id as usize].clone();
 

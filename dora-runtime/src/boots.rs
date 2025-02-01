@@ -2,7 +2,7 @@ use std::mem;
 use std::ptr;
 
 use dora_bytecode::{
-    display_fct, BytecodeType, BytecodeTypeArray, ClassId, EnumId, FunctionId, FunctionKind,
+    display_fct, BytecodeTraitType, BytecodeTypeArray, ClassId, EnumId, FunctionId, FunctionKind,
     GlobalId, StructId, TraitId,
 };
 
@@ -423,8 +423,11 @@ extern "C" fn find_trait_impl_raw(data: Handle<UInt8Array>) -> Ref<UInt8Array> {
         _ => unreachable!(),
     };
 
-    let trait_ty =
-        BytecodeType::TraitObject(trait_id, trait_type_params, BytecodeTypeArray::empty());
+    let trait_ty = BytecodeTraitType {
+        trait_id,
+        type_params: trait_type_params,
+        bindings: Vec::new(),
+    };
     let (callee_id, type_params) = impls::find_trait_impl(vm, trait_fct_id, trait_ty, object_ty);
 
     let mut buffer = ByteBuffer::new();

@@ -27,7 +27,7 @@ pub enum BytecodeType {
     Assoc(AliasId, BytecodeTypeArray),
     GenericAssoc {
         type_param_id: u32,
-        trait_id: TraitId,
+        trait_ty: BytecodeTraitType,
         assoc_id: AliasId,
     },
 }
@@ -253,6 +253,7 @@ impl<'a> Iterator for BytecodeTypeArrayIter<'a> {
     }
 }
 
+#[derive(Clone, Debug, Decode, Encode, PartialEq, Eq, Hash)]
 pub struct BytecodeTraitType {
     pub trait_id: TraitId,
     pub type_params: BytecodeTypeArray,
