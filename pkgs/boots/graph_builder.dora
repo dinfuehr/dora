@@ -1837,7 +1837,9 @@ impl SsaGen {
             }
             BytecodeType::This
             | BytecodeType::TypeParam(_)
-            | BytecodeType::TypeAlias(_) => unreachable[()](),
+            | BytecodeType::TypeAlias(_)
+            | BytecodeType::Assoc(..)
+            | BytecodeType::GenericAssoc(..) => unreachable[()](),
         }
     }
 
@@ -2716,7 +2718,7 @@ impl SsaGen {
             | BytecodeType::Tuple(_) => Type::Address,
             BytecodeType::This
             | BytecodeType::TypeParam(_) => unreachable[Type](),
-            BytecodeType::TypeAlias(_) => unreachable[Type](),
+            BytecodeType::TypeAlias(..) | BytecodeType::Assoc(..) | BytecodeType::GenericAssoc(..) => unreachable[Type](),
         }
     }
 

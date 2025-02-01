@@ -1,4 +1,4 @@
-pub use package::bytecode::data::{BytecodeFunction, BytecodeRegister, BytecodeType, ConstPoolId, ConstPoolEntry, Location};
+pub use package::bytecode::data::{BytecodeFunction, BytecodeRegister, BytecodeTraitType, BytecodeType, ConstPoolId, ConstPoolEntry, Location};
 pub use package::bytecode::dump::{BytecodeDumper, dumpInstruction};
 pub use package::bytecode::program::{AliasId, AliasData, ClassId, ClassData, ClassFieldId,
     ClassField, EnumId, EnumData, EnumVariant,

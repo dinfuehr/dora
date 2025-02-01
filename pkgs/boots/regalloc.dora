@@ -1133,6 +1133,8 @@ pub fn isReference(ty: BytecodeType): Bool {
                 EnumLayout::PtrOrNull(_) | EnumLayout::Tagged => true,
             }
         }
-        BytecodeType::TypeAlias(_) => unreachable[Bool](),
+        BytecodeType::TypeAlias(_)
+        | BytecodeType::Assoc(..)
+        | BytecodeType::GenericAssoc(..) => unreachable[Bool](),
     }
 }

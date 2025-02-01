@@ -11,7 +11,7 @@ use dora_bytecode::{
     BytecodeFunction, BytecodeTypeArray, ConstPoolEntry, ConstPoolOpcode, EnumData, FunctionData,
     Location, StructData,
 };
-use dora_bytecode::{BytecodeType, BytecodeTypeKind};
+use dora_bytecode::{BytecodeTraitType, BytecodeType, BytecodeTypeKind};
 
 pub fn allocate_encoded_system_config(vm: &VM) -> Ref<UInt8Array> {
     let mut buffer = ByteBuffer::new();
@@ -276,11 +276,30 @@ fn encode_bytecode_type(vm: &VM, ty: &BytecodeType, buffer: &mut ByteBuffer) {
             encode_bytecode_type_array(vm, params, buffer);
             encode_bytecode_type(vm, ret.as_ref(), buffer);
         }
-        BytecodeType::TypeAlias(..)
-        | BytecodeType::Assoc(..)
-        | BytecodeType::GenericAssoc { .. } => {
+        BytecodeType::GenericAssoc {
+            type_param_id,
+            trait_ty,
+            assoc_id,
+        } => {
+            buffer.emit_u8(BytecodeTypeKind::GenericAssoc as u8);
+            buffer.emit_u32(*type_param_id);
+            encode_bytecode_trait_type(vm, trait_ty, buffer);
+            buffer.emit_id(assoc_id.0 as usize);
+        }
+        BytecodeType::TypeAlias(..) | BytecodeType::Assoc(..) => {
             unreachable!()
         }
+    }
+}
+
+fn encode_bytecode_trait_type(vm: &VM, trait_ty: &BytecodeTraitType, buffer: &mut ByteBuffer) {
+    buffer.emit_u32(trait_ty.trait_id.0);
+    encode_bytecode_type_array(vm, &trait_ty.type_params, buffer);
+    buffer.emit_u32(trait_ty.bindings.len() as u32);
+
+    for (alias_id, ty) in &trait_ty.bindings {
+        buffer.emit_u32(alias_id.0);
+        encode_bytecode_type(vm, ty, buffer);
     }
 }
 

@@ -215,7 +215,7 @@ pub fn encodeBytecodeType(writer: ByteWriter, ty: BytecodeType) {
             encodeBytecodeTypeArray(writer, params);
             encodeBytecodeType(writer, ret);
         },
-        BytecodeType::TypeAlias(id) => {
+        BytecodeType::TypeAlias(..) | BytecodeType::Assoc(..) | BytecodeType::GenericAssoc(..) => {
             unimplemented[()]();
         }
     }

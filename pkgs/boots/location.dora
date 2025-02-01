@@ -503,7 +503,9 @@ fn computeArgumentLocations(codegen: CodeGen, ci: CompilationInfo): ArgumentLoca
             BytecodeType::Unit
             | BytecodeType::This
             | BytecodeType::TypeParam(_)
-            | BytecodeType::TypeAlias(_) => unreachable[Bool](),
+            | BytecodeType::TypeAlias(_)
+            | BytecodeType::Assoc(..)
+            | BytecodeType::GenericAssoc(..) => unreachable[Bool](),
         };
 
         if uses_fp_reg {

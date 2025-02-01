@@ -220,6 +220,8 @@ pub enum BytecodeType {
     TypeParam(Int32),
     Lambda(Array[BytecodeType], BytecodeType),
     TypeAlias(AliasId),
+    Assoc(AliasId, Array[BytecodeType]),
+    GenericAssoc { typeParamId: Int32, traitTy: BytecodeTraitType, assocId: AliasId },
 }
 
 impl BytecodeType {
@@ -256,7 +258,8 @@ impl BytecodeType {
             BytecodeType::Tuple(subtypes) => subtypes.isGeneric(),
             BytecodeType::TypeParam(idx) => true,
             BytecodeType::Lambda(params, ret) => params.isGeneric() || ret.isGeneric(),
-            BytecodeType::TypeAlias(alias_id) => unreachable[Bool](),
+            BytecodeType::GenericAssoc(..) => true,
+            BytecodeType::TypeAlias(..) | BytecodeType::Assoc(..)  => unreachable[Bool](),
         }
     }
 
@@ -323,7 +326,13 @@ impl BytecodeType {
             BytecodeType::Lambda(params, ret) => {
                 BytecodeType::Lambda(params.specialize(type_params), ret.specialize(type_params))
             },
-            BytecodeType::TypeAlias(alias_id) => unreachable[BytecodeType](),
+            BytecodeType::GenericAssoc(typeParamId, ..) => {
+                let typeParamTy = type_params(typeParamId.toInt64());
+                assert(!typeParamTy.isGeneric());
+
+                unimplemented[BytecodeType]()
+            }
+            BytecodeType::TypeAlias(..) | BytecodeType::Assoc(..) => unreachable[BytecodeType](),
         }
     }
 }
@@ -456,6 +465,8 @@ impl Equals for BytecodeType {
                     _ => false,
                 }
             }
+
+            BytecodeType::Assoc(..) | BytecodeType::GenericAssoc(..) => unreachable[Bool](),
         }
     }
 }
@@ -481,6 +492,7 @@ impl Hash for BytecodeType {
             BytecodeType::TypeParam(id) => opc::BC_TYPE_TYPE_PARAM ^ id,
             BytecodeType::Lambda(params, ret) => params.hash() ^ ret.hash(),
             BytecodeType::TypeAlias(id) => opc::BC_TYPE_TYPE_ALIAS ^ id.hash(),
+            BytecodeType::Assoc(..) | BytecodeType::GenericAssoc(..) => unreachable[Int32](),
         }
     }
 }
@@ -506,6 +518,7 @@ impl Stringable for BytecodeType {
             BytecodeType::TypeParam(idx) => "TypeParam(${idx})",
             BytecodeType::Lambda(params, ty) => "Lambda(${params}, ${ty})",
             BytecodeType::TypeAlias(id) => "TypeAlias(${id})",
+            BytecodeType::Assoc(..) | BytecodeType::GenericAssoc(..) => unreachable[String](),
         }
     }
 }
@@ -544,4 +557,10 @@ impl BytecodeTypeArrayExt for Array[BytecodeType] {
 pub struct Location {
     pub line: Int32,
     pub column: Int32,
+}
+
+pub class BytecodeTraitType {
+    pub trait_id: TraitId,
+    pub typeParams: Array[BytecodeType],
+    pub bindings: Array[(AliasId, BytecodeType)],
 }
