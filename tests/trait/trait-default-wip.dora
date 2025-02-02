@@ -17,6 +17,10 @@ trait MyIterator {
     fn enumerate(): Enumerate[Self] {
         Enumerate[Self](it = self, idx = 0)
     }
+
+    fn map[R](f: (Self::Item): R): Map[Self, R] {
+        Map[Self, R](it = self, fct = f)
+    }
 }
 
 class Range {
@@ -33,6 +37,23 @@ impl MyIterator for Range {
             let result = self.value;
             self.value -= 1;
             Some[Int](result)
+        }
+    }
+}
+
+class Map[I: MyIterator, R] {
+    it: I,
+    fct: (I::Item): R,
+}
+
+impl[I: MyIterator] MyIterator for Map[I, R] {
+    type Item = R;
+
+    fn next(): Option[R] {
+        if self.it.next() is Some(value) {
+            Some[R](self.fct(value))
+        } else {
+            None[R]
         }
     }
 }
