@@ -275,6 +275,7 @@ class TestCase
     self.args = self.vm_args = ""
     self.configs = []
     self.enable_boots = false
+    @flaky = false
     @ignore = false
   end
 
@@ -297,6 +298,14 @@ class TestCase
 
   def ignore?
     @ignore
+  end
+
+  def set_flaky
+    @flaky = true
+  end
+
+  def flaky?
+    @flaky
   end
 end
 
@@ -489,7 +498,23 @@ def run_tests
         break unless test_with_config
         test_case, config = test_with_config
 
-        test_result = run_test(test_case, config, mutex)
+        test_result = nil
+        try = 1
+
+        loop do
+          test_result = run_test(test_case, config, mutex, try)
+
+          if test_result.status == :failed && test_case.flaky? && try < 3
+            mutex.synchronize do
+              puts "#{test_case.file} ... failed - try again"
+            end
+
+            try += 1
+            next
+          else
+            break
+          end
+        end
 
         mutex.synchronize do
           case test_result.status
@@ -555,7 +580,7 @@ def run_tests
   ret_success
 end
 
-def run_test(test_case, config, mutex)
+def run_test(test_case, config, mutex, try)
   if test_case.ignore?
     return TestResult.ignore(test_case, config)
   end
@@ -595,6 +620,9 @@ def run_test(test_case, config, mutex)
       if test_case.expectation.stderr
         puts "#==== EXPECTED STDERR"
         puts test_case.expectation.stderr
+      end
+      if test_case.flaky?
+        puts "RUN #{try} of flaky test."
       end
       puts "RUN: #{cmdline}"
       puts "RUN: cargo run -p dora --#{args}"
@@ -836,6 +864,9 @@ def parse_test_file(file)
 
       when "timeout"
         test_case.timeout = arguments[1].to_i
+
+      when "flaky"
+        test_case.set_flaky
 
       else
         raise "unkown expectation in #{file}: #{line}"

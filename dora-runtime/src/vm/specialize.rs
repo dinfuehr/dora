@@ -610,49 +610,55 @@ pub fn specialize_bty(ty: BytecodeType, type_params: &BytecodeTypeArray) -> Byte
 
 pub fn specialize_ty_array(
     vm: &VM,
+    self_ty: Option<&BytecodeType>,
     types: &BytecodeTypeArray,
     type_params: &BytecodeTypeArray,
 ) -> BytecodeTypeArray {
     let types = types
         .iter()
-        .map(|p| specialize_ty(vm, p, type_params))
+        .map(|p| specialize_ty(vm, self_ty, p, type_params))
         .collect();
     BytecodeTypeArray::new(types)
 }
 
-pub fn specialize_ty(vm: &VM, ty: BytecodeType, type_params: &BytecodeTypeArray) -> BytecodeType {
+pub fn specialize_ty(
+    vm: &VM,
+    self_ty: Option<&BytecodeType>,
+    ty: BytecodeType,
+    type_params: &BytecodeTypeArray,
+) -> BytecodeType {
     match ty {
         BytecodeType::TypeParam(tpid) => type_params[tpid as usize].clone(),
 
         BytecodeType::Class(cls_id, params) => {
-            let params = specialize_ty_array(vm, &params, type_params);
+            let params = specialize_ty_array(vm, self_ty, &params, type_params);
             BytecodeType::Class(cls_id, params)
         }
 
         BytecodeType::TraitObject(trait_id, params, assoc_types) => {
-            let params = specialize_ty_array(vm, &params, type_params);
-            let assoc_types = specialize_ty_array(vm, &assoc_types, type_params);
+            let params = specialize_ty_array(vm, self_ty, &params, type_params);
+            let assoc_types = specialize_ty_array(vm, self_ty, &assoc_types, type_params);
             BytecodeType::TraitObject(trait_id, params, assoc_types)
         }
 
         BytecodeType::Struct(struct_id, params) => {
-            let params = specialize_ty_array(vm, &params, type_params);
+            let params = specialize_ty_array(vm, self_ty, &params, type_params);
             BytecodeType::Struct(struct_id, params)
         }
 
         BytecodeType::Enum(enum_id, params) => {
-            let params = specialize_ty_array(vm, &params, type_params);
+            let params = specialize_ty_array(vm, self_ty, &params, type_params);
             BytecodeType::Enum(enum_id, params)
         }
 
         BytecodeType::Lambda(params, return_type) => {
-            let params = specialize_ty_array(vm, &params, type_params);
-            let return_type = specialize_ty(vm, return_type.as_ref().clone(), type_params);
+            let params = specialize_ty_array(vm, self_ty, &params, type_params);
+            let return_type = specialize_ty(vm, self_ty, return_type.as_ref().clone(), type_params);
             BytecodeType::Lambda(params, Box::new(return_type))
         }
 
         BytecodeType::Tuple(subtypes) => {
-            let subtypes = specialize_ty_array(vm, &subtypes, type_params);
+            let subtypes = specialize_ty_array(vm, self_ty, &subtypes, type_params);
             BytecodeType::Tuple(subtypes)
         }
 
@@ -687,7 +693,7 @@ pub fn specialize_ty(vm: &VM, ty: BytecodeType, type_params: &BytecodeTypeArray)
             let impl_alias = vm.alias(impl_alias_id);
             let impl_alias_ty = impl_alias.ty.as_ref().expect("value expected").clone();
 
-            specialize_ty(vm, impl_alias_ty, &bindings)
+            specialize_ty(vm, self_ty, impl_alias_ty, &bindings)
         }
 
         BytecodeType::TypeAlias(..) | BytecodeType::Assoc(..) | BytecodeType::This => {

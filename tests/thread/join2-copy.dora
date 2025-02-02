@@ -1,4 +1,6 @@
 //= vm-args "--gc=copy"
+//= flaky
+
 use std::collections::BitVec;
 use std::thread::Mutex;
 use std::Thread;

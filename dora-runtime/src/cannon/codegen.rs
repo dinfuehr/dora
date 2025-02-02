@@ -166,7 +166,7 @@ impl<'a> CannonCodeGen<'a> {
         let mut stacksize: i32 = start;
 
         for (index, ty) in self.bytecode.registers().iter().enumerate() {
-            let ty = register_bty(self.specialize_bty(ty.clone()));
+            let ty = register_bty(self.specialize_ty(ty.clone()));
             let size = size(self.vm, ty.clone());
             let align = align(self.vm, ty);
             stacksize = align_i32(stacksize + size, align);
@@ -199,7 +199,7 @@ impl<'a> CannonCodeGen<'a> {
     fn compute_reference_objects(&mut self) {
         assert!(self.references.is_empty());
         for (idx, ty) in self.bytecode.registers().iter().enumerate() {
-            let ty = register_bty(self.specialize_bty(ty.clone()));
+            let ty = register_bty(self.specialize_ty(ty.clone()));
             match ty {
                 BytecodeType::Ptr | BytecodeType::TraitObject(..) => {
                     let offset = self.register_offset(Register(idx));
@@ -269,7 +269,7 @@ impl<'a> CannonCodeGen<'a> {
     }
 
     fn has_result_address(&self) -> bool {
-        let return_type = self.specialize_bty(self.return_type.clone());
+        let return_type = self.specialize_ty(self.return_type.clone());
         result_passed_as_argument(return_type)
     }
 
@@ -290,7 +290,7 @@ impl<'a> CannonCodeGen<'a> {
         let params = self.params.clone();
 
         for (idx, param_ty) in params.iter().enumerate() {
-            let param_ty = self.specialize_bty(param_ty.clone());
+            let param_ty = self.specialize_ty(param_ty.clone());
             assert!(param_ty.is_concrete_type());
 
             let dest = Register(idx);
@@ -1149,7 +1149,7 @@ impl<'a> CannonCodeGen<'a> {
             _ => unreachable!(),
         };
 
-        let tuple_ty = self.specialize_bty(tuple_ty);
+        let tuple_ty = self.specialize_ty(tuple_ty);
         let tuple = get_concrete_tuple_bty(self.vm, &tuple_ty);
         let offset = tuple.offsets()[subtype_idx as usize];
 
@@ -1171,7 +1171,7 @@ impl<'a> CannonCodeGen<'a> {
             _ => unreachable!(),
         };
 
-        let type_params = self.specialize_bty_array(&type_params);
+        let type_params = self.specialize_ty_array(&type_params);
         debug_assert!(type_params.iter().all(|ty| ty.is_concrete_type()));
 
         let enum_ = self.vm.enum_(enum_id);
@@ -1240,7 +1240,7 @@ impl<'a> CannonCodeGen<'a> {
             _ => unreachable!(),
         };
 
-        let type_params = self.specialize_bty_array(&type_params);
+        let type_params = self.specialize_ty_array(&type_params);
         debug_assert!(type_params.iter().all(|ty| ty.is_concrete_type()));
 
         let enum_ = self.vm.enum_(enum_id);
@@ -1299,7 +1299,7 @@ impl<'a> CannonCodeGen<'a> {
             BytecodeType::Struct(struct_id, type_params.clone())
         );
 
-        let type_params = self.specialize_bty_array(&type_params);
+        let type_params = self.specialize_ty_array(&type_params);
         debug_assert!(type_params.iter().all(|ty| ty.is_concrete_type()));
 
         let struct_instance_id = create_struct_instance(self.vm, struct_id, type_params);
@@ -1319,7 +1319,7 @@ impl<'a> CannonCodeGen<'a> {
 
         let (shape, field_id) = match self.bytecode.const_pool(field_idx) {
             ConstPoolEntry::Field(cls_id, type_params, field_id) => {
-                let type_params = self.specialize_bty_array(&type_params);
+                let type_params = self.specialize_ty_array(&type_params);
                 debug_assert!(type_params.iter().all(|ty| ty.is_concrete_type()));
 
                 let shape = self.vm.shape_for_class(*cls_id, &type_params);
@@ -1354,7 +1354,7 @@ impl<'a> CannonCodeGen<'a> {
             _ => unreachable!(),
         };
 
-        let type_params = self.specialize_bty_array(&type_params);
+        let type_params = self.specialize_ty_array(&type_params);
         debug_assert!(type_params.iter().all(|ty| ty.is_concrete_type()));
 
         let shape = self.vm.shape_for_class(cls_id, &type_params);
@@ -1807,7 +1807,7 @@ impl<'a> CannonCodeGen<'a> {
             _ => unreachable!(),
         };
 
-        let type_params = self.specialize_bty_array(&type_params);
+        let type_params = self.specialize_ty_array(&type_params);
         debug_assert!(type_params.iter().all(|ty| ty.is_concrete_type()));
 
         let shape = self.vm.shape_for_class(cls_id, &type_params);
@@ -1837,7 +1837,7 @@ impl<'a> CannonCodeGen<'a> {
 
         let arguments = self.argument_stack.drain(..).collect::<Vec<_>>();
 
-        let type_params = self.specialize_bty_array(&type_params);
+        let type_params = self.specialize_ty_array(&type_params);
         debug_assert!(type_params.iter().all(|ty| ty.is_concrete_type()));
 
         let shape = self.vm.shape_for_class(cls_id, &type_params);
@@ -1879,7 +1879,7 @@ impl<'a> CannonCodeGen<'a> {
             _ => unreachable!(),
         };
 
-        let type_params = self.specialize_bty_array(&type_params);
+        let type_params = self.specialize_ty_array(&type_params);
 
         let shape = self.vm.shape_for_class(cls_id, &type_params);
 
@@ -1945,7 +1945,7 @@ impl<'a> CannonCodeGen<'a> {
             ConstPoolEntry::Tuple(ref source_type_array) => source_type_array,
             _ => unreachable!(),
         };
-        let subtypes = self.specialize_bty_array(source_type_array);
+        let subtypes = self.specialize_ty_array(source_type_array);
         let tuple = get_concrete_tuple_bty_array(self.vm, subtypes.clone());
         let dest_offset = self.register_offset(dest);
         let mut arg_idx = 0;
@@ -1972,7 +1972,7 @@ impl<'a> CannonCodeGen<'a> {
             _ => unreachable!(),
         };
 
-        let type_params = self.specialize_bty_array(&type_params);
+        let type_params = self.specialize_ty_array(&type_params);
         debug_assert!(type_params.iter().all(|ty| ty.is_concrete_type()));
 
         let enum_ = self.vm.enum_(enum_id);
@@ -2064,7 +2064,7 @@ impl<'a> CannonCodeGen<'a> {
             _ => unreachable!(),
         };
 
-        let type_params = self.specialize_bty_array(&type_params);
+        let type_params = self.specialize_ty_array(&type_params);
         debug_assert!(type_params.iter().all(|ty| ty.is_concrete_type()));
 
         let struct_instance_id = create_struct_instance(self.vm, struct_id, type_params);
@@ -2098,10 +2098,10 @@ impl<'a> CannonCodeGen<'a> {
             _ => unreachable!(),
         };
 
-        let trait_ty = self.specialize_bty(trait_ty.clone());
+        let trait_ty = self.specialize_ty(trait_ty.clone());
         debug_assert!(trait_ty.is_concrete_type());
 
-        let object_ty = self.specialize_bty(actual_object_ty.clone());
+        let object_ty = self.specialize_ty(actual_object_ty.clone());
         debug_assert!(object_ty.is_concrete_type());
 
         let shape = self.vm.shape_for_trait_object(trait_ty, object_ty.clone());
@@ -2147,7 +2147,7 @@ impl<'a> CannonCodeGen<'a> {
             _ => unreachable!(),
         };
 
-        let type_params = self.specialize_bty_array(&type_params);
+        let type_params = self.specialize_ty_array(&type_params);
         debug_assert!(type_params.iter().all(|ty| ty.is_concrete_type()));
 
         let shape = self.vm.shape_for_lambda(fct_id, type_params);
@@ -2383,7 +2383,7 @@ impl<'a> CannonCodeGen<'a> {
         let mut params_including_self = params.to_vec();
         params_including_self.insert(0, BytecodeType::Ptr);
         let params_including_self = BytecodeTypeArray::new(params_including_self);
-        let params_including_self = self.specialize_bty_array(&params_including_self);
+        let params_including_self = self.specialize_ty_array(&params_including_self);
 
         let argsize = self.emit_invoke_arguments(dest, bytecode_type.clone(), arguments);
 
@@ -2480,7 +2480,7 @@ impl<'a> CannonCodeGen<'a> {
             _ => unreachable!(),
         };
 
-        let type_params = self.specialize_bty_array(&type_params);
+        let type_params = self.specialize_ty_array(&type_params);
         debug_assert!(type_params.iter().all(|ty| ty.is_concrete_type()));
 
         let location = self.bytecode.offset_location(self.current_offset.to_u32());
@@ -2553,7 +2553,7 @@ impl<'a> CannonCodeGen<'a> {
             _ => unreachable!(),
         };
 
-        let type_params = self.specialize_bty_array(&type_params);
+        let type_params = self.specialize_ty_array(&type_params);
         debug_assert!(type_params.iter().all(|ty| ty.is_concrete_type()));
 
         let location = self.bytecode.offset_location(self.current_offset.to_u32());
@@ -3931,12 +3931,12 @@ impl<'a> CannonCodeGen<'a> {
         mem::align_i32(argsize, STACK_FRAME_ALIGNMENT as i32)
     }
 
-    fn specialize_bty(&self, ty: BytecodeType) -> BytecodeType {
-        specialize_ty(self.vm, ty, &self.type_params)
+    fn specialize_ty(&self, ty: BytecodeType) -> BytecodeType {
+        specialize_ty(self.vm, None, ty, &self.type_params)
     }
 
-    fn specialize_bty_array(&self, types: &BytecodeTypeArray) -> BytecodeTypeArray {
-        specialize_ty_array(self.vm, types, &self.type_params)
+    fn specialize_ty_array(&self, types: &BytecodeTypeArray) -> BytecodeTypeArray {
+        specialize_ty_array(self.vm, None, types, &self.type_params)
     }
 
     fn register_offset(&self, reg: Register) -> i32 {
@@ -3950,7 +3950,7 @@ impl<'a> CannonCodeGen<'a> {
 
     fn specialize_register_type(&self, reg: Register) -> BytecodeType {
         let ty = self.bytecode.register_type(reg);
-        register_bty(self.specialize_bty(ty))
+        register_bty(self.specialize_ty(ty))
     }
 }
 

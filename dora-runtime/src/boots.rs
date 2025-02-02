@@ -460,7 +460,7 @@ extern "C" fn specialize_ty_raw(data: Handle<UInt8Array>) -> Ref<UInt8Array> {
     let type_params = decode_bytecode_type_array(&mut reader);
     assert!(!reader.has_more());
 
-    let ty = specialize_ty(vm, generic_assoc_ty, &type_params);
+    let ty = specialize_ty(vm, None, generic_assoc_ty, &type_params);
 
     let mut buffer = ByteBuffer::new();
     serializer::encode_bytecode_type(vm, &ty, &mut buffer);
