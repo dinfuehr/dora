@@ -18,7 +18,7 @@ use crate::vm::{
     specialize_bty, specialize_bty_array, BytecodeTypeExt, Code, LazyCompilationSite, ShapeKind,
     VM,
 };
-use crate::Shape;
+use crate::{get_bytecode, Shape};
 
 pub fn compile_boots_aot(vm: &VM) {
     if vm.has_boots() {
@@ -247,8 +247,8 @@ impl<'a> TransitiveClosureComputation<'a> {
     fn trace(&mut self, fct_id: FunctionId, type_params: BytecodeTypeArray) {
         let fct = &self.vm.fct(fct_id);
 
-        if let Some(ref bytecode_function) = fct.bytecode {
-            self.iterate_bytecode(bytecode_function, type_params);
+        if let Some((bytecode_function, specialize_self)) = get_bytecode(self.vm, fct) {
+            self.iterate_bytecode(bytecode_function, type_params, specialize_self);
         }
     }
 
@@ -256,6 +256,7 @@ impl<'a> TransitiveClosureComputation<'a> {
         &mut self,
         bytecode_function: &BytecodeFunction,
         type_params: BytecodeTypeArray,
+        _specialize_self: Option<BytecodeType>,
     ) {
         let reader = BytecodeReader::new(bytecode_function.code());
 
@@ -548,6 +549,24 @@ fn prepare_lazy_call_sites(
                     type_params,
                     const_pool_offset_from_ra,
                 } => {
+                    let target = ctc
+                        .function_addresses
+                        .get(&(*fct_id, type_params.clone()))
+                        .cloned();
+
+                    if target.is_none() {
+                        println!(
+                            "code = {:?} {}",
+                            code.descriptor(),
+                            display_fct(&_vm.program, *fct_id)
+                        );
+                        println!(
+                            " calls {} with {:?}",
+                            display_fct(&_vm.program, *fct_id),
+                            type_params
+                        );
+                        println!("offset = {}", offset);
+                    }
                     let target = ctc
                         .function_addresses
                         .get(&(*fct_id, type_params.clone()))

@@ -19,7 +19,7 @@ pub fn check(sa: &Sema) {
                 file_id: fct.file_id,
                 analysis: fct.analysis(),
             };
-            visit::walk_fct(&mut visitor, &fct.ast);
+            visit::walk_fct(&mut visitor, fct.ast().as_ref().expect("body expected"));
         }
     }
 }

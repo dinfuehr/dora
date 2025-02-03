@@ -55,6 +55,7 @@ pub struct CannonCodeGen<'a> {
     emit_code_comments: bool,
 
     type_params: BytecodeTypeArray,
+    specialize_self: Option<BytecodeType>,
 
     offset_to_address: HashMap<BytecodeOffset, usize>,
     offset_to_label: HashMap<BytecodeOffset, Label>,
@@ -97,6 +98,7 @@ impl<'a> CannonCodeGen<'a> {
             bytecode: compilation_data.bytecode_fct,
             emit_code_comments: compilation_data.emit_code_comments,
             type_params: compilation_data.type_params,
+            specialize_self: compilation_data.specialize_self,
             offset_to_address: HashMap::new(),
             offset_to_label: HashMap::new(),
             current_offset: BytecodeOffset(0),
@@ -3932,11 +3934,21 @@ impl<'a> CannonCodeGen<'a> {
     }
 
     fn specialize_ty(&self, ty: BytecodeType) -> BytecodeType {
-        specialize_ty(self.vm, None, ty, &self.type_params)
+        specialize_ty(
+            self.vm,
+            self.specialize_self.as_ref(),
+            ty,
+            &self.type_params,
+        )
     }
 
     fn specialize_ty_array(&self, types: &BytecodeTypeArray) -> BytecodeTypeArray {
-        specialize_ty_array(self.vm, None, types, &self.type_params)
+        specialize_ty_array(
+            self.vm,
+            self.specialize_self.as_ref(),
+            types,
+            &self.type_params,
+        )
     }
 
     fn register_offset(&self, reg: Register) -> i32 {

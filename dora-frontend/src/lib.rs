@@ -111,8 +111,8 @@ pub fn emit_ast(sa: &Sema, filter: &str) {
     for (_id, fct) in sa.fcts.iter() {
         let fct_name = fct.display_name(sa);
 
-        if fct_pattern_match(&fct_name, filter) {
-            ast::dump::dump_fct(&fct.ast);
+        if fct_pattern_match(&fct_name, filter) && fct.has_body() {
+            ast::dump::dump_fct(fct.ast().expect("body expected"));
         }
     }
 }
@@ -172,7 +172,8 @@ fn fct_pattern_match(name: &str, pattern: &str) -> bool {
 
 fn internalck(sa: &Sema) {
     for (_id, fct) in sa.fcts.iter() {
-        if !fct.has_body() && !fct.in_trait() && !fct.is_internal {
+        if !fct.has_body() && !fct.in_trait() && !fct.is_internal && !fct.use_trait_default_impl(sa)
+        {
             sa.report(fct.file_id, fct.span, ErrorMessage::MissingFctBody);
         }
     }

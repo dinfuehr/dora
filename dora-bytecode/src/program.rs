@@ -42,6 +42,7 @@ pub struct FunctionData {
     pub is_force_inline: bool,
     pub is_never_inline: bool,
     pub bytecode: Option<BytecodeFunction>,
+    pub trait_method_impl: Option<FunctionId>,
 }
 
 #[derive(Debug, Decode, Encode)]

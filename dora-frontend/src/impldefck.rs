@@ -110,20 +110,23 @@ pub fn check_definition_against_trait(sa: &mut Sema) {
                 let return_type = trait_method.return_type();
                 let return_type = replace_type(sa, return_type, None, self_ty.clone());
 
-                let fct = FctDefinition::new(
+                let fct = FctDefinition::new_no_source(
                     impl_.package_id,
                     impl_.module_id,
                     impl_.file_id,
-                    &trait_method.ast,
+                    trait_method.declaration_span,
+                    trait_method.span,
+                    trait_method.ast(),
                     ParsedModifierList::default(),
                     trait_method.name,
                     trait_method
                         .type_param_definition()
                         .clone_with_new_parent(impl_.type_param_definition().to_owned()),
                     params,
+                    return_type,
                     FctParent::Impl(impl_.id()),
                 );
-                fct.return_type.set_ty(return_type);
+                assert!(fct.trait_method_impl.set(*trait_method_id).is_ok());
                 new_fcts.push(fct);
             }
         }
@@ -168,12 +171,13 @@ fn check_impl_methods(
 
                 sa.report(
                     impl_method.file_id,
-                    impl_method.ast.span,
+                    impl_method.span,
                     ErrorMessage::AliasExists(method_name, existing_fct.span),
                 );
             }
 
             remaining_trait_methods.remove(&trait_method_id);
+            assert!(impl_method.trait_method_impl.set(trait_method_id).is_ok());
 
             let trait_method = sa.fct(trait_method_id);
 

@@ -32,6 +32,7 @@ mod timer;
 mod utils;
 pub mod vm;
 
+use compiler::codegen::get_bytecode;
 use gc::Address;
 use shape::{Shape, ShapeVisitor};
 pub use vm::VM;

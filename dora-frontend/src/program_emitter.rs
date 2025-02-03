@@ -212,6 +212,11 @@ fn create_functions(sa: &Sema, e: &mut Emitter) -> Vec<FunctionData> {
             is_force_inline: fct.is_force_inline,
             is_never_inline: fct.is_never_inline,
             bytecode: fct.bytecode.get().cloned(),
+            trait_method_impl: fct
+                .trait_method_impl
+                .get()
+                .cloned()
+                .map(|id| convert_function_id(id)),
         })
     }
 
@@ -241,6 +246,7 @@ fn create_functions(sa: &Sema, e: &mut Emitter) -> Vec<FunctionData> {
             is_force_inline: false,
             is_never_inline: false,
             bytecode: Some(global.bytecode().clone()),
+            trait_method_impl: None,
         });
 
         e.global_initializer.insert(global.id(), fct_id);

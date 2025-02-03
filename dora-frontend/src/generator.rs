@@ -65,7 +65,7 @@ pub fn generate_fct(sa: &Sema, fct: &FctDefinition, src: &AnalysisData) -> Bytec
         unit_register: None,
         entered_contexts: Vec::new(),
     };
-    ast_bytecode_generator.generate_fct(&fct.ast)
+    ast_bytecode_generator.generate_fct(fct.ast().expect("body expected"))
 }
 
 pub fn generate_global_initializer(

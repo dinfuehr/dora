@@ -138,6 +138,7 @@ fn compile_thunk_to_code(
         bytecode_fct.return_type().clone(),
         &bytecode_fct,
         type_params,
+        None,
         compiler,
         emit_compiler,
         mode,

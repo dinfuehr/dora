@@ -25,7 +25,7 @@ pub struct FctDefinition {
     pub package_id: PackageDefinitionId,
     pub module_id: ModuleDefinitionId,
     pub file_id: SourceFileId,
-    pub ast: Arc<ast::Function>,
+    pub ast: Option<Arc<ast::Function>>,
     pub declaration_span: Span,
     pub span: Span,
     pub name: Name,
@@ -46,6 +46,7 @@ pub struct FctDefinition {
     pub container_type_params: OnceCell<usize>,
     pub bytecode: OnceCell<BytecodeFunction>,
     pub intrinsic: OnceCell<Intrinsic>,
+    pub trait_method_impl: OnceCell<FctDefinitionId>,
 }
 
 impl FctDefinition {
@@ -73,7 +74,7 @@ impl FctDefinition {
             file_id,
             declaration_span: ast.declaration_span,
             span: ast.span,
-            ast: ast.clone(),
+            ast: Some(ast.clone()),
             name,
             params,
             return_type,
@@ -90,6 +91,49 @@ impl FctDefinition {
             container_type_params: OnceCell::new(),
             bytecode: OnceCell::new(),
             intrinsic: OnceCell::new(),
+            trait_method_impl: OnceCell::new(),
+        }
+    }
+
+    pub(crate) fn new_no_source(
+        package_id: PackageDefinitionId,
+        module_id: ModuleDefinitionId,
+        file_id: SourceFileId,
+        declaration_span: Span,
+        span: Span,
+        ast: Option<&Arc<ast::Function>>,
+        modifiers: ParsedModifierList,
+        name: Name,
+        type_params: Rc<TypeParamDefinition>,
+        params: Params,
+        return_type: SourceType,
+        parent: FctParent,
+    ) -> FctDefinition {
+        FctDefinition {
+            id: None,
+            package_id,
+            module_id,
+            file_id,
+            declaration_span: declaration_span,
+            span: span,
+            ast: ast.cloned(),
+            name,
+            params,
+            return_type: ParsedType::new_ty(return_type),
+            parent,
+            is_optimize_immediately: modifiers.is_optimize_immediately,
+            visibility: modifiers.visibility(),
+            is_static: modifiers.is_static,
+            is_test: modifiers.is_test,
+            is_internal: modifiers.is_internal,
+            is_force_inline: modifiers.is_force_inline,
+            is_never_inline: modifiers.is_never_inline,
+            analysis: OnceCell::new(),
+            type_param_definition: type_params,
+            container_type_params: OnceCell::new(),
+            bytecode: OnceCell::new(),
+            intrinsic: OnceCell::new(),
+            trait_method_impl: OnceCell::new(),
         }
     }
 
@@ -115,6 +159,21 @@ impl FctDefinition {
         match self.parent {
             FctParent::Trait(_) => true,
             _ => false,
+        }
+    }
+
+    pub fn use_trait_default_impl(&self, sa: &Sema) -> bool {
+        if self.parent.is_impl() {
+            let trait_method_id = self
+                .trait_method_impl
+                .get()
+                .cloned()
+                .expect("missing trait method");
+
+            let trait_method = sa.fct(trait_method_id);
+            trait_method.has_body()
+        } else {
+            false
         }
     }
 
@@ -169,11 +228,18 @@ impl FctDefinition {
     }
 
     pub fn has_body(&self) -> bool {
-        self.ast.block.is_some()
+        self.ast
+            .as_ref()
+            .map(|a| a.block.is_some())
+            .unwrap_or(false)
+    }
+
+    pub fn ast(&self) -> Option<&Arc<ast::Function>> {
+        self.ast.as_ref()
     }
 
     pub fn is_lambda(&self) -> bool {
-        self.ast.kind.is_lambda()
+        self.parent.is_function()
     }
 
     pub fn span(&self) -> Span {
@@ -311,6 +377,13 @@ impl FctParent {
     pub fn is_none(&self) -> bool {
         match self {
             &FctParent::None => true,
+            _ => false,
+        }
+    }
+
+    pub fn is_function(&self) -> bool {
+        match self {
+            &FctParent::Function => true,
             _ => false,
         }
     }

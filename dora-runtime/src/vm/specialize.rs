@@ -696,7 +696,9 @@ pub fn specialize_ty(
             specialize_ty(vm, self_ty, impl_alias_ty, &bindings)
         }
 
-        BytecodeType::TypeAlias(..) | BytecodeType::Assoc(..) | BytecodeType::This => {
+        BytecodeType::This => self_ty.expect("unexpected Self").clone(),
+
+        BytecodeType::TypeAlias(..) | BytecodeType::Assoc(..) => {
             unreachable!()
         }
 
