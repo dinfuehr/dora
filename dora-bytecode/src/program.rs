@@ -175,7 +175,7 @@ pub struct ImplId(pub u32);
 pub struct ImplData {
     pub module_id: ModuleId,
     pub type_params: TypeParamData,
-    pub trait_ty: BytecodeType,
+    pub trait_ty: BytecodeTraitType,
     pub extended_ty: BytecodeType,
     pub methods: Vec<FunctionId>,
     pub trait_method_map: Vec<(FunctionId, FunctionId)>,

@@ -1,5 +1,6 @@
 use crate::{
-    BytecodeType, BytecodeTypeArray, FunctionId, FunctionKind, ModuleId, Program, TypeParamData,
+    BytecodeTraitType, BytecodeType, BytecodeTypeArray, FunctionId, FunctionKind, ModuleId,
+    Program, TypeParamData,
 };
 
 pub fn display_fct(prog: &Program, fct_id: FunctionId) -> String {
@@ -67,7 +68,7 @@ pub fn display_fct(prog: &Program, fct_id: FunctionId) -> String {
             }
 
             result.push_str(" ");
-            result.push_str(&display_ty_with_type_params(
+            result.push_str(&display_trait_ty_with_type_params(
                 prog,
                 &impl_.trait_ty,
                 &impl_.type_params,
@@ -138,18 +139,44 @@ pub fn display_ty_without_type_params(prog: &Program, ty: &BytecodeType) -> Stri
     printer.string()
 }
 
+pub fn fmt_ty_with_type_params<'a>(
+    prog: &'a Program,
+    ty: &'a BytecodeType,
+    type_params: &'a TypeParamData,
+) -> BytecodeTypePrinter<'a> {
+    BytecodeTypePrinter {
+        prog,
+        type_params: TypeParamMode::TypeParams(type_params),
+        ty: ty.clone(),
+    }
+}
+
 pub fn display_ty_with_type_params(
     prog: &Program,
     ty: &BytecodeType,
     type_params: &TypeParamData,
 ) -> String {
-    let printer = BytecodeTypePrinter {
-        prog,
-        type_params: TypeParamMode::TypeParams(type_params),
-        ty: ty.clone(),
-    };
+    fmt_ty_with_type_params(prog, ty, type_params).string()
+}
 
-    printer.string()
+pub fn fmt_trait_ty_with_type_params<'a>(
+    prog: &'a Program,
+    trait_ty: &'a BytecodeTraitType,
+    type_params: &'a TypeParamData,
+) -> BytecodeTraitTypePrinter<'a> {
+    BytecodeTraitTypePrinter {
+        prog,
+        type_params,
+        trait_ty,
+    }
+}
+
+pub fn display_trait_ty_with_type_params(
+    prog: &Program,
+    trait_ty: &BytecodeTraitType,
+    type_params: &TypeParamData,
+) -> String {
+    fmt_trait_ty_with_type_params(prog, trait_ty, type_params).string()
 }
 
 enum TypeParamMode<'a> {
@@ -158,14 +185,14 @@ enum TypeParamMode<'a> {
     TypeParams(&'a TypeParamData),
 }
 
-struct BytecodeTypePrinter<'a> {
+pub struct BytecodeTypePrinter<'a> {
     prog: &'a Program,
     type_params: TypeParamMode<'a>,
     ty: BytecodeType,
 }
 
 impl<'a> BytecodeTypePrinter<'a> {
-    fn string(&self) -> String {
+    pub fn string(&self) -> String {
         format!("{}", self)
     }
 
@@ -266,6 +293,71 @@ impl<'a> BytecodeTypePrinter<'a> {
 impl<'a> std::fmt::Display for BytecodeTypePrinter<'a> {
     fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
         self.name(&self.ty, f)
+    }
+}
+
+pub struct BytecodeTraitTypePrinter<'a> {
+    prog: &'a Program,
+    type_params: &'a TypeParamData,
+    trait_ty: &'a BytecodeTraitType,
+}
+
+impl<'a> BytecodeTraitTypePrinter<'a> {
+    pub fn string(&self) -> String {
+        format!("{}", self)
+    }
+
+    pub fn name(
+        &self,
+        trait_ty: &BytecodeTraitType,
+        fmt: &mut std::fmt::Formatter,
+    ) -> std::fmt::Result {
+        let trait_id = trait_ty.trait_id;
+        let trait_ = self.prog.trait_(trait_id);
+        write!(fmt, "{}", trait_.name)?;
+
+        if !trait_ty.type_params.is_empty() || !trait_ty.bindings.is_empty() {
+            let mut first = false;
+            write!(fmt, "[")?;
+
+            for ty in trait_ty.type_params.iter() {
+                if !first {
+                    write!(fmt, ", ")?;
+                }
+
+                write!(
+                    fmt,
+                    "{}",
+                    fmt_ty_with_type_params(&self.prog, &ty, self.type_params)
+                )?;
+                first = false;
+            }
+
+            for (alias_id, ty) in trait_ty.bindings.iter() {
+                if !first {
+                    write!(fmt, ", ")?;
+                }
+
+                let alias = self.prog.alias(*alias_id);
+                write!(
+                    fmt,
+                    "{}={}",
+                    alias.name,
+                    fmt_ty_with_type_params(&self.prog, &ty, self.type_params)
+                )?;
+                first = false;
+            }
+
+            write!(fmt, "]")?;
+        }
+
+        Ok(())
+    }
+}
+
+impl<'a> std::fmt::Display for BytecodeTraitTypePrinter<'a> {
+    fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
+        self.name(&self.trait_ty, f)
     }
 }
 

@@ -356,7 +356,7 @@ impl<'a> TransitiveClosureComputation<'a> {
                     let trait_type_params = trait_object_ty.type_params();
 
                     for impl_ in self.vm.program.impls.iter() {
-                        if impl_.trait_ty == trait_object_ty {
+                        if impl_.trait_ty.is_trait_object_ty(&trait_object_ty) {
                             for (trait_method_id, impl_method_id) in &impl_.trait_method_map {
                                 if *trait_method_id == trait_fct_id {
                                     let actual_ty = impl_.extended_ty.clone();

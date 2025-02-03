@@ -266,3 +266,16 @@ pub struct BytecodeTraitType {
     pub type_params: BytecodeTypeArray,
     pub bindings: Vec<(AliasId, BytecodeType)>,
 }
+
+impl BytecodeTraitType {
+    pub fn is_trait_object_ty(&self, ty: &BytecodeType) -> bool {
+        match ty {
+            BytecodeType::TraitObject(trait_id, type_params, bindings) => {
+                assert!(bindings.is_empty());
+                self.trait_id == *trait_id && &self.type_params == type_params
+            }
+
+            _ => false,
+        }
+    }
+}

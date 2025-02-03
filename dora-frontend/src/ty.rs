@@ -1115,6 +1115,7 @@ impl TraitType {
     }
 
     pub fn ty(&self) -> SourceType {
+        assert!(self.bindings.is_empty());
         SourceType::TraitObject(self.trait_id, self.type_params.clone(), ().into())
     }
 

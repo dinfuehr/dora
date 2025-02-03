@@ -149,7 +149,7 @@ fn create_impls(sa: &Sema) -> Vec<ImplData> {
         result.push(ImplData {
             module_id: convert_module_id(impl_.module_id),
             type_params: create_type_params(sa, impl_.type_param_definition()),
-            trait_ty: bty_from_ty(trait_ty.ty()),
+            trait_ty: convert_trait_type(&trait_ty),
             extended_ty: bty_from_ty(impl_.extended_ty()),
             methods,
             trait_method_map,

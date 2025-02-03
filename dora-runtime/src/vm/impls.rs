@@ -21,7 +21,7 @@ pub fn find_trait_impl(
         .expect("no impl found for generic trait method call");
 
     let impl_ = vm.impl_(impl_id);
-    let impl_trait_id = impl_.trait_ty.trait_id().expect("expected trait type");
+    let impl_trait_id = impl_.trait_ty.trait_id;
 
     assert_eq!(impl_trait_id, trait_ty.trait_id);
 
@@ -48,15 +48,14 @@ pub fn find_impl(
     for (impl_id, impl_) in vm.program.impls.iter().enumerate() {
         let impl_id = ImplId(impl_id.try_into().expect("doesn't fit"));
 
-        if impl_.trait_ty.trait_id().expect("trait expected") != trait_id {
+        if impl_.trait_ty.trait_id != trait_id {
             continue;
         }
 
         if let Some(binding) =
             impl_block_matches_ty(vm, check_ty.clone(), check_type_param_defs, impl_id)
         {
-            let impl_trait_ty_params =
-                specialize_bty_array(&impl_.trait_ty.type_params(), &binding);
+            let impl_trait_ty_params = specialize_bty_array(&impl_.trait_ty.type_params, &binding);
 
             if impl_trait_ty_params != trait_ty.type_params {
                 continue;
