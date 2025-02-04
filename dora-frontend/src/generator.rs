@@ -1761,6 +1761,7 @@ impl<'a> AstBytecodeGen<'a> {
         match *call_type {
             CallType::Method(..)
             | CallType::GenericMethod(..)
+            | CallType::GenericMethodSelf(..)
             | CallType::TraitObjectMethod(..) => {
                 let obj_expr = expr.object().unwrap_or(expr.callee());
                 let reg = gen_expr(self, obj_expr, DataDest::Alloc);
@@ -1768,7 +1769,9 @@ impl<'a> AstBytecodeGen<'a> {
                 Some(reg)
             }
             CallType::Expr(_, _, _) => Some(gen_expr(self, &expr.callee, DataDest::Alloc)),
-            CallType::GenericStaticMethod(..) | CallType::Fct(..) => None,
+            CallType::GenericStaticMethod(..)
+            | CallType::GenericStaticMethodSelf(..)
+            | CallType::Fct(..) => None,
             _ => panic!("unexpected call type {:?}", call_type),
         }
     }
@@ -1883,11 +1886,11 @@ impl<'a> AstBytecodeGen<'a> {
                 self.builder
                     .emit_invoke_virtual(return_reg, callee_idx, location);
             }
-            CallType::GenericMethod(..) => {
+            CallType::GenericMethod(..) | CallType::GenericMethodSelf(..) => {
                 self.builder
                     .emit_invoke_generic_direct(return_reg, callee_idx, location);
             }
-            CallType::GenericStaticMethod(..) => {
+            CallType::GenericStaticMethod(..) | CallType::GenericStaticMethodSelf(..) => {
                 self.builder
                     .emit_invoke_generic_static(return_reg, callee_idx, location);
             }
@@ -1895,9 +1898,7 @@ impl<'a> AstBytecodeGen<'a> {
             | CallType::NewStruct(..)
             | CallType::NewEnum(..)
             | CallType::Intrinsic(..)
-            | CallType::Lambda(..)
-            | CallType::GenericMethodSelf(..)
-            | CallType::GenericStaticMethodSelf(..) => unreachable!(),
+            | CallType::Lambda(..) => unreachable!(),
         }
     }
 
@@ -3264,13 +3265,16 @@ impl<'a> AstBytecodeGen<'a> {
                 )
             }
 
+            CallType::GenericMethodSelf(_trait_id, _fct_id, type_params)
+            | CallType::GenericStaticMethodSelf(_trait_id, _fct_id, type_params) => {
+                replace_type(self.sa, ty, Some(type_params), None)
+            }
+
             CallType::Lambda(..)
             | CallType::NewClass(..)
             | CallType::NewStruct(..)
             | CallType::NewEnum(..)
-            | CallType::Intrinsic(..)
-            | CallType::GenericMethodSelf(..)
-            | CallType::GenericStaticMethodSelf(..) => {
+            | CallType::Intrinsic(..) => {
                 unreachable!()
             }
         }

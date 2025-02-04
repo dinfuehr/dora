@@ -307,7 +307,7 @@ impl<'a> BytecodeTraitTypePrinter<'a> {
         format!("{}", self)
     }
 
-    pub fn name(
+    fn name(
         &self,
         trait_ty: &BytecodeTraitType,
         fmt: &mut std::fmt::Formatter,

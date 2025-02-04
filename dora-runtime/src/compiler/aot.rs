@@ -256,7 +256,7 @@ impl<'a> TransitiveClosureComputation<'a> {
         &mut self,
         bytecode_function: &BytecodeFunction,
         type_params: BytecodeTypeArray,
-        _specialize_self: Option<BytecodeType>,
+        specialize_self: Option<BytecodeType>,
     ) {
         let reader = BytecodeReader::new(bytecode_function.code());
 
@@ -278,13 +278,26 @@ impl<'a> TransitiveClosureComputation<'a> {
 
                 BytecodeInstruction::InvokeGenericDirect { fct, .. }
                 | BytecodeInstruction::InvokeGenericStatic { fct, .. } => {
-                    let (id, callee_trait_fct_id, callee_type_params) =
-                        match bytecode_function.const_pool(fct) {
-                            ConstPoolEntry::Generic(id, fct_id, type_params) => {
-                                (*id, *fct_id, type_params.clone())
-                            }
-                            _ => unreachable!(),
-                        };
+                    let generic_ty;
+                    let callee_trait_fct_id;
+                    let callee_type_params;
+
+                    match bytecode_function.const_pool(fct) {
+                        ConstPoolEntry::Generic(id, fct_id, fct_type_params) => {
+                            generic_ty = type_params[*id as usize].clone();
+                            callee_trait_fct_id = *fct_id;
+                            callee_type_params = fct_type_params.clone();
+                        }
+
+                        ConstPoolEntry::GenericSelf(fct_id, fct_type_params) => {
+                            generic_ty = specialize_self.clone().expect("missing Self type");
+                            callee_trait_fct_id = *fct_id;
+                            callee_type_params = fct_type_params.clone();
+                        }
+
+                        _ => unreachable!(),
+                    }
+
                     let fct = self.vm.fct(callee_trait_fct_id);
 
                     let trait_id = match fct.kind {
@@ -297,10 +310,8 @@ impl<'a> TransitiveClosureComputation<'a> {
                         bindings: Vec::new(),
                     };
 
-                    let ty = type_params[id as usize].clone();
-
                     let (callee_id, callee_type_params) =
-                        find_trait_impl(self.vm, callee_trait_fct_id, trait_ty, ty);
+                        find_trait_impl(self.vm, callee_trait_fct_id, trait_ty, generic_ty);
 
                     let callee_type_params =
                         specialize_bty_array(&callee_type_params, &type_params);
