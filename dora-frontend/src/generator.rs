@@ -1517,6 +1517,8 @@ impl<'a> AstBytecodeGen<'a> {
             | CallType::Method(..)
             | CallType::GenericMethod(..)
             | CallType::GenericStaticMethod(..)
+            | CallType::GenericMethodSelf(..)
+            | CallType::GenericStaticMethodSelf(..)
             | CallType::TraitObjectMethod(..)
             | CallType::Fct(..) => {}
 
@@ -1893,7 +1895,9 @@ impl<'a> AstBytecodeGen<'a> {
             | CallType::NewStruct(..)
             | CallType::NewEnum(..)
             | CallType::Intrinsic(..)
-            | CallType::Lambda(..) => unreachable!(),
+            | CallType::Lambda(..)
+            | CallType::GenericMethodSelf(..)
+            | CallType::GenericStaticMethodSelf(..) => unreachable!(),
         }
     }
 
@@ -3191,7 +3195,7 @@ impl<'a> AstBytecodeGen<'a> {
         fct: &FctDefinition,
         call_type: &CallType,
     ) -> ConstPoolIdx {
-        match *call_type {
+        match call_type {
             CallType::GenericStaticMethod(id, .., ref type_params)
             | CallType::GenericMethod(id, .., ref type_params) => {
                 assert_eq!(
@@ -3203,6 +3207,13 @@ impl<'a> AstBytecodeGen<'a> {
                     FunctionId(fct.id().index().try_into().expect("overflow")),
                     bty_array_from_ty(&type_params),
                 )
+            }
+            CallType::GenericMethodSelf(_, fct_id, type_params)
+            | CallType::GenericStaticMethodSelf(_, fct_id, type_params) => {
+                self.builder.add_const(ConstPoolEntry::GenericSelf(
+                    FunctionId(fct_id.index().try_into().expect("overflow")),
+                    bty_array_from_ty(&type_params),
+                ))
             }
             CallType::TraitObjectMethod(ref trait_object_ty, _) => {
                 self.builder.add_const(ConstPoolEntry::TraitObjectMethod(
@@ -3257,7 +3268,9 @@ impl<'a> AstBytecodeGen<'a> {
             | CallType::NewClass(..)
             | CallType::NewStruct(..)
             | CallType::NewEnum(..)
-            | CallType::Intrinsic(..) => {
+            | CallType::Intrinsic(..)
+            | CallType::GenericMethodSelf(..)
+            | CallType::GenericStaticMethodSelf(..) => {
                 unreachable!()
             }
         }

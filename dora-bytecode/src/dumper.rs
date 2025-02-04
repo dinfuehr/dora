@@ -172,6 +172,15 @@ pub fn dump(w: &mut dyn io::Write, prog: &Program, bc: &BytecodeFunction) -> std
                     fmt_name(prog, &display_fct(prog, *fct_id), &type_params)
                 )?;
             }
+            ConstPoolEntry::GenericSelf(fct_id, type_params) => {
+                writeln!(
+                    w,
+                    "{}{} => Self::Method {}",
+                    align,
+                    idx,
+                    fmt_name(prog, &display_fct(prog, *fct_id), &type_params)
+                )?;
+            }
             ConstPoolEntry::TraitObject {
                 trait_ty,
                 actual_object_ty,

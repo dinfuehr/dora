@@ -355,6 +355,9 @@ pub enum CallType {
         SourceTypeArray,
     ),
 
+    // Invoke trait method from a default trait method, e.g. self.method().
+    GenericMethodSelf(TraitDefinitionId, FctDefinitionId, SourceTypeArray),
+
     // Invoke static trait method on type param, e.g. T::method()
     GenericStaticMethod(
         TypeParamId,
@@ -363,19 +366,22 @@ pub enum CallType {
         SourceTypeArray,
     ),
 
+    // Invoke static trait method from a default trait method, e.g. Self::method().
+    GenericStaticMethodSelf(TraitDefinitionId, FctDefinitionId, SourceTypeArray),
+
     // Class constructor of new class syntax, i.e. ClassName(<args>).
     NewClass(ClassDefinitionId, SourceTypeArray),
 
-    // Construct enum value
+    // Construct enum value.
     NewEnum(SourceType, u32),
 
-    // Struct constructor call Struct(<args>)
+    // Struct constructor call Struct(<args>).
     NewStruct(StructDefinitionId, SourceTypeArray),
 
     // Used for internal functions (those are not exposed to Dora as Fct). Used for enum comparisons.
     Intrinsic(Intrinsic),
 
-    // Call to lambda,
+    // Invoke lambda function.
     Lambda(SourceTypeArray, SourceType),
 }
 
@@ -410,12 +416,14 @@ impl CallType {
 
     pub fn fct_id(&self) -> Option<FctDefinitionId> {
         match *self {
-            CallType::Fct(fctid, _) => Some(fctid),
-            CallType::Method(_, fctid, _) => Some(fctid),
-            CallType::Expr(_, fctid, _) => Some(fctid),
-            CallType::TraitObjectMethod(_, fctid) => Some(fctid),
-            CallType::GenericMethod(_, _, fctid, _) => Some(fctid),
-            CallType::GenericStaticMethod(_, _, fctid, _) => Some(fctid),
+            CallType::Fct(fct_id, _)
+            | CallType::Method(_, fct_id, _)
+            | CallType::Expr(_, fct_id, _)
+            | CallType::TraitObjectMethod(_, fct_id)
+            | CallType::GenericMethod(_, _, fct_id, _)
+            | CallType::GenericStaticMethod(_, _, fct_id, _)
+            | CallType::GenericMethodSelf(_, fct_id, _)
+            | CallType::GenericStaticMethodSelf(_, fct_id, _) => Some(fct_id),
 
             CallType::NewClass(..)
             | CallType::NewStruct(..)

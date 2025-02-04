@@ -357,6 +357,11 @@ fn encode_constpool_entry(vm: &VM, const_entry: &ConstPoolEntry, buffer: &mut By
             buffer.emit_id(fct_id.0 as usize);
             encode_bytecode_type_array(vm, source_type_array, buffer);
         }
+        &ConstPoolEntry::GenericSelf(fct_id, ref source_type_array) => {
+            buffer.emit_u8(ConstPoolOpcode::GenericSelf.into());
+            buffer.emit_id(fct_id.0 as usize);
+            encode_bytecode_type_array(vm, source_type_array, buffer);
+        }
         &ConstPoolEntry::Class(cls_id, ref source_type_array) => {
             buffer.emit_u8(ConstPoolOpcode::Class.into());
             buffer.emit_id(cls_id.0 as usize);

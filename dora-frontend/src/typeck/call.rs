@@ -862,10 +862,16 @@ fn check_expr_call_self(
 
         ck.analysis.set_ty(e.id, return_type.clone());
 
-        // This should likely become a generic call in the future, once
-        // the default trait method isn't copied into the impl method anymore.
-        let call_type =
-            CallType::Method(SourceType::This, trait_method_id, trait_type_params.clone());
+        let call_type = if ck.sa.flags.new_default_impl {
+            CallType::GenericMethodSelf(
+                trait_method.trait_id(),
+                trait_method_id,
+                trait_type_params.clone(),
+            )
+        } else {
+            CallType::Method(SourceType::This, trait_method_id, trait_type_params.clone())
+        };
+
         ck.analysis.map_calls.insert(e.id, Arc::new(call_type));
 
         check_args_compatible_fct(
