@@ -110,13 +110,19 @@ pub fn check_definition_against_trait(sa: &mut Sema) {
                 let return_type = trait_method.return_type();
                 let return_type = replace_type(sa, return_type, None, self_ty.clone());
 
+                let ast = if sa.flags.new_default_impl {
+                    None
+                } else {
+                    trait_method.ast()
+                };
+
                 let fct = FctDefinition::new_no_source(
                     impl_.package_id,
                     impl_.module_id,
                     impl_.file_id,
                     trait_method.declaration_span,
                     trait_method.span,
-                    trait_method.ast(),
+                    ast,
                     ParsedModifierList::default(),
                     trait_method.name,
                     trait_method
