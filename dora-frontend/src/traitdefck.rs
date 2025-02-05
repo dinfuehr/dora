@@ -538,6 +538,24 @@ mod tests {
     }
 
     #[test]
+    fn error_in_trait_default_method_reported_once() {
+        err(
+            "
+            trait TraitA {
+                fn f(): Int {
+                    true
+                }
+            }
+
+            impl TraitA for Int {}
+            impl TraitA for Float64 {}
+        ",
+            (3, 29),
+            ErrorMessage::ReturnType("Int64".into(), "Bool".into()),
+        );
+    }
+
+    #[test]
     fn trait_default_method_containing_self_and_super() {
         ok("
             trait SuperTrait {}
