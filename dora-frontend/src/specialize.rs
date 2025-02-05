@@ -184,7 +184,7 @@ pub fn specialize_ty_for_call(
 
             if type_param_ty.is_type_param() {
                 SourceType::GenericAssoc {
-                    tp_id,
+                    tp_id: type_param_ty.type_param_id().expect("missing"),
                     trait_ty,
                     assoc_id,
                 }
@@ -527,10 +527,41 @@ pub fn specialize_for_element(
         | SourceType::Float64
         | SourceType::Error => ty,
 
-        SourceType::Any
-        | SourceType::Ptr
-        | SourceType::Assoc(..)
-        | SourceType::GenericAssoc { .. } => unreachable!(),
+        SourceType::GenericAssoc {
+            tp_id,
+            trait_ty,
+            assoc_id,
+        } => {
+            let assoc = sa.alias(assoc_id);
+            assert!(assoc.parent.is_trait());
+            let type_param_ty = type_params_for_element[tp_id.index()].clone();
+
+            if type_param_ty.is_type_param() {
+                SourceType::GenericAssoc {
+                    tp_id: type_param_ty.type_param_id().expect("missing"),
+                    trait_ty,
+                    assoc_id,
+                }
+            } else if let Some(impl_match) = find_impl(
+                sa,
+                element,
+                type_param_ty,
+                element.type_param_definition(),
+                trait_ty,
+            ) {
+                let impl_ = sa.impl_(impl_match.id);
+                let ty = impl_
+                    .trait_alias_map()
+                    .get(&assoc_id)
+                    .map(|a| sa.alias(*a).ty())
+                    .unwrap_or(SourceType::Error);
+                specialize_for_element(sa, ty, element, type_params_for_element)
+            } else {
+                unimplemented!()
+            }
+        }
+
+        SourceType::Any | SourceType::Ptr | SourceType::Assoc(..) => unreachable!(),
     }
 }
 

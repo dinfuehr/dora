@@ -46,7 +46,7 @@ class Map[I: MyIterator, R] {
     fct: (I::Item): R,
 }
 
-impl[I: MyIterator] MyIterator for Map[I, R] {
+impl[I: MyIterator, R] MyIterator for Map[I, R] {
     type Item = R;
 
     fn next(): Option[R] {
@@ -81,9 +81,11 @@ fn main() {
     assert(Range(2).count() == 2);
     assert(Range(7).count() == 7);
 
-    let r = Range(2).enumerate();
+    let r = Range(2).enumerate().map[Int](|x: (Int, Int)|: (Int, Int) {
+        (x.0, x.1 * 2)
+    });
 
-    assert(Some[(Int, Int)]((0, 2)) == r.next());
-    assert(Some[(Int, Int)]((1, 1)) == r.next());
+    assert(Some[(Int, Int)]((0, 4)) == r.next());
+    assert(Some[(Int, Int)]((1, 2)) == r.next());
     assert(r.next().isNone());
 }

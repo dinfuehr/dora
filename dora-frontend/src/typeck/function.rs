@@ -419,13 +419,16 @@ pub(super) fn add_local(
     }
 }
 
-pub(super) fn check_args_compatible_fct(
+pub(super) fn check_args_compatible_fct<S>(
     ck: &TypeCheck,
     callee: &FctDefinition,
     args: CallArguments,
     type_params: &SourceTypeArray,
     self_ty: Option<SourceType>,
-) {
+    extra_specialization: S,
+) where
+    S: FnMut(SourceType) -> SourceType,
+{
     check_args_compatible(
         ck,
         callee.params.regular_params(),
@@ -433,17 +436,21 @@ pub(super) fn check_args_compatible_fct(
         &args,
         type_params,
         self_ty,
+        extra_specialization,
     );
 }
 
-pub(super) fn check_args_compatible(
+pub(super) fn check_args_compatible<S>(
     ck: &TypeCheck,
     regular_params: &[Param],
     variadic_param: Option<&Param>,
     args: &CallArguments,
     type_params: &SourceTypeArray,
     self_ty: Option<SourceType>,
-) {
+    mut extra_specialization: S,
+) where
+    S: FnMut(SourceType) -> SourceType,
+{
     for arg in &args.arguments {
         if let Some(ref name) = arg.name {
             ck.sa
@@ -458,6 +465,7 @@ pub(super) fn check_args_compatible(
             Some(&type_params),
             self_ty.clone(),
         );
+        let param_ty = extra_specialization(param_ty);
         let arg_ty = ck.analysis.ty(arg.id);
 
         if !arg_allows(ck.sa, param_ty.clone(), arg_ty.clone(), self_ty.clone())
@@ -522,6 +530,10 @@ pub(super) fn arg_allows(
     arg: SourceType,
     self_ty: Option<SourceType>,
 ) -> bool {
+    if arg.is_error() {
+        return true;
+    }
+
     match def {
         SourceType::Error => true,
         SourceType::Any => unreachable!(),
@@ -607,7 +619,9 @@ pub(super) fn arg_allows(
             arg_allows(sa, alias.ty(), arg, self_ty.clone())
         }
 
-        SourceType::Assoc(..) | SourceType::GenericAssoc { .. } => unimplemented!(),
+        SourceType::GenericAssoc { .. } => def == arg,
+
+        SourceType::Assoc(..) => unimplemented!(),
     }
 }
 

@@ -135,6 +135,7 @@ fn check_expr_call_generic_static_method(
         arguments,
         &trait_ty.type_params,
         Some(tp.clone()),
+        |ty| ty,
     );
 
     let call_type = CallType::GenericStaticMethod(
@@ -202,7 +203,7 @@ fn check_expr_call_expr(
 
         let method = ck.sa.fct(method_id);
 
-        check_args_compatible_fct(ck, method, arguments, &impl_match.bindings, None);
+        check_args_compatible_fct(ck, method, arguments, &impl_match.bindings, None, |ty| ty);
 
         let return_type = specialize_type(ck.sa, method.return_type(), &impl_match.bindings);
         ck.analysis.set_ty(e.id, return_type.clone());
@@ -243,6 +244,7 @@ fn check_expr_call_expr_lambda(
         &arguments,
         &type_params,
         None,
+        |ty| ty,
     );
 
     let call_type = CallType::Lambda(params, return_type.clone());
@@ -278,7 +280,7 @@ fn check_expr_call_fct(
         ck.file_id,
         e.span,
     ) {
-        check_args_compatible_fct(ck, fct, arguments, &type_params, None);
+        check_args_compatible_fct(ck, fct, arguments, &type_params, None, |ty| ty);
         specialize_type(ck.sa, fct.return_type(), &type_params)
     } else {
         ty_error()
@@ -340,7 +342,7 @@ fn check_expr_call_static_method(
             ck.file_id,
             e.span,
         ) {
-            check_args_compatible_fct(ck, fct, arguments, &full_type_params, None);
+            check_args_compatible_fct(ck, fct, arguments, &full_type_params, None, |ty| ty);
             specialize_type(ck.sa, fct.return_type(), &full_type_params)
         } else {
             ty_error()
@@ -425,7 +427,7 @@ fn check_expr_call_method(
             ck.file_id,
             e.span,
         ) {
-            check_args_compatible_fct(ck, fct, arguments, &full_type_params, None);
+            check_args_compatible_fct(ck, fct, arguments, &full_type_params, None, |ty| ty);
 
             let call_data = CallSpecializationData {
                 object_ty: candidate.object_type.clone(),
@@ -877,6 +879,7 @@ fn check_expr_call_self(
             arguments,
             &trait_type_params,
             Some(SourceType::This),
+            |ty| ty,
         );
 
         return_type
@@ -967,6 +970,7 @@ fn check_expr_call_generic_type_param(
             arguments,
             &trait_type_params,
             Some(object_type.clone()),
+            |ty| specialize_ty_for_generic(ck.sa, ty, id, trait_method.trait_id()),
         );
 
         return_type
