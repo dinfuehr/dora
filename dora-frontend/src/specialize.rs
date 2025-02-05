@@ -1,4 +1,6 @@
-use crate::sema::{find_impl, AliasParent, Element, Sema, TraitDefinitionId, TypeParamId};
+use crate::sema::{
+    find_impl, AliasParent, Element, ImplDefinition, Sema, TraitDefinitionId, TypeParamId,
+};
 use crate::{SourceType, SourceTypeArray, TraitType};
 
 pub fn specialize_trait_type(sa: &Sema, ty: TraitType, type_params: &SourceTypeArray) -> TraitType {
@@ -372,6 +374,7 @@ fn specialize_ty_for_trait_object_array(
 pub fn specialize_ty_for_default_trait_method(
     sa: &Sema,
     ty: SourceType,
+    impl_: &ImplDefinition,
     trait_ty: &TraitType,
     extended_ty: &SourceType,
 ) -> SourceType {
@@ -381,6 +384,7 @@ pub fn specialize_ty_for_default_trait_method(
             specialize_ty_array_for_default_trait_method(
                 sa,
                 cls_type_params,
+                impl_,
                 trait_ty,
                 extended_ty,
             ),
@@ -391,10 +395,17 @@ pub fn specialize_ty_for_default_trait_method(
             specialize_ty_array_for_default_trait_method(
                 sa,
                 trait_type_params,
+                impl_,
                 trait_ty,
                 extended_ty,
             ),
-            specialize_ty_array_for_default_trait_method(sa, bindings, trait_ty, extended_ty),
+            specialize_ty_array_for_default_trait_method(
+                sa,
+                bindings,
+                impl_,
+                trait_ty,
+                extended_ty,
+            ),
         ),
 
         SourceType::Struct(struct_id, struct_type_params) => SourceType::Struct(
@@ -402,6 +413,7 @@ pub fn specialize_ty_for_default_trait_method(
             specialize_ty_array_for_default_trait_method(
                 sa,
                 struct_type_params,
+                impl_,
                 trait_ty,
                 extended_ty,
             ),
@@ -412,6 +424,7 @@ pub fn specialize_ty_for_default_trait_method(
             specialize_ty_array_for_default_trait_method(
                 sa,
                 enum_type_params,
+                impl_,
                 trait_ty,
                 extended_ty,
             ),
@@ -422,30 +435,49 @@ pub fn specialize_ty_for_default_trait_method(
             specialize_ty_array_for_default_trait_method(
                 sa,
                 alias_type_params,
+                impl_,
                 trait_ty,
                 extended_ty,
             ),
         ),
 
-        SourceType::Assoc(..) => {
-            unimplemented!()
+        SourceType::Assoc(assoc_id, assoc_type_params) => {
+            let assoc = sa.alias(assoc_id);
+            assert!(assoc.parent.is_trait());
+            assert!(assoc_type_params.is_empty());
+
+            let impl_alias_id = impl_.trait_alias_map().get(&assoc_id).cloned();
+
+            if let Some(impl_alias_id) = impl_alias_id {
+                let impl_alias = sa.alias(impl_alias_id);
+                impl_alias.ty()
+            } else {
+                SourceType::Error
+            }
         }
 
         SourceType::GenericAssoc { .. } => unimplemented!(),
 
         SourceType::Lambda(params, return_type) => SourceType::Lambda(
-            specialize_ty_array_for_default_trait_method(sa, params, trait_ty, extended_ty),
+            specialize_ty_array_for_default_trait_method(sa, params, impl_, trait_ty, extended_ty),
             Box::new(specialize_ty_for_default_trait_method(
                 sa,
                 *return_type,
+                impl_,
                 trait_ty,
                 extended_ty,
             )),
         ),
 
-        SourceType::Tuple(subtypes) => SourceType::Tuple(
-            specialize_ty_array_for_default_trait_method(sa, subtypes, trait_ty, extended_ty),
-        ),
+        SourceType::Tuple(subtypes) => {
+            SourceType::Tuple(specialize_ty_array_for_default_trait_method(
+                sa,
+                subtypes,
+                impl_,
+                trait_ty,
+                extended_ty,
+            ))
+        }
 
         SourceType::TypeParam(..) => unimplemented!(),
 
@@ -470,12 +502,13 @@ pub fn specialize_ty_for_default_trait_method(
 fn specialize_ty_array_for_default_trait_method(
     sa: &Sema,
     array: SourceTypeArray,
+    impl_: &ImplDefinition,
     trait_ty: &TraitType,
     extended_ty: &SourceType,
 ) -> SourceTypeArray {
     let new_array = array
         .iter()
-        .map(|ty| specialize_ty_for_default_trait_method(sa, ty, trait_ty, extended_ty))
+        .map(|ty| specialize_ty_for_default_trait_method(sa, ty, impl_, trait_ty, extended_ty))
         .collect::<Vec<_>>();
     SourceTypeArray::with(new_array)
 }
