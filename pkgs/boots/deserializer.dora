@@ -49,13 +49,14 @@ pub fn decodeCompilationInfo(reader: ByteReader): CompilationInfo {
     let fctId = FunctionId(reader.readInt32());
     let typeParams = decodeTypeParams(reader);
     let returnType = decodeBytecodeType(reader);
+    let specializeSelf = decodeOptionBytecodeType(reader);
     let loc = decodeLocation(reader);
     let compilationMode = decodeCompilationMode(reader);
     let emitDebug = reader.readBool();
     let emitGraph = reader.readBool();
     let emitHtml = reader.readBool();
     let emitCodeComments = reader.readBool();
-    CompilationInfo::new(bc, fctId, typeParams, returnType, loc, compilationMode, emitDebug, emitGraph, emitHtml, emitCodeComments)
+    CompilationInfo::new(bc, fctId, typeParams, returnType, specializeSelf, loc, compilationMode, emitDebug, emitGraph, emitHtml, emitCodeComments)
 }
 
 pub fn decodeStructData(reader: ByteReader): StructData {
@@ -132,6 +133,14 @@ fn decodeRegisters(reader: ByteReader): Array[BytecodeType] {
     data
 }
 
+pub fn decodeOptionBytecodeType(reader: ByteReader): Option[BytecodeType] {
+    if reader.readBool() {
+        Some[BytecodeType](decodeBytecodeType(reader))
+    } else {
+        None[BytecodeType]
+    }
+}
+
 pub fn decodeBytecodeType(reader: ByteReader): BytecodeType {
     let opcode = reader.readUInt8().toInt32();
 
@@ -188,6 +197,8 @@ pub fn decodeBytecodeType(reader: ByteReader): BytecodeType {
         let traitTy = decodeBytecodeTraitType(reader);
         let assocId = AliasId(reader.readId());
         BytecodeType::GenericAssoc(typeParamId, traitTy, assocId)
+    } else if opcode == opc::BC_TYPE_THIS {
+        BytecodeType::This
     } else {
         println("unknown bytecode type opcode = ${opcode}");
         unreachable[BytecodeType]()
@@ -267,6 +278,10 @@ fn decodeConstPoolEntry(reader: ByteReader): ConstPoolEntry {
         let fct_id = FunctionId(reader.readInt32());
         let type_params = decodeBytecodeTypeArray(reader);
         ConstPoolEntry::Generic(idx, fct_id, type_params)
+    } else if opcode == opc::CONSTPOOL_OPCODE_GENERIC_SELF {
+        let fct_id = FunctionId(reader.readInt32());
+        let type_params = decodeBytecodeTypeArray(reader);
+        ConstPoolEntry::GenericSelf(fct_id, type_params)
     } else if opcode == opc::CONSTPOOL_OPCODE_ENUM {
         let enum_id = EnumId(reader.readInt32());
         let type_params = decodeBytecodeTypeArray(reader);

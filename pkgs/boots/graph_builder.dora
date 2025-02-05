@@ -1464,8 +1464,20 @@ impl SsaGen {
     fn emitInvokeGeneric(dest: BytecodeRegister, idx: ConstPoolId, kind: CallKind): Bool {
         let ty = self.regGraphTy(dest);
 
-        let ConstPoolEntry::Generic(type_param_idx, trait_fct_id, trait_type_params) = self.bc.constPool(idx);
-        let object_ty = self.typeParams(type_param_idx.toInt64());
+        let (object_ty, trait_fct_id, trait_type_params) = match self.bc.constPool(idx) {
+            ConstPoolEntry::Generic(type_param_idx, trait_fct_id, trait_type_params) => {
+                (self.typeParams(type_param_idx.toInt64()), trait_fct_id, trait_type_params)
+            }
+
+            ConstPoolEntry::GenericSelf(trait_fct_id, trait_type_params) => {
+                (self.ci.specializeSelf.getOrPanic(), trait_fct_id, trait_type_params)
+            }
+
+            _ => unreachable[(BytecodeType, FunctionId, Array[BytecodeType])](),
+        };
+
+        assert(!object_ty.isGeneric());
+
         let (callee_id, type_params) = iface::findTraitImpl(self.ci, trait_fct_id, trait_type_params, object_ty);
 
         let intrinsic = iface::getIntrinsicForFunction(callee_id);
@@ -2725,8 +2737,7 @@ impl SsaGen {
             }
             BytecodeType::Struct(..)
             | BytecodeType::Tuple(_) => Type::Address,
-            BytecodeType::This
-            | BytecodeType::TypeParam(_) => unreachable[Type](),
+            BytecodeType::This | BytecodeType::TypeParam(_) => unreachable[Type](),
             BytecodeType::TypeAlias(..) | BytecodeType::Assoc(..) | BytecodeType::GenericAssoc(..) => unreachable[Type](),
         }
     }

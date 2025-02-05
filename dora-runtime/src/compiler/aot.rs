@@ -505,7 +505,7 @@ fn compile_function(
             .insert((fct_id, type_params), code.instruction_start());
         assert!(existing.is_none());
         ctc.code_objects.push(code);
-    } else if let Some(_) = fct.bytecode {
+    } else if let Some(_) = get_bytecode(vm, fct) {
         let (_code_id, code) = compile_fct_aot(vm, fct_id, &type_params, compiler, mode);
         ctc.counter += 1;
         let existing = ctc
@@ -569,7 +569,7 @@ fn prepare_lazy_call_sites(
                         println!(
                             "code = {:?} {}",
                             code.descriptor(),
-                            display_fct(&_vm.program, *fct_id)
+                            display_fct(&_vm.program, code.fct_id())
                         );
                         println!(
                             " calls {} with {:?}",

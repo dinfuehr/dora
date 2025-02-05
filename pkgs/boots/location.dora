@@ -4,6 +4,7 @@ use package::codegen::CodeGen;
 use package::compilation::CompilationInfo;
 use package::graph::{Graph, InputOutputOverlap, Inst, Location, LocationData, Op, Operand, Policy, StackSlot, Type};
 use package::interface::{config, PTR_SIZE, Architecture};
+use package::specialize::specializeTy;
 
 pub fn ensureLocationData(graph: Graph, codegen: CodeGen, ci: CompilationInfo): Int32 {
     let argumentLocations = computeArgumentLocations(codegen, ci);
@@ -471,7 +472,7 @@ fn computeArgumentLocations(codegen: CodeGen, ci: CompilationInfo): ArgumentLoca
     let gp_argument_registers = codegen.argumentRegisters();
     let fp_argument_registers = codegen.argumentFloatRegisters();
 
-    let retTy = ci.returnType.specialize(ci.typeParams);
+    let retTy = specializeTy(ci, ci.returnType, ci.typeParams);
 
     if retTy.isStruct() || retTy.isTuple() {
         locations.push(gp_argument_registers(gp_idx).toLocation());
@@ -480,7 +481,7 @@ fn computeArgumentLocations(codegen: CodeGen, ci: CompilationInfo): ArgumentLoca
 
     for idx in std::range(0, arguments) {
         let ty = ci.bc.registers(idx);
-        let ty = ty.specialize(ci.typeParams);
+        let ty = specializeTy(ci, ty, ci.typeParams);
 
         if ty.isUnit() {
             continue;

@@ -2634,10 +2634,21 @@ impl<'a> CannonCodeGen<'a> {
     }
 
     fn emit_invoke_generic(&mut self, dest: Register, fct_idx: ConstPoolIdx, is_static: bool) {
-        let (id, trait_fct_id, type_params) = match self.bytecode.const_pool(fct_idx) {
-            ConstPoolEntry::Generic(id, fct_id, type_params) => (*id, *fct_id, type_params.clone()),
+        let (ty, trait_fct_id, type_params) = match self.bytecode.const_pool(fct_idx) {
+            ConstPoolEntry::Generic(id, fct_id, type_params) => (
+                self.type_params[*id as usize].clone(),
+                *fct_id,
+                type_params.clone(),
+            ),
+            ConstPoolEntry::GenericSelf(fct_id, type_params) => (
+                self.specialize_self.clone().expect("missing Self type"),
+                *fct_id,
+                type_params.clone(),
+            ),
             _ => unreachable!(),
         };
+
+        assert!(ty.is_concrete_type());
 
         let fct = self.vm.fct(trait_fct_id);
         let trait_id = match fct.kind {
@@ -2650,7 +2661,6 @@ impl<'a> CannonCodeGen<'a> {
             bindings: Vec::new(),
         };
 
-        let ty = self.type_params[id as usize].clone();
         let (callee_id, type_params) = find_trait_impl(self.vm, trait_fct_id, trait_ty, ty);
 
         let pos = self.bytecode.offset_location(self.current_offset.to_u32());

@@ -3,7 +3,7 @@ use package::interface as iface;
 use package::CompilationInfo;
 
 pub fn specializeTy(ci: CompilationInfo, ty: BytecodeType, type_params: Array[BytecodeType]): BytecodeType {
-    if type_params.isEmpty() || !ty.isGeneric() {
+    if !ty.isGeneric() {
         return ty;
     }
 
@@ -16,8 +16,8 @@ pub fn specializeTy(ci: CompilationInfo, ty: BytecodeType, type_params: Array[By
         | BytecodeType::Int32
         | BytecodeType::Int64
         | BytecodeType::Float32
-        | BytecodeType::Float64
-        | BytecodeType::This => ty,
+        | BytecodeType::Float64 => ty,
+        BytecodeType::This => ci.specializeSelf.getOrPanic(),
         BytecodeType::Struct(struct_id, struct_type_params) => {
             BytecodeType::Struct(struct_id, specializeArray(ci, struct_type_params, type_params))
         },
