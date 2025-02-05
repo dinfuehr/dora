@@ -1224,7 +1224,6 @@ fn test_for_supports_iterator_with_missing_item() {
 }
 
 #[test]
-#[ignore]
 fn test_for_supports_iterator_with_missing_next() {
     errors(
         "

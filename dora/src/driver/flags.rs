@@ -110,7 +110,6 @@ pub struct DriverFlags {
     pub test_filter: Option<String>,
     pub test_boots: bool,
     pub packages: Vec<(String, PathBuf)>,
-    pub new_default_impl: bool,
 
     pub command: Command,
 }
@@ -174,7 +173,6 @@ impl Default for DriverFlags {
             test_filter: None,
             test_boots: false,
             packages: Vec::new(),
-            new_default_impl: true,
 
             command: Command::Run,
         }
@@ -336,8 +334,6 @@ pub fn parse_arguments() -> Result<DriverFlags, String> {
             flags.readonly_size = Some(argument_mem_size(arg)?);
         } else if arg == "--boots" {
             flags.boots = true;
-        } else if arg == "--new-default-impl" {
-            flags.new_default_impl = true;
         } else if arg == "--package" {
             if idx + 2 >= cli_arguments.len() {
                 return Err("--package needs two arguments".into());
@@ -441,7 +437,6 @@ pub fn create_sema_flags(flags: &DriverFlags, program_file: PathBuf) -> SemaFlag
         program_file: Some(FileContent::Path(program_file)),
         packages,
         boots: flags.include_boots(),
-        new_default_impl: flags.new_default_impl,
     }
 }
 
