@@ -369,6 +369,117 @@ fn specialize_ty_for_trait_object_array(
     SourceTypeArray::with(new_array)
 }
 
+pub fn specialize_ty_for_default_trait_method(
+    sa: &Sema,
+    ty: SourceType,
+    trait_ty: &TraitType,
+    extended_ty: &SourceType,
+) -> SourceType {
+    match ty {
+        SourceType::Class(cls_id, cls_type_params) => SourceType::Class(
+            cls_id,
+            specialize_ty_array_for_default_trait_method(
+                sa,
+                cls_type_params,
+                trait_ty,
+                extended_ty,
+            ),
+        ),
+
+        SourceType::TraitObject(trait_id, trait_type_params, bindings) => SourceType::TraitObject(
+            trait_id,
+            specialize_ty_array_for_default_trait_method(
+                sa,
+                trait_type_params,
+                trait_ty,
+                extended_ty,
+            ),
+            specialize_ty_array_for_default_trait_method(sa, bindings, trait_ty, extended_ty),
+        ),
+
+        SourceType::Struct(struct_id, struct_type_params) => SourceType::Struct(
+            struct_id,
+            specialize_ty_array_for_default_trait_method(
+                sa,
+                struct_type_params,
+                trait_ty,
+                extended_ty,
+            ),
+        ),
+
+        SourceType::Enum(enum_id, enum_type_params) => SourceType::Enum(
+            enum_id,
+            specialize_ty_array_for_default_trait_method(
+                sa,
+                enum_type_params,
+                trait_ty,
+                extended_ty,
+            ),
+        ),
+
+        SourceType::Alias(alias_id, alias_type_params) => SourceType::Alias(
+            alias_id,
+            specialize_ty_array_for_default_trait_method(
+                sa,
+                alias_type_params,
+                trait_ty,
+                extended_ty,
+            ),
+        ),
+
+        SourceType::Assoc(..) => {
+            unimplemented!()
+        }
+
+        SourceType::GenericAssoc { .. } => unimplemented!(),
+
+        SourceType::Lambda(params, return_type) => SourceType::Lambda(
+            specialize_ty_array_for_default_trait_method(sa, params, trait_ty, extended_ty),
+            Box::new(specialize_ty_for_default_trait_method(
+                sa,
+                *return_type,
+                trait_ty,
+                extended_ty,
+            )),
+        ),
+
+        SourceType::Tuple(subtypes) => SourceType::Tuple(
+            specialize_ty_array_for_default_trait_method(sa, subtypes, trait_ty, extended_ty),
+        ),
+
+        SourceType::TypeParam(..) => unimplemented!(),
+
+        SourceType::Unit
+        | SourceType::UInt8
+        | SourceType::Bool
+        | SourceType::Char
+        | SourceType::Int32
+        | SourceType::Int64
+        | SourceType::Float32
+        | SourceType::Float64
+        | SourceType::Error => ty,
+
+        SourceType::This => extended_ty.clone(),
+
+        SourceType::Any | SourceType::Ptr => {
+            unreachable!()
+        }
+    }
+}
+
+fn specialize_ty_array_for_default_trait_method(
+    sa: &Sema,
+    array: SourceTypeArray,
+    trait_ty: &TraitType,
+    extended_ty: &SourceType,
+) -> SourceTypeArray {
+    let new_array = array
+        .iter()
+        .map(|ty| specialize_ty_for_default_trait_method(sa, ty, trait_ty, extended_ty))
+        .collect::<Vec<_>>();
+    SourceTypeArray::with(new_array)
+}
+
 pub fn specialize_ty_for_generic(
     sa: &Sema,
     ty: SourceType,

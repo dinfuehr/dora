@@ -6,7 +6,10 @@ use crate::sema::{
     implements_trait, new_identity_type_params, AliasDefinitionId, Element, FctDefinition,
     FctDefinitionId, FctParent, ImplDefinition, ImplDefinitionId, Sema, TraitDefinition,
 };
-use crate::{package_for_type, replace_type, ErrorMessage, SourceType, SourceTypeArray, TraitType};
+use crate::{
+    package_for_type, specialize_ty_for_default_trait_method, ErrorMessage, SourceType,
+    SourceTypeArray, TraitType,
+};
 
 pub fn check_definition(sa: &Sema) {
     for (_id, impl_) in sa.impls.iter() {
@@ -100,15 +103,27 @@ pub fn check_definition_against_trait(sa: &mut Sema) {
             for trait_method_id in &trait_methods {
                 let trait_method = sa.fct(*trait_method_id);
 
-                let self_ty = Some(impl_.extended_ty());
                 let params = trait_method.params.clone();
+                let trait_ty = impl_.trait_ty().expect("expected trait_ty");
+                let extended_ty = impl_.extended_ty();
 
                 for param in &params.params {
-                    param.set_ty(replace_type(sa, param.ty(), None, self_ty.clone()));
+                    let param_ty = specialize_ty_for_default_trait_method(
+                        sa,
+                        param.ty(),
+                        &trait_ty,
+                        &extended_ty,
+                    );
+                    param.set_ty(param_ty);
                 }
 
                 let return_type = trait_method.return_type();
-                let return_type = replace_type(sa, return_type, None, self_ty.clone());
+                let return_type = specialize_ty_for_default_trait_method(
+                    sa,
+                    return_type,
+                    &trait_ty,
+                    &extended_ty,
+                );
 
                 let fct = FctDefinition::new_no_source(
                     impl_.package_id,
