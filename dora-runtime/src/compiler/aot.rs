@@ -18,7 +18,7 @@ use crate::vm::{
     specialize_bty, specialize_bty_array, BytecodeTypeExt, Code, LazyCompilationSite, ShapeKind,
     VM,
 };
-use crate::{get_bytecode, Shape};
+use crate::{get_bytecode, Shape, SpecializeSelf};
 
 pub fn compile_boots_aot(vm: &VM) {
     if vm.has_boots() {
@@ -256,7 +256,7 @@ impl<'a> TransitiveClosureComputation<'a> {
         &mut self,
         bytecode_function: &BytecodeFunction,
         type_params: BytecodeTypeArray,
-        specialize_self: Option<BytecodeType>,
+        specialize_self: Option<SpecializeSelf>,
     ) {
         let reader = BytecodeReader::new(bytecode_function.code());
 
@@ -290,7 +290,11 @@ impl<'a> TransitiveClosureComputation<'a> {
                         }
 
                         ConstPoolEntry::GenericSelf(fct_id, fct_type_params) => {
-                            generic_ty = specialize_self.clone().expect("missing Self type");
+                            generic_ty = specialize_self
+                                .as_ref()
+                                .expect("missing Self type")
+                                .extended_ty
+                                .clone();
                             callee_trait_fct_id = *fct_id;
                             callee_type_params = fct_type_params.clone();
                         }

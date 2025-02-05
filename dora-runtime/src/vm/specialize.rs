@@ -10,7 +10,7 @@ use crate::vm::{
     EnumLayout, FieldInstance, ShapeKind, StructInstance, StructInstanceField, StructInstanceId,
     VM,
 };
-use crate::Shape;
+use crate::{Shape, SpecializeSelf};
 use dora_bytecode::{
     BytecodeType, BytecodeTypeArray, ClassData, ClassId, EnumData, EnumId, FunctionId, Program,
     StructData, StructId, TraitId, TypeParamData,
@@ -610,20 +610,20 @@ pub fn specialize_bty(ty: BytecodeType, type_params: &BytecodeTypeArray) -> Byte
 
 pub fn specialize_ty_array(
     vm: &VM,
-    self_ty: Option<&BytecodeType>,
+    self_data: Option<&SpecializeSelf>,
     types: &BytecodeTypeArray,
     type_params: &BytecodeTypeArray,
 ) -> BytecodeTypeArray {
     let types = types
         .iter()
-        .map(|p| specialize_ty(vm, self_ty, p, type_params))
+        .map(|p| specialize_ty(vm, self_data, p, type_params))
         .collect();
     BytecodeTypeArray::new(types)
 }
 
 pub fn specialize_ty(
     vm: &VM,
-    self_ty: Option<&BytecodeType>,
+    self_data: Option<&SpecializeSelf>,
     ty: BytecodeType,
     type_params: &BytecodeTypeArray,
 ) -> BytecodeType {
@@ -631,35 +631,71 @@ pub fn specialize_ty(
         BytecodeType::TypeParam(tpid) => type_params[tpid as usize].clone(),
 
         BytecodeType::Class(cls_id, params) => {
-            let params = specialize_ty_array(vm, self_ty, &params, type_params);
+            let params = specialize_ty_array(vm, self_data, &params, type_params);
             BytecodeType::Class(cls_id, params)
         }
 
         BytecodeType::TraitObject(trait_id, params, assoc_types) => {
-            let params = specialize_ty_array(vm, self_ty, &params, type_params);
-            let assoc_types = specialize_ty_array(vm, self_ty, &assoc_types, type_params);
+            let params = specialize_ty_array(vm, self_data, &params, type_params);
+            let assoc_types = specialize_ty_array(vm, self_data, &assoc_types, type_params);
             BytecodeType::TraitObject(trait_id, params, assoc_types)
         }
 
         BytecodeType::Struct(struct_id, params) => {
-            let params = specialize_ty_array(vm, self_ty, &params, type_params);
+            let params = specialize_ty_array(vm, self_data, &params, type_params);
             BytecodeType::Struct(struct_id, params)
         }
 
         BytecodeType::Enum(enum_id, params) => {
-            let params = specialize_ty_array(vm, self_ty, &params, type_params);
+            let params = specialize_ty_array(vm, self_data, &params, type_params);
             BytecodeType::Enum(enum_id, params)
         }
 
         BytecodeType::Lambda(params, return_type) => {
-            let params = specialize_ty_array(vm, self_ty, &params, type_params);
-            let return_type = specialize_ty(vm, self_ty, return_type.as_ref().clone(), type_params);
+            let params = specialize_ty_array(vm, self_data, &params, type_params);
+            let return_type =
+                specialize_ty(vm, self_data, return_type.as_ref().clone(), type_params);
             BytecodeType::Lambda(params, Box::new(return_type))
         }
 
         BytecodeType::Tuple(subtypes) => {
-            let subtypes = specialize_ty_array(vm, self_ty, &subtypes, type_params);
+            let subtypes = specialize_ty_array(vm, self_data, &subtypes, type_params);
             BytecodeType::Tuple(subtypes)
+        }
+
+        BytecodeType::Assoc(assoc_id, assoc_type_params) => {
+            let specialize_self = self_data.expect("unexpected associated item on Self.");
+            assert!(specialize_self.extended_ty.is_concrete_type());
+            assert!(assoc_type_params.is_empty());
+
+            let type_param_data = TypeParamData {
+                names: Vec::new(),
+                bounds: Vec::new(),
+            };
+
+            let (impl_id, bindings) = find_impl(
+                vm,
+                specialize_self.extended_ty.clone(),
+                &type_param_data,
+                specialize_self.trait_ty.clone(),
+            )
+            .expect("no impl found for generic trait method call");
+
+            let impl_ = vm.impl_(impl_id);
+
+            let impl_alias_id = impl_
+                .trait_alias_map
+                .iter()
+                .filter(|(trait_alias_id, _)| *trait_alias_id == assoc_id)
+                .map(|(_, impl_alias_id)| impl_alias_id)
+                .next()
+                .cloned()
+                .expect("missing");
+
+            let impl_alias = vm.alias(impl_alias_id);
+            let impl_alias_ty = impl_alias.ty.as_ref().expect("value expected").clone();
+
+            specialize_ty(vm, self_data, impl_alias_ty, &bindings)
         }
 
         BytecodeType::GenericAssoc {
@@ -693,12 +729,12 @@ pub fn specialize_ty(
             let impl_alias = vm.alias(impl_alias_id);
             let impl_alias_ty = impl_alias.ty.as_ref().expect("value expected").clone();
 
-            specialize_ty(vm, self_ty, impl_alias_ty, &bindings)
+            specialize_ty(vm, self_data, impl_alias_ty, &bindings)
         }
 
-        BytecodeType::This => self_ty.expect("unexpected Self").clone(),
+        BytecodeType::This => self_data.expect("unexpected Self").extended_ty.clone(),
 
-        BytecodeType::TypeAlias(..) | BytecodeType::Assoc(..) => {
+        BytecodeType::TypeAlias(..) => {
             unreachable!()
         }
 

@@ -1,6 +1,7 @@
 use std::mem;
 use std::ptr;
 
+use deserializer::decode_specialize_self;
 use dora_bytecode::{
     display_fct, BytecodeTraitType, BytecodeTypeArray, ClassId, EnumId, FunctionId, FunctionKind,
     GlobalId, StructId, TraitId,
@@ -88,8 +89,8 @@ pub const BOOTS_FUNCTIONS: &[(&'static str, FctImplementation)] = &[
         N(find_trait_impl_raw as *const u8),
     ),
     (
-        "boots::interface::specializeTyRaw",
-        N(specialize_ty_raw as *const u8),
+        "boots::interface::specializeAssocTyRaw",
+        N(specialize_assoc_ty_raw as *const u8),
     ),
     (
         "boots::interface::getIntrinsicForFunctionRaw",
@@ -441,7 +442,7 @@ extern "C" fn find_trait_impl_raw(data: Handle<UInt8Array>) -> Ref<UInt8Array> {
     byte_array_from_buffer(vm, buffer.data()).cast()
 }
 
-extern "C" fn specialize_ty_raw(data: Handle<UInt8Array>) -> Ref<UInt8Array> {
+extern "C" fn specialize_assoc_ty_raw(data: Handle<UInt8Array>) -> Ref<UInt8Array> {
     let vm = get_vm();
 
     let mut serialized_data = vec![0; data.len()];
@@ -455,12 +456,13 @@ extern "C" fn specialize_ty_raw(data: Handle<UInt8Array>) -> Ref<UInt8Array> {
     }
 
     let mut reader = ByteReader::new(serialized_data);
-    let generic_assoc_ty = decode_bytecode_type(&mut reader);
-    assert!(generic_assoc_ty.is_generic_assoc());
+    let specialize_self = decode_specialize_self(&mut reader);
+    let ty = decode_bytecode_type(&mut reader);
+    assert!(ty.is_generic_assoc() || ty.is_assoc());
     let type_params = decode_bytecode_type_array(&mut reader);
     assert!(!reader.has_more());
 
-    let ty = specialize_ty(vm, None, generic_assoc_ty, &type_params);
+    let ty = specialize_ty(vm, specialize_self.as_ref(), ty, &type_params);
 
     let mut buffer = ByteBuffer::new();
     serializer::encode_bytecode_type(vm, &ty, &mut buffer);

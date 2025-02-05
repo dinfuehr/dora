@@ -13,7 +13,7 @@ use package::codegen::x64::CodeGenX64;
 use package::codegen::arm64::CodeGenArm64;
 use package::compileFunction;
 use package::graph::TraitObjectInfo;
-use package::serializer::{ByteWriter, encodeBytecodeTraitType, encodeBytecodeType, encodeBytecodeTypeArray, encodeCodeDescriptor};
+use package::serializer::{ByteWriter, encodeBytecodeTraitType, encodeBytecodeType, encodeBytecodeTypeArray, encodeCodeDescriptor, encodeSpecializeSelf};
 
 pub const TRAP_DIV0: Int32 = 0i32;
 pub const TRAP_ASSERT: Int32 = 1i32;
@@ -42,7 +42,7 @@ pub const TRAP_OVERFLOW: Int32 = 8i32;
 @internal pub fn getGlobalInitializerFunctionIdRaw(id: Int32): Int32;
 @internal pub fn getReadOnlyStringAddressRaw(id: String): Int64;
 @internal pub fn findTraitImplRaw(data: Array[UInt8]): Array[UInt8];
-@internal pub fn specializeTyRaw(data: Array[UInt8]): Array[UInt8];
+@internal pub fn specializeAssocTyRaw(data: Array[UInt8]): Array[UInt8];
 @internal pub fn getIntrinsicForFunctionRaw(id: Int32): Int32;
 @internal pub fn getStructDataRaw(id: Int32): Array[UInt8];
 @internal pub fn getEnumDataRaw(id: Int32): Array[UInt8];
@@ -151,11 +151,12 @@ pub fn findTraitImpl(ci: CompilationInfo, trait_fct_id: FunctionId, trait_type_p
     (fct_id, type_params)
 }
 
-pub fn specializeTy(ci: CompilationInfo, ty: BytecodeType, typeParams: Array[BytecodeType]): BytecodeType {
+pub fn specializeAssocTy(ci: CompilationInfo, ty: BytecodeType, typeParams: Array[BytecodeType]): BytecodeType {
     let writer = ci.getByteWriter();
+    encodeSpecializeSelf(writer, ci.specializeSelf);
     encodeBytecodeType(writer, ty);
     encodeBytecodeTypeArray(writer, typeParams);
-    let encoded = specializeTyRaw(writer.toArray());
+    let encoded = specializeAssocTyRaw(writer.toArray());
     let reader = ByteReader::new(encoded);
     let ty = deserializer::decodeBytecodeType(reader);
     assert(!reader.moreBytes());

@@ -81,7 +81,9 @@ fn encode_compilation_info(
     encode_bytecode_type(vm, &compilation_data.return_type, buffer);
     if let Some(ref specialize_self) = compilation_data.specialize_self {
         buffer.emit_bool(true);
-        encode_bytecode_type(vm, specialize_self, buffer);
+        buffer.emit_id(specialize_self.impl_id.0 as usize);
+        encode_bytecode_trait_type(vm, &specialize_self.trait_ty, buffer);
+        encode_bytecode_type(vm, &specialize_self.extended_ty, buffer);
     } else {
         buffer.emit_bool(false);
     }
@@ -292,7 +294,12 @@ pub fn encode_bytecode_type(vm: &VM, ty: &BytecodeType, buffer: &mut ByteBuffer)
             encode_bytecode_trait_type(vm, trait_ty, buffer);
             buffer.emit_id(assoc_id.0 as usize);
         }
-        BytecodeType::TypeAlias(..) | BytecodeType::Assoc(..) => {
+        BytecodeType::Assoc(assoc_id, assoc_type_params) => {
+            buffer.emit_u8(BytecodeTypeKind::Assoc as u8);
+            buffer.emit_u32(assoc_id.0);
+            encode_bytecode_type_array(vm, assoc_type_params, buffer);
+        }
+        BytecodeType::TypeAlias(..) => {
             unreachable!()
         }
     }

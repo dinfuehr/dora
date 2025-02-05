@@ -20,6 +20,7 @@ use crate::vm::{
     get_concrete_tuple_bty, get_concrete_tuple_bty_array, specialize_ty, specialize_ty_array,
     CodeDescriptor, EnumLayout, GcPoint, Intrinsic, LazyCompilationSite, Trap, INITIALIZED, VM,
 };
+use crate::SpecializeSelf;
 use dora_bytecode::{
     display_fct, display_ty, read, BytecodeFunction, BytecodeOffset, BytecodeTraitType,
     BytecodeType, BytecodeTypeArray, BytecodeVisitor, ConstPoolEntry, ConstPoolIdx, FunctionId,
@@ -55,7 +56,7 @@ pub struct CannonCodeGen<'a> {
     emit_code_comments: bool,
 
     type_params: BytecodeTypeArray,
-    specialize_self: Option<BytecodeType>,
+    specialize_self: Option<SpecializeSelf>,
 
     offset_to_address: HashMap<BytecodeOffset, usize>,
     offset_to_label: HashMap<BytecodeOffset, Label>,
@@ -2641,7 +2642,11 @@ impl<'a> CannonCodeGen<'a> {
                 type_params.clone(),
             ),
             ConstPoolEntry::GenericSelf(fct_id, type_params) => (
-                self.specialize_self.clone().expect("missing Self type"),
+                self.specialize_self
+                    .as_ref()
+                    .expect("missing Self type")
+                    .extended_ty
+                    .clone(),
                 *fct_id,
                 type_params.clone(),
             ),

@@ -11,7 +11,8 @@ use crate::os;
 use crate::vm::{install_code, Code, CodeDescriptor, CodeId, CodeKind, Compiler, VM};
 use dora_bytecode::{
     display_fct, display_ty_array, display_ty_without_type_params, dump_stdout, BytecodeFunction,
-    BytecodeType, BytecodeTypeArray, FunctionData, FunctionId, FunctionKind, Location,
+    BytecodeTraitType, BytecodeType, BytecodeTypeArray, FunctionData, FunctionId, FunctionKind,
+    ImplId, Location,
 };
 
 #[derive(Clone, Copy)]
@@ -100,10 +101,16 @@ pub fn compile_fct_aot(
     (code_id, code)
 }
 
+pub struct SpecializeSelf {
+    pub impl_id: ImplId,
+    pub trait_ty: BytecodeTraitType,
+    pub extended_ty: BytecodeType,
+}
+
 pub fn get_bytecode<'a>(
     vm: &'a VM,
     program_fct: &'a FunctionData,
-) -> Option<(&'a BytecodeFunction, Option<BytecodeType>)> {
+) -> Option<(&'a BytecodeFunction, Option<SpecializeSelf>)> {
     match program_fct.bytecode.as_ref() {
         Some(bytecode_fct) => Some((bytecode_fct, None)),
         None => {
@@ -118,7 +125,12 @@ pub fn get_bytecode<'a>(
             let bytecode_fct = trait_method.bytecode.as_ref()?;
 
             let program_fct_impl = vm.impl_(program_fct_impl_id);
-            let specialize_self = program_fct_impl.extended_ty.clone();
+
+            let specialize_self = SpecializeSelf {
+                impl_id: program_fct_impl_id,
+                trait_ty: program_fct_impl.trait_ty.clone(),
+                extended_ty: program_fct_impl.extended_ty.clone(),
+            };
 
             Some((bytecode_fct, Some(specialize_self)))
         }
@@ -133,7 +145,7 @@ pub(super) fn compile_fct_to_code(
     return_type: BytecodeType,
     bytecode_fct: &BytecodeFunction,
     type_params: &BytecodeTypeArray,
-    specialize_self: Option<BytecodeType>,
+    specialize_self: Option<SpecializeSelf>,
     compiler: CompilerInvocation,
     emit_compiler: bool,
     mode: CompilationMode,
@@ -178,7 +190,7 @@ fn compile_fct_to_descriptor(
     return_type: BytecodeType,
     bytecode_fct: &BytecodeFunction,
     type_params: &BytecodeTypeArray,
-    specialize_self: Option<BytecodeType>,
+    specialize_self: Option<SpecializeSelf>,
     compiler: CompilerInvocation,
     emit_compiler: bool,
     mode: CompilationMode,
@@ -469,7 +481,7 @@ pub struct CompilationData<'a> {
     pub return_type: BytecodeType,
     pub fct_id: FunctionId,
     pub type_params: BytecodeTypeArray,
-    pub specialize_self: Option<BytecodeType>,
+    pub specialize_self: Option<SpecializeSelf>,
     pub loc: Location,
 
     pub emit_debug: bool,

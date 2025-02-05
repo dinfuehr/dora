@@ -17,7 +17,7 @@ pub fn specializeTy(ci: CompilationInfo, ty: BytecodeType, type_params: Array[By
         | BytecodeType::Int64
         | BytecodeType::Float32
         | BytecodeType::Float64 => ty,
-        BytecodeType::This => ci.specializeSelf.getOrPanic(),
+        BytecodeType::This => ci.specializeSelf.getOrPanic().extended_ty,
         BytecodeType::Struct(struct_id, struct_type_params) => {
             BytecodeType::Struct(struct_id, specializeArray(ci, struct_type_params, type_params))
         },
@@ -37,10 +37,10 @@ pub fn specializeTy(ci: CompilationInfo, ty: BytecodeType, type_params: Array[By
         BytecodeType::Lambda(params, ret) => {
             BytecodeType::Lambda(specializeArray(ci, params, type_params), specializeTy(ci, ret, type_params))
         },
-        BytecodeType::GenericAssoc(typeParamId, ..) => {
-            iface::specializeTy(ci, ty, type_params)
+        BytecodeType::GenericAssoc(..) | BytecodeType::Assoc(..) => {
+            iface::specializeAssocTy(ci, ty, type_params)
         }
-        BytecodeType::TypeAlias(..) | BytecodeType::Assoc(..) => unreachable[BytecodeType](),
+        BytecodeType::TypeAlias(..) => unreachable[BytecodeType](),
     }
 }
 

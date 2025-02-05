@@ -1,7 +1,7 @@
 use package::interface::{Address, Config, StructData, EnumData, EnumVariantData, CompilationMode};
-use package::bytecode::{AliasId, BytecodeFunction, BytecodeTraitType, BytecodeType, ClassId, ConstPoolEntry, EnumId, FunctionId, ClassFieldId, Location, StructId, StructFieldId, TraitId};
+use package::bytecode::{AliasId, BytecodeFunction, BytecodeTraitType, BytecodeType, ClassId, ConstPoolEntry, EnumId, FunctionId, ClassFieldId, ImplId, Location, StructId, StructFieldId, TraitId};
 use package::bytecode::opcode as opc;
-use package::compilation::CompilationInfo;
+use package::compilation::{CompilationInfo, SpecializeSelf};
 use package::interface::{FunctionInliningData, FunctionInliningInfo, Architecture};
 
 pub fn decodeConfig(encoded: Array[UInt8]): Config {
@@ -49,7 +49,7 @@ pub fn decodeCompilationInfo(reader: ByteReader): CompilationInfo {
     let fctId = FunctionId(reader.readInt32());
     let typeParams = decodeTypeParams(reader);
     let returnType = decodeBytecodeType(reader);
-    let specializeSelf = decodeOptionBytecodeType(reader);
+    let specializeSelf = decodeSpecializeSelf(reader);
     let loc = decodeLocation(reader);
     let compilationMode = decodeCompilationMode(reader);
     let emitDebug = reader.readBool();
@@ -133,11 +133,15 @@ fn decodeRegisters(reader: ByteReader): Array[BytecodeType] {
     data
 }
 
-pub fn decodeOptionBytecodeType(reader: ByteReader): Option[BytecodeType] {
+pub fn decodeSpecializeSelf(reader: ByteReader): Option[SpecializeSelf] {
     if reader.readBool() {
-        Some[BytecodeType](decodeBytecodeType(reader))
+        let impl_id = ImplId(reader.readInt32());
+        let trait_ty = decodeBytecodeTraitType(reader);
+        let extended_ty = decodeBytecodeType(reader);
+
+        Some[SpecializeSelf](SpecializeSelf(impl_id, trait_ty, extended_ty))
     } else {
-        None[BytecodeType]
+        None[SpecializeSelf]
     }
 }
 
@@ -197,6 +201,10 @@ pub fn decodeBytecodeType(reader: ByteReader): BytecodeType {
         let traitTy = decodeBytecodeTraitType(reader);
         let assocId = AliasId(reader.readId());
         BytecodeType::GenericAssoc(typeParamId, traitTy, assocId)
+    } else if opcode == opc::BC_TYPE_ASSOC {
+        let assocId = AliasId(reader.readId());
+        let typeParams = decodeBytecodeTypeArray(reader);
+        BytecodeType::Assoc(assocId, typeParams)
     } else if opcode == opc::BC_TYPE_THIS {
         BytecodeType::This
     } else {

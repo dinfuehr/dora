@@ -1,4 +1,5 @@
 use crate::boots::data::{LazyCompilationSiteKind, RelocationKindKind};
+use crate::compiler::codegen::SpecializeSelf;
 use crate::gc::Address;
 use crate::vm::{
     CodeDescriptor, CommentTable, GcPoint, GcPointTable, InlinedFunction, InlinedFunctionId,
@@ -7,7 +8,7 @@ use crate::vm::{
 };
 use dora_bytecode::{
     AliasId, BytecodeTraitType, BytecodeType, BytecodeTypeArray, BytecodeTypeKind, ClassId, EnumId,
-    FunctionId, Location, StructId, TraitId,
+    FunctionId, ImplId, Location, StructId, TraitId,
 };
 
 pub fn decode_code_descriptor(reader: &mut ByteReader) -> CodeDescriptor {
@@ -246,7 +247,13 @@ pub fn decode_bytecode_type(reader: &mut ByteReader) -> BytecodeType {
             }
         }
 
-        BytecodeTypeKind::TypeAlias | BytecodeTypeKind::Assoc => unreachable!(),
+        BytecodeTypeKind::Assoc => {
+            let assoc_id = AliasId(reader.read_u32());
+            let type_params = decode_bytecode_type_array(reader);
+            BytecodeType::Assoc(assoc_id, type_params)
+        }
+
+        BytecodeTypeKind::TypeAlias => unreachable!(),
     }
 }
 
@@ -279,6 +286,21 @@ pub fn decode_bytecode_type_array(reader: &mut ByteReader) -> BytecodeTypeArray 
     }
 
     BytecodeTypeArray::new(types)
+}
+
+pub fn decode_specialize_self(reader: &mut ByteReader) -> Option<SpecializeSelf> {
+    if reader.read_bool() {
+        let impl_id = ImplId(reader.read_u32());
+        let trait_ty = decode_bytecode_trait_ty(reader);
+        let extended_ty = decode_bytecode_type(reader);
+        Some(SpecializeSelf {
+            impl_id,
+            trait_ty,
+            extended_ty,
+        })
+    } else {
+        None
+    }
 }
 
 fn decode_gcpoint_table(reader: &mut ByteReader) -> GcPointTable {

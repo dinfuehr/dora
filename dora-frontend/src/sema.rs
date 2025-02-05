@@ -104,7 +104,7 @@ impl SemaFlags {
             packages,
             program_file: Some(FileContent::Content(input.to_string())),
             boots: false,
-            new_default_impl: false,
+            new_default_impl: true,
         }
     }
 
@@ -118,7 +118,7 @@ impl SemaFlags {
             packages,
             program_file: Some(FileContent::Content(input.to_string())),
             boots: false,
-            new_default_impl: false,
+            new_default_impl: true,
         }
     }
 }

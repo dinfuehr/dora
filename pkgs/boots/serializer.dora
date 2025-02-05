@@ -1,5 +1,6 @@
 use package::bytecode::{BytecodeType, BytecodeTraitType};
 use package::bytecode::opcode as opc;
+use package::compilation::SpecializeSelf;
 use package::interface::{Address, CodeDescriptor, CommentTable, GcPoint, GcPointTable, InlinedFunction, LazyCompilationData, LazyCompilationSite, LocationTable, InlinedLocation, RelocationKind, RelocationTable};
 
 pub fn encodeCodeDescriptor(writer: ByteWriter, descriptor: CodeDescriptor) {
@@ -221,7 +222,12 @@ pub fn encodeBytecodeType(writer: ByteWriter, ty: BytecodeType) {
             encodeBytecodeTraitType(writer, traitTy);
             writer.emitInt32(assocId.0);
         }
-        BytecodeType::TypeAlias(..) | BytecodeType::Assoc(..) => {
+        BytecodeType::Assoc(assocId, typeParams) => {
+            writer.emitByte(opc::BC_TYPE_ASSOC.toUInt8());
+            writer.emitInt32(assocId.0);
+            encodeBytecodeTypeArray(writer, typeParams);
+        }
+        BytecodeType::TypeAlias(..) => {
             unimplemented[()]();
         }
     }
@@ -235,6 +241,17 @@ pub fn encodeBytecodeTraitType(writer: ByteWriter, traitTy: BytecodeTraitType) {
     for (aliasId, ty) in traitTy.bindings {
         writer.emitInt32(aliasId.0);
         encodeBytecodeType(writer, ty);
+    }
+}
+
+pub fn encodeSpecializeSelf(writer: ByteWriter, specializeSelf: Option[SpecializeSelf]) {
+    if specializeSelf is Some(specializeSelf) {
+        writer.emitBool(true);
+        writer.emitInt32(specializeSelf.impl_id.0);
+        encodeBytecodeTraitType(writer, specializeSelf.trait_ty);
+        encodeBytecodeType(writer, specializeSelf.extended_ty);
+    } else {
+        writer.emitBool(false);
     }
 }
 

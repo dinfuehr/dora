@@ -174,7 +174,7 @@ impl Default for DriverFlags {
             test_filter: None,
             test_boots: false,
             packages: Vec::new(),
-            new_default_impl: false,
+            new_default_impl: true,
 
             command: Command::Run,
         }

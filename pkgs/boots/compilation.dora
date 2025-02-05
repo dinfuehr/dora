@@ -1,4 +1,4 @@
-use package::bytecode::{BytecodeFunction, BytecodeType, FunctionId, Location};
+use package::bytecode::{BytecodeFunction, BytecodeTraitType, BytecodeType, FunctionId, ImplId, Location};
 use package::interface as iface;
 use package::serializer::ByteWriter;
 
@@ -7,7 +7,7 @@ pub class CompilationInfo {
     pub fctId: Option[FunctionId],
     pub typeParams: Array[BytecodeType],
     pub returnType: BytecodeType,
-    pub specializeSelf: Option[BytecodeType],
+    pub specializeSelf: Option[SpecializeSelf],
     pub loc: Location,
     pub compilationMode: iface::CompilationMode,
     pub emitDebug: Bool,
@@ -27,7 +27,7 @@ impl CompilationInfo {
         id: FunctionId,
         typeParams: Array[BytecodeType],
         returnType: BytecodeType,
-        specializeSelf: Option[BytecodeType],
+        specializeSelf: Option[SpecializeSelf],
         loc: Location,
         compilationMode: iface::CompilationMode,
         emitDebug: Bool,
@@ -83,4 +83,10 @@ impl CompilationInfo {
         self.byteWriter.clear();
         self.byteWriter
     }
+}
+
+pub struct SpecializeSelf {
+    pub impl_id: ImplId,
+    pub trait_ty: BytecodeTraitType,
+    pub extended_ty: BytecodeType,
 }

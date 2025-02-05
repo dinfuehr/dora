@@ -32,7 +32,7 @@ mod timer;
 mod utils;
 pub mod vm;
 
-use compiler::codegen::get_bytecode;
+use compiler::codegen::{get_bytecode, SpecializeSelf};
 use gc::Address;
 use shape::{Shape, ShapeVisitor};
 pub use vm::VM;
