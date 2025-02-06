@@ -1,0 +1,56 @@
+trait MyIterator {
+    type Item;
+    fn next(): Option[Self::Item];
+
+    fn filter(predicate: (Self::Item): Bool): Filter[Self] {
+        Filter[Self](it = self, predicate)
+    }
+}
+
+class Range {
+    value: Int
+}
+
+impl MyIterator for Range {
+    type Item = Int;
+
+    fn next(): Option[Int] {
+        if self.value <= 0 {
+            None[Int]
+        } else {
+            let result = self.value;
+            self.value -= 1;
+            Some[Int](result)
+        }
+    }
+}
+
+class Filter[I: MyIterator] {
+    it: I,
+    predicate: (I::Item): Bool,
+}
+
+impl[I: MyIterator] MyIterator for Filter[I] {
+    type Item = I::Item;
+
+    fn next(): Option[I::Item] {
+        while self.it.next() is Some(value) {
+            if self.predicate(value) {
+                return Some[I::Item](value);
+            }
+        }
+
+        None[I::Item]
+    }
+}
+
+fn main() {
+    let r = Range(7).filter(|x: Int|: Bool {
+        x % 2 == 0
+    });
+
+    assert(Some[Int]((6)) == r.next());
+    assert(Some[Int]((4)) == r.next());
+    assert(Some[Int]((2)) == r.next());
+    assert(r.next().isNone());
+}
