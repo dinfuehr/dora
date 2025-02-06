@@ -58,23 +58,23 @@ jobs:
         os: [ubuntu-latest, ubuntu-24.04-arm, windows-latest, macOS-latest]
 
     steps:
-      - name: Clone repository
+      - name: Clone Repo
         uses: actions/checkout@v1
         with:
           fetch-depth: 1
           submodules: true
 
-      - name: Install rust
-        uses: hecrj/setup-rust-action@v1
+      - name: Install Rust
+        uses: actions-rust-lang/setup-rust-action@v1
         with:
           rust-version: "stable"
 
-      - name: Install ruby
+      - name: Install Ruby
         uses: ruby/setup-ruby@v1
         with:
           ruby-version: '3.0'
 
-      - name: Set env
+      - name: Increase Stack Size
         run: echo "RUST_MIN_STACK=16777216" >> $GITHUB_ENV
 
       - name: Test
