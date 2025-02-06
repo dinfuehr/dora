@@ -10,6 +10,7 @@ use package::interface::{EnumData, GcPoint};
 use package::interface as iface;
 use package::location::ensureLocationData;
 use package::resolver::resolveMoves;
+use package::specialize::specializeTy;
 
 pub fn performRegisterAllocation(graph: Graph, codegen: CodeGen, ci: CompilationInfo) {
     let maxOutgoingArgsSize = ensureLocationData(graph, codegen, ci);
@@ -953,18 +954,18 @@ pub struct EnumPtrOrNullLayout {
     pub null_is_first: Bool,
 }
 
-pub fn computeTupleLayout(subtypes: Array[BytecodeType]): RecordLayout {
+pub fn computeTupleLayout(ci: CompilationInfo, subtypes: Array[BytecodeType]): RecordLayout {
     assert(!subtypes.isGeneric());
-    computeRecordLayout(subtypes, 0i32, 1i32, Array[BytecodeType]::new())
+    computeRecordLayout(ci, subtypes, 0i32, 1i32, Array[BytecodeType]::new())
 }
 
-pub fn computeStructLayout(struct_id: StructId, type_params: Array[BytecodeType]): RecordLayout {
+pub fn computeStructLayout(ci: CompilationInfo, struct_id: StructId, type_params: Array[BytecodeType]): RecordLayout {
     assert(!type_params.isGeneric());
     let structData = iface::getStructData(struct_id);
-    computeRecordLayout(structData.fields, 0i32, 1i32, type_params)
+    computeRecordLayout(ci, structData.fields, 0i32, 1i32, type_params)
 }
 
-fn computeRecordLayout(fieldTypes: Array[BytecodeType], start_size: Int32, start_align: Int32, type_params: Array[BytecodeType]): RecordLayout {
+fn computeRecordLayout(ci: CompilationInfo, fieldTypes: Array[BytecodeType], start_size: Int32, start_align: Int32, type_params: Array[BytecodeType]): RecordLayout {
     let mut record_size = start_size;
     let mut record_align = start_align;
     let fields = Vec[RecordField]::new();
@@ -981,7 +982,7 @@ fn computeRecordLayout(fieldTypes: Array[BytecodeType], start_size: Int32, start
     };
 
     for fieldTy in fieldTypes {
-        let fieldTy = fieldTy.specialize(type_params);
+        let fieldTy = specializeTy(ci, fieldTy, type_params);
         assert(!fieldTy.isGeneric());
 
         match fieldTy {
@@ -1007,14 +1008,14 @@ fn computeRecordLayout(fieldTypes: Array[BytecodeType], start_size: Int32, start
                 refs.push(offset);
             }
             BytecodeType::Struct(struct_id, type_params) => {
-                let layout = computeStructLayout(struct_id, type_params);
+                let layout = computeStructLayout(ci, struct_id, type_params);
                 let offset = addField(layout.size, layout.alignment, fieldTy);
                 for ref in layout.refs {
                     refs.push(offset + ref);
                 }
             }
             BytecodeType::Tuple(subtypes) => {
-                let layout = computeTupleLayout(subtypes);
+                let layout = computeTupleLayout(ci, subtypes);
                 let offset = addField(layout.size, layout.alignment, fieldTy);
                 for ref in layout.refs {
                     refs.push(offset + ref);

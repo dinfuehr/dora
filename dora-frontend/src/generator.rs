@@ -1409,16 +1409,14 @@ impl<'a> AstBytecodeGen<'a> {
             _ => unreachable!(),
         };
 
-        let struct_ = self.sa.struct_(struct_id);
-        let field = &struct_.fields[field_idx.to_usize()];
-        let ty = specialize_type(self.sa, field.ty(), &type_params);
+        let fty = self.ty(expr.id);
 
-        if ty.is_unit() {
+        if fty.is_unit() {
             self.free_if_temp(struct_obj);
             return self.ensure_unit_register();
         }
 
-        let ty: BytecodeType = register_bty_from_ty(ty);
+        let ty: BytecodeType = register_bty_from_ty(fty);
         let dest = self.ensure_register(dest, ty);
         let const_idx = self.builder.add_const_struct_field(
             StructId(struct_id.index().try_into().expect("overflow")),

@@ -931,7 +931,11 @@ pub(super) fn check_expr_dot(
                 ck.analysis.map_idents.insert_or_replace(e.id, ident_type);
 
                 let field = &struct_.fields[field_id.to_usize()];
-                let fty = replace_type(ck.sa, field.ty(), Some(&struct_type_params), None);
+                let call_data = CallSpecializationData {
+                    object_ty: SourceType::Error,
+                    type_params: struct_type_params,
+                };
+                let fty = specialize_ty_for_call(ck.sa, field.ty(), ck.element, &call_data);
 
                 if !struct_field_accessible_from(ck.sa, struct_id, field_id, ck.module_id) {
                     let msg = ErrorMessage::NotAccessible;
@@ -1037,7 +1041,11 @@ fn check_expr_dot_unnamed_field(
                 let ident_type = IdentType::StructField(object_type.clone(), field.id);
                 ck.analysis.map_idents.insert_or_replace(e.id, ident_type);
 
-                let fty = replace_type(ck.sa, field.ty(), Some(&struct_type_params), None);
+                let call_data = CallSpecializationData {
+                    object_ty: SourceType::Error,
+                    type_params: struct_type_params,
+                };
+                let fty = specialize_ty_for_call(ck.sa, field.ty(), ck.element, &call_data);
 
                 if !struct_field_accessible_from(ck.sa, struct_id, field.id, ck.module_id) {
                     let msg = ErrorMessage::NotAccessible;

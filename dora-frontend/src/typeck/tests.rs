@@ -4850,6 +4850,40 @@ fn class_ctor_with_generic_assoc_unnamed() {
 }
 
 #[test]
+fn struct_ctor_with_generic_assoc_named() {
+    ok("
+        trait Trait1 {
+            type X;
+        }
+        struct Foo[T: Trait1] { a: T, b: T::X }
+        impl Trait1 for Int {
+            type X = String;
+        }
+        fn f(): String {
+            let foo = Foo[Int](a=1, b=\"bar\");
+            foo.b
+        }
+    ");
+}
+
+#[test]
+fn struct_ctor_with_generic_assoc_unnamed() {
+    ok("
+        trait Trait1 {
+            type X;
+        }
+        struct Foo[T: Trait1](T, T::X)
+        impl Trait1 for Int {
+            type X = String;
+        }
+        fn f(): String {
+            let foo = Foo[Int](1, \"bar\");
+            foo.1
+        }
+    ");
+}
+
+#[test]
 fn class_ctor_with_named_argument_of_wrong_type() {
     err(
         "

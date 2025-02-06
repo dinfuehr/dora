@@ -2671,12 +2671,12 @@ impl SsaGen {
 
     fn computeStructLayout(struct_id: StructId, type_params: Array[BytecodeType]): RecordLayout {
         let type_params = self.specializeArray(type_params);
-        regalloc::computeStructLayout(struct_id, type_params)
+        regalloc::computeStructLayout(self.ci, struct_id, type_params)
     }
 
     fn computeTupleLayout(subtypes: Array[BytecodeType]): RecordLayout {
         let subtypes = self.specializeArray(subtypes);
-        regalloc::computeTupleLayout(subtypes)
+        regalloc::computeTupleLayout(self.ci, subtypes)
     }
 
     fn computeEnumLayout(enum_id: EnumId, type_params: Array[BytecodeType]): EnumLayout {
