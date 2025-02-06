@@ -22,8 +22,8 @@ use crate::typeck::{
     check_lit_int, check_lit_str, check_pattern, check_stmt, create_call_arguments, is_simple_enum,
     TypeCheck,
 };
-use crate::typeparamck;
 use crate::{replace_type, ty::error as ty_error, SourceType, SourceTypeArray, SymbolKind};
+use crate::{specialize_ty_for_call, typeparamck, CallSpecializationData};
 
 pub(super) fn check_expr(
     ck: &mut TypeCheck,
@@ -909,7 +909,11 @@ pub(super) fn check_expr_dot(
 
                 let cls = ck.sa.class(cls_id);
                 let field = &cls.fields[field_id];
-                let fty = replace_type(ck.sa, field.ty(), Some(&class_type_params), None);
+                let call_data = CallSpecializationData {
+                    object_ty: SourceType::Error,
+                    type_params: class_type_params,
+                };
+                let fty = specialize_ty_for_call(ck.sa, field.ty(), ck.element, &call_data);
 
                 if !class_field_accessible_from(ck.sa, cls_id, field_id, ck.module_id) {
                     let msg = ErrorMessage::NotAccessible;
@@ -1004,7 +1008,11 @@ fn check_expr_dot_unnamed_field(
                 let ident_type = IdentType::Field(object_type.clone(), field.id);
                 ck.analysis.map_idents.insert_or_replace(e.id, ident_type);
 
-                let fty = replace_type(ck.sa, field.ty(), Some(&class_type_params), None);
+                let call_data = CallSpecializationData {
+                    object_ty: SourceType::Error,
+                    type_params: class_type_params,
+                };
+                let fty = specialize_ty_for_call(ck.sa, field.ty(), ck.element, &call_data);
 
                 if !class_field_accessible_from(ck.sa, class_id, field.id, ck.module_id) {
                     let msg = ErrorMessage::NotAccessible;

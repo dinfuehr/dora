@@ -561,9 +561,21 @@ fn check_expr_call_struct(
     }
 
     if struct_.field_name_style.is_named() {
-        check_expr_call_ctor_with_named_fields(ck, struct_, type_params.clone(), &arguments);
+        check_expr_call_ctor_with_named_fields(
+            ck,
+            struct_,
+            struct_,
+            type_params.clone(),
+            &arguments,
+        );
     } else {
-        check_expr_call_ctor_with_unnamed_fields(ck, struct_, type_params.clone(), &arguments);
+        check_expr_call_ctor_with_unnamed_fields(
+            ck,
+            struct_,
+            struct_,
+            type_params.clone(),
+            &arguments,
+        );
     }
 
     ck.analysis
@@ -576,7 +588,8 @@ fn check_expr_call_struct(
 
 fn check_expr_call_ctor_with_named_fields(
     ck: &mut TypeCheck,
-    element: &dyn ElementWithFields,
+    element_with_fields: &dyn ElementWithFields,
+    element: &dyn Element,
     type_params: SourceTypeArray,
     arguments: &CallArguments,
 ) {
@@ -596,10 +609,13 @@ fn check_expr_call_ctor_with_named_fields(
             let name = ck.sa.interner.intern(&name.name_as_string);
             add_named_argument(arg, name);
         } else if arguments.arguments.len() == 1
-            && element.fields_len() == 1
-            && element.field_name(0).is_some()
+            && element_with_fields.fields_len() == 1
+            && element_with_fields.field_name(0).is_some()
         {
-            add_named_argument(arg, element.field_name(0).expect("name expected"));
+            add_named_argument(
+                arg,
+                element_with_fields.field_name(0).expect("name expected"),
+            );
         } else if let Some(ident) = arg.expr.to_ident() {
             let name = ck.sa.interner.intern(&ident.name);
             add_named_argument(arg, name);
@@ -612,10 +628,15 @@ fn check_expr_call_ctor_with_named_fields(
         }
     }
 
-    for field in element.fields() {
+    let call_data = CallSpecializationData {
+        object_ty: SourceType::Error,
+        type_params,
+    };
+
+    for field in element_with_fields.fields() {
         if let Some(name) = field.name {
             if let Some(arg) = args_by_name.remove(&name) {
-                let def_ty = replace_type(ck.sa, field.ty, Some(&type_params), None);
+                let def_ty = specialize_ty_for_call(ck.sa, field.ty, element, &call_data);
                 let arg_ty = ck.analysis.ty(arg.id);
 
                 if !def_ty.allows(ck.sa, arg_ty.clone()) && !arg_ty.is_error() {
@@ -649,12 +670,18 @@ fn check_expr_call_ctor_with_named_fields(
 
 fn check_expr_call_ctor_with_unnamed_fields(
     ck: &mut TypeCheck,
-    element: &dyn ElementWithFields,
+    element_with_fields: &dyn ElementWithFields,
+    element: &dyn Element,
     type_params: SourceTypeArray,
     arguments: &CallArguments,
 ) -> bool {
-    for (field, argument) in element.fields().zip(&arguments.arguments) {
-        let def_ty = replace_type(ck.sa, field.ty, Some(&type_params), None);
+    let call_data = CallSpecializationData {
+        object_ty: SourceType::Error,
+        type_params,
+    };
+
+    for (field, argument) in element_with_fields.fields().zip(&arguments.arguments) {
+        let def_ty = specialize_ty_for_call(ck.sa, field.ty, element, &call_data);
         let arg_ty = ck.analysis.ty(argument.id);
 
         if let Some(ref name) = argument.name {
@@ -676,7 +703,7 @@ fn check_expr_call_ctor_with_unnamed_fields(
         ck.analysis.map_argument.insert(argument.id, field.id);
     }
 
-    let fields = element.fields_len();
+    let fields = element_with_fields.fields_len();
 
     if arguments.arguments.len() < fields {
         ck.sa.report(
@@ -740,9 +767,9 @@ fn check_expr_call_class(
     }
 
     if cls.field_name_style.is_named() {
-        check_expr_call_ctor_with_named_fields(ck, cls, type_params.clone(), &arguments);
+        check_expr_call_ctor_with_named_fields(ck, cls, cls, type_params.clone(), &arguments);
     } else {
-        check_expr_call_ctor_with_unnamed_fields(ck, cls, type_params.clone(), &arguments);
+        check_expr_call_ctor_with_unnamed_fields(ck, cls, cls, type_params.clone(), &arguments);
     }
 
     ck.analysis
@@ -796,9 +823,21 @@ pub(super) fn check_expr_call_enum_variant(
         ck.sa.report(ck.file_id, e.span, msg);
     } else {
         if variant.field_name_style.is_named() {
-            check_expr_call_ctor_with_named_fields(ck, variant, type_params.clone(), &arguments);
+            check_expr_call_ctor_with_named_fields(
+                ck,
+                variant,
+                enum_,
+                type_params.clone(),
+                &arguments,
+            );
         } else {
-            check_expr_call_ctor_with_unnamed_fields(ck, variant, type_params.clone(), &arguments);
+            check_expr_call_ctor_with_unnamed_fields(
+                ck,
+                variant,
+                enum_,
+                type_params.clone(),
+                &arguments,
+            );
         }
     }
 

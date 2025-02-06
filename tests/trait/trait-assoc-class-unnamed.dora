@@ -1,0 +1,15 @@
+trait Trait1 {
+    type X;
+}
+
+class Foo[T: Trait1](T, T::X)
+
+impl Trait1 for Int {
+    type X = String;
+}
+
+fn main() {
+    let foo = Foo[Int](1, "bar");
+    assert(foo.0 == 1);
+    assert(foo.1 == "bar");
+}

@@ -315,7 +315,7 @@ fn create_shape_for_regular_class(
     let mut ref_fields = Vec::new();
 
     for f in &cls.fields {
-        let ty = specialize_bty(f.ty.clone(), &type_params);
+        let ty = specialize_ty(vm, None, f.ty.clone(), &type_params);
         debug_assert!(ty.is_concrete_type());
 
         let field_size = size(vm, ty.clone());

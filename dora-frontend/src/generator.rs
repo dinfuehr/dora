@@ -1380,13 +1380,7 @@ impl<'a> AstBytecodeGen<'a> {
             field_id.0 as u32,
         );
 
-        let field_ty = {
-            let cls = self.sa.class(cls_id);
-            let field = &cls.fields[field_id.to_usize()];
-            field.ty()
-        };
-
-        let field_ty = specialize_type(self.sa, field_ty, &type_params);
+        let field_ty = self.ty(expr.id);
 
         let field_bc_ty: BytecodeType = register_bty_from_ty(field_ty);
         let dest = self.ensure_register(dest, field_bc_ty);
