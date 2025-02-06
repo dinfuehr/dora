@@ -17,8 +17,8 @@ use crate::sema::{
 use crate::specialize::replace_type;
 use crate::sym::SymbolKind;
 use crate::typeck::{
-    check_args_compatible, check_args_compatible_fct, check_expr, find_method_call_candidates,
-    read_path_expr, CallArguments, TypeCheck,
+    check_args_compatible, check_args_compatible_fct, check_args_compatible_fct2, check_expr,
+    find_method_call_candidates, read_path_expr, CallArguments, TypeCheck,
 };
 use crate::{
     empty_sta, specialize_ty_for_generic, specialize_type, ty::error as ty_error,
@@ -427,12 +427,14 @@ fn check_expr_call_method(
             ck.file_id,
             e.span,
         ) {
-            check_args_compatible_fct(ck, fct, arguments, &full_type_params, None, |ty| ty);
-
             let call_data = CallSpecializationData {
                 object_ty: candidate.object_type.clone(),
                 type_params: full_type_params.clone(),
             };
+
+            check_args_compatible_fct2(ck, fct, arguments, |ty| {
+                specialize_ty_for_call(ck.sa, ty, ck.element, &call_data)
+            });
 
             specialize_ty_for_call(ck.sa, fct.return_type(), ck.element, &call_data)
         } else {
@@ -942,15 +944,14 @@ fn check_expr_call_generic_type_param(
         let trait_method = ck.sa.fct(trait_method_id);
         let return_type = trait_method.return_type();
 
-        let return_type = replace_type(
+        let return_type = specialize_ty_for_generic(
             ck.sa,
             return_type,
-            Some(&trait_ty.type_params),
-            Some(object_type.clone()),
+            id,
+            trait_method.trait_id(),
+            &trait_ty.type_params,
+            &object_type,
         );
-
-        let return_type =
-            specialize_ty_for_generic(ck.sa, return_type, id, trait_method.trait_id());
 
         ck.analysis.set_ty(e.id, return_type.clone());
 
@@ -964,14 +965,16 @@ fn check_expr_call_generic_type_param(
         );
         ck.analysis.map_calls.insert(e.id, Arc::new(call_type));
 
-        check_args_compatible_fct(
-            ck,
-            trait_method,
-            arguments,
-            &trait_type_params,
-            Some(object_type.clone()),
-            |ty| specialize_ty_for_generic(ck.sa, ty, id, trait_method.trait_id()),
-        );
+        check_args_compatible_fct2(ck, trait_method, arguments, |ty| {
+            specialize_ty_for_generic(
+                ck.sa,
+                ty,
+                id,
+                trait_method.trait_id(),
+                &trait_type_params,
+                &object_type,
+            )
+        });
 
         return_type
     } else {

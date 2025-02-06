@@ -16,8 +16,9 @@ use crate::typeck::control::{
 use crate::typeck::expr::{check_expr, read_path, read_path_expr};
 pub use crate::typeck::expr::{compute_lit_float, compute_lit_int};
 use crate::typeck::function::{
-    add_local, check_args_compatible, check_args_compatible_fct, check_lit_char, check_lit_float,
-    check_lit_int, check_lit_str, is_simple_enum, TypeCheck, VarManager,
+    add_local, check_args_compatible, check_args_compatible_fct, check_args_compatible_fct2,
+    check_lit_char, check_lit_float, check_lit_int, check_lit_str, is_simple_enum, TypeCheck,
+    VarManager,
 };
 use crate::typeck::lookup::find_method_call_candidates;
 use crate::typeck::stmt::{check_pattern, check_stmt};

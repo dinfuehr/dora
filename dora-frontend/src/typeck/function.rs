@@ -459,13 +459,8 @@ pub(super) fn check_args_compatible<S>(
     }
 
     for (param, arg) in regular_params.iter().zip(&args.arguments) {
-        let param_ty = replace_type(
-            ck.sa,
-            param.ty().clone(),
-            Some(&type_params),
-            self_ty.clone(),
-        );
-        let param_ty = extra_specialization(param_ty);
+        let param_ty = extra_specialization(param.ty().clone());
+        let param_ty = replace_type(ck.sa, param_ty, Some(&type_params), self_ty.clone());
         let arg_ty = ck.analysis.ty(arg.id);
 
         if !arg_allows(ck.sa, param_ty.clone(), arg_ty.clone(), self_ty.clone())
@@ -503,6 +498,92 @@ pub(super) fn check_args_compatible<S>(
                 let arg_ty = ck.analysis.ty(arg.id);
 
                 if !arg_allows(ck.sa, variadic_ty.clone(), arg_ty.clone(), self_ty.clone())
+                    && !arg_ty.is_error()
+                {
+                    let exp = ck.ty_name(&variadic_ty);
+                    let got = ck.ty_name(&arg_ty);
+
+                    ck.sa.report(
+                        ck.file_id,
+                        arg.expr.span(),
+                        ErrorMessage::WrongTypeForArgument(exp, got),
+                    );
+                }
+            }
+        } else {
+            for arg in &args.arguments[no_regular_params..] {
+                ck.sa
+                    .report(ck.file_id, arg.span, ErrorMessage::SuperfluousArgument);
+            }
+        }
+    }
+}
+
+pub(super) fn check_args_compatible_fct2<S>(
+    ck: &TypeCheck,
+    callee: &FctDefinition,
+    args: CallArguments,
+    extra_specialization: S,
+) where
+    S: FnMut(SourceType) -> SourceType,
+{
+    check_args_compatible2(
+        ck,
+        callee.params.regular_params(),
+        callee.params.variadic_param(),
+        &args,
+        extra_specialization,
+    );
+}
+
+pub(super) fn check_args_compatible2<S>(
+    ck: &TypeCheck,
+    regular_params: &[Param],
+    variadic_param: Option<&Param>,
+    args: &CallArguments,
+    mut extra_specialization: S,
+) where
+    S: FnMut(SourceType) -> SourceType,
+{
+    for arg in &args.arguments {
+        if let Some(ref name) = arg.name {
+            ck.sa
+                .report(ck.file_id, name.span, ErrorMessage::UnexpectedNamedArgument);
+        }
+    }
+
+    for (param, arg) in regular_params.iter().zip(&args.arguments) {
+        let param_ty = extra_specialization(param.ty().clone());
+        let arg_ty = ck.analysis.ty(arg.id);
+
+        if !arg_allows(ck.sa, param_ty.clone(), arg_ty.clone(), None) && !arg_ty.is_error() {
+            let exp = ck.ty_name(&param_ty);
+            let got = ck.ty_name(&arg_ty);
+
+            ck.sa.report(
+                ck.file_id,
+                arg.expr.span(),
+                ErrorMessage::WrongTypeForArgument(exp, got),
+            );
+        }
+    }
+
+    let no_regular_params = regular_params.len();
+
+    if args.arguments.len() < no_regular_params {
+        ck.sa.report(
+            ck.file_id,
+            args.span,
+            ErrorMessage::MissingArguments(no_regular_params, args.arguments.len()),
+        );
+    } else {
+        if let Some(variadic_param) = variadic_param {
+            let variadic_ty = extra_specialization(variadic_param.ty());
+
+            for arg in &args.arguments[no_regular_params..] {
+                let arg_ty = ck.analysis.ty(arg.id);
+
+                if !arg_allows(ck.sa, variadic_ty.clone(), arg_ty.clone(), None)
                     && !arg_ty.is_error()
                 {
                     let exp = ck.ty_name(&variadic_ty);
