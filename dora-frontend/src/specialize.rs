@@ -490,7 +490,7 @@ pub fn specialize_ty_for_default_trait_method(
                 trait_ty.type_params[id.index()].clone()
             } else {
                 // This is a function-type parameter.
-                let id = impl_.type_param_definition().container_type_params()
+                let id = impl_.type_param_definition().type_param_count()
                     + (id.index() - container_type_params);
                 SourceType::TypeParam(TypeParamId(id))
             }

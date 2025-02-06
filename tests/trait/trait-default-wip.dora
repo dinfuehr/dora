@@ -81,7 +81,7 @@ fn main() {
     assert(Range(2).count() == 2);
     assert(Range(7).count() == 7);
 
-    let r = Range(2).enumerate().map[Int](|x: (Int, Int)|: (Int, Int) {
+    let r = Range(2).enumerate().map[(Int, Int)](|x: (Int, Int)|: (Int, Int) {
         (x.0, x.1 * 2)
     });
 
