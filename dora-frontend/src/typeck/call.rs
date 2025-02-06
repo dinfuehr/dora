@@ -561,21 +561,9 @@ fn check_expr_call_struct(
     }
 
     if struct_.field_name_style.is_named() {
-        check_expr_call_ctor_with_named_fields(
-            ck,
-            struct_,
-            struct_,
-            type_params.clone(),
-            &arguments,
-        );
+        check_expr_call_ctor_with_named_fields(ck, struct_, type_params.clone(), &arguments);
     } else {
-        check_expr_call_ctor_with_unnamed_fields(
-            ck,
-            struct_,
-            struct_,
-            type_params.clone(),
-            &arguments,
-        );
+        check_expr_call_ctor_with_unnamed_fields(ck, struct_, type_params.clone(), &arguments);
     }
 
     ck.analysis
@@ -589,7 +577,6 @@ fn check_expr_call_struct(
 fn check_expr_call_ctor_with_named_fields(
     ck: &mut TypeCheck,
     element_with_fields: &dyn ElementWithFields,
-    element: &dyn Element,
     type_params: SourceTypeArray,
     arguments: &CallArguments,
 ) {
@@ -636,7 +623,7 @@ fn check_expr_call_ctor_with_named_fields(
     for field in element_with_fields.fields() {
         if let Some(name) = field.name {
             if let Some(arg) = args_by_name.remove(&name) {
-                let def_ty = specialize_ty_for_call(ck.sa, field.ty, element, &call_data);
+                let def_ty = specialize_ty_for_call(ck.sa, field.ty, ck.element, &call_data);
                 let arg_ty = ck.analysis.ty(arg.id);
 
                 if !def_ty.allows(ck.sa, arg_ty.clone()) && !arg_ty.is_error() {
@@ -671,7 +658,6 @@ fn check_expr_call_ctor_with_named_fields(
 fn check_expr_call_ctor_with_unnamed_fields(
     ck: &mut TypeCheck,
     element_with_fields: &dyn ElementWithFields,
-    element: &dyn Element,
     type_params: SourceTypeArray,
     arguments: &CallArguments,
 ) -> bool {
@@ -681,7 +667,7 @@ fn check_expr_call_ctor_with_unnamed_fields(
     };
 
     for (field, argument) in element_with_fields.fields().zip(&arguments.arguments) {
-        let def_ty = specialize_ty_for_call(ck.sa, field.ty, element, &call_data);
+        let def_ty = specialize_ty_for_call(ck.sa, field.ty, ck.element, &call_data);
         let arg_ty = ck.analysis.ty(argument.id);
 
         if let Some(ref name) = argument.name {
@@ -767,9 +753,9 @@ fn check_expr_call_class(
     }
 
     if cls.field_name_style.is_named() {
-        check_expr_call_ctor_with_named_fields(ck, cls, cls, type_params.clone(), &arguments);
+        check_expr_call_ctor_with_named_fields(ck, cls, type_params.clone(), &arguments);
     } else {
-        check_expr_call_ctor_with_unnamed_fields(ck, cls, cls, type_params.clone(), &arguments);
+        check_expr_call_ctor_with_unnamed_fields(ck, cls, type_params.clone(), &arguments);
     }
 
     ck.analysis
@@ -823,21 +809,9 @@ pub(super) fn check_expr_call_enum_variant(
         ck.sa.report(ck.file_id, e.span, msg);
     } else {
         if variant.field_name_style.is_named() {
-            check_expr_call_ctor_with_named_fields(
-                ck,
-                variant,
-                enum_,
-                type_params.clone(),
-                &arguments,
-            );
+            check_expr_call_ctor_with_named_fields(ck, variant, type_params.clone(), &arguments);
         } else {
-            check_expr_call_ctor_with_unnamed_fields(
-                ck,
-                variant,
-                enum_,
-                type_params.clone(),
-                &arguments,
-            );
+            check_expr_call_ctor_with_unnamed_fields(ck, variant, type_params.clone(), &arguments);
         }
     }
 

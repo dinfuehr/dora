@@ -190,6 +190,14 @@ pub fn specialize_ty_for_call(
                     trait_ty,
                     assoc_id,
                 }
+            } else if type_param_ty.is_self() {
+                let caller_fct = caller_element.to_fct().expect("expected function");
+
+                assert_eq!(
+                    caller_fct.trait_id(),
+                    assoc.parent.to_trait_id().expect("expected trait")
+                );
+                SourceType::Assoc(assoc_id, SourceTypeArray::empty())
             } else if let Some(impl_match) = find_impl(
                 sa,
                 caller_element,

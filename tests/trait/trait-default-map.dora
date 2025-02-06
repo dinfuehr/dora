@@ -1,0 +1,54 @@
+trait MyIterator {
+    type Item;
+    fn next(): Option[Self::Item];
+
+    fn map[R](f: (Self::Item): R): Map[Self, R] {
+        Map[Self, R](it = self, fct = f)
+    }
+}
+
+class Range {
+    value: Int
+}
+
+impl MyIterator for Range {
+    type Item = Int;
+
+    fn next(): Option[Int] {
+        if self.value <= 0 {
+            None[Int]
+        } else {
+            let result = self.value;
+            self.value -= 1;
+            Some[Int](result)
+        }
+    }
+}
+
+class Map[I: MyIterator, R] {
+    it: I,
+    fct: (I::Item): R,
+}
+
+impl[I: MyIterator, R] MyIterator for Map[I, R] {
+    type Item = R;
+
+    fn next(): Option[R] {
+        if self.it.next() is Some(value) {
+            Some[R](self.fct(value))
+        } else {
+            None[R]
+        }
+    }
+}
+
+fn main() {
+    let r = Range(3).map[Int](|x: Int|: Int {
+        x * 3
+    });
+
+    assert(Some[Int]((9)) == r.next());
+    assert(Some[Int]((6)) == r.next());
+    assert(Some[Int]((3)) == r.next());
+    assert(r.next().isNone());
+}
