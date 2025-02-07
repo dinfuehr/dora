@@ -1,9 +1,14 @@
 //= ignore
 
-use std::traits::IntoIterator;
-use std::traits::Iterator;
+use std::collections::HashMap;
 
 fn main() {
     let x = Vec[Int]::new(1, 2, 3, 4, 5);
     assert(x.iter().count() == 5);
+
+    let x = Array[Int]::new(1, 2, 3, 4, 5);
+    assert(x.iter().count() == 5);
+
+    let x = HashMap[Int, String]::new((1, "one"), (2, "two"), (3, "three"));
+    assert(x.iter().count() == 3);
 }
