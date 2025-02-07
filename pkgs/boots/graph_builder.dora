@@ -1470,7 +1470,9 @@ impl SsaGen {
             }
 
             ConstPoolEntry::GenericSelf(trait_fct_id, trait_type_params) => {
-                (self.ci.specializeSelf.getOrPanic().extended_ty, trait_fct_id, trait_type_params)
+                let extended_ty = self.ci.specializeSelf.getOrPanic().extended_ty;
+                let extended_ty = self.specializeTy(extended_ty);
+                (extended_ty, trait_fct_id, trait_type_params)
             }
 
             _ => unreachable[(BytecodeType, FunctionId, Array[BytecodeType])](),

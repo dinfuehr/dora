@@ -665,23 +665,18 @@ pub fn specialize_ty(
 
         BytecodeType::Assoc(assoc_id, assoc_type_params) => {
             let specialize_self = self_data.expect("unexpected associated item on Self.");
-            assert!(specialize_self.extended_ty.is_concrete_type());
+
+            // Here we only end up if default trait method implementation is used from
+            // impl-method. While bytecode is used from the trait method, the type parameters
+            // are still applied to the impl-method. So extended_ty can be specialized using
+            // the ordinary type parameters.
+            let extended_ty =
+                specialize_ty(vm, None, specialize_self.extended_ty.clone(), type_params);
+
+            assert!(extended_ty.is_concrete_type());
             assert!(assoc_type_params.is_empty());
 
-            let type_param_data = TypeParamData {
-                names: Vec::new(),
-                bounds: Vec::new(),
-            };
-
-            let (impl_id, bindings) = find_impl(
-                vm,
-                specialize_self.extended_ty.clone(),
-                &type_param_data,
-                specialize_self.trait_ty.clone(),
-            )
-            .expect("no impl found for generic trait method call");
-
-            let impl_ = vm.impl_(impl_id);
+            let impl_ = vm.impl_(specialize_self.impl_id);
 
             let impl_alias_id = impl_
                 .trait_alias_map
@@ -695,7 +690,7 @@ pub fn specialize_ty(
             let impl_alias = vm.alias(impl_alias_id);
             let impl_alias_ty = impl_alias.ty.as_ref().expect("value expected").clone();
 
-            specialize_ty(vm, self_data, impl_alias_ty, &bindings)
+            specialize_ty(vm, self_data, impl_alias_ty, type_params)
         }
 
         BytecodeType::GenericAssoc {

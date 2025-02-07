@@ -2641,15 +2641,12 @@ impl<'a> CannonCodeGen<'a> {
                 *fct_id,
                 type_params.clone(),
             ),
-            ConstPoolEntry::GenericSelf(fct_id, type_params) => (
-                self.specialize_self
-                    .as_ref()
-                    .expect("missing Self type")
-                    .extended_ty
-                    .clone(),
-                *fct_id,
-                type_params.clone(),
-            ),
+            ConstPoolEntry::GenericSelf(fct_id, type_params) => {
+                let specialize_self = self.specialize_self.as_ref().expect("missing Self type");
+                let extended_ty = self.specialize_ty(specialize_self.extended_ty.clone());
+
+                (extended_ty, *fct_id, type_params.clone())
+            }
             _ => unreachable!(),
         };
 
@@ -3976,8 +3973,12 @@ impl<'a> CannonCodeGen<'a> {
     }
 
     fn specialize_register_type(&self, reg: Register) -> BytecodeType {
+        register_bty(self.reg_ty(reg))
+    }
+
+    fn reg_ty(&self, reg: Register) -> BytecodeType {
         let ty = self.bytecode.register_type(reg);
-        register_bty(self.specialize_ty(ty))
+        self.specialize_ty(ty)
     }
 }
 
