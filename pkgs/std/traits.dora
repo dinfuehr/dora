@@ -154,11 +154,35 @@ pub trait Iterator {
 
     result
   }
+
+  @TraitObjectIgnore
+  fn enumerate(): Enumerate[Self] {
+      Enumerate[Self](it = self, idx = 0)
+  }
 }
 
 pub trait IntoIterator {
   type IteratorType: Iterator;
   fn iter(): Self::IteratorType;
+}
+
+pub class Enumerate[I: Iterator] {
+    it: I,
+    idx: Int,
+}
+
+impl[I: Iterator] Iterator for Enumerate[I] {
+    type Item = (Int, I::Item);
+
+    fn next(): Option[(Int, I::Item)] {
+        if self.it.next() is Some(value) {
+            let idx = self.idx;
+            self.idx += 1;
+            Some[(Int, I::Item)]((idx, value))
+        } else {
+            None[(Int, I::Item)]
+        }
+    }
 }
 
 pub trait IndexGet {

@@ -1,0 +1,22 @@
+//= ignore
+
+use std::collections::{HashMap, VecIter};
+use std::traits::Enumerate;
+
+fn main() {
+    let x = Vec[Int]::new(1, 2, 3, 4, 5);
+    let it1: VecIter[Int] = x.iter();
+    let it: Enumerate[VecIter[Int]] = it1.enumerate();
+    assert(Some[(Int, Int)]((0, 1)) == it.next());
+    assert(Some[(Int, Int)]((1, 2)) == it.next());
+    assert(Some[(Int, Int)]((2, 3)) == it.next());
+    assert(Some[(Int, Int)]((3, 4)) == it.next());
+    assert(Some[(Int, Int)]((4, 5)) == it.next());
+    assert(it.next() is None);
+
+    // let x = Array[Int]::new(1, 2, 3, 4, 5);
+    // assert(x.iter().count() == 5);
+
+    // let x = HashMap[Int, String]::new((1, "one"), (2, "two"), (3, "three"));
+    // assert(x.iter().count() == 3);
+}
