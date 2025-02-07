@@ -13,7 +13,7 @@ use crate::vm::{
 use crate::{Shape, SpecializeSelf};
 use dora_bytecode::{
     BytecodeType, BytecodeTypeArray, ClassData, ClassId, EnumData, EnumId, FunctionId, Program,
-    StructData, StructId, TraitData, TraitId, TypeParamData,
+    StructData, StructId, TraitId, TypeParamData,
 };
 
 pub fn create_struct_instance(
@@ -465,12 +465,8 @@ pub fn ensure_shape_for_lambda(
 pub fn compute_vtable_index(vm: &VM, trait_id: TraitId, trait_fct_id: FunctionId) -> u32 {
     let trait_ = vm.trait_(trait_id);
     let vtable_index = trait_
-        .methods
+        .virtual_methods
         .iter()
-        .filter(|id| {
-            let method = vm.fct(**id);
-            !method.is_trait_object_ignore
-        })
         .position(|m| *m == trait_fct_id)
         .expect("missing trait function");
     vtable_index.try_into().expect("overflow")
@@ -537,27 +533,13 @@ fn create_shape_for_trait_object(
         },
         size,
         fields,
-        trait_.methods.len(),
+        trait_.virtual_methods.len(),
     );
 
     let old = shapes.insert((trait_ty, actual_object_ty), shape);
     assert!(old.is_none());
 
     shape
-}
-
-fn count_virtual_methods(vm: &VM, trait_: TraitData) -> usize {
-    let mut count = 0;
-
-    for method_id in &trait_.methods {
-        let method = vm.program.fct(*method_id);
-
-        if !method.is_trait_object_ignore {
-            count += 1;
-        }
-    }
-
-    count
 }
 
 pub fn specialize_bty_array(

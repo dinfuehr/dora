@@ -402,15 +402,28 @@ fn create_traits(sa: &Sema) -> Vec<TraitData> {
     for (_id, trait_) in sa.traits.iter() {
         let name = sa.interner.str(trait_.name).to_string();
 
+        let methods = trait_
+            .methods()
+            .iter()
+            .map(|f| convert_function_id(*f))
+            .collect();
+
+        let virtual_methods = trait_
+            .methods()
+            .iter()
+            .filter(|f| {
+                let method = sa.fct(**f);
+                !method.is_trait_object_ignore
+            })
+            .map(|f| convert_function_id(*f))
+            .collect();
+
         result.push(TraitData {
             module_id: convert_module_id(trait_.module_id),
             name,
             type_params: create_type_params(sa, &trait_.type_param_definition()),
-            methods: trait_
-                .methods()
-                .iter()
-                .map(|f| convert_function_id(*f))
-                .collect(),
+            methods,
+            virtual_methods,
         })
     }
 

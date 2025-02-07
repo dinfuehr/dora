@@ -148,6 +148,7 @@ pub struct TraitData {
     pub name: String,
     pub type_params: TypeParamData,
     pub methods: Vec<FunctionId>,
+    pub virtual_methods: Vec<FunctionId>,
 }
 
 #[derive(Copy, Clone, Debug, Decode, Encode)]

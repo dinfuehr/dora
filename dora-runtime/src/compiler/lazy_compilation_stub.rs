@@ -388,7 +388,7 @@ fn lazy_compile(ra: usize, receiver1: Address, receiver2: Address) -> Address {
                 ..
             } => {
                 let trait_id = trait_object_ty.trait_id().expect("trait expected");
-                let trait_fct_id = vm.trait_(trait_id).methods[vtable_index as usize];
+                let trait_fct_id = vm.trait_(trait_id).virtual_methods[vtable_index as usize];
 
                 patch_virtual_call(
                     vm,
