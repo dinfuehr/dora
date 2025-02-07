@@ -211,6 +211,7 @@ pub fn specialize_ty_for_call(
                     .get(&assoc_id)
                     .map(|a| sa.alias(*a).ty())
                     .unwrap_or(SourceType::Error);
+                let ty = specialize_type(sa, ty, &impl_match.bindings);
                 specialize_ty_for_call(sa, ty, caller_element, call_data)
             } else {
                 unimplemented!()

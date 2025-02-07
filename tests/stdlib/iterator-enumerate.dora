@@ -4,19 +4,23 @@ use std::collections::{HashMap, VecIter};
 use std::traits::Enumerate;
 
 fn main() {
-    let x = Vec[Int]::new(1, 2, 3, 4, 5);
-    let it1: VecIter[Int] = x.iter();
-    let it: Enumerate[VecIter[Int]] = it1.enumerate();
-    assert(Some[(Int, Int)]((0, 1)) == it.next());
-    assert(Some[(Int, Int)]((1, 2)) == it.next());
-    assert(Some[(Int, Int)]((2, 3)) == it.next());
-    assert(Some[(Int, Int)]((3, 4)) == it.next());
-    assert(Some[(Int, Int)]((4, 5)) == it.next());
-    assert(it.next() is None);
+    let x = Vec[Int]::new(1, 2, 3, 4, 5).iter().enumerate();
+    assert(Some[(Int, Int)]((0, 1)) == x.next());
+    assert(Some[(Int, Int)]((1, 2)) == x.next());
+    assert(Some[(Int, Int)]((2, 3)) == x.next());
+    assert(Some[(Int, Int)]((3, 4)) == x.next());
+    assert(Some[(Int, Int)]((4, 5)) == x.next());
+    assert(x.next() is None);
 
-    // let x = Array[Int]::new(1, 2, 3, 4, 5);
-    // assert(x.iter().count() == 5);
+    let x = Array[String]::new("one", "two", "three").iter().enumerate();
+    assert(Some[(Int, String)]((0, "one")) == x.next());
+    assert(Some[(Int, String)]((1, "two")) == x.next());
+    assert(Some[(Int, String)]((2, "three")) == x.next());
+    assert(x.next() is None);
 
-    // let x = HashMap[Int, String]::new((1, "one"), (2, "two"), (3, "three"));
-    // assert(x.iter().count() == 3);
+    // let x = HashMap[Int, String]::new((1, "one"), (2, "two"), (3, "three")).iter().enumerate();
+    // assert(Some[(Int, (Int, String))]((0, (1, "one"))) == x.next());
+    // assert(Some[(Int, (Int, String))]((1, (2, "two"))) == x.next());
+    // assert(Some[(Int, (Int, String))]((2, (3, "three"))) == x.next());
+    // assert(x.next() is None);
 }
