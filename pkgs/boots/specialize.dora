@@ -17,7 +17,10 @@ pub fn specializeTy(ci: CompilationInfo, ty: BytecodeType, type_params: Array[By
         | BytecodeType::Int64
         | BytecodeType::Float32
         | BytecodeType::Float64 => ty,
-        BytecodeType::This => ci.specializeSelf.getOrPanic().extended_ty,
+        BytecodeType::This => {
+            let extended_ty = ci.specializeSelf.getOrPanic().extended_ty;
+            specializeTy(ci, extended_ty, type_params)
+        }
         BytecodeType::Struct(struct_id, struct_type_params) => {
             BytecodeType::Struct(struct_id, specializeArray(ci, struct_type_params, type_params))
         },

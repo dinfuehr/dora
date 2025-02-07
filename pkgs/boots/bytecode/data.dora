@@ -252,7 +252,7 @@ impl BytecodeType {
             | BytecodeType::Int64
             | BytecodeType::Float32
             | BytecodeType::Float64 => false,
-            BytecodeType::This | BytecodeType::Assoc(..) => true,
+            BytecodeType::This | BytecodeType::Assoc(..) | BytecodeType::GenericAssoc(..) => true,
             BytecodeType::Struct(struct_id, type_params) => type_params.isGeneric(),
             BytecodeType::Enum(enum_id, type_params) => type_params.isGeneric(),
             BytecodeType::Class(class_id, type_params) => type_params.isGeneric(),
@@ -260,7 +260,6 @@ impl BytecodeType {
             BytecodeType::Tuple(subtypes) => subtypes.isGeneric(),
             BytecodeType::TypeParam(idx) => true,
             BytecodeType::Lambda(params, ret) => params.isGeneric() || ret.isGeneric(),
-            BytecodeType::GenericAssoc(..) => true,
             BytecodeType::TypeAlias(..) => unreachable[Bool](),
         }
     }
