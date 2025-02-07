@@ -2,6 +2,7 @@ trait MyIterator {
     type Item;
     fn next(): Option[Self::Item];
 
+    @TraitObjectIgnore
     fn enumerate(): Enumerate[Self] {
         Enumerate[Self](it = self, idx = 0)
     }
@@ -50,4 +51,9 @@ fn main() {
     assert(Some[(Int, Int)]((0, 2)) == r.next());
     assert(Some[(Int, Int)]((1, 1)) == r.next());
     assert(r.next().isNone());
+
+    let it = Range(2) as MyIterator[Item = Int];
+    assert(Some[Int](2) == it.next());
+    assert(Some[Int](1) == it.next());
+    assert(it.next().isNone());
 }

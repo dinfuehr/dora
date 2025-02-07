@@ -41,6 +41,7 @@ pub struct FunctionData {
     pub is_variadic: bool,
     pub is_force_inline: bool,
     pub is_never_inline: bool,
+    pub is_trait_object_ignore: bool,
     pub bytecode: Option<BytecodeFunction>,
     pub trait_method_impl: Option<FunctionId>,
 }

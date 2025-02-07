@@ -170,7 +170,7 @@ impl ElementAccess for TraitDefinition {
     }
 }
 
-pub fn is_object_safe(sa: &Sema, trait_id: TraitDefinitionId) -> bool {
+pub fn is_trait_object_safe(sa: &Sema, trait_id: TraitDefinitionId) -> bool {
     let trait_ = sa.trait_(trait_id);
 
     for &alias_id in trait_.aliases() {
@@ -182,6 +182,10 @@ pub fn is_object_safe(sa: &Sema, trait_id: TraitDefinitionId) -> bool {
 
     for method_id in trait_.methods() {
         let method = sa.fct(*method_id);
+
+        if method.is_trait_object_ignore {
+            continue;
+        }
 
         if method.type_param_definition().has_own_type_params() {
             return false;
@@ -204,7 +208,7 @@ pub fn is_object_safe(sa: &Sema, trait_id: TraitDefinitionId) -> bool {
 
     let type_param_definition = trait_.type_param_definition();
     for bound in type_param_definition.bounds_for_self() {
-        if !is_object_safe(sa, bound.trait_id) {
+        if !is_trait_object_safe(sa, bound.trait_id) {
             return false;
         }
     }

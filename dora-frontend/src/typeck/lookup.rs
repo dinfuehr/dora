@@ -20,12 +20,16 @@ pub fn find_method_call_candidates(
     if let SourceType::TraitObject(trait_id, trait_type_params, _bindings) = object_type.clone() {
         let trait_ = sa.trait_(trait_id);
         if let Some(fct_id) = trait_.get_method(name, false) {
-            candidates.push(Candidate {
-                object_type: object_type.clone(),
-                container_type_params: trait_type_params,
-                fct_id,
-            });
-            return candidates;
+            let method = sa.fct(fct_id);
+
+            if !method.is_trait_object_ignore {
+                candidates.push(Candidate {
+                    object_type: object_type.clone(),
+                    container_type_params: trait_type_params,
+                    fct_id,
+                });
+                return candidates;
+            }
         }
 
         find_super_trait_methods_on_trait_object(

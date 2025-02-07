@@ -44,7 +44,7 @@ pub use self::src::{
 pub use self::structs::{
     StructDefinition, StructDefinitionField, StructDefinitionFieldId, StructDefinitionId,
 };
-pub use self::traits::{is_object_safe, TraitDefinition, TraitDefinitionId};
+pub use self::traits::{is_trait_object_safe, TraitDefinition, TraitDefinitionId};
 pub use self::tuples::create_tuple;
 pub use self::type_params::{new_identity_type_params, Bound, TypeParamDefinition, TypeParamId};
 pub use self::uses::{UseDefinition, UseDefinitionId};

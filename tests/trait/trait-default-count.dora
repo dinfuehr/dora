@@ -34,4 +34,10 @@ impl MyIterator for Range {
 fn main() {
     assert(Range(2).count() == 2);
     assert(Range(7).count() == 7);
+
+    let it = Range(3) as MyIterator[Item = Int];
+    assert(it.count() == 3);
+
+    let it = Range(7) as MyIterator[Item = Int];
+    assert(it.count() == 7);
 }

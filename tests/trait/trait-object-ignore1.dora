@@ -1,0 +1,16 @@
+//= ignore
+
+trait Foo {
+    fn one(): Int { 1 }
+    @TraitObjectIgnore
+    fn two(): Int { 2 }
+    fn three(): Int { 3 }
+}
+
+impl Foo for Int {}
+
+fn main() {
+    let x = 1 as Foo;
+    assert(x.one() == 1);
+    assert(x.three() == 3);
+}

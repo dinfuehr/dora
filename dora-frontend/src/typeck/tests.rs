@@ -3549,6 +3549,20 @@ fn trait_object_method_call() {
 }
 
 #[test]
+fn trait_object_method_call_with_ignore() {
+    err(
+        "
+        trait Foo { @TraitObjectIgnore fn bar(): Int32; }
+        fn f(x: Foo): Int32 {
+            x.bar()
+        }
+    ",
+        (4, 13),
+        ErrorMessage::UnknownMethod("Foo".into(), "bar".into()),
+    );
+}
+
+#[test]
 fn trait_object_cast() {
     ok("
         trait Foo { fn bar(): Int32; }

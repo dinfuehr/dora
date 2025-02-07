@@ -37,6 +37,7 @@ pub struct FctDefinition {
     pub is_internal: bool,
     pub is_force_inline: bool,
     pub is_never_inline: bool,
+    pub is_trait_object_ignore: bool,
     pub params: Params,
     pub return_type: ParsedType,
 
@@ -86,6 +87,7 @@ impl FctDefinition {
             is_internal: modifiers.is_internal,
             is_force_inline: modifiers.is_force_inline,
             is_never_inline: modifiers.is_never_inline,
+            is_trait_object_ignore: modifiers.is_trait_object_ignore,
             analysis: OnceCell::new(),
             type_param_definition: type_params,
             container_type_params: OnceCell::new(),
@@ -128,6 +130,7 @@ impl FctDefinition {
             is_internal: modifiers.is_internal,
             is_force_inline: modifiers.is_force_inline,
             is_never_inline: modifiers.is_never_inline,
+            is_trait_object_ignore: modifiers.is_trait_object_ignore,
             analysis: OnceCell::new(),
             type_param_definition: type_params,
             container_type_params: OnceCell::new(),

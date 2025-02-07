@@ -3,7 +3,7 @@ use std::collections::{HashMap, HashSet};
 
 use crate::access::{sym_accessible_from, trait_accessible_from};
 use crate::sema::{
-    implements_trait, is_object_safe, parent_element_or_self, AliasDefinitionId, Element,
+    implements_trait, is_trait_object_safe, parent_element_or_self, AliasDefinitionId, Element,
     SourceFileId, TraitDefinition, TraitDefinitionId, TypeParamDefinition,
 };
 use crate::sym::{ModuleSymTable, SymbolKind};
@@ -867,7 +867,7 @@ fn check_type_trait_object(
         sa.report(ctxt_element.file_id(), parsed_ty.span, msg);
     }
 
-    if !is_object_safe(sa, trait_id) {
+    if !is_trait_object_safe(sa, trait_id) {
         sa.report(
             ctxt_element.file_id(),
             parsed_ty.span,

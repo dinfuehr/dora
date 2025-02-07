@@ -211,6 +211,7 @@ fn create_functions(sa: &Sema, e: &mut Emitter) -> Vec<FunctionData> {
             is_variadic: fct.params.is_variadic(),
             is_force_inline: fct.is_force_inline,
             is_never_inline: fct.is_never_inline,
+            is_trait_object_ignore: fct.is_trait_object_ignore,
             bytecode: fct.bytecode.get().cloned(),
             trait_method_impl: fct
                 .trait_method_impl
@@ -245,6 +246,7 @@ fn create_functions(sa: &Sema, e: &mut Emitter) -> Vec<FunctionData> {
             is_variadic: false,
             is_force_inline: false,
             is_never_inline: false,
+            is_trait_object_ignore: false,
             bytecode: Some(global.bytecode().clone()),
             trait_method_impl: None,
         });

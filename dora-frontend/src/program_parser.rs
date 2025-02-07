@@ -701,7 +701,7 @@ impl<'x> visit::Visitor for TopLevelDeclaration<'x> {
             &node.modifiers,
             &[
                 Annotation::Internal,
-                Annotation::OptimizeImmediately,
+                Annotation::Optimize,
                 Annotation::Test,
                 Annotation::Pub,
                 Annotation::ForceInline,
@@ -919,7 +919,11 @@ fn find_elements_in_trait(
                     sa,
                     trait_.file_id,
                     &method_node.modifiers,
-                    &[Annotation::Static, Annotation::OptimizeImmediately],
+                    &[
+                        Annotation::Static,
+                        Annotation::Optimize,
+                        Annotation::TraitObjectIgnore,
+                    ],
                 );
 
                 let container_type_param_definition = trait_.type_param_definition().clone();
@@ -1226,7 +1230,7 @@ fn find_elements_in_extension(
                         Annotation::Internal,
                         Annotation::Static,
                         Annotation::Pub,
-                        Annotation::OptimizeImmediately,
+                        Annotation::Optimize,
                     ],
                 );
 
@@ -1296,6 +1300,7 @@ pub struct ParsedModifierList {
     pub is_internal: bool,
     pub is_force_inline: bool,
     pub is_never_inline: bool,
+    pub is_trait_object_ignore: bool,
 }
 
 impl ParsedModifierList {
@@ -1314,10 +1319,11 @@ enum Annotation {
     Pub,
     Static,
     Test,
-    OptimizeImmediately,
+    Optimize,
     ForceInline,
     NeverInline,
     Error,
+    TraitObjectIgnore,
 }
 
 impl Annotation {
@@ -1331,9 +1337,10 @@ impl Annotation {
             Annotation::Pub => "pub",
             Annotation::Static => "static",
             Annotation::Test => "test",
-            Annotation::OptimizeImmediately => "Optimize",
+            Annotation::Optimize => "Optimize",
             Annotation::ForceInline => "ForceInline",
             Annotation::NeverInline => "NeverInline",
+            Annotation::TraitObjectIgnore => "TraitObjectIgnore",
             Annotation::Error => "<error>",
         }
     }
@@ -1398,7 +1405,7 @@ fn check_modifier(
 
                 "Optimize" => {
                     parsed_modifiers.is_optimize_immediately = true;
-                    Annotation::OptimizeImmediately
+                    Annotation::Optimize
                 }
 
                 "internal" => {
@@ -1414,6 +1421,11 @@ fn check_modifier(
                 "NeverInline" => {
                     parsed_modifiers.is_never_inline = true;
                     Annotation::NeverInline
+                }
+
+                "TraitObjectIgnore" => {
+                    parsed_modifiers.is_trait_object_ignore = true;
+                    Annotation::TraitObjectIgnore
                 }
 
                 _ => {
