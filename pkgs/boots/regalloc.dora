@@ -1022,7 +1022,7 @@ fn computeRecordLayout(ci: CompilationInfo, fieldTypes: Array[BytecodeType], sta
                 }
             }
             BytecodeType::Enum(enum_id, type_params) => {
-                let layout = computeEnumLayout(enum_id, type_params);
+                let layout = computeEnumLayout(ci, enum_id, type_params);
 
                 match layout {
                     EnumLayout::Int32 => {
@@ -1055,13 +1055,13 @@ pub fn computeClassLayout(class_id: ClassId, type_params: Array[BytecodeType]): 
     unreachable[RecordLayout]()
 }
 
-pub fn computeEnumLayout(enum_id: EnumId, type_params: Array[BytecodeType]): EnumLayout {
+pub fn computeEnumLayout(ci: CompilationInfo, enum_id: EnumId, type_params: Array[BytecodeType]): EnumLayout {
     assert(!type_params.isGeneric());
     let enumData = iface::getEnumData(enum_id);
 
     if isSimpleEnumeration(enumData) {
         EnumLayout::Int32
-    } else if isPointerOrNull(enumData, type_params) {
+    } else if isPointerOrNull(ci, enumData, type_params) {
         let null_is_first = enumData.variants(0).fields.isEmpty();
         EnumLayout::PtrOrNull(EnumPtrOrNullLayout(null_is_first))
     } else {
@@ -1079,7 +1079,7 @@ fn isSimpleEnumeration(enum_data: EnumData): Bool {
     true
 }
 
-fn isPointerOrNull(enum_data: EnumData, type_params: Array[BytecodeType]): Bool {
+fn isPointerOrNull(ci: CompilationInfo, enum_data: EnumData, type_params: Array[BytecodeType]): Bool {
     if enum_data.variants.size() != 2 {
         return false;
     }
@@ -1105,11 +1105,11 @@ fn isPointerOrNull(enum_data: EnumData, type_params: Array[BytecodeType]): Bool 
         return false;
     }
 
-    let ty = ptr_variant.fields(0).specialize(type_params);
-    isReference(ty)
+    let ty = specializeTy(ci, ptr_variant.fields(0), type_params);
+    isReference(ci, ty)
 }
 
-pub fn isReference(ty: BytecodeType): Bool {
+pub fn isReference(ci: CompilationInfo, ty: BytecodeType): Bool {
     match ty {
         BytecodeType::Unit
         | BytecodeType::Bool
@@ -1128,7 +1128,7 @@ pub fn isReference(ty: BytecodeType): Bool {
         BytecodeType::This
         | BytecodeType::TypeParam(_) => unreachable[Bool](),
         BytecodeType::Enum(enum_id, type_params) => {
-            let layout = computeEnumLayout(enum_id, type_params);
+            let layout = computeEnumLayout(ci, enum_id, type_params);
             match layout {
                 EnumLayout::Int32 => false,
                 EnumLayout::PtrOrNull(_) | EnumLayout::Tagged => true,

@@ -291,45 +291,6 @@ impl BytecodeType {
             _ => false,
         }
     }
-
-    pub fn specialize(type_params: Array[BytecodeType]): BytecodeType {
-        if type_params.isEmpty() || !self.isGeneric() {
-            return self;
-        }
-
-        match self {
-            BytecodeType::Unit
-            | BytecodeType::Ptr
-            | BytecodeType::UInt8
-            | BytecodeType::Bool
-            | BytecodeType::Char
-            | BytecodeType::Int32
-            | BytecodeType::Int64
-            | BytecodeType::Float32
-            | BytecodeType::Float64
-            | BytecodeType::This => self,
-            BytecodeType::Struct(struct_id, struct_type_params) => {
-                BytecodeType::Struct(struct_id, struct_type_params.specialize(type_params))
-            },
-            BytecodeType::Enum(enum_id, enum_type_params) => {
-                BytecodeType::Enum(enum_id, enum_type_params.specialize(type_params))
-            },
-            BytecodeType::Class(class_id, class_type_params) => {
-                BytecodeType::Class(class_id, class_type_params.specialize(type_params))
-            },
-            BytecodeType::TraitObject(trait_id, trait_type_params, assoc_types) => {
-                BytecodeType::TraitObject(trait_id, trait_type_params.specialize(type_params), assoc_types.specialize(type_params))
-            },
-            BytecodeType::Tuple(subtypes) => {
-                BytecodeType::Tuple(subtypes.specialize(type_params))
-            },
-            BytecodeType::TypeParam(idx) => type_params(idx.toInt64()),
-            BytecodeType::Lambda(params, ret) => {
-                BytecodeType::Lambda(params.specialize(type_params), ret.specialize(type_params))
-            },
-            BytecodeType::TypeAlias(..) | BytecodeType::Assoc(..) | BytecodeType::GenericAssoc(..) => unreachable[BytecodeType](),
-        }
-    }
 }
 
 impl Equals for BytecodeType {
@@ -520,7 +481,6 @@ impl Stringable for BytecodeType {
 
 pub trait BytecodeTypeArrayExt {
     fn isGeneric(): Bool;
-    fn specialize(type_params: Array[BytecodeType]): Array[BytecodeType];
 }
 
 impl BytecodeTypeArrayExt for Array[BytecodeType] {
@@ -532,20 +492,6 @@ impl BytecodeTypeArrayExt for Array[BytecodeType] {
         }
 
         false
-    }
-
-    fn specialize(type_params: Array[BytecodeType]): Array[BytecodeType] {
-        if type_params.isEmpty() || !self.isGeneric() {
-            return self;
-        }
-
-        let result = Array[BytecodeType]::fill(self.size(), BytecodeType::Unit);
-
-        for idx in std::range(0, self.size()) {
-            result(idx) = self(idx).specialize(type_params);
-        }
-
-        result
     }
 }
 

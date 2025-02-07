@@ -2570,7 +2570,7 @@ impl SsaGen {
             self.current().appendInst(dest);
 
             self.storeArrayNested(ty, arr, dest, 0i32, value, 0i32);
-        } else if config.needsWriteBarrier && isReference(ty) {
+        } else if config.needsWriteBarrier && isReference(self.ci, ty) {
             let inst = graph::createStoreArrayWbInst(arr, index, value, Type::Ptr);
             self.current().appendInst(inst);
         } else {
@@ -2594,7 +2594,7 @@ impl SsaGen {
             for field in tupleLayout.fields {
                 self.storeArrayNested(field.ty, array, dest, destOffset + field.offset, src, srcOffset + field.offset);
             }
-        } else if config.needsWriteBarrier && isReference(ty) {
+        } else if config.needsWriteBarrier && isReference(self.ci, ty) {
             let ty = Type::Ptr;
             let value = graph::createLoadInst(src, srcOffset, InstExtraData::None, ty);
             self.current().appendInst(value);
@@ -2619,7 +2619,7 @@ impl SsaGen {
             self.copyStruct(ty, dest, destInfo, destOffset, value, InstExtraData::None, 0i32, heap);
         } else if ty.isTuple() {
             self.copyTuple(ty, dest, destInfo, destOffset, value, InstExtraData::None, 0i32, heap);
-        } else if heap && config.needsWriteBarrier && isReference(ty) {
+        } else if heap && config.needsWriteBarrier && isReference(self.ci, ty) {
             let inst = graph::createStoreWbInst(dest, destInfo, destOffset, value, Type::Ptr);
             self.current().appendInst(inst);
         } else {
@@ -2635,7 +2635,7 @@ impl SsaGen {
             self.copyStruct(ty, dest, InstExtraData::None, destOffset, src, srcInfo, srcOffset, heap);
         } else if ty.isTuple() {
             self.copyTuple(ty, dest, InstExtraData::None, destOffset, src, srcInfo, srcOffset, heap);
-        } else if heap && config.needsWriteBarrier && isReference(ty) {
+        } else if heap && config.needsWriteBarrier && isReference(self.ci, ty) {
             let ty = Type::Ptr;
             let value = graph::createLoadInst(src, srcOffset, srcInfo, ty);
             self.current().appendInst(value);
@@ -2683,7 +2683,7 @@ impl SsaGen {
 
     fn computeEnumLayout(enum_id: EnumId, type_params: Array[BytecodeType]): EnumLayout {
         let type_params = self.specializeArray(type_params);
-        regalloc::computeEnumLayout(enum_id, type_params)
+        regalloc::computeEnumLayout(self.ci, enum_id, type_params)
     }
 
     fn setCurrentInlinedLocation(inst: Inst) {
