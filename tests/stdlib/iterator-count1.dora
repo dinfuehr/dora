@@ -1,0 +1,9 @@
+//= ignore
+
+use std::traits::IntoIterator;
+use std::traits::Iterator;
+
+fn main() {
+    let x = Vec[Int]::new(1, 2, 3, 4, 5);
+    assert(x.iter().count() == 5);
+}

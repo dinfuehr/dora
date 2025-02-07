@@ -117,6 +117,8 @@ pub fn setup_prelude(sa: &mut Sema) {
         "std::unreachable",
         "std::assert",
         "std::primitives::Result",
+        "std::traits::IntoIterator",
+        "std::traits::Iterator",
     ];
 
     let mut prelude_table = SymTable::new();
@@ -124,7 +126,7 @@ pub fn setup_prelude(sa: &mut Sema) {
     for name in &symbols {
         let sym = resolve_path(sa, name);
         let name = final_path_name(sa, name);
-        let old_sym = prelude_table.insert(name, sym);
+        let old_sym = prelude_table.insert_use(name, Visibility::Module, sym);
         assert!(old_sym.is_none());
     }
 
