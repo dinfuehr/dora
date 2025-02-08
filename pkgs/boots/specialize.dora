@@ -1,8 +1,9 @@
 use package::bytecode::BytecodeType;
 use package::interface as iface;
 use package::CompilationInfo;
+use package::compilation::{FunctionCompilationInfo, SpecializeSelf};
 
-pub fn specializeTy(ci: CompilationInfo, ty: BytecodeType, type_params: Array[BytecodeType]): BytecodeType {
+pub fn specializeTy(ci: CompilationInfo, specializeSelf: Option[SpecializeSelf], ty: BytecodeType, type_params: Array[BytecodeType]): BytecodeType {
     if !ty.isGeneric() {
         return ty;
     }
@@ -18,36 +19,36 @@ pub fn specializeTy(ci: CompilationInfo, ty: BytecodeType, type_params: Array[By
         | BytecodeType::Float32
         | BytecodeType::Float64 => ty,
         BytecodeType::This => {
-            let extended_ty = ci.specializeSelf.getOrPanic().extended_ty;
-            specializeTy(ci, extended_ty, type_params)
+            let extended_ty = specializeSelf.getOrPanic().extended_ty;
+            specializeTy(ci, specializeSelf, extended_ty, type_params)
         }
         BytecodeType::Struct(struct_id, struct_type_params) => {
-            BytecodeType::Struct(struct_id, specializeArray(ci, struct_type_params, type_params))
+            BytecodeType::Struct(struct_id, specializeArray(ci, specializeSelf, struct_type_params, type_params))
         },
         BytecodeType::Enum(enum_id, enum_type_params) => {
-            BytecodeType::Enum(enum_id, specializeArray(ci, enum_type_params, type_params))
+            BytecodeType::Enum(enum_id, specializeArray(ci, specializeSelf, enum_type_params, type_params))
         },
         BytecodeType::Class(class_id, class_type_params) => {
-            BytecodeType::Class(class_id, specializeArray(ci, class_type_params, type_params))
+            BytecodeType::Class(class_id, specializeArray(ci, specializeSelf, class_type_params, type_params))
         },
         BytecodeType::TraitObject(trait_id, trait_type_params, assoc_types) => {
-            BytecodeType::TraitObject(trait_id, specializeArray(ci, trait_type_params, type_params), specializeArray(ci, assoc_types, type_params))
+            BytecodeType::TraitObject(trait_id, specializeArray(ci, specializeSelf, trait_type_params, type_params), specializeArray(ci, specializeSelf, assoc_types, type_params))
         },
         BytecodeType::Tuple(subtypes) => {
-            BytecodeType::Tuple(specializeArray(ci, subtypes, type_params))
+            BytecodeType::Tuple(specializeArray(ci, specializeSelf, subtypes, type_params))
         },
         BytecodeType::TypeParam(idx) => type_params(idx.toInt64()),
         BytecodeType::Lambda(params, ret) => {
-            BytecodeType::Lambda(specializeArray(ci, params, type_params), specializeTy(ci, ret, type_params))
+            BytecodeType::Lambda(specializeArray(ci, specializeSelf, params, type_params), specializeTy(ci, specializeSelf, ret, type_params))
         },
         BytecodeType::GenericAssoc(..) | BytecodeType::Assoc(..) => {
-            iface::specializeAssocTy(ci, ty, type_params)
+            iface::specializeAssocTy(ci, specializeSelf, ty, type_params)
         }
         BytecodeType::TypeAlias(..) => unreachable[BytecodeType](),
     }
 }
 
-pub fn specializeArray(ci: CompilationInfo, array: Array[BytecodeType], type_params: Array[BytecodeType]): Array[BytecodeType] {
+pub fn specializeArray(ci: CompilationInfo, specializeSelf: Option[SpecializeSelf], array: Array[BytecodeType], type_params: Array[BytecodeType]): Array[BytecodeType] {
     if array.isEmpty() || !array.isGeneric() {
         return array;
     }
@@ -55,7 +56,7 @@ pub fn specializeArray(ci: CompilationInfo, array: Array[BytecodeType], type_par
     let result = Array[BytecodeType]::fill(array.size(), BytecodeType::Unit);
 
     for idx in std::range(0, array.size()) {
-        result(idx) = specializeTy(ci, array(idx), type_params);
+        result(idx) = specializeTy(ci, specializeSelf, array(idx), type_params);
     }
 
     result

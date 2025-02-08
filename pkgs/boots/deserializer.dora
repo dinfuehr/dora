@@ -1,8 +1,8 @@
 use package::interface::{Address, Config, StructData, EnumData, EnumVariantData, CompilationMode};
 use package::bytecode::{AliasId, BytecodeFunction, BytecodeTraitType, BytecodeType, ClassId, ConstPoolEntry, EnumId, FunctionId, ClassFieldId, ImplId, Location, StructId, StructFieldId, TraitId};
 use package::bytecode::opcode as opc;
-use package::compilation::{CompilationInfo, SpecializeSelf};
-use package::interface::{FunctionInliningData, FunctionInliningInfo, Architecture};
+use package::compilation::{CompilationInfo, FunctionCompilationInfo, SpecializeSelf};
+use package::interface::{FunctionBytecodeData, FunctionInliningInfo, Architecture};
 
 pub fn decodeConfig(encoded: Array[UInt8]): Config {
     let reader = ByteReader::new(encoded);
@@ -44,19 +44,21 @@ pub fn decodeConfig(encoded: Array[UInt8]): Config {
     )
 }
 
-pub fn decodeCompilationInfo(reader: ByteReader): CompilationInfo {
+pub fn decodeCompilationInfo(reader: ByteReader): (CompilationInfo, FunctionCompilationInfo) {
     let bc = decodeBytecodeFunction(reader);
     let fctId = FunctionId(reader.readInt32());
     let typeParams = decodeTypeParams(reader);
     let returnType = decodeBytecodeType(reader);
-    let specializeSelf = decodeSpecializeSelf(reader);
+    let specializeSelf = decodeOptionalSpecializeSelf(reader);
     let loc = decodeLocation(reader);
     let compilationMode = decodeCompilationMode(reader);
     let emitDebug = reader.readBool();
     let emitGraph = reader.readBool();
     let emitHtml = reader.readBool();
     let emitCodeComments = reader.readBool();
-    CompilationInfo::new(bc, fctId, typeParams, returnType, specializeSelf, loc, compilationMode, emitDebug, emitGraph, emitHtml, emitCodeComments)
+    let ci = CompilationInfo::new(fctId, loc, compilationMode, emitDebug, emitGraph, emitHtml, emitCodeComments);
+    let fctData = FunctionCompilationInfo(fctId, bc, returnType, typeParams, specializeSelf);
+    (ci, fctData)
 }
 
 pub fn decodeStructData(reader: ByteReader): StructData {
@@ -133,7 +135,7 @@ fn decodeRegisters(reader: ByteReader): Array[BytecodeType] {
     data
 }
 
-pub fn decodeSpecializeSelf(reader: ByteReader): Option[SpecializeSelf] {
+pub fn decodeOptionalSpecializeSelf(reader: ByteReader): Option[SpecializeSelf] {
     if reader.readBool() {
         let impl_id = ImplId(reader.readInt32());
         let trait_ty = decodeBytecodeTraitType(reader);
@@ -410,11 +412,12 @@ pub fn decodeBytecodeTypeArray(reader: ByteReader): Array[BytecodeType] {
     data
 }
 
-pub fn decodeFunctionInliningData(reader: ByteReader): FunctionInliningData {
+pub fn decodeFunctionBytecodeData(reader: ByteReader): FunctionBytecodeData {
     let bc = decodeBytecodeFunction(reader);
     let returnType = decodeBytecodeType(reader);
+    let specializeSelf = decodeOptionalSpecializeSelf(reader);
 
-    FunctionInliningData(bc, returnType)
+    FunctionBytecodeData(bc, returnType, specializeSelf)
 }
 
 pub fn decodeFunctionInliningInfo(reader: ByteReader): FunctionInliningInfo {

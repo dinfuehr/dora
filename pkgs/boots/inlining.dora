@@ -37,8 +37,8 @@ pub fn performInlining(ci: CompilationInfo, graph: Graph) {
 fn inline(ci: CompilationInfo, graph: Graph, inst: Inst, fctId: FunctionId, typeParams: Array[BytecodeType]) {
     let block = inst.getBlock();
     let inlined_function_id = ci.addInlinedFunction(fctId, typeParams, inst.getInlinedLocation());
-    let data = iface::getFunctionDataForInlining(fctId);
-    let fct_compilation_info = FunctionCompilationInfo(bc = data.bc, returnType = data.returnType, fctId = Some[FunctionId](fctId), typeParams);
+    let data = iface::getFunctionBytecodeDataForInlining(fctId);
+    let fct_compilation_info = FunctionCompilationInfo(bc = data.bc, returnType = data.returnType, fctId, typeParams, specializeSelf = data.specializeSelf);
     let newBlock = block.splitAfter(inst);
     let returnValue = graph_builder::addToGraph(ci, graph, inlined_function_id, fct_compilation_info, block, newBlock, inst);
     if returnValue.isSome() {

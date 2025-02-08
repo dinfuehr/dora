@@ -3,11 +3,7 @@ use package::interface as iface;
 use package::serializer::ByteWriter;
 
 pub class CompilationInfo {
-    pub bc: BytecodeFunction,
-    pub fctId: Option[FunctionId],
-    pub typeParams: Array[BytecodeType],
-    pub returnType: BytecodeType,
-    pub specializeSelf: Option[SpecializeSelf],
+    pub fctId: FunctionId,
     pub loc: Location,
     pub compilationMode: iface::CompilationMode,
     pub emitDebug: Bool,
@@ -23,11 +19,7 @@ pub class CompilationInfo {
 
 impl CompilationInfo {
     pub static fn new(
-        bc: BytecodeFunction,
-        id: FunctionId,
-        typeParams: Array[BytecodeType],
-        returnType: BytecodeType,
-        specializeSelf: Option[SpecializeSelf],
+        fctId: FunctionId,
         loc: Location,
         compilationMode: iface::CompilationMode,
         emitDebug: Bool,
@@ -36,11 +28,7 @@ impl CompilationInfo {
         emitCodeComments: Bool
     ): CompilationInfo {
         CompilationInfo(
-            bc,
-            fctId = Some[FunctionId](id),
-            typeParams,
-            returnType,
-            specializeSelf,
+            fctId,
             loc,
             compilationMode,
             emitDebug,
@@ -60,13 +48,9 @@ impl CompilationInfo {
             return self.displayName.getOrPanic();
         }
 
-        if self.fctId.isSome() {
-            let name = iface::getFunctionDisplayName(self.fctId.getOrPanic());
-            self.displayName = Some(name);
-            name
-        } else {
-            "<unknown>"
-        }
+        let name = iface::getFunctionDisplayName(self.fctId);
+        self.displayName = Some(name);
+        name
     }
 
     pub fn addInlinedFunction(fct_id: FunctionId, type_params: Array[BytecodeType], location: iface::InlinedLocation): iface::InlinedFunctionId {
@@ -86,10 +70,11 @@ impl CompilationInfo {
 }
 
 pub class FunctionCompilationInfo {
-    pub fctId: Option[FunctionId],
+    pub fctId: FunctionId,
     pub bc: BytecodeFunction,
     pub returnType: BytecodeType,
     pub typeParams: Array[BytecodeType],
+    pub specializeSelf: Option[SpecializeSelf],
 }
 
 pub struct SpecializeSelf {

@@ -2,7 +2,7 @@ use std::HashMap;
 use std::{BitSet, BitVec};
 
 use package::bytecode::opcode as opc;
-use package::compilation::{FunctionCompilationInfo, CompilationInfo};
+use package::compilation::{FunctionCompilationInfo, CompilationInfo, SpecializeSelf};
 use package::graph;
 use package::graph::{AllocationData, Block, ClassFieldInfo, Graph, Inst, InstExtraData, Op};
 use package::graph::ty::Type;
@@ -17,22 +17,22 @@ use package::regalloc::{EnumLayout, isReference, RecordLayout};
 use package::regalloc;
 use package::specialize::{specializeArray, specializeTy};
 
-pub fn createGraph(ci: CompilationInfo, analysis: BytecodeAnalysis): Graph {
+pub fn createGraph(ci: CompilationInfo, fct: FunctionCompilationInfo, analysis: BytecodeAnalysis): Graph {
     let graph = Graph::new();
 
     // Create basic blocks and fill with instructions.
-    let ssagen = SsaGen::new(ci, graph, analysis);
+    let ssagen = SsaGen::new(ci, graph, fct, analysis);
     ssagen.run();
 
     graph
 }
 
-pub fn addToGraph(ci: CompilationInfo, graph: Graph, inlined_function_id: InlinedFunctionId, fct_compilation_info: FunctionCompilationInfo, entryBlock: Block, exitBlock: Block, callInst: Inst): Option[Inst] {
+pub fn addToGraph(ci: CompilationInfo, graph: Graph, inlined_function_id: InlinedFunctionId, fct: FunctionCompilationInfo, entryBlock: Block, exitBlock: Block, callInst: Inst): Option[Inst] {
     // Analyze basic block starts/ends.
-    let analysis = analyzeBytecode(fct_compilation_info.bc);
+    let analysis = analyzeBytecode(fct.bc);
 
     // Create basic blocks and fill with instructions.
-    let ssagen = SsaGen::newForInlining(ci, graph, inlined_function_id, analysis, fct_compilation_info.bc, fct_compilation_info.typeParams, fct_compilation_info.returnType, entryBlock, exitBlock);
+    let ssagen = SsaGen::newForInlining(ci, graph, inlined_function_id, fct, analysis, entryBlock, exitBlock);
     ssagen.runInline(callInst);
 
     ssagen.returnValue
@@ -45,6 +45,7 @@ class SsaGen {
     bc: BytecodeFunction,
     typeParams: Array[BytecodeType],
     returnType: BytecodeType,
+    specializeSelf: Option[SpecializeSelf],
     analysis: BytecodeAnalysis,
     currentBlock: Option[Block],
     offset: Int32,
@@ -76,19 +77,20 @@ class SsaGen {
 }
 
 impl SsaGen {
-    static fn new(ci: CompilationInfo, graph: Graph, analysis: BytecodeAnalysis): SsaGen {
+    static fn new(ci: CompilationInfo, graph: Graph, fct: FunctionCompilationInfo, analysis: BytecodeAnalysis): SsaGen {
         SsaGen(
             ci,
             graph,
             inlined_function_id = None[InlinedFunctionId],
-            bc = ci.bc,
-            typeParams = ci.typeParams,
-            returnType = ci.returnType,
+            bc = fct.bc,
+            typeParams = fct.typeParams,
+            returnType = fct.returnType,
+            specializeSelf = fct.specializeSelf,
             analysis,
             currentBlock = None[Block],
             offset = 0i32,
-            currentDef = RegisterTable::new(ci.bc.registers.size()),
-            blocks = Array[Option[Block]]::fill(ci.bc.code.size(), None[Block]),
+            currentDef = RegisterTable::new(fct.bc.registers.size()),
+            blocks = Array[Option[Block]]::fill(fct.bc.code.size(), None[Block]),
             blockPositions = HashMap[Block, Int32]::new(),
             entryBlock = None[Block],
             exitBlock = None[Block],
@@ -102,19 +104,20 @@ impl SsaGen {
         )
     }
 
-    static fn newForInlining(ci: CompilationInfo, graph: Graph, inlined_function_id: InlinedFunctionId, analysis: BytecodeAnalysis, bc: BytecodeFunction, typeParams: Array[BytecodeType], returnType: BytecodeType, entryBlock: Block, exitBlock: Block): SsaGen {
+    static fn newForInlining(ci: CompilationInfo, graph: Graph, inlined_function_id: InlinedFunctionId, fct: FunctionCompilationInfo, analysis: BytecodeAnalysis, entryBlock: Block, exitBlock: Block): SsaGen {
         SsaGen(
             ci,
             graph,
             inlined_function_id = Some[InlinedFunctionId](inlined_function_id),
-            bc,
-            typeParams,
-            returnType,
+            bc = fct.bc,
+            typeParams = fct.typeParams,
+            returnType = fct.returnType,
+            specializeSelf = fct.specializeSelf,
             analysis,
             currentBlock = None[Block],
             offset = 0i32,
-            currentDef = RegisterTable::new(bc.registers.size()),
-            blocks = Array[Option[Block]]::fill(bc.code.size(), None[Block]),
+            currentDef = RegisterTable::new(fct.bc.registers.size()),
+            blocks = Array[Option[Block]]::fill(fct.bc.code.size(), None[Block]),
             blockPositions = HashMap[Block, Int32]::new(),
             entryBlock = Some[Block](entryBlock),
             exitBlock = Some[Block](exitBlock),
@@ -1470,7 +1473,7 @@ impl SsaGen {
             }
 
             ConstPoolEntry::GenericSelf(trait_fct_id, trait_type_params) => {
-                let extended_ty = self.ci.specializeSelf.getOrPanic().extended_ty;
+                let extended_ty = self.specializeSelf.getOrPanic().extended_ty;
                 let extended_ty = self.specializeTy(extended_ty);
                 (extended_ty, trait_fct_id, trait_type_params)
             }
@@ -2570,7 +2573,7 @@ impl SsaGen {
             self.current().appendInst(dest);
 
             self.storeArrayNested(ty, arr, dest, 0i32, value, 0i32);
-        } else if config.needsWriteBarrier && isReference(self.ci, ty) {
+        } else if config.needsWriteBarrier && isReference(self.ci, self.specializeSelf, ty) {
             let inst = graph::createStoreArrayWbInst(arr, index, value, Type::Ptr);
             self.current().appendInst(inst);
         } else {
@@ -2594,7 +2597,7 @@ impl SsaGen {
             for field in tupleLayout.fields {
                 self.storeArrayNested(field.ty, array, dest, destOffset + field.offset, src, srcOffset + field.offset);
             }
-        } else if config.needsWriteBarrier && isReference(self.ci, ty) {
+        } else if config.needsWriteBarrier && isReference(self.ci, self.specializeSelf, ty) {
             let ty = Type::Ptr;
             let value = graph::createLoadInst(src, srcOffset, InstExtraData::None, ty);
             self.current().appendInst(value);
@@ -2619,7 +2622,7 @@ impl SsaGen {
             self.copyStruct(ty, dest, destInfo, destOffset, value, InstExtraData::None, 0i32, heap);
         } else if ty.isTuple() {
             self.copyTuple(ty, dest, destInfo, destOffset, value, InstExtraData::None, 0i32, heap);
-        } else if heap && config.needsWriteBarrier && isReference(self.ci, ty) {
+        } else if heap && config.needsWriteBarrier && isReference(self.ci, self.specializeSelf, ty) {
             let inst = graph::createStoreWbInst(dest, destInfo, destOffset, value, Type::Ptr);
             self.current().appendInst(inst);
         } else {
@@ -2635,7 +2638,7 @@ impl SsaGen {
             self.copyStruct(ty, dest, InstExtraData::None, destOffset, src, srcInfo, srcOffset, heap);
         } else if ty.isTuple() {
             self.copyTuple(ty, dest, InstExtraData::None, destOffset, src, srcInfo, srcOffset, heap);
-        } else if heap && config.needsWriteBarrier && isReference(self.ci, ty) {
+        } else if heap && config.needsWriteBarrier && isReference(self.ci, self.specializeSelf, ty) {
             let ty = Type::Ptr;
             let value = graph::createLoadInst(src, srcOffset, srcInfo, ty);
             self.current().appendInst(value);
@@ -2673,17 +2676,17 @@ impl SsaGen {
 
     fn computeStructLayout(struct_id: StructId, type_params: Array[BytecodeType]): RecordLayout {
         let type_params = self.specializeArray(type_params);
-        regalloc::computeStructLayout(self.ci, struct_id, type_params)
+        regalloc::computeStructLayout(self.ci, self.specializeSelf, struct_id, type_params)
     }
 
     fn computeTupleLayout(subtypes: Array[BytecodeType]): RecordLayout {
         let subtypes = self.specializeArray(subtypes);
-        regalloc::computeTupleLayout(self.ci, subtypes)
+        regalloc::computeTupleLayout(self.ci, self.specializeSelf, subtypes)
     }
 
     fn computeEnumLayout(enum_id: EnumId, type_params: Array[BytecodeType]): EnumLayout {
         let type_params = self.specializeArray(type_params);
-        regalloc::computeEnumLayout(self.ci, enum_id, type_params)
+        regalloc::computeEnumLayout(self.ci, self.specializeSelf, enum_id, type_params)
     }
 
     fn setCurrentInlinedLocation(inst: Inst) {
@@ -2709,11 +2712,11 @@ impl SsaGen {
     }
 
     fn specializeTy(ty: BytecodeType): BytecodeType {
-        specializeTy(self.ci, ty, self.typeParams)
+        specializeTy(self.ci, self.specializeSelf, ty, self.typeParams)
     }
 
     fn specializeArray(array: Array[BytecodeType]): Array[BytecodeType] {
-        specializeArray(self.ci, array, self.typeParams)
+        specializeArray(self.ci, self.specializeSelf, array, self.typeParams)
     }
 
     fn graphTy(ty: BytecodeType): Type {

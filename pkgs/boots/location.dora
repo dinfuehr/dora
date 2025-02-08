@@ -1,13 +1,13 @@
 use package::assembler::{FloatRegister, Register};
 use package::bytecode::data::BytecodeType;
 use package::codegen::CodeGen;
-use package::compilation::CompilationInfo;
+use package::compilation::{CompilationInfo, FunctionCompilationInfo};
 use package::graph::{Graph, InputOutputOverlap, Inst, Location, LocationData, Op, Operand, Policy, StackSlot, Type};
 use package::interface::{config, PTR_SIZE, Architecture};
 use package::specialize::specializeTy;
 
-pub fn ensureLocationData(graph: Graph, codegen: CodeGen, ci: CompilationInfo): Int32 {
-    let argumentLocations = computeArgumentLocations(codegen, ci);
+pub fn ensureLocationData(graph: Graph, codegen: CodeGen, ci: CompilationInfo, fct: FunctionCompilationInfo): Int32 {
+    let argumentLocations = computeArgumentLocations(codegen, ci, fct);
     codegen.setArgumentLocations(argumentLocations);
 
     let annotator = LocationAnnotation(
@@ -461,8 +461,8 @@ pub class ArgumentLocations {
     pub locations: Array[Location],
 }
 
-fn computeArgumentLocations(codegen: CodeGen, ci: CompilationInfo): ArgumentLocations {
-    let arguments = ci.bc.arguments.toInt64();
+fn computeArgumentLocations(codegen: CodeGen, ci: CompilationInfo, fct: FunctionCompilationInfo): ArgumentLocations {
+    let arguments = fct.bc.arguments.toInt64();
     let locations = Vec[Location]::new();
     locations.reserve(arguments);
     let mut gp_idx = 0;
@@ -472,7 +472,7 @@ fn computeArgumentLocations(codegen: CodeGen, ci: CompilationInfo): ArgumentLoca
     let gp_argument_registers = codegen.argumentRegisters();
     let fp_argument_registers = codegen.argumentFloatRegisters();
 
-    let retTy = specializeTy(ci, ci.returnType, ci.typeParams);
+    let retTy = specializeTy(ci, fct.specializeSelf, fct.returnType, fct.typeParams);
 
     if retTy.isStruct() || retTy.isTuple() {
         locations.push(gp_argument_registers(gp_idx).toLocation());
@@ -480,8 +480,8 @@ fn computeArgumentLocations(codegen: CodeGen, ci: CompilationInfo): ArgumentLoca
     }
 
     for idx in std::range(0, arguments) {
-        let ty = ci.bc.registers(idx);
-        let ty = specializeTy(ci, ty, ci.typeParams);
+        let ty = fct.bc.registers(idx);
+        let ty = specializeTy(ci, fct.specializeSelf, ty, fct.typeParams);
 
         if ty.isUnit() {
             continue;

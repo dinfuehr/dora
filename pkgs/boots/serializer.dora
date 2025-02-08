@@ -244,7 +244,7 @@ pub fn encodeBytecodeTraitType(writer: ByteWriter, traitTy: BytecodeTraitType) {
     }
 }
 
-pub fn encodeSpecializeSelf(writer: ByteWriter, specializeSelf: Option[SpecializeSelf]) {
+pub fn encodeOptionalSpecializeSelf(writer: ByteWriter, specializeSelf: Option[SpecializeSelf]) {
     if specializeSelf is Some(specializeSelf) {
         writer.emitBool(true);
         writer.emitInt32(specializeSelf.impl_id.0);

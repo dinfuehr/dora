@@ -3,10 +3,11 @@ use std::convert::TryInto;
 use byteorder::{LittleEndian, WriteBytesExt};
 
 use crate::boots::data::InstructionSet;
+use crate::compiler::codegen::get_bytecode;
 use crate::compiler::{CompilationData, CompilationMode};
 use crate::gc::Address;
 use crate::mirror::{byte_array_from_buffer, Object, Ref, UInt8Array};
-use crate::{Shape, VM};
+use crate::{Shape, SpecializeSelf, VM};
 use dora_bytecode::{
     BytecodeFunction, BytecodeTypeArray, ConstPoolEntry, ConstPoolOpcode, EnumData, FunctionData,
     Location, StructData,
@@ -69,7 +70,7 @@ pub fn allocate_encoded_compilation_info(
     byte_array_from_buffer(vm, buffer.data()).cast()
 }
 
-fn encode_compilation_info(
+pub(super) fn encode_compilation_info(
     vm: &VM,
     compilation_data: &CompilationData,
     mode: CompilationMode,
@@ -79,20 +80,32 @@ fn encode_compilation_info(
     buffer.emit_id(compilation_data.fct_id.0 as usize);
     encode_type_params(vm, &compilation_data.type_params, buffer);
     encode_bytecode_type(vm, &compilation_data.return_type, buffer);
-    if let Some(ref specialize_self) = compilation_data.specialize_self {
-        buffer.emit_bool(true);
-        buffer.emit_id(specialize_self.impl_id.0 as usize);
-        encode_bytecode_trait_type(vm, &specialize_self.trait_ty, buffer);
-        encode_bytecode_type(vm, &specialize_self.extended_ty, buffer);
-    } else {
-        buffer.emit_bool(false);
-    }
+    encode_optional_specialize_self(vm, &compilation_data.specialize_self, buffer);
     encode_location(&compilation_data.loc, buffer);
     buffer.emit_u8(mode as u8);
     buffer.emit_bool(compilation_data.emit_debug);
     buffer.emit_bool(compilation_data.emit_graph);
     buffer.emit_bool(compilation_data.emit_html);
     buffer.emit_bool(compilation_data.emit_code_comments);
+}
+
+pub fn encode_optional_specialize_self(
+    vm: &VM,
+    specialize_self: &Option<SpecializeSelf>,
+    buffer: &mut ByteBuffer,
+) {
+    if let Some(ref specialize_self) = specialize_self {
+        buffer.emit_bool(true);
+        encode_specialize_self(vm, specialize_self, buffer);
+    } else {
+        buffer.emit_bool(false);
+    }
+}
+
+pub fn encode_specialize_self(vm: &VM, specialize_self: &SpecializeSelf, buffer: &mut ByteBuffer) {
+    buffer.emit_id(specialize_self.impl_id.0 as usize);
+    encode_bytecode_trait_type(vm, &specialize_self.trait_ty, buffer);
+    encode_bytecode_type(vm, &specialize_self.extended_ty, buffer);
 }
 
 pub fn allocate_encoded_struct_data(vm: &VM, struct_: &StructData) -> Ref<UInt8Array> {
@@ -145,15 +158,11 @@ pub fn allocate_encoded_function_inlining_info(vm: &VM, fct: &FunctionData) -> R
     byte_array_from_buffer(vm, buffer.data()).cast()
 }
 
-pub fn allocate_encoded_function_inlining_data(vm: &VM, fct: &FunctionData) -> Ref<UInt8Array> {
-    let mut buffer = ByteBuffer::new();
-    encode_bytecode_function(
-        vm,
-        fct.bytecode.as_ref().expect("missing bytecode"),
-        &mut buffer,
-    );
-    encode_bytecode_type(vm, &fct.return_type, &mut buffer);
-    byte_array_from_buffer(vm, buffer.data()).cast()
+pub fn encode_function_bytecode_data(vm: &VM, fct: &FunctionData, buffer: &mut ByteBuffer) {
+    let (bc, specialize_self) = get_bytecode(vm, fct).expect("missing bytecode");
+    encode_bytecode_function(vm, bc, buffer);
+    encode_bytecode_type(vm, &fct.return_type, buffer);
+    encode_optional_specialize_self(vm, &specialize_self, buffer);
 }
 
 fn encode_bytecode_function(vm: &VM, bytecode_fct: &BytecodeFunction, buffer: &mut ByteBuffer) {

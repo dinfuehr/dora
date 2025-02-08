@@ -1,25 +1,25 @@
 use std::mem;
 use std::ptr;
 
-use deserializer::decode_specialize_self;
 use dora_bytecode::{
     display_fct, BytecodeTraitType, BytecodeTypeArray, ClassId, EnumId, FunctionId, FunctionKind,
     GlobalId, StructId, TraitId,
 };
 
-use crate::boots::deserializer::{decode_code_descriptor, ByteReader};
-use crate::boots::serializer::{allocate_encoded_compilation_info, ByteBuffer};
+use crate::boots::deserializer::{
+    decode_bytecode_type, decode_bytecode_type_array, decode_code_descriptor,
+    decode_specialize_self, ByteReader,
+};
+use crate::boots::serializer::{encode_compilation_info, ByteBuffer};
 use crate::cannon::codegen::get_function_address as get_function_address_raw;
 use crate::compiler::{CompilationData, CompilationMode};
 use crate::gc::Address;
 use crate::handle::{create_handle, Handle};
-use crate::mirror::{byte_array_from_buffer, Ref, Str, UInt8Array};
+use crate::mirror::{byte_array_from_buffer, Object, Ref, Str, UInt8Array};
 use crate::threads::current_thread;
 use crate::vm::compute_vtable_index;
 use crate::vm::specialize_ty;
 use crate::vm::{create_enum_instance, get_vm, impls, CodeDescriptor, FctImplementation, VM};
-
-use self::deserializer::{decode_bytecode_type, decode_bytecode_type_array};
 
 mod data;
 mod deserializer;
@@ -125,8 +125,8 @@ pub const BOOTS_FUNCTIONS: &[(&'static str, FctImplementation)] = &[
         N(get_function_info_for_inlining_raw as *const u8),
     ),
     (
-        "boots::interface::getFunctionDataForInliningRaw",
-        N(get_function_data_for_inlining_raw as *const u8),
+        "boots::interface::getFunctionBytecodeDataForInliningRaw",
+        N(get_function_bytecode_data_for_inlining_raw as *const u8),
     ),
 ];
 
@@ -136,11 +136,11 @@ pub fn compile(
     compilation_data: CompilationData,
     mode: CompilationMode,
 ) -> CodeDescriptor {
-    let encoded_compilation_info = create_handle(allocate_encoded_compilation_info(
-        vm,
-        &compilation_data,
-        mode,
-    ));
+    let mut buffer = ByteBuffer::new();
+    encode_compilation_info(vm, &compilation_data, mode, &mut buffer);
+
+    let encoded_compilation_info: Handle<Object> =
+        create_handle(byte_array_from_buffer(vm, buffer.data()).cast());
 
     let tld_address = current_thread().tld_address();
 
@@ -494,12 +494,14 @@ extern "C" fn get_function_info_for_inlining_raw(id: FunctionId) -> Ref<UInt8Arr
     serializer::allocate_encoded_function_inlining_info(vm, fct)
 }
 
-extern "C" fn get_function_data_for_inlining_raw(id: FunctionId) -> Ref<UInt8Array> {
+extern "C" fn get_function_bytecode_data_for_inlining_raw(id: FunctionId) -> Ref<UInt8Array> {
     let vm = get_vm();
 
     let fct = vm.fct(id);
 
-    serializer::allocate_encoded_function_inlining_data(vm, fct)
+    let mut buffer = ByteBuffer::new();
+    serializer::encode_function_bytecode_data(vm, fct, &mut buffer);
+    byte_array_from_buffer(vm, buffer.data()).cast()
 }
 
 extern "C" fn get_struct_data_raw(id: StructId) -> Ref<UInt8Array> {

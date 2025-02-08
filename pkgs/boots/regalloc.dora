@@ -4,7 +4,7 @@ use package::assembler::{FloatRegister, RegMap, RegSet, Register, RegisterType};
 use package::bytecode::{ClassId, EnumId, StructId, BytecodeType};
 use package::codegen::CodeGen;
 use package::codegen::STACK_FRAME_ALIGNMENT;
-use package::compilation::CompilationInfo;
+use package::compilation::{CompilationInfo, FunctionCompilationInfo, SpecializeSelf};
 use package::graph::{createMoveInst, createRematerializeInst, Block, Edge, Graph, Inst, InstSet, Operand, LocationData, Op, Location, opName, Policy, RegisterSnapshot, RegisterTrackers, Type};
 use package::interface::{EnumData, GcPoint};
 use package::interface as iface;
@@ -12,8 +12,8 @@ use package::location::ensureLocationData;
 use package::resolver::resolveMoves;
 use package::specialize::specializeTy;
 
-pub fn performRegisterAllocation(graph: Graph, codegen: CodeGen, ci: CompilationInfo) {
-    let maxOutgoingArgsSize = ensureLocationData(graph, codegen, ci);
+pub fn performRegisterAllocation(graph: Graph, codegen: CodeGen, ci: CompilationInfo, fct: FunctionCompilationInfo) {
+    let maxOutgoingArgsSize = ensureLocationData(graph, codegen, ci, fct);
 
     let allocator = SimpleRegisterAllocator::new(graph, codegen);
     allocator.allocateRegisters();
@@ -954,18 +954,18 @@ pub struct EnumPtrOrNullLayout {
     pub null_is_first: Bool,
 }
 
-pub fn computeTupleLayout(ci: CompilationInfo, subtypes: Array[BytecodeType]): RecordLayout {
+pub fn computeTupleLayout(ci: CompilationInfo, specializeSelf: Option[SpecializeSelf], subtypes: Array[BytecodeType]): RecordLayout {
     assert(!subtypes.isGeneric());
-    computeRecordLayout(ci, subtypes, 0i32, 1i32, Array[BytecodeType]::new())
+    computeRecordLayout(ci, specializeSelf, subtypes, 0i32, 1i32, Array[BytecodeType]::new())
 }
 
-pub fn computeStructLayout(ci: CompilationInfo, struct_id: StructId, type_params: Array[BytecodeType]): RecordLayout {
+pub fn computeStructLayout(ci: CompilationInfo, specializeSelf: Option[SpecializeSelf], struct_id: StructId, type_params: Array[BytecodeType]): RecordLayout {
     assert(!type_params.isGeneric());
     let structData = iface::getStructData(struct_id);
-    computeRecordLayout(ci, structData.fields, 0i32, 1i32, type_params)
+    computeRecordLayout(ci, specializeSelf, structData.fields, 0i32, 1i32, type_params)
 }
 
-fn computeRecordLayout(ci: CompilationInfo, fieldTypes: Array[BytecodeType], start_size: Int32, start_align: Int32, type_params: Array[BytecodeType]): RecordLayout {
+fn computeRecordLayout(ci: CompilationInfo, specializeSelf: Option[SpecializeSelf], fieldTypes: Array[BytecodeType], start_size: Int32, start_align: Int32, type_params: Array[BytecodeType]): RecordLayout {
     let mut record_size = start_size;
     let mut record_align = start_align;
     let fields = Vec[RecordField]::new();
@@ -982,7 +982,7 @@ fn computeRecordLayout(ci: CompilationInfo, fieldTypes: Array[BytecodeType], sta
     };
 
     for fieldTy in fieldTypes {
-        let fieldTy = specializeTy(ci, fieldTy, type_params);
+        let fieldTy = specializeTy(ci, specializeSelf, fieldTy, type_params);
         assert(!fieldTy.isGeneric());
 
         match fieldTy {
@@ -1008,21 +1008,21 @@ fn computeRecordLayout(ci: CompilationInfo, fieldTypes: Array[BytecodeType], sta
                 refs.push(offset);
             }
             BytecodeType::Struct(struct_id, type_params) => {
-                let layout = computeStructLayout(ci, struct_id, type_params);
+                let layout = computeStructLayout(ci, specializeSelf, struct_id, type_params);
                 let offset = addField(layout.size, layout.alignment, fieldTy);
                 for ref in layout.refs {
                     refs.push(offset + ref);
                 }
             }
             BytecodeType::Tuple(subtypes) => {
-                let layout = computeTupleLayout(ci, subtypes);
+                let layout = computeTupleLayout(ci, specializeSelf, subtypes);
                 let offset = addField(layout.size, layout.alignment, fieldTy);
                 for ref in layout.refs {
                     refs.push(offset + ref);
                 }
             }
             BytecodeType::Enum(enum_id, type_params) => {
-                let layout = computeEnumLayout(ci, enum_id, type_params);
+                let layout = computeEnumLayout(ci, specializeSelf, enum_id, type_params);
 
                 match layout {
                     EnumLayout::Int32 => {
@@ -1055,13 +1055,13 @@ pub fn computeClassLayout(class_id: ClassId, type_params: Array[BytecodeType]): 
     unreachable[RecordLayout]()
 }
 
-pub fn computeEnumLayout(ci: CompilationInfo, enum_id: EnumId, type_params: Array[BytecodeType]): EnumLayout {
+pub fn computeEnumLayout(ci: CompilationInfo, specializeSelf: Option[SpecializeSelf], enum_id: EnumId, type_params: Array[BytecodeType]): EnumLayout {
     assert(!type_params.isGeneric());
     let enumData = iface::getEnumData(enum_id);
 
     if isSimpleEnumeration(enumData) {
         EnumLayout::Int32
-    } else if isPointerOrNull(ci, enumData, type_params) {
+    } else if isPointerOrNull(ci, specializeSelf, enumData, type_params) {
         let null_is_first = enumData.variants(0).fields.isEmpty();
         EnumLayout::PtrOrNull(EnumPtrOrNullLayout(null_is_first))
     } else {
@@ -1079,7 +1079,7 @@ fn isSimpleEnumeration(enum_data: EnumData): Bool {
     true
 }
 
-fn isPointerOrNull(ci: CompilationInfo, enum_data: EnumData, type_params: Array[BytecodeType]): Bool {
+fn isPointerOrNull(ci: CompilationInfo, specializeSelf: Option[SpecializeSelf], enum_data: EnumData, type_params: Array[BytecodeType]): Bool {
     if enum_data.variants.size() != 2 {
         return false;
     }
@@ -1105,11 +1105,11 @@ fn isPointerOrNull(ci: CompilationInfo, enum_data: EnumData, type_params: Array[
         return false;
     }
 
-    let ty = specializeTy(ci, ptr_variant.fields(0), type_params);
-    isReference(ci, ty)
+    let ty = specializeTy(ci, specializeSelf, ptr_variant.fields(0), type_params);
+    isReference(ci, specializeSelf, ty)
 }
 
-pub fn isReference(ci: CompilationInfo, ty: BytecodeType): Bool {
+pub fn isReference(ci: CompilationInfo, specializeSelf: Option[SpecializeSelf], ty: BytecodeType): Bool {
     match ty {
         BytecodeType::Unit
         | BytecodeType::Bool
@@ -1128,7 +1128,7 @@ pub fn isReference(ci: CompilationInfo, ty: BytecodeType): Bool {
         BytecodeType::This
         | BytecodeType::TypeParam(_) => unreachable[Bool](),
         BytecodeType::Enum(enum_id, type_params) => {
-            let layout = computeEnumLayout(ci, enum_id, type_params);
+            let layout = computeEnumLayout(ci, specializeSelf, enum_id, type_params);
             match layout {
                 EnumLayout::Int32 => false,
                 EnumLayout::PtrOrNull(_) | EnumLayout::Tagged => true,

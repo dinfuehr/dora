@@ -3,7 +3,7 @@ use std::collections::HashMap;
 use package::assembler::{RegMap, RegSet, Register};
 use package::codegen::CodeGen;
 use package::codegen::{createCodeGen, generateCode};
-use package::compilation::CompilationInfo;
+use package::compilation::{CompilationInfo, FunctionCompilationInfo};
 use package::dead_code_elimination::performDeadCodeElimination;
 use package::dominator::buildDominatorTree;
 use package::graph::{createGotoInst, Block, Edge, Graph, Inst, LocationData, Op, opName};
@@ -44,7 +44,7 @@ mod serializer;
 mod sparse_set;
 mod specialize;
 
-pub fn compileFunction(ci: CompilationInfo): CodeDescriptor {
+pub fn compileFunction(ci: CompilationInfo, fct: FunctionCompilationInfo): CodeDescriptor {
     let htmlWriter: Option[HtmlWriter] = if ci.emitHtml {
         Some[HtmlWriter](createHtmlWriter(ci))
     } else {
@@ -52,13 +52,13 @@ pub fn compileFunction(ci: CompilationInfo): CodeDescriptor {
     };
 
     // Analyze basic block starts/ends.
-    let analysis = analyzeBytecode(ci.bc);
+    let analysis = analyzeBytecode(fct.bc);
 
     if htmlWriter.isSome() {
-        htmlWriter.getOrPanic().dumpBytecode(ci.bc, analysis);
+        htmlWriter.getOrPanic().dumpBytecode(fct.bc, analysis);
     }
 
-    let graph = createGraph(ci, analysis);
+    let graph = createGraph(ci, fct, analysis);
 
     let codegen = createCodeGen(ci, graph);
 
@@ -142,7 +142,7 @@ pub fn compileFunction(ci: CompilationInfo): CodeDescriptor {
         println(dumpGraph(Some[CompilationInfo](ci), graph, config.architecture));
     }
 
-    performRegisterAllocation(graph, codegen, ci);
+    performRegisterAllocation(graph, codegen, ci, fct);
 
     if htmlWriter.isSome() {
         htmlWriter.getOrPanic().dumpGraph("after register allocation", graph);

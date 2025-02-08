@@ -3,7 +3,7 @@ use std::traits::IntoIterator;
 
 use package::bytecode::{BytecodeFunction, BytecodeTraitType, BytecodeType, ConstPoolId, FunctionId, Location};
 use package::bytecode::{ClassId, EnumId, ClassFieldId, GlobalId, ImplId, StructId, StructFieldId, TraitId};
-use package::compilation::CompilationInfo;
+use package::compilation::{CompilationInfo, SpecializeSelf};
 use package::deserializer::decodeBytecodeFunction;
 use package::deserializer::{decodeCompilationInfo, decodeStructData, decodeEnumData};
 use package::deserializer::decodeConfig;
@@ -13,7 +13,7 @@ use package::codegen::x64::CodeGenX64;
 use package::codegen::arm64::CodeGenArm64;
 use package::compileFunction;
 use package::graph::TraitObjectInfo;
-use package::serializer::{ByteWriter, encodeBytecodeTraitType, encodeBytecodeType, encodeBytecodeTypeArray, encodeCodeDescriptor, encodeSpecializeSelf};
+use package::serializer::{ByteWriter, encodeBytecodeTraitType, encodeBytecodeType, encodeBytecodeTypeArray, encodeCodeDescriptor, encodeOptionalSpecializeSelf};
 
 pub const TRAP_DIV0: Int32 = 0i32;
 pub const TRAP_ASSERT: Int32 = 1i32;
@@ -49,7 +49,7 @@ pub const TRAP_OVERFLOW: Int32 = 8i32;
 @internal pub fn getClassDataForEnumVariantRaw(data: Array[UInt8]): Array[UInt8];
 @internal pub fn getFieldOffsetForEnumVariantRaw(data: Array[UInt8]): Int32;
 @internal pub fn getElementSizeRaw(data: Array[UInt8]): Int32;
-@internal pub fn getFunctionDataForInliningRaw(fct_id: Int32): Array[UInt8];
+@internal pub fn getFunctionBytecodeDataForInliningRaw(fct_id: Int32): Array[UInt8];
 
 pub fn getFunctionAddress(ci: CompilationInfo, fct_id: FunctionId, type_params: Array[BytecodeType]): Address {
     let writer = ci.getByteWriter();
@@ -151,9 +151,9 @@ pub fn findTraitImpl(ci: CompilationInfo, trait_fct_id: FunctionId, trait_type_p
     (fct_id, type_params)
 }
 
-pub fn specializeAssocTy(ci: CompilationInfo, ty: BytecodeType, typeParams: Array[BytecodeType]): BytecodeType {
+pub fn specializeAssocTy(ci: CompilationInfo, specializeSelf: Option[SpecializeSelf], ty: BytecodeType, typeParams: Array[BytecodeType]): BytecodeType {
     let writer = ci.getByteWriter();
-    encodeSpecializeSelf(writer, ci.specializeSelf);
+    encodeOptionalSpecializeSelf(writer, specializeSelf);
     encodeBytecodeType(writer, ty);
     encodeBytecodeTypeArray(writer, typeParams);
     let encoded = specializeAssocTyRaw(writer.toArray());
@@ -220,10 +220,10 @@ pub fn getElementSize(ci: CompilationInfo, cls_id: ClassId, type_params: Array[B
     getElementSizeRaw(writer.toArray())
 }
 
-pub fn getFunctionDataForInlining(fct_id: FunctionId): FunctionInliningData {
-    let encoded = getFunctionDataForInliningRaw(fct_id.0);
+pub fn getFunctionBytecodeDataForInlining(fct_id: FunctionId): FunctionBytecodeData {
+    let encoded = getFunctionBytecodeDataForInliningRaw(fct_id.0);
     let reader = ByteReader::new(encoded);
-    let decoded = deserializer::decodeFunctionInliningData(reader);
+    let decoded = deserializer::decodeFunctionBytecodeData(reader);
     assert(!reader.moreBytes());
     decoded
 }
@@ -251,9 +251,9 @@ pub let config: Config = decodeConfig(getSystemConfigRaw());
 
 pub fn compile(encoded: Array[UInt8]): Array[UInt8] {
     let reader = ByteReader::new(encoded);
-    let ci = decodeCompilationInfo(reader);
+    let (ci, fctData) = decodeCompilationInfo(reader);
     assert(!reader.moreBytes());
-    let code = compileFunction(ci);
+    let code = compileFunction(ci, fctData);
     let writer = ci.getByteWriter();
     encodeCodeDescriptor(writer, code);
     writer.toArray()
@@ -575,9 +575,10 @@ impl std::traits::IntoIterator for GcPoint {
     }
 }
 
-pub struct FunctionInliningData {
+pub struct FunctionBytecodeData {
     pub bc: BytecodeFunction,
     pub returnType: BytecodeType,
+    pub specializeSelf: Option[SpecializeSelf],
 }
 
 pub struct FunctionInliningInfo {
