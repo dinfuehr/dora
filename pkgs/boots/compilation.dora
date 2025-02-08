@@ -85,6 +85,13 @@ impl CompilationInfo {
     }
 }
 
+pub class FunctionCompilationInfo {
+    pub fctId: Option[FunctionId],
+    pub bc: BytecodeFunction,
+    pub returnType: BytecodeType,
+    pub typeParams: Array[BytecodeType],
+}
+
 pub struct SpecializeSelf {
     pub impl_id: ImplId,
     pub trait_ty: BytecodeTraitType,

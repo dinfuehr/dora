@@ -1,5 +1,5 @@
 use package::bytecode::{BytecodeType, FunctionId};
-use package::compilation::CompilationInfo;
+use package::compilation::{FunctionCompilationInfo, CompilationInfo};
 use package::graph::{createUndefInst, Graph, Inst, Op};
 use package::graph_builder;
 use package::interface as iface;
@@ -38,8 +38,9 @@ fn inline(ci: CompilationInfo, graph: Graph, inst: Inst, fctId: FunctionId, type
     let block = inst.getBlock();
     let inlined_function_id = ci.addInlinedFunction(fctId, typeParams, inst.getInlinedLocation());
     let data = iface::getFunctionDataForInlining(fctId);
+    let fct_compilation_info = FunctionCompilationInfo(bc = data.bc, returnType = data.returnType, fctId = Some[FunctionId](fctId), typeParams);
     let newBlock = block.splitAfter(inst);
-    let returnValue = graph_builder::addToGraph(ci, graph, inlined_function_id, data.bc, typeParams, data.returnType, block, newBlock, inst);
+    let returnValue = graph_builder::addToGraph(ci, graph, inlined_function_id, fct_compilation_info, block, newBlock, inst);
     if returnValue.isSome() {
         let returnValue = returnValue.getOrPanic();
         inst.replaceAllUsesWith(returnValue);

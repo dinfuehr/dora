@@ -2,7 +2,7 @@ use std::HashMap;
 use std::{BitSet, BitVec};
 
 use package::bytecode::opcode as opc;
-use package::compilation::CompilationInfo;
+use package::compilation::{FunctionCompilationInfo, CompilationInfo};
 use package::graph;
 use package::graph::{AllocationData, Block, ClassFieldInfo, Graph, Inst, InstExtraData, Op};
 use package::graph::ty::Type;
@@ -27,12 +27,12 @@ pub fn createGraph(ci: CompilationInfo, analysis: BytecodeAnalysis): Graph {
     graph
 }
 
-pub fn addToGraph(ci: CompilationInfo, graph: Graph, inlined_function_id: InlinedFunctionId, bc: BytecodeFunction, typeParams: Array[BytecodeType], returnType: BytecodeType, entryBlock: Block, exitBlock: Block, callInst: Inst): Option[Inst] {
+pub fn addToGraph(ci: CompilationInfo, graph: Graph, inlined_function_id: InlinedFunctionId, fct_compilation_info: FunctionCompilationInfo, entryBlock: Block, exitBlock: Block, callInst: Inst): Option[Inst] {
     // Analyze basic block starts/ends.
-    let analysis = analyzeBytecode(bc);
+    let analysis = analyzeBytecode(fct_compilation_info.bc);
 
     // Create basic blocks and fill with instructions.
-    let ssagen = SsaGen::newForInlining(ci, graph, inlined_function_id, analysis, bc, typeParams, returnType, entryBlock, exitBlock);
+    let ssagen = SsaGen::newForInlining(ci, graph, inlined_function_id, analysis, fct_compilation_info.bc, fct_compilation_info.typeParams, fct_compilation_info.returnType, entryBlock, exitBlock);
     ssagen.runInline(callInst);
 
     ssagen.returnValue
