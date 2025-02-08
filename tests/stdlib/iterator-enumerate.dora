@@ -1,5 +1,4 @@
-use std::collections::{HashMap, VecIter};
-use std::traits::Enumerate;
+use std::collections::HashMap;
 
 fn main() {
     let x = Vec[Int]::new(1, 2, 3, 4, 5).iter().enumerate();
@@ -16,9 +15,9 @@ fn main() {
     assert(Some[(Int, String)]((2, "three")) == x.next());
     assert(x.next() is None);
 
-    // let x = HashMap[Int, String]::new((1, "one"), (2, "two"), (3, "three")).iter().enumerate();
-    // assert(Some[(Int, (Int, String))]((0, (1, "one"))) == x.next());
-    // assert(Some[(Int, (Int, String))]((1, (2, "two"))) == x.next());
-    // assert(Some[(Int, (Int, String))]((2, (3, "three"))) == x.next());
-    // assert(x.next() is None);
+    let x = HashMap[Int, String]::new((1, "one"), (2, "two"), (3, "three")).iter().enumerate();
+    assert(Some[(Int, (Int, String))]((0, (1, "one"))) == x.next());
+    assert(Some[(Int, (Int, String))]((1, (2, "two"))) == x.next());
+    assert(Some[(Int, (Int, String))]((2, (3, "three"))) == x.next());
+    assert(x.next() is None);
 }

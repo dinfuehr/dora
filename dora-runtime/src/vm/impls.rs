@@ -98,11 +98,6 @@ pub fn ty_implements_trait(
     }
 
     match check_ty.clone() {
-        BytecodeType::Tuple(_)
-        | BytecodeType::Unit
-        | BytecodeType::TraitObject(..)
-        | BytecodeType::Lambda(..) => false,
-
         BytecodeType::Bool
         | BytecodeType::UInt8
         | BytecodeType::Char
@@ -112,7 +107,11 @@ pub fn ty_implements_trait(
         | BytecodeType::Float64
         | BytecodeType::Struct(_, _)
         | BytecodeType::Enum(_, _)
-        | BytecodeType::Class(_, _) => {
+        | BytecodeType::Class(_, _)
+        | BytecodeType::Tuple(_)
+        | BytecodeType::Unit
+        | BytecodeType::TraitObject(..)
+        | BytecodeType::Lambda(..) => {
             find_impl(vm, check_ty, check_type_param_defs, trait_ty).is_some()
         }
 
