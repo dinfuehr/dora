@@ -1,0 +1,27 @@
+use std::collections::HashMap;
+
+fn main() {
+    let x = Vec[Int]::new(1, 2, 3, 4, 5).iter().map[Int](|x: Int|: Int { x * 2 });
+    assert(Some[Int](2) == x.next());
+    assert(Some[Int](4) == x.next());
+    assert(Some[Int](6) == x.next());
+    assert(Some[Int](8) == x.next());
+    assert(Some[Int](10) == x.next());
+    assert(x.next() is None);
+
+    let x = Array[Int]::new(1, 2, 3, 4, 5).iter().map[Int](|x: Int|: Int { x * 2 });
+    assert(Some[Int](2) == x.next());
+    assert(Some[Int](4) == x.next());
+    assert(Some[Int](6) == x.next());
+    assert(Some[Int](8) == x.next());
+    assert(Some[Int](10) == x.next());
+    assert(x.next() is None);
+
+    let x = HashMap[Int, String]::new((1, "one"), (2, "two"), (3, "three")).iter().map[(Int, String)](|x: (Int, String)|: (Int, String) {
+        (x.0 * 2, x.1)
+    });
+    assert(Some[(Int, String)]((2, "one")) == x.next());
+    assert(Some[(Int, String)]((4, "two")) == x.next());
+    assert(Some[(Int, String)]((6, "three")) == x.next());
+    assert(x.next() is None);
+}

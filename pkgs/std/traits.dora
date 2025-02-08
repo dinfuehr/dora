@@ -1,9 +1,9 @@
 pub trait Default {
-  static fn default(): Self;
+    static fn default(): Self;
 }
 
 pub trait Hash {
-  fn hash(): Int32;
+    fn hash(): Int32;
 }
 
 // Implementations of the `Zero` trait indicate that zero-initialized memory of the appropriate size can be allocated to
@@ -28,142 +28,147 @@ pub trait Hash {
 
 // @restricted / @internal
 pub trait Zero {
-  static fn zero(): Self; // should be `let` instead of `fn`
+    static fn zero(): Self; // should be `let` instead of `fn`
 }
 
 pub enum Ordering {
-  Less,
-  Equal,
-  Greater,
+    Less,
+    Equal,
+    Greater,
 }
 
 impl Ordering {
-  pub fn is_lt(): Bool {
-    match self {
-      Ordering::Less => true,
-      Ordering::Equal | Ordering::Greater => false,
+    pub fn is_lt(): Bool {
+        match self {
+            Ordering::Less => true,
+            Ordering::Equal | Ordering::Greater => false,
+        }
     }
-  }
 
-  pub fn is_le(): Bool {
-    match self {
-      Ordering::Less | Ordering::Equal => true,
-      Ordering::Greater => false,
+    pub fn is_le(): Bool {
+        match self {
+            Ordering::Less | Ordering::Equal => true,
+            Ordering::Greater => false,
+        }
     }
-  }
 
-  pub fn is_eq(): Bool {
-    match self {
-      Ordering::Equal => true,
-      Ordering::Less | Ordering::Greater => false,
+    pub fn is_eq(): Bool {
+        match self {
+            Ordering::Equal => true,
+            Ordering::Less | Ordering::Greater => false,
+        }
     }
-  }
 
-  pub fn is_ne(): Bool {
-    match self {
-      Ordering::Less | Ordering::Greater => true,
-      Ordering::Equal => false,
+    pub fn is_ne(): Bool {
+        match self {
+          Ordering::Less | Ordering::Greater => true,
+          Ordering::Equal => false,
+        }
     }
-  }
 
-  pub fn is_gt(): Bool {
-    match self {
-      Ordering::Greater => true,
-      Ordering::Less | Ordering::Equal => false,
+    pub fn is_gt(): Bool {
+        match self {
+            Ordering::Greater => true,
+            Ordering::Less | Ordering::Equal => false,
+        }
     }
-  }
 
-  pub fn is_ge(): Bool {
-    match self {
-      Ordering::Greater | Ordering::Equal => true,
-      Ordering::Less => false,
+    pub fn is_ge(): Bool {
+        match self {
+            Ordering::Greater | Ordering::Equal => true,
+            Ordering::Less => false,
+        }
     }
-  }
 }
 
 pub trait Comparable {
-  fn cmp(other: Self): Ordering;
+    fn cmp(other: Self): Ordering;
 }
 
 pub trait Equals {
-  fn equals(other: Self): Bool;
+    fn equals(other: Self): Bool;
 }
 
 pub trait Add {
-  fn add(rhs: Self): Self;
+    fn add(rhs: Self): Self;
 }
 
 pub trait Sub {
-  fn sub(rhs: Self): Self;
+    fn sub(rhs: Self): Self;
 }
 
 pub trait Mul {
-  fn mul(rhs: Self): Self;
+    fn mul(rhs: Self): Self;
 }
 
 pub trait Div {
-  fn div(rhs: Self): Self;
+    fn div(rhs: Self): Self;
 }
 
 pub trait Mod {
-  fn modulo(rhs: Self): Self;
+    fn modulo(rhs: Self): Self;
 }
 
 pub trait BitAnd {
-  fn bitand(rhs: Self): Self;
+    fn bitand(rhs: Self): Self;
 }
 
 pub trait BitOr {
-  fn bitor(rhs: Self): Self;
+    fn bitor(rhs: Self): Self;
 }
 
 pub trait BitXor {
-  fn bitxor(rhs: Self): Self;
+    fn bitxor(rhs: Self): Self;
 }
 
 pub trait Shl {
-  fn shl(rhs: Int32): Self;
+    fn shl(rhs: Int32): Self;
 }
 
 pub trait Shr {
-  fn shr(rhs: Int32): Self;
+    fn shr(rhs: Int32): Self;
 }
 
 pub trait Sar {
-  fn sar(rhs: Int32): Self;
+    fn sar(rhs: Int32): Self;
 }
 
 pub trait Not {
-  fn not(): Self;
+    fn not(): Self;
 }
 
 pub trait Neg {
-  fn neg(): Self;
+    fn neg(): Self;
 }
 
 pub trait Iterator {
-  type Item;
-  fn next(): Option[Self::Item];
+    type Item;
+    fn next(): Option[Self::Item];
 
-  fn count(): Int64 {
-    let mut result = 0;
+    fn count(): Int64 {
+      let mut result = 0;
 
-    while self.next() is Some(_) {
-      result += 1;
+      while self.next() is Some(_) {
+        result += 1;
+      }
+
+      result
     }
 
-    result
-  }
+    @TraitObjectIgnore
+    fn enumerate(): Enumerate[Self] {
+        Enumerate[Self](it = self, idx = 0)
+    }
 
-  @TraitObjectIgnore
-  fn enumerate(): Enumerate[Self] {
-      Enumerate[Self](it = self, idx = 0)
-  }
+    @TraitObjectIgnore
+    fn map[R](f: (Self::Item): R): Map[Self, R] {
+        Map[Self, R](it = self, fct = f)
+    }
 }
 
 pub trait IntoIterator {
-  type IteratorType: Iterator;
-  fn iter(): Self::IteratorType;
+    type IteratorType: Iterator;
+    fn iter(): Self::IteratorType;
 }
 
 pub class Enumerate[I: Iterator] {
@@ -185,14 +190,31 @@ impl[I: Iterator] Iterator for Enumerate[I] {
     }
 }
 
+pub class Map[I: Iterator, R] {
+    it: I,
+    fct: (I::Item): R,
+}
+
+impl[I: Iterator, R] Iterator for Map[I, R] {
+    type Item = R;
+
+    fn next(): Option[R] {
+        if self.it.next() is Some(value) {
+            Some[R](self.fct(value))
+        } else {
+            None[R]
+        }
+    }
+}
+
 pub trait IndexGet {
-  type Index;
-  type Item;
-  fn get(index: Self::Index): Self::Item;
+    type Index;
+    type Item;
+    fn get(index: Self::Index): Self::Item;
 }
 
 pub trait IndexSet {
-  type Index;
-  type Item;
-  fn set(index: Self::Index, value: Self::Item);
+    type Index;
+    type Item;
+    fn set(index: Self::Index, value: Self::Item);
 }
