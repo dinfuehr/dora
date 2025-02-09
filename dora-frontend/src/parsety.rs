@@ -75,6 +75,14 @@ impl ParsedTraitType {
         }
     }
 
+    pub fn new_ty(ty: Option<TraitType>) -> ParsedTraitType {
+        ParsedTraitType {
+            ast: None,
+            parsed_ast: OnceCell::new(),
+            ty: RefCell::new(ty),
+        }
+    }
+
     pub fn ty(&self) -> Option<TraitType> {
         self.ty.borrow().as_ref().cloned()
     }

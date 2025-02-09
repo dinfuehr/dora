@@ -127,6 +127,18 @@ pub fn check_definition_against_trait(sa: &mut Sema) {
                     &extended_ty,
                 );
 
+                let type_params = trait_method
+                    .type_param_definition()
+                    .specialize_for_default_trait_method(impl_, |ty| {
+                        specialize_ty_for_default_trait_method(
+                            sa,
+                            ty,
+                            impl_,
+                            &trait_ty,
+                            &extended_ty,
+                        )
+                    });
+
                 let fct = FctDefinition::new_no_source(
                     impl_.package_id,
                     impl_.module_id,
@@ -136,9 +148,7 @@ pub fn check_definition_against_trait(sa: &mut Sema) {
                     None,
                     ParsedModifierList::default(),
                     trait_method.name,
-                    trait_method
-                        .type_param_definition()
-                        .clone_with_new_parent(impl_.type_param_definition().to_owned()),
+                    type_params,
                     params,
                     return_type,
                     FctParent::Impl(impl_.id()),

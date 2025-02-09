@@ -2,7 +2,7 @@ use std::rc::Rc;
 
 use dora_parser::ast;
 
-use crate::sema::Sema;
+use crate::sema::{Element, ImplDefinition, Sema};
 use crate::{Name, ParsedTraitType, ParsedType, SourceType, SourceTypeArray, TraitType};
 
 #[derive(Clone, Debug)]
@@ -36,17 +36,33 @@ impl TypeParamDefinition {
         }
     }
 
-    pub fn clone_with_new_parent(
+    pub fn specialize_for_default_trait_method<S>(
         &self,
-        parent: Rc<TypeParamDefinition>,
-    ) -> Rc<TypeParamDefinition> {
+        impl_: &ImplDefinition,
+        specialize: S,
+    ) -> Rc<TypeParamDefinition>
+    where
+        S: Fn(SourceType) -> SourceType,
+    {
+        let parent = impl_.type_param_definition().to_owned();
         let container_type_params = parent.type_params.len();
         let container_bounds = parent.bounds.len();
+
+        let mut new_bounds = Vec::with_capacity(self.bounds.len());
+
+        for bound in &parent.bounds {
+            let _ty = specialize(bound.ty());
+            // let _bound = Bound {
+            //     parsed_ty: ParsedType::new_ty(ty),
+            //     parsed_trait_ty: bound.parsed_trait_ty().clone(),
+            // };
+            new_bounds.push(bound.clone());
+        }
 
         Rc::new(TypeParamDefinition {
             parent: Some(parent),
             type_params: self.type_params.clone(),
-            bounds: self.bounds.clone(),
+            bounds: new_bounds,
             container_type_params,
             container_bounds,
         })
