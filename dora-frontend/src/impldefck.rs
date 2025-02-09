@@ -111,6 +111,7 @@ pub fn check_definition_against_trait(sa: &mut Sema) {
                     let param_ty = specialize_ty_for_default_trait_method(
                         sa,
                         param.ty(),
+                        trait_method,
                         impl_,
                         &trait_ty,
                         &extended_ty,
@@ -122,6 +123,7 @@ pub fn check_definition_against_trait(sa: &mut Sema) {
                 let return_type = specialize_ty_for_default_trait_method(
                     sa,
                     return_type,
+                    trait_method,
                     impl_,
                     &trait_ty,
                     &extended_ty,
@@ -129,10 +131,11 @@ pub fn check_definition_against_trait(sa: &mut Sema) {
 
                 let type_params = trait_method
                     .type_param_definition()
-                    .specialize_for_default_trait_method(impl_, |ty| {
+                    .specialize_for_default_trait_method(sa, impl_, &|ty| {
                         specialize_ty_for_default_trait_method(
                             sa,
                             ty,
+                            trait_method,
                             impl_,
                             &trait_ty,
                             &extended_ty,

@@ -3,7 +3,10 @@ use std::rc::Rc;
 use dora_parser::ast;
 
 use crate::sema::{Element, ImplDefinition, Sema};
-use crate::{Name, ParsedTraitType, ParsedType, SourceType, SourceTypeArray, TraitType};
+use crate::{
+    specialize_trait_type_generic, Name, ParsedTraitType, ParsedType, SourceType, SourceTypeArray,
+    TraitType,
+};
 
 #[derive(Clone, Debug)]
 pub struct TypeParamDefinition {
@@ -38,8 +41,9 @@ impl TypeParamDefinition {
 
     pub fn specialize_for_default_trait_method<S>(
         &self,
+        sa: &Sema,
         impl_: &ImplDefinition,
-        specialize: S,
+        specialize: &S,
     ) -> Rc<TypeParamDefinition>
     where
         S: Fn(SourceType) -> SourceType,
@@ -50,13 +54,18 @@ impl TypeParamDefinition {
 
         let mut new_bounds = Vec::with_capacity(self.bounds.len());
 
-        for bound in &parent.bounds {
-            let _ty = specialize(bound.ty());
-            // let _bound = Bound {
-            //     parsed_ty: ParsedType::new_ty(ty),
-            //     parsed_trait_ty: bound.parsed_trait_ty().clone(),
-            // };
-            new_bounds.push(bound.clone());
+        for bound in &self.bounds {
+            let ty = specialize(bound.ty());
+            let trait_ty = if let Some(trait_ty) = bound.trait_ty() {
+                Some(specialize_trait_type_generic(sa, trait_ty, specialize))
+            } else {
+                None
+            };
+            let bound = Bound {
+                parsed_ty: ParsedType::new_ty(ty),
+                parsed_trait_ty: ParsedTraitType::new_ty(trait_ty),
+            };
+            new_bounds.push(bound);
         }
 
         Rc::new(TypeParamDefinition {
