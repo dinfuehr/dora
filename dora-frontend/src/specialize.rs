@@ -597,7 +597,7 @@ pub fn specialize_ty_for_generic(
     sa: &Sema,
     ty: SourceType,
     type_param_id: TypeParamId,
-    trait_id: TraitDefinitionId,
+    trait_ty: &TraitType,
     type_params: &SourceTypeArray,
     object_type: &SourceType,
 ) -> SourceType {
@@ -608,7 +608,7 @@ pub fn specialize_ty_for_generic(
                 sa,
                 cls_type_params,
                 type_param_id,
-                trait_id,
+                trait_ty,
                 type_params,
                 object_type,
             ),
@@ -620,7 +620,7 @@ pub fn specialize_ty_for_generic(
                 sa,
                 trait_type_params,
                 type_param_id,
-                trait_id,
+                trait_ty,
                 type_params,
                 object_type,
             ),
@@ -628,7 +628,7 @@ pub fn specialize_ty_for_generic(
                 sa,
                 bindings,
                 type_param_id,
-                trait_id,
+                trait_ty,
                 type_params,
                 object_type,
             ),
@@ -640,7 +640,7 @@ pub fn specialize_ty_for_generic(
                 sa,
                 struct_type_params,
                 type_param_id,
-                trait_id,
+                trait_ty,
                 type_params,
                 object_type,
             ),
@@ -652,7 +652,7 @@ pub fn specialize_ty_for_generic(
                 sa,
                 enum_type_params,
                 type_param_id,
-                trait_id,
+                trait_ty,
                 type_params,
                 object_type,
             ),
@@ -664,7 +664,7 @@ pub fn specialize_ty_for_generic(
                 sa,
                 alias_type_params,
                 type_param_id,
-                trait_id,
+                trait_ty,
                 type_params,
                 object_type,
             ),
@@ -672,11 +672,11 @@ pub fn specialize_ty_for_generic(
 
         SourceType::Assoc(alias_id, alias_type_params) => {
             let alias = sa.alias(alias_id);
-            assert_eq!(alias.parent, AliasParent::Trait(trait_id));
+            assert_eq!(alias.parent, AliasParent::Trait(trait_ty.trait_id));
             assert!(alias_type_params.is_empty());
             SourceType::GenericAssoc {
                 tp_id: type_param_id,
-                trait_ty: TraitType::from_trait_id(trait_id),
+                trait_ty: trait_ty.clone(),
                 assoc_id: alias_id,
             }
         }
@@ -686,7 +686,7 @@ pub fn specialize_ty_for_generic(
                 sa,
                 params,
                 type_param_id,
-                trait_id,
+                trait_ty,
                 type_params,
                 object_type,
             ),
@@ -694,7 +694,7 @@ pub fn specialize_ty_for_generic(
                 sa,
                 *return_type,
                 type_param_id,
-                trait_id,
+                trait_ty,
                 type_params,
                 object_type,
             )),
@@ -704,7 +704,7 @@ pub fn specialize_ty_for_generic(
             sa,
             subtypes,
             type_param_id,
-            trait_id,
+            trait_ty,
             type_params,
             object_type,
         )),
@@ -733,7 +733,7 @@ fn specialize_ty_for_generic_array(
     sa: &Sema,
     array: SourceTypeArray,
     type_param_id: TypeParamId,
-    trait_id: TraitDefinitionId,
+    trait_ty: &TraitType,
     trait_type_params: &SourceTypeArray,
     object_type: &SourceType,
 ) -> SourceTypeArray {
@@ -744,7 +744,7 @@ fn specialize_ty_for_generic_array(
                 sa,
                 ty,
                 type_param_id,
-                trait_id,
+                trait_ty,
                 trait_type_params,
                 object_type,
             )

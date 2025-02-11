@@ -631,8 +631,11 @@ pub(super) fn arg_allows(
         | SourceType::TraitObject(..) => def == arg,
         SourceType::Ptr => panic!("ptr should not occur in fct definition."),
         SourceType::This => {
-            let real = self_ty.clone().expect("no Self type expected.");
-            arg_allows(sa, real, arg, self_ty)
+            if let Some(real) = self_ty.clone() {
+                arg_allows(sa, real, arg, self_ty)
+            } else {
+                def == arg
+            }
         }
 
         SourceType::TypeParam(_) => def == arg,

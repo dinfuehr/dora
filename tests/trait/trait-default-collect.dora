@@ -5,12 +5,12 @@ trait MyIterator {
     fn next(): Option[Self::Item];
 
     fn collect[T](): T where T: MyFromIterator[Self::Item] {
-        T::fromIter(self)
+        T::fromIter[Self](self)
     }
 }
 
 pub trait MyFromIterator[A] {
-    fn fromIter[T](iter: T): Self where T: MyIterator[Item=A];
+    static fn fromIter[T](iter: T): Self where T: MyIterator[Item=A];
 }
 
 class Range {

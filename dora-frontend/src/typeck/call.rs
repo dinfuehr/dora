@@ -98,6 +98,7 @@ fn check_expr_call_generic_static_method(
     e: &ast::ExprCallType,
     tp_id: TypeParamId,
     name: String,
+    pure_fct_type_params: SourceTypeArray,
     arguments: CallArguments,
 ) -> SourceType {
     let mut matched_methods = Vec::new();
@@ -128,15 +129,11 @@ fn check_expr_call_generic_static_method(
     let trait_method = ck.sa.fct(trait_method_id);
 
     let tp = SourceType::TypeParam(tp_id);
+    let fct_type_params = trait_ty.type_params.connect(&pure_fct_type_params);
 
-    check_args_compatible_fct(
-        ck,
-        trait_method,
-        arguments,
-        &trait_ty.type_params,
-        Some(tp.clone()),
-        |ty| ty,
-    );
+    check_args_compatible_fct2(ck, trait_method, arguments, |ty| {
+        specialize_ty_for_generic(ck.sa, ty, tp_id, &trait_ty, &fct_type_params, &tp)
+    });
 
     let call_type = CallType::GenericStaticMethod(
         tp_id,
@@ -146,11 +143,13 @@ fn check_expr_call_generic_static_method(
     );
     ck.analysis.map_calls.insert(e.id, Arc::new(call_type));
 
-    let return_type = replace_type(
+    let return_type = specialize_ty_for_generic(
         ck.sa,
         trait_method.return_type(),
-        Some(&trait_ty.type_params),
-        Some(tp),
+        tp_id,
+        &trait_ty,
+        &fct_type_params,
+        &tp,
     );
 
     ck.analysis.set_ty(e.id, return_type.clone());
@@ -377,6 +376,7 @@ fn check_expr_call_method(
             SourceType::TypeParam(id),
             id,
             method_name,
+            fct_type_params,
             arguments,
         );
     } else if object_type.is_self() {
@@ -935,6 +935,7 @@ fn check_expr_call_generic_type_param(
     object_type: SourceType,
     id: TypeParamId,
     name: String,
+    _pure_fct_type_params: SourceTypeArray,
     arguments: CallArguments,
 ) -> SourceType {
     assert!(object_type.is_type_param());
@@ -955,20 +956,19 @@ fn check_expr_call_generic_type_param(
         let (trait_method_id, trait_ty) = matched_methods.pop().expect("missing element");
 
         let trait_method = ck.sa.fct(trait_method_id);
-        let return_type = trait_method.return_type();
 
         let return_type = specialize_ty_for_generic(
             ck.sa,
-            return_type,
+            trait_method.return_type(),
             id,
-            trait_method.trait_id(),
+            &trait_ty,
             &trait_ty.type_params,
             &object_type,
         );
 
         ck.analysis.set_ty(e.id, return_type.clone());
 
-        let trait_type_params = trait_ty.type_params;
+        let trait_type_params = trait_ty.type_params.clone();
 
         let call_type = CallType::GenericMethod(
             id,
@@ -979,14 +979,7 @@ fn check_expr_call_generic_type_param(
         ck.analysis.map_calls.insert(e.id, Arc::new(call_type));
 
         check_args_compatible_fct2(ck, trait_method, arguments, |ty| {
-            specialize_ty_for_generic(
-                ck.sa,
-                ty,
-                id,
-                trait_method.trait_id(),
-                &trait_type_params,
-                &object_type,
-            )
+            specialize_ty_for_generic(ck.sa, ty, id, &trait_ty, &trait_type_params, &object_type)
         });
 
         return_type
@@ -1156,7 +1149,7 @@ fn check_expr_call_path(
                 ck.sa.report(ck.file_id, callee_as_path.lhs.span(), msg);
             }
 
-            check_expr_call_generic_static_method(ck, e, id, method_name, arguments)
+            check_expr_call_generic_static_method(ck, e, id, method_name, type_params, arguments)
         }
 
         Some(SymbolKind::Module(module_id)) => {
