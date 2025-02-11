@@ -19,11 +19,11 @@ use crate::ty::TraitType;
 use crate::typeck::{
     check_expr_break_and_continue, check_expr_call, check_expr_for, check_expr_if,
     check_expr_match, check_expr_return, check_expr_while, check_lit_char, check_lit_float,
-    check_lit_int, check_lit_str, check_pattern, check_stmt, create_call_arguments, is_simple_enum,
-    TypeCheck,
+    check_lit_int, check_lit_str, check_pattern, check_stmt, check_type_params,
+    create_call_arguments, is_simple_enum, TypeCheck,
 };
 use crate::{replace_type, ty::error as ty_error, SourceType, SourceTypeArray, SymbolKind};
-use crate::{specialize_ty_for_call, typeparamck, CallSpecializationData};
+use crate::{specialize_ty_for_call, specialize_type, CallSpecializationData};
 
 pub(super) fn check_expr(
     ck: &mut TypeCheck,
@@ -2070,7 +2070,7 @@ fn check_enum_variant_without_args(
         ck.sa.report(ck.file_id, expr_span, msg);
     }
 
-    let type_params_ok = typeparamck::check(
+    let type_params_ok = check_type_params(
         ck.sa,
         ck.element,
         ck.type_param_definition,
@@ -2078,6 +2078,7 @@ fn check_enum_variant_without_args(
         &type_params,
         ck.file_id,
         expr_span,
+        |ty| specialize_type(ck.sa, ty, &type_params),
     );
 
     let interned_name = ck.sa.interner.intern(&name);
@@ -2217,7 +2218,7 @@ pub(super) fn check_enum_variant_without_args_id(
         type_params
     };
 
-    let type_params_ok = typeparamck::check(
+    let type_params_ok = check_type_params(
         ck.sa,
         ck.element,
         ck.type_param_definition,
@@ -2225,6 +2226,7 @@ pub(super) fn check_enum_variant_without_args_id(
         &type_params,
         ck.file_id,
         expr_span,
+        |ty| specialize_type(ck.sa, ty, &type_params),
     );
 
     let variant = &enum_.variants()[variant_idx as usize];

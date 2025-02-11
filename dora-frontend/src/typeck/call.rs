@@ -15,16 +15,16 @@ use crate::sema::{
     StructDefinitionId, TraitDefinition, TypeParamId,
 };
 use crate::specialize::replace_type;
+use crate::specialize_ty_for_call;
 use crate::sym::SymbolKind;
 use crate::typeck::{
     check_args_compatible, check_args_compatible_fct, check_args_compatible_fct2, check_expr,
-    find_method_call_candidates, read_path_expr, CallArguments, TypeCheck,
+    check_type_params, find_method_call_candidates, read_path_expr, CallArguments, TypeCheck,
 };
 use crate::{
     empty_sta, specialize_ty_for_generic, specialize_type, ty::error as ty_error,
     CallSpecializationData, ErrorMessage, SourceType, SourceTypeArray, TraitType,
 };
-use crate::{specialize_ty_for_call, typeparamck};
 
 pub(super) fn check_expr_call(
     ck: &mut TypeCheck,
@@ -270,7 +270,7 @@ fn check_expr_call_fct(
         ck.sa.report(ck.file_id, e.span, msg);
     }
 
-    let ty = if typeparamck::check(
+    let ty = if check_type_params(
         ck.sa,
         ck.element,
         &ck.type_param_definition,
@@ -278,6 +278,7 @@ fn check_expr_call_fct(
         &type_params,
         ck.file_id,
         e.span,
+        |ty| specialize_type(ck.sa, ty, &type_params),
     ) {
         check_args_compatible_fct(ck, fct, arguments, &type_params, None, |ty| ty);
         specialize_type(ck.sa, fct.return_type(), &type_params)
@@ -332,7 +333,7 @@ fn check_expr_call_static_method(
 
         let full_type_params = candidate.container_type_params.connect(&fct_type_params);
 
-        let ty = if typeparamck::check(
+        let ty = if check_type_params(
             ck.sa,
             ck.element,
             &ck.type_param_definition,
@@ -340,6 +341,7 @@ fn check_expr_call_static_method(
             &full_type_params,
             ck.file_id,
             e.span,
+            |ty| specialize_type(ck.sa, ty, &full_type_params),
         ) {
             check_args_compatible_fct(ck, fct, arguments, &full_type_params, None, |ty| ty);
             specialize_type(ck.sa, fct.return_type(), &full_type_params)
@@ -369,7 +371,6 @@ fn check_expr_call_method(
     arguments: CallArguments,
 ) -> SourceType {
     if let SourceType::TypeParam(id) = object_type {
-        assert_eq!(fct_type_params.len(), 0);
         return check_expr_call_generic_type_param(
             ck,
             e,
@@ -418,7 +419,7 @@ fn check_expr_call_method(
 
         let full_type_params = candidate.container_type_params.connect(&fct_type_params);
 
-        let ty = if typeparamck::check(
+        let ty = if check_type_params(
             ck.sa,
             ck.element,
             &ck.type_param_definition,
@@ -426,6 +427,7 @@ fn check_expr_call_method(
             &full_type_params,
             ck.file_id,
             e.span,
+            |ty| specialize_type(ck.sa, ty, &full_type_params),
         ) {
             let call_data = CallSpecializationData {
                 object_ty: candidate.object_type.clone(),
@@ -545,7 +547,7 @@ fn check_expr_call_struct(
     }
 
     let ty = SourceType::Struct(struct_id, type_params.clone());
-    let type_params_ok = typeparamck::check(
+    let type_params_ok = check_type_params(
         ck.sa,
         ck.element,
         ck.type_param_definition,
@@ -553,6 +555,7 @@ fn check_expr_call_struct(
         &type_params,
         ck.file_id,
         e.span,
+        |ty| specialize_type(ck.sa, ty, &type_params),
     );
 
     if !type_params_ok {
@@ -730,7 +733,7 @@ fn check_expr_call_class(
 
     let cls = ck.sa.class(cls_id);
 
-    if !typeparamck::check(
+    if !check_type_params(
         ck.sa,
         ck.element,
         ck.type_param_definition,
@@ -738,6 +741,7 @@ fn check_expr_call_class(
         &type_params,
         ck.file_id,
         e.span,
+        |ty| specialize_type(ck.sa, ty, &type_params),
     ) {
         return ty_error();
     };
@@ -789,7 +793,7 @@ pub(super) fn check_expr_call_enum_variant(
         type_params
     };
 
-    let type_params_ok = typeparamck::check(
+    let type_params_ok = check_type_params(
         ck.sa,
         ck.element,
         ck.type_param_definition,
@@ -797,6 +801,7 @@ pub(super) fn check_expr_call_enum_variant(
         &type_params,
         ck.file_id,
         e.span,
+        |ty| specialize_type(ck.sa, ty, &type_params),
     );
 
     if !type_params_ok {
@@ -956,33 +961,61 @@ fn check_expr_call_generic_type_param(
         let (trait_method_id, trait_ty) = matched_methods.pop().expect("missing element");
 
         let trait_method = ck.sa.fct(trait_method_id);
+        let combined_fct_type_params = trait_ty.type_params.connect(&_pure_fct_type_params);
 
-        let return_type = specialize_ty_for_generic(
+        if check_type_params(
             ck.sa,
-            trait_method.return_type(),
-            id,
-            &trait_ty,
-            &trait_ty.type_params,
-            &object_type,
-        );
+            ck.element,
+            &ck.type_param_definition,
+            trait_method,
+            &combined_fct_type_params,
+            ck.file_id,
+            e.span,
+            |ty| {
+                specialize_ty_for_generic(
+                    ck.sa,
+                    ty,
+                    id,
+                    &trait_ty,
+                    &combined_fct_type_params,
+                    &object_type,
+                )
+            },
+        ) {
+            let return_type = specialize_ty_for_generic(
+                ck.sa,
+                trait_method.return_type(),
+                id,
+                &trait_ty,
+                &combined_fct_type_params,
+                &object_type,
+            );
 
-        ck.analysis.set_ty(e.id, return_type.clone());
+            ck.analysis.set_ty(e.id, return_type.clone());
 
-        let trait_type_params = trait_ty.type_params.clone();
+            let call_type = CallType::GenericMethod(
+                id,
+                trait_method.trait_id(),
+                trait_method_id,
+                combined_fct_type_params.clone(),
+            );
+            ck.analysis.map_calls.insert(e.id, Arc::new(call_type));
 
-        let call_type = CallType::GenericMethod(
-            id,
-            trait_method.trait_id(),
-            trait_method_id,
-            trait_type_params.clone(),
-        );
-        ck.analysis.map_calls.insert(e.id, Arc::new(call_type));
+            check_args_compatible_fct2(ck, trait_method, arguments, |ty| {
+                specialize_ty_for_generic(
+                    ck.sa,
+                    ty,
+                    id,
+                    &trait_ty,
+                    &combined_fct_type_params,
+                    &object_type,
+                )
+            });
 
-        check_args_compatible_fct2(ck, trait_method, arguments, |ty| {
-            specialize_ty_for_generic(ck.sa, ty, id, &trait_ty, &trait_type_params, &object_type)
-        });
-
-        return_type
+            return_type
+        } else {
+            SourceType::Error
+        }
     } else {
         let msg = if matched_methods.is_empty() {
             ErrorMessage::UnknownMethodForTypeParam
@@ -1046,7 +1079,7 @@ fn check_expr_call_path(
     match sym {
         Some(SymbolKind::Class(cls_id)) => {
             let cls = ck.sa.class(cls_id);
-            if typeparamck::check(
+            if check_type_params(
                 ck.sa,
                 ck.element,
                 ck.type_param_definition,
@@ -1054,6 +1087,7 @@ fn check_expr_call_path(
                 &container_type_params,
                 ck.file_id,
                 e.span,
+                |ty| specialize_type(ck.sa, ty, &container_type_params),
             ) {
                 check_expr_call_static_method(
                     ck,
@@ -1071,7 +1105,7 @@ fn check_expr_call_path(
         Some(SymbolKind::Struct(struct_id)) => {
             let struct_ = ck.sa.struct_(struct_id);
 
-            if typeparamck::check(
+            if check_type_params(
                 ck.sa,
                 ck.element,
                 ck.type_param_definition,
@@ -1079,6 +1113,7 @@ fn check_expr_call_path(
                 &container_type_params,
                 ck.file_id,
                 e.span,
+                |ty| specialize_type(ck.sa, ty, &container_type_params),
             ) {
                 let object_ty = if let Some(ref primitive_ty) = struct_.primitive_ty {
                     assert!(container_type_params.is_empty());
@@ -1118,7 +1153,7 @@ fn check_expr_call_path(
                     arguments,
                 )
             } else {
-                if typeparamck::check(
+                if check_type_params(
                     ck.sa,
                     ck.element,
                     ck.type_param_definition,
@@ -1126,6 +1161,7 @@ fn check_expr_call_path(
                     &container_type_params,
                     ck.file_id,
                     e.span,
+                    |ty| specialize_type(ck.sa, ty, &container_type_params),
                 ) {
                     let object_ty = SourceType::Enum(enum_id, container_type_params);
 

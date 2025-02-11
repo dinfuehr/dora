@@ -1057,6 +1057,69 @@ fn generic_trait_method_call() {
 }
 
 #[test]
+fn trait_method_call_with_function_type_params() {
+    ok("
+        trait Foo {
+            fn bar[T](x: T);
+        }
+
+        fn f[T: Foo](x: T) {
+            x.bar[Int](1);
+        }
+    ");
+}
+
+#[test]
+fn trait_method_call_with_function_type_params_and_missing_params() {
+    err(
+        "
+        trait Foo {
+            fn bar[T](x: T);
+        }
+
+        fn f[T: Foo](x: T) {
+            x.bar(1);
+        }
+    ",
+        (7, 13),
+        ErrorMessage::WrongNumberTypeParams(1, 0),
+    );
+
+    err(
+        "
+        trait Foo[X] {
+            fn bar[T](x: T);
+        }
+
+        fn f[T: Foo[Int]](x: T) {
+            x.bar(1);
+        }
+    ",
+        (7, 13),
+        ErrorMessage::WrongNumberTypeParams(1, 0),
+    );
+}
+
+#[test]
+fn trait_method_call_with_function_type_params_invalid_param() {
+    err(
+        "
+        trait Foo {
+            fn bar[T: Bar](x: T);
+        }
+
+        trait Bar {}
+
+        fn f[T: Foo](x: T) {
+            x.bar[Int](1);
+        }
+    ",
+        (9, 13),
+        ErrorMessage::TypeNotImplementingTrait("Int64".into(), "Bar".into()),
+    );
+}
+
+#[test]
 fn test_generic_ctor_without_type_params() {
     err(
         "class Foo[A, B]

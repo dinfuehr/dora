@@ -22,6 +22,7 @@ use crate::typeck::function::{
 };
 use crate::typeck::lookup::find_method_call_candidates;
 use crate::typeck::stmt::{check_pattern, check_stmt};
+use crate::typeck::type_params::check_type_params;
 use crate::{SourceType, Span};
 
 mod call;
@@ -33,6 +34,7 @@ mod lookup;
 mod stmt;
 #[cfg(test)]
 mod tests;
+mod type_params;
 
 pub fn check(sa: &mut Sema) {
     let mut lazy_context_class_creation = Vec::new();

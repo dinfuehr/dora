@@ -46,7 +46,6 @@ mod traitdefck;
 pub mod ty;
 mod typeck;
 mod typedefck;
-mod typeparamck;
 mod useck;
 
 pub fn check_program(sa: &mut Sema) -> bool {
