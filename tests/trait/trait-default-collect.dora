@@ -32,7 +32,7 @@ impl MyIterator for Range {
 }
 
 impl MyFromIterator[Int] for Vec[Int] {
-    fn fromIter[T](iter: T): Vec[Int] where T: MyIterator[Item=Int] {
+    static fn fromIter[T](iter: T): Vec[Int] where T: MyIterator[Item=Int] {
         let result = Vec[Int]::new();
 
         while iter.next() is Some(value) {

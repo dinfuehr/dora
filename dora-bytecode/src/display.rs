@@ -108,35 +108,15 @@ pub fn display_fct(prog: &Program, fct_id: FunctionId) -> String {
 }
 
 pub fn display_ty(prog: &Program, ty: &BytecodeType) -> String {
-    let printer = BytecodeTypePrinter {
-        prog,
-        type_params: TypeParamMode::Unknown,
-        ty: ty.clone(),
-    };
-
-    printer.string()
+    format!("{}", fmt_ty(prog, ty, TypeParamMode::Unknown))
 }
 
 pub fn display_ty_array(prog: &Program, array: &BytecodeTypeArray) -> String {
-    let mut result = "[".to_string();
-    for (idx, ty) in array.iter().enumerate() {
-        if idx > 0 {
-            result.push_str(", ");
-        }
-        result.push_str(&display_ty(prog, &ty));
-    }
-    result.push(']');
-    result
+    format!("{}", fmt_type_params(prog, array, TypeParamMode::Unknown))
 }
 
 pub fn display_ty_without_type_params(prog: &Program, ty: &BytecodeType) -> String {
-    let printer = BytecodeTypePrinter {
-        prog,
-        type_params: TypeParamMode::None,
-        ty: ty.clone(),
-    };
-
-    printer.string()
+    format!("{}", fmt_ty(prog, ty, TypeParamMode::None))
 }
 
 pub fn fmt_ty<'a>(
@@ -163,12 +143,12 @@ pub fn fmt_ty_with_type_params<'a>(
     }
 }
 
-pub fn fmt_ty_array<'a>(
+pub fn fmt_type_params<'a>(
     prog: &'a Program,
     array: &'a BytecodeTypeArray,
     type_params: TypeParamMode<'a>,
-) -> BytecodeTypeArrayPrinter<'a> {
-    BytecodeTypeArrayPrinter {
+) -> TypeParamsPrinter<'a> {
+    TypeParamsPrinter {
         prog,
         type_params,
         array,
@@ -192,7 +172,7 @@ pub fn display_ty_with_type_params(
     ty: &BytecodeType,
     type_params: &TypeParamData,
 ) -> String {
-    fmt_ty_with_type_params(prog, ty, type_params).string()
+    format!("{}", fmt_ty_with_type_params(prog, ty, type_params))
 }
 
 pub fn fmt_trait_ty_with_type_params<'a>(
@@ -212,10 +192,13 @@ pub fn display_trait_ty_with_type_params(
     trait_ty: &BytecodeTraitType,
     type_params: &TypeParamData,
 ) -> String {
-    fmt_trait_ty_with_type_params(prog, trait_ty, type_params).string()
+    format!(
+        "{}",
+        fmt_trait_ty_with_type_params(prog, trait_ty, type_params)
+    )
 }
 
-#[derive(Clone)]
+#[derive(Clone, Copy)]
 pub enum TypeParamMode<'a> {
     None,
     Unknown,
@@ -228,131 +211,118 @@ pub struct BytecodeTypePrinter<'a> {
     ty: BytecodeType,
 }
 
-impl<'a> BytecodeTypePrinter<'a> {
-    pub fn string(&self) -> String {
-        format!("{}", self)
-    }
-
-    fn name(&self, ty: &BytecodeType, fmt: &mut std::fmt::Formatter) -> std::fmt::Result {
-        match ty {
-            BytecodeType::Unit => write!(fmt, "()"),
-            BytecodeType::UInt8 => write!(fmt, "UInt8"),
-            BytecodeType::Char => write!(fmt, "Char"),
-            BytecodeType::Int32 => write!(fmt, "Int32"),
-            BytecodeType::Int64 => write!(fmt, "Int64"),
-            BytecodeType::Float32 => write!(fmt, "Float32"),
-            BytecodeType::Float64 => write!(fmt, "Float64"),
-            BytecodeType::Bool => write!(fmt, "Bool"),
-            BytecodeType::Ptr => write!(fmt, "Ptr"),
+impl<'a> std::fmt::Display for BytecodeTypePrinter<'a> {
+    fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
+        match &self.ty {
+            BytecodeType::Unit => write!(f, "()"),
+            BytecodeType::UInt8 => write!(f, "UInt8"),
+            BytecodeType::Char => write!(f, "Char"),
+            BytecodeType::Int32 => write!(f, "Int32"),
+            BytecodeType::Int64 => write!(f, "Int64"),
+            BytecodeType::Float32 => write!(f, "Float32"),
+            BytecodeType::Float64 => write!(f, "Float64"),
+            BytecodeType::Bool => write!(f, "Bool"),
+            BytecodeType::Ptr => write!(f, "Ptr"),
             BytecodeType::Class(id, type_params) => {
                 let cls = self.prog.class(*id);
-                write!(fmt, "{}", cls.name)?;
-                self.type_params(type_params, fmt)
+                write!(
+                    f,
+                    "{}{}",
+                    cls.name,
+                    fmt_type_params(self.prog, &type_params, self.type_params)
+                )
             }
             BytecodeType::Struct(sid, type_params) => {
                 let struct_ = self.prog.struct_(*sid);
-                write!(fmt, "{}", struct_.name)?;
-                self.type_params(type_params, fmt)
+                write!(
+                    f,
+                    "{}{}",
+                    struct_.name,
+                    fmt_type_params(self.prog, &type_params, self.type_params)
+                )
             }
             BytecodeType::TraitObject(tid, type_params, bindings) => {
                 let trait_ = self.prog.trait_(*tid);
-                write!(fmt, "{}", trait_.name)?;
-                self.type_params(type_params, fmt)?;
-                self.type_params(bindings, fmt)
+                write!(f, "{}", trait_.name)?;
+                if !type_params.is_empty() {
+                    write!(
+                        f,
+                        "[{}]",
+                        fmt_type_list(self.prog, &type_params, self.type_params)
+                    )?;
+                }
+
+                if !bindings.is_empty() {
+                    write!(
+                        f,
+                        "[{}]",
+                        fmt_type_list(self.prog, &type_params, self.type_params)
+                    )?;
+                }
+
+                Ok(())
             }
             BytecodeType::Enum(id, type_params) => {
                 let enum_ = self.prog.enum_(*id);
-                write!(fmt, "{}", enum_.name)?;
-                self.type_params(type_params, fmt)
+                write!(
+                    f,
+                    "{}{}",
+                    enum_.name,
+                    fmt_type_params(self.prog, &type_params, self.type_params)
+                )
             }
 
             BytecodeType::TypeParam(idx) => match self.type_params {
                 TypeParamMode::None => panic!("type should not have type param"),
                 TypeParamMode::TypeParams(type_params) => {
-                    write!(fmt, "{}", type_params.names[*idx as usize])
+                    write!(f, "{}", type_params.names[*idx as usize])
                 }
-                TypeParamMode::Unknown => write!(fmt, "TypeParam({})", idx),
+                TypeParamMode::Unknown => write!(f, "TypeParam({})", idx),
             },
 
-            BytecodeType::This => write!(fmt, "Self"),
+            BytecodeType::This => write!(f, "Self"),
 
             BytecodeType::TypeAlias(..)
             | BytecodeType::Assoc(..)
             | BytecodeType::GenericAssoc { .. } => unimplemented!(),
 
             BytecodeType::Lambda(params, return_type) => {
-                write!(fmt, "(")?;
-                self.type_list(params, fmt)?;
-                write!(fmt, ") -> ")?;
-                self.name(return_type, fmt)
+                write!(
+                    f,
+                    "({}): {}",
+                    fmt_type_list(self.prog, &params, self.type_params),
+                    fmt_ty(self.prog, &return_type, self.type_params)
+                )
             }
 
             BytecodeType::Tuple(subtypes) => {
-                write!(fmt, "(")?;
-                self.type_list(subtypes, fmt)?;
-                write!(fmt, ")")
+                write!(
+                    f,
+                    "({})",
+                    fmt_type_list(self.prog, &subtypes, self.type_params)
+                )
             }
         }
     }
-
-    fn type_params(
-        &self,
-        types: &BytecodeTypeArray,
-        fmt: &mut std::fmt::Formatter,
-    ) -> std::fmt::Result {
-        if types.is_empty() {
-            return Ok(());
-        }
-
-        write!(fmt, "[")?;
-        self.type_list(types, fmt)?;
-        write!(fmt, "]")
-    }
-
-    fn type_list(
-        &self,
-        types: &BytecodeTypeArray,
-        fmt: &mut std::fmt::Formatter,
-    ) -> std::fmt::Result {
-        let mut first = true;
-        for ty in types.iter() {
-            if !first {
-                write!(fmt, ", ")?;
-            }
-            self.name(&ty, fmt)?;
-            first = false;
-        }
-
-        Ok(())
-    }
 }
 
-impl<'a> std::fmt::Display for BytecodeTypePrinter<'a> {
-    fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
-        self.name(&self.ty, f)
-    }
-}
-
-pub struct BytecodeTypeArrayPrinter<'a> {
+pub struct TypeParamsPrinter<'a> {
     prog: &'a Program,
     type_params: TypeParamMode<'a>,
     array: &'a BytecodeTypeArray,
 }
 
-impl<'a> std::fmt::Display for BytecodeTypeArrayPrinter<'a> {
+impl<'a> std::fmt::Display for TypeParamsPrinter<'a> {
     fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
-        write!(f, "[")?;
-
-        let mut first = true;
-        for ty in self.array.iter() {
-            if !first {
-                write!(f, ", ")?;
-            }
-            write!(f, "{}", fmt_ty(&self.prog, &ty, self.type_params.clone()))?;
-            first = false;
+        if self.array.is_empty() {
+            Ok(())
+        } else {
+            write!(
+                f,
+                "[{}]",
+                fmt_type_list(self.prog, self.array, self.type_params)
+            )
         }
-
-        write!(f, "]")
     }
 }
 
@@ -362,41 +332,33 @@ pub struct BytecodeTraitTypePrinter<'a> {
     trait_ty: &'a BytecodeTraitType,
 }
 
-impl<'a> BytecodeTraitTypePrinter<'a> {
-    pub fn string(&self) -> String {
-        format!("{}", self)
-    }
-
-    fn name(
-        &self,
-        trait_ty: &BytecodeTraitType,
-        fmt: &mut std::fmt::Formatter,
-    ) -> std::fmt::Result {
-        let trait_id = trait_ty.trait_id;
+impl<'a> std::fmt::Display for BytecodeTraitTypePrinter<'a> {
+    fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
+        let trait_id = self.trait_ty.trait_id;
         let trait_ = self.prog.trait_(trait_id);
-        write!(fmt, "{}", trait_.name)?;
+        write!(f, "{}", trait_.name)?;
 
-        if !trait_ty.type_params.is_empty() || !trait_ty.bindings.is_empty() {
+        if !self.trait_ty.type_params.is_empty() || !self.trait_ty.bindings.is_empty() {
             let mut first = false;
-            write!(fmt, "[")?;
+            write!(f, "[")?;
 
-            for ty in trait_ty.type_params.iter() {
+            for ty in self.trait_ty.type_params.iter() {
                 if !first {
-                    write!(fmt, ", ")?;
+                    write!(f, ", ")?;
                 }
 
-                write!(fmt, "{}", fmt_ty(&self.prog, &ty, self.type_params.clone()))?;
+                write!(f, "{}", fmt_ty(&self.prog, &ty, self.type_params.clone()))?;
                 first = false;
             }
 
-            for (alias_id, ty) in trait_ty.bindings.iter() {
+            for (alias_id, ty) in self.trait_ty.bindings.iter() {
                 if !first {
-                    write!(fmt, ", ")?;
+                    write!(f, ", ")?;
                 }
 
                 let alias = self.prog.alias(*alias_id);
                 write!(
-                    fmt,
+                    f,
                     "{}={}",
                     alias.name,
                     fmt_ty(&self.prog, &ty, self.type_params.clone())
@@ -404,16 +366,43 @@ impl<'a> BytecodeTraitTypePrinter<'a> {
                 first = false;
             }
 
-            write!(fmt, "]")?;
+            write!(f, "]")?;
         }
 
         Ok(())
     }
 }
 
-impl<'a> std::fmt::Display for BytecodeTraitTypePrinter<'a> {
+fn fmt_type_list<'a>(
+    prog: &'a Program,
+    array: &'a BytecodeTypeArray,
+    type_params: TypeParamMode<'a>,
+) -> TypeListPrinter<'a> {
+    TypeListPrinter {
+        prog,
+        type_params,
+        array,
+    }
+}
+
+pub struct TypeListPrinter<'a> {
+    prog: &'a Program,
+    type_params: TypeParamMode<'a>,
+    array: &'a BytecodeTypeArray,
+}
+
+impl<'a> std::fmt::Display for TypeListPrinter<'a> {
     fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
-        self.name(&self.trait_ty, f)
+        let mut first = true;
+        for ty in self.array.iter() {
+            if !first {
+                write!(f, ", ")?;
+            }
+            write!(f, "{}", fmt_ty(&self.prog, &ty, self.type_params.clone()))?;
+            first = false;
+        }
+
+        Ok(())
     }
 }
 

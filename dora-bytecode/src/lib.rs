@@ -12,7 +12,7 @@ mod tests;
 pub use data::*;
 pub use display::{
     display_fct, display_ty, display_ty_array, display_ty_with_type_params,
-    display_ty_without_type_params, fmt_trait_ty, fmt_ty, fmt_ty_array, module_path,
+    display_ty_without_type_params, fmt_trait_ty, fmt_ty, fmt_type_params, module_path,
     module_path_name, TypeParamMode,
 };
 pub use dumper::{dump, dump_stdout};
