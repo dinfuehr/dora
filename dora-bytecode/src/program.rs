@@ -106,6 +106,7 @@ pub struct StructField {
 #[derive(Debug, Decode, Encode)]
 pub struct TypeParamData {
     pub names: Vec<String>,
+    pub container_count: usize,
     pub bounds: Vec<TypeParamBound>,
 }
 

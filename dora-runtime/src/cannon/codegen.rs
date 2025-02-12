@@ -2657,16 +2657,24 @@ impl<'a> CannonCodeGen<'a> {
             FunctionKind::Trait(trait_id) => trait_id,
             _ => unreachable!(),
         };
+
+        let type_params = self.specialize_ty_array(&type_params);
+        assert!(type_params.is_concrete_type());
+        let (trait_type_params, pure_fct_type_params) =
+            type_params.split(fct.type_params.container_count);
+
         let trait_ty = BytecodeTraitType {
             trait_id,
-            type_params: type_params.clone(),
+            type_params: trait_type_params,
             bindings: Vec::new(),
         };
 
-        let (callee_id, type_params) = find_trait_impl(self.vm, trait_fct_id, trait_ty, ty);
+        let (callee_id, container_bindings) = find_trait_impl(self.vm, trait_fct_id, trait_ty, ty);
 
         let pos = self.bytecode.offset_location(self.current_offset.to_u32());
         let arguments = self.argument_stack.drain(..).collect::<Vec<_>>();
+
+        let type_params = container_bindings.connect(&pure_fct_type_params);
 
         if is_static {
             self.emit_invoke_static_or_intrinsic(dest, callee_id, type_params, arguments, pos);

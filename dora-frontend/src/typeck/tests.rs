@@ -1120,6 +1120,69 @@ fn trait_method_call_with_function_type_params_invalid_param() {
 }
 
 #[test]
+fn static_trait_method_call_with_function_type_params() {
+    ok("
+        trait Foo {
+            static fn bar[T](x: T);
+        }
+
+        fn f[T: Foo](x: T) {
+            T::bar[Int](1);
+        }
+    ");
+}
+
+#[test]
+fn static_trait_method_call_with_function_type_params_and_missing_params() {
+    err(
+        "
+        trait Foo {
+            static fn bar[T](x: T);
+        }
+
+        fn f[T: Foo](x: T) {
+            T::bar(1);
+        }
+    ",
+        (7, 13),
+        ErrorMessage::WrongNumberTypeParams(1, 0),
+    );
+
+    err(
+        "
+        trait Foo[X] {
+            static fn bar[T](x: T);
+        }
+
+        fn f[T: Foo[Int]](x: T) {
+            T::bar(1);
+        }
+    ",
+        (7, 13),
+        ErrorMessage::WrongNumberTypeParams(1, 0),
+    );
+}
+
+#[test]
+fn static_trait_method_call_with_function_type_params_invalid_param() {
+    err(
+        "
+        trait Foo {
+            static fn bar[T: Bar](x: T);
+        }
+
+        trait Bar {}
+
+        fn f[T: Foo](x: T) {
+            T::bar[Int](1);
+        }
+    ",
+        (9, 13),
+        ErrorMessage::TypeNotImplementingTrait("Int64".into(), "Bar".into()),
+    );
+}
+
+#[test]
 fn test_generic_ctor_without_type_params() {
     err(
         "class Foo[A, B]

@@ -129,32 +129,45 @@ fn check_expr_call_generic_static_method(
     let trait_method = ck.sa.fct(trait_method_id);
 
     let tp = SourceType::TypeParam(tp_id);
-    let fct_type_params = trait_ty.type_params.connect(&pure_fct_type_params);
+    let combined_fct_type_params = trait_ty.type_params.connect(&pure_fct_type_params);
 
-    check_args_compatible_fct2(ck, trait_method, arguments, |ty| {
-        specialize_ty_for_generic(ck.sa, ty, tp_id, &trait_ty, &fct_type_params, &tp)
-    });
-
-    let call_type = CallType::GenericStaticMethod(
-        tp_id,
-        trait_ty.trait_id,
-        trait_method_id,
-        trait_ty.type_params.clone(),
-    );
-    ck.analysis.map_calls.insert(e.id, Arc::new(call_type));
-
-    let return_type = specialize_ty_for_generic(
+    if check_type_params(
         ck.sa,
-        trait_method.return_type(),
-        tp_id,
-        &trait_ty,
-        &fct_type_params,
-        &tp,
-    );
+        ck.element,
+        &ck.type_param_definition,
+        trait_method,
+        &combined_fct_type_params,
+        ck.file_id,
+        e.span,
+        |ty| specialize_ty_for_generic(ck.sa, ty, tp_id, &trait_ty, &combined_fct_type_params, &tp),
+    ) {
+        check_args_compatible_fct2(ck, trait_method, arguments, |ty| {
+            specialize_ty_for_generic(ck.sa, ty, tp_id, &trait_ty, &combined_fct_type_params, &tp)
+        });
 
-    ck.analysis.set_ty(e.id, return_type.clone());
+        let call_type = CallType::GenericStaticMethod(
+            tp_id,
+            trait_ty.trait_id,
+            trait_method_id,
+            combined_fct_type_params.clone(),
+        );
+        ck.analysis.map_calls.insert(e.id, Arc::new(call_type));
 
-    return_type
+        let return_type = specialize_ty_for_generic(
+            ck.sa,
+            trait_method.return_type(),
+            tp_id,
+            &trait_ty,
+            &combined_fct_type_params,
+            &tp,
+        );
+
+        ck.analysis.set_ty(e.id, return_type.clone());
+
+        return_type
+    } else {
+        SourceType::Error
+    }
 }
 
 fn check_expr_call_expr(

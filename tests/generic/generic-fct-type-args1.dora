@@ -1,0 +1,18 @@
+trait Foo {
+    fn bar[T](x: T);
+}
+
+class Bar
+
+impl Foo for Bar {
+    fn bar[T](x: T) {}
+}
+
+fn myf[T: Foo](x: T) {
+    x.bar[Int](1);
+}
+
+fn main() {
+    let bar = Bar();
+    myf[Bar](bar);
+}

@@ -14,6 +14,7 @@ pub fn find_trait_impl(
 
     let type_param_data = TypeParamData {
         names: Vec::new(),
+        container_count: 0,
         bounds: Vec::new(),
     };
 

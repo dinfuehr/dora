@@ -347,7 +347,13 @@ fn create_type_params(sa: &Sema, type_params: &TypeParamDefinition) -> TypeParam
         })
         .collect();
 
-    TypeParamData { names, bounds }
+    let container_count = type_params.container_type_params();
+
+    TypeParamData {
+        names,
+        container_count,
+        bounds,
+    }
 }
 
 fn create_struct_fields(sa: &Sema, struct_: &StructDefinition) -> Vec<StructField> {

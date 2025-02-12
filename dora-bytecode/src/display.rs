@@ -139,6 +139,18 @@ pub fn display_ty_without_type_params(prog: &Program, ty: &BytecodeType) -> Stri
     printer.string()
 }
 
+pub fn fmt_ty<'a>(
+    prog: &'a Program,
+    ty: &'a BytecodeType,
+    type_params: TypeParamMode<'a>,
+) -> BytecodeTypePrinter<'a> {
+    BytecodeTypePrinter {
+        prog,
+        type_params,
+        ty: ty.clone(),
+    }
+}
+
 pub fn fmt_ty_with_type_params<'a>(
     prog: &'a Program,
     ty: &'a BytecodeType,
@@ -148,6 +160,30 @@ pub fn fmt_ty_with_type_params<'a>(
         prog,
         type_params: TypeParamMode::TypeParams(type_params),
         ty: ty.clone(),
+    }
+}
+
+pub fn fmt_ty_array<'a>(
+    prog: &'a Program,
+    array: &'a BytecodeTypeArray,
+    type_params: TypeParamMode<'a>,
+) -> BytecodeTypeArrayPrinter<'a> {
+    BytecodeTypeArrayPrinter {
+        prog,
+        type_params,
+        array,
+    }
+}
+
+pub fn fmt_trait_ty<'a>(
+    prog: &'a Program,
+    trait_ty: &'a BytecodeTraitType,
+    type_params: TypeParamMode<'a>,
+) -> BytecodeTraitTypePrinter<'a> {
+    BytecodeTraitTypePrinter {
+        prog,
+        type_params,
+        trait_ty,
     }
 }
 
@@ -166,7 +202,7 @@ pub fn fmt_trait_ty_with_type_params<'a>(
 ) -> BytecodeTraitTypePrinter<'a> {
     BytecodeTraitTypePrinter {
         prog,
-        type_params,
+        type_params: TypeParamMode::TypeParams(type_params),
         trait_ty,
     }
 }
@@ -179,7 +215,8 @@ pub fn display_trait_ty_with_type_params(
     fmt_trait_ty_with_type_params(prog, trait_ty, type_params).string()
 }
 
-enum TypeParamMode<'a> {
+#[derive(Clone)]
+pub enum TypeParamMode<'a> {
     None,
     Unknown,
     TypeParams(&'a TypeParamData),
@@ -296,9 +333,32 @@ impl<'a> std::fmt::Display for BytecodeTypePrinter<'a> {
     }
 }
 
+pub struct BytecodeTypeArrayPrinter<'a> {
+    prog: &'a Program,
+    type_params: TypeParamMode<'a>,
+    array: &'a BytecodeTypeArray,
+}
+
+impl<'a> std::fmt::Display for BytecodeTypeArrayPrinter<'a> {
+    fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
+        write!(f, "[")?;
+
+        let mut first = true;
+        for ty in self.array.iter() {
+            if !first {
+                write!(f, ", ")?;
+            }
+            write!(f, "{}", fmt_ty(&self.prog, &ty, self.type_params.clone()))?;
+            first = false;
+        }
+
+        write!(f, "]")
+    }
+}
+
 pub struct BytecodeTraitTypePrinter<'a> {
     prog: &'a Program,
-    type_params: &'a TypeParamData,
+    type_params: TypeParamMode<'a>,
     trait_ty: &'a BytecodeTraitType,
 }
 
@@ -325,11 +385,7 @@ impl<'a> BytecodeTraitTypePrinter<'a> {
                     write!(fmt, ", ")?;
                 }
 
-                write!(
-                    fmt,
-                    "{}",
-                    fmt_ty_with_type_params(&self.prog, &ty, self.type_params)
-                )?;
+                write!(fmt, "{}", fmt_ty(&self.prog, &ty, self.type_params.clone()))?;
                 first = false;
             }
 
@@ -343,7 +399,7 @@ impl<'a> BytecodeTraitTypePrinter<'a> {
                     fmt,
                     "{}={}",
                     alias.name,
-                    fmt_ty_with_type_params(&self.prog, &ty, self.type_params)
+                    fmt_ty(&self.prog, &ty, self.type_params.clone())
                 )?;
                 first = false;
             }

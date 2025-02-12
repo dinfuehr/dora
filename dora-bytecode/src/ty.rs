@@ -230,6 +230,21 @@ impl BytecodeTypeArray {
         BytecodeTypeArray::new(types)
     }
 
+    pub fn connect(&self, rhs: &BytecodeTypeArray) -> BytecodeTypeArray {
+        let mut types = self.0.to_vec();
+        types.append(&mut rhs.to_vec());
+        BytecodeTypeArray::new(types)
+    }
+
+    pub fn split(&self, elements: usize) -> (BytecodeTypeArray, BytecodeTypeArray) {
+        let (first, second) = self.0.split_at(elements);
+
+        (
+            BytecodeTypeArray::new(first.to_vec()),
+            BytecodeTypeArray::new(second.to_vec()),
+        )
+    }
+
     pub fn is_concrete_type(&self) -> bool {
         self.0.iter().all(|ty| ty.is_concrete_type())
     }

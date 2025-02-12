@@ -1,0 +1,17 @@
+trait Foo {
+    static fn bar[T](x: T);
+}
+
+class Bar
+
+impl Foo for Bar {
+    static fn bar[T](x: T) {}
+}
+
+fn myf[T: Foo]() {
+    T::bar[Int](1);
+}
+
+fn main() {
+    myf[Bar]();
+}

@@ -703,6 +703,7 @@ pub fn specialize_ty(
 
             let type_param_data = TypeParamData {
                 names: Vec::new(),
+                container_count: 0,
                 bounds: Vec::new(),
             };
 
