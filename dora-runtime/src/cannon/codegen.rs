@@ -2682,12 +2682,25 @@ impl<'a> CannonCodeGen<'a> {
         let pos = self.bytecode.offset_location(self.current_offset.to_u32());
         let arguments = self.argument_stack.drain(..).collect::<Vec<_>>();
 
-        let type_params = container_bindings.connect(&pure_fct_type_params);
+        let combined_type_params = container_bindings.connect(&pure_fct_type_params);
+        assert!(combined_type_params.is_concrete_type());
 
         if is_static {
-            self.emit_invoke_static_or_intrinsic(dest, callee_id, type_params, arguments, pos);
+            self.emit_invoke_static_or_intrinsic(
+                dest,
+                callee_id,
+                combined_type_params,
+                arguments,
+                pos,
+            );
         } else {
-            self.emit_invoke_direct_or_intrinsic(dest, callee_id, type_params, arguments, pos);
+            self.emit_invoke_direct_or_intrinsic(
+                dest,
+                callee_id,
+                combined_type_params,
+                arguments,
+                pos,
+            );
         }
     }
 
