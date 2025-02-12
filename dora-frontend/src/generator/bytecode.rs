@@ -113,16 +113,6 @@ impl BytecodeBuilder {
         self.writer.add_const(ConstPoolEntry::Fct(id, type_params))
     }
 
-    pub fn add_const_generic(
-        &mut self,
-        id: u32,
-        fct_id: FunctionId,
-        type_params: BytecodeTypeArray,
-    ) -> ConstPoolIdx {
-        self.writer
-            .add_const(ConstPoolEntry::Generic(id, fct_id, type_params))
-    }
-
     pub fn add_const_field_types(
         &mut self,
         cls_id: ClassId,

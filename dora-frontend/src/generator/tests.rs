@@ -301,6 +301,7 @@ fn gen_generic_not() {
         &ConstPoolEntry::Generic(
             0,
             FunctionId(fct_id.index().try_into().expect("overflow")),
+            BytecodeTypeArray::empty(),
             BytecodeTypeArray::empty()
         )
     );
@@ -4391,6 +4392,7 @@ fn gen_comparable_trait_generic() {
         &ConstPoolEntry::Generic(
             0,
             FunctionId(cmp_fct_id.index().try_into().expect("overflow")),
+            BytecodeTypeArray::empty(),
             BytecodeTypeArray::empty()
         )
     );

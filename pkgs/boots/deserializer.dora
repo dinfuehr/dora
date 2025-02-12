@@ -286,12 +286,14 @@ fn decodeConstPoolEntry(reader: ByteReader): ConstPoolEntry {
     } else if opcode == opc::CONSTPOOL_OPCODE_GENERIC {
         let idx = reader.readInt32();
         let fct_id = FunctionId(reader.readInt32());
-        let type_params = decodeBytecodeTypeArray(reader);
-        ConstPoolEntry::Generic(idx, fct_id, type_params)
+        let trait_type_params = decodeBytecodeTypeArray(reader);
+        let fct_type_params = decodeBytecodeTypeArray(reader);
+        ConstPoolEntry::Generic(idx, fct_id, trait_type_params, fct_type_params)
     } else if opcode == opc::CONSTPOOL_OPCODE_GENERIC_SELF {
         let fct_id = FunctionId(reader.readInt32());
-        let type_params = decodeBytecodeTypeArray(reader);
-        ConstPoolEntry::GenericSelf(fct_id, type_params)
+        let trait_type_params = decodeBytecodeTypeArray(reader);
+        let fct_type_params = decodeBytecodeTypeArray(reader);
+        ConstPoolEntry::GenericSelf(fct_id, trait_type_params, fct_type_params)
     } else if opcode == opc::CONSTPOOL_OPCODE_ENUM {
         let enum_id = EnumId(reader.readInt32());
         let type_params = decodeBytecodeTypeArray(reader);

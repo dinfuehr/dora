@@ -280,23 +280,26 @@ impl<'a> TransitiveClosureComputation<'a> {
                 | BytecodeInstruction::InvokeGenericStatic { fct, .. } => {
                     let generic_ty;
                     let callee_trait_fct_id;
-                    let callee_type_params;
+                    let callee_trait_type_params;
+                    let callee_fct_type_params;
 
                     match bytecode_function.const_pool(fct) {
-                        ConstPoolEntry::Generic(id, fct_id, fct_type_params) => {
+                        ConstPoolEntry::Generic(id, fct_id, trait_type_params, fct_type_params) => {
                             generic_ty = type_params[*id as usize].clone();
                             callee_trait_fct_id = *fct_id;
-                            callee_type_params = fct_type_params.clone();
+                            callee_trait_type_params = trait_type_params.clone();
+                            callee_fct_type_params = fct_type_params.clone();
                         }
 
-                        ConstPoolEntry::GenericSelf(fct_id, fct_type_params) => {
+                        ConstPoolEntry::GenericSelf(fct_id, trait_type_params, fct_type_params) => {
                             generic_ty = specialize_self
                                 .as_ref()
                                 .expect("missing Self type")
                                 .extended_ty
                                 .clone();
                             callee_trait_fct_id = *fct_id;
-                            callee_type_params = fct_type_params.clone();
+                            callee_trait_type_params = trait_type_params.clone();
+                            callee_fct_type_params = fct_type_params.clone();
                         }
 
                         _ => unreachable!(),
@@ -308,18 +311,22 @@ impl<'a> TransitiveClosureComputation<'a> {
                         FunctionKind::Trait(trait_id) => trait_id,
                         _ => unreachable!(),
                     };
+
+                    let callee_trait_type_params =
+                        specialize_bty_array(&callee_trait_type_params, &type_params);
+
                     let trait_ty = BytecodeTraitType {
                         trait_id,
-                        type_params: callee_type_params.clone(),
+                        type_params: callee_trait_type_params.clone(),
                         bindings: Vec::new(),
                     };
 
-                    let (callee_id, callee_type_params) =
+                    let (callee_id, callee_container_bindings) =
                         find_trait_impl(self.vm, callee_trait_fct_id, trait_ty, generic_ty);
 
-                    let callee_type_params =
-                        specialize_bty_array(&callee_type_params, &type_params);
-                    self.push(callee_id, callee_type_params);
+                    let combined_type_params =
+                        callee_container_bindings.connect(&callee_fct_type_params);
+                    self.push(callee_id, combined_type_params);
                 }
 
                 BytecodeInstruction::NewLambda { idx, .. } => {

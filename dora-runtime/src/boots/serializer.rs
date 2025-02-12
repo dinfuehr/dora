@@ -373,16 +373,18 @@ fn encode_constpool_entry(vm: &VM, const_entry: &ConstPoolEntry, buffer: &mut By
             encode_bytecode_type(vm, trait_object_ty, buffer);
             buffer.emit_id(fct_id.0 as usize);
         }
-        &ConstPoolEntry::Generic(tp_id, fct_id, ref source_type_array) => {
+        &ConstPoolEntry::Generic(tp_id, fct_id, ref trait_type_params, ref fct_type_params) => {
             buffer.emit_u8(ConstPoolOpcode::Generic.into());
             buffer.emit_id(tp_id as usize);
             buffer.emit_id(fct_id.0 as usize);
-            encode_bytecode_type_array(vm, source_type_array, buffer);
+            encode_bytecode_type_array(vm, trait_type_params, buffer);
+            encode_bytecode_type_array(vm, fct_type_params, buffer);
         }
-        &ConstPoolEntry::GenericSelf(fct_id, ref source_type_array) => {
+        &ConstPoolEntry::GenericSelf(fct_id, ref trait_type_params, ref fct_type_params) => {
             buffer.emit_u8(ConstPoolOpcode::GenericSelf.into());
             buffer.emit_id(fct_id.0 as usize);
-            encode_bytecode_type_array(vm, source_type_array, buffer);
+            encode_bytecode_type_array(vm, trait_type_params, buffer);
+            encode_bytecode_type_array(vm, fct_type_params, buffer);
         }
         &ConstPoolEntry::Class(cls_id, ref source_type_array) => {
             buffer.emit_u8(ConstPoolOpcode::Class.into());

@@ -1097,11 +1097,12 @@ impl<'a> AstBytecodeGen<'a> {
                         .get_method(name, false)
                         .expect("Stringable::toString() not found");
 
-                    let fct_idx = self.builder.add_const_generic(
+                    let fct_idx = self.builder.add_const(ConstPoolEntry::Generic(
                         type_list_id.index() as u32,
                         FunctionId(to_string_id.index().try_into().expect("overflow")),
                         BytecodeTypeArray::empty(),
-                    );
+                        BytecodeTypeArray::empty(),
+                    ));
 
                     self.builder.emit_invoke_generic_direct(
                         part_register,
@@ -3189,25 +3190,26 @@ impl<'a> AstBytecodeGen<'a> {
         call_type: &CallType,
     ) -> ConstPoolIdx {
         match call_type {
-            CallType::GenericStaticMethod(id, .., ref type_params)
-            | CallType::GenericMethod(id, .., ref type_params) => {
-                assert_eq!(
-                    fct.type_param_definition().type_param_count(),
-                    type_params.len()
-                );
-                self.builder.add_const_generic(
+            CallType::GenericStaticMethod(id, .., ref trait_type_params, ref fct_type_params)
+            | CallType::GenericMethod(id, .., ref trait_type_params, ref fct_type_params) => {
+                self.builder.add_const(ConstPoolEntry::Generic(
                     id.index() as u32,
                     FunctionId(fct.id().index().try_into().expect("overflow")),
-                    bty_array_from_ty(&type_params),
-                )
-            }
-            CallType::GenericMethodSelf(_, fct_id, type_params)
-            | CallType::GenericStaticMethodSelf(_, fct_id, type_params) => {
-                self.builder.add_const(ConstPoolEntry::GenericSelf(
-                    FunctionId(fct_id.index().try_into().expect("overflow")),
-                    bty_array_from_ty(&type_params),
+                    bty_array_from_ty(&trait_type_params),
+                    bty_array_from_ty(&fct_type_params),
                 ))
             }
+            CallType::GenericMethodSelf(_, fct_id, ref trait_type_params, ref fct_type_params)
+            | CallType::GenericStaticMethodSelf(
+                _,
+                fct_id,
+                ref trait_type_params,
+                ref fct_type_params,
+            ) => self.builder.add_const(ConstPoolEntry::GenericSelf(
+                FunctionId(fct_id.index().try_into().expect("overflow")),
+                bty_array_from_ty(&trait_type_params),
+                bty_array_from_ty(&fct_type_params),
+            )),
             CallType::TraitObjectMethod(ref trait_object_ty, _) => {
                 self.builder.add_const(ConstPoolEntry::TraitObjectMethod(
                     bty_from_ty(trait_object_ty.clone()),
@@ -3247,20 +3249,43 @@ impl<'a> AstBytecodeGen<'a> {
                 };
                 specialize_ty_for_trait_object(self.sa, ty, trait_id, type_params, assoc_types)
             }
-            CallType::GenericMethod(id, _trait_id, _method_id, type_params)
-            | CallType::GenericStaticMethod(id, _trait_id, _method_id, type_params) => {
-                replace_type(
-                    self.sa,
-                    ty,
-                    Some(type_params),
-                    Some(SourceType::TypeParam(*id)),
-                )
-            }
+            CallType::GenericMethod(
+                id,
+                _trait_id,
+                _method_id,
+                ref trait_type_params,
+                ref fct_type_params,
+            )
+            | CallType::GenericStaticMethod(
+                id,
+                _trait_id,
+                _method_id,
+                ref trait_type_params,
+                ref fct_type_params,
+            ) => replace_type(
+                self.sa,
+                ty,
+                Some(&trait_type_params.connect(fct_type_params)),
+                Some(SourceType::TypeParam(*id)),
+            ),
 
-            CallType::GenericMethodSelf(_trait_id, _fct_id, type_params)
-            | CallType::GenericStaticMethodSelf(_trait_id, _fct_id, type_params) => {
-                replace_type(self.sa, ty, Some(type_params), None)
-            }
+            CallType::GenericMethodSelf(
+                _trait_id,
+                _fct_id,
+                ref trait_type_params,
+                ref fct_type_params,
+            )
+            | CallType::GenericStaticMethodSelf(
+                _trait_id,
+                _fct_id,
+                ref trait_type_params,
+                ref fct_type_params,
+            ) => replace_type(
+                self.sa,
+                ty,
+                Some(&trait_type_params.connect(fct_type_params)),
+                None,
+            ),
 
             CallType::Lambda(..)
             | CallType::NewClass(..)

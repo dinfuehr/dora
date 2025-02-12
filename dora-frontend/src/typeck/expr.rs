@@ -1394,6 +1394,7 @@ fn check_expr_un_trait(
             trait_id,
             method_id,
             SourceTypeArray::empty(),
+            SourceTypeArray::empty(),
         );
         ck.analysis
             .map_calls
@@ -1709,6 +1710,7 @@ fn check_expr_bin_trait(
             lhs_type.type_param_id().expect("type param expected"),
             trait_id,
             method_id,
+            SourceTypeArray::empty(),
             SourceTypeArray::empty(),
         );
         ck.analysis

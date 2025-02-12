@@ -149,7 +149,8 @@ fn check_expr_call_generic_static_method(
             tp_id,
             trait_ty.trait_id,
             trait_method_id,
-            combined_fct_type_params.clone(),
+            trait_ty.type_params.clone(),
+            pure_fct_type_params,
         );
         ck.analysis.map_calls.insert(e.id, Arc::new(call_type));
 
@@ -903,6 +904,7 @@ fn check_expr_call_self(
                 trait_method.trait_id(),
                 trait_method_id,
                 trait_type_params.clone(),
+                SourceTypeArray::empty(),
             )),
         );
 
@@ -953,7 +955,7 @@ fn check_expr_call_generic_type_param(
     object_type: SourceType,
     id: TypeParamId,
     name: String,
-    _pure_fct_type_params: SourceTypeArray,
+    pure_fct_type_params: SourceTypeArray,
     arguments: CallArguments,
 ) -> SourceType {
     assert!(object_type.is_type_param());
@@ -974,7 +976,7 @@ fn check_expr_call_generic_type_param(
         let (trait_method_id, trait_ty) = matched_methods.pop().expect("missing element");
 
         let trait_method = ck.sa.fct(trait_method_id);
-        let combined_fct_type_params = trait_ty.type_params.connect(&_pure_fct_type_params);
+        let combined_fct_type_params = trait_ty.type_params.connect(&pure_fct_type_params);
 
         if check_type_params(
             ck.sa,
@@ -1010,7 +1012,8 @@ fn check_expr_call_generic_type_param(
                 id,
                 trait_method.trait_id(),
                 trait_method_id,
-                combined_fct_type_params.clone(),
+                trait_ty.type_params.clone(),
+                pure_fct_type_params,
             );
             ck.analysis.map_calls.insert(e.id, Arc::new(call_type));
 

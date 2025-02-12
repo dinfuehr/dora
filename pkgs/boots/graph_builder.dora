@@ -1467,32 +1467,40 @@ impl SsaGen {
     fn emitInvokeGeneric(dest: BytecodeRegister, idx: ConstPoolId, kind: CallKind): Bool {
         let ty = self.regGraphTy(dest);
 
-        let (object_ty, trait_fct_id, trait_type_params) = match self.bc.constPool(idx) {
-            ConstPoolEntry::Generic(type_param_idx, trait_fct_id, trait_type_params) => {
-                (self.typeParams(type_param_idx.toInt64()), trait_fct_id, trait_type_params)
+        let (object_ty, trait_fct_id, trait_type_params, fct_type_params) = match self.bc.constPool(idx) {
+            ConstPoolEntry::Generic(type_param_idx, trait_fct_id, trait_type_params, fct_type_params) => {
+                (self.typeParams(type_param_idx.toInt64()), trait_fct_id, trait_type_params, fct_type_params)
             }
 
-            ConstPoolEntry::GenericSelf(trait_fct_id, trait_type_params) => {
+            ConstPoolEntry::GenericSelf(trait_fct_id, trait_type_params, fct_type_params) => {
                 let extended_ty = self.specializeSelf.getOrPanic().extended_ty;
                 let extended_ty = self.specializeTy(extended_ty);
-                (extended_ty, trait_fct_id, trait_type_params)
+                (extended_ty, trait_fct_id, trait_type_params, fct_type_params)
             }
 
-            _ => unreachable[(BytecodeType, FunctionId, Array[BytecodeType])](),
+            _ => unreachable[(BytecodeType, FunctionId, Array[BytecodeType], Array[BytecodeType])](),
         };
 
         assert(!object_ty.isGeneric());
 
-        let (callee_id, type_params) = iface::findTraitImpl(self.ci, trait_fct_id, trait_type_params, object_ty);
+        let trait_type_params = self.specializeArray(trait_type_params);
+        assert(!trait_type_params.isGeneric());
+
+        let fct_type_params = self.specializeArray(fct_type_params);
+        assert(!fct_type_params.isGeneric());
+
+        let (callee_id, container_bindings) = iface::findTraitImpl(self.ci, trait_fct_id, trait_type_params, object_ty);
+        let combined_type_params = container_bindings.append(fct_type_params);
+        assert(!combined_type_params.isGeneric());
 
         let intrinsic = iface::getIntrinsicForFunction(callee_id);
 
         if self.isIntrinsic(intrinsic) {
             let args = self.pushed_registers.toArray();
             self.pushed_registers.clear();
-            self.emitIntrinsic(intrinsic, dest, args, idx, type_params)
+            self.emitIntrinsic(intrinsic, dest, args, idx, combined_type_params)
         } else {
-            self.emitCall(dest, kind, callee_id, type_params);
+            self.emitCall(dest, kind, callee_id, combined_type_params);
             false
         }
     }

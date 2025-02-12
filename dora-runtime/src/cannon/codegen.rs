@@ -2635,20 +2635,27 @@ impl<'a> CannonCodeGen<'a> {
     }
 
     fn emit_invoke_generic(&mut self, dest: Register, fct_idx: ConstPoolIdx, is_static: bool) {
-        let (ty, trait_fct_id, type_params) = match self.bytecode.const_pool(fct_idx) {
-            ConstPoolEntry::Generic(id, fct_id, type_params) => (
-                self.type_params[*id as usize].clone(),
-                *fct_id,
-                type_params.clone(),
-            ),
-            ConstPoolEntry::GenericSelf(fct_id, type_params) => {
-                let specialize_self = self.specialize_self.as_ref().expect("missing Self type");
-                let extended_ty = self.specialize_ty(specialize_self.extended_ty.clone());
+        let (ty, trait_fct_id, trait_type_params, pure_fct_type_params) =
+            match self.bytecode.const_pool(fct_idx) {
+                ConstPoolEntry::Generic(id, fct_id, trait_type_params, fct_type_params) => (
+                    self.type_params[*id as usize].clone(),
+                    *fct_id,
+                    trait_type_params.clone(),
+                    fct_type_params.clone(),
+                ),
+                ConstPoolEntry::GenericSelf(fct_id, trait_type_params, fct_type_params) => {
+                    let specialize_self = self.specialize_self.as_ref().expect("missing Self type");
+                    let extended_ty = self.specialize_ty(specialize_self.extended_ty.clone());
 
-                (extended_ty, *fct_id, type_params.clone())
-            }
-            _ => unreachable!(),
-        };
+                    (
+                        extended_ty,
+                        *fct_id,
+                        trait_type_params.clone(),
+                        fct_type_params.clone(),
+                    )
+                }
+                _ => unreachable!(),
+            };
 
         assert!(ty.is_concrete_type());
 
@@ -2658,10 +2665,11 @@ impl<'a> CannonCodeGen<'a> {
             _ => unreachable!(),
         };
 
-        let type_params = self.specialize_ty_array(&type_params);
-        assert!(type_params.is_concrete_type());
-        let (trait_type_params, pure_fct_type_params) =
-            type_params.split(fct.type_params.container_count);
+        let trait_type_params = self.specialize_ty_array(&trait_type_params);
+        assert!(trait_type_params.is_concrete_type());
+
+        let pure_fct_type_params = self.specialize_ty_array(&pure_fct_type_params);
+        assert!(pure_fct_type_params.is_concrete_type());
 
         let trait_ty = BytecodeTraitType {
             trait_id,

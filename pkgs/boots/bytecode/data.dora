@@ -78,8 +78,8 @@ pub enum ConstPoolEntry {
     Field(ClassId, Array[BytecodeType], ClassFieldId),
     Fct(FunctionId, Array[BytecodeType]),
     TraitObjectMethod(BytecodeType, FunctionId),
-    Generic(Int32, FunctionId, Array[BytecodeType]),
-    GenericSelf(FunctionId, Array[BytecodeType]),
+    Generic(Int32, FunctionId, Array[BytecodeType], Array[BytecodeType]),
+    GenericSelf(FunctionId, Array[BytecodeType], Array[BytecodeType]),
     Enum(EnumId, Array[BytecodeType]),
     EnumVariant(EnumId, Array[BytecodeType], Int32),
     EnumElement(EnumId, Array[BytecodeType], Int32, Int32),
@@ -149,8 +149,8 @@ impl Stringable for ConstPoolEntry {
             ConstPoolEntry::Field(id, typeParams, fieldId) => "Field ${id}${typeParams}.${fieldId}",
             ConstPoolEntry::Fct(id, typeParams) => "Fct ${id}${typeParams}",
             ConstPoolEntry::TraitObjectMethod(ty, id) => "TraitObjectMethod ${ty} ${id}",
-            ConstPoolEntry::Generic(tp, id, typeParams) => "Generic ${tp} ${id}${typeParams}",
-            ConstPoolEntry::GenericSelf(id, typeParams) => "GenericSelf ${id}${typeParams}",
+            ConstPoolEntry::Generic(tp, id, traitTypeParams, fctTypeParams) => "Generic ${tp} ${id}${traitTypeParams}${fctTypeParams}",
+            ConstPoolEntry::GenericSelf(id, traitTypeParams, fctTypeParams) => "GenericSelf ${id}${traitTypeParams}${fctTypeParams}",
             ConstPoolEntry::Enum(id, typeParams) => "Enum ${id}${typeParams}",
             ConstPoolEntry::EnumVariant(id, typeParams, variant) => "EnumVariant ${id}${typeParams}::${variant}",
             ConstPoolEntry::EnumElement(id, typeParams, variant, element) => "EnumVariant ${id}${typeParams}::${variant}.${element}",
@@ -481,6 +481,7 @@ impl Stringable for BytecodeType {
 
 pub trait BytecodeTypeArrayExt {
     fn isGeneric(): Bool;
+    fn append(other: Array[BytecodeType]): Array[BytecodeType];
 }
 
 impl BytecodeTypeArrayExt for Array[BytecodeType] {
@@ -492,6 +493,23 @@ impl BytecodeTypeArrayExt for Array[BytecodeType] {
         }
 
         false
+    }
+
+    fn append(other: Array[BytecodeType]): Array[BytecodeType] {
+        let result = Array[BytecodeType]::fill(self.size() + other.size(), BytecodeType::Unit);
+        let mut target = 0;
+
+        for value in self {
+            result(target) = value;
+            target += 1;
+        }
+
+        for value in other {
+            result(target) = value;
+            target += 1;
+        }
+
+        result
     }
 }
 

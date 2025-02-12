@@ -353,10 +353,16 @@ pub enum CallType {
         TraitDefinitionId,
         FctDefinitionId,
         SourceTypeArray,
+        SourceTypeArray,
     ),
 
     // Invoke trait method from a default trait method, e.g. self.method().
-    GenericMethodSelf(TraitDefinitionId, FctDefinitionId, SourceTypeArray),
+    GenericMethodSelf(
+        TraitDefinitionId,
+        FctDefinitionId,
+        SourceTypeArray,
+        SourceTypeArray,
+    ),
 
     // Invoke static trait method on type param, e.g. T::method()
     GenericStaticMethod(
@@ -364,10 +370,16 @@ pub enum CallType {
         TraitDefinitionId,
         FctDefinitionId,
         SourceTypeArray,
+        SourceTypeArray,
     ),
 
     // Invoke static trait method from a default trait method, e.g. Self::method().
-    GenericStaticMethodSelf(TraitDefinitionId, FctDefinitionId, SourceTypeArray),
+    GenericStaticMethodSelf(
+        TraitDefinitionId,
+        FctDefinitionId,
+        SourceTypeArray,
+        SourceTypeArray,
+    ),
 
     // Class constructor of new class syntax, i.e. ClassName(<args>).
     NewClass(ClassDefinitionId, SourceTypeArray),
@@ -420,10 +432,10 @@ impl CallType {
             | CallType::Method(_, fct_id, _)
             | CallType::Expr(_, fct_id, _)
             | CallType::TraitObjectMethod(_, fct_id)
-            | CallType::GenericMethod(_, _, fct_id, _)
-            | CallType::GenericStaticMethod(_, _, fct_id, _)
-            | CallType::GenericMethodSelf(_, fct_id, _)
-            | CallType::GenericStaticMethodSelf(_, fct_id, _) => Some(fct_id),
+            | CallType::GenericMethod(_, _, fct_id, ..)
+            | CallType::GenericStaticMethod(_, _, fct_id, ..)
+            | CallType::GenericMethodSelf(_, fct_id, ..)
+            | CallType::GenericStaticMethodSelf(_, fct_id, ..) => Some(fct_id),
 
             CallType::NewClass(..)
             | CallType::NewStruct(..)

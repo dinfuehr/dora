@@ -162,23 +162,31 @@ pub fn dump(w: &mut dyn io::Write, prog: &Program, bc: &BytecodeFunction) -> std
                     &display_fct(prog, *fct_id)
                 )?;
             }
-            ConstPoolEntry::Generic(id, fct_id, type_params) => {
+            ConstPoolEntry::Generic(id, fct_id, trait_type_params, fct_type_params) => {
                 writeln!(
                     w,
                     "{}{} => TypeParam({}) Method {}",
                     align,
                     idx,
                     id,
-                    fmt_name(prog, &display_fct(prog, *fct_id), &type_params)
+                    fmt_name(
+                        prog,
+                        &display_fct(prog, *fct_id),
+                        &trait_type_params.connect(fct_type_params)
+                    )
                 )?;
             }
-            ConstPoolEntry::GenericSelf(fct_id, type_params) => {
+            ConstPoolEntry::GenericSelf(fct_id, trait_type_params, fct_type_params) => {
                 writeln!(
                     w,
                     "{}{} => Self::Method {}",
                     align,
                     idx,
-                    fmt_name(prog, &display_fct(prog, *fct_id), &type_params)
+                    fmt_name(
+                        prog,
+                        &display_fct(prog, *fct_id),
+                        &trait_type_params.connect(fct_type_params)
+                    )
                 )?;
             }
             ConstPoolEntry::TraitObject {
@@ -528,7 +536,7 @@ impl<'a> BytecodeDumper<'a> {
     fn get_fct_name(&mut self, idx: ConstPoolIdx) -> String {
         let fct_id = match self.bc.const_pool(idx) {
             ConstPoolEntry::Fct(fct_id, _)
-            | ConstPoolEntry::Generic(_, fct_id, _)
+            | ConstPoolEntry::Generic(_, fct_id, _, _)
             | ConstPoolEntry::GenericSelf(fct_id, ..)
             | ConstPoolEntry::TraitObjectMethod(_, fct_id) => fct_id,
             ConstPoolEntry::Lambda(_, _) => return "lambda".into(),
