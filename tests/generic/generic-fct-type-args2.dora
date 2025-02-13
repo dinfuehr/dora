@@ -1,0 +1,28 @@
+use std::string::Stringable;
+
+trait Foo {
+    fn bar[T: TraitB[X=String]](x: T): T::X { x.toX() }
+}
+
+class Bar
+
+impl Foo for Bar {}
+
+fn myf[T: Foo](x: T) {
+    x.bar[Int](1);
+}
+
+trait TraitB {
+    type X;
+    fn toX(): Self::X;
+}
+
+impl TraitB for Int {
+    type X = String;
+    fn toX(): String { self.toString() }
+}
+
+fn main() {
+    let bar = Bar();
+    myf[Bar](bar);
+}

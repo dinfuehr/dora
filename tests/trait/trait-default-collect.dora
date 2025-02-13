@@ -1,5 +1,3 @@
-//= ignore
-
 trait MyIterator {
     type Item;
     fn next(): Option[Self::Item];
@@ -45,5 +43,5 @@ impl MyFromIterator[Int] for Vec[Int] {
 
 fn main() {
     let values: Vec[Int] = Range(2).collect[Vec[Int]]();
-    assert(values == Vec[Int]::new(1, 0));
+    assert(values == Vec[Int]::new(2, 1));
 }

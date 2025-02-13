@@ -2,7 +2,7 @@ use crate::sema::{
     new_identity_type_params, AliasParent, Element, FctDefinition, FctParent, Sema, SourceFileId,
     TypeParamDefinition,
 };
-use crate::{parsety, ModuleSymTable, ParsedType, SourceType, SymbolKind};
+use crate::{parsety, ModuleSymTable, SourceType, SymbolKind};
 
 pub fn parse_types(sa: &Sema) {
     parse_trait_types(sa);
@@ -457,7 +457,7 @@ pub fn expand_types(sa: &Sema) {
 fn expand_impl_types(sa: &Sema) {
     for (_id, impl_) in sa.impls.iter() {
         parsety::expand_type(sa, impl_, impl_.parsed_extended_ty(), None);
-        parsety::expand_trait_type(
+        parsety::expand_parsed_trait_type(
             sa,
             impl_,
             impl_.parsed_trait_ty(),
@@ -503,16 +503,19 @@ fn expand_extension_types(sa: &Sema) {
 
 fn expand_function_types(sa: &Sema) {
     for (_id, fct) in sa.fcts.iter() {
+        let replace_self = compute_function_replace_self(sa, fct);
+
         for p in fct.params_with_self() {
-            expand_function_type(sa, fct, p.parsed_ty());
+            parsety::expand_type(sa, fct, p.parsed_ty(), replace_self.clone());
         }
 
-        expand_function_type(sa, fct, fct.parsed_return_type());
+        parsety::expand_type(sa, fct, fct.parsed_return_type(), replace_self.clone());
+        expand_type_param_definition(sa, fct, fct.type_param_definition(), replace_self);
     }
 }
 
-fn expand_function_type(sa: &Sema, fct: &FctDefinition, parsed_ty: &ParsedType) {
-    let replace_self = match fct.parent {
+fn compute_function_replace_self(sa: &Sema, fct: &FctDefinition) -> Option<SourceType> {
+    match fct.parent {
         FctParent::Impl(id) => {
             let impl_ = sa.impl_(id);
             Some(impl_.extended_ty())
@@ -525,9 +528,7 @@ fn expand_function_type(sa: &Sema, fct: &FctDefinition, parsed_ty: &ParsedType) 
         FctParent::Trait(..) => Some(SourceType::This),
         FctParent::None => None,
         FctParent::Function => unreachable!(),
-    };
-
-    parsety::expand_type(sa, fct, &parsed_ty, replace_self);
+    }
 }
 
 fn expand_global_types(sa: &Sema) {
@@ -582,7 +583,12 @@ fn expand_type_param_definition(
 ) {
     for bound in type_param_definition.own_bounds() {
         parsety::expand_type(sa, element, bound.parsed_ty(), replace_self.clone());
-        parsety::expand_trait_type(sa, element, bound.parsed_trait_ty(), replace_self.clone());
+        parsety::expand_parsed_trait_type(
+            sa,
+            element,
+            bound.parsed_trait_ty(),
+            replace_self.clone(),
+        );
     }
 }
 

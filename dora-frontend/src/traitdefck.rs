@@ -582,4 +582,32 @@ mod tests {
             class Foo[T: TraitA](T)
         ");
     }
+
+    #[test]
+    fn trait_default_method_returning_known_associated_type() {
+        ok("
+            trait Foo {
+                fn bar[T: Bar[X=String]](x: T): T::X { x.toX() }
+            }
+
+            trait Bar {
+                type X;
+                fn toX(): Self::X;
+            }
+        ");
+    }
+
+    #[test]
+    fn trait_default_method_returning_known_associated_type_fixed() {
+        ok("
+            trait Foo {
+                fn bar[T: Bar[X=String]](x: T): String { x.toX() }
+            }
+
+            trait Bar {
+                type X;
+                fn toX(): Self::X;
+            }
+        ");
+    }
 }

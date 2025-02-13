@@ -1103,25 +1103,39 @@ pub fn expand_type(
     new_ty
 }
 
-pub fn expand_trait_type(
+pub fn expand_parsed_trait_type(
     sa: &Sema,
     element: &dyn Element,
     parsed_ty: &ParsedTraitType,
     replace_self: Option<SourceType>,
 ) {
     if let Some(trait_ty) = parsed_ty.ty() {
-        let new_type_params = expand_sta(sa, element, &trait_ty.type_params, replace_self.clone());
-        let new_bindings = trait_ty
-            .bindings
-            .into_iter()
-            .map(|(id, ty)| (id, expand_st(sa, element, ty, replace_self.clone())))
-            .collect();
-        let new_trait_ty = TraitType {
-            trait_id: trait_ty.trait_id,
-            type_params: new_type_params,
-            bindings: new_bindings,
-        };
+        let new_trait_ty = expand_trait_ty(sa, element, &trait_ty, replace_self);
         parsed_ty.set_ty(Some(new_trait_ty));
+    }
+}
+
+fn expand_trait_ty(
+    sa: &Sema,
+    element: &dyn Element,
+    trait_ty: &TraitType,
+    replace_self: Option<SourceType>,
+) -> TraitType {
+    let new_type_params = expand_sta(sa, element, &trait_ty.type_params, replace_self.clone());
+    let new_bindings = trait_ty
+        .bindings
+        .iter()
+        .map(|(id, ty)| {
+            (
+                *id,
+                expand_st(sa, element, ty.clone(), replace_self.clone()),
+            )
+        })
+        .collect::<Vec<_>>();
+    TraitType {
+        trait_id: trait_ty.trait_id,
+        type_params: new_type_params,
+        bindings: new_bindings,
     }
 }
 
@@ -1195,6 +1209,22 @@ fn expand_st(
             }
         }
 
+        SourceType::GenericAssoc {
+            tp_id,
+            trait_ty,
+            assoc_id,
+        } => {
+            if let Some((_, ty)) = trait_ty.bindings.iter().find(|(x, _)| *x == *assoc_id) {
+                expand_st(sa, element, ty.clone(), replace_self)
+            } else {
+                SourceType::GenericAssoc {
+                    tp_id: *tp_id,
+                    trait_ty: expand_trait_ty(sa, element, trait_ty, replace_self),
+                    assoc_id: *assoc_id,
+                }
+            }
+        }
+
         SourceType::Unit
         | SourceType::UInt8
         | SourceType::Bool
@@ -1204,8 +1234,7 @@ fn expand_st(
         | SourceType::Float32
         | SourceType::Float64
         | SourceType::Error
-        | SourceType::TypeParam(..)
-        | SourceType::GenericAssoc { .. } => ty,
+        | SourceType::TypeParam(..) => ty,
         SourceType::This => replace_self.expect("self expected"),
 
         SourceType::Any | SourceType::Ptr => {

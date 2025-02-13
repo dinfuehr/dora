@@ -1130,6 +1130,24 @@ fn static_trait_method_call_with_function_type_params() {
             T::bar[Int](1);
         }
     ");
+
+    ok("
+        trait Foo {
+            static fn bar[T: Bar[X=String]](x: T);
+        }
+
+        trait Bar {
+            type X;
+        }
+
+        impl Bar for Int {
+            type X = String;
+        }
+
+        fn f[T: Foo](x: T) {
+            T::bar[Int](1);
+        }
+    ");
 }
 
 #[test]
@@ -1178,6 +1196,28 @@ fn static_trait_method_call_with_function_type_params_invalid_param() {
         }
     ",
         (9, 13),
+        ErrorMessage::TypeNotImplementingTrait("Int64".into(), "Bar".into()),
+    );
+
+    err(
+        "
+        trait Foo {
+            static fn bar[T: Bar[X=Int]](x: T);
+        }
+
+        trait Bar {
+            type X;
+        }
+
+        impl Bar for Int {
+            type X = String;
+        }
+
+        fn f[T: Foo](x: T) {
+            T::bar[Int](1);
+        }
+    ",
+        (15, 13),
         ErrorMessage::TypeNotImplementingTrait("Int64".into(), "Bar".into()),
     );
 }

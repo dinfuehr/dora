@@ -1,0 +1,29 @@
+use std::string::Stringable;
+
+trait Foo {
+    static fn bar[T: Bar[X=String]](x: T): T::X {
+        x.toX()
+    }
+}
+
+class Baz
+
+impl Foo for Baz {}
+
+trait Bar {
+    type X;
+    fn toX(): Self::X;
+}
+
+impl Bar for Int {
+    type X = String;
+    fn toX(): String { self.toString() }
+}
+
+fn myf[T: Foo](x: T) {
+    assert(T::bar[Int](4711) == "4711");
+}
+
+fn main() {
+    myf[Baz](Baz());
+}

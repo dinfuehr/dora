@@ -2,7 +2,7 @@ use dora_parser::Span;
 
 use crate::error::msg::ErrorMessage;
 use crate::sema::{implements_trait, Element, Sema, SourceFileId, TypeParamDefinition};
-use crate::{SourceType, SourceTypeArray};
+use crate::{specialize_trait_type_generic, SourceType, SourceTypeArray};
 
 pub fn check_type_params<'a, S>(
     sa: &'a Sema,
@@ -12,10 +12,10 @@ pub fn check_type_params<'a, S>(
     params: &'a SourceTypeArray,
     file_id: SourceFileId,
     span: Span,
-    mut specialize: S,
+    specialize: S,
 ) -> bool
 where
-    S: FnMut(SourceType) -> SourceType,
+    S: Fn(SourceType) -> SourceType,
 {
     let callee_type_param_defs = callee_element.type_param_definition();
 
@@ -42,6 +42,7 @@ where
         let tp_ty = bound.ty();
         if let Some(trait_ty) = bound.trait_ty() {
             let tp_ty = specialize(tp_ty);
+            let trait_ty = specialize_trait_type_generic(sa, trait_ty, &specialize);
 
             if !implements_trait(sa, tp_ty.clone(), caller_element, trait_ty.clone()) {
                 let name = tp_ty.name_with_type_params(sa, caller_type_param_defs);

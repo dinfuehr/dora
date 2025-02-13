@@ -139,10 +139,28 @@ fn check_expr_call_generic_static_method(
         &combined_fct_type_params,
         ck.file_id,
         e.span,
-        |ty| specialize_ty_for_generic(ck.sa, ty, tp_id, &trait_ty, &combined_fct_type_params, &tp),
+        |ty| {
+            specialize_ty_for_generic(
+                ck.sa,
+                ty,
+                ck.element,
+                tp_id,
+                &trait_ty,
+                &combined_fct_type_params,
+                &tp,
+            )
+        },
     ) {
         check_args_compatible_fct2(ck, trait_method, arguments, |ty| {
-            specialize_ty_for_generic(ck.sa, ty, tp_id, &trait_ty, &combined_fct_type_params, &tp)
+            specialize_ty_for_generic(
+                ck.sa,
+                ty,
+                ck.element,
+                tp_id,
+                &trait_ty,
+                &combined_fct_type_params,
+                &tp,
+            )
         });
 
         let call_type = CallType::GenericStaticMethod(
@@ -157,6 +175,7 @@ fn check_expr_call_generic_static_method(
         let return_type = specialize_ty_for_generic(
             ck.sa,
             trait_method.return_type(),
+            ck.element,
             tp_id,
             &trait_ty,
             &combined_fct_type_params,
@@ -990,6 +1009,7 @@ fn check_expr_call_generic_type_param(
                 specialize_ty_for_generic(
                     ck.sa,
                     ty,
+                    ck.element,
                     id,
                     &trait_ty,
                     &combined_fct_type_params,
@@ -1000,6 +1020,7 @@ fn check_expr_call_generic_type_param(
             let return_type = specialize_ty_for_generic(
                 ck.sa,
                 trait_method.return_type(),
+                ck.element,
                 id,
                 &trait_ty,
                 &combined_fct_type_params,
@@ -1021,6 +1042,7 @@ fn check_expr_call_generic_type_param(
                 specialize_ty_for_generic(
                     ck.sa,
                     ty,
+                    ck.element,
                     id,
                     &trait_ty,
                     &combined_fct_type_params,
