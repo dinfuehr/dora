@@ -165,10 +165,10 @@ pub trait Iterator {
         Map[Self, R](it = self, fct = f)
     }
 
-    // @TraitObjectIgnore
-    // fn collect[X: FromIterator[Self::Item]](): X {
-    //     X::fromIter(self)
-    // }
+    @TraitObjectIgnore
+    fn collect[T](): T where T: FromIterator[Self::Item] {
+        T::fromIter[Self](self)
+    }
 }
 
 pub trait IntoIterator {
@@ -213,7 +213,7 @@ impl[I: Iterator, R] Iterator for Map[I, R] {
 }
 
 pub trait FromIterator[A] {
-    fn fromIter[T](iter: T): Self where T: Iterator[Item=A];
+    static fn fromIter[T](iter: T): Self where T: Iterator[Item=A];
 }
 
 pub trait IndexGet {

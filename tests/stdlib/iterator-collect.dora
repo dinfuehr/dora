@@ -1,0 +1,7 @@
+fn main() {
+    let initial = Vec[Int]::new(1, 2, 3, 4, 5);
+    let x = initial.iter().collect[Vec[Int]]();
+
+    assert(initial !== x);
+    assert(initial == x);
+}

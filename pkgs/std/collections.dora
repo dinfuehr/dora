@@ -1,4 +1,4 @@
-use std::traits::{Comparable, Hash, Equals, Default, Zero, IndexGet, IndexSet, IntoIterator, Iterator};
+use std::traits::{Comparable, Hash, Equals, Default, FromIterator, Zero, IndexGet, IndexSet, IntoIterator, Iterator};
 use std::string::{Stringable, StringBuffer};
 use std::{fatalError, unsafeKillRefs};
 
@@ -1290,6 +1290,18 @@ impl[T] IntoIterator for Vec[T] {
   fn iter(): VecIter[T] {
     VecIter[T]::new(self)
   }
+}
+
+impl[X] FromIterator[X] for Vec[X] {
+    static fn fromIter[T](iter: T): Vec[X] where T: Iterator[Item=X] {
+        let result = Vec[X]::new();
+
+        while iter.next() is Some(value) {
+            result.push(value);
+        }
+
+        result
+    }
 }
 
 impl[T: Comparable] Vec[T] {

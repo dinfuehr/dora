@@ -339,7 +339,7 @@ impl<'a> std::fmt::Display for BytecodeTraitTypePrinter<'a> {
         write!(f, "{}", trait_.name)?;
 
         if !self.trait_ty.type_params.is_empty() || !self.trait_ty.bindings.is_empty() {
-            let mut first = false;
+            let mut first = true;
             write!(f, "[")?;
 
             for ty in self.trait_ty.type_params.iter() {

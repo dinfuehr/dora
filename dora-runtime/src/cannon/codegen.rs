@@ -272,7 +272,7 @@ impl<'a> CannonCodeGen<'a> {
     }
 
     fn has_result_address(&self) -> bool {
-        let return_type = self.specialize_ty(self.return_type.clone());
+        let return_type = specialize_ty(self.vm, None, self.return_type.clone(), &self.type_params);
         result_passed_as_argument(return_type)
     }
 
@@ -293,7 +293,7 @@ impl<'a> CannonCodeGen<'a> {
         let params = self.params.clone();
 
         for (idx, param_ty) in params.iter().enumerate() {
-            let param_ty = self.specialize_ty(param_ty.clone());
+            let param_ty = specialize_ty(self.vm, None, param_ty.clone(), &self.type_params);
             assert!(param_ty.is_concrete_type());
 
             let dest = Register(idx);
@@ -2637,15 +2637,25 @@ impl<'a> CannonCodeGen<'a> {
     fn emit_invoke_generic(&mut self, dest: Register, fct_idx: ConstPoolIdx, is_static: bool) {
         let (ty, trait_fct_id, trait_type_params, pure_fct_type_params) =
             match self.bytecode.const_pool(fct_idx) {
-                ConstPoolEntry::Generic(id, fct_id, trait_type_params, fct_type_params) => (
-                    self.type_params[*id as usize].clone(),
-                    *fct_id,
-                    trait_type_params.clone(),
-                    fct_type_params.clone(),
-                ),
+                ConstPoolEntry::Generic(id, fct_id, trait_type_params, fct_type_params) => {
+                    let ty = BytecodeType::TypeParam(*id);
+                    let ty = self.specialize_ty(ty);
+
+                    (
+                        ty,
+                        *fct_id,
+                        trait_type_params.clone(),
+                        fct_type_params.clone(),
+                    )
+                }
                 ConstPoolEntry::GenericSelf(fct_id, trait_type_params, fct_type_params) => {
                     let specialize_self = self.specialize_self.as_ref().expect("missing Self type");
-                    let extended_ty = self.specialize_ty(specialize_self.extended_ty.clone());
+                    let extended_ty = specialize_ty(
+                        self.vm,
+                        None,
+                        specialize_self.extended_ty.clone(),
+                        &self.type_params,
+                    );
 
                     (
                         extended_ty,

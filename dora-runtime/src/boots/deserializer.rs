@@ -291,10 +291,12 @@ pub fn decode_bytecode_type_array(reader: &mut ByteReader) -> BytecodeTypeArray 
 pub fn decode_specialize_self(reader: &mut ByteReader) -> Option<SpecializeSelf> {
     if reader.read_bool() {
         let impl_id = ImplId(reader.read_u32());
+        let container_type_params = reader.read_u32() as usize;
         let trait_ty = decode_bytecode_trait_ty(reader);
         let extended_ty = decode_bytecode_type(reader);
         Some(SpecializeSelf {
             impl_id,
+            container_type_params,
             trait_ty,
             extended_ty,
         })

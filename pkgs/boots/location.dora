@@ -1,7 +1,7 @@
 use package::assembler::{FloatRegister, Register};
 use package::bytecode::data::BytecodeType;
 use package::codegen::CodeGen;
-use package::compilation::{CompilationInfo, FunctionCompilationInfo};
+use package::compilation::{CompilationInfo, FunctionCompilationInfo, SpecializeSelf};
 use package::graph::{Graph, InputOutputOverlap, Inst, Location, LocationData, Op, Operand, Policy, StackSlot, Type};
 use package::interface::{config, PTR_SIZE, Architecture};
 use package::specialize::specializeTy;
@@ -472,7 +472,7 @@ fn computeArgumentLocations(codegen: CodeGen, ci: CompilationInfo, fct: Function
     let gp_argument_registers = codegen.argumentRegisters();
     let fp_argument_registers = codegen.argumentFloatRegisters();
 
-    let retTy = specializeTy(ci, fct.specializeSelf, fct.returnType, fct.typeParams);
+    let retTy = specializeTy(ci, None[SpecializeSelf], fct.returnType, fct.typeParams);
 
     if retTy.isStruct() || retTy.isTuple() {
         locations.push(gp_argument_registers(gp_idx).toLocation());

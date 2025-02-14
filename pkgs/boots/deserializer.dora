@@ -138,10 +138,11 @@ fn decodeRegisters(reader: ByteReader): Array[BytecodeType] {
 pub fn decodeOptionalSpecializeSelf(reader: ByteReader): Option[SpecializeSelf] {
     if reader.readBool() {
         let impl_id = ImplId(reader.readInt32());
+        let container_type_params = reader.readInt32().toInt64();
         let trait_ty = decodeBytecodeTraitType(reader);
         let extended_ty = decodeBytecodeType(reader);
 
-        Some[SpecializeSelf](SpecializeSelf(impl_id, trait_ty, extended_ty))
+        Some[SpecializeSelf](SpecializeSelf(impl_id, container_type_params, trait_ty, extended_ty))
     } else {
         None[SpecializeSelf]
     }

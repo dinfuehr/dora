@@ -248,6 +248,7 @@ pub fn encodeOptionalSpecializeSelf(writer: ByteWriter, specializeSelf: Option[S
     if specializeSelf is Some(specializeSelf) {
         writer.emitBool(true);
         writer.emitInt32(specializeSelf.impl_id.0);
+        writer.emitInt32(specializeSelf.container_type_params.toInt32());
         encodeBytecodeTraitType(writer, specializeSelf.trait_ty);
         encodeBytecodeType(writer, specializeSelf.extended_ty);
     } else {

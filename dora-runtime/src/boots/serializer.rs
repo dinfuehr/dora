@@ -104,6 +104,7 @@ pub fn encode_optional_specialize_self(
 
 pub fn encode_specialize_self(vm: &VM, specialize_self: &SpecializeSelf, buffer: &mut ByteBuffer) {
     buffer.emit_id(specialize_self.impl_id.0 as usize);
+    buffer.emit_u32(specialize_self.container_type_params as u32);
     encode_bytecode_trait_type(vm, &specialize_self.trait_ty, buffer);
     encode_bytecode_type(vm, &specialize_self.extended_ty, buffer);
 }

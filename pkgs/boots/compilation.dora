@@ -79,6 +79,7 @@ pub class FunctionCompilationInfo {
 
 pub struct SpecializeSelf {
     pub impl_id: ImplId,
+    pub container_type_params: Int,
     pub trait_ty: BytecodeTraitType,
     pub extended_ty: BytecodeType,
 }

@@ -103,6 +103,7 @@ pub fn compile_fct_aot(
 
 pub struct SpecializeSelf {
     pub impl_id: ImplId,
+    pub container_type_params: usize,
     pub trait_ty: BytecodeTraitType,
     pub extended_ty: BytecodeType,
 }
@@ -128,6 +129,7 @@ pub fn get_bytecode<'a>(
 
             let specialize_self = SpecializeSelf {
                 impl_id: program_fct_impl_id,
+                container_type_params: program_fct_impl.type_params.type_param_count(),
                 trait_ty: program_fct_impl.trait_ty.clone(),
                 extended_ty: program_fct_impl.extended_ty.clone(),
             };

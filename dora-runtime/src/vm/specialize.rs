@@ -628,7 +628,22 @@ pub fn specialize_ty(
     type_params: &BytecodeTypeArray,
 ) -> BytecodeType {
     match ty {
-        BytecodeType::TypeParam(tpid) => type_params[tpid as usize].clone(),
+        BytecodeType::TypeParam(tpid) => {
+            let tpid = tpid as usize;
+
+            if let Some(self_data) = self_data {
+                let trait_params_count = self_data.trait_ty.type_params.len();
+                if tpid < trait_params_count {
+                    let ty = self_data.trait_ty.type_params[tpid].clone();
+                    specialize_ty(vm, None, ty, type_params)
+                } else {
+                    let converted_id = self_data.container_type_params + tpid - trait_params_count;
+                    type_params[converted_id].clone()
+                }
+            } else {
+                type_params[tpid].clone()
+            }
+        }
 
         BytecodeType::Class(cls_id, params) => {
             let params = specialize_ty_array(vm, self_data, &params, type_params);
@@ -690,7 +705,7 @@ pub fn specialize_ty(
             let impl_alias = vm.alias(impl_alias_id);
             let impl_alias_ty = impl_alias.ty.as_ref().expect("value expected").clone();
 
-            specialize_ty(vm, self_data, impl_alias_ty, type_params)
+            specialize_ty(vm, None, impl_alias_ty, type_params)
         }
 
         BytecodeType::GenericAssoc {
@@ -725,12 +740,12 @@ pub fn specialize_ty(
             let impl_alias = vm.alias(impl_alias_id);
             let impl_alias_ty = impl_alias.ty.as_ref().expect("value expected").clone();
 
-            specialize_ty(vm, self_data, impl_alias_ty, &bindings)
+            specialize_ty(vm, None, impl_alias_ty, &bindings)
         }
 
         BytecodeType::This => {
             let ty = self_data.expect("unexpected Self").extended_ty.clone();
-            specialize_ty(vm, self_data, ty, type_params)
+            specialize_ty(vm, None, ty, type_params)
         }
 
         BytecodeType::TypeAlias(..) => {

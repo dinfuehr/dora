@@ -20,7 +20,7 @@ pub fn specializeTy(ci: CompilationInfo, specializeSelf: Option[SpecializeSelf],
         | BytecodeType::Float64 => ty,
         BytecodeType::This => {
             let extended_ty = specializeSelf.getOrPanic().extended_ty;
-            specializeTy(ci, specializeSelf, extended_ty, type_params)
+            specializeTy(ci, None[SpecializeSelf], extended_ty, type_params)
         }
         BytecodeType::Struct(struct_id, struct_type_params) => {
             BytecodeType::Struct(struct_id, specializeArray(ci, specializeSelf, struct_type_params, type_params))
@@ -37,7 +37,20 @@ pub fn specializeTy(ci: CompilationInfo, specializeSelf: Option[SpecializeSelf],
         BytecodeType::Tuple(subtypes) => {
             BytecodeType::Tuple(specializeArray(ci, specializeSelf, subtypes, type_params))
         },
-        BytecodeType::TypeParam(idx) => type_params(idx.toInt64()),
+        BytecodeType::TypeParam(idx) => {
+            if specializeSelf is Some(specializeSelf) {
+                let trait_params_count = specializeSelf.trait_ty.typeParams.size();
+                if idx.toInt64() < trait_params_count {
+                    let ty = specializeSelf.trait_ty.typeParams(idx.toInt64());
+                    specializeTy(ci, None[SpecializeSelf], ty, type_params)
+                } else {
+                    let converted_id = specializeSelf.container_type_params + idx.toInt64() - trait_params_count;
+                    type_params(converted_id)
+                }
+            } else {
+                type_params(idx.toInt64())
+            }
+        }
         BytecodeType::Lambda(params, ret) => {
             BytecodeType::Lambda(specializeArray(ci, specializeSelf, params, type_params), specializeTy(ci, specializeSelf, ret, type_params))
         },
