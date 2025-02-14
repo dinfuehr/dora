@@ -1,0 +1,47 @@
+trait MyIterator {
+    type Item;
+    fn next(): Option[Self::Item];
+
+    fn collect[T](): T where T: MyFromIterator[Self::Item] {
+        T::fromIter[Self](self)
+    }
+}
+
+pub trait MyFromIterator[A] {
+    static fn fromIter[T](iter: T): Self where T: MyIterator[Item=A];
+}
+
+class Range {
+    value: Int
+}
+
+impl MyIterator for Range {
+    type Item = Int;
+
+    fn next(): Option[Int] {
+        if self.value <= 0 {
+            None[Int]
+        } else {
+            let result = self.value;
+            self.value -= 1;
+            Some[Int](result)
+        }
+    }
+}
+
+impl[X] MyFromIterator[X] for Vec[X] {
+    static fn fromIter[T](iter: T): Vec[X] where T: MyIterator[Item=X] {
+        let result = Vec[X]::new();
+
+        while iter.next() is Some(value) {
+            result.push(value);
+        }
+
+        result
+    }
+}
+
+fn main() {
+    let values: Vec[Int] = Range(2).collect[Vec[Int]]();
+    assert(values == Vec[Int]::new(2, 1));
+}

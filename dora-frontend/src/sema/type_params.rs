@@ -293,8 +293,8 @@ impl TypeParamId {
     }
 }
 
-pub fn new_identity_type_params(number_type_params: usize) -> SourceTypeArray {
-    let type_params = (0..number_type_params)
+pub fn new_identity_type_params(start: usize, number_type_params: usize) -> SourceTypeArray {
+    let type_params = (start..start + number_type_params)
         .into_iter()
         .map(|id| SourceType::TypeParam(TypeParamId(id)))
         .collect::<Vec<_>>();

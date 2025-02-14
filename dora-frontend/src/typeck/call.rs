@@ -265,7 +265,7 @@ fn check_expr_call_expr_lambda(
 
     // Type params are mapped to themselves.
     let type_params_count = ck.type_param_definition.type_param_count();
-    let type_params = new_identity_type_params(type_params_count);
+    let type_params = new_identity_type_params(0, type_params_count);
 
     let regular_params = params.iter().map(|p| Param::new_ty(p)).collect::<Vec<_>>();
 

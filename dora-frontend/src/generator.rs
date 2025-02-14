@@ -3328,7 +3328,7 @@ impl<'a> AstBytecodeGen<'a> {
     }
 
     fn identity_type_params(&self) -> SourceTypeArray {
-        new_identity_type_params(self.type_params_len)
+        new_identity_type_params(0, self.type_params_len)
     }
 
     fn ensure_unit_register(&mut self) -> Register {

@@ -114,7 +114,7 @@ impl StructDefinition {
         } else {
             SourceType::Struct(
                 self.id(),
-                new_identity_type_params(self.type_param_definition().type_param_count()),
+                new_identity_type_params(0, self.type_param_definition().type_param_count()),
             )
         }
     }

@@ -135,7 +135,7 @@ impl Element for EnumDefinition {
 
     fn self_ty(&self, _sa: &Sema) -> Option<SourceType> {
         let type_params = self.type_param_definition().type_param_count();
-        let type_params = new_identity_type_params(type_params);
+        let type_params = new_identity_type_params(0, type_params);
         Some(SourceType::Enum(self.id(), type_params))
     }
 

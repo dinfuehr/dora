@@ -282,7 +282,10 @@ fn method_definitions_compatible(
     }
 
     let method_type_params = if fct_type_params > 0 {
-        trait_type_params.connect(&new_identity_type_params(fct_type_params))
+        trait_type_params.connect(&new_identity_type_params(
+            impl_method.type_param_definition().container_type_params(),
+            fct_type_params,
+        ))
     } else {
         trait_type_params
     };

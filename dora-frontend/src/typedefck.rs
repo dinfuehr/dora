@@ -157,7 +157,7 @@ fn parse_class_types(sa: &Sema) {
         cls.ty
             .set(SourceType::Class(
                 cls_id,
-                new_identity_type_params(number_type_params),
+                new_identity_type_params(0, number_type_params),
             ))
             .expect("already initialized");
 
