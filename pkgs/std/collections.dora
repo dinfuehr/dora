@@ -106,6 +106,18 @@ impl[T] IntoIterator for Array[T] {
   }
 }
 
+impl[X] FromIterator[X] for Array[X] {
+    static fn fromIter[T](iter: T): Array[X] where T: Iterator[Item=X] {
+        let result = Vec[X]::new();
+
+        while iter.next() is Some(value) {
+            result.push(value);
+        }
+
+        result.toArray()
+    }
+}
+
 pub class ArrayIter[T] {
   array: Array[T],
   idx: Int64,
@@ -1020,6 +1032,18 @@ impl[K: Hash + Equals] std::traits::IntoIterator for HashSet[K] {
     HashSetIter[K](map = self.map, idx = 0)
   }
 }
+
+// impl[X] FromIterator[X] for HashSet[X] {
+//     static fn fromIter[T](iter: T): HashSet[X] where T: Iterator[Item=X] {
+//         let result = HashSet[X]::new();
+
+//         while iter.next() is Some(value) {
+//             result.insert(value);
+//         }
+
+//         result
+//     }
+// }
 
 pub class HashSetIter[K: Hash + Equals] {
     map: HashMap[K, ()],
