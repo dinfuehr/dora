@@ -981,6 +981,18 @@ impl[K: Hash + Equals, V] Iterator for HashMapIter[K, V] {
     }
 }
 
+impl[K: Hash + Equals, V] FromIterator[(K, V)] for HashMap[K, V] {
+    static fn fromIter[T](iter: T): HashMap[K, V] where T: Iterator[Item=(K, V)] {
+        let result = HashMap[K, V]::new();
+
+        while iter.next() is Some((key, value)) {
+            result.insert(key, value);
+        }
+
+        result
+    }
+}
+
 pub class HashSet[K: Hash + Equals] {
     map: HashMap[K, ()],
 }

@@ -1,0 +1,9 @@
+use std::collections::HashMap;
+
+fn main() {
+    let initial = Vec[(Int, String)]::new((1, "one"), (3, "three"));
+    let x = initial.iter().collect[HashMap[Int, String]]();
+    assert(x.size() == 2);
+    assert(x.get(1) == Some[String]("one"));
+    assert(x.get(3) == Some[String]("three"));
+}
