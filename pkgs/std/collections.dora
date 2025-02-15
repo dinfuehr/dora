@@ -1033,17 +1033,17 @@ impl[K: Hash + Equals] std::traits::IntoIterator for HashSet[K] {
   }
 }
 
-// impl[X] FromIterator[X] for HashSet[X] {
-//     static fn fromIter[T](iter: T): HashSet[X] where T: Iterator[Item=X] {
-//         let result = HashSet[X]::new();
+impl[X: Hash + Equals] FromIterator[X] for HashSet[X] {
+    static fn fromIter[T](iter: T): HashSet[X] where T: Iterator[Item=X] {
+        let result = HashSet[X]::new();
 
-//         while iter.next() is Some(value) {
-//             result.insert(value);
-//         }
+        while iter.next() is Some(value) {
+            result.insert(value);
+        }
 
-//         result
-//     }
-// }
+        result
+    }
+}
 
 pub class HashSetIter[K: Hash + Equals] {
     map: HashMap[K, ()],
