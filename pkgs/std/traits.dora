@@ -169,6 +169,15 @@ pub trait Iterator {
     fn collect[T](): T where T: FromIterator[Self::Item] {
         T::fromIter[Self](self)
     }
+
+    @TraitObjectIgnore
+    fn rev(): Rev[Self] where Self: DoubleEndedIterator {
+        Rev[Self](self)
+    }
+}
+
+pub trait DoubleEndedIterator: Iterator {
+    // fn nextBack(): Option[Self::Item];
 }
 
 pub trait IntoIterator {
@@ -210,6 +219,10 @@ impl[I: Iterator, R] Iterator for Map[I, R] {
             None[R]
         }
     }
+}
+
+pub class Rev[I: Iterator] {
+    it: I,
 }
 
 pub trait FromIterator[A] {

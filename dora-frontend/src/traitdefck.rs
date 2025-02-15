@@ -610,4 +610,18 @@ mod tests {
             }
         ");
     }
+
+    #[test]
+    #[ignore]
+    fn assoc_type_of_super_trait() {
+        ok("
+            trait Foo {
+                type Item;
+            }
+
+            trait Bar: Foo {
+                fn f(): Self::Item;
+            }
+        ");
+    }
 }
