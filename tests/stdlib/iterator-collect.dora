@@ -2,17 +2,18 @@ use std::collections::HashSet;
 
 fn main() {
     let initial = Vec[Int]::new(1, 2, 3, 4, 5);
-    let x = initial.iter().collect[Vec[Int]]();
-    assert(initial !== x);
-    assert(initial == x);
+    let copy = initial.iter().collect[Vec[Int]]();
+    assert(initial !== copy);
+    assert(initial == copy);
 
     let initial = Array[Int]::new(1, 2, 3, 4, 5);
-    let x = initial.iter().collect[Array[Int]]();
-    assert(initial !== x);
-    assert(initial == x);
+    let copy = initial.iter().collect[Array[Int]]();
+    assert(initial !== copy);
+    assert(initial == copy);
 
     let initial = Vec[Int]::new(1, 5, 3, 1, 5);
-    let x = initial.iter().collect[HashSet[Int]]().iter().collect[Vec[Int]]();
-    x.sort();
-    assert(x == Vec[Int]::new(1, 3, 5));
+    let set = initial.iter().collect[HashSet[Int]]();
+    let set_as_vec = set.iter().collect[Vec[Int]]();
+    set_as_vec.sort();
+    assert(set_as_vec == Vec[Int]::new(1, 3, 5));
 }
