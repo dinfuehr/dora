@@ -98,6 +98,19 @@ impl ParsedTraitType {
     fn parsed_ast(&self) -> Option<&ParsedTypeAst> {
         self.parsed_ast.get().map(|ast| &**ast)
     }
+
+    pub fn trait_id(&self) -> Option<TraitDefinitionId> {
+        let parsed_ast = self.parsed_ast().expect("missing ast");
+
+        match &parsed_ast.kind {
+            ParsedTypeKind::Regular {
+                symbol: SymbolKind::Trait(trait_id),
+                ..
+            } => Some(*trait_id),
+
+            _ => None,
+        }
+    }
 }
 
 #[derive(Clone, Debug)]
@@ -1398,7 +1411,7 @@ mod tests {
             }
         ",
             (3, 35),
-            ErrorMessage::UnknownAlias,
+            ErrorMessage::UnknownAssoc,
         );
     }
 
@@ -1410,8 +1423,8 @@ mod tests {
             trait Bar {}
             impl Foo where Self::X: Bar {}
         ",
-            (4, 34),
-            ErrorMessage::UnexpectedAlias,
+            (4, 28),
+            ErrorMessage::UnexpectedAssoc,
         );
     }
 
@@ -1438,7 +1451,7 @@ mod tests {
             impl Foo for String where Self::X: Bar {}
         ",
             (4, 45),
-            ErrorMessage::UnexpectedAlias,
+            ErrorMessage::UnknownAssoc,
         );
     }
 
@@ -1462,7 +1475,7 @@ mod tests {
             }
         ",
             (4, 33),
-            ErrorMessage::UnknownAlias,
+            ErrorMessage::UnknownAssoc,
         );
     }
 }

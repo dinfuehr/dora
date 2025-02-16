@@ -555,12 +555,28 @@ impl SourceType {
             | SourceType::TraitObject(..)
             | SourceType::Lambda(..)
             | SourceType::TypeParam(_) => true,
-            SourceType::Alias(..) | SourceType::Assoc(..) | SourceType::GenericAssoc { .. } => {
+            SourceType::GenericAssoc { trait_ty, .. } => {
+                for ty in trait_ty.type_params.iter() {
+                    if !ty.is_defined_type(sa) {
+                        return false;
+                    }
+                }
+
+                for (_, ty) in trait_ty.bindings.iter() {
+                    if !ty.is_defined_type(sa) {
+                        return false;
+                    }
+                }
+
+                true
+            }
+            SourceType::Alias(..) => {
                 unreachable!()
             }
             SourceType::Enum(_, params)
             | SourceType::Class(_, params)
-            | SourceType::Struct(_, params) => {
+            | SourceType::Struct(_, params)
+            | SourceType::Assoc(_, params) => {
                 for param in params.iter() {
                     if !param.is_defined_type(sa) {
                         return false;

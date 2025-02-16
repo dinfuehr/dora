@@ -4,7 +4,7 @@ use crate::sema::{Sema, SourceFileId};
 use crate::sym::{ModuleSymTable, SymTable, Symbol, SymbolKind};
 #[allow(unused)]
 use crate::ty::{contains_self, empty_sta, SourceType, SourceTypeArray, TraitType, TyKind};
-use dora_bytecode::{display_fct, dump_stdout, FunctionId, Program};
+use dora_bytecode::{display_fct, dump_stdout, FunctionId, Program, TypeParamMode};
 use dora_parser::ast;
 use dora_parser::Span;
 
@@ -149,7 +149,7 @@ pub fn emit_bytecode(prog: &Program, filter: &str) {
             let name = display_fct(prog, id);
             if fct_pattern_match(&name, filter) {
                 println!("Bytecode for {}:", name);
-                dump_stdout(prog, bc);
+                dump_stdout(prog, bc, TypeParamMode::Unknown);
             }
         }
     }

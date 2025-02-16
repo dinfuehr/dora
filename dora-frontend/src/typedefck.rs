@@ -108,14 +108,12 @@ fn parse_impl_types(sa: &Sema) {
         let mut symtable = ModuleSymTable::new(sa, impl_.module_id);
         symtable.push_level();
 
-        parse_type_param_definition(
-            sa,
-            impl_.type_param_definition(),
-            &mut symtable,
-            impl_.file_id,
-            impl_,
-            true,
-        );
+        for (id, name) in impl_.type_param_definition().names() {
+            if symtable.get(name).is_none() {
+                let old = symtable.insert(name, SymbolKind::TypeParam(id));
+                assert!(old.is_none());
+            }
+        }
 
         parsety::parse_trait_type(
             sa,
@@ -134,6 +132,18 @@ fn parse_impl_types(sa: &Sema) {
             false,
             impl_.parsed_extended_ty(),
         );
+
+        for bound in impl_.type_param_definition().own_bounds() {
+            parsety::parse_type(sa, &symtable, impl_.file_id, impl_, true, bound.parsed_ty());
+            parsety::parse_trait_bound_type(
+                sa,
+                &symtable,
+                impl_.file_id,
+                impl_,
+                true,
+                bound.parsed_trait_ty(),
+            );
+        }
 
         symtable.pop_level();
     }

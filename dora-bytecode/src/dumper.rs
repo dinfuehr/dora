@@ -1,17 +1,24 @@
 use std::fmt::Display;
 use std::io;
 
+use crate::display::fmt_ty as fmt_ty2;
 use crate::{
     display_fct, module_path_name, read, BytecodeFunction, BytecodeOffset, BytecodeType,
     BytecodeTypeArray, BytecodeVisitor, ConstPoolEntry, ConstPoolIdx, GlobalId, Program, Register,
+    TypeParamMode,
 };
 
-pub fn dump_stdout(prog: &Program, bc: &BytecodeFunction) {
+pub fn dump_stdout(prog: &Program, bc: &BytecodeFunction, type_params: TypeParamMode) {
     let mut stdout = io::stdout();
-    dump(&mut stdout, prog, bc).expect("I/O failure");
+    dump(&mut stdout, prog, bc, type_params).expect("I/O failure");
 }
 
-pub fn dump(w: &mut dyn io::Write, prog: &Program, bc: &BytecodeFunction) -> std::io::Result<()> {
+pub fn dump(
+    w: &mut dyn io::Write,
+    prog: &Program,
+    bc: &BytecodeFunction,
+    type_params: TypeParamMode,
+) -> std::io::Result<()> {
     let mut visitor = BytecodeDumper {
         bc,
         pos: BytecodeOffset(0),
@@ -26,7 +33,7 @@ pub fn dump(w: &mut dyn io::Write, prog: &Program, bc: &BytecodeFunction) -> std
     writeln!(w, "  Registers:")?;
 
     for (idx, ty) in bc.registers().iter().enumerate() {
-        writeln!(w, "{}{} => {}", align, idx, fmt_ty(prog, ty))?;
+        writeln!(w, "{}{} => {}", align, idx, fmt_ty2(prog, ty, type_params))?;
     }
 
     writeln!(w)?;

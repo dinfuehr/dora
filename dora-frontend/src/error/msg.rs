@@ -204,8 +204,8 @@ pub enum ErrorMessage {
     DuplicateTypeBinding,
     MissingTypeBinding(String),
     ExpectedTypeName,
-    UnknownAlias,
-    UnexpectedAlias,
+    UnknownAssoc,
+    UnexpectedAssoc,
     UnexpectedWhere,
     UnexpectedPositionalArgument,
     UnexpectedNamedArgument,
@@ -705,8 +705,8 @@ impl ErrorMessage {
                 format!("Missing type binding `{}`.", name)
             }
             ErrorMessage::ExpectedTypeName => format!("Type name expected."),
-            ErrorMessage::UnknownAlias => format!("Unknown associated type."),
-            ErrorMessage::UnexpectedAlias => format!("No associated types in this context."),
+            ErrorMessage::UnknownAssoc => format!("Unknown associated type."),
+            ErrorMessage::UnexpectedAssoc => format!("No associated types in this context."),
             ErrorMessage::UnexpectedWhere => format!("Where clauses not allowed here."),
             ErrorMessage::UnexpectedNamedArgument => format!("Named argument not expected here."),
             ErrorMessage::UnexpectedPositionalArgument => {

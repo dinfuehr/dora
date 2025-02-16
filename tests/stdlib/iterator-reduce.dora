@@ -1,0 +1,9 @@
+use std::collections::HashMap;
+
+fn main() {
+    let x = Vec[Int]::new(1, 2, 3, 4, 5).iter().reduce(|result: Int, x: Int|: Int { result + x });
+    assert(x == Some[Int](15));
+
+    let x = Array[Int]::new(1, 2, 3, 4, 5).iter().reduce(|result: Int, x: Int|: Int { result + x });
+    assert(x == Some[Int](15));
+}

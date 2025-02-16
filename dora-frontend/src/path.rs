@@ -1,5 +1,3 @@
-use std::collections::HashMap;
-
 use dora_parser::{ast, Span};
 
 use crate::access::sym_accessible_from;
@@ -58,33 +56,29 @@ fn parse_path_self(
     let segments = &regular.path.segments;
     assert!(segments[0].is_self());
 
-    if allow_self {
-        if let Some(second) = segments.get(1) {
-            let name = expect_ident(sa, file_id, second)?;
-
-            let aliases = available_aliases(sa, element);
-            if let Some(aliases) = aliases {
-                let alias_id = aliases.get(&name).cloned();
-
-                if let Some(alias_id) = alias_id {
-                    Ok(PathKind::Symbol(SymbolKind::Alias(alias_id)))
-                } else {
-                    sa.report(file_id, second.span(), ErrorMessage::UnknownAlias);
-                    Err(())
-                }
-            } else {
-                sa.report(file_id, second.span(), ErrorMessage::UnexpectedAlias);
-                Err(())
-            }
-        } else {
-            Ok(PathKind::Self_)
-        }
-    } else {
+    if !allow_self {
         sa.report(
             file_id,
             regular.path.span,
             ErrorMessage::SelfTypeUnavailable,
         );
+        return Err(());
+    }
+
+    if segments.len() == 1 {
+        return Ok(PathKind::Self_);
+    }
+
+    assert_eq!(segments.len(), 2);
+    let segment_name = segments.get(1).expect("missing name");
+
+    let name = expect_ident(sa, file_id, segment_name)?;
+    let alias_id = lookup_alias_on_self(sa, file_id, regular.path.span, element, name)?;
+
+    if let Some(alias_id) = alias_id {
+        Ok(PathKind::Symbol(SymbolKind::Alias(alias_id)))
+    } else {
+        sa.report(file_id, segment_name.span(), ErrorMessage::UnknownAssoc);
         Err(())
     }
 }
@@ -174,23 +168,27 @@ fn parse_path_ident(
     }
 }
 
-fn available_aliases<'a>(
+fn lookup_alias_on_self<'a>(
     sa: &'a Sema,
+    file_id: SourceFileId,
+    span: Span,
     element: &'a dyn Element,
-) -> Option<&'a HashMap<Name, AliasDefinitionId>> {
+    name: Name,
+) -> Result<Option<AliasDefinitionId>, ()> {
     let element = parent_element_or_self(sa, element);
 
     if let Some(trait_) = element.to_trait() {
-        Some(trait_.alias_names())
+        Ok(trait_.alias_names().get(&name).cloned())
     } else if let Some(impl_) = element.to_impl() {
-        if let Some(trait_ty) = impl_.trait_ty() {
-            let trait_ = sa.trait_(trait_ty.trait_id);
-            Some(trait_.alias_names())
+        if let Some(trait_id) = impl_.parsed_trait_ty().trait_id() {
+            let trait_ = sa.trait_(trait_id);
+            Ok(trait_.alias_names().get(&name).cloned())
         } else {
-            None
+            Err(())
         }
     } else {
-        None
+        sa.report(file_id, span, ErrorMessage::UnexpectedAssoc);
+        Err(())
     }
 }
 

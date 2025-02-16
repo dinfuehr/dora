@@ -703,9 +703,7 @@ pub(super) fn arg_allows(
             arg_allows(sa, alias.ty(), arg, self_ty.clone())
         }
 
-        SourceType::GenericAssoc { .. } => def == arg,
-
-        SourceType::Assoc(..) => unimplemented!(),
+        SourceType::Assoc(..) | SourceType::GenericAssoc { .. } => def == arg,
     }
 }
 

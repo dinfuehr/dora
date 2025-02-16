@@ -277,14 +277,26 @@ impl<'a> std::fmt::Display for BytecodeTypePrinter<'a> {
                 TypeParamMode::TypeParams(type_params) => {
                     write!(f, "{}", type_params.names[*idx as usize])
                 }
-                TypeParamMode::Unknown => write!(f, "TypeParam({})", idx),
+                TypeParamMode::Unknown => write!(f, "T#{}", idx),
             },
 
             BytecodeType::This => write!(f, "Self"),
 
-            BytecodeType::TypeAlias(..)
-            | BytecodeType::Assoc(..)
-            | BytecodeType::GenericAssoc { .. } => unimplemented!(),
+            BytecodeType::Assoc(assoc_id, type_params) => {
+                let alias = self.prog.alias(*assoc_id);
+                write!(f, "Self::{}", alias.name)?;
+                if !type_params.is_empty() {
+                    write!(
+                        f,
+                        "[{}]",
+                        fmt_type_list(self.prog, &type_params, self.type_params)
+                    )
+                } else {
+                    Ok(())
+                }
+            }
+
+            BytecodeType::TypeAlias(..) | BytecodeType::GenericAssoc { .. } => unimplemented!(),
 
             BytecodeType::Lambda(params, return_type) => {
                 write!(

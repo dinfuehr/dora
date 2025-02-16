@@ -12,7 +12,7 @@ use crate::vm::{install_code, Code, CodeDescriptor, CodeId, CodeKind, Compiler, 
 use dora_bytecode::{
     display_fct, display_ty_array, display_ty_without_type_params, dump_stdout, BytecodeFunction,
     BytecodeTraitType, BytecodeType, BytecodeTypeArray, FunctionData, FunctionId, FunctionKind,
-    ImplId, Location,
+    ImplId, Location, TypeParamMode,
 };
 
 #[derive(Clone, Copy)]
@@ -219,7 +219,11 @@ fn compile_fct_to_descriptor(
             display_fct(&vm.program, fct_id),
             display_ty_array(&vm.program, type_params)
         );
-        dump_stdout(&vm.program, &bytecode_fct);
+        dump_stdout(
+            &vm.program,
+            &bytecode_fct,
+            TypeParamMode::TypeParams(&program_fct.type_params),
+        );
     }
 
     let emit_debug = should_emit_debug(vm, fct_id, compiler.to_compiler());

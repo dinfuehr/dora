@@ -171,6 +171,31 @@ pub trait Iterator {
     }
 
     @TraitObjectIgnore
+    fn fold[R](init: R, f: (R, Self::Item): R): R {
+      let mut result = init;
+
+      while self.next() is Some(value) {
+        result = f(result, value);
+      }
+
+      result
+    }
+
+    @TraitObjectIgnore
+    fn reduce(f: (Self::Item, Self::Item): Self::Item): Option[Self::Item] {
+        let init = self.next();
+        if init.isNone() { return None[Self::Item]; }
+
+        let mut result = init.getOrPanic();
+
+        while self.next() is Some(value) {
+            result = f(result, value);
+        }
+
+        Some[Self::Item](result)
+    }
+
+    @TraitObjectIgnore
     fn rev(): Rev[Self] where Self: DoubleEndedIterator {
         Rev[Self](self)
     }
