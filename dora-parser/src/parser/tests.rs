@@ -65,6 +65,12 @@ fn parse(code: &'static str) -> Arc<File> {
     file
 }
 
+fn parse_with_some_errors(code: &'static str) -> Arc<File> {
+    let (file, errors) = Parser::from_string(code).parse();
+    assert!(!errors.is_empty());
+    file
+}
+
 fn parse_with_error(code: &'static str, expected: Vec<(u32, u32, u32, ParseError)>) -> Arc<File> {
     let (file, errors) = Parser::from_string(code).parse();
     let line_starts = compute_line_starts(code);
@@ -503,8 +509,8 @@ fn parse_function_with_single_param() {
     let p1 = &f1.params[0];
     let p2 = &f2.params[0];
 
-    assert_eq!("a", p1.name.as_ref().unwrap().name_as_string);
-    assert_eq!("a", p2.name.as_ref().unwrap().name_as_string);
+    assert_eq!("a", p1.pattern.to_ident_name());
+    assert_eq!("a", p2.pattern.to_ident_name());
 
     assert_eq!("int", p1.data_type.to_regular().unwrap().name());
     assert_eq!("int", p2.data_type.to_regular().unwrap().name());
@@ -523,11 +529,11 @@ fn parse_function_with_multiple_params() {
     let p2a = &f2.params[0];
     let p2b = &f2.params[1];
 
-    assert_eq!("a", p1a.name.as_ref().unwrap().name_as_string);
-    assert_eq!("a", p2a.name.as_ref().unwrap().name_as_string);
+    assert_eq!("a", p1a.pattern.to_ident_name());
+    assert_eq!("a", p2a.pattern.to_ident_name());
 
-    assert_eq!("b", p1b.name.as_ref().unwrap().name_as_string);
-    assert_eq!("b", p2b.name.as_ref().unwrap().name_as_string);
+    assert_eq!("b", p1b.pattern.to_ident_name());
+    assert_eq!("b", p2b.pattern.to_ident_name());
 
     assert_eq!("int", p1a.data_type.to_regular().unwrap().name());
     assert_eq!("int", p2a.data_type.to_regular().unwrap().name());
@@ -1370,7 +1376,7 @@ fn parse_lambda_with_one_param() {
     assert_eq!(1, lambda.params.len());
 
     let param = &lambda.params[0];
-    assert_eq!("a", param.name.as_ref().unwrap().name_as_string);
+    assert_eq!("a", param.pattern.to_ident_name());
     let ty = param.data_type.to_regular().unwrap();
     assert_eq!("A", ty.name());
 
@@ -1388,12 +1394,12 @@ fn parse_lambda_with_two_params() {
     assert_eq!(2, lambda.params.len());
 
     let param = &lambda.params[0];
-    assert_eq!("a", param.name.as_ref().unwrap().name_as_string);
+    assert_eq!("a", param.pattern.to_ident_name());
     let ty = param.data_type.to_regular().unwrap();
     assert_eq!("A", ty.name());
 
     let param = &lambda.params[1];
-    assert_eq!("b", param.name.as_ref().unwrap().name_as_string);
+    assert_eq!("b", param.pattern.to_ident_name());
     let ty = param.data_type.to_regular().unwrap();
     assert_eq!("B", ty.name());
 
@@ -1587,4 +1593,10 @@ fn parse_invalid_type_with_unclosed_bracket() {
             (1, 27, 0, ParseError::ExpectedToken("{".into())),
         ],
     );
+}
+
+#[test]
+fn parse_function_with_pattern_in_param() {
+    parse("fn f((x, _): Foo) {}");
+    parse_with_some_errors("fn next(x|y: Foo);");
 }

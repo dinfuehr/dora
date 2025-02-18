@@ -237,7 +237,7 @@ impl AstDumper {
 
     fn dump_param(&mut self, param: &Param) {
         dump!(self, "param @ {} {}", param.span, param.id);
-        self.dump_maybe_ident(&param.name);
+        self.dump_type(&param.data_type);
 
         self.indent(|d| d.dump_type(&param.data_type));
     }

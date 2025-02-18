@@ -741,8 +741,7 @@ impl Modifier {
 pub struct Param {
     pub id: NodeId,
     pub span: Span,
-    pub name: Option<Ident>,
-    pub mutable: bool,
+    pub pattern: Arc<Pattern>,
     pub data_type: Type,
     pub variadic: bool,
 }
@@ -2154,6 +2153,10 @@ impl Pattern {
             Pattern::Ident(ref p) => Some(p),
             _ => None,
         }
+    }
+
+    pub fn to_ident_name(&self) -> &str {
+        &self.to_ident().expect("ident expected").name.name_as_string
     }
 
     pub fn is_tuple(&self) -> bool {

@@ -1016,17 +1016,12 @@ impl Parser {
     }
 
     fn parse_function_param_wrapper(&mut self) -> Option<Arc<Param>> {
-        if self.is(MUT_KW) || self.is(IDENTIFIER) {
-            Some(self.parse_function_param())
-        } else {
-            None
-        }
+        Some(self.parse_function_param())
     }
 
     fn parse_function_param(&mut self) -> Arc<Param> {
         self.start_node();
-        let mutable = self.eat(MUT_KW);
-        let name = self.expect_identifier();
+        let pattern = self.parse_pattern_alt();
 
         self.expect(COLON);
 
@@ -1036,11 +1031,10 @@ impl Parser {
 
         Arc::new(Param {
             id: self.new_node_id(),
-            variadic,
-            name,
             span: self.finish_node(),
-            mutable,
+            pattern,
             data_type,
+            variadic,
         })
     }
 

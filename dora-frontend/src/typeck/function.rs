@@ -321,15 +321,11 @@ impl<'a> TypeCheck<'a> {
                 param.ty()
             };
 
-            let name = self.sa.interner.intern(
-                &ast_param
-                    .name
-                    .as_ref()
-                    .expect("missing name")
-                    .name_as_string,
-            );
+            let ident_pattern = ast_param.pattern.to_ident().expect("missing name");
 
-            let var_id = self.vars.add_var(name, ty, ast_param.mutable);
+            let name = self.sa.interner.intern(&ident_pattern.name.name_as_string);
+
+            let var_id = self.vars.add_var(name, ty, ident_pattern.mutable);
             self.analysis
                 .map_vars
                 .insert(ast_param.id, self.vars.local_var_id(var_id));
