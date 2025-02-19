@@ -223,6 +223,7 @@ pub enum ErrorMessage {
     IndexSetNotImplemented(String),
     IndexGetAndIndexSetDoNotMatch,
     MissingAssocType(String),
+    NameBoundMultipleTimesInParams(String),
 }
 
 impl ErrorMessage {
@@ -762,6 +763,9 @@ impl ErrorMessage {
             }
             ErrorMessage::MissingAssocType(ref name) => {
                 format!("Missing associated type `{}`.", name)
+            }
+            ErrorMessage::NameBoundMultipleTimesInParams(ref name) => {
+                format!("Name `{}` bound multiple times in parameter list.", name)
             }
         }
     }

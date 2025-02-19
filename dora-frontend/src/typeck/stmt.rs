@@ -1,7 +1,7 @@
-use std::collections::{HashMap, HashSet};
+use std::collections::HashMap;
 use std::sync::Arc;
 
-use dora_parser::ast;
+use dora_parser::{ast, Span};
 
 use crate::access::{
     class_accessible_from, enum_accessible_from, is_default_accessible, struct_accessible_from,
@@ -76,44 +76,29 @@ fn check_stmt_let(ck: &mut TypeCheck, s: &ast::StmtLetType) {
 }
 
 #[derive(Debug, Clone)]
-struct BindingData {
-    var_id: VarId,
-    ty: SourceType,
-}
-
-#[derive(Clone)]
-pub struct Bindings {
-    map: HashMap<Name, BindingData>,
-}
-
-impl Bindings {
-    pub fn new() -> Bindings {
-        Bindings {
-            map: HashMap::new(),
-        }
-    }
-
-    fn insert(&mut self, name: Name, var_id: VarId, ty: SourceType) {
-        let old = self.map.insert(name, BindingData { var_id, ty });
-        assert!(old.is_none());
-    }
-
-    fn get(&self, name: Name) -> Option<BindingData> {
-        self.map.get(&name).cloned()
-    }
+pub struct BindingData {
+    pub var_id: VarId,
+    pub ty: SourceType,
+    pub span: Span,
 }
 
 struct Context {
-    alt: Bindings,
-    current: HashSet<Name>,
+    alt_bindings: HashMap<Name, BindingData>,
+    current: HashMap<Name, BindingData>,
 }
 
-pub(super) fn check_pattern(ck: &mut TypeCheck, pattern: &ast::Pattern, ty: SourceType) {
+pub(super) fn check_pattern(
+    ck: &mut TypeCheck,
+    pattern: &ast::Pattern,
+    ty: SourceType,
+) -> HashMap<Name, BindingData> {
     let mut ctxt = Context {
-        alt: Bindings::new(),
-        current: HashSet::new(),
+        alt_bindings: HashMap::new(),
+        current: HashMap::new(),
     };
     check_pattern_inner(ck, &mut ctxt, pattern, ty);
+
+    ctxt.current
 }
 
 fn check_pattern_inner(
@@ -183,48 +168,56 @@ fn check_pattern_inner(
         }
 
         ast::Pattern::Alt(ref p) => {
-            let mut bindings = Bindings::new();
-            let mut alt_bindings: Vec<HashSet<Name>> = Vec::with_capacity(p.alts.len());
+            let mut bindings_per_alt: Vec<HashMap<Name, BindingData>> =
+                Vec::with_capacity(p.alts.len());
+            let mut all_bindings = HashMap::new();
 
             for alt in &p.alts {
                 let mut alt_ctxt = Context {
-                    alt: bindings,
+                    alt_bindings: all_bindings,
                     current: ctxt.current.clone(),
                 };
 
                 check_pattern_inner(ck, &mut alt_ctxt, alt.as_ref(), ty.clone());
-                bindings = alt_ctxt.alt;
+                all_bindings = alt_ctxt.alt_bindings;
 
-                let new_bindings = alt_ctxt
-                    .current
-                    .difference(&ctxt.current)
-                    .map(|n| *n)
-                    .collect::<HashSet<Name>>();
-                alt_bindings.push(new_bindings);
+                let mut local_bindings = HashMap::new();
+
+                for (name, data) in &alt_ctxt.current {
+                    if !ctxt.current.contains_key(name) {
+                        local_bindings.insert(*name, data.clone());
+                        all_bindings.entry(*name).or_insert_with(|| data.clone());
+                    }
+                }
+
+                bindings_per_alt.push(local_bindings);
             }
 
-            let mut all = alt_bindings.pop().expect("no element");
-            let mut intersect = all.clone();
+            for (name, data) in all_bindings {
+                let mut defined_in_all_alternatives = true;
 
-            for alt in alt_bindings {
-                all = all.union(&alt).map(|n| *n).collect::<HashSet<Name>>();
-                intersect = intersect
-                    .intersection(&alt)
-                    .map(|n| *n)
-                    .collect::<HashSet<Name>>();
-            }
+                for local_bindings in &bindings_per_alt {
+                    if let Some(local_data) = local_bindings.get(&name) {
+                        if !data.ty.allows(ck.sa, local_data.ty.clone())
+                            && !local_data.ty.is_error()
+                        {
+                            let ty = local_data.ty.name(ck.sa);
+                            let expected_ty = data.ty.name(ck.sa);
+                            let msg = ErrorMessage::PatternBindingWrongType(ty, expected_ty);
+                            ck.sa.report(ck.file_id, local_data.span, msg);
+                        }
+                    } else {
+                        defined_in_all_alternatives = false;
+                    }
+                }
 
-            for &name in all.difference(&intersect) {
-                let name = ck.sa.interner.str(name).to_string();
-                let msg = ErrorMessage::PatternBindingNotDefinedInAllAlternatives(name);
-                ck.sa.report(ck.file_id, p.span, msg);
-            }
+                if !defined_in_all_alternatives {
+                    let name = ck.sa.interner.str(name).to_string();
+                    let msg = ErrorMessage::PatternBindingNotDefinedInAllAlternatives(name);
+                    ck.sa.report(ck.file_id, data.span, msg);
+                }
 
-            for (name, data) in bindings.map {
-                let old = ctxt.alt.map.insert(name, data.clone());
-                assert!(old.is_none());
-
-                assert!(ctxt.current.insert(name));
+                assert!(ctxt.current.insert(name, data).is_none());
             }
         }
 
@@ -656,40 +649,44 @@ fn check_pattern_var(
 ) {
     let name = ck.sa.interner.intern(&pattern.name.name_as_string);
 
-    if ctxt.current.contains(&name) {
+    if ctxt.current.contains_key(&name) {
         let msg = ErrorMessage::PatternDuplicateBinding;
         ck.sa.report(ck.file_id, pattern.span, msg);
-    } else if let Some(data) = ctxt.alt.get(name) {
-        if !data.ty.allows(ck.sa, ty.clone()) && !ty.is_error() {
-            let ty = ty.name(ck.sa);
-            let expected_ty = data.ty.name(ck.sa);
-            let msg = ErrorMessage::PatternBindingWrongType(ty, expected_ty);
-            ck.sa.report(ck.file_id, pattern.span, msg);
-        }
-
-        assert!(ctxt.current.insert(name));
-
-        ck.analysis
-            .map_idents
-            .insert(pattern.id, IdentType::Var(data.var_id));
     } else {
-        let nested_var_id = ck.vars.add_var(name, ty.clone(), pattern.mutable);
-        let var_id = ck.vars.local_var_id(nested_var_id);
+        let var_id = if let Some(data) = ctxt.alt_bindings.get(&name) {
+            data.var_id
+        } else {
+            let nested_var_id = ck.vars.add_var(name, ty.clone(), pattern.mutable);
+            let var_id = ck.vars.local_var_id(nested_var_id);
 
-        add_local(
-            ck.sa,
-            ck.symtable,
-            ck.vars,
-            nested_var_id,
-            ck.file_id,
-            pattern.span,
-        );
+            add_local(
+                ck.sa,
+                ck.symtable,
+                ck.vars,
+                nested_var_id,
+                ck.file_id,
+                pattern.span,
+            );
 
-        ctxt.alt.insert(name, var_id, ty.clone());
-        assert!(ctxt.current.insert(name));
+            var_id
+        };
+
+        assert!(ctxt
+            .current
+            .insert(
+                name,
+                BindingData {
+                    var_id,
+                    ty,
+                    span: pattern.span
+                }
+            )
+            .is_none());
 
         ck.analysis
             .map_idents
             .insert(pattern.id, IdentType::Var(var_id));
+
+        ck.analysis.map_vars.insert(pattern.id, var_id);
     }
 }

@@ -155,13 +155,12 @@ impl<'a> AstBytecodeGen<'a> {
         }
 
         for param in &ast.params {
-            let var_id = *self.analysis.map_vars.get(param.id).unwrap();
-            let ty = self.var_ty(var_id);
-
+            let ty = self.analysis.ty(param.id);
             let bty = bty_from_ty(ty.clone());
             params.push(bty);
 
-            self.allocate_register_for_var(var_id);
+            let bty: BytecodeType = register_bty_from_ty(ty);
+            self.alloc_var(bty);
         }
 
         self.builder.set_params(params);
@@ -188,18 +187,26 @@ impl<'a> AstBytecodeGen<'a> {
         };
 
         for (param_idx, param) in ast.params.iter().enumerate() {
-            let var_id = *self.analysis.map_vars.get(param.id).unwrap();
-            let var = self.analysis.vars.get_var(var_id);
             let reg = Register(next_register_idx + param_idx);
 
-            match var.location {
-                VarLocation::Context(scope_id, field_id) => {
-                    self.store_in_context(reg, scope_id, field_id, self.loc(self.span));
-                }
+            if let Some(ident) = param.pattern.to_ident() {
+                let var_id = *self.analysis.map_vars.get(ident.id).unwrap();
 
-                VarLocation::Stack => {
-                    // Nothing to do.
+                let var = self.analysis.vars.get_var(var_id);
+
+                match var.location {
+                    VarLocation::Context(scope_id, field_id) => {
+                        self.store_in_context(reg, scope_id, field_id, self.loc(self.span));
+                    }
+
+                    VarLocation::Stack => {
+                        self.set_var_reg(var_id, reg);
+                    }
                 }
+            } else {
+                let ty = self.analysis.ty(param.id);
+                self.setup_pattern_vars(&param.pattern);
+                self.destruct_pattern_or_fail(&param.pattern, reg, ty);
             }
         }
     }
@@ -3299,10 +3306,6 @@ impl<'a> AstBytecodeGen<'a> {
 
     fn ty(&self, id: ast::NodeId) -> SourceType {
         self.analysis.ty(id)
-    }
-
-    fn var_ty(&self, id: VarId) -> SourceType {
-        self.analysis.vars.get_var(id).ty.clone()
     }
 
     fn get_intrinsic(&self, id: ast::NodeId) -> Option<IntrinsicInfo> {

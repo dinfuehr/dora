@@ -17,8 +17,8 @@ fn main() {
     assert(Some[Int](10) == x.next());
     assert(x.next() is None);
 
-    let x = HashMap[Int, String]::new((1, "one"), (2, "two"), (3, "three")).iter().map[(Int, String)](|x: (Int, String)|: (Int, String) {
-        (x.0 * 2, x.1)
+    let x = HashMap[Int, String]::new((1, "one"), (2, "two"), (3, "three")).iter().map[(Int, String)](|(k, v): (Int, String)|: (Int, String) {
+        (k * 2, v)
     });
     assert(Some[(Int, String)]((2, "one")) == x.next());
     assert(Some[(Int, String)]((4, "two")) == x.next());

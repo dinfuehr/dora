@@ -2902,7 +2902,7 @@ fn define_param_name_twice() {
     err(
         "fn test(x: String, x: Int32) {}",
         (1, 20),
-        ErrorMessage::ShadowParam("x".into()),
+        ErrorMessage::NameBoundMultipleTimesInParams("x".into()),
     );
 }
 
@@ -2937,7 +2937,7 @@ fn shadow_param() {
     err(
         "fn f(a: Int32, b: Int32, a: String) {}",
         (1, 26),
-        ErrorMessage::ShadowParam("a".into()),
+        ErrorMessage::NameBoundMultipleTimesInParams("a".into()),
     );
 }
 
@@ -4603,6 +4603,25 @@ fn pattern_in_expression() {
 }
 
 #[test]
+fn pattern_in_params() {
+    ok("
+        fn f((x, y): (Int, Int)): Int {
+            x + y
+        }
+    ");
+
+    err(
+        "
+        fn f((x, y): Int): Int {
+            x + y
+        }
+    ",
+        (2, 14),
+        ErrorMessage::PatternTupleExpected("Int64".into()),
+    );
+}
+
+#[test]
 fn pattern_class_with_args() {
     ok("
         class Foo(Int64, String)
@@ -4801,7 +4820,7 @@ fn pattern_bindings_in_alternatives() {
         }
     }
 ",
-        (5, 13),
+        (5, 35),
         ErrorMessage::PatternBindingNotDefinedInAllAlternatives("y".into()),
     );
 }

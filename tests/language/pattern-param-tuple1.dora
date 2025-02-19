@@ -1,0 +1,8 @@
+fn main() {
+    f((2, 3));
+}
+
+fn f((a, b): (Int, Int)) {
+    assert(a == 2);
+    assert(b == 3);
+}

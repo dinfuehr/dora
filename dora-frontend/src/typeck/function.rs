@@ -1,4 +1,5 @@
 use std::cell::OnceCell;
+use std::collections::HashSet;
 use std::rc::Rc;
 use std::str::Chars;
 use std::{f32, f64};
@@ -11,7 +12,7 @@ use crate::sema::{
     PackageDefinitionId, Param, ScopeId, Sema, SourceFileId, TypeParamDefinition, Var, VarAccess,
     VarId, VarLocation, Visibility,
 };
-use crate::typeck::{check_expr, check_stmt, CallArguments};
+use crate::typeck::{check_expr, check_pattern, check_stmt, CallArguments};
 use crate::{
     always_returns, expr_always_returns, replace_type, report_sym_shadow_span, ModuleSymTable,
     SourceType, SourceTypeArray, SymbolKind,
@@ -305,35 +306,41 @@ impl<'a> TypeCheck<'a> {
         let self_count = if self.has_hidden_self_argument { 1 } else { 0 };
         assert_eq!(ast.params.len() + self_count, self.param_types.len());
 
-        for (ind, (ast_param, param)) in ast
-            .params
+        let param_types = self
+            .param_types
             .iter()
-            .zip(self.param_types.iter().skip(self_count))
-            .enumerate()
+            .skip(self_count)
+            .map(|p| p.ty())
+            .collect::<Vec<_>>();
+
+        let mut bound_params = HashSet::new();
+
+        for (ind, (ast_param, param_ty)) in
+            ast.params.iter().zip(param_types.into_iter()).enumerate()
         {
             // is this last argument of function with variadic arguments?
             let ty = if ind == ast.params.len() - 1
                 && ast.params.last().expect("missing param").variadic
             {
                 // type of variable is Array[T]
-                self.sa.known.array_ty(param.ty())
+                self.sa.known.array_ty(param_ty)
             } else {
-                param.ty()
+                param_ty
             };
 
-            let ident_pattern = ast_param.pattern.to_ident().expect("missing name");
+            self.analysis.set_ty(ast_param.id, ty.clone());
 
-            let name = self.sa.interner.intern(&ident_pattern.name.name_as_string);
+            let local_bound_params = check_pattern(self, &ast_param.pattern, ty);
 
-            let var_id = self.vars.add_var(name, ty, ident_pattern.mutable);
-            self.analysis
-                .map_vars
-                .insert(ast_param.id, self.vars.local_var_id(var_id));
-
-            // params are only allowed to replace functions, vars cannot be replaced
-            let replaced_sym = self.symtable.insert(name, SymbolKind::Var(var_id));
-            if let Some(replaced_sym) = replaced_sym {
-                report_sym_shadow_span(self.sa, name, self.file_id, ast_param.span, replaced_sym)
+            for (name, data) in local_bound_params {
+                if !bound_params.insert(name) {
+                    let name = self.sa.interner.str(name).to_string();
+                    self.sa.report(
+                        self.file_id,
+                        data.span,
+                        ErrorMessage::NameBoundMultipleTimesInParams(name),
+                    );
+                }
             }
         }
     }
