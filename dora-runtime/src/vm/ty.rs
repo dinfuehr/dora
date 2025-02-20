@@ -32,7 +32,7 @@ impl BytecodeTypeExt for BytecodeType {
             | &BytecodeType::Float32
             | &BytecodeType::Float64 => true,
             BytecodeType::TypeAlias(..)
-            | BytecodeType::Assoc(..)
+            | BytecodeType::Assoc { .. }
             | BytecodeType::GenericAssoc { .. } => unreachable!(),
             &BytecodeType::Unit
             | &BytecodeType::Tuple(..)
@@ -54,7 +54,7 @@ impl BytecodeTypeExt for BytecodeType {
             | BytecodeType::Struct(_, params)
             | BytecodeType::TraitObject(_, params, ..) => params.clone(),
             BytecodeType::TypeAlias(..)
-            | BytecodeType::Assoc(..)
+            | BytecodeType::Assoc { .. }
             | BytecodeType::GenericAssoc { .. } => unreachable!(),
             &BytecodeType::Bool
             | &BytecodeType::UInt8

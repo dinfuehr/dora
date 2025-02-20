@@ -222,7 +222,7 @@ pub enum BytecodeType {
     TypeParam(Int32),
     Lambda(Array[BytecodeType], BytecodeType),
     TypeAlias(AliasId),
-    Assoc(AliasId, Array[BytecodeType]),
+    Assoc { traitTy: BytecodeTraitType, assocId: AliasId },
     GenericAssoc { typeParamId: Int32, traitTy: BytecodeTraitType, assocId: AliasId },
 }
 

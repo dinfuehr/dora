@@ -268,7 +268,7 @@ pub fn add_ref_fields(vm: &VM, ref_fields: &mut Vec<i32>, offset: i32, ty: Bytec
         | BytecodeType::Unit => {}
 
         BytecodeType::TypeAlias(..)
-        | BytecodeType::Assoc(..)
+        | BytecodeType::Assoc { .. }
         | BytecodeType::GenericAssoc { .. }
         | BytecodeType::TypeParam(..)
         | BytecodeType::This => {
@@ -404,7 +404,7 @@ fn create_shape_for_array_class(
             | BytecodeType::Float64 => InstanceSize::PrimitiveArray(size(vm, element_ty)),
 
             BytecodeType::TypeAlias(..)
-            | BytecodeType::Assoc(..)
+            | BytecodeType::Assoc { .. }
             | BytecodeType::GenericAssoc { .. }
             | BytecodeType::TypeParam(_)
             | BytecodeType::This => {
@@ -590,7 +590,7 @@ pub fn specialize_bty(ty: BytecodeType, type_params: &BytecodeTypeArray) -> Byte
         }
 
         BytecodeType::TypeAlias(..)
-        | BytecodeType::Assoc(..)
+        | BytecodeType::Assoc { .. }
         | BytecodeType::GenericAssoc { .. }
         | BytecodeType::This => {
             unreachable!()
@@ -678,7 +678,7 @@ pub fn specialize_ty(
             BytecodeType::Tuple(subtypes)
         }
 
-        BytecodeType::Assoc(assoc_id, assoc_type_params) => {
+        BytecodeType::Assoc { assoc_id, .. } => {
             let specialize_self = self_data.expect("unexpected associated item on Self.");
 
             // Here we only end up if default trait method implementation is used from
@@ -689,7 +689,6 @@ pub fn specialize_ty(
                 specialize_ty(vm, None, specialize_self.extended_ty.clone(), type_params);
 
             assert!(extended_ty.is_concrete_type());
-            assert!(assoc_type_params.is_empty());
 
             let impl_ = vm.impl_(specialize_self.impl_id);
 
@@ -854,9 +853,8 @@ pub fn specialize_bty_for_trait_object(
             BytecodeType::Tuple(subtypes)
         }
 
-        BytecodeType::Assoc(alias_id, alias_type_params) => {
-            let alias = program.alias(alias_id);
-            assert!(alias_type_params.is_empty());
+        BytecodeType::Assoc { assoc_id, .. } => {
+            let alias = program.alias(assoc_id);
             assoc_types[alias.idx_in_trait()].clone()
         }
 

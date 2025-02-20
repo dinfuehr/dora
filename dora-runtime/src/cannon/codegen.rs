@@ -244,7 +244,7 @@ impl<'a> CannonCodeGen<'a> {
                 }
 
                 BytecodeType::TypeAlias(..)
-                | BytecodeType::Assoc(..)
+                | BytecodeType::Assoc { .. }
                 | BytecodeType::GenericAssoc { .. }
                 | BytecodeType::TypeParam(_)
                 | BytecodeType::Class(_, _)
@@ -371,7 +371,7 @@ impl<'a> CannonCodeGen<'a> {
                 }
 
                 BytecodeType::TypeAlias(..)
-                | BytecodeType::Assoc(..)
+                | BytecodeType::Assoc { .. }
                 | BytecodeType::GenericAssoc { .. }
                 | BytecodeType::TypeParam(_)
                 | BytecodeType::Unit
@@ -1592,7 +1592,7 @@ impl<'a> CannonCodeGen<'a> {
             }
 
             BytecodeType::TypeAlias(..)
-            | BytecodeType::Assoc(..)
+            | BytecodeType::Assoc { .. }
             | BytecodeType::GenericAssoc { .. }
             | BytecodeType::Class(..)
             | BytecodeType::TypeParam(_)
@@ -1769,7 +1769,7 @@ impl<'a> CannonCodeGen<'a> {
             }
 
             BytecodeType::TypeAlias(..)
-            | BytecodeType::Assoc(..)
+            | BytecodeType::Assoc { .. }
             | BytecodeType::GenericAssoc { .. }
             | BytecodeType::TypeParam(_)
             | BytecodeType::Class(_, _)
@@ -2317,7 +2317,7 @@ impl<'a> CannonCodeGen<'a> {
             }
 
             BytecodeType::TypeAlias(..)
-            | BytecodeType::Assoc(..)
+            | BytecodeType::Assoc { .. }
             | BytecodeType::GenericAssoc { .. }
             | BytecodeType::TypeParam(_)
             | BytecodeType::Class(_, _)
@@ -3933,7 +3933,7 @@ impl<'a> CannonCodeGen<'a> {
                 }
 
                 BytecodeType::TypeAlias(..)
-                | BytecodeType::Assoc(..)
+                | BytecodeType::Assoc { .. }
                 | BytecodeType::GenericAssoc { .. }
                 | BytecodeType::TypeParam(_)
                 | BytecodeType::Class(..)
@@ -4689,7 +4689,7 @@ pub fn result_passed_as_argument(ty: BytecodeType) -> bool {
         | BytecodeType::Ptr
         | BytecodeType::TraitObject(..) => false,
         BytecodeType::TypeAlias(..)
-        | BytecodeType::Assoc(..)
+        | BytecodeType::Assoc { .. }
         | BytecodeType::GenericAssoc { .. }
         | BytecodeType::TypeParam(..)
         | BytecodeType::This => {
@@ -4769,7 +4769,7 @@ pub fn mode(vm: &VM, ty: BytecodeType) -> MachineMode {
             }
         }
         BytecodeType::TypeAlias(..)
-        | BytecodeType::Assoc(..)
+        | BytecodeType::Assoc { .. }
         | BytecodeType::GenericAssoc { .. }
         | BytecodeType::Tuple(_)
         | BytecodeType::TypeParam(_)
@@ -4797,7 +4797,7 @@ pub fn size(vm: &VM, ty: BytecodeType) -> i32 {
         | BytecodeType::Lambda(..) => mem::ptr_width(),
         BytecodeType::Tuple(..) => get_concrete_tuple_bty(vm, &ty).size(),
         BytecodeType::TypeAlias(..)
-        | BytecodeType::Assoc(..)
+        | BytecodeType::Assoc { .. }
         | BytecodeType::GenericAssoc { .. }
         | BytecodeType::TypeParam(_)
         | BytecodeType::This => {
@@ -4837,7 +4837,7 @@ pub fn align(vm: &VM, ty: BytecodeType) -> i32 {
         | BytecodeType::Lambda(..) => mem::ptr_width(),
         BytecodeType::Tuple(_) => get_concrete_tuple_bty(vm, &ty).align(),
         BytecodeType::TypeAlias(..)
-        | BytecodeType::Assoc(..)
+        | BytecodeType::Assoc { .. }
         | BytecodeType::GenericAssoc { .. }
         | BytecodeType::TypeParam(_)
         | BytecodeType::This => {

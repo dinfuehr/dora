@@ -8,27 +8,42 @@ pub fn specialize_trait_type(sa: &Sema, ty: TraitType, type_params: &SourceTypeA
     specialize_trait_type_generic(sa, ty, &|ty| replace_type(sa, ty, Some(type_params), None))
 }
 
-pub fn specialize_trait_type_generic<S>(_sa: &Sema, ty: TraitType, specialize: &S) -> TraitType
+pub fn specialize_trait_type_generic<S>(
+    _sa: &Sema,
+    trait_ty: TraitType,
+    specialize: &S,
+) -> TraitType
 where
     S: Fn(SourceType) -> SourceType,
 {
-    let type_params = ty
+    let type_params = trait_ty
         .type_params
         .iter()
         .map(|ty| specialize(ty))
         .collect::<Vec<_>>();
 
-    let mut new_bindings = Vec::with_capacity(ty.bindings.len());
+    let mut new_bindings = Vec::with_capacity(trait_ty.bindings.len());
 
-    for (id, ty) in ty.bindings {
-        let ty = specialize(ty);
-        if SourceType::Assoc(id, SourceTypeArray::empty()) != ty {
-            new_bindings.push((id, ty));
+    for (id, ty) in &trait_ty.bindings {
+        let ty = specialize(ty.clone());
+
+        match ty {
+            SourceType::Assoc {
+                trait_ty: assoc_trait_ty,
+                assoc_id,
+            } if assoc_trait_ty.trait_id == trait_ty.trait_id
+                && assoc_trait_ty.type_params == trait_ty.type_params
+                && assoc_id == *id =>
+            {
+                // Associated type binds to itself.
+            }
+
+            _ => new_bindings.push((*id, ty)),
         }
     }
 
     TraitType {
-        trait_id: ty.trait_id,
+        trait_id: trait_ty.trait_id,
         type_params: type_params.into(),
         bindings: new_bindings,
     }
@@ -84,11 +99,6 @@ pub fn replace_type(
             replace_sta(sa, alias_type_params, type_params, self_ty),
         ),
 
-        SourceType::Assoc(alias_id, alias_type_params) => SourceType::Assoc(
-            alias_id,
-            replace_sta(sa, alias_type_params, type_params, self_ty),
-        ),
-
         SourceType::Lambda(params, return_type) => SourceType::Lambda(
             replace_sta(sa, params, type_params, self_ty.clone()),
             Box::new(replace_type(sa, *return_type, type_params, self_ty)),
@@ -123,6 +133,7 @@ pub fn replace_type(
         | SourceType::Float32
         | SourceType::Float64
         | SourceType::Error
+        | SourceType::Assoc { .. }
         | SourceType::GenericAssoc { .. } => ty,
 
         SourceType::Any | SourceType::Ptr => unreachable!(),
@@ -180,9 +191,8 @@ pub fn specialize_ty_for_call(
             specialize_ty_for_call_array(sa, alias_type_params, caller_element, call_data),
         ),
 
-        SourceType::Assoc(alias_id, alias_type_params) => {
-            let alias = sa.alias(alias_id);
-            assert!(alias_type_params.is_empty());
+        SourceType::Assoc { assoc_id, .. } => {
+            let alias = sa.alias(assoc_id);
 
             match &call_data.object_ty {
                 SourceType::TraitObject(_trait_id, _type_params, assoc_types) => {
@@ -216,7 +226,9 @@ pub fn specialize_ty_for_call(
                     caller_fct.trait_id(),
                     assoc.parent.to_trait_id().expect("expected trait")
                 );
-                SourceType::Assoc(assoc_id, SourceTypeArray::empty())
+
+                let trait_ty = TraitType::from_trait_id(caller_fct.trait_id());
+                SourceType::Assoc { trait_ty, assoc_id }
             } else if let Some(impl_match) = find_impl(
                 sa,
                 caller_element,
@@ -349,9 +361,8 @@ pub fn specialize_ty_for_trait_object(
             ),
         ),
 
-        SourceType::Assoc(alias_id, alias_type_params) => {
-            let alias = sa.alias(alias_id);
-            assert!(alias_type_params.is_empty());
+        SourceType::Assoc { assoc_id, .. } => {
+            let alias = sa.alias(assoc_id);
             assoc_types[alias.idx_in_trait()].clone()
         }
 
@@ -484,10 +495,9 @@ pub fn specialize_ty_for_default_trait_method(
             ),
         ),
 
-        SourceType::Assoc(assoc_id, assoc_type_params) => {
+        SourceType::Assoc { assoc_id, .. } => {
             let assoc = sa.alias(assoc_id);
             assert!(assoc.parent.is_trait());
-            assert!(assoc_type_params.is_empty());
 
             let impl_alias_id = impl_.trait_alias_map().get(&assoc_id).cloned();
 
@@ -720,18 +730,17 @@ pub fn specialize_ty_for_generic(
             ),
         ),
 
-        SourceType::Assoc(alias_id, alias_type_params) => {
-            let alias = sa.alias(alias_id);
+        SourceType::Assoc { assoc_id, .. } => {
+            let alias = sa.alias(assoc_id);
             assert_eq!(alias.parent, AliasParent::Trait(trait_ty.trait_id));
-            assert!(alias_type_params.is_empty());
 
-            if let Some((_, ty)) = trait_ty.bindings.iter().find(|(x, _)| *x == alias_id) {
+            if let Some((_, ty)) = trait_ty.bindings.iter().find(|(x, _)| *x == assoc_id) {
                 ty.clone()
             } else {
                 SourceType::GenericAssoc {
                     tp_id: type_param_id,
                     trait_ty: trait_ty.clone(),
-                    assoc_id: alias_id,
+                    assoc_id,
                 }
             }
         }
@@ -956,7 +965,7 @@ pub fn specialize_for_element(
             }
         }
 
-        SourceType::Any | SourceType::Ptr | SourceType::Assoc(..) => unreachable!(),
+        SourceType::Any | SourceType::Ptr | SourceType::Assoc { .. } => unreachable!(),
     }
 }
 

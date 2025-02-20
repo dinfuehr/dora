@@ -23,7 +23,7 @@ fn check_impl_definition(sa: &Sema, impl_: &ImplDefinition) {
         SourceType::Any
         | SourceType::Ptr
         | SourceType::This
-        | SourceType::Assoc(..)
+        | SourceType::Assoc { .. }
         | SourceType::GenericAssoc { .. } => {
             unreachable!()
         }
@@ -437,9 +437,8 @@ fn trait_and_impl_arg_ty_compatible(
             }
         }
 
-        SourceType::Assoc(id, type_params) => {
-            assert!(type_params.is_empty());
-            let ty = trait_alias_map.get(&id).unwrap_or(&SourceType::Error);
+        SourceType::Assoc { assoc_id, .. } => {
+            let ty = trait_alias_map.get(&assoc_id).unwrap_or(&SourceType::Error);
             ty.allows(sa, impl_arg_ty)
         }
 

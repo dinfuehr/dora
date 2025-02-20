@@ -151,7 +151,10 @@ pub enum SourceType {
     Alias(AliasDefinitionId, SourceTypeArray),
 
     // Some associated type (used through Self::X).
-    Assoc(AliasDefinitionId, SourceTypeArray),
+    Assoc {
+        trait_ty: TraitType,
+        assoc_id: AliasDefinitionId,
+    },
 
     // Some associated type on type parameter (T::X).
     GenericAssoc {
@@ -189,7 +192,7 @@ impl SourceType {
             SourceType::Enum(..) => TyKind::Enum,
             SourceType::Class(..) => TyKind::Class,
             SourceType::Unit | SourceType::Tuple(..) => TyKind::Tuple,
-            SourceType::Assoc(..) => TyKind::Assoc,
+            SourceType::Assoc { .. } => TyKind::Assoc,
             SourceType::GenericAssoc { .. } => TyKind::GenericAssoc,
         }
     }
@@ -507,7 +510,7 @@ impl SourceType {
             | SourceType::TraitObject(..)
             | SourceType::Class(..)
             | SourceType::Alias(..)
-            | SourceType::Assoc(..)
+            | SourceType::Assoc { .. }
             | SourceType::This
             | SourceType::TypeParam(..)
             | SourceType::Lambda(..)
@@ -555,7 +558,7 @@ impl SourceType {
             | SourceType::TraitObject(..)
             | SourceType::Lambda(..)
             | SourceType::TypeParam(_) => true,
-            SourceType::GenericAssoc { trait_ty, .. } => {
+            SourceType::Assoc { trait_ty, .. } | SourceType::GenericAssoc { trait_ty, .. } => {
                 for ty in trait_ty.type_params.iter() {
                     if !ty.is_defined_type(sa) {
                         return false;
@@ -575,8 +578,7 @@ impl SourceType {
             }
             SourceType::Enum(_, params)
             | SourceType::Class(_, params)
-            | SourceType::Struct(_, params)
-            | SourceType::Assoc(_, params) => {
+            | SourceType::Struct(_, params) => {
                 for param in params.iter() {
                     if !param.is_defined_type(sa) {
                         return false;
@@ -656,7 +658,7 @@ impl SourceType {
             }
             SourceType::Alias(..)
             | SourceType::TypeParam(_)
-            | SourceType::Assoc(..)
+            | SourceType::Assoc { .. }
             | SourceType::GenericAssoc { .. } => false,
         }
     }
@@ -676,7 +678,7 @@ pub fn contains_self(sa: &Sema, ty: SourceType) -> bool {
         | SourceType::Float32
         | SourceType::Float64
         | SourceType::TypeParam(..)
-        | SourceType::Assoc(..) => false,
+        | SourceType::Assoc { .. } => false,
 
         SourceType::Alias(..) | SourceType::GenericAssoc { .. } => {
             unimplemented!()
@@ -1048,21 +1050,11 @@ impl<'a> SourceTypePrinter<'a> {
                 }
             }
 
-            SourceType::Assoc(id, type_params) => {
-                let alias = self.sa.alias(id);
+            SourceType::Assoc { assoc_id, .. } => {
+                let alias = self.sa.alias(assoc_id);
                 let name = self.sa.interner.str(alias.name).to_string();
 
-                if type_params.len() == 0 {
-                    name
-                } else {
-                    let params = type_params
-                        .iter()
-                        .map(|ty| self.name(ty))
-                        .collect::<Vec<_>>()
-                        .join(", ");
-
-                    format!("Self::{}[{}]", name, params)
-                }
+                format!("Self::{}", name)
             }
 
             SourceType::GenericAssoc {

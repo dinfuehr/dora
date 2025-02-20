@@ -3483,13 +3483,10 @@ pub fn bty_from_ty(ty: SourceType) -> BytecodeType {
             assert!(type_params.is_empty());
             BytecodeType::TypeAlias(AliasId(id.index().try_into().expect("overflow")))
         }
-        SourceType::Assoc(id, type_params) => {
-            assert!(type_params.is_empty());
-            BytecodeType::Assoc(
-                AliasId(id.index().try_into().expect("overflow")),
-                bty_array_from_ty(&type_params),
-            )
-        }
+        SourceType::Assoc { trait_ty, assoc_id } => BytecodeType::Assoc {
+            trait_ty: convert_trait_type(&trait_ty),
+            assoc_id: AliasId(assoc_id.index().try_into().expect("overflow")),
+        },
         SourceType::GenericAssoc {
             tp_id,
             trait_ty,
@@ -3541,10 +3538,10 @@ pub fn register_bty_from_ty(ty: SourceType) -> BytecodeType {
             trait_ty: convert_trait_type(&trait_ty),
             assoc_id: AliasId(assoc_id.index().try_into().expect("overflow")),
         },
-        SourceType::Assoc(assoc_id, type_params) => BytecodeType::Assoc(
-            AliasId(assoc_id.index().try_into().expect("overflow")),
-            bty_array_from_ty(&type_params),
-        ),
+        SourceType::Assoc { trait_ty, assoc_id } => BytecodeType::Assoc {
+            trait_ty: convert_trait_type(&trait_ty),
+            assoc_id: AliasId(assoc_id.index().try_into().expect("overflow")),
+        },
         _ => panic!("SourceType {:?} cannot be converted to BytecodeType", ty),
     }
 }

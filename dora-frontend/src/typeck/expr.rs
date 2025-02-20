@@ -736,7 +736,7 @@ fn check_expr_assign_unnamed_field(
         | SourceType::TypeParam(..)
         | SourceType::Lambda(..)
         | SourceType::Alias(..)
-        | SourceType::Assoc(..)
+        | SourceType::Assoc { .. }
         | SourceType::GenericAssoc { .. } => {
             let name = index.to_string();
             let expr_name = ck.ty_name(&object_type);
@@ -898,7 +898,7 @@ pub(super) fn check_expr_dot(
         | SourceType::Lambda(..)
         | SourceType::Tuple(..)
         | SourceType::Alias(..)
-        | SourceType::Assoc(..)
+        | SourceType::Assoc { .. }
         | SourceType::GenericAssoc { .. } => {}
         SourceType::Class(cls_id, class_type_params) => {
             if let Some((field_id, _)) =
@@ -996,7 +996,7 @@ fn check_expr_dot_unnamed_field(
         | SourceType::TypeParam(..)
         | SourceType::Lambda(..)
         | SourceType::Alias(..)
-        | SourceType::Assoc(..)
+        | SourceType::Assoc { .. }
         | SourceType::GenericAssoc { .. } => {
             let name = index.to_string();
             let expr_name = ck.ty_name(&object_type);

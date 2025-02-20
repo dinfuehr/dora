@@ -173,7 +173,7 @@ impl<'a> BaselineAssembler<'a> {
             }
 
             BytecodeType::TypeAlias(..)
-            | BytecodeType::Assoc(..)
+            | BytecodeType::Assoc { .. }
             | BytecodeType::GenericAssoc { .. }
             | BytecodeType::TypeParam(_)
             | BytecodeType::This => {
@@ -311,7 +311,7 @@ impl<'a> BaselineAssembler<'a> {
             }
 
             BytecodeType::TypeAlias(..)
-            | BytecodeType::Assoc(..)
+            | BytecodeType::Assoc { .. }
             | BytecodeType::GenericAssoc { .. }
             | BytecodeType::TypeParam(_)
             | BytecodeType::Lambda(_, _)
@@ -419,7 +419,7 @@ impl<'a> BaselineAssembler<'a> {
             }
 
             BytecodeType::TypeAlias(..)
-            | BytecodeType::Assoc(..)
+            | BytecodeType::Assoc { .. }
             | BytecodeType::GenericAssoc { .. }
             | BytecodeType::TypeParam(_)
             | BytecodeType::Lambda(_, _)
@@ -1298,7 +1298,7 @@ impl<'a> BaselineAssembler<'a> {
             }
 
             BytecodeType::TypeAlias(..)
-            | BytecodeType::Assoc(..)
+            | BytecodeType::Assoc { .. }
             | BytecodeType::GenericAssoc { .. }
             | BytecodeType::TypeParam(_)
             | BytecodeType::This => {

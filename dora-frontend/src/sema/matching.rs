@@ -236,7 +236,7 @@ fn match_concrete_types(
             _ => false,
         },
 
-        SourceType::Alias(..) | SourceType::Assoc(..) | SourceType::GenericAssoc { .. } => {
+        SourceType::Alias(..) | SourceType::Assoc { .. } | SourceType::GenericAssoc { .. } => {
             unimplemented!()
         }
 

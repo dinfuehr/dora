@@ -222,10 +222,10 @@ pub fn encodeBytecodeType(writer: ByteWriter, ty: BytecodeType) {
             encodeBytecodeTraitType(writer, traitTy);
             writer.emitInt32(assocId.0);
         }
-        BytecodeType::Assoc(assocId, typeParams) => {
+        BytecodeType::Assoc(traitTy, assocId) => {
             writer.emitByte(opc::BC_TYPE_ASSOC.toUInt8());
+            encodeBytecodeTraitType(writer, traitTy);
             writer.emitInt32(assocId.0);
-            encodeBytecodeTypeArray(writer, typeParams);
         }
         BytecodeType::TypeAlias(..) => {
             unimplemented[()]();

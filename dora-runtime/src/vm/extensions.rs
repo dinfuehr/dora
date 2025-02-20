@@ -239,7 +239,7 @@ fn compare_concrete_types(
         }
 
         BytecodeType::TypeAlias(..)
-        | BytecodeType::Assoc(..)
+        | BytecodeType::Assoc { .. }
         | BytecodeType::GenericAssoc { .. }
         | BytecodeType::Ptr
         | BytecodeType::This => {

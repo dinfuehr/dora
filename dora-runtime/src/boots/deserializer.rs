@@ -248,9 +248,9 @@ pub fn decode_bytecode_type(reader: &mut ByteReader) -> BytecodeType {
         }
 
         BytecodeTypeKind::Assoc => {
+            let trait_ty = decode_bytecode_trait_ty(reader);
             let assoc_id = AliasId(reader.read_u32());
-            let type_params = decode_bytecode_type_array(reader);
-            BytecodeType::Assoc(assoc_id, type_params)
+            BytecodeType::Assoc { trait_ty, assoc_id }
         }
 
         BytecodeTypeKind::TypeAlias => unreachable!(),

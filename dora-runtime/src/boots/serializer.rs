@@ -304,10 +304,10 @@ pub fn encode_bytecode_type(vm: &VM, ty: &BytecodeType, buffer: &mut ByteBuffer)
             encode_bytecode_trait_type(vm, trait_ty, buffer);
             buffer.emit_id(assoc_id.0 as usize);
         }
-        BytecodeType::Assoc(assoc_id, assoc_type_params) => {
+        BytecodeType::Assoc { trait_ty, assoc_id } => {
             buffer.emit_u8(BytecodeTypeKind::Assoc as u8);
+            encode_bytecode_trait_type(vm, trait_ty, buffer);
             buffer.emit_u32(assoc_id.0);
-            encode_bytecode_type_array(vm, assoc_type_params, buffer);
         }
         BytecodeType::TypeAlias(..) => {
             unreachable!()

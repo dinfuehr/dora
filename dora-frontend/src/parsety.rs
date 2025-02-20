@@ -590,7 +590,12 @@ fn ty_for_sym(sa: &Sema, sym: SymbolKind, type_params: SourceTypeArray) -> Sourc
             if alias.parent.is_none() {
                 SourceType::Alias(id, type_params)
             } else {
-                SourceType::Assoc(id, type_params)
+                let trait_id = alias.parent.to_trait_id().expect("trait expected");
+                let trait_ty = TraitType::from_trait_id(trait_id);
+                SourceType::Assoc {
+                    trait_ty,
+                    assoc_id: id,
+                }
             }
         }
         _ => unimplemented!(),
@@ -731,7 +736,7 @@ fn check_type_inner(
             unreachable!()
         }
         SourceType::This => SourceType::This,
-        SourceType::Assoc(..)
+        SourceType::Assoc { .. }
         | SourceType::Error
         | SourceType::Unit
         | SourceType::TypeParam(..)
@@ -1200,14 +1205,12 @@ fn expand_st(
             expand_st(sa, element, alias_ty, replace_self)
         }
 
-        SourceType::Assoc(id, type_params) => {
-            let alias = sa.alias(*id);
-            let trait_id = alias.parent.to_trait_id().expect("trait expected");
-            assert!(type_params.is_empty());
+        SourceType::Assoc { trait_ty, assoc_id } => {
+            let trait_id = trait_ty.trait_id;
 
             let element = parent_element_or_self(sa, element);
             if let Some(impl_) = element.to_impl() {
-                let impl_alias_id = impl_.trait_alias_map().get(&id).cloned();
+                let impl_alias_id = impl_.trait_alias_map().get(&assoc_id).cloned();
                 if let Some(impl_alias_id) = impl_alias_id {
                     let impl_alias = sa.alias(impl_alias_id);
                     expand_st(sa, element, impl_alias.ty(), replace_self)

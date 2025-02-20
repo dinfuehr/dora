@@ -205,9 +205,9 @@ pub fn decodeBytecodeType(reader: ByteReader): BytecodeType {
         let assocId = AliasId(reader.readId());
         BytecodeType::GenericAssoc(typeParamId, traitTy, assocId)
     } else if opcode == opc::BC_TYPE_ASSOC {
+        let traitTy = decodeBytecodeTraitType(reader);
         let assocId = AliasId(reader.readId());
-        let typeParams = decodeBytecodeTypeArray(reader);
-        BytecodeType::Assoc(assocId, typeParams)
+        BytecodeType::Assoc(traitTy, assocId)
     } else if opcode == opc::BC_TYPE_THIS {
         BytecodeType::This
     } else {
