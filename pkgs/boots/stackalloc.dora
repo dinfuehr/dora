@@ -1,0 +1,78 @@
+use package::codegen::{CodeGen, STACK_FRAME_ALIGNMENT};
+use package::compilation::{CompilationInfo, FunctionCompilationInfo};
+use package::graph::{Graph, Inst, Op, Type};
+use package::location::ensureLocationData;
+
+pub fn performStackSlotAllocation(graph: Graph, codegen: CodeGen, ci: CompilationInfo, fct: FunctionCompilationInfo) {
+    let allocator = StackSlotAllocator(graph, codegen, ci, stackSize = 0i32);
+    allocator.run();
+
+    let stack_alignment = STACK_FRAME_ALIGNMENT.toInt32();
+
+    let finalStackSize = allocator.stackSize + graph.getMaxOutgoingStackArgsSize();
+    let finalAlignedStackSize = (finalStackSize + (stack_alignment - 1i32)) & !(stack_alignment - 1i32);
+    if ci.stackalloc {
+        graph.setStackSize(finalAlignedStackSize);
+    }
+}
+
+class StackSlotAllocator {
+    graph: Graph,
+    codegen: CodeGen,
+    ci: CompilationInfo,
+    stackSize: Int32,
+}
+
+impl StackSlotAllocator {
+    fn run() {
+        for block in self.graph.linearOrderIterator() {
+            for inst in block.phisIterator() {
+                self.ensureStackSlot(inst);
+            }
+
+            for inst in block.instructionsIterator() {
+                self.ensureStackSlot(inst);
+            }
+        }
+    }
+
+    fn ensureStackSlot(inst: Inst) {
+        let loc = inst.getLocationData();
+
+        if inst.op() == Op::AllocateStack {
+            self.allocateStackSlot(inst);
+        } else if loc.hasSpillSlot() {
+            let slot = self.allocateSpillSlot(inst.getValueType());
+            if self.ci.stackalloc {
+                loc.setSpillSlot(slot);
+            }
+        }
+    }
+
+    fn allocateStackSlot(inst: Inst) {
+        let layout = inst.getRecordLayout();
+
+        let offset = self.allocateStackSpace(layout.size, layout.alignment);
+        if self.ci.stackalloc {
+            inst.getLocationData().setStackSlot(offset);
+        }
+    }
+
+    fn allocateSpillSlot(ty: Type): Int32 {
+        let (size, alignment) = match ty {
+            Type::Bool | Type::UInt8 => (1i32, 1i32),
+            Type::Int32 | Type::Float32 => (4i32, 4i32),
+            Type::Address | Type::Ptr | Type::Int64 | Type::Float64 => (8i32, 8i32),
+            _ => unreachable[(Int32, Int32)](),
+        };
+
+        self.allocateStackSpace(size, alignment)
+    }
+
+    fn allocateStackSpace(size: Int32, alignment: Int32): Int32 {
+        self.stackSize = (self.stackSize + (alignment - 1i32)) & !(alignment - 1i32);
+        self.stackSize = self.stackSize + size;
+
+        -self.stackSize
+    }
+}

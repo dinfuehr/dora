@@ -19,6 +19,7 @@ use package::prepare_regalloc::prepareRegisterAllocation;
 use package::regalloc::performRegisterAllocation;
 use package::sparse_set::SparseSet;
 use package::specialize::specializeTy;
+use package::stackalloc::performStackSlotAllocation;
 use package::cfg_simplification::performCfgSimplification;
 use package::liveness::computeLiveness;
 
@@ -43,6 +44,7 @@ mod resolver;
 mod serializer;
 mod sparse_set;
 mod specialize;
+mod stackalloc;
 
 pub fn compileFunction(ci: CompilationInfo, fct: FunctionCompilationInfo): CodeDescriptor {
     let htmlWriter: Option[HtmlWriter] = if ci.emitHtml {
@@ -143,6 +145,7 @@ pub fn compileFunction(ci: CompilationInfo, fct: FunctionCompilationInfo): CodeD
     }
 
     performRegisterAllocation(graph, codegen, ci, fct);
+    performStackSlotAllocation(graph, codegen, ci, fct);
 
     if htmlWriter.isSome() {
         htmlWriter.getOrPanic().dumpGraph("after register allocation", graph);

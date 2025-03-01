@@ -23,6 +23,7 @@ pub fn performRegisterAllocation(graph: Graph, codegen: CodeGen, ci: Compilation
     let finalStackSize = allocator.currentStackSize + maxOutgoingArgsSize;
     let finalAlignedStackSize = (finalStackSize + (stack_alignment - 1i32)) & !(stack_alignment - 1i32);
     graph.setStackSize(finalAlignedStackSize);
+    graph.setMaxOutgoingStackArgsSize(maxOutgoingArgsSize);
 
     resolveMoves(graph, codegen);
 }
