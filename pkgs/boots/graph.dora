@@ -2231,7 +2231,7 @@ impl LocationData {
     }
 
     pub fn hasSpillSlot(): Bool {
-        self.spill_slot.isSome()
+        self.has_spill_slot || self.spill_slot.isSome()
     }
 
     pub fn setHint(location: Location) {
@@ -2619,6 +2619,20 @@ pub fn createMoveInst(ty: Type, dest: Location, source: Location): Inst {
     loc.output = Some(Operand(policy = Policy::None, location = dest));
     loc.inputs(0) = Some[Operand](Operand(policy = Policy::None, location = source));
     inst.setLocationData(loc);
+
+    inst
+}
+
+pub fn createReloadInst(dest: Location, source: Location, value: Inst): Inst {
+    let inst = Inst::new();
+    inst._op = Some(Op::Move);
+    inst.ty = value.getValueType();
+
+    let loc = LocationData::newWith(1);
+    loc.output = Some(Operand(policy = Policy::None, location = dest));
+    loc.inputs(0) = Some[Operand](Operand(policy = Policy::None, location = source));
+    inst.setLocationData(loc);
+    inst.addInput(value);
 
     inst
 }
