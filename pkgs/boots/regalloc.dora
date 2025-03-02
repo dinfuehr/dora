@@ -345,19 +345,29 @@ impl SimpleRegisterAllocator {
         for input in inst.getInputs() {
             let idx = input.getIdx().toInt64();
             let input_loc = loc_data.getInput(idx);
+            let value = input.getValue();
 
             if input_loc.getPolicy().isAnyArbitraryReg() {
-                let register = self.allocateArbitraryRegister(input_loc.getPolicy(), input.getValue());
+                let register = self.allocateArbitraryRegister(input_loc.getPolicy(), value);
                 input_loc.setLocation(register);
             } else if input_loc.getPolicy().isAnyFixedStack() {
                 assert(input_loc.hasStack());
                 let dest = Location::Stack(input_loc.getStack());
-                let src = self.getRegisterLocation(input.getValue());
+                let src = self.getRegisterLocation(value);
 
                 if src.isNone() {
-                    self.emitReloadInst(dest, input.getValue());
+                    let scratch = if value.getValueType().isAnyFloat() {
+                        self.codegen.getFloatScratchRegister().toLocation()
+                    } else {
+                        self.codegen.getScratchRegister().toLocation()
+                    };
+
+                    self.emitReloadInst(scratch, value);
+
+                    let inst = createMoveInst(value.getValueType(), dest, scratch);
+                    self.currentInst.getOrPanic().insertBefore(inst);
                 } else {
-                    let inst = createMoveInst(input.getValue().getValueType(), dest, src);
+                    let inst = createMoveInst(value.getValueType(), dest, src);
                     self.currentInst.getOrPanic().insertBefore(inst);
                 }
             }

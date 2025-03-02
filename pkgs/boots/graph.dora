@@ -2629,7 +2629,7 @@ pub fn createMoveInst(ty: Type, dest: Location, source: Location): Inst {
 
 pub fn createReloadInst(dest: Location, source: Location, value: Inst): Inst {
     let inst = Inst::new();
-    inst._op = Some(Op::Move);
+    inst._op = Some(Op::Reload);
     inst.ty = value.getValueType();
 
     let loc = LocationData::newWith(1);

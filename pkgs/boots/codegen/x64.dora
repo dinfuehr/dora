@@ -1765,7 +1765,8 @@ impl CodeGen for CodeGenX64 {
                 assert(ty == Type::Bool || ty == Type::UInt8);
                 self.asm.movb_ra(dest.getRegister(), AsmAddress::offset(RBP, offset));
             }
-        } else if dest.isFloatRegister() {
+        } else {
+            assert(dest.isFloatRegister());
             if self.hasAvx2 {
                 if ty == Type::Float32 {
                     self.asm.vmovss_ra(dest.getFloatRegister(), AsmAddress::offset(RBP, offset));
@@ -1781,8 +1782,6 @@ impl CodeGen for CodeGenX64 {
                     self.asm.movsd_ra(dest.getFloatRegister(), AsmAddress::offset(RBP, offset));
                 }
             }
-        } else {
-            unreachable[()]();
         }
     }
 

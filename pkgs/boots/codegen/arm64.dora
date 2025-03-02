@@ -1674,6 +1674,7 @@ impl CodeGen for CodeGenArm64 {
                 self.ldrb(dest.getRegister(), REG_FP, offset);
             }
         } else {
+            assert(dest.isFloatRegister());
             if ty == Type::Float32 {
                 self.ldr_s(dest.getFloatRegister(), REG_FP, offset);
             } else {
