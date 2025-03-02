@@ -642,52 +642,77 @@ impl CodeGenArm64 {
     }
 
     fn ldrb(dest: Register, src: Register, offset: Int32) {
-        assert(src != REG_TEMP && dest != REG_TEMP);
         if arm64::fitsUnscaledImmediate(offset) {
             self.asm.ldurb(dest, src, offset);
         } else {
-            self.mov_imm(REG_TEMP, offset.toInt64());
-            self.asm.ldrb_reg(dest, src, REG_TEMP, Extend::LSL, 0i32);
+            let tmp = if src != REG_TEMP && dest != REG_TEMP {
+                REG_TEMP
+            } else {
+                assert(src != REG_TEMP2 && dest != REG_TEMP2);
+                REG_TEMP2
+            };
+            self.mov_imm(tmp, offset.toInt64());
+            self.asm.ldrb_reg(dest, src, tmp, Extend::LSL, 0i32);
         }
     }
 
     fn ldr_w(dest: Register, src: Register, offset: Int32) {
-        assert(src != REG_TEMP && dest != REG_TEMP);
         if arm64::fitsUnscaledImmediate(offset) {
             self.asm.ldur_w(dest, src, offset);
         } else {
-            self.mov_imm(REG_TEMP, offset.toInt64());
-            self.asm.ldr_reg_w(dest, src, REG_TEMP, Extend::LSL, 0i32);
+            let tmp = if src != REG_TEMP && dest != REG_TEMP {
+                REG_TEMP
+            } else {
+                assert(src != REG_TEMP2 && dest != REG_TEMP2);
+                REG_TEMP2
+            };
+            self.mov_imm(tmp, offset.toInt64());
+            self.asm.ldr_reg_w(dest, src, tmp, Extend::LSL, 0i32);
         }
     }
 
     fn ldr(dest: Register, src: Register, offset: Int32) {
-        assert(src != REG_TEMP && dest != REG_TEMP);
         if arm64::fitsUnscaledImmediate(offset) {
             self.asm.ldur(dest, src, offset);
         } else {
-            self.mov_imm(REG_TEMP, offset.toInt64());
-            self.asm.ldr_reg(dest, src, REG_TEMP, Extend::LSL, 0i32);
+            let tmp = if src != REG_TEMP && dest != REG_TEMP {
+                REG_TEMP
+            } else {
+                assert(src != REG_TEMP2 && dest != REG_TEMP2);
+                REG_TEMP2
+            };
+            self.mov_imm(tmp, offset.toInt64());
+            self.asm.ldr_reg(dest, src, tmp, Extend::LSL, 0i32);
         }
     }
 
     fn ldr_s(dest: FloatRegister, src: Register, offset: Int32) {
-        assert(src != REG_TEMP);
         if arm64::fitsUnscaledImmediate(offset) {
             self.asm.ldur_s(dest, src, offset);
         } else {
+            let tmp = if src != REG_TEMP {
+                REG_TEMP
+            } else {
+                assert(src != REG_TEMP2);
+                REG_TEMP2
+            };
             self.mov_imm(REG_TEMP, offset.toInt64());
             self.asm.ldr_reg_s(dest, src, REG_TEMP, Extend::LSL, 0i32);
         }
     }
 
     fn ldr_d(dest: FloatRegister, src: Register, offset: Int32) {
-        assert(src != REG_TEMP);
         if arm64::fitsUnscaledImmediate(offset) {
             self.asm.ldur_d(dest, src, offset);
         } else {
-            self.mov_imm(REG_TEMP, offset.toInt64());
-            self.asm.ldr_reg_d(dest, src, REG_TEMP, Extend::LSL, 0i32);
+            let tmp = if src != REG_TEMP {
+                REG_TEMP
+            } else {
+                assert(src != REG_TEMP2);
+                REG_TEMP2
+            };
+            self.mov_imm(tmp, offset.toInt64());
+            self.asm.ldr_reg_d(dest, src, tmp, Extend::LSL, 0i32);
         }
     }
 
@@ -712,32 +737,47 @@ impl CodeGenArm64 {
     }
 
     fn strb(src: Register, dest: Register, offset: Int32) {
-        assert(src != REG_TEMP);
         if arm64::fitsUnscaledImmediate(offset) {
             self.asm.sturb(src, dest, offset);
         } else {
-            self.mov_imm(REG_TEMP, offset.toInt64());
-            self.asm.strb_reg(src, dest, REG_TEMP, Extend::LSL, 0i32);
+            let tmp = if src != REG_TEMP && dest != REG_TEMP {
+                REG_TEMP
+            } else {
+                assert(src != REG_TEMP2 && dest != REG_TEMP2);
+                REG_TEMP2
+            };
+            self.mov_imm(tmp, offset.toInt64());
+            self.asm.strb_reg(src, dest, tmp, Extend::LSL, 0i32);
         }
     }
 
     fn str_w(src: Register, dest: Register, offset: Int32) {
-        assert(src != REG_TEMP && dest != REG_TEMP);
         if arm64::fitsUnscaledImmediate(offset) {
             self.asm.stur_w(src, dest, offset);
         } else {
-            self.mov_imm(REG_TEMP, offset.toInt64());
-            self.asm.str_reg_w(src, dest, REG_TEMP, Extend::LSL, 0i32);
+            let tmp = if src != REG_TEMP && dest != REG_TEMP {
+                REG_TEMP
+            } else {
+                assert(src != REG_TEMP2 && dest != REG_TEMP2);
+                REG_TEMP2
+            };
+            self.mov_imm(tmp, offset.toInt64());
+            self.asm.str_reg_w(src, dest, tmp, Extend::LSL, 0i32);
         }
     }
 
     fn str(src: Register, dest: Register, offset: Int32) {
-        assert(src != REG_TEMP && dest != REG_TEMP);
         if arm64::fitsUnscaledImmediate(offset) {
             self.asm.stur(src, dest, offset);
         } else {
-            self.mov_imm(REG_TEMP, offset.toInt64());
-            self.asm.str_reg(src, dest, REG_TEMP, Extend::LSL, 0i32);
+            let tmp = if src != REG_TEMP && dest != REG_TEMP {
+                REG_TEMP
+            } else {
+                assert(src != REG_TEMP2 && dest != REG_TEMP2);
+                REG_TEMP2
+            };
+            self.mov_imm(tmp, offset.toInt64());
+            self.asm.str_reg(src, dest, tmp, Extend::LSL, 0i32);
         }
     }
 
@@ -746,18 +786,29 @@ impl CodeGenArm64 {
         if arm64::fitsUnscaledImmediate(offset) {
             self.asm.stur_s(src, dest, offset);
         } else {
-            self.mov_imm(REG_TEMP, offset.toInt64());
-            self.asm.str_reg_s(src, dest, REG_TEMP, Extend::LSL, 0i32);
+            let tmp = if dest != REG_TEMP {
+                REG_TEMP
+            } else {
+                assert(dest != REG_TEMP2);
+                REG_TEMP2
+            };
+            self.mov_imm(tmp, offset.toInt64());
+            self.asm.str_reg_s(src, dest, tmp, Extend::LSL, 0i32);
         }
     }
 
     fn str_d(src: FloatRegister, dest: Register, offset: Int32) {
-        assert(dest != REG_TEMP);
         if arm64::fitsUnscaledImmediate(offset) {
             self.asm.stur_d(src, dest, offset);
         } else {
-            self.mov_imm(REG_TEMP, offset.toInt64());
-            self.asm.str_reg_d(src, dest, REG_TEMP, Extend::LSL, 0i32);
+            let tmp = if dest != REG_TEMP {
+                REG_TEMP
+            } else {
+                assert(dest != REG_TEMP2);
+                REG_TEMP2
+            };
+            self.mov_imm(tmp, offset.toInt64());
+            self.asm.str_reg_d(src, dest, tmp, Extend::LSL, 0i32);
         }
     }
 
