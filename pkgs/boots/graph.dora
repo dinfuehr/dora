@@ -951,6 +951,7 @@ pub enum Op {
     GetElementPtr,
 
     Move,
+    Reload,
     Rematerialize,
 
     NewObject,
@@ -1137,6 +1138,7 @@ pub fn opName(op: Op): String {
         Op::GetElementPtr => "GetElementPtr",
         Op::Arg => "Arg",
         Op::Move => "Move",
+        Op::Reload => "Reload",
         Op::Rematerialize => "Rematerialize",
         Op::NewObject => "NewObject",
         Op::NewArray => "NewArray",
@@ -1377,6 +1379,7 @@ impl Inst {
             Op::GetElementPtr => Some[Type](Type::Address),
             Op::Arg => Some[Type](self.ty),
             Op::Move => Some[Type](self.ty),
+            Op::Reload => Some[Type](self.ty),
             Op::Rematerialize => Some[Type](self.ty),
             Op::NewObject => Some[Type](Type::Ptr),
             Op::NewArray => Some[Type](Type::Ptr),
@@ -1934,6 +1937,7 @@ impl Inst {
             Op::GetElementPtr => false,
             Op::Arg => false,
             Op::Move => false,
+            Op::Reload => false,
             Op::Rematerialize => false,
             Op::NewObject => false,
             Op::NewArray => false,

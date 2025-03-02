@@ -1653,6 +1653,36 @@ impl CodeGen for CodeGenArm64 {
         }
     }
 
+    fn emitReload(inst: Inst) {
+        let loc = inst.getLocationData();
+        let dest = loc.getOutput().getLocation();
+        let src = loc.getInput(0).getLocation();
+        let ty = inst.getValueType();
+
+        assert(src.isStack());
+        let slot = src.getStack();
+        assert(slot.isFp());
+        let offset = slot.getOffset();
+
+        if dest.isRegister() {
+            if ty == Type::Int64 || ty == Type::Ptr || ty == Type::Address {
+                self.ldr(dest.getRegister(), REG_FP, offset);
+            } else if ty == Type::Int32 {
+                self.ldr_w(dest.getRegister(), REG_FP, offset);
+            } else {
+                assert(ty == Type::Bool || ty == Type::UInt8);
+                self.ldrb(dest.getRegister(), REG_FP, offset);
+            }
+        } else {
+            if ty == Type::Float32 {
+                self.ldr_s(dest.getFloatRegister(), REG_FP, offset);
+            } else {
+                assert(ty == Type::Float64);
+                self.ldr_d(dest.getFloatRegister(), REG_FP, offset);
+            }
+        }
+    }
+
     fn emitRematerialize(inst: Inst) {
         let loc = inst.getLocationData();
         let value = inst.getExtraInst();

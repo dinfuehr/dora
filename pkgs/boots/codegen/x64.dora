@@ -1745,6 +1745,47 @@ impl CodeGen for CodeGenX64 {
         }
     }
 
+    fn emitReload(inst: Inst) {
+        let loc = inst.getLocationData();
+        let dest = loc.getOutput().getLocation();
+        let src = loc.getInput(0).getLocation();
+        let ty = inst.getValueType();
+
+        assert(src.isStack());
+        let slot = src.getStack();
+        assert(slot.isFp());
+        let offset = slot.getOffset();
+
+        if dest.isRegister() {
+            if ty == Type::Int64 || ty == Type::Ptr || ty == Type::Address {
+                self.asm.movq_ra(dest.getRegister(), AsmAddress::offset(RBP, offset));
+            } else if ty == Type::Int32 {
+                self.asm.movl_ra(dest.getRegister(), AsmAddress::offset(RBP, offset));
+            } else {
+                assert(ty == Type::Bool || ty == Type::UInt8);
+                self.asm.movb_ra(dest.getRegister(), AsmAddress::offset(RBP, offset));
+            }
+        } else if dest.isFloatRegister() {
+            if self.hasAvx2 {
+                if ty == Type::Float32 {
+                    self.asm.vmovss_ra(dest.getFloatRegister(), AsmAddress::offset(RBP, offset));
+                } else {
+                    assert(ty == Type::Float64);
+                    self.asm.vmovsd_ra(dest.getFloatRegister(), AsmAddress::offset(RBP, offset));
+                }
+            } else {
+                if ty == Type::Float32 {
+                    self.asm.movss_ra(dest.getFloatRegister(), AsmAddress::offset(RBP, offset));
+                } else {
+                    assert(ty == Type::Float64);
+                    self.asm.movsd_ra(dest.getFloatRegister(), AsmAddress::offset(RBP, offset));
+                }
+            }
+        } else {
+            unreachable[()]();
+        }
+    }
+
     fn emitRematerialize(inst: Inst) {
         let loc = inst.getLocationData();
         let value = inst.getExtraInst();
