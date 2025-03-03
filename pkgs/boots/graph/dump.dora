@@ -333,6 +333,7 @@ fn dumpInstName(inst: Inst): String {
         Op::Arg => "Arg.${inst.getValueType()}(${inst.getArgIndex()})",
         Op::Move => "Move.${inst.getValueType()}",
         Op::Reload => "Reload.${inst.getValueType()}",
+        Op::Spill => "Spill.${inst.getValueType()}",
         Op::Rematerialize => "Rematerialize(${inst.getExtraInst()})",
         Op::NewObject => "NewObject",
         Op::NewArray => "NewArray",

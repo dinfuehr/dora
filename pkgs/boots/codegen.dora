@@ -235,6 +235,11 @@ fn emitInst(codegen: CodeGen, inst: Inst) {
             codegen.emitReload(inst);
         },
 
+        Op::Spill => {
+            codegen.emitComment("Spill");
+            codegen.emitSpill(inst);
+        },
+
         Op::Rematerialize => {
             codegen.emitComment("Rematerialize");
             codegen.emitRematerialize(inst);
@@ -590,6 +595,7 @@ pub trait CodeGen {
     fn emitReturn(inst: Inst);
     fn emitMove(inst: Inst);
     fn emitReload(inst: Inst);
+    fn emitSpill(inst: Inst);
     fn emitRematerialize(inst: Inst);
     fn emitCompare(inst: Inst);
     fn emitInvoke(inst: Inst);

@@ -1735,6 +1735,56 @@ impl CodeGen for CodeGenArm64 {
         }
     }
 
+    fn emitSpill(inst: Inst) {
+        let loc = inst.getLocationData();
+        let dest = loc.getOutput().getLocation();
+        let src = loc.getInput(0).getLocation();
+        let ty = inst.getValueType();
+
+        assert(dest.isStack());
+        let slot = dest.getStack();
+        let stack_reg = if slot.isFp() { REG_FP } else { REG_SP };
+        let offset = slot.getOffset();
+
+        if src.isFloatRegister() {
+            if ty == Type::Float32 {
+                self.str_s(src.getFloatRegister(), stack_reg, offset);
+            } else {
+                assert(ty == Type::Float64);
+                self.str_d(src.getFloatRegister(), stack_reg, offset);
+            }
+        } else if src.isRegister() {
+            let src = src.getRegister();
+
+            if ty == Type::Int64 || ty == Type::Ptr || ty == Type::Address {
+                self.str(src, stack_reg, offset);
+            } else if ty == Type::Int32 {
+                self.str_w(src, stack_reg, offset);
+            } else if ty == Type::Bool || ty == Type::UInt8 {
+                self.strb(src, stack_reg, offset);
+            } else {
+                unimplemented[()]();
+            }
+        } else {
+            let src_slot = src.getStack();
+            assert(src_slot.isFp());
+            let src_offset = src_slot.getOffset();
+
+            if ty == Type::UInt8 || ty == Type::Bool {
+                self.ldrb(REG_TEMP2, REG_FP, src_offset);
+                self.strb(REG_TEMP2, stack_reg, offset);
+            } else if ty == Type::Int32 || ty == Type::Float32 {
+                self.ldr_w(REG_TEMP2, REG_FP, src_offset);
+                self.str_w(REG_TEMP2, stack_reg, offset);
+            } else if ty == Type::Int64 || ty == Type::Ptr || ty == Type::Float64 || ty == Type::Address {
+                self.ldr(REG_TEMP2, REG_FP, src_offset);
+                self.str(REG_TEMP2, stack_reg, offset);
+            } else {
+                unimplemented[()]();
+            }
+        }
+    }
+
     fn emitRematerialize(inst: Inst) {
         let loc = inst.getLocationData();
         let value = inst.getExtraInst();

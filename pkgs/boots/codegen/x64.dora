@@ -1785,6 +1785,62 @@ impl CodeGen for CodeGenX64 {
         }
     }
 
+    fn emitSpill(inst: Inst) {
+        let loc = inst.getLocationData();
+        let dest = loc.getOutput().getLocation();
+        let src = loc.getInput(0).getLocation();
+        let ty = inst.getValueType();
+
+        assert(dest.isStack());
+        let slot = dest.getStack();
+        let stack_reg = if slot.isFp() { RBP } else { RSP };
+        let offset = slot.getOffset();
+
+        if src.isFloatRegister() {
+            if self.hasAvx2 {
+                if ty == Type::Float32 {
+                    self.asm.vmovss_ar(AsmAddress::offset(stack_reg, offset), src.getFloatRegister());
+                } else {
+                    assert(ty == Type::Float64);
+                    self.asm.vmovsd_ar(AsmAddress::offset(stack_reg, offset), src.getFloatRegister());
+                }
+            } else {
+                if ty == Type::Float32 {
+                    self.asm.movss_ar(AsmAddress::offset(stack_reg, offset), src.getFloatRegister());
+                } else {
+                    assert(ty == Type::Float64);
+                    self.asm.movsd_ar(AsmAddress::offset(stack_reg, offset), src.getFloatRegister());
+                }
+            }
+        } else if src.isRegister() {
+            if ty == Type::Int64 || ty == Type::Ptr || ty == Type::Address {
+                self.asm.movq_ar(AsmAddress::offset(stack_reg, offset), src.getRegister());
+            } else if ty == Type::Int32 {
+                self.asm.movl_ar(AsmAddress::offset(stack_reg, offset), src.getRegister());
+            } else {
+                assert(ty == Type::Bool || ty == Type::UInt8);
+                self.asm.movb_ar(AsmAddress::offset(stack_reg, offset), src.getRegister());
+            }
+        } else {
+            let src_slot = src.getStack();
+            assert(src_slot.isFp());
+            let src_offset = src_slot.getOffset();
+
+            if ty == Type::UInt8 || ty == Type::Bool {
+                self.asm.movb_ra(REG_TEMP, AsmAddress::offset(RBP, src_offset));
+                self.asm.movb_ar(AsmAddress::offset(stack_reg, offset), REG_TEMP);
+            } else if ty == Type::Int32 || ty == Type::Float32 {
+                self.asm.movl_ra(REG_TEMP, AsmAddress::offset(RBP, src_offset));
+                self.asm.movl_ar(AsmAddress::offset(stack_reg, offset), REG_TEMP);
+            } else if ty == Type::Int64 || ty == Type::Ptr || ty == Type::Float64 || ty == Type::Address {
+                self.asm.movq_ra(REG_TEMP, AsmAddress::offset(RBP, src_offset));
+                self.asm.movq_ar(AsmAddress::offset(stack_reg, offset), REG_TEMP);
+            } else {
+                unimplemented[()]();
+            }
+        }
+    }
+
     fn emitRematerialize(inst: Inst) {
         let loc = inst.getLocationData();
         let value = inst.getExtraInst();
