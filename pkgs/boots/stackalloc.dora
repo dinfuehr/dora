@@ -11,6 +11,7 @@ pub fn performStackSlotAllocation(graph: Graph, codegen: CodeGen, ci: Compilatio
 
     let finalStackSize = allocator.stackSize + graph.getMaxOutgoingStackArgsSize();
     let finalAlignedStackSize = (finalStackSize + (stack_alignment - 1i32)) & !(stack_alignment - 1i32);
+
     if ci.stackalloc {
         graph.setStackSize(finalAlignedStackSize);
     }

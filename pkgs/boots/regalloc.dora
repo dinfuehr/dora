@@ -11,6 +11,7 @@ use package::interface as iface;
 use package::location::ensureLocationData;
 use package::resolver::resolveMoves;
 use package::specialize::specializeTy;
+use package::stackalloc::performStackSlotAllocation;
 
 pub fn performRegisterAllocation(graph: Graph, codegen: CodeGen, ci: CompilationInfo, fct: FunctionCompilationInfo) {
     let maxOutgoingArgsSize = ensureLocationData(graph, codegen, ci, fct);
@@ -24,6 +25,8 @@ pub fn performRegisterAllocation(graph: Graph, codegen: CodeGen, ci: Compilation
     let finalAlignedStackSize = (finalStackSize + (stack_alignment - 1i32)) & !(stack_alignment - 1i32);
     graph.setStackSize(finalAlignedStackSize);
     graph.setMaxOutgoingStackArgsSize(maxOutgoingArgsSize);
+
+    performStackSlotAllocation(graph, codegen, ci, fct);
 
     resolveMoves(graph, codegen);
 }

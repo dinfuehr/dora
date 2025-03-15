@@ -19,7 +19,6 @@ use package::prepare_regalloc::prepareRegisterAllocation;
 use package::regalloc::performRegisterAllocation;
 use package::sparse_set::SparseSet;
 use package::specialize::specializeTy;
-use package::stackalloc::performStackSlotAllocation;
 use package::cfg_simplification::performCfgSimplification;
 use package::liveness::computeLiveness;
 
@@ -145,7 +144,6 @@ pub fn compileFunction(ci: CompilationInfo, fct: FunctionCompilationInfo): CodeD
     }
 
     performRegisterAllocation(graph, codegen, ci, fct);
-    performStackSlotAllocation(graph, codegen, ci, fct);
 
     if htmlWriter.isSome() {
         htmlWriter.getOrPanic().dumpGraph("after register allocation", graph);
