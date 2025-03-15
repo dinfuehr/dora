@@ -1724,8 +1724,10 @@ impl CodeGen for CodeGenArm64 {
                 assert(ty == Type::Bool || ty == Type::UInt8);
                 self.ldrb(dest.getRegister(), REG_FP, offset);
             }
+
         } else {
             assert(dest.isFloatRegister());
+
             if ty == Type::Float32 {
                 self.ldr_s(dest.getFloatRegister(), REG_FP, offset);
             } else {
@@ -1753,7 +1755,8 @@ impl CodeGen for CodeGenArm64 {
                 assert(ty == Type::Float64);
                 self.str_d(src.getFloatRegister(), stack_reg, offset);
             }
-        } else if src.isRegister() {
+        } else {
+            assert(src.isRegister());
             let src = src.getRegister();
 
             if ty == Type::Int64 || ty == Type::Ptr || ty == Type::Address {
@@ -1762,23 +1765,6 @@ impl CodeGen for CodeGenArm64 {
                 self.str_w(src, stack_reg, offset);
             } else if ty == Type::Bool || ty == Type::UInt8 {
                 self.strb(src, stack_reg, offset);
-            } else {
-                unimplemented[()]();
-            }
-        } else {
-            let src_slot = src.getStack();
-            assert(src_slot.isFp());
-            let src_offset = src_slot.getOffset();
-
-            if ty == Type::UInt8 || ty == Type::Bool {
-                self.ldrb(REG_TEMP2, REG_FP, src_offset);
-                self.strb(REG_TEMP2, stack_reg, offset);
-            } else if ty == Type::Int32 || ty == Type::Float32 {
-                self.ldr_w(REG_TEMP2, REG_FP, src_offset);
-                self.str_w(REG_TEMP2, stack_reg, offset);
-            } else if ty == Type::Int64 || ty == Type::Ptr || ty == Type::Float64 || ty == Type::Address {
-                self.ldr(REG_TEMP2, REG_FP, src_offset);
-                self.str(REG_TEMP2, stack_reg, offset);
             } else {
                 unimplemented[()]();
             }

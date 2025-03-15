@@ -1765,8 +1765,10 @@ impl CodeGen for CodeGenX64 {
                 assert(ty == Type::Bool || ty == Type::UInt8);
                 self.asm.movb_ra(dest.getRegister(), AsmAddress::offset(RBP, offset));
             }
+
         } else {
             assert(dest.isFloatRegister());
+
             if self.hasAvx2 {
                 if ty == Type::Float32 {
                     self.asm.vmovss_ra(dest.getFloatRegister(), AsmAddress::offset(RBP, offset));
@@ -1812,7 +1814,9 @@ impl CodeGen for CodeGenX64 {
                     self.asm.movsd_ar(AsmAddress::offset(stack_reg, offset), src.getFloatRegister());
                 }
             }
-        } else if src.isRegister() {
+        } else {
+            assert(src.isRegister());
+
             if ty == Type::Int64 || ty == Type::Ptr || ty == Type::Address {
                 self.asm.movq_ar(AsmAddress::offset(stack_reg, offset), src.getRegister());
             } else if ty == Type::Int32 {
@@ -1820,23 +1824,6 @@ impl CodeGen for CodeGenX64 {
             } else {
                 assert(ty == Type::Bool || ty == Type::UInt8);
                 self.asm.movb_ar(AsmAddress::offset(stack_reg, offset), src.getRegister());
-            }
-        } else {
-            let src_slot = src.getStack();
-            assert(src_slot.isFp());
-            let src_offset = src_slot.getOffset();
-
-            if ty == Type::UInt8 || ty == Type::Bool {
-                self.asm.movb_ra(REG_TEMP, AsmAddress::offset(RBP, src_offset));
-                self.asm.movb_ar(AsmAddress::offset(stack_reg, offset), REG_TEMP);
-            } else if ty == Type::Int32 || ty == Type::Float32 {
-                self.asm.movl_ra(REG_TEMP, AsmAddress::offset(RBP, src_offset));
-                self.asm.movl_ar(AsmAddress::offset(stack_reg, offset), REG_TEMP);
-            } else if ty == Type::Int64 || ty == Type::Ptr || ty == Type::Float64 || ty == Type::Address {
-                self.asm.movq_ra(REG_TEMP, AsmAddress::offset(RBP, src_offset));
-                self.asm.movq_ar(AsmAddress::offset(stack_reg, offset), REG_TEMP);
-            } else {
-                unimplemented[()]();
             }
         }
     }
