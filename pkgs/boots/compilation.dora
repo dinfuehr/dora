@@ -38,7 +38,7 @@ impl CompilationInfo {
             emitCodeComments,
             inline = true,
             optimize = true,
-            stackalloc = false,
+            stackalloc = true,
             displayName = None[String],
             inlinedFunctions = Vec[iface::InlinedFunction]::new(),
             byteWriter = ByteWriter::new(),

@@ -2242,6 +2242,10 @@ impl LocationData {
         self.spill_slot.getOrPanic()
     }
 
+    pub fn hasSpillSlotAssigned(): Bool {
+        self.spill_slot.isSome()
+    }
+
     pub fn hasSpillSlot(): Bool {
         self.has_spill_slot || self.spill_slot.isSome()
     }

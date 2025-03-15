@@ -43,9 +43,13 @@ impl StackSlotAllocator {
         if inst.op() == Op::AllocateStack {
             self.allocateStackSlot(inst);
         } else if loc.hasSpillSlot() {
-            let slot = self.allocateSpillSlot(inst.getValueType());
-            if self.ci.stackalloc {
-                loc.setSpillSlot(slot);
+            if loc.hasSpillSlotAssigned() {
+                assert(inst.op() == Op::Arg);
+            } else {
+                let slot = self.allocateSpillSlot(inst.getValueType());
+                if self.ci.stackalloc {
+                    loc.setSpillSlot(slot);
+                }
             }
         } else if inst.op() == Op::LoadReg {
             let value = inst.getInput(0).getValue();
