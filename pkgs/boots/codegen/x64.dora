@@ -1636,7 +1636,7 @@ impl CodeGen for CodeGenX64 {
                     self.asm.movb_rr(dest.getRegister(), src.getRegister());
                 }
             } else {
-                // Reload
+                // Reload/LoadReg
                 assert(src.isStack());
                 let slot = src.getStack();
                 assert(slot.isFp());
@@ -1670,7 +1670,7 @@ impl CodeGen for CodeGenX64 {
                     }
                 }
             } else {
-                // Reload
+                // Reload/LoadReg
                 assert(src.isStack());
                 let slot = src.getStack();
                 assert(slot.isFp());
@@ -1745,7 +1745,7 @@ impl CodeGen for CodeGenX64 {
         }
     }
 
-    fn emitReload(inst: Inst) {
+    fn emitLoadReg(inst: Inst) {
         let loc = inst.getLocationData();
         let dest = loc.getOutput().getLocation();
         let src = loc.getInput(0).getLocation();
@@ -1785,7 +1785,7 @@ impl CodeGen for CodeGenX64 {
         }
     }
 
-    fn emitSpill(inst: Inst) {
+    fn emitStoreReg(inst: Inst) {
         let loc = inst.getLocationData();
         let dest = loc.getOutput().getLocation();
         let src = loc.getInput(0).getLocation();

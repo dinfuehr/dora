@@ -230,14 +230,14 @@ fn emitInst(codegen: CodeGen, inst: Inst) {
             codegen.emitMove(inst);
         },
 
-        Op::Reload => {
-            codegen.emitComment("Reload");
-            codegen.emitReload(inst);
+        Op::LoadReg => {
+            codegen.emitComment("LoadReg");
+            codegen.emitLoadReg(inst);
         },
 
-        Op::Spill => {
-            codegen.emitComment("Spill");
-            codegen.emitSpill(inst);
+        Op::StoreReg => {
+            codegen.emitComment("StoreReg");
+            codegen.emitStoreReg(inst);
         },
 
         Op::Rematerialize => {
@@ -594,8 +594,8 @@ pub trait CodeGen {
     fn emitGoto(inst: Inst);
     fn emitReturn(inst: Inst);
     fn emitMove(inst: Inst);
-    fn emitReload(inst: Inst);
-    fn emitSpill(inst: Inst);
+    fn emitLoadReg(inst: Inst);
+    fn emitStoreReg(inst: Inst);
     fn emitRematerialize(inst: Inst);
     fn emitCompare(inst: Inst);
     fn emitInvoke(inst: Inst);

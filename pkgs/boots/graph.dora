@@ -951,8 +951,8 @@ pub enum Op {
     GetElementPtr,
 
     Move,
-    Reload,
-    Spill,
+    LoadReg,
+    StoreReg,
     Rematerialize,
 
     NewObject,
@@ -1139,8 +1139,8 @@ pub fn opName(op: Op): String {
         Op::GetElementPtr => "GetElementPtr",
         Op::Arg => "Arg",
         Op::Move => "Move",
-        Op::Reload => "Reload",
-        Op::Spill => "Spill",
+        Op::LoadReg => "LoadReg",
+        Op::StoreReg => "StoreReg",
         Op::Rematerialize => "Rematerialize",
         Op::NewObject => "NewObject",
         Op::NewArray => "NewArray",
@@ -1381,8 +1381,8 @@ impl Inst {
             Op::GetElementPtr => Some[Type](Type::Address),
             Op::Arg => Some[Type](self.ty),
             Op::Move => Some[Type](self.ty),
-            Op::Reload => Some[Type](self.ty),
-            Op::Spill => Some[Type](self.ty),
+            Op::LoadReg => Some[Type](self.ty),
+            Op::StoreReg => Some[Type](self.ty),
             Op::Rematerialize => Some[Type](self.ty),
             Op::NewObject => Some[Type](Type::Ptr),
             Op::NewArray => Some[Type](Type::Ptr),
@@ -1940,8 +1940,8 @@ impl Inst {
             Op::GetElementPtr => false,
             Op::Arg => false,
             Op::Move => true,
-            Op::Reload => true,
-            Op::Spill => true,
+            Op::LoadReg => true,
+            Op::StoreReg => true,
             Op::Rematerialize => true,
             Op::NewObject => false,
             Op::NewArray => false,
@@ -2631,9 +2631,9 @@ pub fn createMoveInst(ty: Type, dest: Location, source: Location): Inst {
     inst
 }
 
-pub fn createReloadInst(dest: Location, source: Location, value: Inst): Inst {
+pub fn createLoadRegInst(dest: Location, source: Location, value: Inst): Inst {
     let inst = Inst::new();
-    inst._op = Some(Op::Reload);
+    inst._op = Some(Op::LoadReg);
     inst.ty = value.getValueType();
 
     let loc = LocationData::newWith(1);

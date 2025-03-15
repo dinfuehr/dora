@@ -5,7 +5,7 @@ use package::bytecode::{ClassId, EnumId, StructId, BytecodeType};
 use package::codegen::CodeGen;
 use package::codegen::STACK_FRAME_ALIGNMENT;
 use package::compilation::{CompilationInfo, FunctionCompilationInfo, SpecializeSelf};
-use package::graph::{createMoveInst, createReloadInst, createRematerializeInst, Block, Edge, Graph, Inst, InstSet, Operand, LocationData, Op, Location, opName, Policy, RegisterSnapshot, RegisterTrackers, Type};
+use package::graph::{createMoveInst, createLoadRegInst, createRematerializeInst, Block, Edge, Graph, Inst, InstSet, Operand, LocationData, Op, Location, opName, Policy, RegisterSnapshot, RegisterTrackers, Type};
 use package::interface::{EnumData, GcPoint};
 use package::interface as iface;
 use package::location::ensureLocationData;
@@ -661,7 +661,7 @@ impl SimpleRegisterAllocator {
 
         if loc_data.hasSpillSlot() {
             let slot = loc_data.getSpillSlot();
-            let inst = createReloadInst(dest, Location::fp(slot), value);
+            let inst = createLoadRegInst(dest, Location::fp(slot), value);
             self.currentInst.getOrPanic().insertBefore(inst);
         } else {
             assert(value.op().canBeRematerialized());
