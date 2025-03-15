@@ -15,18 +15,22 @@ use package::stackalloc::performStackSlotAllocation;
 
 pub fn performRegisterAllocation(graph: Graph, codegen: CodeGen, ci: CompilationInfo, fct: FunctionCompilationInfo) {
     let maxOutgoingArgsSize = ensureLocationData(graph, codegen, ci, fct);
+    graph.setMaxOutgoingStackArgsSize(maxOutgoingArgsSize);
 
     let allocator = SimpleRegisterAllocator::new(graph, codegen, ci);
     allocator.allocateRegisters();
 
     let stack_alignment = STACK_FRAME_ALIGNMENT.toInt32();
 
-    let finalStackSize = allocator.currentStackSize + maxOutgoingArgsSize;
-    let finalAlignedStackSize = (finalStackSize + (stack_alignment - 1i32)) & !(stack_alignment - 1i32);
-    graph.setStackSize(finalAlignedStackSize);
-    graph.setMaxOutgoingStackArgsSize(maxOutgoingArgsSize);
+    if !ci.stackalloc {
+        let finalStackSize = allocator.currentStackSize + maxOutgoingArgsSize;
+        let finalAlignedStackSize = (finalStackSize + (stack_alignment - 1i32)) & !(stack_alignment - 1i32);
+        graph.setStackSize(finalAlignedStackSize);
+    }
 
-    performStackSlotAllocation(graph, codegen, ci, fct);
+    if ci.stackalloc {
+        performStackSlotAllocation(graph, codegen, ci, fct);
+    }
 
     resolveMoves(graph, codegen);
 }
@@ -660,8 +664,13 @@ impl SimpleRegisterAllocator {
         let loc_data = value.getLocationData();
 
         if loc_data.hasSpillSlot() {
-            let slot = loc_data.getSpillSlot();
-            let inst = createLoadRegInst(dest, Location::fp(slot), value);
+            let src = if self.ci.stackalloc {
+                Location::None
+            } else {
+                let slot = loc_data.getSpillSlot();
+                Location::fp(slot)
+            };
+            let inst = createLoadRegInst(dest, src, value);
             self.currentInst.getOrPanic().insertBefore(inst);
         } else {
             assert(value.op().canBeRematerialized());
@@ -726,10 +735,14 @@ impl SimpleRegisterAllocator {
             let rematerialize = createRematerializeInst(dest.toLocation(), inst);
             self.currentInst.getOrPanic().insertBefore(rematerialize);
         } else {
-            let slot = inst.getLocationData().getSpillSlot();
-            let slot = Location::fp(slot);
+            let loc = if self.ci.stackalloc {
+                Location::None
+            } else {
+                let slot = inst.getLocationData().getSpillSlot();
+                Location::fp(slot)
+            };
 
-            let move = createMoveInst(inst.getValueType(), dest.toLocation(), slot);
+            let move = createLoadRegInst(dest.toLocation(), loc, inst);
             self.currentInst.getOrPanic().insertBefore(move);
         }
     }

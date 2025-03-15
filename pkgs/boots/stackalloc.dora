@@ -1,6 +1,6 @@
 use package::codegen::{CodeGen, STACK_FRAME_ALIGNMENT};
 use package::compilation::{CompilationInfo, FunctionCompilationInfo};
-use package::graph::{Graph, Inst, Op, Type};
+use package::graph::{Graph, Inst, Location, Op, Operand, Policy, Type};
 use package::location::ensureLocationData;
 
 pub fn performStackSlotAllocation(graph: Graph, codegen: CodeGen, ci: CompilationInfo, fct: FunctionCompilationInfo) {
@@ -47,6 +47,14 @@ impl StackSlotAllocator {
             if self.ci.stackalloc {
                 loc.setSpillSlot(slot);
             }
+        } else if inst.op() == Op::LoadReg {
+            let value = inst.getInput(0).getValue();
+            let slot = value.getLocationData().getSpillSlot();
+            let location = Location::fp(slot);
+            inst.getLocationData().initInput(0, Operand::new(Policy::None, location));
+
+        } else if inst.op() == Op::StoreReg {
+            unreachable[()]();
         }
     }
 

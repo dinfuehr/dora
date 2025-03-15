@@ -2200,6 +2200,10 @@ impl LocationData {
         self.inputs.get(idx).getOrPanic()
     }
 
+    pub fn initInput(idx: Int64, value: Operand) {
+        self.inputs(idx) = Some[Operand](value);
+    }
+
     pub fn hasTemp(): Bool {
         !self.temps.isEmpty()
     }
