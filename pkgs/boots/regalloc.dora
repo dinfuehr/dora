@@ -15,12 +15,11 @@ use package::stackalloc::performStackSlotAllocation;
 
 pub fn performRegisterAllocation(graph: Graph, codegen: CodeGen, ci: CompilationInfo, fct: FunctionCompilationInfo) {
     let maxOutgoingArgsSize = ensureLocationData(graph, codegen, ci, fct);
-    graph.setMaxOutgoingStackArgsSize(maxOutgoingArgsSize);
 
     let allocator = SimpleRegisterAllocator::new(graph, codegen, ci);
     allocator.allocateRegisters();
 
-    performStackSlotAllocation(graph, codegen, ci, fct);
+    performStackSlotAllocation(graph, codegen, ci, fct, maxOutgoingArgsSize);
 
     resolveMoves(graph, codegen);
 }

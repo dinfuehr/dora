@@ -29,7 +29,6 @@ pub class Graph {
     postOrder: Option[Vec[Block]],
     linearOrder: Option[Vec[Block]],
     stackSize: Option[Int32],
-    maxOutgoingStackArgsSize: Option[Int32],
     constsByValInt64: HashMap[Int64, Inst],
     constsByValInt32: HashMap[Int32, Inst],
     constsByValUInt8: HashMap[UInt8, Inst],
@@ -53,7 +52,6 @@ impl Graph {
             postOrder = None[Vec[Block]],
             linearOrder = None[Vec[Block]],
             stackSize = None[Int32],
-            maxOutgoingStackArgsSize = None[Int32],
             constsByValInt64 = HashMap[Int64, Inst]::new(),
             constsByValInt32 = HashMap[Int32, Inst]::new(),
             constsByValUInt8 = HashMap[UInt8, Inst]::new(),
@@ -164,15 +162,6 @@ impl Graph {
     pub fn setStackSize(size: Int32) {
         assert(self.stackSize.isNone());
         self.stackSize = Some(size);
-    }
-
-    pub fn setMaxOutgoingStackArgsSize(size: Int32) {
-        assert(self.maxOutgoingStackArgsSize.isNone());
-        self.maxOutgoingStackArgsSize = Some(size);
-    }
-
-    pub fn getMaxOutgoingStackArgsSize(): Int32 {
-        self.maxOutgoingStackArgsSize.getOrPanic()
     }
 
     pub fn ensureConstInt64Inst(value: Int64): Inst {

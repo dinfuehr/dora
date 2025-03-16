@@ -3,13 +3,13 @@ use package::compilation::{CompilationInfo, FunctionCompilationInfo};
 use package::graph::{Graph, Inst, Location, Op, Operand, Policy, Type};
 use package::location::ensureLocationData;
 
-pub fn performStackSlotAllocation(graph: Graph, codegen: CodeGen, ci: CompilationInfo, fct: FunctionCompilationInfo) {
+pub fn performStackSlotAllocation(graph: Graph, codegen: CodeGen, ci: CompilationInfo, fct: FunctionCompilationInfo, maxOutgoingArgsSize: Int32) {
     let allocator = StackSlotAllocator(graph, codegen, ci, stackSize = 0i32);
     allocator.run();
 
     let stack_alignment = STACK_FRAME_ALIGNMENT.toInt32();
 
-    let finalStackSize = allocator.stackSize + graph.getMaxOutgoingStackArgsSize();
+    let finalStackSize = allocator.stackSize + maxOutgoingArgsSize;
     let finalAlignedStackSize = (finalStackSize + (stack_alignment - 1i32)) & !(stack_alignment - 1i32);
 
     graph.setStackSize(finalAlignedStackSize);
