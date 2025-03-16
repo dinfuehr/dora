@@ -12,9 +12,7 @@ pub fn performStackSlotAllocation(graph: Graph, codegen: CodeGen, ci: Compilatio
     let finalStackSize = allocator.stackSize + graph.getMaxOutgoingStackArgsSize();
     let finalAlignedStackSize = (finalStackSize + (stack_alignment - 1i32)) & !(stack_alignment - 1i32);
 
-    if ci.stackalloc {
-        graph.setStackSize(finalAlignedStackSize);
-    }
+    graph.setStackSize(finalAlignedStackSize);
 }
 
 class StackSlotAllocator {
@@ -47,9 +45,7 @@ impl StackSlotAllocator {
                 assert(inst.op() == Op::Arg);
             } else {
                 let slot = self.allocateSpillSlot(inst.getValueType());
-                if self.ci.stackalloc {
-                    loc.setSpillSlot(slot);
-                }
+                loc.setSpillSlot(slot);
             }
         } else if inst.op() == Op::LoadReg {
             let value = inst.getInput(0).getValue();
@@ -66,9 +62,7 @@ impl StackSlotAllocator {
         let layout = inst.getRecordLayout();
 
         let offset = self.allocateStackSpace(layout.size, layout.alignment);
-        if self.ci.stackalloc {
-            inst.getLocationData().setStackSlot(offset);
-        }
+        inst.getLocationData().setStackSlot(offset);
     }
 
     fn allocateSpillSlot(ty: Type): Int32 {

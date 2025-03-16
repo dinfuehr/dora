@@ -20,17 +20,7 @@ pub fn performRegisterAllocation(graph: Graph, codegen: CodeGen, ci: Compilation
     let allocator = SimpleRegisterAllocator::new(graph, codegen, ci);
     allocator.allocateRegisters();
 
-    let stack_alignment = STACK_FRAME_ALIGNMENT.toInt32();
-
-    if !ci.stackalloc {
-        let finalStackSize = allocator.currentStackSize + maxOutgoingArgsSize;
-        let finalAlignedStackSize = (finalStackSize + (stack_alignment - 1i32)) & !(stack_alignment - 1i32);
-        graph.setStackSize(finalAlignedStackSize);
-    }
-
-    if ci.stackalloc {
-        performStackSlotAllocation(graph, codegen, ci, fct);
-    }
+    performStackSlotAllocation(graph, codegen, ci, fct);
 
     resolveMoves(graph, codegen);
 }
@@ -253,10 +243,6 @@ impl SimpleRegisterAllocator {
 
             if inst.getLocationData().hasOutput() {
                 assert(self.currentlyLive.insert(inst));
-            }
-
-            if inst.op() == Op::AllocateStack && !self.ci.stackalloc {
-                self.allocateStackSlot(inst);
             }
 
             self.freeDeadOutput(inst);
@@ -518,42 +504,10 @@ impl SimpleRegisterAllocator {
         }
 
         if !loc_data.hasSpillSlot() {
-            if self.ci.stackalloc {
-                loc_data.setHasSpillSlot();
-            } else {
-                let slot = self.allocateSpillSlot(inst.getValueType());
-                loc_data.setSpillSlot(slot);
-            }
+            loc_data.setHasSpillSlot();
         }
 
         assert(loc_data.hasSpillSlot());
-    }
-
-    fn allocateSpillSlot(ty: Type): Int32 {
-        assert(!self.ci.stackalloc);
-        let (size, alignment) = match ty {
-            Type::Bool | Type::UInt8 => (1i32, 1i32),
-            Type::Int32 | Type::Float32 => (4i32, 4i32),
-            Type::Address | Type::Ptr | Type::Int64 | Type::Float64 => (8i32, 8i32),
-            _ => unreachable[(Int32, Int32)](),
-        };
-
-        self.allocateStackSpace(size, alignment)
-    }
-
-    fn allocateStackSlot(inst: Inst) {
-        assert(!self.ci.stackalloc);
-        let layout = inst.getRecordLayout();
-
-        let offset = self.allocateStackSpace(layout.size, layout.alignment);
-        inst.getLocationData().setStackSlot(offset);
-    }
-
-    fn allocateStackSpace(size: Int32, alignment: Int32): Int32 {
-        self.currentStackSize = (self.currentStackSize + (alignment - 1i32)) & !(alignment - 1i32);
-        self.currentStackSize = self.currentStackSize + size;
-
-        -self.currentStackSize
     }
 
     fn freeDeadOutput(inst: Inst) {
@@ -664,13 +618,7 @@ impl SimpleRegisterAllocator {
         let loc_data = value.getLocationData();
 
         if loc_data.hasSpillSlot() {
-            let src = if self.ci.stackalloc {
-                Location::None
-            } else {
-                let slot = loc_data.getSpillSlot();
-                Location::fp(slot)
-            };
-            let inst = createLoadRegInst(dest, src, value);
+            let inst = createLoadRegInst(dest, Location::None, value);
             self.currentInst.getOrPanic().insertBefore(inst);
         } else {
             assert(value.op().canBeRematerialized());
@@ -735,14 +683,7 @@ impl SimpleRegisterAllocator {
             let rematerialize = createRematerializeInst(dest.toLocation(), inst);
             self.currentInst.getOrPanic().insertBefore(rematerialize);
         } else {
-            let loc = if self.ci.stackalloc {
-                Location::None
-            } else {
-                let slot = inst.getLocationData().getSpillSlot();
-                Location::fp(slot)
-            };
-
-            let move = createLoadRegInst(dest.toLocation(), loc, inst);
+            let move = createLoadRegInst(dest.toLocation(), Location::None, inst);
             self.currentInst.getOrPanic().insertBefore(move);
         }
     }
