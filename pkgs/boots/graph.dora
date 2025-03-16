@@ -2088,7 +2088,7 @@ pub class LocationData {
     output: Option[Operand],
     output_overlaps: Bool,
     hint: Location,
-    has_spill_slot: Bool,
+    needs_spill_slot: Bool,
     spill_slot: Option[Int32],
     stack_slot: Option[Int32],
     needsRegisterSnapshot: Bool,
@@ -2107,7 +2107,7 @@ impl LocationData {
             output = None[Operand],
             output_overlaps = true,
             hint = Location::None,
-            has_spill_slot = false,
+            needs_spill_slot = false,
             spill_slot = None[Int32],
             stack_slot = None[Int32],
             needsRegisterSnapshot = false,
@@ -2125,7 +2125,7 @@ impl LocationData {
             output = None[Operand],
             output_overlaps = true,
             hint = Location::None,
-            has_spill_slot = false,
+            needs_spill_slot = false,
             spill_slot = None[Int32],
             stack_slot = None[Int32],
             needsRegisterSnapshot = false,
@@ -2218,9 +2218,12 @@ impl LocationData {
         self.stack_slot.getOrPanic()
     }
 
-    pub fn setHasSpillSlot() {
-        assert(!self.has_spill_slot);
-        self.has_spill_slot = true;
+    pub fn needsSpillSlot(): Bool {
+        self.needs_spill_slot
+    }
+
+    pub fn setNeedsSpillSlot() {
+        self.needs_spill_slot = true;
     }
 
     pub fn setSpillSlot(slot: Int32) {
@@ -2231,12 +2234,8 @@ impl LocationData {
         self.spill_slot.getOrPanic()
     }
 
-    pub fn hasSpillSlotAssigned(): Bool {
-        self.spill_slot.isSome()
-    }
-
     pub fn hasSpillSlot(): Bool {
-        self.has_spill_slot || self.spill_slot.isSome()
+        self.spill_slot.isSome()
     }
 
     pub fn setHint(location: Location) {
@@ -2628,14 +2627,13 @@ pub fn createMoveInst(ty: Type, dest: Location, source: Location): Inst {
     inst
 }
 
-pub fn createLoadRegInst(dest: Location, source: Location, value: Inst): Inst {
+pub fn createLoadRegInst(dest: Location, value: Inst): Inst {
     let inst = Inst::new();
     inst._op = Some(Op::LoadReg);
     inst.ty = value.getValueType();
 
     let loc = LocationData::newWith(1);
     loc.output = Some(Operand(policy = Policy::None, location = dest));
-    loc.inputs(0) = Some[Operand](Operand(policy = Policy::None, location = source));
     inst.setLocationData(loc);
     inst.addInput(value);
 

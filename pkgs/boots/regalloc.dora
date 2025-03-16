@@ -502,11 +502,7 @@ impl SimpleRegisterAllocator {
             return;
         }
 
-        if !loc_data.hasSpillSlot() {
-            loc_data.setHasSpillSlot();
-        }
-
-        assert(loc_data.hasSpillSlot());
+        loc_data.setNeedsSpillSlot();
     }
 
     fn freeDeadOutput(inst: Inst) {
@@ -616,12 +612,12 @@ impl SimpleRegisterAllocator {
     fn emitReloadInst(dest: Location, value: Inst) {
         let loc_data = value.getLocationData();
 
-        if loc_data.hasSpillSlot() {
-            let inst = createLoadRegInst(dest, Location::None, value);
+        if value.op().canBeRematerialized() {
+            let inst = createRematerializeInst(dest, value);
             self.currentInst.getOrPanic().insertBefore(inst);
         } else {
-            assert(value.op().canBeRematerialized());
-            let inst = createRematerializeInst(dest, value);
+            assert(loc_data.needsSpillSlot());
+            let inst = createLoadRegInst(dest, value);
             self.currentInst.getOrPanic().insertBefore(inst);
         }
     }
@@ -682,7 +678,7 @@ impl SimpleRegisterAllocator {
             let rematerialize = createRematerializeInst(dest.toLocation(), inst);
             self.currentInst.getOrPanic().insertBefore(rematerialize);
         } else {
-            let move = createLoadRegInst(dest.toLocation(), Location::None, inst);
+            let move = createLoadRegInst(dest.toLocation(), inst);
             self.currentInst.getOrPanic().insertBefore(move);
         }
     }

@@ -40,8 +40,8 @@ impl StackSlotAllocator {
 
         if inst.op() == Op::AllocateStack {
             self.allocateStackSlot(inst);
-        } else if loc.hasSpillSlot() {
-            if loc.hasSpillSlotAssigned() {
+        } else if loc.needsSpillSlot() {
+            if loc.hasSpillSlot() {
                 assert(inst.op() == Op::Arg);
             } else {
                 let slot = self.allocateSpillSlot(inst.getValueType());
