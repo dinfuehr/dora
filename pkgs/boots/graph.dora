@@ -3479,6 +3479,13 @@ impl InstSet {
     }
 }
 
+impl std::traits::Equals for InstSet {
+    fn equals(other: InstSet): Bool {
+        assert(self.graph === other.graph);
+        self.data == other.data
+    }
+}
+
 impl std::traits::IntoIterator for InstSet {
   type IteratorType = InstSetIter;
 

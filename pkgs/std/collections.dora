@@ -482,20 +482,26 @@ impl BitVec {
     self.data.size() * 32i64
   }
 
-  pub fn unionWith(other: BitVec) {
+  pub fn unionWith(other: BitVec): Bool {
     self.ensureSize(other.data.size());
 
     let mut idx = 0;
     let mut size = self.data.size();
+    let mut changed = false;
 
     if size > other.data.size() {
       size = other.data.size();
     }
 
     while idx < size {
+      if self.data(idx) != other.data(idx) {
+        changed = true;
+      }
       self.data(idx) = self.data(idx) | other.data(idx);
       idx = idx + 1;
     }
+
+    changed
   }
 
   pub fn intersectWith(other: BitVec) {
@@ -515,6 +521,36 @@ impl BitVec {
 
   pub fn clone(): BitVec {
     BitVec(data = self.data.clone())
+  }
+}
+
+impl std::traits::Equals for BitVec {
+  fn equals(other: BitVec): Bool {
+    let mut idx = 0;
+    let mut size = Int::min(self.data.size(), other.data.size());
+    let mut maxSize = Int::max(self.data.size(), other.data.size());
+
+    while idx < size {
+      if self.data(idx) != other.data(idx) {
+        return false;
+      }
+
+      idx += 1;
+    }
+
+    let rest = if self.data.size() > other.data.size() {
+      self
+    } else {
+      other
+    };
+
+    while idx < maxSize {
+      if rest.data(idx) != 0i32 {
+        return false;
+      }
+    }
+
+    true
   }
 }
 

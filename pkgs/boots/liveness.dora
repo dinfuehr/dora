@@ -62,35 +62,48 @@ pub fn computeLiveness(graph: Graph) {
     }
 
     for block in graph.postOrderIterator() {
-        let live = InstSet::new(graph);
+       let liveIn = computeLiveIn(block);
+        // assert(block.getLiveIn() == liveIn);
+    }
+}
 
-        for successorEdge in block.successors {
-            let successor = successorEdge.target;
-            let idx = successorEdge.targetIdx;
+fn computeLiveIn(block: Block): InstSet {
+    let live = InstSet::new(block.getGraph());
 
-            for phi in successor.phisIterator() {
-                let input = phi.getInput(idx);
-                let value = input.getValue();
-                live.insert(value);
-            }
-        }
+    for successorEdge in block.successors {
+        let successor = successorEdge.target;
+        let idx = successorEdge.targetIdx;
 
-        for successorEdge in block.successors {
-            let successorLiveIn = successorEdge.target.getLiveIn();
-            live.unionWith(successorLiveIn);
-        }
-
-        for inst in block.reverseInstructionsIterator() {
-            for input in inst.getInputs() {
-                let value = input.getValue();
-                if live.insert(value) {
-                    input.markLastUse();
-                }
-            }
-
-            live.remove(inst);
+        for phi in successor.phisIterator() {
+            let input = phi.getInput(idx);
+            let value = input.getValue();
+            live.insert(value);
         }
     }
+
+    for successorEdge in block.successors {
+        if successorEdge.isBackward() {
+            continue;
+        }
+
+        let successorLiveIn = successorEdge.target.getLiveIn();
+        live.unionWith(successorLiveIn);
+    }
+
+    for inst in block.reverseInstructionsIterator() {
+        for input in inst.getInputs() {
+            let value = input.getValue();
+            live.insert(value);
+        }
+
+        live.remove(inst);
+    }
+
+    for phi in block.phisIterator() {
+        live.remove(phi);
+    }
+
+    live
 }
 
 fn computeLinearOrderIndex(graph: Graph) {
