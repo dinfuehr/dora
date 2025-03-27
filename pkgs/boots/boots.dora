@@ -132,7 +132,7 @@ pub fn compileFunction(ci: CompilationInfo, fct: FunctionCompilationInfo): CodeD
 
     splitCriticalEdges(graph);
     buildDominatorTree(graph);
-    computeLiveness(graph);
+    computeLiveness(graph, ci);
 
     if htmlWriter.isSome() {
         htmlWriter.getOrPanic().dumpGraph("before register allocation", graph);

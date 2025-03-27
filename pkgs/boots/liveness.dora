@@ -2,47 +2,18 @@ use std::collections::{BitSet, BitVec};
 use std::collections::HashSet;
 
 use package::graph::{Block, Graph, Input, InstSet};
+use package::compilation::CompilationInfo;
 
-pub fn computeLiveness(graph: Graph) {
+pub fn computeLiveness(graph: Graph, ci: CompilationInfo) {
     computeLinearOrderIndex(graph);
 
+    for block in graph.insertionOrderIterator() {
+        block.setLiveIn(InstSet::new(graph));
+    }
+
     for block in graph.postOrderIterator() {
-        let live = InstSet::new(graph);
-
-        for successorEdge in block.successors {
-            let successor = successorEdge.target;
-            let idx = successorEdge.targetIdx;
-
-            for phi in successor.phisIterator() {
-                let input = phi.getInput(idx);
-                let value = input.getValue();
-                live.insert(value);
-            }
-        }
-
-        for successorEdge in block.successors {
-            if successorEdge.isBackward() {
-                continue;
-            }
-
-            let successorLiveIn = successorEdge.target.getLiveIn();
-            live.unionWith(successorLiveIn);
-        }
-
-        for inst in block.reverseInstructionsIterator() {
-            for input in inst.getInputs() {
-                let value = input.getValue();
-                live.insert(value);
-            }
-
-            live.remove(inst);
-        }
-
-        for phi in block.phisIterator() {
-            live.remove(phi);
-        }
-
-        block.setLiveIn(live);
+        let live = computeLiveIn(block);
+        block.getLiveIn().unionWith(live);
     }
 
     for block in graph.reversePostOrderIterator() {
@@ -62,8 +33,8 @@ pub fn computeLiveness(graph: Graph) {
     }
 
     for block in graph.postOrderIterator() {
-       let liveIn = computeLiveIn(block);
-        // assert(block.getLiveIn() == liveIn);
+        let liveIn = computeLiveIn(block);
+        assert(block.getLiveIn() == liveIn);
     }
 }
 
@@ -82,10 +53,6 @@ fn computeLiveIn(block: Block): InstSet {
     }
 
     for successorEdge in block.successors {
-        if successorEdge.isBackward() {
-            continue;
-        }
-
         let successorLiveIn = successorEdge.target.getLiveIn();
         live.unionWith(successorLiveIn);
     }

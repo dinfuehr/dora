@@ -2,7 +2,7 @@ use std::{BitVec, BitSet};
 use std::collections::{BitVecIter, HashMap};
 use std::Equals;
 use std::Hash;
-use std::Stringable;
+use std::{StringBuffer, Stringable};
 use std::traits::{IndexGet, IntoIterator, Iterator};
 
 use package::assembler::{FloatRegister, Label, Register, RegMap, RegSet};
@@ -3469,9 +3469,9 @@ impl InstSet {
         self.data.remove(inst.id().0.toInt64())
     }
 
-    pub fn unionWith(rhs: InstSet) {
+    pub fn unionWith(rhs: InstSet): Bool {
         assert(self.graph === rhs.graph);
-        self.data.unionWith(rhs.data);
+        self.data.unionWith(rhs.data)
     }
 
     pub fn clone(): InstSet {
@@ -3483,6 +3483,25 @@ impl std::traits::Equals for InstSet {
     fn equals(other: InstSet): Bool {
         assert(self.graph === other.graph);
         self.data == other.data
+    }
+}
+
+impl std::string::Stringable for InstSet {
+    fn toString(): String {
+        let buffer = StringBuffer::new();
+        let mut first = true;
+        buffer.append("[");
+
+        for inst in self.data {
+            if !first {
+                buffer.append(",")
+            }
+            buffer.append("${inst}");
+            first = false;
+        }
+
+        buffer.append("]");
+        buffer.toString()
     }
 }
 
