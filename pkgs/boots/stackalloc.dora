@@ -1,6 +1,6 @@
 use package::codegen::{CodeGen, STACK_FRAME_ALIGNMENT};
 use package::compilation::{CompilationInfo, FunctionCompilationInfo};
-use package::graph::{Graph, Inst, Location, Op, Operand, Policy, Type};
+use package::graph::{Block, Graph, Inst, InstSet, Location, Op, Operand, Policy, Type};
 use package::location::ensureLocationData;
 
 pub fn performStackSlotAllocation(graph: Graph, codegen: CodeGen, ci: CompilationInfo, fct: FunctionCompilationInfo, maxOutgoingArgsSize: Int32) {
@@ -24,6 +24,8 @@ class StackSlotAllocator {
 
 impl StackSlotAllocator {
     fn run() {
+        computeStackSlotLiveness(self.graph);
+
         for block in self.graph.linearOrderIterator() {
             for inst in block.phisIterator() {
                 self.ensureStackSlot(inst);
@@ -82,4 +84,74 @@ impl StackSlotAllocator {
 
         -self.stackSize
     }
+}
+
+fn computeStackSlotLiveness(graph: Graph) {
+    for block in graph.insertionOrderIterator() {
+        block.setLiveIn(InstSet::new(graph));
+    }
+
+    for block in graph.postOrderIterator() {
+        let live = computeLiveIn(block);
+        block.getLiveIn().unionWith(live);
+    }
+
+    for block in graph.reversePostOrderIterator() {
+        if !block.isLoopHeader() {
+            continue;
+        }
+
+        let loopData = block.getLoopData().getOrPanic();
+        let liveLoop = block.getLiveIn();
+
+        // A value which is live-in in the loop header, is also live-in
+        // in all blocks of that loop.
+        for loopBlockId in loopData.blocks() {
+            let loopBlock = graph.getBlockWithId(loopBlockId.toInt32());
+            loopBlock.getLiveIn().unionWith(liveLoop);
+        }
+    }
+
+    for block in graph.postOrderIterator() {
+        let liveIn = computeLiveIn(block);
+        assert(block.getLiveIn() == liveIn);
+    }
+}
+
+fn computeLiveIn(block: Block): InstSet {
+    let live = InstSet::new(block.getGraph());
+
+    for successorEdge in block.successors {
+        let successor = successorEdge.target;
+        let idx = successorEdge.targetIdx;
+
+        for phi in successor.phisIterator() {
+            let input = phi.getInput(idx);
+            let value = input.getValue();
+
+            if value.getLocationData().needsSpillSlot() || value.op() == Op::AllocateStack {
+                live.insert(value);
+            }
+        }
+
+        live.unionWith(successor.getLiveIn());
+    }
+
+    for inst in block.reverseInstructionsIterator() {
+        for input in inst.getInputs() {
+            let value = input.getValue();
+
+            if value.getLocationData().needsSpillSlot() || value.op() == Op::AllocateStack {
+                live.insert(value);
+            }
+        }
+
+        live.remove(inst);
+    }
+
+    for phi in block.phisIterator() {
+        live.remove(phi);
+    }
+
+    live
 }

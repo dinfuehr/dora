@@ -50,11 +50,8 @@ fn computeLiveIn(block: Block): InstSet {
             let value = input.getValue();
             live.insert(value);
         }
-    }
 
-    for successorEdge in block.successors {
-        let successorLiveIn = successorEdge.target.getLiveIn();
-        live.unionWith(successorLiveIn);
+        live.unionWith(successor.getLiveIn());
     }
 
     for inst in block.reverseInstructionsIterator() {

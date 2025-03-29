@@ -673,7 +673,6 @@ impl Block {
     }
 
     pub fn setLiveIn(liveIn: InstSet) {
-        assert(self.liveIn.isNone());
         self.liveIn = Some(liveIn);
     }
 
