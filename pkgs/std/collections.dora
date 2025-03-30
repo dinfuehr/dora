@@ -35,6 +35,18 @@ impl[T] Array[T] {
     return array;
   }
 
+  pub static fn fillWith(len: Int64, fct: (Int64): T): Array[T] {
+    let array = Array[T]::unsafeNew(len);
+    let mut i = 0i64;
+
+    while i < len {
+      array(i) = fct(i);
+      i = i + 1i64;
+    }
+
+    return array;
+  }
+
   pub static fn copy(src: Array[T], srcPos: Int64, dest: Array[T], destPos: Int64, len: Int64) {
     let mut i = 0i64;
 

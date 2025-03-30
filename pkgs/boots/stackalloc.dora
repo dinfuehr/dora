@@ -1,6 +1,6 @@
 use package::codegen::{CodeGen, STACK_FRAME_ALIGNMENT};
 use package::compilation::{CompilationInfo, FunctionCompilationInfo};
-use package::graph::{Block, Graph, Inst, InstSet, Location, Op, Operand, Policy, Type};
+use package::graph::{Block, Graph, Inst, InstId, InstSet, Location, Op, Operand, Policy, Type};
 use package::location::ensureLocationData;
 
 pub fn performStackSlotAllocation(graph: Graph, codegen: CodeGen, ci: CompilationInfo, fct: FunctionCompilationInfo, maxOutgoingArgsSize: Int32) {
@@ -25,6 +25,7 @@ class StackSlotAllocator {
 impl StackSlotAllocator {
     fn run() {
         computeStackSlotLiveness(self.graph);
+        buildInterferenceGraph(self.graph);
 
         for block in self.graph.linearOrderIterator() {
             for inst in block.phisIterator() {
@@ -154,4 +155,53 @@ fn computeLiveIn(block: Block): InstSet {
     }
 
     live
+}
+
+fn buildInterferenceGraph(graph: Graph): Array[Vec[InstId]] {
+    let interference = Array[Vec[InstId]]::fillWith(graph.instCount().toInt64(), |i: Int64|: Vec[InstId] {
+        Vec[InstId]::new()
+    });
+
+    for block in graph.linearOrderIterator() {
+        let live = InstSet::new(block.getGraph());
+
+        for successorEdge in block.successors {
+            let successor = successorEdge.target;
+            let idx = successorEdge.targetIdx;
+
+            for phi in successor.phisIterator() {
+                let input = phi.getInput(idx);
+                let value = input.getValue();
+
+                if value.getLocationData().needsSpillSlot() || value.op() == Op::AllocateStack {
+                    live.insert(value);
+                }
+            }
+
+            live.unionWith(successor.getLiveIn());
+        }
+
+        for inst in block.reverseInstructionsIterator() {
+            if inst.getLocationData().needsSpillSlot() || inst.op() == Op::AllocateStack {
+                live.remove(inst);
+
+                for x in live {
+                    interference(x.id().toInt64()).push(inst.id());
+                    interference(inst.id().toInt64()).push(x.id());
+                }
+            }
+
+            for input in inst.getInputs() {
+                let value = input.getValue();
+
+                if value.getLocationData().needsSpillSlot() || value.op() == Op::AllocateStack {
+                    live.insert(value);
+                }
+            }
+
+            live.remove(inst);
+        }
+    }
+
+    interference
 }

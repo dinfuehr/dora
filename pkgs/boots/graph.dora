@@ -100,6 +100,10 @@ impl Graph {
         self.instById.push(Some[Inst](inst));
     }
 
+    pub fn instCount(): Int32 {
+        self.instById.size().toInt32()
+    }
+
     fn nextBlockId(): BlockId {
         let id = self.blocks.size().toInt32();
         assert(id > 0i32);
@@ -1164,6 +1168,16 @@ pub fn opName(op: Op): String {
 }
 
 pub struct InstId(Int32)
+
+impl InstId {
+    pub fn toInt32(): Int32 {
+        self.0
+    }
+
+    pub fn toInt64(): Int64 {
+        self.0.toInt64()
+    }
+}
 
 impl Stringable for InstId {
     fn toString(): String {
