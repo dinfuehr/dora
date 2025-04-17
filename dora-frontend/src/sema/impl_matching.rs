@@ -21,14 +21,7 @@ pub fn impl_matches(
         impl_.type_param_definition(),
     );
 
-    bindings.map(|bindings| {
-        SourceTypeArray::with(
-            bindings
-                .into_iter()
-                .map(|t| t.expect("missing binding"))
-                .collect(),
-        )
-    })
+    bindings.map(|bindings| SourceTypeArray::with(bindings))
 }
 
 pub fn implements_trait(
@@ -117,7 +110,7 @@ pub fn find_impl(
                 continue;
             }
 
-            if let Some(mut opt_bindings) = block_matches_ty(
+            if let Some(opt_bindings) = block_matches_ty(
                 sa,
                 check_ty.clone(),
                 check_element,
@@ -125,6 +118,9 @@ pub fn find_impl(
                 impl_.extended_ty(),
                 impl_.type_param_definition(),
             ) {
+                let mut bindings_for_types =
+                    opt_bindings.iter().cloned().map(|t| Some(t)).collect();
+
                 if !trait_ty_match(
                     sa,
                     impl_,
@@ -132,21 +128,14 @@ pub fn find_impl(
                     &trait_ty,
                     check_element,
                     check_type_param_definition,
-                    &mut opt_bindings,
+                    &mut bindings_for_types,
                 ) {
                     continue;
                 }
 
-                let bindings = SourceTypeArray::with(
-                    opt_bindings
-                        .into_iter()
-                        .map(|t| t.expect("missing binding"))
-                        .collect(),
-                );
-
                 return Some(ImplMatch {
                     id: impl_.id(),
-                    bindings,
+                    bindings: SourceTypeArray::with(opt_bindings),
                 });
             }
         }

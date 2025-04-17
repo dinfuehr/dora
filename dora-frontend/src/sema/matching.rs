@@ -21,14 +21,7 @@ pub fn extension_matches(
         extension.type_param_definition(),
     );
 
-    bindings.map(|bindings| {
-        SourceTypeArray::with(
-            bindings
-                .into_iter()
-                .map(|t| t.expect("missing binding"))
-                .collect(),
-        )
-    })
+    bindings.map(|bindings| SourceTypeArray::with(bindings))
 }
 
 pub fn block_matches_ty(
@@ -38,7 +31,7 @@ pub fn block_matches_ty(
     check_type_param_defs: &TypeParamDefinition,
     ext_ty: SourceType,
     ext_type_param_defs: &TypeParamDefinition,
-) -> Option<Vec<Option<SourceType>>> {
+) -> Option<Vec<SourceType>> {
     let mut bindings = vec![None; ext_type_param_defs.type_param_count()];
 
     let result = match_types(
@@ -52,7 +45,12 @@ pub fn block_matches_ty(
     );
 
     if result {
-        Some(bindings)
+        Some(
+            bindings
+                .into_iter()
+                .map(|t| t.expect("missing binding"))
+                .collect(),
+        )
     } else {
         None
     }

@@ -1,3 +1,5 @@
+use std::string::{Stringable, StringBuffer};
+
 pub trait Default {
     static fn default(): Self;
 }
@@ -198,6 +200,24 @@ pub trait Iterator {
     @TraitObjectIgnore
     fn rev(): Rev[Self] where Self: DoubleEndedIterator {
         Rev[Self](self)
+    }
+
+    @TraitObjectIgnore
+    fn join(separator: String): String where Self::Item: Stringable {
+        let output = StringBuffer::new();
+        let mut first = true;
+
+        while self.next() is Some(value) {
+            if !first {
+                output.append(separator);
+            }
+
+            // TODO: support calls here.
+            // output.append(value.toString());
+            first = false;
+        }
+
+        output.toString()
     }
 }
 
