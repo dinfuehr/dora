@@ -2,6 +2,7 @@ use crate::sema::{
     implements_trait, maybe_alias_ty, Element, ExtensionDefinitionId, Sema, TypeParamDefinition,
     TypeParamId,
 };
+use crate::specialize::specialize_type;
 use crate::{SourceType, SourceTypeArray, SymbolKind};
 
 pub fn extension_matches(
@@ -45,12 +46,23 @@ pub fn block_matches_ty(
     );
 
     if result {
-        Some(
-            bindings
-                .into_iter()
-                .map(|t| t.expect("missing binding"))
-                .collect(),
-        )
+        let bindings: Vec<SourceType> = bindings
+            .into_iter()
+            .map(|t| t.expect("missing binding"))
+            .collect();
+        let bindings_sta = SourceTypeArray::with(bindings.clone());
+
+        for bound in ext_type_param_defs.bounds() {
+            let bound_ty = specialize_type(sa, bound.ty(), &bindings_sta);
+
+            if let Some(trait_ty) = bound.trait_ty() {
+                if !implements_trait(sa, bound_ty, check_element, trait_ty) {
+                    return None;
+                }
+            }
+        }
+
+        Some(bindings)
     } else {
         None
     }
