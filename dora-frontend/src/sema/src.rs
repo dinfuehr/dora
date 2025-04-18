@@ -11,7 +11,7 @@ use crate::sema::{
     FctDefinition, FctDefinitionId, FieldId, GlobalDefinitionId, Intrinsic,
     StructDefinitionFieldId, StructDefinitionId, TraitDefinitionId, TypeParamId,
 };
-use crate::ty::{SourceType, SourceTypeArray};
+use crate::ty::{SourceType, SourceTypeArray, TraitType};
 
 #[derive(Debug)]
 pub struct AnalysisData {
@@ -363,6 +363,15 @@ pub enum CallType {
         SourceTypeArray,
         SourceTypeArray,
     ),
+
+    // Invoke trait method on type param, e.g. (T: SomeTrait).method(), in default
+    // trait methods (self.method()). Could also be (generic) associated type.
+    GenericMethodNew {
+        object_type: SourceType,
+        trait_ty: TraitType,
+        fct_id: FctDefinitionId,
+        fct_type_params: SourceTypeArray,
+    },
 
     // Invoke static trait method on type param, e.g. T::method()
     GenericStaticMethod(

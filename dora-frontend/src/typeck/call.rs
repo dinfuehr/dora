@@ -413,6 +413,9 @@ fn check_expr_call_method(
             fct_type_params,
             arguments,
         );
+    } else if object_type.is_assoc() {
+        assert_eq!(fct_type_params.len(), 0);
+        return check_expr_call_assoc(ck, e, method_name, object_type, arguments);
     } else if object_type.is_self() {
         assert_eq!(fct_type_params.len(), 0);
         return check_expr_call_self(ck, e, method_name, arguments);
@@ -942,6 +945,77 @@ fn check_expr_call_self(
             ErrorMessage::UnknownMethod("Self".into(), name)
         } else {
             ErrorMessage::MultipleCandidatesForMethod("Self".into(), name)
+        };
+
+        ck.sa.report(ck.file_id, e.span, msg);
+        ck.analysis.set_ty(e.id, ty_error());
+
+        ty_error()
+    }
+}
+
+fn check_expr_call_assoc(
+    ck: &mut TypeCheck,
+    e: &ast::ExprCallType,
+    name: String,
+    object_type: SourceType,
+    arguments: CallArguments,
+) -> SourceType {
+    let mut matched_methods = Vec::new();
+    let interned_name = ck.sa.interner.intern(&name);
+
+    let (assoc_id, _trait_ty) = match object_type.clone() {
+        SourceType::Assoc { trait_ty, assoc_id } => (assoc_id, trait_ty),
+        _ => unreachable!(),
+    };
+
+    let assoc = ck.sa.alias(assoc_id);
+
+    for bound in assoc.bounds() {
+        if let Some(trait_ty) = bound.ty() {
+            let trait_ = ck.sa.trait_(trait_ty.trait_id);
+
+            if let Some(trait_method_id) = trait_.get_method(interned_name, false) {
+                matched_methods.push(trait_method_id);
+            }
+        }
+    }
+
+    if matched_methods.len() == 1 {
+        let trait_method_id = matched_methods.pop().expect("missing element");
+        let trait_type_params = empty_sta();
+
+        let trait_method = ck.sa.fct(trait_method_id);
+        let return_type = trait_method.return_type();
+
+        ck.analysis.set_ty(e.id, return_type.clone());
+
+        ck.analysis.map_calls.insert(
+            e.id,
+            Arc::new(CallType::GenericMethodSelf(
+                trait_method.trait_id(),
+                trait_method_id,
+                trait_type_params.clone(),
+                SourceTypeArray::empty(),
+            )),
+        );
+
+        check_args_compatible_fct(
+            ck,
+            trait_method,
+            arguments,
+            &trait_type_params,
+            Some(SourceType::This),
+            |ty| ty,
+        );
+
+        return_type
+    } else {
+        let object_type = object_type.name(ck.sa);
+        let msg = if matched_methods.is_empty() {
+            ErrorMessage::UnknownMethod(object_type, name)
+        } else {
+            ErrorMessage::MultipleCandidatesForMethod(object_type, name)
         };
 
         ck.sa.report(ck.file_id, e.span, msg);

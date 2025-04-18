@@ -225,6 +225,13 @@ impl SourceType {
         }
     }
 
+    pub fn is_assoc(&self) -> bool {
+        match self {
+            SourceType::Assoc { .. } => true,
+            _ => false,
+        }
+    }
+
     pub fn is_class(&self) -> bool {
         match self {
             SourceType::Class(..) => true,
