@@ -393,7 +393,7 @@ fn encode_constpool_entry(vm: &VM, const_entry: &ConstPoolEntry, buffer: &mut By
             fct_id,
             ref fct_type_params,
         } => {
-            buffer.emit_u8(ConstPoolOpcode::GenericSelf.into());
+            buffer.emit_u8(ConstPoolOpcode::GenericNew.into());
             encode_bytecode_type(vm, object_type, buffer);
             encode_bytecode_trait_type(vm, trait_ty, buffer);
             buffer.emit_id(fct_id.0 as usize);

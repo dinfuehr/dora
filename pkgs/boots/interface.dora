@@ -2,7 +2,7 @@ use std::collections::VecIter;
 use std::traits::IntoIterator;
 
 use package::bytecode::{BytecodeFunction, BytecodeTraitType, BytecodeType, ConstPoolId, FunctionId, Location};
-use package::bytecode::{ClassId, EnumId, ClassFieldId, GlobalId, ImplId, StructId, StructFieldId, TraitId};
+use package::bytecode::{AliasId, ClassId, EnumId, ClassFieldId, GlobalId, ImplId, StructId, StructFieldId, TraitId};
 use package::compilation::{CompilationInfo, SpecializeSelf};
 use package::deserializer::decodeBytecodeFunction;
 use package::deserializer::{decodeCompilationInfo, decodeStructData, decodeEnumData};
@@ -42,6 +42,8 @@ pub const TRAP_OVERFLOW: Int32 = 8i32;
 @internal pub fn getGlobalInitializerFunctionIdRaw(id: Int32): Int32;
 @internal pub fn getReadOnlyStringAddressRaw(id: String): Int64;
 @internal pub fn findTraitImplRaw(data: Array[UInt8]): Array[UInt8];
+@internal pub fn findTraitTyImplRaw(data: Array[UInt8]): Array[UInt8];
+@internal pub fn getAssocTypeInImplRaw(data: Array[UInt8]): Array[UInt8];
 @internal pub fn specializeAssocTyRaw(data: Array[UInt8]): Array[UInt8];
 @internal pub fn getIntrinsicForFunctionRaw(id: Int32): Int32;
 @internal pub fn getStructDataRaw(id: Int32): Array[UInt8];
@@ -149,6 +151,29 @@ pub fn findTraitImpl(ci: CompilationInfo, trait_fct_id: FunctionId, trait_type_p
     let type_params = deserializer::decodeBytecodeTypeArray(reader);
     assert(!reader.moreBytes());
     (fct_id, type_params)
+}
+
+pub fn findTraitTyImpl(ci: CompilationInfo, trait_ty: BytecodeTraitType, object_ty: BytecodeType): (ImplId, Array[BytecodeType]) {
+    let writer = ci.getByteWriter();
+    encodeBytecodeTraitType(writer, trait_ty);
+    encodeBytecodeType(writer, object_ty);
+    let encoded = findTraitTyImplRaw(writer.toArray());
+    let reader = ByteReader::new(encoded);
+    let impl_id = ImplId(reader.readInt32());
+    let bindings = deserializer::decodeBytecodeTypeArray(reader);
+    assert(!reader.moreBytes());
+    (impl_id, bindings)
+}
+
+pub fn getAssocTypeInImpl(ci: CompilationInfo, impl_id: ImplId, trait_alias_id: AliasId): BytecodeType {
+    let writer = ci.getByteWriter();
+    writer.emitInt32(impl_id.0);
+    writer.emitInt32(trait_alias_id.0);
+    let encoded = getAssocTypeInImplRaw(writer.toArray());
+    let reader = ByteReader::new(encoded);
+    let ty = deserializer::decodeBytecodeType(reader);
+    assert(!reader.moreBytes());
+    ty
 }
 
 pub fn specializeAssocTy(ci: CompilationInfo, specializeSelf: Option[SpecializeSelf], ty: BytecodeType, typeParams: Array[BytecodeType]): BytecodeType {

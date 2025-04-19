@@ -1478,6 +1478,22 @@ impl SsaGen {
                 (extended_ty, trait_fct_id, trait_type_params, fct_type_params)
             }
 
+            ConstPoolEntry::GenericNew(object_type, trait_ty, fct_id, fct_type_params) => {
+                match object_type {
+                    BytecodeType::Assoc(traitTy = assocTraitTy, assocId) => {
+                        let extended_ty = self.specializeSelf.getOrPanic().extended_ty;
+                        let (impl_id, bindings) = iface::findTraitTyImpl(self.ci, assocTraitTy, extended_ty);
+
+                        let assoc_ty = iface::getAssocTypeInImpl(self.ci, impl_id, assocId);
+                        let assoc_ty = specializeTy(self.ci, None[SpecializeSelf], assoc_ty, bindings);
+
+                        (assoc_ty, fct_id, trait_ty.typeParams, fct_type_params)
+                    }
+
+                    _ => std::unreachable[(BytecodeType, FunctionId, Array[BytecodeType], Array[BytecodeType])](),
+                }
+            }
+
             _ => unreachable[(BytecodeType, FunctionId, Array[BytecodeType], Array[BytecodeType])](),
         };
 

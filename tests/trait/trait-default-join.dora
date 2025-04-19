@@ -1,4 +1,3 @@
-//= ignore
 use std::string::{StringBuffer, Stringable};
 
 trait MyIterator {
@@ -42,5 +41,5 @@ impl MyIterator for Range {
 
 fn main() {
     let r = Range(3).join(",");
-    assert(r == "0,1,2");
+    assert(r == "3,2,1");
 }

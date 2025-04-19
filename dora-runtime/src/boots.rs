@@ -2,13 +2,13 @@ use std::mem;
 use std::ptr;
 
 use dora_bytecode::{
-    display_fct, BytecodeTraitType, BytecodeTypeArray, ClassId, EnumId, FunctionId, FunctionKind,
-    GlobalId, StructId, TraitId,
+    display_fct, AliasId, BytecodeTraitType, BytecodeTypeArray, ClassId, EnumId, FunctionId,
+    FunctionKind, GlobalId, ImplId, StructId, TraitId,
 };
 
 use crate::boots::deserializer::{
-    decode_bytecode_type, decode_bytecode_type_array, decode_code_descriptor,
-    decode_specialize_self, ByteReader,
+    decode_bytecode_trait_ty, decode_bytecode_type, decode_bytecode_type_array,
+    decode_code_descriptor, decode_specialize_self, ByteReader,
 };
 use crate::boots::serializer::{encode_compilation_info, ByteBuffer};
 use crate::cannon::codegen::get_function_address as get_function_address_raw;
@@ -87,6 +87,14 @@ pub const BOOTS_FUNCTIONS: &[(&'static str, FctImplementation)] = &[
     (
         "boots::interface::findTraitImplRaw",
         N(find_trait_impl_raw as *const u8),
+    ),
+    (
+        "boots::interface::findTraitTyImplRaw",
+        N(find_trait_ty_impl_raw as *const u8),
+    ),
+    (
+        "boots::interface::getAssocTypeInImplRaw",
+        N(get_assoc_type_in_impl_raw as *const u8),
     ),
     (
         "boots::interface::specializeAssocTyRaw",
@@ -439,6 +447,65 @@ extern "C" fn find_trait_impl_raw(data: Handle<UInt8Array>) -> Ref<UInt8Array> {
     let mut buffer = ByteBuffer::new();
     buffer.emit_u32(callee_id.0);
     serializer::encode_bytecode_type_array(vm, &type_params, &mut buffer);
+    byte_array_from_buffer(vm, buffer.data()).cast()
+}
+
+extern "C" fn find_trait_ty_impl_raw(data: Handle<UInt8Array>) -> Ref<UInt8Array> {
+    let vm = get_vm();
+
+    let mut serialized_data = vec![0; data.len()];
+
+    unsafe {
+        ptr::copy_nonoverlapping(
+            data.data() as *mut u8,
+            serialized_data.as_mut_ptr(),
+            data.len(),
+        );
+    }
+
+    let mut reader = ByteReader::new(serialized_data);
+    let trait_ty = decode_bytecode_trait_ty(&mut reader);
+    let object_ty = decode_bytecode_type(&mut reader);
+    assert!(!reader.has_more());
+
+    let (impl_id, bindings) =
+        impls::find_trait_ty_impl(vm, trait_ty, object_ty).expect("impl not found");
+
+    let mut buffer = ByteBuffer::new();
+    buffer.emit_u32(impl_id.0);
+    serializer::encode_bytecode_type_array(vm, &bindings, &mut buffer);
+    byte_array_from_buffer(vm, buffer.data()).cast()
+}
+
+extern "C" fn get_assoc_type_in_impl_raw(data: Handle<UInt8Array>) -> Ref<UInt8Array> {
+    let vm = get_vm();
+
+    let mut serialized_data = vec![0; data.len()];
+
+    unsafe {
+        ptr::copy_nonoverlapping(
+            data.data() as *mut u8,
+            serialized_data.as_mut_ptr(),
+            data.len(),
+        );
+    }
+
+    let mut reader = ByteReader::new(serialized_data);
+    let impl_id = ImplId(reader.read_u32());
+    let trait_alias_id = AliasId(reader.read_u32());
+    assert!(!reader.has_more());
+
+    let impl_ = vm.impl_(impl_id);
+    let impl_alias_id = impl_
+        .trait_alias_map
+        .iter()
+        .find(|(current_trait_alias_id, _)| *current_trait_alias_id == trait_alias_id)
+        .expect("missing alias")
+        .1;
+    let impl_alias_ty = vm.alias(impl_alias_id).ty.clone().expect("missing type");
+
+    let mut buffer = ByteBuffer::new();
+    serializer::encode_bytecode_type(vm, &impl_alias_ty, &mut buffer);
     byte_array_from_buffer(vm, buffer.data()).cast()
 }
 

@@ -257,7 +257,7 @@ pub fn decode_bytecode_type(reader: &mut ByteReader) -> BytecodeType {
     }
 }
 
-fn decode_bytecode_trait_ty(reader: &mut ByteReader) -> BytecodeTraitType {
+pub fn decode_bytecode_trait_ty(reader: &mut ByteReader) -> BytecodeTraitType {
     let trait_id = TraitId(reader.read_u32());
     let type_params = decode_bytecode_type_array(reader);
     let length = reader.read_u32() as usize;

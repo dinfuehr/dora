@@ -38,6 +38,20 @@ pub fn find_trait_impl(
     (impl_fct_id, bindings)
 }
 
+pub fn find_trait_ty_impl(
+    vm: &VM,
+    trait_ty: BytecodeTraitType,
+    object_type: BytecodeType,
+) -> Option<(ImplId, BytecodeTypeArray)> {
+    let type_param_data = TypeParamData {
+        names: Vec::new(),
+        container_count: 0,
+        bounds: Vec::new(),
+    };
+
+    find_impl(vm, object_type, &type_param_data, trait_ty)
+}
+
 pub fn find_impl(
     vm: &VM,
     check_ty: BytecodeType,

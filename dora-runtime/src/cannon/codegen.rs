@@ -17,8 +17,9 @@ use crate::mirror::Header;
 use crate::mode::MachineMode;
 use crate::vm::{
     compute_vtable_index, create_enum_instance, create_struct_instance, find_trait_impl,
-    get_concrete_tuple_bty, get_concrete_tuple_bty_array, specialize_ty, specialize_ty_array,
-    CodeDescriptor, EnumLayout, GcPoint, Intrinsic, LazyCompilationSite, Trap, INITIALIZED, VM,
+    find_trait_ty_impl, get_concrete_tuple_bty, get_concrete_tuple_bty_array, specialize_ty,
+    specialize_ty_array, CodeDescriptor, EnumLayout, GcPoint, Intrinsic, LazyCompilationSite, Trap,
+    INITIALIZED, VM,
 };
 use crate::SpecializeSelf;
 use dora_bytecode::{
@@ -2664,6 +2665,53 @@ impl<'a> CannonCodeGen<'a> {
                         fct_type_params.clone(),
                     )
                 }
+                ConstPoolEntry::GenericNew {
+                    object_type,
+                    trait_ty,
+                    fct_id,
+                    fct_type_params,
+                } => match object_type {
+                    BytecodeType::Assoc {
+                        trait_ty: assoc_trait_ty,
+                        assoc_id,
+                    } => {
+                        let specialize_self =
+                            self.specialize_self.as_ref().expect("missing Self type");
+
+                        let (impl_id, bindings) = find_trait_ty_impl(
+                            self.vm,
+                            assoc_trait_ty.clone(),
+                            specialize_self.extended_ty.clone(),
+                        )
+                        .expect("no impl found for generic trait method call");
+
+                        let impl_ = self.vm.impl_(impl_id);
+                        let impl_alias_id = impl_
+                            .trait_alias_map
+                            .iter()
+                            .find(|(trait_alias_id, _)| trait_alias_id == assoc_id)
+                            .expect("missing alias")
+                            .1;
+                        let impl_alias_ty = self
+                            .vm
+                            .alias(impl_alias_id)
+                            .ty
+                            .clone()
+                            .expect("missing type");
+
+                        let assoc_ty = specialize_ty(self.vm, None, impl_alias_ty, &bindings);
+
+                        (
+                            assoc_ty,
+                            *fct_id,
+                            trait_ty.type_params.clone(),
+                            fct_type_params.clone(),
+                        )
+                    }
+
+                    _ => unreachable!(),
+                },
+
                 _ => unreachable!(),
             };
 
