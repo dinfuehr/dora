@@ -196,6 +196,7 @@ pub fn dump(
                     )
                 )?;
             }
+            ConstPoolEntry::GenericNew { .. } => unimplemented!(),
             ConstPoolEntry::TraitObject {
                 trait_ty,
                 actual_object_ty,

@@ -975,13 +975,13 @@ fn check_expr_call_assoc(
             let trait_ = ck.sa.trait_(trait_ty.trait_id);
 
             if let Some(trait_method_id) = trait_.get_method(interned_name, false) {
-                matched_methods.push(trait_method_id);
+                matched_methods.push((trait_method_id, trait_ty));
             }
         }
     }
 
     if matched_methods.len() == 1 {
-        let trait_method_id = matched_methods.pop().expect("missing element");
+        let (trait_method_id, trait_ty) = matched_methods.pop().expect("missing element");
         let trait_type_params = empty_sta();
 
         let trait_method = ck.sa.fct(trait_method_id);
@@ -991,12 +991,12 @@ fn check_expr_call_assoc(
 
         ck.analysis.map_calls.insert(
             e.id,
-            Arc::new(CallType::GenericMethodSelf(
-                trait_method.trait_id(),
-                trait_method_id,
-                trait_type_params.clone(),
-                SourceTypeArray::empty(),
-            )),
+            Arc::new(CallType::GenericMethodNew {
+                object_type,
+                trait_ty,
+                fct_id: trait_method_id,
+                fct_type_params: SourceTypeArray::empty(),
+            }),
         );
 
         check_args_compatible_fct(

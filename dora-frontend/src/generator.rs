@@ -1518,6 +1518,7 @@ impl<'a> AstBytecodeGen<'a> {
             | CallType::GenericMethod(..)
             | CallType::GenericStaticMethod(..)
             | CallType::GenericMethodSelf(..)
+            | CallType::GenericMethodNew { .. }
             | CallType::GenericStaticMethodSelf(..)
             | CallType::TraitObjectMethod(..)
             | CallType::Fct(..) => {}

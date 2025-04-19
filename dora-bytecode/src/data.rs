@@ -2,8 +2,8 @@ use bincode::{Decode, Encode};
 use std::fmt;
 
 use crate::{
-    BytecodeReader, BytecodeType, BytecodeTypeArray, ClassId, EnumId, FunctionId, GlobalId,
-    StructId,
+    BytecodeReader, BytecodeTraitType, BytecodeType, BytecodeTypeArray, ClassId, EnumId,
+    FunctionId, GlobalId, StructId,
 };
 use num_enum::{IntoPrimitive, TryFromPrimitive};
 
@@ -681,6 +681,7 @@ pub enum ConstPoolOpcode {
     TraitObjectMethod,
     Generic,
     GenericSelf,
+    GenericNew,
     Enum,
     EnumVariant,
     EnumElement,
@@ -707,6 +708,12 @@ pub enum ConstPoolEntry {
     TraitObjectMethod(BytecodeType, FunctionId),
     Generic(u32, FunctionId, BytecodeTypeArray, BytecodeTypeArray),
     GenericSelf(FunctionId, BytecodeTypeArray, BytecodeTypeArray),
+    GenericNew {
+        object_type: BytecodeType,
+        trait_ty: BytecodeTraitType,
+        fct_id: FunctionId,
+        fct_type_params: BytecodeTypeArray,
+    },
     Enum(EnumId, BytecodeTypeArray),
     EnumVariant(EnumId, BytecodeTypeArray, u32),
     EnumElement(EnumId, BytecodeTypeArray, u32, u32),
