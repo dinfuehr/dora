@@ -1894,6 +1894,7 @@ impl<'a> AstBytecodeGen<'a> {
                 self.builder
                     .emit_invoke_generic_static(return_reg, callee_idx, location);
             }
+            CallType::GenericMethodNew { .. } => unimplemented!(),
             CallType::NewClass(..)
             | CallType::NewStruct(..)
             | CallType::NewEnum(..)
@@ -3293,6 +3294,8 @@ impl<'a> AstBytecodeGen<'a> {
                 Some(&trait_type_params.connect(fct_type_params)),
                 None,
             ),
+
+            CallType::GenericMethodNew { .. } => unimplemented!(),
 
             CallType::Lambda(..)
             | CallType::NewClass(..)

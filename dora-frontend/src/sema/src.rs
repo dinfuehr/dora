@@ -444,7 +444,8 @@ impl CallType {
             | CallType::GenericMethod(_, _, fct_id, ..)
             | CallType::GenericStaticMethod(_, _, fct_id, ..)
             | CallType::GenericMethodSelf(_, fct_id, ..)
-            | CallType::GenericStaticMethodSelf(_, fct_id, ..) => Some(fct_id),
+            | CallType::GenericStaticMethodSelf(_, fct_id, ..)
+            | CallType::GenericMethodNew { fct_id, .. } => Some(fct_id),
 
             CallType::NewClass(..)
             | CallType::NewStruct(..)

@@ -964,15 +964,14 @@ fn check_expr_call_assoc(
     let mut matched_methods = Vec::new();
     let interned_name = ck.sa.interner.intern(&name);
 
-    let (assoc_id, _trait_ty) = match object_type.clone() {
-        SourceType::Assoc { trait_ty, assoc_id } => (assoc_id, trait_ty),
-        _ => unreachable!(),
-    };
+    assert!(object_type.is_assoc());
 
-    let assoc = ck.sa.alias(assoc_id);
+    for bound in ck.type_param_definition.bounds() {
+        if object_type != bound.ty() {
+            continue;
+        }
 
-    for bound in assoc.bounds() {
-        if let Some(trait_ty) = bound.ty() {
+        if let Some(trait_ty) = bound.trait_ty() {
             let trait_ = ck.sa.trait_(trait_ty.trait_id);
 
             if let Some(trait_method_id) = trait_.get_method(interned_name, false) {

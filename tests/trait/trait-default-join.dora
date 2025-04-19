@@ -1,0 +1,45 @@
+//= ignore
+
+trait MyIterator {
+    type Item;
+    fn next(): Option[Self::Item];
+
+    fn join(separator: String): String where Self::Item: Stringable {
+        let output = StringBuffer::new();
+        let mut first = true;
+
+        while self.next() is Some(value) {
+            if !first {
+                output.append(separator);
+            }
+
+            output.append(value.toString());
+            first = false;
+        }
+
+        output.toString()
+    }
+}
+
+class Range {
+    value: Int
+}
+
+impl MyIterator for Range {
+    type Item = Int;
+
+    fn next(): Option[Int] {
+        if self.value <= 0 {
+            None[Int]
+        } else {
+            let result = self.value;
+            self.value -= 1;
+            Some[Int](result)
+        }
+    }
+}
+
+fn main() {
+    let r = Range(3).join(",");
+    assert(r == "0,1,2");
+}
