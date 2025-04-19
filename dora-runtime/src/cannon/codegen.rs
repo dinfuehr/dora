@@ -2700,6 +2700,7 @@ impl<'a> CannonCodeGen<'a> {
                             .expect("missing type");
 
                         let assoc_ty = specialize_ty(self.vm, None, impl_alias_ty, &bindings);
+                        let assoc_ty = specialize_ty(self.vm, None, assoc_ty, &self.type_params);
 
                         (
                             assoc_ty,

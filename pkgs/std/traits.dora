@@ -212,8 +212,7 @@ pub trait Iterator {
                 output.append(separator);
             }
 
-            // TODO: support calls here.
-            // output.append(value.toString());
+            output.append(value.toString());
             first = false;
         }
 

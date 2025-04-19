@@ -1486,6 +1486,7 @@ impl SsaGen {
 
                         let assoc_ty = iface::getAssocTypeInImpl(self.ci, impl_id, assocId);
                         let assoc_ty = specializeTy(self.ci, None[SpecializeSelf], assoc_ty, bindings);
+                        let assoc_ty = specializeTy(self.ci, None[SpecializeSelf], assoc_ty, self.typeParams);
 
                         (assoc_ty, fct_id, trait_ty.typeParams, fct_type_params)
                     }
