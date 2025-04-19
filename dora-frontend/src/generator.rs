@@ -1763,6 +1763,7 @@ impl<'a> AstBytecodeGen<'a> {
             CallType::Method(..)
             | CallType::GenericMethod(..)
             | CallType::GenericMethodSelf(..)
+            | CallType::GenericMethodNew { .. }
             | CallType::TraitObjectMethod(..) => {
                 let obj_expr = expr.object().unwrap_or(expr.callee());
                 let reg = gen_expr(self, obj_expr, DataDest::Alloc);
@@ -1887,7 +1888,9 @@ impl<'a> AstBytecodeGen<'a> {
                 self.builder
                     .emit_invoke_virtual(return_reg, callee_idx, location);
             }
-            CallType::GenericMethod(..) | CallType::GenericMethodSelf(..) => {
+            CallType::GenericMethod(..)
+            | CallType::GenericMethodSelf(..)
+            | CallType::GenericMethodNew { .. } => {
                 self.builder
                     .emit_invoke_generic_direct(return_reg, callee_idx, location);
             }
@@ -1895,7 +1898,6 @@ impl<'a> AstBytecodeGen<'a> {
                 self.builder
                     .emit_invoke_generic_static(return_reg, callee_idx, location);
             }
-            CallType::GenericMethodNew { .. } => unimplemented!(),
             CallType::NewClass(..)
             | CallType::NewStruct(..)
             | CallType::NewEnum(..)
@@ -3219,6 +3221,17 @@ impl<'a> AstBytecodeGen<'a> {
                 bty_array_from_ty(&trait_type_params),
                 bty_array_from_ty(&fct_type_params),
             )),
+            CallType::GenericMethodNew {
+                object_type,
+                trait_ty,
+                fct_id,
+                fct_type_params,
+            } => self.builder.add_const(ConstPoolEntry::GenericNew {
+                object_type: bty_from_ty(object_type.clone()),
+                trait_ty: convert_trait_type(&trait_ty),
+                fct_id: FunctionId(fct_id.index().try_into().expect("overflow")),
+                fct_type_params: bty_array_from_ty(fct_type_params),
+            }),
             CallType::TraitObjectMethod(ref trait_object_ty, _) => {
                 self.builder.add_const(ConstPoolEntry::TraitObjectMethod(
                     bty_from_ty(trait_object_ty.clone()),
@@ -3296,7 +3309,16 @@ impl<'a> AstBytecodeGen<'a> {
                 None,
             ),
 
-            CallType::GenericMethodNew { .. } => unimplemented!(),
+            CallType::GenericMethodNew {
+                trait_ty,
+                fct_type_params,
+                ..
+            } => replace_type(
+                self.sa,
+                ty,
+                Some(&trait_ty.type_params.connect(fct_type_params)),
+                None,
+            ),
 
             CallType::Lambda(..)
             | CallType::NewClass(..)
