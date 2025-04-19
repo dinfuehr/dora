@@ -1,13 +1,13 @@
 fn main() {
     let x = Array[Int64]::new(1, 2, 3);
-    assert(x.join(", ") == "1, 2, 3");
-    assert(x.join("-") == "1-2-3");
+    assert(x.iter().join(", ") == "1, 2, 3");
+    assert(x.iter().join("-") == "1-2-3");
 
     let x = Array[Char]::new('a', 'b', 'c');
-    assert(x.join(", ") == "a, b, c");
-    assert(x.join("-") == "a-b-c");
+    assert(x.iter().join(", ") == "a, b, c");
+    assert(x.iter().join("-") == "a-b-c");
 
     let x = Array[Int64]::new(101, 102, 103);
-    assert(x.join(", ") == "101, 102, 103");
-    assert(x.join("-") == "101-102-103");
+    assert(x.iter().join(", ") == "101, 102, 103");
+    assert(x.iter().join("-") == "101-102-103");
 }

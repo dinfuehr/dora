@@ -94,22 +94,6 @@ impl[T: Zero] Array[T] {
   }
 }
 
-impl[T: Stringable] Array[T] {
-  pub fn join(separator: String): String {
-    let output = StringBuffer::new();
-
-    for (idx, element) in self.enumerate() {
-      if idx > 0 {
-        output.append(separator);
-      }
-
-      output.append(element.toString());
-    }
-
-    output.toString()
-  }
-}
-
 impl[T] IntoIterator for Array[T] {
   type IteratorType = ArrayIter[T];
 
@@ -1529,20 +1513,6 @@ impl[T: Stringable] Vec[T] {
     }
     sb.append(")");
     return sb.toString();
-  }
-
-  pub fn join(separator: String): String {
-    let output = StringBuffer::new();
-
-    for (idx, element) in self.enumerate() {
-      if idx > 0 {
-        output.append(separator);
-      }
-
-      output.append(element.toString());
-    }
-
-    output.toString()
   }
 }
 
