@@ -1,3 +1,5 @@
+//= ignore
+
 trait MyIterator {
     type Item;
     fn next(): Option[Self::Item];

@@ -132,6 +132,10 @@ pub enum ParsedTypeKind {
         type_arguments: Vec<ParsedTypeArgument>,
     },
 
+    Assoc {
+        name: Name,
+    },
+
     Tuple {
         subtypes: Vec<Box<ParsedTypeAst>>,
     },
@@ -320,6 +324,8 @@ fn parse_type_regular(
         | PathKind::Trait(..)
         | PathKind::TypeParam(..) => unreachable!(),
 
+        PathKind::Assoc { name } => ParsedTypeKind::Assoc { name },
+
         PathKind::Self_ => ParsedTypeKind::This,
     }
 }
@@ -414,6 +420,7 @@ fn parse_type_tuple(
 fn convert_type_inner(sa: &Sema, file_id: SourceFileId, parsed_ty: &ParsedTypeAst) -> SourceType {
     match parsed_ty.kind {
         ParsedTypeKind::This => SourceType::This,
+        ParsedTypeKind::Assoc { .. } => unreachable!(),
         ParsedTypeKind::Regular { .. } => convert_type_regular(sa, file_id, parsed_ty),
         ParsedTypeKind::Tuple { .. } => convert_type_tuple(sa, file_id, parsed_ty),
         ParsedTypeKind::Lambda { .. } => convert_type_lambda(sa, file_id, parsed_ty),

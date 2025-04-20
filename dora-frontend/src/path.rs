@@ -22,6 +22,9 @@ pub enum PathKind {
         assoc_id: AliasDefinitionId,
     },
     Symbol(SymbolKind),
+    Assoc {
+        name: Name,
+    },
 }
 
 pub fn parse_path(
@@ -180,14 +183,6 @@ fn lookup_alias_on_self<'a>(
     if let Some(trait_) = element.to_trait() {
         if let Some(alias_id) = trait_.alias_names().get(&name).cloned() {
             return Ok(Some(alias_id));
-        }
-
-        for trait_ty in trait_.type_param_definition().bounds_for_self() {
-            let trait_ = sa.trait_(trait_ty.trait_id);
-
-            if let Some(alias_id) = trait_.alias_names().get(&name).cloned() {
-                return Ok(Some(alias_id));
-            }
         }
 
         Ok(None)
