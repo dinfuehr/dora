@@ -1205,9 +1205,7 @@ fn expand_st(
             expand_st(sa, element, alias_ty, replace_self)
         }
 
-        SourceType::Assoc { trait_ty, assoc_id } => {
-            let trait_id = trait_ty.trait_id;
-
+        SourceType::Assoc { assoc_id, .. } => {
             let element = parent_element_or_self(sa, element);
             if let Some(impl_) = element.to_impl() {
                 let impl_alias_id = impl_.trait_alias_map().get(&assoc_id).cloned();
@@ -1217,8 +1215,7 @@ fn expand_st(
                 } else {
                     SourceType::Error
                 }
-            } else if let Some(trait_) = element.to_trait() {
-                assert_eq!(trait_id, trait_.id());
+            } else if element.is_trait() {
                 ty
             } else {
                 unreachable!()

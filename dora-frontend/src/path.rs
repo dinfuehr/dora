@@ -178,7 +178,19 @@ fn lookup_alias_on_self<'a>(
     let element = parent_element_or_self(sa, element);
 
     if let Some(trait_) = element.to_trait() {
-        Ok(trait_.alias_names().get(&name).cloned())
+        if let Some(alias_id) = trait_.alias_names().get(&name).cloned() {
+            return Ok(Some(alias_id));
+        }
+
+        for trait_ty in trait_.type_param_definition().bounds_for_self() {
+            let trait_ = sa.trait_(trait_ty.trait_id);
+
+            if let Some(alias_id) = trait_.alias_names().get(&name).cloned() {
+                return Ok(Some(alias_id));
+            }
+        }
+
+        Ok(None)
     } else if let Some(impl_) = element.to_impl() {
         if let Some(trait_id) = impl_.parsed_trait_ty().trait_id() {
             let trait_ = sa.trait_(trait_id);
