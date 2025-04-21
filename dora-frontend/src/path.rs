@@ -185,6 +185,15 @@ fn lookup_alias_on_self<'a>(
             return Ok(Some(alias_id));
         }
 
+        for bound in trait_.type_param_definition.bounds_for_self() {
+            let trait_id = bound.trait_id;
+            let trait_ = sa.trait_(trait_id);
+
+            if let Some(id) = trait_.alias_names().get(&name) {
+                return Ok(Some(*id));
+            }
+        }
+
         Ok(None)
     } else if let Some(impl_) = element.to_impl() {
         if let Some(trait_id) = impl_.parsed_trait_ty().trait_id() {

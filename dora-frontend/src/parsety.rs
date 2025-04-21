@@ -54,6 +54,10 @@ impl ParsedType {
         self.ty.borrow().as_ref().cloned().expect("missing type")
     }
 
+    pub fn maybe_ty(&self) -> Option<SourceType> {
+        self.ty.borrow().as_ref().cloned()
+    }
+
     pub fn set_ty(&self, ty: SourceType) {
         *self.ty.borrow_mut() = Some(ty);
     }
