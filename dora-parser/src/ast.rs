@@ -371,6 +371,7 @@ pub enum TypeData {
     Regular(TypeRegularType),
     Tuple(TypeTupleType),
     Lambda(TypeLambdaType),
+    QualifiedPath(TypeQualifiedPathType),
     Error { id: NodeId, span: Span },
 }
 
@@ -432,6 +433,17 @@ pub struct TypeGenericType {
     pub params: Vec<Type>,
 }
 
+#[derive(Clone, Debug)]
+pub struct TypeQualifiedPathType {
+    pub id: NodeId,
+    pub span: Span,
+    pub green: GreenNode,
+
+    pub ty: Type,
+    pub trait_ty: Type,
+    pub name: Option<Ident>,
+}
+
 impl TypeRegularType {
     #[cfg(test)]
     pub fn name(&self) -> &str {
@@ -458,6 +470,24 @@ impl TypeData {
             green,
             path,
             params,
+        })
+    }
+
+    pub fn create_qualified_path(
+        id: NodeId,
+        span: Span,
+        green: GreenNode,
+        ty: Type,
+        trait_ty: Type,
+        name: Option<Ident>,
+    ) -> TypeData {
+        TypeData::QualifiedPath(TypeQualifiedPathType {
+            id,
+            span,
+            green,
+            ty,
+            trait_ty,
+            name,
         })
     }
 
@@ -537,6 +567,8 @@ impl TypeData {
                 }
             }
 
+            TypeData::QualifiedPath(..) => unimplemented!(),
+
             TypeData::Error { .. } => "error type".into(),
         }
     }
@@ -546,6 +578,7 @@ impl TypeData {
             TypeData::Regular(ref val) => val.span,
             TypeData::Tuple(ref val) => val.span,
             TypeData::Lambda(ref val) => val.span,
+            TypeData::QualifiedPath(ref val) => val.span,
             TypeData::Error { span, .. } => span,
         }
     }
@@ -555,6 +588,7 @@ impl TypeData {
             TypeData::Regular(ref val) => val.id,
             TypeData::Tuple(ref val) => val.id,
             TypeData::Lambda(ref val) => val.id,
+            TypeData::QualifiedPath(ref val) => val.id,
             TypeData::Error { id, .. } => id,
         }
     }

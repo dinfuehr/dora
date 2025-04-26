@@ -208,6 +208,11 @@ pub fn walk_type<V: Visitor>(v: &mut V, t: &TypeData) {
             }
         }
 
+        TypeData::QualifiedPath(ref qualified_path) => {
+            v.visit_type(&qualified_path.ty);
+            v.visit_type(&qualified_path.trait_ty);
+        }
+
         TypeData::Error { .. } => {}
     }
 }

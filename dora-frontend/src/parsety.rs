@@ -251,6 +251,7 @@ fn parse_type_inner(
         ast::TypeData::Lambda(ref node) => {
             parse_type_lambda(sa, table, file_id, element, allow_self, node)
         }
+        ast::TypeData::QualifiedPath(..) => unimplemented!(),
         ast::TypeData::Error { .. } => ParsedTypeKind::Error,
     };
 

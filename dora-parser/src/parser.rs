@@ -1152,6 +1152,28 @@ impl Parser {
                 ))
             }
 
+            L_BRACKET => {
+                self.start_node();
+                self.assert(L_BRACKET);
+                let ty = self.parse_type();
+                self.expect(AS_KW);
+                let trait_ty = self.parse_type();
+                self.expect(R_BRACKET);
+                self.expect(COLON_COLON);
+                let name = self.expect_identifier();
+
+                let green = self.builder.finish_node(REGULAR_TYPE);
+
+                Arc::new(TypeData::create_qualified_path(
+                    self.new_node_id(),
+                    self.finish_node(),
+                    green,
+                    ty,
+                    trait_ty,
+                    name,
+                ))
+            }
+
             L_PAREN => {
                 self.start_node();
                 let subtypes = self.parse_list(
@@ -2524,6 +2546,8 @@ fn token_name(kind: TokenKind) -> Option<&'static str> {
         R_BRACKET => Some("]"),
         L_BRACE => Some("{"),
         R_BRACE => Some("}"),
+        AS_KW => Some("as"),
+        COLON_COLON => Some("::"),
         _ => None,
     }
 }

@@ -1600,3 +1600,8 @@ fn parse_function_with_pattern_in_param() {
     parse("fn f((x, _): Foo) {}");
     parse_with_some_errors("fn next(x|y: Foo);");
 }
+
+#[test]
+fn parse_qualified_type() {
+    parse("fn f(x: [T as Foo]::Bar) {}");
+}
