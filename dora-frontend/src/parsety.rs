@@ -115,6 +115,16 @@ impl ParsedTraitType {
             _ => None,
         }
     }
+
+    pub fn type_arguments(&self) -> &[ParsedTypeArgument] {
+        let parsed_ast = self.parsed_ast().expect("missing ast");
+
+        match &parsed_ast.kind {
+            ParsedTypeKind::Regular { type_arguments, .. } => type_arguments,
+
+            _ => &[],
+        }
+    }
 }
 
 #[derive(Clone, Debug)]
@@ -147,6 +157,12 @@ pub enum ParsedTypeKind {
     Lambda {
         params: Vec<Box<ParsedTypeAst>>,
         return_ty: Option<Box<ParsedTypeAst>>,
+    },
+
+    QualifiedPath {
+        ty: Box<ParsedTypeAst>,
+        trait_ty: ParsedTraitType,
+        assoc_id: Option<AliasDefinitionId>,
     },
 
     Error,
@@ -251,7 +267,9 @@ fn parse_type_inner(
         ast::TypeData::Lambda(ref node) => {
             parse_type_lambda(sa, table, file_id, element, allow_self, node)
         }
-        ast::TypeData::QualifiedPath(..) => unimplemented!(),
+        ast::TypeData::QualifiedPath(ref node) => {
+            parse_type_qualified_path(sa, table, file_id, element, allow_self, node)
+        }
         ast::TypeData::Error { .. } => ParsedTypeKind::Error,
     };
 
@@ -332,6 +350,42 @@ fn parse_type_regular(
         PathKind::Assoc { name } => ParsedTypeKind::Assoc { name },
 
         PathKind::Self_ => ParsedTypeKind::This,
+    }
+}
+
+fn parse_type_qualified_path(
+    sa: &Sema,
+    table: &ModuleSymTable,
+    file_id: SourceFileId,
+    element: &dyn Element,
+    allow_self: bool,
+    node: &ast::TypeQualifiedPathType,
+) -> ParsedTypeKind {
+    let ty = parse_type_inner(sa, table, file_id, element, allow_self, &node.ty);
+
+    let trait_ty = ParsedTraitType::new_ast(node.trait_ty.clone());
+    parse_trait_type(sa, table, file_id, element, allow_self, &trait_ty);
+
+    let mut assoc_id = None;
+
+    if let Some(trait_id) = trait_ty.trait_id() {
+        let trait_ = sa.trait_(trait_id);
+
+        if let Some(ref ast_name) = node.name {
+            let name = sa.interner.intern(&ast_name.name_as_string);
+
+            if let Some(alias_id) = trait_.alias_names().get(&name) {
+                assoc_id = Some(*alias_id);
+            } else {
+                sa.report(file_id, ast_name.span, ErrorMessage::UnknownAssoc);
+            }
+        }
+    }
+
+    ParsedTypeKind::QualifiedPath {
+        ty,
+        trait_ty,
+        assoc_id,
     }
 }
 
@@ -429,6 +483,7 @@ fn convert_type_inner(sa: &Sema, file_id: SourceFileId, parsed_ty: &ParsedTypeAs
         ParsedTypeKind::Regular { .. } => convert_type_regular(sa, file_id, parsed_ty),
         ParsedTypeKind::Tuple { .. } => convert_type_tuple(sa, file_id, parsed_ty),
         ParsedTypeKind::Lambda { .. } => convert_type_lambda(sa, file_id, parsed_ty),
+        ParsedTypeKind::QualifiedPath { .. } => convert_type_qualified_path(sa, file_id, parsed_ty),
         ParsedTypeKind::Error { .. } => SourceType::Error,
     }
 }
@@ -657,11 +712,50 @@ fn convert_type_lambda(sa: &Sema, file_id: SourceFileId, parsed_ty: &ParsedTypeA
     SourceType::Lambda(params, Box::new(return_ty))
 }
 
+fn convert_type_qualified_path(
+    sa: &Sema,
+    file_id: SourceFileId,
+    parsed_ty: &ParsedTypeAst,
+) -> SourceType {
+    let (parsed_ty, parsed_trait_ty, assoc_id) = match parsed_ty.kind {
+        ParsedTypeKind::QualifiedPath {
+            ref ty,
+            ref trait_ty,
+            assoc_id,
+        } => (ty, trait_ty, assoc_id),
+        _ => unreachable!(),
+    };
+
+    let mut ty = SourceType::Error;
+
+    if let Some(assoc_id) = assoc_id {
+        let _parsed_ty_ty = convert_type_inner(sa, file_id, parsed_ty);
+
+        if let Some(trait_id) = parsed_trait_ty.trait_id() {
+            let trait_ty = convert_trait_type(
+                sa,
+                file_id,
+                trait_id,
+                parsed_trait_ty.type_arguments(),
+                true,
+            );
+
+            parsed_trait_ty.set_ty(trait_ty.clone());
+
+            if let Some(trait_ty) = trait_ty {
+                ty = SourceType::Assoc { trait_ty, assoc_id };
+            }
+        }
+    }
+
+    ty
+}
+
 fn convert_trait_type(
     sa: &Sema,
     file_id: SourceFileId,
     trait_id: TraitDefinitionId,
-    type_params: &Vec<ParsedTypeArgument>,
+    type_params: &[ParsedTypeArgument],
     allow_bindings: bool,
 ) -> Option<TraitType> {
     let trait_ = sa.trait_(trait_id);
@@ -1489,5 +1583,31 @@ mod tests {
             (4, 33),
             ErrorMessage::UnknownAssoc,
         );
+    }
+
+    #[test]
+    fn qualified_path_unknown_alias() {
+        err(
+            "
+            trait Foo {}
+            trait Bar: Foo {
+                fn bar(): [Self as Foo]::Baz;
+            }
+        ",
+            (4, 42),
+            ErrorMessage::UnknownAssoc,
+        );
+    }
+
+    #[test]
+    fn qualified_path() {
+        ok("
+            trait Foo {
+                type Baz;
+            }
+            trait Bar: Foo {
+                fn bar(): [Self as Foo]::Baz;
+            }
+        ");
     }
 }
