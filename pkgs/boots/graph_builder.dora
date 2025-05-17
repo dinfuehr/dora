@@ -1368,9 +1368,10 @@ impl SsaGen {
         self.pushed_registers.clear();
 
         let type_params = self.specializeArray(type_params);
-        let info = InstExtraData::FunctionInfo(FunctionInfo(fct_id, type_params));
+        let fct_info = FunctionInfo(fct_id, type_params);
+        let extra = InstExtraData::FunctionInfo(fct_info);
 
-        let inst = graph::createInvokeInst(info, kind, args, returnTy);
+        let inst = graph::createInvokeInst(extra, kind, args, returnTy);
         self.setCurrentInlinedLocation(inst);
         self.current().appendInst(inst);
 
@@ -1378,6 +1379,12 @@ impl SsaGen {
             self.writeVariable(dest, self.current(), inst);
         } else if !returnTy.isUnit() {
             self.writeVariable(dest, self.current(), inst);
+        }
+
+        let info = iface::getFunctionInfoForInlining(fct_id);
+
+        if info.hasBytecode && !info.hasNeverInlineAnnotation {
+            self.graph.inlinableCalls.push(inst);
         }
     }
 
