@@ -3,9 +3,32 @@ use package::compilation::{FunctionCompilationInfo, CompilationInfo};
 use package::graph::{createUndefInst, Graph, Inst, Op};
 use package::graph_builder;
 use package::interface as iface;
+use package::interface::FunctionInliningInfo;
 
 pub fn performInlining(ci: CompilationInfo, graph: Graph) {
     let mut budget: Int32 = 1000;
+
+    if false {
+        while true {
+            let call = selectNextCallSite(ci, graph);
+
+            if call.isNone() {
+                break;
+            }
+
+            let (call, info) = call.getOrPanic();
+
+            if !info.hasForceInlineAnnotation {
+                if graph.inlinedBytecodeSize + info.bytecodeSize > ci.maxTotalInlinedBytecodeSize {
+                    break;
+                }
+            }
+
+            graph.inlinedBytecodeSize += info.bytecodeSize;
+            let fctInfo = call.getFunctionInfo();
+            inline(ci, graph, call, fctInfo.fct_id, fctInfo.type_params);
+        }
+    }
 
     for block in graph.insertionOrderIterator() {
         for inst in block.instructionsIterator() {
@@ -32,6 +55,28 @@ pub fn performInlining(ci: CompilationInfo, graph: Graph) {
             }
         }
     }
+}
+
+fn selectNextCallSite(ci: CompilationInfo, graph: Graph): Option[(Inst, FunctionInliningInfo)] {
+    let mut i = 0;
+
+    if graph.inlinableCalls.isEmpty() {
+        return None[(Inst, FunctionInliningInfo)];
+    }
+
+    // Pick "force inline" call sites first.
+    for (call, info) in graph.inlinableCalls {
+        if info.hasForceInlineAnnotation {
+            graph.inlinableCalls.removeAt(i);
+            return Some[(Inst, FunctionInliningInfo)]((call, info));
+        }
+
+        i += 1;
+    }
+
+    // Simply pick the first call for now.
+    let first = graph.inlinableCalls.removeAt(0);
+    Some[(Inst, FunctionInliningInfo)](first)
 }
 
 fn inline(ci: CompilationInfo, graph: Graph, inst: Inst, fctId: FunctionId, typeParams: Array[BytecodeType]) {

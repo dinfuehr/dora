@@ -8,7 +8,7 @@ use std::traits::{IndexGet, IntoIterator, Iterator};
 use package::assembler::{FloatRegister, Label, Register, RegMap, RegSet};
 use package::bytecode::{BytecodeType, ClassId, FunctionId, ClassFieldId, GlobalId, StructId, TraitId};
 use package::dominator::buildDominatorTree;
-use package::interface::{Address, GcPoint, InlinedLocation};
+use package::interface::{Address, GcPoint, InlinedLocation, FunctionInliningInfo};
 use package::regalloc::{RegisterTracker, RecordLayout};
 
 pub use package::graph::ty::Type;
@@ -34,7 +34,7 @@ pub class Graph {
     constsByValUInt8: HashMap[UInt8, Inst],
     constTrue: Option[Inst],
     constFalse: Option[Inst],
-    pub inlinableCalls: Vec[(Inst, Int32)],
+    pub inlinableCalls: Vec[(Inst, FunctionInliningInfo)],
     pub inlinedBytecodeSize: Int32,
 }
 
@@ -59,7 +59,7 @@ impl Graph {
             constsByValUInt8 = HashMap[UInt8, Inst]::new(),
             constTrue = None[Inst],
             constFalse = None[Inst],
-            inlinableCalls = Vec[(Inst, Int32)]::new(),
+            inlinableCalls = Vec[(Inst, FunctionInliningInfo)]::new(),
             inlinedBytecodeSize =  0i32,
         )
     }

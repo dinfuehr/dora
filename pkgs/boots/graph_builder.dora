@@ -1381,11 +1381,27 @@ impl SsaGen {
             self.writeVariable(dest, self.current(), inst);
         }
 
+        self.addToInlinableCalls(fct_id, inst);
+    }
+
+    fn addToInlinableCalls(fct_id: FunctionId, inst: Inst) {
         let info = iface::getFunctionInfoForInlining(fct_id);
 
-        if info.hasBytecode && !info.hasNeverInlineAnnotation && info.bytecodeSize < self.ci.maxInlinableFunctionBytecodeSize {
-            self.graph.inlinableCalls.push((inst, info.bytecodeSize));
+        if !info.hasBytecode || info.hasNeverInlineAnnotation {
+            return;
         }
+
+        if !info.hasForceInlineAnnotation {
+            if info.bytecodeSize > self.ci.maxInlinableFunctionBytecodeSize {
+                return;
+            }
+
+            if self.graph.inlinedBytecodeSize + info.bytecodeSize > self.ci.maxTotalInlinedBytecodeSize {
+                return;
+            }
+        }
+
+        self.graph.inlinableCalls.push((inst, info));
     }
 
     fn emitInvokeVirtual(dest: BytecodeRegister, idx: ConstPoolId, kind: CallKind) {
