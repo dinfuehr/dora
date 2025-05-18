@@ -44,6 +44,11 @@ impl LocationAnnotation {
         }
 
         for block in self.graph.insertionOrderIterator() {
+            for inst in block.phisIterator() {
+                let loc_data = inst.getLocationData();
+                loc_data.setOutput(Operand::new(Policy::None, Location::None), InputOutputOverlap::NoOverlap);
+            }
+
             for inst in block.instructionsIterator() {
                 self.annotateInst(inst);
             }
