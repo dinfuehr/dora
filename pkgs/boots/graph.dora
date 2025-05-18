@@ -34,7 +34,8 @@ pub class Graph {
     constsByValUInt8: HashMap[UInt8, Inst],
     constTrue: Option[Inst],
     constFalse: Option[Inst],
-    pub inlinableCalls: Vec[Inst],
+    pub inlinableCalls: Vec[(Inst, Int32)],
+    pub inlinedBytecodeSize: Int32,
 }
 
 impl Graph {
@@ -58,7 +59,8 @@ impl Graph {
             constsByValUInt8 = HashMap[UInt8, Inst]::new(),
             constTrue = None[Inst],
             constFalse = None[Inst],
-            inlinableCalls = Vec[Inst]::new(),
+            inlinableCalls = Vec[(Inst, Int32)]::new(),
+            inlinedBytecodeSize =  0i32,
         )
     }
 
