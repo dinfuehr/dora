@@ -46,7 +46,7 @@ pub const K: usize = 1024;
 pub const M: usize = K * K;
 
 const CHUNK_SIZE: usize = 8 * K;
-pub const DEFAULT_CODE_SPACE_LIMIT: usize = 16 * M;
+pub const DEFAULT_CODE_SPACE_LIMIT: usize = 32 * M;
 pub const DEFAULT_READONLY_SPACE_LIMIT: usize = 2 * M;
 
 pub struct Gc {
