@@ -42,8 +42,8 @@ impl CompilationInfo {
             displayName = None[String],
             inlinedFunctions = Vec[iface::InlinedFunction]::new(),
             byteWriter = ByteWriter::new(),
-            maxInlinableFunctionBytecodeSize = 100i32,
-            maxTotalInlinedBytecodeSize = 400i32,
+            maxInlinableFunctionBytecodeSize = 200i32,
+            maxTotalInlinedBytecodeSize = 1000i32,
         )
     }
 

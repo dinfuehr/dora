@@ -6,24 +6,54 @@ use package::interface as iface;
 use package::interface::FunctionInliningInfo;
 
 pub fn performInlining(ci: CompilationInfo, graph: Graph) {
-    while true {
-        let call = selectNextCallSite(ci, graph);
+    let mut budget: Int32 = 1000;
 
-        if call.isNone() {
-            break;
-        }
+    if false {
+        while true {
+            let call = selectNextCallSite(ci, graph);
 
-        let (call, info) = call.getOrPanic();
-
-        if !info.hasForceInlineAnnotation {
-            if graph.inlinedBytecodeSize + info.bytecodeSize > ci.maxTotalInlinedBytecodeSize {
+            if call.isNone() {
                 break;
             }
-        }
 
-        graph.inlinedBytecodeSize += info.bytecodeSize;
-        let fctInfo = call.getFunctionInfo();
-        inline(ci, graph, call, fctInfo.fct_id, fctInfo.type_params);
+            let (call, info) = call.getOrPanic();
+
+            if !info.hasForceInlineAnnotation {
+                if graph.inlinedBytecodeSize + info.bytecodeSize > ci.maxTotalInlinedBytecodeSize {
+                    break;
+                }
+            }
+
+            graph.inlinedBytecodeSize += info.bytecodeSize;
+            let fctInfo = call.getFunctionInfo();
+            inline(ci, graph, call, fctInfo.fct_id, fctInfo.type_params);
+        }
+    }
+
+    for block in graph.insertionOrderIterator() {
+        for inst in block.instructionsIterator() {
+            let op = inst.op();
+
+            if op == Op::Invoke {
+                if inst.hasFunctionInfo() {
+                    let fctInfo = inst.getFunctionInfo();
+                    let fctId = fctInfo.fct_id;
+
+                    let info = iface::getFunctionInfoForInlining(fctId);
+
+                    if !info.hasBytecode || info.hasNeverInlineAnnotation {
+                        continue;
+                    }
+
+                    if info.hasForceInlineAnnotation {
+                        inline(ci, graph, inst, fctId, fctInfo.type_params);
+                    } else if ci.inline && info.bytecodeSize < 200i32 && info.bytecodeSize < budget {
+                        inline(ci, graph, inst, fctId, fctInfo.type_params);
+                        budget = budget - info.bytecodeSize;
+                    }
+                }
+            }
+        }
     }
 }
 
