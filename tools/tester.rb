@@ -232,7 +232,8 @@ def spawn_with_timeout(env, cmd, timeout)
     result.timeout = true
     result.status = "TIMEOUT"
 
-    Process.kill(:TERM, result.pid)
+    Process.kill(:KILL, result.pid)
+    Process.wait(result.pid)
   ensure
     result.stdout = out_reader.value if out_reader
     result.stderr = err_reader.value if err_reader
