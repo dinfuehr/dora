@@ -930,7 +930,7 @@ impl SsaGen {
             EnumLayout::Tagged => {
                 let src = self.readVariable(src, self.current());
 
-                let inst = graph::createLoadInst(src, iface::OBJECT_HEADER_LENGTH, InstExtraData::None, Type::Int32);
+                let inst = graph::createLoadInst(src, iface::OBJECT_HEADER_LENGTH, InstExtraData::None, Type::Int32, true);
                 self.setCurrentInlinedLocation(inst);
                 self.current().appendInst(inst);
 
@@ -1197,7 +1197,7 @@ impl SsaGen {
     }
 
     fn loadArrayLength(obj: Inst): Inst {
-        let inst = graph::createLoadInst(obj, iface::OBJECT_HEADER_LENGTH, InstExtraData::None, Type::Int64);
+        let inst = graph::createLoadInst(obj, iface::OBJECT_HEADER_LENGTH, InstExtraData::None, Type::Int64, true);
         self.current().appendInst(inst);
         inst
     }
@@ -2180,7 +2180,7 @@ impl SsaGen {
                 self.writeVariable(dest, self.current(), result);
             }
             EnumLayout::Tagged => {
-                let variant_field = graph::createLoadInst(obj, iface::OBJECT_HEADER_LENGTH, InstExtraData::None, Type::Int32);
+                let variant_field = graph::createLoadInst(obj, iface::OBJECT_HEADER_LENGTH, InstExtraData::None, Type::Int32, true);
                 self.setCurrentInlinedLocation(variant_field);
                 self.current().appendInst(variant_field);
 
@@ -2569,7 +2569,7 @@ impl SsaGen {
         } else {
             let ty = self.graphTy(ty);
             assert(!ty.isUnit());
-            let inst = graph::createLoadInst(src, srcOffset, srcInfo, ty);
+            let inst = graph::createLoadInst(src, srcOffset, srcInfo, ty, false);
             self.current().appendInst(inst);
             inst
         }
@@ -2647,7 +2647,7 @@ impl SsaGen {
             }
         } else if config.needsWriteBarrier && isReference(self.ci, self.specializeSelf, ty) {
             let ty = Type::Ptr;
-            let value = graph::createLoadInst(src, srcOffset, InstExtraData::None, ty);
+            let value = graph::createLoadInst(src, srcOffset, InstExtraData::None, ty, false);
             self.current().appendInst(value);
 
             let inst = graph::createStoreArrayAddressWbInst(array, dest, destOffset, value, ty);
@@ -2656,7 +2656,7 @@ impl SsaGen {
             let ty = self.graphTy(ty);
 
             if !ty.isUnit() {
-                let value = graph::createLoadInst(src, srcOffset, InstExtraData::None, ty);
+                let value = graph::createLoadInst(src, srcOffset, InstExtraData::None, ty, false);
                 self.current().appendInst(value);
 
                 let inst = graph::createStoreInst(dest, InstExtraData::None, destOffset, value, ty);
@@ -2688,7 +2688,7 @@ impl SsaGen {
             self.copyTuple(ty, dest, InstExtraData::None, destOffset, src, srcInfo, srcOffset, heap);
         } else if heap && config.needsWriteBarrier && isReference(self.ci, self.specializeSelf, ty) {
             let ty = Type::Ptr;
-            let value = graph::createLoadInst(src, srcOffset, srcInfo, ty);
+            let value = graph::createLoadInst(src, srcOffset, srcInfo, ty, false);
             self.current().appendInst(value);
             let inst = graph::createStoreWbInst(dest, destInfo, destOffset, value, ty);
             self.current().appendInst(inst);
@@ -2696,7 +2696,7 @@ impl SsaGen {
             let ty = self.graphTy(ty);
 
             if !ty.isUnit() {
-                let value = graph::createLoadInst(src, srcOffset, srcInfo, ty);
+                let value = graph::createLoadInst(src, srcOffset, srcInfo, ty, false);
                 self.current().appendInst(value);
                 let inst = graph::createStoreInst(dest, destInfo, destOffset, value, ty);
                 self.current().appendInst(inst);

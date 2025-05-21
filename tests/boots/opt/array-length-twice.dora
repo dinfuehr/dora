@@ -1,0 +1,10 @@
+//= boots
+
+fn main() {
+    let x = Array[Int]::zero(10);
+    assert(f(x) == 20);
+}
+
+@Optimize fn f(x: Array[Int]): Int {
+    x.size() + x.size()
+}

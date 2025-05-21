@@ -105,6 +105,26 @@ fn mergePredecessors(block: Block, per_block_data: Array[Option[LoadData]]): Loa
         }
     }
 
+    for (field, value) in first.immutable_values {
+        let mut i = 1;
+        let mut in_all = true;
+
+        while i < p {
+            let predData = predecessorData(i).getOrPanic();
+
+            if !(predData.immutable_values.get(field) is Some(x) && x == value) {
+                in_all = false;
+                break;
+            }
+
+            i += 1;
+        }
+
+        if in_all {
+            result.immutable_values.insert(field, value);
+        }
+    }
+
     result
 }
 
@@ -146,6 +166,16 @@ fn processBlock(block: Block, data: LoadData) {
                 } else {
                     data.class_values.insert(field, inst);
                 }
+            } else if inst.isImmutable() {
+                let object = inst.getInput(0).getValue();
+                let offset = inst.getOffset();
+
+                if data.getImmutableValue(object, offset) is Some(value) {
+                    inst.replaceAllUsesWith(value);
+                    inst.remove();
+                } else {
+                    data.setImmutableValue(object, offset, inst);
+                }
             }
 
         } else if op == Op::Store || op == Op::StoreWb {
@@ -176,6 +206,23 @@ fn processBlock(block: Block, data: LoadData) {
     }
 }
 
+struct ObjectWithOffset {
+    object: Inst,
+    offset: Int32,
+}
+
+impl Equals for ObjectWithOffset {
+    fn equals(other: ObjectWithOffset): Bool {
+        self.object == other.object && self.offset == other.offset
+    }
+}
+
+impl Hash for ObjectWithOffset {
+    fn hash(): Int32 {
+        self.object.hash() ^ self.offset
+    }
+}
+
 struct Field {
     object: Inst,
     class_info: ClassInfo,
@@ -198,6 +245,7 @@ class LoadData {
     initialized_globals: HashSet[Int32],
     global_values: HashMap[Int32, Inst],
     class_values: HashMap[Field, Inst],
+    immutable_values: HashMap[ObjectWithOffset, Inst],
 }
 
 impl LoadData {
@@ -206,6 +254,7 @@ impl LoadData {
             initialized_globals = HashSet[Int32]::new(),
             global_values = HashMap[Int32, Inst]::new(),
             class_values = HashMap[Field, Inst]::new(),
+            immutable_values = HashMap[ObjectWithOffset, Inst]::new(),
         )
     }
 
@@ -225,6 +274,14 @@ impl LoadData {
         self.class_values.insert(field, value);
     }
 
+    fn setImmutableValue(object: Inst, offset: Int32, value: Inst) {
+        self.immutable_values.insert(ObjectWithOffset(object, offset), value);
+    }
+
+    fn getImmutableValue(object: Inst, offset: Int32): Option[Inst] {
+        self.immutable_values.get(ObjectWithOffset(object, offset))
+    }
+
     fn kill() {
         self.global_values.clear();
         self.class_values.clear();
@@ -235,6 +292,7 @@ impl LoadData {
             initialized_globals = self.initialized_globals.clone(),
             global_values = self.global_values.clone(),
             class_values = self.class_values.clone(),
+            immutable_values = self.immutable_values.clone(),
         )
     }
 }

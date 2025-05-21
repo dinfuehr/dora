@@ -1199,6 +1199,7 @@ pub class Inst {
 
     aux: Int64,
     emitAtUseSite: Bool,
+    isImmutable: Bool,
 
     previous: Option[Inst],
     next: Option[Inst],
@@ -1224,6 +1225,7 @@ impl Inst {
             inlinedLocation = None[InlinedLocation],
             aux = 0,
             emitAtUseSite = false,
+            isImmutable = false,
             previous = None[Inst],
             next = None[Inst],
             ty = Type::Unit,
@@ -1321,6 +1323,11 @@ impl Inst {
 
     pub fn getValueType(): Type {
         self.getMaybeValueType().getOrPanic()
+    }
+
+    pub fn isImmutable(): Bool {
+        assert(self.op() == Op::Load);
+        self.isImmutable
     }
 
     pub fn getMaybeValueType(): Option[Type] {
@@ -3065,12 +3072,13 @@ pub fn createAllocateStackInst(layout: RecordLayout): Inst {
     inst
 }
 
-pub fn createLoadInst(obj: Inst, field: Int32, info: InstExtraData, ty: Type): Inst {
+pub fn createLoadInst(obj: Inst, field: Int32, info: InstExtraData, ty: Type, isImmutable: Bool): Inst {
     let inst = Inst::new();
     inst._op = Some(Op::Load);
     inst.ty = ty;
     inst.addInput(obj);
     inst.extra = info;
+    inst.isImmutable = isImmutable;
     inst.aux = field.toInt64();
     inst
 }
