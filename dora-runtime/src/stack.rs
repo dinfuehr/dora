@@ -1,3 +1,5 @@
+use std::io::{BufWriter, Write};
+
 use dora_bytecode::{display_fct, FunctionId, Location};
 
 use crate::handle::{create_handle, Handle};
@@ -22,7 +24,18 @@ impl NativeStacktrace {
         self.elems.push(StackElem { code_id, offset });
     }
 
-    pub fn dump(&self, vm: &VM, w: &mut (impl std::io::Write + ?Sized)) -> std::io::Result<()> {
+    pub fn dump_to_stderr(&self, vm: &VM) {
+        let stderr = std::io::stderr();
+        let stderr = stderr.lock();
+        // stderr() is not buffered, create BufWriter for it.
+        let mut writer = BufWriter::new(stderr);
+        self.dump(vm, &mut writer).expect("output broken");
+    }
+
+    pub fn dump<W>(&self, vm: &VM, w: &mut W) -> std::io::Result<()>
+    where
+        W: Write,
+    {
         for elem in &self.elems {
             let code = vm.code_objects.get(elem.code_id);
             let fct_id = code.fct_id();

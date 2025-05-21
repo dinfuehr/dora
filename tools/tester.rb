@@ -611,17 +611,9 @@ def run_test(test_case, config, mutex, try)
   if !$capture || !result.success?
     mutex.synchronize do
       puts "#==== STDOUT"
-      puts process_result.stdout unless process_result.stdout.empty?
-      if test_case.expectation.stdout
-        puts "#==== EXPECTED STDOUT"
-        puts test_case.expectation.stdout
-      end
+      print_output(process_result.stdout)
       puts "#==== STDERR"
-      puts process_result.stderr unless process_result.stderr.empty?
-      if test_case.expectation.stderr
-        puts "#==== EXPECTED STDERR"
-        puts test_case.expectation.stderr
-      end
+      print_output(process_result.stderr)
       if test_case.flaky?
         puts "RUN #{try} of flaky test."
       end
@@ -632,6 +624,13 @@ def run_test(test_case, config, mutex, try)
   end
 
   result
+end
+
+def print_output(output)
+  return if output.empty?
+  max_output_length = 8 * 1024 # 8 KB
+  puts output[0...max_output_length]
+  puts "OUTPUT TOO LONG AND WAS CUT OFF..." if output.length > max_output_length
 end
 
 def check_process_result(test_case, result)
