@@ -163,6 +163,10 @@ impl Gc {
         }
     }
 
+    pub fn collector(&self) -> &dyn Collector {
+        self.collector.as_ref()
+    }
+
     pub fn epoch(&self) -> usize {
         self.epoch.load(AtomicOrdering::Relaxed)
     }
@@ -222,7 +226,7 @@ impl Gc {
     }
 }
 
-trait Collector {
+pub trait Collector {
     // Allocate object of given size.
     fn alloc_tlab_area(&self, vm: &VM, size: usize) -> Option<Region>;
     fn alloc_object(&self, vm: &VM, size: usize) -> Option<Address>;

@@ -25,6 +25,7 @@ mod os;
 mod safepoint;
 mod shape;
 mod size;
+mod snapshot;
 mod stack;
 mod stdlib;
 mod threads;

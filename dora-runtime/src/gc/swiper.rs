@@ -238,6 +238,48 @@ impl Swiper {
     pub fn add_remset_segment(&self, segment: WorklistSegment) {
         self.remset2.write().push_segment(segment);
     }
+
+    pub fn iterate_heap<F>(&self, vm: &VM, mut fct: F)
+    where
+        F: FnMut(Address),
+    {
+        for page in self.young.to_pages() {
+            iterate_page(vm, page, &mut fct);
+        }
+
+        for page in self.old.pages() {
+            iterate_page(vm, page, &mut fct);
+        }
+
+        for page in self.readonly.pages() {
+            iterate_page(vm, page, &mut fct);
+        }
+
+        self.large.iterate_pages(|page| {
+            fct(page.object_address());
+        });
+    }
+}
+
+fn iterate_page<F>(vm: &VM, page: RegularPage, fct: &mut F)
+where
+    F: FnMut(Address),
+{
+    let region = page.object_area();
+    let mut curr = region.start;
+
+    while curr < region.end {
+        let object = curr.to_obj();
+        let size = object.size(vm.meta_space_start());
+
+        if !object.is_filler(vm) {
+            fct(curr);
+        }
+
+        curr = curr.offset(size);
+    }
+
+    assert!(curr == region.end, "object doesn't end at region end");
 }
 
 impl Collector for Swiper {
