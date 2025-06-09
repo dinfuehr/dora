@@ -107,6 +107,7 @@ pub struct DriverFlags {
     pub disable_tlab: bool,
     pub disable_barrier: bool,
     pub bootstrap_compiler: bool,
+    pub snapshot_on_oom: Option<String>,
     pub test_filter: Option<String>,
     pub test_boots: bool,
     pub packages: Vec<(String, PathBuf)>,
@@ -173,6 +174,7 @@ impl Default for DriverFlags {
             test_filter: None,
             test_boots: false,
             packages: Vec::new(),
+            snapshot_on_oom: None,
 
             command: Command::Run,
         }
@@ -345,6 +347,8 @@ pub fn parse_arguments() -> Result<DriverFlags, String> {
 
             flags.packages.push((name, path));
             idx += 2;
+        } else if arg.starts_with("--snapshot-on-oom=") {
+            flags.snapshot_on_oom = Some(argument_value(arg).into());
         } else if arg.starts_with("-") {
             return Err(format!("unknown flag {}", arg));
         } else if flags.arg_file.is_none() {
@@ -478,5 +482,6 @@ pub fn create_vm_flags(flags: &DriverFlags) -> VmFlags {
         disable_tlab: flags.disable_tlab,
         disable_barrier: flags.disable_barrier,
         bootstrap_compiler: flags.bootstrap_compiler,
+        snapshot_on_oom: flags.snapshot_on_oom.clone(),
     }
 }

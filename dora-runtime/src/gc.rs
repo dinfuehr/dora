@@ -2,6 +2,7 @@ use parking_lot::Mutex;
 
 use std::cmp::{Ord, Ordering, PartialOrd};
 use std::fmt;
+use std::path::PathBuf;
 use std::sync::atomic::{AtomicUsize, Ordering as AtomicOrdering};
 use std::sync::Arc;
 
@@ -18,6 +19,7 @@ use crate::gc::zero::ZeroCollector;
 use crate::mem;
 use crate::mirror::{Header, Object};
 use crate::safepoint;
+use crate::snapshot::SnapshotGenerator;
 use crate::stdlib;
 use crate::threads::DoraThread;
 use crate::vm::{CollectorName, Trap, VmFlags, VM};
@@ -132,6 +134,12 @@ impl Gc {
             if let Some(address) = self.allocate_raw(vm, size) {
                 return address;
             }
+        }
+
+        if let Some(ref snapshot_path) = vm.flags.snapshot_on_oom {
+            let snapshot_path = PathBuf::from(snapshot_path);
+            let snapshot = SnapshotGenerator::new(vm, snapshot_path).unwrap();
+            snapshot.generate().expect("Failed to generate snapshot");
         }
 
         stdlib::trap(Trap::OOM as u8 as u32);

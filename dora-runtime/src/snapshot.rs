@@ -1,6 +1,7 @@
 use std::collections::HashMap;
 use std::fs::File;
 use std::io::{BufWriter, Result as IoResult};
+use std::path::PathBuf;
 
 use crate::gc::Address;
 use crate::shape::Shape;
@@ -8,7 +9,9 @@ use crate::vm::{specialize_ty, VM};
 use crate::ShapeKind;
 use dora_bytecode::{display_ty, display_ty_array, BytecodeTypeArray, ClassId};
 
-struct SnapshotGenerator<'a> {
+mod json;
+
+pub struct SnapshotGenerator<'a> {
     writer: BufWriter<File>,
     nodes: Vec<Node>,
     nodes_map: HashMap<Address, NodeId>,
@@ -21,8 +24,8 @@ struct SnapshotGenerator<'a> {
 }
 
 impl<'a> SnapshotGenerator<'a> {
-    fn new(meta_space_start: Address, vm: &'a VM) -> IoResult<SnapshotGenerator<'a>> {
-        let f = File::create("dora.heapsnapshot")?;
+    pub fn new(vm: &'a VM, path: PathBuf) -> IoResult<SnapshotGenerator<'a>> {
+        let f = File::create(path)?;
         let writer = BufWriter::new(f);
 
         Ok(SnapshotGenerator {
@@ -32,25 +35,25 @@ impl<'a> SnapshotGenerator<'a> {
             edges: Vec::new(),
             strings: Vec::new(),
             strings_map: HashMap::new(),
-            meta_space_start,
+            meta_space_start: vm.meta_space_start(),
             shape_edge_name_idx: 0, // Will be initialized in generate()
             vm,
         })
     }
 
-    fn generate(vm: &VM) -> IoResult<()> {
-        let mut generator = SnapshotGenerator::new(vm.meta_space_start(), vm)?;
-
-        // Initialize common string indices
-        generator.shape_edge_name_idx = generator.ensure_string("shape".to_string());
-
-        generator.iterate_heap(vm);
-        generator.dump()
+    pub fn generate(mut self) -> IoResult<()> {
+        self.initialize_strings();
+        self.iterate_heap();
+        self.serialize()
     }
 
-    fn iterate_heap(&mut self, vm: &VM) {
-        let swiper = vm.gc.collector().to_swiper();
-        swiper.iterate_heap(vm, |address| self.process_object(vm, address));
+    fn initialize_strings(&mut self) {
+        self.shape_edge_name_idx = self.ensure_string("shape".to_string());
+    }
+
+    fn iterate_heap(&mut self) {
+        let swiper = self.vm.gc.collector().to_swiper();
+        swiper.iterate_heap(self.vm, |address| self.process_object(self.vm, address));
     }
 
     fn process_object(&mut self, vm: &VM, address: Address) {
@@ -82,6 +85,10 @@ impl<'a> SnapshotGenerator<'a> {
     }
 
     fn process_shape(&mut self, shape: &Shape) -> NodeId {
+        if let Some(shape_node_id) = self.nodes_map.get(&shape.address()) {
+            return *shape_node_id;
+        }
+
         let shape_node_id = self.ensure_node(shape.address());
         let shape_name = match shape.kind() {
             ShapeKind::Class(cls_id, type_params) => {
@@ -196,10 +203,6 @@ impl<'a> SnapshotGenerator<'a> {
 
     fn node_mut(&mut self, id: NodeId) -> &mut Node {
         &mut self.nodes[id.0]
-    }
-
-    fn dump(&self) -> IoResult<()> {
-        unimplemented!()
     }
 }
 

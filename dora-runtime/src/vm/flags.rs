@@ -43,6 +43,7 @@ pub struct VmFlags {
     pub disable_tlab: bool,
     pub disable_barrier: bool,
     pub bootstrap_compiler: bool,
+    pub snapshot_on_oom: Option<String>,
 }
 
 impl VmFlags {
