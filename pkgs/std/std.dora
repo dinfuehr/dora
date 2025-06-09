@@ -198,3 +198,5 @@ impl StacktraceElement {
     self.text
   }
 }
+
+@internal pub fn takeHeapSnapshot();

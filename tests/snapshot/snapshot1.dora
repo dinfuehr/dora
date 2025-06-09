@@ -1,0 +1,10 @@
+//= ignore
+
+class Foo {
+    value: String,
+}
+
+fn main() {
+    let foo = Foo(value = "This is a test");
+    std::takeHeapSnapshot();
+}

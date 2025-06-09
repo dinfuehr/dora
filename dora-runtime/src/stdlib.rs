@@ -85,6 +85,10 @@ pub const STDLIB_FUNCTIONS: &[(&'static str, FctImplementation)] = &[
         "stdlib::Stacktrace#capture",
         N(stack::capture_stack_trace as *const u8),
     ),
+    (
+        "stdlib::takeHeapSnapshot",
+        N(stdlib::take_heap_snapshot as *const u8),
+    ),
     // Bool
     (
         "stdlib::traits::Equals for stdlib::primitives::Bool#equals",
@@ -1081,4 +1085,13 @@ pub extern "C" fn condition_wakeup_one(cond: Handle<Object>) {
 pub extern "C" fn condition_wakeup_all(cond: Handle<Object>) {
     let vm = get_vm();
     vm.wait_lists.wakeup_all(cond.direct_ptr());
+}
+
+pub extern "C" fn take_heap_snapshot() {
+    use crate::snapshot::SnapshotGenerator;
+    use std::path::PathBuf;
+
+    let vm = get_vm();
+    let snapshot = SnapshotGenerator::new(vm, PathBuf::from("dora.heapsnapshot")).unwrap();
+    snapshot.generate().expect("Failed to generate snapshot");
 }
