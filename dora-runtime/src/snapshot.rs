@@ -2,9 +2,13 @@ use std::collections::HashMap;
 use std::fs::File;
 use std::io::{BufWriter, Result as IoResult};
 use std::path::PathBuf;
+use std::sync::Arc;
 
+use crate::gc::root::iterate_strong_roots;
 use crate::gc::Address;
+use crate::safepoint;
 use crate::shape::Shape;
+use crate::threads::DoraThread;
 use crate::vm::{specialize_ty, VM};
 use crate::ShapeKind;
 use dora_bytecode::{display_ty, display_ty_array, BytecodeTypeArray, ClassId};
@@ -42,13 +46,43 @@ impl<'a> SnapshotGenerator<'a> {
     }
 
     pub fn generate(mut self) -> IoResult<()> {
-        self.initialize_strings();
-        self.iterate_heap();
-        self.serialize()
+        safepoint::stop_the_world(self.vm, |threads| {
+            self.initialize_strings();
+            self.iterate_roots(threads);
+            self.iterate_heap();
+            self.serialize()
+        })
     }
 
     fn initialize_strings(&mut self) {
         self.shape_edge_name_idx = self.ensure_string("shape".to_string());
+    }
+
+    fn iterate_roots(&mut self, threads: &[Arc<DoraThread>]) {
+        assert!(self.nodes.is_empty());
+        self.nodes.push(Node {
+            edge_count: 0,
+            self_size: 0,
+            name: None,
+            kind: NodeKind::Synthetic,
+        });
+        let root_node_id = NodeId(0);
+        let mut edges = 0;
+
+        iterate_strong_roots(self.vm, threads, |slot| {
+            let object_address = slot.get();
+            let object_node_id = self.ensure_node(object_address);
+
+            self.edges.push(Edge {
+                name_or_idx: edges,
+                to_node_index: object_node_id,
+            });
+
+            edges += 1;
+        });
+
+        self.node_mut(root_node_id).edge_count = edges;
+        self.node_mut(root_node_id).name = Some(self.ensure_string("root".into()));
     }
 
     fn iterate_heap(&mut self) {
@@ -188,7 +222,12 @@ impl<'a> SnapshotGenerator<'a> {
     fn ensure_node(&mut self, address: Address) -> NodeId {
         *self.nodes_map.entry(address).or_insert_with(|| {
             let id = NodeId(self.nodes.len());
-            self.nodes.push(Default::default());
+            self.nodes.push(Node {
+                kind: NodeKind::Object,
+                edge_count: 0,
+                self_size: 0,
+                name: None,
+            });
             id
         })
     }
@@ -209,11 +248,16 @@ impl<'a> SnapshotGenerator<'a> {
 #[derive(Clone, Copy)]
 struct NodeId(usize);
 
-#[derive(Default)]
 struct Node {
     edge_count: usize,
     self_size: usize,
     name: Option<usize>, // Index into strings array
+    kind: NodeKind,
+}
+
+enum NodeKind {
+    Object,
+    Synthetic,
 }
 
 struct Edge {
