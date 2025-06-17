@@ -24,6 +24,7 @@ pub struct SnapshotGenerator<'a> {
     strings_map: HashMap<String, usize>,
     meta_space_start: Address,
     shape_edge_name_idx: usize,
+    empty_string_idx: usize,
     vm: &'a VM,
 }
 
@@ -40,7 +41,8 @@ impl<'a> SnapshotGenerator<'a> {
             strings: Vec::new(),
             strings_map: HashMap::new(),
             meta_space_start: vm.meta_space_start(),
-            shape_edge_name_idx: 0, // Will be initialized in generate()
+            shape_edge_name_idx: 0, // Will be initialized later.
+            empty_string_idx: 0,
             vm,
         })
     }
@@ -56,6 +58,7 @@ impl<'a> SnapshotGenerator<'a> {
 
     fn initialize_strings(&mut self) {
         self.shape_edge_name_idx = self.ensure_string("shape".to_string());
+        self.empty_string_idx = self.ensure_string("".to_string());
     }
 
     fn iterate_roots(&mut self, threads: &[Arc<DoraThread>]) {
@@ -76,6 +79,7 @@ impl<'a> SnapshotGenerator<'a> {
             self.edges.push(Edge {
                 name_or_idx: edges,
                 to_node_index: object_node_id,
+                kind: EdgeKind::Element,
             });
 
             edges += 1;
@@ -104,6 +108,7 @@ impl<'a> SnapshotGenerator<'a> {
         self.edges.push(Edge {
             name_or_idx: self.shape_edge_name_idx,
             to_node_index: shape_node_id,
+            kind: EdgeKind::Property,
         });
 
         // Add edges for each reference field
@@ -210,6 +215,7 @@ impl<'a> SnapshotGenerator<'a> {
                     self.edges.push(Edge {
                         name_or_idx: field_name_idx,
                         to_node_index: field_node_id,
+                        kind: EdgeKind::Property,
                     });
                     edge_count += 1;
                 }
@@ -255,6 +261,7 @@ struct Node {
     kind: NodeKind,
 }
 
+#[derive(Clone, Copy)]
 enum NodeKind {
     Object,
     Synthetic,
@@ -263,4 +270,11 @@ enum NodeKind {
 struct Edge {
     name_or_idx: usize,
     to_node_index: NodeId,
+    kind: EdgeKind,
+}
+
+#[derive(Clone, Copy)]
+enum EdgeKind {
+    Element,
+    Property,
 }
