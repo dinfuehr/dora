@@ -52,7 +52,7 @@ impl<'a> SnapshotGenerator<'a> {
             }
             write!(
                 self.writer,
-                r#"    [{}, {}, {}, {}, {}]"#,
+                r#"{},{},{},{},{}"#,
                 node_kind_encoding(node.kind),
                 node.name.unwrap_or_else(|| self.empty_string_idx),
                 i,
@@ -66,17 +66,22 @@ impl<'a> SnapshotGenerator<'a> {
 
     fn serialize_edges(&mut self) -> IoResult<()> {
         writeln!(self.writer, r#"  "edges": ["#)?;
-        for (i, edge) in self.edges.iter().enumerate() {
-            if i > 0 {
-                writeln!(self.writer, ",")?;
+        let mut first = true;
+        for node in &self.nodes {
+            for i in 0..node.edge_count {
+                if !first {
+                    writeln!(self.writer, ",")?;
+                }
+                let edge = &self.edges[node.first_edge.0 + i];
+                write!(
+                    self.writer,
+                    r#"{},{},{}"#,
+                    edge_kind_encoding(edge.kind),
+                    edge.name_or_idx,
+                    edge.to_node_index.0 * NODE_FIELD_COUNT
+                )?;
+                first = false;
             }
-            write!(
-                self.writer,
-                r#"    [{}, {}, {}]"#,
-                edge_kind_encoding(edge.kind),
-                edge.name_or_idx,
-                edge.to_node_index.0
-            )?;
         }
         writeln!(self.writer, "\n  ],")?;
         Ok(())
@@ -94,6 +99,9 @@ impl<'a> SnapshotGenerator<'a> {
         Ok(())
     }
 }
+
+const EDGE_FIELD_COUNT: usize = 3;
+const NODE_FIELD_COUNT: usize = 5;
 
 fn node_kind_encoding(kind: NodeKind) -> usize {
     match kind {

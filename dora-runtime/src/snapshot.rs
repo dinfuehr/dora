@@ -12,6 +12,7 @@ use crate::threads::DoraThread;
 use crate::vm::{specialize_ty, VM};
 use crate::ShapeKind;
 use dora_bytecode::{display_ty, display_ty_array, BytecodeTypeArray, ClassId};
+use fixedbitset::FixedBitSet;
 
 mod json;
 
@@ -23,8 +24,8 @@ pub struct SnapshotGenerator<'a> {
     strings: Vec<String>,
     strings_map: HashMap<String, usize>,
     meta_space_start: Address,
-    shape_edge_name_idx: usize,
     empty_string_idx: usize,
+    shape_edge_name_idx: usize,
     vm: &'a VM,
 }
 
@@ -52,46 +53,83 @@ impl<'a> SnapshotGenerator<'a> {
             self.initialize_strings();
             self.iterate_roots(threads);
             self.iterate_heap();
+            self.verify_snapshot();
             self.serialize()
         })
     }
 
     fn initialize_strings(&mut self) {
-        self.shape_edge_name_idx = self.ensure_string("shape".to_string());
+        assert!(self.strings.is_empty());
         self.empty_string_idx = self.ensure_string("".to_string());
+        self.shape_edge_name_idx = self.ensure_string("shape".to_string());
     }
 
     fn iterate_roots(&mut self, threads: &[Arc<DoraThread>]) {
         assert!(self.nodes.is_empty());
         self.nodes.push(Node {
+            first_edge: EdgeId(0),
+            edge_count: 1,
+            self_size: 0,
+            name: None,
+            kind: NodeKind::Synthetic,
+        });
+
+        let root_node_id = NodeId(self.nodes.len());
+        self.nodes.push(Node {
+            first_edge: EdgeId(1),
             edge_count: 0,
             self_size: 0,
             name: None,
             kind: NodeKind::Synthetic,
         });
-        let root_node_id = NodeId(0);
+
+        self.add_edge(Edge {
+            name_or_idx: 0,
+            to_node_index: root_node_id,
+            kind: EdgeKind::Element,
+        });
+
         let mut edges = 0;
 
         iterate_strong_roots(self.vm, threads, |slot| {
             let object_address = slot.get();
-            let object_node_id = self.ensure_node(object_address);
 
-            self.edges.push(Edge {
-                name_or_idx: edges,
-                to_node_index: object_node_id,
-                kind: EdgeKind::Element,
-            });
+            if object_address.is_non_null() {
+                let object_node_id = self.ensure_node(object_address);
 
-            edges += 1;
+                self.add_edge(Edge {
+                    name_or_idx: edges,
+                    to_node_index: object_node_id,
+                    kind: EdgeKind::Element,
+                });
+
+                edges += 1;
+            }
         });
 
         self.node_mut(root_node_id).edge_count = edges;
-        self.node_mut(root_node_id).name = Some(self.ensure_string("root".into()));
+        self.node_mut(root_node_id).name = Some(self.ensure_string("(GC roots)".into()));
     }
 
     fn iterate_heap(&mut self) {
         let swiper = self.vm.gc.collector().to_swiper();
         swiper.iterate_heap(self.vm, |address| self.process_object(self.vm, address));
+    }
+
+    fn verify_snapshot(&mut self) {
+        let mut edge_count = 0;
+        let mut bitset = FixedBitSet::with_capacity(self.edges.len());
+
+        for (_idx, node) in self.nodes.iter().enumerate() {
+            edge_count += node.edge_count;
+
+            for edge_idx in node.first_edge.0..node.first_edge.0 + node.edge_count {
+                assert!(!bitset.contains(edge_idx));
+                bitset.insert(edge_idx);
+            }
+        }
+
+        assert_eq!(self.edges.len(), edge_count);
     }
 
     fn process_object(&mut self, vm: &VM, address: Address) {
@@ -102,24 +140,20 @@ impl<'a> SnapshotGenerator<'a> {
         let shape = object.header().shape(self.meta_space_start);
         let shape_node_id = self.process_shape(shape);
 
+        self.node_mut(node_id).first_edge = EdgeId(self.edges.len());
         self.node_mut(node_id).self_size = size;
 
-        // Add edge from object to shape
-        self.edges.push(Edge {
+        let mut edge_count = 1;
+        self.add_edge(Edge {
             name_or_idx: self.shape_edge_name_idx,
             to_node_index: shape_node_id,
             kind: EdgeKind::Property,
         });
 
-        // Add edges for each reference field
-        let mut edge_count = 1; // Start with 1 for the shape edge
-
-        // Handle class fields
         if let ShapeKind::Class(cls_id, type_params) = shape.kind() {
             edge_count += self.process_class_object(vm, address, *cls_id, type_params, shape);
         }
 
-        // Update edge count
         self.node_mut(node_id).edge_count = edge_count;
     }
 
@@ -205,14 +239,14 @@ impl<'a> SnapshotGenerator<'a> {
                 let field_addr = address.offset(field_offset as usize);
                 let field_value = unsafe { *(field_addr.to_ptr::<Address>()) };
 
-                if !field_value.is_null() {
+                if field_value.is_non_null() {
                     let field_node_id = self.ensure_node(field_value);
                     let field_name = match &field.name {
                         Some(name) => name.clone(),
                         None => format!("field_{}", field_idx),
                     };
                     let field_name_idx = self.ensure_string(field_name);
-                    self.edges.push(Edge {
+                    self.add_edge(Edge {
                         name_or_idx: field_name_idx,
                         to_node_index: field_node_id,
                         kind: EdgeKind::Property,
@@ -225,11 +259,18 @@ impl<'a> SnapshotGenerator<'a> {
         edge_count
     }
 
+    fn add_edge(&mut self, edge: Edge) -> EdgeId {
+        let edge_id = EdgeId(self.edges.len());
+        self.edges.push(edge);
+        edge_id
+    }
+
     fn ensure_node(&mut self, address: Address) -> NodeId {
         *self.nodes_map.entry(address).or_insert_with(|| {
             let id = NodeId(self.nodes.len());
             self.nodes.push(Node {
                 kind: NodeKind::Object,
+                first_edge: EdgeId(0),
                 edge_count: 0,
                 self_size: 0,
                 name: None,
@@ -255,6 +296,7 @@ impl<'a> SnapshotGenerator<'a> {
 struct NodeId(usize);
 
 struct Node {
+    first_edge: EdgeId,
     edge_count: usize,
     self_size: usize,
     name: Option<usize>, // Index into strings array
@@ -266,6 +308,9 @@ enum NodeKind {
     Object,
     Synthetic,
 }
+
+#[derive(Clone, Copy)]
+struct EdgeId(usize);
 
 struct Edge {
     name_or_idx: usize,
