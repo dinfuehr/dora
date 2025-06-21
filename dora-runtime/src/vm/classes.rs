@@ -83,22 +83,19 @@ fn build_ref_fields(
     fields: &[FieldInstance],
 ) -> Vec<i32> {
     match &kind {
-        ShapeKind::Class(cls_id, type_params) => {
-            if vm.known.array_class_id() == *cls_id {
-                if size == InstanceSize::ObjArray {
-                    Vec::new()
-                } else {
-                    create_array_ref_fields(vm, type_params[0].clone())
-                }
-            } else if vm.known.string_class_id() == *cls_id {
+        ShapeKind::Class(..) => create_ref_fields(vm, fields, Vec::new()),
+
+        ShapeKind::Array(_cls_id, type_params) => {
+            if size == InstanceSize::ObjArray {
                 Vec::new()
             } else {
-                let ref_fields = Vec::new();
-                create_ref_fields(vm, &fields, ref_fields)
+                create_array_ref_fields(vm, type_params[0].clone())
             }
         }
 
-        _ => create_ref_fields(vm, &fields, Vec::new()),
+        ShapeKind::String => Vec::new(),
+
+        _ => create_ref_fields(vm, fields, Vec::new()),
     }
 }
 
