@@ -6,7 +6,7 @@ use std::sync::Arc;
 
 use crate::gc::root::iterate_strong_roots;
 use crate::gc::Address;
-use crate::mirror::Str;
+use crate::mirror::{Array, Ref, Str};
 use crate::safepoint;
 use crate::shape::Shape;
 use crate::threads::DoraThread;
@@ -160,11 +160,12 @@ impl<'a> SnapshotGenerator<'a> {
 
         edge_count += match shape.kind() {
             ShapeKind::Class(cls_id, type_params) => {
-                self.process_class_object(vm, address, *cls_id, type_params, shape)
+                self.process_class_object(address, *cls_id, type_params, shape)
             }
             ShapeKind::Array(cls_id, type_params) => {
-                self.process_array_object(vm, address, *cls_id, type_params, shape)
+                self.process_array_object(address, *cls_id, type_params, shape)
             }
+            ShapeKind::String => 0,
             _ => 0,
         };
 
@@ -200,6 +201,7 @@ impl<'a> SnapshotGenerator<'a> {
                     display_ty_array(&self.vm.program, type_params)
                 )
             }
+            ShapeKind::String => "String".into(),
             ShapeKind::Lambda(fct_id, type_params) => {
                 let fct = &self.vm.program.functions[fct_id.0 as usize];
                 let params = fct
@@ -250,21 +252,20 @@ impl<'a> SnapshotGenerator<'a> {
 
     fn process_class_object(
         &mut self,
-        vm: &VM,
         address: Address,
         cls_id: ClassId,
         type_params: &BytecodeTypeArray,
         shape: &Shape,
     ) -> usize {
         let mut edge_count = 0;
-        let class = vm.class(cls_id);
+        let class = self.vm.class(cls_id);
 
         for (field_idx, field) in class.fields.iter().enumerate() {
-            let ty = specialize_ty(vm, None, field.ty.clone(), type_params);
+            let ty = specialize_ty(self.vm, None, field.ty.clone(), type_params);
             let field_offset = shape.fields[field_idx].offset;
             let field_addr = address.offset(field_offset as usize);
 
-            let value_node_id = self.process_value(field_addr, ty);
+            let value_node_id = self.process_value(field_addr, &ty);
 
             let field_name = if let Some(name) = field.name.as_ref() {
                 name.clone()
@@ -284,7 +285,7 @@ impl<'a> SnapshotGenerator<'a> {
         edge_count
     }
 
-    fn process_value(&mut self, value_address: Address, ty: BytecodeType) -> NodeId {
+    fn process_value(&mut self, value_address: Address, ty: &BytecodeType) -> NodeId {
         match ty {
             BytecodeType::Unit => self.ensure_value("()".into()),
             BytecodeType::Bool => {
@@ -342,13 +343,34 @@ impl<'a> SnapshotGenerator<'a> {
 
     fn process_array_object(
         &mut self,
-        _vm: &VM,
-        _address: Address,
+        address: Address,
         _cls_id: ClassId,
-        _type_params: &BytecodeTypeArray,
-        _shape: &Shape,
+        type_params: &BytecodeTypeArray,
+        shape: &Shape,
     ) -> usize {
-        0
+        let mut edge_count = 0;
+        let array: Ref<Array<u8>> = address.into();
+        let length = array.len();
+
+        assert_eq!(shape.instance_size(), 0);
+        let element_size = shape.element_size();
+        let mut element_addr = array.data_address();
+
+        assert_eq!(type_params.len(), 1);
+        let ty = type_params[0].clone();
+
+        for element_idx in 0..length {
+            let element_node_id = self.process_value(element_addr, &ty);
+            self.add_edge(Edge {
+                name_or_idx: element_idx,
+                to_node_index: element_node_id,
+                kind: EdgeKind::Element,
+            });
+            edge_count += 1;
+            element_addr = element_addr.offset(element_size);
+        }
+
+        edge_count
     }
 
     fn add_edge(&mut self, edge: Edge) -> EdgeId {

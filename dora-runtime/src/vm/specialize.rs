@@ -297,8 +297,10 @@ pub fn create_shape_for_class(
 
     debug_assert!(type_params.iter().all(|ty| ty.is_concrete_type()));
 
-    if vm.known.array_class_id() == cls_id || vm.known.string_class_id() == cls_id {
+    if vm.known.array_class_id() == cls_id {
         create_shape_for_array_class(vm, cls_id, cls, type_params)
+    } else if vm.known.string_class_id() == cls_id {
+        create_shape_for_string_class(vm, cls_id, cls, type_params)
     } else {
         create_shape_for_regular_class(vm, cls_id, cls, type_params)
     }
@@ -429,6 +431,30 @@ fn create_shape_for_array_class(
         Vec::new(),
         0,
     );
+
+    let old = specializations.insert((cls_id, type_params.clone()), shape);
+    assert!(old.is_none());
+
+    shape
+}
+
+fn create_shape_for_string_class(
+    vm: &VM,
+    cls_id: ClassId,
+    cls: &ClassData,
+    type_params: &BytecodeTypeArray,
+) -> *const Shape {
+    assert_eq!(cls_id, vm.known.string_class_id());
+    assert!(cls.fields.is_empty());
+    assert!(type_params.is_empty());
+
+    let mut specializations = vm.class_shapes.write();
+
+    if let Some(&shape) = specializations.get(&(cls_id, type_params.clone())) {
+        return shape;
+    }
+
+    let shape = create_shape(vm, ShapeKind::String, InstanceSize::Str, Vec::new(), 0);
 
     let old = specializations.insert((cls_id, type_params.clone()), shape);
     assert!(old.is_none());
