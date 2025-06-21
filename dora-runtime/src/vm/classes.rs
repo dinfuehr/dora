@@ -5,6 +5,7 @@ use dora_bytecode::{BytecodeType, BytecodeTypeArray, ClassId, EnumId, FunctionId
 
 #[derive(Clone, Debug)]
 pub enum ShapeKind {
+    Array(ClassId, BytecodeTypeArray),
     Class(ClassId, BytecodeTypeArray),
     Lambda(FunctionId, BytecodeTypeArray),
     TraitObject {

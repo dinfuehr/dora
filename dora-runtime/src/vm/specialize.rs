@@ -424,7 +424,7 @@ fn create_shape_for_array_class(
 
     let shape = create_shape(
         vm,
-        ShapeKind::Class(cls_id, type_params.clone()),
+        ShapeKind::Array(cls_id, type_params.clone()),
         size,
         Vec::new(),
         0,

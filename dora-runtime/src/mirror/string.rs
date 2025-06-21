@@ -4,7 +4,7 @@ use std::str;
 
 use crate::gc::Address;
 use crate::mem;
-use crate::mirror::{create_handle, Handle, Header, Ref};
+use crate::mirror::{create_handle, Handle, Header, Object, Ref};
 use crate::vm::VM;
 
 #[repr(C)]
@@ -22,6 +22,10 @@ impl Str {
 
     pub fn header_mut(&mut self) -> &mut Header {
         &mut self.header
+    }
+
+    pub fn cast(obj: &Object) -> &Str {
+        unsafe { &*(obj as *const _ as *const Str) }
     }
 
     pub fn len(&self) -> usize {

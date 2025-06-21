@@ -54,7 +54,7 @@ impl<'a> SnapshotGenerator<'a> {
                 self.writer,
                 r#"{},{},{},{},{}"#,
                 node_kind_encoding(node.kind),
-                node.name.unwrap_or_else(|| self.empty_string_idx),
+                node.name.unwrap_or_else(|| self.empty_string_id).0,
                 i,
                 node.self_size,
                 node.edge_count
@@ -107,6 +107,7 @@ fn node_kind_encoding(kind: NodeKind) -> usize {
     match kind {
         NodeKind::Object => 3,
         NodeKind::Synthetic => 9,
+        NodeKind::String => 2,
     }
 }
 

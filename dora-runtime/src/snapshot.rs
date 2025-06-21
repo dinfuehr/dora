@@ -6,6 +6,7 @@ use std::sync::Arc;
 
 use crate::gc::root::iterate_strong_roots;
 use crate::gc::Address;
+use crate::mirror::Str;
 use crate::safepoint;
 use crate::shape::Shape;
 use crate::threads::DoraThread;
@@ -22,10 +23,12 @@ pub struct SnapshotGenerator<'a> {
     nodes_map: HashMap<Address, NodeId>,
     edges: Vec<Edge>,
     strings: Vec<String>,
-    strings_map: HashMap<String, usize>,
+    strings_map: HashMap<String, StringId>,
+    shape_name_map: HashMap<NodeId, StringId>,
     meta_space_start: Address,
-    empty_string_idx: usize,
-    shape_edge_name_idx: usize,
+    empty_string_id: StringId,
+    shape_edge_name_id: StringId,
+    shape_type_name_id: StringId,
     vm: &'a VM,
 }
 
@@ -41,9 +44,11 @@ impl<'a> SnapshotGenerator<'a> {
             edges: Vec::new(),
             strings: Vec::new(),
             strings_map: HashMap::new(),
+            shape_name_map: HashMap::new(),
             meta_space_start: vm.meta_space_start(),
-            shape_edge_name_idx: 0, // Will be initialized later.
-            empty_string_idx: 0,
+            shape_edge_name_id: StringId(0), // Will be initialized later.
+            shape_type_name_id: StringId(0),
+            empty_string_id: StringId(0),
             vm,
         })
     }
@@ -60,8 +65,9 @@ impl<'a> SnapshotGenerator<'a> {
 
     fn initialize_strings(&mut self) {
         assert!(self.strings.is_empty());
-        self.empty_string_idx = self.ensure_string("".to_string());
-        self.shape_edge_name_idx = self.ensure_string("shape".to_string());
+        self.empty_string_id = self.ensure_string("".to_string());
+        self.shape_edge_name_id = self.ensure_string("shape".to_string());
+        self.shape_type_name_id = self.ensure_string("Shape".to_string());
     }
 
     fn iterate_roots(&mut self, threads: &[Arc<DoraThread>]) {
@@ -145,16 +151,35 @@ impl<'a> SnapshotGenerator<'a> {
 
         let mut edge_count = 1;
         self.add_edge(Edge {
-            name_or_idx: self.shape_edge_name_idx,
+            name_or_idx: self.shape_edge_name_id.0,
             to_node_index: shape_node_id,
             kind: EdgeKind::Property,
         });
 
-        if let ShapeKind::Class(cls_id, type_params) = shape.kind() {
-            edge_count += self.process_class_object(vm, address, *cls_id, type_params, shape);
-        }
+        edge_count += match shape.kind() {
+            ShapeKind::Class(cls_id, type_params) => {
+                self.process_class_object(vm, address, *cls_id, type_params, shape)
+            }
+            ShapeKind::Array(cls_id, type_params) => {
+                self.process_array_object(vm, address, *cls_id, type_params, shape)
+            }
+            _ => 0,
+        };
 
         self.node_mut(node_id).edge_count = edge_count;
+
+        if std::ptr::eq(vm.known.string_shape(), shape) {
+            let value: String = Str::cast(object).content_utf8().into();
+            self.node_mut(node_id).name = Some(self.ensure_string(value));
+            self.node_mut(node_id).kind = NodeKind::String;
+        } else {
+            let shape_name_id = self
+                .shape_name_map
+                .get(&shape_node_id)
+                .cloned()
+                .expect("missing shape name");
+            self.node_mut(node_id).name = Some(shape_name_id);
+        }
     }
 
     fn process_shape(&mut self, shape: &Shape) -> NodeId {
@@ -164,18 +189,14 @@ impl<'a> SnapshotGenerator<'a> {
 
         let shape_node_id = self.ensure_node(shape.address());
         let shape_name = match shape.kind() {
-            ShapeKind::Class(cls_id, type_params) => {
+            ShapeKind::Class(cls_id, type_params) | ShapeKind::Array(cls_id, type_params) => {
                 let class = self.vm.class(*cls_id);
                 let class_name = class.name.clone();
-                if type_params.is_empty() {
-                    format!("Class: {}", class_name)
-                } else {
-                    format!(
-                        "Class: {}[{}]",
-                        class_name,
-                        display_ty_array(&self.vm.program, type_params)
-                    )
-                }
+                format!(
+                    "{}{}",
+                    class_name,
+                    display_ty_array(&self.vm.program, type_params)
+                )
             }
             ShapeKind::Lambda(fct_id, type_params) => {
                 let fct = &self.vm.program.functions[fct_id.0 as usize];
@@ -204,20 +225,24 @@ impl<'a> SnapshotGenerator<'a> {
             ShapeKind::Enum(enum_id, type_params) => {
                 let enum_ = &self.vm.program.enums[enum_id.0 as usize];
                 let enum_name = enum_.name.clone();
-                if type_params.is_empty() {
-                    format!("Enum: {}", enum_name)
-                } else {
-                    format!(
-                        "Enum: {}[{}]",
-                        enum_name,
-                        display_ty_array(&self.vm.program, type_params)
-                    )
-                }
+                format!(
+                    "Enum: {}{}",
+                    enum_name,
+                    display_ty_array(&self.vm.program, type_params)
+                )
             }
             ShapeKind::Builtin => unreachable!(),
         };
-        let shape_name_idx = self.ensure_string(shape_name);
-        self.node_mut(shape_node_id).name = Some(shape_name_idx);
+
+        {
+            let shape_instance_name_id = self.ensure_string(shape_name.clone());
+            assert!(self
+                .shape_name_map
+                .insert(shape_node_id, shape_instance_name_id)
+                .is_none());
+        }
+
+        self.node_mut(shape_node_id).name = Some(self.shape_type_name_id);
         shape_node_id
     }
 
@@ -247,7 +272,7 @@ impl<'a> SnapshotGenerator<'a> {
                     };
                     let field_name_idx = self.ensure_string(field_name);
                     self.add_edge(Edge {
-                        name_or_idx: field_name_idx,
+                        name_or_idx: field_name_idx.0,
                         to_node_index: field_node_id,
                         kind: EdgeKind::Property,
                     });
@@ -257,6 +282,17 @@ impl<'a> SnapshotGenerator<'a> {
         }
 
         edge_count
+    }
+
+    fn process_array_object(
+        &mut self,
+        _vm: &VM,
+        _address: Address,
+        _cls_id: ClassId,
+        _type_params: &BytecodeTypeArray,
+        _shape: &Shape,
+    ) -> usize {
+        0
     }
 
     fn add_edge(&mut self, edge: Edge) -> EdgeId {
@@ -279,11 +315,11 @@ impl<'a> SnapshotGenerator<'a> {
         })
     }
 
-    fn ensure_string(&mut self, s: String) -> usize {
+    fn ensure_string(&mut self, s: String) -> StringId {
         *self.strings_map.entry(s.clone()).or_insert_with(|| {
             let idx = self.strings.len();
             self.strings.push(s);
-            idx
+            StringId(idx)
         })
     }
 
@@ -292,14 +328,14 @@ impl<'a> SnapshotGenerator<'a> {
     }
 }
 
-#[derive(Clone, Copy)]
+#[derive(Clone, Copy, PartialEq, Hash, Eq)]
 struct NodeId(usize);
 
 struct Node {
     first_edge: EdgeId,
     edge_count: usize,
     self_size: usize,
-    name: Option<usize>, // Index into strings array
+    name: Option<StringId>,
     kind: NodeKind,
 }
 
@@ -307,6 +343,7 @@ struct Node {
 enum NodeKind {
     Object,
     Synthetic,
+    String,
 }
 
 #[derive(Clone, Copy)]
@@ -323,3 +360,6 @@ enum EdgeKind {
     Element,
     Property,
 }
+
+#[derive(Clone, Copy)]
+struct StringId(usize);
