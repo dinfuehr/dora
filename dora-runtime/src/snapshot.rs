@@ -12,7 +12,7 @@ use crate::shape::Shape;
 use crate::threads::DoraThread;
 use crate::vm::{specialize_ty, VM};
 use crate::ShapeKind;
-use dora_bytecode::{display_ty, display_ty_array, BytecodeTypeArray, ClassId};
+use dora_bytecode::{display_ty, display_ty_array, BytecodeType, BytecodeTypeArray, ClassId};
 use fixedbitset::FixedBitSet;
 
 mod json;
@@ -25,6 +25,7 @@ pub struct SnapshotGenerator<'a> {
     strings: Vec<String>,
     strings_map: HashMap<String, StringId>,
     shape_name_map: HashMap<NodeId, StringId>,
+    value_map: HashMap<StringId, NodeId>,
     meta_space_start: Address,
     empty_string_id: StringId,
     shape_edge_name_id: StringId,
@@ -49,6 +50,7 @@ impl<'a> SnapshotGenerator<'a> {
             shape_edge_name_id: StringId(0), // Will be initialized later.
             shape_type_name_id: StringId(0),
             empty_string_id: StringId(0),
+            value_map: HashMap::new(),
             vm,
         })
     }
@@ -259,29 +261,83 @@ impl<'a> SnapshotGenerator<'a> {
 
         for (field_idx, field) in class.fields.iter().enumerate() {
             let ty = specialize_ty(vm, None, field.ty.clone(), type_params);
-            if ty.is_reference_type() {
-                let field_offset = shape.fields[field_idx].offset;
-                let field_addr = address.offset(field_offset as usize);
-                let field_value = unsafe { *(field_addr.to_ptr::<Address>()) };
+            let field_offset = shape.fields[field_idx].offset;
+            let field_addr = address.offset(field_offset as usize);
 
-                if field_value.is_non_null() {
-                    let field_node_id = self.ensure_node(field_value);
-                    let field_name = match &field.name {
-                        Some(name) => name.clone(),
-                        None => format!("field_{}", field_idx),
-                    };
-                    let field_name_idx = self.ensure_string(field_name);
-                    self.add_edge(Edge {
-                        name_or_idx: field_name_idx.0,
-                        to_node_index: field_node_id,
-                        kind: EdgeKind::Property,
-                    });
-                    edge_count += 1;
-                }
-            }
+            let value_node_id = self.process_value(field_addr, ty);
+
+            let field_name = if let Some(name) = field.name.as_ref() {
+                name.clone()
+            } else {
+                format!("field_{}", field_idx)
+            };
+
+            let field_name_idx = self.ensure_string(field_name);
+            self.add_edge(Edge {
+                name_or_idx: field_name_idx.0,
+                to_node_index: value_node_id,
+                kind: EdgeKind::Property,
+            });
+            edge_count += 1;
         }
 
         edge_count
+    }
+
+    fn process_value(&mut self, value_address: Address, ty: BytecodeType) -> NodeId {
+        match ty {
+            BytecodeType::Unit => self.ensure_value("()".into()),
+            BytecodeType::Bool => {
+                let value = format!("{}", value_address.load::<bool>());
+                self.ensure_value(value)
+            }
+            BytecodeType::Char => {
+                let value = format!("{}", value_address.load::<char>());
+                self.ensure_value(value)
+            }
+            BytecodeType::UInt8 => {
+                let value = format!("{}", value_address.load::<u8>());
+                self.ensure_value(value)
+            }
+            BytecodeType::Int32 => {
+                let value = format!("{}", value_address.load::<i32>());
+                self.ensure_value(value)
+            }
+            BytecodeType::Int64 => {
+                let value = format!("{}", value_address.load::<i64>());
+                self.ensure_value(value)
+            }
+            BytecodeType::Float32 => {
+                let value = format!("{}", value_address.load::<f32>());
+                self.ensure_value(value)
+            }
+
+            BytecodeType::Float64 => {
+                let value = format!("{}", value_address.load::<f64>());
+                self.ensure_value(value)
+            }
+
+            BytecodeType::Tuple(..) => self.ensure_value("<tuple>".into()),
+            BytecodeType::Struct(..) => self.ensure_value("<struct>".into()),
+            BytecodeType::Enum(..) => self.ensure_value("<enum>".into()),
+
+            BytecodeType::Class(..) | BytecodeType::TraitObject(..) | BytecodeType::Lambda(..) => {
+                let field_value = value_address.load::<Address>();
+
+                if field_value.is_non_null() {
+                    self.ensure_node(field_value)
+                } else {
+                    self.ensure_value("null".into())
+                }
+            }
+
+            BytecodeType::Ptr
+            | BytecodeType::This
+            | BytecodeType::TypeParam(..)
+            | BytecodeType::TypeAlias(..)
+            | BytecodeType::Assoc { .. }
+            | BytecodeType::GenericAssoc { .. } => unreachable!(),
+        }
     }
 
     fn process_array_object(
@@ -323,6 +379,28 @@ impl<'a> SnapshotGenerator<'a> {
         })
     }
 
+    fn ensure_value(&mut self, value: String) -> NodeId {
+        let value_string_id = self.ensure_string(value);
+
+        if let Some(node_id) = self.value_map.get(&value_string_id) {
+            return *node_id;
+        }
+
+        let node_id = NodeId(self.nodes.len());
+
+        self.nodes.push(Node {
+            kind: NodeKind::String,
+            first_edge: EdgeId(0),
+            edge_count: 0,
+            self_size: 0,
+            name: Some(value_string_id),
+        });
+
+        assert!(self.value_map.insert(value_string_id, node_id).is_none());
+
+        node_id
+    }
+
     fn node_mut(&mut self, id: NodeId) -> &mut Node {
         &mut self.nodes[id.0]
     }
@@ -361,5 +439,5 @@ enum EdgeKind {
     Property,
 }
 
-#[derive(Clone, Copy)]
+#[derive(Clone, Copy, PartialEq, Hash, Eq)]
 struct StringId(usize);

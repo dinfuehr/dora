@@ -1,10 +1,15 @@
 //= ignore
 
 class Foo {
-    value: String,
+    name: String,
+    x: Int32,
+    y: Int64,
+    f1: Float32,
+    f2: Float64,
+    b: Bool
 }
 
 fn main() {
-    let foo = Foo(value = "This is a test");
+    let foo = Foo(name = "This is a test", x = 1i32, y = 2, f1 = 3.0f32, f2 = 4.5, b = true);
     std::takeHeapSnapshot();
 }

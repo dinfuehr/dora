@@ -380,6 +380,11 @@ impl Address {
     pub fn is_power_of_2_aligned(self, aligned_bits: usize) -> bool {
         mem::is_power_of_2_aligned(self.to_usize(), aligned_bits)
     }
+
+    #[inline(always)]
+    pub fn load<T: Copy>(self) -> T {
+        unsafe { *self.to_ptr::<T>() }
+    }
 }
 
 impl fmt::Display for Address {
