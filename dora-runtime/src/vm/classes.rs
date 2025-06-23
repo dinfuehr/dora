@@ -13,7 +13,7 @@ pub enum ShapeKind {
         trait_ty: BytecodeType,
         actual_object_ty: BytecodeType,
     },
-    Enum(EnumId, BytecodeTypeArray),
+    Enum(EnumId, BytecodeTypeArray, u32),
     Builtin,
 }
 

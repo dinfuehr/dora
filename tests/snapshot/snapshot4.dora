@@ -1,0 +1,19 @@
+//= ignore
+
+struct Bar {
+    a: Float32,
+    b: Float64,
+    c: String,
+}
+
+class Foo {
+    name: String,
+    x: Int32,
+    f: Bar,
+}
+
+fn main() {
+    let bar = Bar(a = 1.0f32, b = 4.0, c = "Another test");
+    let foo = Foo(name = "This is a test", x = 1i32, f = bar);
+    std::takeHeapSnapshot();
+}

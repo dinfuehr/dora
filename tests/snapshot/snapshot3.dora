@@ -1,0 +1,12 @@
+//= ignore
+
+class Foo {
+    name: String,
+    x: Int32,
+    f: (Float32, Float64),
+}
+
+fn main() {
+    let foo = Foo(name = "This is a test", x = 1i32, f = (1.0f32, 4.0));
+    std::takeHeapSnapshot();
+}

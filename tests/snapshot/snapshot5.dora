@@ -1,0 +1,26 @@
+//= ignore
+
+enum Bar {
+    A(Float64),
+    B(String)
+}
+
+enum Baz {
+    X, Y, Z
+}
+
+class Foo {
+    b1: Bar,
+    b2: Bar,
+    baz: Baz,
+    name1: Option[String],
+    name2: Option[String],
+}
+
+fn main() {
+    let b1 = Bar::A(42.0);
+    let b2 = Bar::B("This is a test");
+    let foo = Foo(b1, b2, baz = Baz::Y, name1 = None[String], name2 = Some[String]("Yes, I have a name!"));
+    let lambda = |x: Int| { println("Hello ${x}: ${foo.name1}!"); };
+    std::takeHeapSnapshot();
+}

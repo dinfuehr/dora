@@ -10,9 +10,14 @@ use crate::mirror::{Array, Ref, Str};
 use crate::safepoint;
 use crate::shape::Shape;
 use crate::threads::DoraThread;
-use crate::vm::{specialize_ty, VM};
+use crate::vm::{
+    create_enum_instance, create_struct_instance, get_concrete_tuple_bty, specialize_ty,
+    EnumLayout, VM,
+};
 use crate::ShapeKind;
-use dora_bytecode::{display_ty, display_ty_array, BytecodeType, BytecodeTypeArray, ClassId};
+use dora_bytecode::{
+    display_ty, display_ty_array, BytecodeType, BytecodeTypeArray, ClassId, EnumId,
+};
 use fixedbitset::FixedBitSet;
 
 mod json;
@@ -32,6 +37,10 @@ pub struct SnapshotGenerator<'a> {
     shape_edge_name_id: StringId,
     shape_type_name_id: StringId,
     length_name_id: StringId,
+    value_name_id: StringId,
+    variant_name_id: StringId,
+    actual_object_name_id: StringId,
+    context_name_id: StringId,
     vm: &'a VM,
 }
 
@@ -55,6 +64,10 @@ impl<'a> SnapshotGenerator<'a> {
             shape_type_name_id: placeholder,
             empty_string_id: placeholder,
             length_name_id: placeholder,
+            value_name_id: placeholder,
+            variant_name_id: placeholder,
+            actual_object_name_id: placeholder,
+            context_name_id: placeholder,
             value_map: HashMap::new(),
             vm,
         })
@@ -76,6 +89,10 @@ impl<'a> SnapshotGenerator<'a> {
         self.shape_edge_name_id = self.ensure_string("shape".to_string());
         self.shape_type_name_id = self.ensure_string("Shape".to_string());
         self.length_name_id = self.ensure_string("length".to_string());
+        self.value_name_id = self.ensure_string("value".to_string());
+        self.variant_name_id = self.ensure_string("variant".to_string());
+        self.actual_object_name_id = self.ensure_string("actual_object".to_string());
+        self.context_name_id = self.ensure_string("context".to_string());
     }
 
     fn iterate_roots(&mut self, threads: &[Arc<DoraThread>]) {
@@ -154,7 +171,6 @@ impl<'a> SnapshotGenerator<'a> {
         let shape = object.header().shape(self.meta_space_start);
         let shape_node_id = self.process_shape(shape);
 
-        self.node_mut(node_id).first_edge = EdgeId(self.edges.len());
         self.node_mut(node_id).self_size = size;
 
         let edge_start_idx = self.edge_buffer.len();
@@ -175,12 +191,26 @@ impl<'a> SnapshotGenerator<'a> {
                 self.process_array_object(address, *cls_id, type_params, shape);
             }
 
+            ShapeKind::Enum(enum_id, type_params, variant_id) => {
+                self.process_enum_object(address, *enum_id, type_params, *variant_id, shape);
+            }
+
             ShapeKind::String => {
                 is_string = true;
             }
-            _ => {}
+
+            ShapeKind::Builtin => (),
+
+            ShapeKind::Lambda(..) => {
+                self.process_special_object(address, shape, self.context_name_id);
+            }
+
+            ShapeKind::TraitObject { .. } => {
+                self.process_special_object(address, shape, self.actual_object_name_id);
+            }
         }
 
+        self.node_mut(node_id).first_edge = EdgeId(self.edges.len());
         self.node_mut(node_id).edge_count = self.edge_buffer.len() - edge_start_idx;
         self.edges.extend(self.edge_buffer.drain(edge_start_idx..));
 
@@ -220,6 +250,7 @@ impl<'a> SnapshotGenerator<'a> {
                 let params = fct
                     .params
                     .iter()
+                    .skip(1)
                     .map(|ty| {
                         let ty = specialize_ty(self.vm, None, ty.clone(), type_params);
                         display_ty(&self.vm.program, &ty)
@@ -234,18 +265,19 @@ impl<'a> SnapshotGenerator<'a> {
                 actual_object_ty,
             } => {
                 format!(
-                    "TraitObject: {} as {}",
+                    "{} as {}",
                     display_ty(&self.vm.program, actual_object_ty),
                     display_ty(&self.vm.program, trait_ty)
                 )
             }
-            ShapeKind::Enum(enum_id, type_params) => {
+            ShapeKind::Enum(enum_id, type_params, variant_idx) => {
                 let enum_ = &self.vm.program.enums[enum_id.0 as usize];
                 let enum_name = enum_.name.clone();
                 format!(
-                    "Enum: {}{}",
+                    "{}{}::{}",
                     enum_name,
-                    display_ty_array(&self.vm.program, type_params)
+                    display_ty_array(&self.vm.program, type_params),
+                    enum_.variants[*variant_idx as usize].name
                 )
             }
             ShapeKind::Builtin => unreachable!(),
@@ -279,19 +311,66 @@ impl<'a> SnapshotGenerator<'a> {
 
             let value_node_id = self.process_value(field_addr, &ty);
 
-            let field_name = if let Some(name) = field.name.as_ref() {
-                name.clone()
+            if let Some(name) = field.name.clone() {
+                let field_name_id = self.ensure_string(name);
+                self.edge_buffer.push(Edge {
+                    name_or_idx: field_name_id.0,
+                    to_node_index: value_node_id,
+                    kind: EdgeKind::Property,
+                });
             } else {
-                format!("field_{}", field_idx)
-            };
-
-            let field_name_idx = self.ensure_string(field_name);
-            self.edge_buffer.push(Edge {
-                name_or_idx: field_name_idx.0,
-                to_node_index: value_node_id,
-                kind: EdgeKind::Property,
-            });
+                self.edge_buffer.push(Edge {
+                    name_or_idx: field_idx,
+                    to_node_index: value_node_id,
+                    kind: EdgeKind::Element,
+                });
+            }
         }
+    }
+
+    fn process_enum_object(
+        &mut self,
+        address: Address,
+        _enum_id: EnumId,
+        _type_params: &BytecodeTypeArray,
+        _variant_id: u32,
+        shape: &Shape,
+    ) {
+        for (field_idx, field) in shape.fields.iter().enumerate() {
+            let field_offset = shape.fields[field_idx].offset;
+            let field_addr = address.offset(field_offset as usize);
+
+            let value_node_id = self.process_value(field_addr, &field.ty);
+
+            if field_idx == 0 {
+                self.edge_buffer.push(Edge {
+                    name_or_idx: self.variant_name_id.0,
+                    to_node_index: value_node_id,
+                    kind: EdgeKind::Property,
+                });
+            } else {
+                self.edge_buffer.push(Edge {
+                    name_or_idx: field_idx - 1,
+                    to_node_index: value_node_id,
+                    kind: EdgeKind::Element,
+                });
+            }
+        }
+    }
+
+    fn process_special_object(&mut self, address: Address, shape: &Shape, name_id: StringId) {
+        assert_eq!(shape.fields.len(), 1);
+
+        let field = &shape.fields[0];
+        let field_addr = address.offset(field.offset as usize);
+
+        let value_node_id = self.process_value(field_addr, &field.ty);
+
+        self.edge_buffer.push(Edge {
+            name_or_idx: name_id.0,
+            to_node_index: value_node_id,
+            kind: EdgeKind::Property,
+        });
     }
 
     fn process_value(&mut self, value_address: Address, ty: &BytecodeType) -> NodeId {
@@ -327,11 +406,14 @@ impl<'a> SnapshotGenerator<'a> {
                 self.ensure_value(value)
             }
 
-            BytecodeType::Tuple(..) => self.ensure_value("<tuple>".into()),
-            BytecodeType::Struct(..) => self.ensure_value("<struct>".into()),
-            BytecodeType::Enum(..) => self.ensure_value("<enum>".into()),
+            BytecodeType::Tuple(..) => self.process_tuple_value(value_address, ty),
+            BytecodeType::Struct(..) => self.process_struct_value(value_address, ty),
+            BytecodeType::Enum(..) => self.process_enum_value(value_address, ty),
 
-            BytecodeType::Class(..) | BytecodeType::TraitObject(..) | BytecodeType::Lambda(..) => {
+            BytecodeType::Class(..)
+            | BytecodeType::TraitObject(..)
+            | BytecodeType::Lambda(..)
+            | BytecodeType::Ptr => {
                 let field_value = value_address.load::<Address>();
 
                 if field_value.is_non_null() {
@@ -341,13 +423,189 @@ impl<'a> SnapshotGenerator<'a> {
                 }
             }
 
-            BytecodeType::Ptr
-            | BytecodeType::This
+            BytecodeType::This
             | BytecodeType::TypeParam(..)
             | BytecodeType::TypeAlias(..)
             | BytecodeType::Assoc { .. }
             | BytecodeType::GenericAssoc { .. } => unreachable!(),
         }
+    }
+
+    fn process_tuple_value(&mut self, value_address: Address, ty: &BytecodeType) -> NodeId {
+        let tuple = get_concrete_tuple_bty(self.vm, &ty);
+        let subtypes = ty.tuple_subtypes();
+
+        let edge_start_idx = self.edge_buffer.len();
+
+        let node_id = NodeId(self.nodes.len());
+        self.nodes.push(Node {
+            kind: NodeKind::Synthetic,
+            first_edge: EdgeId(0),
+            edge_count: 0,
+            self_size: 0,
+            name: None,
+        });
+
+        for (idx, (offset, ty)) in tuple.offsets().iter().zip(subtypes.iter()).enumerate() {
+            let element_address = value_address.offset(*offset as usize);
+            let value_node_id = self.process_value(element_address, &ty);
+
+            self.edge_buffer.push(Edge {
+                name_or_idx: idx,
+                to_node_index: value_node_id,
+                kind: EdgeKind::Element,
+            });
+        }
+
+        self.node_mut(node_id).first_edge = EdgeId(self.edges.len());
+        self.node_mut(node_id).edge_count = self.edge_buffer.len() - edge_start_idx;
+        self.edges.extend(self.edge_buffer.drain(edge_start_idx..));
+
+        let params = subtypes
+            .iter()
+            .map(|ty| display_ty(&self.vm.program, &ty))
+            .collect::<Vec<_>>()
+            .join(", ");
+        let name = format!("({})", params);
+        self.node_mut(node_id).name = Some(self.ensure_string(name));
+
+        node_id
+    }
+
+    fn process_struct_value(&mut self, value_address: Address, ty: &BytecodeType) -> NodeId {
+        let (struct_id, type_params) = match ty {
+            BytecodeType::Struct(struct_id, type_params) => (*struct_id, type_params),
+            _ => unreachable!(),
+        };
+
+        let edge_start_idx = self.edge_buffer.len();
+
+        let node_id = NodeId(self.nodes.len());
+        self.nodes.push(Node {
+            kind: NodeKind::Synthetic,
+            first_edge: EdgeId(0),
+            edge_count: 0,
+            self_size: 0,
+            name: None,
+        });
+
+        let struct_ = self.vm.struct_(struct_id);
+
+        let sdef_id = create_struct_instance(self.vm, struct_id, type_params.clone());
+        let sdef = self.vm.struct_instances.idx(sdef_id);
+
+        for (idx, field) in sdef.fields.iter().enumerate() {
+            let element_address = value_address.offset(field.offset as usize);
+            let value_node_id = self.process_value(element_address, &field.ty);
+
+            if let Some(field_name) = struct_.fields[idx].name.clone() {
+                let field_name_id = self.ensure_string(field_name);
+
+                self.edge_buffer.push(Edge {
+                    name_or_idx: field_name_id.0,
+                    to_node_index: value_node_id,
+                    kind: EdgeKind::Property,
+                });
+            } else {
+                self.edge_buffer.push(Edge {
+                    name_or_idx: idx,
+                    to_node_index: value_node_id,
+                    kind: EdgeKind::Element,
+                });
+            }
+        }
+
+        self.node_mut(node_id).first_edge = EdgeId(self.edges.len());
+        self.node_mut(node_id).edge_count = self.edge_buffer.len() - edge_start_idx;
+        self.edges.extend(self.edge_buffer.drain(edge_start_idx..));
+
+        let name = format!(
+            "{}{}",
+            struct_.name,
+            display_ty_array(&self.vm.program, type_params)
+        );
+        self.node_mut(node_id).name = Some(self.ensure_string(name));
+
+        node_id
+    }
+
+    fn process_enum_value(&mut self, value_address: Address, ty: &BytecodeType) -> NodeId {
+        let (enum_id, type_params) = match ty {
+            BytecodeType::Enum(enum_id, type_params) => (*enum_id, type_params),
+            _ => unreachable!(),
+        };
+
+        let edge_start_idx = self.edge_buffer.len();
+
+        let enum_ = self.vm.enum_(enum_id);
+        let variant_name: &str;
+
+        let edef_id = create_enum_instance(self.vm, enum_id, type_params.clone());
+        let edef = self.vm.enum_instances.idx(edef_id);
+
+        match edef.layout {
+            EnumLayout::Int => {
+                let variant_id = value_address.load::<i32>() as usize;
+                variant_name = &enum_.variants[variant_id as usize].name;
+            }
+            EnumLayout::Ptr => {
+                let address = value_address.load::<Address>();
+                assert_eq!(enum_.variants.len(), 2);
+
+                let variant0 = enum_.variants.first().unwrap();
+                let variant1 = enum_.variants.last().unwrap();
+
+                let (none_variant, some_variant) = if variant0.arguments.is_empty() {
+                    (variant0, variant1)
+                } else {
+                    (variant1, variant0)
+                };
+
+                variant_name = if address.is_null() {
+                    &none_variant.name
+                } else {
+                    &some_variant.name
+                };
+
+                if address.is_non_null() {
+                    let value_node_id = self.ensure_node(address);
+                    assert_eq!(some_variant.arguments.len(), 1);
+
+                    self.edge_buffer.push(Edge {
+                        name_or_idx: self.value_name_id.0,
+                        to_node_index: value_node_id,
+                        kind: EdgeKind::Property,
+                    });
+                }
+            }
+            EnumLayout::Tagged => {
+                let address = value_address.load::<Address>();
+                return self.ensure_node(address);
+            }
+        }
+
+        let node_id = NodeId(self.nodes.len());
+        self.nodes.push(Node {
+            kind: NodeKind::Synthetic,
+            first_edge: EdgeId(0),
+            edge_count: 0,
+            self_size: 0,
+            name: None,
+        });
+
+        self.node_mut(node_id).first_edge = EdgeId(self.edges.len());
+        self.node_mut(node_id).edge_count = self.edge_buffer.len() - edge_start_idx;
+        self.edges.extend(self.edge_buffer.drain(edge_start_idx..));
+
+        let name = format!(
+            "{}{}::{}",
+            enum_.name,
+            display_ty_array(&self.vm.program, type_params),
+            variant_name,
+        );
+        self.node_mut(node_id).name = Some(self.ensure_string(name));
+
+        node_id
     }
 
     fn process_array_object(
