@@ -68,7 +68,7 @@ pub fn free(ptr: Address, size: usize) {
     debug_assert!(ptr.is_page_aligned());
     debug_assert!(mem::is_os_page_aligned(size));
 
-    use windows_sys::Win32::System::Memory::{VirtualFree, MEM_RELEASE};
+    use windows_sys::Win32::System::Memory::{MEM_RELEASE, VirtualFree};
 
     let result = unsafe { VirtualFree(ptr.to_mut_ptr(), 0, MEM_RELEASE) };
 
@@ -214,7 +214,7 @@ pub fn commit(size: usize, executable: bool) -> Address {
     debug_assert!(mem::is_os_page_aligned(size));
 
     use windows_sys::Win32::System::Memory::{
-        VirtualAlloc, MEM_COMMIT, MEM_RESERVE, PAGE_EXECUTE_READWRITE, PAGE_READWRITE,
+        MEM_COMMIT, MEM_RESERVE, PAGE_EXECUTE_READWRITE, PAGE_READWRITE, VirtualAlloc,
     };
 
     let prot = if executable {
@@ -267,8 +267,8 @@ pub fn commit_at(ptr: Address, size: usize, permissions: MemoryPermission) {
     debug_assert!(mem::is_os_page_aligned(size));
 
     use windows_sys::Win32::System::Memory::{
-        VirtualAlloc, MEM_COMMIT, PAGE_EXECUTE_READ, PAGE_EXECUTE_READWRITE, PAGE_NOACCESS,
-        PAGE_READONLY, PAGE_READWRITE,
+        MEM_COMMIT, PAGE_EXECUTE_READ, PAGE_EXECUTE_READWRITE, PAGE_NOACCESS, PAGE_READONLY,
+        PAGE_READWRITE, VirtualAlloc,
     };
 
     let protection = match permissions {
@@ -288,7 +288,7 @@ pub fn commit_at(ptr: Address, size: usize, permissions: MemoryPermission) {
 
 #[cfg(all(target_os = "macos", target_arch = "aarch64"))]
 pub fn jit_writable() {
-    extern "C" {
+    unsafe extern "C" {
         fn pthread_jit_write_protect_np(value: libc::c_int);
     }
 
@@ -304,7 +304,7 @@ pub fn jit_writable() {
 
 #[cfg(all(target_os = "macos", target_arch = "aarch64"))]
 pub fn jit_executable() {
-    extern "C" {
+    unsafe extern "C" {
         fn pthread_jit_write_protect_np(value: libc::c_int);
     }
 
@@ -335,7 +335,7 @@ fn uncommit(ptr: Address, size: usize) {
     debug_assert!(ptr.is_page_aligned());
     debug_assert!(mem::is_os_page_aligned(size));
 
-    use windows_sys::Win32::System::Memory::{VirtualFree, MEM_DECOMMIT};
+    use windows_sys::Win32::System::Memory::{MEM_DECOMMIT, VirtualFree};
 
     let result = unsafe { VirtualFree(ptr.to_mut_ptr(), size, MEM_DECOMMIT) };
 
@@ -367,7 +367,7 @@ pub fn discard(ptr: Address, size: usize) {
     debug_assert!(ptr.is_page_aligned());
     debug_assert!(mem::is_os_page_aligned(size));
 
-    use windows_sys::Win32::System::Memory::{VirtualFree, MEM_DECOMMIT};
+    use windows_sys::Win32::System::Memory::{MEM_DECOMMIT, VirtualFree};
 
     let result = unsafe { VirtualFree(ptr.to_mut_ptr(), size, MEM_DECOMMIT) };
 
@@ -407,8 +407,8 @@ pub fn protect(start: Address, size: usize, access: MemoryPermission) {
     debug_assert!(mem::is_os_page_aligned(size));
 
     use windows_sys::Win32::System::Memory::{
-        VirtualAlloc, MEM_COMMIT, PAGE_EXECUTE_READ, PAGE_EXECUTE_READWRITE, PAGE_READONLY,
-        PAGE_READWRITE,
+        MEM_COMMIT, PAGE_EXECUTE_READ, PAGE_EXECUTE_READWRITE, PAGE_READONLY, PAGE_READWRITE,
+        VirtualAlloc,
     };
 
     if access == MemoryPermission::None {

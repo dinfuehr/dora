@@ -1,9 +1,9 @@
 use std::mem::align_of;
 use std::{self, ptr, slice};
 
+use crate::ShapeKind;
 use crate::gc::Address;
 use crate::vm::{FieldInstance, VM};
-use crate::ShapeKind;
 
 #[derive(Debug)]
 #[repr(u8)]

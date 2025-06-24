@@ -2,15 +2,15 @@ use parking_lot::Mutex;
 
 use crate::gc::freelist::FreeList;
 use crate::gc::marking;
-use crate::gc::root::{determine_strong_roots, Slot};
+use crate::gc::root::{Slot, determine_strong_roots};
 use crate::gc::tlab;
 use crate::gc::{
-    default_readonly_space_config, formatted_size, iterate_weak_roots, setup_free_space, Address,
-    CollectionStats, Collector, GcReason, Region, Space,
+    Address, CollectionStats, Collector, GcReason, Region, Space, default_readonly_space_config,
+    formatted_size, iterate_weak_roots, setup_free_space,
 };
 use crate::os;
 use crate::timer::Timer;
-use crate::vm::{VmFlags, VM};
+use crate::vm::{VM, VmFlags};
 
 pub struct SweepCollector {
     heap: Region,

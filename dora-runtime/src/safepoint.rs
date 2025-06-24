@@ -1,8 +1,8 @@
-use std::sync::atomic::Ordering;
 use std::sync::Arc;
+use std::sync::atomic::Ordering;
 
-use crate::threads::{current_thread, parked_scope, DoraThread, ThreadState};
-use crate::vm::{get_vm, VmState, VM};
+use crate::threads::{DoraThread, ThreadState, current_thread, parked_scope};
+use crate::vm::{VM, VmState, get_vm};
 
 pub fn stop_the_world<F, R>(vm: &VM, operation: F) -> R
 where
@@ -20,9 +20,11 @@ where
             return ret;
         }
 
-        debug_assert!(threads
-            .iter()
-            .any(|t| t.as_ref() as *const _ == current_thread() as *const _));
+        debug_assert!(
+            threads
+                .iter()
+                .any(|t| t.as_ref() as *const _ == current_thread() as *const _)
+        );
 
         stop_threads(vm, &*threads);
         let ret = invoke_safepoint_operation(vm, &*threads, operation);

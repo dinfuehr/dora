@@ -4,7 +4,7 @@ use crate::shape::Shape;
 use crate::utils::Id;
 use crate::vm::VM;
 use dora_bytecode::ty::BytecodeTypeArray;
-use dora_bytecode::{module_path_name, EnumData, EnumId};
+use dora_bytecode::{EnumData, EnumId, module_path_name};
 
 pub fn enum_definition_name(enum_: &EnumData, vm: &VM) -> String {
     module_path_name(&vm.program, enum_.module_id, &enum_.name)

@@ -1,12 +1,12 @@
 use parking_lot::{Mutex, RwLock};
 use scoped_threadpool::Pool;
 use std::fmt;
-use std::sync::atomic::{AtomicUsize, Ordering};
 use std::sync::Arc;
+use std::sync::atomic::{AtomicUsize, Ordering};
 use threadpool::ThreadPool;
 
 use crate::gc::allocator::GenerationAllocator;
-use crate::gc::root::{determine_strong_roots, Slot};
+use crate::gc::root::{Slot, determine_strong_roots};
 use crate::gc::swiper::controller::{HeapController, SharedHeapConfig};
 use crate::gc::swiper::full::FullCollector;
 use crate::gc::swiper::heap::Heap;
@@ -18,12 +18,12 @@ use crate::gc::swiper::sweeper::Sweeper;
 use crate::gc::swiper::verify::{Verifier, VerifierPhase};
 use crate::gc::swiper::young::YoungGen;
 use crate::gc::tlab::{MAX_TLAB_SIZE, MIN_TLAB_SIZE};
-use crate::gc::{Address, Collector, GcReason, Region, Worklist, WorklistSegment, K, M};
+use crate::gc::{Address, Collector, GcReason, K, M, Region, Worklist, WorklistSegment};
 use crate::mem;
 use crate::mirror::Object;
 use crate::os::{self, Reservation};
 use crate::threads::DoraThread;
-use crate::vm::{get_vm, VmFlags, VM};
+use crate::vm::{VM, VmFlags, get_vm};
 
 mod controller;
 mod full;

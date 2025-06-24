@@ -9,18 +9,18 @@ use std::thread;
 use std::time::Duration;
 
 use crate::gc::{Address, GcReason};
-use crate::handle::{create_handle, handle_scope, Handle};
+use crate::handle::{Handle, create_handle, handle_scope};
 use crate::mirror::{Object, Ref, Str, UInt8Array};
 use crate::stack;
 use crate::stack::stacktrace_from_last_dtn;
 use crate::stdlib;
 use crate::threads::{
-    current_thread, deinit_current_thread, init_current_thread, DoraThread, ManagedThread,
-    ThreadState, STACK_SIZE,
+    DoraThread, ManagedThread, STACK_SIZE, ThreadState, current_thread, deinit_current_thread,
+    init_current_thread,
 };
 use crate::vm::{
-    get_vm, stack_pointer, FctImplementation, Intrinsic, ManagedCondition, ManagedMutex, ShapeKind,
-    Trap,
+    FctImplementation, Intrinsic, ManagedCondition, ManagedMutex, ShapeKind, Trap, get_vm,
+    stack_pointer,
 };
 
 use FctImplementation::Intrinsic as I;

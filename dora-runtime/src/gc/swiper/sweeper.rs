@@ -2,9 +2,9 @@ use parking_lot::{Condvar, Mutex, RwLock};
 
 use std::sync::atomic::{AtomicBool, AtomicUsize, Ordering};
 
-use crate::gc::swiper::{get_swiper, RegularPage};
+use crate::gc::swiper::{RegularPage, get_swiper};
 use crate::gc::{Address, Region};
-use crate::vm::{get_vm, VM};
+use crate::vm::{VM, get_vm};
 
 pub struct Sweeper {
     pages_to_sweep: RwLock<Vec<RegularPage>>,

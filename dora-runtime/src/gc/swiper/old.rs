@@ -3,7 +3,7 @@ use parking_lot::Mutex;
 use crate::gc::fill_region;
 use crate::gc::freelist::FreeList;
 use crate::gc::swiper::controller::SharedHeapConfig;
-use crate::gc::swiper::{get_swiper, RegularPage};
+use crate::gc::swiper::{RegularPage, get_swiper};
 use crate::gc::{Address, GenerationAllocator, Region};
 use crate::vm::VM;
 

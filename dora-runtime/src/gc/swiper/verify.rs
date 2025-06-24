@@ -1,13 +1,13 @@
 use std::collections::HashSet;
 use std::fmt;
 
+use crate::gc::Address;
 use crate::gc::root::Slot;
+use crate::gc::swiper::BasePage;
 use crate::gc::swiper::large::LargeSpace;
 use crate::gc::swiper::old::OldGen;
 use crate::gc::swiper::young::YoungGen;
-use crate::gc::swiper::BasePage;
 use crate::gc::swiper::{LargePage, ReadOnlySpace, RegularPage, Swiper};
-use crate::gc::Address;
 
 use crate::vm::VM;
 

@@ -1,4 +1,4 @@
-use crate::gc::{fill_region, setup_free_space, Address, K};
+use crate::gc::{Address, K, fill_region, setup_free_space};
 use crate::vm::VM;
 
 pub const SIZE_CLASSES: usize = 6;

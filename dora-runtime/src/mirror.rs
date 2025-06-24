@@ -4,9 +4,9 @@ use std::ops::{Deref, DerefMut};
 use std::ptr;
 use std::sync::atomic::{AtomicUsize, Ordering};
 
-use crate::gc::root::Slot;
 use crate::gc::Address;
-use crate::handle::{create_handle, Handle};
+use crate::gc::root::Slot;
+use crate::handle::{Handle, create_handle};
 use crate::mem;
 pub use crate::mirror::string::Str;
 use crate::vm::VM;

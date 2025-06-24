@@ -1,7 +1,7 @@
 use crate::gc::bump::BumpAllocator;
-use crate::gc::{default_readonly_space_config, Address, Collector, GcReason, Region, Space};
+use crate::gc::{Address, Collector, GcReason, Region, Space, default_readonly_space_config};
 use crate::os::{self, MemoryPermission, Reservation};
-use crate::vm::{VmFlags, VM};
+use crate::vm::{VM, VmFlags};
 
 pub struct ZeroCollector {
     start: Address,

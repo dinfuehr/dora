@@ -6,10 +6,10 @@ use std::sync::Arc;
 use std::time::Instant;
 
 use crate::gc::swiper::young::YoungGen;
-use crate::gc::swiper::{align_page_down, align_page_up, CollectionKind, Heap, PAGE_SIZE};
-use crate::gc::{formatted_size, AllNumbers, GcReason};
+use crate::gc::swiper::{CollectionKind, Heap, PAGE_SIZE, align_page_down, align_page_up};
+use crate::gc::{AllNumbers, GcReason, formatted_size};
 use crate::stdlib;
-use crate::vm::{Trap, VmFlags, VM};
+use crate::vm::{Trap, VM, VmFlags};
 
 pub fn init(config: &mut HeapController, args: &VmFlags) {
     assert!(config.min_heap_size <= config.max_heap_size);

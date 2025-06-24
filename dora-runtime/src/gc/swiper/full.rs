@@ -5,11 +5,11 @@ use fixedbitset::FixedBitSet;
 
 use crate::gc::swiper::controller::FullCollectorPhases;
 use crate::gc::swiper::{
-    walk_region, BasePage, LargeSpace, OldGen, RegularPage, SharedHeapConfig, Swiper, YoungGen,
-    PAGE_SIZE,
+    BasePage, LargeSpace, OldGen, PAGE_SIZE, RegularPage, SharedHeapConfig, Swiper, YoungGen,
+    walk_region,
 };
 use crate::gc::worklist::{Worklist, WorklistSegment};
-use crate::gc::{iterate_weak_roots, Address, GcReason, Region, Slot};
+use crate::gc::{Address, GcReason, Region, Slot, iterate_weak_roots};
 use crate::threads::DoraThread;
 use crate::vm::VM;
 

@@ -1,16 +1,16 @@
 #[cfg(not(target_os = "macos"))]
 use std::arch::asm;
 
-use dora_asm::arm64::cls::uncond_branch_imm;
 use dora_asm::arm64::Cond;
+use dora_asm::arm64::cls::uncond_branch_imm;
 use lazy_static::lazy_static;
 
-use crate::masm::CondCode;
 use crate::Address;
+use crate::masm::CondCode;
 
 #[cfg(target_os = "macos")]
 pub fn flush_icache(start: *const u8, len: usize) {
-    extern "C" {
+    unsafe extern "C" {
         fn sys_icache_invalidate(data: *const u8, len: usize);
     }
 

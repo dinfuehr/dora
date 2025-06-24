@@ -1,14 +1,14 @@
 use crate::compiler::codegen::AnyReg;
 use crate::cpu::*;
-use crate::gc::swiper::LARGE_OBJECT_SIZE;
 use crate::gc::Address;
+use crate::gc::swiper::LARGE_OBJECT_SIZE;
 use crate::masm::{CondCode, EmbeddedConstant, Label, MacroAssembler, Mem};
 use crate::mem::{fits_i32, ptr_width};
-use crate::mirror::{offset_of_array_data, offset_of_array_length, Header, REMEMBERED_BIT_SHIFT};
+use crate::mirror::{Header, REMEMBERED_BIT_SHIFT, offset_of_array_data, offset_of_array_length};
 use crate::mode::MachineMode;
 use crate::shape::Shape;
 use crate::threads::ThreadLocalData;
-use crate::vm::{get_vm, LazyCompilationSite, Trap};
+use crate::vm::{LazyCompilationSite, Trap, get_vm};
 pub use dora_asm::x64::AssemblerX64 as Assembler;
 use dora_asm::x64::Register as AsmRegister;
 use dora_asm::x64::{Address as AsmAddress, Condition, Immediate, ScaleFactor, XmmRegister};

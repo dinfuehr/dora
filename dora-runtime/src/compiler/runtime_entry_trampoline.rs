@@ -4,8 +4,8 @@ use std::sync::Arc;
 use crate::cannon::codegen::mode;
 use crate::compiler::codegen::AnyReg;
 use crate::cpu::{
-    FReg, Reg, CCALL_FREG_PARAMS, CCALL_REG_PARAMS, FREG_PARAMS, FREG_TMP1, PARAM_OFFSET, REG_FP,
-    REG_PARAMS, REG_SP, REG_THREAD, SCRATCH, STACK_FRAME_ALIGNMENT,
+    CCALL_FREG_PARAMS, CCALL_REG_PARAMS, FREG_PARAMS, FREG_TMP1, FReg, PARAM_OFFSET, REG_FP,
+    REG_PARAMS, REG_SP, REG_THREAD, Reg, SCRATCH, STACK_FRAME_ALIGNMENT,
 };
 use crate::gc::Address;
 use crate::masm::{MacroAssembler, Mem};

@@ -3,16 +3,16 @@ use parking_lot::Mutex;
 use std::cmp::{Ord, Ordering, PartialOrd};
 use std::fmt;
 use std::fs::File;
-use std::sync::atomic::{AtomicUsize, Ordering as AtomicOrdering};
 use std::sync::Arc;
+use std::sync::atomic::{AtomicUsize, Ordering as AtomicOrdering};
 
 use crate::gc::allocator::GenerationAllocator;
 use crate::gc::code::CodeSpace;
 use crate::gc::copy::CopyCollector;
 use crate::gc::metaspace::MetaSpace;
-use crate::gc::space::{default_readonly_space_config, Space};
+use crate::gc::space::{Space, default_readonly_space_config};
 use crate::gc::sweep::SweepCollector;
-use crate::gc::swiper::{align_page_up, is_page_aligned, Swiper};
+use crate::gc::swiper::{Swiper, align_page_up, is_page_aligned};
 use crate::gc::tlab::MAX_TLAB_OBJECT_SIZE;
 pub use crate::gc::worklist::{Worklist, WorklistSegment};
 use crate::gc::zero::ZeroCollector;
@@ -22,9 +22,9 @@ use crate::safepoint;
 use crate::snapshot::SnapshotGenerator;
 use crate::stdlib;
 use crate::threads::DoraThread;
-use crate::vm::{CollectorName, Trap, VmFlags, VM};
+use crate::vm::{CollectorName, Trap, VM, VmFlags};
 
-pub use crate::gc::root::{iterate_strong_roots, iterate_weak_roots, Slot};
+pub use crate::gc::root::{Slot, iterate_strong_roots, iterate_weak_roots};
 
 use self::swiper::PAGE_SIZE;
 

@@ -1,4 +1,4 @@
-use crate::vm::{bounds_for_tp, tp_implements_trait, ty_implements_trait, BytecodeTypeExt, VM};
+use crate::vm::{BytecodeTypeExt, VM, bounds_for_tp, tp_implements_trait, ty_implements_trait};
 use dora_bytecode::{BytecodeType, BytecodeTypeArray, TypeParamData};
 
 pub fn block_matches_ty(

@@ -1,23 +1,23 @@
 use std::mem;
 
-use crate::cannon::codegen::{mode, result_passed_as_argument, result_reg_mode, size, RegOrOffset};
-use crate::compiler::codegen::{AllocationSize, AnyReg};
+use crate::Shape;
+use crate::cannon::codegen::{RegOrOffset, mode, result_passed_as_argument, result_reg_mode, size};
 use crate::compiler::CompilationMode;
+use crate::compiler::codegen::{AllocationSize, AnyReg};
 use crate::cpu::{
-    FReg, Reg, FREG_RESULT, REG_PARAMS, REG_RESULT, REG_SP, REG_THREAD, REG_TMP1,
+    FREG_RESULT, FReg, REG_PARAMS, REG_RESULT, REG_SP, REG_THREAD, REG_TMP1, Reg,
     STACK_FRAME_ALIGNMENT,
 };
-use crate::gc::tlab::MAX_TLAB_OBJECT_SIZE;
 use crate::gc::Address;
+use crate::gc::tlab::MAX_TLAB_OBJECT_SIZE;
 use crate::masm::{CondCode, Label, MacroAssembler, Mem, ScratchReg};
 use crate::mirror::Header;
 use crate::mode::MachineMode;
 use crate::threads::ThreadLocalData;
 use crate::vm::{
-    create_enum_instance, create_struct_instance, get_concrete_tuple_bty_array, CodeDescriptor,
-    EnumLayout, GcPoint, LazyCompilationSite, Trap, INITIALIZED, VM,
+    CodeDescriptor, EnumLayout, GcPoint, INITIALIZED, LazyCompilationSite, Trap, VM,
+    create_enum_instance, create_struct_instance, get_concrete_tuple_bty_array,
 };
-use crate::Shape;
 use dora_bytecode::{BytecodeType, BytecodeTypeArray, FunctionId, GlobalId, Location, StructId};
 
 pub struct BaselineAssembler<'a> {

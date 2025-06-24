@@ -1,9 +1,9 @@
 use parking_lot::Mutex;
 
-use crate::gc::{Address, Region, K, M};
+use crate::gc::{Address, K, M, Region};
 use crate::mem;
 use crate::os::{self, MemoryPermission, Reservation};
-use crate::vm::{ManagedCodeHeader, CODE_ALIGNMENT};
+use crate::vm::{CODE_ALIGNMENT, ManagedCodeHeader};
 
 const CHUNK_SIZE: usize = 128 * K;
 

@@ -2,8 +2,8 @@ use parking_lot::Mutex;
 
 use std::sync::atomic::{AtomicUsize, Ordering};
 
-use crate::gc::swiper::{get_swiper, RegularPage, PAGE_SIZE, SURVIVOR_BIT};
-use crate::gc::{fill_region, is_page_aligned, Address, GenerationAllocator, Region};
+use crate::gc::swiper::{PAGE_SIZE, RegularPage, SURVIVOR_BIT, get_swiper};
+use crate::gc::{Address, GenerationAllocator, Region, fill_region, is_page_aligned};
 use crate::os::{self, MemoryPermission};
 use crate::vm::VM;
 

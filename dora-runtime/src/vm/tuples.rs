@@ -2,7 +2,7 @@ use std::cmp::max;
 
 use crate::cannon::codegen::{align, size};
 use crate::mem;
-use crate::vm::{add_ref_fields, VM};
+use crate::vm::{VM, add_ref_fields};
 use dora_bytecode::{BytecodeType, BytecodeTypeArray};
 
 #[derive(Clone)]

@@ -2,24 +2,24 @@ use std::mem;
 use std::ptr;
 
 use dora_bytecode::{
-    display_fct, AliasId, BytecodeTraitType, BytecodeTypeArray, ClassId, EnumId, FunctionId,
-    FunctionKind, GlobalId, ImplId, StructId, TraitId,
+    AliasId, BytecodeTraitType, BytecodeTypeArray, ClassId, EnumId, FunctionId, FunctionKind,
+    GlobalId, ImplId, StructId, TraitId, display_fct,
 };
 
 use crate::boots::deserializer::{
-    decode_bytecode_trait_ty, decode_bytecode_type, decode_bytecode_type_array,
-    decode_code_descriptor, decode_specialize_self, ByteReader,
+    ByteReader, decode_bytecode_trait_ty, decode_bytecode_type, decode_bytecode_type_array,
+    decode_code_descriptor, decode_specialize_self,
 };
-use crate::boots::serializer::{encode_compilation_info, ByteBuffer};
+use crate::boots::serializer::{ByteBuffer, encode_compilation_info};
 use crate::cannon::codegen::get_function_address as get_function_address_raw;
 use crate::compiler::{CompilationData, CompilationMode};
 use crate::gc::Address;
-use crate::handle::{create_handle, Handle};
-use crate::mirror::{byte_array_from_buffer, Object, Ref, Str, UInt8Array};
+use crate::handle::{Handle, create_handle};
+use crate::mirror::{Object, Ref, Str, UInt8Array, byte_array_from_buffer};
 use crate::threads::current_thread;
 use crate::vm::compute_vtable_index;
 use crate::vm::specialize_ty;
-use crate::vm::{create_enum_instance, get_vm, impls, CodeDescriptor, FctImplementation, VM};
+use crate::vm::{CodeDescriptor, FctImplementation, VM, create_enum_instance, get_vm, impls};
 
 mod data;
 mod deserializer;

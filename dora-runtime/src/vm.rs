@@ -12,32 +12,32 @@ use std::sync::atomic::{AtomicU8, Ordering};
 use std::sync::{Arc, OnceLock};
 use std::time::Instant;
 
+use crate::Shape;
 use crate::compiler;
 use crate::gc::{Address, Gc};
 use crate::mirror::Str;
 use crate::threads::ManagedThread;
 use crate::threads::{
-    current_thread, deinit_current_thread, init_current_thread, DoraThread, ThreadState, Threads,
-    STACK_SIZE,
+    DoraThread, STACK_SIZE, ThreadState, Threads, current_thread, deinit_current_thread,
+    init_current_thread,
 };
 use crate::utils::GrowableVecNonIter;
-use crate::Shape;
 
 use dora_bytecode::{
     AliasData, AliasId, BytecodeType, BytecodeTypeArray, ClassId, EnumId, FunctionId, ModuleId,
     Program, StructId, TraitId,
 };
 
-pub use self::classes::{create_shape, FieldInstance, ShapeKind};
+pub use self::classes::{FieldInstance, ShapeKind, create_shape};
 pub use self::code::{
-    install_code, install_code_stub, Code, CodeDescriptor, CodeId, CodeKind, CodeObjects,
-    CommentTable, GcPoint, GcPointTable, InlinedFunction, InlinedFunctionId, InlinedLocation,
-    LazyCompilationData, LazyCompilationSite, LocationTable, ManagedCodeHeader, RelocationKind,
-    RelocationTable, CODE_ALIGNMENT,
+    CODE_ALIGNMENT, Code, CodeDescriptor, CodeId, CodeKind, CodeObjects, CommentTable, GcPoint,
+    GcPointTable, InlinedFunction, InlinedFunctionId, InlinedLocation, LazyCompilationData,
+    LazyCompilationSite, LocationTable, ManagedCodeHeader, RelocationKind, RelocationTable,
+    install_code, install_code_stub,
 };
 pub use self::code_map::CodeMap;
 pub use self::compilation::CompilationDatabase;
-pub use self::enums::{enum_definition_name, EnumInstance, EnumInstanceId, EnumLayout};
+pub use self::enums::{EnumInstance, EnumInstanceId, EnumLayout, enum_definition_name};
 pub use self::extensions::block_matches_ty;
 pub use self::flags::{CollectorName, Compiler, MemSize, VmFlags};
 use self::globals::GlobalVariableMemory;
@@ -48,7 +48,7 @@ pub use self::impls::{
 };
 pub use self::known::Intrinsic;
 use self::known::KnownElements;
-pub use self::natives::{setup_builtin_natives, NativeMethods};
+pub use self::natives::{NativeMethods, setup_builtin_natives};
 pub use self::specialize::{
     add_ref_fields, compute_vtable_index, create_enum_instance, create_shape_for_class,
     create_struct_instance, ensure_shape_for_enum_variant, ensure_shape_for_lambda,
@@ -57,7 +57,7 @@ pub use self::specialize::{
 };
 pub use self::stdlib_lookup::FctImplementation;
 pub use self::structs::{StructInstance, StructInstanceField, StructInstanceId};
-pub use self::tuples::{get_concrete_tuple_bty, get_concrete_tuple_bty_array, ConcreteTuple};
+pub use self::tuples::{ConcreteTuple, get_concrete_tuple_bty, get_concrete_tuple_bty_array};
 pub use self::ty::BytecodeTypeExt;
 pub use self::waitlists::{ManagedCondition, ManagedMutex, WaitLists};
 

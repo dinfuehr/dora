@@ -4,15 +4,15 @@ use parking_lot::{Condvar, Mutex};
 use std::cell::RefCell;
 use std::convert::From;
 use std::ptr;
-use std::sync::atomic::{AtomicBool, AtomicU8, AtomicUsize, Ordering};
 use std::sync::Arc;
+use std::sync::atomic::{AtomicBool, AtomicU8, AtomicUsize, Ordering};
 
 use crate::gc::swiper::get_swiper;
-use crate::gc::{tlab, Address, Region, WorklistSegment, K};
+use crate::gc::{Address, K, Region, WorklistSegment, tlab};
 use crate::handle::HandleMemory;
-use crate::mirror::{alloc, Header, Ref};
+use crate::mirror::{Header, Ref, alloc};
 use crate::stack::DoraToNativeInfo;
-use crate::vm::{get_vm, VM};
+use crate::vm::{VM, get_vm};
 
 pub const STACK_SIZE: usize = 500 * K;
 
@@ -217,16 +217,17 @@ impl DoraThread {
     }
 
     fn park_slow(&self, vm: &VM) {
-        assert!(self
-            .tld
-            .state
-            .compare_exchange(
-                ThreadState::SafepointRequested as u8,
-                ThreadState::ParkedSafepointRequested as u8,
-                Ordering::SeqCst,
-                Ordering::SeqCst,
-            )
-            .is_ok());
+        assert!(
+            self.tld
+                .state
+                .compare_exchange(
+                    ThreadState::SafepointRequested as u8,
+                    ThreadState::ParkedSafepointRequested as u8,
+                    Ordering::SeqCst,
+                    Ordering::SeqCst,
+                )
+                .is_ok()
+        );
         vm.threads.barrier.notify_park();
     }
 

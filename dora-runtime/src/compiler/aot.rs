@@ -3,22 +3,22 @@ use std::sync::Arc;
 use std::time::Instant;
 
 use dora_bytecode::{
-    display_fct, BytecodeFunction, BytecodeInstruction, BytecodeReader, BytecodeTraitType,
-    BytecodeType, BytecodeTypeArray, ConstPoolEntry, FunctionId, FunctionKind, PackageId,
+    BytecodeFunction, BytecodeInstruction, BytecodeReader, BytecodeTraitType, BytecodeType,
+    BytecodeTypeArray, ConstPoolEntry, FunctionId, FunctionKind, PackageId, display_fct,
 };
 
-use crate::compiler::codegen::{compile_runtime_entry_trampoline, CompilerInvocation};
+use crate::compiler::codegen::{CompilerInvocation, compile_runtime_entry_trampoline};
 use crate::compiler::{
-    compile_fct_aot, trait_object_thunk, CompilationMode, NativeFct, NativeFctKind,
+    CompilationMode, NativeFct, NativeFctKind, compile_fct_aot, trait_object_thunk,
 };
-use crate::gc::{formatted_size, Address};
+use crate::gc::{Address, formatted_size};
 use crate::os;
 use crate::vm::{
-    ensure_shape_for_lambda, ensure_shape_for_trait_object, execute_on_main, find_trait_impl,
-    specialize_bty, specialize_bty_array, BytecodeTypeExt, Code, LazyCompilationSite, ShapeKind,
-    VM,
+    BytecodeTypeExt, Code, LazyCompilationSite, ShapeKind, VM, ensure_shape_for_lambda,
+    ensure_shape_for_trait_object, execute_on_main, find_trait_impl, specialize_bty,
+    specialize_bty_array,
 };
-use crate::{get_bytecode, Shape, SpecializeSelf};
+use crate::{Shape, SpecializeSelf, get_bytecode};
 
 pub fn compile_boots_aot(vm: &VM) {
     if vm.has_boots() {
@@ -45,11 +45,12 @@ pub fn compile_boots_aot(vm: &VM) {
             (stage1_compiler_address, stage1_ctc)
         };
 
-        assert!(vm
-            .known
-            .boots_compile_fct_address
-            .set(boots_compiler_address)
-            .is_ok());
+        assert!(
+            vm.known
+                .boots_compile_fct_address
+                .set(boots_compiler_address)
+                .is_ok()
+        );
 
         let tests = compute_test_addresses(&ctc, tests);
         assert!(vm.known.boots_test_addresses.set(tests).is_ok());

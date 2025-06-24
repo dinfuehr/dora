@@ -1,4 +1,4 @@
-use alloc::alloc::{alloc, dealloc, Layout};
+use alloc::alloc::{Layout, alloc, dealloc};
 use std::mem::size_of;
 use std::ptr::{self, NonNull};
 
@@ -215,7 +215,7 @@ unsafe impl Send for Worklist {}
 mod tests {
     use crate::gc::Address;
 
-    use super::{Worklist, WorklistSegment, SEGMENT_ENTRY_CAPACITY};
+    use super::{SEGMENT_ENTRY_CAPACITY, Worklist, WorklistSegment};
 
     #[test]
     fn segments_in_worklist() {

@@ -1,7 +1,7 @@
 use std::sync::Arc;
 
-use crate::gc::{fill_region, Address, Region, K};
-use crate::threads::{current_thread, DoraThread};
+use crate::gc::{Address, K, Region, fill_region};
+use crate::threads::{DoraThread, current_thread};
 use crate::vm::VM;
 
 pub const MIN_TLAB_SIZE: usize = 8 * K;

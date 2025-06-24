@@ -6,9 +6,9 @@ use crate::mem;
 use crate::mirror::Header;
 use crate::size::InstanceSize;
 use crate::vm::{
-    create_shape, find_impl, get_concrete_tuple_bty, BytecodeTypeExt, EnumInstance, EnumInstanceId,
-    EnumLayout, FieldInstance, ShapeKind, StructInstance, StructInstanceField, StructInstanceId,
-    VM,
+    BytecodeTypeExt, EnumInstance, EnumInstanceId, EnumLayout, FieldInstance, ShapeKind,
+    StructInstance, StructInstanceField, StructInstanceId, VM, create_shape, find_impl,
+    get_concrete_tuple_bty,
 };
 use crate::{Shape, SpecializeSelf};
 use dora_bytecode::{

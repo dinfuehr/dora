@@ -9,8 +9,8 @@ use crate::mem;
 use crate::mirror::Header;
 use crate::mode::MachineMode;
 use crate::vm::{
-    CodeDescriptor, CommentTable, GcPoint, GcPointTable, InlinedLocation, LazyCompilationData,
-    LazyCompilationSite, LocationTable, RelocationKind, RelocationTable, Trap, CODE_ALIGNMENT,
+    CODE_ALIGNMENT, CodeDescriptor, CommentTable, GcPoint, GcPointTable, InlinedLocation,
+    LazyCompilationData, LazyCompilationSite, LocationTable, RelocationKind, RelocationTable, Trap,
 };
 pub use dora_asm::Label;
 use dora_bytecode::Location;

@@ -3,19 +3,19 @@ use std::fs::File;
 use std::io::{BufWriter, Result as IoResult};
 use std::sync::Arc;
 
-use crate::gc::root::iterate_strong_roots;
+use crate::ShapeKind;
 use crate::gc::Address;
+use crate::gc::root::iterate_strong_roots;
 use crate::mirror::{Array, Ref, Str};
 use crate::safepoint;
 use crate::shape::Shape;
 use crate::threads::DoraThread;
 use crate::vm::{
-    create_enum_instance, create_struct_instance, get_concrete_tuple_bty, specialize_ty,
-    EnumLayout, VM,
+    EnumLayout, VM, create_enum_instance, create_struct_instance, get_concrete_tuple_bty,
+    specialize_ty,
 };
-use crate::ShapeKind;
 use dora_bytecode::{
-    display_ty, display_ty_array, BytecodeType, BytecodeTypeArray, ClassId, EnumId,
+    BytecodeType, BytecodeTypeArray, ClassId, EnumId, display_ty, display_ty_array,
 };
 use fixedbitset::FixedBitSet;
 
@@ -283,10 +283,11 @@ impl<'a> SnapshotGenerator<'a> {
 
         {
             let shape_instance_name_id = self.ensure_string(shape_name.clone());
-            assert!(self
-                .shape_name_map
-                .insert(shape_node_id, shape_instance_name_id)
-                .is_none());
+            assert!(
+                self.shape_name_map
+                    .insert(shape_node_id, shape_instance_name_id)
+                    .is_none()
+            );
         }
 
         self.node_mut(shape_node_id).name = Some(self.shape_type_name_id);

@@ -1,6 +1,6 @@
 use crate::size::InstanceSize;
 use crate::vm::{
-    create_shape, create_shape_for_class, setup_builtin_natives, stdlib_lookup, ShapeKind, VM,
+    ShapeKind, VM, create_shape, create_shape_for_class, setup_builtin_natives, stdlib_lookup,
 };
 
 use dora_bytecode::{BytecodeType, BytecodeTypeArray};

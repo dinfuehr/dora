@@ -1,6 +1,6 @@
 use parking_lot::Mutex;
 
-use crate::gc::{Address, Region, M, PAGE_SIZE};
+use crate::gc::{Address, M, PAGE_SIZE, Region};
 use crate::os::{self, MemoryPermission, Reservation};
 
 pub struct MetaSpace {

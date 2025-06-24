@@ -33,10 +33,10 @@ mod timer;
 mod utils;
 pub mod vm;
 
-use compiler::codegen::{get_bytecode, SpecializeSelf};
+use compiler::codegen::{SpecializeSelf, get_bytecode};
 use gc::Address;
 use shape::{Shape, ShapeVisitor};
 pub use vm::VM;
 pub use vm::{
-    clear_vm, execute_on_main, set_vm, CollectorName, Compiler, MemSize, ShapeKind, VmFlags,
+    CollectorName, Compiler, MemSize, ShapeKind, VmFlags, clear_vm, execute_on_main, set_vm,
 };

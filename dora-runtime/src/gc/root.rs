@@ -7,7 +7,7 @@ use crate::gc::Address;
 use crate::stack::DoraToNativeInfo;
 use crate::threads::DoraThread;
 use crate::vm::{
-    specialize_bty, specialize_bty_array, BytecodeTypeExt, CodeKind, LazyCompilationSite, VM,
+    BytecodeTypeExt, CodeKind, LazyCompilationSite, VM, specialize_bty, specialize_bty_array,
 };
 
 pub fn determine_strong_roots(vm: &VM, threads: &[Arc<DoraThread>]) -> Vec<Slot> {

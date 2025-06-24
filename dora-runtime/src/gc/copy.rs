@@ -5,15 +5,15 @@ use std::sync::Arc;
 use crate::gc::bump::BumpAllocator;
 use crate::gc::tlab;
 use crate::gc::{
-    default_readonly_space_config, formatted_size, iterate_strong_roots, iterate_weak_roots,
-    Address, CollectionStats, Collector, GcReason, Region, Space,
+    Address, CollectionStats, Collector, GcReason, Region, Space, default_readonly_space_config,
+    formatted_size, iterate_strong_roots, iterate_weak_roots,
 };
 use crate::mem;
 use crate::mirror::{Object, VtblptrWordKind};
 use crate::os::{self, MemoryPermission};
 use crate::threads::DoraThread;
 use crate::timer::Timer;
-use crate::vm::{VmFlags, VM};
+use crate::vm::{VM, VmFlags};
 
 pub struct CopyCollector {
     total: Region,

@@ -8,17 +8,17 @@ use crate::cpu::{
     STACK_FRAME_ALIGNMENT,
 };
 use crate::gc::{Address, Slot};
-use crate::handle::{handle_scope, Handle};
+use crate::handle::{Handle, handle_scope};
 use crate::masm::{MacroAssembler, Mem};
 use crate::mem;
 use crate::mirror::Object;
 use crate::mode::MachineMode;
 use crate::os;
 use crate::stack::DoraToNativeInfo;
-use crate::threads::{current_thread, ThreadLocalData};
+use crate::threads::{ThreadLocalData, current_thread};
 use crate::vm::{
-    create_enum_instance, get_vm, install_code_stub, BytecodeTypeExt, Code, CodeKind, EnumLayout,
-    LazyCompilationSite, ShapeKind, VM,
+    BytecodeTypeExt, Code, CodeKind, EnumLayout, LazyCompilationSite, ShapeKind, VM,
+    create_enum_instance, get_vm, install_code_stub,
 };
 use dora_bytecode::{BytecodeType, BytecodeTypeArray, FunctionId};
 

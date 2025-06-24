@@ -1,8 +1,8 @@
 use parking_lot::Mutex;
 
-use crate::gc::swiper::controller::SharedHeapConfig;
-use crate::gc::swiper::LargePage;
 use crate::gc::Address;
+use crate::gc::swiper::LargePage;
+use crate::gc::swiper::controller::SharedHeapConfig;
 
 use super::heap::Heap;
 

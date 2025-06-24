@@ -4,7 +4,7 @@ use std::str;
 
 use crate::gc::Address;
 use crate::mem;
-use crate::mirror::{create_handle, Handle, Header, Object, Ref};
+use crate::mirror::{Handle, Header, Object, Ref, create_handle};
 use crate::vm::VM;
 
 #[repr(C)]

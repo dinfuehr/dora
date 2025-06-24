@@ -1,11 +1,11 @@
 use std::io::{BufWriter, Write};
 
-use dora_bytecode::{display_fct, FunctionId, Location};
+use dora_bytecode::{FunctionId, Location, display_fct};
 
-use crate::handle::{create_handle, Handle};
+use crate::handle::{Handle, create_handle};
 use crate::mirror::{Array, Int32Array, Ref, Stacktrace, StacktraceIterator, Str};
 use crate::threads::current_thread;
-use crate::vm::{get_vm, Code, CodeId, CodeKind, InlinedFunctionId, InlinedLocation, VM};
+use crate::vm::{Code, CodeId, CodeKind, InlinedFunctionId, InlinedLocation, VM, get_vm};
 
 pub struct NativeStacktrace {
     elems: Vec<StackElem>,

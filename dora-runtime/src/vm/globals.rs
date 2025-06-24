@@ -2,7 +2,7 @@ use crate::cannon::codegen::{align, size};
 use crate::gc::{Address, Region};
 use crate::mem;
 use crate::os;
-use crate::vm::{add_ref_fields, VM};
+use crate::vm::{VM, add_ref_fields};
 use dora_bytecode::GlobalId;
 
 pub const UNINITIALIZED: u8 = 0;

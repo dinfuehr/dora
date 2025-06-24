@@ -7,7 +7,7 @@ use crate::cpu::{
 use crate::masm::{MacroAssembler, Mem};
 use crate::mem;
 use crate::mode::MachineMode;
-use crate::vm::{install_code_stub, Code, CodeDescriptor, CodeKind, VM};
+use crate::vm::{Code, CodeDescriptor, CodeKind, VM, install_code_stub};
 
 pub fn install<'a>(vm: &'a VM) -> Arc<Code> {
     let ngen = DoraEntryGen {

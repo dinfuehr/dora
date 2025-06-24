@@ -1,7 +1,7 @@
 use parking_lot::Mutex;
 
-use crate::gc::swiper::{align_page_up, is_page_aligned, LargePage, RegularPage, SharedHeapConfig};
-use crate::gc::{fill_region, Address, Region};
+use crate::gc::swiper::{LargePage, RegularPage, SharedHeapConfig, align_page_up, is_page_aligned};
+use crate::gc::{Address, Region, fill_region};
 use crate::mem::is_os_page_aligned;
 use crate::os::{self, MemoryPermission};
 use crate::vm::VM;

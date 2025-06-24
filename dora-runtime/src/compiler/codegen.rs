@@ -3,16 +3,16 @@ use std::time::Instant;
 
 use crate::boots;
 use crate::cannon;
-use crate::compiler::{runtime_entry_trampoline, CompilationMode, NativeFct};
+use crate::compiler::{CompilationMode, NativeFct, runtime_entry_trampoline};
 use crate::cpu::{FReg, Reg};
 use crate::disassembler;
 use crate::gc::Address;
 use crate::os;
-use crate::vm::{install_code, Code, CodeDescriptor, CodeId, CodeKind, Compiler, VM};
+use crate::vm::{Code, CodeDescriptor, CodeId, CodeKind, Compiler, VM, install_code};
 use dora_bytecode::{
-    display_fct, display_ty_array, display_ty_without_type_params, dump_stdout, BytecodeFunction,
-    BytecodeTraitType, BytecodeType, BytecodeTypeArray, FunctionData, FunctionId, FunctionKind,
-    ImplId, Location, TypeParamMode,
+    BytecodeFunction, BytecodeTraitType, BytecodeType, BytecodeTypeArray, FunctionData, FunctionId,
+    FunctionKind, ImplId, Location, TypeParamMode, display_fct, display_ty_array,
+    display_ty_without_type_params, dump_stdout,
 };
 
 #[derive(Clone, Copy)]

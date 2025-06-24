@@ -1,10 +1,10 @@
 use std::sync::Arc;
 
 use crate::cannon::codegen::register_ty;
-use crate::compiler::codegen::{compile_fct_to_code, select_compiler};
 use crate::compiler::CompilationMode;
+use crate::compiler::codegen::{compile_fct_to_code, select_compiler};
 use crate::gc::Address;
-use crate::vm::{specialize_bty_for_trait_object, BytecodeTypeExt, Code, CodeId, Compiler, VM};
+use crate::vm::{BytecodeTypeExt, Code, CodeId, Compiler, VM, specialize_bty_for_trait_object};
 use dora_bytecode::{
     BytecodeFunction, BytecodeType, BytecodeTypeArray, BytecodeWriter, ConstPoolEntry, FunctionId,
     FunctionKind, Register,

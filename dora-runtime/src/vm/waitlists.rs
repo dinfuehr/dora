@@ -1,8 +1,8 @@
-use crate::gc::root::Slot;
 use crate::gc::Address;
+use crate::gc::root::Slot;
 use crate::handle::Handle;
 use crate::mirror::{Header, Ref};
-use crate::threads::{current_thread, DoraThreadPtr};
+use crate::threads::{DoraThreadPtr, current_thread};
 use crate::vm::get_vm;
 use parking_lot::Mutex;
 use std::mem::MaybeUninit;

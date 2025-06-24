@@ -1,7 +1,7 @@
 use parking_lot::Mutex;
 use std::sync::atomic::{AtomicUsize, Ordering};
 
-use crate::gc::{Address, Region, PAGE_SIZE};
+use crate::gc::{Address, PAGE_SIZE, Region};
 use crate::mem;
 use crate::os::{self, MemoryPermission, Reservation};
 use crate::vm::VmFlags;

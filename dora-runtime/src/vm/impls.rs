@@ -1,4 +1,4 @@
-use crate::vm::{block_matches_ty, specialize_bty_array, BytecodeTypeExt, VM};
+use crate::vm::{BytecodeTypeExt, VM, block_matches_ty, specialize_bty_array};
 use dora_bytecode::{
     BytecodeTraitType, BytecodeType, BytecodeTypeArray, FunctionId, ImplId, TypeParamBound,
     TypeParamData,
