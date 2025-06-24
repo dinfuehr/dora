@@ -1,5 +1,3 @@
-//= ignore
-
 enum Bar {
     A(Float64),
     B(String)
@@ -7,6 +5,10 @@ enum Bar {
 
 enum Baz {
     X, Y, Z
+}
+
+trait MyTrait {
+    fn test();
 }
 
 class Foo {
@@ -17,10 +19,17 @@ class Foo {
     name2: Option[String],
 }
 
+impl MyTrait for Foo {
+    fn test() {
+        println("MyTrait");
+    }
+}
+
 fn main() {
     let b1 = Bar::A(42.0);
     let b2 = Bar::B("This is a test");
     let foo = Foo(b1, b2, baz = Baz::Y, name1 = None[String], name2 = Some[String]("Yes, I have a name!"));
     let lambda = |x: Int| { println("Hello ${x}: ${foo.name1}!"); };
-    std::takeHeapSnapshot();
+    let my_trait = foo as MyTrait;
+    std::takeHeapSnapshotForTesting();
 }

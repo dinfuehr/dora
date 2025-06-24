@@ -1,5 +1,3 @@
-//= ignore
-
 class Foo {
     name: String,
     x: Int32,
@@ -11,5 +9,5 @@ class Foo {
 
 fn main() {
     let foo = Foo(name = "This is a test", x = 1i32, y = 2, f1 = 3.0f32, f2 = 4.5, b = true);
-    std::takeHeapSnapshot();
+    std::takeHeapSnapshotForTesting();
 }

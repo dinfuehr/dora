@@ -1,7 +1,6 @@
 use std::collections::HashMap;
 use std::fs::File;
 use std::io::{BufWriter, Result as IoResult};
-use std::path::PathBuf;
 use std::sync::Arc;
 
 use crate::gc::root::iterate_strong_roots;
@@ -45,9 +44,8 @@ pub struct SnapshotGenerator<'a> {
 }
 
 impl<'a> SnapshotGenerator<'a> {
-    pub fn new(vm: &'a VM, path: PathBuf) -> IoResult<SnapshotGenerator<'a>> {
-        let f = File::create(path)?;
-        let writer = BufWriter::new(f);
+    pub fn new(vm: &'a VM, file: File) -> IoResult<SnapshotGenerator<'a>> {
+        let writer = BufWriter::new(file);
         let placeholder = StringId(0);
 
         Ok(SnapshotGenerator {
@@ -618,7 +616,6 @@ impl<'a> SnapshotGenerator<'a> {
         let array: Ref<Array<u8>> = address.into();
         let length = array.len();
 
-        assert_eq!(shape.instance_size(), 0);
         let element_size = shape.element_size();
         let mut element_addr = array.data_address();
 

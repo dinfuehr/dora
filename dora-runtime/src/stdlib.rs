@@ -1,6 +1,7 @@
 use libc;
 
 use std::char;
+use std::fs::File;
 use std::io::Write;
 use std::mem;
 use std::str;
@@ -88,6 +89,10 @@ pub const STDLIB_FUNCTIONS: &[(&'static str, FctImplementation)] = &[
     (
         "stdlib::takeHeapSnapshot",
         N(stdlib::take_heap_snapshot as *const u8),
+    ),
+    (
+        "stdlib::takeHeapSnapshotForTesting",
+        N(stdlib::take_heap_snapshot_for_testing as *const u8),
     ),
     // Bool
     (
@@ -1089,9 +1094,18 @@ pub extern "C" fn condition_wakeup_all(cond: Handle<Object>) {
 
 pub extern "C" fn take_heap_snapshot() {
     use crate::snapshot::SnapshotGenerator;
-    use std::path::PathBuf;
 
     let vm = get_vm();
-    let snapshot = SnapshotGenerator::new(vm, PathBuf::from("dora.heapsnapshot")).unwrap();
+    let file = File::create("dora.heapsnapshot").expect("Failed to create file");
+    let snapshot = SnapshotGenerator::new(vm, file).unwrap();
+    snapshot.generate().expect("Failed to generate snapshot");
+}
+
+pub extern "C" fn take_heap_snapshot_for_testing() {
+    use crate::snapshot::SnapshotGenerator;
+
+    let vm = get_vm();
+    let file = tempfile::tempfile().expect("Failed to open temporary file.");
+    let snapshot = SnapshotGenerator::new(vm, file).unwrap();
     snapshot.generate().expect("Failed to generate snapshot");
 }

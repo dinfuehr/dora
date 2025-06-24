@@ -2,7 +2,7 @@ use parking_lot::Mutex;
 
 use std::cmp::{Ord, Ordering, PartialOrd};
 use std::fmt;
-use std::path::PathBuf;
+use std::fs::File;
 use std::sync::atomic::{AtomicUsize, Ordering as AtomicOrdering};
 use std::sync::Arc;
 
@@ -137,7 +137,7 @@ impl Gc {
         }
 
         if let Some(ref snapshot_path) = vm.flags.snapshot_on_oom {
-            let snapshot_path = PathBuf::from(snapshot_path);
+            let snapshot_path = File::create(snapshot_path).expect("Failed to create file.");
             let snapshot = SnapshotGenerator::new(vm, snapshot_path).unwrap();
             snapshot.generate().expect("Failed to generate snapshot");
         }

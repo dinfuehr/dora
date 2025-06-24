@@ -16,8 +16,7 @@ use crate::threads::DoraThread;
 use crate::vm::VM;
 
 use crossbeam_deque::{Injector, Steal, Stealer, Worker};
-use rand::distributions::{Distribution, Uniform};
-use rand::thread_rng;
+use rand::distr::uniform::{UniformSampler, UniformUsize};
 use scoped_threadpool::Pool;
 
 pub struct MinorCollector<'a> {
@@ -728,8 +727,9 @@ impl<'a> CopyTask<'a> {
             return None;
         }
 
-        let mut rng = thread_rng();
-        let range = Uniform::new(0, self.stealers.len());
+        let mut rng = rand::rng();
+        let range =
+            UniformUsize::new(0, self.stealers.len()).expect("failed to create UniformUsize.");
 
         for _ in 0..2 * self.stealers.len() {
             let mut stealer_id = self.task_id;

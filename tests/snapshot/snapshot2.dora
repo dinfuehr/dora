@@ -1,9 +1,7 @@
-//= ignore
-
 fn main() {
     let foo = Vec[String]::new();
     foo.push("foo");
     foo.push("bar");
     foo.push("baz");
-    std::takeHeapSnapshot();
+    std::takeHeapSnapshotForTesting();
 }

@@ -28,6 +28,7 @@ fixedbitset = "*"
 num_cpus = "*"
 memoffset = "*"
 num_enum = "*"
+tempfile = "*"
 
 [target.'cfg(windows)'.dependencies.windows-sys]
 version = "0.52"

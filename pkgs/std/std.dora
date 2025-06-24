@@ -200,3 +200,4 @@ impl StacktraceElement {
 }
 
 @internal pub fn takeHeapSnapshot();
+@internal pub fn takeHeapSnapshotForTesting();
