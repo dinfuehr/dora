@@ -6,7 +6,7 @@ use crate::boots::data::InstructionSet;
 use crate::compiler::codegen::get_bytecode;
 use crate::compiler::{CompilationData, CompilationMode};
 use crate::gc::Address;
-use crate::mirror::{byte_array_from_buffer, Object, Ref, UInt8Array};
+use crate::mirror::{Object, Ref, UInt8Array, byte_array_from_buffer};
 use crate::{Shape, SpecializeSelf, VM};
 use dora_bytecode::{
     BytecodeFunction, BytecodeTypeArray, ConstPoolEntry, ConstPoolOpcode, EnumData, FunctionData,
@@ -94,7 +94,7 @@ pub fn encode_optional_specialize_self(
     specialize_self: &Option<SpecializeSelf>,
     buffer: &mut ByteBuffer,
 ) {
-    if let Some(ref specialize_self) = specialize_self {
+    if let Some(specialize_self) = specialize_self {
         buffer.emit_bool(true);
         encode_specialize_self(vm, specialize_self, buffer);
     } else {
@@ -268,22 +268,22 @@ pub fn encode_bytecode_type(vm: &VM, ty: &BytecodeType, buffer: &mut ByteBuffer)
             buffer.emit_u8(BytecodeTypeKind::TypeParam as u8);
             buffer.emit_id(*type_param_id as usize);
         }
-        BytecodeType::Enum(enum_id, ref source_type_array) => {
+        BytecodeType::Enum(enum_id, source_type_array) => {
             buffer.emit_u8(BytecodeTypeKind::Enum as u8);
             buffer.emit_id(enum_id.0 as usize);
             encode_bytecode_type_array(vm, source_type_array, buffer);
         }
-        BytecodeType::Struct(struct_id, ref source_type_array) => {
+        BytecodeType::Struct(struct_id, source_type_array) => {
             buffer.emit_u8(BytecodeTypeKind::Struct as u8);
             buffer.emit_id(struct_id.0 as usize);
             encode_bytecode_type_array(vm, source_type_array, buffer);
         }
-        BytecodeType::Class(class_id, ref source_type_array) => {
+        BytecodeType::Class(class_id, source_type_array) => {
             buffer.emit_u8(BytecodeTypeKind::Class as u8);
             buffer.emit_id(class_id.0 as usize);
             encode_bytecode_type_array(vm, source_type_array, buffer);
         }
-        BytecodeType::TraitObject(trait_id, ref source_type_array, assoc_types) => {
+        BytecodeType::TraitObject(trait_id, source_type_array, assoc_types) => {
             buffer.emit_u8(BytecodeTypeKind::TraitObject as u8);
             buffer.emit_id(trait_id.0 as usize);
             encode_bytecode_type_array(vm, source_type_array, buffer);
@@ -336,7 +336,7 @@ fn encode_constpool_array(vm: &VM, fct: &BytecodeFunction, buffer: &mut ByteBuff
 
 fn encode_constpool_entry(vm: &VM, const_entry: &ConstPoolEntry, buffer: &mut ByteBuffer) {
     match const_entry {
-        ConstPoolEntry::String(ref value) => {
+        ConstPoolEntry::String(value) => {
             buffer.emit_u8(ConstPoolOpcode::String.into());
             buffer.emit_u32(value.len() as u32);
 

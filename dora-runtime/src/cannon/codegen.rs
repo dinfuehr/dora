@@ -1,14 +1,15 @@
 use std::collections::HashMap;
 
+use crate::SpecializeSelf;
 use crate::cannon::asm::BaselineAssembler;
+use crate::compiler::CompilationMode;
 use crate::compiler::codegen::{
-    ensure_runtime_entry_trampoline, AllocationSize, AnyReg, CompilationData,
+    AllocationSize, AnyReg, CompilationData, ensure_runtime_entry_trampoline,
 };
 use crate::compiler::runtime_entry_trampoline::{NativeFct, NativeFctKind};
-use crate::compiler::CompilationMode;
 use crate::cpu::{
-    has_lzcnt, has_popcnt, has_tzcnt, Reg, CALLEE_SAVED_REGS, FREG_PARAMS, FREG_RESULT, FREG_TMP1,
-    REG_PARAMS, REG_RESULT, REG_SP, REG_TMP1, REG_TMP2, STACK_FRAME_ALIGNMENT,
+    CALLEE_SAVED_REGS, FREG_PARAMS, FREG_RESULT, FREG_TMP1, REG_PARAMS, REG_RESULT, REG_SP,
+    REG_TMP1, REG_TMP2, Reg, STACK_FRAME_ALIGNMENT, has_lzcnt, has_popcnt, has_tzcnt,
 };
 use crate::gc::Address;
 use crate::masm::{CondCode, Label, Mem};
@@ -16,16 +17,15 @@ use crate::mem::{self, align_i32};
 use crate::mirror::Header;
 use crate::mode::MachineMode;
 use crate::vm::{
+    CodeDescriptor, EnumLayout, GcPoint, INITIALIZED, Intrinsic, LazyCompilationSite, Trap, VM,
     compute_vtable_index, create_enum_instance, create_struct_instance, find_trait_impl,
     find_trait_ty_impl, get_concrete_tuple_bty, get_concrete_tuple_bty_array, specialize_ty,
-    specialize_ty_array, CodeDescriptor, EnumLayout, GcPoint, Intrinsic, LazyCompilationSite, Trap,
-    INITIALIZED, VM,
+    specialize_ty_array,
 };
-use crate::SpecializeSelf;
 use dora_bytecode::{
-    display_fct, display_ty, read, BytecodeFunction, BytecodeOffset, BytecodeTraitType,
-    BytecodeType, BytecodeTypeArray, BytecodeVisitor, ConstPoolEntry, ConstPoolIdx, FunctionId,
-    FunctionKind, GlobalId, Location, Register,
+    BytecodeFunction, BytecodeOffset, BytecodeTraitType, BytecodeType, BytecodeTypeArray,
+    BytecodeVisitor, ConstPoolEntry, ConstPoolIdx, FunctionId, FunctionKind, GlobalId, Location,
+    Register, display_fct, display_ty, read,
 };
 
 macro_rules! comment {
@@ -1946,7 +1946,7 @@ impl<'a> CannonCodeGen<'a> {
 
     fn emit_new_tuple(&mut self, dest: Register, idx: ConstPoolIdx) {
         let source_type_array = match self.bytecode.const_pool(idx) {
-            ConstPoolEntry::Tuple(ref source_type_array) => source_type_array,
+            ConstPoolEntry::Tuple(source_type_array) => source_type_array,
             _ => unreachable!(),
         };
         let subtypes = self.specialize_ty_array(source_type_array);
@@ -4606,7 +4606,7 @@ impl<'a> BytecodeVisitor for CannonCodeGen<'a> {
     fn visit_new_tuple(&mut self, dest: Register, idx: ConstPoolIdx) {
         comment!(self, {
             let subtypes = match self.bytecode.const_pool(idx) {
-                ConstPoolEntry::Tuple(ref subtypes) => subtypes,
+                ConstPoolEntry::Tuple(subtypes) => subtypes,
                 _ => unreachable!(),
             };
             let tuple_name = display_ty(&self.vm.program, &BytecodeType::Tuple(subtypes.clone()));
