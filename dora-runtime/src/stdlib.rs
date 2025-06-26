@@ -1098,7 +1098,9 @@ pub extern "C" fn take_heap_snapshot() {
     let vm = get_vm();
     let file = File::create("dora.heapsnapshot").expect("Failed to create file");
     let snapshot = SnapshotGenerator::new(vm, file).unwrap();
-    snapshot.generate().expect("Failed to generate snapshot");
+    snapshot
+        .generate_in_safepoint()
+        .expect("Failed to generate snapshot");
 }
 
 pub extern "C" fn take_heap_snapshot_for_testing() {
@@ -1107,5 +1109,7 @@ pub extern "C" fn take_heap_snapshot_for_testing() {
     let vm = get_vm();
     let file = tempfile::tempfile().expect("Failed to open temporary file.");
     let snapshot = SnapshotGenerator::new(vm, file).unwrap();
-    snapshot.generate().expect("Failed to generate snapshot");
+    snapshot
+        .generate_in_safepoint()
+        .expect("Failed to generate snapshot");
 }

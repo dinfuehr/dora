@@ -323,6 +323,7 @@ impl Collector for Swiper {
             &self.young,
             &vm.flags,
             reason,
+            threads,
         );
     }
 

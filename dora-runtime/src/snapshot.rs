@@ -71,14 +71,16 @@ impl<'a> SnapshotGenerator<'a> {
         })
     }
 
-    pub fn generate(mut self) -> IoResult<()> {
-        safepoint::stop_the_world(self.vm, |threads| {
-            self.initialize_strings();
-            self.iterate_roots(threads);
-            self.iterate_heap();
-            self.verify_snapshot();
-            self.serialize()
-        })
+    pub fn generate(mut self, threads: &[Arc<DoraThread>]) -> IoResult<()> {
+        self.initialize_strings();
+        self.iterate_roots(threads);
+        self.iterate_heap();
+        self.verify_snapshot();
+        self.serialize()
+    }
+
+    pub fn generate_in_safepoint(self) -> IoResult<()> {
+        safepoint::stop_the_world(self.vm, |threads| self.generate(threads))
     }
 
     fn initialize_strings(&mut self) {

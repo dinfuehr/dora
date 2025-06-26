@@ -136,14 +136,9 @@ impl Gc {
             }
         }
 
-        if let Some(ref snapshot_path) = vm.flags.snapshot_on_oom {
-            let snapshot_path = File::create(snapshot_path).expect("Failed to create file.");
-            let snapshot = SnapshotGenerator::new(vm, snapshot_path).unwrap();
-            snapshot.generate().expect("Failed to generate snapshot");
-        }
-
-        stdlib::trap(Trap::OOM as u8 as u32);
-        unreachable!()
+        safepoint::stop_the_world(vm, |threads| {
+            report_out_of_memory_error(vm, threads);
+        })
     }
 
     fn alloc_in_lab(&self, vm: &VM, size: usize) -> Option<Address> {
@@ -232,6 +227,19 @@ impl Gc {
     pub fn current_code_size(&self) -> usize {
         self.code_space.allocated_region().size()
     }
+}
+
+fn report_out_of_memory_error(vm: &VM, threads: &[Arc<DoraThread>]) -> ! {
+    if let Some(ref snapshot_path) = vm.flags.snapshot_on_oom {
+        let snapshot_path = File::create(snapshot_path).expect("Failed to create file.");
+        let snapshot = SnapshotGenerator::new(vm, snapshot_path).unwrap();
+        snapshot
+            .generate(threads)
+            .expect("Failed to generate snapshot");
+    }
+
+    stdlib::trap(Trap::OOM as u8 as u32);
+    unreachable!()
 }
 
 pub trait Collector {

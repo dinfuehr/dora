@@ -7,9 +7,9 @@ use std::time::Instant;
 
 use crate::gc::swiper::young::YoungGen;
 use crate::gc::swiper::{CollectionKind, Heap, PAGE_SIZE, align_page_down, align_page_up};
-use crate::gc::{AllNumbers, GcReason, formatted_size};
-use crate::stdlib;
-use crate::vm::{Trap, VM, VmFlags};
+use crate::gc::{AllNumbers, GcReason, formatted_size, report_out_of_memory_error};
+use crate::threads::DoraThread;
+use crate::vm::{VM, VmFlags};
 
 pub fn init(config: &mut HeapController, args: &VmFlags) {
     assert!(config.min_heap_size <= config.max_heap_size);
@@ -58,6 +58,7 @@ pub fn stop(
     young: &YoungGen,
     args: &VmFlags,
     reason: GcReason,
+    threads: &[Arc<DoraThread>],
 ) {
     let mut config = config.lock();
 
@@ -85,7 +86,7 @@ pub fn stop(
     let young_size = align_page_down(target_young_size / 2) * 2;
 
     if old_size + young_size > config.max_heap_size {
-        stdlib::trap(Trap::OOM as u32);
+        report_out_of_memory_error(vm, threads);
     }
 
     young.resize_after_gc(vm, young_size);
