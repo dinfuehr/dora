@@ -14,7 +14,7 @@ use crate::boots::serializer::{ByteBuffer, encode_compilation_info};
 use crate::cannon::codegen::get_function_address as get_function_address_raw;
 use crate::compiler::{CompilationData, CompilationMode};
 use crate::gc::Address;
-use crate::handle::{Handle, create_handle};
+use crate::handle::{Handle, create_handle, handle_scope};
 use crate::mirror::{Object, Ref, Str, UInt8Array, byte_array_from_buffer};
 use crate::threads::current_thread;
 use crate::vm::compute_vtable_index;
@@ -144,37 +144,39 @@ pub fn compile(
     compilation_data: CompilationData,
     mode: CompilationMode,
 ) -> CodeDescriptor {
-    let mut buffer = ByteBuffer::new();
-    encode_compilation_info(vm, &compilation_data, mode, &mut buffer);
+    handle_scope(|| {
+        let mut buffer = ByteBuffer::new();
+        encode_compilation_info(vm, &compilation_data, mode, &mut buffer);
 
-    let encoded_compilation_info: Handle<Object> =
-        create_handle(byte_array_from_buffer(vm, buffer.data()).cast());
+        let encoded_compilation_info: Handle<Object> =
+            create_handle(byte_array_from_buffer(vm, buffer.data()).cast());
 
-    let tld_address = current_thread().tld_address();
+        let tld_address = current_thread().tld_address();
 
-    let dora_stub_address = vm.native_methods.dora_entry_trampoline();
-    let compile_fct_ptr: extern "C" fn(Address, Address, Address) -> Ref<UInt8Array> =
-        unsafe { mem::transmute(dora_stub_address) };
+        let dora_stub_address = vm.native_methods.dora_entry_trampoline();
+        let compile_fct_ptr: extern "C" fn(Address, Address, Address) -> Ref<UInt8Array> =
+            unsafe { mem::transmute(dora_stub_address) };
 
-    let machine_code = create_handle(compile_fct_ptr(
-        tld_address,
-        compile_address,
-        encoded_compilation_info.direct_ptr(),
-    ));
-    let mut serialized_data = vec![0; machine_code.len()];
+        let machine_code = create_handle(compile_fct_ptr(
+            tld_address,
+            compile_address,
+            encoded_compilation_info.direct_ptr(),
+        ));
+        let mut serialized_data = vec![0; machine_code.len()];
 
-    unsafe {
-        ptr::copy_nonoverlapping(
-            machine_code.data() as *mut u8,
-            serialized_data.as_mut_ptr(),
-            machine_code.len(),
-        );
-    }
+        unsafe {
+            ptr::copy_nonoverlapping(
+                machine_code.data() as *mut u8,
+                serialized_data.as_mut_ptr(),
+                machine_code.len(),
+            );
+        }
 
-    let mut reader = ByteReader::new(serialized_data);
-    let code = decode_code_descriptor(&mut reader);
-    assert!(!reader.has_more());
-    code
+        let mut reader = ByteReader::new(serialized_data);
+        let code = decode_code_descriptor(&mut reader);
+        assert!(!reader.has_more());
+        code
+    })
 }
 
 extern "C" fn get_function_address(data: Handle<UInt8Array>) -> Address {
