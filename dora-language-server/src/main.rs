@@ -21,7 +21,7 @@ use threadpool::ThreadPool;
 use url::Url;
 use walkdir::WalkDir;
 
-use crate::symbols::document_symbol_request;
+use crate::symbols::{document_symbol_request, workspace_symbol_request};
 
 mod symbols;
 
@@ -224,6 +224,8 @@ fn handle_message(server_state: &mut ServerState, msg: Message) {
             eprintln!("received request {}", request.method);
             if request.method == "textDocument/documentSymbol" {
                 document_symbol_request(server_state, request);
+            } else if request.method == "workspace/symbol" {
+                workspace_symbol_request(server_state, request);
             } else {
                 eprintln!("unknown request {}", request.method);
                 eprintln!("{}", request.params);

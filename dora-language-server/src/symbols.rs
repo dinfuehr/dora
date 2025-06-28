@@ -10,6 +10,17 @@ use dora_parser::{compute_line_column, compute_line_starts, Parser, Span};
 use super::uri_to_file_path;
 use crate::{MainLoopTask, ServerState};
 
+pub(super) fn workspace_symbol_request(_server_state: &mut ServerState, request: Request) {
+    let result = serde_json::from_value::<lsp_types::WorkspaceSymbolParams>(request.params);
+
+    match result {
+        Ok(_result) => unimplemented!(),
+        Err(..) => {
+            eprintln!("broken params");
+        }
+    }
+}
+
 pub(super) fn document_symbol_request(server_state: &mut ServerState, request: Request) {
     eprintln!("got documentSymbol request on main thread");
     let result = serde_json::from_value::<lsp_types::DocumentSymbolParams>(request.params);
