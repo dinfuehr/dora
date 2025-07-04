@@ -59,8 +59,15 @@ fn main() -> Result<(), Box<dyn Error + Sync + Send>> {
     });
 
     let projects = find_projects(&workspace_folders);
-    for project in &projects {
-        eprintln!("project {} -> {}", project.name, project.main.display());
+
+    if projects.is_empty() {
+        eprintln!("no project found");
+    } else {
+        eprintln!("found {} projects.", projects.len());
+
+        for project in &projects {
+            eprintln!("project {} -> {}", project.name, project.main.display());
+        }
     }
 
     connection.initialize_finish(id, initialize_data)?;
