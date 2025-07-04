@@ -5,7 +5,7 @@ use std::path::PathBuf;
 use crate::driver::flags::{self, create_sema_flags, DriverFlags};
 use dora_bytecode::{display_fct, FunctionId, PackageId, Program};
 use dora_frontend as language;
-use dora_frontend::sema::Sema;
+use dora_frontend::sema::{FileContent, Sema, SemaFlags};
 use dora_runtime::{clear_vm, execute_on_main, set_vm, VM};
 
 pub fn start() -> i32 {
@@ -45,6 +45,12 @@ pub fn start() -> i32 {
             }
         }
     } else {
+        if flags.separate_stdlib_check {
+            if let Err(_) = compile_std_library(&flags) {
+                return 1;
+            }
+        }
+
         match compile_into_program(&flags, file.clone()) {
             Ok(result) => result,
             Err(_) => {
@@ -110,6 +116,63 @@ pub fn start() -> i32 {
     clear_vm();
 
     exit_code
+}
+
+fn compile_std_library(flags: &DriverFlags) -> Result<Program, ()> {
+    let path = get_stdlib_path(flags).expect("standard library not found");
+
+    let sema_flags = SemaFlags {
+        program_file: Some(FileContent::Path(path)),
+        packages: Vec::new(),
+        boots: false,
+        is_standard_library: true,
+    };
+
+    let mut sa = Sema::new(sema_flags);
+
+    let success = language::check_program(&mut sa);
+    assert_eq!(success, !sa.diag.borrow().has_errors());
+
+    if report_errors(&sa, flags.report_all_warnings) {
+        return Err(());
+    }
+
+    if let Some(ref filter) = flags.emit_ast {
+        language::emit_ast(&sa, filter);
+    }
+
+    language::generate_bytecode(&sa);
+
+    // Create a serializable data structure from bytecode and metadata.
+    // Here we drop the generated AST.
+    let prog = language::emit_program(sa);
+
+    if let Some(ref filter) = flags.emit_bytecode {
+        language::emit_bytecode(&prog, filter);
+    }
+
+    Ok(prog)
+}
+
+fn get_stdlib_path(flags: &DriverFlags) -> Option<PathBuf> {
+    for (name, path) in &flags.packages {
+        if name == "std" {
+            return Some(path.into());
+        }
+    }
+
+    let path = std::env::current_exe().expect("illegal path");
+    let path = path.as_path();
+
+    for ancestor in path.ancestors() {
+        let stdlib_path = ancestor.join("pkgs/std/std.dora");
+
+        if stdlib_path.exists() {
+            return Some(stdlib_path);
+        }
+    }
+
+    None
 }
 
 fn compile_into_program(flags: &DriverFlags, file: String) -> Result<Program, ()> {

@@ -90,6 +90,7 @@ pub struct SemaFlags {
     pub packages: Vec<(String, FileContent)>,
     pub program_file: Option<FileContent>,
     pub boots: bool,
+    pub is_standard_library: bool,
 }
 
 impl SemaFlags {
@@ -103,6 +104,7 @@ impl SemaFlags {
             packages,
             program_file: Some(FileContent::Content(input.to_string())),
             boots: false,
+            is_standard_library: false,
         }
     }
 
@@ -116,6 +118,7 @@ impl SemaFlags {
             packages,
             program_file: Some(FileContent::Content(input.to_string())),
             boots: false,
+            is_standard_library: false,
         }
     }
 }

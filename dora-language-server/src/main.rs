@@ -315,6 +315,7 @@ fn compile_project(project: ProjectConfig, sender: Sender<MainLoopTask>) {
         program_file: Some(FileContent::Path(project.main.clone())),
         packages: Vec::new(),
         boots: false,
+        is_standard_library: false,
     };
 
     let mut sa = Sema::new(sem_args);

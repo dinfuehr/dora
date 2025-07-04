@@ -113,6 +113,8 @@ pub struct DriverFlags {
     pub packages: Vec<(String, PathBuf)>,
 
     pub command: Command,
+
+    pub separate_stdlib_check: bool,
 }
 
 impl DriverFlags {
@@ -177,6 +179,8 @@ impl Default for DriverFlags {
             snapshot_on_oom: None,
 
             command: Command::Run,
+
+            separate_stdlib_check: false,
         }
     }
 }
@@ -349,6 +353,8 @@ pub fn parse_arguments() -> Result<DriverFlags, String> {
             idx += 2;
         } else if arg.starts_with("--snapshot-on-oom=") {
             flags.snapshot_on_oom = Some(argument_value(arg).into());
+        } else if arg == "--separate-stdlib-check" {
+            flags.separate_stdlib_check = true;
         } else if arg.starts_with("-") {
             return Err(format!("unknown flag {}", arg));
         } else if flags.arg_file.is_none() {
@@ -441,6 +447,7 @@ pub fn create_sema_flags(flags: &DriverFlags, program_file: PathBuf) -> SemaFlag
         program_file: Some(FileContent::Path(program_file)),
         packages,
         boots: flags.include_boots(),
+        is_standard_library: false,
     }
 }
 

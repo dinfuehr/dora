@@ -69,8 +69,11 @@ impl<'a> ProgramParser<'a> {
     }
 
     fn add_all_packages(&mut self) {
-        self.add_stdlib_package();
-        self.add_boots_package();
+        if !self.sa.flags.is_standard_library {
+            self.add_stdlib_package();
+            self.add_boots_package();
+        }
+
         self.add_program_package();
         self.add_dependency_packages();
     }
@@ -93,7 +96,7 @@ impl<'a> ProgramParser<'a> {
     }
 
     fn get_stdlib_path(&self) -> Option<PathBuf> {
-        if let Some(file_content) = self.packages.get("stdlib") {
+        if let Some(file_content) = self.packages.get("std") {
             Some(file_content.to_path().cloned().expect("path expected"))
         } else {
             let path = std::env::current_exe().expect("illegal path");
