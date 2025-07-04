@@ -81,7 +81,7 @@ impl<'a> ProgramParser<'a> {
     fn add_stdlib_package(&mut self) {
         let stdlib_name = "std";
         let stdlib_iname = self.sa.interner.intern(stdlib_name);
-        let (package_id, module_id) = add_package(self.sa, PackageName::Stdlib, Some(stdlib_iname));
+        let (package_id, module_id) = add_package(self.sa, PackageName::Std, Some(stdlib_iname));
         self.sa
             .package_names
             .insert(stdlib_name.to_string(), package_id);

@@ -54,13 +54,13 @@ pub fn lookup(vm: &mut VM) {
 
 fn get_primitive_ty(path: &str) -> Option<BytecodeType> {
     match path {
-        "stdlib::primitives::Bool" => Some(BytecodeType::Bool),
-        "stdlib::primitives::UInt8" => Some(BytecodeType::UInt8),
-        "stdlib::primitives::Char" => Some(BytecodeType::Char),
-        "stdlib::primitives::Int32" => Some(BytecodeType::Int32),
-        "stdlib::primitives::Int64" => Some(BytecodeType::Int64),
-        "stdlib::primitives::Float32" => Some(BytecodeType::Float32),
-        "stdlib::primitives::Float64" => Some(BytecodeType::Float64),
+        "std::primitives::Bool" => Some(BytecodeType::Bool),
+        "std::primitives::UInt8" => Some(BytecodeType::UInt8),
+        "std::primitives::Char" => Some(BytecodeType::Char),
+        "std::primitives::Int32" => Some(BytecodeType::Int32),
+        "std::primitives::Int64" => Some(BytecodeType::Int64),
+        "std::primitives::Float32" => Some(BytecodeType::Float32),
+        "std::primitives::Float64" => Some(BytecodeType::Float64),
         _ => None,
     }
 }
@@ -264,17 +264,17 @@ fn lookup_package(vm: &VM, name: &str) -> Option<PackageId> {
 
 fn lookup_known_classes(vm: &mut VM, module_items: &ModuleItemMap) {
     vm.known.array_class_id = Some(
-        resolve_path(vm, module_items, "stdlib::collections::Array")
+        resolve_path(vm, module_items, "std::collections::Array")
             .class_id()
             .expect("class expected"),
     );
     vm.known.string_class_id = Some(
-        resolve_path(vm, module_items, "stdlib::string::String")
+        resolve_path(vm, module_items, "std::string::String")
             .class_id()
             .expect("class expected"),
     );
     vm.known.thread_class_id = Some(
-        resolve_path(vm, module_items, "stdlib::thread::Thread")
+        resolve_path(vm, module_items, "std::thread::Thread")
             .class_id()
             .expect("class expected"),
     );
@@ -290,13 +290,13 @@ fn lookup_known_functions(vm: &mut VM, module_items: &ModuleItemMap) {
     }
 
     vm.known.unreachable_fct_id = Some(
-        resolve_path(vm, module_items, "stdlib::unreachable")
+        resolve_path(vm, module_items, "std::unreachable")
             .function_id()
             .expect("function expected"),
     );
 
     vm.known.fatal_error_fct_id = Some(
-        resolve_path(vm, module_items, "stdlib::fatalError")
+        resolve_path(vm, module_items, "std::fatalError")
             .function_id()
             .expect("function expected"),
     );
@@ -304,7 +304,7 @@ fn lookup_known_functions(vm: &mut VM, module_items: &ModuleItemMap) {
 
 fn lookup_known_traits(vm: &mut VM, module_items: &ModuleItemMap) {
     vm.known.zero_trait_id = Some(
-        resolve_path(vm, module_items, "stdlib::traits::Zero")
+        resolve_path(vm, module_items, "std::traits::Zero")
             .trait_id()
             .expect("trait expected"),
     );

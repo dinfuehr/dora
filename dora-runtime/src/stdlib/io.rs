@@ -13,18 +13,18 @@ use crate::vm::FctImplementation;
 use FctImplementation::Native as N;
 
 pub const IO_FUNCTIONS: &[(&'static str, FctImplementation)] = &[
-    ("stdlib::io::socketConnect", N(socket_connect as *const u8)),
-    ("stdlib::io::socketClose", N(socket_close as *const u8)),
-    ("stdlib::io::socketWrite", N(socket_write as *const u8)),
-    ("stdlib::io::socketRead", N(socket_read as *const u8)),
-    ("stdlib::io::socketBind", N(socket_bind as *const u8)),
-    ("stdlib::io::socketAccept", N(socket_accept as *const u8)),
-    ("stdlib::io::fileCreate", N(file_create as *const u8)),
-    ("stdlib::io::fileOpen", N(file_open as *const u8)),
-    ("stdlib::io::fileWrite", N(file_write as *const u8)),
-    ("stdlib::io::fileRead", N(file_read as *const u8)),
-    ("stdlib::io::fileClose", N(file_close as *const u8)),
-    ("stdlib::io::getStdHandle", N(get_std_handle as *const u8)),
+    ("std::io::socketConnect", N(socket_connect as *const u8)),
+    ("std::io::socketClose", N(socket_close as *const u8)),
+    ("std::io::socketWrite", N(socket_write as *const u8)),
+    ("std::io::socketRead", N(socket_read as *const u8)),
+    ("std::io::socketBind", N(socket_bind as *const u8)),
+    ("std::io::socketAccept", N(socket_accept as *const u8)),
+    ("std::io::fileCreate", N(file_create as *const u8)),
+    ("std::io::fileOpen", N(file_open as *const u8)),
+    ("std::io::fileWrite", N(file_write as *const u8)),
+    ("std::io::fileRead", N(file_read as *const u8)),
+    ("std::io::fileClose", N(file_close as *const u8)),
+    ("std::io::getStdHandle", N(get_std_handle as *const u8)),
 ];
 
 #[repr(C)]

@@ -63,7 +63,7 @@ pub struct PackageDependency {
 
 #[derive(Debug)]
 pub enum PackageName {
-    Stdlib,
+    Std,
     Boots,
     Program,
     External(String),

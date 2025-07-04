@@ -54,7 +54,7 @@ fn create_packages(sa: &Sema) -> Vec<PackageData> {
     for (_id, pkg) in sa.packages.iter() {
         let name = match pkg.name {
             PackageName::Boots => "boots".into(),
-            PackageName::Stdlib => "stdlib".into(),
+            PackageName::Std => "std".into(),
             PackageName::Program => "program".into(),
             PackageName::External(ref name) => name.clone(),
         };
