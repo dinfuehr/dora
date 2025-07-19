@@ -180,7 +180,7 @@ impl Default for DriverFlags {
 
             command: Command::Run,
 
-            separate_stdlib_check: false,
+            separate_stdlib_check: true,
         }
     }
 }

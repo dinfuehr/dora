@@ -160,6 +160,13 @@ impl<'a> ProgramParser<'a> {
         self.sa.set_program_module_id(module_id);
         self.sa.set_program_package_id(package_id);
 
+        if self.sa.flags.is_standard_library {
+            self.sa.package_names.insert("std".into(), package_id);
+
+            self.sa.set_stdlib_module_id(module_id);
+            self.sa.set_stdlib_package_id(package_id);
+        }
+
         if let Some(ref file_content) = self.sa.flags.program_file {
             match file_content {
                 FileContent::Path(path) => {
