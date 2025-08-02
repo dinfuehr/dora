@@ -28,26 +28,36 @@ pub fn emit_program(sa: Sema) -> Program {
         globals: Vec::new(),
         packages: Vec::new(),
         modules: Vec::new(),
+        classes: Vec::new(),
+        structs: Vec::new(),
+        enums: Default::default(),
+        traits: Default::default(),
+        source_files: Default::default(),
     };
 
     emitter.create_packages(&sa);
     emitter.create_modules(&sa);
+    emitter.create_classes(&sa);
+    emitter.create_structs(&sa);
     emitter.create_functions(&sa);
     emitter.create_globals(&sa);
+    emitter.create_enums(&sa);
+    emitter.create_traits(&sa);
+    emitter.create_source_files(&sa);
 
     Program {
         packages: emitter.packages,
         modules: emitter.modules,
         functions: emitter.functions,
         globals: emitter.globals,
-        classes: create_classes(&sa),
-        structs: create_structs(&sa),
-        enums: create_enums(&sa),
-        traits: create_traits(&sa),
+        classes: emitter.classes,
+        structs: emitter.structs,
+        enums: emitter.enums,
+        traits: emitter.traits,
         extensions: create_extensions(&sa),
         impls: create_impls(&sa),
         aliases: create_aliases(&sa),
-        source_files: create_source_files(&sa),
+        source_files: emitter.source_files,
         stdlib_package_id: convert_package_id(sa.stdlib_package_id()),
         program_package_id: convert_package_id(sa.program_package_id()),
         boots_package_id: sa.boots_package_id.map(|p| convert_package_id(p)),
@@ -62,6 +72,11 @@ struct Emitter {
     globals: Vec<GlobalData>,
     packages: Vec<PackageData>,
     modules: Vec<ModuleData>,
+    classes: Vec<ClassData>,
+    structs: Vec<StructData>,
+    enums: Vec<EnumData>,
+    traits: Vec<TraitData>,
+    source_files: Vec<SourceFileData>,
 }
 
 impl Emitter {
@@ -94,6 +109,88 @@ impl Emitter {
                 parent_id: module.parent_module_id.map(|id| convert_module_id(id)),
             })
         }
+    }
+
+    fn create_classes(&mut self, sa: &Sema) {
+        for (_class_id, class) in sa.classes.iter() {
+            let name = sa.interner.str(class.name).to_string();
+            let fields = self.create_class_fields(sa, &*class);
+
+            self.classes.push(ClassData {
+                module_id: convert_module_id(class.module_id),
+                name,
+                type_params: create_type_params(sa, class.type_param_definition()),
+                fields,
+            })
+        }
+    }
+
+    fn create_class_fields(&mut self, sa: &Sema, class: &ClassDefinition) -> Vec<ClassField> {
+        class
+            .fields
+            .iter()
+            .map(|f| ClassField {
+                ty: bty_from_ty(f.ty()),
+                name: f.name.map(|n| sa.interner.str(n).to_string()),
+            })
+            .collect()
+    }
+
+    fn create_structs(&mut self, sa: &Sema) {
+        for (_struct_id, struct_) in sa.structs.iter() {
+            let name = sa.interner.str(struct_.name).to_string();
+            let fields = self.create_struct_fields(sa, struct_);
+
+            self.structs.push(StructData {
+                module_id: convert_module_id(struct_.module_id),
+                name,
+                type_params: create_type_params(sa, struct_.type_param_definition()),
+                fields,
+            })
+        }
+    }
+
+    fn create_struct_fields(&mut self, sa: &Sema, struct_: &StructDefinition) -> Vec<StructField> {
+        struct_
+            .fields
+            .iter()
+            .map(|f| StructField {
+                ty: bty_from_ty(f.ty()),
+                name: f.name.map(|n| sa.interner.str(n).to_string()),
+            })
+            .collect()
+    }
+
+    fn create_enums(&mut self, sa: &Sema) {
+        for (_id, enum_) in sa.enums.iter() {
+            let name = sa.interner.str(enum_.name).to_string();
+            let variants = self.create_enum_variants(sa, &*enum_);
+
+            self.enums.push(EnumData {
+                module_id: convert_module_id(enum_.module_id),
+                name,
+                type_params: create_type_params(sa, enum_.type_param_definition()),
+                variants,
+            })
+        }
+    }
+
+    fn create_enum_variants(&mut self, sa: &Sema, enum_: &EnumDefinition) -> Vec<EnumVariant> {
+        let mut result = Vec::new();
+
+        for variant in enum_.variants() {
+            let arguments = variant
+                .fields
+                .iter()
+                .map(|f| bty_from_ty(f.parsed_type.ty()))
+                .collect();
+            result.push(EnumVariant {
+                name: sa.interner.str(variant.name).to_string(),
+                arguments,
+            })
+        }
+
+        result
     }
 
     fn create_functions(&mut self, sa: &Sema) {
@@ -188,6 +285,44 @@ impl Emitter {
                 mutable: global.mutable,
                 name,
                 initial_value: global_initializer_function_id(sa, &*global, self),
+            })
+        }
+    }
+
+    fn create_traits(&mut self, sa: &Sema) {
+        for (_id, trait_) in sa.traits.iter() {
+            let name = sa.interner.str(trait_.name).to_string();
+
+            let methods = trait_
+                .methods()
+                .iter()
+                .map(|f| convert_function_id(*f))
+                .collect();
+
+            let virtual_methods = trait_
+                .methods()
+                .iter()
+                .filter(|f| {
+                    let method = sa.fct(**f);
+                    !method.is_trait_object_ignore
+                })
+                .map(|f| convert_function_id(*f))
+                .collect();
+
+            self.traits.push(TraitData {
+                module_id: convert_module_id(trait_.module_id),
+                name,
+                type_params: create_type_params(sa, &trait_.type_param_definition()),
+                methods,
+                virtual_methods,
+            })
+        }
+    }
+
+    fn create_source_files(&mut self, sa: &Sema) {
+        for (_id, file) in sa.source_files.iter() {
+            self.source_files.push(SourceFileData {
+                path: file.path.to_string_lossy().to_string(),
             })
         }
     }
@@ -293,51 +428,6 @@ fn global_initializer_function_id(
     )
 }
 
-fn create_classes(sa: &Sema) -> Vec<ClassData> {
-    let mut result = Vec::new();
-
-    for (_class_id, class) in sa.classes.iter() {
-        let name = sa.interner.str(class.name).to_string();
-
-        result.push(ClassData {
-            module_id: convert_module_id(class.module_id),
-            name,
-            type_params: create_type_params(sa, class.type_param_definition()),
-            fields: create_class_fields(sa, &*class),
-        })
-    }
-
-    result
-}
-
-fn create_class_fields(sa: &Sema, class: &ClassDefinition) -> Vec<ClassField> {
-    class
-        .fields
-        .iter()
-        .map(|f| ClassField {
-            ty: bty_from_ty(f.ty()),
-            name: f.name.map(|n| sa.interner.str(n).to_string()),
-        })
-        .collect()
-}
-
-fn create_structs(sa: &Sema) -> Vec<StructData> {
-    let mut result = Vec::new();
-
-    for (_struct_id, struct_) in sa.structs.iter() {
-        let name = sa.interner.str(struct_.name).to_string();
-
-        result.push(StructData {
-            module_id: convert_module_id(struct_.module_id),
-            name,
-            type_params: create_type_params(sa, struct_.type_param_definition()),
-            fields: create_struct_fields(sa, &*struct_),
-        })
-    }
-
-    result
-}
-
 fn create_type_params(sa: &Sema, type_params: &TypeParamDefinition) -> TypeParamData {
     let names = type_params
         .names()
@@ -359,98 +449,6 @@ fn create_type_params(sa: &Sema, type_params: &TypeParamDefinition) -> TypeParam
         container_count,
         bounds,
     }
-}
-
-fn create_struct_fields(sa: &Sema, struct_: &StructDefinition) -> Vec<StructField> {
-    struct_
-        .fields
-        .iter()
-        .map(|f| StructField {
-            ty: bty_from_ty(f.ty()),
-            name: f.name.map(|n| sa.interner.str(n).to_string()),
-        })
-        .collect()
-}
-
-fn create_enums(sa: &Sema) -> Vec<EnumData> {
-    let mut result = Vec::new();
-
-    for (_id, enum_) in sa.enums.iter() {
-        let name = sa.interner.str(enum_.name).to_string();
-
-        result.push(EnumData {
-            module_id: convert_module_id(enum_.module_id),
-            name,
-            type_params: create_type_params(sa, enum_.type_param_definition()),
-            variants: create_enum_variants(sa, &*enum_),
-        })
-    }
-
-    result
-}
-
-fn create_enum_variants(sa: &Sema, enum_: &EnumDefinition) -> Vec<EnumVariant> {
-    let mut result = Vec::new();
-
-    for variant in enum_.variants() {
-        let arguments = variant
-            .fields
-            .iter()
-            .map(|f| bty_from_ty(f.parsed_type.ty()))
-            .collect();
-        result.push(EnumVariant {
-            name: sa.interner.str(variant.name).to_string(),
-            arguments,
-        })
-    }
-
-    result
-}
-
-fn create_traits(sa: &Sema) -> Vec<TraitData> {
-    let mut result = Vec::new();
-
-    for (_id, trait_) in sa.traits.iter() {
-        let name = sa.interner.str(trait_.name).to_string();
-
-        let methods = trait_
-            .methods()
-            .iter()
-            .map(|f| convert_function_id(*f))
-            .collect();
-
-        let virtual_methods = trait_
-            .methods()
-            .iter()
-            .filter(|f| {
-                let method = sa.fct(**f);
-                !method.is_trait_object_ignore
-            })
-            .map(|f| convert_function_id(*f))
-            .collect();
-
-        result.push(TraitData {
-            module_id: convert_module_id(trait_.module_id),
-            name,
-            type_params: create_type_params(sa, &trait_.type_param_definition()),
-            methods,
-            virtual_methods,
-        })
-    }
-
-    result
-}
-
-fn create_source_files(sa: &Sema) -> Vec<SourceFileData> {
-    let mut result = Vec::new();
-
-    for (_id, file) in sa.source_files.iter() {
-        result.push(SourceFileData {
-            path: file.path.to_string_lossy().to_string(),
-        })
-    }
-
-    result
 }
 
 fn find_main_fct_id(sa: &Sema) -> Option<FunctionId> {
