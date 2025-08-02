@@ -15,24 +15,31 @@ use crate::sema::{
     self, AliasDefinitionId, ClassDefinition, Element, EnumDefinition, FctDefinitionId, FctParent,
     ModuleDefinitionId, PackageDefinitionId, PackageName, StructDefinition, TypeParamDefinition,
 };
-use crate::sema::{ExtensionDefinitionId, GlobalDefinition, GlobalDefinitionId};
-
-use super::sema::{ImplDefinitionId, TraitDefinitionId};
-
-struct Emitter {
-    global_initializer: HashMap<GlobalDefinitionId, FunctionId>,
-}
+use crate::sema::{
+    ExtensionDefinitionId, GlobalDefinition, GlobalDefinitionId, ImplDefinitionId,
+    TraitDefinitionId,
+};
 
 pub fn emit_program(sa: Sema) -> Program {
     let mut emitter = Emitter {
         global_initializer: HashMap::new(),
+        map_functions: HashMap::new(),
+        functions: Vec::new(),
+        globals: Vec::new(),
+        packages: Vec::new(),
+        modules: Vec::new(),
     };
 
+    emitter.create_packages(&sa);
+    emitter.create_modules(&sa);
+    emitter.create_functions(&sa);
+    emitter.create_globals(&sa);
+
     Program {
-        packages: create_packages(&sa),
-        modules: create_modules(&sa),
-        functions: create_functions(&sa, &mut emitter),
-        globals: create_globals(&sa, &emitter),
+        packages: emitter.packages,
+        modules: emitter.modules,
+        functions: emitter.functions,
+        globals: emitter.globals,
         classes: create_classes(&sa),
         structs: create_structs(&sa),
         enums: create_enums(&sa),
@@ -48,43 +55,142 @@ pub fn emit_program(sa: Sema) -> Program {
     }
 }
 
-fn create_packages(sa: &Sema) -> Vec<PackageData> {
-    let mut result = Vec::new();
-
-    for (_id, pkg) in sa.packages.iter() {
-        let name = match pkg.name {
-            PackageName::Boots => "boots".into(),
-            PackageName::Std => "std".into(),
-            PackageName::Program => "program".into(),
-            PackageName::External(ref name) => name.clone(),
-        };
-
-        result.push(PackageData {
-            name,
-            root_module_id: convert_module_id(pkg.top_level_module_id()),
-        })
-    }
-
-    result
+struct Emitter {
+    global_initializer: HashMap<GlobalDefinitionId, FunctionId>,
+    map_functions: HashMap<FctDefinitionId, FunctionId>,
+    functions: Vec<FunctionData>,
+    globals: Vec<GlobalData>,
+    packages: Vec<PackageData>,
+    modules: Vec<ModuleData>,
 }
 
-fn create_modules(sa: &Sema) -> Vec<ModuleData> {
-    let mut result = Vec::new();
+impl Emitter {
+    fn create_packages(&mut self, sa: &Sema) {
+        for (_id, pkg) in sa.packages.iter() {
+            let name = match pkg.name {
+                PackageName::Boots => "boots".into(),
+                PackageName::Std => "std".into(),
+                PackageName::Program => "program".into(),
+                PackageName::External(ref name) => name.clone(),
+            };
 
-    for (_id, module) in sa.modules.iter() {
-        let name = if let Some(name) = module.name {
-            sa.interner.str(name).to_string()
-        } else {
-            "<root>".into()
-        };
-
-        result.push(ModuleData {
-            name,
-            parent_id: module.parent_module_id.map(|id| convert_module_id(id)),
-        })
+            self.packages.push(PackageData {
+                name,
+                root_module_id: convert_module_id(pkg.top_level_module_id()),
+            });
+        }
     }
 
-    result
+    fn create_modules(&mut self, sa: &Sema) {
+        for (_id, module) in sa.modules.iter() {
+            let name = if let Some(name) = module.name {
+                sa.interner.str(name).to_string()
+            } else {
+                "<root>".into()
+            };
+
+            self.modules.push(ModuleData {
+                name,
+                parent_id: module.parent_module_id.map(|id| convert_module_id(id)),
+            })
+        }
+    }
+
+    fn create_functions(&mut self, sa: &Sema) {
+        for (id, fct) in sa.fcts.iter() {
+            let name = sa.interner.str(fct.name).to_string();
+
+            let kind = match fct.parent {
+                FctParent::Extension(extension_id) => {
+                    FunctionKind::Extension(convert_extension_id(extension_id))
+                }
+                FctParent::Function => FunctionKind::Lambda,
+                FctParent::Impl(impl_id) => FunctionKind::Impl(convert_impl_id(impl_id)),
+                FctParent::Trait(trait_id) => FunctionKind::Trait(convert_trait_id(trait_id)),
+                FctParent::None => FunctionKind::Function,
+            };
+
+            let function_id = FunctionId(self.functions.len().try_into().expect("overflow"));
+            self.functions.push(FunctionData {
+                name,
+                loc: sa.compute_loc(fct.file_id, fct.span),
+                kind,
+                file_id: convert_source_file_id(fct.file_id),
+                package_id: convert_package_id(fct.package_id),
+                module_id: convert_module_id(fct.module_id),
+                type_params: create_type_params(sa, fct.type_param_definition()),
+                source_file_id: Some(convert_source_file_id(fct.file_id)),
+                params: fct
+                    .params_with_self()
+                    .iter()
+                    .map(|p| bty_from_ty(p.ty()))
+                    .collect(),
+                return_type: fct.return_type_bty(),
+                is_internal: fct.is_internal,
+                is_test: fct.is_test,
+                is_optimize_immediately: fct.is_optimize_immediately,
+                is_variadic: fct.params.is_variadic(),
+                is_force_inline: fct.is_force_inline,
+                is_never_inline: fct.is_never_inline,
+                is_trait_object_ignore: fct.is_trait_object_ignore,
+                bytecode: fct.bytecode.get().cloned(),
+                trait_method_impl: fct
+                    .trait_method_impl
+                    .get()
+                    .cloned()
+                    .map(|id| convert_function_id(id)),
+            });
+
+            self.map_functions.insert(id, function_id);
+        }
+
+        for (_id, global) in sa.globals.iter() {
+            if !global.has_initial_value() {
+                continue;
+            }
+
+            let fct_id = FunctionId(self.functions.len().try_into().expect("overflow"));
+            let name = sa.interner.str(global.name).to_string();
+
+            self.functions.push(FunctionData {
+                name,
+                loc: sa.compute_loc(global.file_id, global.span),
+                kind: FunctionKind::Function,
+                file_id: convert_source_file_id(global.file_id),
+                package_id: convert_package_id(global.package_id),
+                module_id: convert_module_id(global.module_id),
+                type_params: create_type_params(sa, &TypeParamDefinition::empty()),
+                source_file_id: Some(convert_source_file_id(global.file_id)),
+                params: Vec::new(),
+                return_type: bty_from_ty(global.ty()),
+                is_internal: false,
+                is_test: false,
+                is_optimize_immediately: false,
+                is_variadic: false,
+                is_force_inline: false,
+                is_never_inline: false,
+                is_trait_object_ignore: false,
+                bytecode: Some(global.bytecode().clone()),
+                trait_method_impl: None,
+            });
+
+            self.global_initializer.insert(global.id(), fct_id);
+        }
+    }
+
+    fn create_globals(&mut self, sa: &Sema) {
+        for (_id, global) in sa.globals.iter() {
+            let name = sa.interner.str(global.name).to_string();
+
+            self.globals.push(GlobalData {
+                module_id: convert_module_id(global.module_id),
+                ty: bty_from_ty(global.ty()),
+                mutable: global.mutable,
+                name,
+                initial_value: global_initializer_function_id(sa, &*global, self),
+            })
+        }
+    }
 }
 
 fn create_extensions(sa: &Sema) -> Vec<ExtensionData> {
@@ -168,107 +274,6 @@ fn create_aliases(sa: &Sema) -> Vec<AliasData> {
             name: sa.interner.str(alias.name).to_string(),
             ty: alias.parsed_ty().map(|pty| bty_from_ty(pty.ty())),
             idx_in_trait: alias.idx_in_trait,
-        })
-    }
-
-    result
-}
-
-fn create_functions(sa: &Sema, e: &mut Emitter) -> Vec<FunctionData> {
-    let mut result = Vec::new();
-
-    for (_id, fct) in sa.fcts.iter() {
-        let name = sa.interner.str(fct.name).to_string();
-
-        let kind = match fct.parent {
-            FctParent::Extension(extension_id) => {
-                FunctionKind::Extension(convert_extension_id(extension_id))
-            }
-            FctParent::Function => FunctionKind::Lambda,
-            FctParent::Impl(impl_id) => FunctionKind::Impl(convert_impl_id(impl_id)),
-            FctParent::Trait(trait_id) => FunctionKind::Trait(convert_trait_id(trait_id)),
-            FctParent::None => FunctionKind::Function,
-        };
-
-        result.push(FunctionData {
-            name,
-            loc: sa.compute_loc(fct.file_id, fct.span),
-            kind,
-            file_id: convert_source_file_id(fct.file_id),
-            package_id: convert_package_id(fct.package_id),
-            module_id: convert_module_id(fct.module_id),
-            type_params: create_type_params(sa, fct.type_param_definition()),
-            source_file_id: Some(convert_source_file_id(fct.file_id)),
-            params: fct
-                .params_with_self()
-                .iter()
-                .map(|p| bty_from_ty(p.ty()))
-                .collect(),
-            return_type: fct.return_type_bty(),
-            is_internal: fct.is_internal,
-            is_test: fct.is_test,
-            is_optimize_immediately: fct.is_optimize_immediately,
-            is_variadic: fct.params.is_variadic(),
-            is_force_inline: fct.is_force_inline,
-            is_never_inline: fct.is_never_inline,
-            is_trait_object_ignore: fct.is_trait_object_ignore,
-            bytecode: fct.bytecode.get().cloned(),
-            trait_method_impl: fct
-                .trait_method_impl
-                .get()
-                .cloned()
-                .map(|id| convert_function_id(id)),
-        })
-    }
-
-    for (_id, global) in sa.globals.iter() {
-        if !global.has_initial_value() {
-            continue;
-        }
-
-        let fct_id = FunctionId(result.len().try_into().expect("overflow"));
-        let name = sa.interner.str(global.name).to_string();
-
-        result.push(FunctionData {
-            name,
-            loc: sa.compute_loc(global.file_id, global.span),
-            kind: FunctionKind::Function,
-            file_id: convert_source_file_id(global.file_id),
-            package_id: convert_package_id(global.package_id),
-            module_id: convert_module_id(global.module_id),
-            type_params: create_type_params(sa, &TypeParamDefinition::empty()),
-            source_file_id: Some(convert_source_file_id(global.file_id)),
-            params: Vec::new(),
-            return_type: bty_from_ty(global.ty()),
-            is_internal: false,
-            is_test: false,
-            is_optimize_immediately: false,
-            is_variadic: false,
-            is_force_inline: false,
-            is_never_inline: false,
-            is_trait_object_ignore: false,
-            bytecode: Some(global.bytecode().clone()),
-            trait_method_impl: None,
-        });
-
-        e.global_initializer.insert(global.id(), fct_id);
-    }
-
-    result
-}
-
-fn create_globals(sa: &Sema, e: &Emitter) -> Vec<GlobalData> {
-    let mut result = Vec::new();
-
-    for (_id, global) in sa.globals.iter() {
-        let name = sa.interner.str(global.name).to_string();
-
-        result.push(GlobalData {
-            module_id: convert_module_id(global.module_id),
-            ty: bty_from_ty(global.ty()),
-            mutable: global.mutable,
-            name,
-            initial_value: global_initializer_function_id(sa, &*global, e),
         })
     }
 
