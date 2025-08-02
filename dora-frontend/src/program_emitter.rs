@@ -33,6 +33,9 @@ pub fn emit_program(sa: Sema) -> Program {
         enums: Default::default(),
         traits: Default::default(),
         source_files: Default::default(),
+        extensions: Default::default(),
+        impls: Default::default(),
+        aliases: Default::default(),
     };
 
     emitter.create_packages(&sa);
@@ -44,6 +47,14 @@ pub fn emit_program(sa: Sema) -> Program {
     emitter.create_enums(&sa);
     emitter.create_traits(&sa);
     emitter.create_source_files(&sa);
+    emitter.create_extensions(&sa);
+    emitter.create_impls(&sa);
+    emitter.create_aliases(&sa);
+
+    let stdlib_package_id = emitter.convert_package_id(sa.stdlib_package_id());
+    let program_package_id = emitter.convert_package_id(sa.program_package_id());
+    let boots_package_id = sa.boots_package_id.map(|p| emitter.convert_package_id(p));
+    let main_fct_id = emitter.find_main_fct_id(&sa);
 
     Program {
         packages: emitter.packages,
@@ -54,14 +65,14 @@ pub fn emit_program(sa: Sema) -> Program {
         structs: emitter.structs,
         enums: emitter.enums,
         traits: emitter.traits,
-        extensions: create_extensions(&sa),
-        impls: create_impls(&sa),
-        aliases: create_aliases(&sa),
+        extensions: emitter.extensions,
+        impls: emitter.impls,
+        aliases: emitter.aliases,
         source_files: emitter.source_files,
-        stdlib_package_id: convert_package_id(sa.stdlib_package_id()),
-        program_package_id: convert_package_id(sa.program_package_id()),
-        boots_package_id: sa.boots_package_id.map(|p| convert_package_id(p)),
-        main_fct_id: find_main_fct_id(&sa),
+        stdlib_package_id,
+        program_package_id,
+        boots_package_id,
+        main_fct_id,
     }
 }
 
@@ -77,6 +88,9 @@ struct Emitter {
     enums: Vec<EnumData>,
     traits: Vec<TraitData>,
     source_files: Vec<SourceFileData>,
+    extensions: Vec<ExtensionData>,
+    impls: Vec<ImplData>,
+    aliases: Vec<AliasData>,
 }
 
 impl Emitter {
@@ -91,7 +105,7 @@ impl Emitter {
 
             self.packages.push(PackageData {
                 name,
-                root_module_id: convert_module_id(pkg.top_level_module_id()),
+                root_module_id: self.convert_module_id(pkg.top_level_module_id()),
             });
         }
     }
@@ -106,7 +120,7 @@ impl Emitter {
 
             self.modules.push(ModuleData {
                 name,
-                parent_id: module.parent_module_id.map(|id| convert_module_id(id)),
+                parent_id: module.parent_module_id.map(|id| self.convert_module_id(id)),
             })
         }
     }
@@ -117,11 +131,34 @@ impl Emitter {
             let fields = self.create_class_fields(sa, &*class);
 
             self.classes.push(ClassData {
-                module_id: convert_module_id(class.module_id),
+                module_id: self.convert_module_id(class.module_id),
                 name,
-                type_params: create_type_params(sa, class.type_param_definition()),
+                type_params: self.create_type_params(sa, class.type_param_definition()),
                 fields,
             })
+        }
+    }
+
+    fn create_type_params(&self, sa: &Sema, type_params: &TypeParamDefinition) -> TypeParamData {
+        let names = type_params
+            .names()
+            .map(|(_, name)| sa.interner.str(name).to_string())
+            .collect();
+
+        let bounds = type_params
+            .bounds()
+            .map(|b| TypeParamBound {
+                ty: bty_from_ty(b.ty()),
+                trait_ty: convert_trait_type(b.trait_ty().as_ref().expect("missing trait type")),
+            })
+            .collect();
+
+        let container_count = type_params.container_type_params();
+
+        TypeParamData {
+            names,
+            container_count,
+            bounds,
         }
     }
 
@@ -142,9 +179,9 @@ impl Emitter {
             let fields = self.create_struct_fields(sa, struct_);
 
             self.structs.push(StructData {
-                module_id: convert_module_id(struct_.module_id),
+                module_id: self.convert_module_id(struct_.module_id),
                 name,
-                type_params: create_type_params(sa, struct_.type_param_definition()),
+                type_params: self.create_type_params(sa, struct_.type_param_definition()),
                 fields,
             })
         }
@@ -167,9 +204,9 @@ impl Emitter {
             let variants = self.create_enum_variants(sa, &*enum_);
 
             self.enums.push(EnumData {
-                module_id: convert_module_id(enum_.module_id),
+                module_id: self.convert_module_id(enum_.module_id),
                 name,
-                type_params: create_type_params(sa, enum_.type_param_definition()),
+                type_params: self.create_type_params(sa, enum_.type_param_definition()),
                 variants,
             })
         }
@@ -199,11 +236,11 @@ impl Emitter {
 
             let kind = match fct.parent {
                 FctParent::Extension(extension_id) => {
-                    FunctionKind::Extension(convert_extension_id(extension_id))
+                    FunctionKind::Extension(self.convert_extension_id(extension_id))
                 }
                 FctParent::Function => FunctionKind::Lambda,
-                FctParent::Impl(impl_id) => FunctionKind::Impl(convert_impl_id(impl_id)),
-                FctParent::Trait(trait_id) => FunctionKind::Trait(convert_trait_id(trait_id)),
+                FctParent::Impl(impl_id) => FunctionKind::Impl(self.convert_impl_id(impl_id)),
+                FctParent::Trait(trait_id) => FunctionKind::Trait(self.convert_trait_id(trait_id)),
                 FctParent::None => FunctionKind::Function,
             };
 
@@ -212,11 +249,11 @@ impl Emitter {
                 name,
                 loc: sa.compute_loc(fct.file_id, fct.span),
                 kind,
-                file_id: convert_source_file_id(fct.file_id),
-                package_id: convert_package_id(fct.package_id),
-                module_id: convert_module_id(fct.module_id),
-                type_params: create_type_params(sa, fct.type_param_definition()),
-                source_file_id: Some(convert_source_file_id(fct.file_id)),
+                file_id: self.convert_source_file_id(fct.file_id),
+                package_id: self.convert_package_id(fct.package_id),
+                module_id: self.convert_module_id(fct.module_id),
+                type_params: self.create_type_params(sa, fct.type_param_definition()),
+                source_file_id: Some(self.convert_source_file_id(fct.file_id)),
                 params: fct
                     .params_with_self()
                     .iter()
@@ -235,7 +272,7 @@ impl Emitter {
                     .trait_method_impl
                     .get()
                     .cloned()
-                    .map(|id| convert_function_id(id)),
+                    .map(|id| self.convert_function_id(id)),
             });
 
             self.map_functions.insert(id, function_id);
@@ -253,11 +290,11 @@ impl Emitter {
                 name,
                 loc: sa.compute_loc(global.file_id, global.span),
                 kind: FunctionKind::Function,
-                file_id: convert_source_file_id(global.file_id),
-                package_id: convert_package_id(global.package_id),
-                module_id: convert_module_id(global.module_id),
-                type_params: create_type_params(sa, &TypeParamDefinition::empty()),
-                source_file_id: Some(convert_source_file_id(global.file_id)),
+                file_id: self.convert_source_file_id(global.file_id),
+                package_id: self.convert_package_id(global.package_id),
+                module_id: self.convert_module_id(global.module_id),
+                type_params: self.create_type_params(sa, &TypeParamDefinition::empty()),
+                source_file_id: Some(self.convert_source_file_id(global.file_id)),
                 params: Vec::new(),
                 return_type: bty_from_ty(global.ty()),
                 is_internal: false,
@@ -280,13 +317,22 @@ impl Emitter {
             let name = sa.interner.str(global.name).to_string();
 
             self.globals.push(GlobalData {
-                module_id: convert_module_id(global.module_id),
+                module_id: self.convert_module_id(global.module_id),
                 ty: bty_from_ty(global.ty()),
                 mutable: global.mutable,
                 name,
-                initial_value: global_initializer_function_id(sa, &*global, self),
+                initial_value: self.global_initializer_function_id(&*global),
             })
         }
+    }
+
+    fn global_initializer_function_id(&self, global: &GlobalDefinition) -> Option<FunctionId> {
+        Some(
+            self.global_initializer
+                .get(&global.id())
+                .expect("missing initializer")
+                .to_owned(),
+        )
     }
 
     fn create_traits(&mut self, sa: &Sema) {
@@ -296,7 +342,7 @@ impl Emitter {
             let methods = trait_
                 .methods()
                 .iter()
-                .map(|f| convert_function_id(*f))
+                .map(|f| self.convert_function_id(*f))
                 .collect();
 
             let virtual_methods = trait_
@@ -306,13 +352,13 @@ impl Emitter {
                     let method = sa.fct(**f);
                     !method.is_trait_object_ignore
                 })
-                .map(|f| convert_function_id(*f))
+                .map(|f| self.convert_function_id(*f))
                 .collect();
 
             self.traits.push(TraitData {
-                module_id: convert_module_id(trait_.module_id),
+                module_id: self.convert_module_id(trait_.module_id),
                 name,
-                type_params: create_type_params(sa, &trait_.type_param_definition()),
+                type_params: self.create_type_params(sa, &trait_.type_param_definition()),
                 methods,
                 virtual_methods,
             })
@@ -326,189 +372,141 @@ impl Emitter {
             })
         }
     }
-}
 
-fn create_extensions(sa: &Sema) -> Vec<ExtensionData> {
-    let mut result = Vec::new();
+    fn create_extensions(&mut self, sa: &Sema) {
+        for (_id, extension) in sa.extensions.iter() {
+            let mut methods = Vec::new();
 
-    for (_id, extension) in sa.extensions.iter() {
-        let mut methods = Vec::new();
+            // The methods array for impl should have the exact same order as for the trait.
+            for method_id in extension.methods() {
+                methods.push(self.convert_function_id(*method_id));
+            }
 
-        // The methods array for impl should have the exact same order as for the trait.
-        for method_id in extension.methods() {
-            methods.push(convert_function_id(*method_id));
+            self.extensions.push(ExtensionData {
+                module_id: self.convert_module_id(extension.module_id),
+                type_params: self.create_type_params(sa, extension.type_param_definition()),
+                extended_ty: bty_from_ty(extension.ty().clone()),
+                methods,
+            });
+        }
+    }
+
+    fn create_impls(&mut self, sa: &Sema) {
+        for (_id, impl_) in sa.impls.iter() {
+            let mut methods = Vec::new();
+
+            let trait_ty = impl_.trait_ty().expect("trait expected");
+            let trait_ = sa.trait_(trait_ty.trait_id);
+
+            // The methods array for impl should have the exact same order as for the trait.
+            for method_id in trait_.methods() {
+                let target_method_id = *impl_
+                    .trait_method_map()
+                    .get(&method_id)
+                    .expect("missing impl for trait methdo");
+
+                methods.push(self.convert_function_id(target_method_id));
+            }
+
+            let mut trait_method_map = Vec::new();
+
+            for (trait_method_id, impl_method_id) in impl_.trait_method_map() {
+                trait_method_map.push((
+                    self.convert_function_id(*trait_method_id),
+                    self.convert_function_id(*impl_method_id),
+                ))
+            }
+
+            let mut trait_alias_map = Vec::new();
+
+            for (trait_alias_id, impl_alias_id) in impl_.trait_alias_map() {
+                trait_alias_map.push((
+                    self.convert_alias_id(*trait_alias_id),
+                    self.convert_alias_id(*impl_alias_id),
+                ));
+            }
+
+            self.impls.push(ImplData {
+                module_id: self.convert_module_id(impl_.module_id),
+                type_params: self.create_type_params(sa, impl_.type_param_definition()),
+                trait_ty: convert_trait_type(&trait_ty),
+                extended_ty: bty_from_ty(impl_.extended_ty()),
+                methods,
+                trait_method_map,
+                trait_alias_map,
+            });
+        }
+    }
+
+    fn create_aliases(&mut self, sa: &Sema) {
+        for (_id, alias) in sa.aliases.iter() {
+            self.aliases.push(AliasData {
+                name: sa.interner.str(alias.name).to_string(),
+                ty: alias.parsed_ty().map(|pty| bty_from_ty(pty.ty())),
+                idx_in_trait: alias.idx_in_trait,
+            })
+        }
+    }
+
+    fn find_main_fct_id(&self, sa: &Sema) -> Option<FunctionId> {
+        let name = sa.interner.intern("main");
+        let table = sa.module_table(sa.program_module_id());
+        let sym = table.get_sym(name);
+
+        if sym.is_none() {
+            return None;
         }
 
-        result.push(ExtensionData {
-            module_id: convert_module_id(extension.module_id),
-            type_params: create_type_params(sa, extension.type_param_definition()),
-            extended_ty: bty_from_ty(extension.ty().clone()),
-            methods,
-        });
-    }
+        let sym = sym.unwrap();
 
-    result
-}
-
-fn create_impls(sa: &Sema) -> Vec<ImplData> {
-    let mut result = Vec::new();
-
-    for (_id, impl_) in sa.impls.iter() {
-        let mut methods = Vec::new();
-
-        let trait_ty = impl_.trait_ty().expect("trait expected");
-        let trait_ = sa.trait_(trait_ty.trait_id);
-
-        // The methods array for impl should have the exact same order as for the trait.
-        for method_id in trait_.methods() {
-            let target_method_id = *impl_
-                .trait_method_map()
-                .get(&method_id)
-                .expect("missing impl for trait methdo");
-
-            methods.push(convert_function_id(target_method_id));
+        if !sym.kind().is_fct() {
+            return None;
         }
 
-        let mut trait_method_map = Vec::new();
+        let fct_id = sym.kind().to_fct().unwrap();
 
-        for (trait_method_id, impl_method_id) in impl_.trait_method_map() {
-            trait_method_map.push((
-                convert_function_id(*trait_method_id),
-                convert_function_id(*impl_method_id),
-            ))
+        let fct = sa.fct(fct_id);
+        let ret = fct.return_type();
+
+        if (!ret.is_unit() && !ret.is_int32())
+            || !fct.params_without_self().is_empty()
+            || !fct.type_param_definition().is_empty()
+        {
+            None
+        } else {
+            Some(self.convert_function_id(fct.id()))
         }
-
-        let mut trait_alias_map = Vec::new();
-
-        for (trait_alias_id, impl_alias_id) in impl_.trait_alias_map() {
-            trait_alias_map.push((
-                convert_alias_id(*trait_alias_id),
-                convert_alias_id(*impl_alias_id),
-            ));
-        }
-
-        result.push(ImplData {
-            module_id: convert_module_id(impl_.module_id),
-            type_params: create_type_params(sa, impl_.type_param_definition()),
-            trait_ty: convert_trait_type(&trait_ty),
-            extended_ty: bty_from_ty(impl_.extended_ty()),
-            methods,
-            trait_method_map,
-            trait_alias_map,
-        });
     }
 
-    result
-}
-
-fn create_aliases(sa: &Sema) -> Vec<AliasData> {
-    let mut result = Vec::new();
-
-    for (_id, alias) in sa.aliases.iter() {
-        result.push(AliasData {
-            name: sa.interner.str(alias.name).to_string(),
-            ty: alias.parsed_ty().map(|pty| bty_from_ty(pty.ty())),
-            idx_in_trait: alias.idx_in_trait,
-        })
+    fn convert_package_id(&self, id: PackageDefinitionId) -> PackageId {
+        PackageId(id.index().try_into().expect("failure"))
     }
 
-    result
-}
-
-fn global_initializer_function_id(
-    _sa: &Sema,
-    global: &GlobalDefinition,
-    e: &Emitter,
-) -> Option<FunctionId> {
-    Some(
-        e.global_initializer
-            .get(&global.id())
-            .expect("missing initializer")
-            .to_owned(),
-    )
-}
-
-fn create_type_params(sa: &Sema, type_params: &TypeParamDefinition) -> TypeParamData {
-    let names = type_params
-        .names()
-        .map(|(_, name)| sa.interner.str(name).to_string())
-        .collect();
-
-    let bounds = type_params
-        .bounds()
-        .map(|b| TypeParamBound {
-            ty: bty_from_ty(b.ty()),
-            trait_ty: convert_trait_type(b.trait_ty().as_ref().expect("missing trait type")),
-        })
-        .collect();
-
-    let container_count = type_params.container_type_params();
-
-    TypeParamData {
-        names,
-        container_count,
-        bounds,
-    }
-}
-
-fn find_main_fct_id(sa: &Sema) -> Option<FunctionId> {
-    let name = sa.interner.intern("main");
-    let table = sa.module_table(sa.program_module_id());
-    let sym = table.get_sym(name);
-
-    if sym.is_none() {
-        return None;
+    fn convert_alias_id(&self, id: AliasDefinitionId) -> AliasId {
+        AliasId(id.index().try_into().expect("failure"))
     }
 
-    let sym = sym.unwrap();
-
-    if !sym.kind().is_fct() {
-        return None;
+    fn convert_module_id(&self, id: ModuleDefinitionId) -> ModuleId {
+        ModuleId(id.index().try_into().expect("failure"))
     }
 
-    let fct_id = sym.kind().to_fct().unwrap();
-
-    let fct = sa.fct(fct_id);
-    let ret = fct.return_type();
-
-    if (!ret.is_unit() && !ret.is_int32())
-        || !fct.params_without_self().is_empty()
-        || !fct.type_param_definition().is_empty()
-    {
-        None
-    } else {
-        Some(convert_function_id(fct.id()))
+    fn convert_function_id(&self, id: FctDefinitionId) -> FunctionId {
+        FunctionId(id.index().try_into().expect("failure"))
     }
-}
 
-fn convert_alias_id(id: AliasDefinitionId) -> AliasId {
-    AliasId(id.index().try_into().expect("failure"))
-}
+    fn convert_source_file_id(&self, id: sema::SourceFileId) -> SourceFileId {
+        SourceFileId(id.index().try_into().expect("failure"))
+    }
 
-fn convert_package_id(id: PackageDefinitionId) -> PackageId {
-    PackageId(id.index().try_into().expect("failure"))
-}
+    fn convert_impl_id(&self, id: ImplDefinitionId) -> ImplId {
+        ImplId(id.index().try_into().expect("failure"))
+    }
 
-fn convert_module_id(id: ModuleDefinitionId) -> ModuleId {
-    ModuleId(id.index().try_into().expect("failure"))
-}
+    fn convert_extension_id(&self, id: ExtensionDefinitionId) -> ExtensionId {
+        ExtensionId(id.index().try_into().expect("failure"))
+    }
 
-fn convert_function_id(id: FctDefinitionId) -> FunctionId {
-    FunctionId(id.index().try_into().expect("failure"))
-}
-
-fn convert_source_file_id(id: sema::SourceFileId) -> SourceFileId {
-    SourceFileId(id.index().try_into().expect("failure"))
-}
-
-fn convert_impl_id(id: ImplDefinitionId) -> ImplId {
-    ImplId(id.index().try_into().expect("failure"))
-}
-
-fn convert_extension_id(id: ExtensionDefinitionId) -> ExtensionId {
-    ExtensionId(id.index().try_into().expect("failure"))
-}
-
-fn convert_trait_id(id: TraitDefinitionId) -> TraitId {
-    TraitId(id.index().try_into().expect("failure"))
+    fn convert_trait_id(&self, id: TraitDefinitionId) -> TraitId {
+        TraitId(id.index().try_into().expect("failure"))
+    }
 }
