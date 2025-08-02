@@ -3,6 +3,7 @@ use std::mem;
 
 use self::Bytecode::*;
 use crate::generator::{bty_from_ty, generate_fct_id};
+use crate::program_emitter::Emitter;
 use crate::sema::{create_tuple, Sema};
 use crate::sema::{ClassDefinitionId, FieldId, SemaFlags};
 use crate::stdlib_lookup::{lookup_fct, resolve_path};
@@ -36,7 +37,8 @@ fn sema(code: &'static str) -> Sema {
 
 fn bc(sa: &Sema, path: &str) -> (BytecodeFunction, Vec<Bytecode>) {
     let fct_id = lookup_fct(sa, path);
-    let bc_fct = generate_fct_id(sa, fct_id);
+    let mut emitter = Emitter::new();
+    let bc_fct = generate_fct_id(sa, &mut emitter, fct_id);
     let code = build(&bc_fct);
 
     (bc_fct, code)

@@ -10,6 +10,7 @@ use self::expr::{
     gen_expr, gen_expr_bin_cmp, gen_expr_condition, gen_fatal_error, gen_intrinsic_bin,
     gen_method_bin,
 };
+use crate::program_emitter::Emitter;
 use crate::sema::{
     emit_as_bytecode_operation, new_identity_type_params, AnalysisData, CallType,
     ClassDefinitionId, ConstDefinitionId, ContextFieldId, Element, EnumDefinitionId, FctDefinition,
@@ -42,16 +43,22 @@ impl LoopLabels {
     }
 }
 
-pub fn generate_fct_id(sa: &Sema, id: FctDefinitionId) -> BytecodeFunction {
+pub fn generate_fct_id(sa: &Sema, emitter: &mut Emitter, id: FctDefinitionId) -> BytecodeFunction {
     let fct = sa.fct(id);
     let analysis = fct.analysis();
 
-    generate_fct(sa, &fct, analysis)
+    generate_fct(sa, emitter, &fct, analysis)
 }
 
-pub fn generate_fct(sa: &Sema, fct: &FctDefinition, src: &AnalysisData) -> BytecodeFunction {
+pub fn generate_fct(
+    sa: &Sema,
+    emitter: &mut Emitter,
+    fct: &FctDefinition,
+    src: &AnalysisData,
+) -> BytecodeFunction {
     let ast_bytecode_generator = AstBytecodeGen {
         sa,
+        emitter,
         type_params_len: fct.type_param_definition().type_param_count(),
         is_lambda: fct.is_lambda(),
         return_type: fct.return_type(),
@@ -70,11 +77,13 @@ pub fn generate_fct(sa: &Sema, fct: &FctDefinition, src: &AnalysisData) -> Bytec
 
 pub fn generate_global_initializer(
     sa: &Sema,
+    emitter: &mut Emitter,
     global: &GlobalDefinition,
     src: &AnalysisData,
 ) -> BytecodeFunction {
     let ast_bytecode_generator = AstBytecodeGen {
         sa,
+        emitter,
         type_params_len: 0,
         is_lambda: false,
         return_type: global.ty(),
@@ -101,6 +110,8 @@ struct EnteredContext {
 
 struct AstBytecodeGen<'a> {
     sa: &'a Sema,
+    #[allow(unused)]
+    emitter: &'a mut Emitter,
     type_params_len: usize,
     is_lambda: bool,
     return_type: SourceType,

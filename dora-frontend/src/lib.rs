@@ -116,32 +116,6 @@ pub fn emit_ast(sa: &Sema, filter: &str) {
     }
 }
 
-pub fn generate_bytecode(sa: &Sema) {
-    for (_id, fct) in sa.fcts.iter() {
-        let bc = {
-            if !fct.has_body() {
-                continue;
-            }
-
-            let analysis = fct.analysis();
-            generator::generate_fct(sa, &*fct, analysis)
-        };
-
-        assert!(fct.bytecode.set(bc).is_ok());
-    }
-
-    for (_id, global) in sa.globals.iter() {
-        if !global.has_initial_value() {
-            continue;
-        }
-
-        let analysis = global.analysis();
-        let bc = generator::generate_global_initializer(sa, global, analysis);
-
-        assert!(global.bytecode.set(bc).is_ok());
-    }
-}
-
 pub fn emit_bytecode(prog: &Program, filter: &str) {
     for (id, fct) in prog.functions.iter().enumerate() {
         let id = FunctionId(id.try_into().expect("overflow"));

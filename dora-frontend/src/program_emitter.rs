@@ -9,7 +9,9 @@ use dora_bytecode::{
     TypeParamBound, TypeParamData,
 };
 
-use crate::generator::{bty_from_ty, convert_trait_type};
+use crate::generator::{
+    bty_from_ty, convert_trait_type, generate_fct, generate_global_initializer,
+};
 
 use crate::sema::{
     self, AliasDefinitionId, ClassDefinition, Element, EnumDefinition, FctDefinitionId, FctParent,
@@ -21,22 +23,7 @@ use crate::sema::{
 };
 
 pub fn emit_program(sa: Sema) -> Program {
-    let mut emitter = Emitter {
-        global_initializer: HashMap::new(),
-        map_functions: HashMap::new(),
-        functions: Vec::new(),
-        globals: Vec::new(),
-        packages: Vec::new(),
-        modules: Vec::new(),
-        classes: Vec::new(),
-        structs: Vec::new(),
-        enums: Default::default(),
-        traits: Default::default(),
-        source_files: Default::default(),
-        extensions: Default::default(),
-        impls: Default::default(),
-        aliases: Default::default(),
-    };
+    let mut emitter = Emitter::new();
 
     emitter.create_packages(&sa);
     emitter.create_modules(&sa);
@@ -76,7 +63,7 @@ pub fn emit_program(sa: Sema) -> Program {
     }
 }
 
-struct Emitter {
+pub struct Emitter {
     global_initializer: HashMap<GlobalDefinitionId, FunctionId>,
     map_functions: HashMap<FctDefinitionId, FunctionId>,
     functions: Vec<FunctionData>,
@@ -94,6 +81,25 @@ struct Emitter {
 }
 
 impl Emitter {
+    pub fn new() -> Emitter {
+        Emitter {
+            global_initializer: HashMap::new(),
+            map_functions: HashMap::new(),
+            functions: Vec::new(),
+            globals: Vec::new(),
+            packages: Vec::new(),
+            modules: Vec::new(),
+            classes: Vec::new(),
+            structs: Vec::new(),
+            enums: Default::default(),
+            traits: Default::default(),
+            source_files: Default::default(),
+            extensions: Default::default(),
+            impls: Default::default(),
+            aliases: Default::default(),
+        }
+    }
+
     fn create_packages(&mut self, sa: &Sema) {
         for (_id, pkg) in sa.packages.iter() {
             let name = match pkg.name {
@@ -244,6 +250,13 @@ impl Emitter {
                 FctParent::None => FunctionKind::Function,
             };
 
+            let bc_fct = if fct.has_body() {
+                let analysis = fct.analysis();
+                Some(generate_fct(sa, self, &*fct, analysis))
+            } else {
+                None
+            };
+
             let function_id = FunctionId(self.functions.len().try_into().expect("overflow"));
             self.functions.push(FunctionData {
                 name,
@@ -267,7 +280,7 @@ impl Emitter {
                 is_force_inline: fct.is_force_inline,
                 is_never_inline: fct.is_never_inline,
                 is_trait_object_ignore: fct.is_trait_object_ignore,
-                bytecode: fct.bytecode.get().cloned(),
+                bytecode: bc_fct,
                 trait_method_impl: fct
                     .trait_method_impl
                     .get()
@@ -285,6 +298,9 @@ impl Emitter {
 
             let fct_id = FunctionId(self.functions.len().try_into().expect("overflow"));
             let name = sa.interner.str(global.name).to_string();
+
+            let analysis = global.analysis();
+            let bc_fct = generate_global_initializer(sa, self, global, analysis);
 
             self.functions.push(FunctionData {
                 name,
@@ -304,7 +320,7 @@ impl Emitter {
                 is_force_inline: false,
                 is_never_inline: false,
                 is_trait_object_ignore: false,
-                bytecode: Some(global.bytecode().clone()),
+                bytecode: Some(bc_fct),
                 trait_method_impl: None,
             });
 

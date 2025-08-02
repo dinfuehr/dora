@@ -141,8 +141,6 @@ fn compile_std_library(flags: &DriverFlags) -> Result<Program, ()> {
         language::emit_ast(&sa, filter);
     }
 
-    language::generate_bytecode(&sa);
-
     // Create a serializable data structure from bytecode and metadata.
     // Here we drop the generated AST.
     let prog = language::emit_program(sa);
@@ -190,8 +188,6 @@ fn compile_into_program(flags: &DriverFlags, file: String) -> Result<Program, ()
     if let Some(ref filter) = flags.emit_ast {
         language::emit_ast(&sa, filter);
     }
-
-    language::generate_bytecode(&sa);
 
     // Create a serializable data structure from bytecode and metadata.
     // Here we drop the generated AST.
