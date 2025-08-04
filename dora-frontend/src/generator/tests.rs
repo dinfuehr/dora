@@ -2,7 +2,7 @@ use std::collections::HashMap;
 use std::mem;
 
 use self::Bytecode::*;
-use crate::generator::{bty_from_ty, generate_fct_id};
+use crate::generator::{convert_ty, generate_fct_id};
 use crate::program_emitter::Emitter;
 use crate::sema::{create_tuple, Sema};
 use crate::sema::{ClassDefinitionId, FieldId, SemaFlags};
@@ -327,12 +327,12 @@ fn gen_stmt_let_tuple_pair() {
 
     assert_eq!(
         fct.const_pool(ConstPoolIdx(0)),
-        &ConstPoolEntry::TupleElement(bty_from_ty(tuple_ty.clone()), 0)
+        &ConstPoolEntry::TupleElement(convert_ty(tuple_ty.clone()), 0)
     );
 
     assert_eq!(
         fct.const_pool(ConstPoolIdx(1)),
-        &ConstPoolEntry::TupleElement(bty_from_ty(tuple_ty), 1)
+        &ConstPoolEntry::TupleElement(convert_ty(tuple_ty), 1)
     );
 }
 
@@ -359,22 +359,22 @@ fn gen_stmt_let_tuple_nested_pair() {
 
     assert_eq!(
         fct.const_pool(ConstPoolIdx(0)),
-        &ConstPoolEntry::TupleElement(bty_from_ty(tuple_ty.clone()), 0)
+        &ConstPoolEntry::TupleElement(convert_ty(tuple_ty.clone()), 0)
     );
 
     assert_eq!(
         fct.const_pool(ConstPoolIdx(1)),
-        &ConstPoolEntry::TupleElement(bty_from_ty(tuple_ty), 1)
+        &ConstPoolEntry::TupleElement(convert_ty(tuple_ty), 1)
     );
 
     assert_eq!(
         fct.const_pool(ConstPoolIdx(2)),
-        &ConstPoolEntry::TupleElement(bty_from_ty(nested_tuple_ty.clone()), 0)
+        &ConstPoolEntry::TupleElement(convert_ty(nested_tuple_ty.clone()), 0)
     );
 
     assert_eq!(
         fct.const_pool(ConstPoolIdx(3)),
-        &ConstPoolEntry::TupleElement(bty_from_ty(nested_tuple_ty), 1)
+        &ConstPoolEntry::TupleElement(convert_ty(nested_tuple_ty), 1)
     );
 }
 
@@ -398,17 +398,17 @@ fn gen_stmt_let_tuple_nested_pair_any() {
 
     assert_eq!(
         fct.const_pool(ConstPoolIdx(0)),
-        &ConstPoolEntry::TupleElement(bty_from_ty(tuple_ty.clone()), 0)
+        &ConstPoolEntry::TupleElement(convert_ty(tuple_ty.clone()), 0)
     );
 
     assert_eq!(
         fct.const_pool(ConstPoolIdx(1)),
-        &ConstPoolEntry::TupleElement(bty_from_ty(tuple_ty), 1)
+        &ConstPoolEntry::TupleElement(convert_ty(tuple_ty), 1)
     );
 
     assert_eq!(
         fct.const_pool(ConstPoolIdx(2)),
-        &ConstPoolEntry::TupleElement(bty_from_ty(nested_tuple_ty), 1)
+        &ConstPoolEntry::TupleElement(convert_ty(nested_tuple_ty), 1)
     );
 }
 
@@ -443,17 +443,17 @@ fn gen_stmt_let_unit() {
 
     assert_eq!(
         fct.const_pool(ConstPoolIdx(0)),
-        &ConstPoolEntry::TupleElement(bty_from_ty(tuple_ty.clone()), 0)
+        &ConstPoolEntry::TupleElement(convert_ty(tuple_ty.clone()), 0)
     );
 
     assert_eq!(
         fct.const_pool(ConstPoolIdx(1)),
-        &ConstPoolEntry::TupleElement(bty_from_ty(tuple_ty), 1)
+        &ConstPoolEntry::TupleElement(convert_ty(tuple_ty), 1)
     );
 
     assert_eq!(
         fct.const_pool(ConstPoolIdx(2)),
-        &ConstPoolEntry::TupleElement(bty_from_ty(inner_tuple_ty), 0)
+        &ConstPoolEntry::TupleElement(convert_ty(inner_tuple_ty), 0)
     );
 
     let sa = sema("fn f(value: (Int32, (Int32, ()))): Int32 { let (x, (y, ())) = value; x+y }");
@@ -475,17 +475,17 @@ fn gen_stmt_let_unit() {
 
     assert_eq!(
         fct.const_pool(ConstPoolIdx(0)),
-        &ConstPoolEntry::TupleElement(bty_from_ty(tuple_ty.clone()), 0)
+        &ConstPoolEntry::TupleElement(convert_ty(tuple_ty.clone()), 0)
     );
 
     assert_eq!(
         fct.const_pool(ConstPoolIdx(1)),
-        &ConstPoolEntry::TupleElement(bty_from_ty(tuple_ty), 1)
+        &ConstPoolEntry::TupleElement(convert_ty(tuple_ty), 1)
     );
 
     assert_eq!(
         fct.const_pool(ConstPoolIdx(2)),
-        &ConstPoolEntry::TupleElement(bty_from_ty(nested_tuple_ty), 0)
+        &ConstPoolEntry::TupleElement(convert_ty(nested_tuple_ty), 0)
     );
 }
 
@@ -4142,7 +4142,7 @@ fn gen_tuple_element() {
 
     assert_eq!(
         fct.const_pool(ConstPoolIdx(0)),
-        &ConstPoolEntry::TupleElement(bty_from_ty(tuple_ty), 0)
+        &ConstPoolEntry::TupleElement(convert_ty(tuple_ty), 0)
     );
 }
 
@@ -4178,7 +4178,7 @@ fn gen_trait_object() {
                 BytecodeTypeArray::empty(),
                 BytecodeTypeArray::empty()
             ),
-            actual_object_ty: bty_from_ty(object_ty)
+            actual_object_ty: convert_ty(object_ty)
         }
     );
 }

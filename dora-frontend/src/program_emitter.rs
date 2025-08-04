@@ -3,24 +3,23 @@ use std::collections::HashMap;
 use crate::Sema;
 use dora_bytecode::program::{AliasData, ImplData};
 use dora_bytecode::{
-    AliasId, ClassData, ClassField, EnumData, EnumVariant, ExtensionData, ExtensionId,
-    FunctionData, FunctionId, FunctionKind, GlobalData, ImplId, ModuleData, ModuleId, PackageData,
-    PackageId, Program, SourceFileData, SourceFileId, StructData, StructField, TraitData, TraitId,
-    TypeParamBound, TypeParamData,
+    AliasId, BytecodeType, ClassData, ClassField, ClassId, EnumData, EnumId, EnumVariant,
+    ExtensionData, ExtensionId, FunctionData, FunctionId, FunctionKind, GlobalData, ImplId,
+    ModuleData, ModuleId, PackageData, PackageId, Program, SourceFileData, SourceFileId,
+    StructData, StructField, StructId, TraitData, TraitId, TypeParamBound, TypeParamData,
 };
 
 use crate::generator::{
-    bty_from_ty, convert_trait_type, generate_fct, generate_global_initializer,
+    convert_trait_type, convert_tya, generate_fct, generate_global_initializer,
 };
 
 use crate::sema::{
-    self, AliasDefinitionId, ClassDefinition, Element, EnumDefinition, FctDefinitionId, FctParent,
-    ModuleDefinitionId, PackageDefinitionId, PackageName, StructDefinition, TypeParamDefinition,
+    self, AliasDefinitionId, ClassDefinition, Element, EnumDefinition, ExtensionDefinitionId,
+    FctDefinitionId, FctParent, GlobalDefinition, GlobalDefinitionId, ImplDefinitionId,
+    ModuleDefinitionId, PackageDefinitionId, PackageName, StructDefinition, TraitDefinitionId,
+    TypeParamDefinition,
 };
-use crate::sema::{
-    ExtensionDefinitionId, GlobalDefinition, GlobalDefinitionId, ImplDefinitionId,
-    TraitDefinitionId,
-};
+use crate::SourceType;
 
 pub fn emit_program(sa: Sema) -> Program {
     let mut emitter = Emitter::new();
@@ -154,7 +153,7 @@ impl Emitter {
         let bounds = type_params
             .bounds()
             .map(|b| TypeParamBound {
-                ty: bty_from_ty(b.ty()),
+                ty: self.convert_ty(b.ty()),
                 trait_ty: convert_trait_type(b.trait_ty().as_ref().expect("missing trait type")),
             })
             .collect();
@@ -173,7 +172,7 @@ impl Emitter {
             .fields
             .iter()
             .map(|f| ClassField {
-                ty: bty_from_ty(f.ty()),
+                ty: self.convert_ty(f.ty()),
                 name: f.name.map(|n| sa.interner.str(n).to_string()),
             })
             .collect()
@@ -198,7 +197,7 @@ impl Emitter {
             .fields
             .iter()
             .map(|f| StructField {
-                ty: bty_from_ty(f.ty()),
+                ty: self.convert_ty(f.ty()),
                 name: f.name.map(|n| sa.interner.str(n).to_string()),
             })
             .collect()
@@ -225,7 +224,7 @@ impl Emitter {
             let arguments = variant
                 .fields
                 .iter()
-                .map(|f| bty_from_ty(f.parsed_type.ty()))
+                .map(|f| self.convert_ty(f.parsed_type.ty()))
                 .collect();
             result.push(EnumVariant {
                 name: sa.interner.str(variant.name).to_string(),
@@ -270,7 +269,7 @@ impl Emitter {
                 params: fct
                     .params_with_self()
                     .iter()
-                    .map(|p| bty_from_ty(p.ty()))
+                    .map(|p| self.convert_ty(p.ty()))
                     .collect(),
                 return_type: fct.return_type_bty(),
                 is_internal: fct.is_internal,
@@ -312,7 +311,7 @@ impl Emitter {
                 type_params: self.create_type_params(sa, &TypeParamDefinition::empty()),
                 source_file_id: Some(self.convert_source_file_id(global.file_id)),
                 params: Vec::new(),
-                return_type: bty_from_ty(global.ty()),
+                return_type: self.convert_ty(global.ty()),
                 is_internal: false,
                 is_test: false,
                 is_optimize_immediately: false,
@@ -334,7 +333,7 @@ impl Emitter {
 
             self.globals.push(GlobalData {
                 module_id: self.convert_module_id(global.module_id),
-                ty: bty_from_ty(global.ty()),
+                ty: self.convert_ty(global.ty()),
                 mutable: global.mutable,
                 name,
                 initial_value: self.global_initializer_function_id(&*global),
@@ -401,7 +400,7 @@ impl Emitter {
             self.extensions.push(ExtensionData {
                 module_id: self.convert_module_id(extension.module_id),
                 type_params: self.create_type_params(sa, extension.type_param_definition()),
-                extended_ty: bty_from_ty(extension.ty().clone()),
+                extended_ty: self.convert_ty(extension.ty().clone()),
                 methods,
             });
         }
@@ -446,7 +445,7 @@ impl Emitter {
                 module_id: self.convert_module_id(impl_.module_id),
                 type_params: self.create_type_params(sa, impl_.type_param_definition()),
                 trait_ty: convert_trait_type(&trait_ty),
-                extended_ty: bty_from_ty(impl_.extended_ty()),
+                extended_ty: self.convert_ty(impl_.extended_ty()),
                 methods,
                 trait_method_map,
                 trait_alias_map,
@@ -458,7 +457,7 @@ impl Emitter {
         for (_id, alias) in sa.aliases.iter() {
             self.aliases.push(AliasData {
                 name: sa.interner.str(alias.name).to_string(),
-                ty: alias.parsed_ty().map(|pty| bty_from_ty(pty.ty())),
+                ty: alias.parsed_ty().map(|pty| self.convert_ty(pty.ty())),
                 idx_in_trait: alias.idx_in_trait,
             })
         }
@@ -491,6 +490,62 @@ impl Emitter {
             None
         } else {
             Some(self.convert_function_id(fct.id()))
+        }
+    }
+
+    pub fn convert_ty(&self, ty: SourceType) -> BytecodeType {
+        match ty {
+            SourceType::Unit => BytecodeType::Unit,
+            SourceType::Bool => BytecodeType::Bool,
+            SourceType::UInt8 => BytecodeType::UInt8,
+            SourceType::Char => BytecodeType::Char,
+            SourceType::Int32 => BytecodeType::Int32,
+            SourceType::Int64 => BytecodeType::Int64,
+            SourceType::Float32 => BytecodeType::Float32,
+            SourceType::Float64 => BytecodeType::Float64,
+            SourceType::Class(class_id, type_params) => BytecodeType::Class(
+                ClassId(class_id.index().try_into().expect("overflow")),
+                convert_tya(&type_params),
+            ),
+            SourceType::TraitObject(trait_id, type_params, bindings) => BytecodeType::TraitObject(
+                TraitId(trait_id.index().try_into().expect("overflow")),
+                convert_tya(&type_params),
+                convert_tya(&bindings),
+            ),
+            SourceType::Enum(enum_id, type_params) => BytecodeType::Enum(
+                EnumId(enum_id.index().try_into().expect("overflow")),
+                convert_tya(&type_params),
+            ),
+            SourceType::Struct(struct_id, type_params) => BytecodeType::Struct(
+                StructId(struct_id.index().try_into().expect("overflow")),
+                convert_tya(&type_params),
+            ),
+            SourceType::Tuple(subtypes) => BytecodeType::Tuple(convert_tya(&subtypes)),
+            SourceType::TypeParam(idx) => BytecodeType::TypeParam(idx.index() as u32),
+            SourceType::Lambda(params, return_type) => BytecodeType::Lambda(
+                convert_tya(&params),
+                Box::new(self.convert_ty(*return_type)),
+            ),
+            SourceType::Ptr => BytecodeType::Ptr,
+            SourceType::This => BytecodeType::This,
+            SourceType::Alias(id, type_params) => {
+                assert!(type_params.is_empty());
+                BytecodeType::TypeAlias(AliasId(id.index().try_into().expect("overflow")))
+            }
+            SourceType::Assoc { trait_ty, assoc_id } => BytecodeType::Assoc {
+                trait_ty: convert_trait_type(&trait_ty),
+                assoc_id: AliasId(assoc_id.index().try_into().expect("overflow")),
+            },
+            SourceType::GenericAssoc {
+                tp_id,
+                trait_ty,
+                assoc_id,
+            } => BytecodeType::GenericAssoc {
+                type_param_id: tp_id.index().try_into().expect("overflow"),
+                trait_ty: convert_trait_type(&trait_ty),
+                assoc_id: AliasId(assoc_id.index().try_into().expect("overflow")),
+            },
+            _ => panic!("SourceType {:?} cannot be converted to BytecodeType", ty),
         }
     }
 

@@ -9,7 +9,7 @@ use dora_parser::ast;
 use dora_parser::Span;
 use id_arena::Id;
 
-use crate::generator::bty_from_ty;
+use crate::generator::convert_ty;
 use crate::sema::{
     module_path, AnalysisData, Element, ElementId, ExtensionDefinitionId, ImplDefinitionId,
     ModuleDefinitionId, PackageDefinitionId, Sema, SourceFileId, TraitDefinitionId,
@@ -285,7 +285,7 @@ impl FctDefinition {
         let params = self
             .params_with_self()
             .iter()
-            .map(|p| bty_from_ty(p.ty()))
+            .map(|p| convert_ty(p.ty()))
             .collect();
         BytecodeTypeArray::new(params)
     }
@@ -299,7 +299,7 @@ impl FctDefinition {
     }
 
     pub fn return_type_bty(&self) -> BytecodeType {
-        bty_from_ty(self.return_type())
+        convert_ty(self.return_type())
     }
 }
 
