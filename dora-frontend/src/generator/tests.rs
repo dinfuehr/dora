@@ -2,12 +2,11 @@ use std::collections::HashMap;
 use std::mem;
 
 use self::Bytecode::*;
-use crate::generator::{convert_ty, generate_fct_id};
+use crate::check_program;
+use crate::generator::generate_fct_id;
 use crate::program_emitter::Emitter;
-use crate::sema::{create_tuple, Sema};
-use crate::sema::{ClassDefinitionId, FieldId, SemaFlags};
+use crate::sema::{ClassDefinitionId, FieldId, Sema, SemaFlags};
 use crate::stdlib_lookup::{lookup_fct, resolve_path};
-use crate::{check_program, SourceType, SourceTypeArray};
 use dora_bytecode::{
     self as bytecode, BytecodeFunction, BytecodeOffset, BytecodeType, BytecodeTypeArray,
     BytecodeVisitor, ClassId, ConstPoolEntry, ConstPoolIdx, EnumId, FunctionId, GlobalId, Register,
@@ -314,7 +313,10 @@ fn gen_stmt_let_tuple_pair() {
     let sa = sema("fn f(value: (Int32, Int32)): Int32 { let (x, y) = value; x+y }");
     let (fct, code) = bc(&sa, "<prog>::f");
 
-    let tuple_ty = create_tuple(&sa, vec![SourceType::Int32, SourceType::Int32]);
+    let tuple_ty = BytecodeType::Tuple(BytecodeTypeArray::new(vec![
+        BytecodeType::Int32,
+        BytecodeType::Int32,
+    ]));
     let expected = vec![
         LoadTupleElement(r(3), r(0), ConstPoolIdx(0)),
         Mov(r(1), r(3)),
@@ -327,12 +329,12 @@ fn gen_stmt_let_tuple_pair() {
 
     assert_eq!(
         fct.const_pool(ConstPoolIdx(0)),
-        &ConstPoolEntry::TupleElement(convert_ty(tuple_ty.clone()), 0)
+        &ConstPoolEntry::TupleElement(tuple_ty.clone(), 0)
     );
 
     assert_eq!(
         fct.const_pool(ConstPoolIdx(1)),
-        &ConstPoolEntry::TupleElement(convert_ty(tuple_ty), 1)
+        &ConstPoolEntry::TupleElement(tuple_ty, 1)
     );
 }
 
@@ -341,8 +343,14 @@ fn gen_stmt_let_tuple_nested_pair() {
     let sa = sema("fn f(value: (Int32, (Int32, Int32))): Int32 { let (x, (y, z)) = value; x+y+z }");
     let (fct, code) = bc(&sa, "<prog>::f");
 
-    let nested_tuple_ty = create_tuple(&sa, vec![SourceType::Int32, SourceType::Int32]);
-    let tuple_ty = create_tuple(&sa, vec![SourceType::Int32, nested_tuple_ty.clone()]);
+    let nested_tuple_ty = BytecodeType::Tuple(BytecodeTypeArray::new(vec![
+        BytecodeType::Int32,
+        BytecodeType::Int32,
+    ]));
+    let tuple_ty = BytecodeType::Tuple(BytecodeTypeArray::new(vec![
+        BytecodeType::Int32,
+        nested_tuple_ty.clone(),
+    ]));
     let expected = vec![
         LoadTupleElement(r(4), r(0), ConstPoolIdx(0)),
         Mov(r(1), r(4)),
@@ -359,22 +367,22 @@ fn gen_stmt_let_tuple_nested_pair() {
 
     assert_eq!(
         fct.const_pool(ConstPoolIdx(0)),
-        &ConstPoolEntry::TupleElement(convert_ty(tuple_ty.clone()), 0)
+        &ConstPoolEntry::TupleElement(tuple_ty.clone(), 0)
     );
 
     assert_eq!(
         fct.const_pool(ConstPoolIdx(1)),
-        &ConstPoolEntry::TupleElement(convert_ty(tuple_ty), 1)
+        &ConstPoolEntry::TupleElement(tuple_ty, 1)
     );
 
     assert_eq!(
         fct.const_pool(ConstPoolIdx(2)),
-        &ConstPoolEntry::TupleElement(convert_ty(nested_tuple_ty.clone()), 0)
+        &ConstPoolEntry::TupleElement(nested_tuple_ty.clone(), 0)
     );
 
     assert_eq!(
         fct.const_pool(ConstPoolIdx(3)),
-        &ConstPoolEntry::TupleElement(convert_ty(nested_tuple_ty), 1)
+        &ConstPoolEntry::TupleElement(nested_tuple_ty, 1)
     );
 }
 
@@ -383,8 +391,14 @@ fn gen_stmt_let_tuple_nested_pair_any() {
     let sa = sema("fn f(value: (Int32, (Int32, Int32))): Int32 { let (x, (_, z)) = value; x+z }");
     let (fct, code) = bc(&sa, "<prog>::f");
 
-    let nested_tuple_ty = create_tuple(&sa, vec![SourceType::Int32, SourceType::Int32]);
-    let tuple_ty = create_tuple(&sa, vec![SourceType::Int32, nested_tuple_ty.clone()]);
+    let nested_tuple_ty = BytecodeType::Tuple(BytecodeTypeArray::new(vec![
+        BytecodeType::Int32,
+        BytecodeType::Int32,
+    ]));
+    let tuple_ty = BytecodeType::Tuple(BytecodeTypeArray::new(vec![
+        BytecodeType::Int32,
+        nested_tuple_ty.clone(),
+    ]));
     let expected = vec![
         LoadTupleElement(r(3), r(0), ConstPoolIdx(0)),
         Mov(r(1), r(3)),
@@ -398,17 +412,17 @@ fn gen_stmt_let_tuple_nested_pair_any() {
 
     assert_eq!(
         fct.const_pool(ConstPoolIdx(0)),
-        &ConstPoolEntry::TupleElement(convert_ty(tuple_ty.clone()), 0)
+        &ConstPoolEntry::TupleElement(tuple_ty.clone(), 0)
     );
 
     assert_eq!(
         fct.const_pool(ConstPoolIdx(1)),
-        &ConstPoolEntry::TupleElement(convert_ty(tuple_ty), 1)
+        &ConstPoolEntry::TupleElement(tuple_ty, 1)
     );
 
     assert_eq!(
         fct.const_pool(ConstPoolIdx(2)),
-        &ConstPoolEntry::TupleElement(convert_ty(nested_tuple_ty), 1)
+        &ConstPoolEntry::TupleElement(nested_tuple_ty, 1)
     );
 }
 
@@ -427,8 +441,14 @@ fn gen_stmt_let_unit() {
     let sa = sema("fn f(value: (Int32, (Int32, ()))): Int32 { let (x, (y, z)) = value; x+y }");
     let (fct, code) = bc(&sa, "<prog>::f");
 
-    let inner_tuple_ty = create_tuple(&sa, vec![SourceType::Int32, SourceType::Unit]);
-    let tuple_ty = create_tuple(&sa, vec![SourceType::Int32, inner_tuple_ty.clone()]);
+    let inner_tuple_ty = BytecodeType::Tuple(BytecodeTypeArray::new(vec![
+        BytecodeType::Int32,
+        BytecodeType::Unit,
+    ]));
+    let tuple_ty = BytecodeType::Tuple(BytecodeTypeArray::new(vec![
+        BytecodeType::Int32,
+        inner_tuple_ty.clone(),
+    ]));
     let expected = vec![
         LoadTupleElement(r(4), r(0), ConstPoolIdx(0)),
         Mov(r(1), r(4)),
@@ -443,24 +463,30 @@ fn gen_stmt_let_unit() {
 
     assert_eq!(
         fct.const_pool(ConstPoolIdx(0)),
-        &ConstPoolEntry::TupleElement(convert_ty(tuple_ty.clone()), 0)
+        &ConstPoolEntry::TupleElement(tuple_ty.clone(), 0)
     );
 
     assert_eq!(
         fct.const_pool(ConstPoolIdx(1)),
-        &ConstPoolEntry::TupleElement(convert_ty(tuple_ty), 1)
+        &ConstPoolEntry::TupleElement(tuple_ty, 1)
     );
 
     assert_eq!(
         fct.const_pool(ConstPoolIdx(2)),
-        &ConstPoolEntry::TupleElement(convert_ty(inner_tuple_ty), 0)
+        &ConstPoolEntry::TupleElement(inner_tuple_ty, 0)
     );
 
     let sa = sema("fn f(value: (Int32, (Int32, ()))): Int32 { let (x, (y, ())) = value; x+y }");
     let (fct, code) = bc(&sa, "<prog>::f");
 
-    let nested_tuple_ty = create_tuple(&sa, vec![SourceType::Int32, SourceType::Unit]);
-    let tuple_ty = create_tuple(&sa, vec![SourceType::Int32, nested_tuple_ty.clone()]);
+    let nested_tuple_ty = BytecodeType::Tuple(BytecodeTypeArray::new(vec![
+        BytecodeType::Int32,
+        BytecodeType::Unit,
+    ]));
+    let tuple_ty = BytecodeType::Tuple(BytecodeTypeArray::new(vec![
+        BytecodeType::Int32,
+        nested_tuple_ty.clone(),
+    ]));
     let expected = vec![
         LoadTupleElement(r(3), r(0), ConstPoolIdx(0)),
         Mov(r(1), r(3)),
@@ -475,17 +501,17 @@ fn gen_stmt_let_unit() {
 
     assert_eq!(
         fct.const_pool(ConstPoolIdx(0)),
-        &ConstPoolEntry::TupleElement(convert_ty(tuple_ty.clone()), 0)
+        &ConstPoolEntry::TupleElement(tuple_ty.clone(), 0)
     );
 
     assert_eq!(
         fct.const_pool(ConstPoolIdx(1)),
-        &ConstPoolEntry::TupleElement(convert_ty(tuple_ty), 1)
+        &ConstPoolEntry::TupleElement(tuple_ty, 1)
     );
 
     assert_eq!(
         fct.const_pool(ConstPoolIdx(2)),
-        &ConstPoolEntry::TupleElement(convert_ty(nested_tuple_ty), 0)
+        &ConstPoolEntry::TupleElement(nested_tuple_ty, 0)
     );
 }
 
@@ -4136,13 +4162,16 @@ fn gen_tuple_element() {
     let sa = sema("fn f(x: (Int32, Int32)): Int32 { x.0 }");
     let (fct, code) = bc(&sa, "<prog>::f");
 
-    let tuple_ty = create_tuple(&sa, vec![SourceType::Int32, SourceType::Int32]);
+    let tuple_ty = BytecodeType::Tuple(BytecodeTypeArray::new(vec![
+        BytecodeType::Int32,
+        BytecodeType::Int32,
+    ]));
     let expected = vec![LoadTupleElement(r(1), r(0), ConstPoolIdx(0)), Ret(r(1))];
     assert_eq!(expected, code);
 
     assert_eq!(
         fct.const_pool(ConstPoolIdx(0)),
-        &ConstPoolEntry::TupleElement(convert_ty(tuple_ty), 0)
+        &ConstPoolEntry::TupleElement(tuple_ty, 0)
     );
 }
 
@@ -4166,7 +4195,10 @@ fn gen_trait_object() {
     let cls_id = resolve_path(&sa, "<prog>::Bar")
         .to_class()
         .expect("class expected");
-    let object_ty = SourceType::Class(cls_id, SourceTypeArray::empty());
+    let object_ty = BytecodeType::Class(
+        ClassId(cls_id.index().try_into().expect("overflow")),
+        BytecodeTypeArray::empty(),
+    );
     let expected = vec![NewTraitObject(r(1), ConstPoolIdx(0), r(0)), Ret(r(1))];
     assert_eq!(expected, code);
 
@@ -4178,7 +4210,7 @@ fn gen_trait_object() {
                 BytecodeTypeArray::empty(),
                 BytecodeTypeArray::empty()
             ),
-            actual_object_ty: convert_ty(object_ty)
+            actual_object_ty: object_ty
         }
     );
 }

@@ -317,7 +317,7 @@ impl<'a> AstBytecodeGen<'a> {
         let context_register = self.builder.alloc_global(BytecodeType::Ptr);
         let idx = self.builder.add_const_cls_types(
             ClassId(class_id.index().try_into().expect("overflow")),
-            convert_tya(&self.identity_type_params()),
+            self.emitter.convert_tya(&self.identity_type_params()),
         );
         self.builder
             .emit_new_object(context_register, idx, self.loc(self.span));
@@ -352,7 +352,7 @@ impl<'a> AstBytecodeGen<'a> {
             assert!(context_data.has_parent_slot());
             let idx = self.builder.add_const_field_types(
                 ClassId(class_id.index().try_into().expect("overflow")),
-                convert_tya(&self.identity_type_params()),
+                self.emitter.convert_tya(&self.identity_type_params()),
                 0,
             );
             self.builder.emit_store_field(
@@ -706,7 +706,7 @@ impl<'a> AstBytecodeGen<'a> {
         let enum_ = self.sa.enum_(enum_id);
 
         let bc_enum_id = EnumId(enum_id.index().try_into().expect("overflow"));
-        let bc_enum_type_params = convert_tya(enum_type_params);
+        let bc_enum_type_params = self.emitter.convert_tya(enum_type_params);
 
         let match_reg = self.alloc_temp(BytecodeType::Bool);
         let actual_variant_reg = self.alloc_temp(BytecodeType::Int32);
@@ -772,7 +772,7 @@ impl<'a> AstBytecodeGen<'a> {
             let register_ty = register_bty_from_ty(field_ty.clone());
             let idx = self.builder.add_const_struct_field(
                 StructId(struct_id.index().try_into().expect("overflow")),
-                convert_tya(struct_type_params),
+                self.convert_tya(struct_type_params),
                 idx as u32,
             );
             let temp_reg = self.alloc_temp(register_ty);
@@ -799,7 +799,7 @@ impl<'a> AstBytecodeGen<'a> {
             let register_ty = register_bty_from_ty(field_ty.clone());
             let idx = self.builder.add_const_field_types(
                 ClassId(class_id.index().try_into().expect("overflow")),
-                convert_tya(class_type_params),
+                self.convert_tya(class_type_params),
                 idx as u32,
             );
             let temp_reg = self.alloc_temp(register_ty);
@@ -887,7 +887,7 @@ impl<'a> AstBytecodeGen<'a> {
             self.builder.emit_push_register(object_reg);
             let fct_idx = self.builder.add_const_fct_types(
                 FunctionId(iter_fct_id.index().try_into().expect("overflow")),
-                convert_tya(&iter_type_params),
+                self.convert_tya(&iter_type_params),
             );
             self.builder
                 .emit_invoke_direct(iterator_reg, fct_idx, self.loc(stmt.expr.span()));
@@ -903,7 +903,7 @@ impl<'a> AstBytecodeGen<'a> {
         self.enter_block_context(stmt.id);
 
         let iterator_type = for_type_info.iterator_type.clone();
-        let iterator_type_params = convert_tya(&iterator_type.type_params());
+        let iterator_type_params = self.convert_tya(&iterator_type.type_params());
 
         self.builder.emit_push_register(iterator_reg);
 
@@ -948,7 +948,7 @@ impl<'a> AstBytecodeGen<'a> {
                     .try_into()
                     .expect("overflow"),
             ),
-            convert_tya(&option_type_params),
+            self.convert_tya(&option_type_params),
         );
         self.builder.emit_push_register(next_result_reg);
         self.builder
@@ -972,7 +972,7 @@ impl<'a> AstBytecodeGen<'a> {
                         .try_into()
                         .expect("overflow"),
                 ),
-                convert_tya(&option_type_params),
+                self.convert_tya(&option_type_params),
             );
             self.builder.emit_push_register(next_result_reg);
             self.builder
@@ -1141,7 +1141,7 @@ impl<'a> AstBytecodeGen<'a> {
                         .get(part.id())
                         .expect("missing toString id");
 
-                    let type_params = convert_tya(&type_params);
+                    let type_params = self.convert_tya(&type_params);
 
                     let fct_idx = self.builder.add_const_fct_types(
                         FunctionId(to_string_id.index().try_into().expect("overflow")),
@@ -1212,7 +1212,7 @@ impl<'a> AstBytecodeGen<'a> {
         location: Location,
         dest: DataDest,
     ) -> Register {
-        let type_params = convert_tya(&type_params);
+        let type_params = self.convert_tya(&type_params);
         let enum_id = EnumId(enum_id.index().try_into().expect("overflow"));
         let bty = BytecodeType::Enum(enum_id, type_params.clone());
         let dest = self.ensure_register(dest, bty);
@@ -1312,7 +1312,7 @@ impl<'a> AstBytecodeGen<'a> {
 
         let idx = self.builder.add_const_fct_types(
             FunctionId(lambda_fct_id.index().try_into().expect("overflow")),
-            convert_tya(&self.identity_type_params()),
+            self.convert_tya(&self.identity_type_params()),
         );
         self.builder.emit_new_lambda(dest, idx, self.loc(node.span));
 
@@ -1396,7 +1396,7 @@ impl<'a> AstBytecodeGen<'a> {
 
         let field_idx = self.builder.add_const_field_types(
             ClassId(cls_id.index().try_into().expect("overflow")),
-            convert_tya(&type_params),
+            self.convert_tya(&type_params),
             field_id.0 as u32,
         );
 
@@ -1440,7 +1440,7 @@ impl<'a> AstBytecodeGen<'a> {
         let dest = self.ensure_register(dest, ty);
         let const_idx = self.builder.add_const_struct_field(
             StructId(struct_id.index().try_into().expect("overflow")),
-            convert_tya(&type_params),
+            self.convert_tya(&type_params),
             field_idx.0 as u32,
         );
         self.builder
@@ -1599,7 +1599,7 @@ impl<'a> AstBytecodeGen<'a> {
 
         let idx = self.builder.add_const_enum_variant(
             EnumId(enum_id.index().try_into().expect("overflow")),
-            convert_tya(&type_params),
+            self.convert_tya(&type_params),
             variant_idx,
         );
         let bytecode_ty = register_bty_from_ty(enum_ty);
@@ -1635,7 +1635,7 @@ impl<'a> AstBytecodeGen<'a> {
         }
 
         let idx = self.builder.add_const_lambda(
-            convert_tya(&params),
+            self.convert_tya(&params),
             self.emitter.convert_ty(return_type.clone()),
         );
 
@@ -1680,8 +1680,8 @@ impl<'a> AstBytecodeGen<'a> {
 
         let idx = self
             .builder
-            .add_const_struct(struct_id, convert_tya(&type_params));
-        let bytecode_ty = BytecodeType::Struct(struct_id, convert_tya(type_params));
+            .add_const_struct(struct_id, self.convert_tya(&type_params));
+        let bytecode_ty = BytecodeType::Struct(struct_id, self.convert_tya(type_params));
         let dest_reg = self.ensure_register(dest, bytecode_ty);
         self.builder
             .emit_new_struct(dest_reg, idx, self.loc(expr.span));
@@ -1722,7 +1722,7 @@ impl<'a> AstBytecodeGen<'a> {
         let cls_id = ClassId(cls_id.index().try_into().expect("overflow"));
         let idx = self
             .builder
-            .add_const_cls_types(cls_id, convert_tya(type_params));
+            .add_const_cls_types(cls_id, self.convert_tya(type_params));
         let dest_reg = self.ensure_register(dest, BytecodeType::Ptr);
         self.builder
             .emit_new_object_initialized(dest_reg, idx, self.loc(expr.span));
@@ -1847,7 +1847,7 @@ impl<'a> AstBytecodeGen<'a> {
         let (cls_id, type_params) = ty.to_class().expect("class expected");
         let cls_idx = self.builder.add_const_cls_types(
             ClassId(cls_id.index().try_into().expect("overflow")),
-            convert_tya(&type_params),
+            self.convert_tya(&type_params),
         );
 
         // Store length in a register
@@ -2111,7 +2111,7 @@ impl<'a> AstBytecodeGen<'a> {
         }
 
         let subtypes = ty.tuple_subtypes().expect("tuple expected");
-        let idx = self.builder.add_const_tuple(convert_tya(&subtypes));
+        let idx = self.builder.add_const_tuple(self.convert_tya(&subtypes));
         self.builder.emit_new_tuple(result, idx, self.loc(e.span));
 
         for arg_reg in values {
@@ -2338,7 +2338,7 @@ impl<'a> AstBytecodeGen<'a> {
         let (cls_id, type_params) = element_ty.to_class().expect("class expected");
         let cls_idx = self.builder.add_const_cls_types(
             ClassId(cls_id.index().try_into().expect("overflow")),
-            convert_tya(&type_params),
+            self.convert_tya(&type_params),
         );
 
         let array_reg = self.ensure_register(dest, BytecodeType::Ptr);
@@ -2469,7 +2469,7 @@ impl<'a> AstBytecodeGen<'a> {
         let intrinsic = info.intrinsic;
 
         let fct = self.sa.fct(info.fct_id.expect("missing method"));
-        let ty = fct.return_type_bty();
+        let ty = self.emitter.convert_ty(fct.return_type());
         let dest = self.ensure_register(dest, ty);
 
         let src = gen_expr(self, opnd, DataDest::Alloc);
@@ -2518,7 +2518,7 @@ impl<'a> AstBytecodeGen<'a> {
         let fct_id = info.fct_id.expect("missing function");
         let fct = self.sa.fct(fct_id);
 
-        let result_type = fct.return_type_bty();
+        let result_type = self.emitter.convert_ty(fct.return_type());
 
         let dest = self.ensure_register(dest, result_type);
 
@@ -2611,7 +2611,7 @@ impl<'a> AstBytecodeGen<'a> {
 
                 let callee_idx = self.builder.add_const_fct_types(
                     FunctionId(fct_id.index().try_into().expect("overflow")),
-                    convert_tya(&type_params),
+                    self.convert_tya(&type_params),
                 );
                 self.builder
                     .emit_invoke_direct(current, callee_idx, location);
@@ -2647,7 +2647,7 @@ impl<'a> AstBytecodeGen<'a> {
 
             let callee_idx = self.builder.add_const_fct_types(
                 FunctionId(fct_id.index().try_into().expect("overflow")),
-                convert_tya(&type_params),
+                self.convert_tya(&type_params),
             );
             let dest = self.ensure_unit_register();
             self.builder.emit_invoke_direct(dest, callee_idx, location);
@@ -2672,7 +2672,7 @@ impl<'a> AstBytecodeGen<'a> {
 
         let field_idx = self.builder.add_const_field_types(
             ClassId(cls_id.index().try_into().expect("overflow")),
-            convert_tya(&type_params),
+            self.convert_tya(&type_params),
             field_id.0 as u32,
         );
 
@@ -2884,7 +2884,7 @@ impl<'a> AstBytecodeGen<'a> {
                 let outer_cls_id = outer_context_class.class_id();
                 let idx = self.builder.add_const_field_types(
                     ClassId(outer_cls_id.index().try_into().expect("overflow")),
-                    convert_tya(&self.identity_type_params()),
+                    self.convert_tya(&self.identity_type_params()),
                     0,
                 );
                 assert!(outer_context_class.has_parent_slot());
@@ -2905,7 +2905,7 @@ impl<'a> AstBytecodeGen<'a> {
 
         let idx = self.builder.add_const_field_types(
             ClassId(outer_cls_id.index().try_into().expect("overflow")),
-            convert_tya(&self.identity_type_params()),
+            self.convert_tya(&self.identity_type_params()),
             field_id.0 as u32,
         );
         self.builder
@@ -3052,7 +3052,7 @@ impl<'a> AstBytecodeGen<'a> {
 
                 let idx = self.builder.add_const_field_types(
                     ClassId(outer_cls_id.index().try_into().expect("overflow")),
-                    convert_tya(&self.identity_type_params()),
+                    self.convert_tya(&self.identity_type_params()),
                     0,
                 );
                 self.builder
@@ -3072,7 +3072,7 @@ impl<'a> AstBytecodeGen<'a> {
                     .try_into()
                     .expect("overflow"),
             ),
-            convert_tya(&self.identity_type_params()),
+            self.convert_tya(&self.identity_type_params()),
             field_id.0 as u32,
         );
         self.builder
@@ -3114,7 +3114,7 @@ impl<'a> AstBytecodeGen<'a> {
                 let outer_cls_id = outer_context_class.class_id();
                 let idx = self.builder.add_const_field_types(
                     ClassId(outer_cls_id.index().try_into().expect("overflow")),
-                    convert_tya(&self.identity_type_params()),
+                    self.convert_tya(&self.identity_type_params()),
                     0,
                 );
                 assert!(outer_context_class.has_parent_slot());
@@ -3135,7 +3135,7 @@ impl<'a> AstBytecodeGen<'a> {
 
         let idx = self.builder.add_const_field_types(
             ClassId(outer_cls_id.index().try_into().expect("overflow")),
-            convert_tya(&self.identity_type_params()),
+            self.convert_tya(&self.identity_type_params()),
             field_id.0 as u32,
         );
         self.builder
@@ -3160,7 +3160,7 @@ impl<'a> AstBytecodeGen<'a> {
         let field_id = field_id_from_context_idx(field_id, context_data.has_parent_slot());
         let field_idx = self.builder.add_const_field_types(
             ClassId(cls_id.index().try_into().expect("overflow")),
-            convert_tya(&self.identity_type_params()),
+            self.convert_tya(&self.identity_type_params()),
             field_id.0 as u32,
         );
         self.builder
@@ -3182,7 +3182,7 @@ impl<'a> AstBytecodeGen<'a> {
         let field_id = field_id_from_context_idx(field_id, context_data.has_parent_slot());
         let field_idx = self.builder.add_const_field_types(
             ClassId(cls_id.index().try_into().expect("overflow")),
-            convert_tya(&self.identity_type_params()),
+            self.convert_tya(&self.identity_type_params()),
             field_id.0 as u32,
         );
         self.builder
@@ -3219,8 +3219,8 @@ impl<'a> AstBytecodeGen<'a> {
                 self.builder.add_const(ConstPoolEntry::Generic(
                     id.index() as u32,
                     FunctionId(fct.id().index().try_into().expect("overflow")),
-                    convert_tya(&trait_type_params),
-                    convert_tya(&fct_type_params),
+                    self.convert_tya(&trait_type_params),
+                    self.convert_tya(&fct_type_params),
                 ))
             }
             CallType::GenericMethodSelf(_, fct_id, ref trait_type_params, ref fct_type_params)
@@ -3231,8 +3231,8 @@ impl<'a> AstBytecodeGen<'a> {
                 ref fct_type_params,
             ) => self.builder.add_const(ConstPoolEntry::GenericSelf(
                 FunctionId(fct_id.index().try_into().expect("overflow")),
-                convert_tya(&trait_type_params),
-                convert_tya(&fct_type_params),
+                self.convert_tya(&trait_type_params),
+                self.convert_tya(&fct_type_params),
             )),
             CallType::GenericMethodNew {
                 object_type,
@@ -3241,9 +3241,9 @@ impl<'a> AstBytecodeGen<'a> {
                 fct_type_params,
             } => self.builder.add_const(ConstPoolEntry::GenericNew {
                 object_type: self.emitter.convert_ty(object_type.clone()),
-                trait_ty: convert_trait_type(&trait_ty),
+                trait_ty: self.emitter.convert_trait_ty(&trait_ty),
                 fct_id: FunctionId(fct_id.index().try_into().expect("overflow")),
-                fct_type_params: convert_tya(fct_type_params),
+                fct_type_params: self.convert_tya(fct_type_params),
             }),
             CallType::TraitObjectMethod(ref trait_object_ty, _) => {
                 self.builder.add_const(ConstPoolEntry::TraitObjectMethod(
@@ -3261,7 +3261,7 @@ impl<'a> AstBytecodeGen<'a> {
                 );
                 self.builder.add_const_fct_types(
                     FunctionId(fct.id().index().try_into().expect("overflow")),
-                    convert_tya(&type_params),
+                    self.convert_tya(&type_params),
                 )
             }
 
@@ -3371,6 +3371,10 @@ impl<'a> AstBytecodeGen<'a> {
 
     fn identity_type_params(&self) -> SourceTypeArray {
         new_identity_type_params(0, self.type_params_len)
+    }
+
+    fn convert_tya(&self, ty: &SourceTypeArray) -> BytecodeTypeArray {
+        convert_tya(&ty)
     }
 
     fn ensure_unit_register(&mut self) -> Register {
