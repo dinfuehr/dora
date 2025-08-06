@@ -19,12 +19,11 @@ use crate::sema::{
     VarLocation,
 };
 use crate::specialize::{replace_type, specialize_type};
-use crate::ty::{SourceType, SourceTypeArray, TraitType};
+use crate::ty::{SourceType, SourceTypeArray};
 use crate::{expr_always_returns, expr_block_always_returns, specialize_ty_for_trait_object};
 use dora_bytecode::{
-    AliasId, BytecodeFunction, BytecodeTraitType, BytecodeType, BytecodeTypeArray, ClassId,
-    ConstPoolEntry, ConstPoolIdx, EnumId, FunctionId, GlobalId, Label, Location, Register,
-    StructId, TraitId,
+    BytecodeFunction, BytecodeType, BytecodeTypeArray, ClassId, ConstPoolEntry, ConstPoolIdx,
+    EnumId, FunctionId, GlobalId, Label, Location, Register, StructId,
 };
 
 mod bytecode;
@@ -170,7 +169,7 @@ impl<'a> AstBytecodeGen<'a> {
             let bty = self.emitter.convert_ty(ty.clone());
             params.push(bty);
 
-            let bty: BytecodeType = register_bty_from_ty(ty);
+            let bty: BytecodeType = self.emitter.convert_ty_reg(ty);
             self.alloc_var(bty);
         }
 
@@ -443,7 +442,7 @@ impl<'a> AstBytecodeGen<'a> {
 
     fn allocate_register_for_var(&mut self, var_id: VarId) {
         let var = self.analysis.vars.get_var(var_id);
-        let bty: BytecodeType = register_bty_from_ty(var.ty.clone());
+        let bty: BytecodeType = self.emitter.convert_ty_reg(var.ty.clone());
         let reg = self.alloc_var(bty);
         self.set_var_reg(var_id, reg);
     }
@@ -530,7 +529,7 @@ impl<'a> AstBytecodeGen<'a> {
             }
 
             ast::Pattern::LitFloat(ref p) => {
-                let ty = register_bty_from_ty(ty);
+                let ty = self.emitter.convert_ty_reg(ty);
                 assert!(ty == BytecodeType::Float32 || ty == BytecodeType::Float64);
                 let mismatch_lbl = pck.ensure_label(&mut self.builder);
                 let const_value = self
@@ -577,7 +576,7 @@ impl<'a> AstBytecodeGen<'a> {
             }
 
             ast::Pattern::LitInt(ref p) => {
-                let ty = register_bty_from_ty(ty);
+                let ty = self.emitter.convert_ty_reg(ty);
                 let mismatch_lbl = pck.ensure_label(&mut self.builder);
                 let const_value = self.analysis.const_value(p.id);
                 let tmp = self.alloc_temp(BytecodeType::Bool);
@@ -733,7 +732,7 @@ impl<'a> AstBytecodeGen<'a> {
         iterate_subpatterns(self.analysis, pattern, |idx, param| {
             let element_ty = variant.fields[idx].parsed_type.ty();
             let element_ty = specialize_type(self.sa, element_ty, enum_type_params);
-            let ty = register_bty_from_ty(element_ty.clone());
+            let ty = self.emitter.convert_ty_reg(element_ty.clone());
             let field_reg = self.alloc_temp(ty);
 
             let idx = self.builder.add_const_enum_element(
@@ -769,7 +768,7 @@ impl<'a> AstBytecodeGen<'a> {
         iterate_subpatterns(self.analysis, pattern, |idx, field| {
             let field_ty = struct_.fields[idx].ty();
             let field_ty = specialize_type(self.sa, field_ty, struct_type_params);
-            let register_ty = register_bty_from_ty(field_ty.clone());
+            let register_ty = self.emitter.convert_ty_reg(field_ty.clone());
             let idx = self.builder.add_const_struct_field(
                 StructId(struct_id.index().try_into().expect("overflow")),
                 self.convert_tya(struct_type_params),
@@ -796,7 +795,7 @@ impl<'a> AstBytecodeGen<'a> {
         iterate_subpatterns(self.analysis, pattern, |idx, field_pattern| {
             let field_ty = class.fields[idx].ty();
             let field_ty = specialize_type(self.sa, field_ty, class_type_params);
-            let register_ty = register_bty_from_ty(field_ty.clone());
+            let register_ty = self.emitter.convert_ty_reg(field_ty.clone());
             let idx = self.builder.add_const_field_types(
                 ClassId(class_id.index().try_into().expect("overflow")),
                 self.convert_tya(class_type_params),
@@ -835,7 +834,7 @@ impl<'a> AstBytecodeGen<'a> {
                         .cloned()
                         .expect("missing field_id");
                     let subtype = tuple_subtypes[field_id].clone();
-                    let register_ty = register_bty_from_ty(subtype.clone());
+                    let register_ty = self.emitter.convert_ty_reg(subtype.clone());
                     let cp_idx = self.builder.add_const_tuple_element(
                         self.emitter.convert_ty(ty.clone()),
                         field_id as u32,
@@ -913,7 +912,7 @@ impl<'a> AstBytecodeGen<'a> {
         let option_type_params = SourceTypeArray::single(value_ty.clone());
 
         // Emit: <next-temp> = <iterator>.next()
-        let next_result_ty = register_bty_from_ty(for_type_info.next_type.clone());
+        let next_result_ty = self.emitter.convert_ty_reg(for_type_info.next_type.clone());
         let next_result_reg = self.alloc_temp(next_result_ty);
 
         let fct_idx = self.builder.add_const_fct_types(
@@ -960,7 +959,7 @@ impl<'a> AstBytecodeGen<'a> {
         if value_ty.is_unit() {
             self.free_temp(next_result_reg);
         } else {
-            let value_ty = register_bty_from_ty(value_ty);
+            let value_ty = self.emitter.convert_ty_reg(value_ty);
             let value_reg = self.alloc_var(value_ty);
             let fct_idx = self.builder.add_const_fct_types(
                 FunctionId(
@@ -1326,7 +1325,7 @@ impl<'a> AstBytecodeGen<'a> {
     fn visit_expr_if(&mut self, expr: &ast::ExprIfType, dest: DataDest) -> Register {
         let ty = self.ty(expr.id);
 
-        let dest = self.ensure_register(dest, register_bty_from_ty(ty));
+        let dest = self.ensure_register(dest, self.emitter.convert_ty_reg(ty));
         let else_lbl = self.builder.create_label();
 
         self.push_scope();
@@ -1402,7 +1401,7 @@ impl<'a> AstBytecodeGen<'a> {
 
         let field_ty = self.ty(expr.id);
 
-        let field_bc_ty: BytecodeType = register_bty_from_ty(field_ty);
+        let field_bc_ty: BytecodeType = self.emitter.convert_ty_reg(field_ty);
         let dest = self.ensure_register(dest, field_bc_ty);
         let obj = gen_expr(self, &expr.lhs, DataDest::Alloc);
 
@@ -1436,7 +1435,7 @@ impl<'a> AstBytecodeGen<'a> {
             return self.ensure_unit_register();
         }
 
-        let ty: BytecodeType = register_bty_from_ty(fty);
+        let ty: BytecodeType = self.emitter.convert_ty_reg(fty);
         let dest = self.ensure_register(dest, ty);
         let const_idx = self.builder.add_const_struct_field(
             StructId(struct_id.index().try_into().expect("overflow")),
@@ -1468,7 +1467,7 @@ impl<'a> AstBytecodeGen<'a> {
         let subtypes: SourceTypeArray = tuple_ty.tuple_subtypes().expect("tuple expected");
         let ty = subtypes[idx as usize].clone();
 
-        let ty: BytecodeType = register_bty_from_ty(ty);
+        let ty: BytecodeType = self.emitter.convert_ty_reg(ty);
         let dest = self.ensure_register(dest, ty);
         let idx = self
             .builder
@@ -1549,7 +1548,8 @@ impl<'a> AstBytecodeGen<'a> {
         let return_type = self.analysis.ty(expr.id);
 
         // Allocate register for result
-        let return_reg = self.ensure_register(dest, register_bty_from_ty(return_type.clone()));
+        let return_reg =
+            self.ensure_register(dest, self.emitter.convert_ty_reg(return_type.clone()));
 
         // Evaluate object/self argument
         let object_argument = self.emit_call_object_argument(expr, &call_type);
@@ -1602,7 +1602,7 @@ impl<'a> AstBytecodeGen<'a> {
             self.convert_tya(&type_params),
             variant_idx,
         );
-        let bytecode_ty = register_bty_from_ty(enum_ty);
+        let bytecode_ty = self.emitter.convert_ty_reg(enum_ty);
         let dest_reg = self.ensure_register(dest, bytecode_ty);
         self.builder
             .emit_new_enum(dest_reg, idx, self.loc(expr.span));
@@ -1645,7 +1645,7 @@ impl<'a> AstBytecodeGen<'a> {
                 .emit_invoke_lambda(dest, idx, self.loc(node.span));
             dest
         } else {
-            let bytecode_ty = register_bty_from_ty(return_type);
+            let bytecode_ty = self.emitter.convert_ty_reg(return_type);
             let dest_reg = self.ensure_register(dest, bytecode_ty);
             self.builder
                 .emit_invoke_lambda(dest_reg, idx, self.loc(node.span));
@@ -2092,7 +2092,7 @@ impl<'a> AstBytecodeGen<'a> {
 
         let ty = self.ty(e.id);
 
-        let result_ty: BytecodeType = register_bty_from_ty(ty.clone());
+        let result_ty: BytecodeType = self.emitter.convert_ty_reg(ty.clone());
         let result = self.ensure_register(dest, result_ty);
 
         let mut values = Vec::with_capacity(e.values.len());
@@ -2145,7 +2145,7 @@ impl<'a> AstBytecodeGen<'a> {
             self.specialize_type_for_call(call_type, callee.return_type());
 
         let function_return_type_bc: BytecodeType =
-            register_bty_from_ty(function_return_type.clone());
+            self.emitter.convert_ty_reg(function_return_type.clone());
         let dest = self.ensure_register(dest, function_return_type_bc);
 
         self.builder.emit_push_register(opnd);
@@ -2201,7 +2201,7 @@ impl<'a> AstBytecodeGen<'a> {
             self.specialize_type_for_call(call_type, callee.return_type());
 
         let function_return_type_bc: BytecodeType =
-            register_bty_from_ty(function_return_type.clone());
+            self.emitter.convert_ty_reg(function_return_type.clone());
 
         let return_type = match expr.op {
             ast::BinOp::Cmp(_) => BytecodeType::Bool,
@@ -2214,7 +2214,7 @@ impl<'a> AstBytecodeGen<'a> {
             dest
         } else {
             let function_result_register_ty: BytecodeType =
-                register_bty_from_ty(function_return_type.clone());
+                self.emitter.convert_ty_reg(function_return_type.clone());
             self.alloc_temp(function_result_register_ty)
         };
 
@@ -2422,7 +2422,7 @@ impl<'a> AstBytecodeGen<'a> {
             let ty = ty.type_params();
             let ty = ty[0].clone();
 
-            register_bty_from_ty(ty)
+            self.emitter.convert_ty_reg(ty)
         };
 
         let dest = self.ensure_register(dest, ty.clone());
@@ -2590,7 +2590,9 @@ impl<'a> AstBytecodeGen<'a> {
         let location = self.loc(expr.span);
 
         let assign_value = if expr.op != ast::BinOp::Assign {
-            let ty = register_bty_from_ty(array_assignment.item_ty.expect("missing item type"));
+            let ty = self
+                .emitter
+                .convert_ty_reg(array_assignment.item_ty.expect("missing item type"));
             let current = self.alloc_temp(ty);
 
             let call_type = array_assignment.index_get.expect("missing index_get");
@@ -2684,7 +2686,7 @@ impl<'a> AstBytecodeGen<'a> {
         let assign_value = if expr.op != ast::BinOp::Assign {
             let cls = self.sa.class(cls_id);
             let ty = cls.fields[field_id.0].ty();
-            let ty = register_bty_from_ty(ty);
+            let ty = self.emitter.convert_ty_reg(ty);
             let current = self.alloc_temp(ty);
             self.builder
                 .emit_load_field(current, obj, field_idx, location);
@@ -2748,7 +2750,7 @@ impl<'a> AstBytecodeGen<'a> {
         let assign_value = if expr.op != ast::BinOp::Assign {
             let current = match var.location {
                 VarLocation::Context(scope_id, field_id) => {
-                    let ty = register_bty_from_ty(var.ty.clone());
+                    let ty = self.emitter.convert_ty_reg(var.ty.clone());
                     let dest_reg = self.alloc_temp(ty);
                     self.load_from_context(dest_reg, scope_id, field_id, self.loc(expr.span));
                     dest_reg
@@ -2797,7 +2799,7 @@ impl<'a> AstBytecodeGen<'a> {
 
         let assign_value = if expr.op != ast::BinOp::Assign {
             let global = self.sa.global(gid);
-            let ty = register_bty_from_ty(global.ty());
+            let ty = self.emitter.convert_ty_reg(global.ty());
             let current = self.alloc_temp(ty);
             self.builder.emit_load_global(current, bc_gid, location);
 
@@ -2900,7 +2902,7 @@ impl<'a> AstBytecodeGen<'a> {
         let field_id = field_id_from_context_idx(field_id, outer_context_info.has_parent_slot());
         let field = &outer_cls.fields[field_id];
 
-        let ty: BytecodeType = register_bty_from_ty(field.ty());
+        let ty: BytecodeType = self.emitter.convert_ty_reg(field.ty());
         let value_reg = self.ensure_register(dest, ty);
 
         let idx = self.builder.add_const_field_types(
@@ -2920,7 +2922,7 @@ impl<'a> AstBytecodeGen<'a> {
         let const_ = self.sa.const_(const_id);
         let ty = const_.ty();
 
-        let bytecode_ty = register_bty_from_ty(ty.clone());
+        let bytecode_ty = self.emitter.convert_ty_reg(ty.clone());
         let dest = self.ensure_register(dest, bytecode_ty);
 
         match ty {
@@ -2981,7 +2983,7 @@ impl<'a> AstBytecodeGen<'a> {
     ) -> Register {
         let global_var = self.sa.global(gid);
 
-        let ty: BytecodeType = register_bty_from_ty(global_var.ty());
+        let ty: BytecodeType = self.emitter.convert_ty_reg(global_var.ty());
         let dest = self.ensure_register(dest, ty);
 
         self.builder.emit_load_global(
@@ -3003,7 +3005,7 @@ impl<'a> AstBytecodeGen<'a> {
 
         match var.location {
             VarLocation::Context(scope_id, field_idx) => {
-                let ty = register_bty_from_ty(var.ty.clone());
+                let ty = self.emitter.convert_ty_reg(var.ty.clone());
                 let dest_reg = self.ensure_register(dest, ty);
                 self.load_from_context(dest_reg, scope_id, field_idx, location);
                 dest_reg
@@ -3130,7 +3132,7 @@ impl<'a> AstBytecodeGen<'a> {
         let field_id = field_id_from_context_idx(field_id, outer_context_info.has_parent_slot());
         let field = &outer_cls.fields[field_id];
 
-        let ty: BytecodeType = register_bty_from_ty(field.ty());
+        let ty: BytecodeType = self.emitter.convert_ty_reg(field.ty());
         let dest = self.alloc_temp(ty);
 
         let idx = self.builder.add_const_field_types(
@@ -3374,7 +3376,7 @@ impl<'a> AstBytecodeGen<'a> {
     }
 
     fn convert_tya(&self, ty: &SourceTypeArray) -> BytecodeTypeArray {
-        convert_tya(&ty)
+        self.emitter.convert_tya(&ty)
     }
 
     fn ensure_unit_register(&mut self) -> Register {
@@ -3459,132 +3461,6 @@ impl DataDest {
             DataDest::Alloc => panic!("not a register"),
             DataDest::Reg(reg) => *reg,
         }
-    }
-}
-
-pub fn convert_tya(ty: &SourceTypeArray) -> BytecodeTypeArray {
-    let mut bytecode_subtypes = Vec::with_capacity(ty.len());
-    for subtype in ty.iter() {
-        bytecode_subtypes.push(convert_ty(subtype));
-    }
-    BytecodeTypeArray::new(bytecode_subtypes)
-}
-
-pub fn convert_trait_type(trait_ty: &TraitType) -> BytecodeTraitType {
-    BytecodeTraitType {
-        trait_id: TraitId(trait_ty.trait_id.index().try_into().expect("overflow")),
-        type_params: convert_tya(&trait_ty.type_params),
-        bindings: trait_ty
-            .bindings
-            .iter()
-            .map(|(alias_id, ty)| {
-                (
-                    AliasId(alias_id.index().try_into().expect("overflow")),
-                    convert_ty(ty.clone()),
-                )
-            })
-            .collect::<Vec<_>>(),
-    }
-}
-
-pub fn convert_ty(ty: SourceType) -> BytecodeType {
-    match ty {
-        SourceType::Unit => BytecodeType::Unit,
-        SourceType::Bool => BytecodeType::Bool,
-        SourceType::UInt8 => BytecodeType::UInt8,
-        SourceType::Char => BytecodeType::Char,
-        SourceType::Int32 => BytecodeType::Int32,
-        SourceType::Int64 => BytecodeType::Int64,
-        SourceType::Float32 => BytecodeType::Float32,
-        SourceType::Float64 => BytecodeType::Float64,
-        SourceType::Class(class_id, type_params) => BytecodeType::Class(
-            ClassId(class_id.index().try_into().expect("overflow")),
-            convert_tya(&type_params),
-        ),
-        SourceType::TraitObject(trait_id, type_params, bindings) => BytecodeType::TraitObject(
-            TraitId(trait_id.index().try_into().expect("overflow")),
-            convert_tya(&type_params),
-            convert_tya(&bindings),
-        ),
-        SourceType::Enum(enum_id, type_params) => BytecodeType::Enum(
-            EnumId(enum_id.index().try_into().expect("overflow")),
-            convert_tya(&type_params),
-        ),
-        SourceType::Struct(struct_id, type_params) => BytecodeType::Struct(
-            StructId(struct_id.index().try_into().expect("overflow")),
-            convert_tya(&type_params),
-        ),
-        SourceType::Tuple(subtypes) => BytecodeType::Tuple(convert_tya(&subtypes)),
-        SourceType::TypeParam(idx) => BytecodeType::TypeParam(idx.index() as u32),
-        SourceType::Lambda(params, return_type) => {
-            BytecodeType::Lambda(convert_tya(&params), Box::new(convert_ty(*return_type)))
-        }
-        SourceType::Ptr => BytecodeType::Ptr,
-        SourceType::This => BytecodeType::This,
-        SourceType::Alias(id, type_params) => {
-            assert!(type_params.is_empty());
-            BytecodeType::TypeAlias(AliasId(id.index().try_into().expect("overflow")))
-        }
-        SourceType::Assoc { trait_ty, assoc_id } => BytecodeType::Assoc {
-            trait_ty: convert_trait_type(&trait_ty),
-            assoc_id: AliasId(assoc_id.index().try_into().expect("overflow")),
-        },
-        SourceType::GenericAssoc {
-            tp_id,
-            trait_ty,
-            assoc_id,
-        } => BytecodeType::GenericAssoc {
-            type_param_id: tp_id.index().try_into().expect("overflow"),
-            trait_ty: convert_trait_type(&trait_ty),
-            assoc_id: AliasId(assoc_id.index().try_into().expect("overflow")),
-        },
-        _ => panic!("SourceType {:?} cannot be converted to BytecodeType", ty),
-    }
-}
-
-pub fn register_bty_from_ty(ty: SourceType) -> BytecodeType {
-    match ty {
-        SourceType::Unit => BytecodeType::Unit,
-        SourceType::Bool => BytecodeType::Bool,
-        SourceType::UInt8 => BytecodeType::UInt8,
-        SourceType::Char => BytecodeType::Char,
-        SourceType::Int32 => BytecodeType::Int32,
-        SourceType::Int64 => BytecodeType::Int64,
-        SourceType::Float32 => BytecodeType::Float32,
-        SourceType::Float64 => BytecodeType::Float64,
-        SourceType::Class(_, _) => BytecodeType::Ptr,
-        SourceType::TraitObject(trait_id, type_params, bindings) => BytecodeType::TraitObject(
-            TraitId(trait_id.index().try_into().expect("overflow")),
-            convert_tya(&type_params),
-            convert_tya(&bindings),
-        ),
-        SourceType::Enum(enum_id, type_params) => BytecodeType::Enum(
-            EnumId(enum_id.index().try_into().expect("overflow")),
-            convert_tya(&type_params),
-        ),
-        SourceType::Struct(struct_id, type_params) => BytecodeType::Struct(
-            StructId(struct_id.index().try_into().expect("overflow")),
-            convert_tya(&type_params),
-        ),
-        SourceType::Tuple(subtypes) => BytecodeType::Tuple(convert_tya(&subtypes)),
-        SourceType::TypeParam(idx) => BytecodeType::TypeParam(idx.index() as u32),
-        SourceType::Lambda(_, _) => BytecodeType::Ptr,
-        SourceType::Ptr => BytecodeType::Ptr,
-        SourceType::This => BytecodeType::This,
-        SourceType::GenericAssoc {
-            tp_id,
-            trait_ty,
-            assoc_id,
-        } => BytecodeType::GenericAssoc {
-            type_param_id: tp_id.index().try_into().expect("overflow"),
-            trait_ty: convert_trait_type(&trait_ty),
-            assoc_id: AliasId(assoc_id.index().try_into().expect("overflow")),
-        },
-        SourceType::Assoc { trait_ty, assoc_id } => BytecodeType::Assoc {
-            trait_ty: convert_trait_type(&trait_ty),
-            assoc_id: AliasId(assoc_id.index().try_into().expect("overflow")),
-        },
-        _ => panic!("SourceType {:?} cannot be converted to BytecodeType", ty),
     }
 }
 

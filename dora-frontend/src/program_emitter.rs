@@ -548,6 +548,13 @@ impl Emitter {
         }
     }
 
+    pub fn convert_ty_reg(&self, ty: SourceType) -> BytecodeType {
+        match ty {
+            SourceType::Class(..) | SourceType::Lambda(..) => BytecodeType::Ptr,
+            _ => self.convert_ty(ty),
+        }
+    }
+
     pub fn convert_tya(&self, ty: &SourceTypeArray) -> BytecodeTypeArray {
         let mut bytecode_subtypes = Vec::with_capacity(ty.len());
         for subtype in ty.iter() {

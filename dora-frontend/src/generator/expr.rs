@@ -2,7 +2,7 @@ use dora_bytecode::{BytecodeType, BytecodeTypeArray, FunctionId, Location, Regis
 use dora_parser::ast::{self, CmpOp};
 use dora_parser::Span;
 
-use crate::generator::{register_bty_from_ty, AstBytecodeGen, DataDest, Label};
+use crate::generator::{AstBytecodeGen, DataDest, Label};
 use crate::sema::{FctDefinition, FctParent, Intrinsic, Sema};
 use crate::ty::{SourceType, SourceTypeArray};
 
@@ -231,7 +231,8 @@ fn gen_expr_bin_cmp_as_method(
     let function_return_type: SourceType =
         g.specialize_type_for_call(call_type, callee.return_type());
 
-    let function_return_type_bc: BytecodeType = register_bty_from_ty(function_return_type.clone());
+    let function_return_type_bc: BytecodeType =
+        g.emitter.convert_ty_reg(function_return_type.clone());
 
     let return_type = BytecodeType::Bool;
 
@@ -241,7 +242,7 @@ fn gen_expr_bin_cmp_as_method(
         dest
     } else {
         let function_result_register_ty: BytecodeType =
-            register_bty_from_ty(function_return_type.clone());
+            g.emitter.convert_ty_reg(function_return_type.clone());
         g.alloc_temp(function_result_register_ty)
     };
 
@@ -350,7 +351,7 @@ pub(super) fn gen_match(
     let result_ty = g.ty(node.id);
     let expr_ty = g.ty(node.expr.id());
 
-    let result_bc_ty = register_bty_from_ty(result_ty);
+    let result_bc_ty = g.emitter.convert_ty_reg(result_ty);
     let dest = g.ensure_register(dest, result_bc_ty);
 
     let fallthrough_lbl = g.builder.create_label();
@@ -401,7 +402,7 @@ pub(super) fn gen_match(
 
 pub(super) fn gen_unreachable(g: &mut AstBytecodeGen, span: Span) {
     let return_type = g.return_type.clone();
-    let register_bty = register_bty_from_ty(return_type.clone());
+    let register_bty = g.emitter.convert_ty_reg(return_type.clone());
     let dest = g.alloc_temp(register_bty);
     let fct_type_params = g.convert_tya(&SourceTypeArray::single(return_type));
     let fct_idx = g.builder.add_const_fct_types(
@@ -422,7 +423,7 @@ pub(super) fn gen_unreachable(g: &mut AstBytecodeGen, span: Span) {
 
 pub(super) fn gen_fatal_error(g: &mut AstBytecodeGen, msg: &str, span: Span) {
     let return_type = g.return_type.clone();
-    let register_bty = register_bty_from_ty(return_type.clone());
+    let register_bty = g.emitter.convert_ty_reg(return_type.clone());
     let dest_reg = g.alloc_temp(register_bty);
     let msg_reg = g.alloc_temp(BytecodeType::Ptr);
     g.builder.emit_const_string(msg_reg, msg.to_string());
