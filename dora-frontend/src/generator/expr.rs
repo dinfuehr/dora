@@ -315,7 +315,7 @@ fn convert_ordering_to_bool(
 
     g.builder.emit_push_register(result);
     let idx = g.builder.add_const_fct_types(
-        FunctionId(fct_id.index().try_into().expect("overflow")),
+        g.emitter.convert_function_id(fct_id),
         BytecodeTypeArray::empty(),
     );
     g.builder.emit_invoke_direct(dest, idx, g.loc(node.span));

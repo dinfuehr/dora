@@ -503,20 +503,20 @@ impl Emitter {
             SourceType::Float32 => BytecodeType::Float32,
             SourceType::Float64 => BytecodeType::Float64,
             SourceType::Class(class_id, type_params) => BytecodeType::Class(
-                ClassId(class_id.index().try_into().expect("overflow")),
+                self.convert_class_id(class_id),
                 self.convert_tya(&type_params),
             ),
             SourceType::TraitObject(trait_id, type_params, bindings) => BytecodeType::TraitObject(
-                TraitId(trait_id.index().try_into().expect("overflow")),
+                self.convert_trait_id(trait_id),
                 self.convert_tya(&type_params),
                 self.convert_tya(&bindings),
             ),
             SourceType::Enum(enum_id, type_params) => BytecodeType::Enum(
-                EnumId(enum_id.index().try_into().expect("overflow")),
+                self.convert_enum_id(enum_id),
                 self.convert_tya(&type_params),
             ),
             SourceType::Struct(struct_id, type_params) => BytecodeType::Struct(
-                StructId(struct_id.index().try_into().expect("overflow")),
+                self.convert_struct_id(struct_id),
                 self.convert_tya(&type_params),
             ),
             SourceType::Tuple(subtypes) => BytecodeType::Tuple(self.convert_tya(&subtypes)),
@@ -529,11 +529,11 @@ impl Emitter {
             SourceType::This => BytecodeType::This,
             SourceType::Alias(id, type_params) => {
                 assert!(type_params.is_empty());
-                BytecodeType::TypeAlias(AliasId(id.index().try_into().expect("overflow")))
+                BytecodeType::TypeAlias(self.convert_alias_id(id))
             }
             SourceType::Assoc { trait_ty, assoc_id } => BytecodeType::Assoc {
                 trait_ty: self.convert_trait_ty(&trait_ty),
-                assoc_id: AliasId(assoc_id.index().try_into().expect("overflow")),
+                assoc_id: self.convert_alias_id(assoc_id),
             },
             SourceType::GenericAssoc {
                 tp_id,
@@ -542,7 +542,7 @@ impl Emitter {
             } => BytecodeType::GenericAssoc {
                 type_param_id: tp_id.index().try_into().expect("overflow"),
                 trait_ty: self.convert_trait_ty(&trait_ty),
-                assoc_id: AliasId(assoc_id.index().try_into().expect("overflow")),
+                assoc_id: self.convert_alias_id(assoc_id),
             },
             _ => panic!("SourceType {:?} cannot be converted to BytecodeType", ty),
         }
@@ -572,7 +572,7 @@ impl Emitter {
                 .iter()
                 .map(|(alias_id, ty)| {
                     (
-                        AliasId(alias_id.index().try_into().expect("overflow")),
+                        self.convert_alias_id(*alias_id),
                         self.convert_ty(ty.clone()),
                     )
                 })
