@@ -5,18 +5,18 @@ use dora_bytecode::program::{AliasData, ImplData};
 use dora_bytecode::{
     AliasId, BytecodeTraitType, BytecodeType, BytecodeTypeArray, ClassData, ClassField, ClassId,
     EnumData, EnumId, EnumVariant, ExtensionData, ExtensionId, FunctionData, FunctionId,
-    FunctionKind, GlobalData, ImplId, ModuleData, ModuleId, PackageData, PackageId, Program,
-    SourceFileData, SourceFileId, StructData, StructField, StructId, TraitData, TraitId,
+    FunctionKind, GlobalData, GlobalId, ImplId, ModuleData, ModuleId, PackageData, PackageId,
+    Program, SourceFileData, SourceFileId, StructData, StructField, StructId, TraitData, TraitId,
     TypeParamBound, TypeParamData,
 };
 
 use crate::generator::{generate_fct, generate_global_initializer};
 
 use crate::sema::{
-    self, AliasDefinitionId, ClassDefinition, Element, EnumDefinition, ExtensionDefinitionId,
-    FctDefinitionId, FctParent, GlobalDefinition, GlobalDefinitionId, ImplDefinitionId,
-    ModuleDefinitionId, PackageDefinitionId, PackageName, StructDefinition, TraitDefinitionId,
-    TypeParamDefinition,
+    self, AliasDefinitionId, ClassDefinition, ClassDefinitionId, Element, EnumDefinition,
+    EnumDefinitionId, ExtensionDefinitionId, FctDefinitionId, FctParent, GlobalDefinition,
+    GlobalDefinitionId, ImplDefinitionId, ModuleDefinitionId, PackageDefinitionId, PackageName,
+    StructDefinition, StructDefinitionId, TraitDefinitionId, TypeParamDefinition,
 };
 use crate::{SourceType, SourceTypeArray, TraitType};
 
@@ -592,8 +592,24 @@ impl Emitter {
         ModuleId(id.index().try_into().expect("failure"))
     }
 
-    fn convert_function_id(&self, id: FctDefinitionId) -> FunctionId {
+    pub fn convert_function_id(&self, id: FctDefinitionId) -> FunctionId {
         FunctionId(id.index().try_into().expect("failure"))
+    }
+
+    pub fn convert_global_id(&self, id: GlobalDefinitionId) -> GlobalId {
+        GlobalId(id.index().try_into().expect("failure"))
+    }
+
+    pub fn convert_class_id(&self, id: ClassDefinitionId) -> ClassId {
+        ClassId(id.index().try_into().expect("failure"))
+    }
+
+    pub fn convert_struct_id(&self, id: StructDefinitionId) -> StructId {
+        StructId(id.index().try_into().expect("failure"))
+    }
+
+    pub fn convert_enum_id(&self, id: EnumDefinitionId) -> EnumId {
+        EnumId(id.index().try_into().expect("failure"))
     }
 
     fn convert_source_file_id(&self, id: sema::SourceFileId) -> SourceFileId {
