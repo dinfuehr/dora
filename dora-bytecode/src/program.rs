@@ -17,6 +17,7 @@ pub struct ModuleId(pub u32);
 pub struct ModuleData {
     pub name: String,
     pub parent_id: Option<ModuleId>,
+    pub items: Vec<(String, ModuleItem)>,
 }
 
 #[derive(Copy, Clone, Debug, PartialEq, Eq, Hash, Decode, Encode)]
@@ -199,6 +200,16 @@ impl AliasData {
     pub fn idx_in_trait(&self) -> usize {
         self.idx_in_trait.expect("missing idx")
     }
+}
+
+#[derive(PartialEq, Debug, Copy, Clone, Decode, Encode)]
+pub enum ModuleItem {
+    Class(ClassId),
+    Struct(StructId),
+    Enum(EnumId),
+    Trait(TraitId),
+    Module(ModuleId),
+    Function(FunctionId),
 }
 
 #[derive(Debug, Decode, Encode)]

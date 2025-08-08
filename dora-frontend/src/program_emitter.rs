@@ -125,6 +125,7 @@ impl Emitter {
             self.modules.push(ModuleData {
                 name,
                 parent_id: module.parent_module_id.map(|id| self.convert_module_id(id)),
+                items: Vec::new(),
             })
         }
     }

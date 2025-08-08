@@ -2,15 +2,15 @@ use std::collections::HashMap;
 use std::mem;
 
 use self::Bytecode::*;
-use crate::check_program;
 use crate::generator::generate_fct_id;
 use crate::program_emitter::Emitter;
 use crate::sema::{ClassDefinitionId, FieldId, Sema, SemaFlags};
 use crate::stdlib_lookup::{lookup_fct, resolve_path};
+use crate::{check_program, emit_program};
 use dora_bytecode::{
     self as bytecode, BytecodeFunction, BytecodeOffset, BytecodeType, BytecodeTypeArray,
-    BytecodeVisitor, ClassId, ConstPoolEntry, ConstPoolIdx, EnumId, FunctionId, GlobalId, Register,
-    StructId, TraitId,
+    BytecodeVisitor, ClassId, ConstPoolEntry, ConstPoolIdx, EnumId, FunctionId, GlobalId, Program,
+    Register, StructId, TraitId,
 };
 
 fn positions(fct: &BytecodeFunction) -> Vec<(u32, u32)> {
@@ -32,6 +32,12 @@ fn sema(code: &'static str) -> Sema {
     assert!(result);
 
     sa
+}
+
+#[allow(unused)]
+fn semac(code: &'static str) -> Program {
+    let sa = sema(code);
+    emit_program(sa)
 }
 
 fn bc(sa: &Sema, path: &str) -> (BytecodeFunction, Vec<Bytecode>) {
