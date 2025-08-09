@@ -106,7 +106,7 @@ impl ModuleSymTable {
 
 #[derive(Debug)]
 pub struct SymTable {
-    table: HashMap<Name, Symbol>,
+    pub table: HashMap<Name, Symbol>,
     traits: HashSet<TraitDefinitionId>,
 }
 

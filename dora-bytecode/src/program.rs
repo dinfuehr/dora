@@ -204,12 +204,26 @@ impl AliasData {
 
 #[derive(PartialEq, Debug, Copy, Clone, Decode, Encode)]
 pub enum ModuleItem {
+    Alias(AliasId),
     Class(ClassId),
     Struct(StructId),
     Enum(EnumId),
+    EnumVariant(EnumId, u32),
     Trait(TraitId),
     Module(ModuleId),
     Function(FunctionId),
+    Global(GlobalId),
+    Const(ConstId),
+}
+
+#[derive(Debug, Copy, Clone, PartialEq, Eq, Hash, Decode, Encode)]
+pub struct ConstId(pub u32);
+
+#[derive(Debug, Decode, Encode)]
+pub struct ConstData {
+    pub module_id: ModuleId,
+    pub name: String,
+    pub ty: BytecodeType,
 }
 
 #[derive(Debug, Decode, Encode)]
@@ -218,6 +232,7 @@ pub struct Program {
     pub modules: Vec<ModuleData>,
     pub functions: Vec<FunctionData>,
     pub globals: Vec<GlobalData>,
+    pub consts: Vec<ConstData>,
     pub classes: Vec<ClassData>,
     pub structs: Vec<StructData>,
     pub enums: Vec<EnumData>,

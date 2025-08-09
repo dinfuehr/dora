@@ -1,22 +1,24 @@
 use std::collections::HashMap;
 
+use crate::sym::SymbolKind;
 use crate::Sema;
 use dora_bytecode::program::{AliasData, ImplData};
 use dora_bytecode::{
     AliasId, BytecodeTraitType, BytecodeType, BytecodeTypeArray, ClassData, ClassField, ClassId,
-    EnumData, EnumId, EnumVariant, ExtensionData, ExtensionId, FunctionData, FunctionId,
-    FunctionKind, GlobalData, GlobalId, ImplId, ModuleData, ModuleId, PackageData, PackageId,
-    Program, SourceFileData, SourceFileId, StructData, StructField, StructId, TraitData, TraitId,
-    TypeParamBound, TypeParamData,
+    ConstData, ConstId, EnumData, EnumId, EnumVariant, ExtensionData, ExtensionId, FunctionData,
+    FunctionId, FunctionKind, GlobalData, GlobalId, ImplId, ModuleData, ModuleId, ModuleItem,
+    PackageData, PackageId, Program, SourceFileData, SourceFileId, StructData, StructField,
+    StructId, TraitData, TraitId, TypeParamBound, TypeParamData,
 };
 
 use crate::generator::{generate_fct, generate_global_initializer};
 
 use crate::sema::{
-    self, AliasDefinitionId, ClassDefinition, ClassDefinitionId, Element, EnumDefinition,
-    EnumDefinitionId, ExtensionDefinitionId, FctDefinitionId, FctParent, GlobalDefinition,
-    GlobalDefinitionId, ImplDefinitionId, ModuleDefinitionId, PackageDefinitionId, PackageName,
-    StructDefinition, StructDefinitionId, TraitDefinitionId, TypeParamDefinition,
+    self, AliasDefinitionId, ClassDefinition, ClassDefinitionId, ConstDefinitionId, Element,
+    EnumDefinition, EnumDefinitionId, ExtensionDefinitionId, FctDefinitionId, FctParent,
+    GlobalDefinition, GlobalDefinitionId, ImplDefinitionId, ModuleDefinitionId,
+    PackageDefinitionId, PackageName, StructDefinition, StructDefinitionId, TraitDefinitionId,
+    TypeParamDefinition,
 };
 use crate::{SourceType, SourceTypeArray, TraitType};
 
@@ -29,6 +31,7 @@ pub fn emit_program(sa: Sema) -> Program {
     emitter.create_structs(&sa);
     emitter.create_functions(&sa);
     emitter.create_globals(&sa);
+    emitter.create_consts(&sa);
     emitter.create_enums(&sa);
     emitter.create_traits(&sa);
     emitter.create_source_files(&sa);
@@ -46,6 +49,7 @@ pub fn emit_program(sa: Sema) -> Program {
         modules: emitter.modules,
         functions: emitter.functions,
         globals: emitter.globals,
+        consts: emitter.consts,
         classes: emitter.classes,
         structs: emitter.structs,
         enums: emitter.enums,
@@ -66,6 +70,7 @@ pub struct Emitter {
     map_functions: HashMap<FctDefinitionId, FunctionId>,
     functions: Vec<FunctionData>,
     globals: Vec<GlobalData>,
+    consts: Vec<ConstData>,
     packages: Vec<PackageData>,
     modules: Vec<ModuleData>,
     classes: Vec<ClassData>,
@@ -85,6 +90,7 @@ impl Emitter {
             map_functions: HashMap::new(),
             functions: Vec::new(),
             globals: Vec::new(),
+            consts: Vec::new(),
             packages: Vec::new(),
             modules: Vec::new(),
             classes: Vec::new(),
@@ -121,6 +127,49 @@ impl Emitter {
             } else {
                 "<root>".into()
             };
+
+            let mut items = Vec::new();
+
+            for (name, sym) in &module.table().table {
+                let name = sa.interner.str(*name).to_string();
+
+                let item = match sym.kind() {
+                    SymbolKind::Class(class_id) => {
+                        ModuleItem::Class(self.convert_class_id(*class_id))
+                    }
+                    SymbolKind::Enum(enum_id) => ModuleItem::Enum(self.convert_enum_id(*enum_id)),
+                    SymbolKind::Struct(struct_id) => {
+                        ModuleItem::Struct(self.convert_struct_id(*struct_id))
+                    }
+                    SymbolKind::Trait(trait_id) => {
+                        ModuleItem::Trait(self.convert_trait_id(*trait_id))
+                    }
+                    SymbolKind::Module(module_id) => {
+                        ModuleItem::Module(self.convert_module_id(*module_id))
+                    }
+                    SymbolKind::Fct(fct_id) => {
+                        ModuleItem::Function(self.convert_function_id(*fct_id))
+                    }
+                    SymbolKind::Global(global_id) => {
+                        ModuleItem::Global(self.convert_global_id(*global_id))
+                    }
+                    SymbolKind::Const(const_id) => {
+                        ModuleItem::Const(self.convert_const_id(*const_id))
+                    }
+                    SymbolKind::EnumVariant(enum_id, variant_id) => {
+                        ModuleItem::EnumVariant(self.convert_enum_id(*enum_id), *variant_id)
+                    }
+                    SymbolKind::Alias(alias_id) => {
+                        ModuleItem::Alias(self.convert_alias_id(*alias_id))
+                    }
+                    _ => {
+                        println!("sym = {:?}", sym.kind());
+                        unreachable!()
+                    }
+                };
+
+                items.push((name, item));
+            }
 
             self.modules.push(ModuleData {
                 name,
@@ -337,6 +386,18 @@ impl Emitter {
                 mutable: global.mutable,
                 name,
                 initial_value: self.global_initializer_function_id(&*global),
+            })
+        }
+    }
+
+    fn create_consts(&mut self, sa: &Sema) {
+        for (_id, const_) in sa.consts.iter() {
+            let name = sa.interner.str(const_.name).to_string();
+
+            self.consts.push(ConstData {
+                module_id: self.convert_module_id(const_.module_id),
+                ty: self.convert_ty(const_.ty()),
+                name,
             })
         }
     }
@@ -599,6 +660,10 @@ impl Emitter {
 
     pub fn convert_global_id(&self, id: GlobalDefinitionId) -> GlobalId {
         GlobalId(id.index().try_into().expect("failure"))
+    }
+
+    pub fn convert_const_id(&self, id: ConstDefinitionId) -> ConstId {
+        ConstId(id.index().try_into().expect("failure"))
     }
 
     pub fn convert_class_id(&self, id: ClassDefinitionId) -> ClassId {
