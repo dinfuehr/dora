@@ -1,5 +1,3 @@
-use std::collections::HashMap;
-
 use crate::boots::BOOTS_FUNCTIONS;
 use crate::gc::Address;
 use crate::stdlib::STDLIB_FUNCTIONS;
@@ -17,25 +15,23 @@ pub enum FctImplementation {
 }
 
 pub fn lookup(vm: &mut VM) {
-    let module_items = compute_module_items(&vm.program);
-
     for (path, implementation) in STDLIB_FUNCTIONS {
-        apply_fct(vm, &module_items, path, implementation.clone());
+        apply_fct(vm, path, implementation.clone());
     }
 
     for (path, implementation) in IO_FUNCTIONS {
-        apply_fct(vm, &module_items, path, implementation.clone());
+        apply_fct(vm, path, implementation.clone());
     }
 
     if vm.has_boots() {
         for (path, implementation) in BOOTS_FUNCTIONS {
-            apply_fct(vm, &module_items, path, implementation.clone());
+            apply_fct(vm, path, implementation.clone());
         }
     }
 
-    lookup_known_classes(vm, &module_items);
-    lookup_known_functions(vm, &module_items);
-    lookup_known_traits(vm, &module_items);
+    lookup_known_classes(vm);
+    lookup_known_functions(vm);
+    lookup_known_traits(vm);
 
     for (fct_id, fct) in vm.program.functions.iter().enumerate() {
         let fct_id = FunctionId(fct_id as u32);
@@ -65,12 +61,7 @@ fn get_primitive_ty(path: &str) -> Option<BytecodeType> {
     }
 }
 
-fn apply_fct(
-    vm: &mut VM,
-    module_items: &ModuleItemMap,
-    path: &str,
-    implementation: FctImplementation,
-) {
+fn apply_fct(vm: &mut VM, path: &str, implementation: FctImplementation) {
     let fct_id = if path.contains("#") {
         let parts = path.split("#").collect::<Vec<_>>();
         assert_eq!(parts.len(), 2);
@@ -84,14 +75,14 @@ fn apply_fct(
             let trait_path = parts[0];
             let extended_ty_path = parts[1];
 
-            let trait_id = resolve_path(&vm.program, module_items, trait_path)
+            let trait_id = resolve_path(&vm.program, trait_path)
                 .trait_id()
                 .expect("trait expected");
 
             let impl_id = if let Some(extended_ty) = get_primitive_ty(extended_ty_path) {
                 lookup_impl_for_ty(vm, trait_id, extended_ty.clone()).expect("missing impl")
             } else {
-                let extended_ty = resolve_path(&vm.program, module_items, extended_ty_path);
+                let extended_ty = resolve_path(&vm.program, extended_ty_path);
                 lookup_impl_for_item(vm, trait_id, extended_ty).expect("missing impl")
             };
 
@@ -100,7 +91,7 @@ fn apply_fct(
             let extension_id = if let Some(extended_ty) = get_primitive_ty(path) {
                 lookup_extension_for_ty(vm, extended_ty)
             } else {
-                let extended_ty = resolve_path(&vm.program, module_items, path);
+                let extended_ty = resolve_path(&vm.program, path);
                 lookup_extension_for_item(vm, extended_ty)
             }
             .expect("impl block not found");
@@ -108,7 +99,7 @@ fn apply_fct(
                 .expect("missing method")
         }
     } else {
-        resolve_path(&vm.program, &module_items, path)
+        resolve_path(&vm.program, path)
             .function_id()
             .expect("function expected")
     };
@@ -225,7 +216,7 @@ fn lookup_impl_for_item(vm: &VM, trait_id: TraitId, extended_ty: ModuleItem) -> 
     None
 }
 
-fn resolve_path(program: &Program, module_items: &ModuleItemMap, path: &str) -> ModuleItem {
+fn resolve_path(program: &Program, path: &str) -> ModuleItem {
     let mut components = path.split("::");
 
     let package_name = components.next().expect("missing package name");
@@ -241,9 +232,14 @@ fn resolve_path(program: &Program, module_items: &ModuleItemMap, path: &str) -> 
 
     while let Some(component) = components.next() {
         let module_id = item.module_id().expect("module expected");
-        item = match module_items.get(module_id, component) {
-            Some(item) => item,
-            None => {
+        let module = program.module(module_id);
+
+        item = match module
+            .items
+            .binary_search_by(|(k, _)| k.as_str().cmp(component))
+        {
+            Ok(idx) => module.items[idx].1,
+            Err(_) => {
                 panic!("unknown module {} in path {}", component, path);
             }
         };
@@ -262,87 +258,52 @@ fn lookup_package(program: &Program, name: &str) -> Option<PackageId> {
     None
 }
 
-fn lookup_known_classes(vm: &mut VM, module_items: &ModuleItemMap) {
+fn lookup_known_classes(vm: &mut VM) {
     vm.known.array_class_id = Some(
-        resolve_path(&vm.program, module_items, "std::collections::Array")
+        resolve_path(&vm.program, "std::collections::Array")
             .class_id()
             .expect("class expected"),
     );
     vm.known.string_class_id = Some(
-        resolve_path(&vm.program, module_items, "std::string::String")
+        resolve_path(&vm.program, "std::string::String")
             .class_id()
             .expect("class expected"),
     );
     vm.known.thread_class_id = Some(
-        resolve_path(&vm.program, module_items, "std::thread::Thread")
+        resolve_path(&vm.program, "std::thread::Thread")
             .class_id()
             .expect("class expected"),
     );
 }
 
-fn lookup_known_functions(vm: &mut VM, module_items: &ModuleItemMap) {
+fn lookup_known_functions(vm: &mut VM) {
     if vm.has_boots() {
         vm.known.boots_compile_fct_id = Some(
-            resolve_path(&vm.program, module_items, "boots::interface::compile")
+            resolve_path(&vm.program, "boots::interface::compile")
                 .function_id()
                 .expect("function expected"),
         );
     }
 
     vm.known.unreachable_fct_id = Some(
-        resolve_path(&vm.program, module_items, "std::unreachable")
+        resolve_path(&vm.program, "std::unreachable")
             .function_id()
             .expect("function expected"),
     );
 
     vm.known.fatal_error_fct_id = Some(
-        resolve_path(&vm.program, module_items, "std::fatalError")
+        resolve_path(&vm.program, "std::fatalError")
             .function_id()
             .expect("function expected"),
     );
 }
 
-fn lookup_known_traits(vm: &mut VM, module_items: &ModuleItemMap) {
+fn lookup_known_traits(vm: &mut VM) {
     vm.known.zero_trait_id = Some(
-        resolve_path(&vm.program, module_items, "std::traits::Zero")
+        resolve_path(&vm.program, "std::traits::Zero")
             .trait_id()
             .expect("trait expected"),
     );
-}
-
-fn compute_module_items(program: &Program) -> ModuleItemMap {
-    let mut map = ModuleItemMap::new();
-
-    for (id, module) in program.modules.iter().enumerate() {
-        let id = ModuleId(id.try_into().expect("overflow"));
-
-        for (name, item) in &module.items {
-            map.insert(id, name, item.clone());
-        }
-    }
-
-    map
-}
-
-struct ModuleItemMap {
-    data: HashMap<ModuleId, HashMap<String, ModuleItem>>,
-}
-
-impl ModuleItemMap {
-    fn new() -> ModuleItemMap {
-        ModuleItemMap {
-            data: HashMap::new(),
-        }
-    }
-
-    fn insert(&mut self, id: ModuleId, name: &str, item: ModuleItem) {
-        let entry = self.data.entry(id).or_default();
-        assert!(entry.insert(name.to_string(), item).is_none());
-    }
-
-    fn get(&self, id: ModuleId, name: &str) -> Option<ModuleItem> {
-        self.data.get(&id).and_then(|m| m.get(name)).cloned()
-    }
 }
 
 trait ModuleItemExt {
