@@ -6,8 +6,8 @@ use crate::stdlib::STDLIB_FUNCTIONS;
 use crate::stdlib::io::IO_FUNCTIONS;
 use crate::vm::{BytecodeType, Intrinsic, VM};
 use dora_bytecode::{
-    ClassId, EnumId, ExtensionId, FunctionId, FunctionKind, ImplId, ModuleId, PackageId, Program,
-    StructId, TraitId, display_fct,
+    ClassId, ExtensionId, FunctionId, FunctionKind, ImplId, ModuleId, ModuleItem, PackageId,
+    Program, StructId, TraitId, display_fct,
 };
 
 #[derive(Clone)]
@@ -84,14 +84,14 @@ fn apply_fct(
             let trait_path = parts[0];
             let extended_ty_path = parts[1];
 
-            let trait_id = resolve_path(vm, module_items, trait_path)
+            let trait_id = resolve_path(&vm.program, module_items, trait_path)
                 .trait_id()
                 .expect("trait expected");
 
             let impl_id = if let Some(extended_ty) = get_primitive_ty(extended_ty_path) {
                 lookup_impl_for_ty(vm, trait_id, extended_ty.clone()).expect("missing impl")
             } else {
-                let extended_ty = resolve_path(vm, module_items, extended_ty_path);
+                let extended_ty = resolve_path(&vm.program, module_items, extended_ty_path);
                 lookup_impl_for_item(vm, trait_id, extended_ty).expect("missing impl")
             };
 
@@ -100,7 +100,7 @@ fn apply_fct(
             let extension_id = if let Some(extended_ty) = get_primitive_ty(path) {
                 lookup_extension_for_ty(vm, extended_ty)
             } else {
-                let extended_ty = resolve_path(vm, module_items, path);
+                let extended_ty = resolve_path(&vm.program, module_items, path);
                 lookup_extension_for_item(vm, extended_ty)
             }
             .expect("impl block not found");
@@ -108,7 +108,7 @@ fn apply_fct(
                 .expect("missing method")
         }
     } else {
-        resolve_path(vm, &module_items, path)
+        resolve_path(&vm.program, &module_items, path)
             .function_id()
             .expect("function expected")
     };
@@ -225,18 +225,18 @@ fn lookup_impl_for_item(vm: &VM, trait_id: TraitId, extended_ty: ModuleItem) -> 
     None
 }
 
-fn resolve_path(vm: &VM, module_items: &ModuleItemMap, path: &str) -> ModuleItem {
+fn resolve_path(program: &Program, module_items: &ModuleItemMap, path: &str) -> ModuleItem {
     let mut components = path.split("::");
 
     let package_name = components.next().expect("missing package name");
-    let package_id = match lookup_package(vm, package_name) {
+    let package_id = match lookup_package(program, package_name) {
         Some(package_id) => package_id,
         None => {
             panic!("unknown package {} in path {}", package_name, path);
         }
     };
 
-    let package = &vm.program.packages[package_id.0 as usize];
+    let package = &program.packages[package_id.0 as usize];
     let mut item = ModuleItem::Module(package.root_module_id);
 
     while let Some(component) = components.next() {
@@ -252,8 +252,8 @@ fn resolve_path(vm: &VM, module_items: &ModuleItemMap, path: &str) -> ModuleItem
     item
 }
 
-fn lookup_package(vm: &VM, name: &str) -> Option<PackageId> {
-    for (id, package) in vm.program.packages.iter().enumerate() {
+fn lookup_package(program: &Program, name: &str) -> Option<PackageId> {
+    for (id, package) in program.packages.iter().enumerate() {
         if package.name == name {
             return Some(PackageId(id.try_into().expect("overflow")));
         }
@@ -264,17 +264,17 @@ fn lookup_package(vm: &VM, name: &str) -> Option<PackageId> {
 
 fn lookup_known_classes(vm: &mut VM, module_items: &ModuleItemMap) {
     vm.known.array_class_id = Some(
-        resolve_path(vm, module_items, "std::collections::Array")
+        resolve_path(&vm.program, module_items, "std::collections::Array")
             .class_id()
             .expect("class expected"),
     );
     vm.known.string_class_id = Some(
-        resolve_path(vm, module_items, "std::string::String")
+        resolve_path(&vm.program, module_items, "std::string::String")
             .class_id()
             .expect("class expected"),
     );
     vm.known.thread_class_id = Some(
-        resolve_path(vm, module_items, "std::thread::Thread")
+        resolve_path(&vm.program, module_items, "std::thread::Thread")
             .class_id()
             .expect("class expected"),
     );
@@ -283,20 +283,20 @@ fn lookup_known_classes(vm: &mut VM, module_items: &ModuleItemMap) {
 fn lookup_known_functions(vm: &mut VM, module_items: &ModuleItemMap) {
     if vm.has_boots() {
         vm.known.boots_compile_fct_id = Some(
-            resolve_path(vm, module_items, "boots::interface::compile")
+            resolve_path(&vm.program, module_items, "boots::interface::compile")
                 .function_id()
                 .expect("function expected"),
         );
     }
 
     vm.known.unreachable_fct_id = Some(
-        resolve_path(vm, module_items, "std::unreachable")
+        resolve_path(&vm.program, module_items, "std::unreachable")
             .function_id()
             .expect("function expected"),
     );
 
     vm.known.fatal_error_fct_id = Some(
-        resolve_path(vm, module_items, "std::fatalError")
+        resolve_path(&vm.program, module_items, "std::fatalError")
             .function_id()
             .expect("function expected"),
     );
@@ -304,7 +304,7 @@ fn lookup_known_functions(vm: &mut VM, module_items: &ModuleItemMap) {
 
 fn lookup_known_traits(vm: &mut VM, module_items: &ModuleItemMap) {
     vm.known.zero_trait_id = Some(
-        resolve_path(vm, module_items, "std::traits::Zero")
+        resolve_path(&vm.program, module_items, "std::traits::Zero")
             .trait_id()
             .expect("trait expected"),
     );
@@ -315,39 +315,9 @@ fn compute_module_items(program: &Program) -> ModuleItemMap {
 
     for (id, module) in program.modules.iter().enumerate() {
         let id = ModuleId(id.try_into().expect("overflow"));
-        if let Some(parent_id) = module.parent_id {
-            map.insert(parent_id, &module.name, ModuleItem::Module(id));
-        }
-    }
 
-    for (id, trait_) in program.traits.iter().enumerate() {
-        let id = TraitId(id.try_into().expect("overflow"));
-        map.insert(trait_.module_id, &trait_.name, ModuleItem::Trait(id));
-    }
-
-    for (id, class) in program.classes.iter().enumerate() {
-        let id = ClassId(id.try_into().expect("overflow"));
-        map.insert(class.module_id, &class.name, ModuleItem::Class(id));
-    }
-
-    for (id, struct_) in program.structs.iter().enumerate() {
-        let id = StructId(id.try_into().expect("overflow"));
-        map.insert(struct_.module_id, &struct_.name, ModuleItem::Struct(id));
-    }
-
-    for (id, enum_) in program.enums.iter().enumerate() {
-        let id = EnumId(id.try_into().expect("overflow"));
-        map.insert(enum_.module_id, &enum_.name, ModuleItem::Enum(id));
-    }
-
-    for (id, function) in program.functions.iter().enumerate() {
-        match function.kind {
-            FunctionKind::Function => {
-                let id = FunctionId(id.try_into().expect("overflow"));
-                map.insert(function.module_id, &function.name, ModuleItem::Function(id));
-            }
-
-            _ => {}
+        for (name, item) in &module.items {
+            map.insert(id, name, item.clone());
         }
     }
 
@@ -375,17 +345,15 @@ impl ModuleItemMap {
     }
 }
 
-#[derive(PartialEq, Debug, Copy, Clone)]
-enum ModuleItem {
-    Class(ClassId),
-    Struct(StructId),
-    Enum(EnumId),
-    Trait(TraitId),
-    Module(ModuleId),
-    Function(FunctionId),
+trait ModuleItemExt {
+    fn module_id(&self) -> Option<ModuleId>;
+    fn function_id(&self) -> Option<FunctionId>;
+    fn class_id(&self) -> Option<ClassId>;
+    fn struct_id(&self) -> Option<StructId>;
+    fn trait_id(&self) -> Option<TraitId>;
 }
 
-impl ModuleItem {
+impl ModuleItemExt for ModuleItem {
     fn module_id(&self) -> Option<ModuleId> {
         match self {
             ModuleItem::Module(id) => Some(*id),

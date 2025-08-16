@@ -171,10 +171,12 @@ impl Emitter {
                 items.push((name, item));
             }
 
+            items.sort_by(|(k1, _), (k2, _)| k1.cmp(k2));
+
             self.modules.push(ModuleData {
                 name,
                 parent_id: module.parent_module_id.map(|id| self.convert_module_id(id)),
-                items: Vec::new(),
+                items,
             })
         }
     }
