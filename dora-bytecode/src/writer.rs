@@ -1,8 +1,8 @@
 use std::mem;
 
 use crate::{
-    BytecodeFunction, BytecodeOffset, BytecodeOpcode, BytecodeType, ConstPoolEntry, ConstPoolIdx,
-    GlobalId, Location, Register,
+    BytecodeFunction, BytecodeOffset, BytecodeOpcode, BytecodeType, ConstId, ConstPoolEntry,
+    ConstPoolIdx, GlobalId, Location, Register,
 };
 
 #[derive(Copy, Clone, PartialEq, Debug, Eq, Hash)]
@@ -285,6 +285,13 @@ impl BytecodeWriter {
 
     pub fn emit_store_global(&mut self, src: Register, gid: GlobalId) {
         self.emit_store_global_inst(BytecodeOpcode::StoreGlobal, src, gid);
+    }
+
+    pub fn emit_load_const(&mut self, dest: Register, const_id: ConstId) {
+        self.emit_values(
+            BytecodeOpcode::LoadConst,
+            &[dest.to_usize() as u32, const_id.0],
+        );
     }
 
     pub fn emit_push_register(&mut self, src: Register) {

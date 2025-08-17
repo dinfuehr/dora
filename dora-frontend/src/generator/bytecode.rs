@@ -1,8 +1,9 @@
 use std::collections::{HashMap, HashSet};
 
 use dora_bytecode::{
-    BytecodeFunction, BytecodeType, BytecodeTypeArray, BytecodeWriter, ClassId, ConstPoolEntry,
-    ConstPoolIdx, EnumId, FunctionId, GlobalId, Label, Location, Register, StructId,
+    BytecodeFunction, BytecodeType, BytecodeTypeArray, BytecodeWriter, ClassId, ConstId,
+    ConstPoolEntry, ConstPoolIdx, EnumId, FunctionId, GlobalId, Label, Location, Register,
+    StructId,
 };
 
 pub struct BytecodeBuilder {
@@ -411,6 +412,11 @@ impl BytecodeBuilder {
     pub fn emit_store_global(&mut self, src: Register, gid: GlobalId) {
         assert!(self.used(src));
         self.writer.emit_store_global(src, gid);
+    }
+
+    pub fn emit_load_const(&mut self, dest: Register, const_id: ConstId) {
+        assert!(self.def(dest));
+        self.writer.emit_load_const(dest, const_id);
     }
 
     pub fn emit_push_register(&mut self, src: Register) {

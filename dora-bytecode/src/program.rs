@@ -224,6 +224,54 @@ pub struct ConstData {
     pub module_id: ModuleId,
     pub name: String,
     pub ty: BytecodeType,
+    pub value: ConstValue,
+}
+
+#[derive(Clone, Debug, PartialEq, Decode, Encode)]
+pub enum ConstValue {
+    None,
+    Bool(bool),
+    Char(char),
+    Int(i64),
+    Float(f64),
+    String(String),
+}
+
+impl ConstValue {
+    pub fn to_bool(&self) -> bool {
+        match self {
+            &ConstValue::Bool(b) => b,
+            _ => unreachable!(),
+        }
+    }
+
+    pub fn to_char(&self) -> char {
+        match self {
+            &ConstValue::Char(c) => c,
+            _ => unreachable!(),
+        }
+    }
+
+    pub fn to_i64(&self) -> Option<i64> {
+        match self {
+            &ConstValue::Int(i) => Some(i),
+            _ => None,
+        }
+    }
+
+    pub fn to_f64(&self) -> Option<f64> {
+        match self {
+            &ConstValue::Float(f) => Some(f),
+            _ => None,
+        }
+    }
+
+    pub fn to_string(&self) -> Option<&String> {
+        match self {
+            &ConstValue::String(ref v) => Some(v),
+            _ => None,
+        }
+    }
 }
 
 #[derive(Debug, Decode, Encode)]

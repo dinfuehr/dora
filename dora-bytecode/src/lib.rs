@@ -17,11 +17,11 @@ pub use display::{
 };
 pub use dumper::{dump, dump_stdout};
 pub use program::{
-    AliasData, AliasId, ClassData, ClassField, ClassId, ConstData, ConstId, EnumData, EnumId,
-    EnumVariant, ExtensionData, ExtensionId, FunctionData, FunctionId, FunctionKind, GlobalData,
-    GlobalId, ImplData, ImplId, ModuleData, ModuleId, ModuleItem, PackageData, PackageId, Program,
-    SourceFileData, SourceFileId, StructData, StructField, StructId, TraitData, TraitId,
-    TypeParamBound, TypeParamData,
+    AliasData, AliasId, ClassData, ClassField, ClassId, ConstData, ConstId, ConstValue, EnumData,
+    EnumId, EnumVariant, ExtensionData, ExtensionId, FunctionData, FunctionId, FunctionKind,
+    GlobalData, GlobalId, ImplData, ImplId, ModuleData, ModuleId, ModuleItem, PackageData,
+    PackageId, Program, SourceFileData, SourceFileId, StructData, StructField, StructId, TraitData,
+    TraitId, TypeParamBound, TypeParamData,
 };
 pub use reader::*;
 pub use ty::{BytecodeTraitType, BytecodeType, BytecodeTypeArray};

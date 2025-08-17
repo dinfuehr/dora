@@ -400,6 +400,7 @@ impl Emitter {
                 module_id: self.convert_module_id(const_.module_id),
                 ty: self.convert_ty(const_.ty()),
                 name,
+                value: const_.value().clone(),
             })
         }
     }

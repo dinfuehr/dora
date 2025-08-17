@@ -2,7 +2,7 @@ use bincode::{Decode, Encode};
 use std::fmt;
 
 use crate::{
-    BytecodeReader, BytecodeTraitType, BytecodeType, BytecodeTypeArray, ClassId, EnumId,
+    BytecodeReader, BytecodeTraitType, BytecodeType, BytecodeTypeArray, ClassId, ConstId, EnumId,
     FunctionId, GlobalId, StructId,
 };
 use num_enum::{IntoPrimitive, TryFromPrimitive};
@@ -74,6 +74,8 @@ pub enum BytecodeOpcode {
 
     LoadGlobal,
     StoreGlobal,
+
+    LoadConst,
 
     PushRegister,
 
@@ -346,6 +348,11 @@ pub enum BytecodeInstruction {
     StoreGlobal {
         src: Register,
         global_id: GlobalId,
+    },
+
+    LoadConst {
+        dest: Register,
+        const_id: ConstId,
     },
 
     PushRegister {

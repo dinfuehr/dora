@@ -1,7 +1,7 @@
 use std::iter::Iterator;
 
 use crate::{
-    BytecodeInstruction, BytecodeOffset, BytecodeOpcode, ConstPoolIdx, GlobalId, Register,
+    BytecodeInstruction, BytecodeOffset, BytecodeOpcode, ConstId, ConstPoolIdx, GlobalId, Register,
 };
 pub fn read<T: BytecodeVisitor>(data: &[u8], visitor: &mut T) {
     BytecodeFullIteration::new(data, visitor).read();
@@ -172,6 +172,12 @@ impl<'a> BytecodeReader<'a> {
                 let src = self.read_register();
                 let global_id = self.read_global();
                 BytecodeInstruction::StoreGlobal { src, global_id }
+            }
+
+            BytecodeOpcode::LoadConst => {
+                let dest = self.read_register();
+                let const_id = self.read_const();
+                BytecodeInstruction::LoadConst { dest, const_id }
             }
 
             BytecodeOpcode::PushRegister => {
@@ -417,6 +423,10 @@ impl<'a> BytecodeReader<'a> {
         GlobalId(self.read_index())
     }
 
+    fn read_const(&mut self) -> ConstId {
+        ConstId(self.read_index())
+    }
+
     fn read_const_pool_idx(&mut self) -> ConstPoolIdx {
         ConstPoolIdx(self.read_index())
     }
@@ -585,6 +595,10 @@ where
 
             BytecodeInstruction::StoreGlobal { src, global_id } => {
                 self.visitor.visit_store_global(src, global_id);
+            }
+
+            BytecodeInstruction::LoadConst { dest, const_id } => {
+                self.visitor.visit_load_const(dest, const_id);
             }
 
             BytecodeInstruction::PushRegister { src } => {
@@ -818,6 +832,10 @@ pub trait BytecodeVisitor {
     }
 
     fn visit_store_global(&mut self, _src: Register, _global_id: GlobalId) {
+        unimplemented!();
+    }
+
+    fn visit_load_const(&mut self, _dest: Register, _const_id: ConstId) {
         unimplemented!();
     }
 

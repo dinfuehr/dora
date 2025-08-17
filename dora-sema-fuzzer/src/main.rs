@@ -17,6 +17,7 @@ fn check_program(program: String) {
         packages: Vec::new(),
         boots: false,
         is_standard_library: false,
+        use_const_bytecode: false,
     };
 
     let mut sa = Sema::new(sem_args);
