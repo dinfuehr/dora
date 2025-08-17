@@ -1,6 +1,6 @@
 use std::traits::Iterator;
 
-use package::bytecode::{BytecodeInstruction, BytecodeRegister, GlobalId, ConstPoolId};
+use package::bytecode::{BytecodeInstruction, BytecodeRegister, GlobalId, ConstPoolId, ConstId};
 use package::bytecode::opcode as opc;
 
 pub fn decodeBytecode(code: Array[UInt8]): Array[BytecodeInstructionInfo] {
@@ -152,6 +152,11 @@ impl BytecodeIterator {
             let src = self.readRegister();
             let glob = self.readGlobalId();
             BytecodeInstruction::StoreGlobal(src, glob)
+
+        } else if opcode == opc::BC_LOAD_CONST {
+            let dest = self.readRegister();
+            let glob = self.readConstId();
+            BytecodeInstruction::LoadConst(dest, glob)
 
         } else if opcode == opc::BC_PUSH_REGISTER {
             let src = self.readRegister();
@@ -362,6 +367,10 @@ impl BytecodeIterator {
 
     fn readGlobalId(): GlobalId {
         GlobalId(self.readIndex())
+    }
+
+    fn readConstId(): ConstId {
+        ConstId(self.readIndex())
     }
 
     fn readConstPoolId(): ConstPoolId {

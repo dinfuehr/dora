@@ -1,4 +1,4 @@
-use package::bytecode::{GlobalId, ConstPoolId, BytecodeRegister};
+use package::bytecode::{ConstId, GlobalId, ConstPoolId, BytecodeRegister};
 
 pub enum BytecodeInstruction {
     Add(BytecodeRegister, BytecodeRegister, BytecodeRegister),
@@ -27,6 +27,8 @@ pub enum BytecodeInstruction {
 
     LoadGlobal(BytecodeRegister, GlobalId),
     StoreGlobal(BytecodeRegister, GlobalId),
+
+    LoadConst(BytecodeRegister, ConstId),
 
     PushRegister(BytecodeRegister),
     

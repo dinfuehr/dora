@@ -1,4 +1,4 @@
-use package::bytecode::{GlobalId, ConstPoolId, BytecodeFunction, BytecodeRegister};
+use package::bytecode::{ConstId, GlobalId, ConstPoolId, BytecodeFunction, BytecodeRegister};
 use package::bytecode::instruction::BytecodeInstruction;
 use package::bytecode::{BytecodeIterator, BytecodeInstructionInfo};
 
@@ -32,6 +32,7 @@ pub trait BytecodeDumper {
     fn emitReg2AndIdx(inst: BytecodeInstructionInfo, name: String, r1: BytecodeRegister, r2: BytecodeRegister, idx: ConstPoolId);
     fn emitReg3(inst: BytecodeInstructionInfo, name: String, r1: BytecodeRegister, r2: BytecodeRegister, r3: BytecodeRegister);
     fn emitGlobal(inst: BytecodeInstructionInfo, name: String, r: BytecodeRegister, g: GlobalId);
+    fn emitConst(inst: BytecodeInstructionInfo, name: String, r: BytecodeRegister, c: ConstId);
 
     fn emitBackwardJump(inst: BytecodeInstructionInfo, name: String, offset: Int32);
     fn emitJump(inst: BytecodeInstructionInfo, name: String, offset: Int32);
@@ -110,6 +111,10 @@ pub fn dumpInstruction(inst: BytecodeInstructionInfo, dumper: BytecodeDumper) {
         },
         BytecodeInstruction::StoreGlobal(src, global_id) => {
             dumper.emitGlobal(inst, "StoreGlobal", src, global_id);
+        },
+
+        BytecodeInstruction::LoadConst(dest, const_id) => {
+            dumper.emitConst(inst, "LoadConst", dest, const_id);
         },
 
         BytecodeInstruction::PushRegister(src) => {
@@ -314,5 +319,10 @@ impl BytecodeDumper for StdoutBytecodeDumper {
     fn emitGlobal(inst: BytecodeInstructionInfo, name: String, r1: BytecodeRegister, gid: GlobalId) {
         self.emitStart(inst, name);
         println(" ${r1}, ${gid}");
+    }
+
+    fn emitConst(inst: BytecodeInstructionInfo, name: String, r1: BytecodeRegister, cid: ConstId) {
+        self.emitStart(inst, name);
+        println(" ${r1}, ${cid}");
     }
 }

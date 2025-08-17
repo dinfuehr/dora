@@ -268,6 +268,26 @@ pub class AliasData {
     ty: Option[BytecodeType],
 }
 
+pub struct ConstId(pub Int32)
+
+impl Stringable for ConstId {
+    fn toString(): String {
+        self.0.toString()
+    }
+}
+
+impl Equals for ConstId {
+    fn equals(other: ConstId): Bool {
+        self.0 == other.0
+    }
+}
+
+impl Hash for ConstId {
+    fn hash(): Int32 {
+        self.0
+    }
+}
+
 pub class Program {
     packages: Array[PackageData],
     modules: Array[ModuleData],

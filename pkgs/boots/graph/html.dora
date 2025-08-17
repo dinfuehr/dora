@@ -4,7 +4,7 @@ use package::assembler::arm64::registerName as registerNameOnArm64;
 use package::assembler::x64::registerName as registerNameOnX64;
 use package::assembler::arm64::floatRegisterName as floatRegisterNameOnArm64;
 use package::assembler::x64::floatRegisterName as floatRegisterNameOnX64;
-use package::bytecode::{BytecodeDumper, BytecodeFunction, BytecodeInstructionInfo, BytecodeIterator, BytecodeRegister, ConstPoolId, dumpInstruction, GlobalId};
+use package::bytecode::{BytecodeDumper, BytecodeFunction, BytecodeInstructionInfo, BytecodeIterator, BytecodeRegister, ConstId, ConstPoolId, dumpInstruction, GlobalId};
 use package::graph::{Block, Graph, Inst, Location, Op, Operand};
 use package::graph_builder::BytecodeAnalysis;
 use package::compilation::CompilationInfo;
@@ -458,6 +458,10 @@ impl BytecodeDumper for HtmlBytecodeDumper {
 
     fn emitGlobal(inst: BytecodeInstructionInfo, name: String, r1: BytecodeRegister, gid: GlobalId) {
         self.write("${name} ${reg(r1)}, ${gid}");
+    }
+
+    fn emitConst(inst: BytecodeInstructionInfo, name: String, r1: BytecodeRegister, cid: ConstId) {
+        self.write("${name} ${reg(r1)}, ${cid}");
     }
 }
 

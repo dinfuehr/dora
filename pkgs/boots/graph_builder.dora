@@ -560,6 +560,9 @@ impl SsaGen {
                 self.emitStoreGlobal(src, global_id);
                 false
             }
+            BytecodeInstruction::LoadConst(dest, const_id) => {
+                std::unimplemented[Bool]()
+            }
             BytecodeInstruction::PushRegister(src) => {
                 self.pushed_registers.push(src);
                 false

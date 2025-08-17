@@ -1,6 +1,6 @@
 use dora_bytecode::{
-    ClassData, EnumData, ExtensionData, ExtensionId, FunctionData, ImplData, ImplId, ModuleData,
-    SourceFileData, SourceFileId, StructData, TraitData,
+    ClassData, ConstData, ConstId, EnumData, ExtensionData, ExtensionId, FunctionData, ImplData,
+    ImplId, ModuleData, SourceFileData, SourceFileId, StructData, TraitData,
 };
 use dora_bytecode::{GlobalData, GlobalId};
 use num_enum::{IntoPrimitive, TryFromPrimitive};
@@ -338,6 +338,10 @@ impl VM {
 
     pub fn class(&self, id: ClassId) -> &ClassData {
         &self.program.classes[id.0 as usize]
+    }
+
+    pub fn const_(&self, id: ConstId) -> &ConstData {
+        &self.program.consts[id.0 as usize]
     }
 
     pub fn enum_(&self, id: EnumId) -> &EnumData {

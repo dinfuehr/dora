@@ -24,8 +24,8 @@ use crate::vm::{
 };
 use dora_bytecode::{
     BytecodeFunction, BytecodeOffset, BytecodeTraitType, BytecodeType, BytecodeTypeArray,
-    BytecodeVisitor, ConstPoolEntry, ConstPoolIdx, FunctionId, FunctionKind, GlobalId, Location,
-    Register, display_fct, display_ty, read,
+    BytecodeVisitor, ConstId, ConstPoolEntry, ConstPoolIdx, FunctionId, FunctionKind, GlobalId,
+    Location, Register, display_fct, display_ty, read,
 };
 
 macro_rules! comment {
@@ -1459,6 +1459,47 @@ impl<'a> CannonCodeGen<'a> {
                 .load_int_const(MachineMode::Int8, REG_TMP1, INITIALIZED as i64);
             self.asm
                 .store_int8_synchronized(REG_TMP1.into(), REG_RESULT.into())
+        }
+    }
+
+    fn emit_load_const(&mut self, dest: Register, const_id: ConstId) {
+        let const_data = self.vm.const_(const_id);
+        let ty = self.bytecode.register_type(dest);
+
+        assert_eq!(
+            self.bytecode.register_type(dest),
+            register_bty(const_data.ty.clone())
+        );
+
+        match ty {
+            BytecodeType::Bool => {
+                if const_data.value.to_bool() {
+                    self.asm.load_true(REG_RESULT);
+                } else {
+                    self.asm.load_false(REG_RESULT);
+                }
+                self.emit_store_register(REG_RESULT.into(), dest);
+            }
+
+            BytecodeType::Char
+            | BytecodeType::UInt8
+            | BytecodeType::Int32
+            | BytecodeType::Int64 => {
+                let value = const_data.value.to_i64().expect("integer expected");
+                self.asm
+                    .load_int_const(mode(self.vm, ty), REG_RESULT, value);
+
+                self.emit_store_register(REG_RESULT.into(), dest);
+            }
+
+            BytecodeType::Float32 | BytecodeType::Float64 => {
+                let value = const_data.value.to_f64().expect("float expected");
+                self.asm
+                    .load_float_const(mode(self.vm, ty), FREG_RESULT, value);
+                self.emit_store_register(FREG_RESULT.into(), dest);
+            }
+
+            _ => unimplemented!(),
         }
     }
 
@@ -4326,6 +4367,17 @@ impl<'a> BytecodeVisitor for CannonCodeGen<'a> {
             )
         });
         self.emit_store_global(src, global_id);
+    }
+
+    fn visit_load_const(&mut self, dest: Register, const_id: ConstId) {
+        comment!(self, {
+            let const_data = &self.vm.const_(const_id);
+            format!(
+                "LoadConst {}, Const({}) # {}",
+                dest, const_id.0, const_data.name
+            )
+        });
+        self.emit_load_const(dest, const_id);
     }
 
     fn visit_push_register(&mut self, src: Register) {
