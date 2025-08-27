@@ -1,5 +1,5 @@
 use package::interface::{Address, Config, StructData, EnumData, EnumVariantData, CompilationMode};
-use package::bytecode::{AliasId, BytecodeFunction, BytecodeTraitType, BytecodeType, ClassId, ConstPoolEntry, EnumId, FunctionId, ClassFieldId, ImplId, Location, StructId, StructFieldId, TraitId};
+use package::bytecode::{AliasId, BytecodeFunction, BytecodeTraitType, BytecodeType, ClassId, ConstPoolEntry, ConstValue, EnumId, FunctionId, ClassFieldId, ImplId, Location, StructId, StructFieldId, TraitId};
 use package::bytecode::opcode as opc;
 use package::compilation::{CompilationInfo, FunctionCompilationInfo, SpecializeSelf};
 use package::interface::{FunctionBytecodeData, FunctionInliningInfo, Architecture};
@@ -59,6 +59,32 @@ pub fn decodeCompilationInfo(reader: ByteReader): (CompilationInfo, FunctionComp
     let ci = CompilationInfo::new(fctId, loc, compilationMode, emitDebug, emitGraph, emitHtml, emitCodeComments);
     let fctData = FunctionCompilationInfo(fctId, bc, returnType, typeParams, specializeSelf);
     (ci, fctData)
+}
+
+pub fn decodeConstValue(reader: ByteReader): ConstValue {
+    let opcode = reader.readUInt8().toInt32();
+
+    if opcode == opc::CONST_VALUE_OPCODE_NONE {
+        ConstValue::None
+    } else if opcode == opc::CONST_VALUE_OPCODE_BOOL {
+        let value = reader.readBool();
+        ConstValue::Bool(value)
+    } else if opcode == opc::CONST_VALUE_OPCODE_CHAR {
+        let value = reader.readInt32().toCharUnchecked();
+        ConstValue::Char(value)
+    } else if opcode == opc::CONST_VALUE_OPCODE_INT {
+        let value = reader.readInt64();
+        ConstValue::Int(value)
+    } else if opcode == opc::CONST_VALUE_OPCODE_FLOAT {
+        let value = reader.readInt64().asFloat64();
+        ConstValue::Float(value)
+    } else if opcode == opc::CONST_VALUE_OPCODE_STRING {
+        let length = reader.readInt32().toInt64();
+        let value = reader.readStringContent(length);
+        ConstValue::String(value)
+    } else {
+        std::unreachable[ConstValue]()
+    }
 }
 
 pub fn decodeStructData(reader: ByteReader): StructData {

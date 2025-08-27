@@ -2,8 +2,8 @@ use std::mem;
 use std::ptr;
 
 use dora_bytecode::{
-    AliasId, BytecodeTraitType, BytecodeTypeArray, ClassId, EnumId, FunctionId, FunctionKind,
-    GlobalId, ImplId, StructId, TraitId, display_fct,
+    AliasId, BytecodeTraitType, BytecodeTypeArray, ClassId, ConstId, EnumId, FunctionId,
+    FunctionKind, GlobalId, ImplId, StructId, TraitId, display_fct,
 };
 
 use crate::boots::deserializer::{
@@ -135,6 +135,10 @@ pub const BOOTS_FUNCTIONS: &[(&'static str, FctImplementation)] = &[
     (
         "boots::interface::getFunctionBytecodeDataForInliningRaw",
         N(get_function_bytecode_data_for_inlining_raw as *const u8),
+    ),
+    (
+        "boots::interface::getConstValueRaw",
+        N(get_const_value_raw as *const u8),
     ),
 ];
 
@@ -585,6 +589,16 @@ extern "C" fn get_enum_data_raw(id: EnumId) -> Ref<UInt8Array> {
 
     let enum_ = vm.enum_(id);
     serializer::allocate_encoded_enum_data(vm, &enum_)
+}
+
+extern "C" fn get_const_value_raw(id: ConstId) -> Ref<UInt8Array> {
+    let vm = get_vm();
+
+    let const_ = vm.const_(id);
+
+    let mut buffer = ByteBuffer::new();
+    serializer::encode_const_value(&const_.value, &mut buffer);
+    byte_array_from_buffer(vm, buffer.data()).cast()
 }
 
 extern "C" fn get_class_data_for_enum_variant_raw(data: Handle<UInt8Array>) -> Ref<UInt8Array> {

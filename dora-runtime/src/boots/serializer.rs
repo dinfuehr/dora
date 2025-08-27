@@ -2,15 +2,15 @@ use std::convert::TryInto;
 
 use byteorder::{LittleEndian, WriteBytesExt};
 
-use crate::boots::data::InstructionSet;
+use crate::boots::data::{ConstValueOpcode, InstructionSet};
 use crate::compiler::codegen::get_bytecode;
 use crate::compiler::{CompilationData, CompilationMode};
 use crate::gc::Address;
 use crate::mirror::{Object, Ref, UInt8Array, byte_array_from_buffer};
 use crate::{Shape, SpecializeSelf, VM};
 use dora_bytecode::{
-    BytecodeFunction, BytecodeTypeArray, ConstPoolEntry, ConstPoolOpcode, EnumData, FunctionData,
-    Location, StructData,
+    BytecodeFunction, BytecodeTypeArray, ConstPoolEntry, ConstPoolOpcode, ConstValue, EnumData,
+    FunctionData, Location, StructData,
 };
 use dora_bytecode::{BytecodeTraitType, BytecodeType, BytecodeTypeKind};
 
@@ -338,11 +338,7 @@ fn encode_constpool_entry(vm: &VM, const_entry: &ConstPoolEntry, buffer: &mut By
     match const_entry {
         ConstPoolEntry::String(value) => {
             buffer.emit_u8(ConstPoolOpcode::String.into());
-            buffer.emit_u32(value.len() as u32);
-
-            for byte in value.bytes() {
-                buffer.emit_u8(byte);
-            }
+            encode_string(value, buffer);
         }
         &ConstPoolEntry::Float32(value) => {
             buffer.emit_u8(ConstPoolOpcode::Float32.into());
@@ -471,6 +467,47 @@ fn encode_constpool_entry(vm: &VM, const_entry: &ConstPoolEntry, buffer: &mut By
                 buffer.emit_u32(*target);
             }
             buffer.emit_u32(default_target);
+        }
+    }
+}
+
+pub fn encode_string(value: &str, buffer: &mut ByteBuffer) {
+    buffer.emit_u32(value.len() as u32);
+
+    for byte in value.bytes() {
+        buffer.emit_u8(byte);
+    }
+}
+
+pub fn encode_const_value(const_value: &ConstValue, buffer: &mut ByteBuffer) {
+    match const_value {
+        ConstValue::None => {
+            buffer.emit_u8(ConstValueOpcode::None.into());
+        }
+
+        ConstValue::Bool(value) => {
+            buffer.emit_u8(ConstValueOpcode::Bool.into());
+            buffer.emit_bool(*value);
+        }
+
+        ConstValue::Char(value) => {
+            buffer.emit_u8(ConstValueOpcode::Char.into());
+            buffer.emit_u32(*value as u32);
+        }
+
+        ConstValue::Float(value) => {
+            buffer.emit_u8(ConstValueOpcode::Float.into());
+            buffer.emit_u64(value.to_bits());
+        }
+
+        ConstValue::Int(value) => {
+            buffer.emit_u8(ConstValueOpcode::Int.into());
+            buffer.emit_u64(*value as u64);
+        }
+
+        ConstValue::String(value) => {
+            buffer.emit_u8(ConstValueOpcode::String.into());
+            encode_string(value, buffer);
         }
     }
 }

@@ -8,7 +8,7 @@ use package::graph::{AllocationData, Block, ClassFieldInfo, Graph, Inst, InstExt
 use package::graph::ty::Type;
 use package::graph::{ClassInfo, FunctionInfo, CallKind, VirtualFunctionInfo, LambdaFunctionInfo, StructInfo, TraitObjectInfo};
 use package::bytecode::{BytecodeFunction, BytecodeRegister, BytecodeType, ClassId, EnumId, FunctionId, ClassFieldId};
-use package::bytecode::{ConstPoolId, ConstPoolEntry, GlobalId, StructId, StructFieldId, TraitId};
+use package::bytecode::{ConstId, ConstPoolId, ConstPoolEntry, GlobalId, StructId, StructFieldId, TraitId};
 use package::bytecode::instruction::BytecodeInstruction;
 use package::bytecode::reader::BytecodeIterator;
 use package::interface as iface;
@@ -561,7 +561,8 @@ impl SsaGen {
                 false
             }
             BytecodeInstruction::LoadConst(dest, const_id) => {
-                std::unimplemented[Bool]()
+                self.emitLoadConst(dest, const_id);
+                false
             }
             BytecodeInstruction::PushRegister(src) => {
                 self.pushed_registers.push(src);
@@ -1116,6 +1117,11 @@ impl SsaGen {
             let inst = graph::createMarkGlobalInitializedInst(glob);
             self.current().appendInst(inst);
         }
+    }
+
+    fn emitLoadConst(dest: BytecodeRegister, const_id: ConstId) {
+        let destType = self.reg(dest);
+
     }
 
     fn emitTest(dest: BytecodeRegister, lhs: BytecodeRegister, rhs: BytecodeRegister, op: Op) {

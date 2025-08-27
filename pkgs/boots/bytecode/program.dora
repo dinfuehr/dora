@@ -288,11 +288,28 @@ impl Hash for ConstId {
     }
 }
 
+pub struct ConstData {
+    module_id: ModuleId,
+    name: String,
+    ty: BytecodeType,
+    value: ConstValue,
+}
+
+pub enum ConstValue {
+    None,
+    Bool(Bool),
+    Char(Char),
+    Int(Int64),
+    Float(Float64),
+    String(String),
+}
+
 pub class Program {
     packages: Array[PackageData],
     modules: Array[ModuleData],
     functions: Array[FunctionData],
     globals: Array[GlobalData],
+    consts: Array[ConstData],
     classes: Array[ClassData],
     structs: Array[StructData],
     enums: Array[EnumData],

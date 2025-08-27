@@ -22,3 +22,14 @@ pub enum RelocationKindKind {
     TargetObject,
     Code,
 }
+
+#[derive(Copy, Clone, PartialEq, Eq, IntoPrimitive)]
+#[repr(u8)]
+pub enum ConstValueOpcode {
+    None,
+    Bool,
+    Char,
+    Int,
+    Float,
+    String,
+}

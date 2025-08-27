@@ -1,7 +1,7 @@
 pub use package::bytecode::data::{BytecodeFunction, BytecodeRegister, BytecodeTraitType, BytecodeType, ConstPoolId, ConstPoolEntry, Location};
 pub use package::bytecode::dump::{BytecodeDumper, dumpInstruction};
 pub use package::bytecode::program::{AliasId, AliasData, ClassId, ClassData, ClassFieldId,
-    ClassField, ConstId, EnumId, EnumData, EnumVariant,
+    ClassField, ConstId, ConstValue, EnumId, EnumData, EnumVariant,
     ExtensionId, ExtensionData, FunctionId, FunctionData,
     FunctionKind, ImplId, ImplData, GlobalId, GlobalData,
     ModuleId, ModuleData, PackageId, PackageData, Program,

@@ -61,6 +61,7 @@ def output
     bytecodes = read_bytecodes
     types = read_types
     constpool_opcodes = read_constpool_opcodes
+    const_value_opcodes = read_enum('ConstValueOpcode')
     instruction_sets = read_instruction_sets
     lazy_compilation_sites = read_lazy_compilation_sites
     compilation_modes = read_enum('CompilationMode')
@@ -90,6 +91,14 @@ def output
 
         for opcode in constpool_opcodes
             f.puts "pub const CONSTPOOL_OPCODE_#{snake_case(opcode)}: Int32 = #{code};"
+            code += 1
+        end
+
+        f.puts
+        code = 0
+
+        for opcode in const_value_opcodes
+            f.puts "pub const CONST_VALUE_OPCODE_#{snake_case(opcode)}: Int32 = #{code};"
             code += 1
         end
 

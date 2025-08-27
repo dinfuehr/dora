@@ -2,7 +2,7 @@ use std::collections::VecIter;
 use std::traits::IntoIterator;
 
 use package::bytecode::{BytecodeFunction, BytecodeTraitType, BytecodeType, ConstPoolId, FunctionId, Location};
-use package::bytecode::{AliasId, ClassId, EnumId, ClassFieldId, GlobalId, ImplId, StructId, StructFieldId, TraitId};
+use package::bytecode::{AliasId, ClassId, ConstId, ConstValue, EnumId, ClassFieldId, GlobalId, ImplId, StructId, StructFieldId, TraitId};
 use package::compilation::{CompilationInfo, SpecializeSelf};
 use package::deserializer::decodeBytecodeFunction;
 use package::deserializer::{decodeCompilationInfo, decodeStructData, decodeEnumData};
@@ -52,6 +52,7 @@ pub const TRAP_OVERFLOW: Int32 = 8i32;
 @internal pub fn getFieldOffsetForEnumVariantRaw(data: Array[UInt8]): Int32;
 @internal pub fn getElementSizeRaw(data: Array[UInt8]): Int32;
 @internal pub fn getFunctionBytecodeDataForInliningRaw(fct_id: Int32): Array[UInt8];
+@internal pub fn getConstValueRaw(id: Int32): Array[UInt8];
 
 pub fn getFunctionAddress(ci: CompilationInfo, fct_id: FunctionId, type_params: Array[BytecodeType]): Address {
     let writer = ci.getByteWriter();
@@ -249,6 +250,14 @@ pub fn getFunctionBytecodeDataForInlining(fct_id: FunctionId): FunctionBytecodeD
     let encoded = getFunctionBytecodeDataForInliningRaw(fct_id.0);
     let reader = ByteReader::new(encoded);
     let decoded = deserializer::decodeFunctionBytecodeData(reader);
+    assert(!reader.moreBytes());
+    decoded
+}
+
+pub fn getConstValue(const_id: ConstId): ConstValue {
+    let encoded = getFunctionBytecodeDataForInliningRaw(const_id.0);
+    let reader = ByteReader::new(encoded);
+    let decoded = deserializer::decodeConstValue(reader);
     assert(!reader.moreBytes());
     decoded
 }

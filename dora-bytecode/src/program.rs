@@ -217,6 +217,7 @@ pub enum ModuleItem {
 }
 
 #[derive(Debug, Copy, Clone, PartialEq, Eq, Hash, Decode, Encode)]
+#[repr(C)]
 pub struct ConstId(pub u32);
 
 #[derive(Debug, Decode, Encode)]
