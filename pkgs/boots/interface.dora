@@ -255,7 +255,7 @@ pub fn getFunctionBytecodeDataForInlining(fct_id: FunctionId): FunctionBytecodeD
 }
 
 pub fn getConstValue(const_id: ConstId): ConstValue {
-    let encoded = getFunctionBytecodeDataForInliningRaw(const_id.0);
+    let encoded = getConstValueRaw(const_id.0);
     let reader = ByteReader::new(encoded);
     let decoded = deserializer::decodeConstValue(reader);
     assert(!reader.moreBytes());

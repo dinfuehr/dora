@@ -91,7 +91,6 @@ pub struct SemaFlags {
     pub program_file: Option<FileContent>,
     pub boots: bool,
     pub is_standard_library: bool,
-    pub use_const_bytecode: bool,
 }
 
 impl SemaFlags {
@@ -106,7 +105,6 @@ impl SemaFlags {
             program_file: Some(FileContent::Content(input.to_string())),
             boots: false,
             is_standard_library: false,
-            use_const_bytecode: false,
         }
     }
 
@@ -121,7 +119,6 @@ impl SemaFlags {
             program_file: Some(FileContent::Content(input.to_string())),
             boots: false,
             is_standard_library: false,
-            use_const_bytecode: false,
         }
     }
 }

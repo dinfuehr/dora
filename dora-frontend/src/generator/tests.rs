@@ -9,8 +9,8 @@ use crate::stdlib_lookup::{lookup_fct, resolve_path};
 use crate::{check_program, emit_program};
 use dora_bytecode::{
     self as bytecode, BytecodeFunction, BytecodeOffset, BytecodeType, BytecodeTypeArray,
-    BytecodeVisitor, ClassId, ConstPoolEntry, ConstPoolIdx, EnumId, FunctionId, GlobalId, Program,
-    Register, StructId, TraitId,
+    BytecodeVisitor, ClassId, ConstId, ConstPoolEntry, ConstPoolIdx, EnumId, FunctionId, GlobalId,
+    Program, Register, StructId, TraitId,
 };
 
 fn positions(fct: &BytecodeFunction) -> Vec<(u32, u32)> {
@@ -4025,7 +4025,7 @@ fn gen_cast_int64() {
 fn gen_const_int32() {
     let sa = sema("const X: Int32 = 1i32; fn f(): Int32 { X }");
     let (_, code) = bc(&sa, "<prog>::f");
-    let expected = vec![ConstInt32(r(0), 1), Ret(r(0))];
+    let expected = vec![LoadConst(r(0), ConstId(0)), Ret(r(0))];
     assert_eq!(expected, code);
 }
 
@@ -4499,6 +4499,7 @@ pub enum Bytecode {
 
     LoadGlobal(Register, GlobalId),
     StoreGlobal(Register, GlobalId),
+    LoadConst(Register, ConstId),
 
     PushRegister(Register),
 
@@ -4691,6 +4692,10 @@ impl<'a> BytecodeVisitor for BytecodeArrayBuilder<'a> {
 
     fn visit_store_global(&mut self, src: Register, global_id: GlobalId) {
         self.emit(Bytecode::StoreGlobal(src, global_id));
+    }
+
+    fn visit_load_const(&mut self, dest: Register, const_id: dora_bytecode::ConstId) {
+        self.emit(Bytecode::LoadConst(dest, const_id))
     }
 
     fn visit_push_register(&mut self, src: Register) {

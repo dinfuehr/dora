@@ -7,7 +7,7 @@ use package::graph;
 use package::graph::{AllocationData, Block, ClassFieldInfo, Graph, Inst, InstExtraData, Op};
 use package::graph::ty::Type;
 use package::graph::{ClassInfo, FunctionInfo, CallKind, VirtualFunctionInfo, LambdaFunctionInfo, StructInfo, TraitObjectInfo};
-use package::bytecode::{BytecodeFunction, BytecodeRegister, BytecodeType, ClassId, EnumId, FunctionId, ClassFieldId};
+use package::bytecode::{BytecodeFunction, BytecodeRegister, BytecodeType, ClassId, ConstValue, EnumId, FunctionId, ClassFieldId};
 use package::bytecode::{ConstId, ConstPoolId, ConstPoolEntry, GlobalId, StructId, StructFieldId, TraitId};
 use package::bytecode::instruction::BytecodeInstruction;
 use package::bytecode::reader::BytecodeIterator;
@@ -1121,7 +1121,54 @@ impl SsaGen {
 
     fn emitLoadConst(dest: BytecodeRegister, const_id: ConstId) {
         let destType = self.reg(dest);
+        let value = iface::getConstValue(const_id);
 
+        let inst = match value {
+            ConstValue::None => unreachable[Inst](),
+
+            ConstValue::Int(value) => {
+                match destType {
+                    BytecodeType::UInt8 => self.graph.ensureConstUInt8Inst(value.toUInt8()),
+                    BytecodeType::Int32 => self.graph.ensureConstInt32Inst(value.toInt32()),
+                    BytecodeType::Int64 => self.graph.ensureConstInt64Inst(value),
+                    _ => unreachable[Inst](),
+                }
+            }
+
+            ConstValue::Char(value) => self.graph.ensureConstInt32Inst(value.toInt32()),
+
+            ConstValue::Bool(value) => {
+                if value {
+                    self.graph.ensureConstTrueInst()
+                } else {
+                    self.graph.ensureConstFalseInst()
+                }
+            }
+
+            ConstValue::Float(value) => {
+                match destType {
+                    BytecodeType::Float32 => {
+                        let inst = graph::createFloat32Const(value.toFloat32());
+                        self.current().appendInst(inst);
+                        inst
+                    }
+                    BytecodeType::Float64 => {
+                        let inst = graph::createFloat64Const(value);
+                        self.current().appendInst(inst);
+                        inst
+                    }
+                    _ => unreachable[Inst](),
+                }
+            }
+
+            ConstValue::String(value) => {
+                let inst = graph::createStringConst(value);
+                self.current().appendInst(inst);
+                inst
+            }
+        };
+
+        self.writeVariable(dest, self.current(), inst);
     }
 
     fn emitTest(dest: BytecodeRegister, lhs: BytecodeRegister, rhs: BytecodeRegister, op: Op) {

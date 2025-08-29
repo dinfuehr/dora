@@ -2925,57 +2925,8 @@ impl<'a> AstBytecodeGen<'a> {
         let bytecode_ty = self.emitter.convert_ty_reg(ty.clone());
         let dest = self.ensure_register(dest, bytecode_ty);
 
-        if self.sa.flags.use_const_bytecode {
-            let const_id = self.emitter.convert_const_id(const_id);
-            self.builder.emit_load_const(dest, const_id);
-        } else {
-            match ty {
-                SourceType::Bool => {
-                    if const_.value().to_bool() {
-                        self.builder.emit_const_true(dest);
-                    } else {
-                        self.builder.emit_const_false(dest);
-                    }
-                }
-
-                SourceType::Char => {
-                    self.builder.emit_const_char(dest, const_.value().to_char());
-                }
-
-                SourceType::UInt8 => {
-                    self.builder.emit_const_uint8(
-                        dest,
-                        const_.value().to_i64().expect("integer expected") as u8,
-                    );
-                }
-
-                SourceType::Int32 => {
-                    self.builder.emit_const_int32(
-                        dest,
-                        const_.value().to_i64().expect("integer expected") as i32,
-                    );
-                }
-
-                SourceType::Int64 => {
-                    self.builder
-                        .emit_const_int64(dest, const_.value().to_i64().expect("integer expected"));
-                }
-
-                SourceType::Float32 => {
-                    self.builder.emit_const_float32(
-                        dest,
-                        const_.value().to_f64().expect("float expected") as f32,
-                    );
-                }
-
-                SourceType::Float64 => {
-                    self.builder
-                        .emit_const_float64(dest, const_.value().to_f64().expect("float expected"));
-                }
-
-                _ => unimplemented!(),
-            }
-        }
+        let const_id = self.emitter.convert_const_id(const_id);
+        self.builder.emit_load_const(dest, const_id);
 
         dest
     }

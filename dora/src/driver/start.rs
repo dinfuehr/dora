@@ -126,7 +126,6 @@ fn compile_std_library(flags: &DriverFlags) -> Result<Program, ()> {
         packages: Vec::new(),
         boots: false,
         is_standard_library: true,
-        use_const_bytecode: flags.use_const_bytecode,
     };
 
     let mut sa = Sema::new(sema_flags);

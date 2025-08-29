@@ -111,7 +111,6 @@ pub struct DriverFlags {
     pub test_filter: Option<String>,
     pub test_boots: bool,
     pub packages: Vec<(String, PathBuf)>,
-    pub use_const_bytecode: bool,
 
     pub command: Command,
 
@@ -178,7 +177,6 @@ impl Default for DriverFlags {
             test_boots: false,
             packages: Vec::new(),
             snapshot_on_oom: None,
-            use_const_bytecode: false,
 
             command: Command::Run,
 
@@ -450,7 +448,6 @@ pub fn create_sema_flags(flags: &DriverFlags, program_file: PathBuf) -> SemaFlag
         packages,
         boots: flags.include_boots(),
         is_standard_library: false,
-        use_const_bytecode: flags.use_const_bytecode,
     }
 }
 
