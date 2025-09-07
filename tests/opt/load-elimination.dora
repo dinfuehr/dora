@@ -33,6 +33,10 @@ fn f1(foo: Foo): Int {
     foo.a + foo.a
 }
 
+// CHECK: Function f1:
+// CHECK: [[REG:%\d+]]: Load.Int64(8) %1
+// CHECK: CheckedAdd.Int64 [[REG]], [[REG]]
+
 @Optimize
 fn f2(foo: Foo, foo2: Foo): Int {
     let x = foo.a;
