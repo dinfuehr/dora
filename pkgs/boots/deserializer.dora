@@ -53,10 +53,11 @@ pub fn decodeCompilationInfo(reader: ByteReader): (CompilationInfo, FunctionComp
     let loc = decodeLocation(reader);
     let compilationMode = decodeCompilationMode(reader);
     let emitDebug = reader.readBool();
-    let emitGraph = reader.readBool();
+    let emitFinalGraph = reader.readBool();
+    let emitGraphAfterEachPass = reader.readBool();
     let emitHtml = reader.readBool();
     let emitCodeComments = reader.readBool();
-    let ci = CompilationInfo::new(fctId, loc, compilationMode, emitDebug, emitGraph, emitHtml, emitCodeComments);
+    let ci = CompilationInfo::new(fctId, loc, compilationMode, emitDebug, emitFinalGraph, emitGraphAfterEachPass, emitHtml, emitCodeComments);
     let fctData = FunctionCompilationInfo(fctId, bc, returnType, typeParams, specializeSelf);
     (ci, fctData)
 }

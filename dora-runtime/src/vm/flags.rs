@@ -14,6 +14,7 @@ pub struct VmFlags {
     pub emit_bytecode_boots: bool,
     pub emit_compiler: bool,
     pub emit_graph: Option<String>,
+    pub emit_graph_after_each_pass: bool,
     pub emit_stubs: bool,
     pub enable_perf: bool,
     pub always_boots: bool,

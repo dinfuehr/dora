@@ -235,6 +235,9 @@ fn compile_fct_to_descriptor(
         start = Some(Instant::now());
     }
 
+    let emit_final_graph = emit_graph;
+    let emit_graph_after_each_pass = emit_graph && vm.flags.emit_graph_after_each_pass;
+
     let compilation_data = CompilationData {
         bytecode_fct,
         params,
@@ -247,7 +250,8 @@ fn compile_fct_to_descriptor(
 
         emit_debug,
         emit_code_comments: emit_asm,
-        emit_graph,
+        emit_final_graph,
+        emit_graph_after_each_pass,
         emit_html,
     };
 
@@ -492,6 +496,7 @@ pub struct CompilationData<'a> {
 
     pub emit_debug: bool,
     pub emit_code_comments: bool,
-    pub emit_graph: bool,
+    pub emit_final_graph: bool,
+    pub emit_graph_after_each_pass: bool,
     pub emit_html: bool,
 }

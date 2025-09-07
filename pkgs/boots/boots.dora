@@ -67,8 +67,8 @@ pub fn compileFunction(ci: CompilationInfo, fct: FunctionCompilationInfo): CodeD
         htmlWriter.getOrPanic().dumpGraph("after graph building", graph);
     }
 
-    if ci.emitGraph {
-        println("${ci.getDisplayName()} after graph building:");
+    if ci.emitGraphAfterEachPass {
+        println("Function ${ci.getDisplayName()}: after graph building");
         println(dumpGraph(Some[CompilationInfo](ci), graph, config.architecture));
     }
 
@@ -81,8 +81,8 @@ pub fn compileFunction(ci: CompilationInfo, fct: FunctionCompilationInfo): CodeD
             htmlWriter.getOrPanic().dumpGraph("after inlining", graph);
         }
 
-        if ci.emitGraph {
-            println("${ci.getDisplayName()} after inlining:");
+        if ci.emitGraphAfterEachPass {
+            println("Function ${ci.getDisplayName()}: after inlining");
             println(dumpGraph(Some[CompilationInfo](ci), graph, config.architecture));
         }
 
@@ -94,8 +94,8 @@ pub fn compileFunction(ci: CompilationInfo, fct: FunctionCompilationInfo): CodeD
             htmlWriter.getOrPanic().dumpGraph("after cfg simplification", graph);
         }
 
-        if ci.emitGraph {
-            println("${ci.getDisplayName()} after cfg simplification:");
+        if ci.emitGraphAfterEachPass {
+            println("Function ${ci.getDisplayName()}: after cfg simplification");
             println(dumpGraph(Some[CompilationInfo](ci), graph, config.architecture));
         }
 
@@ -107,8 +107,8 @@ pub fn compileFunction(ci: CompilationInfo, fct: FunctionCompilationInfo): CodeD
             htmlWriter.getOrPanic().dumpGraph("after load elimination", graph);
         }
 
-        if ci.emitGraph {
-            println("${ci.getDisplayName()} after load elimination:");
+        if ci.emitGraphAfterEachPass {
+            println("Function ${ci.getDisplayName()}: after load elimination");
             println(dumpGraph(Some[CompilationInfo](ci), graph, config.architecture));
         }
 
@@ -120,8 +120,13 @@ pub fn compileFunction(ci: CompilationInfo, fct: FunctionCompilationInfo): CodeD
             htmlWriter.getOrPanic().dumpGraph("after dead code elimination", graph);
         }
 
-        if ci.emitGraph {
-            println("${ci.getDisplayName()} after dead code elimination:");
+        if ci.emitGraphAfterEachPass {
+            println("Function ${ci.getDisplayName()}: after dead code elimination");
+            println(dumpGraph(Some[CompilationInfo](ci), graph, config.architecture));
+        }
+
+        if ci.emitFinalGraph {
+            println("Function ${ci.getDisplayName()}: final");
             println(dumpGraph(Some[CompilationInfo](ci), graph, config.architecture));
         }
 
@@ -138,8 +143,8 @@ pub fn compileFunction(ci: CompilationInfo, fct: FunctionCompilationInfo): CodeD
         htmlWriter.getOrPanic().dumpGraph("before register allocation", graph);
     }
 
-    if ci.emitGraph {
-        println("${ci.getDisplayName()} before register allocation:");
+    if ci.emitGraphAfterEachPass {
+        println("Function: ${ci.getDisplayName()}: before register allocation");
         println(dumpGraph(Some[CompilationInfo](ci), graph, config.architecture));
     }
 
@@ -150,7 +155,7 @@ pub fn compileFunction(ci: CompilationInfo, fct: FunctionCompilationInfo): CodeD
         htmlWriter.getOrPanic().close();
     }
 
-    if ci.emitGraph {
+    if ci.emitGraphAfterEachPass {
         println("${ci.getDisplayName()} after register allocation:");
         println(dumpGraph(Some[CompilationInfo](ci), graph, config.architecture));
     }

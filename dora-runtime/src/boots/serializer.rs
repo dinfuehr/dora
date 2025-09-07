@@ -84,7 +84,8 @@ pub(super) fn encode_compilation_info(
     encode_location(&compilation_data.loc, buffer);
     buffer.emit_u8(mode as u8);
     buffer.emit_bool(compilation_data.emit_debug);
-    buffer.emit_bool(compilation_data.emit_graph);
+    buffer.emit_bool(compilation_data.emit_final_graph);
+    buffer.emit_bool(compilation_data.emit_graph_after_each_pass);
     buffer.emit_bool(compilation_data.emit_html);
     buffer.emit_bool(compilation_data.emit_code_comments);
 }

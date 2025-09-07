@@ -69,6 +69,7 @@ pub struct DriverFlags {
     pub emit_asm_boots: bool,
     pub emit_asm_file: Option<String>,
     pub emit_graph: Option<String>,
+    pub emit_graph_after_each_pass: bool,
     pub emit_bytecode: Option<String>,
     pub emit_bytecode_compiler: Option<String>,
     pub emit_bytecode_boots: bool,
@@ -135,6 +136,7 @@ impl Default for DriverFlags {
             emit_asm_boots: false,
             emit_asm_file: None,
             emit_graph: None,
+            emit_graph_after_each_pass: false,
             emit_bytecode: None,
             emit_bytecode_compiler: None,
             emit_bytecode_boots: false,
@@ -246,6 +248,8 @@ pub fn parse_arguments() -> Result<DriverFlags, String> {
             flags.emit_asm_boots = true;
         } else if arg.starts_with("--emit-graph=") {
             flags.emit_graph = Some(argument_value(arg).into());
+        } else if arg == "--emit-graph-after-each-pass" {
+            flags.emit_graph_after_each_pass = true;
         } else if arg.starts_with("--emit-bytecode=") {
             flags.emit_bytecode = Some(argument_value(arg).into());
         } else if arg.starts_with("--emit-bytecode-compiler") {
@@ -460,6 +464,7 @@ pub fn create_vm_flags(flags: &DriverFlags) -> VmFlags {
         emit_bytecode_compiler: flags.emit_bytecode_compiler.clone(),
         emit_compiler: flags.emit_compiler,
         emit_graph: flags.emit_graph.clone(),
+        emit_graph_after_each_pass: flags.emit_graph_after_each_pass,
         emit_stubs: flags.emit_stubs,
         always_boots: flags.always_boots,
         use_boots: flags.use_boots.clone(),
