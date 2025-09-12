@@ -5,7 +5,6 @@ use std::sync::Arc;
 
 use crate::interner::Name;
 use crate::program_parser::ParsedModifierList;
-use crate::ParsedType;
 use dora_parser::ast;
 use dora_parser::Span;
 
@@ -13,8 +12,8 @@ use id_arena::Id;
 
 use crate::sema::{
     module_path, Element, ElementAccess, ElementField, ElementId, ElementWithFields,
-    ExtensionDefinitionId, ModuleDefinitionId, PackageDefinitionId, Sema, SourceFileId,
-    TypeParamDefinition, Visibility,
+    ExtensionDefinitionId, FieldDefinition, ModuleDefinitionId, PackageDefinitionId, Sema,
+    SourceFileId, TypeParamDefinition, Visibility,
 };
 use crate::{SourceType, SourceTypeArray};
 
@@ -161,7 +160,7 @@ pub struct EnumVariant {
     pub id: u32,
     pub name: Name,
     pub field_name_style: ast::FieldNameStyle,
-    pub fields: Vec<EnumField>,
+    pub fields: Vec<FieldDefinition>,
 }
 
 impl ElementWithFields for EnumVariant {
@@ -177,17 +176,11 @@ impl ElementWithFields for EnumVariant {
         Box::new(self.fields.iter().enumerate().map(|(id, f)| ElementField {
             id,
             name: f.name,
-            ty: f.parsed_type.ty(),
+            ty: f.ty(),
         }))
     }
 
     fn fields_len(&self) -> usize {
         self.fields.len()
     }
-}
-
-#[derive(Debug)]
-pub struct EnumField {
-    pub name: Option<Name>,
-    pub parsed_type: ParsedType,
 }

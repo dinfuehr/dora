@@ -201,7 +201,7 @@ fn parse_enum_types(sa: &Sema) {
                     enum_.file_id,
                     enum_,
                     false,
-                    &field.parsed_type,
+                    field.parsed_ty(),
                 );
             }
         }
@@ -405,7 +405,7 @@ fn check_enum_types(sa: &Sema) {
 
         for variant in enum_.variants() {
             for field in &variant.fields {
-                parsety::check_type(sa, enum_, &field.parsed_type);
+                parsety::check_type(sa, enum_, field.parsed_ty());
             }
         }
     }
@@ -577,7 +577,7 @@ fn expand_enum_types(sa: &Sema) {
     for (_id, enum_) in sa.enums.iter() {
         for variant in enum_.variants() {
             for field in &variant.fields {
-                parsety::expand_type(sa, enum_, &field.parsed_type, None);
+                parsety::expand_type(sa, enum_, field.parsed_ty(), None);
             }
         }
 

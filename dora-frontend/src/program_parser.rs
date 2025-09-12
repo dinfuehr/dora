@@ -10,7 +10,7 @@ use crate::error::msg::ErrorMessage;
 use crate::interner::Name;
 use crate::sema::{
     AliasBound, AliasDefinition, AliasDefinitionId, AliasParent, ClassDefinition, ConstDefinition,
-    Element, EnumDefinition, EnumField, EnumVariant, ExtensionDefinition, ExtensionDefinitionId,
+    Element, EnumDefinition, EnumVariant, ExtensionDefinition, ExtensionDefinitionId,
     FctDefinition, FctDefinitionId, FctParent, FieldDefinition, FieldDefinitionId, FileContent,
     GlobalDefinition, ImplDefinition, ImplDefinitionId, ModuleDefinition, ModuleDefinitionId,
     PackageDefinition, PackageDefinitionId, PackageName, Param, Params, Sema, SourceFile,
@@ -785,9 +785,13 @@ impl<'x> visit::Visitor for TopLevelDeclaration<'x> {
                     Some(name)
                 };
 
-                let field = EnumField {
+                let field = FieldDefinition {
+                    id: FieldDefinitionId(fields.len()),
                     name,
-                    parsed_type: ParsedType::new_ast(field.data_type.clone()),
+                    span: Some(field.span),
+                    mutable: false,
+                    parsed_ty: ParsedType::new_ast(field.data_type.clone()),
+                    visibility: Visibility::Public,
                 };
 
                 fields.push(field);

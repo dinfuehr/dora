@@ -275,7 +275,7 @@ impl Emitter {
             let arguments = variant
                 .fields
                 .iter()
-                .map(|f| self.convert_ty(f.parsed_type.ty()))
+                .map(|f| self.convert_ty(f.ty()))
                 .collect();
             result.push(EnumVariant {
                 name: sa.interner.str(variant.name).to_string(),
