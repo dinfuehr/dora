@@ -2,7 +2,7 @@ use std::ops::{Index, IndexMut};
 
 use crate::interner::Name;
 use crate::sema::Visibility;
-use crate::{ParsedType, SourceType};
+use crate::{ParsedType, SourceType, Span};
 
 #[derive(Debug, Copy, Clone, PartialEq, Eq)]
 pub struct FieldDefinitionId(pub usize);
@@ -23,6 +23,7 @@ impl From<usize> for FieldDefinitionId {
 pub struct FieldDefinition {
     pub id: FieldDefinitionId,
     pub name: Option<Name>,
+    pub span: Option<Span>,
     pub parsed_ty: ParsedType,
     pub mutable: bool,
     pub visibility: Visibility,

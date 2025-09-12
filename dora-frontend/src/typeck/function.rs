@@ -7,10 +7,10 @@ use std::{f32, f64};
 use crate::error::msg::ErrorMessage;
 use crate::sema::{
     AnalysisData, ClassDefinition, ConstValue, ContextFieldId, Element, FctDefinition, FctParent,
-    FieldDefinition, FieldDefinitionId, GlobalDefinition, IdentType, LazyContextClassCreationData, LazyContextData,
-    LazyLambdaCreationData, ModuleDefinitionId, NestedScopeId, NestedVarId, OuterContextIdx,
-    PackageDefinitionId, Param, ScopeId, Sema, SourceFileId, TypeParamDefinition, Var, VarAccess,
-    VarId, VarLocation, Visibility,
+    FieldDefinition, FieldDefinitionId, GlobalDefinition, IdentType, LazyContextClassCreationData,
+    LazyContextData, LazyLambdaCreationData, ModuleDefinitionId, NestedScopeId, NestedVarId,
+    OuterContextIdx, PackageDefinitionId, Param, ScopeId, Sema, SourceFileId, TypeParamDefinition,
+    Var, VarAccess, VarId, VarLocation, Visibility,
 };
 use crate::typeck::{check_expr, check_pattern, check_stmt, CallArguments};
 use crate::{
@@ -238,6 +238,7 @@ impl<'a> TypeCheck<'a> {
             let field = FieldDefinition {
                 id: FieldDefinitionId(0),
                 name: Some(name),
+                span: None,
                 parsed_ty: ParsedType::new_ty(SourceType::Ptr),
                 mutable: true,
                 visibility: Visibility::Module,
@@ -265,6 +266,7 @@ impl<'a> TypeCheck<'a> {
             let field = FieldDefinition {
                 id,
                 name: Some(var.name),
+                span: None,
                 parsed_ty: ParsedType::new_ty(var.ty.clone()),
                 mutable: true,
                 visibility: Visibility::Module,

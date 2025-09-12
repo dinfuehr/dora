@@ -1,7 +1,7 @@
 use crate::sema::{
     AliasDefinitionId, ClassDefinitionId, ConstDefinitionId, Element, EnumDefinitionId,
     FctDefinitionId, FctParent, FieldDefinitionId, GlobalDefinitionId, ModuleDefinitionId, Sema,
-    StructDefinitionFieldId, StructDefinitionId, TraitDefinitionId, Visibility,
+    StructDefinitionId, TraitDefinitionId, Visibility,
 };
 use crate::sym::SymbolKind;
 
@@ -132,7 +132,7 @@ pub fn struct_accessible_from(
 pub fn struct_field_accessible_from(
     sa: &Sema,
     struct_id: StructDefinitionId,
-    field_id: StructDefinitionFieldId,
+    field_id: FieldDefinitionId,
     module_id: ModuleDefinitionId,
 ) -> bool {
     let struct_ = sa.struct_(struct_id);

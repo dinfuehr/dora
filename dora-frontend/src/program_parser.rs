@@ -11,11 +11,11 @@ use crate::interner::Name;
 use crate::sema::{
     AliasBound, AliasDefinition, AliasDefinitionId, AliasParent, ClassDefinition, ConstDefinition,
     Element, EnumDefinition, EnumField, EnumVariant, ExtensionDefinition, ExtensionDefinitionId,
-    FctDefinition, FctDefinitionId, FctParent, FieldDefinition, FieldDefinitionId, FileContent, GlobalDefinition,
-    ImplDefinition, ImplDefinitionId, ModuleDefinition, ModuleDefinitionId, PackageDefinition,
-    PackageDefinitionId, PackageName, Param, Params, Sema, SourceFile, SourceFileId,
-    StructDefinition, StructDefinitionField, StructDefinitionFieldId, TraitDefinition,
-    TraitDefinitionId, TypeParamDefinition, UseDefinition, Visibility,
+    FctDefinition, FctDefinitionId, FctParent, FieldDefinition, FieldDefinitionId, FileContent,
+    GlobalDefinition, ImplDefinition, ImplDefinitionId, ModuleDefinition, ModuleDefinitionId,
+    PackageDefinition, PackageDefinitionId, PackageName, Param, Params, Sema, SourceFile,
+    SourceFileId, StructDefinition, TraitDefinition, TraitDefinitionId, TypeParamDefinition,
+    UseDefinition, Visibility,
 };
 use crate::sym::{SymTable, Symbol, SymbolKind};
 use crate::{report_sym_shadow_span, ty, ParsedType, SourceType};
@@ -606,6 +606,7 @@ impl<'x> visit::Visitor for TopLevelDeclaration<'x> {
             fields.push(FieldDefinition {
                 id: FieldDefinitionId(idx),
                 name,
+                span: Some(field.span),
                 parsed_ty: ParsedType::new_ast(field.data_type.clone()),
                 mutable: true,
                 visibility: modifiers.visibility(),
@@ -667,10 +668,11 @@ impl<'x> visit::Visitor for TopLevelDeclaration<'x> {
                 Some(name)
             };
 
-            fields.push(StructDefinitionField {
-                id: StructDefinitionFieldId(idx),
+            fields.push(FieldDefinition {
+                id: FieldDefinitionId(idx),
                 name,
-                span: field.span,
+                span: Some(field.span),
+                mutable: false,
                 parsed_ty: ParsedType::new_ast(field.data_type.clone()),
                 visibility: modifiers.visibility(),
             });

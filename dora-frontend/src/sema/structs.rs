@@ -12,10 +12,10 @@ use dora_parser::Span;
 
 use crate::sema::{
     module_path, new_identity_type_params, Element, ElementAccess, ElementField, ElementId,
-    ElementWithFields, ExtensionDefinitionId, ModuleDefinitionId, PackageDefinitionId, Sema,
-    SourceFileId, TypeParamDefinition, Visibility,
+    ElementWithFields, ExtensionDefinitionId, FieldDefinition, FieldDefinitionId,
+    ModuleDefinitionId, PackageDefinitionId, Sema, SourceFileId, TypeParamDefinition, Visibility,
 };
-use crate::{ParsedType, SourceType, SourceTypeArray};
+use crate::{SourceType, SourceTypeArray};
 
 pub type StructDefinitionId = Id<StructDefinition>;
 
@@ -33,8 +33,8 @@ pub struct StructDefinition {
     pub internal_resolved: bool,
     pub span: Span,
     pub name: Name,
-    pub fields: Vec<StructDefinitionField>,
-    pub field_names: HashMap<Name, StructDefinitionFieldId>,
+    pub fields: Vec<FieldDefinition>,
+    pub field_names: HashMap<Name, FieldDefinitionId>,
     pub extensions: RefCell<Vec<ExtensionDefinitionId>>,
     pub field_name_style: ast::FieldNameStyle,
 }
@@ -48,7 +48,7 @@ impl StructDefinition {
         modifiers: ParsedModifierList,
         name: Name,
         type_param_definition: Rc<TypeParamDefinition>,
-        fields: Vec<StructDefinitionField>,
+        fields: Vec<FieldDefinition>,
     ) -> StructDefinition {
         let mut field_names = HashMap::new();
 
@@ -200,39 +200,5 @@ impl ElementWithFields for StructDefinition {
             name: f.name,
             ty: f.ty(),
         }))
-    }
-}
-
-#[derive(Copy, Clone, Debug, PartialEq, Eq)]
-pub struct StructDefinitionFieldId(pub usize);
-
-impl From<usize> for StructDefinitionFieldId {
-    fn from(data: usize) -> StructDefinitionFieldId {
-        StructDefinitionFieldId(data)
-    }
-}
-
-impl StructDefinitionFieldId {
-    pub fn to_usize(self) -> usize {
-        self.0
-    }
-}
-
-#[derive(Debug)]
-pub struct StructDefinitionField {
-    pub id: StructDefinitionFieldId,
-    pub span: Span,
-    pub name: Option<Name>,
-    pub parsed_ty: ParsedType,
-    pub visibility: Visibility,
-}
-
-impl StructDefinitionField {
-    pub fn ty(&self) -> SourceType {
-        self.parsed_ty().ty()
-    }
-
-    pub fn parsed_ty(&self) -> &ParsedType {
-        &self.parsed_ty
     }
 }

@@ -42,9 +42,7 @@ pub use self::src::{
     LazyLambdaId, NestedScopeId, NestedVarId, NodeMap, OuterContextIdx, ScopeId, Var, VarAccess,
     VarId, VarLocation,
 };
-pub use self::structs::{
-    StructDefinition, StructDefinitionField, StructDefinitionFieldId, StructDefinitionId,
-};
+pub use self::structs::{StructDefinition, StructDefinitionId};
 pub use self::traits::{is_trait_object_safe, TraitDefinition, TraitDefinitionId};
 pub use self::tuples::create_tuple;
 pub use self::type_params::{new_identity_type_params, Bound, TypeParamDefinition, TypeParamId};
