@@ -4,7 +4,7 @@ use std::mem;
 use self::Bytecode::*;
 use crate::generator::generate_fct_id;
 use crate::program_emitter::Emitter;
-use crate::sema::{ClassDefinitionId, FieldId, Sema, SemaFlags};
+use crate::sema::{ClassDefinitionId, FieldDefinitionId, Sema, SemaFlags};
 use crate::stdlib_lookup::{lookup_fct, resolve_path};
 use crate::{check_program, emit_program};
 use dora_bytecode::{
@@ -4457,7 +4457,7 @@ pub fn field_by_name(
     sa: &Sema,
     class_name: &'static str,
     field_name: &'static str,
-) -> (ClassDefinitionId, FieldId) {
+) -> (ClassDefinitionId, FieldDefinitionId) {
     let cls_id = resolve_path(sa, class_name)
         .to_class()
         .expect("class expected");

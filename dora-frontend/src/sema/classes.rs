@@ -1,5 +1,4 @@
 use std::cell::{OnceCell, RefCell};
-use std::ops::{Index, IndexMut};
 use std::rc::Rc;
 use std::sync::Arc;
 
@@ -11,10 +10,10 @@ use dora_parser::ast;
 
 use crate::sema::{
     module_path, Element, ElementAccess, ElementField, ElementId, ElementWithFields,
-    ExtensionDefinitionId, FctDefinitionId, ModuleDefinitionId, PackageDefinitionId, Sema,
-    SourceFileId, TypeParamDefinition,
+    ExtensionDefinitionId, FctDefinitionId, FieldDefinition, FieldDefinitionId, ModuleDefinitionId,
+    PackageDefinitionId, Sema, SourceFileId, TypeParamDefinition,
 };
-use crate::{specialize_for_element, ParsedType, SourceType, SourceTypeArray, Span};
+use crate::{specialize_for_element, SourceType, SourceTypeArray, Span};
 
 pub type ClassDefinitionId = Id<ClassDefinition>;
 
@@ -33,7 +32,7 @@ pub struct ClassDefinition {
     pub visibility: Visibility,
     pub field_name_style: ast::FieldNameStyle,
 
-    pub fields: Vec<Field>,
+    pub fields: Vec<FieldDefinition>,
 
     pub extensions: RefCell<Vec<ExtensionDefinitionId>>,
 
@@ -53,7 +52,7 @@ impl ClassDefinition {
         modifiers: ParsedModifierList,
         name: Name,
         type_param_definition: Rc<TypeParamDefinition>,
-        fields: Vec<Field>,
+        fields: Vec<FieldDefinition>,
     ) -> ClassDefinition {
         ClassDefinition {
             id: None,
@@ -88,7 +87,7 @@ impl ClassDefinition {
         name: Name,
         visibility: Visibility,
         type_param_definition: Rc<TypeParamDefinition>,
-        fields: Vec<Field>,
+        fields: Vec<FieldDefinition>,
     ) -> ClassDefinition {
         ClassDefinition {
             id: None,
@@ -135,7 +134,7 @@ impl ClassDefinition {
         self.ty.get().expect("not initialized").clone()
     }
 
-    pub fn field_by_name(&self, name: Name) -> FieldId {
+    pub fn field_by_name(&self, name: Name) -> FieldDefinitionId {
         for field in &self.fields {
             if field.name == Some(name) {
                 return field.id;
@@ -249,59 +248,11 @@ impl ElementWithFields for ClassDefinition {
     }
 }
 
-#[derive(Debug, Copy, Clone, PartialEq, Eq)]
-pub struct FieldId(pub usize);
-
-impl FieldId {
-    pub fn to_usize(self) -> usize {
-        self.0
-    }
-}
-
-impl From<usize> for FieldId {
-    fn from(data: usize) -> FieldId {
-        FieldId(data)
-    }
-}
-
-#[derive(Debug)]
-pub struct Field {
-    pub id: FieldId,
-    pub name: Option<Name>,
-    pub parsed_ty: ParsedType,
-    pub mutable: bool,
-    pub visibility: Visibility,
-}
-
-impl Field {
-    pub fn parsed_ty(&self) -> &ParsedType {
-        &self.parsed_ty
-    }
-
-    pub fn ty(&self) -> SourceType {
-        self.parsed_ty().ty()
-    }
-}
-
-impl Index<FieldId> for Vec<Field> {
-    type Output = Field;
-
-    fn index(&self, index: FieldId) -> &Field {
-        &self[index.0]
-    }
-}
-
-impl IndexMut<FieldId> for Vec<Field> {
-    fn index_mut(&mut self, index: FieldId) -> &mut Field {
-        &mut self[index.0]
-    }
-}
-
 pub fn find_field_in_class(
     sa: &Sema,
     object_type: SourceType,
     name: Name,
-) -> Option<(FieldId, SourceType)> {
+) -> Option<(FieldDefinitionId, SourceType)> {
     if let SourceType::Class(cls_id, type_params) = object_type.clone() {
         let cls = sa.class(cls_id);
 

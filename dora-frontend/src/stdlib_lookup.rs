@@ -2,7 +2,7 @@ use std::rc::Rc;
 
 use crate::sema::{
     ClassDefinition, ClassDefinitionId, EnumDefinitionId, ExtensionDefinitionId, FctDefinitionId,
-    Field, FieldId, ImplDefinitionId, Intrinsic, ModuleDefinition, Sema, StructDefinitionId,
+    FieldDefinition, FieldDefinitionId, ImplDefinitionId, Intrinsic, ModuleDefinition, Sema, StructDefinitionId,
     TraitDefinitionId, TypeParamDefinition, Visibility,
 };
 use crate::sym::{SymTable, SymbolKind};
@@ -192,8 +192,8 @@ pub fn create_lambda_class(sa: &mut Sema) {
     let class_name = sa.interner.intern("$Lambda");
     let context_name = sa.interner.intern("context");
 
-    let field = Field {
-        id: FieldId(0),
+    let field = FieldDefinition {
+        id: FieldDefinitionId(0),
         name: Some(context_name),
         parsed_ty: ParsedType::new_ty(SourceType::Ptr),
         mutable: false,

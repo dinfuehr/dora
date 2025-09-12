@@ -11,7 +11,7 @@ use crate::interner::Name;
 use crate::sema::{
     AliasBound, AliasDefinition, AliasDefinitionId, AliasParent, ClassDefinition, ConstDefinition,
     Element, EnumDefinition, EnumField, EnumVariant, ExtensionDefinition, ExtensionDefinitionId,
-    FctDefinition, FctDefinitionId, FctParent, Field, FieldId, FileContent, GlobalDefinition,
+    FctDefinition, FctDefinitionId, FctParent, FieldDefinition, FieldDefinitionId, FileContent, GlobalDefinition,
     ImplDefinition, ImplDefinitionId, ModuleDefinition, ModuleDefinitionId, PackageDefinition,
     PackageDefinitionId, PackageName, Param, Params, Sema, SourceFile, SourceFileId,
     StructDefinition, StructDefinitionField, StructDefinitionFieldId, TraitDefinition,
@@ -603,8 +603,8 @@ impl<'x> visit::Visitor for TopLevelDeclaration<'x> {
                 Some(name)
             };
 
-            fields.push(Field {
-                id: FieldId(idx),
+            fields.push(FieldDefinition {
+                id: FieldDefinitionId(idx),
                 name,
                 parsed_ty: ParsedType::new_ast(field.data_type.clone()),
                 mutable: true,

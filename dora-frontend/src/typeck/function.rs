@@ -7,7 +7,7 @@ use std::{f32, f64};
 use crate::error::msg::ErrorMessage;
 use crate::sema::{
     AnalysisData, ClassDefinition, ConstValue, ContextFieldId, Element, FctDefinition, FctParent,
-    Field, FieldId, GlobalDefinition, IdentType, LazyContextClassCreationData, LazyContextData,
+    FieldDefinition, FieldDefinitionId, GlobalDefinition, IdentType, LazyContextClassCreationData, LazyContextData,
     LazyLambdaCreationData, ModuleDefinitionId, NestedScopeId, NestedVarId, OuterContextIdx,
     PackageDefinitionId, Param, ScopeId, Sema, SourceFileId, TypeParamDefinition, Var, VarAccess,
     VarId, VarLocation, Visibility,
@@ -235,8 +235,8 @@ impl<'a> TypeCheck<'a> {
 
         if lazy_context_data.has_parent_slot() {
             let name = self.sa.interner.intern("parent_context");
-            let field = Field {
-                id: FieldId(0),
+            let field = FieldDefinition {
+                id: FieldDefinitionId(0),
                 name: Some(name),
                 parsed_ty: ParsedType::new_ty(SourceType::Ptr),
                 mutable: true,
@@ -261,8 +261,8 @@ impl<'a> TypeCheck<'a> {
             let var_id = var_id.get().cloned().expect("missing field");
             let var = self.vars.get_var(var_id);
 
-            let id = FieldId(fields.len());
-            let field = Field {
+            let id = FieldDefinitionId(fields.len());
+            let field = FieldDefinition {
                 id,
                 name: Some(var.name),
                 parsed_ty: ParsedType::new_ty(var.ty.clone()),

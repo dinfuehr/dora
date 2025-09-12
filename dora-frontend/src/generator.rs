@@ -14,7 +14,7 @@ use crate::program_emitter::Emitter;
 use crate::sema::{
     emit_as_bytecode_operation, new_identity_type_params, AnalysisData, CallType,
     ClassDefinitionId, ConstDefinitionId, ContextFieldId, Element, EnumDefinitionId, FctDefinition,
-    FctDefinitionId, FieldId, GlobalDefinition, GlobalDefinitionId, IdentType, Intrinsic,
+    FctDefinitionId, FieldDefinitionId, GlobalDefinition, GlobalDefinitionId, IdentType, Intrinsic,
     LazyContextData, OuterContextIdx, ScopeId, Sema, SourceFileId, StructDefinitionId, VarId,
     VarLocation,
 };
@@ -3417,10 +3417,13 @@ impl DataDest {
     }
 }
 
-fn field_id_from_context_idx(context_idx: ContextFieldId, has_outer_context_slot: bool) -> FieldId {
+fn field_id_from_context_idx(
+    context_idx: ContextFieldId,
+    has_outer_context_slot: bool,
+) -> FieldDefinitionId {
     let start_idx = if has_outer_context_slot { 1 } else { 0 };
     let ContextFieldId(context_idx) = context_idx;
-    FieldId(start_idx + context_idx)
+    FieldDefinitionId(start_idx + context_idx)
 }
 
 fn get_subpatterns(p: &ast::Pattern) -> Option<&Vec<Arc<ast::PatternField>>> {

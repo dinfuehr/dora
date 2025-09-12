@@ -8,7 +8,7 @@ use dora_parser::ast;
 
 use crate::sema::{
     ClassDefinition, ClassDefinitionId, ConstDefinitionId, ConstValue, EnumDefinitionId,
-    FctDefinition, FctDefinitionId, FieldId, GlobalDefinitionId, Intrinsic,
+    FctDefinition, FctDefinitionId, FieldDefinitionId, GlobalDefinitionId, Intrinsic,
     StructDefinitionFieldId, StructDefinitionId, TraitDefinitionId, TypeParamId,
 };
 use crate::ty::{SourceType, SourceTypeArray, TraitType};
@@ -253,7 +253,7 @@ pub enum IdentType {
     Global(GlobalDefinitionId),
 
     // Field expression: <expr>.<field_name>
-    Field(SourceType, FieldId),
+    Field(SourceType, FieldDefinitionId),
 
     // Field expression: <expr>.<field_name>
     StructField(SourceType, StructDefinitionFieldId),

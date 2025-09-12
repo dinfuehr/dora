@@ -1,6 +1,6 @@
 use crate::sema::{
     AliasDefinitionId, ClassDefinitionId, ConstDefinitionId, Element, EnumDefinitionId,
-    FctDefinitionId, FctParent, FieldId, GlobalDefinitionId, ModuleDefinitionId, Sema,
+    FctDefinitionId, FctParent, FieldDefinitionId, GlobalDefinitionId, ModuleDefinitionId, Sema,
     StructDefinitionFieldId, StructDefinitionId, TraitDefinitionId, Visibility,
 };
 use crate::sym::SymbolKind;
@@ -62,7 +62,7 @@ pub fn class_accessible_from(
 pub fn class_field_accessible_from(
     sa: &Sema,
     cls_id: ClassDefinitionId,
-    field_id: FieldId,
+    field_id: FieldDefinitionId,
     module_id: ModuleDefinitionId,
 ) -> bool {
     let cls = sa.class(cls_id);

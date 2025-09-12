@@ -16,7 +16,7 @@ use crate::{Name, SymTable};
 
 pub use self::aliases::{AliasBound, AliasDefinition, AliasDefinitionId, AliasParent};
 pub use self::classes::{
-    find_field_in_class, Candidate, ClassDefinition, ClassDefinitionId, Field, FieldId, Visibility,
+    find_field_in_class, Candidate, ClassDefinition, ClassDefinitionId, Visibility,
 };
 pub use self::consts::{ConstDefinition, ConstDefinitionId, ConstValue};
 pub use self::elements::{
@@ -24,6 +24,7 @@ pub use self::elements::{
 };
 pub use self::enums::{EnumDefinition, EnumDefinitionId, EnumField, EnumVariant};
 pub use self::extensions::{ExtensionDefinition, ExtensionDefinitionId};
+pub use self::fields::{FieldDefinition, FieldDefinitionId};
 pub use self::functions::{
     emit_as_bytecode_operation, FctDefinition, FctDefinitionId, FctParent, Intrinsic, Param, Params,
 };
@@ -55,6 +56,7 @@ mod consts;
 mod elements;
 mod enums;
 mod extensions;
+mod fields;
 mod functions;
 mod globals;
 mod impl_matching;
@@ -133,6 +135,7 @@ pub struct Sema {
     pub consts: Arena<ConstDefinition>,  // stores all const definitions
     pub structs: Arena<StructDefinition>, // stores all struct source definitions
     pub classes: Arena<ClassDefinition>, // stores all class source definitions
+    pub fields: Arena<FieldDefinition>,  // stores all field source definitions
     pub extensions: Arena<ExtensionDefinition>, // stores all extension definitions
     pub modules: Arena<ModuleDefinition>, // stores all module definitions
     pub fcts: Arena<FctDefinition>,      // stores all function source definitions
@@ -163,6 +166,7 @@ impl Sema {
             consts: Arena::new(),
             structs: Arena::new(),
             classes: Arena::new(),
+            fields: Arena::new(),
             extensions: Arena::new(),
             modules: Arena::new(),
             enums: Arena::new(),
