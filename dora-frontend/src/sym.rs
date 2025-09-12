@@ -9,8 +9,8 @@ use self::SymbolKind::*;
 use crate::interner::Name;
 use crate::sema::{
     AliasDefinitionId, ClassDefinitionId, ConstDefinitionId, EnumDefinitionId, FctDefinitionId,
-    FieldDefinitionId, GlobalDefinitionId, ModuleDefinitionId, NestedVarId, Sema, StructDefinitionId,
-    TraitDefinitionId, TypeParamId, Visibility,
+    FieldDefinitionId, GlobalDefinitionId, ModuleDefinitionId, NestedVarId, Sema,
+    StructDefinitionId, TraitDefinitionId, TypeParamId, Visibility,
 };
 
 pub struct ModuleSymTable {
