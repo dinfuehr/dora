@@ -625,6 +625,7 @@ impl<'x> visit::Visitor for TopLevelDeclaration<'x> {
             };
 
             fields.push(FieldDefinition {
+                id: OnceCell::new(),
                 name,
                 span: Some(field.span),
                 index: FieldIndex(index),
@@ -691,6 +692,7 @@ impl<'x> visit::Visitor for TopLevelDeclaration<'x> {
             };
 
             fields.push(FieldDefinition {
+                id: OnceCell::new(),
                 name,
                 span: Some(field.span),
                 index: FieldIndex(index),
@@ -823,6 +825,7 @@ impl<'x> visit::Visitor for TopLevelDeclaration<'x> {
                 };
 
                 let field = FieldDefinition {
+                    id: OnceCell::new(),
                     name,
                     span: Some(field.span),
                     mutable: false,

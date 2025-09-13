@@ -1,3 +1,4 @@
+use std::cell::OnceCell;
 use std::rc::Rc;
 
 use crate::sema::{
@@ -193,6 +194,7 @@ pub fn create_lambda_class(sa: &mut Sema) {
     let context_name = sa.interner.intern("context");
 
     let field = FieldDefinition {
+        id: OnceCell::new(),
         name: Some(context_name),
         span: None,
         parsed_ty: ParsedType::new_ty(SourceType::Ptr),
