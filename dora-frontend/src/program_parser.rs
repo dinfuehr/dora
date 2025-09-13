@@ -588,6 +588,27 @@ impl<'x> visit::Visitor for TopLevelDeclaration<'x> {
             &[Annotation::Internal, Annotation::Pub],
         );
 
+        let type_param_definition = parse_type_param_definition(
+            self.sa,
+            None,
+            node.type_params.as_ref(),
+            node.where_bounds.as_ref(),
+            None,
+            self.file_id,
+        );
+
+        let class = ClassDefinition::new(
+            self.package_id,
+            self.module_id,
+            self.file_id,
+            node,
+            modifiers,
+            ensure_name(self.sa, &node.name),
+            type_param_definition,
+        );
+        let class_id = self.sa.classes.alloc(class);
+        self.sa.classes[class_id].id = Some(class_id);
+
         let mut fields = Vec::with_capacity(node.fields.len());
         let mut used_names: HashSet<Name> = HashSet::new();
 
@@ -613,27 +634,6 @@ impl<'x> visit::Visitor for TopLevelDeclaration<'x> {
             });
         }
 
-        let type_param_definition = parse_type_param_definition(
-            self.sa,
-            None,
-            node.type_params.as_ref(),
-            node.where_bounds.as_ref(),
-            None,
-            self.file_id,
-        );
-
-        let class = ClassDefinition::new(
-            self.package_id,
-            self.module_id,
-            self.file_id,
-            node,
-            modifiers,
-            ensure_name(self.sa, &node.name),
-            type_param_definition,
-        );
-        let class_id = self.sa.classes.alloc(class);
-        self.sa.classes[class_id].id = Some(class_id);
-
         assert!(self.sa.class(class_id).fields.set(fields).is_ok());
 
         let sym = SymbolKind::Class(class_id);
@@ -653,6 +653,27 @@ impl<'x> visit::Visitor for TopLevelDeclaration<'x> {
             &node.modifiers,
             &[Annotation::Pub, Annotation::Internal],
         );
+
+        let type_param_definition = parse_type_param_definition(
+            self.sa,
+            None,
+            node.type_params.as_ref(),
+            node.where_bounds.as_ref(),
+            None,
+            self.file_id,
+        );
+
+        let struct_ = StructDefinition::new(
+            self.package_id,
+            self.module_id,
+            self.file_id,
+            node,
+            modifiers,
+            ensure_name(self.sa, &node.name),
+            type_param_definition,
+        );
+        let id = self.sa.structs.alloc(struct_);
+        self.sa.structs[id].id = Some(id);
 
         let mut fields = Vec::with_capacity(node.fields.len());
         let mut used_names: HashSet<Name> = HashSet::new();
@@ -678,27 +699,6 @@ impl<'x> visit::Visitor for TopLevelDeclaration<'x> {
                 visibility: modifiers.visibility(),
             });
         }
-
-        let type_param_definition = parse_type_param_definition(
-            self.sa,
-            None,
-            node.type_params.as_ref(),
-            node.where_bounds.as_ref(),
-            None,
-            self.file_id,
-        );
-
-        let struct_ = StructDefinition::new(
-            self.package_id,
-            self.module_id,
-            self.file_id,
-            node,
-            modifiers,
-            ensure_name(self.sa, &node.name),
-            type_param_definition,
-        );
-        let id = self.sa.structs.alloc(struct_);
-        self.sa.structs[id].id = Some(id);
 
         let mut field_names = HashMap::new();
 
