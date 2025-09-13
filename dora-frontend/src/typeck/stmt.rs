@@ -283,7 +283,7 @@ fn check_pattern_enum(
     variant_id: u32,
 ) {
     let enum_ = ck.sa.enum_(enum_id);
-    let variant = &enum_.variants[variant_id as usize];
+    let variant = enum_.variant_at(variant_id as usize);
 
     let params = get_subpatterns(pattern);
     let given_params = params.as_ref().map(|p| p.len()).unwrap_or(0);

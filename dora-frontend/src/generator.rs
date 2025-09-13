@@ -727,7 +727,7 @@ impl<'a> AstBytecodeGen<'a> {
         let lbl = pck.ensure_label(&mut self.builder);
         self.builder.emit_jump_if_false(match_reg, lbl);
 
-        let variant = &enum_.variants[variant_idx as usize];
+        let variant = &enum_.variant_at(variant_idx as usize);
 
         iterate_subpatterns(self.analysis, pattern, |idx, param| {
             let element_ty = variant.fields[idx].ty();

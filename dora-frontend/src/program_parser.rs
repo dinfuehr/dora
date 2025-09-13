@@ -768,6 +768,28 @@ impl<'x> visit::Visitor for TopLevelDeclaration<'x> {
     }
 
     fn visit_enum(&mut self, node: &Arc<ast::Enum>) {
+        let type_param_definition = parse_type_param_definition(
+            self.sa,
+            None,
+            node.type_params.as_ref(),
+            node.where_bounds.as_ref(),
+            None,
+            self.file_id,
+        );
+
+        let modifiers = check_modifiers(self.sa, self.file_id, &node.modifiers, &[Annotation::Pub]);
+        let enum_ = EnumDefinition::new(
+            self.package_id,
+            self.module_id,
+            self.file_id,
+            node,
+            modifiers,
+            ensure_name(self.sa, &node.name),
+            type_param_definition,
+        );
+        let id = self.sa.enums.alloc(enum_);
+        self.sa.enums[id].id = Some(id);
+
         let mut next_variant_id: u32 = 0;
         let mut variants = Vec::new();
         let mut name_to_value = HashMap::new();
@@ -838,29 +860,8 @@ impl<'x> visit::Visitor for TopLevelDeclaration<'x> {
                 .report(self.file_id, node.span, ErrorMessage::NoEnumVariant);
         }
 
-        let type_param_definition = parse_type_param_definition(
-            self.sa,
-            None,
-            node.type_params.as_ref(),
-            node.where_bounds.as_ref(),
-            None,
-            self.file_id,
-        );
-
-        let modifiers = check_modifiers(self.sa, self.file_id, &node.modifiers, &[Annotation::Pub]);
-        let enum_ = EnumDefinition::new(
-            self.package_id,
-            self.module_id,
-            self.file_id,
-            node,
-            modifiers,
-            ensure_name(self.sa, &node.name),
-            type_param_definition,
-            variants,
-            name_to_value,
-        );
-        let id = self.sa.enums.alloc(enum_);
-        self.sa.enums[id].id = Some(id);
+        assert!(self.sa.enum_(id).variants.set(variants).is_ok());
+        assert!(self.sa.enum_(id).name_to_value.set(name_to_value).is_ok());
 
         let sym = SymbolKind::Enum(id);
         if let Some((name, sym)) = self.insert_optional(&node.name, sym) {

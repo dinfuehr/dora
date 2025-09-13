@@ -816,7 +816,7 @@ pub(super) fn check_expr_call_enum_variant(
     arguments: CallArguments,
 ) -> SourceType {
     let enum_ = ck.sa.enum_(enum_id);
-    let variant = &enum_.variants[variant_idx as usize];
+    let variant = enum_.variant_at(variant_idx as usize);
 
     if !enum_accessible_from(ck.sa, enum_id, ck.module_id) {
         let msg = ErrorMessage::NotAccessible;

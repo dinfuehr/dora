@@ -193,7 +193,7 @@ fn parse_enum_types(sa: &Sema) {
             false,
         );
 
-        for variant in &enum_.variants {
+        for variant in enum_.variants() {
             for field in &variant.fields {
                 parsety::parse_type(
                     sa,

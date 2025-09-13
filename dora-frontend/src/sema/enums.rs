@@ -32,10 +32,10 @@ pub struct EnumDefinition {
     pub name: Name,
     pub visibility: Visibility,
     pub type_param_definition: Rc<TypeParamDefinition>,
-    pub variants: Vec<Variant>,
+    pub variants: OnceCell<Vec<Variant>>,
     pub extensions: RefCell<Vec<ExtensionDefinitionId>>,
     pub simple_enumeration: OnceCell<bool>,
-    pub name_to_value: HashMap<Name, u32>,
+    pub name_to_value: OnceCell<HashMap<Name, u32>>,
 }
 
 impl EnumDefinition {
@@ -47,8 +47,6 @@ impl EnumDefinition {
         modifiers: ParsedModifierList,
         name: Name,
         type_param_definition: Rc<TypeParamDefinition>,
-        variants: Vec<Variant>,
-        name_to_value: HashMap<Name, u32>,
     ) -> EnumDefinition {
         EnumDefinition {
             id: None,
@@ -60,10 +58,10 @@ impl EnumDefinition {
             name,
             type_param_definition,
             visibility: modifiers.visibility(),
-            variants,
+            variants: OnceCell::new(),
             extensions: RefCell::new(Vec::new()),
             simple_enumeration: OnceCell::new(),
-            name_to_value,
+            name_to_value: OnceCell::new(),
         }
     }
 
@@ -72,7 +70,7 @@ impl EnumDefinition {
     }
 
     pub fn name_to_value(&self) -> &HashMap<Name, u32> {
-        &self.name_to_value
+        self.name_to_value.get().expect("missing name_to_value")
     }
 
     pub fn is_simple_enum(&self) -> bool {
@@ -103,7 +101,11 @@ impl EnumDefinition {
     }
 
     pub fn variants(&self) -> &[Variant] {
-        &self.variants
+        self.variants.get().expect("missing variants")
+    }
+
+    pub fn variant_at(&self, idx: usize) -> &Variant {
+        &self.variants()[idx]
     }
 }
 
