@@ -7,7 +7,7 @@ use std::{f32, f64};
 use crate::error::msg::ErrorMessage;
 use crate::sema::{
     AnalysisData, ClassDefinition, ConstValue, ContextFieldId, Element, FctDefinition, FctParent,
-    FieldDefinition, FieldDefinitionId, GlobalDefinition, IdentType, LazyContextClassCreationData,
+    FieldDefinition, FieldIndex, GlobalDefinition, IdentType, LazyContextClassCreationData,
     LazyContextData, LazyLambdaCreationData, ModuleDefinitionId, NestedScopeId, NestedVarId,
     OuterContextIdx, PackageDefinitionId, Param, ScopeId, Sema, SourceFileId, TypeParamDefinition,
     Var, VarAccess, VarId, VarLocation, Visibility,
@@ -236,9 +236,9 @@ impl<'a> TypeCheck<'a> {
         if lazy_context_data.has_parent_slot() {
             let name = self.sa.interner.intern("parent_context");
             let field = FieldDefinition {
-                id: FieldDefinitionId(0),
                 name: Some(name),
                 span: None,
+                index: FieldIndex(fields.len()),
                 parsed_ty: ParsedType::new_ty(SourceType::Ptr),
                 mutable: true,
                 visibility: Visibility::Module,
@@ -262,11 +262,10 @@ impl<'a> TypeCheck<'a> {
             let var_id = var_id.get().cloned().expect("missing field");
             let var = self.vars.get_var(var_id);
 
-            let id = FieldDefinitionId(fields.len());
             let field = FieldDefinition {
-                id,
                 name: Some(var.name),
                 span: None,
+                index: FieldIndex(fields.len()),
                 parsed_ty: ParsedType::new_ty(var.ty.clone()),
                 mutable: true,
                 visibility: Visibility::Module,

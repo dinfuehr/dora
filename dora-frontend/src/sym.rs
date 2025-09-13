@@ -9,7 +9,7 @@ use self::SymbolKind::*;
 use crate::interner::Name;
 use crate::sema::{
     AliasDefinitionId, ClassDefinitionId, ConstDefinitionId, EnumDefinitionId, FctDefinitionId,
-    FieldDefinitionId, GlobalDefinitionId, ModuleDefinitionId, NestedVarId, Sema,
+    FieldIndex, GlobalDefinitionId, ModuleDefinitionId, NestedVarId, Sema,
     StructDefinitionId, TraitDefinitionId, TypeParamId, Visibility,
 };
 
@@ -185,7 +185,7 @@ pub enum SymbolKind {
     Trait(TraitDefinitionId),
     TypeParam(TypeParamId),
     Enum(EnumDefinitionId),
-    Field(FieldDefinitionId),
+    Field(FieldIndex),
     Fct(FctDefinitionId),
     Var(NestedVarId),
     Global(GlobalDefinitionId),

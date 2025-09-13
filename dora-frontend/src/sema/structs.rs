@@ -12,8 +12,8 @@ use dora_parser::Span;
 
 use crate::sema::{
     module_path, new_identity_type_params, Element, ElementAccess, ElementField, ElementId,
-    ElementWithFields, ExtensionDefinitionId, FieldDefinition, FieldDefinitionId,
-    ModuleDefinitionId, PackageDefinitionId, Sema, SourceFileId, TypeParamDefinition, Visibility,
+    ElementWithFields, ExtensionDefinitionId, FieldDefinition, FieldIndex, ModuleDefinitionId,
+    PackageDefinitionId, Sema, SourceFileId, TypeParamDefinition, Visibility,
 };
 use crate::{SourceType, SourceTypeArray};
 
@@ -34,7 +34,7 @@ pub struct StructDefinition {
     pub span: Span,
     pub name: Name,
     pub fields: OnceCell<Vec<FieldDefinition>>,
-    pub field_names: OnceCell<HashMap<Name, FieldDefinitionId>>,
+    pub field_names: OnceCell<HashMap<Name, FieldIndex>>,
     pub extensions: RefCell<Vec<ExtensionDefinitionId>>,
     pub field_name_style: ast::FieldNameStyle,
 }
@@ -106,7 +106,7 @@ impl StructDefinition {
         }
     }
 
-    pub fn field_names(&self) -> &HashMap<Name, FieldDefinitionId> {
+    pub fn field_names(&self) -> &HashMap<Name, FieldIndex> {
         self.field_names.get().expect("missing field_names")
     }
 
@@ -114,7 +114,7 @@ impl StructDefinition {
         self.fields.get().expect("missing fields")
     }
 
-    pub fn field(&self, idx: FieldDefinitionId) -> &FieldDefinition {
+    pub fn field(&self, idx: FieldIndex) -> &FieldDefinition {
         &self.fields()[idx.to_usize()]
     }
 
@@ -199,7 +199,7 @@ impl ElementWithFields for StructDefinition {
 
     fn fields<'a>(&'a self) -> Box<dyn DoubleEndedIterator<Item = ElementField> + 'a> {
         Box::new(self.fields().iter().map(|f| ElementField {
-            id: f.id.to_usize(),
+            id: f.index.to_usize(),
             name: f.name,
             ty: f.ty(),
         }))

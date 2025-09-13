@@ -11,7 +11,7 @@ use crate::interner::Name;
 use crate::sema::{
     AliasBound, AliasDefinition, AliasDefinitionId, AliasParent, ClassDefinition, ConstDefinition,
     Element, EnumDefinition, ExtensionDefinition, ExtensionDefinitionId, FctDefinition,
-    FctDefinitionId, FctParent, FieldDefinition, FieldDefinitionId, FileContent, GlobalDefinition,
+    FctDefinitionId, FctParent, FieldDefinition, FieldIndex, FileContent, GlobalDefinition,
     ImplDefinition, ImplDefinitionId, ModuleDefinition, ModuleDefinitionId, PackageDefinition,
     PackageDefinitionId, PackageName, Param, Params, Sema, SourceFile, SourceFileId,
     StructDefinition, TraitDefinition, TraitDefinitionId, TypeParamDefinition, UseDefinition,
@@ -612,7 +612,7 @@ impl<'x> visit::Visitor for TopLevelDeclaration<'x> {
         let mut fields = Vec::with_capacity(node.fields.len());
         let mut used_names: HashSet<Name> = HashSet::new();
 
-        for (idx, field) in node.fields.iter().enumerate() {
+        for (index, field) in node.fields.iter().enumerate() {
             let modifiers =
                 check_modifiers(self.sa, self.file_id, &field.modifiers, &[Annotation::Pub]);
 
@@ -625,9 +625,9 @@ impl<'x> visit::Visitor for TopLevelDeclaration<'x> {
             };
 
             fields.push(FieldDefinition {
-                id: FieldDefinitionId(idx),
                 name,
                 span: Some(field.span),
+                index: FieldIndex(index),
                 parsed_ty: ParsedType::new_ast(field.data_type.clone()),
                 mutable: true,
                 visibility: modifiers.visibility(),
@@ -678,7 +678,7 @@ impl<'x> visit::Visitor for TopLevelDeclaration<'x> {
         let mut fields = Vec::with_capacity(node.fields.len());
         let mut used_names: HashSet<Name> = HashSet::new();
 
-        for (idx, field) in node.fields.iter().enumerate() {
+        for (index, field) in node.fields.iter().enumerate() {
             let modifiers =
                 check_modifiers(self.sa, self.file_id, &field.modifiers, &[Annotation::Pub]);
 
@@ -691,9 +691,9 @@ impl<'x> visit::Visitor for TopLevelDeclaration<'x> {
             };
 
             fields.push(FieldDefinition {
-                id: FieldDefinitionId(idx),
                 name,
                 span: Some(field.span),
+                index: FieldIndex(index),
                 mutable: false,
                 parsed_ty: ParsedType::new_ast(field.data_type.clone()),
                 visibility: modifiers.visibility(),
@@ -708,7 +708,7 @@ impl<'x> visit::Visitor for TopLevelDeclaration<'x> {
                     continue;
                 }
 
-                field_names.insert(name, field.id);
+                field_names.insert(name, field.index);
             }
         }
 
@@ -807,7 +807,7 @@ impl<'x> visit::Visitor for TopLevelDeclaration<'x> {
             let mut fields = Vec::new();
             let mut used_names: HashSet<Name> = HashSet::new();
 
-            for field in &variant.fields {
+            for (index, field) in variant.fields.iter().enumerate() {
                 let name = if variant.field_name_style.is_positional() {
                     None
                 } else {
@@ -823,10 +823,10 @@ impl<'x> visit::Visitor for TopLevelDeclaration<'x> {
                 };
 
                 let field = FieldDefinition {
-                    id: FieldDefinitionId(fields.len()),
                     name,
                     span: Some(field.span),
                     mutable: false,
+                    index: FieldIndex(index),
                     parsed_ty: ParsedType::new_ast(field.data_type.clone()),
                     visibility: Visibility::Public,
                 };

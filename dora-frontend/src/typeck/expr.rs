@@ -750,14 +750,14 @@ fn check_expr_assign_unnamed_field(
             let struct_ = ck.sa.struct_(struct_id);
             if !struct_.field_name_style.is_named() && index < struct_.fields().len() {
                 let field = struct_.field_at(index);
-                let ident_type = IdentType::StructField(object_type.clone(), field.id);
+                let ident_type = IdentType::StructField(object_type.clone(), field.index);
                 ck.analysis
                     .map_idents
                     .insert_or_replace(dot_expr.id, ident_type);
 
                 let fty = replace_type(ck.sa, field.ty(), Some(&struct_type_params), None);
 
-                if !struct_field_accessible_from(ck.sa, struct_id, field.id, ck.module_id) {
+                if !struct_field_accessible_from(ck.sa, struct_id, field.index, ck.module_id) {
                     let msg = ErrorMessage::NotAccessible;
                     ck.sa.report(ck.file_id, dot_expr.rhs.span(), msg);
                 }
@@ -817,14 +817,14 @@ fn check_expr_assign_unnamed_field(
             let cls = ck.sa.class(class_id);
             if !cls.field_name_style.is_named() && index < cls.fields().len() {
                 let field = &cls.field_at(index);
-                let ident_type = IdentType::Field(object_type.clone(), field.id);
+                let ident_type = IdentType::Field(object_type.clone(), field.index);
                 ck.analysis
                     .map_idents
                     .insert_or_replace(dot_expr.id, ident_type);
 
                 let fty = replace_type(ck.sa, field.ty(), Some(&class_type_params), None);
 
-                if !class_field_accessible_from(ck.sa, class_id, field.id, ck.module_id) {
+                if !class_field_accessible_from(ck.sa, class_id, field.index, ck.module_id) {
                     let msg = ErrorMessage::NotAccessible;
                     ck.sa.report(ck.file_id, dot_expr.rhs.span(), msg);
                 }
@@ -1009,7 +1009,7 @@ fn check_expr_dot_unnamed_field(
             let cls = ck.sa.class(class_id);
             if !cls.field_name_style.is_named() && index < cls.fields().len() {
                 let field = &cls.field_at(index);
-                let ident_type = IdentType::Field(object_type.clone(), field.id);
+                let ident_type = IdentType::Field(object_type.clone(), field.index);
                 ck.analysis.map_idents.insert_or_replace(e.id, ident_type);
 
                 let call_data = CallSpecializationData {
@@ -1018,7 +1018,7 @@ fn check_expr_dot_unnamed_field(
                 };
                 let fty = specialize_ty_for_call(ck.sa, field.ty(), ck.element, &call_data);
 
-                if !class_field_accessible_from(ck.sa, class_id, field.id, ck.module_id) {
+                if !class_field_accessible_from(ck.sa, class_id, field.index, ck.module_id) {
                     let msg = ErrorMessage::NotAccessible;
                     ck.sa.report(ck.file_id, e.rhs.span(), msg);
                 }
@@ -1038,7 +1038,7 @@ fn check_expr_dot_unnamed_field(
             let struct_ = ck.sa.struct_(struct_id);
             if !struct_.field_name_style.is_named() && index < struct_.fields().len() {
                 let field = &struct_.field_at(index);
-                let ident_type = IdentType::StructField(object_type.clone(), field.id);
+                let ident_type = IdentType::StructField(object_type.clone(), field.index);
                 ck.analysis.map_idents.insert_or_replace(e.id, ident_type);
 
                 let call_data = CallSpecializationData {
@@ -1047,7 +1047,7 @@ fn check_expr_dot_unnamed_field(
                 };
                 let fty = specialize_ty_for_call(ck.sa, field.ty(), ck.element, &call_data);
 
-                if !struct_field_accessible_from(ck.sa, struct_id, field.id, ck.module_id) {
+                if !struct_field_accessible_from(ck.sa, struct_id, field.index, ck.module_id) {
                     let msg = ErrorMessage::NotAccessible;
                     ck.sa.report(ck.file_id, e.rhs.span(), msg);
                 }

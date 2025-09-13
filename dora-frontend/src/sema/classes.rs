@@ -10,7 +10,7 @@ use dora_parser::ast;
 
 use crate::sema::{
     module_path, Element, ElementAccess, ElementField, ElementId, ElementWithFields,
-    ExtensionDefinitionId, FctDefinitionId, FieldDefinition, FieldDefinitionId, ModuleDefinitionId,
+    ExtensionDefinitionId, FctDefinitionId, FieldDefinition, FieldIndex, ModuleDefinitionId,
     PackageDefinitionId, Sema, SourceFileId, TypeParamDefinition,
 };
 use crate::{specialize_for_element, SourceType, SourceTypeArray, Span};
@@ -133,10 +133,10 @@ impl ClassDefinition {
         self.ty.get().expect("not initialized").clone()
     }
 
-    pub fn field_by_name(&self, name: Name) -> FieldDefinitionId {
+    pub fn field_by_name(&self, name: Name) -> FieldIndex {
         for field in self.fields() {
             if field.name == Some(name) {
-                return field.id;
+                return field.index;
             }
         }
 
@@ -151,7 +151,7 @@ impl ClassDefinition {
         self.fields.get().expect("missing fields")
     }
 
-    pub fn field(&self, idx: FieldDefinitionId) -> &FieldDefinition {
+    pub fn field(&self, idx: FieldIndex) -> &FieldDefinition {
         &self.fields()[idx.to_usize()]
     }
 
@@ -252,7 +252,7 @@ impl ElementWithFields for ClassDefinition {
 
     fn fields<'a>(&'a self) -> Box<dyn DoubleEndedIterator<Item = ElementField> + 'a> {
         Box::new(self.fields().iter().map(|f| ElementField {
-            id: f.id.to_usize(),
+            id: f.index.to_usize(),
             name: f.name,
             ty: f.ty(),
         }))
@@ -263,14 +263,14 @@ pub fn find_field_in_class(
     sa: &Sema,
     object_type: SourceType,
     name: Name,
-) -> Option<(FieldDefinitionId, SourceType)> {
+) -> Option<(FieldIndex, SourceType)> {
     if let SourceType::Class(cls_id, type_params) = object_type.clone() {
         let cls = sa.class(cls_id);
 
         for field in cls.fields() {
             if field.name == Some(name) {
                 return Some((
-                    field.id,
+                    field.index,
                     specialize_for_element(sa, field.ty(), cls, &type_params),
                 ));
             }
