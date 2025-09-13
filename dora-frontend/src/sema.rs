@@ -24,7 +24,7 @@ pub use self::elements::{
 };
 pub use self::enums::{EnumDefinition, EnumDefinitionId, Variant};
 pub use self::extensions::{ExtensionDefinition, ExtensionDefinitionId};
-pub use self::fields::{FieldDefinition, FieldIndex};
+pub use self::fields::{FieldDefinition, FieldDefinitionId, FieldIndex};
 pub use self::functions::{
     emit_as_bytecode_operation, FctDefinition, FctDefinitionId, FctParent, Intrinsic, Param, Params,
 };

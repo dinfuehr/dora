@@ -1,6 +1,10 @@
+use id_arena::Id;
+
 use crate::interner::Name;
 use crate::sema::Visibility;
 use crate::{ParsedType, SourceType, Span};
+
+pub type FieldDefinitionId = Id<FieldDefinition>;
 
 #[derive(Debug, Copy, Clone, PartialEq, Eq)]
 pub struct FieldIndex(pub usize);
