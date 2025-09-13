@@ -9,9 +9,9 @@ use crate::program_parser::ParsedModifierList;
 use dora_parser::ast;
 
 use crate::sema::{
-    module_path, Element, ElementAccess, ElementField, ElementId, ElementWithFields,
-    ExtensionDefinitionId, FctDefinitionId, FieldDefinition, FieldIndex, ModuleDefinitionId,
-    PackageDefinitionId, Sema, SourceFileId, TypeParamDefinition,
+    module_path, Element, ElementAccess, ElementId, ElementWithFields, ExtensionDefinitionId,
+    FctDefinitionId, FieldDefinition, FieldIndex, ModuleDefinitionId, PackageDefinitionId, Sema,
+    SourceFileId, TypeParamDefinition,
 };
 use crate::{specialize_for_element, SourceType, SourceTypeArray, Span};
 
@@ -242,20 +242,12 @@ impl ElementWithFields for ClassDefinition {
         self.field_name_style
     }
 
-    fn field_name(&self, idx: usize) -> Option<Name> {
-        self.fields()[idx].name
-    }
-
     fn fields_len(&self) -> usize {
         self.fields().len()
     }
 
-    fn fields<'a>(&'a self) -> Box<dyn DoubleEndedIterator<Item = ElementField> + 'a> {
-        Box::new(self.fields().iter().map(|f| ElementField {
-            id: f.index.to_usize(),
-            name: f.name,
-            ty: f.ty(),
-        }))
+    fn fields(&self) -> &[FieldDefinition] {
+        self.fields()
     }
 }
 

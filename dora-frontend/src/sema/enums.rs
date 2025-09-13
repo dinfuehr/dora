@@ -11,9 +11,9 @@ use dora_parser::Span;
 use id_arena::Id;
 
 use crate::sema::{
-    module_path, Element, ElementAccess, ElementField, ElementId, ElementWithFields,
-    ExtensionDefinitionId, FieldDefinition, ModuleDefinitionId, PackageDefinitionId, Sema,
-    SourceFileId, TypeParamDefinition, Visibility,
+    module_path, Element, ElementAccess, ElementId, ElementWithFields, ExtensionDefinitionId,
+    FieldDefinition, ModuleDefinitionId, PackageDefinitionId, Sema, SourceFileId,
+    TypeParamDefinition, Visibility,
 };
 use crate::{SourceType, SourceTypeArray};
 
@@ -170,16 +170,8 @@ impl ElementWithFields for Variant {
         self.field_name_style
     }
 
-    fn field_name(&self, idx: usize) -> Option<Name> {
-        self.fields[idx].name
-    }
-
-    fn fields<'a>(&'a self) -> Box<dyn DoubleEndedIterator<Item = ElementField> + 'a> {
-        Box::new(self.fields.iter().enumerate().map(|(id, f)| ElementField {
-            id,
-            name: f.name,
-            ty: f.ty(),
-        }))
+    fn fields(&self) -> &[FieldDefinition] {
+        &self.fields
     }
 
     fn fields_len(&self) -> usize {

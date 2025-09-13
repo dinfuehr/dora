@@ -636,12 +636,20 @@ fn check_expr_call_ctor_with_named_fields(
             add_named_argument(arg, name);
         } else if arguments.arguments.len() == 1
             && element_with_fields.fields_len() == 1
-            && element_with_fields.field_name(0).is_some()
+            && element_with_fields
+                .fields()
+                .first()
+                .expect("first missing")
+                .name
+                .is_some()
         {
-            add_named_argument(
-                arg,
-                element_with_fields.field_name(0).expect("name expected"),
-            );
+            let field_name = element_with_fields
+                .fields()
+                .first()
+                .expect("first missing")
+                .name
+                .expect("missing name");
+            add_named_argument(arg, field_name);
         } else if let Some(ident) = arg.expr.to_ident() {
             let name = ck.sa.interner.intern(&ident.name);
             add_named_argument(arg, name);
@@ -662,7 +670,7 @@ fn check_expr_call_ctor_with_named_fields(
     for field in element_with_fields.fields() {
         if let Some(name) = field.name {
             if let Some(arg) = args_by_name.remove(&name) {
-                let def_ty = specialize_ty_for_call(ck.sa, field.ty, ck.element, &call_data);
+                let def_ty = specialize_ty_for_call(ck.sa, field.ty(), ck.element, &call_data);
                 let arg_ty = ck.analysis.ty(arg.id);
 
                 if !def_ty.allows(ck.sa, arg_ty.clone()) && !arg_ty.is_error() {
@@ -676,7 +684,9 @@ fn check_expr_call_ctor_with_named_fields(
                     );
                 }
 
-                ck.analysis.map_argument.insert(arg.id, field.id);
+                ck.analysis
+                    .map_argument
+                    .insert(arg.id, field.index.to_usize());
             } else {
                 let name = ck.sa.interner.str(name).to_string();
                 ck.sa.report(
@@ -705,8 +715,12 @@ fn check_expr_call_ctor_with_unnamed_fields(
         type_params,
     };
 
-    for (field, argument) in element_with_fields.fields().zip(&arguments.arguments) {
-        let def_ty = specialize_ty_for_call(ck.sa, field.ty, ck.element, &call_data);
+    for (field, argument) in element_with_fields
+        .fields()
+        .iter()
+        .zip(&arguments.arguments)
+    {
+        let def_ty = specialize_ty_for_call(ck.sa, field.ty(), ck.element, &call_data);
         let arg_ty = ck.analysis.ty(argument.id);
 
         if let Some(ref name) = argument.name {
@@ -725,7 +739,9 @@ fn check_expr_call_ctor_with_unnamed_fields(
             );
         }
 
-        ck.analysis.map_argument.insert(argument.id, field.id);
+        ck.analysis
+            .map_argument
+            .insert(argument.id, field.index.to_usize());
     }
 
     let fields = element_with_fields.fields_len();

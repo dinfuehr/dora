@@ -11,9 +11,9 @@ use dora_parser::ast;
 use dora_parser::Span;
 
 use crate::sema::{
-    module_path, new_identity_type_params, Element, ElementAccess, ElementField, ElementId,
-    ElementWithFields, ExtensionDefinitionId, FieldDefinition, FieldIndex, ModuleDefinitionId,
-    PackageDefinitionId, Sema, SourceFileId, TypeParamDefinition, Visibility,
+    module_path, new_identity_type_params, Element, ElementAccess, ElementId, ElementWithFields,
+    ExtensionDefinitionId, FieldDefinition, FieldIndex, ModuleDefinitionId, PackageDefinitionId,
+    Sema, SourceFileId, TypeParamDefinition, Visibility,
 };
 use crate::{SourceType, SourceTypeArray};
 
@@ -193,15 +193,7 @@ impl ElementWithFields for StructDefinition {
         self.fields().len()
     }
 
-    fn field_name(&self, idx: usize) -> Option<Name> {
-        self.field_at(idx).name
-    }
-
-    fn fields<'a>(&'a self) -> Box<dyn DoubleEndedIterator<Item = ElementField> + 'a> {
-        Box::new(self.fields().iter().map(|f| ElementField {
-            id: f.index.to_usize(),
-            name: f.name,
-            ty: f.ty(),
-        }))
+    fn fields(&self) -> &[FieldDefinition] {
+        self.fields()
     }
 }

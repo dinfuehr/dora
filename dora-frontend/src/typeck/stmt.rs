@@ -547,8 +547,10 @@ fn check_subpatterns_named<'a>(
             if let Some(name) = field.name {
                 if let Some(idx) = used_names.remove(&name) {
                     let field_pattern = &params[idx];
-                    ck.analysis.map_field_ids.insert(field_pattern.id, field.id);
-                    let ty = specialize_type(ck.sa, field.ty, element_type_params);
+                    ck.analysis
+                        .map_field_ids
+                        .insert(field_pattern.id, field.index.to_usize());
+                    let ty = specialize_type(ck.sa, field.ty(), element_type_params);
                     check_pattern_inner(ck, ctxt, &field_pattern.pattern, ty);
                 } else if !rest_seen {
                     let name = ck.sa.interner.str(name).to_string();

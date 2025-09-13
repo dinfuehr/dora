@@ -198,7 +198,7 @@ fn display_params(
         write!(output, "(")?;
         let emit_names = element.field_name_style().is_named();
 
-        for (field, param) in element.fields().zip(params.into_iter().rev()) {
+        for (field, param) in element.fields().iter().zip(params.into_iter().rev()) {
             if !first {
                 output.write_str(", ")?;
             }

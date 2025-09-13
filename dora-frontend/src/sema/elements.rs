@@ -5,9 +5,9 @@ use dora_parser::ast;
 use crate::sema::{
     AliasDefinition, AliasDefinitionId, AliasParent, ClassDefinitionId, ConstDefinitionId,
     EnumDefinitionId, ExtensionDefinitionId, FctDefinition, FctDefinitionId, FctParent,
-    GlobalDefinitionId, ImplDefinition, ImplDefinitionId, ModuleDefinitionId, PackageDefinitionId,
-    Sema, SourceFileId, StructDefinitionId, TraitDefinition, TraitDefinitionId,
-    TypeParamDefinition, UseDefinitionId, Visibility,
+    FieldDefinition, GlobalDefinitionId, ImplDefinition, ImplDefinitionId, ModuleDefinitionId,
+    PackageDefinitionId, Sema, SourceFileId, StructDefinitionId, TraitDefinition,
+    TraitDefinitionId, TypeParamDefinition, UseDefinitionId, Visibility,
 };
 use crate::{Name, SourceType, Span};
 
@@ -77,8 +77,7 @@ pub trait ElementAccess: Element {
 pub trait ElementWithFields {
     fn field_name_style(&self) -> ast::FieldNameStyle;
     fn fields_len(&self) -> usize;
-    fn fields<'a>(&'a self) -> Box<dyn DoubleEndedIterator<Item = ElementField> + 'a>;
-    fn field_name(&self, idx: usize) -> Option<Name>;
+    fn fields(&self) -> &[FieldDefinition];
 }
 
 pub struct ElementField {
