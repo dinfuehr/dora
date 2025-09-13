@@ -76,7 +76,6 @@ pub trait ElementAccess: Element {
 
 pub trait ElementWithFields {
     fn field_name_style(&self) -> ast::FieldNameStyle;
-    fn fields_len(&self) -> usize;
     fn fields(&self) -> &[FieldDefinition];
 }
 

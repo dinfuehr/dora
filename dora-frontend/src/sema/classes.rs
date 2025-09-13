@@ -242,10 +242,6 @@ impl ElementWithFields for ClassDefinition {
         self.field_name_style
     }
 
-    fn fields_len(&self) -> usize {
-        self.fields().len()
-    }
-
     fn fields(&self) -> &[FieldDefinition] {
         self.fields()
     }

@@ -635,7 +635,7 @@ fn check_expr_call_ctor_with_named_fields(
             let name = ck.sa.interner.intern(&name.name_as_string);
             add_named_argument(arg, name);
         } else if arguments.arguments.len() == 1
-            && element_with_fields.fields_len() == 1
+            && element_with_fields.fields().len() == 1
             && element_with_fields
                 .fields()
                 .first()
@@ -744,7 +744,7 @@ fn check_expr_call_ctor_with_unnamed_fields(
             .insert(argument.id, field.index.to_usize());
     }
 
-    let fields = element_with_fields.fields_len();
+    let fields = element_with_fields.fields().len();
 
     if arguments.arguments.len() < fields {
         ck.sa.report(

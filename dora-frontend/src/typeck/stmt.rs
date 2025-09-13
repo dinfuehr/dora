@@ -569,7 +569,7 @@ fn check_subpatterns_named<'a>(
             );
         }
     } else {
-        let fields = element.fields_len();
+        let fields = element.fields().len();
         assert!(fields > 0);
         let msg = ErrorMessage::PatternWrongNumberOfParams(0, fields);
         ck.sa.report(ck.file_id, pattern.span(), msg);

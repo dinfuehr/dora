@@ -173,8 +173,4 @@ impl ElementWithFields for Variant {
     fn fields(&self) -> &[FieldDefinition] {
         &self.fields
     }
-
-    fn fields_len(&self) -> usize {
-        self.fields.len()
-    }
 }

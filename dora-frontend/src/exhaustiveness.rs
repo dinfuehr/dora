@@ -193,7 +193,7 @@ fn display_params(
     params: Vec<Pattern>,
     output: &mut String,
 ) -> fmt::Result {
-    if element.fields_len() > 0 {
+    if element.fields().len() > 0 {
         let mut first = true;
         write!(output, "(")?;
         let emit_names = element.field_name_style().is_named();
