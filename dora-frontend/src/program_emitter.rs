@@ -220,7 +220,7 @@ impl Emitter {
 
     fn create_class_fields(&mut self, sa: &Sema, class: &ClassDefinition) -> Vec<ClassField> {
         class
-            .fields
+            .fields()
             .iter()
             .map(|f| ClassField {
                 ty: self.convert_ty(f.ty()),

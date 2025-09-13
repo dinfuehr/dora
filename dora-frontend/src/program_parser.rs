@@ -630,10 +630,11 @@ impl<'x> visit::Visitor for TopLevelDeclaration<'x> {
             modifiers,
             ensure_name(self.sa, &node.name),
             type_param_definition,
-            fields,
         );
         let class_id = self.sa.classes.alloc(class);
         self.sa.classes[class_id].id = Some(class_id);
+
+        assert!(self.sa.class(class_id).fields.set(fields).is_ok());
 
         let sym = SymbolKind::Class(class_id);
         if let Some((name, sym)) = self.insert_optional(&node.name, sym) {

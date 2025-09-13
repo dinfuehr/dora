@@ -660,7 +660,7 @@ fn check_expr_assign_field(ck: &mut TypeCheck, e: &ast::ExprBinType) {
                 .insert_or_replace(e.lhs.id(), ident_type);
 
             let cls = ck.sa.class(cls_id);
-            let field = &cls.fields[field_id];
+            let field = cls.field(field_id);
 
             let fty = replace_type(ck.sa, field.ty(), Some(&class_type_params), None);
 
@@ -815,8 +815,8 @@ fn check_expr_assign_unnamed_field(
 
         SourceType::Class(class_id, class_type_params) => {
             let cls = ck.sa.class(class_id);
-            if !cls.field_name_style.is_named() && index < cls.fields.len() {
-                let field = &cls.fields[index];
+            if !cls.field_name_style.is_named() && index < cls.fields().len() {
+                let field = &cls.field_at(index);
                 let ident_type = IdentType::Field(object_type.clone(), field.id);
                 ck.analysis
                     .map_idents
@@ -908,7 +908,7 @@ pub(super) fn check_expr_dot(
                 ck.analysis.map_idents.insert_or_replace(e.id, ident_type);
 
                 let cls = ck.sa.class(cls_id);
-                let field = &cls.fields[field_id];
+                let field = &cls.field(field_id);
                 let call_data = CallSpecializationData {
                     object_ty: SourceType::Error,
                     type_params: class_type_params,
@@ -1007,8 +1007,8 @@ fn check_expr_dot_unnamed_field(
 
         SourceType::Class(class_id, class_type_params) => {
             let cls = ck.sa.class(class_id);
-            if !cls.field_name_style.is_named() && index < cls.fields.len() {
-                let field = &cls.fields[index];
+            if !cls.field_name_style.is_named() && index < cls.fields().len() {
+                let field = &cls.field_at(index);
                 let ident_type = IdentType::Field(object_type.clone(), field.id);
                 ck.analysis.map_idents.insert_or_replace(e.id, ident_type);
 

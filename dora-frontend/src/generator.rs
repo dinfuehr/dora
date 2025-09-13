@@ -793,7 +793,7 @@ impl<'a> AstBytecodeGen<'a> {
         let class = self.sa.class(class_id);
 
         iterate_subpatterns(self.analysis, pattern, |idx, field_pattern| {
-            let field_ty = class.fields[idx].ty();
+            let field_ty = class.fields()[idx].ty();
             let field_ty = specialize_type(self.sa, field_ty, class_type_params);
             let register_ty = self.emitter.convert_ty_reg(field_ty.clone());
             let idx = self.builder.add_const_field_types(
@@ -2685,7 +2685,7 @@ impl<'a> AstBytecodeGen<'a> {
 
         let assign_value = if expr.op != ast::BinOp::Assign {
             let cls = self.sa.class(cls_id);
-            let ty = cls.fields[field_id.0].ty();
+            let ty = cls.fields()[field_id.0].ty();
             let ty = self.emitter.convert_ty_reg(ty);
             let current = self.alloc_temp(ty);
             self.builder
@@ -2900,7 +2900,7 @@ impl<'a> AstBytecodeGen<'a> {
 
         let outer_cls = self.sa.class(outer_cls_id);
         let field_id = field_id_from_context_idx(field_id, outer_context_info.has_parent_slot());
-        let field = &outer_cls.fields[field_id];
+        let field = &outer_cls.field(field_id);
 
         let ty: BytecodeType = self.emitter.convert_ty_reg(field.ty());
         let value_reg = self.ensure_register(dest, ty);
@@ -3083,7 +3083,7 @@ impl<'a> AstBytecodeGen<'a> {
 
         let outer_cls = self.sa.class(outer_cls_id);
         let field_id = field_id_from_context_idx(field_id, outer_context_info.has_parent_slot());
-        let field = &outer_cls.fields[field_id];
+        let field = &outer_cls.field(field_id);
 
         let ty: BytecodeType = self.emitter.convert_ty_reg(field.ty());
         let dest = self.alloc_temp(ty);

@@ -32,7 +32,7 @@ pub struct ClassDefinition {
     pub visibility: Visibility,
     pub field_name_style: ast::FieldNameStyle,
 
-    pub fields: Vec<FieldDefinition>,
+    pub fields: OnceCell<Vec<FieldDefinition>>,
 
     pub extensions: RefCell<Vec<ExtensionDefinitionId>>,
 
@@ -52,7 +52,6 @@ impl ClassDefinition {
         modifiers: ParsedModifierList,
         name: Name,
         type_param_definition: Rc<TypeParamDefinition>,
-        fields: Vec<FieldDefinition>,
     ) -> ClassDefinition {
         ClassDefinition {
             id: None,
@@ -68,7 +67,7 @@ impl ClassDefinition {
             visibility: modifiers.visibility(),
             field_name_style: ast.field_name_style,
 
-            fields,
+            fields: OnceCell::new(),
 
             extensions: RefCell::new(Vec::new()),
 
@@ -103,7 +102,7 @@ impl ClassDefinition {
             visibility,
             field_name_style: ast::FieldNameStyle::Positional,
 
-            fields,
+            fields: fields.into(),
 
             extensions: RefCell::new(Vec::new()),
 
@@ -135,7 +134,7 @@ impl ClassDefinition {
     }
 
     pub fn field_by_name(&self, name: Name) -> FieldDefinitionId {
-        for field in &self.fields {
+        for field in self.fields() {
             if field.name == Some(name) {
                 return field.id;
             }
@@ -146,6 +145,18 @@ impl ClassDefinition {
 
     pub fn name(&self, sa: &Sema) -> String {
         module_path(sa, self.module_id, self.name)
+    }
+
+    pub fn fields(&self) -> &[FieldDefinition] {
+        self.fields.get().expect("missing fields")
+    }
+
+    pub fn field(&self, idx: FieldDefinitionId) -> &FieldDefinition {
+        &self.fields()[idx.to_usize()]
+    }
+
+    pub fn field_at(&self, idx: usize) -> &FieldDefinition {
+        &self.fields()[idx]
     }
 
     pub fn name_with_params(&self, sa: &Sema, type_list: &SourceTypeArray) -> String {
@@ -170,7 +181,7 @@ impl ClassDefinition {
             return false;
         }
 
-        for field in &self.fields {
+        for field in self.fields() {
             if !field.visibility.is_public() {
                 return false;
             }
@@ -232,15 +243,15 @@ impl ElementWithFields for ClassDefinition {
     }
 
     fn field_name(&self, idx: usize) -> Option<Name> {
-        self.fields[idx].name
+        self.fields()[idx].name
     }
 
     fn fields_len(&self) -> usize {
-        self.fields.len()
+        self.fields().len()
     }
 
     fn fields<'a>(&'a self) -> Box<dyn DoubleEndedIterator<Item = ElementField> + 'a> {
-        Box::new(self.fields.iter().map(|f| ElementField {
+        Box::new(self.fields().iter().map(|f| ElementField {
             id: f.id.to_usize(),
             name: f.name,
             ty: f.ty(),
@@ -256,7 +267,7 @@ pub fn find_field_in_class(
     if let SourceType::Class(cls_id, type_params) = object_type.clone() {
         let cls = sa.class(cls_id);
 
-        for field in &cls.fields {
+        for field in cls.fields() {
             if field.name == Some(name) {
                 return Some((
                     field.id,

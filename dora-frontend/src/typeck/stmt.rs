@@ -431,7 +431,7 @@ fn check_pattern_class(
             check_subpatterns_named(ck, ctxt, pattern, cls, &value_type_params);
         } else {
             let expected_types = cls
-                .fields
+                .fields()
                 .iter()
                 .map(|f| specialize_type(ck.sa, f.ty(), &value_type_params))
                 .collect::<Vec<_>>();

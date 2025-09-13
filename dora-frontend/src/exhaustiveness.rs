@@ -1213,7 +1213,7 @@ fn convert_pattern(sa: &Sema, analysis: &AnalysisData, pattern: &ast::Pattern) -
                     Pattern::Constructor {
                         span: p.span,
                         constructor_id: ConstructorId::Class(*cls_id),
-                        params: convert_subpatterns(sa, analysis, p, class.fields.len()),
+                        params: convert_subpatterns(sa, analysis, p, class.fields().len()),
                     }
                 }
 

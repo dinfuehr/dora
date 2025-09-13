@@ -66,7 +66,7 @@ pub fn class_field_accessible_from(
     module_id: ModuleDefinitionId,
 ) -> bool {
     let cls = sa.class(cls_id);
-    let field = &cls.fields[field_id];
+    let field = &cls.field(field_id);
 
     accessible_from(
         sa,

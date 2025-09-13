@@ -171,7 +171,7 @@ fn parse_class_types(sa: &Sema) {
             ))
             .expect("already initialized");
 
-        for field in &cls.fields {
+        for field in cls.fields() {
             parsety::parse_type(sa, &symtable, cls.file_id(), cls, false, field.parsed_ty());
         }
 
@@ -393,7 +393,7 @@ fn check_class_types(sa: &Sema) {
     for (_id, class) in sa.classes.iter() {
         check_type_param_definition(sa, class, class.type_param_definition());
 
-        for field in &class.fields {
+        for field in class.fields() {
             parsety::check_type(sa, class, field.parsed_ty());
         }
     }
@@ -555,7 +555,7 @@ fn expand_const_types(sa: &Sema) {
 
 fn expand_class_types(sa: &Sema) {
     for (_id, cls) in sa.classes.iter() {
-        for field in &cls.fields {
+        for field in cls.fields() {
             parsety::expand_type(sa, cls, field.parsed_ty(), None);
         }
 
