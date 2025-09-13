@@ -22,7 +22,7 @@ pub use self::consts::{ConstDefinition, ConstDefinitionId, ConstValue};
 pub use self::elements::{
     parent_element_or_self, Element, ElementAccess, ElementField, ElementId, ElementWithFields,
 };
-pub use self::enums::{EnumDefinition, EnumDefinitionId, EnumVariant};
+pub use self::enums::{EnumDefinition, EnumDefinitionId, Variant};
 pub use self::extensions::{ExtensionDefinition, ExtensionDefinitionId};
 pub use self::fields::{FieldDefinition, FieldDefinitionId};
 pub use self::functions::{

@@ -10,12 +10,12 @@ use crate::error::msg::ErrorMessage;
 use crate::interner::Name;
 use crate::sema::{
     AliasBound, AliasDefinition, AliasDefinitionId, AliasParent, ClassDefinition, ConstDefinition,
-    Element, EnumDefinition, EnumVariant, ExtensionDefinition, ExtensionDefinitionId,
-    FctDefinition, FctDefinitionId, FctParent, FieldDefinition, FieldDefinitionId, FileContent,
-    GlobalDefinition, ImplDefinition, ImplDefinitionId, ModuleDefinition, ModuleDefinitionId,
-    PackageDefinition, PackageDefinitionId, PackageName, Param, Params, Sema, SourceFile,
-    SourceFileId, StructDefinition, TraitDefinition, TraitDefinitionId, TypeParamDefinition,
-    UseDefinition, Visibility,
+    Element, EnumDefinition, ExtensionDefinition, ExtensionDefinitionId, FctDefinition,
+    FctDefinitionId, FctParent, FieldDefinition, FieldDefinitionId, FileContent, GlobalDefinition,
+    ImplDefinition, ImplDefinitionId, ModuleDefinition, ModuleDefinitionId, PackageDefinition,
+    PackageDefinitionId, PackageName, Param, Params, Sema, SourceFile, SourceFileId,
+    StructDefinition, TraitDefinition, TraitDefinitionId, TypeParamDefinition, UseDefinition,
+    Variant, Visibility,
 };
 use crate::sym::{SymTable, Symbol, SymbolKind};
 use crate::{report_sym_shadow_span, ty, ParsedType, SourceType};
@@ -797,7 +797,7 @@ impl<'x> visit::Visitor for TopLevelDeclaration<'x> {
                 fields.push(field);
             }
 
-            let enum_variant = EnumVariant {
+            let enum_variant = Variant {
                 id: next_variant_id,
                 name: name,
                 field_name_style: variant.field_name_style,

@@ -32,7 +32,7 @@ pub struct EnumDefinition {
     pub name: Name,
     pub visibility: Visibility,
     pub type_param_definition: Rc<TypeParamDefinition>,
-    pub variants: Vec<EnumVariant>,
+    pub variants: Vec<Variant>,
     pub extensions: RefCell<Vec<ExtensionDefinitionId>>,
     pub simple_enumeration: OnceCell<bool>,
     pub name_to_value: HashMap<Name, u32>,
@@ -47,7 +47,7 @@ impl EnumDefinition {
         modifiers: ParsedModifierList,
         name: Name,
         type_param_definition: Rc<TypeParamDefinition>,
-        variants: Vec<EnumVariant>,
+        variants: Vec<Variant>,
         name_to_value: HashMap<Name, u32>,
     ) -> EnumDefinition {
         EnumDefinition {
@@ -102,7 +102,7 @@ impl EnumDefinition {
         }
     }
 
-    pub fn variants(&self) -> &[EnumVariant] {
+    pub fn variants(&self) -> &[Variant] {
         &self.variants
     }
 }
@@ -156,14 +156,14 @@ impl ElementAccess for EnumDefinition {
 }
 
 #[derive(Debug)]
-pub struct EnumVariant {
+pub struct Variant {
     pub id: u32,
     pub name: Name,
     pub field_name_style: ast::FieldNameStyle,
     pub fields: Vec<FieldDefinition>,
 }
 
-impl ElementWithFields for EnumVariant {
+impl ElementWithFields for Variant {
     fn field_name_style(&self) -> ast::FieldNameStyle {
         self.field_name_style
     }
