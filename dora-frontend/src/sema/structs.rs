@@ -1,4 +1,4 @@
-use std::cell::RefCell;
+use std::cell::{OnceCell, RefCell};
 use std::collections::hash_map::HashMap;
 use std::rc::Rc;
 use std::sync::Arc;
@@ -33,8 +33,8 @@ pub struct StructDefinition {
     pub internal_resolved: bool,
     pub span: Span,
     pub name: Name,
-    pub fields: Vec<FieldDefinition>,
-    pub field_names: HashMap<Name, FieldDefinitionId>,
+    pub fields: OnceCell<Vec<FieldDefinition>>,
+    pub field_names: OnceCell<HashMap<Name, FieldDefinitionId>>,
     pub extensions: RefCell<Vec<ExtensionDefinitionId>>,
     pub field_name_style: ast::FieldNameStyle,
 }
@@ -48,20 +48,7 @@ impl StructDefinition {
         modifiers: ParsedModifierList,
         name: Name,
         type_param_definition: Rc<TypeParamDefinition>,
-        fields: Vec<FieldDefinition>,
     ) -> StructDefinition {
-        let mut field_names = HashMap::new();
-
-        for field in &fields {
-            if let Some(name) = field.name {
-                if field_names.contains_key(&name) {
-                    continue;
-                }
-
-                field_names.insert(name, field.id);
-            }
-        }
-
         StructDefinition {
             id: None,
             package_id,
@@ -75,8 +62,8 @@ impl StructDefinition {
             is_internal: modifiers.is_internal,
             internal_resolved: false,
             type_param_definition,
-            fields,
-            field_names,
+            fields: OnceCell::new(),
+            field_names: OnceCell::new(),
             extensions: RefCell::new(Vec::new()),
             field_name_style: node.field_style,
         }
@@ -119,13 +106,29 @@ impl StructDefinition {
         }
     }
 
+    pub fn field_names(&self) -> &HashMap<Name, FieldDefinitionId> {
+        self.field_names.get().expect("missing field_names")
+    }
+
+    pub fn fields(&self) -> &[FieldDefinition] {
+        self.fields.get().expect("missing fields")
+    }
+
+    pub fn field(&self, idx: FieldDefinitionId) -> &FieldDefinition {
+        &self.fields()[idx.to_usize()]
+    }
+
+    pub fn field_at(&self, idx: usize) -> &FieldDefinition {
+        &self.fields()[idx]
+    }
+
     pub fn all_fields_are_public(&self) -> bool {
         // "Internal" structs don't have any outside visible fields.
         if self.is_internal {
             return false;
         }
 
-        for field in &self.fields {
+        for field in self.fields() {
             if !field.visibility.is_public() {
                 return false;
             }
@@ -187,15 +190,15 @@ impl ElementWithFields for StructDefinition {
     }
 
     fn fields_len(&self) -> usize {
-        self.fields.len()
+        self.fields().len()
     }
 
     fn field_name(&self, idx: usize) -> Option<Name> {
-        self.fields[idx].name
+        self.field_at(idx).name
     }
 
     fn fields<'a>(&'a self) -> Box<dyn DoubleEndedIterator<Item = ElementField> + 'a> {
-        Box::new(self.fields.iter().map(|f| ElementField {
+        Box::new(self.fields().iter().map(|f| ElementField {
             id: f.id.to_usize(),
             name: f.name,
             ty: f.ty(),

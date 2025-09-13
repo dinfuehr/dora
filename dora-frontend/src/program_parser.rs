@@ -696,10 +696,24 @@ impl<'x> visit::Visitor for TopLevelDeclaration<'x> {
             modifiers,
             ensure_name(self.sa, &node.name),
             type_param_definition,
-            fields,
         );
         let id = self.sa.structs.alloc(struct_);
         self.sa.structs[id].id = Some(id);
+
+        let mut field_names = HashMap::new();
+
+        for field in &fields {
+            if let Some(name) = field.name {
+                if field_names.contains_key(&name) {
+                    continue;
+                }
+
+                field_names.insert(name, field.id);
+            }
+        }
+
+        assert!(self.sa.struct_(id).fields.set(fields).is_ok());
+        assert!(self.sa.struct_(id).field_names.set(field_names).is_ok());
 
         let sym = SymbolKind::Struct(id);
         if let Some((name, sym)) = self.insert_optional(&node.name, sym) {

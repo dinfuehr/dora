@@ -136,7 +136,7 @@ pub fn struct_field_accessible_from(
     module_id: ModuleDefinitionId,
 ) -> bool {
     let struct_ = sa.struct_(struct_id);
-    let field = &struct_.fields[field_id.to_usize()];
+    let field = struct_.field(field_id);
 
     accessible_from(
         sa,

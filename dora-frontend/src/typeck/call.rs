@@ -529,11 +529,11 @@ fn check_expr_call_field(
 
     if let SourceType::Struct(struct_id, struct_type_params) = object_type.clone() {
         let struct_ = ck.sa.struct_(struct_id);
-        if let Some(&field_id) = struct_.field_names.get(&interned_method_name) {
+        if let Some(&field_id) = struct_.field_names().get(&interned_method_name) {
             let ident_type = IdentType::StructField(object_type.clone(), field_id);
             ck.analysis.map_idents.insert_or_replace(e.id, ident_type);
 
-            let field = &struct_.fields[field_id.to_usize()];
+            let field = struct_.field(field_id);
             let field_type = replace_type(ck.sa, field.ty(), Some(&struct_type_params), None);
 
             if !struct_field_accessible_from(ck.sa, struct_id, field_id, ck.module_id) {

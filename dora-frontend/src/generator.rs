@@ -766,7 +766,7 @@ impl<'a> AstBytecodeGen<'a> {
         let struct_ = self.sa.struct_(struct_id);
 
         iterate_subpatterns(self.analysis, pattern, |idx, field| {
-            let field_ty = struct_.fields[idx].ty();
+            let field_ty = struct_.field_at(idx).ty();
             let field_ty = specialize_type(self.sa, field_ty, struct_type_params);
             let register_ty = self.emitter.convert_ty_reg(field_ty.clone());
             let idx = self.builder.add_const_struct_field(

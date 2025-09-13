@@ -479,7 +479,7 @@ fn check_pattern_struct(
             check_subpatterns_named(ck, ctxt, pattern, struct_, &value_type_params);
         } else {
             let expected_types = struct_
-                .fields
+                .fields()
                 .iter()
                 .map(|f| specialize_type(ck.sa, f.ty(), &value_type_params))
                 .collect::<Vec<_>>();
