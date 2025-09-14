@@ -193,7 +193,8 @@ fn parse_enum_types(sa: &Sema) {
             false,
         );
 
-        for variant in enum_.variants() {
+        for &variant_id in enum_.variant_ids() {
+            let variant = sa.variant(variant_id);
             for field in &variant.fields {
                 parsety::parse_type(
                     sa,
@@ -403,7 +404,8 @@ fn check_enum_types(sa: &Sema) {
     for (_id, enum_) in sa.enums.iter() {
         check_type_param_definition(sa, enum_, enum_.type_param_definition());
 
-        for variant in enum_.variants() {
+        for &variant_id in enum_.variant_ids() {
+            let variant = sa.variant(variant_id);
             for field in &variant.fields {
                 parsety::check_type(sa, enum_, field.parsed_ty());
             }
@@ -575,7 +577,8 @@ fn expand_struct_types(sa: &Sema) {
 
 fn expand_enum_types(sa: &Sema) {
     for (_id, enum_) in sa.enums.iter() {
-        for variant in enum_.variants() {
+        for &variant_id in enum_.variant_ids() {
+            let variant = sa.variant(variant_id);
             for field in &variant.fields {
                 parsety::expand_type(sa, enum_, field.parsed_ty(), None);
             }

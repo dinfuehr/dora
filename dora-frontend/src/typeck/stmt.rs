@@ -280,10 +280,10 @@ fn check_pattern_enum(
     pattern: &ast::Pattern,
     ty: SourceType,
     enum_id: EnumDefinitionId,
-    variant_id: u32,
+    variant_index: u32,
 ) {
     let enum_ = ck.sa.enum_(enum_id);
-    let variant = enum_.variant_at(variant_id as usize);
+    let variant_id = enum_.variant_id_at(variant_index as usize);
 
     let params = get_subpatterns(pattern);
     let given_params = params.as_ref().map(|p| p.len()).unwrap_or(0);
@@ -298,13 +298,15 @@ fn check_pattern_enum(
 
         ck.analysis.map_idents.insert(
             pattern.id(),
-            IdentType::EnumVariant(enum_id, value_type_params.clone(), variant_id),
+            IdentType::EnumVariant(enum_id, value_type_params.clone(), variant_index),
         );
 
         if params.is_some() && given_params == 0 {
             let msg = ErrorMessage::PatternNoParens;
             ck.sa.report(ck.file_id, pattern.span(), msg);
         }
+
+        let variant = ck.sa.variant(variant_id);
 
         if variant.field_name_style.is_named() {
             check_subpatterns_named(ck, ctxt, pattern, variant, &value_type_params);

@@ -15,7 +15,7 @@ use crate::sema::{
     ImplDefinition, ImplDefinitionId, ModuleDefinition, ModuleDefinitionId, PackageDefinition,
     PackageDefinitionId, PackageName, Param, Params, Sema, SourceFile, SourceFileId,
     StructDefinition, TraitDefinition, TraitDefinitionId, TypeParamDefinition, UseDefinition,
-    Variant, Visibility,
+    VariantDefinition, Visibility,
 };
 use crate::sym::{SymTable, Symbol, SymbolKind};
 use crate::{report_sym_shadow_span, ty, ParsedType, SourceType};
@@ -837,14 +837,15 @@ impl<'x> visit::Visitor for TopLevelDeclaration<'x> {
                 fields.push(field);
             }
 
-            let enum_variant = Variant {
-                id: next_variant_id,
+            let variant_id = self.sa.variants.alloc(VariantDefinition {
+                id: OnceCell::new(),
+                index: next_variant_id,
                 name: name,
                 field_name_style: variant.field_name_style,
                 fields,
-            };
+            });
 
-            variants.push(enum_variant);
+            variants.push(variant_id);
 
             if name_to_value.insert(name, next_variant_id).is_some() {
                 let name = self.sa.interner.str(name).to_string();

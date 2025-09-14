@@ -271,7 +271,8 @@ impl Emitter {
     fn create_enum_variants(&mut self, sa: &Sema, enum_: &EnumDefinition) -> Vec<EnumVariant> {
         let mut result = Vec::new();
 
-        for variant in enum_.variants() {
+        for &variant_id in enum_.variant_ids() {
+            let variant = sa.variant(variant_id);
             let arguments = variant
                 .fields
                 .iter()

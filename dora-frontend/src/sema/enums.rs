@@ -32,7 +32,7 @@ pub struct EnumDefinition {
     pub name: Name,
     pub visibility: Visibility,
     pub type_param_definition: Rc<TypeParamDefinition>,
-    pub variants: OnceCell<Vec<Variant>>,
+    pub variants: OnceCell<Vec<VariantId>>,
     pub extensions: RefCell<Vec<ExtensionDefinitionId>>,
     pub simple_enumeration: OnceCell<bool>,
     pub name_to_value: OnceCell<HashMap<Name, u32>>,
@@ -100,12 +100,12 @@ impl EnumDefinition {
         }
     }
 
-    pub fn variants(&self) -> &[Variant] {
+    pub fn variant_ids(&self) -> &[VariantId] {
         self.variants.get().expect("missing variants")
     }
 
-    pub fn variant_at(&self, idx: usize) -> &Variant {
-        &self.variants()[idx]
+    pub fn variant_id_at(&self, idx: usize) -> VariantId {
+        self.variant_ids()[idx]
     }
 }
 
@@ -157,15 +157,18 @@ impl ElementAccess for EnumDefinition {
     }
 }
 
+pub type VariantId = Id<VariantDefinition>;
+
 #[derive(Debug)]
-pub struct Variant {
-    pub id: u32,
+pub struct VariantDefinition {
+    pub id: OnceCell<VariantId>,
+    pub index: u32,
     pub name: Name,
     pub field_name_style: ast::FieldNameStyle,
     pub fields: Vec<FieldDefinition>,
 }
 
-impl ElementWithFields for Variant {
+impl ElementWithFields for VariantDefinition {
     fn field_name_style(&self) -> ast::FieldNameStyle {
         self.field_name_style
     }

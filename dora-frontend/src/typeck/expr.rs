@@ -2086,7 +2086,8 @@ fn check_enum_variant_without_args(
     let interned_name = ck.sa.interner.intern(&name);
 
     if let Some(&value) = enum_.name_to_value().get(&interned_name) {
-        let variant = enum_.variant_at(value as usize);
+        let variant_id = enum_.variant_id_at(value as usize);
+        let variant = ck.sa.variant(variant_id);
 
         if !variant.fields.is_empty() {
             let msg = ErrorMessage::EnumVariantMissingArguments;
@@ -2231,7 +2232,8 @@ pub(super) fn check_enum_variant_without_args_id(
         |ty| specialize_type(ck.sa, ty, &type_params),
     );
 
-    let variant = &enum_.variants()[variant_idx as usize];
+    let variant_id = enum_.variant_id_at(variant_idx as usize);
+    let variant = ck.sa.variant(variant_id);
 
     if !variant.fields.is_empty() {
         let msg = ErrorMessage::EnumVariantMissingArguments;

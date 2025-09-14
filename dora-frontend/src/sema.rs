@@ -22,7 +22,7 @@ pub use self::consts::{ConstDefinition, ConstDefinitionId, ConstValue};
 pub use self::elements::{
     parent_element_or_self, Element, ElementAccess, ElementField, ElementId, ElementWithFields,
 };
-pub use self::enums::{EnumDefinition, EnumDefinitionId, Variant};
+pub use self::enums::{EnumDefinition, EnumDefinitionId, VariantDefinition, VariantId};
 pub use self::extensions::{ExtensionDefinition, ExtensionDefinitionId};
 pub use self::fields::{FieldDefinition, FieldDefinitionId, FieldIndex};
 pub use self::functions::{
@@ -138,6 +138,7 @@ pub struct Sema {
     pub modules: Arena<ModuleDefinition>, // stores all module definitions
     pub fcts: Arena<FctDefinition>,      // stores all function source definitions
     pub enums: Arena<EnumDefinition>,    // stores all enum source definitions
+    pub variants: Arena<VariantDefinition>, // stores all enum variant definitions
     pub traits: Arena<TraitDefinition>,  // stores all trait definitions
     pub impls: Arena<ImplDefinition>,    // stores all impl definitions
     pub globals: Arena<GlobalDefinition>, // stores all global variables
@@ -168,6 +169,7 @@ impl Sema {
             extensions: Arena::new(),
             modules: Arena::new(),
             enums: Arena::new(),
+            variants: Arena::new(),
             traits: Arena::new(),
             impls: Arena::new(),
             globals: Arena::new(),
@@ -224,6 +226,10 @@ impl Sema {
 
     pub fn enum_(&self, id: EnumDefinitionId) -> &EnumDefinition {
         &self.enums[id]
+    }
+
+    pub fn variant(&self, id: VariantId) -> &VariantDefinition {
+        &self.variants[id]
     }
 
     pub fn trait_(&self, id: TraitDefinitionId) -> &TraitDefinition {

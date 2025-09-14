@@ -139,9 +139,12 @@ pub fn setup_prelude(sa: &mut Sema) {
 
         let enum_ = sa.enum_(enum_id);
 
-        for variant in enum_.variants() {
-            let old_sym =
-                prelude_table.insert(variant.name, SymbolKind::EnumVariant(enum_id, variant.id));
+        for &variant_id in enum_.variant_ids() {
+            let variant = sa.variant(variant_id);
+            let old_sym = prelude_table.insert(
+                variant.name,
+                SymbolKind::EnumVariant(enum_id, variant.index),
+            );
             assert!(old_sym.is_none());
         }
     }
@@ -154,9 +157,12 @@ pub fn setup_prelude(sa: &mut Sema) {
 
         let enum_ = sa.enum_(enum_id);
 
-        for variant in enum_.variants() {
-            let old_sym =
-                prelude_table.insert(variant.name, SymbolKind::EnumVariant(enum_id, variant.id));
+        for &variant_id in enum_.variant_ids() {
+            let variant = sa.variant(variant_id);
+            let old_sym = prelude_table.insert(
+                variant.name,
+                SymbolKind::EnumVariant(enum_id, variant.index),
+            );
             assert!(old_sym.is_none());
         }
     }

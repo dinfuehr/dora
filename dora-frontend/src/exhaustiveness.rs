@@ -145,7 +145,8 @@ fn display_pattern(sa: &Sema, pattern: Pattern, output: &mut String) -> fmt::Res
 
             ConstructorId::Enum(enum_id, variant_id) => {
                 let enum_ = sa.enum_(enum_id);
-                let variant = enum_.variant_at(variant_id);
+                let variant_id = enum_.variant_id_at(variant_id);
+                let variant = sa.variant(variant_id);
                 write!(
                     output,
                     "{}::{}",
@@ -1015,7 +1016,7 @@ impl ConstructorId {
         match self {
             ConstructorId::Bool => 2,
             ConstructorId::Class(..) | ConstructorId::Struct(..) | ConstructorId::Tuple => 1,
-            ConstructorId::Enum(enum_id, _) => sa.enum_(*enum_id).variants().len(),
+            ConstructorId::Enum(enum_id, _) => sa.enum_(*enum_id).variant_ids().len(),
         }
     }
 }
@@ -1199,11 +1200,12 @@ fn convert_pattern(sa: &Sema, analysis: &AnalysisData, pattern: &ast::Pattern) -
             match ident {
                 IdentType::EnumVariant(pattern_enum_id, _type_params, variant_id) => {
                     let enum_ = sa.enum_(*pattern_enum_id);
-                    let variant = enum_.variant_at(*variant_id as usize);
+                    let variant_id = enum_.variant_id_at(*variant_id as usize);
+                    let variant = sa.variant(variant_id);
 
                     Pattern::Constructor {
                         span: p.span,
-                        constructor_id: ConstructorId::Enum(enum_.id(), variant.id as usize),
+                        constructor_id: ConstructorId::Enum(enum_.id(), variant.index as usize),
                         params: convert_subpatterns(sa, analysis, p, variant.fields.len()),
                     }
                 }

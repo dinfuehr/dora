@@ -832,7 +832,7 @@ pub(super) fn check_expr_call_enum_variant(
     arguments: CallArguments,
 ) -> SourceType {
     let enum_ = ck.sa.enum_(enum_id);
-    let variant = enum_.variant_at(variant_idx as usize);
+    let variant_id = enum_.variant_id_at(variant_idx as usize);
 
     if !enum_accessible_from(ck.sa, enum_id, ck.module_id) {
         let msg = ErrorMessage::NotAccessible;
@@ -860,6 +860,8 @@ pub(super) fn check_expr_call_enum_variant(
         ck.analysis.set_ty(e.id, ty_error());
         return ty_error();
     }
+
+    let variant = ck.sa.variant(variant_id);
 
     if variant.fields.is_empty() {
         let msg = ErrorMessage::UnexpectedArgumentsForEnumVariant;

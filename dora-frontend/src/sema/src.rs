@@ -8,8 +8,8 @@ use dora_parser::ast;
 
 use crate::sema::{
     ClassDefinition, ClassDefinitionId, ConstDefinitionId, ConstValue, EnumDefinitionId,
-    FctDefinition, FctDefinitionId, FieldIndex, GlobalDefinitionId, Intrinsic,
-    StructDefinitionId, TraitDefinitionId, TypeParamId,
+    FctDefinition, FctDefinitionId, FieldIndex, GlobalDefinitionId, Intrinsic, StructDefinitionId,
+    TraitDefinitionId, TypeParamId,
 };
 use crate::ty::{SourceType, SourceTypeArray, TraitType};
 
