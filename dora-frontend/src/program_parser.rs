@@ -10,12 +10,12 @@ use crate::error::msg::ErrorMessage;
 use crate::interner::Name;
 use crate::sema::{
     AliasBound, AliasDefinition, AliasDefinitionId, AliasParent, ClassDefinition, ConstDefinition,
-    Element, EnumDefinition, ExtensionDefinition, ExtensionDefinitionId, FctDefinition,
-    FctDefinitionId, FctParent, FieldDefinition, FieldIndex, FileContent, GlobalDefinition,
-    ImplDefinition, ImplDefinitionId, ModuleDefinition, ModuleDefinitionId, PackageDefinition,
-    PackageDefinitionId, PackageName, Param, Params, Sema, SourceFile, SourceFileId,
-    StructDefinition, TraitDefinition, TraitDefinitionId, TypeParamDefinition, UseDefinition,
-    VariantDefinition, Visibility,
+    Element, ElementId, EnumDefinition, ExtensionDefinition, ExtensionDefinitionId,
+    FatFieldDefinitionId, FctDefinition, FctDefinitionId, FctParent, FieldDefinition, FieldIndex,
+    FileContent, GlobalDefinition, ImplDefinition, ImplDefinitionId, ModuleDefinition,
+    ModuleDefinitionId, PackageDefinition, PackageDefinitionId, PackageName, Param, Params, Sema,
+    SourceFile, SourceFileId, StructDefinition, TraitDefinition, TraitDefinitionId,
+    TypeParamDefinition, UseDefinition, VariantDefinition, Visibility,
 };
 use crate::sym::{SymTable, Symbol, SymbolKind};
 use crate::{report_sym_shadow_span, ty, ParsedType, SourceType};
@@ -806,7 +806,17 @@ impl<'x> visit::Visitor for TopLevelDeclaration<'x> {
                 .interner
                 .intern(&variant.name.as_ref().expect("missing name").name_as_string);
 
+            let variant_id = self.sa.variants.alloc(VariantDefinition {
+                id: OnceCell::new(),
+                index: next_variant_id,
+                name: name,
+                field_name_style: variant.field_name_style,
+                fields: OnceCell::new(),
+                field_ids: OnceCell::new(),
+            });
+
             let mut fields = Vec::new();
+            let mut field_ids = Vec::new();
             let mut used_names: HashSet<Name> = HashSet::new();
 
             for (index, field) in variant.fields.iter().enumerate() {
@@ -835,15 +845,14 @@ impl<'x> visit::Visitor for TopLevelDeclaration<'x> {
                 };
 
                 fields.push(field);
+                field_ids.push(FatFieldDefinitionId {
+                    owner: ElementId::Variant(variant_id),
+                    index: FieldIndex(index),
+                })
             }
 
-            let variant_id = self.sa.variants.alloc(VariantDefinition {
-                id: OnceCell::new(),
-                index: next_variant_id,
-                name: name,
-                field_name_style: variant.field_name_style,
-                fields,
-            });
+            assert!(self.sa.variant(variant_id).fields.set(fields).is_ok());
+            assert!(self.sa.variant(variant_id).field_ids.set(field_ids).is_ok());
 
             variants.push(variant_id);
 

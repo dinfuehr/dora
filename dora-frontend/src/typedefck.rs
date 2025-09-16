@@ -195,7 +195,8 @@ fn parse_enum_types(sa: &Sema) {
 
         for &variant_id in enum_.variant_ids() {
             let variant = sa.variant(variant_id);
-            for field in &variant.fields {
+            for &field_id in variant.field_ids() {
+                let field = sa.field(field_id);
                 parsety::parse_type(
                     sa,
                     &symtable,
@@ -406,7 +407,8 @@ fn check_enum_types(sa: &Sema) {
 
         for &variant_id in enum_.variant_ids() {
             let variant = sa.variant(variant_id);
-            for field in &variant.fields {
+            for &field_id in variant.field_ids() {
+                let field = sa.field(field_id);
                 parsety::check_type(sa, enum_, field.parsed_ty());
             }
         }
@@ -579,7 +581,8 @@ fn expand_enum_types(sa: &Sema) {
     for (_id, enum_) in sa.enums.iter() {
         for &variant_id in enum_.variant_ids() {
             let variant = sa.variant(variant_id);
-            for field in &variant.fields {
+            for &field_id in variant.field_ids() {
+                let field = sa.field(field_id);
                 parsety::expand_type(sa, enum_, field.parsed_ty(), None);
             }
         }

@@ -12,8 +12,8 @@ use id_arena::Id;
 
 use crate::sema::{
     module_path, Element, ElementAccess, ElementId, ElementWithFields, ExtensionDefinitionId,
-    FieldDefinition, ModuleDefinitionId, PackageDefinitionId, Sema, SourceFileId,
-    TypeParamDefinition, Visibility,
+    FatFieldDefinitionId, FieldDefinition, FieldIndex, ModuleDefinitionId, PackageDefinitionId,
+    Sema, SourceFileId, TypeParamDefinition, Visibility,
 };
 use crate::{SourceType, SourceTypeArray};
 
@@ -32,7 +32,7 @@ pub struct EnumDefinition {
     pub name: Name,
     pub visibility: Visibility,
     pub type_param_definition: Rc<TypeParamDefinition>,
-    pub variants: OnceCell<Vec<VariantId>>,
+    pub variants: OnceCell<Vec<VariantDefinitionId>>,
     pub extensions: RefCell<Vec<ExtensionDefinitionId>>,
     pub simple_enumeration: OnceCell<bool>,
     pub name_to_value: OnceCell<HashMap<Name, u32>>,
@@ -100,11 +100,11 @@ impl EnumDefinition {
         }
     }
 
-    pub fn variant_ids(&self) -> &[VariantId] {
+    pub fn variant_ids(&self) -> &[VariantDefinitionId] {
         self.variants.get().expect("missing variants")
     }
 
-    pub fn variant_id_at(&self, idx: usize) -> VariantId {
+    pub fn variant_id_at(&self, idx: usize) -> VariantDefinitionId {
         self.variant_ids()[idx]
     }
 }
@@ -157,15 +157,30 @@ impl ElementAccess for EnumDefinition {
     }
 }
 
-pub type VariantId = Id<VariantDefinition>;
+pub type VariantDefinitionId = Id<VariantDefinition>;
 
 #[derive(Debug)]
 pub struct VariantDefinition {
-    pub id: OnceCell<VariantId>,
+    pub id: OnceCell<VariantDefinitionId>,
     pub index: u32,
     pub name: Name,
     pub field_name_style: ast::FieldNameStyle,
-    pub fields: Vec<FieldDefinition>,
+    pub fields: OnceCell<Vec<FieldDefinition>>,
+    pub field_ids: OnceCell<Vec<FatFieldDefinitionId>>,
+}
+
+impl VariantDefinition {
+    pub fn field_at(&self, idx: FieldIndex) -> &FieldDefinition {
+        &self.fields()[idx.to_usize()]
+    }
+
+    pub fn fields(&self) -> &[FieldDefinition] {
+        self.fields.get().expect("missing fields")
+    }
+
+    pub fn field_ids(&self) -> &[FatFieldDefinitionId] {
+        self.field_ids.get().expect("missing fields")
+    }
 }
 
 impl ElementWithFields for VariantDefinition {
@@ -174,6 +189,6 @@ impl ElementWithFields for VariantDefinition {
     }
 
     fn fields(&self) -> &[FieldDefinition] {
-        &self.fields
+        self.fields()
     }
 }

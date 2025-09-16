@@ -12,8 +12,8 @@ use dora_parser::Span;
 
 use crate::sema::{
     module_path, new_identity_type_params, Element, ElementAccess, ElementId, ElementWithFields,
-    ExtensionDefinitionId, FieldDefinition, FieldIndex, ModuleDefinitionId, PackageDefinitionId,
-    Sema, SourceFileId, TypeParamDefinition, Visibility,
+    ExtensionDefinitionId, FatFieldDefinitionId, FieldDefinition, FieldIndex, ModuleDefinitionId,
+    PackageDefinitionId, Sema, SourceFileId, TypeParamDefinition, Visibility,
 };
 use crate::{SourceType, SourceTypeArray};
 
@@ -34,6 +34,7 @@ pub struct StructDefinition {
     pub span: Span,
     pub name: Name,
     pub fields: OnceCell<Vec<FieldDefinition>>,
+    pub field_ids: OnceCell<Vec<FatFieldDefinitionId>>,
     pub field_names: OnceCell<HashMap<Name, FieldIndex>>,
     pub extensions: RefCell<Vec<ExtensionDefinitionId>>,
     pub field_name_style: ast::FieldNameStyle,
@@ -63,6 +64,7 @@ impl StructDefinition {
             internal_resolved: false,
             type_param_definition,
             fields: OnceCell::new(),
+            field_ids: OnceCell::new(),
             field_names: OnceCell::new(),
             extensions: RefCell::new(Vec::new()),
             field_name_style: node.field_style,

@@ -3,8 +3,14 @@ use std::cell::OnceCell;
 use id_arena::Id;
 
 use crate::interner::Name;
-use crate::sema::Visibility;
+use crate::sema::{ElementId, Visibility};
 use crate::{ParsedType, SourceType, Span};
+
+#[derive(Debug, Copy, Clone, PartialEq, Eq)]
+pub struct FatFieldDefinitionId {
+    pub owner: ElementId,
+    pub index: FieldIndex,
+}
 
 pub type FieldDefinitionId = Id<FieldDefinition>;
 

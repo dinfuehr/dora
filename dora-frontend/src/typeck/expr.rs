@@ -2089,7 +2089,7 @@ fn check_enum_variant_without_args(
         let variant_id = enum_.variant_id_at(value as usize);
         let variant = ck.sa.variant(variant_id);
 
-        if !variant.fields.is_empty() {
+        if !variant.field_ids().is_empty() {
             let msg = ErrorMessage::EnumVariantMissingArguments;
             ck.sa.report(ck.file_id, expr_span, msg);
         }
@@ -2235,7 +2235,7 @@ pub(super) fn check_enum_variant_without_args_id(
     let variant_id = enum_.variant_id_at(variant_idx as usize);
     let variant = ck.sa.variant(variant_id);
 
-    if !variant.fields.is_empty() {
+    if !variant.field_ids().is_empty() {
         let msg = ErrorMessage::EnumVariantMissingArguments;
         ck.sa.report(ck.file_id, expr_span, msg);
     }

@@ -274,9 +274,12 @@ impl Emitter {
         for &variant_id in enum_.variant_ids() {
             let variant = sa.variant(variant_id);
             let arguments = variant
-                .fields
+                .field_ids()
                 .iter()
-                .map(|f| self.convert_ty(f.ty()))
+                .map(|&field_id| {
+                    let field = sa.field(field_id);
+                    self.convert_ty(field.ty())
+                })
                 .collect();
             result.push(EnumVariant {
                 name: sa.interner.str(variant.name).to_string(),

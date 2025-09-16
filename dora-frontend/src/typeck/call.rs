@@ -863,7 +863,7 @@ pub(super) fn check_expr_call_enum_variant(
 
     let variant = ck.sa.variant(variant_id);
 
-    if variant.fields.is_empty() {
+    if variant.field_ids().is_empty() {
         let msg = ErrorMessage::UnexpectedArgumentsForEnumVariant;
         ck.sa.report(ck.file_id, e.span, msg);
     } else {

@@ -10,8 +10,8 @@ use dora_parser::ast;
 
 use crate::sema::{
     module_path, Element, ElementAccess, ElementId, ElementWithFields, ExtensionDefinitionId,
-    FctDefinitionId, FieldDefinition, FieldIndex, ModuleDefinitionId, PackageDefinitionId, Sema,
-    SourceFileId, TypeParamDefinition,
+    FatFieldDefinitionId, FctDefinitionId, FieldDefinition, FieldIndex, ModuleDefinitionId,
+    PackageDefinitionId, Sema, SourceFileId, TypeParamDefinition,
 };
 use crate::{specialize_for_element, SourceType, SourceTypeArray, Span};
 
@@ -33,6 +33,7 @@ pub struct ClassDefinition {
     pub field_name_style: ast::FieldNameStyle,
 
     pub fields: OnceCell<Vec<FieldDefinition>>,
+    pub field_ids: OnceCell<Vec<FatFieldDefinitionId>>,
 
     pub extensions: RefCell<Vec<ExtensionDefinitionId>>,
 
@@ -68,6 +69,7 @@ impl ClassDefinition {
             field_name_style: ast.field_name_style,
 
             fields: OnceCell::new(),
+            field_ids: OnceCell::new(),
 
             extensions: RefCell::new(Vec::new()),
 
@@ -103,6 +105,7 @@ impl ClassDefinition {
             field_name_style: ast::FieldNameStyle::Positional,
 
             fields: fields.into(),
+            field_ids: OnceCell::new(),
 
             extensions: RefCell::new(Vec::new()),
 

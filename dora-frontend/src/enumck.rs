@@ -6,7 +6,7 @@ pub fn check(sa: &Sema) {
 
         for &variant_id in enum_.variant_ids() {
             let variant = sa.variant(variant_id);
-            if variant.fields.len() > 0 {
+            if variant.field_ids().len() > 0 {
                 simple_enumeration = false;
             }
         }

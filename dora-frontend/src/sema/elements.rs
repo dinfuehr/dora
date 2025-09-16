@@ -7,7 +7,7 @@ use crate::sema::{
     EnumDefinitionId, ExtensionDefinitionId, FctDefinition, FctDefinitionId, FctParent,
     FieldDefinition, GlobalDefinitionId, ImplDefinition, ImplDefinitionId, ModuleDefinitionId,
     PackageDefinitionId, Sema, SourceFileId, StructDefinitionId, TraitDefinition,
-    TraitDefinitionId, TypeParamDefinition, UseDefinitionId, Visibility,
+    TraitDefinitionId, TypeParamDefinition, UseDefinitionId, VariantDefinitionId, Visibility,
 };
 use crate::{Name, SourceType, Span};
 
@@ -24,6 +24,7 @@ pub enum ElementId {
     Fct(FctDefinitionId),
     Enum(EnumDefinitionId),
     Trait(TraitDefinitionId),
+    Variant(VariantDefinitionId),
 }
 
 pub trait Element {

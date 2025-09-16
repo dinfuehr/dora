@@ -1206,7 +1206,7 @@ fn convert_pattern(sa: &Sema, analysis: &AnalysisData, pattern: &ast::Pattern) -
                     Pattern::Constructor {
                         span: p.span,
                         constructor_id: ConstructorId::Enum(enum_.id(), variant.index as usize),
-                        params: convert_subpatterns(sa, analysis, p, variant.fields.len()),
+                        params: convert_subpatterns(sa, analysis, p, variant.field_ids().len()),
                     }
                 }
 

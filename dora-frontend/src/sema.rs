@@ -22,9 +22,9 @@ pub use self::consts::{ConstDefinition, ConstDefinitionId, ConstValue};
 pub use self::elements::{
     parent_element_or_self, Element, ElementAccess, ElementField, ElementId, ElementWithFields,
 };
-pub use self::enums::{EnumDefinition, EnumDefinitionId, VariantDefinition, VariantId};
+pub use self::enums::{EnumDefinition, EnumDefinitionId, VariantDefinition, VariantDefinitionId};
 pub use self::extensions::{ExtensionDefinition, ExtensionDefinitionId};
-pub use self::fields::{FieldDefinition, FieldDefinitionId, FieldIndex};
+pub use self::fields::{FatFieldDefinitionId, FieldDefinition, FieldDefinitionId, FieldIndex};
 pub use self::functions::{
     emit_as_bytecode_operation, FctDefinition, FctDefinitionId, FctParent, Intrinsic, Param, Params,
 };
@@ -216,6 +216,15 @@ impl Sema {
         &self.classes[id]
     }
 
+    pub fn field(&self, id: FatFieldDefinitionId) -> &FieldDefinition {
+        match id.owner {
+            ElementId::Class(class_id) => self.class(class_id).field_at(id.index.to_usize()),
+            ElementId::Struct(struct_id) => self.struct_(struct_id).field_at(id.index.to_usize()),
+            ElementId::Variant(variant_id) => self.variant(variant_id).field_at(id.index),
+            _ => unreachable!(),
+        }
+    }
+
     pub fn extension(&self, id: ExtensionDefinitionId) -> &ExtensionDefinition {
         &self.extensions[id]
     }
@@ -228,7 +237,7 @@ impl Sema {
         &self.enums[id]
     }
 
-    pub fn variant(&self, id: VariantId) -> &VariantDefinition {
+    pub fn variant(&self, id: VariantDefinitionId) -> &VariantDefinition {
         &self.variants[id]
     }
 
