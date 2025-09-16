@@ -11,9 +11,9 @@ use crate::interner::Name;
 use crate::program_parser::ParsedModifierList;
 use crate::sema::{
     create_tuple, find_field_in_class, find_impl, implements_trait, AnalysisData, ArrayAssignment,
-    CallType, ConstValue, EnumDefinitionId, FctDefinition, FctParent, IdentType, Intrinsic,
-    LazyLambdaCreationData, LazyLambdaId, ModuleDefinitionId, NestedVarId, Param, Params, Sema,
-    SourceFileId, TraitDefinitionId,
+    CallType, ConstValue, EnumDefinitionId, FctDefinition, FctParent, FieldIndex, IdentType,
+    Intrinsic, LazyLambdaCreationData, LazyLambdaId, ModuleDefinitionId, NestedVarId, Param,
+    Params, Sema, SourceFileId, TraitDefinitionId,
 };
 use crate::ty::TraitType;
 use crate::typeck::{
@@ -652,15 +652,17 @@ fn check_expr_assign_field(ck: &mut TypeCheck, e: &ast::ExprBinType) {
     let interned_name = ck.sa.interner.intern(&name);
 
     if let SourceType::Class(cls_id, class_type_params) = object_type.clone() {
-        if let Some((field_id, _)) = find_field_in_class(ck.sa, object_type.clone(), interned_name)
+        if let Some((field_index, _)) =
+            find_field_in_class(ck.sa, object_type.clone(), interned_name)
         {
-            let ident_type = IdentType::Field(object_type.clone(), field_id);
+            let ident_type = IdentType::Field(object_type.clone(), field_index);
             ck.analysis
                 .map_idents
                 .insert_or_replace(e.lhs.id(), ident_type);
 
             let cls = ck.sa.class(cls_id);
-            let field = cls.field(field_id);
+            let field_id = cls.field_id(field_index);
+            let field = ck.sa.field(field_id);
 
             let fty = replace_type(ck.sa, field.ty(), Some(&class_type_params), None);
 
@@ -815,8 +817,9 @@ fn check_expr_assign_unnamed_field(
 
         SourceType::Class(class_id, class_type_params) => {
             let cls = ck.sa.class(class_id);
-            if !cls.field_name_style.is_named() && index < cls.fields().len() {
-                let field = &cls.field_at(index);
+            if !cls.field_name_style.is_named() && index < cls.field_ids().len() {
+                let field_id = cls.field_id(FieldIndex(index));
+                let field = ck.sa.field(field_id);
                 let ident_type = IdentType::Field(object_type.clone(), field.index);
                 ck.analysis
                     .map_idents
@@ -901,21 +904,22 @@ pub(super) fn check_expr_dot(
         | SourceType::Assoc { .. }
         | SourceType::GenericAssoc { .. } => {}
         SourceType::Class(cls_id, class_type_params) => {
-            if let Some((field_id, _)) =
+            if let Some((field_index, _)) =
                 find_field_in_class(ck.sa, object_type.clone(), interned_name)
             {
-                let ident_type = IdentType::Field(object_type.clone(), field_id);
+                let ident_type = IdentType::Field(object_type.clone(), field_index);
                 ck.analysis.map_idents.insert_or_replace(e.id, ident_type);
 
                 let cls = ck.sa.class(cls_id);
-                let field = &cls.field(field_id);
+                let field_id = cls.field_id(field_index);
+                let field = ck.sa.field(field_id);
                 let call_data = CallSpecializationData {
                     object_ty: SourceType::Error,
                     type_params: class_type_params,
                 };
                 let fty = specialize_ty_for_call(ck.sa, field.ty(), ck.element, &call_data);
 
-                if !class_field_accessible_from(ck.sa, cls_id, field_id, ck.module_id) {
+                if !class_field_accessible_from(ck.sa, cls_id, field_index, ck.module_id) {
                     let msg = ErrorMessage::NotAccessible;
                     ck.sa.report(ck.file_id, e.rhs.span(), msg);
                 }
@@ -1007,8 +1011,9 @@ fn check_expr_dot_unnamed_field(
 
         SourceType::Class(class_id, class_type_params) => {
             let cls = ck.sa.class(class_id);
-            if !cls.field_name_style.is_named() && index < cls.fields().len() {
-                let field = &cls.field_at(index);
+            if !cls.field_name_style.is_named() && index < cls.field_ids().len() {
+                let field_id = cls.field_id(FieldIndex(index));
+                let field = ck.sa.field(field_id);
                 let ident_type = IdentType::Field(object_type.clone(), field.index);
                 ck.analysis.map_idents.insert_or_replace(e.id, ident_type);
 

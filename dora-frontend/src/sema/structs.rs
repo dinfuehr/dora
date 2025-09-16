@@ -116,6 +116,10 @@ impl StructDefinition {
         self.fields.get().expect("missing fields")
     }
 
+    pub fn field_ids(&self) -> &[FatFieldDefinitionId] {
+        self.field_ids.get().expect("missing fields")
+    }
+
     pub fn field(&self, idx: FieldIndex) -> &FieldDefinition {
         &self.fields()[idx.to_usize()]
     }

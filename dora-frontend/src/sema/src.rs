@@ -8,8 +8,8 @@ use dora_parser::ast;
 
 use crate::sema::{
     ClassDefinition, ClassDefinitionId, ConstDefinitionId, ConstValue, EnumDefinitionId,
-    FctDefinition, FctDefinitionId, FieldIndex, GlobalDefinitionId, Intrinsic, StructDefinitionId,
-    TraitDefinitionId, TypeParamId,
+    FctDefinition, FctDefinitionId, FieldDefinition, FieldIndex, GlobalDefinitionId, Intrinsic,
+    StructDefinitionId, TraitDefinitionId, TypeParamId,
 };
 use crate::ty::{SourceType, SourceTypeArray, TraitType};
 
@@ -123,6 +123,7 @@ impl LazyLambdaId {
 pub struct LazyContextClassCreationData {
     pub context: LazyContextData,
     pub class_definition: ClassDefinition,
+    pub fields: Vec<FieldDefinition>,
 }
 
 pub struct LazyLambdaCreationData {

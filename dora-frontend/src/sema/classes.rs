@@ -88,7 +88,6 @@ impl ClassDefinition {
         name: Name,
         visibility: Visibility,
         type_param_definition: Rc<TypeParamDefinition>,
-        fields: Vec<FieldDefinition>,
     ) -> ClassDefinition {
         ClassDefinition {
             id: None,
@@ -104,7 +103,7 @@ impl ClassDefinition {
             visibility,
             field_name_style: ast::FieldNameStyle::Positional,
 
-            fields: fields.into(),
+            fields: OnceCell::new(),
             field_ids: OnceCell::new(),
 
             extensions: RefCell::new(Vec::new()),
@@ -154,12 +153,12 @@ impl ClassDefinition {
         self.fields.get().expect("missing fields")
     }
 
-    pub fn field(&self, idx: FieldIndex) -> &FieldDefinition {
-        &self.fields()[idx.to_usize()]
+    pub fn field_ids(&self) -> &[FatFieldDefinitionId] {
+        self.field_ids.get().expect("missing fields")
     }
 
-    pub fn field_at(&self, idx: usize) -> &FieldDefinition {
-        &self.fields()[idx]
+    pub fn field_id(&self, index: FieldIndex) -> FatFieldDefinitionId {
+        self.field_ids()[index.to_usize()]
     }
 
     pub fn name_with_params(&self, sa: &Sema, type_list: &SourceTypeArray) -> String {
@@ -258,7 +257,8 @@ pub fn find_field_in_class(
     if let SourceType::Class(cls_id, type_params) = object_type.clone() {
         let cls = sa.class(cls_id);
 
-        for field in cls.fields() {
+        for &field_id in cls.field_ids() {
+            let field = sa.field(field_id);
             if field.name == Some(name) {
                 return Some((
                     field.index,

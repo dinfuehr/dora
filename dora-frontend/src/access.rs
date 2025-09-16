@@ -62,11 +62,12 @@ pub fn class_accessible_from(
 pub fn class_field_accessible_from(
     sa: &Sema,
     cls_id: ClassDefinitionId,
-    field_id: FieldIndex,
+    field_index: FieldIndex,
     module_id: ModuleDefinitionId,
 ) -> bool {
     let cls = sa.class(cls_id);
-    let field = &cls.field(field_id);
+    let field_id = cls.field_id(field_index);
+    let field = sa.field(field_id);
 
     accessible_from(
         sa,

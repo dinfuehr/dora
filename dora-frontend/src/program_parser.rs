@@ -610,6 +610,7 @@ impl<'x> visit::Visitor for TopLevelDeclaration<'x> {
         self.sa.classes[class_id].id = Some(class_id);
 
         let mut fields = Vec::with_capacity(node.fields.len());
+        let mut field_ids = Vec::with_capacity(node.fields.len());
         let mut used_names: HashSet<Name> = HashSet::new();
 
         for (index, field) in node.fields.iter().enumerate() {
@@ -633,9 +634,15 @@ impl<'x> visit::Visitor for TopLevelDeclaration<'x> {
                 mutable: true,
                 visibility: modifiers.visibility(),
             });
+
+            field_ids.push(FatFieldDefinitionId {
+                owner: ElementId::Class(class_id),
+                index: FieldIndex(index),
+            });
         }
 
         assert!(self.sa.class(class_id).fields.set(fields).is_ok());
+        assert!(self.sa.class(class_id).field_ids.set(field_ids).is_ok());
 
         let sym = SymbolKind::Class(class_id);
         if let Some((name, sym)) = self.insert_optional(&node.name, sym) {
@@ -677,6 +684,7 @@ impl<'x> visit::Visitor for TopLevelDeclaration<'x> {
         self.sa.structs[id].id = Some(id);
 
         let mut fields = Vec::with_capacity(node.fields.len());
+        let mut field_ids = Vec::with_capacity(node.fields.len());
         let mut used_names: HashSet<Name> = HashSet::new();
 
         for (index, field) in node.fields.iter().enumerate() {
@@ -700,6 +708,11 @@ impl<'x> visit::Visitor for TopLevelDeclaration<'x> {
                 parsed_ty: ParsedType::new_ast(field.data_type.clone()),
                 visibility: modifiers.visibility(),
             });
+
+            field_ids.push(FatFieldDefinitionId {
+                owner: ElementId::Struct(id),
+                index: FieldIndex(index),
+            });
         }
 
         let mut field_names = HashMap::new();
@@ -715,6 +728,7 @@ impl<'x> visit::Visitor for TopLevelDeclaration<'x> {
         }
 
         assert!(self.sa.struct_(id).fields.set(fields).is_ok());
+        assert!(self.sa.struct_(id).field_ids.set(field_ids).is_ok());
         assert!(self.sa.struct_(id).field_names.set(field_names).is_ok());
 
         let sym = SymbolKind::Struct(id);

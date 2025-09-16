@@ -220,11 +220,14 @@ impl Emitter {
 
     fn create_class_fields(&mut self, sa: &Sema, class: &ClassDefinition) -> Vec<ClassField> {
         class
-            .fields()
+            .field_ids()
             .iter()
-            .map(|f| ClassField {
-                ty: self.convert_ty(f.ty()),
-                name: f.name.map(|n| sa.interner.str(n).to_string()),
+            .map(|&field_id| {
+                let field = sa.field(field_id);
+                ClassField {
+                    ty: self.convert_ty(field.ty()),
+                    name: field.name.map(|n| sa.interner.str(n).to_string()),
+                }
             })
             .collect()
     }

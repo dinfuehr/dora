@@ -2,9 +2,10 @@ use std::cell::OnceCell;
 use std::rc::Rc;
 
 use crate::sema::{
-    ClassDefinition, ClassDefinitionId, EnumDefinitionId, ExtensionDefinitionId, FctDefinitionId,
-    FieldDefinition, FieldIndex, ImplDefinitionId, Intrinsic, ModuleDefinition, Sema,
-    StructDefinitionId, TraitDefinitionId, TypeParamDefinition, Visibility,
+    ClassDefinition, ClassDefinitionId, ElementId, EnumDefinitionId, ExtensionDefinitionId,
+    FatFieldDefinitionId, FctDefinitionId, FieldDefinition, FieldIndex, ImplDefinitionId,
+    Intrinsic, ModuleDefinition, Sema, StructDefinitionId, TraitDefinitionId, TypeParamDefinition,
+    Visibility,
 };
 use crate::sym::{SymTable, SymbolKind};
 use crate::ty::SourceType;
@@ -199,6 +200,19 @@ pub fn create_lambda_class(sa: &mut Sema) {
     let class_name = sa.interner.intern("$Lambda");
     let context_name = sa.interner.intern("context");
 
+    let class = ClassDefinition::new_without_source(
+        sa.stdlib_package_id(),
+        sa.stdlib_module_id(),
+        None,
+        None,
+        class_name,
+        Visibility::Public,
+        TypeParamDefinition::empty(),
+    );
+
+    let class_id = sa.classes.alloc(class);
+    sa.classes[class_id].id = Some(class_id);
+
     let field = FieldDefinition {
         id: OnceCell::new(),
         name: Some(context_name),
@@ -210,20 +224,14 @@ pub fn create_lambda_class(sa: &mut Sema) {
     };
 
     let fields = vec![field];
+    assert!(sa.class(class_id).fields.set(fields).is_ok());
 
-    let class = ClassDefinition::new_without_source(
-        sa.stdlib_package_id(),
-        sa.stdlib_module_id(),
-        None,
-        None,
-        class_name,
-        Visibility::Public,
-        TypeParamDefinition::empty(),
-        fields,
-    );
+    let field_ids = vec![FatFieldDefinitionId {
+        owner: ElementId::Class(class_id),
+        index: FieldIndex(0),
+    }];
+    assert!(sa.class(class_id).field_ids.set(field_ids).is_ok());
 
-    let class_id = sa.classes.alloc(class);
-    sa.classes[class_id].id = Some(class_id);
     sa.known.classes.lambda = Some(class_id);
 }
 

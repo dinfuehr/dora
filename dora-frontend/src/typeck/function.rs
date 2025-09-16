@@ -287,13 +287,13 @@ impl<'a> TypeCheck<'a> {
             name,
             Visibility::Public,
             self.type_param_definition.clone(),
-            fields,
         );
 
         self.lazy_context_class_creation
             .push(LazyContextClassCreationData {
                 context: lazy_context_data.clone(),
                 class_definition: class,
+                fields,
             });
     }
 
