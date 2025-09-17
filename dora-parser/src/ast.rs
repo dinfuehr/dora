@@ -718,7 +718,6 @@ pub struct Function {
     pub id: NodeId,
     pub declaration_span: Span,
     pub span: Span,
-    pub green: GreenNode,
     pub modifiers: Option<ModifierList>,
     pub kind: FunctionKind,
 
@@ -1079,17 +1078,10 @@ pub enum ExprData {
 }
 
 impl ExprData {
-    pub fn create_block(
-        id: NodeId,
-        span: Span,
-        green: GreenNode,
-        stmts: Vec<Stmt>,
-        expr: Option<Expr>,
-    ) -> ExprData {
+    pub fn create_block(id: NodeId, span: Span, stmts: Vec<Stmt>, expr: Option<Expr>) -> ExprData {
         ExprData::Block(ExprBlockType {
             id,
             span,
-            green,
 
             stmts,
             expr,
@@ -1117,14 +1109,12 @@ impl ExprData {
     pub fn create_match(
         id: NodeId,
         span: Span,
-        green: GreenNode,
         expr: Expr,
         arms: Vec<Arc<MatchArmType>>,
     ) -> ExprData {
         ExprData::Match(ExprMatchType {
             id,
             span,
-            green,
             expr,
             arms,
         })
@@ -1183,14 +1173,8 @@ impl ExprData {
         ExprData::Continue(ExprContinueType { id, span, green })
     }
 
-    pub fn create_un(id: NodeId, span: Span, green: GreenNode, op: UnOp, opnd: Expr) -> ExprData {
-        ExprData::Un(ExprUnType {
-            id,
-            span,
-            green,
-            op,
-            opnd,
-        })
+    pub fn create_un(id: NodeId, span: Span, op: UnOp, opnd: Expr) -> ExprData {
+        ExprData::Un(ExprUnType { id, span, op, opnd })
     }
 
     pub fn create_bin(id: NodeId, span: Span, op: BinOp, lhs: Expr, rhs: Expr) -> ExprData {
@@ -1224,80 +1208,44 @@ impl ExprData {
         })
     }
 
-    pub fn create_lit_char(
-        id: NodeId,
-        span: Span,
-        green: GreenNode,
-        full_value: String,
-    ) -> ExprData {
+    pub fn create_lit_char(id: NodeId, span: Span, full_value: String) -> ExprData {
         ExprData::LitChar(ExprLitCharType {
             id,
             span,
-            green,
             value: full_value,
         })
     }
 
-    pub fn create_lit_int(id: NodeId, span: Span, green: GreenNode, value: String) -> ExprData {
-        ExprData::LitInt(ExprLitIntType {
-            id,
-            span,
-            green,
-            value,
-        })
+    pub fn create_lit_int(id: NodeId, span: Span, value: String) -> ExprData {
+        ExprData::LitInt(ExprLitIntType { id, span, value })
     }
 
-    pub fn create_lit_float(id: NodeId, span: Span, green: GreenNode, value: String) -> ExprData {
-        ExprData::LitFloat(ExprLitFloatType {
-            id,
-            span,
-            green,
-            value,
-        })
+    pub fn create_lit_float(id: NodeId, span: Span, value: String) -> ExprData {
+        ExprData::LitFloat(ExprLitFloatType { id, span, value })
     }
 
-    pub fn create_lit_str(id: NodeId, span: Span, green: GreenNode, value: String) -> ExprData {
-        ExprData::LitStr(ExprLitStrType {
-            id,
-            span,
-            green,
-            value,
-        })
+    pub fn create_lit_str(id: NodeId, span: Span, value: String) -> ExprData {
+        ExprData::LitStr(ExprLitStrType { id, span, value })
     }
 
-    pub fn create_template(id: NodeId, span: Span, green: GreenNode, parts: Vec<Expr>) -> ExprData {
-        ExprData::Template(ExprTemplateType {
-            id,
-            span,
-            green,
-            parts,
-        })
+    pub fn create_template(id: NodeId, span: Span, parts: Vec<Expr>) -> ExprData {
+        ExprData::Template(ExprTemplateType { id, span, parts })
     }
 
     pub fn create_lit_bool(id: NodeId, span: Span, value: bool) -> ExprData {
         ExprData::LitBool(ExprLitBoolType { id, span, value })
     }
 
-    pub fn create_this(id: NodeId, span: Span, green: GreenNode) -> ExprData {
-        ExprData::This(ExprSelfType { id, span, green })
+    pub fn create_this(id: NodeId, span: Span) -> ExprData {
+        ExprData::This(ExprSelfType { id, span })
     }
 
-    pub fn create_ident(id: NodeId, span: Span, green: GreenNode, name: String) -> ExprData {
-        ExprData::Ident(ExprIdentType {
-            id,
-            span,
-            green,
-            name,
-        })
+    pub fn create_ident(id: NodeId, span: Span, name: String) -> ExprData {
+        ExprData::Ident(ExprIdentType { id, span, name })
     }
 
-    pub fn create_paren(id: NodeId, span: Span, green: GreenNode, expr: Expr) -> ExprData {
-        ExprData::Paren(ExprParenType {
-            id,
-            span,
-            green,
-            expr,
-        })
+    pub fn create_paren(id: NodeId, span: Span, expr: Expr) -> ExprData {
+        ExprData::Paren(ExprParenType { id, span, expr })
     }
 
     pub fn create_call(id: NodeId, span: Span, callee: Expr, args: Vec<Arc<Argument>>) -> ExprData {
@@ -1861,7 +1809,6 @@ pub struct ExprIsType {
 pub struct ExprUnType {
     pub id: NodeId,
     pub span: Span,
-    pub green: GreenNode,
 
     pub op: UnOp,
     pub opnd: Expr,
@@ -1881,7 +1828,6 @@ pub struct ExprBinType {
 pub struct ExprLitCharType {
     pub id: NodeId,
     pub span: Span,
-    pub green: GreenNode,
     pub value: String,
 }
 
@@ -1889,7 +1835,6 @@ pub struct ExprLitCharType {
 pub struct ExprLitIntType {
     pub id: NodeId,
     pub span: Span,
-    pub green: GreenNode,
 
     pub value: String,
 }
@@ -1898,7 +1843,6 @@ pub struct ExprLitIntType {
 pub struct ExprLitFloatType {
     pub id: NodeId,
     pub span: Span,
-    pub green: GreenNode,
 
     pub value: String,
 }
@@ -1907,7 +1851,6 @@ pub struct ExprLitFloatType {
 pub struct ExprLitStrType {
     pub id: NodeId,
     pub span: Span,
-    pub green: GreenNode,
 
     pub value: String,
 }
@@ -1916,7 +1859,6 @@ pub struct ExprLitStrType {
 pub struct ExprTemplateType {
     pub id: NodeId,
     pub span: Span,
-    pub green: GreenNode,
 
     pub parts: Vec<Expr>,
 }
@@ -1933,7 +1875,6 @@ pub struct ExprLitBoolType {
 pub struct ExprBlockType {
     pub id: NodeId,
     pub span: Span,
-    pub green: GreenNode,
 
     pub stmts: Vec<Stmt>,
     pub expr: Option<Expr>,
@@ -1943,14 +1884,12 @@ pub struct ExprBlockType {
 pub struct ExprSelfType {
     pub id: NodeId,
     pub span: Span,
-    pub green: GreenNode,
 }
 
 #[derive(Clone, Debug)]
 pub struct ExprIdentType {
     pub id: NodeId,
     pub span: Span,
-    pub green: GreenNode,
     pub name: String,
 }
 
@@ -1999,7 +1938,6 @@ pub struct Argument {
 pub struct ExprParenType {
     pub id: NodeId,
     pub span: Span,
-    pub green: GreenNode,
     pub expr: Expr,
 }
 
@@ -2007,7 +1945,6 @@ pub struct ExprParenType {
 pub struct ExprMatchType {
     pub id: NodeId,
     pub span: Span,
-    pub green: GreenNode,
 
     pub expr: Expr,
     pub arms: Vec<Arc<MatchArmType>>,
