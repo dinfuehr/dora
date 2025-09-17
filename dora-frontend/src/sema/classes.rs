@@ -135,8 +135,9 @@ impl ClassDefinition {
         self.ty.get().expect("not initialized").clone()
     }
 
-    pub fn field_by_name(&self, name: Name) -> FieldIndex {
-        for field in self.fields() {
+    pub fn field_by_name(&self, sa: &Sema, name: Name) -> FieldIndex {
+        for &field_id in self.field_ids() {
+            let field = sa.field(field_id);
             if field.name == Some(name) {
                 return field.index;
             }
@@ -177,13 +178,14 @@ impl ClassDefinition {
         }
     }
 
-    pub fn all_fields_are_public(&self) -> bool {
+    pub fn all_fields_are_public(&self, sa: &Sema) -> bool {
         // "Internal" classes don't have any outside visible fields.
         if self.is_internal {
             return false;
         }
 
-        for field in self.fields() {
+        for &field_id in self.field_ids() {
+            let field = sa.field(field_id);
             if !field.visibility.is_public() {
                 return false;
             }
@@ -244,8 +246,8 @@ impl ElementWithFields for ClassDefinition {
         self.field_name_style
     }
 
-    fn fields(&self) -> &[FieldDefinition] {
-        self.fields()
+    fn field_ids(&self) -> &[FatFieldDefinitionId] {
+        self.field_ids()
     }
 }
 

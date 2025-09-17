@@ -4463,7 +4463,7 @@ pub fn field_by_name(
         .expect("class expected");
     let cls = &sa.classes[cls_id];
     let field_name = sa.interner.intern(field_name);
-    let field_id = cls.field_by_name(field_name);
+    let field_id = cls.field_by_name(sa, field_name);
 
     (cls_id, field_id)
 }

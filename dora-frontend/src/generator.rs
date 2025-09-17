@@ -731,7 +731,9 @@ impl<'a> AstBytecodeGen<'a> {
         let variant = self.sa.variant(variant_id);
 
         iterate_subpatterns(self.analysis, pattern, |idx, param| {
-            let element_ty = variant.field_at(FieldIndex(idx)).ty();
+            let field_id = variant.field_id(FieldIndex(idx));
+            let field = self.sa.field(field_id);
+            let element_ty = field.ty();
             let element_ty = specialize_type(self.sa, element_ty, enum_type_params);
             let ty = self.emitter.convert_ty_reg(element_ty.clone());
             let field_reg = self.alloc_temp(ty);
@@ -767,7 +769,8 @@ impl<'a> AstBytecodeGen<'a> {
         let struct_ = self.sa.struct_(struct_id);
 
         iterate_subpatterns(self.analysis, pattern, |idx, field| {
-            let field_ty = struct_.field_at(idx).ty();
+            let field_id = struct_.field_id(FieldIndex(idx));
+            let field_ty = self.sa.field(field_id).ty();
             let field_ty = specialize_type(self.sa, field_ty, struct_type_params);
             let register_ty = self.emitter.convert_ty_reg(field_ty.clone());
             let idx = self.builder.add_const_struct_field(

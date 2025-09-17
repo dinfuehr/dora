@@ -418,7 +418,7 @@ fn check_pattern_class(
         let msg = ErrorMessage::NotAccessible;
         ck.sa.report(ck.file_id, pattern.span(), msg);
     } else if !is_default_accessible(ck.sa, cls.module_id, ck.module_id)
-        && !cls.all_fields_are_public()
+        && !cls.all_fields_are_public(ck.sa)
     {
         let msg = ErrorMessage::ClassConstructorNotAccessible(cls.name(ck.sa));
         ck.sa.report(ck.file_id, pattern.span(), msg);
@@ -469,7 +469,7 @@ fn check_pattern_struct(
         let msg = ErrorMessage::NotAccessible;
         ck.sa.report(ck.file_id, pattern.span(), msg);
     } else if !is_default_accessible(ck.sa, struct_.module_id, ck.module_id)
-        && !struct_.all_fields_are_public()
+        && !struct_.all_fields_are_public(ck.sa)
     {
         let msg = ErrorMessage::StructConstructorNotAccessible(struct_.name(ck.sa));
         ck.sa.report(ck.file_id, pattern.span(), msg);
@@ -487,9 +487,12 @@ fn check_pattern_struct(
             check_subpatterns_named(ck, ctxt, pattern, struct_, &value_type_params);
         } else {
             let expected_types = struct_
-                .fields()
+                .field_ids()
                 .iter()
-                .map(|f| specialize_type(ck.sa, f.ty(), &value_type_params))
+                .map(|&field_id| {
+                    let field = ck.sa.field(field_id);
+                    specialize_type(ck.sa, field.ty(), &value_type_params)
+                })
                 .collect::<Vec<_>>();
 
             check_subpatterns(ck, ctxt, pattern, &expected_types);
@@ -551,7 +554,8 @@ fn check_subpatterns_named<'a>(
             }
         }
 
-        for field in element.fields() {
+        for &field_id in element.field_ids() {
+            let field = ck.sa.field(field_id);
             if let Some(name) = field.name {
                 if let Some(idx) = used_names.remove(&name) {
                     let field_pattern = &params[idx];
@@ -577,7 +581,7 @@ fn check_subpatterns_named<'a>(
             );
         }
     } else {
-        let fields = element.fields().len();
+        let fields = element.field_ids().len();
         assert!(fields > 0);
         let msg = ErrorMessage::PatternWrongNumberOfParams(0, fields);
         ck.sa.report(ck.file_id, pattern.span(), msg);

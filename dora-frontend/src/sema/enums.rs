@@ -170,16 +170,16 @@ pub struct VariantDefinition {
 }
 
 impl VariantDefinition {
-    pub fn field_at(&self, idx: FieldIndex) -> &FieldDefinition {
-        &self.fields()[idx.to_usize()]
-    }
-
     pub fn fields(&self) -> &[FieldDefinition] {
         self.fields.get().expect("missing fields")
     }
 
     pub fn field_ids(&self) -> &[FatFieldDefinitionId] {
         self.field_ids.get().expect("missing fields")
+    }
+
+    pub fn field_id(&self, idx: FieldIndex) -> FatFieldDefinitionId {
+        self.field_ids()[idx.to_usize()]
     }
 }
 
@@ -188,7 +188,7 @@ impl ElementWithFields for VariantDefinition {
         self.field_name_style
     }
 
-    fn fields(&self) -> &[FieldDefinition] {
-        self.fields()
+    fn field_ids(&self) -> &[FatFieldDefinitionId] {
+        self.field_ids()
     }
 }

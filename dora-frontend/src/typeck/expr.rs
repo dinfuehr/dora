@@ -750,8 +750,9 @@ fn check_expr_assign_unnamed_field(
 
         SourceType::Struct(struct_id, struct_type_params) => {
             let struct_ = ck.sa.struct_(struct_id);
-            if !struct_.field_name_style.is_named() && index < struct_.fields().len() {
-                let field = struct_.field_at(index);
+            if !struct_.field_name_style.is_named() && index < struct_.field_ids().len() {
+                let field_id = struct_.field_id(FieldIndex(index));
+                let field = ck.sa.field(field_id);
                 let ident_type = IdentType::StructField(object_type.clone(), field.index);
                 ck.analysis
                     .map_idents
@@ -930,18 +931,19 @@ pub(super) fn check_expr_dot(
         }
         SourceType::Struct(struct_id, struct_type_params) => {
             let struct_ = ck.sa.struct_(struct_id);
-            if let Some(&field_id) = struct_.field_names().get(&interned_name) {
-                let ident_type = IdentType::StructField(object_type.clone(), field_id);
+            if let Some(&field_index) = struct_.field_names().get(&interned_name) {
+                let ident_type = IdentType::StructField(object_type.clone(), field_index);
                 ck.analysis.map_idents.insert_or_replace(e.id, ident_type);
 
-                let field = &struct_.field(field_id);
+                let field_id = struct_.field_id(field_index);
+                let field = &ck.sa.field(field_id);
                 let call_data = CallSpecializationData {
                     object_ty: SourceType::Error,
                     type_params: struct_type_params,
                 };
                 let fty = specialize_ty_for_call(ck.sa, field.ty(), ck.element, &call_data);
 
-                if !struct_field_accessible_from(ck.sa, struct_id, field_id, ck.module_id) {
+                if !struct_field_accessible_from(ck.sa, struct_id, field_index, ck.module_id) {
                     let msg = ErrorMessage::NotAccessible;
                     ck.sa.report(ck.file_id, e.rhs.span(), msg);
                 }
@@ -1041,8 +1043,9 @@ fn check_expr_dot_unnamed_field(
 
         SourceType::Struct(struct_id, struct_type_params) => {
             let struct_ = ck.sa.struct_(struct_id);
-            if !struct_.field_name_style.is_named() && index < struct_.fields().len() {
-                let field = &struct_.field_at(index);
+            if !struct_.field_name_style.is_named() && index < struct_.field_ids().len() {
+                let field_id = struct_.field_id(FieldIndex(index));
+                let field = ck.sa.field(field_id);
                 let ident_type = IdentType::StructField(object_type.clone(), field.index);
                 ck.analysis.map_idents.insert_or_replace(e.id, ident_type);
 

@@ -120,21 +120,18 @@ impl StructDefinition {
         self.field_ids.get().expect("missing fields")
     }
 
-    pub fn field(&self, idx: FieldIndex) -> &FieldDefinition {
-        &self.fields()[idx.to_usize()]
+    pub fn field_id(&self, idx: FieldIndex) -> FatFieldDefinitionId {
+        self.field_ids()[idx.to_usize()]
     }
 
-    pub fn field_at(&self, idx: usize) -> &FieldDefinition {
-        &self.fields()[idx]
-    }
-
-    pub fn all_fields_are_public(&self) -> bool {
+    pub fn all_fields_are_public(&self, sa: &Sema) -> bool {
         // "Internal" structs don't have any outside visible fields.
         if self.is_internal {
             return false;
         }
 
-        for field in self.fields() {
+        for &field_id in self.field_ids() {
+            let field = sa.field(field_id);
             if !field.visibility.is_public() {
                 return false;
             }
@@ -195,7 +192,7 @@ impl ElementWithFields for StructDefinition {
         self.field_name_style
     }
 
-    fn fields(&self) -> &[FieldDefinition] {
-        self.fields()
+    fn field_ids(&self) -> &[FatFieldDefinitionId] {
+        self.field_ids()
     }
 }

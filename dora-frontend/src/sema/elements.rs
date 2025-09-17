@@ -4,8 +4,8 @@ use dora_parser::ast;
 
 use crate::sema::{
     AliasDefinition, AliasDefinitionId, AliasParent, ClassDefinitionId, ConstDefinitionId,
-    EnumDefinitionId, ExtensionDefinitionId, FctDefinition, FctDefinitionId, FctParent,
-    FieldDefinition, GlobalDefinitionId, ImplDefinition, ImplDefinitionId, ModuleDefinitionId,
+    EnumDefinitionId, ExtensionDefinitionId, FatFieldDefinitionId, FctDefinition, FctDefinitionId,
+    FctParent, GlobalDefinitionId, ImplDefinition, ImplDefinitionId, ModuleDefinitionId,
     PackageDefinitionId, Sema, SourceFileId, StructDefinitionId, TraitDefinition,
     TraitDefinitionId, TypeParamDefinition, UseDefinitionId, VariantDefinitionId, Visibility,
 };
@@ -77,7 +77,7 @@ pub trait ElementAccess: Element {
 
 pub trait ElementWithFields {
     fn field_name_style(&self) -> ast::FieldNameStyle;
-    fn fields(&self) -> &[FieldDefinition];
+    fn field_ids(&self) -> &[FatFieldDefinitionId];
 }
 
 pub struct ElementField {

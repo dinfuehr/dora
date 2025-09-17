@@ -227,7 +227,8 @@ fn parse_struct_types(sa: &Sema) {
             false,
         );
 
-        for field in struct_.fields() {
+        for &field_id in struct_.field_ids() {
+            let field = sa.field(field_id);
             parsety::parse_type(
                 sa,
                 &symtable,
@@ -386,7 +387,8 @@ fn check_struct_types(sa: &Sema) {
     for (_id, struct_) in sa.structs.iter() {
         check_type_param_definition(sa, struct_, struct_.type_param_definition());
 
-        for field in struct_.fields() {
+        for &field_id in struct_.field_ids() {
+            let field = sa.field(field_id);
             parsety::check_type(sa, struct_, field.parsed_ty());
         }
     }
@@ -572,7 +574,8 @@ fn expand_class_types(sa: &Sema) {
 
 fn expand_struct_types(sa: &Sema) {
     for (_id, struct_) in sa.structs.iter() {
-        for field in struct_.fields() {
+        for &field_id in struct_.field_ids() {
+            let field = sa.field(field_id);
             parsety::expand_type(sa, struct_, field.parsed_ty(), None);
         }
 

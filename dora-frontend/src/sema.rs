@@ -219,8 +219,10 @@ impl Sema {
     pub fn field(&self, id: FatFieldDefinitionId) -> &FieldDefinition {
         match id.owner {
             ElementId::Class(class_id) => &self.class(class_id).fields()[id.index.to_usize()],
-            ElementId::Struct(struct_id) => self.struct_(struct_id).field_at(id.index.to_usize()),
-            ElementId::Variant(variant_id) => self.variant(variant_id).field_at(id.index),
+            ElementId::Struct(struct_id) => &self.struct_(struct_id).fields()[id.index.to_usize()],
+            ElementId::Variant(variant_id) => {
+                &self.variant(variant_id).fields()[id.index.to_usize()]
+            }
             _ => unreachable!(),
         }
     }

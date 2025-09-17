@@ -248,11 +248,14 @@ impl Emitter {
 
     fn create_struct_fields(&mut self, sa: &Sema, struct_: &StructDefinition) -> Vec<StructField> {
         struct_
-            .fields()
+            .field_ids()
             .iter()
-            .map(|f| StructField {
-                ty: self.convert_ty(f.ty()),
-                name: f.name.map(|n| sa.interner.str(n).to_string()),
+            .map(|&field_id| {
+                let field = sa.field(field_id);
+                StructField {
+                    ty: self.convert_ty(field.ty()),
+                    name: field.name.map(|n| sa.interner.str(n).to_string()),
+                }
             })
             .collect()
     }

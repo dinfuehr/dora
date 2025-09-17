@@ -194,17 +194,18 @@ fn display_params(
     params: Vec<Pattern>,
     output: &mut String,
 ) -> fmt::Result {
-    if element.fields().len() > 0 {
+    if element.field_ids().len() > 0 {
         let mut first = true;
         write!(output, "(")?;
         let emit_names = element.field_name_style().is_named();
 
-        for (field, param) in element.fields().iter().zip(params.into_iter().rev()) {
+        for (&field_id, param) in element.field_ids().iter().zip(params.into_iter().rev()) {
             if !first {
                 output.write_str(", ")?;
             }
 
             if emit_names {
+                let field = sa.field(field_id);
                 let name = field.name.expect("missing name");
                 write!(output, "{} = ", sa.interner.str(name))?;
             }
@@ -1224,7 +1225,7 @@ fn convert_pattern(sa: &Sema, analysis: &AnalysisData, pattern: &ast::Pattern) -
                     Pattern::Constructor {
                         span: p.span,
                         constructor_id: ConstructorId::Struct(*struct_id),
-                        params: convert_subpatterns(sa, analysis, p, struct_.fields().len()),
+                        params: convert_subpatterns(sa, analysis, p, struct_.field_ids().len()),
                     }
                 }
 

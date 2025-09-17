@@ -133,11 +133,12 @@ pub fn struct_accessible_from(
 pub fn struct_field_accessible_from(
     sa: &Sema,
     struct_id: StructDefinitionId,
-    field_id: FieldIndex,
+    field_index: FieldIndex,
     module_id: ModuleDefinitionId,
 ) -> bool {
     let struct_ = sa.struct_(struct_id);
-    let field = struct_.field(field_id);
+    let field_id = struct_.field_id(field_index);
+    let field = sa.field(field_id);
 
     accessible_from(
         sa,

@@ -529,14 +529,15 @@ fn check_expr_call_field(
 
     if let SourceType::Struct(struct_id, struct_type_params) = object_type.clone() {
         let struct_ = ck.sa.struct_(struct_id);
-        if let Some(&field_id) = struct_.field_names().get(&interned_method_name) {
-            let ident_type = IdentType::StructField(object_type.clone(), field_id);
+        if let Some(&field_index) = struct_.field_names().get(&interned_method_name) {
+            let ident_type = IdentType::StructField(object_type.clone(), field_index);
             ck.analysis.map_idents.insert_or_replace(e.id, ident_type);
 
-            let field = struct_.field(field_id);
+            let field_id = struct_.field_id(field_index);
+            let field = ck.sa.field(field_id);
             let field_type = replace_type(ck.sa, field.ty(), Some(&struct_type_params), None);
 
-            if !struct_field_accessible_from(ck.sa, struct_id, field_id, ck.module_id) {
+            if !struct_field_accessible_from(ck.sa, struct_id, field_index, ck.module_id) {
                 let msg = ErrorMessage::NotAccessible;
                 ck.sa.report(ck.file_id, e.span, msg);
             }
@@ -575,7 +576,7 @@ fn check_expr_call_struct(
     let struct_ = ck.sa.struct_(struct_id);
 
     if !is_default_accessible(ck.sa, struct_.module_id, ck.module_id)
-        && !struct_.all_fields_are_public()
+        && !struct_.all_fields_are_public(ck.sa)
         && is_struct_accessible
     {
         let msg = ErrorMessage::StructConstructorNotAccessible(struct_.name(ck.sa));
@@ -630,26 +631,14 @@ fn check_expr_call_ctor_with_named_fields(
         }
     };
 
+    let single_named_element = compute_single_named_element(ck.sa, element_with_fields);
+
     for arg in &arguments.arguments {
         if let Some(ref name) = arg.name {
             let name = ck.sa.interner.intern(&name.name_as_string);
             add_named_argument(arg, name);
-        } else if arguments.arguments.len() == 1
-            && element_with_fields.fields().len() == 1
-            && element_with_fields
-                .fields()
-                .first()
-                .expect("first missing")
-                .name
-                .is_some()
-        {
-            let field_name = element_with_fields
-                .fields()
-                .first()
-                .expect("first missing")
-                .name
-                .expect("missing name");
-            add_named_argument(arg, field_name);
+        } else if arguments.arguments.len() == 1 && single_named_element.is_some() {
+            add_named_argument(arg, single_named_element.expect("missing name"));
         } else if let Some(ident) = arg.expr.to_ident() {
             let name = ck.sa.interner.intern(&ident.name);
             add_named_argument(arg, name);
@@ -667,7 +656,8 @@ fn check_expr_call_ctor_with_named_fields(
         type_params,
     };
 
-    for field in element_with_fields.fields() {
+    for &field_id in element_with_fields.field_ids() {
+        let field = ck.sa.field(field_id);
         if let Some(name) = field.name {
             if let Some(arg) = args_by_name.remove(&name) {
                 let def_ty = specialize_ty_for_call(ck.sa, field.ty(), ck.element, &call_data);
@@ -704,6 +694,15 @@ fn check_expr_call_ctor_with_named_fields(
     }
 }
 
+fn compute_single_named_element(sa: &Sema, el: &dyn ElementWithFields) -> Option<Name> {
+    if el.field_ids().len() != 1 {
+        return None;
+    }
+
+    let field_id = el.field_ids().first().cloned().expect("first missing");
+    sa.field(field_id).name
+}
+
 fn check_expr_call_ctor_with_unnamed_fields(
     ck: &mut TypeCheck,
     element_with_fields: &dyn ElementWithFields,
@@ -715,11 +714,12 @@ fn check_expr_call_ctor_with_unnamed_fields(
         type_params,
     };
 
-    for (field, argument) in element_with_fields
-        .fields()
+    for (&field_id, argument) in element_with_fields
+        .field_ids()
         .iter()
         .zip(&arguments.arguments)
     {
+        let field = ck.sa.field(field_id);
         let def_ty = specialize_ty_for_call(ck.sa, field.ty(), ck.element, &call_data);
         let arg_ty = ck.analysis.ty(argument.id);
 
@@ -744,7 +744,7 @@ fn check_expr_call_ctor_with_unnamed_fields(
             .insert(argument.id, field.index.to_usize());
     }
 
-    let fields = element_with_fields.fields().len();
+    let fields = element_with_fields.field_ids().len();
 
     if arguments.arguments.len() < fields {
         ck.sa.report(
@@ -801,7 +801,7 @@ fn check_expr_call_class(
     let cls_ty = SourceType::Class(cls_id, type_params.clone());
 
     if !is_default_accessible(ck.sa, cls.module_id, ck.module_id)
-        && !cls.all_fields_are_public()
+        && !cls.all_fields_are_public(ck.sa)
         && is_class_accessible
     {
         let msg = ErrorMessage::ClassConstructorNotAccessible(cls.name(ck.sa));
