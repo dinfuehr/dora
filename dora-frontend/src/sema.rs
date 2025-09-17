@@ -24,7 +24,7 @@ pub use self::elements::{
 };
 pub use self::enums::{EnumDefinition, EnumDefinitionId, VariantDefinition, VariantDefinitionId};
 pub use self::extensions::{ExtensionDefinition, ExtensionDefinitionId};
-pub use self::fields::{FatFieldDefinitionId, FieldDefinition, FieldDefinitionId, FieldIndex};
+pub use self::fields::{FieldDefinition, FieldDefinitionId, FieldIndex};
 pub use self::functions::{
     emit_as_bytecode_operation, FctDefinition, FctDefinitionId, FctParent, Intrinsic, Param, Params,
 };
@@ -216,15 +216,8 @@ impl Sema {
         &self.classes[id]
     }
 
-    pub fn field(&self, id: FatFieldDefinitionId) -> &FieldDefinition {
-        match id.owner {
-            ElementId::Class(class_id) => &self.class(class_id).fields()[id.index.to_usize()],
-            ElementId::Struct(struct_id) => &self.struct_(struct_id).fields()[id.index.to_usize()],
-            ElementId::Variant(variant_id) => {
-                &self.variant(variant_id).fields()[id.index.to_usize()]
-            }
-            _ => unreachable!(),
-        }
+    pub fn field(&self, id: FieldDefinitionId) -> &FieldDefinition {
+        &self.fields[id]
     }
 
     pub fn extension(&self, id: ExtensionDefinitionId) -> &ExtensionDefinition {

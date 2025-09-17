@@ -1,16 +1,8 @@
-use std::cell::OnceCell;
-
 use id_arena::Id;
 
 use crate::interner::Name;
-use crate::sema::{ElementId, Visibility};
+use crate::sema::Visibility;
 use crate::{ParsedType, SourceType, Span};
-
-#[derive(Debug, Copy, Clone, PartialEq, Eq)]
-pub struct FatFieldDefinitionId {
-    pub owner: ElementId,
-    pub index: FieldIndex,
-}
 
 pub type FieldDefinitionId = Id<FieldDefinition>;
 
@@ -31,7 +23,6 @@ impl From<usize> for FieldIndex {
 
 #[derive(Debug)]
 pub struct FieldDefinition {
-    pub id: OnceCell<FieldDefinitionId>,
     pub name: Option<Name>,
     pub span: Option<Span>,
     pub index: FieldIndex,
@@ -41,10 +32,6 @@ pub struct FieldDefinition {
 }
 
 impl FieldDefinition {
-    pub fn id(&self) -> FieldDefinitionId {
-        self.id.get().cloned().expect("missing id")
-    }
-
     pub fn parsed_ty(&self) -> &ParsedType {
         &self.parsed_ty
     }

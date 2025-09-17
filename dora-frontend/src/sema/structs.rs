@@ -12,8 +12,8 @@ use dora_parser::Span;
 
 use crate::sema::{
     module_path, new_identity_type_params, Element, ElementAccess, ElementId, ElementWithFields,
-    ExtensionDefinitionId, FatFieldDefinitionId, FieldDefinition, FieldIndex, ModuleDefinitionId,
-    PackageDefinitionId, Sema, SourceFileId, TypeParamDefinition, Visibility,
+    ExtensionDefinitionId, FieldDefinitionId, FieldIndex, ModuleDefinitionId, PackageDefinitionId,
+    Sema, SourceFileId, TypeParamDefinition, Visibility,
 };
 use crate::{SourceType, SourceTypeArray};
 
@@ -33,8 +33,7 @@ pub struct StructDefinition {
     pub internal_resolved: bool,
     pub span: Span,
     pub name: Name,
-    pub fields: OnceCell<Vec<FieldDefinition>>,
-    pub field_ids: OnceCell<Vec<FatFieldDefinitionId>>,
+    pub field_ids: OnceCell<Vec<FieldDefinitionId>>,
     pub field_names: OnceCell<HashMap<Name, FieldIndex>>,
     pub extensions: RefCell<Vec<ExtensionDefinitionId>>,
     pub field_name_style: ast::FieldNameStyle,
@@ -63,7 +62,6 @@ impl StructDefinition {
             is_internal: modifiers.is_internal,
             internal_resolved: false,
             type_param_definition,
-            fields: OnceCell::new(),
             field_ids: OnceCell::new(),
             field_names: OnceCell::new(),
             extensions: RefCell::new(Vec::new()),
@@ -112,15 +110,11 @@ impl StructDefinition {
         self.field_names.get().expect("missing field_names")
     }
 
-    pub fn fields(&self) -> &[FieldDefinition] {
-        self.fields.get().expect("missing fields")
-    }
-
-    pub fn field_ids(&self) -> &[FatFieldDefinitionId] {
+    pub fn field_ids(&self) -> &[FieldDefinitionId] {
         self.field_ids.get().expect("missing fields")
     }
 
-    pub fn field_id(&self, idx: FieldIndex) -> FatFieldDefinitionId {
+    pub fn field_id(&self, idx: FieldIndex) -> FieldDefinitionId {
         self.field_ids()[idx.to_usize()]
     }
 
@@ -192,7 +186,7 @@ impl ElementWithFields for StructDefinition {
         self.field_name_style
     }
 
-    fn field_ids(&self) -> &[FatFieldDefinitionId] {
+    fn field_ids(&self) -> &[FieldDefinitionId] {
         self.field_ids()
     }
 }

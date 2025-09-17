@@ -3,8 +3,8 @@ use std::sync::Arc;
 use dora_parser::ast;
 
 use crate::sema::{
-    AnalysisData, Element, ElementId, FatFieldDefinitionId, FctDefinition, FctParent, FieldIndex,
-    GlobalDefinition, LazyContextClassCreationData, LazyLambdaCreationData, Sema,
+    AnalysisData, Element, FctDefinition, FctParent, GlobalDefinition,
+    LazyContextClassCreationData, LazyLambdaCreationData, Sema,
 };
 use crate::sym::ModuleSymTable;
 use crate::typeck::call::{check_expr_call, create_call_arguments};
@@ -179,14 +179,10 @@ fn create_context_classes(sa: &mut Sema, lazy_classes: Vec<LazyContextClassCreat
         let class_id = sa.classes.alloc(lazy_class.class_definition);
         sa.classes[class_id].id = Some(class_id);
 
-        let no_fields = lazy_class.fields.len();
-        assert!(sa.class(class_id).fields.set(lazy_class.fields).is_ok());
-
-        let field_ids = (0..no_fields)
-            .map(|index| FatFieldDefinitionId {
-                owner: ElementId::Class(class_id),
-                index: FieldIndex(index),
-            })
+        let field_ids = lazy_class
+            .fields
+            .into_iter()
+            .map(|field| sa.fields.alloc(field))
             .collect::<Vec<_>>();
         assert!(sa.class(class_id).field_ids.set(field_ids).is_ok());
 

@@ -12,8 +12,8 @@ use id_arena::Id;
 
 use crate::sema::{
     module_path, Element, ElementAccess, ElementId, ElementWithFields, ExtensionDefinitionId,
-    FatFieldDefinitionId, FieldDefinition, FieldIndex, ModuleDefinitionId, PackageDefinitionId,
-    Sema, SourceFileId, TypeParamDefinition, Visibility,
+    FieldDefinitionId, FieldIndex, ModuleDefinitionId, PackageDefinitionId, Sema, SourceFileId,
+    TypeParamDefinition, Visibility,
 };
 use crate::{SourceType, SourceTypeArray};
 
@@ -165,20 +165,15 @@ pub struct VariantDefinition {
     pub index: u32,
     pub name: Name,
     pub field_name_style: ast::FieldNameStyle,
-    pub fields: OnceCell<Vec<FieldDefinition>>,
-    pub field_ids: OnceCell<Vec<FatFieldDefinitionId>>,
+    pub field_ids: OnceCell<Vec<FieldDefinitionId>>,
 }
 
 impl VariantDefinition {
-    pub fn fields(&self) -> &[FieldDefinition] {
-        self.fields.get().expect("missing fields")
-    }
-
-    pub fn field_ids(&self) -> &[FatFieldDefinitionId] {
+    pub fn field_ids(&self) -> &[FieldDefinitionId] {
         self.field_ids.get().expect("missing fields")
     }
 
-    pub fn field_id(&self, idx: FieldIndex) -> FatFieldDefinitionId {
+    pub fn field_id(&self, idx: FieldIndex) -> FieldDefinitionId {
         self.field_ids()[idx.to_usize()]
     }
 }
@@ -188,7 +183,7 @@ impl ElementWithFields for VariantDefinition {
         self.field_name_style
     }
 
-    fn field_ids(&self) -> &[FatFieldDefinitionId] {
+    fn field_ids(&self) -> &[FieldDefinitionId] {
         self.field_ids()
     }
 }

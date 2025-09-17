@@ -10,12 +10,12 @@ use crate::error::msg::ErrorMessage;
 use crate::interner::Name;
 use crate::sema::{
     AliasBound, AliasDefinition, AliasDefinitionId, AliasParent, ClassDefinition, ConstDefinition,
-    Element, ElementId, EnumDefinition, ExtensionDefinition, ExtensionDefinitionId,
-    FatFieldDefinitionId, FctDefinition, FctDefinitionId, FctParent, FieldDefinition, FieldIndex,
-    FileContent, GlobalDefinition, ImplDefinition, ImplDefinitionId, ModuleDefinition,
-    ModuleDefinitionId, PackageDefinition, PackageDefinitionId, PackageName, Param, Params, Sema,
-    SourceFile, SourceFileId, StructDefinition, TraitDefinition, TraitDefinitionId,
-    TypeParamDefinition, UseDefinition, VariantDefinition, Visibility,
+    Element, EnumDefinition, ExtensionDefinition, ExtensionDefinitionId, FctDefinition,
+    FctDefinitionId, FctParent, FieldDefinition, FieldIndex, FileContent, GlobalDefinition,
+    ImplDefinition, ImplDefinitionId, ModuleDefinition, ModuleDefinitionId, PackageDefinition,
+    PackageDefinitionId, PackageName, Param, Params, Sema, SourceFile, SourceFileId,
+    StructDefinition, TraitDefinition, TraitDefinitionId, TypeParamDefinition, UseDefinition,
+    VariantDefinition, Visibility,
 };
 use crate::sym::{SymTable, Symbol, SymbolKind};
 use crate::{report_sym_shadow_span, ty, ParsedType, SourceType};
@@ -609,7 +609,6 @@ impl<'x> visit::Visitor for TopLevelDeclaration<'x> {
         let class_id = self.sa.classes.alloc(class);
         self.sa.classes[class_id].id = Some(class_id);
 
-        let mut fields = Vec::with_capacity(node.fields.len());
         let mut field_ids = Vec::with_capacity(node.fields.len());
         let mut used_names: HashSet<Name> = HashSet::new();
 
@@ -625,8 +624,7 @@ impl<'x> visit::Visitor for TopLevelDeclaration<'x> {
                 Some(name)
             };
 
-            fields.push(FieldDefinition {
-                id: OnceCell::new(),
+            let field_id = self.sa.fields.alloc(FieldDefinition {
                 name,
                 span: Some(field.span),
                 index: FieldIndex(index),
@@ -635,13 +633,9 @@ impl<'x> visit::Visitor for TopLevelDeclaration<'x> {
                 visibility: modifiers.visibility(),
             });
 
-            field_ids.push(FatFieldDefinitionId {
-                owner: ElementId::Class(class_id),
-                index: FieldIndex(index),
-            });
+            field_ids.push(field_id);
         }
 
-        assert!(self.sa.class(class_id).fields.set(fields).is_ok());
         assert!(self.sa.class(class_id).field_ids.set(field_ids).is_ok());
 
         let sym = SymbolKind::Class(class_id);
@@ -683,7 +677,6 @@ impl<'x> visit::Visitor for TopLevelDeclaration<'x> {
         let id = self.sa.structs.alloc(struct_);
         self.sa.structs[id].id = Some(id);
 
-        let mut fields = Vec::with_capacity(node.fields.len());
         let mut field_ids = Vec::with_capacity(node.fields.len());
         let mut used_names: HashSet<Name> = HashSet::new();
 
@@ -699,8 +692,7 @@ impl<'x> visit::Visitor for TopLevelDeclaration<'x> {
                 Some(name)
             };
 
-            fields.push(FieldDefinition {
-                id: OnceCell::new(),
+            let field_id = self.sa.fields.alloc(FieldDefinition {
                 name,
                 span: Some(field.span),
                 index: FieldIndex(index),
@@ -709,15 +701,13 @@ impl<'x> visit::Visitor for TopLevelDeclaration<'x> {
                 visibility: modifiers.visibility(),
             });
 
-            field_ids.push(FatFieldDefinitionId {
-                owner: ElementId::Struct(id),
-                index: FieldIndex(index),
-            });
+            field_ids.push(field_id);
         }
 
         let mut field_names = HashMap::new();
 
-        for field in &fields {
+        for &field_id in &field_ids {
+            let field = self.sa.field(field_id);
             if let Some(name) = field.name {
                 if field_names.contains_key(&name) {
                     continue;
@@ -727,7 +717,6 @@ impl<'x> visit::Visitor for TopLevelDeclaration<'x> {
             }
         }
 
-        assert!(self.sa.struct_(id).fields.set(fields).is_ok());
         assert!(self.sa.struct_(id).field_ids.set(field_ids).is_ok());
         assert!(self.sa.struct_(id).field_names.set(field_names).is_ok());
 
@@ -825,11 +814,9 @@ impl<'x> visit::Visitor for TopLevelDeclaration<'x> {
                 index: next_variant_id,
                 name: name,
                 field_name_style: variant.field_name_style,
-                fields: OnceCell::new(),
                 field_ids: OnceCell::new(),
             });
 
-            let mut fields = Vec::new();
             let mut field_ids = Vec::new();
             let mut used_names: HashSet<Name> = HashSet::new();
 
@@ -848,24 +835,18 @@ impl<'x> visit::Visitor for TopLevelDeclaration<'x> {
                     Some(name)
                 };
 
-                let field = FieldDefinition {
-                    id: OnceCell::new(),
+                let field_id = self.sa.fields.alloc(FieldDefinition {
                     name,
                     span: Some(field.span),
                     mutable: false,
                     index: FieldIndex(index),
                     parsed_ty: ParsedType::new_ast(field.data_type.clone()),
                     visibility: Visibility::Public,
-                };
+                });
 
-                fields.push(field);
-                field_ids.push(FatFieldDefinitionId {
-                    owner: ElementId::Variant(variant_id),
-                    index: FieldIndex(index),
-                })
+                field_ids.push(field_id)
             }
 
-            assert!(self.sa.variant(variant_id).fields.set(fields).is_ok());
             assert!(self.sa.variant(variant_id).field_ids.set(field_ids).is_ok());
 
             variants.push(variant_id);

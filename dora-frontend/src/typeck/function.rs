@@ -236,7 +236,6 @@ impl<'a> TypeCheck<'a> {
         if lazy_context_data.has_parent_slot() {
             let name = self.sa.interner.intern("parent_context");
             let field = FieldDefinition {
-                id: OnceCell::new(),
                 name: Some(name),
                 span: None,
                 index: FieldIndex(fields.len()),
@@ -264,7 +263,6 @@ impl<'a> TypeCheck<'a> {
             let var = self.vars.get_var(var_id);
 
             let field = FieldDefinition {
-                id: OnceCell::new(),
                 name: Some(var.name),
                 span: None,
                 index: FieldIndex(fields.len()),

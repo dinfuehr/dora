@@ -1,11 +1,9 @@
-use std::cell::OnceCell;
 use std::rc::Rc;
 
 use crate::sema::{
-    ClassDefinition, ClassDefinitionId, ElementId, EnumDefinitionId, ExtensionDefinitionId,
-    FatFieldDefinitionId, FctDefinitionId, FieldDefinition, FieldIndex, ImplDefinitionId,
-    Intrinsic, ModuleDefinition, Sema, StructDefinitionId, TraitDefinitionId, TypeParamDefinition,
-    Visibility,
+    ClassDefinition, ClassDefinitionId, EnumDefinitionId, ExtensionDefinitionId, FctDefinitionId,
+    FieldDefinition, FieldIndex, ImplDefinitionId, Intrinsic, ModuleDefinition, Sema,
+    StructDefinitionId, TraitDefinitionId, TypeParamDefinition, Visibility,
 };
 use crate::sym::{SymTable, SymbolKind};
 use crate::ty::SourceType;
@@ -213,23 +211,16 @@ pub fn create_lambda_class(sa: &mut Sema) {
     let class_id = sa.classes.alloc(class);
     sa.classes[class_id].id = Some(class_id);
 
-    let field = FieldDefinition {
-        id: OnceCell::new(),
+    let field_id = sa.fields.alloc(FieldDefinition {
         name: Some(context_name),
         span: None,
         parsed_ty: ParsedType::new_ty(SourceType::Ptr),
         index: FieldIndex(0),
         mutable: false,
         visibility: Visibility::Public,
-    };
+    });
 
-    let fields = vec![field];
-    assert!(sa.class(class_id).fields.set(fields).is_ok());
-
-    let field_ids = vec![FatFieldDefinitionId {
-        owner: ElementId::Class(class_id),
-        index: FieldIndex(0),
-    }];
+    let field_ids = vec![field_id];
     assert!(sa.class(class_id).field_ids.set(field_ids).is_ok());
 
     sa.known.classes.lambda = Some(class_id);

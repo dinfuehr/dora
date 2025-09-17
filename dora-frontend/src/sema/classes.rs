@@ -10,8 +10,8 @@ use dora_parser::ast;
 
 use crate::sema::{
     module_path, Element, ElementAccess, ElementId, ElementWithFields, ExtensionDefinitionId,
-    FatFieldDefinitionId, FctDefinitionId, FieldDefinition, FieldIndex, ModuleDefinitionId,
-    PackageDefinitionId, Sema, SourceFileId, TypeParamDefinition,
+    FctDefinitionId, FieldDefinitionId, FieldIndex, ModuleDefinitionId, PackageDefinitionId, Sema,
+    SourceFileId, TypeParamDefinition,
 };
 use crate::{specialize_for_element, SourceType, SourceTypeArray, Span};
 
@@ -32,8 +32,7 @@ pub struct ClassDefinition {
     pub visibility: Visibility,
     pub field_name_style: ast::FieldNameStyle,
 
-    pub fields: OnceCell<Vec<FieldDefinition>>,
-    pub field_ids: OnceCell<Vec<FatFieldDefinitionId>>,
+    pub field_ids: OnceCell<Vec<FieldDefinitionId>>,
 
     pub extensions: RefCell<Vec<ExtensionDefinitionId>>,
 
@@ -67,14 +66,9 @@ impl ClassDefinition {
             internal_resolved: false,
             visibility: modifiers.visibility(),
             field_name_style: ast.field_name_style,
-
-            fields: OnceCell::new(),
             field_ids: OnceCell::new(),
-
             extensions: RefCell::new(Vec::new()),
-
             type_param_definition,
-
             is_array: false,
             is_str: false,
         }
@@ -102,14 +96,9 @@ impl ClassDefinition {
             internal_resolved: false,
             visibility,
             field_name_style: ast::FieldNameStyle::Positional,
-
-            fields: OnceCell::new(),
             field_ids: OnceCell::new(),
-
             extensions: RefCell::new(Vec::new()),
-
             type_param_definition,
-
             is_array: false,
             is_str: false,
         }
@@ -150,15 +139,11 @@ impl ClassDefinition {
         module_path(sa, self.module_id, self.name)
     }
 
-    pub fn fields(&self) -> &[FieldDefinition] {
-        self.fields.get().expect("missing fields")
-    }
-
-    pub fn field_ids(&self) -> &[FatFieldDefinitionId] {
+    pub fn field_ids(&self) -> &[FieldDefinitionId] {
         self.field_ids.get().expect("missing fields")
     }
 
-    pub fn field_id(&self, index: FieldIndex) -> FatFieldDefinitionId {
+    pub fn field_id(&self, index: FieldIndex) -> FieldDefinitionId {
         self.field_ids()[index.to_usize()]
     }
 
@@ -246,7 +231,7 @@ impl ElementWithFields for ClassDefinition {
         self.field_name_style
     }
 
-    fn field_ids(&self) -> &[FatFieldDefinitionId] {
+    fn field_ids(&self) -> &[FieldDefinitionId] {
         self.field_ids()
     }
 }
