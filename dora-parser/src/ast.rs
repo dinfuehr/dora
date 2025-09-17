@@ -2,6 +2,8 @@ use std::fmt;
 use std::slice::Iter;
 use std::sync::Arc;
 
+use id_arena::Id;
+
 use crate::green::{GreenNode, GreenToken};
 use crate::token::TokenKind::*;
 use crate::{Span, TokenKind};
@@ -9,9 +11,12 @@ use crate::{Span, TokenKind};
 pub mod dump;
 pub mod visit;
 
+pub type AstNodeId = Id<Elem>;
+
 #[derive(Clone, Debug)]
 pub struct File {
     pub green: GreenNode,
+    pub content: Arc<String>,
     pub elements: Vec<Elem>,
 }
 

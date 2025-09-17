@@ -66,16 +66,6 @@ impl Parser {
     }
 
     pub fn parse(mut self) -> (Arc<ast::File>, Vec<ParseErrorWithLocation>) {
-        let ast_file = self.parse_file();
-        assert!(self.nodes.is_empty());
-
-        let tree = self.builder.create_tree();
-        assert_eq!(tree.len(), self.content.len() as u32);
-
-        (Arc::new(ast_file), self.errors)
-    }
-
-    fn parse_file(&mut self) -> ast::File {
         self.builder.start_node();
         self.skip_trivia();
         let mut elements = vec![];
@@ -85,7 +75,19 @@ impl Parser {
         }
 
         let green = self.builder.finish_node(SOURCE_FILE);
-        ast::File { green, elements }
+        assert!(self.nodes.is_empty());
+
+        let tree = self.builder.create_tree();
+        assert_eq!(tree.len(), self.content.len() as u32);
+
+        (
+            Arc::new(ast::File {
+                green,
+                content: self.content.clone(),
+                elements,
+            }),
+            self.errors,
+        )
     }
 
     fn parse_element(&mut self) -> Elem {

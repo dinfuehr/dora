@@ -218,6 +218,7 @@ dependencies = [
 name = "dora-parser"
 version = "0.0.2"
 dependencies = [
+ "id-arena",
  "parking_lot",
 ]
 

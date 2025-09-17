@@ -1,4 +1,4 @@
-pub use self::ast::NodeId;
+pub use self::ast::{AstNodeId, NodeId};
 pub use self::error::{ParseError, ParseErrorWithLocation};
 pub use self::green::{GreenElement, GreenNode, GreenToken};
 pub use self::lexer::lex;
