@@ -4,8 +4,6 @@ use std::sync::Arc;
 
 use id_arena::Id;
 
-use crate::green::{GreenNode, GreenToken};
-use crate::token::TokenKind::*;
 use crate::{Span, TokenKind};
 
 pub mod dump;
@@ -15,7 +13,6 @@ pub type AstNodeId = Id<Elem>;
 
 #[derive(Clone, Debug)]
 pub struct File {
-    pub green: GreenNode,
     pub content: Arc<String>,
     pub elements: Vec<Elem>,
 }
@@ -205,7 +202,6 @@ pub type Ident = Arc<IdentData>;
 pub struct Global {
     pub id: NodeId,
     pub span: Span,
-    pub green: GreenNode,
     pub modifiers: Option<ModifierList>,
     pub name: Option<Ident>,
     pub mutable: bool,
@@ -217,7 +213,6 @@ pub struct Global {
 pub struct Module {
     pub id: NodeId,
     pub span: Span,
-    pub green: GreenNode,
     pub modifiers: Option<ModifierList>,
     pub name: Option<Ident>,
     pub elements: Option<Vec<Elem>>,
@@ -227,7 +222,6 @@ pub struct Module {
 pub struct Use {
     pub id: NodeId,
     pub span: Span,
-    pub green: GreenNode,
     pub modifiers: Option<ModifierList>,
     pub path: Arc<UsePath>,
 }
@@ -236,7 +230,6 @@ pub struct Use {
 pub struct UsePath {
     pub id: NodeId,
     pub span: Span,
-    pub green: GreenNode,
     pub path: Vec<UseAtom>,
     pub target: UsePathDescriptor,
 }
@@ -253,20 +246,17 @@ pub enum UsePathDescriptor {
 pub struct UseGroup {
     pub id: NodeId,
     pub span: Span,
-    pub green: GreenNode,
     pub targets: Vec<Arc<UsePath>>,
 }
 
 #[derive(Clone, Debug)]
 pub struct UseTargetName {
-    pub green: GreenNode,
     pub span: Span,
     pub name: Option<Ident>,
 }
 
 #[derive(Clone, Debug)]
 pub struct UseAtom {
-    pub green: GreenNode,
     pub span: Span,
     pub value: UsePathComponentValue,
 }
@@ -284,7 +274,6 @@ pub enum UsePathComponentValue {
 pub struct Const {
     pub id: NodeId,
     pub span: Span,
-    pub green: GreenNode,
     pub modifiers: Option<ModifierList>,
     pub name: Option<Ident>,
     pub data_type: Type,
@@ -295,7 +284,6 @@ pub struct Const {
 pub struct Enum {
     pub id: NodeId,
     pub span: Span,
-    pub green: GreenNode,
     pub modifiers: Option<ModifierList>,
     pub name: Option<Ident>,
     pub type_params: Option<TypeParams>,
@@ -307,7 +295,6 @@ pub struct Enum {
 pub struct EnumVariant {
     pub id: NodeId,
     pub span: Span,
-    pub green: GreenNode,
     pub name: Option<Ident>,
     pub field_name_style: FieldNameStyle,
     pub fields: Vec<Arc<Field>>,
@@ -317,7 +304,6 @@ pub struct EnumVariant {
 pub struct Struct {
     pub id: NodeId,
     pub span: Span,
-    pub green: GreenNode,
     pub modifiers: Option<ModifierList>,
     pub name: Option<Ident>,
     pub fields: Vec<Arc<Field>>,
@@ -354,7 +340,6 @@ pub type WhereBounds = Arc<WhereBoundsData>;
 pub struct WhereBoundsData {
     pub id: NodeId,
     pub span: Span,
-    pub green: GreenNode,
     pub clauses: Vec<WhereClause>,
 }
 
@@ -364,7 +349,6 @@ pub type WhereClause = Arc<WhereBoundData>;
 pub struct WhereBoundData {
     pub id: NodeId,
     pub span: Span,
-    pub green: GreenNode,
     pub ty: Type,
     pub bounds: Vec<Type>,
 }
@@ -384,7 +368,6 @@ pub enum TypeData {
 pub struct TypeTupleType {
     pub id: NodeId,
     pub span: Span,
-    pub green: GreenNode,
 
     pub subtypes: Vec<Type>,
 }
@@ -393,7 +376,6 @@ pub struct TypeTupleType {
 pub struct TypeLambdaType {
     pub id: NodeId,
     pub span: Span,
-    pub green: GreenNode,
 
     pub params: Vec<Type>,
     pub ret: Option<Type>,
@@ -403,7 +385,6 @@ pub struct TypeLambdaType {
 pub struct TypeRegularType {
     pub id: NodeId,
     pub span: Span,
-    pub green: GreenNode,
 
     pub path: Path,
     pub params: Vec<Arc<TypeArgument>>,
@@ -413,7 +394,6 @@ pub struct TypeRegularType {
 pub struct TypeArgument {
     pub id: NodeId,
     pub span: Span,
-    pub green: GreenNode,
 
     pub name: Option<Ident>,
     pub ty: Type,
@@ -423,7 +403,6 @@ pub struct TypeArgument {
 pub struct TypePathType {
     pub id: NodeId,
     pub span: Span,
-    pub green: GreenNode,
 
     pub path: Path,
 }
@@ -432,7 +411,6 @@ pub struct TypePathType {
 pub struct TypeGenericType {
     pub id: NodeId,
     pub span: Span,
-    pub green: GreenNode,
 
     pub path: Type,
     pub params: Vec<Type>,
@@ -442,7 +420,6 @@ pub struct TypeGenericType {
 pub struct TypeQualifiedPathType {
     pub id: NodeId,
     pub span: Span,
-    pub green: GreenNode,
 
     pub ty: Type,
     pub trait_ty: Type,
@@ -465,14 +442,12 @@ impl TypeData {
     pub fn create_regular(
         id: NodeId,
         span: Span,
-        green: GreenNode,
         path: Path,
         params: Vec<Arc<TypeArgument>>,
     ) -> TypeData {
         TypeData::Regular(TypeRegularType {
             id,
             span,
-            green,
             path,
             params,
         })
@@ -481,7 +456,6 @@ impl TypeData {
     pub fn create_qualified_path(
         id: NodeId,
         span: Span,
-        green: GreenNode,
         ty: Type,
         trait_ty: Type,
         name: Option<Ident>,
@@ -489,36 +463,23 @@ impl TypeData {
         TypeData::QualifiedPath(TypeQualifiedPathType {
             id,
             span,
-            green,
             ty,
             trait_ty,
             name,
         })
     }
 
-    pub fn create_fct(
-        id: NodeId,
-        span: Span,
-        green: GreenNode,
-        params: Vec<Type>,
-        ret: Option<Type>,
-    ) -> TypeData {
+    pub fn create_fct(id: NodeId, span: Span, params: Vec<Type>, ret: Option<Type>) -> TypeData {
         TypeData::Lambda(TypeLambdaType {
             id,
             span,
-            green,
             params,
             ret,
         })
     }
 
-    pub fn create_tuple(id: NodeId, span: Span, green: GreenNode, subtypes: Vec<Type>) -> TypeData {
-        TypeData::Tuple(TypeTupleType {
-            id,
-            span,
-            green,
-            subtypes,
-        })
+    pub fn create_tuple(id: NodeId, span: Span, subtypes: Vec<Type>) -> TypeData {
+        TypeData::Tuple(TypeTupleType { id, span, subtypes })
     }
 
     pub fn to_regular(&self) -> Option<&TypeRegularType> {
@@ -612,7 +573,6 @@ pub struct Impl {
     pub id: NodeId,
     pub declaration_span: Span,
     pub span: Span,
-    pub green: GreenNode,
 
     pub modifiers: Option<ModifierList>,
     pub type_params: Option<TypeParams>,
@@ -627,7 +587,6 @@ pub struct Impl {
 pub struct Trait {
     pub id: NodeId,
     pub name: Option<Ident>,
-    pub green: GreenNode,
     pub modifiers: Option<ModifierList>,
     pub type_params: Option<TypeParams>,
     pub bounds: Vec<Type>,
@@ -640,7 +599,6 @@ pub struct Trait {
 pub struct Alias {
     pub id: NodeId,
     pub span: Span,
-    pub green: GreenNode,
 
     pub modifiers: Option<ModifierList>,
     pub name: Option<Ident>,
@@ -655,7 +613,6 @@ pub struct Alias {
 pub struct Class {
     pub id: NodeId,
     pub span: Span,
-    pub green: GreenNode,
     pub modifiers: Option<ModifierList>,
     pub name: Option<Ident>,
 
@@ -669,7 +626,6 @@ pub struct Class {
 pub struct ExternPackage {
     pub id: NodeId,
     pub span: Span,
-    pub green: GreenNode,
     pub modifiers: Option<ModifierList>,
     pub name: Option<Ident>,
     pub identifier: Option<Ident>,
@@ -692,7 +648,6 @@ pub struct TypeParam {
 pub struct Field {
     pub id: NodeId,
     pub span: Span,
-    pub green: GreenNode,
     pub modifiers: Option<ModifierList>,
     pub name: Option<Ident>,
     pub data_type: Type,
@@ -740,7 +695,6 @@ impl Function {
 pub struct ModifierList {
     pub id: NodeId,
     pub span: Span,
-    pub green: GreenNode,
     pub modifiers: Vec<Modifier>,
 }
 
@@ -754,24 +708,21 @@ impl ModifierList {
 pub struct Modifier {
     pub id: NodeId,
     pub span: Span,
-    pub green: GreenNode,
+    pub kind: TokenKind,
+    pub ident: Option<Ident>,
 }
 
 impl Modifier {
-    pub fn pub_token(&self) -> Option<GreenToken> {
-        find_token(&self.green, PUB_KW)
+    pub fn is_pub(&self) -> bool {
+        self.kind == TokenKind::PUB_KW
     }
 
-    pub fn static_token(&self) -> Option<GreenToken> {
-        find_token(&self.green, STATIC_KW)
+    pub fn is_static(&self) -> bool {
+        self.kind == TokenKind::STATIC_KW
     }
 
-    pub fn at_token(&self) -> Option<GreenToken> {
-        find_token(&self.green, AT)
-    }
-
-    pub fn ident_token(&self) -> Option<GreenToken> {
-        find_token(&self.green, IDENTIFIER)
+    pub fn is_at(&self) -> bool {
+        self.kind == TokenKind::AT
     }
 }
 
@@ -865,7 +816,6 @@ pub struct StmtLetType {
 pub struct ExprForType {
     pub id: NodeId,
     pub span: Span,
-    pub green: GreenNode,
 
     pub pattern: Arc<Pattern>,
     pub expr: Expr,
@@ -876,7 +826,6 @@ pub struct ExprForType {
 pub struct ExprWhileType {
     pub id: NodeId,
     pub span: Span,
-    pub green: GreenNode,
 
     pub cond: Expr,
     pub block: Expr,
@@ -894,7 +843,6 @@ pub struct StmtExprType {
 pub struct ExprReturnType {
     pub id: NodeId,
     pub span: Span,
-    pub green: GreenNode,
 
     pub expr: Option<Expr>,
 }
@@ -903,14 +851,12 @@ pub struct ExprReturnType {
 pub struct ExprBreakType {
     pub id: NodeId,
     pub span: Span,
-    pub green: GreenNode,
 }
 
 #[derive(Clone, Debug)]
 pub struct ExprContinueType {
     pub id: NodeId,
     pub span: Span,
-    pub green: GreenNode,
 }
 
 #[derive(PartialEq, Eq, Debug, Copy, Clone)]
@@ -1091,7 +1037,6 @@ impl ExprData {
     pub fn create_if(
         id: NodeId,
         span: Span,
-        green: GreenNode,
         cond: Expr,
         then_block: Expr,
         else_block: Option<Expr>,
@@ -1099,7 +1044,6 @@ impl ExprData {
         ExprData::If(ExprIfType {
             id,
             span,
-            green,
             cond,
             then_block,
             else_block,
@@ -1123,7 +1067,6 @@ impl ExprData {
     pub fn create_for(
         id: NodeId,
         span: Span,
-        green: GreenNode,
         pattern: Arc<Pattern>,
         expr: Expr,
         block: Expr,
@@ -1131,7 +1074,6 @@ impl ExprData {
         ExprData::For(ExprForType {
             id,
             span,
-            green,
 
             pattern,
             expr,
@@ -1139,38 +1081,26 @@ impl ExprData {
         })
     }
 
-    pub fn create_while(
-        id: NodeId,
-        span: Span,
-        green: GreenNode,
-        cond: Expr,
-        block: Expr,
-    ) -> ExprData {
+    pub fn create_while(id: NodeId, span: Span, cond: Expr, block: Expr) -> ExprData {
         ExprData::While(ExprWhileType {
             id,
             span,
-            green,
 
             cond,
             block,
         })
     }
 
-    pub fn create_return(id: NodeId, span: Span, green: GreenNode, expr: Option<Expr>) -> ExprData {
-        ExprData::Return(ExprReturnType {
-            id,
-            span,
-            green,
-            expr,
-        })
+    pub fn create_return(id: NodeId, span: Span, expr: Option<Expr>) -> ExprData {
+        ExprData::Return(ExprReturnType { id, span, expr })
     }
 
-    pub fn create_break(id: NodeId, span: Span, green: GreenNode) -> ExprData {
-        ExprData::Break(ExprBreakType { id, span, green })
+    pub fn create_break(id: NodeId, span: Span) -> ExprData {
+        ExprData::Break(ExprBreakType { id, span })
     }
 
-    pub fn create_continue(id: NodeId, span: Span, green: GreenNode) -> ExprData {
-        ExprData::Continue(ExprContinueType { id, span, green })
+    pub fn create_continue(id: NodeId, span: Span) -> ExprData {
+        ExprData::Continue(ExprContinueType { id, span })
     }
 
     pub fn create_un(id: NodeId, span: Span, op: UnOp, opnd: Expr) -> ExprData {
@@ -1300,13 +1230,8 @@ impl ExprData {
         ExprData::Lambda(fct)
     }
 
-    pub fn create_tuple(id: NodeId, span: Span, green: GreenNode, values: Vec<Expr>) -> ExprData {
-        ExprData::Tuple(ExprTupleType {
-            id,
-            span,
-            green,
-            values,
-        })
+    pub fn create_tuple(id: NodeId, span: Span, values: Vec<Expr>) -> ExprData {
+        ExprData::Tuple(ExprTupleType { id, span, values })
     }
 
     pub fn to_for(&self) -> Option<&ExprForType> {
@@ -1771,7 +1696,6 @@ impl ExprData {
 pub struct ExprIfType {
     pub id: NodeId,
     pub span: Span,
-    pub green: GreenNode,
 
     pub cond: Expr,
     pub then_block: Expr,
@@ -1782,7 +1706,6 @@ pub struct ExprIfType {
 pub struct ExprTupleType {
     pub id: NodeId,
     pub span: Span,
-    pub green: GreenNode,
 
     pub values: Vec<Expr>,
 }
@@ -2309,11 +2232,4 @@ pub struct ExprDotType {
 
     pub lhs: Expr,
     pub rhs: Expr,
-}
-
-fn find_token(node: &GreenNode, token: TokenKind) -> Option<GreenToken> {
-    node.children
-        .iter()
-        .find(|c| c.kind() == token)
-        .map(|t| t.to_token().expect("should be token"))
 }

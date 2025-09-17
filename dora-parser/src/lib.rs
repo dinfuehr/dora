@@ -1,6 +1,5 @@
 pub use self::ast::{AstNodeId, NodeId};
 pub use self::error::{ParseError, ParseErrorWithLocation};
-pub use self::green::{GreenElement, GreenNode, GreenToken};
 pub use self::lexer::lex;
 pub use self::parser::Parser;
 pub use self::span::Span;
@@ -8,7 +7,6 @@ pub use self::token::{TokenKind, TokenSet};
 
 pub mod ast;
 pub mod error;
-pub mod green;
 pub mod lexer;
 pub mod parser;
 pub mod span;

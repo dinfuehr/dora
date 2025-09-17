@@ -1427,17 +1427,17 @@ fn check_modifier(
     modifier: &ast::Modifier,
     parsed_modifiers: &mut ParsedModifierList,
 ) -> Annotation {
-    if modifier.pub_token().is_some() {
+    if modifier.is_pub() {
         parsed_modifiers.is_pub = true;
         Annotation::Pub
-    } else if modifier.static_token().is_some() {
+    } else if modifier.is_static() {
         parsed_modifiers.is_static = true;
         Annotation::Static
     } else {
-        assert!(modifier.at_token().is_some());
+        assert!(modifier.is_at());
 
-        if let Some(ident) = modifier.ident_token() {
-            match ident.value() {
+        if let Some(ref ident) = modifier.ident {
+            match ident.name_as_string.as_str() {
                 "Test" => {
                     parsed_modifiers.is_test = true;
                     Annotation::Test
@@ -1472,7 +1472,7 @@ fn check_modifier(
                     sa.report(
                         file_id,
                         modifier.span,
-                        ErrorMessage::UnknownAnnotation(ident.value().into()),
+                        ErrorMessage::UnknownAnnotation(ident.name_as_string.clone()),
                     );
                     Annotation::Error
                 }
