@@ -2,80 +2,85 @@ use std::fmt;
 use std::slice::Iter;
 use std::sync::Arc;
 
-use id_arena::Id;
+use id_arena::{Arena, Id};
 
 use crate::{Span, TokenKind};
 
 pub mod dump;
 pub mod visit;
 
-pub type AstNodeId = Id<Elem>;
+pub type AstNodeId = Id<ElemData>;
 
 #[derive(Clone, Debug)]
 pub struct File {
     pub content: Arc<String>,
+    pub ast_nodes: Arena<ElemData>,
     pub elements: Vec<Elem>,
 }
 
 impl File {
+    pub fn node(&self, id: AstNodeId) -> &ElemData {
+        &self.ast_nodes[id]
+    }
+
     #[cfg(test)]
     pub fn fct0(&self) -> &Function {
-        self.elements[0].to_function().unwrap()
+        self.node(self.elements[0]).to_function().unwrap()
     }
 
     #[cfg(test)]
     pub fn fct(&self, index: usize) -> &Function {
-        self.elements[index].to_function().unwrap()
+        self.node(self.elements[index]).to_function().unwrap()
     }
 
     #[cfg(test)]
     pub fn cls0(&self) -> &Class {
-        self.elements[0].to_class().unwrap()
+        self.node(self.elements[0]).to_class().unwrap()
     }
 
     #[cfg(test)]
     pub fn cls(&self, index: usize) -> &Class {
-        self.elements[index].to_class().unwrap()
+        self.node(self.elements[index]).to_class().unwrap()
     }
 
     #[cfg(test)]
     pub fn struct0(&self) -> &Struct {
-        self.elements[0].to_struct().unwrap()
+        self.node(self.elements[0]).to_struct().unwrap()
     }
 
     #[cfg(test)]
     pub fn enum0(&self) -> &Enum {
-        self.elements[0].to_enum().unwrap()
+        self.node(self.elements[0]).to_enum().unwrap()
     }
 
     #[cfg(test)]
     pub fn module0(&self) -> &Module {
-        self.elements[0].to_module().unwrap()
+        self.node(self.elements[0]).to_module().unwrap()
     }
 
     #[cfg(test)]
     pub fn trait_(&self, index: usize) -> &Trait {
-        self.elements[index].to_trait().unwrap()
+        self.node(self.elements[index]).to_trait().unwrap()
     }
 
     #[cfg(test)]
     pub fn trait0(&self) -> &Trait {
-        self.elements[0].to_trait().unwrap()
+        self.node(self.elements[0]).to_trait().unwrap()
     }
 
     #[cfg(test)]
     pub fn impl0(&self) -> &Impl {
-        self.elements[0].to_impl().unwrap()
+        self.node(self.elements[0]).to_impl().unwrap()
     }
 
     #[cfg(test)]
     pub fn global0(&self) -> &Global {
-        self.elements[0].to_global().unwrap()
+        self.node(self.elements[0]).to_global().unwrap()
     }
 
     #[cfg(test)]
     pub fn const0(&self) -> &Const {
-        self.elements[0].to_const().unwrap()
+        self.node(self.elements[0]).to_const().unwrap()
     }
 }
 
@@ -88,7 +93,7 @@ impl fmt::Display for NodeId {
     }
 }
 
-pub type Elem = Arc<ElemData>;
+pub type Elem = Id<ElemData>;
 
 #[derive(Clone, Debug)]
 pub enum ElemData {

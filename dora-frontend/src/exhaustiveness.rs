@@ -6,7 +6,7 @@ use dora_parser::ast::visit::{self, Visitor};
 use dora_parser::Span;
 
 use crate::sema::{
-    AnalysisData, ClassDefinitionId, ElementWithFields, EnumDefinitionId, IdentType, Sema,
+    AnalysisData, ClassDefinitionId, Element, ElementWithFields, EnumDefinitionId, IdentType, Sema,
     SourceFileId, StructDefinitionId,
 };
 use crate::ErrorMessage;
@@ -19,7 +19,13 @@ pub fn check(sa: &Sema) {
                 file_id: fct.file_id,
                 analysis: fct.analysis(),
             };
-            visit::walk_fct(&mut visitor, fct.ast().as_ref().expect("body expected"));
+
+            let file = sa.file(fct.file_id());
+            visit::walk_fct(
+                &mut visitor,
+                file.ast(),
+                fct.ast().as_ref().expect("body expected"),
+            );
         }
     }
 }
@@ -31,15 +37,15 @@ struct Exhaustiveness<'a> {
 }
 
 impl<'a> Visitor for Exhaustiveness<'a> {
-    fn visit_expr(&mut self, e: &ast::ExprData) {
+    fn visit_expr(&mut self, f: &ast::File, e: &ast::ExprData) {
         match *e {
             ast::ExprData::Match(ref expr) => {
                 check_match(self.sa, self.analysis, self.file_id, expr);
-                visit::walk_expr(self, e);
+                visit::walk_expr(self, f, e);
             }
             ast::ExprData::Lambda(..) => (),
             _ => {
-                visit::walk_expr(self, e);
+                visit::walk_expr(self, f, e);
             }
         }
     }

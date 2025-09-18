@@ -1486,8 +1486,8 @@ fn parse_module() {
     let module = prog.module0();
     let elements = module.elements.as_ref().unwrap();
     assert_eq!(elements.len(), 2);
-    assert!(elements[0].to_function().is_some());
-    assert!(elements[1].to_function().is_some());
+    assert!(prog.node(elements[0]).to_function().is_some());
+    assert!(prog.node(elements[1]).to_function().is_some());
 }
 
 #[test]

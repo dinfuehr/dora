@@ -17,3 +17,9 @@ pub struct SourceFile {
     pub line_starts: Vec<u32>,
     pub ast: OnceCell<Arc<ast::File>>,
 }
+
+impl SourceFile {
+    pub fn ast(&self) -> &Arc<ast::File> {
+        self.ast.get().expect("missing ast")
+    }
+}

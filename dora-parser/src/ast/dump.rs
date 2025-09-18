@@ -13,37 +13,28 @@ macro_rules! dump {
 }
 
 pub fn dump_file(ast: &Arc<File>) {
-    let mut dumper = AstDumper { indent: 0 };
-
-    dumper.dump_file(ast);
+    let mut dumper = AstDumper {
+        indent: 0,
+        f: ast.as_ref(),
+    };
+    dumper.dump_file();
 }
 
-pub fn dump_fct(fct: &Function) {
-    let mut dumper = AstDumper { indent: 0 };
-
+pub fn dump_fct(f: &Arc<File>, fct: &Function) {
+    let mut dumper = AstDumper { indent: 0, f };
     dumper.dump_fct(fct);
 }
 
-pub fn dump_expr<'a>(expr: &'a ExprData) {
-    let mut dumper = AstDumper { indent: 0 };
-
-    dumper.dump_expr(expr);
-}
-
-pub fn dump_stmt<'a>(stmt: &'a StmtData) {
-    let mut dumper = AstDumper { indent: 0 };
-
-    dumper.dump_stmt(stmt);
-}
-
-struct AstDumper {
+struct AstDumper<'a> {
     indent: u32,
+    f: &'a File,
 }
 
-impl AstDumper {
-    fn dump_file(&mut self, f: &File) {
-        for el in &f.elements {
-            self.dump_elem(el);
+impl<'a> AstDumper<'a> {
+    fn dump_file(&mut self) {
+        for &element_id in &self.f.elements {
+            let element = self.f.node(element_id);
+            self.dump_elem(element);
         }
     }
 
@@ -108,8 +99,9 @@ impl AstDumper {
 
         self.indent(|d| {
             if let Some(ref elements) = module.elements {
-                for e in elements {
-                    d.dump_elem(e);
+                for &element_id in elements {
+                    let element = self.f.node(element_id);
+                    d.dump_elem(element);
                 }
             }
         });
@@ -148,8 +140,9 @@ impl AstDumper {
 
             d.dump_type(&impl_.extended_type);
 
-            for mtd in &impl_.methods {
-                d.dump_elem(mtd);
+            for &element_id in &impl_.methods {
+                let element = self.f.node(element_id);
+                d.dump_elem(element);
             }
         });
     }
@@ -175,8 +168,9 @@ impl AstDumper {
         dump!(self, "trait @ {} {}", t.span, t.id);
         self.indent(|d| {
             d.dump_maybe_ident(&t.name);
-            for m in &t.methods {
-                d.dump_elem(m);
+            for &element_id in &t.methods {
+                let element = self.f.node(element_id);
+                d.dump_elem(element);
             }
         });
     }

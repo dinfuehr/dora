@@ -1,5 +1,7 @@
 use std::sync::Arc;
 
+use id_arena::Arena;
+
 use crate::ast;
 use crate::ast::*;
 use crate::error::{ParseError, ParseErrorWithLocation};
@@ -21,6 +23,7 @@ pub struct Parser {
     token_idx: usize,
     next_node_id: usize,
     content: Arc<String>,
+    ast_nodes: Arena<ElemData>,
     errors: Vec<ParseErrorWithLocation>,
     nodes: Vec<(usize, u32)>,
     offset: u32,
@@ -51,6 +54,7 @@ impl Parser {
             next_node_id: 0,
             offset: 0,
             content,
+            ast_nodes: Arena::new(),
             errors: result.errors,
             nodes: Vec::new(),
         }
@@ -75,6 +79,7 @@ impl Parser {
         (
             Arc::new(ast::File {
                 content: self.content.clone(),
+                ast_nodes: self.ast_nodes,
                 elements,
             }),
             self.errors,
@@ -86,62 +91,62 @@ impl Parser {
         match self.current() {
             FN_KW => {
                 let fct = self.parse_function(modifiers);
-                Arc::new(ElemData::Function(fct))
+                self.ast_nodes.alloc(ElemData::Function(fct))
             }
 
             CLASS_KW => {
                 let class = self.parse_class(modifiers);
-                Arc::new(ElemData::Class(class))
+                self.ast_nodes.alloc(ElemData::Class(class))
             }
 
             STRUCT_KW => {
                 let struc = self.parse_struct(modifiers);
-                Arc::new(ElemData::Struct(struc))
+                self.ast_nodes.alloc(ElemData::Struct(struc))
             }
 
             TRAIT_KW => {
                 let trait_ = self.parse_trait(modifiers);
-                Arc::new(ElemData::Trait(trait_))
+                self.ast_nodes.alloc(ElemData::Trait(trait_))
             }
 
             IMPL_KW => {
                 let impl_ = self.parse_impl(modifiers);
-                Arc::new(ElemData::Impl(impl_))
+                self.ast_nodes.alloc(ElemData::Impl(impl_))
             }
 
             LET_KW => {
                 let global = self.parse_global(modifiers);
-                Arc::new(ElemData::Global(global))
+                self.ast_nodes.alloc(ElemData::Global(global))
             }
 
             CONST_KW => {
                 let const_ = self.parse_const(modifiers);
-                Arc::new(ElemData::Const(const_))
+                self.ast_nodes.alloc(ElemData::Const(const_))
             }
 
             ENUM_KW => {
                 let enum_ = self.parse_enum(modifiers);
-                Arc::new(ElemData::Enum(enum_))
+                self.ast_nodes.alloc(ElemData::Enum(enum_))
             }
 
             MOD_KW => {
                 let module = self.parse_module(modifiers);
-                Arc::new(ElemData::Module(module))
+                self.ast_nodes.alloc(ElemData::Module(module))
             }
 
             USE_KW => {
                 let use_stmt = self.parse_use(modifiers);
-                Arc::new(ElemData::Use(use_stmt))
+                self.ast_nodes.alloc(ElemData::Use(use_stmt))
             }
 
             EXTERN_KW => {
                 let extern_stmt = self.parse_extern(modifiers);
-                Arc::new(ElemData::Extern(extern_stmt))
+                self.ast_nodes.alloc(ElemData::Extern(extern_stmt))
             }
 
             TYPE_KW => {
                 let alias = self.parse_alias(modifiers);
-                Arc::new(ElemData::Alias(alias))
+                self.ast_nodes.alloc(ElemData::Alias(alias))
             }
 
             _ => {
@@ -150,10 +155,8 @@ impl Parser {
                 self.report_error_at(ParseError::ExpectedElement, span);
                 self.advance();
 
-                Arc::new(ElemData::Error {
-                    id: self.new_node_id(),
-                    span,
-                })
+                let node_id = self.new_node_id();
+                self.ast_nodes.alloc(ElemData::Error { id: node_id, span })
             }
         }
     }
