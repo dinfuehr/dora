@@ -7,8 +7,7 @@ use lsp_types::{DocumentSymbol, DocumentSymbolResponse, Position, Range, SymbolK
 use dora_parser::ast::{self, visit};
 use dora_parser::{compute_line_column, compute_line_starts, Parser, Span};
 
-use super::uri_to_file_path;
-use crate::{MainLoopTask, ServerState};
+use crate::server::{uri_to_file_path, MainLoopTask, ServerState};
 
 pub(super) fn workspace_symbol_request(_server_state: &mut ServerState, request: Request) {
     let result = serde_json::from_value::<lsp_types::WorkspaceSymbolParams>(request.params);
