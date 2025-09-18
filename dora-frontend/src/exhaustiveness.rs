@@ -13,7 +13,7 @@ use crate::ErrorMessage;
 
 pub fn check(sa: &Sema) {
     for (_id, fct) in sa.fcts.iter() {
-        if fct.has_body() {
+        if fct.has_body(sa) {
             let mut visitor = Exhaustiveness {
                 sa,
                 file_id: fct.file_id,
@@ -21,11 +21,8 @@ pub fn check(sa: &Sema) {
             };
 
             let file = sa.file(fct.file_id());
-            visit::walk_fct(
-                &mut visitor,
-                file.ast(),
-                fct.ast().as_ref().expect("body expected"),
-            );
+            let ast = file.node(fct.ast_id()).to_function().expect("fct missing");
+            visit::walk_fct(&mut visitor, file.ast(), fct.ast_id(), ast);
         }
     }
 }

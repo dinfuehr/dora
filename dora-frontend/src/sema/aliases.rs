@@ -6,7 +6,6 @@ use crate::{
 };
 use std::cell::OnceCell;
 use std::rc::Rc;
-use std::sync::Arc;
 
 use id_arena::Id;
 
@@ -61,8 +60,9 @@ pub struct AliasDefinition {
     pub package_id: PackageDefinitionId,
     pub module_id: ModuleDefinitionId,
     pub file_id: SourceFileId,
+    pub span: Span,
     pub parent: AliasParent,
-    pub node: Arc<ast::Alias>,
+    pub ast_id: ast::AstNodeId,
     pub modifiers: ParsedModifierList,
     pub name: Name,
     pub parsed_ty: Option<ParsedType>,
@@ -78,7 +78,8 @@ impl AliasDefinition {
         module_id: ModuleDefinitionId,
         file_id: SourceFileId,
         parent: AliasParent,
-        node: &Arc<ast::Alias>,
+        ast_id: ast::AstNodeId,
+        node: &ast::Alias,
         modifiers: ParsedModifierList,
         name: Name,
         type_param_definition: Rc<TypeParamDefinition>,
@@ -92,7 +93,8 @@ impl AliasDefinition {
             module_id,
             file_id,
             parent,
-            node: node.clone(),
+            span: node.span,
+            ast_id,
             visibility: modifiers.visibility(),
             modifiers,
             name,
@@ -134,7 +136,7 @@ impl Element for AliasDefinition {
     }
 
     fn span(&self) -> Span {
-        self.node.span
+        self.span
     }
 
     fn module_id(&self) -> ModuleDefinitionId {

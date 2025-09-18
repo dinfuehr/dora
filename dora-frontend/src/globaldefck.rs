@@ -3,9 +3,9 @@ use crate::sema::Sema;
 
 pub fn check<'a>(sa: &Sema) {
     for (_id, global) in sa.globals.iter() {
-        if !global.has_initial_value() {
+        if !global.has_initial_value(sa) {
             let msg = ErrorMessage::LetMissingInitialization;
-            sa.report(global.file_id, global.ast.span, msg);
+            sa.report(global.file_id, global.span, msg);
         }
     }
 }

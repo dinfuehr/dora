@@ -1,6 +1,5 @@
 use std::cell::OnceCell;
 use std::rc::Rc;
-use std::sync::Arc;
 
 use crate::interner::Name;
 use crate::program_parser::ParsedModifierList;
@@ -23,7 +22,7 @@ pub struct GlobalDefinition {
     pub package_id: PackageDefinitionId,
     pub module_id: ModuleDefinitionId,
     pub file_id: SourceFileId,
-    pub ast: Arc<ast::Global>,
+    pub ast_id: ast::AstNodeId,
     pub span: Span,
     pub visibility: Visibility,
     pub parsed_ty: ParsedType,
@@ -40,7 +39,8 @@ impl GlobalDefinition {
         package_id: PackageDefinitionId,
         module_id: ModuleDefinitionId,
         file_id: SourceFileId,
-        node: &Arc<ast::Global>,
+        ast_id: ast::AstNodeId,
+        node: &ast::Global,
         modifiers: ParsedModifierList,
         name: Name,
     ) -> GlobalDefinition {
@@ -49,7 +49,7 @@ impl GlobalDefinition {
             package_id,
             module_id,
             file_id,
-            ast: node.clone(),
+            ast_id,
             span: node.span,
             name,
             visibility: modifiers.visibility(),
@@ -66,12 +66,20 @@ impl GlobalDefinition {
         self.id.expect("id missing")
     }
 
-    pub fn has_initial_value(&self) -> bool {
-        self.ast.initial_value.is_some()
+    pub fn ast<'a>(&self, sa: &'a Sema) -> &'a ast::Global {
+        sa.file(self.file_id())
+            .ast()
+            .node(self.ast_id)
+            .to_global()
+            .expect("missing global")
     }
 
-    pub fn initial_value_expr(&self) -> &ast::Expr {
-        self.ast.initial_value.as_ref().expect("missing expr")
+    pub fn has_initial_value(&self, sa: &Sema) -> bool {
+        self.ast(sa).initial_value.is_some()
+    }
+
+    pub fn initial_value_expr<'a>(&self, sa: &'a Sema) -> &'a ast::Expr {
+        self.ast(sa).initial_value.as_ref().expect("missing expr")
     }
 
     pub fn name(&self, sa: &Sema) -> String {

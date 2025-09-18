@@ -1,7 +1,6 @@
 use id_arena::Id;
 use std::cell::OnceCell;
 use std::rc::Rc;
-use std::sync::Arc;
 
 use crate::interner::Name;
 use crate::program_parser::ParsedModifierList;
@@ -24,7 +23,7 @@ pub struct ConstDefinition {
     pub package_id: PackageDefinitionId,
     pub module_id: ModuleDefinitionId,
     pub file_id: SourceFileId,
-    pub ast: Arc<ast::Const>,
+    pub ast_id: ast::AstNodeId,
     pub visibility: Visibility,
     pub span: Span,
     pub name: Name,
@@ -39,7 +38,8 @@ impl ConstDefinition {
         package_id: PackageDefinitionId,
         module_id: ModuleDefinitionId,
         file_id: SourceFileId,
-        node: &Arc<ast::Const>,
+        ast_id: ast::AstNodeId,
+        node: &ast::Const,
         modifiers: ParsedModifierList,
         name: Name,
     ) -> ConstDefinition {
@@ -48,7 +48,7 @@ impl ConstDefinition {
             package_id,
             module_id,
             file_id,
-            ast: node.clone(),
+            ast_id,
             span: node.span,
             name,
             visibility: modifiers.visibility(),

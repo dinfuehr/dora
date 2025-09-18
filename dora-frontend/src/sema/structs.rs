@@ -1,7 +1,6 @@
 use std::cell::{OnceCell, RefCell};
 use std::collections::hash_map::HashMap;
 use std::rc::Rc;
-use std::sync::Arc;
 
 use id_arena::Id;
 
@@ -25,7 +24,7 @@ pub struct StructDefinition {
     pub package_id: PackageDefinitionId,
     pub module_id: ModuleDefinitionId,
     pub file_id: SourceFileId,
-    pub ast: Arc<ast::Struct>,
+    pub ast_id: ast::AstNodeId,
     pub primitive_ty: Option<SourceType>,
     pub type_param_definition: Rc<TypeParamDefinition>,
     pub visibility: Visibility,
@@ -44,7 +43,8 @@ impl StructDefinition {
         package_id: PackageDefinitionId,
         module_id: ModuleDefinitionId,
         file_id: SourceFileId,
-        node: &Arc<ast::Struct>,
+        ast_id: ast::AstNodeId,
+        node: &ast::Struct,
         modifiers: ParsedModifierList,
         name: Name,
         type_param_definition: Rc<TypeParamDefinition>,
@@ -54,7 +54,7 @@ impl StructDefinition {
             package_id,
             module_id,
             file_id,
-            ast: node.clone(),
+            ast_id,
             primitive_ty: None,
             visibility: modifiers.visibility(),
             span: node.span,
@@ -71,6 +71,13 @@ impl StructDefinition {
 
     pub fn id(&self) -> StructDefinitionId {
         self.id.expect("missing id")
+    }
+
+    pub fn ast<'a>(&self, sa: &'a Sema) -> &'a ast::Struct {
+        sa.file(self.file_id())
+            .node(self.ast_id)
+            .to_struct()
+            .expect("class expected")
     }
 
     pub fn name(&self, sa: &Sema) -> String {

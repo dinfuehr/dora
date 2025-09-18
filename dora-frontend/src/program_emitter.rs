@@ -310,7 +310,7 @@ impl Emitter {
                 FctParent::None => FunctionKind::Function,
             };
 
-            let bc_fct = if fct.has_body() {
+            let bc_fct = if fct.has_body(sa) {
                 let analysis = fct.analysis();
                 Some(generate_fct(sa, self, &*fct, analysis))
             } else {
@@ -352,7 +352,7 @@ impl Emitter {
         }
 
         for (_id, global) in sa.globals.iter() {
-            if !global.has_initial_value() {
+            if !global.has_initial_value(sa) {
                 continue;
             }
 

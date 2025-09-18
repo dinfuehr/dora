@@ -22,4 +22,8 @@ impl SourceFile {
     pub fn ast(&self) -> &Arc<ast::File> {
         self.ast.get().expect("missing ast")
     }
+
+    pub fn node(&self, id: ast::AstNodeId) -> &ast::ElemData {
+        self.ast().node(id)
+    }
 }

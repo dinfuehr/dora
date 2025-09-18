@@ -1,7 +1,6 @@
 use std::cell::OnceCell;
 use std::collections::HashMap;
 use std::rc::Rc;
-use std::sync::Arc;
 
 use dora_parser::ast;
 use dora_parser::Span;
@@ -22,7 +21,7 @@ pub struct ImplDefinition {
     pub package_id: PackageDefinitionId,
     pub module_id: ModuleDefinitionId,
     pub file_id: SourceFileId,
-    pub ast: Arc<ast::Impl>,
+    pub ast_id: ast::AstNodeId,
     pub declaration_span: Span,
     pub span: Span,
     pub type_param_definition: Rc<TypeParamDefinition>,
@@ -39,7 +38,8 @@ impl ImplDefinition {
         package_id: PackageDefinitionId,
         module_id: ModuleDefinitionId,
         file_id: SourceFileId,
-        node: &Arc<ast::Impl>,
+        ast_id: ast::AstNodeId,
+        node: &ast::Impl,
         type_param_definition: Rc<TypeParamDefinition>,
     ) -> ImplDefinition {
         ImplDefinition {
@@ -47,7 +47,7 @@ impl ImplDefinition {
             package_id,
             module_id,
             file_id,
-            ast: node.clone(),
+            ast_id,
             type_param_definition,
             declaration_span: node.declaration_span,
             span: node.span,
@@ -67,6 +67,13 @@ impl ImplDefinition {
 
     pub fn id(&self) -> ImplDefinitionId {
         self.id.get().expect("id missing").clone()
+    }
+
+    pub fn ast<'a>(&self, sa: &'a Sema) -> &'a ast::Impl {
+        sa.file(self.file_id())
+            .node(self.ast_id)
+            .to_impl()
+            .expect("impl missing")
     }
 
     pub fn trait_id(&self) -> Option<TraitDefinitionId> {

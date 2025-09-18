@@ -24,7 +24,7 @@ pub struct FctDefinition {
     pub package_id: PackageDefinitionId,
     pub module_id: ModuleDefinitionId,
     pub file_id: SourceFileId,
-    pub ast: Option<Arc<ast::Function>>,
+    pub ast_id: Option<ast::AstNodeId>,
     pub declaration_span: Span,
     pub span: Span,
     pub name: Name,
@@ -54,7 +54,8 @@ impl FctDefinition {
         package_id: PackageDefinitionId,
         module_id: ModuleDefinitionId,
         file_id: SourceFileId,
-        ast: &Arc<ast::Function>,
+        ast_id: ast::AstNodeId,
+        ast: &ast::Function,
         modifiers: ParsedModifierList,
         name: Name,
         type_params: Rc<TypeParamDefinition>,
@@ -74,7 +75,7 @@ impl FctDefinition {
             file_id,
             declaration_span: ast.declaration_span,
             span: ast.span,
-            ast: Some(ast.clone()),
+            ast_id: Some(ast_id),
             name,
             params,
             return_type,
@@ -102,7 +103,7 @@ impl FctDefinition {
         file_id: SourceFileId,
         declaration_span: Span,
         span: Span,
-        ast: Option<&Arc<ast::Function>>,
+        ast_id: Option<ast::AstNodeId>,
         modifiers: ParsedModifierList,
         name: Name,
         type_params: Rc<TypeParamDefinition>,
@@ -117,7 +118,7 @@ impl FctDefinition {
             file_id,
             declaration_span: declaration_span,
             span: span,
-            ast: ast.cloned(),
+            ast_id,
             name,
             params,
             return_type: ParsedType::new_ty(return_type),
@@ -141,6 +142,17 @@ impl FctDefinition {
 
     pub fn id(&self) -> FctDefinitionId {
         self.id.expect("id missing")
+    }
+
+    pub fn ast_id(&self) -> ast::AstNodeId {
+        self.ast_id.expect("ast missing")
+    }
+
+    pub fn ast<'a>(&self, sa: &'a Sema) -> &'a ast::Function {
+        let file = sa.file(self.file_id());
+        file.node(self.ast_id())
+            .to_function()
+            .expect("fct expected")
     }
 
     pub fn container_type_params(&self) -> usize {
@@ -173,7 +185,7 @@ impl FctDefinition {
                 .expect("missing trait method");
 
             let trait_method = sa.fct(trait_method_id);
-            trait_method.has_body()
+            trait_method.has_body(sa)
         } else {
             false
         }
@@ -229,15 +241,15 @@ impl FctDefinition {
         repr
     }
 
-    pub fn has_body(&self) -> bool {
-        self.ast
-            .as_ref()
-            .map(|a| a.block.is_some())
-            .unwrap_or(false)
-    }
-
-    pub fn ast(&self) -> Option<&Arc<ast::Function>> {
-        self.ast.as_ref()
+    pub fn has_body(&self, sa: &Sema) -> bool {
+        self.ast_id.map_or(false, |id| {
+            let ast = sa.file(self.file_id);
+            ast.node(id)
+                .to_function()
+                .expect("fct expected")
+                .block
+                .is_some()
+        })
     }
 
     pub fn is_lambda(&self) -> bool {

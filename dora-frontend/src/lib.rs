@@ -110,9 +110,9 @@ pub fn emit_ast(sa: &Sema, filter: &str) {
     for (_id, fct) in sa.fcts.iter() {
         let fct_name = fct.display_name(sa);
 
-        if fct_pattern_match(&fct_name, filter) && fct.has_body() {
+        if fct_pattern_match(&fct_name, filter) && fct.has_body(sa) {
             let file = sa.file(fct.file_id);
-            ast::dump::dump_fct(file.ast(), fct.ast().expect("body expected"));
+            ast::dump::dump_fct(file.ast(), fct.ast(sa));
         }
     }
 }
@@ -146,7 +146,10 @@ fn fct_pattern_match(name: &str, pattern: &str) -> bool {
 
 fn internalck(sa: &Sema) {
     for (_id, fct) in sa.fcts.iter() {
-        if !fct.has_body() && !fct.in_trait() && !fct.is_internal && !fct.use_trait_default_impl(sa)
+        if !fct.has_body(sa)
+            && !fct.in_trait()
+            && !fct.is_internal
+            && !fct.use_trait_default_impl(sa)
         {
             sa.report(fct.file_id, fct.span, ErrorMessage::MissingFctBody);
         }

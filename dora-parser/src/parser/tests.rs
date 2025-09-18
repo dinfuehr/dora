@@ -1,6 +1,8 @@
-use crate::ast::*;
+use id_arena::Arena;
+
 use std::sync::Arc;
 
+use crate::ast::*;
 use crate::error::ParseError;
 use crate::parser::Parser;
 use crate::{compute_line_column, compute_line_starts};
@@ -13,6 +15,16 @@ fn parse_expr(code: &'static str) -> Expr {
     assert!(parser.current().is_eof());
 
     result
+}
+
+fn parse_expr2(code: &'static str) -> (Expr, Arena<ElemData>) {
+    let mut parser = Parser::from_string(code);
+
+    let result = parser.parse_expr();
+    assert!(parser.errors.is_empty());
+    assert!(parser.current().is_eof());
+
+    (result, parser.ast_nodes)
 }
 
 fn err_expr(code: &'static str, msg: ParseError, line: u32, col: u32) {
@@ -1343,26 +1355,29 @@ fn parse_generic_with_multiple_bounds() {
 
 #[test]
 fn parse_lambda_no_params_no_return_value() {
-    let expr = parse_expr("|| {}");
+    let (expr, arena) = parse_expr2("|| {}");
     let lambda = expr.to_lambda().unwrap();
 
-    assert!(lambda.return_type.is_none());
+    let node = arena[lambda.fct_id].to_function().expect("fct expected");
+    assert!(node.return_type.is_none());
 }
 
 #[test]
 fn parse_lambda_no_params_unit_as_return_value() {
-    let expr = parse_expr("|| : () {}");
+    let (expr, arena) = parse_expr2("|| : () {}");
     let lambda = expr.to_lambda().unwrap();
-    let ret = lambda.return_type.as_ref().unwrap();
+    let node = arena[lambda.fct_id].to_function().expect("fct expected");
+    let ret = node.return_type.as_ref().unwrap();
 
     assert!(ret.is_unit());
 }
 
 #[test]
 fn parse_lambda_no_params_with_return_value() {
-    let expr = parse_expr("||: A {}");
+    let (expr, arena) = parse_expr2("||: A {}");
     let lambda = expr.to_lambda().unwrap();
-    let ret = lambda.return_type.as_ref().unwrap();
+    let node = arena[lambda.fct_id].to_function().expect("fct expected");
+    let ret = node.return_type.as_ref().unwrap();
     let regular = ret.to_regular().unwrap();
 
     assert_eq!("A", regular.name());
@@ -1370,17 +1385,18 @@ fn parse_lambda_no_params_with_return_value() {
 
 #[test]
 fn parse_lambda_with_one_param() {
-    let expr = parse_expr("|a: A|: B {}");
+    let (expr, arena) = parse_expr2("|a: A|: B {}");
     let lambda = expr.to_lambda().unwrap();
+    let node = arena[lambda.fct_id].to_function().expect("fct expected");
 
-    assert_eq!(1, lambda.params.len());
+    assert_eq!(1, node.params.len());
 
-    let param = &lambda.params[0];
+    let param = &node.params[0];
     assert_eq!("a", param.pattern.to_ident_name());
     let ty = param.data_type.to_regular().unwrap();
     assert_eq!("A", ty.name());
 
-    let ret = lambda.return_type.as_ref().unwrap();
+    let ret = node.return_type.as_ref().unwrap();
     let ty = ret.to_regular().unwrap();
 
     assert_eq!("B", ty.name());
@@ -1388,22 +1404,23 @@ fn parse_lambda_with_one_param() {
 
 #[test]
 fn parse_lambda_with_two_params() {
-    let expr = parse_expr("|a: A, b: B|: C {}");
+    let (expr, arena) = parse_expr2("|a: A, b: B|: C {}");
     let lambda = expr.to_lambda().unwrap();
+    let node = arena[lambda.fct_id].to_function().expect("fct expected");
 
-    assert_eq!(2, lambda.params.len());
+    assert_eq!(2, node.params.len());
 
-    let param = &lambda.params[0];
+    let param = &node.params[0];
     assert_eq!("a", param.pattern.to_ident_name());
     let ty = param.data_type.to_regular().unwrap();
     assert_eq!("A", ty.name());
 
-    let param = &lambda.params[1];
+    let param = &node.params[1];
     assert_eq!("b", param.pattern.to_ident_name());
     let ty = param.data_type.to_regular().unwrap();
     assert_eq!("B", ty.name());
 
-    let ret = lambda.return_type.as_ref().unwrap();
+    let ret = node.return_type.as_ref().unwrap();
     let ty = ret.to_regular().unwrap();
 
     assert_eq!("C", ty.name());

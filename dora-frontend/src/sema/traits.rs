@@ -1,7 +1,6 @@
 use std::cell::OnceCell;
 use std::collections::HashMap;
 use std::rc::Rc;
-use std::sync::Arc;
 
 use crate::interner::Name;
 use crate::program_parser::ParsedModifierList;
@@ -24,7 +23,7 @@ pub struct TraitDefinition {
     pub module_id: ModuleDefinitionId,
     pub file_id: SourceFileId,
     pub visibility: Visibility,
-    pub ast: Arc<ast::Trait>,
+    pub ast_id: ast::AstNodeId,
     pub span: Span,
     pub name: Name,
     pub is_trait_object: bool,
@@ -41,7 +40,8 @@ impl TraitDefinition {
         package_id: PackageDefinitionId,
         module_id: ModuleDefinitionId,
         file_id: SourceFileId,
-        node: &Arc<ast::Trait>,
+        ast_id: ast::AstNodeId,
+        span: Span,
         modifiers: ParsedModifierList,
         name: Name,
         type_params: Rc<TypeParamDefinition>,
@@ -51,9 +51,9 @@ impl TraitDefinition {
             package_id,
             module_id,
             file_id,
-            ast: node.clone(),
+            ast_id,
             visibility: modifiers.visibility(),
-            span: node.span,
+            span,
             name,
             is_trait_object: false,
             type_param_definition: type_params,

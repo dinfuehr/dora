@@ -1,6 +1,5 @@
 use std::cell::OnceCell;
 use std::rc::Rc;
-use std::sync::Arc;
 
 use crate::program_parser::ParsedModifierList;
 use crate::sema::{PackageDefinitionId, Sema, Visibility};
@@ -19,7 +18,7 @@ pub struct ModuleDefinition {
     pub package_id: Option<PackageDefinitionId>,
     pub parent_module_id: Option<ModuleDefinitionId>,
     pub file_id: Option<SourceFileId>,
-    pub ast: Option<Arc<ast::Module>>,
+    pub ast_id: Option<ast::AstNodeId>,
     pub name: Option<Name>,
     pub table: OnceCell<Rc<SymTable>>,
     pub visibility: Visibility,
@@ -32,7 +31,7 @@ impl ModuleDefinition {
         ModuleDefinition {
             id: None,
             package_id: None,
-            ast: None,
+            ast_id: None,
             file_id: None,
             parent_module_id: None,
             name,
@@ -48,7 +47,7 @@ impl ModuleDefinition {
         package_id: PackageDefinitionId,
         parent_id: ModuleDefinitionId,
         file_id: SourceFileId,
-        ast: &Arc<ast::Module>,
+        ast_id: ast::AstNodeId,
         modifiers: ParsedModifierList,
         name: Name,
     ) -> ModuleDefinition {
@@ -61,7 +60,7 @@ impl ModuleDefinition {
         ModuleDefinition {
             id: None,
             package_id: Some(package_id),
-            ast: Some(ast.clone()),
+            ast_id: Some(ast_id),
             file_id: Some(file_id),
             parent_module_id: Some(parent_id),
             name: Some(name),
@@ -74,6 +73,13 @@ impl ModuleDefinition {
 
     pub fn id(&self) -> ModuleDefinitionId {
         self.id.expect("missing id")
+    }
+
+    pub fn ast<'a>(&self, sa: &'a Sema) -> &'a ast::Module {
+        sa.file(self.file_id.expect("file expected"))
+            .node(self.ast_id.expect("missing ast"))
+            .to_module()
+            .expect("module expected")
     }
 
     pub fn package_id(&self) -> PackageDefinitionId {

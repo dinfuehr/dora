@@ -1,7 +1,6 @@
 use std::cell::{OnceCell, RefCell};
 use std::collections::HashMap;
 use std::rc::Rc;
-use std::sync::Arc;
 
 use crate::interner::Name;
 use crate::program_parser::ParsedModifierList;
@@ -27,7 +26,7 @@ pub struct EnumDefinition {
     pub package_id: PackageDefinitionId,
     pub module_id: ModuleDefinitionId,
     pub file_id: SourceFileId,
-    pub ast: Arc<ast::Enum>,
+    pub ast_id: ast::AstNodeId,
     pub span: Span,
     pub name: Name,
     pub visibility: Visibility,
@@ -43,7 +42,8 @@ impl EnumDefinition {
         package_id: PackageDefinitionId,
         module_id: ModuleDefinitionId,
         file_id: SourceFileId,
-        node: &Arc<ast::Enum>,
+        ast_id: ast::AstNodeId,
+        node: &ast::Enum,
         modifiers: ParsedModifierList,
         name: Name,
         type_param_definition: Rc<TypeParamDefinition>,
@@ -53,7 +53,7 @@ impl EnumDefinition {
             package_id,
             module_id,
             file_id,
-            ast: node.clone(),
+            ast_id,
             span: node.span,
             name,
             type_param_definition,
@@ -67,6 +67,13 @@ impl EnumDefinition {
 
     pub fn id(&self) -> EnumDefinitionId {
         self.id.expect("id missing")
+    }
+
+    pub fn ast<'a>(&self, sa: &'a Sema) -> &'a ast::Enum {
+        sa.file(self.file_id())
+            .node(self.ast_id)
+            .to_enum()
+            .expect("class expected")
     }
 
     pub fn name_to_value(&self) -> &HashMap<Name, u32> {

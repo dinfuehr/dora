@@ -49,7 +49,7 @@ fn detect_cycles_for_alias<'a>(
     }
 
     if visiting.contains(alias.id().index()) {
-        sa.report(alias.file_id, alias.node.span, ErrorMessage::AliasCycle);
+        sa.report(alias.file_id, alias.span, ErrorMessage::AliasCycle);
         return true;
     }
 

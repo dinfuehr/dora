@@ -41,7 +41,7 @@ pub fn check(sa: &mut Sema) {
     let mut lazy_lambda_creation = Vec::new();
 
     for (_id, fct) in sa.fcts.iter() {
-        if fct.has_body() {
+        if fct.has_body(sa) {
             check_function(
                 sa,
                 fct,
@@ -121,7 +121,7 @@ fn check_function(
         element: fct,
     };
 
-    typeck.check_fct(fct.ast().expect("body expected"));
+    typeck.check_fct(fct.ast(sa));
 
     assert!(fct.analysis.set(analysis).is_ok());
 }
@@ -133,7 +133,7 @@ fn check_global(
     lazy_lambda_creation: &mut Vec<LazyLambdaCreationData>,
 ) {
     let analysis = {
-        if !global.has_initial_value() {
+        if !global.has_initial_value(sa) {
             return;
         }
 
@@ -167,7 +167,7 @@ fn check_global(
             element: global,
         };
 
-        typeck.check_initializer(&*global, global.initial_value_expr());
+        typeck.check_initializer(&*global, global.initial_value_expr(sa));
 
         analysis
     };

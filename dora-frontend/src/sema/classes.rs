@@ -1,6 +1,5 @@
 use std::cell::{OnceCell, RefCell};
 use std::rc::Rc;
-use std::sync::Arc;
 
 use id_arena::Id;
 
@@ -23,7 +22,7 @@ pub struct ClassDefinition {
     pub package_id: PackageDefinitionId,
     pub module_id: ModuleDefinitionId,
     pub file_id: Option<SourceFileId>,
-    pub ast: Option<Arc<ast::Class>>,
+    pub ast_id: Option<ast::AstNodeId>,
     pub span: Option<Span>,
     pub name: Name,
     pub ty: OnceCell<SourceType>,
@@ -48,7 +47,8 @@ impl ClassDefinition {
         package_id: PackageDefinitionId,
         module_id: ModuleDefinitionId,
         file_id: SourceFileId,
-        ast: &Arc<ast::Class>,
+        ast_id: ast::AstNodeId,
+        node: &ast::Class,
         modifiers: ParsedModifierList,
         name: Name,
         type_param_definition: Rc<TypeParamDefinition>,
@@ -58,14 +58,14 @@ impl ClassDefinition {
             package_id,
             module_id,
             file_id: Some(file_id),
-            ast: Some(ast.clone()),
-            span: Some(ast.span),
+            ast_id: Some(ast_id),
+            span: Some(node.span),
             name,
             ty: OnceCell::new(),
             is_internal: modifiers.is_internal,
             internal_resolved: false,
             visibility: modifiers.visibility(),
-            field_name_style: ast.field_name_style,
+            field_name_style: node.field_name_style,
             field_ids: OnceCell::new(),
             extensions: RefCell::new(Vec::new()),
             type_param_definition,
@@ -88,7 +88,7 @@ impl ClassDefinition {
             package_id,
             module_id,
             file_id,
-            ast: None,
+            ast_id: None,
             span,
             name,
             ty: OnceCell::new(),
@@ -108,8 +108,11 @@ impl ClassDefinition {
         self.id.expect("missing id")
     }
 
-    pub fn ast(&self) -> &Arc<ast::Class> {
-        self.ast.as_ref().expect("ast expected")
+    pub fn ast<'a>(&self, sa: &'a Sema) -> &'a ast::Class {
+        sa.file(self.file_id())
+            .node(self.ast_id.expect("ast missing"))
+            .to_class()
+            .expect("class expected")
     }
 
     pub fn file_id(&self) -> SourceFileId {

@@ -71,7 +71,7 @@ pub fn generate_fct(
         unit_register: None,
         entered_contexts: Vec::new(),
     };
-    ast_bytecode_generator.generate_fct(fct.ast().expect("body expected"))
+    ast_bytecode_generator.generate_fct(fct.ast(sa))
 }
 
 pub fn generate_global_initializer(
@@ -97,7 +97,7 @@ pub fn generate_global_initializer(
         entered_contexts: Vec::new(),
     };
 
-    ast_bytecode_generator.generate_global_initializer(global.initial_value_expr())
+    ast_bytecode_generator.generate_global_initializer(global.initial_value_expr(sa))
 }
 
 const SELF_VAR_ID: VarId = VarId(0);
@@ -1273,8 +1273,16 @@ impl<'a> AstBytecodeGen<'a> {
             .find_map(|ec| ec.register)
     }
 
-    fn visit_expr_lambda(&mut self, node: &ast::Function, dest: DataDest) -> Register {
+    fn visit_expr_lambda(&mut self, node: &ast::ExprLambdaType, dest: DataDest) -> Register {
         let dest = self.ensure_register(dest, BytecodeType::Ptr);
+
+        let fct_node_id = node.fct_id;
+        let node = self
+            .sa
+            .file(self.file_id)
+            .node(fct_node_id)
+            .to_function()
+            .expect("fct expected");
 
         let lambda_fct_id = self
             .analysis

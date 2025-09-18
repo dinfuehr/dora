@@ -90,14 +90,14 @@ struct ExtensionCheck<'x> {
 
 impl<'x> ExtensionCheck<'x> {
     fn check(&mut self) {
-        assert!(self.extension.ast.trait_type.is_none());
+        assert!(self.extension.ast(self.sa).trait_type.is_none());
 
         match self.extension.ty() {
             SourceType::TypeParam(..) => {
                 let msg = ErrorMessage::ExpectedExtensionType;
                 self.sa.report(
                     self.extension.file_id.into(),
-                    self.extension.ast.extended_type.span(),
+                    self.extension.ast(self.sa).extended_type.span(),
                     msg,
                 );
             }
@@ -133,7 +133,7 @@ impl<'x> ExtensionCheck<'x> {
                 let msg = ErrorMessage::ExtendingTypeDifferentPackage;
                 self.sa.report(
                     self.extension.file_id.into(),
-                    self.extension.ast.extended_type.span(),
+                    self.extension.ast(self.sa).extended_type.span(),
                     msg,
                 );
             }
@@ -144,7 +144,7 @@ impl<'x> ExtensionCheck<'x> {
             self.extension.ty(),
             self.extension.type_param_definition(),
             self.extension.file_id,
-            self.extension.ast.extended_type.span(),
+            self.extension.ast(self.sa).extended_type.span(),
         );
 
         for &method_id in self.extension.methods() {

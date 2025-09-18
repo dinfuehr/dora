@@ -473,8 +473,9 @@ impl<'a> AstDumper<'a> {
         self.indent(|d| d.dump_expr(&expr.lhs));
     }
 
-    fn dump_expr_lambda(&mut self, fct: &Arc<Function>) {
+    fn dump_expr_lambda(&mut self, fct: &ExprLambdaType) {
         dump!(self, "lambda @ {} {}", fct.span, fct.id);
+        let fct = self.f.node(fct.fct_id).to_function().expect("fct expected");
         self.indent(|d| d.dump_fct(fct));
     }
 

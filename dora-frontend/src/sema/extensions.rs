@@ -1,7 +1,6 @@
 use std::cell::{OnceCell, RefCell};
 use std::collections::HashMap;
 use std::rc::Rc;
-use std::sync::Arc;
 
 use crate::interner::Name;
 use crate::sema::{
@@ -23,7 +22,7 @@ pub struct ExtensionDefinition {
     pub package_id: PackageDefinitionId,
     pub module_id: ModuleDefinitionId,
     pub file_id: SourceFileId,
-    pub ast: Arc<ast::Impl>,
+    pub ast_id: ast::AstNodeId,
     pub span: Span,
     pub type_param_definition: Rc<TypeParamDefinition>,
     pub parsed_ty: ParsedType,
@@ -37,7 +36,8 @@ impl ExtensionDefinition {
         package_id: PackageDefinitionId,
         module_id: ModuleDefinitionId,
         file_id: SourceFileId,
-        node: &Arc<ast::Impl>,
+        ast_id: ast::AstNodeId,
+        node: &ast::Impl,
         type_param_definition: Rc<TypeParamDefinition>,
     ) -> ExtensionDefinition {
         ExtensionDefinition {
@@ -45,7 +45,7 @@ impl ExtensionDefinition {
             package_id,
             module_id,
             file_id,
-            ast: node.clone(),
+            ast_id,
             span: node.span,
             type_param_definition,
             parsed_ty: ParsedType::new_ast(node.extended_type.clone()),
@@ -57,6 +57,13 @@ impl ExtensionDefinition {
 
     pub fn id(&self) -> ExtensionDefinitionId {
         self.id.get().cloned().expect("id missing")
+    }
+
+    pub fn ast<'a>(&self, sa: &'a Sema) -> &'a ast::Impl {
+        sa.file(self.file_id())
+            .node(self.ast_id)
+            .to_impl()
+            .expect("impl missing")
     }
 
     pub fn parsed_ty(&self) -> &ParsedType {

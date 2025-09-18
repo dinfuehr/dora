@@ -20,7 +20,7 @@ use crate::sema::{
 use crate::sym::{SymTable, Symbol, SymbolKind};
 use crate::{report_sym_shadow_span, ty, ParsedType, SourceType};
 use dora_parser::ast::visit::Visitor;
-use dora_parser::ast::{self, visit, ModifierList};
+use dora_parser::ast::{self, visit, AstNodeId, ModifierList};
 use dora_parser::parser::Parser;
 use dora_parser::{compute_line_starts, Span};
 
@@ -256,7 +256,7 @@ impl<'a> ProgramParser<'a> {
         external_module_id: ModuleDefinitionId,
     ) {
         let external_module = self.sa.module(external_module_id);
-        let node = external_module.ast.clone().unwrap();
+        let node = external_module.ast(self.sa);
         let file_id = external_module.file_id.expect("missing file_id");
 
         if let Some(ident) = &node.name {
@@ -373,7 +373,7 @@ struct TopLevelDeclaration<'x> {
 }
 
 impl<'x> visit::Visitor for TopLevelDeclaration<'x> {
-    fn visit_extern(&mut self, _f: &ast::File, node: &Arc<ast::ExternPackage>) {
+    fn visit_extern(&mut self, _f: &ast::File, _id: AstNodeId, node: &ast::ExternPackage) {
         check_modifiers(self.sa, self.file_id, &node.modifiers, &[]);
         if let Some(name) = &node.name {
             if let Some(package_id) = self.sa.package_names.get(&name.name_as_string).cloned() {
@@ -403,7 +403,7 @@ impl<'x> visit::Visitor for TopLevelDeclaration<'x> {
         }
     }
 
-    fn visit_module(&mut self, f: &ast::File, node: &Arc<ast::Module>) {
+    fn visit_module(&mut self, f: &ast::File, ast_id: AstNodeId, node: &ast::Module) {
         let modifiers = check_modifiers(self.sa, self.file_id, &node.modifiers, &[Annotation::Pub]);
         let name = ensure_name(self.sa, &node.name);
         let module = ModuleDefinition::new_inner(
@@ -411,7 +411,7 @@ impl<'x> visit::Visitor for TopLevelDeclaration<'x> {
             self.package_id,
             self.module_id,
             self.file_id,
-            node,
+            ast_id,
             modifiers,
             name,
         );
@@ -431,7 +431,7 @@ impl<'x> visit::Visitor for TopLevelDeclaration<'x> {
 
             let saved_module_table = std::mem::replace(&mut self.module_table, module_table);
             self.module_id = id;
-            visit::walk_module(self, f, node);
+            visit::walk_module(self, f, ast_id, node);
             self.module_id = saved_module_id;
             let module_table = std::mem::replace(&mut self.module_table, saved_module_table);
 
@@ -439,7 +439,7 @@ impl<'x> visit::Visitor for TopLevelDeclaration<'x> {
         }
     }
 
-    fn visit_trait(&mut self, f: &ast::File, node: &Arc<ast::Trait>) {
+    fn visit_trait(&mut self, f: &ast::File, ast_id: AstNodeId, node: &ast::Trait) {
         let modifiers = check_modifiers(self.sa, self.file_id, &node.modifiers, &[Annotation::Pub]);
 
         let type_param_definition = parse_type_param_definition(
@@ -455,7 +455,8 @@ impl<'x> visit::Visitor for TopLevelDeclaration<'x> {
             self.package_id,
             self.module_id,
             self.file_id,
-            node,
+            ast_id,
+            node.span,
             modifiers,
             ensure_name(self.sa, &node.name),
             type_param_definition,
@@ -480,7 +481,7 @@ impl<'x> visit::Visitor for TopLevelDeclaration<'x> {
         }
     }
 
-    fn visit_use(&mut self, _f: &ast::File, node: &Arc<ast::Use>) {
+    fn visit_use(&mut self, _f: &ast::File, _ast_id: AstNodeId, node: &ast::Use) {
         let modifiers = check_modifiers(self.sa, self.file_id, &node.modifiers, &[Annotation::Pub]);
         let use_def = UseDefinition::new(
             self.package_id,
@@ -493,13 +494,14 @@ impl<'x> visit::Visitor for TopLevelDeclaration<'x> {
         assert!(self.sa.uses[use_id].id.set(use_id).is_ok());
     }
 
-    fn visit_global(&mut self, _f: &ast::File, node: &Arc<ast::Global>) {
+    fn visit_global(&mut self, _f: &ast::File, ast_id: AstNodeId, node: &ast::Global) {
         let modifiers = check_modifiers(self.sa, self.file_id, &node.modifiers, &[Annotation::Pub]);
 
         let global = GlobalDefinition::new(
             self.package_id,
             self.module_id,
             self.file_id,
+            ast_id,
             node,
             modifiers,
             ensure_name(self.sa, &node.name),
@@ -513,7 +515,7 @@ impl<'x> visit::Visitor for TopLevelDeclaration<'x> {
         }
     }
 
-    fn visit_impl(&mut self, f: &ast::File, node: &Arc<ast::Impl>) {
+    fn visit_impl(&mut self, f: &ast::File, ast_id: AstNodeId, node: &ast::Impl) {
         check_modifiers(self.sa, self.file_id, &node.modifiers, &[]);
 
         let type_param_definition = parse_type_param_definition(
@@ -530,6 +532,7 @@ impl<'x> visit::Visitor for TopLevelDeclaration<'x> {
                 self.package_id,
                 self.module_id,
                 self.file_id,
+                ast_id,
                 node,
                 type_param_definition,
             );
@@ -550,6 +553,7 @@ impl<'x> visit::Visitor for TopLevelDeclaration<'x> {
                 self.package_id,
                 self.module_id,
                 self.file_id,
+                ast_id,
                 node,
                 type_param_definition,
             );
@@ -563,12 +567,13 @@ impl<'x> visit::Visitor for TopLevelDeclaration<'x> {
         }
     }
 
-    fn visit_const(&mut self, _f: &ast::File, node: &Arc<ast::Const>) {
+    fn visit_const(&mut self, _f: &ast::File, ast_id: AstNodeId, node: &ast::Const) {
         let modifiers = check_modifiers(self.sa, self.file_id, &node.modifiers, &[Annotation::Pub]);
         let const_ = ConstDefinition::new(
             self.package_id,
             self.module_id,
             self.file_id,
+            ast_id,
             node,
             modifiers,
             ensure_name(self.sa, &node.name),
@@ -582,7 +587,7 @@ impl<'x> visit::Visitor for TopLevelDeclaration<'x> {
         }
     }
 
-    fn visit_class(&mut self, _f: &ast::File, node: &Arc<ast::Class>) {
+    fn visit_class(&mut self, _f: &ast::File, ast_id: AstNodeId, node: &ast::Class) {
         let modifiers = check_modifiers(
             self.sa,
             self.file_id,
@@ -603,6 +608,7 @@ impl<'x> visit::Visitor for TopLevelDeclaration<'x> {
             self.package_id,
             self.module_id,
             self.file_id,
+            ast_id,
             node,
             modifiers,
             ensure_name(self.sa, &node.name),
@@ -650,7 +656,7 @@ impl<'x> visit::Visitor for TopLevelDeclaration<'x> {
         }
     }
 
-    fn visit_struct(&mut self, _f: &ast::File, node: &Arc<ast::Struct>) {
+    fn visit_struct(&mut self, _f: &ast::File, ast_id: AstNodeId, node: &ast::Struct) {
         let modifiers = check_modifiers(
             self.sa,
             self.file_id,
@@ -671,6 +677,7 @@ impl<'x> visit::Visitor for TopLevelDeclaration<'x> {
             self.package_id,
             self.module_id,
             self.file_id,
+            ast_id,
             node,
             modifiers,
             ensure_name(self.sa, &node.name),
@@ -728,7 +735,7 @@ impl<'x> visit::Visitor for TopLevelDeclaration<'x> {
         }
     }
 
-    fn visit_fct(&mut self, _f: &ast::File, node: &Arc<ast::Function>) {
+    fn visit_fct(&mut self, _f: &ast::File, ast_id: AstNodeId, node: &ast::Function) {
         let modifiers = check_modifiers(
             self.sa,
             self.file_id,
@@ -759,6 +766,7 @@ impl<'x> visit::Visitor for TopLevelDeclaration<'x> {
             self.package_id,
             self.module_id,
             self.file_id,
+            ast_id,
             node,
             modifiers,
             ensure_name(self.sa, &node.name),
@@ -774,7 +782,7 @@ impl<'x> visit::Visitor for TopLevelDeclaration<'x> {
         }
     }
 
-    fn visit_enum(&mut self, _f: &ast::File, node: &Arc<ast::Enum>) {
+    fn visit_enum(&mut self, _f: &ast::File, ast_id: AstNodeId, node: &ast::Enum) {
         let type_param_definition = parse_type_param_definition(
             self.sa,
             None,
@@ -789,6 +797,7 @@ impl<'x> visit::Visitor for TopLevelDeclaration<'x> {
             self.package_id,
             self.module_id,
             self.file_id,
+            ast_id,
             node,
             modifiers,
             ensure_name(self.sa, &node.name),
@@ -879,7 +888,7 @@ impl<'x> visit::Visitor for TopLevelDeclaration<'x> {
         }
     }
 
-    fn visit_type_alias(&mut self, _f: &ast::File, node: &Arc<ast::Alias>) {
+    fn visit_type_alias(&mut self, _f: &ast::File, ast_id: AstNodeId, node: &ast::Alias) {
         let modifiers = check_modifiers(self.sa, self.file_id, &node.modifiers, &[Annotation::Pub]);
 
         let parsed_ty = if let Some(ref ty) = node.ty {
@@ -912,6 +921,7 @@ impl<'x> visit::Visitor for TopLevelDeclaration<'x> {
             self.module_id,
             self.file_id,
             AliasParent::None,
+            ast_id,
             node,
             modifiers,
             ensure_name(self.sa, &node.name),
@@ -942,7 +952,7 @@ fn find_elements_in_trait(
     file_id: SourceFileId,
     trait_id: TraitDefinitionId,
     f: &ast::File,
-    node: &Arc<ast::Trait>,
+    node: &ast::Trait,
 ) {
     let mut methods = Vec::new();
     let mut aliases = Vec::new();
@@ -988,6 +998,7 @@ fn find_elements_in_trait(
                     trait_.package_id,
                     trait_.module_id,
                     trait_.file_id,
+                    child_id,
                     method_node,
                     modifiers,
                     ensure_name(sa, &method_node.name),
@@ -1070,6 +1081,7 @@ fn find_elements_in_trait(
                     module_id,
                     file_id,
                     AliasParent::Trait(trait_id),
+                    child_id,
                     node,
                     modifiers,
                     name,
@@ -1093,7 +1105,7 @@ fn find_elements_in_trait(
                     sa.report(
                         file_id,
                         node.span,
-                        ErrorMessage::TypeExists(method_name, existing_alias.node.span),
+                        ErrorMessage::TypeExists(method_name, existing_alias.span),
                     );
                 } else {
                     alias_names.insert(name, id);
@@ -1128,7 +1140,7 @@ fn find_elements_in_impl(
     file_id: SourceFileId,
     impl_id: ImplDefinitionId,
     f: &ast::File,
-    node: &Arc<ast::Impl>,
+    node: &ast::Impl,
 ) {
     let mut methods = Vec::new();
     let mut aliases = Vec::new();
@@ -1163,6 +1175,7 @@ fn find_elements_in_impl(
                     impl_.package_id,
                     impl_.module_id,
                     impl_.file_id,
+                    child_id,
                     method_node,
                     modifiers,
                     ensure_name(sa, &method_node.name),
@@ -1219,6 +1232,7 @@ fn find_elements_in_impl(
                     module_id,
                     file_id,
                     AliasParent::Impl(impl_id),
+                    child_id,
                     node,
                     modifiers,
                     name,
@@ -1260,7 +1274,7 @@ fn find_elements_in_extension(
     file_id: SourceFileId,
     extension_id: ExtensionDefinitionId,
     f: &ast::File,
-    node: &Arc<ast::Impl>,
+    node: &ast::Impl,
 ) {
     let mut methods = Vec::new();
 
@@ -1300,6 +1314,7 @@ fn find_elements_in_extension(
                     extension.package_id,
                     extension.module_id,
                     extension.file_id,
+                    child_id,
                     method_node,
                     modifiers,
                     name,

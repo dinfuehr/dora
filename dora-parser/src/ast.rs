@@ -97,18 +97,18 @@ pub type Elem = Id<ElemData>;
 
 #[derive(Clone, Debug)]
 pub enum ElemData {
-    Function(Arc<Function>),
-    Class(Arc<Class>),
-    Struct(Arc<Struct>),
-    Trait(Arc<Trait>),
-    Impl(Arc<Impl>),
-    Global(Arc<Global>),
-    Const(Arc<Const>),
-    Enum(Arc<Enum>),
-    Module(Arc<Module>),
-    Use(Arc<Use>),
-    Extern(Arc<ExternPackage>),
-    Alias(Arc<Alias>),
+    Function(Function),
+    Class(Class),
+    Struct(Struct),
+    Trait(Trait),
+    Impl(Impl),
+    Global(Global),
+    Const(Const),
+    Enum(Enum),
+    Module(Module),
+    Use(Use),
+    Extern(ExternPackage),
+    Alias(Alias),
     Error { id: NodeId, span: Span },
 }
 
@@ -1014,7 +1014,7 @@ pub enum ExprData {
     This(ExprSelfType),
     Conv(ExprConvType),
     Is(ExprIsType),
-    Lambda(Arc<Function>),
+    Lambda(ExprLambdaType),
     Block(ExprBlockType),
     If(ExprIfType),
     For(ExprForType),
@@ -1231,8 +1231,8 @@ impl ExprData {
         })
     }
 
-    pub fn create_lambda(fct: Arc<Function>) -> ExprData {
-        ExprData::Lambda(fct)
+    pub fn create_lambda(id: NodeId, span: Span, fct_id: AstNodeId) -> ExprData {
+        ExprData::Lambda(ExprLambdaType { id, span, fct_id })
     }
 
     pub fn create_tuple(id: NodeId, span: Span, values: Vec<Expr>) -> ExprData {
@@ -1516,16 +1516,16 @@ impl ExprData {
         }
     }
 
-    pub fn to_lambda(&self) -> Option<Arc<Function>> {
+    pub fn to_lambda(&self) -> Option<&ExprLambdaType> {
         match *self {
-            ExprData::Lambda(ref val) => Some(val.clone()),
+            ExprData::Lambda(ref val) => Some(val),
             _ => None,
         }
     }
 
     pub fn is_lambda(&self) -> bool {
         match self {
-            &ExprData::Lambda(_) => true,
+            &ExprData::Lambda { .. } => true,
             _ => false,
         }
     }
@@ -1695,6 +1695,13 @@ impl ExprData {
             ExprData::Error { id, .. } => id,
         }
     }
+}
+
+#[derive(Clone, Debug)]
+pub struct ExprLambdaType {
+    pub id: NodeId,
+    pub span: Span,
+    pub fct_id: AstNodeId,
 }
 
 #[derive(Clone, Debug)]

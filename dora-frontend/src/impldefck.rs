@@ -50,7 +50,7 @@ fn check_impl_definition(sa: &Sema, impl_: &ImplDefinition) {
         impl_.extended_ty(),
         impl_.type_param_definition(),
         impl_.file_id,
-        impl_.ast.span,
+        impl_.ast(sa).span,
     );
 
     if impl_.trait_ty().is_some() && !impl_.extended_ty().is_error() {
@@ -62,7 +62,7 @@ fn check_impl_definition(sa: &Sema, impl_: &ImplDefinition) {
         if is_trait_foreign && is_extended_ty_foreign {
             sa.report(
                 impl_.file_id,
-                impl_.ast.span,
+                impl_.ast(sa).span,
                 ErrorMessage::ImplTraitForeignType,
             );
         }
@@ -236,7 +236,7 @@ fn check_impl_methods(
     for trait_method_id in &remaining_trait_methods {
         let trait_method = sa.fct(*trait_method_id);
 
-        if trait_method.has_body() {
+        if trait_method.has_body(sa) {
             default_impl_methods.push(*trait_method_id);
         } else {
             let mtd_name = sa.interner.str(trait_method.name).to_string();
@@ -518,8 +518,8 @@ fn connect_aliases_to_trait_inner(sa: &Sema, impl_: &ImplDefinition, trait_: &Tr
 
                 sa.report(
                     impl_alias.file_id,
-                    impl_alias.node.span,
-                    ErrorMessage::AliasExists(method_name, existing_alias.node.span),
+                    impl_alias.span,
+                    ErrorMessage::AliasExists(method_name, existing_alias.span),
                 );
             }
 
@@ -527,7 +527,7 @@ fn connect_aliases_to_trait_inner(sa: &Sema, impl_: &ImplDefinition, trait_: &Tr
         } else {
             sa.report(
                 impl_.file_id,
-                impl_alias.node.span,
+                impl_alias.span,
                 ErrorMessage::ElementNotInTrait,
             )
         }
@@ -570,7 +570,7 @@ fn check_type_aliases_bounds_inner(sa: &Sema, impl_: &ImplDefinition, trait_: &T
                         let trait_name =
                             trait_ty.name_with_type_params(sa, trait_.type_param_definition());
                         let msg = ErrorMessage::TypeNotImplementingTrait(name, trait_name);
-                        sa.report(impl_.file_id, impl_alias.node.span, msg);
+                        sa.report(impl_.file_id, impl_alias.span, msg);
                     }
                 }
             }

@@ -1869,9 +1869,16 @@ fn check_expr_cmp_enum(
 
 fn check_expr_lambda(
     ck: &mut TypeCheck,
-    node: &Arc<ast::Function>,
+    lambda_expr: &ast::ExprLambdaType,
     _expected_ty: SourceType,
 ) -> SourceType {
+    let node = ck
+        .sa
+        .file(ck.file_id)
+        .node(lambda_expr.fct_id)
+        .to_function()
+        .expect("fct expected");
+
     let lambda_return_type = if let Some(ref ret_type) = node.return_type {
         ck.read_type(ret_type)
     } else {
@@ -1939,6 +1946,7 @@ fn check_expr_lambda(
         ck.package_id,
         ck.module_id,
         ck.file_id,
+        lambda_expr.fct_id,
         node,
         ParsedModifierList::default(),
         name,
@@ -1956,8 +1964,7 @@ fn check_expr_lambda(
         fct_definition: lambda,
     });
     ck.analysis.map_lambdas.insert(node.id, lambda_id);
-
-    ck.analysis.set_ty(node.id, ty.clone());
+    ck.analysis.set_ty(lambda_expr.id, ty.clone());
 
     ty
 }

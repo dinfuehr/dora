@@ -161,7 +161,7 @@ impl Parser {
         }
     }
 
-    fn parse_extern(&mut self, modifiers: Option<ModifierList>) -> Arc<ExternPackage> {
+    fn parse_extern(&mut self, modifiers: Option<ModifierList>) -> ExternPackage {
         self.start_node();
 
         self.assert(EXTERN_KW);
@@ -174,27 +174,27 @@ impl Parser {
         };
         self.expect(SEMICOLON);
 
-        Arc::new(ExternPackage {
+        ExternPackage {
             id: self.new_node_id(),
             span: self.finish_node(),
             modifiers,
             name,
             identifier,
-        })
+        }
     }
 
-    fn parse_use(&mut self, modifiers: Option<ModifierList>) -> Arc<Use> {
+    fn parse_use(&mut self, modifiers: Option<ModifierList>) -> Use {
         self.start_node();
         self.assert(USE_KW);
         let path = self.parse_use_path();
         self.expect(SEMICOLON);
 
-        Arc::new(Use {
+        Use {
             id: self.new_node_id(),
             span: self.finish_node(),
             modifiers,
             path,
-        })
+        }
     }
 
     fn parse_use_path(&mut self) -> Arc<UsePath> {
@@ -304,7 +304,7 @@ impl Parser {
         })
     }
 
-    fn parse_enum(&mut self, modifiers: Option<ModifierList>) -> Arc<Enum> {
+    fn parse_enum(&mut self, modifiers: Option<ModifierList>) -> Enum {
         self.start_node();
         self.assert(ENUM_KW);
         let name = self.expect_identifier();
@@ -331,7 +331,7 @@ impl Parser {
             Vec::new()
         };
 
-        Arc::new(Enum {
+        Enum {
             id: self.new_node_id(),
             span: self.finish_node(),
             modifiers: modifiers.clone(),
@@ -339,10 +339,10 @@ impl Parser {
             type_params,
             variants,
             where_bounds,
-        })
+        }
     }
 
-    fn parse_module(&mut self, modifiers: Option<ModifierList>) -> Arc<Module> {
+    fn parse_module(&mut self, modifiers: Option<ModifierList>) -> Module {
         self.start_node();
         self.assert(MOD_KW);
         let name = self.expect_identifier();
@@ -361,13 +361,13 @@ impl Parser {
             None
         };
 
-        Arc::new(Module {
+        Module {
             id: self.new_node_id(),
             span: self.finish_node(),
             modifiers: modifiers.clone(),
             name,
             elements,
-        })
+        }
     }
 
     fn parse_enum_variant(&mut self) -> EnumVariant {
@@ -423,7 +423,7 @@ impl Parser {
         }
     }
 
-    fn parse_const(&mut self, modifiers: Option<ModifierList>) -> Arc<Const> {
+    fn parse_const(&mut self, modifiers: Option<ModifierList>) -> Const {
         self.start_node();
         self.assert(CONST_KW);
         let name = self.expect_identifier();
@@ -433,17 +433,17 @@ impl Parser {
         let expr = self.parse_expr();
         self.expect(SEMICOLON);
 
-        Arc::new(Const {
+        Const {
             id: self.new_node_id(),
             span: self.finish_node(),
             modifiers: modifiers.clone(),
             name,
             data_type: ty,
             expr,
-        })
+        }
     }
 
-    fn parse_impl(&mut self, modifiers: Option<ModifierList>) -> Arc<Impl> {
+    fn parse_impl(&mut self, modifiers: Option<ModifierList>) -> Impl {
         let start = self.current_span().start();
         self.start_node();
         self.assert(IMPL_KW);
@@ -472,7 +472,7 @@ impl Parser {
 
         self.expect(R_BRACE);
 
-        Arc::new(Impl {
+        Impl {
             id: self.new_node_id(),
             declaration_span,
             span: self.finish_node(),
@@ -482,10 +482,10 @@ impl Parser {
             extended_type: class_type,
             where_bounds,
             methods,
-        })
+        }
     }
 
-    fn parse_global(&mut self, modifiers: Option<ModifierList>) -> Arc<Global> {
+    fn parse_global(&mut self, modifiers: Option<ModifierList>) -> Global {
         self.start_node();
         self.assert(LET_KW);
 
@@ -503,7 +503,7 @@ impl Parser {
 
         self.expect(SEMICOLON);
 
-        Arc::new(Global {
+        Global {
             id: self.new_node_id(),
             name,
             modifiers: modifiers.clone(),
@@ -511,10 +511,10 @@ impl Parser {
             data_type,
             mutable,
             initial_value: expr.clone(),
-        })
+        }
     }
 
-    fn parse_trait(&mut self, modifiers: Option<ModifierList>) -> Arc<Trait> {
+    fn parse_trait(&mut self, modifiers: Option<ModifierList>) -> Trait {
         self.start_node();
         self.assert(TRAIT_KW);
         let name = self.expect_identifier();
@@ -536,7 +536,7 @@ impl Parser {
 
         self.expect(R_BRACE);
 
-        Arc::new(Trait {
+        Trait {
             id: self.new_node_id(),
             name,
             modifiers: modifiers.clone(),
@@ -545,10 +545,10 @@ impl Parser {
             where_bounds,
             span: self.finish_node(),
             methods,
-        })
+        }
     }
 
-    fn parse_alias(&mut self, modifiers: Option<ModifierList>) -> Arc<Alias> {
+    fn parse_alias(&mut self, modifiers: Option<ModifierList>) -> Alias {
         self.start_node();
         self.assert(TYPE_KW);
         let name = self.expect_identifier();
@@ -568,7 +568,7 @@ impl Parser {
         };
         self.expect(SEMICOLON);
 
-        Arc::new(Alias {
+        Alias {
             id: self.new_node_id(),
             span: self.finish_node(),
             modifiers,
@@ -578,10 +578,10 @@ impl Parser {
             bounds,
             ty,
             post_where_bounds,
-        })
+        }
     }
 
-    fn parse_struct(&mut self, modifiers: Option<ModifierList>) -> Arc<Struct> {
+    fn parse_struct(&mut self, modifiers: Option<ModifierList>) -> Struct {
         self.start_node();
         self.assert(STRUCT_KW);
         let ident = self.expect_identifier();
@@ -627,7 +627,7 @@ impl Parser {
             Vec::new()
         };
 
-        Arc::new(Struct {
+        Struct {
             id: self.new_node_id(),
             name: ident,
             modifiers: modifiers.clone(),
@@ -636,7 +636,7 @@ impl Parser {
             type_params,
             where_bounds,
             field_style,
-        })
+        }
     }
 
     fn parse_named_field(&mut self) -> Arc<Field> {
@@ -673,7 +673,7 @@ impl Parser {
         })
     }
 
-    fn parse_class(&mut self, modifiers: Option<ModifierList>) -> Arc<Class> {
+    fn parse_class(&mut self, modifiers: Option<ModifierList>) -> Class {
         self.start_node();
         self.assert(CLASS_KW);
 
@@ -721,7 +721,7 @@ impl Parser {
             Vec::new()
         };
 
-        Arc::new(Class {
+        Class {
             id: self.new_node_id(),
             span: self.finish_node(),
             modifiers: modifiers.clone(),
@@ -730,7 +730,7 @@ impl Parser {
             type_params,
             where_bounds,
             field_name_style,
-        })
+        }
     }
 
     fn parse_type_params(&mut self) -> Option<TypeParams> {
@@ -837,7 +837,7 @@ impl Parser {
         }
     }
 
-    fn parse_function(&mut self, modifiers: Option<ModifierList>) -> Arc<Function> {
+    fn parse_function(&mut self, modifiers: Option<ModifierList>) -> Function {
         let start = self.current_span().start();
         self.start_node();
         self.assert(FN_KW);
@@ -849,7 +849,7 @@ impl Parser {
         let declaration_span = self.span_from(start);
         let block = self.parse_function_block();
 
-        Arc::new(Function {
+        Function {
             id: self.new_node_id(),
             kind: FunctionKind::Function,
             modifiers: modifiers.clone(),
@@ -861,7 +861,7 @@ impl Parser {
             block,
             type_params,
             where_bounds,
-        })
+        }
     }
 
     fn parse_function_params(&mut self) -> Vec<Arc<Param>> {
@@ -2103,21 +2103,28 @@ impl Parser {
 
         let block = self.parse_block();
 
-        let function = Arc::new(Function {
-            id: self.new_node_id(),
+        let node_id = self.new_node_id();
+        let span = self.finish_node();
+
+        let function_id = self.ast_nodes.alloc(ElemData::Function(Function {
+            id: node_id,
             kind: FunctionKind::Lambda,
             modifiers: None,
             name: None,
             declaration_span,
-            span: self.finish_node(),
+            span,
             params,
             return_type,
             block: Some(block),
             type_params: None,
             where_bounds: None,
-        });
+        }));
 
-        Arc::new(ExprData::create_lambda(function))
+        Arc::new(ExprData::create_lambda(
+            self.new_node_id(),
+            span,
+            function_id,
+        ))
     }
 
     fn assert(&mut self, kind: TokenKind) {
