@@ -30,7 +30,7 @@ pub struct Parser {
 }
 
 enum StmtOrExpr {
-    Stmt(Stmt),
+    Stmt(AstId),
     Expr(Expr),
 }
 
@@ -1177,7 +1177,7 @@ impl Parser {
         }
     }
 
-    fn parse_let(&mut self) -> Stmt {
+    fn parse_let(&mut self) -> AstId {
         self.start_node();
 
         self.assert(LET_KW);
@@ -1187,12 +1187,11 @@ impl Parser {
 
         self.expect(SEMICOLON);
 
-        Arc::new(StmtData::create_let(
-            self.new_node_id(),
-            self.finish_node(),
-            pattern,
-            data_type,
-            expr,
+        let node_id = self.new_node_id();
+        let span = self.finish_node();
+
+        self.ast_nodes.alloc(Ast::create_let_stmt(
+            node_id, span, pattern, data_type, expr,
         ))
     }
 
@@ -1256,11 +1255,14 @@ impl Parser {
                             self.expect(SEMICOLON);
                         }
 
-                        StmtOrExpr::Stmt(Arc::new(StmtData::create_expr(
-                            self.new_node_id(),
-                            expr.span(),
-                            expr,
-                        )))
+                        let node_id = self.new_node_id();
+                        let span = expr.span();
+
+                        let ast_id = self
+                            .ast_nodes
+                            .alloc(Ast::create_expr_stmt(node_id, span, expr));
+
+                        StmtOrExpr::Stmt(ast_id)
                     }
                 } else {
                     let span = self.current_span();
@@ -1270,14 +1272,19 @@ impl Parser {
                         self.advance();
                     }
 
-                    StmtOrExpr::Stmt(Arc::new(StmtData::create_expr(
-                        self.new_node_id(),
+                    let error = Arc::new(ExprData::Error {
+                        id: self.new_node_id(),
                         span,
-                        Arc::new(ExprData::Error {
-                            id: self.new_node_id(),
-                            span,
-                        }),
-                    )))
+                    });
+
+                    let ast_id = self.new_node_id();
+                    let ast_id = self.ast_nodes.alloc(Ast::ExprStmt(StmtExprType {
+                        id: ast_id,
+                        span,
+                        expr: error,
+                    }));
+
+                    StmtOrExpr::Stmt(ast_id)
                 }
             }
         }

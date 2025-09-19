@@ -269,9 +269,11 @@ pub(super) fn check_expr_if(
     let merged_type = if let Some(ref else_block) = expr.else_block {
         let else_type = check_expr(ck, else_block, expected_ty);
 
-        if expr_always_returns(&expr.then_block) {
+        let ast_file = ck.sa.file(ck.file_id).ast().as_ref();
+
+        if expr_always_returns(ast_file, &expr.then_block) {
             else_type
-        } else if expr_always_returns(else_block) {
+        } else if expr_always_returns(ast_file, else_block) {
             then_type
         } else if then_type.is_error() {
             else_type

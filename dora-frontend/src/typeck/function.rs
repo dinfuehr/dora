@@ -104,19 +104,23 @@ impl<'a> TypeCheck<'a> {
             .expect("missing return type")
             .clone();
 
+        let ast_file = self.sa.file(self.file_id).ast().as_ref();
+
         if let ast::ExprData::Block(ref block) = block.as_ref() {
             let mut returns = false;
 
-            for stmt in &block.stmts {
-                check_stmt(self, stmt);
+            for &stmt_id in &block.stmts {
+                check_stmt(self, stmt_id);
 
-                if always_returns(stmt) {
+                let stmt = ast_file.node(stmt_id);
+
+                if always_returns(ast_file, stmt) {
                     returns = true;
                 }
             }
 
             let return_type = if let Some(ref value) = &block.expr {
-                if expr_always_returns(value) {
+                if expr_always_returns(ast_file, value) {
                     returns = true;
                 }
 

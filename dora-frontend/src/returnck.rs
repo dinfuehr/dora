@@ -1,17 +1,18 @@
 use dora_parser::ast::*;
 use dora_parser::Span;
 
-pub fn returns_value(s: &StmtData) -> Result<(), Span> {
+pub fn returns_value(f: &File, s: &Ast) -> Result<(), Span> {
     match *s {
-        StmtData::Let(ref stmt) => Err(stmt.span),
-        StmtData::Expr(ref stmt) => expr_returns_value(&stmt.expr),
+        Ast::LetStmt(ref stmt) => Err(stmt.span),
+        Ast::ExprStmt(ref stmt) => expr_returns_value(f, &stmt.expr),
+        _ => unreachable!(),
     }
 }
 
-pub fn expr_returns_value(e: &ExprData) -> Result<(), Span> {
+pub fn expr_returns_value(f: &File, e: &ExprData) -> Result<(), Span> {
     match *e {
-        ExprData::Block(ref block) => expr_block_returns_value(block),
-        ExprData::If(ref expr) => expr_if_returns_value(expr),
+        ExprData::Block(ref block) => expr_block_returns_value(f, block),
+        ExprData::If(ref expr) => expr_if_returns_value(f, expr),
         ExprData::For(ref expr) => Err(expr.span),
         ExprData::While(ref expr) => Err(expr.span),
         ExprData::Break(ref stmt) => Err(stmt.span),
@@ -21,28 +22,29 @@ pub fn expr_returns_value(e: &ExprData) -> Result<(), Span> {
     }
 }
 
-pub fn expr_block_returns_value(e: &ExprBlockType) -> Result<(), Span> {
+pub fn expr_block_returns_value(f: &File, e: &ExprBlockType) -> Result<(), Span> {
     let mut span = e.span;
 
-    for stmt in &e.stmts {
-        match returns_value(stmt) {
+    for &stmt_id in &e.stmts {
+        let stmt = f.node(stmt_id);
+        match returns_value(f, stmt) {
             Ok(_) => return Ok(()),
             Err(err_pos) => span = err_pos,
         }
     }
 
     if let Some(ref expr) = e.expr {
-        expr_returns_value(expr)
+        expr_returns_value(f, expr)
     } else {
         Err(span)
     }
 }
 
-fn expr_if_returns_value(e: &ExprIfType) -> Result<(), Span> {
-    expr_returns_value(&e.then_block)?;
+fn expr_if_returns_value(f: &File, e: &ExprIfType) -> Result<(), Span> {
+    expr_returns_value(f, &e.then_block)?;
 
     match e.else_block {
-        Some(ref block) => expr_returns_value(block),
+        Some(ref block) => expr_returns_value(f, block),
         None => Err(e.span),
     }
 }

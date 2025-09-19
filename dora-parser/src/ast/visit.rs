@@ -61,10 +61,6 @@ pub trait Visitor: Sized {
         walk_param(self, f, p);
     }
 
-    fn visit_stmt(&mut self, f: &File, s: &StmtData) {
-        walk_stmt(self, f, s);
-    }
-
     fn visit_expr(&mut self, f: &File, e: &ExprData) {
         walk_expr(self, f, e);
     }
@@ -87,6 +83,14 @@ pub trait Visitor: Sized {
 
     fn visit_qualified_path_type(&mut self, f: &File, id: AstId, e: &TypeQualifiedPathType) {
         walk_qualified_path_type(self, f, id, e);
+    }
+
+    fn visit_let_stmt(&mut self, f: &File, id: AstId, e: &StmtLetType) {
+        walk_let_stmt(self, f, id, e);
+    }
+
+    fn visit_expr_stmt(&mut self, f: &File, id: AstId, e: &StmtExprType) {
+        walk_expr_stmt(self, f, id, e);
     }
 }
 
@@ -115,6 +119,8 @@ pub fn dispatch_ast<V: Visitor>(v: &mut V, f: &File, id: AstId, e: &Ast) {
         Ast::RegularType(ref node) => v.visit_regular_type(f, id, node),
         Ast::QualifiedPathType(ref node) => v.visit_qualified_path_type(f, id, node),
         Ast::TupleType(ref node) => v.visit_tuple_type(f, id, node),
+        Ast::LetStmt(ref node) => v.visit_let_stmt(f, id, node),
+        Ast::ExprStmt(ref node) => v.visit_expr_stmt(f, id, node),
         Ast::Error { .. } => {}
     }
 }
@@ -233,22 +239,18 @@ pub fn walk_qualified_path_type<V: Visitor>(
     dispatch_ast(v, f, t.trait_ty, f.node(t.trait_ty));
 }
 
-pub fn walk_stmt<V: Visitor>(v: &mut V, f: &File, s: &StmtData) {
-    match *s {
-        StmtData::Let(ref value) => {
-            if let Some(ty) = value.data_type {
-                dispatch_ast(v, f, ty, f.node(ty));
-            }
-
-            if let Some(ref e) = value.expr {
-                v.visit_expr(f, e);
-            }
-        }
-
-        StmtData::Expr(ref value) => {
-            v.visit_expr(f, &value.expr);
-        }
+pub fn walk_let_stmt<V: Visitor>(v: &mut V, f: &File, _id: AstId, s: &StmtLetType) {
+    if let Some(ty) = s.data_type {
+        dispatch_ast(v, f, ty, f.node(ty));
     }
+
+    if let Some(ref e) = s.expr {
+        v.visit_expr(f, e);
+    }
+}
+
+pub fn walk_expr_stmt<V: Visitor>(v: &mut V, f: &File, _id: AstId, s: &StmtExprType) {
+    v.visit_expr(f, &s.expr);
 }
 
 pub fn walk_expr<V: Visitor>(v: &mut V, f: &File, e: &ExprData) {
@@ -303,8 +305,8 @@ pub fn walk_expr<V: Visitor>(v: &mut V, f: &File, e: &ExprData) {
         }
 
         ExprData::Block(ref value) => {
-            for stmt in &value.stmts {
-                v.visit_stmt(f, stmt);
+            for &stmt_id in &value.stmts {
+                dispatch_ast(v, f, stmt_id, f.node(stmt_id));
             }
 
             if let Some(ref expr) = value.expr {

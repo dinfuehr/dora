@@ -44,7 +44,7 @@ fn err_expr(code: &'static str, msg: ParseError, line: u32, col: u32) {
     assert_eq!(col, computed_column);
 }
 
-fn parse_let(code: &'static str) -> Stmt {
+fn parse_let(code: &'static str) -> (AstId, Arena<Ast>) {
     let mut parser = Parser::from_string(code);
     let result = parser.parse_let();
     if !parser.errors.is_empty() {
@@ -58,7 +58,7 @@ fn parse_let(code: &'static str) -> Stmt {
         }
     }
     assert!(parser.errors.is_empty());
-    result
+    (result, parser.ast_nodes)
 }
 
 fn parse_type(code: &'static str) -> (AstId, Arena<Ast>) {
@@ -568,8 +568,8 @@ fn parse_function_with_multiple_params() {
 
 #[test]
 fn parse_let_without_type() {
-    let stmt = parse_let("let a = 1;");
-    let var = stmt.to_let().unwrap();
+    let (stmt, arena) = parse_let("let a = 1;");
+    let var = arena[stmt].to_let().unwrap();
 
     assert!(var.data_type.is_none());
     assert!(var.expr.as_ref().unwrap().is_lit_int());
@@ -577,8 +577,8 @@ fn parse_let_without_type() {
 
 #[test]
 fn parse_let_rest() {
-    let stmt = parse_let("let .. = 1;");
-    let var = stmt.to_let().unwrap();
+    let (stmt, arena) = parse_let("let .. = 1;");
+    let var = arena[stmt].to_let().unwrap();
     assert!(var.pattern.is_rest());
 
     assert!(var.data_type.is_none());
@@ -587,8 +587,8 @@ fn parse_let_rest() {
 
 #[test]
 fn parse_let_with_type() {
-    let stmt = parse_let("let x : int = 1;");
-    let var = stmt.to_let().unwrap();
+    let (stmt, arena) = parse_let("let x : int = 1;");
+    let var = arena[stmt].to_let().unwrap();
 
     assert!(var.data_type.is_some());
     assert!(var.expr.as_ref().unwrap().is_lit_int());
@@ -596,15 +596,15 @@ fn parse_let_with_type() {
 
 #[test]
 fn parse_let_underscore() {
-    let stmt = parse_let("let _ = 1;");
-    let let_decl = stmt.to_let().unwrap();
+    let (stmt, arena) = parse_let("let _ = 1;");
+    let let_decl = arena[stmt].to_let().unwrap();
     assert!(let_decl.pattern.is_underscore());
 }
 
 #[test]
 fn parse_let_tuple() {
-    let stmt = parse_let("let (mut a, b, (c, d)) = 1;");
-    let let_decl = stmt.to_let().unwrap();
+    let (stmt, arena) = parse_let("let (mut a, b, (c, d)) = 1;");
+    let let_decl = arena[stmt].to_let().unwrap();
 
     let tuple = let_decl.pattern.to_tuple().unwrap();
     let first: &Arc<Pattern> = &tuple.params.first().unwrap();
@@ -616,8 +616,8 @@ fn parse_let_tuple() {
 
 #[test]
 fn parse_let_lit_bool() {
-    let stmt = parse_let("let (a, true) = 1;");
-    let let_decl = stmt.to_let().unwrap();
+    let (stmt, arena) = parse_let("let (a, true) = 1;");
+    let let_decl = arena[stmt].to_let().unwrap();
 
     let tuple = let_decl.pattern.to_tuple().unwrap();
     assert!(tuple.params[0].is_ident());
@@ -626,8 +626,8 @@ fn parse_let_lit_bool() {
 
 #[test]
 fn parse_let_lit_char() {
-    let stmt = parse_let("let (a, 'x') = 1;");
-    let let_decl = stmt.to_let().unwrap();
+    let (stmt, arena) = parse_let("let (a, 'x') = 1;");
+    let let_decl = arena[stmt].to_let().unwrap();
 
     let tuple = let_decl.pattern.to_tuple().unwrap();
     assert!(tuple.params[0].is_ident());
@@ -636,8 +636,8 @@ fn parse_let_lit_char() {
 
 #[test]
 fn parse_let_lit_string() {
-    let stmt = parse_let("let (a, \"x\") = 1;");
-    let let_decl = stmt.to_let().unwrap();
+    let (stmt, arena) = parse_let("let (a, \"x\") = 1;");
+    let let_decl = arena[stmt].to_let().unwrap();
 
     let tuple = let_decl.pattern.to_tuple().unwrap();
     assert!(tuple.params[0].is_ident());
@@ -646,8 +646,8 @@ fn parse_let_lit_string() {
 
 #[test]
 fn parse_let_lit_int() {
-    let stmt = parse_let("let (a, 17) = 1;");
-    let let_decl = stmt.to_let().unwrap();
+    let (stmt, arena) = parse_let("let (a, 17) = 1;");
+    let let_decl = arena[stmt].to_let().unwrap();
 
     let tuple = let_decl.pattern.to_tuple().unwrap();
     assert!(tuple.params[0].is_ident());
@@ -656,8 +656,8 @@ fn parse_let_lit_int() {
 
 #[test]
 fn parse_let_lit_int_neg() {
-    let stmt = parse_let("let (a, -17) = 1;");
-    let let_decl = stmt.to_let().unwrap();
+    let (stmt, arena) = parse_let("let (a, -17) = 1;");
+    let let_decl = arena[stmt].to_let().unwrap();
 
     let tuple = let_decl.pattern.to_tuple().unwrap();
     assert!(tuple.params[0].is_ident());
@@ -666,8 +666,8 @@ fn parse_let_lit_int_neg() {
 
 #[test]
 fn parse_let_lit_float() {
-    let stmt = parse_let("let (a, 17.5) = 1;");
-    let let_decl = stmt.to_let().unwrap();
+    let (stmt, arena) = parse_let("let (a, 17.5) = 1;");
+    let let_decl = arena[stmt].to_let().unwrap();
 
     let tuple = let_decl.pattern.to_tuple().unwrap();
     assert!(tuple.params[0].is_ident());
@@ -676,8 +676,8 @@ fn parse_let_lit_float() {
 
 #[test]
 fn parse_let_lit_float_neg() {
-    let stmt = parse_let("let (a, -17.5) = 1;");
-    let let_decl = stmt.to_let().unwrap();
+    let (stmt, arena) = parse_let("let (a, -17.5) = 1;");
+    let let_decl = arena[stmt].to_let().unwrap();
 
     let tuple = let_decl.pattern.to_tuple().unwrap();
     assert!(tuple.params[0].is_ident());
@@ -686,24 +686,24 @@ fn parse_let_lit_float_neg() {
 
 #[test]
 fn parse_let_ident() {
-    let stmt = parse_let("let x = 1;");
-    let let_decl = stmt.to_let().unwrap();
+    let (stmt, arena) = parse_let("let x = 1;");
+    let let_decl = arena[stmt].to_let().unwrap();
 
     assert!(let_decl.pattern.is_ident());
 }
 
 #[test]
 fn parse_let_ident_mut() {
-    let stmt = parse_let("let mut x = 1;");
-    let let_decl = stmt.to_let().unwrap();
+    let (stmt, arena) = parse_let("let mut x = 1;");
+    let let_decl = arena[stmt].to_let().unwrap();
 
     assert!(let_decl.pattern.to_ident().unwrap().mutable);
 }
 
 #[test]
 fn parse_let_with_type_but_without_assignment() {
-    let stmt = parse_let("let x : int;");
-    let var = stmt.to_let().unwrap();
+    let (stmt, arena) = parse_let("let x : int;");
+    let var = arena[stmt].to_let().unwrap();
 
     assert!(var.data_type.is_some());
     assert!(var.expr.is_none());
@@ -711,8 +711,8 @@ fn parse_let_with_type_but_without_assignment() {
 
 #[test]
 fn parse_let_without_type_and_assignment() {
-    let stmt = parse_let("let x;");
-    let var = stmt.to_let().unwrap();
+    let (stmt, arena) = parse_let("let x;");
+    let var = arena[stmt].to_let().unwrap();
 
     assert!(var.data_type.is_none());
     assert!(var.expr.is_none());
@@ -766,12 +766,12 @@ fn parse_empty_block() {
 
 #[test]
 fn parse_block_with_one_stmt() {
-    let expr = parse_expr("{ 1; 2 }");
+    let (expr, arena) = parse_expr2("{ 1; 2 }");
     let block = expr.to_block().unwrap();
 
     assert_eq!(1, block.stmts.len());
 
-    let expr = &block.stmts[0].to_expr().unwrap().expr;
+    let expr = &arena[block.stmts[0]].to_expr().unwrap().expr;
     assert_eq!(String::from("1"), expr.to_lit_int().unwrap().value);
 
     assert_eq!(
@@ -782,15 +782,15 @@ fn parse_block_with_one_stmt() {
 
 #[test]
 fn parse_block_with_multiple_stmts() {
-    let expr = parse_expr("{ 1; 2; }");
+    let (expr, arena) = parse_expr2("{ 1; 2; }");
     let block = expr.to_block().unwrap();
 
     assert_eq!(2, block.stmts.len());
 
-    let expr = &block.stmts[0].to_expr().unwrap().expr;
+    let expr = &arena[block.stmts[0]].to_expr().unwrap().expr;
     assert_eq!(String::from("1"), expr.to_lit_int().unwrap().value);
 
-    let expr = &block.stmts[1].to_expr().unwrap().expr;
+    let expr = &arena[block.stmts[1]].to_expr().unwrap().expr;
     assert_eq!(String::from("2"), expr.to_lit_int().unwrap().value);
 
     assert!(block.expr.is_none());

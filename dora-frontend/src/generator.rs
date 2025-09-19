@@ -230,14 +230,14 @@ impl<'a> AstBytecodeGen<'a> {
         let block = ast.block.as_ref().expect("missing block");
         let block = block.to_block().expect("block node expected");
 
-        for stmt in &block.stmts {
-            self.visit_stmt(stmt);
+        for &stmt_id in &block.stmts {
+            self.visit_stmt(stmt_id);
         }
 
         if let Some(ref value) = block.expr {
             let reg = gen_expr(self, value, DataDest::Alloc);
 
-            if !expr_block_always_returns(block) {
+            if !expr_block_always_returns(&self.sa.file(self.file_id).ast(), block) {
                 self.builder.emit_ret(reg);
             }
 
@@ -367,10 +367,12 @@ impl<'a> AstBytecodeGen<'a> {
         context_register
     }
 
-    fn visit_stmt(&mut self, stmt: &ast::StmtData) {
+    fn visit_stmt(&mut self, stmt_id: ast::AstId) {
+        let stmt = self.sa.node(self.file_id, stmt_id);
         match *stmt {
-            ast::StmtData::Expr(ref expr) => self.visit_stmt_expr(expr),
-            ast::StmtData::Let(ref stmt) => self.visit_stmt_let(stmt),
+            ast::Ast::ExprStmt(ref expr) => self.visit_stmt_expr(expr),
+            ast::Ast::LetStmt(ref stmt) => self.visit_stmt_let(stmt),
+            _ => unreachable!(),
         }
     }
 
@@ -1352,7 +1354,7 @@ impl<'a> AstBytecodeGen<'a> {
         if let Some(ref else_block) = expr.else_block {
             let end_lbl = self.builder.create_label();
 
-            if !expr_always_returns(&expr.then_block) {
+            if !expr_always_returns(&self.sa.file(self.file_id).ast(), &expr.then_block) {
                 self.builder.emit_jump(end_lbl);
             }
 
@@ -1369,7 +1371,7 @@ impl<'a> AstBytecodeGen<'a> {
     fn visit_expr_block(&mut self, block: &ast::ExprBlockType, dest: DataDest) -> Register {
         self.push_scope();
 
-        for stmt in &block.stmts {
+        for &stmt in &block.stmts {
             self.visit_stmt(stmt);
         }
 

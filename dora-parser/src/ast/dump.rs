@@ -56,6 +56,8 @@ impl<'a> AstDumper<'a> {
             Ast::TupleType(ref node) => self.dump_tuple_type(node),
             Ast::LambdaType(ref node) => self.dump_lambda_type(node),
             Ast::QualifiedPathType(ref node) => self.dump_qualified_path_type(node),
+            Ast::ExprStmt(ref expr) => self.dump_stmt_expr(expr),
+            Ast::LetStmt(ref stmt) => self.dump_stmt_let(stmt),
             Ast::Error(ref node) => {
                 dump!(self, "error @ {} {}", node.span, node.id);
             }
@@ -271,13 +273,6 @@ impl<'a> AstDumper<'a> {
         dump!(self, "qualified path type @ {:?} {}", ty.span, ty.id);
     }
 
-    fn dump_stmt(&mut self, stmt: &StmtData) {
-        match *stmt {
-            StmtData::Expr(ref expr) => self.dump_stmt_expr(expr),
-            StmtData::Let(ref stmt) => self.dump_stmt_let(stmt),
-        }
-    }
-
     fn dump_stmt_let(&mut self, stmt: &StmtLetType) {
         dump!(self, "let @ {} {}", stmt.span, stmt.id);
 
@@ -409,10 +404,10 @@ impl<'a> AstDumper<'a> {
             if block.stmts.is_empty() {
                 dump!(d, "<no statements>");
             } else {
-                for (idx, stmt) in block.stmts.iter().enumerate() {
+                for (idx, &stmt_id) in block.stmts.iter().enumerate() {
                     dump!(d, "<block stmt {}>", idx);
                     d.indent(|d| {
-                        d.dump_stmt(stmt);
+                        d.dump_node(d.f.node(stmt_id));
                     });
                 }
             }

@@ -70,8 +70,8 @@ pub(super) fn check_expr_block(
 ) -> SourceType {
     ck.symtable.push_level();
 
-    for stmt in &block.stmts {
-        check_stmt(ck, stmt);
+    for &stmt_id in &block.stmts {
+        check_stmt(ck, stmt_id);
     }
 
     let ty = if let Some(ref expr) = block.expr {

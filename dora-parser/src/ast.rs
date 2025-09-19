@@ -111,6 +111,8 @@ pub enum Ast {
     TupleType(TypeTupleType),
     LambdaType(TypeLambdaType),
     QualifiedPathType(TypeQualifiedPathType),
+    LetStmt(StmtLetType),
+    ExprStmt(StmtExprType),
     Error(Error),
 }
 
@@ -133,6 +135,8 @@ impl Ast {
             Ast::TupleType(ref node) => node.id,
             Ast::LambdaType(ref node) => node.id,
             Ast::QualifiedPathType(ref node) => node.id,
+            Ast::LetStmt(ref node) => node.id,
+            Ast::ExprStmt(ref node) => node.id,
             Ast::Error(ref node) => node.id,
         }
     }
@@ -155,6 +159,8 @@ impl Ast {
             Ast::TupleType(ref node) => node.span,
             Ast::LambdaType(ref node) => node.span,
             Ast::QualifiedPathType(ref node) => node.span,
+            Ast::LetStmt(ref node) => node.span,
+            Ast::ExprStmt(ref node) => node.span,
             Ast::Error(ref node) => node.span,
         }
     }
@@ -707,23 +713,15 @@ pub struct Param {
     pub variadic: bool,
 }
 
-pub type Stmt = Arc<StmtData>;
-
-#[derive(Clone, Debug)]
-pub enum StmtData {
-    Let(StmtLetType),
-    Expr(StmtExprType),
-}
-
-impl StmtData {
-    pub fn create_let(
+impl Ast {
+    pub fn create_let_stmt(
         id: NodeId,
         span: Span,
         pattern: Arc<Pattern>,
         data_type: Option<AstId>,
         expr: Option<Expr>,
-    ) -> StmtData {
-        StmtData::Let(StmtLetType {
+    ) -> Ast {
+        Ast::LetStmt(StmtLetType {
             id,
             span,
 
@@ -733,41 +731,34 @@ impl StmtData {
         })
     }
 
-    pub fn create_expr(id: NodeId, span: Span, expr: Expr) -> StmtData {
-        StmtData::Expr(StmtExprType { id, span, expr })
-    }
-
-    pub fn span(&self) -> Span {
-        match *self {
-            StmtData::Let(ref stmt) => stmt.span,
-            StmtData::Expr(ref stmt) => stmt.span,
-        }
+    pub fn create_expr_stmt(id: NodeId, span: Span, expr: Expr) -> Ast {
+        Ast::ExprStmt(StmtExprType { id, span, expr })
     }
 
     pub fn to_let(&self) -> Option<&StmtLetType> {
         match *self {
-            StmtData::Let(ref val) => Some(val),
+            Ast::LetStmt(ref val) => Some(val),
             _ => None,
         }
     }
 
     pub fn is_let(&self) -> bool {
         match *self {
-            StmtData::Let(_) => true,
+            Ast::LetStmt(_) => true,
             _ => false,
         }
     }
 
     pub fn to_expr(&self) -> Option<&StmtExprType> {
         match *self {
-            StmtData::Expr(ref val) => Some(val),
+            Ast::ExprStmt(ref val) => Some(val),
             _ => None,
         }
     }
 
     pub fn is_expr(&self) -> bool {
         match *self {
-            StmtData::Expr(_) => true,
+            Ast::ExprStmt(_) => true,
             _ => false,
         }
     }
@@ -996,7 +987,7 @@ pub enum ExprData {
 }
 
 impl ExprData {
-    pub fn create_block(id: NodeId, span: Span, stmts: Vec<Stmt>, expr: Option<Expr>) -> ExprData {
+    pub fn create_block(id: NodeId, span: Span, stmts: Vec<AstId>, expr: Option<Expr>) -> ExprData {
         ExprData::Block(ExprBlockType {
             id,
             span,
@@ -1778,7 +1769,7 @@ pub struct ExprBlockType {
     pub id: NodeId,
     pub span: Span,
 
-    pub stmts: Vec<Stmt>,
+    pub stmts: Vec<AstId>,
     pub expr: Option<Expr>,
 }
 

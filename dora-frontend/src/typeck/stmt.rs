@@ -18,13 +18,16 @@ use crate::typeck::{
 };
 use crate::{specialize_type, ty, Name, SourceTypeArray, SymbolKind};
 
-pub(super) fn check_stmt(ck: &mut TypeCheck, s: &ast::StmtData) {
-    match *s {
-        ast::StmtData::Let(ref stmt) => check_stmt_let(ck, stmt),
+pub(super) fn check_stmt(ck: &mut TypeCheck, id: ast::AstId) {
+    let node = ck.sa.node(ck.file_id, id);
+    match node {
+        ast::Ast::LetStmt(ref stmt) => check_stmt_let(ck, stmt),
 
-        ast::StmtData::Expr(ref stmt) => {
+        ast::Ast::ExprStmt(ref stmt) => {
             check_expr(ck, &stmt.expr, SourceType::Any);
         }
+
+        _ => unreachable!(),
     }
 }
 
