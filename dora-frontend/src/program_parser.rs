@@ -20,7 +20,7 @@ use crate::sema::{
 use crate::sym::{SymTable, Symbol, SymbolKind};
 use crate::{report_sym_shadow_span, ty, ParsedType, SourceType};
 use dora_parser::ast::visit::Visitor;
-use dora_parser::ast::{self, visit, AstNodeId, ModifierList};
+use dora_parser::ast::{self, visit, AstId, ModifierList};
 use dora_parser::parser::Parser;
 use dora_parser::{compute_line_starts, Span};
 
@@ -373,7 +373,7 @@ struct TopLevelDeclaration<'x> {
 }
 
 impl<'x> visit::Visitor for TopLevelDeclaration<'x> {
-    fn visit_extern(&mut self, _f: &ast::File, _id: AstNodeId, node: &ast::ExternPackage) {
+    fn visit_extern(&mut self, _f: &ast::File, _id: AstId, node: &ast::ExternPackage) {
         check_modifiers(self.sa, self.file_id, &node.modifiers, &[]);
         if let Some(name) = &node.name {
             if let Some(package_id) = self.sa.package_names.get(&name.name_as_string).cloned() {
@@ -403,7 +403,7 @@ impl<'x> visit::Visitor for TopLevelDeclaration<'x> {
         }
     }
 
-    fn visit_module(&mut self, f: &ast::File, ast_id: AstNodeId, node: &ast::Module) {
+    fn visit_module(&mut self, f: &ast::File, ast_id: AstId, node: &ast::Module) {
         let modifiers = check_modifiers(self.sa, self.file_id, &node.modifiers, &[Annotation::Pub]);
         let name = ensure_name(self.sa, &node.name);
         let module = ModuleDefinition::new_inner(
@@ -439,7 +439,7 @@ impl<'x> visit::Visitor for TopLevelDeclaration<'x> {
         }
     }
 
-    fn visit_trait(&mut self, f: &ast::File, ast_id: AstNodeId, node: &ast::Trait) {
+    fn visit_trait(&mut self, f: &ast::File, ast_id: AstId, node: &ast::Trait) {
         let modifiers = check_modifiers(self.sa, self.file_id, &node.modifiers, &[Annotation::Pub]);
 
         let type_param_definition = parse_type_param_definition(
@@ -481,7 +481,7 @@ impl<'x> visit::Visitor for TopLevelDeclaration<'x> {
         }
     }
 
-    fn visit_use(&mut self, _f: &ast::File, _ast_id: AstNodeId, node: &ast::Use) {
+    fn visit_use(&mut self, _f: &ast::File, _ast_id: AstId, node: &ast::Use) {
         let modifiers = check_modifiers(self.sa, self.file_id, &node.modifiers, &[Annotation::Pub]);
         let use_def = UseDefinition::new(
             self.package_id,
@@ -494,7 +494,7 @@ impl<'x> visit::Visitor for TopLevelDeclaration<'x> {
         assert!(self.sa.uses[use_id].id.set(use_id).is_ok());
     }
 
-    fn visit_global(&mut self, _f: &ast::File, ast_id: AstNodeId, node: &ast::Global) {
+    fn visit_global(&mut self, _f: &ast::File, ast_id: AstId, node: &ast::Global) {
         let modifiers = check_modifiers(self.sa, self.file_id, &node.modifiers, &[Annotation::Pub]);
 
         let global = GlobalDefinition::new(
@@ -515,7 +515,7 @@ impl<'x> visit::Visitor for TopLevelDeclaration<'x> {
         }
     }
 
-    fn visit_impl(&mut self, f: &ast::File, ast_id: AstNodeId, node: &ast::Impl) {
+    fn visit_impl(&mut self, f: &ast::File, ast_id: AstId, node: &ast::Impl) {
         check_modifiers(self.sa, self.file_id, &node.modifiers, &[]);
 
         let type_param_definition = parse_type_param_definition(
@@ -567,7 +567,7 @@ impl<'x> visit::Visitor for TopLevelDeclaration<'x> {
         }
     }
 
-    fn visit_const(&mut self, _f: &ast::File, ast_id: AstNodeId, node: &ast::Const) {
+    fn visit_const(&mut self, _f: &ast::File, ast_id: AstId, node: &ast::Const) {
         let modifiers = check_modifiers(self.sa, self.file_id, &node.modifiers, &[Annotation::Pub]);
         let const_ = ConstDefinition::new(
             self.package_id,
@@ -587,7 +587,7 @@ impl<'x> visit::Visitor for TopLevelDeclaration<'x> {
         }
     }
 
-    fn visit_class(&mut self, _f: &ast::File, ast_id: AstNodeId, node: &ast::Class) {
+    fn visit_class(&mut self, _f: &ast::File, ast_id: AstId, node: &ast::Class) {
         let modifiers = check_modifiers(
             self.sa,
             self.file_id,
@@ -656,7 +656,7 @@ impl<'x> visit::Visitor for TopLevelDeclaration<'x> {
         }
     }
 
-    fn visit_struct(&mut self, _f: &ast::File, ast_id: AstNodeId, node: &ast::Struct) {
+    fn visit_struct(&mut self, _f: &ast::File, ast_id: AstId, node: &ast::Struct) {
         let modifiers = check_modifiers(
             self.sa,
             self.file_id,
@@ -735,7 +735,7 @@ impl<'x> visit::Visitor for TopLevelDeclaration<'x> {
         }
     }
 
-    fn visit_fct(&mut self, _f: &ast::File, ast_id: AstNodeId, node: &ast::Function) {
+    fn visit_fct(&mut self, _f: &ast::File, ast_id: AstId, node: &ast::Function) {
         let modifiers = check_modifiers(
             self.sa,
             self.file_id,
@@ -782,7 +782,7 @@ impl<'x> visit::Visitor for TopLevelDeclaration<'x> {
         }
     }
 
-    fn visit_enum(&mut self, _f: &ast::File, ast_id: AstNodeId, node: &ast::Enum) {
+    fn visit_enum(&mut self, _f: &ast::File, ast_id: AstId, node: &ast::Enum) {
         let type_param_definition = parse_type_param_definition(
             self.sa,
             None,
@@ -888,7 +888,7 @@ impl<'x> visit::Visitor for TopLevelDeclaration<'x> {
         }
     }
 
-    fn visit_type_alias(&mut self, _f: &ast::File, ast_id: AstNodeId, node: &ast::Alias) {
+    fn visit_type_alias(&mut self, _f: &ast::File, ast_id: AstId, node: &ast::Alias) {
         let modifiers = check_modifiers(self.sa, self.file_id, &node.modifiers, &[Annotation::Pub]);
 
         let parsed_ty = if let Some(ref ty) = node.ty {
@@ -966,7 +966,7 @@ fn find_elements_in_trait(
     for &child_id in &node.methods {
         let child = f.node(child_id);
         match child {
-            ast::ElemData::Function(ref method_node) => {
+            ast::Ast::Function(ref method_node) => {
                 let trait_ = sa.trait_(trait_id);
 
                 let modifiers = check_modifiers(
@@ -1033,7 +1033,7 @@ fn find_elements_in_trait(
                 }
             }
 
-            ast::ElemData::Alias(ref node) => {
+            ast::Ast::Alias(ref node) => {
                 let modifiers = check_modifiers(sa, file_id, &node.modifiers, &[]);
 
                 let name = ensure_name(sa, &node.name);
@@ -1112,7 +1112,7 @@ fn find_elements_in_trait(
                 }
             }
 
-            ast::ElemData::Error { .. } => {
+            ast::Ast::Error { .. } => {
                 // ignore
             }
 
@@ -1148,7 +1148,7 @@ fn find_elements_in_impl(
     for &child_id in &node.methods {
         let child = f.node(child_id);
         match child {
-            ast::ElemData::Function(ref method_node) => {
+            ast::Ast::Function(ref method_node) => {
                 let impl_ = &sa.impl_(impl_id);
                 let modifiers = check_modifiers(
                     sa,
@@ -1189,7 +1189,7 @@ fn find_elements_in_impl(
                 methods.push(fct_id);
             }
 
-            ast::ElemData::Alias(ref node) => {
+            ast::Ast::Alias(ref node) => {
                 let modifiers = check_modifiers(sa, file_id, &node.modifiers, &[]);
 
                 let name = ensure_name(sa, &node.name);
@@ -1252,7 +1252,7 @@ fn find_elements_in_impl(
                 aliases.push(id);
             }
 
-            ast::ElemData::Error { .. } => {
+            ast::Ast::Error { .. } => {
                 // ignore
             }
 
@@ -1281,7 +1281,7 @@ fn find_elements_in_extension(
     for &child_id in &node.methods {
         let child = f.node(child_id);
         match child {
-            ast::ElemData::Function(ref method_node) => {
+            ast::Ast::Function(ref method_node) => {
                 let name = ensure_name(sa, &method_node.name);
                 let extension = sa.extension(extension_id);
                 let modifiers = check_modifiers(
@@ -1328,7 +1328,7 @@ fn find_elements_in_extension(
                 methods.push(fct_id);
             }
 
-            ast::ElemData::Error { .. } => {
+            ast::Ast::Error { .. } => {
                 // ignore
             }
 

@@ -23,7 +23,7 @@ pub struct Parser {
     token_idx: usize,
     next_node_id: usize,
     content: Arc<String>,
-    ast_nodes: Arena<ElemData>,
+    ast_nodes: Arena<Ast>,
     errors: Vec<ParseErrorWithLocation>,
     nodes: Vec<(usize, u32)>,
     offset: u32,
@@ -86,67 +86,67 @@ impl Parser {
         )
     }
 
-    fn parse_element(&mut self) -> Elem {
+    fn parse_element(&mut self) -> AstId {
         let modifiers = self.parse_modifiers();
         match self.current() {
             FN_KW => {
                 let fct = self.parse_function(modifiers);
-                self.ast_nodes.alloc(ElemData::Function(fct))
+                self.ast_nodes.alloc(Ast::Function(fct))
             }
 
             CLASS_KW => {
                 let class = self.parse_class(modifiers);
-                self.ast_nodes.alloc(ElemData::Class(class))
+                self.ast_nodes.alloc(Ast::Class(class))
             }
 
             STRUCT_KW => {
                 let struc = self.parse_struct(modifiers);
-                self.ast_nodes.alloc(ElemData::Struct(struc))
+                self.ast_nodes.alloc(Ast::Struct(struc))
             }
 
             TRAIT_KW => {
                 let trait_ = self.parse_trait(modifiers);
-                self.ast_nodes.alloc(ElemData::Trait(trait_))
+                self.ast_nodes.alloc(Ast::Trait(trait_))
             }
 
             IMPL_KW => {
                 let impl_ = self.parse_impl(modifiers);
-                self.ast_nodes.alloc(ElemData::Impl(impl_))
+                self.ast_nodes.alloc(Ast::Impl(impl_))
             }
 
             LET_KW => {
                 let global = self.parse_global(modifiers);
-                self.ast_nodes.alloc(ElemData::Global(global))
+                self.ast_nodes.alloc(Ast::Global(global))
             }
 
             CONST_KW => {
                 let const_ = self.parse_const(modifiers);
-                self.ast_nodes.alloc(ElemData::Const(const_))
+                self.ast_nodes.alloc(Ast::Const(const_))
             }
 
             ENUM_KW => {
                 let enum_ = self.parse_enum(modifiers);
-                self.ast_nodes.alloc(ElemData::Enum(enum_))
+                self.ast_nodes.alloc(Ast::Enum(enum_))
             }
 
             MOD_KW => {
                 let module = self.parse_module(modifiers);
-                self.ast_nodes.alloc(ElemData::Module(module))
+                self.ast_nodes.alloc(Ast::Module(module))
             }
 
             USE_KW => {
                 let use_stmt = self.parse_use(modifiers);
-                self.ast_nodes.alloc(ElemData::Use(use_stmt))
+                self.ast_nodes.alloc(Ast::Use(use_stmt))
             }
 
             EXTERN_KW => {
                 let extern_stmt = self.parse_extern(modifiers);
-                self.ast_nodes.alloc(ElemData::Extern(extern_stmt))
+                self.ast_nodes.alloc(Ast::Extern(extern_stmt))
             }
 
             TYPE_KW => {
                 let alias = self.parse_alias(modifiers);
-                self.ast_nodes.alloc(ElemData::Alias(alias))
+                self.ast_nodes.alloc(Ast::Alias(alias))
             }
 
             _ => {
@@ -156,7 +156,7 @@ impl Parser {
                 self.advance();
 
                 let node_id = self.new_node_id();
-                self.ast_nodes.alloc(ElemData::Error { id: node_id, span })
+                self.ast_nodes.alloc(Ast::Error { id: node_id, span })
             }
         }
     }
@@ -2106,7 +2106,7 @@ impl Parser {
         let node_id = self.new_node_id();
         let span = self.finish_node();
 
-        let function_id = self.ast_nodes.alloc(ElemData::Function(Function {
+        let function_id = self.ast_nodes.alloc(Ast::Function(Function {
             id: node_id,
             kind: FunctionKind::Lambda,
             modifiers: None,

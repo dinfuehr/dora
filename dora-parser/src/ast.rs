@@ -9,17 +9,15 @@ use crate::{Span, TokenKind};
 pub mod dump;
 pub mod visit;
 
-pub type AstNodeId = Id<ElemData>;
-
 #[derive(Clone, Debug)]
 pub struct File {
     pub content: Arc<String>,
-    pub ast_nodes: Arena<ElemData>,
-    pub elements: Vec<Elem>,
+    pub ast_nodes: Arena<Ast>,
+    pub elements: Vec<AstId>,
 }
 
 impl File {
-    pub fn node(&self, id: AstNodeId) -> &ElemData {
+    pub fn node(&self, id: AstId) -> &Ast {
         &self.ast_nodes[id]
     }
 
@@ -93,10 +91,10 @@ impl fmt::Display for NodeId {
     }
 }
 
-pub type Elem = Id<ElemData>;
+pub type AstId = Id<Ast>;
 
 #[derive(Clone, Debug)]
-pub enum ElemData {
+pub enum Ast {
     Function(Function),
     Class(Class),
     Struct(Struct),
@@ -112,84 +110,84 @@ pub enum ElemData {
     Error { id: NodeId, span: Span },
 }
 
-impl ElemData {
+impl Ast {
     pub fn span(&self) -> Span {
         match self {
-            ElemData::Function(ref node) => node.span,
-            ElemData::Class(ref node) => node.span,
-            ElemData::Struct(ref node) => node.span,
-            ElemData::Trait(ref node) => node.span,
-            ElemData::Impl(ref node) => node.span,
-            ElemData::Global(ref node) => node.span,
-            ElemData::Const(ref node) => node.span,
-            ElemData::Enum(ref node) => node.span,
-            ElemData::Module(ref node) => node.span,
-            ElemData::Use(ref node) => node.span,
-            ElemData::Extern(ref node) => node.span,
-            ElemData::Alias(ref node) => node.span,
-            ElemData::Error { span, .. } => span.clone(),
+            Ast::Function(ref node) => node.span,
+            Ast::Class(ref node) => node.span,
+            Ast::Struct(ref node) => node.span,
+            Ast::Trait(ref node) => node.span,
+            Ast::Impl(ref node) => node.span,
+            Ast::Global(ref node) => node.span,
+            Ast::Const(ref node) => node.span,
+            Ast::Enum(ref node) => node.span,
+            Ast::Module(ref node) => node.span,
+            Ast::Use(ref node) => node.span,
+            Ast::Extern(ref node) => node.span,
+            Ast::Alias(ref node) => node.span,
+            Ast::Error { span, .. } => span.clone(),
         }
     }
 
     pub fn to_function(&self) -> Option<&Function> {
         match self {
-            &ElemData::Function(ref fct) => Some(fct),
+            &Ast::Function(ref fct) => Some(fct),
             _ => None,
         }
     }
 
     pub fn to_class(&self) -> Option<&Class> {
         match self {
-            &ElemData::Class(ref class) => Some(class),
+            &Ast::Class(ref class) => Some(class),
             _ => None,
         }
     }
 
     pub fn to_enum(&self) -> Option<&Enum> {
         match self {
-            &ElemData::Enum(ref enum_) => Some(enum_),
+            &Ast::Enum(ref enum_) => Some(enum_),
             _ => None,
         }
     }
 
     pub fn to_module(&self) -> Option<&Module> {
         match self {
-            &ElemData::Module(ref module) => Some(module),
+            &Ast::Module(ref module) => Some(module),
             _ => None,
         }
     }
 
     pub fn to_struct(&self) -> Option<&Struct> {
         match self {
-            &ElemData::Struct(ref struc) => Some(struc),
+            &Ast::Struct(ref struc) => Some(struc),
             _ => None,
         }
     }
 
     pub fn to_trait(&self) -> Option<&Trait> {
         match self {
-            &ElemData::Trait(ref trait_) => Some(trait_),
+            &Ast::Trait(ref trait_) => Some(trait_),
             _ => None,
         }
     }
 
     pub fn to_impl(&self) -> Option<&Impl> {
         match self {
-            &ElemData::Impl(ref impl_) => Some(impl_),
+            &Ast::Impl(ref impl_) => Some(impl_),
             _ => None,
         }
     }
 
     pub fn to_global(&self) -> Option<&Global> {
         match self {
-            &ElemData::Global(ref global) => Some(global),
+            &Ast::Global(ref global) => Some(global),
             _ => None,
         }
     }
 
     pub fn to_const(&self) -> Option<&Const> {
         match self {
-            &ElemData::Const(ref konst) => Some(konst),
+            &Ast::Const(ref konst) => Some(konst),
             _ => None,
         }
     }
@@ -220,7 +218,7 @@ pub struct Module {
     pub span: Span,
     pub modifiers: Option<ModifierList>,
     pub name: Option<Ident>,
-    pub elements: Option<Vec<Elem>>,
+    pub elements: Option<Vec<AstId>>,
 }
 
 #[derive(Clone, Debug)]
@@ -585,7 +583,7 @@ pub struct Impl {
     pub extended_type: Type,
     pub where_bounds: Option<WhereBounds>,
 
-    pub methods: Vec<Elem>,
+    pub methods: Vec<AstId>,
 }
 
 #[derive(Clone, Debug)]
@@ -597,7 +595,7 @@ pub struct Trait {
     pub bounds: Vec<Type>,
     pub where_bounds: Option<WhereBounds>,
     pub span: Span,
-    pub methods: Vec<Elem>,
+    pub methods: Vec<AstId>,
 }
 
 #[derive(Clone, Debug)]
@@ -1231,7 +1229,7 @@ impl ExprData {
         })
     }
 
-    pub fn create_lambda(id: NodeId, span: Span, fct_id: AstNodeId) -> ExprData {
+    pub fn create_lambda(id: NodeId, span: Span, fct_id: AstId) -> ExprData {
         ExprData::Lambda(ExprLambdaType { id, span, fct_id })
     }
 
@@ -1701,7 +1699,7 @@ impl ExprData {
 pub struct ExprLambdaType {
     pub id: NodeId,
     pub span: Span,
-    pub fct_id: AstNodeId,
+    pub fct_id: AstId,
 }
 
 #[derive(Clone, Debug)]

@@ -23,7 +23,7 @@ impl SourceFile {
         self.ast.get().expect("missing ast")
     }
 
-    pub fn node(&self, id: ast::AstNodeId) -> &ast::ElemData {
+    pub fn node(&self, id: ast::AstId) -> &ast::Ast {
         self.ast().node(id)
     }
 }

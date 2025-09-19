@@ -17,7 +17,7 @@ fn parse_expr(code: &'static str) -> Expr {
     result
 }
 
-fn parse_expr2(code: &'static str) -> (Expr, Arena<ElemData>) {
+fn parse_expr2(code: &'static str) -> (Expr, Arena<Ast>) {
     let mut parser = Parser::from_string(code);
 
     let result = parser.parse_expr();

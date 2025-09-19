@@ -18,7 +18,7 @@ pub struct ModuleDefinition {
     pub package_id: Option<PackageDefinitionId>,
     pub parent_module_id: Option<ModuleDefinitionId>,
     pub file_id: Option<SourceFileId>,
-    pub ast_id: Option<ast::AstNodeId>,
+    pub ast_id: Option<ast::AstId>,
     pub name: Option<Name>,
     pub table: OnceCell<Rc<SymTable>>,
     pub visibility: Visibility,
@@ -47,7 +47,7 @@ impl ModuleDefinition {
         package_id: PackageDefinitionId,
         parent_id: ModuleDefinitionId,
         file_id: SourceFileId,
-        ast_id: ast::AstNodeId,
+        ast_id: ast::AstId,
         modifiers: ParsedModifierList,
         name: Name,
     ) -> ModuleDefinition {

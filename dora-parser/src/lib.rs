@@ -1,4 +1,4 @@
-pub use self::ast::{AstNodeId, NodeId};
+pub use self::ast::{AstId, NodeId};
 pub use self::error::{ParseError, ParseErrorWithLocation};
 pub use self::lexer::lex;
 pub use self::parser::Parser;

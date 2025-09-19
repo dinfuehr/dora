@@ -38,21 +38,21 @@ impl<'a> AstDumper<'a> {
         }
     }
 
-    fn dump_elem(&mut self, el: &ElemData) {
+    fn dump_elem(&mut self, el: &Ast) {
         match *el {
-            ElemData::Function(ref node) => self.dump_fct(node),
-            ElemData::Class(ref node) => self.dump_class(node),
-            ElemData::Struct(ref node) => self.dump_struct(node),
-            ElemData::Trait(ref node) => self.dump_trait(node),
-            ElemData::Impl(ref node) => self.dump_impl(node),
-            ElemData::Global(ref node) => self.dump_global(node),
-            ElemData::Const(ref node) => self.dump_const(node),
-            ElemData::Enum(ref node) => self.dump_enum(node),
-            ElemData::Module(ref node) => self.dump_module(node),
-            ElemData::Use(ref node) => self.dump_use(node),
-            ElemData::Extern(ref node) => self.dump_extern(node),
-            ElemData::Alias(ref node) => self.dump_associated_type(node),
-            ElemData::Error { id, span } => {
+            Ast::Function(ref node) => self.dump_fct(node),
+            Ast::Class(ref node) => self.dump_class(node),
+            Ast::Struct(ref node) => self.dump_struct(node),
+            Ast::Trait(ref node) => self.dump_trait(node),
+            Ast::Impl(ref node) => self.dump_impl(node),
+            Ast::Global(ref node) => self.dump_global(node),
+            Ast::Const(ref node) => self.dump_const(node),
+            Ast::Enum(ref node) => self.dump_enum(node),
+            Ast::Module(ref node) => self.dump_module(node),
+            Ast::Use(ref node) => self.dump_use(node),
+            Ast::Extern(ref node) => self.dump_extern(node),
+            Ast::Alias(ref node) => self.dump_associated_type(node),
+            Ast::Error { id, span } => {
                 dump!(self, "error @ {} {}", span, id);
             }
         }

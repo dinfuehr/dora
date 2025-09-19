@@ -24,7 +24,7 @@ pub struct FctDefinition {
     pub package_id: PackageDefinitionId,
     pub module_id: ModuleDefinitionId,
     pub file_id: SourceFileId,
-    pub ast_id: Option<ast::AstNodeId>,
+    pub ast_id: Option<ast::AstId>,
     pub declaration_span: Span,
     pub span: Span,
     pub name: Name,
@@ -54,7 +54,7 @@ impl FctDefinition {
         package_id: PackageDefinitionId,
         module_id: ModuleDefinitionId,
         file_id: SourceFileId,
-        ast_id: ast::AstNodeId,
+        ast_id: ast::AstId,
         ast: &ast::Function,
         modifiers: ParsedModifierList,
         name: Name,
@@ -103,7 +103,7 @@ impl FctDefinition {
         file_id: SourceFileId,
         declaration_span: Span,
         span: Span,
-        ast_id: Option<ast::AstNodeId>,
+        ast_id: Option<ast::AstId>,
         modifiers: ParsedModifierList,
         name: Name,
         type_params: Rc<TypeParamDefinition>,
@@ -144,7 +144,7 @@ impl FctDefinition {
         self.id.expect("id missing")
     }
 
-    pub fn ast_id(&self) -> ast::AstNodeId {
+    pub fn ast_id(&self) -> ast::AstId {
         self.ast_id.expect("ast missing")
     }
 

@@ -22,7 +22,7 @@ pub struct ExtensionDefinition {
     pub package_id: PackageDefinitionId,
     pub module_id: ModuleDefinitionId,
     pub file_id: SourceFileId,
-    pub ast_id: ast::AstNodeId,
+    pub ast_id: ast::AstId,
     pub span: Span,
     pub type_param_definition: Rc<TypeParamDefinition>,
     pub parsed_ty: ParsedType,
@@ -36,7 +36,7 @@ impl ExtensionDefinition {
         package_id: PackageDefinitionId,
         module_id: ModuleDefinitionId,
         file_id: SourceFileId,
-        ast_id: ast::AstNodeId,
+        ast_id: ast::AstId,
         node: &ast::Impl,
         type_param_definition: Rc<TypeParamDefinition>,
     ) -> ExtensionDefinition {
