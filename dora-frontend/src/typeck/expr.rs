@@ -1117,8 +1117,9 @@ fn check_expr_conv(
     let object_type = check_expr(ck, &e.object, SourceType::Any);
     ck.analysis.set_ty(e.object.id(), object_type.clone());
 
-    let check_type = ck.read_type(&e.data_type);
-    ck.analysis.set_ty(e.data_type.id(), check_type.clone());
+    let check_type = ck.read_type(e.data_type);
+    ck.analysis
+        .set_ty(ck.sa.node(ck.file_id, e.data_type).id(), check_type.clone());
 
     if check_type.is_trait_object() {
         let implements = implements_trait(
@@ -1879,7 +1880,7 @@ fn check_expr_lambda(
         .to_function()
         .expect("fct expected");
 
-    let lambda_return_type = if let Some(ref ret_type) = node.return_type {
+    let lambda_return_type = if let Some(ret_type) = node.return_type {
         ck.read_type(ret_type)
     } else {
         SourceType::Unit
@@ -1888,7 +1889,7 @@ fn check_expr_lambda(
     let mut params = Vec::new();
 
     for ast_param in &node.params {
-        let ty = ck.read_type(&ast_param.data_type);
+        let ty = ck.read_type(ast_param.data_type);
         let param = Param::new_ty(ty.clone());
         params.push(param);
     }
@@ -1978,7 +1979,7 @@ pub(super) fn check_expr_path(
         let type_params: Vec<SourceType> = expr_type_params
             .args
             .iter()
-            .map(|p| ck.read_type(p))
+            .map(|&p| ck.read_type(p))
             .collect();
         let type_params: SourceTypeArray = SourceTypeArray::with(type_params);
 
@@ -2137,7 +2138,7 @@ pub(super) fn check_expr_type_param(
     e: &ast::ExprTypeParamType,
     expected_ty: SourceType,
 ) -> SourceType {
-    let type_params: Vec<SourceType> = e.args.iter().map(|p| ck.read_type(p)).collect();
+    let type_params: Vec<SourceType> = e.args.iter().map(|&p| ck.read_type(p)).collect();
     let type_params: SourceTypeArray = SourceTypeArray::with(type_params);
 
     if let Some(ident) = e.callee.to_ident() {

@@ -8,6 +8,7 @@ use id_arena::Arena;
 
 use crate::interner::Interner;
 use dora_bytecode::Location;
+use dora_parser::ast::{Ast, AstId};
 use dora_parser::{compute_line_column, Span};
 
 use crate::error::diag::Diagnostic;
@@ -200,6 +201,10 @@ impl Sema {
         &self.source_files[id]
     }
 
+    pub fn node(&self, id: SourceFileId, ast_id: AstId) -> &Ast {
+        self.file(id).node(ast_id)
+    }
+
     pub fn alias(&self, id: AliasDefinitionId) -> &AliasDefinition {
         &self.aliases[id]
     }
@@ -345,6 +350,11 @@ impl Sema {
 
     pub fn report(&self, file: SourceFileId, span: Span, msg: ErrorMessage) {
         self.diag.borrow_mut().report(file, span, msg);
+    }
+
+    pub fn report_id(&self, file_id: SourceFileId, ast_id: AstId, msg: ErrorMessage) {
+        let node = self.node(file_id, ast_id);
+        self.diag.borrow_mut().report(file_id, node.span(), msg);
     }
 
     pub fn report_without_location(&self, msg: ErrorMessage) {

@@ -107,10 +107,36 @@ pub enum Ast {
     Use(Use),
     Extern(ExternPackage),
     Alias(Alias),
-    Error { id: NodeId, span: Span },
+    RegularType(TypeRegularType),
+    TupleType(TypeTupleType),
+    LambdaType(TypeLambdaType),
+    QualifiedPathType(TypeQualifiedPathType),
+    Error(Error),
 }
 
 impl Ast {
+    pub fn id(&self) -> NodeId {
+        match self {
+            Ast::Function(ref node) => node.id,
+            Ast::Class(ref node) => node.id,
+            Ast::Struct(ref node) => node.id,
+            Ast::Trait(ref node) => node.id,
+            Ast::Impl(ref node) => node.id,
+            Ast::Global(ref node) => node.id,
+            Ast::Const(ref node) => node.id,
+            Ast::Enum(ref node) => node.id,
+            Ast::Module(ref node) => node.id,
+            Ast::Use(ref node) => node.id,
+            Ast::Extern(ref node) => node.id,
+            Ast::Alias(ref node) => node.id,
+            Ast::RegularType(ref node) => node.id,
+            Ast::TupleType(ref node) => node.id,
+            Ast::LambdaType(ref node) => node.id,
+            Ast::QualifiedPathType(ref node) => node.id,
+            Ast::Error(ref node) => node.id,
+        }
+    }
+
     pub fn span(&self) -> Span {
         match self {
             Ast::Function(ref node) => node.span,
@@ -125,7 +151,11 @@ impl Ast {
             Ast::Use(ref node) => node.span,
             Ast::Extern(ref node) => node.span,
             Ast::Alias(ref node) => node.span,
-            Ast::Error { span, .. } => span.clone(),
+            Ast::RegularType(ref node) => node.span,
+            Ast::TupleType(ref node) => node.span,
+            Ast::LambdaType(ref node) => node.span,
+            Ast::QualifiedPathType(ref node) => node.span,
+            Ast::Error(ref node) => node.span,
         }
     }
 
@@ -208,7 +238,7 @@ pub struct Global {
     pub modifiers: Option<ModifierList>,
     pub name: Option<Ident>,
     pub mutable: bool,
-    pub data_type: Type,
+    pub data_type: AstId,
     pub initial_value: Option<Expr>,
 }
 
@@ -279,7 +309,7 @@ pub struct Const {
     pub span: Span,
     pub modifiers: Option<ModifierList>,
     pub name: Option<Ident>,
-    pub data_type: Type,
+    pub data_type: AstId,
     pub expr: Expr,
 }
 
@@ -352,19 +382,8 @@ pub type WhereClause = Arc<WhereBoundData>;
 pub struct WhereBoundData {
     pub id: NodeId,
     pub span: Span,
-    pub ty: Type,
-    pub bounds: Vec<Type>,
-}
-
-pub type Type = Arc<TypeData>;
-
-#[derive(Clone, Debug)]
-pub enum TypeData {
-    Regular(TypeRegularType),
-    Tuple(TypeTupleType),
-    Lambda(TypeLambdaType),
-    QualifiedPath(TypeQualifiedPathType),
-    Error { id: NodeId, span: Span },
+    pub ty: AstId,
+    pub bounds: Vec<AstId>,
 }
 
 #[derive(Clone, Debug)]
@@ -372,7 +391,7 @@ pub struct TypeTupleType {
     pub id: NodeId,
     pub span: Span,
 
-    pub subtypes: Vec<Type>,
+    pub subtypes: Vec<AstId>,
 }
 
 #[derive(Clone, Debug)]
@@ -380,8 +399,8 @@ pub struct TypeLambdaType {
     pub id: NodeId,
     pub span: Span,
 
-    pub params: Vec<Type>,
-    pub ret: Option<Type>,
+    pub params: Vec<AstId>,
+    pub ret: Option<AstId>,
 }
 
 #[derive(Clone, Debug)]
@@ -399,7 +418,7 @@ pub struct TypeArgument {
     pub span: Span,
 
     pub name: Option<Ident>,
-    pub ty: Type,
+    pub ty: AstId,
 }
 
 #[derive(Clone, Debug)]
@@ -415,8 +434,8 @@ pub struct TypeGenericType {
     pub id: NodeId,
     pub span: Span,
 
-    pub path: Type,
-    pub params: Vec<Type>,
+    pub path: AstId,
+    pub params: Vec<AstId>,
 }
 
 #[derive(Clone, Debug)]
@@ -424,8 +443,8 @@ pub struct TypeQualifiedPathType {
     pub id: NodeId,
     pub span: Span,
 
-    pub ty: Type,
-    pub trait_ty: Type,
+    pub ty: AstId,
+    pub trait_ty: AstId,
     pub name: Option<Ident>,
 }
 
@@ -441,14 +460,14 @@ impl TypeRegularType {
     }
 }
 
-impl TypeData {
+impl Ast {
     pub fn create_regular(
         id: NodeId,
         span: Span,
         path: Path,
         params: Vec<Arc<TypeArgument>>,
-    ) -> TypeData {
-        TypeData::Regular(TypeRegularType {
+    ) -> Ast {
+        Ast::RegularType(TypeRegularType {
             id,
             span,
             path,
@@ -459,11 +478,11 @@ impl TypeData {
     pub fn create_qualified_path(
         id: NodeId,
         span: Span,
-        ty: Type,
-        trait_ty: Type,
+        ty: AstId,
+        trait_ty: AstId,
         name: Option<Ident>,
-    ) -> TypeData {
-        TypeData::QualifiedPath(TypeQualifiedPathType {
+    ) -> Ast {
+        Ast::QualifiedPathType(TypeQualifiedPathType {
             id,
             span,
             ty,
@@ -472,8 +491,8 @@ impl TypeData {
         })
     }
 
-    pub fn create_fct(id: NodeId, span: Span, params: Vec<Type>, ret: Option<Type>) -> TypeData {
-        TypeData::Lambda(TypeLambdaType {
+    pub fn create_fct(id: NodeId, span: Span, params: Vec<AstId>, ret: Option<AstId>) -> Ast {
+        Ast::LambdaType(TypeLambdaType {
             id,
             span,
             params,
@@ -481,27 +500,27 @@ impl TypeData {
         })
     }
 
-    pub fn create_tuple(id: NodeId, span: Span, subtypes: Vec<Type>) -> TypeData {
-        TypeData::Tuple(TypeTupleType { id, span, subtypes })
+    pub fn create_tuple(id: NodeId, span: Span, subtypes: Vec<AstId>) -> Ast {
+        Ast::TupleType(TypeTupleType { id, span, subtypes })
     }
 
     pub fn to_regular(&self) -> Option<&TypeRegularType> {
         match *self {
-            TypeData::Regular(ref val) => Some(val),
+            Ast::RegularType(ref val) => Some(val),
             _ => None,
         }
     }
 
     pub fn to_tuple(&self) -> Option<&TypeTupleType> {
         match *self {
-            TypeData::Tuple(ref val) => Some(val),
+            Ast::TupleType(ref val) => Some(val),
             _ => None,
         }
     }
 
     pub fn to_fct(&self) -> Option<&TypeLambdaType> {
         match *self {
-            TypeData::Lambda(ref val) => Some(val),
+            Ast::LambdaType(ref val) => Some(val),
             _ => None,
         }
     }
@@ -509,64 +528,8 @@ impl TypeData {
     #[cfg(test)]
     pub fn is_unit(&self) -> bool {
         match self {
-            &TypeData::Tuple(ref val) if val.subtypes.len() == 0 => true,
+            &Ast::TupleType(ref val) if val.subtypes.len() == 0 => true,
             _ => false,
-        }
-    }
-
-    #[cfg(test)]
-    pub fn to_string(&self) -> String {
-        match *self {
-            TypeData::Regular(ref val) => val.name().to_string(),
-
-            TypeData::Tuple(ref val) => {
-                let types: Vec<String> = val.subtypes.iter().map(|t| t.to_string()).collect();
-
-                format!("({})", types.join(", "))
-            }
-
-            TypeData::Lambda(ref val) => {
-                let types: Vec<String> = val.params.iter().map(|t| t.to_string()).collect();
-
-                if let Some(ref ret) = val.ret {
-                    let ret = ret.to_string();
-                    format!("({}) -> {}", types.join(", "), ret)
-                } else {
-                    format!("({}) -> ()", types.join(", "))
-                }
-            }
-
-            TypeData::QualifiedPath(..) => unimplemented!(),
-
-            TypeData::Error { .. } => "error type".into(),
-        }
-    }
-
-    pub fn span(&self) -> Span {
-        match *self {
-            TypeData::Regular(ref val) => val.span,
-            TypeData::Tuple(ref val) => val.span,
-            TypeData::Lambda(ref val) => val.span,
-            TypeData::QualifiedPath(ref val) => val.span,
-            TypeData::Error { span, .. } => span,
-        }
-    }
-
-    pub fn id(&self) -> NodeId {
-        match *self {
-            TypeData::Regular(ref val) => val.id,
-            TypeData::Tuple(ref val) => val.id,
-            TypeData::Lambda(ref val) => val.id,
-            TypeData::QualifiedPath(ref val) => val.id,
-            TypeData::Error { id, .. } => id,
-        }
-    }
-
-    #[cfg(test)]
-    pub fn name(&self) -> &str {
-        match *self {
-            TypeData::Regular(ref regular) => regular.name(),
-            _ => unreachable!(),
         }
     }
 }
@@ -579,8 +542,8 @@ pub struct Impl {
 
     pub modifiers: Option<ModifierList>,
     pub type_params: Option<TypeParams>,
-    pub trait_type: Option<Type>,
-    pub extended_type: Type,
+    pub trait_type: Option<AstId>,
+    pub extended_type: AstId,
     pub where_bounds: Option<WhereBounds>,
 
     pub methods: Vec<AstId>,
@@ -592,7 +555,7 @@ pub struct Trait {
     pub name: Option<Ident>,
     pub modifiers: Option<ModifierList>,
     pub type_params: Option<TypeParams>,
-    pub bounds: Vec<Type>,
+    pub bounds: Vec<AstId>,
     pub where_bounds: Option<WhereBounds>,
     pub span: Span,
     pub methods: Vec<AstId>,
@@ -607,8 +570,8 @@ pub struct Alias {
     pub name: Option<Ident>,
     pub type_params: Option<TypeParams>,
     pub pre_where_bounds: Option<WhereBounds>,
-    pub bounds: Vec<Type>,
-    pub ty: Option<Type>,
+    pub bounds: Vec<AstId>,
+    pub ty: Option<AstId>,
     pub post_where_bounds: Option<WhereBounds>,
 }
 
@@ -644,7 +607,7 @@ pub struct TypeParams {
 pub struct TypeParam {
     pub span: Span,
     pub name: Option<Ident>,
-    pub bounds: Vec<Type>,
+    pub bounds: Vec<AstId>,
 }
 
 #[derive(Clone, Debug)]
@@ -653,7 +616,13 @@ pub struct Field {
     pub span: Span,
     pub modifiers: Option<ModifierList>,
     pub name: Option<Ident>,
-    pub data_type: Type,
+    pub data_type: AstId,
+}
+
+#[derive(Clone, Debug)]
+pub struct Error {
+    pub id: NodeId,
+    pub span: Span,
 }
 
 #[derive(Clone, Debug)]
@@ -682,7 +651,7 @@ pub struct Function {
     pub name: Option<Ident>,
     pub type_params: Option<TypeParams>,
     pub params: Vec<Arc<Param>>,
-    pub return_type: Option<Type>,
+    pub return_type: Option<AstId>,
     pub where_bounds: Option<WhereBounds>,
     pub block: Option<Expr>,
 }
@@ -734,7 +703,7 @@ pub struct Param {
     pub id: NodeId,
     pub span: Span,
     pub pattern: Arc<Pattern>,
-    pub data_type: Type,
+    pub data_type: AstId,
     pub variadic: bool,
 }
 
@@ -751,7 +720,7 @@ impl StmtData {
         id: NodeId,
         span: Span,
         pattern: Arc<Pattern>,
-        data_type: Option<Type>,
+        data_type: Option<AstId>,
         expr: Option<Expr>,
     ) -> StmtData {
         StmtData::Let(StmtLetType {
@@ -811,7 +780,7 @@ pub struct StmtLetType {
 
     pub pattern: Arc<Pattern>,
 
-    pub data_type: Option<Type>,
+    pub data_type: Option<AstId>,
     pub expr: Option<Expr>,
 }
 
@@ -1121,7 +1090,7 @@ impl ExprData {
         })
     }
 
-    pub fn create_conv(id: NodeId, span: Span, object: Expr, data_type: Type) -> ExprData {
+    pub fn create_conv(id: NodeId, span: Span, object: Expr, data_type: AstId) -> ExprData {
         ExprData::Conv(ExprConvType {
             id,
             span,
@@ -1196,7 +1165,7 @@ impl ExprData {
         span: Span,
         op_span: Span,
         callee: Expr,
-        args: Vec<Type>,
+        args: Vec<AstId>,
     ) -> ExprData {
         ExprData::TypeParam(ExprTypeParamType {
             id,
@@ -1726,7 +1695,7 @@ pub struct ExprConvType {
     pub span: Span,
 
     pub object: Expr,
-    pub data_type: Type,
+    pub data_type: AstId,
 }
 
 #[derive(Clone, Debug)]
@@ -2221,7 +2190,7 @@ pub struct ExprTypeParamType {
     pub op_span: Span,
 
     pub callee: Expr,
-    pub args: Vec<Type>,
+    pub args: Vec<AstId>,
 }
 
 #[derive(Clone, Debug)]

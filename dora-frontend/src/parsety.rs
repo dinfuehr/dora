@@ -16,7 +16,7 @@ use dora_parser::ast;
 
 #[derive(Clone, Debug)]
 pub struct ParsedType {
-    ast: Option<ast::Type>,
+    ast: Option<ast::AstId>,
     parsed_ast: OnceCell<Box<ParsedTypeAst>>,
     ty: RefCell<Option<SourceType>>,
 }
@@ -30,20 +30,12 @@ impl ParsedType {
         }
     }
 
-    pub fn new_ast(ast: ast::Type) -> ParsedType {
+    pub fn new_ast(ast: ast::AstId) -> ParsedType {
         ParsedType {
             ast: Some(ast),
             parsed_ast: OnceCell::new(),
             ty: RefCell::new(None),
         }
-    }
-
-    fn ast(&self) -> Option<&ast::Type> {
-        self.ast.as_ref()
-    }
-
-    pub fn span(&self) -> Span {
-        self.ast().expect("missing ast node").span()
     }
 
     fn parsed_ast(&self) -> Option<&ParsedTypeAst> {
@@ -65,13 +57,13 @@ impl ParsedType {
 
 #[derive(Clone, Debug)]
 pub struct ParsedTraitType {
-    ast: Option<ast::Type>,
+    ast: Option<ast::AstId>,
     parsed_ast: OnceCell<Box<ParsedTypeAst>>,
     ty: RefCell<Option<TraitType>>,
 }
 
 impl ParsedTraitType {
-    pub fn new_ast(ast: ast::Type) -> ParsedTraitType {
+    pub fn new_ast(ast: ast::AstId) -> ParsedTraitType {
         ParsedTraitType {
             ast: Some(ast),
             parsed_ast: OnceCell::new(),
@@ -183,8 +175,8 @@ pub fn parse_type(
     allow_self: bool,
     parsed_ty: &ParsedType,
 ) {
-    if let Some(node) = parsed_ty.ast.as_ref() {
-        let ast = parse_type_inner(sa, table, file_id, element, allow_self, node);
+    if let Some(ast_id) = parsed_ty.ast {
+        let ast = parse_type_inner(sa, table, file_id, element, allow_self, ast_id);
         assert!(parsed_ty.parsed_ast.set(ast).is_ok());
 
         let ty = convert_type_inner(sa, file_id, parsed_ty.parsed_ast().unwrap());
@@ -223,7 +215,7 @@ fn parse_trait_type_inner(
     parsed_ty: &ParsedTraitType,
     allow_bindings: bool,
 ) {
-    let node = parsed_ty.ast.as_ref().expect("missing ast node");
+    let node = parsed_ty.ast.expect("missing ast node");
     let parsed_ast = parse_type_inner(sa, table, file_id, element, allow_self, node);
     assert!(parsed_ty.parsed_ast.set(parsed_ast).is_ok());
 
@@ -255,27 +247,29 @@ fn parse_type_inner(
     file_id: SourceFileId,
     element: &dyn Element,
     allow_self: bool,
-    t: &ast::TypeData,
+    ast_id: ast::AstId,
 ) -> Box<ParsedTypeAst> {
-    let kind = match *t {
-        ast::TypeData::Regular(ref node) => {
+    let node = sa.node(file_id, ast_id);
+    let kind = match node {
+        ast::Ast::RegularType(ref node) => {
             parse_type_regular(sa, table, file_id, element, allow_self, node)
         }
-        ast::TypeData::Tuple(ref node) => {
+        ast::Ast::TupleType(ref node) => {
             parse_type_tuple(sa, table, file_id, element, allow_self, node)
         }
-        ast::TypeData::Lambda(ref node) => {
+        ast::Ast::LambdaType(ref node) => {
             parse_type_lambda(sa, table, file_id, element, allow_self, node)
         }
-        ast::TypeData::QualifiedPath(ref node) => {
+        ast::Ast::QualifiedPathType(ref node) => {
             parse_type_qualified_path(sa, table, file_id, element, allow_self, node)
         }
-        ast::TypeData::Error { .. } => ParsedTypeKind::Error,
+        ast::Ast::Error { .. } => ParsedTypeKind::Error,
+        _ => unreachable!(),
     };
 
     Box::new(ParsedTypeAst {
-        id: t.id(),
-        span: t.span(),
+        id: node.id(),
+        span: node.span(),
         kind,
     })
 }
@@ -361,7 +355,7 @@ fn parse_type_qualified_path(
     allow_self: bool,
     node: &ast::TypeQualifiedPathType,
 ) -> ParsedTypeKind {
-    let ty = parse_type_inner(sa, table, file_id, element, allow_self, &node.ty);
+    let ty = parse_type_inner(sa, table, file_id, element, allow_self, node.ty);
 
     let trait_ty = ParsedTraitType::new_ast(node.trait_ty.clone());
     parse_trait_type(sa, table, file_id, element, allow_self, &trait_ty);
@@ -407,7 +401,7 @@ fn parse_type_regular_with_arguments(
             None
         };
 
-        let ty = parse_type_inner(sa, table, file_id, element, allow_self, &param.ty);
+        let ty = parse_type_inner(sa, table, file_id, element, allow_self, param.ty);
         let ty_arg = ParsedTypeArgument {
             name,
             ty,
@@ -442,12 +436,12 @@ fn parse_type_lambda(
 ) -> ParsedTypeKind {
     let mut params = vec![];
 
-    for param in &node.params {
+    for &param in &node.params {
         let ty = parse_type_inner(sa, table, file_id, element, allow_self, param);
         params.push(ty);
     }
 
-    let return_ty = if let Some(ref ret) = node.ret {
+    let return_ty = if let Some(ret) = node.ret {
         Some(parse_type_inner(
             sa, table, file_id, element, allow_self, ret,
         ))
@@ -468,7 +462,7 @@ fn parse_type_tuple(
 ) -> ParsedTypeKind {
     let mut subtypes = Vec::new();
 
-    for subtype in &node.subtypes {
+    for &subtype in &node.subtypes {
         let ty = parse_type_inner(sa, table, file_id, element, allow_self, subtype);
         subtypes.push(ty);
     }

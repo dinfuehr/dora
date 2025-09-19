@@ -61,10 +61,6 @@ pub trait Visitor: Sized {
         walk_param(self, f, p);
     }
 
-    fn visit_type(&mut self, f: &File, t: &TypeData) {
-        walk_type(self, f, t);
-    }
-
     fn visit_stmt(&mut self, f: &File, s: &StmtData) {
         walk_stmt(self, f, s);
     }
@@ -76,16 +72,32 @@ pub trait Visitor: Sized {
     fn visit_type_alias(&mut self, f: &File, id: AstId, e: &Alias) {
         walk_type_alias(self, f, id, e);
     }
+
+    fn visit_regular_type(&mut self, f: &File, id: AstId, e: &TypeRegularType) {
+        walk_regular_type(self, f, id, e);
+    }
+
+    fn visit_tuple_type(&mut self, f: &File, id: AstId, e: &TypeTupleType) {
+        walk_tuple_type(self, f, id, e);
+    }
+
+    fn visit_lambda_type(&mut self, f: &File, id: AstId, e: &TypeLambdaType) {
+        walk_lambda_type(self, f, id, e);
+    }
+
+    fn visit_qualified_path_type(&mut self, f: &File, id: AstId, e: &TypeQualifiedPathType) {
+        walk_qualified_path_type(self, f, id, e);
+    }
 }
 
 pub fn walk_file<V: Visitor>(v: &mut V, f: &File) {
     for &element_id in &f.elements {
         let e = f.node(element_id);
-        walk_elem(v, f, element_id, e);
+        dispatch_ast(v, f, element_id, e);
     }
 }
 
-pub fn walk_elem<V: Visitor>(v: &mut V, f: &File, id: AstId, e: &Ast) {
+pub fn dispatch_ast<V: Visitor>(v: &mut V, f: &File, id: AstId, e: &Ast) {
     match e {
         Ast::Function(fct) => v.visit_fct(f, id, fct),
         Ast::Class(ref c) => v.visit_class(f, id, c),
@@ -99,12 +111,16 @@ pub fn walk_elem<V: Visitor>(v: &mut V, f: &File, id: AstId, e: &Ast) {
         Ast::Use(ref i) => v.visit_use(f, id, i),
         Ast::Extern(ref stmt) => v.visit_extern(f, id, stmt),
         Ast::Alias(ref node) => v.visit_type_alias(f, id, node),
+        Ast::LambdaType(ref node) => v.visit_lambda_type(f, id, node),
+        Ast::RegularType(ref node) => v.visit_regular_type(f, id, node),
+        Ast::QualifiedPathType(ref node) => v.visit_qualified_path_type(f, id, node),
+        Ast::TupleType(ref node) => v.visit_tuple_type(f, id, node),
         Ast::Error { .. } => {}
     }
 }
 
 pub fn walk_global<V: Visitor>(v: &mut V, f: &File, _id: AstId, g: &Global) {
-    v.visit_type(f, &g.data_type);
+    dispatch_ast(v, f, g.data_type, f.node(g.data_type));
 
     if let Some(ref initial_value) = g.initial_value {
         v.visit_expr(f, initial_value);
@@ -114,14 +130,14 @@ pub fn walk_global<V: Visitor>(v: &mut V, f: &File, _id: AstId, g: &Global) {
 pub fn walk_trait<V: Visitor>(v: &mut V, f: &File, _id: AstId, t: &Trait) {
     for &elem_id in &t.methods {
         let elem = f.node(elem_id);
-        walk_elem(v, f, elem_id, elem);
+        dispatch_ast(v, f, elem_id, elem);
     }
 }
 
 pub fn walk_impl<V: Visitor>(v: &mut V, f: &File, _id: AstId, i: &Impl) {
     for &elem_id in &i.methods {
         let elem = f.node(elem_id);
-        walk_elem(v, f, elem_id, elem);
+        dispatch_ast(v, f, elem_id, elem);
     }
 }
 
@@ -132,7 +148,7 @@ pub fn walk_class<V: Visitor>(v: &mut V, f: &File, _id: AstId, c: &Class) {
 }
 
 pub fn walk_const<V: Visitor>(v: &mut V, f: &File, _id: AstId, c: &Const) {
-    v.visit_type(f, &c.data_type);
+    dispatch_ast(v, f, c.data_type, f.node(c.data_type));
     v.visit_expr(f, &c.expr);
 }
 
@@ -144,7 +160,7 @@ pub fn walk_module<V: Visitor>(v: &mut V, f: &File, _id: AstId, node: &Module) {
     if let Some(ref elements) = node.elements {
         for &element_id in elements {
             let element = f.node(element_id);
-            walk_elem(v, f, element_id, element);
+            dispatch_ast(v, f, element_id, element);
         }
     }
 }
@@ -168,7 +184,7 @@ pub fn walk_struct<V: Visitor>(v: &mut V, f: &File, _id: AstId, s: &Struct) {
 }
 
 pub fn walk_field<V: Visitor>(v: &mut V, f: &File, field: &Field) {
-    v.visit_type(f, &field.data_type);
+    dispatch_ast(v, f, field.data_type, f.node(field.data_type));
 }
 
 pub fn walk_fct<V: Visitor>(v: &mut V, f: &File, _id: AstId, fct: &Function) {
@@ -176,8 +192,8 @@ pub fn walk_fct<V: Visitor>(v: &mut V, f: &File, _id: AstId, fct: &Function) {
         v.visit_param(f, p);
     }
 
-    if let Some(ref ty) = fct.return_type {
-        v.visit_type(f, ty);
+    if let Some(ret_id) = fct.return_type {
+        dispatch_ast(v, f, ret_id, f.node(ret_id));
     }
 
     if let Some(ref block) = fct.block {
@@ -186,42 +202,42 @@ pub fn walk_fct<V: Visitor>(v: &mut V, f: &File, _id: AstId, fct: &Function) {
 }
 
 pub fn walk_param<V: Visitor>(v: &mut V, f: &File, p: &Param) {
-    v.visit_type(f, &p.data_type);
+    dispatch_ast(v, f, p.data_type, f.node(p.data_type));
 }
 
-pub fn walk_type<V: Visitor>(v: &mut V, f: &File, t: &TypeData) {
-    match *t {
-        TypeData::Regular(_) => {}
-        TypeData::Tuple(ref tuple) => {
-            for ty in &tuple.subtypes {
-                v.visit_type(f, ty);
-            }
-        }
+pub fn walk_regular_type<V: Visitor>(_v: &mut V, _f: &File, _id: AstId, _t: &TypeRegularType) {}
 
-        TypeData::Lambda(ref fct) => {
-            for ty in &fct.params {
-                v.visit_type(f, ty);
-            }
-
-            if let Some(ref ret) = fct.ret {
-                v.visit_type(f, &ret);
-            }
-        }
-
-        TypeData::QualifiedPath(ref qualified_path) => {
-            v.visit_type(f, &qualified_path.ty);
-            v.visit_type(f, &qualified_path.trait_ty);
-        }
-
-        TypeData::Error { .. } => {}
+pub fn walk_tuple_type<V: Visitor>(v: &mut V, f: &File, _id: AstId, t: &TypeTupleType) {
+    for &ty_id in &t.subtypes {
+        dispatch_ast(v, f, ty_id, f.node(ty_id));
     }
+}
+
+pub fn walk_lambda_type<V: Visitor>(v: &mut V, f: &File, _id: AstId, t: &TypeLambdaType) {
+    for &ty_id in &t.params {
+        dispatch_ast(v, f, ty_id, f.node(ty_id));
+    }
+
+    if let Some(ret_id) = t.ret {
+        dispatch_ast(v, f, ret_id, f.node(ret_id));
+    }
+}
+
+pub fn walk_qualified_path_type<V: Visitor>(
+    v: &mut V,
+    f: &File,
+    _id: AstId,
+    t: &TypeQualifiedPathType,
+) {
+    dispatch_ast(v, f, t.ty, f.node(t.ty));
+    dispatch_ast(v, f, t.trait_ty, f.node(t.trait_ty));
 }
 
 pub fn walk_stmt<V: Visitor>(v: &mut V, f: &File, s: &StmtData) {
     match *s {
         StmtData::Let(ref value) => {
-            if let Some(ref ty) = value.data_type {
-                v.visit_type(f, ty);
+            if let Some(ty) = value.data_type {
+                dispatch_ast(v, f, ty, f.node(ty));
             }
 
             if let Some(ref e) = value.expr {
@@ -257,8 +273,8 @@ pub fn walk_expr<V: Visitor>(v: &mut V, f: &File, e: &ExprData) {
         ExprData::TypeParam(ref expr) => {
             v.visit_expr(f, &expr.callee);
 
-            for arg in &expr.args {
-                v.visit_type(f, arg);
+            for &arg_id in &expr.args {
+                dispatch_ast(v, f, arg_id, f.node(arg_id));
             }
         }
 
@@ -274,7 +290,7 @@ pub fn walk_expr<V: Visitor>(v: &mut V, f: &File, e: &ExprData) {
 
         ExprData::Conv(ref value) => {
             v.visit_expr(f, &value.object);
-            v.visit_type(f, &value.data_type);
+            dispatch_ast(v, f, value.data_type, f.node(value.data_type));
         }
 
         ExprData::Is(ref value) => {

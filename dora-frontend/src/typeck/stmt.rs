@@ -29,7 +29,7 @@ pub(super) fn check_stmt(ck: &mut TypeCheck, s: &ast::StmtData) {
 }
 
 fn check_stmt_let(ck: &mut TypeCheck, s: &ast::StmtLetType) {
-    let defined_type = if let Some(ref data_type) = s.data_type {
+    let defined_type = if let Some(data_type) = s.data_type {
         ck.read_type(data_type)
     } else {
         SourceType::Any

@@ -156,7 +156,8 @@ impl Parser {
                 self.advance();
 
                 let node_id = self.new_node_id();
-                self.ast_nodes.alloc(Ast::Error { id: node_id, span })
+                self.ast_nodes
+                    .alloc(Ast::Error(ast::Error { id: node_id, span }))
             }
         }
     }
@@ -779,7 +780,7 @@ impl Parser {
         }
     }
 
-    fn parse_type_bounds(&mut self) -> Vec<Type> {
+    fn parse_type_bounds(&mut self) -> Vec<AstId> {
         let mut bounds = Vec::new();
 
         loop {
@@ -950,7 +951,7 @@ impl Parser {
         })
     }
 
-    fn parse_function_type(&mut self) -> Option<Type> {
+    fn parse_function_type(&mut self) -> Option<AstId> {
         if self.eat(COLON) {
             let ty = self.parse_type();
 
@@ -1016,7 +1017,7 @@ impl Parser {
         }
     }
 
-    fn parse_type_wrapper(&mut self) -> Option<Type> {
+    fn parse_type_wrapper(&mut self) -> Option<AstId> {
         if self.is_set(TYPE_FIRST) {
             Some(self.parse_type())
         } else {
@@ -1024,7 +1025,7 @@ impl Parser {
         }
     }
 
-    fn parse_type(&mut self) -> Type {
+    fn parse_type(&mut self) -> AstId {
         match self.current() {
             IDENTIFIER | UPCASE_SELF_KW => {
                 self.start_node();
@@ -1043,12 +1044,11 @@ impl Parser {
                     Vec::new()
                 };
 
-                Arc::new(TypeData::create_regular(
-                    self.new_node_id(),
-                    self.finish_node(),
-                    path,
-                    params,
-                ))
+                let node_id = self.new_node_id();
+                let span = self.finish_node();
+
+                self.ast_nodes
+                    .alloc(Ast::create_regular(node_id, span, path, params))
             }
 
             L_BRACKET => {
@@ -1061,12 +1061,11 @@ impl Parser {
                 self.expect(COLON_COLON);
                 let name = self.expect_identifier();
 
-                Arc::new(TypeData::create_qualified_path(
-                    self.new_node_id(),
-                    self.finish_node(),
-                    ty,
-                    trait_ty,
-                    name,
+                let node_id = self.new_node_id();
+                let span = self.finish_node();
+
+                self.ast_nodes.alloc(Ast::create_qualified_path(
+                    node_id, span, ty, trait_ty, name,
                 ))
             }
 
@@ -1084,28 +1083,26 @@ impl Parser {
                 if self.eat(COLON) {
                     let ret = self.parse_type();
 
-                    Arc::new(TypeData::create_fct(
-                        self.new_node_id(),
-                        self.finish_node(),
-                        subtypes,
-                        Some(ret),
-                    ))
+                    let node_id = self.new_node_id();
+                    let span = self.finish_node();
+
+                    self.ast_nodes
+                        .alloc(Ast::create_fct(node_id, span, subtypes, Some(ret)))
                 } else {
-                    Arc::new(TypeData::create_tuple(
-                        self.new_node_id(),
-                        self.finish_node(),
-                        subtypes,
-                    ))
+                    let node_id = self.new_node_id();
+                    let span = self.finish_node();
+                    self.ast_nodes
+                        .alloc(Ast::create_tuple(node_id, span, subtypes))
                 }
             }
 
             _ => {
+                let node_id = self.new_node_id();
                 let span = self.current_span();
                 self.report_error(ParseError::ExpectedType);
-                Arc::new(TypeData::Error {
-                    id: self.new_node_id(),
-                    span,
-                })
+
+                self.ast_nodes
+                    .alloc(Ast::Error(ast::Error { id: node_id, span }))
             }
         }
     }
@@ -1199,7 +1196,7 @@ impl Parser {
         ))
     }
 
-    fn parse_var_type(&mut self) -> Option<Type> {
+    fn parse_var_type(&mut self) -> Option<AstId> {
         if self.eat(COLON) {
             Some(self.parse_type())
         } else {

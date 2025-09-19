@@ -34,11 +34,11 @@ impl<'a> AstDumper<'a> {
     fn dump_file(&mut self) {
         for &element_id in &self.f.elements {
             let element = self.f.node(element_id);
-            self.dump_elem(element);
+            self.dump_node(element);
         }
     }
 
-    fn dump_elem(&mut self, el: &Ast) {
+    fn dump_node(&mut self, el: &Ast) {
         match *el {
             Ast::Function(ref node) => self.dump_fct(node),
             Ast::Class(ref node) => self.dump_class(node),
@@ -52,8 +52,12 @@ impl<'a> AstDumper<'a> {
             Ast::Use(ref node) => self.dump_use(node),
             Ast::Extern(ref node) => self.dump_extern(node),
             Ast::Alias(ref node) => self.dump_associated_type(node),
-            Ast::Error { id, span } => {
-                dump!(self, "error @ {} {}", span, id);
+            Ast::RegularType(ref node) => self.dump_regular_type(node),
+            Ast::TupleType(ref node) => self.dump_tuple_type(node),
+            Ast::LambdaType(ref node) => self.dump_lambda_type(node),
+            Ast::QualifiedPathType(ref node) => self.dump_qualified_path_type(node),
+            Ast::Error(ref node) => {
+                dump!(self, "error @ {} {}", node.span, node.id);
             }
         }
     }
@@ -63,7 +67,8 @@ impl<'a> AstDumper<'a> {
         self.dump_maybe_ident(&global.name);
 
         self.indent(|d| {
-            d.dump_type(&global.data_type);
+            let node = self.f.node(global.data_type);
+            d.dump_node(node);
 
             if let Some(ref initial_value) = global.initial_value {
                 d.dump_expr(initial_value);
@@ -84,7 +89,8 @@ impl<'a> AstDumper<'a> {
         self.dump_maybe_ident(&const_.name);
 
         self.indent(|d| {
-            d.dump_type(&const_.data_type);
+            let node = self.f.node(const_.data_type);
+            d.dump_node(node);
             d.dump_expr(&const_.expr);
         });
     }
@@ -101,7 +107,7 @@ impl<'a> AstDumper<'a> {
             if let Some(ref elements) = module.elements {
                 for &element_id in elements {
                     let element = self.f.node(element_id);
-                    d.dump_elem(element);
+                    d.dump_node(element);
                 }
             }
         });
@@ -124,7 +130,8 @@ impl<'a> AstDumper<'a> {
 
         self.indent(|d| {
             for field in &value.fields {
-                d.dump_type(&field.data_type);
+                let node = self.f.node(field.data_type);
+                d.dump_node(node);
             }
         });
     }
@@ -134,15 +141,17 @@ impl<'a> AstDumper<'a> {
 
         self.indent(|d| {
             if let Some(trait_type) = impl_.trait_type.as_ref() {
-                d.dump_type(trait_type);
+                let node = d.f.node(*trait_type);
+                d.dump_node(node);
                 dump!(d, "for");
             }
 
-            d.dump_type(&impl_.extended_type);
+            let node = d.f.node(impl_.extended_type);
+            d.dump_node(node);
 
             for &element_id in &impl_.methods {
                 let element = self.f.node(element_id);
-                d.dump_elem(element);
+                d.dump_node(element);
             }
         });
     }
@@ -161,7 +170,10 @@ impl<'a> AstDumper<'a> {
     fn dump_field(&mut self, field: &Arc<Field>) {
         dump!(self, "field @ {} {}", field.span, field.id);
         self.dump_maybe_ident(&field.name);
-        self.indent(|d| d.dump_type(&field.data_type));
+        self.indent(|d| {
+            let node = d.f.node(field.data_type);
+            d.dump_node(node)
+        });
     }
 
     fn dump_trait(&mut self, t: &Trait) {
@@ -170,7 +182,7 @@ impl<'a> AstDumper<'a> {
             d.dump_maybe_ident(&t.name);
             for &element_id in &t.methods {
                 let element = self.f.node(element_id);
-                d.dump_elem(element);
+                d.dump_node(element);
             }
         });
     }
@@ -215,8 +227,11 @@ impl<'a> AstDumper<'a> {
 
             dump!(d, "returns");
 
-            if let Some(ref ty) = fct.return_type {
-                d.indent(|d| d.dump_type(ty));
+            if let Some(ty) = fct.return_type {
+                d.indent(|d| {
+                    let node = d.f.node(ty);
+                    d.dump_node(node)
+                });
             } else {
                 d.indent(|d| dump!(d, "<no return type>"))
             }
@@ -231,13 +246,29 @@ impl<'a> AstDumper<'a> {
 
     fn dump_param(&mut self, param: &Param) {
         dump!(self, "param @ {} {}", param.span, param.id);
-        self.dump_type(&param.data_type);
+        let node = self.f.node(param.data_type);
+        self.dump_node(node);
 
-        self.indent(|d| d.dump_type(&param.data_type));
+        self.indent(|d| {
+            let node = d.f.node(param.data_type);
+            d.dump_node(node)
+        });
     }
 
-    fn dump_type(&mut self, ty: &TypeData) {
-        dump!(self, "type @ {:?} {}", ty.span(), ty.id());
+    fn dump_regular_type(&mut self, ty: &TypeRegularType) {
+        dump!(self, "regular type @ {:?} {}", ty.span, ty.id);
+    }
+
+    fn dump_tuple_type(&mut self, ty: &TypeTupleType) {
+        dump!(self, "tuple type @ {:?} {}", ty.span, ty.id);
+    }
+
+    fn dump_lambda_type(&mut self, ty: &TypeLambdaType) {
+        dump!(self, "lmabda type @ {:?} {}", ty.span, ty.id);
+    }
+
+    fn dump_qualified_path_type(&mut self, ty: &TypeQualifiedPathType) {
+        dump!(self, "qualified path type @ {:?} {}", ty.span, ty.id);
     }
 
     fn dump_stmt(&mut self, stmt: &StmtData) {
@@ -253,8 +284,9 @@ impl<'a> AstDumper<'a> {
         self.indent(|d| {
             dump!(d, "type");
             d.indent(|d| {
-                if let Some(ref ty) = stmt.data_type {
-                    d.dump_type(ty);
+                if let Some(ty) = stmt.data_type {
+                    let node = d.f.node(ty);
+                    d.dump_node(node);
                 } else {
                     dump!(d, "<no type given>");
                 }
@@ -417,7 +449,10 @@ impl<'a> AstDumper<'a> {
     fn dump_expr_conv(&mut self, expr: &ExprConvType) {
         self.indent(|d| d.dump_expr(&expr.object));
         dump!(self, "as @ {} {}", expr.span, expr.id);
-        self.indent(|d| d.dump_type(&expr.data_type));
+        self.indent(|d| {
+            let node = d.f.node(expr.data_type);
+            d.dump_node(node);
+        });
     }
 
     fn dump_expr_is(&mut self, expr: &ExprIsType) {
@@ -537,8 +572,9 @@ impl<'a> AstDumper<'a> {
             dump!(d, "callee");
             d.indent(|d| d.dump_expr(&expr.callee));
 
-            for arg in &expr.args {
-                d.dump_type(arg);
+            for &arg_id in &expr.args {
+                let arg = d.f.node(arg_id);
+                d.dump_node(arg);
             }
         });
     }

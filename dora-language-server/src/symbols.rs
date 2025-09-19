@@ -211,7 +211,8 @@ impl visit::Visitor for SymbolScanner {
             name.push_str(type_params_string);
         }
 
-        if let Some(ref trait_ty) = node.trait_type {
+        if let Some(trait_ty_id) = node.trait_type {
+            let trait_ty = f.node(trait_ty_id);
             let span = trait_ty.span();
             let trait_ty_string =
                 &self.content.as_str()[span.start() as usize..span.end() as usize];
@@ -220,7 +221,7 @@ impl visit::Visitor for SymbolScanner {
             name.push_str(" for");
         }
 
-        let name_span = node.extended_type.span();
+        let name_span = f.node(node.extended_type).span();
         let extended_type_string =
             &self.content.as_str()[name_span.start() as usize..name_span.end() as usize];
         name.push_str(" ");

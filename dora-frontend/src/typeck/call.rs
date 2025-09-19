@@ -35,7 +35,7 @@ pub(super) fn check_expr_call(
         let type_params: Vec<SourceType> = expr_type_params
             .args
             .iter()
-            .map(|p| ck.read_type(p))
+            .map(|&p| ck.read_type(p))
             .collect();
         let type_params: SourceTypeArray = SourceTypeArray::with(type_params);
         (&expr_type_params.callee, type_params)
@@ -1175,7 +1175,7 @@ fn check_expr_call_path(
         let container_type_params: Vec<SourceType> = expr_type_params
             .args
             .iter()
-            .map(|p| ck.read_type(p))
+            .map(|&p| ck.read_type(p))
             .collect();
         let container_type_params: SourceTypeArray = SourceTypeArray::with(container_type_params);
 

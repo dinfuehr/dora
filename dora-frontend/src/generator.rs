@@ -1229,7 +1229,7 @@ impl<'a> AstBytecodeGen<'a> {
 
     fn visit_expr_conv(&mut self, expr: &ast::ExprConvType, dest: DataDest) -> Register {
         let object_type = self.ty(expr.object.id());
-        let check_type = self.ty(expr.data_type.id());
+        let check_type = self.ty_id(expr.data_type);
         assert!(check_type.is_trait_object());
 
         let check_type = self.emitter.convert_ty(check_type);
@@ -3316,6 +3316,11 @@ impl<'a> AstBytecodeGen<'a> {
 
     fn ty(&self, id: ast::NodeId) -> SourceType {
         self.analysis.ty(id)
+    }
+
+    fn ty_id(&self, ast_id: ast::AstId) -> SourceType {
+        let node = self.sa.node(self.file_id, ast_id);
+        self.analysis.ty(node.id())
     }
 
     fn get_intrinsic(&self, id: ast::NodeId) -> Option<IntrinsicInfo> {

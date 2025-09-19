@@ -61,9 +61,9 @@ fn parse_let(code: &'static str) -> Stmt {
     result
 }
 
-fn parse_type(code: &'static str) -> Type {
+fn parse_type(code: &'static str) -> (AstId, Arena<Ast>) {
     let mut parser = Parser::from_string(code);
-    parser.parse_type()
+    (parser.parse_type(), parser.ast_nodes)
 }
 
 fn parse(code: &'static str) -> Arc<File> {
@@ -509,11 +509,11 @@ fn parse_function() {
 
 #[test]
 fn parse_function_with_single_param() {
-    let p1 = parse("fn f(a:int) { }");
-    let f1 = p1.fct0();
+    let file1 = parse("fn f(a:int) { }");
+    let f1 = file1.fct0();
 
-    let p2 = parse("fn f(a:int,) { }");
-    let f2 = p2.fct0();
+    let file2 = parse("fn f(a:int,) { }");
+    let f2 = file2.fct0();
 
     assert_eq!(f1.params.len(), 1);
     assert_eq!(f2.params.len(), 1);
@@ -524,17 +524,17 @@ fn parse_function_with_single_param() {
     assert_eq!("a", p1.pattern.to_ident_name());
     assert_eq!("a", p2.pattern.to_ident_name());
 
-    assert_eq!("int", p1.data_type.to_regular().unwrap().name());
-    assert_eq!("int", p2.data_type.to_regular().unwrap().name());
+    assert_eq!("int", file1.node(p1.data_type).to_regular().unwrap().name());
+    assert_eq!("int", file2.node(p2.data_type).to_regular().unwrap().name());
 }
 
 #[test]
 fn parse_function_with_multiple_params() {
-    let p1 = parse("fn f(a:int, b:str) { }");
-    let f1 = p1.fct0();
+    let file1 = parse("fn f(a:int, b:str) { }");
+    let f1 = file1.fct0();
 
-    let p2 = parse("fn f(a:int, b:str,) { }");
-    let f2 = p2.fct0();
+    let file2 = parse("fn f(a:int, b:str,) { }");
+    let f2 = file2.fct0();
 
     let p1a = &f1.params[0];
     let p1b = &f1.params[1];
@@ -547,11 +547,23 @@ fn parse_function_with_multiple_params() {
     assert_eq!("b", p1b.pattern.to_ident_name());
     assert_eq!("b", p2b.pattern.to_ident_name());
 
-    assert_eq!("int", p1a.data_type.to_regular().unwrap().name());
-    assert_eq!("int", p2a.data_type.to_regular().unwrap().name());
+    assert_eq!(
+        "int",
+        file1.node(p1a.data_type).to_regular().unwrap().name()
+    );
+    assert_eq!(
+        "int",
+        file2.node(p2a.data_type).to_regular().unwrap().name()
+    );
 
-    assert_eq!("str", p1b.data_type.to_regular().unwrap().name());
-    assert_eq!("str", p2b.data_type.to_regular().unwrap().name());
+    assert_eq!(
+        "str",
+        file1.node(p1b.data_type).to_regular().unwrap().name()
+    );
+    assert_eq!(
+        "str",
+        file2.node(p2b.data_type).to_regular().unwrap().name()
+    );
 }
 
 #[test]
@@ -817,8 +829,8 @@ fn parse_return() {
 
 #[test]
 fn parse_type_regular() {
-    let ty = parse_type("bla");
-    let ty = ty.to_regular().unwrap();
+    let (ty, arena) = parse_type("bla");
+    let ty = arena[ty].to_regular().unwrap();
 
     assert_eq!(0, ty.params.len());
     assert_eq!("bla", ty.name());
@@ -826,8 +838,8 @@ fn parse_type_regular() {
 
 #[test]
 fn parse_type_regular_mod() {
-    let ty = parse_type("foo::bla");
-    let regular = ty.to_regular().unwrap();
+    let (ty, arena) = parse_type("foo::bla");
+    let regular = arena[ty].to_regular().unwrap();
 
     assert_eq!(0, regular.params.len());
     assert_eq!(2, regular.path.segments.len());
@@ -837,91 +849,97 @@ fn parse_type_regular_mod() {
 
 #[test]
 fn parse_type_regular_with_params() {
-    let ty = parse_type("Foo[A, B]");
-    let regular = ty.to_regular().unwrap();
+    let (ty, arena) = parse_type("Foo[A, B]");
+    let regular = arena[ty].to_regular().unwrap();
 
     assert_eq!(2, regular.params.len());
     assert_eq!("Foo", regular.name());
-    assert_eq!("A", regular.params[0].ty.to_regular().unwrap().name());
-    assert_eq!("B", regular.params[1].ty.to_regular().unwrap().name());
+    assert_eq!(
+        "A",
+        arena[regular.params[0].ty].to_regular().unwrap().name()
+    );
+    assert_eq!(
+        "B",
+        arena[regular.params[1].ty].to_regular().unwrap().name()
+    );
 }
 
 #[test]
 fn parse_type_regular_with_bindings() {
-    let ty = parse_type("Foo[A, X = B]");
-    let ty = ty.to_regular().unwrap();
+    let (ty, arena) = parse_type("Foo[A, X = B]");
+    let ty = arena[ty].to_regular().unwrap();
 
     assert_eq!(2, ty.params.len());
     assert_eq!("Foo", ty.name());
     let arg0 = &ty.params[0];
     assert!(arg0.name.is_none());
-    assert_eq!("A", arg0.ty.to_regular().unwrap().name());
+    assert_eq!("A", arena[arg0.ty].to_regular().unwrap().name());
 
     let arg1 = &ty.params[1];
     assert_eq!("X", arg1.name.as_ref().unwrap().name_as_string);
-    assert_eq!("B", arg1.ty.to_regular().unwrap().name());
+    assert_eq!("B", arena[arg1.ty].to_regular().unwrap().name());
 }
 
 #[test]
 fn parse_type_lambda_no_params() {
-    let ty = parse_type("(): ()");
-    let fct = ty.to_fct().unwrap();
+    let (ty, arena) = parse_type("(): ()");
+    let fct = arena[ty].to_fct().unwrap();
 
     assert_eq!(0, fct.params.len());
-    assert!(fct.ret.as_ref().unwrap().is_unit());
+    assert!(arena[fct.ret.unwrap()].is_unit());
 }
 
 #[test]
 fn parse_type_lambda_one_param() {
-    let ty = parse_type("(A): B");
-    let fct = ty.to_fct().unwrap();
+    let (ty, arena) = parse_type("(A): B");
+    let fct = arena[ty].to_fct().unwrap();
 
     assert_eq!(1, fct.params.len());
-    assert_eq!("A", fct.params[0].to_regular().unwrap().name());
-    assert_eq!("B", fct.ret.as_ref().unwrap().to_regular().unwrap().name());
+    assert_eq!("A", arena[fct.params[0]].to_regular().unwrap().name());
+    assert_eq!("B", arena[fct.ret.unwrap()].to_regular().unwrap().name());
 }
 
 #[test]
 fn parse_type_lambda_two_params() {
-    let ty = parse_type("(A, B): C");
-    let fct = ty.to_fct().unwrap();
+    let (ty, arena) = parse_type("(A, B): C");
+    let fct = arena[ty].to_fct().unwrap();
 
     assert_eq!(2, fct.params.len());
-    assert_eq!("A", fct.params[0].to_regular().unwrap().name());
-    assert_eq!("B", fct.params[1].to_regular().unwrap().name());
-    assert_eq!("C", fct.ret.as_ref().unwrap().to_regular().unwrap().name());
+    assert_eq!("A", arena[fct.params[0]].to_regular().unwrap().name());
+    assert_eq!("B", arena[fct.params[1]].to_regular().unwrap().name());
+    assert_eq!("C", arena[fct.ret.unwrap()].to_regular().unwrap().name());
 }
 
 #[test]
 fn parse_type_unit() {
-    let ty = parse_type("()");
-    let ty = ty.to_tuple().unwrap();
+    let (ty, arena) = parse_type("()");
+    let ty = arena[ty].to_tuple().unwrap();
 
     assert!(ty.subtypes.is_empty());
 }
 
 #[test]
 fn parse_type_tuple_with_one_type() {
-    let ty = parse_type("(c)");
+    let (ty, arena) = parse_type("(c)");
 
-    let subtypes = &ty.to_tuple().unwrap().subtypes;
+    let subtypes = &arena[ty].to_tuple().unwrap().subtypes;
     assert_eq!(1, subtypes.len());
 
-    let ty = subtypes[0].to_regular().unwrap();
+    let ty = arena[subtypes[0]].to_regular().unwrap();
     assert_eq!("c", ty.name());
 }
 
 #[test]
 fn parse_type_tuple_with_two_types() {
-    let ty = parse_type("(a, b)");
+    let (ty, arena) = parse_type("(a, b)");
 
-    let subtypes = &ty.to_tuple().unwrap().subtypes;
+    let subtypes = &arena[ty].to_tuple().unwrap().subtypes;
     assert_eq!(2, subtypes.len());
 
-    let ty1 = subtypes[0].to_regular().unwrap();
+    let ty1 = arena[subtypes[0]].to_regular().unwrap();
     assert_eq!("a", ty1.name());
 
-    let ty2 = subtypes[1].to_regular().unwrap();
+    let ty2 = arena[subtypes[1]].to_regular().unwrap();
     assert_eq!("b", ty2.name());
 }
 
@@ -1174,8 +1192,8 @@ fn parse_class_type_params() {
 
 #[test]
 fn parse_type_path() {
-    let ty = parse_type("Foo::Bar::Baz");
-    let ty = ty.to_regular().unwrap();
+    let (ty, arena) = parse_type("Foo::Bar::Baz");
+    let ty = arena[ty].to_regular().unwrap();
     assert_eq!(ty.path.segments.len(), 3);
     assert_eq!(ty.path.segments[0].as_name_str(), "Foo");
     assert_eq!(ty.path.segments[1].as_name_str(), "Bar");
@@ -1224,8 +1242,14 @@ fn parse_trait_with_bounds() {
 
     assert_eq!("Foo", trait_.name.as_ref().unwrap().name_as_string);
     assert_eq!(2, trait_.bounds.len());
-    assert_eq!("A", trait_.bounds[0].name());
-    assert_eq!("B", trait_.bounds[1].name());
+    assert_eq!(
+        "A",
+        prog.node(trait_.bounds[0]).to_regular().unwrap().name()
+    );
+    assert_eq!(
+        "B",
+        prog.node(trait_.bounds[1]).to_regular().unwrap().name()
+    );
 }
 
 #[test]
@@ -1242,8 +1266,17 @@ fn parse_empty_impl() {
     let prog = parse("impl Foo for A {}");
     let impl_ = prog.impl0();
 
-    assert_eq!("Foo", impl_.trait_type.as_ref().unwrap().to_string());
-    assert_eq!("A", impl_.extended_type.to_string());
+    assert_eq!(
+        "Foo",
+        prog.node(impl_.trait_type.unwrap())
+            .to_regular()
+            .unwrap()
+            .name()
+    );
+    assert_eq!(
+        "A",
+        prog.node(impl_.extended_type).to_regular().unwrap().name()
+    );
     assert_eq!(0, impl_.methods.len());
 }
 
@@ -1252,8 +1285,17 @@ fn parse_impl_with_function() {
     let prog = parse("impl Bar for B { fn foo(); }");
     let impl_ = prog.impl0();
 
-    assert_eq!("Bar", impl_.trait_type.as_ref().unwrap().to_string());
-    assert_eq!("B", impl_.extended_type.to_string());
+    assert_eq!(
+        "Bar",
+        prog.node(impl_.trait_type.unwrap())
+            .to_regular()
+            .unwrap()
+            .name()
+    );
+    assert_eq!(
+        "B",
+        prog.node(impl_.extended_type).to_regular().unwrap().name()
+    );
     assert_eq!(1, impl_.methods.len());
 }
 
@@ -1262,8 +1304,17 @@ fn parse_impl_with_static_function() {
     let prog = parse("impl Bar for B { static fn foo(); }");
     let impl_ = prog.impl0();
 
-    assert_eq!("Bar", impl_.trait_type.as_ref().unwrap().to_string());
-    assert_eq!("B", impl_.extended_type.to_string());
+    assert_eq!(
+        "Bar",
+        prog.node(impl_.trait_type.unwrap())
+            .to_regular()
+            .unwrap()
+            .name()
+    );
+    assert_eq!(
+        "B",
+        prog.node(impl_.extended_type).to_regular().unwrap().name()
+    );
     assert_eq!(1, impl_.methods.len());
 }
 
@@ -1367,9 +1418,9 @@ fn parse_lambda_no_params_unit_as_return_value() {
     let (expr, arena) = parse_expr2("|| : () {}");
     let lambda = expr.to_lambda().unwrap();
     let node = arena[lambda.fct_id].to_function().expect("fct expected");
-    let ret = node.return_type.as_ref().unwrap();
+    let ret = node.return_type.unwrap();
 
-    assert!(ret.is_unit());
+    assert!(arena[ret].is_unit());
 }
 
 #[test]
@@ -1377,10 +1428,9 @@ fn parse_lambda_no_params_with_return_value() {
     let (expr, arena) = parse_expr2("||: A {}");
     let lambda = expr.to_lambda().unwrap();
     let node = arena[lambda.fct_id].to_function().expect("fct expected");
-    let ret = node.return_type.as_ref().unwrap();
-    let regular = ret.to_regular().unwrap();
+    let ret = node.return_type.unwrap();
 
-    assert_eq!("A", regular.name());
+    assert_eq!("A", arena[ret].to_regular().unwrap().name());
 }
 
 #[test]
@@ -1393,13 +1443,14 @@ fn parse_lambda_with_one_param() {
 
     let param = &node.params[0];
     assert_eq!("a", param.pattern.to_ident_name());
-    let ty = param.data_type.to_regular().unwrap();
-    assert_eq!("A", ty.name());
-
-    let ret = node.return_type.as_ref().unwrap();
-    let ty = ret.to_regular().unwrap();
-
-    assert_eq!("B", ty.name());
+    assert_eq!("A", arena[param.data_type].to_regular().unwrap().name());
+    assert_eq!(
+        "B",
+        arena[node.return_type.unwrap()]
+            .to_regular()
+            .unwrap()
+            .name()
+    );
 }
 
 #[test]
@@ -1412,18 +1463,19 @@ fn parse_lambda_with_two_params() {
 
     let param = &node.params[0];
     assert_eq!("a", param.pattern.to_ident_name());
-    let ty = param.data_type.to_regular().unwrap();
-    assert_eq!("A", ty.name());
+    assert_eq!("A", arena[param.data_type].to_regular().unwrap().name());
 
     let param = &node.params[1];
     assert_eq!("b", param.pattern.to_ident_name());
-    let ty = param.data_type.to_regular().unwrap();
-    assert_eq!("B", ty.name());
+    assert_eq!("B", arena[param.data_type].to_regular().unwrap().name());
 
-    let ret = node.return_type.as_ref().unwrap();
-    let ty = ret.to_regular().unwrap();
-
-    assert_eq!("C", ty.name());
+    assert_eq!(
+        "C",
+        arena[node.return_type.unwrap()]
+            .to_regular()
+            .unwrap()
+            .name()
+    );
 }
 
 #[test]

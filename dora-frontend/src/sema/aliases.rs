@@ -165,12 +165,12 @@ impl Element for AliasDefinition {
 }
 
 pub struct AliasBound {
-    pub ty_ast: ast::Type,
+    pub ty_ast: ast::AstId,
     pub parsed_ty: ParsedTraitType,
 }
 
 impl AliasBound {
-    pub fn new(ast: ast::Type) -> AliasBound {
+    pub fn new(ast: ast::AstId) -> AliasBound {
         AliasBound {
             ty_ast: ast.clone(),
             parsed_ty: ParsedTraitType::new_ast(ast),

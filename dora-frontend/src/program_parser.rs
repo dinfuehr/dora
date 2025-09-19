@@ -1044,10 +1044,10 @@ fn find_elements_in_trait(
                     bounds.push(AliasBound::new(ast_alias_bound.clone()));
                 }
 
-                let where_bounds = if let Some(ref node_ty) = node.ty {
+                let where_bounds = if let Some(node_ty) = node.ty {
                     sa.report(
                         file_id,
-                        node_ty.span(),
+                        sa.node(file_id, node_ty).span(),
                         ErrorMessage::UnexpectedTypeAliasAssignment,
                     );
 
@@ -1580,7 +1580,7 @@ fn parse_type_param_definition(
     parent: Option<Rc<TypeParamDefinition>>,
     ast_type_params: Option<&ast::TypeParams>,
     where_bounds: Option<&ast::WhereBounds>,
-    trait_bounds: Option<&Vec<ast::Type>>,
+    trait_bounds: Option<&Vec<ast::AstId>>,
     file_id: SourceFileId,
 ) -> Rc<TypeParamDefinition> {
     let mut type_param_definition = TypeParamDefinition::new(parent);

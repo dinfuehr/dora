@@ -95,9 +95,9 @@ impl<'x> ExtensionCheck<'x> {
         match self.extension.ty() {
             SourceType::TypeParam(..) => {
                 let msg = ErrorMessage::ExpectedExtensionType;
-                self.sa.report(
+                self.sa.report_id(
                     self.extension.file_id.into(),
-                    self.extension.ast(self.sa).extended_type.span(),
+                    self.extension.extended_type,
                     msg,
                 );
             }
@@ -131,9 +131,9 @@ impl<'x> ExtensionCheck<'x> {
         if let Some(extension_ty_package_id) = extension_ty_package_id {
             if extension_ty_package_id != self.extension.package_id {
                 let msg = ErrorMessage::ExtendingTypeDifferentPackage;
-                self.sa.report(
+                self.sa.report_id(
                     self.extension.file_id.into(),
-                    self.extension.ast(self.sa).extended_type.span(),
+                    self.extension.extended_type,
                     msg,
                 );
             }
@@ -144,7 +144,9 @@ impl<'x> ExtensionCheck<'x> {
             self.extension.ty(),
             self.extension.type_param_definition(),
             self.extension.file_id,
-            self.extension.ast(self.sa).extended_type.span(),
+            self.sa
+                .node(self.extension.file_id, self.extension.extended_type)
+                .span(),
         );
 
         for &method_id in self.extension.methods() {
