@@ -20,9 +20,9 @@ pub fn dump_file(ast: &Arc<File>) {
     dumper.dump_file();
 }
 
-pub fn dump_fct(f: &Arc<File>, fct: &Function) {
+pub fn dump_node(f: &Arc<File>, id: AstId) {
     let mut dumper = AstDumper { indent: 0, f };
-    dumper.dump_fct(fct);
+    dumper.dump_node_id(id);
 }
 
 struct AstDumper<'a> {
@@ -33,90 +33,117 @@ struct AstDumper<'a> {
 impl<'a> AstDumper<'a> {
     fn dump_file(&mut self) {
         for &element_id in &self.f.elements {
-            let element = self.f.node(element_id);
-            self.dump_node(element);
+            self.dump_node_id(element_id);
         }
     }
 
-    fn dump_node(&mut self, el: &Ast) {
+    fn dump_node_id(&mut self, id: AstId) {
+        self.dump_node(id, self.f.node(id));
+    }
+
+    fn dump_node(&mut self, id: AstId, el: &Ast) {
         match *el {
-            Ast::Function(ref node) => self.dump_fct(node),
-            Ast::Class(ref node) => self.dump_class(node),
-            Ast::Struct(ref node) => self.dump_struct(node),
-            Ast::Trait(ref node) => self.dump_trait(node),
-            Ast::Impl(ref node) => self.dump_impl(node),
-            Ast::Global(ref node) => self.dump_global(node),
-            Ast::Const(ref node) => self.dump_const(node),
-            Ast::Enum(ref node) => self.dump_enum(node),
-            Ast::Module(ref node) => self.dump_module(node),
-            Ast::Use(ref node) => self.dump_use(node),
-            Ast::Extern(ref node) => self.dump_extern(node),
-            Ast::Alias(ref node) => self.dump_associated_type(node),
-            Ast::RegularType(ref node) => self.dump_regular_type(node),
-            Ast::TupleType(ref node) => self.dump_tuple_type(node),
-            Ast::LambdaType(ref node) => self.dump_lambda_type(node),
-            Ast::QualifiedPathType(ref node) => self.dump_qualified_path_type(node),
-            Ast::ExprStmt(ref expr) => self.dump_stmt_expr(expr),
-            Ast::LetStmt(ref stmt) => self.dump_stmt_let(stmt),
+            Ast::Function(ref node) => self.dump_fct(id, node),
+            Ast::Class(ref node) => self.dump_class(id, node),
+            Ast::Struct(ref node) => self.dump_struct(id, node),
+            Ast::Trait(ref node) => self.dump_trait(id, node),
+            Ast::Impl(ref node) => self.dump_impl(id, node),
+            Ast::Global(ref node) => self.dump_global(id, node),
+            Ast::Const(ref node) => self.dump_const(id, node),
+            Ast::Enum(ref node) => self.dump_enum(id, node),
+            Ast::Module(ref node) => self.dump_module(id, node),
+            Ast::Use(ref node) => self.dump_use(id, node),
+            Ast::Extern(ref node) => self.dump_extern(id, node),
+            Ast::Alias(ref node) => self.dump_associated_type(id, node),
+            Ast::RegularType(ref node) => self.dump_regular_type(id, node),
+            Ast::TupleType(ref node) => self.dump_tuple_type(id, node),
+            Ast::LambdaType(ref node) => self.dump_lambda_type(id, node),
+            Ast::QualifiedPathType(ref node) => self.dump_qualified_path_type(id, node),
+            Ast::ExprStmt(ref expr) => self.dump_stmt_expr(id, expr),
+            Ast::LetStmt(ref stmt) => self.dump_stmt_let(id, stmt),
+            Ast::Un(ref un) => self.dump_expr_un(id, un),
+            Ast::Bin(ref bin) => self.dump_expr_bin(id, bin),
+            Ast::Dot(ref field) => self.dump_expr_dot(id, field),
+            Ast::LitChar(ref lit) => self.dump_expr_lit_char(id, lit),
+            Ast::LitInt(ref lit) => self.dump_expr_lit_int(id, lit),
+            Ast::LitFloat(ref lit) => self.dump_expr_lit_float(id, lit),
+            Ast::LitStr(ref lit) => self.dump_expr_lit_str(id, lit),
+            Ast::Template(ref tmpl) => self.dump_expr_template(id, tmpl),
+            Ast::LitBool(ref lit) => self.dump_expr_lit_bool(id, lit),
+            Ast::Ident(ref ident) => self.dump_expr_ident(id, ident),
+            Ast::Call(ref call) => self.dump_expr_call(id, call),
+            Ast::TypeParam(ref expr) => self.dump_expr_type_param(id, expr),
+            Ast::Path(ref path) => self.dump_expr_path(id, path),
+            Ast::This(ref selfie) => self.dump_expr_self(id, selfie),
+            Ast::Conv(ref expr) => self.dump_expr_conv(id, expr),
+            Ast::Is(ref expr) => self.dump_expr_is(id, expr),
+            Ast::Lambda(ref expr) => self.dump_expr_lambda(id, expr),
+            Ast::Block(ref expr) => self.dump_expr_block(id, expr),
+            Ast::If(ref expr) => self.dump_expr_if(id, expr),
+            Ast::Tuple(ref expr) => self.dump_expr_tuple(id, expr),
+            Ast::Paren(ref expr) => self.dump_expr_paren(id, expr),
+            Ast::Match(ref expr) => self.dump_expr_match(id, expr),
+            Ast::For(ref expr) => self.dump_expr_for(id, expr),
+            Ast::While(ref expr) => self.dump_expr_while(id, expr),
+            Ast::Break(ref expr) => self.dump_expr_break(id, expr),
+            Ast::Continue(ref expr) => self.dump_expr_continue(id, expr),
+            Ast::Return(ref ret) => self.dump_expr_return(id, ret),
             Ast::Error(ref node) => {
                 dump!(self, "error @ {} {}", node.span, node.id);
             }
         }
     }
 
-    fn dump_global(&mut self, global: &Global) {
-        dump!(self, "global @ {} {}", global.span, global.id);
+    fn dump_global(&mut self, id: AstId, global: &Global) {
+        dump!(self, "global @ {} {} {:?}", global.span, global.id, id);
         self.dump_maybe_ident(&global.name);
 
         self.indent(|d| {
-            let node = self.f.node(global.data_type);
-            d.dump_node(node);
+            d.dump_node_id(global.data_type);
 
-            if let Some(ref initial_value) = global.initial_value {
-                d.dump_expr(initial_value);
+            if let Some(initial_value) = global.initial_value {
+                d.dump_node_id(initial_value);
             } else {
                 dump!(d, "<no expr given>");
             }
         });
     }
 
-    fn dump_extern(&mut self, stmt: &ExternPackage) {
-        dump!(self, "extern package @ {} {}", stmt.span, stmt.id);
+    fn dump_extern(&mut self, id: AstId, stmt: &ExternPackage) {
+        dump!(self, "extern package @ {} {} {:?}", stmt.span, stmt.id, id);
         self.dump_maybe_ident(&stmt.name);
         self.dump_maybe_ident(&stmt.identifier);
     }
 
-    fn dump_const(&mut self, const_: &Const) {
-        dump!(self, "const @ {} {}", const_.span, const_.id);
+    fn dump_const(&mut self, id: AstId, const_: &Const) {
+        dump!(self, "const @ {} {} {:?}", const_.span, const_.id, id);
         self.dump_maybe_ident(&const_.name);
 
         self.indent(|d| {
-            let node = self.f.node(const_.data_type);
-            d.dump_node(node);
-            d.dump_expr(&const_.expr);
+            d.dump_node_id(const_.data_type);
+            d.dump_node_id(const_.expr);
         });
     }
 
-    fn dump_use(&mut self, node: &Use) {
-        dump!(self, "use @ {} {}", node.span, node.id);
+    fn dump_use(&mut self, id: AstId, node: &Use) {
+        dump!(self, "use @ {} {} {:?}", node.span, node.id, id);
     }
 
-    fn dump_module(&mut self, module: &Module) {
-        dump!(self, "module @ {} {}", module.span, module.id);
+    fn dump_module(&mut self, id: AstId, module: &Module) {
+        dump!(self, "module @ {} {} {:?}", module.span, module.id, id);
         self.dump_maybe_ident(&module.name);
 
         self.indent(|d| {
             if let Some(ref elements) = module.elements {
                 for &element_id in elements {
-                    let element = self.f.node(element_id);
-                    d.dump_node(element);
+                    d.dump_node_id(element_id);
                 }
             }
         });
     }
 
-    fn dump_enum(&mut self, enum_: &Enum) {
-        dump!(self, "enum @ {} {}", enum_.span, enum_.id);
+    fn dump_enum(&mut self, id: AstId, enum_: &Enum) {
+        dump!(self, "enum @ {} {} {:?}", enum_.span, enum_.id, id);
         self.dump_maybe_ident(&enum_.name);
 
         self.indent(|d| {
@@ -132,34 +159,30 @@ impl<'a> AstDumper<'a> {
 
         self.indent(|d| {
             for field in &value.fields {
-                let node = self.f.node(field.data_type);
-                d.dump_node(node);
+                d.dump_node_id(field.data_type);
             }
         });
     }
 
-    fn dump_impl(&mut self, impl_: &Impl) {
-        dump!(self, "impl @ {} {}", impl_.span, impl_.id);
+    fn dump_impl(&mut self, id: AstId, impl_: &Impl) {
+        dump!(self, "impl @ {} {} {:?}", impl_.span, impl_.id, id);
 
         self.indent(|d| {
-            if let Some(trait_type) = impl_.trait_type.as_ref() {
-                let node = d.f.node(*trait_type);
-                d.dump_node(node);
+            if let Some(trait_type) = impl_.trait_type {
+                d.dump_node_id(trait_type);
                 dump!(d, "for");
             }
 
-            let node = d.f.node(impl_.extended_type);
-            d.dump_node(node);
+            d.dump_node_id(impl_.extended_type);
 
             for &element_id in &impl_.methods {
-                let element = self.f.node(element_id);
-                d.dump_node(element);
+                d.dump_node_id(element_id);
             }
         });
     }
 
-    fn dump_struct(&mut self, struc: &Struct) {
-        dump!(self, "struct @ {} {}", struc.span, struc.id);
+    fn dump_struct(&mut self, id: AstId, struc: &Struct) {
+        dump!(self, "struct @ {} {} {:?}", struc.span, struc.id, id);
         self.dump_maybe_ident(&struc.name);
 
         self.indent(|d| {
@@ -172,32 +195,28 @@ impl<'a> AstDumper<'a> {
     fn dump_field(&mut self, field: &Arc<Field>) {
         dump!(self, "field @ {} {}", field.span, field.id);
         self.dump_maybe_ident(&field.name);
-        self.indent(|d| {
-            let node = d.f.node(field.data_type);
-            d.dump_node(node)
-        });
+        self.indent(|d| d.dump_node_id(field.data_type));
     }
 
-    fn dump_trait(&mut self, t: &Trait) {
-        dump!(self, "trait @ {} {}", t.span, t.id);
+    fn dump_trait(&mut self, id: AstId, t: &Trait) {
+        dump!(self, "trait @ {} {} {:?}", t.span, t.id, id);
         self.indent(|d| {
             d.dump_maybe_ident(&t.name);
             for &element_id in &t.methods {
-                let element = self.f.node(element_id);
-                d.dump_node(element);
+                d.dump_node_id(element_id);
             }
         });
     }
 
-    fn dump_associated_type(&mut self, t: &Alias) {
-        dump!(self, "trait @ {} {}", t.span, t.id);
+    fn dump_associated_type(&mut self, id: AstId, t: &Alias) {
+        dump!(self, "trait @ {} {} {:?}", t.span, t.id, id);
         self.indent(|d| {
             d.dump_maybe_ident(&t.name);
         });
     }
 
-    fn dump_class(&mut self, cls: &Class) {
-        dump!(self, "class @ {} {}", cls.span, cls.id);
+    fn dump_class(&mut self, id: AstId, cls: &Class) {
+        dump!(self, "class @ {} {} {:?}", cls.span, cls.id, id);
         self.dump_maybe_ident(&cls.name);
 
         self.indent(|d| {
@@ -211,8 +230,8 @@ impl<'a> AstDumper<'a> {
         });
     }
 
-    fn dump_fct(&mut self, fct: &Function) {
-        dump!(self, "fct @ {} {}", fct.span, fct.id);
+    fn dump_fct(&mut self, id: AstId, fct: &Function) {
+        dump!(self, "fct @ {} {} {:?}", fct.span, fct.id, id);
         self.dump_maybe_ident(&fct.name);
 
         self.indent(|d| {
@@ -230,58 +249,62 @@ impl<'a> AstDumper<'a> {
             dump!(d, "returns");
 
             if let Some(ty) = fct.return_type {
-                d.indent(|d| {
-                    let node = d.f.node(ty);
-                    d.dump_node(node)
-                });
+                d.indent(|d| d.dump_node_id(ty));
             } else {
                 d.indent(|d| dump!(d, "<no return type>"))
             }
 
             dump!(d, "executes");
 
-            if let Some(ref block) = fct.block {
-                d.indent(|d| d.dump_expr(block));
+            if let Some(block) = fct.block {
+                d.indent(|d| d.dump_node_id(block));
             }
         });
     }
 
     fn dump_param(&mut self, param: &Param) {
         dump!(self, "param @ {} {}", param.span, param.id);
-        let node = self.f.node(param.data_type);
-        self.dump_node(node);
+        self.dump_node_id(param.data_type);
+    }
+
+    fn dump_regular_type(&mut self, id: AstId, ty: &TypeRegularType) {
+        dump!(self, "regular type @ {} {} {:?}", ty.span, ty.id, id);
 
         self.indent(|d| {
-            let node = d.f.node(param.data_type);
-            d.dump_node(node)
+            for segment in &ty.path.segments {
+                match segment.as_ref() {
+                    PathSegmentData::Ident(ref name) => dump!(d, "{}", &name.name.name_as_string),
+                    PathSegmentData::Self_(..) => dump!(d, "Self"),
+                    PathSegmentData::Error { .. } => dump!(d, "<error>"),
+                }
+            }
+
+            for arg in &ty.params {
+                d.dump_node_id(arg.ty);
+            }
         });
     }
 
-    fn dump_regular_type(&mut self, ty: &TypeRegularType) {
-        dump!(self, "regular type @ {:?} {}", ty.span, ty.id);
+    fn dump_tuple_type(&mut self, id: AstId, ty: &TypeTupleType) {
+        dump!(self, "tuple type @ {} {} {:?}", ty.span, ty.id, id);
     }
 
-    fn dump_tuple_type(&mut self, ty: &TypeTupleType) {
-        dump!(self, "tuple type @ {:?} {}", ty.span, ty.id);
+    fn dump_lambda_type(&mut self, id: AstId, ty: &TypeLambdaType) {
+        dump!(self, "lmabda type @ {} {} {:?}", ty.span, ty.id, id);
     }
 
-    fn dump_lambda_type(&mut self, ty: &TypeLambdaType) {
-        dump!(self, "lmabda type @ {:?} {}", ty.span, ty.id);
+    fn dump_qualified_path_type(&mut self, id: AstId, ty: &TypeQualifiedPathType) {
+        dump!(self, "qualified path type @ {} {} {:?}", ty.span, ty.id, id);
     }
 
-    fn dump_qualified_path_type(&mut self, ty: &TypeQualifiedPathType) {
-        dump!(self, "qualified path type @ {:?} {}", ty.span, ty.id);
-    }
-
-    fn dump_stmt_let(&mut self, stmt: &StmtLetType) {
-        dump!(self, "let @ {} {}", stmt.span, stmt.id);
+    fn dump_stmt_let(&mut self, id: AstId, stmt: &StmtLetType) {
+        dump!(self, "let @ {} {} {:?}", stmt.span, stmt.id, id);
 
         self.indent(|d| {
             dump!(d, "type");
             d.indent(|d| {
                 if let Some(ty) = stmt.data_type {
-                    let node = d.f.node(ty);
-                    d.dump_node(node);
+                    d.dump_node_id(ty);
                 } else {
                     dump!(d, "<no type given>");
                 }
@@ -289,8 +312,8 @@ impl<'a> AstDumper<'a> {
 
             dump!(d, "expr");
             d.indent(|d| {
-                if let Some(ref expr) = stmt.expr {
-                    d.dump_expr(expr);
+                if let Some(expr) = stmt.expr {
+                    d.dump_node_id(expr);
                 } else {
                     dump!(d, "<no expr given>");
                 }
@@ -298,106 +321,72 @@ impl<'a> AstDumper<'a> {
         });
     }
 
-    fn dump_expr_for(&mut self, stmt: &ExprForType) {
-        dump!(self, "for @ {} {}", stmt.span, stmt.id);
+    fn dump_expr_for(&mut self, id: AstId, stmt: &ExprForType) {
+        dump!(self, "for @ {} {} {:?}", stmt.span, stmt.id, id);
 
         self.indent(|d| {
             dump!(d, "cond");
             d.indent(|d| {
-                d.dump_expr(&stmt.expr);
+                d.dump_node_id(stmt.expr);
             });
             dump!(d, "body");
             d.indent(|d| {
-                d.dump_expr(&stmt.block);
+                d.dump_node_id(stmt.block);
             });
         });
     }
 
-    fn dump_expr_while(&mut self, expr: &ExprWhileType) {
-        dump!(self, "while @ {} {}", expr.span, expr.id);
+    fn dump_expr_while(&mut self, id: AstId, expr: &ExprWhileType) {
+        dump!(self, "while @ {} {} {:?}", expr.span, expr.id, id);
 
         self.indent(|d| {
             dump!(d, "cond");
             d.indent(|d| {
-                d.dump_expr(&expr.cond);
+                d.dump_node_id(expr.cond);
             });
 
             dump!(d, "body");
             d.indent(|d| {
-                d.dump_expr(&expr.block);
+                d.dump_node_id(expr.block);
             });
         });
     }
 
-    fn dump_stmt_expr(&mut self, stmt: &StmtExprType) {
-        dump!(self, "expr stmt @ {} {}", stmt.span, stmt.id);
+    fn dump_stmt_expr(&mut self, id: AstId, stmt: &StmtExprType) {
+        dump!(self, "expr stmt @ {} {} {:?}", stmt.span, stmt.id, id);
         self.indent(|d| {
-            d.dump_expr(&stmt.expr);
+            d.dump_node_id(stmt.expr);
         });
     }
 
-    fn dump_expr_return(&mut self, ret: &ExprReturnType) {
-        dump!(self, "return @ {} {}", ret.span, ret.id);
+    fn dump_expr_return(&mut self, id: AstId, ret: &ExprReturnType) {
+        dump!(self, "return @ {} {} {:?}", ret.span, ret.id, id);
 
         self.indent(|d| {
-            if let Some(ref expr) = ret.expr {
-                d.dump_expr(expr);
+            if let Some(expr) = ret.expr {
+                d.dump_node_id(expr);
             } else {
                 dump!(d, "<nothing>");
             }
         });
     }
 
-    fn dump_expr_break(&mut self, stmt: &ExprBreakType) {
-        dump!(self, "break @ {} {}", stmt.span, stmt.id);
+    fn dump_expr_break(&mut self, id: AstId, stmt: &ExprBreakType) {
+        dump!(self, "break @ {} {} {:?}", stmt.span, stmt.id, id);
     }
 
-    fn dump_expr_continue(&mut self, stmt: &ExprContinueType) {
-        dump!(self, "continue @ {} {}", stmt.span, stmt.id);
+    fn dump_expr_continue(&mut self, id: AstId, stmt: &ExprContinueType) {
+        dump!(self, "continue @ {} {} {:?}", stmt.span, stmt.id, id);
     }
 
-    fn dump_expr(&mut self, expr: &ExprData) {
-        match *expr {
-            ExprData::Un(ref un) => self.dump_expr_un(un),
-            ExprData::Bin(ref bin) => self.dump_expr_bin(bin),
-            ExprData::Dot(ref field) => self.dump_expr_dot(field),
-            ExprData::LitChar(ref lit) => self.dump_expr_lit_char(lit),
-            ExprData::LitInt(ref lit) => self.dump_expr_lit_int(lit),
-            ExprData::LitFloat(ref lit) => self.dump_expr_lit_float(lit),
-            ExprData::LitStr(ref lit) => self.dump_expr_lit_str(lit),
-            ExprData::Template(ref tmpl) => self.dump_expr_template(tmpl),
-            ExprData::LitBool(ref lit) => self.dump_expr_lit_bool(lit),
-            ExprData::Ident(ref ident) => self.dump_expr_ident(ident),
-            ExprData::Call(ref call) => self.dump_expr_call(call),
-            ExprData::TypeParam(ref expr) => self.dump_expr_type_param(expr),
-            ExprData::Path(ref path) => self.dump_expr_path(path),
-            ExprData::This(ref selfie) => self.dump_expr_self(selfie),
-            ExprData::Conv(ref expr) => self.dump_expr_conv(expr),
-            ExprData::Is(ref expr) => self.dump_expr_is(expr),
-            ExprData::Lambda(ref expr) => self.dump_expr_lambda(expr),
-            ExprData::Block(ref expr) => self.dump_expr_block(expr),
-            ExprData::If(ref expr) => self.dump_expr_if(expr),
-            ExprData::Tuple(ref expr) => self.dump_expr_tuple(expr),
-            ExprData::Paren(ref expr) => self.dump_expr_paren(expr),
-            ExprData::Match(ref expr) => self.dump_expr_match(expr),
-            ExprData::For(ref expr) => self.dump_expr_for(expr),
-            ExprData::While(ref expr) => self.dump_expr_while(expr),
-            ExprData::Break(ref expr) => self.dump_expr_break(expr),
-            ExprData::Continue(ref expr) => self.dump_expr_continue(expr),
-            ExprData::Return(ref ret) => self.dump_expr_return(ret),
-            ExprData::Error { id, span } => {
-                dump!(self, "error @ {} {}", span, id);
-            }
-        }
-    }
-
-    fn dump_expr_block(&mut self, block: &ExprBlockType) {
+    fn dump_expr_block(&mut self, id: AstId, block: &ExprBlockType) {
         dump!(
             self,
-            "block ({} statement(s)) @ {} {}",
+            "block ({} statement(s)) @ {} {} {:?}",
             block.stmts.len(),
             block.span,
-            block.id
+            block.id,
+            id
         );
 
         self.indent(|d| {
@@ -407,15 +396,15 @@ impl<'a> AstDumper<'a> {
                 for (idx, &stmt_id) in block.stmts.iter().enumerate() {
                     dump!(d, "<block stmt {}>", idx);
                     d.indent(|d| {
-                        d.dump_node(d.f.node(stmt_id));
+                        d.dump_node_id(stmt_id);
                     });
                 }
             }
 
-            if let Some(ref expr) = block.expr {
+            if let Some(expr) = block.expr {
                 dump!(d, "<block result>");
                 d.indent(|d| {
-                    d.dump_expr(expr);
+                    d.dump_node_id(expr);
                 });
             }
         });
@@ -423,153 +412,215 @@ impl<'a> AstDumper<'a> {
         dump!(self, "block end");
     }
 
-    fn dump_expr_if(&mut self, expr: &ExprIfType) {
-        dump!(self, "if @ {} {}", expr.span, expr.id);
+    fn dump_expr_if(&mut self, id: AstId, expr: &ExprIfType) {
+        dump!(self, "if @ {} {} {:?}", expr.span, expr.id, id);
 
         self.indent(|d| {
             d.indent(|d| {
-                d.dump_expr(&expr.cond);
+                d.dump_node_id(expr.cond);
             });
             dump!(d, "then");
             d.indent(|d| {
-                d.dump_expr(&expr.then_block);
+                d.dump_node_id(expr.then_block);
             });
-            dump!(d, "else");
-            d.indent(|d| {
-                d.dump_expr(&expr.then_block);
-            });
-        });
-    }
-
-    fn dump_expr_conv(&mut self, expr: &ExprConvType) {
-        self.indent(|d| d.dump_expr(&expr.object));
-        dump!(self, "as @ {} {}", expr.span, expr.id);
-        self.indent(|d| {
-            let node = d.f.node(expr.data_type);
-            d.dump_node(node);
-        });
-    }
-
-    fn dump_expr_is(&mut self, expr: &ExprIsType) {
-        self.indent(|d| d.dump_expr(&expr.value));
-        dump!(self, "is @ {} {}", expr.span, expr.id);
-    }
-
-    fn dump_expr_self(&mut self, selfie: &ExprSelfType) {
-        dump!(self, "self @ {} {}", selfie.span, selfie.id);
-    }
-
-    fn dump_expr_lit_char(&mut self, lit: &ExprLitCharType) {
-        dump!(self, "lit char {} @ {} {}", lit.value, lit.span, lit.id);
-    }
-
-    fn dump_expr_lit_int(&mut self, lit: &ExprLitIntType) {
-        dump!(self, "lit int {} @ {} {}", lit.value, lit.span, lit.id);
-    }
-
-    fn dump_expr_lit_float(&mut self, lit: &ExprLitFloatType) {
-        dump!(self, "lit float {} @ {} {}", lit.value, lit.span, lit.id);
-    }
-
-    fn dump_expr_lit_str(&mut self, lit: &ExprLitStrType) {
-        dump!(self, "lit string {:?} @ {} {}", lit.value, lit.span, lit.id);
-    }
-
-    fn dump_expr_template(&mut self, tmpl: &ExprTemplateType) {
-        dump!(self, "template @ {} {}", tmpl.span, tmpl.id);
-        self.indent(|d| {
-            for part in &tmpl.parts {
-                d.dump_expr(part)
+            if let Some(else_block) = expr.else_block {
+                dump!(d, "else");
+                d.indent(|d| {
+                    d.dump_node_id(else_block);
+                });
+            } else {
+                dump!(d, "no else");
             }
         });
     }
 
-    fn dump_expr_lit_bool(&mut self, lit: &ExprLitBoolType) {
-        dump!(self, "lit bool {} @ {} {}", lit.value, lit.span, lit.id);
-    }
-
-    fn dump_expr_ident(&mut self, ident: &ExprIdentType) {
-        dump!(self, "ident {} @ {} {}", ident.name, ident.span, ident.id);
-    }
-
-    fn dump_expr_un(&mut self, expr: &ExprUnType) {
-        dump!(self, "unary {:?} @ {} {}", expr.op, expr.span, expr.id);
-        self.indent(|d| d.dump_expr(&expr.opnd));
-    }
-
-    fn dump_expr_bin(&mut self, expr: &ExprBinType) {
-        self.indent(|d| d.dump_expr(&expr.rhs));
-        dump!(self, "binary {:?} @ {} {}", expr.op, expr.span, expr.id);
-        self.indent(|d| d.dump_expr(&expr.lhs));
-    }
-
-    fn dump_expr_lambda(&mut self, fct: &ExprLambdaType) {
-        dump!(self, "lambda @ {} {}", fct.span, fct.id);
-        let fct = self.f.node(fct.fct_id).to_function().expect("fct expected");
-        self.indent(|d| d.dump_fct(fct));
-    }
-
-    fn dump_expr_tuple(&mut self, expr: &ExprTupleType) {
-        dump!(self, "tuple @ {} {}", expr.span, expr.id);
+    fn dump_expr_conv(&mut self, id: AstId, expr: &ExprConvType) {
+        self.indent(|d| d.dump_node_id(expr.object));
+        dump!(self, "as @ {} {} {:?}", expr.span, expr.id, id);
         self.indent(|d| {
-            for expr in &expr.values {
-                d.dump_expr(expr);
+            d.dump_node_id(expr.data_type);
+        });
+    }
+
+    fn dump_expr_is(&mut self, id: AstId, expr: &ExprIsType) {
+        self.indent(|d| d.dump_node_id(expr.value));
+        dump!(self, "is @ {} {} {:?}", expr.span, expr.id, id);
+    }
+
+    fn dump_expr_self(&mut self, id: AstId, selfie: &ExprSelfType) {
+        dump!(self, "self @ {} {} {:?}", selfie.span, selfie.id, id);
+    }
+
+    fn dump_expr_lit_char(&mut self, id: AstId, lit: &ExprLitCharType) {
+        dump!(
+            self,
+            "lit char {} @ {} {} {:?}",
+            lit.value,
+            lit.span,
+            lit.id,
+            id
+        );
+    }
+
+    fn dump_expr_lit_int(&mut self, id: AstId, lit: &ExprLitIntType) {
+        dump!(
+            self,
+            "lit int {} @ {} {} {:?}",
+            lit.value,
+            lit.span,
+            lit.id,
+            id
+        );
+    }
+
+    fn dump_expr_lit_float(&mut self, id: AstId, lit: &ExprLitFloatType) {
+        dump!(
+            self,
+            "lit float {} @ {} {} {:?}",
+            lit.value,
+            lit.span,
+            lit.id,
+            id
+        );
+    }
+
+    fn dump_expr_lit_str(&mut self, id: AstId, lit: &ExprLitStrType) {
+        dump!(
+            self,
+            "lit string {:?} @ {} {} {:?}",
+            lit.value,
+            lit.span,
+            lit.id,
+            id
+        );
+    }
+
+    fn dump_expr_template(&mut self, id: AstId, tmpl: &ExprTemplateType) {
+        dump!(self, "template @ {} {} {:?}", tmpl.span, tmpl.id, id);
+        self.indent(|d| {
+            for &part in &tmpl.parts {
+                d.dump_node_id(part)
             }
         });
     }
 
-    fn dump_expr_dot(&mut self, expr: &ExprDotType) {
-        self.indent(|d| d.dump_expr(&expr.rhs));
-        dump!(self, "dot @ {} {}", expr.span, expr.id);
-        self.indent(|d| d.dump_expr(&expr.lhs));
+    fn dump_expr_lit_bool(&mut self, id: AstId, lit: &ExprLitBoolType) {
+        dump!(
+            self,
+            "lit bool {} @ {} {} {:?}",
+            lit.value,
+            lit.span,
+            lit.id,
+            id
+        );
     }
 
-    fn dump_expr_path(&mut self, expr: &ExprPathType) {
-        self.indent(|d| d.dump_expr(&expr.rhs));
-        dump!(self, "path (::) @ {} {}", expr.span, expr.id);
-        self.indent(|d| d.dump_expr(&expr.lhs));
+    fn dump_expr_ident(&mut self, id: AstId, ident: &ExprIdentType) {
+        dump!(
+            self,
+            "ident {} @ {} {} {:?}",
+            ident.name,
+            ident.span,
+            ident.id,
+            id
+        );
     }
 
-    fn dump_expr_call(&mut self, expr: &ExprCallType) {
-        dump!(self, "call @ {} {}", expr.span, expr.id);
+    fn dump_expr_un(&mut self, id: AstId, expr: &ExprUnType) {
+        dump!(
+            self,
+            "unary {:?} @ {} {} {:?}",
+            expr.op,
+            expr.span,
+            expr.id,
+            id
+        );
+        self.indent(|d| d.dump_node_id(expr.opnd));
+    }
+
+    fn dump_expr_bin(&mut self, id: AstId, expr: &ExprBinType) {
+        self.indent(|d| d.dump_node_id(expr.rhs));
+        dump!(
+            self,
+            "binary {:?} @ {} {} {:?}",
+            expr.op,
+            expr.span,
+            expr.id,
+            id
+        );
+        self.indent(|d| d.dump_node_id(expr.lhs));
+    }
+
+    fn dump_expr_lambda(&mut self, id: AstId, node: &ExprLambdaType) {
+        dump!(self, "lambda @ {} {} {:?}", node.span, node.id, id);
+        let fct = self
+            .f
+            .node(node.fct_id)
+            .to_function()
+            .expect("fct expected");
+        self.indent(|d| d.dump_fct(node.fct_id, fct));
+    }
+
+    fn dump_expr_tuple(&mut self, id: AstId, expr: &ExprTupleType) {
+        dump!(self, "tuple expr @ {} {} {:?}", expr.span, expr.id, id);
+        self.indent(|d| {
+            for &expr in &expr.values {
+                d.dump_node_id(expr);
+            }
+        });
+    }
+
+    fn dump_expr_dot(&mut self, id: AstId, expr: &ExprDotType) {
+        self.indent(|d| d.dump_node_id(expr.rhs));
+        dump!(self, "dot @ {} {} {:?}", expr.span, expr.id, id);
+        self.indent(|d| d.dump_node_id(expr.lhs));
+    }
+
+    fn dump_expr_path(&mut self, id: AstId, expr: &ExprPathType) {
+        self.indent(|d| d.dump_node_id(expr.rhs));
+        dump!(self, "path (::) @ {} {} {:?}", expr.span, expr.id, id);
+        self.indent(|d| d.dump_node_id(expr.lhs));
+    }
+
+    fn dump_expr_call(&mut self, id: AstId, expr: &ExprCallType) {
+        dump!(self, "call @ {} {} {:?}", expr.span, expr.id, id);
 
         self.indent(|d| {
             dump!(d, "callee");
-            d.indent(|d| d.dump_expr(&expr.callee));
+            d.indent(|d| d.dump_node_id(expr.callee));
 
             for arg in &expr.args {
                 if let Some(ref name) = arg.name {
                     d.dump_ident(name);
                 }
-                d.dump_expr(&arg.expr);
+                d.dump_node_id(arg.expr);
             }
         });
     }
 
-    fn dump_expr_paren(&mut self, expr: &ExprParenType) {
-        dump!(self, "paren @ {} {}", expr.span, expr.id);
+    fn dump_expr_paren(&mut self, id: AstId, expr: &ExprParenType) {
+        dump!(self, "paren @ {} {} {:?}", expr.span, expr.id, id);
         self.indent(|d| {
-            d.dump_expr(&expr.expr);
+            d.dump_node_id(expr.expr);
         });
     }
 
-    fn dump_expr_match(&mut self, expr: &ExprMatchType) {
-        dump!(self, "match @ {} {}", expr.span, expr.id);
+    fn dump_expr_match(&mut self, id: AstId, expr: &ExprMatchType) {
+        dump!(self, "match @ {} {} {:?}", expr.span, expr.id, id);
         self.indent(|d| {
-            d.dump_expr(&expr.expr);
+            d.dump_node_id(expr.expr);
         });
     }
 
-    fn dump_expr_type_param(&mut self, expr: &ExprTypeParamType) {
-        dump!(self, "type param @ {} {}", expr.span, expr.id);
+    fn dump_expr_type_param(&mut self, id: AstId, expr: &ExprTypeParamType) {
+        dump!(self, "type param @ {} {} {:?}", expr.span, expr.id, id);
 
         self.indent(|d| {
             dump!(d, "callee");
-            d.indent(|d| d.dump_expr(&expr.callee));
+            d.indent(|d| d.dump_node_id(expr.callee));
 
             for &arg_id in &expr.args {
-                let arg = d.f.node(arg_id);
-                d.dump_node(arg);
+                d.dump_node_id(arg_id);
             }
         });
     }

@@ -12,46 +12,48 @@ pub struct ConstCheck<'a> {
 }
 
 impl<'a> ConstCheck<'a> {
-    pub fn check_expr(&mut self, expr: &ExprData) -> (SourceType, ConstValue) {
+    fn node(&self, id: AstId) -> &'a Ast {
+        self.sa.node(self.const_.file_id, id)
+    }
+
+    pub fn check_expr(&mut self, expr_id: AstId) -> (SourceType, ConstValue) {
+        let expr = self.node(expr_id);
         let expected_type = self.const_.ty();
 
-        let (ty, lit) = if is_lit_int_maybe_minus(expr) {
-            compute_lit_int(self.sa, self.const_.file_id, expr, expected_type)
+        let (ty, lit) = if self.is_lit_int_maybe_minus(expr) {
+            compute_lit_int(self.sa, self.const_.file_id, expr_id, expected_type)
         } else {
             match expr {
-                &ExprData::LitChar(ref e) => {
+                &Ast::LitChar(ref e) => {
                     let value = check_lit_char(self.sa, self.const_.file_id, e);
                     (SourceType::Char, ConstValue::Char(value))
                 }
-                &ExprData::LitInt(ref expr) => {
+                &Ast::LitInt(..) => {
                     let (ty, value) =
-                        check_lit_int(self.sa, self.const_.file_id, expr, false, expected_type);
+                        check_lit_int(self.sa, self.const_.file_id, expr_id, false, expected_type);
 
                     (ty, value)
                 }
-                &ExprData::LitFloat(ref expr) => {
+                &Ast::LitFloat(ref expr) => {
                     let (ty, val) = check_lit_float(self.sa, self.const_.file_id, expr, false);
                     (ty, ConstValue::Float(val))
                 }
-                &ExprData::LitBool(ref expr) => (SourceType::Bool, ConstValue::Bool(expr.value)),
+                &Ast::LitBool(ref expr) => (SourceType::Bool, ConstValue::Bool(expr.value)),
 
-                &ExprData::Un(ref expr) if expr.op == UnOp::Neg && expr.opnd.is_lit_int() => {
-                    let (ty, value) = check_lit_int(
-                        self.sa,
-                        self.const_.file_id,
-                        expr.opnd.to_lit_int().unwrap(),
-                        true,
-                        expected_type,
-                    );
+                &Ast::Un(ref expr) if expr.op == UnOp::Neg && self.node(expr.opnd).is_lit_int() => {
+                    let (ty, value) =
+                        check_lit_int(self.sa, self.const_.file_id, expr.opnd, true, expected_type);
 
                     (ty, value)
                 }
 
-                &ExprData::Un(ref expr) if expr.op == UnOp::Neg && expr.opnd.is_lit_float() => {
+                &Ast::Un(ref expr)
+                    if expr.op == UnOp::Neg && self.node(expr.opnd).is_lit_float() =>
+                {
                     let (ty, val) = check_lit_float(
                         self.sa,
                         self.const_.file_id,
-                        expr.opnd.to_lit_float().unwrap(),
+                        self.node(expr.opnd).to_lit_float().unwrap(),
                         true,
                     );
                     (ty, ConstValue::Float(val))
@@ -74,13 +76,13 @@ impl<'a> ConstCheck<'a> {
 
         (ty, lit)
     }
-}
 
-fn is_lit_int_maybe_minus(e: &ExprData) -> bool {
-    if e.is_un_op(UnOp::Neg) {
-        let e = e.to_un().expect("unary expected");
-        e.opnd.is_lit_int()
-    } else {
-        e.is_lit_int()
+    fn is_lit_int_maybe_minus(&self, e: &Ast) -> bool {
+        if e.is_un_op(UnOp::Neg) {
+            let e = e.to_un().expect("unary expected");
+            self.node(e.opnd).is_lit_int()
+        } else {
+            e.is_lit_int()
+        }
     }
 }

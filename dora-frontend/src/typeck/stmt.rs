@@ -24,7 +24,7 @@ pub(super) fn check_stmt(ck: &mut TypeCheck, id: ast::AstId) {
         ast::Ast::LetStmt(ref stmt) => check_stmt_let(ck, stmt),
 
         ast::Ast::ExprStmt(ref stmt) => {
-            check_expr(ck, &stmt.expr, SourceType::Any);
+            check_expr(ck, stmt.expr, SourceType::Any);
         }
 
         _ => unreachable!(),
@@ -41,7 +41,7 @@ fn check_stmt_let(ck: &mut TypeCheck, s: &ast::StmtLetType) {
     let expr_type = s
         .expr
         .as_ref()
-        .map(|expr| check_expr(ck, &expr, defined_type.clone()))
+        .map(|&expr| check_expr(ck, expr, defined_type.clone()))
         .unwrap_or(SourceType::Any);
 
     let defined_type = if s.data_type.is_some() {
@@ -138,21 +138,21 @@ fn check_pattern_inner(
         }
 
         ast::Pattern::LitChar(ref p) => {
-            let e = p.expr.to_lit_char().expect("char expected");
+            let e = ck.node(p.expr).to_lit_char().expect("char expected");
             let value = check_lit_char(ck.sa, ck.file_id, e);
             ck.analysis.set_const_value(p.id, ConstValue::Char(value));
             check_literal_ty(ck, pattern, SourceType::Char, ty);
         }
 
         ast::Pattern::LitInt(ref p) => {
-            let (value_ty, value) = compute_lit_int(ck.sa, ck.file_id, &p.expr, ty.clone());
+            let (value_ty, value) = compute_lit_int(ck.sa, ck.file_id, p.expr, ty.clone());
             ck.analysis.set_const_value(p.id, value);
             ck.analysis.set_ty(p.id, value_ty.clone());
             check_literal_ty(ck, pattern, value_ty, ty);
         }
 
         ast::Pattern::LitString(ref p) => {
-            let e = p.expr.to_lit_str().expect("string expected");
+            let e = ck.node(p.expr).to_lit_str().expect("string expected");
             let value = check_lit_str(ck.sa, ck.file_id, e);
             ck.analysis.set_const_value(p.id, ConstValue::String(value));
             let str_ty = SourceType::Class(ck.sa.known.classes.string(), SourceTypeArray::empty());
@@ -160,7 +160,7 @@ fn check_pattern_inner(
         }
 
         ast::Pattern::LitFloat(ref p) => {
-            let (value_ty, value) = compute_lit_float(ck.sa, ck.file_id, &p.expr);
+            let (value_ty, value) = compute_lit_float(ck.sa, ck.file_id, p.expr);
             ck.analysis.set_const_value(p.id, ConstValue::Float(value));
             ck.analysis.set_ty(p.id, value_ty.clone());
             check_literal_ty(ck, pattern, value_ty, ty);

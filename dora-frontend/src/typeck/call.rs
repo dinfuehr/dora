@@ -31,28 +31,28 @@ pub(super) fn check_expr_call(
     e: &ast::ExprCallType,
     expected_ty: SourceType,
 ) -> SourceType {
-    let (callee, type_params) = if let Some(expr_type_params) = e.callee.to_type_param() {
+    let (callee, type_params) = if let Some(expr_type_params) = ck.node(e.callee).to_type_param() {
         let type_params: Vec<SourceType> = expr_type_params
             .args
             .iter()
             .map(|&p| ck.read_type(p))
             .collect();
         let type_params: SourceTypeArray = SourceTypeArray::with(type_params);
-        (&expr_type_params.callee, type_params)
+        (expr_type_params.callee, type_params)
     } else {
-        (&e.callee, SourceTypeArray::empty())
+        (e.callee, SourceTypeArray::empty())
     };
 
     let arguments = create_call_arguments(ck, e);
 
-    if let Some(expr_ident) = callee.to_ident() {
+    if let Some(expr_ident) = ck.node(callee).to_ident() {
         let sym = ck.symtable.get_string(ck.sa, &expr_ident.name);
 
         check_expr_call_sym(ck, e, expected_ty, callee, sym, type_params, arguments)
-    } else if let Some(expr_dot) = callee.to_dot() {
-        let object_type = check_expr(ck, &expr_dot.lhs, SourceType::Any);
+    } else if let Some(expr_dot) = ck.node(callee).to_dot() {
+        let object_type = check_expr(ck, expr_dot.lhs, SourceType::Any);
 
-        let method_name = match expr_dot.rhs.to_ident() {
+        let method_name = match ck.node(expr_dot.rhs).to_ident() {
             Some(ident) => ident.name.clone(),
 
             None => {
@@ -64,12 +64,12 @@ pub(super) fn check_expr_call(
             }
         };
         check_expr_call_method(ck, e, object_type, method_name, type_params, arguments)
-    } else if let Some(_expr_path) = callee.to_path() {
+    } else if let Some(_expr_path) = ck.node(callee).to_path() {
         check_expr_call_path(ck, e, expected_ty, callee, type_params, arguments)
     } else {
         if !type_params.is_empty() {
             let msg = ErrorMessage::NoTypeParamsExpected;
-            ck.sa.report(ck.file_id, e.callee.span(), msg);
+            ck.sa.report(ck.file_id, ck.span(e.callee), msg);
         }
 
         let expr_type = check_expr(ck, callee, SourceType::Any);
@@ -84,7 +84,7 @@ pub(super) fn create_call_arguments(ck: &mut TypeCheck, e: &ast::ExprCallType) -
     };
 
     for arg in e.args.iter() {
-        let ty = check_expr(ck, &arg.expr, SourceType::Any);
+        let ty = check_expr(ck, arg.expr, SourceType::Any);
         ck.analysis.set_ty(arg.id, ty);
 
         arguments.arguments.push(arg.clone());
@@ -245,7 +245,7 @@ fn check_expr_call_expr(
         let ty = ck.ty_name(&expr_type);
         ck.sa.report(
             ck.file_id,
-            e.callee.span(),
+            ck.span(e.callee),
             ErrorMessage::IndexGetNotImplemented(ty),
         );
 
@@ -512,9 +512,9 @@ fn check_expr_call_field(
         if let Some((field_id, field_type)) =
             find_field_in_class(ck.sa, object_type.clone(), interned_method_name)
         {
-            ck.analysis.set_ty(e.callee.id(), field_type.clone());
+            ck.analysis.set_ty(ck.id(e.callee), field_type.clone());
             ck.analysis.map_idents.insert_or_replace(
-                e.callee.id(),
+                ck.id(e.callee),
                 IdentType::Field(object_type.clone(), field_id),
             );
 
@@ -639,7 +639,7 @@ fn check_expr_call_ctor_with_named_fields(
             add_named_argument(arg, name);
         } else if arguments.arguments.len() == 1 && single_named_element.is_some() {
             add_named_argument(arg, single_named_element.expect("missing name"));
-        } else if let Some(ident) = arg.expr.to_ident() {
+        } else if let Some(ident) = ck.node(arg.expr).to_ident() {
             let name = ck.sa.interner.intern(&ident.name);
             add_named_argument(arg, name);
         } else {
@@ -734,7 +734,7 @@ fn check_expr_call_ctor_with_unnamed_fields(
 
             ck.sa.report(
                 ck.file_id,
-                argument.expr.span(),
+                ck.span(argument.expr),
                 ErrorMessage::WrongTypeForArgument(exp, got),
             );
         }
@@ -1163,14 +1163,15 @@ fn check_expr_call_path(
     ck: &mut TypeCheck,
     e: &ast::ExprCallType,
     expected_ty: SourceType,
-    callee: &ast::ExprData,
+    callee_id: ast::AstId,
     type_params: SourceTypeArray,
     arguments: CallArguments,
 ) -> SourceType {
+    let callee = ck.node(callee_id);
     let callee_as_path = callee.to_path().unwrap();
 
     let (container_expr, container_type_params) = if let Some(expr_type_params) =
-        callee_as_path.lhs.to_type_param()
+        ck.node(callee_as_path.lhs).to_type_param()
     {
         let container_type_params: Vec<SourceType> = expr_type_params
             .args
@@ -1179,11 +1180,11 @@ fn check_expr_call_path(
             .collect();
         let container_type_params: SourceTypeArray = SourceTypeArray::with(container_type_params);
 
-        (&expr_type_params.callee, container_type_params)
+        (expr_type_params.callee, container_type_params)
     } else {
-        (&callee_as_path.lhs, SourceTypeArray::empty())
+        (callee_as_path.lhs, SourceTypeArray::empty())
     };
-    let method_expr = &callee_as_path.rhs;
+    let method_expr = callee_as_path.rhs;
 
     let sym = match read_path_expr(ck, container_expr) {
         Ok(sym) => sym,
@@ -1193,11 +1194,11 @@ fn check_expr_call_path(
         }
     };
 
-    let method_name = if let Some(method_name_expr) = method_expr.to_ident() {
+    let method_name = if let Some(method_name_expr) = ck.node(method_expr).to_ident() {
         method_name_expr.name.clone()
     } else {
         let msg = ErrorMessage::ExpectedSomeIdentifier;
-        ck.sa.report(ck.file_id, method_expr.span(), msg);
+        ck.sa.report(ck.file_id, ck.span(method_expr), msg);
 
         ck.analysis.set_ty(e.id, ty_error());
         return ty_error();
@@ -1263,7 +1264,7 @@ fn check_expr_call_path(
             if let Some(&variant_idx) = enum_.name_to_value().get(&interned_method_name) {
                 if !container_type_params.is_empty() && !type_params.is_empty() {
                     let msg = ErrorMessage::NoTypeParamsExpected;
-                    ck.sa.report(ck.file_id, callee_as_path.lhs.span(), msg);
+                    ck.sa.report(ck.file_id, ck.span(callee_as_path.lhs), msg);
                 }
 
                 let used_type_params = if type_params.is_empty() {
@@ -1311,7 +1312,7 @@ fn check_expr_call_path(
         Some(SymbolKind::TypeParam(id)) => {
             if !container_type_params.is_empty() {
                 let msg = ErrorMessage::NoTypeParamsExpected;
-                ck.sa.report(ck.file_id, callee_as_path.lhs.span(), msg);
+                ck.sa.report(ck.file_id, ck.span(callee_as_path.lhs), msg);
             }
 
             check_expr_call_generic_static_method(ck, e, id, method_name, type_params, arguments)
@@ -1320,7 +1321,7 @@ fn check_expr_call_path(
         Some(SymbolKind::Module(module_id)) => {
             if !container_type_params.is_empty() {
                 let msg = ErrorMessage::NoTypeParamsExpected;
-                ck.sa.report(ck.file_id, callee_as_path.lhs.span(), msg);
+                ck.sa.report(ck.file_id, ck.span(callee_as_path.lhs), msg);
             }
 
             let sym = {
@@ -1330,13 +1331,13 @@ fn check_expr_call_path(
                 table.get(interned_method_name)
             };
 
-            check_expr_call_sym(ck, e, expected_ty, callee, sym, type_params, arguments)
+            check_expr_call_sym(ck, e, expected_ty, callee_id, sym, type_params, arguments)
         }
 
         Some(SymbolKind::Alias(alias_id)) => {
             if !container_type_params.is_empty() {
                 let msg = ErrorMessage::NoTypeParamsExpected;
-                ck.sa.report(ck.file_id, callee_as_path.lhs.span(), msg);
+                ck.sa.report(ck.file_id, ck.span(callee_as_path.lhs), msg);
             }
 
             let alias_ty = ck.sa.alias(alias_id).ty();
@@ -1359,7 +1360,7 @@ fn check_expr_call_sym(
     ck: &mut TypeCheck,
     e: &ast::ExprCallType,
     expected_ty: SourceType,
-    callee: &ast::ExprData,
+    callee: ast::AstId,
     sym: Option<SymbolKind>,
     type_params: SourceTypeArray,
     arguments: CallArguments,
@@ -1388,7 +1389,7 @@ fn check_expr_call_sym(
         _ => {
             if !type_params.is_empty() {
                 let msg = ErrorMessage::NoTypeParamsExpected;
-                ck.sa.report(ck.file_id, e.callee.span(), msg);
+                ck.sa.report(ck.file_id, ck.span(e.callee), msg);
             }
 
             let expr_type = check_expr(ck, callee, SourceType::Any);

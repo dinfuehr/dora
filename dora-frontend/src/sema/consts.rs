@@ -29,7 +29,7 @@ pub struct ConstDefinition {
     pub name: Name,
     pub parsed_ty: ParsedType,
     pub type_param_definition: Rc<TypeParamDefinition>,
-    pub expr: ast::Expr,
+    pub expr: ast::AstId,
     pub value: OnceCell<ConstValue>,
 }
 

@@ -1,6 +1,6 @@
 use std::sync::Arc;
 
-use dora_parser::ast;
+use dora_parser::ast::{self, AstId};
 
 use crate::error::msg::ErrorMessage;
 use crate::expr_always_returns;
@@ -16,7 +16,7 @@ pub(super) fn check_expr_while(
 ) -> SourceType {
     ck.enter_block_scope();
 
-    let cond_ty = check_expr_condition(ck, &expr.cond);
+    let cond_ty = check_expr_condition(ck, expr.cond);
 
     if !cond_ty.is_error() && !cond_ty.is_bool() {
         let cond_ty = ck.ty_name(&cond_ty);
@@ -24,15 +24,15 @@ pub(super) fn check_expr_while(
         ck.sa.report(ck.file_id, expr.span, msg);
     }
 
-    check_loop_body(ck, &expr.block);
+    check_loop_body(ck, expr.block);
     ck.leave_block_scope(expr.id);
     SourceType::Unit
 }
 
-fn check_loop_body(ck: &mut TypeCheck, expr: &ast::ExprData) {
+fn check_loop_body(ck: &mut TypeCheck, expr_id: AstId) {
     let old_in_loop = ck.in_loop;
     ck.in_loop = true;
-    check_expr(ck, expr, SourceType::Any);
+    check_expr(ck, expr_id, SourceType::Any);
     ck.in_loop = old_in_loop;
 }
 
@@ -41,7 +41,7 @@ pub(super) fn check_expr_for(
     stmt: &ast::ExprForType,
     _expected_ty: SourceType,
 ) -> SourceType {
-    let object_type = check_expr(ck, &stmt.expr, SourceType::Any);
+    let object_type = check_expr(ck, stmt.expr, SourceType::Any);
 
     if object_type.is_error() {
         check_for_body(ck, stmt, ty::error());
@@ -76,7 +76,7 @@ pub(super) fn check_expr_for(
 
     let name = ck.ty_name(&object_type);
     let msg = ErrorMessage::TypeNotUsableInForIn(name);
-    ck.sa.report(ck.file_id, stmt.expr.span(), msg);
+    ck.sa.report(ck.file_id, ck.span(stmt.expr), msg);
 
     // set invalid error type
     check_for_body(ck, stmt, ty::error());
@@ -87,7 +87,7 @@ fn check_for_body(ck: &mut TypeCheck, stmt: &ast::ExprForType, ty: SourceType) {
     ck.symtable.push_level();
     ck.enter_block_scope();
     check_pattern(ck, &stmt.pattern, ty);
-    check_loop_body(ck, &stmt.block);
+    check_loop_body(ck, stmt.block);
     ck.leave_block_scope(stmt.id);
     ck.symtable.pop_level();
 }
@@ -230,8 +230,7 @@ pub(super) fn check_expr_return(
 
         let expr_type = expr
             .expr
-            .as_ref()
-            .map(|expr| check_expr(ck, &expr, expected_ty.clone()))
+            .map(|expr_id| check_expr(ck, expr_id, expected_ty.clone()))
             .unwrap_or(SourceType::Unit);
 
         ck.check_fct_return_type(expected_ty, expr.span, expr_type);
@@ -239,8 +238,8 @@ pub(super) fn check_expr_return(
         ck.sa
             .report(ck.file_id, expr.span, ErrorMessage::InvalidReturn);
 
-        if let Some(ref expr) = expr.expr {
-            check_expr(ck, expr.as_ref(), SourceType::Any);
+        if let Some(expr_id) = expr.expr {
+            check_expr(ck, expr_id, SourceType::Any);
         }
     }
 
@@ -254,24 +253,24 @@ pub(super) fn check_expr_if(
 ) -> SourceType {
     ck.symtable.push_level();
 
-    let ty = check_expr_condition(ck, &expr.cond);
+    let ty = check_expr_condition(ck, expr.cond);
 
     if !ty.is_bool() && !ty.is_error() {
         let expr_type = ck.ty_name(&ty);
         let msg = ErrorMessage::IfCondType(expr_type);
-        ck.sa.report(ck.file_id, expr.cond.span(), msg);
+        ck.sa.report(ck.file_id, ck.span(expr.cond), msg);
     }
 
-    let then_type = check_expr(ck, &expr.then_block, expected_ty.clone());
+    let then_type = check_expr(ck, expr.then_block, expected_ty.clone());
 
     ck.symtable.pop_level();
 
-    let merged_type = if let Some(ref else_block) = expr.else_block {
+    let merged_type = if let Some(else_block) = expr.else_block {
         let else_type = check_expr(ck, else_block, expected_ty);
 
         let ast_file = ck.sa.file(ck.file_id).ast().as_ref();
 
-        if expr_always_returns(ast_file, &expr.then_block) {
+        if expr_always_returns(ast_file, expr.then_block) {
             else_type
         } else if expr_always_returns(ast_file, else_block) {
             then_type
@@ -297,47 +296,49 @@ pub(super) fn check_expr_if(
     merged_type
 }
 
-pub fn check_expr_condition(ck: &mut TypeCheck, cond: &ast::Expr) -> SourceType {
+pub fn check_expr_condition(ck: &mut TypeCheck, cond_id: AstId) -> SourceType {
+    let cond = ck.node(cond_id);
+
     if let Some(bin_expr) = cond.to_bin_and() {
-        if let Some(lhs_is_expr) = bin_expr.lhs.to_is() {
-            let ty = check_expr(ck, &lhs_is_expr.value, SourceType::Any);
+        if let Some(lhs_is_expr) = ck.node(bin_expr.lhs).to_is() {
+            let ty = check_expr(ck, lhs_is_expr.value, SourceType::Any);
             check_pattern(ck, &lhs_is_expr.pattern, ty);
         } else {
-            let lhs_ty = check_expr(ck, &bin_expr.lhs, SourceType::Bool);
+            let lhs_ty = check_expr(ck, bin_expr.lhs, SourceType::Bool);
 
             if !lhs_ty.is_bool() && !lhs_ty.is_error() {
                 let lhs_ty = lhs_ty.name(ck.sa);
                 let msg = ErrorMessage::WrongType("Bool".into(), lhs_ty);
-                ck.sa.report(ck.file_id, bin_expr.lhs.span(), msg);
+                ck.sa.report(ck.file_id, ck.span(bin_expr.lhs), msg);
             }
         }
 
-        let rhs_ty = check_expr_condition(ck, &bin_expr.rhs);
+        let rhs_ty = check_expr_condition(ck, bin_expr.rhs);
 
         if !rhs_ty.is_bool() && !rhs_ty.is_error() {
             let rhs_ty = rhs_ty.name(ck.sa);
             let msg = ErrorMessage::WrongType("Bool".into(), rhs_ty);
-            ck.sa.report(ck.file_id, bin_expr.rhs.span(), msg);
+            ck.sa.report(ck.file_id, ck.span(bin_expr.rhs), msg);
         }
 
         SourceType::Bool
     } else if let Some(is_expr) = cond.to_is() {
-        let ty = check_expr(ck, &is_expr.value, SourceType::Any);
+        let ty = check_expr(ck, is_expr.value, SourceType::Any);
         check_pattern(ck, &is_expr.pattern, ty);
         SourceType::Bool
     } else {
-        check_expr(ck, cond, SourceType::Bool)
+        check_expr(ck, cond_id, SourceType::Bool)
     }
 }
 
 pub(super) fn check_expr_break_and_continue(
     ck: &mut TypeCheck,
-    expr: &ast::ExprData,
+    expr_id: AstId,
     _expected_ty: SourceType,
 ) -> SourceType {
     if !ck.in_loop {
         ck.sa
-            .report(ck.file_id, expr.span(), ErrorMessage::OutsideLoop);
+            .report(ck.file_id, ck.span(expr_id), ErrorMessage::OutsideLoop);
     }
 
     SourceType::Unit
@@ -348,8 +349,8 @@ pub(super) fn check_expr_match(
     node: &ast::ExprMatchType,
     expected_ty: SourceType,
 ) -> SourceType {
-    let expr_type = check_expr(ck, &node.expr, SourceType::Any);
-    ck.analysis.set_ty(node.expr.id(), expr_type.clone());
+    let expr_type = check_expr(ck, node.expr, SourceType::Any);
+    ck.analysis.set_ty(ck.id(node.expr), expr_type.clone());
     let mut result_type = ty::error();
 
     for arm in &node.arms {
@@ -380,17 +381,17 @@ fn check_expr_match_arm(
 
     check_pattern(ck, pattern, expr_ty);
 
-    if let Some(ref cond) = arm.cond {
+    if let Some(cond) = arm.cond {
         let cond_ty = check_expr(ck, cond, SourceType::Bool);
 
         if !cond_ty.is_bool() && !cond_ty.is_error() {
             let cond_ty = ck.ty_name(&cond_ty);
             let msg = ErrorMessage::IfCondType(cond_ty);
-            ck.sa.report(ck.file_id, cond.span(), msg);
+            ck.sa.report(ck.file_id, ck.span(cond), msg);
         }
     }
 
-    let arm_ty = check_expr(ck, &arm.value, expected_ty.clone());
+    let arm_ty = check_expr(ck, arm.value, expected_ty.clone());
 
     if result_type.is_error() {
         *result_type = arm_ty;
@@ -400,7 +401,7 @@ fn check_expr_match_arm(
         let result_type_name = ck.ty_name(&result_type);
         let arm_ty_name = ck.ty_name(&arm_ty);
         let msg = ErrorMessage::MatchBranchTypesIncompatible(result_type_name, arm_ty_name);
-        ck.sa.report(ck.file_id, arm.value.span(), msg);
+        ck.sa.report(ck.file_id, ck.span(arm.value), msg);
     }
 }
 

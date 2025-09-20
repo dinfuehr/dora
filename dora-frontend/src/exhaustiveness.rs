@@ -34,18 +34,12 @@ struct Exhaustiveness<'a> {
 }
 
 impl<'a> Visitor for Exhaustiveness<'a> {
-    fn visit_expr(&mut self, f: &ast::File, e: &ast::ExprData) {
-        match *e {
-            ast::ExprData::Match(ref expr) => {
-                check_match(self.sa, self.analysis, self.file_id, expr);
-                visit::walk_expr(self, f, e);
-            }
-            ast::ExprData::Lambda(..) => (),
-            _ => {
-                visit::walk_expr(self, f, e);
-            }
-        }
+    fn visit_match(&mut self, f: &ast::File, ast_id: ast::AstId, node: &ast::ExprMatchType) {
+        check_match(self.sa, self.analysis, self.file_id, node);
+        visit::walk_match(self, f, ast_id, node);
     }
+
+    fn visit_lambda(&mut self, _f: &ast::File, _id: ast::AstId, _node: &ast::ExprLambdaType) {}
 }
 
 fn check_match(
@@ -68,7 +62,7 @@ fn check_match(
                 row.push(Pattern::any_no_span());
             }
         }
-        row.push(convert_pattern(sa, analysis, &arm.pattern));
+        row.push(convert_pattern(sa, file_id, analysis, &arm.pattern));
 
         let useless = check_useful_expand(sa, matrix.clone(), row.clone());
 
@@ -105,11 +99,8 @@ fn check_match(
             patterns.push(pattern_as_string);
         }
 
-        sa.report(
-            file_id,
-            node.expr.span(),
-            ErrorMessage::NonExhaustiveMatch(patterns),
-        );
+        let span = sa.node(file_id, node.expr).span();
+        sa.report(file_id, span, ErrorMessage::NonExhaustiveMatch(patterns));
     }
 }
 
@@ -1105,17 +1096,25 @@ impl fmt::Debug for Pattern {
     }
 }
 
-fn convert_pattern(sa: &Sema, analysis: &AnalysisData, pattern: &ast::Pattern) -> Pattern {
+fn convert_pattern(
+    sa: &Sema,
+    file_id: SourceFileId,
+    analysis: &AnalysisData,
+    pattern: &ast::Pattern,
+) -> Pattern {
     match pattern {
         ast::Pattern::Underscore(ref p) => Pattern::Any { span: Some(p.span) },
         ast::Pattern::Error(ref p) => Pattern::Any { span: Some(p.span) },
 
         ast::Pattern::Rest(..) => unreachable!(),
 
-        ast::Pattern::LitBool(ref lit) => Pattern::Literal {
-            span: pattern.span(),
-            value: LiteralValue::Bool(lit.expr.is_lit_true()),
-        },
+        ast::Pattern::LitBool(ref lit) => {
+            let node = sa.node(file_id, lit.expr);
+            Pattern::Literal {
+                span: pattern.span(),
+                value: LiteralValue::Bool(node.is_lit_true()),
+            }
+        }
 
         ast::Pattern::LitInt(ref lit) => {
             let value = analysis.const_value(lit.id).to_i64().expect("i64 expected");
@@ -1158,7 +1157,7 @@ fn convert_pattern(sa: &Sema, analysis: &AnalysisData, pattern: &ast::Pattern) -
                 .params
                 .iter()
                 .rev()
-                .map(|p| convert_pattern(sa, analysis, &p))
+                .map(|p| convert_pattern(sa, file_id, analysis, &p))
                 .collect();
             Pattern::Constructor {
                 span: tuple.span,
@@ -1194,7 +1193,7 @@ fn convert_pattern(sa: &Sema, analysis: &AnalysisData, pattern: &ast::Pattern) -
             alts: p
                 .alts
                 .iter()
-                .map(|alt| convert_pattern(sa, analysis, alt.as_ref()))
+                .map(|alt| convert_pattern(sa, file_id, analysis, alt.as_ref()))
                 .collect(),
         },
 
@@ -1210,7 +1209,13 @@ fn convert_pattern(sa: &Sema, analysis: &AnalysisData, pattern: &ast::Pattern) -
                     Pattern::Constructor {
                         span: p.span,
                         constructor_id: ConstructorId::Enum(enum_.id(), variant.index as usize),
-                        params: convert_subpatterns(sa, analysis, p, variant.field_ids().len()),
+                        params: convert_subpatterns(
+                            sa,
+                            file_id,
+                            analysis,
+                            p,
+                            variant.field_ids().len(),
+                        ),
                     }
                 }
 
@@ -1219,7 +1224,13 @@ fn convert_pattern(sa: &Sema, analysis: &AnalysisData, pattern: &ast::Pattern) -
                     Pattern::Constructor {
                         span: p.span,
                         constructor_id: ConstructorId::Class(*cls_id),
-                        params: convert_subpatterns(sa, analysis, p, class.field_ids().len()),
+                        params: convert_subpatterns(
+                            sa,
+                            file_id,
+                            analysis,
+                            p,
+                            class.field_ids().len(),
+                        ),
                     }
                 }
 
@@ -1228,7 +1239,13 @@ fn convert_pattern(sa: &Sema, analysis: &AnalysisData, pattern: &ast::Pattern) -
                     Pattern::Constructor {
                         span: p.span,
                         constructor_id: ConstructorId::Struct(*struct_id),
-                        params: convert_subpatterns(sa, analysis, p, struct_.field_ids().len()),
+                        params: convert_subpatterns(
+                            sa,
+                            file_id,
+                            analysis,
+                            p,
+                            struct_.field_ids().len(),
+                        ),
                     }
                 }
 
@@ -1240,6 +1257,7 @@ fn convert_pattern(sa: &Sema, analysis: &AnalysisData, pattern: &ast::Pattern) -
 
 fn convert_subpatterns(
     sa: &Sema,
+    file_id: SourceFileId,
     analysis: &AnalysisData,
     p: &ast::PatternClassOrStructOrEnum,
     n: usize,
@@ -1256,7 +1274,7 @@ fn convert_subpatterns(
                     .get(subpattern.id)
                     .cloned()
                     .expect("missing field_id");
-                let p = convert_pattern(sa, analysis, &subpattern.pattern);
+                let p = convert_pattern(sa, file_id, analysis, &subpattern.pattern);
                 result[field_id] = Some(p);
             }
         }

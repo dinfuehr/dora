@@ -51,13 +51,8 @@ impl ImplDefinition {
             type_param_definition,
             declaration_span: node.declaration_span,
             span: node.span,
-            parsed_trait_ty: ParsedTraitType::new_ast(
-                node.trait_type
-                    .as_ref()
-                    .expect("missing trait type")
-                    .clone(),
-            ),
-            parsed_extended_ty: ParsedType::new_ast(node.extended_type.clone()),
+            parsed_trait_ty: ParsedTraitType::new_ast(node.trait_type.expect("missing trait type")),
+            parsed_extended_ty: ParsedType::new_ast(node.extended_type),
             methods: OnceCell::new(),
             aliases: OnceCell::new(),
             trait_method_map: OnceCell::new(),

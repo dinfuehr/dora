@@ -4,21 +4,23 @@ use dora_parser::Span;
 pub fn returns_value(f: &File, s: &Ast) -> Result<(), Span> {
     match *s {
         Ast::LetStmt(ref stmt) => Err(stmt.span),
-        Ast::ExprStmt(ref stmt) => expr_returns_value(f, &stmt.expr),
+        Ast::ExprStmt(ref stmt) => expr_returns_value(f, stmt.expr),
         _ => unreachable!(),
     }
 }
 
-pub fn expr_returns_value(f: &File, e: &ExprData) -> Result<(), Span> {
-    match *e {
-        ExprData::Block(ref block) => expr_block_returns_value(f, block),
-        ExprData::If(ref expr) => expr_if_returns_value(f, expr),
-        ExprData::For(ref expr) => Err(expr.span),
-        ExprData::While(ref expr) => Err(expr.span),
-        ExprData::Break(ref stmt) => Err(stmt.span),
-        ExprData::Continue(ref stmt) => Err(stmt.span),
-        ExprData::Return(..) => Ok(()),
-        _ => Err(e.span()),
+pub fn expr_returns_value(f: &File, id: AstId) -> Result<(), Span> {
+    let expr = f.node(id);
+
+    match *expr {
+        Ast::Block(ref block) => expr_block_returns_value(f, block),
+        Ast::If(ref expr) => expr_if_returns_value(f, expr),
+        Ast::For(ref expr) => Err(expr.span),
+        Ast::While(ref expr) => Err(expr.span),
+        Ast::Break(ref stmt) => Err(stmt.span),
+        Ast::Continue(ref stmt) => Err(stmt.span),
+        Ast::Return(..) => Ok(()),
+        _ => Err(expr.span()),
     }
 }
 
@@ -33,7 +35,7 @@ pub fn expr_block_returns_value(f: &File, e: &ExprBlockType) -> Result<(), Span>
         }
     }
 
-    if let Some(ref expr) = e.expr {
+    if let Some(expr) = e.expr {
         expr_returns_value(f, expr)
     } else {
         Err(span)
@@ -41,10 +43,10 @@ pub fn expr_block_returns_value(f: &File, e: &ExprBlockType) -> Result<(), Span>
 }
 
 fn expr_if_returns_value(f: &File, e: &ExprIfType) -> Result<(), Span> {
-    expr_returns_value(f, &e.then_block)?;
+    expr_returns_value(f, e.then_block)?;
 
     match e.else_block {
-        Some(ref block) => expr_returns_value(f, block),
+        Some(block) => expr_returns_value(f, block),
         None => Err(e.span),
     }
 }

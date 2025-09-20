@@ -53,6 +53,18 @@ pub struct TypeCheck<'a> {
 }
 
 impl<'a> TypeCheck<'a> {
+    pub fn id(&self, id: ast::AstId) -> NodeId {
+        self.node(id).id()
+    }
+
+    pub fn span(&self, id: ast::AstId) -> Span {
+        self.node(id).span()
+    }
+
+    pub fn node(&self, id: ast::AstId) -> &'a ast::Ast {
+        self.sa.node(self.file_id, id)
+    }
+
     pub fn check_fct(&mut self, ast: &ast::Function) {
         self.check_common(|self_| {
             self_.add_type_params();
@@ -61,7 +73,7 @@ impl<'a> TypeCheck<'a> {
         })
     }
 
-    pub fn check_initializer(&mut self, global: &GlobalDefinition, expr: &ast::Expr) {
+    pub fn check_initializer(&mut self, global: &GlobalDefinition, expr: ast::AstId) {
         // Global initializer never has self.
         self.analysis.set_has_self(false);
 
@@ -97,7 +109,7 @@ impl<'a> TypeCheck<'a> {
     }
 
     fn check_body(&mut self, ast: &ast::Function) {
-        let block = ast.block.as_ref().expect("missing block");
+        let block_id = ast.block.expect("missing block");
         let fct_return_type = self
             .return_type
             .as_ref()
@@ -105,35 +117,32 @@ impl<'a> TypeCheck<'a> {
             .clone();
 
         let ast_file = self.sa.file(self.file_id).ast().as_ref();
+        let block = self.node(block_id).to_block().expect("block expected");
 
-        if let ast::ExprData::Block(ref block) = block.as_ref() {
-            let mut returns = false;
+        let mut returns = false;
 
-            for &stmt_id in &block.stmts {
-                check_stmt(self, stmt_id);
+        for &stmt_id in &block.stmts {
+            check_stmt(self, stmt_id);
 
-                let stmt = ast_file.node(stmt_id);
+            let stmt = ast_file.node(stmt_id);
 
-                if always_returns(ast_file, stmt) {
-                    returns = true;
-                }
+            if always_returns(ast_file, stmt) {
+                returns = true;
+            }
+        }
+
+        let return_type = if let Some(value) = block.expr {
+            if expr_always_returns(ast_file, value) {
+                returns = true;
             }
 
-            let return_type = if let Some(ref value) = &block.expr {
-                if expr_always_returns(ast_file, value) {
-                    returns = true;
-                }
-
-                check_expr(self, value, fct_return_type.clone())
-            } else {
-                SourceType::Unit
-            };
-
-            if !returns {
-                self.check_fct_return_type(fct_return_type, block.span, return_type);
-            }
+            check_expr(self, value, fct_return_type.clone())
         } else {
-            unreachable!()
+            SourceType::Unit
+        };
+
+        if !returns {
+            self.check_fct_return_type(fct_return_type, block.span, return_type);
         }
     }
 
@@ -479,7 +488,7 @@ pub(super) fn check_args_compatible<S>(
 
             ck.sa.report(
                 ck.file_id,
-                arg.expr.span(),
+                ck.span(arg.expr),
                 ErrorMessage::WrongTypeForArgument(exp, got),
             );
         }
@@ -513,7 +522,7 @@ pub(super) fn check_args_compatible<S>(
 
                     ck.sa.report(
                         ck.file_id,
-                        arg.expr.span(),
+                        ck.span(arg.expr),
                         ErrorMessage::WrongTypeForArgument(exp, got),
                     );
                 }
@@ -570,7 +579,7 @@ pub(super) fn check_args_compatible2<S>(
 
             ck.sa.report(
                 ck.file_id,
-                arg.expr.span(),
+                ck.span(arg.expr),
                 ErrorMessage::WrongTypeForArgument(exp, got),
             );
         }
@@ -599,7 +608,7 @@ pub(super) fn check_args_compatible2<S>(
 
                     ck.sa.report(
                         ck.file_id,
-                        arg.expr.span(),
+                        ck.span(arg.expr),
                         ErrorMessage::WrongTypeForArgument(exp, got),
                     );
                 }
@@ -795,10 +804,11 @@ fn parse_escaped_char(sa: &Sema, file_id: SourceFileId, offset: u32, it: &mut Ch
 pub fn check_lit_int(
     sa: &Sema,
     file: SourceFileId,
-    e: &ast::ExprLitIntType,
+    expr_id: ast::AstId,
     negate: bool,
     expected_type: SourceType,
 ) -> (SourceType, ConstValue) {
+    let e = sa.node(file, expr_id).to_lit_int().expect("int expected");
     let (base, value, suffix) = parse_lit_int(&e.value);
     let suffix_type = determine_suffix_type_int_literal(sa, file, e.span, &suffix);
 

@@ -58,7 +58,7 @@ pub fn check(sa: &mut Sema) {
                 const_: &*const_,
             };
 
-            constck.check_expr(&const_.expr)
+            constck.check_expr(const_.expr)
         };
 
         const_.value.set(value).expect("already initialized");
@@ -133,7 +133,7 @@ fn check_global(
     lazy_lambda_creation: &mut Vec<LazyLambdaCreationData>,
 ) {
     let analysis = {
-        if !global.has_initial_value(sa) {
+        if !global.has_initial_value() {
             return;
         }
 
@@ -167,7 +167,10 @@ fn check_global(
             element: global,
         };
 
-        typeck.check_initializer(&*global, global.initial_value_expr(sa));
+        typeck.check_initializer(
+            &*global,
+            global.initial_value_ast_id.expect("missing initializer"),
+        );
 
         analysis
     };

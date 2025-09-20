@@ -23,6 +23,7 @@ pub struct GlobalDefinition {
     pub module_id: ModuleDefinitionId,
     pub file_id: SourceFileId,
     pub ast_id: ast::AstId,
+    pub initial_value_ast_id: Option<ast::AstId>,
     pub span: Span,
     pub visibility: Visibility,
     pub parsed_ty: ParsedType,
@@ -50,6 +51,7 @@ impl GlobalDefinition {
             module_id,
             file_id,
             ast_id,
+            initial_value_ast_id: node.initial_value,
             span: node.span,
             name,
             visibility: modifiers.visibility(),
@@ -74,12 +76,8 @@ impl GlobalDefinition {
             .expect("missing global")
     }
 
-    pub fn has_initial_value(&self, sa: &Sema) -> bool {
-        self.ast(sa).initial_value.is_some()
-    }
-
-    pub fn initial_value_expr<'a>(&self, sa: &'a Sema) -> &'a ast::Expr {
-        self.ast(sa).initial_value.as_ref().expect("missing expr")
+    pub fn has_initial_value(&self) -> bool {
+        self.initial_value_ast_id.is_some()
     }
 
     pub fn name(&self, sa: &Sema) -> String {

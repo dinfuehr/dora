@@ -352,7 +352,7 @@ impl Emitter {
         }
 
         for (_id, global) in sa.globals.iter() {
-            if !global.has_initial_value(sa) {
+            if !global.has_initial_value() {
                 continue;
             }
 

@@ -61,10 +61,6 @@ pub trait Visitor: Sized {
         walk_param(self, f, p);
     }
 
-    fn visit_expr(&mut self, f: &File, e: &ExprData) {
-        walk_expr(self, f, e);
-    }
-
     fn visit_type_alias(&mut self, f: &File, id: AstId, e: &Alias) {
         walk_type_alias(self, f, id, e);
     }
@@ -92,6 +88,118 @@ pub trait Visitor: Sized {
     fn visit_expr_stmt(&mut self, f: &File, id: AstId, e: &StmtExprType) {
         walk_expr_stmt(self, f, id, e);
     }
+
+    fn visit_un(&mut self, f: &File, id: AstId, e: &ExprUnType) {
+        walk_un(self, f, id, e);
+    }
+
+    fn visit_bin(&mut self, f: &File, id: AstId, e: &ExprBinType) {
+        walk_bin(self, f, id, e);
+    }
+
+    fn visit_call(&mut self, f: &File, id: AstId, e: &ExprCallType) {
+        walk_call(self, f, id, e);
+    }
+
+    fn visit_type_param(&mut self, f: &File, id: AstId, e: &ExprTypeParamType) {
+        walk_type_param(self, f, id, e);
+    }
+
+    fn visit_path(&mut self, f: &File, id: AstId, e: &ExprPathType) {
+        walk_path(self, f, id, e);
+    }
+
+    fn visit_dot(&mut self, f: &File, id: AstId, e: &ExprDotType) {
+        walk_dot(self, f, id, e);
+    }
+
+    fn visit_conv(&mut self, f: &File, id: AstId, e: &ExprConvType) {
+        walk_conv(self, f, id, e);
+    }
+
+    fn visit_is(&mut self, f: &File, id: AstId, e: &ExprIsType) {
+        walk_is(self, f, id, e);
+    }
+
+    fn visit_lambda(&mut self, f: &File, id: AstId, e: &ExprLambdaType) {
+        walk_lambda(self, f, id, e);
+    }
+
+    fn visit_block(&mut self, f: &File, id: AstId, e: &ExprBlockType) {
+        walk_block(self, f, id, e);
+    }
+
+    fn visit_template(&mut self, f: &File, id: AstId, e: &ExprTemplateType) {
+        walk_template(self, f, id, e);
+    }
+
+    fn visit_if(&mut self, f: &File, id: AstId, e: &ExprIfType) {
+        walk_if(self, f, id, e);
+    }
+
+    fn visit_for(&mut self, f: &File, id: AstId, e: &ExprForType) {
+        walk_for(self, f, id, e);
+    }
+
+    fn visit_while(&mut self, f: &File, id: AstId, e: &ExprWhileType) {
+        walk_while(self, f, id, e);
+    }
+
+    fn visit_tuple(&mut self, f: &File, id: AstId, e: &ExprTupleType) {
+        walk_tuple(self, f, id, e);
+    }
+
+    fn visit_paren(&mut self, f: &File, id: AstId, e: &ExprParenType) {
+        walk_paren(self, f, id, e);
+    }
+
+    fn visit_match(&mut self, f: &File, id: AstId, e: &ExprMatchType) {
+        walk_match(self, f, id, e);
+    }
+
+    fn visit_return(&mut self, f: &File, id: AstId, e: &ExprReturnType) {
+        walk_return(self, f, id, e);
+    }
+
+    fn visit_break(&mut self, f: &File, id: AstId, e: &ExprBreakType) {
+        walk_break(self, f, id, e);
+    }
+
+    fn visit_continue(&mut self, f: &File, id: AstId, e: &ExprContinueType) {
+        walk_continue(self, f, id, e);
+    }
+
+    fn visit_this(&mut self, f: &File, id: AstId, e: &ExprSelfType) {
+        walk_this(self, f, id, e);
+    }
+
+    fn visit_lit_char(&mut self, f: &File, id: AstId, e: &ExprLitCharType) {
+        walk_lit_char(self, f, id, e);
+    }
+
+    fn visit_lit_int(&mut self, f: &File, id: AstId, e: &ExprLitIntType) {
+        walk_lit_int(self, f, id, e);
+    }
+
+    fn visit_lit_float(&mut self, f: &File, id: AstId, e: &ExprLitFloatType) {
+        walk_lit_float(self, f, id, e);
+    }
+
+    fn visit_lit_str(&mut self, f: &File, id: AstId, e: &ExprLitStrType) {
+        walk_lit_str(self, f, id, e);
+    }
+
+    fn visit_lit_bool(&mut self, f: &File, id: AstId, e: &ExprLitBoolType) {
+        walk_lit_bool(self, f, id, e);
+    }
+
+    fn visit_ident(&mut self, f: &File, id: AstId, e: &ExprIdentType) {
+        walk_ident(self, f, id, e);
+    }
+
+    fn visit_error(&mut self, f: &File, id: AstId, e: &Error) {
+        walk_error(self, f, id, e);
+    }
 }
 
 pub fn walk_file<V: Visitor>(v: &mut V, f: &File) {
@@ -99,6 +207,11 @@ pub fn walk_file<V: Visitor>(v: &mut V, f: &File) {
         let e = f.node(element_id);
         dispatch_ast(v, f, element_id, e);
     }
+}
+
+pub fn dispatch_ast_id<V: Visitor>(v: &mut V, f: &File, id: AstId) {
+    let node = f.node(id);
+    dispatch_ast(v, f, id, node);
 }
 
 pub fn dispatch_ast<V: Visitor>(v: &mut V, f: &File, id: AstId, e: &Ast) {
@@ -121,15 +234,42 @@ pub fn dispatch_ast<V: Visitor>(v: &mut V, f: &File, id: AstId, e: &Ast) {
         Ast::TupleType(ref node) => v.visit_tuple_type(f, id, node),
         Ast::LetStmt(ref node) => v.visit_let_stmt(f, id, node),
         Ast::ExprStmt(ref node) => v.visit_expr_stmt(f, id, node),
-        Ast::Error { .. } => {}
+        Ast::Un(ref node) => v.visit_un(f, id, node),
+        Ast::Bin(ref node) => v.visit_bin(f, id, node),
+        Ast::Call(ref node) => v.visit_call(f, id, node),
+        Ast::TypeParam(ref node) => v.visit_type_param(f, id, node),
+        Ast::Path(ref node) => v.visit_path(f, id, node),
+        Ast::Dot(ref node) => v.visit_dot(f, id, node),
+        Ast::Conv(ref node) => v.visit_conv(f, id, node),
+        Ast::Is(ref node) => v.visit_is(f, id, node),
+        Ast::Lambda(ref node) => v.visit_lambda(f, id, node),
+        Ast::Block(ref node) => v.visit_block(f, id, node),
+        Ast::Template(ref node) => v.visit_template(f, id, node),
+        Ast::If(ref node) => v.visit_if(f, id, node),
+        Ast::For(ref node) => v.visit_for(f, id, node),
+        Ast::While(ref node) => v.visit_while(f, id, node),
+        Ast::Tuple(ref node) => v.visit_tuple(f, id, node),
+        Ast::Paren(ref node) => v.visit_paren(f, id, node),
+        Ast::Match(ref node) => v.visit_match(f, id, node),
+        Ast::Return(ref node) => v.visit_return(f, id, node),
+        Ast::Break(ref node) => v.visit_break(f, id, node),
+        Ast::Continue(ref node) => v.visit_continue(f, id, node),
+        Ast::This(ref node) => v.visit_this(f, id, node),
+        Ast::LitChar(ref node) => v.visit_lit_char(f, id, node),
+        Ast::LitInt(ref node) => v.visit_lit_int(f, id, node),
+        Ast::LitFloat(ref node) => v.visit_lit_float(f, id, node),
+        Ast::LitStr(ref node) => v.visit_lit_str(f, id, node),
+        Ast::LitBool(ref node) => v.visit_lit_bool(f, id, node),
+        Ast::Ident(ref node) => v.visit_ident(f, id, node),
+        Ast::Error(ref node) => v.visit_error(f, id, node),
     }
 }
 
 pub fn walk_global<V: Visitor>(v: &mut V, f: &File, _id: AstId, g: &Global) {
     dispatch_ast(v, f, g.data_type, f.node(g.data_type));
 
-    if let Some(ref initial_value) = g.initial_value {
-        v.visit_expr(f, initial_value);
+    if let Some(initial_value) = g.initial_value {
+        dispatch_ast_id(v, f, initial_value);
     }
 }
 
@@ -155,7 +295,7 @@ pub fn walk_class<V: Visitor>(v: &mut V, f: &File, _id: AstId, c: &Class) {
 
 pub fn walk_const<V: Visitor>(v: &mut V, f: &File, _id: AstId, c: &Const) {
     dispatch_ast(v, f, c.data_type, f.node(c.data_type));
-    v.visit_expr(f, &c.expr);
+    dispatch_ast_id(v, f, c.expr);
 }
 
 pub fn walk_enum<V: Visitor>(_v: &mut V, _f: &File, _id: AstId, _e: &Enum) {
@@ -202,8 +342,8 @@ pub fn walk_fct<V: Visitor>(v: &mut V, f: &File, _id: AstId, fct: &Function) {
         dispatch_ast(v, f, ret_id, f.node(ret_id));
     }
 
-    if let Some(ref block) = fct.block {
-        v.visit_expr(f, block);
+    if let Some(block) = fct.block {
+        dispatch_ast_id(v, f, block);
     }
 }
 
@@ -244,137 +384,159 @@ pub fn walk_let_stmt<V: Visitor>(v: &mut V, f: &File, _id: AstId, s: &StmtLetTyp
         dispatch_ast(v, f, ty, f.node(ty));
     }
 
-    if let Some(ref e) = s.expr {
-        v.visit_expr(f, e);
+    if let Some(e) = s.expr {
+        dispatch_ast_id(v, f, e);
     }
 }
 
 pub fn walk_expr_stmt<V: Visitor>(v: &mut V, f: &File, _id: AstId, s: &StmtExprType) {
-    v.visit_expr(f, &s.expr);
+    dispatch_ast_id(v, f, s.expr);
 }
 
-pub fn walk_expr<V: Visitor>(v: &mut V, f: &File, e: &ExprData) {
-    match *e {
-        ExprData::Un(ref value) => {
-            v.visit_expr(f, &value.opnd);
-        }
+pub fn walk_un<V: Visitor>(v: &mut V, f: &File, _id: AstId, node: &ExprUnType) {
+    dispatch_ast_id(v, f, node.opnd);
+}
 
-        ExprData::Bin(ref value) => {
-            v.visit_expr(f, &value.lhs);
-            v.visit_expr(f, &value.rhs);
-        }
+pub fn walk_bin<V: Visitor>(v: &mut V, f: &File, _id: AstId, node: &ExprBinType) {
+    dispatch_ast_id(v, f, node.lhs);
+    dispatch_ast_id(v, f, node.rhs);
+}
 
-        ExprData::Call(ref call) => {
-            v.visit_expr(f, &call.callee);
-
-            for arg in &call.args {
-                v.visit_expr(f, &arg.expr);
-            }
-        }
-
-        ExprData::TypeParam(ref expr) => {
-            v.visit_expr(f, &expr.callee);
-
-            for &arg_id in &expr.args {
-                dispatch_ast(v, f, arg_id, f.node(arg_id));
-            }
-        }
-
-        ExprData::Path(ref path) => {
-            v.visit_expr(f, &path.lhs);
-            v.visit_expr(f, &path.rhs);
-        }
-
-        ExprData::Dot(ref value) => {
-            v.visit_expr(f, &value.lhs);
-            v.visit_expr(f, &value.rhs);
-        }
-
-        ExprData::Conv(ref value) => {
-            v.visit_expr(f, &value.object);
-            dispatch_ast(v, f, value.data_type, f.node(value.data_type));
-        }
-
-        ExprData::Is(ref value) => {
-            v.visit_expr(f, &value.value);
-        }
-
-        ExprData::Lambda(ref value) => {
-            let fct = f.node(value.fct_id).to_function().expect("fct expected");
-            v.visit_fct(f, value.fct_id, fct)
-        }
-
-        ExprData::Block(ref value) => {
-            for &stmt_id in &value.stmts {
-                dispatch_ast(v, f, stmt_id, f.node(stmt_id));
-            }
-
-            if let Some(ref expr) = value.expr {
-                v.visit_expr(f, expr);
-            }
-        }
-
-        ExprData::Template(ref value) => {
-            for part in &value.parts {
-                v.visit_expr(f, part);
-            }
-        }
-
-        ExprData::If(ref value) => {
-            v.visit_expr(f, &value.cond);
-            v.visit_expr(f, &value.then_block);
-
-            if let Some(ref b) = value.else_block {
-                v.visit_expr(f, b);
-            }
-        }
-
-        ExprData::For(ref value) => {
-            v.visit_expr(f, &value.expr);
-            v.visit_expr(f, &value.block);
-        }
-
-        ExprData::While(ref value) => {
-            v.visit_expr(f, &value.cond);
-            v.visit_expr(f, &value.block);
-        }
-
-        ExprData::Tuple(ref value) => {
-            for expr in &value.values {
-                v.visit_expr(f, expr);
-            }
-        }
-
-        ExprData::Paren(ref value) => {
-            v.visit_expr(f, &value.expr);
-        }
-
-        ExprData::Match(ref value) => {
-            v.visit_expr(f, &value.expr);
-            for arm in &value.arms {
-                if let Some(ref cond) = arm.cond {
-                    v.visit_expr(f, cond);
-                }
-                v.visit_expr(f, &arm.value);
-            }
-        }
-
-        ExprData::Return(ref value) => {
-            if let Some(ref e) = value.expr {
-                v.visit_expr(f, e);
-            }
-        }
-
-        ExprData::Break(_) => {}
-        ExprData::Continue(_) => {}
-
-        ExprData::This(_) => {}
-        ExprData::LitChar(_) => {}
-        ExprData::LitInt(_) => {}
-        ExprData::LitFloat(_) => {}
-        ExprData::LitStr(_) => {}
-        ExprData::LitBool(_) => {}
-        ExprData::Ident(_) => {}
-        ExprData::Error { .. } => {}
+pub fn walk_call<V: Visitor>(v: &mut V, f: &File, _id: AstId, node: &ExprCallType) {
+    dispatch_ast_id(v, f, node.callee);
+    for arg in &node.args {
+        dispatch_ast_id(v, f, arg.expr);
     }
+}
+
+pub fn walk_type_param<V: Visitor>(v: &mut V, f: &File, _id: AstId, node: &ExprTypeParamType) {
+    dispatch_ast_id(v, f, node.callee);
+    for &arg in &node.args {
+        dispatch_ast_id(v, f, arg);
+    }
+}
+
+pub fn walk_path<V: Visitor>(v: &mut V, f: &File, _id: AstId, node: &ExprPathType) {
+    dispatch_ast_id(v, f, node.lhs);
+    dispatch_ast_id(v, f, node.rhs);
+}
+
+pub fn walk_dot<V: Visitor>(v: &mut V, f: &File, _id: AstId, node: &ExprDotType) {
+    dispatch_ast_id(v, f, node.lhs);
+    dispatch_ast_id(v, f, node.rhs);
+}
+
+pub fn walk_conv<V: Visitor>(v: &mut V, f: &File, _id: AstId, node: &ExprConvType) {
+    dispatch_ast_id(v, f, node.object);
+    dispatch_ast_id(v, f, node.data_type);
+}
+
+pub fn walk_is<V: Visitor>(v: &mut V, f: &File, _id: AstId, node: &ExprIsType) {
+    dispatch_ast_id(v, f, node.value);
+}
+
+pub fn walk_lambda<V: Visitor>(v: &mut V, f: &File, _id: AstId, node: &ExprLambdaType) {
+    dispatch_ast_id(v, f, node.fct_id);
+}
+
+pub fn walk_block<V: Visitor>(v: &mut V, f: &File, _id: AstId, node: &ExprBlockType) {
+    for &stmt_id in &node.stmts {
+        dispatch_ast_id(v, f, stmt_id);
+    }
+
+    if let Some(expr) = node.expr {
+        dispatch_ast_id(v, f, expr);
+    }
+}
+
+pub fn walk_template<V: Visitor>(v: &mut V, f: &File, _id: AstId, node: &ExprTemplateType) {
+    for &part_id in &node.parts {
+        dispatch_ast_id(v, f, part_id);
+    }
+}
+
+pub fn walk_if<V: Visitor>(v: &mut V, f: &File, _id: AstId, node: &ExprIfType) {
+    dispatch_ast_id(v, f, node.cond);
+    dispatch_ast_id(v, f, node.then_block);
+
+    if let Some(else_block) = node.else_block {
+        dispatch_ast_id(v, f, else_block);
+    }
+}
+
+pub fn walk_for<V: Visitor>(v: &mut V, f: &File, _id: AstId, node: &ExprForType) {
+    dispatch_ast_id(v, f, node.expr);
+    dispatch_ast_id(v, f, node.block);
+}
+
+pub fn walk_while<V: Visitor>(v: &mut V, f: &File, _id: AstId, node: &ExprWhileType) {
+    dispatch_ast_id(v, f, node.cond);
+    dispatch_ast_id(v, f, node.block);
+}
+
+pub fn walk_tuple<V: Visitor>(v: &mut V, f: &File, _id: AstId, node: &ExprTupleType) {
+    for &value_id in &node.values {
+        dispatch_ast_id(v, f, value_id);
+    }
+}
+
+pub fn walk_paren<V: Visitor>(v: &mut V, f: &File, _id: AstId, node: &ExprParenType) {
+    dispatch_ast_id(v, f, node.expr);
+}
+
+pub fn walk_match<V: Visitor>(v: &mut V, f: &File, _id: AstId, node: &ExprMatchType) {
+    dispatch_ast_id(v, f, node.expr);
+
+    for arm in &node.arms {
+        if let Some(cond) = arm.cond {
+            dispatch_ast_id(v, f, cond);
+        }
+        dispatch_ast_id(v, f, arm.value);
+    }
+}
+
+pub fn walk_return<V: Visitor>(v: &mut V, f: &File, _id: AstId, node: &ExprReturnType) {
+    if let Some(expr) = node.expr {
+        dispatch_ast_id(v, f, expr);
+    }
+}
+
+pub fn walk_break<V: Visitor>(_v: &mut V, _f: &File, _id: AstId, _node: &ExprBreakType) {
+    // Nothing to do.
+}
+
+pub fn walk_continue<V: Visitor>(_v: &mut V, _f: &File, _id: AstId, _node: &ExprContinueType) {
+    // Nothing to do.
+}
+
+pub fn walk_this<V: Visitor>(_v: &mut V, _f: &File, _id: AstId, _node: &ExprSelfType) {
+    // Nothing to do.
+}
+
+pub fn walk_lit_char<V: Visitor>(_v: &mut V, _f: &File, _id: AstId, _node: &ExprLitCharType) {
+    // Nothing to do.
+}
+
+pub fn walk_lit_int<V: Visitor>(_v: &mut V, _f: &File, _id: AstId, _node: &ExprLitIntType) {
+    // Nothing to do.
+}
+
+pub fn walk_lit_float<V: Visitor>(_v: &mut V, _f: &File, _id: AstId, _node: &ExprLitFloatType) {
+    // Nothing to do.
+}
+
+pub fn walk_lit_str<V: Visitor>(_v: &mut V, _f: &File, _id: AstId, _node: &ExprLitStrType) {
+    // Nothing to do.
+}
+
+pub fn walk_lit_bool<V: Visitor>(_v: &mut V, _f: &File, _id: AstId, _node: &ExprLitBoolType) {
+    // Nothing to do.
+}
+
+pub fn walk_ident<V: Visitor>(_v: &mut V, _f: &File, _id: AstId, _node: &ExprIdentType) {
+    // Nothing to do.
+}
+
+pub fn walk_error<V: Visitor>(_v: &mut V, _f: &File, _id: AstId, _node: &Error) {
+    // Nothing to do.
 }

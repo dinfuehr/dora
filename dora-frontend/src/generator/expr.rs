@@ -1,67 +1,71 @@
 use dora_bytecode::{BytecodeType, BytecodeTypeArray, FunctionId, Location, Register};
-use dora_parser::ast::{self, CmpOp};
+use dora_parser::ast::{self, Ast, AstId, CmpOp};
 use dora_parser::Span;
 
 use crate::generator::{AstBytecodeGen, DataDest, Label};
 use crate::sema::{FctDefinition, FctParent, Intrinsic, Sema};
 use crate::ty::{SourceType, SourceTypeArray};
 
-pub(super) fn gen_expr(g: &mut AstBytecodeGen, expr: &ast::ExprData, dest: DataDest) -> Register {
+pub(super) fn gen_expr(g: &mut AstBytecodeGen, expr_id: AstId, dest: DataDest) -> Register {
+    let expr = g.node(expr_id);
+
     match *expr {
-        ast::ExprData::Un(ref un) => g.visit_expr_un(un, dest),
-        ast::ExprData::Bin(ref bin) => g.visit_expr_bin(bin, dest),
-        ast::ExprData::Dot(ref field) => g.visit_expr_dot(field, dest),
-        ast::ExprData::Block(ref block) => g.visit_expr_block(block, dest),
-        ast::ExprData::If(ref expr) => g.visit_expr_if(expr, dest),
-        ast::ExprData::Template(ref template) => g.visit_expr_template(template, dest),
-        ast::ExprData::TypeParam(ref expr) => g.visit_expr_type_param(expr, dest),
-        ast::ExprData::Path(ref path) => g.visit_expr_path(path, dest),
-        ast::ExprData::LitChar(ref lit) => g.visit_expr_lit_char(lit, dest),
-        ast::ExprData::LitInt(ref lit) => g.visit_expr_lit_int(lit, dest, false),
-        ast::ExprData::LitFloat(ref lit) => g.visit_expr_lit_float(lit, dest),
-        ast::ExprData::LitStr(ref lit) => g.visit_expr_lit_string(lit, dest),
-        ast::ExprData::LitBool(ref lit) => g.visit_expr_lit_bool(lit, dest),
-        ast::ExprData::Ident(ref ident) => g.visit_expr_ident(ident, dest),
-        ast::ExprData::Call(ref call) => g.visit_expr_call(call, dest),
-        ast::ExprData::This(ref expr) => g.visit_expr_self(expr, dest),
-        ast::ExprData::Conv(ref conv) => g.visit_expr_conv(conv, dest),
-        ast::ExprData::Is(ref node) => g.visit_expr_is(node, dest),
-        ast::ExprData::Tuple(ref tuple) => g.visit_expr_tuple(tuple, dest),
-        ast::ExprData::Paren(ref paren) => gen_expr(g, &paren.expr, dest),
-        ast::ExprData::Match(ref expr) => gen_match(g, expr, dest),
-        ast::ExprData::Lambda(ref node) => g.visit_expr_lambda(node, dest),
-        ast::ExprData::For(ref node) => g.visit_expr_for(node, dest),
-        ast::ExprData::While(ref node) => g.visit_expr_while(node, dest),
-        ast::ExprData::Break(ref node) => g.visit_expr_break(node, dest),
-        ast::ExprData::Continue(ref node) => g.visit_expr_continue(node, dest),
-        ast::ExprData::Return(ref ret) => g.visit_expr_return(ret, dest),
-        ast::ExprData::Error { .. } => unreachable!(),
+        Ast::Un(ref un) => g.visit_expr_un(un, dest),
+        Ast::Bin(ref bin) => g.visit_expr_bin(bin, dest),
+        Ast::Dot(ref field) => g.visit_expr_dot(field, dest),
+        Ast::Block(ref block) => g.visit_expr_block(block, dest),
+        Ast::If(ref expr) => g.visit_expr_if(expr, dest),
+        Ast::Template(ref template) => g.visit_expr_template(template, dest),
+        Ast::TypeParam(ref expr) => g.visit_expr_type_param(expr, dest),
+        Ast::Path(ref path) => g.visit_expr_path(path, dest),
+        Ast::LitChar(ref lit) => g.visit_expr_lit_char(lit, dest),
+        Ast::LitInt(ref lit) => g.visit_expr_lit_int(lit, dest, false),
+        Ast::LitFloat(ref lit) => g.visit_expr_lit_float(lit, dest),
+        Ast::LitStr(ref lit) => g.visit_expr_lit_string(lit, dest),
+        Ast::LitBool(ref lit) => g.visit_expr_lit_bool(lit, dest),
+        Ast::Ident(ref ident) => g.visit_expr_ident(ident, dest),
+        Ast::Call(ref call) => g.visit_expr_call(call, dest),
+        Ast::This(ref expr) => g.visit_expr_self(expr, dest),
+        Ast::Conv(ref conv) => g.visit_expr_conv(conv, dest),
+        Ast::Is(ref node) => g.visit_expr_is(node, dest),
+        Ast::Tuple(ref tuple) => g.visit_expr_tuple(tuple, dest),
+        Ast::Paren(ref paren) => gen_expr(g, paren.expr, dest),
+        Ast::Match(ref expr) => gen_match(g, expr, dest),
+        Ast::Lambda(ref node) => g.visit_expr_lambda(node, dest),
+        Ast::For(ref node) => g.visit_expr_for(node, dest),
+        Ast::While(ref node) => g.visit_expr_while(node, dest),
+        Ast::Break(ref node) => g.visit_expr_break(node, dest),
+        Ast::Continue(ref node) => g.visit_expr_continue(node, dest),
+        Ast::Return(ref ret) => g.visit_expr_return(ret, dest),
+        _ => unreachable!(),
     }
 }
 
-pub(super) fn gen_expr_condition(g: &mut AstBytecodeGen, expr: &ast::ExprData, false_lbl: Label) {
+pub(super) fn gen_expr_condition(g: &mut AstBytecodeGen, expr_id: AstId, false_lbl: Label) {
+    let expr = g.node(expr_id);
+
     if let Some(bin_expr) = expr.to_bin_and() {
-        if let Some(is_expr) = bin_expr.lhs.to_is() {
-            let value_reg = gen_expr(g, &is_expr.value, DataDest::Alloc);
-            let value_ty = g.ty(is_expr.value.id());
+        if let Some(is_expr) = g.node(bin_expr.lhs).to_is() {
+            let value_reg = gen_expr(g, is_expr.value, DataDest::Alloc);
+            let value_ty = g.ty_id(is_expr.value);
             g.setup_pattern_vars(&is_expr.pattern);
             g.destruct_pattern(&is_expr.pattern, value_reg, value_ty, Some(false_lbl));
             g.free_if_temp(value_reg);
         } else {
-            let cond_reg = gen_expr(g, &bin_expr.lhs, DataDest::Alloc);
+            let cond_reg = gen_expr(g, bin_expr.lhs, DataDest::Alloc);
             g.builder.emit_jump_if_false(cond_reg, false_lbl);
             g.free_if_temp(cond_reg);
         }
 
-        gen_expr_condition(g, &bin_expr.rhs, false_lbl);
+        gen_expr_condition(g, bin_expr.rhs, false_lbl);
     } else if let Some(is_expr) = expr.to_is() {
-        let value_reg = gen_expr(g, &is_expr.value, DataDest::Alloc);
-        let value_ty = g.ty(is_expr.value.id());
+        let value_reg = gen_expr(g, is_expr.value, DataDest::Alloc);
+        let value_ty = g.ty_id(is_expr.value);
         g.setup_pattern_vars(&is_expr.pattern);
         g.destruct_pattern(&is_expr.pattern, value_reg, value_ty, Some(false_lbl));
         g.free_if_temp(value_reg);
     } else {
-        let cond_reg = gen_expr(g, &expr, DataDest::Alloc);
+        let cond_reg = gen_expr(g, expr_id, DataDest::Alloc);
         g.builder.emit_jump_if_false(cond_reg, false_lbl);
         g.free_if_temp(cond_reg);
     }
@@ -155,8 +159,8 @@ pub(super) fn gen_expr_bin_cmp(
     cmp_op: CmpOp,
     dest: DataDest,
 ) -> Register {
-    let lhs = gen_expr(g, &node.lhs, DataDest::Alloc);
-    let rhs = gen_expr(g, &node.rhs, DataDest::Alloc);
+    let lhs = gen_expr(g, node.lhs, DataDest::Alloc);
+    let rhs = gen_expr(g, node.rhs, DataDest::Alloc);
 
     let result = if let Some(info) = g.get_intrinsic(node.id) {
         gen_expr_bin_cmp_as_intrinsic(g, cmp_op, info.intrinsic, dest, lhs, rhs)
@@ -349,7 +353,7 @@ pub(super) fn gen_match(
     dest: DataDest,
 ) -> Register {
     let result_ty = g.ty(node.id);
-    let expr_ty = g.ty(node.expr.id());
+    let expr_ty = g.ty_id(node.expr);
 
     let result_bc_ty = g.emitter.convert_ty_reg(result_ty);
     let dest = g.ensure_register(dest, result_bc_ty);
@@ -357,7 +361,7 @@ pub(super) fn gen_match(
     let fallthrough_lbl = g.builder.create_label();
     let merge_lbl = g.builder.create_label();
 
-    let expr_reg = gen_expr(g, &node.expr, DataDest::Alloc);
+    let expr_reg = gen_expr(g, node.expr, DataDest::Alloc);
 
     let mut arm_labels = Vec::with_capacity(node.arms.len());
 
@@ -379,13 +383,13 @@ pub(super) fn gen_match(
         g.setup_pattern_vars(pattern);
         g.destruct_pattern(pattern, expr_reg, expr_ty.clone(), Some(next_arm_lbl));
 
-        if let Some(ref cond) = arm.cond {
+        if let Some(cond) = arm.cond {
             let cond_reg = gen_expr(g, cond, DataDest::Alloc);
             g.builder.emit_jump_if_false(cond_reg, next_arm_lbl);
             g.free_if_temp(cond_reg);
         }
 
-        gen_expr(g, &arm.value, DataDest::Reg(dest));
+        gen_expr(g, arm.value, DataDest::Reg(dest));
 
         g.builder.emit_jump(merge_lbl);
         g.pop_scope();

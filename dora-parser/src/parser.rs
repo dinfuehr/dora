@@ -31,7 +31,7 @@ pub struct Parser {
 
 enum StmtOrExpr {
     Stmt(AstId),
-    Expr(Expr),
+    Expr(AstId),
 }
 
 impl Parser {
@@ -452,10 +452,10 @@ impl Parser {
 
         let type_name = self.parse_type();
 
-        let (class_type, trait_type) = if self.eat(FOR_KW) {
-            let class_type = self.parse_type();
+        let (extended_type, trait_type) = if self.eat(FOR_KW) {
+            let extended_type = self.parse_type();
 
-            (class_type, Some(type_name))
+            (extended_type, Some(type_name))
         } else {
             (type_name, None)
         };
@@ -480,7 +480,7 @@ impl Parser {
             modifiers,
             type_params,
             trait_type,
-            extended_type: class_type,
+            extended_type,
             where_bounds,
             methods,
         }
@@ -1008,7 +1008,7 @@ impl Parser {
         })
     }
 
-    fn parse_function_block(&mut self) -> Option<Expr> {
+    fn parse_function_block(&mut self) -> Option<AstId> {
         if self.eat(SEMICOLON) {
             None
         } else {
@@ -1092,7 +1092,7 @@ impl Parser {
                     let node_id = self.new_node_id();
                     let span = self.finish_node();
                     self.ast_nodes
-                        .alloc(Ast::create_tuple(node_id, span, subtypes))
+                        .alloc(Ast::create_tuple_type(node_id, span, subtypes))
                 }
             }
 
@@ -1203,7 +1203,7 @@ impl Parser {
         }
     }
 
-    fn parse_var_assignment(&mut self) -> Option<Expr> {
+    fn parse_var_assignment(&mut self) -> Option<AstId> {
         if self.eat(EQ) {
             let expr = self.parse_expr();
 
@@ -1213,7 +1213,7 @@ impl Parser {
         }
     }
 
-    fn parse_block(&mut self) -> Expr {
+    fn parse_block(&mut self) -> AstId {
         self.start_node();
         let mut stmts = vec![];
         let mut expr = None;
@@ -1231,12 +1231,11 @@ impl Parser {
             self.expect(R_BRACE);
         }
 
-        Arc::new(ExprData::create_block(
-            self.new_node_id(),
-            self.finish_node(),
-            stmts,
-            expr,
-        ))
+        let node_id = self.new_node_id();
+        let span = self.finish_node();
+
+        self.ast_nodes
+            .alloc(Ast::create_block(node_id, span, stmts, expr))
     }
 
     fn parse_block_stmt(&mut self) -> StmtOrExpr {
@@ -1249,14 +1248,14 @@ impl Parser {
                     if self.is(R_BRACE) {
                         StmtOrExpr::Expr(expr)
                     } else {
-                        if expr.is_blocklike() {
+                        if self.ast_nodes[expr].is_blocklike() {
                             self.eat(SEMICOLON);
                         } else {
                             self.expect(SEMICOLON);
                         }
 
                         let node_id = self.new_node_id();
-                        let span = expr.span();
+                        let span = self.ast_nodes[expr].span();
 
                         let ast_id = self
                             .ast_nodes
@@ -1272,16 +1271,16 @@ impl Parser {
                         self.advance();
                     }
 
-                    let error = Arc::new(ExprData::Error {
-                        id: self.new_node_id(),
-                        span,
-                    });
+                    let error_id = self.new_node_id();
+                    let error_id = self
+                        .ast_nodes
+                        .alloc(Ast::Error(Error { id: error_id, span }));
 
                     let ast_id = self.new_node_id();
                     let ast_id = self.ast_nodes.alloc(Ast::ExprStmt(StmtExprType {
                         id: ast_id,
                         span,
-                        expr: error,
+                        expr: error_id,
                     }));
 
                     StmtOrExpr::Stmt(ast_id)
@@ -1290,7 +1289,7 @@ impl Parser {
         }
     }
 
-    fn parse_if(&mut self) -> Expr {
+    fn parse_if(&mut self) -> AstId {
         self.start_node();
         self.assert(IF_KW);
 
@@ -1308,16 +1307,14 @@ impl Parser {
             None
         };
 
-        Arc::new(ExprData::create_if(
-            self.new_node_id(),
-            self.finish_node(),
-            cond,
-            then_block,
-            else_block,
-        ))
+        let node_id = self.new_node_id();
+        let span = self.finish_node();
+
+        self.ast_nodes
+            .alloc(Ast::create_if(node_id, span, cond, then_block, else_block))
     }
 
-    fn parse_match(&mut self) -> Expr {
+    fn parse_match(&mut self) -> AstId {
         self.start_node();
         self.assert(MATCH_KW);
 
@@ -1328,7 +1325,7 @@ impl Parser {
 
         while !self.is(R_BRACE) && !self.is_eof() {
             let case = self.parse_match_arm();
-            let is_block = case.value.is_block();
+            let is_block = self.ast_nodes[case.value].is_block();
             cases.push(case);
 
             if !self.is(R_BRACE) && !self.is_eof() {
@@ -1342,12 +1339,11 @@ impl Parser {
 
         self.expect(R_BRACE);
 
-        Arc::new(ExprData::create_match(
-            self.new_node_id(),
-            self.finish_node(),
-            expr,
-            cases,
-        ))
+        let node_id = self.new_node_id();
+        let span = self.finish_node();
+
+        self.ast_nodes
+            .alloc(Ast::create_match(node_id, span, expr, cases))
     }
 
     fn parse_match_arm(&mut self) -> Arc<MatchArmType> {
@@ -1546,7 +1542,7 @@ impl Parser {
         }
     }
 
-    fn parse_for(&mut self) -> Expr {
+    fn parse_for(&mut self) -> AstId {
         self.start_node();
         self.assert(FOR_KW);
         let pattern = self.parse_pattern();
@@ -1554,50 +1550,47 @@ impl Parser {
         let expr = self.parse_expr();
         let block = self.parse_block();
 
-        Arc::new(ExprData::create_for(
-            self.new_node_id(),
-            self.finish_node(),
-            pattern,
-            expr,
-            block,
-        ))
+        let node_id = self.new_node_id();
+        let span = self.finish_node();
+
+        self.ast_nodes
+            .alloc(Ast::create_for(node_id, span, pattern, expr, block))
     }
 
-    fn parse_while(&mut self) -> Expr {
+    fn parse_while(&mut self) -> AstId {
         self.start_node();
         self.assert(WHILE_KW);
         let expr = self.parse_expr();
         let block = self.parse_block();
 
-        Arc::new(ExprData::create_while(
-            self.new_node_id(),
-            self.finish_node(),
-            expr,
-            block,
-        ))
+        let node_id = self.new_node_id();
+        let span = self.finish_node();
+
+        self.ast_nodes
+            .alloc(Ast::create_while(node_id, span, expr, block))
     }
 
-    fn parse_break(&mut self) -> Expr {
+    fn parse_break(&mut self) -> AstId {
         self.start_node();
         self.assert(BREAK_KW);
 
-        Arc::new(ExprData::create_break(
-            self.new_node_id(),
-            self.finish_node(),
-        ))
+        let node_id = self.new_node_id();
+        let span = self.finish_node();
+
+        self.ast_nodes.alloc(Ast::create_break(node_id, span))
     }
 
-    fn parse_continue(&mut self) -> Expr {
+    fn parse_continue(&mut self) -> AstId {
         self.start_node();
         self.assert(CONTINUE_KW);
 
-        Arc::new(ExprData::create_continue(
-            self.new_node_id(),
-            self.finish_node(),
-        ))
+        let node_id = self.new_node_id();
+        let span = self.finish_node();
+
+        self.ast_nodes.alloc(Ast::create_continue(node_id, span))
     }
 
-    fn parse_return(&mut self) -> Expr {
+    fn parse_return(&mut self) -> AstId {
         self.start_node();
         self.assert(RETURN_KW);
         let expr = if self.is_set(EXPRESSION_FIRST) {
@@ -1607,28 +1600,31 @@ impl Parser {
             None
         };
 
-        Arc::new(ExprData::create_return(
-            self.new_node_id(),
-            self.finish_node(),
-            expr,
-        ))
+        let node_id = self.new_node_id();
+        let span = self.finish_node();
+
+        self.ast_nodes
+            .alloc(Ast::create_return(node_id, span, expr))
     }
 
-    fn parse_expr(&mut self) -> Expr {
+    fn parse_expr(&mut self) -> AstId {
         self.parse_expr_bp(0, false)
     }
 
-    fn parse_expr_stmt(&mut self) -> Expr {
+    fn parse_expr_stmt(&mut self) -> AstId {
         self.parse_expr_bp(0, true)
     }
 
-    fn parse_expr_bp(&mut self, min_bp: u32, prefer_stmt: bool) -> Expr {
+    fn parse_expr_bp(&mut self, min_bp: u32, prefer_stmt: bool) -> AstId {
         if !self.is_set(EXPRESSION_FIRST) {
             self.report_error(ParseError::ExpectedExpression);
-            return Arc::new(ExprData::Error {
-                id: self.new_node_id(),
-                span: self.current_span(),
-            });
+
+            let node_id = self.new_node_id();
+            let span = self.current_span();
+
+            return self
+                .ast_nodes
+                .alloc(Ast::Error(ast::Error { id: node_id, span }));
         }
 
         let start = self.current_span().start();
@@ -1643,9 +1639,8 @@ impl Parser {
                     let right = self.parse_type();
                     let span = self.span_from(start);
 
-                    let expr = ExprData::create_conv(self.new_node_id(), span, left, right);
-
-                    Arc::new(expr)
+                    let expr = Ast::create_conv(self.new_node_id(), span, left, right);
+                    self.ast_nodes.alloc(expr)
                 }
 
                 IS_KW => {
@@ -1653,9 +1648,9 @@ impl Parser {
                     let right = self.parse_pattern();
                     let span = self.span_from(start);
 
-                    let expr = ExprData::create_is(self.new_node_id(), span, left, right);
+                    let expr = Ast::create_is(self.new_node_id(), span, left, right);
 
-                    Arc::new(expr)
+                    self.ast_nodes.alloc(expr)
                 }
 
                 _ => left,
@@ -1686,7 +1681,7 @@ impl Parser {
         }
     }
 
-    fn parse_unary_expr(&mut self, prefer_stmt: bool) -> Expr {
+    fn parse_unary_expr(&mut self, prefer_stmt: bool) -> AstId {
         match self.current() {
             SUB | NOT => {
                 self.start_node();
@@ -1699,19 +1694,19 @@ impl Parser {
                 };
 
                 let expr = self.parse_postfix_expr(prefer_stmt);
-                Arc::new(ExprData::create_un(
-                    self.new_node_id(),
-                    self.finish_node(),
-                    op,
-                    expr,
-                ))
+
+                let node_id = self.new_node_id();
+                let span = self.finish_node();
+
+                self.ast_nodes
+                    .alloc(Ast::create_un(node_id, span, op, expr))
             }
 
             _ => self.parse_postfix_expr(prefer_stmt),
         }
     }
 
-    fn parse_postfix_expr(&mut self, prefer_stmt: bool) -> Expr {
+    fn parse_postfix_expr(&mut self, prefer_stmt: bool) -> AstId {
         let start = self.current_span().start();
         let mut left = self.parse_factor();
 
@@ -1723,16 +1718,15 @@ impl Parser {
                     let rhs = self.parse_factor();
                     let span = self.span_from(start);
 
-                    Arc::new(ExprData::create_dot(
-                        self.new_node_id(),
-                        span,
-                        op_span,
-                        left,
-                        rhs,
-                    ))
+                    let node_id = self.new_node_id();
+
+                    self.ast_nodes
+                        .alloc(Ast::create_dot(node_id, span, op_span, left, rhs))
                 }
 
-                L_PAREN if !(left.is_blocklike() && prefer_stmt) => self.parse_call(start, left),
+                L_PAREN if !(self.ast_nodes[left].is_blocklike() && prefer_stmt) => {
+                    self.parse_call(start, left)
+                }
 
                 L_BRACKET => {
                     let op_span = self.current_span();
@@ -1746,13 +1740,10 @@ impl Parser {
                     );
                     let span = self.span_from(start);
 
-                    Arc::new(ExprData::create_type_param(
-                        self.new_node_id(),
-                        span,
-                        op_span,
-                        left,
-                        types,
-                    ))
+                    let node_id = self.new_node_id();
+
+                    self.ast_nodes
+                        .alloc(Ast::create_type_param(node_id, span, op_span, left, types))
                 }
 
                 COLON_COLON => {
@@ -1761,13 +1752,10 @@ impl Parser {
                     let rhs = self.parse_factor();
                     let span = self.span_from(start);
 
-                    Arc::new(ExprData::create_path(
-                        self.new_node_id(),
-                        span,
-                        op_span,
-                        left,
-                        rhs,
-                    ))
+                    let node_id = self.new_node_id();
+
+                    self.ast_nodes
+                        .alloc(Ast::create_path(node_id, span, op_span, left, rhs))
                 }
 
                 _ => {
@@ -1777,7 +1765,7 @@ impl Parser {
         }
     }
 
-    fn parse_call(&mut self, start: u32, left: Expr) -> Expr {
+    fn parse_call(&mut self, start: u32, left: AstId) -> AstId {
         let args = self.parse_list(
             L_PAREN,
             COMMA,
@@ -1815,11 +1803,13 @@ impl Parser {
             },
         );
         let span = self.span_from(start);
+        let node_id = self.new_node_id();
 
-        Arc::new(ExprData::create_call(self.new_node_id(), span, left, args))
+        self.ast_nodes
+            .alloc(Ast::create_call(node_id, span, left, args))
     }
 
-    fn create_binary(&mut self, kind: TokenKind, start: u32, left: Expr, right: Expr) -> Expr {
+    fn create_binary(&mut self, kind: TokenKind, start: u32, left: AstId, right: AstId) -> AstId {
         let op = match kind {
             EQ => BinOp::Assign,
             OR_OR => BinOp::Or,
@@ -1858,17 +1848,13 @@ impl Parser {
         };
 
         let span = self.span_from(start);
+        let node_id = self.new_node_id();
 
-        Arc::new(ExprData::create_bin(
-            self.new_node_id(),
-            span,
-            op,
-            left,
-            right,
-        ))
+        self.ast_nodes
+            .alloc(Ast::create_bin(node_id, span, op, left, right))
     }
 
-    fn parse_factor(&mut self) -> Expr {
+    fn parse_factor(&mut self) -> AstId {
         let span = self.current_span();
         match self.current() {
             L_PAREN => self.parse_parentheses(),
@@ -1892,33 +1878,33 @@ impl Parser {
             MATCH_KW => self.parse_match(),
             _ => {
                 self.report_error(ParseError::ExpectedFactor);
-                Arc::new(ExprData::Error {
-                    id: self.new_node_id(),
-                    span,
-                })
+                let node_id = self.new_node_id();
+                self.ast_nodes
+                    .alloc(Ast::Error(ast::Error { id: node_id, span }))
             }
         }
     }
 
-    fn parse_identifier(&mut self) -> Expr {
+    fn parse_identifier(&mut self) -> AstId {
         let ident = self.expect_identifier().expect("identifier expected");
-        Arc::new(ExprData::create_ident(
-            self.new_node_id(),
+        let node_id = self.new_node_id();
+        self.ast_nodes.alloc(Ast::create_ident(
+            node_id,
             ident.span,
             ident.name_as_string.clone(),
         ))
     }
 
-    fn parse_parentheses(&mut self) -> Expr {
+    fn parse_parentheses(&mut self) -> AstId {
         self.start_node();
         self.assert(L_PAREN);
 
         if self.eat(R_PAREN) {
-            return Arc::new(ExprData::create_tuple(
-                self.new_node_id(),
-                self.finish_node(),
-                Vec::new(),
-            ));
+            let node_id = self.new_node_id();
+            let span = self.finish_node();
+            return self
+                .ast_nodes
+                .alloc(Ast::create_tuple(node_id, span, Vec::new()));
         }
 
         let expr = self.parse_expr();
@@ -1945,83 +1931,85 @@ impl Parser {
                 }
             }
 
-            Arc::new(ExprData::create_tuple(
-                self.new_node_id(),
-                self.finish_node(),
-                values,
-            ))
+            let node_id = self.new_node_id();
+            let span = self.finish_node();
+
+            self.ast_nodes
+                .alloc(Ast::create_tuple(node_id, span, values))
         } else {
             self.expect(R_PAREN);
-            Arc::new(ExprData::create_paren(
-                self.new_node_id(),
-                self.finish_node(),
-                expr,
-            ))
+            let node_id = self.new_node_id();
+            let span = self.finish_node();
+            self.ast_nodes.alloc(Ast::create_paren(node_id, span, expr))
         }
     }
 
-    fn parse_lit_char(&mut self) -> Expr {
+    fn parse_lit_char(&mut self) -> AstId {
         let span = self.current_span();
         self.assert(CHAR_LITERAL);
         let value = self.source_span(span);
 
-        Arc::new(ExprData::create_lit_char(self.new_node_id(), span, value))
+        let node_id = self.new_node_id();
+        self.ast_nodes
+            .alloc(Ast::create_lit_char(node_id, span, value))
     }
 
-    fn parse_lit_int(&mut self) -> Expr {
+    fn parse_lit_int(&mut self) -> AstId {
         let span = self.current_span();
         self.assert(INT_LITERAL);
         let value = self.source_span(span);
 
-        Arc::new(ExprData::create_lit_int(self.new_node_id(), span, value))
+        let node_id = self.new_node_id();
+        self.ast_nodes
+            .alloc(Ast::create_lit_int(node_id, span, value))
     }
 
-    fn parse_lit_int_minus(&mut self) -> Expr {
+    fn parse_lit_int_minus(&mut self) -> AstId {
         self.parse_lit_with_minus(|p| p.parse_lit_int())
     }
 
-    fn parse_lit_float_minus(&mut self) -> Expr {
+    fn parse_lit_float_minus(&mut self) -> AstId {
         self.parse_lit_with_minus(|p| p.parse_lit_float())
     }
 
-    fn parse_lit_with_minus<F: FnOnce(&mut Parser) -> Expr>(&mut self, fct: F) -> Expr {
+    fn parse_lit_with_minus<F: FnOnce(&mut Parser) -> AstId>(&mut self, fct: F) -> AstId {
         if self.is(SUB) {
             self.start_node();
             self.assert(SUB);
 
             let expr = fct(self);
-            Arc::new(ExprData::create_un(
-                self.new_node_id(),
-                self.finish_node(),
-                UnOp::Neg,
-                expr,
-            ))
+            let node_id = self.new_node_id();
+            let span = self.finish_node();
+            self.ast_nodes
+                .alloc(Ast::create_un(node_id, span, UnOp::Neg, expr))
         } else {
             fct(self)
         }
     }
 
-    fn parse_lit_float(&mut self) -> Expr {
+    fn parse_lit_float(&mut self) -> AstId {
         let span = self.current_span();
         self.assert(FLOAT_LITERAL);
         let value = self.source_span(span);
 
-        Arc::new(ExprData::create_lit_float(self.new_node_id(), span, value))
+        let node_id = self.new_node_id();
+        self.ast_nodes
+            .alloc(Ast::create_lit_float(node_id, span, value))
     }
 
-    fn parse_template(&mut self) -> Expr {
+    fn parse_template(&mut self) -> AstId {
         let span = self.current_span();
         let start = span.start();
 
         self.assert(TEMPLATE_LITERAL);
         let value = self.source_span(span);
 
-        let mut parts: Vec<Expr> = Vec::new();
-        parts.push(Arc::new(ExprData::create_lit_str(
-            self.new_node_id(),
-            span,
-            value,
-        )));
+        let mut parts: Vec<AstId> = Vec::new();
+        let node_id = self.new_node_id();
+        parts.push(
+            self.ast_nodes
+                .alloc(Ast::create_lit_str(node_id, span, value)),
+        );
 
         let mut done = false;
 
@@ -2042,43 +2030,51 @@ impl Parser {
             let value = self.source_span(span);
             self.advance();
 
-            parts.push(Arc::new(ExprData::create_lit_str(
-                self.new_node_id(),
-                span,
-                value,
-            )));
+            let node_id = self.new_node_id();
+            parts.push(
+                self.ast_nodes
+                    .alloc(Ast::create_lit_str(node_id, span, value)),
+            );
         }
 
         let span = self.span_from(start);
+        let node_id = self.new_node_id();
 
-        Arc::new(ExprData::create_template(self.new_node_id(), span, parts))
+        self.ast_nodes
+            .alloc(Ast::create_template(node_id, span, parts))
     }
 
-    fn parse_string(&mut self) -> Expr {
+    fn parse_string(&mut self) -> AstId {
         let span = self.current_span();
         self.assert(STRING_LITERAL);
 
         let value = self.source_span(span);
-        Arc::new(ExprData::create_lit_str(self.new_node_id(), span, value))
+        let node_id = self.new_node_id();
+
+        self.ast_nodes
+            .alloc(Ast::create_lit_str(node_id, span, value))
     }
 
-    fn parse_lit_bool(&mut self) -> Expr {
+    fn parse_lit_bool(&mut self) -> AstId {
         let span = self.current_span();
         let kind = self.current();
         self.assert(kind);
         let value = kind == TRUE;
 
-        Arc::new(ExprData::create_lit_bool(self.new_node_id(), span, value))
+        let node_id = self.new_node_id();
+        self.ast_nodes
+            .alloc(Ast::create_lit_bool(node_id, span, value))
     }
 
-    fn parse_this(&mut self) -> Expr {
+    fn parse_this(&mut self) -> AstId {
         let span = self.current_span();
         self.assert(SELF_KW);
 
-        Arc::new(ExprData::create_this(self.new_node_id(), span))
+        let node_id = self.new_node_id();
+        self.ast_nodes.alloc(Ast::create_this(node_id, span))
     }
 
-    fn parse_lambda(&mut self) -> Expr {
+    fn parse_lambda(&mut self) -> AstId {
         let start = self.current_span().start();
         self.start_node();
 
@@ -2124,11 +2120,9 @@ impl Parser {
             where_bounds: None,
         }));
 
-        Arc::new(ExprData::create_lambda(
-            self.new_node_id(),
-            span,
-            function_id,
-        ))
+        let node_id = self.new_node_id();
+        self.ast_nodes
+            .alloc(Ast::create_lambda(node_id, span, function_id))
     }
 
     fn assert(&mut self, kind: TokenKind) {

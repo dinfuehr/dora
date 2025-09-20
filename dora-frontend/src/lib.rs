@@ -5,7 +5,7 @@ use crate::sym::{ModuleSymTable, SymTable, Symbol, SymbolKind};
 #[allow(unused)]
 use crate::ty::{contains_self, empty_sta, SourceType, SourceTypeArray, TraitType, TyKind};
 use dora_bytecode::{display_fct, dump_stdout, FunctionId, Program, TypeParamMode};
-use dora_parser::ast;
+use dora_parser::ast::{self, AstId};
 use dora_parser::Span;
 
 pub use crate::extensiondefck::package_for_type;
@@ -112,7 +112,7 @@ pub fn emit_ast(sa: &Sema, filter: &str) {
 
         if fct_pattern_match(&fct_name, filter) && fct.has_body(sa) {
             let file = sa.file(fct.file_id);
-            ast::dump::dump_fct(file.ast(), fct.ast(sa));
+            ast::dump::dump_node(file.ast(), fct.ast_id());
         }
     }
 }
@@ -176,8 +176,8 @@ pub fn always_returns(f: &ast::File, s: &ast::Ast) -> bool {
     returnck::returns_value(f, s).is_ok()
 }
 
-pub fn expr_always_returns(f: &ast::File, e: &ast::ExprData) -> bool {
-    returnck::expr_returns_value(f, e).is_ok()
+pub fn expr_always_returns(f: &ast::File, id: AstId) -> bool {
+    returnck::expr_returns_value(f, id).is_ok()
 }
 
 pub fn expr_block_always_returns(f: &ast::File, e: &ast::ExprBlockType) -> bool {
