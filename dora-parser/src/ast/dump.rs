@@ -46,6 +46,7 @@ impl<'a> AstDumper<'a> {
             Ast::Function(ref node) => self.dump_fct(id, node),
             Ast::Class(ref node) => self.dump_class(id, node),
             Ast::Struct(ref node) => self.dump_struct(id, node),
+            Ast::Field(ref node) => self.dump_field(id, node),
             Ast::Trait(ref node) => self.dump_trait(id, node),
             Ast::Impl(ref node) => self.dump_impl(id, node),
             Ast::Global(ref node) => self.dump_global(id, node),
@@ -158,8 +159,8 @@ impl<'a> AstDumper<'a> {
         self.dump_maybe_ident(&value.name);
 
         self.indent(|d| {
-            for field in &value.fields {
-                d.dump_node_id(field.data_type);
+            for &field_id in &value.fields {
+                d.dump_node_id(field_id);
             }
         });
     }
@@ -186,14 +187,14 @@ impl<'a> AstDumper<'a> {
         self.dump_maybe_ident(&struc.name);
 
         self.indent(|d| {
-            for field in &struc.fields {
-                d.dump_field(field);
+            for &field_id in &struc.fields {
+                d.dump_node_id(field_id);
             }
         });
     }
 
-    fn dump_field(&mut self, field: &Arc<Field>) {
-        dump!(self, "field @ {} {}", field.span, field.id);
+    fn dump_field(&mut self, id: AstId, field: &Field) {
+        dump!(self, "field @ {} {} {:?}", field.span, field.id, id);
         self.dump_maybe_ident(&field.name);
         self.indent(|d| d.dump_node_id(field.data_type));
     }
@@ -223,8 +224,8 @@ impl<'a> AstDumper<'a> {
             dump!(d, "fields");
 
             d.indent(|d| {
-                for field in &cls.fields {
-                    d.dump_field(field);
+                for &field_id in &cls.fields {
+                    d.dump_node_id(field_id);
                 }
             });
         });

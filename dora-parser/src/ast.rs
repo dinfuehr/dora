@@ -98,6 +98,7 @@ pub enum Ast {
     Function(Function),
     Class(Class),
     Struct(Struct),
+    Field(Field),
     Trait(Trait),
     Impl(Impl),
     Global(Global),
@@ -149,6 +150,7 @@ impl Ast {
             Ast::Function(ref node) => node.id,
             Ast::Class(ref node) => node.id,
             Ast::Struct(ref node) => node.id,
+            Ast::Field(ref node) => node.id,
             Ast::Trait(ref node) => node.id,
             Ast::Impl(ref node) => node.id,
             Ast::Global(ref node) => node.id,
@@ -200,6 +202,7 @@ impl Ast {
             Ast::Function(ref node) => node.span,
             Ast::Class(ref node) => node.span,
             Ast::Struct(ref node) => node.span,
+            Ast::Field(ref node) => node.span,
             Ast::Trait(ref node) => node.span,
             Ast::Impl(ref node) => node.span,
             Ast::Global(ref node) => node.span,
@@ -256,6 +259,13 @@ impl Ast {
     pub fn to_class(&self) -> Option<&Class> {
         match self {
             &Ast::Class(ref class) => Some(class),
+            _ => None,
+        }
+    }
+
+    pub fn to_field(&self) -> Option<&Field> {
+        match self {
+            &Ast::Field(ref node) => Some(node),
             _ => None,
         }
     }
@@ -417,7 +427,7 @@ pub struct EnumVariant {
     pub span: Span,
     pub name: Option<Ident>,
     pub field_name_style: FieldNameStyle,
-    pub fields: Vec<Arc<Field>>,
+    pub fields: Vec<AstId>,
 }
 
 #[derive(Clone, Debug)]
@@ -426,7 +436,7 @@ pub struct Struct {
     pub span: Span,
     pub modifiers: Option<ModifierList>,
     pub name: Option<Ident>,
-    pub fields: Vec<Arc<Field>>,
+    pub fields: Vec<AstId>,
     pub type_params: Option<TypeParams>,
     pub where_bounds: Option<WhereBounds>,
     pub field_style: FieldNameStyle,
@@ -669,7 +679,7 @@ pub struct Class {
     pub modifiers: Option<ModifierList>,
     pub name: Option<Ident>,
 
-    pub fields: Vec<Arc<Field>>,
+    pub fields: Vec<AstId>,
     pub type_params: Option<TypeParams>,
     pub where_bounds: Option<WhereBounds>,
     pub field_name_style: FieldNameStyle,

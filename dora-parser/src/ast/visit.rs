@@ -49,8 +49,8 @@ pub trait Visitor: Sized {
         walk_fct(self, f, id, &m);
     }
 
-    fn visit_field(&mut self, f: &File, p: &Field) {
-        walk_field(self, f, p);
+    fn visit_field(&mut self, f: &File, id: AstId, node: &Field) {
+        walk_field(self, f, id, node);
     }
 
     fn visit_fct(&mut self, f: &File, id: AstId, fct: &Function) {
@@ -219,6 +219,7 @@ pub fn dispatch_ast<V: Visitor>(v: &mut V, f: &File, id: AstId, e: &Ast) {
         Ast::Function(fct) => v.visit_fct(f, id, fct),
         Ast::Class(ref c) => v.visit_class(f, id, c),
         Ast::Struct(ref s) => v.visit_struct(f, id, s),
+        Ast::Field(ref node) => v.visit_field(f, id, node),
         Ast::Trait(ref t) => v.visit_trait(f, id, t),
         Ast::Impl(ref i) => v.visit_impl(f, id, i),
         Ast::Global(ref g) => v.visit_global(f, id, g),
@@ -288,8 +289,8 @@ pub fn walk_impl<V: Visitor>(v: &mut V, f: &File, _id: AstId, i: &Impl) {
 }
 
 pub fn walk_class<V: Visitor>(v: &mut V, f: &File, _id: AstId, c: &Class) {
-    for field in &c.fields {
-        v.visit_field(f, field);
+    for &field_id in &c.fields {
+        dispatch_ast_id(v, f, field_id);
     }
 }
 
@@ -324,12 +325,12 @@ pub fn walk_type_alias<V: Visitor>(_v: &mut V, _f: &File, _id: AstId, _node: &Al
 }
 
 pub fn walk_struct<V: Visitor>(v: &mut V, f: &File, _id: AstId, s: &Struct) {
-    for field in &s.fields {
-        v.visit_field(f, field);
+    for &field_id in &s.fields {
+        dispatch_ast_id(v, f, field_id);
     }
 }
 
-pub fn walk_field<V: Visitor>(v: &mut V, f: &File, field: &Field) {
+pub fn walk_field<V: Visitor>(v: &mut V, f: &File, _id: AstId, field: &Field) {
     dispatch_ast(v, f, field.data_type, f.node(field.data_type));
 }
 

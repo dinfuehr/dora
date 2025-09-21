@@ -620,7 +620,13 @@ impl<'x> visit::Visitor for TopLevelDeclaration<'x> {
         let mut field_ids = Vec::with_capacity(node.fields.len());
         let mut used_names: HashSet<Name> = HashSet::new();
 
-        for (index, field) in node.fields.iter().enumerate() {
+        for (index, &field_id) in node.fields.iter().enumerate() {
+            let field = self
+                .sa
+                .node(self.file_id, field_id)
+                .to_field()
+                .expect("field expected");
+
             let modifiers =
                 check_modifiers(self.sa, self.file_id, &field.modifiers, &[Annotation::Pub]);
 
@@ -651,7 +657,13 @@ impl<'x> visit::Visitor for TopLevelDeclaration<'x> {
             report_sym_shadow_span(self.sa, name, self.file_id, node.span, sym);
         }
 
-        for field in &node.fields {
+        for &field_id in &node.fields {
+            let field = self
+                .sa
+                .node(self.file_id, field_id)
+                .to_field()
+                .expect("field expected");
+
             check_modifiers(self.sa, self.file_id, &field.modifiers, &[Annotation::Pub]);
         }
     }
@@ -689,7 +701,13 @@ impl<'x> visit::Visitor for TopLevelDeclaration<'x> {
         let mut field_ids = Vec::with_capacity(node.fields.len());
         let mut used_names: HashSet<Name> = HashSet::new();
 
-        for (index, field) in node.fields.iter().enumerate() {
+        for (index, &field_id) in node.fields.iter().enumerate() {
+            let field = self
+                .sa
+                .node(self.file_id, field_id)
+                .to_field()
+                .expect("field expected");
+
             let modifiers =
                 check_modifiers(self.sa, self.file_id, &field.modifiers, &[Annotation::Pub]);
 
@@ -831,7 +849,13 @@ impl<'x> visit::Visitor for TopLevelDeclaration<'x> {
             let mut field_ids = Vec::new();
             let mut used_names: HashSet<Name> = HashSet::new();
 
-            for (index, field) in variant.fields.iter().enumerate() {
+            for (index, &field_id) in variant.fields.iter().enumerate() {
+                let field = self
+                    .sa
+                    .node(self.file_id, field_id)
+                    .to_field()
+                    .expect("field expected");
+
                 let name = if variant.field_name_style.is_positional() {
                     None
                 } else {

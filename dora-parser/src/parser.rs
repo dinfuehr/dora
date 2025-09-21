@@ -640,7 +640,7 @@ impl Parser {
         }
     }
 
-    fn parse_named_field(&mut self) -> Arc<Field> {
+    fn parse_named_field(&mut self) -> AstId {
         self.start_node();
 
         let modifiers = self.parse_modifiers();
@@ -650,28 +650,34 @@ impl Parser {
         self.expect(COLON);
         let ty = self.parse_type();
 
-        Arc::new(Field {
-            id: self.new_node_id(),
-            span: self.finish_node(),
+        let node_id = self.new_node_id();
+        let span = self.finish_node();
+
+        self.ast_nodes.alloc(Ast::Field(Field {
+            id: node_id,
+            span,
             modifiers,
             name: ident,
             data_type: ty,
-        })
+        }))
     }
 
-    fn parse_unnamed_field(&mut self) -> Arc<Field> {
+    fn parse_unnamed_field(&mut self) -> AstId {
         self.start_node();
 
         let modifiers = self.parse_modifiers();
         let ty = self.parse_type();
 
-        Arc::new(Field {
-            id: self.new_node_id(),
-            span: self.finish_node(),
+        let node_id = self.new_node_id();
+        let span = self.finish_node();
+
+        self.ast_nodes.alloc(Ast::Field(Field {
+            id: node_id,
+            span,
             modifiers,
             name: None,
             data_type: ty,
-        })
+        }))
     }
 
     fn parse_class(&mut self, modifiers: Option<ModifierList>) -> Class {

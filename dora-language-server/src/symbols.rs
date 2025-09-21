@@ -238,24 +238,26 @@ impl visit::Visitor for SymbolScanner {
         self.add_symbol(name, name_span, DoraSymbolKind::Const, node.span);
     }
 
-    fn visit_class(&mut self, _f: &ast::File, _id: ast::AstId, node: &ast::Class) {
+    fn visit_class(&mut self, f: &ast::File, _id: ast::AstId, node: &ast::Class) {
         let (name, name_span) = ensure_name(&node.name, "<class>", node.span);
         self.add_symbol(name, name_span, DoraSymbolKind::Class, node.span);
 
         self.start_children();
-        for field in &node.fields {
+        for &field_id in &node.fields {
+            let field = f.node(field_id).to_field().expect("field expected");
             let (name, name_span) = ensure_name(&field.name, "<field>", field.span);
             self.add_symbol(name, name_span, DoraSymbolKind::ClassField, field.span);
         }
         self.stop_children();
     }
 
-    fn visit_struct(&mut self, _f: &ast::File, _id: ast::AstId, node: &ast::Struct) {
+    fn visit_struct(&mut self, f: &ast::File, _id: ast::AstId, node: &ast::Struct) {
         let (name, name_span) = ensure_name(&node.name, "<struct>", node.span);
         self.add_symbol(name, name_span, DoraSymbolKind::Struct, node.span);
 
         self.start_children();
-        for field in &node.fields {
+        for &field_id in &node.fields {
+            let field = f.node(field_id).to_field().expect("field expected");
             let (name, name_span) = ensure_name(&field.name, "<field>", field.span);
             self.add_symbol(name, name_span, DoraSymbolKind::StructField, field.span);
         }

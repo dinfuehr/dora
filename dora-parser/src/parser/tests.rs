@@ -1144,11 +1144,29 @@ fn parse_field() {
     let prog = parse("class A { f1: int, f2: int }");
     let cls = prog.cls0();
 
-    let f1 = &cls.fields[0];
-    assert_eq!("f1", f1.name.as_ref().unwrap().name_as_string);
+    let f1 = cls.fields[0];
+    assert_eq!(
+        "f1",
+        prog.node(f1)
+            .to_field()
+            .unwrap()
+            .name
+            .as_ref()
+            .unwrap()
+            .name_as_string
+    );
 
-    let f2 = &cls.fields[1];
-    assert_eq!("f2", f2.name.as_ref().unwrap().name_as_string);
+    let f2 = cls.fields[1];
+    assert_eq!(
+        "f2",
+        prog.node(f2)
+            .to_field()
+            .unwrap()
+            .name
+            .as_ref()
+            .unwrap()
+            .name_as_string
+    );
 }
 
 #[test]
@@ -1205,8 +1223,17 @@ fn parse_struct_one_field() {
     assert_eq!(1, struc.fields.len());
     assert_eq!("Bar", struc.name.as_ref().unwrap().name_as_string);
 
-    let f1 = &struc.fields[0];
-    assert_eq!("f1", f1.name.as_ref().unwrap().name_as_string);
+    let f1 = struc.fields[0];
+    assert_eq!(
+        "f1",
+        prog.node(f1)
+            .to_field()
+            .unwrap()
+            .name
+            .as_ref()
+            .unwrap()
+            .name_as_string
+    );
 }
 
 #[test]
@@ -1221,11 +1248,29 @@ fn parse_struct_multiple_fields() {
     assert_eq!(2, struc.fields.len());
     assert_eq!("FooBar", struc.name.as_ref().unwrap().name_as_string);
 
-    let f1 = &struc.fields[0];
-    assert_eq!("fa", f1.name.as_ref().unwrap().name_as_string);
+    let f1 = struc.fields[0];
+    assert_eq!(
+        "fa",
+        prog.node(f1)
+            .to_field()
+            .unwrap()
+            .name
+            .as_ref()
+            .unwrap()
+            .name_as_string
+    );
 
-    let f2 = &struc.fields[1];
-    assert_eq!("fb", f2.name.as_ref().unwrap().name_as_string);
+    let f2 = struc.fields[1];
+    assert_eq!(
+        "fb",
+        prog.node(f2)
+            .to_field()
+            .unwrap()
+            .name
+            .as_ref()
+            .unwrap()
+            .name_as_string
+    );
 }
 
 #[test]
