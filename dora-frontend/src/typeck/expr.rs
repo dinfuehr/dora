@@ -1911,7 +1911,8 @@ fn check_expr_lambda(
 
     let mut params = Vec::new();
 
-    for ast_param in &node.params {
+    for &ast_param_id in &node.params {
+        let ast_param = ck.node(ast_param_id).to_param().expect("argument expected");
         let ty = ck.read_type(ast_param.data_type);
         let param = Param::new_ty(ty.clone());
         params.push(param);

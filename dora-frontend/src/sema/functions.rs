@@ -1,6 +1,5 @@
 use std::cell::OnceCell;
 use std::rc::Rc;
-use std::sync::Arc;
 
 use crate::interner::Name;
 use crate::program_parser::ParsedModifierList;
@@ -456,15 +455,15 @@ impl Params {
 
 #[derive(Debug, Clone)]
 pub struct Param {
-    pub ast: Option<Arc<ast::Param>>,
+    pub ast: Option<ast::AstId>,
     pub parsed_ty: ParsedType,
 }
 
 impl Param {
-    pub fn new(ast: Arc<ast::Param>) -> Param {
+    pub fn new(ast_id: ast::AstId, ast: &ast::Param) -> Param {
         Param {
-            parsed_ty: ParsedType::new_ast(ast.data_type.clone()),
-            ast: Some(ast),
+            parsed_ty: ParsedType::new_ast(ast.data_type),
+            ast: Some(ast_id),
         }
     }
 

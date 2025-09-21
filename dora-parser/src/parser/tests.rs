@@ -645,8 +645,8 @@ fn parse_function_with_single_param() {
     assert_eq!(f1.params.len(), 1);
     assert_eq!(f2.params.len(), 1);
 
-    let p1 = &f1.params[0];
-    let p2 = &f2.params[0];
+    let p1 = file1.node(f1.params[0]).to_param().unwrap();
+    let p2 = file2.node(f2.params[0]).to_param().unwrap();
 
     assert_eq!("a", p1.pattern.to_ident_name());
     assert_eq!("a", p2.pattern.to_ident_name());
@@ -663,10 +663,10 @@ fn parse_function_with_multiple_params() {
     let file2 = parse("fn f(a:int, b:str,) { }");
     let f2 = file2.fct0();
 
-    let p1a = &f1.params[0];
-    let p1b = &f1.params[1];
-    let p2a = &f2.params[0];
-    let p2b = &f2.params[1];
+    let p1a = file1.node(f1.params[0]).to_param().unwrap();
+    let p1b = file1.node(f1.params[1]).to_param().unwrap();
+    let p2a = file2.node(f2.params[0]).to_param().unwrap();
+    let p2b = file2.node(f2.params[1]).to_param().unwrap();
 
     assert_eq!("a", p1a.pattern.to_ident_name());
     assert_eq!("a", p2a.pattern.to_ident_name());
@@ -1620,7 +1620,7 @@ fn parse_lambda_with_one_param() {
 
     assert_eq!(1, node.params.len());
 
-    let param = &node.params[0];
+    let param = arena[node.params[0]].to_param().unwrap();
     assert_eq!("a", param.pattern.to_ident_name());
     assert_eq!("A", arena[param.data_type].to_regular().unwrap().name());
     assert_eq!(
@@ -1640,11 +1640,11 @@ fn parse_lambda_with_two_params() {
 
     assert_eq!(2, node.params.len());
 
-    let param = &node.params[0];
+    let param = arena[node.params[0]].to_param().unwrap();
     assert_eq!("a", param.pattern.to_ident_name());
     assert_eq!("A", arena[param.data_type].to_regular().unwrap().name());
 
-    let param = &node.params[1];
+    let param = arena[node.params[1]].to_param().unwrap();
     assert_eq!("b", param.pattern.to_ident_name());
     assert_eq!("B", arena[param.data_type].to_regular().unwrap().name());
 

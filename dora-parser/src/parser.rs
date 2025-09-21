@@ -871,7 +871,7 @@ impl Parser {
         }
     }
 
-    fn parse_function_params(&mut self) -> Vec<Arc<Param>> {
+    fn parse_function_params(&mut self) -> Vec<AstId> {
         if self.is(L_PAREN) {
             self.parse_list(
                 L_PAREN,
@@ -934,11 +934,11 @@ impl Parser {
         data
     }
 
-    fn parse_function_param_wrapper(&mut self) -> Option<Arc<Param>> {
+    fn parse_function_param_wrapper(&mut self) -> Option<AstId> {
         Some(self.parse_function_param())
     }
 
-    fn parse_function_param(&mut self) -> Arc<Param> {
+    fn parse_function_param(&mut self) -> AstId {
         self.start_node();
         let pattern = self.parse_pattern_alt();
 
@@ -948,13 +948,16 @@ impl Parser {
 
         let variadic = self.eat(DOT_DOT_DOT);
 
-        Arc::new(Param {
-            id: self.new_node_id(),
-            span: self.finish_node(),
+        let node_id = self.new_node_id();
+        let span = self.finish_node();
+
+        self.ast_nodes.alloc(Ast::Param(Param {
+            id: node_id,
+            span,
             pattern,
             data_type,
             variadic,
-        })
+        }))
     }
 
     fn parse_function_type(&mut self) -> Option<AstId> {

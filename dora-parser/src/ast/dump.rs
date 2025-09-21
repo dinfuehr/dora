@@ -57,6 +57,7 @@ impl<'a> AstDumper<'a> {
             Ast::Extern(ref node) => self.dump_extern(id, node),
             Ast::Alias(ref node) => self.dump_associated_type(id, node),
             Ast::Argument(ref node) => self.dump_argument(id, node),
+            Ast::Param(ref node) => self.dump_param(id, node),
             Ast::RegularType(ref node) => self.dump_regular_type(id, node),
             Ast::TupleType(ref node) => self.dump_tuple_type(id, node),
             Ast::LambdaType(ref node) => self.dump_lambda_type(id, node),
@@ -242,8 +243,8 @@ impl<'a> AstDumper<'a> {
                 if fct.params.is_empty() {
                     dump!(d, "no params");
                 } else {
-                    for param in &fct.params {
-                        d.dump_param(param);
+                    for &param_id in &fct.params {
+                        d.dump_node_id(param_id);
                     }
                 }
             });
@@ -264,8 +265,8 @@ impl<'a> AstDumper<'a> {
         });
     }
 
-    fn dump_param(&mut self, param: &Param) {
-        dump!(self, "param @ {} {}", param.span, param.id);
+    fn dump_param(&mut self, id: AstId, param: &Param) {
+        dump!(self, "param @ {} {} {:?}", param.span, param.id, id);
         self.dump_node_id(param.data_type);
     }
 

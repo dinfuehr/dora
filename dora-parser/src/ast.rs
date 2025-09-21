@@ -109,6 +109,7 @@ pub enum Ast {
     Extern(ExternPackage),
     Alias(Alias),
     Argument(Argument),
+    Param(Param),
     RegularType(TypeRegularType),
     TupleType(TypeTupleType),
     LambdaType(TypeLambdaType),
@@ -162,6 +163,7 @@ impl Ast {
             Ast::Extern(ref node) => node.id,
             Ast::Alias(ref node) => node.id,
             Ast::Argument(ref node) => node.id,
+            Ast::Param(ref node) => node.id,
             Ast::RegularType(ref node) => node.id,
             Ast::TupleType(ref node) => node.id,
             Ast::LambdaType(ref node) => node.id,
@@ -215,6 +217,7 @@ impl Ast {
             Ast::Extern(ref node) => node.span,
             Ast::Alias(ref node) => node.span,
             Ast::Argument(ref node) => node.span,
+            Ast::Param(ref node) => node.span,
             Ast::RegularType(ref node) => node.span,
             Ast::TupleType(ref node) => node.span,
             Ast::LambdaType(ref node) => node.span,
@@ -332,6 +335,13 @@ impl Ast {
     pub fn to_argument(&self) -> Option<&Argument> {
         match self {
             &Ast::Argument(ref node) => Some(node),
+            _ => None,
+        }
+    }
+
+    pub fn to_param(&self) -> Option<&Param> {
+        match self {
+            &Ast::Param(ref node) => Some(node),
             _ => None,
         }
     }
@@ -764,7 +774,7 @@ pub struct Function {
 
     pub name: Option<Ident>,
     pub type_params: Option<TypeParams>,
-    pub params: Vec<Arc<Param>>,
+    pub params: Vec<AstId>,
     pub return_type: Option<AstId>,
     pub where_bounds: Option<WhereBounds>,
     pub block: Option<AstId>,

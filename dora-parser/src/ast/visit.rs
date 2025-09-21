@@ -57,8 +57,8 @@ pub trait Visitor: Sized {
         walk_fct(self, f, id, &fct);
     }
 
-    fn visit_param(&mut self, f: &File, p: &Param) {
-        walk_param(self, f, p);
+    fn visit_param(&mut self, f: &File, id: AstId, p: &Param) {
+        walk_param(self, f, id, p);
     }
 
     fn visit_type_alias(&mut self, f: &File, id: AstId, e: &Alias) {
@@ -232,6 +232,7 @@ pub fn dispatch_ast<V: Visitor>(v: &mut V, f: &File, id: AstId, e: &Ast) {
         Ast::Module(ref e) => v.visit_module(f, id, e),
         Ast::Use(ref i) => v.visit_use(f, id, i),
         Ast::Argument(ref node) => v.visit_argument(f, id, node),
+        Ast::Param(ref node) => v.visit_param(f, id, node),
         Ast::Extern(ref stmt) => v.visit_extern(f, id, stmt),
         Ast::Alias(ref node) => v.visit_type_alias(f, id, node),
         Ast::LambdaType(ref node) => v.visit_lambda_type(f, id, node),
@@ -340,8 +341,8 @@ pub fn walk_field<V: Visitor>(v: &mut V, f: &File, _id: AstId, field: &Field) {
 }
 
 pub fn walk_fct<V: Visitor>(v: &mut V, f: &File, _id: AstId, fct: &Function) {
-    for p in &fct.params {
-        v.visit_param(f, p);
+    for &param_id in &fct.params {
+        dispatch_ast_id(v, f, param_id);
     }
 
     if let Some(ret_id) = fct.return_type {
@@ -353,7 +354,7 @@ pub fn walk_fct<V: Visitor>(v: &mut V, f: &File, _id: AstId, fct: &Function) {
     }
 }
 
-pub fn walk_param<V: Visitor>(v: &mut V, f: &File, p: &Param) {
+pub fn walk_param<V: Visitor>(v: &mut V, f: &File, _id: AstId, p: &Param) {
     dispatch_ast(v, f, p.data_type, f.node(p.data_type));
 }
 

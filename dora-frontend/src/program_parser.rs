@@ -1681,7 +1681,12 @@ fn parse_function_params(
 
     let mut is_variadic = false;
 
-    for (idx, ast_param) in ast.params.iter().enumerate() {
+    for (idx, &ast_param_id) in ast.params.iter().enumerate() {
+        let ast_param = sa
+            .node(file_id, ast_param_id)
+            .to_param()
+            .expect("param expected");
+
         if ast_param.variadic {
             if idx + 1 == ast.params.len() {
                 is_variadic = true;
@@ -1694,7 +1699,7 @@ fn parse_function_params(
             }
         }
 
-        let param = Param::new(ast_param.clone());
+        let param = Param::new(ast_param_id, ast_param);
         params.push(param);
     }
 

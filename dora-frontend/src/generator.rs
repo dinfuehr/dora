@@ -185,8 +185,8 @@ impl<'a> AstBytecodeGen<'a> {
             self.allocate_register_for_var(SELF_VAR_ID);
         }
 
-        for param in &ast.params {
-            let ty = self.analysis.ty(param.id);
+        for &param_id in &ast.params {
+            let ty = self.ty_id(param_id);
             let bty = self.emitter.convert_ty(ty.clone());
             params.push(bty);
 
@@ -217,8 +217,9 @@ impl<'a> AstBytecodeGen<'a> {
             0
         };
 
-        for (param_idx, param) in ast.params.iter().enumerate() {
+        for (param_idx, &param_id) in ast.params.iter().enumerate() {
             let reg = Register(next_register_idx + param_idx);
+            let param = self.node(param_id).to_param().expect("param expected");
 
             if let Some(ident) = param.pattern.to_ident() {
                 let var_id = *self.analysis.map_vars.get(ident.id).unwrap();

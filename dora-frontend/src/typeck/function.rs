@@ -333,12 +333,18 @@ impl<'a> TypeCheck<'a> {
 
         let mut bound_params = HashSet::new();
 
-        for (ind, (ast_param, param_ty)) in
+        for (ind, (&ast_param_id, param_ty)) in
             ast.params.iter().zip(param_types.into_iter()).enumerate()
         {
+            let ast_param = self.node(ast_param_id).to_param().expect("param expected");
+
             // is this last argument of function with variadic arguments?
             let ty = if ind == ast.params.len() - 1
-                && ast.params.last().expect("missing param").variadic
+                && self
+                    .node(ast.params.last().cloned().expect("missing param"))
+                    .to_param()
+                    .expect("param expected")
+                    .variadic
             {
                 // type of variable is Array[T]
                 self.sa.known.array_ty(param_ty)
