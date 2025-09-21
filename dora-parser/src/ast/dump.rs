@@ -56,6 +56,7 @@ impl<'a> AstDumper<'a> {
             Ast::Use(ref node) => self.dump_use(id, node),
             Ast::Extern(ref node) => self.dump_extern(id, node),
             Ast::Alias(ref node) => self.dump_associated_type(id, node),
+            Ast::Argument(ref node) => self.dump_argument(id, node),
             Ast::RegularType(ref node) => self.dump_regular_type(id, node),
             Ast::TupleType(ref node) => self.dump_tuple_type(id, node),
             Ast::LambdaType(ref node) => self.dump_lambda_type(id, node),
@@ -590,13 +591,19 @@ impl<'a> AstDumper<'a> {
             dump!(d, "callee");
             d.indent(|d| d.dump_node_id(expr.callee));
 
-            for arg in &expr.args {
-                if let Some(ref name) = arg.name {
-                    d.dump_ident(name);
-                }
-                d.dump_node_id(arg.expr);
+            for &arg_id in &expr.args {
+                d.dump_node_id(arg_id);
             }
         });
+    }
+
+    fn dump_argument(&mut self, id: AstId, node: &Argument) {
+        dump!(self, "argument @ {} {} {:?}", node.span, node.id, id);
+
+        if let Some(ref name) = node.name {
+            self.dump_ident(name);
+        }
+        self.dump_node_id(node.expr);
     }
 
     fn dump_expr_paren(&mut self, id: AstId, expr: &ExprParenType) {

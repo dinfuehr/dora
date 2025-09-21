@@ -57,6 +57,10 @@ impl<'a> TypeCheck<'a> {
         self.node(id).id()
     }
 
+    pub fn ty_id(&self, id: ast::AstId) -> SourceType {
+        self.analysis.ty(self.id(id))
+    }
+
     pub fn span(&self, id: ast::AstId) -> Span {
         self.node(id).span()
     }
@@ -468,23 +472,26 @@ pub(super) fn check_args_compatible<S>(
 ) where
     S: FnMut(SourceType) -> SourceType,
 {
-    for arg in &args.arguments {
+    for &arg_id in &args.arguments {
+        let arg = ck.node(arg_id).to_argument().expect("argument expected");
         if let Some(ref name) = arg.name {
             ck.sa
                 .report(ck.file_id, name.span, ErrorMessage::UnexpectedNamedArgument);
         }
     }
 
-    for (param, arg) in regular_params.iter().zip(&args.arguments) {
+    for (param, &arg_id) in regular_params.iter().zip(&args.arguments) {
         let param_ty = extra_specialization(param.ty().clone());
         let param_ty = replace_type(ck.sa, param_ty, Some(&type_params), self_ty.clone());
-        let arg_ty = ck.analysis.ty(arg.id);
+        let arg_ty = ck.ty_id(arg_id);
 
         if !arg_allows(ck.sa, param_ty.clone(), arg_ty.clone(), self_ty.clone())
             && !arg_ty.is_error()
         {
             let exp = ck.ty_name(&param_ty);
             let got = ck.ty_name(&arg_ty);
+
+            let arg = ck.node(arg_id).to_argument().expect("argument expected");
 
             ck.sa.report(
                 ck.file_id,
@@ -511,14 +518,16 @@ pub(super) fn check_args_compatible<S>(
                 self_ty.clone(),
             );
 
-            for arg in &args.arguments[no_regular_params..] {
-                let arg_ty = ck.analysis.ty(arg.id);
+            for &arg_id in &args.arguments[no_regular_params..] {
+                let arg_ty = ck.ty_id(arg_id);
 
                 if !arg_allows(ck.sa, variadic_ty.clone(), arg_ty.clone(), self_ty.clone())
                     && !arg_ty.is_error()
                 {
                     let exp = ck.ty_name(&variadic_ty);
                     let got = ck.ty_name(&arg_ty);
+
+                    let arg = ck.node(arg_id).to_argument().expect("argument expected");
 
                     ck.sa.report(
                         ck.file_id,
@@ -528,9 +537,12 @@ pub(super) fn check_args_compatible<S>(
                 }
             }
         } else {
-            for arg in &args.arguments[no_regular_params..] {
-                ck.sa
-                    .report(ck.file_id, arg.span, ErrorMessage::SuperfluousArgument);
+            for &arg_id in &args.arguments[no_regular_params..] {
+                ck.sa.report(
+                    ck.file_id,
+                    ck.span(arg_id),
+                    ErrorMessage::SuperfluousArgument,
+                );
             }
         }
     }
@@ -562,20 +574,24 @@ pub(super) fn check_args_compatible2<S>(
 ) where
     S: FnMut(SourceType) -> SourceType,
 {
-    for arg in &args.arguments {
+    for &arg_id in &args.arguments {
+        let arg = ck.node(arg_id).to_argument().expect("argument expected");
+
         if let Some(ref name) = arg.name {
             ck.sa
                 .report(ck.file_id, name.span, ErrorMessage::UnexpectedNamedArgument);
         }
     }
 
-    for (param, arg) in regular_params.iter().zip(&args.arguments) {
+    for (param, &arg_id) in regular_params.iter().zip(&args.arguments) {
         let param_ty = extra_specialization(param.ty().clone());
-        let arg_ty = ck.analysis.ty(arg.id);
+        let arg_ty = ck.ty_id(arg_id);
 
         if !arg_allows(ck.sa, param_ty.clone(), arg_ty.clone(), None) && !arg_ty.is_error() {
             let exp = ck.ty_name(&param_ty);
             let got = ck.ty_name(&arg_ty);
+
+            let arg = ck.node(arg_id).to_argument().expect("argument expected");
 
             ck.sa.report(
                 ck.file_id,
@@ -597,14 +613,16 @@ pub(super) fn check_args_compatible2<S>(
         if let Some(variadic_param) = variadic_param {
             let variadic_ty = extra_specialization(variadic_param.ty());
 
-            for arg in &args.arguments[no_regular_params..] {
-                let arg_ty = ck.analysis.ty(arg.id);
+            for &arg_id in &args.arguments[no_regular_params..] {
+                let arg_ty = ck.ty_id(arg_id);
 
                 if !arg_allows(ck.sa, variadic_ty.clone(), arg_ty.clone(), None)
                     && !arg_ty.is_error()
                 {
                     let exp = ck.ty_name(&variadic_ty);
                     let got = ck.ty_name(&arg_ty);
+
+                    let arg = ck.node(arg_id).to_argument().expect("argument expected");
 
                     ck.sa.report(
                         ck.file_id,
@@ -614,9 +632,12 @@ pub(super) fn check_args_compatible2<S>(
                 }
             }
         } else {
-            for arg in &args.arguments[no_regular_params..] {
-                ck.sa
-                    .report(ck.file_id, arg.span, ErrorMessage::SuperfluousArgument);
+            for &arg_id in &args.arguments[no_regular_params..] {
+                ck.sa.report(
+                    ck.file_id,
+                    ck.span(arg_id),
+                    ErrorMessage::SuperfluousArgument,
+                );
             }
         }
     }

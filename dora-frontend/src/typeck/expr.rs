@@ -478,18 +478,18 @@ fn check_expr_assign_call(ck: &mut TypeCheck, e: &ast::ExprBinType) {
     let arg_index_type = args
         .arguments
         .get(0)
-        .map(|a| ck.analysis.ty(a.id))
+        .map(|&arg_id| ck.ty_id(arg_id))
         .unwrap_or(ty_error());
 
     if !index_type.allows(ck.sa, arg_index_type.clone()) && !index_type.is_error() {
-        let arg = &args.arguments[0];
+        let arg_id = args.arguments[0];
 
         let exp = ck.ty_name(&index_type);
         let got = ck.ty_name(&arg_index_type);
 
         ck.sa.report(
             ck.file_id,
-            arg.span,
+            ck.span(arg_id),
             ErrorMessage::WrongTypeForArgument(exp, got),
         );
     }
@@ -506,7 +506,8 @@ fn check_expr_assign_call(ck: &mut TypeCheck, e: &ast::ExprBinType) {
         );
     }
 
-    for arg in &args.arguments {
+    for &arg_id in &args.arguments {
+        let arg = ck.node(arg_id).to_argument().expect("argument expected");
         if let Some(ref name) = arg.name {
             ck.sa
                 .report(ck.file_id, name.span, ErrorMessage::UnexpectedNamedArgument);
@@ -514,9 +515,12 @@ fn check_expr_assign_call(ck: &mut TypeCheck, e: &ast::ExprBinType) {
     }
 
     if args.arguments.len() > 1 {
-        for arg in &args.arguments[1..] {
-            ck.sa
-                .report(ck.file_id, arg.span, ErrorMessage::SuperfluousArgument);
+        for &arg_id in &args.arguments[1..] {
+            ck.sa.report(
+                ck.file_id,
+                ck.span(arg_id),
+                ErrorMessage::SuperfluousArgument,
+            );
         }
     }
 

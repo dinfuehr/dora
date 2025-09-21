@@ -1,5 +1,3 @@
-use std::sync::Arc;
-
 use dora_parser::ast;
 
 use crate::sema::{
@@ -202,6 +200,6 @@ fn create_lambda_functions(sa: &mut Sema, lazy_lambdas: Vec<LazyLambdaCreationDa
 }
 
 pub struct CallArguments {
-    arguments: Vec<Arc<ast::Argument>>,
+    arguments: Vec<ast::AstId>,
     span: Span,
 }

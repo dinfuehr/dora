@@ -83,11 +83,12 @@ pub(super) fn create_call_arguments(ck: &mut TypeCheck, e: &ast::ExprCallType) -
         span: e.span,
     };
 
-    for arg in e.args.iter() {
+    for &arg_id in e.args.iter() {
+        let arg = ck.node(arg_id).to_argument().expect("argument expected");
         let ty = check_expr(ck, arg.expr, SourceType::Any);
         ck.analysis.set_ty(arg.id, ty);
 
-        arguments.arguments.push(arg.clone());
+        arguments.arguments.push(arg_id);
     }
 
     arguments
@@ -620,28 +621,32 @@ fn check_expr_call_ctor_with_named_fields(
     type_params: SourceTypeArray,
     arguments: &CallArguments,
 ) {
-    let mut args_by_name: HashMap<Name, Arc<ast::Argument>> = HashMap::new();
+    let mut args_by_name: HashMap<Name, ast::AstId> = HashMap::new();
 
-    let mut add_named_argument = |arg: &Arc<ast::Argument>, name: Name| {
+    let mut add_named_argument = |arg_id: ast::AstId, name: Name| {
         if args_by_name.contains_key(&name) {
-            ck.sa
-                .report(ck.file_id, arg.span, ErrorMessage::DuplicateNamedArgument);
+            ck.sa.report(
+                ck.file_id,
+                ck.span(arg_id),
+                ErrorMessage::DuplicateNamedArgument,
+            );
         } else {
-            assert!(args_by_name.insert(name, arg.clone()).is_none());
+            assert!(args_by_name.insert(name, arg_id).is_none());
         }
     };
 
     let single_named_element = compute_single_named_element(ck.sa, element_with_fields);
 
-    for arg in &arguments.arguments {
+    for &arg_id in &arguments.arguments {
+        let arg = ck.node(arg_id).to_argument().expect("argument expected");
         if let Some(ref name) = arg.name {
             let name = ck.sa.interner.intern(&name.name_as_string);
-            add_named_argument(arg, name);
+            add_named_argument(arg_id, name);
         } else if arguments.arguments.len() == 1 && single_named_element.is_some() {
-            add_named_argument(arg, single_named_element.expect("missing name"));
+            add_named_argument(arg_id, single_named_element.expect("missing name"));
         } else if let Some(ident) = ck.node(arg.expr).to_ident() {
             let name = ck.sa.interner.intern(&ident.name);
-            add_named_argument(arg, name);
+            add_named_argument(arg_id, name);
         } else {
             ck.sa.report(
                 ck.file_id,
@@ -659,9 +664,9 @@ fn check_expr_call_ctor_with_named_fields(
     for &field_id in element_with_fields.field_ids() {
         let field = ck.sa.field(field_id);
         if let Some(name) = field.name {
-            if let Some(arg) = args_by_name.remove(&name) {
+            if let Some(arg_id) = args_by_name.remove(&name) {
                 let def_ty = specialize_ty_for_call(ck.sa, field.ty(), ck.element, &call_data);
-                let arg_ty = ck.analysis.ty(arg.id);
+                let arg_ty = ck.ty_id(arg_id);
 
                 if !def_ty.allows(ck.sa, arg_ty.clone()) && !arg_ty.is_error() {
                     let exp = ck.ty_name(&def_ty);
@@ -669,14 +674,14 @@ fn check_expr_call_ctor_with_named_fields(
 
                     ck.sa.report(
                         ck.file_id,
-                        arg.span,
+                        ck.span(arg_id),
                         ErrorMessage::WrongTypeForArgument(exp, got),
                     );
                 }
 
                 ck.analysis
                     .map_argument
-                    .insert(arg.id, field.index.to_usize());
+                    .insert(ck.id(arg_id), field.index.to_usize());
             } else {
                 let name = ck.sa.interner.str(name).to_string();
                 ck.sa.report(
@@ -688,9 +693,12 @@ fn check_expr_call_ctor_with_named_fields(
         }
     }
 
-    for (_name, arg) in args_by_name {
-        ck.sa
-            .report(ck.file_id, arg.span, ErrorMessage::UseOfUnknownArgument);
+    for (_name, arg_id) in args_by_name {
+        ck.sa.report(
+            ck.file_id,
+            ck.span(arg_id),
+            ErrorMessage::UseOfUnknownArgument,
+        );
     }
 }
 
@@ -714,16 +722,18 @@ fn check_expr_call_ctor_with_unnamed_fields(
         type_params,
     };
 
-    for (&field_id, argument) in element_with_fields
+    for (&field_id, &arg_id) in element_with_fields
         .field_ids()
         .iter()
         .zip(&arguments.arguments)
     {
         let field = ck.sa.field(field_id);
         let def_ty = specialize_ty_for_call(ck.sa, field.ty(), ck.element, &call_data);
-        let arg_ty = ck.analysis.ty(argument.id);
+        let arg_ty = ck.ty_id(arg_id);
 
-        if let Some(ref name) = argument.name {
+        let arg = ck.node(arg_id).to_argument().expect("argument expected");
+
+        if let Some(ref name) = arg.name {
             ck.sa
                 .report(ck.file_id, name.span, ErrorMessage::UnexpectedNamedArgument);
         }
@@ -734,14 +744,14 @@ fn check_expr_call_ctor_with_unnamed_fields(
 
             ck.sa.report(
                 ck.file_id,
-                ck.span(argument.expr),
+                ck.span(arg.expr),
                 ErrorMessage::WrongTypeForArgument(exp, got),
             );
         }
 
         ck.analysis
             .map_argument
-            .insert(argument.id, field.index.to_usize());
+            .insert(arg.id, field.index.to_usize());
     }
 
     let fields = element_with_fields.field_ids().len();
@@ -753,9 +763,12 @@ fn check_expr_call_ctor_with_unnamed_fields(
             ErrorMessage::MissingArguments(fields, arguments.arguments.len()),
         );
     } else {
-        for arg in &arguments.arguments[fields..] {
-            ck.sa
-                .report(ck.file_id, arg.span, ErrorMessage::SuperfluousArgument);
+        for &arg_id in &arguments.arguments[fields..] {
+            ck.sa.report(
+                ck.file_id,
+                ck.span(arg_id),
+                ErrorMessage::SuperfluousArgument,
+            );
         }
     }
 

@@ -1786,23 +1786,27 @@ impl Parser {
                     let expr = p.parse_expr();
                     let span = p.span_from(start);
 
-                    Some(Arc::new(Argument {
-                        id: p.new_node_id(),
+                    let node_id = p.new_node_id();
+
+                    Some(p.ast_nodes.alloc(Ast::Argument(Argument {
+                        id: node_id,
                         name,
                         span,
                         expr,
-                    }))
+                    })))
                 } else if p.is_set(EXPRESSION_FIRST) {
                     let start = p.current_span().start();
                     let expr = p.parse_expr();
                     let span = p.span_from(start);
 
-                    Some(Arc::new(Argument {
-                        id: p.new_node_id(),
+                    let node_id = p.new_node_id();
+
+                    Some(p.ast_nodes.alloc(Ast::Argument(Argument {
+                        id: node_id,
                         name: None,
                         span,
                         expr,
-                    }))
+                    })))
                 } else {
                     None
                 }

@@ -1124,7 +1124,8 @@ fn parse_array_index() {
     let call = arena[expr].to_call().unwrap();
     assert_eq!("a", arena[call.callee].to_ident().unwrap().name);
     assert_eq!(1, call.args.len());
-    assert_eq!("b", arena[call.args[0].expr].to_ident().unwrap().name);
+    let index_arg = arena[call.args[0]].to_argument().unwrap();
+    assert_eq!("b", arena[index_arg.expr].to_ident().unwrap().name);
 }
 
 #[test]
@@ -1133,10 +1134,10 @@ fn parse_call_with_named_arguments() {
     let call = arena[expr].to_call().unwrap();
     assert!(arena[call.callee].is_ident());
     assert_eq!(4, call.args.len());
-    assert!(call.args[0].name.is_none());
-    assert!(call.args[1].name.is_none());
-    assert!(call.args[2].name.is_some());
-    assert!(call.args[3].name.is_some());
+    assert!(arena[call.args[0]].to_argument().unwrap().name.is_none());
+    assert!(arena[call.args[1]].to_argument().unwrap().name.is_none());
+    assert!(arena[call.args[2]].to_argument().unwrap().name.is_some());
+    assert!(arena[call.args[3]].to_argument().unwrap().name.is_some());
 }
 
 #[test]

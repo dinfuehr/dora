@@ -108,6 +108,7 @@ pub enum Ast {
     Use(Use),
     Extern(ExternPackage),
     Alias(Alias),
+    Argument(Argument),
     RegularType(TypeRegularType),
     TupleType(TypeTupleType),
     LambdaType(TypeLambdaType),
@@ -160,6 +161,7 @@ impl Ast {
             Ast::Use(ref node) => node.id,
             Ast::Extern(ref node) => node.id,
             Ast::Alias(ref node) => node.id,
+            Ast::Argument(ref node) => node.id,
             Ast::RegularType(ref node) => node.id,
             Ast::TupleType(ref node) => node.id,
             Ast::LambdaType(ref node) => node.id,
@@ -212,6 +214,7 @@ impl Ast {
             Ast::Use(ref node) => node.span,
             Ast::Extern(ref node) => node.span,
             Ast::Alias(ref node) => node.span,
+            Ast::Argument(ref node) => node.span,
             Ast::RegularType(ref node) => node.span,
             Ast::TupleType(ref node) => node.span,
             Ast::LambdaType(ref node) => node.span,
@@ -315,6 +318,20 @@ impl Ast {
     pub fn to_const(&self) -> Option<&Const> {
         match self {
             &Ast::Const(ref konst) => Some(konst),
+            _ => None,
+        }
+    }
+
+    pub fn is_argument(&self) -> bool {
+        match self {
+            &Ast::Argument(..) => true,
+            _ => false,
+        }
+    }
+
+    pub fn to_argument(&self) -> Option<&Argument> {
+        match self {
+            &Ast::Argument(ref node) => Some(node),
             _ => None,
         }
     }
@@ -1193,7 +1210,7 @@ impl Ast {
         Ast::Paren(ExprParenType { id, span, expr })
     }
 
-    pub fn create_call(id: NodeId, span: Span, callee: AstId, args: Vec<Arc<Argument>>) -> Ast {
+    pub fn create_call(id: NodeId, span: Span, callee: AstId, args: Vec<AstId>) -> Ast {
         Ast::Call(ExprCallType {
             id,
             span,
@@ -1776,7 +1793,7 @@ pub struct ExprCallType {
     pub span: Span,
 
     pub callee: AstId,
-    pub args: Vec<Arc<Argument>>,
+    pub args: Vec<AstId>,
 }
 
 impl ExprCallType {

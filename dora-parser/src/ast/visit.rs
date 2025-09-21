@@ -65,6 +65,10 @@ pub trait Visitor: Sized {
         walk_type_alias(self, f, id, e);
     }
 
+    fn visit_argument(&mut self, f: &File, id: AstId, node: &Argument) {
+        walk_argument(self, f, id, node);
+    }
+
     fn visit_regular_type(&mut self, f: &File, id: AstId, e: &TypeRegularType) {
         walk_regular_type(self, f, id, e);
     }
@@ -227,6 +231,7 @@ pub fn dispatch_ast<V: Visitor>(v: &mut V, f: &File, id: AstId, e: &Ast) {
         Ast::Enum(ref e) => v.visit_enum(f, id, e),
         Ast::Module(ref e) => v.visit_module(f, id, e),
         Ast::Use(ref i) => v.visit_use(f, id, i),
+        Ast::Argument(ref node) => v.visit_argument(f, id, node),
         Ast::Extern(ref stmt) => v.visit_extern(f, id, stmt),
         Ast::Alias(ref node) => v.visit_type_alias(f, id, node),
         Ast::LambdaType(ref node) => v.visit_lambda_type(f, id, node),
@@ -405,9 +410,13 @@ pub fn walk_bin<V: Visitor>(v: &mut V, f: &File, _id: AstId, node: &ExprBinType)
 
 pub fn walk_call<V: Visitor>(v: &mut V, f: &File, _id: AstId, node: &ExprCallType) {
     dispatch_ast_id(v, f, node.callee);
-    for arg in &node.args {
-        dispatch_ast_id(v, f, arg.expr);
+    for &arg_id in &node.args {
+        dispatch_ast_id(v, f, arg_id);
     }
+}
+
+pub fn walk_argument<V: Visitor>(v: &mut V, f: &File, _id: AstId, node: &Argument) {
+    dispatch_ast_id(v, f, node.expr);
 }
 
 pub fn walk_type_param<V: Visitor>(v: &mut V, f: &File, _id: AstId, node: &ExprTypeParamType) {
