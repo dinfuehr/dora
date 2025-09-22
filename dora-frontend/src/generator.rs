@@ -2892,7 +2892,7 @@ impl<'a> AstBytecodeGen<'a> {
         }
     }
 
-    fn visit_expr_ident(&mut self, ident: &ast::ExprIdentType, dest: DataDest) -> Register {
+    fn visit_expr_ident(&mut self, ident: &ast::Ident, dest: DataDest) -> Register {
         let ident_type = self.analysis.map_idents.get(ident.id).unwrap();
 
         match ident_type {

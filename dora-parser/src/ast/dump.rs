@@ -73,7 +73,7 @@ impl<'a> AstDumper<'a> {
             Ast::LitStr(ref lit) => self.dump_expr_lit_str(id, lit),
             Ast::Template(ref tmpl) => self.dump_expr_template(id, tmpl),
             Ast::LitBool(ref lit) => self.dump_expr_lit_bool(id, lit),
-            Ast::Ident(ref ident) => self.dump_expr_ident(id, ident),
+            Ast::Ident(ref ident) => self.dump_ident(id, ident),
             Ast::Call(ref call) => self.dump_expr_call(id, call),
             Ast::TypeParam(ref expr) => self.dump_expr_type_param(id, expr),
             Ast::Path(ref path) => self.dump_expr_path(id, path),
@@ -99,7 +99,7 @@ impl<'a> AstDumper<'a> {
 
     fn dump_global(&mut self, id: AstId, global: &Global) {
         dump!(self, "global @ {} {} {:?}", global.span, global.id, id);
-        self.dump_maybe_ident(&global.name);
+        self.dump_maybe_ident(global.name);
 
         self.indent(|d| {
             d.dump_node_id(global.data_type);
@@ -114,13 +114,13 @@ impl<'a> AstDumper<'a> {
 
     fn dump_extern(&mut self, id: AstId, stmt: &ExternPackage) {
         dump!(self, "extern package @ {} {} {:?}", stmt.span, stmt.id, id);
-        self.dump_maybe_ident(&stmt.name);
-        self.dump_maybe_ident(&stmt.identifier);
+        self.dump_maybe_ident(stmt.name);
+        self.dump_maybe_ident(stmt.identifier);
     }
 
     fn dump_const(&mut self, id: AstId, const_: &Const) {
         dump!(self, "const @ {} {} {:?}", const_.span, const_.id, id);
-        self.dump_maybe_ident(&const_.name);
+        self.dump_maybe_ident(const_.name);
 
         self.indent(|d| {
             d.dump_node_id(const_.data_type);
@@ -134,7 +134,7 @@ impl<'a> AstDumper<'a> {
 
     fn dump_module(&mut self, id: AstId, module: &Module) {
         dump!(self, "module @ {} {} {:?}", module.span, module.id, id);
-        self.dump_maybe_ident(&module.name);
+        self.dump_maybe_ident(module.name);
 
         self.indent(|d| {
             if let Some(ref elements) = module.elements {
@@ -147,7 +147,7 @@ impl<'a> AstDumper<'a> {
 
     fn dump_enum(&mut self, id: AstId, enum_: &Enum) {
         dump!(self, "enum @ {} {} {:?}", enum_.span, enum_.id, id);
-        self.dump_maybe_ident(&enum_.name);
+        self.dump_maybe_ident(enum_.name);
 
         self.indent(|d| {
             for value in &enum_.variants {
@@ -158,7 +158,7 @@ impl<'a> AstDumper<'a> {
 
     fn dump_enum_value(&mut self, value: &EnumVariant) {
         dump!(self, "enum variant @ {} {}", value.span, value.id);
-        self.dump_maybe_ident(&value.name);
+        self.dump_maybe_ident(value.name);
 
         self.indent(|d| {
             for &field_id in &value.fields {
@@ -184,12 +184,12 @@ impl<'a> AstDumper<'a> {
         });
     }
 
-    fn dump_struct(&mut self, id: AstId, struc: &Struct) {
-        dump!(self, "struct @ {} {} {:?}", struc.span, struc.id, id);
-        self.dump_maybe_ident(&struc.name);
+    fn dump_struct(&mut self, id: AstId, node: &Struct) {
+        dump!(self, "struct @ {} {} {:?}", node.span, node.id, id);
+        self.dump_maybe_ident(node.name);
 
         self.indent(|d| {
-            for &field_id in &struc.fields {
+            for &field_id in &node.fields {
                 d.dump_node_id(field_id);
             }
         });
@@ -197,30 +197,30 @@ impl<'a> AstDumper<'a> {
 
     fn dump_field(&mut self, id: AstId, field: &Field) {
         dump!(self, "field @ {} {} {:?}", field.span, field.id, id);
-        self.dump_maybe_ident(&field.name);
+        self.dump_maybe_ident(field.name);
         self.indent(|d| d.dump_node_id(field.data_type));
     }
 
-    fn dump_trait(&mut self, id: AstId, t: &Trait) {
-        dump!(self, "trait @ {} {} {:?}", t.span, t.id, id);
+    fn dump_trait(&mut self, id: AstId, node: &Trait) {
+        dump!(self, "trait @ {} {} {:?}", node.span, node.id, id);
         self.indent(|d| {
-            d.dump_maybe_ident(&t.name);
-            for &element_id in &t.methods {
+            d.dump_maybe_ident(node.name);
+            for &element_id in &node.methods {
                 d.dump_node_id(element_id);
             }
         });
     }
 
-    fn dump_associated_type(&mut self, id: AstId, t: &Alias) {
-        dump!(self, "trait @ {} {} {:?}", t.span, t.id, id);
+    fn dump_associated_type(&mut self, id: AstId, node: &Alias) {
+        dump!(self, "trait @ {} {} {:?}", node.span, node.id, id);
         self.indent(|d| {
-            d.dump_maybe_ident(&t.name);
+            d.dump_maybe_ident(node.name);
         });
     }
 
     fn dump_class(&mut self, id: AstId, cls: &Class) {
         dump!(self, "class @ {} {} {:?}", cls.span, cls.id, id);
-        self.dump_maybe_ident(&cls.name);
+        self.dump_maybe_ident(cls.name);
 
         self.indent(|d| {
             dump!(d, "fields");
@@ -235,7 +235,7 @@ impl<'a> AstDumper<'a> {
 
     fn dump_fct(&mut self, id: AstId, fct: &Function) {
         dump!(self, "fct @ {} {} {:?}", fct.span, fct.id, id);
-        self.dump_maybe_ident(&fct.name);
+        self.dump_maybe_ident(fct.name);
 
         self.indent(|d| {
             dump!(d, "params");
@@ -276,7 +276,7 @@ impl<'a> AstDumper<'a> {
         self.indent(|d| {
             for segment in &ty.path.segments {
                 match segment.as_ref() {
-                    PathSegmentData::Ident(ref name) => dump!(d, "{}", &name.name.name_as_string),
+                    PathSegmentData::Ident(ref name) => d.dump_node_id(name.name),
                     PathSegmentData::Self_(..) => dump!(d, "Self"),
                     PathSegmentData::Error { .. } => dump!(d, "<error>"),
                 }
@@ -518,7 +518,7 @@ impl<'a> AstDumper<'a> {
         );
     }
 
-    fn dump_expr_ident(&mut self, id: AstId, ident: &ExprIdentType) {
+    fn dump_ident(&mut self, id: AstId, ident: &Ident) {
         dump!(
             self,
             "ident {} @ {} {} {:?}",
@@ -600,10 +600,7 @@ impl<'a> AstDumper<'a> {
 
     fn dump_argument(&mut self, id: AstId, node: &Argument) {
         dump!(self, "argument @ {} {} {:?}", node.span, node.id, id);
-
-        if let Some(ref name) = node.name {
-            self.dump_ident(name);
-        }
+        self.dump_maybe_ident(node.name);
         self.dump_node_id(node.expr);
     }
 
@@ -634,16 +631,12 @@ impl<'a> AstDumper<'a> {
         });
     }
 
-    fn dump_maybe_ident(&self, ident: &Option<Ident>) {
-        if let Some(ident) = ident {
-            dump!(self, "ident {}", ident.name_as_string);
+    fn dump_maybe_ident(&mut self, ident: Option<AstId>) {
+        if let Some(ident_id) = ident {
+            self.dump_node_id(ident_id);
         } else {
             dump!(self, "missing ident");
         }
-    }
-
-    fn dump_ident(&self, ident: &Ident) {
-        dump!(self, "ident {}", ident.name_as_string);
     }
 
     fn indent<F>(&mut self, fct: F)

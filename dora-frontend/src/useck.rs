@@ -7,7 +7,7 @@ use crate::report_sym_shadow_span;
 use crate::sema::{module_package, ModuleDefinitionId, Sema, Visibility};
 use crate::sym::{SymTable, SymbolKind};
 
-use dora_parser::ast::{self, Ident, NodeId, UseAtom, UsePathComponentValue, UsePathDescriptor};
+use dora_parser::ast::{self, NodeId, UseAtom, UsePathComponentValue, UsePathDescriptor};
 use dora_parser::Span;
 
 use super::sema::SourceFileId;
@@ -215,8 +215,13 @@ fn initial_module(
                     Err(())
                 }
             }
-            UsePathComponentValue::Name(ref ident) => {
-                if let Some(package_id) = sa.package_names.get(&ident.name_as_string).cloned() {
+            UsePathComponentValue::Name(ident_id) => {
+                let ident = sa
+                    .node(use_file_id, ident_id)
+                    .to_ident()
+                    .expect("ident expected");
+
+                if let Some(package_id) = sa.package_names.get(&ident.name).cloned() {
                     Ok((
                         1,
                         SymbolKind::Module(sa.packages[package_id].top_level_module_id()),
@@ -243,8 +248,8 @@ fn process_component(
     processed_uses: &mut HashSet<(SourceFileId, NodeId)>,
     ignore_unknown_symbols: bool,
 ) -> Result<SymbolKind, ()> {
-    let component_name = match component.value {
-        UsePathComponentValue::Name(ref name) => name.clone(),
+    let component_name_id = match component.value {
+        UsePathComponentValue::Name(name) => name,
         UsePathComponentValue::Package
         | UsePathComponentValue::Super
         | UsePathComponentValue::This
@@ -259,7 +264,11 @@ fn process_component(
         SymbolKind::Module(module_id) => {
             let symtable = module_symtables.get(&module_id).expect("missing symtable");
 
-            let name = sa.interner.intern(&component_name.name_as_string);
+            let component_name = sa
+                .node(use_file_id, component_name_id)
+                .to_ident()
+                .expect("ident expected");
+            let name = sa.interner.intern(&component_name.name);
 
             let current_sym = symtable.get_sym(name);
 
@@ -277,7 +286,7 @@ fn process_component(
                     Ok(current_sym.kind().to_owned())
                 } else {
                     let module = sa.module(module_id);
-                    let name = component_name.name_as_string.clone();
+                    let name = component_name.name.clone();
                     let msg = ErrorMessage::NotAccessibleInModule(module.name(sa), name);
                     assert!(processed_uses.insert((use_file_id, use_path.id)));
                     sa.report(use_file_id, component.span, msg);
@@ -287,7 +296,7 @@ fn process_component(
                 Err(())
             } else {
                 let module = sa.module(module_id);
-                let name = component_name.name_as_string.clone();
+                let name = component_name.name.clone();
                 let module_name = module.name(sa);
                 sa.report(
                     use_file_id,
@@ -300,12 +309,18 @@ fn process_component(
 
         SymbolKind::Enum(enum_id) => {
             let enum_ = sa.enum_(enum_id);
-            let name = sa.interner.intern(&component_name.name_as_string);
+
+            let component_name = sa
+                .node(use_file_id, component_name_id)
+                .to_ident()
+                .expect("ident expected");
+
+            let name = sa.interner.intern(&component_name.name);
 
             if let Some(&variant_idx) = enum_.name_to_value().get(&name) {
                 Ok(SymbolKind::EnumVariant(enum_id, variant_idx))
             } else {
-                let name = component_name.name_as_string.clone();
+                let name = component_name.name.clone();
                 sa.report(
                     use_file_id,
                     component.span,
@@ -326,13 +341,17 @@ fn define_use_target(
     use_span: Span,
     visibility: Visibility,
     module_id: ModuleDefinitionId,
-    ident: Ident,
+    ident_id: ast::AstId,
     sym: SymbolKind,
 ) -> Result<(), ()> {
     let module_symtable = module_symtables
         .get_mut(&module_id)
         .expect("missing tabble");
-    let name = sa.interner.intern(&ident.name_as_string);
+    let component_name = sa
+        .node(use_file_id, ident_id)
+        .to_ident()
+        .expect("ident expected");
+    let name = sa.interner.intern(&component_name.name);
 
     if let Some(old_sym) = module_symtable.insert_use(name, visibility, sym) {
         report_sym_shadow_span(sa, name, use_file_id, use_span, old_sym);

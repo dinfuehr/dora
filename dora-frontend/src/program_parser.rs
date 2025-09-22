@@ -259,7 +259,7 @@ impl<'a> ProgramParser<'a> {
         let node = external_module.ast(self.sa);
         let file_id = external_module.file_id.expect("missing file_id");
 
-        if let Some(ident) = &node.name {
+        if let Some(ident_id) = node.name {
             let parent_module = self.sa.module(parent_module_id);
             let is_top_level = parent_module.parent_module_id.is_none();
 
@@ -273,7 +273,12 @@ impl<'a> ProgramParser<'a> {
                 file_path.push(name);
             }
 
-            file_path.push(format!("{}.dora", ident.name_as_string));
+            let ident = self
+                .sa
+                .node(file_id, ident_id)
+                .to_ident()
+                .expect("ident expected");
+            file_path.push(format!("{}.dora", ident.name));
 
             self.add_file(
                 package_id,
@@ -375,29 +380,31 @@ struct TopLevelDeclaration<'x> {
 impl<'x> visit::Visitor for TopLevelDeclaration<'x> {
     fn visit_extern(&mut self, _f: &ast::File, _id: AstId, node: &ast::ExternPackage) {
         check_modifiers(self.sa, self.file_id, &node.modifiers, &[]);
-        if let Some(name) = &node.name {
-            if let Some(package_id) = self.sa.package_names.get(&name.name_as_string).cloned() {
+        if let Some(name_id) = node.name {
+            let name = _f.node(name_id).to_ident().expect("ident expected");
+            let name_as_str = &name.name;
+
+            if let Some(package_id) = self.sa.package_names.get(name_as_str).cloned() {
                 let top_level_module_id = self.sa.packages[package_id].top_level_module_id();
 
-                let iname = self.sa.interner.intern(&name.name_as_string);
+                let iname = self.sa.interner.intern(name_as_str);
 
                 if !self.sa.packages[package_id].add_dependency(
                     iname,
                     package_id,
                     top_level_module_id,
                 ) {
-                    let name = name.name_as_string.clone();
                     self.sa.report(
                         self.file_id,
                         node.span,
-                        ErrorMessage::PackageAlreadyExists(name),
+                        ErrorMessage::PackageAlreadyExists(name_as_str.clone()),
                     );
                 }
             } else {
                 self.sa.report(
                     self.file_id,
                     node.span,
-                    ErrorMessage::UnknownPackage(name.name_as_string.clone()),
+                    ErrorMessage::UnknownPackage(name_as_str.clone()),
                 );
             }
         }
@@ -405,7 +412,7 @@ impl<'x> visit::Visitor for TopLevelDeclaration<'x> {
 
     fn visit_module(&mut self, f: &ast::File, ast_id: AstId, node: &ast::Module) {
         let modifiers = check_modifiers(self.sa, self.file_id, &node.modifiers, &[Annotation::Pub]);
-        let name = ensure_name(self.sa, &node.name);
+        let name = ensure_name(self.sa, f, node.name);
         let module = ModuleDefinition::new_inner(
             self.sa,
             self.package_id,
@@ -419,7 +426,7 @@ impl<'x> visit::Visitor for TopLevelDeclaration<'x> {
         self.sa.modules[id].id = Some(id);
         let sym = SymbolKind::Module(id);
 
-        if let Some((name, sym)) = self.insert_optional(&node.name, sym) {
+        if let Some((name, sym)) = self.insert_optional(node.name, sym) {
             report_sym_shadow_span(self.sa, name, self.file_id, node.span, sym);
         }
 
@@ -458,7 +465,7 @@ impl<'x> visit::Visitor for TopLevelDeclaration<'x> {
             ast_id,
             node.span,
             modifiers,
-            ensure_name(self.sa, &node.name),
+            ensure_name(self.sa, f, node.name),
             type_param_definition,
         );
         let trait_id = self.sa.traits.alloc(trait_);
@@ -476,7 +483,7 @@ impl<'x> visit::Visitor for TopLevelDeclaration<'x> {
 
         let sym = SymbolKind::Trait(trait_id);
 
-        if let Some((name, sym)) = self.insert_optional(&node.name, sym) {
+        if let Some((name, sym)) = self.insert_optional(node.name, sym) {
             report_sym_shadow_span(self.sa, name, self.file_id, node.span, sym);
         }
     }
@@ -494,7 +501,7 @@ impl<'x> visit::Visitor for TopLevelDeclaration<'x> {
         assert!(self.sa.uses[use_id].id.set(use_id).is_ok());
     }
 
-    fn visit_global(&mut self, _f: &ast::File, ast_id: AstId, node: &ast::Global) {
+    fn visit_global(&mut self, f: &ast::File, ast_id: AstId, node: &ast::Global) {
         let modifiers = check_modifiers(self.sa, self.file_id, &node.modifiers, &[Annotation::Pub]);
 
         let global = GlobalDefinition::new(
@@ -504,13 +511,13 @@ impl<'x> visit::Visitor for TopLevelDeclaration<'x> {
             ast_id,
             node,
             modifiers,
-            ensure_name(self.sa, &node.name),
+            ensure_name(self.sa, f, node.name),
         );
         let global_id = self.sa.globals.alloc(global);
         self.sa.globals[global_id].id = Some(global_id);
 
         let sym = SymbolKind::Global(global_id);
-        if let Some((name, sym)) = self.insert_optional(&node.name, sym) {
+        if let Some((name, sym)) = self.insert_optional(node.name, sym) {
             report_sym_shadow_span(self.sa, name, self.file_id, node.span, sym);
         }
     }
@@ -567,7 +574,7 @@ impl<'x> visit::Visitor for TopLevelDeclaration<'x> {
         }
     }
 
-    fn visit_const(&mut self, _f: &ast::File, ast_id: AstId, node: &ast::Const) {
+    fn visit_const(&mut self, f: &ast::File, ast_id: AstId, node: &ast::Const) {
         let modifiers = check_modifiers(self.sa, self.file_id, &node.modifiers, &[Annotation::Pub]);
         let const_ = ConstDefinition::new(
             self.package_id,
@@ -576,18 +583,18 @@ impl<'x> visit::Visitor for TopLevelDeclaration<'x> {
             ast_id,
             node,
             modifiers,
-            ensure_name(self.sa, &node.name),
+            ensure_name(self.sa, f, node.name),
         );
         let id = self.sa.consts.alloc(const_);
         self.sa.consts[id].id = Some(id);
 
         let sym = SymbolKind::Const(id);
-        if let Some((name, sym)) = self.insert_optional(&node.name, sym) {
+        if let Some((name, sym)) = self.insert_optional(node.name, sym) {
             report_sym_shadow_span(self.sa, name, self.file_id, node.span, sym);
         }
     }
 
-    fn visit_class(&mut self, _f: &ast::File, ast_id: AstId, node: &ast::Class) {
+    fn visit_class(&mut self, f: &ast::File, ast_id: AstId, node: &ast::Class) {
         let modifiers = check_modifiers(
             self.sa,
             self.file_id,
@@ -611,7 +618,7 @@ impl<'x> visit::Visitor for TopLevelDeclaration<'x> {
             ast_id,
             node,
             modifiers,
-            ensure_name(self.sa, &node.name),
+            ensure_name(self.sa, f, node.name),
             type_param_definition,
         );
         let class_id = self.sa.classes.alloc(class);
@@ -633,7 +640,7 @@ impl<'x> visit::Visitor for TopLevelDeclaration<'x> {
             let name = if node.field_name_style.is_positional() {
                 None
             } else {
-                let name = ensure_name(self.sa, &field.name);
+                let name = ensure_name(self.sa, f, field.name);
                 check_if_symbol_exists(self.sa, self.file_id, &mut used_names, name, field.span);
                 Some(name)
             };
@@ -653,7 +660,7 @@ impl<'x> visit::Visitor for TopLevelDeclaration<'x> {
         assert!(self.sa.class(class_id).field_ids.set(field_ids).is_ok());
 
         let sym = SymbolKind::Class(class_id);
-        if let Some((name, sym)) = self.insert_optional(&node.name, sym) {
+        if let Some((name, sym)) = self.insert_optional(node.name, sym) {
             report_sym_shadow_span(self.sa, name, self.file_id, node.span, sym);
         }
 
@@ -668,7 +675,7 @@ impl<'x> visit::Visitor for TopLevelDeclaration<'x> {
         }
     }
 
-    fn visit_struct(&mut self, _f: &ast::File, ast_id: AstId, node: &ast::Struct) {
+    fn visit_struct(&mut self, f: &ast::File, ast_id: AstId, node: &ast::Struct) {
         let modifiers = check_modifiers(
             self.sa,
             self.file_id,
@@ -692,7 +699,7 @@ impl<'x> visit::Visitor for TopLevelDeclaration<'x> {
             ast_id,
             node,
             modifiers,
-            ensure_name(self.sa, &node.name),
+            ensure_name(self.sa, f, node.name),
             type_param_definition,
         );
         let id = self.sa.structs.alloc(struct_);
@@ -714,7 +721,7 @@ impl<'x> visit::Visitor for TopLevelDeclaration<'x> {
             let name = if node.field_style.is_positional() {
                 None
             } else {
-                let name = ensure_name(self.sa, &field.name);
+                let name = ensure_name(self.sa, f, field.name);
                 check_if_symbol_exists(self.sa, self.file_id, &mut used_names, name, field.span);
                 Some(name)
             };
@@ -748,12 +755,12 @@ impl<'x> visit::Visitor for TopLevelDeclaration<'x> {
         assert!(self.sa.struct_(id).field_names.set(field_names).is_ok());
 
         let sym = SymbolKind::Struct(id);
-        if let Some((name, sym)) = self.insert_optional(&node.name, sym) {
+        if let Some((name, sym)) = self.insert_optional(node.name, sym) {
             report_sym_shadow_span(self.sa, name, self.file_id, node.span, sym);
         }
     }
 
-    fn visit_fct(&mut self, _f: &ast::File, ast_id: AstId, node: &ast::Function) {
+    fn visit_fct(&mut self, f: &ast::File, ast_id: AstId, node: &ast::Function) {
         let modifiers = check_modifiers(
             self.sa,
             self.file_id,
@@ -787,7 +794,7 @@ impl<'x> visit::Visitor for TopLevelDeclaration<'x> {
             ast_id,
             node,
             modifiers,
-            ensure_name(self.sa, &node.name),
+            ensure_name(self.sa, f, node.name),
             type_param_definition,
             params,
             parent,
@@ -795,12 +802,12 @@ impl<'x> visit::Visitor for TopLevelDeclaration<'x> {
         let fct_id = self.sa.fcts.alloc(fct);
         self.sa.fcts[fct_id].id = Some(fct_id);
         let sym = SymbolKind::Fct(fct_id);
-        if let Some((name, sym)) = self.insert_optional(&node.name, sym) {
+        if let Some((name, sym)) = self.insert_optional(node.name, sym) {
             report_sym_shadow_span(self.sa, name, self.file_id, node.span, sym);
         }
     }
 
-    fn visit_enum(&mut self, _f: &ast::File, ast_id: AstId, node: &ast::Enum) {
+    fn visit_enum(&mut self, f: &ast::File, ast_id: AstId, node: &ast::Enum) {
         let type_param_definition = parse_type_param_definition(
             self.sa,
             None,
@@ -818,7 +825,7 @@ impl<'x> visit::Visitor for TopLevelDeclaration<'x> {
             ast_id,
             node,
             modifiers,
-            ensure_name(self.sa, &node.name),
+            ensure_name(self.sa, f, node.name),
             type_param_definition,
         );
         let id = self.sa.enums.alloc(enum_);
@@ -833,10 +840,10 @@ impl<'x> visit::Visitor for TopLevelDeclaration<'x> {
                 continue;
             }
 
-            let name = self
-                .sa
-                .interner
-                .intern(&variant.name.as_ref().expect("missing name").name_as_string);
+            let variant_name = f.node(variant.name.expect("name expected"));
+            let variant_name = variant_name.to_ident().expect("ident expected");
+
+            let name = self.sa.interner.intern(&variant_name.name);
 
             let variant_id = self.sa.variants.alloc(VariantDefinition {
                 id: OnceCell::new(),
@@ -859,7 +866,7 @@ impl<'x> visit::Visitor for TopLevelDeclaration<'x> {
                 let name = if variant.field_name_style.is_positional() {
                     None
                 } else {
-                    let name = ensure_name(self.sa, &field.name);
+                    let name = ensure_name(self.sa, f, field.name);
                     check_if_symbol_exists(
                         self.sa,
                         self.file_id,
@@ -907,12 +914,12 @@ impl<'x> visit::Visitor for TopLevelDeclaration<'x> {
         assert!(self.sa.enum_(id).name_to_value.set(name_to_value).is_ok());
 
         let sym = SymbolKind::Enum(id);
-        if let Some((name, sym)) = self.insert_optional(&node.name, sym) {
+        if let Some((name, sym)) = self.insert_optional(node.name, sym) {
             report_sym_shadow_span(self.sa, name, self.file_id, node.span, sym);
         }
     }
 
-    fn visit_type_alias(&mut self, _f: &ast::File, ast_id: AstId, node: &ast::Alias) {
+    fn visit_type_alias(&mut self, f: &ast::File, ast_id: AstId, node: &ast::Alias) {
         let modifiers = check_modifiers(self.sa, self.file_id, &node.modifiers, &[Annotation::Pub]);
 
         let parsed_ty = if let Some(ref ty) = node.ty {
@@ -948,7 +955,7 @@ impl<'x> visit::Visitor for TopLevelDeclaration<'x> {
             ast_id,
             node,
             modifiers,
-            ensure_name(self.sa, &node.name),
+            ensure_name(self.sa, f, node.name),
             type_param_definition,
             Vec::new(),
             Some(parsed_ty),
@@ -963,7 +970,7 @@ impl<'x> visit::Visitor for TopLevelDeclaration<'x> {
         }
 
         let sym = SymbolKind::Alias(id);
-        if let Some((name, sym)) = self.insert_optional(&node.name, sym) {
+        if let Some((name, sym)) = self.insert_optional(node.name, sym) {
             report_sym_shadow_span(self.sa, name, self.file_id, node.span, sym);
         }
     }
@@ -1025,7 +1032,7 @@ fn find_elements_in_trait(
                     child_id,
                     method_node,
                     modifiers,
-                    ensure_name(sa, &method_node.name),
+                    ensure_name(sa, f, method_node.name),
                     type_param_definition,
                     params,
                     parent,
@@ -1060,7 +1067,7 @@ fn find_elements_in_trait(
             ast::Ast::Alias(ref node) => {
                 let modifiers = check_modifiers(sa, file_id, &node.modifiers, &[]);
 
-                let name = ensure_name(sa, &node.name);
+                let name = ensure_name(sa, f, node.name);
 
                 let mut bounds = Vec::with_capacity(node.bounds.len());
 
@@ -1202,7 +1209,7 @@ fn find_elements_in_impl(
                     child_id,
                     method_node,
                     modifiers,
-                    ensure_name(sa, &method_node.name),
+                    ensure_name(sa, f, method_node.name),
                     type_param_definition,
                     params,
                     parent,
@@ -1216,7 +1223,7 @@ fn find_elements_in_impl(
             ast::Ast::Alias(ref node) => {
                 let modifiers = check_modifiers(sa, file_id, &node.modifiers, &[]);
 
-                let name = ensure_name(sa, &node.name);
+                let name = ensure_name(sa, f, node.name);
 
                 let parsed_ty = if let Some(ref ty) = node.ty {
                     ParsedType::new_ast(ty.clone())
@@ -1306,7 +1313,7 @@ fn find_elements_in_extension(
         let child = f.node(child_id);
         match child {
             ast::Ast::Function(ref method_node) => {
-                let name = ensure_name(sa, &method_node.name);
+                let name = ensure_name(sa, f, method_node.name);
                 let extension = sa.extension(extension_id);
                 let modifiers = check_modifiers(
                     sa,
@@ -1370,9 +1377,10 @@ fn find_elements_in_extension(
     assert!(extension.methods.set(methods).is_ok());
 }
 
-fn ensure_name(sa: &Sema, ident: &Option<ast::Ident>) -> Name {
-    if let Some(ident) = ident {
-        sa.interner.intern(&ident.name_as_string)
+fn ensure_name(sa: &Sema, f: &ast::File, ident: Option<ast::AstId>) -> Name {
+    if let Some(ident_id) = ident {
+        let ident = f.node(ident_id).to_ident().expect("ident expected");
+        sa.interner.intern(&ident.name)
     } else {
         sa.interner.intern("<missing name>")
     }
@@ -1483,8 +1491,12 @@ fn check_modifier(
     } else {
         assert!(modifier.is_at());
 
-        if let Some(ref ident) = modifier.ident {
-            match ident.name_as_string.as_str() {
+        if let Some(ident_id) = modifier.ident {
+            let ident = sa
+                .node(file_id, ident_id)
+                .to_ident()
+                .expect("ident expected");
+            match ident.name.as_str() {
                 "Test" => {
                     parsed_modifiers.is_test = true;
                     Annotation::Test
@@ -1519,7 +1531,7 @@ fn check_modifier(
                     sa.report(
                         file_id,
                         modifier.span,
-                        ErrorMessage::UnknownAnnotation(ident.name_as_string.clone()),
+                        ErrorMessage::UnknownAnnotation(ident.name.clone()),
                     );
                     Annotation::Error
                 }
@@ -1537,11 +1549,16 @@ impl<'x> TopLevelDeclaration<'x> {
 
     fn insert_optional(
         &mut self,
-        ident: &Option<ast::Ident>,
+        ident: Option<ast::AstId>,
         sym: SymbolKind,
     ) -> Option<(Name, Symbol)> {
-        if let Some(ident) = ident {
-            let name = self.sa.interner.intern(&ident.name_as_string);
+        if let Some(ident_id) = ident {
+            let ident = self
+                .sa
+                .node(self.file_id, ident_id)
+                .to_ident()
+                .expect("ident expected");
+            let name = self.sa.interner.intern(&ident.name);
             self.insert(name, sym).map(|sym| (name, sym))
         } else {
             None
@@ -1618,11 +1635,15 @@ fn parse_type_param_definition(
         let mut names = HashSet::new();
 
         for type_param in ast_type_params.params.iter() {
-            let id = if let Some(ref ident) = type_param.name {
-                let iname = sa.interner.intern(&ident.name_as_string);
+            let id = if let Some(ident_id) = type_param.name {
+                let ident = sa
+                    .node(file_id, ident_id)
+                    .to_ident()
+                    .expect("ident expected");
+                let iname = sa.interner.intern(&ident.name);
 
                 if !names.insert(iname) {
-                    let name = ident.name_as_string.clone();
+                    let name = ident.name.clone();
                     let msg = ErrorMessage::TypeParamNameNotUnique(name);
                     sa.report(file_id, type_param.span, msg);
                 }

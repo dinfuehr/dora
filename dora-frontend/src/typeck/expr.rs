@@ -123,7 +123,7 @@ pub(super) fn check_expr_paren(
 
 pub(super) fn check_expr_ident(
     ck: &mut TypeCheck,
-    e: &ast::ExprIdentType,
+    e: &ast::Ident,
     expected_ty: SourceType,
 ) -> SourceType {
     let interned_name: Name = ck.sa.interner.intern(&e.name);
@@ -508,9 +508,12 @@ fn check_expr_assign_call(ck: &mut TypeCheck, e: &ast::ExprBinType) {
 
     for &arg_id in &args.arguments {
         let arg = ck.node(arg_id).to_argument().expect("argument expected");
-        if let Some(ref name) = arg.name {
-            ck.sa
-                .report(ck.file_id, name.span, ErrorMessage::UnexpectedNamedArgument);
+        if let Some(name_id) = arg.name {
+            ck.sa.report(
+                ck.file_id,
+                ck.span(name_id),
+                ErrorMessage::UnexpectedNamedArgument,
+            );
         }
     }
 
@@ -2396,14 +2399,11 @@ pub(super) fn check_type(
 
 pub(super) fn read_path(ck: &mut TypeCheck, path: &ast::PathData) -> Result<SymbolKind, ()> {
     let names = &path.segments;
-    let mut sym = ck.symtable.get_string(
-        ck.sa,
-        &names[0]
-            .to_ident()
-            .expect("ident expected")
-            .name
-            .name_as_string,
-    );
+    let first_ident = ck
+        .node(names[0].to_ident().expect("ident expected").name)
+        .to_ident()
+        .expect("ident expected");
+    let mut sym = ck.symtable.get_string(ck.sa, &first_ident.name);
 
     for ident in &names[1..] {
         match sym {
@@ -2413,13 +2413,12 @@ pub(super) fn read_path(ck: &mut TypeCheck, path: &ast::PathData) -> Result<Symb
                     ck.sa.report(ck.file_id, path.span, msg);
                 }
 
-                let iname = ck.sa.interner.intern(
-                    &ident
-                        .to_ident()
-                        .expect("ident expected")
-                        .name
-                        .name_as_string,
-                );
+                let current_ident = ck
+                    .node(ident.to_ident().expect("ident expected").name)
+                    .to_ident()
+                    .expect("ident expected");
+
+                let iname = ck.sa.interner.intern(&current_ident.name);
                 sym = ck.sa.module_table(module_id).get(iname);
             }
 
@@ -2431,23 +2430,17 @@ pub(super) fn read_path(ck: &mut TypeCheck, path: &ast::PathData) -> Result<Symb
                     ck.sa.report(ck.file_id, path.span, msg);
                 }
 
-                let iname = ck.sa.interner.intern(
-                    &ident
-                        .to_ident()
-                        .expect("ident expected")
-                        .name
-                        .name_as_string,
-                );
+                let current_ident = ck
+                    .node(ident.to_ident().expect("ident expected").name)
+                    .to_ident()
+                    .expect("ident expected");
+
+                let iname = ck.sa.interner.intern(&current_ident.name);
 
                 if let Some(&variant_idx) = enum_.name_to_value().get(&iname) {
                     sym = Some(SymbolKind::EnumVariant(enum_id, variant_idx));
                 } else {
-                    let name = ident
-                        .to_ident()
-                        .expect("ident expected")
-                        .name
-                        .name_as_string
-                        .clone();
+                    let name = current_ident.name.clone();
                     ck.sa.report(
                         ck.file_id.into(),
                         path.span,
@@ -2464,12 +2457,11 @@ pub(super) fn read_path(ck: &mut TypeCheck, path: &ast::PathData) -> Result<Symb
             }
 
             None => {
-                let name = names[0]
+                let current_ident = ck
+                    .node(ident.to_ident().expect("ident expected").name)
                     .to_ident()
-                    .expect("ident expected")
-                    .name
-                    .name_as_string
-                    .clone();
+                    .expect("ident expected");
+                let name = current_ident.name.clone();
                 let msg = ErrorMessage::UnknownIdentifier(name);
                 ck.sa.report(ck.file_id, path.span, msg);
                 return Err(());
@@ -2480,12 +2472,7 @@ pub(super) fn read_path(ck: &mut TypeCheck, path: &ast::PathData) -> Result<Symb
     if let Some(sym) = sym {
         Ok(sym)
     } else {
-        let name = names[0]
-            .to_ident()
-            .expect("ident expected")
-            .name
-            .name_as_string
-            .clone();
+        let name = first_ident.name.clone();
         let msg = ErrorMessage::UnknownIdentifier(name);
         ck.sa.report(ck.file_id, path.span, msg);
 

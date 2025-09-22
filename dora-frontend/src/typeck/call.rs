@@ -639,8 +639,9 @@ fn check_expr_call_ctor_with_named_fields(
 
     for &arg_id in &arguments.arguments {
         let arg = ck.node(arg_id).to_argument().expect("argument expected");
-        if let Some(ref name) = arg.name {
-            let name = ck.sa.interner.intern(&name.name_as_string);
+        if let Some(name_id) = arg.name {
+            let name = ck.node(name_id).to_ident().expect("ident expected");
+            let name = ck.sa.interner.intern(&name.name);
             add_named_argument(arg_id, name);
         } else if arguments.arguments.len() == 1 && single_named_element.is_some() {
             add_named_argument(arg_id, single_named_element.expect("missing name"));
@@ -733,9 +734,12 @@ fn check_expr_call_ctor_with_unnamed_fields(
 
         let arg = ck.node(arg_id).to_argument().expect("argument expected");
 
-        if let Some(ref name) = arg.name {
-            ck.sa
-                .report(ck.file_id, name.span, ErrorMessage::UnexpectedNamedArgument);
+        if let Some(name_id) = arg.name {
+            ck.sa.report(
+                ck.file_id,
+                ck.span(name_id),
+                ErrorMessage::UnexpectedNamedArgument,
+            );
         }
 
         if !def_ty.allows(ck.sa, arg_ty.clone()) && !arg_ty.is_error() {

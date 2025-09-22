@@ -1899,13 +1899,7 @@ impl Parser {
     }
 
     fn parse_identifier(&mut self) -> AstId {
-        let ident = self.expect_identifier().expect("identifier expected");
-        let node_id = self.new_node_id();
-        self.ast_nodes.alloc(Ast::create_ident(
-            node_id,
-            ident.span,
-            ident.name_as_string.clone(),
-        ))
+        self.expect_identifier().expect("identifier expected")
     }
 
     fn parse_parentheses(&mut self) -> AstId {
@@ -2142,17 +2136,20 @@ impl Parser {
         assert!(self.eat(kind));
     }
 
-    fn expect_identifier(&mut self) -> Option<Ident> {
+    fn expect_identifier(&mut self) -> Option<AstId> {
         let span = self.current_span();
 
         if self.is(IDENTIFIER) {
             self.assert(IDENTIFIER);
-            let value = self.source_span(span);
+            let name = self.source_span(span);
 
-            Some(Arc::new(IdentData {
+            let node_id = self.new_node_id();
+
+            Some(self.ast_nodes.alloc(Ast::Ident(Ident {
+                id: node_id,
                 span,
-                name_as_string: value,
-            }))
+                name,
+            })))
         } else {
             self.report_error_at(ParseError::ExpectedIdentifier, span);
             None

@@ -197,7 +197,7 @@ pub trait Visitor: Sized {
         walk_lit_bool(self, f, id, e);
     }
 
-    fn visit_ident(&mut self, f: &File, id: AstId, e: &ExprIdentType) {
+    fn visit_ident(&mut self, f: &File, id: AstId, e: &Ident) {
         walk_ident(self, f, id, e);
     }
 
@@ -544,7 +544,7 @@ pub fn walk_lit_bool<V: Visitor>(_v: &mut V, _f: &File, _id: AstId, _node: &Expr
     // Nothing to do.
 }
 
-pub fn walk_ident<V: Visitor>(_v: &mut V, _f: &File, _id: AstId, _node: &ExprIdentType) {
+pub fn walk_ident<V: Visitor>(_v: &mut V, _f: &File, _id: AstId, _node: &Ident) {
     // Nothing to do.
 }
 

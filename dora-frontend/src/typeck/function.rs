@@ -480,9 +480,12 @@ pub(super) fn check_args_compatible<S>(
 {
     for &arg_id in &args.arguments {
         let arg = ck.node(arg_id).to_argument().expect("argument expected");
-        if let Some(ref name) = arg.name {
-            ck.sa
-                .report(ck.file_id, name.span, ErrorMessage::UnexpectedNamedArgument);
+        if let Some(name_id) = arg.name {
+            ck.sa.report(
+                ck.file_id,
+                ck.span(name_id),
+                ErrorMessage::UnexpectedNamedArgument,
+            );
         }
     }
 
@@ -583,9 +586,12 @@ pub(super) fn check_args_compatible2<S>(
     for &arg_id in &args.arguments {
         let arg = ck.node(arg_id).to_argument().expect("argument expected");
 
-        if let Some(ref name) = arg.name {
-            ck.sa
-                .report(ck.file_id, name.span, ErrorMessage::UnexpectedNamedArgument);
+        if let Some(name_id) = arg.name {
+            ck.sa.report(
+                ck.file_id,
+                ck.span(name_id),
+                ErrorMessage::UnexpectedNamedArgument,
+            );
         }
     }
 

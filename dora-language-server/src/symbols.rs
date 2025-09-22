@@ -183,7 +183,7 @@ impl SymbolScanner {
 
 impl visit::Visitor for SymbolScanner {
     fn visit_module(&mut self, f: &ast::File, id: ast::AstId, node: &ast::Module) {
-        let (name, name_span) = ensure_name(&node.name, "<mod>", node.span);
+        let (name, name_span) = ensure_name(f, node.name, "<mod>", node.span);
         self.add_symbol(name, name_span, DoraSymbolKind::Module, node.span);
 
         self.start_children();
@@ -191,13 +191,13 @@ impl visit::Visitor for SymbolScanner {
         self.stop_children();
     }
 
-    fn visit_trait(&mut self, _f: &ast::File, _id: ast::AstId, node: &ast::Trait) {
-        let (name, name_span) = ensure_name(&node.name, "<trait>", node.span);
+    fn visit_trait(&mut self, f: &ast::File, _id: ast::AstId, node: &ast::Trait) {
+        let (name, name_span) = ensure_name(f, node.name, "<trait>", node.span);
         self.add_symbol(name, name_span, DoraSymbolKind::Trait, node.span);
     }
 
-    fn visit_global(&mut self, _f: &ast::File, _id: ast::AstId, node: &ast::Global) {
-        let (name, name_span) = ensure_name(&node.name, "<global>", node.span);
+    fn visit_global(&mut self, f: &ast::File, _id: ast::AstId, node: &ast::Global) {
+        let (name, name_span) = ensure_name(f, node.name, "<global>", node.span);
         self.add_symbol(name, name_span, DoraSymbolKind::Global, node.span);
     }
 
@@ -233,54 +233,54 @@ impl visit::Visitor for SymbolScanner {
         self.stop_children();
     }
 
-    fn visit_const(&mut self, _f: &ast::File, _id: ast::AstId, node: &ast::Const) {
-        let (name, name_span) = ensure_name(&node.name, "<const>", node.span);
+    fn visit_const(&mut self, f: &ast::File, _id: ast::AstId, node: &ast::Const) {
+        let (name, name_span) = ensure_name(f, node.name, "<const>", node.span);
         self.add_symbol(name, name_span, DoraSymbolKind::Const, node.span);
     }
 
     fn visit_class(&mut self, f: &ast::File, _id: ast::AstId, node: &ast::Class) {
-        let (name, name_span) = ensure_name(&node.name, "<class>", node.span);
+        let (name, name_span) = ensure_name(f, node.name, "<class>", node.span);
         self.add_symbol(name, name_span, DoraSymbolKind::Class, node.span);
 
         self.start_children();
         for &field_id in &node.fields {
             let field = f.node(field_id).to_field().expect("field expected");
-            let (name, name_span) = ensure_name(&field.name, "<field>", field.span);
+            let (name, name_span) = ensure_name(f, field.name, "<field>", field.span);
             self.add_symbol(name, name_span, DoraSymbolKind::ClassField, field.span);
         }
         self.stop_children();
     }
 
     fn visit_struct(&mut self, f: &ast::File, _id: ast::AstId, node: &ast::Struct) {
-        let (name, name_span) = ensure_name(&node.name, "<struct>", node.span);
+        let (name, name_span) = ensure_name(f, node.name, "<struct>", node.span);
         self.add_symbol(name, name_span, DoraSymbolKind::Struct, node.span);
 
         self.start_children();
         for &field_id in &node.fields {
             let field = f.node(field_id).to_field().expect("field expected");
-            let (name, name_span) = ensure_name(&field.name, "<field>", field.span);
+            let (name, name_span) = ensure_name(f, field.name, "<field>", field.span);
             self.add_symbol(name, name_span, DoraSymbolKind::StructField, field.span);
         }
         self.stop_children();
     }
 
-    fn visit_fct(&mut self, _f: &ast::File, _id: ast::AstId, node: &ast::Function) {
-        let (name, name_span) = ensure_name(&node.name, "<fn>", node.span);
+    fn visit_fct(&mut self, f: &ast::File, _id: ast::AstId, node: &ast::Function) {
+        let (name, name_span) = ensure_name(f, node.name, "<fn>", node.span);
         self.add_symbol(name, name_span, DoraSymbolKind::Function, node.span);
     }
 
-    fn visit_method(&mut self, _f: &ast::File, _id: ast::AstId, node: &ast::Function) {
-        let (name, name_span) = ensure_name(&node.name, "<fn>", node.span);
+    fn visit_method(&mut self, f: &ast::File, _id: ast::AstId, node: &ast::Function) {
+        let (name, name_span) = ensure_name(f, node.name, "<fn>", node.span);
         self.add_symbol(name, name_span, DoraSymbolKind::Function, node.span);
     }
 
-    fn visit_enum(&mut self, _f: &ast::File, _id: ast::AstId, node: &ast::Enum) {
-        let (name, name_span) = ensure_name(&node.name, "<fn>", node.span);
+    fn visit_enum(&mut self, f: &ast::File, _id: ast::AstId, node: &ast::Enum) {
+        let (name, name_span) = ensure_name(f, node.name, "<fn>", node.span);
         self.add_symbol(name, name_span, DoraSymbolKind::Enum, node.span);
 
         self.start_children();
         for variant in &node.variants {
-            let (name, name_span) = ensure_name(&variant.name, "<enum member>", variant.span);
+            let (name, name_span) = ensure_name(f, variant.name, "<enum member>", variant.span);
             self.add_symbol(name, name_span, DoraSymbolKind::EnumVariant, node.span);
         }
         self.stop_children();
@@ -288,12 +288,14 @@ impl visit::Visitor for SymbolScanner {
 }
 
 fn ensure_name(
-    ident: &Option<ast::Ident>,
+    f: &ast::File,
+    ident_id: Option<ast::AstId>,
     default_name: &str,
     default_span: Span,
 ) -> (String, Span) {
-    if let Some(ident) = ident {
-        (ident.name_as_string.clone(), ident.span)
+    if let Some(ident_id) = ident_id {
+        let ident_node = f.node(ident_id).to_ident().expect("ident expected");
+        (ident_node.name.clone(), ident_node.span)
     } else {
         (default_name.into(), default_span)
     }

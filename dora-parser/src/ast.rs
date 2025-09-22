@@ -124,7 +124,7 @@ pub enum Ast {
     LitStr(ExprLitStrType),
     Template(ExprTemplateType),
     LitBool(ExprLitBoolType),
-    Ident(ExprIdentType),
+    Ident(Ident),
     Call(ExprCallType),
     TypeParam(ExprTypeParamType),
     Path(ExprPathType),
@@ -348,19 +348,11 @@ impl Ast {
 }
 
 #[derive(Clone, Debug)]
-pub struct IdentData {
-    pub span: Span,
-    pub name_as_string: String,
-}
-
-pub type Ident = Arc<IdentData>;
-
-#[derive(Clone, Debug)]
 pub struct Global {
     pub id: NodeId,
     pub span: Span,
     pub modifiers: Option<ModifierList>,
-    pub name: Option<Ident>,
+    pub name: Option<AstId>,
     pub mutable: bool,
     pub data_type: AstId,
     pub initial_value: Option<AstId>,
@@ -371,7 +363,7 @@ pub struct Module {
     pub id: NodeId,
     pub span: Span,
     pub modifiers: Option<ModifierList>,
-    pub name: Option<Ident>,
+    pub name: Option<AstId>,
     pub elements: Option<Vec<AstId>>,
 }
 
@@ -409,7 +401,7 @@ pub struct UseGroup {
 #[derive(Clone, Debug)]
 pub struct UseTargetName {
     pub span: Span,
-    pub name: Option<Ident>,
+    pub name: Option<AstId>,
 }
 
 #[derive(Clone, Debug)]
@@ -423,7 +415,7 @@ pub enum UsePathComponentValue {
     This,
     Super,
     Package,
-    Name(Ident),
+    Name(AstId),
     Error,
 }
 
@@ -432,7 +424,7 @@ pub struct Const {
     pub id: NodeId,
     pub span: Span,
     pub modifiers: Option<ModifierList>,
-    pub name: Option<Ident>,
+    pub name: Option<AstId>,
     pub data_type: AstId,
     pub expr: AstId,
 }
@@ -442,7 +434,7 @@ pub struct Enum {
     pub id: NodeId,
     pub span: Span,
     pub modifiers: Option<ModifierList>,
-    pub name: Option<Ident>,
+    pub name: Option<AstId>,
     pub type_params: Option<TypeParams>,
     pub variants: Vec<EnumVariant>,
     pub where_bounds: Option<WhereBounds>,
@@ -452,7 +444,7 @@ pub struct Enum {
 pub struct EnumVariant {
     pub id: NodeId,
     pub span: Span,
-    pub name: Option<Ident>,
+    pub name: Option<AstId>,
     pub field_name_style: FieldNameStyle,
     pub fields: Vec<AstId>,
 }
@@ -462,7 +454,7 @@ pub struct Struct {
     pub id: NodeId,
     pub span: Span,
     pub modifiers: Option<ModifierList>,
-    pub name: Option<Ident>,
+    pub name: Option<AstId>,
     pub fields: Vec<AstId>,
     pub type_params: Option<TypeParams>,
     pub where_bounds: Option<WhereBounds>,
@@ -541,7 +533,7 @@ pub struct TypeArgument {
     pub id: NodeId,
     pub span: Span,
 
-    pub name: Option<Ident>,
+    pub name: Option<AstId>,
     pub ty: AstId,
 }
 
@@ -569,19 +561,7 @@ pub struct TypeQualifiedPathType {
 
     pub ty: AstId,
     pub trait_ty: AstId,
-    pub name: Option<Ident>,
-}
-
-impl TypeRegularType {
-    #[cfg(test)]
-    pub fn name(&self) -> &str {
-        assert_eq!(self.path.segments.len(), 1);
-        self.path
-            .segments
-            .last()
-            .expect("missing segment")
-            .as_name_str()
-    }
+    pub name: Option<AstId>,
 }
 
 impl Ast {
@@ -604,7 +584,7 @@ impl Ast {
         span: Span,
         ty: AstId,
         trait_ty: AstId,
-        name: Option<Ident>,
+        name: Option<AstId>,
     ) -> Ast {
         Ast::QualifiedPathType(TypeQualifiedPathType {
             id,
@@ -676,7 +656,7 @@ pub struct Impl {
 #[derive(Clone, Debug)]
 pub struct Trait {
     pub id: NodeId,
-    pub name: Option<Ident>,
+    pub name: Option<AstId>,
     pub modifiers: Option<ModifierList>,
     pub type_params: Option<TypeParams>,
     pub bounds: Vec<AstId>,
@@ -691,7 +671,7 @@ pub struct Alias {
     pub span: Span,
 
     pub modifiers: Option<ModifierList>,
-    pub name: Option<Ident>,
+    pub name: Option<AstId>,
     pub type_params: Option<TypeParams>,
     pub pre_where_bounds: Option<WhereBounds>,
     pub bounds: Vec<AstId>,
@@ -704,7 +684,7 @@ pub struct Class {
     pub id: NodeId,
     pub span: Span,
     pub modifiers: Option<ModifierList>,
-    pub name: Option<Ident>,
+    pub name: Option<AstId>,
 
     pub fields: Vec<AstId>,
     pub type_params: Option<TypeParams>,
@@ -717,8 +697,8 @@ pub struct ExternPackage {
     pub id: NodeId,
     pub span: Span,
     pub modifiers: Option<ModifierList>,
-    pub name: Option<Ident>,
-    pub identifier: Option<Ident>,
+    pub name: Option<AstId>,
+    pub identifier: Option<AstId>,
 }
 
 #[derive(Clone, Debug)]
@@ -730,7 +710,7 @@ pub struct TypeParams {
 #[derive(Clone, Debug)]
 pub struct TypeParam {
     pub span: Span,
-    pub name: Option<Ident>,
+    pub name: Option<AstId>,
     pub bounds: Vec<AstId>,
 }
 
@@ -739,7 +719,7 @@ pub struct Field {
     pub id: NodeId,
     pub span: Span,
     pub modifiers: Option<ModifierList>,
-    pub name: Option<Ident>,
+    pub name: Option<AstId>,
     pub data_type: AstId,
 }
 
@@ -772,7 +752,7 @@ pub struct Function {
     pub modifiers: Option<ModifierList>,
     pub kind: FunctionKind,
 
-    pub name: Option<Ident>,
+    pub name: Option<AstId>,
     pub type_params: Option<TypeParams>,
     pub params: Vec<AstId>,
     pub return_type: Option<AstId>,
@@ -805,7 +785,7 @@ pub struct Modifier {
     pub id: NodeId,
     pub span: Span,
     pub kind: TokenKind,
-    pub ident: Option<Ident>,
+    pub ident: Option<AstId>,
 }
 
 impl Modifier {
@@ -1213,7 +1193,7 @@ impl Ast {
     }
 
     pub fn create_ident(id: NodeId, span: Span, name: String) -> Ast {
-        Ast::Ident(ExprIdentType { id, span, name })
+        Ast::Ident(Ident { id, span, name })
     }
 
     pub fn create_paren(id: NodeId, span: Span, expr: AstId) -> Ast {
@@ -1371,7 +1351,7 @@ impl Ast {
         }
     }
 
-    pub fn to_ident(&self) -> Option<&ExprIdentType> {
+    pub fn to_ident(&self) -> Option<&Ident> {
         match *self {
             Ast::Ident(ref val) => Some(val),
             _ => None,
@@ -1791,7 +1771,7 @@ pub struct ExprSelfType {
 }
 
 #[derive(Clone, Debug)]
-pub struct ExprIdentType {
+pub struct Ident {
     pub id: NodeId,
     pub span: Span,
     pub name: String,
@@ -1832,7 +1812,7 @@ impl ExprCallType {
 pub struct Argument {
     pub id: NodeId,
     pub span: Span,
-    pub name: Option<Ident>,
+    pub name: Option<AstId>,
     pub expr: AstId,
 }
 
@@ -2033,10 +2013,6 @@ impl Pattern {
         }
     }
 
-    pub fn to_ident_name(&self) -> &str {
-        &self.to_ident().expect("ident expected").name.name_as_string
-    }
-
     pub fn is_tuple(&self) -> bool {
         match self {
             Pattern::Tuple(..) => true,
@@ -2076,7 +2052,7 @@ pub struct PatternIdent {
     pub id: NodeId,
     pub span: Span,
     pub mutable: bool,
-    pub name: Ident,
+    pub name: AstId,
 }
 
 #[derive(Clone, Debug)]
@@ -2098,7 +2074,7 @@ pub struct PatternClassOrStructOrEnum {
 pub struct PatternField {
     pub id: NodeId,
     pub span: Span,
-    pub ident: Option<Ident>,
+    pub ident: Option<AstId>,
     pub pattern: Arc<Pattern>,
 }
 
@@ -2107,7 +2083,7 @@ pub struct PatternParam {
     pub id: NodeId,
     pub span: Span,
     pub mutable: bool,
-    pub name: Option<Ident>,
+    pub name: Option<AstId>,
 }
 
 pub type Path = Arc<PathData>;
@@ -2160,16 +2136,6 @@ impl PathSegmentData {
     }
 }
 
-impl PathSegmentData {
-    #[cfg(test)]
-    pub fn as_name_str(&self) -> &str {
-        match self {
-            PathSegmentData::Ident(ref ident) => &ident.name.name_as_string,
-            _ => unreachable!(),
-        }
-    }
-}
-
 #[derive(Clone, Debug)]
 pub struct PathSegmentSelf {
     pub id: NodeId,
@@ -2180,7 +2146,7 @@ pub struct PathSegmentSelf {
 pub struct PathSegmentIdent {
     pub id: NodeId,
     pub span: Span,
-    pub name: Ident,
+    pub name: AstId,
 }
 
 #[derive(Clone, Debug)]

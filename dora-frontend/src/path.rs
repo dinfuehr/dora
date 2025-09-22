@@ -96,11 +96,15 @@ fn parse_path_ident(
     let segments = &regular.path.segments;
     let node = segments[0].to_ident().expect("ident expected");
 
-    let first_name = sa.interner.intern(&node.name.name_as_string);
+    let ast_ident = sa
+        .node(file_id, node.name)
+        .to_ident()
+        .expect("ident expected");
+    let first_name = sa.interner.intern(&ast_ident.name);
     let sym = table.get(first_name);
 
     if sym.is_none() {
-        let msg = ErrorMessage::UnknownIdentifier(node.name.name_as_string.clone());
+        let msg = ErrorMessage::UnknownIdentifier(ast_ident.name.clone());
         sa.report(file_id, node.span, msg);
         return Err(());
     }
@@ -121,8 +125,14 @@ fn parse_path_ident(
                     previous_sym = current_sym;
                 } else {
                     let module = sa.module(module_id);
-                    let name = node.name.name_as_string.clone();
-                    let msg = ErrorMessage::NotAccessibleInModule(module.name(sa), name);
+                    let ast_ident = sa
+                        .node(file_id, node.name)
+                        .to_ident()
+                        .expect("ident expected");
+                    let msg = ErrorMessage::NotAccessibleInModule(
+                        module.name(sa),
+                        ast_ident.name.clone(),
+                    );
                     sa.report(file_id, node.span, msg);
                     return Err(());
                 }
@@ -236,7 +246,11 @@ fn expect_ident(sa: &Sema, file_id: SourceFileId, segment: &ast::PathSegment) ->
             Err(())
         }
         ast::PathSegmentData::Ident(ref node) => {
-            let name = sa.interner.intern(&node.name.name_as_string);
+            let ast_ident = sa
+                .node(file_id, node.name)
+                .to_ident()
+                .expect("param expected");
+            let name = sa.interner.intern(&ast_ident.name);
             Ok(name)
         }
         ast::PathSegmentData::Error { .. } => Err(()),

@@ -365,8 +365,12 @@ fn parse_type_qualified_path(
     if let Some(trait_id) = trait_ty.trait_id() {
         let trait_ = sa.trait_(trait_id);
 
-        if let Some(ref ast_name) = node.name {
-            let name = sa.interner.intern(&ast_name.name_as_string);
+        if let Some(ast_name_id) = node.name {
+            let ast_name = sa
+                .node(file_id, ast_name_id)
+                .to_ident()
+                .expect("ident expected");
+            let name = sa.interner.intern(&ast_name.name);
 
             if let Some(alias_id) = trait_.alias_names().get(&name) {
                 assoc_id = Some(*alias_id);
@@ -395,8 +399,12 @@ fn parse_type_regular_with_arguments(
     let mut type_arguments = Vec::new();
 
     for param in &node.params {
-        let name = if let Some(ref name) = param.name {
-            Some(sa.interner.intern(&name.name_as_string))
+        let name = if let Some(name_id) = param.name {
+            let name = sa
+                .node(file_id, name_id)
+                .to_ident()
+                .expect("ident expected");
+            Some(sa.interner.intern(&name.name))
         } else {
             None
         };

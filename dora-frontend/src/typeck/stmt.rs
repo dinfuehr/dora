@@ -112,7 +112,8 @@ fn check_pattern_inner(
 ) {
     match pattern {
         ast::Pattern::Ident(ref ident) => {
-            let sym = ck.symtable.get_string(ck.sa, &ident.name.name_as_string);
+            let ident_node = ck.node(ident.name).to_ident().expect("ident expected");
+            let sym = ck.symtable.get_string(ck.sa, &ident_node.name);
 
             match sym {
                 Some(SymbolKind::EnumVariant(enum_id, variant_id)) => {
@@ -538,12 +539,14 @@ fn check_subpatterns_named<'a>(
         };
 
         for (idx, param) in params.iter().enumerate() {
-            if let Some(ref ident) = param.ident {
-                let name = ck.sa.interner.intern(&ident.name_as_string);
+            if let Some(ident_id) = param.ident {
+                let ident_node = ck.node(ident_id).to_ident().expect("ident expected");
+                let name = ck.sa.interner.intern(&ident_node.name);
                 add_field(idx, name, param);
             } else if param.pattern.is_ident() {
                 let ident = param.pattern.to_ident().expect("ident expected");
-                let name = ck.sa.interner.intern(&ident.name.name_as_string);
+                let ident = ck.node(ident.name).to_ident().expect("ident expected");
+                let name = ck.sa.interner.intern(&ident.name);
                 add_field(idx, name, param);
             } else if param.pattern.is_rest() {
                 rest_seen = true;
@@ -664,7 +667,8 @@ fn check_pattern_var(
     pattern: &ast::PatternIdent,
     ty: SourceType,
 ) {
-    let name = ck.sa.interner.intern(&pattern.name.name_as_string);
+    let ident = ck.node(pattern.name).to_ident().expect("ident expected");
+    let name = ck.sa.interner.intern(&ident.name);
 
     if ctxt.current.contains_key(&name) {
         let msg = ErrorMessage::PatternDuplicateBinding;
