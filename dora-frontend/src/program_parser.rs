@@ -494,7 +494,7 @@ impl<'x> visit::Visitor for TopLevelDeclaration<'x> {
             self.package_id,
             self.module_id,
             self.file_id,
-            &node.path,
+            node.path,
             modifiers,
         );
         let use_id = self.sa.uses.alloc(use_def);

@@ -106,6 +106,8 @@ pub enum Ast {
     Enum(Enum),
     Module(Module),
     Use(Use),
+    UsePath(UsePath),
+    UseGroup(UseGroup),
     Extern(ExternPackage),
     Alias(Alias),
     Argument(Argument),
@@ -160,6 +162,8 @@ impl Ast {
             Ast::Enum(ref node) => node.id,
             Ast::Module(ref node) => node.id,
             Ast::Use(ref node) => node.id,
+            Ast::UsePath(ref node) => node.id,
+            Ast::UseGroup(ref node) => node.id,
             Ast::Extern(ref node) => node.id,
             Ast::Alias(ref node) => node.id,
             Ast::Argument(ref node) => node.id,
@@ -214,6 +218,8 @@ impl Ast {
             Ast::Enum(ref node) => node.span,
             Ast::Module(ref node) => node.span,
             Ast::Use(ref node) => node.span,
+            Ast::UsePath(ref node) => node.span,
+            Ast::UseGroup(ref node) => node.span,
             Ast::Extern(ref node) => node.span,
             Ast::Alias(ref node) => node.span,
             Ast::Argument(ref node) => node.span,
@@ -258,6 +264,20 @@ impl Ast {
     pub fn to_function(&self) -> Option<&Function> {
         match self {
             &Ast::Function(ref fct) => Some(fct),
+            _ => None,
+        }
+    }
+
+    pub fn to_use_path(&self) -> Option<&UsePath> {
+        match self {
+            &Ast::UsePath(ref node) => Some(node),
+            _ => None,
+        }
+    }
+
+    pub fn to_use_group(&self) -> Option<&UseGroup> {
+        match self {
+            &Ast::UseGroup(ref node) => Some(node),
             _ => None,
         }
     }
@@ -372,7 +392,7 @@ pub struct Use {
     pub id: NodeId,
     pub span: Span,
     pub modifiers: Option<ModifierList>,
-    pub path: Arc<UsePath>,
+    pub path: AstId,
 }
 
 #[derive(Clone, Debug)]
@@ -387,7 +407,7 @@ pub struct UsePath {
 pub enum UsePathDescriptor {
     Default,
     As(UseTargetName),
-    Group(Arc<UseGroup>),
+    Group(AstId),
     Error,
 }
 
@@ -395,7 +415,7 @@ pub enum UsePathDescriptor {
 pub struct UseGroup {
     pub id: NodeId,
     pub span: Span,
-    pub targets: Vec<Arc<UsePath>>,
+    pub targets: Vec<AstId>,
 }
 
 #[derive(Clone, Debug)]

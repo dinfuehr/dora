@@ -45,6 +45,14 @@ pub trait Visitor: Sized {
         walk_use(self, f, id, i);
     }
 
+    fn visit_use_path(&mut self, f: &File, id: AstId, i: &UsePath) {
+        walk_use_path(self, f, id, i);
+    }
+
+    fn visit_use_group(&mut self, f: &File, id: AstId, i: &UseGroup) {
+        walk_use_group(self, f, id, i);
+    }
+
     fn visit_method(&mut self, f: &File, id: AstId, m: &Function) {
         walk_fct(self, f, id, &m);
     }
@@ -231,6 +239,8 @@ pub fn dispatch_ast<V: Visitor>(v: &mut V, f: &File, id: AstId, e: &Ast) {
         Ast::Enum(ref e) => v.visit_enum(f, id, e),
         Ast::Module(ref e) => v.visit_module(f, id, e),
         Ast::Use(ref i) => v.visit_use(f, id, i),
+        Ast::UsePath(ref node) => v.visit_use_path(f, id, node),
+        Ast::UseGroup(ref node) => v.visit_use_group(f, id, node),
         Ast::Argument(ref node) => v.visit_argument(f, id, node),
         Ast::Param(ref node) => v.visit_param(f, id, node),
         Ast::Extern(ref stmt) => v.visit_extern(f, id, stmt),
@@ -318,8 +328,23 @@ pub fn walk_module<V: Visitor>(v: &mut V, f: &File, _id: AstId, node: &Module) {
     }
 }
 
-pub fn walk_use<V: Visitor>(_v: &mut V, _f: &File, _id: AstId, _use: &Use) {
-    // nothing to do
+pub fn walk_use<V: Visitor>(v: &mut V, f: &File, _id: AstId, use_: &Use) {
+    dispatch_ast_id(v, f, use_.path);
+}
+
+pub fn walk_use_path<V: Visitor>(v: &mut V, f: &File, _id: AstId, use_path: &UsePath) {
+    match use_path.target {
+        UsePathDescriptor::As(..) => {}
+        UsePathDescriptor::Default => {}
+        UsePathDescriptor::Error => {}
+        UsePathDescriptor::Group(use_group_id) => dispatch_ast_id(v, f, use_group_id),
+    }
+}
+
+pub fn walk_use_group<V: Visitor>(v: &mut V, f: &File, _id: AstId, use_group: &UseGroup) {
+    for &target_id in &use_group.targets {
+        dispatch_ast_id(v, f, target_id);
+    }
 }
 
 pub fn walk_extern<V: Visitor>(_v: &mut V, _f: &File, _id: AstId, _use: &ExternPackage) {

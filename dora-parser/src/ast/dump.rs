@@ -54,6 +54,8 @@ impl<'a> AstDumper<'a> {
             Ast::Enum(ref node) => self.dump_enum(id, node),
             Ast::Module(ref node) => self.dump_module(id, node),
             Ast::Use(ref node) => self.dump_use(id, node),
+            Ast::UsePath(ref node) => self.dump_use_path(id, node),
+            Ast::UseGroup(ref node) => self.dump_use_group(id, node),
             Ast::Extern(ref node) => self.dump_extern(id, node),
             Ast::Alias(ref node) => self.dump_associated_type(id, node),
             Ast::Argument(ref node) => self.dump_argument(id, node),
@@ -130,6 +132,30 @@ impl<'a> AstDumper<'a> {
 
     fn dump_use(&mut self, id: AstId, node: &Use) {
         dump!(self, "use @ {} {} {:?}", node.span, node.id, id);
+        self.indent(|d| {
+            d.dump_node_id(node.path);
+        })
+    }
+
+    fn dump_use_path(&mut self, id: AstId, node: &UsePath) {
+        dump!(self, "use path @ {} {} {:?}", node.span, node.id, id);
+        self.indent(|d| match node.target {
+            UsePathDescriptor::Default => dump!(d, "default"),
+            UsePathDescriptor::Error => dump!(d, "error"),
+            UsePathDescriptor::As(..) => dump!(d, "as"),
+            UsePathDescriptor::Group(use_group_id) => {
+                d.dump_node_id(use_group_id);
+            }
+        });
+    }
+
+    fn dump_use_group(&mut self, id: AstId, node: &UseGroup) {
+        dump!(self, "use group @ {} {} {:?}", node.span, node.id, id);
+        self.indent(|d| {
+            for &target in &node.targets {
+                d.dump_node_id(target);
+            }
+        })
     }
 
     fn dump_module(&mut self, id: AstId, module: &Module) {

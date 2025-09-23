@@ -7,13 +7,13 @@ use crate::report_sym_shadow_span;
 use crate::sema::{module_package, ModuleDefinitionId, Sema, Visibility};
 use crate::sym::{SymTable, SymbolKind};
 
-use dora_parser::ast::{self, NodeId, UseAtom, UsePathComponentValue, UsePathDescriptor};
+use dora_parser::ast::{self, UseAtom, UsePathComponentValue, UsePathDescriptor};
 use dora_parser::Span;
 
 use super::sema::SourceFileId;
 
 pub fn check<'a>(sa: &Sema, mut module_symtables: HashMap<ModuleDefinitionId, SymTable>) {
-    let mut processed_uses = HashSet::<(SourceFileId, NodeId)>::new();
+    let mut processed_uses = HashSet::<(SourceFileId, ast::AstId)>::new();
 
     while {
         let mut did_resolve_symbol = false;
@@ -22,7 +22,7 @@ pub fn check<'a>(sa: &Sema, mut module_symtables: HashMap<ModuleDefinitionId, Sy
             let _ = check_use(
                 sa,
                 &mut module_symtables,
-                &use_definition.ast,
+                use_definition.ast_id,
                 use_definition.module_id,
                 use_definition.file_id,
                 use_definition.visibility,
@@ -40,7 +40,7 @@ pub fn check<'a>(sa: &Sema, mut module_symtables: HashMap<ModuleDefinitionId, Sy
         let _ = check_use(
             sa,
             &mut module_symtables,
-            &use_definition.ast,
+            use_definition.ast_id,
             use_definition.module_id,
             use_definition.file_id,
             use_definition.visibility,
@@ -59,22 +59,27 @@ pub fn check<'a>(sa: &Sema, mut module_symtables: HashMap<ModuleDefinitionId, Sy
 fn check_use(
     sa: &Sema,
     module_symtables: &mut HashMap<ModuleDefinitionId, SymTable>,
-    use_path: &ast::UsePath,
+    use_path_id: ast::AstId,
     use_module_id: ModuleDefinitionId,
     use_file_id: SourceFileId,
     use_visibility: Visibility,
     previous_sym: Option<SymbolKind>,
     ignore_unknown_symbols: bool,
-    processed_uses: &mut HashSet<(SourceFileId, NodeId)>,
+    processed_uses: &mut HashSet<(SourceFileId, ast::AstId)>,
     did_resolve_symbol: &mut bool,
 ) -> Result<(), ()> {
-    if processed_uses.contains(&(use_file_id, use_path.id)) {
+    if processed_uses.contains(&(use_file_id, use_path_id)) {
         return Ok(());
     }
 
+    let use_path = sa
+        .node(use_file_id, use_path_id)
+        .to_use_path()
+        .expect("use path expected");
+
     let (start_idx, mut previous_sym) = initial_module(
         sa,
-        use_path,
+        use_path_id,
         use_module_id,
         use_file_id,
         previous_sym,
@@ -85,14 +90,14 @@ fn check_use(
         if !previous_sym.is_enum() && !previous_sym.is_module() {
             let msg = ErrorMessage::ExpectedPath;
             sa.report(use_file_id, use_path.path[idx - 1].span, msg);
-            assert!(processed_uses.insert((use_file_id, use_path.id)));
+            assert!(processed_uses.insert((use_file_id, use_path_id)));
             return Err(());
         }
 
         previous_sym = process_component(
             sa,
             module_symtables,
-            use_path,
+            use_path_id,
             use_module_id,
             use_file_id,
             previous_sym,
@@ -105,7 +110,7 @@ fn check_use(
     match &use_path.target {
         UsePathDescriptor::Default => {
             let last_component = use_path.path.last().expect("no component");
-            assert!(processed_uses.insert((use_file_id, use_path.id)));
+            assert!(processed_uses.insert((use_file_id, use_path_id)));
 
             let name = match last_component.value {
                 UsePathComponentValue::Name(ref name) => name.clone(),
@@ -133,7 +138,7 @@ fn check_use(
         }
         UsePathDescriptor::As(target) => {
             let last_component = use_path.path.last().expect("no component");
-            assert!(processed_uses.insert((use_file_id, use_path.id)));
+            assert!(processed_uses.insert((use_file_id, use_path_id)));
 
             if let Some(ident) = &target.name {
                 *did_resolve_symbol = true;
@@ -150,14 +155,19 @@ fn check_use(
                 )?;
             }
         }
-        UsePathDescriptor::Group(ref group) => {
+        UsePathDescriptor::Group(use_group_id) => {
+            let group = sa
+                .node(use_file_id, *use_group_id)
+                .to_use_group()
+                .expect("use group expected");
+
             if group.targets.is_empty() {
                 sa.report(use_file_id, group.span, ErrorMessage::ExpectedPath);
-                assert!(processed_uses.insert((use_file_id, use_path.id)));
+                assert!(processed_uses.insert((use_file_id, use_path_id)));
                 return Err(());
             }
 
-            for nested_use in &group.targets {
+            for &nested_use in &group.targets {
                 // Ignore errors as an error in `foo::{a, b, c}`
                 // for `a` does not affect `b` or `c`.
                 let _ = check_use(
@@ -176,7 +186,7 @@ fn check_use(
         }
 
         UsePathDescriptor::Error => {
-            assert!(processed_uses.insert((use_file_id, use_path.id)));
+            assert!(processed_uses.insert((use_file_id, use_path_id)));
         }
     }
 
@@ -185,15 +195,20 @@ fn check_use(
 
 fn initial_module(
     sa: &Sema,
-    use_path: &ast::UsePath,
+    use_path_id: ast::AstId,
     use_module_id: ModuleDefinitionId,
     use_file_id: SourceFileId,
     previous_sym: Option<SymbolKind>,
-    processed_uses: &mut HashSet<(SourceFileId, NodeId)>,
+    processed_uses: &mut HashSet<(SourceFileId, ast::AstId)>,
 ) -> Result<(usize, SymbolKind), ()> {
     if let Some(namespace) = previous_sym {
         return Ok((0, namespace));
     }
+
+    let use_path = sa
+        .node(use_file_id, use_path_id)
+        .to_use_path()
+        .expect("use path expected");
 
     if let Some(first_component) = use_path.path.first() {
         match first_component.value {
@@ -211,7 +226,7 @@ fn initial_module(
                         first_component.span,
                         ErrorMessage::NoSuperModule,
                     );
-                    assert!(processed_uses.insert((use_file_id, use_path.id)));
+                    assert!(processed_uses.insert((use_file_id, use_path_id)));
                     Err(())
                 }
             }
@@ -240,12 +255,12 @@ fn initial_module(
 fn process_component(
     sa: &Sema,
     module_symtables: &mut HashMap<ModuleDefinitionId, SymTable>,
-    use_path: &ast::UsePath,
+    use_path_id: ast::AstId,
     use_module_id: ModuleDefinitionId,
     use_file_id: SourceFileId,
     previous_sym: SymbolKind,
     component: &UseAtom,
-    processed_uses: &mut HashSet<(SourceFileId, NodeId)>,
+    processed_uses: &mut HashSet<(SourceFileId, ast::AstId)>,
     ignore_unknown_symbols: bool,
 ) -> Result<SymbolKind, ()> {
     let component_name_id = match component.value {
@@ -255,7 +270,7 @@ fn process_component(
         | UsePathComponentValue::This
         | UsePathComponentValue::Error => {
             sa.report(use_file_id, component.span, ErrorMessage::ExpectedPath);
-            assert!(processed_uses.insert((use_file_id, use_path.id)));
+            assert!(processed_uses.insert((use_file_id, use_path_id)));
             return Err(());
         }
     };
@@ -277,7 +292,7 @@ fn process_component(
                     if !use_accessible_from(sa, module_id, visibility.to_owned(), use_module_id) {
                         let msg = ErrorMessage::UseNotAccessible;
                         sa.report(use_file_id, component.span, msg);
-                        assert!(processed_uses.insert((use_file_id, use_path.id)));
+                        assert!(processed_uses.insert((use_file_id, use_path_id)));
                         return Err(());
                     }
                 }
@@ -288,7 +303,7 @@ fn process_component(
                     let module = sa.module(module_id);
                     let name = component_name.name.clone();
                     let msg = ErrorMessage::NotAccessibleInModule(module.name(sa), name);
-                    assert!(processed_uses.insert((use_file_id, use_path.id)));
+                    assert!(processed_uses.insert((use_file_id, use_path_id)));
                     sa.report(use_file_id, component.span, msg);
                     Err(())
                 }

@@ -198,7 +198,7 @@ impl Parser {
         }
     }
 
-    fn parse_use_path(&mut self) -> Arc<UsePath> {
+    fn parse_use_path(&mut self) -> AstId {
         self.start_node();
         let mut path = Vec::new();
 
@@ -231,12 +231,15 @@ impl Parser {
             UsePathDescriptor::Error
         };
 
-        Arc::new(UsePath {
-            id: self.new_node_id(),
-            span: self.finish_node(),
+        let node_id = self.new_node_id();
+        let span = self.finish_node();
+
+        self.ast_nodes.alloc(Ast::UsePath(UsePath {
+            id: node_id,
+            span,
             path,
             target,
-        })
+        }))
     }
 
     fn parse_use_as(&mut self) -> UseTargetName {
@@ -280,7 +283,7 @@ impl Parser {
         }
     }
 
-    fn parse_use_group(&mut self) -> Arc<UseGroup> {
+    fn parse_use_group(&mut self) -> AstId {
         self.start_node();
 
         let targets = self.parse_list(
@@ -298,11 +301,14 @@ impl Parser {
             },
         );
 
-        Arc::new(UseGroup {
-            id: self.new_node_id(),
-            span: self.finish_node(),
+        let node_id = self.new_node_id();
+        let span = self.finish_node();
+
+        self.ast_nodes.alloc(Ast::UseGroup(UseGroup {
+            id: node_id,
+            span,
             targets,
-        })
+        }))
     }
 
     fn parse_enum(&mut self, modifiers: Option<ModifierList>) -> Enum {

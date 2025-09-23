@@ -1,5 +1,4 @@
 use std::cell::OnceCell;
-use std::sync::Arc;
 
 use crate::{
     program_parser::ParsedModifierList,
@@ -15,7 +14,7 @@ pub struct UseDefinition {
     pub package_id: PackageDefinitionId,
     pub module_id: ModuleDefinitionId,
     pub file_id: SourceFileId,
-    pub ast: Arc<ast::UsePath>,
+    pub ast_id: ast::AstId,
     pub visibility: Visibility,
 }
 
@@ -24,7 +23,7 @@ impl UseDefinition {
         package_id: PackageDefinitionId,
         module_id: ModuleDefinitionId,
         file_id: SourceFileId,
-        node: &Arc<ast::UsePath>,
+        ast_id: ast::AstId,
         modifiers: ParsedModifierList,
     ) -> UseDefinition {
         UseDefinition {
@@ -32,7 +31,7 @@ impl UseDefinition {
             package_id,
             module_id,
             file_id,
-            ast: node.clone(),
+            ast_id,
             visibility: modifiers.visibility(),
         }
     }
