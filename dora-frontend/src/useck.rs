@@ -136,11 +136,15 @@ fn check_use(
                 previous_sym,
             )?;
         }
-        UsePathDescriptor::As(target) => {
+        UsePathDescriptor::As(target_id) => {
+            let target = sa
+                .node(use_file_id, *target_id)
+                .to_use_target_name()
+                .expect("use target expected");
             let last_component = use_path.path.last().expect("no component");
             assert!(processed_uses.insert((use_file_id, use_path_id)));
 
-            if let Some(ident) = &target.name {
+            if let Some(ident) = target.name {
                 *did_resolve_symbol = true;
 
                 define_use_target(

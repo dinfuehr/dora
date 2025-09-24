@@ -53,6 +53,10 @@ pub trait Visitor: Sized {
         walk_use_group(self, f, id, i);
     }
 
+    fn visit_use_target_name(&mut self, f: &File, id: AstId, node: &UseTargetName) {
+        walk_use_target_name(self, f, id, node);
+    }
+
     fn visit_method(&mut self, f: &File, id: AstId, m: &Function) {
         walk_fct(self, f, id, &m);
     }
@@ -241,6 +245,7 @@ pub fn dispatch_ast<V: Visitor>(v: &mut V, f: &File, id: AstId, e: &Ast) {
         Ast::Use(ref i) => v.visit_use(f, id, i),
         Ast::UsePath(ref node) => v.visit_use_path(f, id, node),
         Ast::UseGroup(ref node) => v.visit_use_group(f, id, node),
+        Ast::UseTargetName(ref node) => v.visit_use_target_name(f, id, node),
         Ast::Argument(ref node) => v.visit_argument(f, id, node),
         Ast::Param(ref node) => v.visit_param(f, id, node),
         Ast::Extern(ref stmt) => v.visit_extern(f, id, stmt),
@@ -344,6 +349,17 @@ pub fn walk_use_path<V: Visitor>(v: &mut V, f: &File, _id: AstId, use_path: &Use
 pub fn walk_use_group<V: Visitor>(v: &mut V, f: &File, _id: AstId, use_group: &UseGroup) {
     for &target_id in &use_group.targets {
         dispatch_ast_id(v, f, target_id);
+    }
+}
+
+pub fn walk_use_target_name<V: Visitor>(
+    v: &mut V,
+    f: &File,
+    _id: AstId,
+    use_target_name: &UseTargetName,
+) {
+    if let Some(name_id) = use_target_name.name {
+        dispatch_ast_id(v, f, name_id);
     }
 }
 

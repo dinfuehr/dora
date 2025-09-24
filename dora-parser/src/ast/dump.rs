@@ -56,6 +56,7 @@ impl<'a> AstDumper<'a> {
             Ast::Use(ref node) => self.dump_use(id, node),
             Ast::UsePath(ref node) => self.dump_use_path(id, node),
             Ast::UseGroup(ref node) => self.dump_use_group(id, node),
+            Ast::UseTargetName(ref node) => self.dump_use_target_name(id, node),
             Ast::Extern(ref node) => self.dump_extern(id, node),
             Ast::Alias(ref node) => self.dump_associated_type(id, node),
             Ast::Argument(ref node) => self.dump_argument(id, node),
@@ -142,7 +143,7 @@ impl<'a> AstDumper<'a> {
         self.indent(|d| match node.target {
             UsePathDescriptor::Default => dump!(d, "default"),
             UsePathDescriptor::Error => dump!(d, "error"),
-            UsePathDescriptor::As(..) => dump!(d, "as"),
+            UsePathDescriptor::As(use_target_name_id) => d.dump_node_id(use_target_name_id),
             UsePathDescriptor::Group(use_group_id) => {
                 d.dump_node_id(use_group_id);
             }
@@ -154,6 +155,15 @@ impl<'a> AstDumper<'a> {
         self.indent(|d| {
             for &target in &node.targets {
                 d.dump_node_id(target);
+            }
+        })
+    }
+
+    fn dump_use_target_name(&mut self, id: AstId, node: &UseTargetName) {
+        dump!(self, "use target name @ {} {} {:?}", node.span, node.id, id);
+        self.indent(|d| {
+            if let Some(id) = node.name {
+                d.dump_node_id(id);
             }
         })
     }

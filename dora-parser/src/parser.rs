@@ -242,7 +242,7 @@ impl Parser {
         }))
     }
 
-    fn parse_use_as(&mut self) -> UseTargetName {
+    fn parse_use_as(&mut self) -> AstId {
         self.start_node();
         self.assert(AS_KW);
 
@@ -252,10 +252,14 @@ impl Parser {
             self.expect_identifier()
         };
 
-        UseTargetName {
-            span: self.finish_node(),
+        let node_id = self.new_node_id();
+        let span = self.finish_node();
+
+        self.ast_nodes.alloc(Ast::UseTargetName(UseTargetName {
+            id: node_id,
+            span,
             name,
-        }
+        }))
     }
 
     fn parse_use_atom(&mut self) -> UseAtom {

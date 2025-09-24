@@ -108,6 +108,7 @@ pub enum Ast {
     Use(Use),
     UsePath(UsePath),
     UseGroup(UseGroup),
+    UseTargetName(UseTargetName),
     Extern(ExternPackage),
     Alias(Alias),
     Argument(Argument),
@@ -164,6 +165,7 @@ impl Ast {
             Ast::Use(ref node) => node.id,
             Ast::UsePath(ref node) => node.id,
             Ast::UseGroup(ref node) => node.id,
+            Ast::UseTargetName(ref node) => node.id,
             Ast::Extern(ref node) => node.id,
             Ast::Alias(ref node) => node.id,
             Ast::Argument(ref node) => node.id,
@@ -220,6 +222,7 @@ impl Ast {
             Ast::Use(ref node) => node.span,
             Ast::UsePath(ref node) => node.span,
             Ast::UseGroup(ref node) => node.span,
+            Ast::UseTargetName(ref node) => node.span,
             Ast::Extern(ref node) => node.span,
             Ast::Alias(ref node) => node.span,
             Ast::Argument(ref node) => node.span,
@@ -278,6 +281,13 @@ impl Ast {
     pub fn to_use_group(&self) -> Option<&UseGroup> {
         match self {
             &Ast::UseGroup(ref node) => Some(node),
+            _ => None,
+        }
+    }
+
+    pub fn to_use_target_name(&self) -> Option<&UseTargetName> {
+        match self {
+            &Ast::UseTargetName(ref node) => Some(node),
             _ => None,
         }
     }
@@ -406,7 +416,7 @@ pub struct UsePath {
 #[derive(Clone, Debug)]
 pub enum UsePathDescriptor {
     Default,
-    As(UseTargetName),
+    As(AstId),
     Group(AstId),
     Error,
 }
@@ -420,6 +430,7 @@ pub struct UseGroup {
 
 #[derive(Clone, Debug)]
 pub struct UseTargetName {
+    pub id: NodeId,
     pub span: Span,
     pub name: Option<AstId>,
 }
