@@ -36,16 +36,17 @@ pub fn parse_path(
     regular: &ast::TypeRegularType,
 ) -> Result<PathKind, ()> {
     let segments = &regular.path.segments;
-    let first = segments.first().expect("no segment");
+    let first_segment_id = segments.first().cloned().expect("no segment");
+    let first_segment = sa.node(file_id, first_segment_id);
 
-    match first.as_ref() {
-        ast::PathSegmentData::Self_(..) => {
-            parse_path_self(sa, file_id, element, allow_self, regular)
-        }
+    match first_segment {
+        ast::Ast::UpcaseThis(..) => parse_path_self(sa, file_id, element, allow_self, regular),
 
-        ast::PathSegmentData::Ident(..) => parse_path_ident(sa, file_id, table, element, regular),
+        ast::Ast::Ident(..) => parse_path_ident(sa, file_id, table, element, regular),
 
-        ast::PathSegmentData::Error { .. } => Err(()),
+        ast::Ast::Error { .. } => Err(()),
+
+        _ => unreachable!(),
     }
 }
 
@@ -57,7 +58,8 @@ fn parse_path_self(
     regular: &ast::TypeRegularType,
 ) -> Result<PathKind, ()> {
     let segments = &regular.path.segments;
-    assert!(segments[0].is_self());
+    let first_segment_id = segments[0];
+    assert!(sa.node(file_id, first_segment_id).is_upcase_this());
 
     if !allow_self {
         sa.report(
@@ -73,15 +75,16 @@ fn parse_path_self(
     }
 
     assert_eq!(segments.len(), 2);
-    let segment_name = segments.get(1).expect("missing name");
+    let segment_name_id = segments.get(1).cloned().expect("missing name");
 
-    let name = expect_ident(sa, file_id, segment_name)?;
+    let name = expect_ident(sa, file_id, segment_name_id)?;
     let alias_id = lookup_alias_on_self(sa, file_id, regular.path.span, element, name)?;
 
     if let Some(alias_id) = alias_id {
         Ok(PathKind::Symbol(SymbolKind::Alias(alias_id)))
     } else {
-        sa.report(file_id, segment_name.span(), ErrorMessage::UnknownAssoc);
+        let segment_span = sa.node(file_id, segment_name_id).span();
+        sa.report(file_id, segment_span, ErrorMessage::UnknownAssoc);
         Err(())
     }
 }
@@ -94,17 +97,16 @@ fn parse_path_ident(
     regular: &ast::TypeRegularType,
 ) -> Result<PathKind, ()> {
     let segments = &regular.path.segments;
-    let node = segments[0].to_ident().expect("ident expected");
-
-    let ast_ident = sa
-        .node(file_id, node.name)
+    let node = sa
+        .node(file_id, segments[0])
         .to_ident()
         .expect("ident expected");
-    let first_name = sa.interner.intern(&ast_ident.name);
+
+    let first_name = sa.interner.intern(&node.name);
     let sym = table.get(first_name);
 
     if sym.is_none() {
-        let msg = ErrorMessage::UnknownIdentifier(ast_ident.name.clone());
+        let msg = ErrorMessage::UnknownIdentifier(node.name.clone());
         sa.report(file_id, node.span, msg);
         return Err(());
     }
@@ -112,9 +114,9 @@ fn parse_path_ident(
     let mut previous_sym = sym.expect("missing symbol");
     let mut result: Option<PathKind> = None;
 
-    for (idx, segment) in segments.iter().enumerate().skip(1) {
+    for (idx, &segment_id) in segments.iter().enumerate().skip(1) {
         if previous_sym.is_module() {
-            let name = expect_ident(sa, file_id, segment)?;
+            let name = expect_ident(sa, file_id, segment_id)?;
 
             let module_id = previous_sym.to_module().expect("expected module");
             let module = sa.module(module_id);
@@ -126,7 +128,7 @@ fn parse_path_ident(
                 } else {
                     let module = sa.module(module_id);
                     let ast_ident = sa
-                        .node(file_id, node.name)
+                        .node(file_id, segment_id)
                         .to_ident()
                         .expect("ident expected");
                     let msg = ErrorMessage::NotAccessibleInModule(
@@ -142,13 +144,13 @@ fn parse_path_ident(
                 let module_name = module.name(sa);
                 sa.report(
                     file_id,
-                    segment.span(),
+                    sa.node(file_id, segment_id).span(),
                     ErrorMessage::UnknownIdentifierInModule(module_name, name),
                 );
                 return Err(());
             }
         } else if let SymbolKind::TypeParam(id) = previous_sym {
-            let name = expect_ident(sa, file_id, segment)?;
+            let name = expect_ident(sa, file_id, segment_id)?;
 
             let mut available =
                 lookup_alias_on_type_param(sa, element, id, name).unwrap_or(Vec::new());
@@ -166,8 +168,8 @@ fn parse_path_ident(
             }
         } else {
             let msg = ErrorMessage::ExpectedPath;
-            let start = segments[0].span().start();
-            let end = segments[idx - 1].span().end();
+            let start = sa.node(file_id, segments[0]).span().start();
+            let end = sa.node(file_id, segments[idx - 1]).span().end();
             let span = Span::new(start, end);
             sa.report(file_id, span, msg);
             return Err(());
@@ -239,20 +241,19 @@ fn lookup_alias_on_type_param<'a>(
     Some(results)
 }
 
-fn expect_ident(sa: &Sema, file_id: SourceFileId, segment: &ast::PathSegment) -> Result<Name, ()> {
-    match segment.as_ref() {
-        ast::PathSegmentData::Self_(ref node) => {
+fn expect_ident(sa: &Sema, file_id: SourceFileId, segment_id: ast::AstId) -> Result<Name, ()> {
+    let segment = sa.node(file_id, segment_id);
+
+    match segment {
+        ast::Ast::UpcaseThis(ref node) => {
             sa.report(file_id, node.span, ErrorMessage::ExpectedPath);
             Err(())
         }
-        ast::PathSegmentData::Ident(ref node) => {
-            let ast_ident = sa
-                .node(file_id, node.name)
-                .to_ident()
-                .expect("param expected");
-            let name = sa.interner.intern(&ast_ident.name);
+        ast::Ast::Ident(ref node) => {
+            let name = sa.interner.intern(&node.name);
             Ok(name)
         }
-        ast::PathSegmentData::Error { .. } => Err(()),
+        ast::Ast::Error { .. } => Err(()),
+        _ => unreachable!(),
     }
 }

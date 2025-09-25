@@ -189,6 +189,10 @@ pub trait Visitor: Sized {
         walk_this(self, f, id, e);
     }
 
+    fn visit_upcase_this(&mut self, f: &File, id: AstId, node: &UpcaseThis) {
+        walk_upcase_this(self, f, id, node);
+    }
+
     fn visit_lit_char(&mut self, f: &File, id: AstId, e: &ExprLitCharType) {
         walk_lit_char(self, f, id, e);
     }
@@ -277,6 +281,7 @@ pub fn dispatch_ast<V: Visitor>(v: &mut V, f: &File, id: AstId, e: &Ast) {
         Ast::Break(ref node) => v.visit_break(f, id, node),
         Ast::Continue(ref node) => v.visit_continue(f, id, node),
         Ast::This(ref node) => v.visit_this(f, id, node),
+        Ast::UpcaseThis(ref node) => v.visit_upcase_this(f, id, node),
         Ast::LitChar(ref node) => v.visit_lit_char(f, id, node),
         Ast::LitInt(ref node) => v.visit_lit_int(f, id, node),
         Ast::LitFloat(ref node) => v.visit_lit_float(f, id, node),
@@ -562,6 +567,10 @@ pub fn walk_continue<V: Visitor>(_v: &mut V, _f: &File, _id: AstId, _node: &Expr
 }
 
 pub fn walk_this<V: Visitor>(_v: &mut V, _f: &File, _id: AstId, _node: &ExprSelfType) {
+    // Nothing to do.
+}
+
+pub fn walk_upcase_this<V: Visitor>(_v: &mut V, _f: &File, _id: AstId, _node: &UpcaseThis) {
     // Nothing to do.
 }
 

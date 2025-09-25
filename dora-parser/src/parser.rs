@@ -1171,28 +1171,21 @@ impl Parser {
         })
     }
 
-    fn parse_path_segment(&mut self) -> PathSegment {
+    fn parse_path_segment(&mut self) -> AstId {
         if self.is(IDENTIFIER) {
-            self.start_node();
-            let name = self.expect_identifier().expect("ident expected");
-            Arc::new(PathSegmentData::Ident(PathSegmentIdent {
-                id: self.new_node_id(),
-                span: self.finish_node(),
-                name,
-            }))
+            self.expect_identifier().expect("ident expected")
         } else if self.is(UPCASE_SELF_KW) {
             self.start_node();
             self.assert(UPCASE_SELF_KW);
-            Arc::new(PathSegmentData::Self_(PathSegmentSelf {
-                id: self.new_node_id(),
-                span: self.finish_node(),
-            }))
+            let node_id = self.new_node_id();
+            let span = self.finish_node();
+            self.ast_nodes
+                .alloc(Ast::UpcaseThis(UpcaseThis { id: node_id, span }))
         } else {
+            let node_id = self.new_node_id();
             let span = self.current_span();
-            Arc::new(PathSegmentData::Error {
-                id: self.new_node_id(),
-                span,
-            })
+            self.ast_nodes
+                .alloc(Ast::Error(Error { id: node_id, span }))
         }
     }
 

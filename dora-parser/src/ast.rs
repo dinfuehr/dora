@@ -133,6 +133,7 @@ pub enum Ast {
     Path(ExprPathType),
     Dot(ExprDotType),
     This(ExprSelfType),
+    UpcaseThis(UpcaseThis),
     Conv(ExprConvType),
     Is(ExprIsType),
     Lambda(ExprLambdaType),
@@ -190,6 +191,7 @@ impl Ast {
             Ast::Path(ref val) => val.id,
             Ast::Dot(ref val) => val.id,
             Ast::This(ref val) => val.id,
+            Ast::UpcaseThis(ref val) => val.id,
             Ast::Conv(ref val) => val.id,
             Ast::Is(ref val) => val.id,
             Ast::Lambda(ref val) => val.id,
@@ -247,6 +249,7 @@ impl Ast {
             Ast::Path(ref val) => val.span,
             Ast::Dot(ref val) => val.span,
             Ast::This(ref val) => val.span,
+            Ast::UpcaseThis(ref val) => val.span,
             Ast::Conv(ref val) => val.span,
             Ast::Is(ref val) => val.span,
             Ast::Lambda(ref val) => val.span,
@@ -373,6 +376,13 @@ impl Ast {
         match self {
             &Ast::Param(ref node) => Some(node),
             _ => None,
+        }
+    }
+
+    pub fn is_upcase_this(&self) -> bool {
+        match self {
+            &Ast::UpcaseThis(..) => true,
+            _ => false,
         }
     }
 }
@@ -1802,6 +1812,12 @@ pub struct ExprSelfType {
 }
 
 #[derive(Clone, Debug)]
+pub struct UpcaseThis {
+    pub id: NodeId,
+    pub span: Span,
+}
+
+#[derive(Clone, Debug)]
 pub struct Ident {
     pub id: NodeId,
     pub span: Span,
@@ -2123,48 +2139,7 @@ pub type Path = Arc<PathData>;
 pub struct PathData {
     pub id: NodeId,
     pub span: Span,
-    pub segments: Vec<PathSegment>,
-}
-
-pub type PathSegment = Arc<PathSegmentData>;
-
-#[derive(Clone, Debug)]
-pub enum PathSegmentData {
-    Self_(PathSegmentSelf),
-    Ident(PathSegmentIdent),
-    Error { id: NodeId, span: Span },
-}
-
-impl PathSegmentData {
-    pub fn id(&self) -> NodeId {
-        match self {
-            PathSegmentData::Self_(ref node) => node.id,
-            PathSegmentData::Ident(ref node) => node.id,
-            PathSegmentData::Error { id, .. } => id.clone(),
-        }
-    }
-
-    pub fn span(&self) -> Span {
-        match self {
-            PathSegmentData::Self_(ref node) => node.span,
-            PathSegmentData::Ident(ref node) => node.span,
-            PathSegmentData::Error { span, .. } => span.clone(),
-        }
-    }
-
-    pub fn to_ident(&self) -> Option<&PathSegmentIdent> {
-        match self {
-            PathSegmentData::Ident(ref node) => Some(node),
-            _ => None,
-        }
-    }
-
-    pub fn is_self(&self) -> bool {
-        match self {
-            PathSegmentData::Self_(..) => true,
-            _ => false,
-        }
-    }
+    pub segments: Vec<AstId>,
 }
 
 #[derive(Clone, Debug)]

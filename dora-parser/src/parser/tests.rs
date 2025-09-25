@@ -958,8 +958,8 @@ fn parse_type_regular_mod() {
 
     assert_eq!(0, regular.params.len());
     assert_eq!(2, regular.path.segments.len());
-    assert_eq!("foo", psa_name(&arena, &regular.path.segments[0]));
-    assert_eq!("bla", psa_name(&arena, &regular.path.segments[1]));
+    assert_eq!("foo", ident_name(&arena, regular.path.segments[0]));
+    assert_eq!("bla", ident_name(&arena, regular.path.segments[1]));
 }
 
 #[test]
@@ -1300,9 +1300,9 @@ fn parse_type_path() {
     let (ty, arena) = parse_type("Foo::Bar::Baz");
     let ty = arena[ty].to_regular().unwrap();
     assert_eq!(ty.path.segments.len(), 3);
-    assert_eq!(psa_name(&arena, &ty.path.segments[0]), "Foo");
-    assert_eq!(psa_name(&arena, &ty.path.segments[1]), "Bar");
-    assert_eq!(psa_name(&arena, &ty.path.segments[2]), "Baz");
+    assert_eq!(ident_name(&arena, ty.path.segments[0]), "Foo");
+    assert_eq!(ident_name(&arena, ty.path.segments[1]), "Bar");
+    assert_eq!(ident_name(&arena, ty.path.segments[2]), "Baz");
 }
 
 #[test]
@@ -1743,37 +1743,33 @@ fn ida_name(arena: &Arena<Ast>, id: Option<AstId>) -> &str {
         .name
 }
 
+fn ident_name<'a>(arena: &'a Arena<Ast>, node_id: AstId) -> &'a str {
+    let node = arena[node_id].to_ident().expect("ident expected");
+    &node.name
+}
+
 fn tr_name<'a>(f: &'a File, id: AstId) -> &'a str {
     let node = f.node(id).to_regular().expect("regular type expected");
     assert_eq!(node.path.segments.len(), 1);
-    let ident_id = node
+    let segment_id = node
         .path
         .segments
-        .last()
-        .expect("missing segment")
-        .to_ident()
-        .expect("ident expected")
-        .name;
-    &f.node(ident_id).to_ident().expect("ident expected").name
+        .first()
+        .cloned()
+        .expect("missing segment");
+    &f.node(segment_id).to_ident().expect("ident expected").name
 }
 
 fn tra_name<'a>(arena: &'a Arena<Ast>, id: AstId) -> &'a str {
     let node = arena[id].to_regular().expect("regular type expected");
     assert_eq!(node.path.segments.len(), 1);
-    let ident_id = node
+    let segment_id = node
         .path
         .segments
-        .last()
-        .expect("missing segment")
-        .to_ident()
-        .expect("ident expected")
-        .name;
-    &arena[ident_id].to_ident().expect("ident expected").name
-}
-
-fn psa_name<'a>(arena: &'a Arena<Ast>, node: &PathSegmentData) -> &'a str {
-    let node = node.to_ident().expect("ident expected");
-    &arena[node.name].to_ident().expect("ident expected").name
+        .first()
+        .cloned()
+        .expect("missing segment");
+    &arena[segment_id].to_ident().expect("ident expected").name
 }
 
 fn pat_name<'a>(f: &'a File, node: &Pattern) -> &'a str {

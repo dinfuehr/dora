@@ -81,6 +81,7 @@ impl<'a> AstDumper<'a> {
             Ast::TypeParam(ref expr) => self.dump_expr_type_param(id, expr),
             Ast::Path(ref path) => self.dump_expr_path(id, path),
             Ast::This(ref selfie) => self.dump_expr_self(id, selfie),
+            Ast::UpcaseThis(ref selfie) => self.dump_upcase_self(id, selfie),
             Ast::Conv(ref expr) => self.dump_expr_conv(id, expr),
             Ast::Is(ref expr) => self.dump_expr_is(id, expr),
             Ast::Lambda(ref expr) => self.dump_expr_lambda(id, expr),
@@ -310,12 +311,8 @@ impl<'a> AstDumper<'a> {
         dump!(self, "regular type @ {} {} {:?}", ty.span, ty.id, id);
 
         self.indent(|d| {
-            for segment in &ty.path.segments {
-                match segment.as_ref() {
-                    PathSegmentData::Ident(ref name) => d.dump_node_id(name.name),
-                    PathSegmentData::Self_(..) => dump!(d, "Self"),
-                    PathSegmentData::Error { .. } => dump!(d, "<error>"),
-                }
+            for &segment_id in &ty.path.segments {
+                d.dump_node_id(segment_id);
             }
 
             for arg in &ty.params {
@@ -488,6 +485,10 @@ impl<'a> AstDumper<'a> {
 
     fn dump_expr_self(&mut self, id: AstId, selfie: &ExprSelfType) {
         dump!(self, "self @ {} {} {:?}", selfie.span, selfie.id, id);
+    }
+
+    fn dump_upcase_self(&mut self, id: AstId, selfie: &UpcaseThis) {
+        dump!(self, "Self @ {} {} {:?}", selfie.span, selfie.id, id);
     }
 
     fn dump_expr_lit_char(&mut self, id: AstId, lit: &ExprLitCharType) {
