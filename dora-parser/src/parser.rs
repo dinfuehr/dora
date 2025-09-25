@@ -1126,7 +1126,7 @@ impl Parser {
         }
     }
 
-    fn parse_type_argument(&mut self) -> Option<Arc<TypeArgument>> {
+    fn parse_type_argument(&mut self) -> Option<AstId> {
         self.start_node();
 
         if self.is2(IDENTIFIER, EQ) {
@@ -1134,19 +1134,25 @@ impl Parser {
             self.assert(EQ);
             let ty = self.parse_type();
 
-            Some(Arc::new(TypeArgument {
-                id: self.new_node_id(),
-                span: self.finish_node(),
+            let node_id = self.new_node_id();
+            let span = self.finish_node();
+
+            Some(self.ast_nodes.alloc(Ast::TypeArgument(TypeArgument {
+                id: node_id,
+                span,
                 name: Some(name),
                 ty,
-            }))
+            })))
         } else if let Some(ty) = self.parse_type_wrapper() {
-            Some(Arc::new(TypeArgument {
-                id: self.new_node_id(),
-                span: self.finish_node(),
+            let node_id = self.new_node_id();
+            let span = self.finish_node();
+
+            Some(self.ast_nodes.alloc(Ast::TypeArgument(TypeArgument {
+                id: node_id,
+                span,
                 name: None,
                 ty,
-            }))
+            })))
         } else {
             self.cancel_node();
             None

@@ -85,6 +85,10 @@ pub trait Visitor: Sized {
         walk_regular_type(self, f, id, e);
     }
 
+    fn visit_type_argument(&mut self, f: &File, id: AstId, node: &TypeArgument) {
+        walk_type_argument(self, f, id, node);
+    }
+
     fn visit_tuple_type(&mut self, f: &File, id: AstId, e: &TypeTupleType) {
         walk_tuple_type(self, f, id, e);
     }
@@ -293,6 +297,7 @@ pub fn dispatch_ast<V: Visitor>(v: &mut V, f: &File, id: AstId, e: &Ast) {
         Ast::LitStr(ref node) => v.visit_lit_str(f, id, node),
         Ast::LitBool(ref node) => v.visit_lit_bool(f, id, node),
         Ast::Ident(ref node) => v.visit_ident(f, id, node),
+        Ast::TypeArgument(ref node) => v.visit_type_argument(f, id, node),
         Ast::Error(ref node) => v.visit_error(f, id, node),
     }
 }
@@ -410,6 +415,13 @@ pub fn walk_param<V: Visitor>(v: &mut V, f: &File, _id: AstId, p: &Param) {
 }
 
 pub fn walk_regular_type<V: Visitor>(_v: &mut V, _f: &File, _id: AstId, _t: &TypeRegularType) {}
+
+pub fn walk_type_argument<V: Visitor>(v: &mut V, f: &File, _id: AstId, node: &TypeArgument) {
+    if let Some(name_id) = node.name {
+        dispatch_ast_id(v, f, name_id);
+    }
+    dispatch_ast_id(v, f, node.ty);
+}
 
 pub fn walk_tuple_type<V: Visitor>(v: &mut V, f: &File, _id: AstId, t: &TypeTupleType) {
     for &ty_id in &t.subtypes {

@@ -969,8 +969,8 @@ fn parse_type_regular_with_params() {
 
     assert_eq!(2, regular.params.len());
     assert_eq!("Foo", tra_name(&arena, ty_id));
-    assert_eq!("A", tra_name(&arena, regular.params[0].ty));
-    assert_eq!("B", tra_name(&arena, regular.params[1].ty));
+    assert_eq!("A", taa_name(&arena, regular.params[0]));
+    assert_eq!("B", taa_name(&arena, regular.params[1]));
 }
 
 #[test]
@@ -980,11 +980,17 @@ fn parse_type_regular_with_bindings() {
 
     assert_eq!(2, ty.params.len());
     assert_eq!("Foo", tra_name(&arena, ty_id));
-    let arg0 = &ty.params[0];
+    let arg0_id = ty.params[0];
+    let arg0 = arena[arg0_id]
+        .to_type_argument()
+        .expect("type argument expected");
     assert!(arg0.name.is_none());
     assert_eq!("A", tra_name(&arena, arg0.ty));
 
-    let arg1 = &ty.params[1];
+    let arg1_id = ty.params[1];
+    let arg1 = arena[arg1_id]
+        .to_type_argument()
+        .expect("type argument expected");
     assert_eq!("X", ida_name(&arena, arg1.name));
     assert_eq!("B", tra_name(&arena, arg1.ty));
 }
@@ -1770,6 +1776,11 @@ fn tra_name<'a>(arena: &'a Arena<Ast>, id: AstId) -> &'a str {
         .cloned()
         .expect("missing segment");
     &arena[segment_id].to_ident().expect("ident expected").name
+}
+
+fn taa_name<'a>(arena: &'a Arena<Ast>, id: AstId) -> &'a str {
+    let node = arena[id].to_type_argument().expect("regular type expected");
+    tra_name(arena, node.ty)
 }
 
 fn pat_name<'a>(f: &'a File, node: &Pattern) -> &'a str {

@@ -96,6 +96,7 @@ impl<'a> AstDumper<'a> {
             Ast::Break(ref expr) => self.dump_expr_break(id, expr),
             Ast::Continue(ref expr) => self.dump_expr_continue(id, expr),
             Ast::Return(ref ret) => self.dump_expr_return(id, ret),
+            Ast::TypeArgument(ref node) => self.dump_type_argument(id, node),
             Ast::Error(ref node) => {
                 dump!(self, "error @ {} {}", node.span, node.id);
             }
@@ -308,17 +309,26 @@ impl<'a> AstDumper<'a> {
         self.dump_node_id(param.data_type);
     }
 
-    fn dump_regular_type(&mut self, id: AstId, ty: &TypeRegularType) {
-        dump!(self, "regular type @ {} {} {:?}", ty.span, ty.id, id);
+    fn dump_regular_type(&mut self, id: AstId, node: &TypeRegularType) {
+        dump!(self, "regular type @ {} {} {:?}", node.span, node.id, id);
 
         self.indent(|d| {
-            for &segment_id in &ty.path.segments {
+            for &segment_id in &node.path.segments {
                 d.dump_node_id(segment_id);
             }
 
-            for arg in &ty.params {
-                d.dump_node_id(arg.ty);
+            for &arg_id in &node.params {
+                d.dump_node_id(arg_id);
             }
+        });
+    }
+
+    fn dump_type_argument(&mut self, id: AstId, node: &TypeArgument) {
+        dump!(self, "argument type @ {} {} {:?}", node.span, node.id, id);
+
+        self.indent(|d| {
+            d.dump_maybe_ident(node.name);
+            d.dump_node_id(node.ty);
         });
     }
 

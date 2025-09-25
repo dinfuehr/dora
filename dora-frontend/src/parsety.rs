@@ -398,7 +398,11 @@ fn parse_type_regular_with_arguments(
 ) -> ParsedTypeKind {
     let mut type_arguments = Vec::new();
 
-    for param in &node.params {
+    for &param_id in &node.params {
+        let param = sa
+            .node(file_id, param_id)
+            .to_type_argument()
+            .expect("type argument expected");
         let name = if let Some(name_id) = param.name {
             let name = sa
                 .node(file_id, name_id)

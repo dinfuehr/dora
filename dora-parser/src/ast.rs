@@ -148,6 +148,7 @@ pub enum Ast {
     Break(ExprBreakType),
     Continue(ExprContinueType),
     Return(ExprReturnType),
+    TypeArgument(TypeArgument),
     Error(Error),
 }
 
@@ -207,6 +208,7 @@ impl Ast {
             Ast::Break(ref val) => val.id,
             Ast::Continue(ref val) => val.id,
             Ast::Return(ref val) => val.id,
+            Ast::TypeArgument(ref node) => node.id,
             Ast::Error(ref node) => node.id,
         }
     }
@@ -266,6 +268,7 @@ impl Ast {
             Ast::Break(ref val) => val.span,
             Ast::Continue(ref val) => val.span,
             Ast::Return(ref val) => val.span,
+            Ast::TypeArgument(ref node) => node.span,
             Ast::Error(ref node) => node.span,
         }
     }
@@ -280,6 +283,13 @@ impl Ast {
     pub fn to_match_arm(&self) -> Option<&MatchArmType> {
         match self {
             &Ast::MatchArm(ref node) => Some(node),
+            _ => None,
+        }
+    }
+
+    pub fn to_type_argument(&self) -> Option<&TypeArgument> {
+        match self {
+            &Ast::TypeArgument(ref node) => Some(node),
             _ => None,
         }
     }
@@ -576,7 +586,7 @@ pub struct TypeRegularType {
     pub span: Span,
 
     pub path: Path,
-    pub params: Vec<Arc<TypeArgument>>,
+    pub params: Vec<AstId>,
 }
 
 #[derive(Clone, Debug)]
@@ -616,12 +626,7 @@ pub struct TypeQualifiedPathType {
 }
 
 impl Ast {
-    pub fn create_regular(
-        id: NodeId,
-        span: Span,
-        path: Path,
-        params: Vec<Arc<TypeArgument>>,
-    ) -> Ast {
+    pub fn create_regular(id: NodeId, span: Span, path: Path, params: Vec<AstId>) -> Ast {
         Ast::RegularType(TypeRegularType {
             id,
             span,
