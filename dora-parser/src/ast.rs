@@ -131,6 +131,7 @@ pub enum Ast {
     Call(ExprCallType),
     TypeParam(ExprTypeParamType),
     Path(ExprPathType),
+    PathData(PathData),
     Dot(ExprDotType),
     This(ExprSelfType),
     UpcaseThis(UpcaseThis),
@@ -191,6 +192,7 @@ impl Ast {
             Ast::Call(ref val) => val.id,
             Ast::TypeParam(ref val) => val.id,
             Ast::Path(ref val) => val.id,
+            Ast::PathData(ref node) => node.id,
             Ast::Dot(ref val) => val.id,
             Ast::This(ref val) => val.id,
             Ast::UpcaseThis(ref val) => val.id,
@@ -251,6 +253,7 @@ impl Ast {
             Ast::Call(ref val) => val.span,
             Ast::TypeParam(ref val) => val.span,
             Ast::Path(ref val) => val.span,
+            Ast::PathData(ref node) => node.span,
             Ast::Dot(ref val) => val.span,
             Ast::This(ref val) => val.span,
             Ast::UpcaseThis(ref val) => val.span,
@@ -585,7 +588,7 @@ pub struct TypeRegularType {
     pub id: NodeId,
     pub span: Span,
 
-    pub path: Path,
+    pub path: AstId,
     pub params: Vec<AstId>,
 }
 
@@ -626,7 +629,7 @@ pub struct TypeQualifiedPathType {
 }
 
 impl Ast {
-    pub fn create_regular(id: NodeId, span: Span, path: Path, params: Vec<AstId>) -> Ast {
+    pub fn create_regular(id: NodeId, span: Span, path: AstId, params: Vec<AstId>) -> Ast {
         Ast::RegularType(TypeRegularType {
             id,
             span,
@@ -1442,6 +1445,13 @@ impl Ast {
         }
     }
 
+    pub fn to_path_data(&self) -> Option<&PathData> {
+        match *self {
+            Ast::PathData(ref node) => Some(node),
+            _ => None,
+        }
+    }
+
     pub fn is_path(&self) -> bool {
         match *self {
             Ast::Path(_) => true,
@@ -2128,7 +2138,7 @@ pub struct PatternTuple {
 pub struct PatternClassOrStructOrEnum {
     pub id: NodeId,
     pub span: Span,
-    pub path: Path,
+    pub path: AstId,
     pub params: Option<Vec<Arc<PatternField>>>,
 }
 

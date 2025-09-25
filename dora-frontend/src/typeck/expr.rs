@@ -2397,7 +2397,8 @@ pub(super) fn check_type(
     }
 }
 
-pub(super) fn read_path(ck: &mut TypeCheck, path: &ast::PathData) -> Result<SymbolKind, ()> {
+pub(super) fn read_path(ck: &mut TypeCheck, path_id: ast::AstId) -> Result<SymbolKind, ()> {
+    let path = ck.node(path_id).to_path_data().expect("path data expected");
     let names = &path.segments;
     let first_segment = ck.node(names[0]).to_ident().expect("ident expected");
     let mut sym = ck.symtable.get_string(ck.sa, &first_segment.name);

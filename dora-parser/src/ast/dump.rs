@@ -80,6 +80,7 @@ impl<'a> AstDumper<'a> {
             Ast::Call(ref call) => self.dump_expr_call(id, call),
             Ast::TypeParam(ref expr) => self.dump_expr_type_param(id, expr),
             Ast::Path(ref path) => self.dump_expr_path(id, path),
+            Ast::PathData(ref node) => self.dump_path_data(id, node),
             Ast::This(ref selfie) => self.dump_expr_self(id, selfie),
             Ast::UpcaseThis(ref selfie) => self.dump_upcase_self(id, selfie),
             Ast::Conv(ref expr) => self.dump_expr_conv(id, expr),
@@ -313,9 +314,7 @@ impl<'a> AstDumper<'a> {
         dump!(self, "regular type @ {} {} {:?}", node.span, node.id, id);
 
         self.indent(|d| {
-            for &segment_id in &node.path.segments {
-                d.dump_node_id(segment_id);
-            }
+            d.dump_node_id(node.path);
 
             for &arg_id in &node.params {
                 d.dump_node_id(arg_id);
@@ -631,6 +630,15 @@ impl<'a> AstDumper<'a> {
         self.indent(|d| d.dump_node_id(expr.rhs));
         dump!(self, "path (::) @ {} {} {:?}", expr.span, expr.id, id);
         self.indent(|d| d.dump_node_id(expr.lhs));
+    }
+
+    fn dump_path_data(&mut self, id: AstId, node: &PathData) {
+        dump!(self, "path data @ {} {} {:?}", node.span, node.id, id);
+        self.indent(|d| {
+            for &segment_id in &node.segments {
+                d.dump_node_id(segment_id);
+            }
+        });
     }
 
     fn dump_expr_call(&mut self, id: AstId, expr: &ExprCallType) {

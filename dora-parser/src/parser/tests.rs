@@ -957,9 +957,10 @@ fn parse_type_regular_mod() {
     let regular = arena[ty].to_regular().unwrap();
 
     assert_eq!(0, regular.params.len());
-    assert_eq!(2, regular.path.segments.len());
-    assert_eq!("foo", ident_name(&arena, regular.path.segments[0]));
-    assert_eq!("bla", ident_name(&arena, regular.path.segments[1]));
+    let path = arena[regular.path].to_path_data().expect("path expected");
+    assert_eq!(2, path.segments.len());
+    assert_eq!("foo", ident_name(&arena, path.segments[0]));
+    assert_eq!("bla", ident_name(&arena, path.segments[1]));
 }
 
 #[test]
@@ -1305,10 +1306,11 @@ fn parse_class_type_params() {
 fn parse_type_path() {
     let (ty, arena) = parse_type("Foo::Bar::Baz");
     let ty = arena[ty].to_regular().unwrap();
-    assert_eq!(ty.path.segments.len(), 3);
-    assert_eq!(ident_name(&arena, ty.path.segments[0]), "Foo");
-    assert_eq!(ident_name(&arena, ty.path.segments[1]), "Bar");
-    assert_eq!(ident_name(&arena, ty.path.segments[2]), "Baz");
+    let path = arena[ty.path].to_path_data().expect("path expected");
+    assert_eq!(path.segments.len(), 3);
+    assert_eq!(ident_name(&arena, path.segments[0]), "Foo");
+    assert_eq!(ident_name(&arena, path.segments[1]), "Bar");
+    assert_eq!(ident_name(&arena, path.segments[2]), "Baz");
 }
 
 #[test]
@@ -1756,25 +1758,17 @@ fn ident_name<'a>(arena: &'a Arena<Ast>, node_id: AstId) -> &'a str {
 
 fn tr_name<'a>(f: &'a File, id: AstId) -> &'a str {
     let node = f.node(id).to_regular().expect("regular type expected");
-    assert_eq!(node.path.segments.len(), 1);
-    let segment_id = node
-        .path
-        .segments
-        .first()
-        .cloned()
-        .expect("missing segment");
+    let path = f.node(node.path).to_path_data().expect("path expected");
+    assert_eq!(path.segments.len(), 1);
+    let segment_id = path.segments.first().cloned().expect("missing segment");
     &f.node(segment_id).to_ident().expect("ident expected").name
 }
 
 fn tra_name<'a>(arena: &'a Arena<Ast>, id: AstId) -> &'a str {
     let node = arena[id].to_regular().expect("regular type expected");
-    assert_eq!(node.path.segments.len(), 1);
-    let segment_id = node
-        .path
-        .segments
-        .first()
-        .cloned()
-        .expect("missing segment");
+    let path = arena[node.path].to_path_data().expect("path expected");
+    assert_eq!(path.segments.len(), 1);
+    let segment_id = path.segments.first().cloned().expect("missing segment");
     &arena[segment_id].to_ident().expect("ident expected").name
 }
 

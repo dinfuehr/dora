@@ -226,7 +226,7 @@ fn check_pattern_inner(
         }
 
         ast::Pattern::ClassOrStructOrEnum(ref p) => {
-            let sym = read_path(ck, &p.path);
+            let sym = read_path(ck, p.path);
 
             match sym {
                 Ok(SymbolKind::EnumVariant(enum_id, variant_id)) => {
@@ -243,7 +243,7 @@ fn check_pattern_inner(
 
                 Ok(..) => {
                     let msg = ErrorMessage::EnumVariantExpected;
-                    ck.sa.report(ck.file_id, p.path.span, msg);
+                    ck.sa.report(ck.file_id, ck.span(p.path), msg);
                 }
 
                 Err(..) => {}

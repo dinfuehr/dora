@@ -1159,7 +1159,7 @@ impl Parser {
         }
     }
 
-    fn parse_path(&mut self) -> Path {
+    fn parse_path(&mut self) -> AstId {
         self.start_node();
         let mut segments = Vec::new();
         let segment = self.parse_path_segment();
@@ -1170,11 +1170,14 @@ impl Parser {
             segments.push(segment);
         }
 
-        Arc::new(PathData {
-            id: self.new_node_id(),
-            span: self.finish_node(),
+        let node_id = self.new_node_id();
+        let span = self.finish_node();
+
+        self.ast_nodes.alloc(Ast::PathData(PathData {
+            id: node_id,
+            span,
             segments,
-        })
+        }))
     }
 
     fn parse_path_segment(&mut self) -> AstId {

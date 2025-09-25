@@ -129,6 +129,10 @@ pub trait Visitor: Sized {
         walk_path(self, f, id, e);
     }
 
+    fn visit_path_data(&mut self, f: &File, id: AstId, node: &PathData) {
+        walk_path_data(self, f, id, node);
+    }
+
     fn visit_dot(&mut self, f: &File, id: AstId, e: &ExprDotType) {
         walk_dot(self, f, id, e);
     }
@@ -273,6 +277,7 @@ pub fn dispatch_ast<V: Visitor>(v: &mut V, f: &File, id: AstId, e: &Ast) {
         Ast::Call(ref node) => v.visit_call(f, id, node),
         Ast::TypeParam(ref node) => v.visit_type_param(f, id, node),
         Ast::Path(ref node) => v.visit_path(f, id, node),
+        Ast::PathData(ref node) => v.visit_path_data(f, id, node),
         Ast::Dot(ref node) => v.visit_dot(f, id, node),
         Ast::Conv(ref node) => v.visit_conv(f, id, node),
         Ast::Is(ref node) => v.visit_is(f, id, node),
@@ -493,6 +498,12 @@ pub fn walk_type_param<V: Visitor>(v: &mut V, f: &File, _id: AstId, node: &ExprT
 pub fn walk_path<V: Visitor>(v: &mut V, f: &File, _id: AstId, node: &ExprPathType) {
     dispatch_ast_id(v, f, node.lhs);
     dispatch_ast_id(v, f, node.rhs);
+}
+
+pub fn walk_path_data<V: Visitor>(v: &mut V, f: &File, _id: AstId, node: &PathData) {
+    for &segment_id in &node.segments {
+        dispatch_ast_id(v, f, segment_id);
+    }
 }
 
 pub fn walk_dot<V: Visitor>(v: &mut V, f: &File, _id: AstId, node: &ExprDotType) {

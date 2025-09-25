@@ -35,7 +35,12 @@ pub fn parse_path(
     allow_self: bool,
     regular: &ast::TypeRegularType,
 ) -> Result<PathKind, ()> {
-    let segments = &regular.path.segments;
+    let path_id = regular.path;
+    let segments = &sa
+        .node(file_id, path_id)
+        .to_path_data()
+        .expect("path expected")
+        .segments;
     let first_segment_id = segments.first().cloned().expect("no segment");
     let first_segment = sa.node(file_id, first_segment_id);
 
@@ -57,14 +62,18 @@ fn parse_path_self(
     allow_self: bool,
     regular: &ast::TypeRegularType,
 ) -> Result<PathKind, ()> {
-    let segments = &regular.path.segments;
+    let segments = &sa
+        .node(file_id, regular.path)
+        .to_path_data()
+        .expect("path expected")
+        .segments;
     let first_segment_id = segments[0];
     assert!(sa.node(file_id, first_segment_id).is_upcase_this());
 
     if !allow_self {
         sa.report(
             file_id,
-            regular.path.span,
+            sa.node(file_id, regular.path).span(),
             ErrorMessage::SelfTypeUnavailable,
         );
         return Err(());
@@ -78,7 +87,13 @@ fn parse_path_self(
     let segment_name_id = segments.get(1).cloned().expect("missing name");
 
     let name = expect_ident(sa, file_id, segment_name_id)?;
-    let alias_id = lookup_alias_on_self(sa, file_id, regular.path.span, element, name)?;
+    let alias_id = lookup_alias_on_self(
+        sa,
+        file_id,
+        sa.node(file_id, regular.path).span(),
+        element,
+        name,
+    )?;
 
     if let Some(alias_id) = alias_id {
         Ok(PathKind::Symbol(SymbolKind::Alias(alias_id)))
@@ -96,7 +111,11 @@ fn parse_path_ident(
     element: &dyn Element,
     regular: &ast::TypeRegularType,
 ) -> Result<PathKind, ()> {
-    let segments = &regular.path.segments;
+    let segments = &sa
+        .node(file_id, regular.path)
+        .to_path_data()
+        .expect("path expected")
+        .segments;
     let node = sa
         .node(file_id, segments[0])
         .to_ident()
