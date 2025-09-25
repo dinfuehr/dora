@@ -46,6 +46,8 @@ impl<'a> AstDumper<'a> {
             Ast::Function(ref node) => self.dump_fct(id, node),
             Ast::Class(ref node) => self.dump_class(id, node),
             Ast::Struct(ref node) => self.dump_struct(id, node),
+            Ast::WhereClause(ref node) => self.dump_where(id, node),
+            Ast::WhereClauseItem(ref node) => self.dump_where_clause(id, node),
             Ast::Field(ref node) => self.dump_field(id, node),
             Ast::Trait(ref node) => self.dump_trait(id, node),
             Ast::Impl(ref node) => self.dump_impl(id, node),
@@ -231,6 +233,27 @@ impl<'a> AstDumper<'a> {
         self.indent(|d| {
             for &field_id in &node.fields {
                 d.dump_node_id(field_id);
+            }
+        });
+    }
+
+    fn dump_where(&mut self, id: AstId, node: &WhereClause) {
+        dump!(self, "where @ {} {} {:?}", node.span, node.id, id);
+
+        self.indent(|d| {
+            for &clause_id in &node.clauses {
+                d.dump_node_id(clause_id);
+            }
+        });
+    }
+
+    fn dump_where_clause(&mut self, id: AstId, node: &WhereClauseItem) {
+        dump!(self, "where clause @ {} {} {:?}", node.span, node.id, id);
+
+        self.indent(|d| {
+            d.dump_node_id(node.ty);
+            for &clause_id in &node.bounds {
+                d.dump_node_id(clause_id);
             }
         });
     }

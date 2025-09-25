@@ -98,6 +98,8 @@ pub enum Ast {
     Function(Function),
     Class(Class),
     Struct(Struct),
+    WhereClause(WhereClause),
+    WhereClauseItem(WhereClauseItem),
     Field(Field),
     Trait(Trait),
     Impl(Impl),
@@ -159,6 +161,8 @@ impl Ast {
             Ast::Function(ref node) => node.id,
             Ast::Class(ref node) => node.id,
             Ast::Struct(ref node) => node.id,
+            Ast::WhereClause(ref node) => node.id,
+            Ast::WhereClauseItem(ref node) => node.id,
             Ast::Field(ref node) => node.id,
             Ast::Trait(ref node) => node.id,
             Ast::Impl(ref node) => node.id,
@@ -220,6 +224,8 @@ impl Ast {
             Ast::Function(ref node) => node.span,
             Ast::Class(ref node) => node.span,
             Ast::Struct(ref node) => node.span,
+            Ast::WhereClause(ref node) => node.span,
+            Ast::WhereClauseItem(ref node) => node.span,
             Ast::Field(ref node) => node.span,
             Ast::Trait(ref node) => node.span,
             Ast::Impl(ref node) => node.span,
@@ -279,6 +285,20 @@ impl Ast {
     pub fn to_function(&self) -> Option<&Function> {
         match self {
             &Ast::Function(ref fct) => Some(fct),
+            _ => None,
+        }
+    }
+
+    pub fn to_where_clause(&self) -> Option<&WhereClause> {
+        match self {
+            &Ast::WhereClause(ref node) => Some(node),
+            _ => None,
+        }
+    }
+
+    pub fn to_where_clause_item(&self) -> Option<&WhereClauseItem> {
+        match self {
+            &Ast::WhereClauseItem(ref node) => Some(node),
             _ => None,
         }
     }
@@ -501,7 +521,7 @@ pub struct Enum {
     pub name: Option<AstId>,
     pub type_params: Option<TypeParams>,
     pub variants: Vec<EnumVariant>,
-    pub where_bounds: Option<WhereBounds>,
+    pub where_clause: Option<AstId>,
 }
 
 #[derive(Clone, Debug)]
@@ -521,7 +541,7 @@ pub struct Struct {
     pub name: Option<AstId>,
     pub fields: Vec<AstId>,
     pub type_params: Option<TypeParams>,
-    pub where_bounds: Option<WhereBounds>,
+    pub where_clause: Option<AstId>,
     pub field_style: FieldNameStyle,
 }
 
@@ -547,19 +567,15 @@ impl FieldNameStyle {
     }
 }
 
-pub type WhereBounds = Arc<WhereBoundsData>;
-
 #[derive(Clone, Debug)]
-pub struct WhereBoundsData {
+pub struct WhereClause {
     pub id: NodeId,
     pub span: Span,
-    pub clauses: Vec<WhereClause>,
+    pub clauses: Vec<AstId>,
 }
 
-pub type WhereClause = Arc<WhereBoundData>;
-
 #[derive(Clone, Debug)]
-pub struct WhereBoundData {
+pub struct WhereClauseItem {
     pub id: NodeId,
     pub span: Span,
     pub ty: AstId,
@@ -707,7 +723,7 @@ pub struct Impl {
     pub type_params: Option<TypeParams>,
     pub trait_type: Option<AstId>,
     pub extended_type: AstId,
-    pub where_bounds: Option<WhereBounds>,
+    pub where_clause: Option<AstId>,
 
     pub methods: Vec<AstId>,
 }
@@ -719,7 +735,7 @@ pub struct Trait {
     pub modifiers: Option<ModifierList>,
     pub type_params: Option<TypeParams>,
     pub bounds: Vec<AstId>,
-    pub where_bounds: Option<WhereBounds>,
+    pub where_clause: Option<AstId>,
     pub span: Span,
     pub methods: Vec<AstId>,
 }
@@ -732,10 +748,10 @@ pub struct Alias {
     pub modifiers: Option<ModifierList>,
     pub name: Option<AstId>,
     pub type_params: Option<TypeParams>,
-    pub pre_where_bounds: Option<WhereBounds>,
+    pub pre_where_clause: Option<AstId>,
     pub bounds: Vec<AstId>,
     pub ty: Option<AstId>,
-    pub post_where_bounds: Option<WhereBounds>,
+    pub post_where_clause: Option<AstId>,
 }
 
 #[derive(Clone, Debug)]
@@ -747,7 +763,7 @@ pub struct Class {
 
     pub fields: Vec<AstId>,
     pub type_params: Option<TypeParams>,
-    pub where_bounds: Option<WhereBounds>,
+    pub where_clause: Option<AstId>,
     pub field_name_style: FieldNameStyle,
 }
 
@@ -815,7 +831,7 @@ pub struct Function {
     pub type_params: Option<TypeParams>,
     pub params: Vec<AstId>,
     pub return_type: Option<AstId>,
-    pub where_bounds: Option<WhereBounds>,
+    pub where_clause: Option<AstId>,
     pub block: Option<AstId>,
 }
 

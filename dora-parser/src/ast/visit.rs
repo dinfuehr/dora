@@ -29,6 +29,14 @@ pub trait Visitor: Sized {
         walk_struct(self, f, id, s);
     }
 
+    fn visit_where_item(&mut self, f: &File, id: AstId, node: &WhereClause) {
+        walk_where_clause(self, f, id, node);
+    }
+
+    fn visit_where_clause_item(&mut self, f: &File, id: AstId, node: &WhereClauseItem) {
+        walk_where_clause_item(self, f, id, node);
+    }
+
     fn visit_const(&mut self, f: &File, id: AstId, c: &Const) {
         walk_const(self, f, id, c);
     }
@@ -251,6 +259,8 @@ pub fn dispatch_ast<V: Visitor>(v: &mut V, f: &File, id: AstId, e: &Ast) {
         Ast::Function(fct) => v.visit_fct(f, id, fct),
         Ast::Class(ref c) => v.visit_class(f, id, c),
         Ast::Struct(ref s) => v.visit_struct(f, id, s),
+        Ast::WhereClause(ref node) => v.visit_where_item(f, id, node),
+        Ast::WhereClauseItem(ref node) => v.visit_where_clause_item(f, id, node),
         Ast::Field(ref node) => v.visit_field(f, id, node),
         Ast::Trait(ref t) => v.visit_trait(f, id, t),
         Ast::Impl(ref i) => v.visit_impl(f, id, i),
@@ -394,6 +404,19 @@ pub fn walk_type_alias<V: Visitor>(_v: &mut V, _f: &File, _id: AstId, _node: &Al
 pub fn walk_struct<V: Visitor>(v: &mut V, f: &File, _id: AstId, s: &Struct) {
     for &field_id in &s.fields {
         dispatch_ast_id(v, f, field_id);
+    }
+}
+
+pub fn walk_where_clause<V: Visitor>(v: &mut V, f: &File, _id: AstId, node: &WhereClause) {
+    for &where_clause_id in &node.clauses {
+        dispatch_ast_id(v, f, where_clause_id);
+    }
+}
+
+pub fn walk_where_clause_item<V: Visitor>(v: &mut V, f: &File, _id: AstId, node: &WhereClauseItem) {
+    dispatch_ast_id(v, f, node.ty);
+    for &bound_id in &node.bounds {
+        dispatch_ast_id(v, f, bound_id);
     }
 }
 

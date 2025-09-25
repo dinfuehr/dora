@@ -320,7 +320,7 @@ impl Parser {
         self.assert(ENUM_KW);
         let name = self.expect_identifier();
         let type_params = self.parse_type_params();
-        let where_bounds = self.parse_where();
+        let where_clause = self.parse_where_clause();
 
         let variants = if self.is(L_BRACE) {
             self.parse_list(
@@ -349,7 +349,7 @@ impl Parser {
             name,
             type_params,
             variants,
-            where_bounds,
+            where_clause,
         }
     }
 
@@ -470,7 +470,7 @@ impl Parser {
             (type_name, None)
         };
 
-        let where_bounds = self.parse_where();
+        let where_clause = self.parse_where_clause();
         let declaration_span = self.span_from(start);
 
         self.expect(L_BRACE);
@@ -491,7 +491,7 @@ impl Parser {
             type_params,
             trait_type,
             extended_type,
-            where_bounds,
+            where_clause,
             methods,
         }
     }
@@ -535,7 +535,7 @@ impl Parser {
         } else {
             Vec::new()
         };
-        let where_bounds = self.parse_where();
+        let where_clause = self.parse_where_clause();
 
         self.expect(L_BRACE);
 
@@ -553,7 +553,7 @@ impl Parser {
             modifiers: modifiers.clone(),
             type_params,
             bounds,
-            where_bounds,
+            where_clause,
             span: self.finish_node(),
             methods,
         }
@@ -564,16 +564,16 @@ impl Parser {
         self.assert(TYPE_KW);
         let name = self.expect_identifier();
         let type_params = self.parse_type_params();
-        let pre_where_bounds = self.parse_where();
+        let pre_where_clause = self.parse_where_clause();
         let bounds = if self.eat(COLON) {
             self.parse_type_bounds()
         } else {
             Vec::new()
         };
-        let (ty, post_where_bounds) = if self.eat(EQ) {
+        let (ty, post_where_clause) = if self.eat(EQ) {
             let ty = self.parse_type();
-            let post_where_bounds = self.parse_where();
-            (Some(ty), post_where_bounds)
+            let post_where_clause = self.parse_where_clause();
+            (Some(ty), post_where_clause)
         } else {
             (None, None)
         };
@@ -585,10 +585,10 @@ impl Parser {
             modifiers,
             name,
             type_params,
-            pre_where_bounds,
+            pre_where_clause,
             bounds,
             ty,
-            post_where_bounds,
+            post_where_clause,
         }
     }
 
@@ -597,7 +597,7 @@ impl Parser {
         self.assert(STRUCT_KW);
         let ident = self.expect_identifier();
         let type_params = self.parse_type_params();
-        let where_bounds = self.parse_where();
+        let where_clause = self.parse_where_clause();
         let field_style;
 
         let fields = if self.is(L_PAREN) {
@@ -645,7 +645,7 @@ impl Parser {
             span: self.finish_node(),
             fields,
             type_params,
-            where_bounds,
+            where_clause,
             field_style,
         }
     }
@@ -696,7 +696,7 @@ impl Parser {
 
         let name = self.expect_identifier();
         let type_params = self.parse_type_params();
-        let where_bounds = self.parse_where();
+        let where_clause = self.parse_where_clause();
         let field_name_style;
 
         let fields = if self.is(L_PAREN) {
@@ -745,7 +745,7 @@ impl Parser {
             name,
             fields,
             type_params,
-            where_bounds,
+            where_clause,
             field_name_style,
         }
     }
@@ -862,7 +862,7 @@ impl Parser {
         let type_params = self.parse_type_params();
         let params = self.parse_function_params();
         let return_type = self.parse_function_type();
-        let where_bounds = self.parse_where();
+        let where_clause = self.parse_where_clause();
         let declaration_span = self.span_from(start);
         let block = self.parse_function_block();
 
@@ -877,7 +877,7 @@ impl Parser {
             return_type,
             block,
             type_params,
-            where_bounds,
+            where_clause,
         }
     }
 
@@ -980,7 +980,7 @@ impl Parser {
         }
     }
 
-    fn parse_where(&mut self) -> Option<WhereBounds> {
+    fn parse_where_clause(&mut self) -> Option<AstId> {
         if self.is(WHERE_KW) {
             self.start_node();
             self.assert(WHERE_KW);
@@ -988,24 +988,27 @@ impl Parser {
             let mut clauses = Vec::new();
 
             loop {
-                clauses.push(self.parse_where_clause());
+                clauses.push(self.parse_where_clause_item());
 
                 if !self.eat(COMMA) {
                     break;
                 }
             }
 
-            Some(Arc::new(WhereBoundsData {
-                id: self.new_node_id(),
-                span: self.finish_node(),
+            let node_id = self.new_node_id();
+            let span = self.finish_node();
+
+            Some(self.ast_nodes.alloc(Ast::WhereClause(WhereClause {
+                id: node_id,
+                span,
                 clauses,
-            }))
+            })))
         } else {
             None
         }
     }
 
-    fn parse_where_clause(&mut self) -> WhereClause {
+    fn parse_where_clause_item(&mut self) -> AstId {
         self.start_node();
         let ty = self.parse_type();
         self.expect(COLON);
@@ -1019,12 +1022,15 @@ impl Parser {
             }
         }
 
-        Arc::new(WhereBoundData {
-            id: self.new_node_id(),
-            span: self.finish_node(),
+        let node_id = self.new_node_id();
+        let span = self.finish_node();
+
+        self.ast_nodes.alloc(Ast::WhereClauseItem(WhereClauseItem {
+            id: node_id,
+            span,
             ty,
             bounds,
-        })
+        }))
     }
 
     fn parse_function_block(&mut self) -> Option<AstId> {
@@ -2143,7 +2149,7 @@ impl Parser {
             return_type,
             block: Some(block),
             type_params: None,
-            where_bounds: None,
+            where_clause: None,
         }));
 
         let node_id = self.new_node_id();

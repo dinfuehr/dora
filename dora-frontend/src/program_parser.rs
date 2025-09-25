@@ -453,7 +453,7 @@ impl<'x> visit::Visitor for TopLevelDeclaration<'x> {
             self.sa,
             None,
             node.type_params.as_ref(),
-            node.where_bounds.as_ref(),
+            node.where_clause,
             Some(&node.bounds),
             self.file_id,
         );
@@ -529,7 +529,7 @@ impl<'x> visit::Visitor for TopLevelDeclaration<'x> {
             self.sa,
             None,
             node.type_params.as_ref(),
-            node.where_bounds.as_ref(),
+            node.where_clause,
             None,
             self.file_id,
         );
@@ -606,7 +606,7 @@ impl<'x> visit::Visitor for TopLevelDeclaration<'x> {
             self.sa,
             None,
             node.type_params.as_ref(),
-            node.where_bounds.as_ref(),
+            node.where_clause,
             None,
             self.file_id,
         );
@@ -687,7 +687,7 @@ impl<'x> visit::Visitor for TopLevelDeclaration<'x> {
             self.sa,
             None,
             node.type_params.as_ref(),
-            node.where_bounds.as_ref(),
+            node.where_clause,
             None,
             self.file_id,
         );
@@ -779,7 +779,7 @@ impl<'x> visit::Visitor for TopLevelDeclaration<'x> {
             self.sa,
             None,
             node.type_params.as_ref(),
-            node.where_bounds.as_ref(),
+            node.where_clause,
             None,
             self.file_id,
         );
@@ -812,7 +812,7 @@ impl<'x> visit::Visitor for TopLevelDeclaration<'x> {
             self.sa,
             None,
             node.type_params.as_ref(),
-            node.where_bounds.as_ref(),
+            node.where_clause,
             None,
             self.file_id,
         );
@@ -934,15 +934,15 @@ impl<'x> visit::Visitor for TopLevelDeclaration<'x> {
             self.sa,
             None,
             node.type_params.as_ref(),
-            node.pre_where_bounds.as_ref(),
+            node.pre_where_clause,
             None,
             self.file_id,
         );
 
-        if let Some(ref post_where_bounds) = node.post_where_bounds {
+        if let Some(post_where_clause) = node.post_where_clause {
             self.sa.report(
                 self.file_id,
-                post_where_bounds.span,
+                self.sa.node(self.file_id, post_where_clause).span(),
                 ErrorMessage::UnexpectedWhere,
             );
         }
@@ -1016,7 +1016,7 @@ fn find_elements_in_trait(
                     sa,
                     Some(container_type_param_definition),
                     method_node.type_params.as_ref(),
-                    method_node.where_bounds.as_ref(),
+                    method_node.where_clause,
                     None,
                     file_id,
                 );
@@ -1075,25 +1075,25 @@ fn find_elements_in_trait(
                     bounds.push(AliasBound::new(ast_alias_bound.clone()));
                 }
 
-                let where_bounds = if let Some(node_ty) = node.ty {
+                let where_clause = if let Some(node_ty) = node.ty {
                     sa.report(
                         file_id,
                         sa.node(file_id, node_ty).span(),
                         ErrorMessage::UnexpectedTypeAliasAssignment,
                     );
 
-                    if let Some(ref pre_where_bounds) = node.pre_where_bounds {
+                    if let Some(pre_where_clause) = node.pre_where_clause {
                         sa.report(
                             file_id,
-                            pre_where_bounds.span,
+                            sa.node(file_id, pre_where_clause).span(),
                             ErrorMessage::UnexpectedWhere,
                         );
                     }
 
-                    node.post_where_bounds.as_ref()
+                    node.post_where_clause
                 } else {
-                    assert!(node.post_where_bounds.is_none());
-                    node.pre_where_bounds.as_ref()
+                    assert!(node.post_where_clause.is_none());
+                    node.pre_where_clause
                 };
 
                 let container_type_param_definition =
@@ -1102,7 +1102,7 @@ fn find_elements_in_trait(
                     sa,
                     Some(container_type_param_definition),
                     node.type_params.as_ref(),
-                    where_bounds,
+                    where_clause,
                     None,
                     file_id,
                 );
@@ -1193,7 +1193,7 @@ fn find_elements_in_impl(
                     sa,
                     Some(container_type_param_definition),
                     method_node.type_params.as_ref(),
-                    method_node.where_bounds.as_ref(),
+                    method_node.where_clause,
                     None,
                     file_id,
                 );
@@ -1232,19 +1232,19 @@ fn find_elements_in_impl(
                     ParsedType::new_ty(ty::error())
                 };
 
-                let where_bounds = if node.ty.is_some() {
-                    if let Some(ref pre_where_bounds) = node.pre_where_bounds {
+                let where_clause = if node.ty.is_some() {
+                    if let Some(pre_where_clause) = node.pre_where_clause {
                         sa.report(
                             file_id,
-                            pre_where_bounds.span,
+                            sa.node(file_id, pre_where_clause).span(),
                             ErrorMessage::UnexpectedWhere,
                         );
                     }
 
-                    node.post_where_bounds.as_ref()
+                    node.post_where_clause
                 } else {
-                    assert!(node.post_where_bounds.is_none());
-                    node.pre_where_bounds.as_ref()
+                    assert!(node.post_where_clause.is_none());
+                    node.pre_where_clause
                 };
 
                 let container_type_param_definition =
@@ -1253,7 +1253,7 @@ fn find_elements_in_impl(
                     sa,
                     Some(container_type_param_definition),
                     node.type_params.as_ref(),
-                    where_bounds,
+                    where_clause,
                     None,
                     file_id,
                 );
@@ -1332,7 +1332,7 @@ fn find_elements_in_extension(
                     sa,
                     Some(container_type_param_definition),
                     method_node.type_params.as_ref(),
-                    method_node.where_bounds.as_ref(),
+                    method_node.where_clause,
                     None,
                     extension.file_id,
                 );
@@ -1620,7 +1620,7 @@ fn parse_type_param_definition(
     sa: &Sema,
     parent: Option<Rc<TypeParamDefinition>>,
     ast_type_params: Option<&ast::TypeParams>,
-    where_bounds: Option<&ast::WhereBounds>,
+    where_id: Option<ast::AstId>,
     trait_bounds: Option<&Vec<ast::AstId>>,
     file_id: SourceFileId,
 ) -> Rc<TypeParamDefinition> {
@@ -1660,8 +1660,17 @@ fn parse_type_param_definition(
         }
     }
 
-    if let Some(where_bounds) = where_bounds {
-        for clause in where_bounds.clauses.iter() {
+    if let Some(where_id) = where_id {
+        let where_ = sa
+            .node(file_id, where_id)
+            .to_where_clause()
+            .expect("where expected");
+
+        for &clause_id in where_.clauses.iter() {
+            let clause = sa
+                .node(file_id, clause_id)
+                .to_where_clause_item()
+                .expect("clause expected");
             for bound in &clause.bounds {
                 type_param_definition.add_where_bound(clause.ty.clone(), bound.clone());
             }
