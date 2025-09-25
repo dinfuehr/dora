@@ -50,10 +50,25 @@ fn check_match(
 ) {
     let mut matrix = Vec::new();
 
-    let any_arm_has_guard = node.arms.iter().find(|a| a.cond.is_some()).is_some();
+    let any_arm_has_guard = node
+        .arms
+        .iter()
+        .find(|&&arm_id| {
+            let arm = sa
+                .node(file_id, arm_id)
+                .to_match_arm()
+                .expect("arm expected");
+            arm.cond.is_some()
+        })
+        .is_some();
     let patterns_per_row = if any_arm_has_guard { 2 } else { 1 };
 
-    for arm in &node.arms {
+    for &arm_id in &node.arms {
+        let arm = sa
+            .node(file_id, arm_id)
+            .to_match_arm()
+            .expect("arm expected");
+
         let mut row = Vec::with_capacity(patterns_per_row);
         if any_arm_has_guard {
             if arm.cond.is_some() {

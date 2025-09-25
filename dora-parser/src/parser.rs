@@ -1336,9 +1336,13 @@ impl Parser {
         self.expect(L_BRACE);
 
         while !self.is(R_BRACE) && !self.is_eof() {
-            let case = self.parse_match_arm();
-            let is_block = self.ast_nodes[case.value].is_block();
-            cases.push(case);
+            let arm_id = self.parse_match_arm();
+            let arm_value_id = self.ast_nodes[arm_id]
+                .to_match_arm()
+                .expect("arm expected")
+                .value;
+            let is_block = self.ast_nodes[arm_value_id].is_block();
+            cases.push(arm_id);
 
             if !self.is(R_BRACE) && !self.is_eof() {
                 if is_block {
@@ -1358,7 +1362,7 @@ impl Parser {
             .alloc(Ast::create_match(node_id, span, expr, cases))
     }
 
-    fn parse_match_arm(&mut self) -> Arc<MatchArmType> {
+    fn parse_match_arm(&mut self) -> AstId {
         self.start_node();
         let pattern = self.parse_pattern();
 
@@ -1373,13 +1377,16 @@ impl Parser {
 
         let value = self.parse_expr_stmt();
 
-        Arc::new(MatchArmType {
-            id: self.new_node_id(),
-            span: self.finish_node(),
+        let node_id = self.new_node_id();
+        let span = self.finish_node();
+
+        self.ast_nodes.alloc(Ast::MatchArm(MatchArmType {
+            id: node_id,
+            span,
             pattern,
             cond,
             value,
-        })
+        }))
     }
 
     fn parse_pattern(&mut self) -> Arc<Pattern> {

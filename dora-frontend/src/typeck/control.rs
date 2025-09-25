@@ -353,7 +353,8 @@ pub(super) fn check_expr_match(
     ck.analysis.set_ty(ck.id(node.expr), expr_type.clone());
     let mut result_type = ty::error();
 
-    for arm in &node.arms {
+    for &arm_id in &node.arms {
+        let arm = ck.node(arm_id).to_match_arm().expect("arm expected");
         ck.symtable.push_level();
         check_expr_match_arm(
             ck,

@@ -144,6 +144,7 @@ pub enum Ast {
     Tuple(ExprTupleType),
     Paren(ExprParenType),
     Match(ExprMatchType),
+    MatchArm(MatchArmType),
     Break(ExprBreakType),
     Continue(ExprContinueType),
     Return(ExprReturnType),
@@ -200,6 +201,7 @@ impl Ast {
             Ast::Tuple(ref val) => val.id,
             Ast::Paren(ref val) => val.id,
             Ast::Match(ref val) => val.id,
+            Ast::MatchArm(ref node) => node.id,
             Ast::For(ref val) => val.id,
             Ast::While(ref val) => val.id,
             Ast::Break(ref val) => val.id,
@@ -258,6 +260,7 @@ impl Ast {
             Ast::Tuple(ref val) => val.span,
             Ast::Paren(ref val) => val.span,
             Ast::Match(ref val) => val.span,
+            Ast::MatchArm(ref node) => node.span,
             Ast::For(ref val) => val.span,
             Ast::While(ref val) => val.span,
             Ast::Break(ref val) => val.span,
@@ -270,6 +273,13 @@ impl Ast {
     pub fn to_function(&self) -> Option<&Function> {
         match self {
             &Ast::Function(ref fct) => Some(fct),
+            _ => None,
+        }
+    }
+
+    pub fn to_match_arm(&self) -> Option<&MatchArmType> {
+        match self {
+            &Ast::MatchArm(ref node) => Some(node),
             _ => None,
         }
     }
@@ -1118,7 +1128,7 @@ impl Ast {
         })
     }
 
-    pub fn create_match(id: NodeId, span: Span, expr: AstId, arms: Vec<Arc<MatchArmType>>) -> Ast {
+    pub fn create_match(id: NodeId, span: Span, expr: AstId, arms: Vec<AstId>) -> Ast {
         Ast::Match(ExprMatchType {
             id,
             span,
@@ -1876,7 +1886,7 @@ pub struct ExprMatchType {
     pub span: Span,
 
     pub expr: AstId,
-    pub arms: Vec<Arc<MatchArmType>>,
+    pub arms: Vec<AstId>,
 }
 
 #[derive(Clone, Debug)]

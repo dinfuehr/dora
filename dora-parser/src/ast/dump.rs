@@ -90,6 +90,7 @@ impl<'a> AstDumper<'a> {
             Ast::Tuple(ref expr) => self.dump_expr_tuple(id, expr),
             Ast::Paren(ref expr) => self.dump_expr_paren(id, expr),
             Ast::Match(ref expr) => self.dump_expr_match(id, expr),
+            Ast::MatchArm(ref node) => self.dump_expr_match_arm(id, node),
             Ast::For(ref expr) => self.dump_expr_for(id, expr),
             Ast::While(ref expr) => self.dump_expr_while(id, expr),
             Ast::Break(ref expr) => self.dump_expr_break(id, expr),
@@ -652,6 +653,21 @@ impl<'a> AstDumper<'a> {
         dump!(self, "match @ {} {} {:?}", expr.span, expr.id, id);
         self.indent(|d| {
             d.dump_node_id(expr.expr);
+
+            for &arm_id in &expr.arms {
+                d.dump_node_id(arm_id);
+            }
+        });
+    }
+
+    fn dump_expr_match_arm(&mut self, id: AstId, node: &MatchArmType) {
+        dump!(self, "match arm @ {} {} {:?}", node.span, node.id, id);
+        self.indent(|d| {
+            if let Some(cond_id) = node.cond {
+                d.dump_node_id(cond_id);
+            }
+
+            d.dump_node_id(node.value);
         });
     }
 

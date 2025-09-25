@@ -371,7 +371,7 @@ pub(super) fn gen_match(
 
     arm_labels.push(fallthrough_lbl);
 
-    for (idx, arm) in node.arms.iter().enumerate() {
+    for (idx, &arm_id) in node.arms.iter().enumerate() {
         let arm_lbl = arm_labels[idx];
         g.builder.bind_label(arm_lbl);
 
@@ -379,6 +379,7 @@ pub(super) fn gen_match(
 
         g.push_scope();
 
+        let arm = g.node(arm_id).to_match_arm().expect("arm expected");
         let pattern = arm.pattern.as_ref();
         g.setup_pattern_vars(pattern);
         g.destruct_pattern(pattern, expr_reg, expr_ty.clone(), Some(next_arm_lbl));

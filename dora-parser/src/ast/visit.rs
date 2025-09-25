@@ -173,6 +173,10 @@ pub trait Visitor: Sized {
         walk_match(self, f, id, e);
     }
 
+    fn visit_match_arm(&mut self, f: &File, id: AstId, node: &MatchArmType) {
+        walk_match_arm(self, f, id, node);
+    }
+
     fn visit_return(&mut self, f: &File, id: AstId, e: &ExprReturnType) {
         walk_return(self, f, id, e);
     }
@@ -277,6 +281,7 @@ pub fn dispatch_ast<V: Visitor>(v: &mut V, f: &File, id: AstId, e: &Ast) {
         Ast::Tuple(ref node) => v.visit_tuple(f, id, node),
         Ast::Paren(ref node) => v.visit_paren(f, id, node),
         Ast::Match(ref node) => v.visit_match(f, id, node),
+        Ast::MatchArm(ref node) => v.visit_match_arm(f, id, node),
         Ast::Return(ref node) => v.visit_return(f, id, node),
         Ast::Break(ref node) => v.visit_break(f, id, node),
         Ast::Continue(ref node) => v.visit_continue(f, id, node),
@@ -544,12 +549,17 @@ pub fn walk_paren<V: Visitor>(v: &mut V, f: &File, _id: AstId, node: &ExprParenT
 pub fn walk_match<V: Visitor>(v: &mut V, f: &File, _id: AstId, node: &ExprMatchType) {
     dispatch_ast_id(v, f, node.expr);
 
-    for arm in &node.arms {
-        if let Some(cond) = arm.cond {
-            dispatch_ast_id(v, f, cond);
-        }
-        dispatch_ast_id(v, f, arm.value);
+    for &arm_id in &node.arms {
+        dispatch_ast_id(v, f, arm_id);
     }
+}
+
+pub fn walk_match_arm<V: Visitor>(v: &mut V, f: &File, _id: AstId, node: &MatchArmType) {
+    if let Some(cond_id) = node.cond {
+        dispatch_ast_id(v, f, cond_id);
+    }
+
+    dispatch_ast_id(v, f, node.value);
 }
 
 pub fn walk_return<V: Visitor>(v: &mut V, f: &File, _id: AstId, node: &ExprReturnType) {
