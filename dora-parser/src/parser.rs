@@ -1,3 +1,4 @@
+use std::cell::{Cell, RefCell};
 use std::sync::Arc;
 
 use id_arena::Arena;
@@ -21,11 +22,11 @@ pub struct Parser {
     tokens: Vec<TokenKind>,
     token_widths: Vec<u32>,
     token_idx: usize,
-    next_node_id: usize,
+    next_node_id: Cell<usize>,
     content: Arc<String>,
     ast_nodes: Arena<Ast>,
     errors: Vec<ParseErrorWithLocation>,
-    nodes: Vec<(usize, u32)>,
+    nodes: RefCell<Vec<(usize, u32)>>,
     offset: u32,
 }
 
@@ -51,18 +52,18 @@ impl Parser {
             tokens: result.tokens,
             token_widths: result.widths,
             token_idx: 0,
-            next_node_id: 0,
+            next_node_id: Cell::new(0),
             offset: 0,
             content,
             ast_nodes: Arena::new(),
             errors: result.errors,
-            nodes: Vec::new(),
+            nodes: RefCell::new(Vec::new()),
         }
     }
 
     fn new_node_id(&mut self) -> NodeId {
-        let value = self.next_node_id;
-        self.next_node_id += 1;
+        let value = self.next_node_id.get();
+        self.next_node_id.set(value + 1);
         NodeId(value)
     }
 
@@ -74,7 +75,7 @@ impl Parser {
             elements.push(self.parse_element());
         }
 
-        assert!(self.nodes.is_empty());
+        assert!(self.nodes.borrow().is_empty());
 
         (
             Arc::new(ast::File {
@@ -2287,16 +2288,17 @@ impl Parser {
         self.current() == EOF
     }
 
-    fn start_node(&mut self) {
-        self.nodes.push((self.token_idx, self.offset));
+    fn start_node(&self) {
+        self.nodes.borrow_mut().push((self.token_idx, self.offset));
     }
 
-    fn cancel_node(&mut self) {
-        self.nodes.pop().expect("missing scope");
+    fn cancel_node(&self) {
+        self.nodes.borrow_mut().pop().expect("missing scope");
     }
 
-    fn finish_node(&mut self) -> Span {
-        let (start_token, start_offset) = self.nodes.pop().expect("missing node start");
+    fn finish_node(&self) -> Span {
+        let (start_token, start_offset) =
+            self.nodes.borrow_mut().pop().expect("missing node start");
 
         let mut end_token = self.token_idx - 1;
         assert!(end_token < self.tokens.len());
