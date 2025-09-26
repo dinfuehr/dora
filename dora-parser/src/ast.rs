@@ -152,6 +152,14 @@ pub enum Ast {
     Continue(ExprContinueType),
     Return(ExprReturnType),
     TypeArgument(TypeArgument),
+    Underscore(PatternUnderscore),
+    LitPattern(PatternLit),
+    IdentPattern(PatternIdent),
+    TuplePattern(PatternTuple),
+    ConstructorPattern(PatternConstructor),
+    ConstructorField(PatternField),
+    Rest(PatternRest),
+    Alt(PatternAlt),
     Error(Error),
 }
 
@@ -215,6 +223,14 @@ impl Ast {
             Ast::Continue(ref val) => val.id,
             Ast::Return(ref val) => val.id,
             Ast::TypeArgument(ref node) => node.id,
+            Ast::Underscore(ref node) => node.id,
+            Ast::LitPattern(ref node) => node.id,
+            Ast::IdentPattern(ref node) => node.id,
+            Ast::TuplePattern(ref node) => node.id,
+            Ast::ConstructorPattern(ref node) => node.id,
+            Ast::ConstructorField(ref node) => node.id,
+            Ast::Rest(ref node) => node.id,
+            Ast::Alt(ref node) => node.id,
             Ast::Error(ref node) => node.id,
         }
     }
@@ -278,6 +294,14 @@ impl Ast {
             Ast::Continue(ref val) => val.span,
             Ast::Return(ref val) => val.span,
             Ast::TypeArgument(ref node) => node.span,
+            Ast::Underscore(ref node) => node.span,
+            Ast::LitPattern(ref node) => node.span,
+            Ast::IdentPattern(ref node) => node.span,
+            Ast::TuplePattern(ref node) => node.span,
+            Ast::ConstructorPattern(ref node) => node.span,
+            Ast::ConstructorField(ref node) => node.span,
+            Ast::Rest(ref node) => node.span,
+            Ast::Alt(ref node) => node.span,
             Ast::Error(ref node) => node.span,
         }
     }
@@ -425,6 +449,104 @@ impl Ast {
     pub fn is_upcase_this(&self) -> bool {
         match self {
             &Ast::UpcaseThis(..) => true,
+            _ => false,
+        }
+    }
+
+    pub fn to_underscore(&self) -> Option<&PatternUnderscore> {
+        match self {
+            &Ast::Underscore(ref node) => Some(node),
+            _ => None,
+        }
+    }
+
+    pub fn is_underscore(&self) -> bool {
+        match self {
+            &Ast::Underscore(..) => true,
+            _ => false,
+        }
+    }
+
+    pub fn to_lit_pattern(&self) -> Option<&PatternLit> {
+        match self {
+            &Ast::LitPattern(ref node) => Some(node),
+            _ => None,
+        }
+    }
+
+    pub fn is_lit_pattern(&self) -> bool {
+        match self {
+            &Ast::LitPattern(..) => true,
+            _ => false,
+        }
+    }
+
+    pub fn to_ident_pattern(&self) -> Option<&PatternIdent> {
+        match self {
+            &Ast::IdentPattern(ref node) => Some(node),
+            _ => None,
+        }
+    }
+
+    pub fn is_ident_pattern(&self) -> bool {
+        match self {
+            &Ast::IdentPattern(..) => true,
+            _ => false,
+        }
+    }
+
+    pub fn to_tuple_pattern(&self) -> Option<&PatternTuple> {
+        match self {
+            &Ast::TuplePattern(ref node) => Some(node),
+            _ => None,
+        }
+    }
+
+    pub fn is_tuple_pattern(&self) -> bool {
+        match self {
+            &Ast::TuplePattern(..) => true,
+            _ => false,
+        }
+    }
+
+    pub fn to_constructor_pattern(&self) -> Option<&PatternConstructor> {
+        match self {
+            &Ast::ConstructorPattern(ref node) => Some(node),
+            _ => None,
+        }
+    }
+
+    pub fn is_constructor_pattern(&self) -> bool {
+        match self {
+            &Ast::ConstructorPattern(..) => true,
+            _ => false,
+        }
+    }
+
+    pub fn to_rest(&self) -> Option<&PatternRest> {
+        match self {
+            &Ast::Rest(ref node) => Some(node),
+            _ => None,
+        }
+    }
+
+    pub fn is_rest(&self) -> bool {
+        match self {
+            &Ast::Rest(..) => true,
+            _ => false,
+        }
+    }
+
+    pub fn to_alt(&self) -> Option<&PatternAlt> {
+        match self {
+            &Ast::Alt(ref node) => Some(node),
+            _ => None,
+        }
+    }
+
+    pub fn is_alt(&self) -> bool {
+        match self {
+            &Ast::Alt(..) => true,
             _ => false,
         }
     }
@@ -615,14 +737,6 @@ pub struct TypeArgument {
 
     pub name: Option<AstId>,
     pub ty: AstId,
-}
-
-#[derive(Clone, Debug)]
-pub struct TypePathType {
-    pub id: NodeId,
-    pub span: Span,
-
-    pub path: Path,
 }
 
 #[derive(Clone, Debug)]
@@ -1997,7 +2111,7 @@ pub enum Pattern {
     LitFloat(PatternLit),
     Tuple(PatternTuple),
     Ident(PatternIdent),
-    ClassOrStructOrEnum(PatternClassOrStructOrEnum),
+    Constructor(PatternConstructor),
     Rest(PatternRest),
     Alt(PatternAlt),
     Error(PatternError),
@@ -2014,7 +2128,7 @@ impl Pattern {
             Pattern::LitFloat(p) => p.id,
             Pattern::Tuple(p) => p.id,
             Pattern::Ident(p) => p.id,
-            Pattern::ClassOrStructOrEnum(p) => p.id,
+            Pattern::Constructor(p) => p.id,
             Pattern::Rest(p) => p.id,
             Pattern::Alt(p) => p.id,
             Pattern::Error(p) => p.id,
@@ -2031,7 +2145,7 @@ impl Pattern {
             Pattern::LitFloat(p) => p.span,
             Pattern::Tuple(p) => p.span,
             Pattern::Ident(p) => p.span,
-            Pattern::ClassOrStructOrEnum(p) => p.span,
+            Pattern::Constructor(p) => p.span,
             Pattern::Rest(p) => p.span,
             Pattern::Alt(p) => p.span,
             Pattern::Error(p) => p.span,
@@ -2151,7 +2265,7 @@ pub struct PatternTuple {
 }
 
 #[derive(Clone, Debug)]
-pub struct PatternClassOrStructOrEnum {
+pub struct PatternConstructor {
     pub id: NodeId,
     pub span: Span,
     pub path: AstId,
@@ -2173,8 +2287,6 @@ pub struct PatternParam {
     pub mutable: bool,
     pub name: Option<AstId>,
 }
-
-pub type Path = Arc<PathData>;
 
 #[derive(Clone, Debug)]
 pub struct PathData {

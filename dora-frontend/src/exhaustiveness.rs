@@ -1212,7 +1212,7 @@ fn convert_pattern(
                 .collect(),
         },
 
-        ast::Pattern::ClassOrStructOrEnum(ref p) => {
+        ast::Pattern::Constructor(ref p) => {
             let ident = analysis.map_idents.get(p.id).expect("missing ident");
 
             match ident {
@@ -1274,7 +1274,7 @@ fn convert_subpatterns(
     sa: &Sema,
     file_id: SourceFileId,
     analysis: &AnalysisData,
-    p: &ast::PatternClassOrStructOrEnum,
+    p: &ast::PatternConstructor,
     n: usize,
 ) -> Vec<Pattern> {
     if let Some(ref params) = p.params {

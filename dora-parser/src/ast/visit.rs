@@ -237,6 +237,38 @@ pub trait Visitor: Sized {
         walk_ident(self, f, id, e);
     }
 
+    fn visit_underscore(&mut self, f: &File, id: AstId, node: &PatternUnderscore) {
+        walk_underscore(self, f, id, node);
+    }
+
+    fn visit_lit_pattern(&mut self, f: &File, id: AstId, node: &PatternLit) {
+        walk_lit_pattern(self, f, id, node);
+    }
+
+    fn visit_ident_pattern(&mut self, f: &File, id: AstId, node: &PatternIdent) {
+        walk_ident_pattern(self, f, id, node);
+    }
+
+    fn visit_tuple_pattern(&mut self, f: &File, id: AstId, node: &PatternTuple) {
+        walk_tuple_pattern(self, f, id, node);
+    }
+
+    fn visit_constructor_pattern(&mut self, f: &File, id: AstId, node: &PatternConstructor) {
+        walk_constructor_pattern(self, f, id, node);
+    }
+
+    fn visit_constructor_field(&mut self, f: &File, id: AstId, node: &PatternField) {
+        walk_constructor_field(self, f, id, node);
+    }
+
+    fn visit_rest(&mut self, f: &File, id: AstId, node: &PatternRest) {
+        walk_rest(self, f, id, node);
+    }
+
+    fn visit_alt(&mut self, f: &File, id: AstId, node: &PatternAlt) {
+        walk_alt(self, f, id, node);
+    }
+
     fn visit_error(&mut self, f: &File, id: AstId, e: &Error) {
         walk_error(self, f, id, e);
     }
@@ -313,6 +345,14 @@ pub fn dispatch_ast<V: Visitor>(v: &mut V, f: &File, id: AstId, e: &Ast) {
         Ast::LitBool(ref node) => v.visit_lit_bool(f, id, node),
         Ast::Ident(ref node) => v.visit_ident(f, id, node),
         Ast::TypeArgument(ref node) => v.visit_type_argument(f, id, node),
+        Ast::Underscore(ref node) => v.visit_underscore(f, id, node),
+        Ast::LitPattern(ref node) => v.visit_lit_pattern(f, id, node),
+        Ast::IdentPattern(ref node) => v.visit_ident_pattern(f, id, node),
+        Ast::TuplePattern(ref node) => v.visit_tuple_pattern(f, id, node),
+        Ast::ConstructorPattern(ref node) => v.visit_constructor_pattern(f, id, node),
+        Ast::ConstructorField(ref node) => v.visit_constructor_field(f, id, node),
+        Ast::Rest(ref node) => v.visit_rest(f, id, node),
+        Ast::Alt(ref node) => v.visit_alt(f, id, node),
         Ast::Error(ref node) => v.visit_error(f, id, node),
     }
 }
@@ -656,4 +696,41 @@ pub fn walk_ident<V: Visitor>(_v: &mut V, _f: &File, _id: AstId, _node: &Ident) 
 
 pub fn walk_error<V: Visitor>(_v: &mut V, _f: &File, _id: AstId, _node: &Error) {
     // Nothing to do.
+}
+
+pub fn walk_underscore<V: Visitor>(_v: &mut V, _f: &File, _id: AstId, _node: &PatternUnderscore) {
+    // Nothing to do.
+}
+
+pub fn walk_lit_pattern<V: Visitor>(_v: &mut V, _f: &File, _id: AstId, _node: &PatternLit) {
+    unimplemented!()
+}
+
+pub fn walk_ident_pattern<V: Visitor>(_v: &mut V, _f: &File, _id: AstId, _node: &PatternIdent) {
+    unimplemented!()
+}
+
+pub fn walk_tuple_pattern<V: Visitor>(_v: &mut V, _f: &File, _id: AstId, _node: &PatternTuple) {
+    unimplemented!()
+}
+
+pub fn walk_rest<V: Visitor>(_v: &mut V, _f: &File, _id: AstId, _node: &PatternRest) {
+    unimplemented!()
+}
+
+pub fn walk_constructor_pattern<V: Visitor>(
+    _v: &mut V,
+    _f: &File,
+    _id: AstId,
+    _node: &PatternConstructor,
+) {
+    unimplemented!()
+}
+
+pub fn walk_constructor_field<V: Visitor>(_v: &mut V, _f: &File, _id: AstId, _node: &PatternField) {
+    unimplemented!()
+}
+
+pub fn walk_alt<V: Visitor>(_v: &mut V, _f: &File, _id: AstId, _node: &PatternAlt) {
+    unimplemented!()
 }

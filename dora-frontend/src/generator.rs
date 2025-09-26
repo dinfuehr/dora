@@ -428,7 +428,7 @@ impl<'a> AstBytecodeGen<'a> {
 
             ast::Pattern::Error(..) => unreachable!(),
 
-            ast::Pattern::ClassOrStructOrEnum(ref p) => {
+            ast::Pattern::Constructor(ref p) => {
                 if let Some(ref params) = p.params {
                     for param in params {
                         self.setup_pattern_vars(&param.pattern);
@@ -669,7 +669,7 @@ impl<'a> AstBytecodeGen<'a> {
                 self.builder.bind_label(match_lbl);
             }
 
-            ast::Pattern::ClassOrStructOrEnum(ref p) => {
+            ast::Pattern::Constructor(ref p) => {
                 let ident_type = self.analysis.map_idents.get(p.id).unwrap();
 
                 match ident_type {
@@ -3519,7 +3519,7 @@ fn get_subpatterns(p: &ast::Pattern) -> Option<&Vec<Arc<ast::PatternField>>> {
             unreachable!()
         }
         ast::Pattern::Ident(..) => None,
-        ast::Pattern::ClassOrStructOrEnum(p) => p.params.as_ref(),
+        ast::Pattern::Constructor(p) => p.params.as_ref(),
     }
 }
 

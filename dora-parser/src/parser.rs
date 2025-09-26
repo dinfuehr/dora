@@ -1559,7 +1559,7 @@ impl Parser {
                 None
             };
 
-            Arc::new(Pattern::ClassOrStructOrEnum(PatternClassOrStructOrEnum {
+            Arc::new(Pattern::Constructor(PatternConstructor {
                 id: self.new_node_id(),
                 span: self.finish_node(),
                 path,

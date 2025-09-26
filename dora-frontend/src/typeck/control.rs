@@ -421,6 +421,6 @@ pub(super) fn get_subpatterns(p: &ast::Pattern) -> Option<&Vec<Arc<ast::PatternF
             unreachable!()
         }
         ast::Pattern::Ident(..) => None,
-        ast::Pattern::ClassOrStructOrEnum(p) => p.params.as_ref(),
+        ast::Pattern::Constructor(p) => p.params.as_ref(),
     }
 }

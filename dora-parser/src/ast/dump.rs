@@ -100,6 +100,14 @@ impl<'a> AstDumper<'a> {
             Ast::Continue(ref expr) => self.dump_expr_continue(id, expr),
             Ast::Return(ref ret) => self.dump_expr_return(id, ret),
             Ast::TypeArgument(ref node) => self.dump_type_argument(id, node),
+            Ast::Underscore(ref node) => self.dump_underscore(id, node),
+            Ast::LitPattern(ref node) => self.dump_lit_pattern(id, node),
+            Ast::IdentPattern(ref node) => self.dump_ident_pattern(id, node),
+            Ast::TuplePattern(ref node) => self.dump_tuple_pattern(id, node),
+            Ast::ConstructorPattern(ref node) => self.dump_constructor_pattern(id, node),
+            Ast::ConstructorField(ref node) => self.dump_constructor_field(id, node),
+            Ast::Rest(ref node) => self.dump_rest(id, node),
+            Ast::Alt(ref node) => self.dump_alt(id, node),
             Ast::Error(ref node) => {
                 dump!(self, "error @ {} {}", node.span, node.id);
             }
@@ -731,6 +739,46 @@ impl<'a> AstDumper<'a> {
         } else {
             dump!(self, "missing ident");
         }
+    }
+
+    fn dump_underscore(&mut self, id: AstId, node: &PatternUnderscore) {
+        dump!(self, "underscore @ {} {} {:?}", node.span, node.id, id);
+    }
+
+    fn dump_lit_pattern(&mut self, id: AstId, node: &PatternLit) {
+        dump!(self, "PatternLit @ {} {} {:?}", node.span, node.id, id);
+        self.dump_node_id(node.expr);
+    }
+
+    fn dump_ident_pattern(&mut self, id: AstId, node: &PatternIdent) {
+        dump!(self, "PatternIdent @ {} {} {:?}", node.span, node.id, id);
+        self.dump_node_id(node.name);
+    }
+
+    fn dump_tuple_pattern(&mut self, id: AstId, node: &PatternTuple) {
+        dump!(self, "PatternTuple @ {} {} {:?}", node.span, node.id, id);
+    }
+
+    fn dump_constructor_pattern(&mut self, id: AstId, node: &PatternConstructor) {
+        dump!(
+            self,
+            "PatternConstructor @ {} {} {:?}",
+            node.span,
+            node.id,
+            id
+        );
+    }
+
+    fn dump_constructor_field(&mut self, id: AstId, node: &PatternField) {
+        dump!(self, "PatternField @ {} {} {:?}", node.span, node.id, id);
+    }
+
+    fn dump_rest(&mut self, id: AstId, node: &PatternRest) {
+        dump!(self, "rest @ {} {} {:?}", node.span, node.id, id);
+    }
+
+    fn dump_alt(&mut self, id: AstId, node: &PatternAlt) {
+        dump!(self, "PatternAlt @ {} {} {:?}", node.span, node.id, id);
     }
 
     fn indent<F>(&mut self, fct: F)

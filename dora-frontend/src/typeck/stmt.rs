@@ -225,7 +225,7 @@ fn check_pattern_inner(
             }
         }
 
-        ast::Pattern::ClassOrStructOrEnum(ref p) => {
+        ast::Pattern::Constructor(ref p) => {
             let sym = read_path(ck, p.path);
 
             match sym {
@@ -520,7 +520,7 @@ fn check_subpatterns_named<'a>(
     element_type_params: &SourceTypeArray,
 ) {
     let params = match pattern {
-        ast::Pattern::ClassOrStructOrEnum(ref p) => p.params.as_ref(),
+        ast::Pattern::Constructor(ref p) => p.params.as_ref(),
         ast::Pattern::Ident(..) => None,
         _ => unreachable!(),
     };
