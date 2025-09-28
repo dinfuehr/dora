@@ -37,7 +37,7 @@ fn check_loop_body(ck: &mut TypeCheck, expr_id: AstId) {
 
 pub(super) fn check_expr_for(
     ck: &mut TypeCheck,
-    _id: ast::AstId,
+    stmt_ast_id: ast::AstId,
     stmt: &ast::ExprForType,
     _expected_ty: SourceType,
 ) -> SourceType {
@@ -50,7 +50,7 @@ pub(super) fn check_expr_for(
 
     if let Some((for_type_info, ret_type)) = type_supports_iterator_trait(ck, object_type.clone()) {
         // store fct ids for code generation
-        ck.analysis.map_fors.insert(stmt.id, for_type_info);
+        ck.analysis.map_fors.insert(stmt_ast_id, for_type_info);
         check_for_body(ck, stmt, ret_type);
         return SourceType::Unit;
     }
@@ -62,7 +62,7 @@ pub(super) fn check_expr_for(
             if let Some(iter_impl_fct_id) = into_iterator_data.iter_impl_fct_id {
                 // store fct ids for code generation
                 for_type_info.iter = Some((iter_impl_fct_id, into_iterator_data.bindings));
-                ck.analysis.map_fors.insert(stmt.id, for_type_info);
+                ck.analysis.map_fors.insert(stmt_ast_id, for_type_info);
             }
 
             ret_type

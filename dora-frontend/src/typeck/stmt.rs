@@ -398,7 +398,7 @@ fn check_pattern_tuple(
             }
         } else {
             let ty = expected_types.get(idx).cloned().unwrap_or(ty::error());
-            ck.analysis.map_field_ids.insert(subpattern.id(), idx);
+            ck.analysis.map_field_ids.insert(subpattern_id, idx);
             check_pattern_inner(ck, ctxt, subpattern_id, ty);
             idx += 1;
             pattern_count += 1;
@@ -588,7 +588,7 @@ fn check_subpatterns_named<'a>(
                     let field_pattern_id = params[idx];
                     ck.analysis
                         .map_field_ids
-                        .insert(ck.id(field_pattern_id), field.index.to_usize());
+                        .insert(field_pattern_id, field.index.to_usize());
                     let ty = specialize_type(ck.sa, field.ty(), element_type_params);
                     let field_pattern = ck
                         .node(field_pattern_id)
@@ -650,7 +650,7 @@ fn check_subpatterns<'a>(
                 }
             } else {
                 let ty = expected_types.get(idx).cloned().unwrap_or(ty::error());
-                ck.analysis.map_field_ids.insert(ctor_field.id, idx);
+                ck.analysis.map_field_ids.insert(ctor_field_id, idx);
                 check_pattern_inner(ck, ctxt, ctor_field.pattern, ty);
                 idx += 1;
                 pattern_count += 1;

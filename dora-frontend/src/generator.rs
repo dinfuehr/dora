@@ -884,7 +884,7 @@ impl<'a> AstBytecodeGen<'a> {
                     let field_id = self
                         .analysis
                         .map_field_ids
-                        .get(subpattern.id())
+                        .get(subpattern_id)
                         .cloned()
                         .expect("missing field_id");
                     let subtype = tuple_subtypes[field_id].clone();
@@ -932,9 +932,14 @@ impl<'a> AstBytecodeGen<'a> {
         }
     }
 
-    fn visit_expr_for(&mut self, _id: AstId, stmt: &ast::ExprForType, _dest: DataDest) -> Register {
+    fn visit_expr_for(
+        &mut self,
+        stmt_ast_id: AstId,
+        stmt: &ast::ExprForType,
+        _dest: DataDest,
+    ) -> Register {
         self.push_scope();
-        let for_type_info = self.analysis.map_fors.get(stmt.id).unwrap().clone();
+        let for_type_info = self.analysis.map_fors.get(stmt_ast_id).unwrap().clone();
 
         // Emit: <obj> = <expr> (for <var> in <expr> { ... })
         let object_reg = gen_expr(self, stmt.expr, DataDest::Alloc);
@@ -3653,7 +3658,7 @@ where
                     let field_id = g
                         .analysis
                         .map_field_ids
-                        .get(ctor_field.id)
+                        .get(ctor_field_id)
                         .cloned()
                         .expect("missing field_id");
                     f(g, field_id, ctor_field_id);

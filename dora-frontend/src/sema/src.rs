@@ -23,11 +23,11 @@ pub struct AnalysisData {
     pub map_vars: NodeMap<VarId>,
     pub map_consts: NodeMap<ConstValue>,
     pub map_cls: NodeMap<ClassDefinitionId>,
-    pub map_fors: NodeMap<ForTypeInfo>,
+    pub map_fors: NodeMap2<ForTypeInfo>,
     pub map_lambdas: NodeMap<LazyLambdaId>,
     pub map_block_contexts: NodeMap<LazyContextData>,
     pub map_argument: NodeMap<usize>,
-    pub map_field_ids: NodeMap<usize>,
+    pub map_field_ids: NodeMap2<usize>,
     pub map_array_assignments: NodeMap2<ArrayAssignment>,
 
     // All variables defined in this function (including
@@ -49,12 +49,12 @@ impl AnalysisData {
             map_tys: NodeMap::new(),
             map_vars: NodeMap::new(),
             map_cls: NodeMap::new(),
-            map_fors: NodeMap::new(),
+            map_fors: NodeMap2::new(),
             map_lambdas: NodeMap::new(),
             map_consts: NodeMap::new(),
             map_block_contexts: NodeMap::new(),
             map_argument: NodeMap::new(),
-            map_field_ids: NodeMap::new(),
+            map_field_ids: NodeMap2::new(),
             map_array_assignments: NodeMap2::new(),
 
             vars: VarAccess::empty(),

@@ -1297,7 +1297,7 @@ fn convert_subpatterns(
             } else {
                 let field_id = analysis
                     .map_field_ids
-                    .get(ctor_field.id)
+                    .get(ctor_field_id)
                     .cloned()
                     .expect("missing field_id");
                 let p = convert_pattern(sa, file_id, analysis, ctor_field.pattern);
