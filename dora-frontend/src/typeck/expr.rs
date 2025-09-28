@@ -1,6 +1,6 @@
 use std::sync::Arc;
 
-use dora_parser::ast::Ast;
+use dora_parser::ast::{Ast, AstId};
 use dora_parser::{ast, Span};
 
 use crate::access::{
@@ -33,31 +33,31 @@ pub(super) fn check_expr(
 ) -> SourceType {
     let ast_expr = ck.node(id);
     match *ast_expr {
-        Ast::LitChar(ref expr) => check_expr_lit_char(ck, expr, expected_ty),
+        Ast::LitChar(ref expr) => check_expr_lit_char(ck, id, expr, expected_ty),
         Ast::LitInt(..) => check_expr_lit_int(ck, id, false, expected_ty),
-        Ast::LitFloat(ref expr) => check_expr_lit_float(ck, expr, false, expected_ty),
+        Ast::LitFloat(ref expr) => check_expr_lit_float(ck, id, expr, false, expected_ty),
         Ast::LitStr(ref expr) => check_expr_lit_str(ck, expr, expected_ty),
-        Ast::Template(ref expr) => check_expr_template(ck, expr, expected_ty),
-        Ast::LitBool(ref expr) => check_expr_lit_bool(ck, expr, expected_ty),
-        Ast::Ident(ref expr) => check_expr_ident(ck, expr, expected_ty),
-        Ast::Un(ref expr) => check_expr_un(ck, expr, expected_ty),
-        Ast::Bin(ref expr) => check_expr_bin(ck, expr, expected_ty),
-        Ast::Call(ref expr) => check_expr_call(ck, expr, expected_ty),
-        Ast::TypeParam(ref expr) => check_expr_type_param(ck, expr, expected_ty),
-        Ast::Path(ref expr) => check_expr_path(ck, expr, expected_ty),
-        Ast::Dot(ref expr) => check_expr_dot(ck, expr, expected_ty),
-        Ast::This(ref expr) => check_expr_this(ck, expr, expected_ty),
-        Ast::Conv(ref expr) => check_expr_conv(ck, expr, expected_ty),
-        Ast::Is(ref expr) => check_expr_is(ck, expr, expected_ty),
-        Ast::Lambda(ref expr) => check_expr_lambda(ck, expr, expected_ty),
-        Ast::Block(ref expr) => check_expr_block(ck, expr, expected_ty),
-        Ast::If(ref expr) => check_expr_if(ck, expr, expected_ty),
-        Ast::Tuple(ref expr) => check_expr_tuple(ck, expr, expected_ty),
-        Ast::Paren(ref expr) => check_expr_paren(ck, expr, expected_ty),
-        Ast::Match(ref expr) => check_expr_match(ck, expr, expected_ty),
-        Ast::For(ref expr) => check_expr_for(ck, expr, expected_ty),
-        Ast::While(ref expr) => check_expr_while(ck, expr, expected_ty),
-        Ast::Return(ref expr) => check_expr_return(ck, expr, expected_ty),
+        Ast::Template(ref expr) => check_expr_template(ck, id, expr, expected_ty),
+        Ast::LitBool(ref expr) => check_expr_lit_bool(ck, id, expr, expected_ty),
+        Ast::Ident(ref expr) => check_expr_ident(ck, id, expr, expected_ty),
+        Ast::Un(ref expr) => check_expr_un(ck, id, expr, expected_ty),
+        Ast::Bin(ref expr) => check_expr_bin(ck, id, expr, expected_ty),
+        Ast::Call(ref expr) => check_expr_call(ck, id, expr, expected_ty),
+        Ast::TypeParam(ref expr) => check_expr_type_param(ck, id, expr, expected_ty),
+        Ast::Path(ref expr) => check_expr_path(ck, id, expr, expected_ty),
+        Ast::Dot(ref expr) => check_expr_dot(ck, id, expr, expected_ty),
+        Ast::This(ref expr) => check_expr_this(ck, id, expr, expected_ty),
+        Ast::Conv(ref expr) => check_expr_conv(ck, id, expr, expected_ty),
+        Ast::Is(ref expr) => check_expr_is(ck, id, expr, expected_ty),
+        Ast::Lambda(ref expr) => check_expr_lambda(ck, id, expr, expected_ty),
+        Ast::Block(ref expr) => check_expr_block(ck, id, expr, expected_ty),
+        Ast::If(ref expr) => check_expr_if(ck, id, expr, expected_ty),
+        Ast::Tuple(ref expr) => check_expr_tuple(ck, id, expr, expected_ty),
+        Ast::Paren(ref expr) => check_expr_paren(ck, id, expr, expected_ty),
+        Ast::Match(ref expr) => check_expr_match(ck, id, expr, expected_ty),
+        Ast::For(ref expr) => check_expr_for(ck, id, expr, expected_ty),
+        Ast::While(ref expr) => check_expr_while(ck, id, expr, expected_ty),
+        Ast::Return(ref expr) => check_expr_return(ck, id, expr, expected_ty),
         Ast::Break(..) | Ast::Continue(..) => check_expr_break_and_continue(ck, id, expected_ty),
         Ast::Error { .. } => ty_error(),
         _ => unreachable!(),
@@ -66,6 +66,7 @@ pub(super) fn check_expr(
 
 pub(super) fn check_expr_block(
     ck: &mut TypeCheck,
+    _id: ast::AstId,
     block: &ast::ExprBlockType,
     _expected_ty: SourceType,
 ) -> SourceType {
@@ -89,6 +90,7 @@ pub(super) fn check_expr_block(
 
 pub(super) fn check_expr_tuple(
     ck: &mut TypeCheck,
+    _id: ast::AstId,
     tuple: &ast::ExprTupleType,
     _expected_ty: SourceType,
 ) -> SourceType {
@@ -112,6 +114,7 @@ pub(super) fn check_expr_tuple(
 
 pub(super) fn check_expr_paren(
     ck: &mut TypeCheck,
+    _id: ast::AstId,
     paren: &ast::ExprParenType,
     _expected_ty: SourceType,
 ) -> SourceType {
@@ -123,6 +126,7 @@ pub(super) fn check_expr_paren(
 
 pub(super) fn check_expr_ident(
     ck: &mut TypeCheck,
+    _id: ast::AstId,
     e: &ast::Ident,
     expected_ty: SourceType,
 ) -> SourceType {
@@ -191,11 +195,11 @@ pub(super) fn check_expr_ident(
     }
 }
 
-pub(super) fn check_expr_assign(ck: &mut TypeCheck, e: &ast::ExprBinType) {
+pub(super) fn check_expr_assign(ck: &mut TypeCheck, expr_ast_id: ast::AstId, e: &ast::ExprBinType) {
     let lhs = ck.node(e.lhs);
 
     if lhs.is_call() {
-        check_expr_assign_call(ck, e);
+        check_expr_assign_call(ck, expr_ast_id, e);
     } else if lhs.is_dot() {
         check_expr_assign_field(ck, e);
     } else if lhs.is_ident() {
@@ -429,7 +433,7 @@ fn check_assign_type(
     }
 }
 
-fn check_expr_assign_call(ck: &mut TypeCheck, e: &ast::ExprBinType) {
+fn check_expr_assign_call(ck: &mut TypeCheck, expr_ast_id: ast::AstId, e: &ast::ExprBinType) {
     let call = ck.node(e.lhs).to_call().unwrap();
     let object_type = check_expr(ck, call.callee, SourceType::Any);
 
@@ -531,7 +535,7 @@ fn check_expr_assign_call(ck: &mut TypeCheck, e: &ast::ExprBinType) {
     array_assignment.item_ty = Some(item_type);
     ck.analysis
         .map_array_assignments
-        .insert(e.id, array_assignment);
+        .insert(expr_ast_id, array_assignment);
 }
 
 fn check_index_trait_on_ty(
@@ -876,6 +880,7 @@ fn check_expr_assign_unnamed_field(
 
 pub(super) fn check_expr_dot(
     ck: &mut TypeCheck,
+    _id: ast::AstId,
     e: &ast::ExprDotType,
     _expected_ty: SourceType,
 ) -> SourceType {
@@ -1107,6 +1112,7 @@ fn check_expr_dot_unnamed_field(
 
 pub(super) fn check_expr_this(
     ck: &mut TypeCheck,
+    _id: ast::AstId,
     e: &ast::ExprSelfType,
     _expected_ty: SourceType,
 ) -> SourceType {
@@ -1129,6 +1135,7 @@ pub(super) fn check_expr_this(
 
 fn check_expr_conv(
     ck: &mut TypeCheck,
+    _id: ast::AstId,
     e: &ast::ExprConvType,
     _expected_ty: SourceType,
 ) -> SourceType {
@@ -1172,7 +1179,12 @@ fn check_expr_conv(
     }
 }
 
-fn check_expr_is(ck: &mut TypeCheck, e: &ast::ExprIsType, _expected_ty: SourceType) -> SourceType {
+fn check_expr_is(
+    ck: &mut TypeCheck,
+    _id: ast::AstId,
+    e: &ast::ExprIsType,
+    _expected_ty: SourceType,
+) -> SourceType {
     let value_type = check_expr(ck, e.value, SourceType::Any);
     ck.analysis.set_ty(ck.id(e.value), value_type.clone());
 
@@ -1233,6 +1245,7 @@ pub fn compute_lit_float(
 
 fn check_expr_lit_float(
     ck: &mut TypeCheck,
+    _id: ast::AstId,
     e: &ast::ExprLitFloatType,
     negate: bool,
     _expected_ty: SourceType,
@@ -1247,6 +1260,7 @@ fn check_expr_lit_float(
 
 fn check_expr_lit_bool(
     ck: &mut TypeCheck,
+    _id: ast::AstId,
     e: &ast::ExprLitBoolType,
     _expected_ty: SourceType,
 ) -> SourceType {
@@ -1257,6 +1271,7 @@ fn check_expr_lit_bool(
 
 pub fn check_expr_lit_char(
     ck: &mut TypeCheck,
+    _ast_id: AstId,
     e: &ast::ExprLitCharType,
     _expected_ty: SourceType,
 ) -> SourceType {
@@ -1284,6 +1299,7 @@ fn check_expr_lit_str(
 
 fn check_expr_template(
     ck: &mut TypeCheck,
+    _id: ast::AstId,
     e: &ast::ExprTemplateType,
     expected_ty: SourceType,
 ) -> SourceType {
@@ -1353,6 +1369,7 @@ fn check_expr_template(
 
 pub(super) fn check_expr_un(
     ck: &mut TypeCheck,
+    _id: ast::AstId,
     e: &ast::ExprUnType,
     expected_ty: SourceType,
 ) -> SourceType {
@@ -1456,11 +1473,12 @@ fn check_expr_un_trait(
 
 pub(super) fn check_expr_bin(
     ck: &mut TypeCheck,
+    expr_ast_id: ast::AstId,
     e: &ast::ExprBinType,
     _expected_ty: SourceType,
 ) -> SourceType {
     if e.op.is_any_assign() {
-        check_expr_assign(ck, e);
+        check_expr_assign(ck, expr_ast_id, e);
         return SourceType::Unit;
     }
 
@@ -1896,6 +1914,7 @@ fn check_expr_cmp_enum(
 
 fn check_expr_lambda(
     ck: &mut TypeCheck,
+    _id: ast::AstId,
     lambda_expr: &ast::ExprLambdaType,
     _expected_ty: SourceType,
 ) -> SourceType {
@@ -1999,6 +2018,7 @@ fn check_expr_lambda(
 
 pub(super) fn check_expr_path(
     ck: &mut TypeCheck,
+    _id: ast::AstId,
     e: &ast::ExprPathType,
     expected_ty: SourceType,
 ) -> SourceType {
@@ -2166,6 +2186,7 @@ fn check_enum_variant_without_args(
 
 pub(super) fn check_expr_type_param(
     ck: &mut TypeCheck,
+    _id: ast::AstId,
     e: &ast::ExprTypeParamType,
     expected_ty: SourceType,
 ) -> SourceType {

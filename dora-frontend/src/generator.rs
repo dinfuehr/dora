@@ -932,7 +932,7 @@ impl<'a> AstBytecodeGen<'a> {
         }
     }
 
-    fn visit_expr_for(&mut self, stmt: &ast::ExprForType, _dest: DataDest) -> Register {
+    fn visit_expr_for(&mut self, _id: AstId, stmt: &ast::ExprForType, _dest: DataDest) -> Register {
         self.push_scope();
         let for_type_info = self.analysis.map_fors.get(stmt.id).unwrap().clone();
 
@@ -1066,7 +1066,12 @@ impl<'a> AstBytecodeGen<'a> {
         }
     }
 
-    fn visit_expr_while(&mut self, stmt: &ast::ExprWhileType, _dest: DataDest) -> Register {
+    fn visit_expr_while(
+        &mut self,
+        _id: AstId,
+        stmt: &ast::ExprWhileType,
+        _dest: DataDest,
+    ) -> Register {
         let cond_lbl = self.builder.define_label();
         let end_lbl = self.builder.create_label();
         self.builder.emit_loop_start();
@@ -1088,7 +1093,12 @@ impl<'a> AstBytecodeGen<'a> {
         self.free_if_temp(reg);
     }
 
-    fn visit_expr_return(&mut self, ret: &ast::ExprReturnType, _dest: DataDest) -> Register {
+    fn visit_expr_return(
+        &mut self,
+        _id: AstId,
+        ret: &ast::ExprReturnType,
+        _dest: DataDest,
+    ) -> Register {
         let result_reg = if let Some(expr) = ret.expr {
             gen_expr(self, expr, DataDest::Alloc)
         } else {
@@ -1101,13 +1111,23 @@ impl<'a> AstBytecodeGen<'a> {
         self.ensure_unit_register()
     }
 
-    fn visit_expr_break(&mut self, _stmt: &ast::ExprBreakType, _dest: DataDest) -> Register {
+    fn visit_expr_break(
+        &mut self,
+        _id: AstId,
+        _stmt: &ast::ExprBreakType,
+        _dest: DataDest,
+    ) -> Register {
         let end = self.loops.last().unwrap().end;
         self.builder.emit_jump(end);
         self.ensure_unit_register()
     }
 
-    fn visit_expr_continue(&mut self, _stmt: &ast::ExprContinueType, _dest: DataDest) -> Register {
+    fn visit_expr_continue(
+        &mut self,
+        _id: AstId,
+        _stmt: &ast::ExprContinueType,
+        _dest: DataDest,
+    ) -> Register {
         let cond = self.loops.last().unwrap().cond;
         self.builder.emit_jump_loop(cond);
         self.ensure_unit_register()
@@ -1118,7 +1138,12 @@ impl<'a> AstBytecodeGen<'a> {
         self.free_if_temp(reg);
     }
 
-    fn visit_expr_type_param(&mut self, expr: &ast::ExprTypeParamType, dest: DataDest) -> Register {
+    fn visit_expr_type_param(
+        &mut self,
+        _id: AstId,
+        expr: &ast::ExprTypeParamType,
+        dest: DataDest,
+    ) -> Register {
         let ident_type = self.analysis.map_idents.get(expr.id).cloned().unwrap();
 
         match ident_type {
@@ -1130,7 +1155,12 @@ impl<'a> AstBytecodeGen<'a> {
         }
     }
 
-    fn visit_expr_template(&mut self, expr: &ast::ExprTemplateType, dest: DataDest) -> Register {
+    fn visit_expr_template(
+        &mut self,
+        _id: AstId,
+        expr: &ast::ExprTemplateType,
+        dest: DataDest,
+    ) -> Register {
         let buffer_register = self.ensure_register(dest, BytecodeType::Ptr);
 
         // build StringBuffer::empty() call
@@ -1240,7 +1270,12 @@ impl<'a> AstBytecodeGen<'a> {
         buffer_register
     }
 
-    fn visit_expr_path(&mut self, expr: &ast::ExprPathType, dest: DataDest) -> Register {
+    fn visit_expr_path(
+        &mut self,
+        _id: AstId,
+        expr: &ast::ExprPathType,
+        dest: DataDest,
+    ) -> Register {
         let ident_type = self.analysis.map_idents.get(expr.id).cloned().unwrap();
 
         match ident_type {
@@ -1283,7 +1318,12 @@ impl<'a> AstBytecodeGen<'a> {
         dest
     }
 
-    fn visit_expr_conv(&mut self, expr: &ast::ExprConvType, dest: DataDest) -> Register {
+    fn visit_expr_conv(
+        &mut self,
+        _id: AstId,
+        expr: &ast::ExprConvType,
+        dest: DataDest,
+    ) -> Register {
         let object_type = self.ty_id(expr.object);
         let check_type = self.ty_id(expr.data_type);
         assert!(check_type.is_trait_object());
@@ -1301,7 +1341,7 @@ impl<'a> AstBytecodeGen<'a> {
         dest
     }
 
-    fn visit_expr_is(&mut self, node: &ast::ExprIsType, dest: DataDest) -> Register {
+    fn visit_expr_is(&mut self, _id: AstId, node: &ast::ExprIsType, dest: DataDest) -> Register {
         let ty = self.ty_id(node.value);
         let value_reg = gen_expr(self, node.value, DataDest::Alloc);
 
@@ -1329,7 +1369,12 @@ impl<'a> AstBytecodeGen<'a> {
             .find_map(|ec| ec.register)
     }
 
-    fn visit_expr_lambda(&mut self, node: &ast::ExprLambdaType, dest: DataDest) -> Register {
+    fn visit_expr_lambda(
+        &mut self,
+        _id: AstId,
+        node: &ast::ExprLambdaType,
+        dest: DataDest,
+    ) -> Register {
         let dest = self.ensure_register(dest, BytecodeType::Ptr);
 
         let fct_node_id = node.fct_id;
@@ -1391,7 +1436,7 @@ impl<'a> AstBytecodeGen<'a> {
         dest
     }
 
-    fn visit_expr_if(&mut self, expr: &ast::ExprIfType, dest: DataDest) -> Register {
+    fn visit_expr_if(&mut self, _id: AstId, expr: &ast::ExprIfType, dest: DataDest) -> Register {
         let ty = self.ty(expr.id);
 
         let dest = self.ensure_register(dest, self.emitter.convert_ty_reg(ty));
@@ -1422,7 +1467,12 @@ impl<'a> AstBytecodeGen<'a> {
         dest
     }
 
-    fn visit_expr_block(&mut self, block: &ast::ExprBlockType, dest: DataDest) -> Register {
+    fn visit_expr_block(
+        &mut self,
+        _id: AstId,
+        block: &ast::ExprBlockType,
+        dest: DataDest,
+    ) -> Register {
         self.push_scope();
 
         for &stmt in &block.stmts {
@@ -1440,7 +1490,7 @@ impl<'a> AstBytecodeGen<'a> {
         result
     }
 
-    fn visit_expr_dot(&mut self, expr: &ast::ExprDotType, dest: DataDest) -> Register {
+    fn visit_expr_dot(&mut self, _id: AstId, expr: &ast::ExprDotType, dest: DataDest) -> Register {
         let object_ty = self.ty_id(expr.lhs);
 
         if object_ty.is_tuple() {
@@ -1564,7 +1614,12 @@ impl<'a> AstBytecodeGen<'a> {
         dest
     }
 
-    fn visit_expr_call(&mut self, expr: &ast::ExprCallType, dest: DataDest) -> Register {
+    fn visit_expr_call(
+        &mut self,
+        _id: AstId,
+        expr: &ast::ExprCallType,
+        dest: DataDest,
+    ) -> Register {
         if let Some(info) = self.get_intrinsic(expr.id) {
             if emit_as_bytecode_operation(info.intrinsic) {
                 return self.visit_expr_call_intrinsic(expr, info, dest);
@@ -2035,7 +2090,12 @@ impl<'a> AstBytecodeGen<'a> {
         }
     }
 
-    fn visit_expr_self(&mut self, expr: &ast::ExprSelfType, dest: DataDest) -> Register {
+    fn visit_expr_self(
+        &mut self,
+        _id: AstId,
+        expr: &ast::ExprSelfType,
+        dest: DataDest,
+    ) -> Register {
         if self.is_lambda {
             let ident = self
                 .analysis
@@ -2062,7 +2122,12 @@ impl<'a> AstBytecodeGen<'a> {
         }
     }
 
-    fn visit_expr_lit_char(&mut self, lit: &ast::ExprLitCharType, dest: DataDest) -> Register {
+    fn visit_expr_lit_char(
+        &mut self,
+        _id: AstId,
+        lit: &ast::ExprLitCharType,
+        dest: DataDest,
+    ) -> Register {
         let dest = self.ensure_register(dest, BytecodeType::Char);
 
         let value = self.analysis.const_value(lit.id).to_char();
@@ -2073,6 +2138,7 @@ impl<'a> AstBytecodeGen<'a> {
 
     fn visit_expr_lit_int(
         &mut self,
+        _id: AstId,
         lit: &ast::ExprLitIntType,
         dest: DataDest,
         _neg: bool,
@@ -2112,7 +2178,12 @@ impl<'a> AstBytecodeGen<'a> {
         dest
     }
 
-    fn visit_expr_lit_float(&mut self, lit: &ast::ExprLitFloatType, dest: DataDest) -> Register {
+    fn visit_expr_lit_float(
+        &mut self,
+        _id: AstId,
+        lit: &ast::ExprLitFloatType,
+        dest: DataDest,
+    ) -> Register {
         let ty = self.analysis.ty(lit.id);
         let value_f64 = self
             .analysis
@@ -2137,7 +2208,12 @@ impl<'a> AstBytecodeGen<'a> {
         dest
     }
 
-    fn visit_expr_lit_string(&mut self, lit: &ast::ExprLitStrType, dest: DataDest) -> Register {
+    fn visit_expr_lit_string(
+        &mut self,
+        _id: AstId,
+        lit: &ast::ExprLitStrType,
+        dest: DataDest,
+    ) -> Register {
         let dest = self.ensure_register(dest, BytecodeType::Ptr);
         let value = self
             .analysis
@@ -2150,7 +2226,12 @@ impl<'a> AstBytecodeGen<'a> {
         dest
     }
 
-    fn visit_expr_lit_bool(&mut self, lit: &ast::ExprLitBoolType, dest: DataDest) -> Register {
+    fn visit_expr_lit_bool(
+        &mut self,
+        _id: AstId,
+        lit: &ast::ExprLitBoolType,
+        dest: DataDest,
+    ) -> Register {
         let dest = self.ensure_register(dest, BytecodeType::Bool);
 
         if lit.value {
@@ -2162,7 +2243,7 @@ impl<'a> AstBytecodeGen<'a> {
         dest
     }
 
-    fn visit_expr_tuple(&mut self, e: &ast::ExprTupleType, dest: DataDest) -> Register {
+    fn visit_expr_tuple(&mut self, _id: AstId, e: &ast::ExprTupleType, dest: DataDest) -> Register {
         if e.values.is_empty() {
             return self.ensure_unit_register();
         }
@@ -2198,9 +2279,14 @@ impl<'a> AstBytecodeGen<'a> {
         result
     }
 
-    fn visit_expr_un(&mut self, expr: &ast::ExprUnType, dest: DataDest) -> Register {
+    fn visit_expr_un(&mut self, _id: AstId, expr: &ast::ExprUnType, dest: DataDest) -> Register {
         if expr.op == ast::UnOp::Neg && self.node(expr.opnd).is_lit_int() {
-            self.visit_expr_lit_int(self.node(expr.opnd).to_lit_int().unwrap(), dest, true)
+            self.visit_expr_lit_int(
+                expr.opnd,
+                self.node(expr.opnd).to_lit_int().unwrap(),
+                dest,
+                true,
+            )
         } else if let Some(intrinsic) = self.get_intrinsic(expr.id) {
             self.emit_intrinsic_un(expr.opnd, intrinsic, self.loc(expr.span), dest)
         } else {
@@ -2243,9 +2329,14 @@ impl<'a> AstBytecodeGen<'a> {
         dest
     }
 
-    fn visit_expr_bin(&mut self, expr: &ast::ExprBinType, dest: DataDest) -> Register {
+    fn visit_expr_bin(
+        &mut self,
+        expr_ast_id: AstId,
+        expr: &ast::ExprBinType,
+        dest: DataDest,
+    ) -> Register {
         if expr.op.is_any_assign() {
-            self.visit_expr_assign(expr, dest)
+            self.visit_expr_assign(expr_ast_id, expr, dest)
         } else if let ast::BinOp::Cmp(cmp_op) = expr.op {
             if cmp_op == CmpOp::Is || cmp_op == CmpOp::IsNot {
                 self.emit_bin_is(expr, dest)
@@ -2626,7 +2717,12 @@ impl<'a> AstBytecodeGen<'a> {
         dest
     }
 
-    fn visit_expr_assign(&mut self, expr: &ast::ExprBinType, _dest: DataDest) -> Register {
+    fn visit_expr_assign(
+        &mut self,
+        expr_ast_id: AstId,
+        expr: &ast::ExprBinType,
+        _dest: DataDest,
+    ) -> Register {
         if self.node(expr.lhs).is_ident() {
             let value_reg = gen_expr(self, expr.rhs, DataDest::Alloc);
             let ident_type = self.analysis.map_idents.get(self.id(expr.lhs)).unwrap();
@@ -2656,7 +2752,7 @@ impl<'a> AstBytecodeGen<'a> {
         } else {
             match *self.node(expr.lhs) {
                 Ast::Dot(ref dot) => self.visit_expr_assign_dot(expr, dot),
-                Ast::Call(ref call) => self.visit_expr_assign_call(expr, call),
+                Ast::Call(ref call) => self.visit_expr_assign_call(expr_ast_id, expr, call),
                 _ => unreachable!(),
             };
         }
@@ -2664,7 +2760,12 @@ impl<'a> AstBytecodeGen<'a> {
         self.ensure_unit_register()
     }
 
-    fn visit_expr_assign_call(&mut self, expr: &ast::ExprBinType, call_expr: &ast::ExprCallType) {
+    fn visit_expr_assign_call(
+        &mut self,
+        expr_ast_id: AstId,
+        expr: &ast::ExprBinType,
+        call_expr: &ast::ExprCallType,
+    ) {
         let object = call_expr.callee;
         let arg0 = self
             .node(call_expr.args[0])
@@ -2680,7 +2781,7 @@ impl<'a> AstBytecodeGen<'a> {
         let array_assignment = self
             .analysis
             .map_array_assignments
-            .get(expr.id)
+            .get(expr_ast_id)
             .expect("missing assignment data")
             .clone();
 
@@ -2919,7 +3020,7 @@ impl<'a> AstBytecodeGen<'a> {
         }
     }
 
-    fn visit_expr_ident(&mut self, ident: &ast::Ident, dest: DataDest) -> Register {
+    fn visit_expr_ident(&mut self, _id: AstId, ident: &ast::Ident, dest: DataDest) -> Register {
         let ident_type = self.analysis.map_idents.get(ident.id).unwrap();
 
         match ident_type {

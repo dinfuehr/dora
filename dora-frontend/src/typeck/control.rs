@@ -9,6 +9,7 @@ use crate::{specialize_type, SourceType, SourceTypeArray};
 
 pub(super) fn check_expr_while(
     ck: &mut TypeCheck,
+    _id: ast::AstId,
     expr: &ast::ExprWhileType,
     _expected_ty: SourceType,
 ) -> SourceType {
@@ -36,6 +37,7 @@ fn check_loop_body(ck: &mut TypeCheck, expr_id: AstId) {
 
 pub(super) fn check_expr_for(
     ck: &mut TypeCheck,
+    _id: ast::AstId,
     stmt: &ast::ExprForType,
     _expected_ty: SourceType,
 ) -> SourceType {
@@ -220,6 +222,7 @@ fn type_supports_iterator_trait(
 
 pub(super) fn check_expr_return(
     ck: &mut TypeCheck,
+    _id: ast::AstId,
     expr: &ast::ExprReturnType,
     _expected_ty: SourceType,
 ) -> SourceType {
@@ -246,6 +249,7 @@ pub(super) fn check_expr_return(
 
 pub(super) fn check_expr_if(
     ck: &mut TypeCheck,
+    _id: ast::AstId,
     expr: &ast::ExprIfType,
     expected_ty: SourceType,
 ) -> SourceType {
@@ -344,6 +348,7 @@ pub(super) fn check_expr_break_and_continue(
 
 pub(super) fn check_expr_match(
     ck: &mut TypeCheck,
+    _id: ast::AstId,
     node: &ast::ExprMatchType,
     expected_ty: SourceType,
 ) -> SourceType {

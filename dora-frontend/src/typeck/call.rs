@@ -28,6 +28,7 @@ use crate::{
 
 pub(super) fn check_expr_call(
     ck: &mut TypeCheck,
+    _id: ast::AstId,
     e: &ast::ExprCallType,
     expected_ty: SourceType,
 ) -> SourceType {

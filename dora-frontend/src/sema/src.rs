@@ -28,7 +28,7 @@ pub struct AnalysisData {
     pub map_block_contexts: NodeMap<LazyContextData>,
     pub map_argument: NodeMap<usize>,
     pub map_field_ids: NodeMap<usize>,
-    pub map_array_assignments: NodeMap<ArrayAssignment>,
+    pub map_array_assignments: NodeMap2<ArrayAssignment>,
 
     // All variables defined in this function (including
     // context allocated ones).
@@ -55,7 +55,7 @@ impl AnalysisData {
             map_block_contexts: NodeMap::new(),
             map_argument: NodeMap::new(),
             map_field_ids: NodeMap::new(),
-            map_array_assignments: NodeMap::new(),
+            map_array_assignments: NodeMap2::new(),
 
             vars: VarAccess::empty(),
             function_context_data: OnceCell::new(),
