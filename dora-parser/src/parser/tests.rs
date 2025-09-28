@@ -648,8 +648,8 @@ fn parse_function_with_single_param() {
     let p1 = file1.node(f1.params[0]).to_param().unwrap();
     let p2 = file2.node(f2.params[0]).to_param().unwrap();
 
-    assert_eq!("a", pat_name(&file1, &p1.pattern));
-    assert_eq!("a", pat_name(&file2, &p2.pattern));
+    assert_eq!("a", pat_name(&file1, p1.pattern));
+    assert_eq!("a", pat_name(&file2, p2.pattern));
 
     assert_eq!("int", tr_name(&file1, p1.data_type));
     assert_eq!("int", tr_name(&file2, p2.data_type));
@@ -668,11 +668,11 @@ fn parse_function_with_multiple_params() {
     let p2a = file2.node(f2.params[0]).to_param().unwrap();
     let p2b = file2.node(f2.params[1]).to_param().unwrap();
 
-    assert_eq!("a", pat_name(&file1, &p1a.pattern));
-    assert_eq!("a", pat_name(&file2, &p2a.pattern));
+    assert_eq!("a", pat_name(&file1, p1a.pattern));
+    assert_eq!("a", pat_name(&file2, p2a.pattern));
 
-    assert_eq!("b", pat_name(&file1, &p1b.pattern));
-    assert_eq!("b", pat_name(&file2, &p2b.pattern));
+    assert_eq!("b", pat_name(&file1, p1b.pattern));
+    assert_eq!("b", pat_name(&file2, p2b.pattern));
 
     assert_eq!("int", tr_name(&file1, p1a.data_type));
     assert_eq!("int", tr_name(&file2, p2a.data_type));
@@ -694,7 +694,7 @@ fn parse_let_without_type() {
 fn parse_let_rest() {
     let (stmt, arena) = parse_let("let .. = 1;");
     let var = arena[stmt].to_let().unwrap();
-    assert!(var.pattern.is_rest());
+    assert!(arena[var.pattern].is_rest());
 
     assert!(var.data_type.is_none());
     assert!(arena[var.expr.unwrap()].is_lit_int());
@@ -713,7 +713,7 @@ fn parse_let_with_type() {
 fn parse_let_underscore() {
     let (stmt, arena) = parse_let("let _ = 1;");
     let let_decl = arena[stmt].to_let().unwrap();
-    assert!(let_decl.pattern.is_underscore());
+    assert!(arena[let_decl.pattern].is_underscore());
 }
 
 #[test]
@@ -721,12 +721,12 @@ fn parse_let_tuple() {
     let (stmt, arena) = parse_let("let (mut a, b, (c, d)) = 1;");
     let let_decl = arena[stmt].to_let().unwrap();
 
-    let tuple = let_decl.pattern.to_tuple().unwrap();
-    let first: &Arc<Pattern> = &tuple.params.first().unwrap();
-    assert!(first.is_ident());
-    assert!(first.to_ident().unwrap().mutable);
-    let last = &tuple.params.last().unwrap();
-    assert!(last.is_tuple());
+    let tuple = arena[let_decl.pattern].to_tuple_pattern().unwrap();
+    let first = &arena[tuple.params[0]];
+    assert!(first.is_ident_pattern());
+    assert!(first.to_ident_pattern().unwrap().mutable);
+    let last = &arena[tuple.params[2]];
+    assert!(last.is_tuple_pattern());
 }
 
 #[test]
@@ -734,9 +734,9 @@ fn parse_let_lit_bool() {
     let (stmt, arena) = parse_let("let (a, true) = 1;");
     let let_decl = arena[stmt].to_let().unwrap();
 
-    let tuple = let_decl.pattern.to_tuple().unwrap();
-    assert!(tuple.params[0].is_ident());
-    assert!(tuple.params[1].is_lit_bool());
+    let tuple = arena[let_decl.pattern].to_tuple_pattern().unwrap();
+    assert!(arena[tuple.params[0]].is_ident_pattern());
+    assert!(arena[tuple.params[1]].is_lit_pattern());
 }
 
 #[test]
@@ -744,9 +744,9 @@ fn parse_let_lit_char() {
     let (stmt, arena) = parse_let("let (a, 'x') = 1;");
     let let_decl = arena[stmt].to_let().unwrap();
 
-    let tuple = let_decl.pattern.to_tuple().unwrap();
-    assert!(tuple.params[0].is_ident());
-    assert!(tuple.params[1].is_lit_char());
+    let tuple = arena[let_decl.pattern].to_tuple_pattern().unwrap();
+    assert!(arena[tuple.params[0]].is_ident_pattern());
+    assert!(arena[tuple.params[1]].is_lit_pattern());
 }
 
 #[test]
@@ -754,9 +754,9 @@ fn parse_let_lit_string() {
     let (stmt, arena) = parse_let("let (a, \"x\") = 1;");
     let let_decl = arena[stmt].to_let().unwrap();
 
-    let tuple = let_decl.pattern.to_tuple().unwrap();
-    assert!(tuple.params[0].is_ident());
-    assert!(tuple.params[1].is_lit_string());
+    let tuple = arena[let_decl.pattern].to_tuple_pattern().unwrap();
+    assert!(arena[tuple.params[0]].is_ident_pattern());
+    assert!(arena[tuple.params[1]].is_lit_pattern());
 }
 
 #[test]
@@ -764,9 +764,9 @@ fn parse_let_lit_int() {
     let (stmt, arena) = parse_let("let (a, 17) = 1;");
     let let_decl = arena[stmt].to_let().unwrap();
 
-    let tuple = let_decl.pattern.to_tuple().unwrap();
-    assert!(tuple.params[0].is_ident());
-    assert!(tuple.params[1].is_lit_int());
+    let tuple = arena[let_decl.pattern].to_tuple_pattern().unwrap();
+    assert!(arena[tuple.params[0]].is_ident_pattern());
+    assert!(arena[tuple.params[1]].is_lit_pattern());
 }
 
 #[test]
@@ -774,9 +774,9 @@ fn parse_let_lit_int_neg() {
     let (stmt, arena) = parse_let("let (a, -17) = 1;");
     let let_decl = arena[stmt].to_let().unwrap();
 
-    let tuple = let_decl.pattern.to_tuple().unwrap();
-    assert!(tuple.params[0].is_ident());
-    assert!(tuple.params[1].is_lit_int());
+    let tuple = arena[let_decl.pattern].to_tuple_pattern().unwrap();
+    assert!(arena[tuple.params[0]].is_ident_pattern());
+    assert!(arena[tuple.params[1]].is_lit_pattern());
 }
 
 #[test]
@@ -784,9 +784,9 @@ fn parse_let_lit_float() {
     let (stmt, arena) = parse_let("let (a, 17.5) = 1;");
     let let_decl = arena[stmt].to_let().unwrap();
 
-    let tuple = let_decl.pattern.to_tuple().unwrap();
-    assert!(tuple.params[0].is_ident());
-    assert!(tuple.params[1].is_lit_float());
+    let tuple = arena[let_decl.pattern].to_tuple_pattern().unwrap();
+    assert!(arena[tuple.params[0]].is_ident_pattern());
+    assert!(arena[tuple.params[1]].is_lit_pattern());
 }
 
 #[test]
@@ -794,9 +794,9 @@ fn parse_let_lit_float_neg() {
     let (stmt, arena) = parse_let("let (a, -17.5) = 1;");
     let let_decl = arena[stmt].to_let().unwrap();
 
-    let tuple = let_decl.pattern.to_tuple().unwrap();
-    assert!(tuple.params[0].is_ident());
-    assert!(tuple.params[1].is_lit_float());
+    let tuple = arena[let_decl.pattern].to_tuple_pattern().unwrap();
+    assert!(arena[tuple.params[0]].is_ident_pattern());
+    assert!(arena[tuple.params[1]].is_lit_pattern());
 }
 
 #[test]
@@ -804,7 +804,7 @@ fn parse_let_ident() {
     let (stmt, arena) = parse_let("let x = 1;");
     let let_decl = arena[stmt].to_let().unwrap();
 
-    assert!(let_decl.pattern.is_ident());
+    assert!(arena[let_decl.pattern].is_ident_pattern());
 }
 
 #[test]
@@ -812,7 +812,7 @@ fn parse_let_ident_mut() {
     let (stmt, arena) = parse_let("let mut x = 1;");
     let let_decl = arena[stmt].to_let().unwrap();
 
-    assert!(let_decl.pattern.to_ident().unwrap().mutable);
+    assert!(arena[let_decl.pattern].to_ident_pattern().unwrap().mutable);
 }
 
 #[test]
@@ -1516,7 +1516,7 @@ fn parse_lambda_with_one_param() {
     assert_eq!(1, node.params.len());
 
     let param = arena[node.params[0]].to_param().unwrap();
-    assert_eq!("a", pata_name(&arena, &param.pattern));
+    assert_eq!("a", pata_name(&arena, param.pattern));
     assert_eq!("A", tra_name(&arena, param.data_type));
     assert_eq!("B", tra_name(&arena, node.return_type.unwrap()));
 }
@@ -1530,11 +1530,11 @@ fn parse_lambda_with_two_params() {
     assert_eq!(2, node.params.len());
 
     let param = arena[node.params[0]].to_param().unwrap();
-    assert_eq!("a", pata_name(&arena, &param.pattern));
+    assert_eq!("a", pata_name(&arena, param.pattern));
     assert_eq!("A", tra_name(&arena, param.data_type));
 
     let param = arena[node.params[1]].to_param().unwrap();
-    assert_eq!("b", pata_name(&arena, &param.pattern));
+    assert_eq!("b", pata_name(&arena, param.pattern));
     assert_eq!("B", tra_name(&arena, param.data_type));
 
     assert_eq!("C", tra_name(&arena, node.return_type.unwrap()));
@@ -1777,12 +1777,19 @@ fn taa_name<'a>(arena: &'a Arena<Ast>, id: AstId) -> &'a str {
     tra_name(arena, node.ty)
 }
 
-fn pat_name<'a>(f: &'a File, node: &Pattern) -> &'a str {
-    let ident_id = node.to_ident().expect("ident expected").name;
+fn pat_name<'a>(f: &'a File, node_id: AstId) -> &'a str {
+    let ident_id = f
+        .node(node_id)
+        .to_ident_pattern()
+        .expect("ident expected")
+        .name;
     &f.node(ident_id).to_ident().expect("ident expected").name
 }
 
-fn pata_name<'a>(arena: &'a Arena<Ast>, node: &Pattern) -> &'a str {
-    let ident_id = node.to_ident().expect("ident expected").name;
+fn pata_name<'a>(arena: &'a Arena<Ast>, node_id: AstId) -> &'a str {
+    let ident_id = arena[node_id]
+        .to_ident_pattern()
+        .expect("ident expected")
+        .name;
     &arena[ident_id].to_ident().expect("ident expected").name
 }

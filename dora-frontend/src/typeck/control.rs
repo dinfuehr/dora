@@ -1,5 +1,3 @@
-use std::sync::Arc;
-
 use dora_parser::ast::{self, AstId};
 
 use crate::error::msg::ErrorMessage;
@@ -86,7 +84,7 @@ pub(super) fn check_expr_for(
 fn check_for_body(ck: &mut TypeCheck, stmt: &ast::ExprForType, ty: SourceType) {
     ck.symtable.push_level();
     ck.enter_block_scope();
-    check_pattern(ck, &stmt.pattern, ty);
+    check_pattern(ck, stmt.pattern, ty);
     check_loop_body(ck, stmt.block);
     ck.leave_block_scope(stmt.id);
     ck.symtable.pop_level();
@@ -302,7 +300,7 @@ pub fn check_expr_condition(ck: &mut TypeCheck, cond_id: AstId) -> SourceType {
     if let Some(bin_expr) = cond.to_bin_and() {
         if let Some(lhs_is_expr) = ck.node(bin_expr.lhs).to_is() {
             let ty = check_expr(ck, lhs_is_expr.value, SourceType::Any);
-            check_pattern(ck, &lhs_is_expr.pattern, ty);
+            check_pattern(ck, lhs_is_expr.pattern, ty);
         } else {
             let lhs_ty = check_expr(ck, bin_expr.lhs, SourceType::Bool);
 
@@ -324,7 +322,7 @@ pub fn check_expr_condition(ck: &mut TypeCheck, cond_id: AstId) -> SourceType {
         SourceType::Bool
     } else if let Some(is_expr) = cond.to_is() {
         let ty = check_expr(ck, is_expr.value, SourceType::Any);
-        check_pattern(ck, &is_expr.pattern, ty);
+        check_pattern(ck, is_expr.pattern, ty);
         SourceType::Bool
     } else {
         check_expr(ck, cond_id, SourceType::Bool)
@@ -378,9 +376,7 @@ fn check_expr_match_arm(
     expected_ty: SourceType,
     result_type: &mut SourceType,
 ) {
-    let pattern = arm.pattern.as_ref();
-
-    check_pattern(ck, pattern, expr_ty);
+    check_pattern(ck, arm.pattern, expr_ty);
 
     if let Some(cond) = arm.cond {
         let cond_ty = check_expr(ck, cond, SourceType::Bool);
@@ -406,21 +402,15 @@ fn check_expr_match_arm(
     }
 }
 
-pub(super) fn get_subpatterns(p: &ast::Pattern) -> Option<&Vec<Arc<ast::PatternField>>> {
-    match p {
-        ast::Pattern::Underscore(..)
-        | ast::Pattern::LitBool(..)
-        | ast::Pattern::LitChar(..)
-        | ast::Pattern::LitString(..)
-        | ast::Pattern::LitInt(..)
-        | ast::Pattern::LitFloat(..)
-        | ast::Pattern::Rest(..)
-        | ast::Pattern::Alt(..)
-        | ast::Pattern::Tuple(..)
-        | ast::Pattern::Error(..) => {
-            unreachable!()
-        }
-        ast::Pattern::Ident(..) => None,
-        ast::Pattern::Constructor(p) => p.params.as_ref(),
+pub(super) fn get_subpatterns<'a>(
+    ck: &mut TypeCheck<'a>,
+    pattern_id: ast::AstId,
+) -> Option<&'a Vec<AstId>> {
+    let pattern = ck.node(pattern_id);
+
+    match pattern {
+        ast::Ast::IdentPattern(..) => None,
+        ast::Ast::ConstructorPattern(ref p) => p.params.as_ref(),
+        _ => unreachable!(),
     }
 }

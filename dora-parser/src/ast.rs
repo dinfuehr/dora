@@ -523,6 +523,20 @@ impl Ast {
         }
     }
 
+    pub fn to_constructor_field(&self) -> Option<&PatternField> {
+        match self {
+            &Ast::ConstructorField(ref node) => Some(node),
+            _ => None,
+        }
+    }
+
+    pub fn is_constructor_field(&self) -> bool {
+        match self {
+            &Ast::ConstructorField(..) => true,
+            _ => false,
+        }
+    }
+
     pub fn to_rest(&self) -> Option<&PatternRest> {
         match self {
             &Ast::Rest(ref node) => Some(node),
@@ -995,7 +1009,7 @@ impl Modifier {
 pub struct Param {
     pub id: NodeId,
     pub span: Span,
-    pub pattern: Arc<Pattern>,
+    pub pattern: AstId,
     pub data_type: AstId,
     pub variadic: bool,
 }
@@ -1004,7 +1018,7 @@ impl Ast {
     pub fn create_let_stmt(
         id: NodeId,
         span: Span,
-        pattern: Arc<Pattern>,
+        pattern: AstId,
         data_type: Option<AstId>,
         expr: Option<AstId>,
     ) -> Ast {
@@ -1056,7 +1070,7 @@ pub struct StmtLetType {
     pub id: NodeId,
     pub span: Span,
 
-    pub pattern: Arc<Pattern>,
+    pub pattern: AstId,
 
     pub data_type: Option<AstId>,
     pub expr: Option<AstId>,
@@ -1067,7 +1081,7 @@ pub struct ExprForType {
     pub id: NodeId,
     pub span: Span,
 
-    pub pattern: Arc<Pattern>,
+    pub pattern: AstId,
     pub expr: AstId,
     pub block: AstId,
 }
@@ -1275,13 +1289,7 @@ impl Ast {
         })
     }
 
-    pub fn create_for(
-        id: NodeId,
-        span: Span,
-        pattern: Arc<Pattern>,
-        expr: AstId,
-        block: AstId,
-    ) -> Ast {
+    pub fn create_for(id: NodeId, span: Span, pattern: AstId, expr: AstId, block: AstId) -> Ast {
         Ast::For(ExprForType {
             id,
             span,
@@ -1339,7 +1347,7 @@ impl Ast {
         })
     }
 
-    pub fn create_is(id: NodeId, span: Span, object: AstId, pattern: Arc<Pattern>) -> Ast {
+    pub fn create_is(id: NodeId, span: Span, object: AstId, pattern: AstId) -> Ast {
         Ast::Is(ExprIsType {
             id,
             span,
@@ -1882,7 +1890,7 @@ pub struct ExprIsType {
     pub span: Span,
 
     pub value: AstId,
-    pub pattern: Arc<Pattern>,
+    pub pattern: AstId,
 }
 
 #[derive(Clone, Debug)]
@@ -2039,7 +2047,7 @@ pub struct MatchArmType {
     pub id: NodeId,
     pub span: Span,
 
-    pub pattern: Arc<Pattern>,
+    pub pattern: AstId,
     pub cond: Option<AstId>,
     pub value: AstId,
 }
@@ -2055,50 +2063,7 @@ pub struct PatternAlt {
     pub id: NodeId,
     pub span: Span,
 
-    pub alts: Vec<Arc<Pattern>>,
-}
-
-impl PatternAlt {
-    pub fn first_alt(&self) -> Option<&Arc<Pattern>> {
-        self.alts.get(0)
-    }
-
-    pub fn is_rest(&self) -> bool {
-        self.alts.len() == 1 && self.alts[0].is_rest()
-    }
-
-    pub fn is_underscore(&self) -> bool {
-        self.alts.len() == 1 && self.alts[0].is_underscore()
-    }
-
-    pub fn is_ident(&self) -> bool {
-        self.alts.len() == 1 && self.alts[0].is_ident()
-    }
-
-    pub fn to_ident(&self) -> Option<&PatternIdent> {
-        assert!(self.alts.len() == 1);
-        self.alts[0].to_ident()
-    }
-
-    pub fn is_lit_bool(&self) -> bool {
-        self.alts.len() == 1 && self.alts[0].is_lit_bool()
-    }
-
-    pub fn is_lit_char(&self) -> bool {
-        self.alts.len() == 1 && self.alts[0].is_lit_char()
-    }
-
-    pub fn is_lit_int(&self) -> bool {
-        self.alts.len() == 1 && self.alts[0].is_lit_int()
-    }
-
-    pub fn is_lit_float(&self) -> bool {
-        self.alts.len() == 1 && self.alts[0].is_lit_float()
-    }
-
-    pub fn is_lit_string(&self) -> bool {
-        self.alts.len() == 1 && self.alts[0].is_lit_string()
-    }
+    pub alts: Vec<AstId>,
 }
 
 #[derive(Clone, Debug)]
@@ -2246,7 +2211,17 @@ pub struct PatternRest {
 pub struct PatternLit {
     pub id: NodeId,
     pub span: Span,
+    pub kind: PatternLitKind,
     pub expr: AstId,
+}
+
+#[derive(Clone, Debug)]
+pub enum PatternLitKind {
+    Bool,
+    Char,
+    Int,
+    String,
+    Float,
 }
 
 #[derive(Clone, Debug)]
@@ -2261,7 +2236,7 @@ pub struct PatternIdent {
 pub struct PatternTuple {
     pub id: NodeId,
     pub span: Span,
-    pub params: Vec<Arc<Pattern>>,
+    pub params: Vec<AstId>,
 }
 
 #[derive(Clone, Debug)]
@@ -2269,7 +2244,7 @@ pub struct PatternConstructor {
     pub id: NodeId,
     pub span: Span,
     pub path: AstId,
-    pub params: Option<Vec<Arc<PatternField>>>,
+    pub params: Option<Vec<AstId>>,
 }
 
 #[derive(Clone, Debug)]
@@ -2277,7 +2252,7 @@ pub struct PatternField {
     pub id: NodeId,
     pub span: Span,
     pub ident: Option<AstId>,
-    pub pattern: Arc<Pattern>,
+    pub pattern: AstId,
 }
 
 #[derive(Clone, Debug)]

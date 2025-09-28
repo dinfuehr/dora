@@ -77,7 +77,7 @@ fn check_match(
                 row.push(Pattern::any_no_span());
             }
         }
-        row.push(convert_pattern(sa, file_id, analysis, &arm.pattern));
+        row.push(convert_pattern(sa, file_id, analysis, arm.pattern));
 
         let useless = check_useful_expand(sa, matrix.clone(), row.clone());
 
@@ -85,7 +85,7 @@ fn check_match(
             Useless::Set(spans) => spans,
             Useless::Yes => {
                 let mut spans = HashSet::new();
-                spans.insert(arm.pattern.span());
+                spans.insert(sa.node(file_id, arm.pattern).span());
                 spans
             }
         };
@@ -1115,64 +1115,68 @@ fn convert_pattern(
     sa: &Sema,
     file_id: SourceFileId,
     analysis: &AnalysisData,
-    pattern: &ast::Pattern,
+    pattern_id: ast::AstId,
 ) -> Pattern {
+    let pattern = sa.node(file_id, pattern_id);
+
     match pattern {
-        ast::Pattern::Underscore(ref p) => Pattern::Any { span: Some(p.span) },
-        ast::Pattern::Error(ref p) => Pattern::Any { span: Some(p.span) },
+        ast::Ast::Underscore(ref p) => Pattern::Any { span: Some(p.span) },
+        ast::Ast::Error(ref p) => Pattern::Any { span: Some(p.span) },
 
-        ast::Pattern::Rest(..) => unreachable!(),
+        ast::Ast::Rest(..) => unreachable!(),
 
-        ast::Pattern::LitBool(ref lit) => {
-            let node = sa.node(file_id, lit.expr);
-            Pattern::Literal {
-                span: pattern.span(),
-                value: LiteralValue::Bool(node.is_lit_true()),
+        ast::Ast::LitPattern(ref lit) => match lit.kind {
+            ast::PatternLitKind::Bool => {
+                let node = sa.node(file_id, lit.expr);
+                Pattern::Literal {
+                    span: pattern.span(),
+                    value: LiteralValue::Bool(node.is_lit_true()),
+                }
             }
-        }
 
-        ast::Pattern::LitInt(ref lit) => {
-            let value = analysis.const_value(lit.id).to_i64().expect("i64 expected");
-            Pattern::Literal {
-                span: pattern.span(),
-                value: LiteralValue::Int(value),
+            ast::PatternLitKind::Int => {
+                let value = analysis.const_value(lit.id).to_i64().expect("i64 expected");
+                Pattern::Literal {
+                    span: pattern.span(),
+                    value: LiteralValue::Int(value),
+                }
             }
-        }
 
-        ast::Pattern::LitString(ref lit) => {
-            let value = analysis
-                .const_value(lit.id)
-                .to_string()
-                .cloned()
-                .expect("string expected");
-            Pattern::Literal {
-                span: lit.span,
-                value: LiteralValue::String(value),
+            ast::PatternLitKind::String => {
+                let value = analysis
+                    .const_value(lit.id)
+                    .to_string()
+                    .cloned()
+                    .expect("string expected");
+                Pattern::Literal {
+                    span: lit.span,
+                    value: LiteralValue::String(value),
+                }
             }
-        }
 
-        ast::Pattern::LitFloat(ref lit) => {
-            let value = analysis.const_value(lit.id).to_f64().expect("f64 expected");
-            Pattern::Literal {
-                span: lit.span,
-                value: LiteralValue::Float(value),
+            ast::PatternLitKind::Float => {
+                let value = analysis.const_value(lit.id).to_f64().expect("f64 expected");
+                Pattern::Literal {
+                    span: lit.span,
+                    value: LiteralValue::Float(value),
+                }
             }
-        }
 
-        ast::Pattern::LitChar(ref lit) => {
-            let value = analysis.const_value(lit.id).to_char();
-            Pattern::Literal {
-                span: lit.span,
-                value: LiteralValue::Char(value),
+            ast::PatternLitKind::Char => {
+                let value = analysis.const_value(lit.id).to_char();
+                Pattern::Literal {
+                    span: lit.span,
+                    value: LiteralValue::Char(value),
+                }
             }
-        }
+        },
 
-        ast::Pattern::Tuple(ref tuple) => {
+        ast::Ast::TuplePattern(ref tuple) => {
             let patterns = tuple
                 .params
                 .iter()
                 .rev()
-                .map(|p| convert_pattern(sa, file_id, analysis, &p))
+                .map(|&pattern_id| convert_pattern(sa, file_id, analysis, pattern_id))
                 .collect();
             Pattern::Constructor {
                 span: tuple.span,
@@ -1181,7 +1185,7 @@ fn convert_pattern(
             }
         }
 
-        ast::Pattern::Ident(ref pattern_ident) => {
+        ast::Ast::IdentPattern(ref pattern_ident) => {
             let ident = analysis
                 .map_idents
                 .get(pattern_ident.id)
@@ -1203,16 +1207,16 @@ fn convert_pattern(
             }
         }
 
-        ast::Pattern::Alt(ref p) => Pattern::Alt {
+        ast::Ast::Alt(ref p) => Pattern::Alt {
             span: p.span,
             alts: p
                 .alts
                 .iter()
-                .map(|alt| convert_pattern(sa, file_id, analysis, alt.as_ref()))
+                .map(|&alt_id| convert_pattern(sa, file_id, analysis, alt_id))
                 .collect(),
         },
 
-        ast::Pattern::Constructor(ref p) => {
+        ast::Ast::ConstructorPattern(ref p) => {
             let ident = analysis.map_idents.get(p.id).expect("missing ident");
 
             match ident {
@@ -1267,6 +1271,8 @@ fn convert_pattern(
                 _ => unreachable!(),
             }
         }
+
+        _ => unreachable!(),
     }
 }
 
@@ -1280,16 +1286,21 @@ fn convert_subpatterns(
     if let Some(ref params) = p.params {
         let mut result = vec![None; n];
 
-        for subpattern in params {
-            if subpattern.pattern.is_rest() {
+        for &ctor_field_id in params {
+            let ctor_field = sa
+                .node(file_id, ctor_field_id)
+                .to_constructor_field()
+                .expect("field expected");
+
+            if sa.node(file_id, ctor_field.pattern).is_rest() {
                 // Do nothing
             } else {
                 let field_id = analysis
                     .map_field_ids
-                    .get(subpattern.id)
+                    .get(ctor_field.id)
                     .cloned()
                     .expect("missing field_id");
-                let p = convert_pattern(sa, file_id, analysis, &subpattern.pattern);
+                let p = convert_pattern(sa, file_id, analysis, ctor_field.pattern);
                 result[field_id] = Some(p);
             }
         }

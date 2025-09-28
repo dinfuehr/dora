@@ -1176,7 +1176,7 @@ fn check_expr_is(ck: &mut TypeCheck, e: &ast::ExprIsType, _expected_ty: SourceTy
     let value_type = check_expr(ck, e.value, SourceType::Any);
     ck.analysis.set_ty(ck.id(e.value), value_type.clone());
 
-    check_pattern(ck, &e.pattern, value_type.clone());
+    check_pattern(ck, e.pattern, value_type.clone());
 
     SourceType::Bool
 }
@@ -1470,7 +1470,7 @@ pub(super) fn check_expr_bin(
         ck.symtable.push_level();
         let is_expr = lhs.to_is().expect("expected is");
         let value_ty = check_expr(ck, is_expr.value, SourceType::Any);
-        check_pattern(ck, &is_expr.pattern, value_ty);
+        check_pattern(ck, is_expr.pattern, value_ty);
         let cond_ty = check_expr(ck, e.rhs, SourceType::Bool);
         if !cond_ty.is_bool() && !cond_ty.is_error() {
             let cond_ty = cond_ty.name(ck.sa);

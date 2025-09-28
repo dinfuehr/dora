@@ -1,6 +1,5 @@
 use std::collections::HashMap;
 use std::convert::TryInto;
-use std::sync::Arc;
 
 use dora_parser::ast::{self, Ast, AstId, CmpOp, NodeId};
 use dora_parser::Span;
@@ -221,7 +220,7 @@ impl<'a> AstBytecodeGen<'a> {
             let reg = Register(next_register_idx + param_idx);
             let param = self.node(param_id).to_param().expect("param expected");
 
-            if let Some(ident) = param.pattern.to_ident() {
+            if let Some(ident) = self.node(param.pattern).to_ident_pattern() {
                 let var_id = *self.analysis.map_vars.get(ident.id).unwrap();
 
                 let var = self.analysis.vars.get_var(var_id);
@@ -237,8 +236,8 @@ impl<'a> AstBytecodeGen<'a> {
                 }
             } else {
                 let ty = self.analysis.ty(param.id);
-                self.setup_pattern_vars(&param.pattern);
-                self.destruct_pattern_or_fail(&param.pattern, reg, ty);
+                self.setup_pattern_vars(param.pattern);
+                self.destruct_pattern_or_fail(param.pattern, reg, ty);
             }
         }
     }
@@ -398,9 +397,11 @@ impl<'a> AstBytecodeGen<'a> {
         }
     }
 
-    fn setup_pattern_vars(&mut self, pattern: &ast::Pattern) {
+    fn setup_pattern_vars(&mut self, pattern_id: AstId) {
+        let pattern = self.node(pattern_id);
+
         match pattern {
-            ast::Pattern::Ident(ref ident) => {
+            ast::Ast::IdentPattern(ref ident) => {
                 let ident_type = self.analysis.map_idents.get(ident.id);
 
                 match ident_type {
@@ -416,37 +417,37 @@ impl<'a> AstBytecodeGen<'a> {
                 }
             }
 
-            ast::Pattern::LitBool(..)
-            | ast::Pattern::LitChar(..)
-            | ast::Pattern::LitString(..)
-            | ast::Pattern::LitInt(..)
-            | ast::Pattern::LitFloat(..)
-            | ast::Pattern::Underscore(..)
-            | ast::Pattern::Rest(..) => {
+            ast::Ast::LitPattern(..) | ast::Ast::Underscore(..) | ast::Ast::Rest(..) => {
                 // nothing to do
             }
 
-            ast::Pattern::Error(..) => unreachable!(),
+            ast::Ast::Error(..) => unreachable!(),
 
-            ast::Pattern::Constructor(ref p) => {
-                if let Some(ref params) = p.params {
-                    for param in params {
-                        self.setup_pattern_vars(&param.pattern);
+            ast::Ast::ConstructorPattern(ref p) => {
+                if let Some(ref ctor_fields) = p.params {
+                    for &ctor_field_id in ctor_fields {
+                        let ctor_field = self
+                            .node(ctor_field_id)
+                            .to_constructor_field()
+                            .expect("field expected");
+                        self.setup_pattern_vars(ctor_field.pattern);
                     }
                 }
             }
 
-            ast::Pattern::Tuple(ref tuple) => {
-                for param in &tuple.params {
-                    self.setup_pattern_vars(&param);
+            ast::Ast::TuplePattern(ref tuple) => {
+                for &param_id in &tuple.params {
+                    self.setup_pattern_vars(param_id);
                 }
             }
 
-            ast::Pattern::Alt(ref p) => {
+            ast::Ast::Alt(ref p) => {
                 // All alternative patterns define the same vars, so just allocate
                 // registers for the first subpattern.
-                self.setup_pattern_vars(p.alts.first().expect("missing alt"));
+                self.setup_pattern_vars(p.alts[0]);
             }
+
+            _ => unreachable!(),
         }
     }
 
@@ -471,13 +472,9 @@ impl<'a> AstBytecodeGen<'a> {
         self.set_var_reg(var_id, reg);
     }
 
-    fn destruct_pattern_or_fail(
-        &mut self,
-        pattern: &ast::Pattern,
-        value: Register,
-        ty: SourceType,
-    ) {
-        let mismatch_lbl = self.destruct_pattern(pattern, value, ty, None);
+    fn destruct_pattern_or_fail(&mut self, pattern_id: AstId, value: Register, ty: SourceType) {
+        let pattern = self.node(pattern_id);
+        let mismatch_lbl = self.destruct_pattern(pattern_id, value, ty, None);
         if let Some(mismatch_lbl) = mismatch_lbl {
             let merge_lbl = self.builder.create_label();
             self.builder.emit_jump(merge_lbl);
@@ -489,32 +486,34 @@ impl<'a> AstBytecodeGen<'a> {
 
     fn destruct_pattern(
         &mut self,
-        pattern: &ast::Pattern,
+        pattern_id: AstId,
         value: Register,
         ty: SourceType,
         exit: Option<Label>,
     ) -> Option<Label> {
         let mut pck = PatternCheckContext { exit };
-        self.destruct_pattern_alt(&mut pck, pattern, value, ty);
+        self.destruct_pattern_alt(&mut pck, pattern_id, value, ty);
         pck.exit
     }
 
     fn destruct_pattern_alt(
         &mut self,
         pck: &mut PatternCheckContext,
-        pattern: &ast::Pattern,
+        pattern_id: AstId,
         value: Register,
         ty: SourceType,
     ) {
+        let pattern = self.node(pattern_id);
+
         match pattern {
-            ast::Pattern::Ident(ref ident) => {
+            ast::Ast::IdentPattern(ref ident) => {
                 let ident_type = self.analysis.map_idents.get(ident.id);
 
                 match ident_type {
                     Some(IdentType::EnumVariant(enum_id, enum_type_params, variant_id)) => {
                         self.destruct_pattern_enum(
                             pck,
-                            pattern,
+                            pattern_id,
                             value,
                             ty,
                             *enum_id,
@@ -524,126 +523,129 @@ impl<'a> AstBytecodeGen<'a> {
                     }
 
                     Some(IdentType::Var(var_id)) => {
-                        self.destruct_pattern_var(pck, pattern, value, ty, *var_id)
+                        self.destruct_pattern_var(pck, pattern_id, value, ty, *var_id)
                     }
 
                     _ => unreachable!(),
                 }
             }
-            ast::Pattern::LitBool(ref p) => {
-                let mismatch_lbl = pck.ensure_label(&mut self.builder);
-                let p = self
-                    .node(p.expr)
-                    .to_lit_bool()
-                    .expect("expected bool literal");
-                if p.value {
-                    self.builder.emit_jump_if_false(value, mismatch_lbl);
-                } else {
-                    self.builder.emit_jump_if_true(value, mismatch_lbl);
+
+            ast::Ast::LitPattern(ref p) => match p.kind {
+                ast::PatternLitKind::Bool => {
+                    let mismatch_lbl = pck.ensure_label(&mut self.builder);
+                    let p = self
+                        .node(p.expr)
+                        .to_lit_bool()
+                        .expect("expected bool literal");
+                    if p.value {
+                        self.builder.emit_jump_if_false(value, mismatch_lbl);
+                    } else {
+                        self.builder.emit_jump_if_true(value, mismatch_lbl);
+                    }
                 }
-            }
 
-            ast::Pattern::LitChar(ref p) => {
-                let mismatch_lbl = pck.ensure_label(&mut self.builder);
-                let char_value = self.analysis.const_value(p.id).to_char();
-                let tmp = self.alloc_temp(BytecodeType::Bool);
-                let expected = self.alloc_temp(BytecodeType::Char);
-                self.builder.emit_const_char(expected, char_value);
-                self.builder.emit_test_eq(tmp, value, expected);
-                self.builder.emit_jump_if_false(tmp, mismatch_lbl);
-                self.builder.free_temp(tmp);
-                self.builder.free_temp(expected);
-            }
+                ast::PatternLitKind::Char => {
+                    let mismatch_lbl = pck.ensure_label(&mut self.builder);
+                    let char_value = self.analysis.const_value(p.id).to_char();
+                    let tmp = self.alloc_temp(BytecodeType::Bool);
+                    let expected = self.alloc_temp(BytecodeType::Char);
+                    self.builder.emit_const_char(expected, char_value);
+                    self.builder.emit_test_eq(tmp, value, expected);
+                    self.builder.emit_jump_if_false(tmp, mismatch_lbl);
+                    self.builder.free_temp(tmp);
+                    self.builder.free_temp(expected);
+                }
 
-            ast::Pattern::LitFloat(ref p) => {
-                let ty = self.emitter.convert_ty_reg(ty);
-                assert!(ty == BytecodeType::Float32 || ty == BytecodeType::Float64);
-                let mismatch_lbl = pck.ensure_label(&mut self.builder);
-                let const_value = self
-                    .analysis
-                    .const_value(p.id)
-                    .to_f64()
-                    .expect("float expected");
-                let tmp = self.alloc_temp(BytecodeType::Bool);
-                let expected = self.alloc_temp(ty.clone());
-                match ty {
-                    BytecodeType::Float32 => self
+                ast::PatternLitKind::Float => {
+                    let ty = self.emitter.convert_ty_reg(ty);
+                    assert!(ty == BytecodeType::Float32 || ty == BytecodeType::Float64);
+                    let mismatch_lbl = pck.ensure_label(&mut self.builder);
+                    let const_value = self
+                        .analysis
+                        .const_value(p.id)
+                        .to_f64()
+                        .expect("float expected");
+                    let tmp = self.alloc_temp(BytecodeType::Bool);
+                    let expected = self.alloc_temp(ty.clone());
+                    match ty {
+                        BytecodeType::Float32 => self
+                            .builder
+                            .emit_const_float32(expected, const_value as f32),
+                        BytecodeType::Float64 => {
+                            self.builder.emit_const_float64(expected, const_value)
+                        }
+                        _ => unreachable!(),
+                    }
+                    self.builder.emit_test_eq(tmp, value, expected);
+                    self.builder.emit_jump_if_false(tmp, mismatch_lbl);
+                    self.builder.free_temp(tmp);
+                    self.builder.free_temp(expected);
+                }
+
+                ast::PatternLitKind::String => {
+                    let mismatch_lbl = pck.ensure_label(&mut self.builder);
+                    let const_value = self
+                        .analysis
+                        .const_value(p.id)
+                        .to_string()
+                        .expect("float expected")
+                        .to_string();
+                    let tmp = self.alloc_temp(BytecodeType::Bool);
+                    let expected = self.alloc_temp(BytecodeType::Ptr);
+                    self.builder.emit_const_string(expected, const_value);
+                    let fct_id = self.sa.known.functions.string_equals();
+                    let idx = self
                         .builder
-                        .emit_const_float32(expected, const_value as f32),
-                    BytecodeType::Float64 => self.builder.emit_const_float64(expected, const_value),
-                    _ => unreachable!(),
+                        .add_const_fct(self.emitter.convert_function_id(fct_id));
+                    self.builder.emit_push_register(value);
+                    self.builder.emit_push_register(expected);
+                    self.builder.emit_invoke_direct(tmp, idx, self.loc(p.span));
+                    self.builder.emit_jump_if_false(tmp, mismatch_lbl);
+                    self.builder.free_temp(tmp);
+                    self.builder.free_temp(expected);
                 }
-                self.builder.emit_test_eq(tmp, value, expected);
-                self.builder.emit_jump_if_false(tmp, mismatch_lbl);
-                self.builder.free_temp(tmp);
-                self.builder.free_temp(expected);
-            }
 
-            ast::Pattern::LitString(ref p) => {
-                let mismatch_lbl = pck.ensure_label(&mut self.builder);
-                let const_value = self
-                    .analysis
-                    .const_value(p.id)
-                    .to_string()
-                    .expect("float expected")
-                    .to_string();
-                let tmp = self.alloc_temp(BytecodeType::Bool);
-                let expected = self.alloc_temp(BytecodeType::Ptr);
-                self.builder.emit_const_string(expected, const_value);
-                let fct_id = self.sa.known.functions.string_equals();
-                let idx = self
-                    .builder
-                    .add_const_fct(self.emitter.convert_function_id(fct_id));
-                self.builder.emit_push_register(value);
-                self.builder.emit_push_register(expected);
-                self.builder.emit_invoke_direct(tmp, idx, self.loc(p.span));
-                self.builder.emit_jump_if_false(tmp, mismatch_lbl);
-                self.builder.free_temp(tmp);
-                self.builder.free_temp(expected);
-            }
-
-            ast::Pattern::LitInt(ref p) => {
-                let ty = self.emitter.convert_ty_reg(ty);
-                let mismatch_lbl = pck.ensure_label(&mut self.builder);
-                let const_value = self.analysis.const_value(p.id);
-                let tmp = self.alloc_temp(BytecodeType::Bool);
-                let expected = self.alloc_temp(ty.clone());
-                match ty {
-                    BytecodeType::Float32 => {
-                        let value = const_value.to_f64().expect("float expected") as f32;
-                        self.builder.emit_const_float32(expected, value);
+                ast::PatternLitKind::Int => {
+                    let ty = self.emitter.convert_ty_reg(ty);
+                    let mismatch_lbl = pck.ensure_label(&mut self.builder);
+                    let const_value = self.analysis.const_value(p.id);
+                    let tmp = self.alloc_temp(BytecodeType::Bool);
+                    let expected = self.alloc_temp(ty.clone());
+                    match ty {
+                        BytecodeType::Float32 => {
+                            let value = const_value.to_f64().expect("float expected") as f32;
+                            self.builder.emit_const_float32(expected, value);
+                        }
+                        BytecodeType::Float64 => {
+                            let value = const_value.to_f64().expect("float expected");
+                            self.builder.emit_const_float64(expected, value)
+                        }
+                        BytecodeType::UInt8 => {
+                            let value = const_value.to_i64().expect("float expected") as u8;
+                            self.builder.emit_const_uint8(expected, value)
+                        }
+                        BytecodeType::Int32 => {
+                            let value = const_value.to_i64().expect("float expected") as i32;
+                            self.builder.emit_const_int32(expected, value)
+                        }
+                        BytecodeType::Int64 => {
+                            let value = const_value.to_i64().expect("float expected");
+                            self.builder.emit_const_int64(expected, value)
+                        }
+                        _ => unreachable!(),
                     }
-                    BytecodeType::Float64 => {
-                        let value = const_value.to_f64().expect("float expected");
-                        self.builder.emit_const_float64(expected, value)
-                    }
-                    BytecodeType::UInt8 => {
-                        let value = const_value.to_i64().expect("float expected") as u8;
-                        self.builder.emit_const_uint8(expected, value)
-                    }
-                    BytecodeType::Int32 => {
-                        let value = const_value.to_i64().expect("float expected") as i32;
-                        self.builder.emit_const_int32(expected, value)
-                    }
-                    BytecodeType::Int64 => {
-                        let value = const_value.to_i64().expect("float expected");
-                        self.builder.emit_const_int64(expected, value)
-                    }
-                    _ => unreachable!(),
+                    self.builder.emit_test_eq(tmp, value, expected);
+                    self.builder.emit_jump_if_false(tmp, mismatch_lbl);
+                    self.builder.free_temp(tmp);
+                    self.builder.free_temp(expected);
                 }
-                self.builder.emit_test_eq(tmp, value, expected);
-                self.builder.emit_jump_if_false(tmp, mismatch_lbl);
-                self.builder.free_temp(tmp);
-                self.builder.free_temp(expected);
-            }
+            },
 
-            ast::Pattern::Underscore(_) => {
+            ast::Ast::Underscore(_) => {
                 // nothing to do
             }
 
-            ast::Pattern::Error(..) => unreachable!(),
-
-            ast::Pattern::Alt(ref p) => {
+            ast::Ast::Alt(ref p) => {
                 let mut alt_labels = Vec::with_capacity(p.alts.len() + 1);
                 let match_lbl = self.builder.create_label();
 
@@ -653,7 +655,7 @@ impl<'a> AstBytecodeGen<'a> {
 
                 alt_labels.push(pck.ensure_label(&mut self.builder));
 
-                for (idx, alt) in p.alts.iter().enumerate() {
+                for (idx, &alt_id) in p.alts.iter().enumerate() {
                     let current_lbl = alt_labels[idx];
                     self.builder.bind_label(current_lbl);
 
@@ -662,21 +664,21 @@ impl<'a> AstBytecodeGen<'a> {
                     let mut alt_pck = PatternCheckContext {
                         exit: Some(next_lbl),
                     };
-                    self.destruct_pattern_alt(&mut alt_pck, alt.as_ref(), value, ty.clone());
+                    self.destruct_pattern_alt(&mut alt_pck, alt_id, value, ty.clone());
                     self.builder.emit_jump(match_lbl);
                 }
 
                 self.builder.bind_label(match_lbl);
             }
 
-            ast::Pattern::Constructor(ref p) => {
+            ast::Ast::ConstructorPattern(ref p) => {
                 let ident_type = self.analysis.map_idents.get(p.id).unwrap();
 
                 match ident_type {
                     IdentType::EnumVariant(enum_id, enum_type_params, variant_id) => {
                         self.destruct_pattern_enum(
                             pck,
-                            pattern,
+                            pattern_id,
                             value,
                             ty,
                             *enum_id,
@@ -688,7 +690,7 @@ impl<'a> AstBytecodeGen<'a> {
                     IdentType::Struct(struct_id, struct_type_params) => {
                         self.destruct_pattern_struct(
                             pck,
-                            pattern,
+                            pattern_id,
                             value,
                             ty,
                             *struct_id,
@@ -699,7 +701,7 @@ impl<'a> AstBytecodeGen<'a> {
                     IdentType::Class(class_id, class_type_params) => {
                         self.destruct_pattern_class(
                             pck,
-                            pattern,
+                            pattern_id,
                             value,
                             ty,
                             *class_id,
@@ -711,18 +713,20 @@ impl<'a> AstBytecodeGen<'a> {
                 }
             }
 
-            ast::Pattern::Tuple(ref p) => {
-                self.destruct_pattern_tuple(pck, p, value, ty);
+            ast::Ast::TuplePattern(..) => {
+                self.destruct_pattern_tuple(pck, pattern_id, value, ty);
             }
 
-            ast::Pattern::Rest(..) => unreachable!(),
+            ast::Ast::Rest(..) => unreachable!(),
+
+            _ => unreachable!(),
         }
     }
 
     fn destruct_pattern_enum(
         &mut self,
         pck: &mut PatternCheckContext,
-        pattern: &ast::Pattern,
+        pattern_id: AstId,
         value: Register,
         _ty: SourceType,
         enum_id: EnumDefinitionId,
@@ -743,7 +747,7 @@ impl<'a> AstBytecodeGen<'a> {
             actual_variant_reg,
             value,
             idx,
-            self.loc(pattern.span()),
+            self.loc(self.span(pattern_id)),
         );
 
         let expected_variant_reg = self.alloc_temp(BytecodeType::Int32);
@@ -757,26 +761,30 @@ impl<'a> AstBytecodeGen<'a> {
         let variant_id = enum_.variant_id_at(variant_idx as usize);
         let variant = self.sa.variant(variant_id);
 
-        iterate_subpatterns(self.analysis, pattern, |idx, param| {
+        iterate_subpatterns(self, pattern_id, |g, idx, param_id| {
             let field_id = variant.field_id(FieldIndex(idx));
-            let field = self.sa.field(field_id);
+            let field = g.sa.field(field_id);
             let element_ty = field.ty();
-            let element_ty = specialize_type(self.sa, element_ty, enum_type_params);
-            let ty = self.emitter.convert_ty_reg(element_ty.clone());
-            let field_reg = self.alloc_temp(ty);
+            let element_ty = specialize_type(g.sa, element_ty, enum_type_params);
+            let ty = g.emitter.convert_ty_reg(element_ty.clone());
+            let field_reg = g.alloc_temp(ty);
 
-            let idx = self.builder.add_const_enum_element(
+            let idx = g.builder.add_const_enum_element(
                 bc_enum_id,
                 bc_enum_type_params.clone(),
                 variant_idx,
                 idx as u32,
             );
 
-            self.builder
-                .emit_load_enum_element(field_reg, value, idx, self.loc(pattern.span()));
+            g.builder
+                .emit_load_enum_element(field_reg, value, idx, g.loc(g.span(pattern_id)));
 
-            self.destruct_pattern_alt(pck, &param.pattern, field_reg, element_ty);
-            self.free_temp(field_reg);
+            let param = g
+                .node(param_id)
+                .to_constructor_field()
+                .expect("field expected");
+            g.destruct_pattern_alt(pck, param.pattern, field_reg, element_ty);
+            g.free_temp(field_reg);
         });
 
         self.free_temp(actual_variant_reg);
@@ -787,7 +795,7 @@ impl<'a> AstBytecodeGen<'a> {
     fn destruct_pattern_struct(
         &mut self,
         pck: &mut PatternCheckContext,
-        pattern: &ast::Pattern,
+        pattern_id: AstId,
         value: Register,
         _ty: SourceType,
         struct_id: StructDefinitionId,
@@ -795,27 +803,31 @@ impl<'a> AstBytecodeGen<'a> {
     ) {
         let struct_ = self.sa.struct_(struct_id);
 
-        iterate_subpatterns(self.analysis, pattern, |idx, field| {
+        iterate_subpatterns(self, pattern_id, |g, idx, field_ast_id| {
             let field_id = struct_.field_id(FieldIndex(idx));
-            let field_ty = self.sa.field(field_id).ty();
-            let field_ty = specialize_type(self.sa, field_ty, struct_type_params);
-            let register_ty = self.emitter.convert_ty_reg(field_ty.clone());
-            let idx = self.builder.add_const_struct_field(
-                self.emitter.convert_struct_id(struct_id),
-                self.convert_tya(struct_type_params),
+            let field_ty = g.sa.field(field_id).ty();
+            let field_ty = specialize_type(g.sa, field_ty, struct_type_params);
+            let register_ty = g.emitter.convert_ty_reg(field_ty.clone());
+            let idx = g.builder.add_const_struct_field(
+                g.emitter.convert_struct_id(struct_id),
+                g.convert_tya(struct_type_params),
                 idx as u32,
             );
-            let temp_reg = self.alloc_temp(register_ty);
-            self.builder.emit_load_struct_field(temp_reg, value, idx);
-            self.destruct_pattern_alt(pck, &field.pattern, temp_reg, field_ty);
-            self.free_temp(temp_reg);
+            let temp_reg = g.alloc_temp(register_ty);
+            g.builder.emit_load_struct_field(temp_reg, value, idx);
+            let field = g
+                .node(field_ast_id)
+                .to_constructor_field()
+                .expect("field expected");
+            g.destruct_pattern_alt(pck, field.pattern, temp_reg, field_ty);
+            g.free_temp(temp_reg);
         })
     }
 
     fn destruct_pattern_class(
         &mut self,
         pck: &mut PatternCheckContext,
-        pattern: &ast::Pattern,
+        pattern_id: AstId,
         value: Register,
         _ty: SourceType,
         class_id: ClassDefinitionId,
@@ -823,31 +835,39 @@ impl<'a> AstBytecodeGen<'a> {
     ) {
         let class = self.sa.class(class_id);
 
-        iterate_subpatterns(self.analysis, pattern, |idx, field_pattern| {
+        iterate_subpatterns(self, pattern_id, |g, idx, field_ast_id| {
             let field_id = class.field_id(FieldIndex(idx));
-            let field_ty = self.sa.field(field_id).ty();
-            let field_ty = specialize_type(self.sa, field_ty, class_type_params);
-            let register_ty = self.emitter.convert_ty_reg(field_ty.clone());
-            let idx = self.builder.add_const_field_types(
-                self.emitter.convert_class_id(class_id),
-                self.convert_tya(class_type_params),
+            let field_ty = g.sa.field(field_id).ty();
+            let field_ty = specialize_type(g.sa, field_ty, class_type_params);
+            let register_ty = g.emitter.convert_ty_reg(field_ty.clone());
+            let idx = g.builder.add_const_field_types(
+                g.emitter.convert_class_id(class_id),
+                g.convert_tya(class_type_params),
                 idx as u32,
             );
-            let temp_reg = self.alloc_temp(register_ty);
-            self.builder
-                .emit_load_field(temp_reg, value, idx, self.loc(pattern.span()));
-            self.destruct_pattern_alt(pck, &field_pattern.pattern, temp_reg, field_ty);
-            self.free_temp(temp_reg);
+            let temp_reg = g.alloc_temp(register_ty);
+            g.builder
+                .emit_load_field(temp_reg, value, idx, g.loc(g.span(pattern_id)));
+            let field = g
+                .node(field_ast_id)
+                .to_constructor_field()
+                .expect("field expected");
+            g.destruct_pattern_alt(pck, field.pattern, temp_reg, field_ty);
+            g.free_temp(temp_reg);
         })
     }
 
     fn destruct_pattern_tuple(
         &mut self,
         pck: &mut PatternCheckContext,
-        pattern: &ast::PatternTuple,
+        pattern_id: AstId,
         value: Register,
         ty: SourceType,
     ) {
+        let pattern = self
+            .node(pattern_id)
+            .to_tuple_pattern()
+            .expect("tuple expected");
         let subpatterns = pattern.params.as_slice();
 
         if ty.is_unit() {
@@ -855,7 +875,9 @@ impl<'a> AstBytecodeGen<'a> {
         } else {
             let tuple_subtypes = ty.tuple_subtypes().expect("tuple expected");
 
-            for subpattern in subpatterns {
+            for &subpattern_id in subpatterns {
+                let subpattern = self.node(subpattern_id);
+
                 if subpattern.is_rest() || subpattern.is_underscore() {
                     // Do nothing.
                 } else {
@@ -874,7 +896,7 @@ impl<'a> AstBytecodeGen<'a> {
                     let temp_reg = self.alloc_temp(register_ty);
                     self.builder
                         .emit_load_tuple_element(temp_reg, value, cp_idx);
-                    self.destruct_pattern_alt(pck, &subpattern, temp_reg, subtype);
+                    self.destruct_pattern_alt(pck, subpattern_id, temp_reg, subtype);
                     self.free_temp(temp_reg);
                 }
             }
@@ -884,7 +906,7 @@ impl<'a> AstBytecodeGen<'a> {
     fn destruct_pattern_var(
         &mut self,
         _pck: &mut PatternCheckContext,
-        pattern: &ast::Pattern,
+        pattern_id: AstId,
         value: Register,
         _ty: SourceType,
         var_id: VarId,
@@ -894,7 +916,12 @@ impl<'a> AstBytecodeGen<'a> {
         if !var.ty.is_unit() {
             match var.location {
                 VarLocation::Context(scope_id, field_id) => {
-                    self.store_in_context(value, scope_id, field_id, self.loc(pattern.span()));
+                    self.store_in_context(
+                        value,
+                        scope_id,
+                        field_id,
+                        self.loc(self.span(pattern_id)),
+                    );
                 }
 
                 VarLocation::Stack => {
@@ -1010,8 +1037,8 @@ impl<'a> AstBytecodeGen<'a> {
                 .emit_invoke_direct(value_reg, fct_idx, self.loc_id(stmt.expr));
             self.free_temp(next_result_reg);
 
-            self.setup_pattern_vars(&stmt.pattern);
-            self.destruct_pattern_or_fail(&stmt.pattern, value_reg, for_type_info.value_type);
+            self.setup_pattern_vars(stmt.pattern);
+            self.destruct_pattern_or_fail(stmt.pattern, value_reg, for_type_info.value_type);
         }
 
         self.loops.push(LoopLabels::new(lbl_cond, lbl_end));
@@ -1029,12 +1056,12 @@ impl<'a> AstBytecodeGen<'a> {
     }
 
     fn visit_stmt_let(&mut self, stmt: &ast::StmtLetType) {
-        self.setup_pattern_vars(&stmt.pattern);
+        self.setup_pattern_vars(stmt.pattern);
 
         if let Some(expr) = stmt.expr {
             let ty = self.ty_id(expr);
             let value = gen_expr(self, expr, DataDest::Alloc);
-            self.destruct_pattern_or_fail(&stmt.pattern, value, ty);
+            self.destruct_pattern_or_fail(stmt.pattern, value, ty);
             self.free_if_temp(value);
         }
     }
@@ -1281,7 +1308,7 @@ impl<'a> AstBytecodeGen<'a> {
         self.push_scope();
         let mismatch_lbl = self.builder.create_label();
         let merge_lbl = self.builder.create_label();
-        self.destruct_pattern(&node.pattern, value_reg, ty, Some(mismatch_lbl));
+        self.destruct_pattern(node.pattern, value_reg, ty, Some(mismatch_lbl));
         let dest = self.ensure_register(dest, BytecodeType::Bool);
         self.builder.emit_const_true(dest);
         self.builder.emit_jump(merge_lbl);
@@ -2458,8 +2485,8 @@ impl<'a> AstBytecodeGen<'a> {
             self.builder.emit_const_false(dest);
             let value = gen_expr(self, is_expr.value, DataDest::Alloc);
             let ty = self.ty_id(is_expr.value);
-            self.setup_pattern_vars(&is_expr.pattern);
-            self.destruct_pattern(&is_expr.pattern, value, ty, Some(end_lbl));
+            self.setup_pattern_vars(is_expr.pattern);
+            self.destruct_pattern(is_expr.pattern, value, ty, Some(end_lbl));
             self.free_if_temp(value);
         } else {
             gen_expr(self, expr.lhs, DataDest::Reg(dest));
@@ -3504,40 +3531,32 @@ fn field_id_from_context_idx(
     FieldIndex(start_idx + context_idx)
 }
 
-fn get_subpatterns(p: &ast::Pattern) -> Option<&Vec<Arc<ast::PatternField>>> {
-    match p {
-        ast::Pattern::Underscore(..)
-        | ast::Pattern::LitBool(..)
-        | ast::Pattern::LitChar(..)
-        | ast::Pattern::LitString(..)
-        | ast::Pattern::LitInt(..)
-        | ast::Pattern::LitFloat(..)
-        | ast::Pattern::Rest(..)
-        | ast::Pattern::Alt(..)
-        | ast::Pattern::Tuple(..)
-        | ast::Pattern::Error(..) => {
-            unreachable!()
-        }
-        ast::Pattern::Ident(..) => None,
-        ast::Pattern::Constructor(p) => p.params.as_ref(),
-    }
-}
-
-fn iterate_subpatterns<F>(a: &AnalysisData, p: &ast::Pattern, mut f: F)
+fn iterate_subpatterns<'a, F>(g: &mut AstBytecodeGen<'a>, pattern_id: AstId, mut f: F)
 where
-    F: FnMut(usize, &ast::PatternField),
+    F: FnMut(&mut AstBytecodeGen, usize, ast::AstId),
 {
-    if let Some(subpatterns) = get_subpatterns(p) {
-        for subpattern in subpatterns {
-            if subpattern.pattern.is_rest() || subpattern.pattern.is_underscore() {
-                // Do nothing.
-            } else {
-                let field_id = a
-                    .map_field_ids
-                    .get(subpattern.id)
-                    .cloned()
-                    .expect("missing field_id");
-                f(field_id, subpattern.as_ref());
+    let pattern = g.node(pattern_id);
+
+    if let Some(pattern) = pattern.to_constructor_pattern() {
+        if let Some(ref ctor_fields) = pattern.params {
+            for &ctor_field_id in ctor_fields {
+                let ctor_field = g
+                    .node(ctor_field_id)
+                    .to_constructor_field()
+                    .expect("field expected");
+                let subpattern = g.node(ctor_field.pattern);
+
+                if subpattern.is_rest() || subpattern.is_underscore() {
+                    // Do nothing.
+                } else {
+                    let field_id = g
+                        .analysis
+                        .map_field_ids
+                        .get(ctor_field.id)
+                        .cloned()
+                        .expect("missing field_id");
+                    f(g, field_id, ctor_field_id);
+                }
             }
         }
     }

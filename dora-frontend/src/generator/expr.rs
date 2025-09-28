@@ -48,8 +48,8 @@ pub(super) fn gen_expr_condition(g: &mut AstBytecodeGen, expr_id: AstId, false_l
         if let Some(is_expr) = g.node(bin_expr.lhs).to_is() {
             let value_reg = gen_expr(g, is_expr.value, DataDest::Alloc);
             let value_ty = g.ty_id(is_expr.value);
-            g.setup_pattern_vars(&is_expr.pattern);
-            g.destruct_pattern(&is_expr.pattern, value_reg, value_ty, Some(false_lbl));
+            g.setup_pattern_vars(is_expr.pattern);
+            g.destruct_pattern(is_expr.pattern, value_reg, value_ty, Some(false_lbl));
             g.free_if_temp(value_reg);
         } else {
             let cond_reg = gen_expr(g, bin_expr.lhs, DataDest::Alloc);
@@ -61,8 +61,8 @@ pub(super) fn gen_expr_condition(g: &mut AstBytecodeGen, expr_id: AstId, false_l
     } else if let Some(is_expr) = expr.to_is() {
         let value_reg = gen_expr(g, is_expr.value, DataDest::Alloc);
         let value_ty = g.ty_id(is_expr.value);
-        g.setup_pattern_vars(&is_expr.pattern);
-        g.destruct_pattern(&is_expr.pattern, value_reg, value_ty, Some(false_lbl));
+        g.setup_pattern_vars(is_expr.pattern);
+        g.destruct_pattern(is_expr.pattern, value_reg, value_ty, Some(false_lbl));
         g.free_if_temp(value_reg);
     } else {
         let cond_reg = gen_expr(g, expr_id, DataDest::Alloc);
@@ -380,9 +380,8 @@ pub(super) fn gen_match(
         g.push_scope();
 
         let arm = g.node(arm_id).to_match_arm().expect("arm expected");
-        let pattern = arm.pattern.as_ref();
-        g.setup_pattern_vars(pattern);
-        g.destruct_pattern(pattern, expr_reg, expr_ty.clone(), Some(next_arm_lbl));
+        g.setup_pattern_vars(arm.pattern);
+        g.destruct_pattern(arm.pattern, expr_reg, expr_ty.clone(), Some(next_arm_lbl));
 
         if let Some(cond) = arm.cond {
             let cond_reg = gen_expr(g, cond, DataDest::Alloc);

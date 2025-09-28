@@ -354,7 +354,7 @@ impl<'a> TypeCheck<'a> {
 
             self.analysis.set_ty(ast_param.id, ty.clone());
 
-            let local_bound_params = check_pattern(self, &ast_param.pattern, ty);
+            let local_bound_params = check_pattern(self, ast_param.pattern, ty);
 
             for (name, data) in local_bound_params {
                 if !bound_params.insert(name) {

@@ -1405,48 +1405,57 @@ impl Parser {
         }))
     }
 
-    fn parse_pattern(&mut self) -> Arc<Pattern> {
+    fn parse_pattern(&mut self) -> AstId {
         self.start_node();
 
-        let pattern = self.parse_pattern_alt();
+        let pattern_id = self.parse_pattern_alt();
 
         if self.is(OR) {
-            let mut alts = vec![pattern];
+            let mut alts = vec![pattern_id];
 
             while self.eat(OR) {
                 alts.push(self.parse_pattern_alt());
             }
 
-            Arc::new(Pattern::Alt(PatternAlt {
-                id: self.new_node_id(),
-                span: self.finish_node(),
+            let node_id = self.new_node_id();
+            let span = self.finish_node();
+
+            self.ast_nodes.alloc(Ast::Alt(PatternAlt {
+                id: node_id,
+                span,
                 alts,
             }))
         } else {
             self.cancel_node();
-            pattern
+            pattern_id
         }
     }
 
-    fn parse_pattern_alt(&mut self) -> Arc<Pattern> {
+    fn parse_pattern_alt(&mut self) -> AstId {
         self.start_node();
 
         if self.eat(UNDERSCORE) {
-            Arc::new(Pattern::Underscore(PatternUnderscore {
-                id: self.new_node_id(),
-                span: self.finish_node(),
-            }))
+            let node_id = self.new_node_id();
+            let span = self.finish_node();
+
+            self.ast_nodes
+                .alloc(Ast::Underscore(PatternUnderscore { id: node_id, span }))
         } else if self.eat(DOT_DOT) {
-            Arc::new(Pattern::Rest(PatternRest {
-                id: self.new_node_id(),
-                span: self.finish_node(),
-            }))
+            let node_id = self.new_node_id();
+            let span = self.finish_node();
+
+            self.ast_nodes
+                .alloc(Ast::Rest(PatternRest { id: node_id, span }))
         } else if self.is(TRUE) || self.is(FALSE) {
             let expr = self.parse_lit_bool();
-            Arc::new(Pattern::LitBool(PatternLit {
-                id: self.new_node_id(),
-                span: self.finish_node(),
+            let node_id = self.new_node_id();
+            let span = self.finish_node();
+
+            self.ast_nodes.alloc(Ast::LitPattern(PatternLit {
+                id: node_id,
+                span,
                 expr,
+                kind: PatternLitKind::Bool,
             }))
         } else if self.is(L_PAREN) {
             let params = self.parse_list(
@@ -1464,54 +1473,84 @@ impl Parser {
                 },
             );
 
-            Arc::new(Pattern::Tuple(PatternTuple {
-                id: self.new_node_id(),
-                span: self.finish_node(),
+            let node_id = self.new_node_id();
+            let span = self.finish_node();
+
+            self.ast_nodes.alloc(Ast::TuplePattern(PatternTuple {
+                id: node_id,
+                span,
                 params,
             }))
         } else if self.is(CHAR_LITERAL) {
             let expr = self.parse_lit_char();
-            Arc::new(Pattern::LitChar(PatternLit {
-                id: self.new_node_id(),
-                span: self.finish_node(),
+
+            let node_id = self.new_node_id();
+            let span = self.finish_node();
+
+            self.ast_nodes.alloc(Ast::LitPattern(PatternLit {
+                id: node_id,
+                span,
                 expr,
+                kind: PatternLitKind::Char,
             }))
         } else if self.is(STRING_LITERAL) {
             let expr = self.parse_string();
-            Arc::new(Pattern::LitString(PatternLit {
-                id: self.new_node_id(),
-                span: self.finish_node(),
+
+            let node_id = self.new_node_id();
+            let span = self.finish_node();
+
+            self.ast_nodes.alloc(Ast::LitPattern(PatternLit {
+                id: node_id,
+                span,
                 expr,
+                kind: PatternLitKind::String,
             }))
         } else if self.is(INT_LITERAL) || self.is2(SUB, INT_LITERAL) {
             let expr = self.parse_lit_int_minus();
-            Arc::new(Pattern::LitInt(PatternLit {
-                id: self.new_node_id(),
-                span: self.finish_node(),
+
+            let node_id = self.new_node_id();
+            let span = self.finish_node();
+
+            self.ast_nodes.alloc(Ast::LitPattern(PatternLit {
+                id: node_id,
+                span,
                 expr,
+                kind: PatternLitKind::Int,
             }))
         } else if self.is(FLOAT_LITERAL) || self.is2(SUB, FLOAT_LITERAL) {
             let expr = self.parse_lit_float_minus();
-            Arc::new(Pattern::LitFloat(PatternLit {
-                id: self.new_node_id(),
-                span: self.finish_node(),
+
+            let node_id = self.new_node_id();
+            let span = self.finish_node();
+
+            self.ast_nodes.alloc(Ast::LitPattern(PatternLit {
+                id: node_id,
+                span,
                 expr,
+                kind: PatternLitKind::Float,
             }))
         } else if self.is2(MUT_KW, IDENTIFIER) {
             self.assert(MUT_KW);
             let name = self.expect_identifier().expect("identifier expected");
-            Arc::new(Pattern::Ident(PatternIdent {
-                id: self.new_node_id(),
-                span: self.finish_node(),
+
+            let node_id = self.new_node_id();
+            let span = self.finish_node();
+
+            self.ast_nodes.alloc(Ast::IdentPattern(PatternIdent {
+                id: node_id,
+                span,
                 mutable: true,
                 name,
             }))
         } else if self.is(IDENTIFIER) {
             if !self.nth_is(1, COLON_COLON) && !self.nth_is(1, L_PAREN) {
                 let name = self.expect_identifier().expect("identifier expected");
-                return Arc::new(Pattern::Ident(PatternIdent {
-                    id: self.new_node_id(),
-                    span: self.finish_node(),
+
+                let node_id = self.new_node_id();
+                let span = self.finish_node();
+                return self.ast_nodes.alloc(Ast::IdentPattern(PatternIdent {
+                    id: node_id,
+                    span,
                     mutable: false,
                     name,
                 }));
@@ -1533,22 +1572,28 @@ impl Parser {
                             p.assert(EQ);
                             let pattern = p.parse_pattern();
 
-                            Some(Arc::new(PatternField {
-                                id: p.new_node_id(),
-                                span: p.finish_node(),
+                            let node_id = p.new_node_id();
+                            let span = p.finish_node();
+
+                            Some(p.ast_nodes.alloc(Ast::ConstructorField(PatternField {
+                                id: node_id,
+                                span,
                                 ident: Some(ident),
                                 pattern,
-                            }))
+                            })))
                         } else if p.is_set(PATTERN_FIRST) {
                             p.start_node();
                             let pattern = p.parse_pattern();
 
-                            Some(Arc::new(PatternField {
-                                id: p.new_node_id(),
-                                span: p.finish_node(),
+                            let node_id = p.new_node_id();
+                            let span = p.finish_node();
+
+                            Some(p.ast_nodes.alloc(Ast::ConstructorField(PatternField {
+                                id: node_id,
+                                span,
                                 ident: None,
                                 pattern,
-                            }))
+                            })))
                         } else {
                             None
                         }
@@ -1560,20 +1605,25 @@ impl Parser {
                 None
             };
 
-            Arc::new(Pattern::Constructor(PatternConstructor {
-                id: self.new_node_id(),
-                span: self.finish_node(),
-                path,
-                params,
-            }))
+            let node_id = self.new_node_id();
+            let span = self.finish_node();
+
+            self.ast_nodes
+                .alloc(Ast::ConstructorPattern(PatternConstructor {
+                    id: node_id,
+                    span,
+                    path,
+                    params,
+                }))
         } else {
             self.report_error(ParseError::ExpectedPattern);
             self.advance();
 
-            Arc::new(Pattern::Error(PatternError {
-                id: self.new_node_id(),
-                span: self.finish_node(),
-            }))
+            let node_id = self.new_node_id();
+            let span = self.finish_node();
+
+            self.ast_nodes
+                .alloc(Ast::Error(Error { id: node_id, span }))
         }
     }
 
