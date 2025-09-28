@@ -562,10 +562,9 @@ fn check_expr_call_field(
             find_field_in_class(ck.sa, object_type.clone(), interned_method_name)
         {
             ck.analysis.set_ty(ck.id(e.callee), field_type.clone());
-            ck.analysis.map_idents.insert_or_replace(
-                ck.id(e.callee),
-                IdentType::Field(object_type.clone(), field_id),
-            );
+            ck.analysis
+                .map_idents
+                .insert_or_replace(e.callee, IdentType::Field(object_type.clone(), field_id));
 
             if !class_field_accessible_from(ck.sa, cls_id, field_id, ck.module_id) {
                 let msg = ErrorMessage::NotAccessible;
@@ -580,7 +579,9 @@ fn check_expr_call_field(
         let struct_ = ck.sa.struct_(struct_id);
         if let Some(&field_index) = struct_.field_names().get(&interned_method_name) {
             let ident_type = IdentType::StructField(object_type.clone(), field_index);
-            ck.analysis.map_idents.insert_or_replace(e.id, ident_type);
+            ck.analysis
+                .map_idents
+                .insert_or_replace(expr_ast_id, ident_type);
 
             let field_id = struct_.field_id(field_index);
             let field = ck.sa.field(field_id);

@@ -401,8 +401,8 @@ impl<'a> AstBytecodeGen<'a> {
         let pattern = self.node(pattern_id);
 
         match pattern {
-            ast::Ast::IdentPattern(ref ident) => {
-                let ident_type = self.analysis.map_idents.get(ident.id);
+            ast::Ast::IdentPattern(..) => {
+                let ident_type = self.analysis.map_idents.get(pattern_id);
 
                 match ident_type {
                     Some(IdentType::EnumVariant(..)) => {
@@ -506,8 +506,8 @@ impl<'a> AstBytecodeGen<'a> {
         let pattern = self.node(pattern_id);
 
         match pattern {
-            ast::Ast::IdentPattern(ref ident) => {
-                let ident_type = self.analysis.map_idents.get(ident.id);
+            ast::Ast::IdentPattern(..) => {
+                let ident_type = self.analysis.map_idents.get(pattern_id);
 
                 match ident_type {
                     Some(IdentType::EnumVariant(enum_id, enum_type_params, variant_id)) => {
@@ -671,8 +671,8 @@ impl<'a> AstBytecodeGen<'a> {
                 self.builder.bind_label(match_lbl);
             }
 
-            ast::Ast::ConstructorPattern(ref p) => {
-                let ident_type = self.analysis.map_idents.get(p.id).unwrap();
+            ast::Ast::ConstructorPattern(..) => {
+                let ident_type = self.analysis.map_idents.get(pattern_id).unwrap();
 
                 match ident_type {
                     IdentType::EnumVariant(enum_id, enum_type_params, variant_id) => {
@@ -1145,11 +1145,11 @@ impl<'a> AstBytecodeGen<'a> {
 
     fn visit_expr_type_param(
         &mut self,
-        _id: AstId,
+        expr_id: AstId,
         expr: &ast::ExprTypeParamType,
         dest: DataDest,
     ) -> Register {
-        let ident_type = self.analysis.map_idents.get(expr.id).cloned().unwrap();
+        let ident_type = self.analysis.map_idents.get(expr_id).cloned().unwrap();
 
         match ident_type {
             IdentType::EnumVariant(enum_id, type_params, variant_idx) => {
@@ -1277,11 +1277,11 @@ impl<'a> AstBytecodeGen<'a> {
 
     fn visit_expr_path(
         &mut self,
-        _id: AstId,
+        expr_id: AstId,
         expr: &ast::ExprPathType,
         dest: DataDest,
     ) -> Register {
-        let ident_type = self.analysis.map_idents.get(expr.id).cloned().unwrap();
+        let ident_type = self.analysis.map_idents.get(expr_id).cloned().unwrap();
 
         match ident_type {
             IdentType::EnumVariant(enum_id, type_params, variant_idx) => {
@@ -1495,7 +1495,12 @@ impl<'a> AstBytecodeGen<'a> {
         result
     }
 
-    fn visit_expr_dot(&mut self, _id: AstId, expr: &ast::ExprDotType, dest: DataDest) -> Register {
+    fn visit_expr_dot(
+        &mut self,
+        expr_id: AstId,
+        expr: &ast::ExprDotType,
+        dest: DataDest,
+    ) -> Register {
         let object_ty = self.ty_id(expr.lhs);
 
         if object_ty.is_tuple() {
@@ -1503,11 +1508,11 @@ impl<'a> AstBytecodeGen<'a> {
         }
 
         if let Some((struct_id, type_params)) = object_ty.to_struct() {
-            return self.visit_expr_dot_struct(expr, struct_id, type_params, dest);
+            return self.visit_expr_dot_struct(expr_id, expr, struct_id, type_params, dest);
         }
 
         let (cls_ty, field_id) = {
-            let ident_type = self.analysis.map_idents.get(expr.id).unwrap();
+            let ident_type = self.analysis.map_idents.get(expr_id).unwrap();
 
             match ident_type {
                 IdentType::Field(ty, field) => (ty.clone(), *field),
@@ -1538,6 +1543,7 @@ impl<'a> AstBytecodeGen<'a> {
 
     fn visit_expr_dot_struct(
         &mut self,
+        expr_id: AstId,
         expr: &ast::ExprDotType,
         struct_id: StructDefinitionId,
         type_params: SourceTypeArray,
@@ -1545,7 +1551,7 @@ impl<'a> AstBytecodeGen<'a> {
     ) -> Register {
         let struct_obj = gen_expr(self, expr.lhs, DataDest::Alloc);
 
-        let ident_type = self.analysis.map_idents.get(expr.id).unwrap();
+        let ident_type = self.analysis.map_idents.get(expr_id).unwrap();
 
         let field_idx = match ident_type {
             IdentType::StructField(_, field_idx) => *field_idx,
@@ -2098,7 +2104,7 @@ impl<'a> AstBytecodeGen<'a> {
 
     fn visit_expr_self(
         &mut self,
-        _id: AstId,
+        expr_id: AstId,
         expr: &ast::ExprSelfType,
         dest: DataDest,
     ) -> Register {
@@ -2106,7 +2112,7 @@ impl<'a> AstBytecodeGen<'a> {
             let ident = self
                 .analysis
                 .map_idents
-                .get(expr.id)
+                .get(expr_id)
                 .expect("missing ident");
             let (level, context_idx) = match ident {
                 IdentType::Context(level, context_idx) => (*level, *context_idx),
@@ -2747,7 +2753,7 @@ impl<'a> AstBytecodeGen<'a> {
     ) -> Register {
         if self.node(expr.lhs).is_ident() {
             let value_reg = gen_expr(self, expr.rhs, DataDest::Alloc);
-            let ident_type = self.analysis.map_idents.get(self.id(expr.lhs)).unwrap();
+            let ident_type = self.analysis.map_idents.get(expr.lhs).unwrap();
             match ident_type {
                 &IdentType::Var(var_id) => {
                     self.visit_expr_assign_var(expr_ast_id, expr, var_id, value_reg);
@@ -2763,7 +2769,7 @@ impl<'a> AstBytecodeGen<'a> {
             self.free_if_temp(value_reg);
         } else if self.node(expr.lhs).is_path() {
             let value_reg = gen_expr(self, expr.rhs, DataDest::Alloc);
-            let ident_type = self.analysis.map_idents.get(self.id(expr.lhs)).unwrap();
+            let ident_type = self.analysis.map_idents.get(expr.lhs).unwrap();
             match ident_type {
                 &IdentType::Global(gid) => {
                     self.visit_expr_assign_global(expr_ast_id, expr, gid, value_reg);
@@ -2773,7 +2779,7 @@ impl<'a> AstBytecodeGen<'a> {
             self.free_if_temp(value_reg);
         } else {
             match *self.node(expr.lhs) {
-                Ast::Dot(ref dot) => self.visit_expr_assign_dot(expr_ast_id, expr, dot),
+                Ast::Dot(ref dot) => self.visit_expr_assign_dot(expr_ast_id, expr, expr.lhs, dot),
                 Ast::Call(ref call) => self.visit_expr_assign_call(expr_ast_id, expr, call),
                 _ => unreachable!(),
             };
@@ -2885,10 +2891,11 @@ impl<'a> AstBytecodeGen<'a> {
         &mut self,
         expr_ast_id: AstId,
         expr: &ast::ExprBinType,
+        dot_ast_id: AstId,
         dot: &ast::ExprDotType,
     ) {
         let (cls_ty, field_index) = {
-            let ident_type = self.analysis.map_idents.get(dot.id).cloned().unwrap();
+            let ident_type = self.analysis.map_idents.get(dot_ast_id).cloned().unwrap();
             match ident_type {
                 IdentType::Field(class, field) => (class, field),
                 _ => unreachable!(),
@@ -3055,8 +3062,8 @@ impl<'a> AstBytecodeGen<'a> {
         }
     }
 
-    fn visit_expr_ident(&mut self, _id: AstId, ident: &ast::Ident, dest: DataDest) -> Register {
-        let ident_type = self.analysis.map_idents.get(ident.id).unwrap();
+    fn visit_expr_ident(&mut self, ast_id: AstId, ident: &ast::Ident, dest: DataDest) -> Register {
+        let ident_type = self.analysis.map_idents.get(ast_id).unwrap();
 
         match ident_type {
             &IdentType::Var(var_id) => {

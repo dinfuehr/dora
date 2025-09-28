@@ -126,7 +126,7 @@ pub(super) fn check_expr_paren(
 
 pub(super) fn check_expr_ident(
     ck: &mut TypeCheck,
-    _id: ast::AstId,
+    expr_ast_id: ast::AstId,
     e: &ast::Ident,
     expected_ty: SourceType,
 ) -> SourceType {
@@ -140,7 +140,7 @@ pub(super) fn check_expr_ident(
 
             // Variable may have to be context-allocated.
             let ident = ck.maybe_allocate_in_context(var_id);
-            ck.analysis.map_idents.insert(e.id, ident);
+            ck.analysis.map_idents.insert(expr_ast_id, ident);
 
             ty
         }
@@ -152,7 +152,7 @@ pub(super) fn check_expr_ident(
 
             ck.analysis
                 .map_idents
-                .insert(e.id, IdentType::Global(globalid));
+                .insert(expr_ast_id, IdentType::Global(globalid));
 
             ty
         }
@@ -163,13 +163,14 @@ pub(super) fn check_expr_ident(
 
             ck.analysis
                 .map_idents
-                .insert(e.id, IdentType::Const(const_id));
+                .insert(expr_ast_id, IdentType::Const(const_id));
 
             const_.ty()
         }
 
         Some(SymbolKind::EnumVariant(enum_id, variant_idx)) => check_enum_variant_without_args_id(
             ck,
+            expr_ast_id,
             e.id,
             e.span,
             expected_ty,
@@ -220,7 +221,7 @@ fn check_expr_assign_path(ck: &mut TypeCheck, expr_ast_id: ast::AstId, e: &ast::
             let global = ck.sa.global(global_id);
             ck.analysis
                 .map_idents
-                .insert(ck.id(e.lhs), IdentType::Global(global_id));
+                .insert(e.lhs, IdentType::Global(global_id));
             global.ty()
         }
 
@@ -251,7 +252,7 @@ fn check_expr_assign_ident(ck: &mut TypeCheck, expr_ast_id: ast::AstId, e: &ast:
 
             // Variable may have to be context-allocated.
             let ident = ck.maybe_allocate_in_context(var_id);
-            ck.analysis.map_idents.insert(ck.id(e.lhs), ident);
+            ck.analysis.map_idents.insert(e.lhs, ident);
 
             ck.vars.get_var(var_id).ty.clone()
         }
@@ -266,7 +267,7 @@ fn check_expr_assign_ident(ck: &mut TypeCheck, expr_ast_id: ast::AstId, e: &ast:
 
             ck.analysis
                 .map_idents
-                .insert(ck.id(e.lhs), IdentType::Global(global_id));
+                .insert(e.lhs, IdentType::Global(global_id));
             global_var.ty()
         }
 
@@ -663,7 +664,7 @@ fn check_expr_assign_field(ck: &mut TypeCheck, expr_ast_id: ast::AstId, e: &ast:
     let rhs = ck.node(dot_expr.rhs);
 
     if rhs.is_lit_int() {
-        check_expr_assign_unnamed_field(ck, e, dot_expr, object_type);
+        check_expr_assign_unnamed_field(ck, expr_ast_id, e, e.lhs, dot_expr, object_type);
         return;
     }
 
@@ -686,9 +687,7 @@ fn check_expr_assign_field(ck: &mut TypeCheck, expr_ast_id: ast::AstId, e: &ast:
             find_field_in_class(ck.sa, object_type.clone(), interned_name)
         {
             let ident_type = IdentType::Field(object_type.clone(), field_index);
-            ck.analysis
-                .map_idents
-                .insert_or_replace(ck.id(e.lhs), ident_type);
+            ck.analysis.map_idents.insert_or_replace(e.lhs, ident_type);
 
             let cls = ck.sa.class(cls_id);
             let field_id = cls.field_id(field_index);
@@ -733,7 +732,9 @@ fn check_expr_assign_field(ck: &mut TypeCheck, expr_ast_id: ast::AstId, e: &ast:
 
 fn check_expr_assign_unnamed_field(
     ck: &mut TypeCheck,
+    _expr_id: ast::AstId,
     e: &ast::ExprBinType,
+    dot_expr_id: ast::AstId,
     dot_expr: &ast::ExprDotType,
     object_type: SourceType,
 ) {
@@ -789,7 +790,7 @@ fn check_expr_assign_unnamed_field(
                 let ident_type = IdentType::StructField(object_type.clone(), field.index);
                 ck.analysis
                     .map_idents
-                    .insert_or_replace(dot_expr.id, ident_type);
+                    .insert_or_replace(dot_expr_id, ident_type);
 
                 let fty = replace_type(ck.sa, field.ty(), Some(&struct_type_params), None);
 
@@ -857,7 +858,7 @@ fn check_expr_assign_unnamed_field(
                 let ident_type = IdentType::Field(object_type.clone(), field.index);
                 ck.analysis
                     .map_idents
-                    .insert_or_replace(dot_expr.id, ident_type);
+                    .insert_or_replace(dot_expr_id, ident_type);
 
                 let fty = replace_type(ck.sa, field.ty(), Some(&class_type_params), None);
 
@@ -893,7 +894,7 @@ fn check_expr_assign_unnamed_field(
 
 pub(super) fn check_expr_dot(
     ck: &mut TypeCheck,
-    _id: ast::AstId,
+    expr_id: ast::AstId,
     e: &ast::ExprDotType,
     _expected_ty: SourceType,
 ) -> SourceType {
@@ -902,7 +903,7 @@ pub(super) fn check_expr_dot(
     let rhs = ck.node(e.rhs);
 
     if rhs.is_lit_int() {
-        return check_expr_dot_unnamed_field(ck, e, object_type);
+        return check_expr_dot_unnamed_field(ck, expr_id, e, object_type);
     }
 
     let name = match rhs.to_ident() {
@@ -945,7 +946,9 @@ pub(super) fn check_expr_dot(
                 find_field_in_class(ck.sa, object_type.clone(), interned_name)
             {
                 let ident_type = IdentType::Field(object_type.clone(), field_index);
-                ck.analysis.map_idents.insert_or_replace(e.id, ident_type);
+                ck.analysis
+                    .map_idents
+                    .insert_or_replace(expr_id, ident_type);
 
                 let cls = ck.sa.class(cls_id);
                 let field_id = cls.field_id(field_index);
@@ -969,7 +972,9 @@ pub(super) fn check_expr_dot(
             let struct_ = ck.sa.struct_(struct_id);
             if let Some(&field_index) = struct_.field_names().get(&interned_name) {
                 let ident_type = IdentType::StructField(object_type.clone(), field_index);
-                ck.analysis.map_idents.insert_or_replace(e.id, ident_type);
+                ck.analysis
+                    .map_idents
+                    .insert_or_replace(expr_id, ident_type);
 
                 let field_id = struct_.field_id(field_index);
                 let field = &ck.sa.field(field_id);
@@ -1004,6 +1009,7 @@ pub(super) fn check_expr_dot(
 
 fn check_expr_dot_unnamed_field(
     ck: &mut TypeCheck,
+    expr_id: ast::AstId,
     e: &ast::ExprDotType,
     object_type: SourceType,
 ) -> SourceType {
@@ -1053,7 +1059,9 @@ fn check_expr_dot_unnamed_field(
                 let field_id = cls.field_id(FieldIndex(index));
                 let field = ck.sa.field(field_id);
                 let ident_type = IdentType::Field(object_type.clone(), field.index);
-                ck.analysis.map_idents.insert_or_replace(e.id, ident_type);
+                ck.analysis
+                    .map_idents
+                    .insert_or_replace(expr_id, ident_type);
 
                 let call_data = CallSpecializationData {
                     object_ty: SourceType::Error,
@@ -1083,7 +1091,9 @@ fn check_expr_dot_unnamed_field(
                 let field_id = struct_.field_id(FieldIndex(index));
                 let field = ck.sa.field(field_id);
                 let ident_type = IdentType::StructField(object_type.clone(), field.index);
-                ck.analysis.map_idents.insert_or_replace(e.id, ident_type);
+                ck.analysis
+                    .map_idents
+                    .insert_or_replace(expr_id, ident_type);
 
                 let call_data = CallSpecializationData {
                     object_ty: SourceType::Error,
@@ -1125,7 +1135,7 @@ fn check_expr_dot_unnamed_field(
 
 pub(super) fn check_expr_this(
     ck: &mut TypeCheck,
-    _id: ast::AstId,
+    expr_id: ast::AstId,
     e: &ast::ExprSelfType,
     _expected_ty: SourceType,
 ) -> SourceType {
@@ -1139,7 +1149,7 @@ pub(super) fn check_expr_this(
     assert!(ck.is_self_available);
     let var_id = NestedVarId(0);
     let ident = ck.maybe_allocate_in_context(var_id);
-    ck.analysis.map_idents.insert(e.id, ident);
+    ck.analysis.map_idents.insert(expr_id, ident);
 
     let var = ck.vars.get_var(var_id);
     ck.analysis.set_ty(e.id, var.ty.clone());
@@ -2064,7 +2074,7 @@ fn check_expr_lambda(
 
 pub(super) fn check_expr_path(
     ck: &mut TypeCheck,
-    _id: ast::AstId,
+    expr_id: ast::AstId,
     e: &ast::ExprPathType,
     expected_ty: SourceType,
 ) -> SourceType {
@@ -2101,6 +2111,7 @@ pub(super) fn check_expr_path(
     match sym {
         Some(SymbolKind::Enum(id)) => check_enum_variant_without_args(
             ck,
+            expr_id,
             e.id,
             e.op_span,
             expected_ty,
@@ -2110,7 +2121,7 @@ pub(super) fn check_expr_path(
         ),
 
         Some(SymbolKind::Module(module_id)) => {
-            check_expr_path_module(ck, e, expected_ty, module_id, element_name)
+            check_expr_path_module(ck, expr_id, e, expected_ty, module_id, element_name)
         }
 
         _ => {
@@ -2171,6 +2182,7 @@ pub(super) fn read_path_expr(
 
 fn check_enum_variant_without_args(
     ck: &mut TypeCheck,
+    expr_ast_id: ast::AstId,
     expr_id: ast::NodeId,
     expr_span: Span,
     _expected_ty: SourceType,
@@ -2208,7 +2220,7 @@ fn check_enum_variant_without_args(
         }
 
         ck.analysis.map_idents.insert(
-            expr_id,
+            expr_ast_id,
             IdentType::EnumVariant(enum_id, type_params.clone(), value),
         );
     } else {
@@ -2232,7 +2244,7 @@ fn check_enum_variant_without_args(
 
 pub(super) fn check_expr_type_param(
     ck: &mut TypeCheck,
-    _id: ast::AstId,
+    expr_id: ast::AstId,
     e: &ast::ExprTypeParamType,
     expected_ty: SourceType,
 ) -> SourceType {
@@ -2246,6 +2258,7 @@ pub(super) fn check_expr_type_param(
             Some(SymbolKind::EnumVariant(enum_id, variant_idx)) => {
                 check_enum_variant_without_args_id(
                     ck,
+                    expr_id,
                     e.id,
                     e.op_span,
                     expected_ty,
@@ -2289,6 +2302,7 @@ pub(super) fn check_expr_type_param(
         match sym {
             Some(SymbolKind::Enum(enum_id)) => check_enum_variant_without_args(
                 ck,
+                expr_id,
                 e.id,
                 e.op_span,
                 expected_ty,
@@ -2315,6 +2329,7 @@ pub(super) fn check_expr_type_param(
 
 pub(super) fn check_enum_variant_without_args_id(
     ck: &mut TypeCheck,
+    expr_ast_id: ast::AstId,
     expr_id: ast::NodeId,
     expr_span: Span,
     expected_ty: SourceType,
@@ -2355,7 +2370,7 @@ pub(super) fn check_enum_variant_without_args_id(
     }
 
     ck.analysis.map_idents.insert(
-        expr_id,
+        expr_ast_id,
         IdentType::EnumVariant(enum_id, type_params.clone(), variant_idx),
     );
 
@@ -2372,6 +2387,7 @@ pub(super) fn check_enum_variant_without_args_id(
 
 fn check_expr_path_module(
     ck: &mut TypeCheck,
+    expr_id: ast::AstId,
     e: &ast::ExprPathType,
     expected_ty: SourceType,
     module_id: ModuleDefinitionId,
@@ -2395,7 +2411,7 @@ fn check_expr_path_module(
 
             ck.analysis
                 .map_idents
-                .insert(e.id, IdentType::Global(global_id));
+                .insert(expr_id, IdentType::Global(global_id));
 
             ty
         }
@@ -2411,13 +2427,14 @@ fn check_expr_path_module(
 
             ck.analysis
                 .map_idents
-                .insert(e.id, IdentType::Const(const_id));
+                .insert(expr_id, IdentType::Const(const_id));
 
             const_.ty()
         }
 
         Some(SymbolKind::EnumVariant(enum_id, variant_idx)) => check_enum_variant_without_args_id(
             ck,
+            expr_id,
             e.id,
             e.op_span,
             expected_ty,

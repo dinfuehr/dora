@@ -18,7 +18,7 @@ pub struct AnalysisData {
     pub has_self: Option<bool>,
     pub map_templates: NodeMap2<(FctDefinitionId, SourceTypeArray)>,
     pub map_calls: NodeMap2<Arc<CallType>>, // maps function call to FctId
-    pub map_idents: NodeMap<IdentType>,
+    pub map_idents: NodeMap2<IdentType>,
     pub map_tys: NodeMap<SourceType>,
     pub map_vars: NodeMap<VarId>,
     pub map_consts: NodeMap<ConstValue>,
@@ -45,7 +45,7 @@ impl AnalysisData {
             has_self: None,
             map_templates: NodeMap2::new(),
             map_calls: NodeMap2::new(),
-            map_idents: NodeMap::new(),
+            map_idents: NodeMap2::new(),
             map_tys: NodeMap::new(),
             map_vars: NodeMap::new(),
             map_cls: NodeMap::new(),

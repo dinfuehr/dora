@@ -1186,10 +1186,7 @@ fn convert_pattern(
         }
 
         ast::Ast::IdentPattern(ref pattern_ident) => {
-            let ident = analysis
-                .map_idents
-                .get(pattern_ident.id)
-                .expect("missing ident");
+            let ident = analysis.map_idents.get(pattern_id).expect("missing ident");
             match ident {
                 IdentType::EnumVariant(pattern_enum_id, _type_params, variant_id) => {
                     Pattern::Constructor {
@@ -1217,7 +1214,7 @@ fn convert_pattern(
         },
 
         ast::Ast::ConstructorPattern(ref p) => {
-            let ident = analysis.map_idents.get(p.id).expect("missing ident");
+            let ident = analysis.map_idents.get(pattern_id).expect("missing ident");
 
             match ident {
                 IdentType::EnumVariant(pattern_enum_id, _type_params, variant_id) => {

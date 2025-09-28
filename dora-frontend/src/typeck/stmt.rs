@@ -130,7 +130,7 @@ fn check_pattern_inner(
                 }
 
                 _ => {
-                    check_pattern_var(ck, ctxt, ident, ty);
+                    check_pattern_var(ck, ctxt, pattern_id, ident, ty);
                 }
             }
         }
@@ -307,7 +307,7 @@ fn check_pattern_enum(
         let value_type_params = ty.type_params();
 
         ck.analysis.map_idents.insert(
-            ck.id(pattern_id),
+            pattern_id,
             IdentType::EnumVariant(enum_id, value_type_params.clone(), variant_index),
         );
 
@@ -442,7 +442,7 @@ fn check_pattern_class(
         let value_type_params = ty.type_params();
 
         ck.analysis.map_idents.insert(
-            ck.id(pattern_id),
+            pattern_id,
             IdentType::Class(cls_id, value_type_params.clone()),
         );
 
@@ -493,7 +493,7 @@ fn check_pattern_struct(
         let value_type_params = ty.type_params();
 
         ck.analysis.map_idents.insert(
-            ck.id(pattern_id),
+            pattern_id,
             IdentType::Struct(struct_id, value_type_params.clone()),
         );
 
@@ -698,6 +698,7 @@ fn check_subpatterns_error(ck: &mut TypeCheck, ctxt: &mut Context, pattern_id: a
 fn check_pattern_var(
     ck: &mut TypeCheck,
     ctxt: &mut Context,
+    pattern_id: ast::AstId,
     pattern: &ast::PatternIdent,
     ty: SourceType,
 ) {
@@ -740,7 +741,7 @@ fn check_pattern_var(
 
         ck.analysis
             .map_idents
-            .insert(pattern.id, IdentType::Var(var_id));
+            .insert(pattern_id, IdentType::Var(var_id));
 
         ck.analysis.map_vars.insert(pattern.id, var_id);
     }
