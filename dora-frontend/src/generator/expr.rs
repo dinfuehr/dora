@@ -6,37 +6,37 @@ use crate::generator::{AstBytecodeGen, DataDest, Label};
 use crate::sema::{FctDefinition, FctParent, Intrinsic, Sema};
 use crate::ty::{SourceType, SourceTypeArray};
 
-pub(super) fn gen_expr(g: &mut AstBytecodeGen, expr_id: AstId, dest: DataDest) -> Register {
-    let expr = g.node(expr_id);
+pub(super) fn gen_expr(g: &mut AstBytecodeGen, node_id: AstId, dest: DataDest) -> Register {
+    let node = g.node(node_id);
 
-    match *expr {
-        Ast::Un(ref un) => g.visit_expr_un(expr_id, un, dest),
-        Ast::Bin(ref bin) => g.visit_expr_bin(expr_id, bin, dest),
-        Ast::Dot(ref field) => g.visit_expr_dot(expr_id, field, dest),
-        Ast::Block(ref block) => g.visit_expr_block(expr_id, block, dest),
-        Ast::If(ref expr) => g.visit_expr_if(expr_id, expr, dest),
-        Ast::Template(ref template) => g.visit_expr_template(expr_id, template, dest),
-        Ast::TypeParam(ref expr) => g.visit_expr_type_param(expr_id, expr, dest),
-        Ast::Path(ref path) => g.visit_expr_path(expr_id, path, dest),
-        Ast::LitChar(ref lit) => g.visit_expr_lit_char(expr_id, lit, dest),
-        Ast::LitInt(ref lit) => g.visit_expr_lit_int(expr_id, lit, dest, false),
-        Ast::LitFloat(ref lit) => g.visit_expr_lit_float(expr_id, lit, dest),
-        Ast::LitStr(ref lit) => g.visit_expr_lit_string(expr_id, lit, dest),
-        Ast::LitBool(ref lit) => g.visit_expr_lit_bool(expr_id, lit, dest),
-        Ast::Ident(ref ident) => g.visit_expr_ident(expr_id, ident, dest),
-        Ast::Call(ref call) => g.visit_expr_call(expr_id, call, dest),
-        Ast::This(ref expr) => g.visit_expr_self(expr_id, expr, dest),
-        Ast::Conv(ref conv) => g.visit_expr_conv(expr_id, conv, dest),
-        Ast::Is(ref node) => g.visit_expr_is(expr_id, node, dest),
-        Ast::Tuple(ref tuple) => g.visit_expr_tuple(expr_id, tuple, dest),
+    match *node {
+        Ast::Un(ref un) => g.visit_expr_un(node_id, un, dest),
+        Ast::Bin(ref bin) => g.visit_expr_bin(node_id, bin, dest),
+        Ast::Dot(ref field) => g.visit_expr_dot(node_id, field, dest),
+        Ast::Block(ref block) => g.visit_expr_block(node_id, block, dest),
+        Ast::If(ref expr) => g.visit_expr_if(node_id, expr, dest),
+        Ast::Template(ref template) => g.visit_expr_template(node_id, template, dest),
+        Ast::TypeParam(ref expr) => g.visit_expr_type_param(node_id, expr, dest),
+        Ast::Path(ref path) => g.visit_expr_path(node_id, path, dest),
+        Ast::LitChar(ref lit) => g.visit_expr_lit_char(node_id, lit, dest),
+        Ast::LitInt(ref lit) => g.visit_expr_lit_int(node_id, lit, dest, false),
+        Ast::LitFloat(ref lit) => g.visit_expr_lit_float(node_id, lit, dest),
+        Ast::LitStr(ref lit) => g.visit_expr_lit_string(node_id, lit, dest),
+        Ast::LitBool(ref lit) => g.visit_expr_lit_bool(node_id, lit, dest),
+        Ast::Ident(ref ident) => g.visit_expr_ident(node_id, ident, dest),
+        Ast::Call(ref node) => g.visit_expr_call(node_id, node, dest),
+        Ast::This(ref expr) => g.visit_expr_self(node_id, expr, dest),
+        Ast::Conv(ref conv) => g.visit_expr_conv(node_id, conv, dest),
+        Ast::Is(ref node) => g.visit_expr_is(node_id, node, dest),
+        Ast::Tuple(ref tuple) => g.visit_expr_tuple(node_id, tuple, dest),
         Ast::Paren(ref paren) => gen_expr(g, paren.expr, dest),
-        Ast::Match(ref expr) => gen_match(g, expr_id, expr, dest),
-        Ast::Lambda(ref node) => g.visit_expr_lambda(expr_id, node, dest),
-        Ast::For(ref node) => g.visit_expr_for(expr_id, node, dest),
-        Ast::While(ref node) => g.visit_expr_while(expr_id, node, dest),
-        Ast::Break(ref node) => g.visit_expr_break(expr_id, node, dest),
-        Ast::Continue(ref node) => g.visit_expr_continue(expr_id, node, dest),
-        Ast::Return(ref ret) => g.visit_expr_return(expr_id, ret, dest),
+        Ast::Match(ref expr) => gen_match(g, node_id, expr, dest),
+        Ast::Lambda(ref node) => g.visit_expr_lambda(node_id, node, dest),
+        Ast::For(ref node) => g.visit_expr_for(node_id, node, dest),
+        Ast::While(ref node) => g.visit_expr_while(node_id, node, dest),
+        Ast::Break(ref node) => g.visit_expr_break(node_id, node, dest),
+        Ast::Continue(ref node) => g.visit_expr_continue(node_id, node, dest),
+        Ast::Return(ref ret) => g.visit_expr_return(node_id, ret, dest),
         _ => unreachable!(),
     }
 }

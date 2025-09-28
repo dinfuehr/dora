@@ -9,22 +9,22 @@ use crate::{specialize_type, SourceType, SourceTypeArray};
 
 pub(super) fn check_expr_while(
     ck: &mut TypeCheck,
-    _id: ast::AstId,
-    expr: &ast::ExprWhileType,
+    node_id: ast::AstId,
+    node: &ast::ExprWhileType,
     _expected_ty: SourceType,
 ) -> SourceType {
     ck.enter_block_scope();
 
-    let cond_ty = check_expr_condition(ck, expr.cond);
+    let cond_ty = check_expr_condition(ck, node.cond);
 
     if !cond_ty.is_error() && !cond_ty.is_bool() {
         let cond_ty = ck.ty_name(&cond_ty);
         let msg = ErrorMessage::WhileCondType(cond_ty);
-        ck.sa.report(ck.file_id, expr.span, msg);
+        ck.sa.report(ck.file_id, node.span, msg);
     }
 
-    check_loop_body(ck, expr.block);
-    ck.leave_block_scope(expr.id);
+    check_loop_body(ck, node.block);
+    ck.leave_block_scope(node_id);
     SourceType::Unit
 }
 
@@ -37,21 +37,21 @@ fn check_loop_body(ck: &mut TypeCheck, expr_id: AstId) {
 
 pub(super) fn check_expr_for(
     ck: &mut TypeCheck,
-    stmt_ast_id: ast::AstId,
-    stmt: &ast::ExprForType,
+    node_id: ast::AstId,
+    node: &ast::ExprForType,
     _expected_ty: SourceType,
 ) -> SourceType {
-    let object_type = check_expr(ck, stmt.expr, SourceType::Any);
+    let object_type = check_expr(ck, node.expr, SourceType::Any);
 
     if object_type.is_error() {
-        check_for_body(ck, stmt, ty::error());
+        check_for_body(ck, node_id, node, ty::error());
         return SourceType::Unit;
     }
 
     if let Some((for_type_info, ret_type)) = type_supports_iterator_trait(ck, object_type.clone()) {
         // store fct ids for code generation
-        ck.analysis.map_fors.insert(stmt_ast_id, for_type_info);
-        check_for_body(ck, stmt, ret_type);
+        ck.analysis.map_fors.insert(node_id, for_type_info);
+        check_for_body(ck, node_id, node, ret_type);
         return SourceType::Unit;
     }
 
@@ -62,7 +62,7 @@ pub(super) fn check_expr_for(
             if let Some(iter_impl_fct_id) = into_iterator_data.iter_impl_fct_id {
                 // store fct ids for code generation
                 for_type_info.iter = Some((iter_impl_fct_id, into_iterator_data.bindings));
-                ck.analysis.map_fors.insert(stmt_ast_id, for_type_info);
+                ck.analysis.map_fors.insert(node_id, for_type_info);
             }
 
             ret_type
@@ -70,25 +70,30 @@ pub(super) fn check_expr_for(
             SourceType::Error
         };
 
-        check_for_body(ck, stmt, ret_type);
+        check_for_body(ck, node_id, node, ret_type);
         return SourceType::Unit;
     }
 
     let name = ck.ty_name(&object_type);
     let msg = ErrorMessage::TypeNotUsableInForIn(name);
-    ck.sa.report(ck.file_id, ck.span(stmt.expr), msg);
+    ck.sa.report(ck.file_id, ck.span(node.expr), msg);
 
     // set invalid error type
-    check_for_body(ck, stmt, ty::error());
+    check_for_body(ck, node_id, node, ty::error());
     SourceType::Unit
 }
 
-fn check_for_body(ck: &mut TypeCheck, stmt: &ast::ExprForType, ty: SourceType) {
+fn check_for_body(
+    ck: &mut TypeCheck,
+    node_id: ast::AstId,
+    node: &ast::ExprForType,
+    ty: SourceType,
+) {
     ck.symtable.push_level();
     ck.enter_block_scope();
-    check_pattern(ck, stmt.pattern, ty);
-    check_loop_body(ck, stmt.block);
-    ck.leave_block_scope(stmt.id);
+    check_pattern(ck, node.pattern, ty);
+    check_loop_body(ck, node.block);
+    ck.leave_block_scope(node_id);
     ck.symtable.pop_level();
 }
 

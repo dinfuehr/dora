@@ -25,8 +25,8 @@ pub struct AnalysisData {
     pub map_cls: NodeMap<ClassDefinitionId>,
     pub map_fors: NodeMap2<ForTypeInfo>,
     pub map_lambdas: NodeMap<LazyLambdaId>,
-    pub map_block_contexts: NodeMap<LazyContextData>,
-    pub map_argument: NodeMap<usize>,
+    pub map_block_contexts: NodeMap2<LazyContextData>,
+    pub map_argument: NodeMap2<usize>,
     pub map_field_ids: NodeMap2<usize>,
     pub map_array_assignments: NodeMap2<ArrayAssignment>,
 
@@ -52,8 +52,8 @@ impl AnalysisData {
             map_fors: NodeMap2::new(),
             map_lambdas: NodeMap::new(),
             map_consts: NodeMap::new(),
-            map_block_contexts: NodeMap::new(),
-            map_argument: NodeMap::new(),
+            map_block_contexts: NodeMap2::new(),
+            map_argument: NodeMap2::new(),
             map_field_ids: NodeMap2::new(),
             map_array_assignments: NodeMap2::new(),
 

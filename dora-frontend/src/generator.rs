@@ -283,7 +283,7 @@ impl<'a> AstBytecodeGen<'a> {
         self.enter_context(context_data);
     }
 
-    fn enter_block_context(&mut self, id: ast::NodeId) {
+    fn enter_block_context(&mut self, id: ast::AstId) {
         let context_data = self
             .analysis
             .map_block_contexts
@@ -311,7 +311,7 @@ impl<'a> AstBytecodeGen<'a> {
         self.leave_context(context_data);
     }
 
-    fn leave_block_context(&mut self, id: ast::NodeId) {
+    fn leave_block_context(&mut self, id: ast::AstId) {
         let context_data = self
             .analysis
             .map_block_contexts
@@ -963,7 +963,7 @@ impl<'a> AstBytecodeGen<'a> {
         let lbl_cond = self.builder.define_label();
         self.builder.emit_loop_start();
 
-        self.enter_block_context(stmt.id);
+        self.enter_block_context(stmt_ast_id);
 
         let iterator_type = for_type_info.iterator_type.clone();
         let iterator_type_params = self.convert_tya(&iterator_type.type_params());
@@ -1053,7 +1053,7 @@ impl<'a> AstBytecodeGen<'a> {
         self.builder.emit_jump_loop(lbl_cond);
         self.builder.bind_label(lbl_end);
 
-        self.leave_block_context(stmt.id);
+        self.leave_block_context(stmt_ast_id);
         self.pop_scope();
 
         self.free_if_temp(object_reg);
@@ -1073,23 +1073,23 @@ impl<'a> AstBytecodeGen<'a> {
 
     fn visit_expr_while(
         &mut self,
-        _id: AstId,
-        stmt: &ast::ExprWhileType,
+        node_id: AstId,
+        node: &ast::ExprWhileType,
         _dest: DataDest,
     ) -> Register {
         let cond_lbl = self.builder.define_label();
         let end_lbl = self.builder.create_label();
         self.builder.emit_loop_start();
-        self.enter_block_context(stmt.id);
+        self.enter_block_context(node_id);
 
-        gen_expr_condition(self, stmt.cond, end_lbl);
+        gen_expr_condition(self, node.cond, end_lbl);
 
         self.loops.push(LoopLabels::new(cond_lbl, end_lbl));
-        self.emit_expr_for_effect(stmt.block);
+        self.emit_expr_for_effect(node.block);
         self.loops.pop().unwrap();
         self.builder.emit_jump_loop(cond_lbl);
         self.builder.bind_label(end_lbl);
-        self.leave_block_context(stmt.id);
+        self.leave_block_context(node_id);
         self.ensure_unit_register()
     }
 
@@ -1621,34 +1621,34 @@ impl<'a> AstBytecodeGen<'a> {
 
     fn visit_expr_call(
         &mut self,
-        _id: AstId,
-        expr: &ast::ExprCallType,
+        node_id: AstId,
+        node: &ast::ExprCallType,
         dest: DataDest,
     ) -> Register {
-        if let Some(info) = self.get_intrinsic(expr.id) {
+        if let Some(info) = self.get_intrinsic(node.id) {
             if emit_as_bytecode_operation(info.intrinsic) {
-                return self.visit_expr_call_intrinsic(expr, info, dest);
+                return self.visit_expr_call_intrinsic(node, info, dest);
             }
         }
 
-        let call_type = self.analysis.map_calls.get(expr.id).unwrap().clone();
+        let call_type = self.analysis.map_calls.get(node.id).unwrap().clone();
 
         match *call_type {
             CallType::NewEnum(ref enum_ty, variant_idx) => {
-                return self.visit_expr_call_enum(expr, enum_ty.clone(), variant_idx, dest);
+                return self.visit_expr_call_enum(node, enum_ty.clone(), variant_idx, dest);
             }
 
             CallType::NewStruct(struct_id, ref type_params) => {
-                return self.visit_expr_call_struct(expr, struct_id, type_params, dest);
+                return self.visit_expr_call_struct(node, struct_id, type_params, dest);
             }
 
             CallType::NewClass(cls_id, ref type_params) => {
-                return self.visit_expr_call_class(expr, cls_id, type_params, dest);
+                return self.visit_expr_call_class(node_id, node, cls_id, type_params, dest);
             }
 
             CallType::Lambda(ref params, ref return_type) => {
                 return self.visit_expr_call_lambda(
-                    expr,
+                    node,
                     params.clone(),
                     return_type.clone(),
                     dest,
@@ -1676,17 +1676,17 @@ impl<'a> AstBytecodeGen<'a> {
 
         // Determine types for arguments and return values
         let (arg_types, _return_type) = self.determine_callee_types(&call_type, &*callee);
-        let return_type = self.analysis.ty(expr.id);
+        let return_type = self.analysis.ty(node.id);
 
         // Allocate register for result
         let return_reg =
             self.ensure_register(dest, self.emitter.convert_ty_reg(return_type.clone()));
 
         // Evaluate object/self argument
-        let object_argument = self.emit_call_object_argument(expr, &call_type);
+        let object_argument = self.emit_call_object_argument(node, &call_type);
 
         // Evaluate function arguments
-        let arguments = self.emit_call_arguments(expr, &*callee, &call_type, &arg_types);
+        let arguments = self.emit_call_arguments(node, &*callee, &call_type, &arg_types);
 
         if let Some(obj_reg) = object_argument {
             self.builder.emit_push_register(obj_reg);
@@ -1696,7 +1696,7 @@ impl<'a> AstBytecodeGen<'a> {
         }
 
         // Emit the actual Invoke(Direct|Static|Virtual)XXX instruction
-        self.emit_call_inst(return_reg, callee_idx, &call_type, self.loc(expr.span));
+        self.emit_call_inst(return_reg, callee_idx, &call_type, self.loc(node.span));
 
         if let Some(obj_reg) = object_argument {
             self.free_if_temp(obj_reg);
@@ -1829,20 +1829,21 @@ impl<'a> AstBytecodeGen<'a> {
 
     fn visit_expr_call_class(
         &mut self,
-        expr: &ast::ExprCallType,
+        _node_id: AstId,
+        node: &ast::ExprCallType,
         cls_id: ClassDefinitionId,
         type_params: &SourceTypeArray,
         dest: DataDest,
     ) -> Register {
-        let mut arguments: Vec<Option<Register>> = vec![None; expr.args.len()];
+        let mut arguments: Vec<Option<Register>> = vec![None; node.args.len()];
 
-        for &arg_id in &expr.args {
+        for &arg_id in &node.args {
             let arg = self.node(arg_id).to_argument().expect("argument expected");
             let reg = gen_expr(self, arg.expr, DataDest::Alloc);
             let target_idx = self
                 .analysis
                 .map_argument
-                .get(arg.id)
+                .get(arg_id)
                 .expect("missing argument idx")
                 .clone();
 
@@ -1860,7 +1861,7 @@ impl<'a> AstBytecodeGen<'a> {
             .add_const_cls_types(cls_id, self.convert_tya(type_params));
         let dest_reg = self.ensure_register(dest, BytecodeType::Ptr);
         self.builder
-            .emit_new_object_initialized(dest_reg, idx, self.loc(expr.span));
+            .emit_new_object_initialized(dest_reg, idx, self.loc(node.span));
 
         for arg_reg in arguments {
             self.free_if_temp(arg_reg.expect("missing register"));

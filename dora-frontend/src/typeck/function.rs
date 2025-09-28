@@ -20,6 +20,7 @@ use crate::{
 use crate::{parsety, ParsedType};
 
 use crate::interner::Name;
+use dora_parser::ast::AstId;
 use dora_parser::Span;
 use dora_parser::{ast, NodeId};
 
@@ -228,7 +229,7 @@ impl<'a> TypeCheck<'a> {
         self.analysis.vars = VarAccess::new(vars);
     }
 
-    pub fn leave_block_scope(&mut self, id: NodeId) -> LazyContextData {
+    pub fn leave_block_scope(&mut self, id: AstId) -> LazyContextData {
         let lazy_context_data = self.context_classes.pop().expect("missing context class");
 
         if self.vars.has_context_vars() {

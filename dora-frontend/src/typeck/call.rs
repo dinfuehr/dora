@@ -683,7 +683,7 @@ fn check_expr_call_ctor_with_named_fields(
 
                 ck.analysis
                     .map_argument
-                    .insert(ck.id(arg_id), field.index.to_usize());
+                    .insert(arg_id, field.index.to_usize());
             } else {
                 let name = ck.sa.interner.str(name).to_string();
                 ck.sa.report(
@@ -756,7 +756,7 @@ fn check_expr_call_ctor_with_unnamed_fields(
 
         ck.analysis
             .map_argument
-            .insert(arg.id, field.index.to_usize());
+            .insert(arg_id, field.index.to_usize());
     }
 
     let fields = element_with_fields.field_ids().len();
