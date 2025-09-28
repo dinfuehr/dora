@@ -1290,9 +1290,9 @@ fn check_expr_template(
     let stringable_trait_id = ck.sa.known.traits.stringable();
     let stringable_trait_ty = TraitType::from_trait_id(stringable_trait_id);
 
-    for (idx, &part) in e.parts.iter().enumerate() {
+    for (idx, &part_id) in e.parts.iter().enumerate() {
         if idx % 2 != 0 {
-            let part_expr = check_expr(ck, part, SourceType::Any);
+            let part_expr = check_expr(ck, part_id, SourceType::Any);
 
             if part_expr.is_error() {
                 continue;
@@ -1329,18 +1329,18 @@ fn check_expr_template(
 
                     ck.analysis
                         .map_templates
-                        .insert(ck.id(part), (to_string_id, impl_match.bindings));
+                        .insert(part_id, (to_string_id, impl_match.bindings));
                 }
             } else {
                 let ty = ck.ty_name(&part_expr);
                 ck.sa.report(
                     ck.file_id,
-                    ck.span(part),
+                    ck.span(part_id),
                     ErrorMessage::ExpectedStringable(ty),
                 );
             }
         } else {
-            let e = ck.node(part).to_lit_str().expect("string expected");
+            let e = ck.node(part_id).to_lit_str().expect("string expected");
             check_expr_lit_str(ck, e, expected_ty.clone());
         }
     }

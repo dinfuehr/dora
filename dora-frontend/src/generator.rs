@@ -1198,7 +1198,7 @@ impl<'a> AstBytecodeGen<'a> {
                     let (to_string_id, type_params) = self
                         .analysis
                         .map_templates
-                        .get(part.id())
+                        .get(part_id)
                         .expect("missing toString id");
 
                     let type_params = self.convert_tya(&type_params);

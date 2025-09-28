@@ -16,7 +16,7 @@ use crate::ty::{SourceType, SourceTypeArray, TraitType};
 #[derive(Debug)]
 pub struct AnalysisData {
     pub has_self: Option<bool>,
-    pub map_templates: NodeMap<(FctDefinitionId, SourceTypeArray)>,
+    pub map_templates: NodeMap2<(FctDefinitionId, SourceTypeArray)>,
     pub map_calls: NodeMap<Arc<CallType>>, // maps function call to FctId
     pub map_idents: NodeMap<IdentType>,
     pub map_tys: NodeMap<SourceType>,
@@ -43,7 +43,7 @@ impl AnalysisData {
     pub fn new() -> AnalysisData {
         AnalysisData {
             has_self: None,
-            map_templates: NodeMap::new(),
+            map_templates: NodeMap2::new(),
             map_calls: NodeMap::new(),
             map_idents: NodeMap::new(),
             map_tys: NodeMap::new(),
@@ -218,6 +218,49 @@ where
     }
 
     pub fn iter(&self) -> Iter<ast::NodeId, V> {
+        self.map.iter()
+    }
+}
+
+#[derive(Debug)]
+pub struct NodeMap2<V> {
+    map: HashMap<ast::AstId, V>,
+}
+
+impl<V> NodeMap2<V> {
+    pub fn new() -> NodeMap2<V> {
+        NodeMap2 {
+            map: HashMap::new(),
+        }
+    }
+
+    pub fn get(&self, id: ast::AstId) -> Option<&V> {
+        self.map.get(&id)
+    }
+
+    pub fn get_mut(&mut self, id: ast::AstId) -> Option<&mut V> {
+        self.map.get_mut(&id)
+    }
+
+    pub fn insert(&mut self, id: ast::AstId, data: V) {
+        let old = self.map.insert(id, data);
+        assert!(old.is_none());
+    }
+
+    pub fn replace(&mut self, id: ast::AstId, data: V) {
+        let old = self.map.insert(id, data);
+        assert!(old.is_some());
+    }
+
+    pub fn insert_or_replace(&mut self, id: ast::AstId, data: V) {
+        self.map.insert(id, data);
+    }
+
+    pub fn clear(&mut self) {
+        self.map.clear();
+    }
+
+    pub fn iter(&self) -> Iter<ast::AstId, V> {
         self.map.iter()
     }
 }
