@@ -127,13 +127,13 @@ pub(super) fn gen_intrinsic_bin(
 
 pub(super) fn gen_method_bin(
     g: &mut AstBytecodeGen,
-    expr: &ast::ExprBinType,
+    expr_ast_id: AstId,
     dest: Register,
     lhs_reg: Register,
     rhs_reg: Register,
     location: Location,
 ) {
-    let call_type = g.analysis.map_calls.get(expr.id).unwrap();
+    let call_type = g.analysis.map_calls.get(expr_ast_id).unwrap();
     let callee_id = call_type.fct_id().expect("FctId missing");
 
     let callee = g.sa.fct(callee_id);
@@ -155,6 +155,7 @@ pub(super) fn gen_method_bin(
 
 pub(super) fn gen_expr_bin_cmp(
     g: &mut AstBytecodeGen,
+    expr_ast_id: AstId,
     node: &ast::ExprBinType,
     cmp_op: CmpOp,
     dest: DataDest,
@@ -162,10 +163,10 @@ pub(super) fn gen_expr_bin_cmp(
     let lhs = gen_expr(g, node.lhs, DataDest::Alloc);
     let rhs = gen_expr(g, node.rhs, DataDest::Alloc);
 
-    let result = if let Some(info) = g.get_intrinsic(node.id) {
+    let result = if let Some(info) = g.get_intrinsic(expr_ast_id) {
         gen_expr_bin_cmp_as_intrinsic(g, cmp_op, info.intrinsic, dest, lhs, rhs)
     } else {
-        gen_expr_bin_cmp_as_method(g, node, cmp_op, dest, lhs, rhs)
+        gen_expr_bin_cmp_as_method(g, expr_ast_id, node, cmp_op, dest, lhs, rhs)
     };
 
     g.free_if_temp(lhs);
@@ -219,13 +220,14 @@ fn gen_expr_bin_cmp_as_intrinsic(
 
 fn gen_expr_bin_cmp_as_method(
     g: &mut AstBytecodeGen,
+    expr_ast_id: AstId,
     node: &ast::ExprBinType,
     cmp_op: CmpOp,
     dest: DataDest,
     lhs: Register,
     rhs: Register,
 ) -> Register {
-    let call_type = g.analysis.map_calls.get(node.id).unwrap();
+    let call_type = g.analysis.map_calls.get(expr_ast_id).unwrap();
     let callee_id = call_type.fct_id().expect("FctId missing");
 
     let callee = g.sa.fct(callee_id);

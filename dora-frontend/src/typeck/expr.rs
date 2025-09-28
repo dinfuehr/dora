@@ -201,11 +201,11 @@ pub(super) fn check_expr_assign(ck: &mut TypeCheck, expr_ast_id: ast::AstId, e: 
     if lhs.is_call() {
         check_expr_assign_call(ck, expr_ast_id, e);
     } else if lhs.is_dot() {
-        check_expr_assign_field(ck, e);
+        check_expr_assign_field(ck, expr_ast_id, e);
     } else if lhs.is_ident() {
-        check_expr_assign_ident(ck, e);
+        check_expr_assign_ident(ck, expr_ast_id, e);
     } else if lhs.is_path() {
-        check_expr_assign_path(ck, e);
+        check_expr_assign_path(ck, expr_ast_id, e);
     } else {
         ck.sa
             .report(ck.file_id, e.span, ErrorMessage::LvalueExpected);
@@ -214,7 +214,7 @@ pub(super) fn check_expr_assign(ck: &mut TypeCheck, expr_ast_id: ast::AstId, e: 
     ck.analysis.set_ty(e.id, SourceType::Unit);
 }
 
-fn check_expr_assign_path(ck: &mut TypeCheck, e: &ast::ExprBinType) {
+fn check_expr_assign_path(ck: &mut TypeCheck, expr_ast_id: ast::AstId, e: &ast::ExprBinType) {
     let lhs_type = match read_path_expr(ck, e.lhs) {
         Ok(Some(SymbolKind::Global(global_id))) => {
             let global = ck.sa.global(global_id);
@@ -234,10 +234,10 @@ fn check_expr_assign_path(ck: &mut TypeCheck, e: &ast::ExprBinType) {
     };
 
     let rhs_type = check_expr(ck, e.rhs, lhs_type.clone());
-    check_assign_type(ck, e, lhs_type, rhs_type);
+    check_assign_type(ck, expr_ast_id, e, lhs_type, rhs_type);
 }
 
-fn check_expr_assign_ident(ck: &mut TypeCheck, e: &ast::ExprBinType) {
+fn check_expr_assign_ident(ck: &mut TypeCheck, expr_ast_id: ast::AstId, e: &ast::ExprBinType) {
     let lhs = ck.node(e.lhs);
     let lhs_ident = lhs.to_ident().unwrap();
     let sym = ck.symtable.get_string(ck.sa, &lhs_ident.name);
@@ -289,11 +289,12 @@ fn check_expr_assign_ident(ck: &mut TypeCheck, e: &ast::ExprBinType) {
     };
 
     let rhs_type = check_expr(ck, e.rhs, lhs_type.clone());
-    check_assign_type(ck, e, lhs_type, rhs_type);
+    check_assign_type(ck, expr_ast_id, e, lhs_type, rhs_type);
 }
 
 fn check_assign_type(
     ck: &mut TypeCheck,
+    expr_ast_id: ast::AstId,
     e: &ast::ExprBinType,
     lhs_type: SourceType,
     rhs_type: SourceType,
@@ -303,6 +304,7 @@ fn check_assign_type(
     match e.op {
         ast::BinOp::AddAssign => check_expr_bin_trait(
             ck,
+            expr_ast_id,
             e,
             e.op,
             ck.sa.known.traits.add(),
@@ -313,6 +315,7 @@ fn check_assign_type(
 
         ast::BinOp::SubAssign => check_expr_bin_trait(
             ck,
+            expr_ast_id,
             e,
             e.op,
             ck.sa.known.traits.sub(),
@@ -323,6 +326,7 @@ fn check_assign_type(
 
         ast::BinOp::MulAssign => check_expr_bin_trait(
             ck,
+            expr_ast_id,
             e,
             e.op,
             ck.sa.known.traits.mul(),
@@ -333,6 +337,7 @@ fn check_assign_type(
 
         ast::BinOp::DivAssign => check_expr_bin_trait(
             ck,
+            expr_ast_id,
             e,
             e.op,
             ck.sa.known.traits.div(),
@@ -343,6 +348,7 @@ fn check_assign_type(
 
         ast::BinOp::ModAssign => check_expr_bin_trait(
             ck,
+            expr_ast_id,
             e,
             e.op,
             ck.sa.known.traits.mod_(),
@@ -353,6 +359,7 @@ fn check_assign_type(
 
         ast::BinOp::BitOrAssign => check_expr_bin_trait(
             ck,
+            expr_ast_id,
             e,
             e.op,
             ck.sa.known.traits.bit_or(),
@@ -363,6 +370,7 @@ fn check_assign_type(
 
         ast::BinOp::BitAndAssign => check_expr_bin_trait(
             ck,
+            expr_ast_id,
             e,
             e.op,
             ck.sa.known.traits.bit_and(),
@@ -373,6 +381,7 @@ fn check_assign_type(
 
         ast::BinOp::BitXorAssign => check_expr_bin_trait(
             ck,
+            expr_ast_id,
             e,
             e.op,
             ck.sa.known.traits.bit_xor(),
@@ -383,6 +392,7 @@ fn check_assign_type(
 
         ast::BinOp::ShiftLAssign => check_expr_bin_trait(
             ck,
+            expr_ast_id,
             e,
             e.op,
             ck.sa.known.traits.shl(),
@@ -393,6 +403,7 @@ fn check_assign_type(
 
         ast::BinOp::LogicalShiftRAssign => check_expr_bin_trait(
             ck,
+            expr_ast_id,
             e,
             e.op,
             ck.sa.known.traits.shr(),
@@ -403,6 +414,7 @@ fn check_assign_type(
 
         ast::BinOp::ArithShiftRAssign => check_expr_bin_trait(
             ck,
+            expr_ast_id,
             e,
             e.op,
             ck.sa.known.traits.sar(),
@@ -475,7 +487,8 @@ fn check_expr_assign_call(ck: &mut TypeCheck, expr_ast_id: ast::AstId, e: &ast::
         index_type = index_get_index;
         item_type = index_get_item.clone();
 
-        let op_trait_info = check_assign_type(ck, e, index_get_item, value_type.clone());
+        let op_trait_info =
+            check_assign_type(ck, expr_ast_id, e, index_get_item, value_type.clone());
         rhs_type = op_trait_info.rhs_type;
     }
 
@@ -643,7 +656,7 @@ fn check_index_trait_on_ty(
     }
 }
 
-fn check_expr_assign_field(ck: &mut TypeCheck, e: &ast::ExprBinType) {
+fn check_expr_assign_field(ck: &mut TypeCheck, expr_ast_id: ast::AstId, e: &ast::ExprBinType) {
     let dot_expr = ck.node(e.lhs).to_dot().unwrap();
     let object_type = check_expr(ck, dot_expr.lhs, SourceType::Any);
 
@@ -689,7 +702,7 @@ fn check_expr_assign_field(ck: &mut TypeCheck, e: &ast::ExprBinType) {
             }
 
             let rhs_type = check_expr(ck, e.rhs, fty.clone());
-            check_assign_type(ck, e, fty, rhs_type);
+            check_assign_type(ck, expr_ast_id, e, fty, rhs_type);
             return;
         }
     }
@@ -1369,7 +1382,7 @@ fn check_expr_template(
 
 pub(super) fn check_expr_un(
     ck: &mut TypeCheck,
-    _id: ast::AstId,
+    expr_ast_id: ast::AstId,
     e: &ast::ExprUnType,
     expected_ty: SourceType,
 ) -> SourceType {
@@ -1384,13 +1397,30 @@ pub(super) fn check_expr_un(
     let opnd = check_expr(ck, e.opnd, SourceType::Any);
 
     match e.op {
-        ast::UnOp::Neg => check_expr_un_trait(ck, e, e.op, ck.sa.known.traits.neg(), "neg", opnd),
-        ast::UnOp::Not => check_expr_un_trait(ck, e, e.op, ck.sa.known.traits.not(), "not", opnd),
+        ast::UnOp::Neg => check_expr_un_trait(
+            ck,
+            expr_ast_id,
+            e,
+            e.op,
+            ck.sa.known.traits.neg(),
+            "neg",
+            opnd,
+        ),
+        ast::UnOp::Not => check_expr_un_trait(
+            ck,
+            expr_ast_id,
+            e,
+            e.op,
+            ck.sa.known.traits.not(),
+            "not",
+            opnd,
+        ),
     }
 }
 
 fn check_expr_un_trait(
     ck: &mut TypeCheck,
+    expr_ast_id: ast::AstId,
     e: &ast::ExprUnType,
     op: ast::UnOp,
     trait_id: TraitDefinitionId,
@@ -1422,7 +1452,7 @@ fn check_expr_un_trait(
         let call_type = CallType::Method(ty.clone(), method_id, SourceTypeArray::empty());
         ck.analysis
             .map_calls
-            .insert_or_replace(e.id, Arc::new(call_type));
+            .insert_or_replace(expr_ast_id, Arc::new(call_type));
 
         let method = ck.sa.fct(method_id);
 
@@ -1448,7 +1478,7 @@ fn check_expr_un_trait(
         );
         ck.analysis
             .map_calls
-            .insert_or_replace(e.id, Arc::new(call_type));
+            .insert_or_replace(expr_ast_id, Arc::new(call_type));
 
         let return_type = method.return_type();
         let return_type = replace_type(
@@ -1510,10 +1540,11 @@ pub(super) fn check_expr_bin(
 
     match e.op {
         ast::BinOp::Or | ast::BinOp::And => check_expr_bin_bool(ck, e, e.op, lhs_type, rhs_type),
-        ast::BinOp::Cmp(cmp) => check_expr_bin_cmp(ck, e, cmp, lhs_type, rhs_type),
+        ast::BinOp::Cmp(cmp) => check_expr_bin_cmp(ck, expr_ast_id, e, cmp, lhs_type, rhs_type),
         ast::BinOp::Add => {
             check_expr_bin_trait(
                 ck,
+                expr_ast_id,
                 e,
                 e.op,
                 ck.sa.known.traits.add(),
@@ -1526,6 +1557,7 @@ pub(super) fn check_expr_bin(
         ast::BinOp::Sub => {
             check_expr_bin_trait(
                 ck,
+                expr_ast_id,
                 e,
                 e.op,
                 ck.sa.known.traits.sub(),
@@ -1538,6 +1570,7 @@ pub(super) fn check_expr_bin(
         ast::BinOp::Mul => {
             check_expr_bin_trait(
                 ck,
+                expr_ast_id,
                 e,
                 e.op,
                 ck.sa.known.traits.mul(),
@@ -1550,6 +1583,7 @@ pub(super) fn check_expr_bin(
         ast::BinOp::Div => {
             check_expr_bin_trait(
                 ck,
+                expr_ast_id,
                 e,
                 e.op,
                 ck.sa.known.traits.div(),
@@ -1562,6 +1596,7 @@ pub(super) fn check_expr_bin(
         ast::BinOp::Mod => {
             check_expr_bin_trait(
                 ck,
+                expr_ast_id,
                 e,
                 e.op,
                 ck.sa.known.traits.mod_(),
@@ -1574,6 +1609,7 @@ pub(super) fn check_expr_bin(
         ast::BinOp::BitOr => {
             check_expr_bin_trait(
                 ck,
+                expr_ast_id,
                 e,
                 e.op,
                 ck.sa.known.traits.bit_or(),
@@ -1586,6 +1622,7 @@ pub(super) fn check_expr_bin(
         ast::BinOp::BitAnd => {
             check_expr_bin_trait(
                 ck,
+                expr_ast_id,
                 e,
                 e.op,
                 ck.sa.known.traits.bit_and(),
@@ -1598,6 +1635,7 @@ pub(super) fn check_expr_bin(
         ast::BinOp::BitXor => {
             check_expr_bin_trait(
                 ck,
+                expr_ast_id,
                 e,
                 e.op,
                 ck.sa.known.traits.bit_xor(),
@@ -1610,6 +1648,7 @@ pub(super) fn check_expr_bin(
         ast::BinOp::ShiftL => {
             check_expr_bin_trait(
                 ck,
+                expr_ast_id,
                 e,
                 e.op,
                 ck.sa.known.traits.shl(),
@@ -1622,6 +1661,7 @@ pub(super) fn check_expr_bin(
         ast::BinOp::ArithShiftR => {
             check_expr_bin_trait(
                 ck,
+                expr_ast_id,
                 e,
                 e.op,
                 ck.sa.known.traits.sar(),
@@ -1634,6 +1674,7 @@ pub(super) fn check_expr_bin(
         ast::BinOp::LogicalShiftR => {
             check_expr_bin_trait(
                 ck,
+                expr_ast_id,
                 e,
                 e.op,
                 ck.sa.known.traits.shr(),
@@ -1678,6 +1719,7 @@ struct OpTraitInfo {
 
 fn check_expr_bin_trait(
     ck: &mut TypeCheck,
+    expr_ast_id: ast::AstId,
     e: &ast::ExprBinType,
     op: ast::BinOp,
     trait_id: TraitDefinitionId,
@@ -1712,7 +1754,7 @@ fn check_expr_bin_trait(
             let call_type = CallType::Method(lhs_type.clone(), method_id, type_params.clone());
             ck.analysis
                 .map_calls
-                .insert_or_replace(e.id, Arc::new(call_type));
+                .insert_or_replace(expr_ast_id, Arc::new(call_type));
 
             let method = ck.sa.fct(method_id);
             let params = method.params_without_self();
@@ -1768,7 +1810,7 @@ fn check_expr_bin_trait(
         );
         ck.analysis
             .map_calls
-            .insert_or_replace(e.id, Arc::new(call_type));
+            .insert_or_replace(expr_ast_id, Arc::new(call_type));
 
         let param = params[0].ty();
         let param = replace_type(
@@ -1820,6 +1862,7 @@ fn check_expr_bin_trait(
 
 fn check_expr_bin_cmp(
     ck: &mut TypeCheck,
+    expr_ast_id: ast::AstId,
     e: &ast::ExprBinType,
     cmp: ast::CmpOp,
     lhs_type: SourceType,
@@ -1850,10 +1893,11 @@ fn check_expr_bin_cmp(
 
         ast::CmpOp::Eq | ast::CmpOp::Ne => {
             if is_simple_enum(ck.sa, lhs_type.clone()) {
-                check_expr_cmp_enum(ck, e, cmp, lhs_type, rhs_type)
+                check_expr_cmp_enum(ck, expr_ast_id, e, cmp, lhs_type, rhs_type)
             } else {
                 check_expr_bin_trait(
                     ck,
+                    expr_ast_id,
                     e,
                     e.op,
                     ck.sa.known.traits.equals(),
@@ -1867,6 +1911,7 @@ fn check_expr_bin_cmp(
         ast::CmpOp::Ge | ast::CmpOp::Gt | ast::CmpOp::Le | ast::CmpOp::Lt => {
             check_expr_bin_trait(
                 ck,
+                expr_ast_id,
                 e,
                 e.op,
                 ck.sa.known.traits.comparable(),
@@ -1884,6 +1929,7 @@ fn check_expr_bin_cmp(
 
 fn check_expr_cmp_enum(
     ck: &mut TypeCheck,
+    expr_ast_id: ast::AstId,
     e: &ast::ExprBinType,
     op: ast::CmpOp,
     lhs_type: SourceType,
@@ -1898,7 +1944,7 @@ fn check_expr_cmp_enum(
         let call_type = CallType::Intrinsic(intrinsic);
         ck.analysis
             .map_calls
-            .insert_or_replace(e.id, Arc::new(call_type));
+            .insert_or_replace(expr_ast_id, Arc::new(call_type));
 
         ck.analysis.set_ty(e.id, SourceType::Bool);
     } else {

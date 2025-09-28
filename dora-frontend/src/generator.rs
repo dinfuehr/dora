@@ -1625,13 +1625,13 @@ impl<'a> AstBytecodeGen<'a> {
         node: &ast::ExprCallType,
         dest: DataDest,
     ) -> Register {
-        if let Some(info) = self.get_intrinsic(node.id) {
+        if let Some(info) = self.get_intrinsic(node_id) {
             if emit_as_bytecode_operation(info.intrinsic) {
-                return self.visit_expr_call_intrinsic(node, info, dest);
+                return self.visit_expr_call_intrinsic(node_id, node, info, dest);
             }
         }
 
-        let call_type = self.analysis.map_calls.get(node.id).unwrap().clone();
+        let call_type = self.analysis.map_calls.get(node_id).unwrap().clone();
 
         match *call_type {
             CallType::NewEnum(ref enum_ty, variant_idx) => {
@@ -2285,25 +2285,35 @@ impl<'a> AstBytecodeGen<'a> {
         result
     }
 
-    fn visit_expr_un(&mut self, _id: AstId, expr: &ast::ExprUnType, dest: DataDest) -> Register {
-        if expr.op == ast::UnOp::Neg && self.node(expr.opnd).is_lit_int() {
+    fn visit_expr_un(
+        &mut self,
+        node_id: AstId,
+        node: &ast::ExprUnType,
+        dest: DataDest,
+    ) -> Register {
+        if node.op == ast::UnOp::Neg && self.node(node.opnd).is_lit_int() {
             self.visit_expr_lit_int(
-                expr.opnd,
-                self.node(expr.opnd).to_lit_int().unwrap(),
+                node.opnd,
+                self.node(node.opnd).to_lit_int().unwrap(),
                 dest,
                 true,
             )
-        } else if let Some(intrinsic) = self.get_intrinsic(expr.id) {
-            self.emit_intrinsic_un(expr.opnd, intrinsic, self.loc(expr.span), dest)
+        } else if let Some(intrinsic) = self.get_intrinsic(node_id) {
+            self.emit_intrinsic_un(node.opnd, intrinsic, self.loc(node.span), dest)
         } else {
-            self.visit_expr_un_method(expr, dest)
+            self.visit_expr_un_method(node_id, node, dest)
         }
     }
 
-    fn visit_expr_un_method(&mut self, expr: &ast::ExprUnType, dest: DataDest) -> Register {
-        let opnd = gen_expr(self, expr.opnd, DataDest::Alloc);
+    fn visit_expr_un_method(
+        &mut self,
+        node_id: AstId,
+        node: &ast::ExprUnType,
+        dest: DataDest,
+    ) -> Register {
+        let opnd = gen_expr(self, node.opnd, DataDest::Alloc);
 
-        let call_type = self.analysis.map_calls.get(expr.id).unwrap();
+        let call_type = self.analysis.map_calls.get(node_id).unwrap();
         let callee_id = call_type.fct_id().expect("FctId missing");
 
         let callee = self.sa.fct(callee_id);
@@ -2324,10 +2334,10 @@ impl<'a> AstBytecodeGen<'a> {
                 function_return_type,
                 dest,
                 callee_idx,
-                self.loc(expr.span),
+                self.loc(node.span),
             );
         } else {
-            self.emit_invoke_direct(function_return_type, dest, callee_idx, self.loc(expr.span));
+            self.emit_invoke_direct(function_return_type, dest, callee_idx, self.loc(node.span));
         }
 
         self.free_if_temp(opnd);
@@ -2347,24 +2357,29 @@ impl<'a> AstBytecodeGen<'a> {
             if cmp_op == CmpOp::Is || cmp_op == CmpOp::IsNot {
                 self.emit_bin_is(expr, dest)
             } else {
-                gen_expr_bin_cmp(self, expr, cmp_op, dest)
+                gen_expr_bin_cmp(self, expr_ast_id, expr, cmp_op, dest)
             }
         } else if expr.op == ast::BinOp::Or {
             self.emit_bin_or(expr, dest)
         } else if expr.op == ast::BinOp::And {
             self.emit_bin_and(expr, dest)
-        } else if let Some(info) = self.get_intrinsic(expr.id) {
+        } else if let Some(info) = self.get_intrinsic(expr_ast_id) {
             self.emit_intrinsic_bin(expr.lhs, expr.rhs, info, self.loc(expr.span), dest)
         } else {
-            self.visit_expr_bin_method(expr, dest)
+            self.visit_expr_bin_method(expr_ast_id, expr, dest)
         }
     }
 
-    fn visit_expr_bin_method(&mut self, expr: &ast::ExprBinType, dest: DataDest) -> Register {
-        let lhs = gen_expr(self, expr.lhs, DataDest::Alloc);
-        let rhs = gen_expr(self, expr.rhs, DataDest::Alloc);
+    fn visit_expr_bin_method(
+        &mut self,
+        node_id: AstId,
+        node: &ast::ExprBinType,
+        dest: DataDest,
+    ) -> Register {
+        let lhs = gen_expr(self, node.lhs, DataDest::Alloc);
+        let rhs = gen_expr(self, node.rhs, DataDest::Alloc);
 
-        let call_type = self.analysis.map_calls.get(expr.id).unwrap();
+        let call_type = self.analysis.map_calls.get(node_id).unwrap();
         let callee_id = call_type.fct_id().expect("FctId missing");
 
         let callee = self.sa.fct(callee_id);
@@ -2377,7 +2392,7 @@ impl<'a> AstBytecodeGen<'a> {
         let function_return_type_bc: BytecodeType =
             self.emitter.convert_ty_reg(function_return_type.clone());
 
-        let return_type = match expr.op {
+        let return_type = match node.op {
             ast::BinOp::Cmp(_) => BytecodeType::Bool,
             _ => function_return_type_bc.clone(),
         };
@@ -2400,21 +2415,21 @@ impl<'a> AstBytecodeGen<'a> {
                 function_return_type,
                 result,
                 callee_idx,
-                self.loc(expr.span),
+                self.loc(node.span),
             );
         } else {
             self.emit_invoke_direct(
                 function_return_type,
                 result,
                 callee_idx,
-                self.loc(expr.span),
+                self.loc(node.span),
             );
         }
 
         self.free_if_temp(lhs);
         self.free_if_temp(rhs);
 
-        match expr.op {
+        match node.op {
             ast::BinOp::Cmp(ast::CmpOp::Eq) => assert_eq!(result, dest),
             ast::BinOp::Cmp(ast::CmpOp::Ne) => {
                 assert_eq!(result, dest);
@@ -2447,41 +2462,42 @@ impl<'a> AstBytecodeGen<'a> {
 
     fn visit_expr_call_intrinsic(
         &mut self,
-        expr: &ast::ExprCallType,
+        node_id: AstId,
+        node: &ast::ExprCallType,
         info: IntrinsicInfo,
         dest: DataDest,
     ) -> Register {
         let intrinsic = info.intrinsic;
-        let call_type = self.analysis.map_calls.get(expr.id).unwrap().clone();
+        let call_type = self.analysis.map_calls.get(node_id).unwrap().clone();
 
         if call_type.is_method() {
-            let object = expr.object(self.ast_file()).unwrap();
+            let object = node.object(self.ast_file()).unwrap();
 
-            match expr.args.len() {
-                0 => self.emit_intrinsic_un(object, info, self.loc(expr.span), dest),
+            match node.args.len() {
+                0 => self.emit_intrinsic_un(object, info, self.loc(node.span), dest),
                 1 => self.emit_intrinsic_bin(
                     object,
-                    self.node(expr.args[0])
+                    self.node(node.args[0])
                         .to_argument()
                         .expect("argument expecteds")
                         .expr,
                     info,
-                    self.loc(expr.span),
+                    self.loc(node.span),
                     dest,
                 ),
                 2 => {
                     assert_eq!(intrinsic, Intrinsic::ArraySet);
                     self.emit_intrinsic_array_set(
-                        expr.object(self.ast_file()).unwrap(),
-                        self.node(expr.args[0])
+                        node.object(self.ast_file()).unwrap(),
+                        self.node(node.args[0])
                             .to_argument()
                             .expect("argument expecteds")
                             .expr,
-                        self.node(expr.args[1])
+                        self.node(node.args[1])
                             .to_argument()
                             .expect("argument expected")
                             .expr,
-                        self.loc(expr.span),
+                        self.loc(node.span),
                         dest,
                     )
                 }
@@ -2489,28 +2505,28 @@ impl<'a> AstBytecodeGen<'a> {
             }
         } else {
             match intrinsic {
-                Intrinsic::Assert => self.visit_expr_assert(expr, dest),
+                Intrinsic::Assert => self.visit_expr_assert(node, dest),
 
                 Intrinsic::ArrayGet => self.emit_intrinsic_array_get(
-                    expr.callee,
-                    self.node(expr.args[0])
+                    node.callee,
+                    self.node(node.args[0])
                         .to_argument()
                         .expect("argument expected")
                         .expr,
-                    self.loc(expr.span),
+                    self.loc(node.span),
                     dest,
                 ),
 
-                Intrinsic::ArrayNewOfSize => self.emit_intrinsic_new_array(expr, dest),
+                Intrinsic::ArrayNewOfSize => self.emit_intrinsic_new_array(node, dest),
 
                 Intrinsic::ArrayWithValues => {
-                    let ty = self.ty(expr.id);
+                    let ty = self.ty(node.id);
 
                     let (cls_id, type_params) = ty.to_class().expect("class expected");
                     assert_eq!(cls_id, self.sa.known.classes.array());
                     assert_eq!(1, type_params.len());
                     let element_ty = type_params[0].clone();
-                    self.emit_array_with_variadic_arguments(expr, &[element_ty], 0, dest)
+                    self.emit_array_with_variadic_arguments(node, &[element_ty], 0, dest)
                 }
 
                 _ => panic!("unimplemented intrinsic {:?}", intrinsic),
@@ -2734,13 +2750,13 @@ impl<'a> AstBytecodeGen<'a> {
             let ident_type = self.analysis.map_idents.get(self.id(expr.lhs)).unwrap();
             match ident_type {
                 &IdentType::Var(var_id) => {
-                    self.visit_expr_assign_var(expr, var_id, value_reg);
+                    self.visit_expr_assign_var(expr_ast_id, expr, var_id, value_reg);
                 }
                 &IdentType::Context(level, field_id) => {
-                    self.visit_expr_assign_context(expr, level, field_id, value_reg);
+                    self.visit_expr_assign_context(expr_ast_id, expr, level, field_id, value_reg);
                 }
                 &IdentType::Global(gid) => {
-                    self.visit_expr_assign_global(expr, gid, value_reg);
+                    self.visit_expr_assign_global(expr_ast_id, expr, gid, value_reg);
                 }
                 _ => unreachable!(),
             }
@@ -2750,14 +2766,14 @@ impl<'a> AstBytecodeGen<'a> {
             let ident_type = self.analysis.map_idents.get(self.id(expr.lhs)).unwrap();
             match ident_type {
                 &IdentType::Global(gid) => {
-                    self.visit_expr_assign_global(expr, gid, value_reg);
+                    self.visit_expr_assign_global(expr_ast_id, expr, gid, value_reg);
                 }
                 _ => unreachable!(),
             }
             self.free_if_temp(value_reg);
         } else {
             match *self.node(expr.lhs) {
-                Ast::Dot(ref dot) => self.visit_expr_assign_dot(expr, dot),
+                Ast::Dot(ref dot) => self.visit_expr_assign_dot(expr_ast_id, expr, dot),
                 Ast::Call(ref call) => self.visit_expr_assign_call(expr_ast_id, expr, call),
                 _ => unreachable!(),
             };
@@ -2823,10 +2839,10 @@ impl<'a> AstBytecodeGen<'a> {
                     .emit_invoke_direct(current, callee_idx, location);
             }
 
-            if let Some(info) = self.get_intrinsic(expr.id) {
+            if let Some(info) = self.get_intrinsic(expr_ast_id) {
                 gen_intrinsic_bin(self, info.intrinsic, current, current, val_reg, location);
             } else {
-                gen_method_bin(self, expr, current, current, val_reg, location);
+                gen_method_bin(self, expr_ast_id, current, current, val_reg, location);
             }
 
             current
@@ -2865,7 +2881,12 @@ impl<'a> AstBytecodeGen<'a> {
         self.free_if_temp(assign_value);
     }
 
-    fn visit_expr_assign_dot(&mut self, expr: &ast::ExprBinType, dot: &ast::ExprDotType) {
+    fn visit_expr_assign_dot(
+        &mut self,
+        expr_ast_id: AstId,
+        expr: &ast::ExprBinType,
+        dot: &ast::ExprDotType,
+    ) {
         let (cls_ty, field_index) = {
             let ident_type = self.analysis.map_idents.get(dot.id).cloned().unwrap();
             match ident_type {
@@ -2896,10 +2917,10 @@ impl<'a> AstBytecodeGen<'a> {
             self.builder
                 .emit_load_field(current, obj, field_idx, location);
 
-            if let Some(info) = self.get_intrinsic(expr.id) {
+            if let Some(info) = self.get_intrinsic(expr_ast_id) {
                 gen_intrinsic_bin(self, info.intrinsic, current, current, value, location);
             } else {
-                gen_method_bin(self, expr, current, current, value, location);
+                gen_method_bin(self, expr_ast_id, current, current, value, location);
             }
 
             current
@@ -2920,6 +2941,7 @@ impl<'a> AstBytecodeGen<'a> {
 
     fn visit_expr_assign_context(
         &mut self,
+        expr_ast_id: AstId,
         expr: &ast::ExprBinType,
         outer_context_id: OuterContextIdx,
         context_field_id: ContextFieldId,
@@ -2931,10 +2953,10 @@ impl<'a> AstBytecodeGen<'a> {
             let current =
                 self.load_from_outer_context(outer_context_id, context_field_id, location);
 
-            if let Some(info) = self.get_intrinsic(expr.id) {
+            if let Some(info) = self.get_intrinsic(expr_ast_id) {
                 gen_intrinsic_bin(self, info.intrinsic, current, current, value, location);
             } else {
-                gen_method_bin(self, expr, current, current, value, location);
+                gen_method_bin(self, expr_ast_id, current, current, value, location);
             }
 
             current
@@ -2949,7 +2971,13 @@ impl<'a> AstBytecodeGen<'a> {
         }
     }
 
-    fn visit_expr_assign_var(&mut self, expr: &ast::ExprBinType, var_id: VarId, value: Register) {
+    fn visit_expr_assign_var(
+        &mut self,
+        expr_ast_id: AstId,
+        expr: &ast::ExprBinType,
+        var_id: VarId,
+        value: Register,
+    ) {
         let var = self.analysis.vars.get_var(var_id);
 
         let assign_value = if expr.op != ast::BinOp::Assign {
@@ -2966,10 +2994,10 @@ impl<'a> AstBytecodeGen<'a> {
 
             let location = self.loc(expr.span);
 
-            if let Some(info) = self.get_intrinsic(expr.id) {
+            if let Some(info) = self.get_intrinsic(expr_ast_id) {
                 gen_intrinsic_bin(self, info.intrinsic, current, current, value, location);
             } else {
-                gen_method_bin(self, expr, current, current, value, location);
+                gen_method_bin(self, expr_ast_id, current, current, value, location);
             }
 
             current
@@ -2995,6 +3023,7 @@ impl<'a> AstBytecodeGen<'a> {
 
     fn visit_expr_assign_global(
         &mut self,
+        expr_ast_id: AstId,
         expr: &ast::ExprBinType,
         gid: GlobalDefinitionId,
         value: Register,
@@ -3008,10 +3037,10 @@ impl<'a> AstBytecodeGen<'a> {
             let current = self.alloc_temp(ty);
             self.builder.emit_load_global(current, bc_gid, location);
 
-            if let Some(info) = self.get_intrinsic(expr.id) {
+            if let Some(info) = self.get_intrinsic(expr_ast_id) {
                 gen_intrinsic_bin(self, info.intrinsic, current, current, value, location);
             } else {
-                gen_method_bin(self, expr, current, current, value, location);
+                gen_method_bin(self, expr_ast_id, current, current, value, location);
             }
 
             current
@@ -3514,7 +3543,7 @@ impl<'a> AstBytecodeGen<'a> {
         self.analysis.ty(node.id())
     }
 
-    fn get_intrinsic(&self, id: ast::NodeId) -> Option<IntrinsicInfo> {
+    fn get_intrinsic(&self, id: ast::AstId) -> Option<IntrinsicInfo> {
         let call_type = self.analysis.map_calls.get(id).expect("missing CallType");
 
         if let Some(intrinsic) = call_type.to_intrinsic() {

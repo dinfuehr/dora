@@ -17,7 +17,7 @@ use crate::ty::{SourceType, SourceTypeArray, TraitType};
 pub struct AnalysisData {
     pub has_self: Option<bool>,
     pub map_templates: NodeMap2<(FctDefinitionId, SourceTypeArray)>,
-    pub map_calls: NodeMap<Arc<CallType>>, // maps function call to FctId
+    pub map_calls: NodeMap2<Arc<CallType>>, // maps function call to FctId
     pub map_idents: NodeMap<IdentType>,
     pub map_tys: NodeMap<SourceType>,
     pub map_vars: NodeMap<VarId>,
@@ -44,7 +44,7 @@ impl AnalysisData {
         AnalysisData {
             has_self: None,
             map_templates: NodeMap2::new(),
-            map_calls: NodeMap::new(),
+            map_calls: NodeMap2::new(),
             map_idents: NodeMap::new(),
             map_tys: NodeMap::new(),
             map_vars: NodeMap::new(),
