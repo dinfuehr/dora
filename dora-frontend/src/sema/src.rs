@@ -20,11 +20,10 @@ pub struct AnalysisData {
     pub map_calls: NodeMap2<Arc<CallType>>, // maps function call to FctId
     pub map_idents: NodeMap2<IdentType>,
     pub map_tys: NodeMap<SourceType>,
-    pub map_vars: NodeMap<VarId>,
-    pub map_consts: NodeMap<ConstValue>,
-    pub map_cls: NodeMap<ClassDefinitionId>,
+    pub map_vars: NodeMap2<VarId>,
+    pub map_consts: NodeMap2<ConstValue>,
     pub map_fors: NodeMap2<ForTypeInfo>,
-    pub map_lambdas: NodeMap<LazyLambdaId>,
+    pub map_lambdas: NodeMap2<LazyLambdaId>,
     pub map_block_contexts: NodeMap2<LazyContextData>,
     pub map_argument: NodeMap2<usize>,
     pub map_field_ids: NodeMap2<usize>,
@@ -47,11 +46,10 @@ impl AnalysisData {
             map_calls: NodeMap2::new(),
             map_idents: NodeMap2::new(),
             map_tys: NodeMap::new(),
-            map_vars: NodeMap::new(),
-            map_cls: NodeMap::new(),
+            map_vars: NodeMap2::new(),
             map_fors: NodeMap2::new(),
-            map_lambdas: NodeMap::new(),
-            map_consts: NodeMap::new(),
+            map_lambdas: NodeMap2::new(),
+            map_consts: NodeMap2::new(),
             map_block_contexts: NodeMap2::new(),
             map_argument: NodeMap2::new(),
             map_field_ids: NodeMap2::new(),
@@ -76,11 +74,11 @@ impl AnalysisData {
         self.map_tys.insert_or_replace(id, ty);
     }
 
-    pub fn set_const_value(&mut self, id: ast::NodeId, value: ConstValue) {
+    pub fn set_const_value(&mut self, id: ast::AstId, value: ConstValue) {
         self.map_consts.insert(id, value);
     }
 
-    pub fn const_value(&self, id: ast::NodeId) -> &ConstValue {
+    pub fn const_value(&self, id: ast::AstId) -> &ConstValue {
         self.map_consts.get(id).expect("no literal found")
     }
 

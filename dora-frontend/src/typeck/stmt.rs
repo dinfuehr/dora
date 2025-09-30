@@ -143,13 +143,14 @@ fn check_pattern_inner(
             ast::PatternLitKind::Char => {
                 let e = ck.node(p.expr).to_lit_char().expect("char expected");
                 let value = check_lit_char(ck.sa, ck.file_id, e);
-                ck.analysis.set_const_value(p.id, ConstValue::Char(value));
+                ck.analysis
+                    .set_const_value(pattern_id, ConstValue::Char(value));
                 check_literal_ty(ck, pattern_id, SourceType::Char, ty);
             }
 
             ast::PatternLitKind::Int => {
                 let (value_ty, value) = compute_lit_int(ck.sa, ck.file_id, p.expr, ty.clone());
-                ck.analysis.set_const_value(p.id, value);
+                ck.analysis.set_const_value(pattern_id, value);
                 ck.analysis.set_ty(p.id, value_ty.clone());
                 check_literal_ty(ck, pattern_id, value_ty, ty);
             }
@@ -157,7 +158,8 @@ fn check_pattern_inner(
             ast::PatternLitKind::String => {
                 let e = ck.node(p.expr).to_lit_str().expect("string expected");
                 let value = check_lit_str(ck.sa, ck.file_id, e);
-                ck.analysis.set_const_value(p.id, ConstValue::String(value));
+                ck.analysis
+                    .set_const_value(pattern_id, ConstValue::String(value));
                 let str_ty =
                     SourceType::Class(ck.sa.known.classes.string(), SourceTypeArray::empty());
                 check_literal_ty(ck, pattern_id, str_ty, ty);
@@ -165,7 +167,8 @@ fn check_pattern_inner(
 
             ast::PatternLitKind::Float => {
                 let (value_ty, value) = compute_lit_float(ck.sa, ck.file_id, p.expr);
-                ck.analysis.set_const_value(p.id, ConstValue::Float(value));
+                ck.analysis
+                    .set_const_value(pattern_id, ConstValue::Float(value));
                 ck.analysis.set_ty(p.id, value_ty.clone());
                 check_literal_ty(ck, pattern_id, value_ty, ty);
             }
@@ -743,6 +746,6 @@ fn check_pattern_var(
             .map_idents
             .insert(pattern_id, IdentType::Var(var_id));
 
-        ck.analysis.map_vars.insert(pattern.id, var_id);
+        ck.analysis.map_vars.insert(pattern_id, var_id);
     }
 }

@@ -1135,7 +1135,10 @@ fn convert_pattern(
             }
 
             ast::PatternLitKind::Int => {
-                let value = analysis.const_value(lit.id).to_i64().expect("i64 expected");
+                let value = analysis
+                    .const_value(pattern_id)
+                    .to_i64()
+                    .expect("i64 expected");
                 Pattern::Literal {
                     span: pattern.span(),
                     value: LiteralValue::Int(value),
@@ -1144,7 +1147,7 @@ fn convert_pattern(
 
             ast::PatternLitKind::String => {
                 let value = analysis
-                    .const_value(lit.id)
+                    .const_value(pattern_id)
                     .to_string()
                     .cloned()
                     .expect("string expected");
@@ -1155,7 +1158,10 @@ fn convert_pattern(
             }
 
             ast::PatternLitKind::Float => {
-                let value = analysis.const_value(lit.id).to_f64().expect("f64 expected");
+                let value = analysis
+                    .const_value(pattern_id)
+                    .to_f64()
+                    .expect("f64 expected");
                 Pattern::Literal {
                     span: lit.span,
                     value: LiteralValue::Float(value),
@@ -1163,7 +1169,7 @@ fn convert_pattern(
             }
 
             ast::PatternLitKind::Char => {
-                let value = analysis.const_value(lit.id).to_char();
+                let value = analysis.const_value(pattern_id).to_char();
                 Pattern::Literal {
                     span: lit.span,
                     value: LiteralValue::Char(value),

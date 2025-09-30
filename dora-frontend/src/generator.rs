@@ -1,7 +1,7 @@
 use std::collections::HashMap;
 use std::convert::TryInto;
 
-use dora_parser::ast::{self, Ast, AstId, CmpOp, NodeId};
+use dora_parser::ast::{self, Ast, AstId, CmpOp};
 use dora_parser::Span;
 
 use self::bytecode::BytecodeBuilder;
@@ -134,10 +134,6 @@ impl<'a> AstBytecodeGen<'a> {
         self.loc(self.span(ast_id))
     }
 
-    fn id(&self, ast_id: AstId) -> NodeId {
-        self.node(ast_id).id()
-    }
-
     fn ast_file(&self) -> &'a ast::File {
         self.sa.file(self.file_id).ast().as_ref()
     }
@@ -220,8 +216,8 @@ impl<'a> AstBytecodeGen<'a> {
             let reg = Register(next_register_idx + param_idx);
             let param = self.node(param_id).to_param().expect("param expected");
 
-            if let Some(ident) = self.node(param.pattern).to_ident_pattern() {
-                let var_id = *self.analysis.map_vars.get(ident.id).unwrap();
+            if let Some(..) = self.node(param.pattern).to_ident_pattern() {
+                let var_id = *self.analysis.map_vars.get(param.pattern).unwrap();
 
                 let var = self.analysis.vars.get_var(var_id);
 
@@ -546,7 +542,7 @@ impl<'a> AstBytecodeGen<'a> {
 
                 ast::PatternLitKind::Char => {
                     let mismatch_lbl = pck.ensure_label(&mut self.builder);
-                    let char_value = self.analysis.const_value(p.id).to_char();
+                    let char_value = self.analysis.const_value(pattern_id).to_char();
                     let tmp = self.alloc_temp(BytecodeType::Bool);
                     let expected = self.alloc_temp(BytecodeType::Char);
                     self.builder.emit_const_char(expected, char_value);
@@ -562,7 +558,7 @@ impl<'a> AstBytecodeGen<'a> {
                     let mismatch_lbl = pck.ensure_label(&mut self.builder);
                     let const_value = self
                         .analysis
-                        .const_value(p.id)
+                        .const_value(pattern_id)
                         .to_f64()
                         .expect("float expected");
                     let tmp = self.alloc_temp(BytecodeType::Bool);
@@ -586,7 +582,7 @@ impl<'a> AstBytecodeGen<'a> {
                     let mismatch_lbl = pck.ensure_label(&mut self.builder);
                     let const_value = self
                         .analysis
-                        .const_value(p.id)
+                        .const_value(pattern_id)
                         .to_string()
                         .expect("float expected")
                         .to_string();
@@ -608,7 +604,7 @@ impl<'a> AstBytecodeGen<'a> {
                 ast::PatternLitKind::Int => {
                     let ty = self.emitter.convert_ty_reg(ty);
                     let mismatch_lbl = pck.ensure_label(&mut self.builder);
-                    let const_value = self.analysis.const_value(p.id);
+                    let const_value = self.analysis.const_value(pattern_id);
                     let tmp = self.alloc_temp(BytecodeType::Bool);
                     let expected = self.alloc_temp(ty.clone());
                     match ty {
@@ -1181,10 +1177,10 @@ impl<'a> AstBytecodeGen<'a> {
         for &part_id in &expr.parts {
             let part = self.node(part_id);
 
-            if let Some(ref lit_str) = part.to_lit_str() {
+            if let Some(..) = part.to_lit_str() {
                 let value = self
                     .analysis
-                    .const_value(lit_str.id)
+                    .const_value(part_id)
                     .to_string()
                     .expect("string expected")
                     .to_string();
@@ -1376,7 +1372,7 @@ impl<'a> AstBytecodeGen<'a> {
 
     fn visit_expr_lambda(
         &mut self,
-        _id: AstId,
+        node_id: AstId,
         node: &ast::ExprLambdaType,
         dest: DataDest,
     ) -> Register {
@@ -1393,7 +1389,7 @@ impl<'a> AstBytecodeGen<'a> {
         let lambda_fct_id = self
             .analysis
             .map_lambdas
-            .get(node.id)
+            .get(node_id)
             .expect("missing lambda id")
             .fct_id();
 
@@ -1589,7 +1585,7 @@ impl<'a> AstBytecodeGen<'a> {
         let tuple = gen_expr(self, expr.lhs, DataDest::Alloc);
         let value_i64 = self
             .analysis
-            .const_value(self.id(expr.rhs))
+            .const_value(expr.rhs)
             .to_i64()
             .expect("integer expected");
         let idx: u32 = value_i64.try_into().expect("too large");
@@ -2136,13 +2132,13 @@ impl<'a> AstBytecodeGen<'a> {
 
     fn visit_expr_lit_char(
         &mut self,
-        _id: AstId,
-        lit: &ast::ExprLitCharType,
+        node_id: AstId,
+        _node: &ast::ExprLitCharType,
         dest: DataDest,
     ) -> Register {
         let dest = self.ensure_register(dest, BytecodeType::Char);
 
-        let value = self.analysis.const_value(lit.id).to_char();
+        let value = self.analysis.const_value(node_id).to_char();
         self.builder.emit_const_char(dest, value);
 
         dest
@@ -2150,13 +2146,13 @@ impl<'a> AstBytecodeGen<'a> {
 
     fn visit_expr_lit_int(
         &mut self,
-        _id: AstId,
+        node_id: AstId,
         lit: &ast::ExprLitIntType,
         dest: DataDest,
         _neg: bool,
     ) -> Register {
         let ty = self.analysis.ty(lit.id);
-        let value = self.analysis.const_value(lit.id);
+        let value = self.analysis.const_value(node_id);
 
         let ty = match ty {
             SourceType::UInt8 => BytecodeType::UInt8,
@@ -2192,14 +2188,14 @@ impl<'a> AstBytecodeGen<'a> {
 
     fn visit_expr_lit_float(
         &mut self,
-        _id: AstId,
+        node_id: AstId,
         lit: &ast::ExprLitFloatType,
         dest: DataDest,
     ) -> Register {
         let ty = self.analysis.ty(lit.id);
         let value_f64 = self
             .analysis
-            .const_value(lit.id)
+            .const_value(node_id)
             .to_f64()
             .expect("float expected");
 
@@ -2222,14 +2218,14 @@ impl<'a> AstBytecodeGen<'a> {
 
     fn visit_expr_lit_string(
         &mut self,
-        _id: AstId,
-        lit: &ast::ExprLitStrType,
+        node_id: AstId,
+        _lit: &ast::ExprLitStrType,
         dest: DataDest,
     ) -> Register {
         let dest = self.ensure_register(dest, BytecodeType::Ptr);
         let value = self
             .analysis
-            .const_value(lit.id)
+            .const_value(node_id)
             .to_string()
             .expect("string expected")
             .to_string();

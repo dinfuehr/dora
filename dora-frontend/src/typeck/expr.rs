@@ -36,7 +36,7 @@ pub(super) fn check_expr(
         Ast::LitChar(ref expr) => check_expr_lit_char(ck, id, expr, expected_ty),
         Ast::LitInt(..) => check_expr_lit_int(ck, id, false, expected_ty),
         Ast::LitFloat(ref expr) => check_expr_lit_float(ck, id, expr, false, expected_ty),
-        Ast::LitStr(ref expr) => check_expr_lit_str(ck, expr, expected_ty),
+        Ast::LitStr(ref expr) => check_expr_lit_str(ck, id, expr, expected_ty),
         Ast::Template(ref expr) => check_expr_template(ck, id, expr, expected_ty),
         Ast::LitBool(ref expr) => check_expr_lit_bool(ck, id, expr, expected_ty),
         Ast::Ident(ref expr) => check_expr_ident(ck, id, expr, expected_ty),
@@ -750,7 +750,7 @@ fn check_expr_assign_unnamed_field(
             .report(ck.file_id, literal.span, ErrorMessage::IndexExpected);
     }
 
-    ck.analysis.set_const_value(literal.id, value.clone());
+    ck.analysis.set_const_value(dot_expr.rhs, value.clone());
 
     let index = value.to_i64().unwrap_or(0) as usize;
 
@@ -1022,7 +1022,7 @@ fn check_expr_dot_unnamed_field(
             .report(ck.file_id, literal.span, ErrorMessage::IndexExpected);
     }
 
-    ck.analysis.set_const_value(literal.id, value.clone());
+    ck.analysis.set_const_value(e.rhs, value.clone());
 
     let index = value.to_i64().unwrap_or(0) as usize;
 
@@ -1225,7 +1225,7 @@ pub(super) fn check_expr_lit_int(
     let (ty, value) = check_lit_int(ck.sa, ck.file_id, expr_id, negate, expected_ty);
 
     ck.analysis.set_ty(ck.id(expr_id), ty.clone());
-    ck.analysis.set_const_value(ck.id(expr_id), value);
+    ck.analysis.set_const_value(expr_id, value);
 
     ty
 }
@@ -1268,7 +1268,7 @@ pub fn compute_lit_float(
 
 fn check_expr_lit_float(
     ck: &mut TypeCheck,
-    _id: ast::AstId,
+    node_id: ast::AstId,
     e: &ast::ExprLitFloatType,
     negate: bool,
     _expected_ty: SourceType,
@@ -1276,7 +1276,8 @@ fn check_expr_lit_float(
     let (ty, value) = check_lit_float(ck.sa, ck.file_id, e, negate);
 
     ck.analysis.set_ty(e.id, ty.clone());
-    ck.analysis.set_const_value(e.id, ConstValue::Float(value));
+    ck.analysis
+        .set_const_value(node_id, ConstValue::Float(value));
 
     ty
 }
@@ -1294,28 +1295,31 @@ fn check_expr_lit_bool(
 
 pub fn check_expr_lit_char(
     ck: &mut TypeCheck,
-    _ast_id: AstId,
-    e: &ast::ExprLitCharType,
+    node_id: AstId,
+    node: &ast::ExprLitCharType,
     _expected_ty: SourceType,
 ) -> SourceType {
-    let value = check_lit_char(ck.sa, ck.file_id, e);
+    let value = check_lit_char(ck.sa, ck.file_id, node);
 
-    ck.analysis.set_ty(e.id, SourceType::Char);
-    ck.analysis.set_const_value(e.id, ConstValue::Char(value));
+    ck.analysis.set_ty(node.id, SourceType::Char);
+    ck.analysis
+        .set_const_value(node_id, ConstValue::Char(value));
 
     SourceType::Char
 }
 
 fn check_expr_lit_str(
     ck: &mut TypeCheck,
-    e: &ast::ExprLitStrType,
+    node_id: AstId,
+    node: &ast::ExprLitStrType,
     _expected_ty: SourceType,
 ) -> SourceType {
-    let value = check_lit_str(ck.sa, ck.file_id, e);
+    let value = check_lit_str(ck.sa, ck.file_id, node);
 
     let str_ty = SourceType::Class(ck.sa.known.classes.string(), SourceTypeArray::empty());
-    ck.analysis.set_ty(e.id, str_ty.clone());
-    ck.analysis.set_const_value(e.id, ConstValue::String(value));
+    ck.analysis.set_ty(node.id, str_ty.clone());
+    ck.analysis
+        .set_const_value(node_id, ConstValue::String(value));
 
     str_ty
 }
@@ -1380,7 +1384,7 @@ fn check_expr_template(
             }
         } else {
             let e = ck.node(part_id).to_lit_str().expect("string expected");
-            check_expr_lit_str(ck, e, expected_ty.clone());
+            check_expr_lit_str(ck, part_id, e, expected_ty.clone());
         }
     }
 
@@ -1970,7 +1974,7 @@ fn check_expr_cmp_enum(
 
 fn check_expr_lambda(
     ck: &mut TypeCheck,
-    _id: ast::AstId,
+    lambda_expr_ast_id: ast::AstId,
     lambda_expr: &ast::ExprLambdaType,
     _expected_ty: SourceType,
 ) -> SourceType {
@@ -2066,7 +2070,9 @@ fn check_expr_lambda(
         id: lambda_id.clone(),
         fct_definition: lambda,
     });
-    ck.analysis.map_lambdas.insert(node.id, lambda_id);
+    ck.analysis
+        .map_lambdas
+        .insert(lambda_expr_ast_id, lambda_id);
     ck.analysis.set_ty(lambda_expr.id, ty.clone());
 
     ty
