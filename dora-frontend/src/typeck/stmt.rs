@@ -151,7 +151,7 @@ fn check_pattern_inner(
             ast::PatternLitKind::Int => {
                 let (value_ty, value) = compute_lit_int(ck.sa, ck.file_id, p.expr, ty.clone());
                 ck.analysis.set_const_value(pattern_id, value);
-                ck.analysis.set_ty(p.id, value_ty.clone());
+                ck.analysis.set_ty(pattern_id, value_ty.clone());
                 check_literal_ty(ck, pattern_id, value_ty, ty);
             }
 
@@ -169,7 +169,7 @@ fn check_pattern_inner(
                 let (value_ty, value) = compute_lit_float(ck.sa, ck.file_id, p.expr);
                 ck.analysis
                     .set_const_value(pattern_id, ConstValue::Float(value));
-                ck.analysis.set_ty(p.id, value_ty.clone());
+                ck.analysis.set_ty(pattern_id, value_ty.clone());
                 check_literal_ty(ck, pattern_id, value_ty, ty);
             }
         },

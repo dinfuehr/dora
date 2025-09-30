@@ -20,9 +20,9 @@ use crate::{
 use crate::{parsety, ParsedType};
 
 use crate::interner::Name;
+use dora_parser::ast;
 use dora_parser::ast::AstId;
 use dora_parser::Span;
-use dora_parser::{ast, NodeId};
 
 pub struct TypeCheck<'a> {
     pub sa: &'a Sema,
@@ -54,12 +54,8 @@ pub struct TypeCheck<'a> {
 }
 
 impl<'a> TypeCheck<'a> {
-    pub fn id(&self, id: ast::AstId) -> NodeId {
-        self.node(id).id()
-    }
-
-    pub fn ty_id(&self, id: ast::AstId) -> SourceType {
-        self.analysis.ty(self.id(id))
+    pub fn ty(&self, id: ast::AstId) -> SourceType {
+        self.analysis.ty(id)
     }
 
     pub fn span(&self, id: ast::AstId) -> Span {
@@ -353,7 +349,7 @@ impl<'a> TypeCheck<'a> {
                 param_ty
             };
 
-            self.analysis.set_ty(ast_param.id, ty.clone());
+            self.analysis.set_ty(ast_param_id, ty.clone());
 
             let local_bound_params = check_pattern(self, ast_param.pattern, ty);
 
@@ -493,7 +489,7 @@ pub(super) fn check_args_compatible<S>(
     for (param, &arg_id) in regular_params.iter().zip(&args.arguments) {
         let param_ty = extra_specialization(param.ty().clone());
         let param_ty = replace_type(ck.sa, param_ty, Some(&type_params), self_ty.clone());
-        let arg_ty = ck.ty_id(arg_id);
+        let arg_ty = ck.ty(arg_id);
 
         if !arg_allows(ck.sa, param_ty.clone(), arg_ty.clone(), self_ty.clone())
             && !arg_ty.is_error()
@@ -529,7 +525,7 @@ pub(super) fn check_args_compatible<S>(
             );
 
             for &arg_id in &args.arguments[no_regular_params..] {
-                let arg_ty = ck.ty_id(arg_id);
+                let arg_ty = ck.ty(arg_id);
 
                 if !arg_allows(ck.sa, variadic_ty.clone(), arg_ty.clone(), self_ty.clone())
                     && !arg_ty.is_error()
@@ -598,7 +594,7 @@ pub(super) fn check_args_compatible2<S>(
 
     for (param, &arg_id) in regular_params.iter().zip(&args.arguments) {
         let param_ty = extra_specialization(param.ty().clone());
-        let arg_ty = ck.ty_id(arg_id);
+        let arg_ty = ck.ty(arg_id);
 
         if !arg_allows(ck.sa, param_ty.clone(), arg_ty.clone(), None) && !arg_ty.is_error() {
             let exp = ck.ty_name(&param_ty);
@@ -627,7 +623,7 @@ pub(super) fn check_args_compatible2<S>(
             let variadic_ty = extra_specialization(variadic_param.ty());
 
             for &arg_id in &args.arguments[no_regular_params..] {
-                let arg_ty = ck.ty_id(arg_id);
+                let arg_ty = ck.ty(arg_id);
 
                 if !arg_allows(ck.sa, variadic_ty.clone(), arg_ty.clone(), None)
                     && !arg_ty.is_error()

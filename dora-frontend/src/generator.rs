@@ -181,7 +181,7 @@ impl<'a> AstBytecodeGen<'a> {
         }
 
         for &param_id in &ast.params {
-            let ty = self.ty_id(param_id);
+            let ty = self.ty(param_id);
             let bty = self.emitter.convert_ty(ty.clone());
             params.push(bty);
 
@@ -231,7 +231,7 @@ impl<'a> AstBytecodeGen<'a> {
                     }
                 }
             } else {
-                let ty = self.analysis.ty(param.id);
+                let ty = self.analysis.ty(param_id);
                 self.setup_pattern_vars(param.pattern);
                 self.destruct_pattern_or_fail(param.pattern, reg, ty);
             }
@@ -1060,7 +1060,7 @@ impl<'a> AstBytecodeGen<'a> {
         self.setup_pattern_vars(stmt.pattern);
 
         if let Some(expr) = stmt.expr {
-            let ty = self.ty_id(expr);
+            let ty = self.ty(expr);
             let value = gen_expr(self, expr, DataDest::Alloc);
             self.destruct_pattern_or_fail(stmt.pattern, value, ty);
             self.free_if_temp(value);
@@ -1186,7 +1186,7 @@ impl<'a> AstBytecodeGen<'a> {
                     .to_string();
                 self.builder.emit_const_string(part_register, value);
             } else {
-                let ty = self.ty(part.id());
+                let ty = self.ty(part_id);
 
                 if ty.cls_id() == Some(self.sa.known.classes.string()) {
                     gen_expr(self, part_id, DataDest::Reg(part_register));
@@ -1325,8 +1325,8 @@ impl<'a> AstBytecodeGen<'a> {
         expr: &ast::ExprConvType,
         dest: DataDest,
     ) -> Register {
-        let object_type = self.ty_id(expr.object);
-        let check_type = self.ty_id(expr.data_type);
+        let object_type = self.ty(expr.object);
+        let check_type = self.ty(expr.data_type);
         assert!(check_type.is_trait_object());
 
         let check_type = self.emitter.convert_ty(check_type);
@@ -1343,7 +1343,7 @@ impl<'a> AstBytecodeGen<'a> {
     }
 
     fn visit_expr_is(&mut self, _id: AstId, node: &ast::ExprIsType, dest: DataDest) -> Register {
-        let ty = self.ty_id(node.value);
+        let ty = self.ty(node.value);
         let value_reg = gen_expr(self, node.value, DataDest::Alloc);
 
         self.push_scope();
@@ -1437,8 +1437,13 @@ impl<'a> AstBytecodeGen<'a> {
         dest
     }
 
-    fn visit_expr_if(&mut self, _id: AstId, expr: &ast::ExprIfType, dest: DataDest) -> Register {
-        let ty = self.ty(expr.id);
+    fn visit_expr_if(
+        &mut self,
+        expr_id: AstId,
+        expr: &ast::ExprIfType,
+        dest: DataDest,
+    ) -> Register {
+        let ty = self.ty(expr_id);
 
         let dest = self.ensure_register(dest, self.emitter.convert_ty_reg(ty));
         let else_lbl = self.builder.create_label();
@@ -1497,7 +1502,7 @@ impl<'a> AstBytecodeGen<'a> {
         expr: &ast::ExprDotType,
         dest: DataDest,
     ) -> Register {
-        let object_ty = self.ty_id(expr.lhs);
+        let object_ty = self.ty(expr.lhs);
 
         if object_ty.is_tuple() {
             return self.visit_expr_dot_tuple(expr, object_ty, dest);
@@ -1524,7 +1529,7 @@ impl<'a> AstBytecodeGen<'a> {
             field_id.0 as u32,
         );
 
-        let field_ty = self.ty(expr.id);
+        let field_ty = self.ty(expr_id);
 
         let field_bc_ty: BytecodeType = self.emitter.convert_ty_reg(field_ty);
         let dest = self.ensure_register(dest, field_bc_ty);
@@ -1554,7 +1559,7 @@ impl<'a> AstBytecodeGen<'a> {
             _ => unreachable!(),
         };
 
-        let fty = self.ty(expr.id);
+        let fty = self.ty(expr_id);
 
         if fty.is_unit() {
             self.free_if_temp(struct_obj);
@@ -1678,7 +1683,7 @@ impl<'a> AstBytecodeGen<'a> {
 
         // Determine types for arguments and return values
         let (arg_types, _return_type) = self.determine_callee_types(&call_type, &*callee);
-        let return_type = self.analysis.ty(node.id);
+        let return_type = self.analysis.ty(node_id);
 
         // Allocate register for result
         let return_reg =
@@ -2147,11 +2152,11 @@ impl<'a> AstBytecodeGen<'a> {
     fn visit_expr_lit_int(
         &mut self,
         node_id: AstId,
-        lit: &ast::ExprLitIntType,
+        _node: &ast::ExprLitIntType,
         dest: DataDest,
         _neg: bool,
     ) -> Register {
-        let ty = self.analysis.ty(lit.id);
+        let ty = self.analysis.ty(node_id);
         let value = self.analysis.const_value(node_id);
 
         let ty = match ty {
@@ -2189,10 +2194,10 @@ impl<'a> AstBytecodeGen<'a> {
     fn visit_expr_lit_float(
         &mut self,
         node_id: AstId,
-        lit: &ast::ExprLitFloatType,
+        _node: &ast::ExprLitFloatType,
         dest: DataDest,
     ) -> Register {
-        let ty = self.analysis.ty(lit.id);
+        let ty = self.analysis.ty(node_id);
         let value_f64 = self
             .analysis
             .const_value(node_id)
@@ -2251,12 +2256,17 @@ impl<'a> AstBytecodeGen<'a> {
         dest
     }
 
-    fn visit_expr_tuple(&mut self, _id: AstId, e: &ast::ExprTupleType, dest: DataDest) -> Register {
+    fn visit_expr_tuple(
+        &mut self,
+        node_id: AstId,
+        e: &ast::ExprTupleType,
+        dest: DataDest,
+    ) -> Register {
         if e.values.is_empty() {
             return self.ensure_unit_register();
         }
 
-        let ty = self.ty(e.id);
+        let ty = self.ty(node_id);
 
         let result_ty: BytecodeType = self.emitter.convert_ty_reg(ty.clone());
         let result = self.ensure_register(dest, result_ty);
@@ -2264,7 +2274,7 @@ impl<'a> AstBytecodeGen<'a> {
         let mut values = Vec::with_capacity(e.values.len());
 
         for &value_id in &e.values {
-            let value_ty = self.ty_id(value_id);
+            let value_ty = self.ty(value_id);
             let reg = gen_expr(self, value_id, DataDest::Alloc);
 
             if !value_ty.is_unit() {
@@ -2519,10 +2529,10 @@ impl<'a> AstBytecodeGen<'a> {
                     dest,
                 ),
 
-                Intrinsic::ArrayNewOfSize => self.emit_intrinsic_new_array(node, dest),
+                Intrinsic::ArrayNewOfSize => self.emit_intrinsic_new_array(node_id, node, dest),
 
                 Intrinsic::ArrayWithValues => {
-                    let ty = self.ty(node.id);
+                    let ty = self.ty(node_id);
 
                     let (cls_id, type_params) = ty.to_class().expect("class expected");
                     assert_eq!(cls_id, self.sa.known.classes.array());
@@ -2536,9 +2546,14 @@ impl<'a> AstBytecodeGen<'a> {
         }
     }
 
-    fn emit_intrinsic_new_array(&mut self, expr: &ast::ExprCallType, dest: DataDest) -> Register {
+    fn emit_intrinsic_new_array(
+        &mut self,
+        node_id: AstId,
+        expr: &ast::ExprCallType,
+        dest: DataDest,
+    ) -> Register {
         // We need array of elements
-        let element_ty = self.ty(expr.id);
+        let element_ty = self.ty(node_id);
         let (cls_id, type_params) = element_ty.to_class().expect("class expected");
         let cls_idx = self.builder.add_const_cls_types(
             self.emitter.convert_class_id(cls_id),
@@ -2599,7 +2614,7 @@ impl<'a> AstBytecodeGen<'a> {
         if let Some(is_expr) = self.node(expr.lhs).to_is() {
             self.builder.emit_const_false(dest);
             let value = gen_expr(self, is_expr.value, DataDest::Alloc);
-            let ty = self.ty_id(is_expr.value);
+            let ty = self.ty(is_expr.value);
             self.setup_pattern_vars(is_expr.pattern);
             self.destruct_pattern(is_expr.pattern, value, ty, Some(end_lbl));
             self.free_if_temp(value);
@@ -2623,7 +2638,7 @@ impl<'a> AstBytecodeGen<'a> {
         location: Location,
         dest: DataDest,
     ) -> Register {
-        let ty = self.ty_id(obj);
+        let ty = self.ty(obj);
         let ty: BytecodeType = if ty.cls_id() == Some(self.sa.known.classes.string()) {
             BytecodeType::UInt8
         } else {
@@ -2826,7 +2841,7 @@ impl<'a> AstBytecodeGen<'a> {
                 self.builder
                     .emit_load_array(current, obj_reg, idx_reg, location);
             } else {
-                let obj_ty = self.ty_id(object);
+                let obj_ty = self.ty(object);
 
                 self.builder.emit_push_register(obj_reg);
                 self.builder.emit_push_register(idx_reg);
@@ -2861,7 +2876,7 @@ impl<'a> AstBytecodeGen<'a> {
             self.builder
                 .emit_store_array(assign_value, obj_reg, idx_reg, location);
         } else {
-            let obj_ty = self.ty_id(object);
+            let obj_ty = self.ty(object);
 
             self.builder.emit_push_register(obj_reg);
             self.builder.emit_push_register(idx_reg);
@@ -3537,13 +3552,8 @@ impl<'a> AstBytecodeGen<'a> {
         }
     }
 
-    fn ty(&self, id: ast::NodeId) -> SourceType {
+    fn ty(&self, id: ast::AstId) -> SourceType {
         self.analysis.ty(id)
-    }
-
-    fn ty_id(&self, ast_id: ast::AstId) -> SourceType {
-        let node = self.sa.node(self.file_id, ast_id);
-        self.analysis.ty(node.id())
     }
 
     fn get_intrinsic(&self, id: ast::AstId) -> Option<IntrinsicInfo> {

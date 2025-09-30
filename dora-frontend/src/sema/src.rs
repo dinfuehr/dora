@@ -16,18 +16,18 @@ use crate::ty::{SourceType, SourceTypeArray, TraitType};
 #[derive(Debug)]
 pub struct AnalysisData {
     pub has_self: Option<bool>,
-    pub map_templates: NodeMap2<(FctDefinitionId, SourceTypeArray)>,
-    pub map_calls: NodeMap2<Arc<CallType>>, // maps function call to FctId
-    pub map_idents: NodeMap2<IdentType>,
+    pub map_templates: NodeMap<(FctDefinitionId, SourceTypeArray)>,
+    pub map_calls: NodeMap<Arc<CallType>>, // maps function call to FctId
+    pub map_idents: NodeMap<IdentType>,
     pub map_tys: NodeMap<SourceType>,
-    pub map_vars: NodeMap2<VarId>,
-    pub map_consts: NodeMap2<ConstValue>,
-    pub map_fors: NodeMap2<ForTypeInfo>,
-    pub map_lambdas: NodeMap2<LazyLambdaId>,
-    pub map_block_contexts: NodeMap2<LazyContextData>,
-    pub map_argument: NodeMap2<usize>,
-    pub map_field_ids: NodeMap2<usize>,
-    pub map_array_assignments: NodeMap2<ArrayAssignment>,
+    pub map_vars: NodeMap<VarId>,
+    pub map_consts: NodeMap<ConstValue>,
+    pub map_fors: NodeMap<ForTypeInfo>,
+    pub map_lambdas: NodeMap<LazyLambdaId>,
+    pub map_block_contexts: NodeMap<LazyContextData>,
+    pub map_argument: NodeMap<usize>,
+    pub map_field_ids: NodeMap<usize>,
+    pub map_array_assignments: NodeMap<ArrayAssignment>,
 
     // All variables defined in this function (including
     // context allocated ones).
@@ -42,18 +42,18 @@ impl AnalysisData {
     pub fn new() -> AnalysisData {
         AnalysisData {
             has_self: None,
-            map_templates: NodeMap2::new(),
-            map_calls: NodeMap2::new(),
-            map_idents: NodeMap2::new(),
+            map_templates: NodeMap::new(),
+            map_calls: NodeMap::new(),
+            map_idents: NodeMap::new(),
             map_tys: NodeMap::new(),
-            map_vars: NodeMap2::new(),
-            map_fors: NodeMap2::new(),
-            map_lambdas: NodeMap2::new(),
-            map_consts: NodeMap2::new(),
-            map_block_contexts: NodeMap2::new(),
-            map_argument: NodeMap2::new(),
-            map_field_ids: NodeMap2::new(),
-            map_array_assignments: NodeMap2::new(),
+            map_vars: NodeMap::new(),
+            map_fors: NodeMap::new(),
+            map_lambdas: NodeMap::new(),
+            map_consts: NodeMap::new(),
+            map_block_contexts: NodeMap::new(),
+            map_argument: NodeMap::new(),
+            map_field_ids: NodeMap::new(),
+            map_array_assignments: NodeMap::new(),
 
             vars: VarAccess::empty(),
             function_context_data: OnceCell::new(),
@@ -70,7 +70,7 @@ impl AnalysisData {
         self.has_self.expect("has_self uninitialized")
     }
 
-    pub fn set_ty(&mut self, id: ast::NodeId, ty: SourceType) {
+    pub fn set_ty(&mut self, id: ast::AstId, ty: SourceType) {
         self.map_tys.insert_or_replace(id, ty);
     }
 
@@ -82,7 +82,7 @@ impl AnalysisData {
         self.map_consts.get(id).expect("no literal found")
     }
 
-    pub fn ty(&self, id: ast::NodeId) -> SourceType {
+    pub fn ty(&self, id: ast::AstId) -> SourceType {
         self.map_tys.get(id).expect("no type found").clone()
     }
 
@@ -171,63 +171,14 @@ pub struct ContextData {
     pub class_id: OnceCell<ClassDefinitionId>,
 }
 
-#[derive(Clone, Debug)]
-pub struct NodeMap<V>
-where
-    V: Clone,
-{
-    map: HashMap<ast::NodeId, V>,
-}
-
-impl<V> NodeMap<V>
-where
-    V: Clone,
-{
-    pub fn new() -> NodeMap<V> {
-        NodeMap {
-            map: HashMap::new(),
-        }
-    }
-
-    pub fn get(&self, id: ast::NodeId) -> Option<&V> {
-        self.map.get(&id)
-    }
-
-    pub fn get_mut(&mut self, id: ast::NodeId) -> Option<&mut V> {
-        self.map.get_mut(&id)
-    }
-
-    pub fn insert(&mut self, id: ast::NodeId, data: V) {
-        let old = self.map.insert(id, data);
-        assert!(old.is_none());
-    }
-
-    pub fn replace(&mut self, id: ast::NodeId, data: V) {
-        let old = self.map.insert(id, data);
-        assert!(old.is_some());
-    }
-
-    pub fn insert_or_replace(&mut self, id: ast::NodeId, data: V) {
-        self.map.insert(id, data);
-    }
-
-    pub fn clear(&mut self) {
-        self.map.clear();
-    }
-
-    pub fn iter(&self) -> Iter<ast::NodeId, V> {
-        self.map.iter()
-    }
-}
-
 #[derive(Debug)]
-pub struct NodeMap2<V> {
+pub struct NodeMap<V> {
     map: HashMap<ast::AstId, V>,
 }
 
-impl<V> NodeMap2<V> {
-    pub fn new() -> NodeMap2<V> {
-        NodeMap2 {
+impl<V> NodeMap<V> {
+    pub fn new() -> NodeMap<V> {
+        NodeMap {
             map: HashMap::new(),
         }
     }

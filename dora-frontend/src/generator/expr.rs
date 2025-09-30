@@ -47,7 +47,7 @@ pub(super) fn gen_expr_condition(g: &mut AstBytecodeGen, expr_id: AstId, false_l
     if let Some(bin_expr) = expr.to_bin_and() {
         if let Some(is_expr) = g.node(bin_expr.lhs).to_is() {
             let value_reg = gen_expr(g, is_expr.value, DataDest::Alloc);
-            let value_ty = g.ty_id(is_expr.value);
+            let value_ty = g.ty(is_expr.value);
             g.setup_pattern_vars(is_expr.pattern);
             g.destruct_pattern(is_expr.pattern, value_reg, value_ty, Some(false_lbl));
             g.free_if_temp(value_reg);
@@ -60,7 +60,7 @@ pub(super) fn gen_expr_condition(g: &mut AstBytecodeGen, expr_id: AstId, false_l
         gen_expr_condition(g, bin_expr.rhs, false_lbl);
     } else if let Some(is_expr) = expr.to_is() {
         let value_reg = gen_expr(g, is_expr.value, DataDest::Alloc);
-        let value_ty = g.ty_id(is_expr.value);
+        let value_ty = g.ty(is_expr.value);
         g.setup_pattern_vars(is_expr.pattern);
         g.destruct_pattern(is_expr.pattern, value_reg, value_ty, Some(false_lbl));
         g.free_if_temp(value_reg);
@@ -351,12 +351,12 @@ fn convert_int_cmp_to_bool(
 
 pub(super) fn gen_match(
     g: &mut AstBytecodeGen,
-    _id: AstId,
+    node_id: AstId,
     node: &ast::ExprMatchType,
     dest: DataDest,
 ) -> Register {
-    let result_ty = g.ty(node.id);
-    let expr_ty = g.ty_id(node.expr);
+    let result_ty = g.ty(node_id);
+    let expr_ty = g.ty(node.expr);
 
     let result_bc_ty = g.emitter.convert_ty_reg(result_ty);
     let dest = g.ensure_register(dest, result_bc_ty);

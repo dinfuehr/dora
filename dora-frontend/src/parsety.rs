@@ -121,8 +121,6 @@ impl ParsedTraitType {
 
 #[derive(Clone, Debug)]
 pub struct ParsedTypeAst {
-    #[allow(unused)]
-    id: ast::NodeId,
     span: Span,
     kind: ParsedTypeKind,
 }
@@ -268,7 +266,6 @@ fn parse_type_inner(
     };
 
     Box::new(ParsedTypeAst {
-        id: node.id(),
         span: node.span(),
         kind,
     })

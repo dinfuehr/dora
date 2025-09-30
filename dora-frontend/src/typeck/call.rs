@@ -69,7 +69,7 @@ pub(super) fn check_expr_call(
                 let msg = ErrorMessage::NameExpected;
                 ck.sa.report(ck.file_id, e.span, msg);
 
-                ck.analysis.set_ty(e.id, ty_error());
+                ck.analysis.set_ty(expr_ast_id, ty_error());
                 return ty_error();
             }
         };
@@ -112,7 +112,7 @@ pub(super) fn create_call_arguments(ck: &mut TypeCheck, e: &ast::ExprCallType) -
     for &arg_id in e.args.iter() {
         let arg = ck.node(arg_id).to_argument().expect("argument expected");
         let ty = check_expr(ck, arg.expr, SourceType::Any);
-        ck.analysis.set_ty(arg.id, ty);
+        ck.analysis.set_ty(arg_id, ty);
 
         arguments.arguments.push(arg_id);
     }
@@ -149,7 +149,7 @@ fn check_expr_call_generic_static_method(
 
         ck.sa.report(ck.file_id, e.span, msg);
 
-        ck.analysis.set_ty(e.id, ty_error());
+        ck.analysis.set_ty(expr_ast_id, ty_error());
         return ty_error();
     }
 
@@ -212,7 +212,7 @@ fn check_expr_call_generic_static_method(
             &tp,
         );
 
-        ck.analysis.set_ty(e.id, return_type.clone());
+        ck.analysis.set_ty(expr_ast_id, return_type.clone());
 
         return_type
     } else {
@@ -228,7 +228,7 @@ fn check_expr_call_expr(
     arguments: CallArguments,
 ) -> SourceType {
     if expr_type.is_error() {
-        ck.analysis.set_ty(e.id, ty_error());
+        ck.analysis.set_ty(expr_ast_id, ty_error());
         return ty_error();
     }
 
@@ -269,7 +269,7 @@ fn check_expr_call_expr(
         check_args_compatible_fct(ck, method, arguments, &impl_match.bindings, None, |ty| ty);
 
         let return_type = specialize_type(ck.sa, method.return_type(), &impl_match.bindings);
-        ck.analysis.set_ty(e.id, return_type.clone());
+        ck.analysis.set_ty(expr_ast_id, return_type.clone());
 
         return_type
     } else {
@@ -280,7 +280,7 @@ fn check_expr_call_expr(
             ErrorMessage::IndexGetNotImplemented(ty),
         );
 
-        ck.analysis.set_ty(e.id, ty_error());
+        ck.analysis.set_ty(expr_ast_id, ty_error());
 
         ty_error()
     }
@@ -288,8 +288,8 @@ fn check_expr_call_expr(
 
 fn check_expr_call_expr_lambda(
     ck: &mut TypeCheck,
-    expr_ast_id: ast::AstId,
-    e: &ast::ExprCallType,
+    node_id: ast::AstId,
+    _node: &ast::ExprCallType,
     expr_type: SourceType,
     arguments: CallArguments,
 ) -> SourceType {
@@ -315,9 +315,9 @@ fn check_expr_call_expr_lambda(
 
     ck.analysis
         .map_calls
-        .insert_or_replace(expr_ast_id, Arc::new(call_type));
+        .insert_or_replace(node_id, Arc::new(call_type));
 
-    ck.analysis.set_ty(e.id, return_type.clone());
+    ck.analysis.set_ty(node_id, return_type.clone());
     return_type
 }
 
@@ -352,7 +352,7 @@ fn check_expr_call_fct(
         ty_error()
     };
 
-    ck.analysis.set_ty(e.id, ty.clone());
+    ck.analysis.set_ty(expr_ast_id, ty.clone());
 
     let call_type = CallType::Fct(fct_id, type_params.clone());
     ck.analysis
@@ -387,13 +387,13 @@ fn check_expr_call_static_method(
         let type_name = ck.ty_name(&object_type);
         let msg = ErrorMessage::UnknownStaticMethod(type_name, method_name);
         ck.sa.report(ck.file_id, e.span, msg);
-        ck.analysis.set_ty(e.id, ty_error());
+        ck.analysis.set_ty(expr_ast_id, ty_error());
         ty_error()
     } else if candidates.len() > 1 {
         let type_name = ck.ty_name(&object_type);
         let msg = ErrorMessage::MultipleCandidatesForMethod(type_name, method_name);
         ck.sa.report(ck.file_id, e.span, msg);
-        ck.analysis.set_ty(e.id, ty_error());
+        ck.analysis.set_ty(expr_ast_id, ty_error());
         ty_error()
     } else {
         let candidate = &candidates[0];
@@ -426,7 +426,7 @@ fn check_expr_call_static_method(
             ck.sa.report(ck.file_id, e.span, msg);
         }
 
-        ck.analysis.set_ty(e.id, ty.clone());
+        ck.analysis.set_ty(expr_ast_id, ty.clone());
         ty
     }
 }
@@ -460,7 +460,7 @@ fn check_expr_call_method(
     }
 
     if object_type.is_error() {
-        ck.analysis.set_ty(e.id, ty_error());
+        ck.analysis.set_ty(expr_ast_id, ty_error());
 
         return ty_error();
     }
@@ -492,7 +492,7 @@ fn check_expr_call_method(
         let type_name = ck.ty_name(&object_type);
         let msg = ErrorMessage::MultipleCandidatesForMethod(type_name, method_name);
         ck.sa.report(ck.file_id, e.span, msg);
-        ck.analysis.set_ty(e.id, ty_error());
+        ck.analysis.set_ty(expr_ast_id, ty_error());
         ty_error()
     } else {
         let candidate = &candidates[0];
@@ -542,7 +542,7 @@ fn check_expr_call_method(
             ck.sa.report(ck.file_id, e.span, msg);
         }
 
-        ck.analysis.set_ty(e.id, ty.clone());
+        ck.analysis.set_ty(expr_ast_id, ty.clone());
         ty
     }
 }
@@ -561,7 +561,7 @@ fn check_expr_call_field(
         if let Some((field_id, field_type)) =
             find_field_in_class(ck.sa, object_type.clone(), interned_method_name)
         {
-            ck.analysis.set_ty(ck.id(e.callee), field_type.clone());
+            ck.analysis.set_ty(e.callee, field_type.clone());
             ck.analysis
                 .map_idents
                 .insert_or_replace(e.callee, IdentType::Field(object_type.clone(), field_id));
@@ -592,7 +592,7 @@ fn check_expr_call_field(
                 ck.sa.report(ck.file_id, e.span, msg);
             }
 
-            ck.analysis.set_ty(e.id, field_type.clone());
+            ck.analysis.set_ty(expr_ast_id, field_type.clone());
             return check_expr_call_expr(ck, expr_ast_id, e, field_type, arguments);
         }
     }
@@ -604,7 +604,7 @@ fn check_expr_call_field(
         ErrorMessage::UnknownMethod(ty, method_name),
     );
 
-    ck.analysis.set_ty(e.id, ty_error());
+    ck.analysis.set_ty(expr_ast_id, ty_error());
 
     ty_error()
 }
@@ -647,7 +647,7 @@ fn check_expr_call_struct(
     );
 
     if !type_params_ok {
-        ck.analysis.set_ty(e.id, ty_error());
+        ck.analysis.set_ty(expr_ast_id, ty_error());
         return ty_error();
     }
 
@@ -662,7 +662,7 @@ fn check_expr_call_struct(
         Arc::new(CallType::NewStruct(struct_id, type_params)),
     );
 
-    ck.analysis.set_ty(e.id, ty.clone());
+    ck.analysis.set_ty(expr_ast_id, ty.clone());
     ty
 }
 
@@ -718,7 +718,7 @@ fn check_expr_call_ctor_with_named_fields(
         if let Some(name) = field.name {
             if let Some(arg_id) = args_by_name.remove(&name) {
                 let def_ty = specialize_ty_for_call(ck.sa, field.ty(), ck.element, &call_data);
-                let arg_ty = ck.ty_id(arg_id);
+                let arg_ty = ck.ty(arg_id);
 
                 if !def_ty.allows(ck.sa, arg_ty.clone()) && !arg_ty.is_error() {
                     let exp = ck.ty_name(&def_ty);
@@ -781,7 +781,7 @@ fn check_expr_call_ctor_with_unnamed_fields(
     {
         let field = ck.sa.field(field_id);
         let def_ty = specialize_ty_for_call(ck.sa, field.ty(), ck.element, &call_data);
-        let arg_ty = ck.ty_id(arg_id);
+        let arg_ty = ck.ty(arg_id);
 
         let arg = ck.node(arg_id).to_argument().expect("argument expected");
 
@@ -888,7 +888,7 @@ fn check_expr_call_class(
         Arc::new(CallType::NewClass(cls.id(), type_params)),
     );
 
-    ck.analysis.set_ty(e.id, cls_ty.clone());
+    ck.analysis.set_ty(expr_ast_id, cls_ty.clone());
     cls_ty
 }
 
@@ -928,7 +928,7 @@ pub(super) fn check_expr_call_enum_variant(
     );
 
     if !type_params_ok {
-        ck.analysis.set_ty(e.id, ty_error());
+        ck.analysis.set_ty(expr_ast_id, ty_error());
         return ty_error();
     }
 
@@ -952,7 +952,7 @@ pub(super) fn check_expr_call_enum_variant(
         Arc::new(CallType::NewEnum(ty.clone(), variant_idx)),
     );
 
-    ck.analysis.set_ty(e.id, ty.clone());
+    ck.analysis.set_ty(expr_ast_id, ty.clone());
     ty
 }
 
@@ -1009,7 +1009,7 @@ fn check_expr_call_self(
         let trait_method = ck.sa.fct(trait_method_id);
         let return_type = trait_method.return_type();
 
-        ck.analysis.set_ty(e.id, return_type.clone());
+        ck.analysis.set_ty(expr_ast_id, return_type.clone());
 
         ck.analysis.map_calls.insert(
             expr_ast_id,
@@ -1039,7 +1039,7 @@ fn check_expr_call_self(
         };
 
         ck.sa.report(ck.file_id, e.span, msg);
-        ck.analysis.set_ty(e.id, ty_error());
+        ck.analysis.set_ty(expr_ast_id, ty_error());
 
         ty_error()
     }
@@ -1079,7 +1079,7 @@ fn check_expr_call_assoc(
         let trait_method = ck.sa.fct(trait_method_id);
         let return_type = trait_method.return_type();
 
-        ck.analysis.set_ty(e.id, return_type.clone());
+        ck.analysis.set_ty(expr_ast_id, return_type.clone());
 
         ck.analysis.map_calls.insert(
             expr_ast_id,
@@ -1110,7 +1110,7 @@ fn check_expr_call_assoc(
         };
 
         ck.sa.report(ck.file_id, e.span, msg);
-        ck.analysis.set_ty(e.id, ty_error());
+        ck.analysis.set_ty(expr_ast_id, ty_error());
 
         ty_error()
     }
@@ -1193,7 +1193,7 @@ fn check_expr_call_generic_type_param(
                 &object_type,
             );
 
-            ck.analysis.set_ty(e.id, return_type.clone());
+            ck.analysis.set_ty(expr_ast_id, return_type.clone());
 
             let call_type = CallType::GenericMethod(
                 id,
@@ -1230,7 +1230,7 @@ fn check_expr_call_generic_type_param(
         };
 
         ck.sa.report(ck.file_id, e.span, msg);
-        ck.analysis.set_ty(e.id, ty_error());
+        ck.analysis.set_ty(expr_ast_id, ty_error());
 
         ty_error()
     }
@@ -1267,7 +1267,7 @@ fn check_expr_call_path(
     let sym = match read_path_expr(ck, container_expr) {
         Ok(sym) => sym,
         Err(()) => {
-            ck.analysis.set_ty(e.id, ty_error());
+            ck.analysis.set_ty(expr_ast_id, ty_error());
             return ty_error();
         }
     };
@@ -1278,7 +1278,7 @@ fn check_expr_call_path(
         let msg = ErrorMessage::ExpectedSomeIdentifier;
         ck.sa.report(ck.file_id, ck.span(method_expr), msg);
 
-        ck.analysis.set_ty(e.id, ty_error());
+        ck.analysis.set_ty(expr_ast_id, ty_error());
         return ty_error();
     };
 
@@ -1463,7 +1463,7 @@ fn check_expr_call_path(
             let msg = ErrorMessage::StaticMethodCallTargetExpected;
             ck.sa.report(ck.file_id, e.span, msg);
 
-            ck.analysis.set_ty(e.id, ty_error());
+            ck.analysis.set_ty(expr_ast_id, ty_error());
 
             ty_error()
         }

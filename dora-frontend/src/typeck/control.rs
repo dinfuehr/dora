@@ -254,30 +254,30 @@ pub(super) fn check_expr_return(
 
 pub(super) fn check_expr_if(
     ck: &mut TypeCheck,
-    _id: ast::AstId,
-    expr: &ast::ExprIfType,
+    node_id: ast::AstId,
+    node: &ast::ExprIfType,
     expected_ty: SourceType,
 ) -> SourceType {
     ck.symtable.push_level();
 
-    let ty = check_expr_condition(ck, expr.cond);
+    let ty = check_expr_condition(ck, node.cond);
 
     if !ty.is_bool() && !ty.is_error() {
         let expr_type = ck.ty_name(&ty);
         let msg = ErrorMessage::IfCondType(expr_type);
-        ck.sa.report(ck.file_id, ck.span(expr.cond), msg);
+        ck.sa.report(ck.file_id, ck.span(node.cond), msg);
     }
 
-    let then_type = check_expr(ck, expr.then_block, expected_ty.clone());
+    let then_type = check_expr(ck, node.then_block, expected_ty.clone());
 
     ck.symtable.pop_level();
 
-    let merged_type = if let Some(else_block) = expr.else_block {
+    let merged_type = if let Some(else_block) = node.else_block {
         let else_type = check_expr(ck, else_block, expected_ty);
 
         let ast_file = ck.sa.file(ck.file_id).ast().as_ref();
 
-        if expr_always_returns(ast_file, expr.then_block) {
+        if expr_always_returns(ast_file, node.then_block) {
             else_type
         } else if expr_always_returns(ast_file, else_block) {
             then_type
@@ -289,7 +289,7 @@ pub(super) fn check_expr_if(
             let then_type_name = ck.ty_name(&then_type);
             let else_type_name = ck.ty_name(&else_type);
             let msg = ErrorMessage::IfBranchTypesIncompatible(then_type_name, else_type_name);
-            ck.sa.report(ck.file_id, expr.span, msg);
+            ck.sa.report(ck.file_id, node.span, msg);
             then_type
         } else {
             then_type
@@ -298,7 +298,7 @@ pub(super) fn check_expr_if(
         SourceType::Unit
     };
 
-    ck.analysis.set_ty(expr.id, merged_type.clone());
+    ck.analysis.set_ty(node_id, merged_type.clone());
 
     merged_type
 }
@@ -353,12 +353,12 @@ pub(super) fn check_expr_break_and_continue(
 
 pub(super) fn check_expr_match(
     ck: &mut TypeCheck,
-    _id: ast::AstId,
+    node_id: ast::AstId,
     node: &ast::ExprMatchType,
     expected_ty: SourceType,
 ) -> SourceType {
     let expr_type = check_expr(ck, node.expr, SourceType::Any);
-    ck.analysis.set_ty(ck.id(node.expr), expr_type.clone());
+    ck.analysis.set_ty(node.expr, expr_type.clone());
     let mut result_type = ty::error();
 
     for &arm_id in &node.arms {
@@ -374,7 +374,7 @@ pub(super) fn check_expr_match(
         ck.symtable.pop_level();
     }
 
-    ck.analysis.set_ty(node.id, result_type.clone());
+    ck.analysis.set_ty(node_id, result_type.clone());
 
     result_type
 }
