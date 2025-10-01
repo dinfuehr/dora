@@ -218,8 +218,18 @@ dependencies = [
 name = "dora-parser"
 version = "0.0.2"
 dependencies = [
+ "dora-parser-derive",
  "id-arena",
  "parking_lot",
+]
+
+[[package]]
+name = "dora-parser-derive"
+version = "0.0.1"
+dependencies = [
+ "proc-macro2",
+ "quote",
+ "syn",
 ]
 
 [[package]]

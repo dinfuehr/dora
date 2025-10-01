@@ -1,6 +1,7 @@
 use std::sync::Arc;
 
 use id_arena::{Arena, Id};
+use dora_parser_derive::AstNode;
 
 use crate::{Span, TokenKind};
 
@@ -303,161 +304,19 @@ impl Ast {
 
     pub fn children(&self) -> Vec<AstId> {
         match self {
-            Ast::Function(node) => {
-                let mut children = Vec::new();
-                if let Some(modifiers) = node.modifiers {
-                    children.push(modifiers);
-                }
-                if let Some(name) = node.name {
-                    children.push(name);
-                }
-                children.extend(&node.params);
-                if let Some(return_type) = node.return_type {
-                    children.push(return_type);
-                }
-                if let Some(where_clause) = node.where_clause {
-                    children.push(where_clause);
-                }
-                if let Some(block) = node.block {
-                    children.push(block);
-                }
-                children
-            }
-            Ast::Class(node) => {
-                let mut children = Vec::new();
-                if let Some(modifiers) = node.modifiers {
-                    children.push(modifiers);
-                }
-                if let Some(name) = node.name {
-                    children.push(name);
-                }
-                children.extend(&node.fields);
-                if let Some(where_clause) = node.where_clause {
-                    children.push(where_clause);
-                }
-                children
-            }
-            Ast::Struct(node) => {
-                let mut children = Vec::new();
-                if let Some(modifiers) = node.modifiers {
-                    children.push(modifiers);
-                }
-                if let Some(name) = node.name {
-                    children.push(name);
-                }
-                children.extend(&node.fields);
-                if let Some(where_clause) = node.where_clause {
-                    children.push(where_clause);
-                }
-                children
-            }
-            Ast::WhereClause(node) => node.clauses.clone(),
-            Ast::WhereClauseItem(node) => {
-                let mut children = vec![node.ty];
-                children.extend(&node.bounds);
-                children
-            }
-            Ast::Field(node) => {
-                let mut children = Vec::new();
-                if let Some(modifiers) = node.modifiers {
-                    children.push(modifiers);
-                }
-                if let Some(name) = node.name {
-                    children.push(name);
-                }
-                children.push(node.data_type);
-                children
-            }
-            Ast::Trait(node) => {
-                let mut children = Vec::new();
-                if let Some(modifiers) = node.modifiers {
-                    children.push(modifiers);
-                }
-                if let Some(name) = node.name {
-                    children.push(name);
-                }
-                children.extend(&node.bounds);
-                if let Some(where_clause) = node.where_clause {
-                    children.push(where_clause);
-                }
-                children.extend(&node.methods);
-                children
-            }
-            Ast::Impl(node) => {
-                let mut children = Vec::new();
-                if let Some(modifiers) = node.modifiers {
-                    children.push(modifiers);
-                }
-                if let Some(trait_type) = node.trait_type {
-                    children.push(trait_type);
-                }
-                children.push(node.extended_type);
-                if let Some(where_clause) = node.where_clause {
-                    children.push(where_clause);
-                }
-                children.extend(&node.methods);
-                children
-            }
-            Ast::Global(node) => {
-                let mut children = Vec::new();
-                if let Some(modifiers) = node.modifiers {
-                    children.push(modifiers);
-                }
-                if let Some(name) = node.name {
-                    children.push(name);
-                }
-                children.push(node.data_type);
-                if let Some(initial_value) = node.initial_value {
-                    children.push(initial_value);
-                }
-                children
-            }
-            Ast::Const(node) => {
-                let mut children = Vec::new();
-                if let Some(modifiers) = node.modifiers {
-                    children.push(modifiers);
-                }
-                if let Some(name) = node.name {
-                    children.push(name);
-                }
-                children.push(node.data_type);
-                children.push(node.expr);
-                children
-            }
-            Ast::Enum(node) => {
-                let mut children = Vec::new();
-                if let Some(modifiers) = node.modifiers {
-                    children.push(modifiers);
-                }
-                if let Some(name) = node.name {
-                    children.push(name);
-                }
-                if let Some(where_clause) = node.where_clause {
-                    children.push(where_clause);
-                }
-                children
-            }
-            Ast::Module(node) => {
-                let mut children = Vec::new();
-                if let Some(modifiers) = node.modifiers {
-                    children.push(modifiers);
-                }
-                if let Some(name) = node.name {
-                    children.push(name);
-                }
-                if let Some(ref elements) = node.elements {
-                    children.extend(elements);
-                }
-                children
-            }
-            Ast::Use(node) => {
-                let mut children = Vec::new();
-                if let Some(modifiers) = node.modifiers {
-                    children.push(modifiers);
-                }
-                children.push(node.path);
-                children
-            }
+            Ast::Function(node) => node.children(),
+            Ast::Class(node) => node.children(),
+            Ast::Struct(node) => node.children(),
+            Ast::WhereClause(node) => node.children(),
+            Ast::WhereClauseItem(node) => node.children(),
+            Ast::Field(node) => node.children(),
+            Ast::Trait(node) => node.children(),
+            Ast::Impl(node) => node.children(),
+            Ast::Global(node) => node.children(),
+            Ast::Const(node) => node.children(),
+            Ast::Enum(node) => node.children(),
+            Ast::Module(node) => node.children(),
+            Ast::Use(node) => node.children(),
             Ast::UsePath(..) => vec![],
             Ast::UseGroup(node) => node.targets.clone(),
             Ast::UseTargetName(node) => {
@@ -467,39 +326,8 @@ impl Ast {
                     vec![]
                 }
             }
-            Ast::Extern(node) => {
-                let mut children = Vec::new();
-                if let Some(modifiers) = node.modifiers {
-                    children.push(modifiers);
-                }
-                if let Some(name) = node.name {
-                    children.push(name);
-                }
-                if let Some(identifier) = node.identifier {
-                    children.push(identifier);
-                }
-                children
-            }
-            Ast::Alias(node) => {
-                let mut children = Vec::new();
-                if let Some(modifiers) = node.modifiers {
-                    children.push(modifiers);
-                }
-                if let Some(name) = node.name {
-                    children.push(name);
-                }
-                if let Some(pre_where_clause) = node.pre_where_clause {
-                    children.push(pre_where_clause);
-                }
-                children.extend(&node.bounds);
-                if let Some(ty) = node.ty {
-                    children.push(ty);
-                }
-                if let Some(post_where_clause) = node.post_where_clause {
-                    children.push(post_where_clause);
-                }
-                children
-            }
+            Ast::Extern(node) => node.children(),
+            Ast::Alias(node) => node.children(),
             Ast::Argument(node) => {
                 let mut children = Vec::new();
                 if let Some(name) = node.name {
@@ -924,7 +752,7 @@ impl Ast {
     }
 }
 
-#[derive(Clone, Debug)]
+#[derive(Clone, Debug, AstNode)]
 pub struct Global {
     pub span: Span,
     pub modifiers: Option<AstId>,
@@ -934,7 +762,7 @@ pub struct Global {
     pub initial_value: Option<AstId>,
 }
 
-#[derive(Clone, Debug)]
+#[derive(Clone, Debug, AstNode)]
 pub struct Module {
     pub span: Span,
     pub modifiers: Option<AstId>,
@@ -942,7 +770,7 @@ pub struct Module {
     pub elements: Option<Vec<AstId>>,
 }
 
-#[derive(Clone, Debug)]
+#[derive(Clone, Debug, AstNode)]
 pub struct Use {
     pub span: Span,
     pub modifiers: Option<AstId>,
@@ -991,7 +819,7 @@ pub enum UsePathComponentValue {
     Error,
 }
 
-#[derive(Clone, Debug)]
+#[derive(Clone, Debug, AstNode)]
 pub struct Const {
     pub span: Span,
     pub modifiers: Option<AstId>,
@@ -1000,7 +828,7 @@ pub struct Const {
     pub expr: AstId,
 }
 
-#[derive(Clone, Debug)]
+#[derive(Clone, Debug, AstNode)]
 pub struct Enum {
     pub span: Span,
     pub modifiers: Option<AstId>,
@@ -1018,7 +846,7 @@ pub struct EnumVariant {
     pub fields: Vec<AstId>,
 }
 
-#[derive(Clone, Debug)]
+#[derive(Clone, Debug, AstNode)]
 pub struct Struct {
     pub span: Span,
     pub modifiers: Option<AstId>,
@@ -1051,13 +879,13 @@ impl FieldNameStyle {
     }
 }
 
-#[derive(Clone, Debug)]
+#[derive(Clone, Debug, AstNode)]
 pub struct WhereClause {
     pub span: Span,
     pub clauses: Vec<AstId>,
 }
 
-#[derive(Clone, Debug)]
+#[derive(Clone, Debug, AstNode)]
 pub struct WhereClauseItem {
     pub span: Span,
     pub ty: AstId,
@@ -1169,7 +997,7 @@ impl Ast {
     }
 }
 
-#[derive(Clone, Debug)]
+#[derive(Clone, Debug, AstNode)]
 pub struct Impl {
     pub declaration_span: Span,
     pub span: Span,
@@ -1183,7 +1011,7 @@ pub struct Impl {
     pub methods: Vec<AstId>,
 }
 
-#[derive(Clone, Debug)]
+#[derive(Clone, Debug, AstNode)]
 pub struct Trait {
     pub name: Option<AstId>,
     pub modifiers: Option<AstId>,
@@ -1194,7 +1022,7 @@ pub struct Trait {
     pub methods: Vec<AstId>,
 }
 
-#[derive(Clone, Debug)]
+#[derive(Clone, Debug, AstNode)]
 pub struct Alias {
     pub span: Span,
 
@@ -1207,7 +1035,7 @@ pub struct Alias {
     pub post_where_clause: Option<AstId>,
 }
 
-#[derive(Clone, Debug)]
+#[derive(Clone, Debug, AstNode)]
 pub struct Class {
     pub span: Span,
     pub modifiers: Option<AstId>,
@@ -1219,7 +1047,7 @@ pub struct Class {
     pub field_name_style: FieldNameStyle,
 }
 
-#[derive(Clone, Debug)]
+#[derive(Clone, Debug, AstNode)]
 pub struct ExternPackage {
     pub span: Span,
     pub modifiers: Option<AstId>,
@@ -1240,7 +1068,7 @@ pub struct TypeParam {
     pub bounds: Vec<AstId>,
 }
 
-#[derive(Clone, Debug)]
+#[derive(Clone, Debug, AstNode)]
 pub struct Field {
     pub span: Span,
     pub modifiers: Option<AstId>,
@@ -1268,7 +1096,7 @@ impl FunctionKind {
     }
 }
 
-#[derive(Clone, Debug)]
+#[derive(Clone, Debug, AstNode)]
 pub struct Function {
     pub declaration_span: Span,
     pub span: Span,

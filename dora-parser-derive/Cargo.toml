@@ -1,14 +1,17 @@
 [package]
-name = "dora-parser"
-version = "0.0.2"
+name = "dora-parser-derive"
+version = "0.0.1"
 authors = ["Dominik Inführ <dominik.infuehr@gmail.com>"]
-description = "The Dora programming language"
+description = "Derive macros for dora-parser"
 homepage = "https://github.com/dinfuehr/dora"
 repository = "https://github.com/dinfuehr/dora"
 license = "MIT"
 edition = "2021"
 
+[lib]
+proc-macro = true
+
 [dependencies]
-parking_lot = "*"
-id-arena = "*"
-dora-parser-derive = { path = "../dora-parser-derive" }
+syn = { version = "2.0", features = ["full"] }
+quote = "1.0"
+proc-macro2 = "1.0"
