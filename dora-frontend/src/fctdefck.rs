@@ -1,5 +1,5 @@
-use crate::sema::{Element, FctDefinition, Sema};
 use crate::ErrorMessage;
+use crate::sema::{Element, FctDefinition, Sema};
 
 pub fn check(sa: &Sema) {
     for (_id, fct) in sa.fcts.iter() {
@@ -24,9 +24,9 @@ fn check_test(sa: &Sema, fct: &FctDefinition) {
 
 #[cfg(test)]
 mod tests {
+    use crate::Span;
     use crate::error::msg::ErrorMessage;
     use crate::tests::*;
-    use crate::Span;
 
     #[test]
     fn self_param() {

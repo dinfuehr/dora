@@ -671,12 +671,13 @@ impl Registers {
         }
 
         let reg = self.alloc_internal(ty);
-        assert!(self
-            .scopes
-            .first_mut()
-            .expect("missing scope")
-            .0
-            .insert(reg));
+        assert!(
+            self.scopes
+                .first_mut()
+                .expect("missing scope")
+                .0
+                .insert(reg)
+        );
         assert!(self.used.insert(reg));
         reg
     }

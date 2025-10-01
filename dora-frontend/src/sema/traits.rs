@@ -4,14 +4,14 @@ use std::rc::Rc;
 
 use crate::interner::Name;
 use crate::program_parser::ParsedModifierList;
-use dora_parser::ast;
 use dora_parser::Span;
+use dora_parser::ast;
 
 use crate::sema::{
-    module_path, AliasDefinitionId, Element, ElementAccess, ElementId, FctDefinitionId,
-    ModuleDefinitionId, PackageDefinitionId, Sema, SourceFileId, TypeParamDefinition, Visibility,
+    AliasDefinitionId, Element, ElementAccess, ElementId, FctDefinitionId, ModuleDefinitionId,
+    PackageDefinitionId, Sema, SourceFileId, TypeParamDefinition, Visibility, module_path,
 };
-use crate::{contains_self, SourceType, SourceTypeArray};
+use crate::{SourceType, SourceTypeArray, contains_self};
 use id_arena::Id;
 
 pub type TraitDefinitionId = Id<TraitDefinition>;

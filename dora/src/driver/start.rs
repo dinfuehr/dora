@@ -2,11 +2,11 @@ use std::fs::File;
 use std::io::{self, Read, Write};
 use std::path::PathBuf;
 
-use crate::driver::flags::{self, create_sema_flags, DriverFlags};
-use dora_bytecode::{display_fct, FunctionId, PackageId, Program};
+use crate::driver::flags::{self, DriverFlags, create_sema_flags};
+use dora_bytecode::{FunctionId, PackageId, Program, display_fct};
 use dora_frontend as language;
 use dora_frontend::sema::{FileContent, Sema, SemaFlags};
-use dora_runtime::{clear_vm, execute_on_main, set_vm, VM};
+use dora_runtime::{VM, clear_vm, execute_on_main, set_vm};
 
 pub fn start() -> i32 {
     let flags = flags::parse_arguments();
@@ -304,11 +304,7 @@ fn run_tests(vm: &VM, flags: &DriverFlags, package_id: PackageId) -> i32 {
     );
 
     // if all tests passed exit with 0, otherwise 1
-    if tests == passed {
-        0
-    } else {
-        1
-    }
+    if tests == passed { 0 } else { 1 }
 }
 
 fn test_filter_matches(vm: &VM, flags: &DriverFlags, fct_id: FunctionId) -> bool {

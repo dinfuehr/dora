@@ -5,15 +5,15 @@ use std::rc::Rc;
 use crate::interner::Name;
 use crate::program_parser::ParsedModifierList;
 pub use dora_bytecode::ConstValue;
-use dora_parser::ast;
 use dora_parser::Span;
+use dora_parser::ast;
 
+use crate::ParsedType;
 use crate::sema::{
-    module_path, Element, ElementId, ModuleDefinitionId, PackageDefinitionId, Sema, SourceFileId,
-    TypeParamDefinition, Visibility,
+    Element, ElementId, ModuleDefinitionId, PackageDefinitionId, Sema, SourceFileId,
+    TypeParamDefinition, Visibility, module_path,
 };
 use crate::ty::SourceType;
-use crate::ParsedType;
 
 pub type ConstDefinitionId = Id<ConstDefinition>;
 

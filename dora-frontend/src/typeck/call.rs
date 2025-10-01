@@ -10,20 +10,21 @@ use crate::access::{
 };
 use crate::interner::Name;
 use crate::sema::{
-    find_field_in_class, find_impl, new_identity_type_params, CallType, ClassDefinitionId, Element,
-    ElementWithFields, EnumDefinitionId, FctDefinitionId, IdentType, Param, Sema,
-    StructDefinitionId, TraitDefinition, TypeParamId,
+    CallType, ClassDefinitionId, Element, ElementWithFields, EnumDefinitionId, FctDefinitionId,
+    IdentType, Param, Sema, StructDefinitionId, TraitDefinition, TypeParamId, find_field_in_class,
+    find_impl, new_identity_type_params,
 };
 use crate::specialize::replace_type;
 use crate::specialize_ty_for_call;
 use crate::sym::SymbolKind;
 use crate::typeck::{
-    check_args_compatible, check_args_compatible_fct, check_args_compatible_fct2, check_expr,
-    check_type_params, find_method_call_candidates, read_path_expr, CallArguments, TypeCheck,
+    CallArguments, TypeCheck, check_args_compatible, check_args_compatible_fct,
+    check_args_compatible_fct2, check_expr, check_type_params, find_method_call_candidates,
+    read_path_expr,
 };
 use crate::{
-    empty_sta, specialize_ty_for_generic, specialize_type, ty::error as ty_error,
-    CallSpecializationData, ErrorMessage, SourceType, SourceTypeArray, TraitType,
+    CallSpecializationData, ErrorMessage, SourceType, SourceTypeArray, TraitType, empty_sta,
+    specialize_ty_for_generic, specialize_type, ty::error as ty_error,
 };
 
 pub(super) fn check_expr_call(

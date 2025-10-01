@@ -4,8 +4,8 @@ use dora_parser::ast;
 
 use crate::sema::{Element, ImplDefinition, Sema};
 use crate::{
-    specialize_trait_type_generic, Name, ParsedTraitType, ParsedType, SourceType, SourceTypeArray,
-    TraitType,
+    Name, ParsedTraitType, ParsedType, SourceType, SourceTypeArray, TraitType,
+    specialize_trait_type_generic,
 };
 
 #[derive(Clone, Debug)]

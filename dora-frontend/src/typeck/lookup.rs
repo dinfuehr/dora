@@ -1,9 +1,9 @@
+use crate::SourceType;
 use crate::interner::Name;
 use crate::sema::{
-    extension_matches, impl_matches, Candidate, Element, Sema, TraitDefinition, TypeParamDefinition,
+    Candidate, Element, Sema, TraitDefinition, TypeParamDefinition, extension_matches, impl_matches,
 };
 use crate::sym::ModuleSymTable;
-use crate::SourceType;
 
 pub fn find_method_call_candidates(
     sa: &Sema,

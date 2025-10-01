@@ -3,19 +3,20 @@ use crate::interner::Name;
 use crate::sema::{Sema, SourceFileId};
 use crate::sym::{ModuleSymTable, SymTable, Symbol, SymbolKind};
 #[allow(unused)]
-use crate::ty::{contains_self, empty_sta, SourceType, SourceTypeArray, TraitType, TyKind};
-use dora_bytecode::{display_fct, dump_stdout, FunctionId, Program, TypeParamMode};
-use dora_parser::ast::{self, AstId};
+use crate::ty::{SourceType, SourceTypeArray, TraitType, TyKind, contains_self, empty_sta};
+use dora_bytecode::{FunctionId, Program, TypeParamMode, display_fct, dump_stdout};
 use dora_parser::Span;
+use dora_parser::ast::{self, AstId};
 
 pub use crate::extensiondefck::package_for_type;
 pub use parsety::{ParsedTraitType, ParsedType, ParsedTypeAst};
-pub use path::{parse_path, PathKind};
+pub use path::{PathKind, parse_path};
 pub use program_emitter::emit_program;
 pub use specialize::{
-    replace_type, specialize_for_element, specialize_trait_type, specialize_trait_type_generic,
-    specialize_ty_for_call, specialize_ty_for_default_trait_method, specialize_ty_for_generic,
-    specialize_ty_for_trait_object, specialize_type, specialize_type_array, CallSpecializationData,
+    CallSpecializationData, replace_type, specialize_for_element, specialize_trait_type,
+    specialize_trait_type_generic, specialize_ty_for_call, specialize_ty_for_default_trait_method,
+    specialize_ty_for_generic, specialize_ty_for_trait_object, specialize_type,
+    specialize_type_array,
 };
 
 pub(crate) mod access;

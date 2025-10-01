@@ -1,5 +1,5 @@
 use dora_parser::ast::*;
-use dora_parser::{compute_line_column, Span};
+use dora_parser::{Span, compute_line_column};
 
 use crate::sema::{AnalysisData, FctDefinition, SourceFile};
 

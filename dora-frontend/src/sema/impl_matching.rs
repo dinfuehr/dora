@@ -1,8 +1,8 @@
 use crate::sema::{
-    block_matches_ty, match_arrays, Element, ImplDefinition, ImplDefinitionId, Sema,
-    TypeParamDefinition,
+    Element, ImplDefinition, ImplDefinitionId, Sema, TypeParamDefinition, block_matches_ty,
+    match_arrays,
 };
-use crate::{specialize_type, SourceType, SourceTypeArray, TraitType};
+use crate::{SourceType, SourceTypeArray, TraitType, specialize_type};
 
 pub fn impl_matches(
     sa: &Sema,

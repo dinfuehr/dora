@@ -1,8 +1,8 @@
 use std::collections::HashMap;
 
 use crate::sema::{
-    block_matches_ty, Element, ExtensionDefinition, FctDefinitionId, PackageDefinitionId, Sema,
-    SourceFileId, TypeParamDefinition, TypeParamId,
+    Element, ExtensionDefinition, FctDefinitionId, PackageDefinitionId, Sema, SourceFileId,
+    TypeParamDefinition, TypeParamId, block_matches_ty,
 };
 use crate::{ErrorMessage, Name, SourceType};
 

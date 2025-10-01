@@ -12,17 +12,17 @@ use crate::sema::{
     OuterContextIdx, PackageDefinitionId, Param, ScopeId, Sema, SourceFileId, TypeParamDefinition,
     Var, VarAccess, VarId, VarLocation, Visibility,
 };
-use crate::typeck::{check_expr, check_pattern, check_stmt, CallArguments};
+use crate::typeck::{CallArguments, check_expr, check_pattern, check_stmt};
 use crate::{
-    always_returns, expr_always_returns, replace_type, report_sym_shadow_span, ModuleSymTable,
-    SourceType, SourceTypeArray, SymbolKind,
+    ModuleSymTable, SourceType, SourceTypeArray, SymbolKind, always_returns, expr_always_returns,
+    replace_type, report_sym_shadow_span,
 };
-use crate::{parsety, ParsedType};
+use crate::{ParsedType, parsety};
 
 use crate::interner::Name;
+use dora_parser::Span;
 use dora_parser::ast;
 use dora_parser::ast::AstId;
-use dora_parser::Span;
 
 pub struct TypeCheck<'a> {
     pub sa: &'a Sema,
@@ -199,17 +199,19 @@ impl<'a> TypeCheck<'a> {
             assert!(self.is_lambda);
         }
 
-        assert!(self
-            .analysis
-            .needs_context_slot_in_lambda_object
-            .set(needs_context_slot_in_lambda_object)
-            .is_ok());
+        assert!(
+            self.analysis
+                .needs_context_slot_in_lambda_object
+                .set(needs_context_slot_in_lambda_object)
+                .is_ok()
+        );
 
-        assert!(self
-            .analysis
-            .function_context_data
-            .set(lazy_context_data)
-            .is_ok());
+        assert!(
+            self.analysis
+                .function_context_data
+                .set(lazy_context_data)
+                .is_ok()
+        );
 
         // Store var definitions for all local and context vars defined in this function.
         let vars = self.vars.leave_function_scope();

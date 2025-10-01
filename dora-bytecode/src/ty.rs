@@ -2,7 +2,7 @@ use bincode::{Decode, Encode};
 use std::ops::Index;
 use std::sync::Arc;
 
-use crate::{program::AliasId, BytecodeTypeKind, ClassId, EnumId, StructId, TraitId};
+use crate::{BytecodeTypeKind, ClassId, EnumId, StructId, TraitId, program::AliasId};
 
 #[derive(Clone, Debug, PartialEq, Eq, Hash, Decode, Encode)]
 pub enum BytecodeType {

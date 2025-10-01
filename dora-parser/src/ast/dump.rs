@@ -1,7 +1,7 @@
 use std::sync::Arc;
 
 use crate::ast::*;
-use crate::{compute_line_column, compute_line_starts, Span};
+use crate::{Span, compute_line_column, compute_line_starts};
 
 macro_rules! dump {
     ($self_:ident, $($message:tt)*) => {{

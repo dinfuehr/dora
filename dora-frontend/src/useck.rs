@@ -4,11 +4,11 @@ use std::rc::Rc;
 use crate::access::{sym_accessible_from, use_accessible_from};
 use crate::error::msg::ErrorMessage;
 use crate::report_sym_shadow_span;
-use crate::sema::{module_package, ModuleDefinitionId, Sema, Visibility};
+use crate::sema::{ModuleDefinitionId, Sema, Visibility, module_package};
 use crate::sym::{SymTable, SymbolKind};
 
-use dora_parser::ast::{self, UseAtom, UsePathComponentValue, UsePathDescriptor};
 use dora_parser::Span;
+use dora_parser::ast::{self, UseAtom, UsePathComponentValue, UsePathDescriptor};
 
 use super::sema::SourceFileId;
 

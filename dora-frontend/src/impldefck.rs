@@ -3,12 +3,12 @@ use std::collections::{HashMap, HashSet};
 use crate::extensiondefck::check_for_unconstrained_type_params;
 use crate::program_parser::ParsedModifierList;
 use crate::sema::{
-    implements_trait, new_identity_type_params, AliasDefinitionId, Element, FctDefinition,
-    FctDefinitionId, FctParent, ImplDefinition, ImplDefinitionId, Sema, TraitDefinition,
+    AliasDefinitionId, Element, FctDefinition, FctDefinitionId, FctParent, ImplDefinition,
+    ImplDefinitionId, Sema, TraitDefinition, implements_trait, new_identity_type_params,
 };
 use crate::{
-    package_for_type, specialize_ty_for_default_trait_method, ErrorMessage, SourceType,
-    SourceTypeArray, TraitType,
+    ErrorMessage, SourceType, SourceTypeArray, TraitType, package_for_type,
+    specialize_ty_for_default_trait_method,
 };
 
 pub fn check_definition(sa: &Sema) {

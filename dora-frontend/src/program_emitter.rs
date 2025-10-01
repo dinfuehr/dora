@@ -1,7 +1,7 @@
 use std::collections::HashMap;
 
-use crate::sym::SymbolKind;
 use crate::Sema;
+use crate::sym::SymbolKind;
 use dora_bytecode::program::{AliasData, ImplData};
 use dora_bytecode::{
     AliasId, BytecodeTraitType, BytecodeType, BytecodeTypeArray, ClassData, ClassField, ClassId,

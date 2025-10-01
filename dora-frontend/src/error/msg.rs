@@ -1,7 +1,7 @@
 use std::path::PathBuf;
 
 use crate::sema::{Sema, SourceFileId};
-use dora_parser::{compute_line_column, Span};
+use dora_parser::{Span, compute_line_column};
 
 #[derive(Clone, PartialEq, Eq, Debug)]
 pub enum ErrorLevel {
@@ -664,7 +664,9 @@ impl ErrorMessage {
                 format!("`return` cannot be used in this context.")
             }
             ErrorMessage::PatternAltWithBindingUnsupported => {
-                format!("Multiple patterns with arguments in a `match` arm are currently not supported.")
+                format!(
+                    "Multiple patterns with arguments in a `match` arm are currently not supported."
+                )
             }
             ErrorMessage::UseNotAccessible => format!("`use` not accessible."),
             ErrorMessage::TypeAliasMissingType => "type alias needs type assignment.".into(),

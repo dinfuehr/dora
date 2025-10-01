@@ -8,8 +8,8 @@ use crate::sema::{
 use crate::sym::{SymTable, SymbolKind};
 use crate::ty::SourceType;
 
-use crate::interner::Name;
 use crate::ParsedType;
+use crate::interner::Name;
 
 pub fn lookup_known_fundamental_types(sa: &mut Sema) {
     sa.known.structs.bool = Some(internal_struct(

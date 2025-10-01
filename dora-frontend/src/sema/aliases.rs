@@ -1,19 +1,19 @@
 use crate::{
+    ParsedTraitType, ParsedType,
     interner::Name,
     program_parser::ParsedModifierList,
     ty::{SourceType, TraitType},
-    ParsedTraitType, ParsedType,
 };
 use std::cell::OnceCell;
 use std::rc::Rc;
 
 use id_arena::Id;
 
+use crate::Span;
 use crate::sema::{
     Element, ElementId, ImplDefinitionId, ModuleDefinitionId, PackageDefinitionId, Sema,
     SourceFileId, TraitDefinitionId, TypeParamDefinition, Visibility,
 };
-use crate::Span;
 use dora_parser::ast;
 
 pub type AliasDefinitionId = Id<AliasDefinition>;

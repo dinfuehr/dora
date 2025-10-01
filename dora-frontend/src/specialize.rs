@@ -1,6 +1,6 @@
 use crate::sema::{
-    find_impl, AliasParent, Element, FctDefinition, ImplDefinition, Sema, TraitDefinitionId,
-    TypeParamId,
+    AliasParent, Element, FctDefinition, ImplDefinition, Sema, TraitDefinitionId, TypeParamId,
+    find_impl,
 };
 use crate::{SourceType, SourceTypeArray, TraitType};
 

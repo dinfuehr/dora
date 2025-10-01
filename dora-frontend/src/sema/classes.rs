@@ -8,11 +8,11 @@ use crate::program_parser::ParsedModifierList;
 use dora_parser::ast;
 
 use crate::sema::{
-    module_path, Element, ElementAccess, ElementId, ElementWithFields, ExtensionDefinitionId,
-    FctDefinitionId, FieldDefinitionId, FieldIndex, ModuleDefinitionId, PackageDefinitionId, Sema,
-    SourceFileId, TypeParamDefinition,
+    Element, ElementAccess, ElementId, ElementWithFields, ExtensionDefinitionId, FctDefinitionId,
+    FieldDefinitionId, FieldIndex, ModuleDefinitionId, PackageDefinitionId, Sema, SourceFileId,
+    TypeParamDefinition, module_path,
 };
-use crate::{specialize_for_element, SourceType, SourceTypeArray, Span};
+use crate::{SourceType, SourceTypeArray, Span, specialize_for_element};
 
 pub type ClassDefinitionId = Id<ClassDefinition>;
 

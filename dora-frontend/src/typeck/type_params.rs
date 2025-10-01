@@ -1,8 +1,8 @@
 use dora_parser::Span;
 
 use crate::error::msg::ErrorMessage;
-use crate::sema::{implements_trait, Element, Sema, SourceFileId, TypeParamDefinition};
-use crate::{specialize_trait_type_generic, SourceType, SourceTypeArray};
+use crate::sema::{Element, Sema, SourceFileId, TypeParamDefinition, implements_trait};
+use crate::{SourceType, SourceTypeArray, specialize_trait_type_generic};
 
 pub fn check_type_params<'a, S>(
     sa: &'a Sema,

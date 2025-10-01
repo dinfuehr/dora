@@ -1,6 +1,6 @@
 use dora_bytecode::{BytecodeType, BytecodeTypeArray, FunctionId, Location, Register};
-use dora_parser::ast::{self, Ast, AstId, CmpOp};
 use dora_parser::Span;
+use dora_parser::ast::{self, Ast, AstId, CmpOp};
 
 use crate::generator::{AstBytecodeGen, DataDest, Label};
 use crate::sema::{FctDefinition, FctParent, Intrinsic, Sema};

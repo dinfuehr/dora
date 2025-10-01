@@ -1,7 +1,7 @@
 use std::collections::HashMap;
 
-use crate::error::{ParseError, ParseErrorWithLocation};
 use crate::TokenKind::*;
+use crate::error::{ParseError, ParseErrorWithLocation};
 use crate::{Span, TokenKind};
 
 pub struct LexerResult {

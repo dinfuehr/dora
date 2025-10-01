@@ -1,5 +1,5 @@
-use dora_parser::ast::*;
 use dora_parser::Span;
+use dora_parser::ast::*;
 
 pub fn returns_value(f: &File, s: &Ast) -> Result<(), Span> {
     match *s {

@@ -53,21 +53,13 @@ impl Register {
     fn encoding_zero(self) -> u32 {
         assert!(self.is_gpr_or_zero());
 
-        if self.is_gpr() {
-            self.0 as u32
-        } else {
-            31
-        }
+        if self.is_gpr() { self.0 as u32 } else { 31 }
     }
 
     fn encoding_sp(self) -> u32 {
         assert!(self.is_gpr_or_sp());
 
-        if self.is_gpr() {
-            self.0 as u32
-        } else {
-            31
-        }
+        if self.is_gpr() { self.0 as u32 } else { 31 }
     }
 
     fn encoding_zero_or_sp(self) -> u32 {

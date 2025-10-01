@@ -1,7 +1,7 @@
 use std::sync::Arc;
 
 use dora_parser::ast::{Ast, AstId};
-use dora_parser::{ast, Span};
+use dora_parser::{Span, ast};
 
 use crate::access::{
     class_field_accessible_from, const_accessible_from, enum_accessible_from,
@@ -11,20 +11,20 @@ use crate::error::msg::ErrorMessage;
 use crate::interner::Name;
 use crate::program_parser::ParsedModifierList;
 use crate::sema::{
-    create_tuple, find_field_in_class, find_impl, implements_trait, AnalysisData, ArrayAssignment,
-    CallType, ConstValue, EnumDefinitionId, FctDefinition, FctParent, FieldIndex, IdentType,
-    Intrinsic, LazyLambdaCreationData, LazyLambdaId, ModuleDefinitionId, NestedVarId, Param,
-    Params, Sema, SourceFileId, TraitDefinitionId,
+    AnalysisData, ArrayAssignment, CallType, ConstValue, EnumDefinitionId, FctDefinition,
+    FctParent, FieldIndex, IdentType, Intrinsic, LazyLambdaCreationData, LazyLambdaId,
+    ModuleDefinitionId, NestedVarId, Param, Params, Sema, SourceFileId, TraitDefinitionId,
+    create_tuple, find_field_in_class, find_impl, implements_trait,
 };
 use crate::ty::TraitType;
 use crate::typeck::{
-    check_expr_break_and_continue, check_expr_call, check_expr_for, check_expr_if,
+    TypeCheck, check_expr_break_and_continue, check_expr_call, check_expr_for, check_expr_if,
     check_expr_match, check_expr_return, check_expr_while, check_lit_char, check_lit_float,
     check_lit_int, check_lit_str, check_pattern, check_stmt, check_type_params,
-    create_call_arguments, is_simple_enum, TypeCheck,
+    create_call_arguments, is_simple_enum,
 };
-use crate::{replace_type, ty::error as ty_error, SourceType, SourceTypeArray, SymbolKind};
-use crate::{specialize_ty_for_call, specialize_type, CallSpecializationData};
+use crate::{CallSpecializationData, specialize_ty_for_call, specialize_type};
+use crate::{SourceType, SourceTypeArray, SymbolKind, replace_type, ty::error as ty_error};
 
 pub(super) fn check_expr(
     ck: &mut TypeCheck,

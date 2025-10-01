@@ -1,6 +1,6 @@
 use fixedbitset::FixedBitSet;
 
-use crate::sema::{parent_element_or_self, AliasDefinition, AliasParent, Element};
+use crate::sema::{AliasDefinition, AliasParent, Element, parent_element_or_self};
 use crate::{ErrorMessage, Sema, SourceType, SourceTypeArray};
 
 pub fn detect_cycles(sa: &Sema) {
@@ -113,11 +113,7 @@ fn expand_type(
             let alias = sa.alias(*id);
             let found_cycle = detect_cycles_for_alias(sa, visited, visiting, context, alias);
 
-            if found_cycle {
-                SourceType::Error
-            } else {
-                ty
-            }
+            if found_cycle { SourceType::Error } else { ty }
         }
 
         SourceType::Unit

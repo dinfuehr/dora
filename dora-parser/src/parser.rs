@@ -7,13 +7,13 @@ use crate::ast;
 use crate::ast::*;
 use crate::error::{ParseError, ParseErrorWithLocation};
 
+use crate::TokenKind::*;
 use crate::token::{
     ELEM_FIRST, EMPTY, ENUM_VARIANT_RS, EXPRESSION_FIRST, FIELD_FIRST, MODIFIER_FIRST,
     PARAM_LIST_RS, PATTERN_FIRST, PATTERN_RS, TYPE_FIRST, TYPE_PARAM_RS, UNNAMED_FIELD_FIRST,
     USE_PATH_ATOM_FIRST, USE_PATH_FIRST,
 };
-use crate::TokenKind::*;
-use crate::{lex, Span, TokenKind, TokenSet};
+use crate::{Span, TokenKind, TokenSet, lex};
 
 #[cfg(test)]
 mod tests;

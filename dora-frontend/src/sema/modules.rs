@@ -1,10 +1,10 @@
 use std::cell::OnceCell;
 use std::rc::Rc;
 
+use crate::SourceFileId;
 use crate::program_parser::ParsedModifierList;
 use crate::sema::{PackageDefinitionId, Sema, Visibility};
 use crate::sym::SymTable;
-use crate::SourceFileId;
 
 use crate::interner::Name;
 use dora_parser::ast;

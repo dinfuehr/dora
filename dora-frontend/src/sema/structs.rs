@@ -6,13 +6,13 @@ use id_arena::Id;
 
 use crate::interner::Name;
 use crate::program_parser::ParsedModifierList;
-use dora_parser::ast;
 use dora_parser::Span;
+use dora_parser::ast;
 
 use crate::sema::{
-    module_path, new_identity_type_params, Element, ElementAccess, ElementId, ElementWithFields,
-    ExtensionDefinitionId, FieldDefinitionId, FieldIndex, ModuleDefinitionId, PackageDefinitionId,
-    Sema, SourceFileId, TypeParamDefinition, Visibility,
+    Element, ElementAccess, ElementId, ElementWithFields, ExtensionDefinitionId, FieldDefinitionId,
+    FieldIndex, ModuleDefinitionId, PackageDefinitionId, Sema, SourceFileId, TypeParamDefinition,
+    Visibility, module_path, new_identity_type_params,
 };
 use crate::{SourceType, SourceTypeArray};
 

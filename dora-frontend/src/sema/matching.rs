@@ -1,6 +1,6 @@
 use crate::sema::{
-    implements_trait, maybe_alias_ty, Element, ExtensionDefinitionId, Sema, TypeParamDefinition,
-    TypeParamId,
+    Element, ExtensionDefinitionId, Sema, TypeParamDefinition, TypeParamId, implements_trait,
+    maybe_alias_ty,
 };
 use crate::specialize::specialize_type;
 use crate::{SourceType, SourceTypeArray, SymbolKind};

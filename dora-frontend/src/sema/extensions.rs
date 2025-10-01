@@ -2,17 +2,17 @@ use std::cell::{OnceCell, RefCell};
 use std::collections::HashMap;
 use std::rc::Rc;
 
+use crate::ParsedType;
 use crate::interner::Name;
 use crate::sema::{
     Element, ElementId, FctDefinitionId, ModuleDefinitionId, PackageDefinitionId, Sema,
     SourceFileId, TypeParamDefinition,
 };
 use crate::ty::SourceType;
-use crate::ParsedType;
 use id_arena::Id;
 
-use dora_parser::ast;
 use dora_parser::Span;
+use dora_parser::ast;
 
 pub type ExtensionDefinitionId = Id<ExtensionDefinition>;
 

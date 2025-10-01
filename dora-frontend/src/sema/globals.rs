@@ -1,17 +1,17 @@
 use std::cell::OnceCell;
 use std::rc::Rc;
 
+use crate::ParsedType;
 use crate::interner::Name;
 use crate::program_parser::ParsedModifierList;
 use crate::sema::{
-    module_path, AnalysisData, Element, ElementId, FctDefinitionId, ModuleDefinitionId,
-    PackageDefinitionId, Sema, SourceFileId, TypeParamDefinition, Visibility,
+    AnalysisData, Element, ElementId, FctDefinitionId, ModuleDefinitionId, PackageDefinitionId,
+    Sema, SourceFileId, TypeParamDefinition, Visibility, module_path,
 };
 use crate::ty::SourceType;
-use crate::ParsedType;
 use dora_bytecode::BytecodeFunction;
-use dora_parser::ast;
 use dora_parser::Span;
+use dora_parser::ast;
 use id_arena::Id;
 
 pub type GlobalDefinitionId = Id<GlobalDefinition>;

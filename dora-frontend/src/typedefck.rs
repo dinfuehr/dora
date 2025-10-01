@@ -1,8 +1,8 @@
 use crate::sema::{
-    new_identity_type_params, AliasParent, Element, FctDefinition, FctParent, Sema, SourceFileId,
-    TypeParamDefinition,
+    AliasParent, Element, FctDefinition, FctParent, Sema, SourceFileId, TypeParamDefinition,
+    new_identity_type_params,
 };
-use crate::{parsety, ModuleSymTable, SourceType, SymbolKind};
+use crate::{ModuleSymTable, SourceType, SymbolKind, parsety};
 
 pub fn parse_types(sa: &Sema) {
     parse_trait_types(sa);
