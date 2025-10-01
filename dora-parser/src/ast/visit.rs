@@ -269,6 +269,14 @@ pub trait Visitor: Sized {
         walk_alt(self, f, id, node);
     }
 
+    fn visit_modifier_list(&mut self, f: &File, id: AstId, node: &ModifierList) {
+        walk_modifier_list(self, f, id, node);
+    }
+
+    fn visit_modifier(&mut self, f: &File, id: AstId, node: &Modifier) {
+        walk_modifier(self, f, id, node);
+    }
+
     fn visit_error(&mut self, f: &File, id: AstId, e: &Error) {
         walk_error(self, f, id, e);
     }
@@ -353,6 +361,8 @@ pub fn dispatch_ast<V: Visitor>(v: &mut V, f: &File, id: AstId, e: &Ast) {
         Ast::ConstructorField(ref node) => v.visit_constructor_field(f, id, node),
         Ast::Rest(ref node) => v.visit_rest(f, id, node),
         Ast::Alt(ref node) => v.visit_alt(f, id, node),
+        Ast::ModifierList(ref node) => v.visit_modifier_list(f, id, node),
+        Ast::Modifier(ref node) => v.visit_modifier(f, id, node),
         Ast::Error(ref node) => v.visit_error(f, id, node),
     }
 }
@@ -733,4 +743,16 @@ pub fn walk_constructor_field<V: Visitor>(_v: &mut V, _f: &File, _id: AstId, _no
 
 pub fn walk_alt<V: Visitor>(_v: &mut V, _f: &File, _id: AstId, _node: &PatternAlt) {
     unimplemented!()
+}
+
+pub fn walk_modifier_list<V: Visitor>(v: &mut V, f: &File, _id: AstId, node: &ModifierList) {
+    for &arm_id in &node.modifiers {
+        dispatch_ast_id(v, f, arm_id);
+    }
+}
+
+pub fn walk_modifier<V: Visitor>(v: &mut V, f: &File, _id: AstId, node: &Modifier) {
+    if let Some(expr) = node.ident {
+        dispatch_ast_id(v, f, expr);
+    }
 }

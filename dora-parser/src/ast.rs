@@ -1,4 +1,3 @@
-use std::slice::Iter;
 use std::sync::Arc;
 
 use id_arena::{Arena, Id};
@@ -150,6 +149,8 @@ pub enum Ast {
     ConstructorField(PatternField),
     Rest(PatternRest),
     Alt(PatternAlt),
+    ModifierList(ModifierList),
+    Modifier(Modifier),
     Error(Error),
 }
 
@@ -221,6 +222,8 @@ impl Ast {
             Ast::ConstructorField(ref node) => node.span,
             Ast::Rest(ref node) => node.span,
             Ast::Alt(ref node) => node.span,
+            Ast::ModifierList(ref node) => node.span,
+            Ast::Modifier(ref node) => node.span,
             Ast::Error(ref node) => node.span,
         }
     }
@@ -292,6 +295,8 @@ impl Ast {
             Ast::ConstructorField(..) => "ConstructorField",
             Ast::Rest(..) => "Rest",
             Ast::Alt(..) => "Alt",
+            Ast::ModifierList(..) => "ModifierList",
+            Ast::Modifier(..) => "Modifier",
             Ast::Error(..) => "Error",
         }
     }
@@ -300,6 +305,9 @@ impl Ast {
         match self {
             Ast::Function(node) => {
                 let mut children = Vec::new();
+                if let Some(modifiers) = node.modifiers {
+                    children.push(modifiers);
+                }
                 if let Some(name) = node.name {
                     children.push(name);
                 }
@@ -317,6 +325,9 @@ impl Ast {
             }
             Ast::Class(node) => {
                 let mut children = Vec::new();
+                if let Some(modifiers) = node.modifiers {
+                    children.push(modifiers);
+                }
                 if let Some(name) = node.name {
                     children.push(name);
                 }
@@ -328,6 +339,9 @@ impl Ast {
             }
             Ast::Struct(node) => {
                 let mut children = Vec::new();
+                if let Some(modifiers) = node.modifiers {
+                    children.push(modifiers);
+                }
                 if let Some(name) = node.name {
                     children.push(name);
                 }
@@ -345,6 +359,9 @@ impl Ast {
             }
             Ast::Field(node) => {
                 let mut children = Vec::new();
+                if let Some(modifiers) = node.modifiers {
+                    children.push(modifiers);
+                }
                 if let Some(name) = node.name {
                     children.push(name);
                 }
@@ -353,6 +370,9 @@ impl Ast {
             }
             Ast::Trait(node) => {
                 let mut children = Vec::new();
+                if let Some(modifiers) = node.modifiers {
+                    children.push(modifiers);
+                }
                 if let Some(name) = node.name {
                     children.push(name);
                 }
@@ -365,6 +385,9 @@ impl Ast {
             }
             Ast::Impl(node) => {
                 let mut children = Vec::new();
+                if let Some(modifiers) = node.modifiers {
+                    children.push(modifiers);
+                }
                 if let Some(trait_type) = node.trait_type {
                     children.push(trait_type);
                 }
@@ -377,6 +400,9 @@ impl Ast {
             }
             Ast::Global(node) => {
                 let mut children = Vec::new();
+                if let Some(modifiers) = node.modifiers {
+                    children.push(modifiers);
+                }
                 if let Some(name) = node.name {
                     children.push(name);
                 }
@@ -388,6 +414,9 @@ impl Ast {
             }
             Ast::Const(node) => {
                 let mut children = Vec::new();
+                if let Some(modifiers) = node.modifiers {
+                    children.push(modifiers);
+                }
                 if let Some(name) = node.name {
                     children.push(name);
                 }
@@ -397,6 +426,9 @@ impl Ast {
             }
             Ast::Enum(node) => {
                 let mut children = Vec::new();
+                if let Some(modifiers) = node.modifiers {
+                    children.push(modifiers);
+                }
                 if let Some(name) = node.name {
                     children.push(name);
                 }
@@ -407,6 +439,9 @@ impl Ast {
             }
             Ast::Module(node) => {
                 let mut children = Vec::new();
+                if let Some(modifiers) = node.modifiers {
+                    children.push(modifiers);
+                }
                 if let Some(name) = node.name {
                     children.push(name);
                 }
@@ -415,7 +450,14 @@ impl Ast {
                 }
                 children
             }
-            Ast::Use(node) => vec![node.path],
+            Ast::Use(node) => {
+                let mut children = Vec::new();
+                if let Some(modifiers) = node.modifiers {
+                    children.push(modifiers);
+                }
+                children.push(node.path);
+                children
+            }
             Ast::UsePath(..) => vec![],
             Ast::UseGroup(node) => node.targets.clone(),
             Ast::UseTargetName(node) => {
@@ -427,6 +469,9 @@ impl Ast {
             }
             Ast::Extern(node) => {
                 let mut children = Vec::new();
+                if let Some(modifiers) = node.modifiers {
+                    children.push(modifiers);
+                }
                 if let Some(name) = node.name {
                     children.push(name);
                 }
@@ -437,6 +482,9 @@ impl Ast {
             }
             Ast::Alias(node) => {
                 let mut children = Vec::new();
+                if let Some(modifiers) = node.modifiers {
+                    children.push(modifiers);
+                }
                 if let Some(name) = node.name {
                     children.push(name);
                 }
@@ -590,6 +638,14 @@ impl Ast {
             }
             Ast::Rest(..) => vec![],
             Ast::Alt(node) => node.alts.clone(),
+            Ast::ModifierList(ref node) => node.modifiers.clone(),
+            Ast::Modifier(ref node) => {
+                let mut children = Vec::new();
+                if let Some(ident) = node.ident {
+                    children.push(ident);
+                }
+                children
+            }
             Ast::Error(..) => vec![],
         }
     }
@@ -597,6 +653,20 @@ impl Ast {
     pub fn to_function(&self) -> Option<&Function> {
         match self {
             &Ast::Function(ref fct) => Some(fct),
+            _ => None,
+        }
+    }
+
+    pub fn to_modifier_list(&self) -> Option<&ModifierList> {
+        match self {
+            &Ast::ModifierList(ref fct) => Some(fct),
+            _ => None,
+        }
+    }
+
+    pub fn to_modifier(&self) -> Option<&Modifier> {
+        match self {
+            &Ast::Modifier(ref fct) => Some(fct),
             _ => None,
         }
     }
@@ -857,7 +927,7 @@ impl Ast {
 #[derive(Clone, Debug)]
 pub struct Global {
     pub span: Span,
-    pub modifiers: Option<ModifierList>,
+    pub modifiers: Option<AstId>,
     pub name: Option<AstId>,
     pub mutable: bool,
     pub data_type: AstId,
@@ -867,7 +937,7 @@ pub struct Global {
 #[derive(Clone, Debug)]
 pub struct Module {
     pub span: Span,
-    pub modifiers: Option<ModifierList>,
+    pub modifiers: Option<AstId>,
     pub name: Option<AstId>,
     pub elements: Option<Vec<AstId>>,
 }
@@ -875,7 +945,7 @@ pub struct Module {
 #[derive(Clone, Debug)]
 pub struct Use {
     pub span: Span,
-    pub modifiers: Option<ModifierList>,
+    pub modifiers: Option<AstId>,
     pub path: AstId,
 }
 
@@ -924,7 +994,7 @@ pub enum UsePathComponentValue {
 #[derive(Clone, Debug)]
 pub struct Const {
     pub span: Span,
-    pub modifiers: Option<ModifierList>,
+    pub modifiers: Option<AstId>,
     pub name: Option<AstId>,
     pub data_type: AstId,
     pub expr: AstId,
@@ -933,7 +1003,7 @@ pub struct Const {
 #[derive(Clone, Debug)]
 pub struct Enum {
     pub span: Span,
-    pub modifiers: Option<ModifierList>,
+    pub modifiers: Option<AstId>,
     pub name: Option<AstId>,
     pub type_params: Option<TypeParams>,
     pub variants: Vec<EnumVariant>,
@@ -951,7 +1021,7 @@ pub struct EnumVariant {
 #[derive(Clone, Debug)]
 pub struct Struct {
     pub span: Span,
-    pub modifiers: Option<ModifierList>,
+    pub modifiers: Option<AstId>,
     pub name: Option<AstId>,
     pub fields: Vec<AstId>,
     pub type_params: Option<TypeParams>,
@@ -1104,7 +1174,7 @@ pub struct Impl {
     pub declaration_span: Span,
     pub span: Span,
 
-    pub modifiers: Option<ModifierList>,
+    pub modifiers: Option<AstId>,
     pub type_params: Option<TypeParams>,
     pub trait_type: Option<AstId>,
     pub extended_type: AstId,
@@ -1116,7 +1186,7 @@ pub struct Impl {
 #[derive(Clone, Debug)]
 pub struct Trait {
     pub name: Option<AstId>,
-    pub modifiers: Option<ModifierList>,
+    pub modifiers: Option<AstId>,
     pub type_params: Option<TypeParams>,
     pub bounds: Vec<AstId>,
     pub where_clause: Option<AstId>,
@@ -1128,7 +1198,7 @@ pub struct Trait {
 pub struct Alias {
     pub span: Span,
 
-    pub modifiers: Option<ModifierList>,
+    pub modifiers: Option<AstId>,
     pub name: Option<AstId>,
     pub type_params: Option<TypeParams>,
     pub pre_where_clause: Option<AstId>,
@@ -1140,7 +1210,7 @@ pub struct Alias {
 #[derive(Clone, Debug)]
 pub struct Class {
     pub span: Span,
-    pub modifiers: Option<ModifierList>,
+    pub modifiers: Option<AstId>,
     pub name: Option<AstId>,
 
     pub fields: Vec<AstId>,
@@ -1152,7 +1222,7 @@ pub struct Class {
 #[derive(Clone, Debug)]
 pub struct ExternPackage {
     pub span: Span,
-    pub modifiers: Option<ModifierList>,
+    pub modifiers: Option<AstId>,
     pub name: Option<AstId>,
     pub identifier: Option<AstId>,
 }
@@ -1173,7 +1243,7 @@ pub struct TypeParam {
 #[derive(Clone, Debug)]
 pub struct Field {
     pub span: Span,
-    pub modifiers: Option<ModifierList>,
+    pub modifiers: Option<AstId>,
     pub name: Option<AstId>,
     pub data_type: AstId,
 }
@@ -1202,7 +1272,7 @@ impl FunctionKind {
 pub struct Function {
     pub declaration_span: Span,
     pub span: Span,
-    pub modifiers: Option<ModifierList>,
+    pub modifiers: Option<AstId>,
     pub kind: FunctionKind,
 
     pub name: Option<AstId>,
@@ -1223,13 +1293,7 @@ impl Function {
 #[derive(Clone, Debug)]
 pub struct ModifierList {
     pub span: Span,
-    pub modifiers: Vec<Modifier>,
-}
-
-impl ModifierList {
-    pub fn iter(&self) -> Iter<Modifier> {
-        self.modifiers.iter()
-    }
+    pub modifiers: Vec<AstId>,
 }
 
 #[derive(Clone, Debug)]

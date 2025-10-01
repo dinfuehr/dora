@@ -20,7 +20,7 @@ use crate::sema::{
 use crate::sym::{SymTable, Symbol, SymbolKind};
 use crate::{report_sym_shadow_span, ty, ParsedType, SourceType};
 use dora_parser::ast::visit::Visitor;
-use dora_parser::ast::{self, visit, AstId, ModifierList};
+use dora_parser::ast::{self, visit, AstId};
 use dora_parser::parser::Parser;
 use dora_parser::{compute_line_starts, Span};
 
@@ -379,7 +379,7 @@ struct TopLevelDeclaration<'x> {
 
 impl<'x> visit::Visitor for TopLevelDeclaration<'x> {
     fn visit_extern(&mut self, _f: &ast::File, _id: AstId, node: &ast::ExternPackage) {
-        check_modifiers(self.sa, self.file_id, &node.modifiers, &[]);
+        check_modifiers(self.sa, self.file_id, node.modifiers, &[]);
         if let Some(name_id) = node.name {
             let name = _f.node(name_id).to_ident().expect("ident expected");
             let name_as_str = &name.name;
@@ -411,7 +411,7 @@ impl<'x> visit::Visitor for TopLevelDeclaration<'x> {
     }
 
     fn visit_module(&mut self, f: &ast::File, ast_id: AstId, node: &ast::Module) {
-        let modifiers = check_modifiers(self.sa, self.file_id, &node.modifiers, &[Annotation::Pub]);
+        let modifiers = check_modifiers(self.sa, self.file_id, node.modifiers, &[Annotation::Pub]);
         let name = ensure_name(self.sa, f, node.name);
         let module = ModuleDefinition::new_inner(
             self.sa,
@@ -447,7 +447,7 @@ impl<'x> visit::Visitor for TopLevelDeclaration<'x> {
     }
 
     fn visit_trait(&mut self, f: &ast::File, ast_id: AstId, node: &ast::Trait) {
-        let modifiers = check_modifiers(self.sa, self.file_id, &node.modifiers, &[Annotation::Pub]);
+        let modifiers = check_modifiers(self.sa, self.file_id, node.modifiers, &[Annotation::Pub]);
 
         let type_param_definition = parse_type_param_definition(
             self.sa,
@@ -489,7 +489,7 @@ impl<'x> visit::Visitor for TopLevelDeclaration<'x> {
     }
 
     fn visit_use(&mut self, _f: &ast::File, _ast_id: AstId, node: &ast::Use) {
-        let modifiers = check_modifiers(self.sa, self.file_id, &node.modifiers, &[Annotation::Pub]);
+        let modifiers = check_modifiers(self.sa, self.file_id, node.modifiers, &[Annotation::Pub]);
         let use_def = UseDefinition::new(
             self.package_id,
             self.module_id,
@@ -502,7 +502,7 @@ impl<'x> visit::Visitor for TopLevelDeclaration<'x> {
     }
 
     fn visit_global(&mut self, f: &ast::File, ast_id: AstId, node: &ast::Global) {
-        let modifiers = check_modifiers(self.sa, self.file_id, &node.modifiers, &[Annotation::Pub]);
+        let modifiers = check_modifiers(self.sa, self.file_id, node.modifiers, &[Annotation::Pub]);
 
         let global = GlobalDefinition::new(
             self.package_id,
@@ -523,7 +523,7 @@ impl<'x> visit::Visitor for TopLevelDeclaration<'x> {
     }
 
     fn visit_impl(&mut self, f: &ast::File, ast_id: AstId, node: &ast::Impl) {
-        check_modifiers(self.sa, self.file_id, &node.modifiers, &[]);
+        check_modifiers(self.sa, self.file_id, node.modifiers, &[]);
 
         let type_param_definition = parse_type_param_definition(
             self.sa,
@@ -575,7 +575,7 @@ impl<'x> visit::Visitor for TopLevelDeclaration<'x> {
     }
 
     fn visit_const(&mut self, f: &ast::File, ast_id: AstId, node: &ast::Const) {
-        let modifiers = check_modifiers(self.sa, self.file_id, &node.modifiers, &[Annotation::Pub]);
+        let modifiers = check_modifiers(self.sa, self.file_id, node.modifiers, &[Annotation::Pub]);
         let const_ = ConstDefinition::new(
             self.package_id,
             self.module_id,
@@ -598,7 +598,7 @@ impl<'x> visit::Visitor for TopLevelDeclaration<'x> {
         let modifiers = check_modifiers(
             self.sa,
             self.file_id,
-            &node.modifiers,
+            node.modifiers,
             &[Annotation::Internal, Annotation::Pub],
         );
 
@@ -635,7 +635,7 @@ impl<'x> visit::Visitor for TopLevelDeclaration<'x> {
                 .expect("field expected");
 
             let modifiers =
-                check_modifiers(self.sa, self.file_id, &field.modifiers, &[Annotation::Pub]);
+                check_modifiers(self.sa, self.file_id, field.modifiers, &[Annotation::Pub]);
 
             let name = if node.field_name_style.is_positional() {
                 None
@@ -671,7 +671,7 @@ impl<'x> visit::Visitor for TopLevelDeclaration<'x> {
                 .to_field()
                 .expect("field expected");
 
-            check_modifiers(self.sa, self.file_id, &field.modifiers, &[Annotation::Pub]);
+            check_modifiers(self.sa, self.file_id, field.modifiers, &[Annotation::Pub]);
         }
     }
 
@@ -679,7 +679,7 @@ impl<'x> visit::Visitor for TopLevelDeclaration<'x> {
         let modifiers = check_modifiers(
             self.sa,
             self.file_id,
-            &node.modifiers,
+            node.modifiers,
             &[Annotation::Pub, Annotation::Internal],
         );
 
@@ -716,7 +716,7 @@ impl<'x> visit::Visitor for TopLevelDeclaration<'x> {
                 .expect("field expected");
 
             let modifiers =
-                check_modifiers(self.sa, self.file_id, &field.modifiers, &[Annotation::Pub]);
+                check_modifiers(self.sa, self.file_id, field.modifiers, &[Annotation::Pub]);
 
             let name = if node.field_style.is_positional() {
                 None
@@ -764,7 +764,7 @@ impl<'x> visit::Visitor for TopLevelDeclaration<'x> {
         let modifiers = check_modifiers(
             self.sa,
             self.file_id,
-            &node.modifiers,
+            node.modifiers,
             &[
                 Annotation::Internal,
                 Annotation::Optimize,
@@ -817,7 +817,7 @@ impl<'x> visit::Visitor for TopLevelDeclaration<'x> {
             self.file_id,
         );
 
-        let modifiers = check_modifiers(self.sa, self.file_id, &node.modifiers, &[Annotation::Pub]);
+        let modifiers = check_modifiers(self.sa, self.file_id, node.modifiers, &[Annotation::Pub]);
         let enum_ = EnumDefinition::new(
             self.package_id,
             self.module_id,
@@ -920,7 +920,7 @@ impl<'x> visit::Visitor for TopLevelDeclaration<'x> {
     }
 
     fn visit_type_alias(&mut self, f: &ast::File, ast_id: AstId, node: &ast::Alias) {
-        let modifiers = check_modifiers(self.sa, self.file_id, &node.modifiers, &[Annotation::Pub]);
+        let modifiers = check_modifiers(self.sa, self.file_id, node.modifiers, &[Annotation::Pub]);
 
         let parsed_ty = if let Some(ref ty) = node.ty {
             ParsedType::new_ast(ty.clone())
@@ -1003,7 +1003,7 @@ fn find_elements_in_trait(
                 let modifiers = check_modifiers(
                     sa,
                     trait_.file_id,
-                    &method_node.modifiers,
+                    method_node.modifiers,
                     &[
                         Annotation::Static,
                         Annotation::Optimize,
@@ -1065,7 +1065,7 @@ fn find_elements_in_trait(
             }
 
             ast::Ast::Alias(ref node) => {
-                let modifiers = check_modifiers(sa, file_id, &node.modifiers, &[]);
+                let modifiers = check_modifiers(sa, file_id, node.modifiers, &[]);
 
                 let name = ensure_name(sa, f, node.name);
 
@@ -1184,7 +1184,7 @@ fn find_elements_in_impl(
                 let modifiers = check_modifiers(
                     sa,
                     impl_.file_id,
-                    &method_node.modifiers,
+                    method_node.modifiers,
                     &[Annotation::Static, Annotation::Internal],
                 );
 
@@ -1221,7 +1221,7 @@ fn find_elements_in_impl(
             }
 
             ast::Ast::Alias(ref node) => {
-                let modifiers = check_modifiers(sa, file_id, &node.modifiers, &[]);
+                let modifiers = check_modifiers(sa, file_id, node.modifiers, &[]);
 
                 let name = ensure_name(sa, f, node.name);
 
@@ -1318,7 +1318,7 @@ fn find_elements_in_extension(
                 let modifiers = check_modifiers(
                     sa,
                     extension.file_id,
-                    &method_node.modifiers,
+                    method_node.modifiers,
                     &[
                         Annotation::Internal,
                         Annotation::Static,
@@ -1444,15 +1444,23 @@ impl Annotation {
 fn check_modifiers(
     sa: &Sema,
     file_id: SourceFileId,
-    modifiers: &Option<ModifierList>,
+    modifier_list_id: Option<AstId>,
     allow_list: &[Annotation],
 ) -> ParsedModifierList {
     let mut parsed_modifiers = ParsedModifierList::default();
 
-    if let Some(modifiers) = modifiers {
+    if let Some(modifier_list_id) = modifier_list_id {
         let mut set: HashSet<Annotation> = HashSet::new();
+        let modifier_list = sa
+            .node(file_id, modifier_list_id)
+            .to_modifier_list()
+            .expect("modifier list expected");
 
-        for modifier in modifiers.iter() {
+        for &modifier_id in &modifier_list.modifiers {
+            let modifier = sa
+                .node(file_id, modifier_id)
+                .to_modifier()
+                .expect("modifier expected");
             let value = check_modifier(sa, file_id, modifier, &mut parsed_modifiers);
 
             if value.is_error() {

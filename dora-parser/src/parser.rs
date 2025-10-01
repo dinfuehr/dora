@@ -153,7 +153,7 @@ impl Parser {
         }
     }
 
-    fn parse_extern(&mut self, modifiers: Option<ModifierList>) -> ExternPackage {
+    fn parse_extern(&mut self, modifiers: Option<AstId>) -> ExternPackage {
         self.start_node();
 
         self.assert(EXTERN_KW);
@@ -174,7 +174,7 @@ impl Parser {
         }
     }
 
-    fn parse_use(&mut self, modifiers: Option<ModifierList>) -> Use {
+    fn parse_use(&mut self, modifiers: Option<AstId>) -> Use {
         self.start_node();
         self.assert(USE_KW);
         let path = self.parse_use_path();
@@ -291,7 +291,7 @@ impl Parser {
             .alloc(Ast::UseGroup(UseGroup { span, targets }))
     }
 
-    fn parse_enum(&mut self, modifiers: Option<ModifierList>) -> Enum {
+    fn parse_enum(&mut self, modifiers: Option<AstId>) -> Enum {
         self.start_node();
         self.assert(ENUM_KW);
         let name = self.expect_identifier();
@@ -320,7 +320,7 @@ impl Parser {
 
         Enum {
             span: self.finish_node(),
-            modifiers: modifiers.clone(),
+            modifiers,
             name,
             type_params,
             variants,
@@ -328,7 +328,7 @@ impl Parser {
         }
     }
 
-    fn parse_module(&mut self, modifiers: Option<ModifierList>) -> Module {
+    fn parse_module(&mut self, modifiers: Option<AstId>) -> Module {
         self.start_node();
         self.assert(MOD_KW);
         let name = self.expect_identifier();
@@ -349,7 +349,7 @@ impl Parser {
 
         Module {
             span: self.finish_node(),
-            modifiers: modifiers.clone(),
+            modifiers,
             name,
             elements,
         }
@@ -407,7 +407,7 @@ impl Parser {
         }
     }
 
-    fn parse_const(&mut self, modifiers: Option<ModifierList>) -> Const {
+    fn parse_const(&mut self, modifiers: Option<AstId>) -> Const {
         self.start_node();
         self.assert(CONST_KW);
         let name = self.expect_identifier();
@@ -419,14 +419,14 @@ impl Parser {
 
         Const {
             span: self.finish_node(),
-            modifiers: modifiers.clone(),
+            modifiers,
             name,
             data_type: ty,
             expr,
         }
     }
 
-    fn parse_impl(&mut self, modifiers: Option<ModifierList>) -> Impl {
+    fn parse_impl(&mut self, modifiers: Option<AstId>) -> Impl {
         let start = self.current_span().start();
         self.start_node();
         self.assert(IMPL_KW);
@@ -467,7 +467,7 @@ impl Parser {
         }
     }
 
-    fn parse_global(&mut self, modifiers: Option<ModifierList>) -> Global {
+    fn parse_global(&mut self, modifiers: Option<AstId>) -> Global {
         self.start_node();
         self.assert(LET_KW);
 
@@ -487,7 +487,7 @@ impl Parser {
 
         Global {
             name,
-            modifiers: modifiers.clone(),
+            modifiers: modifiers,
             span: self.finish_node(),
             data_type,
             mutable,
@@ -495,7 +495,7 @@ impl Parser {
         }
     }
 
-    fn parse_trait(&mut self, modifiers: Option<ModifierList>) -> Trait {
+    fn parse_trait(&mut self, modifiers: Option<AstId>) -> Trait {
         self.start_node();
         self.assert(TRAIT_KW);
         let name = self.expect_identifier();
@@ -519,7 +519,7 @@ impl Parser {
 
         Trait {
             name,
-            modifiers: modifiers.clone(),
+            modifiers,
             type_params,
             bounds,
             where_clause,
@@ -528,7 +528,7 @@ impl Parser {
         }
     }
 
-    fn parse_alias(&mut self, modifiers: Option<ModifierList>) -> Alias {
+    fn parse_alias(&mut self, modifiers: Option<AstId>) -> Alias {
         self.start_node();
         self.assert(TYPE_KW);
         let name = self.expect_identifier();
@@ -560,7 +560,7 @@ impl Parser {
         }
     }
 
-    fn parse_struct(&mut self, modifiers: Option<ModifierList>) -> Struct {
+    fn parse_struct(&mut self, modifiers: Option<AstId>) -> Struct {
         self.start_node();
         self.assert(STRUCT_KW);
         let ident = self.expect_identifier();
@@ -608,7 +608,7 @@ impl Parser {
 
         Struct {
             name: ident,
-            modifiers: modifiers.clone(),
+            modifiers,
             span: self.finish_node(),
             fields,
             type_params,
@@ -653,7 +653,7 @@ impl Parser {
         }))
     }
 
-    fn parse_class(&mut self, modifiers: Option<ModifierList>) -> Class {
+    fn parse_class(&mut self, modifiers: Option<AstId>) -> Class {
         self.start_node();
         self.assert(CLASS_KW);
 
@@ -703,7 +703,7 @@ impl Parser {
 
         Class {
             span: self.finish_node(),
-            modifiers: modifiers.clone(),
+            modifiers,
             name,
             fields,
             type_params,
@@ -772,27 +772,28 @@ impl Parser {
         bounds
     }
 
-    fn parse_modifiers(&mut self) -> Option<ModifierList> {
+    fn parse_modifiers(&mut self) -> Option<AstId> {
         if self.is_set(MODIFIER_FIRST) {
             self.start_node();
-            let mut modifiers: Vec<Modifier> = Vec::new();
+            let mut modifiers = Vec::new();
 
             while self.is_set(MODIFIER_FIRST) {
                 modifiers.push(self.parse_modifier());
             }
 
             assert!(!modifiers.is_empty());
+            let span = self.finish_node();
 
-            Some(ModifierList {
-                span: self.finish_node(),
-                modifiers,
-            })
+            Some(
+                self.ast_nodes
+                    .alloc(Ast::ModifierList(ModifierList { span, modifiers })),
+            )
         } else {
             None
         }
     }
 
-    fn parse_modifier(&mut self) -> Modifier {
+    fn parse_modifier(&mut self) -> AstId {
         self.start_node();
 
         let kind = self.current();
@@ -807,14 +808,14 @@ impl Parser {
             ident = self.expect_identifier();
         }
 
-        Modifier {
+        self.ast_nodes.alloc(Ast::Modifier(Modifier {
             span: self.finish_node(),
             kind,
             ident,
-        }
+        }))
     }
 
-    fn parse_function(&mut self, modifiers: Option<ModifierList>) -> Function {
+    fn parse_function(&mut self, modifiers: Option<AstId>) -> Function {
         let start = self.current_span().start();
         self.start_node();
         self.assert(FN_KW);
@@ -828,7 +829,7 @@ impl Parser {
 
         Function {
             kind: FunctionKind::Function,
-            modifiers: modifiers.clone(),
+            modifiers,
             name,
             declaration_span,
             span: self.finish_node(),
