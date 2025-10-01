@@ -225,6 +225,375 @@ impl Ast {
         }
     }
 
+    pub fn name(&self) -> &'static str {
+        match self {
+            Ast::Function(..) => "Function",
+            Ast::Class(..) => "Class",
+            Ast::Struct(..) => "Struct",
+            Ast::WhereClause(..) => "WhereClause",
+            Ast::WhereClauseItem(..) => "WhereClauseItem",
+            Ast::Field(..) => "Field",
+            Ast::Trait(..) => "Trait",
+            Ast::Impl(..) => "Impl",
+            Ast::Global(..) => "Global",
+            Ast::Const(..) => "Const",
+            Ast::Enum(..) => "Enum",
+            Ast::Module(..) => "Module",
+            Ast::Use(..) => "Use",
+            Ast::UsePath(..) => "UsePath",
+            Ast::UseGroup(..) => "UseGroup",
+            Ast::UseTargetName(..) => "UseTargetName",
+            Ast::Extern(..) => "Extern",
+            Ast::Alias(..) => "Alias",
+            Ast::Argument(..) => "Argument",
+            Ast::Param(..) => "Param",
+            Ast::RegularType(..) => "RegularType",
+            Ast::TupleType(..) => "TupleType",
+            Ast::LambdaType(..) => "LambdaType",
+            Ast::QualifiedPathType(..) => "QualifiedPathType",
+            Ast::LetStmt(..) => "LetStmt",
+            Ast::ExprStmt(..) => "ExprStmt",
+            Ast::Un(..) => "Un",
+            Ast::Bin(..) => "Bin",
+            Ast::LitChar(..) => "LitChar",
+            Ast::LitInt(..) => "LitInt",
+            Ast::LitFloat(..) => "LitFloat",
+            Ast::LitStr(..) => "LitStr",
+            Ast::Template(..) => "Template",
+            Ast::LitBool(..) => "LitBool",
+            Ast::Ident(..) => "Ident",
+            Ast::Call(..) => "Call",
+            Ast::TypeParam(..) => "TypeParam",
+            Ast::Path(..) => "Path",
+            Ast::PathData(..) => "PathData",
+            Ast::Dot(..) => "Dot",
+            Ast::This(..) => "This",
+            Ast::UpcaseThis(..) => "UpcaseThis",
+            Ast::Conv(..) => "Conv",
+            Ast::Is(..) => "Is",
+            Ast::Lambda(..) => "Lambda",
+            Ast::Block(..) => "Block",
+            Ast::If(..) => "If",
+            Ast::Tuple(..) => "Tuple",
+            Ast::Paren(..) => "Paren",
+            Ast::Match(..) => "Match",
+            Ast::MatchArm(..) => "MatchArm",
+            Ast::For(..) => "For",
+            Ast::While(..) => "While",
+            Ast::Break(..) => "Break",
+            Ast::Continue(..) => "Continue",
+            Ast::Return(..) => "Return",
+            Ast::TypeArgument(..) => "TypeArgument",
+            Ast::Underscore(..) => "Underscore",
+            Ast::LitPattern(..) => "LitPattern",
+            Ast::IdentPattern(..) => "IdentPattern",
+            Ast::TuplePattern(..) => "TuplePattern",
+            Ast::ConstructorPattern(..) => "ConstructorPattern",
+            Ast::ConstructorField(..) => "ConstructorField",
+            Ast::Rest(..) => "Rest",
+            Ast::Alt(..) => "Alt",
+            Ast::Error(..) => "Error",
+        }
+    }
+
+    pub fn children(&self) -> Vec<AstId> {
+        match self {
+            Ast::Function(node) => {
+                let mut children = Vec::new();
+                if let Some(name) = node.name {
+                    children.push(name);
+                }
+                children.extend(&node.params);
+                if let Some(return_type) = node.return_type {
+                    children.push(return_type);
+                }
+                if let Some(where_clause) = node.where_clause {
+                    children.push(where_clause);
+                }
+                if let Some(block) = node.block {
+                    children.push(block);
+                }
+                children
+            }
+            Ast::Class(node) => {
+                let mut children = Vec::new();
+                if let Some(name) = node.name {
+                    children.push(name);
+                }
+                children.extend(&node.fields);
+                if let Some(where_clause) = node.where_clause {
+                    children.push(where_clause);
+                }
+                children
+            }
+            Ast::Struct(node) => {
+                let mut children = Vec::new();
+                if let Some(name) = node.name {
+                    children.push(name);
+                }
+                children.extend(&node.fields);
+                if let Some(where_clause) = node.where_clause {
+                    children.push(where_clause);
+                }
+                children
+            }
+            Ast::WhereClause(node) => node.clauses.clone(),
+            Ast::WhereClauseItem(node) => {
+                let mut children = vec![node.ty];
+                children.extend(&node.bounds);
+                children
+            }
+            Ast::Field(node) => {
+                let mut children = Vec::new();
+                if let Some(name) = node.name {
+                    children.push(name);
+                }
+                children.push(node.data_type);
+                children
+            }
+            Ast::Trait(node) => {
+                let mut children = Vec::new();
+                if let Some(name) = node.name {
+                    children.push(name);
+                }
+                children.extend(&node.bounds);
+                if let Some(where_clause) = node.where_clause {
+                    children.push(where_clause);
+                }
+                children.extend(&node.methods);
+                children
+            }
+            Ast::Impl(node) => {
+                let mut children = Vec::new();
+                if let Some(trait_type) = node.trait_type {
+                    children.push(trait_type);
+                }
+                children.push(node.extended_type);
+                if let Some(where_clause) = node.where_clause {
+                    children.push(where_clause);
+                }
+                children.extend(&node.methods);
+                children
+            }
+            Ast::Global(node) => {
+                let mut children = Vec::new();
+                if let Some(name) = node.name {
+                    children.push(name);
+                }
+                children.push(node.data_type);
+                if let Some(initial_value) = node.initial_value {
+                    children.push(initial_value);
+                }
+                children
+            }
+            Ast::Const(node) => {
+                let mut children = Vec::new();
+                if let Some(name) = node.name {
+                    children.push(name);
+                }
+                children.push(node.data_type);
+                children.push(node.expr);
+                children
+            }
+            Ast::Enum(node) => {
+                let mut children = Vec::new();
+                if let Some(name) = node.name {
+                    children.push(name);
+                }
+                if let Some(where_clause) = node.where_clause {
+                    children.push(where_clause);
+                }
+                children
+            }
+            Ast::Module(node) => {
+                let mut children = Vec::new();
+                if let Some(name) = node.name {
+                    children.push(name);
+                }
+                if let Some(ref elements) = node.elements {
+                    children.extend(elements);
+                }
+                children
+            }
+            Ast::Use(node) => vec![node.path],
+            Ast::UsePath(..) => vec![],
+            Ast::UseGroup(node) => node.targets.clone(),
+            Ast::UseTargetName(node) => {
+                if let Some(name) = node.name {
+                    vec![name]
+                } else {
+                    vec![]
+                }
+            }
+            Ast::Extern(node) => {
+                let mut children = Vec::new();
+                if let Some(name) = node.name {
+                    children.push(name);
+                }
+                if let Some(identifier) = node.identifier {
+                    children.push(identifier);
+                }
+                children
+            }
+            Ast::Alias(node) => {
+                let mut children = Vec::new();
+                if let Some(name) = node.name {
+                    children.push(name);
+                }
+                if let Some(pre_where_clause) = node.pre_where_clause {
+                    children.push(pre_where_clause);
+                }
+                children.extend(&node.bounds);
+                if let Some(ty) = node.ty {
+                    children.push(ty);
+                }
+                if let Some(post_where_clause) = node.post_where_clause {
+                    children.push(post_where_clause);
+                }
+                children
+            }
+            Ast::Argument(node) => {
+                let mut children = Vec::new();
+                if let Some(name) = node.name {
+                    children.push(name);
+                }
+                children.push(node.expr);
+                children
+            }
+            Ast::Param(node) => vec![node.pattern, node.data_type],
+            Ast::RegularType(node) => {
+                let mut children = vec![node.path];
+                children.extend(&node.params);
+                children
+            }
+            Ast::TupleType(node) => node.subtypes.clone(),
+            Ast::LambdaType(node) => {
+                let mut children = Vec::new();
+                children.extend(&node.params);
+                if let Some(ret) = node.ret {
+                    children.push(ret);
+                }
+                children
+            }
+            Ast::QualifiedPathType(node) => {
+                let mut children = vec![node.ty, node.trait_ty];
+                if let Some(name) = node.name {
+                    children.push(name);
+                }
+                children
+            }
+            Ast::LetStmt(node) => {
+                let mut children = vec![node.pattern];
+                if let Some(data_type) = node.data_type {
+                    children.push(data_type);
+                }
+                if let Some(expr) = node.expr {
+                    children.push(expr);
+                }
+                children
+            }
+            Ast::ExprStmt(node) => vec![node.expr],
+            Ast::Un(node) => vec![node.opnd],
+            Ast::Bin(node) => vec![node.lhs, node.rhs],
+            Ast::LitChar(..) => vec![],
+            Ast::LitInt(..) => vec![],
+            Ast::LitFloat(..) => vec![],
+            Ast::LitStr(..) => vec![],
+            Ast::Template(node) => node.parts.clone(),
+            Ast::LitBool(..) => vec![],
+            Ast::Ident(..) => vec![],
+            Ast::Call(node) => {
+                let mut children = vec![node.callee];
+                children.extend(&node.args);
+                children
+            }
+            Ast::TypeParam(node) => {
+                let mut children = vec![node.callee];
+                children.extend(&node.args);
+                children
+            }
+            Ast::Path(node) => vec![node.lhs, node.rhs],
+            Ast::PathData(node) => node.segments.clone(),
+            Ast::Dot(node) => vec![node.lhs, node.rhs],
+            Ast::This(..) => vec![],
+            Ast::UpcaseThis(..) => vec![],
+            Ast::Conv(node) => vec![node.object, node.data_type],
+            Ast::Is(node) => vec![node.value, node.pattern],
+            Ast::Lambda(node) => vec![node.fct_id],
+            Ast::Block(node) => {
+                let mut children = Vec::new();
+                children.extend(&node.stmts);
+                if let Some(expr) = node.expr {
+                    children.push(expr);
+                }
+                children
+            }
+            Ast::If(node) => {
+                let mut children = vec![node.cond, node.then_block];
+                if let Some(else_block) = node.else_block {
+                    children.push(else_block);
+                }
+                children
+            }
+            Ast::Tuple(node) => node.values.clone(),
+            Ast::Paren(node) => vec![node.expr],
+            Ast::Match(node) => {
+                let mut children = vec![node.expr];
+                children.extend(&node.arms);
+                children
+            }
+            Ast::MatchArm(node) => {
+                let mut children = vec![node.pattern];
+                if let Some(cond) = node.cond {
+                    children.push(cond);
+                }
+                children.push(node.value);
+                children
+            }
+            Ast::For(node) => vec![node.pattern, node.expr, node.block],
+            Ast::While(node) => vec![node.cond, node.block],
+            Ast::Break(..) => vec![],
+            Ast::Continue(..) => vec![],
+            Ast::Return(node) => {
+                if let Some(expr) = node.expr {
+                    vec![expr]
+                } else {
+                    vec![]
+                }
+            }
+            Ast::TypeArgument(node) => {
+                let mut children = Vec::new();
+                if let Some(name) = node.name {
+                    children.push(name);
+                }
+                children.push(node.ty);
+                children
+            }
+            Ast::Underscore(..) => vec![],
+            Ast::LitPattern(node) => vec![node.expr],
+            Ast::IdentPattern(node) => vec![node.name],
+            Ast::TuplePattern(node) => node.params.clone(),
+            Ast::ConstructorPattern(node) => {
+                let mut children = vec![node.path];
+                if let Some(ref params) = node.params {
+                    children.extend(params);
+                }
+                children
+            }
+            Ast::ConstructorField(node) => {
+                let mut children = Vec::new();
+                if let Some(ident) = node.ident {
+                    children.push(ident);
+                }
+                children.push(node.pattern);
+                children
+            }
+            Ast::Rest(..) => vec![],
+            Ast::Alt(node) => node.alts.clone(),
+            Ast::Error(..) => vec![],
+        }
+    }
+
     pub fn to_function(&self) -> Option<&Function> {
         match self {
             &Ast::Function(ref fct) => Some(fct),
