@@ -20,6 +20,7 @@ pub use specialize::{
 
 pub(crate) mod access;
 mod aliasck;
+pub mod ast_dump;
 mod clsdefck;
 mod constdefck;
 mod enumck;
@@ -112,7 +113,7 @@ pub fn emit_ast(sa: &Sema, filter: &str) {
 
         if fct_pattern_match(&fct_name, filter) && fct.has_body(sa) {
             let file = sa.file(fct.file_id);
-            ast::dump::dump_node(file.ast(), fct.ast_id());
+            ast_dump::dump_function(file, fct);
         }
     }
 }
