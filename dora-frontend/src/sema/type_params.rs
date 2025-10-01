@@ -160,7 +160,7 @@ impl TypeParamDefinition {
         false
     }
 
-    pub fn bounds(&self) -> BoundsIter {
+    pub fn bounds(&self) -> BoundsIter<'_> {
         BoundsIter {
             data: self,
             current: 0,
@@ -168,7 +168,7 @@ impl TypeParamDefinition {
         }
     }
 
-    pub fn own_bounds(&self) -> BoundsIter {
+    pub fn own_bounds(&self) -> BoundsIter<'_> {
         BoundsIter {
             data: self,
             current: self.container_bounds,
@@ -201,7 +201,7 @@ impl TypeParamDefinition {
         self.type_param_count() == 0
     }
 
-    pub fn names(&self) -> TypeParamNameIter {
+    pub fn names(&self) -> TypeParamNameIter<'_> {
         TypeParamNameIter {
             data: self,
             current: 0,

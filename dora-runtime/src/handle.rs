@@ -41,12 +41,12 @@ impl HandleMemory {
         self.get_inner_mut().drop_scope(scope)
     }
 
-    pub fn iterate_for_gc(&self) -> HandleMemoryIter {
+    pub fn iterate_for_gc(&self) -> HandleMemoryIter<'_> {
         assert!(get_vm().state().in_safepoint());
         self.raw_iterate()
     }
 
-    fn raw_iterate(&self) -> HandleMemoryIter {
+    fn raw_iterate(&self) -> HandleMemoryIter<'_> {
         let inner = self.get_inner_mut();
 
         HandleMemoryIter {

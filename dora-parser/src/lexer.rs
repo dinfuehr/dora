@@ -40,7 +40,7 @@ struct Lexer<'a> {
 }
 
 impl<'a> Lexer<'a> {
-    fn new(content: &str) -> Lexer {
+    fn new(content: &str) -> Lexer<'_> {
         let keywords = keywords_in_map();
 
         Lexer {

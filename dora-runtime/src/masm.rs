@@ -171,11 +171,11 @@ impl MacroAssembler {
                 }
 
                 EmbeddedConstant::Float32(value) => {
-                    self.asm.emit_u32(unsafe { std::mem::transmute(*value) });
+                    self.asm.emit_u32(value.to_bits());
                 }
 
                 EmbeddedConstant::Float64(value) => {
-                    self.asm.emit_u64(unsafe { std::mem::transmute(*value) });
+                    self.asm.emit_u64(value.to_bits());
                 }
 
                 EmbeddedConstant::Int128(value) => {

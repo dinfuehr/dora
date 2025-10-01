@@ -814,7 +814,7 @@ impl SourceTypeArray {
         }
     }
 
-    pub fn iter(&self) -> SourceTypeArrayIter {
+    pub fn iter(&self) -> SourceTypeArrayIter<'_> {
         SourceTypeArrayIter {
             params: self,
             idx: 0,

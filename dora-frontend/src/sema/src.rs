@@ -209,7 +209,7 @@ impl<V> NodeMap<V> {
         self.map.clear();
     }
 
-    pub fn iter(&self) -> Iter<ast::AstId, V> {
+    pub fn iter(&self) -> Iter<'_, ast::AstId, V> {
         self.map.iter()
     }
 }

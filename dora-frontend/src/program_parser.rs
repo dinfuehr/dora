@@ -38,7 +38,7 @@ struct ProgramParser<'a> {
 }
 
 impl<'a> ProgramParser<'a> {
-    fn new(sa: &mut Sema) -> ProgramParser {
+    fn new(sa: &mut Sema) -> ProgramParser<'_> {
         ProgramParser {
             sa,
             worklist: VecDeque::new(),

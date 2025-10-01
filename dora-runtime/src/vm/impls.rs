@@ -158,7 +158,7 @@ pub fn tp_implements_trait(
     false
 }
 
-pub fn bounds_for_tp(type_param_defs: &TypeParamData, id: u32) -> TypeParamBoundsIter {
+pub fn bounds_for_tp(type_param_defs: &TypeParamData, id: u32) -> TypeParamBoundsIter<'_> {
     TypeParamBoundsIter {
         bounds: &type_param_defs.bounds,
         current: 0,

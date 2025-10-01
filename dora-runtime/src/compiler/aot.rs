@@ -221,7 +221,7 @@ struct TransitiveClosureComputation<'a> {
 }
 
 impl<'a> TransitiveClosureComputation<'a> {
-    fn new(vm: &VM) -> TransitiveClosureComputation {
+    fn new(vm: &VM) -> TransitiveClosureComputation<'_> {
         TransitiveClosureComputation {
             vm,
             worklist: Vec::new(),

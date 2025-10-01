@@ -220,7 +220,7 @@ impl BytecodeTypeArray {
         self.0.len()
     }
 
-    pub fn iter(&self) -> BytecodeTypeArrayIter {
+    pub fn iter(&self) -> BytecodeTypeArrayIter<'_> {
         BytecodeTypeArrayIter {
             params: self,
             idx: 0,
