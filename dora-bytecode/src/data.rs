@@ -742,7 +742,7 @@ pub enum ConstPoolEntry {
 impl ConstPoolEntry {
     pub fn to_string(&self) -> Option<&str> {
         match self {
-            ConstPoolEntry::String(ref value) => Some(value),
+            ConstPoolEntry::String(value) => Some(value),
             _ => None,
         }
     }

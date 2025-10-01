@@ -3,9 +3,9 @@ use std::io;
 
 use crate::display::fmt_ty as fmt_ty2;
 use crate::{
-    display_fct, module_path_name, read, BytecodeFunction, BytecodeOffset, BytecodeType,
-    BytecodeTypeArray, BytecodeVisitor, ConstPoolEntry, ConstPoolIdx, GlobalId, Program, Register,
-    TypeParamMode,
+    BytecodeFunction, BytecodeOffset, BytecodeType, BytecodeTypeArray, BytecodeVisitor,
+    ConstPoolEntry, ConstPoolIdx, GlobalId, Program, Register, TypeParamMode, display_fct,
+    module_path_name, read,
 };
 
 pub fn dump_stdout(prog: &Program, bc: &BytecodeFunction, type_params: TypeParamMode) {
@@ -41,18 +41,18 @@ pub fn dump(
 
     for (idx, entry) in bc.const_pool_entries().iter().enumerate() {
         match entry {
-            ConstPoolEntry::String(ref value) => {
+            ConstPoolEntry::String(value) => {
                 writeln!(w, "{}{} => String \"{}\"", align, idx, value)?
             }
-            ConstPoolEntry::Int32(ref value) => writeln!(w, "{}{} => Int32 {}", align, idx, value)?,
-            ConstPoolEntry::Int64(ref value) => writeln!(w, "{}{} => Int64 {}", align, idx, value)?,
-            ConstPoolEntry::Float32(ref value) => {
+            ConstPoolEntry::Int32(value) => writeln!(w, "{}{} => Int32 {}", align, idx, value)?,
+            ConstPoolEntry::Int64(value) => writeln!(w, "{}{} => Int64 {}", align, idx, value)?,
+            ConstPoolEntry::Float32(value) => {
                 writeln!(w, "{}{} => Float32 {}", align, idx, value)?;
             }
-            ConstPoolEntry::Float64(ref value) => {
+            ConstPoolEntry::Float64(value) => {
                 writeln!(w, "{}{} => Float64 {}", align, idx, value)?;
             }
-            ConstPoolEntry::Char(ref value) => writeln!(w, "{}{} => Char {}", align, idx, value)?,
+            ConstPoolEntry::Char(value) => writeln!(w, "{}{} => Char {}", align, idx, value)?,
             ConstPoolEntry::Class(cls_id, type_params) => {
                 let cls = &prog.class(*cls_id);
                 let cls_name = module_path_name(prog, cls.module_id, &cls.name);
@@ -211,10 +211,10 @@ pub fn dump(
             ConstPoolEntry::TupleElement(_tuple_id, _idx) => {
                 writeln!(w, "{}{} => TupleElement {}.{}", align, idx, "subtypes", idx)?
             }
-            ConstPoolEntry::Tuple(ref subtypes) => {
+            ConstPoolEntry::Tuple(subtypes) => {
                 writeln!(w, "{}{} => Tuple {}", align, idx, fmt_tuple(prog, subtypes))?
             }
-            ConstPoolEntry::Lambda(ref params, ref return_type) => writeln!(
+            ConstPoolEntry::Lambda(params, return_type) => writeln!(
                 w,
                 "{}{} => Lambda {}: {}",
                 align,
@@ -336,7 +336,7 @@ impl<'a> Display for BytecodeTypePrinter<'a> {
             BytecodeType::Float64 => write!(f, "Float64"),
             BytecodeType::Ptr => write!(f, "Ptr"),
             BytecodeType::This => write!(f, "This"),
-            BytecodeType::Tuple(ref types) => write!(f, "{}", fmt_tuple(self.prog, types)),
+            BytecodeType::Tuple(types) => write!(f, "{}", fmt_tuple(self.prog, types)),
             BytecodeType::TypeParam(idx) => write!(f, "T#{}", idx),
             BytecodeType::Enum(enum_id, type_params) => {
                 let enum_ = self.prog.enum_(*enum_id);
@@ -627,7 +627,7 @@ impl<'a> BytecodeDumper<'a> {
     fn emit_new_tuple(&mut self, name: &str, r1: Register, idx: ConstPoolIdx) {
         self.emit_start(name);
         let types = match self.bc.const_pool(idx) {
-            ConstPoolEntry::Tuple(ref subtypes) => subtypes,
+            ConstPoolEntry::Tuple(subtypes) => subtypes,
             _ => unreachable!(),
         };
         writeln!(self.w, " {}, {}", r1, fmt_tuple(self.prog, types)).expect("write! failed");

@@ -2,10 +2,10 @@ use dora_parser::ast::{self, AstId};
 
 use crate::error::msg::ErrorMessage;
 use crate::expr_always_returns;
-use crate::sema::{find_impl, FctDefinitionId, ForTypeInfo};
+use crate::sema::{FctDefinitionId, ForTypeInfo, find_impl};
 use crate::ty::{self, TraitType};
-use crate::typeck::{check_expr, check_pattern, TypeCheck};
-use crate::{specialize_type, SourceType, SourceTypeArray};
+use crate::typeck::{TypeCheck, check_expr, check_pattern};
+use crate::{SourceType, SourceTypeArray, specialize_type};
 
 pub(super) fn check_expr_while(
     ck: &mut TypeCheck,
@@ -420,7 +420,7 @@ pub(super) fn get_subpatterns<'a>(
 
     match pattern {
         ast::Ast::IdentPattern(..) => None,
-        ast::Ast::ConstructorPattern(ref p) => p.params.as_ref(),
+        ast::Ast::ConstructorPattern(p) => p.params.as_ref(),
         _ => unreachable!(),
     }
 }

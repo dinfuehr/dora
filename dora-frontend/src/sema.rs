@@ -9,7 +9,7 @@ use id_arena::Arena;
 use crate::interner::Interner;
 use dora_bytecode::Location;
 use dora_parser::ast::{Ast, AstId};
-use dora_parser::{compute_line_column, Span};
+use dora_parser::{Span, compute_line_column};
 
 use crate::error::diag::Diagnostic;
 use crate::error::msg::ErrorMessage;
@@ -17,24 +17,24 @@ use crate::{Name, SymTable};
 
 pub use self::aliases::{AliasBound, AliasDefinition, AliasDefinitionId, AliasParent};
 pub use self::classes::{
-    find_field_in_class, Candidate, ClassDefinition, ClassDefinitionId, Visibility,
+    Candidate, ClassDefinition, ClassDefinitionId, Visibility, find_field_in_class,
 };
 pub use self::consts::{ConstDefinition, ConstDefinitionId, ConstValue};
 pub use self::elements::{
-    parent_element_or_self, Element, ElementAccess, ElementField, ElementId, ElementWithFields,
+    Element, ElementAccess, ElementField, ElementId, ElementWithFields, parent_element_or_self,
 };
 pub use self::enums::{EnumDefinition, EnumDefinitionId, VariantDefinition, VariantDefinitionId};
 pub use self::extensions::{ExtensionDefinition, ExtensionDefinitionId};
 pub use self::fields::{FieldDefinition, FieldDefinitionId, FieldIndex};
 pub use self::functions::{
-    emit_as_bytecode_operation, FctDefinition, FctDefinitionId, FctParent, Intrinsic, Param, Params,
+    FctDefinition, FctDefinitionId, FctParent, Intrinsic, Param, Params, emit_as_bytecode_operation,
 };
 pub use self::globals::{GlobalDefinition, GlobalDefinitionId};
 pub use self::impl_matching::{find_impl, impl_matches, implements_trait, maybe_alias_ty};
 pub use self::impls::{ImplDefinition, ImplDefinitionId};
 pub use self::known::KnownElements;
 pub use self::matching::{block_matches_ty, extension_matches, match_arrays};
-pub use self::modules::{module_package, module_path, ModuleDefinition, ModuleDefinitionId};
+pub use self::modules::{ModuleDefinition, ModuleDefinitionId, module_package, module_path};
 pub use self::packages::{PackageDefinition, PackageDefinitionId, PackageName};
 pub use self::source_files::{SourceFile, SourceFileId};
 pub use self::src::{
@@ -44,9 +44,9 @@ pub use self::src::{
     VarId, VarLocation,
 };
 pub use self::structs::{StructDefinition, StructDefinitionId};
-pub use self::traits::{is_trait_object_safe, TraitDefinition, TraitDefinitionId};
+pub use self::traits::{TraitDefinition, TraitDefinitionId, is_trait_object_safe};
 pub use self::tuples::create_tuple;
-pub use self::type_params::{new_identity_type_params, Bound, TypeParamDefinition, TypeParamId};
+pub use self::type_params::{Bound, TypeParamDefinition, TypeParamId, new_identity_type_params};
 pub use self::uses::{UseDefinition, UseDefinitionId};
 
 mod aliases;
@@ -81,7 +81,7 @@ pub enum FileContent {
 impl FileContent {
     pub fn to_path(&self) -> Option<&PathBuf> {
         match self {
-            FileContent::Path(ref path) => Some(path),
+            FileContent::Path(path) => Some(path),
             _ => None,
         }
     }

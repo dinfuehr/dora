@@ -18,11 +18,11 @@ use crate::sema::{
     VariantDefinition, Visibility,
 };
 use crate::sym::{SymTable, Symbol, SymbolKind};
-use crate::{report_sym_shadow_span, ty, ParsedType, SourceType};
+use crate::{ParsedType, SourceType, report_sym_shadow_span, ty};
 use dora_parser::ast::visit::Visitor;
-use dora_parser::ast::{self, visit, AstId};
+use dora_parser::ast::{self, AstId, visit};
 use dora_parser::parser::Parser;
-use dora_parser::{compute_line_starts, Span};
+use dora_parser::{Span, compute_line_starts};
 
 pub fn parse(sa: &mut Sema) -> HashMap<ModuleDefinitionId, SymTable> {
     let mut discoverer = ProgramParser::new(sa);
@@ -173,7 +173,7 @@ impl<'a> ProgramParser<'a> {
                     self.add_file(package_id, module_id, path.clone(), None);
                 }
 
-                FileContent::Content(ref content) => {
+                FileContent::Content(content) => {
                     self.create_source_file_for_content(
                         package_id,
                         module_id,
@@ -243,10 +243,11 @@ impl<'a> ProgramParser<'a> {
             module_table
         };
 
-        assert!(self
-            .module_symtables
-            .insert(module_id, module_table)
-            .is_none());
+        assert!(
+            self.module_symtables
+                .insert(module_id, module_table)
+                .is_none()
+        );
     }
 
     fn add_external_module(
@@ -565,10 +566,12 @@ impl<'x> visit::Visitor for TopLevelDeclaration<'x> {
                 type_param_definition,
             );
             let extension_id = self.sa.extensions.alloc(extension);
-            assert!(self.sa.extensions[extension_id]
-                .id
-                .set(extension_id)
-                .is_ok());
+            assert!(
+                self.sa.extensions[extension_id]
+                    .id
+                    .set(extension_id)
+                    .is_ok()
+            );
 
             find_elements_in_extension(self.sa, self.file_id, extension_id, f, node);
         }
@@ -997,7 +1000,7 @@ fn find_elements_in_trait(
     for &child_id in &node.methods {
         let child = f.node(child_id);
         match child {
-            ast::Ast::Function(ref method_node) => {
+            ast::Ast::Function(method_node) => {
                 let trait_ = sa.trait_(trait_id);
 
                 let modifiers = check_modifiers(
@@ -1064,7 +1067,7 @@ fn find_elements_in_trait(
                 }
             }
 
-            ast::Ast::Alias(ref node) => {
+            ast::Ast::Alias(node) => {
                 let modifiers = check_modifiers(sa, file_id, node.modifiers, &[]);
 
                 let name = ensure_name(sa, f, node.name);
@@ -1179,7 +1182,7 @@ fn find_elements_in_impl(
     for &child_id in &node.methods {
         let child = f.node(child_id);
         match child {
-            ast::Ast::Function(ref method_node) => {
+            ast::Ast::Function(method_node) => {
                 let impl_ = &sa.impl_(impl_id);
                 let modifiers = check_modifiers(
                     sa,
@@ -1220,7 +1223,7 @@ fn find_elements_in_impl(
                 methods.push(fct_id);
             }
 
-            ast::Ast::Alias(ref node) => {
+            ast::Ast::Alias(node) => {
                 let modifiers = check_modifiers(sa, file_id, node.modifiers, &[]);
 
                 let name = ensure_name(sa, f, node.name);
@@ -1312,7 +1315,7 @@ fn find_elements_in_extension(
     for &child_id in &node.methods {
         let child = f.node(child_id);
         match child {
-            ast::Ast::Function(ref method_node) => {
+            ast::Ast::Function(method_node) => {
                 let name = ensure_name(sa, f, method_node.name);
                 let extension = sa.extension(extension_id);
                 let modifiers = check_modifiers(

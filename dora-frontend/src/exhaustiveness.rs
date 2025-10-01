@@ -1,15 +1,15 @@
 use std::collections::{HashMap, HashSet};
 use std::fmt::{self, Write};
 
+use dora_parser::Span;
 use dora_parser::ast;
 use dora_parser::ast::visit::{self, Visitor};
-use dora_parser::Span;
 
+use crate::ErrorMessage;
 use crate::sema::{
     AnalysisData, ClassDefinitionId, Element, ElementWithFields, EnumDefinitionId, IdentType, Sema,
     SourceFileId, StructDefinitionId,
 };
-use crate::ErrorMessage;
 
 pub fn check(sa: &Sema) {
     for (_id, fct) in sa.fcts.iter() {
@@ -381,7 +381,7 @@ fn discover_signature_for_pattern(
     kind: &mut Option<ConstructorId>,
 ) {
     match pattern {
-        Pattern::Alt { ref alts, .. } => {
+        Pattern::Alt { alts, .. } => {
             for param in alts {
                 discover_signature_for_pattern(param, ctors, kind);
             }
@@ -403,7 +403,7 @@ fn discover_signature_for_pattern(
         Pattern::Any { .. } => (),
         Pattern::Constructor {
             constructor_id,
-            ref params,
+            params,
             ..
         } => {
             match *kind {
@@ -1120,12 +1120,12 @@ fn convert_pattern(
     let pattern = sa.node(file_id, pattern_id);
 
     match pattern {
-        ast::Ast::Underscore(ref p) => Pattern::Any { span: Some(p.span) },
-        ast::Ast::Error(ref p) => Pattern::Any { span: Some(p.span) },
+        ast::Ast::Underscore(p) => Pattern::Any { span: Some(p.span) },
+        ast::Ast::Error(p) => Pattern::Any { span: Some(p.span) },
 
         ast::Ast::Rest(..) => unreachable!(),
 
-        ast::Ast::LitPattern(ref lit) => match lit.kind {
+        ast::Ast::LitPattern(lit) => match lit.kind {
             ast::PatternLitKind::Bool => {
                 let node = sa.node(file_id, lit.expr);
                 Pattern::Literal {
@@ -1177,7 +1177,7 @@ fn convert_pattern(
             }
         },
 
-        ast::Ast::TuplePattern(ref tuple) => {
+        ast::Ast::TuplePattern(tuple) => {
             let patterns = tuple
                 .params
                 .iter()
@@ -1191,7 +1191,7 @@ fn convert_pattern(
             }
         }
 
-        ast::Ast::IdentPattern(ref pattern_ident) => {
+        ast::Ast::IdentPattern(pattern_ident) => {
             let ident = analysis.map_idents.get(pattern_id).expect("missing ident");
             match ident {
                 IdentType::EnumVariant(pattern_enum_id, _type_params, variant_id) => {
@@ -1210,7 +1210,7 @@ fn convert_pattern(
             }
         }
 
-        ast::Ast::Alt(ref p) => Pattern::Alt {
+        ast::Ast::Alt(p) => Pattern::Alt {
             span: p.span,
             alts: p
                 .alts
@@ -1219,7 +1219,7 @@ fn convert_pattern(
                 .collect(),
         },
 
-        ast::Ast::ConstructorPattern(ref p) => {
+        ast::Ast::ConstructorPattern(p) => {
             let ident = analysis.map_idents.get(pattern_id).expect("missing ident");
 
             match ident {

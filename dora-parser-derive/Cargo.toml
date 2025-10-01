@@ -6,7 +6,7 @@ description = "Derive macros for dora-parser"
 homepage = "https://github.com/dinfuehr/dora"
 repository = "https://github.com/dinfuehr/dora"
 license = "MIT"
-edition = "2021"
+edition = "2024"
 
 [lib]
 proc-macro = true

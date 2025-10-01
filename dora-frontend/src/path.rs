@@ -1,9 +1,9 @@
-use dora_parser::{ast, Span};
+use dora_parser::{Span, ast};
 
 use crate::access::sym_accessible_from;
 use crate::sema::{
-    parent_element_or_self, AliasDefinitionId, ClassDefinitionId, Element, EnumDefinitionId, Sema,
-    SourceFileId, StructDefinitionId, TraitDefinitionId, TypeParamId,
+    AliasDefinitionId, ClassDefinitionId, Element, EnumDefinitionId, Sema, SourceFileId,
+    StructDefinitionId, TraitDefinitionId, TypeParamId, parent_element_or_self,
 };
 use crate::{ErrorMessage, ModuleSymTable, Name, SymbolKind, TraitType};
 
@@ -264,11 +264,11 @@ fn expect_ident(sa: &Sema, file_id: SourceFileId, segment_id: ast::AstId) -> Res
     let segment = sa.node(file_id, segment_id);
 
     match segment {
-        ast::Ast::UpcaseThis(ref node) => {
+        ast::Ast::UpcaseThis(node) => {
             sa.report(file_id, node.span, ErrorMessage::ExpectedPath);
             Err(())
         }
-        ast::Ast::Ident(ref node) => {
+        ast::Ast::Ident(node) => {
             let name = sa.interner.intern(&node.name);
             Ok(name)
         }

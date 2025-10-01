@@ -799,7 +799,7 @@ impl SourceTypeArray {
     pub fn types(&self) -> &[SourceType] {
         match self {
             SourceTypeArray::Empty => &[],
-            SourceTypeArray::List(ref params) => (**params).as_slice(),
+            SourceTypeArray::List(params) => (**params).as_slice(),
         }
     }
 

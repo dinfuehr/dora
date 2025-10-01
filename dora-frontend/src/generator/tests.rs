@@ -4592,9 +4592,9 @@ impl<'a> BytecodeArrayBuilder<'a> {
             let &idx = self.offset_to_index.get(&target).expect("offset not found");
 
             match &mut self.code[location] {
-                Bytecode::Jump(ref mut target) => *target = idx,
-                Bytecode::JumpIfFalse(_, ref mut target) => *target = idx,
-                Bytecode::JumpIfTrue(_, ref mut target) => *target = idx,
+                Bytecode::Jump(target) => *target = idx,
+                Bytecode::JumpIfFalse(_, target) => *target = idx,
+                Bytecode::JumpIfTrue(_, target) => *target = idx,
                 _ => unreachable!(),
             }
         }

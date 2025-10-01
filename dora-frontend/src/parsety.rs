@@ -3,13 +3,13 @@ use std::collections::{HashMap, HashSet};
 
 use crate::access::{sym_accessible_from, trait_accessible_from};
 use crate::sema::{
-    implements_trait, is_trait_object_safe, parent_element_or_self, AliasDefinitionId, Element,
-    SourceFileId, TraitDefinition, TraitDefinitionId, TypeParamDefinition,
+    AliasDefinitionId, Element, SourceFileId, TraitDefinition, TraitDefinitionId,
+    TypeParamDefinition, implements_trait, is_trait_object_safe, parent_element_or_self,
 };
 use crate::sym::{ModuleSymTable, SymbolKind};
 use crate::{
-    parse_path, replace_type, specialize_type, ErrorMessage, Name, PathKind, Sema, SourceType,
-    SourceTypeArray, Span, TraitType,
+    ErrorMessage, Name, PathKind, Sema, SourceType, SourceTypeArray, Span, TraitType, parse_path,
+    replace_type, specialize_type,
 };
 
 use dora_parser::ast;
@@ -249,16 +249,16 @@ fn parse_type_inner(
 ) -> Box<ParsedTypeAst> {
     let node = sa.node(file_id, ast_id);
     let kind = match node {
-        ast::Ast::RegularType(ref node) => {
+        ast::Ast::RegularType(node) => {
             parse_type_regular(sa, table, file_id, element, allow_self, node)
         }
-        ast::Ast::TupleType(ref node) => {
+        ast::Ast::TupleType(node) => {
             parse_type_tuple(sa, table, file_id, element, allow_self, node)
         }
-        ast::Ast::LambdaType(ref node) => {
+        ast::Ast::LambdaType(node) => {
             parse_type_lambda(sa, table, file_id, element, allow_self, node)
         }
-        ast::Ast::QualifiedPathType(ref node) => {
+        ast::Ast::QualifiedPathType(node) => {
             parse_type_qualified_path(sa, table, file_id, element, allow_self, node)
         }
         ast::Ast::Error { .. } => ParsedTypeKind::Error,
@@ -1381,8 +1381,8 @@ fn expand_sta(
 
 #[cfg(test)]
 mod tests {
-    use crate::tests::*;
     use crate::ErrorMessage;
+    use crate::tests::*;
 
     #[test]
     fn class_type_with_named_type_arg() {

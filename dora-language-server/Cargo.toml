@@ -6,7 +6,7 @@ description = "The Dora programming language"
 homepage = "https://github.com/dinfuehr/dora"
 repository = "https://github.com/dinfuehr/dora"
 license = "MIT"
-edition = "2021"
+edition = "2024"
 
 [dependencies]
 dora-parser = { path = "../dora-parser", version = "0.0.2" }

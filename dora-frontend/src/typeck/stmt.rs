@@ -1,6 +1,6 @@
 use std::collections::HashMap;
 
-use dora_parser::{ast, Span};
+use dora_parser::{Span, ast};
 
 use crate::access::{
     class_accessible_from, enum_accessible_from, is_default_accessible, struct_accessible_from,
@@ -12,17 +12,17 @@ use crate::sema::{
 };
 use crate::ty::SourceType;
 use crate::typeck::{
-    add_local, check_expr, check_lit_char, check_lit_str, compute_lit_float, compute_lit_int,
-    get_subpatterns, read_path, TypeCheck,
+    TypeCheck, add_local, check_expr, check_lit_char, check_lit_str, compute_lit_float,
+    compute_lit_int, get_subpatterns, read_path,
 };
-use crate::{specialize_type, ty, Name, SourceTypeArray, SymbolKind};
+use crate::{Name, SourceTypeArray, SymbolKind, specialize_type, ty};
 
 pub(super) fn check_stmt(ck: &mut TypeCheck, id: ast::AstId) {
     let node = ck.sa.node(ck.file_id, id);
     match node {
-        ast::Ast::LetStmt(ref stmt) => check_stmt_let(ck, stmt),
+        ast::Ast::LetStmt(stmt) => check_stmt_let(ck, stmt),
 
-        ast::Ast::ExprStmt(ref stmt) => {
+        ast::Ast::ExprStmt(stmt) => {
             check_expr(ck, stmt.expr, SourceType::Any);
         }
 
@@ -112,7 +112,7 @@ fn check_pattern_inner(
     let pattern = ck.node(pattern_id);
 
     match pattern {
-        ast::Ast::IdentPattern(ref ident) => {
+        ast::Ast::IdentPattern(ident) => {
             let ident_node = ck.node(ident.name).to_ident().expect("ident expected");
             let sym = ck.symtable.get_string(ck.sa, &ident_node.name);
 
@@ -135,7 +135,7 @@ fn check_pattern_inner(
             }
         }
 
-        ast::Ast::LitPattern(ref p) => match p.kind {
+        ast::Ast::LitPattern(p) => match p.kind {
             ast::PatternLitKind::Bool => {
                 check_literal_ty(ck, pattern_id, SourceType::Bool, ty);
             }
@@ -178,7 +178,7 @@ fn check_pattern_inner(
             // nothing to do
         }
 
-        ast::Ast::Alt(ref p) => {
+        ast::Ast::Alt(p) => {
             let mut bindings_per_alt: Vec<HashMap<Name, BindingData>> =
                 Vec::with_capacity(p.alts.len());
             let mut all_bindings = HashMap::new();
@@ -232,7 +232,7 @@ fn check_pattern_inner(
             }
         }
 
-        ast::Ast::ConstructorPattern(ref p) => {
+        ast::Ast::ConstructorPattern(p) => {
             let sym = read_path(ck, p.path);
 
             match sym {
@@ -257,11 +257,11 @@ fn check_pattern_inner(
             }
         }
 
-        ast::Ast::TuplePattern(ref p) => {
+        ast::Ast::TuplePattern(p) => {
             check_pattern_tuple(ck, ctxt, p, ty);
         }
 
-        ast::Ast::Rest(ref p) => {
+        ast::Ast::Rest(p) => {
             let msg = ErrorMessage::PatternUnexpectedRest;
             ck.sa.report(ck.file_id, p.span, msg);
         }
@@ -535,7 +535,7 @@ fn check_subpatterns_named<'a>(
     let pattern = ck.node(pattern_id);
 
     let params = match pattern {
-        ast::Ast::ConstructorPattern(ref p) => p.params.as_ref(),
+        ast::Ast::ConstructorPattern(p) => p.params.as_ref(),
         ast::Ast::IdentPattern(..) => None,
         _ => unreachable!(),
     };
@@ -730,17 +730,18 @@ fn check_pattern_var(
             var_id
         };
 
-        assert!(ctxt
-            .current
-            .insert(
-                name,
-                BindingData {
-                    var_id,
-                    ty,
-                    span: pattern.span
-                }
-            )
-            .is_none());
+        assert!(
+            ctxt.current
+                .insert(
+                    name,
+                    BindingData {
+                        var_id,
+                        ty,
+                        span: pattern.span
+                    }
+                )
+                .is_none()
+        );
 
         ck.analysis
             .map_idents

@@ -1,8 +1,8 @@
 use std::collections::HashMap;
 use std::convert::TryInto;
 
-use dora_parser::ast::{self, Ast, AstId, CmpOp};
 use dora_parser::Span;
+use dora_parser::ast::{self, Ast, AstId, CmpOp};
 
 use self::bytecode::BytecodeBuilder;
 use self::expr::{
@@ -11,11 +11,11 @@ use self::expr::{
 };
 use crate::program_emitter::Emitter;
 use crate::sema::{
-    emit_as_bytecode_operation, new_identity_type_params, AnalysisData, CallType,
-    ClassDefinitionId, ConstDefinitionId, ContextFieldId, Element, EnumDefinitionId, FctDefinition,
-    FctDefinitionId, FieldIndex, GlobalDefinition, GlobalDefinitionId, IdentType, Intrinsic,
-    LazyContextData, OuterContextIdx, ScopeId, Sema, SourceFileId, StructDefinitionId, VarId,
-    VarLocation,
+    AnalysisData, CallType, ClassDefinitionId, ConstDefinitionId, ContextFieldId, Element,
+    EnumDefinitionId, FctDefinition, FctDefinitionId, FieldIndex, GlobalDefinition,
+    GlobalDefinitionId, IdentType, Intrinsic, LazyContextData, OuterContextIdx, ScopeId, Sema,
+    SourceFileId, StructDefinitionId, VarId, VarLocation, emit_as_bytecode_operation,
+    new_identity_type_params,
 };
 use crate::specialize::{replace_type, specialize_type};
 use crate::ty::{SourceType, SourceTypeArray};
@@ -419,7 +419,7 @@ impl<'a> AstBytecodeGen<'a> {
 
             ast::Ast::Error(..) => unreachable!(),
 
-            ast::Ast::ConstructorPattern(ref p) => {
+            ast::Ast::ConstructorPattern(p) => {
                 if let Some(ref ctor_fields) = p.params {
                     for &ctor_field_id in ctor_fields {
                         let ctor_field = self
@@ -431,13 +431,13 @@ impl<'a> AstBytecodeGen<'a> {
                 }
             }
 
-            ast::Ast::TuplePattern(ref tuple) => {
+            ast::Ast::TuplePattern(tuple) => {
                 for &param_id in &tuple.params {
                     self.setup_pattern_vars(param_id);
                 }
             }
 
-            ast::Ast::Alt(ref p) => {
+            ast::Ast::Alt(p) => {
                 // All alternative patterns define the same vars, so just allocate
                 // registers for the first subpattern.
                 self.setup_pattern_vars(p.alts[0]);
@@ -526,7 +526,7 @@ impl<'a> AstBytecodeGen<'a> {
                 }
             }
 
-            ast::Ast::LitPattern(ref p) => match p.kind {
+            ast::Ast::LitPattern(p) => match p.kind {
                 ast::PatternLitKind::Bool => {
                     let mismatch_lbl = pck.ensure_label(&mut self.builder);
                     let p = self
@@ -641,7 +641,7 @@ impl<'a> AstBytecodeGen<'a> {
                 // nothing to do
             }
 
-            ast::Ast::Alt(ref p) => {
+            ast::Ast::Alt(p) => {
                 let mut alt_labels = Vec::with_capacity(p.alts.len() + 1);
                 let match_lbl = self.builder.create_label();
 
@@ -3423,8 +3423,8 @@ impl<'a> AstBytecodeGen<'a> {
         call_type: &CallType,
     ) -> ConstPoolIdx {
         match call_type {
-            CallType::GenericStaticMethod(id, .., ref trait_type_params, ref fct_type_params)
-            | CallType::GenericMethod(id, .., ref trait_type_params, ref fct_type_params) => {
+            CallType::GenericStaticMethod(id, .., trait_type_params, fct_type_params)
+            | CallType::GenericMethod(id, .., trait_type_params, fct_type_params) => {
                 self.builder.add_const(ConstPoolEntry::Generic(
                     id.index() as u32,
                     self.emitter.convert_function_id(fct.id()),
@@ -3432,17 +3432,14 @@ impl<'a> AstBytecodeGen<'a> {
                     self.convert_tya(&fct_type_params),
                 ))
             }
-            CallType::GenericMethodSelf(_, fct_id, ref trait_type_params, ref fct_type_params)
-            | CallType::GenericStaticMethodSelf(
-                _,
-                fct_id,
-                ref trait_type_params,
-                ref fct_type_params,
-            ) => self.builder.add_const(ConstPoolEntry::GenericSelf(
-                self.emitter.convert_function_id(*fct_id),
-                self.convert_tya(&trait_type_params),
-                self.convert_tya(&fct_type_params),
-            )),
+            CallType::GenericMethodSelf(_, fct_id, trait_type_params, fct_type_params)
+            | CallType::GenericStaticMethodSelf(_, fct_id, trait_type_params, fct_type_params) => {
+                self.builder.add_const(ConstPoolEntry::GenericSelf(
+                    self.emitter.convert_function_id(*fct_id),
+                    self.convert_tya(&trait_type_params),
+                    self.convert_tya(&fct_type_params),
+                ))
+            }
             CallType::GenericMethodNew {
                 object_type,
                 trait_ty,
@@ -3454,16 +3451,16 @@ impl<'a> AstBytecodeGen<'a> {
                 fct_id: self.emitter.convert_function_id(*fct_id),
                 fct_type_params: self.convert_tya(fct_type_params),
             }),
-            CallType::TraitObjectMethod(ref trait_object_ty, _) => {
+            CallType::TraitObjectMethod(trait_object_ty, _) => {
                 self.builder.add_const(ConstPoolEntry::TraitObjectMethod(
                     self.emitter.convert_ty(trait_object_ty.clone()),
                     self.emitter.convert_function_id(fct.id()),
                 ))
             }
 
-            CallType::Method(.., ref type_params)
-            | CallType::Expr(.., ref type_params)
-            | CallType::Fct(.., ref type_params) => {
+            CallType::Method(.., type_params)
+            | CallType::Expr(.., type_params)
+            | CallType::Fct(.., type_params) => {
                 assert_eq!(
                     fct.type_param_definition().type_param_count(),
                     type_params.len()
@@ -3480,9 +3477,9 @@ impl<'a> AstBytecodeGen<'a> {
 
     fn specialize_type_for_call(&self, call_type: &CallType, ty: SourceType) -> SourceType {
         match call_type {
-            CallType::Fct(_, ref type_params)
-            | CallType::Expr(_, _, ref type_params)
-            | CallType::Method(_, _, ref type_params) => specialize_type(self.sa, ty, type_params),
+            CallType::Fct(_, type_params)
+            | CallType::Expr(_, _, type_params)
+            | CallType::Method(_, _, type_params) => specialize_type(self.sa, ty, type_params),
 
             CallType::TraitObjectMethod(trait_ty, _actual_object_ty) => {
                 let (trait_id, type_params, assoc_types) = match trait_ty {
@@ -3497,15 +3494,15 @@ impl<'a> AstBytecodeGen<'a> {
                 id,
                 _trait_id,
                 _method_id,
-                ref trait_type_params,
-                ref fct_type_params,
+                trait_type_params,
+                fct_type_params,
             )
             | CallType::GenericStaticMethod(
                 id,
                 _trait_id,
                 _method_id,
-                ref trait_type_params,
-                ref fct_type_params,
+                trait_type_params,
+                fct_type_params,
             ) => replace_type(
                 self.sa,
                 ty,
@@ -3513,17 +3510,12 @@ impl<'a> AstBytecodeGen<'a> {
                 Some(SourceType::TypeParam(*id)),
             ),
 
-            CallType::GenericMethodSelf(
-                _trait_id,
-                _fct_id,
-                ref trait_type_params,
-                ref fct_type_params,
-            )
+            CallType::GenericMethodSelf(_trait_id, _fct_id, trait_type_params, fct_type_params)
             | CallType::GenericStaticMethodSelf(
                 _trait_id,
                 _fct_id,
-                ref trait_type_params,
-                ref fct_type_params,
+                trait_type_params,
+                fct_type_params,
             ) => replace_type(
                 self.sa,
                 ty,

@@ -48,7 +48,7 @@ impl ParseError {
             ParseError::ExpectedTraitElement => {
                 format!("expected trait element.")
             }
-            ParseError::ExpectedToken(ref exp) => {
+            ParseError::ExpectedToken(exp) => {
                 format!("expected `{}`.", exp)
             }
             ParseError::ExpectedParams => "expected parameters.".into(),
