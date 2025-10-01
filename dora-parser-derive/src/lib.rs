@@ -6,6 +6,7 @@ use syn::{parse_macro_input, DeriveInput, Data, Fields, Type, PathArguments, Gen
 pub fn derive_ast_node(input: TokenStream) -> TokenStream {
     let input = parse_macro_input!(input as DeriveInput);
     let name = &input.ident;
+    let name_str = name.to_string();
 
     let children_impl = match &input.data {
         Data::Struct(data) => {
@@ -36,6 +37,10 @@ pub fn derive_ast_node(input: TokenStream) -> TokenStream {
                 impl #name {
                     pub fn children(&self) -> Vec<AstId> {
                         #field_collection
+                    }
+
+                    pub fn name(&self) -> &'static str {
+                        #name_str
                     }
                 }
             }

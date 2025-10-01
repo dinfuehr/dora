@@ -1,7 +1,7 @@
 use std::sync::Arc;
 
-use id_arena::{Arena, Id};
 use dora_parser_derive::AstNode;
+use id_arena::{Arena, Id};
 
 use crate::{Span, TokenKind};
 
@@ -231,74 +231,74 @@ impl Ast {
 
     pub fn name(&self) -> &'static str {
         match self {
-            Ast::Function(..) => "Function",
-            Ast::Class(..) => "Class",
-            Ast::Struct(..) => "Struct",
-            Ast::WhereClause(..) => "WhereClause",
-            Ast::WhereClauseItem(..) => "WhereClauseItem",
-            Ast::Field(..) => "Field",
-            Ast::Trait(..) => "Trait",
-            Ast::Impl(..) => "Impl",
-            Ast::Global(..) => "Global",
-            Ast::Const(..) => "Const",
-            Ast::Enum(..) => "Enum",
-            Ast::Module(..) => "Module",
-            Ast::Use(..) => "Use",
-            Ast::UsePath(..) => "UsePath",
-            Ast::UseGroup(..) => "UseGroup",
-            Ast::UseTargetName(..) => "UseTargetName",
-            Ast::Extern(..) => "Extern",
-            Ast::Alias(..) => "Alias",
-            Ast::Argument(..) => "Argument",
-            Ast::Param(..) => "Param",
-            Ast::RegularType(..) => "RegularType",
-            Ast::TupleType(..) => "TupleType",
-            Ast::LambdaType(..) => "LambdaType",
-            Ast::QualifiedPathType(..) => "QualifiedPathType",
-            Ast::LetStmt(..) => "LetStmt",
-            Ast::ExprStmt(..) => "ExprStmt",
-            Ast::Un(..) => "Un",
-            Ast::Bin(..) => "Bin",
-            Ast::LitChar(..) => "LitChar",
-            Ast::LitInt(..) => "LitInt",
-            Ast::LitFloat(..) => "LitFloat",
-            Ast::LitStr(..) => "LitStr",
-            Ast::Template(..) => "Template",
-            Ast::LitBool(..) => "LitBool",
-            Ast::Ident(..) => "Ident",
-            Ast::Call(..) => "Call",
-            Ast::TypeParam(..) => "TypeParam",
-            Ast::Path(..) => "Path",
-            Ast::PathData(..) => "PathData",
-            Ast::Dot(..) => "Dot",
-            Ast::This(..) => "This",
-            Ast::UpcaseThis(..) => "UpcaseThis",
-            Ast::Conv(..) => "Conv",
-            Ast::Is(..) => "Is",
-            Ast::Lambda(..) => "Lambda",
-            Ast::Block(..) => "Block",
-            Ast::If(..) => "If",
-            Ast::Tuple(..) => "Tuple",
-            Ast::Paren(..) => "Paren",
-            Ast::Match(..) => "Match",
-            Ast::MatchArm(..) => "MatchArm",
-            Ast::For(..) => "For",
-            Ast::While(..) => "While",
-            Ast::Break(..) => "Break",
-            Ast::Continue(..) => "Continue",
-            Ast::Return(..) => "Return",
-            Ast::TypeArgument(..) => "TypeArgument",
-            Ast::Underscore(..) => "Underscore",
-            Ast::LitPattern(..) => "LitPattern",
-            Ast::IdentPattern(..) => "IdentPattern",
-            Ast::TuplePattern(..) => "TuplePattern",
-            Ast::ConstructorPattern(..) => "ConstructorPattern",
-            Ast::ConstructorField(..) => "ConstructorField",
-            Ast::Rest(..) => "Rest",
-            Ast::Alt(..) => "Alt",
-            Ast::ModifierList(..) => "ModifierList",
-            Ast::Modifier(..) => "Modifier",
-            Ast::Error(..) => "Error",
+            Ast::Function(node) => node.name(),
+            Ast::Class(node) => node.name(),
+            Ast::Struct(node) => node.name(),
+            Ast::WhereClause(node) => node.name(),
+            Ast::WhereClauseItem(node) => node.name(),
+            Ast::Field(node) => node.name(),
+            Ast::Trait(node) => node.name(),
+            Ast::Impl(node) => node.name(),
+            Ast::Global(node) => node.name(),
+            Ast::Const(node) => node.name(),
+            Ast::Enum(node) => node.name(),
+            Ast::Module(node) => node.name(),
+            Ast::Use(node) => node.name(),
+            Ast::UsePath(node) => node.name(),
+            Ast::UseGroup(node) => node.name(),
+            Ast::UseTargetName(node) => node.name(),
+            Ast::Extern(node) => node.name(),
+            Ast::Alias(node) => node.name(),
+            Ast::Argument(node) => node.name(),
+            Ast::Param(node) => node.name(),
+            Ast::RegularType(node) => node.name(),
+            Ast::TupleType(node) => node.name(),
+            Ast::LambdaType(node) => node.name(),
+            Ast::QualifiedPathType(node) => node.name(),
+            Ast::LetStmt(node) => node.name(),
+            Ast::ExprStmt(node) => node.name(),
+            Ast::Un(node) => node.name(),
+            Ast::Bin(node) => node.name(),
+            Ast::LitChar(node) => node.name(),
+            Ast::LitInt(node) => node.name(),
+            Ast::LitFloat(node) => node.name(),
+            Ast::LitStr(node) => node.name(),
+            Ast::Template(node) => node.name(),
+            Ast::LitBool(node) => node.name(),
+            Ast::Ident(node) => node.name(),
+            Ast::Call(node) => node.name(),
+            Ast::TypeParam(node) => node.name(),
+            Ast::Path(node) => node.name(),
+            Ast::PathData(node) => node.name(),
+            Ast::Dot(node) => node.name(),
+            Ast::This(node) => node.name(),
+            Ast::UpcaseThis(node) => node.name(),
+            Ast::Conv(node) => node.name(),
+            Ast::Is(node) => node.name(),
+            Ast::Lambda(node) => node.name(),
+            Ast::Block(node) => node.name(),
+            Ast::If(node) => node.name(),
+            Ast::Tuple(node) => node.name(),
+            Ast::Paren(node) => node.name(),
+            Ast::Match(node) => node.name(),
+            Ast::MatchArm(node) => node.name(),
+            Ast::For(node) => node.name(),
+            Ast::While(node) => node.name(),
+            Ast::Break(node) => node.name(),
+            Ast::Continue(node) => node.name(),
+            Ast::Return(node) => node.name(),
+            Ast::TypeArgument(node) => node.name(),
+            Ast::Underscore(node) => node.name(),
+            Ast::LitPattern(node) => node.name(),
+            Ast::IdentPattern(node) => node.name(),
+            Ast::TuplePattern(node) => node.name(),
+            Ast::ConstructorPattern(node) => node.name(),
+            Ast::ConstructorField(node) => node.name(),
+            Ast::Rest(node) => node.name(),
+            Ast::Alt(node) => node.name(),
+            Ast::ModifierList(node) => node.name(),
+            Ast::Modifier(node) => node.name(),
+            Ast::Error(node) => node.name(),
         }
     }
 
@@ -317,164 +317,61 @@ impl Ast {
             Ast::Enum(node) => node.children(),
             Ast::Module(node) => node.children(),
             Ast::Use(node) => node.children(),
-            Ast::UsePath(..) => vec![],
-            Ast::UseGroup(node) => node.targets.clone(),
-            Ast::UseTargetName(node) => {
-                if let Some(name) = node.name {
-                    vec![name]
-                } else {
-                    vec![]
-                }
-            }
+            Ast::UsePath(node) => node.children(),
+            Ast::UseGroup(node) => node.children(),
+            Ast::UseTargetName(node) => node.children(),
             Ast::Extern(node) => node.children(),
             Ast::Alias(node) => node.children(),
-            Ast::Argument(node) => {
-                let mut children = Vec::new();
-                if let Some(name) = node.name {
-                    children.push(name);
-                }
-                children.push(node.expr);
-                children
-            }
-            Ast::Param(node) => vec![node.pattern, node.data_type],
-            Ast::RegularType(node) => {
-                let mut children = vec![node.path];
-                children.extend(&node.params);
-                children
-            }
-            Ast::TupleType(node) => node.subtypes.clone(),
-            Ast::LambdaType(node) => {
-                let mut children = Vec::new();
-                children.extend(&node.params);
-                if let Some(ret) = node.ret {
-                    children.push(ret);
-                }
-                children
-            }
-            Ast::QualifiedPathType(node) => {
-                let mut children = vec![node.ty, node.trait_ty];
-                if let Some(name) = node.name {
-                    children.push(name);
-                }
-                children
-            }
-            Ast::LetStmt(node) => {
-                let mut children = vec![node.pattern];
-                if let Some(data_type) = node.data_type {
-                    children.push(data_type);
-                }
-                if let Some(expr) = node.expr {
-                    children.push(expr);
-                }
-                children
-            }
-            Ast::ExprStmt(node) => vec![node.expr],
-            Ast::Un(node) => vec![node.opnd],
-            Ast::Bin(node) => vec![node.lhs, node.rhs],
-            Ast::LitChar(..) => vec![],
-            Ast::LitInt(..) => vec![],
-            Ast::LitFloat(..) => vec![],
-            Ast::LitStr(..) => vec![],
-            Ast::Template(node) => node.parts.clone(),
-            Ast::LitBool(..) => vec![],
-            Ast::Ident(..) => vec![],
-            Ast::Call(node) => {
-                let mut children = vec![node.callee];
-                children.extend(&node.args);
-                children
-            }
-            Ast::TypeParam(node) => {
-                let mut children = vec![node.callee];
-                children.extend(&node.args);
-                children
-            }
-            Ast::Path(node) => vec![node.lhs, node.rhs],
-            Ast::PathData(node) => node.segments.clone(),
-            Ast::Dot(node) => vec![node.lhs, node.rhs],
-            Ast::This(..) => vec![],
-            Ast::UpcaseThis(..) => vec![],
-            Ast::Conv(node) => vec![node.object, node.data_type],
-            Ast::Is(node) => vec![node.value, node.pattern],
-            Ast::Lambda(node) => vec![node.fct_id],
-            Ast::Block(node) => {
-                let mut children = Vec::new();
-                children.extend(&node.stmts);
-                if let Some(expr) = node.expr {
-                    children.push(expr);
-                }
-                children
-            }
-            Ast::If(node) => {
-                let mut children = vec![node.cond, node.then_block];
-                if let Some(else_block) = node.else_block {
-                    children.push(else_block);
-                }
-                children
-            }
-            Ast::Tuple(node) => node.values.clone(),
-            Ast::Paren(node) => vec![node.expr],
-            Ast::Match(node) => {
-                let mut children = vec![node.expr];
-                children.extend(&node.arms);
-                children
-            }
-            Ast::MatchArm(node) => {
-                let mut children = vec![node.pattern];
-                if let Some(cond) = node.cond {
-                    children.push(cond);
-                }
-                children.push(node.value);
-                children
-            }
-            Ast::For(node) => vec![node.pattern, node.expr, node.block],
-            Ast::While(node) => vec![node.cond, node.block],
-            Ast::Break(..) => vec![],
-            Ast::Continue(..) => vec![],
-            Ast::Return(node) => {
-                if let Some(expr) = node.expr {
-                    vec![expr]
-                } else {
-                    vec![]
-                }
-            }
-            Ast::TypeArgument(node) => {
-                let mut children = Vec::new();
-                if let Some(name) = node.name {
-                    children.push(name);
-                }
-                children.push(node.ty);
-                children
-            }
-            Ast::Underscore(..) => vec![],
-            Ast::LitPattern(node) => vec![node.expr],
-            Ast::IdentPattern(node) => vec![node.name],
-            Ast::TuplePattern(node) => node.params.clone(),
-            Ast::ConstructorPattern(node) => {
-                let mut children = vec![node.path];
-                if let Some(ref params) = node.params {
-                    children.extend(params);
-                }
-                children
-            }
-            Ast::ConstructorField(node) => {
-                let mut children = Vec::new();
-                if let Some(ident) = node.ident {
-                    children.push(ident);
-                }
-                children.push(node.pattern);
-                children
-            }
-            Ast::Rest(..) => vec![],
-            Ast::Alt(node) => node.alts.clone(),
-            Ast::ModifierList(ref node) => node.modifiers.clone(),
-            Ast::Modifier(ref node) => {
-                let mut children = Vec::new();
-                if let Some(ident) = node.ident {
-                    children.push(ident);
-                }
-                children
-            }
-            Ast::Error(..) => vec![],
+            Ast::Argument(node) => node.children(),
+            Ast::Param(node) => node.children(),
+            Ast::RegularType(node) => node.children(),
+            Ast::TupleType(node) => node.children(),
+            Ast::LambdaType(node) => node.children(),
+            Ast::QualifiedPathType(node) => node.children(),
+            Ast::LetStmt(node) => node.children(),
+            Ast::ExprStmt(node) => node.children(),
+            Ast::Un(node) => node.children(),
+            Ast::Bin(node) => node.children(),
+            Ast::LitChar(node) => node.children(),
+            Ast::LitInt(node) => node.children(),
+            Ast::LitFloat(node) => node.children(),
+            Ast::LitStr(node) => node.children(),
+            Ast::Template(node) => node.children(),
+            Ast::LitBool(node) => node.children(),
+            Ast::Ident(node) => node.children(),
+            Ast::Call(node) => node.children(),
+            Ast::TypeParam(node) => node.children(),
+            Ast::Path(node) => node.children(),
+            Ast::PathData(node) => node.children(),
+            Ast::Dot(node) => node.children(),
+            Ast::This(node) => node.children(),
+            Ast::UpcaseThis(node) => node.children(),
+            Ast::Conv(node) => node.children(),
+            Ast::Is(node) => node.children(),
+            Ast::Lambda(node) => node.children(),
+            Ast::Block(node) => node.children(),
+            Ast::If(node) => node.children(),
+            Ast::Tuple(node) => node.children(),
+            Ast::Paren(node) => node.children(),
+            Ast::Match(node) => node.children(),
+            Ast::MatchArm(node) => node.children(),
+            Ast::For(node) => node.children(),
+            Ast::While(node) => node.children(),
+            Ast::Break(node) => node.children(),
+            Ast::Continue(node) => node.children(),
+            Ast::Return(node) => node.children(),
+            Ast::TypeArgument(node) => node.children(),
+            Ast::Underscore(node) => node.children(),
+            Ast::LitPattern(node) => node.children(),
+            Ast::IdentPattern(node) => node.children(),
+            Ast::TuplePattern(node) => node.children(),
+            Ast::ConstructorPattern(node) => node.children(),
+            Ast::ConstructorField(node) => node.children(),
+            Ast::Rest(node) => node.children(),
+            Ast::Alt(node) => node.children(),
+            Ast::ModifierList(node) => node.children(),
+            Ast::Modifier(node) => node.children(),
+            Ast::Error(node) => node.children(),
         }
     }
 
@@ -777,7 +674,7 @@ pub struct Use {
     pub path: AstId,
 }
 
-#[derive(Clone, Debug)]
+#[derive(Clone, Debug, AstNode)]
 pub struct UsePath {
     pub span: Span,
     pub path: Vec<UseAtom>,
@@ -792,13 +689,13 @@ pub enum UsePathDescriptor {
     Error,
 }
 
-#[derive(Clone, Debug)]
+#[derive(Clone, Debug, AstNode)]
 pub struct UseGroup {
     pub span: Span,
     pub targets: Vec<AstId>,
 }
 
-#[derive(Clone, Debug)]
+#[derive(Clone, Debug, AstNode)]
 pub struct UseTargetName {
     pub span: Span,
     pub name: Option<AstId>,
@@ -892,14 +789,14 @@ pub struct WhereClauseItem {
     pub bounds: Vec<AstId>,
 }
 
-#[derive(Clone, Debug)]
+#[derive(Clone, Debug, AstNode)]
 pub struct TypeTupleType {
     pub span: Span,
 
     pub subtypes: Vec<AstId>,
 }
 
-#[derive(Clone, Debug)]
+#[derive(Clone, Debug, AstNode)]
 pub struct TypeLambdaType {
     pub span: Span,
 
@@ -907,7 +804,7 @@ pub struct TypeLambdaType {
     pub ret: Option<AstId>,
 }
 
-#[derive(Clone, Debug)]
+#[derive(Clone, Debug, AstNode)]
 pub struct TypeRegularType {
     pub span: Span,
 
@@ -915,7 +812,7 @@ pub struct TypeRegularType {
     pub params: Vec<AstId>,
 }
 
-#[derive(Clone, Debug)]
+#[derive(Clone, Debug, AstNode)]
 pub struct TypeArgument {
     pub span: Span,
 
@@ -931,7 +828,7 @@ pub struct TypeGenericType {
     pub params: Vec<AstId>,
 }
 
-#[derive(Clone, Debug)]
+#[derive(Clone, Debug, AstNode)]
 pub struct TypeQualifiedPathType {
     pub span: Span,
 
@@ -1076,7 +973,7 @@ pub struct Field {
     pub data_type: AstId,
 }
 
-#[derive(Clone, Debug)]
+#[derive(Clone, Debug, AstNode)]
 pub struct Error {
     pub span: Span,
 }
@@ -1118,13 +1015,13 @@ impl Function {
 }
 
 // remove in next step
-#[derive(Clone, Debug)]
+#[derive(Clone, Debug, AstNode)]
 pub struct ModifierList {
     pub span: Span,
     pub modifiers: Vec<AstId>,
 }
 
-#[derive(Clone, Debug)]
+#[derive(Clone, Debug, AstNode)]
 pub struct Modifier {
     pub span: Span,
     pub kind: TokenKind,
@@ -1145,7 +1042,7 @@ impl Modifier {
     }
 }
 
-#[derive(Clone, Debug)]
+#[derive(Clone, Debug, AstNode)]
 pub struct Param {
     pub span: Span,
     pub pattern: AstId,
@@ -1202,7 +1099,7 @@ impl Ast {
     }
 }
 
-#[derive(Clone, Debug)]
+#[derive(Clone, Debug, AstNode)]
 pub struct StmtLetType {
     pub span: Span,
 
@@ -1212,7 +1109,7 @@ pub struct StmtLetType {
     pub expr: Option<AstId>,
 }
 
-#[derive(Clone, Debug)]
+#[derive(Clone, Debug, AstNode)]
 pub struct ExprForType {
     pub span: Span,
 
@@ -1221,7 +1118,7 @@ pub struct ExprForType {
     pub block: AstId,
 }
 
-#[derive(Clone, Debug)]
+#[derive(Clone, Debug, AstNode)]
 pub struct ExprWhileType {
     pub span: Span,
 
@@ -1229,26 +1126,26 @@ pub struct ExprWhileType {
     pub block: AstId,
 }
 
-#[derive(Clone, Debug)]
+#[derive(Clone, Debug, AstNode)]
 pub struct StmtExprType {
     pub span: Span,
 
     pub expr: AstId,
 }
 
-#[derive(Clone, Debug)]
+#[derive(Clone, Debug, AstNode)]
 pub struct ExprReturnType {
     pub span: Span,
 
     pub expr: Option<AstId>,
 }
 
-#[derive(Clone, Debug)]
+#[derive(Clone, Debug, AstNode)]
 pub struct ExprBreakType {
     pub span: Span,
 }
 
-#[derive(Clone, Debug)]
+#[derive(Clone, Debug, AstNode)]
 pub struct ExprContinueType {
     pub span: Span,
 }
@@ -1930,13 +1827,13 @@ impl Ast {
     }
 }
 
-#[derive(Clone, Debug)]
+#[derive(Clone, Debug, AstNode)]
 pub struct ExprLambdaType {
     pub span: Span,
     pub fct_id: AstId,
 }
 
-#[derive(Clone, Debug)]
+#[derive(Clone, Debug, AstNode)]
 pub struct ExprIfType {
     pub span: Span,
 
@@ -1945,14 +1842,14 @@ pub struct ExprIfType {
     pub else_block: Option<AstId>,
 }
 
-#[derive(Clone, Debug)]
+#[derive(Clone, Debug, AstNode)]
 pub struct ExprTupleType {
     pub span: Span,
 
     pub values: Vec<AstId>,
 }
 
-#[derive(Clone, Debug)]
+#[derive(Clone, Debug, AstNode)]
 pub struct ExprConvType {
     pub span: Span,
 
@@ -1960,7 +1857,7 @@ pub struct ExprConvType {
     pub data_type: AstId,
 }
 
-#[derive(Clone, Debug)]
+#[derive(Clone, Debug, AstNode)]
 pub struct ExprIsType {
     pub span: Span,
 
@@ -1968,7 +1865,7 @@ pub struct ExprIsType {
     pub pattern: AstId,
 }
 
-#[derive(Clone, Debug)]
+#[derive(Clone, Debug, AstNode)]
 pub struct ExprUnType {
     pub span: Span,
 
@@ -1976,7 +1873,7 @@ pub struct ExprUnType {
     pub opnd: AstId,
 }
 
-#[derive(Clone, Debug)]
+#[derive(Clone, Debug, AstNode)]
 pub struct ExprBinType {
     pub span: Span,
 
@@ -1985,48 +1882,48 @@ pub struct ExprBinType {
     pub rhs: AstId,
 }
 
-#[derive(Clone, Debug)]
+#[derive(Clone, Debug, AstNode)]
 pub struct ExprLitCharType {
     pub span: Span,
     pub value: String,
 }
 
-#[derive(Clone, Debug)]
+#[derive(Clone, Debug, AstNode)]
 pub struct ExprLitIntType {
     pub span: Span,
 
     pub value: String,
 }
 
-#[derive(Clone, Debug)]
+#[derive(Clone, Debug, AstNode)]
 pub struct ExprLitFloatType {
     pub span: Span,
 
     pub value: String,
 }
 
-#[derive(Clone, Debug)]
+#[derive(Clone, Debug, AstNode)]
 pub struct ExprLitStrType {
     pub span: Span,
 
     pub value: String,
 }
 
-#[derive(Clone, Debug)]
+#[derive(Clone, Debug, AstNode)]
 pub struct ExprTemplateType {
     pub span: Span,
 
     pub parts: Vec<AstId>,
 }
 
-#[derive(Clone, Debug)]
+#[derive(Clone, Debug, AstNode)]
 pub struct ExprLitBoolType {
     pub span: Span,
 
     pub value: bool,
 }
 
-#[derive(Clone, Debug)]
+#[derive(Clone, Debug, AstNode)]
 pub struct ExprBlockType {
     pub span: Span,
 
@@ -2034,23 +1931,23 @@ pub struct ExprBlockType {
     pub expr: Option<AstId>,
 }
 
-#[derive(Clone, Debug)]
+#[derive(Clone, Debug, AstNode)]
 pub struct ExprSelfType {
     pub span: Span,
 }
 
-#[derive(Clone, Debug)]
+#[derive(Clone, Debug, AstNode)]
 pub struct UpcaseThis {
     pub span: Span,
 }
 
-#[derive(Clone, Debug)]
+#[derive(Clone, Debug, AstNode)]
 pub struct Ident {
     pub span: Span,
     pub name: String,
 }
 
-#[derive(Clone, Debug)]
+#[derive(Clone, Debug, AstNode)]
 pub struct ExprCallType {
     pub span: Span,
 
@@ -2080,20 +1977,20 @@ impl ExprCallType {
     }
 }
 
-#[derive(Clone, Debug)]
+#[derive(Clone, Debug, AstNode)]
 pub struct Argument {
     pub span: Span,
     pub name: Option<AstId>,
     pub expr: AstId,
 }
 
-#[derive(Clone, Debug)]
+#[derive(Clone, Debug, AstNode)]
 pub struct ExprParenType {
     pub span: Span,
     pub expr: AstId,
 }
 
-#[derive(Clone, Debug)]
+#[derive(Clone, Debug, AstNode)]
 pub struct ExprMatchType {
     pub span: Span,
 
@@ -2101,7 +1998,7 @@ pub struct ExprMatchType {
     pub arms: Vec<AstId>,
 }
 
-#[derive(Clone, Debug)]
+#[derive(Clone, Debug, AstNode)]
 pub struct MatchArmType {
     pub span: Span,
 
@@ -2115,24 +2012,24 @@ pub struct PatternError {
     pub span: Span,
 }
 
-#[derive(Clone, Debug)]
+#[derive(Clone, Debug, AstNode)]
 pub struct PatternAlt {
     pub span: Span,
 
     pub alts: Vec<AstId>,
 }
 
-#[derive(Clone, Debug)]
+#[derive(Clone, Debug, AstNode)]
 pub struct PatternUnderscore {
     pub span: Span,
 }
 
-#[derive(Clone, Debug)]
+#[derive(Clone, Debug, AstNode)]
 pub struct PatternRest {
     pub span: Span,
 }
 
-#[derive(Clone, Debug)]
+#[derive(Clone, Debug, AstNode)]
 pub struct PatternLit {
     pub span: Span,
     pub kind: PatternLitKind,
@@ -2148,27 +2045,27 @@ pub enum PatternLitKind {
     Float,
 }
 
-#[derive(Clone, Debug)]
+#[derive(Clone, Debug, AstNode)]
 pub struct PatternIdent {
     pub span: Span,
     pub mutable: bool,
     pub name: AstId,
 }
 
-#[derive(Clone, Debug)]
+#[derive(Clone, Debug, AstNode)]
 pub struct PatternTuple {
     pub span: Span,
     pub params: Vec<AstId>,
 }
 
-#[derive(Clone, Debug)]
+#[derive(Clone, Debug, AstNode)]
 pub struct PatternConstructor {
     pub span: Span,
     pub path: AstId,
     pub params: Option<Vec<AstId>>,
 }
 
-#[derive(Clone, Debug)]
+#[derive(Clone, Debug, AstNode)]
 pub struct PatternField {
     pub span: Span,
     pub ident: Option<AstId>,
@@ -2182,7 +2079,7 @@ pub struct PatternParam {
     pub name: Option<AstId>,
 }
 
-#[derive(Clone, Debug)]
+#[derive(Clone, Debug, AstNode)]
 pub struct PathData {
     pub span: Span,
     pub segments: Vec<AstId>,
@@ -2199,7 +2096,7 @@ pub struct PathSegmentIdent {
     pub name: AstId,
 }
 
-#[derive(Clone, Debug)]
+#[derive(Clone, Debug, AstNode)]
 pub struct ExprTypeParamType {
     pub span: Span,
     pub op_span: Span,
@@ -2208,7 +2105,7 @@ pub struct ExprTypeParamType {
     pub args: Vec<AstId>,
 }
 
-#[derive(Clone, Debug)]
+#[derive(Clone, Debug, AstNode)]
 pub struct ExprPathType {
     pub span: Span,
     pub op_span: Span,
@@ -2217,7 +2114,7 @@ pub struct ExprPathType {
     pub rhs: AstId,
 }
 
-#[derive(Clone, Debug)]
+#[derive(Clone, Debug, AstNode)]
 pub struct ExprDotType {
     pub span: Span,
     pub op_span: Span,
