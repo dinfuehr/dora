@@ -453,7 +453,7 @@ impl<'x> visit::Visitor for TopLevelDeclaration<'x> {
         let type_param_definition = parse_type_param_definition(
             self.sa,
             None,
-            node.type_params.as_ref(),
+            node.type_params,
             node.where_clause,
             Some(&node.bounds),
             self.file_id,
@@ -529,7 +529,7 @@ impl<'x> visit::Visitor for TopLevelDeclaration<'x> {
         let type_param_definition = parse_type_param_definition(
             self.sa,
             None,
-            node.type_params.as_ref(),
+            node.type_params,
             node.where_clause,
             None,
             self.file_id,
@@ -608,7 +608,7 @@ impl<'x> visit::Visitor for TopLevelDeclaration<'x> {
         let type_param_definition = parse_type_param_definition(
             self.sa,
             None,
-            node.type_params.as_ref(),
+            node.type_params,
             node.where_clause,
             None,
             self.file_id,
@@ -689,7 +689,7 @@ impl<'x> visit::Visitor for TopLevelDeclaration<'x> {
         let type_param_definition = parse_type_param_definition(
             self.sa,
             None,
-            node.type_params.as_ref(),
+            node.type_params,
             node.where_clause,
             None,
             self.file_id,
@@ -781,7 +781,7 @@ impl<'x> visit::Visitor for TopLevelDeclaration<'x> {
         let type_param_definition = parse_type_param_definition(
             self.sa,
             None,
-            node.type_params.as_ref(),
+            node.type_params,
             node.where_clause,
             None,
             self.file_id,
@@ -814,7 +814,7 @@ impl<'x> visit::Visitor for TopLevelDeclaration<'x> {
         let type_param_definition = parse_type_param_definition(
             self.sa,
             None,
-            node.type_params.as_ref(),
+            node.type_params,
             node.where_clause,
             None,
             self.file_id,
@@ -936,7 +936,7 @@ impl<'x> visit::Visitor for TopLevelDeclaration<'x> {
         let type_param_definition = parse_type_param_definition(
             self.sa,
             None,
-            node.type_params.as_ref(),
+            node.type_params,
             node.pre_where_clause,
             None,
             self.file_id,
@@ -1018,7 +1018,7 @@ fn find_elements_in_trait(
                 let type_param_definition = parse_type_param_definition(
                     sa,
                     Some(container_type_param_definition),
-                    method_node.type_params.as_ref(),
+                    method_node.type_params,
                     method_node.where_clause,
                     None,
                     file_id,
@@ -1104,7 +1104,7 @@ fn find_elements_in_trait(
                 let type_param_definition = parse_type_param_definition(
                     sa,
                     Some(container_type_param_definition),
-                    node.type_params.as_ref(),
+                    node.type_params,
                     where_clause,
                     None,
                     file_id,
@@ -1195,7 +1195,7 @@ fn find_elements_in_impl(
                 let type_param_definition = parse_type_param_definition(
                     sa,
                     Some(container_type_param_definition),
-                    method_node.type_params.as_ref(),
+                    method_node.type_params,
                     method_node.where_clause,
                     None,
                     file_id,
@@ -1255,7 +1255,7 @@ fn find_elements_in_impl(
                 let type_param_definition = parse_type_param_definition(
                     sa,
                     Some(container_type_param_definition),
-                    node.type_params.as_ref(),
+                    node.type_params,
                     where_clause,
                     None,
                     file_id,
@@ -1334,7 +1334,7 @@ fn find_elements_in_extension(
                 let type_param_definition = parse_type_param_definition(
                     sa,
                     Some(container_type_param_definition),
-                    method_node.type_params.as_ref(),
+                    method_node.type_params,
                     method_node.where_clause,
                     None,
                     extension.file_id,
@@ -1630,14 +1630,19 @@ fn add_package(
 fn parse_type_param_definition(
     sa: &Sema,
     parent: Option<Rc<TypeParamDefinition>>,
-    ast_type_params: Option<&ast::TypeParams>,
+    ast_type_params: Option<ast::AstId>,
     where_id: Option<ast::AstId>,
     trait_bounds: Option<&Vec<ast::AstId>>,
     file_id: SourceFileId,
 ) -> Rc<TypeParamDefinition> {
     let mut type_param_definition = TypeParamDefinition::new(parent);
 
-    if let Some(ast_type_params) = ast_type_params {
+    if let Some(ast_type_params_id) = ast_type_params {
+        let ast_type_params = sa
+            .node(file_id, ast_type_params_id)
+            .to_type_param_list()
+            .expect("type param list expected");
+
         if ast_type_params.params.len() == 0 {
             let msg = ErrorMessage::TypeParamsExpected;
             sa.report(file_id, ast_type_params.span, msg);
@@ -1645,7 +1650,12 @@ fn parse_type_param_definition(
 
         let mut names = HashSet::new();
 
-        for type_param in ast_type_params.params.iter() {
+        for &type_param_id in ast_type_params.params.iter() {
+            let type_param = sa
+                .node(file_id, type_param_id)
+                .to_type_param()
+                .expect("type param expected");
+
             let id = if let Some(ident_id) = type_param.name {
                 let ident = sa
                     .node(file_id, ident_id)

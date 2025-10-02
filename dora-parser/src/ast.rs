@@ -143,6 +143,8 @@ pub enum Ast {
     TupleType(TupleType),
     TypeArgument(TypeArgument),
     TypedExpr(TypedExpr),
+    TypeParamList(TypeParamList),
+    TypeParam(TypeParam),
     Un(Un),
     Underscore(Underscore),
     UpcaseThis(UpcaseThis),
@@ -216,6 +218,8 @@ impl Ast {
             Ast::TupleType(node) => node.span,
             Ast::TypeArgument(node) => node.span,
             Ast::TypedExpr(node) => node.span,
+            Ast::TypeParamList(node) => node.span,
+            Ast::TypeParam(node) => node.span,
             Ast::Un(node) => node.span,
             Ast::Underscore(node) => node.span,
             Ast::UpcaseThis(node) => node.span,
@@ -289,6 +293,8 @@ impl Ast {
             Ast::TupleType(node) => node.name(),
             Ast::TypeArgument(node) => node.name(),
             Ast::TypedExpr(node) => node.name(),
+            Ast::TypeParamList(node) => node.name(),
+            Ast::TypeParam(node) => node.name(),
             Ast::Un(node) => node.name(),
             Ast::Underscore(node) => node.name(),
             Ast::UpcaseThis(node) => node.name(),
@@ -362,6 +368,8 @@ impl Ast {
             Ast::TupleType(node) => node.children(),
             Ast::TypeArgument(node) => node.children(),
             Ast::TypedExpr(node) => node.children(),
+            Ast::TypeParamList(node) => node.children(),
+            Ast::TypeParam(node) => node.children(),
             Ast::Un(node) => node.children(),
             Ast::Underscore(node) => node.children(),
             Ast::UpcaseThis(node) => node.children(),
@@ -1043,16 +1051,44 @@ impl Ast {
         }
     }
 
-    pub fn to_type_param(&self) -> Option<&TypedExpr> {
+    pub fn to_typed_expr(&self) -> Option<&TypedExpr> {
         match *self {
             Ast::TypedExpr(ref val) => Some(val),
             _ => None,
         }
     }
 
-    pub fn is_type_param(&self) -> bool {
+    pub fn is_typed_expr(&self) -> bool {
         match *self {
             Ast::TypedExpr(_) => true,
+            _ => false,
+        }
+    }
+
+    pub fn to_type_param_list(&self) -> Option<&TypeParamList> {
+        match *self {
+            Ast::TypeParamList(ref node) => Some(node),
+            _ => None,
+        }
+    }
+
+    pub fn is_typed_param_list(&self) -> bool {
+        match *self {
+            Ast::TypedExpr(_) => true,
+            _ => false,
+        }
+    }
+
+    pub fn to_type_param(&self) -> Option<&TypeParam> {
+        match *self {
+            Ast::TypeParam(ref node) => Some(node),
+            _ => None,
+        }
+    }
+
+    pub fn is_type_param(&self) -> bool {
+        match *self {
+            Ast::TypeParam(_) => true,
             _ => false,
         }
     }
@@ -1218,16 +1254,6 @@ impl Ast {
         }
     }
 
-    pub fn is_block(&self) -> bool {
-        match self {
-            &Ast::Block(..) | &Ast::If(..) | &Ast::Match(..) | &Ast::While(..) | &Ast::For(..) => {
-                true
-            }
-
-            _ => false,
-        }
-    }
-
     pub fn to_if(&self) -> Option<&If> {
         match *self {
             Ast::If(ref val) => Some(val),
@@ -1377,7 +1403,7 @@ pub struct Enum {
     pub span: Span,
     pub modifiers: Option<AstId>,
     pub name: Option<AstId>,
-    pub type_params: Option<TypeParams>,
+    pub type_params: Option<AstId>,
     pub variants: Vec<EnumVariant>,
     pub where_clause: Option<AstId>,
 }
@@ -1396,7 +1422,7 @@ pub struct Struct {
     pub modifiers: Option<AstId>,
     pub name: Option<AstId>,
     pub fields: Vec<AstId>,
-    pub type_params: Option<TypeParams>,
+    pub type_params: Option<AstId>,
     pub where_clause: Option<AstId>,
     pub field_style: FieldNameStyle,
 }
@@ -1490,7 +1516,7 @@ pub struct Impl {
     pub span: Span,
 
     pub modifiers: Option<AstId>,
-    pub type_params: Option<TypeParams>,
+    pub type_params: Option<AstId>,
     pub trait_type: Option<AstId>,
     pub extended_type: AstId,
     pub where_clause: Option<AstId>,
@@ -1502,7 +1528,7 @@ pub struct Impl {
 pub struct Trait {
     pub name: Option<AstId>,
     pub modifiers: Option<AstId>,
-    pub type_params: Option<TypeParams>,
+    pub type_params: Option<AstId>,
     pub bounds: Vec<AstId>,
     pub where_clause: Option<AstId>,
     pub span: Span,
@@ -1515,7 +1541,7 @@ pub struct Alias {
 
     pub modifiers: Option<AstId>,
     pub name: Option<AstId>,
-    pub type_params: Option<TypeParams>,
+    pub type_params: Option<AstId>,
     pub pre_where_clause: Option<AstId>,
     pub bounds: Vec<AstId>,
     pub ty: Option<AstId>,
@@ -1529,7 +1555,7 @@ pub struct Class {
     pub name: Option<AstId>,
 
     pub fields: Vec<AstId>,
-    pub type_params: Option<TypeParams>,
+    pub type_params: Option<AstId>,
     pub where_clause: Option<AstId>,
     pub field_name_style: FieldNameStyle,
 }
@@ -1542,13 +1568,13 @@ pub struct ExternPackage {
     pub identifier: Option<AstId>,
 }
 
-#[derive(Clone, Debug)]
-pub struct TypeParams {
+#[derive(Clone, Debug, AstNode)]
+pub struct TypeParamList {
     pub span: Span,
-    pub params: Vec<TypeParam>,
+    pub params: Vec<AstId>,
 }
 
-#[derive(Clone, Debug)]
+#[derive(Clone, Debug, AstNode)]
 pub struct TypeParam {
     pub span: Span,
     pub name: Option<AstId>,
@@ -1591,7 +1617,7 @@ pub struct Function {
     pub kind: FunctionKind,
 
     pub name: Option<AstId>,
-    pub type_params: Option<TypeParams>,
+    pub type_params: Option<AstId>,
     pub params: Vec<AstId>,
     pub return_type: Option<AstId>,
     pub where_clause: Option<AstId>,
@@ -1952,7 +1978,7 @@ pub struct Call {
 impl Call {
     pub fn object(&self, file: &File) -> Option<AstId> {
         let callee_node = file.node(self.callee);
-        if let Some(type_param) = callee_node.to_type_param() {
+        if let Some(type_param) = callee_node.to_typed_expr() {
             let node = file.node(type_param.callee);
             if let Some(dot) = node.to_dot() {
                 Some(dot.lhs)

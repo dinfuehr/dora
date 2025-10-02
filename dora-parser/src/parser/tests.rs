@@ -868,7 +868,7 @@ fn parse_while() {
     let whilestmt = arena[expr].to_while().unwrap();
 
     assert!(arena[whilestmt.cond].is_lit_bool());
-    assert!(arena[whilestmt.block].is_block());
+    assert!(arena[whilestmt.block].is_blocklike());
 }
 
 #[test]
@@ -1224,7 +1224,11 @@ fn parse_struct_with_type_params() {
     assert_eq!(2, struct_.fields.len());
     assert_eq!("Bar", id_name(&prog, struct_.name));
 
-    assert_eq!(2, struct_.type_params.as_ref().unwrap().params.len());
+    let type_params = prog
+        .node(struct_.type_params.unwrap())
+        .to_type_param_list()
+        .unwrap();
+    assert_eq!(2, type_params.params.len());
 }
 
 #[test]
@@ -1290,16 +1294,24 @@ fn parse_class_type_params() {
     let prog = parse("class Foo[T]");
     let cls = prog.cls0();
 
-    let type_params = cls.type_params.as_ref().unwrap();
+    let type_params = prog
+        .node(cls.type_params.unwrap())
+        .to_type_param_list()
+        .unwrap();
     assert_eq!(1, type_params.params.len());
-    assert_eq!("T", id_name(&prog, type_params.params[0].name));
+    let type_param = prog.node(type_params.params[0]).to_type_param().unwrap();
+    assert_eq!("T", id_name(&prog, type_param.name));
 
     let prog = parse("class Foo[X]");
     let cls = prog.cls0();
 
-    let type_params = cls.type_params.as_ref().unwrap();
+    let type_params = prog
+        .node(cls.type_params.unwrap())
+        .to_type_param_list()
+        .unwrap();
     assert_eq!(1, type_params.params.len());
-    assert_eq!("X", id_name(&prog, type_params.params[0].name));
+    let type_param = prog.node(type_params.params[0]).to_type_param().unwrap();
+    assert_eq!("X", id_name(&prog, type_param.name));
 }
 
 #[test]
@@ -1318,10 +1330,15 @@ fn parse_multiple_class_type_params() {
     let prog = parse("class Foo[A, B]");
     let cls = prog.cls0();
 
-    let type_params = cls.type_params.as_ref().unwrap();
+    let type_params = prog
+        .node(cls.type_params.unwrap())
+        .to_type_param_list()
+        .unwrap();
     assert_eq!(2, type_params.params.len());
-    assert_eq!("A", id_name(&prog, type_params.params[0].name));
-    assert_eq!("B", id_name(&prog, type_params.params[1].name));
+    let type_param = prog.node(type_params.params[0]).to_type_param().unwrap();
+    assert_eq!("A", id_name(&prog, type_param.name));
+    let type_param = prog.node(type_params.params[1]).to_type_param().unwrap();
+    assert_eq!("B", id_name(&prog, type_param.name));
 }
 
 #[test]
@@ -1413,19 +1430,19 @@ fn parse_lit_char() {
 fn parse_fct_call_with_type_param() {
     let (expr, arena) = parse_expr("Array[Int]()");
     let call = arena[expr].to_call().unwrap();
-    let type_params = arena[call.callee].to_type_param().unwrap();
+    let type_params = arena[call.callee].to_typed_expr().unwrap();
 
     assert_eq!(1, type_params.args.len());
 
     let (expr, arena) = parse_expr("Foo[Int, Long]()");
     let call = arena[expr].to_call().unwrap();
-    let type_params = arena[call.callee].to_type_param().unwrap();
+    let type_params = arena[call.callee].to_typed_expr().unwrap();
 
     assert_eq!(2, type_params.args.len());
 
     let (expr, arena) = parse_expr("Bar[]()");
     let call = arena[expr].to_call().unwrap();
-    let type_params = arena[call.callee].to_type_param().unwrap();
+    let type_params = arena[call.callee].to_typed_expr().unwrap();
 
     assert_eq!(0, type_params.args.len());
 
@@ -1449,7 +1466,11 @@ fn parse_fct_with_type_params() {
     let prog = parse("fn f[T]() {}");
     let fct = prog.fct0();
 
-    assert_eq!(1, fct.type_params.as_ref().unwrap().params.len());
+    let type_params = prog
+        .node(fct.type_params.unwrap())
+        .to_type_param_list()
+        .unwrap();
+    assert_eq!(1, type_params.params.len());
 }
 
 #[test]
@@ -1465,7 +1486,11 @@ fn parse_generic_with_bound() {
     let prog = parse("class A[T: Foo]");
     let cls = prog.cls0();
 
-    let type_param = &cls.type_params.as_ref().unwrap().params[0];
+    let type_params = prog
+        .node(cls.type_params.unwrap())
+        .to_type_param_list()
+        .unwrap();
+    let type_param = prog.node(type_params.params[0]).to_type_param().unwrap();
     assert_eq!(1, type_param.bounds.len());
 }
 
@@ -1474,7 +1499,11 @@ fn parse_generic_with_multiple_bounds() {
     let prog = parse("class A[T: Foo + Bar]");
     let cls = prog.cls0();
 
-    let type_param = &cls.type_params.as_ref().unwrap().params[0];
+    let type_params = prog
+        .node(cls.type_params.unwrap())
+        .to_type_param_list()
+        .unwrap();
+    let type_param = prog.node(type_params.params[0]).to_type_param().unwrap();
     assert_eq!(2, type_param.bounds.len());
 }
 

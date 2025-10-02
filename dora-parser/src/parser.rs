@@ -295,7 +295,7 @@ impl Parser {
         self.start_node();
         self.assert(ENUM_KW);
         let name = self.expect_identifier();
-        let type_params = self.parse_type_params();
+        let type_params = self.parse_type_param_list();
         let where_clause = self.parse_where_clause();
 
         let variants = if self.is(L_BRACE) {
@@ -430,7 +430,7 @@ impl Parser {
         let start = self.current_span().start();
         self.start_node();
         self.assert(IMPL_KW);
-        let type_params = self.parse_type_params();
+        let type_params = self.parse_type_param_list();
 
         let type_name = self.parse_type();
 
@@ -499,7 +499,7 @@ impl Parser {
         self.start_node();
         self.assert(TRAIT_KW);
         let name = self.expect_identifier();
-        let type_params = self.parse_type_params();
+        let type_params = self.parse_type_param_list();
         let bounds = if self.eat(COLON) {
             self.parse_type_bounds()
         } else {
@@ -532,7 +532,7 @@ impl Parser {
         self.start_node();
         self.assert(TYPE_KW);
         let name = self.expect_identifier();
-        let type_params = self.parse_type_params();
+        let type_params = self.parse_type_param_list();
         let pre_where_clause = self.parse_where_clause();
         let bounds = if self.eat(COLON) {
             self.parse_type_bounds()
@@ -564,7 +564,7 @@ impl Parser {
         self.start_node();
         self.assert(STRUCT_KW);
         let ident = self.expect_identifier();
-        let type_params = self.parse_type_params();
+        let type_params = self.parse_type_param_list();
         let where_clause = self.parse_where_clause();
         let field_style;
 
@@ -658,7 +658,7 @@ impl Parser {
         self.assert(CLASS_KW);
 
         let name = self.expect_identifier();
-        let type_params = self.parse_type_params();
+        let type_params = self.parse_type_param_list();
         let where_clause = self.parse_where_clause();
         let field_name_style;
 
@@ -712,7 +712,7 @@ impl Parser {
         }
     }
 
-    fn parse_type_params(&mut self) -> Option<TypeParams> {
+    fn parse_type_param_list(&mut self) -> Option<AstId> {
         if self.is(L_BRACKET) {
             self.start_node();
             let params = self.parse_list(
@@ -724,16 +724,18 @@ impl Parser {
                 |p| p.parse_type_param_wrapper(),
             );
 
-            Some(TypeParams {
-                span: self.finish_node(),
-                params,
-            })
+            let span = self.finish_node();
+
+            Some(
+                self.ast_nodes
+                    .alloc(Ast::TypeParamList(TypeParamList { span, params })),
+            )
         } else {
             None
         }
     }
 
-    fn parse_type_param_wrapper(&mut self) -> Option<TypeParam> {
+    fn parse_type_param_wrapper(&mut self) -> Option<AstId> {
         if self.is(IDENTIFIER) {
             Some(self.parse_type_param())
         } else {
@@ -741,7 +743,7 @@ impl Parser {
         }
     }
 
-    fn parse_type_param(&mut self) -> TypeParam {
+    fn parse_type_param(&mut self) -> AstId {
         self.start_node();
         let name = self.expect_identifier();
 
@@ -751,11 +753,11 @@ impl Parser {
             Vec::new()
         };
 
-        TypeParam {
+        self.ast_nodes.alloc(Ast::TypeParam(TypeParam {
             name,
             span: self.finish_node(),
             bounds,
-        }
+        }))
     }
 
     fn parse_type_bounds(&mut self) -> Vec<AstId> {
@@ -820,7 +822,7 @@ impl Parser {
         self.start_node();
         self.assert(FN_KW);
         let name = self.expect_identifier();
-        let type_params = self.parse_type_params();
+        let type_params = self.parse_type_param_list();
         let params = self.parse_function_params();
         let return_type = self.parse_function_type();
         let where_clause = self.parse_where_clause();
@@ -1275,7 +1277,7 @@ impl Parser {
                 .to_match_arm()
                 .expect("arm expected")
                 .value;
-            let is_block = self.ast_nodes[arm_value_id].is_block();
+            let is_block = self.ast_nodes[arm_value_id].is_blocklike();
             cases.push(arm_id);
 
             if !self.is(R_BRACE) && !self.is_eof() {

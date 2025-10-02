@@ -204,8 +204,12 @@ impl visit::Visitor for SymbolScanner {
     fn visit_impl(&mut self, f: &ast::File, id: ast::AstId, node: &ast::Impl) {
         let mut name: String = "impl".into();
 
-        if let Some(ref type_params) = node.type_params {
-            let span = type_params.span;
+        if let Some(type_param_list_id) = node.type_params {
+            let type_param_list = f
+                .node(type_param_list_id)
+                .to_type_param_list()
+                .expect("type param list expected");
+            let span = type_param_list.span;
             let type_params_string =
                 &self.content.as_str()[span.start() as usize..span.end() as usize];
             name.push_str(type_params_string);

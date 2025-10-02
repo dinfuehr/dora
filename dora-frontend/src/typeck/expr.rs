@@ -2074,7 +2074,7 @@ pub(super) fn check_expr_path(
     expected_ty: SourceType,
 ) -> SourceType {
     let (container_expr, type_params) =
-        if let Some(expr_type_params) = ck.node(e.lhs).to_type_param() {
+        if let Some(expr_type_params) = ck.node(e.lhs).to_typed_expr() {
             let type_params: Vec<SourceType> = expr_type_params
                 .args
                 .iter()

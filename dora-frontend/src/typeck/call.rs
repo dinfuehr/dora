@@ -33,7 +33,7 @@ pub(super) fn check_expr_call(
     e: &ast::Call,
     expected_ty: SourceType,
 ) -> SourceType {
-    let (callee, type_params) = if let Some(expr_type_params) = ck.node(e.callee).to_type_param() {
+    let (callee, type_params) = if let Some(expr_type_params) = ck.node(e.callee).to_typed_expr() {
         let type_params: Vec<SourceType> = expr_type_params
             .args
             .iter()
@@ -1250,7 +1250,7 @@ fn check_expr_call_path(
     let callee_as_path = callee.to_path().unwrap();
 
     let (container_expr, container_type_params) = if let Some(expr_type_params) =
-        ck.node(callee_as_path.lhs).to_type_param()
+        ck.node(callee_as_path.lhs).to_typed_expr()
     {
         let container_type_params: Vec<SourceType> = expr_type_params
             .args

@@ -97,6 +97,14 @@ pub trait Visitor: Sized {
         walk_type_argument(self, f, id, node);
     }
 
+    fn visit_type_param_list(&mut self, f: &File, id: AstId, node: &TypeParamList) {
+        walk_type_param_list(self, f, id, node);
+    }
+
+    fn visit_type_param(&mut self, f: &File, id: AstId, node: &TypeParam) {
+        walk_type_param(self, f, id, node);
+    }
+
     fn visit_tuple_type(&mut self, f: &File, id: AstId, e: &TupleType) {
         walk_tuple_type(self, f, id, e);
     }
@@ -129,8 +137,8 @@ pub trait Visitor: Sized {
         walk_call(self, f, id, e);
     }
 
-    fn visit_type_param(&mut self, f: &File, id: AstId, e: &TypedExpr) {
-        walk_type_param(self, f, id, e);
+    fn visit_typed_expr(&mut self, f: &File, id: AstId, e: &TypedExpr) {
+        walk_typed_expr(self, f, id, e);
     }
 
     fn visit_path(&mut self, f: &File, id: AstId, e: &Path) {
@@ -325,7 +333,7 @@ pub fn dispatch_ast<V: Visitor>(v: &mut V, f: &File, id: AstId, e: &Ast) {
         Ast::Un(node) => v.visit_un(f, id, node),
         Ast::Bin(node) => v.visit_bin(f, id, node),
         Ast::Call(node) => v.visit_call(f, id, node),
-        Ast::TypedExpr(node) => v.visit_type_param(f, id, node),
+        Ast::TypedExpr(node) => v.visit_typed_expr(f, id, node),
         Ast::Path(node) => v.visit_path(f, id, node),
         Ast::PathData(node) => v.visit_path_data(f, id, node),
         Ast::Dot(node) => v.visit_dot(f, id, node),
@@ -353,6 +361,8 @@ pub fn dispatch_ast<V: Visitor>(v: &mut V, f: &File, id: AstId, e: &Ast) {
         Ast::LitBool(node) => v.visit_lit_bool(f, id, node),
         Ast::Ident(node) => v.visit_ident(f, id, node),
         Ast::TypeArgument(node) => v.visit_type_argument(f, id, node),
+        Ast::TypeParamList(node) => v.visit_type_param_list(f, id, node),
+        Ast::TypeParam(node) => v.visit_type_param(f, id, node),
         Ast::Underscore(node) => v.visit_underscore(f, id, node),
         Ast::LitPattern(node) => v.visit_lit_pattern(f, id, node),
         Ast::IdentPattern(node) => v.visit_ident_pattern(f, id, node),
@@ -501,6 +511,22 @@ pub fn walk_type_argument<V: Visitor>(v: &mut V, f: &File, _id: AstId, node: &Ty
     dispatch_ast_id(v, f, node.ty);
 }
 
+pub fn walk_type_param_list<V: Visitor>(v: &mut V, f: &File, _id: AstId, node: &TypeParamList) {
+    for &param_id in &node.params {
+        dispatch_ast_id(v, f, param_id);
+    }
+}
+
+pub fn walk_type_param<V: Visitor>(v: &mut V, f: &File, _id: AstId, node: &TypeParam) {
+    if let Some(name_id) = node.name {
+        dispatch_ast_id(v, f, name_id);
+    }
+
+    for &bound_id in &node.bounds {
+        dispatch_ast_id(v, f, bound_id);
+    }
+}
+
 pub fn walk_tuple_type<V: Visitor>(v: &mut V, f: &File, _id: AstId, t: &TupleType) {
     for &ty_id in &t.subtypes {
         dispatch_ast(v, f, ty_id, f.node(ty_id));
@@ -561,7 +587,7 @@ pub fn walk_argument<V: Visitor>(v: &mut V, f: &File, _id: AstId, node: &Argumen
     dispatch_ast_id(v, f, node.expr);
 }
 
-pub fn walk_type_param<V: Visitor>(v: &mut V, f: &File, _id: AstId, node: &TypedExpr) {
+pub fn walk_typed_expr<V: Visitor>(v: &mut V, f: &File, _id: AstId, node: &TypedExpr) {
     dispatch_ast_id(v, f, node.callee);
     for &arg in &node.args {
         dispatch_ast_id(v, f, arg);
