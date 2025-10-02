@@ -85,293 +85,293 @@ pub type AstId = Id<Ast>;
 
 #[derive(Clone, Debug)]
 pub enum Ast {
-    Function(Function),
-    Class(Class),
-    Struct(Struct),
-    WhereClause(WhereClause),
-    WhereClauseItem(WhereClauseItem),
-    Field(Field),
-    Trait(Trait),
-    Impl(Impl),
-    Global(Global),
-    Const(Const),
-    Enum(Enum),
-    Module(Module),
-    Use(Use),
-    UsePath(UsePath),
-    UseGroup(UseGroup),
-    UseTargetName(UseTargetName),
-    Extern(ExternPackage),
     Alias(Alias),
+    Alt(Alt),
     Argument(Argument),
-    Param(Param),
-    RegularType(RegularType),
-    TupleType(TupleType),
-    LambdaType(LambdaType),
-    QualifiedPathType(QualifiedPathType),
-    Let(Let),
-    ExprStmt(ExprStmt),
-    Un(Un),
     Bin(Bin),
-    LitChar(LitChar),
-    LitInt(LitInt),
-    LitFloat(LitFloat),
-    LitStr(LitStr),
-    Template(Template),
-    LitBool(LitBool),
-    Ident(Ident),
+    Block(Block),
+    Break(Break),
     Call(Call),
-    TypedExpr(TypedExpr),
-    Path(Path),
-    PathData(PathData),
-    Dot(Dot),
-    This(This),
-    UpcaseThis(UpcaseThis),
+    Class(Class),
+    Const(Const),
+    Continue(Continue),
     Conv(Conv),
+    CtorField(CtorField),
+    CtorPattern(CtorPattern),
+    Dot(Dot),
+    Enum(Enum),
+    Error(Error),
+    ExprStmt(ExprStmt),
+    Extern(ExternPackage),
+    Field(Field),
+    For(For),
+    Function(Function),
+    Global(Global),
+    Ident(Ident),
+    IdentPattern(IdentPattern),
+    If(If),
+    Impl(Impl),
     Is(Is),
     Lambda(Lambda),
-    Block(Block),
-    If(If),
-    For(For),
-    While(While),
-    Tuple(Tuple),
-    Paren(Paren),
+    LambdaType(LambdaType),
+    Let(Let),
+    LitBool(LitBool),
+    LitChar(LitChar),
+    LitFloat(LitFloat),
+    LitInt(LitInt),
+    LitPattern(LitPattern),
+    LitStr(LitStr),
     Match(Match),
     MatchArm(Arm),
-    Break(Break),
-    Continue(Continue),
-    Return(Return),
-    TypeArgument(TypeArgument),
-    Underscore(Underscore),
-    LitPattern(LitPattern),
-    IdentPattern(IdentPattern),
-    TuplePattern(TuplePattern),
-    CtorPattern(CtorPattern),
-    CtorField(CtorField),
-    Rest(Rest),
-    Alt(Alt),
-    ModifierList(ModifierList),
     Modifier(Modifier),
-    Error(Error),
+    ModifierList(ModifierList),
+    Module(Module),
+    Param(Param),
+    Paren(Paren),
+    Path(Path),
+    PathData(PathData),
+    QualifiedPathType(QualifiedPathType),
+    RegularType(RegularType),
+    Rest(Rest),
+    Return(Return),
+    Struct(Struct),
+    Template(Template),
+    This(This),
+    Trait(Trait),
+    Tuple(Tuple),
+    TuplePattern(TuplePattern),
+    TupleType(TupleType),
+    TypeArgument(TypeArgument),
+    TypedExpr(TypedExpr),
+    Un(Un),
+    Underscore(Underscore),
+    UpcaseThis(UpcaseThis),
+    Use(Use),
+    UseGroup(UseGroup),
+    UsePath(UsePath),
+    UseTargetName(UseTargetName),
+    WhereClause(WhereClause),
+    WhereClauseItem(WhereClauseItem),
+    While(While),
 }
 
 impl Ast {
     pub fn span(&self) -> Span {
         match self {
-            Ast::Function(node) => node.span,
-            Ast::Class(node) => node.span,
-            Ast::Struct(node) => node.span,
-            Ast::WhereClause(node) => node.span,
-            Ast::WhereClauseItem(node) => node.span,
-            Ast::Field(node) => node.span,
-            Ast::Trait(node) => node.span,
-            Ast::Impl(node) => node.span,
-            Ast::Global(node) => node.span,
-            Ast::Const(node) => node.span,
-            Ast::Enum(node) => node.span,
-            Ast::Module(node) => node.span,
-            Ast::Use(node) => node.span,
-            Ast::UsePath(node) => node.span,
-            Ast::UseGroup(node) => node.span,
-            Ast::UseTargetName(node) => node.span,
-            Ast::Extern(node) => node.span,
             Ast::Alias(node) => node.span,
+            Ast::Alt(node) => node.span,
             Ast::Argument(node) => node.span,
-            Ast::Param(node) => node.span,
-            Ast::RegularType(node) => node.span,
-            Ast::TupleType(node) => node.span,
-            Ast::LambdaType(node) => node.span,
-            Ast::QualifiedPathType(node) => node.span,
-            Ast::Let(node) => node.span,
-            Ast::ExprStmt(node) => node.span,
-            Ast::Un(node) => node.span,
             Ast::Bin(node) => node.span,
-            Ast::LitChar(node) => node.span,
-            Ast::LitInt(node) => node.span,
-            Ast::LitFloat(node) => node.span,
-            Ast::LitStr(node) => node.span,
-            Ast::Template(node) => node.span,
-            Ast::LitBool(node) => node.span,
-            Ast::Ident(node) => node.span,
+            Ast::Block(node) => node.span,
+            Ast::Break(node) => node.span,
             Ast::Call(node) => node.span,
-            Ast::TypedExpr(node) => node.span,
-            Ast::Path(node) => node.span,
-            Ast::PathData(node) => node.span,
-            Ast::Dot(node) => node.span,
-            Ast::This(node) => node.span,
-            Ast::UpcaseThis(node) => node.span,
+            Ast::Class(node) => node.span,
+            Ast::Const(node) => node.span,
+            Ast::Continue(node) => node.span,
             Ast::Conv(node) => node.span,
+            Ast::CtorField(node) => node.span,
+            Ast::CtorPattern(node) => node.span,
+            Ast::Dot(node) => node.span,
+            Ast::Enum(node) => node.span,
+            Ast::Error(node) => node.span,
+            Ast::ExprStmt(node) => node.span,
+            Ast::Extern(node) => node.span,
+            Ast::Field(node) => node.span,
+            Ast::For(node) => node.span,
+            Ast::Function(node) => node.span,
+            Ast::Global(node) => node.span,
+            Ast::Ident(node) => node.span,
+            Ast::IdentPattern(node) => node.span,
+            Ast::If(node) => node.span,
+            Ast::Impl(node) => node.span,
             Ast::Is(node) => node.span,
             Ast::Lambda(node) => node.span,
-            Ast::Block(node) => node.span,
-            Ast::If(node) => node.span,
-            Ast::Tuple(node) => node.span,
-            Ast::Paren(node) => node.span,
+            Ast::LambdaType(node) => node.span,
+            Ast::Let(node) => node.span,
+            Ast::LitBool(node) => node.span,
+            Ast::LitChar(node) => node.span,
+            Ast::LitFloat(node) => node.span,
+            Ast::LitInt(node) => node.span,
+            Ast::LitPattern(node) => node.span,
+            Ast::LitStr(node) => node.span,
             Ast::Match(node) => node.span,
             Ast::MatchArm(node) => node.span,
-            Ast::For(node) => node.span,
-            Ast::While(node) => node.span,
-            Ast::Break(node) => node.span,
-            Ast::Continue(node) => node.span,
-            Ast::Return(node) => node.span,
-            Ast::TypeArgument(node) => node.span,
-            Ast::Underscore(node) => node.span,
-            Ast::LitPattern(node) => node.span,
-            Ast::IdentPattern(node) => node.span,
-            Ast::TuplePattern(node) => node.span,
-            Ast::CtorPattern(node) => node.span,
-            Ast::CtorField(node) => node.span,
-            Ast::Rest(node) => node.span,
-            Ast::Alt(node) => node.span,
-            Ast::ModifierList(node) => node.span,
             Ast::Modifier(node) => node.span,
-            Ast::Error(node) => node.span,
+            Ast::ModifierList(node) => node.span,
+            Ast::Module(node) => node.span,
+            Ast::Param(node) => node.span,
+            Ast::Paren(node) => node.span,
+            Ast::Path(node) => node.span,
+            Ast::PathData(node) => node.span,
+            Ast::QualifiedPathType(node) => node.span,
+            Ast::RegularType(node) => node.span,
+            Ast::Rest(node) => node.span,
+            Ast::Return(node) => node.span,
+            Ast::Struct(node) => node.span,
+            Ast::Template(node) => node.span,
+            Ast::This(node) => node.span,
+            Ast::Trait(node) => node.span,
+            Ast::Tuple(node) => node.span,
+            Ast::TuplePattern(node) => node.span,
+            Ast::TupleType(node) => node.span,
+            Ast::TypeArgument(node) => node.span,
+            Ast::TypedExpr(node) => node.span,
+            Ast::Un(node) => node.span,
+            Ast::Underscore(node) => node.span,
+            Ast::UpcaseThis(node) => node.span,
+            Ast::Use(node) => node.span,
+            Ast::UseGroup(node) => node.span,
+            Ast::UsePath(node) => node.span,
+            Ast::UseTargetName(node) => node.span,
+            Ast::WhereClause(node) => node.span,
+            Ast::WhereClauseItem(node) => node.span,
+            Ast::While(node) => node.span,
         }
     }
 
     pub fn name(&self) -> &'static str {
         match self {
-            Ast::Function(node) => node.name(),
-            Ast::Class(node) => node.name(),
-            Ast::Struct(node) => node.name(),
-            Ast::WhereClause(node) => node.name(),
-            Ast::WhereClauseItem(node) => node.name(),
-            Ast::Field(node) => node.name(),
-            Ast::Trait(node) => node.name(),
-            Ast::Impl(node) => node.name(),
-            Ast::Global(node) => node.name(),
-            Ast::Const(node) => node.name(),
-            Ast::Enum(node) => node.name(),
-            Ast::Module(node) => node.name(),
-            Ast::Use(node) => node.name(),
-            Ast::UsePath(node) => node.name(),
-            Ast::UseGroup(node) => node.name(),
-            Ast::UseTargetName(node) => node.name(),
-            Ast::Extern(node) => node.name(),
             Ast::Alias(node) => node.name(),
+            Ast::Alt(node) => node.name(),
             Ast::Argument(node) => node.name(),
-            Ast::Param(node) => node.name(),
-            Ast::RegularType(node) => node.name(),
-            Ast::TupleType(node) => node.name(),
-            Ast::LambdaType(node) => node.name(),
-            Ast::QualifiedPathType(node) => node.name(),
-            Ast::Let(node) => node.name(),
-            Ast::ExprStmt(node) => node.name(),
-            Ast::Un(node) => node.name(),
             Ast::Bin(node) => node.name(),
-            Ast::LitChar(node) => node.name(),
-            Ast::LitInt(node) => node.name(),
-            Ast::LitFloat(node) => node.name(),
-            Ast::LitStr(node) => node.name(),
-            Ast::Template(node) => node.name(),
-            Ast::LitBool(node) => node.name(),
-            Ast::Ident(node) => node.name(),
+            Ast::Block(node) => node.name(),
+            Ast::Break(node) => node.name(),
             Ast::Call(node) => node.name(),
-            Ast::TypedExpr(node) => node.name(),
-            Ast::Path(node) => node.name(),
-            Ast::PathData(node) => node.name(),
-            Ast::Dot(node) => node.name(),
-            Ast::This(node) => node.name(),
-            Ast::UpcaseThis(node) => node.name(),
+            Ast::Class(node) => node.name(),
+            Ast::Const(node) => node.name(),
+            Ast::Continue(node) => node.name(),
             Ast::Conv(node) => node.name(),
+            Ast::CtorField(node) => node.name(),
+            Ast::CtorPattern(node) => node.name(),
+            Ast::Dot(node) => node.name(),
+            Ast::Enum(node) => node.name(),
+            Ast::Error(node) => node.name(),
+            Ast::ExprStmt(node) => node.name(),
+            Ast::Extern(node) => node.name(),
+            Ast::Field(node) => node.name(),
+            Ast::For(node) => node.name(),
+            Ast::Function(node) => node.name(),
+            Ast::Global(node) => node.name(),
+            Ast::Ident(node) => node.name(),
+            Ast::IdentPattern(node) => node.name(),
+            Ast::If(node) => node.name(),
+            Ast::Impl(node) => node.name(),
             Ast::Is(node) => node.name(),
             Ast::Lambda(node) => node.name(),
-            Ast::Block(node) => node.name(),
-            Ast::If(node) => node.name(),
-            Ast::Tuple(node) => node.name(),
-            Ast::Paren(node) => node.name(),
+            Ast::LambdaType(node) => node.name(),
+            Ast::Let(node) => node.name(),
+            Ast::LitBool(node) => node.name(),
+            Ast::LitChar(node) => node.name(),
+            Ast::LitFloat(node) => node.name(),
+            Ast::LitInt(node) => node.name(),
+            Ast::LitPattern(node) => node.name(),
+            Ast::LitStr(node) => node.name(),
             Ast::Match(node) => node.name(),
             Ast::MatchArm(node) => node.name(),
-            Ast::For(node) => node.name(),
-            Ast::While(node) => node.name(),
-            Ast::Break(node) => node.name(),
-            Ast::Continue(node) => node.name(),
-            Ast::Return(node) => node.name(),
-            Ast::TypeArgument(node) => node.name(),
-            Ast::Underscore(node) => node.name(),
-            Ast::LitPattern(node) => node.name(),
-            Ast::IdentPattern(node) => node.name(),
-            Ast::TuplePattern(node) => node.name(),
-            Ast::CtorPattern(node) => node.name(),
-            Ast::CtorField(node) => node.name(),
-            Ast::Rest(node) => node.name(),
-            Ast::Alt(node) => node.name(),
-            Ast::ModifierList(node) => node.name(),
             Ast::Modifier(node) => node.name(),
-            Ast::Error(node) => node.name(),
+            Ast::ModifierList(node) => node.name(),
+            Ast::Module(node) => node.name(),
+            Ast::Param(node) => node.name(),
+            Ast::Paren(node) => node.name(),
+            Ast::Path(node) => node.name(),
+            Ast::PathData(node) => node.name(),
+            Ast::QualifiedPathType(node) => node.name(),
+            Ast::RegularType(node) => node.name(),
+            Ast::Rest(node) => node.name(),
+            Ast::Return(node) => node.name(),
+            Ast::Struct(node) => node.name(),
+            Ast::Template(node) => node.name(),
+            Ast::This(node) => node.name(),
+            Ast::Trait(node) => node.name(),
+            Ast::Tuple(node) => node.name(),
+            Ast::TuplePattern(node) => node.name(),
+            Ast::TupleType(node) => node.name(),
+            Ast::TypeArgument(node) => node.name(),
+            Ast::TypedExpr(node) => node.name(),
+            Ast::Un(node) => node.name(),
+            Ast::Underscore(node) => node.name(),
+            Ast::UpcaseThis(node) => node.name(),
+            Ast::Use(node) => node.name(),
+            Ast::UseGroup(node) => node.name(),
+            Ast::UsePath(node) => node.name(),
+            Ast::UseTargetName(node) => node.name(),
+            Ast::WhereClause(node) => node.name(),
+            Ast::WhereClauseItem(node) => node.name(),
+            Ast::While(node) => node.name(),
         }
     }
 
     pub fn children(&self) -> Vec<AstId> {
         match self {
-            Ast::Function(node) => node.children(),
-            Ast::Class(node) => node.children(),
-            Ast::Struct(node) => node.children(),
-            Ast::WhereClause(node) => node.children(),
-            Ast::WhereClauseItem(node) => node.children(),
-            Ast::Field(node) => node.children(),
-            Ast::Trait(node) => node.children(),
-            Ast::Impl(node) => node.children(),
-            Ast::Global(node) => node.children(),
-            Ast::Const(node) => node.children(),
-            Ast::Enum(node) => node.children(),
-            Ast::Module(node) => node.children(),
-            Ast::Use(node) => node.children(),
-            Ast::UsePath(node) => node.children(),
-            Ast::UseGroup(node) => node.children(),
-            Ast::UseTargetName(node) => node.children(),
-            Ast::Extern(node) => node.children(),
             Ast::Alias(node) => node.children(),
+            Ast::Alt(node) => node.children(),
             Ast::Argument(node) => node.children(),
-            Ast::Param(node) => node.children(),
-            Ast::RegularType(node) => node.children(),
-            Ast::TupleType(node) => node.children(),
-            Ast::LambdaType(node) => node.children(),
-            Ast::QualifiedPathType(node) => node.children(),
-            Ast::Let(node) => node.children(),
-            Ast::ExprStmt(node) => node.children(),
-            Ast::Un(node) => node.children(),
             Ast::Bin(node) => node.children(),
-            Ast::LitChar(node) => node.children(),
-            Ast::LitInt(node) => node.children(),
-            Ast::LitFloat(node) => node.children(),
-            Ast::LitStr(node) => node.children(),
-            Ast::Template(node) => node.children(),
-            Ast::LitBool(node) => node.children(),
-            Ast::Ident(node) => node.children(),
+            Ast::Block(node) => node.children(),
+            Ast::Break(node) => node.children(),
             Ast::Call(node) => node.children(),
-            Ast::TypedExpr(node) => node.children(),
-            Ast::Path(node) => node.children(),
-            Ast::PathData(node) => node.children(),
-            Ast::Dot(node) => node.children(),
-            Ast::This(node) => node.children(),
-            Ast::UpcaseThis(node) => node.children(),
+            Ast::Class(node) => node.children(),
+            Ast::Const(node) => node.children(),
+            Ast::Continue(node) => node.children(),
             Ast::Conv(node) => node.children(),
+            Ast::CtorField(node) => node.children(),
+            Ast::CtorPattern(node) => node.children(),
+            Ast::Dot(node) => node.children(),
+            Ast::Enum(node) => node.children(),
+            Ast::Error(node) => node.children(),
+            Ast::ExprStmt(node) => node.children(),
+            Ast::Extern(node) => node.children(),
+            Ast::Field(node) => node.children(),
+            Ast::For(node) => node.children(),
+            Ast::Function(node) => node.children(),
+            Ast::Global(node) => node.children(),
+            Ast::Ident(node) => node.children(),
+            Ast::IdentPattern(node) => node.children(),
+            Ast::If(node) => node.children(),
+            Ast::Impl(node) => node.children(),
             Ast::Is(node) => node.children(),
             Ast::Lambda(node) => node.children(),
-            Ast::Block(node) => node.children(),
-            Ast::If(node) => node.children(),
-            Ast::Tuple(node) => node.children(),
-            Ast::Paren(node) => node.children(),
+            Ast::LambdaType(node) => node.children(),
+            Ast::Let(node) => node.children(),
+            Ast::LitBool(node) => node.children(),
+            Ast::LitChar(node) => node.children(),
+            Ast::LitFloat(node) => node.children(),
+            Ast::LitInt(node) => node.children(),
+            Ast::LitPattern(node) => node.children(),
+            Ast::LitStr(node) => node.children(),
             Ast::Match(node) => node.children(),
             Ast::MatchArm(node) => node.children(),
-            Ast::For(node) => node.children(),
-            Ast::While(node) => node.children(),
-            Ast::Break(node) => node.children(),
-            Ast::Continue(node) => node.children(),
-            Ast::Return(node) => node.children(),
-            Ast::TypeArgument(node) => node.children(),
-            Ast::Underscore(node) => node.children(),
-            Ast::LitPattern(node) => node.children(),
-            Ast::IdentPattern(node) => node.children(),
-            Ast::TuplePattern(node) => node.children(),
-            Ast::CtorPattern(node) => node.children(),
-            Ast::CtorField(node) => node.children(),
-            Ast::Rest(node) => node.children(),
-            Ast::Alt(node) => node.children(),
-            Ast::ModifierList(node) => node.children(),
             Ast::Modifier(node) => node.children(),
-            Ast::Error(node) => node.children(),
+            Ast::ModifierList(node) => node.children(),
+            Ast::Module(node) => node.children(),
+            Ast::Param(node) => node.children(),
+            Ast::Paren(node) => node.children(),
+            Ast::Path(node) => node.children(),
+            Ast::PathData(node) => node.children(),
+            Ast::QualifiedPathType(node) => node.children(),
+            Ast::RegularType(node) => node.children(),
+            Ast::Rest(node) => node.children(),
+            Ast::Return(node) => node.children(),
+            Ast::Struct(node) => node.children(),
+            Ast::Template(node) => node.children(),
+            Ast::This(node) => node.children(),
+            Ast::Trait(node) => node.children(),
+            Ast::Tuple(node) => node.children(),
+            Ast::TuplePattern(node) => node.children(),
+            Ast::TupleType(node) => node.children(),
+            Ast::TypeArgument(node) => node.children(),
+            Ast::TypedExpr(node) => node.children(),
+            Ast::Un(node) => node.children(),
+            Ast::Underscore(node) => node.children(),
+            Ast::UpcaseThis(node) => node.children(),
+            Ast::Use(node) => node.children(),
+            Ast::UseGroup(node) => node.children(),
+            Ast::UsePath(node) => node.children(),
+            Ast::UseTargetName(node) => node.children(),
+            Ast::WhereClause(node) => node.children(),
+            Ast::WhereClauseItem(node) => node.children(),
+            Ast::While(node) => node.children(),
         }
     }
 
@@ -647,197 +647,7 @@ impl Ast {
             _ => false,
         }
     }
-}
 
-#[derive(Clone, Debug, AstNode)]
-pub struct Global {
-    pub span: Span,
-    pub modifiers: Option<AstId>,
-    pub name: Option<AstId>,
-    pub mutable: bool,
-    pub data_type: AstId,
-    pub initial_value: Option<AstId>,
-}
-
-#[derive(Clone, Debug, AstNode)]
-pub struct Module {
-    pub span: Span,
-    pub modifiers: Option<AstId>,
-    pub name: Option<AstId>,
-    pub elements: Option<Vec<AstId>>,
-}
-
-#[derive(Clone, Debug, AstNode)]
-pub struct Use {
-    pub span: Span,
-    pub modifiers: Option<AstId>,
-    pub path: AstId,
-}
-
-#[derive(Clone, Debug, AstNode)]
-pub struct UsePath {
-    pub span: Span,
-    pub path: Vec<UseAtom>,
-    pub target: UsePathDescriptor,
-}
-
-#[derive(Clone, Debug)]
-pub enum UsePathDescriptor {
-    Default,
-    As(AstId),
-    Group(AstId),
-    Error,
-}
-
-#[derive(Clone, Debug, AstNode)]
-pub struct UseGroup {
-    pub span: Span,
-    pub targets: Vec<AstId>,
-}
-
-#[derive(Clone, Debug, AstNode)]
-pub struct UseTargetName {
-    pub span: Span,
-    pub name: Option<AstId>,
-}
-
-#[derive(Clone, Debug)]
-pub struct UseAtom {
-    pub span: Span,
-    pub value: UsePathComponentValue,
-}
-
-#[derive(Clone, Debug)]
-pub enum UsePathComponentValue {
-    This,
-    Super,
-    Package,
-    Name(AstId),
-    Error,
-}
-
-#[derive(Clone, Debug, AstNode)]
-pub struct Const {
-    pub span: Span,
-    pub modifiers: Option<AstId>,
-    pub name: Option<AstId>,
-    pub data_type: AstId,
-    pub expr: AstId,
-}
-
-#[derive(Clone, Debug, AstNode)]
-pub struct Enum {
-    pub span: Span,
-    pub modifiers: Option<AstId>,
-    pub name: Option<AstId>,
-    pub type_params: Option<TypeParams>,
-    pub variants: Vec<EnumVariant>,
-    pub where_clause: Option<AstId>,
-}
-
-#[derive(Clone, Debug)]
-pub struct EnumVariant {
-    pub span: Span,
-    pub name: Option<AstId>,
-    pub field_name_style: FieldNameStyle,
-    pub fields: Vec<AstId>,
-}
-
-#[derive(Clone, Debug, AstNode)]
-pub struct Struct {
-    pub span: Span,
-    pub modifiers: Option<AstId>,
-    pub name: Option<AstId>,
-    pub fields: Vec<AstId>,
-    pub type_params: Option<TypeParams>,
-    pub where_clause: Option<AstId>,
-    pub field_style: FieldNameStyle,
-}
-
-#[derive(Copy, Clone, Debug)]
-pub enum FieldNameStyle {
-    Named,
-    Positional,
-}
-
-impl FieldNameStyle {
-    pub fn is_named(&self) -> bool {
-        match self {
-            FieldNameStyle::Named => true,
-            _ => false,
-        }
-    }
-
-    pub fn is_positional(&self) -> bool {
-        match self {
-            FieldNameStyle::Positional => true,
-            _ => false,
-        }
-    }
-}
-
-#[derive(Clone, Debug, AstNode)]
-pub struct WhereClause {
-    pub span: Span,
-    pub clauses: Vec<AstId>,
-}
-
-#[derive(Clone, Debug, AstNode)]
-pub struct WhereClauseItem {
-    pub span: Span,
-    pub ty: AstId,
-    pub bounds: Vec<AstId>,
-}
-
-#[derive(Clone, Debug, AstNode)]
-pub struct TupleType {
-    pub span: Span,
-
-    pub subtypes: Vec<AstId>,
-}
-
-#[derive(Clone, Debug, AstNode)]
-pub struct LambdaType {
-    pub span: Span,
-
-    pub params: Vec<AstId>,
-    pub ret: Option<AstId>,
-}
-
-#[derive(Clone, Debug, AstNode)]
-pub struct RegularType {
-    pub span: Span,
-
-    pub path: AstId,
-    pub params: Vec<AstId>,
-}
-
-#[derive(Clone, Debug, AstNode)]
-pub struct TypeArgument {
-    pub span: Span,
-
-    pub name: Option<AstId>,
-    pub ty: AstId,
-}
-
-#[derive(Clone, Debug)]
-pub struct TypeGenericType {
-    pub span: Span,
-
-    pub path: AstId,
-    pub params: Vec<AstId>,
-}
-
-#[derive(Clone, Debug, AstNode)]
-pub struct QualifiedPathType {
-    pub span: Span,
-
-    pub ty: AstId,
-    pub trait_ty: AstId,
-    pub name: Option<AstId>,
-}
-
-impl Ast {
     pub fn create_regular(span: Span, path: AstId, params: Vec<AstId>) -> Ast {
         Ast::RegularType(RegularType { span, path, params })
     }
@@ -892,165 +702,7 @@ impl Ast {
             _ => false,
         }
     }
-}
 
-#[derive(Clone, Debug, AstNode)]
-pub struct Impl {
-    pub declaration_span: Span,
-    pub span: Span,
-
-    pub modifiers: Option<AstId>,
-    pub type_params: Option<TypeParams>,
-    pub trait_type: Option<AstId>,
-    pub extended_type: AstId,
-    pub where_clause: Option<AstId>,
-
-    pub methods: Vec<AstId>,
-}
-
-#[derive(Clone, Debug, AstNode)]
-pub struct Trait {
-    pub name: Option<AstId>,
-    pub modifiers: Option<AstId>,
-    pub type_params: Option<TypeParams>,
-    pub bounds: Vec<AstId>,
-    pub where_clause: Option<AstId>,
-    pub span: Span,
-    pub methods: Vec<AstId>,
-}
-
-#[derive(Clone, Debug, AstNode)]
-pub struct Alias {
-    pub span: Span,
-
-    pub modifiers: Option<AstId>,
-    pub name: Option<AstId>,
-    pub type_params: Option<TypeParams>,
-    pub pre_where_clause: Option<AstId>,
-    pub bounds: Vec<AstId>,
-    pub ty: Option<AstId>,
-    pub post_where_clause: Option<AstId>,
-}
-
-#[derive(Clone, Debug, AstNode)]
-pub struct Class {
-    pub span: Span,
-    pub modifiers: Option<AstId>,
-    pub name: Option<AstId>,
-
-    pub fields: Vec<AstId>,
-    pub type_params: Option<TypeParams>,
-    pub where_clause: Option<AstId>,
-    pub field_name_style: FieldNameStyle,
-}
-
-#[derive(Clone, Debug, AstNode)]
-pub struct ExternPackage {
-    pub span: Span,
-    pub modifiers: Option<AstId>,
-    pub name: Option<AstId>,
-    pub identifier: Option<AstId>,
-}
-
-#[derive(Clone, Debug)]
-pub struct TypeParams {
-    pub span: Span,
-    pub params: Vec<TypeParam>,
-}
-
-#[derive(Clone, Debug)]
-pub struct TypeParam {
-    pub span: Span,
-    pub name: Option<AstId>,
-    pub bounds: Vec<AstId>,
-}
-
-#[derive(Clone, Debug, AstNode)]
-pub struct Field {
-    pub span: Span,
-    pub modifiers: Option<AstId>,
-    pub name: Option<AstId>,
-    pub data_type: AstId,
-}
-
-#[derive(Clone, Debug, AstNode)]
-pub struct Error {
-    pub span: Span,
-}
-
-#[derive(Clone, Debug)]
-pub enum FunctionKind {
-    Function,
-    Lambda,
-}
-
-impl FunctionKind {
-    pub fn is_lambda(&self) -> bool {
-        match self {
-            &FunctionKind::Lambda => true,
-            &FunctionKind::Function => false,
-        }
-    }
-}
-
-#[derive(Clone, Debug, AstNode)]
-pub struct Function {
-    pub declaration_span: Span,
-    pub span: Span,
-    pub modifiers: Option<AstId>,
-    pub kind: FunctionKind,
-
-    pub name: Option<AstId>,
-    pub type_params: Option<TypeParams>,
-    pub params: Vec<AstId>,
-    pub return_type: Option<AstId>,
-    pub where_clause: Option<AstId>,
-    pub block: Option<AstId>,
-}
-
-impl Function {
-    pub fn block(&self) -> AstId {
-        self.block.unwrap()
-    }
-}
-
-// remove in next step
-#[derive(Clone, Debug, AstNode)]
-pub struct ModifierList {
-    pub span: Span,
-    pub modifiers: Vec<AstId>,
-}
-
-#[derive(Clone, Debug, AstNode)]
-pub struct Modifier {
-    pub span: Span,
-    pub kind: TokenKind,
-    pub ident: Option<AstId>,
-}
-
-impl Modifier {
-    pub fn is_pub(&self) -> bool {
-        self.kind == TokenKind::PUB_KW
-    }
-
-    pub fn is_static(&self) -> bool {
-        self.kind == TokenKind::STATIC_KW
-    }
-
-    pub fn is_at(&self) -> bool {
-        self.kind == TokenKind::AT
-    }
-}
-
-#[derive(Clone, Debug, AstNode)]
-pub struct Param {
-    pub span: Span,
-    pub pattern: AstId,
-    pub data_type: AstId,
-    pub variadic: bool,
-}
-
-impl Ast {
     pub fn create_let_stmt(
         span: Span,
         pattern: AstId,
@@ -1097,190 +749,7 @@ impl Ast {
             _ => false,
         }
     }
-}
 
-#[derive(Clone, Debug, AstNode)]
-pub struct Let {
-    pub span: Span,
-
-    pub pattern: AstId,
-
-    pub data_type: Option<AstId>,
-    pub expr: Option<AstId>,
-}
-
-#[derive(Clone, Debug, AstNode)]
-pub struct For {
-    pub span: Span,
-
-    pub pattern: AstId,
-    pub expr: AstId,
-    pub block: AstId,
-}
-
-#[derive(Clone, Debug, AstNode)]
-pub struct While {
-    pub span: Span,
-
-    pub cond: AstId,
-    pub block: AstId,
-}
-
-#[derive(Clone, Debug, AstNode)]
-pub struct ExprStmt {
-    pub span: Span,
-
-    pub expr: AstId,
-}
-
-#[derive(Clone, Debug, AstNode)]
-pub struct Return {
-    pub span: Span,
-
-    pub expr: Option<AstId>,
-}
-
-#[derive(Clone, Debug, AstNode)]
-pub struct Break {
-    pub span: Span,
-}
-
-#[derive(Clone, Debug, AstNode)]
-pub struct Continue {
-    pub span: Span,
-}
-
-#[derive(PartialEq, Eq, Debug, Copy, Clone)]
-pub enum UnOp {
-    Neg,
-    Not,
-}
-
-impl UnOp {
-    pub fn as_str(&self) -> &'static str {
-        match *self {
-            UnOp::Neg => "-",
-            UnOp::Not => "!",
-        }
-    }
-}
-
-#[derive(PartialEq, Eq, Debug, Copy, Clone)]
-pub enum CmpOp {
-    Eq,
-    Ne,
-    Lt,
-    Le,
-    Gt,
-    Ge,
-    Is,
-    IsNot,
-}
-
-impl CmpOp {
-    pub fn as_str(&self) -> &'static str {
-        match *self {
-            CmpOp::Eq => "==",
-            CmpOp::Ne => "!=",
-            CmpOp::Lt => "<",
-            CmpOp::Le => "<=",
-            CmpOp::Gt => ">",
-            CmpOp::Ge => ">=",
-            CmpOp::Is => "===",
-            CmpOp::IsNot => "!==",
-        }
-    }
-}
-
-#[derive(PartialEq, Eq, Debug, Copy, Clone)]
-pub enum BinOp {
-    Assign,
-    AddAssign,
-    Add,
-    Sub,
-    SubAssign,
-    Mul,
-    MulAssign,
-    Div,
-    DivAssign,
-    Mod,
-    ModAssign,
-    Cmp(CmpOp),
-    Or,
-    And,
-    BitOr,
-    BitOrAssign,
-    BitAnd,
-    BitAndAssign,
-    BitXor,
-    BitXorAssign,
-    ShiftL,
-    ShiftLAssign,
-    ArithShiftR,
-    ArithShiftRAssign,
-    LogicalShiftR,
-    LogicalShiftRAssign,
-}
-
-impl BinOp {
-    pub fn as_str(&self) -> &'static str {
-        match *self {
-            BinOp::Assign => "=",
-            BinOp::Add => "+",
-            BinOp::AddAssign => "+=",
-            BinOp::Sub => "-",
-            BinOp::SubAssign => "-=",
-            BinOp::Mul => "*",
-            BinOp::MulAssign => "*=",
-            BinOp::Div => "/",
-            BinOp::DivAssign => "/=",
-            BinOp::Mod => "%",
-            BinOp::ModAssign => "%=",
-            BinOp::Cmp(op) => op.as_str(),
-            BinOp::Or => "||",
-            BinOp::And => "&&",
-            BinOp::BitOr => "|",
-            BinOp::BitOrAssign => "|=",
-            BinOp::BitAnd => "&",
-            BinOp::BitAndAssign => "&=",
-            BinOp::BitXor => "^",
-            BinOp::BitXorAssign => "^=",
-            BinOp::ShiftL => "<<",
-            BinOp::ShiftLAssign => "<<=",
-            BinOp::ArithShiftR => ">>",
-            BinOp::ArithShiftRAssign => ">>=",
-            BinOp::LogicalShiftR => ">>>",
-            BinOp::LogicalShiftRAssign => ">>>=",
-        }
-    }
-
-    pub fn is_any_assign(&self) -> bool {
-        match *self {
-            BinOp::Assign
-            | BinOp::AddAssign
-            | BinOp::SubAssign
-            | BinOp::MulAssign
-            | BinOp::ModAssign
-            | BinOp::DivAssign
-            | BinOp::BitOrAssign
-            | BinOp::BitAndAssign
-            | BinOp::BitXorAssign
-            | BinOp::ShiftLAssign
-            | BinOp::ArithShiftRAssign
-            | BinOp::LogicalShiftRAssign => true,
-            _ => false,
-        }
-    }
-
-    pub fn is_compare(&self) -> bool {
-        match *self {
-            BinOp::Cmp(cmp) if cmp != CmpOp::Is && cmp != CmpOp::IsNot => true,
-            _ => false,
-        }
-    }
-}
-
-impl Ast {
     pub fn create_block(span: Span, stmts: Vec<AstId>, expr: Option<AstId>) -> Ast {
         Ast::Block(Block { span, stmts, expr })
     }
@@ -1822,6 +1291,531 @@ impl Ast {
             &Ast::Match(_) => true,
             &Ast::For(_) => true,
             &Ast::While(_) => true,
+            _ => false,
+        }
+    }
+}
+
+#[derive(Clone, Debug, AstNode)]
+pub struct Global {
+    pub span: Span,
+    pub modifiers: Option<AstId>,
+    pub name: Option<AstId>,
+    pub mutable: bool,
+    pub data_type: AstId,
+    pub initial_value: Option<AstId>,
+}
+
+#[derive(Clone, Debug, AstNode)]
+pub struct Module {
+    pub span: Span,
+    pub modifiers: Option<AstId>,
+    pub name: Option<AstId>,
+    pub elements: Option<Vec<AstId>>,
+}
+
+#[derive(Clone, Debug, AstNode)]
+pub struct Use {
+    pub span: Span,
+    pub modifiers: Option<AstId>,
+    pub path: AstId,
+}
+
+#[derive(Clone, Debug, AstNode)]
+pub struct UsePath {
+    pub span: Span,
+    pub path: Vec<UseAtom>,
+    pub target: UsePathDescriptor,
+}
+
+#[derive(Clone, Debug)]
+pub enum UsePathDescriptor {
+    Default,
+    As(AstId),
+    Group(AstId),
+    Error,
+}
+
+#[derive(Clone, Debug, AstNode)]
+pub struct UseGroup {
+    pub span: Span,
+    pub targets: Vec<AstId>,
+}
+
+#[derive(Clone, Debug, AstNode)]
+pub struct UseTargetName {
+    pub span: Span,
+    pub name: Option<AstId>,
+}
+
+#[derive(Clone, Debug)]
+pub struct UseAtom {
+    pub span: Span,
+    pub value: UsePathComponentValue,
+}
+
+#[derive(Clone, Debug)]
+pub enum UsePathComponentValue {
+    This,
+    Super,
+    Package,
+    Name(AstId),
+    Error,
+}
+
+#[derive(Clone, Debug, AstNode)]
+pub struct Const {
+    pub span: Span,
+    pub modifiers: Option<AstId>,
+    pub name: Option<AstId>,
+    pub data_type: AstId,
+    pub expr: AstId,
+}
+
+#[derive(Clone, Debug, AstNode)]
+pub struct Enum {
+    pub span: Span,
+    pub modifiers: Option<AstId>,
+    pub name: Option<AstId>,
+    pub type_params: Option<TypeParams>,
+    pub variants: Vec<EnumVariant>,
+    pub where_clause: Option<AstId>,
+}
+
+#[derive(Clone, Debug)]
+pub struct EnumVariant {
+    pub span: Span,
+    pub name: Option<AstId>,
+    pub field_name_style: FieldNameStyle,
+    pub fields: Vec<AstId>,
+}
+
+#[derive(Clone, Debug, AstNode)]
+pub struct Struct {
+    pub span: Span,
+    pub modifiers: Option<AstId>,
+    pub name: Option<AstId>,
+    pub fields: Vec<AstId>,
+    pub type_params: Option<TypeParams>,
+    pub where_clause: Option<AstId>,
+    pub field_style: FieldNameStyle,
+}
+
+#[derive(Copy, Clone, Debug)]
+pub enum FieldNameStyle {
+    Named,
+    Positional,
+}
+
+impl FieldNameStyle {
+    pub fn is_named(&self) -> bool {
+        match self {
+            FieldNameStyle::Named => true,
+            _ => false,
+        }
+    }
+
+    pub fn is_positional(&self) -> bool {
+        match self {
+            FieldNameStyle::Positional => true,
+            _ => false,
+        }
+    }
+}
+
+#[derive(Clone, Debug, AstNode)]
+pub struct WhereClause {
+    pub span: Span,
+    pub clauses: Vec<AstId>,
+}
+
+#[derive(Clone, Debug, AstNode)]
+pub struct WhereClauseItem {
+    pub span: Span,
+    pub ty: AstId,
+    pub bounds: Vec<AstId>,
+}
+
+#[derive(Clone, Debug, AstNode)]
+pub struct TupleType {
+    pub span: Span,
+
+    pub subtypes: Vec<AstId>,
+}
+
+#[derive(Clone, Debug, AstNode)]
+pub struct LambdaType {
+    pub span: Span,
+
+    pub params: Vec<AstId>,
+    pub ret: Option<AstId>,
+}
+
+#[derive(Clone, Debug, AstNode)]
+pub struct RegularType {
+    pub span: Span,
+
+    pub path: AstId,
+    pub params: Vec<AstId>,
+}
+
+#[derive(Clone, Debug, AstNode)]
+pub struct TypeArgument {
+    pub span: Span,
+
+    pub name: Option<AstId>,
+    pub ty: AstId,
+}
+
+#[derive(Clone, Debug)]
+pub struct TypeGenericType {
+    pub span: Span,
+
+    pub path: AstId,
+    pub params: Vec<AstId>,
+}
+
+#[derive(Clone, Debug, AstNode)]
+pub struct QualifiedPathType {
+    pub span: Span,
+
+    pub ty: AstId,
+    pub trait_ty: AstId,
+    pub name: Option<AstId>,
+}
+
+#[derive(Clone, Debug, AstNode)]
+pub struct Impl {
+    pub declaration_span: Span,
+    pub span: Span,
+
+    pub modifiers: Option<AstId>,
+    pub type_params: Option<TypeParams>,
+    pub trait_type: Option<AstId>,
+    pub extended_type: AstId,
+    pub where_clause: Option<AstId>,
+
+    pub methods: Vec<AstId>,
+}
+
+#[derive(Clone, Debug, AstNode)]
+pub struct Trait {
+    pub name: Option<AstId>,
+    pub modifiers: Option<AstId>,
+    pub type_params: Option<TypeParams>,
+    pub bounds: Vec<AstId>,
+    pub where_clause: Option<AstId>,
+    pub span: Span,
+    pub methods: Vec<AstId>,
+}
+
+#[derive(Clone, Debug, AstNode)]
+pub struct Alias {
+    pub span: Span,
+
+    pub modifiers: Option<AstId>,
+    pub name: Option<AstId>,
+    pub type_params: Option<TypeParams>,
+    pub pre_where_clause: Option<AstId>,
+    pub bounds: Vec<AstId>,
+    pub ty: Option<AstId>,
+    pub post_where_clause: Option<AstId>,
+}
+
+#[derive(Clone, Debug, AstNode)]
+pub struct Class {
+    pub span: Span,
+    pub modifiers: Option<AstId>,
+    pub name: Option<AstId>,
+
+    pub fields: Vec<AstId>,
+    pub type_params: Option<TypeParams>,
+    pub where_clause: Option<AstId>,
+    pub field_name_style: FieldNameStyle,
+}
+
+#[derive(Clone, Debug, AstNode)]
+pub struct ExternPackage {
+    pub span: Span,
+    pub modifiers: Option<AstId>,
+    pub name: Option<AstId>,
+    pub identifier: Option<AstId>,
+}
+
+#[derive(Clone, Debug)]
+pub struct TypeParams {
+    pub span: Span,
+    pub params: Vec<TypeParam>,
+}
+
+#[derive(Clone, Debug)]
+pub struct TypeParam {
+    pub span: Span,
+    pub name: Option<AstId>,
+    pub bounds: Vec<AstId>,
+}
+
+#[derive(Clone, Debug, AstNode)]
+pub struct Field {
+    pub span: Span,
+    pub modifiers: Option<AstId>,
+    pub name: Option<AstId>,
+    pub data_type: AstId,
+}
+
+#[derive(Clone, Debug, AstNode)]
+pub struct Error {
+    pub span: Span,
+}
+
+#[derive(Clone, Debug)]
+pub enum FunctionKind {
+    Function,
+    Lambda,
+}
+
+impl FunctionKind {
+    pub fn is_lambda(&self) -> bool {
+        match self {
+            &FunctionKind::Lambda => true,
+            &FunctionKind::Function => false,
+        }
+    }
+}
+
+#[derive(Clone, Debug, AstNode)]
+pub struct Function {
+    pub declaration_span: Span,
+    pub span: Span,
+    pub modifiers: Option<AstId>,
+    pub kind: FunctionKind,
+
+    pub name: Option<AstId>,
+    pub type_params: Option<TypeParams>,
+    pub params: Vec<AstId>,
+    pub return_type: Option<AstId>,
+    pub where_clause: Option<AstId>,
+    pub block: Option<AstId>,
+}
+
+impl Function {
+    pub fn block(&self) -> AstId {
+        self.block.unwrap()
+    }
+}
+
+// remove in next step
+#[derive(Clone, Debug, AstNode)]
+pub struct ModifierList {
+    pub span: Span,
+    pub modifiers: Vec<AstId>,
+}
+
+#[derive(Clone, Debug, AstNode)]
+pub struct Modifier {
+    pub span: Span,
+    pub kind: TokenKind,
+    pub ident: Option<AstId>,
+}
+
+impl Modifier {
+    pub fn is_pub(&self) -> bool {
+        self.kind == TokenKind::PUB_KW
+    }
+
+    pub fn is_static(&self) -> bool {
+        self.kind == TokenKind::STATIC_KW
+    }
+
+    pub fn is_at(&self) -> bool {
+        self.kind == TokenKind::AT
+    }
+}
+
+#[derive(Clone, Debug, AstNode)]
+pub struct Param {
+    pub span: Span,
+    pub pattern: AstId,
+    pub data_type: AstId,
+    pub variadic: bool,
+}
+
+#[derive(Clone, Debug, AstNode)]
+pub struct Let {
+    pub span: Span,
+
+    pub pattern: AstId,
+
+    pub data_type: Option<AstId>,
+    pub expr: Option<AstId>,
+}
+
+#[derive(Clone, Debug, AstNode)]
+pub struct For {
+    pub span: Span,
+
+    pub pattern: AstId,
+    pub expr: AstId,
+    pub block: AstId,
+}
+
+#[derive(Clone, Debug, AstNode)]
+pub struct While {
+    pub span: Span,
+
+    pub cond: AstId,
+    pub block: AstId,
+}
+
+#[derive(Clone, Debug, AstNode)]
+pub struct ExprStmt {
+    pub span: Span,
+
+    pub expr: AstId,
+}
+
+#[derive(Clone, Debug, AstNode)]
+pub struct Return {
+    pub span: Span,
+
+    pub expr: Option<AstId>,
+}
+
+#[derive(Clone, Debug, AstNode)]
+pub struct Break {
+    pub span: Span,
+}
+
+#[derive(Clone, Debug, AstNode)]
+pub struct Continue {
+    pub span: Span,
+}
+
+#[derive(PartialEq, Eq, Debug, Copy, Clone)]
+pub enum UnOp {
+    Neg,
+    Not,
+}
+
+impl UnOp {
+    pub fn as_str(&self) -> &'static str {
+        match *self {
+            UnOp::Neg => "-",
+            UnOp::Not => "!",
+        }
+    }
+}
+
+#[derive(PartialEq, Eq, Debug, Copy, Clone)]
+pub enum CmpOp {
+    Eq,
+    Ne,
+    Lt,
+    Le,
+    Gt,
+    Ge,
+    Is,
+    IsNot,
+}
+
+impl CmpOp {
+    pub fn as_str(&self) -> &'static str {
+        match *self {
+            CmpOp::Eq => "==",
+            CmpOp::Ne => "!=",
+            CmpOp::Lt => "<",
+            CmpOp::Le => "<=",
+            CmpOp::Gt => ">",
+            CmpOp::Ge => ">=",
+            CmpOp::Is => "===",
+            CmpOp::IsNot => "!==",
+        }
+    }
+}
+
+#[derive(PartialEq, Eq, Debug, Copy, Clone)]
+pub enum BinOp {
+    Assign,
+    AddAssign,
+    Add,
+    Sub,
+    SubAssign,
+    Mul,
+    MulAssign,
+    Div,
+    DivAssign,
+    Mod,
+    ModAssign,
+    Cmp(CmpOp),
+    Or,
+    And,
+    BitOr,
+    BitOrAssign,
+    BitAnd,
+    BitAndAssign,
+    BitXor,
+    BitXorAssign,
+    ShiftL,
+    ShiftLAssign,
+    ArithShiftR,
+    ArithShiftRAssign,
+    LogicalShiftR,
+    LogicalShiftRAssign,
+}
+
+impl BinOp {
+    pub fn as_str(&self) -> &'static str {
+        match *self {
+            BinOp::Assign => "=",
+            BinOp::Add => "+",
+            BinOp::AddAssign => "+=",
+            BinOp::Sub => "-",
+            BinOp::SubAssign => "-=",
+            BinOp::Mul => "*",
+            BinOp::MulAssign => "*=",
+            BinOp::Div => "/",
+            BinOp::DivAssign => "/=",
+            BinOp::Mod => "%",
+            BinOp::ModAssign => "%=",
+            BinOp::Cmp(op) => op.as_str(),
+            BinOp::Or => "||",
+            BinOp::And => "&&",
+            BinOp::BitOr => "|",
+            BinOp::BitOrAssign => "|=",
+            BinOp::BitAnd => "&",
+            BinOp::BitAndAssign => "&=",
+            BinOp::BitXor => "^",
+            BinOp::BitXorAssign => "^=",
+            BinOp::ShiftL => "<<",
+            BinOp::ShiftLAssign => "<<=",
+            BinOp::ArithShiftR => ">>",
+            BinOp::ArithShiftRAssign => ">>=",
+            BinOp::LogicalShiftR => ">>>",
+            BinOp::LogicalShiftRAssign => ">>>=",
+        }
+    }
+
+    pub fn is_any_assign(&self) -> bool {
+        match *self {
+            BinOp::Assign
+            | BinOp::AddAssign
+            | BinOp::SubAssign
+            | BinOp::MulAssign
+            | BinOp::ModAssign
+            | BinOp::DivAssign
+            | BinOp::BitOrAssign
+            | BinOp::BitAndAssign
+            | BinOp::BitXorAssign
+            | BinOp::ShiftLAssign
+            | BinOp::ArithShiftRAssign
+            | BinOp::LogicalShiftRAssign => true,
+            _ => false,
+        }
+    }
+
+    pub fn is_compare(&self) -> bool {
+        match *self {
+            BinOp::Cmp(cmp) if cmp != CmpOp::Is && cmp != CmpOp::IsNot => true,
             _ => false,
         }
     }
