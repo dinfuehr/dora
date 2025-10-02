@@ -424,7 +424,7 @@ impl<'a> AstBytecodeGen<'a> {
                     for &ctor_field_id in ctor_fields {
                         let ctor_field = self
                             .node(ctor_field_id)
-                            .to_constructor_field()
+                            .to_ctor_field()
                             .expect("field expected");
                         self.setup_pattern_vars(ctor_field.pattern);
                     }
@@ -775,10 +775,7 @@ impl<'a> AstBytecodeGen<'a> {
             g.builder
                 .emit_load_enum_element(field_reg, value, idx, g.loc(g.span(pattern_id)));
 
-            let param = g
-                .node(param_id)
-                .to_constructor_field()
-                .expect("field expected");
+            let param = g.node(param_id).to_ctor_field().expect("field expected");
             g.destruct_pattern_alt(pck, param.pattern, field_reg, element_ty);
             g.free_temp(field_reg);
         });
@@ -813,7 +810,7 @@ impl<'a> AstBytecodeGen<'a> {
             g.builder.emit_load_struct_field(temp_reg, value, idx);
             let field = g
                 .node(field_ast_id)
-                .to_constructor_field()
+                .to_ctor_field()
                 .expect("field expected");
             g.destruct_pattern_alt(pck, field.pattern, temp_reg, field_ty);
             g.free_temp(temp_reg);
@@ -846,7 +843,7 @@ impl<'a> AstBytecodeGen<'a> {
                 .emit_load_field(temp_reg, value, idx, g.loc(g.span(pattern_id)));
             let field = g
                 .node(field_ast_id)
-                .to_constructor_field()
+                .to_ctor_field()
                 .expect("field expected");
             g.destruct_pattern_alt(pck, field.pattern, temp_reg, field_ty);
             g.free_temp(temp_reg);
@@ -3598,12 +3595,12 @@ where
 {
     let pattern = g.node(pattern_id);
 
-    if let Some(pattern) = pattern.to_constructor_pattern() {
+    if let Some(pattern) = pattern.to_ctor_pattern() {
         if let Some(ref ctor_fields) = pattern.params {
             for &ctor_field_id in ctor_fields {
                 let ctor_field = g
                     .node(ctor_field_id)
-                    .to_constructor_field()
+                    .to_ctor_field()
                     .expect("field expected");
                 let subpattern = g.node(ctor_field.pattern);
 

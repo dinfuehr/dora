@@ -886,7 +886,7 @@ fn parse_block_with_one_stmt() {
 
     assert_eq!(1, block.stmts.len());
 
-    let expr = arena[block.stmts[0]].to_expr().unwrap().expr;
+    let expr = arena[block.stmts[0]].to_expr_stmt().unwrap().expr;
     assert_eq!(String::from("1"), arena[expr].to_lit_int().unwrap().value);
 
     assert_eq!(
@@ -902,10 +902,10 @@ fn parse_block_with_multiple_stmts() {
 
     assert_eq!(2, block.stmts.len());
 
-    let expr = arena[block.stmts[0]].to_expr().unwrap().expr;
+    let expr = arena[block.stmts[0]].to_expr_stmt().unwrap().expr;
     assert_eq!(String::from("1"), arena[expr].to_lit_int().unwrap().value);
 
-    let expr = arena[block.stmts[1]].to_expr().unwrap().expr;
+    let expr = arena[block.stmts[1]].to_expr_stmt().unwrap().expr;
     assert_eq!(String::from("2"), arena[expr].to_lit_int().unwrap().value);
 
     assert!(block.expr.is_none());
@@ -945,7 +945,7 @@ fn parse_return() {
 #[test]
 fn parse_type_regular() {
     let (ty_id, arena) = parse_type("bla");
-    let ty = arena[ty_id].to_regular().unwrap();
+    let ty = arena[ty_id].to_regular_type().unwrap();
 
     assert_eq!(0, ty.params.len());
     assert_eq!("bla", tra_name(&arena, ty_id));
@@ -954,7 +954,7 @@ fn parse_type_regular() {
 #[test]
 fn parse_type_regular_mod() {
     let (ty, arena) = parse_type("foo::bla");
-    let regular = arena[ty].to_regular().unwrap();
+    let regular = arena[ty].to_regular_type().unwrap();
 
     assert_eq!(0, regular.params.len());
     let path = arena[regular.path].to_path_data().expect("path expected");
@@ -966,7 +966,7 @@ fn parse_type_regular_mod() {
 #[test]
 fn parse_type_regular_with_params() {
     let (ty_id, arena) = parse_type("Foo[A, B]");
-    let regular = arena[ty_id].to_regular().unwrap();
+    let regular = arena[ty_id].to_regular_type().unwrap();
 
     assert_eq!(2, regular.params.len());
     assert_eq!("Foo", tra_name(&arena, ty_id));
@@ -977,7 +977,7 @@ fn parse_type_regular_with_params() {
 #[test]
 fn parse_type_regular_with_bindings() {
     let (ty_id, arena) = parse_type("Foo[A, X = B]");
-    let ty = arena[ty_id].to_regular().unwrap();
+    let ty = arena[ty_id].to_regular_type().unwrap();
 
     assert_eq!(2, ty.params.len());
     assert_eq!("Foo", tra_name(&arena, ty_id));
@@ -999,7 +999,7 @@ fn parse_type_regular_with_bindings() {
 #[test]
 fn parse_type_lambda_no_params() {
     let (ty, arena) = parse_type("(): ()");
-    let fct = arena[ty].to_fct().unwrap();
+    let fct = arena[ty].to_lambda_type().unwrap();
 
     assert_eq!(0, fct.params.len());
     assert!(arena[fct.ret.unwrap()].is_unit());
@@ -1008,7 +1008,7 @@ fn parse_type_lambda_no_params() {
 #[test]
 fn parse_type_lambda_one_param() {
     let (ty_id, arena) = parse_type("(A): B");
-    let fct = arena[ty_id].to_fct().unwrap();
+    let fct = arena[ty_id].to_lambda_type().unwrap();
 
     assert_eq!(1, fct.params.len());
     assert_eq!("A", tra_name(&arena, fct.params[0]));
@@ -1018,7 +1018,7 @@ fn parse_type_lambda_one_param() {
 #[test]
 fn parse_type_lambda_two_params() {
     let (ty_id, arena) = parse_type("(A, B): C");
-    let fct = arena[ty_id].to_fct().unwrap();
+    let fct = arena[ty_id].to_lambda_type().unwrap();
 
     assert_eq!(2, fct.params.len());
     assert_eq!("A", tra_name(&arena, fct.params[0]));
@@ -1317,7 +1317,7 @@ fn parse_class_type_params() {
 #[test]
 fn parse_type_path() {
     let (ty, arena) = parse_type("Foo::Bar::Baz");
-    let ty = arena[ty].to_regular().unwrap();
+    let ty = arena[ty].to_regular_type().unwrap();
     let path = arena[ty.path].to_path_data().expect("path expected");
     assert_eq!(path.segments.len(), 3);
     assert_eq!(ident_name(&arena, path.segments[0]), "Foo");
@@ -1786,7 +1786,7 @@ fn ident_name<'a>(arena: &'a Arena<Ast>, node_id: AstId) -> &'a str {
 }
 
 fn tr_name<'a>(f: &'a File, id: AstId) -> &'a str {
-    let node = f.node(id).to_regular().expect("regular type expected");
+    let node = f.node(id).to_regular_type().expect("regular type expected");
     let path = f.node(node.path).to_path_data().expect("path expected");
     assert_eq!(path.segments.len(), 1);
     let segment_id = path.segments.first().cloned().expect("missing segment");
@@ -1794,7 +1794,7 @@ fn tr_name<'a>(f: &'a File, id: AstId) -> &'a str {
 }
 
 fn tra_name<'a>(arena: &'a Arena<Ast>, id: AstId) -> &'a str {
-    let node = arena[id].to_regular().expect("regular type expected");
+    let node = arena[id].to_regular_type().expect("regular type expected");
     let path = arena[node.path].to_path_data().expect("path expected");
     assert_eq!(path.segments.len(), 1);
     let segment_id = path.segments.first().cloned().expect("missing segment");

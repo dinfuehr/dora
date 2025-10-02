@@ -600,28 +600,28 @@ impl Ast {
         }
     }
 
-    pub fn to_constructor_pattern(&self) -> Option<&CtorPattern> {
+    pub fn to_ctor_pattern(&self) -> Option<&CtorPattern> {
         match self {
             &Ast::CtorPattern(ref node) => Some(node),
             _ => None,
         }
     }
 
-    pub fn is_constructor_pattern(&self) -> bool {
+    pub fn is_ctor_pattern(&self) -> bool {
         match self {
             &Ast::CtorPattern(..) => true,
             _ => false,
         }
     }
 
-    pub fn to_constructor_field(&self) -> Option<&CtorField> {
+    pub fn to_ctor_field(&self) -> Option<&CtorField> {
         match self {
             &Ast::CtorField(ref node) => Some(node),
             _ => None,
         }
     }
 
-    pub fn is_constructor_field(&self) -> bool {
+    pub fn is_ctor_field(&self) -> bool {
         match self {
             &Ast::CtorField(..) => true,
             _ => false,
@@ -682,7 +682,7 @@ impl Ast {
         Ast::TupleType(TupleType { span, subtypes })
     }
 
-    pub fn to_regular(&self) -> Option<&RegularType> {
+    pub fn to_regular_type(&self) -> Option<&RegularType> {
         match *self {
             Ast::RegularType(ref val) => Some(val),
             _ => None,
@@ -696,7 +696,7 @@ impl Ast {
         }
     }
 
-    pub fn to_fct(&self) -> Option<&LambdaType> {
+    pub fn to_lambda_type(&self) -> Option<&LambdaType> {
         match *self {
             Ast::LambdaType(ref val) => Some(val),
             _ => None,
@@ -744,14 +744,14 @@ impl Ast {
         }
     }
 
-    pub fn to_expr(&self) -> Option<&ExprStmt> {
+    pub fn to_expr_stmt(&self) -> Option<&ExprStmt> {
         match *self {
             Ast::ExprStmt(ref val) => Some(val),
             _ => None,
         }
     }
 
-    pub fn is_expr(&self) -> bool {
+    pub fn is_expr_stmt(&self) -> bool {
         match *self {
             Ast::ExprStmt(_) => true,
             _ => false,

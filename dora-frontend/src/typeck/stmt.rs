@@ -557,7 +557,7 @@ fn check_subpatterns_named<'a>(
         for (idx, &ctor_field_id) in params.iter().enumerate() {
             let ctor_field = ck
                 .node(ctor_field_id)
-                .to_constructor_field()
+                .to_ctor_field()
                 .expect("field expected");
 
             if let Some(ident_id) = ctor_field.ident {
@@ -595,7 +595,7 @@ fn check_subpatterns_named<'a>(
                     let ty = specialize_type(ck.sa, field.ty(), element_type_params);
                     let field_pattern = ck
                         .node(field_pattern_id)
-                        .to_constructor_field()
+                        .to_ctor_field()
                         .expect("field expected");
                     check_pattern_inner(ck, ctxt, field_pattern.pattern, ty);
                 } else if !rest_seen {
@@ -637,7 +637,7 @@ fn check_subpatterns<'a>(
         for &ctor_field_id in ctor_fields {
             let ctor_field = ck
                 .node(ctor_field_id)
-                .to_constructor_field()
+                .to_ctor_field()
                 .expect("field expected");
 
             if ck.node(ctor_field.pattern).is_rest() {
@@ -688,7 +688,7 @@ fn check_subpatterns_error(ck: &mut TypeCheck, ctxt: &mut Context, pattern_id: a
         for &ctor_field_id in ctor_fields {
             let ctor_field = ck
                 .node(ctor_field_id)
-                .to_constructor_field()
+                .to_ctor_field()
                 .expect("field expected");
 
             if !ck.node(ctor_field.pattern).is_rest() {

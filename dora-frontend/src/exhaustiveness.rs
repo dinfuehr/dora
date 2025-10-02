@@ -1287,7 +1287,7 @@ fn convert_subpatterns(
         for &ctor_field_id in params {
             let ctor_field = sa
                 .node(file_id, ctor_field_id)
-                .to_constructor_field()
+                .to_ctor_field()
                 .expect("field expected");
 
             if sa.node(file_id, ctor_field.pattern).is_rest() {
