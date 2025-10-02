@@ -10,7 +10,7 @@ use crate::{SourceType, SourceTypeArray, specialize_type};
 pub(super) fn check_expr_while(
     ck: &mut TypeCheck,
     node_id: ast::AstId,
-    node: &ast::ExprWhileType,
+    node: &ast::While,
     _expected_ty: SourceType,
 ) -> SourceType {
     ck.enter_block_scope();
@@ -38,7 +38,7 @@ fn check_loop_body(ck: &mut TypeCheck, expr_id: AstId) {
 pub(super) fn check_expr_for(
     ck: &mut TypeCheck,
     node_id: ast::AstId,
-    node: &ast::ExprForType,
+    node: &ast::For,
     _expected_ty: SourceType,
 ) -> SourceType {
     let object_type = check_expr(ck, node.expr, SourceType::Any);
@@ -83,12 +83,7 @@ pub(super) fn check_expr_for(
     SourceType::Unit
 }
 
-fn check_for_body(
-    ck: &mut TypeCheck,
-    node_id: ast::AstId,
-    node: &ast::ExprForType,
-    ty: SourceType,
-) {
+fn check_for_body(ck: &mut TypeCheck, node_id: ast::AstId, node: &ast::For, ty: SourceType) {
     ck.symtable.push_level();
     ck.enter_block_scope();
     check_pattern(ck, node.pattern, ty);
@@ -228,7 +223,7 @@ fn type_supports_iterator_trait(
 pub(super) fn check_expr_return(
     ck: &mut TypeCheck,
     _id: ast::AstId,
-    expr: &ast::ExprReturnType,
+    expr: &ast::Return,
     _expected_ty: SourceType,
 ) -> SourceType {
     if let Some(ref return_type) = ck.return_type {
@@ -255,7 +250,7 @@ pub(super) fn check_expr_return(
 pub(super) fn check_expr_if(
     ck: &mut TypeCheck,
     node_id: ast::AstId,
-    node: &ast::ExprIfType,
+    node: &ast::If,
     expected_ty: SourceType,
 ) -> SourceType {
     ck.symtable.push_level();
@@ -354,7 +349,7 @@ pub(super) fn check_expr_break_and_continue(
 pub(super) fn check_expr_match(
     ck: &mut TypeCheck,
     node_id: ast::AstId,
-    node: &ast::ExprMatchType,
+    node: &ast::Match,
     expected_ty: SourceType,
 ) -> SourceType {
     let expr_type = check_expr(ck, node.expr, SourceType::Any);
@@ -381,7 +376,7 @@ pub(super) fn check_expr_match(
 
 fn check_expr_match_arm(
     ck: &mut TypeCheck,
-    arm: &ast::MatchArmType,
+    arm: &ast::Arm,
     expr_ty: SourceType,
     expected_ty: SourceType,
     result_type: &mut SourceType,
@@ -420,7 +415,7 @@ pub(super) fn get_subpatterns<'a>(
 
     match pattern {
         ast::Ast::IdentPattern(..) => None,
-        ast::Ast::ConstructorPattern(p) => p.params.as_ref(),
+        ast::Ast::CtorPattern(p) => p.params.as_ref(),
         _ => unreachable!(),
     }
 }

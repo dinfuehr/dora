@@ -277,7 +277,7 @@ fn parse_type_regular(
     file_id: SourceFileId,
     element: &dyn Element,
     allow_self: bool,
-    node: &ast::TypeRegularType,
+    node: &ast::RegularType,
 ) -> ParsedTypeKind {
     let path_kind = parse_path(sa, table, file_id, element, allow_self, node);
 
@@ -350,7 +350,7 @@ fn parse_type_qualified_path(
     file_id: SourceFileId,
     element: &dyn Element,
     allow_self: bool,
-    node: &ast::TypeQualifiedPathType,
+    node: &ast::QualifiedPathType,
 ) -> ParsedTypeKind {
     let ty = parse_type_inner(sa, table, file_id, element, allow_self, node.ty);
 
@@ -391,7 +391,7 @@ fn parse_type_regular_with_arguments(
     element: &dyn Element,
     allow_self: bool,
     symbol: SymbolKind,
-    node: &ast::TypeRegularType,
+    node: &ast::RegularType,
 ) -> ParsedTypeKind {
     let mut type_arguments = Vec::new();
 
@@ -441,7 +441,7 @@ fn parse_type_lambda(
     file_id: SourceFileId,
     element: &dyn Element,
     allow_self: bool,
-    node: &ast::TypeLambdaType,
+    node: &ast::LambdaType,
 ) -> ParsedTypeKind {
     let mut params = vec![];
 
@@ -467,7 +467,7 @@ fn parse_type_tuple(
     file_id: SourceFileId,
     element: &dyn Element,
     allow_self: bool,
-    node: &ast::TypeTupleType,
+    node: &ast::TupleType,
 ) -> ParsedTypeKind {
     let mut subtypes = Vec::new();
 

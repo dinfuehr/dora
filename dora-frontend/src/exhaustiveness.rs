@@ -34,20 +34,15 @@ struct Exhaustiveness<'a> {
 }
 
 impl<'a> Visitor for Exhaustiveness<'a> {
-    fn visit_match(&mut self, f: &ast::File, ast_id: ast::AstId, node: &ast::ExprMatchType) {
+    fn visit_match(&mut self, f: &ast::File, ast_id: ast::AstId, node: &ast::Match) {
         check_match(self.sa, self.analysis, self.file_id, node);
         visit::walk_match(self, f, ast_id, node);
     }
 
-    fn visit_lambda(&mut self, _f: &ast::File, _id: ast::AstId, _node: &ast::ExprLambdaType) {}
+    fn visit_lambda(&mut self, _f: &ast::File, _id: ast::AstId, _node: &ast::Lambda) {}
 }
 
-fn check_match(
-    sa: &Sema,
-    analysis: &AnalysisData,
-    file_id: SourceFileId,
-    node: &ast::ExprMatchType,
-) {
+fn check_match(sa: &Sema, analysis: &AnalysisData, file_id: SourceFileId, node: &ast::Match) {
     let mut matrix = Vec::new();
 
     let any_arm_has_guard = node
@@ -1219,7 +1214,7 @@ fn convert_pattern(
                 .collect(),
         },
 
-        ast::Ast::ConstructorPattern(p) => {
+        ast::Ast::CtorPattern(p) => {
             let ident = analysis.map_idents.get(pattern_id).expect("missing ident");
 
             match ident {
@@ -1283,7 +1278,7 @@ fn convert_subpatterns(
     sa: &Sema,
     file_id: SourceFileId,
     analysis: &AnalysisData,
-    p: &ast::PatternConstructor,
+    p: &ast::CtorPattern,
     n: usize,
 ) -> Vec<Pattern> {
     if let Some(ref params) = p.params {

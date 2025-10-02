@@ -105,51 +105,51 @@ pub enum Ast {
     Alias(Alias),
     Argument(Argument),
     Param(Param),
-    RegularType(TypeRegularType),
-    TupleType(TypeTupleType),
-    LambdaType(TypeLambdaType),
-    QualifiedPathType(TypeQualifiedPathType),
-    LetStmt(StmtLetType),
-    ExprStmt(StmtExprType),
-    Un(ExprUnType),
-    Bin(ExprBinType),
-    LitChar(ExprLitCharType),
-    LitInt(ExprLitIntType),
-    LitFloat(ExprLitFloatType),
-    LitStr(ExprLitStrType),
-    Template(ExprTemplateType),
-    LitBool(ExprLitBoolType),
+    RegularType(RegularType),
+    TupleType(TupleType),
+    LambdaType(LambdaType),
+    QualifiedPathType(QualifiedPathType),
+    Let(Let),
+    ExprStmt(ExprStmt),
+    Un(Un),
+    Bin(Bin),
+    LitChar(LitChar),
+    LitInt(LitInt),
+    LitFloat(LitFloat),
+    LitStr(LitStr),
+    Template(Template),
+    LitBool(LitBool),
     Ident(Ident),
-    Call(ExprCallType),
-    TypeParam(ExprTypeParamType),
-    Path(ExprPathType),
+    Call(Call),
+    TypedExpr(TypedExpr),
+    Path(Path),
     PathData(PathData),
-    Dot(ExprDotType),
-    This(ExprSelfType),
+    Dot(Dot),
+    This(This),
     UpcaseThis(UpcaseThis),
-    Conv(ExprConvType),
-    Is(ExprIsType),
-    Lambda(ExprLambdaType),
-    Block(ExprBlockType),
-    If(ExprIfType),
-    For(ExprForType),
-    While(ExprWhileType),
-    Tuple(ExprTupleType),
-    Paren(ExprParenType),
-    Match(ExprMatchType),
-    MatchArm(MatchArmType),
-    Break(ExprBreakType),
-    Continue(ExprContinueType),
-    Return(ExprReturnType),
+    Conv(Conv),
+    Is(Is),
+    Lambda(Lambda),
+    Block(Block),
+    If(If),
+    For(For),
+    While(While),
+    Tuple(Tuple),
+    Paren(Paren),
+    Match(Match),
+    MatchArm(Arm),
+    Break(Break),
+    Continue(Continue),
+    Return(Return),
     TypeArgument(TypeArgument),
-    Underscore(PatternUnderscore),
-    LitPattern(PatternLit),
-    IdentPattern(PatternIdent),
-    TuplePattern(PatternTuple),
-    ConstructorPattern(PatternConstructor),
-    ConstructorField(PatternField),
-    Rest(PatternRest),
-    Alt(PatternAlt),
+    Underscore(Underscore),
+    LitPattern(LitPattern),
+    IdentPattern(IdentPattern),
+    TuplePattern(TuplePattern),
+    CtorPattern(CtorPattern),
+    CtorField(CtorField),
+    Rest(Rest),
+    Alt(Alt),
     ModifierList(ModifierList),
     Modifier(Modifier),
     Error(Error),
@@ -182,7 +182,7 @@ impl Ast {
             Ast::TupleType(node) => node.span,
             Ast::LambdaType(node) => node.span,
             Ast::QualifiedPathType(node) => node.span,
-            Ast::LetStmt(node) => node.span,
+            Ast::Let(node) => node.span,
             Ast::ExprStmt(node) => node.span,
             Ast::Un(node) => node.span,
             Ast::Bin(node) => node.span,
@@ -194,7 +194,7 @@ impl Ast {
             Ast::LitBool(node) => node.span,
             Ast::Ident(node) => node.span,
             Ast::Call(node) => node.span,
-            Ast::TypeParam(node) => node.span,
+            Ast::TypedExpr(node) => node.span,
             Ast::Path(node) => node.span,
             Ast::PathData(node) => node.span,
             Ast::Dot(node) => node.span,
@@ -219,8 +219,8 @@ impl Ast {
             Ast::LitPattern(node) => node.span,
             Ast::IdentPattern(node) => node.span,
             Ast::TuplePattern(node) => node.span,
-            Ast::ConstructorPattern(node) => node.span,
-            Ast::ConstructorField(node) => node.span,
+            Ast::CtorPattern(node) => node.span,
+            Ast::CtorField(node) => node.span,
             Ast::Rest(node) => node.span,
             Ast::Alt(node) => node.span,
             Ast::ModifierList(node) => node.span,
@@ -255,7 +255,7 @@ impl Ast {
             Ast::TupleType(node) => node.name(),
             Ast::LambdaType(node) => node.name(),
             Ast::QualifiedPathType(node) => node.name(),
-            Ast::LetStmt(node) => node.name(),
+            Ast::Let(node) => node.name(),
             Ast::ExprStmt(node) => node.name(),
             Ast::Un(node) => node.name(),
             Ast::Bin(node) => node.name(),
@@ -267,7 +267,7 @@ impl Ast {
             Ast::LitBool(node) => node.name(),
             Ast::Ident(node) => node.name(),
             Ast::Call(node) => node.name(),
-            Ast::TypeParam(node) => node.name(),
+            Ast::TypedExpr(node) => node.name(),
             Ast::Path(node) => node.name(),
             Ast::PathData(node) => node.name(),
             Ast::Dot(node) => node.name(),
@@ -292,8 +292,8 @@ impl Ast {
             Ast::LitPattern(node) => node.name(),
             Ast::IdentPattern(node) => node.name(),
             Ast::TuplePattern(node) => node.name(),
-            Ast::ConstructorPattern(node) => node.name(),
-            Ast::ConstructorField(node) => node.name(),
+            Ast::CtorPattern(node) => node.name(),
+            Ast::CtorField(node) => node.name(),
             Ast::Rest(node) => node.name(),
             Ast::Alt(node) => node.name(),
             Ast::ModifierList(node) => node.name(),
@@ -328,7 +328,7 @@ impl Ast {
             Ast::TupleType(node) => node.children(),
             Ast::LambdaType(node) => node.children(),
             Ast::QualifiedPathType(node) => node.children(),
-            Ast::LetStmt(node) => node.children(),
+            Ast::Let(node) => node.children(),
             Ast::ExprStmt(node) => node.children(),
             Ast::Un(node) => node.children(),
             Ast::Bin(node) => node.children(),
@@ -340,7 +340,7 @@ impl Ast {
             Ast::LitBool(node) => node.children(),
             Ast::Ident(node) => node.children(),
             Ast::Call(node) => node.children(),
-            Ast::TypeParam(node) => node.children(),
+            Ast::TypedExpr(node) => node.children(),
             Ast::Path(node) => node.children(),
             Ast::PathData(node) => node.children(),
             Ast::Dot(node) => node.children(),
@@ -365,8 +365,8 @@ impl Ast {
             Ast::LitPattern(node) => node.children(),
             Ast::IdentPattern(node) => node.children(),
             Ast::TuplePattern(node) => node.children(),
-            Ast::ConstructorPattern(node) => node.children(),
-            Ast::ConstructorField(node) => node.children(),
+            Ast::CtorPattern(node) => node.children(),
+            Ast::CtorField(node) => node.children(),
             Ast::Rest(node) => node.children(),
             Ast::Alt(node) => node.children(),
             Ast::ModifierList(node) => node.children(),
@@ -410,7 +410,7 @@ impl Ast {
         }
     }
 
-    pub fn to_match_arm(&self) -> Option<&MatchArmType> {
+    pub fn to_match_arm(&self) -> Option<&Arm> {
         match self {
             &Ast::MatchArm(ref node) => Some(node),
             _ => None,
@@ -536,7 +536,7 @@ impl Ast {
         }
     }
 
-    pub fn to_underscore(&self) -> Option<&PatternUnderscore> {
+    pub fn to_underscore(&self) -> Option<&Underscore> {
         match self {
             &Ast::Underscore(ref node) => Some(node),
             _ => None,
@@ -550,7 +550,7 @@ impl Ast {
         }
     }
 
-    pub fn to_lit_pattern(&self) -> Option<&PatternLit> {
+    pub fn to_lit_pattern(&self) -> Option<&LitPattern> {
         match self {
             &Ast::LitPattern(ref node) => Some(node),
             _ => None,
@@ -564,7 +564,7 @@ impl Ast {
         }
     }
 
-    pub fn to_ident_pattern(&self) -> Option<&PatternIdent> {
+    pub fn to_ident_pattern(&self) -> Option<&IdentPattern> {
         match self {
             &Ast::IdentPattern(ref node) => Some(node),
             _ => None,
@@ -578,7 +578,7 @@ impl Ast {
         }
     }
 
-    pub fn to_tuple_pattern(&self) -> Option<&PatternTuple> {
+    pub fn to_tuple_pattern(&self) -> Option<&TuplePattern> {
         match self {
             &Ast::TuplePattern(ref node) => Some(node),
             _ => None,
@@ -592,35 +592,35 @@ impl Ast {
         }
     }
 
-    pub fn to_constructor_pattern(&self) -> Option<&PatternConstructor> {
+    pub fn to_constructor_pattern(&self) -> Option<&CtorPattern> {
         match self {
-            &Ast::ConstructorPattern(ref node) => Some(node),
+            &Ast::CtorPattern(ref node) => Some(node),
             _ => None,
         }
     }
 
     pub fn is_constructor_pattern(&self) -> bool {
         match self {
-            &Ast::ConstructorPattern(..) => true,
+            &Ast::CtorPattern(..) => true,
             _ => false,
         }
     }
 
-    pub fn to_constructor_field(&self) -> Option<&PatternField> {
+    pub fn to_constructor_field(&self) -> Option<&CtorField> {
         match self {
-            &Ast::ConstructorField(ref node) => Some(node),
+            &Ast::CtorField(ref node) => Some(node),
             _ => None,
         }
     }
 
     pub fn is_constructor_field(&self) -> bool {
         match self {
-            &Ast::ConstructorField(..) => true,
+            &Ast::CtorField(..) => true,
             _ => false,
         }
     }
 
-    pub fn to_rest(&self) -> Option<&PatternRest> {
+    pub fn to_rest(&self) -> Option<&Rest> {
         match self {
             &Ast::Rest(ref node) => Some(node),
             _ => None,
@@ -634,7 +634,7 @@ impl Ast {
         }
     }
 
-    pub fn to_alt(&self) -> Option<&PatternAlt> {
+    pub fn to_alt(&self) -> Option<&Alt> {
         match self {
             &Ast::Alt(ref node) => Some(node),
             _ => None,
@@ -790,14 +790,14 @@ pub struct WhereClauseItem {
 }
 
 #[derive(Clone, Debug, AstNode)]
-pub struct TypeTupleType {
+pub struct TupleType {
     pub span: Span,
 
     pub subtypes: Vec<AstId>,
 }
 
 #[derive(Clone, Debug, AstNode)]
-pub struct TypeLambdaType {
+pub struct LambdaType {
     pub span: Span,
 
     pub params: Vec<AstId>,
@@ -805,7 +805,7 @@ pub struct TypeLambdaType {
 }
 
 #[derive(Clone, Debug, AstNode)]
-pub struct TypeRegularType {
+pub struct RegularType {
     pub span: Span,
 
     pub path: AstId,
@@ -829,7 +829,7 @@ pub struct TypeGenericType {
 }
 
 #[derive(Clone, Debug, AstNode)]
-pub struct TypeQualifiedPathType {
+pub struct QualifiedPathType {
     pub span: Span,
 
     pub ty: AstId,
@@ -839,7 +839,7 @@ pub struct TypeQualifiedPathType {
 
 impl Ast {
     pub fn create_regular(span: Span, path: AstId, params: Vec<AstId>) -> Ast {
-        Ast::RegularType(TypeRegularType { span, path, params })
+        Ast::RegularType(RegularType { span, path, params })
     }
 
     pub fn create_qualified_path(
@@ -848,7 +848,7 @@ impl Ast {
         trait_ty: AstId,
         name: Option<AstId>,
     ) -> Ast {
-        Ast::QualifiedPathType(TypeQualifiedPathType {
+        Ast::QualifiedPathType(QualifiedPathType {
             span,
             ty,
             trait_ty,
@@ -857,28 +857,28 @@ impl Ast {
     }
 
     pub fn create_fct(span: Span, params: Vec<AstId>, ret: Option<AstId>) -> Ast {
-        Ast::LambdaType(TypeLambdaType { span, params, ret })
+        Ast::LambdaType(LambdaType { span, params, ret })
     }
 
     pub fn create_tuple_type(span: Span, subtypes: Vec<AstId>) -> Ast {
-        Ast::TupleType(TypeTupleType { span, subtypes })
+        Ast::TupleType(TupleType { span, subtypes })
     }
 
-    pub fn to_regular(&self) -> Option<&TypeRegularType> {
+    pub fn to_regular(&self) -> Option<&RegularType> {
         match *self {
             Ast::RegularType(ref val) => Some(val),
             _ => None,
         }
     }
 
-    pub fn to_tuple_type(&self) -> Option<&TypeTupleType> {
+    pub fn to_tuple_type(&self) -> Option<&TupleType> {
         match *self {
             Ast::TupleType(ref val) => Some(val),
             _ => None,
         }
     }
 
-    pub fn to_fct(&self) -> Option<&TypeLambdaType> {
+    pub fn to_fct(&self) -> Option<&LambdaType> {
         match *self {
             Ast::LambdaType(ref val) => Some(val),
             _ => None,
@@ -1057,7 +1057,7 @@ impl Ast {
         data_type: Option<AstId>,
         expr: Option<AstId>,
     ) -> Ast {
-        Ast::LetStmt(StmtLetType {
+        Ast::Let(Let {
             span,
 
             pattern,
@@ -1067,24 +1067,24 @@ impl Ast {
     }
 
     pub fn create_expr_stmt(span: Span, expr: AstId) -> Ast {
-        Ast::ExprStmt(StmtExprType { span, expr })
+        Ast::ExprStmt(ExprStmt { span, expr })
     }
 
-    pub fn to_let(&self) -> Option<&StmtLetType> {
+    pub fn to_let(&self) -> Option<&Let> {
         match *self {
-            Ast::LetStmt(ref val) => Some(val),
+            Ast::Let(ref val) => Some(val),
             _ => None,
         }
     }
 
     pub fn is_let(&self) -> bool {
         match *self {
-            Ast::LetStmt(_) => true,
+            Ast::Let(_) => true,
             _ => false,
         }
     }
 
-    pub fn to_expr(&self) -> Option<&StmtExprType> {
+    pub fn to_expr(&self) -> Option<&ExprStmt> {
         match *self {
             Ast::ExprStmt(ref val) => Some(val),
             _ => None,
@@ -1100,7 +1100,7 @@ impl Ast {
 }
 
 #[derive(Clone, Debug, AstNode)]
-pub struct StmtLetType {
+pub struct Let {
     pub span: Span,
 
     pub pattern: AstId,
@@ -1110,7 +1110,7 @@ pub struct StmtLetType {
 }
 
 #[derive(Clone, Debug, AstNode)]
-pub struct ExprForType {
+pub struct For {
     pub span: Span,
 
     pub pattern: AstId,
@@ -1119,7 +1119,7 @@ pub struct ExprForType {
 }
 
 #[derive(Clone, Debug, AstNode)]
-pub struct ExprWhileType {
+pub struct While {
     pub span: Span,
 
     pub cond: AstId,
@@ -1127,26 +1127,26 @@ pub struct ExprWhileType {
 }
 
 #[derive(Clone, Debug, AstNode)]
-pub struct StmtExprType {
+pub struct ExprStmt {
     pub span: Span,
 
     pub expr: AstId,
 }
 
 #[derive(Clone, Debug, AstNode)]
-pub struct ExprReturnType {
+pub struct Return {
     pub span: Span,
 
     pub expr: Option<AstId>,
 }
 
 #[derive(Clone, Debug, AstNode)]
-pub struct ExprBreakType {
+pub struct Break {
     pub span: Span,
 }
 
 #[derive(Clone, Debug, AstNode)]
-pub struct ExprContinueType {
+pub struct Continue {
     pub span: Span,
 }
 
@@ -1282,11 +1282,11 @@ impl BinOp {
 
 impl Ast {
     pub fn create_block(span: Span, stmts: Vec<AstId>, expr: Option<AstId>) -> Ast {
-        Ast::Block(ExprBlockType { span, stmts, expr })
+        Ast::Block(Block { span, stmts, expr })
     }
 
     pub fn create_if(span: Span, cond: AstId, then_block: AstId, else_block: Option<AstId>) -> Ast {
-        Ast::If(ExprIfType {
+        Ast::If(If {
             span,
             cond,
             then_block,
@@ -1295,11 +1295,11 @@ impl Ast {
     }
 
     pub fn create_match(span: Span, expr: AstId, arms: Vec<AstId>) -> Ast {
-        Ast::Match(ExprMatchType { span, expr, arms })
+        Ast::Match(Match { span, expr, arms })
     }
 
     pub fn create_for(span: Span, pattern: AstId, expr: AstId, block: AstId) -> Ast {
-        Ast::For(ExprForType {
+        Ast::For(For {
             span,
 
             pattern,
@@ -1309,31 +1309,31 @@ impl Ast {
     }
 
     pub fn create_while(span: Span, cond: AstId, block: AstId) -> Ast {
-        Ast::While(ExprWhileType { span, cond, block })
+        Ast::While(While { span, cond, block })
     }
 
     pub fn create_return(span: Span, expr: Option<AstId>) -> Ast {
-        Ast::Return(ExprReturnType { span, expr })
+        Ast::Return(Return { span, expr })
     }
 
     pub fn create_break(span: Span) -> Ast {
-        Ast::Break(ExprBreakType { span })
+        Ast::Break(Break { span })
     }
 
     pub fn create_continue(span: Span) -> Ast {
-        Ast::Continue(ExprContinueType { span })
+        Ast::Continue(Continue { span })
     }
 
     pub fn create_un(span: Span, op: UnOp, opnd: AstId) -> Ast {
-        Ast::Un(ExprUnType { span, op, opnd })
+        Ast::Un(Un { span, op, opnd })
     }
 
     pub fn create_bin(span: Span, op: BinOp, lhs: AstId, rhs: AstId) -> Ast {
-        Ast::Bin(ExprBinType { span, op, lhs, rhs })
+        Ast::Bin(Bin { span, op, lhs, rhs })
     }
 
     pub fn create_conv(span: Span, object: AstId, data_type: AstId) -> Ast {
-        Ast::Conv(ExprConvType {
+        Ast::Conv(Conv {
             span,
 
             object,
@@ -1342,7 +1342,7 @@ impl Ast {
     }
 
     pub fn create_is(span: Span, object: AstId, pattern: AstId) -> Ast {
-        Ast::Is(ExprIsType {
+        Ast::Is(Is {
             span,
 
             value: object,
@@ -1351,34 +1351,34 @@ impl Ast {
     }
 
     pub fn create_lit_char(span: Span, full_value: String) -> Ast {
-        Ast::LitChar(ExprLitCharType {
+        Ast::LitChar(LitChar {
             span,
             value: full_value,
         })
     }
 
     pub fn create_lit_int(span: Span, value: String) -> Ast {
-        Ast::LitInt(ExprLitIntType { span, value })
+        Ast::LitInt(LitInt { span, value })
     }
 
     pub fn create_lit_float(span: Span, value: String) -> Ast {
-        Ast::LitFloat(ExprLitFloatType { span, value })
+        Ast::LitFloat(LitFloat { span, value })
     }
 
     pub fn create_lit_str(span: Span, value: String) -> Ast {
-        Ast::LitStr(ExprLitStrType { span, value })
+        Ast::LitStr(LitStr { span, value })
     }
 
     pub fn create_template(span: Span, parts: Vec<AstId>) -> Ast {
-        Ast::Template(ExprTemplateType { span, parts })
+        Ast::Template(Template { span, parts })
     }
 
     pub fn create_lit_bool(span: Span, value: bool) -> Ast {
-        Ast::LitBool(ExprLitBoolType { span, value })
+        Ast::LitBool(LitBool { span, value })
     }
 
     pub fn create_this(span: Span) -> Ast {
-        Ast::This(ExprSelfType { span })
+        Ast::This(This { span })
     }
 
     pub fn create_ident(span: Span, name: String) -> Ast {
@@ -1386,15 +1386,15 @@ impl Ast {
     }
 
     pub fn create_paren(span: Span, expr: AstId) -> Ast {
-        Ast::Paren(ExprParenType { span, expr })
+        Ast::Paren(Paren { span, expr })
     }
 
     pub fn create_call(span: Span, callee: AstId, args: Vec<AstId>) -> Ast {
-        Ast::Call(ExprCallType { span, callee, args })
+        Ast::Call(Call { span, callee, args })
     }
 
     pub fn create_type_param(span: Span, op_span: Span, callee: AstId, args: Vec<AstId>) -> Ast {
-        Ast::TypeParam(ExprTypeParamType {
+        Ast::TypedExpr(TypedExpr {
             span,
             op_span,
 
@@ -1404,7 +1404,7 @@ impl Ast {
     }
 
     pub fn create_path(span: Span, op_span: Span, lhs: AstId, rhs: AstId) -> Ast {
-        Ast::Path(ExprPathType {
+        Ast::Path(Path {
             span,
             op_span,
             lhs,
@@ -1413,7 +1413,7 @@ impl Ast {
     }
 
     pub fn create_dot(span: Span, op_span: Span, lhs: AstId, rhs: AstId) -> Ast {
-        Ast::Dot(ExprDotType {
+        Ast::Dot(Dot {
             span,
             op_span,
 
@@ -1423,14 +1423,14 @@ impl Ast {
     }
 
     pub fn create_lambda(span: Span, fct_id: AstId) -> Ast {
-        Ast::Lambda(ExprLambdaType { span, fct_id })
+        Ast::Lambda(Lambda { span, fct_id })
     }
 
     pub fn create_tuple(span: Span, values: Vec<AstId>) -> Ast {
-        Ast::Tuple(ExprTupleType { span, values })
+        Ast::Tuple(Tuple { span, values })
     }
 
-    pub fn to_for(&self) -> Option<&ExprForType> {
+    pub fn to_for(&self) -> Option<&For> {
         match *self {
             Ast::For(ref val) => Some(val),
             _ => None,
@@ -1444,7 +1444,7 @@ impl Ast {
         }
     }
 
-    pub fn to_while(&self) -> Option<&ExprWhileType> {
+    pub fn to_while(&self) -> Option<&While> {
         match *self {
             Ast::While(ref val) => Some(val),
             _ => None,
@@ -1458,7 +1458,7 @@ impl Ast {
         }
     }
 
-    pub fn to_un(&self) -> Option<&ExprUnType> {
+    pub fn to_un(&self) -> Option<&Un> {
         match *self {
             Ast::Un(ref val) => Some(val),
             _ => None,
@@ -1479,14 +1479,14 @@ impl Ast {
         }
     }
 
-    pub fn to_bin(&self) -> Option<&ExprBinType> {
+    pub fn to_bin(&self) -> Option<&Bin> {
         match *self {
             Ast::Bin(ref val) => Some(val),
             _ => None,
         }
     }
 
-    pub fn to_bin_and(&self) -> Option<&ExprBinType> {
+    pub fn to_bin_and(&self) -> Option<&Bin> {
         self.to_bin().filter(|e| e.op == BinOp::And)
     }
 
@@ -1504,14 +1504,14 @@ impl Ast {
         }
     }
 
-    pub fn to_is(&self) -> Option<&ExprIsType> {
+    pub fn to_is(&self) -> Option<&Is> {
         match *self {
             Ast::Is(ref e) => Some(e),
             _ => None,
         }
     }
 
-    pub fn to_paren(&self) -> Option<&ExprParenType> {
+    pub fn to_paren(&self) -> Option<&Paren> {
         match *self {
             Ast::Paren(ref val) => Some(val),
             _ => None,
@@ -1539,7 +1539,7 @@ impl Ast {
         }
     }
 
-    pub fn to_call(&self) -> Option<&ExprCallType> {
+    pub fn to_call(&self) -> Option<&Call> {
         match *self {
             Ast::Call(ref val) => Some(val),
             _ => None,
@@ -1553,7 +1553,7 @@ impl Ast {
         }
     }
 
-    pub fn to_path(&self) -> Option<&ExprPathType> {
+    pub fn to_path(&self) -> Option<&Path> {
         match *self {
             Ast::Path(ref val) => Some(val),
             _ => None,
@@ -1574,21 +1574,21 @@ impl Ast {
         }
     }
 
-    pub fn to_type_param(&self) -> Option<&ExprTypeParamType> {
+    pub fn to_type_param(&self) -> Option<&TypedExpr> {
         match *self {
-            Ast::TypeParam(ref val) => Some(val),
+            Ast::TypedExpr(ref val) => Some(val),
             _ => None,
         }
     }
 
     pub fn is_type_param(&self) -> bool {
         match *self {
-            Ast::TypeParam(_) => true,
+            Ast::TypedExpr(_) => true,
             _ => false,
         }
     }
 
-    pub fn to_lit_char(&self) -> Option<&ExprLitCharType> {
+    pub fn to_lit_char(&self) -> Option<&LitChar> {
         match *self {
             Ast::LitChar(ref val) => Some(val),
             _ => None,
@@ -1602,7 +1602,7 @@ impl Ast {
         }
     }
 
-    pub fn to_lit_int(&self) -> Option<&ExprLitIntType> {
+    pub fn to_lit_int(&self) -> Option<&LitInt> {
         match *self {
             Ast::LitInt(ref val) => Some(val),
             _ => None,
@@ -1616,7 +1616,7 @@ impl Ast {
         }
     }
 
-    pub fn to_template(&self) -> Option<&ExprTemplateType> {
+    pub fn to_template(&self) -> Option<&Template> {
         match *self {
             Ast::Template(ref val) => Some(val),
             _ => None,
@@ -1630,7 +1630,7 @@ impl Ast {
         }
     }
 
-    pub fn to_lit_float(&self) -> Option<&ExprLitFloatType> {
+    pub fn to_lit_float(&self) -> Option<&LitFloat> {
         match *self {
             Ast::LitFloat(ref val) => Some(val),
             _ => None,
@@ -1644,7 +1644,7 @@ impl Ast {
         }
     }
 
-    pub fn to_lit_str(&self) -> Option<&ExprLitStrType> {
+    pub fn to_lit_str(&self) -> Option<&LitStr> {
         match *self {
             Ast::LitStr(ref val) => Some(val),
             _ => None,
@@ -1658,7 +1658,7 @@ impl Ast {
         }
     }
 
-    pub fn to_lit_bool(&self) -> Option<&ExprLitBoolType> {
+    pub fn to_lit_bool(&self) -> Option<&LitBool> {
         match *self {
             Ast::LitBool(ref val) => Some(val),
             _ => None,
@@ -1679,7 +1679,7 @@ impl Ast {
         }
     }
 
-    pub fn to_dot(&self) -> Option<&ExprDotType> {
+    pub fn to_dot(&self) -> Option<&Dot> {
         match *self {
             Ast::Dot(ref val) => Some(val),
             _ => None,
@@ -1700,7 +1700,7 @@ impl Ast {
         }
     }
 
-    pub fn to_conv(&self) -> Option<&ExprConvType> {
+    pub fn to_conv(&self) -> Option<&Conv> {
         match *self {
             Ast::Conv(ref val) => Some(val),
             _ => None,
@@ -1714,7 +1714,7 @@ impl Ast {
         }
     }
 
-    pub fn to_lambda(&self) -> Option<&ExprLambdaType> {
+    pub fn to_lambda(&self) -> Option<&Lambda> {
         match *self {
             Ast::Lambda(ref val) => Some(val),
             _ => None,
@@ -1728,7 +1728,7 @@ impl Ast {
         }
     }
 
-    pub fn to_tuple(&self) -> Option<&ExprTupleType> {
+    pub fn to_tuple(&self) -> Option<&Tuple> {
         match *self {
             Ast::Tuple(ref val) => Some(val),
             _ => None,
@@ -1742,7 +1742,7 @@ impl Ast {
         }
     }
 
-    pub fn to_block(&self) -> Option<&ExprBlockType> {
+    pub fn to_block(&self) -> Option<&Block> {
         match *self {
             Ast::Block(ref val) => Some(val),
             _ => None,
@@ -1759,7 +1759,7 @@ impl Ast {
         }
     }
 
-    pub fn to_if(&self) -> Option<&ExprIfType> {
+    pub fn to_if(&self) -> Option<&If> {
         match *self {
             Ast::If(ref val) => Some(val),
             _ => None,
@@ -1773,7 +1773,7 @@ impl Ast {
         }
     }
 
-    pub fn to_break(&self) -> Option<&ExprBreakType> {
+    pub fn to_break(&self) -> Option<&Break> {
         match *self {
             Ast::Break(ref val) => Some(val),
             _ => None,
@@ -1787,7 +1787,7 @@ impl Ast {
         }
     }
 
-    pub fn to_continue(&self) -> Option<&ExprContinueType> {
+    pub fn to_continue(&self) -> Option<&Continue> {
         match *self {
             Ast::Continue(ref val) => Some(val),
             _ => None,
@@ -1801,7 +1801,7 @@ impl Ast {
         }
     }
 
-    pub fn to_return(&self) -> Option<&ExprReturnType> {
+    pub fn to_return(&self) -> Option<&Return> {
         match *self {
             Ast::Return(ref val) => Some(val),
             _ => None,
@@ -1828,13 +1828,13 @@ impl Ast {
 }
 
 #[derive(Clone, Debug, AstNode)]
-pub struct ExprLambdaType {
+pub struct Lambda {
     pub span: Span,
     pub fct_id: AstId,
 }
 
 #[derive(Clone, Debug, AstNode)]
-pub struct ExprIfType {
+pub struct If {
     pub span: Span,
 
     pub cond: AstId,
@@ -1843,14 +1843,14 @@ pub struct ExprIfType {
 }
 
 #[derive(Clone, Debug, AstNode)]
-pub struct ExprTupleType {
+pub struct Tuple {
     pub span: Span,
 
     pub values: Vec<AstId>,
 }
 
 #[derive(Clone, Debug, AstNode)]
-pub struct ExprConvType {
+pub struct Conv {
     pub span: Span,
 
     pub object: AstId,
@@ -1858,7 +1858,7 @@ pub struct ExprConvType {
 }
 
 #[derive(Clone, Debug, AstNode)]
-pub struct ExprIsType {
+pub struct Is {
     pub span: Span,
 
     pub value: AstId,
@@ -1866,7 +1866,7 @@ pub struct ExprIsType {
 }
 
 #[derive(Clone, Debug, AstNode)]
-pub struct ExprUnType {
+pub struct Un {
     pub span: Span,
 
     pub op: UnOp,
@@ -1874,7 +1874,7 @@ pub struct ExprUnType {
 }
 
 #[derive(Clone, Debug, AstNode)]
-pub struct ExprBinType {
+pub struct Bin {
     pub span: Span,
 
     pub op: BinOp,
@@ -1883,48 +1883,48 @@ pub struct ExprBinType {
 }
 
 #[derive(Clone, Debug, AstNode)]
-pub struct ExprLitCharType {
+pub struct LitChar {
     pub span: Span,
     pub value: String,
 }
 
 #[derive(Clone, Debug, AstNode)]
-pub struct ExprLitIntType {
-    pub span: Span,
-
-    pub value: String,
-}
-
-#[derive(Clone, Debug, AstNode)]
-pub struct ExprLitFloatType {
+pub struct LitInt {
     pub span: Span,
 
     pub value: String,
 }
 
 #[derive(Clone, Debug, AstNode)]
-pub struct ExprLitStrType {
+pub struct LitFloat {
     pub span: Span,
 
     pub value: String,
 }
 
 #[derive(Clone, Debug, AstNode)]
-pub struct ExprTemplateType {
+pub struct LitStr {
+    pub span: Span,
+
+    pub value: String,
+}
+
+#[derive(Clone, Debug, AstNode)]
+pub struct Template {
     pub span: Span,
 
     pub parts: Vec<AstId>,
 }
 
 #[derive(Clone, Debug, AstNode)]
-pub struct ExprLitBoolType {
+pub struct LitBool {
     pub span: Span,
 
     pub value: bool,
 }
 
 #[derive(Clone, Debug, AstNode)]
-pub struct ExprBlockType {
+pub struct Block {
     pub span: Span,
 
     pub stmts: Vec<AstId>,
@@ -1932,7 +1932,7 @@ pub struct ExprBlockType {
 }
 
 #[derive(Clone, Debug, AstNode)]
-pub struct ExprSelfType {
+pub struct This {
     pub span: Span,
 }
 
@@ -1948,14 +1948,14 @@ pub struct Ident {
 }
 
 #[derive(Clone, Debug, AstNode)]
-pub struct ExprCallType {
+pub struct Call {
     pub span: Span,
 
     pub callee: AstId,
     pub args: Vec<AstId>,
 }
 
-impl ExprCallType {
+impl Call {
     pub fn object(&self, file: &File) -> Option<AstId> {
         let callee_node = file.node(self.callee);
         if let Some(type_param) = callee_node.to_type_param() {
@@ -1985,13 +1985,13 @@ pub struct Argument {
 }
 
 #[derive(Clone, Debug, AstNode)]
-pub struct ExprParenType {
+pub struct Paren {
     pub span: Span,
     pub expr: AstId,
 }
 
 #[derive(Clone, Debug, AstNode)]
-pub struct ExprMatchType {
+pub struct Match {
     pub span: Span,
 
     pub expr: AstId,
@@ -1999,7 +1999,7 @@ pub struct ExprMatchType {
 }
 
 #[derive(Clone, Debug, AstNode)]
-pub struct MatchArmType {
+pub struct Arm {
     pub span: Span,
 
     pub pattern: AstId,
@@ -2013,24 +2013,24 @@ pub struct PatternError {
 }
 
 #[derive(Clone, Debug, AstNode)]
-pub struct PatternAlt {
+pub struct Alt {
     pub span: Span,
 
     pub alts: Vec<AstId>,
 }
 
 #[derive(Clone, Debug, AstNode)]
-pub struct PatternUnderscore {
+pub struct Underscore {
     pub span: Span,
 }
 
 #[derive(Clone, Debug, AstNode)]
-pub struct PatternRest {
+pub struct Rest {
     pub span: Span,
 }
 
 #[derive(Clone, Debug, AstNode)]
-pub struct PatternLit {
+pub struct LitPattern {
     pub span: Span,
     pub kind: PatternLitKind,
     pub expr: AstId,
@@ -2046,27 +2046,27 @@ pub enum PatternLitKind {
 }
 
 #[derive(Clone, Debug, AstNode)]
-pub struct PatternIdent {
+pub struct IdentPattern {
     pub span: Span,
     pub mutable: bool,
     pub name: AstId,
 }
 
 #[derive(Clone, Debug, AstNode)]
-pub struct PatternTuple {
+pub struct TuplePattern {
     pub span: Span,
     pub params: Vec<AstId>,
 }
 
 #[derive(Clone, Debug, AstNode)]
-pub struct PatternConstructor {
+pub struct CtorPattern {
     pub span: Span,
     pub path: AstId,
     pub params: Option<Vec<AstId>>,
 }
 
 #[derive(Clone, Debug, AstNode)]
-pub struct PatternField {
+pub struct CtorField {
     pub span: Span,
     pub ident: Option<AstId>,
     pub pattern: AstId,
@@ -2097,7 +2097,7 @@ pub struct PathSegmentIdent {
 }
 
 #[derive(Clone, Debug, AstNode)]
-pub struct ExprTypeParamType {
+pub struct TypedExpr {
     pub span: Span,
     pub op_span: Span,
 
@@ -2106,7 +2106,7 @@ pub struct ExprTypeParamType {
 }
 
 #[derive(Clone, Debug, AstNode)]
-pub struct ExprPathType {
+pub struct Path {
     pub span: Span,
     pub op_span: Span,
 
@@ -2115,7 +2115,7 @@ pub struct ExprPathType {
 }
 
 #[derive(Clone, Debug, AstNode)]
-pub struct ExprDotType {
+pub struct Dot {
     pub span: Span,
     pub op_span: Span,
 

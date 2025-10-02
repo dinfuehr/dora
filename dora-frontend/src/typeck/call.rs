@@ -30,7 +30,7 @@ use crate::{
 pub(super) fn check_expr_call(
     ck: &mut TypeCheck,
     expr_ast_id: ast::AstId,
-    e: &ast::ExprCallType,
+    e: &ast::Call,
     expected_ty: SourceType,
 ) -> SourceType {
     let (callee, type_params) = if let Some(expr_type_params) = ck.node(e.callee).to_type_param() {
@@ -104,7 +104,7 @@ pub(super) fn check_expr_call(
     }
 }
 
-pub(super) fn create_call_arguments(ck: &mut TypeCheck, e: &ast::ExprCallType) -> CallArguments {
+pub(super) fn create_call_arguments(ck: &mut TypeCheck, e: &ast::Call) -> CallArguments {
     let mut arguments = CallArguments {
         arguments: Vec::with_capacity(e.args.len()),
         span: e.span,
@@ -124,7 +124,7 @@ pub(super) fn create_call_arguments(ck: &mut TypeCheck, e: &ast::ExprCallType) -
 fn check_expr_call_generic_static_method(
     ck: &mut TypeCheck,
     expr_ast_id: ast::AstId,
-    e: &ast::ExprCallType,
+    e: &ast::Call,
     tp_id: TypeParamId,
     name: String,
     pure_fct_type_params: SourceTypeArray,
@@ -224,7 +224,7 @@ fn check_expr_call_generic_static_method(
 fn check_expr_call_expr(
     ck: &mut TypeCheck,
     expr_ast_id: ast::AstId,
-    e: &ast::ExprCallType,
+    e: &ast::Call,
     expr_type: SourceType,
     arguments: CallArguments,
 ) -> SourceType {
@@ -290,7 +290,7 @@ fn check_expr_call_expr(
 fn check_expr_call_expr_lambda(
     ck: &mut TypeCheck,
     node_id: ast::AstId,
-    _node: &ast::ExprCallType,
+    _node: &ast::Call,
     expr_type: SourceType,
     arguments: CallArguments,
 ) -> SourceType {
@@ -325,7 +325,7 @@ fn check_expr_call_expr_lambda(
 fn check_expr_call_fct(
     ck: &mut TypeCheck,
     expr_ast_id: ast::AstId,
-    e: &ast::ExprCallType,
+    e: &ast::Call,
     fct_id: FctDefinitionId,
     type_params: SourceTypeArray,
     arguments: CallArguments,
@@ -366,7 +366,7 @@ fn check_expr_call_fct(
 fn check_expr_call_static_method(
     ck: &mut TypeCheck,
     expr_ast_id: ast::AstId,
-    e: &ast::ExprCallType,
+    e: &ast::Call,
     object_type: SourceType,
     method_name: String,
     fct_type_params: SourceTypeArray,
@@ -435,7 +435,7 @@ fn check_expr_call_static_method(
 fn check_expr_call_method(
     ck: &mut TypeCheck,
     expr_ast_id: ast::AstId,
-    e: &ast::ExprCallType,
+    e: &ast::Call,
     object_type: SourceType,
     method_name: String,
     fct_type_params: SourceTypeArray,
@@ -551,7 +551,7 @@ fn check_expr_call_method(
 fn check_expr_call_field(
     ck: &mut TypeCheck,
     expr_ast_id: ast::AstId,
-    e: &ast::ExprCallType,
+    e: &ast::Call,
     object_type: SourceType,
     method_name: String,
     _type_params: SourceTypeArray,
@@ -613,7 +613,7 @@ fn check_expr_call_field(
 fn check_expr_call_struct(
     ck: &mut TypeCheck,
     expr_ast_id: ast::AstId,
-    e: &ast::ExprCallType,
+    e: &ast::Call,
     struct_id: StructDefinitionId,
     type_params: SourceTypeArray,
     arguments: CallArguments,
@@ -834,7 +834,7 @@ fn check_expr_call_ctor_with_unnamed_fields(
 fn check_expr_call_class(
     ck: &mut TypeCheck,
     expr_ast_id: ast::AstId,
-    e: &ast::ExprCallType,
+    e: &ast::Call,
     expected_ty: SourceType,
     cls_id: ClassDefinitionId,
     type_params: SourceTypeArray,
@@ -896,7 +896,7 @@ fn check_expr_call_class(
 pub(super) fn check_expr_call_enum_variant(
     ck: &mut TypeCheck,
     expr_ast_id: ast::AstId,
-    e: &ast::ExprCallType,
+    e: &ast::Call,
     expected_ty: SourceType,
     enum_id: EnumDefinitionId,
     type_params: SourceTypeArray,
@@ -977,7 +977,7 @@ fn find_in_super_traits_self(
 fn check_expr_call_self(
     ck: &mut TypeCheck,
     expr_ast_id: ast::AstId,
-    e: &ast::ExprCallType,
+    e: &ast::Call,
     name: String,
     arguments: CallArguments,
 ) -> SourceType {
@@ -1049,7 +1049,7 @@ fn check_expr_call_self(
 fn check_expr_call_assoc(
     ck: &mut TypeCheck,
     expr_ast_id: ast::AstId,
-    e: &ast::ExprCallType,
+    e: &ast::Call,
     name: String,
     object_type: SourceType,
     arguments: CallArguments,
@@ -1137,7 +1137,7 @@ fn find_in_super_traits(
 fn check_expr_call_generic_type_param(
     ck: &mut TypeCheck,
     expr_ast_id: ast::AstId,
-    e: &ast::ExprCallType,
+    e: &ast::Call,
     object_type: SourceType,
     id: TypeParamId,
     name: String,
@@ -1240,7 +1240,7 @@ fn check_expr_call_generic_type_param(
 fn check_expr_call_path(
     ck: &mut TypeCheck,
     expr_ast_id: ast::AstId,
-    e: &ast::ExprCallType,
+    e: &ast::Call,
     expected_ty: SourceType,
     callee_id: ast::AstId,
     type_params: SourceTypeArray,
@@ -1474,7 +1474,7 @@ fn check_expr_call_path(
 fn check_expr_call_sym(
     ck: &mut TypeCheck,
     expr_ast_id: ast::AstId,
-    e: &ast::ExprCallType,
+    e: &ast::Call,
     expected_ty: SourceType,
     callee: ast::AstId,
     sym: Option<SymbolKind>,

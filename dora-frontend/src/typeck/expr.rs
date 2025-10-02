@@ -43,7 +43,7 @@ pub(super) fn check_expr(
         Ast::Un(ref expr) => check_expr_un(ck, id, expr, expected_ty),
         Ast::Bin(ref expr) => check_expr_bin(ck, id, expr, expected_ty),
         Ast::Call(ref expr) => check_expr_call(ck, id, expr, expected_ty),
-        Ast::TypeParam(ref expr) => check_expr_type_param(ck, id, expr, expected_ty),
+        Ast::TypedExpr(ref expr) => check_expr_type_param(ck, id, expr, expected_ty),
         Ast::Path(ref expr) => check_expr_path(ck, id, expr, expected_ty),
         Ast::Dot(ref expr) => check_expr_dot(ck, id, expr, expected_ty),
         Ast::This(ref expr) => check_expr_this(ck, id, expr, expected_ty),
@@ -67,7 +67,7 @@ pub(super) fn check_expr(
 pub(super) fn check_expr_block(
     ck: &mut TypeCheck,
     node_id: ast::AstId,
-    node: &ast::ExprBlockType,
+    node: &ast::Block,
     _expected_ty: SourceType,
 ) -> SourceType {
     ck.symtable.push_level();
@@ -91,7 +91,7 @@ pub(super) fn check_expr_block(
 pub(super) fn check_expr_tuple(
     ck: &mut TypeCheck,
     node_id: ast::AstId,
-    node: &ast::ExprTupleType,
+    node: &ast::Tuple,
     _expected_ty: SourceType,
 ) -> SourceType {
     let mut subtypes = Vec::new();
@@ -115,7 +115,7 @@ pub(super) fn check_expr_tuple(
 pub(super) fn check_expr_paren(
     ck: &mut TypeCheck,
     node_id: ast::AstId,
-    node: &ast::ExprParenType,
+    node: &ast::Paren,
     _expected_ty: SourceType,
 ) -> SourceType {
     let ty = check_expr(ck, node.expr, SourceType::Any);
@@ -195,7 +195,7 @@ pub(super) fn check_expr_ident(
     }
 }
 
-pub(super) fn check_expr_assign(ck: &mut TypeCheck, expr_ast_id: ast::AstId, e: &ast::ExprBinType) {
+pub(super) fn check_expr_assign(ck: &mut TypeCheck, expr_ast_id: ast::AstId, e: &ast::Bin) {
     let lhs = ck.node(e.lhs);
 
     if lhs.is_call() {
@@ -214,7 +214,7 @@ pub(super) fn check_expr_assign(ck: &mut TypeCheck, expr_ast_id: ast::AstId, e: 
     ck.analysis.set_ty(expr_ast_id, SourceType::Unit);
 }
 
-fn check_expr_assign_path(ck: &mut TypeCheck, expr_ast_id: ast::AstId, e: &ast::ExprBinType) {
+fn check_expr_assign_path(ck: &mut TypeCheck, expr_ast_id: ast::AstId, e: &ast::Bin) {
     let lhs_type = match read_path_expr(ck, e.lhs) {
         Ok(Some(SymbolKind::Global(global_id))) => {
             let global = ck.sa.global(global_id);
@@ -237,7 +237,7 @@ fn check_expr_assign_path(ck: &mut TypeCheck, expr_ast_id: ast::AstId, e: &ast::
     check_assign_type(ck, expr_ast_id, e, lhs_type, rhs_type);
 }
 
-fn check_expr_assign_ident(ck: &mut TypeCheck, expr_ast_id: ast::AstId, e: &ast::ExprBinType) {
+fn check_expr_assign_ident(ck: &mut TypeCheck, expr_ast_id: ast::AstId, e: &ast::Bin) {
     let lhs = ck.node(e.lhs);
     let lhs_ident = lhs.to_ident().unwrap();
     let sym = ck.symtable.get_string(ck.sa, &lhs_ident.name);
@@ -295,7 +295,7 @@ fn check_expr_assign_ident(ck: &mut TypeCheck, expr_ast_id: ast::AstId, e: &ast:
 fn check_assign_type(
     ck: &mut TypeCheck,
     expr_ast_id: ast::AstId,
-    e: &ast::ExprBinType,
+    e: &ast::Bin,
     lhs_type: SourceType,
     rhs_type: SourceType,
 ) -> OpTraitInfo {
@@ -445,7 +445,7 @@ fn check_assign_type(
     }
 }
 
-fn check_expr_assign_call(ck: &mut TypeCheck, expr_ast_id: ast::AstId, e: &ast::ExprBinType) {
+fn check_expr_assign_call(ck: &mut TypeCheck, expr_ast_id: ast::AstId, e: &ast::Bin) {
     let call = ck.node(e.lhs).to_call().unwrap();
     let object_type = check_expr(ck, call.callee, SourceType::Any);
 
@@ -553,7 +553,7 @@ fn check_expr_assign_call(ck: &mut TypeCheck, expr_ast_id: ast::AstId, e: &ast::
 
 fn check_index_trait_on_ty(
     ck: &mut TypeCheck,
-    e: &ast::ExprBinType,
+    e: &ast::Bin,
     array_assignment: &mut ArrayAssignment,
     expr_type: SourceType,
     is_get: bool,
@@ -656,7 +656,7 @@ fn check_index_trait_on_ty(
     }
 }
 
-fn check_expr_assign_field(ck: &mut TypeCheck, expr_ast_id: ast::AstId, e: &ast::ExprBinType) {
+fn check_expr_assign_field(ck: &mut TypeCheck, expr_ast_id: ast::AstId, e: &ast::Bin) {
     let dot_expr = ck.node(e.lhs).to_dot().unwrap();
     let object_type = check_expr(ck, dot_expr.lhs, SourceType::Any);
 
@@ -732,9 +732,9 @@ fn check_expr_assign_field(ck: &mut TypeCheck, expr_ast_id: ast::AstId, e: &ast:
 fn check_expr_assign_unnamed_field(
     ck: &mut TypeCheck,
     expr_id: ast::AstId,
-    e: &ast::ExprBinType,
+    e: &ast::Bin,
     dot_expr_id: ast::AstId,
-    dot_expr: &ast::ExprDotType,
+    dot_expr: &ast::Dot,
     object_type: SourceType,
 ) {
     let literal = ck
@@ -894,7 +894,7 @@ fn check_expr_assign_unnamed_field(
 pub(super) fn check_expr_dot(
     ck: &mut TypeCheck,
     expr_id: ast::AstId,
-    e: &ast::ExprDotType,
+    e: &ast::Dot,
     _expected_ty: SourceType,
 ) -> SourceType {
     let object_type = check_expr(ck, e.lhs, SourceType::Any);
@@ -1009,7 +1009,7 @@ pub(super) fn check_expr_dot(
 fn check_expr_dot_unnamed_field(
     ck: &mut TypeCheck,
     expr_id: ast::AstId,
-    e: &ast::ExprDotType,
+    e: &ast::Dot,
     object_type: SourceType,
 ) -> SourceType {
     let literal = ck.node(e.rhs).to_lit_int().expect("literal expected");
@@ -1135,7 +1135,7 @@ fn check_expr_dot_unnamed_field(
 pub(super) fn check_expr_this(
     ck: &mut TypeCheck,
     expr_id: ast::AstId,
-    e: &ast::ExprSelfType,
+    e: &ast::This,
     _expected_ty: SourceType,
 ) -> SourceType {
     if !ck.is_self_available {
@@ -1158,7 +1158,7 @@ pub(super) fn check_expr_this(
 fn check_expr_conv(
     ck: &mut TypeCheck,
     node_id: ast::AstId,
-    e: &ast::ExprConvType,
+    e: &ast::Conv,
     _expected_ty: SourceType,
 ) -> SourceType {
     let object_type = check_expr(ck, e.object, SourceType::Any);
@@ -1203,7 +1203,7 @@ fn check_expr_conv(
 fn check_expr_is(
     ck: &mut TypeCheck,
     _id: ast::AstId,
-    e: &ast::ExprIsType,
+    e: &ast::Is,
     _expected_ty: SourceType,
 ) -> SourceType {
     let value_type = check_expr(ck, e.value, SourceType::Any);
@@ -1267,7 +1267,7 @@ pub fn compute_lit_float(
 fn check_expr_lit_float(
     ck: &mut TypeCheck,
     node_id: ast::AstId,
-    e: &ast::ExprLitFloatType,
+    e: &ast::LitFloat,
     negate: bool,
     _expected_ty: SourceType,
 ) -> SourceType {
@@ -1283,7 +1283,7 @@ fn check_expr_lit_float(
 fn check_expr_lit_bool(
     ck: &mut TypeCheck,
     node_id: ast::AstId,
-    _node: &ast::ExprLitBoolType,
+    _node: &ast::LitBool,
     _expected_ty: SourceType,
 ) -> SourceType {
     ck.analysis.set_ty(node_id, SourceType::Bool);
@@ -1294,7 +1294,7 @@ fn check_expr_lit_bool(
 pub fn check_expr_lit_char(
     ck: &mut TypeCheck,
     node_id: AstId,
-    node: &ast::ExprLitCharType,
+    node: &ast::LitChar,
     _expected_ty: SourceType,
 ) -> SourceType {
     let value = check_lit_char(ck.sa, ck.file_id, node);
@@ -1309,7 +1309,7 @@ pub fn check_expr_lit_char(
 fn check_expr_lit_str(
     ck: &mut TypeCheck,
     node_id: AstId,
-    node: &ast::ExprLitStrType,
+    node: &ast::LitStr,
     _expected_ty: SourceType,
 ) -> SourceType {
     let value = check_lit_str(ck.sa, ck.file_id, node);
@@ -1325,7 +1325,7 @@ fn check_expr_lit_str(
 fn check_expr_template(
     ck: &mut TypeCheck,
     node_id: ast::AstId,
-    node: &ast::ExprTemplateType,
+    node: &ast::Template,
     expected_ty: SourceType,
 ) -> SourceType {
     let stringable_trait_id = ck.sa.known.traits.stringable();
@@ -1395,7 +1395,7 @@ fn check_expr_template(
 pub(super) fn check_expr_un(
     ck: &mut TypeCheck,
     node_id: ast::AstId,
-    e: &ast::ExprUnType,
+    e: &ast::Un,
     expected_ty: SourceType,
 ) -> SourceType {
     let opnd = ck.node(e.opnd);
@@ -1421,7 +1421,7 @@ pub(super) fn check_expr_un(
 fn check_expr_un_trait(
     ck: &mut TypeCheck,
     node_id: ast::AstId,
-    e: &ast::ExprUnType,
+    e: &ast::Un,
     op: ast::UnOp,
     trait_id: TraitDefinitionId,
     trait_method_name: &str,
@@ -1504,7 +1504,7 @@ fn check_expr_un_trait(
 pub(super) fn check_expr_bin(
     ck: &mut TypeCheck,
     node_id: ast::AstId,
-    node: &ast::ExprBinType,
+    node: &ast::Bin,
     _expected_ty: SourceType,
 ) -> SourceType {
     if node.op.is_any_assign() {
@@ -1704,7 +1704,7 @@ pub(super) fn check_expr_bin(
 fn check_expr_bin_bool(
     ck: &mut TypeCheck,
     node_id: AstId,
-    node: &ast::ExprBinType,
+    node: &ast::Bin,
     op: ast::BinOp,
     lhs_type: SourceType,
     rhs_type: SourceType,
@@ -1723,7 +1723,7 @@ struct OpTraitInfo {
 fn check_expr_bin_trait(
     ck: &mut TypeCheck,
     node_id: ast::AstId,
-    node: &ast::ExprBinType,
+    node: &ast::Bin,
     op: ast::BinOp,
     trait_id: TraitDefinitionId,
     trait_method_name: &str,
@@ -1866,7 +1866,7 @@ fn check_expr_bin_trait(
 fn check_expr_bin_cmp(
     ck: &mut TypeCheck,
     node_id: ast::AstId,
-    node: &ast::ExprBinType,
+    node: &ast::Bin,
     cmp: ast::CmpOp,
     lhs_type: SourceType,
     rhs_type: SourceType,
@@ -1933,7 +1933,7 @@ fn check_expr_bin_cmp(
 fn check_expr_cmp_enum(
     ck: &mut TypeCheck,
     node_id: ast::AstId,
-    node: &ast::ExprBinType,
+    node: &ast::Bin,
     op: ast::CmpOp,
     lhs_type: SourceType,
     rhs_type: SourceType,
@@ -1964,7 +1964,7 @@ fn check_expr_cmp_enum(
 fn check_expr_lambda(
     ck: &mut TypeCheck,
     lambda_expr_ast_id: ast::AstId,
-    lambda_expr: &ast::ExprLambdaType,
+    lambda_expr: &ast::Lambda,
     _expected_ty: SourceType,
 ) -> SourceType {
     let node = ck
@@ -2070,7 +2070,7 @@ fn check_expr_lambda(
 pub(super) fn check_expr_path(
     ck: &mut TypeCheck,
     node_id: ast::AstId,
-    e: &ast::ExprPathType,
+    e: &ast::Path,
     expected_ty: SourceType,
 ) -> SourceType {
     let (container_expr, type_params) =
@@ -2238,7 +2238,7 @@ fn check_enum_variant_without_args(
 pub(super) fn check_expr_type_param(
     ck: &mut TypeCheck,
     expr_id: ast::AstId,
-    e: &ast::ExprTypeParamType,
+    e: &ast::TypedExpr,
     expected_ty: SourceType,
 ) -> SourceType {
     let type_params: Vec<SourceType> = e.args.iter().map(|&p| ck.read_type(p)).collect();
@@ -2378,7 +2378,7 @@ pub(super) fn check_enum_variant_without_args_id(
 fn check_expr_path_module(
     ck: &mut TypeCheck,
     expr_id: ast::AstId,
-    e: &ast::ExprPathType,
+    e: &ast::Path,
     expected_ty: SourceType,
     module_id: ModuleDefinitionId,
     element_name: String,
@@ -2452,7 +2452,7 @@ fn check_expr_path_module(
 
 pub(super) fn check_type(
     ck: &mut TypeCheck,
-    e: &ast::ExprBinType,
+    e: &ast::Bin,
     op: ast::BinOp,
     lhs_type: SourceType,
     rhs_type: SourceType,

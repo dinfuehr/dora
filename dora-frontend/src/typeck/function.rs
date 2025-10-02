@@ -756,7 +756,7 @@ pub(super) fn arg_allows(
     }
 }
 
-pub fn check_lit_str(sa: &Sema, file_id: SourceFileId, e: &ast::ExprLitStrType) -> String {
+pub fn check_lit_str(sa: &Sema, file_id: SourceFileId, e: &ast::LitStr) -> String {
     let mut value = e.value.as_str();
     assert!(value.starts_with("\"") || value.starts_with("}"));
     value = &value[1..];
@@ -772,7 +772,7 @@ pub fn check_lit_str(sa: &Sema, file_id: SourceFileId, e: &ast::ExprLitStrType) 
     result
 }
 
-pub fn check_lit_char(sa: &Sema, file_id: SourceFileId, e: &ast::ExprLitCharType) -> char {
+pub fn check_lit_char(sa: &Sema, file_id: SourceFileId, e: &ast::LitChar) -> char {
     let mut value = e.value.as_str();
     assert!(value.starts_with("\'"));
     value = &value[1..];
@@ -971,7 +971,7 @@ fn determine_suffix_type_int_literal(
 pub fn check_lit_float(
     sa: &Sema,
     file: SourceFileId,
-    e: &ast::ExprLitFloatType,
+    e: &ast::LitFloat,
     negate: bool,
 ) -> (SourceType, f64) {
     let (base, value, suffix) = parse_lit_float(&e.value);

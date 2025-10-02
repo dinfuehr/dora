@@ -20,7 +20,7 @@ use crate::{Name, SourceTypeArray, SymbolKind, specialize_type, ty};
 pub(super) fn check_stmt(ck: &mut TypeCheck, id: ast::AstId) {
     let node = ck.sa.node(ck.file_id, id);
     match node {
-        ast::Ast::LetStmt(stmt) => check_stmt_let(ck, stmt),
+        ast::Ast::Let(stmt) => check_stmt_let(ck, stmt),
 
         ast::Ast::ExprStmt(stmt) => {
             check_expr(ck, stmt.expr, SourceType::Any);
@@ -30,7 +30,7 @@ pub(super) fn check_stmt(ck: &mut TypeCheck, id: ast::AstId) {
     }
 }
 
-fn check_stmt_let(ck: &mut TypeCheck, s: &ast::StmtLetType) {
+fn check_stmt_let(ck: &mut TypeCheck, s: &ast::Let) {
     let defined_type = if let Some(data_type) = s.data_type {
         ck.read_type(data_type)
     } else {
@@ -232,7 +232,7 @@ fn check_pattern_inner(
             }
         }
 
-        ast::Ast::ConstructorPattern(p) => {
+        ast::Ast::CtorPattern(p) => {
             let sym = read_path(ck, p.path);
 
             match sym {
@@ -348,7 +348,7 @@ fn check_pattern_enum(
 fn check_pattern_tuple(
     ck: &mut TypeCheck,
     ctxt: &mut Context,
-    pattern: &ast::PatternTuple,
+    pattern: &ast::TuplePattern,
     ty: SourceType,
 ) {
     let subpatterns = pattern.params.as_slice();
@@ -535,7 +535,7 @@ fn check_subpatterns_named<'a>(
     let pattern = ck.node(pattern_id);
 
     let params = match pattern {
-        ast::Ast::ConstructorPattern(p) => p.params.as_ref(),
+        ast::Ast::CtorPattern(p) => p.params.as_ref(),
         ast::Ast::IdentPattern(..) => None,
         _ => unreachable!(),
     };
@@ -544,7 +544,7 @@ fn check_subpatterns_named<'a>(
         let mut used_names = HashMap::new();
         let mut rest_seen = false;
 
-        let mut add_field = |idx: usize, name: Name, param: &ast::PatternField| {
+        let mut add_field = |idx: usize, name: Name, param: &ast::CtorField| {
             if used_names.contains_key(&name) {
                 let msg = ErrorMessage::DuplicateNamedArgument;
                 ck.sa.report(ck.file_id, param.span, msg);
@@ -702,7 +702,7 @@ fn check_pattern_var(
     ck: &mut TypeCheck,
     ctxt: &mut Context,
     pattern_id: ast::AstId,
-    pattern: &ast::PatternIdent,
+    pattern: &ast::IdentPattern,
     ty: SourceType,
 ) {
     let ident = ck.node(pattern.name).to_ident().expect("ident expected");

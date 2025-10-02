@@ -33,7 +33,7 @@ pub fn parse_path(
     file_id: SourceFileId,
     element: &dyn Element,
     allow_self: bool,
-    regular: &ast::TypeRegularType,
+    regular: &ast::RegularType,
 ) -> Result<PathKind, ()> {
     let path_id = regular.path;
     let segments = &sa
@@ -60,7 +60,7 @@ fn parse_path_self(
     file_id: SourceFileId,
     element: &dyn Element,
     allow_self: bool,
-    regular: &ast::TypeRegularType,
+    regular: &ast::RegularType,
 ) -> Result<PathKind, ()> {
     let segments = &sa
         .node(file_id, regular.path)
@@ -109,7 +109,7 @@ fn parse_path_ident(
     file_id: SourceFileId,
     table: &ModuleSymTable,
     element: &dyn Element,
-    regular: &ast::TypeRegularType,
+    regular: &ast::RegularType,
 ) -> Result<PathKind, ()> {
     let segments = &sa
         .node(file_id, regular.path)

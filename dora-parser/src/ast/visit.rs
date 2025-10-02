@@ -89,7 +89,7 @@ pub trait Visitor: Sized {
         walk_argument(self, f, id, node);
     }
 
-    fn visit_regular_type(&mut self, f: &File, id: AstId, e: &TypeRegularType) {
+    fn visit_regular_type(&mut self, f: &File, id: AstId, e: &RegularType) {
         walk_regular_type(self, f, id, e);
     }
 
@@ -97,43 +97,43 @@ pub trait Visitor: Sized {
         walk_type_argument(self, f, id, node);
     }
 
-    fn visit_tuple_type(&mut self, f: &File, id: AstId, e: &TypeTupleType) {
+    fn visit_tuple_type(&mut self, f: &File, id: AstId, e: &TupleType) {
         walk_tuple_type(self, f, id, e);
     }
 
-    fn visit_lambda_type(&mut self, f: &File, id: AstId, e: &TypeLambdaType) {
+    fn visit_lambda_type(&mut self, f: &File, id: AstId, e: &LambdaType) {
         walk_lambda_type(self, f, id, e);
     }
 
-    fn visit_qualified_path_type(&mut self, f: &File, id: AstId, e: &TypeQualifiedPathType) {
+    fn visit_qualified_path_type(&mut self, f: &File, id: AstId, e: &QualifiedPathType) {
         walk_qualified_path_type(self, f, id, e);
     }
 
-    fn visit_let_stmt(&mut self, f: &File, id: AstId, e: &StmtLetType) {
+    fn visit_let_stmt(&mut self, f: &File, id: AstId, e: &Let) {
         walk_let_stmt(self, f, id, e);
     }
 
-    fn visit_expr_stmt(&mut self, f: &File, id: AstId, e: &StmtExprType) {
+    fn visit_expr_stmt(&mut self, f: &File, id: AstId, e: &ExprStmt) {
         walk_expr_stmt(self, f, id, e);
     }
 
-    fn visit_un(&mut self, f: &File, id: AstId, e: &ExprUnType) {
+    fn visit_un(&mut self, f: &File, id: AstId, e: &Un) {
         walk_un(self, f, id, e);
     }
 
-    fn visit_bin(&mut self, f: &File, id: AstId, e: &ExprBinType) {
+    fn visit_bin(&mut self, f: &File, id: AstId, e: &Bin) {
         walk_bin(self, f, id, e);
     }
 
-    fn visit_call(&mut self, f: &File, id: AstId, e: &ExprCallType) {
+    fn visit_call(&mut self, f: &File, id: AstId, e: &Call) {
         walk_call(self, f, id, e);
     }
 
-    fn visit_type_param(&mut self, f: &File, id: AstId, e: &ExprTypeParamType) {
+    fn visit_type_param(&mut self, f: &File, id: AstId, e: &TypedExpr) {
         walk_type_param(self, f, id, e);
     }
 
-    fn visit_path(&mut self, f: &File, id: AstId, e: &ExprPathType) {
+    fn visit_path(&mut self, f: &File, id: AstId, e: &Path) {
         walk_path(self, f, id, e);
     }
 
@@ -141,71 +141,71 @@ pub trait Visitor: Sized {
         walk_path_data(self, f, id, node);
     }
 
-    fn visit_dot(&mut self, f: &File, id: AstId, e: &ExprDotType) {
+    fn visit_dot(&mut self, f: &File, id: AstId, e: &Dot) {
         walk_dot(self, f, id, e);
     }
 
-    fn visit_conv(&mut self, f: &File, id: AstId, e: &ExprConvType) {
+    fn visit_conv(&mut self, f: &File, id: AstId, e: &Conv) {
         walk_conv(self, f, id, e);
     }
 
-    fn visit_is(&mut self, f: &File, id: AstId, e: &ExprIsType) {
+    fn visit_is(&mut self, f: &File, id: AstId, e: &Is) {
         walk_is(self, f, id, e);
     }
 
-    fn visit_lambda(&mut self, f: &File, id: AstId, e: &ExprLambdaType) {
+    fn visit_lambda(&mut self, f: &File, id: AstId, e: &Lambda) {
         walk_lambda(self, f, id, e);
     }
 
-    fn visit_block(&mut self, f: &File, id: AstId, e: &ExprBlockType) {
+    fn visit_block(&mut self, f: &File, id: AstId, e: &Block) {
         walk_block(self, f, id, e);
     }
 
-    fn visit_template(&mut self, f: &File, id: AstId, e: &ExprTemplateType) {
+    fn visit_template(&mut self, f: &File, id: AstId, e: &Template) {
         walk_template(self, f, id, e);
     }
 
-    fn visit_if(&mut self, f: &File, id: AstId, e: &ExprIfType) {
+    fn visit_if(&mut self, f: &File, id: AstId, e: &If) {
         walk_if(self, f, id, e);
     }
 
-    fn visit_for(&mut self, f: &File, id: AstId, e: &ExprForType) {
+    fn visit_for(&mut self, f: &File, id: AstId, e: &For) {
         walk_for(self, f, id, e);
     }
 
-    fn visit_while(&mut self, f: &File, id: AstId, e: &ExprWhileType) {
+    fn visit_while(&mut self, f: &File, id: AstId, e: &While) {
         walk_while(self, f, id, e);
     }
 
-    fn visit_tuple(&mut self, f: &File, id: AstId, e: &ExprTupleType) {
+    fn visit_tuple(&mut self, f: &File, id: AstId, e: &Tuple) {
         walk_tuple(self, f, id, e);
     }
 
-    fn visit_paren(&mut self, f: &File, id: AstId, e: &ExprParenType) {
+    fn visit_paren(&mut self, f: &File, id: AstId, e: &Paren) {
         walk_paren(self, f, id, e);
     }
 
-    fn visit_match(&mut self, f: &File, id: AstId, e: &ExprMatchType) {
+    fn visit_match(&mut self, f: &File, id: AstId, e: &Match) {
         walk_match(self, f, id, e);
     }
 
-    fn visit_match_arm(&mut self, f: &File, id: AstId, node: &MatchArmType) {
+    fn visit_match_arm(&mut self, f: &File, id: AstId, node: &Arm) {
         walk_match_arm(self, f, id, node);
     }
 
-    fn visit_return(&mut self, f: &File, id: AstId, e: &ExprReturnType) {
+    fn visit_return(&mut self, f: &File, id: AstId, e: &Return) {
         walk_return(self, f, id, e);
     }
 
-    fn visit_break(&mut self, f: &File, id: AstId, e: &ExprBreakType) {
+    fn visit_break(&mut self, f: &File, id: AstId, e: &Break) {
         walk_break(self, f, id, e);
     }
 
-    fn visit_continue(&mut self, f: &File, id: AstId, e: &ExprContinueType) {
+    fn visit_continue(&mut self, f: &File, id: AstId, e: &Continue) {
         walk_continue(self, f, id, e);
     }
 
-    fn visit_this(&mut self, f: &File, id: AstId, e: &ExprSelfType) {
+    fn visit_this(&mut self, f: &File, id: AstId, e: &This) {
         walk_this(self, f, id, e);
     }
 
@@ -213,23 +213,23 @@ pub trait Visitor: Sized {
         walk_upcase_this(self, f, id, node);
     }
 
-    fn visit_lit_char(&mut self, f: &File, id: AstId, e: &ExprLitCharType) {
+    fn visit_lit_char(&mut self, f: &File, id: AstId, e: &LitChar) {
         walk_lit_char(self, f, id, e);
     }
 
-    fn visit_lit_int(&mut self, f: &File, id: AstId, e: &ExprLitIntType) {
+    fn visit_lit_int(&mut self, f: &File, id: AstId, e: &LitInt) {
         walk_lit_int(self, f, id, e);
     }
 
-    fn visit_lit_float(&mut self, f: &File, id: AstId, e: &ExprLitFloatType) {
+    fn visit_lit_float(&mut self, f: &File, id: AstId, e: &LitFloat) {
         walk_lit_float(self, f, id, e);
     }
 
-    fn visit_lit_str(&mut self, f: &File, id: AstId, e: &ExprLitStrType) {
+    fn visit_lit_str(&mut self, f: &File, id: AstId, e: &LitStr) {
         walk_lit_str(self, f, id, e);
     }
 
-    fn visit_lit_bool(&mut self, f: &File, id: AstId, e: &ExprLitBoolType) {
+    fn visit_lit_bool(&mut self, f: &File, id: AstId, e: &LitBool) {
         walk_lit_bool(self, f, id, e);
     }
 
@@ -237,35 +237,35 @@ pub trait Visitor: Sized {
         walk_ident(self, f, id, e);
     }
 
-    fn visit_underscore(&mut self, f: &File, id: AstId, node: &PatternUnderscore) {
+    fn visit_underscore(&mut self, f: &File, id: AstId, node: &Underscore) {
         walk_underscore(self, f, id, node);
     }
 
-    fn visit_lit_pattern(&mut self, f: &File, id: AstId, node: &PatternLit) {
+    fn visit_lit_pattern(&mut self, f: &File, id: AstId, node: &LitPattern) {
         walk_lit_pattern(self, f, id, node);
     }
 
-    fn visit_ident_pattern(&mut self, f: &File, id: AstId, node: &PatternIdent) {
+    fn visit_ident_pattern(&mut self, f: &File, id: AstId, node: &IdentPattern) {
         walk_ident_pattern(self, f, id, node);
     }
 
-    fn visit_tuple_pattern(&mut self, f: &File, id: AstId, node: &PatternTuple) {
+    fn visit_tuple_pattern(&mut self, f: &File, id: AstId, node: &TuplePattern) {
         walk_tuple_pattern(self, f, id, node);
     }
 
-    fn visit_constructor_pattern(&mut self, f: &File, id: AstId, node: &PatternConstructor) {
+    fn visit_constructor_pattern(&mut self, f: &File, id: AstId, node: &CtorPattern) {
         walk_constructor_pattern(self, f, id, node);
     }
 
-    fn visit_constructor_field(&mut self, f: &File, id: AstId, node: &PatternField) {
+    fn visit_constructor_field(&mut self, f: &File, id: AstId, node: &CtorField) {
         walk_constructor_field(self, f, id, node);
     }
 
-    fn visit_rest(&mut self, f: &File, id: AstId, node: &PatternRest) {
+    fn visit_rest(&mut self, f: &File, id: AstId, node: &Rest) {
         walk_rest(self, f, id, node);
     }
 
-    fn visit_alt(&mut self, f: &File, id: AstId, node: &PatternAlt) {
+    fn visit_alt(&mut self, f: &File, id: AstId, node: &Alt) {
         walk_alt(self, f, id, node);
     }
 
@@ -320,12 +320,12 @@ pub fn dispatch_ast<V: Visitor>(v: &mut V, f: &File, id: AstId, e: &Ast) {
         Ast::RegularType(node) => v.visit_regular_type(f, id, node),
         Ast::QualifiedPathType(node) => v.visit_qualified_path_type(f, id, node),
         Ast::TupleType(node) => v.visit_tuple_type(f, id, node),
-        Ast::LetStmt(node) => v.visit_let_stmt(f, id, node),
+        Ast::Let(node) => v.visit_let_stmt(f, id, node),
         Ast::ExprStmt(node) => v.visit_expr_stmt(f, id, node),
         Ast::Un(node) => v.visit_un(f, id, node),
         Ast::Bin(node) => v.visit_bin(f, id, node),
         Ast::Call(node) => v.visit_call(f, id, node),
-        Ast::TypeParam(node) => v.visit_type_param(f, id, node),
+        Ast::TypedExpr(node) => v.visit_type_param(f, id, node),
         Ast::Path(node) => v.visit_path(f, id, node),
         Ast::PathData(node) => v.visit_path_data(f, id, node),
         Ast::Dot(node) => v.visit_dot(f, id, node),
@@ -357,8 +357,8 @@ pub fn dispatch_ast<V: Visitor>(v: &mut V, f: &File, id: AstId, e: &Ast) {
         Ast::LitPattern(node) => v.visit_lit_pattern(f, id, node),
         Ast::IdentPattern(node) => v.visit_ident_pattern(f, id, node),
         Ast::TuplePattern(node) => v.visit_tuple_pattern(f, id, node),
-        Ast::ConstructorPattern(node) => v.visit_constructor_pattern(f, id, node),
-        Ast::ConstructorField(node) => v.visit_constructor_field(f, id, node),
+        Ast::CtorPattern(node) => v.visit_constructor_pattern(f, id, node),
+        Ast::CtorField(node) => v.visit_constructor_field(f, id, node),
         Ast::Rest(node) => v.visit_rest(f, id, node),
         Ast::Alt(node) => v.visit_alt(f, id, node),
         Ast::ModifierList(node) => v.visit_modifier_list(f, id, node),
@@ -492,7 +492,7 @@ pub fn walk_param<V: Visitor>(v: &mut V, f: &File, _id: AstId, p: &Param) {
     dispatch_ast(v, f, p.data_type, f.node(p.data_type));
 }
 
-pub fn walk_regular_type<V: Visitor>(_v: &mut V, _f: &File, _id: AstId, _t: &TypeRegularType) {}
+pub fn walk_regular_type<V: Visitor>(_v: &mut V, _f: &File, _id: AstId, _t: &RegularType) {}
 
 pub fn walk_type_argument<V: Visitor>(v: &mut V, f: &File, _id: AstId, node: &TypeArgument) {
     if let Some(name_id) = node.name {
@@ -501,13 +501,13 @@ pub fn walk_type_argument<V: Visitor>(v: &mut V, f: &File, _id: AstId, node: &Ty
     dispatch_ast_id(v, f, node.ty);
 }
 
-pub fn walk_tuple_type<V: Visitor>(v: &mut V, f: &File, _id: AstId, t: &TypeTupleType) {
+pub fn walk_tuple_type<V: Visitor>(v: &mut V, f: &File, _id: AstId, t: &TupleType) {
     for &ty_id in &t.subtypes {
         dispatch_ast(v, f, ty_id, f.node(ty_id));
     }
 }
 
-pub fn walk_lambda_type<V: Visitor>(v: &mut V, f: &File, _id: AstId, t: &TypeLambdaType) {
+pub fn walk_lambda_type<V: Visitor>(v: &mut V, f: &File, _id: AstId, t: &LambdaType) {
     for &ty_id in &t.params {
         dispatch_ast(v, f, ty_id, f.node(ty_id));
     }
@@ -521,13 +521,13 @@ pub fn walk_qualified_path_type<V: Visitor>(
     v: &mut V,
     f: &File,
     _id: AstId,
-    t: &TypeQualifiedPathType,
+    t: &QualifiedPathType,
 ) {
     dispatch_ast(v, f, t.ty, f.node(t.ty));
     dispatch_ast(v, f, t.trait_ty, f.node(t.trait_ty));
 }
 
-pub fn walk_let_stmt<V: Visitor>(v: &mut V, f: &File, _id: AstId, s: &StmtLetType) {
+pub fn walk_let_stmt<V: Visitor>(v: &mut V, f: &File, _id: AstId, s: &Let) {
     if let Some(ty) = s.data_type {
         dispatch_ast(v, f, ty, f.node(ty));
     }
@@ -537,20 +537,20 @@ pub fn walk_let_stmt<V: Visitor>(v: &mut V, f: &File, _id: AstId, s: &StmtLetTyp
     }
 }
 
-pub fn walk_expr_stmt<V: Visitor>(v: &mut V, f: &File, _id: AstId, s: &StmtExprType) {
+pub fn walk_expr_stmt<V: Visitor>(v: &mut V, f: &File, _id: AstId, s: &ExprStmt) {
     dispatch_ast_id(v, f, s.expr);
 }
 
-pub fn walk_un<V: Visitor>(v: &mut V, f: &File, _id: AstId, node: &ExprUnType) {
+pub fn walk_un<V: Visitor>(v: &mut V, f: &File, _id: AstId, node: &Un) {
     dispatch_ast_id(v, f, node.opnd);
 }
 
-pub fn walk_bin<V: Visitor>(v: &mut V, f: &File, _id: AstId, node: &ExprBinType) {
+pub fn walk_bin<V: Visitor>(v: &mut V, f: &File, _id: AstId, node: &Bin) {
     dispatch_ast_id(v, f, node.lhs);
     dispatch_ast_id(v, f, node.rhs);
 }
 
-pub fn walk_call<V: Visitor>(v: &mut V, f: &File, _id: AstId, node: &ExprCallType) {
+pub fn walk_call<V: Visitor>(v: &mut V, f: &File, _id: AstId, node: &Call) {
     dispatch_ast_id(v, f, node.callee);
     for &arg_id in &node.args {
         dispatch_ast_id(v, f, arg_id);
@@ -561,14 +561,14 @@ pub fn walk_argument<V: Visitor>(v: &mut V, f: &File, _id: AstId, node: &Argumen
     dispatch_ast_id(v, f, node.expr);
 }
 
-pub fn walk_type_param<V: Visitor>(v: &mut V, f: &File, _id: AstId, node: &ExprTypeParamType) {
+pub fn walk_type_param<V: Visitor>(v: &mut V, f: &File, _id: AstId, node: &TypedExpr) {
     dispatch_ast_id(v, f, node.callee);
     for &arg in &node.args {
         dispatch_ast_id(v, f, arg);
     }
 }
 
-pub fn walk_path<V: Visitor>(v: &mut V, f: &File, _id: AstId, node: &ExprPathType) {
+pub fn walk_path<V: Visitor>(v: &mut V, f: &File, _id: AstId, node: &Path) {
     dispatch_ast_id(v, f, node.lhs);
     dispatch_ast_id(v, f, node.rhs);
 }
@@ -579,25 +579,25 @@ pub fn walk_path_data<V: Visitor>(v: &mut V, f: &File, _id: AstId, node: &PathDa
     }
 }
 
-pub fn walk_dot<V: Visitor>(v: &mut V, f: &File, _id: AstId, node: &ExprDotType) {
+pub fn walk_dot<V: Visitor>(v: &mut V, f: &File, _id: AstId, node: &Dot) {
     dispatch_ast_id(v, f, node.lhs);
     dispatch_ast_id(v, f, node.rhs);
 }
 
-pub fn walk_conv<V: Visitor>(v: &mut V, f: &File, _id: AstId, node: &ExprConvType) {
+pub fn walk_conv<V: Visitor>(v: &mut V, f: &File, _id: AstId, node: &Conv) {
     dispatch_ast_id(v, f, node.object);
     dispatch_ast_id(v, f, node.data_type);
 }
 
-pub fn walk_is<V: Visitor>(v: &mut V, f: &File, _id: AstId, node: &ExprIsType) {
+pub fn walk_is<V: Visitor>(v: &mut V, f: &File, _id: AstId, node: &Is) {
     dispatch_ast_id(v, f, node.value);
 }
 
-pub fn walk_lambda<V: Visitor>(v: &mut V, f: &File, _id: AstId, node: &ExprLambdaType) {
+pub fn walk_lambda<V: Visitor>(v: &mut V, f: &File, _id: AstId, node: &Lambda) {
     dispatch_ast_id(v, f, node.fct_id);
 }
 
-pub fn walk_block<V: Visitor>(v: &mut V, f: &File, _id: AstId, node: &ExprBlockType) {
+pub fn walk_block<V: Visitor>(v: &mut V, f: &File, _id: AstId, node: &Block) {
     for &stmt_id in &node.stmts {
         dispatch_ast_id(v, f, stmt_id);
     }
@@ -607,13 +607,13 @@ pub fn walk_block<V: Visitor>(v: &mut V, f: &File, _id: AstId, node: &ExprBlockT
     }
 }
 
-pub fn walk_template<V: Visitor>(v: &mut V, f: &File, _id: AstId, node: &ExprTemplateType) {
+pub fn walk_template<V: Visitor>(v: &mut V, f: &File, _id: AstId, node: &Template) {
     for &part_id in &node.parts {
         dispatch_ast_id(v, f, part_id);
     }
 }
 
-pub fn walk_if<V: Visitor>(v: &mut V, f: &File, _id: AstId, node: &ExprIfType) {
+pub fn walk_if<V: Visitor>(v: &mut V, f: &File, _id: AstId, node: &If) {
     dispatch_ast_id(v, f, node.cond);
     dispatch_ast_id(v, f, node.then_block);
 
@@ -622,27 +622,27 @@ pub fn walk_if<V: Visitor>(v: &mut V, f: &File, _id: AstId, node: &ExprIfType) {
     }
 }
 
-pub fn walk_for<V: Visitor>(v: &mut V, f: &File, _id: AstId, node: &ExprForType) {
+pub fn walk_for<V: Visitor>(v: &mut V, f: &File, _id: AstId, node: &For) {
     dispatch_ast_id(v, f, node.expr);
     dispatch_ast_id(v, f, node.block);
 }
 
-pub fn walk_while<V: Visitor>(v: &mut V, f: &File, _id: AstId, node: &ExprWhileType) {
+pub fn walk_while<V: Visitor>(v: &mut V, f: &File, _id: AstId, node: &While) {
     dispatch_ast_id(v, f, node.cond);
     dispatch_ast_id(v, f, node.block);
 }
 
-pub fn walk_tuple<V: Visitor>(v: &mut V, f: &File, _id: AstId, node: &ExprTupleType) {
+pub fn walk_tuple<V: Visitor>(v: &mut V, f: &File, _id: AstId, node: &Tuple) {
     for &value_id in &node.values {
         dispatch_ast_id(v, f, value_id);
     }
 }
 
-pub fn walk_paren<V: Visitor>(v: &mut V, f: &File, _id: AstId, node: &ExprParenType) {
+pub fn walk_paren<V: Visitor>(v: &mut V, f: &File, _id: AstId, node: &Paren) {
     dispatch_ast_id(v, f, node.expr);
 }
 
-pub fn walk_match<V: Visitor>(v: &mut V, f: &File, _id: AstId, node: &ExprMatchType) {
+pub fn walk_match<V: Visitor>(v: &mut V, f: &File, _id: AstId, node: &Match) {
     dispatch_ast_id(v, f, node.expr);
 
     for &arm_id in &node.arms {
@@ -650,7 +650,7 @@ pub fn walk_match<V: Visitor>(v: &mut V, f: &File, _id: AstId, node: &ExprMatchT
     }
 }
 
-pub fn walk_match_arm<V: Visitor>(v: &mut V, f: &File, _id: AstId, node: &MatchArmType) {
+pub fn walk_match_arm<V: Visitor>(v: &mut V, f: &File, _id: AstId, node: &Arm) {
     if let Some(cond_id) = node.cond {
         dispatch_ast_id(v, f, cond_id);
     }
@@ -658,21 +658,21 @@ pub fn walk_match_arm<V: Visitor>(v: &mut V, f: &File, _id: AstId, node: &MatchA
     dispatch_ast_id(v, f, node.value);
 }
 
-pub fn walk_return<V: Visitor>(v: &mut V, f: &File, _id: AstId, node: &ExprReturnType) {
+pub fn walk_return<V: Visitor>(v: &mut V, f: &File, _id: AstId, node: &Return) {
     if let Some(expr) = node.expr {
         dispatch_ast_id(v, f, expr);
     }
 }
 
-pub fn walk_break<V: Visitor>(_v: &mut V, _f: &File, _id: AstId, _node: &ExprBreakType) {
+pub fn walk_break<V: Visitor>(_v: &mut V, _f: &File, _id: AstId, _node: &Break) {
     // Nothing to do.
 }
 
-pub fn walk_continue<V: Visitor>(_v: &mut V, _f: &File, _id: AstId, _node: &ExprContinueType) {
+pub fn walk_continue<V: Visitor>(_v: &mut V, _f: &File, _id: AstId, _node: &Continue) {
     // Nothing to do.
 }
 
-pub fn walk_this<V: Visitor>(_v: &mut V, _f: &File, _id: AstId, _node: &ExprSelfType) {
+pub fn walk_this<V: Visitor>(_v: &mut V, _f: &File, _id: AstId, _node: &This) {
     // Nothing to do.
 }
 
@@ -680,23 +680,23 @@ pub fn walk_upcase_this<V: Visitor>(_v: &mut V, _f: &File, _id: AstId, _node: &U
     // Nothing to do.
 }
 
-pub fn walk_lit_char<V: Visitor>(_v: &mut V, _f: &File, _id: AstId, _node: &ExprLitCharType) {
+pub fn walk_lit_char<V: Visitor>(_v: &mut V, _f: &File, _id: AstId, _node: &LitChar) {
     // Nothing to do.
 }
 
-pub fn walk_lit_int<V: Visitor>(_v: &mut V, _f: &File, _id: AstId, _node: &ExprLitIntType) {
+pub fn walk_lit_int<V: Visitor>(_v: &mut V, _f: &File, _id: AstId, _node: &LitInt) {
     // Nothing to do.
 }
 
-pub fn walk_lit_float<V: Visitor>(_v: &mut V, _f: &File, _id: AstId, _node: &ExprLitFloatType) {
+pub fn walk_lit_float<V: Visitor>(_v: &mut V, _f: &File, _id: AstId, _node: &LitFloat) {
     // Nothing to do.
 }
 
-pub fn walk_lit_str<V: Visitor>(_v: &mut V, _f: &File, _id: AstId, _node: &ExprLitStrType) {
+pub fn walk_lit_str<V: Visitor>(_v: &mut V, _f: &File, _id: AstId, _node: &LitStr) {
     // Nothing to do.
 }
 
-pub fn walk_lit_bool<V: Visitor>(_v: &mut V, _f: &File, _id: AstId, _node: &ExprLitBoolType) {
+pub fn walk_lit_bool<V: Visitor>(_v: &mut V, _f: &File, _id: AstId, _node: &LitBool) {
     // Nothing to do.
 }
 
@@ -708,23 +708,23 @@ pub fn walk_error<V: Visitor>(_v: &mut V, _f: &File, _id: AstId, _node: &Error) 
     // Nothing to do.
 }
 
-pub fn walk_underscore<V: Visitor>(_v: &mut V, _f: &File, _id: AstId, _node: &PatternUnderscore) {
+pub fn walk_underscore<V: Visitor>(_v: &mut V, _f: &File, _id: AstId, _node: &Underscore) {
     // Nothing to do.
 }
 
-pub fn walk_lit_pattern<V: Visitor>(_v: &mut V, _f: &File, _id: AstId, _node: &PatternLit) {
+pub fn walk_lit_pattern<V: Visitor>(_v: &mut V, _f: &File, _id: AstId, _node: &LitPattern) {
     unimplemented!()
 }
 
-pub fn walk_ident_pattern<V: Visitor>(_v: &mut V, _f: &File, _id: AstId, _node: &PatternIdent) {
+pub fn walk_ident_pattern<V: Visitor>(_v: &mut V, _f: &File, _id: AstId, _node: &IdentPattern) {
     unimplemented!()
 }
 
-pub fn walk_tuple_pattern<V: Visitor>(_v: &mut V, _f: &File, _id: AstId, _node: &PatternTuple) {
+pub fn walk_tuple_pattern<V: Visitor>(_v: &mut V, _f: &File, _id: AstId, _node: &TuplePattern) {
     unimplemented!()
 }
 
-pub fn walk_rest<V: Visitor>(_v: &mut V, _f: &File, _id: AstId, _node: &PatternRest) {
+pub fn walk_rest<V: Visitor>(_v: &mut V, _f: &File, _id: AstId, _node: &Rest) {
     unimplemented!()
 }
 
@@ -732,16 +732,16 @@ pub fn walk_constructor_pattern<V: Visitor>(
     _v: &mut V,
     _f: &File,
     _id: AstId,
-    _node: &PatternConstructor,
+    _node: &CtorPattern,
 ) {
     unimplemented!()
 }
 
-pub fn walk_constructor_field<V: Visitor>(_v: &mut V, _f: &File, _id: AstId, _node: &PatternField) {
+pub fn walk_constructor_field<V: Visitor>(_v: &mut V, _f: &File, _id: AstId, _node: &CtorField) {
     unimplemented!()
 }
 
-pub fn walk_alt<V: Visitor>(_v: &mut V, _f: &File, _id: AstId, _node: &PatternAlt) {
+pub fn walk_alt<V: Visitor>(_v: &mut V, _f: &File, _id: AstId, _node: &Alt) {
     unimplemented!()
 }
 

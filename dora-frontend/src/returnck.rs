@@ -3,7 +3,7 @@ use dora_parser::ast::*;
 
 pub fn returns_value(f: &File, s: &Ast) -> Result<(), Span> {
     match *s {
-        Ast::LetStmt(ref stmt) => Err(stmt.span),
+        Ast::Let(ref stmt) => Err(stmt.span),
         Ast::ExprStmt(ref stmt) => expr_returns_value(f, stmt.expr),
         _ => unreachable!(),
     }
@@ -24,7 +24,7 @@ pub fn expr_returns_value(f: &File, id: AstId) -> Result<(), Span> {
     }
 }
 
-pub fn expr_block_returns_value(f: &File, e: &ExprBlockType) -> Result<(), Span> {
+pub fn expr_block_returns_value(f: &File, e: &Block) -> Result<(), Span> {
     let mut span = e.span;
 
     for &stmt_id in &e.stmts {
@@ -42,7 +42,7 @@ pub fn expr_block_returns_value(f: &File, e: &ExprBlockType) -> Result<(), Span>
     }
 }
 
-fn expr_if_returns_value(f: &File, e: &ExprIfType) -> Result<(), Span> {
+fn expr_if_returns_value(f: &File, e: &If) -> Result<(), Span> {
     expr_returns_value(f, e.then_block)?;
 
     match e.else_block {

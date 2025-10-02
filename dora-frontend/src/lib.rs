@@ -182,7 +182,7 @@ pub fn expr_always_returns(f: &ast::File, id: AstId) -> bool {
     returnck::expr_returns_value(f, id).is_ok()
 }
 
-pub fn expr_block_always_returns(f: &ast::File, e: &ast::ExprBlockType) -> bool {
+pub fn expr_block_always_returns(f: &ast::File, e: &ast::Block) -> bool {
     returnck::expr_block_returns_value(f, e).is_ok()
 }
 

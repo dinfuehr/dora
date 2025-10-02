@@ -16,7 +16,7 @@ pub(super) fn gen_expr(g: &mut AstBytecodeGen, node_id: AstId, dest: DataDest) -
         Ast::Block(ref block) => g.visit_expr_block(node_id, block, dest),
         Ast::If(ref expr) => g.visit_expr_if(node_id, expr, dest),
         Ast::Template(ref template) => g.visit_expr_template(node_id, template, dest),
-        Ast::TypeParam(ref expr) => g.visit_expr_type_param(node_id, expr, dest),
+        Ast::TypedExpr(ref expr) => g.visit_expr_type_param(node_id, expr, dest),
         Ast::Path(ref path) => g.visit_expr_path(node_id, path, dest),
         Ast::LitChar(ref lit) => g.visit_expr_lit_char(node_id, lit, dest),
         Ast::LitInt(ref lit) => g.visit_expr_lit_int(node_id, lit, dest, false),
@@ -156,7 +156,7 @@ pub(super) fn gen_method_bin(
 pub(super) fn gen_expr_bin_cmp(
     g: &mut AstBytecodeGen,
     expr_ast_id: AstId,
-    node: &ast::ExprBinType,
+    node: &ast::Bin,
     cmp_op: CmpOp,
     dest: DataDest,
 ) -> Register {
@@ -221,7 +221,7 @@ fn gen_expr_bin_cmp_as_intrinsic(
 fn gen_expr_bin_cmp_as_method(
     g: &mut AstBytecodeGen,
     expr_ast_id: AstId,
-    node: &ast::ExprBinType,
+    node: &ast::Bin,
     cmp_op: CmpOp,
     dest: DataDest,
     lhs: Register,
@@ -304,7 +304,7 @@ fn is_comparable_method(sa: &Sema, fct: &FctDefinition) -> bool {
 
 fn convert_ordering_to_bool(
     g: &mut AstBytecodeGen,
-    node: &ast::ExprBinType,
+    node: &ast::Bin,
     cmp_op: CmpOp,
     result: Register,
     dest: Register,
@@ -352,7 +352,7 @@ fn convert_int_cmp_to_bool(
 pub(super) fn gen_match(
     g: &mut AstBytecodeGen,
     node_id: AstId,
-    node: &ast::ExprMatchType,
+    node: &ast::Match,
     dest: DataDest,
 ) -> Register {
     let result_ty = g.ty(node_id);

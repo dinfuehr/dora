@@ -1225,7 +1225,7 @@ impl Parser {
 
                     let error_id = self.ast_nodes.alloc(Ast::Error(Error { span }));
 
-                    let ast_id = self.ast_nodes.alloc(Ast::ExprStmt(StmtExprType {
+                    let ast_id = self.ast_nodes.alloc(Ast::ExprStmt(ExprStmt {
                         span,
                         expr: error_id,
                     }));
@@ -1311,7 +1311,7 @@ impl Parser {
 
         let span = self.finish_node();
 
-        self.ast_nodes.alloc(Ast::MatchArm(MatchArmType {
+        self.ast_nodes.alloc(Ast::MatchArm(Arm {
             span,
             pattern,
             cond,
@@ -1333,7 +1333,7 @@ impl Parser {
 
             let span = self.finish_node();
 
-            self.ast_nodes.alloc(Ast::Alt(PatternAlt { span, alts }))
+            self.ast_nodes.alloc(Ast::Alt(Alt { span, alts }))
         } else {
             self.cancel_node();
             pattern_id
@@ -1346,18 +1346,17 @@ impl Parser {
         if self.eat(UNDERSCORE) {
             let span = self.finish_node();
 
-            self.ast_nodes
-                .alloc(Ast::Underscore(PatternUnderscore { span }))
+            self.ast_nodes.alloc(Ast::Underscore(Underscore { span }))
         } else if self.eat(DOT_DOT) {
             let span = self.finish_node();
 
-            self.ast_nodes.alloc(Ast::Rest(PatternRest { span }))
+            self.ast_nodes.alloc(Ast::Rest(Rest { span }))
         } else if self.is(TRUE) || self.is(FALSE) {
             let expr = self.parse_lit_bool();
 
             let span = self.finish_node();
 
-            self.ast_nodes.alloc(Ast::LitPattern(PatternLit {
+            self.ast_nodes.alloc(Ast::LitPattern(LitPattern {
                 span,
                 expr,
                 kind: PatternLitKind::Bool,
@@ -1381,13 +1380,13 @@ impl Parser {
             let span = self.finish_node();
 
             self.ast_nodes
-                .alloc(Ast::TuplePattern(PatternTuple { span, params }))
+                .alloc(Ast::TuplePattern(TuplePattern { span, params }))
         } else if self.is(CHAR_LITERAL) {
             let expr = self.parse_lit_char();
 
             let span = self.finish_node();
 
-            self.ast_nodes.alloc(Ast::LitPattern(PatternLit {
+            self.ast_nodes.alloc(Ast::LitPattern(LitPattern {
                 span,
                 expr,
                 kind: PatternLitKind::Char,
@@ -1397,7 +1396,7 @@ impl Parser {
 
             let span = self.finish_node();
 
-            self.ast_nodes.alloc(Ast::LitPattern(PatternLit {
+            self.ast_nodes.alloc(Ast::LitPattern(LitPattern {
                 span,
                 expr,
                 kind: PatternLitKind::String,
@@ -1407,7 +1406,7 @@ impl Parser {
 
             let span = self.finish_node();
 
-            self.ast_nodes.alloc(Ast::LitPattern(PatternLit {
+            self.ast_nodes.alloc(Ast::LitPattern(LitPattern {
                 span,
                 expr,
                 kind: PatternLitKind::Int,
@@ -1417,7 +1416,7 @@ impl Parser {
 
             let span = self.finish_node();
 
-            self.ast_nodes.alloc(Ast::LitPattern(PatternLit {
+            self.ast_nodes.alloc(Ast::LitPattern(LitPattern {
                 span,
                 expr,
                 kind: PatternLitKind::Float,
@@ -1428,7 +1427,7 @@ impl Parser {
 
             let span = self.finish_node();
 
-            self.ast_nodes.alloc(Ast::IdentPattern(PatternIdent {
+            self.ast_nodes.alloc(Ast::IdentPattern(IdentPattern {
                 span,
                 mutable: true,
                 name,
@@ -1438,7 +1437,7 @@ impl Parser {
                 let name = self.expect_identifier().expect("identifier expected");
 
                 let span = self.finish_node();
-                return self.ast_nodes.alloc(Ast::IdentPattern(PatternIdent {
+                return self.ast_nodes.alloc(Ast::IdentPattern(IdentPattern {
                     span,
                     mutable: false,
                     name,
@@ -1463,7 +1462,7 @@ impl Parser {
 
                             let span = p.finish_node();
 
-                            Some(p.ast_nodes.alloc(Ast::ConstructorField(PatternField {
+                            Some(p.ast_nodes.alloc(Ast::CtorField(CtorField {
                                 span,
                                 ident: Some(ident),
                                 pattern,
@@ -1473,7 +1472,7 @@ impl Parser {
                             let pattern = p.parse_pattern();
                             let span = p.finish_node();
 
-                            Some(p.ast_nodes.alloc(Ast::ConstructorField(PatternField {
+                            Some(p.ast_nodes.alloc(Ast::CtorField(CtorField {
                                 span,
                                 ident: None,
                                 pattern,
@@ -1492,11 +1491,7 @@ impl Parser {
             let span = self.finish_node();
 
             self.ast_nodes
-                .alloc(Ast::ConstructorPattern(PatternConstructor {
-                    span,
-                    path,
-                    params,
-                }))
+                .alloc(Ast::CtorPattern(CtorPattern { span, path, params }))
         } else {
             self.report_error(ParseError::ExpectedPattern);
             self.advance();
