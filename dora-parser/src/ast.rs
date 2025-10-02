@@ -102,7 +102,7 @@ pub enum Ast {
     Enum(Enum),
     Error(Error),
     ExprStmt(ExprStmt),
-    Extern(ExternPackage),
+    Extern(Extern),
     Field(Field),
     For(For),
     Function(Function),
@@ -122,7 +122,7 @@ pub enum Ast {
     LitPattern(LitPattern),
     LitStr(LitStr),
     Match(Match),
-    MatchArm(Arm),
+    MatchArm(MatchArm),
     Modifier(Modifier),
     ModifierList(ModifierList),
     Module(Module),
@@ -629,7 +629,7 @@ pub struct Class {
 }
 
 #[derive(Clone, Debug, AstNode)]
-pub struct ExternPackage {
+pub struct Extern {
     pub span: Span,
     pub modifiers: Option<AstId>,
     pub name: Option<AstId>,
@@ -1087,7 +1087,7 @@ pub struct Match {
 }
 
 #[derive(Clone, Debug, AstNode)]
-pub struct Arm {
+pub struct MatchArm {
     pub span: Span,
 
     pub pattern: AstId,

@@ -379,7 +379,7 @@ struct TopLevelDeclaration<'x> {
 }
 
 impl<'x> visit::Visitor for TopLevelDeclaration<'x> {
-    fn visit_extern(&mut self, _f: &ast::File, _id: AstId, node: &ast::ExternPackage) {
+    fn visit_extern(&mut self, _f: &ast::File, _id: AstId, node: &ast::Extern) {
         check_modifiers(self.sa, self.file_id, node.modifiers, &[]);
         if let Some(name_id) = node.name {
             let name = _f.node(name_id).to_ident().expect("ident expected");

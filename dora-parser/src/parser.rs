@@ -15,6 +15,22 @@ use crate::token::{
 };
 use crate::{Span, TokenKind, TokenSet, lex};
 
+/// Macro to simplify allocating AST nodes.
+/// Usage:
+/// - alloc!(self, Variant { field1, field2, ... })
+/// - alloc!(self, Variant(value))
+macro_rules! alloc {
+    // For direct wrapping: Variant(value)
+    ($self:expr, $variant:ident ( $value:expr )) => {
+        $self.ast_nodes.alloc(Ast::$variant($value))
+    };
+    // For struct construction: Variant { fields }
+    ($self:expr, $variant:ident { $($field:tt)* }) => {{
+        let span = $self.finish_node();
+        $self.ast_nodes.alloc(Ast::$variant($variant { span, $($field)* }))
+    }};
+}
+
 #[cfg(test)]
 mod tests;
 
@@ -82,78 +98,30 @@ impl Parser {
     fn parse_element(&mut self) -> AstId {
         let modifiers = self.parse_modifiers();
         match self.current() {
-            FN_KW => {
-                let fct = self.parse_function(modifiers);
-                self.ast_nodes.alloc(Ast::Function(fct))
-            }
-
-            CLASS_KW => {
-                let class = self.parse_class(modifiers);
-                self.ast_nodes.alloc(Ast::Class(class))
-            }
-
-            STRUCT_KW => {
-                let struc = self.parse_struct(modifiers);
-                self.ast_nodes.alloc(Ast::Struct(struc))
-            }
-
-            TRAIT_KW => {
-                let trait_ = self.parse_trait(modifiers);
-                self.ast_nodes.alloc(Ast::Trait(trait_))
-            }
-
-            IMPL_KW => {
-                let impl_ = self.parse_impl(modifiers);
-                self.ast_nodes.alloc(Ast::Impl(impl_))
-            }
-
-            LET_KW => {
-                let global = self.parse_global(modifiers);
-                self.ast_nodes.alloc(Ast::Global(global))
-            }
-
-            CONST_KW => {
-                let const_ = self.parse_const(modifiers);
-                self.ast_nodes.alloc(Ast::Const(const_))
-            }
-
-            ENUM_KW => {
-                let enum_ = self.parse_enum(modifiers);
-                self.ast_nodes.alloc(Ast::Enum(enum_))
-            }
-
-            MOD_KW => {
-                let module = self.parse_module(modifiers);
-                self.ast_nodes.alloc(Ast::Module(module))
-            }
-
-            USE_KW => {
-                let use_stmt = self.parse_use(modifiers);
-                self.ast_nodes.alloc(Ast::Use(use_stmt))
-            }
-
-            EXTERN_KW => {
-                let extern_stmt = self.parse_extern(modifiers);
-                self.ast_nodes.alloc(Ast::Extern(extern_stmt))
-            }
-
-            TYPE_KW => {
-                let alias = self.parse_alias(modifiers);
-                self.ast_nodes.alloc(Ast::Alias(alias))
-            }
-
+            FN_KW => self.parse_function(modifiers),
+            CLASS_KW => self.parse_class(modifiers),
+            STRUCT_KW => self.parse_struct(modifiers),
+            TRAIT_KW => self.parse_trait(modifiers),
+            IMPL_KW => self.parse_impl(modifiers),
+            LET_KW => self.parse_global(modifiers),
+            CONST_KW => self.parse_const(modifiers),
+            ENUM_KW => self.parse_enum(modifiers),
+            MOD_KW => self.parse_module(modifiers),
+            USE_KW => self.parse_use(modifiers),
+            EXTERN_KW => self.parse_extern(modifiers),
+            TYPE_KW => self.parse_alias(modifiers),
             _ => {
                 assert!(!ELEM_FIRST.contains(self.current()));
                 let span = self.current_span();
                 self.report_error_at(ParseError::ExpectedElement, span);
                 self.advance();
 
-                self.ast_nodes.alloc(Ast::Error(ast::Error { span }))
+                alloc!(self, Error(ast::Error { span }))
             }
         }
     }
 
-    fn parse_extern(&mut self, modifiers: Option<AstId>) -> ExternPackage {
+    fn parse_extern(&mut self, modifiers: Option<AstId>) -> AstId {
         self.start_node();
 
         self.assert(EXTERN_KW);
@@ -166,25 +134,23 @@ impl Parser {
         };
         self.expect(SEMICOLON);
 
-        ExternPackage {
-            span: self.finish_node(),
-            modifiers,
-            name,
-            identifier,
-        }
+        alloc!(
+            self,
+            Extern {
+                modifiers,
+                name,
+                identifier,
+            }
+        )
     }
 
-    fn parse_use(&mut self, modifiers: Option<AstId>) -> Use {
+    fn parse_use(&mut self, modifiers: Option<AstId>) -> AstId {
         self.start_node();
         self.assert(USE_KW);
         let path = self.parse_use_path();
         self.expect(SEMICOLON);
 
-        Use {
-            span: self.finish_node(),
-            modifiers,
-            path,
-        }
+        alloc!(self, Use { modifiers, path })
     }
 
     fn parse_use_path(&mut self) -> AstId {
@@ -291,7 +257,7 @@ impl Parser {
             .alloc(Ast::UseGroup(UseGroup { span, targets }))
     }
 
-    fn parse_enum(&mut self, modifiers: Option<AstId>) -> Enum {
+    fn parse_enum(&mut self, modifiers: Option<AstId>) -> AstId {
         self.start_node();
         self.assert(ENUM_KW);
         let name = self.expect_identifier();
@@ -318,17 +284,19 @@ impl Parser {
             Vec::new()
         };
 
-        Enum {
-            span: self.finish_node(),
-            modifiers,
-            name,
-            type_params,
-            variants,
-            where_clause,
-        }
+        alloc!(
+            self,
+            Enum {
+                modifiers,
+                name,
+                type_params,
+                variants,
+                where_clause,
+            }
+        )
     }
 
-    fn parse_module(&mut self, modifiers: Option<AstId>) -> Module {
+    fn parse_module(&mut self, modifiers: Option<AstId>) -> AstId {
         self.start_node();
         self.assert(MOD_KW);
         let name = self.expect_identifier();
@@ -347,12 +315,14 @@ impl Parser {
             None
         };
 
-        Module {
-            span: self.finish_node(),
-            modifiers,
-            name,
-            elements,
-        }
+        alloc!(
+            self,
+            Module {
+                modifiers,
+                name,
+                elements,
+            }
+        )
     }
 
     fn parse_enum_variant(&mut self) -> EnumVariant {
@@ -407,7 +377,7 @@ impl Parser {
         }
     }
 
-    fn parse_const(&mut self, modifiers: Option<AstId>) -> Const {
+    fn parse_const(&mut self, modifiers: Option<AstId>) -> AstId {
         self.start_node();
         self.assert(CONST_KW);
         let name = self.expect_identifier();
@@ -417,16 +387,18 @@ impl Parser {
         let expr = self.parse_expr();
         self.expect(SEMICOLON);
 
-        Const {
-            span: self.finish_node(),
-            modifiers,
-            name,
-            data_type: ty,
-            expr,
-        }
+        alloc!(
+            self,
+            Const {
+                modifiers,
+                name,
+                data_type: ty,
+                expr,
+            }
+        )
     }
 
-    fn parse_impl(&mut self, modifiers: Option<AstId>) -> Impl {
+    fn parse_impl(&mut self, modifiers: Option<AstId>) -> AstId {
         let start = self.current_span().start();
         self.start_node();
         self.assert(IMPL_KW);
@@ -455,19 +427,21 @@ impl Parser {
 
         self.expect(R_BRACE);
 
-        Impl {
-            declaration_span,
-            span: self.finish_node(),
-            modifiers,
-            type_params,
-            trait_type,
-            extended_type,
-            where_clause,
-            methods,
-        }
+        alloc!(
+            self,
+            Impl {
+                declaration_span,
+                modifiers,
+                type_params,
+                trait_type,
+                extended_type,
+                where_clause,
+                methods,
+            }
+        )
     }
 
-    fn parse_global(&mut self, modifiers: Option<AstId>) -> Global {
+    fn parse_global(&mut self, modifiers: Option<AstId>) -> AstId {
         self.start_node();
         self.assert(LET_KW);
 
@@ -485,17 +459,19 @@ impl Parser {
 
         self.expect(SEMICOLON);
 
-        Global {
-            name,
-            modifiers: modifiers,
-            span: self.finish_node(),
-            data_type,
-            mutable,
-            initial_value: expr.clone(),
-        }
+        alloc!(
+            self,
+            Global {
+                name,
+                modifiers: modifiers,
+                data_type,
+                mutable,
+                initial_value: expr.clone(),
+            }
+        )
     }
 
-    fn parse_trait(&mut self, modifiers: Option<AstId>) -> Trait {
+    fn parse_trait(&mut self, modifiers: Option<AstId>) -> AstId {
         self.start_node();
         self.assert(TRAIT_KW);
         let name = self.expect_identifier();
@@ -517,18 +493,20 @@ impl Parser {
 
         self.expect(R_BRACE);
 
-        Trait {
-            name,
-            modifiers,
-            type_params,
-            bounds,
-            where_clause,
-            span: self.finish_node(),
-            methods,
-        }
+        alloc!(
+            self,
+            Trait {
+                name,
+                modifiers,
+                type_params,
+                bounds,
+                where_clause,
+                methods,
+            }
+        )
     }
 
-    fn parse_alias(&mut self, modifiers: Option<AstId>) -> Alias {
+    fn parse_alias(&mut self, modifiers: Option<AstId>) -> AstId {
         self.start_node();
         self.assert(TYPE_KW);
         let name = self.expect_identifier();
@@ -548,19 +526,21 @@ impl Parser {
         };
         self.expect(SEMICOLON);
 
-        Alias {
-            span: self.finish_node(),
-            modifiers,
-            name,
-            type_params,
-            pre_where_clause,
-            bounds,
-            ty,
-            post_where_clause,
-        }
+        alloc!(
+            self,
+            Alias {
+                modifiers,
+                name,
+                type_params,
+                pre_where_clause,
+                bounds,
+                ty,
+                post_where_clause,
+            }
+        )
     }
 
-    fn parse_struct(&mut self, modifiers: Option<AstId>) -> Struct {
+    fn parse_struct(&mut self, modifiers: Option<AstId>) -> AstId {
         self.start_node();
         self.assert(STRUCT_KW);
         let ident = self.expect_identifier();
@@ -606,15 +586,17 @@ impl Parser {
             Vec::new()
         };
 
-        Struct {
-            name: ident,
-            modifiers,
-            span: self.finish_node(),
-            fields,
-            type_params,
-            where_clause,
-            field_style,
-        }
+        alloc!(
+            self,
+            Struct {
+                name: ident,
+                modifiers,
+                fields,
+                type_params,
+                where_clause,
+                field_style,
+            }
+        )
     }
 
     fn parse_named_field(&mut self) -> AstId {
@@ -627,14 +609,14 @@ impl Parser {
         self.expect(COLON);
         let ty = self.parse_type();
 
-        let span = self.finish_node();
-
-        self.ast_nodes.alloc(Ast::Field(Field {
-            span,
-            modifiers,
-            name: ident,
-            data_type: ty,
-        }))
+        alloc!(
+            self,
+            Field {
+                modifiers,
+                name: ident,
+                data_type: ty,
+            }
+        )
     }
 
     fn parse_unnamed_field(&mut self) -> AstId {
@@ -643,17 +625,17 @@ impl Parser {
         let modifiers = self.parse_modifiers();
         let ty = self.parse_type();
 
-        let span = self.finish_node();
-
-        self.ast_nodes.alloc(Ast::Field(Field {
-            span,
-            modifiers,
-            name: None,
-            data_type: ty,
-        }))
+        alloc!(
+            self,
+            Field {
+                modifiers,
+                name: None,
+                data_type: ty,
+            }
+        )
     }
 
-    fn parse_class(&mut self, modifiers: Option<AstId>) -> Class {
+    fn parse_class(&mut self, modifiers: Option<AstId>) -> AstId {
         self.start_node();
         self.assert(CLASS_KW);
 
@@ -701,15 +683,17 @@ impl Parser {
             Vec::new()
         };
 
-        Class {
-            span: self.finish_node(),
-            modifiers,
-            name,
-            fields,
-            type_params,
-            where_clause,
-            field_name_style,
-        }
+        alloc!(
+            self,
+            Class {
+                modifiers,
+                name,
+                fields,
+                type_params,
+                where_clause,
+                field_name_style,
+            }
+        )
     }
 
     fn parse_type_param_list(&mut self) -> Option<AstId> {
@@ -724,12 +708,7 @@ impl Parser {
                 |p| p.parse_type_param_wrapper(),
             );
 
-            let span = self.finish_node();
-
-            Some(
-                self.ast_nodes
-                    .alloc(Ast::TypeParamList(TypeParamList { span, params })),
-            )
+            Some(alloc!(self, TypeParamList { params }))
         } else {
             None
         }
@@ -753,11 +732,7 @@ impl Parser {
             Vec::new()
         };
 
-        self.ast_nodes.alloc(Ast::TypeParam(TypeParam {
-            name,
-            span: self.finish_node(),
-            bounds,
-        }))
+        alloc!(self, TypeParam { name, bounds })
     }
 
     fn parse_type_bounds(&mut self) -> Vec<AstId> {
@@ -784,12 +759,7 @@ impl Parser {
             }
 
             assert!(!modifiers.is_empty());
-            let span = self.finish_node();
-
-            Some(
-                self.ast_nodes
-                    .alloc(Ast::ModifierList(ModifierList { span, modifiers })),
-            )
+            Some(alloc!(self, ModifierList { modifiers }))
         } else {
             None
         }
@@ -810,14 +780,10 @@ impl Parser {
             ident = self.expect_identifier();
         }
 
-        self.ast_nodes.alloc(Ast::Modifier(Modifier {
-            span: self.finish_node(),
-            kind,
-            ident,
-        }))
+        alloc!(self, Modifier { kind, ident })
     }
 
-    fn parse_function(&mut self, modifiers: Option<AstId>) -> Function {
+    fn parse_function(&mut self, modifiers: Option<AstId>) -> AstId {
         let start = self.current_span().start();
         self.start_node();
         self.assert(FN_KW);
@@ -829,18 +795,20 @@ impl Parser {
         let declaration_span = self.span_from(start);
         let block = self.parse_function_block();
 
-        Function {
-            kind: FunctionKind::Function,
-            modifiers,
-            name,
-            declaration_span,
-            span: self.finish_node(),
-            params,
-            return_type,
-            block,
-            type_params,
-            where_clause,
-        }
+        alloc!(
+            self,
+            Function {
+                kind: FunctionKind::Function,
+                modifiers,
+                name,
+                declaration_span,
+                params,
+                return_type,
+                block,
+                type_params,
+                where_clause,
+            }
+        )
     }
 
     fn parse_function_params(&mut self) -> Vec<AstId> {
@@ -920,14 +888,14 @@ impl Parser {
 
         let variadic = self.eat(DOT_DOT_DOT);
 
-        let span = self.finish_node();
-
-        self.ast_nodes.alloc(Ast::Param(Param {
-            span,
-            pattern,
-            data_type,
-            variadic,
-        }))
+        alloc!(
+            self,
+            Param {
+                pattern,
+                data_type,
+                variadic,
+            }
+        )
     }
 
     fn parse_function_type(&mut self) -> Option<AstId> {
@@ -955,12 +923,7 @@ impl Parser {
                 }
             }
 
-            let span = self.finish_node();
-
-            Some(
-                self.ast_nodes
-                    .alloc(Ast::WhereClause(WhereClause { span, clauses })),
-            )
+            Some(alloc!(self, WhereClause { clauses }))
         } else {
             None
         }
@@ -980,10 +943,7 @@ impl Parser {
             }
         }
 
-        let span = self.finish_node();
-
-        self.ast_nodes
-            .alloc(Ast::WhereClauseItem(WhereClauseItem { span, ty, bounds }))
+        alloc!(self, WhereClauseItem { ty, bounds })
     }
 
     fn parse_function_block(&mut self) -> Option<AstId> {
@@ -1022,10 +982,7 @@ impl Parser {
                     Vec::new()
                 };
 
-                let span = self.finish_node();
-
-                self.ast_nodes
-                    .alloc(Ast::create_regular(span, path, params))
+                alloc!(self, RegularType { path, params })
             }
 
             L_BRACKET => {
@@ -1072,7 +1029,7 @@ impl Parser {
                 let span = self.current_span();
                 self.report_error(ParseError::ExpectedType);
 
-                self.ast_nodes.alloc(Ast::Error(ast::Error { span }))
+                alloc!(self, Error(ast::Error { span }))
             }
         }
     }
@@ -1085,21 +1042,15 @@ impl Parser {
             self.assert(EQ);
             let ty = self.parse_type();
 
-            let span = self.finish_node();
-
-            Some(self.ast_nodes.alloc(Ast::TypeArgument(TypeArgument {
-                span,
-                name: Some(name),
-                ty,
-            })))
+            Some(alloc!(
+                self,
+                TypeArgument {
+                    name: Some(name),
+                    ty,
+                }
+            ))
         } else if let Some(ty) = self.parse_type_wrapper() {
-            let span = self.finish_node();
-
-            Some(self.ast_nodes.alloc(Ast::TypeArgument(TypeArgument {
-                span,
-                name: None,
-                ty,
-            })))
+            Some(alloc!(self, TypeArgument { name: None, ty }))
         } else {
             self.cancel_node();
             None
@@ -1129,12 +1080,10 @@ impl Parser {
         } else if self.is(UPCASE_SELF_KW) {
             self.start_node();
             self.assert(UPCASE_SELF_KW);
-
-            let span = self.finish_node();
-            self.ast_nodes.alloc(Ast::UpcaseThis(UpcaseThis { span }))
+            alloc!(self, UpcaseThis {})
         } else {
             let span = self.current_span();
-            self.ast_nodes.alloc(Ast::Error(Error { span }))
+            alloc!(self, Error(Error { span }))
         }
     }
 
@@ -1225,12 +1174,15 @@ impl Parser {
                         self.advance();
                     }
 
-                    let error_id = self.ast_nodes.alloc(Ast::Error(Error { span }));
+                    let error_id = alloc!(self, Error(Error { span }));
 
-                    let ast_id = self.ast_nodes.alloc(Ast::ExprStmt(ExprStmt {
-                        span,
-                        expr: error_id,
-                    }));
+                    let ast_id = alloc!(
+                        self,
+                        ExprStmt(ExprStmt {
+                            span,
+                            expr: error_id,
+                        })
+                    );
 
                     StmtOrExpr::Stmt(ast_id)
                 }
@@ -1311,14 +1263,14 @@ impl Parser {
 
         let value = self.parse_expr_stmt();
 
-        let span = self.finish_node();
-
-        self.ast_nodes.alloc(Ast::MatchArm(Arm {
-            span,
-            pattern,
-            cond,
-            value,
-        }))
+        alloc!(
+            self,
+            MatchArm {
+                pattern,
+                cond,
+                value,
+            }
+        )
     }
 
     fn parse_pattern(&mut self) -> AstId {
@@ -1333,9 +1285,7 @@ impl Parser {
                 alts.push(self.parse_pattern_alt());
             }
 
-            let span = self.finish_node();
-
-            self.ast_nodes.alloc(Ast::Alt(Alt { span, alts }))
+            alloc!(self, Alt { alts })
         } else {
             self.cancel_node();
             pattern_id
@@ -1346,23 +1296,21 @@ impl Parser {
         self.start_node();
 
         if self.eat(UNDERSCORE) {
-            let span = self.finish_node();
-
-            self.ast_nodes.alloc(Ast::Underscore(Underscore { span }))
+            alloc!(self, Underscore {})
         } else if self.eat(DOT_DOT) {
             let span = self.finish_node();
 
-            self.ast_nodes.alloc(Ast::Rest(Rest { span }))
+            alloc!(self, Rest(Rest { span }))
         } else if self.is(TRUE) || self.is(FALSE) {
             let expr = self.parse_lit_bool();
 
-            let span = self.finish_node();
-
-            self.ast_nodes.alloc(Ast::LitPattern(LitPattern {
-                span,
-                expr,
-                kind: PatternLitKind::Bool,
-            }))
+            alloc!(
+                self,
+                LitPattern {
+                    expr,
+                    kind: PatternLitKind::Bool,
+                }
+            )
         } else if self.is(L_PAREN) {
             let params = self.parse_list(
                 L_PAREN,
@@ -1386,64 +1334,65 @@ impl Parser {
         } else if self.is(CHAR_LITERAL) {
             let expr = self.parse_lit_char();
 
-            let span = self.finish_node();
-
-            self.ast_nodes.alloc(Ast::LitPattern(LitPattern {
-                span,
-                expr,
-                kind: PatternLitKind::Char,
-            }))
+            alloc!(
+                self,
+                LitPattern {
+                    expr,
+                    kind: PatternLitKind::Char,
+                }
+            )
         } else if self.is(STRING_LITERAL) {
             let expr = self.parse_string();
 
-            let span = self.finish_node();
-
-            self.ast_nodes.alloc(Ast::LitPattern(LitPattern {
-                span,
-                expr,
-                kind: PatternLitKind::String,
-            }))
+            alloc!(
+                self,
+                LitPattern {
+                    expr,
+                    kind: PatternLitKind::String,
+                }
+            )
         } else if self.is(INT_LITERAL) || self.is2(SUB, INT_LITERAL) {
             let expr = self.parse_lit_int_minus();
 
-            let span = self.finish_node();
-
-            self.ast_nodes.alloc(Ast::LitPattern(LitPattern {
-                span,
-                expr,
-                kind: PatternLitKind::Int,
-            }))
+            alloc!(
+                self,
+                LitPattern {
+                    expr,
+                    kind: PatternLitKind::Int,
+                }
+            )
         } else if self.is(FLOAT_LITERAL) || self.is2(SUB, FLOAT_LITERAL) {
             let expr = self.parse_lit_float_minus();
 
-            let span = self.finish_node();
-
-            self.ast_nodes.alloc(Ast::LitPattern(LitPattern {
-                span,
-                expr,
-                kind: PatternLitKind::Float,
-            }))
+            alloc!(
+                self,
+                LitPattern {
+                    expr,
+                    kind: PatternLitKind::Float,
+                }
+            )
         } else if self.is2(MUT_KW, IDENTIFIER) {
             self.assert(MUT_KW);
             let name = self.expect_identifier().expect("identifier expected");
 
-            let span = self.finish_node();
-
-            self.ast_nodes.alloc(Ast::IdentPattern(IdentPattern {
-                span,
-                mutable: true,
-                name,
-            }))
+            alloc!(
+                self,
+                IdentPattern {
+                    mutable: true,
+                    name,
+                }
+            )
         } else if self.is(IDENTIFIER) {
             if !self.nth_is(1, COLON_COLON) && !self.nth_is(1, L_PAREN) {
                 let name = self.expect_identifier().expect("identifier expected");
 
-                let span = self.finish_node();
-                return self.ast_nodes.alloc(Ast::IdentPattern(IdentPattern {
-                    span,
-                    mutable: false,
-                    name,
-                }));
+                return alloc!(
+                    self,
+                    IdentPattern {
+                        mutable: false,
+                        name,
+                    }
+                );
             }
 
             let path = self.parse_path();
@@ -1498,9 +1447,7 @@ impl Parser {
             self.report_error(ParseError::ExpectedPattern);
             self.advance();
 
-            let span = self.finish_node();
-
-            self.ast_nodes.alloc(Ast::Error(Error { span }))
+            alloc!(self, Error {})
         }
     }
 
@@ -1575,8 +1522,7 @@ impl Parser {
             self.report_error(ParseError::ExpectedExpression);
 
             let span = self.current_span();
-
-            return self.ast_nodes.alloc(Ast::Error(ast::Error { span }));
+            return alloc!(self, Error(ast::Error { span }));
         }
 
         let start = self.current_span().start();
@@ -1815,8 +1761,7 @@ impl Parser {
             MATCH_KW => self.parse_match(),
             _ => {
                 self.report_error(ParseError::ExpectedFactor);
-
-                self.ast_nodes.alloc(Ast::Error(ast::Error { span }))
+                alloc!(self, Error(ast::Error { span }))
             }
         }
     }
@@ -2006,21 +1951,23 @@ impl Parser {
         let declaration_span = self.span_from(start);
 
         let block = self.parse_block();
-
         let span = self.finish_node();
 
-        let function_id = self.ast_nodes.alloc(Ast::Function(Function {
-            kind: FunctionKind::Lambda,
-            modifiers: None,
-            name: None,
-            declaration_span,
-            span,
-            params,
-            return_type,
-            block: Some(block),
-            type_params: None,
-            where_clause: None,
-        }));
+        let function_id = alloc!(
+            self,
+            Function(Function {
+                kind: FunctionKind::Lambda,
+                modifiers: None,
+                name: None,
+                declaration_span,
+                span,
+                params,
+                return_type,
+                block: Some(block),
+                type_params: None,
+                where_clause: None,
+            })
+        );
 
         self.ast_nodes.alloc(Ast::create_lambda(span, function_id))
     }
@@ -2036,7 +1983,7 @@ impl Parser {
             self.assert(IDENTIFIER);
             let name = self.source_span(span);
 
-            Some(self.ast_nodes.alloc(Ast::Ident(Ident { span, name })))
+            Some(alloc!(self, Ident(Ident { span, name })))
         } else {
             self.report_error_at(ParseError::ExpectedIdentifier, span);
             None

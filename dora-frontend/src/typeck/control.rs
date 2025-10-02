@@ -376,7 +376,7 @@ pub(super) fn check_expr_match(
 
 fn check_expr_match_arm(
     ck: &mut TypeCheck,
-    arm: &ast::Arm,
+    arm: &ast::MatchArm,
     expr_ty: SourceType,
     expected_ty: SourceType,
     result_type: &mut SourceType,

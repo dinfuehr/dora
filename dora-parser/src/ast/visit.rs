@@ -5,7 +5,7 @@ pub trait Visitor: Sized {
         walk_file(self, a);
     }
 
-    fn visit_extern(&mut self, f: &File, id: AstId, stmt: &ExternPackage) {
+    fn visit_extern(&mut self, f: &File, id: AstId, stmt: &Extern) {
         walk_extern(self, f, id, stmt);
     }
 
@@ -197,7 +197,7 @@ pub trait Visitor: Sized {
         walk_match(self, f, id, e);
     }
 
-    fn visit_match_arm(&mut self, f: &File, id: AstId, node: &Arm) {
+    fn visit_match_arm(&mut self, f: &File, id: AstId, node: &MatchArm) {
         walk_match_arm(self, f, id, node);
     }
 
@@ -453,7 +453,7 @@ pub fn walk_use_target_name<V: Visitor>(
     }
 }
 
-pub fn walk_extern<V: Visitor>(_v: &mut V, _f: &File, _id: AstId, _use: &ExternPackage) {
+pub fn walk_extern<V: Visitor>(_v: &mut V, _f: &File, _id: AstId, _use: &Extern) {
     // nothing to do
 }
 
@@ -676,7 +676,7 @@ pub fn walk_match<V: Visitor>(v: &mut V, f: &File, _id: AstId, node: &Match) {
     }
 }
 
-pub fn walk_match_arm<V: Visitor>(v: &mut V, f: &File, _id: AstId, node: &Arm) {
+pub fn walk_match_arm<V: Visitor>(v: &mut V, f: &File, _id: AstId, node: &MatchArm) {
     if let Some(cond_id) = node.cond {
         dispatch_ast_id(v, f, cond_id);
     }
