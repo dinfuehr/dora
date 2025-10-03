@@ -270,7 +270,7 @@ pub(super) fn check_expr_if(
     let merged_type = if let Some(else_block) = node.else_block {
         let else_type = check_expr(ck, else_block, expected_ty);
 
-        let ast_file = ck.sa.file(ck.file_id).ast().as_ref();
+        let ast_file = ck.sa.file(ck.file_id).ast();
 
         if expr_always_returns(ast_file, node.then_block) {
             else_type

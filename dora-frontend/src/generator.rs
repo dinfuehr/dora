@@ -135,7 +135,7 @@ impl<'a> AstBytecodeGen<'a> {
     }
 
     fn ast_file(&self) -> &'a ast::File {
-        self.sa.file(self.file_id).ast().as_ref()
+        self.sa.file(self.file_id).ast()
     }
 
     fn span(&self, ast_id: AstId) -> Span {

@@ -117,7 +117,7 @@ impl<'a> TypeCheck<'a> {
             .expect("missing return type")
             .clone();
 
-        let ast_file = self.sa.file(self.file_id).ast().as_ref();
+        let ast_file = self.sa.file(self.file_id).ast();
         let block = self.node(block_id).to_block().expect("block expected");
 
         let mut returns = false;

@@ -15,11 +15,11 @@ pub struct SourceFile {
     pub path: PathBuf,
     pub content: Arc<String>,
     pub line_starts: Vec<u32>,
-    pub ast: OnceCell<Arc<ast::File>>,
+    pub ast: OnceCell<ast::File>,
 }
 
 impl SourceFile {
-    pub fn ast(&self) -> &Arc<ast::File> {
+    pub fn ast(&self) -> &ast::File {
         self.ast.get().expect("missing ast")
     }
 

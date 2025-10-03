@@ -9,19 +9,52 @@ pub mod dump;
 pub mod visit;
 
 #[derive(Clone, Debug)]
-pub struct File {
-    pub content: Arc<String>,
-    pub ast_nodes: Arena<Ast>,
-    pub root_id: AstId,
+pub struct File(Arc<FilePayload>);
+
+#[derive(Clone, Debug)]
+struct FilePayload {
+    content: Arc<String>,
+    nodes: Arena<Ast>,
+    root_id: AstId,
 }
 
 impl File {
+    pub fn new(content: Arc<String>, nodes: Arena<Ast>, root_id: AstId) -> File {
+        File(Arc::new(FilePayload {
+            content,
+            nodes,
+            root_id,
+        }))
+    }
+
+    fn payload(&self) -> &FilePayload {
+        self.0.as_ref()
+    }
+
     pub fn node(&self, id: AstId) -> &Ast {
-        &self.ast_nodes[id]
+        &self.payload().nodes[id]
+    }
+
+    #[allow(unused)]
+    pub fn node2(&self, id: AstId) -> AstNode {
+        AstNode {
+            file: self.clone(),
+            id,
+        }
+    }
+
+    pub fn root_id(&self) -> AstId {
+        self.payload().root_id
+    }
+
+    pub fn content(&self) -> &Arc<String> {
+        &self.payload().content
     }
 
     pub fn root(&self) -> &Root {
-        self.node(self.root_id).to_root().expect("file expected")
+        self.node(self.payload().root_id)
+            .to_root()
+            .expect("file expected")
     }
 
     #[cfg(test)]
@@ -200,6 +233,19 @@ impl Ast {
             &Ast::While(_) => true,
             _ => false,
         }
+    }
+}
+
+#[allow(unused)]
+pub struct AstNode {
+    file: File,
+    id: AstId,
+}
+
+impl AstNode {
+    #[allow(unused)]
+    pub fn raw_node(&self) -> &Ast {
+        self.file.node(self.id)
     }
 }
 

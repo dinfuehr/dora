@@ -295,7 +295,7 @@ pub trait Visitor: Sized {
 }
 
 pub fn walk_file<V: Visitor>(v: &mut V, f: &File) {
-    dispatch_ast_id(v, f, f.root_id);
+    dispatch_ast_id(v, f, f.root_id());
 }
 
 pub fn walk_root<V: Visitor>(v: &mut V, f: &File, _id: AstId, node: &Root) {

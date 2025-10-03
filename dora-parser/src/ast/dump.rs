@@ -13,18 +13,18 @@ macro_rules! dump {
     }};
 }
 
-pub fn dump_file(ast: &Arc<File>) {
-    let line_starts = compute_line_starts(&ast.content);
+pub fn dump_file(ast: &File) {
+    let line_starts = compute_line_starts(&ast.content());
     let mut dumper = AstDumper {
         indent: 0,
-        f: ast.as_ref(),
+        f: ast,
         line_starts,
     };
-    dumper.dump_node_id(ast.root_id);
+    dumper.dump_node_id(ast.root_id());
 }
 
 pub fn dump_node(f: &Arc<File>, id: AstId) {
-    let line_starts = compute_line_starts(&f.content);
+    let line_starts = compute_line_starts(&f.content());
     let mut dumper = AstDumper {
         indent: 0,
         f,

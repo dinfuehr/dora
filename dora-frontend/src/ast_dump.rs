@@ -39,7 +39,7 @@ struct AstDumper<'a> {
 
 impl<'a> AstDumper<'a> {
     fn dump_file(&mut self) {
-        self.dump_node_id(self.file.ast().root_id);
+        self.dump_node_id(self.file.ast().root_id());
     }
 
     fn dump_node_id(&mut self, id: AstId) {

@@ -1,11 +1,9 @@
-use std::sync::Arc;
-
 use crate::ast::*;
 use crate::error::ParseError;
 use crate::parser::Parser;
 use crate::{compute_line_column, compute_line_starts};
 
-fn parse_expr(code: &'static str) -> (AstId, Arc<File>) {
+fn parse_expr(code: &'static str) -> (AstId, File) {
     let mut parser = Parser::from_string(code);
 
     let expr_id = parser.parse_expr();
@@ -14,6 +12,17 @@ fn parse_expr(code: &'static str) -> (AstId, Arc<File>) {
     assert!(errors.is_empty());
 
     (expr_id, file)
+}
+
+fn parse_expr2(code: &'static str) -> AstNode {
+    let mut parser = Parser::from_string(code);
+
+    let expr_id = parser.parse_expr();
+    assert!(parser.current().is_eof());
+    let (file, errors) = parser.into_file(expr_id);
+    assert!(errors.is_empty());
+
+    file.node2(expr_id)
 }
 
 fn err_expr(code: &'static str, msg: ParseError, line: u32, col: u32) {
@@ -33,7 +42,7 @@ fn err_expr(code: &'static str, msg: ParseError, line: u32, col: u32) {
     assert_eq!(col, computed_column);
 }
 
-fn parse_let(code: &'static str) -> (AstId, Arc<File>) {
+fn parse_let(code: &'static str) -> (AstId, File) {
     let mut parser = Parser::from_string(code);
     let node_id = parser.parse_let();
     assert!(parser.current().is_eof());
@@ -52,7 +61,7 @@ fn parse_let(code: &'static str) -> (AstId, Arc<File>) {
     (node_id, file)
 }
 
-fn parse_type(code: &'static str) -> (AstId, Arc<File>) {
+fn parse_type(code: &'static str) -> (AstId, File) {
     let mut parser = Parser::from_string(code);
     let node_id = parser.parse_type();
     assert!(parser.current().is_eof());
@@ -61,7 +70,7 @@ fn parse_type(code: &'static str) -> (AstId, Arc<File>) {
     (node_id, file)
 }
 
-fn parse(code: &'static str) -> Arc<File> {
+fn parse(code: &'static str) -> File {
     let (file, errors) = Parser::from_string(code).parse();
     if !errors.is_empty() {
         for error in &errors {
@@ -72,13 +81,13 @@ fn parse(code: &'static str) -> Arc<File> {
     file
 }
 
-fn parse_with_some_errors(code: &'static str) -> Arc<File> {
+fn parse_with_some_errors(code: &'static str) -> File {
     let (file, errors) = Parser::from_string(code).parse();
     assert!(!errors.is_empty());
     file
 }
 
-fn parse_with_error(code: &'static str, expected: Vec<(u32, u32, u32, ParseError)>) -> Arc<File> {
+fn parse_with_error(code: &'static str, expected: Vec<(u32, u32, u32, ParseError)>) -> File {
     let (file, errors) = Parser::from_string(code).parse();
     let line_starts = compute_line_starts(code);
 
@@ -112,98 +121,73 @@ fn parse_with_error(code: &'static str, expected: Vec<(u32, u32, u32, ParseError
 
 #[test]
 fn parse_ident() {
-    let (expr, f) = parse_expr("a");
-    let ident = f.node(expr).to_ident().unwrap();
-    assert_eq!("a", ident.name);
+    let expr = parse_expr2("a");
+    assert_eq!("a", expr.as_ident().name());
 }
 
 #[test]
 fn parse_number() {
-    let (expr, f) = parse_expr("10");
+    let expr = parse_expr2("10");
 
-    let lit = f.node(expr).to_lit_int().unwrap();
-    assert_eq!(String::from("10"), lit.value);
+    let lit = expr.as_lit_int();
+    assert_eq!("10", lit.value());
 }
 
 #[test]
 fn parse_number_with_underscore() {
-    let (expr, f) = parse_expr("1____0");
-
-    let lit = f.node(expr).to_lit_int().unwrap();
-    assert_eq!(String::from("1____0"), lit.value);
+    let expr = parse_expr2("1____0");
+    assert_eq!("1____0", expr.as_lit_int().value());
 }
 
 #[test]
 fn parse_string() {
-    let (expr, f) = parse_expr("\"abc\"");
-
-    let lit = f.node(expr).to_lit_str().unwrap();
-    assert_eq!("\"abc\"", &lit.value);
+    let expr = parse_expr2("\"abc\"");
+    assert_eq!("\"abc\"", expr.as_lit_str().value());
 }
 
 #[test]
 fn parse_true() {
-    let (expr, f) = parse_expr("true");
-
-    let lit = f.node(expr).to_lit_bool().unwrap();
-    assert_eq!(true, lit.value);
+    let expr = parse_expr2("true");
+    assert_eq!(true, expr.as_lit_bool().value());
 }
 
 #[test]
 fn parse_false() {
-    let (expr, f) = parse_expr("true");
-
-    let lit = f.node(expr).to_lit_bool().unwrap();
-    assert_eq!(true, lit.value);
+    let expr = parse_expr2("true");
+    assert_eq!(true, expr.as_lit_bool().value());
 }
 
 #[test]
 fn parse_field_access() {
-    let (expr, f) = parse_expr("obj.field");
-    let dot = f.node(expr).to_dot().unwrap();
-
-    let ident = f.node(dot.lhs).to_ident().unwrap();
-    assert_eq!("obj", ident.name);
-
-    let ident = f.node(dot.rhs).to_ident().unwrap();
-    assert_eq!("field", ident.name);
+    let expr = parse_expr2("obj.field").as_dot();
+    assert_eq!("obj", expr.lhs().as_ident().name());
+    assert_eq!("field", expr.rhs().as_ident().name());
 }
 
 #[test]
 fn parse_field_negated() {
-    let (expr, f) = parse_expr("-obj.field");
-    let un = f.node(expr).to_un().unwrap();
-    assert!(f.node(un.opnd).is_dot());
+    let expr = parse_expr2("-obj.field").as_un();
+    assert!(expr.opnd().is_dot());
 }
 
 #[test]
 fn parse_field_non_ident() {
-    let (expr, f) = parse_expr("bar.12");
-    let dot = f.node(expr).to_dot().unwrap();
-
-    let ident = f.node(dot.lhs).to_ident().unwrap();
-    assert_eq!("bar", ident.name);
-
-    assert_eq!(
-        String::from("12"),
-        f.node(dot.rhs).to_lit_int().unwrap().value
-    );
+    let expr = parse_expr2("bar.12").as_dot();
+    assert_eq!("bar", expr.lhs().as_ident().name());
+    assert_eq!("12", expr.rhs().as_lit_int().value());
 }
 
 #[test]
 fn parse_self() {
-    let (expr, f) = parse_expr("self");
-    assert!(f.node(expr).is_this());
+    let expr = parse_expr2("self");
+    assert!(expr.is_this());
 }
 
 #[test]
 fn parse_neg() {
-    let (expr, f) = parse_expr("-1");
-
-    let un = f.node(expr).to_un().unwrap();
-    assert_eq!(UnOp::Neg, un.op);
-
-    assert!(f.node(un.opnd).is_lit_int());
+    let expr = parse_expr2("-1").as_un();
+    assert_eq!(UnOp::Neg, expr.op());
+    assert!(expr.opnd().is_lit_int());
 }
 
 #[test]
