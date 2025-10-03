@@ -1,5 +1,3 @@
-use id_arena::Arena;
-
 use std::sync::Arc;
 
 use crate::ast::*;
@@ -7,14 +5,15 @@ use crate::error::ParseError;
 use crate::parser::Parser;
 use crate::{compute_line_column, compute_line_starts};
 
-fn parse_expr(code: &'static str) -> (AstId, Arena<Ast>) {
+fn parse_expr(code: &'static str) -> (AstId, Arc<File>) {
     let mut parser = Parser::from_string(code);
 
-    let result = parser.parse_expr();
-    assert!(parser.errors.is_empty());
+    let expr_id = parser.parse_expr();
     assert!(parser.current().is_eof());
+    let (file, errors) = parser.into_file(expr_id);
+    assert!(errors.is_empty());
 
-    (result, parser.ast_nodes)
+    (expr_id, file)
 }
 
 fn err_expr(code: &'static str, msg: ParseError, line: u32, col: u32) {
@@ -34,11 +33,13 @@ fn err_expr(code: &'static str, msg: ParseError, line: u32, col: u32) {
     assert_eq!(col, computed_column);
 }
 
-fn parse_let(code: &'static str) -> (AstId, Arena<Ast>) {
+fn parse_let(code: &'static str) -> (AstId, Arc<File>) {
     let mut parser = Parser::from_string(code);
-    let result = parser.parse_let();
-    if !parser.errors.is_empty() {
-        for err in &parser.errors {
+    let node_id = parser.parse_let();
+    assert!(parser.current().is_eof());
+    let (file, errors) = parser.into_file(node_id);
+    if !errors.is_empty() {
+        for err in &errors {
             eprintln!(
                 "error at {}: {:?} / {}",
                 err.span,
@@ -47,13 +48,17 @@ fn parse_let(code: &'static str) -> (AstId, Arena<Ast>) {
             );
         }
     }
-    assert!(parser.errors.is_empty());
-    (result, parser.ast_nodes)
+    assert!(errors.is_empty());
+    (node_id, file)
 }
 
-fn parse_type(code: &'static str) -> (AstId, Arena<Ast>) {
+fn parse_type(code: &'static str) -> (AstId, Arc<File>) {
     let mut parser = Parser::from_string(code);
-    (parser.parse_type(), parser.ast_nodes)
+    let node_id = parser.parse_type();
+    assert!(parser.current().is_eof());
+    let (file, errors) = parser.into_file(node_id);
+    assert!(errors.is_empty());
+    (node_id, file)
 }
 
 fn parse(code: &'static str) -> Arc<File> {
@@ -108,7 +113,7 @@ fn parse_with_error(code: &'static str, expected: Vec<(u32, u32, u32, ParseError
 #[test]
 fn parse_ident() {
     let (expr, arena) = parse_expr("a");
-    let ident = arena[expr].to_ident().unwrap();
+    let ident = arena.node(expr).to_ident().unwrap();
     assert_eq!("a", ident.name);
 }
 
@@ -116,7 +121,7 @@ fn parse_ident() {
 fn parse_number() {
     let (expr, arena) = parse_expr("10");
 
-    let lit = arena[expr].to_lit_int().unwrap();
+    let lit = arena.node(expr).to_lit_int().unwrap();
     assert_eq!(String::from("10"), lit.value);
 }
 
@@ -124,7 +129,7 @@ fn parse_number() {
 fn parse_number_with_underscore() {
     let (expr, arena) = parse_expr("1____0");
 
-    let lit = arena[expr].to_lit_int().unwrap();
+    let lit = arena.node(expr).to_lit_int().unwrap();
     assert_eq!(String::from("1____0"), lit.value);
 }
 
@@ -132,7 +137,7 @@ fn parse_number_with_underscore() {
 fn parse_string() {
     let (expr, arena) = parse_expr("\"abc\"");
 
-    let lit = arena[expr].to_lit_str().unwrap();
+    let lit = arena.node(expr).to_lit_str().unwrap();
     assert_eq!("\"abc\"", &lit.value);
 }
 
@@ -140,7 +145,7 @@ fn parse_string() {
 fn parse_true() {
     let (expr, arena) = parse_expr("true");
 
-    let lit = arena[expr].to_lit_bool().unwrap();
+    let lit = arena.node(expr).to_lit_bool().unwrap();
     assert_eq!(true, lit.value);
 }
 
@@ -148,71 +153,71 @@ fn parse_true() {
 fn parse_false() {
     let (expr, arena) = parse_expr("true");
 
-    let lit = arena[expr].to_lit_bool().unwrap();
+    let lit = arena.node(expr).to_lit_bool().unwrap();
     assert_eq!(true, lit.value);
 }
 
 #[test]
 fn parse_field_access() {
     let (expr, arena) = parse_expr("obj.field");
-    let dot = arena[expr].to_dot().unwrap();
+    let dot = arena.node(expr).to_dot().unwrap();
 
-    let ident = arena[dot.lhs].to_ident().unwrap();
+    let ident = arena.node(dot.lhs).to_ident().unwrap();
     assert_eq!("obj", ident.name);
 
-    let ident = arena[dot.rhs].to_ident().unwrap();
+    let ident = arena.node(dot.rhs).to_ident().unwrap();
     assert_eq!("field", ident.name);
 }
 
 #[test]
 fn parse_field_negated() {
     let (expr, arena) = parse_expr("-obj.field");
-    let un = arena[expr].to_un().unwrap();
-    assert!(arena[un.opnd].is_dot());
+    let un = arena.node(expr).to_un().unwrap();
+    assert!(arena.node(un.opnd).is_dot());
 }
 
 #[test]
 fn parse_field_non_ident() {
     let (expr, arena) = parse_expr("bar.12");
-    let dot = arena[expr].to_dot().unwrap();
+    let dot = arena.node(expr).to_dot().unwrap();
 
-    let ident = arena[dot.lhs].to_ident().unwrap();
+    let ident = arena.node(dot.lhs).to_ident().unwrap();
     assert_eq!("bar", ident.name);
 
     assert_eq!(
         String::from("12"),
-        arena[dot.rhs].to_lit_int().unwrap().value
+        arena.node(dot.rhs).to_lit_int().unwrap().value
     );
 }
 
 #[test]
 fn parse_self() {
     let (expr, arena) = parse_expr("self");
-    assert!(arena[expr].is_this());
+    assert!(arena.node(expr).is_this());
 }
 
 #[test]
 fn parse_neg() {
     let (expr, arena) = parse_expr("-1");
 
-    let un = arena[expr].to_un().unwrap();
+    let un = arena.node(expr).to_un().unwrap();
     assert_eq!(UnOp::Neg, un.op);
 
-    assert!(arena[un.opnd].is_lit_int());
+    assert!(arena.node(un.opnd).is_lit_int());
 }
 
 #[test]
 fn parse_neg_twice() {
     let (expr, arena) = parse_expr("-(-3)");
 
-    let neg1 = arena[expr].to_un().unwrap();
+    let neg1 = arena.node(expr).to_un().unwrap();
     assert_eq!(UnOp::Neg, neg1.op);
 
-    let paren = arena[neg1.opnd].to_paren().unwrap();
-    let neg2 = arena[paren.expr].to_un().unwrap();
+    let paren = arena.node(neg1.opnd).to_paren().unwrap();
+    let neg2 = arena.node(paren.expr).to_un().unwrap();
     assert_eq!(UnOp::Neg, neg2.op);
 
-    assert!(arena[neg2.opnd].is_lit_int());
+    assert!(arena.node(neg2.opnd).is_lit_int());
 }
 
 #[test]
@@ -224,15 +229,15 @@ fn parse_neg_twice_without_parentheses() {
 fn parse_mul() {
     let (expr, arena) = parse_expr("6*3");
 
-    let mul = arena[expr].to_bin().unwrap();
+    let mul = arena.node(expr).to_bin().unwrap();
     assert_eq!(BinOp::Mul, mul.op);
     assert_eq!(
         String::from("6"),
-        arena[mul.lhs].to_lit_int().unwrap().value
+        arena.node(mul.lhs).to_lit_int().unwrap().value
     );
     assert_eq!(
         String::from("3"),
-        arena[mul.rhs].to_lit_int().unwrap().value
+        arena.node(mul.rhs).to_lit_int().unwrap().value
     );
 }
 
@@ -240,23 +245,23 @@ fn parse_mul() {
 fn parse_multiple_muls() {
     let (expr, arena) = parse_expr("6*3*4");
 
-    let mul1 = arena[expr].to_bin().unwrap();
+    let mul1 = arena.node(expr).to_bin().unwrap();
     assert_eq!(BinOp::Mul, mul1.op);
 
-    let mul2 = arena[mul1.lhs].to_bin().unwrap();
+    let mul2 = arena.node(mul1.lhs).to_bin().unwrap();
     assert_eq!(BinOp::Mul, mul2.op);
     assert_eq!(
         String::from("6"),
-        arena[mul2.lhs].to_lit_int().unwrap().value
+        arena.node(mul2.lhs).to_lit_int().unwrap().value
     );
     assert_eq!(
         String::from("3"),
-        arena[mul2.rhs].to_lit_int().unwrap().value
+        arena.node(mul2.rhs).to_lit_int().unwrap().value
     );
 
     assert_eq!(
         String::from("4"),
-        arena[mul1.rhs].to_lit_int().unwrap().value
+        arena.node(mul1.rhs).to_lit_int().unwrap().value
     );
 }
 
@@ -264,15 +269,15 @@ fn parse_multiple_muls() {
 fn parse_div() {
     let (expr, arena) = parse_expr("4/5");
 
-    let div = arena[expr].to_bin().unwrap();
+    let div = arena.node(expr).to_bin().unwrap();
     assert_eq!(BinOp::Div, div.op);
     assert_eq!(
         String::from("4"),
-        arena[div.lhs].to_lit_int().unwrap().value
+        arena.node(div.lhs).to_lit_int().unwrap().value
     );
     assert_eq!(
         String::from("5"),
-        arena[div.rhs].to_lit_int().unwrap().value
+        arena.node(div.rhs).to_lit_int().unwrap().value
     );
 }
 
@@ -280,15 +285,15 @@ fn parse_div() {
 fn parse_mod() {
     let (expr, arena) = parse_expr("2%15");
 
-    let div = arena[expr].to_bin().unwrap();
+    let div = arena.node(expr).to_bin().unwrap();
     assert_eq!(BinOp::Mod, div.op);
     assert_eq!(
         String::from("2"),
-        arena[div.lhs].to_lit_int().unwrap().value
+        arena.node(div.lhs).to_lit_int().unwrap().value
     );
     assert_eq!(
         String::from("15"),
-        arena[div.rhs].to_lit_int().unwrap().value
+        arena.node(div.rhs).to_lit_int().unwrap().value
     );
 }
 
@@ -296,15 +301,15 @@ fn parse_mod() {
 fn parse_add() {
     let (expr, arena) = parse_expr("2+3");
 
-    let add = arena[expr].to_bin().unwrap();
+    let add = arena.node(expr).to_bin().unwrap();
     assert_eq!(BinOp::Add, add.op);
     assert_eq!(
         String::from("2"),
-        arena[add.lhs].to_lit_int().unwrap().value
+        arena.node(add.lhs).to_lit_int().unwrap().value
     );
     assert_eq!(
         String::from("3"),
-        arena[add.rhs].to_lit_int().unwrap().value
+        arena.node(add.rhs).to_lit_int().unwrap().value
     );
 }
 
@@ -312,20 +317,20 @@ fn parse_add() {
 fn parse_add_left_associativity() {
     let (expr, arena) = parse_expr("1+2+3");
 
-    let add = arena[expr].to_bin().unwrap();
+    let add = arena.node(expr).to_bin().unwrap();
     assert_eq!(
         String::from("3"),
-        arena[add.rhs].to_lit_int().unwrap().value
+        arena.node(add.rhs).to_lit_int().unwrap().value
     );
 
-    let lhs = arena[add.lhs].to_bin().unwrap();
+    let lhs = arena.node(add.lhs).to_bin().unwrap();
     assert_eq!(
         String::from("1"),
-        arena[lhs.lhs].to_lit_int().unwrap().value
+        arena.node(lhs.lhs).to_lit_int().unwrap().value
     );
     assert_eq!(
         String::from("2"),
-        arena[lhs.rhs].to_lit_int().unwrap().value
+        arena.node(lhs.rhs).to_lit_int().unwrap().value
     );
 }
 
@@ -333,21 +338,21 @@ fn parse_add_left_associativity() {
 fn parse_add_right_associativity_via_parens() {
     let (expr, arena) = parse_expr("1+(2+3)");
 
-    let add = arena[expr].to_bin().unwrap();
+    let add = arena.node(expr).to_bin().unwrap();
     assert_eq!(
         String::from("1"),
-        arena[add.lhs].to_lit_int().unwrap().value
+        arena.node(add.lhs).to_lit_int().unwrap().value
     );
 
-    let paren = arena[add.rhs].to_paren().unwrap();
-    let rhs = arena[paren.expr].to_bin().unwrap();
+    let paren = arena.node(add.rhs).to_paren().unwrap();
+    let rhs = arena.node(paren.expr).to_bin().unwrap();
     assert_eq!(
         String::from("2"),
-        arena[rhs.lhs].to_lit_int().unwrap().value
+        arena.node(rhs.lhs).to_lit_int().unwrap().value
     );
     assert_eq!(
         String::from("3"),
-        arena[rhs.rhs].to_lit_int().unwrap().value
+        arena.node(rhs.rhs).to_lit_int().unwrap().value
     );
 }
 
@@ -355,15 +360,15 @@ fn parse_add_right_associativity_via_parens() {
 fn parse_sub() {
     let (expr, arena) = parse_expr("1-2");
 
-    let add = arena[expr].to_bin().unwrap();
+    let add = arena.node(expr).to_bin().unwrap();
     assert_eq!(BinOp::Sub, add.op);
     assert_eq!(
         String::from("1"),
-        arena[add.lhs].to_lit_int().unwrap().value
+        arena.node(add.lhs).to_lit_int().unwrap().value
     );
     assert_eq!(
         String::from("2"),
-        arena[add.rhs].to_lit_int().unwrap().value
+        arena.node(add.rhs).to_lit_int().unwrap().value
     );
 }
 
@@ -371,15 +376,15 @@ fn parse_sub() {
 fn parse_or() {
     let (expr, arena) = parse_expr("1||2");
 
-    let add = arena[expr].to_bin().unwrap();
+    let add = arena.node(expr).to_bin().unwrap();
     assert_eq!(BinOp::Or, add.op);
     assert_eq!(
         String::from("1"),
-        arena[add.lhs].to_lit_int().unwrap().value
+        arena.node(add.lhs).to_lit_int().unwrap().value
     );
     assert_eq!(
         String::from("2"),
-        arena[add.rhs].to_lit_int().unwrap().value
+        arena.node(add.rhs).to_lit_int().unwrap().value
     );
 }
 
@@ -387,15 +392,15 @@ fn parse_or() {
 fn parse_and() {
     let (expr, arena) = parse_expr("1&&2");
 
-    let add = arena[expr].to_bin().unwrap();
+    let add = arena.node(expr).to_bin().unwrap();
     assert_eq!(BinOp::And, add.op);
     assert_eq!(
         String::from("1"),
-        arena[add.lhs].to_lit_int().unwrap().value
+        arena.node(add.lhs).to_lit_int().unwrap().value
     );
     assert_eq!(
         String::from("2"),
-        arena[add.rhs].to_lit_int().unwrap().value
+        arena.node(add.rhs).to_lit_int().unwrap().value
     );
 }
 
@@ -403,25 +408,31 @@ fn parse_and() {
 fn parse_bit_or() {
     let (expr, arena) = parse_expr("1|2");
 
-    let or = arena[expr].to_bin().unwrap();
+    let or = arena.node(expr).to_bin().unwrap();
     assert_eq!(BinOp::BitOr, or.op);
-    assert_eq!(String::from("1"), arena[or.lhs].to_lit_int().unwrap().value);
-    assert_eq!(String::from("2"), arena[or.rhs].to_lit_int().unwrap().value);
+    assert_eq!(
+        String::from("1"),
+        arena.node(or.lhs).to_lit_int().unwrap().value
+    );
+    assert_eq!(
+        String::from("2"),
+        arena.node(or.rhs).to_lit_int().unwrap().value
+    );
 }
 
 #[test]
 fn parse_bit_and() {
     let (expr, arena) = parse_expr("1&2");
 
-    let and = arena[expr].to_bin().unwrap();
+    let and = arena.node(expr).to_bin().unwrap();
     assert_eq!(BinOp::BitAnd, and.op);
     assert_eq!(
         String::from("1"),
-        arena[and.lhs].to_lit_int().unwrap().value
+        arena.node(and.lhs).to_lit_int().unwrap().value
     );
     assert_eq!(
         String::from("2"),
-        arena[and.rhs].to_lit_int().unwrap().value
+        arena.node(and.rhs).to_lit_int().unwrap().value
     );
 }
 
@@ -429,15 +440,15 @@ fn parse_bit_and() {
 fn parse_bit_xor() {
     let (expr, arena) = parse_expr("1^2");
 
-    let xor = arena[expr].to_bin().unwrap();
+    let xor = arena.node(expr).to_bin().unwrap();
     assert_eq!(BinOp::BitXor, xor.op);
     assert_eq!(
         String::from("1"),
-        arena[xor.lhs].to_lit_int().unwrap().value
+        arena.node(xor.lhs).to_lit_int().unwrap().value
     );
     assert_eq!(
         String::from("2"),
-        arena[xor.rhs].to_lit_int().unwrap().value
+        arena.node(xor.rhs).to_lit_int().unwrap().value
     );
 }
 
@@ -445,15 +456,15 @@ fn parse_bit_xor() {
 fn parse_lt() {
     let (expr, arena) = parse_expr("1<2");
 
-    let cmp = arena[expr].to_bin().unwrap();
+    let cmp = arena.node(expr).to_bin().unwrap();
     assert_eq!(BinOp::Cmp(CmpOp::Lt), cmp.op);
     assert_eq!(
         String::from("1"),
-        arena[cmp.lhs].to_lit_int().unwrap().value
+        arena.node(cmp.lhs).to_lit_int().unwrap().value
     );
     assert_eq!(
         String::from("2"),
-        arena[cmp.rhs].to_lit_int().unwrap().value
+        arena.node(cmp.rhs).to_lit_int().unwrap().value
     );
 }
 
@@ -461,15 +472,15 @@ fn parse_lt() {
 fn parse_le() {
     let (expr, arena) = parse_expr("1<=2");
 
-    let cmp = arena[expr].to_bin().unwrap();
+    let cmp = arena.node(expr).to_bin().unwrap();
     assert_eq!(BinOp::Cmp(CmpOp::Le), cmp.op);
     assert_eq!(
         String::from("1"),
-        arena[cmp.lhs].to_lit_int().unwrap().value
+        arena.node(cmp.lhs).to_lit_int().unwrap().value
     );
     assert_eq!(
         String::from("2"),
-        arena[cmp.rhs].to_lit_int().unwrap().value
+        arena.node(cmp.rhs).to_lit_int().unwrap().value
     );
 }
 
@@ -477,15 +488,15 @@ fn parse_le() {
 fn parse_gt() {
     let (expr, arena) = parse_expr("1>2");
 
-    let cmp = arena[expr].to_bin().unwrap();
+    let cmp = arena.node(expr).to_bin().unwrap();
     assert_eq!(BinOp::Cmp(CmpOp::Gt), cmp.op);
     assert_eq!(
         String::from("1"),
-        arena[cmp.lhs].to_lit_int().unwrap().value
+        arena.node(cmp.lhs).to_lit_int().unwrap().value
     );
     assert_eq!(
         String::from("2"),
-        arena[cmp.rhs].to_lit_int().unwrap().value
+        arena.node(cmp.rhs).to_lit_int().unwrap().value
     );
 }
 
@@ -493,15 +504,15 @@ fn parse_gt() {
 fn parse_ge() {
     let (expr, arena) = parse_expr("1>=2");
 
-    let cmp = arena[expr].to_bin().unwrap();
+    let cmp = arena.node(expr).to_bin().unwrap();
     assert_eq!(BinOp::Cmp(CmpOp::Ge), cmp.op);
     assert_eq!(
         String::from("1"),
-        arena[cmp.lhs].to_lit_int().unwrap().value
+        arena.node(cmp.lhs).to_lit_int().unwrap().value
     );
     assert_eq!(
         String::from("2"),
-        arena[cmp.rhs].to_lit_int().unwrap().value
+        arena.node(cmp.rhs).to_lit_int().unwrap().value
     );
 }
 
@@ -509,15 +520,15 @@ fn parse_ge() {
 fn parse_eq() {
     let (expr, arena) = parse_expr("1==2");
 
-    let cmp = arena[expr].to_bin().unwrap();
+    let cmp = arena.node(expr).to_bin().unwrap();
     assert_eq!(BinOp::Cmp(CmpOp::Eq), cmp.op);
     assert_eq!(
         String::from("1"),
-        arena[cmp.lhs].to_lit_int().unwrap().value
+        arena.node(cmp.lhs).to_lit_int().unwrap().value
     );
     assert_eq!(
         String::from("2"),
-        arena[cmp.rhs].to_lit_int().unwrap().value
+        arena.node(cmp.rhs).to_lit_int().unwrap().value
     );
 }
 
@@ -525,15 +536,15 @@ fn parse_eq() {
 fn parse_ne() {
     let (expr, arena) = parse_expr("1!=2");
 
-    let cmp = arena[expr].to_bin().unwrap();
+    let cmp = arena.node(expr).to_bin().unwrap();
     assert_eq!(BinOp::Cmp(CmpOp::Ne), cmp.op);
     assert_eq!(
         String::from("1"),
-        arena[cmp.lhs].to_lit_int().unwrap().value
+        arena.node(cmp.lhs).to_lit_int().unwrap().value
     );
     assert_eq!(
         String::from("2"),
-        arena[cmp.rhs].to_lit_int().unwrap().value
+        arena.node(cmp.rhs).to_lit_int().unwrap().value
     );
 }
 
@@ -541,15 +552,15 @@ fn parse_ne() {
 fn parse_identity_not() {
     let (expr, arena) = parse_expr("1!==2");
 
-    let cmp = arena[expr].to_bin().unwrap();
+    let cmp = arena.node(expr).to_bin().unwrap();
     assert_eq!(BinOp::Cmp(CmpOp::IsNot), cmp.op);
     assert_eq!(
         String::from("1"),
-        arena[cmp.lhs].to_lit_int().unwrap().value
+        arena.node(cmp.lhs).to_lit_int().unwrap().value
     );
     assert_eq!(
         String::from("2"),
-        arena[cmp.rhs].to_lit_int().unwrap().value
+        arena.node(cmp.rhs).to_lit_int().unwrap().value
     );
 }
 
@@ -557,15 +568,15 @@ fn parse_identity_not() {
 fn parse_identity() {
     let (expr, arena) = parse_expr("1===2");
 
-    let cmp = arena[expr].to_bin().unwrap();
+    let cmp = arena.node(expr).to_bin().unwrap();
     assert_eq!(BinOp::Cmp(CmpOp::Is), cmp.op);
     assert_eq!(
         String::from("1"),
-        arena[cmp.lhs].to_lit_int().unwrap().value
+        arena.node(cmp.lhs).to_lit_int().unwrap().value
     );
     assert_eq!(
         String::from("2"),
-        arena[cmp.rhs].to_lit_int().unwrap().value
+        arena.node(cmp.rhs).to_lit_int().unwrap().value
     );
 }
 
@@ -573,12 +584,12 @@ fn parse_identity() {
 fn parse_assign() {
     let (expr, arena) = parse_expr("a=4");
 
-    let assign = arena[expr].to_bin().unwrap();
-    assert!(arena[assign.lhs].is_ident());
+    let assign = arena.node(expr).to_bin().unwrap();
+    assert!(arena.node(assign.lhs).is_ident());
     assert_eq!(BinOp::Assign, assign.op);
     assert_eq!(
         String::from("4"),
-        arena[assign.rhs].to_lit_int().unwrap().value
+        arena.node(assign.rhs).to_lit_int().unwrap().value
     );
 }
 
@@ -586,7 +597,7 @@ fn parse_assign() {
 fn parse_shift_right() {
     let (expr, arena) = parse_expr("a>>4");
 
-    let bin = arena[expr].to_bin().unwrap();
+    let bin = arena.node(expr).to_bin().unwrap();
     assert_eq!(BinOp::ArithShiftR, bin.op);
 }
 
@@ -594,7 +605,7 @@ fn parse_shift_right() {
 fn parse_unsigned_shift_right() {
     let (expr, arena) = parse_expr("a>>>4");
 
-    let bin = arena[expr].to_bin().unwrap();
+    let bin = arena.node(expr).to_bin().unwrap();
     assert_eq!(BinOp::LogicalShiftR, bin.op);
 }
 
@@ -602,7 +613,7 @@ fn parse_unsigned_shift_right() {
 fn parse_left() {
     let (expr, arena) = parse_expr("a<<4");
 
-    let bin = arena[expr].to_bin().unwrap();
+    let bin = arena.node(expr).to_bin().unwrap();
     assert_eq!(BinOp::ShiftL, bin.op);
 }
 
@@ -610,8 +621,8 @@ fn parse_left() {
 fn parse_call_without_params() {
     let (expr, arena) = parse_expr("fname()");
 
-    let call = arena[expr].to_call().unwrap();
-    assert_eq!("fname", arena[call.callee].to_ident().unwrap().name);
+    let call = arena.node(expr).to_call().unwrap();
+    assert_eq!("fname", arena.node(call.callee).to_ident().unwrap().name);
     assert_eq!(0, call.args.len());
 }
 
@@ -619,8 +630,8 @@ fn parse_call_without_params() {
 fn parse_call_with_params() {
     let (expr, arena) = parse_expr("fname2(1,2,3)");
 
-    let call = arena[expr].to_call().unwrap();
-    assert_eq!("fname2", arena[call.callee].to_ident().unwrap().name);
+    let call = arena.node(expr).to_call().unwrap();
+    assert_eq!("fname2", arena.node(call.callee).to_ident().unwrap().name);
     assert_eq!(3, call.args.len());
 }
 
@@ -684,141 +695,147 @@ fn parse_function_with_multiple_params() {
 #[test]
 fn parse_let_without_type() {
     let (stmt, arena) = parse_let("let a = 1;");
-    let var = arena[stmt].to_let().unwrap();
+    let var = arena.node(stmt).to_let().unwrap();
 
     assert!(var.data_type.is_none());
-    assert!(arena[var.expr.unwrap()].is_lit_int());
+    assert!(arena.node(var.expr.unwrap()).is_lit_int());
 }
 
 #[test]
 fn parse_let_rest() {
     let (stmt, arena) = parse_let("let .. = 1;");
-    let var = arena[stmt].to_let().unwrap();
-    assert!(arena[var.pattern].is_rest());
+    let var = arena.node(stmt).to_let().unwrap();
+    assert!(arena.node(var.pattern).is_rest());
 
     assert!(var.data_type.is_none());
-    assert!(arena[var.expr.unwrap()].is_lit_int());
+    assert!(arena.node(var.expr.unwrap()).is_lit_int());
 }
 
 #[test]
 fn parse_let_with_type() {
     let (stmt, arena) = parse_let("let x : int = 1;");
-    let var = arena[stmt].to_let().unwrap();
+    let var = arena.node(stmt).to_let().unwrap();
 
     assert!(var.data_type.is_some());
-    assert!(arena[var.expr.unwrap()].is_lit_int());
+    assert!(arena.node(var.expr.unwrap()).is_lit_int());
 }
 
 #[test]
 fn parse_let_underscore() {
     let (stmt, arena) = parse_let("let _ = 1;");
-    let let_decl = arena[stmt].to_let().unwrap();
-    assert!(arena[let_decl.pattern].is_underscore());
+    let let_decl = arena.node(stmt).to_let().unwrap();
+    assert!(arena.node(let_decl.pattern).is_underscore());
 }
 
 #[test]
 fn parse_let_tuple() {
     let (stmt, arena) = parse_let("let (mut a, b, (c, d)) = 1;");
-    let let_decl = arena[stmt].to_let().unwrap();
+    let let_decl = arena.node(stmt).to_let().unwrap();
 
-    let tuple = arena[let_decl.pattern].to_tuple_pattern().unwrap();
-    let first = &arena[tuple.params[0]];
+    let tuple = arena.node(let_decl.pattern).to_tuple_pattern().unwrap();
+    let first = arena.node(tuple.params[0]);
     assert!(first.is_ident_pattern());
     assert!(first.to_ident_pattern().unwrap().mutable);
-    let last = &arena[tuple.params[2]];
+    let last = arena.node(tuple.params[2]);
     assert!(last.is_tuple_pattern());
 }
 
 #[test]
 fn parse_let_lit_bool() {
     let (stmt, arena) = parse_let("let (a, true) = 1;");
-    let let_decl = arena[stmt].to_let().unwrap();
+    let let_decl = arena.node(stmt).to_let().unwrap();
 
-    let tuple = arena[let_decl.pattern].to_tuple_pattern().unwrap();
-    assert!(arena[tuple.params[0]].is_ident_pattern());
-    assert!(arena[tuple.params[1]].is_lit_pattern());
+    let tuple = arena.node(let_decl.pattern).to_tuple_pattern().unwrap();
+    assert!(arena.node(tuple.params[0]).is_ident_pattern());
+    assert!(arena.node(tuple.params[1]).is_lit_pattern());
 }
 
 #[test]
 fn parse_let_lit_char() {
     let (stmt, arena) = parse_let("let (a, 'x') = 1;");
-    let let_decl = arena[stmt].to_let().unwrap();
+    let let_decl = arena.node(stmt).to_let().unwrap();
 
-    let tuple = arena[let_decl.pattern].to_tuple_pattern().unwrap();
-    assert!(arena[tuple.params[0]].is_ident_pattern());
-    assert!(arena[tuple.params[1]].is_lit_pattern());
+    let tuple = arena.node(let_decl.pattern).to_tuple_pattern().unwrap();
+    assert!(arena.node(tuple.params[0]).is_ident_pattern());
+    assert!(arena.node(tuple.params[1]).is_lit_pattern());
 }
 
 #[test]
 fn parse_let_lit_string() {
     let (stmt, arena) = parse_let("let (a, \"x\") = 1;");
-    let let_decl = arena[stmt].to_let().unwrap();
+    let let_decl = arena.node(stmt).to_let().unwrap();
 
-    let tuple = arena[let_decl.pattern].to_tuple_pattern().unwrap();
-    assert!(arena[tuple.params[0]].is_ident_pattern());
-    assert!(arena[tuple.params[1]].is_lit_pattern());
+    let tuple = arena.node(let_decl.pattern).to_tuple_pattern().unwrap();
+    assert!(arena.node(tuple.params[0]).is_ident_pattern());
+    assert!(arena.node(tuple.params[1]).is_lit_pattern());
 }
 
 #[test]
 fn parse_let_lit_int() {
     let (stmt, arena) = parse_let("let (a, 17) = 1;");
-    let let_decl = arena[stmt].to_let().unwrap();
+    let let_decl = arena.node(stmt).to_let().unwrap();
 
-    let tuple = arena[let_decl.pattern].to_tuple_pattern().unwrap();
-    assert!(arena[tuple.params[0]].is_ident_pattern());
-    assert!(arena[tuple.params[1]].is_lit_pattern());
+    let tuple = arena.node(let_decl.pattern).to_tuple_pattern().unwrap();
+    assert!(arena.node(tuple.params[0]).is_ident_pattern());
+    assert!(arena.node(tuple.params[1]).is_lit_pattern());
 }
 
 #[test]
 fn parse_let_lit_int_neg() {
     let (stmt, arena) = parse_let("let (a, -17) = 1;");
-    let let_decl = arena[stmt].to_let().unwrap();
+    let let_decl = arena.node(stmt).to_let().unwrap();
 
-    let tuple = arena[let_decl.pattern].to_tuple_pattern().unwrap();
-    assert!(arena[tuple.params[0]].is_ident_pattern());
-    assert!(arena[tuple.params[1]].is_lit_pattern());
+    let tuple = arena.node(let_decl.pattern).to_tuple_pattern().unwrap();
+    assert!(arena.node(tuple.params[0]).is_ident_pattern());
+    assert!(arena.node(tuple.params[1]).is_lit_pattern());
 }
 
 #[test]
 fn parse_let_lit_float() {
     let (stmt, arena) = parse_let("let (a, 17.5) = 1;");
-    let let_decl = arena[stmt].to_let().unwrap();
+    let let_decl = arena.node(stmt).to_let().unwrap();
 
-    let tuple = arena[let_decl.pattern].to_tuple_pattern().unwrap();
-    assert!(arena[tuple.params[0]].is_ident_pattern());
-    assert!(arena[tuple.params[1]].is_lit_pattern());
+    let tuple = arena.node(let_decl.pattern).to_tuple_pattern().unwrap();
+    assert!(arena.node(tuple.params[0]).is_ident_pattern());
+    assert!(arena.node(tuple.params[1]).is_lit_pattern());
 }
 
 #[test]
 fn parse_let_lit_float_neg() {
     let (stmt, arena) = parse_let("let (a, -17.5) = 1;");
-    let let_decl = arena[stmt].to_let().unwrap();
+    let let_decl = arena.node(stmt).to_let().unwrap();
 
-    let tuple = arena[let_decl.pattern].to_tuple_pattern().unwrap();
-    assert!(arena[tuple.params[0]].is_ident_pattern());
-    assert!(arena[tuple.params[1]].is_lit_pattern());
+    let tuple = arena.node(let_decl.pattern).to_tuple_pattern().unwrap();
+    assert!(arena.node(tuple.params[0]).is_ident_pattern());
+    assert!(arena.node(tuple.params[1]).is_lit_pattern());
 }
 
 #[test]
 fn parse_let_ident() {
     let (stmt, arena) = parse_let("let x = 1;");
-    let let_decl = arena[stmt].to_let().unwrap();
+    let let_decl = arena.node(stmt).to_let().unwrap();
 
-    assert!(arena[let_decl.pattern].is_ident_pattern());
+    assert!(arena.node(let_decl.pattern).is_ident_pattern());
 }
 
 #[test]
 fn parse_let_ident_mut() {
     let (stmt, arena) = parse_let("let mut x = 1;");
-    let let_decl = arena[stmt].to_let().unwrap();
+    let let_decl = arena.node(stmt).to_let().unwrap();
 
-    assert!(arena[let_decl.pattern].to_ident_pattern().unwrap().mutable);
+    assert!(
+        arena
+            .node(let_decl.pattern)
+            .to_ident_pattern()
+            .unwrap()
+            .mutable
+    );
 }
 
 #[test]
 fn parse_let_with_type_but_without_assignment() {
     let (stmt, arena) = parse_let("let x : int;");
-    let var = arena[stmt].to_let().unwrap();
+    let var = arena.node(stmt).to_let().unwrap();
 
     assert!(var.data_type.is_some());
     assert!(var.expr.is_none());
@@ -827,7 +844,7 @@ fn parse_let_with_type_but_without_assignment() {
 #[test]
 fn parse_let_without_type_and_assignment() {
     let (stmt, arena) = parse_let("let x;");
-    let var = arena[stmt].to_let().unwrap();
+    let var = arena.node(stmt).to_let().unwrap();
 
     assert!(var.data_type.is_none());
     assert!(var.expr.is_none());
@@ -847,34 +864,34 @@ fn parse_multiple_functions() {
 #[test]
 fn parse_if() {
     let (expr, arena) = parse_expr("if true { 2; } else { 3; }");
-    let ifexpr = arena[expr].to_if().unwrap();
+    let ifexpr = arena.node(expr).to_if().unwrap();
 
-    assert!(arena[ifexpr.cond].is_lit_bool());
+    assert!(arena.node(ifexpr.cond).is_lit_bool());
     assert!(ifexpr.else_block.is_some());
 }
 
 #[test]
 fn parse_if_without_else() {
     let (expr, arena) = parse_expr("if true { 2; }");
-    let ifexpr = arena[expr].to_if().unwrap();
+    let ifexpr = arena.node(expr).to_if().unwrap();
 
-    assert!(arena[ifexpr.cond].is_lit_bool());
+    assert!(arena.node(ifexpr.cond).is_lit_bool());
     assert!(ifexpr.else_block.is_none());
 }
 
 #[test]
 fn parse_while() {
     let (expr, arena) = parse_expr("while true { 2; }");
-    let whilestmt = arena[expr].to_while().unwrap();
+    let whilestmt = arena.node(expr).to_while().unwrap();
 
-    assert!(arena[whilestmt.cond].is_lit_bool());
-    assert!(arena[whilestmt.block].is_blocklike());
+    assert!(arena.node(whilestmt.cond).is_lit_bool());
+    assert!(arena.node(whilestmt.block).is_blocklike());
 }
 
 #[test]
 fn parse_empty_block() {
     let (expr, arena) = parse_expr("{}");
-    let block = arena[expr].to_block().unwrap();
+    let block = arena.node(expr).to_block().unwrap();
 
     assert_eq!(0, block.stmts.len());
 }
@@ -882,31 +899,40 @@ fn parse_empty_block() {
 #[test]
 fn parse_block_with_one_stmt() {
     let (expr, arena) = parse_expr("{ 1; 2 }");
-    let block = arena[expr].to_block().unwrap();
+    let block = arena.node(expr).to_block().unwrap();
 
     assert_eq!(1, block.stmts.len());
 
-    let expr = arena[block.stmts[0]].to_expr_stmt().unwrap().expr;
-    assert_eq!(String::from("1"), arena[expr].to_lit_int().unwrap().value);
+    let expr = arena.node(block.stmts[0]).to_expr_stmt().unwrap().expr;
+    assert_eq!(
+        String::from("1"),
+        arena.node(expr).to_lit_int().unwrap().value
+    );
 
     assert_eq!(
         String::from("2"),
-        arena[block.expr.unwrap()].to_lit_int().unwrap().value
+        arena.node(block.expr.unwrap()).to_lit_int().unwrap().value
     );
 }
 
 #[test]
 fn parse_block_with_multiple_stmts() {
     let (expr, arena) = parse_expr("{ 1; 2; }");
-    let block = arena[expr].to_block().unwrap();
+    let block = arena.node(expr).to_block().unwrap();
 
     assert_eq!(2, block.stmts.len());
 
-    let expr = arena[block.stmts[0]].to_expr_stmt().unwrap().expr;
-    assert_eq!(String::from("1"), arena[expr].to_lit_int().unwrap().value);
+    let expr = arena.node(block.stmts[0]).to_expr_stmt().unwrap().expr;
+    assert_eq!(
+        String::from("1"),
+        arena.node(expr).to_lit_int().unwrap().value
+    );
 
-    let expr = arena[block.stmts[1]].to_expr_stmt().unwrap().expr;
-    assert_eq!(String::from("2"), arena[expr].to_lit_int().unwrap().value);
+    let expr = arena.node(block.stmts[1]).to_expr_stmt().unwrap().expr;
+    assert_eq!(
+        String::from("2"),
+        arena.node(expr).to_lit_int().unwrap().value
+    );
 
     assert!(block.expr.is_none());
 }
@@ -914,30 +940,30 @@ fn parse_block_with_multiple_stmts() {
 #[test]
 fn parse_break() {
     let (expr, arena) = parse_expr("break");
-    assert!(arena[expr].is_break());
+    assert!(arena.node(expr).is_break());
 }
 
 #[test]
 fn parse_continue() {
     let (expr, arena) = parse_expr("continue");
-    assert!(arena[expr].is_continue());
+    assert!(arena.node(expr).is_continue());
 }
 
 #[test]
 fn parse_return_value() {
     let (expr, arena) = parse_expr("return 1");
-    let ret = arena[expr].to_return().unwrap();
+    let ret = arena.node(expr).to_return().unwrap();
 
     assert_eq!(
         String::from("1"),
-        arena[ret.expr.unwrap()].to_lit_int().unwrap().value
+        arena.node(ret.expr.unwrap()).to_lit_int().unwrap().value
     );
 }
 
 #[test]
 fn parse_return() {
     let (expr, arena) = parse_expr("return");
-    let ret = arena[expr].to_return().unwrap();
+    let ret = arena.node(expr).to_return().unwrap();
 
     assert!(ret.expr.is_none());
 }
@@ -945,19 +971,22 @@ fn parse_return() {
 #[test]
 fn parse_type_regular() {
     let (ty_id, arena) = parse_type("bla");
-    let ty = arena[ty_id].to_regular_type().unwrap();
+    let ty = arena.node(ty_id).to_regular_type().unwrap();
 
     assert_eq!(0, ty.params.len());
-    assert_eq!("bla", tra_name(&arena, ty_id));
+    assert_eq!("bla", tr_name(&arena, ty_id));
 }
 
 #[test]
 fn parse_type_regular_mod() {
     let (ty, arena) = parse_type("foo::bla");
-    let regular = arena[ty].to_regular_type().unwrap();
+    let regular = arena.node(ty).to_regular_type().unwrap();
 
     assert_eq!(0, regular.params.len());
-    let path = arena[regular.path].to_path_data().expect("path expected");
+    let path = arena
+        .node(regular.path)
+        .to_path_data()
+        .expect("path expected");
     assert_eq!(2, path.segments.len());
     assert_eq!("foo", ident_name(&arena, path.segments[0]));
     assert_eq!("bla", ident_name(&arena, path.segments[1]));
@@ -966,70 +995,72 @@ fn parse_type_regular_mod() {
 #[test]
 fn parse_type_regular_with_params() {
     let (ty_id, arena) = parse_type("Foo[A, B]");
-    let regular = arena[ty_id].to_regular_type().unwrap();
+    let regular = arena.node(ty_id).to_regular_type().unwrap();
 
     assert_eq!(2, regular.params.len());
-    assert_eq!("Foo", tra_name(&arena, ty_id));
-    assert_eq!("A", taa_name(&arena, regular.params[0]));
-    assert_eq!("B", taa_name(&arena, regular.params[1]));
+    assert_eq!("Foo", tr_name(&arena, ty_id));
+    assert_eq!("A", ta_name(&arena, regular.params[0]));
+    assert_eq!("B", ta_name(&arena, regular.params[1]));
 }
 
 #[test]
 fn parse_type_regular_with_bindings() {
     let (ty_id, arena) = parse_type("Foo[A, X = B]");
-    let ty = arena[ty_id].to_regular_type().unwrap();
+    let ty = arena.node(ty_id).to_regular_type().unwrap();
 
     assert_eq!(2, ty.params.len());
-    assert_eq!("Foo", tra_name(&arena, ty_id));
+    assert_eq!("Foo", tr_name(&arena, ty_id));
     let arg0_id = ty.params[0];
-    let arg0 = arena[arg0_id]
+    let arg0 = arena
+        .node(arg0_id)
         .to_type_argument()
         .expect("type argument expected");
     assert!(arg0.name.is_none());
-    assert_eq!("A", tra_name(&arena, arg0.ty));
+    assert_eq!("A", tr_name(&arena, arg0.ty));
 
     let arg1_id = ty.params[1];
-    let arg1 = arena[arg1_id]
+    let arg1 = arena
+        .node(arg1_id)
         .to_type_argument()
         .expect("type argument expected");
-    assert_eq!("X", ida_name(&arena, arg1.name));
-    assert_eq!("B", tra_name(&arena, arg1.ty));
+    assert_eq!("X", id_name(&arena, arg1.name));
+    assert_eq!("B", tr_name(&arena, arg1.ty));
 }
 
 #[test]
 fn parse_type_lambda_no_params() {
     let (ty, arena) = parse_type("(): ()");
-    let fct = arena[ty].to_lambda_type().unwrap();
+    let fct = arena.node(ty).to_lambda_type().unwrap();
 
     assert_eq!(0, fct.params.len());
-    assert!(arena[fct.ret.unwrap()].is_unit());
+    assert!(arena.node(fct.ret.unwrap()).is_unit());
 }
 
 #[test]
 fn parse_type_lambda_one_param() {
     let (ty_id, arena) = parse_type("(A): B");
-    let fct = arena[ty_id].to_lambda_type().unwrap();
+    let fct = arena.node(ty_id).to_lambda_type().unwrap();
 
     assert_eq!(1, fct.params.len());
-    assert_eq!("A", tra_name(&arena, fct.params[0]));
-    assert_eq!("B", tra_name(&arena, fct.ret.unwrap()));
+    assert_eq!("A", tr_name(&arena, fct.params[0]));
+    assert_eq!("B", tr_name(&arena, fct.ret.unwrap()));
 }
 
 #[test]
 fn parse_type_lambda_two_params() {
     let (ty_id, arena) = parse_type("(A, B): C");
-    let fct = arena[ty_id].to_lambda_type().unwrap();
+    let fct = arena.node(ty_id).to_lambda_type().unwrap();
 
     assert_eq!(2, fct.params.len());
-    assert_eq!("A", tra_name(&arena, fct.params[0]));
-    assert_eq!("B", tra_name(&arena, fct.params[1]));
-    assert_eq!("C", tra_name(&arena, fct.ret.unwrap()));
+    assert_eq!("A", tr_name(&arena, fct.params[0]));
+    assert_eq!("B", tr_name(&arena, fct.params[1]));
+    assert_eq!("C", tr_name(&arena, fct.ret.unwrap()));
 }
 
 #[test]
 fn parse_type_unit() {
     let (ty, arena) = parse_type("()");
-    let ty = arena[ty].to_tuple_type().unwrap();
+    let ty = arena.node(ty).to_tuple_type().unwrap();
 
     assert!(ty.subtypes.is_empty());
 }
@@ -1038,20 +1069,20 @@ fn parse_type_unit() {
 fn parse_type_tuple_with_one_type() {
     let (ty, arena) = parse_type("(c)");
 
-    let subtypes = &arena[ty].to_tuple_type().unwrap().subtypes;
+    let subtypes = &arena.node(ty).to_tuple_type().unwrap().subtypes;
     assert_eq!(1, subtypes.len());
 
-    assert_eq!("c", tra_name(&arena, subtypes[0]));
+    assert_eq!("c", tr_name(&arena, subtypes[0]));
 }
 
 #[test]
 fn parse_type_tuple_with_two_types() {
     let (ty, arena) = parse_type("(a, b)");
 
-    let subtypes = &arena[ty].to_tuple_type().unwrap().subtypes;
+    let subtypes = &arena.node(ty).to_tuple_type().unwrap().subtypes;
     assert_eq!(2, subtypes.len());
-    assert_eq!("a", tra_name(&arena, subtypes[0]));
-    assert_eq!("b", tra_name(&arena, subtypes[1]));
+    assert_eq!("a", tr_name(&arena, subtypes[0]));
+    assert_eq!("b", tr_name(&arena, subtypes[1]));
 }
 
 #[test]
@@ -1087,41 +1118,69 @@ fn parse_class() {
 #[test]
 fn parse_method_invocation() {
     let (expr, arena) = parse_expr("a.foo()");
-    let call = arena[expr].to_call().unwrap();
-    assert!(arena[call.callee].is_dot());
+    let call = arena.node(expr).to_call().unwrap();
+    assert!(arena.node(call.callee).is_dot());
     assert_eq!(0, call.args.len());
 
     let (expr, arena) = parse_expr("a.foo(1)");
-    let call = arena[expr].to_call().unwrap();
-    assert!(arena[call.callee].is_dot());
+    let call = arena.node(expr).to_call().unwrap();
+    assert!(arena.node(call.callee).is_dot());
     assert_eq!(1, call.args.len());
 
     let (expr, arena) = parse_expr("a.foo(1,2)");
-    let call = arena[expr].to_call().unwrap();
-    assert!(arena[call.callee].is_dot());
+    let call = arena.node(expr).to_call().unwrap();
+    assert!(arena.node(call.callee).is_dot());
     assert_eq!(2, call.args.len());
 }
 
 #[test]
 fn parse_array_index() {
     let (expr, arena) = parse_expr("a(b)");
-    let call = arena[expr].to_call().unwrap();
-    assert_eq!("a", arena[call.callee].to_ident().unwrap().name);
+    let call = arena.node(expr).to_call().unwrap();
+    assert_eq!("a", arena.node(call.callee).to_ident().unwrap().name);
     assert_eq!(1, call.args.len());
-    let index_arg = arena[call.args[0]].to_argument().unwrap();
-    assert_eq!("b", arena[index_arg.expr].to_ident().unwrap().name);
+    let index_arg = arena.node(call.args[0]).to_argument().unwrap();
+    assert_eq!("b", arena.node(index_arg.expr).to_ident().unwrap().name);
 }
 
 #[test]
 fn parse_call_with_named_arguments() {
     let (expr, arena) = parse_expr("a(1, 2, x = 3, y = 4)");
-    let call = arena[expr].to_call().unwrap();
-    assert!(arena[call.callee].is_ident());
+    let call = arena.node(expr).to_call().unwrap();
+    assert!(arena.node(call.callee).is_ident());
     assert_eq!(4, call.args.len());
-    assert!(arena[call.args[0]].to_argument().unwrap().name.is_none());
-    assert!(arena[call.args[1]].to_argument().unwrap().name.is_none());
-    assert!(arena[call.args[2]].to_argument().unwrap().name.is_some());
-    assert!(arena[call.args[3]].to_argument().unwrap().name.is_some());
+    assert!(
+        arena
+            .node(call.args[0])
+            .to_argument()
+            .unwrap()
+            .name
+            .is_none()
+    );
+    assert!(
+        arena
+            .node(call.args[1])
+            .to_argument()
+            .unwrap()
+            .name
+            .is_none()
+    );
+    assert!(
+        arena
+            .node(call.args[2])
+            .to_argument()
+            .unwrap()
+            .name
+            .is_some()
+    );
+    assert!(
+        arena
+            .node(call.args[3])
+            .to_argument()
+            .unwrap()
+            .name
+            .is_some()
+    );
 }
 
 #[test]
@@ -1139,8 +1198,8 @@ fn parse_field() {
 #[test]
 fn parse_as_expr() {
     let (expr, arena) = parse_expr("a as String");
-    let expr = arena[expr].to_conv().unwrap();
-    assert_eq!(true, arena[expr.object].is_ident());
+    let expr = arena.node(expr).to_conv().unwrap();
+    assert_eq!(true, arena.node(expr.object).is_ident());
 }
 
 #[test]
@@ -1234,59 +1293,59 @@ fn parse_struct_with_type_params() {
 #[test]
 fn parse_struct_lit_while() {
     let (expr, arena) = parse_expr("while i < n { }");
-    let while_expr = arena[expr].to_while().unwrap();
-    let bin = arena[while_expr.cond].to_bin().unwrap();
+    let while_expr = arena.node(expr).to_while().unwrap();
+    let bin = arena.node(while_expr.cond).to_bin().unwrap();
 
-    assert!(arena[bin.lhs].is_ident());
-    assert!(arena[bin.rhs].is_ident());
+    assert!(arena.node(bin.lhs).is_ident());
+    assert!(arena.node(bin.rhs).is_ident());
 }
 
 #[test]
 fn parse_struct_lit_if() {
     let (expr, arena) = parse_expr("if i < n { }");
-    let ifexpr = arena[expr].to_if().unwrap();
-    let bin = arena[ifexpr.cond].to_bin().unwrap();
+    let ifexpr = arena.node(expr).to_if().unwrap();
+    let bin = arena.node(ifexpr.cond).to_bin().unwrap();
 
-    assert!(arena[bin.lhs].is_ident());
-    assert!(arena[bin.rhs].is_ident());
+    assert!(arena.node(bin.lhs).is_ident());
+    assert!(arena.node(bin.rhs).is_ident());
 }
 
 #[test]
 fn parse_lit_float() {
     let (expr, arena) = parse_expr("1.2");
-    let lit = arena[expr].to_lit_float().unwrap();
+    let lit = arena.node(expr).to_lit_float().unwrap();
     assert_eq!("1.2", lit.value);
 }
 
 #[test]
 fn parse_template() {
     let (expr, arena) = parse_expr("\"a${1}b${2}c\"");
-    let tmpl = arena[expr].to_template().unwrap();
+    let tmpl = arena.node(expr).to_template().unwrap();
     assert_eq!(tmpl.parts.len(), 5);
 
     assert_eq!(
         "\"a${".to_string(),
-        arena[tmpl.parts[0]].to_lit_str().unwrap().value
+        arena.node(tmpl.parts[0]).to_lit_str().unwrap().value
     );
     assert_eq!(
         String::from("1"),
-        arena[tmpl.parts[1]].to_lit_int().unwrap().value
+        arena.node(tmpl.parts[1]).to_lit_int().unwrap().value
     );
     assert_eq!(
         "}b${".to_string(),
-        arena[tmpl.parts[2]].to_lit_str().unwrap().value
+        arena.node(tmpl.parts[2]).to_lit_str().unwrap().value
     );
     assert_eq!(
         String::from("2"),
-        arena[tmpl.parts[3]].to_lit_int().unwrap().value
+        arena.node(tmpl.parts[3]).to_lit_int().unwrap().value
     );
     assert_eq!(
         "}c\"".to_string(),
-        arena[tmpl.parts[4]].to_lit_str().unwrap().value
+        arena.node(tmpl.parts[4]).to_lit_str().unwrap().value
     );
 
     let (expr, arena) = parse_expr("\"a\\${1}b\"");
-    assert!(arena[expr].is_lit_str());
+    assert!(arena.node(expr).is_lit_str());
 }
 
 #[test]
@@ -1317,8 +1376,8 @@ fn parse_class_type_params() {
 #[test]
 fn parse_type_path() {
     let (ty, arena) = parse_type("Foo::Bar::Baz");
-    let ty = arena[ty].to_regular_type().unwrap();
-    let path = arena[ty.path].to_path_data().expect("path expected");
+    let ty = arena.node(ty).to_regular_type().unwrap();
+    let path = arena.node(ty.path).to_path_data().expect("path expected");
     assert_eq!(path.segments.len(), 3);
     assert_eq!(ident_name(&arena, path.segments[0]), "Foo");
     assert_eq!(ident_name(&arena, path.segments[1]), "Bar");
@@ -1421,7 +1480,7 @@ fn parse_global_let() {
 #[test]
 fn parse_lit_char() {
     let (expr, arena) = parse_expr("'a'");
-    let lit = arena[expr].to_lit_char().unwrap();
+    let lit = arena.node(expr).to_lit_char().unwrap();
 
     assert_eq!("'a'", lit.value);
 }
@@ -1429,35 +1488,35 @@ fn parse_lit_char() {
 #[test]
 fn parse_fct_call_with_type_param() {
     let (expr, arena) = parse_expr("Array[Int]()");
-    let call = arena[expr].to_call().unwrap();
-    let type_params = arena[call.callee].to_typed_expr().unwrap();
+    let call = arena.node(expr).to_call().unwrap();
+    let type_params = arena.node(call.callee).to_typed_expr().unwrap();
 
     assert_eq!(1, type_params.args.len());
 
     let (expr, arena) = parse_expr("Foo[Int, Long]()");
-    let call = arena[expr].to_call().unwrap();
-    let type_params = arena[call.callee].to_typed_expr().unwrap();
+    let call = arena.node(expr).to_call().unwrap();
+    let type_params = arena.node(call.callee).to_typed_expr().unwrap();
 
     assert_eq!(2, type_params.args.len());
 
     let (expr, arena) = parse_expr("Bar[]()");
-    let call = arena[expr].to_call().unwrap();
-    let type_params = arena[call.callee].to_typed_expr().unwrap();
+    let call = arena.node(expr).to_call().unwrap();
+    let type_params = arena.node(call.callee).to_typed_expr().unwrap();
 
     assert_eq!(0, type_params.args.len());
 
     let (expr, arena) = parse_expr("Vec()");
-    let call = arena[expr].to_call().unwrap();
+    let call = arena.node(expr).to_call().unwrap();
 
-    assert!(arena[call.callee].is_ident());
+    assert!(arena.node(call.callee).is_ident());
 }
 
 #[test]
 fn parse_call_with_path() {
     let (expr, arena) = parse_expr("Foo::get()");
-    let call = arena[expr].to_call().unwrap();
+    let call = arena.node(expr).to_call().unwrap();
 
-    assert!(arena[call.callee].is_path());
+    assert!(arena.node(call.callee).is_path());
     assert_eq!(0, call.args.len());
 }
 
@@ -1510,118 +1569,137 @@ fn parse_generic_with_multiple_bounds() {
 #[test]
 fn parse_lambda_no_params_no_return_value() {
     let (expr, arena) = parse_expr("|| {}");
-    let lambda = arena[expr].to_lambda().unwrap();
+    let lambda = arena.node(expr).to_lambda().unwrap();
 
-    let node = arena[lambda.fct_id].to_function().expect("fct expected");
+    let node = arena
+        .node(lambda.fct_id)
+        .to_function()
+        .expect("fct expected");
     assert!(node.return_type.is_none());
 }
 
 #[test]
 fn parse_lambda_no_params_unit_as_return_value() {
     let (expr, arena) = parse_expr("|| : () {}");
-    let lambda = arena[expr].to_lambda().unwrap();
-    let node = arena[lambda.fct_id].to_function().expect("fct expected");
+    let lambda = arena.node(expr).to_lambda().unwrap();
+    let node = arena
+        .node(lambda.fct_id)
+        .to_function()
+        .expect("fct expected");
     let ret = node.return_type.unwrap();
 
-    assert!(arena[ret].is_unit());
+    assert!(arena.node(ret).is_unit());
 }
 
 #[test]
 fn parse_lambda_no_params_with_return_value() {
     let (expr, arena) = parse_expr("||: A {}");
-    let lambda = arena[expr].to_lambda().unwrap();
-    let node = arena[lambda.fct_id].to_function().expect("fct expected");
+    let lambda = arena.node(expr).to_lambda().unwrap();
+    let node = arena
+        .node(lambda.fct_id)
+        .to_function()
+        .expect("fct expected");
     let ret = node.return_type.unwrap();
 
-    assert_eq!("A", tra_name(&arena, ret));
+    assert_eq!("A", tr_name(&arena, ret));
 }
 
 #[test]
 fn parse_lambda_with_one_param() {
     let (expr, arena) = parse_expr("|a: A|: B {}");
-    let lambda = arena[expr].to_lambda().unwrap();
-    let node = arena[lambda.fct_id].to_function().expect("fct expected");
+    let lambda = arena.node(expr).to_lambda().unwrap();
+    let node = arena
+        .node(lambda.fct_id)
+        .to_function()
+        .expect("fct expected");
 
     assert_eq!(1, node.params.len());
 
-    let param = arena[node.params[0]].to_param().unwrap();
-    assert_eq!("a", pata_name(&arena, param.pattern));
-    assert_eq!("A", tra_name(&arena, param.data_type));
-    assert_eq!("B", tra_name(&arena, node.return_type.unwrap()));
+    let param = arena.node(node.params[0]).to_param().unwrap();
+    assert_eq!("a", pat_name(&arena, param.pattern));
+    assert_eq!("A", tr_name(&arena, param.data_type));
+    assert_eq!("B", tr_name(&arena, node.return_type.unwrap()));
 }
 
 #[test]
 fn parse_lambda_with_two_params() {
     let (expr, arena) = parse_expr("|a: A, b: B|: C {}");
-    let lambda = arena[expr].to_lambda().unwrap();
-    let node = arena[lambda.fct_id].to_function().expect("fct expected");
+    let lambda = arena.node(expr).to_lambda().unwrap();
+    let node = arena
+        .node(lambda.fct_id)
+        .to_function()
+        .expect("fct expected");
 
     assert_eq!(2, node.params.len());
 
-    let param = arena[node.params[0]].to_param().unwrap();
-    assert_eq!("a", pata_name(&arena, param.pattern));
-    assert_eq!("A", tra_name(&arena, param.data_type));
+    let param = arena.node(node.params[0]).to_param().unwrap();
+    assert_eq!("a", pat_name(&arena, param.pattern));
+    assert_eq!("A", tr_name(&arena, param.data_type));
 
-    let param = arena[node.params[1]].to_param().unwrap();
-    assert_eq!("b", pata_name(&arena, param.pattern));
-    assert_eq!("B", tra_name(&arena, param.data_type));
+    let param = arena.node(node.params[1]).to_param().unwrap();
+    assert_eq!("b", pat_name(&arena, param.pattern));
+    assert_eq!("B", tr_name(&arena, param.data_type));
 
-    assert_eq!("C", tra_name(&arena, node.return_type.unwrap()));
+    assert_eq!("C", tr_name(&arena, node.return_type.unwrap()));
 }
 
 #[test]
 fn parse_for() {
     let (expr, arena) = parse_expr("for i in a+b {}");
-    assert!(arena[expr].is_for());
+    assert!(arena.node(expr).is_for());
 }
 
 #[test]
 fn parse_new_call_ident() {
     let (expr, arena) = parse_expr("i");
-    assert!(arena[expr].is_ident());
+    assert!(arena.node(expr).is_ident());
 }
 
 #[test]
 fn parse_new_call_path() {
     let (expr, arena) = parse_expr("Foo::bar");
-    let path = arena[expr].to_path().unwrap();
-    assert!(arena[path.lhs].is_ident());
-    assert!(arena[path.rhs].is_ident());
+    let path = arena.node(expr).to_path().unwrap();
+    assert!(arena.node(path.lhs).is_ident());
+    assert!(arena.node(path.rhs).is_ident());
 }
 
 #[test]
 fn parse_new_call_call() {
     let (expr, arena) = parse_expr("foo(1,2)");
-    let call = arena[expr].to_call().unwrap();
-    assert!(arena[call.callee].is_ident());
+    let call = arena.node(expr).to_call().unwrap();
+    assert!(arena.node(call.callee).is_ident());
     assert_eq!(call.args.len(), 2);
 }
 
 #[test]
 fn parse_block() {
     let (expr, arena) = parse_expr("{1}");
-    assert!(arena[arena[expr].to_block().unwrap().expr.unwrap()].is_lit_int());
+    assert!(
+        arena
+            .node(arena.node(expr).to_block().unwrap().expr.unwrap())
+            .is_lit_int()
+    );
 
     let (expr, arena) = parse_expr("({}) + 1");
-    assert!(arena[expr].is_bin());
+    assert!(arena.node(expr).is_bin());
 
     let (expr, arena) = parse_expr("1 + {}");
-    assert!(arena[expr].is_bin());
+    assert!(arena.node(expr).is_bin());
 }
 
 #[test]
 fn parse_tuple() {
     let (expr, arena) = parse_expr("(1,)");
-    assert_eq!(arena[expr].to_tuple().unwrap().values.len(), 1);
+    assert_eq!(arena.node(expr).to_tuple().unwrap().values.len(), 1);
 
     let (expr, arena) = parse_expr("(1)");
-    assert!(arena[expr].is_paren());
+    assert!(arena.node(expr).is_paren());
 
     let (expr, arena) = parse_expr("(1,2,3)");
-    assert_eq!(arena[expr].to_tuple().unwrap().values.len(), 3);
+    assert_eq!(arena.node(expr).to_tuple().unwrap().values.len(), 3);
 
     let (expr, arena) = parse_expr("(1,2,3,4,)");
-    assert_eq!(arena[expr].to_tuple().unwrap().values.len(), 4);
+    assert_eq!(arena.node(expr).to_tuple().unwrap().values.len(), 4);
 }
 
 #[test]
@@ -1773,15 +1851,8 @@ fn id_name(f: &File, id: Option<AstId>) -> &str {
         .name
 }
 
-fn ida_name(arena: &Arena<Ast>, id: Option<AstId>) -> &str {
-    &arena[id.expect("id expected")]
-        .to_ident()
-        .expect("ident expected")
-        .name
-}
-
-fn ident_name<'a>(arena: &'a Arena<Ast>, node_id: AstId) -> &'a str {
-    let node = arena[node_id].to_ident().expect("ident expected");
+fn ident_name<'a>(f: &'a File, node_id: AstId) -> &'a str {
+    let node = f.node(node_id).to_ident().expect("ident expected");
     &node.name
 }
 
@@ -1793,17 +1864,12 @@ fn tr_name<'a>(f: &'a File, id: AstId) -> &'a str {
     &f.node(segment_id).to_ident().expect("ident expected").name
 }
 
-fn tra_name<'a>(arena: &'a Arena<Ast>, id: AstId) -> &'a str {
-    let node = arena[id].to_regular_type().expect("regular type expected");
-    let path = arena[node.path].to_path_data().expect("path expected");
-    assert_eq!(path.segments.len(), 1);
-    let segment_id = path.segments.first().cloned().expect("missing segment");
-    &arena[segment_id].to_ident().expect("ident expected").name
-}
-
-fn taa_name<'a>(arena: &'a Arena<Ast>, id: AstId) -> &'a str {
-    let node = arena[id].to_type_argument().expect("regular type expected");
-    tra_name(arena, node.ty)
+fn ta_name<'a>(f: &'a File, id: AstId) -> &'a str {
+    let node = f
+        .node(id)
+        .to_type_argument()
+        .expect("regular type expected");
+    tr_name(f, node.ty)
 }
 
 fn pat_name<'a>(f: &'a File, node_id: AstId) -> &'a str {
@@ -1813,12 +1879,4 @@ fn pat_name<'a>(f: &'a File, node_id: AstId) -> &'a str {
         .expect("ident expected")
         .name;
     &f.node(ident_id).to_ident().expect("ident expected").name
-}
-
-fn pata_name<'a>(arena: &'a Arena<Ast>, node_id: AstId) -> &'a str {
-    let ident_id = arena[node_id]
-        .to_ident_pattern()
-        .expect("ident expected")
-        .name;
-    &arena[ident_id].to_ident().expect("ident expected").name
 }

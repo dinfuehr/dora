@@ -12,7 +12,7 @@ pub mod visit;
 pub struct File {
     pub content: Arc<String>,
     pub ast_nodes: Arena<Ast>,
-    pub elements: Vec<AstId>,
+    pub root_id: AstId,
 }
 
 impl File {
@@ -20,64 +20,70 @@ impl File {
         &self.ast_nodes[id]
     }
 
+    pub fn root(&self) -> &Root {
+        self.node(self.root_id).to_root().expect("file expected")
+    }
+
     #[cfg(test)]
     pub fn fct0(&self) -> &Function {
-        self.node(self.elements[0]).to_function().unwrap()
+        self.node(self.root().elements[0]).to_function().unwrap()
     }
 
     #[cfg(test)]
     pub fn fct(&self, index: usize) -> &Function {
-        self.node(self.elements[index]).to_function().unwrap()
+        self.node(self.root().elements[index])
+            .to_function()
+            .unwrap()
     }
 
     #[cfg(test)]
     pub fn cls0(&self) -> &Class {
-        self.node(self.elements[0]).to_class().unwrap()
+        self.node(self.root().elements[0]).to_class().unwrap()
     }
 
     #[cfg(test)]
     pub fn cls(&self, index: usize) -> &Class {
-        self.node(self.elements[index]).to_class().unwrap()
+        self.node(self.root().elements[index]).to_class().unwrap()
     }
 
     #[cfg(test)]
     pub fn struct0(&self) -> &Struct {
-        self.node(self.elements[0]).to_struct().unwrap()
+        self.node(self.root().elements[0]).to_struct().unwrap()
     }
 
     #[cfg(test)]
     pub fn enum0(&self) -> &Enum {
-        self.node(self.elements[0]).to_enum().unwrap()
+        self.node(self.root().elements[0]).to_enum().unwrap()
     }
 
     #[cfg(test)]
     pub fn module0(&self) -> &Module {
-        self.node(self.elements[0]).to_module().unwrap()
+        self.node(self.root().elements[0]).to_module().unwrap()
     }
 
     #[cfg(test)]
     pub fn trait_(&self, index: usize) -> &Trait {
-        self.node(self.elements[index]).to_trait().unwrap()
+        self.node(self.root().elements[index]).to_trait().unwrap()
     }
 
     #[cfg(test)]
     pub fn trait0(&self) -> &Trait {
-        self.node(self.elements[0]).to_trait().unwrap()
+        self.node(self.root().elements[0]).to_trait().unwrap()
     }
 
     #[cfg(test)]
     pub fn impl0(&self) -> &Impl {
-        self.node(self.elements[0]).to_impl().unwrap()
+        self.node(self.root().elements[0]).to_impl().unwrap()
     }
 
     #[cfg(test)]
     pub fn global0(&self) -> &Global {
-        self.node(self.elements[0]).to_global().unwrap()
+        self.node(self.root().elements[0]).to_global().unwrap()
     }
 
     #[cfg(test)]
     pub fn const0(&self) -> &Const {
-        self.node(self.elements[0]).to_const().unwrap()
+        self.node(self.root().elements[0]).to_const().unwrap()
     }
 }
 
@@ -134,6 +140,7 @@ pub enum Ast {
     RegularType(RegularType),
     Rest(Rest),
     Return(Return),
+    Root(Root),
     Struct(Struct),
     Template(Template),
     This(This),
@@ -194,6 +201,12 @@ impl Ast {
             _ => false,
         }
     }
+}
+
+#[derive(Clone, Debug, AstNode)]
+pub struct Root {
+    pub span: Span,
+    pub elements: Vec<AstId>,
 }
 
 #[derive(Clone, Debug, AstNode)]

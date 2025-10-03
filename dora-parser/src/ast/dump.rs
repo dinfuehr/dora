@@ -20,7 +20,7 @@ pub fn dump_file(ast: &Arc<File>) {
         f: ast.as_ref(),
         line_starts,
     };
-    dumper.dump_file();
+    dumper.dump_node_id(ast.root_id);
 }
 
 pub fn dump_node(f: &Arc<File>, id: AstId) {
@@ -40,12 +40,6 @@ struct AstDumper<'a> {
 }
 
 impl<'a> AstDumper<'a> {
-    fn dump_file(&mut self) {
-        for &element_id in &self.f.elements {
-            self.dump_node_id(element_id);
-        }
-    }
-
     fn dump_node_id(&mut self, id: AstId) {
         self.dump_node(id, self.f.node(id));
     }

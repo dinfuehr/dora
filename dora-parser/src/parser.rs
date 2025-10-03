@@ -79,6 +79,25 @@ impl Parser {
     }
 
     pub fn parse(mut self) -> (Arc<ast::File>, Vec<ParseErrorWithLocation>) {
+        let file = self.parse_file();
+        self.into_file(file)
+    }
+
+    pub fn into_file(self, root_id: AstId) -> (Arc<ast::File>, Vec<ParseErrorWithLocation>) {
+        assert!(self.nodes.borrow().is_empty());
+
+        (
+            Arc::new(ast::File {
+                content: self.content.clone(),
+                ast_nodes: self.ast_nodes,
+                root_id,
+            }),
+            self.errors,
+        )
+    }
+
+    fn parse_file(&mut self) -> AstId {
+        self.start_node();
         self.skip_trivia();
         let mut elements = vec![];
 
@@ -86,16 +105,7 @@ impl Parser {
             elements.push(self.parse_element());
         }
 
-        assert!(self.nodes.borrow().is_empty());
-
-        (
-            Arc::new(ast::File {
-                content: self.content.clone(),
-                ast_nodes: self.ast_nodes,
-                elements,
-            }),
-            self.errors,
-        )
+        finish!(self, Root { elements })
     }
 
     fn parse_element(&mut self) -> AstId {

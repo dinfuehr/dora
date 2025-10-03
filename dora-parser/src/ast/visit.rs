@@ -5,6 +5,10 @@ pub trait Visitor: Sized {
         walk_file(self, a);
     }
 
+    fn visit_root(&mut self, f: &File, id: AstId, node: &Root) {
+        walk_root(self, f, id, node);
+    }
+
     fn visit_extern(&mut self, f: &File, id: AstId, stmt: &Extern) {
         walk_extern(self, f, id, stmt);
     }
@@ -291,9 +295,12 @@ pub trait Visitor: Sized {
 }
 
 pub fn walk_file<V: Visitor>(v: &mut V, f: &File) {
-    for &element_id in &f.elements {
-        let e = f.node(element_id);
-        dispatch_ast(v, f, element_id, e);
+    dispatch_ast_id(v, f, f.root_id);
+}
+
+pub fn walk_root<V: Visitor>(v: &mut V, f: &File, _id: AstId, node: &Root) {
+    for &element_id in &node.elements {
+        dispatch_ast_id(v, f, element_id);
     }
 }
 
@@ -370,6 +377,7 @@ pub fn dispatch_ast<V: Visitor>(v: &mut V, f: &File, id: AstId, e: &Ast) {
         Ast::CtorPattern(node) => v.visit_constructor_pattern(f, id, node),
         Ast::CtorField(node) => v.visit_constructor_field(f, id, node),
         Ast::Rest(node) => v.visit_rest(f, id, node),
+        Ast::Root(node) => v.visit_root(f, id, node),
         Ast::Alt(node) => v.visit_alt(f, id, node),
         Ast::ModifierList(node) => v.visit_modifier_list(f, id, node),
         Ast::Modifier(node) => v.visit_modifier(f, id, node),
