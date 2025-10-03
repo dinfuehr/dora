@@ -998,7 +998,12 @@ impl Parser {
                 let span = self.finish_node();
 
                 self.ast_nodes
-                    .alloc(Ast::create_qualified_path(span, ty, trait_ty, name))
+                    .alloc(Ast::QualifiedPathType(QualifiedPathType {
+                        span,
+                        ty,
+                        trait_ty,
+                        name,
+                    }))
             }
 
             L_PAREN => {
@@ -1017,11 +1022,15 @@ impl Parser {
 
                     let span = self.finish_node();
 
-                    self.ast_nodes
-                        .alloc(Ast::create_fct(span, subtypes, Some(ret)))
+                    self.ast_nodes.alloc(Ast::LambdaType(LambdaType {
+                        span,
+                        params: subtypes,
+                        ret: Some(ret),
+                    }))
                 } else {
                     let span = self.finish_node();
-                    self.ast_nodes.alloc(Ast::create_tuple_type(span, subtypes))
+                    self.ast_nodes
+                        .alloc(Ast::TupleType(TupleType { span, subtypes }))
                 }
             }
 
@@ -1099,8 +1108,12 @@ impl Parser {
 
         let span = self.finish_node();
 
-        self.ast_nodes
-            .alloc(Ast::create_let_stmt(span, pattern, data_type, expr))
+        self.ast_nodes.alloc(Ast::Let(Let {
+            span,
+            pattern,
+            data_type,
+            expr,
+        }))
     }
 
     fn parse_var_type(&mut self) -> Option<AstId> {
@@ -1141,7 +1154,8 @@ impl Parser {
 
         let span = self.finish_node();
 
-        self.ast_nodes.alloc(Ast::create_block(span, stmts, expr))
+        self.ast_nodes
+            .alloc(Ast::Block(Block { span, stmts, expr }))
     }
 
     fn parse_block_stmt(&mut self) -> StmtOrExpr {
@@ -1162,7 +1176,7 @@ impl Parser {
 
                         let span = self.ast_nodes[expr].span();
 
-                        let ast_id = self.ast_nodes.alloc(Ast::create_expr_stmt(span, expr));
+                        let ast_id = self.ast_nodes.alloc(Ast::ExprStmt(ExprStmt { span, expr }));
 
                         StmtOrExpr::Stmt(ast_id)
                     }
@@ -1210,8 +1224,12 @@ impl Parser {
 
         let span = self.finish_node();
 
-        self.ast_nodes
-            .alloc(Ast::create_if(span, cond, then_block, else_block))
+        self.ast_nodes.alloc(Ast::If(If {
+            span,
+            cond,
+            then_block,
+            else_block,
+        }))
     }
 
     fn parse_match(&mut self) -> AstId {
@@ -1245,7 +1263,11 @@ impl Parser {
 
         let span = self.finish_node();
 
-        self.ast_nodes.alloc(Ast::create_match(span, expr, cases))
+        self.ast_nodes.alloc(Ast::Match(Match {
+            span,
+            expr,
+            arms: cases,
+        }))
     }
 
     fn parse_match_arm(&mut self) -> AstId {
@@ -1461,8 +1483,12 @@ impl Parser {
 
         let span = self.finish_node();
 
-        self.ast_nodes
-            .alloc(Ast::create_for(span, pattern, expr, block))
+        self.ast_nodes.alloc(Ast::For(For {
+            span,
+            pattern,
+            expr,
+            block,
+        }))
     }
 
     fn parse_while(&mut self) -> AstId {
@@ -1473,7 +1499,11 @@ impl Parser {
 
         let span = self.finish_node();
 
-        self.ast_nodes.alloc(Ast::create_while(span, expr, block))
+        self.ast_nodes.alloc(Ast::While(While {
+            span,
+            cond: expr,
+            block,
+        }))
     }
 
     fn parse_break(&mut self) -> AstId {
@@ -1482,7 +1512,7 @@ impl Parser {
 
         let span = self.finish_node();
 
-        self.ast_nodes.alloc(Ast::create_break(span))
+        self.ast_nodes.alloc(Ast::Break(Break { span }))
     }
 
     fn parse_continue(&mut self) -> AstId {
@@ -1491,7 +1521,7 @@ impl Parser {
 
         let span = self.finish_node();
 
-        self.ast_nodes.alloc(Ast::create_continue(span))
+        self.ast_nodes.alloc(Ast::Continue(Continue { span }))
     }
 
     fn parse_return(&mut self) -> AstId {
@@ -1504,9 +1534,7 @@ impl Parser {
             None
         };
 
-        let span = self.finish_node();
-
-        self.ast_nodes.alloc(Ast::create_return(span, expr))
+        alloc!(self, Return { expr })
     }
 
     fn parse_expr(&mut self) -> AstId {
@@ -1537,8 +1565,11 @@ impl Parser {
                     let right = self.parse_type();
                     let span = self.span_from(start);
 
-                    let expr = Ast::create_conv(span, left, right);
-                    self.ast_nodes.alloc(expr)
+                    self.ast_nodes.alloc(Ast::Conv(Conv {
+                        span,
+                        object: left,
+                        data_type: right,
+                    }))
                 }
 
                 IS_KW => {
@@ -1546,7 +1577,11 @@ impl Parser {
                     let right = self.parse_pattern();
                     let span = self.span_from(start);
 
-                    let expr = Ast::create_is(span, left, right);
+                    let expr = Ast::Is(Is {
+                        span,
+                        value: left,
+                        pattern: right,
+                    });
 
                     self.ast_nodes.alloc(expr)
                 }
@@ -1595,7 +1630,11 @@ impl Parser {
 
                 let span = self.finish_node();
 
-                self.ast_nodes.alloc(Ast::create_un(span, op, expr))
+                self.ast_nodes.alloc(Ast::Un(Un {
+                    span,
+                    op,
+                    opnd: expr,
+                }))
             }
 
             _ => self.parse_postfix_expr(prefer_stmt),
@@ -1614,8 +1653,12 @@ impl Parser {
                     let rhs = self.parse_factor();
                     let span = self.span_from(start);
 
-                    self.ast_nodes
-                        .alloc(Ast::create_dot(span, op_span, left, rhs))
+                    self.ast_nodes.alloc(Ast::Dot(Dot {
+                        span,
+                        op_span,
+                        lhs: left,
+                        rhs,
+                    }))
                 }
 
                 L_PAREN if !(self.ast_nodes[left].is_blocklike() && prefer_stmt) => {
@@ -1634,8 +1677,12 @@ impl Parser {
                     );
                     let span = self.span_from(start);
 
-                    self.ast_nodes
-                        .alloc(Ast::create_type_param(span, op_span, left, types))
+                    self.ast_nodes.alloc(Ast::TypedExpr(TypedExpr {
+                        span,
+                        op_span,
+                        callee: left,
+                        args: types,
+                    }))
                 }
 
                 COLON_COLON => {
@@ -1644,8 +1691,12 @@ impl Parser {
                     let rhs = self.parse_factor();
                     let span = self.span_from(start);
 
-                    self.ast_nodes
-                        .alloc(Ast::create_path(span, op_span, left, rhs))
+                    self.ast_nodes.alloc(Ast::Path(Path {
+                        span,
+                        op_span,
+                        lhs: left,
+                        rhs,
+                    }))
                 }
 
                 _ => {
@@ -1691,7 +1742,11 @@ impl Parser {
         );
         let span = self.span_from(start);
 
-        self.ast_nodes.alloc(Ast::create_call(span, left, args))
+        self.ast_nodes.alloc(Ast::Call(Call {
+            span,
+            callee: left,
+            args,
+        }))
     }
 
     fn create_binary(&mut self, kind: TokenKind, start: u32, left: AstId, right: AstId) -> AstId {
@@ -1734,7 +1789,12 @@ impl Parser {
 
         let span = self.span_from(start);
 
-        self.ast_nodes.alloc(Ast::create_bin(span, op, left, right))
+        self.ast_nodes.alloc(Ast::Bin(Bin {
+            span: span,
+            op: op,
+            lhs: left,
+            rhs: right,
+        }))
     }
 
     fn parse_factor(&mut self) -> AstId {
@@ -1776,7 +1836,10 @@ impl Parser {
 
         if self.eat(R_PAREN) {
             let span = self.finish_node();
-            return self.ast_nodes.alloc(Ast::create_tuple(span, Vec::new()));
+            return self.ast_nodes.alloc(Ast::Tuple(Tuple {
+                span: span,
+                values: Vec::new(),
+            }));
         }
 
         let expr = self.parse_expr();
@@ -1805,12 +1868,18 @@ impl Parser {
 
             let span = self.finish_node();
 
-            self.ast_nodes.alloc(Ast::create_tuple(span, values))
+            self.ast_nodes.alloc(Ast::Tuple(Tuple {
+                span: span,
+                values: values,
+            }))
         } else {
             self.expect(R_PAREN);
 
             let span = self.finish_node();
-            self.ast_nodes.alloc(Ast::create_paren(span, expr))
+            self.ast_nodes.alloc(Ast::Paren(Paren {
+                span: span,
+                expr: expr,
+            }))
         }
     }
 
@@ -1819,7 +1888,10 @@ impl Parser {
         self.assert(CHAR_LITERAL);
         let value = self.source_span(span);
 
-        self.ast_nodes.alloc(Ast::create_lit_char(span, value))
+        self.ast_nodes.alloc(Ast::LitChar(LitChar {
+            span: span,
+            value: value,
+        }))
     }
 
     fn parse_lit_int(&mut self) -> AstId {
@@ -1827,7 +1899,10 @@ impl Parser {
         self.assert(INT_LITERAL);
         let value = self.source_span(span);
 
-        self.ast_nodes.alloc(Ast::create_lit_int(span, value))
+        self.ast_nodes.alloc(Ast::LitInt(LitInt {
+            span: span,
+            value: value,
+        }))
     }
 
     fn parse_lit_int_minus(&mut self) -> AstId {
@@ -1846,7 +1921,11 @@ impl Parser {
             let expr = fct(self);
 
             let span = self.finish_node();
-            self.ast_nodes.alloc(Ast::create_un(span, UnOp::Neg, expr))
+            self.ast_nodes.alloc(Ast::Un(Un {
+                span: span,
+                op: UnOp::Neg,
+                opnd: expr,
+            }))
         } else {
             fct(self)
         }
@@ -1857,7 +1936,10 @@ impl Parser {
         self.assert(FLOAT_LITERAL);
         let value = self.source_span(span);
 
-        self.ast_nodes.alloc(Ast::create_lit_float(span, value))
+        self.ast_nodes.alloc(Ast::LitFloat(LitFloat {
+            span: span,
+            value: value,
+        }))
     }
 
     fn parse_template(&mut self) -> AstId {
@@ -1869,7 +1951,10 @@ impl Parser {
 
         let mut parts: Vec<AstId> = Vec::new();
 
-        parts.push(self.ast_nodes.alloc(Ast::create_lit_str(span, value)));
+        parts.push(self.ast_nodes.alloc(Ast::LitStr(LitStr {
+            span: span,
+            value: value,
+        })));
 
         let mut done = false;
 
@@ -1890,12 +1975,18 @@ impl Parser {
             let value = self.source_span(span);
             self.advance();
 
-            parts.push(self.ast_nodes.alloc(Ast::create_lit_str(span, value)));
+            parts.push(self.ast_nodes.alloc(Ast::LitStr(LitStr {
+                span: span,
+                value: value,
+            })));
         }
 
         let span = self.span_from(start);
 
-        self.ast_nodes.alloc(Ast::create_template(span, parts))
+        self.ast_nodes.alloc(Ast::Template(Template {
+            span: span,
+            parts: parts,
+        }))
     }
 
     fn parse_string(&mut self) -> AstId {
@@ -1904,7 +1995,10 @@ impl Parser {
 
         let value = self.source_span(span);
 
-        self.ast_nodes.alloc(Ast::create_lit_str(span, value))
+        self.ast_nodes.alloc(Ast::LitStr(LitStr {
+            span: span,
+            value: value,
+        }))
     }
 
     fn parse_lit_bool(&mut self) -> AstId {
@@ -1913,14 +2007,17 @@ impl Parser {
         self.assert(kind);
         let value = kind == TRUE;
 
-        self.ast_nodes.alloc(Ast::create_lit_bool(span, value))
+        self.ast_nodes.alloc(Ast::LitBool(LitBool {
+            span: span,
+            value: value,
+        }))
     }
 
     fn parse_this(&mut self) -> AstId {
         let span = self.current_span();
         self.assert(SELF_KW);
 
-        self.ast_nodes.alloc(Ast::create_this(span))
+        self.ast_nodes.alloc(Ast::This(This { span: span }))
     }
 
     fn parse_lambda(&mut self) -> AstId {
@@ -1969,7 +2066,10 @@ impl Parser {
             })
         );
 
-        self.ast_nodes.alloc(Ast::create_lambda(span, function_id))
+        self.ast_nodes.alloc(Ast::Lambda(Lambda {
+            span: span,
+            fct_id: function_id,
+        }))
     }
 
     fn assert(&mut self, kind: TokenKind) {
