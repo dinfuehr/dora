@@ -189,10 +189,7 @@ impl Parser {
             UsePathDescriptor::Error
         };
 
-        let span = self.finish_node();
-
-        self.ast_nodes
-            .alloc(Ast::UsePath(UsePath { span, path, target }))
+        finish!(self, UsePath { path, target })
     }
 
     fn parse_use_as(&mut self) -> AstId {
@@ -205,10 +202,7 @@ impl Parser {
             self.expect_identifier()
         };
 
-        let span = self.finish_node();
-
-        self.ast_nodes
-            .alloc(Ast::UseTargetName(UseTargetName { span, name }))
+        finish!(self, UseTargetName { name })
     }
 
     fn parse_use_atom(&mut self) -> UseAtom {
@@ -254,10 +248,7 @@ impl Parser {
             },
         );
 
-        let span = self.finish_node();
-
-        self.ast_nodes
-            .alloc(Ast::UseGroup(UseGroup { span, targets }))
+        finish!(self, UseGroup { targets })
     }
 
     fn parse_enum(&mut self, modifiers: Option<AstId>) -> AstId {
@@ -998,15 +989,7 @@ impl Parser {
                 self.expect(COLON_COLON);
                 let name = self.expect_identifier();
 
-                let span = self.finish_node();
-
-                self.ast_nodes
-                    .alloc(Ast::QualifiedPathType(QualifiedPathType {
-                        span,
-                        ty,
-                        trait_ty,
-                        name,
-                    }))
+                finish!(self, QualifiedPathType { ty, trait_ty, name })
             }
 
             L_PAREN => {
@@ -1031,9 +1014,7 @@ impl Parser {
                         }
                     )
                 } else {
-                    let span = self.finish_node();
-                    self.ast_nodes
-                        .alloc(Ast::TupleType(TupleType { span, subtypes }))
+                    finish!(self, TupleType { subtypes })
                 }
             }
 
@@ -1080,10 +1061,7 @@ impl Parser {
             segments.push(segment);
         }
 
-        let span = self.finish_node();
-
-        self.ast_nodes
-            .alloc(Ast::PathData(PathData { span, segments }))
+        finish!(self, PathData { segments })
     }
 
     fn parse_path_segment(&mut self) -> AstId {
@@ -1155,10 +1133,7 @@ impl Parser {
             self.expect(R_BRACE);
         }
 
-        let span = self.finish_node();
-
-        self.ast_nodes
-            .alloc(Ast::Block(Block { span, stmts, expr }))
+        finish!(self, Block { stmts, expr })
     }
 
     fn parse_block_stmt(&mut self) -> StmtOrExpr {
@@ -1317,9 +1292,7 @@ impl Parser {
         if self.eat(UNDERSCORE) {
             finish!(self, Underscore {})
         } else if self.eat(DOT_DOT) {
-            let span = self.finish_node();
-
-            alloc!(self, Rest { span })
+            finish!(self, Rest {})
         } else if self.is(TRUE) || self.is(FALSE) {
             let expr = self.parse_lit_bool();
 
@@ -1346,10 +1319,7 @@ impl Parser {
                 },
             );
 
-            let span = self.finish_node();
-
-            self.ast_nodes
-                .alloc(Ast::TuplePattern(TuplePattern { span, params }))
+            finish!(self, TuplePattern { params })
         } else if self.is(CHAR_LITERAL) {
             let expr = self.parse_lit_char();
 
@@ -1458,10 +1428,7 @@ impl Parser {
                 None
             };
 
-            let span = self.finish_node();
-
-            self.ast_nodes
-                .alloc(Ast::CtorPattern(CtorPattern { span, path, params }))
+            finish!(self, CtorPattern { path, params })
         } else {
             self.report_error(ParseError::ExpectedPattern);
             self.advance();
@@ -1987,10 +1954,10 @@ impl Parser {
     }
 
     fn parse_this(&mut self) -> AstId {
-        let span = self.current_span();
+        self.start_node();
         self.assert(SELF_KW);
 
-        alloc!(self, This { span: span })
+        finish!(self, This {})
     }
 
     fn parse_lambda(&mut self) -> AstId {
