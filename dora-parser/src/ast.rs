@@ -210,70 +210,94 @@ pub struct Root {
 }
 
 #[derive(Clone, Debug, AstNode)]
-pub struct Global {
+pub struct Alias {
+    pub span: Span,
+
+    pub modifiers: Option<AstId>,
+    pub name: Option<AstId>,
+    pub type_params: Option<AstId>,
+    pub pre_where_clause: Option<AstId>,
+    pub bounds: Vec<AstId>,
+    pub ty: Option<AstId>,
+    pub post_where_clause: Option<AstId>,
+}
+
+#[derive(Clone, Debug, AstNode)]
+pub struct Alt {
+    pub span: Span,
+
+    pub alts: Vec<AstId>,
+}
+
+#[derive(Clone, Debug, AstNode)]
+pub struct Argument {
+    pub span: Span,
+    pub name: Option<AstId>,
+    pub expr: AstId,
+}
+
+#[derive(Clone, Debug, AstNode)]
+pub struct Bin {
+    pub span: Span,
+
+    pub op: BinOp,
+    pub lhs: AstId,
+    pub rhs: AstId,
+}
+
+#[derive(Clone, Debug, AstNode)]
+pub struct Block {
+    pub span: Span,
+
+    pub stmts: Vec<AstId>,
+    pub expr: Option<AstId>,
+}
+
+#[derive(Clone, Debug, AstNode)]
+pub struct Break {
+    pub span: Span,
+}
+
+#[derive(Clone, Debug, AstNode)]
+pub struct Call {
+    pub span: Span,
+
+    pub callee: AstId,
+    pub args: Vec<AstId>,
+}
+
+impl Call {
+    pub fn object(&self, file: &File) -> Option<AstId> {
+        let callee_node = file.node(self.callee);
+        if let Some(type_param) = callee_node.to_typed_expr() {
+            let node = file.node(type_param.callee);
+            if let Some(dot) = node.to_dot() {
+                Some(dot.lhs)
+            } else {
+                None
+            }
+        } else if let Some(dot) = callee_node.to_dot() {
+            Some(dot.lhs)
+        } else {
+            None
+        }
+    }
+
+    pub fn object_or_callee<'a>(&self, file: &'a File) -> AstId {
+        self.object(file).unwrap_or(self.callee)
+    }
+}
+
+#[derive(Clone, Debug, AstNode)]
+pub struct Class {
     pub span: Span,
     pub modifiers: Option<AstId>,
     pub name: Option<AstId>,
-    pub mutable: bool,
-    pub data_type: AstId,
-    pub initial_value: Option<AstId>,
-}
 
-#[derive(Clone, Debug, AstNode)]
-pub struct Module {
-    pub span: Span,
-    pub modifiers: Option<AstId>,
-    pub name: Option<AstId>,
-    pub elements: Option<Vec<AstId>>,
-}
-
-#[derive(Clone, Debug, AstNode)]
-pub struct Use {
-    pub span: Span,
-    pub modifiers: Option<AstId>,
-    pub path: AstId,
-}
-
-#[derive(Clone, Debug, AstNode)]
-pub struct UsePath {
-    pub span: Span,
-    pub path: Vec<UseAtom>,
-    pub target: UsePathDescriptor,
-}
-
-#[derive(Clone, Debug)]
-pub enum UsePathDescriptor {
-    Default,
-    As(AstId),
-    Group(AstId),
-    Error,
-}
-
-#[derive(Clone, Debug, AstNode)]
-pub struct UseGroup {
-    pub span: Span,
-    pub targets: Vec<AstId>,
-}
-
-#[derive(Clone, Debug, AstNode)]
-pub struct UseTargetName {
-    pub span: Span,
-    pub name: Option<AstId>,
-}
-
-#[derive(Clone, Debug)]
-pub struct UseAtom {
-    pub span: Span,
-    pub value: UsePathComponentValue,
-}
-
-#[derive(Clone, Debug)]
-pub enum UsePathComponentValue {
-    This,
-    Super,
-    Package,
-    Name(AstId),
-    Error,
+    pub fields: Vec<AstId>,
+    pub type_params: Option<AstId>,
+    pub where_clause: Option<AstId>,
+    pub field_name_style: FieldNameStyle,
 }
 
 #[derive(Clone, Debug, AstNode)]
@@ -283,6 +307,42 @@ pub struct Const {
     pub name: Option<AstId>,
     pub data_type: AstId,
     pub expr: AstId,
+}
+
+#[derive(Clone, Debug, AstNode)]
+pub struct Continue {
+    pub span: Span,
+}
+
+#[derive(Clone, Debug, AstNode)]
+pub struct Conv {
+    pub span: Span,
+
+    pub object: AstId,
+    pub data_type: AstId,
+}
+
+#[derive(Clone, Debug, AstNode)]
+pub struct CtorField {
+    pub span: Span,
+    pub ident: Option<AstId>,
+    pub pattern: AstId,
+}
+
+#[derive(Clone, Debug, AstNode)]
+pub struct CtorPattern {
+    pub span: Span,
+    pub path: AstId,
+    pub params: Option<Vec<AstId>>,
+}
+
+#[derive(Clone, Debug, AstNode)]
+pub struct Dot {
+    pub span: Span,
+    pub op_span: Span,
+
+    pub lhs: AstId,
+    pub rhs: AstId,
 }
 
 #[derive(Clone, Debug, AstNode)]
@@ -304,14 +364,31 @@ pub struct EnumVariant {
 }
 
 #[derive(Clone, Debug, AstNode)]
-pub struct Struct {
+pub struct Error {
+    pub span: Span,
+}
+
+#[derive(Clone, Debug, AstNode)]
+pub struct ExprStmt {
+    pub span: Span,
+
+    pub expr: AstId,
+}
+
+#[derive(Clone, Debug, AstNode)]
+pub struct Extern {
     pub span: Span,
     pub modifiers: Option<AstId>,
     pub name: Option<AstId>,
-    pub fields: Vec<AstId>,
-    pub type_params: Option<AstId>,
-    pub where_clause: Option<AstId>,
-    pub field_style: FieldNameStyle,
+    pub identifier: Option<AstId>,
+}
+
+#[derive(Clone, Debug, AstNode)]
+pub struct Field {
+    pub span: Span,
+    pub modifiers: Option<AstId>,
+    pub name: Option<AstId>,
+    pub data_type: AstId,
 }
 
 #[derive(Copy, Clone, Debug)]
@@ -337,163 +414,12 @@ impl FieldNameStyle {
 }
 
 #[derive(Clone, Debug, AstNode)]
-pub struct WhereClause {
-    pub span: Span,
-    pub clauses: Vec<AstId>,
-}
-
-#[derive(Clone, Debug, AstNode)]
-pub struct WhereClauseItem {
-    pub span: Span,
-    pub ty: AstId,
-    pub bounds: Vec<AstId>,
-}
-
-#[derive(Clone, Debug, AstNode)]
-pub struct TupleType {
+pub struct For {
     pub span: Span,
 
-    pub subtypes: Vec<AstId>,
-}
-
-#[derive(Clone, Debug, AstNode)]
-pub struct LambdaType {
-    pub span: Span,
-
-    pub params: Vec<AstId>,
-    pub ret: Option<AstId>,
-}
-
-#[derive(Clone, Debug, AstNode)]
-pub struct RegularType {
-    pub span: Span,
-
-    pub path: AstId,
-    pub params: Vec<AstId>,
-}
-
-#[derive(Clone, Debug, AstNode)]
-pub struct TypeArgument {
-    pub span: Span,
-
-    pub name: Option<AstId>,
-    pub ty: AstId,
-}
-
-#[derive(Clone, Debug)]
-pub struct TypeGenericType {
-    pub span: Span,
-
-    pub path: AstId,
-    pub params: Vec<AstId>,
-}
-
-#[derive(Clone, Debug, AstNode)]
-pub struct QualifiedPathType {
-    pub span: Span,
-
-    pub ty: AstId,
-    pub trait_ty: AstId,
-    pub name: Option<AstId>,
-}
-
-#[derive(Clone, Debug, AstNode)]
-pub struct Impl {
-    pub declaration_span: Span,
-    pub span: Span,
-
-    pub modifiers: Option<AstId>,
-    pub type_params: Option<AstId>,
-    pub trait_type: Option<AstId>,
-    pub extended_type: AstId,
-    pub where_clause: Option<AstId>,
-
-    pub methods: Vec<AstId>,
-}
-
-#[derive(Clone, Debug, AstNode)]
-pub struct Trait {
-    pub name: Option<AstId>,
-    pub modifiers: Option<AstId>,
-    pub type_params: Option<AstId>,
-    pub bounds: Vec<AstId>,
-    pub where_clause: Option<AstId>,
-    pub span: Span,
-    pub methods: Vec<AstId>,
-}
-
-#[derive(Clone, Debug, AstNode)]
-pub struct Alias {
-    pub span: Span,
-
-    pub modifiers: Option<AstId>,
-    pub name: Option<AstId>,
-    pub type_params: Option<AstId>,
-    pub pre_where_clause: Option<AstId>,
-    pub bounds: Vec<AstId>,
-    pub ty: Option<AstId>,
-    pub post_where_clause: Option<AstId>,
-}
-
-#[derive(Clone, Debug, AstNode)]
-pub struct Class {
-    pub span: Span,
-    pub modifiers: Option<AstId>,
-    pub name: Option<AstId>,
-
-    pub fields: Vec<AstId>,
-    pub type_params: Option<AstId>,
-    pub where_clause: Option<AstId>,
-    pub field_name_style: FieldNameStyle,
-}
-
-#[derive(Clone, Debug, AstNode)]
-pub struct Extern {
-    pub span: Span,
-    pub modifiers: Option<AstId>,
-    pub name: Option<AstId>,
-    pub identifier: Option<AstId>,
-}
-
-#[derive(Clone, Debug, AstNode)]
-pub struct TypeParamList {
-    pub span: Span,
-    pub params: Vec<AstId>,
-}
-
-#[derive(Clone, Debug, AstNode)]
-pub struct TypeParam {
-    pub span: Span,
-    pub name: Option<AstId>,
-    pub bounds: Vec<AstId>,
-}
-
-#[derive(Clone, Debug, AstNode)]
-pub struct Field {
-    pub span: Span,
-    pub modifiers: Option<AstId>,
-    pub name: Option<AstId>,
-    pub data_type: AstId,
-}
-
-#[derive(Clone, Debug, AstNode)]
-pub struct Error {
-    pub span: Span,
-}
-
-#[derive(Clone, Debug)]
-pub enum FunctionKind {
-    Function,
-    Lambda,
-}
-
-impl FunctionKind {
-    pub fn is_lambda(&self) -> bool {
-        match self {
-            &FunctionKind::Lambda => true,
-            &FunctionKind::Function => false,
-        }
-    }
+    pub pattern: AstId,
+    pub expr: AstId,
+    pub block: AstId,
 }
 
 #[derive(Clone, Debug, AstNode)]
@@ -517,11 +443,169 @@ impl Function {
     }
 }
 
-// remove in next step
+#[derive(Clone, Debug)]
+pub enum FunctionKind {
+    Function,
+    Lambda,
+}
+
+impl FunctionKind {
+    pub fn is_lambda(&self) -> bool {
+        match self {
+            &FunctionKind::Lambda => true,
+            &FunctionKind::Function => false,
+        }
+    }
+}
+
 #[derive(Clone, Debug, AstNode)]
-pub struct ModifierList {
+pub struct Global {
     pub span: Span,
-    pub modifiers: Vec<AstId>,
+    pub modifiers: Option<AstId>,
+    pub name: Option<AstId>,
+    pub mutable: bool,
+    pub data_type: AstId,
+    pub initial_value: Option<AstId>,
+}
+
+#[derive(Clone, Debug, AstNode)]
+pub struct Ident {
+    pub span: Span,
+    pub name: String,
+}
+
+#[derive(Clone, Debug, AstNode)]
+pub struct IdentPattern {
+    pub span: Span,
+    pub mutable: bool,
+    pub name: AstId,
+}
+
+#[derive(Clone, Debug, AstNode)]
+pub struct If {
+    pub span: Span,
+
+    pub cond: AstId,
+    pub then_block: AstId,
+    pub else_block: Option<AstId>,
+}
+
+#[derive(Clone, Debug, AstNode)]
+pub struct Impl {
+    pub declaration_span: Span,
+    pub span: Span,
+
+    pub modifiers: Option<AstId>,
+    pub type_params: Option<AstId>,
+    pub trait_type: Option<AstId>,
+    pub extended_type: AstId,
+    pub where_clause: Option<AstId>,
+
+    pub methods: Vec<AstId>,
+}
+
+#[derive(Clone, Debug, AstNode)]
+pub struct Is {
+    pub span: Span,
+
+    pub value: AstId,
+    pub pattern: AstId,
+}
+
+#[derive(Clone, Debug, AstNode)]
+pub struct Lambda {
+    pub span: Span,
+    pub fct_id: AstId,
+}
+
+#[derive(Clone, Debug, AstNode)]
+pub struct LambdaType {
+    pub span: Span,
+
+    pub params: Vec<AstId>,
+    pub ret: Option<AstId>,
+}
+
+#[derive(Clone, Debug, AstNode)]
+pub struct Let {
+    pub span: Span,
+
+    pub pattern: AstId,
+
+    pub data_type: Option<AstId>,
+    pub expr: Option<AstId>,
+}
+
+#[derive(Clone, Debug, AstNode)]
+pub struct LitBool {
+    pub span: Span,
+
+    pub value: bool,
+}
+
+#[derive(Clone, Debug, AstNode)]
+pub struct LitChar {
+    pub span: Span,
+    pub value: String,
+}
+
+#[derive(Clone, Debug, AstNode)]
+pub struct LitFloat {
+    pub span: Span,
+
+    pub value: String,
+}
+
+#[derive(Clone, Debug, AstNode)]
+pub struct LitInt {
+    pub span: Span,
+
+    pub value: String,
+}
+
+#[derive(Clone, Debug, AstNode)]
+pub struct LitPattern {
+    pub span: Span,
+    pub kind: PatternLitKind,
+    pub expr: AstId,
+}
+
+#[derive(Clone, Debug)]
+pub enum PatternLitKind {
+    Bool,
+    Char,
+    Int,
+    String,
+    Float,
+}
+
+#[derive(Clone, Debug, AstNode)]
+pub struct LitStr {
+    pub span: Span,
+
+    pub value: String,
+}
+
+#[derive(Clone, Debug, AstNode)]
+pub struct Match {
+    pub span: Span,
+
+    pub expr: AstId,
+    pub arms: Vec<AstId>,
+}
+
+#[derive(Clone, Debug, AstNode)]
+pub struct MatchArm {
+    pub span: Span,
+
+    pub pattern: AstId,
+    pub cond: Option<AstId>,
+    pub value: AstId,
+}
+
+#[derive(Clone, Debug)]
+pub struct PatternError {
+    pub span: Span,
 }
 
 #[derive(Clone, Debug, AstNode)]
@@ -545,6 +629,21 @@ impl Modifier {
     }
 }
 
+// remove in next step
+#[derive(Clone, Debug, AstNode)]
+pub struct ModifierList {
+    pub span: Span,
+    pub modifiers: Vec<AstId>,
+}
+
+#[derive(Clone, Debug, AstNode)]
+pub struct Module {
+    pub span: Span,
+    pub modifiers: Option<AstId>,
+    pub name: Option<AstId>,
+    pub elements: Option<Vec<AstId>>,
+}
+
 #[derive(Clone, Debug, AstNode)]
 pub struct Param {
     pub span: Span,
@@ -554,37 +653,64 @@ pub struct Param {
 }
 
 #[derive(Clone, Debug, AstNode)]
-pub struct Let {
+pub struct Paren {
     pub span: Span,
-
-    pub pattern: AstId,
-
-    pub data_type: Option<AstId>,
-    pub expr: Option<AstId>,
-}
-
-#[derive(Clone, Debug, AstNode)]
-pub struct For {
-    pub span: Span,
-
-    pub pattern: AstId,
     pub expr: AstId,
-    pub block: AstId,
 }
 
 #[derive(Clone, Debug, AstNode)]
-pub struct While {
+pub struct Path {
     pub span: Span,
+    pub op_span: Span,
 
-    pub cond: AstId,
-    pub block: AstId,
+    pub lhs: AstId,
+    pub rhs: AstId,
 }
 
 #[derive(Clone, Debug, AstNode)]
-pub struct ExprStmt {
+pub struct PathData {
+    pub span: Span,
+    pub segments: Vec<AstId>,
+}
+
+#[derive(Clone, Debug)]
+pub struct PathSegmentSelf {
+    pub span: Span,
+}
+
+#[derive(Clone, Debug)]
+pub struct PathSegmentIdent {
+    pub span: Span,
+    pub name: AstId,
+}
+
+#[derive(Clone, Debug)]
+pub struct PatternParam {
+    pub span: Span,
+    pub mutable: bool,
+    pub name: Option<AstId>,
+}
+
+#[derive(Clone, Debug, AstNode)]
+pub struct QualifiedPathType {
     pub span: Span,
 
-    pub expr: AstId,
+    pub ty: AstId,
+    pub trait_ty: AstId,
+    pub name: Option<AstId>,
+}
+
+#[derive(Clone, Debug, AstNode)]
+pub struct RegularType {
+    pub span: Span,
+
+    pub path: AstId,
+    pub params: Vec<AstId>,
+}
+
+#[derive(Clone, Debug, AstNode)]
+pub struct Rest {
+    pub span: Span,
 }
 
 #[derive(Clone, Debug, AstNode)]
@@ -595,13 +721,103 @@ pub struct Return {
 }
 
 #[derive(Clone, Debug, AstNode)]
-pub struct Break {
+pub struct Struct {
+    pub span: Span,
+    pub modifiers: Option<AstId>,
+    pub name: Option<AstId>,
+    pub fields: Vec<AstId>,
+    pub type_params: Option<AstId>,
+    pub where_clause: Option<AstId>,
+    pub field_style: FieldNameStyle,
+}
+
+#[derive(Clone, Debug, AstNode)]
+pub struct Template {
+    pub span: Span,
+
+    pub parts: Vec<AstId>,
+}
+
+#[derive(Clone, Debug, AstNode)]
+pub struct This {
     pub span: Span,
 }
 
 #[derive(Clone, Debug, AstNode)]
-pub struct Continue {
+pub struct Trait {
+    pub name: Option<AstId>,
+    pub modifiers: Option<AstId>,
+    pub type_params: Option<AstId>,
+    pub bounds: Vec<AstId>,
+    pub where_clause: Option<AstId>,
     pub span: Span,
+    pub methods: Vec<AstId>,
+}
+
+#[derive(Clone, Debug, AstNode)]
+pub struct Tuple {
+    pub span: Span,
+
+    pub values: Vec<AstId>,
+}
+
+#[derive(Clone, Debug, AstNode)]
+pub struct TuplePattern {
+    pub span: Span,
+    pub params: Vec<AstId>,
+}
+
+#[derive(Clone, Debug, AstNode)]
+pub struct TupleType {
+    pub span: Span,
+
+    pub subtypes: Vec<AstId>,
+}
+
+#[derive(Clone, Debug, AstNode)]
+pub struct TypeArgument {
+    pub span: Span,
+
+    pub name: Option<AstId>,
+    pub ty: AstId,
+}
+
+#[derive(Clone, Debug)]
+pub struct TypeGenericType {
+    pub span: Span,
+
+    pub path: AstId,
+    pub params: Vec<AstId>,
+}
+
+#[derive(Clone, Debug, AstNode)]
+pub struct TypedExpr {
+    pub span: Span,
+    pub op_span: Span,
+
+    pub callee: AstId,
+    pub args: Vec<AstId>,
+}
+
+#[derive(Clone, Debug, AstNode)]
+pub struct TypeParam {
+    pub span: Span,
+    pub name: Option<AstId>,
+    pub bounds: Vec<AstId>,
+}
+
+#[derive(Clone, Debug, AstNode)]
+pub struct TypeParamList {
+    pub span: Span,
+    pub params: Vec<AstId>,
+}
+
+#[derive(Clone, Debug, AstNode)]
+pub struct Un {
+    pub span: Span,
+
+    pub op: UnOp,
+    pub opnd: AstId,
 }
 
 #[derive(PartialEq, Eq, Debug, Copy, Clone)]
@@ -735,111 +951,7 @@ impl BinOp {
 }
 
 #[derive(Clone, Debug, AstNode)]
-pub struct Lambda {
-    pub span: Span,
-    pub fct_id: AstId,
-}
-
-#[derive(Clone, Debug, AstNode)]
-pub struct If {
-    pub span: Span,
-
-    pub cond: AstId,
-    pub then_block: AstId,
-    pub else_block: Option<AstId>,
-}
-
-#[derive(Clone, Debug, AstNode)]
-pub struct Tuple {
-    pub span: Span,
-
-    pub values: Vec<AstId>,
-}
-
-#[derive(Clone, Debug, AstNode)]
-pub struct Conv {
-    pub span: Span,
-
-    pub object: AstId,
-    pub data_type: AstId,
-}
-
-#[derive(Clone, Debug, AstNode)]
-pub struct Is {
-    pub span: Span,
-
-    pub value: AstId,
-    pub pattern: AstId,
-}
-
-#[derive(Clone, Debug, AstNode)]
-pub struct Un {
-    pub span: Span,
-
-    pub op: UnOp,
-    pub opnd: AstId,
-}
-
-#[derive(Clone, Debug, AstNode)]
-pub struct Bin {
-    pub span: Span,
-
-    pub op: BinOp,
-    pub lhs: AstId,
-    pub rhs: AstId,
-}
-
-#[derive(Clone, Debug, AstNode)]
-pub struct LitChar {
-    pub span: Span,
-    pub value: String,
-}
-
-#[derive(Clone, Debug, AstNode)]
-pub struct LitInt {
-    pub span: Span,
-
-    pub value: String,
-}
-
-#[derive(Clone, Debug, AstNode)]
-pub struct LitFloat {
-    pub span: Span,
-
-    pub value: String,
-}
-
-#[derive(Clone, Debug, AstNode)]
-pub struct LitStr {
-    pub span: Span,
-
-    pub value: String,
-}
-
-#[derive(Clone, Debug, AstNode)]
-pub struct Template {
-    pub span: Span,
-
-    pub parts: Vec<AstId>,
-}
-
-#[derive(Clone, Debug, AstNode)]
-pub struct LitBool {
-    pub span: Span,
-
-    pub value: bool,
-}
-
-#[derive(Clone, Debug, AstNode)]
-pub struct Block {
-    pub span: Span,
-
-    pub stmts: Vec<AstId>,
-    pub expr: Option<AstId>,
-}
-
-#[derive(Clone, Debug, AstNode)]
-pub struct This {
+pub struct Underscore {
     pub span: Span,
 }
 
@@ -849,183 +961,71 @@ pub struct UpcaseThis {
 }
 
 #[derive(Clone, Debug, AstNode)]
-pub struct Ident {
+pub struct Use {
     pub span: Span,
-    pub name: String,
-}
-
-#[derive(Clone, Debug, AstNode)]
-pub struct Call {
-    pub span: Span,
-
-    pub callee: AstId,
-    pub args: Vec<AstId>,
-}
-
-impl Call {
-    pub fn object(&self, file: &File) -> Option<AstId> {
-        let callee_node = file.node(self.callee);
-        if let Some(type_param) = callee_node.to_typed_expr() {
-            let node = file.node(type_param.callee);
-            if let Some(dot) = node.to_dot() {
-                Some(dot.lhs)
-            } else {
-                None
-            }
-        } else if let Some(dot) = callee_node.to_dot() {
-            Some(dot.lhs)
-        } else {
-            None
-        }
-    }
-
-    pub fn object_or_callee<'a>(&self, file: &'a File) -> AstId {
-        self.object(file).unwrap_or(self.callee)
-    }
-}
-
-#[derive(Clone, Debug, AstNode)]
-pub struct Argument {
-    pub span: Span,
-    pub name: Option<AstId>,
-    pub expr: AstId,
-}
-
-#[derive(Clone, Debug, AstNode)]
-pub struct Paren {
-    pub span: Span,
-    pub expr: AstId,
-}
-
-#[derive(Clone, Debug, AstNode)]
-pub struct Match {
-    pub span: Span,
-
-    pub expr: AstId,
-    pub arms: Vec<AstId>,
-}
-
-#[derive(Clone, Debug, AstNode)]
-pub struct MatchArm {
-    pub span: Span,
-
-    pub pattern: AstId,
-    pub cond: Option<AstId>,
-    pub value: AstId,
-}
-
-#[derive(Clone, Debug)]
-pub struct PatternError {
-    pub span: Span,
-}
-
-#[derive(Clone, Debug, AstNode)]
-pub struct Alt {
-    pub span: Span,
-
-    pub alts: Vec<AstId>,
-}
-
-#[derive(Clone, Debug, AstNode)]
-pub struct Underscore {
-    pub span: Span,
-}
-
-#[derive(Clone, Debug, AstNode)]
-pub struct Rest {
-    pub span: Span,
-}
-
-#[derive(Clone, Debug, AstNode)]
-pub struct LitPattern {
-    pub span: Span,
-    pub kind: PatternLitKind,
-    pub expr: AstId,
-}
-
-#[derive(Clone, Debug)]
-pub enum PatternLitKind {
-    Bool,
-    Char,
-    Int,
-    String,
-    Float,
-}
-
-#[derive(Clone, Debug, AstNode)]
-pub struct IdentPattern {
-    pub span: Span,
-    pub mutable: bool,
-    pub name: AstId,
-}
-
-#[derive(Clone, Debug, AstNode)]
-pub struct TuplePattern {
-    pub span: Span,
-    pub params: Vec<AstId>,
-}
-
-#[derive(Clone, Debug, AstNode)]
-pub struct CtorPattern {
-    pub span: Span,
+    pub modifiers: Option<AstId>,
     pub path: AstId,
-    pub params: Option<Vec<AstId>>,
 }
 
 #[derive(Clone, Debug, AstNode)]
-pub struct CtorField {
+pub struct UseGroup {
     pub span: Span,
-    pub ident: Option<AstId>,
-    pub pattern: AstId,
+    pub targets: Vec<AstId>,
+}
+
+#[derive(Clone, Debug, AstNode)]
+pub struct UsePath {
+    pub span: Span,
+    pub path: Vec<UseAtom>,
+    pub target: UsePathDescriptor,
 }
 
 #[derive(Clone, Debug)]
-pub struct PatternParam {
+pub enum UsePathDescriptor {
+    Default,
+    As(AstId),
+    Group(AstId),
+    Error,
+}
+
+#[derive(Clone, Debug)]
+pub struct UseAtom {
     pub span: Span,
-    pub mutable: bool,
+    pub value: UsePathComponentValue,
+}
+
+#[derive(Clone, Debug)]
+pub enum UsePathComponentValue {
+    This,
+    Super,
+    Package,
+    Name(AstId),
+    Error,
+}
+
+#[derive(Clone, Debug, AstNode)]
+pub struct UseTargetName {
+    pub span: Span,
     pub name: Option<AstId>,
 }
 
 #[derive(Clone, Debug, AstNode)]
-pub struct PathData {
+pub struct WhereClause {
     pub span: Span,
-    pub segments: Vec<AstId>,
-}
-
-#[derive(Clone, Debug)]
-pub struct PathSegmentSelf {
-    pub span: Span,
-}
-
-#[derive(Clone, Debug)]
-pub struct PathSegmentIdent {
-    pub span: Span,
-    pub name: AstId,
+    pub clauses: Vec<AstId>,
 }
 
 #[derive(Clone, Debug, AstNode)]
-pub struct TypedExpr {
+pub struct WhereClauseItem {
     pub span: Span,
-    pub op_span: Span,
-
-    pub callee: AstId,
-    pub args: Vec<AstId>,
+    pub ty: AstId,
+    pub bounds: Vec<AstId>,
 }
 
 #[derive(Clone, Debug, AstNode)]
-pub struct Path {
+pub struct While {
     pub span: Span,
-    pub op_span: Span,
 
-    pub lhs: AstId,
-    pub rhs: AstId,
-}
-
-#[derive(Clone, Debug, AstNode)]
-pub struct Dot {
-    pub span: Span,
-    pub op_span: Span,
-
-    pub lhs: AstId,
-    pub rhs: AstId,
+    pub cond: AstId,
+    pub block: AstId,
 }
