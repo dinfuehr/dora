@@ -1864,31 +1864,16 @@ impl Parser {
     }
 
     fn parse_lit_char(&mut self) -> AstId {
-        let span = self.current_span();
-        self.assert(CHAR_LITERAL);
-        let value = self.source_span(span);
+        self.start_node();
+        let value = self.assert_value(CHAR_LITERAL);
 
-        alloc!(
-            self,
-            LitChar {
-                span: span,
-                value: value,
-            }
-        )
+        finish!(self, LitChar { value: value })
     }
 
     fn parse_lit_int(&mut self) -> AstId {
-        let span = self.current_span();
-        self.assert(INT_LITERAL);
-        let value = self.source_span(span);
-
-        alloc!(
-            self,
-            LitInt {
-                span: span,
-                value: value,
-            }
-        )
+        self.start_node();
+        let value = self.assert_value(INT_LITERAL);
+        finish!(self, LitInt { value: value })
     }
 
     fn parse_lit_int_minus(&mut self) -> AstId {
@@ -1919,17 +1904,9 @@ impl Parser {
     }
 
     fn parse_lit_float(&mut self) -> AstId {
-        let span = self.current_span();
-        self.assert(FLOAT_LITERAL);
-        let value = self.source_span(span);
-
-        alloc!(
-            self,
-            LitFloat {
-                span: span,
-                value: value,
-            }
-        )
+        self.start_node();
+        let value = self.assert_value(FLOAT_LITERAL);
+        finish!(self, LitFloat { value: value })
     }
 
     fn parse_template(&mut self) -> AstId {
@@ -1989,18 +1966,9 @@ impl Parser {
     }
 
     fn parse_string(&mut self) -> AstId {
-        let span = self.current_span();
-        self.assert(STRING_LITERAL);
-
-        let value = self.source_span(span);
-
-        alloc!(
-            self,
-            LitStr {
-                span: span,
-                value: value,
-            }
-        )
+        self.start_node();
+        let value = self.assert_value(STRING_LITERAL);
+        finish!(self, LitStr { value: value })
     }
 
     fn parse_lit_bool(&mut self) -> AstId {
@@ -2084,16 +2052,25 @@ impl Parser {
         assert!(self.eat(kind));
     }
 
+    fn assert_value(&mut self, kind: TokenKind) -> String {
+        if self.is(kind) {
+            let value = self.current_value();
+            self.advance();
+            value
+        } else {
+            panic!("unexpected token")
+        }
+    }
+
     fn expect_identifier(&mut self) -> Option<AstId> {
-        let span = self.current_span();
+        self.start_node();
 
         if self.is(IDENTIFIER) {
-            self.assert(IDENTIFIER);
-            let name = self.source_span(span);
-
-            Some(alloc!(self, Ident { span, name }))
+            let name = self.assert_value(IDENTIFIER);
+            Some(finish!(self, Ident { name }))
         } else {
-            self.report_error_at(ParseError::ExpectedIdentifier, span);
+            self.cancel_node();
+            self.report_error_at(ParseError::ExpectedIdentifier, self.current_span());
             None
         }
     }
@@ -2158,6 +2135,13 @@ impl Parser {
         } else {
             EOF
         }
+    }
+
+    fn current_value(&self) -> String {
+        let start = self.offset as usize;
+        let end = start + self.token_widths[self.token_idx] as usize;
+        let slice = &self.content[start..end];
+        String::from(slice)
     }
 
     fn current_span(&self) -> Span {
