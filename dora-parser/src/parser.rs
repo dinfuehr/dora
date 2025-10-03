@@ -115,11 +115,10 @@ impl Parser {
             TYPE_KW => self.parse_alias(modifiers),
             _ => {
                 assert!(!ELEM_FIRST.contains(self.current()));
-                let span = self.current_span();
-                self.report_error_at(ParseError::ExpectedElement, span);
+                self.start_node();
+                self.report_error(ParseError::ExpectedElement);
                 self.advance();
-
-                alloc!(self, Error { span })
+                finish!(self, Error {})
             }
         }
     }
@@ -393,8 +392,7 @@ impl Parser {
     }
 
     fn parse_impl(&mut self, modifiers: Option<AstId>) -> AstId {
-        let start = self.current_span().start();
-        self.start_node();
+        let start = self.start_node();
         self.assert(IMPL_KW);
         let type_params = self.parse_type_param_list();
 
@@ -778,8 +776,7 @@ impl Parser {
     }
 
     fn parse_function(&mut self, modifiers: Option<AstId>) -> AstId {
-        let start = self.current_span().start();
-        self.start_node();
+        let start = self.start_node();
         self.assert(FN_KW);
         let name = self.expect_identifier();
         let type_params = self.parse_type_param_list();
@@ -1159,24 +1156,14 @@ impl Parser {
                         StmtOrExpr::Stmt(ast_id)
                     }
                 } else {
-                    let span = self.current_span();
+                    self.start_node();
                     self.report_error(ParseError::ExpectedStatement);
 
                     if !self.is(R_BRACE) {
                         self.advance();
                     }
 
-                    let error_id = alloc!(self, Error { span });
-
-                    let ast_id = alloc!(
-                        self,
-                        ExprStmt {
-                            span,
-                            expr: error_id,
-                        }
-                    );
-
-                    StmtOrExpr::Stmt(ast_id)
+                    StmtOrExpr::Stmt(finish!(self, Error {}))
                 }
             }
         }
@@ -1758,7 +1745,6 @@ impl Parser {
     }
 
     fn parse_factor(&mut self) -> AstId {
-        let span = self.current_span();
         match self.current() {
             L_PAREN => self.parse_parentheses(),
             L_BRACE => self.parse_block(),
@@ -1780,8 +1766,9 @@ impl Parser {
             RETURN_KW => self.parse_return(),
             MATCH_KW => self.parse_match(),
             _ => {
+                self.start_node();
                 self.report_error(ParseError::ExpectedFactor);
-                alloc!(self, Error { span })
+                finish!(self, Error {})
             }
         }
     }
@@ -1939,18 +1926,12 @@ impl Parser {
     }
 
     fn parse_lit_bool(&mut self) -> AstId {
-        let span = self.current_span();
+        self.start_node();
         let kind = self.current();
         self.assert(kind);
         let value = kind == TRUE;
 
-        alloc!(
-            self,
-            LitBool {
-                span: span,
-                value: value,
-            }
-        )
+        finish!(self, LitBool { value: value })
     }
 
     fn parse_this(&mut self) -> AstId {
@@ -1962,6 +1943,7 @@ impl Parser {
 
     fn parse_lambda(&mut self) -> AstId {
         let start = self.current_span().start();
+        self.start_node();
         self.start_node();
 
         let params = if self.eat(OR_OR) {
@@ -1988,16 +1970,14 @@ impl Parser {
         let declaration_span = self.span_from(start);
 
         let block = self.parse_block();
-        let span = self.finish_node();
 
-        let function_id = alloc!(
+        let function_id = finish!(
             self,
             Function {
                 kind: FunctionKind::Lambda,
                 modifiers: None,
                 name: None,
                 declaration_span,
-                span,
                 params,
                 return_type,
                 block: Some(block),
@@ -2006,10 +1986,9 @@ impl Parser {
             }
         );
 
-        alloc!(
+        finish!(
             self,
             Lambda {
-                span: span,
                 fct_id: function_id,
             }
         )
@@ -2155,8 +2134,9 @@ impl Parser {
         self.current() == EOF
     }
 
-    fn start_node(&self) {
+    fn start_node(&self) -> u32 {
         self.nodes.borrow_mut().push((self.token_idx, self.offset));
+        self.current_span().start()
     }
 
     fn cancel_node(&self) {
