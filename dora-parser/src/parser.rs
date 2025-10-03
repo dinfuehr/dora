@@ -1506,11 +1506,14 @@ impl Parser {
                     let right = self.parse_type();
                     let span = self.span_from(start);
 
-                    self.ast_nodes.alloc(Ast::Conv(Conv {
-                        span,
-                        object: left,
-                        data_type: right,
-                    }))
+                    alloc!(
+                        self,
+                        Conv {
+                            span,
+                            object: left,
+                            data_type: right,
+                        }
+                    )
                 }
 
                 IS_KW => {
