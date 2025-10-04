@@ -520,6 +520,7 @@ pub struct Function {
     pub modifiers: Option<AstId>,
     pub kind: FunctionKind,
 
+    #[ast_node_ref(Ident)]
     pub name: Option<AstId>,
     pub type_params: Option<AstId>,
     pub params: Vec<AstId>,
@@ -869,6 +870,7 @@ pub struct TupleType {
 pub struct TypeArgument {
     pub span: Span,
 
+    #[ast_node_ref(Ident)]
     pub name: Option<AstId>,
     pub ty: AstId,
 }

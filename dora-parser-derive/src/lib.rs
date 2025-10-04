@@ -1,10 +1,11 @@
 use proc_macro::TokenStream;
 use quote::quote;
 use syn::{
-    Data, DataEnum, DeriveInput, Fields, GenericArgument, PathArguments, Type, parse_macro_input,
+    Attribute, Data, DataEnum, DeriveInput, Fields, GenericArgument, Meta, PathArguments, Type,
+    parse_macro_input, spanned::Spanned,
 };
 
-#[proc_macro_derive(AstNode)]
+#[proc_macro_derive(AstNode, attributes(ast_node_ref))]
 pub fn derive_ast_node(input: TokenStream) -> TokenStream {
     let input = parse_macro_input!(input as DeriveInput);
     let name = &input.ident;
@@ -71,25 +72,55 @@ pub fn derive_ast_node(input: TokenStream) -> TokenStream {
                             }
                         };
 
+                        // Get return type from attribute (defaults to AstNode)
+                        let return_type = get_return_type_from_attrs(&field.attrs);
+
+                        let assert_code = if return_type.to_string() != "AstNode" {
+                            let is_method_name = syn::Ident::new(
+                                &format!("is_{}", to_snake_case(&return_type.to_string().trim_start_matches("Ast"))),
+                                return_type.span()
+                            );
+                            quote! {
+                                debug_assert!(self.file.node(ast_id).#is_method_name(), "expected node to be {}", stringify!(#return_type));
+                            }
+                        } else {
+                            quote! {}
+                        };
+
                         let wrapper_accessor = if is_ast_id(field_type) {
                             quote! {
-                                pub fn #field_name(&self) -> AstNode {
+                                pub fn #field_name(&self) -> #return_type {
                                     let ast_id = *self.#raw_accessor_name();
-                                    self.file.node2(ast_id)
+                                    #assert_code
+                                    #return_type {
+                                        file: self.file.clone(),
+                                        id: ast_id,
+                                    }
                                 }
                             }
                         } else if is_option_ast_id(field_type) {
                             quote! {
-                                pub fn #field_name(&self) -> Option<AstNode> {
+                                pub fn #field_name(&self) -> Option<#return_type> {
                                     let ast_id = *self.#raw_accessor_name();
-                                    ast_id.map(|ast_id| self.file.node2(ast_id))
+                                    ast_id.map(|ast_id| {
+                                        #assert_code
+                                        #return_type {
+                                            file: self.file.clone(),
+                                            id: ast_id,
+                                        }
+                                    })
                                 }
                             }
                         } else if is_vec_ast_id(field_type) {
                             quote! {
-                                pub fn #field_name_at(&self, idx: usize) -> AstNode {
+                                pub fn #field_name_at(&self, idx: usize) -> #return_type {
                                     let vec = self.#raw_accessor_name();
-                                    self.file.node2(vec[idx])
+                                    let ast_id = vec[idx];
+                                    #assert_code
+                                    #return_type {
+                                        file: self.file.clone(),
+                                        id: ast_id,
+                                    }
                                 }
 
                                 pub fn #field_name_len(&self) -> usize {
@@ -509,4 +540,24 @@ fn to_snake_case(s: &str) -> String {
     }
 
     result
+}
+
+fn get_return_type_from_attrs(attrs: &[Attribute]) -> syn::Ident {
+    for attr in attrs {
+        if attr.path().is_ident("ast_node_ref") {
+            if let Meta::List(meta_list) = &attr.meta {
+                // Parse the tokens inside the attribute: #[ast_node_ref(TypeName)]
+                let tokens = &meta_list.tokens;
+                let tokens_str = tokens.to_string();
+                let type_name = tokens_str.trim();
+
+                if !type_name.is_empty() {
+                    let prefixed_name = format!("Ast{}", type_name);
+                    return syn::Ident::new(&prefixed_name, attr.meta.span());
+                }
+            }
+        }
+    }
+    // Default to AstNode if no attribute is specified
+    syn::Ident::new("AstNode", proc_macro2::Span::call_site())
 }

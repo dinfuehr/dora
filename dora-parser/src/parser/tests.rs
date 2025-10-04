@@ -785,7 +785,7 @@ fn parse_type_regular_with_bindings() {
     );
 
     let arg1 = ty.params_at(1).as_type_argument();
-    assert_eq!("X", arg1.name().unwrap().as_ident().name());
+    assert_eq!("X", arg1.name().unwrap().name());
     assert_eq!(
         "B",
         arg1.ty()
