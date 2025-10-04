@@ -19,7 +19,6 @@ use crate::sema::{
 };
 use crate::sym::{SymTable, Symbol, SymbolKind};
 use crate::{ParsedType, SourceType, report_sym_shadow_span, ty};
-use dora_parser::ast::visit::Visitor;
 use dora_parser::ast::{self, AstId, visit};
 use dora_parser::parser::Parser;
 use dora_parser::{Span, compute_line_starts};
@@ -232,7 +231,7 @@ impl<'a> ProgramParser<'a> {
                 module_symtables: &mut self.module_symtables,
             };
 
-            decl_discovery.visit_file(ast);
+            visit::visit_node(&mut decl_discovery, ast, ast.root_id());
 
             let module_table = decl_discovery.module_table;
 
@@ -439,7 +438,7 @@ impl<'x> visit::Visitor for TopLevelDeclaration<'x> {
 
             let saved_module_table = std::mem::replace(&mut self.module_table, module_table);
             self.module_id = id;
-            visit::walk_module(self, f, ast_id, node);
+            visit::walk_children(self, f, ast_id);
             self.module_id = saved_module_id;
             let module_table = std::mem::replace(&mut self.module_table, saved_module_table);
 

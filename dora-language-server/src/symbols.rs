@@ -1,6 +1,5 @@
 use std::sync::Arc;
 
-use dora_parser::ast::visit::Visitor;
 use lsp_server::{Message, Request, Response};
 use lsp_types::{DocumentSymbol, DocumentSymbolResponse, Position, Range, SymbolKind};
 
@@ -66,7 +65,7 @@ fn parse_file(content: Arc<String>) -> Vec<DocumentSymbol> {
         content,
     };
 
-    scanner.visit_file(&file);
+    visit::visit_node(&mut scanner, &file, file.root_id());
 
     transform(&line_starts, scanner.symbols)
 }
@@ -187,7 +186,7 @@ impl visit::Visitor for SymbolScanner {
         self.add_symbol(name, name_span, DoraSymbolKind::Module, node.span);
 
         self.start_children();
-        visit::walk_module(self, f, id, node);
+        visit::walk_children(self, f, id);
         self.stop_children();
     }
 
@@ -233,7 +232,7 @@ impl visit::Visitor for SymbolScanner {
         self.add_symbol(name, name_span, DoraSymbolKind::Impl, node.span);
 
         self.start_children();
-        visit::walk_impl(self, f, id, node);
+        visit::walk_children(self, f, id);
         self.stop_children();
     }
 
@@ -269,11 +268,6 @@ impl visit::Visitor for SymbolScanner {
     }
 
     fn visit_fct(&mut self, f: &ast::File, _id: ast::AstId, node: &ast::Function) {
-        let (name, name_span) = ensure_name(f, node.name, "<fn>", node.span);
-        self.add_symbol(name, name_span, DoraSymbolKind::Function, node.span);
-    }
-
-    fn visit_method(&mut self, f: &ast::File, _id: ast::AstId, node: &ast::Function) {
         let (name, name_span) = ensure_name(f, node.name, "<fn>", node.span);
         self.add_symbol(name, name_span, DoraSymbolKind::Function, node.span);
     }

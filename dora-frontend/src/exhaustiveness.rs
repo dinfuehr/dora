@@ -21,8 +21,7 @@ pub fn check(sa: &Sema) {
             };
 
             let file = sa.file(fct.file_id());
-            let ast = file.node(fct.ast_id()).as_function();
-            visit::walk_fct(&mut visitor, file.ast(), fct.ast_id(), ast);
+            visit::walk_children(&mut visitor, file.ast(), fct.ast_id());
         }
     }
 }
@@ -36,7 +35,7 @@ struct Exhaustiveness<'a> {
 impl<'a> Visitor for Exhaustiveness<'a> {
     fn visit_match(&mut self, f: &ast::File, ast_id: ast::AstId, node: &ast::Match) {
         check_match(self.sa, self.analysis, self.file_id, node);
-        visit::walk_match(self, f, ast_id, node);
+        visit::walk_children(self, f, ast_id);
     }
 
     fn visit_lambda(&mut self, _f: &ast::File, _id: ast::AstId, _node: &ast::Lambda) {}
