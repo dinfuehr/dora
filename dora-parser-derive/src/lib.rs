@@ -96,8 +96,13 @@ pub fn derive_ast_node(input: TokenStream) -> TokenStream {
                                     self.#raw_accessor_name().len()
                                 }
 
-                                pub fn #field_name(&self) -> &#field_type {
-                                    self.#raw_accessor_name()
+                                pub fn #field_name(&self) -> AstIdIterator<'_> {
+                                    let vec = self.#raw_accessor_name();
+                                    AstIdIterator {
+                                        file: self.file.clone(),
+                                        ids: vec.as_slice(),
+                                        index: 0,
+                                    }
                                 }
                             }
                         } else if is_likely_copy_type(field_type) {

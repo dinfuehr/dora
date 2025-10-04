@@ -521,6 +521,11 @@ fn parse_let_lit_bool() {
     let tuple = let_decl.pattern().as_tuple_pattern();
     assert!(tuple.params_at(0).is_ident_pattern());
     assert!(tuple.params_at(1).is_lit_pattern());
+
+    let mut params = tuple.params();
+    assert_eq!(params.next().unwrap(), tuple.params_at(0));
+    assert_eq!(params.next().unwrap(), tuple.params_at(1));
+    assert!(params.next().is_none());
 }
 
 #[test]

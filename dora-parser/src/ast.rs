@@ -234,7 +234,7 @@ impl Ast {
     }
 }
 
-#[allow(unused)]
+#[derive(Debug)]
 pub struct AstNode {
     file: File,
     id: AstId,
@@ -244,6 +244,53 @@ impl AstNode {
     #[allow(unused)]
     pub fn raw_node(&self) -> &Ast {
         self.file.node(self.id)
+    }
+}
+
+impl PartialEq for AstNode {
+    fn eq(&self, other: &Self) -> bool {
+        self.id == other.id && Arc::ptr_eq(&self.file.0, &other.file.0)
+    }
+}
+
+impl Eq for AstNode {}
+
+pub struct AstIdIterator<'a> {
+    file: File,
+    ids: &'a [AstId],
+    index: usize,
+}
+
+impl<'a> AstIdIterator<'a> {
+    pub fn new(file: File, ids: &'a [AstId]) -> Self {
+        AstIdIterator {
+            file,
+            ids,
+            index: 0,
+        }
+    }
+}
+
+impl<'a> Iterator for AstIdIterator<'a> {
+    type Item = AstNode;
+
+    fn next(&mut self) -> Option<Self::Item> {
+        if self.index < self.ids.len() {
+            let id = self.ids[self.index];
+            self.index += 1;
+            Some(AstNode {
+                file: self.file.clone(),
+                id,
+            })
+        } else {
+            None
+        }
+    }
+}
+
+impl<'a> ExactSizeIterator for AstIdIterator<'a> {
+    fn len(&self) -> usize {
+        self.ids.len() - self.index
     }
 }
 
