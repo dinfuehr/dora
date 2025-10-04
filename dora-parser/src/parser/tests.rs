@@ -31,7 +31,7 @@ fn err_expr(code: &'static str, msg: ParseError, line: u32, col: u32) {
     assert_eq!(col, computed_column);
 }
 
-fn parse_let(code: &'static str) -> (AstId, File) {
+fn parse_let(code: &'static str) -> AstLet {
     let mut parser = Parser::from_string(code);
     let node_id = parser.parse_let();
     assert!(parser.current().is_eof());
@@ -47,16 +47,16 @@ fn parse_let(code: &'static str) -> (AstId, File) {
         }
     }
     assert!(errors.is_empty());
-    (node_id, file)
+    file.node2(node_id).as_let()
 }
 
-fn parse_type(code: &'static str) -> (AstId, File) {
+fn parse_type(code: &'static str) -> AstNode {
     let mut parser = Parser::from_string(code);
     let node_id = parser.parse_type();
     assert!(parser.current().is_eof());
     let (file, errors) = parser.into_file(node_id);
     assert!(errors.is_empty());
-    (node_id, file)
+    file.node2(node_id)
 }
 
 fn parse(code: &'static str) -> File {
@@ -473,154 +473,138 @@ fn parse_function_with_multiple_params() {
 
 #[test]
 fn parse_let_without_type() {
-    let (stmt, f) = parse_let("let a = 1;");
-    let var = f.node(stmt).as_let();
+    let var = parse_let("let a = 1;");
 
-    assert!(var.data_type.is_none());
-    assert!(f.node(var.expr.unwrap()).is_lit_int());
+    assert!(var.data_type().is_none());
+    assert!(var.expr().unwrap().is_lit_int());
 }
 
 #[test]
 fn parse_let_rest() {
-    let (stmt, f) = parse_let("let .. = 1;");
-    let var = f.node(stmt).as_let();
-    assert!(f.node(var.pattern).is_rest());
+    let var = parse_let("let .. = 1;");
+    assert!(var.pattern().is_rest());
 
-    assert!(var.data_type.is_none());
-    assert!(f.node(var.expr.unwrap()).is_lit_int());
+    assert!(var.data_type().is_none());
+    assert!(var.expr().unwrap().is_lit_int());
 }
 
 #[test]
 fn parse_let_with_type() {
-    let (stmt, f) = parse_let("let x : int = 1;");
-    let var = f.node(stmt).as_let();
+    let var = parse_let("let x : int = 1;");
 
-    assert!(var.data_type.is_some());
-    assert!(f.node(var.expr.unwrap()).is_lit_int());
+    assert!(var.data_type().is_some());
+    assert!(var.expr().unwrap().is_lit_int());
 }
 
 #[test]
 fn parse_let_underscore() {
-    let (stmt, f) = parse_let("let _ = 1;");
-    let let_decl = f.node(stmt).as_let();
-    assert!(f.node(let_decl.pattern).is_underscore());
+    let let_decl = parse_let("let _ = 1;");
+    assert!(let_decl.pattern().is_underscore());
 }
 
 #[test]
 fn parse_let_tuple() {
-    let (stmt, f) = parse_let("let (mut a, b, (c, d)) = 1;");
-    let let_decl = f.node(stmt).as_let();
+    let let_decl = parse_let("let (mut a, b, (c, d)) = 1;");
 
-    let tuple = f.node(let_decl.pattern).as_tuple_pattern();
-    let first = f.node(tuple.params[0]);
+    let tuple = let_decl.pattern().as_tuple_pattern();
+    let first = tuple.params_at(0);
     assert!(first.is_ident_pattern());
-    assert!(first.as_ident_pattern().mutable);
-    let last = f.node(tuple.params[2]);
+    assert!(first.as_ident_pattern().mutable());
+    let last = tuple.params_at(2);
     assert!(last.is_tuple_pattern());
 }
 
 #[test]
 fn parse_let_lit_bool() {
-    let (stmt, f) = parse_let("let (a, true) = 1;");
-    let let_decl = f.node(stmt).as_let();
+    let let_decl = parse_let("let (a, true) = 1;");
 
-    let tuple = f.node(let_decl.pattern).as_tuple_pattern();
-    assert!(f.node(tuple.params[0]).is_ident_pattern());
-    assert!(f.node(tuple.params[1]).is_lit_pattern());
+    let tuple = let_decl.pattern().as_tuple_pattern();
+    assert!(tuple.params_at(0).is_ident_pattern());
+    assert!(tuple.params_at(1).is_lit_pattern());
 }
 
 #[test]
 fn parse_let_lit_char() {
-    let (stmt, f) = parse_let("let (a, 'x') = 1;");
-    let let_decl = f.node(stmt).as_let();
+    let let_decl = parse_let("let (a, 'x') = 1;");
 
-    let tuple = f.node(let_decl.pattern).as_tuple_pattern();
-    assert!(f.node(tuple.params[0]).is_ident_pattern());
-    assert!(f.node(tuple.params[1]).is_lit_pattern());
+    let tuple = let_decl.pattern().as_tuple_pattern();
+    assert!(tuple.params_at(0).is_ident_pattern());
+    assert!(tuple.params_at(1).is_lit_pattern());
 }
 
 #[test]
 fn parse_let_lit_string() {
-    let (stmt, f) = parse_let("let (a, \"x\") = 1;");
-    let let_decl = f.node(stmt).as_let();
+    let let_decl = parse_let("let (a, \"x\") = 1;");
 
-    let tuple = f.node(let_decl.pattern).as_tuple_pattern();
-    assert!(f.node(tuple.params[0]).is_ident_pattern());
-    assert!(f.node(tuple.params[1]).is_lit_pattern());
+    let tuple = let_decl.pattern().as_tuple_pattern();
+    assert!(tuple.params_at(0).is_ident_pattern());
+    assert!(tuple.params_at(1).is_lit_pattern());
 }
 
 #[test]
 fn parse_let_lit_int() {
-    let (stmt, f) = parse_let("let (a, 17) = 1;");
-    let let_decl = f.node(stmt).as_let();
+    let let_decl = parse_let("let (a, 17) = 1;");
 
-    let tuple = f.node(let_decl.pattern).as_tuple_pattern();
-    assert!(f.node(tuple.params[0]).is_ident_pattern());
-    assert!(f.node(tuple.params[1]).is_lit_pattern());
+    let tuple = let_decl.pattern().as_tuple_pattern();
+    assert!(tuple.params_at(0).is_ident_pattern());
+    assert!(tuple.params_at(1).is_lit_pattern());
 }
 
 #[test]
 fn parse_let_lit_int_neg() {
-    let (stmt, f) = parse_let("let (a, -17) = 1;");
-    let let_decl = f.node(stmt).as_let();
+    let let_decl = parse_let("let (a, -17) = 1;");
 
-    let tuple = f.node(let_decl.pattern).as_tuple_pattern();
-    assert!(f.node(tuple.params[0]).is_ident_pattern());
-    assert!(f.node(tuple.params[1]).is_lit_pattern());
+    let tuple = let_decl.pattern().as_tuple_pattern();
+    assert!(tuple.params_at(0).is_ident_pattern());
+    assert!(tuple.params_at(1).is_lit_pattern());
 }
 
 #[test]
 fn parse_let_lit_float() {
-    let (stmt, f) = parse_let("let (a, 17.5) = 1;");
-    let let_decl = f.node(stmt).as_let();
+    let let_decl = parse_let("let (a, 17.5) = 1;");
 
-    let tuple = f.node(let_decl.pattern).as_tuple_pattern();
-    assert!(f.node(tuple.params[0]).is_ident_pattern());
-    assert!(f.node(tuple.params[1]).is_lit_pattern());
+    let tuple = let_decl.pattern().as_tuple_pattern();
+    assert!(tuple.params_at(0).is_ident_pattern());
+    assert!(tuple.params_at(1).is_lit_pattern());
 }
 
 #[test]
 fn parse_let_lit_float_neg() {
-    let (stmt, f) = parse_let("let (a, -17.5) = 1;");
-    let let_decl = f.node(stmt).as_let();
+    let let_decl = parse_let("let (a, -17.5) = 1;");
 
-    let tuple = f.node(let_decl.pattern).as_tuple_pattern();
-    assert!(f.node(tuple.params[0]).is_ident_pattern());
-    assert!(f.node(tuple.params[1]).is_lit_pattern());
+    let tuple = let_decl.pattern().as_tuple_pattern();
+    assert!(tuple.params_at(0).is_ident_pattern());
+    assert!(tuple.params_at(1).is_lit_pattern());
 }
 
 #[test]
 fn parse_let_ident() {
-    let (stmt, f) = parse_let("let x = 1;");
-    let let_decl = f.node(stmt).as_let();
+    let let_decl = parse_let("let x = 1;");
 
-    assert!(f.node(let_decl.pattern).is_ident_pattern());
+    assert!(let_decl.pattern().is_ident_pattern());
 }
 
 #[test]
 fn parse_let_ident_mut() {
-    let (stmt, f) = parse_let("let mut x = 1;");
-    let let_decl = f.node(stmt).as_let();
+    let let_decl = parse_let("let mut x = 1;");
 
-    assert!(f.node(let_decl.pattern).as_ident_pattern().mutable);
+    assert!(let_decl.pattern().as_ident_pattern().mutable());
 }
 
 #[test]
 fn parse_let_with_type_but_without_assignment() {
-    let (stmt, f) = parse_let("let x : int;");
-    let var = f.node(stmt).as_let();
+    let var = parse_let("let x : int;");
 
-    assert!(var.data_type.is_some());
-    assert!(var.expr.is_none());
+    assert!(var.data_type().is_some());
+    assert!(var.expr().is_none());
 }
 
 #[test]
 fn parse_let_without_type_and_assignment() {
-    let (stmt, f) = parse_let("let x;");
-    let var = f.node(stmt).as_let();
+    let var = parse_let("let x;");
 
-    assert!(var.data_type.is_none());
-    assert!(var.expr.is_none());
+    assert!(var.data_type().is_none());
+    assert!(var.expr().is_none());
 }
 
 #[test]
@@ -715,116 +699,223 @@ fn parse_return() {
 
 #[test]
 fn parse_type_regular() {
-    let (ty_id, f) = parse_type("bla");
-    let ty = f.node(ty_id).as_regular_type();
+    let ty = parse_type("bla").as_regular_type();
 
-    assert_eq!(0, ty.params.len());
-    assert_eq!("bla", tr_name(&f, ty_id));
+    assert_eq!(0, ty.params_len());
+    assert_eq!(
+        "bla",
+        ty.path().as_path_data().segments_at(0).as_ident().name()
+    );
 }
 
 #[test]
 fn parse_type_regular_mod() {
-    let (ty, f) = parse_type("foo::bla");
-    let regular = f.node(ty).as_regular_type();
+    let regular = parse_type("foo::bla").as_regular_type();
 
-    assert_eq!(0, regular.params.len());
-    let path = f.node(regular.path).as_path_data();
-    assert_eq!(2, path.segments.len());
-    assert_eq!("foo", ident_name(&f, path.segments[0]));
-    assert_eq!("bla", ident_name(&f, path.segments[1]));
+    assert_eq!(0, regular.params_len());
+    let path = regular.path().as_path_data();
+    assert_eq!(2, path.segments_len());
+    assert_eq!("foo", path.segments_at(0).as_ident().name());
+    assert_eq!("bla", path.segments_at(1).as_ident().name());
 }
 
 #[test]
 fn parse_type_regular_with_params() {
-    let (ty_id, f) = parse_type("Foo[A, B]");
-    let regular = f.node(ty_id).as_regular_type();
+    let regular = parse_type("Foo[A, B]").as_regular_type();
 
-    assert_eq!(2, regular.params.len());
-    assert_eq!("Foo", tr_name(&f, ty_id));
-    assert_eq!("A", ta_name(&f, regular.params[0]));
-    assert_eq!("B", ta_name(&f, regular.params[1]));
+    assert_eq!(2, regular.params_len());
+    assert_eq!(
+        "Foo",
+        regular
+            .path()
+            .as_path_data()
+            .segments_at(0)
+            .as_ident()
+            .name()
+    );
+    let arg0 = regular.params_at(0).as_type_argument();
+    assert_eq!(
+        "A",
+        arg0.ty()
+            .as_regular_type()
+            .path()
+            .as_path_data()
+            .segments_at(0)
+            .as_ident()
+            .name()
+    );
+    let arg1 = regular.params_at(1).as_type_argument();
+    assert_eq!(
+        "B",
+        arg1.ty()
+            .as_regular_type()
+            .path()
+            .as_path_data()
+            .segments_at(0)
+            .as_ident()
+            .name()
+    );
 }
 
 #[test]
 fn parse_type_regular_with_bindings() {
-    let (ty_id, f) = parse_type("Foo[A, X = B]");
-    let ty = f.node(ty_id).as_regular_type();
+    let ty = parse_type("Foo[A, X = B]").as_regular_type();
 
-    assert_eq!(2, ty.params.len());
-    assert_eq!("Foo", tr_name(&f, ty_id));
-    let arg0_id = ty.params[0];
-    let arg0 = f
-        .node(arg0_id)
-        .to_type_argument()
-        .expect("type argument expected");
-    assert!(arg0.name.is_none());
-    assert_eq!("A", tr_name(&f, arg0.ty));
+    assert_eq!(2, ty.params_len());
+    assert_eq!(
+        "Foo",
+        ty.path().as_path_data().segments_at(0).as_ident().name()
+    );
+    let arg0 = ty.params_at(0).as_type_argument();
+    assert!(arg0.name().is_none());
+    assert_eq!(
+        "A",
+        arg0.ty()
+            .as_regular_type()
+            .path()
+            .as_path_data()
+            .segments_at(0)
+            .as_ident()
+            .name()
+    );
 
-    let arg1_id = ty.params[1];
-    let arg1 = f
-        .node(arg1_id)
-        .to_type_argument()
-        .expect("type argument expected");
-    assert_eq!("X", id_name(&f, arg1.name));
-    assert_eq!("B", tr_name(&f, arg1.ty));
+    let arg1 = ty.params_at(1).as_type_argument();
+    assert_eq!("X", arg1.name().unwrap().as_ident().name());
+    assert_eq!(
+        "B",
+        arg1.ty()
+            .as_regular_type()
+            .path()
+            .as_path_data()
+            .segments_at(0)
+            .as_ident()
+            .name()
+    );
 }
 
 #[test]
 fn parse_type_lambda_no_params() {
-    let (ty, f) = parse_type("(): ()");
-    let fct = f.node(ty).as_lambda_type();
+    let fct = parse_type("(): ()").as_lambda_type();
 
-    assert_eq!(0, fct.params.len());
-    assert!(f.node(fct.ret.unwrap()).is_unit());
+    assert_eq!(0, fct.params_len());
+    assert!(fct.ret().unwrap().raw_node().is_unit());
 }
 
 #[test]
 fn parse_type_lambda_one_param() {
-    let (ty_id, f) = parse_type("(A): B");
-    let fct = f.node(ty_id).as_lambda_type();
+    let fct = parse_type("(A): B").as_lambda_type();
 
-    assert_eq!(1, fct.params.len());
-    assert_eq!("A", tr_name(&f, fct.params[0]));
-    assert_eq!("B", tr_name(&f, fct.ret.unwrap()));
+    assert_eq!(1, fct.params_len());
+    assert_eq!(
+        "A",
+        fct.params_at(0)
+            .as_regular_type()
+            .path()
+            .as_path_data()
+            .segments_at(0)
+            .as_ident()
+            .name()
+    );
+    assert_eq!(
+        "B",
+        fct.ret()
+            .unwrap()
+            .as_regular_type()
+            .path()
+            .as_path_data()
+            .segments_at(0)
+            .as_ident()
+            .name()
+    );
 }
 
 #[test]
 fn parse_type_lambda_two_params() {
-    let (ty_id, f) = parse_type("(A, B): C");
-    let fct = f.node(ty_id).as_lambda_type();
+    let fct = parse_type("(A, B): C").as_lambda_type();
 
-    assert_eq!(2, fct.params.len());
-    assert_eq!("A", tr_name(&f, fct.params[0]));
-    assert_eq!("B", tr_name(&f, fct.params[1]));
-    assert_eq!("C", tr_name(&f, fct.ret.unwrap()));
+    assert_eq!(2, fct.params_len());
+    assert_eq!(
+        "A",
+        fct.params_at(0)
+            .as_regular_type()
+            .path()
+            .as_path_data()
+            .segments_at(0)
+            .as_ident()
+            .name()
+    );
+    assert_eq!(
+        "B",
+        fct.params_at(1)
+            .as_regular_type()
+            .path()
+            .as_path_data()
+            .segments_at(0)
+            .as_ident()
+            .name()
+    );
+    assert_eq!(
+        "C",
+        fct.ret()
+            .unwrap()
+            .as_regular_type()
+            .path()
+            .as_path_data()
+            .segments_at(0)
+            .as_ident()
+            .name()
+    );
 }
 
 #[test]
 fn parse_type_unit() {
-    let (ty, f) = parse_type("()");
-    let ty = f.node(ty).as_tuple_type();
+    let ty = parse_type("()").as_tuple_type();
 
-    assert!(ty.subtypes.is_empty());
+    assert!(ty.subtypes_len() == 0);
 }
 
 #[test]
 fn parse_type_tuple_with_one_type() {
-    let (ty, f) = parse_type("(c)");
+    let ty = parse_type("(c)").as_tuple_type();
 
-    let subtypes = &f.node(ty).as_tuple_type().subtypes;
-    assert_eq!(1, subtypes.len());
-
-    assert_eq!("c", tr_name(&f, subtypes[0]));
+    assert_eq!(1, ty.subtypes_len());
+    assert_eq!(
+        "c",
+        ty.subtypes_at(0)
+            .as_regular_type()
+            .path()
+            .as_path_data()
+            .segments_at(0)
+            .as_ident()
+            .name()
+    );
 }
 
 #[test]
 fn parse_type_tuple_with_two_types() {
-    let (ty, f) = parse_type("(a, b)");
+    let ty = parse_type("(a, b)").as_tuple_type();
 
-    let subtypes = &f.node(ty).as_tuple_type().subtypes;
-    assert_eq!(2, subtypes.len());
-    assert_eq!("a", tr_name(&f, subtypes[0]));
-    assert_eq!("b", tr_name(&f, subtypes[1]));
+    assert_eq!(2, ty.subtypes_len());
+    assert_eq!(
+        "a",
+        ty.subtypes_at(0)
+            .as_regular_type()
+            .path()
+            .as_path_data()
+            .segments_at(0)
+            .as_ident()
+            .name()
+    );
+    assert_eq!(
+        "b",
+        ty.subtypes_at(1)
+            .as_regular_type()
+            .path()
+            .as_path_data()
+            .segments_at(0)
+            .as_ident()
+            .name()
+    );
 }
 
 #[test]
@@ -1062,13 +1153,12 @@ fn parse_class_type_params() {
 
 #[test]
 fn parse_type_path() {
-    let (ty, f) = parse_type("Foo::Bar::Baz");
-    let ty = f.node(ty).as_regular_type();
-    let path = f.node(ty.path).as_path_data();
-    assert_eq!(path.segments.len(), 3);
-    assert_eq!(ident_name(&f, path.segments[0]), "Foo");
-    assert_eq!(ident_name(&f, path.segments[1]), "Bar");
-    assert_eq!(ident_name(&f, path.segments[2]), "Baz");
+    let ty = parse_type("Foo::Bar::Baz").as_regular_type();
+    let path = ty.path().as_path_data();
+    assert_eq!(path.segments_len(), 3);
+    assert_eq!(path.segments_at(0).as_ident().name(), "Foo");
+    assert_eq!(path.segments_at(1).as_ident().name(), "Bar");
+    assert_eq!(path.segments_at(2).as_ident().name(), "Baz");
 }
 
 #[test]
@@ -1501,25 +1591,12 @@ fn id_name(f: &File, id: Option<AstId>) -> &str {
         .name
 }
 
-fn ident_name<'a>(f: &'a File, node_id: AstId) -> &'a str {
-    let node = f.node(node_id).as_ident();
-    &node.name
-}
-
 fn tr_name<'a>(f: &'a File, id: AstId) -> &'a str {
     let node = f.node(id).as_regular_type();
     let path = f.node(node.path).as_path_data();
     assert_eq!(path.segments.len(), 1);
     let segment_id = path.segments.first().cloned().expect("missing segment");
     &f.node(segment_id).as_ident().name
-}
-
-fn ta_name<'a>(f: &'a File, id: AstId) -> &'a str {
-    let node = f
-        .node(id)
-        .to_type_argument()
-        .expect("regular type expected");
-    tr_name(f, node.ty)
 }
 
 fn pat_name<'a>(f: &'a File, node_id: AstId) -> &'a str {
