@@ -64,8 +64,7 @@ impl File {
 
     #[cfg(test)]
     pub fn fct(&self, index: usize) -> &Function {
-        self.node(self.root().elements[index])
-            .as_function()
+        self.node(self.root().elements[index]).as_function()
     }
 
     #[cfg(test)]

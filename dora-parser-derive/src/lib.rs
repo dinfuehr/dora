@@ -57,19 +57,47 @@ pub fn derive_ast_node(input: TokenStream) -> TokenStream {
                             &format!("to_{}", to_snake_case(&name.to_string())),
                             name.span(),
                         );
+                        let field_name_at =
+                            syn::Ident::new(&format!("{}_at", field_name), field_name.span());
+                        let field_name_len =
+                            syn::Ident::new(&format!("{}_len", field_name), field_name.span());
 
-                        if is_ast_id(field_type) {
+                        let raw_accessor_name =
+                            syn::Ident::new(&format!("raw_{}", field_name), field_name.span());
+
+                        let raw_accessor = quote! {
+                            pub fn #raw_accessor_name(&self) -> &#field_type {
+                                &self.file.node(self.id).#to_method().unwrap().#field_name
+                            }
+                        };
+
+                        let wrapper_accessor = if is_ast_id(field_type) {
                             quote! {
                                 pub fn #field_name(&self) -> AstNode {
-                                    let ast_id = self.file.node(self.id).#to_method().unwrap().#field_name;
+                                    let ast_id = *self.#raw_accessor_name();
                                     self.file.node2(ast_id)
                                 }
                             }
                         } else if is_option_ast_id(field_type) {
                             quote! {
                                 pub fn #field_name(&self) -> Option<AstNode> {
-                                    let ast_id = self.file.node(self.id).#to_method().unwrap().#field_name;
+                                    let ast_id = *self.#raw_accessor_name();
                                     ast_id.map(|ast_id| self.file.node2(ast_id))
+                                }
+                            }
+                        } else if is_vec_ast_id(field_type) {
+                            quote! {
+                                pub fn #field_name_at(&self, idx: usize) -> AstNode {
+                                    let vec = self.#raw_accessor_name();
+                                    self.file.node2(vec[idx])
+                                }
+
+                                pub fn #field_name_len(&self) -> usize {
+                                    self.#raw_accessor_name().len()
+                                }
+
+                                pub fn #field_name(&self) -> &#field_type {
+                                    self.#raw_accessor_name()
                                 }
                             }
                         } else if is_likely_copy_type(field_type) {
@@ -81,9 +109,14 @@ pub fn derive_ast_node(input: TokenStream) -> TokenStream {
                         } else {
                             quote! {
                                 pub fn #field_name(&self) -> &#field_type {
-                                    &self.file.node(self.id).#to_method().unwrap().#field_name
+                                    self.#raw_accessor_name()
                                 }
                             }
+                        };
+
+                        quote! {
+                            #wrapper_accessor
+                            #raw_accessor
                         }
                     });
 
