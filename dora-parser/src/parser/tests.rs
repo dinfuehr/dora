@@ -192,16 +192,14 @@ fn parse_neg() {
 
 #[test]
 fn parse_neg_twice() {
-    let (expr, f) = parse_expr("-(-3)");
+    let expr = parse_expr2("-(-3)").as_un();
+    assert_eq!(UnOp::Neg, expr.op());
 
-    let neg1 = f.node(expr).as_un();
-    assert_eq!(UnOp::Neg, neg1.op);
+    let paren = expr.opnd().as_paren();
+    let neg2 = paren.expr().as_un();
+    assert_eq!(UnOp::Neg, neg2.op());
 
-    let paren = f.node(neg1.opnd).as_paren();
-    let neg2 = f.node(paren.expr).as_un();
-    assert_eq!(UnOp::Neg, neg2.op);
-
-    assert!(f.node(neg2.opnd).is_lit_int());
+    assert!(neg2.opnd().is_lit_int());
 }
 
 #[test]
@@ -211,412 +209,220 @@ fn parse_neg_twice_without_parentheses() {
 
 #[test]
 fn parse_mul() {
-    let (expr, f) = parse_expr("6*3");
-
-    let mul = f.node(expr).as_bin();
-    assert_eq!(BinOp::Mul, mul.op);
-    assert_eq!(
-        String::from("6"),
-        f.node(mul.lhs).as_lit_int().value
-    );
-    assert_eq!(
-        String::from("3"),
-        f.node(mul.rhs).as_lit_int().value
-    );
+    let expr = parse_expr2("6*3").as_bin();
+    assert_eq!(BinOp::Mul, expr.op());
+    assert_eq!("6", expr.lhs().as_lit_int().value());
+    assert_eq!("3", expr.rhs().as_lit_int().value());
 }
 
 #[test]
 fn parse_multiple_muls() {
-    let (expr, f) = parse_expr("6*3*4");
+    let expr = parse_expr2("6*3*4").as_bin();
+    assert_eq!(BinOp::Mul, expr.op());
 
-    let mul1 = f.node(expr).as_bin();
-    assert_eq!(BinOp::Mul, mul1.op);
+    let mul2 = expr.lhs().as_bin();
+    assert_eq!(BinOp::Mul, mul2.op());
+    assert_eq!("6", mul2.lhs().as_lit_int().value());
+    assert_eq!("3", mul2.rhs().as_lit_int().value());
 
-    let mul2 = f.node(mul1.lhs).as_bin();
-    assert_eq!(BinOp::Mul, mul2.op);
-    assert_eq!(
-        String::from("6"),
-        f.node(mul2.lhs).as_lit_int().value
-    );
-    assert_eq!(
-        String::from("3"),
-        f.node(mul2.rhs).as_lit_int().value
-    );
-
-    assert_eq!(
-        String::from("4"),
-        f.node(mul1.rhs).as_lit_int().value
-    );
+    assert_eq!("4", expr.rhs().as_lit_int().value());
 }
 
 #[test]
 fn parse_div() {
-    let (expr, f) = parse_expr("4/5");
-
-    let div = f.node(expr).as_bin();
-    assert_eq!(BinOp::Div, div.op);
-    assert_eq!(
-        String::from("4"),
-        f.node(div.lhs).as_lit_int().value
-    );
-    assert_eq!(
-        String::from("5"),
-        f.node(div.rhs).as_lit_int().value
-    );
+    let expr = parse_expr2("4/5").as_bin();
+    assert_eq!(BinOp::Div, expr.op());
+    assert_eq!("4", expr.lhs().as_lit_int().value());
+    assert_eq!("5", expr.rhs().as_lit_int().value());
 }
 
 #[test]
 fn parse_mod() {
-    let (expr, f) = parse_expr("2%15");
-
-    let div = f.node(expr).as_bin();
-    assert_eq!(BinOp::Mod, div.op);
-    assert_eq!(
-        String::from("2"),
-        f.node(div.lhs).as_lit_int().value
-    );
-    assert_eq!(
-        String::from("15"),
-        f.node(div.rhs).as_lit_int().value
-    );
+    let expr = parse_expr2("2%15").as_bin();
+    assert_eq!(BinOp::Mod, expr.op());
+    assert_eq!("2", expr.lhs().as_lit_int().value());
+    assert_eq!("15", expr.rhs().as_lit_int().value());
 }
 
 #[test]
 fn parse_add() {
-    let (expr, f) = parse_expr("2+3");
-
-    let add = f.node(expr).as_bin();
-    assert_eq!(BinOp::Add, add.op);
-    assert_eq!(
-        String::from("2"),
-        f.node(add.lhs).as_lit_int().value
-    );
-    assert_eq!(
-        String::from("3"),
-        f.node(add.rhs).as_lit_int().value
-    );
+    let expr = parse_expr2("2+3").as_bin();
+    assert_eq!(BinOp::Add, expr.op());
+    assert_eq!("2", expr.lhs().as_lit_int().value());
+    assert_eq!("3", expr.rhs().as_lit_int().value());
 }
 
 #[test]
 fn parse_add_left_associativity() {
-    let (expr, f) = parse_expr("1+2+3");
+    let expr = parse_expr2("1+2+3").as_bin();
+    assert_eq!("3", expr.rhs().as_lit_int().value());
 
-    let add = f.node(expr).as_bin();
-    assert_eq!(
-        String::from("3"),
-        f.node(add.rhs).as_lit_int().value
-    );
-
-    let lhs = f.node(add.lhs).as_bin();
-    assert_eq!(
-        String::from("1"),
-        f.node(lhs.lhs).as_lit_int().value
-    );
-    assert_eq!(
-        String::from("2"),
-        f.node(lhs.rhs).as_lit_int().value
-    );
+    let lhs = expr.lhs().as_bin();
+    assert_eq!("1", lhs.lhs().as_lit_int().value());
+    assert_eq!("2", lhs.rhs().as_lit_int().value());
 }
 
 #[test]
 fn parse_add_right_associativity_via_parens() {
-    let (expr, f) = parse_expr("1+(2+3)");
+    let expr = parse_expr2("1+(2+3)").as_bin();
+    assert_eq!("1", expr.lhs().as_lit_int().value());
 
-    let add = f.node(expr).as_bin();
-    assert_eq!(
-        String::from("1"),
-        f.node(add.lhs).as_lit_int().value
-    );
-
-    let paren = f.node(add.rhs).as_paren();
-    let rhs = f.node(paren.expr).as_bin();
-    assert_eq!(
-        String::from("2"),
-        f.node(rhs.lhs).as_lit_int().value
-    );
-    assert_eq!(
-        String::from("3"),
-        f.node(rhs.rhs).as_lit_int().value
-    );
+    let paren = expr.rhs().as_paren();
+    let rhs = paren.expr().as_bin();
+    assert_eq!("2", rhs.lhs().as_lit_int().value());
+    assert_eq!("3", rhs.rhs().as_lit_int().value());
 }
 
 #[test]
 fn parse_sub() {
-    let (expr, f) = parse_expr("1-2");
-
-    let add = f.node(expr).as_bin();
-    assert_eq!(BinOp::Sub, add.op);
-    assert_eq!(
-        String::from("1"),
-        f.node(add.lhs).as_lit_int().value
-    );
-    assert_eq!(
-        String::from("2"),
-        f.node(add.rhs).as_lit_int().value
-    );
+    let expr = parse_expr2("1-2").as_bin();
+    assert_eq!(BinOp::Sub, expr.op());
+    assert_eq!("1", expr.lhs().as_lit_int().value());
+    assert_eq!("2", expr.rhs().as_lit_int().value());
 }
 
 #[test]
 fn parse_or() {
-    let (expr, f) = parse_expr("1||2");
-
-    let add = f.node(expr).as_bin();
-    assert_eq!(BinOp::Or, add.op);
-    assert_eq!(
-        String::from("1"),
-        f.node(add.lhs).as_lit_int().value
-    );
-    assert_eq!(
-        String::from("2"),
-        f.node(add.rhs).as_lit_int().value
-    );
+    let expr = parse_expr2("1||2").as_bin();
+    assert_eq!(BinOp::Or, expr.op());
+    assert_eq!("1", expr.lhs().as_lit_int().value());
+    assert_eq!("2", expr.rhs().as_lit_int().value());
 }
 
 #[test]
 fn parse_and() {
-    let (expr, f) = parse_expr("1&&2");
-
-    let add = f.node(expr).as_bin();
-    assert_eq!(BinOp::And, add.op);
-    assert_eq!(
-        String::from("1"),
-        f.node(add.lhs).as_lit_int().value
-    );
-    assert_eq!(
-        String::from("2"),
-        f.node(add.rhs).as_lit_int().value
-    );
+    let expr = parse_expr2("1&&2").as_bin();
+    assert_eq!(BinOp::And, expr.op());
+    assert_eq!("1", expr.lhs().as_lit_int().value());
+    assert_eq!("2", expr.rhs().as_lit_int().value());
 }
 
 #[test]
 fn parse_bit_or() {
-    let (expr, f) = parse_expr("1|2");
-
-    let or = f.node(expr).as_bin();
-    assert_eq!(BinOp::BitOr, or.op);
-    assert_eq!(
-        String::from("1"),
-        f.node(or.lhs).as_lit_int().value
-    );
-    assert_eq!(
-        String::from("2"),
-        f.node(or.rhs).as_lit_int().value
-    );
+    let expr = parse_expr2("1|2").as_bin();
+    assert_eq!(BinOp::BitOr, expr.op());
+    assert_eq!("1", expr.lhs().as_lit_int().value());
+    assert_eq!("2", expr.rhs().as_lit_int().value());
 }
 
 #[test]
 fn parse_bit_and() {
-    let (expr, f) = parse_expr("1&2");
-
-    let and = f.node(expr).as_bin();
-    assert_eq!(BinOp::BitAnd, and.op);
-    assert_eq!(
-        String::from("1"),
-        f.node(and.lhs).as_lit_int().value
-    );
-    assert_eq!(
-        String::from("2"),
-        f.node(and.rhs).as_lit_int().value
-    );
+    let expr = parse_expr2("1&2").as_bin();
+    assert_eq!(BinOp::BitAnd, expr.op());
+    assert_eq!("1", expr.lhs().as_lit_int().value());
+    assert_eq!("2", expr.rhs().as_lit_int().value());
 }
 
 #[test]
 fn parse_bit_xor() {
-    let (expr, f) = parse_expr("1^2");
-
-    let xor = f.node(expr).as_bin();
-    assert_eq!(BinOp::BitXor, xor.op);
-    assert_eq!(
-        String::from("1"),
-        f.node(xor.lhs).as_lit_int().value
-    );
-    assert_eq!(
-        String::from("2"),
-        f.node(xor.rhs).as_lit_int().value
-    );
+    let expr = parse_expr2("1^2").as_bin();
+    assert_eq!(BinOp::BitXor, expr.op());
+    assert_eq!("1", expr.lhs().as_lit_int().value());
+    assert_eq!("2", expr.rhs().as_lit_int().value());
 }
 
 #[test]
 fn parse_lt() {
-    let (expr, f) = parse_expr("1<2");
-
-    let cmp = f.node(expr).as_bin();
-    assert_eq!(BinOp::Cmp(CmpOp::Lt), cmp.op);
-    assert_eq!(
-        String::from("1"),
-        f.node(cmp.lhs).as_lit_int().value
-    );
-    assert_eq!(
-        String::from("2"),
-        f.node(cmp.rhs).as_lit_int().value
-    );
+    let expr = parse_expr2("1<2").as_bin();
+    assert_eq!(BinOp::Cmp(CmpOp::Lt), expr.op());
+    assert_eq!("1", expr.lhs().as_lit_int().value());
+    assert_eq!("2", expr.rhs().as_lit_int().value());
 }
 
 #[test]
 fn parse_le() {
-    let (expr, f) = parse_expr("1<=2");
-
-    let cmp = f.node(expr).as_bin();
-    assert_eq!(BinOp::Cmp(CmpOp::Le), cmp.op);
-    assert_eq!(
-        String::from("1"),
-        f.node(cmp.lhs).as_lit_int().value
-    );
-    assert_eq!(
-        String::from("2"),
-        f.node(cmp.rhs).as_lit_int().value
-    );
+    let expr = parse_expr2("1<=2").as_bin();
+    assert_eq!(BinOp::Cmp(CmpOp::Le), expr.op());
+    assert_eq!("1", expr.lhs().as_lit_int().value());
+    assert_eq!("2", expr.rhs().as_lit_int().value());
 }
 
 #[test]
 fn parse_gt() {
-    let (expr, f) = parse_expr("1>2");
-
-    let cmp = f.node(expr).as_bin();
-    assert_eq!(BinOp::Cmp(CmpOp::Gt), cmp.op);
-    assert_eq!(
-        String::from("1"),
-        f.node(cmp.lhs).as_lit_int().value
-    );
-    assert_eq!(
-        String::from("2"),
-        f.node(cmp.rhs).as_lit_int().value
-    );
+    let expr = parse_expr2("1>2").as_bin();
+    assert_eq!(BinOp::Cmp(CmpOp::Gt), expr.op());
+    assert_eq!("1", expr.lhs().as_lit_int().value());
+    assert_eq!("2", expr.rhs().as_lit_int().value());
 }
 
 #[test]
 fn parse_ge() {
-    let (expr, f) = parse_expr("1>=2");
-
-    let cmp = f.node(expr).as_bin();
-    assert_eq!(BinOp::Cmp(CmpOp::Ge), cmp.op);
-    assert_eq!(
-        String::from("1"),
-        f.node(cmp.lhs).as_lit_int().value
-    );
-    assert_eq!(
-        String::from("2"),
-        f.node(cmp.rhs).as_lit_int().value
-    );
+    let expr = parse_expr2("1>=2").as_bin();
+    assert_eq!(BinOp::Cmp(CmpOp::Ge), expr.op());
+    assert_eq!("1", expr.lhs().as_lit_int().value());
+    assert_eq!("2", expr.rhs().as_lit_int().value());
 }
 
 #[test]
 fn parse_eq() {
-    let (expr, f) = parse_expr("1==2");
-
-    let cmp = f.node(expr).as_bin();
-    assert_eq!(BinOp::Cmp(CmpOp::Eq), cmp.op);
-    assert_eq!(
-        String::from("1"),
-        f.node(cmp.lhs).as_lit_int().value
-    );
-    assert_eq!(
-        String::from("2"),
-        f.node(cmp.rhs).as_lit_int().value
-    );
+    let expr = parse_expr2("1==2").as_bin();
+    assert_eq!(BinOp::Cmp(CmpOp::Eq), expr.op());
+    assert_eq!("1", expr.lhs().as_lit_int().value());
+    assert_eq!("2", expr.rhs().as_lit_int().value());
 }
 
 #[test]
 fn parse_ne() {
-    let (expr, f) = parse_expr("1!=2");
-
-    let cmp = f.node(expr).as_bin();
-    assert_eq!(BinOp::Cmp(CmpOp::Ne), cmp.op);
-    assert_eq!(
-        String::from("1"),
-        f.node(cmp.lhs).as_lit_int().value
-    );
-    assert_eq!(
-        String::from("2"),
-        f.node(cmp.rhs).as_lit_int().value
-    );
+    let expr = parse_expr2("1!=2").as_bin();
+    assert_eq!(BinOp::Cmp(CmpOp::Ne), expr.op());
+    assert_eq!("1", expr.lhs().as_lit_int().value());
+    assert_eq!("2", expr.rhs().as_lit_int().value());
 }
 
 #[test]
 fn parse_identity_not() {
-    let (expr, f) = parse_expr("1!==2");
-
-    let cmp = f.node(expr).as_bin();
-    assert_eq!(BinOp::Cmp(CmpOp::IsNot), cmp.op);
-    assert_eq!(
-        String::from("1"),
-        f.node(cmp.lhs).as_lit_int().value
-    );
-    assert_eq!(
-        String::from("2"),
-        f.node(cmp.rhs).as_lit_int().value
-    );
+    let expr = parse_expr2("1!==2").as_bin();
+    assert_eq!(BinOp::Cmp(CmpOp::IsNot), expr.op());
+    assert_eq!("1", expr.lhs().as_lit_int().value());
+    assert_eq!("2", expr.rhs().as_lit_int().value());
 }
 
 #[test]
 fn parse_identity() {
-    let (expr, f) = parse_expr("1===2");
-
-    let cmp = f.node(expr).as_bin();
-    assert_eq!(BinOp::Cmp(CmpOp::Is), cmp.op);
-    assert_eq!(
-        String::from("1"),
-        f.node(cmp.lhs).as_lit_int().value
-    );
-    assert_eq!(
-        String::from("2"),
-        f.node(cmp.rhs).as_lit_int().value
-    );
+    let expr = parse_expr2("1===2").as_bin();
+    assert_eq!(BinOp::Cmp(CmpOp::Is), expr.op());
+    assert_eq!("1", expr.lhs().as_lit_int().value());
+    assert_eq!("2", expr.rhs().as_lit_int().value());
 }
 
 #[test]
 fn parse_assign() {
-    let (expr, f) = parse_expr("a=4");
-
-    let assign = f.node(expr).as_bin();
-    assert!(f.node(assign.lhs).is_ident());
-    assert_eq!(BinOp::Assign, assign.op);
-    assert_eq!(
-        String::from("4"),
-        f.node(assign.rhs).as_lit_int().value
-    );
+    let expr = parse_expr2("a=4").as_bin();
+    assert!(expr.lhs().is_ident());
+    assert_eq!(BinOp::Assign, expr.op());
+    assert_eq!("4", expr.rhs().as_lit_int().value());
 }
 
 #[test]
 fn parse_shift_right() {
-    let (expr, f) = parse_expr("a>>4");
-
-    let bin = f.node(expr).as_bin();
-    assert_eq!(BinOp::ArithShiftR, bin.op);
+    let expr = parse_expr2("a>>4").as_bin();
+    assert_eq!(BinOp::ArithShiftR, expr.op());
 }
 
 #[test]
 fn parse_unsigned_shift_right() {
-    let (expr, f) = parse_expr("a>>>4");
-
-    let bin = f.node(expr).as_bin();
-    assert_eq!(BinOp::LogicalShiftR, bin.op);
+    let expr = parse_expr2("a>>>4").as_bin();
+    assert_eq!(BinOp::LogicalShiftR, expr.op());
 }
 
 #[test]
 fn parse_left() {
-    let (expr, f) = parse_expr("a<<4");
-
-    let bin = f.node(expr).as_bin();
-    assert_eq!(BinOp::ShiftL, bin.op);
+    let expr = parse_expr2("a<<4").as_bin();
+    assert_eq!(BinOp::ShiftL, expr.op());
 }
 
 #[test]
 fn parse_call_without_params() {
-    let (expr, f) = parse_expr("fname()");
-
-    let call = f.node(expr).as_call();
-    assert_eq!("fname", f.node(call.callee).as_ident().name);
-    assert_eq!(0, call.args.len());
+    let expr = parse_expr2("fname()").as_call();
+    assert_eq!("fname", expr.callee().as_ident().name());
+    assert_eq!(0, expr.args().len());
 }
 
 #[test]
 fn parse_call_with_params() {
-    let (expr, f) = parse_expr("fname2(1,2,3)");
-
-    let call = f.node(expr).as_call();
-    assert_eq!("fname2", f.node(call.callee).as_ident().name);
-    assert_eq!(3, call.args.len());
+    let expr = parse_expr2("fname2(1,2,3)").as_call();
+    assert_eq!("fname2", expr.callee().as_ident().name());
+    assert_eq!(3, expr.args().len());
 }
 
 #[test]
@@ -841,37 +647,30 @@ fn parse_multiple_functions() {
 
 #[test]
 fn parse_if() {
-    let (expr, f) = parse_expr("if true { 2; } else { 3; }");
-    let ifexpr = f.node(expr).as_if();
-
-    assert!(f.node(ifexpr.cond).is_lit_bool());
-    assert!(ifexpr.else_block.is_some());
+    let expr = parse_expr2("if true { 2; } else { 3; }").as_if();
+    assert!(expr.cond().is_lit_bool());
+    assert!(expr.else_block().is_some());
 }
 
 #[test]
 fn parse_if_without_else() {
-    let (expr, f) = parse_expr("if true { 2; }");
-    let ifexpr = f.node(expr).as_if();
-
-    assert!(f.node(ifexpr.cond).is_lit_bool());
-    assert!(ifexpr.else_block.is_none());
+    let expr = parse_expr2("if true { 2; }").as_if();
+    assert!(expr.cond().is_lit_bool());
+    assert!(expr.else_block().is_none());
 }
 
 #[test]
 fn parse_while() {
-    let (expr, f) = parse_expr("while true { 2; }");
-    let whilestmt = f.node(expr).as_while();
-
-    assert!(f.node(whilestmt.cond).is_lit_bool());
-    assert!(f.node(whilestmt.block).is_blocklike());
+    let expr = parse_expr2("while true { 2; }").as_while();
+    assert!(expr.cond().is_lit_bool());
+    assert!(expr.block().raw_node().is_blocklike());
 }
 
 #[test]
 fn parse_empty_block() {
-    let (expr, f) = parse_expr("{}");
-    let block = f.node(expr).as_block();
+    let expr = parse_expr2("{}").as_block();
 
-    assert_eq!(0, block.stmts.len());
+    assert_eq!(0, expr.stmts().len());
 }
 
 #[test]
@@ -908,33 +707,26 @@ fn parse_block_with_multiple_stmts() {
 
 #[test]
 fn parse_break() {
-    let (expr, f) = parse_expr("break");
-    assert!(f.node(expr).is_break());
+    let expr = parse_expr2("break");
+    assert!(expr.is_break());
 }
 
 #[test]
 fn parse_continue() {
-    let (expr, f) = parse_expr("continue");
-    assert!(f.node(expr).is_continue());
+    let expr = parse_expr2("continue");
+    assert!(expr.is_continue());
 }
 
 #[test]
 fn parse_return_value() {
-    let (expr, f) = parse_expr("return 1");
-    let ret = f.node(expr).as_return();
-
-    assert_eq!(
-        String::from("1"),
-        f.node(ret.expr.unwrap()).as_lit_int().value
-    );
+    let expr = parse_expr2("return 1").as_return();
+    assert_eq!("1", expr.expr().unwrap().as_lit_int().value());
 }
 
 #[test]
 fn parse_return() {
-    let (expr, f) = parse_expr("return");
-    let ret = f.node(expr).as_return();
-
-    assert!(ret.expr.is_none());
+    let expr = parse_expr2("return").as_return();
+    assert!(expr.expr().is_none());
 }
 
 #[test]
@@ -1083,20 +875,17 @@ fn parse_class() {
 
 #[test]
 fn parse_method_invocation() {
-    let (expr, f) = parse_expr("a.foo()");
-    let call = f.node(expr).as_call();
-    assert!(f.node(call.callee).is_dot());
-    assert_eq!(0, call.args.len());
+    let expr = parse_expr2("a.foo()").as_call();
+    assert!(expr.callee().is_dot());
+    assert_eq!(0, expr.args().len());
 
-    let (expr, f) = parse_expr("a.foo(1)");
-    let call = f.node(expr).as_call();
-    assert!(f.node(call.callee).is_dot());
-    assert_eq!(1, call.args.len());
+    let expr = parse_expr2("a.foo(1)").as_call();
+    assert!(expr.callee().is_dot());
+    assert_eq!(1, expr.args().len());
 
-    let (expr, f) = parse_expr("a.foo(1,2)");
-    let call = f.node(expr).as_call();
-    assert!(f.node(call.callee).is_dot());
-    assert_eq!(2, call.args.len());
+    let expr = parse_expr2("a.foo(1,2)").as_call();
+    assert!(expr.callee().is_dot());
+    assert_eq!(2, expr.args().len());
 }
 
 #[test]
@@ -1135,9 +924,8 @@ fn parse_field() {
 
 #[test]
 fn parse_as_expr() {
-    let (expr, f) = parse_expr("a as String");
-    let expr = f.node(expr).as_conv();
-    assert_eq!(true, f.node(expr.object).is_ident());
+    let expr = parse_expr2("a as String").as_conv();
+    assert_eq!(true, expr.object().is_ident());
 }
 
 #[test]
@@ -1230,29 +1018,24 @@ fn parse_struct_with_type_params() {
 
 #[test]
 fn parse_struct_lit_while() {
-    let (expr, f) = parse_expr("while i < n { }");
-    let while_expr = f.node(expr).as_while();
-    let bin = f.node(while_expr.cond).as_bin();
-
-    assert!(f.node(bin.lhs).is_ident());
-    assert!(f.node(bin.rhs).is_ident());
+    let expr = parse_expr2("while i < n { }").as_while();
+    let bin = expr.cond().as_bin();
+    assert!(bin.lhs().is_ident());
+    assert!(bin.rhs().is_ident());
 }
 
 #[test]
 fn parse_struct_lit_if() {
-    let (expr, f) = parse_expr("if i < n { }");
-    let ifexpr = f.node(expr).as_if();
-    let bin = f.node(ifexpr.cond).as_bin();
-
-    assert!(f.node(bin.lhs).is_ident());
-    assert!(f.node(bin.rhs).is_ident());
+    let expr = parse_expr2("if i < n { }").as_if();
+    let bin = expr.cond().as_bin();
+    assert!(bin.lhs().is_ident());
+    assert!(bin.rhs().is_ident());
 }
 
 #[test]
 fn parse_lit_float() {
-    let (expr, f) = parse_expr("1.2");
-    let lit = f.node(expr).as_lit_float();
-    assert_eq!("1.2", lit.value);
+    let expr = parse_expr2("1.2").as_lit_float();
+    assert_eq!("1.2", expr.value());
 }
 
 #[test]
@@ -1265,25 +1048,13 @@ fn parse_template() {
         "\"a${".to_string(),
         f.node(tmpl.parts[0]).as_lit_str().value
     );
-    assert_eq!(
-        String::from("1"),
-        f.node(tmpl.parts[1]).as_lit_int().value
-    );
-    assert_eq!(
-        "}b${".to_string(),
-        f.node(tmpl.parts[2]).as_lit_str().value
-    );
-    assert_eq!(
-        String::from("2"),
-        f.node(tmpl.parts[3]).as_lit_int().value
-    );
-    assert_eq!(
-        "}c\"".to_string(),
-        f.node(tmpl.parts[4]).as_lit_str().value
-    );
+    assert_eq!(String::from("1"), f.node(tmpl.parts[1]).as_lit_int().value);
+    assert_eq!("}b${".to_string(), f.node(tmpl.parts[2]).as_lit_str().value);
+    assert_eq!(String::from("2"), f.node(tmpl.parts[3]).as_lit_int().value);
+    assert_eq!("}c\"".to_string(), f.node(tmpl.parts[4]).as_lit_str().value);
 
-    let (expr, f) = parse_expr("\"a\\${1}b\"");
-    assert!(f.node(expr).is_lit_str());
+    let expr = parse_expr2("\"a\\${1}b\"");
+    assert!(expr.is_lit_str());
 }
 
 #[test]
@@ -1417,45 +1188,37 @@ fn parse_global_let() {
 
 #[test]
 fn parse_lit_char() {
-    let (expr, f) = parse_expr("'a'");
-    let lit = f.node(expr).as_lit_char();
-
-    assert_eq!("'a'", lit.value);
+    let expr = parse_expr2("'a'").as_lit_char();
+    assert_eq!("'a'", expr.value());
 }
 
 #[test]
 fn parse_fct_call_with_type_param() {
-    let (expr, f) = parse_expr("Array[Int]()");
-    let call = f.node(expr).as_call();
-    let type_params = f.node(call.callee).as_typed_expr();
+    let expr = parse_expr2("Array[Int]()").as_call();
+    let type_params = expr.callee().as_typed_expr();
 
-    assert_eq!(1, type_params.args.len());
+    assert_eq!(1, type_params.args().len());
 
-    let (expr, f) = parse_expr("Foo[Int, Long]()");
-    let call = f.node(expr).as_call();
-    let type_params = f.node(call.callee).as_typed_expr();
+    let expr = parse_expr2("Foo[Int, Long]()").as_call();
+    let type_params = expr.callee().as_typed_expr();
 
-    assert_eq!(2, type_params.args.len());
+    assert_eq!(2, type_params.args().len());
 
-    let (expr, f) = parse_expr("Bar[]()");
-    let call = f.node(expr).as_call();
-    let type_params = f.node(call.callee).as_typed_expr();
+    let expr = parse_expr2("Bar[]()").as_call();
+    let type_params = expr.callee().as_typed_expr();
 
-    assert_eq!(0, type_params.args.len());
+    assert_eq!(0, type_params.args().len());
 
-    let (expr, f) = parse_expr("Vec()");
-    let call = f.node(expr).as_call();
+    let expr = parse_expr2("Vec()").as_call();
 
-    assert!(f.node(call.callee).is_ident());
+    assert!(expr.callee().is_ident());
 }
 
 #[test]
 fn parse_call_with_path() {
-    let (expr, f) = parse_expr("Foo::get()");
-    let call = f.node(expr).as_call();
-
-    assert!(f.node(call.callee).is_path());
-    assert_eq!(0, call.args.len());
+    let expr = parse_expr2("Foo::get()").as_call();
+    assert!(expr.callee().is_path());
+    assert_eq!(0, expr.args().len());
 }
 
 #[test]
@@ -1506,21 +1269,16 @@ fn parse_generic_with_multiple_bounds() {
 
 #[test]
 fn parse_lambda_no_params_no_return_value() {
-    let (expr, f) = parse_expr("|| {}");
-    let lambda = f.node(expr).as_lambda();
-
-    let node = f.node(lambda.fct_id).as_function();
-    assert!(node.return_type.is_none());
+    let expr = parse_expr2("|| {}").as_lambda();
+    let node = expr.fct_id().as_function();
+    assert!(node.return_type().is_none());
 }
 
 #[test]
 fn parse_lambda_no_params_unit_as_return_value() {
-    let (expr, f) = parse_expr("|| : () {}");
-    let lambda = f.node(expr).as_lambda();
-    let node = f.node(lambda.fct_id).as_function();
-    let ret = node.return_type.unwrap();
-
-    assert!(f.node(ret).is_unit());
+    let expr = parse_expr2("|| : () {}").as_lambda();
+    let node = expr.fct_id().as_function();
+    assert!(node.return_type().unwrap().raw_node().is_unit());
 }
 
 #[test]
@@ -1568,60 +1326,55 @@ fn parse_lambda_with_two_params() {
 
 #[test]
 fn parse_for() {
-    let (expr, f) = parse_expr("for i in a+b {}");
-    assert!(f.node(expr).is_for());
+    let expr = parse_expr2("for i in a+b {}");
+    assert!(expr.is_for());
 }
 
 #[test]
 fn parse_new_call_ident() {
-    let (expr, f) = parse_expr("i");
-    assert!(f.node(expr).is_ident());
+    let expr = parse_expr2("i");
+    assert!(expr.is_ident());
 }
 
 #[test]
 fn parse_new_call_path() {
-    let (expr, f) = parse_expr("Foo::bar");
-    let path = f.node(expr).as_path();
-    assert!(f.node(path.lhs).is_ident());
-    assert!(f.node(path.rhs).is_ident());
+    let expr = parse_expr2("Foo::bar").as_path();
+    assert!(expr.lhs().is_ident());
+    assert!(expr.rhs().is_ident());
 }
 
 #[test]
 fn parse_new_call_call() {
-    let (expr, f) = parse_expr("foo(1,2)");
-    let call = f.node(expr).as_call();
-    assert!(f.node(call.callee).is_ident());
-    assert_eq!(call.args.len(), 2);
+    let expr = parse_expr2("foo(1,2)").as_call();
+    assert!(expr.callee().is_ident());
+    assert_eq!(expr.args().len(), 2);
 }
 
 #[test]
 fn parse_block() {
-    let (expr, f) = parse_expr("{1}");
-    assert!(
-        f.node(f.node(expr).as_block().expr.unwrap())
-            .is_lit_int()
-    );
+    let expr = parse_expr2("{1}").as_block();
+    assert!(expr.expr().unwrap().is_lit_int());
 
-    let (expr, f) = parse_expr("({}) + 1");
-    assert!(f.node(expr).is_bin());
+    let expr = parse_expr2("({}) + 1");
+    assert!(expr.is_bin());
 
-    let (expr, f) = parse_expr("1 + {}");
-    assert!(f.node(expr).is_bin());
+    let expr = parse_expr2("1 + {}");
+    assert!(expr.is_bin());
 }
 
 #[test]
 fn parse_tuple() {
-    let (expr, f) = parse_expr("(1,)");
-    assert_eq!(f.node(expr).as_tuple().values.len(), 1);
+    let expr = parse_expr2("(1,)");
+    assert_eq!(expr.as_tuple().values().len(), 1);
 
-    let (expr, f) = parse_expr("(1)");
-    assert!(f.node(expr).is_paren());
+    let expr = parse_expr2("(1)");
+    assert!(expr.is_paren());
 
-    let (expr, f) = parse_expr("(1,2,3)");
-    assert_eq!(f.node(expr).as_tuple().values.len(), 3);
+    let expr = parse_expr2("(1,2,3)");
+    assert_eq!(expr.as_tuple().values().len(), 3);
 
-    let (expr, f) = parse_expr("(1,2,3,4,)");
-    assert_eq!(f.node(expr).as_tuple().values.len(), 4);
+    let expr = parse_expr2("(1,2,3,4,)");
+    assert_eq!(expr.as_tuple().values().len(), 4);
 }
 
 #[test]

@@ -65,6 +65,13 @@ pub fn derive_ast_node(input: TokenStream) -> TokenStream {
                                     self.file.node2(ast_id)
                                 }
                             }
+                        } else if is_option_ast_id(field_type) {
+                            quote! {
+                                pub fn #field_name(&self) -> Option<AstNode> {
+                                    let ast_id = self.file.node(self.id).#to_method().unwrap().#field_name;
+                                    ast_id.map(|ast_id| self.file.node2(ast_id))
+                                }
+                            }
                         } else if is_likely_copy_type(field_type) {
                             quote! {
                                 pub fn #field_name(&self) -> #field_type {
@@ -257,7 +264,7 @@ pub fn derive_ast_enum(input: TokenStream) -> TokenStream {
     let children_method = generate_children_method(data_enum);
 
     // Generate as_* methods for AstNode
-    let as_methods = generate_ast_node_methods(data_enum);
+    let ast_node_methods = generate_ast_node_methods(data_enum);
 
     let expanded = quote! {
         impl #enum_name {
@@ -267,7 +274,7 @@ pub fn derive_ast_enum(input: TokenStream) -> TokenStream {
             #variant_methods
         }
 
-        #as_methods
+        #ast_node_methods
     };
 
     TokenStream::from(expanded)
@@ -297,8 +304,8 @@ fn generate_per_variant_methods(data_enum: &DataEnum) -> proc_macro2::TokenStrea
             let as_method_name =
                 syn::Ident::new(&format!("as_{}", method_name_str), variant_name.span());
 
-            // Generate to_<variant> method
-            let variant_methods = quote! {
+            // Generate is<variant>, to_<variant> and as_<variant> method on Ast.
+            let per_variant_methods = quote! {
                 pub fn #is_method_name(&self) -> bool {
                     match self {
                         Self::#variant_name(..) => true,
@@ -318,7 +325,7 @@ fn generate_per_variant_methods(data_enum: &DataEnum) -> proc_macro2::TokenStrea
                 }
             };
 
-            all_methods.push(variant_methods);
+            all_methods.push(per_variant_methods);
         }
     }
 
@@ -410,23 +417,33 @@ fn generate_ast_node_methods(data_enum: &DataEnum) -> proc_macro2::TokenStream {
         }
 
         let method_name_str = to_snake_case(&variant_name.to_string());
-        let as_method_name =
-            syn::Ident::new(&format!("as_{}", method_name_str), variant_name.span());
         let is_method_name =
             syn::Ident::new(&format!("is_{}", method_name_str), variant_name.span());
+        let to_method_name =
+            syn::Ident::new(&format!("to_{}", method_name_str), variant_name.span());
+        let as_method_name =
+            syn::Ident::new(&format!("as_{}", method_name_str), variant_name.span());
         let ast_type_name = syn::Ident::new(&format!("Ast{}", variant_name), variant_name.span());
 
+        // Generate is<variant>, to_<variant> and as_<variant> method on AstNode.
         Some(quote! {
-            pub fn #as_method_name(&self) -> #ast_type_name {
-                assert!(self.file.node(self.id).#is_method_name());
-                #ast_type_name {
-                    file: self.file.clone(),
-                    id: self.id
+            pub fn #is_method_name(&self) -> bool {
+                self.file.node(self.id).#is_method_name()
+            }
+
+            pub fn #to_method_name(&self) -> Option<#ast_type_name> {
+                if self.file.node(self.id).#is_method_name() {
+                    Some(#ast_type_name {
+                        file: self.file.clone(),
+                       id: self.id
+                    })
+                } else {
+                    None
                 }
             }
 
-            pub fn #is_method_name(&self) -> bool {
-                self.file.node(self.id).#is_method_name()
+            pub fn #as_method_name(&self) -> #ast_type_name {
+                self.#to_method_name().expect("wrong node kind")
             }
         })
     });
