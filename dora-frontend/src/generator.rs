@@ -2231,12 +2231,7 @@ impl<'a> AstBytecodeGen<'a> {
 
     fn visit_expr_un(&mut self, node_id: AstId, node: &ast::Un, dest: DataDest) -> Register {
         if node.op == ast::UnOp::Neg && self.node(node.opnd).is_lit_int() {
-            self.visit_expr_lit_int(
-                node.opnd,
-                self.node(node.opnd).as_lit_int(),
-                dest,
-                true,
-            )
+            self.visit_expr_lit_int(node.opnd, self.node(node.opnd).as_lit_int(), dest, true)
         } else if let Some(intrinsic) = self.get_intrinsic(node_id) {
             self.emit_intrinsic_un(node.opnd, intrinsic, self.loc(node.span), dest)
         } else {
