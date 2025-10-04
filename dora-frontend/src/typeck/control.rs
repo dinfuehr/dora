@@ -357,7 +357,7 @@ pub(super) fn check_expr_match(
     let mut result_type = ty::error();
 
     for &arm_id in &node.arms {
-        let arm = ck.node(arm_id).to_match_arm().expect("arm expected");
+        let arm = ck.node(arm_id).as_match_arm();
         ck.symtable.push_level();
         check_expr_match_arm(
             ck,

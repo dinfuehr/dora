@@ -251,7 +251,7 @@ pub fn derive_ast_enum(input: TokenStream) -> TokenStream {
         _ => panic!("AstEnum can only be derived for enums"),
     };
 
-    let variant_methods = generate_variant_methods(data_enum);
+    let variant_methods = generate_per_variant_methods(data_enum);
     let span_method = generate_span_method(data_enum);
     let name_method = generate_name_method(data_enum);
     let children_method = generate_children_method(data_enum);
@@ -273,8 +273,8 @@ pub fn derive_ast_enum(input: TokenStream) -> TokenStream {
     TokenStream::from(expanded)
 }
 
-fn generate_variant_methods(data_enum: &DataEnum) -> proc_macro2::TokenStream {
-    let mut methods = Vec::new();
+fn generate_per_variant_methods(data_enum: &DataEnum) -> proc_macro2::TokenStream {
+    let mut all_methods = Vec::new();
 
     for variant in &data_enum.variants {
         let variant_name = &variant.ident;
@@ -294,34 +294,36 @@ fn generate_variant_methods(data_enum: &DataEnum) -> proc_macro2::TokenStream {
                 syn::Ident::new(&format!("is_{}", method_name_str), variant_name.span());
             let to_method_name =
                 syn::Ident::new(&format!("to_{}", method_name_str), variant_name.span());
+            let as_method_name =
+                syn::Ident::new(&format!("as_{}", method_name_str), variant_name.span());
 
-            // Generate is_<variant> method
-            let is_method = quote! {
+            // Generate to_<variant> method
+            let variant_methods = quote! {
                 pub fn #is_method_name(&self) -> bool {
                     match self {
                         Self::#variant_name(..) => true,
                         _ => false,
                     }
                 }
-            };
 
-            // Generate to_<variant> method
-            let to_method = quote! {
                 pub fn #to_method_name(&self) -> Option<&#inner_ty> {
                     match self {
                         Self::#variant_name(inner) => Some(inner),
                         _ => None,
                     }
                 }
+
+                pub fn #as_method_name(&self) -> &#inner_ty {
+                    self.#to_method_name().expect("wrong node kind")
+                }
             };
 
-            methods.push(is_method);
-            methods.push(to_method);
+            all_methods.push(variant_methods);
         }
     }
 
     quote! {
-        #(#methods)*
+        #(#all_methods)*
     }
 }
 

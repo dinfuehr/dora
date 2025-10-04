@@ -382,7 +382,7 @@ impl<'x> visit::Visitor for TopLevelDeclaration<'x> {
     fn visit_extern(&mut self, _f: &ast::File, _id: AstId, node: &ast::Extern) {
         check_modifiers(self.sa, self.file_id, node.modifiers, &[]);
         if let Some(name_id) = node.name {
-            let name = _f.node(name_id).to_ident().expect("ident expected");
+            let name = _f.node(name_id).as_ident();
             let name_as_str = &name.name;
 
             if let Some(package_id) = self.sa.package_names.get(name_as_str).cloned() {
@@ -844,7 +844,7 @@ impl<'x> visit::Visitor for TopLevelDeclaration<'x> {
             }
 
             let variant_name = f.node(variant.name.expect("name expected"));
-            let variant_name = variant_name.to_ident().expect("ident expected");
+            let variant_name = variant_name.as_ident();
 
             let name = self.sa.interner.intern(&variant_name.name);
 
@@ -1382,7 +1382,7 @@ fn find_elements_in_extension(
 
 fn ensure_name(sa: &Sema, f: &ast::File, ident: Option<ast::AstId>) -> Name {
     if let Some(ident_id) = ident {
-        let ident = f.node(ident_id).to_ident().expect("ident expected");
+        let ident = f.node(ident_id).as_ident();
         sa.interner.intern(&ident.name)
     } else {
         sa.interner.intern("<missing name>")

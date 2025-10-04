@@ -21,7 +21,7 @@ pub fn check(sa: &Sema) {
             };
 
             let file = sa.file(fct.file_id());
-            let ast = file.node(fct.ast_id()).to_function().expect("fct missing");
+            let ast = file.node(fct.ast_id()).as_function();
             visit::walk_fct(&mut visitor, file.ast(), fct.ast_id(), ast);
         }
     }

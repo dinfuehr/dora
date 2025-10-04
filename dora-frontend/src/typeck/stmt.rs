@@ -113,7 +113,7 @@ fn check_pattern_inner(
 
     match pattern {
         ast::Ast::IdentPattern(ident) => {
-            let ident_node = ck.node(ident.name).to_ident().expect("ident expected");
+            let ident_node = ck.node(ident.name).as_ident();
             let sym = ck.symtable.get_string(ck.sa, &ident_node.name);
 
             match sym {
@@ -141,7 +141,7 @@ fn check_pattern_inner(
             }
 
             ast::PatternLitKind::Char => {
-                let e = ck.node(p.expr).to_lit_char().expect("char expected");
+                let e = ck.node(p.expr).as_lit_char();
                 let value = check_lit_char(ck.sa, ck.file_id, e);
                 ck.analysis
                     .set_const_value(pattern_id, ConstValue::Char(value));
@@ -156,7 +156,7 @@ fn check_pattern_inner(
             }
 
             ast::PatternLitKind::String => {
-                let e = ck.node(p.expr).to_lit_str().expect("string expected");
+                let e = ck.node(p.expr).as_lit_str();
                 let value = check_lit_str(ck.sa, ck.file_id, e);
                 ck.analysis
                     .set_const_value(pattern_id, ConstValue::String(value));
@@ -561,7 +561,7 @@ fn check_subpatterns_named<'a>(
                 .expect("field expected");
 
             if let Some(ident_id) = ctor_field.ident {
-                let ident_node = ck.node(ident_id).to_ident().expect("ident expected");
+                let ident_node = ck.node(ident_id).as_ident();
                 let name = ck.sa.interner.intern(&ident_node.name);
                 add_field(idx, name, ctor_field);
             } else if ck.node(ctor_field.pattern).is_ident_pattern() {
@@ -569,7 +569,7 @@ fn check_subpatterns_named<'a>(
                     .node(ctor_field.pattern)
                     .to_ident_pattern()
                     .expect("ident expected");
-                let ident = ck.node(ident.name).to_ident().expect("ident expected");
+                let ident = ck.node(ident.name).as_ident();
                 let name = ck.sa.interner.intern(&ident.name);
                 add_field(idx, name, ctor_field);
             } else if ck.node(ctor_field.pattern).is_rest() {
@@ -705,7 +705,7 @@ fn check_pattern_var(
     pattern: &ast::IdentPattern,
     ty: SourceType,
 ) {
-    let ident = ck.node(pattern.name).to_ident().expect("ident expected");
+    let ident = ck.node(pattern.name).as_ident();
     let name = ck.sa.interner.intern(&ident.name);
 
     if ctxt.current.contains_key(&name) {

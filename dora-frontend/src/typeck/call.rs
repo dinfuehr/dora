@@ -111,7 +111,7 @@ pub(super) fn create_call_arguments(ck: &mut TypeCheck, e: &ast::Call) -> CallAr
     };
 
     for &arg_id in e.args.iter() {
-        let arg = ck.node(arg_id).to_argument().expect("argument expected");
+        let arg = ck.node(arg_id).as_argument();
         let ty = check_expr(ck, arg.expr, SourceType::Any);
         ck.analysis.set_ty(arg_id, ty);
 
@@ -690,9 +690,9 @@ fn check_expr_call_ctor_with_named_fields(
     let single_named_element = compute_single_named_element(ck.sa, element_with_fields);
 
     for &arg_id in &arguments.arguments {
-        let arg = ck.node(arg_id).to_argument().expect("argument expected");
+        let arg = ck.node(arg_id).as_argument();
         if let Some(name_id) = arg.name {
-            let name = ck.node(name_id).to_ident().expect("ident expected");
+            let name = ck.node(name_id).as_ident();
             let name = ck.sa.interner.intern(&name.name);
             add_named_argument(arg_id, name);
         } else if arguments.arguments.len() == 1 && single_named_element.is_some() {
@@ -784,7 +784,7 @@ fn check_expr_call_ctor_with_unnamed_fields(
         let def_ty = specialize_ty_for_call(ck.sa, field.ty(), ck.element, &call_data);
         let arg_ty = ck.ty(arg_id);
 
-        let arg = ck.node(arg_id).to_argument().expect("argument expected");
+        let arg = ck.node(arg_id).as_argument();
 
         if let Some(name_id) = arg.name {
             ck.sa.report(
@@ -1247,7 +1247,7 @@ fn check_expr_call_path(
     arguments: CallArguments,
 ) -> SourceType {
     let callee = ck.node(callee_id);
-    let callee_as_path = callee.to_path().unwrap();
+    let callee_as_path = callee.as_path();
 
     let (container_expr, container_type_params) = if let Some(expr_type_params) =
         ck.node(callee_as_path.lhs).to_typed_expr()

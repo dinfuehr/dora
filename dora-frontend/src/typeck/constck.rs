@@ -53,7 +53,7 @@ impl<'a> ConstCheck<'a> {
                     let (ty, val) = check_lit_float(
                         self.sa,
                         self.const_.file_id,
-                        self.node(expr.opnd).to_lit_float().unwrap(),
+                        self.node(expr.opnd).as_lit_float(),
                         true,
                     );
                     (ty, ConstValue::Float(val))
@@ -79,7 +79,7 @@ impl<'a> ConstCheck<'a> {
 
     fn is_lit_int_maybe_minus(&self, e: &Ast) -> bool {
         if e.is_un_op(UnOp::Neg) {
-            let e = e.to_un().expect("unary expected");
+            let e = e.as_un();
             self.node(e.opnd).is_lit_int()
         } else {
             e.is_lit_int()

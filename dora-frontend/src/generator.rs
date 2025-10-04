@@ -214,7 +214,7 @@ impl<'a> AstBytecodeGen<'a> {
 
         for (param_idx, &param_id) in ast.params.iter().enumerate() {
             let reg = Register(next_register_idx + param_idx);
-            let param = self.node(param_id).to_param().expect("param expected");
+            let param = self.node(param_id).as_param();
 
             if let Some(..) = self.node(param.pattern).to_ident_pattern() {
                 let var_id = *self.analysis.map_vars.get(param.pattern).unwrap();
@@ -245,7 +245,7 @@ impl<'a> AstBytecodeGen<'a> {
         let mut needs_return = true;
 
         let block = ast.block.expect("missing block");
-        let block = self.node(block).to_block().expect("block node expected");
+        let block = self.node(block).as_block();
 
         for &stmt_id in &block.stmts {
             self.visit_stmt(stmt_id);
@@ -775,7 +775,7 @@ impl<'a> AstBytecodeGen<'a> {
             g.builder
                 .emit_load_enum_element(field_reg, value, idx, g.loc(g.span(pattern_id)));
 
-            let param = g.node(param_id).to_ctor_field().expect("field expected");
+            let param = g.node(param_id).as_ctor_field();
             g.destruct_pattern_alt(pck, param.pattern, field_reg, element_ty);
             g.free_temp(field_reg);
         });
@@ -1564,7 +1564,7 @@ impl<'a> AstBytecodeGen<'a> {
 
     fn visit_expr_assert(&mut self, expr: &ast::Call, _dest: DataDest) -> Register {
         let arg_id = expr.args[0];
-        let arg = self.node(arg_id).to_argument().expect("argument expected");
+        let arg = self.node(arg_id).as_argument();
         let assert_reg = gen_expr(self, arg.expr, DataDest::Alloc);
         self.builder.emit_push_register(assert_reg);
         let fid = self.sa.known.functions.assert();
@@ -1673,7 +1673,7 @@ impl<'a> AstBytecodeGen<'a> {
         let mut arguments = Vec::new();
 
         for &arg_id in &expr.args {
-            let arg = self.node(arg_id).to_argument().expect("argument expected");
+            let arg = self.node(arg_id).as_argument();
             arguments.push(gen_expr(self, arg.expr, DataDest::Alloc));
         }
 
@@ -1713,7 +1713,7 @@ impl<'a> AstBytecodeGen<'a> {
         arguments.push(lambda_object);
 
         for &arg_id in &node.args {
-            let arg = self.node(arg_id).to_argument().expect("argument expected");
+            let arg = self.node(arg_id).as_argument();
             arguments.push(gen_expr(self, arg.expr, DataDest::Alloc));
         }
 
@@ -1756,7 +1756,7 @@ impl<'a> AstBytecodeGen<'a> {
         let mut arguments = Vec::new();
 
         for &arg_id in &expr.args {
-            let arg = self.node(arg_id).to_argument().expect("argument expected");
+            let arg = self.node(arg_id).as_argument();
             arguments.push(gen_expr(self, arg.expr, DataDest::Alloc));
         }
 
@@ -1792,7 +1792,7 @@ impl<'a> AstBytecodeGen<'a> {
         let mut arguments: Vec<Option<Register>> = vec![None; node.args.len()];
 
         for &arg_id in &node.args {
-            let arg = self.node(arg_id).to_argument().expect("argument expected");
+            let arg = self.node(arg_id).as_argument();
             let reg = gen_expr(self, arg.expr, DataDest::Alloc);
             let target_idx = self
                 .analysis
@@ -1905,7 +1905,7 @@ impl<'a> AstBytecodeGen<'a> {
 
         // Evaluate non-variadic arguments and track registers.
         for &arg_id in expr.args.iter().take(non_variadic_arguments) {
-            let arg = self.node(arg_id).to_argument().expect("argument expected");
+            let arg = self.node(arg_id).as_argument();
             let reg = gen_expr(self, arg.expr, DataDest::Alloc);
             registers.push(reg);
         }
@@ -1955,7 +1955,7 @@ impl<'a> AstBytecodeGen<'a> {
 
         // Evaluate rest arguments and store them in array
         for (idx, &arg_id) in expr.args.iter().skip(non_variadic_arguments).enumerate() {
-            let arg = self.node(arg_id).to_argument().expect("argument expected");
+            let arg = self.node(arg_id).as_argument();
             let arg_reg = gen_expr(self, arg.expr, DataDest::Alloc);
             self.builder.emit_const_int64(index_reg, idx as i64);
             self.builder
@@ -2233,7 +2233,7 @@ impl<'a> AstBytecodeGen<'a> {
         if node.op == ast::UnOp::Neg && self.node(node.opnd).is_lit_int() {
             self.visit_expr_lit_int(
                 node.opnd,
-                self.node(node.opnd).to_lit_int().unwrap(),
+                self.node(node.opnd).as_lit_int(),
                 dest,
                 true,
             )

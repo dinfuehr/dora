@@ -239,7 +239,7 @@ fn check_expr_assign_path(ck: &mut TypeCheck, expr_ast_id: ast::AstId, e: &ast::
 
 fn check_expr_assign_ident(ck: &mut TypeCheck, expr_ast_id: ast::AstId, e: &ast::Bin) {
     let lhs = ck.node(e.lhs);
-    let lhs_ident = lhs.to_ident().unwrap();
+    let lhs_ident = lhs.as_ident();
     let sym = ck.symtable.get_string(ck.sa, &lhs_ident.name);
 
     let lhs_type = match sym {
@@ -446,7 +446,7 @@ fn check_assign_type(
 }
 
 fn check_expr_assign_call(ck: &mut TypeCheck, expr_ast_id: ast::AstId, e: &ast::Bin) {
-    let call = ck.node(e.lhs).to_call().unwrap();
+    let call = ck.node(e.lhs).as_call();
     let object_type = check_expr(ck, call.callee, SourceType::Any);
 
     let args = create_call_arguments(ck, call);
@@ -524,7 +524,7 @@ fn check_expr_assign_call(ck: &mut TypeCheck, expr_ast_id: ast::AstId, e: &ast::
     }
 
     for &arg_id in &args.arguments {
-        let arg = ck.node(arg_id).to_argument().expect("argument expected");
+        let arg = ck.node(arg_id).as_argument();
         if let Some(name_id) = arg.name {
             ck.sa.report(
                 ck.file_id,
@@ -571,7 +571,7 @@ fn check_index_trait_on_ty(
 
     let trait_ty = TraitType::from_trait_id(trait_id);
 
-    let call = ck.node(e.lhs).to_call().expect("call expected");
+    let call = ck.node(e.lhs).as_call();
 
     let impl_match = find_impl(
         ck.sa,
@@ -657,7 +657,7 @@ fn check_index_trait_on_ty(
 }
 
 fn check_expr_assign_field(ck: &mut TypeCheck, expr_ast_id: ast::AstId, e: &ast::Bin) {
-    let dot_expr = ck.node(e.lhs).to_dot().unwrap();
+    let dot_expr = ck.node(e.lhs).as_dot();
     let object_type = check_expr(ck, dot_expr.lhs, SourceType::Any);
 
     let rhs = ck.node(dot_expr.rhs);
@@ -1012,7 +1012,7 @@ fn check_expr_dot_unnamed_field(
     e: &ast::Dot,
     object_type: SourceType,
 ) -> SourceType {
-    let literal = ck.node(e.rhs).to_lit_int().expect("literal expected");
+    let literal = ck.node(e.rhs).as_lit_int();
 
     let (ty, value) = compute_lit_int(ck.sa, ck.file_id, e.rhs, SourceType::Any);
 
@@ -1237,7 +1237,7 @@ pub fn compute_lit_int(
     let e = sa.node(file_id, expr_id);
 
     if e.is_un_op(ast::UnOp::Neg) {
-        let e = e.to_un().expect("unary expected");
+        let e = e.as_un();
         check_lit_int(sa, file_id, e.opnd, true, expected_ty)
     } else {
         check_lit_int(sa, file_id, expr_id, false, expected_ty)
@@ -1252,14 +1252,14 @@ pub fn compute_lit_float(
     let e = sa.node(file_id, expr_id);
 
     if e.is_un_op(ast::UnOp::Neg) {
-        let e = e.to_un().expect("unary expected");
+        let e = e.as_un();
         let lit = sa
             .node(file_id, e.opnd)
             .to_lit_float()
             .expect("literal expected");
         check_lit_float(sa, file_id, lit, true)
     } else {
-        let lit = e.to_lit_float().expect("literal expected");
+        let lit = e.as_lit_float();
         check_lit_float(sa, file_id, lit, false)
     }
 }
@@ -1381,7 +1381,7 @@ fn check_expr_template(
                 );
             }
         } else {
-            let e = ck.node(part_id).to_lit_str().expect("string expected");
+            let e = ck.node(part_id).as_lit_str();
             check_expr_lit_str(ck, part_id, e, expected_ty.clone());
         }
     }
@@ -1516,7 +1516,7 @@ pub(super) fn check_expr_bin(
 
     if node.op == ast::BinOp::And && lhs.is_is() {
         ck.symtable.push_level();
-        let is_expr = lhs.to_is().expect("expected is");
+        let is_expr = lhs.as_is();
         let value_ty = check_expr(ck, is_expr.value, SourceType::Any);
         check_pattern(ck, is_expr.pattern, value_ty);
         let cond_ty = check_expr(ck, node.rhs, SourceType::Bool);
@@ -1983,7 +1983,7 @@ fn check_expr_lambda(
     let mut params = Vec::new();
 
     for &ast_param_id in &node.params {
-        let ast_param = ck.node(ast_param_id).to_param().expect("argument expected");
+        let ast_param = ck.node(ast_param_id).as_param();
         let ty = ck.read_type(ast_param.data_type);
         let param = Param::new_ty(ty.clone());
         params.push(param);
@@ -2471,9 +2471,9 @@ pub(super) fn check_type(
 }
 
 pub(super) fn read_path(ck: &mut TypeCheck, path_id: ast::AstId) -> Result<SymbolKind, ()> {
-    let path = ck.node(path_id).to_path_data().expect("path data expected");
+    let path = ck.node(path_id).as_path_data();
     let names = &path.segments;
-    let first_segment = ck.node(names[0]).to_ident().expect("ident expected");
+    let first_segment = ck.node(names[0]).as_ident();
     let mut sym = ck.symtable.get_string(ck.sa, &first_segment.name);
 
     for &segment_id in &names[1..] {
@@ -2484,7 +2484,7 @@ pub(super) fn read_path(ck: &mut TypeCheck, path_id: ast::AstId) -> Result<Symbo
                     ck.sa.report(ck.file_id, path.span, msg);
                 }
 
-                let current_segment = ck.node(segment_id).to_ident().expect("ident expected");
+                let current_segment = ck.node(segment_id).as_ident();
                 let iname = ck.sa.interner.intern(&current_segment.name);
                 sym = ck.sa.module_table(module_id).get(iname);
             }
@@ -2497,7 +2497,7 @@ pub(super) fn read_path(ck: &mut TypeCheck, path_id: ast::AstId) -> Result<Symbo
                     ck.sa.report(ck.file_id, path.span, msg);
                 }
 
-                let current_segment = ck.node(segment_id).to_ident().expect("ident expected");
+                let current_segment = ck.node(segment_id).as_ident();
 
                 let iname = ck.sa.interner.intern(&current_segment.name);
 
@@ -2521,7 +2521,7 @@ pub(super) fn read_path(ck: &mut TypeCheck, path_id: ast::AstId) -> Result<Symbo
             }
 
             None => {
-                let current_segment = ck.node(segment_id).to_ident().expect("ident expected");
+                let current_segment = ck.node(segment_id).as_ident();
                 let name = current_segment.name.clone();
                 let msg = ErrorMessage::UnknownIdentifier(name);
                 ck.sa.report(ck.file_id, path.span, msg);

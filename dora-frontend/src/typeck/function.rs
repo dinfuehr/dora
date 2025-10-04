@@ -118,7 +118,7 @@ impl<'a> TypeCheck<'a> {
             .clone();
 
         let ast_file = self.sa.file(self.file_id).ast();
-        let block = self.node(block_id).to_block().expect("block expected");
+        let block = self.node(block_id).as_block();
 
         let mut returns = false;
 
@@ -335,7 +335,7 @@ impl<'a> TypeCheck<'a> {
         for (ind, (&ast_param_id, param_ty)) in
             ast.params.iter().zip(param_types.into_iter()).enumerate()
         {
-            let ast_param = self.node(ast_param_id).to_param().expect("param expected");
+            let ast_param = self.node(ast_param_id).as_param();
 
             // is this last argument of function with variadic arguments?
             let ty = if ind == ast.params.len() - 1
@@ -478,7 +478,7 @@ pub(super) fn check_args_compatible<S>(
     S: FnMut(SourceType) -> SourceType,
 {
     for &arg_id in &args.arguments {
-        let arg = ck.node(arg_id).to_argument().expect("argument expected");
+        let arg = ck.node(arg_id).as_argument();
         if let Some(name_id) = arg.name {
             ck.sa.report(
                 ck.file_id,
@@ -499,7 +499,7 @@ pub(super) fn check_args_compatible<S>(
             let exp = ck.ty_name(&param_ty);
             let got = ck.ty_name(&arg_ty);
 
-            let arg = ck.node(arg_id).to_argument().expect("argument expected");
+            let arg = ck.node(arg_id).as_argument();
 
             ck.sa.report(
                 ck.file_id,
@@ -535,7 +535,7 @@ pub(super) fn check_args_compatible<S>(
                     let exp = ck.ty_name(&variadic_ty);
                     let got = ck.ty_name(&arg_ty);
 
-                    let arg = ck.node(arg_id).to_argument().expect("argument expected");
+                    let arg = ck.node(arg_id).as_argument();
 
                     ck.sa.report(
                         ck.file_id,
@@ -583,7 +583,7 @@ pub(super) fn check_args_compatible2<S>(
     S: FnMut(SourceType) -> SourceType,
 {
     for &arg_id in &args.arguments {
-        let arg = ck.node(arg_id).to_argument().expect("argument expected");
+        let arg = ck.node(arg_id).as_argument();
 
         if let Some(name_id) = arg.name {
             ck.sa.report(
@@ -602,7 +602,7 @@ pub(super) fn check_args_compatible2<S>(
             let exp = ck.ty_name(&param_ty);
             let got = ck.ty_name(&arg_ty);
 
-            let arg = ck.node(arg_id).to_argument().expect("argument expected");
+            let arg = ck.node(arg_id).as_argument();
 
             ck.sa.report(
                 ck.file_id,
@@ -633,7 +633,7 @@ pub(super) fn check_args_compatible2<S>(
                     let exp = ck.ty_name(&variadic_ty);
                     let got = ck.ty_name(&arg_ty);
 
-                    let arg = ck.node(arg_id).to_argument().expect("argument expected");
+                    let arg = ck.node(arg_id).as_argument();
 
                     ck.sa.report(
                         ck.file_id,
@@ -840,7 +840,7 @@ pub fn check_lit_int(
     negate: bool,
     expected_type: SourceType,
 ) -> (SourceType, ConstValue) {
-    let e = sa.node(file, expr_id).to_lit_int().expect("int expected");
+    let e = sa.node(file, expr_id).as_lit_int();
     let (base, value, suffix) = parse_lit_int(&e.value);
     let suffix_type = determine_suffix_type_int_literal(sa, file, e.span, &suffix);
 

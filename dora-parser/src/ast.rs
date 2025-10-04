@@ -59,64 +59,63 @@ impl File {
 
     #[cfg(test)]
     pub fn fct0(&self) -> &Function {
-        self.node(self.root().elements[0]).to_function().unwrap()
+        self.node(self.root().elements[0]).as_function()
     }
 
     #[cfg(test)]
     pub fn fct(&self, index: usize) -> &Function {
         self.node(self.root().elements[index])
-            .to_function()
-            .unwrap()
+            .as_function()
     }
 
     #[cfg(test)]
     pub fn cls0(&self) -> &Class {
-        self.node(self.root().elements[0]).to_class().unwrap()
+        self.node(self.root().elements[0]).as_class()
     }
 
     #[cfg(test)]
     pub fn cls(&self, index: usize) -> &Class {
-        self.node(self.root().elements[index]).to_class().unwrap()
+        self.node(self.root().elements[index]).as_class()
     }
 
     #[cfg(test)]
     pub fn struct0(&self) -> &Struct {
-        self.node(self.root().elements[0]).to_struct().unwrap()
+        self.node(self.root().elements[0]).as_struct()
     }
 
     #[cfg(test)]
     pub fn enum0(&self) -> &Enum {
-        self.node(self.root().elements[0]).to_enum().unwrap()
+        self.node(self.root().elements[0]).as_enum()
     }
 
     #[cfg(test)]
     pub fn module0(&self) -> &Module {
-        self.node(self.root().elements[0]).to_module().unwrap()
+        self.node(self.root().elements[0]).as_module()
     }
 
     #[cfg(test)]
     pub fn trait_(&self, index: usize) -> &Trait {
-        self.node(self.root().elements[index]).to_trait().unwrap()
+        self.node(self.root().elements[index]).as_trait()
     }
 
     #[cfg(test)]
     pub fn trait0(&self) -> &Trait {
-        self.node(self.root().elements[0]).to_trait().unwrap()
+        self.node(self.root().elements[0]).as_trait()
     }
 
     #[cfg(test)]
     pub fn impl0(&self) -> &Impl {
-        self.node(self.root().elements[0]).to_impl().unwrap()
+        self.node(self.root().elements[0]).as_impl()
     }
 
     #[cfg(test)]
     pub fn global0(&self) -> &Global {
-        self.node(self.root().elements[0]).to_global().unwrap()
+        self.node(self.root().elements[0]).as_global()
     }
 
     #[cfg(test)]
     pub fn const0(&self) -> &Const {
-        self.node(self.root().elements[0]).to_const().unwrap()
+        self.node(self.root().elements[0]).as_const()
     }
 }
 

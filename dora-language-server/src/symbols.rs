@@ -248,7 +248,7 @@ impl visit::Visitor for SymbolScanner {
 
         self.start_children();
         for &field_id in &node.fields {
-            let field = f.node(field_id).to_field().expect("field expected");
+            let field = f.node(field_id).as_field();
             let (name, name_span) = ensure_name(f, field.name, "<field>", field.span);
             self.add_symbol(name, name_span, DoraSymbolKind::ClassField, field.span);
         }
@@ -261,7 +261,7 @@ impl visit::Visitor for SymbolScanner {
 
         self.start_children();
         for &field_id in &node.fields {
-            let field = f.node(field_id).to_field().expect("field expected");
+            let field = f.node(field_id).as_field();
             let (name, name_span) = ensure_name(f, field.name, "<field>", field.span);
             self.add_symbol(name, name_span, DoraSymbolKind::StructField, field.span);
         }
@@ -298,7 +298,7 @@ fn ensure_name(
     default_span: Span,
 ) -> (String, Span) {
     if let Some(ident_id) = ident_id {
-        let ident_node = f.node(ident_id).to_ident().expect("ident expected");
+        let ident_node = f.node(ident_id).as_ident();
         (ident_node.name.clone(), ident_node.span)
     } else {
         (default_name.into(), default_span)

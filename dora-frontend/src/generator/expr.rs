@@ -382,7 +382,7 @@ pub(super) fn gen_match(
 
         g.push_scope();
 
-        let arm = g.node(arm_id).to_match_arm().expect("arm expected");
+        let arm = g.node(arm_id).as_match_arm();
         g.setup_pattern_vars(arm.pattern);
         g.destruct_pattern(arm.pattern, expr_reg, expr_ty.clone(), Some(next_arm_lbl));
 
