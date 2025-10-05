@@ -378,7 +378,13 @@ struct TopLevelDeclaration<'x> {
 }
 
 impl<'x> visit::Visitor for TopLevelDeclaration<'x> {
-    fn visit_extern(&mut self, _f: &ast::File, _id: AstId, node: &ast::Extern) {
+    fn visit_extern(
+        &mut self,
+        _f: &ast::File,
+        _id: AstId,
+        node: &ast::Extern,
+        _ast_node: ast::AstExtern,
+    ) {
         check_modifiers(self.sa, self.file_id, node.modifiers, &[]);
         if let Some(name_id) = node.name {
             let name = _f.node(name_id).as_ident();
@@ -410,7 +416,13 @@ impl<'x> visit::Visitor for TopLevelDeclaration<'x> {
         }
     }
 
-    fn visit_module(&mut self, f: &ast::File, ast_id: AstId, node: &ast::Module) {
+    fn visit_module(
+        &mut self,
+        f: &ast::File,
+        ast_id: AstId,
+        node: &ast::Module,
+        _ast_node: ast::AstModule,
+    ) {
         let modifiers = check_modifiers(self.sa, self.file_id, node.modifiers, &[Annotation::Pub]);
         let name = ensure_name(self.sa, f, node.name);
         let module = ModuleDefinition::new_inner(
@@ -446,7 +458,13 @@ impl<'x> visit::Visitor for TopLevelDeclaration<'x> {
         }
     }
 
-    fn visit_trait(&mut self, f: &ast::File, ast_id: AstId, node: &ast::Trait) {
+    fn visit_trait(
+        &mut self,
+        f: &ast::File,
+        ast_id: AstId,
+        node: &ast::Trait,
+        _ast_node: ast::AstTrait,
+    ) {
         let modifiers = check_modifiers(self.sa, self.file_id, node.modifiers, &[Annotation::Pub]);
 
         let type_param_definition = parse_type_param_definition(
@@ -488,7 +506,13 @@ impl<'x> visit::Visitor for TopLevelDeclaration<'x> {
         }
     }
 
-    fn visit_use(&mut self, _f: &ast::File, _ast_id: AstId, node: &ast::Use) {
+    fn visit_use(
+        &mut self,
+        _f: &ast::File,
+        _ast_id: AstId,
+        node: &ast::Use,
+        _ast_node: ast::AstUse,
+    ) {
         let modifiers = check_modifiers(self.sa, self.file_id, node.modifiers, &[Annotation::Pub]);
         let use_def = UseDefinition::new(
             self.package_id,
@@ -501,7 +525,13 @@ impl<'x> visit::Visitor for TopLevelDeclaration<'x> {
         assert!(self.sa.uses[use_id].id.set(use_id).is_ok());
     }
 
-    fn visit_global(&mut self, f: &ast::File, ast_id: AstId, node: &ast::Global) {
+    fn visit_global(
+        &mut self,
+        f: &ast::File,
+        ast_id: AstId,
+        node: &ast::Global,
+        _ast_node: ast::AstGlobal,
+    ) {
         let modifiers = check_modifiers(self.sa, self.file_id, node.modifiers, &[Annotation::Pub]);
 
         let global = GlobalDefinition::new(
@@ -522,7 +552,13 @@ impl<'x> visit::Visitor for TopLevelDeclaration<'x> {
         }
     }
 
-    fn visit_impl(&mut self, f: &ast::File, ast_id: AstId, node: &ast::Impl) {
+    fn visit_impl(
+        &mut self,
+        f: &ast::File,
+        ast_id: AstId,
+        node: &ast::Impl,
+        _ast_node: ast::AstImpl,
+    ) {
         check_modifiers(self.sa, self.file_id, node.modifiers, &[]);
 
         let type_param_definition = parse_type_param_definition(
@@ -576,7 +612,13 @@ impl<'x> visit::Visitor for TopLevelDeclaration<'x> {
         }
     }
 
-    fn visit_const(&mut self, f: &ast::File, ast_id: AstId, node: &ast::Const) {
+    fn visit_const(
+        &mut self,
+        f: &ast::File,
+        ast_id: AstId,
+        node: &ast::Const,
+        _ast_node: ast::AstConst,
+    ) {
         let modifiers = check_modifiers(self.sa, self.file_id, node.modifiers, &[Annotation::Pub]);
         let const_ = ConstDefinition::new(
             self.package_id,
@@ -596,7 +638,13 @@ impl<'x> visit::Visitor for TopLevelDeclaration<'x> {
         }
     }
 
-    fn visit_class(&mut self, f: &ast::File, ast_id: AstId, node: &ast::Class) {
+    fn visit_class(
+        &mut self,
+        f: &ast::File,
+        ast_id: AstId,
+        node: &ast::Class,
+        _ast_node: ast::AstClass,
+    ) {
         let modifiers = check_modifiers(
             self.sa,
             self.file_id,
@@ -677,7 +725,13 @@ impl<'x> visit::Visitor for TopLevelDeclaration<'x> {
         }
     }
 
-    fn visit_struct(&mut self, f: &ast::File, ast_id: AstId, node: &ast::Struct) {
+    fn visit_struct(
+        &mut self,
+        f: &ast::File,
+        ast_id: AstId,
+        node: &ast::Struct,
+        _ast_node: ast::AstStruct,
+    ) {
         let modifiers = check_modifiers(
             self.sa,
             self.file_id,
@@ -762,7 +816,13 @@ impl<'x> visit::Visitor for TopLevelDeclaration<'x> {
         }
     }
 
-    fn visit_fct(&mut self, f: &ast::File, ast_id: AstId, node: &ast::Function) {
+    fn visit_function(
+        &mut self,
+        f: &ast::File,
+        ast_id: AstId,
+        node: &ast::Function,
+        _ast_node: ast::AstFunction,
+    ) {
         let modifiers = check_modifiers(
             self.sa,
             self.file_id,
@@ -809,7 +869,13 @@ impl<'x> visit::Visitor for TopLevelDeclaration<'x> {
         }
     }
 
-    fn visit_enum(&mut self, f: &ast::File, ast_id: AstId, node: &ast::Enum) {
+    fn visit_enum(
+        &mut self,
+        f: &ast::File,
+        ast_id: AstId,
+        node: &ast::Enum,
+        _ast_node: ast::AstEnum,
+    ) {
         let type_param_definition = parse_type_param_definition(
             self.sa,
             None,
@@ -921,7 +987,13 @@ impl<'x> visit::Visitor for TopLevelDeclaration<'x> {
         }
     }
 
-    fn visit_type_alias(&mut self, f: &ast::File, ast_id: AstId, node: &ast::Alias) {
+    fn visit_alias(
+        &mut self,
+        f: &ast::File,
+        ast_id: AstId,
+        node: &ast::Alias,
+        _ast_node: ast::AstAlias,
+    ) {
         let modifiers = check_modifiers(self.sa, self.file_id, node.modifiers, &[Annotation::Pub]);
 
         let parsed_ty = if let Some(ref ty) = node.ty {

@@ -181,7 +181,13 @@ impl SymbolScanner {
 }
 
 impl visit::Visitor for SymbolScanner {
-    fn visit_module(&mut self, f: &ast::File, id: ast::AstId, node: &ast::Module) {
+    fn visit_module(
+        &mut self,
+        f: &ast::File,
+        id: ast::AstId,
+        node: &ast::Module,
+        _ast_node: ast::AstModule,
+    ) {
         let (name, name_span) = ensure_name(f, node.name, "<mod>", node.span);
         self.add_symbol(name, name_span, DoraSymbolKind::Module, node.span);
 
@@ -190,17 +196,35 @@ impl visit::Visitor for SymbolScanner {
         self.stop_children();
     }
 
-    fn visit_trait(&mut self, f: &ast::File, _id: ast::AstId, node: &ast::Trait) {
+    fn visit_trait(
+        &mut self,
+        f: &ast::File,
+        _id: ast::AstId,
+        node: &ast::Trait,
+        _ast_node: ast::AstTrait,
+    ) {
         let (name, name_span) = ensure_name(f, node.name, "<trait>", node.span);
         self.add_symbol(name, name_span, DoraSymbolKind::Trait, node.span);
     }
 
-    fn visit_global(&mut self, f: &ast::File, _id: ast::AstId, node: &ast::Global) {
+    fn visit_global(
+        &mut self,
+        f: &ast::File,
+        _id: ast::AstId,
+        node: &ast::Global,
+        _ast_node: ast::AstGlobal,
+    ) {
         let (name, name_span) = ensure_name(f, node.name, "<global>", node.span);
         self.add_symbol(name, name_span, DoraSymbolKind::Global, node.span);
     }
 
-    fn visit_impl(&mut self, f: &ast::File, id: ast::AstId, node: &ast::Impl) {
+    fn visit_impl(
+        &mut self,
+        f: &ast::File,
+        id: ast::AstId,
+        node: &ast::Impl,
+        _ast_node: ast::AstImpl,
+    ) {
         let mut name: String = "impl".into();
 
         if let Some(type_param_list_id) = node.type_params {
@@ -236,12 +260,24 @@ impl visit::Visitor for SymbolScanner {
         self.stop_children();
     }
 
-    fn visit_const(&mut self, f: &ast::File, _id: ast::AstId, node: &ast::Const) {
+    fn visit_const(
+        &mut self,
+        f: &ast::File,
+        _id: ast::AstId,
+        node: &ast::Const,
+        _ast_node: ast::AstConst,
+    ) {
         let (name, name_span) = ensure_name(f, node.name, "<const>", node.span);
         self.add_symbol(name, name_span, DoraSymbolKind::Const, node.span);
     }
 
-    fn visit_class(&mut self, f: &ast::File, _id: ast::AstId, node: &ast::Class) {
+    fn visit_class(
+        &mut self,
+        f: &ast::File,
+        _id: ast::AstId,
+        node: &ast::Class,
+        _ast_node: ast::AstClass,
+    ) {
         let (name, name_span) = ensure_name(f, node.name, "<class>", node.span);
         self.add_symbol(name, name_span, DoraSymbolKind::Class, node.span);
 
@@ -254,7 +290,13 @@ impl visit::Visitor for SymbolScanner {
         self.stop_children();
     }
 
-    fn visit_struct(&mut self, f: &ast::File, _id: ast::AstId, node: &ast::Struct) {
+    fn visit_struct(
+        &mut self,
+        f: &ast::File,
+        _id: ast::AstId,
+        node: &ast::Struct,
+        _ast_node: ast::AstStruct,
+    ) {
         let (name, name_span) = ensure_name(f, node.name, "<struct>", node.span);
         self.add_symbol(name, name_span, DoraSymbolKind::Struct, node.span);
 
@@ -267,12 +309,24 @@ impl visit::Visitor for SymbolScanner {
         self.stop_children();
     }
 
-    fn visit_fct(&mut self, f: &ast::File, _id: ast::AstId, node: &ast::Function) {
+    fn visit_function(
+        &mut self,
+        f: &ast::File,
+        _id: ast::AstId,
+        node: &ast::Function,
+        _ast_node: ast::AstFunction,
+    ) {
         let (name, name_span) = ensure_name(f, node.name, "<fn>", node.span);
         self.add_symbol(name, name_span, DoraSymbolKind::Function, node.span);
     }
 
-    fn visit_enum(&mut self, f: &ast::File, _id: ast::AstId, node: &ast::Enum) {
+    fn visit_enum(
+        &mut self,
+        f: &ast::File,
+        _id: ast::AstId,
+        node: &ast::Enum,
+        _ast_node: ast::AstEnum,
+    ) {
         let (name, name_span) = ensure_name(f, node.name, "<fn>", node.span);
         self.add_symbol(name, name_span, DoraSymbolKind::Enum, node.span);
 

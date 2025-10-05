@@ -2,95 +2,87 @@ use crate::ast::*;
 
 macro_rules! for_each_visit {
     ($macro:ident) => {
-        $macro!(visit_alt, walk_alt, Alt);
-        $macro!(visit_argument, walk_argument, Argument);
-        $macro!(visit_bin, walk_bin, Bin);
-        $macro!(visit_block, walk_block, Block);
-        $macro!(visit_break, walk_break, Break);
-        $macro!(visit_call, walk_call, Call);
-        $macro!(visit_class, walk_class, Class);
-        $macro!(visit_const, walk_const, Const);
-        $macro!(visit_constructor_field, walk_constructor_field, CtorField);
-        $macro!(
-            visit_constructor_pattern,
-            walk_constructor_pattern,
-            CtorPattern
-        );
-        $macro!(visit_continue, walk_continue, Continue);
-        $macro!(visit_conv, walk_conv, Conv);
-        $macro!(visit_dot, walk_dot, Dot);
-        $macro!(visit_enum, walk_enum, Enum);
-        $macro!(visit_error, walk_error, Error);
-        $macro!(visit_expr_stmt, walk_expr_stmt, ExprStmt);
-        $macro!(visit_extern, walk_extern, Extern);
-        $macro!(visit_fct, walk_fct, Function);
-        $macro!(visit_field, walk_field, Field);
-        $macro!(visit_for, walk_for, For);
-        $macro!(visit_global, walk_global, Global);
-        $macro!(visit_ident, walk_ident, Ident);
-        $macro!(visit_ident_pattern, walk_ident_pattern, IdentPattern);
-        $macro!(visit_if, walk_if, If);
-        $macro!(visit_impl, walk_impl, Impl);
-        $macro!(visit_is, walk_is, Is);
-        $macro!(visit_lambda, walk_lambda, Lambda);
-        $macro!(visit_lambda_type, walk_lambda_type, LambdaType);
-        $macro!(visit_let_stmt, walk_let_stmt, Let);
-        $macro!(visit_lit_bool, walk_lit_bool, LitBool);
-        $macro!(visit_lit_char, walk_lit_char, LitChar);
-        $macro!(visit_lit_float, walk_lit_float, LitFloat);
-        $macro!(visit_lit_int, walk_lit_int, LitInt);
-        $macro!(visit_lit_pattern, walk_lit_pattern, LitPattern);
-        $macro!(visit_lit_str, walk_lit_str, LitStr);
-        $macro!(visit_match, walk_match, Match);
-        $macro!(visit_match_arm, walk_match_arm, MatchArm);
-        $macro!(visit_modifier, walk_modifier, Modifier);
-        $macro!(visit_modifier_list, walk_modifier_list, ModifierList);
-        $macro!(visit_module, walk_module, Module);
-        $macro!(visit_param, walk_param, Param);
-        $macro!(visit_paren, walk_paren, Paren);
-        $macro!(visit_path, walk_path, Path);
-        $macro!(visit_path_data, walk_path_data, PathData);
+        $macro!(visit_alt, Alt, AstAlt);
+        $macro!(visit_argument, Argument, AstArgument);
+        $macro!(visit_bin, Bin, AstBin);
+        $macro!(visit_block, Block, AstBlock);
+        $macro!(visit_break, Break, AstBreak);
+        $macro!(visit_call, Call, AstCall);
+        $macro!(visit_class, Class, AstClass);
+        $macro!(visit_const, Const, AstConst);
+        $macro!(visit_constructor_field, CtorField, AstCtorField);
+        $macro!(visit_constructor_pattern, CtorPattern, AstCtorPattern);
+        $macro!(visit_continue, Continue, AstContinue);
+        $macro!(visit_conv, Conv, AstConv);
+        $macro!(visit_dot, Dot, AstDot);
+        $macro!(visit_enum, Enum, AstEnum);
+        $macro!(visit_error, Error, AstError);
+        $macro!(visit_expr_stmt, ExprStmt, AstExprStmt);
+        $macro!(visit_extern, Extern, AstExtern);
+        $macro!(visit_function, Function, AstFunction);
+        $macro!(visit_field, Field, AstField);
+        $macro!(visit_for, For, AstFor);
+        $macro!(visit_global, Global, AstGlobal);
+        $macro!(visit_ident, Ident, AstIdent);
+        $macro!(visit_ident_pattern, IdentPattern, AstIdentPattern);
+        $macro!(visit_if, If, AstIf);
+        $macro!(visit_impl, Impl, AstImpl);
+        $macro!(visit_is, Is, AstIs);
+        $macro!(visit_lambda, Lambda, AstLambda);
+        $macro!(visit_lambda_type, LambdaType, AstLambdaType);
+        $macro!(visit_let_stmt, Let, AstLet);
+        $macro!(visit_lit_bool, LitBool, AstLitBool);
+        $macro!(visit_lit_char, LitChar, AstLitChar);
+        $macro!(visit_lit_float, LitFloat, AstLitFloat);
+        $macro!(visit_lit_int, LitInt, AstLitInt);
+        $macro!(visit_lit_pattern, LitPattern, AstLitPattern);
+        $macro!(visit_lit_str, LitStr, AstLitStr);
+        $macro!(visit_match, Match, AstMatch);
+        $macro!(visit_match_arm, MatchArm, AstMatchArm);
+        $macro!(visit_modifier, Modifier, AstModifier);
+        $macro!(visit_modifier_list, ModifierList, AstModifierList);
+        $macro!(visit_module, Module, AstModule);
+        $macro!(visit_param, Param, AstParam);
+        $macro!(visit_paren, Paren, AstParen);
+        $macro!(visit_path, Path, AstPath);
+        $macro!(visit_path_data, PathData, AstPathData);
         $macro!(
             visit_qualified_path_type,
-            walk_qualified_path_type,
-            QualifiedPathType
+            QualifiedPathType,
+            AstQualifiedPathType
         );
-        $macro!(visit_regular_type, walk_regular_type, RegularType);
-        $macro!(visit_rest, walk_rest, Rest);
-        $macro!(visit_return, walk_return, Return);
-        $macro!(visit_root, walk_root, Root);
-        $macro!(visit_struct, walk_struct, Struct);
-        $macro!(visit_template, walk_template, Template);
-        $macro!(visit_this, walk_this, This);
-        $macro!(visit_trait, walk_trait, Trait);
-        $macro!(visit_tuple, walk_tuple, Tuple);
-        $macro!(visit_tuple_pattern, walk_tuple_pattern, TuplePattern);
-        $macro!(visit_tuple_type, walk_tuple_type, TupleType);
-        $macro!(visit_type_alias, walk_type_alias, Alias);
-        $macro!(visit_type_argument, walk_type_argument, TypeArgument);
-        $macro!(visit_type_param, walk_type_param, TypeParam);
-        $macro!(visit_type_param_list, walk_type_param_list, TypeParamList);
-        $macro!(visit_typed_expr, walk_typed_expr, TypedExpr);
-        $macro!(visit_un, walk_un, Un);
-        $macro!(visit_underscore, walk_underscore, Underscore);
-        $macro!(visit_upcase_this, walk_upcase_this, UpcaseThis);
-        $macro!(visit_use, walk_use, Use);
-        $macro!(visit_use_group, walk_use_group, UseGroup);
-        $macro!(visit_use_path, walk_use_path, UsePath);
-        $macro!(visit_use_target_name, walk_use_target_name, UseTargetName);
-        $macro!(
-            visit_where_clause_item,
-            walk_where_clause_item,
-            WhereClauseItem
-        );
-        $macro!(visit_where_item, walk_where_clause, WhereClause);
-        $macro!(visit_while, walk_while, While);
+        $macro!(visit_regular_type, RegularType, AstRegularType);
+        $macro!(visit_rest, Rest, AstRest);
+        $macro!(visit_return, Return, AstReturn);
+        $macro!(visit_root, Root, AstRoot);
+        $macro!(visit_struct, Struct, AstStruct);
+        $macro!(visit_template, Template, AstTemplate);
+        $macro!(visit_this, This, AstThis);
+        $macro!(visit_trait, Trait, AstTrait);
+        $macro!(visit_tuple, Tuple, AstTuple);
+        $macro!(visit_tuple_pattern, TuplePattern, AstTuplePattern);
+        $macro!(visit_tuple_type, TupleType, AstTupleType);
+        $macro!(visit_alias, Alias, AstAlias);
+        $macro!(visit_type_argument, TypeArgument, AstTypeArgument);
+        $macro!(visit_type_param, TypeParam, AstTypeParam);
+        $macro!(visit_type_param_list, TypeParamList, AstTypeParamList);
+        $macro!(visit_typed_expr, TypedExpr, AstTypedExpr);
+        $macro!(visit_un, Un, AstUn);
+        $macro!(visit_underscore, Underscore, AstUnderscore);
+        $macro!(visit_upcase_this, UpcaseThis, AstUpcaseThis);
+        $macro!(visit_use, Use, AstUse);
+        $macro!(visit_use_group, UseGroup, AstUseGroup);
+        $macro!(visit_use_path, UsePath, AstUsePath);
+        $macro!(visit_use_target_name, UseTargetName, AstUseTargetName);
+        $macro!(visit_where_clause_item, WhereClauseItem, AstWhereClauseItem);
+        $macro!(visit_where_item, WhereClause, AstWhereClause);
+        $macro!(visit_while, While, AstWhile);
     };
 }
 
 macro_rules! generate_trait_method {
-    ($method:ident, $walk_fn:ident, $ty:ident) => {
-        fn $method(&mut self, file: &File, id: AstId, _node: &$ty) {
+    ($method:ident, $ty:ident, $ast_node_ty:ident) => {
+        fn $method(&mut self, file: &File, id: AstId, _node: &$ty, _ast_node: $ast_node_ty) {
             walk_children(self, file.node2(id));
         }
     };
@@ -105,77 +97,87 @@ pub fn visit_node<V: Visitor>(v: &mut V, node: AstNode) {
     let id = node.id();
 
     match node.raw_node() {
-        Ast::Function(n) => v.visit_fct(file, id, n),
-        Ast::Alias(n) => v.visit_type_alias(file, id, n),
-        Ast::Alt(n) => v.visit_alt(file, id, n),
-        Ast::Argument(n) => v.visit_argument(file, id, n),
-        Ast::Bin(n) => v.visit_bin(file, id, n),
-        Ast::Block(n) => v.visit_block(file, id, n),
-        Ast::Break(n) => v.visit_break(file, id, n),
-        Ast::Call(n) => v.visit_call(file, id, n),
-        Ast::Class(n) => v.visit_class(file, id, n),
-        Ast::Const(n) => v.visit_const(file, id, n),
-        Ast::Continue(n) => v.visit_continue(file, id, n),
-        Ast::Conv(n) => v.visit_conv(file, id, n),
-        Ast::CtorField(n) => v.visit_constructor_field(file, id, n),
-        Ast::CtorPattern(n) => v.visit_constructor_pattern(file, id, n),
-        Ast::Dot(n) => v.visit_dot(file, id, n),
-        Ast::Enum(n) => v.visit_enum(file, id, n),
-        Ast::Error(n) => v.visit_error(file, id, n),
-        Ast::ExprStmt(n) => v.visit_expr_stmt(file, id, n),
-        Ast::Extern(n) => v.visit_extern(file, id, n),
-        Ast::Field(n) => v.visit_field(file, id, n),
-        Ast::For(n) => v.visit_for(file, id, n),
-        Ast::Global(n) => v.visit_global(file, id, n),
-        Ast::Ident(n) => v.visit_ident(file, id, n),
-        Ast::IdentPattern(n) => v.visit_ident_pattern(file, id, n),
-        Ast::If(n) => v.visit_if(file, id, n),
-        Ast::Impl(n) => v.visit_impl(file, id, n),
-        Ast::Is(n) => v.visit_is(file, id, n),
-        Ast::Lambda(n) => v.visit_lambda(file, id, n),
-        Ast::LambdaType(n) => v.visit_lambda_type(file, id, n),
-        Ast::Let(n) => v.visit_let_stmt(file, id, n),
-        Ast::LitBool(n) => v.visit_lit_bool(file, id, n),
-        Ast::LitChar(n) => v.visit_lit_char(file, id, n),
-        Ast::LitFloat(n) => v.visit_lit_float(file, id, n),
-        Ast::LitInt(n) => v.visit_lit_int(file, id, n),
-        Ast::LitPattern(n) => v.visit_lit_pattern(file, id, n),
-        Ast::LitStr(n) => v.visit_lit_str(file, id, n),
-        Ast::Match(n) => v.visit_match(file, id, n),
-        Ast::MatchArm(n) => v.visit_match_arm(file, id, n),
-        Ast::Modifier(n) => v.visit_modifier(file, id, n),
-        Ast::ModifierList(n) => v.visit_modifier_list(file, id, n),
-        Ast::Module(n) => v.visit_module(file, id, n),
-        Ast::Param(n) => v.visit_param(file, id, n),
-        Ast::Paren(n) => v.visit_paren(file, id, n),
-        Ast::Path(n) => v.visit_path(file, id, n),
-        Ast::PathData(n) => v.visit_path_data(file, id, n),
-        Ast::QualifiedPathType(n) => v.visit_qualified_path_type(file, id, n),
-        Ast::RegularType(n) => v.visit_regular_type(file, id, n),
-        Ast::Rest(n) => v.visit_rest(file, id, n),
-        Ast::Return(n) => v.visit_return(file, id, n),
-        Ast::Root(n) => v.visit_root(file, id, n),
-        Ast::Struct(n) => v.visit_struct(file, id, n),
-        Ast::Template(n) => v.visit_template(file, id, n),
-        Ast::This(n) => v.visit_this(file, id, n),
-        Ast::Trait(n) => v.visit_trait(file, id, n),
-        Ast::Tuple(n) => v.visit_tuple(file, id, n),
-        Ast::TuplePattern(n) => v.visit_tuple_pattern(file, id, n),
-        Ast::TupleType(n) => v.visit_tuple_type(file, id, n),
-        Ast::TypeArgument(n) => v.visit_type_argument(file, id, n),
-        Ast::TypedExpr(n) => v.visit_typed_expr(file, id, n),
-        Ast::TypeParamList(n) => v.visit_type_param_list(file, id, n),
-        Ast::TypeParam(n) => v.visit_type_param(file, id, n),
-        Ast::Un(n) => v.visit_un(file, id, n),
-        Ast::Underscore(n) => v.visit_underscore(file, id, n),
-        Ast::UpcaseThis(n) => v.visit_upcase_this(file, id, n),
-        Ast::Use(n) => v.visit_use(file, id, n),
-        Ast::UseGroup(n) => v.visit_use_group(file, id, n),
-        Ast::UsePath(n) => v.visit_use_path(file, id, n),
-        Ast::UseTargetName(n) => v.visit_use_target_name(file, id, n),
-        Ast::WhereClause(n) => v.visit_where_item(file, id, n),
-        Ast::WhereClauseItem(n) => v.visit_where_clause_item(file, id, n),
-        Ast::While(n) => v.visit_while(file, id, n),
+        Ast::Function(n) => v.visit_function(file, id, n, node.clone().as_function()),
+        Ast::Alias(n) => v.visit_alias(file, id, n, node.clone().as_alias()),
+        Ast::Alt(n) => v.visit_alt(file, id, n, node.clone().as_alt()),
+        Ast::Argument(n) => v.visit_argument(file, id, n, node.clone().as_argument()),
+        Ast::Bin(n) => v.visit_bin(file, id, n, node.clone().as_bin()),
+        Ast::Block(n) => v.visit_block(file, id, n, node.clone().as_block()),
+        Ast::Break(n) => v.visit_break(file, id, n, node.clone().as_break()),
+        Ast::Call(n) => v.visit_call(file, id, n, node.clone().as_call()),
+        Ast::Class(n) => v.visit_class(file, id, n, node.clone().as_class()),
+        Ast::Const(n) => v.visit_const(file, id, n, node.clone().as_const()),
+        Ast::Continue(n) => v.visit_continue(file, id, n, node.clone().as_continue()),
+        Ast::Conv(n) => v.visit_conv(file, id, n, node.clone().as_conv()),
+        Ast::CtorField(n) => v.visit_constructor_field(file, id, n, node.clone().as_ctor_field()),
+        Ast::CtorPattern(n) => {
+            v.visit_constructor_pattern(file, id, n, node.clone().as_ctor_pattern())
+        }
+        Ast::Dot(n) => v.visit_dot(file, id, n, node.clone().as_dot()),
+        Ast::Enum(n) => v.visit_enum(file, id, n, node.clone().as_enum()),
+        Ast::Error(n) => v.visit_error(file, id, n, node.clone().as_error()),
+        Ast::ExprStmt(n) => v.visit_expr_stmt(file, id, n, node.clone().as_expr_stmt()),
+        Ast::Extern(n) => v.visit_extern(file, id, n, node.clone().as_extern()),
+        Ast::Field(n) => v.visit_field(file, id, n, node.clone().as_field()),
+        Ast::For(n) => v.visit_for(file, id, n, node.clone().as_for()),
+        Ast::Global(n) => v.visit_global(file, id, n, node.clone().as_global()),
+        Ast::Ident(n) => v.visit_ident(file, id, n, node.clone().as_ident()),
+        Ast::IdentPattern(n) => v.visit_ident_pattern(file, id, n, node.clone().as_ident_pattern()),
+        Ast::If(n) => v.visit_if(file, id, n, node.clone().as_if()),
+        Ast::Impl(n) => v.visit_impl(file, id, n, node.clone().as_impl()),
+        Ast::Is(n) => v.visit_is(file, id, n, node.clone().as_is()),
+        Ast::Lambda(n) => v.visit_lambda(file, id, n, node.clone().as_lambda()),
+        Ast::LambdaType(n) => v.visit_lambda_type(file, id, n, node.clone().as_lambda_type()),
+        Ast::Let(n) => v.visit_let_stmt(file, id, n, node.clone().as_let()),
+        Ast::LitBool(n) => v.visit_lit_bool(file, id, n, node.clone().as_lit_bool()),
+        Ast::LitChar(n) => v.visit_lit_char(file, id, n, node.clone().as_lit_char()),
+        Ast::LitFloat(n) => v.visit_lit_float(file, id, n, node.clone().as_lit_float()),
+        Ast::LitInt(n) => v.visit_lit_int(file, id, n, node.clone().as_lit_int()),
+        Ast::LitPattern(n) => v.visit_lit_pattern(file, id, n, node.clone().as_lit_pattern()),
+        Ast::LitStr(n) => v.visit_lit_str(file, id, n, node.clone().as_lit_str()),
+        Ast::Match(n) => v.visit_match(file, id, n, node.clone().as_match()),
+        Ast::MatchArm(n) => v.visit_match_arm(file, id, n, node.clone().as_match_arm()),
+        Ast::Modifier(n) => v.visit_modifier(file, id, n, node.clone().as_modifier()),
+        Ast::ModifierList(n) => v.visit_modifier_list(file, id, n, node.clone().as_modifier_list()),
+        Ast::Module(n) => v.visit_module(file, id, n, node.clone().as_module()),
+        Ast::Param(n) => v.visit_param(file, id, n, node.clone().as_param()),
+        Ast::Paren(n) => v.visit_paren(file, id, n, node.clone().as_paren()),
+        Ast::Path(n) => v.visit_path(file, id, n, node.clone().as_path()),
+        Ast::PathData(n) => v.visit_path_data(file, id, n, node.clone().as_path_data()),
+        Ast::QualifiedPathType(n) => {
+            v.visit_qualified_path_type(file, id, n, node.clone().as_qualified_path_type())
+        }
+        Ast::RegularType(n) => v.visit_regular_type(file, id, n, node.clone().as_regular_type()),
+        Ast::Rest(n) => v.visit_rest(file, id, n, node.clone().as_rest()),
+        Ast::Return(n) => v.visit_return(file, id, n, node.clone().as_return()),
+        Ast::Root(n) => v.visit_root(file, id, n, node.clone().as_root()),
+        Ast::Struct(n) => v.visit_struct(file, id, n, node.clone().as_struct()),
+        Ast::Template(n) => v.visit_template(file, id, n, node.clone().as_template()),
+        Ast::This(n) => v.visit_this(file, id, n, node.clone().as_this()),
+        Ast::Trait(n) => v.visit_trait(file, id, n, node.clone().as_trait()),
+        Ast::Tuple(n) => v.visit_tuple(file, id, n, node.clone().as_tuple()),
+        Ast::TuplePattern(n) => v.visit_tuple_pattern(file, id, n, node.clone().as_tuple_pattern()),
+        Ast::TupleType(n) => v.visit_tuple_type(file, id, n, node.clone().as_tuple_type()),
+        Ast::TypeArgument(n) => v.visit_type_argument(file, id, n, node.clone().as_type_argument()),
+        Ast::TypedExpr(n) => v.visit_typed_expr(file, id, n, node.clone().as_typed_expr()),
+        Ast::TypeParamList(n) => {
+            v.visit_type_param_list(file, id, n, node.clone().as_type_param_list())
+        }
+        Ast::TypeParam(n) => v.visit_type_param(file, id, n, node.clone().as_type_param()),
+        Ast::Un(n) => v.visit_un(file, id, n, node.clone().as_un()),
+        Ast::Underscore(n) => v.visit_underscore(file, id, n, node.clone().as_underscore()),
+        Ast::UpcaseThis(n) => v.visit_upcase_this(file, id, n, node.clone().as_upcase_this()),
+        Ast::Use(n) => v.visit_use(file, id, n, node.clone().as_use()),
+        Ast::UseGroup(n) => v.visit_use_group(file, id, n, node.clone().as_use_group()),
+        Ast::UsePath(n) => v.visit_use_path(file, id, n, node.clone().as_use_path()),
+        Ast::UseTargetName(n) => {
+            v.visit_use_target_name(file, id, n, node.clone().as_use_target_name())
+        }
+        Ast::WhereClause(n) => v.visit_where_item(file, id, n, node.clone().as_where_clause()),
+        Ast::WhereClauseItem(n) => {
+            v.visit_where_clause_item(file, id, n, node.clone().as_where_clause_item())
+        }
+        Ast::While(n) => v.visit_while(file, id, n, node.clone().as_while()),
     }
 }
 

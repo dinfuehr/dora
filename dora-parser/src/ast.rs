@@ -247,7 +247,7 @@ pub trait AstNodeBase: Sized {
     fn children(&self) -> impl Iterator<Item = AstNode>;
 }
 
-#[derive(Debug)]
+#[derive(Clone, Debug)]
 pub struct AstNode {
     file: File,
     id: AstId,

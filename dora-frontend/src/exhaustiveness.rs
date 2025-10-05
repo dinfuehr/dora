@@ -33,12 +33,25 @@ struct Exhaustiveness<'a> {
 }
 
 impl<'a> Visitor for Exhaustiveness<'a> {
-    fn visit_match(&mut self, f: &ast::File, ast_id: ast::AstId, node: &ast::Match) {
+    fn visit_match(
+        &mut self,
+        f: &ast::File,
+        ast_id: ast::AstId,
+        node: &ast::Match,
+        _ast_node: ast::AstMatch,
+    ) {
         check_match(self.sa, self.analysis, self.file_id, node);
         visit::walk_children(self, f.node2(ast_id));
     }
 
-    fn visit_lambda(&mut self, _f: &ast::File, _id: ast::AstId, _node: &ast::Lambda) {}
+    fn visit_lambda(
+        &mut self,
+        _f: &ast::File,
+        _id: ast::AstId,
+        _node: &ast::Lambda,
+        _ast_node: ast::AstLambda,
+    ) {
+    }
 }
 
 fn check_match(sa: &Sema, analysis: &AnalysisData, file_id: SourceFileId, node: &ast::Match) {
