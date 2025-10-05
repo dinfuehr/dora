@@ -6,7 +6,6 @@ use id_arena::{Arena, Id};
 use crate::{Span, TokenKind};
 
 pub mod dump;
-pub mod visit;
 
 #[derive(Clone, Debug)]
 pub struct File(Arc<FilePayload>);
@@ -290,6 +289,12 @@ impl PartialEq for AstNode {
 }
 
 impl Eq for AstNode {}
+
+pub fn walk_children<V: Visitor, N: AstNodeBase>(v: &mut V, node: N) {
+    for child in node.children() {
+        visit_node(v, child);
+    }
+}
 
 pub struct AstIdIterator<'a, T: AstNodeBase> {
     file: File,

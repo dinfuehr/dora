@@ -3,7 +3,6 @@ use std::fmt::{self, Write};
 
 use dora_parser::Span;
 use dora_parser::ast;
-use dora_parser::ast::visit::{self, Visitor};
 
 use crate::ErrorMessage;
 use crate::sema::{
@@ -21,7 +20,7 @@ pub fn check(sa: &Sema) {
             };
 
             let file = sa.file(fct.file_id());
-            visit::walk_children(&mut visitor, file.ast().node2(fct.ast_id()));
+            ast::walk_children(&mut visitor, file.ast().node2(fct.ast_id()));
         }
     }
 }
@@ -32,7 +31,7 @@ struct Exhaustiveness<'a> {
     file_id: SourceFileId,
 }
 
-impl<'a> Visitor for Exhaustiveness<'a> {
+impl<'a> ast::Visitor for Exhaustiveness<'a> {
     fn visit_match(
         &mut self,
         f: &ast::File,
@@ -41,7 +40,7 @@ impl<'a> Visitor for Exhaustiveness<'a> {
         _ast_node: ast::AstMatch,
     ) {
         check_match(self.sa, self.analysis, self.file_id, node);
-        visit::walk_children(self, f.node2(ast_id));
+        ast::walk_children(self, f.node2(ast_id));
     }
 
     fn visit_lambda(

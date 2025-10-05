@@ -3,7 +3,7 @@ use std::sync::Arc;
 use lsp_server::{Message, Request, Response};
 use lsp_types::{DocumentSymbol, DocumentSymbolResponse, Position, Range, SymbolKind};
 
-use dora_parser::ast::{self, visit};
+use dora_parser::ast;
 use dora_parser::{Parser, Span, compute_line_column, compute_line_starts};
 
 use crate::server::{MainLoopTask, ServerState, uri_to_file_path};
@@ -65,7 +65,7 @@ fn parse_file(content: Arc<String>) -> Vec<DocumentSymbol> {
         content,
     };
 
-    visit::visit_node(&mut scanner, file.root());
+    ast::visit_node(&mut scanner, file.root());
 
     transform(&line_starts, scanner.symbols)
 }
@@ -180,7 +180,7 @@ impl SymbolScanner {
     }
 }
 
-impl visit::Visitor for SymbolScanner {
+impl ast::Visitor for SymbolScanner {
     fn visit_module(
         &mut self,
         f: &ast::File,
@@ -192,7 +192,7 @@ impl visit::Visitor for SymbolScanner {
         self.add_symbol(name, name_span, DoraSymbolKind::Module, node.span);
 
         self.start_children();
-        visit::walk_children(self, f.node2(id));
+        ast::walk_children(self, f.node2(id));
         self.stop_children();
     }
 
@@ -256,7 +256,7 @@ impl visit::Visitor for SymbolScanner {
         self.add_symbol(name, name_span, DoraSymbolKind::Impl, node.span);
 
         self.start_children();
-        visit::walk_children(self, f.node2(id));
+        ast::walk_children(self, f.node2(id));
         self.stop_children();
     }
 

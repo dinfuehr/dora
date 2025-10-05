@@ -341,6 +341,9 @@ pub fn derive_ast_enum(input: TokenStream) -> TokenStream {
     // Generate as_* methods for AstNode
     let ast_node_methods = generate_ast_node_methods(data_enum);
 
+    // Generate visitor pattern code
+    let visitor_code = generate_visitor_pattern(data_enum);
+
     let expanded = quote! {
         impl #enum_name {
             #span_method
@@ -350,6 +353,8 @@ pub fn derive_ast_enum(input: TokenStream) -> TokenStream {
         }
 
         #ast_node_methods
+
+        #visitor_code
     };
 
     TokenStream::from(expanded)
@@ -566,4 +571,60 @@ fn get_return_type_from_attrs(attrs: &[Attribute]) -> syn::Ident {
     }
     // Default to AstNode if no attribute is specified
     syn::Ident::new("AstNode", proc_macro2::Span::call_site())
+}
+
+fn generate_visitor_pattern(data_enum: &DataEnum) -> proc_macro2::TokenStream {
+    // Generate the trait methods directly
+    let trait_methods = data_enum.variants.iter().filter_map(|variant| {
+        let variant_name = &variant.ident;
+
+        // Only handle tuple variants with one field
+        if !matches!(&variant.fields, Fields::Unnamed(fields) if fields.unnamed.len() == 1) {
+            return None;
+        }
+
+        let method_name_str = to_snake_case(&variant_name.to_string());
+        let visit_method =
+            syn::Ident::new(&format!("visit_{}", method_name_str), variant_name.span());
+        let ast_type_name = syn::Ident::new(&format!("Ast{}", variant_name), variant_name.span());
+
+        Some(quote! {
+            fn #visit_method(&mut self, file: &File, id: AstId, _node: &#variant_name, _ast_node: #ast_type_name) {
+                walk_children(self, file.node2(id));
+            }
+        })
+    });
+
+    // Generate the visit_node function match arms
+    let visit_match_arms = data_enum.variants.iter().filter_map(|variant| {
+        let variant_name = &variant.ident;
+
+        if !matches!(&variant.fields, Fields::Unnamed(fields) if fields.unnamed.len() == 1) {
+            return None;
+        }
+
+        let method_name_str = to_snake_case(&variant_name.to_string());
+        let visit_method =
+            syn::Ident::new(&format!("visit_{}", method_name_str), variant_name.span());
+        let as_method = syn::Ident::new(&format!("as_{}", method_name_str), variant_name.span());
+
+        Some(quote! {
+            Ast::#variant_name(n) => v.#visit_method(file, id, n, node.clone().#as_method()),
+        })
+    });
+
+    quote! {
+        pub trait Visitor: Sized {
+            #(#trait_methods)*
+        }
+
+        pub fn visit_node<V: Visitor>(v: &mut V, node: AstNode) {
+            let file = &node.file;
+            let id = node.id();
+
+            match node.raw_node() {
+                #(#visit_match_arms)*
+            }
+        }
+    }
 }
