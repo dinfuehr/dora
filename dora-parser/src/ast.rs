@@ -234,16 +234,48 @@ impl Ast {
     }
 }
 
+pub trait AstNodeBase: Sized {
+    fn new(file: File, id: AstId) -> Self;
+    fn id(&self) -> AstId;
+    fn raw_node(&self) -> &Ast;
+    fn span(&self) -> Span;
+    fn file(&self) -> &File;
+    fn children(&self) -> impl Iterator<Item = AstNode>;
+}
+
 #[derive(Debug)]
 pub struct AstNode {
     file: File,
     id: AstId,
 }
 
-impl AstNode {
-    #[allow(unused)]
-    pub fn raw_node(&self) -> &Ast {
+impl AstNodeBase for AstNode {
+    fn new(file: File, id: AstId) -> Self {
+        AstNode { file, id }
+    }
+
+    fn id(&self) -> AstId {
+        self.id
+    }
+
+    fn raw_node(&self) -> &Ast {
         self.file.node(self.id)
+    }
+
+    fn span(&self) -> Span {
+        self.raw_node().span()
+    }
+
+    fn file(&self) -> &File {
+        &self.file
+    }
+
+    fn children(&self) -> impl Iterator<Item = AstNode> {
+        let children_vec = self.raw_node().children();
+        let file = self.file.clone();
+        children_vec
+            .into_iter()
+            .map(move |id| AstNode::new(file.clone(), id))
     }
 }
 
@@ -255,40 +287,39 @@ impl PartialEq for AstNode {
 
 impl Eq for AstNode {}
 
-pub struct AstIdIterator<'a> {
+pub struct AstIdIterator<'a, T: AstNodeBase> {
     file: File,
     ids: &'a [AstId],
     index: usize,
+    _phantom: std::marker::PhantomData<T>,
 }
 
-impl<'a> AstIdIterator<'a> {
+impl<'a, T: AstNodeBase> AstIdIterator<'a, T> {
     pub fn new(file: File, ids: &'a [AstId]) -> Self {
         AstIdIterator {
             file,
             ids,
             index: 0,
+            _phantom: std::marker::PhantomData,
         }
     }
 }
 
-impl<'a> Iterator for AstIdIterator<'a> {
-    type Item = AstNode;
+impl<'a, T: AstNodeBase> Iterator for AstIdIterator<'a, T> {
+    type Item = T;
 
     fn next(&mut self) -> Option<Self::Item> {
         if self.index < self.ids.len() {
             let id = self.ids[self.index];
             self.index += 1;
-            Some(AstNode {
-                file: self.file.clone(),
-                id,
-            })
+            Some(T::new(self.file.clone(), id))
         } else {
             None
         }
     }
 }
 
-impl<'a> ExactSizeIterator for AstIdIterator<'a> {
+impl<'a, T: AstNodeBase> ExactSizeIterator for AstIdIterator<'a, T> {
     fn len(&self) -> usize {
         self.ids.len() - self.index
     }

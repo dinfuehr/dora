@@ -12,7 +12,7 @@ pub fn derive_ast_node(input: TokenStream) -> TokenStream {
     let name_str = name.to_string();
 
     // Create the Ast-prefixed version name
-    let ast_name = syn::Ident::new(&format!("Ast{}", name), name.span());
+    let struct_ast_node_name = syn::Ident::new(&format!("Ast{}", name), name.span());
 
     let (struct_def, children_impl, ast_impl) = match &input.data {
         Data::Struct(data) => {
@@ -42,7 +42,7 @@ pub fn derive_ast_node(input: TokenStream) -> TokenStream {
             // Generate the Ast-prefixed struct definition with only id and file fields
             let struct_def = quote! {
                 #[derive(Clone, Debug)]
-                pub struct #ast_name {
+                pub struct #struct_ast_node_name {
                     pub id: AstId,
                     pub file: File,
                 }
@@ -75,27 +75,11 @@ pub fn derive_ast_node(input: TokenStream) -> TokenStream {
                         // Get return type from attribute (defaults to AstNode)
                         let return_type = get_return_type_from_attrs(&field.attrs);
 
-                        let assert_code = if return_type.to_string() != "AstNode" {
-                            let is_method_name = syn::Ident::new(
-                                &format!("is_{}", to_snake_case(&return_type.to_string().trim_start_matches("Ast"))),
-                                return_type.span()
-                            );
-                            quote! {
-                                debug_assert!(self.file.node(ast_id).#is_method_name(), "expected node to be {}", stringify!(#return_type));
-                            }
-                        } else {
-                            quote! {}
-                        };
-
                         let wrapper_accessor = if is_ast_id(field_type) {
                             quote! {
                                 pub fn #field_name(&self) -> #return_type {
                                     let ast_id = *self.#raw_accessor_name();
-                                    #assert_code
-                                    #return_type {
-                                        file: self.file.clone(),
-                                        id: ast_id,
-                                    }
+                                    #return_type::new(self.file.clone(), ast_id)
                                 }
                             }
                         } else if is_option_ast_id(field_type) {
@@ -103,11 +87,7 @@ pub fn derive_ast_node(input: TokenStream) -> TokenStream {
                                 pub fn #field_name(&self) -> Option<#return_type> {
                                     let ast_id = *self.#raw_accessor_name();
                                     ast_id.map(|ast_id| {
-                                        #assert_code
-                                        #return_type {
-                                            file: self.file.clone(),
-                                            id: ast_id,
-                                        }
+                                        #return_type::new(self.file.clone(), ast_id)
                                     })
                                 }
                             }
@@ -116,24 +96,16 @@ pub fn derive_ast_node(input: TokenStream) -> TokenStream {
                                 pub fn #field_name_at(&self, idx: usize) -> #return_type {
                                     let vec = self.#raw_accessor_name();
                                     let ast_id = vec[idx];
-                                    #assert_code
-                                    #return_type {
-                                        file: self.file.clone(),
-                                        id: ast_id,
-                                    }
+                                    #return_type::new(self.file.clone(), ast_id)
                                 }
 
                                 pub fn #field_name_len(&self) -> usize {
                                     self.#raw_accessor_name().len()
                                 }
 
-                                pub fn #field_name(&self) -> AstIdIterator<'_> {
+                                pub fn #field_name(&self) -> AstIdIterator<'_, #return_type> {
                                     let vec = self.#raw_accessor_name();
-                                    AstIdIterator {
-                                        file: self.file.clone(),
-                                        ids: vec.as_slice(),
-                                        index: 0,
-                                    }
+                                    AstIdIterator::new(self.file.clone(), vec.as_slice())
                                 }
                             }
                         } else if is_likely_copy_type(field_type) {
@@ -175,8 +147,42 @@ pub fn derive_ast_node(input: TokenStream) -> TokenStream {
                 }
             };
 
+            let is_method_name = syn::Ident::new(
+                &format!("is_{}", to_snake_case(&name.to_string())),
+                name.span(),
+            );
+
             let ast_impl_block = quote! {
-                impl #ast_name {
+                impl AstNodeBase for #struct_ast_node_name {
+                    fn new(file: File, id: AstId) -> Self {
+                        assert!(file.node(id).#is_method_name());
+                        #struct_ast_node_name { file, id }
+                    }
+
+                    fn id(&self) -> AstId {
+                        self.id
+                    }
+
+                    fn raw_node(&self) -> &Ast {
+                        self.file.node(self.id)
+                    }
+
+                    fn span(&self) -> Span {
+                        self.raw_node().span()
+                    }
+
+                    fn file(&self) -> &File {
+                        &self.file
+                    }
+
+                    fn children(&self) -> impl Iterator<Item = AstNode> {
+                        let children_vec = self.raw_node().children();
+                        let file = self.file.clone();
+                        children_vec.into_iter().map(move |id| AstNode::new(file.clone(), id))
+                    }
+                }
+
+                impl #struct_ast_node_name {
                     #field_methods
                 }
             };
@@ -500,10 +506,10 @@ fn generate_ast_node_methods(data_enum: &DataEnum) -> proc_macro2::TokenStream {
                 self.file.node(self.id).#is_method_name()
             }
 
-            pub fn #to_method_name(&self) -> Option<#ast_type_name> {
+            pub fn #to_method_name(self) -> Option<#ast_type_name> {
                 if self.file.node(self.id).#is_method_name() {
                     Some(#ast_type_name {
-                        file: self.file.clone(),
+                        file: self.file,
                        id: self.id
                     })
                 } else {
@@ -511,7 +517,7 @@ fn generate_ast_node_methods(data_enum: &DataEnum) -> proc_macro2::TokenStream {
                 }
             }
 
-            pub fn #as_method_name(&self) -> #ast_type_name {
+            pub fn #as_method_name(self) -> #ast_type_name {
                 self.#to_method_name().expect("wrong node kind")
             }
         })

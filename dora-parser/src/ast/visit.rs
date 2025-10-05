@@ -11,7 +11,11 @@ macro_rules! for_each_visit {
         $macro!(visit_class, walk_class, Class);
         $macro!(visit_const, walk_const, Const);
         $macro!(visit_constructor_field, walk_constructor_field, CtorField);
-        $macro!(visit_constructor_pattern, walk_constructor_pattern, CtorPattern);
+        $macro!(
+            visit_constructor_pattern,
+            walk_constructor_pattern,
+            CtorPattern
+        );
         $macro!(visit_continue, walk_continue, Continue);
         $macro!(visit_conv, walk_conv, Conv);
         $macro!(visit_dot, walk_dot, Dot);
@@ -46,7 +50,11 @@ macro_rules! for_each_visit {
         $macro!(visit_paren, walk_paren, Paren);
         $macro!(visit_path, walk_path, Path);
         $macro!(visit_path_data, walk_path_data, PathData);
-        $macro!(visit_qualified_path_type, walk_qualified_path_type, QualifiedPathType);
+        $macro!(
+            visit_qualified_path_type,
+            walk_qualified_path_type,
+            QualifiedPathType
+        );
         $macro!(visit_regular_type, walk_regular_type, RegularType);
         $macro!(visit_rest, walk_rest, Rest);
         $macro!(visit_return, walk_return, Return);
@@ -70,7 +78,11 @@ macro_rules! for_each_visit {
         $macro!(visit_use_group, walk_use_group, UseGroup);
         $macro!(visit_use_path, walk_use_path, UsePath);
         $macro!(visit_use_target_name, walk_use_target_name, UseTargetName);
-        $macro!(visit_where_clause_item, walk_where_clause_item, WhereClauseItem);
+        $macro!(
+            visit_where_clause_item,
+            walk_where_clause_item,
+            WhereClauseItem
+        );
         $macro!(visit_where_item, walk_where_clause, WhereClause);
         $macro!(visit_while, walk_while, While);
     };
