@@ -19,3 +19,4 @@ threadpool = "*"
 crossbeam = "*"
 walkdir = "*"
 url = "*"
+clap = { version = "4", features = ["derive"] }

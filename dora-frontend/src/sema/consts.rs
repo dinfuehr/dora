@@ -2,8 +2,8 @@ use id_arena::Id;
 use std::cell::OnceCell;
 use std::rc::Rc;
 
+use crate::element_parser::ParsedModifierList;
 use crate::interner::Name;
-use crate::program_parser::ParsedModifierList;
 pub use dora_bytecode::ConstValue;
 use dora_parser::Span;
 use dora_parser::ast;

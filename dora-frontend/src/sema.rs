@@ -378,4 +378,8 @@ impl Sema {
     pub fn name(&self, name: Name) -> String {
         self.interner.str(name).to_string()
     }
+
+    pub fn parse_single_file(&mut self) -> SourceFileId {
+        crate::element_parser::parse_single_file(self)
+    }
 }

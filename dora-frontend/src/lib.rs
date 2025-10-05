@@ -24,6 +24,7 @@ mod aliasck;
 pub mod ast_dump;
 mod clsdefck;
 mod constdefck;
+mod element_parser;
 mod enumck;
 pub mod error;
 mod exhaustiveness;
@@ -36,7 +37,6 @@ mod interner;
 mod parsety;
 mod path;
 pub mod program_emitter;
-mod program_parser;
 mod readty;
 mod returnck;
 pub mod sema;
@@ -52,7 +52,7 @@ mod useck;
 
 pub fn check_program(sa: &mut Sema) -> bool {
     // This phase loads and parses all files. Also creates all elements.
-    let module_symtables = program_parser::parse(sa);
+    let module_symtables = element_parser::parse(sa);
 
     // Discover all imported elements.
     useck::check(sa, module_symtables);

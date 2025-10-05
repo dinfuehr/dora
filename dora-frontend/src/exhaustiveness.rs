@@ -2,7 +2,7 @@ use std::collections::{HashMap, HashSet};
 use std::fmt::{self, Write};
 
 use dora_parser::Span;
-use dora_parser::ast;
+use dora_parser::ast::{self, AstNodeBase};
 
 use crate::ErrorMessage;
 use crate::sema::{
@@ -32,25 +32,13 @@ struct Exhaustiveness<'a> {
 }
 
 impl<'a> ast::Visitor for Exhaustiveness<'a> {
-    fn visit_match(
-        &mut self,
-        f: &ast::File,
-        ast_id: ast::AstId,
-        node: &ast::Match,
-        _ast_node: ast::AstMatch,
-    ) {
+    fn visit_match(&mut self, ast_node: ast::AstMatch) {
+        let node = ast_node.raw_node().as_match();
         check_match(self.sa, self.analysis, self.file_id, node);
-        ast::walk_children(self, f.node2(ast_id));
+        ast::walk_children(self, ast_node);
     }
 
-    fn visit_lambda(
-        &mut self,
-        _f: &ast::File,
-        _id: ast::AstId,
-        _node: &ast::Lambda,
-        _ast_node: ast::AstLambda,
-    ) {
-    }
+    fn visit_lambda(&mut self, _ast_node: ast::AstLambda) {}
 }
 
 fn check_match(sa: &Sema, analysis: &AnalysisData, file_id: SourceFileId, node: &ast::Match) {

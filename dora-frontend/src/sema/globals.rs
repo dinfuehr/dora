@@ -2,8 +2,8 @@ use std::cell::OnceCell;
 use std::rc::Rc;
 
 use crate::ParsedType;
+use crate::element_parser::ParsedModifierList;
 use crate::interner::Name;
-use crate::program_parser::ParsedModifierList;
 use crate::sema::{
     AnalysisData, Element, ElementId, FctDefinitionId, ModuleDefinitionId, PackageDefinitionId,
     Sema, SourceFileId, TypeParamDefinition, Visibility, module_path,

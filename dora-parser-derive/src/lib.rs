@@ -589,8 +589,8 @@ fn generate_visitor_pattern(data_enum: &DataEnum) -> proc_macro2::TokenStream {
         let ast_type_name = syn::Ident::new(&format!("Ast{}", variant_name), variant_name.span());
 
         Some(quote! {
-            fn #visit_method(&mut self, file: &File, id: AstId, _node: &#variant_name, _ast_node: #ast_type_name) {
-                walk_children(self, file.node2(id));
+            fn #visit_method(&mut self, _ast_node: #ast_type_name) {
+                walk_children(self, _ast_node);
             }
         })
     });
@@ -609,7 +609,7 @@ fn generate_visitor_pattern(data_enum: &DataEnum) -> proc_macro2::TokenStream {
         let as_method = syn::Ident::new(&format!("as_{}", method_name_str), variant_name.span());
 
         Some(quote! {
-            Ast::#variant_name(n) => v.#visit_method(file, id, n, node.clone().#as_method()),
+            Ast::#variant_name(_n) => v.#visit_method(node.clone().#as_method()),
         })
     });
 
@@ -619,9 +619,6 @@ fn generate_visitor_pattern(data_enum: &DataEnum) -> proc_macro2::TokenStream {
         }
 
         pub fn visit_node<V: Visitor>(v: &mut V, node: AstNode) {
-            let file = &node.file;
-            let id = node.id();
-
             match node.raw_node() {
                 #(#visit_match_arms)*
             }

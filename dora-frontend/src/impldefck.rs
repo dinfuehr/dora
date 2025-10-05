@@ -1,7 +1,7 @@
 use std::collections::{HashMap, HashSet};
 
+use crate::element_parser::ParsedModifierList;
 use crate::extensiondefck::check_for_unconstrained_type_params;
-use crate::program_parser::ParsedModifierList;
 use crate::sema::{
     AliasDefinitionId, Element, FctDefinition, FctDefinitionId, FctParent, ImplDefinition,
     ImplDefinitionId, Sema, TraitDefinition, implements_trait, new_identity_type_params,

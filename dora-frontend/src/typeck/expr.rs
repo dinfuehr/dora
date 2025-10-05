@@ -7,9 +7,9 @@ use crate::access::{
     class_field_accessible_from, const_accessible_from, enum_accessible_from,
     global_accessible_from, module_accessible_from, struct_field_accessible_from,
 };
+use crate::element_parser::ParsedModifierList;
 use crate::error::msg::ErrorMessage;
 use crate::interner::Name;
-use crate::program_parser::ParsedModifierList;
 use crate::sema::{
     AnalysisData, ArrayAssignment, CallType, ConstValue, EnumDefinitionId, FctDefinition,
     FctParent, FieldIndex, IdentType, Intrinsic, LazyLambdaCreationData, LazyLambdaId,

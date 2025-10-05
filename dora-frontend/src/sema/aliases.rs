@@ -1,7 +1,7 @@
 use crate::{
     ParsedTraitType, ParsedType,
+    element_parser::ParsedModifierList,
     interner::Name,
-    program_parser::ParsedModifierList,
     ty::{SourceType, TraitType},
 };
 use std::cell::OnceCell;

@@ -2,6 +2,7 @@ use lsp_server::Connection;
 use std::error::Error;
 use std::net::SocketAddr;
 
+use clap::{Parser, Subcommand};
 use crossbeam::select;
 
 use crate::server::run_server;
@@ -9,13 +10,34 @@ use crate::server::run_server;
 mod server;
 mod symbols;
 
-fn main() -> Result<(), Box<dyn Error + Sync + Send>> {
-    let args = std::env::args().collect::<Vec<String>>();
-    let mode = args.get(1).cloned().unwrap_or(String::new());
-    let port = 8123;
+#[derive(Parser)]
+#[command(name = "dora-language-server")]
+#[command(about = "Dora Language Server", long_about = None)]
+struct Cli {
+    #[command(subcommand)]
+    mode: Option<Mode>,
+}
 
-    match mode.as_str() {
-        "server" => {
+#[derive(Subcommand)]
+enum Mode {
+    /// Start language server listening on a TCP port
+    Server {
+        #[arg(short, long, default_value_t = 8123)]
+        port: u16,
+    },
+
+    /// Start a shim that connects to a running server
+    Shim {
+        #[arg(short, long, default_value_t = 8123)]
+        port: u16,
+    },
+}
+
+fn main() -> Result<(), Box<dyn Error + Sync + Send>> {
+    let cli = Cli::parse();
+
+    match cli.mode {
+        Some(Mode::Server { port }) => {
             eprintln!("Start server listening on port {port}.");
             let address = SocketAddr::new("127.0.0.1".parse().expect("invalid IP"), port);
             let (conn, io_threads) = Connection::listen(address).expect("starting server failed");
@@ -24,12 +46,12 @@ fn main() -> Result<(), Box<dyn Error + Sync + Send>> {
             run_server(conn, io_threads)
         }
 
-        "shim" => {
+        Some(Mode::Shim { port }) => {
             let address = SocketAddr::new("127.0.0.1".parse().expect("invalid IP"), port);
             start_shim(address)
         }
 
-        _ => {
+        None => {
             eprintln!("start server listening on stdin.");
             let (conn, io_threads) = Connection::stdio();
             run_server(conn, io_threads)

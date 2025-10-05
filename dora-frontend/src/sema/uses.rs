@@ -1,7 +1,7 @@
 use std::cell::OnceCell;
 
 use crate::{
-    program_parser::ParsedModifierList,
+    element_parser::ParsedModifierList,
     sema::{ModuleDefinitionId, PackageDefinitionId, SourceFileId, Visibility},
 };
 use dora_parser::ast;

@@ -2,7 +2,7 @@ use std::cell::OnceCell;
 use std::rc::Rc;
 
 use crate::SourceFileId;
-use crate::program_parser::ParsedModifierList;
+use crate::element_parser::ParsedModifierList;
 use crate::sema::{PackageDefinitionId, Sema, Visibility};
 use crate::sym::SymTable;
 

@@ -3,8 +3,8 @@ use std::rc::Rc;
 
 use id_arena::Id;
 
+use crate::element_parser::ParsedModifierList;
 use crate::interner::Name;
-use crate::program_parser::ParsedModifierList;
 use dora_parser::ast;
 
 use crate::sema::{
