@@ -43,6 +43,10 @@ impl File {
         }
     }
 
+    pub fn root(&self) -> AstNode {
+        AstNode::new(self.clone(), self.root_id())
+    }
+
     pub fn root_id(&self) -> AstId {
         self.payload().root_id
     }
@@ -51,7 +55,7 @@ impl File {
         &self.payload().content
     }
 
-    pub fn root(&self) -> &Root {
+    pub fn raw_root(&self) -> &Root {
         self.node(self.payload().root_id)
             .to_root()
             .expect("file expected")
@@ -59,62 +63,62 @@ impl File {
 
     #[cfg(test)]
     pub fn fct0(&self) -> &Function {
-        self.node(self.root().elements[0]).as_function()
+        self.node(self.raw_root().elements[0]).as_function()
     }
 
     #[cfg(test)]
     pub fn fct(&self, index: usize) -> &Function {
-        self.node(self.root().elements[index]).as_function()
+        self.node(self.raw_root().elements[index]).as_function()
     }
 
     #[cfg(test)]
     pub fn cls0(&self) -> &Class {
-        self.node(self.root().elements[0]).as_class()
+        self.node(self.raw_root().elements[0]).as_class()
     }
 
     #[cfg(test)]
     pub fn cls(&self, index: usize) -> &Class {
-        self.node(self.root().elements[index]).as_class()
+        self.node(self.raw_root().elements[index]).as_class()
     }
 
     #[cfg(test)]
     pub fn struct0(&self) -> &Struct {
-        self.node(self.root().elements[0]).as_struct()
+        self.node(self.raw_root().elements[0]).as_struct()
     }
 
     #[cfg(test)]
     pub fn enum0(&self) -> &Enum {
-        self.node(self.root().elements[0]).as_enum()
+        self.node(self.raw_root().elements[0]).as_enum()
     }
 
     #[cfg(test)]
     pub fn module0(&self) -> &Module {
-        self.node(self.root().elements[0]).as_module()
+        self.node(self.raw_root().elements[0]).as_module()
     }
 
     #[cfg(test)]
     pub fn trait_(&self, index: usize) -> &Trait {
-        self.node(self.root().elements[index]).as_trait()
+        self.node(self.raw_root().elements[index]).as_trait()
     }
 
     #[cfg(test)]
     pub fn trait0(&self) -> &Trait {
-        self.node(self.root().elements[0]).as_trait()
+        self.node(self.raw_root().elements[0]).as_trait()
     }
 
     #[cfg(test)]
     pub fn impl0(&self) -> &Impl {
-        self.node(self.root().elements[0]).as_impl()
+        self.node(self.raw_root().elements[0]).as_impl()
     }
 
     #[cfg(test)]
     pub fn global0(&self) -> &Global {
-        self.node(self.root().elements[0]).as_global()
+        self.node(self.raw_root().elements[0]).as_global()
     }
 
     #[cfg(test)]
     pub fn const0(&self) -> &Const {
-        self.node(self.root().elements[0]).as_const()
+        self.node(self.raw_root().elements[0]).as_const()
     }
 }
 

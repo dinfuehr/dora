@@ -231,7 +231,7 @@ impl<'a> ProgramParser<'a> {
                 module_symtables: &mut self.module_symtables,
             };
 
-            visit::visit_node(&mut decl_discovery, ast, ast.root_id());
+            visit::visit_node(&mut decl_discovery, ast.root());
 
             let module_table = decl_discovery.module_table;
 
@@ -438,7 +438,7 @@ impl<'x> visit::Visitor for TopLevelDeclaration<'x> {
 
             let saved_module_table = std::mem::replace(&mut self.module_table, module_table);
             self.module_id = id;
-            visit::walk_children(self, f, ast_id);
+            visit::walk_children(self, f.node2(ast_id));
             self.module_id = saved_module_id;
             let module_table = std::mem::replace(&mut self.module_table, saved_module_table);
 

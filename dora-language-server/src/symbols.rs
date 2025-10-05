@@ -65,7 +65,7 @@ fn parse_file(content: Arc<String>) -> Vec<DocumentSymbol> {
         content,
     };
 
-    visit::visit_node(&mut scanner, &file, file.root_id());
+    visit::visit_node(&mut scanner, file.root());
 
     transform(&line_starts, scanner.symbols)
 }
@@ -186,7 +186,7 @@ impl visit::Visitor for SymbolScanner {
         self.add_symbol(name, name_span, DoraSymbolKind::Module, node.span);
 
         self.start_children();
-        visit::walk_children(self, f, id);
+        visit::walk_children(self, f.node2(id));
         self.stop_children();
     }
 
@@ -232,7 +232,7 @@ impl visit::Visitor for SymbolScanner {
         self.add_symbol(name, name_span, DoraSymbolKind::Impl, node.span);
 
         self.start_children();
-        visit::walk_children(self, f, id);
+        visit::walk_children(self, f.node2(id));
         self.stop_children();
     }
 

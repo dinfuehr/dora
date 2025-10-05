@@ -91,7 +91,7 @@ macro_rules! for_each_visit {
 macro_rules! generate_trait_method {
     ($method:ident, $walk_fn:ident, $ty:ident) => {
         fn $method(&mut self, file: &File, id: AstId, _node: &$ty) {
-            walk_children(self, file, id);
+            walk_children(self, file.node2(id));
         }
     };
 }
@@ -100,10 +100,11 @@ pub trait Visitor: Sized {
     for_each_visit!(generate_trait_method);
 }
 
-pub fn visit_node<V: Visitor>(v: &mut V, file: &File, id: AstId) {
-    let node = file.node(id);
+pub fn visit_node<V: Visitor>(v: &mut V, node: AstNode) {
+    let file = &node.file;
+    let id = node.id();
 
-    match node {
+    match node.raw_node() {
         Ast::Function(n) => v.visit_fct(file, id, n),
         Ast::Alias(n) => v.visit_type_alias(file, id, n),
         Ast::Alt(n) => v.visit_alt(file, id, n),
@@ -178,8 +179,8 @@ pub fn visit_node<V: Visitor>(v: &mut V, file: &File, id: AstId) {
     }
 }
 
-pub fn walk_children<V: Visitor>(v: &mut V, file: &File, id: AstId) {
-    for child_id in file.node(id).children() {
-        visit_node(v, file, child_id);
+pub fn walk_children<V: Visitor, N: AstNodeBase>(v: &mut V, node: N) {
+    for child in node.children() {
+        visit_node(v, child);
     }
 }
