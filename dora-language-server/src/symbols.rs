@@ -6,6 +6,8 @@ use lsp_types::{DocumentSymbol, DocumentSymbolResponse, Position, Range, SymbolK
 use dora_parser::ast::{self, AstNodeBase};
 use dora_parser::{Parser, Span, compute_line_column, compute_line_starts};
 
+use dora_frontend::sema::{Element, ElementId, FileContent, Sema, SemaFlags};
+
 use crate::server::{MainLoopTask, ServerState, uri_to_file_path};
 
 pub(super) fn workspace_symbol_request(_server_state: &mut ServerState, request: Request) {
@@ -72,8 +74,6 @@ fn parse_file(content: Arc<String>) -> Vec<DocumentSymbol> {
 
 #[allow(unused)]
 fn parse_file2(content: Arc<String>) -> Vec<DocumentSymbol> {
-    use dora_frontend::sema::{FileContent, Sema, SemaFlags};
-
     let mut sa = Sema::new(SemaFlags {
         packages: Vec::new(),
         program_file: Some(FileContent::Content(content.to_string())),
@@ -84,8 +84,104 @@ fn parse_file2(content: Arc<String>) -> Vec<DocumentSymbol> {
     let file_id = sa.parse_single_file();
     let file = sa.file(file_id);
     let module = sa.module(file.module_id);
+    let line_starts = compute_line_starts(&content);
 
-    unimplemented!()
+    // Convert element IDs to symbols
+    let symbols = module
+        .children()
+        .iter()
+        .filter_map(|&element_id| element_to_symbol(&sa, element_id))
+        .collect();
+
+    transform(&line_starts, symbols)
+}
+
+fn element_to_symbol(sa: &Sema, element_id: ElementId) -> Option<Symbol> {
+    let element = sa.element(element_id);
+    let file_id = element.file_id();
+    let file = sa.file(file_id);
+    let f = file.ast();
+    let total_span = element.span();
+
+    let (name, name_span, kind) = match element_id {
+        ElementId::Class(id) => {
+            let class = sa.class(id);
+            let ast_id = class.ast_id.expect("missing ast_id");
+            let node = f.node(ast_id).as_class();
+            let (name, name_span) = ensure_name(f, node.name, "<class>", node.span);
+            (name, name_span, DoraSymbolKind::Class)
+        }
+        ElementId::Struct(id) => {
+            let struct_def = sa.struct_(id);
+            let ast_id = struct_def.ast_id;
+            let node = f.node(ast_id).as_struct();
+            let (name, name_span) = ensure_name(f, node.name, "<struct>", node.span);
+            (name, name_span, DoraSymbolKind::Struct)
+        }
+        ElementId::Trait(id) => {
+            let trait_def = sa.trait_(id);
+            let ast_id = trait_def.ast_id;
+            let node = f.node(ast_id).as_trait();
+            let (name, name_span) = ensure_name(f, node.name, "<trait>", node.span);
+            (name, name_span, DoraSymbolKind::Trait)
+        }
+        ElementId::Enum(id) => {
+            let enum_def = sa.enum_(id);
+            let ast_id = enum_def.ast_id;
+            let node = f.node(ast_id).as_enum();
+            let (name, name_span) = ensure_name(f, node.name, "<enum>", node.span);
+            (name, name_span, DoraSymbolKind::Enum)
+        }
+        ElementId::Fct(id) => {
+            let fct = sa.fct(id);
+            let ast_id = fct.ast_id.expect("missing ast_id");
+            let node = f.node(ast_id).as_function();
+            let (name, name_span) = ensure_name(f, node.name, "<fn>", node.span);
+            (name, name_span, DoraSymbolKind::Function)
+        }
+        ElementId::Global(id) => {
+            let global = sa.global(id);
+            let ast_id = global.ast_id;
+            let node = f.node(ast_id).as_global();
+            let (name, name_span) = ensure_name(f, node.name, "<global>", node.span);
+            (name, name_span, DoraSymbolKind::Global)
+        }
+        ElementId::Const(id) => {
+            let const_def = sa.const_(id);
+            let ast_id = const_def.ast_id;
+            let node = f.node(ast_id).as_const();
+            let (name, name_span) = ensure_name(f, node.name, "<const>", node.span);
+            (name, name_span, DoraSymbolKind::Const)
+        }
+        ElementId::Impl(id) => {
+            let impl_def = sa.impl_(id);
+            let ast_id = impl_def.ast_id;
+            let node = f.node(ast_id).as_impl();
+            // Build impl name similar to the old implementation
+            let name = String::from("impl");
+            let name_span = f.node(node.extended_type).span();
+            (name, name_span, DoraSymbolKind::Impl)
+        }
+        _ => return None,
+    };
+
+    let children: Vec<Symbol> = element
+        .children()
+        .iter()
+        .filter_map(|&child_id| element_to_symbol(sa, child_id))
+        .collect();
+
+    Some(Symbol {
+        name,
+        name_span,
+        kind,
+        total_span,
+        children: if children.is_empty() {
+            None
+        } else {
+            Some(children)
+        },
+    })
 }
 
 fn transform(line_starts: &[u32], symbols: Vec<Symbol>) -> Vec<DocumentSymbol> {

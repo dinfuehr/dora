@@ -162,6 +162,10 @@ impl Element for AliasDefinition {
     fn visibility(&self) -> Visibility {
         self.visibility
     }
+
+    fn children(&self) -> &[ElementId] {
+        &[]
+    }
 }
 
 pub struct AliasBound {

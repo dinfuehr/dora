@@ -153,4 +153,8 @@ impl Element for ImplDefinition {
     fn visibility(&self) -> super::Visibility {
         unreachable!()
     }
+
+    fn children(&self) -> &[ElementId] {
+        unimplemented!()
+    }
 }

@@ -113,4 +113,8 @@ impl Element for ExtensionDefinition {
     fn visibility(&self) -> super::Visibility {
         unreachable!()
     }
+
+    fn children(&self) -> &[ElementId] {
+        unimplemented!()
+    }
 }

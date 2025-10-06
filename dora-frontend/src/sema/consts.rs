@@ -112,4 +112,8 @@ impl Element for ConstDefinition {
     fn visibility(&self) -> Visibility {
         self.visibility
     }
+
+    fn children(&self) -> &[ElementId] {
+        &[]
+    }
 }

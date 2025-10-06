@@ -215,6 +215,10 @@ impl Element for ClassDefinition {
     fn visibility(&self) -> Visibility {
         self.visibility
     }
+
+    fn children(&self) -> &[ElementId] {
+        unimplemented!()
+    }
 }
 
 impl ElementAccess for ClassDefinition {

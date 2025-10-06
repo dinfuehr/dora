@@ -342,6 +342,10 @@ impl Element for FctDefinition {
     fn visibility(&self) -> Visibility {
         self.visibility
     }
+
+    fn children(&self) -> &[ElementId] {
+        unimplemented!()
+    }
 }
 
 fn path_for_type(sa: &Sema, ty: SourceType) -> String {

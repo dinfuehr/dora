@@ -133,4 +133,8 @@ impl Element for GlobalDefinition {
     fn visibility(&self) -> Visibility {
         self.visibility
     }
+
+    fn children(&self) -> &[ElementId] {
+        &[]
+    }
 }

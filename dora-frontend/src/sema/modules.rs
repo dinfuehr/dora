@@ -2,12 +2,13 @@ use std::cell::OnceCell;
 use std::rc::Rc;
 
 use crate::SourceFileId;
+use crate::SourceType;
 use crate::element_parser::ParsedModifierList;
-use crate::sema::{PackageDefinitionId, Sema, Visibility};
+use crate::sema::{Element, ElementId, PackageDefinitionId, Sema, TypeParamDefinition, Visibility};
 use crate::sym::SymTable;
 
 use crate::interner::Name;
-use dora_parser::ast;
+use dora_parser::{Span, ast};
 use id_arena::Id;
 
 pub type ModuleDefinitionId = Id<ModuleDefinition>;
@@ -137,4 +138,42 @@ pub fn module_path(sa: &Sema, module_id: ModuleDefinitionId, name: Name) -> Stri
 
     result.push_str(&sa.interner.str(name));
     result
+}
+
+impl Element for ModuleDefinition {
+    fn element_id(&self) -> ElementId {
+        ElementId::Module(self.id())
+    }
+
+    fn file_id(&self) -> SourceFileId {
+        self.file_id.expect("missing file_id")
+    }
+
+    fn span(&self) -> Span {
+        unreachable!()
+    }
+
+    fn module_id(&self) -> ModuleDefinitionId {
+        unreachable!()
+    }
+
+    fn package_id(&self) -> PackageDefinitionId {
+        self.package_id.expect("missing package_id")
+    }
+
+    fn type_param_definition(&self) -> &Rc<TypeParamDefinition> {
+        unreachable!()
+    }
+
+    fn self_ty(&self, _sa: &Sema) -> Option<SourceType> {
+        unreachable!()
+    }
+
+    fn visibility(&self) -> Visibility {
+        self.visibility
+    }
+
+    fn children(&self) -> &[ElementId] {
+        unimplemented!()
+    }
 }

@@ -25,6 +25,7 @@ pub enum ElementId {
     Enum(EnumDefinitionId),
     Trait(TraitDefinitionId),
     Variant(VariantDefinitionId),
+    Module(ModuleDefinitionId),
 }
 
 pub trait Element {
@@ -66,6 +67,7 @@ pub trait Element {
     }
 
     fn self_ty(&self, sa: &Sema) -> Option<SourceType>;
+    fn children(&self) -> &[ElementId];
 }
 
 pub trait ElementAccess: Element {

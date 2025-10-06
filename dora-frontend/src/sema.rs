@@ -257,6 +257,25 @@ impl Sema {
         &self.fcts[id]
     }
 
+    pub fn element(&self, element_id: ElementId) -> &dyn Element {
+        match element_id {
+            ElementId::Alias(id) => self.alias(id),
+            ElementId::Const(id) => self.const_(id),
+            ElementId::Class(id) => self.class(id),
+            ElementId::Struct(id) => self.struct_(id),
+            ElementId::Global(id) => self.global(id),
+            ElementId::Impl(id) => self.impl_(id),
+            ElementId::Extension(id) => self.extension(id),
+            ElementId::Fct(id) => self.fct(id),
+            ElementId::Enum(id) => self.enum_(id),
+            ElementId::Trait(id) => self.trait_(id),
+            ElementId::Module(id) => self.module(id),
+            ElementId::Use(_) | ElementId::Variant(_) => {
+                unreachable!("Use and Variant do not implement Element trait")
+            }
+        }
+    }
+
     pub fn prelude_module_id(&self) -> ModuleDefinitionId {
         self.prelude_module_id.expect("uninitialized module id")
     }

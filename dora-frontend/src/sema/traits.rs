@@ -156,6 +156,10 @@ impl Element for TraitDefinition {
     fn visibility(&self) -> Visibility {
         self.visibility
     }
+
+    fn children(&self) -> &[ElementId] {
+        unimplemented!()
+    }
 }
 
 impl ElementAccess for TraitDefinition {
