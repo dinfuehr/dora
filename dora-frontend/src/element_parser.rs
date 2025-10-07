@@ -516,6 +516,7 @@ impl<'x> ast::Visitor for TopLevelDeclaration<'x> {
             self.module_id,
             self.file_id,
             node.path,
+            node.span,
             modifiers,
         );
         let use_id = self.sa.uses.alloc(use_def);
@@ -891,8 +892,13 @@ impl<'x> ast::Visitor for TopLevelDeclaration<'x> {
 
             let variant_id = self.sa.variants.alloc(VariantDefinition {
                 id: OnceCell::new(),
+                enum_id: id,
+                package_id: self.package_id,
+                module_id: self.module_id,
+                file_id: self.file_id,
                 index: next_variant_id,
                 name: name,
+                span: variant_name.span,
                 field_name_style: variant.field_name_style,
                 field_ids: OnceCell::new(),
             });

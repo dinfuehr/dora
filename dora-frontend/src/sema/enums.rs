@@ -173,19 +173,66 @@ pub type VariantDefinitionId = Id<VariantDefinition>;
 #[derive(Debug)]
 pub struct VariantDefinition {
     pub id: OnceCell<VariantDefinitionId>,
+    pub enum_id: EnumDefinitionId,
+    pub package_id: PackageDefinitionId,
+    pub module_id: ModuleDefinitionId,
+    pub file_id: SourceFileId,
     pub index: u32,
     pub name: Name,
+    pub span: Span,
     pub field_name_style: ast::FieldNameStyle,
     pub field_ids: OnceCell<Vec<FieldDefinitionId>>,
 }
 
 impl VariantDefinition {
+    pub fn id(&self) -> VariantDefinitionId {
+        self.id.get().cloned().expect("missing id")
+    }
+
     pub fn field_ids(&self) -> &[FieldDefinitionId] {
         self.field_ids.get().expect("missing fields")
     }
 
     pub fn field_id(&self, idx: FieldIndex) -> FieldDefinitionId {
         self.field_ids()[idx.to_usize()]
+    }
+}
+
+impl Element for VariantDefinition {
+    fn element_id(&self) -> ElementId {
+        ElementId::Variant(self.id.get().cloned().expect("missing id"))
+    }
+
+    fn file_id(&self) -> SourceFileId {
+        self.file_id
+    }
+
+    fn span(&self) -> Span {
+        self.span
+    }
+
+    fn module_id(&self) -> ModuleDefinitionId {
+        self.module_id
+    }
+
+    fn package_id(&self) -> PackageDefinitionId {
+        self.package_id
+    }
+
+    fn type_param_definition(&self) -> &Rc<TypeParamDefinition> {
+        unreachable!()
+    }
+
+    fn self_ty(&self, _sa: &Sema) -> Option<SourceType> {
+        None
+    }
+
+    fn visibility(&self) -> Visibility {
+        unreachable!()
+    }
+
+    fn children(&self) -> &[ElementId] {
+        &[]
     }
 }
 

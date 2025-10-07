@@ -2156,6 +2156,11 @@ impl Parser {
         let (start_token, start_offset) =
             self.nodes.borrow_mut().pop().expect("missing node start");
 
+        assert!(start_token <= self.token_idx);
+        if start_token == self.token_idx {
+            return Span::new(start_offset, start_offset);
+        }
+
         let mut end_token = self.token_idx - 1;
         assert!(end_token < self.tokens.len());
         let mut end_offset = self.offset;

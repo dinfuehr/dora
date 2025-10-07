@@ -86,17 +86,19 @@ fn parse_file2(content: Arc<String>) -> Vec<DocumentSymbol> {
     let module = sa.module(file.module_id);
     let line_starts = compute_line_starts(&content);
 
-    // Convert element IDs to symbols
-    let symbols = module
+    // Convert element IDs to DocumentSymbols directly
+    module
         .children()
         .iter()
-        .filter_map(|&element_id| element_to_symbol(&sa, element_id))
-        .collect();
-
-    transform(&line_starts, symbols)
+        .filter_map(|&element_id| element_to_symbol(&sa, &line_starts, element_id))
+        .collect()
 }
 
-fn element_to_symbol(sa: &Sema, element_id: ElementId) -> Option<Symbol> {
+fn element_to_symbol(
+    sa: &Sema,
+    line_starts: &[u32],
+    element_id: ElementId,
+) -> Option<DocumentSymbol> {
     let element = sa.element(element_id);
     let file_id = element.file_id();
     let file = sa.file(file_id);
@@ -108,50 +110,73 @@ fn element_to_symbol(sa: &Sema, element_id: ElementId) -> Option<Symbol> {
             let class = sa.class(id);
             let ast_id = class.ast_id.expect("missing ast_id");
             let node = f.node(ast_id).as_class();
-            let (name, name_span) = ensure_name(f, node.name, "<class>", node.span);
-            (name, name_span, DoraSymbolKind::Class)
+            let name_id = node.name?;
+            let ident_node = f.node(name_id).as_ident();
+            (ident_node.name.clone(), ident_node.span, SymbolKind::CLASS)
         }
         ElementId::Struct(id) => {
             let struct_def = sa.struct_(id);
             let ast_id = struct_def.ast_id;
             let node = f.node(ast_id).as_struct();
-            let (name, name_span) = ensure_name(f, node.name, "<struct>", node.span);
-            (name, name_span, DoraSymbolKind::Struct)
+            let name_id = node.name?;
+            let ident_node = f.node(name_id).as_ident();
+            (ident_node.name.clone(), ident_node.span, SymbolKind::STRUCT)
         }
         ElementId::Trait(id) => {
             let trait_def = sa.trait_(id);
             let ast_id = trait_def.ast_id;
             let node = f.node(ast_id).as_trait();
-            let (name, name_span) = ensure_name(f, node.name, "<trait>", node.span);
-            (name, name_span, DoraSymbolKind::Trait)
+            let name_id = node.name?;
+            let ident_node = f.node(name_id).as_ident();
+            (
+                ident_node.name.clone(),
+                ident_node.span,
+                SymbolKind::INTERFACE,
+            )
         }
         ElementId::Enum(id) => {
             let enum_def = sa.enum_(id);
             let ast_id = enum_def.ast_id;
             let node = f.node(ast_id).as_enum();
-            let (name, name_span) = ensure_name(f, node.name, "<enum>", node.span);
-            (name, name_span, DoraSymbolKind::Enum)
+            let name_id = node.name?;
+            let ident_node = f.node(name_id).as_ident();
+            (ident_node.name.clone(), ident_node.span, SymbolKind::ENUM)
         }
         ElementId::Fct(id) => {
             let fct = sa.fct(id);
             let ast_id = fct.ast_id.expect("missing ast_id");
             let node = f.node(ast_id).as_function();
-            let (name, name_span) = ensure_name(f, node.name, "<fn>", node.span);
-            (name, name_span, DoraSymbolKind::Function)
+            let name_id = node.name?;
+            let ident_node = f.node(name_id).as_ident();
+            (
+                ident_node.name.clone(),
+                ident_node.span,
+                SymbolKind::FUNCTION,
+            )
         }
         ElementId::Global(id) => {
             let global = sa.global(id);
             let ast_id = global.ast_id;
             let node = f.node(ast_id).as_global();
-            let (name, name_span) = ensure_name(f, node.name, "<global>", node.span);
-            (name, name_span, DoraSymbolKind::Global)
+            let name_id = node.name?;
+            let ident_node = f.node(name_id).as_ident();
+            (
+                ident_node.name.clone(),
+                ident_node.span,
+                SymbolKind::VARIABLE,
+            )
         }
         ElementId::Const(id) => {
             let const_def = sa.const_(id);
             let ast_id = const_def.ast_id;
             let node = f.node(ast_id).as_const();
-            let (name, name_span) = ensure_name(f, node.name, "<const>", node.span);
-            (name, name_span, DoraSymbolKind::Const)
+            let name_id = node.name?;
+            let ident_node = f.node(name_id).as_ident();
+            (
+                ident_node.name.clone(),
+                ident_node.span,
+                SymbolKind::CONSTANT,
+            )
         }
         ElementId::Impl(id) => {
             let impl_def = sa.impl_(id);
@@ -160,22 +185,29 @@ fn element_to_symbol(sa: &Sema, element_id: ElementId) -> Option<Symbol> {
             // Build impl name similar to the old implementation
             let name = String::from("impl");
             let name_span = f.node(node.extended_type).span();
-            (name, name_span, DoraSymbolKind::Impl)
+            (name, name_span, SymbolKind::NAMESPACE)
         }
         _ => return None,
     };
 
-    let children: Vec<Symbol> = element
+    let range = range_from_span(line_starts, total_span);
+    let selection_range = range_from_span(line_starts, name_span);
+
+    let children: Vec<DocumentSymbol> = element
         .children()
         .iter()
-        .filter_map(|&child_id| element_to_symbol(sa, child_id))
+        .filter_map(|&child_id| element_to_symbol(sa, line_starts, child_id))
         .collect();
 
-    Some(Symbol {
+    #[allow(deprecated)]
+    Some(DocumentSymbol {
         name,
-        name_span,
         kind,
-        total_span,
+        tags: None,
+        detail: None,
+        range,
+        deprecated: None,
+        selection_range,
         children: if children.is_empty() {
             None
         } else {
@@ -428,5 +460,174 @@ fn ensure_name(
         (ident_node.name.clone(), ident_node.span)
     } else {
         (default_name.into(), default_span)
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn test_parse_file_empty() {
+        let content = Arc::new("".to_string());
+        let symbols = parse_file(content);
+        assert_eq!(symbols.len(), 0);
+    }
+
+    #[test]
+    fn test_parse_file_single_function() {
+        let content = Arc::new("fn foo() {}".to_string());
+        let symbols = parse_file(content);
+        assert_eq!(symbols.len(), 1);
+        assert_eq!(symbols[0].name, "foo");
+        assert_eq!(symbols[0].kind, SymbolKind::FUNCTION);
+        assert_eq!(symbols[0].children, None);
+    }
+
+    #[test]
+    fn test_parse_file_multiple_functions() {
+        let content = Arc::new("fn foo() {}\nfn bar() {}".to_string());
+        let symbols = parse_file(content);
+        assert_eq!(symbols.len(), 2);
+        assert_eq!(symbols[0].name, "foo");
+        assert_eq!(symbols[0].kind, SymbolKind::FUNCTION);
+        assert_eq!(symbols[1].name, "bar");
+        assert_eq!(symbols[1].kind, SymbolKind::FUNCTION);
+    }
+
+    #[test]
+    fn test_parse_file_class() {
+        let content = Arc::new("class Foo {}".to_string());
+        let symbols = parse_file(content);
+        assert_eq!(symbols.len(), 1);
+        assert_eq!(symbols[0].name, "Foo");
+        assert_eq!(symbols[0].kind, SymbolKind::CLASS);
+    }
+
+    #[test]
+    fn test_parse_file_class_with_fields() {
+        let content = Arc::new("class Foo { x: Int32, y: String }".to_string());
+        let symbols = parse_file(content);
+        assert_eq!(symbols.len(), 1);
+        assert_eq!(symbols[0].name, "Foo");
+        assert_eq!(symbols[0].kind, SymbolKind::CLASS);
+
+        let children = symbols[0].children.as_ref().unwrap();
+        assert_eq!(children.len(), 2);
+        assert_eq!(children[0].name, "x");
+        assert_eq!(children[0].kind, SymbolKind::FIELD);
+        assert_eq!(children[1].name, "y");
+        assert_eq!(children[1].kind, SymbolKind::FIELD);
+    }
+
+    #[test]
+    fn test_parse_file_struct() {
+        let content = Arc::new("struct Point { x: Int32, y: Int32 }".to_string());
+        let symbols = parse_file(content);
+        assert_eq!(symbols.len(), 1);
+        assert_eq!(symbols[0].name, "Point");
+        assert_eq!(symbols[0].kind, SymbolKind::STRUCT);
+
+        let children = symbols[0].children.as_ref().unwrap();
+        assert_eq!(children.len(), 2);
+        assert_eq!(children[0].name, "x");
+        assert_eq!(children[0].kind, SymbolKind::FIELD);
+        assert_eq!(children[1].name, "y");
+        assert_eq!(children[1].kind, SymbolKind::FIELD);
+    }
+
+    #[test]
+    fn test_parse_file_trait() {
+        let content = Arc::new("trait Foo {}".to_string());
+        let symbols = parse_file(content);
+        assert_eq!(symbols.len(), 1);
+        assert_eq!(symbols[0].name, "Foo");
+        assert_eq!(symbols[0].kind, SymbolKind::INTERFACE);
+    }
+
+    #[test]
+    fn test_parse_file_enum() {
+        let content = Arc::new("enum Color { Red, Green, Blue }".to_string());
+        let symbols = parse_file(content);
+        assert_eq!(symbols.len(), 1);
+        assert_eq!(symbols[0].name, "Color");
+        assert_eq!(symbols[0].kind, SymbolKind::ENUM);
+
+        let children = symbols[0].children.as_ref().unwrap();
+        assert_eq!(children.len(), 3);
+        assert_eq!(children[0].name, "Red");
+        assert_eq!(children[0].kind, SymbolKind::ENUM_MEMBER);
+        assert_eq!(children[1].name, "Green");
+        assert_eq!(children[1].kind, SymbolKind::ENUM_MEMBER);
+        assert_eq!(children[2].name, "Blue");
+        assert_eq!(children[2].kind, SymbolKind::ENUM_MEMBER);
+    }
+
+    #[test]
+    fn test_parse_file_const() {
+        let content = Arc::new("const PI: Float64 = 3.14;".to_string());
+        let symbols = parse_file(content);
+        assert_eq!(symbols.len(), 1);
+        assert_eq!(symbols[0].name, "PI");
+        assert_eq!(symbols[0].kind, SymbolKind::CONSTANT);
+    }
+
+    #[test]
+    fn test_parse_file_global() {
+        let content = Arc::new("let counter: Int32 = 0;".to_string());
+        let symbols = parse_file(content);
+        assert_eq!(symbols.len(), 1);
+        assert_eq!(symbols[0].name, "counter");
+        assert_eq!(symbols[0].kind, SymbolKind::VARIABLE);
+    }
+
+    #[test]
+    fn test_parse_file_impl() {
+        let content = Arc::new("impl Foo {}".to_string());
+        let symbols = parse_file(content);
+        assert_eq!(symbols.len(), 1);
+        assert!(symbols[0].name.starts_with("impl"));
+        assert_eq!(symbols[0].kind, SymbolKind::NAMESPACE);
+    }
+
+    #[test]
+    fn test_parse_file_impl_with_methods() {
+        let content = Arc::new("impl Foo { fn bar() {} fn baz() {} }".to_string());
+        let symbols = parse_file(content);
+        assert_eq!(symbols.len(), 1);
+        assert!(symbols[0].name.starts_with("impl"));
+        assert_eq!(symbols[0].kind, SymbolKind::NAMESPACE);
+
+        let children = symbols[0].children.as_ref().unwrap();
+        assert_eq!(children.len(), 2);
+        assert_eq!(children[0].name, "bar");
+        assert_eq!(children[0].kind, SymbolKind::FUNCTION);
+        assert_eq!(children[1].name, "baz");
+        assert_eq!(children[1].kind, SymbolKind::FUNCTION);
+    }
+
+    #[test]
+    fn test_parse_file_module() {
+        let content = Arc::new("mod foo {}".to_string());
+        let symbols = parse_file(content);
+        assert_eq!(symbols.len(), 1);
+        assert_eq!(symbols[0].name, "foo");
+        assert_eq!(symbols[0].kind, SymbolKind::NAMESPACE);
+    }
+
+    #[test]
+    fn test_parse_file_mixed_elements() {
+        let content =
+            Arc::new("fn foo() {}\nclass Bar {}\nstruct Baz {}\nenum Qux { A, B }".to_string());
+        let symbols = parse_file(content);
+        assert_eq!(symbols.len(), 4);
+        assert_eq!(symbols[0].name, "foo");
+        assert_eq!(symbols[0].kind, SymbolKind::FUNCTION);
+        assert_eq!(symbols[1].name, "Bar");
+        assert_eq!(symbols[1].kind, SymbolKind::CLASS);
+        assert_eq!(symbols[2].name, "Baz");
+        assert_eq!(symbols[2].kind, SymbolKind::STRUCT);
+        assert_eq!(symbols[3].name, "Qux");
+        assert_eq!(symbols[3].kind, SymbolKind::ENUM);
     }
 }
