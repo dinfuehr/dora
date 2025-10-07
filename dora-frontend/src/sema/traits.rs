@@ -158,7 +158,7 @@ impl Element for TraitDefinition {
     }
 
     fn children(&self) -> &[ElementId] {
-        unimplemented!()
+        &[]
     }
 }
 

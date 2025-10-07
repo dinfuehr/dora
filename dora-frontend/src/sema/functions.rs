@@ -344,7 +344,7 @@ impl Element for FctDefinition {
     }
 
     fn children(&self) -> &[ElementId] {
-        unimplemented!()
+        &[]
     }
 }
 

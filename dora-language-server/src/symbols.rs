@@ -187,6 +187,18 @@ fn element_to_symbol(
             let name_span = f.node(node.extended_type).span();
             (name, name_span, SymbolKind::NAMESPACE)
         }
+        ElementId::Alias(id) => {
+            let alias = sa.alias(id);
+            let ast_id = alias.ast_id;
+            let node = f.node(ast_id).as_alias();
+            let name_id = node.name?;
+            let ident_node = f.node(name_id).as_ident();
+            (
+                ident_node.name.clone(),
+                ident_node.span,
+                SymbolKind::CONSTANT,
+            )
+        }
         _ => return None,
     };
 
@@ -629,5 +641,66 @@ mod tests {
         assert_eq!(symbols[2].kind, SymbolKind::STRUCT);
         assert_eq!(symbols[3].name, "Qux");
         assert_eq!(symbols[3].kind, SymbolKind::ENUM);
+    }
+
+    #[test]
+    fn test_parse_file2_empty() {
+        let content = Arc::new("".to_string());
+        let symbols = parse_file2(content);
+        assert_eq!(symbols.len(), 0);
+    }
+
+    #[test]
+    fn test_parse_file2_single_function() {
+        let content = Arc::new("fn foo() {}".to_string());
+        let symbols = parse_file2(content);
+        assert_eq!(symbols.len(), 1);
+        assert_eq!(symbols[0].name, "foo");
+        assert_eq!(symbols[0].kind, SymbolKind::FUNCTION);
+        assert_eq!(symbols[0].children, None);
+    }
+
+    #[test]
+    fn test_parse_file2_multiple_functions() {
+        let content = Arc::new("fn foo() {}\nfn bar() {}\nfn baz() {}".to_string());
+        let symbols = parse_file2(content);
+        assert_eq!(symbols.len(), 3);
+        assert_eq!(symbols[0].name, "foo");
+        assert_eq!(symbols[0].kind, SymbolKind::FUNCTION);
+        assert_eq!(symbols[1].name, "bar");
+        assert_eq!(symbols[1].kind, SymbolKind::FUNCTION);
+        assert_eq!(symbols[2].name, "baz");
+        assert_eq!(symbols[2].kind, SymbolKind::FUNCTION);
+    }
+
+    #[test]
+    fn test_parse_file2_impl_with_methods_and_aliases() {
+        let content = Arc::new(
+            "fn top_level() {}\nimpl Foo for Bar { fn method1() {} fn method2() {} type Alias1 = Int32; type Alias2 = String; }"
+                .to_string(),
+        );
+        let symbols = parse_file2(content);
+        assert_eq!(symbols.len(), 2);
+
+        assert_eq!(symbols[0].name, "top_level");
+        assert_eq!(symbols[0].kind, SymbolKind::FUNCTION);
+
+        assert!(symbols[1].name.starts_with("impl"));
+        assert_eq!(symbols[1].kind, SymbolKind::NAMESPACE);
+
+        let children = symbols[1].children.as_ref().unwrap();
+        assert_eq!(children.len(), 4);
+
+        assert_eq!(children[0].name, "method1");
+        assert_eq!(children[0].kind, SymbolKind::FUNCTION);
+
+        assert_eq!(children[1].name, "method2");
+        assert_eq!(children[1].kind, SymbolKind::FUNCTION);
+
+        assert_eq!(children[2].name, "Alias1");
+        assert_eq!(children[2].kind, SymbolKind::CONSTANT);
+
+        assert_eq!(children[3].name, "Alias2");
+        assert_eq!(children[3].kind, SymbolKind::CONSTANT);
     }
 }

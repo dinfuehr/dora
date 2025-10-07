@@ -10,7 +10,7 @@ use crate::error::msg::ErrorMessage;
 use crate::interner::Name;
 use crate::sema::{
     AliasBound, AliasDefinition, AliasDefinitionId, AliasParent, ClassDefinition, ConstDefinition,
-    Element, EnumDefinition, ExtensionDefinition, ExtensionDefinitionId, FctDefinition,
+    Element, ElementId, EnumDefinition, ExtensionDefinition, ExtensionDefinitionId, FctDefinition,
     FctDefinitionId, FctParent, FieldDefinition, FieldIndex, FileContent, GlobalDefinition,
     ImplDefinition, ImplDefinitionId, ModuleDefinition, ModuleDefinitionId, PackageDefinition,
     PackageDefinitionId, PackageName, Param, Params, Sema, SourceFile, SourceFileId,
@@ -240,16 +240,25 @@ impl<'a> ElementParser<'a> {
                 file_id,
                 external_modules: Vec::new(),
                 module_table: SymTable::new(),
+                module_elements: Vec::new(),
                 module_symtables: &mut self.module_symtables,
             };
 
             ast::visit_node(&mut decl_discovery, ast.root());
 
             let module_table = decl_discovery.module_table;
+            let module_elements = decl_discovery.module_elements;
 
             for external_module_id in decl_discovery.external_modules {
                 self.add_external_module(package_id, module_id, external_module_id);
             }
+
+            assert!(
+                self.sa.modules[module_id]
+                    .children
+                    .set(module_elements)
+                    .is_ok()
+            );
 
             module_table
         };
@@ -386,6 +395,7 @@ struct TopLevelDeclaration<'x> {
     module_id: ModuleDefinitionId,
     external_modules: Vec<ModuleDefinitionId>,
     module_table: SymTable,
+    module_elements: Vec<ElementId>,
     module_symtables: &'x mut HashMap<ModuleDefinitionId, SymTable>,
 }
 
@@ -443,7 +453,7 @@ impl<'x> ast::Visitor for TopLevelDeclaration<'x> {
         self.sa.modules[id].id = Some(id);
         let sym = SymbolKind::Module(id);
 
-        if let Some((name, sym)) = self.insert_optional(node.name, sym) {
+        if let Some((name, sym)) = self.insert_optional(node.name, sym, ElementId::Module(id)) {
             report_sym_shadow_span(self.sa, name, self.file_id, node.span, sym);
         }
 
@@ -451,14 +461,20 @@ impl<'x> ast::Visitor for TopLevelDeclaration<'x> {
             self.external_modules.push(id);
         } else {
             let module_table = SymTable::new();
+            let module_elements = Vec::new();
             let saved_module_id = self.module_id;
 
             let saved_module_table = std::mem::replace(&mut self.module_table, module_table);
+            let saved_module_elements =
+                std::mem::replace(&mut self.module_elements, module_elements);
             self.module_id = id;
             ast::walk_children(self, ast_node);
             self.module_id = saved_module_id;
             let module_table = std::mem::replace(&mut self.module_table, saved_module_table);
+            let module_elements =
+                std::mem::replace(&mut self.module_elements, saved_module_elements);
 
+            assert!(self.sa.module(id).children.set(module_elements).is_ok());
             assert!(self.module_symtables.insert(id, module_table).is_none());
         }
     }
@@ -503,7 +519,8 @@ impl<'x> ast::Visitor for TopLevelDeclaration<'x> {
 
         let sym = SymbolKind::Trait(trait_id);
 
-        if let Some((name, sym)) = self.insert_optional(node.name, sym) {
+        if let Some((name, sym)) = self.insert_optional(node.name, sym, ElementId::Trait(trait_id))
+        {
             report_sym_shadow_span(self.sa, name, self.file_id, node.span, sym);
         }
     }
@@ -542,7 +559,9 @@ impl<'x> ast::Visitor for TopLevelDeclaration<'x> {
         self.sa.globals[global_id].id = Some(global_id);
 
         let sym = SymbolKind::Global(global_id);
-        if let Some((name, sym)) = self.insert_optional(node.name, sym) {
+        if let Some((name, sym)) =
+            self.insert_optional(node.name, sym, ElementId::Global(global_id))
+        {
             report_sym_shadow_span(self.sa, name, self.file_id, node.span, sym);
         }
     }
@@ -573,6 +592,8 @@ impl<'x> ast::Visitor for TopLevelDeclaration<'x> {
             );
             let impl_id = self.sa.impls.alloc(impl_);
             assert!(self.sa.impls[impl_id].id.set(impl_id).is_ok());
+
+            self.module_elements.push(ElementId::Impl(impl_id));
 
             find_elements_in_impl(
                 self.sa,
@@ -622,7 +643,7 @@ impl<'x> ast::Visitor for TopLevelDeclaration<'x> {
         self.sa.consts[id].id = Some(id);
 
         let sym = SymbolKind::Const(id);
-        if let Some((name, sym)) = self.insert_optional(node.name, sym) {
+        if let Some((name, sym)) = self.insert_optional(node.name, sym, ElementId::Const(id)) {
             report_sym_shadow_span(self.sa, name, self.file_id, node.span, sym);
         }
     }
@@ -696,7 +717,8 @@ impl<'x> ast::Visitor for TopLevelDeclaration<'x> {
         assert!(self.sa.class(class_id).field_ids.set(field_ids).is_ok());
 
         let sym = SymbolKind::Class(class_id);
-        if let Some((name, sym)) = self.insert_optional(node.name, sym) {
+        if let Some((name, sym)) = self.insert_optional(node.name, sym, ElementId::Class(class_id))
+        {
             report_sym_shadow_span(self.sa, name, self.file_id, node.span, sym);
         }
 
@@ -794,7 +816,7 @@ impl<'x> ast::Visitor for TopLevelDeclaration<'x> {
         assert!(self.sa.struct_(id).field_names.set(field_names).is_ok());
 
         let sym = SymbolKind::Struct(id);
-        if let Some((name, sym)) = self.insert_optional(node.name, sym) {
+        if let Some((name, sym)) = self.insert_optional(node.name, sym, ElementId::Struct(id)) {
             report_sym_shadow_span(self.sa, name, self.file_id, node.span, sym);
         }
     }
@@ -844,7 +866,7 @@ impl<'x> ast::Visitor for TopLevelDeclaration<'x> {
         let fct_id = self.sa.fcts.alloc(fct);
         self.sa.fcts[fct_id].id = Some(fct_id);
         let sym = SymbolKind::Fct(fct_id);
-        if let Some((name, sym)) = self.insert_optional(node.name, sym) {
+        if let Some((name, sym)) = self.insert_optional(node.name, sym, ElementId::Fct(fct_id)) {
             report_sym_shadow_span(self.sa, name, self.file_id, node.span, sym);
         }
     }
@@ -964,7 +986,7 @@ impl<'x> ast::Visitor for TopLevelDeclaration<'x> {
         assert!(self.sa.enum_(id).name_to_value.set(name_to_value).is_ok());
 
         let sym = SymbolKind::Enum(id);
-        if let Some((name, sym)) = self.insert_optional(node.name, sym) {
+        if let Some((name, sym)) = self.insert_optional(node.name, sym, ElementId::Enum(id)) {
             report_sym_shadow_span(self.sa, name, self.file_id, node.span, sym);
         }
     }
@@ -1023,7 +1045,7 @@ impl<'x> ast::Visitor for TopLevelDeclaration<'x> {
         }
 
         let sym = SymbolKind::Alias(id);
-        if let Some((name, sym)) = self.insert_optional(node.name, sym) {
+        if let Some((name, sym)) = self.insert_optional(node.name, sym, ElementId::Alias(id)) {
             report_sym_shadow_span(self.sa, name, self.file_id, node.span, sym);
         }
     }
@@ -1228,6 +1250,7 @@ fn find_elements_in_impl(
 ) {
     let mut methods = Vec::new();
     let mut aliases = Vec::new();
+    let mut children = Vec::new();
 
     for &child_id in &node.methods {
         let child = f.node(child_id);
@@ -1271,6 +1294,7 @@ fn find_elements_in_impl(
                 let fct_id = sa.fcts.alloc(fct);
                 sa.fcts[fct_id].id = Some(fct_id);
                 methods.push(fct_id);
+                children.push(ElementId::Fct(fct_id));
             }
 
             ast::Ast::Alias(node) => {
@@ -1334,6 +1358,7 @@ fn find_elements_in_impl(
                 }
 
                 aliases.push(id);
+                children.push(ElementId::Alias(id));
             }
 
             ast::Ast::Error { .. } => {
@@ -1351,6 +1376,7 @@ fn find_elements_in_impl(
     let impl_ = &sa.impls[impl_id];
     assert!(impl_.methods.set(methods).is_ok());
     assert!(impl_.aliases.set(aliases).is_ok());
+    assert!(impl_.children.set(children).is_ok());
 }
 
 fn find_elements_in_extension(
@@ -1604,7 +1630,8 @@ fn check_modifier(
 }
 
 impl<'x> TopLevelDeclaration<'x> {
-    fn insert(&mut self, name: Name, sym: SymbolKind) -> Option<Symbol> {
+    fn insert(&mut self, name: Name, sym: SymbolKind, element_id: ElementId) -> Option<Symbol> {
+        self.module_elements.push(element_id);
         self.module_table.insert(name, sym)
     }
 
@@ -1612,6 +1639,7 @@ impl<'x> TopLevelDeclaration<'x> {
         &mut self,
         ident: Option<ast::AstId>,
         sym: SymbolKind,
+        element_id: ElementId,
     ) -> Option<(Name, Symbol)> {
         if let Some(ident_id) = ident {
             let ident = self
@@ -1620,7 +1648,7 @@ impl<'x> TopLevelDeclaration<'x> {
                 .to_ident()
                 .expect("ident expected");
             let name = self.sa.interner.intern(&ident.name);
-            self.insert(name, sym).map(|sym| (name, sym))
+            self.insert(name, sym, element_id).map(|sym| (name, sym))
         } else {
             None
         }

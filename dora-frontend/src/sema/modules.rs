@@ -22,6 +22,7 @@ pub struct ModuleDefinition {
     pub ast_id: Option<ast::AstId>,
     pub name: Option<Name>,
     pub table: OnceCell<Rc<SymTable>>,
+    pub children: OnceCell<Vec<ElementId>>,
     pub visibility: Visibility,
     pub parents: Vec<ModuleDefinitionId>,
     pub depth: usize,
@@ -37,6 +38,7 @@ impl ModuleDefinition {
             parent_module_id: None,
             name,
             table: OnceCell::new(),
+            children: OnceCell::new(),
             visibility: Visibility::Public,
             parents: Vec::new(),
             depth: 0,
@@ -66,6 +68,7 @@ impl ModuleDefinition {
             parent_module_id: Some(parent_id),
             name: Some(name),
             table: OnceCell::new(),
+            children: OnceCell::new(),
             visibility: modifiers.visibility(),
             parents,
             depth,
@@ -174,6 +177,6 @@ impl Element for ModuleDefinition {
     }
 
     fn children(&self) -> &[ElementId] {
-        unimplemented!()
+        self.children.get().expect("missing children")
     }
 }

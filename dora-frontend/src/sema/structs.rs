@@ -176,7 +176,7 @@ impl Element for StructDefinition {
     }
 
     fn children(&self) -> &[ElementId] {
-        unimplemented!()
+        &[]
     }
 }
 

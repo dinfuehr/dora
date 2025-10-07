@@ -29,6 +29,7 @@ pub struct ImplDefinition {
     pub parsed_extended_ty: ParsedType,
     pub methods: OnceCell<Vec<FctDefinitionId>>,
     pub aliases: OnceCell<Vec<AliasDefinitionId>>,
+    pub children: OnceCell<Vec<ElementId>>,
     pub trait_method_map: OnceCell<HashMap<FctDefinitionId, FctDefinitionId>>,
     pub trait_alias_map: OnceCell<HashMap<AliasDefinitionId, AliasDefinitionId>>,
 }
@@ -55,6 +56,7 @@ impl ImplDefinition {
             parsed_extended_ty: ParsedType::new_ast(node.extended_type),
             methods: OnceCell::new(),
             aliases: OnceCell::new(),
+            children: OnceCell::new(),
             trait_method_map: OnceCell::new(),
             trait_alias_map: OnceCell::new(),
         }
@@ -155,6 +157,6 @@ impl Element for ImplDefinition {
     }
 
     fn children(&self) -> &[ElementId] {
-        unimplemented!()
+        self.children.get().expect("missing children")
     }
 }
