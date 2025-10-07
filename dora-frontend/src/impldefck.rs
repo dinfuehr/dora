@@ -1,6 +1,6 @@
 use std::collections::{HashMap, HashSet};
 
-use crate::element_parser::ParsedModifierList;
+use crate::element_collector::Annotations;
 use crate::extensiondefck::check_for_unconstrained_type_params;
 use crate::sema::{
     AliasDefinitionId, Element, FctDefinition, FctDefinitionId, FctParent, ImplDefinition,
@@ -149,7 +149,7 @@ pub fn check_definition_against_trait(sa: &mut Sema) {
                     trait_method.declaration_span,
                     trait_method.span,
                     None,
-                    ParsedModifierList::default(),
+                    Annotations::default(),
                     trait_method.name,
                     type_params,
                     params,

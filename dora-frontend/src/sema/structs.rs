@@ -4,7 +4,7 @@ use std::rc::Rc;
 
 use id_arena::Id;
 
-use crate::element_parser::ParsedModifierList;
+use crate::element_collector::Annotations;
 use crate::interner::Name;
 use dora_parser::Span;
 use dora_parser::ast;
@@ -45,7 +45,7 @@ impl StructDefinition {
         file_id: SourceFileId,
         ast_id: ast::AstId,
         node: &ast::Struct,
-        modifiers: ParsedModifierList,
+        modifiers: Annotations,
         name: Name,
         type_param_definition: Rc<TypeParamDefinition>,
     ) -> StructDefinition {

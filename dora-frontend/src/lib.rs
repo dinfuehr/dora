@@ -24,7 +24,7 @@ mod aliasck;
 pub mod ast_dump;
 mod clsdefck;
 mod constdefck;
-mod element_parser;
+mod element_collector;
 mod enumck;
 pub mod error;
 mod exhaustiveness;
@@ -52,7 +52,7 @@ mod useck;
 
 pub fn check_program(sa: &mut Sema) -> bool {
     // This phase loads and parses all files. Also creates all elements.
-    let module_symtables = element_parser::parse(sa);
+    let module_symtables = element_collector::collect_elements(sa);
 
     // Discover all imported elements.
     useck::check(sa, module_symtables);

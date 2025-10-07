@@ -5,7 +5,7 @@ use dora_parser::{Span, ast};
 use id_arena::Id;
 
 use crate::SourceType;
-use crate::element_parser::ParsedModifierList;
+use crate::element_collector::Annotations;
 use crate::sema::{
     Element, ElementId, ModuleDefinitionId, PackageDefinitionId, Sema, SourceFileId,
     TypeParamDefinition, Visibility,
@@ -30,7 +30,7 @@ impl UseDefinition {
         file_id: SourceFileId,
         ast_id: ast::AstId,
         span: Span,
-        modifiers: ParsedModifierList,
+        modifiers: Annotations,
     ) -> UseDefinition {
         UseDefinition {
             id: OnceCell::new(),

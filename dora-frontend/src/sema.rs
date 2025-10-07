@@ -399,6 +399,6 @@ impl Sema {
     }
 
     pub fn parse_single_file(&mut self) -> SourceFileId {
-        crate::element_parser::parse_single_file(self)
+        crate::element_collector::collect_elements_for_single_file(self)
     }
 }

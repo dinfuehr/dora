@@ -2,7 +2,7 @@ use std::cell::OnceCell;
 use std::rc::Rc;
 
 use crate::ParsedType;
-use crate::element_parser::ParsedModifierList;
+use crate::element_collector::Annotations;
 use crate::interner::Name;
 use crate::sema::{
     AnalysisData, Element, ElementId, FctDefinitionId, ModuleDefinitionId, PackageDefinitionId,
@@ -42,7 +42,7 @@ impl GlobalDefinition {
         file_id: SourceFileId,
         ast_id: ast::AstId,
         node: &ast::Global,
-        modifiers: ParsedModifierList,
+        modifiers: Annotations,
         name: Name,
     ) -> GlobalDefinition {
         GlobalDefinition {

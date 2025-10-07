@@ -23,27 +23,27 @@ use dora_parser::ast::{self, AstId, AstNodeBase};
 use dora_parser::parser::Parser;
 use dora_parser::{Span, compute_line_starts};
 
-pub fn parse(sa: &mut Sema) -> HashMap<ModuleDefinitionId, SymTable> {
-    let mut discoverer = ElementParser::new(sa);
-    discoverer.parse_all();
-    discoverer.module_symtables
+pub fn collect_elements(sa: &mut Sema) -> HashMap<ModuleDefinitionId, SymTable> {
+    let mut collector = ElementCollector::new(sa);
+    collector.collect_all();
+    collector.module_symtables
 }
 
-pub fn parse_single_file(sa: &mut Sema) -> SourceFileId {
-    let mut parser = ElementParser::new(sa);
-    parser.parse_single_file()
+pub fn collect_elements_for_single_file(sa: &mut Sema) -> SourceFileId {
+    let mut collector = ElementCollector::new(sa);
+    collector.collect_one()
 }
 
-struct ElementParser<'a> {
+struct ElementCollector<'a> {
     sa: &'a mut Sema,
     worklist: VecDeque<SourceFileId>,
     packages: HashMap<String, FileContent>,
     module_symtables: HashMap<ModuleDefinitionId, SymTable>,
 }
 
-impl<'a> ElementParser<'a> {
-    fn new(sa: &mut Sema) -> ElementParser<'_> {
-        ElementParser {
+impl<'a> ElementCollector<'a> {
+    fn new(sa: &mut Sema) -> ElementCollector<'_> {
+        ElementCollector {
             sa,
             worklist: VecDeque::new(),
             packages: HashMap::new(),
@@ -51,19 +51,19 @@ impl<'a> ElementParser<'a> {
         }
     }
 
-    fn parse_all(&mut self) {
+    fn collect_all(&mut self) {
         self.prepare_packages();
         self.add_all_packages();
 
         while let Some(file_id) = self.worklist.pop_front() {
-            self.parse_and_scan_file(file_id);
+            self.parse_and_collect_file(file_id);
         }
     }
 
-    fn parse_single_file(&mut self) -> SourceFileId {
+    fn collect_one(&mut self) -> SourceFileId {
         self.add_program_package();
         let file_id = self.worklist.pop_front().expect("missing file");
-        self.parse_and_scan_file(file_id);
+        self.parse_and_collect_file(file_id);
         file_id
     }
 
@@ -225,7 +225,7 @@ impl<'a> ElementParser<'a> {
         }
     }
 
-    fn scan_file(
+    fn collect_file(
         &mut self,
         package_id: PackageDefinitionId,
         module_id: ModuleDefinitionId,
@@ -357,7 +357,7 @@ impl<'a> ElementParser<'a> {
         self.worklist.push_back(file_id);
     }
 
-    fn parse_and_scan_file(&mut self, file_id: SourceFileId) {
+    fn parse_and_collect_file(&mut self, file_id: SourceFileId) {
         let file = self.sa.file(file_id);
         let package_id = file.package_id;
         let module_id = file.module_id;
@@ -377,7 +377,7 @@ impl<'a> ElementParser<'a> {
 
         assert!(self.sa.file(file_id).ast.set(ast.clone()).is_ok());
 
-        self.scan_file(package_id, module_id, file_id, &ast);
+        self.collect_file(package_id, module_id, file_id, &ast);
     }
 }
 
@@ -403,7 +403,7 @@ impl<'x> ast::Visitor for TopLevelDeclaration<'x> {
     fn visit_extern(&mut self, ast_node: ast::AstExtern) {
         let f = ast_node.file();
         let node = ast_node.raw_node().as_extern();
-        check_modifiers(self.sa, self.file_id, node.modifiers, &[]);
+        check_annotations(self.sa, self.file_id, node.modifiers, &[]);
         if let Some(name_id) = node.name {
             let name = f.node(name_id).as_ident();
             let name_as_str = &name.name;
@@ -438,7 +438,8 @@ impl<'x> ast::Visitor for TopLevelDeclaration<'x> {
         let f = ast_node.file();
         let ast_id = ast_node.id();
         let node = ast_node.raw_node().as_module();
-        let modifiers = check_modifiers(self.sa, self.file_id, node.modifiers, &[Annotation::Pub]);
+        let modifiers =
+            check_annotations(self.sa, self.file_id, node.modifiers, &[Annotation::Pub]);
         let name = ensure_name(self.sa, f, node.name);
         let module = ModuleDefinition::new_inner(
             self.sa,
@@ -483,9 +484,10 @@ impl<'x> ast::Visitor for TopLevelDeclaration<'x> {
         let f = ast_node.file();
         let ast_id = ast_node.id();
         let node = ast_node.raw_node().as_trait();
-        let modifiers = check_modifiers(self.sa, self.file_id, node.modifiers, &[Annotation::Pub]);
+        let modifiers =
+            check_annotations(self.sa, self.file_id, node.modifiers, &[Annotation::Pub]);
 
-        let type_param_definition = parse_type_param_definition(
+        let type_param_definition = build_type_param_definition(
             self.sa,
             None,
             node.type_params,
@@ -527,7 +529,8 @@ impl<'x> ast::Visitor for TopLevelDeclaration<'x> {
 
     fn visit_use(&mut self, ast_node: ast::AstUse) {
         let node = ast_node.raw_node().as_use();
-        let modifiers = check_modifiers(self.sa, self.file_id, node.modifiers, &[Annotation::Pub]);
+        let modifiers =
+            check_annotations(self.sa, self.file_id, node.modifiers, &[Annotation::Pub]);
         let use_def = UseDefinition::new(
             self.package_id,
             self.module_id,
@@ -544,7 +547,8 @@ impl<'x> ast::Visitor for TopLevelDeclaration<'x> {
         let f = ast_node.file();
         let ast_id = ast_node.id();
         let node = ast_node.raw_node().as_global();
-        let modifiers = check_modifiers(self.sa, self.file_id, node.modifiers, &[Annotation::Pub]);
+        let modifiers =
+            check_annotations(self.sa, self.file_id, node.modifiers, &[Annotation::Pub]);
 
         let global = GlobalDefinition::new(
             self.package_id,
@@ -570,9 +574,9 @@ impl<'x> ast::Visitor for TopLevelDeclaration<'x> {
         let f = ast_node.file();
         let ast_id = ast_node.id();
         let node = ast_node.raw_node().as_impl();
-        check_modifiers(self.sa, self.file_id, node.modifiers, &[]);
+        check_annotations(self.sa, self.file_id, node.modifiers, &[]);
 
-        let type_param_definition = parse_type_param_definition(
+        let type_param_definition = build_type_param_definition(
             self.sa,
             None,
             node.type_params,
@@ -629,7 +633,8 @@ impl<'x> ast::Visitor for TopLevelDeclaration<'x> {
         let f = ast_node.file();
         let ast_id = ast_node.id();
         let node = ast_node.raw_node().as_const();
-        let modifiers = check_modifiers(self.sa, self.file_id, node.modifiers, &[Annotation::Pub]);
+        let modifiers =
+            check_annotations(self.sa, self.file_id, node.modifiers, &[Annotation::Pub]);
         let const_ = ConstDefinition::new(
             self.package_id,
             self.module_id,
@@ -652,14 +657,14 @@ impl<'x> ast::Visitor for TopLevelDeclaration<'x> {
         let f = ast_node.file();
         let ast_id = ast_node.id();
         let node = ast_node.raw_node().as_class();
-        let modifiers = check_modifiers(
+        let modifiers = check_annotations(
             self.sa,
             self.file_id,
             node.modifiers,
             &[Annotation::Internal, Annotation::Pub],
         );
 
-        let type_param_definition = parse_type_param_definition(
+        let type_param_definition = build_type_param_definition(
             self.sa,
             None,
             node.type_params,
@@ -692,7 +697,7 @@ impl<'x> ast::Visitor for TopLevelDeclaration<'x> {
                 .expect("field expected");
 
             let modifiers =
-                check_modifiers(self.sa, self.file_id, field.modifiers, &[Annotation::Pub]);
+                check_annotations(self.sa, self.file_id, field.modifiers, &[Annotation::Pub]);
 
             let name = if node.field_name_style.is_positional() {
                 None
@@ -729,7 +734,7 @@ impl<'x> ast::Visitor for TopLevelDeclaration<'x> {
                 .to_field()
                 .expect("field expected");
 
-            check_modifiers(self.sa, self.file_id, field.modifiers, &[Annotation::Pub]);
+            check_annotations(self.sa, self.file_id, field.modifiers, &[Annotation::Pub]);
         }
     }
 
@@ -737,14 +742,14 @@ impl<'x> ast::Visitor for TopLevelDeclaration<'x> {
         let f = ast_node.file();
         let ast_id = ast_node.id();
         let node = ast_node.raw_node().as_struct();
-        let modifiers = check_modifiers(
+        let modifiers = check_annotations(
             self.sa,
             self.file_id,
             node.modifiers,
             &[Annotation::Pub, Annotation::Internal],
         );
 
-        let type_param_definition = parse_type_param_definition(
+        let type_param_definition = build_type_param_definition(
             self.sa,
             None,
             node.type_params,
@@ -777,7 +782,7 @@ impl<'x> ast::Visitor for TopLevelDeclaration<'x> {
                 .expect("field expected");
 
             let modifiers =
-                check_modifiers(self.sa, self.file_id, field.modifiers, &[Annotation::Pub]);
+                check_annotations(self.sa, self.file_id, field.modifiers, &[Annotation::Pub]);
 
             let name = if node.field_style.is_positional() {
                 None
@@ -825,7 +830,7 @@ impl<'x> ast::Visitor for TopLevelDeclaration<'x> {
         let f = ast_node.file();
         let ast_id = ast_node.id();
         let node = ast_node.raw_node().as_function();
-        let modifiers = check_modifiers(
+        let modifiers = check_annotations(
             self.sa,
             self.file_id,
             node.modifiers,
@@ -839,7 +844,7 @@ impl<'x> ast::Visitor for TopLevelDeclaration<'x> {
             ],
         );
 
-        let type_param_definition = parse_type_param_definition(
+        let type_param_definition = build_type_param_definition(
             self.sa,
             None,
             node.type_params,
@@ -849,7 +854,7 @@ impl<'x> ast::Visitor for TopLevelDeclaration<'x> {
         );
 
         let parent = FctParent::None;
-        let params = parse_function_params(self.sa, self.file_id, node, parent.clone(), &modifiers);
+        let params = build_function_params(self.sa, self.file_id, node, parent.clone(), &modifiers);
 
         let fct = FctDefinition::new(
             self.package_id,
@@ -875,7 +880,7 @@ impl<'x> ast::Visitor for TopLevelDeclaration<'x> {
         let f = ast_node.file();
         let ast_id = ast_node.id();
         let node = ast_node.raw_node().as_enum();
-        let type_param_definition = parse_type_param_definition(
+        let type_param_definition = build_type_param_definition(
             self.sa,
             None,
             node.type_params,
@@ -884,7 +889,8 @@ impl<'x> ast::Visitor for TopLevelDeclaration<'x> {
             self.file_id,
         );
 
-        let modifiers = check_modifiers(self.sa, self.file_id, node.modifiers, &[Annotation::Pub]);
+        let modifiers =
+            check_annotations(self.sa, self.file_id, node.modifiers, &[Annotation::Pub]);
         let enum_ = EnumDefinition::new(
             self.package_id,
             self.module_id,
@@ -995,7 +1001,8 @@ impl<'x> ast::Visitor for TopLevelDeclaration<'x> {
         let f = ast_node.file();
         let ast_id = ast_node.id();
         let node = ast_node.raw_node().as_alias();
-        let modifiers = check_modifiers(self.sa, self.file_id, node.modifiers, &[Annotation::Pub]);
+        let modifiers =
+            check_annotations(self.sa, self.file_id, node.modifiers, &[Annotation::Pub]);
 
         let parsed_ty = if let Some(ref ty) = node.ty {
             ParsedType::new_ast(ty.clone())
@@ -1005,7 +1012,7 @@ impl<'x> ast::Visitor for TopLevelDeclaration<'x> {
             ParsedType::new_ty(ty::error())
         };
 
-        let type_param_definition = parse_type_param_definition(
+        let type_param_definition = build_type_param_definition(
             self.sa,
             None,
             node.type_params,
@@ -1075,7 +1082,7 @@ fn find_elements_in_trait(
             ast::Ast::Function(method_node) => {
                 let trait_ = sa.trait_(trait_id);
 
-                let modifiers = check_modifiers(
+                let modifiers = check_annotations(
                     sa,
                     trait_.file_id,
                     method_node.modifiers,
@@ -1087,7 +1094,7 @@ fn find_elements_in_trait(
                 );
 
                 let container_type_param_definition = trait_.type_param_definition().clone();
-                let type_param_definition = parse_type_param_definition(
+                let type_param_definition = build_type_param_definition(
                     sa,
                     Some(container_type_param_definition),
                     method_node.type_params,
@@ -1098,7 +1105,7 @@ fn find_elements_in_trait(
 
                 let parent = FctParent::Trait(trait_id);
                 let params =
-                    parse_function_params(sa, file_id, method_node, parent.clone(), &modifiers);
+                    build_function_params(sa, file_id, method_node, parent.clone(), &modifiers);
 
                 let fct = FctDefinition::new(
                     trait_.package_id,
@@ -1140,7 +1147,7 @@ fn find_elements_in_trait(
             }
 
             ast::Ast::Alias(node) => {
-                let modifiers = check_modifiers(sa, file_id, node.modifiers, &[]);
+                let modifiers = check_annotations(sa, file_id, node.modifiers, &[]);
 
                 let name = ensure_name(sa, f, node.name);
 
@@ -1173,7 +1180,7 @@ fn find_elements_in_trait(
 
                 let container_type_param_definition =
                     sa.trait_(trait_id).type_param_definition().clone();
-                let type_param_definition = parse_type_param_definition(
+                let type_param_definition = build_type_param_definition(
                     sa,
                     Some(container_type_param_definition),
                     node.type_params,
@@ -1257,7 +1264,7 @@ fn find_elements_in_impl(
         match child {
             ast::Ast::Function(method_node) => {
                 let impl_ = &sa.impl_(impl_id);
-                let modifiers = check_modifiers(
+                let modifiers = check_annotations(
                     sa,
                     impl_.file_id,
                     method_node.modifiers,
@@ -1265,7 +1272,7 @@ fn find_elements_in_impl(
                 );
 
                 let container_type_param_definition = impl_.type_param_definition().clone();
-                let type_param_definition = parse_type_param_definition(
+                let type_param_definition = build_type_param_definition(
                     sa,
                     Some(container_type_param_definition),
                     method_node.type_params,
@@ -1276,7 +1283,7 @@ fn find_elements_in_impl(
 
                 let parent = FctParent::Impl(impl_id);
                 let params =
-                    parse_function_params(sa, file_id, method_node, parent.clone(), &modifiers);
+                    build_function_params(sa, file_id, method_node, parent.clone(), &modifiers);
 
                 let fct = FctDefinition::new(
                     impl_.package_id,
@@ -1298,7 +1305,7 @@ fn find_elements_in_impl(
             }
 
             ast::Ast::Alias(node) => {
-                let modifiers = check_modifiers(sa, file_id, node.modifiers, &[]);
+                let modifiers = check_annotations(sa, file_id, node.modifiers, &[]);
 
                 let name = ensure_name(sa, f, node.name);
 
@@ -1326,7 +1333,7 @@ fn find_elements_in_impl(
 
                 let container_type_param_definition =
                     sa.impl_(impl_id).type_param_definition().clone();
-                let type_param_definition = parse_type_param_definition(
+                let type_param_definition = build_type_param_definition(
                     sa,
                     Some(container_type_param_definition),
                     node.type_params,
@@ -1394,7 +1401,7 @@ fn find_elements_in_extension(
             ast::Ast::Function(method_node) => {
                 let name = ensure_name(sa, f, method_node.name);
                 let extension = sa.extension(extension_id);
-                let modifiers = check_modifiers(
+                let modifiers = check_annotations(
                     sa,
                     extension.file_id,
                     method_node.modifiers,
@@ -1407,7 +1414,7 @@ fn find_elements_in_extension(
                 );
 
                 let container_type_param_definition = extension.type_param_definition().clone();
-                let type_param_definition = parse_type_param_definition(
+                let type_param_definition = build_type_param_definition(
                     sa,
                     Some(container_type_param_definition),
                     method_node.type_params,
@@ -1418,7 +1425,7 @@ fn find_elements_in_extension(
 
                 let parent = FctParent::Extension(extension_id);
                 let params =
-                    parse_function_params(sa, file_id, method_node, parent.clone(), &modifiers);
+                    build_function_params(sa, file_id, method_node, parent.clone(), &modifiers);
 
                 let fct = FctDefinition::new(
                     extension.package_id,
@@ -1466,7 +1473,7 @@ fn ensure_name(sa: &Sema, f: &ast::File, ident: Option<ast::AstId>) -> Name {
 }
 
 #[derive(Default)]
-pub struct ParsedModifierList {
+pub struct Annotations {
     pub is_pub: bool,
     pub is_static: bool,
     pub is_test: bool,
@@ -1477,7 +1484,7 @@ pub struct ParsedModifierList {
     pub is_trait_object_ignore: bool,
 }
 
-impl ParsedModifierList {
+impl Annotations {
     pub(crate) fn visibility(&self) -> Visibility {
         if self.is_pub {
             Visibility::Public
@@ -1520,13 +1527,13 @@ impl Annotation {
     }
 }
 
-fn check_modifiers(
+fn check_annotations(
     sa: &Sema,
     file_id: SourceFileId,
     modifier_list_id: Option<AstId>,
     allow_list: &[Annotation],
-) -> ParsedModifierList {
-    let mut parsed_modifiers = ParsedModifierList::default();
+) -> Annotations {
+    let mut annotations = Annotations::default();
 
     if let Some(modifier_list_id) = modifier_list_id {
         let mut set: HashSet<Annotation> = HashSet::new();
@@ -1540,7 +1547,7 @@ fn check_modifiers(
                 .node(file_id, modifier_id)
                 .to_modifier()
                 .expect("modifier expected");
-            let value = check_modifier(sa, file_id, modifier, &mut parsed_modifiers);
+            let value = check_annotation(sa, file_id, modifier, &mut annotations);
 
             if value.is_error() {
                 continue;
@@ -1560,20 +1567,20 @@ fn check_modifiers(
         }
     }
 
-    parsed_modifiers
+    annotations
 }
 
-fn check_modifier(
+fn check_annotation(
     sa: &Sema,
     file_id: SourceFileId,
     modifier: &ast::Modifier,
-    parsed_modifiers: &mut ParsedModifierList,
+    annotations: &mut Annotations,
 ) -> Annotation {
     if modifier.is_pub() {
-        parsed_modifiers.is_pub = true;
+        annotations.is_pub = true;
         Annotation::Pub
     } else if modifier.is_static() {
-        parsed_modifiers.is_static = true;
+        annotations.is_static = true;
         Annotation::Static
     } else {
         assert!(modifier.is_at());
@@ -1585,32 +1592,32 @@ fn check_modifier(
                 .expect("ident expected");
             match ident.name.as_str() {
                 "Test" => {
-                    parsed_modifiers.is_test = true;
+                    annotations.is_test = true;
                     Annotation::Test
                 }
 
                 "Optimize" => {
-                    parsed_modifiers.is_optimize_immediately = true;
+                    annotations.is_optimize_immediately = true;
                     Annotation::Optimize
                 }
 
                 "internal" => {
-                    parsed_modifiers.is_internal = true;
+                    annotations.is_internal = true;
                     Annotation::Internal
                 }
 
                 "ForceInline" => {
-                    parsed_modifiers.is_force_inline = true;
+                    annotations.is_force_inline = true;
                     Annotation::ForceInline
                 }
 
                 "NeverInline" => {
-                    parsed_modifiers.is_never_inline = true;
+                    annotations.is_never_inline = true;
                     Annotation::NeverInline
                 }
 
                 "TraitObjectIgnore" => {
-                    parsed_modifiers.is_trait_object_ignore = true;
+                    annotations.is_trait_object_ignore = true;
                     Annotation::TraitObjectIgnore
                 }
 
@@ -1705,7 +1712,7 @@ fn add_package(
     (package_id, module_id)
 }
 
-fn parse_type_param_definition(
+fn build_type_param_definition(
     sa: &Sema,
     parent: Option<Rc<TypeParamDefinition>>,
     ast_type_params: Option<ast::AstId>,
@@ -1785,12 +1792,12 @@ fn parse_type_param_definition(
     Rc::new(type_param_definition)
 }
 
-fn parse_function_params(
+fn build_function_params(
     sa: &Sema,
     file_id: SourceFileId,
     ast: &ast::Function,
     parent: FctParent,
-    modifiers: &ParsedModifierList,
+    modifiers: &Annotations,
 ) -> Params {
     let mut params: Vec<Param> = Vec::new();
     let mut has_self = false;

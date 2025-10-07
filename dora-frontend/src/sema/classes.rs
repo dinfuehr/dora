@@ -3,7 +3,7 @@ use std::rc::Rc;
 
 use id_arena::Id;
 
-use crate::element_parser::ParsedModifierList;
+use crate::element_collector::Annotations;
 use crate::interner::Name;
 use dora_parser::ast;
 
@@ -49,7 +49,7 @@ impl ClassDefinition {
         file_id: SourceFileId,
         ast_id: ast::AstId,
         node: &ast::Class,
-        modifiers: ParsedModifierList,
+        modifiers: Annotations,
         name: Name,
         type_param_definition: Rc<TypeParamDefinition>,
     ) -> ClassDefinition {

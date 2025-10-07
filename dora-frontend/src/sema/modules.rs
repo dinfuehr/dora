@@ -3,7 +3,7 @@ use std::rc::Rc;
 
 use crate::SourceFileId;
 use crate::SourceType;
-use crate::element_parser::ParsedModifierList;
+use crate::element_collector::Annotations;
 use crate::sema::{Element, ElementId, PackageDefinitionId, Sema, TypeParamDefinition, Visibility};
 use crate::sym::SymTable;
 
@@ -51,7 +51,7 @@ impl ModuleDefinition {
         parent_id: ModuleDefinitionId,
         file_id: SourceFileId,
         ast_id: ast::AstId,
-        modifiers: ParsedModifierList,
+        modifiers: Annotations,
         name: Name,
     ) -> ModuleDefinition {
         let parent = sa.module(parent_id);

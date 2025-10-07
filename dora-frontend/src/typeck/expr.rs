@@ -7,7 +7,7 @@ use crate::access::{
     class_field_accessible_from, const_accessible_from, enum_accessible_from,
     global_accessible_from, module_accessible_from, struct_field_accessible_from,
 };
-use crate::element_parser::ParsedModifierList;
+use crate::element_collector::Annotations;
 use crate::error::msg::ErrorMessage;
 use crate::interner::Name;
 use crate::sema::{
@@ -2044,7 +2044,7 @@ fn check_expr_lambda(
         ck.file_id,
         lambda_expr.fct_id,
         node,
-        ParsedModifierList::default(),
+        Annotations::default(),
         name,
         ck.type_param_definition.clone(),
         Params::new(lambda_params, true, false),

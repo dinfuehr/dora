@@ -2,7 +2,7 @@ use std::cell::OnceCell;
 use std::rc::Rc;
 
 use crate::ParsedType;
-use crate::element_parser::ParsedModifierList;
+use crate::element_collector::Annotations;
 use crate::interner::Name;
 use dora_parser::Span;
 use dora_parser::ast;
@@ -55,7 +55,7 @@ impl FctDefinition {
         file_id: SourceFileId,
         ast_id: ast::AstId,
         ast: &ast::Function,
-        modifiers: ParsedModifierList,
+        modifiers: Annotations,
         name: Name,
         type_params: Rc<TypeParamDefinition>,
         params: Params,
@@ -103,7 +103,7 @@ impl FctDefinition {
         declaration_span: Span,
         span: Span,
         ast_id: Option<ast::AstId>,
-        modifiers: ParsedModifierList,
+        modifiers: Annotations,
         name: Name,
         type_params: Rc<TypeParamDefinition>,
         params: Params,

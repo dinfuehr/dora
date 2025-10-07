@@ -2,7 +2,7 @@ use std::cell::OnceCell;
 use std::collections::HashMap;
 use std::rc::Rc;
 
-use crate::element_parser::ParsedModifierList;
+use crate::element_collector::Annotations;
 use crate::interner::Name;
 use dora_parser::Span;
 use dora_parser::ast;
@@ -42,7 +42,7 @@ impl TraitDefinition {
         file_id: SourceFileId,
         ast_id: ast::AstId,
         span: Span,
-        modifiers: ParsedModifierList,
+        modifiers: Annotations,
         name: Name,
         type_params: Rc<TypeParamDefinition>,
     ) -> TraitDefinition {

@@ -2,7 +2,7 @@ use id_arena::Id;
 use std::cell::OnceCell;
 use std::rc::Rc;
 
-use crate::element_parser::ParsedModifierList;
+use crate::element_collector::Annotations;
 use crate::interner::Name;
 pub use dora_bytecode::ConstValue;
 use dora_parser::Span;
@@ -40,7 +40,7 @@ impl ConstDefinition {
         file_id: SourceFileId,
         ast_id: ast::AstId,
         node: &ast::Const,
-        modifiers: ParsedModifierList,
+        modifiers: Annotations,
         name: Name,
     ) -> ConstDefinition {
         ConstDefinition {

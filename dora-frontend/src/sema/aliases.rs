@@ -1,6 +1,6 @@
 use crate::{
     ParsedTraitType, ParsedType,
-    element_parser::ParsedModifierList,
+    element_collector::Annotations,
     interner::Name,
     ty::{SourceType, TraitType},
 };
@@ -63,7 +63,7 @@ pub struct AliasDefinition {
     pub span: Span,
     pub parent: AliasParent,
     pub ast_id: ast::AstId,
-    pub modifiers: ParsedModifierList,
+    pub modifiers: Annotations,
     pub name: Name,
     pub parsed_ty: Option<ParsedType>,
     pub type_param_definition: Rc<TypeParamDefinition>,
@@ -80,7 +80,7 @@ impl AliasDefinition {
         parent: AliasParent,
         ast_id: ast::AstId,
         node: &ast::Alias,
-        modifiers: ParsedModifierList,
+        modifiers: Annotations,
         name: Name,
         type_param_definition: Rc<TypeParamDefinition>,
         bounds: Vec<AliasBound>,
