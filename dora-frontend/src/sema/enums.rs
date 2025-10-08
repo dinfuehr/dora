@@ -32,6 +32,7 @@ pub struct EnumDefinition {
     pub visibility: Visibility,
     pub type_param_definition: Rc<TypeParamDefinition>,
     pub variants: OnceCell<Vec<VariantDefinitionId>>,
+    pub children: OnceCell<Vec<ElementId>>,
     pub extensions: RefCell<Vec<ExtensionDefinitionId>>,
     pub simple_enumeration: OnceCell<bool>,
     pub name_to_value: OnceCell<HashMap<Name, u32>>,
@@ -59,6 +60,7 @@ impl EnumDefinition {
             type_param_definition,
             visibility: modifiers.visibility(),
             variants: OnceCell::new(),
+            children: OnceCell::new(),
             extensions: RefCell::new(Vec::new()),
             simple_enumeration: OnceCell::new(),
             name_to_value: OnceCell::new(),
@@ -152,7 +154,7 @@ impl Element for EnumDefinition {
     }
 
     fn children(&self) -> &[ElementId] {
-        unimplemented!()
+        self.children.get().expect("missing children")
     }
 }
 
@@ -182,6 +184,7 @@ pub struct VariantDefinition {
     pub span: Span,
     pub field_name_style: ast::FieldNameStyle,
     pub field_ids: OnceCell<Vec<FieldDefinitionId>>,
+    pub children: OnceCell<Vec<ElementId>>,
 }
 
 impl VariantDefinition {
@@ -232,7 +235,7 @@ impl Element for VariantDefinition {
     }
 
     fn children(&self) -> &[ElementId] {
-        &[]
+        self.children.get().expect("missing children")
     }
 }
 

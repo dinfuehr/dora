@@ -728,7 +728,13 @@ impl<'x> ast::Visitor for TopLevelDeclaration<'x> {
             field_ids.push(field_id);
         }
 
-        assert!(self.sa.class(class_id).field_ids.set(field_ids.clone()).is_ok());
+        assert!(
+            self.sa
+                .class(class_id)
+                .field_ids
+                .set(field_ids.clone())
+                .is_ok()
+        );
 
         let children: Vec<ElementId> = field_ids
             .into_iter()
@@ -956,6 +962,7 @@ impl<'x> ast::Visitor for TopLevelDeclaration<'x> {
                 span: variant_name.span,
                 field_name_style: variant.field_name_style,
                 field_ids: OnceCell::new(),
+                children: OnceCell::new(),
             });
 
             let mut field_ids = Vec::new();
@@ -1000,7 +1007,25 @@ impl<'x> ast::Visitor for TopLevelDeclaration<'x> {
                 field_ids.push(field_id)
             }
 
-            assert!(self.sa.variant(variant_id).field_ids.set(field_ids).is_ok());
+            assert!(
+                self.sa
+                    .variant(variant_id)
+                    .field_ids
+                    .set(field_ids.clone())
+                    .is_ok()
+            );
+
+            let variant_children: Vec<ElementId> = field_ids
+                .into_iter()
+                .map(|id| ElementId::Field(id))
+                .collect();
+            assert!(
+                self.sa
+                    .variant(variant_id)
+                    .children
+                    .set(variant_children)
+                    .is_ok()
+            );
 
             variants.push(variant_id);
 
@@ -1021,8 +1046,14 @@ impl<'x> ast::Visitor for TopLevelDeclaration<'x> {
                 .report(self.file_id, node.span, ErrorMessage::NoEnumVariant);
         }
 
-        assert!(self.sa.enum_(id).variants.set(variants).is_ok());
+        assert!(self.sa.enum_(id).variants.set(variants.clone()).is_ok());
         assert!(self.sa.enum_(id).name_to_value.set(name_to_value).is_ok());
+
+        let enum_children: Vec<ElementId> = variants
+            .into_iter()
+            .map(|id| ElementId::Variant(id))
+            .collect();
+        assert!(self.sa.enum_(id).children.set(enum_children).is_ok());
 
         let sym = SymbolKind::Enum(id);
         if let Some((name, sym)) = self.insert_optional(node.name, sym, ElementId::Enum(id)) {

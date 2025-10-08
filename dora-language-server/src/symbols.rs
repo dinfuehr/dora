@@ -215,6 +215,12 @@ fn element_to_symbol(
             let span = field.span.expect("missing span");
             (name_str, span, SymbolKind::FIELD)
         }
+        ElementId::Variant(id) => {
+            let variant = sa.variant(id);
+            let name = sa.interner.str(variant.name).to_string();
+            let span = variant.span;
+            (name, span, SymbolKind::ENUM_MEMBER)
+        }
         _ => return None,
     };
 
@@ -769,5 +775,46 @@ mod tests {
         assert_eq!(children[0].kind, SymbolKind::FIELD);
         assert_eq!(children[1].name, "age");
         assert_eq!(children[1].kind, SymbolKind::FIELD);
+    }
+
+    #[test]
+    fn test_parse_file2_enum_with_variants() {
+        let content = Arc::new("enum Color { Red, Green(Int32), Blue(Int32, Int32) }".to_string());
+        let symbols = parse_file2(content);
+        assert_eq!(symbols.len(), 1);
+        assert_eq!(symbols[0].name, "Color");
+        assert_eq!(symbols[0].kind, SymbolKind::ENUM);
+
+        let children = symbols[0].children.as_ref().unwrap();
+        assert_eq!(children.len(), 3);
+        assert_eq!(children[0].name, "Red");
+        assert_eq!(children[0].kind, SymbolKind::ENUM_MEMBER);
+        assert_eq!(children[1].name, "Green");
+        assert_eq!(children[1].kind, SymbolKind::ENUM_MEMBER);
+        assert!(children[1].children.is_none());
+        assert_eq!(children[2].name, "Blue");
+        assert_eq!(children[2].kind, SymbolKind::ENUM_MEMBER);
+    }
+
+    #[test]
+    fn test_parse_file2_enum_with_named_fields() {
+        let content = Arc::new("enum Color { Red, Green { value: Int32 } }".to_string());
+        let symbols = parse_file2(content);
+        assert_eq!(symbols.len(), 1);
+        assert_eq!(symbols[0].name, "Color");
+        assert_eq!(symbols[0].kind, SymbolKind::ENUM);
+
+        let children = symbols[0].children.as_ref().unwrap();
+        assert_eq!(children.len(), 2);
+        assert_eq!(children[0].name, "Red");
+        assert_eq!(children[0].kind, SymbolKind::ENUM_MEMBER);
+        assert!(children[0].children.is_none());
+        assert_eq!(children[1].name, "Green");
+        assert_eq!(children[1].kind, SymbolKind::ENUM_MEMBER);
+
+        let green_children = children[1].children.as_ref().unwrap();
+        assert_eq!(green_children.len(), 1);
+        assert_eq!(green_children[0].name, "value");
+        assert_eq!(green_children[0].kind, SymbolKind::FIELD);
     }
 }
