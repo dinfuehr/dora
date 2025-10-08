@@ -30,6 +30,7 @@ pub struct ExtensionDefinition {
     pub methods: OnceCell<Vec<FctDefinitionId>>,
     pub instance_names: RefCell<HashMap<Name, FctDefinitionId>>,
     pub static_names: RefCell<HashMap<Name, FctDefinitionId>>,
+    pub children: OnceCell<Vec<ElementId>>,
 }
 
 impl ExtensionDefinition {
@@ -54,6 +55,7 @@ impl ExtensionDefinition {
             methods: OnceCell::new(),
             instance_names: RefCell::new(HashMap::new()),
             static_names: RefCell::new(HashMap::new()),
+            children: OnceCell::new(),
         }
     }
 
@@ -115,6 +117,6 @@ impl Element for ExtensionDefinition {
     }
 
     fn children(&self) -> &[ElementId] {
-        unimplemented!()
+        self.children.get().expect("missing children")
     }
 }

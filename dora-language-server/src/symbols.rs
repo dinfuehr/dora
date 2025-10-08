@@ -187,6 +187,15 @@ fn element_to_symbol(
             let name_span = f.node(node.extended_type).span();
             (name, name_span, SymbolKind::NAMESPACE)
         }
+        ElementId::Extension(id) => {
+            let extension = sa.extension(id);
+            let ast_id = extension.ast_id;
+            let node = f.node(ast_id).as_impl();
+            // Build extension name similar to impl
+            let name = String::from("impl");
+            let name_span = f.node(node.extended_type).span();
+            (name, name_span, SymbolKind::NAMESPACE)
+        }
         ElementId::Alias(id) => {
             let alias = sa.alias(id);
             let ast_id = alias.ast_id;
@@ -198,6 +207,13 @@ fn element_to_symbol(
                 ident_node.span,
                 SymbolKind::CONSTANT,
             )
+        }
+        ElementId::Field(id) => {
+            let field = sa.field(id);
+            let name = field.name?;
+            let name_str = sa.interner.str(name).to_string();
+            let span = field.span.expect("missing span");
+            (name_str, span, SymbolKind::FIELD)
         }
         _ => return None,
     };
@@ -702,5 +718,56 @@ mod tests {
 
         assert_eq!(children[3].name, "Alias2");
         assert_eq!(children[3].kind, SymbolKind::CONSTANT);
+    }
+
+    #[test]
+    fn test_parse_file2_impl_extension() {
+        let content = Arc::new("impl Foo { fn method1() {} fn method2() {} }".to_string());
+        let symbols = parse_file2(content);
+        assert_eq!(symbols.len(), 1);
+
+        assert!(symbols[0].name.starts_with("impl"));
+        assert_eq!(symbols[0].kind, SymbolKind::NAMESPACE);
+
+        let children = symbols[0].children.as_ref().unwrap();
+        assert_eq!(children.len(), 2);
+
+        assert_eq!(children[0].name, "method1");
+        assert_eq!(children[0].kind, SymbolKind::FUNCTION);
+
+        assert_eq!(children[1].name, "method2");
+        assert_eq!(children[1].kind, SymbolKind::FUNCTION);
+    }
+
+    #[test]
+    fn test_parse_file2_struct_with_fields() {
+        let content = Arc::new("struct Point { x: Int32, y: Int32 }".to_string());
+        let symbols = parse_file2(content);
+        assert_eq!(symbols.len(), 1);
+        assert_eq!(symbols[0].name, "Point");
+        assert_eq!(symbols[0].kind, SymbolKind::STRUCT);
+
+        let children = symbols[0].children.as_ref().unwrap();
+        assert_eq!(children.len(), 2);
+        assert_eq!(children[0].name, "x");
+        assert_eq!(children[0].kind, SymbolKind::FIELD);
+        assert_eq!(children[1].name, "y");
+        assert_eq!(children[1].kind, SymbolKind::FIELD);
+    }
+
+    #[test]
+    fn test_parse_file2_class_with_fields() {
+        let content = Arc::new("class Person { name: String, age: Int32 }".to_string());
+        let symbols = parse_file2(content);
+        assert_eq!(symbols.len(), 1);
+        assert_eq!(symbols[0].name, "Person");
+        assert_eq!(symbols[0].kind, SymbolKind::CLASS);
+
+        let children = symbols[0].children.as_ref().unwrap();
+        assert_eq!(children.len(), 2);
+        assert_eq!(children[0].name, "name");
+        assert_eq!(children[0].kind, SymbolKind::FIELD);
+        assert_eq!(children[1].name, "age");
+        assert_eq!(children[1].kind, SymbolKind::FIELD);
     }
 }

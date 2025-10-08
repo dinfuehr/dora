@@ -183,7 +183,11 @@ fn create_context_classes(sa: &mut Sema, lazy_classes: Vec<LazyContextClassCreat
         let field_ids = lazy_class
             .fields
             .into_iter()
-            .map(|field| sa.fields.alloc(field))
+            .map(|field| {
+                let field_id = sa.fields.alloc(field);
+                sa.fields[field_id].id = Some(field_id);
+                field_id
+            })
             .collect::<Vec<_>>();
         assert!(sa.class(class_id).field_ids.set(field_ids).is_ok());
 

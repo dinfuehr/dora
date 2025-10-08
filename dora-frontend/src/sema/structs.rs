@@ -34,6 +34,7 @@ pub struct StructDefinition {
     pub name: Name,
     pub field_ids: OnceCell<Vec<FieldDefinitionId>>,
     pub field_names: OnceCell<HashMap<Name, FieldIndex>>,
+    pub children: OnceCell<Vec<ElementId>>,
     pub extensions: RefCell<Vec<ExtensionDefinitionId>>,
     pub field_name_style: ast::FieldNameStyle,
 }
@@ -64,6 +65,7 @@ impl StructDefinition {
             type_param_definition,
             field_ids: OnceCell::new(),
             field_names: OnceCell::new(),
+            children: OnceCell::new(),
             extensions: RefCell::new(Vec::new()),
             field_name_style: node.field_style,
         }
@@ -176,7 +178,7 @@ impl Element for StructDefinition {
     }
 
     fn children(&self) -> &[ElementId] {
-        &[]
+        self.children.get().expect("missing children")
     }
 }
 

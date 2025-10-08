@@ -270,8 +270,10 @@ impl Sema {
             ElementId::Enum(id) => self.enum_(id),
             ElementId::Trait(id) => self.trait_(id),
             ElementId::Module(id) => self.module(id),
-            ElementId::Use(_) | ElementId::Variant(_) => {
-                unreachable!("Use and Variant do not implement Element trait")
+            ElementId::Variant(id) => self.variant(id),
+            ElementId::Field(id) => self.field(id),
+            ElementId::Use(_) => {
+                unreachable!("Use does not implement Element trait")
             }
         }
     }

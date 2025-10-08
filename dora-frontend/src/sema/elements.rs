@@ -25,6 +25,7 @@ pub enum ElementId {
     Enum(EnumDefinitionId),
     Trait(TraitDefinitionId),
     Variant(VariantDefinitionId),
+    Field(FieldDefinitionId),
     Module(ModuleDefinitionId),
 }
 

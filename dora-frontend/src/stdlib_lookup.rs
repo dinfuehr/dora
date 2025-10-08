@@ -211,14 +211,20 @@ pub fn create_lambda_class(sa: &mut Sema) {
     let class_id = sa.classes.alloc(class);
     sa.classes[class_id].id = Some(class_id);
 
-    let field_id = sa.fields.alloc(FieldDefinition {
+    let field_def = FieldDefinition {
+        id: None,
         name: Some(context_name),
         span: None,
         parsed_ty: ParsedType::new_ty(SourceType::Ptr),
         index: FieldIndex(0),
         mutable: false,
         visibility: Visibility::Public,
-    });
+        file_id: None,
+        module_id: sa.stdlib_module_id(),
+        package_id: sa.stdlib_package_id(),
+    };
+    let field_id = sa.fields.alloc(field_def);
+    sa.fields[field_id].id = Some(field_id);
 
     let field_ids = vec![field_id];
     assert!(sa.class(class_id).field_ids.set(field_ids).is_ok());

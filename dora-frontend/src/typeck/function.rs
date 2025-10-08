@@ -252,12 +252,16 @@ impl<'a> TypeCheck<'a> {
         if lazy_context_data.has_parent_slot() {
             let name = self.sa.interner.intern("parent_context");
             let field = FieldDefinition {
+                id: None,
                 name: Some(name),
                 span: None,
                 index: FieldIndex(fields.len()),
                 parsed_ty: ParsedType::new_ty(SourceType::Ptr),
                 mutable: true,
                 visibility: Visibility::Module,
+                file_id: Some(self.file_id),
+                module_id: self.module_id,
+                package_id: self.package_id,
             };
 
             fields.push(field);
@@ -279,12 +283,16 @@ impl<'a> TypeCheck<'a> {
             let var = self.vars.get_var(var_id);
 
             let field = FieldDefinition {
+                id: None,
                 name: Some(var.name),
                 span: None,
                 index: FieldIndex(fields.len()),
                 parsed_ty: ParsedType::new_ty(var.ty.clone()),
                 mutable: true,
                 visibility: Visibility::Module,
+                file_id: Some(self.file_id),
+                module_id: self.module_id,
+                package_id: self.package_id,
             };
 
             fields.push(field);

@@ -625,6 +625,9 @@ impl<'x> ast::Visitor for TopLevelDeclaration<'x> {
                     .is_ok()
             );
 
+            self.module_elements
+                .push(ElementId::Extension(extension_id));
+
             find_elements_in_extension(self.sa, self.file_id, extension_id, f, node);
         }
     }
@@ -707,19 +710,31 @@ impl<'x> ast::Visitor for TopLevelDeclaration<'x> {
                 Some(name)
             };
 
-            let field_id = self.sa.fields.alloc(FieldDefinition {
+            let field_def = FieldDefinition {
+                id: None,
                 name,
                 span: Some(field.span),
                 index: FieldIndex(index),
                 parsed_ty: ParsedType::new_ast(field.data_type.clone()),
                 mutable: true,
                 visibility: modifiers.visibility(),
-            });
+                file_id: Some(self.file_id),
+                module_id: self.module_id,
+                package_id: self.package_id,
+            };
+            let field_id = self.sa.fields.alloc(field_def);
+            self.sa.fields[field_id].id = Some(field_id);
 
             field_ids.push(field_id);
         }
 
-        assert!(self.sa.class(class_id).field_ids.set(field_ids).is_ok());
+        assert!(self.sa.class(class_id).field_ids.set(field_ids.clone()).is_ok());
+
+        let children: Vec<ElementId> = field_ids
+            .into_iter()
+            .map(|id| ElementId::Field(id))
+            .collect();
+        assert!(self.sa.class(class_id).children.set(children).is_ok());
 
         let sym = SymbolKind::Class(class_id);
         if let Some((name, sym)) = self.insert_optional(node.name, sym, ElementId::Class(class_id))
@@ -792,14 +807,20 @@ impl<'x> ast::Visitor for TopLevelDeclaration<'x> {
                 Some(name)
             };
 
-            let field_id = self.sa.fields.alloc(FieldDefinition {
+            let field_def = FieldDefinition {
+                id: None,
                 name,
                 span: Some(field.span),
                 index: FieldIndex(index),
                 mutable: false,
                 parsed_ty: ParsedType::new_ast(field.data_type.clone()),
                 visibility: modifiers.visibility(),
-            });
+                file_id: Some(self.file_id),
+                module_id: self.module_id,
+                package_id: self.package_id,
+            };
+            let field_id = self.sa.fields.alloc(field_def);
+            self.sa.fields[field_id].id = Some(field_id);
 
             field_ids.push(field_id);
         }
@@ -817,8 +838,14 @@ impl<'x> ast::Visitor for TopLevelDeclaration<'x> {
             }
         }
 
-        assert!(self.sa.struct_(id).field_ids.set(field_ids).is_ok());
+        assert!(self.sa.struct_(id).field_ids.set(field_ids.clone()).is_ok());
         assert!(self.sa.struct_(id).field_names.set(field_names).is_ok());
+
+        let children: Vec<ElementId> = field_ids
+            .into_iter()
+            .map(|id| ElementId::Field(id))
+            .collect();
+        assert!(self.sa.struct_(id).children.set(children).is_ok());
 
         let sym = SymbolKind::Struct(id);
         if let Some((name, sym)) = self.insert_optional(node.name, sym, ElementId::Struct(id)) {
@@ -955,14 +982,20 @@ impl<'x> ast::Visitor for TopLevelDeclaration<'x> {
                     Some(name)
                 };
 
-                let field_id = self.sa.fields.alloc(FieldDefinition {
+                let field_def = FieldDefinition {
+                    id: None,
                     name,
                     span: Some(field.span),
                     mutable: false,
                     index: FieldIndex(index),
                     parsed_ty: ParsedType::new_ast(field.data_type.clone()),
                     visibility: Visibility::Public,
-                });
+                    file_id: Some(self.file_id),
+                    module_id: self.module_id,
+                    package_id: self.package_id,
+                };
+                let field_id = self.sa.fields.alloc(field_def);
+                self.sa.fields[field_id].id = Some(field_id);
 
                 field_ids.push(field_id)
             }
@@ -1394,6 +1427,7 @@ fn find_elements_in_extension(
     node: &ast::Impl,
 ) {
     let mut methods = Vec::new();
+    let mut children = Vec::new();
 
     for &child_id in &node.methods {
         let child = f.node(child_id);
@@ -1443,6 +1477,7 @@ fn find_elements_in_extension(
                 let fct_id = sa.fcts.alloc(fct);
                 sa.fcts[fct_id].id = Some(fct_id);
                 methods.push(fct_id);
+                children.push(ElementId::Fct(fct_id));
             }
 
             ast::Ast::Error { .. } => {
@@ -1461,6 +1496,7 @@ fn find_elements_in_extension(
 
     let extension = sa.extension(extension_id);
     assert!(extension.methods.set(methods).is_ok());
+    assert!(extension.children.set(children).is_ok());
 }
 
 fn ensure_name(sa: &Sema, f: &ast::File, ident: Option<ast::AstId>) -> Name {

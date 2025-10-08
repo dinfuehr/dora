@@ -32,6 +32,7 @@ pub struct ClassDefinition {
     pub field_name_style: ast::FieldNameStyle,
 
     pub field_ids: OnceCell<Vec<FieldDefinitionId>>,
+    pub children: OnceCell<Vec<ElementId>>,
 
     pub extensions: RefCell<Vec<ExtensionDefinitionId>>,
 
@@ -67,6 +68,7 @@ impl ClassDefinition {
             visibility: modifiers.visibility(),
             field_name_style: node.field_name_style,
             field_ids: OnceCell::new(),
+            children: OnceCell::new(),
             extensions: RefCell::new(Vec::new()),
             type_param_definition,
             is_array: false,
@@ -97,6 +99,7 @@ impl ClassDefinition {
             visibility,
             field_name_style: ast::FieldNameStyle::Positional,
             field_ids: OnceCell::new(),
+            children: OnceCell::new(),
             extensions: RefCell::new(Vec::new()),
             type_param_definition,
             is_array: false,
@@ -217,7 +220,7 @@ impl Element for ClassDefinition {
     }
 
     fn children(&self) -> &[ElementId] {
-        unimplemented!()
+        self.children.get().expect("missing children")
     }
 }
 
