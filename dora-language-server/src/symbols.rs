@@ -182,18 +182,58 @@ fn element_to_symbol(
             let impl_def = sa.impl_(id);
             let ast_id = impl_def.ast_id;
             let node = f.node(ast_id).as_impl();
-            // Build impl name similar to the old implementation
-            let name = String::from("impl");
+            let mut name: String = "impl".into();
+
+            if let Some(type_param_list_id) = node.type_params {
+                let type_param_list = f
+                    .node(type_param_list_id)
+                    .to_type_param_list()
+                    .expect("type param list expected");
+                let span = type_param_list.span;
+                let type_params_string =
+                    &f.content().as_str()[span.start() as usize..span.end() as usize];
+                name.push_str(type_params_string);
+            }
+
+            let trait_ty_id = node.trait_type?;
+            let trait_ty = f.node(trait_ty_id);
+            let span = trait_ty.span();
+            let trait_ty_string = &f.content().as_str()[span.start() as usize..span.end() as usize];
+            name.push_str(" ");
+            name.push_str(trait_ty_string);
+            name.push_str(" for");
+
             let name_span = f.node(node.extended_type).span();
+            let extended_type_string =
+                &f.content().as_str()[name_span.start() as usize..name_span.end() as usize];
+            name.push_str(" ");
+            name.push_str(extended_type_string);
+
             (name, name_span, SymbolKind::NAMESPACE)
         }
         ElementId::Extension(id) => {
             let extension = sa.extension(id);
             let ast_id = extension.ast_id;
             let node = f.node(ast_id).as_impl();
-            // Build extension name similar to impl
-            let name = String::from("impl");
+            let mut name = String::from("impl");
+
+            if let Some(type_param_list_id) = node.type_params {
+                let type_param_list = f
+                    .node(type_param_list_id)
+                    .to_type_param_list()
+                    .expect("type param list expected");
+                let span = type_param_list.span;
+                let type_params_string =
+                    &f.content().as_str()[span.start() as usize..span.end() as usize];
+                name.push_str(type_params_string);
+            }
+
             let name_span = f.node(node.extended_type).span();
+            let extended_type_string =
+                &f.content().as_str()[name_span.start() as usize..name_span.end() as usize];
+            name.push_str(" ");
+            name.push_str(extended_type_string);
+
             (name, name_span, SymbolKind::NAMESPACE)
         }
         ElementId::Alias(id) => {
@@ -707,7 +747,7 @@ mod tests {
         assert_eq!(symbols[0].name, "top_level");
         assert_eq!(symbols[0].kind, SymbolKind::FUNCTION);
 
-        assert!(symbols[1].name.starts_with("impl"));
+        assert_eq!(symbols[1].name, "impl Foo for Bar");
         assert_eq!(symbols[1].kind, SymbolKind::NAMESPACE);
 
         let children = symbols[1].children.as_ref().unwrap();
@@ -732,7 +772,7 @@ mod tests {
         let symbols = parse_file2(content);
         assert_eq!(symbols.len(), 1);
 
-        assert!(symbols[0].name.starts_with("impl"));
+        assert_eq!(symbols[0].name, "impl Foo");
         assert_eq!(symbols[0].kind, SymbolKind::NAMESPACE);
 
         let children = symbols[0].children.as_ref().unwrap();
