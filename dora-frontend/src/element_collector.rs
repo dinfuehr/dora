@@ -34,6 +34,11 @@ pub fn collect_elements_for_single_file(sa: &mut Sema) -> SourceFileId {
     collector.collect_one()
 }
 
+pub fn collect_elements_for_package(sa: &mut Sema) {
+    let mut collector = ElementCollector::new(sa);
+    collector.collect_project()
+}
+
 struct ElementCollector<'a> {
     sa: &'a mut Sema,
     worklist: VecDeque<SourceFileId>,
@@ -65,6 +70,14 @@ impl<'a> ElementCollector<'a> {
         let file_id = self.worklist.pop_front().expect("missing file");
         self.parse_and_collect_file(file_id);
         file_id
+    }
+
+    fn collect_project(&mut self) {
+        self.add_program_package();
+
+        while let Some(file_id) = self.worklist.pop_front() {
+            self.parse_and_collect_file(file_id);
+        }
     }
 
     fn prepare_packages(&mut self) {

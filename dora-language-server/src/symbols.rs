@@ -1,93 +1,92 @@
+use std::path::PathBuf;
 use std::sync::Arc;
 
 use lsp_server::{Message, Request, Response};
-use lsp_types::{DocumentSymbol, DocumentSymbolResponse, Position, Range, SymbolKind};
+use lsp_types::{
+    DocumentSymbol, DocumentSymbolResponse, Position, Range, SymbolKind, WorkspaceSymbol,
+    WorkspaceSymbolResponse,
+};
 
-use dora_parser::{Span, compute_line_column, compute_line_starts};
+use dora_parser::ast::File;
+use dora_parser::{Span, compute_line_column};
 
 use dora_frontend::sema::{Element, ElementId, FileContent, Sema, SemaFlags};
 
 use crate::server::{MainLoopTask, ServerState, uri_to_file_path};
 
-pub(super) fn workspace_symbol_request(_server_state: &mut ServerState, request: Request) {
+pub(super) fn workspace_symbol_request(server_state: &mut ServerState, request: Request) {
     let result = serde_json::from_value::<lsp_types::WorkspaceSymbolParams>(request.params);
 
     match result {
-        Ok(_result) => unimplemented!(),
+        Ok(result) => {
+            let query = result.query;
+
+            let sender = server_state.threadpool_sender.clone();
+            let main_file = server_state.projects[0].main.clone();
+
+            server_state.threadpool.execute(move || {
+                eprintln!("parse file on background thread.");
+                let symbols = scan_project(main_file, &query);
+                eprintln!("parse done on background thread.");
+                let response = WorkspaceSymbolResponse::Nested(symbols);
+                let response: Response = Response::new_ok(request.id, response);
+                sender
+                    .send(MainLoopTask::SendResponse(Message::Response(response)))
+                    .expect("send failed");
+            });
+        }
         Err(..) => {
             eprintln!("broken params");
         }
     }
 }
 
-pub(super) fn document_symbol_request(server_state: &mut ServerState, request: Request) {
-    eprintln!("got documentSymbol request on main thread");
-    let result = serde_json::from_value::<lsp_types::DocumentSymbolParams>(request.params);
-    match result {
-        Ok(result) => {
-            let path = uri_to_file_path(&result.text_document.uri);
-            if let Some(content) = server_state.opened_files.get(&path) {
-                let content = content.clone();
-                eprintln!(
-                    "got file for {} with {} lines",
-                    path.display(),
-                    content.lines().count()
-                );
-                let sender = server_state.threadpool_sender.clone();
-
-                server_state.threadpool.execute(move || {
-                    eprintln!("parse file on background thread.");
-                    let symbols = parse_file(content);
-                    eprintln!("parse done on background thread.");
-                    let response = DocumentSymbolResponse::Nested(symbols);
-                    let response = Response::new_ok(request.id, response);
-                    sender
-                        .send(MainLoopTask::SendResponse(Message::Response(response)))
-                        .expect("send failed");
-                });
-            } else {
-                eprintln!("unknown file {}", path.display());
-            }
-        }
-        Err(_) => {
-            eprintln!("broken params");
-        }
-    }
-}
-
-fn parse_file(content: Arc<String>) -> Vec<DocumentSymbol> {
+fn scan_project(main: PathBuf, _query: &str) -> Vec<WorkspaceSymbol> {
     let mut sa = Sema::new(SemaFlags {
         packages: Vec::new(),
-        program_file: Some(FileContent::Content(content.to_string())),
+        program_file: Some(FileContent::Path(main.clone())),
         boots: false,
         is_standard_library: false,
     });
 
-    let file_id = sa.parse_single_file();
-    let file = sa.file(file_id);
-    let module = sa.module(file.module_id);
-    let line_starts = compute_line_starts(&content);
+    sa.parse_project();
+    let module = sa.module(sa.program_module_id());
 
-    // Convert element IDs to DocumentSymbols directly
     module
         .children()
         .iter()
-        .filter_map(|&element_id| element_to_symbol(&sa, &line_starts, element_id))
+        .filter_map(|&element_id| element_to_workspace_symbol(&sa, element_id))
         .collect()
 }
 
-fn element_to_symbol(
-    sa: &Sema,
-    line_starts: &[u32],
-    element_id: ElementId,
-) -> Option<DocumentSymbol> {
+fn element_to_workspace_symbol(sa: &Sema, element_id: ElementId) -> Option<WorkspaceSymbol> {
     let element = sa.element(element_id);
     let file_id = element.file_id();
     let file = sa.file(file_id);
     let f = file.ast();
+    let line_starts = &file.line_starts;
     let total_span = element.span();
 
-    let (name, name_span, kind) = match element_id {
+    let (_name, name_span, _kind) = compute_element_propertiees(sa, f, element_id)?;
+
+    let _range = range_from_span(line_starts, total_span);
+    let _selection_range = range_from_span(line_starts, name_span);
+
+    let _children: Vec<WorkspaceSymbol> = element
+        .children()
+        .iter()
+        .filter_map(|&child_id| element_to_workspace_symbol(sa, child_id))
+        .collect();
+
+    unimplemented!()
+}
+
+fn compute_element_propertiees(
+    sa: &Sema,
+    f: &File,
+    element_id: ElementId,
+) -> Option<(String, Span, SymbolKind)> {
+    let (name, span, kind) = match element_id {
         ElementId::Class(id) => {
             let class = sa.class(id);
             let ast_id = class.ast_id.expect("missing ast_id");
@@ -246,13 +245,81 @@ fn element_to_symbol(
         _ => return None,
     };
 
+    Some((name, span, kind))
+}
+
+pub(super) fn document_symbol_request(server_state: &mut ServerState, request: Request) {
+    eprintln!("got documentSymbol request on main thread");
+    let result = serde_json::from_value::<lsp_types::DocumentSymbolParams>(request.params);
+    match result {
+        Ok(result) => {
+            let path = uri_to_file_path(&result.text_document.uri);
+            if let Some(content) = server_state.opened_files.get(&path) {
+                let content = content.clone();
+                eprintln!(
+                    "got file for {} with {} lines",
+                    path.display(),
+                    content.lines().count()
+                );
+                let sender = server_state.threadpool_sender.clone();
+
+                server_state.threadpool.execute(move || {
+                    eprintln!("parse file on background thread.");
+                    let symbols = scan_single_file(content);
+                    eprintln!("parse done on background thread.");
+                    let response = DocumentSymbolResponse::Nested(symbols);
+                    let response = Response::new_ok(request.id, response);
+                    sender
+                        .send(MainLoopTask::SendResponse(Message::Response(response)))
+                        .expect("send failed");
+                });
+            } else {
+                eprintln!("unknown file {}", path.display());
+            }
+        }
+        Err(_) => {
+            eprintln!("broken params");
+        }
+    }
+}
+
+fn scan_single_file(content: Arc<String>) -> Vec<DocumentSymbol> {
+    let mut sa = Sema::new(SemaFlags {
+        packages: Vec::new(),
+        program_file: Some(FileContent::Content(content.to_string())),
+        boots: false,
+        is_standard_library: false,
+    });
+
+    let file_id = sa.parse_single_file();
+    let file = sa.file(file_id);
+    let module = sa.module(file.module_id);
+
+    // Convert element IDs to DocumentSymbols directly
+    module
+        .children()
+        .iter()
+        .filter_map(|&element_id| element_to_document_symbol(&sa, element_id))
+        .collect()
+}
+
+fn element_to_document_symbol(sa: &Sema, element_id: ElementId) -> Option<DocumentSymbol> {
+    let element = sa.element(element_id);
+    let file_id = element.file_id();
+    let file = sa.file(file_id);
+    let f = file.ast();
+    let line_starts = &file.line_starts;
+    let total_span = element.span();
+
+    let (name, name_span, kind) = compute_element_propertiees(sa, f, element_id)?;
+
     let range = range_from_span(line_starts, total_span);
     let selection_range = range_from_span(line_starts, name_span);
 
     let children: Vec<DocumentSymbol> = element
         .children()
         .iter()
-        .filter_map(|&child_id| element_to_symbol(sa, line_starts, child_id))
+        .filter_map(|&child_id| element_to_document_symbol(sa, child_id))
         .collect();
 
     #[allow(deprecated)]
@@ -291,14 +358,14 @@ mod tests {
     #[test]
     fn test_parse_file_empty() {
         let content = Arc::new("".to_string());
-        let symbols = parse_file(content);
+        let symbols = scan_single_file(content);
         assert_eq!(symbols.len(), 0);
     }
 
     #[test]
     fn test_parse_file_single_function() {
         let content = Arc::new("fn foo() {}".to_string());
-        let symbols = parse_file(content);
+        let symbols = scan_single_file(content);
         assert_eq!(symbols.len(), 1);
         assert_eq!(symbols[0].name, "foo");
         assert_eq!(symbols[0].kind, SymbolKind::FUNCTION);
@@ -308,7 +375,7 @@ mod tests {
     #[test]
     fn test_parse_file_multiple_functions() {
         let content = Arc::new("fn foo() {}\nfn bar() {}\nfn baz() {}".to_string());
-        let symbols = parse_file(content);
+        let symbols = scan_single_file(content);
         assert_eq!(symbols.len(), 3);
         assert_eq!(symbols[0].name, "foo");
         assert_eq!(symbols[0].kind, SymbolKind::FUNCTION);
@@ -324,7 +391,7 @@ mod tests {
             "fn top_level() {}\nimpl Foo for Bar { fn method1() {} fn method2() {} type Alias1 = Int32; type Alias2 = String; }"
                 .to_string(),
         );
-        let symbols = parse_file(content);
+        let symbols = scan_single_file(content);
         assert_eq!(symbols.len(), 2);
 
         assert_eq!(symbols[0].name, "top_level");
@@ -352,7 +419,7 @@ mod tests {
     #[test]
     fn test_parse_file_impl_extension() {
         let content = Arc::new("impl Foo { fn method1() {} fn method2() {} }".to_string());
-        let symbols = parse_file(content);
+        let symbols = scan_single_file(content);
         assert_eq!(symbols.len(), 1);
 
         assert_eq!(symbols[0].name, "impl Foo");
@@ -371,7 +438,7 @@ mod tests {
     #[test]
     fn test_parse_file_struct_with_fields() {
         let content = Arc::new("struct Point { x: Int32, y: Int32 }".to_string());
-        let symbols = parse_file(content);
+        let symbols = scan_single_file(content);
         assert_eq!(symbols.len(), 1);
         assert_eq!(symbols[0].name, "Point");
         assert_eq!(symbols[0].kind, SymbolKind::STRUCT);
@@ -387,7 +454,7 @@ mod tests {
     #[test]
     fn test_parse_file_class_with_fields() {
         let content = Arc::new("class Person { name: String, age: Int32 }".to_string());
-        let symbols = parse_file(content);
+        let symbols = scan_single_file(content);
         assert_eq!(symbols.len(), 1);
         assert_eq!(symbols[0].name, "Person");
         assert_eq!(symbols[0].kind, SymbolKind::CLASS);
@@ -403,7 +470,7 @@ mod tests {
     #[test]
     fn test_parse_file_enum_with_variants() {
         let content = Arc::new("enum Color { Red, Green(Int32), Blue(Int32, Int32) }".to_string());
-        let symbols = parse_file(content);
+        let symbols = scan_single_file(content);
         assert_eq!(symbols.len(), 1);
         assert_eq!(symbols[0].name, "Color");
         assert_eq!(symbols[0].kind, SymbolKind::ENUM);
@@ -422,7 +489,7 @@ mod tests {
     #[test]
     fn test_parse_file_enum_with_named_fields() {
         let content = Arc::new("enum Color { Red, Green { value: Int32 } }".to_string());
-        let symbols = parse_file(content);
+        let symbols = scan_single_file(content);
         assert_eq!(symbols.len(), 1);
         assert_eq!(symbols[0].name, "Color");
         assert_eq!(symbols[0].kind, SymbolKind::ENUM);

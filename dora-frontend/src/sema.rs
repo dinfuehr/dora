@@ -403,4 +403,8 @@ impl Sema {
     pub fn parse_single_file(&mut self) -> SourceFileId {
         crate::element_collector::collect_elements_for_single_file(self)
     }
+
+    pub fn parse_project(&mut self) {
+        crate::element_collector::collect_elements_for_package(self);
+    }
 }

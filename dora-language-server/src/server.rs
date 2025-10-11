@@ -441,8 +441,8 @@ enum Event {
 
 #[derive(Clone)]
 pub struct ProjectConfig {
-    name: String,
-    main: PathBuf,
+    pub name: String,
+    pub main: PathBuf,
 }
 
 #[derive(Serialize, Deserialize)]
