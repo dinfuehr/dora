@@ -424,7 +424,7 @@ pub(crate) fn uri_to_file_path(uri: &Uri) -> PathBuf {
     url.to_file_path().expect("file path expected")
 }
 
-fn file_path_to_uri(path: &Path) -> Uri {
+pub(crate) fn file_path_to_uri(path: &Path) -> Uri {
     let url = Url::from_file_path(path).expect("uri expected");
     Uri::from_str(url.as_str()).expect("uri expected")
 }

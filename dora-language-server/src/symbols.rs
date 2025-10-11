@@ -3,8 +3,8 @@ use std::sync::Arc;
 
 use lsp_server::{Message, Request, Response};
 use lsp_types::{
-    DocumentSymbol, DocumentSymbolResponse, Position, Range, SymbolKind, WorkspaceSymbol,
-    WorkspaceSymbolResponse,
+    DocumentSymbol, DocumentSymbolResponse, Location, OneOf, Position, Range, SymbolKind,
+    WorkspaceSymbol, WorkspaceSymbolResponse,
 };
 
 use dora_parser::ast::File;
@@ -12,7 +12,7 @@ use dora_parser::{Span, compute_line_column};
 
 use dora_frontend::sema::{Element, ElementId, FileContent, Sema, SemaFlags};
 
-use crate::server::{MainLoopTask, ServerState, uri_to_file_path};
+use crate::server::{MainLoopTask, ServerState, file_path_to_uri, uri_to_file_path};
 
 pub(super) fn workspace_symbol_request(server_state: &mut ServerState, request: Request) {
     let result = serde_json::from_value::<lsp_types::WorkspaceSymbolParams>(request.params);
@@ -52,14 +52,20 @@ fn scan_project(main: PathBuf, _query: &str) -> Vec<WorkspaceSymbol> {
     sa.parse_project();
     let module = sa.module(sa.program_module_id());
 
-    module
-        .children()
-        .iter()
-        .filter_map(|&element_id| element_to_workspace_symbol(&sa, element_id))
-        .collect()
+    let mut elements = Vec::new();
+
+    for &element_id in module.children() {
+        append_workspace_symbol_for_element(&sa, element_id, &mut elements);
+    }
+
+    elements
 }
 
-fn element_to_workspace_symbol(sa: &Sema, element_id: ElementId) -> Option<WorkspaceSymbol> {
+fn append_workspace_symbol_for_element(
+    sa: &Sema,
+    element_id: ElementId,
+    elements: &mut Vec<WorkspaceSymbol>,
+) {
     let element = sa.element(element_id);
     let file_id = element.file_id();
     let file = sa.file(file_id);
@@ -67,18 +73,32 @@ fn element_to_workspace_symbol(sa: &Sema, element_id: ElementId) -> Option<Works
     let line_starts = &file.line_starts;
     let total_span = element.span();
 
-    let (_name, name_span, _kind) = compute_element_propertiees(sa, f, element_id)?;
+    let result = compute_element_propertiees(sa, f, element_id);
+
+    if result.is_none() {
+        return;
+    }
+
+    let (name, name_span, kind) = result.unwrap();
 
     let _range = range_from_span(line_starts, total_span);
-    let _selection_range = range_from_span(line_starts, name_span);
+    let selection_range = range_from_span(line_starts, name_span);
 
-    let _children: Vec<WorkspaceSymbol> = element
-        .children()
-        .iter()
-        .filter_map(|&child_id| element_to_workspace_symbol(sa, child_id))
-        .collect();
+    elements.push(WorkspaceSymbol {
+        name,
+        kind,
+        tags: None,
+        container_name: None,
+        location: OneOf::Left(Location {
+            uri: file_path_to_uri(&file.path),
+            range: selection_range,
+        }),
+        data: None,
+    });
 
-    unimplemented!()
+    for &child_id in element.children() {
+        append_workspace_symbol_for_element(sa, child_id, elements);
+    }
 }
 
 fn compute_element_propertiees(
