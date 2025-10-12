@@ -274,8 +274,7 @@ pub(super) fn document_symbol_request(server_state: &mut ServerState, request: R
     match result {
         Ok(result) => {
             let path = uri_to_file_path(&result.text_document.uri);
-            if let Some(content) = server_state.opened_files.get(&path) {
-                let content = content.clone();
+            if let Some(content) = server_state.vfs.get(&path) {
                 eprintln!(
                     "got file for {} with {} lines",
                     path.display(),

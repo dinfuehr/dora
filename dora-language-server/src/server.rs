@@ -16,12 +16,12 @@ use std::error::Error;
 use std::fs::File;
 use std::io::Read;
 use std::path::{Path, PathBuf};
-use std::sync::Arc;
 use threadpool::ThreadPool;
 use url::Url;
 use walkdir::WalkDir;
 
 use crate::symbols::{document_symbol_request, workspace_symbol_request};
+use crate::vfs::Vfs;
 
 pub(crate) fn run_server(
     conn: Connection,
@@ -80,7 +80,7 @@ pub(crate) fn run_server(
 }
 
 pub struct ServerState {
-    pub opened_files: HashMap<PathBuf, Arc<String>>,
+    pub vfs: Vfs,
     #[allow(dead_code)]
     pub client_capabilities: ClientCapabilities,
     #[allow(dead_code)]
@@ -101,7 +101,7 @@ impl ServerState {
         let threadpool = ThreadPool::new(1);
         let (sender, receiver) = crossbeam::channel::unbounded();
         ServerState {
-            opened_files: HashMap::new(),
+            vfs: Vfs::new(),
             client_capabilities,
             workspace_folders,
             projects,
@@ -110,6 +110,21 @@ impl ServerState {
             threadpool_sender: sender,
             threadpool_receiver: receiver,
         }
+    }
+
+    fn open_file(&mut self, path: PathBuf, content: String) {
+        let vfs = std::mem::replace(&mut self.vfs, Vfs::new());
+        self.vfs = vfs.open_file(path, content);
+    }
+
+    fn update_file(&mut self, path: PathBuf, content: String) {
+        let vfs = std::mem::replace(&mut self.vfs, Vfs::new());
+        self.vfs = vfs.update_file(path, content);
+    }
+
+    fn close_file(&mut self, path: PathBuf) {
+        let vfs = std::mem::replace(&mut self.vfs, Vfs::new());
+        self.vfs = vfs.close_file(path);
     }
 }
 
@@ -251,14 +266,14 @@ fn did_change_notification(server_state: &mut ServerState, notification: Notific
     match result {
         Ok(result) => {
             let path = uri_to_file_path(&result.text_document.uri);
-            let content = Arc::new(result.content_changes[0].text.clone());
+            let content = result.content_changes[0].text.clone();
             eprintln!(
                 "CHANGE: {} --> {} lines",
                 path.display(),
                 content.lines().count(),
             );
 
-            server_state.opened_files.insert(path, content);
+            server_state.update_file(path, content);
         }
 
         Err(_) => {
@@ -267,7 +282,7 @@ fn did_change_notification(server_state: &mut ServerState, notification: Notific
     }
 }
 
-fn did_open_notification(_server_state: &mut ServerState, notification: Notification) {
+fn did_open_notification(server_state: &mut ServerState, notification: Notification) {
     let result =
         serde_json::from_value::<lsp_types::DidOpenTextDocumentParams>(notification.params);
     match result {
@@ -275,19 +290,19 @@ fn did_open_notification(_server_state: &mut ServerState, notification: Notifica
             let path = uri_to_file_path(&result.text_document.uri);
             let text = result.text_document.text;
 
-            _server_state.opened_files.insert(path, Arc::new(text));
+            server_state.open_file(path, text);
         }
         Err(_) => {}
     }
 }
 
-fn did_close_notification(_server_state: &mut ServerState, notification: Notification) {
+fn did_close_notification(server_state: &mut ServerState, notification: Notification) {
     let result =
         serde_json::from_value::<lsp_types::DidCloseTextDocumentParams>(notification.params);
     match result {
         Ok(result) => {
             let path = uri_to_file_path(&result.text_document.uri);
-            _server_state.opened_files.remove(&path);
+            server_state.close_file(path);
         }
         Err(_) => {}
     }

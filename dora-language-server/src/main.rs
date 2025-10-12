@@ -9,6 +9,7 @@ use crate::server::run_server;
 
 mod server;
 mod symbols;
+mod vfs;
 
 #[derive(Parser)]
 #[command(name = "dora-language-server")]
