@@ -81,7 +81,7 @@ impl<'a> ElementCollector<'a> {
     }
 
     fn prepare_packages(&mut self) {
-        for (name, file) in &self.sa.flags.packages {
+        for (name, file) in &self.sa.package_contents {
             if self.packages.contains_key(name) {
                 self.sa
                     .report_without_location(ErrorMessage::PackageAlreadyExists(name.clone()));
@@ -93,7 +93,7 @@ impl<'a> ElementCollector<'a> {
     }
 
     fn add_all_packages(&mut self) {
-        if !self.sa.flags.is_standard_library {
+        if !self.sa.is_standard_library {
             self.add_stdlib_package();
             self.add_boots_package();
         }
@@ -139,7 +139,7 @@ impl<'a> ElementCollector<'a> {
     }
 
     fn add_boots_package(&mut self) {
-        if !self.sa.flags.boots {
+        if !self.sa.include_boots {
             return;
         }
 
@@ -184,31 +184,26 @@ impl<'a> ElementCollector<'a> {
         self.sa.set_program_module_id(module_id);
         self.sa.set_program_package_id(package_id);
 
-        if self.sa.flags.is_standard_library {
+        if self.sa.is_standard_library {
             self.sa.package_names.insert("std".into(), package_id);
 
             self.sa.set_stdlib_module_id(module_id);
             self.sa.set_stdlib_package_id(package_id);
         }
 
-        if let Some(ref file_content) = self.sa.flags.program_file {
-            match file_content {
-                FileContent::Path(path) => {
-                    self.add_file(package_id, module_id, path.clone(), None);
-                }
-
-                FileContent::Content(content) => {
-                    self.create_source_file_for_content(
-                        package_id,
-                        module_id,
-                        PathBuf::from("<<code>>"),
-                        content.to_string(),
-                    );
-                }
+        match &self.sa.program_file {
+            FileContent::Path(path) => {
+                self.add_file(package_id, module_id, path.clone(), None);
             }
-        } else {
-            self.sa
-                .report_without_location(ErrorMessage::MissingFileArgument);
+
+            FileContent::Content(content) => {
+                self.create_source_file_for_content(
+                    package_id,
+                    module_id,
+                    PathBuf::from("<<code>>"),
+                    content.to_string(),
+                );
+            }
         }
     }
 

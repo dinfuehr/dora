@@ -16,6 +16,28 @@ use crate::error::diag::Diagnostic;
 use crate::error::msg::ErrorMessage;
 use crate::{Name, SymTable, Vfs};
 
+pub trait ToArcString {
+    fn into(self) -> Arc<String>;
+}
+
+impl ToArcString for &str {
+    fn into(self) -> Arc<String> {
+        Arc::new(self.to_string())
+    }
+}
+
+impl ToArcString for String {
+    fn into(self) -> Arc<String> {
+        Arc::new(self)
+    }
+}
+
+impl ToArcString for Arc<String> {
+    fn into(self) -> Arc<String> {
+        self
+    }
+}
+
 pub use self::aliases::{AliasBound, AliasDefinition, AliasDefinitionId, AliasParent};
 pub use self::classes::{
     Candidate, ClassDefinition, ClassDefinitionId, Visibility, find_field_in_class,
@@ -109,8 +131,8 @@ impl SemaCreationParams {
 
     pub fn for_test(input: &str, packages: &[(&str, &str)]) -> SemaCreationParams {
         SemaCreationParams::new()
-            .set_program_content(input.to_string())
-            .set_packages_content(packages)
+            .set_program_content(input)
+            .set_package_contents(packages)
     }
 
     pub fn set_vfs(mut self, vfs: Vfs) -> SemaCreationParams {
@@ -120,7 +142,7 @@ impl SemaCreationParams {
 
     pub fn set_program_content<T>(mut self, content: T) -> SemaCreationParams
     where
-        Arc<String>: From<T>,
+        T: ToArcString,
     {
         self.program_file = Some(FileContent::Content(content.into()));
         self
@@ -131,7 +153,7 @@ impl SemaCreationParams {
         self
     }
 
-    pub fn set_packages_content(mut self, packages: &[(&str, &str)]) -> SemaCreationParams {
+    pub fn set_package_contents(mut self, packages: &[(&str, &str)]) -> SemaCreationParams {
         let packages = packages
             .iter()
             .map(|(name, content)| {
@@ -148,7 +170,6 @@ impl SemaCreationParams {
 }
 
 pub struct Sema {
-    pub flags: SemaCreationParams,
     pub interner: Interner,
     pub source_files: Arena<SourceFile>,
     pub diag: RefCell<Diagnostic>,
@@ -176,14 +197,24 @@ pub struct Sema {
     pub stdlib_package_id: Option<PackageDefinitionId>,
     pub program_package_id: Option<PackageDefinitionId>,
     pub boots_package_id: Option<PackageDefinitionId>,
+    pub vfs: Option<Vfs>,
+    pub include_boots: bool,
+    pub is_standard_library: bool,
+    pub program_file: FileContent,
+    pub package_contents: Vec<(String, FileContent)>,
     next_context_id: AtomicU32,
     next_lambda_id: AtomicU32,
 }
 
 impl Sema {
     pub fn new(args: SemaCreationParams) -> Sema {
+        let vfs = args.vfs.clone();
+        let include_boots = args.boots;
+        let is_standard_library = args.is_standard_library;
+        let program_file = args.program_file.expect("missing program");
+        let package_contents = args.packages;
+
         Sema {
-            flags: args,
             source_files: Arena::new(),
             aliases: Arena::new(),
             consts: Arena::new(),
@@ -211,6 +242,11 @@ impl Sema {
             stdlib_package_id: None,
             program_package_id: None,
             boots_package_id: None,
+            vfs,
+            include_boots,
+            is_standard_library,
+            program_file,
+            package_contents,
             next_context_id: AtomicU32::new(1),
             next_lambda_id: AtomicU32::new(1),
         }

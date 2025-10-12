@@ -248,8 +248,8 @@ mod tests {
         vec: &[((u32, u32), Option<u32>, ErrorLevel, ErrorMessage)],
     ) -> Sema {
         let args: SemaCreationParams = SemaCreationParams::new()
-            .set_program_content(code.to_string())
-            .set_packages_content(packages);
+            .set_program_content(code)
+            .set_package_contents(packages);
         let mut sa = Sema::new(args);
 
         check_program(&mut sa);

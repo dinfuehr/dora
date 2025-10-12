@@ -21,7 +21,7 @@ fn positions(fct: &BytecodeFunction) -> Vec<(u32, u32)> {
 }
 
 fn sema(code: &'static str) -> Sema {
-    let args: SemaCreationParams = SemaCreationParams::new().set_program_content(code.to_string());
+    let args: SemaCreationParams = SemaCreationParams::new().set_program_content(code);
     let mut sa = Sema::new(args);
 
     let result = check_program(&mut sa);
