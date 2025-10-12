@@ -4,7 +4,7 @@ use std::mem;
 use self::Bytecode::*;
 use crate::generator::generate_fct_id;
 use crate::program_emitter::Emitter;
-use crate::sema::{ClassDefinitionId, FieldIndex, Sema, SemaFlags};
+use crate::sema::{ClassDefinitionId, FieldIndex, Sema, SemaCreationParams};
 use crate::stdlib_lookup::{lookup_fct, resolve_path};
 use crate::{check_program, emit_program};
 use dora_bytecode::{
@@ -21,7 +21,7 @@ fn positions(fct: &BytecodeFunction) -> Vec<(u32, u32)> {
 }
 
 fn sema(code: &'static str) -> Sema {
-    let args: SemaFlags = SemaFlags::for_test(code, &[]);
+    let args: SemaCreationParams = SemaCreationParams::new().set_program_content(code.to_string());
     let mut sa = Sema::new(args);
 
     let result = check_program(&mut sa);

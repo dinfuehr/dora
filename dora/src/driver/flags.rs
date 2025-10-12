@@ -1,7 +1,7 @@
 use std::default::Default;
 use std::path::PathBuf;
 
-use dora_frontend::sema::{FileContent, SemaFlags};
+use dora_frontend::sema::{FileContent, SemaCreationParams};
 use dora_runtime::VmFlags;
 use dora_runtime::{CollectorName, Compiler, MemSize};
 
@@ -440,16 +440,17 @@ pub fn print_help() {
     println!("{}", USAGE);
 }
 
-pub fn create_sema_flags(flags: &DriverFlags, program_file: PathBuf) -> SemaFlags {
+pub fn create_sema_flags(flags: &DriverFlags, program_file: PathBuf) -> SemaCreationParams {
     let packages = flags
         .packages
         .iter()
         .map(|(name, path)| (name.clone(), FileContent::Path(path.clone())))
         .collect::<Vec<_>>();
 
-    SemaFlags {
+    SemaCreationParams {
         program_file: Some(FileContent::Path(program_file)),
         packages,
+        vfs: None,
         boots: flags.include_boots(),
         is_standard_library: false,
     }

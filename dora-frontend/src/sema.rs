@@ -2,6 +2,7 @@ use std::cell::RefCell;
 use std::collections::HashMap;
 use std::path::PathBuf;
 use std::rc::Rc;
+use std::sync::Arc;
 use std::sync::atomic::{AtomicU32, Ordering};
 
 use id_arena::Arena;
@@ -13,7 +14,7 @@ use dora_parser::{Span, compute_line_column};
 
 use crate::error::diag::Diagnostic;
 use crate::error::msg::ErrorMessage;
-use crate::{Name, SymTable};
+use crate::{Name, SymTable, Vfs};
 
 pub use self::aliases::{AliasBound, AliasDefinition, AliasDefinitionId, AliasParent};
 pub use self::classes::{
@@ -75,7 +76,7 @@ mod uses;
 #[derive(Clone, Debug)]
 pub enum FileContent {
     Path(PathBuf),
-    Content(String),
+    Content(Arc<String>),
 }
 
 impl FileContent {
@@ -87,45 +88,67 @@ impl FileContent {
     }
 }
 
-pub struct SemaFlags {
+pub struct SemaCreationParams {
     pub packages: Vec<(String, FileContent)>,
     pub program_file: Option<FileContent>,
+    pub vfs: Option<Vfs>,
     pub boots: bool,
     pub is_standard_library: bool,
 }
 
-impl SemaFlags {
-    pub fn for_test(input: &str, packages: &[(&str, &str)]) -> SemaFlags {
-        let packages = packages
-            .iter()
-            .map(|(name, content)| (name.to_string(), FileContent::Content(content.to_string())))
-            .collect::<Vec<_>>();
-
-        SemaFlags {
-            packages,
-            program_file: Some(FileContent::Content(input.to_string())),
+impl SemaCreationParams {
+    pub fn new() -> SemaCreationParams {
+        SemaCreationParams {
+            packages: Vec::new(),
+            program_file: None,
+            vfs: None,
             boots: false,
             is_standard_library: false,
         }
     }
 
-    pub fn for_new_exhaustiveness_test(input: &str, packages: &[(&str, &str)]) -> SemaFlags {
+    pub fn for_test(input: &str, packages: &[(&str, &str)]) -> SemaCreationParams {
+        SemaCreationParams::new()
+            .set_program_content(input.to_string())
+            .set_packages_content(packages)
+    }
+
+    pub fn set_vfs(mut self, vfs: Vfs) -> SemaCreationParams {
+        self.vfs = Some(vfs);
+        self
+    }
+
+    pub fn set_program_content<T>(mut self, content: T) -> SemaCreationParams
+    where
+        Arc<String>: From<T>,
+    {
+        self.program_file = Some(FileContent::Content(content.into()));
+        self
+    }
+
+    pub fn set_program_path(mut self, path: PathBuf) -> SemaCreationParams {
+        self.program_file = Some(FileContent::Path(path));
+        self
+    }
+
+    pub fn set_packages_content(mut self, packages: &[(&str, &str)]) -> SemaCreationParams {
         let packages = packages
             .iter()
-            .map(|(name, content)| (name.to_string(), FileContent::Content(content.to_string())))
+            .map(|(name, content)| {
+                (
+                    name.to_string(),
+                    FileContent::Content(Arc::new(content.to_string())),
+                )
+            })
             .collect::<Vec<_>>();
 
-        SemaFlags {
-            packages,
-            program_file: Some(FileContent::Content(input.to_string())),
-            boots: false,
-            is_standard_library: false,
-        }
+        self.packages = packages;
+        self
     }
 }
 
 pub struct Sema {
-    pub flags: SemaFlags,
+    pub flags: SemaCreationParams,
     pub interner: Interner,
     pub source_files: Arena<SourceFile>,
     pub diag: RefCell<Diagnostic>,
@@ -158,7 +181,7 @@ pub struct Sema {
 }
 
 impl Sema {
-    pub fn new(args: SemaFlags) -> Sema {
+    pub fn new(args: SemaCreationParams) -> Sema {
         Sema {
             flags: args,
             source_files: Arena::new(),

@@ -10,7 +10,7 @@ use lsp_types::{
 use dora_parser::ast::File;
 use dora_parser::{Span, compute_line_column};
 
-use dora_frontend::sema::{Element, ElementId, FileContent, Sema, SemaFlags};
+use dora_frontend::sema::{Element, ElementId, Sema, SemaCreationParams};
 
 use crate::server::{MainLoopTask, ServerState, file_path_to_uri, uri_to_file_path};
 
@@ -42,12 +42,8 @@ pub(super) fn workspace_symbol_request(server_state: &mut ServerState, request: 
 }
 
 fn scan_project(main: PathBuf, _query: &str) -> Vec<WorkspaceSymbol> {
-    let mut sa = Sema::new(SemaFlags {
-        packages: Vec::new(),
-        program_file: Some(FileContent::Path(main.clone())),
-        boots: false,
-        is_standard_library: false,
-    });
+    let sema_params = SemaCreationParams::new().set_program_path(main);
+    let mut sa = Sema::new(sema_params);
 
     sa.parse_project();
     let module = sa.module(sa.program_module_id());
@@ -303,18 +299,13 @@ pub(super) fn document_symbol_request(server_state: &mut ServerState, request: R
 }
 
 fn scan_single_file(content: Arc<String>) -> Vec<DocumentSymbol> {
-    let mut sa = Sema::new(SemaFlags {
-        packages: Vec::new(),
-        program_file: Some(FileContent::Content(content.to_string())),
-        boots: false,
-        is_standard_library: false,
-    });
+    let sema_params = SemaCreationParams::new().set_program_content(content);
+    let mut sa = Sema::new(sema_params);
 
     let file_id = sa.parse_single_file();
     let file = sa.file(file_id);
     let module = sa.module(file.module_id);
 
-    // Convert element IDs to DocumentSymbols directly
     module
         .children()
         .iter()

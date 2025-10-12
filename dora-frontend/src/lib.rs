@@ -18,6 +18,7 @@ pub use specialize::{
     specialize_ty_for_generic, specialize_ty_for_trait_object, specialize_type,
     specialize_type_array,
 };
+pub use vfs::Vfs;
 
 pub(crate) mod access;
 mod aliasck;
@@ -49,6 +50,7 @@ pub mod ty;
 mod typeck;
 mod typedefck;
 mod useck;
+pub mod vfs;
 
 pub fn check_program(sa: &mut Sema) -> bool {
     // This phase loads and parses all files. Also creates all elements.
@@ -210,7 +212,7 @@ pub fn report_sym_shadow_span(sa: &Sema, name: Name, file: SourceFileId, span: S
 mod tests {
     use crate::check_program;
     use crate::error::msg::{ErrorDescriptor, ErrorLevel, ErrorMessage};
-    use crate::sema::{Sema, SemaFlags};
+    use crate::sema::{Sema, SemaCreationParams};
     use dora_parser::{compute_line_column, compute_line_starts};
 
     pub(crate) fn ok(code: &'static str) -> Sema {
@@ -245,7 +247,9 @@ mod tests {
         packages: &[(&str, &str)],
         vec: &[((u32, u32), Option<u32>, ErrorLevel, ErrorMessage)],
     ) -> Sema {
-        let args: SemaFlags = SemaFlags::for_test(code, packages);
+        let args: SemaCreationParams = SemaCreationParams::new()
+            .set_program_content(code.to_string())
+            .set_packages_content(packages);
         let mut sa = Sema::new(args);
 
         check_program(&mut sa);

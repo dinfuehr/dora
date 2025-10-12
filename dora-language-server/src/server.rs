@@ -21,7 +21,7 @@ use url::Url;
 use walkdir::WalkDir;
 
 use crate::symbols::{document_symbol_request, workspace_symbol_request};
-use crate::vfs::Vfs;
+use dora_frontend::Vfs;
 
 pub(crate) fn run_server(
     conn: Connection,
@@ -327,15 +327,10 @@ fn did_save_notification(server_state: &mut ServerState, notification: Notificat
 }
 
 fn compile_project(project: ProjectConfig, sender: Sender<MainLoopTask>) {
-    use dora_frontend::sema::{FileContent, Sema, SemaFlags};
-    let sem_args = SemaFlags {
-        program_file: Some(FileContent::Path(project.main.clone())),
-        packages: Vec::new(),
-        boots: false,
-        is_standard_library: false,
-    };
+    use dora_frontend::sema::{Sema, SemaCreationParams};
+    let sema_params = SemaCreationParams::new().set_program_path(project.main.clone());
 
-    let mut sa = Sema::new(sem_args);
+    let mut sa = Sema::new(sema_params);
 
     let success = dora_frontend::check_program(&mut sa);
     assert_eq!(success, !sa.diag.borrow().has_errors());
