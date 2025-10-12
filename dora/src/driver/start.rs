@@ -5,6 +5,7 @@ use std::path::PathBuf;
 use crate::driver::flags::{self, DriverFlags, create_sema_flags};
 use dora_bytecode::{FunctionId, PackageId, Program, display_fct};
 use dora_frontend as language;
+use dora_frontend::Vfs;
 use dora_frontend::sema::{FileContent, Sema, SemaCreationParams};
 use dora_runtime::{VM, clear_vm, execute_on_main, set_vm};
 
@@ -124,7 +125,7 @@ fn compile_std_library(flags: &DriverFlags) -> Result<Program, ()> {
     let sema_flags = SemaCreationParams {
         program_file: Some(FileContent::Path(path)),
         packages: Vec::new(),
-        vfs: None,
+        vfs: Vfs::new(),
         boots: false,
         is_standard_library: true,
     };

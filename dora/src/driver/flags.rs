@@ -1,6 +1,7 @@
 use std::default::Default;
 use std::path::PathBuf;
 
+use dora_frontend::Vfs;
 use dora_frontend::sema::{FileContent, SemaCreationParams};
 use dora_runtime::VmFlags;
 use dora_runtime::{CollectorName, Compiler, MemSize};
@@ -450,7 +451,7 @@ pub fn create_sema_flags(flags: &DriverFlags, program_file: PathBuf) -> SemaCrea
     SemaCreationParams {
         program_file: Some(FileContent::Path(program_file)),
         packages,
-        vfs: None,
+        vfs: Vfs::new(),
         boots: flags.include_boots(),
         is_standard_library: false,
     }

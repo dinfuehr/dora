@@ -200,7 +200,7 @@ impl<'a> ElementCollector<'a> {
                 self.create_source_file_for_content(
                     package_id,
                     module_id,
-                    PathBuf::from("<<code>>"),
+                    PathBuf::from("main.dora"),
                     content.to_string(),
                 );
             }
@@ -214,7 +214,7 @@ impl<'a> ElementCollector<'a> {
             let iname = self.sa.interner.intern(&name);
             let package_name = PackageName::External(name.clone());
             let (package_id, module_id) = add_package(self.sa, package_name, Some(iname));
-            self.sa.package_names.insert(name, package_id);
+            self.sa.package_names.insert(name.clone(), package_id);
 
             match file_content {
                 FileContent::Path(path) => {
@@ -222,10 +222,12 @@ impl<'a> ElementCollector<'a> {
                 }
 
                 FileContent::Content(ref content) => {
+                    let path = format!("lib/{}/lib.dora", &name);
+                    let path = PathBuf::from(path);
                     self.create_source_file_for_content(
                         package_id,
                         module_id,
-                        PathBuf::from("<<code>>"),
+                        path,
                         content.to_string(),
                     );
                 }

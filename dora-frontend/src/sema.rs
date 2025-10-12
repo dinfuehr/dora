@@ -113,7 +113,7 @@ impl FileContent {
 pub struct SemaCreationParams {
     pub packages: Vec<(String, FileContent)>,
     pub program_file: Option<FileContent>,
-    pub vfs: Option<Vfs>,
+    pub vfs: Vfs,
     pub boots: bool,
     pub is_standard_library: bool,
 }
@@ -123,7 +123,7 @@ impl SemaCreationParams {
         SemaCreationParams {
             packages: Vec::new(),
             program_file: None,
-            vfs: None,
+            vfs: Vfs::new(),
             boots: false,
             is_standard_library: false,
         }
@@ -136,7 +136,7 @@ impl SemaCreationParams {
     }
 
     pub fn set_vfs(mut self, vfs: Vfs) -> SemaCreationParams {
-        self.vfs = Some(vfs);
+        self.vfs = vfs;
         self
     }
 
@@ -197,7 +197,7 @@ pub struct Sema {
     pub stdlib_package_id: Option<PackageDefinitionId>,
     pub program_package_id: Option<PackageDefinitionId>,
     pub boots_package_id: Option<PackageDefinitionId>,
-    pub vfs: Option<Vfs>,
+    pub vfs: Vfs,
     pub include_boots: bool,
     pub is_standard_library: bool,
     pub program_file: FileContent,
