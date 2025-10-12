@@ -2,6 +2,8 @@ use std::collections::HashMap;
 use std::path::PathBuf;
 use std::sync::Arc;
 
+use crate::sema::ToArcString;
+
 #[derive(Clone)]
 pub struct Vfs(Arc<HashMap<PathBuf, Arc<String>>>);
 
@@ -10,15 +12,15 @@ impl Vfs {
         Vfs(Arc::new(HashMap::new()))
     }
 
-    pub fn open_file(self, path: PathBuf, content: String) -> Vfs {
+    pub fn open_file<T: ToArcString>(self, path: PathBuf, content: T) -> Vfs {
         let mut data = self.clone_inner_data();
-        assert!(data.insert(path, Arc::new(content)).is_none());
+        assert!(data.insert(path, content.into()).is_none());
         Vfs(Arc::new(data))
     }
 
-    pub fn update_file(self, path: PathBuf, content: String) -> Vfs {
+    pub fn update_file<T: ToArcString>(self, path: PathBuf, content: T) -> Vfs {
         let mut data = self.clone_inner_data();
-        assert!(data.insert(path, Arc::new(content)).is_some());
+        assert!(data.insert(path, content.into()).is_some());
         Vfs(Arc::new(data))
     }
 

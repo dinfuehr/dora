@@ -14,8 +14,8 @@ use crate::sema::{
     FctDefinitionId, FctParent, FieldDefinition, FieldIndex, FileContent, GlobalDefinition,
     ImplDefinition, ImplDefinitionId, ModuleDefinition, ModuleDefinitionId, PackageDefinition,
     PackageDefinitionId, PackageName, Param, Params, Sema, SourceFile, SourceFileId,
-    StructDefinition, TraitDefinition, TraitDefinitionId, TypeParamDefinition, UseDefinition,
-    VariantDefinition, Visibility,
+    StructDefinition, ToArcString, TraitDefinition, TraitDefinitionId, TypeParamDefinition,
+    UseDefinition, VariantDefinition, Visibility,
 };
 use crate::sym::{SymTable, Symbol, SymbolKind};
 use crate::{ParsedType, SourceType, report_sym_shadow_span, ty};
@@ -143,7 +143,7 @@ impl<'a> ElementCollector<'a> {
             return;
         }
 
-        let boots_name: String = "boots".into();
+        let boots_name: String = "boots".to_string();
         let interned_boots_name = self.sa.interner.intern(&boots_name);
         let (package_id, module_id) =
             add_package(self.sa, PackageName::Boots, Some(interned_boots_name));
@@ -185,7 +185,7 @@ impl<'a> ElementCollector<'a> {
         self.sa.set_program_package_id(package_id);
 
         if self.sa.is_standard_library {
-            self.sa.package_names.insert("std".into(), package_id);
+            self.sa.package_names.insert("std".to_string(), package_id);
 
             self.sa.set_stdlib_module_id(module_id);
             self.sa.set_stdlib_package_id(package_id);
@@ -327,6 +327,11 @@ impl<'a> ElementCollector<'a> {
         file_path: PathBuf,
         error_location: Option<(SourceFileId, Span)>,
     ) {
+        if let Some(content) = self.sa.vfs.get(&file_path) {
+            self.create_source_file_for_content(package_id, module_id, file_path, content);
+            return;
+        }
+
         if file_path.exists() {
             let result = file_as_string(&file_path);
 
@@ -356,14 +361,14 @@ impl<'a> ElementCollector<'a> {
         }
     }
 
-    fn create_source_file_for_content(
+    fn create_source_file_for_content<T: ToArcString>(
         &mut self,
         package_id: PackageDefinitionId,
         module_id: ModuleDefinitionId,
         file_path: PathBuf,
-        content: String,
+        content: T,
     ) {
-        let file_id = add_source_file(self.sa, package_id, module_id, file_path, Arc::new(content));
+        let file_id = add_source_file(self.sa, package_id, module_id, file_path, content.into());
         self.worklist.push_back(file_id);
     }
 
@@ -1638,7 +1643,7 @@ fn check_annotations(
                 sa.report(
                     file_id,
                     modifier.span,
-                    ErrorMessage::MisplacedAnnotation(value.name().into()),
+                    ErrorMessage::MisplacedAnnotation(value.name().to_string()),
                 );
             }
         }

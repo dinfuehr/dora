@@ -315,10 +315,11 @@ fn did_save_notification(server_state: &mut ServerState, notification: Notificat
         Ok(_result) => {
             let sender = server_state.threadpool_sender.clone();
             let projects = server_state.projects.clone();
+            let vfs = server_state.vfs.clone();
 
             server_state.threadpool.execute(move || {
                 for project in projects {
-                    compile_project(project, sender.clone());
+                    compile_project(project, vfs.clone(), sender.clone());
                 }
             })
         }
@@ -326,10 +327,11 @@ fn did_save_notification(server_state: &mut ServerState, notification: Notificat
     }
 }
 
-fn compile_project(project: ProjectConfig, sender: Sender<MainLoopTask>) {
+fn compile_project(project: ProjectConfig, vfs: Vfs, sender: Sender<MainLoopTask>) {
     use dora_frontend::sema::{Sema, SemaCreationParams};
-    let sema_params = SemaCreationParams::new().set_program_path(project.main.clone());
-
+    let sema_params = SemaCreationParams::new()
+        .set_program_path(project.main.clone())
+        .set_vfs(vfs);
     let mut sa = Sema::new(sema_params);
 
     let success = dora_frontend::check_program(&mut sa);

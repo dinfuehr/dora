@@ -129,12 +129,6 @@ impl SemaCreationParams {
         }
     }
 
-    pub fn for_test(input: &str, packages: &[(&str, &str)]) -> SemaCreationParams {
-        SemaCreationParams::new()
-            .set_program_content(input)
-            .set_package_contents(packages)
-    }
-
     pub fn set_vfs(mut self, vfs: Vfs) -> SemaCreationParams {
         self.vfs = vfs;
         self
@@ -165,6 +159,16 @@ impl SemaCreationParams {
             .collect::<Vec<_>>();
 
         self.packages = packages;
+        self
+    }
+
+    pub fn set_file_content<T: ToArcString>(
+        mut self,
+        path: PathBuf,
+        content: T,
+    ) -> SemaCreationParams {
+        let vfs = std::mem::replace(&mut self.vfs, Vfs::new());
+        self.vfs = vfs.open_file(path, content.into());
         self
     }
 }

@@ -10,6 +10,7 @@ use lsp_types::{
 use dora_parser::ast::File;
 use dora_parser::{Span, compute_line_column};
 
+use dora_frontend::Vfs;
 use dora_frontend::sema::{Element, ElementId, Sema, SemaCreationParams};
 
 use crate::server::{MainLoopTask, ServerState, file_path_to_uri, uri_to_file_path};
@@ -23,10 +24,11 @@ pub(super) fn workspace_symbol_request(server_state: &mut ServerState, request: 
 
             let sender = server_state.threadpool_sender.clone();
             let main_file = server_state.projects[0].main.clone();
+            let vfs = server_state.vfs.clone();
 
             server_state.threadpool.execute(move || {
                 eprintln!("parse file on background thread.");
-                let symbols = scan_project(main_file, &query);
+                let symbols = scan_project(main_file, vfs, &query);
                 eprintln!("parse done on background thread.");
                 let response = WorkspaceSymbolResponse::Nested(symbols);
                 let response: Response = Response::new_ok(request.id, response);
@@ -41,8 +43,10 @@ pub(super) fn workspace_symbol_request(server_state: &mut ServerState, request: 
     }
 }
 
-fn scan_project(main: PathBuf, _query: &str) -> Vec<WorkspaceSymbol> {
-    let sema_params = SemaCreationParams::new().set_program_path(main);
+fn scan_project(main: PathBuf, vfs: Vfs, _query: &str) -> Vec<WorkspaceSymbol> {
+    let sema_params = SemaCreationParams::new()
+        .set_program_path(main)
+        .set_vfs(vfs);
     let mut sa = Sema::new(sema_params);
 
     sa.parse_project();
