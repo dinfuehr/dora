@@ -27,6 +27,11 @@
                     ],
                     "default": null,
                     "description": "Path to dora-language-server"
+                },
+                "dora.languageServer.args": {
+                    "type": "string",
+                    "default": "",
+                    "description": "Additional command line arguments for the Dora language server"
                 }
             }
         },

@@ -20,16 +20,21 @@ export function activate(context: vscode.ExtensionContext) {
 
 	const config = vscode.workspace.getConfiguration("dora.languageServer");
 	const serverPath: string | undefined = config.get("path");
+	const serverArgs: string = config.get("args", "");
 
 	if (serverPath) {
-		createClient(serverPath, statusBarItem);
+		createClient(serverPath, serverArgs, statusBarItem);
 	} else {
 		vscode.window.showInformationMessage("Configure path to server in settings.");
 	}
 }
 
-function createClient(serverPath: string, statusBarItem: vscode.StatusBarItem) {
-	const serverOptions: lc.ServerOptions = { command: serverPath };
+function createClient(serverPath: string, serverArgs: string, statusBarItem: vscode.StatusBarItem) {
+	const args = serverArgs.trim().split(/\s+/).filter(arg => arg.length > 0);
+	const serverOptions: lc.ServerOptions = {
+		command: serverPath,
+		args: args
+	};
 
 	outputChannel = vscode.window.createOutputChannel("Dora Language Server");
 
