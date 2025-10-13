@@ -11,11 +11,11 @@ use crate::interner::Name;
 use crate::sema::{
     AliasBound, AliasDefinition, AliasDefinitionId, AliasParent, ClassDefinition, ConstDefinition,
     Element, ElementId, EnumDefinition, ExtensionDefinition, ExtensionDefinitionId, FctDefinition,
-    FctDefinitionId, FctParent, FieldDefinition, FieldIndex, FileContent, GlobalDefinition,
-    ImplDefinition, ImplDefinitionId, ModuleDefinition, ModuleDefinitionId, PackageDefinition,
-    PackageDefinitionId, PackageName, Param, Params, Sema, SourceFile, SourceFileId,
-    StructDefinition, ToArcString, TraitDefinition, TraitDefinitionId, TypeParamDefinition,
-    UseDefinition, VariantDefinition, Visibility,
+    FctDefinitionId, FctParent, FieldDefinition, FieldIndex, GlobalDefinition, ImplDefinition,
+    ImplDefinitionId, ModuleDefinition, ModuleDefinitionId, PackageDefinition, PackageDefinitionId,
+    PackageName, Param, Params, Sema, SourceFile, SourceFileId, StructDefinition, ToArcString,
+    TraitDefinition, TraitDefinitionId, TypeParamDefinition, UseDefinition, VariantDefinition,
+    Visibility,
 };
 use crate::sym::{SymTable, Symbol, SymbolKind};
 use crate::{ParsedType, SourceType, report_sym_shadow_span, ty};
@@ -42,7 +42,7 @@ pub fn collect_elements_for_package(sa: &mut Sema) {
 struct ElementCollector<'a> {
     sa: &'a mut Sema,
     worklist: VecDeque<SourceFileId>,
-    packages: HashMap<String, FileContent>,
+    packages: HashMap<String, PathBuf>,
     module_symtables: HashMap<ModuleDefinitionId, SymTable>,
 }
 
@@ -121,7 +121,7 @@ impl<'a> ElementCollector<'a> {
 
     fn get_stdlib_path(&self) -> Option<PathBuf> {
         if let Some(file_content) = self.packages.get("std") {
-            Some(file_content.to_path().cloned().expect("path expected"))
+            Some(file_content.clone())
         } else {
             let path = std::env::current_exe().expect("illegal path");
             let path = path.as_path();
@@ -162,7 +162,7 @@ impl<'a> ElementCollector<'a> {
 
     fn get_boots_path(&self) -> Option<PathBuf> {
         if let Some(file_content) = self.packages.get("boots") {
-            Some(file_content.to_path().cloned().expect("path expected"))
+            Some(file_content.clone())
         } else {
             let path = std::env::current_exe().expect("illegal path");
             let path = path.as_path();
@@ -191,47 +191,19 @@ impl<'a> ElementCollector<'a> {
             self.sa.set_stdlib_package_id(package_id);
         }
 
-        match &self.sa.program_file {
-            FileContent::Path(path) => {
-                self.add_file(package_id, module_id, path.clone(), None);
-            }
-
-            FileContent::Content(content) => {
-                self.create_source_file_for_content(
-                    package_id,
-                    module_id,
-                    PathBuf::from("main.dora"),
-                    content.to_string(),
-                );
-            }
-        }
+        self.add_file(package_id, module_id, self.sa.program_file.clone(), None);
     }
 
     fn add_dependency_packages(&mut self) {
         let packages = std::mem::replace(&mut self.packages, HashMap::new());
 
-        for (name, file_content) in packages {
+        for (name, path) in packages {
             let iname = self.sa.interner.intern(&name);
             let package_name = PackageName::External(name.clone());
             let (package_id, module_id) = add_package(self.sa, package_name, Some(iname));
             self.sa.package_names.insert(name.clone(), package_id);
 
-            match file_content {
-                FileContent::Path(path) => {
-                    self.add_file(package_id, module_id, path.clone(), None);
-                }
-
-                FileContent::Content(ref content) => {
-                    let path = format!("lib/{}/lib.dora", &name);
-                    let path = PathBuf::from(path);
-                    self.create_source_file_for_content(
-                        package_id,
-                        module_id,
-                        path,
-                        content.to_string(),
-                    );
-                }
-            }
+            self.add_file(package_id, module_id, path.clone(), None);
         }
     }
 

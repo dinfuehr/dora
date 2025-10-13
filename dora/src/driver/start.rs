@@ -5,8 +5,7 @@ use std::path::PathBuf;
 use crate::driver::flags::{self, DriverFlags, create_sema_flags};
 use dora_bytecode::{FunctionId, PackageId, Program, display_fct};
 use dora_frontend as language;
-use dora_frontend::Vfs;
-use dora_frontend::sema::{FileContent, Sema, SemaCreationParams};
+use dora_frontend::sema::{Sema, SemaCreationParams};
 use dora_runtime::{VM, clear_vm, execute_on_main, set_vm};
 
 pub fn start() -> i32 {
@@ -122,15 +121,10 @@ pub fn start() -> i32 {
 fn compile_std_library(flags: &DriverFlags) -> Result<Program, ()> {
     let path = get_stdlib_path(flags).expect("standard library not found");
 
-    let sema_flags = SemaCreationParams {
-        program_file: Some(FileContent::Path(path)),
-        packages: Vec::new(),
-        vfs: Vfs::new(),
-        boots: false,
-        is_standard_library: true,
-    };
-
-    let mut sa = Sema::new(sema_flags);
+    let sema_params = SemaCreationParams::new()
+        .set_program_path(path)
+        .set_standard_library(true);
+    let mut sa = Sema::new(sema_params);
 
     let success = language::check_program(&mut sa);
     assert_eq!(success, !sa.diag.borrow().has_errors());

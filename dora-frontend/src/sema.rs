@@ -95,27 +95,12 @@ mod tuples;
 mod type_params;
 mod uses;
 
-#[derive(Clone, Debug)]
-pub enum FileContent {
-    Path(PathBuf),
-    Content(Arc<String>),
-}
-
-impl FileContent {
-    pub fn to_path(&self) -> Option<&PathBuf> {
-        match self {
-            FileContent::Path(path) => Some(path),
-            _ => None,
-        }
-    }
-}
-
 pub struct SemaCreationParams {
-    pub packages: Vec<(String, FileContent)>,
-    pub program_file: Option<FileContent>,
-    pub vfs: Vfs,
-    pub boots: bool,
-    pub is_standard_library: bool,
+    packages: Vec<(String, PathBuf)>,
+    program_file: Option<PathBuf>,
+    vfs: Vfs,
+    boots: bool,
+    is_standard_library: bool,
 }
 
 impl SemaCreationParams {
@@ -138,26 +123,30 @@ impl SemaCreationParams {
     where
         T: ToArcString,
     {
-        self.program_file = Some(FileContent::Content(content.into()));
-        self
+        let program_path = PathBuf::from("main.dora");
+        self.program_file = Some(program_path.clone());
+        self.set_file_content(program_path, content.into())
     }
 
     pub fn set_program_path(mut self, path: PathBuf) -> SemaCreationParams {
-        self.program_file = Some(FileContent::Path(path));
+        self.program_file = Some(path);
         self
     }
 
-    pub fn set_package_contents(mut self, packages: &[(&str, &str)]) -> SemaCreationParams {
-        let packages = packages
-            .iter()
-            .map(|(name, content)| {
-                (
-                    name.to_string(),
-                    FileContent::Content(Arc::new(content.to_string())),
-                )
-            })
-            .collect::<Vec<_>>();
+    #[cfg(test)]
+    pub fn set_package_contents(self, packages: &[(&str, &str)]) -> SemaCreationParams {
+        let mut result = self;
 
+        for (pkg_name, content) in packages {
+            let path = PathBuf::from(format!("lib/{}/lib.dora", pkg_name));
+            result.packages.push((pkg_name.to_string(), path.clone()));
+            result = result.set_file_content(path, *content);
+        }
+
+        result
+    }
+
+    pub fn set_package_paths(mut self, packages: Vec<(String, PathBuf)>) -> SemaCreationParams {
         self.packages = packages;
         self
     }
@@ -169,6 +158,16 @@ impl SemaCreationParams {
     ) -> SemaCreationParams {
         let vfs = std::mem::replace(&mut self.vfs, Vfs::new());
         self.vfs = vfs.open_file(path, content.into());
+        self
+    }
+
+    pub fn set_boots(mut self, include_boots: bool) -> SemaCreationParams {
+        self.boots = include_boots;
+        self
+    }
+
+    pub fn set_standard_library(mut self, is_standard_library: bool) -> SemaCreationParams {
+        self.is_standard_library = is_standard_library;
         self
     }
 }
@@ -204,8 +203,8 @@ pub struct Sema {
     pub vfs: Vfs,
     pub include_boots: bool,
     pub is_standard_library: bool,
-    pub program_file: FileContent,
-    pub package_contents: Vec<(String, FileContent)>,
+    pub program_file: PathBuf,
+    pub package_contents: Vec<(String, PathBuf)>,
     next_context_id: AtomicU32,
     next_lambda_id: AtomicU32,
 }
