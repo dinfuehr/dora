@@ -19,6 +19,7 @@ pub struct ModuleDefinition {
     pub package_id: Option<PackageDefinitionId>,
     pub parent_module_id: Option<ModuleDefinitionId>,
     pub file_id: Option<SourceFileId>,
+    pub span: Option<Span>,
     pub ast_id: Option<ast::AstId>,
     pub name: Option<Name>,
     pub table: OnceCell<Rc<SymTable>>,
@@ -35,6 +36,7 @@ impl ModuleDefinition {
             package_id: None,
             ast_id: None,
             file_id: None,
+            span: None,
             parent_module_id: None,
             name,
             table: OnceCell::new(),
@@ -50,6 +52,7 @@ impl ModuleDefinition {
         package_id: PackageDefinitionId,
         parent_id: ModuleDefinitionId,
         file_id: SourceFileId,
+        span: Span,
         ast_id: ast::AstId,
         modifiers: Annotations,
         name: Name,
@@ -65,6 +68,7 @@ impl ModuleDefinition {
             package_id: Some(package_id),
             ast_id: Some(ast_id),
             file_id: Some(file_id),
+            span: Some(span),
             parent_module_id: Some(parent_id),
             name: Some(name),
             table: OnceCell::new(),
@@ -153,7 +157,7 @@ impl Element for ModuleDefinition {
     }
 
     fn span(&self) -> Span {
-        unreachable!()
+        self.span.expect("missing span")
     }
 
     fn module_id(&self) -> ModuleDefinitionId {

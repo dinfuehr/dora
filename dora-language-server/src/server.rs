@@ -1,4 +1,5 @@
 use std::str::FromStr;
+use std::sync::Arc;
 
 use crossbeam::channel::{Receiver, Sender};
 use crossbeam::select;
@@ -48,6 +49,7 @@ pub(crate) fn run_server(
     let server_capabilities = ServerCapabilities {
         text_document_sync: Some(TextDocumentSyncCapability::Kind(TextDocumentSyncKind::FULL)),
         document_symbol_provider: Some(OneOf::Left(true)),
+        workspace_symbol_provider: Some(OneOf::Left(true)),
         ..Default::default()
     };
 
@@ -85,8 +87,8 @@ pub struct ServerState {
     pub client_capabilities: ClientCapabilities,
     #[allow(dead_code)]
     pub workspace_folders: Vec<PathBuf>,
-    pub projects: Vec<ProjectConfig>,
-    pub files_with_errors: HashSet<PathBuf>,
+    pub projects: Arc<Vec<ProjectConfig>>,
+    pub files_with_errors: Vec<HashSet<PathBuf>>,
     pub threadpool: ThreadPool,
     pub threadpool_sender: Sender<MainLoopTask>,
     pub threadpool_receiver: Receiver<MainLoopTask>,
@@ -104,8 +106,10 @@ impl ServerState {
             vfs: Vfs::new(),
             client_capabilities,
             workspace_folders,
-            projects,
-            files_with_errors: HashSet::new(),
+            files_with_errors: (0..projects.len())
+                .map(|_| HashSet::new())
+                .collect::<Vec<_>>(),
+            projects: Arc::new(projects),
             threadpool,
             threadpool_sender: sender,
             threadpool_receiver: receiver,
@@ -192,9 +196,11 @@ fn handle_main_loop_task(
 ) {
     match task {
         MainLoopTask::SendResponse(msg) => connection.sender.send(msg).expect("send failed"),
-        MainLoopTask::ReportError(errors_by_file) => {
-            let mut last_files_with_errors =
-                std::mem::replace(&mut server_state.files_with_errors, HashSet::new());
+        MainLoopTask::ReportError(project_id, errors_by_file) => {
+            let mut last_files_with_errors = std::mem::replace(
+                &mut server_state.files_with_errors[project_id],
+                HashSet::new(),
+            );
 
             for (file, errors) in errors_by_file {
                 let params = PublishDiagnosticsParams {
@@ -208,7 +214,7 @@ fn handle_main_loop_task(
                 connection.sender.send(msg).expect("send() failed");
 
                 last_files_with_errors.remove(&file);
-                server_state.files_with_errors.insert(file);
+                server_state.files_with_errors[project_id].insert(file);
             }
 
             for file in last_files_with_errors {
@@ -318,8 +324,8 @@ fn did_save_notification(server_state: &mut ServerState, notification: Notificat
             let vfs = server_state.vfs.clone();
 
             server_state.threadpool.execute(move || {
-                for project in projects {
-                    compile_project(project, vfs.clone(), sender.clone());
+                for (project_id, project) in projects.iter().enumerate() {
+                    compile_project(project_id, project, vfs.clone(), sender.clone());
                 }
             })
         }
@@ -327,11 +333,18 @@ fn did_save_notification(server_state: &mut ServerState, notification: Notificat
     }
 }
 
-fn compile_project(project: ProjectConfig, vfs: Vfs, sender: Sender<MainLoopTask>) {
+fn compile_project(
+    project_id: usize,
+    project: &ProjectConfig,
+    vfs: Vfs,
+    sender: Sender<MainLoopTask>,
+) {
     use dora_frontend::sema::{Sema, SemaCreationParams};
+    eprintln!("compile project {}", project.name);
     let sema_params = SemaCreationParams::new()
         .set_program_path(project.main.clone())
-        .set_vfs(vfs);
+        .set_vfs(vfs)
+        .set_standard_library(project.is_standard_library);
     let mut sa = Sema::new(sema_params);
 
     let success = dora_frontend::check_program(&mut sa);
@@ -344,10 +357,17 @@ fn compile_project(project: ProjectConfig, vfs: Vfs, sender: Sender<MainLoopTask
             let source_file = sa.file(file_id);
             let line_starts = &source_file.line_starts;
 
-            let (line, column) = compute_line_column(&line_starts, span.start());
-            let start = Position::new(line - 1, column - 1);
+            let (start_line, start_column) = compute_line_column(&line_starts, span.start());
+            let start = Position::new(start_line - 1, start_column - 1);
             let (line, column) = compute_line_column(&line_starts, span.end());
             let end = Position::new(line - 1, column - 1);
+
+            eprintln!(
+                "error at {}:{}: {}",
+                start_line,
+                start_column,
+                error.msg.message()
+            );
 
             errors_by_file
                 .entry(source_file.path.clone())
@@ -368,10 +388,17 @@ fn compile_project(project: ProjectConfig, vfs: Vfs, sender: Sender<MainLoopTask
         let source_file = sa.file(file_id);
         let line_starts = &source_file.line_starts;
 
-        let (line, column) = compute_line_column(&line_starts, span.start());
-        let start = Position::new(line - 1, column - 1);
+        let (start_line, start_column) = compute_line_column(&line_starts, span.start());
+        let start = Position::new(start_line - 1, start_column - 1);
         let (line, column) = compute_line_column(&line_starts, span.end());
         let end = Position::new(line - 1, column - 1);
+
+        eprintln!(
+            "warning at {}:{}: {}",
+            start_line,
+            start_column,
+            warning.msg.message()
+        );
 
         errors_by_file
             .entry(source_file.path.clone())
@@ -384,8 +411,15 @@ fn compile_project(project: ProjectConfig, vfs: Vfs, sender: Sender<MainLoopTask
             })
     }
 
+    eprintln!(
+        "compile project {}: done ({} errors, {} warnings)",
+        project.name,
+        sa.diag.borrow().errors().len(),
+        sa.diag.borrow().warnings().len()
+    );
+
     sender
-        .send(MainLoopTask::ReportError(errors_by_file))
+        .send(MainLoopTask::ReportError(project_id, errors_by_file))
         .expect("failed send");
 }
 
@@ -406,6 +440,7 @@ fn find_projects(workspaces: &[PathBuf]) -> Vec<ProjectConfig> {
                         projects.push(ProjectConfig {
                             name,
                             main: main_file,
+                            is_standard_library: config._is_standard_library.unwrap_or(false),
                         });
                     }
 
@@ -443,7 +478,7 @@ pub(crate) fn file_path_to_uri(path: &Path) -> Uri {
 
 pub enum MainLoopTask {
     SendResponse(Message),
-    ReportError(HashMap<PathBuf, Vec<Diagnostic>>),
+    ReportError(usize, HashMap<PathBuf, Vec<Diagnostic>>),
 }
 
 enum Event {
@@ -455,11 +490,13 @@ enum Event {
 pub struct ProjectConfig {
     pub name: String,
     pub main: PathBuf,
+    pub is_standard_library: bool,
 }
 
 #[derive(Serialize, Deserialize)]
 struct ProjectJsonConfig {
     name: String,
     main: String,
+    _is_standard_library: Option<bool>,
     packages: Vec<String>,
 }

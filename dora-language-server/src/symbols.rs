@@ -23,13 +23,22 @@ pub(super) fn workspace_symbol_request(server_state: &mut ServerState, request: 
             let query = result.query;
 
             let sender = server_state.threadpool_sender.clone();
-            let main_file = server_state.projects[0].main.clone();
+            let projects = server_state.projects.clone();
             let vfs = server_state.vfs.clone();
 
             server_state.threadpool.execute(move || {
-                eprintln!("parse file on background thread.");
-                let symbols = scan_project(main_file, vfs, &query);
-                eprintln!("parse done on background thread.");
+                let mut symbols = Vec::new();
+
+                for project in projects.iter() {
+                    eprintln!(
+                        "scan project {} at {} on background thread.",
+                        project.name,
+                        project.main.display()
+                    );
+                    scan_project(project.main.clone(), vfs.clone(), &query, &mut symbols);
+                    eprintln!("scan project done.");
+                }
+
                 let response = WorkspaceSymbolResponse::Nested(symbols);
                 let response: Response = Response::new_ok(request.id, response);
                 sender
@@ -43,7 +52,7 @@ pub(super) fn workspace_symbol_request(server_state: &mut ServerState, request: 
     }
 }
 
-fn scan_project(main: PathBuf, vfs: Vfs, _query: &str) -> Vec<WorkspaceSymbol> {
+fn scan_project(main: PathBuf, vfs: Vfs, _query: &str, elements: &mut Vec<WorkspaceSymbol>) {
     let sema_params = SemaCreationParams::new()
         .set_program_path(main)
         .set_vfs(vfs);
@@ -52,13 +61,9 @@ fn scan_project(main: PathBuf, vfs: Vfs, _query: &str) -> Vec<WorkspaceSymbol> {
     sa.parse_project();
     let module = sa.module(sa.program_module_id());
 
-    let mut elements = Vec::new();
-
     for &element_id in module.children() {
-        append_workspace_symbol_for_element(&sa, element_id, &mut elements);
+        append_workspace_symbol_for_element(&sa, element_id, elements);
     }
-
-    elements
 }
 
 fn append_workspace_symbol_for_element(
@@ -262,7 +267,17 @@ fn compute_element_propertiees(
             let span = variant.span;
             (name, span, SymbolKind::ENUM_MEMBER)
         }
-        _ => return None,
+        ElementId::Module(id) => {
+            let module = sa.module(id);
+            let ast_id = module.ast_id.expect("missing ast_id");
+            let node = f.node(ast_id).as_module();
+            let name_id = node.name?;
+            let ident_node = f.node(name_id).as_ident();
+            (ident_node.name.clone(), ident_node.span, SymbolKind::MODULE)
+        }
+        ElementId::Use(..) => {
+            return None;
+        }
     };
 
     Some((name, span, kind))
@@ -520,5 +535,20 @@ mod tests {
         assert_eq!(green_children.len(), 1);
         assert_eq!(green_children[0].name, "value");
         assert_eq!(green_children[0].kind, SymbolKind::FIELD);
+    }
+
+    #[test]
+    fn test_parse_file_mod_with_function() {
+        let content = Arc::new("mod foo { fn bar() {} }".to_string());
+        let symbols = scan_single_file(content);
+        assert_eq!(symbols.len(), 1);
+        assert_eq!(symbols[0].name, "foo");
+        assert_eq!(symbols[0].kind, SymbolKind::MODULE);
+
+        let children = symbols[0].children.as_ref().unwrap();
+        assert_eq!(children.len(), 1);
+        assert_eq!(children[0].name, "bar");
+        assert_eq!(children[0].kind, SymbolKind::FUNCTION);
+        assert!(children[0].children.is_none());
     }
 }

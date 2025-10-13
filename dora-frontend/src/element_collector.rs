@@ -30,7 +30,7 @@ pub fn collect_elements(sa: &mut Sema) -> HashMap<ModuleDefinitionId, SymTable> 
 }
 
 pub fn collect_elements_for_single_file(sa: &mut Sema) -> SourceFileId {
-    let mut collector = ElementCollector::new(sa);
+    let mut collector = ElementCollector::new_with_params(sa, true);
     collector.collect_one()
 }
 
@@ -44,15 +44,21 @@ struct ElementCollector<'a> {
     worklist: VecDeque<SourceFileId>,
     packages: HashMap<String, PathBuf>,
     module_symtables: HashMap<ModuleDefinitionId, SymTable>,
+    is_collect_single_file: bool,
 }
 
 impl<'a> ElementCollector<'a> {
     fn new(sa: &mut Sema) -> ElementCollector<'_> {
+        ElementCollector::new_with_params(sa, false)
+    }
+
+    fn new_with_params(sa: &mut Sema, is_collect_single_file: bool) -> ElementCollector<'_> {
         ElementCollector {
             sa,
             worklist: VecDeque::new(),
             packages: HashMap::new(),
             module_symtables: HashMap::new(),
+            is_collect_single_file,
         }
     }
 
@@ -215,7 +221,7 @@ impl<'a> ElementCollector<'a> {
         ast: &ast::File,
     ) {
         let module_table = {
-            let mut decl_discovery = TopLevelDeclaration {
+            let mut visitor = ElementVisitor {
                 sa: self.sa,
                 package_id,
                 module_id,
@@ -224,14 +230,15 @@ impl<'a> ElementCollector<'a> {
                 module_table: SymTable::new(),
                 module_elements: Vec::new(),
                 module_symtables: &mut self.module_symtables,
+                is_collect_single_file: self.is_collect_single_file,
             };
 
-            ast::visit_node(&mut decl_discovery, ast.root());
+            ast::visit_node(&mut visitor, ast.root());
 
-            let module_table = decl_discovery.module_table;
-            let module_elements = decl_discovery.module_elements;
+            let module_table = visitor.module_table;
+            let module_elements = visitor.module_elements;
 
-            for external_module_id in decl_discovery.external_modules {
+            for external_module_id in visitor.external_modules {
                 self.add_external_module(package_id, module_id, external_module_id);
             }
 
@@ -375,7 +382,7 @@ fn file_as_string(path: &PathBuf) -> Result<String, Error> {
     Ok(content)
 }
 
-struct TopLevelDeclaration<'x> {
+struct ElementVisitor<'x> {
     sa: &'x mut Sema,
     package_id: PackageDefinitionId,
     file_id: SourceFileId,
@@ -384,9 +391,10 @@ struct TopLevelDeclaration<'x> {
     module_table: SymTable,
     module_elements: Vec<ElementId>,
     module_symtables: &'x mut HashMap<ModuleDefinitionId, SymTable>,
+    is_collect_single_file: bool,
 }
 
-impl<'x> ast::Visitor for TopLevelDeclaration<'x> {
+impl<'x> ast::Visitor for ElementVisitor<'x> {
     fn visit_extern(&mut self, ast_node: ast::AstExtern) {
         let f = ast_node.file();
         let node = ast_node.raw_node().as_extern();
@@ -433,6 +441,7 @@ impl<'x> ast::Visitor for TopLevelDeclaration<'x> {
             self.package_id,
             self.module_id,
             self.file_id,
+            node.span,
             ast_id,
             modifiers,
             name,
@@ -446,7 +455,12 @@ impl<'x> ast::Visitor for TopLevelDeclaration<'x> {
         }
 
         if node.elements.is_none() {
-            self.external_modules.push(id);
+            if self.is_collect_single_file {
+                assert!(self.sa.module(id).children.set(Vec::new()).is_ok());
+                assert!(self.module_symtables.insert(id, SymTable::new()).is_none());
+            } else {
+                self.external_modules.push(id);
+            }
         } else {
             let module_table = SymTable::new();
             let module_elements = Vec::new();
@@ -1690,7 +1704,7 @@ fn check_annotation(
     }
 }
 
-impl<'x> TopLevelDeclaration<'x> {
+impl<'x> ElementVisitor<'x> {
     fn insert(&mut self, name: Name, sym: SymbolKind, element_id: ElementId) -> Option<Symbol> {
         self.module_elements.push(element_id);
         self.module_table.insert(name, sym)
