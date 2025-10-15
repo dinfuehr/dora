@@ -212,6 +212,7 @@ pub enum TokenKind {
     WHERE_KW,
     UPCASE_SELF_KW,
     UNDERSCORE,
+    REF_KW,
 
     // trivia
     WHITESPACE,

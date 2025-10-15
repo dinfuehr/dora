@@ -641,6 +641,7 @@ fn keywords_in_map() -> HashMap<&'static str, TokenKind> {
     keywords.insert("type", TYPE_KW);
     keywords.insert("where", WHERE_KW);
     keywords.insert("Self", UPCASE_SELF_KW);
+    keywords.insert("ref", REF_KW);
 
     keywords
 }
@@ -1037,8 +1038,17 @@ mod tests {
             ]
         );
 
-        let tokens = lex_success("is as");
-        assert_eq!(tokens, vec![(IS_KW, 2), (WHITESPACE, 1), (AS_KW, 2)]);
+        let tokens = lex_success("is as ref");
+        assert_eq!(
+            tokens,
+            vec![
+                (IS_KW, 2),
+                (WHITESPACE, 1),
+                (AS_KW, 2),
+                (WHITESPACE, 1),
+                (REF_KW, 3)
+            ]
+        );
     }
 
     #[test]

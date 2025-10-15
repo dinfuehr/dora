@@ -982,6 +982,13 @@ impl Parser {
                 finish!(self, RegularType { path, params })
             }
 
+            REF_KW => {
+                self.start_node();
+                self.assert(REF_KW);
+                let ty = self.parse_type();
+                finish!(self, RefType { ty })
+            }
+
             L_BRACKET => {
                 self.start_node();
                 self.assert(L_BRACKET);

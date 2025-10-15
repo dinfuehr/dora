@@ -171,6 +171,7 @@ pub enum Ast {
     Path(Path),
     PathData(PathData),
     QualifiedPathType(QualifiedPathType),
+    RefType(RefType),
     RegularType(RegularType),
     Rest(Rest),
     Return(Return),
@@ -830,6 +831,13 @@ pub struct QualifiedPathType {
     pub ty: AstId,
     pub trait_ty: AstId,
     pub name: Option<AstId>,
+}
+
+#[derive(Clone, Debug, AstNode)]
+pub struct RefType {
+    pub span: Span,
+
+    pub ty: AstId,
 }
 
 #[derive(Clone, Debug, AstNode)]

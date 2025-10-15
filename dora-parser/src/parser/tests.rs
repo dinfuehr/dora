@@ -1589,6 +1589,12 @@ fn parse_qualified_type() {
     parse("fn f(x: [T as Foo]::Bar) {}");
 }
 
+#[test]
+fn parse_ref_type() {
+    parse_type("ref Foo");
+    parse_type("ref Foo[Bar]");
+}
+
 fn id_name(f: &File, id: Option<AstId>) -> &str {
     &f.node(id.expect("id expected"))
         .to_ident()
