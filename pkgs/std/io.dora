@@ -1,3 +1,6 @@
+pub @internal fn print(text: String);
+pub @internal fn println(text: String);
+
 @internal fn fileCreate(path: String): Int64;
 @internal fn fileOpen(path: String): Int64;
 @internal fn fileWrite(fd: Int64, array: Array[UInt8], offset: Int64, len: Int64): Int64;

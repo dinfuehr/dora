@@ -23,8 +23,6 @@ pub fn unimplemented[T](): T {
   fatalError[T]("not yet implemented")
 }
 
-pub @internal fn print(text: String);
-pub @internal fn println(text: String);
 pub @internal fn assert(val: Bool);
 pub @internal fn debug();
 pub @internal fn argc(): Int32;
