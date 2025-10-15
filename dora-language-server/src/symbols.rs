@@ -551,4 +551,25 @@ mod tests {
         assert_eq!(children[0].kind, SymbolKind::FUNCTION);
         assert!(children[0].children.is_none());
     }
+
+    #[test]
+    fn test_parse_file_trait_with_methods() {
+        let content = Arc::new("trait Drawable { fn draw(); fn resize(); type X; }".to_string());
+        let symbols = scan_single_file(content);
+        assert_eq!(symbols.len(), 1);
+        assert_eq!(symbols[0].name, "Drawable");
+        assert_eq!(symbols[0].kind, SymbolKind::INTERFACE);
+
+        let children = symbols[0].children.as_ref().unwrap();
+        assert_eq!(children.len(), 3);
+        assert_eq!(children[0].name, "draw");
+        assert_eq!(children[0].kind, SymbolKind::FUNCTION);
+        assert!(children[0].children.is_none());
+        assert_eq!(children[1].name, "resize");
+        assert_eq!(children[1].kind, SymbolKind::FUNCTION);
+        assert!(children[1].children.is_none());
+        assert_eq!(children[2].name, "X");
+        assert_eq!(children[2].kind, SymbolKind::CONSTANT);
+        assert!(children[2].children.is_none());
+    }
 }

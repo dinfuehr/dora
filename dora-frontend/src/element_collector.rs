@@ -1134,6 +1134,7 @@ fn find_elements_in_trait(
 ) {
     let mut methods = Vec::new();
     let mut aliases = Vec::new();
+    let mut children = Vec::new();
 
     let mut instance_names: HashMap<Name, FctDefinitionId> = HashMap::new();
     let mut static_names: HashMap<Name, FctDefinitionId> = HashMap::new();
@@ -1188,6 +1189,7 @@ fn find_elements_in_trait(
                 let fct_id = sa.fcts.alloc(fct);
                 sa.fcts[fct_id].id = Some(fct_id);
                 methods.push(fct_id);
+                children.push(ElementId::Fct(fct_id));
 
                 let fct = sa.fct(fct_id);
 
@@ -1275,6 +1277,7 @@ fn find_elements_in_trait(
                 assert!(sa.alias(id).id.set(id).is_ok());
 
                 aliases.push(id);
+                children.push(ElementId::Alias(id));
 
                 if let Some(&existing_id) = alias_names.get(&name) {
                     let existing_alias = sa.alias(existing_id);
@@ -1305,6 +1308,7 @@ fn find_elements_in_trait(
     let trait_ = sa.trait_(trait_id);
     assert!(trait_.methods.set(methods).is_ok());
     assert!(trait_.aliases.set(aliases).is_ok());
+    assert!(trait_.children.set(children).is_ok());
 
     assert!(trait_.instance_names.set(instance_names).is_ok());
     assert!(trait_.static_names.set(static_names).is_ok());

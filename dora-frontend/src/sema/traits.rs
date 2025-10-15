@@ -30,6 +30,7 @@ pub struct TraitDefinition {
     pub type_param_definition: Rc<TypeParamDefinition>,
     pub methods: OnceCell<Vec<FctDefinitionId>>,
     pub aliases: OnceCell<Vec<AliasDefinitionId>>,
+    pub children: OnceCell<Vec<ElementId>>,
     pub instance_names: OnceCell<HashMap<Name, FctDefinitionId>>,
     pub static_names: OnceCell<HashMap<Name, FctDefinitionId>>,
     pub alias_names: OnceCell<HashMap<Name, AliasDefinitionId>>,
@@ -59,6 +60,7 @@ impl TraitDefinition {
             type_param_definition: type_params,
             methods: OnceCell::new(),
             aliases: OnceCell::new(),
+            children: OnceCell::new(),
             instance_names: OnceCell::new(),
             static_names: OnceCell::new(),
             alias_names: OnceCell::new(),
@@ -158,7 +160,7 @@ impl Element for TraitDefinition {
     }
 
     fn children(&self) -> &[ElementId] {
-        &[]
+        self.children.get().expect("missing children")
     }
 }
 
