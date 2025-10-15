@@ -981,15 +981,15 @@ fn computeRecordLayout(ci: CompilationInfo, specializeSelf: Option[SpecializeSel
             BytecodeType::Struct(struct_id, type_params) => {
                 let layout = computeStructLayout(ci, specializeSelf, struct_id, type_params);
                 let offset = addField(layout.size, layout.alignment, fieldTy);
-                for ref in layout.refs {
-                    refs.push(offset + ref);
+                for ref_ in layout.refs {
+                    refs.push(offset + ref_);
                 }
             }
             BytecodeType::Tuple(subtypes) => {
                 let layout = computeTupleLayout(ci, specializeSelf, subtypes);
                 let offset = addField(layout.size, layout.alignment, fieldTy);
-                for ref in layout.refs {
-                    refs.push(offset + ref);
+                for ref_ in layout.refs {
+                    refs.push(offset + ref_);
                 }
             }
             BytecodeType::Enum(enum_id, type_params) => {

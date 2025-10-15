@@ -1531,8 +1531,8 @@ impl SsaGen {
                 let zero = graph::createNullConst();
                 self.current().appendInst(zero);
 
-                for ref in layout.refs {
-                    let inst = graph::createStoreInst(allocInst, InstExtraData::None, ref, zero, Type::Ptr);
+                for ref_ in layout.refs {
+                    let inst = graph::createStoreInst(allocInst, InstExtraData::None, ref_, zero, Type::Ptr);
                     self.current().appendInst(inst);
                 }
             };
@@ -1981,8 +1981,8 @@ impl SsaGen {
             let array_element = graph::createGetElementPtrInst(arr, index, layout.size.toInt64());
             self.current().appendInst(array_element);
 
-            for ref in layout.refs {
-                let inst = graph::createStoreInst(array_element, InstExtraData::None, ref, null, Type::Ptr);
+            for ref_ in layout.refs {
+                let inst = graph::createStoreInst(array_element, InstExtraData::None, ref_, null, Type::Ptr);
                 self.current().appendInst(inst);
             }
         }
