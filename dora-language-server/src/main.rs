@@ -7,8 +7,9 @@ use crossbeam::select;
 
 use crate::server::run_server;
 
+mod document_symbols;
 mod server;
-mod symbols;
+mod workspace_symbols;
 
 #[derive(Parser)]
 #[command(name = "dora-language-server")]

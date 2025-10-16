@@ -21,7 +21,8 @@ use threadpool::ThreadPool;
 use url::Url;
 use walkdir::WalkDir;
 
-use crate::symbols::{document_symbol_request, workspace_symbol_request};
+use crate::document_symbols::document_symbol_request;
+use crate::workspace_symbols::workspace_symbol_request;
 use dora_frontend::Vfs;
 
 pub(crate) fn run_server(

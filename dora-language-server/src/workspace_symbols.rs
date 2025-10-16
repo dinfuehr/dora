@@ -1,10 +1,8 @@
 use std::path::PathBuf;
-use std::sync::Arc;
 
 use lsp_server::{Message, Request, Response};
 use lsp_types::{
-    DocumentSymbol, DocumentSymbolResponse, Location, OneOf, Position, Range, SymbolKind,
-    WorkspaceSymbol, WorkspaceSymbolResponse,
+    Location, OneOf, Position, Range, SymbolKind, WorkspaceSymbol, WorkspaceSymbolResponse,
 };
 
 use dora_parser::ast::File;
@@ -13,7 +11,7 @@ use dora_parser::{Span, compute_line_column};
 use dora_frontend::Vfs;
 use dora_frontend::sema::{Element, ElementId, Sema, SemaCreationParams};
 
-use crate::server::{MainLoopTask, ServerState, file_path_to_uri, uri_to_file_path};
+use crate::server::{MainLoopTask, ServerState, file_path_to_uri};
 
 pub(super) fn workspace_symbol_request(server_state: &mut ServerState, request: Request) {
     let result = serde_json::from_value::<lsp_types::WorkspaceSymbolParams>(request.params);
@@ -283,91 +281,6 @@ fn compute_element_propertiees(
     Some((name, span, kind))
 }
 
-pub(super) fn document_symbol_request(server_state: &mut ServerState, request: Request) {
-    eprintln!("got documentSymbol request on main thread");
-    let result = serde_json::from_value::<lsp_types::DocumentSymbolParams>(request.params);
-    match result {
-        Ok(result) => {
-            let path = uri_to_file_path(&result.text_document.uri);
-            if let Some(content) = server_state.vfs.get(&path) {
-                eprintln!(
-                    "got file for {} with {} lines",
-                    path.display(),
-                    content.lines().count()
-                );
-                let sender = server_state.threadpool_sender.clone();
-
-                server_state.threadpool.execute(move || {
-                    eprintln!("parse file on background thread.");
-                    let symbols = scan_single_file(content);
-                    eprintln!("parse done on background thread.");
-                    let response = DocumentSymbolResponse::Nested(symbols);
-                    let response = Response::new_ok(request.id, response);
-                    sender
-                        .send(MainLoopTask::SendResponse(Message::Response(response)))
-                        .expect("send failed");
-                });
-            } else {
-                eprintln!("unknown file {}", path.display());
-            }
-        }
-        Err(_) => {
-            eprintln!("broken params");
-        }
-    }
-}
-
-fn scan_single_file(content: Arc<String>) -> Vec<DocumentSymbol> {
-    let sema_params = SemaCreationParams::new().set_program_content(content);
-    let mut sa = Sema::new(sema_params);
-
-    let file_id = sa.parse_single_file();
-    let file = sa.file(file_id);
-    let module = sa.module(file.module_id);
-
-    module
-        .children()
-        .iter()
-        .filter_map(|&element_id| element_to_document_symbol(&sa, element_id))
-        .collect()
-}
-
-fn element_to_document_symbol(sa: &Sema, element_id: ElementId) -> Option<DocumentSymbol> {
-    let element = sa.element(element_id);
-    let file_id = element.file_id();
-    let file = sa.file(file_id);
-    let f = file.ast();
-    let line_starts = &file.line_starts;
-    let total_span = element.span();
-
-    let (name, name_span, kind) = compute_element_propertiees(sa, f, element_id)?;
-
-    let range = range_from_span(line_starts, total_span);
-    let selection_range = range_from_span(line_starts, name_span);
-
-    let children: Vec<DocumentSymbol> = element
-        .children()
-        .iter()
-        .filter_map(|&child_id| element_to_document_symbol(sa, child_id))
-        .collect();
-
-    #[allow(deprecated)]
-    Some(DocumentSymbol {
-        name,
-        kind,
-        tags: None,
-        detail: None,
-        range,
-        deprecated: None,
-        selection_range,
-        children: if children.is_empty() {
-            None
-        } else {
-            Some(children)
-        },
-    })
-}
-
 fn range_from_span(line_starts: &[u32], span: Span) -> Range {
     let start = position_from_offset(line_starts, span.start());
     let end = position_from_offset(line_starts, span.end());
@@ -383,28 +296,77 @@ fn position_from_offset(line_starts: &[u32], offset: u32) -> Position {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use std::sync::Arc;
+
+    fn assert_location(symbol: &WorkspaceSymbol, uri: &str, line: u32, character: u32) {
+        if let OneOf::Left(location) = &symbol.location {
+            assert_eq!(
+                location.uri.as_str(),
+                uri,
+                "URI mismatch for symbol '{}'",
+                symbol.name
+            );
+            assert_eq!(
+                location.range.start.line, line,
+                "Line mismatch for symbol '{}'",
+                symbol.name
+            );
+            assert_eq!(
+                location.range.start.character, character,
+                "Character mismatch for symbol '{}'",
+                symbol.name
+            );
+        } else {
+            panic!(
+                "Expected location to be OneOf::Left for symbol '{}'",
+                symbol.name
+            );
+        }
+    }
+
+    fn scan_workspace(content: &str) -> Vec<WorkspaceSymbol> {
+        scan_workspace_with_files(content, &[])
+    }
+
+    fn scan_workspace_with_files(content: &str, files: &[(&str, &str)]) -> Vec<WorkspaceSymbol> {
+        use std::path::PathBuf;
+
+        let mut sema_params =
+            SemaCreationParams::new().set_program_content(Arc::new(content.to_string()));
+
+        for (path, file_content) in files {
+            sema_params = sema_params
+                .set_file_content(PathBuf::from(path), Arc::new(file_content.to_string()));
+        }
+
+        let mut sa = Sema::new(sema_params);
+        sa.parse_project();
+        let module = sa.module(sa.program_module_id());
+
+        let mut symbols = Vec::new();
+        for &element_id in module.children() {
+            append_workspace_symbol_for_element(&sa, element_id, &mut symbols);
+        }
+        symbols
+    }
 
     #[test]
-    fn test_parse_file_empty() {
-        let content = Arc::new("".to_string());
-        let symbols = scan_single_file(content);
+    fn test_workspace_empty() {
+        let symbols = scan_workspace("");
         assert_eq!(symbols.len(), 0);
     }
 
     #[test]
-    fn test_parse_file_single_function() {
-        let content = Arc::new("fn foo() {}".to_string());
-        let symbols = scan_single_file(content);
+    fn test_workspace_single_function() {
+        let symbols = scan_workspace("fn foo() {}");
         assert_eq!(symbols.len(), 1);
         assert_eq!(symbols[0].name, "foo");
         assert_eq!(symbols[0].kind, SymbolKind::FUNCTION);
-        assert_eq!(symbols[0].children, None);
     }
 
     #[test]
-    fn test_parse_file_multiple_functions() {
-        let content = Arc::new("fn foo() {}\nfn bar() {}\nfn baz() {}".to_string());
-        let symbols = scan_single_file(content);
+    fn test_workspace_multiple_functions() {
+        let symbols = scan_workspace("fn foo() {}\nfn bar() {}\nfn baz() {}");
         assert_eq!(symbols.len(), 3);
         assert_eq!(symbols[0].name, "foo");
         assert_eq!(symbols[0].kind, SymbolKind::FUNCTION);
@@ -415,161 +377,129 @@ mod tests {
     }
 
     #[test]
-    fn test_parse_file_impl_with_methods_and_aliases() {
-        let content = Arc::new(
-            "fn top_level() {}\nimpl Foo for Bar { fn method1() {} fn method2() {} type Alias1 = Int32; type Alias2 = String; }"
-                .to_string(),
-        );
-        let symbols = scan_single_file(content);
-        assert_eq!(symbols.len(), 2);
-
-        assert_eq!(symbols[0].name, "top_level");
-        assert_eq!(symbols[0].kind, SymbolKind::FUNCTION);
-
-        assert_eq!(symbols[1].name, "impl Foo for Bar");
-        assert_eq!(symbols[1].kind, SymbolKind::NAMESPACE);
-
-        let children = symbols[1].children.as_ref().unwrap();
-        assert_eq!(children.len(), 4);
-
-        assert_eq!(children[0].name, "method1");
-        assert_eq!(children[0].kind, SymbolKind::FUNCTION);
-
-        assert_eq!(children[1].name, "method2");
-        assert_eq!(children[1].kind, SymbolKind::FUNCTION);
-
-        assert_eq!(children[2].name, "Alias1");
-        assert_eq!(children[2].kind, SymbolKind::CONSTANT);
-
-        assert_eq!(children[3].name, "Alias2");
-        assert_eq!(children[3].kind, SymbolKind::CONSTANT);
-    }
-
-    #[test]
-    fn test_parse_file_impl_extension() {
-        let content = Arc::new("impl Foo { fn method1() {} fn method2() {} }".to_string());
-        let symbols = scan_single_file(content);
-        assert_eq!(symbols.len(), 1);
-
-        assert_eq!(symbols[0].name, "impl Foo");
-        assert_eq!(symbols[0].kind, SymbolKind::NAMESPACE);
-
-        let children = symbols[0].children.as_ref().unwrap();
-        assert_eq!(children.len(), 2);
-
-        assert_eq!(children[0].name, "method1");
-        assert_eq!(children[0].kind, SymbolKind::FUNCTION);
-
-        assert_eq!(children[1].name, "method2");
-        assert_eq!(children[1].kind, SymbolKind::FUNCTION);
-    }
-
-    #[test]
-    fn test_parse_file_struct_with_fields() {
-        let content = Arc::new("struct Point { x: Int32, y: Int32 }".to_string());
-        let symbols = scan_single_file(content);
-        assert_eq!(symbols.len(), 1);
+    fn test_workspace_struct_with_fields() {
+        let symbols = scan_workspace("struct Point { x: Int32, y: Int32 }");
+        assert_eq!(symbols.len(), 3); // struct + 2 fields
         assert_eq!(symbols[0].name, "Point");
         assert_eq!(symbols[0].kind, SymbolKind::STRUCT);
-
-        let children = symbols[0].children.as_ref().unwrap();
-        assert_eq!(children.len(), 2);
-        assert_eq!(children[0].name, "x");
-        assert_eq!(children[0].kind, SymbolKind::FIELD);
-        assert_eq!(children[1].name, "y");
-        assert_eq!(children[1].kind, SymbolKind::FIELD);
+        assert_eq!(symbols[1].name, "x");
+        assert_eq!(symbols[1].kind, SymbolKind::FIELD);
+        assert_eq!(symbols[2].name, "y");
+        assert_eq!(symbols[2].kind, SymbolKind::FIELD);
     }
 
     #[test]
-    fn test_parse_file_class_with_fields() {
-        let content = Arc::new("class Person { name: String, age: Int32 }".to_string());
-        let symbols = scan_single_file(content);
-        assert_eq!(symbols.len(), 1);
+    fn test_workspace_class_with_fields() {
+        let symbols = scan_workspace("class Person { name: String, age: Int32 }");
+        assert_eq!(symbols.len(), 3); // class + 2 fields
         assert_eq!(symbols[0].name, "Person");
         assert_eq!(symbols[0].kind, SymbolKind::CLASS);
-
-        let children = symbols[0].children.as_ref().unwrap();
-        assert_eq!(children.len(), 2);
-        assert_eq!(children[0].name, "name");
-        assert_eq!(children[0].kind, SymbolKind::FIELD);
-        assert_eq!(children[1].name, "age");
-        assert_eq!(children[1].kind, SymbolKind::FIELD);
+        assert_eq!(symbols[1].name, "name");
+        assert_eq!(symbols[1].kind, SymbolKind::FIELD);
+        assert_eq!(symbols[2].name, "age");
+        assert_eq!(symbols[2].kind, SymbolKind::FIELD);
     }
 
     #[test]
-    fn test_parse_file_enum_with_variants() {
-        let content = Arc::new("enum Color { Red, Green(Int32), Blue(Int32, Int32) }".to_string());
-        let symbols = scan_single_file(content);
-        assert_eq!(symbols.len(), 1);
+    fn test_workspace_enum_with_variants() {
+        let symbols = scan_workspace("enum Color { Red, Green(Int32), Blue(Int32, Int32) }");
+        assert_eq!(symbols.len(), 4); // enum + 3 variants
         assert_eq!(symbols[0].name, "Color");
         assert_eq!(symbols[0].kind, SymbolKind::ENUM);
-
-        let children = symbols[0].children.as_ref().unwrap();
-        assert_eq!(children.len(), 3);
-        assert_eq!(children[0].name, "Red");
-        assert_eq!(children[0].kind, SymbolKind::ENUM_MEMBER);
-        assert_eq!(children[1].name, "Green");
-        assert_eq!(children[1].kind, SymbolKind::ENUM_MEMBER);
-        assert!(children[1].children.is_none());
-        assert_eq!(children[2].name, "Blue");
-        assert_eq!(children[2].kind, SymbolKind::ENUM_MEMBER);
+        assert_eq!(symbols[1].name, "Red");
+        assert_eq!(symbols[1].kind, SymbolKind::ENUM_MEMBER);
+        assert_eq!(symbols[2].name, "Green");
+        assert_eq!(symbols[2].kind, SymbolKind::ENUM_MEMBER);
+        assert_eq!(symbols[3].name, "Blue");
+        assert_eq!(symbols[3].kind, SymbolKind::ENUM_MEMBER);
     }
 
     #[test]
-    fn test_parse_file_enum_with_named_fields() {
-        let content = Arc::new("enum Color { Red, Green { value: Int32 } }".to_string());
-        let symbols = scan_single_file(content);
-        assert_eq!(symbols.len(), 1);
+    fn test_workspace_enum_with_named_fields() {
+        let symbols = scan_workspace("enum Color { Red, Green { value: Int32 } }");
+        assert_eq!(symbols.len(), 4); // enum + 2 variants + 1 field
         assert_eq!(symbols[0].name, "Color");
         assert_eq!(symbols[0].kind, SymbolKind::ENUM);
-
-        let children = symbols[0].children.as_ref().unwrap();
-        assert_eq!(children.len(), 2);
-        assert_eq!(children[0].name, "Red");
-        assert_eq!(children[0].kind, SymbolKind::ENUM_MEMBER);
-        assert!(children[0].children.is_none());
-        assert_eq!(children[1].name, "Green");
-        assert_eq!(children[1].kind, SymbolKind::ENUM_MEMBER);
-
-        let green_children = children[1].children.as_ref().unwrap();
-        assert_eq!(green_children.len(), 1);
-        assert_eq!(green_children[0].name, "value");
-        assert_eq!(green_children[0].kind, SymbolKind::FIELD);
+        assert_eq!(symbols[1].name, "Red");
+        assert_eq!(symbols[1].kind, SymbolKind::ENUM_MEMBER);
+        assert_eq!(symbols[2].name, "Green");
+        assert_eq!(symbols[2].kind, SymbolKind::ENUM_MEMBER);
+        assert_eq!(symbols[3].name, "value");
+        assert_eq!(symbols[3].kind, SymbolKind::FIELD);
     }
 
     #[test]
-    fn test_parse_file_mod_with_function() {
-        let content = Arc::new("mod foo { fn bar() {} }".to_string());
-        let symbols = scan_single_file(content);
-        assert_eq!(symbols.len(), 1);
+    fn test_workspace_impl_with_methods_and_aliases() {
+        let symbols = scan_workspace(
+            "fn top_level() {}\nimpl Foo for Bar { fn method1() {} fn method2() {} type Alias1 = Int32; type Alias2 = String; }",
+        );
+        assert_eq!(symbols.len(), 6); // 1 function + impl + 2 methods + 2 aliases
+        assert_eq!(symbols[0].name, "top_level");
+        assert_eq!(symbols[0].kind, SymbolKind::FUNCTION);
+        assert_eq!(symbols[1].name, "impl Foo for Bar");
+        assert_eq!(symbols[1].kind, SymbolKind::NAMESPACE);
+        assert_eq!(symbols[2].name, "method1");
+        assert_eq!(symbols[2].kind, SymbolKind::FUNCTION);
+        assert_eq!(symbols[3].name, "method2");
+        assert_eq!(symbols[3].kind, SymbolKind::FUNCTION);
+        assert_eq!(symbols[4].name, "Alias1");
+        assert_eq!(symbols[4].kind, SymbolKind::CONSTANT);
+        assert_eq!(symbols[5].name, "Alias2");
+        assert_eq!(symbols[5].kind, SymbolKind::CONSTANT);
+    }
+
+    #[test]
+    fn test_workspace_impl_extension() {
+        let symbols = scan_workspace("impl Foo { fn method1() {} fn method2() {} }");
+        assert_eq!(symbols.len(), 3); // impl + 2 methods
+        assert_eq!(symbols[0].name, "impl Foo");
+        assert_eq!(symbols[0].kind, SymbolKind::NAMESPACE);
+        assert_eq!(symbols[1].name, "method1");
+        assert_eq!(symbols[1].kind, SymbolKind::FUNCTION);
+        assert_eq!(symbols[2].name, "method2");
+        assert_eq!(symbols[2].kind, SymbolKind::FUNCTION);
+    }
+
+    #[test]
+    fn test_workspace_mod_with_function() {
+        let symbols = scan_workspace("mod foo { fn bar() {} }");
+        assert_eq!(symbols.len(), 2); // module + function
         assert_eq!(symbols[0].name, "foo");
         assert_eq!(symbols[0].kind, SymbolKind::MODULE);
-
-        let children = symbols[0].children.as_ref().unwrap();
-        assert_eq!(children.len(), 1);
-        assert_eq!(children[0].name, "bar");
-        assert_eq!(children[0].kind, SymbolKind::FUNCTION);
-        assert!(children[0].children.is_none());
+        assert_eq!(symbols[1].name, "bar");
+        assert_eq!(symbols[1].kind, SymbolKind::FUNCTION);
     }
 
     #[test]
-    fn test_parse_file_trait_with_methods() {
-        let content = Arc::new("trait Drawable { fn draw(); fn resize(); type X; }".to_string());
-        let symbols = scan_single_file(content);
-        assert_eq!(symbols.len(), 1);
+    fn test_workspace_trait_with_methods() {
+        let symbols = scan_workspace("trait Drawable { fn draw(); fn resize(); type X; }");
+        assert_eq!(symbols.len(), 4); // trait + 2 methods + 1 alias
         assert_eq!(symbols[0].name, "Drawable");
         assert_eq!(symbols[0].kind, SymbolKind::INTERFACE);
+        assert_eq!(symbols[1].name, "draw");
+        assert_eq!(symbols[1].kind, SymbolKind::FUNCTION);
+        assert_eq!(symbols[2].name, "resize");
+        assert_eq!(symbols[2].kind, SymbolKind::FUNCTION);
+        assert_eq!(symbols[3].name, "X");
+        assert_eq!(symbols[3].kind, SymbolKind::CONSTANT);
+    }
 
-        let children = symbols[0].children.as_ref().unwrap();
-        assert_eq!(children.len(), 3);
-        assert_eq!(children[0].name, "draw");
-        assert_eq!(children[0].kind, SymbolKind::FUNCTION);
-        assert!(children[0].children.is_none());
-        assert_eq!(children[1].name, "resize");
-        assert_eq!(children[1].kind, SymbolKind::FUNCTION);
-        assert!(children[1].children.is_none());
-        assert_eq!(children[2].name, "X");
-        assert_eq!(children[2].kind, SymbolKind::CONSTANT);
-        assert!(children[2].children.is_none());
+    #[test]
+    fn test_workspace_with_multiple_files() {
+        let symbols =
+            scan_workspace_with_files("mod foo; fn main() {}", &[("/foo.dora", "fn bar() {}")]);
+        assert_eq!(symbols.len(), 3);
+
+        assert_eq!(symbols[0].name, "foo");
+        assert_eq!(symbols[0].kind, SymbolKind::MODULE);
+        assert_location(&symbols[0], "file:///main.dora", 0, 4);
+
+        assert_eq!(symbols[1].name, "bar");
+        assert_eq!(symbols[1].kind, SymbolKind::FUNCTION);
+        assert_location(&symbols[1], "file:///foo.dora", 0, 3);
+
+        assert_eq!(symbols[2].name, "main");
+        assert_eq!(symbols[2].kind, SymbolKind::FUNCTION);
+        assert_location(&symbols[2], "file:///main.dora", 0, 12);
     }
 }

@@ -123,7 +123,7 @@ impl SemaCreationParams {
     where
         T: ToArcString,
     {
-        let program_path = PathBuf::from("main.dora");
+        let program_path = PathBuf::from("/main.dora");
         self.program_file = Some(program_path.clone());
         self.set_file_content(program_path, content.into())
     }
