@@ -1,12 +1,12 @@
 //= ignore
 
 fn main() {
-    let arr = Vec[Foo]();
+    let arr = Vec[Foo]::new();
 
-    let mut i = 0i32;
-    while i < 10i32 {
+    let mut i = 0;
+    while i < 10 {
         arr.push(tree(9));
-        i = i + 1i32;
+        i = i + 1;
     }
 
     std::forceCollect();
@@ -16,18 +16,30 @@ fn main() {
     std::forceCollect();
 }
 
-fn tree(depth: Int32): Foo {
-    if depth == 0i32 {
-        return Foo(nil, nil, nil, nil, nil);
+fn tree(depth: Int64): Foo {
+    if depth == 0 {
+        return Foo(
+            a = None[Foo],
+            b = None[Foo],
+            c = None[Foo],
+            d = None[Foo],
+            e = None[Foo],
+        );
     }
 
     return Foo(
-        tree(depth-1),
-        tree(depth-1),
-        tree(depth-1),
-        tree(depth-1),
-        tree(depth-1)
+        a = Some[Foo](tree(depth-1)),
+        b = Some[Foo](tree(depth-1)),
+        c = Some[Foo](tree(depth-1)),
+        d = Some[Foo](tree(depth-1)),
+        e = Some[Foo](tree(depth-1)),
     );
 }
 
-class Foo(a: Foo, b: Foo, c: Foo, d: Foo, e: Foo)
+class Foo {
+    a: Option[Foo],
+    b: Option[Foo],
+    c: Option[Foo],
+    d: Option[Foo],
+    e: Option[Foo],
+}

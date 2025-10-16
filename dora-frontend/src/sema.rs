@@ -13,7 +13,7 @@ use dora_parser::ast::{Ast, AstId};
 use dora_parser::{Span, compute_line_column};
 
 use crate::error::diag::Diagnostic;
-use crate::error::msg::ErrorMessage;
+use crate::error::msg::{ErrorDescriptor, ErrorMessage};
 use crate::{Name, SymTable, Vfs};
 
 pub trait ToArcString {
@@ -468,5 +468,10 @@ impl Sema {
 
     pub fn parse_project(&mut self) {
         crate::element_collector::collect_elements_for_package(self);
+    }
+
+    pub fn take_errors(self) -> (Vec<ErrorDescriptor>, Vec<ErrorDescriptor>) {
+        let diag = self.diag.into_inner();
+        (diag.errors, diag.warnings)
     }
 }

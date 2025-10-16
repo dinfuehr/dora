@@ -1,4 +1,4 @@
-pub use crate::error::msg::{ErrorLevel, ErrorMessage};
+pub use crate::error::msg::{ErrorDescriptor, ErrorLevel, ErrorMessage};
 use crate::interner::Name;
 use crate::sema::{Sema, SourceFileId};
 use crate::sym::{ModuleSymTable, SymTable, Symbol, SymbolKind};

@@ -6,4 +6,4 @@ fn main() {
 }
 
 @Optimize fn f() { g() }
-@ForceInline fn g() { std::fatalError("error in g()"); }
+@ForceInline fn g() { std::fatalError[()]("error in g()"); }

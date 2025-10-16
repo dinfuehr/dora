@@ -1,5 +1,6 @@
 use std::str::FromStr;
 use std::sync::Arc;
+use std::time::{Duration, Instant};
 
 use crossbeam::channel::{Receiver, Sender};
 use crossbeam::select;
@@ -82,6 +83,8 @@ pub(crate) fn run_server(
     Ok(())
 }
 
+const DEBOUNCE_DURATION_MS: u64 = 500;
+
 pub struct ServerState {
     pub vfs: Vfs,
     #[allow(dead_code)]
@@ -91,8 +94,10 @@ pub struct ServerState {
     pub projects: Arc<Vec<ProjectConfig>>,
     pub files_with_errors: Vec<HashSet<PathBuf>>,
     pub threadpool: ThreadPool,
-    pub threadpool_sender: Sender<MainLoopTask>,
-    pub threadpool_receiver: Receiver<MainLoopTask>,
+    pub threadpool_sender: Sender<MainThreadTask>,
+    pub threadpool_receiver: Receiver<MainThreadTask>,
+    pub last_change_time: Option<Instant>,
+    pub pending_compilation: bool,
 }
 
 impl ServerState {
@@ -114,6 +119,8 @@ impl ServerState {
             threadpool,
             threadpool_sender: sender,
             threadpool_receiver: receiver,
+            last_change_time: None,
+            pending_compilation: false,
         }
     }
 
@@ -137,19 +144,16 @@ fn event_loop(
     server_state: &mut ServerState,
     connection: &Connection,
 ) -> Result<(), Box<dyn Error + Sync + Send>> {
-    let mut event;
-
     loop {
-        event = next_event(server_state, connection);
-        if event.is_none() {
-            return Ok(());
-        }
-
-        match event {
+        match next_event(server_state, connection) {
             Some(Event::LanguageServer(msg)) => handle_message(server_state, msg),
             Some(Event::MainLoopTask(task)) => {
                 handle_main_loop_task(server_state, connection, task)
             }
+            Some(Event::DebounceExpired) => {
+                handle_debounce_expired(server_state);
+            }
+            Some(Event::Ping) => {}
             None => {
                 return Ok(());
             }
@@ -158,6 +162,23 @@ fn event_loop(
 }
 
 fn next_event(server_state: &mut ServerState, connection: &Connection) -> Option<Event> {
+    let mut is_timeout_active = false;
+    let mut select_timeout = Duration::from_secs(3600);
+
+    if let Some(last_change) = server_state.last_change_time {
+        if server_state.pending_compilation {
+            let elapsed = last_change.elapsed();
+            let debounce_duration = Duration::from_millis(DEBOUNCE_DURATION_MS);
+
+            if elapsed >= debounce_duration {
+                return Some(Event::DebounceExpired);
+            } else {
+                is_timeout_active = true;
+                select_timeout = debounce_duration - elapsed;
+            }
+        }
+    }
+
     select! {
         recv(connection.receiver) -> msg => {
             match msg {
@@ -187,17 +208,25 @@ fn next_event(server_state: &mut ServerState, connection: &Connection) -> Option
                 }
             }
         }
+
+        default(select_timeout) => {
+            if is_timeout_active {
+                Some(Event::DebounceExpired)
+            } else {
+                Some(Event::Ping)
+            }
+        }
     }
 }
 
 fn handle_main_loop_task(
     server_state: &mut ServerState,
     connection: &Connection,
-    task: MainLoopTask,
+    task: MainThreadTask,
 ) {
     match task {
-        MainLoopTask::SendResponse(msg) => connection.sender.send(msg).expect("send failed"),
-        MainLoopTask::ReportError(project_id, errors_by_file) => {
+        MainThreadTask::SendResponse(msg) => connection.sender.send(msg).expect("send failed"),
+        MainThreadTask::ReportError(project_id, errors_by_file) => {
             let mut last_files_with_errors = std::mem::replace(
                 &mut server_state.files_with_errors[project_id],
                 HashSet::new(),
@@ -281,6 +310,8 @@ fn did_change_notification(server_state: &mut ServerState, notification: Notific
             );
 
             server_state.update_file(path, content);
+            server_state.last_change_time = Some(Instant::now());
+            server_state.pending_compilation = true;
         }
 
         Err(_) => {
@@ -320,28 +351,50 @@ fn did_save_notification(server_state: &mut ServerState, notification: Notificat
         serde_json::from_value::<lsp_types::DidSaveTextDocumentParams>(notification.params);
     match result {
         Ok(_result) => {
-            let sender = server_state.threadpool_sender.clone();
-            let projects = server_state.projects.clone();
-            let vfs = server_state.vfs.clone();
-
-            server_state.threadpool.execute(move || {
-                for (project_id, project) in projects.iter().enumerate() {
-                    compile_project(project_id, project, vfs.clone(), sender.clone());
-                }
-            })
+            compile_all_projects(server_state);
         }
         Err(_) => {}
     }
+}
+
+fn handle_debounce_expired(server_state: &mut ServerState) {
+    if server_state.pending_compilation {
+        eprintln!("Debounce expired, triggering compilation");
+        server_state.pending_compilation = false;
+        server_state.last_change_time = None;
+        compile_all_projects(server_state);
+    }
+}
+
+fn compile_all_projects(server_state: &mut ServerState) {
+    let sender = server_state.threadpool_sender.clone();
+    let projects = server_state.projects.clone();
+    let vfs = server_state.vfs.clone();
+
+    server_state.threadpool.execute(move || {
+        for (project_id, project) in projects.iter().enumerate() {
+            compile_project(project_id, project, vfs.clone(), sender.clone());
+        }
+    });
 }
 
 fn compile_project(
     project_id: usize,
     project: &ProjectConfig,
     vfs: Vfs,
-    sender: Sender<MainLoopTask>,
+    sender: Sender<MainThreadTask>,
 ) {
-    use dora_frontend::sema::{Sema, SemaCreationParams};
     eprintln!("compile project {}", project.name);
+    let errors_by_file = compile_project_main(project, vfs);
+
+    sender
+        .send(MainThreadTask::ReportError(project_id, errors_by_file))
+        .expect("failed send");
+}
+
+fn compile_project_main(project: &ProjectConfig, vfs: Vfs) -> HashMap<PathBuf, Vec<Diagnostic>> {
+    use dora_frontend::sema::{Sema, SemaCreationParams};
+
     let sema_params = SemaCreationParams::new()
         .set_program_path(project.main.clone())
         .set_vfs(vfs)
@@ -350,6 +403,7 @@ fn compile_project(
 
     let success = dora_frontend::check_program(&mut sa);
     assert_eq!(success, !sa.diag.borrow().has_errors());
+
     let mut errors_by_file: HashMap<PathBuf, Vec<Diagnostic>> = HashMap::new();
 
     for error in sa.diag.borrow().errors() {
@@ -419,9 +473,7 @@ fn compile_project(
         sa.diag.borrow().warnings().len()
     );
 
-    sender
-        .send(MainLoopTask::ReportError(project_id, errors_by_file))
-        .expect("failed send");
+    errors_by_file
 }
 
 fn find_projects(workspaces: &[PathBuf]) -> Vec<ProjectConfig> {
@@ -477,14 +529,16 @@ pub(crate) fn file_path_to_uri(path: &Path) -> Uri {
     Uri::from_str(url.as_str()).expect("uri expected")
 }
 
-pub enum MainLoopTask {
+pub enum MainThreadTask {
     SendResponse(Message),
     ReportError(usize, HashMap<PathBuf, Vec<Diagnostic>>),
 }
 
 enum Event {
     LanguageServer(Message),
-    MainLoopTask(MainLoopTask),
+    MainLoopTask(MainThreadTask),
+    DebounceExpired,
+    Ping,
 }
 
 #[derive(Clone)]

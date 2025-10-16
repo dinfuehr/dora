@@ -1,12 +1,12 @@
 //= ignore
 
 fn main() {
-    let mut list: Foo = nil;
-    let mut i = 1i32;
+    let mut list: Option[Foo] = None[Foo];
+    let mut i = 1;
 
     while i <= 10_000_000 {
-        list = Foo(i, list);
-        i = i + 1i32;
+        list = Some[Foo](Foo(val = i, next = list));
+        i = i + 1;
     }
 
     std::forceCollect();
@@ -16,4 +16,7 @@ fn main() {
     std::forceCollect();
 }
 
-class Foo(val: Int32, next: Foo)
+class Foo {
+    val: Int64,
+    next: Option[Foo]
+}

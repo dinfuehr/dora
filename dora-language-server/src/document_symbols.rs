@@ -8,7 +8,7 @@ use dora_parser::{Span, compute_line_column};
 
 use dora_frontend::sema::{Element, ElementId, Sema, SemaCreationParams};
 
-use crate::server::{MainLoopTask, ServerState, uri_to_file_path};
+use crate::server::{MainThreadTask, ServerState, uri_to_file_path};
 
 pub(super) fn document_symbol_request(server_state: &mut ServerState, request: Request) {
     eprintln!("got documentSymbol request on main thread");
@@ -31,7 +31,7 @@ pub(super) fn document_symbol_request(server_state: &mut ServerState, request: R
                     let response = DocumentSymbolResponse::Nested(symbols);
                     let response = Response::new_ok(request.id, response);
                     sender
-                        .send(MainLoopTask::SendResponse(Message::Response(response)))
+                        .send(MainThreadTask::SendResponse(Message::Response(response)))
                         .expect("send failed");
                 });
             } else {

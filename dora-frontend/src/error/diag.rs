@@ -6,8 +6,8 @@ use crate::sema::{Sema, SourceFileId};
 use dora_parser::Span;
 
 pub struct Diagnostic {
-    errors: Vec<ErrorDescriptor>,
-    warnings: Vec<ErrorDescriptor>,
+    pub errors: Vec<ErrorDescriptor>,
+    pub warnings: Vec<ErrorDescriptor>,
 }
 
 impl Diagnostic {

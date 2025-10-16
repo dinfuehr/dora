@@ -4,4 +4,9 @@ fn main() {
     std::fatalError[Foo]("bla");
 }
 
-struct Foo(a: Int64, b: Int64, c: Int64, d: Int64)
+struct Foo {
+    a: Int64,
+    b: Int64,
+    c: Int64,
+    d: Int64
+}

@@ -11,7 +11,7 @@ use dora_parser::{Span, compute_line_column};
 use dora_frontend::Vfs;
 use dora_frontend::sema::{Element, ElementId, Sema, SemaCreationParams};
 
-use crate::server::{MainLoopTask, ServerState, file_path_to_uri};
+use crate::server::{MainThreadTask, ServerState, file_path_to_uri};
 
 pub(super) fn workspace_symbol_request(server_state: &mut ServerState, request: Request) {
     let result = serde_json::from_value::<lsp_types::WorkspaceSymbolParams>(request.params);
@@ -40,7 +40,7 @@ pub(super) fn workspace_symbol_request(server_state: &mut ServerState, request: 
                 let response = WorkspaceSymbolResponse::Nested(symbols);
                 let response: Response = Response::new_ok(request.id, response);
                 sender
-                    .send(MainLoopTask::SendResponse(Message::Response(response)))
+                    .send(MainThreadTask::SendResponse(Message::Response(response)))
                     .expect("send failed");
             });
         }
