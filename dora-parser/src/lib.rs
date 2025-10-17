@@ -264,7 +264,10 @@ mod tests {
         let content = "single line no newline";
         let line_starts = compute_line_starts(content);
 
-        assert_eq!(get_line_content(content, &line_starts, 0), "single line no newline");
+        assert_eq!(
+            get_line_content(content, &line_starts, 0),
+            "single line no newline"
+        );
         assert_eq!(get_line_content(content, &line_starts, 1), "");
     }
 

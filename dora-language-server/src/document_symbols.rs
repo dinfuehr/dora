@@ -1,13 +1,14 @@
 use std::sync::Arc;
 
 use lsp_server::{Message, Request, Response};
-use lsp_types::{DocumentSymbol, DocumentSymbolResponse, Position, Range, SymbolKind};
+use lsp_types::{DocumentSymbol, DocumentSymbolResponse, SymbolKind};
 
+use dora_parser::Span;
 use dora_parser::ast::File;
-use dora_parser::{Span, compute_line_column};
 
 use dora_frontend::sema::{Element, ElementId, Sema, SemaCreationParams};
 
+use crate::position::span_to_range;
 use crate::server::{MainThreadTask, ServerState, uri_to_file_path};
 
 pub(super) fn document_symbol_request(server_state: &mut ServerState, request: Request) {
@@ -64,13 +65,14 @@ fn element_to_document_symbol(sa: &Sema, element_id: ElementId) -> Option<Docume
     let file_id = element.file_id();
     let file = sa.file(file_id);
     let f = file.ast();
+    let content = f.content().as_str();
     let line_starts = &file.line_starts;
     let total_span = element.span();
 
     let (name, name_span, kind) = compute_element_propertiees(sa, f, element_id)?;
 
-    let range = range_from_span(line_starts, total_span);
-    let selection_range = range_from_span(line_starts, name_span);
+    let range = span_to_range(content, line_starts, total_span);
+    let selection_range = span_to_range(content, line_starts, name_span);
 
     let children: Vec<DocumentSymbol> = element
         .children()
@@ -270,18 +272,6 @@ fn compute_element_propertiees(
     };
 
     Some((name, span, kind))
-}
-
-fn range_from_span(line_starts: &[u32], span: Span) -> Range {
-    let start = position_from_offset(line_starts, span.start());
-    let end = position_from_offset(line_starts, span.end());
-
-    Range { start, end }
-}
-
-fn position_from_offset(line_starts: &[u32], offset: u32) -> Position {
-    let (line, column) = compute_line_column(&line_starts, offset);
-    Position::new(line - 1, column - 1)
 }
 
 #[cfg(test)]

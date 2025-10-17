@@ -1,16 +1,15 @@
 use std::path::PathBuf;
 
 use lsp_server::{Message, Request, Response};
-use lsp_types::{
-    Location, OneOf, Position, Range, SymbolKind, WorkspaceSymbol, WorkspaceSymbolResponse,
-};
+use lsp_types::{Location, OneOf, SymbolKind, WorkspaceSymbol, WorkspaceSymbolResponse};
 
+use dora_parser::Span;
 use dora_parser::ast::File;
-use dora_parser::{Span, compute_line_column};
 
 use dora_frontend::Vfs;
 use dora_frontend::sema::{Element, ElementId, Sema, SemaCreationParams};
 
+use crate::position::span_to_range;
 use crate::server::{MainThreadTask, ServerState, file_path_to_uri};
 
 pub(super) fn workspace_symbol_request(server_state: &mut ServerState, request: Request) {
@@ -73,6 +72,7 @@ fn append_workspace_symbol_for_element(
     let file_id = element.file_id();
     let file = sa.file(file_id);
     let f = file.ast();
+    let content = f.content().as_str();
     let line_starts = &file.line_starts;
     let total_span = element.span();
 
@@ -84,8 +84,8 @@ fn append_workspace_symbol_for_element(
 
     let (name, name_span, kind) = result.unwrap();
 
-    let _range = range_from_span(line_starts, total_span);
-    let selection_range = range_from_span(line_starts, name_span);
+    let _range = span_to_range(content, line_starts, total_span);
+    let selection_range = span_to_range(content, line_starts, name_span);
 
     elements.push(WorkspaceSymbol {
         name,
@@ -279,18 +279,6 @@ fn compute_element_propertiees(
     };
 
     Some((name, span, kind))
-}
-
-fn range_from_span(line_starts: &[u32], span: Span) -> Range {
-    let start = position_from_offset(line_starts, span.start());
-    let end = position_from_offset(line_starts, span.end());
-
-    Range { start, end }
-}
-
-fn position_from_offset(line_starts: &[u32], offset: u32) -> Position {
-    let (line, column) = compute_line_column(&line_starts, offset);
-    Position::new(line - 1, column - 1)
 }
 
 #[cfg(test)]

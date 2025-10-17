@@ -8,6 +8,7 @@ use crossbeam::select;
 use crate::server::run_server;
 
 mod document_symbols;
+mod position;
 mod server;
 mod workspace_symbols;
 
