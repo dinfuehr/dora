@@ -96,8 +96,7 @@ pub struct ServerState {
     pub threadpool: ThreadPool,
     pub threadpool_sender: Sender<MainThreadTask>,
     pub threadpool_receiver: Receiver<MainThreadTask>,
-    pub last_change_time: Option<Instant>,
-    pub pending_compilation: bool,
+    pub pending_compilation: Option<(Instant, usize)>,
 }
 
 impl ServerState {
@@ -119,8 +118,7 @@ impl ServerState {
             threadpool,
             threadpool_sender: sender,
             threadpool_receiver: receiver,
-            last_change_time: None,
-            pending_compilation: false,
+            pending_compilation: None,
         }
     }
 
@@ -138,6 +136,28 @@ impl ServerState {
         let vfs = std::mem::replace(&mut self.vfs, Vfs::new());
         self.vfs = vfs.close_file(path);
     }
+
+    #[allow(unused)]
+    pub fn find_project_for_file(&self, file_path: &Path) -> Option<usize> {
+        assert!(file_path.is_file());
+        let mut current_dir = file_path.parent()?;
+
+        loop {
+            let project_json_path = current_dir.join("dora-project.json");
+
+            if project_json_path.exists() {
+                for (idx, project) in self.projects.iter().enumerate() {
+                    if project.project_file == project_json_path {
+                        return Some(idx);
+                    }
+                }
+
+                return None;
+            }
+
+            current_dir = current_dir.parent()?;
+        }
+    }
 }
 
 fn event_loop(
@@ -153,7 +173,7 @@ fn event_loop(
             Some(Event::DebounceExpired) => {
                 handle_debounce_expired(server_state);
             }
-            Some(Event::Ping) => {}
+            Some(Event::Heartbeat) => {}
             None => {
                 return Ok(());
             }
@@ -165,17 +185,15 @@ fn next_event(server_state: &mut ServerState, connection: &Connection) -> Option
     let mut is_timeout_active = false;
     let mut select_timeout = Duration::from_secs(3600);
 
-    if let Some(last_change) = server_state.last_change_time {
-        if server_state.pending_compilation {
-            let elapsed = last_change.elapsed();
-            let debounce_duration = Duration::from_millis(DEBOUNCE_DURATION_MS);
+    if let Some((last_change, _project_id)) = server_state.pending_compilation {
+        let elapsed = last_change.elapsed();
+        let debounce_duration = Duration::from_millis(DEBOUNCE_DURATION_MS);
 
-            if elapsed >= debounce_duration {
-                return Some(Event::DebounceExpired);
-            } else {
-                is_timeout_active = true;
-                select_timeout = debounce_duration - elapsed;
-            }
+        if elapsed >= debounce_duration {
+            return Some(Event::DebounceExpired);
+        } else {
+            is_timeout_active = true;
+            select_timeout = debounce_duration - elapsed;
         }
     }
 
@@ -213,7 +231,7 @@ fn next_event(server_state: &mut ServerState, connection: &Connection) -> Option
             if is_timeout_active {
                 Some(Event::DebounceExpired)
             } else {
-                Some(Event::Ping)
+                Some(Event::Heartbeat)
             }
         }
     }
@@ -309,9 +327,13 @@ fn did_change_notification(server_state: &mut ServerState, notification: Notific
                 content.lines().count(),
             );
 
-            server_state.update_file(path, content);
-            server_state.last_change_time = Some(Instant::now());
-            server_state.pending_compilation = true;
+            server_state.update_file(path.clone(), content);
+
+            if let Some(project_id) = server_state.find_project_for_file(&path) {
+                server_state.pending_compilation = Some((Instant::now(), project_id));
+            } else {
+                eprintln!("Project not found for file {}", path.display());
+            }
         }
 
         Err(_) => {
@@ -328,7 +350,20 @@ fn did_open_notification(server_state: &mut ServerState, notification: Notificat
             let path = uri_to_file_path(&result.text_document.uri);
             let text = result.text_document.text;
 
-            server_state.open_file(path, text);
+            server_state.open_file(path.clone(), text);
+
+            if let Some(project_id) = server_state.find_project_for_file(&path) {
+                let sender = server_state.threadpool_sender.clone();
+                let projects = server_state.projects.clone();
+                let vfs = server_state.vfs.clone();
+
+                server_state.threadpool.execute(move || {
+                    let project = &projects[project_id];
+                    compile_project(project_id, &project, vfs, sender);
+                });
+            } else {
+                eprintln!("Project not found for file {}", path.display());
+            }
         }
         Err(_) => {}
     }
@@ -350,22 +385,43 @@ fn did_save_notification(server_state: &mut ServerState, notification: Notificat
     let result =
         serde_json::from_value::<lsp_types::DidSaveTextDocumentParams>(notification.params);
     match result {
-        Ok(_result) => {
-            compile_all_projects(server_state);
+        Ok(result) => {
+            let path = uri_to_file_path(&result.text_document.uri);
+
+            if let Some(project_id) = server_state.find_project_for_file(&path) {
+                let sender = server_state.threadpool_sender.clone();
+                let projects = server_state.projects.clone();
+                let vfs = server_state.vfs.clone();
+
+                server_state.threadpool.execute(move || {
+                    let project = &projects[project_id];
+                    compile_project(project_id, &project, vfs, sender);
+                });
+            } else {
+                eprintln!("Project not found for file {}", path.display());
+            }
         }
         Err(_) => {}
     }
 }
 
 fn handle_debounce_expired(server_state: &mut ServerState) {
-    if server_state.pending_compilation {
+    if let Some((_last_change, project_id)) = server_state.pending_compilation {
         eprintln!("Debounce expired, triggering compilation");
-        server_state.pending_compilation = false;
-        server_state.last_change_time = None;
-        compile_all_projects(server_state);
+        server_state.pending_compilation = None;
+
+        let sender = server_state.threadpool_sender.clone();
+        let projects = server_state.projects.clone();
+        let vfs = server_state.vfs.clone();
+
+        server_state.threadpool.execute(move || {
+            let project = &projects[project_id];
+            compile_project(project_id, project, vfs.clone(), sender.clone());
+        });
     }
 }
 
+#[allow(unused)]
 fn compile_all_projects(server_state: &mut ServerState) {
     let sender = server_state.threadpool_sender.clone();
     let projects = server_state.projects.clone();
@@ -493,6 +549,7 @@ fn find_projects(workspaces: &[PathBuf]) -> Vec<ProjectConfig> {
                         projects.push(ProjectConfig {
                             name,
                             main: main_file,
+                            project_file: entry.path().to_path_buf(),
                             is_standard_library: config._is_standard_library.unwrap_or(false),
                         });
                     }
@@ -538,13 +595,14 @@ enum Event {
     LanguageServer(Message),
     MainLoopTask(MainThreadTask),
     DebounceExpired,
-    Ping,
+    Heartbeat,
 }
 
 #[derive(Clone)]
 pub struct ProjectConfig {
     pub name: String,
     pub main: PathBuf,
+    pub project_file: PathBuf,
     pub is_standard_library: bool,
 }
 
@@ -554,4 +612,183 @@ struct ProjectJsonConfig {
     main: String,
     _is_standard_library: Option<bool>,
     packages: Vec<String>,
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use std::fs;
+    use tempfile::TempDir;
+
+    fn create_test_project(dir: &Path, project_name: &str, main_file: &str) -> PathBuf {
+        let project_json = format!(
+            r#"{{
+                "name": "{}",
+                "main": "{}",
+                "packages": []
+            }}"#,
+            project_name, main_file
+        );
+
+        let project_json_path = dir.join("dora-project.json");
+        fs::write(&project_json_path, project_json).unwrap();
+
+        let main_path = dir.join(main_file);
+        if let Some(parent) = main_path.parent() {
+            fs::create_dir_all(parent).ok();
+        }
+        fs::write(&main_path, "fn main() {}").unwrap();
+
+        main_path
+    }
+
+    fn create_test_state(projects: Vec<ProjectConfig>) -> ServerState {
+        ServerState::new(ClientCapabilities::default(), Vec::new(), projects)
+    }
+
+    #[test]
+    fn test_find_project_for_file_in_project_root() {
+        let temp_dir = TempDir::new().unwrap();
+        let project_dir = temp_dir.path().join("project1");
+        fs::create_dir(&project_dir).unwrap();
+
+        let main_path = create_test_project(&project_dir, "test-project", "main.dora");
+
+        let projects = vec![ProjectConfig {
+            name: "test-project".to_string(),
+            main: main_path.clone(),
+            project_file: project_dir.join("dora-project.json"),
+            is_standard_library: false,
+        }];
+
+        let state = create_test_state(projects);
+
+        // Test with a file in the same directory as main.dora
+        let test_file = project_dir.join("other.dora");
+        fs::write(&test_file, "fn test() {}").unwrap();
+
+        let result = state.find_project_for_file(&test_file);
+        assert_eq!(result, Some(0));
+    }
+
+    #[test]
+    fn test_find_project_for_file_in_subdirectory() {
+        let temp_dir = TempDir::new().unwrap();
+        let project_dir = temp_dir.path().join("project1");
+        fs::create_dir(&project_dir).unwrap();
+
+        let main_path = create_test_project(&project_dir, "test-project", "main.dora");
+
+        let projects = vec![ProjectConfig {
+            name: "test-project".to_string(),
+            main: main_path.clone(),
+            project_file: project_dir.join("dora-project.json"),
+            is_standard_library: false,
+        }];
+
+        let state = create_test_state(projects);
+
+        // Test with a file in a subdirectory
+        let subdir = project_dir.join("src");
+        fs::create_dir(&subdir).unwrap();
+        let test_file = subdir.join("lib.dora");
+        fs::write(&test_file, "fn lib() {}").unwrap();
+
+        let result = state.find_project_for_file(&test_file);
+        assert_eq!(result, Some(0));
+    }
+
+    #[test]
+    fn test_find_project_for_file_multiple_projects() {
+        let temp_dir = TempDir::new().unwrap();
+
+        // Create first project
+        let project1_dir = temp_dir.path().join("project1");
+        fs::create_dir(&project1_dir).unwrap();
+        let main1_path = create_test_project(&project1_dir, "project1", "main.dora");
+
+        // Create second project
+        let project2_dir = temp_dir.path().join("project2");
+        fs::create_dir(&project2_dir).unwrap();
+        let main2_path = create_test_project(&project2_dir, "project2", "main.dora");
+
+        let projects = vec![
+            ProjectConfig {
+                name: "project1".to_string(),
+                main: main1_path.clone(),
+                project_file: project1_dir.join("dora-project.json"),
+                is_standard_library: false,
+            },
+            ProjectConfig {
+                name: "project2".to_string(),
+                main: main2_path.clone(),
+                project_file: project2_dir.join("dora-project.json"),
+                is_standard_library: false,
+            },
+        ];
+
+        let state = create_test_state(projects);
+
+        // Test file in project1
+        let file1 = project1_dir.join("test1.dora");
+        fs::write(&file1, "fn test1() {}").unwrap();
+        assert_eq!(state.find_project_for_file(&file1), Some(0));
+
+        // Test file in project2
+        let file2 = project2_dir.join("test2.dora");
+        fs::write(&file2, "fn test2() {}").unwrap();
+        assert_eq!(state.find_project_for_file(&file2), Some(1));
+    }
+
+    #[test]
+    fn test_find_project_for_file_not_found() {
+        let temp_dir = TempDir::new().unwrap();
+        let project_dir = temp_dir.path().join("project1");
+        fs::create_dir(&project_dir).unwrap();
+
+        let main_path = create_test_project(&project_dir, "test-project", "main.dora");
+
+        let projects = vec![ProjectConfig {
+            name: "test-project".to_string(),
+            main: main_path.clone(),
+            project_file: project_dir.join("dora-project.json"),
+            is_standard_library: false,
+        }];
+
+        let state = create_test_state(projects);
+
+        // Test with a file outside the project
+        let outside_file = temp_dir.path().join("outside.dora");
+        fs::write(&outside_file, "fn outside() {}").unwrap();
+
+        let result = state.find_project_for_file(&outside_file);
+        assert_eq!(result, None);
+    }
+
+    #[test]
+    fn test_find_project_for_file_nested_subdirectory() {
+        let temp_dir = TempDir::new().unwrap();
+        let project_dir = temp_dir.path().join("project1");
+        fs::create_dir(&project_dir).unwrap();
+
+        let main_path = create_test_project(&project_dir, "test-project", "src/main.dora");
+
+        let projects = vec![ProjectConfig {
+            name: "test-project".to_string(),
+            main: main_path.clone(),
+            project_file: project_dir.join("dora-project.json"),
+            is_standard_library: false,
+        }];
+
+        let state = create_test_state(projects);
+
+        // Test with a file in a deeply nested subdirectory
+        let deep_dir = project_dir.join("src").join("lib").join("utils");
+        fs::create_dir_all(&deep_dir).unwrap();
+        let test_file = deep_dir.join("helper.dora");
+        fs::write(&test_file, "fn helper() {}").unwrap();
+
+        let result = state.find_project_for_file(&test_file);
+        assert_eq!(result, Some(0));
+    }
 }

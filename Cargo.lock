@@ -307,6 +307,7 @@ dependencies = [
  "lsp-types",
  "serde",
  "serde_json",
+ "tempfile",
  "threadpool",
  "url",
  "walkdir",
