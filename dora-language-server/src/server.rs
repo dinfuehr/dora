@@ -407,7 +407,10 @@ fn did_save_notification(server_state: &mut ServerState, notification: Notificat
 
 fn handle_debounce_expired(server_state: &mut ServerState) {
     if let Some((_last_change, project_id)) = server_state.pending_compilation {
-        eprintln!("Debounce expired, triggering compilation");
+        eprintln!(
+            "Debounce expired, triggering compilation for project {}",
+            server_state.projects[project_id].name
+        );
         server_state.pending_compilation = None;
 
         let sender = server_state.threadpool_sender.clone();
