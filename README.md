@@ -17,7 +17,7 @@ cargo build && cargo build --release
 
 # run all tests in debug and release mode (needs Ruby)
 tools/test && tools/test-release # Linux and macOS
-tools/test.bat && tools/test-release.bat # Windows
+tools/test.ps1 && tools/test-release.ps1 # Windows
 ```
 
 Note that the test runner is implemented in [Ruby](https://www.ruby-lang.org/)
