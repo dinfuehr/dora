@@ -284,6 +284,7 @@ fn compute_element_propertiees(
 #[cfg(test)]
 mod tests {
     use super::*;
+    use std::path::PathBuf;
     use std::sync::Arc;
 
     fn assert_location(symbol: &WorkspaceSymbol, uri: &str, line: u32, character: u32) {
@@ -316,7 +317,7 @@ mod tests {
         scan_workspace_with_files(content, &[])
     }
 
-    fn scan_workspace_with_files(content: &str, files: &[(&str, &str)]) -> Vec<WorkspaceSymbol> {
+    fn scan_workspace_with_files(content: &str, files: &[(PathBuf, &str)]) -> Vec<WorkspaceSymbol> {
         use std::path::PathBuf;
 
         let mut sema_params =
@@ -474,20 +475,25 @@ mod tests {
 
     #[test]
     fn test_workspace_with_multiple_files() {
-        let symbols =
-            scan_workspace_with_files("mod foo; fn main() {}", &[("/foo.dora", "fn bar() {}")]);
+        let current = std::env::current_dir().unwrap();
+        let main_path = current.join("main.dora");
+        let foo_path = current.join("foo.dora");
+        let symbols = scan_workspace_with_files(
+            "mod foo; fn main() {}",
+            &[(foo_path.clone(), "fn bar() {}")],
+        );
         assert_eq!(symbols.len(), 3);
 
         assert_eq!(symbols[0].name, "foo");
         assert_eq!(symbols[0].kind, SymbolKind::MODULE);
-        assert_location(&symbols[0], "file:///main.dora", 0, 4);
+        assert_location(&symbols[0], file_path_to_uri(&main_path).as_str(), 0, 4);
 
         assert_eq!(symbols[1].name, "bar");
         assert_eq!(symbols[1].kind, SymbolKind::FUNCTION);
-        assert_location(&symbols[1], "file:///foo.dora", 0, 3);
+        assert_location(&symbols[1], file_path_to_uri(&foo_path).as_str(), 0, 3);
 
         assert_eq!(symbols[2].name, "main");
         assert_eq!(symbols[2].kind, SymbolKind::FUNCTION);
-        assert_location(&symbols[2], "file:///main.dora", 0, 12);
+        assert_location(&symbols[2], file_path_to_uri(&main_path).as_str(), 0, 12);
     }
 }

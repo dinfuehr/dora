@@ -123,7 +123,7 @@ impl SemaCreationParams {
     where
         T: ToArcString,
     {
-        let program_path = PathBuf::from("/main.dora");
+        let program_path = std::env::current_dir().unwrap().join("main.dora");
         self.program_file = Some(program_path.clone());
         self.set_file_content(program_path, content.into())
     }
@@ -136,9 +136,10 @@ impl SemaCreationParams {
     #[cfg(test)]
     pub fn set_package_contents(self, packages: &[(&str, &str)]) -> SemaCreationParams {
         let mut result = self;
+        let current = std::env::current_dir().unwrap();
 
         for (pkg_name, content) in packages {
-            let path = PathBuf::from(format!("lib/{}/lib.dora", pkg_name));
+            let path = current.join("lib").join(pkg_name).join("lib.dora");
             result.packages.push((pkg_name.to_string(), path.clone()));
             result = result.set_file_content(path, *content);
         }
