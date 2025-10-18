@@ -1,0 +1,5 @@
+[project]
+name = "std"
+main = "std.dora"
+is_standard_library = true
+packages = []

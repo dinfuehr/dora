@@ -143,7 +143,7 @@ impl ServerState {
         let mut current_dir = file_path.parent()?;
 
         loop {
-            let project_json_path = current_dir.join("dora-project.json");
+            let project_json_path = current_dir.join("dora-project.toml");
 
             if project_json_path.exists() {
                 for (idx, project) in self.projects.iter().enumerate() {
@@ -541,19 +541,19 @@ fn find_projects(workspaces: &[PathBuf]) -> Vec<ProjectConfig> {
     for workspace in workspaces {
         for entry in WalkDir::new(workspace) {
             let entry = entry.unwrap();
-            if entry.file_name() == "dora-project.json" {
-                let config = read_project_json(entry.path());
+            if entry.file_name() == "dora-project.toml" {
+                let config = read_project_toml(entry.path());
 
                 match config {
                     Ok(config) => {
                         let path = entry.path().parent().expect("no parents");
-                        let name = config.name;
-                        let main_file = path.join(&config.main);
+                        let name = config.project.name;
+                        let main_file = path.join(&config.project.main);
                         projects.push(ProjectConfig {
                             name,
                             main: main_file,
                             project_file: entry.path().to_path_buf(),
-                            is_standard_library: config._is_standard_library.unwrap_or(false),
+                            is_standard_library: config.project.is_standard_library.unwrap_or(false),
                         });
                     }
 
@@ -568,13 +568,12 @@ fn find_projects(workspaces: &[PathBuf]) -> Vec<ProjectConfig> {
     projects
 }
 
-fn read_project_json(path: &Path) -> Result<ProjectJsonConfig, Box<dyn Error>> {
+fn read_project_toml(path: &Path) -> Result<ProjectTomlConfig, Box<dyn Error>> {
     let mut file = File::open(path)?;
     let mut content = String::new();
     file.read_to_string(&mut content)?;
 
-    let value: serde_json::Value = serde_json::from_str(&content)?;
-    let parsed_value = serde_json::from_value::<ProjectJsonConfig>(value)?;
+    let parsed_value = toml::from_str::<ProjectTomlConfig>(&content)?;
 
     Ok(parsed_value)
 }
@@ -610,10 +609,15 @@ pub struct ProjectConfig {
 }
 
 #[derive(Serialize, Deserialize)]
-struct ProjectJsonConfig {
+struct ProjectTomlConfig {
+    project: ProjectTomlProject,
+}
+
+#[derive(Serialize, Deserialize)]
+struct ProjectTomlProject {
     name: String,
     main: String,
-    _is_standard_library: Option<bool>,
+    is_standard_library: Option<bool>,
     packages: Vec<String>,
 }
 
@@ -624,17 +628,17 @@ mod tests {
     use tempfile::TempDir;
 
     fn create_test_project(dir: &Path, project_name: &str, main_file: &str) -> PathBuf {
-        let project_json = format!(
-            r#"{{
-                "name": "{}",
-                "main": "{}",
-                "packages": []
-            }}"#,
+        let project_toml = format!(
+            r#"[project]
+name = "{}"
+main = "{}"
+packages = []
+"#,
             project_name, main_file
         );
 
-        let project_json_path = dir.join("dora-project.json");
-        fs::write(&project_json_path, project_json).unwrap();
+        let project_toml_path = dir.join("dora-project.toml");
+        fs::write(&project_toml_path, project_toml).unwrap();
 
         let main_path = dir.join(main_file);
         if let Some(parent) = main_path.parent() {
@@ -660,7 +664,7 @@ mod tests {
         let projects = vec![ProjectConfig {
             name: "test-project".to_string(),
             main: main_path.clone(),
-            project_file: project_dir.join("dora-project.json"),
+            project_file: project_dir.join("dora-project.toml"),
             is_standard_library: false,
         }];
 
@@ -685,7 +689,7 @@ mod tests {
         let projects = vec![ProjectConfig {
             name: "test-project".to_string(),
             main: main_path.clone(),
-            project_file: project_dir.join("dora-project.json"),
+            project_file: project_dir.join("dora-project.toml"),
             is_standard_library: false,
         }];
 
@@ -719,13 +723,13 @@ mod tests {
             ProjectConfig {
                 name: "project1".to_string(),
                 main: main1_path.clone(),
-                project_file: project1_dir.join("dora-project.json"),
+                project_file: project1_dir.join("dora-project.toml"),
                 is_standard_library: false,
             },
             ProjectConfig {
                 name: "project2".to_string(),
                 main: main2_path.clone(),
-                project_file: project2_dir.join("dora-project.json"),
+                project_file: project2_dir.join("dora-project.toml"),
                 is_standard_library: false,
             },
         ];
@@ -754,7 +758,7 @@ mod tests {
         let projects = vec![ProjectConfig {
             name: "test-project".to_string(),
             main: main_path.clone(),
-            project_file: project_dir.join("dora-project.json"),
+            project_file: project_dir.join("dora-project.toml"),
             is_standard_library: false,
         }];
 
@@ -779,7 +783,7 @@ mod tests {
         let projects = vec![ProjectConfig {
             name: "test-project".to_string(),
             main: main_path.clone(),
-            project_file: project_dir.join("dora-project.json"),
+            project_file: project_dir.join("dora-project.toml"),
             is_standard_library: false,
         }];
 
