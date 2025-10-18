@@ -138,7 +138,7 @@ impl ServerState {
     }
 
     #[allow(unused)]
-    pub fn find_project_for_file(&self, file_path: &Path) -> Option<usize> {
+    pub fn find_project_for_file(&self, file_path: &Path) -> Option<(usize, PathBuf)> {
         assert!(file_path.is_file());
         let mut current_dir = file_path.parent()?;
 
@@ -148,7 +148,9 @@ impl ServerState {
             if project_json_path.exists() {
                 for (idx, project) in self.projects.iter().enumerate() {
                     if project.project_file == project_json_path {
-                        return Some(idx);
+                        let project_dir = project.project_file.parent()?;
+                        let relative_path = file_path.strip_prefix(project_dir).ok()?.to_path_buf();
+                        return Some((idx, relative_path));
                     }
                 }
 
@@ -329,7 +331,7 @@ fn did_change_notification(server_state: &mut ServerState, notification: Notific
 
             server_state.update_file(path.clone(), content);
 
-            if let Some(project_id) = server_state.find_project_for_file(&path) {
+            if let Some((project_id, _relative_path)) = server_state.find_project_for_file(&path) {
                 server_state.pending_compilation = Some((Instant::now(), project_id));
             } else {
                 eprintln!("Project not found for file {}", path.display());
@@ -352,7 +354,7 @@ fn did_open_notification(server_state: &mut ServerState, notification: Notificat
 
             server_state.open_file(path.clone(), text);
 
-            if let Some(project_id) = server_state.find_project_for_file(&path) {
+            if let Some((project_id, _relative_path)) = server_state.find_project_for_file(&path) {
                 let sender = server_state.threadpool_sender.clone();
                 let projects = server_state.projects.clone();
                 let vfs = server_state.vfs.clone();
@@ -388,7 +390,7 @@ fn did_save_notification(server_state: &mut ServerState, notification: Notificat
         Ok(result) => {
             let path = uri_to_file_path(&result.text_document.uri);
 
-            if let Some(project_id) = server_state.find_project_for_file(&path) {
+            if let Some((project_id, _relative_path)) = server_state.find_project_for_file(&path) {
                 let sender = server_state.threadpool_sender.clone();
                 let projects = server_state.projects.clone();
                 let vfs = server_state.vfs.clone();
@@ -553,7 +555,10 @@ fn find_projects(workspaces: &[PathBuf]) -> Vec<ProjectConfig> {
                             name,
                             main: main_file,
                             project_file: entry.path().to_path_buf(),
-                            is_standard_library: config.project.is_standard_library.unwrap_or(false),
+                            is_standard_library: config
+                                .project
+                                ._is_standard_library
+                                .unwrap_or(false),
                         });
                     }
 
@@ -617,7 +622,7 @@ struct ProjectTomlConfig {
 struct ProjectTomlProject {
     name: String,
     main: String,
-    is_standard_library: Option<bool>,
+    _is_standard_library: Option<bool>,
     packages: Vec<String>,
 }
 
@@ -675,7 +680,7 @@ packages = []
         fs::write(&test_file, "fn test() {}").unwrap();
 
         let result = state.find_project_for_file(&test_file);
-        assert_eq!(result, Some(0));
+        assert_eq!(result, Some((0, PathBuf::from("other.dora"))));
     }
 
     #[test]
@@ -702,7 +707,7 @@ packages = []
         fs::write(&test_file, "fn lib() {}").unwrap();
 
         let result = state.find_project_for_file(&test_file);
-        assert_eq!(result, Some(0));
+        assert_eq!(result, Some((0, PathBuf::from("src/lib.dora"))));
     }
 
     #[test]
@@ -739,12 +744,18 @@ packages = []
         // Test file in project1
         let file1 = project1_dir.join("test1.dora");
         fs::write(&file1, "fn test1() {}").unwrap();
-        assert_eq!(state.find_project_for_file(&file1), Some(0));
+        assert_eq!(
+            state.find_project_for_file(&file1),
+            Some((0, PathBuf::from("test1.dora")))
+        );
 
         // Test file in project2
         let file2 = project2_dir.join("test2.dora");
         fs::write(&file2, "fn test2() {}").unwrap();
-        assert_eq!(state.find_project_for_file(&file2), Some(1));
+        assert_eq!(
+            state.find_project_for_file(&file2),
+            Some((1, PathBuf::from("test2.dora")))
+        );
     }
 
     #[test]
@@ -796,6 +807,9 @@ packages = []
         fs::write(&test_file, "fn helper() {}").unwrap();
 
         let result = state.find_project_for_file(&test_file);
-        assert_eq!(result, Some(0));
+        assert_eq!(
+            result,
+            Some((0, PathBuf::from("src/lib/utils/helper.dora")))
+        );
     }
 }
