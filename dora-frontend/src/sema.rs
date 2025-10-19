@@ -9,7 +9,7 @@ use id_arena::Arena;
 
 use crate::interner::Interner;
 use dora_bytecode::Location;
-use dora_parser::ast::{Ast, AstId, AstNode, AstNodeBase};
+use dora_parser::ast::{Ast, AstId, AstNode};
 use dora_parser::{Span, compute_line_column};
 
 use crate::error::diag::Diagnostic;
@@ -488,4 +488,3 @@ impl Sema {
         (diag.errors, diag.warnings)
     }
 }
-

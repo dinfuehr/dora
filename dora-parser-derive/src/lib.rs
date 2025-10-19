@@ -39,13 +39,11 @@ pub fn derive_ast_node(input: TokenStream) -> TokenStream {
                 _ => quote! { Vec::new() },
             };
 
-            // Generate the Ast-prefixed struct definition with only id and file fields
+            // Generate the Ast-prefixed struct definition as a newtype wrapper around AstNode
             let struct_def = quote! {
                 #[derive(Clone, Debug)]
-                pub struct #struct_ast_node_name {
-                    pub id: AstId,
-                    pub file: File,
-                }
+                #[repr(transparent)]
+                pub struct #struct_ast_node_name(AstNode);
             };
 
             // Generate field accessor methods for Ast* struct
@@ -68,7 +66,7 @@ pub fn derive_ast_node(input: TokenStream) -> TokenStream {
 
                         let raw_accessor = quote! {
                             pub fn #raw_accessor_name(&self) -> &#field_type {
-                                &self.file.node(self.id).#to_method().unwrap().#field_name
+                                &self.ast_node().file().node(self.ast_node().id()).#to_method().unwrap().#field_name
                             }
                         };
 
@@ -79,7 +77,7 @@ pub fn derive_ast_node(input: TokenStream) -> TokenStream {
                             quote! {
                                 pub fn #field_name(&self) -> #return_type {
                                     let ast_id = *self.#raw_accessor_name();
-                                    #return_type::new(self.file.clone(), ast_id)
+                                    #return_type::new(self.ast_node().file().clone(), ast_id)
                                 }
                             }
                         } else if is_option_ast_id(field_type) {
@@ -87,7 +85,7 @@ pub fn derive_ast_node(input: TokenStream) -> TokenStream {
                                 pub fn #field_name(&self) -> Option<#return_type> {
                                     let ast_id = *self.#raw_accessor_name();
                                     ast_id.map(|ast_id| {
-                                        #return_type::new(self.file.clone(), ast_id)
+                                        #return_type::new(self.ast_node().file().clone(), ast_id)
                                     })
                                 }
                             }
@@ -96,7 +94,7 @@ pub fn derive_ast_node(input: TokenStream) -> TokenStream {
                                 pub fn #field_name_at(&self, idx: usize) -> #return_type {
                                     let vec = self.#raw_accessor_name();
                                     let ast_id = vec[idx];
-                                    #return_type::new(self.file.clone(), ast_id)
+                                    #return_type::new(self.ast_node().file().clone(), ast_id)
                                 }
 
                                 pub fn #field_name_len(&self) -> usize {
@@ -105,13 +103,13 @@ pub fn derive_ast_node(input: TokenStream) -> TokenStream {
 
                                 pub fn #field_name(&self) -> AstIdIterator<'_, #return_type> {
                                     let vec = self.#raw_accessor_name();
-                                    AstIdIterator::new(self.file.clone(), vec.as_slice())
+                                    AstIdIterator::new(self.ast_node().file().clone(), vec.as_slice())
                                 }
                             }
                         } else if is_likely_copy_type(field_type) {
                             quote! {
                                 pub fn #field_name(&self) -> #field_type {
-                                    self.file.node(self.id).#to_method().unwrap().#field_name
+                                    self.ast_node().file().node(self.ast_node().id()).#to_method().unwrap().#field_name
                                 }
                             }
                         } else {
@@ -156,37 +154,39 @@ pub fn derive_ast_node(input: TokenStream) -> TokenStream {
                 impl AstNodeBase for #struct_ast_node_name {
                     fn new(file: File, id: AstId) -> Self {
                         assert!(file.node(id).#is_method_name());
-                        #struct_ast_node_name { file, id }
+                        #struct_ast_node_name(AstNode::new(file, id))
                     }
 
                     fn id(&self) -> AstId {
-                        self.id
+                        self.ast_node().id()
                     }
 
                     fn raw_node(&self) -> &Ast {
-                        self.file.node(self.id)
+                        self.ast_node().raw_node()
                     }
 
                     fn span(&self) -> Span {
-                        self.raw_node().span()
+                        self.ast_node().span()
                     }
 
                     fn file(&self) -> &File {
-                        &self.file
+                        self.ast_node().file()
                     }
 
                     fn children(&self) -> impl Iterator<Item = AstNode> {
-                        let children_vec = self.raw_node().children();
-                        let file = self.file.clone();
-                        children_vec.into_iter().map(move |id| AstNode::new(file.clone(), id))
+                        self.ast_node().children()
                     }
 
                     fn kind(&self) -> NodeKind {
-                        self.raw_node().kind()
+                        self.ast_node().kind()
                     }
                 }
 
                 impl #struct_ast_node_name {
+                    pub fn ast_node(&self) -> &AstNode {
+                        &self.0
+                    }
+
                     #field_methods
                 }
             };
@@ -583,15 +583,12 @@ fn generate_ast_node_methods_per_variant(data_enum: &DataEnum) -> proc_macro2::T
 
             quote! {
                 pub fn #is_method_name(&self) -> bool {
-                    self.file.node(self.id).#is_method_name()
+                    self.file().node(self.id()).#is_method_name()
                 }
 
                 pub fn #to_method_name(self) -> Option<#ast_type_name> {
-                    if self.file.node(self.id).#is_method_name() {
-                        Some(#ast_type_name {
-                            file: self.file,
-                            id: self.id
-                        })
+                    if self.file().node(self.id()).#is_method_name() {
+                        Some(#ast_type_name(self))
                     } else {
                         None
                     }

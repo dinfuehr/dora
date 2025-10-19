@@ -36,10 +36,7 @@ impl File {
 
     #[allow(unused)]
     pub fn node2(&self, id: AstId) -> AstNode {
-        AstNode {
-            file: self.clone(),
-            id,
-        }
+        AstNode::new(self.clone(), id)
     }
 
     pub fn root(&self) -> AstNode {
@@ -255,22 +252,25 @@ pub trait AstNodeBase: Sized {
 }
 
 #[derive(Clone, Debug)]
-pub struct AstNode {
+struct AstNodeData {
     file: File,
     id: AstId,
 }
 
+#[derive(Clone, Debug)]
+pub struct AstNode(Arc<AstNodeData>);
+
 impl AstNodeBase for AstNode {
     fn new(file: File, id: AstId) -> Self {
-        AstNode { file, id }
+        AstNode(Arc::new(AstNodeData { file, id }))
     }
 
     fn id(&self) -> AstId {
-        self.id
+        self.0.id
     }
 
     fn raw_node(&self) -> &Ast {
-        self.file.node(self.id)
+        self.0.file.node(self.0.id)
     }
 
     fn span(&self) -> Span {
@@ -278,12 +278,12 @@ impl AstNodeBase for AstNode {
     }
 
     fn file(&self) -> &File {
-        &self.file
+        &self.0.file
     }
 
     fn children(&self) -> impl Iterator<Item = AstNode> {
         let children_vec = self.raw_node().children();
-        let file = self.file.clone();
+        let file = self.0.file.clone();
         children_vec
             .into_iter()
             .map(move |id| AstNode::new(file.clone(), id))
@@ -296,7 +296,7 @@ impl AstNodeBase for AstNode {
 
 impl PartialEq for AstNode {
     fn eq(&self, other: &Self) -> bool {
-        self.id == other.id && Arc::ptr_eq(&self.file.0, &other.file.0)
+        self.0.id == other.0.id && Arc::ptr_eq(&self.0.file.0, &other.0.file.0)
     }
 }
 
