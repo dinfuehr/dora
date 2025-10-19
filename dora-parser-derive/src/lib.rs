@@ -333,22 +333,60 @@ pub fn derive_ast_enum(input: TokenStream) -> TokenStream {
         _ => panic!("AstEnum can only be derived for enums"),
     };
 
-    let variant_methods = generate_per_variant_methods(data_enum);
-    let span_method = generate_span_method(data_enum);
-    let name_method = generate_name_method(data_enum);
-    let children_method = generate_children_method(data_enum);
+    // Verify this is a unit variant enum (NodeKind style)
+    let is_unit_variant_enum = data_enum
+        .variants
+        .iter()
+        .all(|v| matches!(v.fields, Fields::Unit));
+    if !is_unit_variant_enum {
+        panic!("AstEnum requires unit variants (e.g., `Alias` not `Alias(Alias)`)");
+    }
 
-    // Generate as_* methods for AstNode
-    let ast_node_methods = generate_ast_node_methods(data_enum);
+    // Generate the full Ast enum and all implementations from NodeKind
+    generate_from_node_kind(enum_name, data_enum)
+}
+
+fn generate_from_node_kind(enum_name: &syn::Ident, data_enum: &DataEnum) -> TokenStream {
+    // Generate Ast enum variants
+    let ast_variants: Vec<_> = data_enum
+        .variants
+        .iter()
+        .map(|variant| {
+            let variant_name = &variant.ident;
+            quote! {
+                #variant_name(#variant_name)
+            }
+        })
+        .collect();
+
+    // Generate Ast::is_XXX(), Ast::to_XXX() and Ast::as_XXX() methods.
+    let variant_methods = generate_ast_methods_per_variant(data_enum);
+    // Generate Ast::span().
+    let span_method = generate_ast_span_method(data_enum);
+    // Generate Ast::name().
+    let name_method = generate_ast_name_method(data_enum);
+    // Generate Ast::children().
+    let children_method = generate_ast_children_method(data_enum);
+    // Generate Ast::kind().
+    let kind_method = generate_ast_kind_method(data_enum, enum_name);
+
+    // Generate AstNode::is_XXX(), AstNode::to_XXX() and AstNode::as_XXX() methods.
+    let ast_node_methods = generate_ast_node_methods_per_variant(data_enum);
 
     // Generate visitor pattern code
     let visitor_code = generate_visitor_pattern(data_enum);
 
     let expanded = quote! {
-        impl #enum_name {
+        #[derive(Clone, Debug)]
+        pub enum Ast {
+            #(#ast_variants),*
+        }
+
+        impl Ast {
             #span_method
             #name_method
             #children_method
+            #kind_method
             #variant_methods
         }
 
@@ -358,181 +396,6 @@ pub fn derive_ast_enum(input: TokenStream) -> TokenStream {
     };
 
     TokenStream::from(expanded)
-}
-
-fn generate_per_variant_methods(data_enum: &DataEnum) -> proc_macro2::TokenStream {
-    let mut all_methods = Vec::new();
-
-    for variant in &data_enum.variants {
-        let variant_name = &variant.ident;
-
-        // Get the inner type if it's a tuple variant with one field
-        let inner_type = match &variant.fields {
-            Fields::Unnamed(fields) if fields.unnamed.len() == 1 => {
-                Some(&fields.unnamed.first().unwrap().ty)
-            }
-            _ => None,
-        };
-
-        if let Some(inner_ty) = inner_type {
-            // Convert variant name to snake_case for method names
-            let method_name_str = to_snake_case(&variant_name.to_string());
-            let is_method_name =
-                syn::Ident::new(&format!("is_{}", method_name_str), variant_name.span());
-            let to_method_name =
-                syn::Ident::new(&format!("to_{}", method_name_str), variant_name.span());
-            let as_method_name =
-                syn::Ident::new(&format!("as_{}", method_name_str), variant_name.span());
-
-            // Generate is<variant>, to_<variant> and as_<variant> method on Ast.
-            let per_variant_methods = quote! {
-                pub fn #is_method_name(&self) -> bool {
-                    match self {
-                        Self::#variant_name(..) => true,
-                        _ => false,
-                    }
-                }
-
-                pub fn #to_method_name(&self) -> Option<&#inner_ty> {
-                    match self {
-                        Self::#variant_name(inner) => Some(inner),
-                        _ => None,
-                    }
-                }
-
-                pub fn #as_method_name(&self) -> &#inner_ty {
-                    self.#to_method_name().expect("wrong node kind")
-                }
-            };
-
-            all_methods.push(per_variant_methods);
-        }
-    }
-
-    quote! {
-        #(#all_methods)*
-    }
-}
-
-fn generate_span_method(data_enum: &DataEnum) -> proc_macro2::TokenStream {
-    let mut match_arms = Vec::new();
-
-    for variant in &data_enum.variants {
-        let variant_name = &variant.ident;
-
-        // Only handle tuple variants with one field
-        if matches!(&variant.fields, Fields::Unnamed(fields) if fields.unnamed.len() == 1) {
-            let arm = quote! {
-                Self::#variant_name(node) => node.span
-            };
-            match_arms.push(arm);
-        }
-    }
-
-    quote! {
-        pub fn span(&self) -> Span {
-            match self {
-                #(#match_arms),*
-            }
-        }
-    }
-}
-
-fn generate_name_method(data_enum: &DataEnum) -> proc_macro2::TokenStream {
-    let mut match_arms = Vec::new();
-
-    for variant in &data_enum.variants {
-        let variant_name = &variant.ident;
-
-        // Only handle tuple variants with one field
-        if matches!(&variant.fields, Fields::Unnamed(fields) if fields.unnamed.len() == 1) {
-            let arm = quote! {
-                Self::#variant_name(node) => node.name()
-            };
-            match_arms.push(arm);
-        }
-    }
-
-    quote! {
-        pub fn name(&self) -> &'static str {
-            match self {
-                #(#match_arms),*
-            }
-        }
-    }
-}
-
-fn generate_children_method(data_enum: &DataEnum) -> proc_macro2::TokenStream {
-    let mut match_arms = Vec::new();
-
-    for variant in &data_enum.variants {
-        let variant_name = &variant.ident;
-
-        // Only handle tuple variants with one field
-        if matches!(&variant.fields, Fields::Unnamed(fields) if fields.unnamed.len() == 1) {
-            let arm = quote! {
-                Self::#variant_name(node) => node.children()
-            };
-            match_arms.push(arm);
-        }
-    }
-
-    quote! {
-        pub fn children(&self) -> Vec<AstId> {
-            match self {
-                #(#match_arms),*
-            }
-        }
-    }
-}
-
-fn generate_ast_node_methods(data_enum: &DataEnum) -> proc_macro2::TokenStream {
-    // Generate as_* methods for each variant
-    let as_methods = data_enum.variants.iter().filter_map(|variant| {
-        let variant_name = &variant.ident;
-
-        // Only handle tuple variants with one field
-        if !matches!(&variant.fields, Fields::Unnamed(fields) if fields.unnamed.len() == 1) {
-            return None;
-        }
-
-        let method_name_str = to_snake_case(&variant_name.to_string());
-        let is_method_name =
-            syn::Ident::new(&format!("is_{}", method_name_str), variant_name.span());
-        let to_method_name =
-            syn::Ident::new(&format!("to_{}", method_name_str), variant_name.span());
-        let as_method_name =
-            syn::Ident::new(&format!("as_{}", method_name_str), variant_name.span());
-        let ast_type_name = syn::Ident::new(&format!("Ast{}", variant_name), variant_name.span());
-
-        // Generate is<variant>, to_<variant> and as_<variant> method on AstNode.
-        Some(quote! {
-            pub fn #is_method_name(&self) -> bool {
-                self.file.node(self.id).#is_method_name()
-            }
-
-            pub fn #to_method_name(self) -> Option<#ast_type_name> {
-                if self.file.node(self.id).#is_method_name() {
-                    Some(#ast_type_name {
-                        file: self.file,
-                       id: self.id
-                    })
-                } else {
-                    None
-                }
-            }
-
-            pub fn #as_method_name(self) -> #ast_type_name {
-                self.#to_method_name().expect("wrong node kind")
-            }
-        })
-    });
-
-    quote! {
-        impl AstNode {
-            #(#as_methods)*
-        }
-    }
 }
 
 fn to_snake_case(s: &str) -> String {
@@ -573,45 +436,213 @@ fn get_return_type_from_attrs(attrs: &[Attribute]) -> syn::Ident {
     syn::Ident::new("AstNode", proc_macro2::Span::call_site())
 }
 
-fn generate_visitor_pattern(data_enum: &DataEnum) -> proc_macro2::TokenStream {
-    // Generate the trait methods directly
-    let trait_methods = data_enum.variants.iter().filter_map(|variant| {
+fn generate_ast_methods_per_variant(data_enum: &DataEnum) -> proc_macro2::TokenStream {
+    let mut all_methods = Vec::new();
+
+    for variant in &data_enum.variants {
         let variant_name = &variant.ident;
-
-        // Only handle tuple variants with one field
-        if !matches!(&variant.fields, Fields::Unnamed(fields) if fields.unnamed.len() == 1) {
-            return None;
-        }
-
         let method_name_str = to_snake_case(&variant_name.to_string());
-        let visit_method =
-            syn::Ident::new(&format!("visit_{}", method_name_str), variant_name.span());
-        let ast_type_name = syn::Ident::new(&format!("Ast{}", variant_name), variant_name.span());
+        let is_method_name =
+            syn::Ident::new(&format!("is_{}", method_name_str), variant_name.span());
+        let to_method_name =
+            syn::Ident::new(&format!("to_{}", method_name_str), variant_name.span());
+        let as_method_name =
+            syn::Ident::new(&format!("as_{}", method_name_str), variant_name.span());
 
-        Some(quote! {
-            fn #visit_method(&mut self, _ast_node: #ast_type_name) {
-                walk_children(self, _ast_node);
+        let per_variant_methods = quote! {
+            pub fn #is_method_name(&self) -> bool {
+                matches!(self, Self::#variant_name(..))
+            }
+
+            pub fn #to_method_name(&self) -> Option<&#variant_name> {
+                match self {
+                    Self::#variant_name(inner) => Some(inner),
+                    _ => None,
+                }
+            }
+
+            pub fn #as_method_name(&self) -> &#variant_name {
+                self.#to_method_name().expect("wrong node kind")
+            }
+        };
+
+        all_methods.push(per_variant_methods);
+    }
+
+    quote! {
+        #(#all_methods)*
+    }
+}
+
+fn generate_ast_span_method(data_enum: &DataEnum) -> proc_macro2::TokenStream {
+    let match_arms: Vec<_> = data_enum
+        .variants
+        .iter()
+        .map(|variant| {
+            let variant_name = &variant.ident;
+            quote! {
+                Self::#variant_name(node) => node.span
             }
         })
-    });
+        .collect();
 
-    // Generate the visit_node function match arms
-    let visit_match_arms = data_enum.variants.iter().filter_map(|variant| {
-        let variant_name = &variant.ident;
-
-        if !matches!(&variant.fields, Fields::Unnamed(fields) if fields.unnamed.len() == 1) {
-            return None;
+    quote! {
+        pub fn span(&self) -> Span {
+            match self {
+                #(#match_arms),*
+            }
         }
+    }
+}
 
-        let method_name_str = to_snake_case(&variant_name.to_string());
-        let visit_method =
-            syn::Ident::new(&format!("visit_{}", method_name_str), variant_name.span());
-        let as_method = syn::Ident::new(&format!("as_{}", method_name_str), variant_name.span());
-
-        Some(quote! {
-            Ast::#variant_name(_n) => v.#visit_method(node.clone().#as_method()),
+fn generate_ast_name_method(data_enum: &DataEnum) -> proc_macro2::TokenStream {
+    let match_arms: Vec<_> = data_enum
+        .variants
+        .iter()
+        .map(|variant| {
+            let variant_name = &variant.ident;
+            quote! {
+                Self::#variant_name(node) => node.name()
+            }
         })
-    });
+        .collect();
+
+    quote! {
+        pub fn name(&self) -> &'static str {
+            match self {
+                #(#match_arms),*
+            }
+        }
+    }
+}
+
+fn generate_ast_children_method(data_enum: &DataEnum) -> proc_macro2::TokenStream {
+    let match_arms: Vec<_> = data_enum
+        .variants
+        .iter()
+        .map(|variant| {
+            let variant_name = &variant.ident;
+            quote! {
+                Self::#variant_name(node) => node.children()
+            }
+        })
+        .collect();
+
+    quote! {
+        pub fn children(&self) -> Vec<AstId> {
+            match self {
+                #(#match_arms),*
+            }
+        }
+    }
+}
+
+fn generate_ast_kind_method(
+    data_enum: &DataEnum,
+    node_kind_name: &syn::Ident,
+) -> proc_macro2::TokenStream {
+    let match_arms: Vec<_> = data_enum
+        .variants
+        .iter()
+        .map(|variant| {
+            let variant_name = &variant.ident;
+            quote! {
+                Self::#variant_name(_) => #node_kind_name::#variant_name
+            }
+        })
+        .collect();
+
+    quote! {
+        pub fn kind(&self) -> #node_kind_name {
+            match self {
+                #(#match_arms),*
+            }
+        }
+    }
+}
+
+fn generate_ast_node_methods_per_variant(data_enum: &DataEnum) -> proc_macro2::TokenStream {
+    let as_methods: Vec<_> = data_enum
+        .variants
+        .iter()
+        .map(|variant| {
+            let variant_name = &variant.ident;
+            let method_name_str = to_snake_case(&variant_name.to_string());
+            let is_method_name =
+                syn::Ident::new(&format!("is_{}", method_name_str), variant_name.span());
+            let to_method_name =
+                syn::Ident::new(&format!("to_{}", method_name_str), variant_name.span());
+            let as_method_name =
+                syn::Ident::new(&format!("as_{}", method_name_str), variant_name.span());
+            let ast_type_name =
+                syn::Ident::new(&format!("Ast{}", variant_name), variant_name.span());
+
+            quote! {
+                pub fn #is_method_name(&self) -> bool {
+                    self.file.node(self.id).#is_method_name()
+                }
+
+                pub fn #to_method_name(self) -> Option<#ast_type_name> {
+                    if self.file.node(self.id).#is_method_name() {
+                        Some(#ast_type_name {
+                            file: self.file,
+                            id: self.id
+                        })
+                    } else {
+                        None
+                    }
+                }
+
+                pub fn #as_method_name(self) -> #ast_type_name {
+                    self.#to_method_name().expect("wrong node kind")
+                }
+            }
+        })
+        .collect();
+
+    quote! {
+        impl AstNode {
+            #(#as_methods)*
+        }
+    }
+}
+
+fn generate_visitor_pattern(data_enum: &DataEnum) -> proc_macro2::TokenStream {
+    let trait_methods: Vec<_> = data_enum
+        .variants
+        .iter()
+        .map(|variant| {
+            let variant_name = &variant.ident;
+            let method_name_str = to_snake_case(&variant_name.to_string());
+            let visit_method =
+                syn::Ident::new(&format!("visit_{}", method_name_str), variant_name.span());
+            let ast_type_name =
+                syn::Ident::new(&format!("Ast{}", variant_name), variant_name.span());
+
+            quote! {
+                fn #visit_method(&mut self, _ast_node: #ast_type_name) {
+                    walk_children(self, _ast_node);
+                }
+            }
+        })
+        .collect();
+
+    let visit_match_arms: Vec<_> = data_enum
+        .variants
+        .iter()
+        .map(|variant| {
+            let variant_name = &variant.ident;
+            let method_name_str = to_snake_case(&variant_name.to_string());
+            let visit_method =
+                syn::Ident::new(&format!("visit_{}", method_name_str), variant_name.span());
+            let as_method =
+                syn::Ident::new(&format!("as_{}", method_name_str), variant_name.span());
+
+            quote! {
+                Ast::#variant_name(_n) => v.#visit_method(node.clone().#as_method()),
+            }
+        })
+        .collect();
 
     quote! {
         pub trait Visitor: Sized {
