@@ -1116,4 +1116,94 @@ R_BRACE@14..15
 "#
         );
     }
+
+    #[test]
+    fn test_string_with_multibyte_chars() {
+        // Test that string length is measured in bytes, not codepoints
+        // "café" has 4 characters, "café" is 5 bytes (c=1, a=1, f=1, é=2)
+        let tokens = lex_success("\"café\"");
+        assert_eq!(tokens, vec![(STRING_LITERAL, 7)]); // 1 (") + 5 (café) + 1 (") = 7 bytes
+
+        // Test with emoji (3 bytes in UTF-8)
+        // "a☕b" has 3 characters but 5 bytes (a=1, ☕=3, b=1)
+        let tokens = lex_success("\"a☕b\"");
+        assert_eq!(tokens, vec![(STRING_LITERAL, 7)]); // 1 (") + 1 (a) + 3 (☕) + 1 (b) + 1 (") = 7 bytes
+
+        // Test with multiple multi-byte characters
+        // "こんにちは" is 5 Japanese characters, each is 3 bytes in UTF-8
+        let tokens = lex_success("\"こんにちは\"");
+        assert_eq!(tokens, vec![(STRING_LITERAL, 17)]); // 1 (") + 15 (5 chars × 3 bytes) + 1 (") = 17 bytes
+
+        // Test with mixed ASCII and multi-byte
+        // "hello世界" has 7 characters but 11 bytes (世 and 界 are 3 bytes each)
+        let tokens = lex_success("\"hello世界\"");
+        assert_eq!(tokens, vec![(STRING_LITERAL, 13)]); // 1 (") + 5 (hello) + 3 (世) + 3 (界) + 1 (") = 13 bytes
+    }
+
+    #[test]
+    fn test_line_comment_with_multibyte_chars() {
+        // Test that comment length is measured in bytes, not codepoints
+        // "//café" is 2 (//) + 5 (café) = 7 bytes
+        let tokens = lex_success("//café");
+        assert_eq!(tokens, vec![(LINE_COMMENT, 7)]); // 2 (//) + 5 (café) = 7 bytes
+
+        // Test with emoji
+        // "//☕" is 2 (//) + 3 (☕) = 5 bytes
+        let tokens = lex_success("//☕");
+        assert_eq!(tokens, vec![(LINE_COMMENT, 5)]); // 2 (//) + 3 (☕) = 5 bytes
+
+        // Test with Japanese text
+        // "//こんにちは" is 2 (//) + 15 (5 chars × 3 bytes) = 17 bytes
+        let tokens = lex_success("//こんにちは");
+        assert_eq!(tokens, vec![(LINE_COMMENT, 17)]); // 2 (//) + 15 (5 chars × 3 bytes) = 17 bytes
+
+        // Test comment followed by code
+        let tokens = lex_success("//café\n1");
+        assert_eq!(
+            tokens,
+            vec![(LINE_COMMENT, 7), (WHITESPACE, 1), (INT_LITERAL, 1)]
+        );
+    }
+
+    #[test]
+    fn test_multiline_comment_with_multibyte_chars() {
+        // Test that multiline comment length is measured in bytes, not codepoints
+        // "/*café*/" is 2 (/*) + 5 (café) + 2 (*/) = 9 bytes
+        let tokens = lex_success("/*café*/");
+        assert_eq!(tokens, vec![(MULTILINE_COMMENT, 9)]); // 2 (/*) + 5 (café) + 2 (*/) = 9 bytes
+
+        // Test with emoji
+        // "/*☕*/" is 2 (/*) + 3 (☕) + 2 (*/) = 7 bytes
+        let tokens = lex_success("/*☕*/");
+        assert_eq!(tokens, vec![(MULTILINE_COMMENT, 7)]); // 2 (/*) + 3 (☕) + 2 (*/) = 7 bytes
+
+        // Test with Japanese text
+        // "/*こんにちは*/" is 2 (/*) + 15 (5 chars × 3 bytes) + 2 (*/) = 19 bytes
+        let tokens = lex_success("/*こんにちは*/");
+        assert_eq!(tokens, vec![(MULTILINE_COMMENT, 19)]); // 2 (/*) + 15 (5 chars × 3 bytes) + 2 (*/) = 19 bytes
+
+        // Test multiline comment followed by code
+        let tokens = lex_success("/*café*/1");
+        assert_eq!(tokens, vec![(MULTILINE_COMMENT, 9), (INT_LITERAL, 1)]);
+    }
+
+    #[test]
+    fn test_unclosed_string_with_multibyte_chars() {
+        // Test that error span for unclosed strings is measured in bytes
+        let (tokens, errors) = lex("\"café");
+        assert_eq!(tokens, vec![(STRING_LITERAL, 6)]); // 1 (") + 5 (café) = 6 bytes
+        assert_err(errors, ParseError::UnclosedString, 0, 6);
+    }
+
+    #[test]
+    fn test_char_literal_with_multibyte_chars() {
+        // Test that char literal length is measured in bytes
+        // 'é' is 4 bytes: 1 (') + 2 (é) + 1 (')
+        let tokens = lex_success("'é'");
+        assert_eq!(tokens, vec![(CHAR_LITERAL, 4)]);
+
+        // Test with emoji: '☕' is 5 bytes: 1 (') + 3 (☕) + 1 (')
+        let tokens = lex_success("'☕'");
+        assert_eq!(tokens, vec![(CHAR_LITERAL, 5)]);
+    }
 }
