@@ -23,7 +23,7 @@ pub fn dump_file(ast: &File) {
     dumper.dump_node_id(ast.root_id());
 }
 
-pub fn dump_node(f: &Arc<File>, id: AstId) {
+pub fn dump_node_id(f: &Arc<File>, id: AstId) {
     let line_starts = compute_line_starts(&f.content());
     let mut dumper = AstDumper {
         indent: 0,
@@ -31,6 +31,16 @@ pub fn dump_node(f: &Arc<File>, id: AstId) {
         line_starts,
     };
     dumper.dump_node_id(id);
+}
+
+pub fn dump_node(node: AstNode) {
+    let line_starts = compute_line_starts(&node.file().content());
+    let mut dumper = AstDumper {
+        indent: 0,
+        f: node.file(),
+        line_starts,
+    };
+    dumper.dump_node_id(node.id());
 }
 
 struct AstDumper<'a> {
@@ -47,7 +57,16 @@ impl<'a> AstDumper<'a> {
     fn format_span(&self, span: Span) -> String {
         let (start_line, start_col) = compute_line_column(&self.line_starts, span.start());
         let (end_line, end_col) = compute_line_column(&self.line_starts, span.end());
-        format!("L{}:{}-L{}:{}", start_line, start_col, end_line, end_col)
+
+        format!(
+            "L{}:{}({})-L{}:{}({})",
+            start_line,
+            start_col,
+            span.start(),
+            end_line,
+            end_col,
+            span.end()
+        )
     }
 
     fn node_extra_info(&self, el: &Ast) -> Option<String> {

@@ -18,7 +18,7 @@ pub struct ModuleDefinition {
     pub id: Option<ModuleDefinitionId>,
     pub package_id: Option<PackageDefinitionId>,
     pub parent_module_id: Option<ModuleDefinitionId>,
-    pub file_id: Option<SourceFileId>,
+    pub file_id: OnceCell<SourceFileId>,
     pub span: Option<Span>,
     pub ast_id: Option<ast::AstId>,
     pub name: Option<Name>,
@@ -35,7 +35,7 @@ impl ModuleDefinition {
             id: None,
             package_id: None,
             ast_id: None,
-            file_id: None,
+            file_id: OnceCell::new(),
             span: None,
             parent_module_id: None,
             name,
@@ -67,7 +67,7 @@ impl ModuleDefinition {
             id: None,
             package_id: Some(package_id),
             ast_id: Some(ast_id),
-            file_id: Some(file_id),
+            file_id: file_id.into(),
             span: Some(span),
             parent_module_id: Some(parent_id),
             name: Some(name),
@@ -84,7 +84,7 @@ impl ModuleDefinition {
     }
 
     pub fn ast<'a>(&self, sa: &'a Sema) -> &'a ast::Module {
-        sa.file(self.file_id.expect("file expected"))
+        sa.file(self.file_id())
             .node(self.ast_id.expect("missing ast"))
             .to_module()
             .expect("module expected")
@@ -153,7 +153,7 @@ impl Element for ModuleDefinition {
     }
 
     fn file_id(&self) -> SourceFileId {
-        self.file_id.expect("missing file_id")
+        self.file_id.get().cloned().expect("missing file_id")
     }
 
     fn span(&self) -> Span {

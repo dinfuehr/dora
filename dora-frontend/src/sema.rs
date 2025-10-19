@@ -9,7 +9,7 @@ use id_arena::Arena;
 
 use crate::interner::Interner;
 use dora_bytecode::Location;
-use dora_parser::ast::{Ast, AstId};
+use dora_parser::ast::{Ast, AstId, AstNode, AstNodeBase};
 use dora_parser::{Span, compute_line_column};
 
 use crate::error::diag::Diagnostic;
@@ -268,6 +268,14 @@ impl Sema {
         self.file(id).node(ast_id)
     }
 
+    pub fn node_at_offset(&self, file_id: SourceFileId, offset: u32) -> Option<AstNode> {
+        let source_file = self.file(file_id);
+        let ast_file = source_file.ast();
+        let root = ast_file.root();
+
+        find_innermost_node_at_offset(root, offset)
+    }
+
     pub fn alias(&self, id: AliasDefinitionId) -> &AliasDefinition {
         &self.aliases[id]
     }
@@ -355,6 +363,12 @@ impl Sema {
 
     pub fn program_module_id(&self) -> ModuleDefinitionId {
         self.program_module_id.expect("uninitialized module id")
+    }
+
+    pub fn program_file_id(&self) -> SourceFileId {
+        let module_id = self.program_module_id();
+        let module = self.module(module_id);
+        module.file_id()
     }
 
     pub fn stdlib_package_id(&self) -> PackageDefinitionId {
@@ -474,5 +488,41 @@ impl Sema {
     pub fn take_errors(self) -> (Vec<ErrorDescriptor>, Vec<ErrorDescriptor>) {
         let diag = self.diag.into_inner();
         (diag.errors, diag.warnings)
+    }
+}
+
+fn find_innermost_node_at_offset(node: AstNode, offset: u32) -> Option<AstNode> {
+    let span = node.span();
+
+    if offset < span.start() || offset >= span.end() {
+        return None;
+    }
+
+    for child in node.children() {
+        if let Some(innermost) = find_innermost_node_at_offset(child, offset) {
+            return Some(innermost);
+        }
+    }
+
+    Some(node)
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn test_node_at_offset() {
+        let args = SemaCreationParams::new().set_program_content("fn main() { let x = 1; }");
+        let mut sa = Sema::new(args);
+        crate::check_program(&mut sa);
+
+        let file_id = sa.program_file_id();
+
+        let node = sa.node_at_offset(file_id, 15);
+        assert!(node.unwrap().is_let());
+
+        let node = sa.node_at_offset(file_id, 0);
+        assert!(node.unwrap().is_function());
     }
 }

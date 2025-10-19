@@ -49,7 +49,16 @@ impl<'a> AstDumper<'a> {
     fn format_span(&self, span: Span) -> String {
         let (start_line, start_col) = compute_line_column(&self.file.line_starts, span.start());
         let (end_line, end_col) = compute_line_column(&self.file.line_starts, span.end());
-        format!("L{}:{}-L{}:{}", start_line, start_col, end_line, end_col)
+
+        format!(
+            "L{}:{}({})-L{}:{}({})",
+            start_line,
+            start_col,
+            span.start(),
+            end_line,
+            end_col,
+            span.end()
+        )
     }
 
     fn node_extra_info(&self, el: &Ast) -> Option<String> {

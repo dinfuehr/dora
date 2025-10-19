@@ -267,7 +267,7 @@ impl<'a> ElementCollector<'a> {
     ) {
         let external_module = self.sa.module(external_module_id);
         let node = external_module.ast(self.sa);
-        let file_id = external_module.file_id.expect("missing file_id");
+        let file_id = external_module.file_id();
 
         if let Some(ident_id) = node.name {
             let parent_module = self.sa.module(parent_module_id);
@@ -348,6 +348,8 @@ impl<'a> ElementCollector<'a> {
         content: T,
     ) {
         let file_id = add_source_file(self.sa, package_id, module_id, file_path, content.into());
+        let result = self.sa.module(module_id).file_id.set(file_id);
+        assert!(result.is_ok() || result.unwrap_err() == file_id);
         self.worklist.push_back(file_id);
     }
 
