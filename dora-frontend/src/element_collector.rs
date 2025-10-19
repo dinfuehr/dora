@@ -944,7 +944,14 @@ impl<'x> ast::Visitor for ElementVisitor<'x> {
         let mut variants = Vec::new();
         let mut name_to_value = HashMap::new();
 
-        for variant in &node.variants {
+        let file = self.sa.file(self.file_id).ast().clone();
+
+        for &variant in &node.variants {
+            let variant = file
+                .node(variant)
+                .to_enum_variant()
+                .expect("enum variant expected");
+
             if variant.name.is_none() {
                 continue;
             }

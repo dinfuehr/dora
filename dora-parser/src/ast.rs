@@ -142,6 +142,7 @@ pub enum NodeKind {
     CtorPattern,
     Dot,
     Enum,
+    EnumVariant,
     Error,
     ExprStmt,
     Extern,
@@ -193,6 +194,7 @@ pub enum NodeKind {
     Underscore,
     UpcaseThis,
     Use,
+    UseAtom,
     UseGroup,
     UsePath,
     UseTargetName,
@@ -494,11 +496,11 @@ pub struct Enum {
     pub modifiers: Option<AstId>,
     pub name: Option<AstId>,
     pub type_params: Option<AstId>,
-    pub variants: Vec<EnumVariant>,
+    pub variants: Vec<AstId>,
     pub where_clause: Option<AstId>,
 }
 
-#[derive(Clone, Debug)]
+#[derive(Clone, Debug, AstNode)]
 pub struct EnumVariant {
     pub span: Span,
     pub name: Option<AstId>,
@@ -1120,6 +1122,12 @@ pub struct Use {
 }
 
 #[derive(Clone, Debug, AstNode)]
+pub struct UseAtom {
+    pub span: Span,
+    pub value: UsePathComponentValue,
+}
+
+#[derive(Clone, Debug, AstNode)]
 pub struct UseGroup {
     pub span: Span,
     pub targets: Vec<AstId>,
@@ -1128,7 +1136,8 @@ pub struct UseGroup {
 #[derive(Clone, Debug, AstNode)]
 pub struct UsePath {
     pub span: Span,
-    pub path: Vec<UseAtom>,
+    #[ast_node_ref(UseAtom)]
+    pub path: Vec<AstId>,
     pub target: UsePathDescriptor,
 }
 
@@ -1138,12 +1147,6 @@ pub enum UsePathDescriptor {
     As(AstId),
     Group(AstId),
     Error,
-}
-
-#[derive(Clone, Debug)]
-pub struct UseAtom {
-    pub span: Span,
-    pub value: UsePathComponentValue,
 }
 
 #[derive(Clone, Debug)]

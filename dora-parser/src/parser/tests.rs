@@ -1459,8 +1459,21 @@ fn parse_enum_with_type_params() {
     let prog = parse("enum MyOption[T] { None, Some(T), }");
     let enum_ = prog.enum0();
     assert_eq!(enum_.variants.len(), 2);
-    assert!(enum_.variants[0].fields.is_empty());
-    assert_eq!(enum_.variants[1].fields.len(), 1);
+    assert!(
+        prog.node(enum_.variants[0])
+            .to_enum_variant()
+            .unwrap()
+            .fields
+            .is_empty()
+    );
+    assert_eq!(
+        prog.node(enum_.variants[1])
+            .to_enum_variant()
+            .unwrap()
+            .fields
+            .len(),
+        1
+    );
 }
 
 #[test]

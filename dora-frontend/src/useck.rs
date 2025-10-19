@@ -89,10 +89,16 @@ fn check_use(
     for (idx, component) in use_path.path.iter().enumerate().skip(start_idx) {
         if !previous_sym.is_enum() && !previous_sym.is_module() {
             let msg = ErrorMessage::ExpectedPath;
-            sa.report(use_file_id, use_path.path[idx - 1].span, msg);
+            let use_path = sa.node(use_file_id, use_path.path[idx - 1]);
+            sa.report(use_file_id, use_path.span(), msg);
             assert!(processed_uses.insert((use_file_id, use_path_id)));
             return Err(());
         }
+
+        let component = sa
+            .node(use_file_id, *component)
+            .to_use_atom()
+            .expect("use atom expected");
 
         previous_sym = process_component(
             sa,
@@ -109,7 +115,11 @@ fn check_use(
 
     match &use_path.target {
         UsePathDescriptor::Default => {
-            let last_component = use_path.path.last().expect("no component");
+            let last_component = use_path.path.last().cloned().expect("no component");
+            let last_component = sa
+                .node(use_file_id, last_component)
+                .to_use_atom()
+                .expect("use atom expected");
             assert!(processed_uses.insert((use_file_id, use_path_id)));
 
             let name = match last_component.value {
@@ -141,7 +151,11 @@ fn check_use(
                 .node(use_file_id, *target_id)
                 .to_use_target_name()
                 .expect("use target expected");
-            let last_component = use_path.path.last().expect("no component");
+            let last_component = use_path.path.last().cloned().expect("no component");
+            let last_component = sa
+                .node(use_file_id, last_component)
+                .to_use_atom()
+                .expect("use atom expected");
             assert!(processed_uses.insert((use_file_id, use_path_id)));
 
             if let Some(ident) = target.name {
@@ -214,7 +228,11 @@ fn initial_module(
         .to_use_path()
         .expect("use path expected");
 
-    if let Some(first_component) = use_path.path.first() {
+    if let Some(first_component) = use_path.path.first().cloned() {
+        let first_component = sa
+            .node(use_file_id, first_component)
+            .to_use_atom()
+            .expect("use atom expected");
         match first_component.value {
             UsePathComponentValue::This => Ok((1, SymbolKind::Module(use_module_id))),
             UsePathComponentValue::Package => {

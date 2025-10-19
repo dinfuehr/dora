@@ -34,6 +34,23 @@ macro_rules! alloc {
     }};
 }
 
+#[allow(unused)]
+pub struct GreenToken {
+    kind: TokenKind,
+    text: String,
+}
+
+#[allow(unused)]
+pub struct GreenNode {
+    kind: TokenKind,
+    children: Vec<GreenElement>,
+}
+
+pub enum GreenElement {
+    Token(GreenToken),
+    Node(GreenNode),
+}
+
 #[cfg(test)]
 mod tests;
 
@@ -46,6 +63,10 @@ pub struct Parser {
     errors: Vec<ParseErrorWithLocation>,
     nodes: RefCell<Vec<(usize, u32)>>,
     offset: u32,
+    #[allow(unused)]
+    green_elements: Vec<GreenElement>,
+    #[allow(unused)]
+    starts: Vec<usize>,
 }
 
 enum StmtOrExpr {
@@ -75,6 +96,8 @@ impl Parser {
             ast_nodes: Arena::new(),
             errors: result.errors,
             nodes: RefCell::new(Vec::new()),
+            green_elements: Vec::new(),
+            starts: Vec::new(),
         }
     }
 
@@ -210,7 +233,7 @@ impl Parser {
         finish!(self, UseTargetName { name })
     }
 
-    fn parse_use_atom(&mut self) -> UseAtom {
+    fn parse_use_atom(&mut self) -> AstId {
         assert!(self.is_set(USE_PATH_ATOM_FIRST));
         self.start_node();
 
@@ -229,10 +252,7 @@ impl Parser {
             }
         };
 
-        UseAtom {
-            span: self.finish_node(),
-            value,
-        }
+        finish!(self, UseAtom { value })
     }
 
     fn parse_use_group(&mut self) -> AstId {
@@ -324,7 +344,7 @@ impl Parser {
         )
     }
 
-    fn parse_enum_variant(&mut self) -> EnumVariant {
+    fn parse_enum_variant(&mut self) -> AstId {
         self.start_node();
         let name = self.expect_identifier();
         let field_name_style;
@@ -368,12 +388,14 @@ impl Parser {
             Vec::new()
         };
 
-        EnumVariant {
-            span: self.finish_node(),
-            name,
-            field_name_style,
-            fields,
-        }
+        finish!(
+            self,
+            EnumVariant {
+                name,
+                field_name_style,
+                fields
+            }
+        )
     }
 
     fn parse_const(&mut self, modifiers: Option<AstId>) -> AstId {
@@ -1399,24 +1421,23 @@ impl Parser {
                             let ident = p.expect_identifier().expect("identifier expected");
                             p.assert(EQ);
                             let pattern = p.parse_pattern();
-
-                            let span = p.finish_node();
-
-                            Some(p.ast_nodes.alloc(Ast::CtorField(CtorField {
-                                span,
-                                ident: Some(ident),
-                                pattern,
-                            })))
+                            Some(finish!(
+                                p,
+                                CtorField {
+                                    ident: Some(ident),
+                                    pattern
+                                }
+                            ))
                         } else if p.is_set(PATTERN_FIRST) {
                             p.start_node();
                             let pattern = p.parse_pattern();
-                            let span = p.finish_node();
-
-                            Some(p.ast_nodes.alloc(Ast::CtorField(CtorField {
-                                span,
-                                ident: None,
-                                pattern,
-                            })))
+                            Some(finish!(
+                                p,
+                                CtorField {
+                                    ident: None,
+                                    pattern
+                                }
+                            ))
                         } else {
                             None
                         }
@@ -2080,9 +2101,12 @@ impl Parser {
     fn raw_advance(&mut self) {
         if self.token_idx < self.tokens.len() {
             let kind = self.current();
+            // let text = self.current_value();
             let len = self.token_widths[self.token_idx];
             self.offset += len;
             debug_assert!(kind <= EOF);
+            // self.green_elements
+            //     .push(GreenElement::Token(GreenToken { kind, text }));
             self.token_idx += 1;
         }
     }
@@ -2150,8 +2174,9 @@ impl Parser {
         self.current() == EOF
     }
 
-    fn start_node(&self) -> u32 {
+    fn start_node(&mut self) -> u32 {
         self.nodes.borrow_mut().push((self.token_idx, self.offset));
+        // self.starts.push(self.green_elements.len());
         self.current_span().start()
     }
 
