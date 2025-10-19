@@ -271,9 +271,7 @@ impl Sema {
     pub fn node_at_offset(&self, file_id: SourceFileId, offset: u32) -> Option<AstNode> {
         let source_file = self.file(file_id);
         let ast_file = source_file.ast();
-        let root = ast_file.root();
-
-        find_innermost_node_at_offset(root, offset)
+        ast_file.node_at_offset(offset)
     }
 
     pub fn alias(&self, id: AliasDefinitionId) -> &AliasDefinition {
@@ -491,38 +489,3 @@ impl Sema {
     }
 }
 
-fn find_innermost_node_at_offset(node: AstNode, offset: u32) -> Option<AstNode> {
-    let span = node.span();
-
-    if offset < span.start() || offset >= span.end() {
-        return None;
-    }
-
-    for child in node.children() {
-        if let Some(innermost) = find_innermost_node_at_offset(child, offset) {
-            return Some(innermost);
-        }
-    }
-
-    Some(node)
-}
-
-#[cfg(test)]
-mod tests {
-    use super::*;
-
-    #[test]
-    fn test_node_at_offset() {
-        let args = SemaCreationParams::new().set_program_content("fn main() { let x = 1; }");
-        let mut sa = Sema::new(args);
-        crate::check_program(&mut sa);
-
-        let file_id = sa.program_file_id();
-
-        let node = sa.node_at_offset(file_id, 15);
-        assert!(node.unwrap().is_let());
-
-        let node = sa.node_at_offset(file_id, 0);
-        assert!(node.unwrap().is_function());
-    }
-}

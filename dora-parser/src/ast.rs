@@ -54,6 +54,10 @@ impl File {
         &self.payload().content
     }
 
+    pub fn node_at_offset(&self, offset: u32) -> Option<AstNode> {
+        find_innermost_node_at_offset(self.root(), offset)
+    }
+
     pub fn raw_root(&self) -> &Root {
         self.node(self.payload().root_id)
             .to_root()
@@ -247,6 +251,7 @@ pub trait AstNodeBase: Sized {
     fn span(&self) -> Span;
     fn file(&self) -> &File;
     fn children(&self) -> impl Iterator<Item = AstNode>;
+    fn kind(&self) -> NodeKind;
 }
 
 #[derive(Clone, Debug)]
@@ -283,10 +288,8 @@ impl AstNodeBase for AstNode {
             .into_iter()
             .map(move |id| AstNode::new(file.clone(), id))
     }
-}
 
-impl AstNode {
-    pub fn kind(&self) -> NodeKind {
+    fn kind(&self) -> NodeKind {
         self.raw_node().kind()
     }
 }
@@ -1177,4 +1180,36 @@ pub struct While {
 
     pub cond: AstId,
     pub block: AstId,
+}
+
+fn find_innermost_node_at_offset(node: AstNode, offset: u32) -> Option<AstNode> {
+    let span = node.span();
+    if offset < span.start() || offset >= span.end() {
+        return None;
+    }
+    for child in node.children() {
+        if let Some(innermost) = find_innermost_node_at_offset(child, offset) {
+            return Some(innermost);
+        }
+    }
+    Some(node)
+}
+
+#[cfg(test)]
+mod tests {
+    use crate::Parser;
+
+    #[test]
+    fn test_node_at_offset() {
+        let content = "fn main() { let x = 1; }";
+        let parser = Parser::from_string(content);
+        let (file, errors) = parser.parse();
+        assert!(errors.is_empty());
+
+        let node = file.node_at_offset(15);
+        assert!(node.unwrap().is_let());
+
+        let node = file.node_at_offset(0);
+        assert!(node.unwrap().is_function());
+    }
 }

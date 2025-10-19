@@ -180,6 +180,10 @@ pub fn derive_ast_node(input: TokenStream) -> TokenStream {
                         let file = self.file.clone();
                         children_vec.into_iter().map(move |id| AstNode::new(file.clone(), id))
                     }
+
+                    fn kind(&self) -> NodeKind {
+                        self.raw_node().kind()
+                    }
                 }
 
                 impl #struct_ast_node_name {
