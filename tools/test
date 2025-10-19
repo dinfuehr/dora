@@ -2,6 +2,7 @@
 
 set -e
 
+cargo fmt --check
 cargo build
 cargo test
 cargo run -p dora -- --boots --report-all-warnings --emit-compiler --bootstrap-compiler tests/boots/hello.dora

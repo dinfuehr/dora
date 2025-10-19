@@ -3,25 +3,6 @@ name: ci
 on: [push, pull_request]
 
 jobs:
-  lint:
-    name: lint
-    runs-on: ubuntu-latest
-    steps:
-      - name: Clone repository
-        uses: actions/checkout@v1
-        with:
-          fetch-depth: 1
-          submodules: true
-
-      - name: Install rust
-        uses: actions-rust-lang/setup-rust-toolchain@v1
-
-      - name: Install rustfmt
-        run: rustup component add rustfmt
-
-      - name: Cargo Fmt
-        run: cargo fmt -- --check
-
   # sanitizer:
   #   name: sanitizer
   #   runs-on: ubuntu-latest
