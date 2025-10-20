@@ -25,15 +25,6 @@ macro_rules! finish {
     }};
 }
 
-// Usage: alloc!(self, Variant { field1, field2, ... })
-// Like finish! but without calling self.finish_node() and span.
-macro_rules! alloc {
-    // For struct construction: Variant { fields }
-    ($self:expr, $variant:ident { $($field:tt)* }) => {{
-        $self.ast_nodes.alloc(Ast::$variant($variant { $($field)* }))
-    }};
-}
-
 #[allow(unused)]
 pub struct GreenToken {
     kind: TokenKind,
@@ -1177,10 +1168,13 @@ impl Parser {
         match self.current() {
             LET_KW => StmtOrExpr::Stmt(self.parse_let()),
             _ => {
+                self.start_node();
+
                 if self.is_set(EXPRESSION_FIRST) {
                     let expr = self.parse_expr_stmt();
 
                     if self.is(R_BRACE) {
+                        self.cancel_node();
                         StmtOrExpr::Expr(expr)
                     } else {
                         if self.ast_nodes[expr].is_blocklike() {
@@ -1189,14 +1183,9 @@ impl Parser {
                             self.expect(SEMICOLON);
                         }
 
-                        let span = self.ast_nodes[expr].span();
-
-                        let ast_id = alloc!(self, ExprStmt { span, expr });
-
-                        StmtOrExpr::Stmt(ast_id)
+                        StmtOrExpr::Stmt(finish!(self, ExprStmt { expr }))
                     }
                 } else {
-                    self.start_node();
                     self.report_error(ParseError::ExpectedStatement);
 
                     if !self.is(R_BRACE) {
@@ -1699,26 +1688,15 @@ impl Parser {
             ParseError::ExpectedExpression,
             |p| {
                 if p.is2(IDENTIFIER, EQ) {
-                    let start = p.current_span().start();
+                    p.start_node();
                     let name = p.expect_identifier();
                     p.assert(EQ);
                     let expr = p.parse_expr();
-                    let span = p.span_from(start);
-
-                    Some(
-                        p.ast_nodes
-                            .alloc(Ast::Argument(Argument { name, span, expr })),
-                    )
+                    Some(finish!(p, Argument { name, expr }))
                 } else if p.is_set(EXPRESSION_FIRST) {
-                    let start = p.current_span().start();
+                    p.start_node();
                     let expr = p.parse_expr();
-                    let span = p.span_from(start);
-
-                    Some(p.ast_nodes.alloc(Ast::Argument(Argument {
-                        name: None,
-                        span,
-                        expr,
-                    })))
+                    Some(finish!(p, Argument { name: None, expr }))
                 } else {
                     None
                 }
