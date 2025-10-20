@@ -51,6 +51,12 @@ pub enum GreenElement {
     Node(GreenNode),
 }
 
+pub struct Marker {
+    nodes_idx: usize,
+    token_idx: usize,
+    offset: u32,
+}
+
 #[cfg(test)]
 mod tests;
 
@@ -1051,10 +1057,9 @@ impl Parser {
             }
 
             _ => {
-                let span = self.current_span();
+                self.start_node();
                 self.report_error(ParseError::ExpectedType);
-
-                alloc!(self, Error { span })
+                finish!(self, Error {})
             }
         }
     }
@@ -1104,8 +1109,8 @@ impl Parser {
             self.assert(UPCASE_SELF_KW);
             finish!(self, UpcaseThis {})
         } else {
-            let span = self.current_span();
-            alloc!(self, Error { span })
+            self.start_node();
+            finish!(self, Error {})
         }
     }
 
@@ -1524,11 +1529,11 @@ impl Parser {
         if !self.is_set(EXPRESSION_FIRST) {
             self.report_error(ParseError::ExpectedExpression);
 
-            let span = self.current_span();
-            return alloc!(self, Error { span });
+            self.start_node();
+            return finish!(self, Error {});
         }
 
-        let start = self.current_span().start();
+        let m = self.create_marker();
         let mut left = self.parse_unary_expr(prefer_stmt);
 
         loop {
@@ -1536,14 +1541,13 @@ impl Parser {
 
             left = match op {
                 AS_KW => {
+                    self.start_node_at(&m);
                     self.assert(AS_KW);
                     let right = self.parse_type();
-                    let span = self.span_from(start);
 
-                    alloc!(
+                    finish!(
                         self,
                         Conv {
-                            span,
                             object: left,
                             data_type: right,
                         }
@@ -1551,14 +1555,13 @@ impl Parser {
                 }
 
                 IS_KW => {
+                    self.start_node_at(&m);
                     self.assert(IS_KW);
                     let right = self.parse_pattern();
-                    let span = self.span_from(start);
 
-                    alloc!(
+                    finish!(
                         self,
                         Is {
-                            span,
                             value: left,
                             pattern: right,
                         }
@@ -1586,10 +1589,12 @@ impl Parser {
                 return left;
             }
 
+            self.start_node_at(&m);
+
             self.advance();
 
             let right = self.parse_expr_bp(r_bp, prefer_stmt);
-            left = self.create_binary(op, start, left, right);
+            left = self.create_binary(op, left, right);
         }
     }
 
@@ -1615,21 +1620,20 @@ impl Parser {
     }
 
     fn parse_postfix_expr(&mut self, prefer_stmt: bool) -> AstId {
-        let start = self.current_span().start();
+        let m = self.create_marker();
         let mut left = self.parse_factor();
 
         loop {
             left = match self.current() {
                 DOT => {
+                    self.start_node_at(&m);
                     let op_span = self.current_span();
                     self.assert(DOT);
                     let rhs = self.parse_factor();
-                    let span = self.span_from(start);
 
-                    alloc!(
+                    finish!(
                         self,
                         Dot {
-                            span,
                             op_span,
                             lhs: left,
                             rhs,
@@ -1638,10 +1642,12 @@ impl Parser {
                 }
 
                 L_PAREN if !(self.ast_nodes[left].is_blocklike() && prefer_stmt) => {
-                    self.parse_call(start, left)
+                    self.start_node_at(&m);
+                    self.parse_call(left)
                 }
 
                 L_BRACKET => {
+                    self.start_node_at(&m);
                     let op_span = self.current_span();
                     let types = self.parse_list(
                         L_BRACKET,
@@ -1651,12 +1657,9 @@ impl Parser {
                         ParseError::ExpectedType,
                         |p| p.parse_type_wrapper(),
                     );
-                    let span = self.span_from(start);
-
-                    alloc!(
+                    finish!(
                         self,
                         TypedExpr {
-                            span,
                             op_span,
                             callee: left,
                             args: types,
@@ -1665,15 +1668,14 @@ impl Parser {
                 }
 
                 COLON_COLON => {
+                    self.start_node_at(&m);
                     let op_span = self.current_span();
                     self.assert(COLON_COLON);
                     let rhs = self.parse_factor();
-                    let span = self.span_from(start);
 
-                    alloc!(
+                    finish!(
                         self,
                         Path {
-                            span,
                             op_span,
                             lhs: left,
                             rhs,
@@ -1688,7 +1690,7 @@ impl Parser {
         }
     }
 
-    fn parse_call(&mut self, start: u32, left: AstId) -> AstId {
+    fn parse_call(&mut self, left: AstId) -> AstId {
         let args = self.parse_list(
             L_PAREN,
             COMMA,
@@ -1722,17 +1724,10 @@ impl Parser {
                 }
             },
         );
-        alloc!(
-            self,
-            Call {
-                span: self.span_from(start),
-                callee: left,
-                args,
-            }
-        )
+        finish!(self, Call { callee: left, args })
     }
 
-    fn create_binary(&mut self, kind: TokenKind, start: u32, left: AstId, right: AstId) -> AstId {
+    fn create_binary(&mut self, kind: TokenKind, left: AstId, right: AstId) -> AstId {
         let op = match kind {
             EQ => BinOp::Assign,
             OR_OR => BinOp::Or,
@@ -1770,10 +1765,9 @@ impl Parser {
             _ => panic!("unimplemented token {:?}", kind),
         };
 
-        alloc!(
+        finish!(
             self,
             Bin {
-                span: self.span_from(start),
                 op: op,
                 lhs: left,
                 rhs: right,
@@ -1901,28 +1895,20 @@ impl Parser {
     }
 
     fn parse_template(&mut self) -> AstId {
-        let span = self.current_span();
-        let start = span.start();
-
-        self.assert(TEMPLATE_LITERAL);
-        let value = self.source_span(span);
+        self.start_node(); // TEMPLATE node
+        self.start_node(); // Start literal node
 
         let mut parts: Vec<AstId> = Vec::new();
 
-        parts.push(alloc!(
-            self,
-            LitStr {
-                span: span,
-                value: value,
-            }
-        ));
+        let value = self.current_value();
+        self.assert(TEMPLATE_LITERAL);
+
+        parts.push(finish!(self, LitStr { value: value }));
 
         let mut done = false;
 
         while !done {
             parts.push(self.parse_expr());
-
-            let span = self.current_span();
 
             if !self.is(TEMPLATE_LITERAL) {
                 done = true;
@@ -1933,27 +1919,13 @@ impl Parser {
                 break;
             }
 
-            let value = self.source_span(span);
+            self.start_node();
+            let value = self.current_value();
             self.advance();
-
-            parts.push(alloc!(
-                self,
-                LitStr {
-                    span: span,
-                    value: value,
-                }
-            ));
+            parts.push(finish!(self, LitStr { value: value }));
         }
 
-        let span = self.span_from(start);
-
-        alloc!(
-            self,
-            Template {
-                span: span,
-                parts: parts,
-            }
-        )
+        finish!(self, Template { parts: parts })
     }
 
     fn parse_string(&mut self) -> AstId {
@@ -2180,6 +2152,25 @@ impl Parser {
         self.current_span().start()
     }
 
+    fn start_node_at(&self, m: &Marker) -> u32 {
+        self.nodes
+            .borrow_mut()
+            .insert(m.nodes_idx, (m.token_idx, m.offset));
+        self.current_span().start()
+    }
+
+    fn create_marker(&self) -> Marker {
+        let nodes_idx = self.nodes.borrow().len();
+        let token_idx = self.token_idx;
+        let offset = self.offset;
+
+        Marker {
+            nodes_idx,
+            token_idx,
+            offset,
+        }
+    }
+
     fn cancel_node(&self) {
         self.nodes.borrow_mut().pop().expect("missing scope");
     }
@@ -2207,12 +2198,6 @@ impl Parser {
         }
 
         Span::new(start_offset, end_offset - start_offset)
-    }
-
-    fn source_span(&self, span: Span) -> String {
-        let start = span.start() as usize;
-        let end = span.end() as usize;
-        String::from(&self.content[start..end])
     }
 
     fn span_from(&self, start: u32) -> Span {
