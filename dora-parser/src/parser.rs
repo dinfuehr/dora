@@ -1,4 +1,3 @@
-use std::cell::RefCell;
 use std::sync::Arc;
 
 use id_arena::Arena;
@@ -58,7 +57,7 @@ pub struct Parser {
     content: Arc<String>,
     ast_nodes: Arena<Ast>,
     errors: Vec<ParseErrorWithLocation>,
-    nodes: RefCell<Vec<(usize, u32)>>,
+    nodes: Vec<(usize, u32)>,
     offset: u32,
     #[allow(unused)]
     green_elements: Vec<GreenElement>,
@@ -92,7 +91,7 @@ impl Parser {
             content,
             ast_nodes: Arena::new(),
             errors: result.errors,
-            nodes: RefCell::new(Vec::new()),
+            nodes: Vec::new(),
             green_elements: Vec::new(),
             starts: Vec::new(),
         }
@@ -104,7 +103,7 @@ impl Parser {
     }
 
     pub fn into_file(self, root_id: AstId) -> (ast::File, Vec<ParseErrorWithLocation>) {
-        assert!(self.nodes.borrow().is_empty());
+        assert!(self.nodes.is_empty());
 
         (
             ast::File::new(self.content.clone(), self.ast_nodes, root_id),
@@ -2125,20 +2124,18 @@ impl Parser {
     }
 
     fn start_node(&mut self) -> u32 {
-        self.nodes.borrow_mut().push((self.token_idx, self.offset));
+        self.nodes.push((self.token_idx, self.offset));
         // self.starts.push(self.green_elements.len());
         self.current_span().start()
     }
 
-    fn start_node_at(&self, m: &Marker) -> u32 {
-        self.nodes
-            .borrow_mut()
-            .insert(m.nodes_idx, (m.token_idx, m.offset));
+    fn start_node_at(&mut self, m: &Marker) -> u32 {
+        self.nodes.insert(m.nodes_idx, (m.token_idx, m.offset));
         self.current_span().start()
     }
 
     fn create_marker(&self) -> Marker {
-        let nodes_idx = self.nodes.borrow().len();
+        let nodes_idx = self.nodes.len();
         let token_idx = self.token_idx;
         let offset = self.offset;
 
@@ -2149,13 +2146,12 @@ impl Parser {
         }
     }
 
-    fn cancel_node(&self) {
-        self.nodes.borrow_mut().pop().expect("missing scope");
+    fn cancel_node(&mut self) {
+        self.nodes.pop().expect("missing scope");
     }
 
-    fn finish_node(&self) -> Span {
-        let (start_token, start_offset) =
-            self.nodes.borrow_mut().pop().expect("missing node start");
+    fn finish_node(&mut self) -> Span {
+        let (start_token, start_offset) = self.nodes.pop().expect("missing node start");
 
         assert!(start_token <= self.token_idx);
         if start_token == self.token_idx {
